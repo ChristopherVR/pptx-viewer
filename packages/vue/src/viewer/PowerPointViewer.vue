@@ -14,7 +14,7 @@
  */
 import { cloneElement, createEditorId } from 'pptx-viewer-core';
 import type { PptxElement, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
-import { isTemplateElementId, openPptxFile, strokeToInkElement } from 'pptx-viewer-shared';
+import { isTemplateElementId, openPptxFile } from 'pptx-viewer-shared';
 import { computed, provide, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
@@ -82,7 +82,7 @@ import { useAccessibility } from './composables/useAccessibility';
 import { useAlignGroup } from './composables/useAlignGroup';
 import { useAutosave } from './composables/useAutosave';
 import { useCollaborationWiring } from './composables/useCollaborationWiring';
-import { useComments } from './composables/useComments';
+import { useCommentsWiring } from './composables/useCommentsWiring';
 import { useContextMenu } from './composables/useContextMenu';
 import { useCustomShowsWiring } from './composables/useCustomShowsWiring';
 import { useDocumentPropertiesDialog } from './composables/useDocumentPropertiesDialog';
@@ -107,7 +107,7 @@ import { useMasterViewState } from './composables/useMasterViewState';
 import { useMobileChrome } from './composables/useMobileChrome';
 import { useMultiSelectOps } from './composables/useMultiSelectOps';
 import { usePasswordProtection } from './composables/usePasswordProtection';
-import type { SlideAnnotationMap } from './composables/usePresentationAnnotations';
+import { usePresentationModeWiring } from './composables/usePresentationModeWiring';
 import { usePrint } from './composables/usePrint';
 import { useRibbonActions } from './composables/useRibbonActions';
 import { useRibbonProps } from './composables/useRibbonProps';
@@ -650,50 +650,12 @@ function pasteElement(): void {
 }
 
 // ── Presentation (slideshow) mode ─────────────────────────────────────
-const presenting = ref(false);
-function startPresenting(): void {
-	presenting.value = true;
-}
-function onPresentClose(payload?: { annotations: SlideAnnotationMap }): void {
-	presenting.value = false;
-	const map = payload?.annotations;
-	if (!map || map.size === 0) {
-		return;
-	}
-	// Persist kept ink annotations as `ink` elements on their slides. Strokes
-	// are converted with the shared `strokeToInkElement` helper (highlighter when
-	// the stroke is translucent), appended per slide, and committed as a single
-	// history-tracked change so the whole batch undoes together.
-	let mutated = false;
-	const nextSlides = slides.value.map((slide, index) => {
-		const strokes = map.get(index);
-		if (!strokes || strokes.length === 0) {
-			return slide;
-		}
-		const inkElements = strokes
-			.map((stroke) =>
-				strokeToInkElement({
-					points: stroke.points,
-					color: stroke.color,
-					width: stroke.width,
-					tool: stroke.opacity < 1 ? 'highlighter' : 'pen',
-				}),
-			)
-			.filter((el): el is NonNullable<typeof el> => el !== null);
-		if (inkElements.length === 0) {
-			return slide;
-		}
-		mutated = true;
-		return { ...slide, elements: [...slide.elements, ...inkElements] };
+const { presenting, startPresenting, onPresentClose, onPresentSlideChange } =
+	usePresentationModeWiring({
+		slides,
+		activeSlideIndex,
+		pushHistory: history.pushHistory,
 	});
-	if (mutated) {
-		history.pushHistory();
-		slides.value = nextSlides;
-	}
-}
-function onPresentSlideChange(index: number): void {
-	activeSlideIndex.value = index;
-}
 
 // ── Hyperlink dialog ──────────────────────────────────────────────────
 const hyperlinkOpen = ref(false);
@@ -817,33 +779,15 @@ const autosave = useAutosave({
 });
 
 // ── Comments ──────────────────────────────────────────────────────────
-const showComments = ref(false);
-const activeComments = computed(() => activeSlide.value?.comments ?? []);
 const authorNameRef = computed(() => props.authorName ?? 'You');
-const commentsApi = useComments({
-	comments: activeComments,
-	activeSlideIndex,
-	authorName: authorNameRef,
-});
-/** Open the comments panel and focus the deck on the marker's slide. */
-function onCommentMarkerClick(_id: string): void {
-	showComments.value = true;
-}
-/** Commit a new comment array for the active slide (history-aware). */
-function commitComments(next: ReturnType<typeof commentsApi.addComment>): void {
-	if (!next) {
-		return;
-	}
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	history.pushHistory();
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, comments: next };
-	slides.value = nextSlides;
-}
+const { showComments, activeComments, commentsApi, onCommentMarkerClick, commitComments } =
+	useCommentsWiring({
+		activeSlide,
+		activeSlideIndex,
+		slides,
+		authorName: authorNameRef,
+		pushHistory: history.pushHistory,
+	});
 
 // ── Collaboration (Yjs) + broadcast ────────────────────────────────────
 const {
