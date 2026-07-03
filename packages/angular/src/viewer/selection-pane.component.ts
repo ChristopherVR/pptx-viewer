@@ -110,7 +110,7 @@ function elementLabel(el: PptxElement): string {
 					}
 				</ul>
 			} @else {
-				<p class="pptx-ng-sel-pane__empty">{{ 'pptx.selectionPane.emptySlide' | translate }}</p>
+				<p class="pptx-ng-sel-pane__empty">{{ 'pptx.selectionPane.empty' | translate }}</p>
 			}
 		</aside>
 	`,

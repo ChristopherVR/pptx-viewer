@@ -91,7 +91,7 @@ import {
 			>
 				@if (isEmpty()) {
 					<div class="pptx-ng-smartart-placeholder">
-						{{ 'pptx.smartart.placeholder' | translate }}
+						{{ 'pptx.smartArt.placeholder' | translate }}
 					</div>
 				} @else if (hasDrawingShapes()) {
 					<svg
@@ -252,7 +252,7 @@ import {
 					</svg>
 				} @else {
 					<div class="pptx-ng-smartart-placeholder">
-						{{ 'pptx.smartart.placeholder' | translate }}
+						{{ 'pptx.smartArt.placeholder' | translate }}
 					</div>
 				}
 
@@ -267,7 +267,7 @@ import {
 							<button
 								type="button"
 								class="pptx-ng-smartart-swatch"
-								[attr.aria-label]="'pptx.smartart.setFillTo' | translate: { color: color }"
+								[attr.aria-label]="'pptx.smartArt.setFill' | translate: { color: color }"
 								[style.background]="color"
 								(click)="handleChangeNodeStyle(hoveredNodeId()!, color)"
 							></button>

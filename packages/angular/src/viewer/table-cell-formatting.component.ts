@@ -185,7 +185,7 @@ type NumKey =
 							[disabled]="!canEdit()"
 							(click)="onMergeRange()"
 						>
-							{{ 'pptx.table.mergeSelected' | translate }}
+							{{ 'pptx.contextMenu.mergeSelectedCells' | translate }}
 						</button>
 					}
 				</div>

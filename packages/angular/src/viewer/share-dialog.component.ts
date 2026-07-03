@@ -71,9 +71,7 @@ import type { ShareDefaults } from './share-helpers';
 
 					@if (shareUrl()) {
 						<div class="pptx-ng-share-field">
-							<label class="pptx-ng-share-label">{{
-								'pptx.share.shareLinkLabel' | translate
-							}}</label>
+							<label class="pptx-ng-share-label">{{ 'pptx.share.shareLink' | translate }}</label>
 							<div class="pptx-ng-share-link-row">
 								<input
 									class="pptx-ng-share-input"
@@ -91,12 +89,12 @@ import type { ShareDefaults } from './share-helpers';
 									{{ (copied() ? 'pptx.share.copied' : 'pptx.share.copyLinkButton') | translate }}
 								</button>
 							</div>
-							<p class="pptx-ng-share-hint">{{ 'pptx.share.copyLinkHint' | translate }}</p>
+							<p class="pptx-ng-share-hint">{{ 'pptx.share.shareHint' | translate }}</p>
 						</div>
 					}
 
 					<button type="button" class="pptx-ng-share-stop" (click)="handleStop()">
-						{{ 'pptx.share.stopSharingButton' | translate }}
+						{{ 'pptx.share.stopSharing' | translate }}
 					</button>
 				</div>
 			} @else {
@@ -163,7 +161,7 @@ import type { ShareDefaults } from './share-helpers';
 						[disabled]="!canStart()"
 						(click)="handleStart()"
 					>
-						{{ 'pptx.share.startSharingButton' | translate }}
+						{{ 'pptx.share.startSharing' | translate }}
 					</button>
 				}
 			</div>

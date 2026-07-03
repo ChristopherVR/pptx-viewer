@@ -85,7 +85,7 @@ import {
 
 			<!-- ── Layout switcher ──────────────────────────────────────────── -->
 			<div class="pptx-sa-props__field">
-				<span class="pptx-sa-props__label">{{ 'pptx.smartart.layout' | translate }}</span>
+				<span class="pptx-sa-props__label">{{ 'pptx.master.layout' | translate }}</span>
 				<div
 					class="pptx-sa-props__layouts"
 					role="group"
@@ -177,7 +177,7 @@ import {
 							class="pptx-sa-props__node-input"
 							[disabled]="!canEdit()"
 							[value]="node.text"
-							[attr.placeholder]="'pptx.smartart.typeHere' | translate"
+							[attr.placeholder]="'pptx.smartArt.nodePlaceholder' | translate"
 							(change)="onNodeText($event, node.id)"
 							(keydown)="onNodeKeydown($event, node.id)"
 						/>
@@ -186,7 +186,7 @@ import {
 								<button
 									type="button"
 									class="pptx-sa-props__icon"
-									[title]="'pptx.smartart.addSubItem' | translate"
+									[title]="'pptx.smartArt.addSubItem' | translate"
 									[disabled]="!canEdit()"
 									(click)="onAddSubItem(node.id)"
 								>
@@ -214,7 +214,7 @@ import {
 							<button
 								type="button"
 								class="pptx-sa-props__icon"
-								[title]="'pptx.smartart.moveUp' | translate"
+								[title]="'pptx.smartArt.moveUp' | translate"
 								[disabled]="!canEdit()"
 								(click)="onMoveUp(node.id)"
 							>
@@ -223,7 +223,7 @@ import {
 							<button
 								type="button"
 								class="pptx-sa-props__icon"
-								[title]="'pptx.smartart.moveDown' | translate"
+								[title]="'pptx.smartArt.moveDown' | translate"
 								[disabled]="!canEdit()"
 								(click)="onMoveDown(node.id)"
 							>
@@ -235,7 +235,7 @@ import {
 								[title]="
 									!isChild(node) && !canRemoveItem()
 										? boundsHint()
-										: ('pptx.smartart.remove' | translate)
+										: ('pptx.smartArt.remove' | translate)
 								"
 								[disabled]="
 									!canEdit() || nodes().length <= 1 || (!isChild(node) && !canRemoveItem())
@@ -250,7 +250,7 @@ import {
 						<div class="pptx-sa-props__node-style">
 							<label class="pptx-sa-props__swatch" [title]="'pptx.smartart.nodeFill' | translate">
 								<span class="pptx-sa-props__swatch-label">{{
-									'pptx.smartart.fill' | translate
+									'pptx.smartArt.fill' | translate
 								}}</span>
 								<input
 									type="color"
@@ -262,7 +262,7 @@ import {
 							</label>
 							<label class="pptx-sa-props__swatch" [title]="'pptx.smartart.nodeFont' | translate">
 								<span class="pptx-sa-props__swatch-label">{{
-									'pptx.smartart.font' | translate
+									'pptx.textPanel.font' | translate
 								}}</span>
 								<input
 									type="color"
@@ -275,7 +275,7 @@ import {
 							<button
 								type="button"
 								class="pptx-sa-props__icon pptx-sa-props__style-toggle"
-								[title]="'pptx.smartart.bold' | translate"
+								[title]="'pptx.inspector.bold' | translate"
 								[class.is-active]="nodeIsBold(node)"
 								[attr.aria-pressed]="nodeIsBold(node)"
 								[disabled]="!canEdit()"
@@ -286,7 +286,7 @@ import {
 							<button
 								type="button"
 								class="pptx-sa-props__icon pptx-sa-props__style-toggle"
-								[title]="'pptx.smartart.italic' | translate"
+								[title]="'pptx.inspector.italic' | translate"
 								[class.is-active]="nodeIsItalic(node)"
 								[attr.aria-pressed]="nodeIsItalic(node)"
 								[disabled]="!canEdit()"

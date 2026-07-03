@@ -38,7 +38,7 @@ import type { DocumentProperties } from './properties-dialog-helpers';
 			<div class="pptx-ng-props-form">
 				<div class="pptx-ng-props-field">
 					<label for="pptx-ng-props-title" class="pptx-ng-props-label">{{
-						'pptx.documentProperties.summary.title' | translate
+						'pptx.properties.titleLabel' | translate
 					}}</label>
 					<input
 						id="pptx-ng-props-title"
@@ -51,7 +51,7 @@ import type { DocumentProperties } from './properties-dialog-helpers';
 
 				<div class="pptx-ng-props-field">
 					<label for="pptx-ng-props-creator" class="pptx-ng-props-label">{{
-						'pptx.documentProperties.summary.author' | translate
+						'pptx.properties.author' | translate
 					}}</label>
 					<input
 						id="pptx-ng-props-creator"
@@ -64,7 +64,7 @@ import type { DocumentProperties } from './properties-dialog-helpers';
 
 				<div class="pptx-ng-props-field">
 					<label for="pptx-ng-props-subject" class="pptx-ng-props-label">{{
-						'pptx.documentProperties.summary.subject' | translate
+						'pptx.properties.subject' | translate
 					}}</label>
 					<input
 						id="pptx-ng-props-subject"
@@ -77,7 +77,7 @@ import type { DocumentProperties } from './properties-dialog-helpers';
 
 				<div class="pptx-ng-props-field">
 					<label for="pptx-ng-props-keywords" class="pptx-ng-props-label">{{
-						'pptx.documentProperties.summary.keywords' | translate
+						'pptx.properties.keywords' | translate
 					}}</label>
 					<input
 						id="pptx-ng-props-keywords"

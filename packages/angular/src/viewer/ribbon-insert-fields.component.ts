@@ -136,7 +136,7 @@ function newFieldGuid(): string {
 						class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 						(click)="openDatePicker()"
 					>
-						{{ 'pptx.field.dateAndTime' | translate }}
+						{{ 'pptx.headerFooter.dateAndTime' | translate }}
 					</button>
 					<button
 						type="button"
@@ -164,7 +164,7 @@ function newFieldGuid(): string {
 			>
 				<div class="w-72 space-y-3 rounded-lg border border-border bg-card p-4 shadow-2xl">
 					<div class="text-sm font-medium text-foreground">
-						{{ 'pptx.field.dateAndTime' | translate }}
+						{{ 'pptx.headerFooter.dateAndTime' | translate }}
 					</div>
 					<input
 						type="datetime-local"

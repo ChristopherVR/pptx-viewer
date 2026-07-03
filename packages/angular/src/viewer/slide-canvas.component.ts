@@ -272,7 +272,7 @@ function plainText(el: PptxElement): string {
 						<div
 							class="pptx-ng-rotate-handle"
 							role="button"
-							[attr.aria-label]="'pptx.canvas.rotate' | translate"
+							[attr.aria-label]="'pptx.selectionOverlay.rotate' | translate"
 							[style.left.px]="rh.left"
 							[style.top.px]="rh.top"
 							[style.width.px]="rh.size"

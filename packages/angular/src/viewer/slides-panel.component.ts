@@ -80,12 +80,12 @@ const THUMB_W = 150;
 						<div
 							class="pptx-ng-spanel-actions"
 							role="toolbar"
-							[attr.aria-label]="'pptx.slidesPanel.slideActions' | translate: { n: i + 1 }"
+							[attr.aria-label]="'pptx.slideMenu.slideActions' | translate: { n: i + 1 }"
 						>
 							<button
 								type="button"
 								class="pptx-ng-spanel-action"
-								[title]="'pptx.slidesPanel.duplicateSlide' | translate"
+								[title]="'pptx.ribbon.duplicateSlide' | translate"
 								[attr.aria-label]="'pptx.arrange.duplicate' | translate"
 								(click)="onDuplicate(i)"
 							>

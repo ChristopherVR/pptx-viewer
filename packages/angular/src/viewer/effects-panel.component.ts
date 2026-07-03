@@ -74,7 +74,7 @@ import type { EffectsState } from './effects-helpers';
 							(change)="onOuterShadowField('color', $event)"
 						/>
 						<label class="pptx-ng-fx__label" for="fx-os-opacity">{{
-							'pptx.effects.opacity' | translate
+							'pptx.inspector.opacity' | translate
 						}}</label>
 						<input
 							id="fx-os-opacity"
@@ -157,7 +157,7 @@ import type { EffectsState } from './effects-helpers';
 							(change)="onInnerShadowField('color', $event)"
 						/>
 						<label class="pptx-ng-fx__label" for="fx-is-opacity">{{
-							'pptx.effects.opacity' | translate
+							'pptx.inspector.opacity' | translate
 						}}</label>
 						<input
 							id="fx-is-opacity"
@@ -250,7 +250,7 @@ import type { EffectsState } from './effects-helpers';
 							(change)="onGlowField('radius', $event)"
 						/>
 						<label class="pptx-ng-fx__label" for="fx-glow-opacity">{{
-							'pptx.effects.opacity' | translate
+							'pptx.inspector.opacity' | translate
 						}}</label>
 						<input
 							id="fx-glow-opacity"
