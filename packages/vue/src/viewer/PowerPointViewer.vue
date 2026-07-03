@@ -43,6 +43,10 @@ import {
 	strokeToInkElement,
 } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
+import { cloneElement, createEditorId } from 'pptx-viewer-core';
+import type { PptxElement, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
+import { isTemplateElementId, openPptxFile } from 'pptx-viewer-shared';
+import { computed, provide, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
@@ -56,7 +60,6 @@ import ComparePanel from './components/ComparePanel.vue';
 import ContextMenu from './components/ContextMenu.vue';
 import CustomShowsPanel from './components/CustomShowsPanel.vue';
 import DocumentPropertiesDialog from './components/DocumentPropertiesDialog.vue';
-import type { DocumentPropertiesSavePatch } from './components/DocumentPropertiesDialog.vue';
 import DrawingOverlay from './components/DrawingOverlay.vue';
 import type { ShapePreset } from './components/EditorToolbar.vue';
 import EquationEditorDialog from './components/EquationEditorDialog.vue';
@@ -83,12 +86,6 @@ import PasswordProtectionDialog from './components/PasswordProtectionDialog.vue'
 import PresentationMode from './components/PresentationMode.vue';
 import PrintDialog from './components/PrintDialog.vue';
 import RemoteSelectionOverlay from './components/RemoteSelectionOverlay.vue';
-import type {
-	DrawingTool,
-	RibbonProps,
-	SupportedShapeType,
-	ToolbarSection,
-} from './components/ribbon/ribbon-types';
 import RibbonToolbar from './components/ribbon/RibbonToolbar.vue';
 import SectionList from './components/SectionList.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
@@ -108,65 +105,58 @@ import SnapLinesOverlay from './components/SnapLinesOverlay.vue';
 import StatusBar from './components/StatusBar.vue';
 import ThemeGallery from './components/ThemeGallery.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
-import { DEFAULT_VIEWER_SETTINGS } from './components/viewer-settings';
-import type { ViewerSettings } from './components/viewer-settings';
 import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
-import {
-	applyFormatToElement,
-	copyFormatFromElement,
-	hasCopyableFormat,
-} from './composables/format-painter';
-import type { CopiedFormat } from './composables/format-painter';
-import { remapTextToSegments } from './composables/remap-text';
-import { compareSlides } from './composables/slide-compare';
-import type { CompareResult } from './composables/slide-compare';
 import { SmartArt3DKey } from './composables/smart-art-3d';
-import { SmartArtNodeEditKey } from './composables/smartart-node-edit';
-import { TableCellEditKey } from './composables/table-edit';
-import type { TableSelectionState } from './composables/table-selection';
-import { provideTableSelection } from './composables/table-selection';
 import { TableThemeKey } from './composables/table-theme';
-import {
-	buildSaveSlides,
-	isElementIdInteractive,
-	setTemplateElements,
-} from './composables/template-editing';
+import { buildSaveSlides, isElementIdInteractive } from './composables/template-editing';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAlignGroup } from './composables/useAlignGroup';
 import { useAutosave } from './composables/useAutosave';
-import { useCollaboration } from './composables/useCollaboration';
-import { useComments } from './composables/useComments';
+import { useCollaborationWiring } from './composables/useCollaborationWiring';
+import { useCommentsWiring } from './composables/useCommentsWiring';
 import { useContextMenu } from './composables/useContextMenu';
-import { useCustomShows } from './composables/useCustomShows';
+import { useCustomShowsWiring } from './composables/useCustomShowsWiring';
+import { useDocumentPropertiesDialog } from './composables/useDocumentPropertiesDialog';
 import { useEditorHistory } from './composables/useEditorHistory';
+import { useEditorKeyboard } from './composables/useEditorKeyboard';
 import { useEditorOperations } from './composables/useEditorOperations';
 import { useElementDrag } from './composables/useElementDrag';
 import { useElementInsertion } from './composables/useElementInsertion';
 import { useEmbeddedFonts } from './composables/useEmbeddedFonts';
-import { useExport } from './composables/useExport';
-import { useExportProgress } from './composables/useExportProgress';
+import { useExportWiring } from './composables/useExportWiring';
 import { useFindReplace } from './composables/useFindReplace';
+import { useFontEmbedding } from './composables/useFontEmbedding';
+import { useFormatPainter } from './composables/useFormatPainter';
+import { useHeaderFooterDialog } from './composables/useHeaderFooterDialog';
+import { useInkDrawing } from './composables/useInkDrawing';
+import { useInlineEditing } from './composables/useInlineEditing';
+import { useInsertElementDialogs } from './composables/useInsertElementDialogs';
 import { useIsMobile } from './composables/useIsMobile';
 import { useKeyboardInsets } from './composables/useKeyboardInsets';
-import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts';
 import { useLoadContent } from './composables/useLoadContent';
-import { useMediaExport } from './composables/useMediaExport';
-import type { SlideAnnotationMap } from './composables/usePresentationAnnotations';
+import { useMasterViewState } from './composables/useMasterViewState';
+import { useMobileChrome } from './composables/useMobileChrome';
+import { useMultiSelectOps } from './composables/useMultiSelectOps';
+import { usePasswordProtection } from './composables/usePasswordProtection';
+import { usePresentationModeWiring } from './composables/usePresentationModeWiring';
 import { usePrint } from './composables/usePrint';
-import { RIBBON_ALIGN, toShapePreset, useRibbonActions } from './composables/useRibbonActions';
+import { useRibbonActions } from './composables/useRibbonActions';
+import { useRibbonProps } from './composables/useRibbonProps';
+import { useRibbonUiState } from './composables/useRibbonUiState';
 import { useSectionOperations } from './composables/useSectionOperations';
-import { useSignatures } from './composables/useSignatures';
+import { useSelectionPaneWiring } from './composables/useSelectionPaneWiring';
+import { useSignatureWorkflow } from './composables/useSignatureWorkflow';
 import { useSlideMutations } from './composables/useSlideMutations';
 import { useSlideOperations } from './composables/useSlideOperations';
+import { useSlideShowSettings } from './composables/useSlideShowSettings';
+import { useSmartArtNodeEditContext } from './composables/useSmartArtNodeEditContext';
+import { useTableCellEditingContext } from './composables/useTableCellEditingContext';
+import { useThemeEditing } from './composables/useThemeEditing';
 import { useTouchGestures } from './composables/useTouchGestures';
-import { useVersionHistory } from './composables/useVersionHistory';
+import { useVersionHistoryWiring } from './composables/useVersionHistoryWiring';
+import { useViewerSettingsDialog } from './composables/useViewerSettingsDialog';
 import { provideZoomTargetLookup, toZoomTargetInfo } from './composables/zoom-target';
-import type {
-	CollaborationConfig,
-	PowerPointViewerEmits,
-	PowerPointViewerExpose,
-	PowerPointViewerProps,
-} from './types';
+import type { PowerPointViewerEmits, PowerPointViewerExpose, PowerPointViewerProps } from './types';
 
 const props = withDefaults(defineProps<PowerPointViewerProps>(), {
 	canEdit: false,
@@ -274,12 +264,18 @@ provide(FieldContextKey, () => {
 	};
 });
 
-// Inline table-cell editing context for `TableRenderer` (double-tap a cell ->
-// inline input -> commit). The closures run post-setup, so referencing the
-// later-declared `ops`/`presenting` is safe.
-provide(TableCellEditKey, {
-	canEdit: () => props.canEdit && !presenting.value,
-	commit: commitTableCell,
+// Inline table-cell editing + table cell selection/resize contexts for
+// `TableRenderer` / `TablePanel`. Dependencies that don't exist yet at this
+// point in setup (`ops`, `presenting`, `commitTableCell`) are passed as
+// wrapper closures, deferred until actually called (same forward-reference
+// pattern used throughout this component).
+const { tableSelection } = useTableCellEditingContext({
+	canEdit: () => props.canEdit,
+	canEditInline: () => props.canEdit && !presenting.value,
+	findActiveElement,
+	updateElement: (id, patch) => ops.updateElement(id, patch),
+	commitTableCell: (elementId, rowIndex, colIndex, text) =>
+		commitTableCell(elementId, rowIndex, colIndex, text),
 });
 
 // Table cell selection + drag-resize context for `TableRenderer` / `TablePanel`.
@@ -369,6 +365,13 @@ provide(SmartArtNodeEditKey, {
 		}
 		ops.updateElement(elementId, patch);
 	},
+// Inline SmartArt node-text and per-node fill editing context. Mirrors the
+// table-cell context above (same forward-reference / wrapper-closure pattern).
+useSmartArtNodeEditContext({
+	canEdit: () => props.canEdit,
+	canEditInline: () => props.canEdit && !presenting.value,
+	findActiveElement,
+	updateElement: (id, patch) => ops.updateElement(id, patch),
 });
 
 // Inject embedded fonts as @font-face (side effect; auto-cleaned on unmount).
@@ -549,29 +552,28 @@ function clearSelection(): void {
 }
 
 // ── Format painter ────────────────────────────────────────────────────
-// Arm by copying the selected element's format; the next element click applies
-// it. Escape or an empty-canvas click cancels (mirrors React's painter).
-const formatPainterActive = ref(false);
-const copiedFormat = ref<CopiedFormat | null>(null);
-const canActivateFormatPainter = computed(
-	() => selectedElements.value.length === 1 && hasCopyableFormat(selectedElements.value[0]),
-);
-function toggleFormatPainter(): void {
-	if (formatPainterActive.value) {
-		cancelFormatPainter();
-		return;
-	}
-	const source = selectedElements.value[0];
-	if (!source || !hasCopyableFormat(source)) {
-		return;
-	}
-	copiedFormat.value = copyFormatFromElement(source);
-	formatPainterActive.value = true;
-}
-function cancelFormatPainter(): void {
-	formatPainterActive.value = false;
-	copiedFormat.value = null;
-}
+const {
+	formatPainterActive,
+	canActivateFormatPainter,
+	toggleFormatPainter,
+	cancelFormatPainter,
+	applyFormatToTarget,
+} = useFormatPainter({ selectedElements, findActiveElement, ops });
+
+// ── Inline text editing ───────────────────────────────────────────────
+// Entered by tapping an already-selected element (SelectionOverlay emits
+// `requestEdit`). Commits on blur, on selecting another element, or on an
+// empty-canvas tap; the typed text is remapped back onto the rich segments.
+const {
+	inlineEditingElementId,
+	inlineEditingText,
+	inlineEditingElement,
+	enterInlineEdit,
+	commitInlineEdit,
+	cancelInlineEdit,
+	commitTableCell,
+} = useInlineEditing({ canEdit: () => props.canEdit, findActiveElement, ops });
+
 /** Escape: disarm the painter first, otherwise clear the selection. */
 function onEscape(): void {
 	if (inlineEditingElementId.value) {
@@ -583,91 +585,6 @@ function onEscape(): void {
 		return;
 	}
 	clearSelection();
-}
-
-// ── Inline text editing ───────────────────────────────────────────────
-// Entered by tapping an already-selected element (SelectionOverlay emits
-// `requestEdit`). Commits on blur, on selecting another element, or on an
-// empty-canvas tap; the typed text is remapped back onto the rich segments.
-const inlineEditingElementId = ref<string | null>(null);
-const inlineEditingText = ref('');
-const inlineEditingElement = computed<PptxElement | undefined>(() =>
-	inlineEditingElementId.value ? findActiveElement(inlineEditingElementId.value) : undefined,
-);
-function enterInlineEdit(id: string): void {
-	const el = findActiveElement(id);
-	// Only elements that carry text (text boxes / shapes) get the element-level
-	// inline text editor, and only when text editing is not locked. Mirrors
-	// React's gate (useCanvasInteractions: `hasTextProperties(el) &&
-	// !el.locks?.noTextEdit`). Without this, tapping a selected table opened the
-	// whole-table text editor and masked the per-cell <td> editor.
-	if (!el || !hasTextProperties(el) || el.locks?.noTextEdit) {
-		return;
-	}
-	inlineEditingElementId.value = id;
-	inlineEditingText.value = (el as { text?: string }).text ?? '';
-}
-function commitInlineEdit(): void {
-	const id = inlineEditingElementId.value;
-	if (!id) {
-		return;
-	}
-	const el = findActiveElement(id) as
-		| (PptxElement & { textSegments?: unknown; textStyle?: unknown })
-		| undefined;
-	const text = inlineEditingText.value;
-	inlineEditingElementId.value = null;
-	if (el) {
-		const segments = remapTextToSegments(
-			text,
-			(el.textSegments as Parameters<typeof remapTextToSegments>[1]) ?? undefined,
-			(el.textStyle as Parameters<typeof remapTextToSegments>[2]) ?? undefined,
-		);
-		ops.updateElement(id, { text, textSegments: segments } as Partial<PptxElement>);
-	}
-}
-function cancelInlineEdit(): void {
-	inlineEditingElementId.value = null;
-}
-/**
- * Commit an inline table-cell edit: resolve the table element, apply the
- * immutable `setCellText` update, and record it through the history-tracked
- * editor op so undo/redo works (mirrors React/Angular cell-commit handlers).
- */
-function commitTableCell(
-	elementId: string,
-	rowIndex: number,
-	colIndex: number,
-	text: string,
-): void {
-	if (!props.canEdit) {
-		return;
-	}
-	const el = findActiveElement(elementId);
-	if (!el || el.type !== 'table') {
-		return;
-	}
-	const updated = setCellText(el, rowIndex, colIndex, text);
-	ops.updateElement(elementId, { tableData: updated.tableData } as Partial<PptxElement>);
-}
-/** Apply the copied format to a target element (shape/text style only). */
-function applyFormatToTarget(id: string): void {
-	const format = copiedFormat.value;
-	const target = findActiveElement(id);
-	if (!format || !target) {
-		return;
-	}
-	const updated = applyFormatToElement(target, format) as unknown as Record<string, unknown>;
-	const patch: Record<string, unknown> = {};
-	if (format.shapeStyle && updated.shapeStyle !== undefined) {
-		patch.shapeStyle = updated.shapeStyle;
-	}
-	if (format.textStyle && updated.textStyle !== undefined) {
-		patch.textStyle = updated.textStyle;
-	}
-	if (Object.keys(patch).length > 0) {
-		ops.updateElement(id, patch as Partial<PptxElement>);
-	}
 }
 
 /** Click-to-select via event delegation (elements render `data-element-id`). */
@@ -765,29 +682,11 @@ const {
 	pushHistory: history.pushHistory,
 	handler,
 });
-function deleteSelected(): void {
-	for (const id of [...selectedElementIds.value]) {
-		ops.removeElement(id);
-	}
-	clearSelection();
-}
-function duplicateSelected(): void {
-	const next: string[] = [];
-	for (const id of [...selectedElementIds.value]) {
-		const newId = ops.duplicateElement(id);
-		if (newId) {
-			next.push(newId);
-		}
-	}
-	if (next.length > 0) {
-		selectedElementIds.value = next;
-	}
-}
-function bringForward(): void {
-	for (const id of [...selectedElementIds.value]) {
-		ops.bringForward(id);
-	}
-}
+const { deleteSelected, duplicateSelected, bringForward, sendBackward } = useMultiSelectOps({
+	selectedElementIds,
+	ops,
+	clearSelection,
+});
 
 // Inspector targets a single selected element; multi-select hides it.
 const inspectorElement = computed<PptxElement | undefined>(() =>
@@ -869,50 +768,12 @@ function pasteElement(): void {
 }
 
 // ── Presentation (slideshow) mode ─────────────────────────────────────
-const presenting = ref(false);
-function startPresenting(): void {
-	presenting.value = true;
-}
-function onPresentClose(payload?: { annotations: SlideAnnotationMap }): void {
-	presenting.value = false;
-	const map = payload?.annotations;
-	if (!map || map.size === 0) {
-		return;
-	}
-	// Persist kept ink annotations as `ink` elements on their slides. Strokes
-	// are converted with the shared `strokeToInkElement` helper (highlighter when
-	// the stroke is translucent), appended per slide, and committed as a single
-	// history-tracked change so the whole batch undoes together.
-	let mutated = false;
-	const nextSlides = slides.value.map((slide, index) => {
-		const strokes = map.get(index);
-		if (!strokes || strokes.length === 0) {
-			return slide;
-		}
-		const inkElements = strokes
-			.map((stroke) =>
-				strokeToInkElement({
-					points: stroke.points,
-					color: stroke.color,
-					width: stroke.width,
-					tool: stroke.opacity < 1 ? 'highlighter' : 'pen',
-				}),
-			)
-			.filter((el): el is NonNullable<typeof el> => el !== null);
-		if (inkElements.length === 0) {
-			return slide;
-		}
-		mutated = true;
-		return { ...slide, elements: [...slide.elements, ...inkElements] };
+const { presenting, startPresenting, onPresentClose, onPresentSlideChange } =
+	usePresentationModeWiring({
+		slides,
+		activeSlideIndex,
+		pushHistory: history.pushHistory,
 	});
-	if (mutated) {
-		history.pushHistory();
-		slides.value = nextSlides;
-	}
-}
-function onPresentSlideChange(index: number): void {
-	activeSlideIndex.value = index;
-}
 
 // ── Hyperlink dialog ──────────────────────────────────────────────────
 const hyperlinkOpen = ref(false);
@@ -940,78 +801,21 @@ const find = useFindReplace({
 });
 
 // ── Export (PNG / PDF) ────────────────────────────────────────────────
-// An off-screen stage renders one slide at a time at scale 1; `rasterizeSlide`
-// drives it and snapshots it with `html2canvas-pro`.
-const exportStageRef = ref<HTMLElement | null>(null);
-const exportIndex = ref(0);
-// Rasterise the merged slide (template layer included) so exports/print match
-// the on-screen presentation and the saved file.
-const exportSlide = computed(() => mergedSlides.value[exportIndex.value]);
-
-async function rasterizeSlide(index: number): Promise<HTMLCanvasElement> {
-	exportIndex.value = index;
-	await nextTick();
-	await new Promise<void>((resolve) => {
-		requestAnimationFrame(() => resolve());
-	});
-	const stageEl = exportStageRef.value?.querySelector('.pptx-vue-stage') as HTMLElement | null;
-	if (!stageEl) {
-		throw new Error('Export stage not ready');
-	}
-	const { default: html2canvas } = await import('html2canvas-pro');
-	return html2canvas(stageEl, {
-		backgroundColor: '#ffffff',
-		scale: 2,
-		width: canvasSize.value.width,
-		height: canvasSize.value.height,
-		logging: false,
-	});
-}
-
-const exporter = useExport({ slides, canvasSize, rasterizeSlide });
-const mediaExport = useMediaExport({ slideCount, rasterizeSlide });
-const exportProgressCtl = useExportProgress({ exporter, mediaExport });
-const isExporting = computed(() => exporter.exporting.value || mediaExport.exporting.value);
-function onExportPng(): void {
-	void exporter.exportSlidePng(activeSlideIndex.value);
-}
-function onExportPdf(): void {
-	void exportProgressCtl.runPdf();
-}
-function onExportGif(): void {
-	void exportProgressCtl.runGif();
-}
-function onExportWebm(): void {
-	void exportProgressCtl.runWebm();
-}
-
-/** Serialise to a chosen OpenXML format and trigger a browser download. */
-async function downloadAs(format: PptxSaveFormat): Promise<void> {
-	try {
-		const bytes = await saveAs(format);
-		const blob = new Blob([bytes as unknown as BlobPart], {
-			type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-		});
-		downloadBlob(blob, `presentation.${format}`);
-	} catch (err) {
-		console.error(`[PowerPointViewer] Save as .${format} failed:`, err);
-	}
-}
-
-/** Copy the active slide to the clipboard as a PNG image (File menu). */
-async function onCopySlideAsImage(): Promise<void> {
-	try {
-		const canvas = await rasterizeSlide(activeSlideIndex.value);
-		const blob = await new Promise<Blob | null>((resolve) => {
-			canvas.toBlob((b) => resolve(b), 'image/png');
-		});
-		if (blob && typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
-			await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-		}
-	} catch (err) {
-		console.error('[PowerPointViewer] Copy slide as image failed:', err);
-	}
-}
+const {
+	exportStageRef,
+	exportSlide,
+	rasterizeSlide,
+	exporter,
+	mediaExport,
+	exportProgressCtl,
+	isExporting,
+	onExportPng,
+	onExportPdf,
+	onExportGif,
+	onExportWebm,
+	downloadAs,
+	onCopySlideAsImage,
+} = useExportWiring({ mergedSlides, slides, slideCount, canvasSize, activeSlideIndex, saveAs });
 
 // ── Print (dialog + rasterised print window) ──────────────────────────
 // Reuses the same off-screen `rasterizeSlide` the export path drives.
@@ -1093,42 +897,30 @@ const autosave = useAutosave({
 });
 
 // ── Comments ──────────────────────────────────────────────────────────
-const showComments = ref(false);
-const activeComments = computed(() => activeSlide.value?.comments ?? []);
 const authorNameRef = computed(() => props.authorName ?? 'You');
-const commentsApi = useComments({
-	comments: activeComments,
-	activeSlideIndex,
-	authorName: authorNameRef,
-});
-/** Open the comments panel and focus the deck on the marker's slide. */
-function onCommentMarkerClick(_id: string): void {
-	showComments.value = true;
-}
-/** Commit a new comment array for the active slide (history-aware). */
-function commitComments(next: ReturnType<typeof commentsApi.addComment>): void {
-	if (!next) {
-		return;
-	}
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	history.pushHistory();
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, comments: next };
-	slides.value = nextSlides;
-}
+const { showComments, activeComments, commentsApi, onCommentMarkerClick, commitComments } =
+	useCommentsWiring({
+		activeSlide,
+		activeSlideIndex,
+		slides,
+		authorName: authorNameRef,
+		pushHistory: history.pushHistory,
+	});
 
-// ── Collaboration (Yjs) ───────────────────────────────────────────────
-const collabCanvasWidth = computed(() => canvasSize.value.width);
-const collabCanvasHeight = computed(() => canvasSize.value.height);
-const collab = useCollaboration({
+// ── Collaboration (Yjs) + broadcast ────────────────────────────────────
+const {
+	collab,
+	collabActive,
+	shareOpen,
+	onShareStart,
+	onShareStop,
+	onCollabPointerMove,
+	broadcastOpen,
+	broadcastViewerUrl,
+	onBroadcastStart,
+	onBroadcastStop,
+} = useCollaborationWiring({
 	slides,
-	onRemoteSlides: (remote) => {
-		slides.value = remote;
-	},
 	getTemplateElements: () => templateElementsBySlideId.value,
 	// Retain the loaded source bytes for elected-writer (role 'owner') write-back:
 	// the write-back reloads the original file, overlays the live Y.Doc slides,
@@ -1140,242 +932,60 @@ const collab = useCollaboration({
 		}
 		return c instanceof Uint8Array ? c : new Uint8Array(c);
 	},
-	userColor: props.collaboration?.userColor,
-	canvasWidth: collabCanvasWidth,
-	canvasHeight: collabCanvasHeight,
+	initialUserColor: props.collaboration?.userColor,
+	canvasWidth: computed(() => canvasSize.value.width),
+	canvasHeight: computed(() => canvasSize.value.height),
+	collaborationProp: () => props.collaboration,
+	selectedElementIds,
+	activeSlideIndex,
+	goTo,
+	effectiveZoom,
+	authorName: () => props.authorName,
+	onStartCollaboration: (config) => emit('start-collaboration', config),
+	onStopCollaboration: () => emit('stop-collaboration'),
 });
-const shareOpen = ref(false);
-const collabActive = collab.active;
-
-// Auto-start/stop a session when the host supplies (or clears) a `collaboration`
-// config, so URL-driven joins connect without opening the Share dialog.
-// Dialog-initiated sessions echo the same config object back through this prop,
-// so we compare by reference to avoid restarting a session we already started.
-let lastStartedCollab: CollaborationConfig | null = null;
-watch(
-	() => props.collaboration,
-	(config) => {
-		if (config && config !== lastStartedCollab) {
-			lastStartedCollab = config;
-			void collab.start(config);
-		} else if (!config && collab.active.value) {
-			lastStartedCollab = null;
-			collab.stop();
-		}
-	},
-	{ immediate: true },
-);
-
-// Publish local selection + active slide to peers; follow a peer's active slide.
-watch(selectedElementIds, (ids) => {
-	if (collab.active.value) {
-		collab.setSelection(ids);
-	}
-});
-watch(activeSlideIndex, (index) => {
-	if (collab.active.value) {
-		collab.setActiveSlide(index);
-	}
-});
-watch(collab.followedSlideIndex, (index) => {
-	if (index !== null) {
-		goTo(index);
-	}
-});
-// Viewers in a one-way broadcast auto-follow the broadcaster's active slide.
-watch(collab.broadcasterSlideIndex, (index) => {
-	if (index !== null && collab.followedClientId.value === null) {
-		goTo(index);
-	}
-});
-
-function onShareStart(config: CollaborationConfig): void {
-	// Two-way collaboration: peers edit together (default role).
-	const collaboratorConfig: CollaborationConfig = { role: 'collaborator', ...config };
-	lastStartedCollab = collaboratorConfig;
-	void collab.start(collaboratorConfig);
-	emit('start-collaboration', collaboratorConfig);
-	shareOpen.value = false;
-}
-function onShareStop(): void {
-	lastStartedCollab = null;
-	collab.stop();
-	emit('stop-collaboration');
-	shareOpen.value = false;
-}
-/** Publish the local cursor in slide coordinates while collaborating. */
-function onCollabPointerMove(event: PointerEvent): void {
-	if (!collab.active.value) {
-		return;
-	}
-	const stage = (event.currentTarget as HTMLElement | null)?.querySelector('.pptx-vue-stage');
-	if (!stage) {
-		return;
-	}
-	const rect = stage.getBoundingClientRect();
-	collab.setCursor(
-		(event.clientX - rect.left) / effectiveZoom.value,
-		(event.clientY - rect.top) / effectiveZoom.value,
-	);
-}
 
 // ── Digital signatures ────────────────────────────────────────────────
-const showSignatures = ref(false);
-const signaturesApi = useSignatures(signatures);
-const hasDigitalSignatures = computed(() => signatures.value.length > 0);
-// Warn once, on the first edit of a signed deck, that saving strips signatures
-// (mirrors React's useViewerDialogs signature-strip effect).
-const showSignatureStripped = ref(false);
-const signatureStripAcknowledged = ref(false);
-watch(
-	() => autosave.isDirty.value,
-	(dirty) => {
-		if (dirty && hasDigitalSignatures.value && !signatureStripAcknowledged.value) {
-			showSignatureStripped.value = true;
-		}
-	},
-);
-function onAckSignatureStripped(): void {
-	signatureStripAcknowledged.value = true;
-	showSignatureStripped.value = false;
-}
+const {
+	showSignatures,
+	signaturesApi,
+	hasDigitalSignatures,
+	showSignatureStripped,
+	onAckSignatureStripped,
+} = useSignatureWorkflow({ signatures, isDirty: autosave.isDirty });
 
-// ── Broadcast ─────────────────────────────────────────────────────────
-const broadcastOpen = ref(false);
-const broadcastConfig = ref<{
-	roomId: string;
-	serverUrl: string;
-	transport?: CollaborationTransport;
-} | null>(null);
-const broadcastViewerUrl = computed(() => {
-	if (!broadcastConfig.value || typeof window === 'undefined') {
-		return '';
-	}
-	const { roomId, serverUrl } = broadcastConfig.value;
-	return buildBroadcastViewerUrl(roomId, serverUrl, window.location);
-});
-function onBroadcastStart(config: {
-	roomId: string;
-	serverUrl: string;
-	transport?: CollaborationTransport;
-}): void {
-	broadcastConfig.value = config;
-	// One-way broadcast: the presenter owns navigation; viewers auto-follow via
-	// `broadcasterSlideIndex`. The presenter joins with the `owner` role.
-	const broadcastSession: CollaborationConfig = {
-		...config,
-		userName: props.authorName ?? 'Presenter',
-		role: 'owner',
-	};
-	lastStartedCollab = broadcastSession;
-	void collab.start(broadcastSession);
-	emit('start-collaboration', broadcastSession);
-	broadcastOpen.value = false;
-}
-function onBroadcastStop(): void {
-	lastStartedCollab = null;
-	broadcastConfig.value = null;
-	collab.stop();
-	emit('stop-collaboration');
-	broadcastOpen.value = false;
-}
-
-// ── Set Up Slide Show ─────────────────────────────────────────────────
-// Edits a draft copy of the presentation-level properties; on save we commit
-// the new properties. `saveAs` forwards `presentationProperties` to
-// `handler.save`, so the change round-trips into the saved `.pptx` (same
-// persist-via-refs pattern as document properties).
-const showSetUpSlideShow = ref(false);
-function onSaveSlideShowSettings(next: typeof presentationProperties.value): void {
-	presentationProperties.value = next;
-	showSubtitles.value = Boolean(next.showSubtitles);
-}
-/** Merge a partial presentation-properties patch (from the slide inspector). */
-function onPresentationPropertiesUpdate(patch: Partial<typeof presentationProperties.value>): void {
-	presentationProperties.value = { ...presentationProperties.value, ...patch };
-}
+// ── Set Up Slide Show + Subtitles ──────────────────────────────────────
+const {
+	showSetUpSlideShow,
+	showSubtitles,
+	onSaveSlideShowSettings,
+	onPresentationPropertiesUpdate,
+	onToggleSubtitles,
+} = useSlideShowSettings({ presentationProperties });
 
 // ── Password protection ───────────────────────────────────────────────
-// Mirrors React: the password lives in host state; encryption on save is not
-// wired in either binding, so this only tracks the protected flag + secret.
-const showPasswordDialog = ref(false);
-const isPasswordProtected = ref(false);
-const presentationPassword = ref<string | null>(null);
-function onSetPassword(password: string): void {
-	presentationPassword.value = password;
-	isPasswordProtected.value = true;
-}
-function onRemovePassword(): void {
-	presentationPassword.value = null;
-	isPasswordProtected.value = false;
-}
+const {
+	showPasswordDialog,
+	isPasswordProtected,
+	presentationPassword,
+	onSetPassword,
+	onRemovePassword,
+} = usePasswordProtection();
 
 // ── Font embedding ────────────────────────────────────────────────────
-const showFontEmbedding = ref(false);
-const embedFontsEnabled = ref(false);
-/** Unique font families used across every slide, sorted (mirrors React collectUsedFonts). */
-const usedFontFamilies = computed<string[]>(() => {
-	const fonts = new Set<string>();
-	const collect = (el: PptxElement): void => {
-		if (hasTextProperties(el)) {
-			if (el.textStyle?.fontFamily) {
-				fonts.add(el.textStyle.fontFamily);
-			}
-			for (const seg of el.textSegments ?? []) {
-				if (seg.style?.fontFamily) {
-					fonts.add(seg.style.fontFamily);
-				}
-			}
-		}
-		if (el.type === 'group' && el.children) {
-			for (const child of el.children) {
-				collect(child);
-			}
-		}
-	};
-	for (const slide of slides.value) {
-		for (const el of slide.elements ?? []) {
-			collect(el);
-		}
-	}
-	return Array.from(fonts).sort();
-});
-const embeddedFontNames = computed(() => embeddedFonts.value.map((f) => f.name));
+const { showFontEmbedding, embedFontsEnabled, usedFontFamilies, embeddedFontNames } =
+	useFontEmbedding({
+		slides,
+		embeddedFonts,
+	});
 
 // ── Selection pane (View ▸ Selection Pane) ────────────────────────────
-const showSelectionPane = ref(false);
-function onSelectionPaneSelect(id: string): void {
-	selectedElementIds.value = [id];
-}
-function onSelectionPaneToggleVisibility(id: string): void {
-	const el = findActiveElement(id);
-	if (el) {
-		ops.updateElement(id, { hidden: !el.hidden } as Partial<PptxElement>);
-	}
-}
-function onSelectionPaneReorder(payload: { from: number; to: number }): void {
-	const el = activeSlide.value?.elements[payload.from];
-	if (el) {
-		ops.reorder(el.id, payload.to);
-	}
-}
-
-// ── Subtitles toggle (Slide Show ▸ Subtitles) ─────────────────────────
-const showSubtitles = ref(false);
-watch(
-	() => presentationProperties.value.showSubtitles,
-	(value) => {
-		showSubtitles.value = Boolean(value);
-	},
-	{ immediate: true },
-);
-function onToggleSubtitles(): void {
-	showSubtitles.value = !showSubtitles.value;
-	presentationProperties.value = {
-		...presentationProperties.value,
-		showSubtitles: showSubtitles.value,
-	};
-}
+const {
+	showSelectionPane,
+	onSelectionPaneSelect,
+	onSelectionPaneToggleVisibility,
+	onSelectionPaneReorder,
+} = useSelectionPaneWiring({ findActiveElement, activeSlide, selectedElementIds, ops });
 
 // ── Responsive / mobile chrome ────────────────────────────────────────
 // The viewer root element drives breakpoints from the CONTAINER width (so an
@@ -1417,67 +1027,36 @@ useTouchGestures({
 		},
 	},
 });
-const mobileNotesOpen = ref(false);
-/** Mobile-only bottom sheets for panels that are right-rail sidebars on desktop. */
-const mobileInspectorOpen = ref(false);
-const mobileCommentsOpen = ref(false);
-/** Mobile-only slide-rail sheet (the slides panel is a left rail on desktop). */
-const mobileSlidesOpen = ref(false);
-
-/** Open one mobile sheet at a time so they don't stack over each other. */
-function openMobileSheet(which: 'slides' | 'format' | 'comments' | 'notes'): void {
-	mobileSlidesOpen.value = which === 'slides';
-	mobileInspectorOpen.value = which === 'format';
-	mobileCommentsOpen.value = which === 'comments';
-	mobileNotesOpen.value = which === 'notes';
-}
-
-/**
- * Quick-insert from the mobile bottom bar: a text box is the most common
- * starter element on a phone; the full Insert section lives in the top-bar
- * Menu sheet. Mirrors React's MobileBottomBar `onOpenInsert`.
- */
-function mobileQuickInsert(): void {
-	addText();
-}
-function present(): void {
-	presenting.value = true;
-}
+const {
+	mobileSlidesOpen,
+	mobileInspectorOpen,
+	mobileCommentsOpen,
+	mobileNotesOpen,
+	openMobileSheet,
+	mobileQuickInsert,
+	present,
+} = useMobileChrome({ presenting, addText });
 
 // ── Document properties dialog ────────────────────────────────────────
-const propertiesOpen = ref(false);
-function onPropertiesSave(patch: DocumentPropertiesSavePatch): void {
-	// Persist the edited core / custom / app properties; `getContent` forwards
-	// all three to `handler.save`, so they round-trip into the saved `.pptx`.
-	coreProperties.value = { ...coreProperties.value, ...patch.core };
-	customProperties.value = patch.custom;
-	if (patch.app) {
-		appProperties.value = { ...appProperties.value, ...patch.app };
-	}
-	propertiesOpen.value = false;
-}
+const { propertiesOpen, onPropertiesSave } = useDocumentPropertiesDialog({
+	coreProperties,
+	customProperties,
+	appProperties,
+});
 
 // ── Master view (slide / notes / handout masters) ─────────────────────
-const showMasterView = ref(false);
-const masterViewTab = ref<MasterViewTab>('slides');
-const activeMasterIndex = ref(0);
-const activeLayoutIndex = ref<number | null>(null);
-const handoutSlidesPerPage = ref(6);
-function onSelectMaster(index: number): void {
-	activeMasterIndex.value = index;
-	activeLayoutIndex.value = null;
-}
-function onSelectLayout(masterIndex: number, layoutIndex: number): void {
-	activeMasterIndex.value = masterIndex;
-	activeLayoutIndex.value = layoutIndex;
-}
+const {
+	showMasterView,
+	masterViewTab,
+	activeMasterIndex,
+	activeLayoutIndex,
+	handoutSlidesPerPage,
+	onSelectMaster,
+	onSelectLayout,
+} = useMasterViewState();
 
 // ── Header / footer dialog ────────────────────────────────────────────
-const showHeaderFooter = ref(false);
-function onHeaderFooterUpdate(next: PptxHeaderFooter): void {
-	headerFooter.value = next;
-	showHeaderFooter.value = false;
-}
+const { showHeaderFooter, onHeaderFooterUpdate } = useHeaderFooterDialog({ headerFooter });
 
 // ── Sections (group the slide rail) ───────────────────────────────────
 const sectionOps = useSectionOperations({
@@ -1497,223 +1076,74 @@ const mergedSlidesBySection = computed(() =>
 );
 
 // ── Custom shows ──────────────────────────────────────────────────────
-const showCustomShows = ref(false);
-const activeCustomShowId = ref<string | null>(null);
-const customShowOps = useCustomShows({
+const {
+	showCustomShows,
+	activeCustomShowId,
+	customShowOps,
+	isCurrentSlideInActiveShow,
+	onCreateCustomShow,
+	onDeleteCustomShow,
+	onRenameActiveCustomShow,
+	onDeleteActiveCustomShow,
+	onToggleCurrentSlideInActiveShow,
+} = useCustomShowsWiring({
 	customShows,
 	slides,
 	activeSlideIndex,
+	activeSlide,
 	pushHistory: history.pushHistory,
 });
-function onCreateCustomShow(name: string): void {
-	activeCustomShowId.value = customShowOps.createCustomShow(name);
-}
-function onDeleteCustomShow(showId: string): void {
-	customShowOps.deleteCustomShow(showId);
-	if (activeCustomShowId.value === showId) {
-		activeCustomShowId.value = null;
-	}
-}
-
-/** The active slide's relationship id (custom shows reference slides by rId). */
-const activeSlideRId = computed(() => (activeSlide.value as { rId?: string } | undefined)?.rId);
-/** Whether the active slide is part of the active custom show (ribbon toggle state). */
-const isCurrentSlideInActiveShow = computed(() => {
-	const id = activeCustomShowId.value;
-	const rId = activeSlideRId.value;
-	if (id === null || rId === undefined) {
-		return false;
-	}
-	return customShows.value.find((s) => s.id === id)?.slideRIds.includes(rId) ?? false;
-});
-/** Rename the active custom show (Slide Show ribbon). */
-function onRenameActiveCustomShow(): void {
-	const id = activeCustomShowId.value;
-	if (id === null) {
-		return;
-	}
-	const show = customShows.value.find((s) => s.id === id);
-	const next = window.prompt('Rename custom show', show?.name ?? '')?.trim();
-	if (next) {
-		customShowOps.renameCustomShow(id, next);
-	}
-}
-/** Delete the active custom show after confirmation (Slide Show ribbon). */
-function onDeleteActiveCustomShow(): void {
-	const id = activeCustomShowId.value;
-	if (id === null) {
-		return;
-	}
-	const show = customShows.value.find((s) => s.id === id);
-	if (window.confirm(`Delete custom show "${show?.name ?? ''}"?`)) {
-		onDeleteCustomShow(id);
-	}
-}
-/** Add/remove the active slide from the active custom show (Slide Show ribbon). */
-function onToggleCurrentSlideInActiveShow(): void {
-	const id = activeCustomShowId.value;
-	const rId = activeSlideRId.value;
-	if (id === null || rId === undefined) {
-		return;
-	}
-	customShowOps.toggleSlideInShow(id, rId);
-}
 
 // ── Version history + compare ─────────────────────────────────────────
 // Snapshots accrue on each autosave (see the autosave `onSave` below).
-const versionHistory = useVersionHistory({ slides, pushHistory: history.pushHistory });
-const showVersionHistory = ref(false);
-const compareResult = ref<CompareResult | null>(null);
-const compareVersionId = ref<string | null>(null);
-const showCompare = computed(() => compareResult.value !== null);
-function onVersionRestore(id: string): void {
-	versionHistory.restore(id);
-	showVersionHistory.value = false;
-}
-function onVersionDelete(id: string): void {
-	versionHistory.remove(id);
-}
-function onVersionCompare(id: string): void {
-	const version = versionHistory.versions.value.find((v) => v.id === id);
-	if (!version) {
-		return;
-	}
-	compareVersionId.value = id;
-	compareResult.value = compareSlides(version.slides, slides.value);
-}
-function onCompareClose(): void {
-	compareResult.value = null;
-	compareVersionId.value = null;
-}
-function onCompareAcceptAll(): void {
-	if (compareVersionId.value) {
-		versionHistory.restore(compareVersionId.value);
-	}
-	onCompareClose();
-	showVersionHistory.value = false;
-}
+const {
+	versionHistory,
+	showVersionHistory,
+	compareResult,
+	compareVersionId,
+	showCompare,
+	onVersionRestore,
+	onVersionDelete,
+	onVersionCompare,
+	onCompareClose,
+	onCompareAcceptAll,
+} = useVersionHistoryWiring({ slides, pushHistory: history.pushHistory });
 
 // ── Insert SmartArt / equation ────────────────────────────────────────
-const showInsertSmartArt = ref(false);
-const showEquationEditor = ref(false);
-function onInsertElement(element: PptxElement): void {
-	ops.addElement(element);
-	selectedElementIds.value = [element.id];
-	showInsertSmartArt.value = false;
-	showEquationEditor.value = false;
-}
+const { showInsertSmartArt, showEquationEditor, onInsertElement } = useInsertElementDialogs({
+	ops,
+	selectedElementIds,
+});
 
 // ── Viewer settings ───────────────────────────────────────────────────
-const showSettings = ref(false);
-const viewerSettings = ref<ViewerSettings>({ ...DEFAULT_VIEWER_SETTINGS });
-function onSettingsUpdate(next: ViewerSettings): void {
-	viewerSettings.value = next;
-}
-function sendBackward(): void {
-	for (const id of [...selectedElementIds.value]) {
-		ops.sendBackward(id);
-	}
-}
+const { showSettings, viewerSettings, onSettingsUpdate } = useViewerSettingsDialog();
 
 // ── Keyboard shortcuts ────────────────────────────────────────────────
 // A config-driven registry (mirrors React `useKeyboardShortcuts`) replaces the
 // old ad-hoc Ctrl+Z/Y/Delete handling. Find (Ctrl+F) and the shortcut-help
 // overlay (Ctrl+/) are handled in `onEditorKeydown` before delegating.
-const showShortcuts = ref(false);
-
-/** Select every element on the active slide. */
-function selectAllElements(): void {
-	selectedElementIds.value = (activeSlide.value?.elements ?? []).map((e) => e.id);
-}
-/** Copy the first selected element to the in-memory clipboard. */
-function copySelected(): void {
-	const id = selectedElementIds.value[0];
-	if (id) {
-		copyElement(id);
-	}
-}
-/** Cut the first selected element to the in-memory clipboard. */
-function cutSelected(): void {
-	const id = selectedElementIds.value[0];
-	if (id) {
-		cutElement(id);
-	}
-}
-/** Nudge every selected element by (dx, dy) px as one history entry. */
-function nudgeSelected(dx: number, dy: number): void {
-	if (selectedElementIds.value.length === 0) {
-		return;
-	}
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	const ids = new Set(selectedElementIds.value);
-	// Partition into template ids (master-/layout- prefix) and normal slide ids so
-	// the nudge routes through the correct store for each group. Without this split
-	// a selected template element is silently skipped (it lives in the template
-	// store, not in slide.elements) and the arrow-key move is lost.
-	const templateIds = new Set([...ids].filter((id) => isTemplateElementId(id)));
-	const slideIds = new Set([...ids].filter((id) => !isTemplateElementId(id)));
-	history.pushHistory();
-	if (templateIds.size > 0) {
-		const current = templateElementsBySlideId.value[slide.id];
-		if (current) {
-			templateElementsBySlideId.value = setTemplateElements(
-				templateElementsBySlideId.value,
-				slide.id,
-				current.map((el) => (templateIds.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el)),
-			);
-		}
-	}
-	if (slideIds.size > 0) {
-		const nextSlides = slides.value.slice();
-		nextSlides[index] = {
-			...slide,
-			elements: slide.elements.map((el) =>
-				slideIds.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el,
-			),
-		};
-		slides.value = nextSlides;
-	}
-}
-
-const shortcuts = useKeyboardShortcuts({
-	actions: {
-		undo: history.undo,
-		redo: history.redo,
-		copy: copySelected,
-		cut: cutSelected,
-		paste: pasteElement,
-		duplicate: duplicateSelected,
-		delete: deleteSelected,
-		selectAll: selectAllElements,
-		nudge: nudgeSelected,
-		prevSlide: goPrev,
-		nextSlide: goNext,
-		escape: onEscape,
-	},
+const { showShortcuts, shortcuts, onEditorKeydown, copySelected, cutSelected } = useEditorKeyboard({
 	canEdit: () => props.canEdit,
 	hasSelection,
-	isPresenting: presenting,
+	presenting,
+	findOpen,
+	selectedElementIds,
+	activeSlide,
+	activeSlideIndex,
+	slides,
+	templateElementsBySlideId,
+	pushHistory: history.pushHistory,
+	undo: history.undo,
+	redo: history.redo,
+	copyElement,
+	cutElement,
+	pasteElement,
+	duplicateSelected,
+	deleteSelected,
+	goPrev,
+	goNext,
+	onEscape,
 });
-
-/** Root keydown: Find / shortcut-help first, then the shortcut registry. */
-function onEditorKeydown(event: KeyboardEvent): void {
-	const mod = event.ctrlKey || event.metaKey;
-	if (props.canEdit && mod && event.key.toLowerCase() === 'f') {
-		event.preventDefault();
-		findOpen.value = !findOpen.value;
-		return;
-	}
-	if (mod && event.key === '/') {
-		event.preventDefault();
-		showShortcuts.value = !showShortcuts.value;
-		return;
-	}
-	shortcuts.handleKeyDown(event);
-}
 
 // ── Office-style ribbon wiring (RibbonToolbar ← React Toolbar.tsx) ────────
 // The desktop chrome is the full Office ribbon. This block adapts the host's
@@ -1721,132 +1151,41 @@ function onEditorKeydown(event: KeyboardEvent): void {
 // host does not yet expose (drawing tools, grid/ruler/snap, theme gallery,
 // flip, action buttons, layout gallery) are wired as no-ops for now; the
 // ribbon renders faithfully and the core actions are live.
-const toolbarSection = ref<ToolbarSection>('home');
-const newShapeType = ref<SupportedShapeType>('rect');
-const activeTool = ref<DrawingTool>('select');
-const drawingColor = ref('#000000');
-const drawingWidth = ref(2);
-const inspectorOpen = ref(true);
-/** Left slides-rail collapse (Quick-Access sidebar toggle). */
-const sidebarCollapsed = ref(false);
-/** Ribbon content expanded (true) vs collapsed to just the tab bar (false). */
-const ribbonExpanded = ref(true);
-const overflowOpen = ref(false);
-/** Status-bar Notes toggle: expands/collapses the desktop notes panel. */
-const notesExpanded = ref(false);
-/** View-tab dot-grid overlay (snap-to-grid state lives in useElementDrag). */
-const showGrid = ref(false);
-/** View ▸ Rulers: horizontal/vertical rulers along the slide edges. */
-const showRulers = ref(false);
-/** View ▸ Spell: draw the browser's native spell-check squiggles while editing. */
-const spellCheckEnabled = ref(true);
-/** Design ▸ Themes gallery overlay. */
-const themeGalleryOpen = ref(false);
+const {
+	toolbarSection,
+	newShapeType,
+	activeTool,
+	drawingColor,
+	drawingWidth,
+	inspectorOpen,
+	sidebarCollapsed,
+	ribbonExpanded,
+	overflowOpen,
+	notesExpanded,
+	showGrid,
+	showRulers,
+	spellCheckEnabled,
+	themeGalleryOpen,
+	themeEditorOpen,
+} = useRibbonUiState();
 
-/** A pen/highlighter/eraser tool is armed (Draw tab) → ink capture is active. */
-const drawingActive = computed(
-	() => props.canEdit && !presenting.value && activeTool.value !== 'select',
-);
-/** Turn a captured stroke into an `ink` element (no select, keep drawing). */
-function addInkStroke(payload: {
-	points: Array<{ x: number; y: number }>;
-	color: string;
-	width: number;
-	tool: string;
-}): void {
-	const pts = payload.points;
-	if (pts.length < 2) {
-		return;
-	}
-	const isHl = payload.tool === 'highlighter';
-	const strokeW = isHl ? payload.width * 3 : payload.width;
-	const pad = Math.max(2, strokeW);
-	const xs = pts.map((p) => p.x);
-	const ys = pts.map((p) => p.y);
-	const minX = Math.min(...xs) - pad;
-	const minY = Math.min(...ys) - pad;
-	const maxX = Math.max(...xs) + pad;
-	const maxY = Math.max(...ys) + pad;
-	const d = `M ${pts.map((p) => `${(p.x - minX).toFixed(1)} ${(p.y - minY).toFixed(1)}`).join(' L ')}`;
-	const el = {
-		id: createEditorId('ink'),
-		type: 'ink',
-		x: minX,
-		y: minY,
-		width: maxX - minX,
-		height: maxY - minY,
-		inkPaths: [d],
-		inkColors: [payload.color],
-		inkWidths: [strokeW],
-		inkOpacities: [isHl ? 0.4 : 1],
-		inkTool: payload.tool,
-	} as unknown as PptxElement;
-	ops.addElement(el);
-	selectedElementIds.value = [];
-}
-/** Eraser: remove the top-most ink element whose box contains the point. */
-function eraseInkAt(point: { x: number; y: number }): void {
-	const slide = activeSlide.value;
-	if (!slide) {
-		return;
-	}
-	for (let i = slide.elements.length - 1; i >= 0; i--) {
-		const el = slide.elements[i];
-		if (
-			el.type === 'ink' &&
-			point.x >= el.x &&
-			point.x <= el.x + el.width &&
-			point.y >= el.y &&
-			point.y <= el.y + el.height
-		) {
-			ops.removeElement(el.id);
-			return;
-		}
-	}
-}
-/** Design ▸ Theme editor overlay. */
-const themeEditorOpen = ref(false);
+const { drawingActive, addInkStroke, eraseInkAt } = useInkDrawing({
+	canEdit: () => props.canEdit,
+	presenting,
+	activeTool,
+	activeSlide,
+	selectedElementIds,
+	ops,
+});
 
-/**
- * Re-theme the whole deck via core's pure `applyThemeToData` (re-resolves slide
- * colours against the new scheme) and write the new slides/theme/colour-map back
- * (history-aware). The active colour scheme is provided to tables via
- * `pptxTheme`, so banding updates too.
- */
-function applyTheme(
-	colorScheme: PptxThemeColorScheme,
-	fontScheme: PptxThemeFontScheme | undefined,
-	name: string,
-): void {
-	history.pushHistory();
-	const result = applyThemeToData(
-		{
-			slides: slides.value,
-			theme: pptxTheme.value,
-			themeColorMap: themeColorMap.value,
-		} as unknown as PptxData,
-		colorScheme,
-		fontScheme,
-		name,
-	);
-	slides.value = result.slides;
-	pptxTheme.value = result.theme;
-	themeColorMap.value = result.themeColorMap;
-}
-/** Apply a built-in theme preset (Design ▸ Themes gallery). */
-function applyThemePreset(preset: PptxThemePreset): void {
-	applyTheme(preset.colorScheme, preset.fontScheme, preset.name);
-	themeGalleryOpen.value = false;
-}
-/** Apply edited theme colours/fonts/name (Design ▸ Edit theme). */
-function applyThemeEdit(payload: {
-	colorScheme: PptxThemeColorScheme;
-	fontScheme: PptxThemeFontScheme;
-	name: string;
-}): void {
-	applyTheme(payload.colorScheme, payload.fontScheme, payload.name);
-	themeEditorOpen.value = false;
-}
+const { applyTheme, applyThemePreset, applyThemeEdit } = useThemeEditing({
+	slides,
+	pptxTheme,
+	themeColorMap,
+	pushHistory: history.pushHistory,
+	themeGalleryOpen,
+	themeEditorOpen,
+});
 
 const { ribbonMode, activeTableSelection, ribbonUpdateTextStyle, ribbonFlip, ribbonMoveToEdge } =
 	useRibbonActions({
@@ -1863,243 +1202,108 @@ const { ribbonMode, activeTableSelection, ribbonUpdateTextStyle, ribbonFlip, rib
 		ops,
 	});
 
-const ribbonProps = computed<RibbonProps>(() => ({
-	mode: ribbonMode.value,
-	canEdit: props.canEdit,
-	isNarrowViewport: isMobile.value,
-	isSidebarCollapsed: sidebarCollapsed.value,
-	isInspectorPaneOpen: inspectorOpen.value,
-	isCompactToolbarOpen: ribbonExpanded.value,
-	toolbarSection: toolbarSection.value,
-	scale: zoom.value,
-	canUndo: history.canUndo.value,
-	canRedo: history.canRedo.value,
-	undoLabel: undefined,
-	redoLabel: undefined,
-	findReplaceOpen: findOpen.value,
-	selectedElement: selectedElements.value[0] ?? null,
-	tableEditorState: activeTableSelection.value,
-	editTemplateMode: editTemplateMode.value,
-	newShapeType: newShapeType.value,
-	activeTool: activeTool.value,
-	drawingColor: drawingColor.value,
-	drawingWidth: drawingWidth.value,
-	clipboardPayload: clipboard.value ? { kind: 'element' } : null,
-	spellCheckEnabled: spellCheckEnabled.value,
-	showGrid: showGrid.value,
-	showRulers: showRulers.value,
-	snapToGrid: snapToGrid.value,
-	snapToShape: snapToShape.value,
-	isOverflowMenuOpen: overflowOpen.value,
-	layoutOptions: layoutOptions.value,
-	customShows: customShows.value,
-	activeCustomShowId: activeCustomShowId.value,
-	isCurrentSlideInActiveShow: isCurrentSlideInActiveShow.value,
-	hasMacros: false,
-	isThemeEditorOpen: themeEditorOpen.value,
-	isThemeGalleryOpen: themeGalleryOpen.value,
-	isCommentsPanelOpen: showComments.value,
-	slideCommentCount: activeComments.value.length,
-	formatPainterActive: formatPainterActive.value,
-	canActivateFormatPainter: canActivateFormatPainter.value,
-	isSelectionPaneOpen: showSelectionPane.value,
-	eyedropperActive: false,
-	showSubtitles: showSubtitles.value,
-	activeSlide: activeSlide.value,
-
-	onSetMode: (m) => {
-		if (m === 'present') {
-			startPresenting();
-		} else {
-			presenting.value = false;
-		}
-	},
-	onToggleSidebar: () => {
-		sidebarCollapsed.value = !sidebarCollapsed.value;
-	},
-	onToggleInspector: () => {
-		inspectorOpen.value = !inspectorOpen.value;
-	},
-	onOpenAnimationPanel: () => {
-		toolbarSection.value = 'animations';
-	},
+const ribbonProps = useRibbonProps({
+	ribbonMode,
+	canEdit: () => props.canEdit,
+	isMobile,
+	sidebarCollapsed,
+	inspectorOpen,
+	ribbonExpanded,
+	toolbarSection,
+	zoom,
+	canUndo: history.canUndo,
+	canRedo: history.canRedo,
+	findOpen,
+	selectedElements,
+	activeTableSelection,
+	editTemplateMode,
+	newShapeType,
+	activeTool,
+	drawingColor,
+	drawingWidth,
+	clipboard,
+	spellCheckEnabled,
+	showGrid,
+	showRulers,
+	snapToGrid,
+	snapToShape,
+	overflowOpen,
+	layoutOptions,
+	customShows,
+	activeCustomShowId,
+	isCurrentSlideInActiveShow,
+	themeEditorOpen,
+	themeGalleryOpen,
+	showComments,
+	activeComments,
+	formatPainterActive,
+	canActivateFormatPainter,
+	showSelectionPane,
+	showSubtitles,
+	activeSlide,
+	presenting,
+	canDistribute,
+	shareOpen,
+	showShortcuts,
+	showSettings,
+	showA11y,
+	showSorter,
+	showCustomShows,
+	showVersionHistory,
+	showPasswordDialog,
+	propertiesOpen,
+	showFontEmbedding,
+	showSignatures,
+	showMasterView,
+	showSetUpSlideShow,
+	broadcastOpen,
+	showInsertSmartArt,
+	showEquationEditor,
+	startPresenting,
 	onAddAnimation,
 	onRemoveAnimation,
-	onToggleCompactToolbar: () => {
-		ribbonExpanded.value = !ribbonExpanded.value;
-	},
-	onSetToolbarSection: (sec) => {
-		toolbarSection.value = sec;
-	},
-	onZoomIn: zoomIn,
-	onZoomOut: zoomOut,
-	onZoomToFit: zoomReset,
-	onUndo: history.undo,
-	onRedo: history.redo,
-	onToggleFindReplace: () => {
-		findOpen.value = !findOpen.value;
-	},
-	onSetNewShapeType: (t) => {
-		newShapeType.value = t;
-	},
-	onAddTextBox: addText,
-	onAddShape: () => addShape(toShapePreset(newShapeType.value)),
-	onAddTable: addTable,
-	onAddChart: addChart,
-	onAddSmartArt: () => {
-		showInsertSmartArt.value = true;
-	},
-	onAddEquation: () => {
-		showEquationEditor.value = true;
-	},
-	onAddActionButton: addActionButton,
-	onInsertField: undefined,
-	onOpenImagePicker: openImagePicker,
-	onOpenMediaPicker: openMediaPicker,
-	onSetActiveTool: (t) => {
-		activeTool.value = t;
-	},
-	onSetDrawingColor: (c) => {
-		drawingColor.value = c;
-	},
-	onSetDrawingWidth: (w) => {
-		drawingWidth.value = w;
-	},
-	onSetEditTemplateMode: (mode: boolean) => {
-		editTemplateMode.value = mode;
-	},
-	onSetSpellCheckEnabled: (enabled) => {
-		spellCheckEnabled.value = enabled;
-	},
-	onSetShowGrid: (enabled) => {
-		showGrid.value = enabled;
-	},
-	onSetShowRulers: (enabled) => {
-		showRulers.value = enabled;
-	},
-	onSetSnapToGrid: (enabled) => {
-		snapToGrid.value = enabled;
-	},
-	onSetSnapToShape: (enabled) => {
-		snapToShape.value = enabled;
-	},
-	onAddGuide: addGuide,
-	onAlignElements: (edge) => {
-		const e = RIBBON_ALIGN[edge];
-		if (e) {
-			onAlign(e);
-		}
-	},
-	onDistributeElements: (axis) => {
-		if (axis === 'horizontal' || axis === 'vertical') {
-			onDistribute(axis as DistributeAxis);
-		}
-	},
-	canDistribute: canDistribute.value,
-	onCopy: copySelected,
-	onCut: cutSelected,
-	onPaste: pasteElement,
-	onFlip: ribbonFlip,
-	onMoveLayer: (dir) => {
-		if (dir === 'forward' || dir === 'up' || dir === 'front') {
-			bringForward();
-		} else {
-			sendBackward();
-		}
-	},
-	onMoveLayerToEdge: ribbonMoveToEdge,
-	onDuplicate: duplicateSelected,
-	onDelete: deleteSelected,
-	onOpenFile: handleOpenFile,
+	zoomIn,
+	zoomOut,
+	zoomReset,
+	undo: history.undo,
+	redo: history.redo,
+	addText,
+	addShape,
+	addTable,
+	addChart,
+	addActionButton,
+	openImagePicker,
+	openMediaPicker,
+	addGuide,
+	onAlign,
+	onDistribute,
+	copySelected,
+	cutSelected,
+	pasteElement,
+	ribbonFlip,
+	bringForward,
+	sendBackward,
+	ribbonMoveToEdge,
+	duplicateSelected,
+	deleteSelected,
+	handleOpenFile,
 	onExportPng,
 	onExportPdf,
-	onExportVideo: onExportWebm,
+	onExportWebm,
 	onExportGif,
-	onPackageForSharing: () => {
-		shareOpen.value = true;
-	},
-	onOpenShareDialog: () => {
-		shareOpen.value = true;
-	},
-	onSaveAsPptx: () => void downloadAs('pptx'),
-	onSaveAsPpsx: () => void downloadAs('ppsx'),
-	onSaveAsPptm: () => void downloadAs('pptm'),
-	onCopySlideAsImage: () => void onCopySlideAsImage(),
-	onPrint: printer.openPrintDialog,
-	onToggleShortcuts: () => {
-		showShortcuts.value = !showShortcuts.value;
-	},
-	onOpenSettings: () => {
-		showSettings.value = true;
-	},
-	onRunAccessibilityCheck: () => {
-		showA11y.value = true;
-	},
-	onToggleSlideSorter: () => {
-		showSorter.value = true;
-	},
-	onUpdateTextStyle: ribbonUpdateTextStyle,
-	onSetOverflowMenuOpen: (o) => {
-		overflowOpen.value = o;
-	},
-	onInsertSlideFromLayout: (path, name) => void insertSlideFromLayout(path, name),
-	onSetActiveCustomShowId: (id) => {
-		activeCustomShowId.value = id;
-	},
-	onCreateCustomShow: () => {
-		showCustomShows.value = true;
-	},
+	downloadAs,
+	onCopySlideAsImage,
+	openPrintDialog: printer.openPrintDialog,
+	ribbonUpdateTextStyle,
+	insertSlideFromLayout,
 	onRenameActiveCustomShow,
 	onDeleteActiveCustomShow,
 	onToggleCurrentSlideInActiveShow,
-	onToggleVersionHistory: () => {
-		showVersionHistory.value = true;
-	},
-	onOpenPasswordProtection: () => {
-		showPasswordDialog.value = true;
-	},
-	onOpenDocumentProperties: () => {
-		propertiesOpen.value = true;
-	},
-	onOpenFontEmbedding: () => {
-		showFontEmbedding.value = true;
-	},
-	onOpenDigitalSignatures: () => {
-		showSignatures.value = true;
-	},
-	onEnterMasterView: () => {
-		showMasterView.value = true;
-	},
-	onCloseMasterView: () => {
-		showMasterView.value = false;
-	},
-	onEnterPresenterView: undefined,
-	onEnterRehearsalMode: undefined,
-	onToggleThemeEditor: () => {
-		themeEditorOpen.value = !themeEditorOpen.value;
-	},
-	onToggleThemeGallery: () => {
-		themeGalleryOpen.value = !themeGalleryOpen.value;
-	},
-	onCompare: undefined,
-	onToggleComments: () => {
-		showComments.value = !showComments.value;
-	},
-	onToggleFormatPainter: toggleFormatPainter,
-	onToggleSelectionPane: () => {
-		showSelectionPane.value = !showSelectionPane.value;
-	},
-	onToggleEyedropper: undefined,
-	onOpenSetUpSlideShow: () => {
-		showSetUpSlideShow.value = true;
-	},
-	onOpenBroadcastDialog: () => {
-		broadcastOpen.value = true;
-	},
+	toggleFormatPainter,
 	onToggleSubtitles,
 	onTransitionChange,
 	onApplyTransitionToAll,
-}));
+});
 
 // ── Imperative surface (mirrors the React forwardRef handle) ──────────
 defineExpose<PowerPointViewerExpose>({ getContent });
@@ -2493,6 +1697,28 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				:slides="slides"
 				@save="onPropertiesSave"
 				@close="propertiesOpen = false"
+			/>
+
+			<!-- File ▸ Version History -->
+			<VersionHistoryPanel
+				:open="showVersionHistory"
+				:versions="versionHistory.versions.value"
+				:canvas-size="canvasSize"
+				:media-data-urls="mediaDataUrls"
+				@close="showVersionHistory = false"
+				@restore="onVersionRestore"
+				@delete="onVersionDelete"
+				@compare="onVersionCompare"
+			/>
+
+			<!-- Version history ▸ compare against current -->
+			<ComparePanel
+				:open="showCompare"
+				:compare-result="compareResult"
+				:canvas-size="canvasSize"
+				:media-data-urls="mediaDataUrls"
+				@close="onCompareClose"
+				@accept-all="onCompareAcceptAll"
 			/>
 
 			<!-- Print -->

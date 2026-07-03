@@ -25,20 +25,23 @@ import type {
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
-import {
-	applyMove,
-	applyResize,
-	handleAnchor,
-	handleCursor,
-	marqueeHitIds,
-	RESIZE_HANDLES,
-} from './drag-resize';
+import { CanvasFitService } from './canvas-fit.service';
+import { applyMove, applyResize, marqueeHitIds } from './drag-resize';
 import type { Box, ResizeHandle } from './drag-resize';
 import { ElementRendererComponent } from './element-renderer.component';
 import type { StyleMap } from './element-style';
 import { FieldContextService } from './field-context.service';
-import { pointsToSvgPathD, strokeToInkElement } from './ink-drawing-helpers';
-import type { InkPoint } from './ink-drawing-helpers';
+import { InkDrawingService } from './ink-drawing.service';
+import { RulerGuidesService } from './ruler-guides.service';
+import { generateRulerTicks, RULER_THICKNESS } from './ruler-ticks';
+import type { RulerTick } from './ruler-ticks';
+import {
+	computeCornerHandle,
+	computeHandleBoxes,
+	computeSelectionBoxes,
+	computeSingleSelected,
+	resolveInteractiveElementId,
+} from './selection-geometry';
 import { getSlideBackgroundStyle } from './slide-background';
 import { isViewportBackgroundPressTarget } from './slide-canvas-helpers';
 import { computeSnap, snapToGridStep } from './snap-guides';
@@ -49,48 +52,6 @@ import { isElementInteractive } from './template-mode';
 /** Pixels (screen-space) a pointer must move before a click becomes a drag. */
 const DRAG_THRESHOLD = 3;
 
-// ── Ruler constants ───────────────────────────────────────────────────────────
-
-/** Height/width (px) of the ruler strips: mirrors React's RULER_THICKNESS. */
-const RULER_THICKNESS = 20;
-/** Pixels per inch on the slide canvas (PPTX slides are 10" wide = 960 px). */
-const SLIDE_PX_PER_INCH = 96;
-
-/** A single tick mark on a ruler strip. */
-interface RulerTick {
-	/** Position in screen pixels along the ruler. */
-	position: number;
-	/** Whether this is a major (inch) tick. */
-	isMajor: boolean;
-	/** Label to display (only on major ticks, every N inches). */
-	label: string | null;
-}
-
-/**
- * Generate ruler tick marks for a given slide dimension and scale.
- * Produces ticks every 1/4 inch (minor) and every inch (major).
- */
-function generateRulerTicks(slidePx: number, scale: number): ReadonlyArray<RulerTick> {
-	const scaledLength = slidePx * scale;
-	const quarterInchPx = (SLIDE_PX_PER_INCH / 4) * scale;
-	if (quarterInchPx < 2) {
-		return [];
-	}
-	const ticks: RulerTick[] = [];
-	let pos = 0;
-	let inchIndex = 0;
-	while (pos <= scaledLength + 0.5) {
-		const isMajor = inchIndex % 4 === 0;
-		ticks.push({
-			position: pos,
-			isMajor,
-			label: isMajor && inchIndex > 0 ? String(inchIndex / 4) : null,
-		});
-		pos += quarterInchPx;
-		inchIndex++;
-	}
-	return ticks;
-}
 /** Handle size in screen pixels (fine pointer: mouse/trackpad). */
 const HANDLE_SCREEN_PX_FINE = 9;
 /** Handle size in screen pixels (coarse pointer: touch); larger hit target. */
@@ -109,13 +70,6 @@ const IS_COARSE_POINTER: boolean =
 
 /** Resize/rotate handle size in screen pixels for the current pointer kind. */
 const HANDLE_SCREEN_PX = IS_COARSE_POINTER ? HANDLE_SCREEN_PX_COARSE : HANDLE_SCREEN_PX_FINE;
-
-/** A user-created guide line dragged from a ruler strip. */
-interface RulerGuide {
-	id: string;
-	axis: 'x' | 'y';
-	pos: number;
-}
 
 interface DragState {
 	id: string;
@@ -158,6 +112,7 @@ function plainText(el: PptxElement): string {
 	selector: 'pptx-slide-canvas',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	providers: [CanvasFitService, InkDrawingService, RulerGuidesService],
 	imports: [NgStyle, ElementRendererComponent, TranslatePipe],
 	styles: [
 		`
@@ -389,7 +344,7 @@ function plainText(el: PptxElement): string {
 							Each guide has a non-interactive line body and an interactive
 							drag handle. Double-click the handle to delete the guide.
 						-->
-						@for (g of rulerGuides(); track g.id) {
+						@for (g of rulerGuidesSvc.rulerGuides(); track g.id) {
 							<!-- Guide line body: pointer-events:none -->
 							<div
 								class="pptx-ng-ruler-guide-line"
@@ -406,8 +361,8 @@ function plainText(el: PptxElement): string {
 								[style.width]="g.axis === 'x' ? '9px' : '100%'"
 								[style.height]="g.axis === 'y' ? '9px' : '100%'"
 								[style.cursor]="g.axis === 'x' ? 'col-resize' : 'row-resize'"
-								(pointerdown)="onGuidePointerDown($event, g.id, g.axis)"
-								(dblclick)="onGuideDoubleClick($event, g.id)"
+								(pointerdown)="rulerGuidesSvc.onGuidePointerDown($event, g.id, g.axis)"
+								(dblclick)="rulerGuidesSvc.onGuideDoubleClick($event, g.id)"
 								[title]="'pptx.canvas.guideTooltip' | translate"
 							></div>
 						}
@@ -418,7 +373,7 @@ function plainText(el: PptxElement): string {
 						pointer-events:none so it never intercepts element gestures.
 						No data-pptx-element / aria-roledescription / data-pptx-viewport.
 					-->
-					@if (inkActiveSignal() && liveInkPath() && drawTool() !== 'select') {
+					@if (inkDrawing.active() && inkDrawing.liveInkPath() && drawTool() !== 'select') {
 						<svg
 							class="pptx-ng-ink-preview"
 							aria-hidden="true"
@@ -427,7 +382,7 @@ function plainText(el: PptxElement): string {
 							style="position:absolute;inset:0;pointer-events:none;z-index:70"
 						>
 							<path
-								[attr.d]="liveInkPath()"
+								[attr.d]="inkDrawing.liveInkPath()"
 								fill="none"
 								[attr.stroke]="drawColor()"
 								[attr.stroke-width]="drawWidth()"
@@ -457,7 +412,7 @@ function plainText(el: PptxElement): string {
 						[attr.width]="canvasSize().width * effectiveScalePublic()"
 						[attr.height]="20"
 						[style.cursor]="editable() ? 'crosshair' : null"
-						(pointerdown)="editable() ? onHRulerPointerDown($event) : null"
+						(pointerdown)="editable() ? rulerGuidesSvc.onHRulerPointerDown($event) : null"
 					>
 						<rect
 							[attr.width]="canvasSize().width * effectiveScalePublic()"
@@ -502,7 +457,7 @@ function plainText(el: PptxElement): string {
 						[attr.width]="20"
 						[attr.height]="canvasSize().height * effectiveScalePublic()"
 						[style.cursor]="editable() ? 'crosshair' : null"
-						(pointerdown)="editable() ? onVRulerPointerDown($event) : null"
+						(pointerdown)="editable() ? rulerGuidesSvc.onVRulerPointerDown($event) : null"
 					>
 						<rect
 							width="20"
@@ -652,8 +607,6 @@ export class SlideCanvasComponent {
 
 	private drag: DragState | null = null;
 	private editCancelled = false;
-	/** Active guide-drag state (id + axis only), or null when nothing is being dragged. */
-	private guideDrag: Pick<RulerGuide, 'id' | 'axis'> | null = null;
 	private marquee: {
 		startX: number;
 		startY: number;
@@ -667,39 +620,25 @@ export class SlideCanvasComponent {
 	);
 	/** Live alignment-snap guide lines (stage coords) during a move. */
 	readonly snapGuides = signal<readonly SnapGuide[]>([]);
-	/**
-	 * User-created guide lines (dragged from rulers or added from toolbar).
-	 * axis:'x' → vertical line at x=pos; axis:'y' → horizontal line at y=pos.
-	 */
-	readonly rulerGuides = signal<readonly RulerGuide[]>([]);
 
-	// ── Ink drawing state ─────────────────────────────────────────────────────
-	/** Accumulated points for the stroke currently being drawn. */
-	private inkPoints: InkPoint[] = [];
-	/** Whether a freehand stroke is in progress. Signal for template reactivity. */
-	readonly inkActiveSignal = signal(false);
-	/** SVG path `d` for the live stroke preview (updated on every pointer move). */
-	readonly liveInkPath = signal<string>('');
+	/** Per-instance pen/highlighter/freeform/eraser drawing controller. */
+	protected readonly inkDrawing = inject(InkDrawingService);
+	/** Per-instance user-created ruler-guide controller. */
+	protected readonly rulerGuidesSvc = inject(RulerGuidesService);
 
 	private readonly textEditor = viewChild<ElementRef<HTMLTextAreaElement>>('textEditor');
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
 	private readonly viewportRef = viewChild<ElementRef<HTMLElement>>('viewport');
 
-	/**
-	 * Auto-fit scale (≤ 1): how much the fixed-size slide must shrink to fit the
-	 * scroll viewport. The authored slide is e.g. 1280×720, which overflows a
-	 * phone; without this it renders off-screen at `zoom=1`. Mirrors the React
-	 * viewer's `fitScale * scale` model (useZoomViewport.ts) so "100%" means "fit
-	 * to viewport". Measured from the viewport via ResizeObserver below.
-	 */
-	private readonly fitScale = signal(1);
+	/** Per-instance auto-fit scale measurement (see {@link CanvasFitService}). */
+	private readonly canvasFit = inject(CanvasFitService);
 
 	/**
 	 * The on-screen scale used for ALL rendering and pointer→stage coordinate
 	 * math: the user's zoom folded with the auto-fit. The parent keeps showing the
 	 * raw user zoom as the percentage, so this stays internal to the canvas.
 	 */
-	private readonly effectiveScale = computed(() => this.fitScale() * this.zoom());
+	private readonly effectiveScale = computed(() => this.canvasFit.fitScale() * this.zoom());
 
 	/** The editing id we've already initialised the textarea for, to avoid re-seeding its value mid-edit. */
 	private seededEditId: string | null = null;
@@ -734,50 +673,54 @@ export class SlideCanvasComponent {
 			editor.nativeElement.setSelectionRange(end, end);
 		});
 
+		// Wire the fit-scale measurement accessors (viewport element, autoFit,
+		// canvasSize all live on this component).
+		this.canvasFit.bind({
+			autoFit: () => this.autoFit(),
+			viewportElement: () => this.viewportRef()?.nativeElement,
+			canvasSize: () => this.canvasSize(),
+		});
+
 		// Re-fit whenever the authored slide size changes (e.g. switching decks).
 		effect(() => {
 			this.canvasSize();
-			this.recomputeFit();
+			this.canvasFit.recompute();
 		});
 
 		// Observe the viewport so the slide re-fits on container resize / rotation.
 		const destroyRef = inject(DestroyRef);
 		afterNextRender(() => {
-			this.recomputeFit();
+			this.canvasFit.recompute();
 			const el = this.viewportRef()?.nativeElement;
 			if (typeof ResizeObserver !== 'undefined' && el) {
-				const observer = new ResizeObserver(() => this.recomputeFit());
+				const observer = new ResizeObserver(() => this.canvasFit.recompute());
 				observer.observe(el);
 				destroyRef.onDestroy(() => observer.disconnect());
 			}
 		});
-	}
 
-	/**
-	 * Compute the largest scale (≤ 1) at which the whole slide fits the viewport,
-	 * reserving the 1rem gutter + drop shadow. Sets fitScale to 1 when unmeasured.
-	 */
-	private recomputeFit(): void {
-		// Thumbnail consumers manage their own scale via `zoom`; keep fit at 1 so
-		// the two scales don't compound.
-		if (!this.autoFit()) {
-			this.fitScale.set(1);
-			return;
-		}
-		const el = this.viewportRef()?.nativeElement;
-		const size = this.canvasSize();
-		if (!el || !size.width || !size.height) {
-			this.fitScale.set(1);
-			return;
-		}
-		const availW = Math.max(el.clientWidth - 16, 0);
-		const availH = Math.max(el.clientHeight - 32, 0);
-		if (!availW || !availH) {
-			this.fitScale.set(1);
-			return;
-		}
-		const fit = Math.min(availW / size.width, availH / size.height, 1);
-		this.fitScale.set(fit > 0 ? fit : 1);
+		// Wire the ink-drawing controller's accessors + emitters (the stage
+		// element, effective scale, and all-elements accessors, plus the two
+		// outputs it completes, all live on this component).
+		this.inkDrawing.bind({
+			stageElement: () => this.stageRef()?.nativeElement,
+			effectiveScale: () => this.effectiveScale(),
+			elements: () => this.elements(),
+			drawTool: () => this.drawTool(),
+			drawColor: () => this.drawColor(),
+			drawWidth: () => this.drawWidth(),
+			emitInkStrokeComplete: (ink) => this.inkStrokeComplete.emit(ink),
+			emitEraserHit: (id) => this.eraserHit.emit(id),
+		});
+
+		// Wire the ruler-guides controller's accessors (editable, stage element,
+		// effective scale, canvas size all live on this component).
+		this.rulerGuidesSvc.bind({
+			editable: () => this.editable(),
+			stageElement: () => this.stageRef()?.nativeElement,
+			effectiveScale: () => this.effectiveScale(),
+			canvasSize: () => this.canvasSize(),
+		});
 	}
 
 	readonly elements = computed(() => this.slide()?.elements ?? []);
@@ -813,62 +756,36 @@ export class SlideCanvasComponent {
 	);
 
 	/** Bounding boxes (stage coords) for the selected elements. */
-	readonly selectionBoxes = computed(() => {
-		const selected = new Set(this.selectedIds());
-		if (selected.size === 0) {
-			return [];
-		}
-		return this.allElements()
-			.filter((el) => selected.has(el.id))
-			.map((el) => ({ id: el.id, x: el.x, y: el.y, width: el.width, height: el.height }));
-	});
+	readonly selectionBoxes = computed(() =>
+		computeSelectionBoxes(this.allElements(), this.selectedIds()),
+	);
 
 	/** The single selected element's box, or null when 0 or >1 are selected. */
-	readonly singleSelected = computed<(Box & { id: string }) | null>(() => {
-		const ids = this.selectedIds();
-		if (ids.length !== 1) {
-			return null;
-		}
-		const el = this.allElements().find((e) => e.id === ids[0]);
-		return el ? { id: el.id, x: el.x, y: el.y, width: el.width, height: el.height } : null;
-	});
+	readonly singleSelected = computed<(Box & { id: string }) | null>(() =>
+		computeSingleSelected(this.allElements(), this.selectedIds()),
+	);
 
 	/** Resize-handle render boxes (stage coords) for the single selection. */
-	readonly handleBoxes = computed(() => {
-		if (!this.editable()) {
-			return [];
-		}
-		const box = this.singleSelected();
-		if (!box) {
-			return [];
-		}
-		const size = HANDLE_SCREEN_PX / (this.effectiveScale() || 1);
-		return RESIZE_HANDLES.map((handle) => {
-			const { fx, fy } = handleAnchor(handle);
-			return {
-				handle,
-				left: box.x + fx * box.width - size / 2,
-				top: box.y + fy * box.height - size / 2,
-				size,
-				cursor: handleCursor(handle),
-			};
-		});
-	});
+	readonly handleBoxes = computed(() =>
+		computeHandleBoxes(
+			this.singleSelected(),
+			this.editable(),
+			HANDLE_SCREEN_PX,
+			this.effectiveScale(),
+		),
+	);
 
 	/** Rotation-handle box (stage coords) above the single selection, or null. */
-	readonly rotateHandle = computed(() => {
-		if (!this.editable()) {
-			return null;
-		}
-		const box = this.singleSelected();
-		if (!box) {
-			return null;
-		}
-		const zoom = this.effectiveScale() || 1;
-		const size = HANDLE_SCREEN_PX / zoom;
-		const offset = 24 / zoom;
-		return { left: box.x + box.width / 2 - size / 2, top: box.y - offset - size / 2, size };
-	});
+	readonly rotateHandle = computed(() =>
+		computeCornerHandle(
+			this.singleSelected(),
+			this.editable(),
+			HANDLE_SCREEN_PX,
+			24,
+			this.effectiveScale(),
+			'top-center',
+		),
+	);
 
 	/**
 	 * Shape-adjustment-handle box (stage coords) for the single selection, or
@@ -876,38 +793,23 @@ export class SlideCanvasComponent {
 	 * resize/rotate handles. Selection-only + editable-only, so it vanishes in
 	 * presentation alongside the rest of the edit chrome.
 	 */
-	readonly adjustHandle = computed(() => {
-		if (!this.editable()) {
-			return null;
-		}
-		const box = this.singleSelected();
-		if (!box) {
-			return null;
-		}
-		const zoom = this.effectiveScale() || 1;
-		const size = HANDLE_SCREEN_PX / zoom;
-		const offset = 16 / zoom;
-		return { left: box.x - offset - size / 2, top: box.y - offset - size / 2, size };
-	});
+	readonly adjustHandle = computed(() =>
+		computeCornerHandle(
+			this.singleSelected(),
+			this.editable(),
+			HANDLE_SCREEN_PX,
+			16,
+			this.effectiveScale(),
+			'top-left',
+		),
+	);
 
 	/**
 	 * Resolve the id of the interactive element under a pointer target, or null.
-	 * An element host carries `data-element-id`, but template (master/layout)
-	 * elements are only interactive while editTemplateMode is on; when off they
-	 * are reported as null so the canvas treats them as background (no
-	 * select/drag/context-menu/inline-edit).
+	 * See {@link resolveInteractiveElementId}.
 	 */
 	private interactiveElementIdAt(target: EventTarget | null): string | null {
-		const host = (target as HTMLElement | null)?.closest('[data-element-id]') as HTMLElement | null;
-		const id = host?.getAttribute('data-element-id');
-		if (!id) {
-			return null;
-		}
-		const el = this.allElements().find((e) => e.id === id);
-		if (!el) {
-			return null;
-		}
-		return isElementInteractive(el, true, this.editTemplateMode()) ? id : null;
+		return resolveInteractiveElementId(target, this.allElements(), this.editTemplateMode());
 	}
 
 	onStagePointerDown(event: PointerEvent): void {
@@ -926,47 +828,8 @@ export class SlideCanvasComponent {
 		// ── DRAW BRANCH: must come before the select/marquee/drag path ─────────
 		// When a draw tool is active, pointer gestures capture strokes; none of
 		// the select/marquee/drag logic should run.
-		if (this.drawTool() !== 'select') {
-			const stage = this.stageRef()?.nativeElement;
-			if (!stage) {
-				return;
-			}
-			const rect = stage.getBoundingClientRect();
-			const zoom = this.effectiveScale() || 1;
-			const pt: InkPoint = {
-				x: (event.clientX - rect.left) / zoom,
-				y: (event.clientY - rect.top) / zoom,
-			};
-
-			if (this.drawTool() === 'eraser') {
-				// Find ink elements whose bounding box (+ 15px hit radius) contains
-				// the pointer. Iterate in reverse so the topmost element wins.
-				const HIT_RADIUS = 15;
-				const allElements = this.elements();
-				for (let i = allElements.length - 1; i >= 0; i--) {
-					const el = allElements[i];
-					if (el.type !== 'ink') {
-						continue;
-					}
-					if (
-						pt.x >= el.x - HIT_RADIUS &&
-						pt.x <= el.x + el.width + HIT_RADIUS &&
-						pt.y >= el.y - HIT_RADIUS &&
-						pt.y <= el.y + el.height + HIT_RADIUS
-					) {
-						this.eraserHit.emit(el.id);
-						break;
-					}
-				}
-				return;
-			}
-
-			// pen / highlighter / freeform: begin stroke
-			event.preventDefault();
-			(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
-			this.inkPoints = [pt];
-			this.inkActiveSignal.set(true);
-			this.liveInkPath.set(pointsToSvgPathD(this.inkPoints));
+		if (this.inkDrawing.isDrawToolActive()) {
+			this.inkDrawing.handleStagePointerDown(event);
 			return;
 		}
 		// ── END DRAW BRANCH ─────────────────────────────────────────────────────
@@ -1185,38 +1048,14 @@ export class SlideCanvasComponent {
 	@HostListener('document:pointermove', ['$event'])
 	onPointerMove(event: PointerEvent): void {
 		// ── GUIDE DRAG ────────────────────────────────────────────────────────
-		if (this.guideDrag) {
-			const stage = this.stageRef()?.nativeElement;
-			if (stage) {
-				const rect = stage.getBoundingClientRect();
-				const z = this.effectiveScale() || 1;
-				const guides = this.rulerGuides();
-				const { id, axis } = this.guideDrag;
-				const rawPos =
-					axis === 'x' ? (event.clientX - rect.left) / z : (event.clientY - rect.top) / z;
-				const clampMax = axis === 'x' ? this.canvasSize().width : this.canvasSize().height;
-				const pos = Math.max(0, Math.min(clampMax, rawPos));
-				this.rulerGuides.set(guides.map((g) => (g.id === id ? { ...g, pos } : g)));
-			}
+		if (this.rulerGuidesSvc.handlePointerMove(event)) {
 			return;
 		}
 		// ── END GUIDE DRAG ────────────────────────────────────────────────────
 
 		// ── DRAW BRANCH ───────────────────────────────────────────────────────
 		// When a stroke is in progress, consume all pointer-move events for drawing.
-		if (this.inkActiveSignal()) {
-			const stage = this.stageRef()?.nativeElement;
-			if (!stage) {
-				return;
-			}
-			const rect = stage.getBoundingClientRect();
-			const zoom = this.effectiveScale() || 1;
-			const pt: InkPoint = {
-				x: (event.clientX - rect.left) / zoom,
-				y: (event.clientY - rect.top) / zoom,
-			};
-			this.inkPoints.push(pt);
-			this.liveInkPath.set(pointsToSvgPathD(this.inkPoints));
+		if (this.inkDrawing.handlePointerMove(event)) {
 			return;
 		}
 		// ── END DRAW BRANCH ───────────────────────────────────────────────────
@@ -1315,7 +1154,7 @@ export class SlideCanvasComponent {
 
 			// Guide snap: snap the moving element to the nearest user guide.
 			if (this.snapToGuides()) {
-				const guides = this.rulerGuides();
+				const guides = this.rulerGuidesSvc.rulerGuides();
 				const thr = SNAP_SCREEN_PX / zoom;
 				let gx = box.x;
 				let gy = box.y;
@@ -1345,30 +1184,14 @@ export class SlideCanvasComponent {
 	@HostListener('document:pointerup')
 	onPointerUp(): void {
 		// ── GUIDE DRAG ────────────────────────────────────────────────────────
-		if (this.guideDrag) {
-			this.guideDrag = null;
+		if (this.rulerGuidesSvc.handlePointerUp()) {
 			return;
 		}
 		// ── END GUIDE DRAG ────────────────────────────────────────────────────
 
 		// ── DRAW BRANCH ───────────────────────────────────────────────────────
 		// Finalise the stroke and emit the completed ink element.
-		if (this.inkActiveSignal()) {
-			this.inkActiveSignal.set(false);
-			const tool = this.drawTool();
-			const resolvedTool: 'pen' | 'highlighter' | 'freeform' =
-				tool === 'highlighter' ? 'highlighter' : tool === 'freeform' ? 'freeform' : 'pen';
-			const ink = strokeToInkElement({
-				points: this.inkPoints,
-				color: this.drawColor(),
-				width: this.drawWidth(),
-				tool: resolvedTool,
-			});
-			if (ink) {
-				this.inkStrokeComplete.emit(ink);
-			}
-			this.inkPoints = [];
-			this.liveInkPath.set('');
+		if (this.inkDrawing.handlePointerUp()) {
 			return;
 		}
 		// ── END DRAW BRANCH ───────────────────────────────────────────────────
@@ -1392,65 +1215,6 @@ export class SlideCanvasComponent {
 		}
 		this.drag = null;
 		this.snapGuides.set([]);
-	}
-
-	/** Begin dragging an existing guide. Called from the guide handle pointerdown. */
-	onGuidePointerDown(event: PointerEvent, id: string, axis: RulerGuide['axis']): void {
-		event.stopPropagation();
-		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
-		this.guideDrag = { id, axis };
-	}
-
-	/** Remove a guide (called on guide handle double-click). */
-	onGuideDoubleClick(event: MouseEvent, id: string): void {
-		event.stopPropagation();
-		this.rulerGuides.update((gs: readonly RulerGuide[]) =>
-			gs.filter((g: RulerGuide) => g.id !== id),
-		);
-	}
-
-	/** Drag from the horizontal ruler to create a new horizontal guide (axis:'y'). */
-	onHRulerPointerDown(event: PointerEvent): void {
-		if (!this.editable()) {
-			return;
-		}
-		const stage = this.stageRef()?.nativeElement;
-		if (!stage) {
-			return;
-		}
-		event.preventDefault();
-		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
-		const rect = stage.getBoundingClientRect();
-		const z = this.effectiveScale() || 1;
-		const pos = (event.clientY - rect.top) / z;
-		const id = `guide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-		this.rulerGuides.update((gs: readonly RulerGuide[]) => [
-			...gs,
-			{ id, axis: 'y' as const, pos: Math.max(0, pos) },
-		]);
-		this.guideDrag = { id, axis: 'y' };
-	}
-
-	/** Drag from the vertical ruler to create a new vertical guide (axis:'x'). */
-	onVRulerPointerDown(event: PointerEvent): void {
-		if (!this.editable()) {
-			return;
-		}
-		const stage = this.stageRef()?.nativeElement;
-		if (!stage) {
-			return;
-		}
-		event.preventDefault();
-		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
-		const rect = stage.getBoundingClientRect();
-		const z = this.effectiveScale() || 1;
-		const pos = (event.clientX - rect.left) / z;
-		const id = `guide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-		this.rulerGuides.update((gs: readonly RulerGuide[]) => [
-			...gs,
-			{ id, axis: 'x' as const, pos: Math.max(0, pos) },
-		]);
-		this.guideDrag = { id, axis: 'x' };
 	}
 
 	readonly wrapperStyle = computed<StyleMap>(() => {

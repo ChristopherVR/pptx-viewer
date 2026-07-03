@@ -6,6 +6,41 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- **vue:** Mount the version-history and compare panels (by @ChristopherVR) ([064ff67](https://github.com/ChristopherVR/pptx-viewer/commit/064ff672337dd3d261589c7d3a44acb727500622))
+
+### Refactor
+
+- **vue:** Extract format painter and inline editing into composables (by @ChristopherVR) ([119434a](https://github.com/ChristopherVR/pptx-viewer/commit/119434ac8a606b2f7aac878a34ac59bf901bdeee))
+- **vue:** Extract ribbon UI state, ink drawing and theme editing (by @ChristopherVR) ([2ad1f66](https://github.com/ChristopherVR/pptx-viewer/commit/2ad1f66d1e277e50603db202b8158b4b8a633dcb))
+- **vue:** Extract signature, custom-shows and version-history wiring (by @ChristopherVR) ([c8e7834](https://github.com/ChristopherVR/pptx-viewer/commit/c8e7834c7ce887275100282bd550647e84914a65))
+- **vue:** Extract editor keyboard shortcuts into a composable (by @ChristopherVR) ([e75773a](https://github.com/ChristopherVR/pptx-viewer/commit/e75773aa3aa49c08d9fd26c124fc997dbdb87f2e))
+- **vue:** Extract collaboration + broadcast session wiring (by @ChristopherVR) ([9690dae](https://github.com/ChristopherVR/pptx-viewer/commit/9690dae59c17f912fab766c74ccb6b15374cc574))
+- **vue:** Extract mobile bottom-bar chrome into a composable (by @ChristopherVR) ([590e561](https://github.com/ChristopherVR/pptx-viewer/commit/590e561af9c72aa33c7615126c9cf0fff418609f))
+- **vue:** Extract remaining small dialog/menu wiring composables (by @ChristopherVR) ([71e3b9e](https://github.com/ChristopherVR/pptx-viewer/commit/71e3b9e62463b4f7989e114dfb6b1687cd9616dc))
+- **vue:** Extract the ribbon-props adapter into composables (by @ChristopherVR) ([da1a8fc](https://github.com/ChristopherVR/pptx-viewer/commit/da1a8fc7a399080d4cadd8779bcfd00fc203eb02))
+- **vue:** Extract export/download wiring into a composable (by @ChristopherVR) ([adc699d](https://github.com/ChristopherVR/pptx-viewer/commit/adc699daef2377831e0cdb2019adbe053a7f2fc1))
+- **vue:** Extract table-cell and SmartArt inline-edit provide contexts (by @ChristopherVR) ([3a0ea58](https://github.com/ChristopherVR/pptx-viewer/commit/3a0ea584bee65007943dd516559c69da2713020b))
+- **vue:** Extract presentation-mode and comments wiring (by @ChristopherVR) ([db281d3](https://github.com/ChristopherVR/pptx-viewer/commit/db281d306b036f54765961937e9ca6799095603e))
+- **angular:** Extract zoom state into ViewerZoomService (by @ChristopherVR) ([ce8dc19](https://github.com/ChristopherVR/pptx-viewer/commit/ce8dc19e4399e62f7dc6fe3421b0b6e89ef5be5c))
+- **angular:** Extract touch-gesture wiring into ViewerTouchGesturesService (by @ChristopherVR) ([7b4596e](https://github.com/ChristopherVR/pptx-viewer/commit/7b4596e24b8286684b2b98471a76ca4823d9ad79))
+- **angular:** Extract presentation-mode wiring into ViewerPresentationModeService (by @ChristopherVR) ([a8a6b04](https://github.com/ChristopherVR/pptx-viewer/commit/a8a6b040711af9d00cef83347c7c146c5f09671c))
+- **angular:** Extract mobile-sheet state into ViewerMobileSheetService (by @ChristopherVR) ([89b9335](https://github.com/ChristopherVR/pptx-viewer/commit/89b9335ebf1aeb71445513e64291a1f33fa44253))
+- **angular:** Extract inspector-panel state into ViewerInspectorPanelService (by @ChristopherVR) ([f7fb981](https://github.com/ChristopherVR/pptx-viewer/commit/f7fb981de02306e64823001b15fdfef6ec5e812d))
+- **angular:** Extract file-IO state into ViewerFileIOService (by @ChristopherVR) ([bede18e](https://github.com/ChristopherVR/pptx-viewer/commit/bede18e4352ad61fb51d22366e15e7b0e031165b))
+- **angular:** Extract theme-gallery logic into ViewerThemeGalleryService (by @ChristopherVR) ([0947357](https://github.com/ChristopherVR/pptx-viewer/commit/0947357e3ffcdaf2b14c170e53ee32eb893fc451))
+- **angular:** Extract canvas-editing handlers into ViewerCanvasEditingService (by @ChristopherVR) ([6c86449](https://github.com/ChristopherVR/pptx-viewer/commit/6c86449fa5cfe7832ff70fae6d5a4d5b7dbbb57e))
+- **angular:** Extract collab-cursor broadcast into ViewerCollabCursorService (by @ChristopherVR) ([c944081](https://github.com/ChristopherVR/pptx-viewer/commit/c944081344f6b7afaf16f6a43f5a7f2e5294490e))
+- **angular:** Extract document-properties state into ViewerDocumentPropertiesService (by @ChristopherVR) ([b501038](https://github.com/ChristopherVR/pptx-viewer/commit/b5010381b97300555959ecb704d972b8e0ad2b56))
+- **angular:** Extract ruler tick-mark generation into ruler-ticks.ts (by @ChristopherVR) ([7d8e134](https://github.com/ChristopherVR/pptx-viewer/commit/7d8e134dc3af5996e34038098180153ec565b7ff))
+- **angular:** Extract auto-fit scale measurement into CanvasFitService (by @ChristopherVR) ([ff95bdb](https://github.com/ChristopherVR/pptx-viewer/commit/ff95bdb82ecebfff3865b81a54cd8c4d3511ccd8))
+- **angular:** Extract pen/eraser drawing logic into InkDrawingService (by @ChristopherVR) ([e7aada8](https://github.com/ChristopherVR/pptx-viewer/commit/e7aada84c1f1123ed471c6e9abd172097d3fcf64))
+- **angular:** Extract ruler-guide state into RulerGuidesService (by @ChristopherVR) ([81e2c4b](https://github.com/ChristopherVR/pptx-viewer/commit/81e2c4b6e14fafc1414369f7c6b879a370e4666e))
+- **angular:** Extract selection/handle geometry into selection-geometry.ts (by @ChristopherVR) ([5615099](https://github.com/ChristopherVR/pptx-viewer/commit/5615099a978c353c04f5779d7ec2ac1a0b3bcc26))
+
+## [1.1.89](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.89) - 2026-07-03
+
 ### Features
 
 - **demos:** Real JWT auth + server-enforced viewer role in collab relay (by @ChristopherVR) ([af21048](https://github.com/ChristopherVR/pptx-viewer/commit/af210481458eeedc196a5bd397ee84ab779887af))
