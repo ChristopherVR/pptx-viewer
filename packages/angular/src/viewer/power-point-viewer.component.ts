@@ -1,10 +1,8 @@
 import { NgClass, NgStyle } from '@angular/common';
 import {
-	afterNextRender,
 	ChangeDetectionStrategy,
 	Component,
 	computed,
-	DestroyRef,
 	effect,
 	ElementRef,
 	HostListener,
@@ -96,7 +94,6 @@ import type { TableCellCommit } from './table-renderer.component';
 import { TableSelectionService } from './table-selection.service';
 import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
-import { attachTouchGestures } from './touch-gestures';
 import type { CollaborationConfig } from './types';
 import { ViewerCollaborationSessionService } from './viewer-collaboration-session.service';
 import { ViewerCompareService } from './viewer-compare.service';
@@ -107,6 +104,7 @@ import { ViewerExtraDialogsComponent } from './viewer-extra-dialogs.component';
 import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
 import { ViewerKeyboardService } from './viewer-keyboard.service';
+import { ViewerTouchGesturesService } from './viewer-touch-gestures.service';
 import { ViewerZoomService } from './viewer-zoom.service';
 import { ZoomTargetService } from './zoom-target.service';
 
@@ -151,6 +149,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		ViewerCollaborationSessionService,
 		ViewerFormatPainterService,
 		ViewerKeyboardService,
+		ViewerTouchGesturesService,
 		ViewerZoomService,
 	],
 	imports: [
@@ -845,6 +844,7 @@ export class PowerPointViewerComponent {
 	protected readonly formatPainter = inject(ViewerFormatPainterService);
 	private readonly keyboard = inject(ViewerKeyboardService);
 	protected readonly zoomSvc = inject(ViewerZoomService);
+	private readonly touchGestures = inject(ViewerTouchGesturesService);
 
 	/** Handle on the secondary-dialog host (keep-annotations prompt). */
 	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
@@ -1261,8 +1261,15 @@ export class PowerPointViewerComponent {
 		});
 
 		// Attach multi-touch gestures (pinch-zoom / swipe-nav / long-press menu)
-		// to the canvas host once it is rendered. See setupTouchGestures().
-		this.setupTouchGestures();
+		// to the canvas host once it is rendered.
+		this.touchGestures.setup(() => this.mainEl()?.nativeElement, {
+			canEdit: () => this.canEdit(),
+			presenting: () => this.presenting(),
+			selectedElement: () => this.selectedElement(),
+			goPrev: () => this.goPrev(),
+			goNext: () => this.goNext(),
+			setContextMenuPos: (pos) => this.contextMenuPos.set(pos),
+		});
 	}
 
 	/**
@@ -1369,61 +1376,6 @@ export class PowerPointViewerComponent {
 		this.loader.theme.set(result.theme);
 		this.loader.themeColorMap.set(result.themeColorMap);
 		this.showThemeGallery.set(false);
-	}
-
-	/**
-	 * Wire the framework-agnostic touch-gesture recogniser to the `<main>` canvas
-	 * host once it is in the DOM. Mirrors React's `useTouchGestures` wiring:
-	 *   - pinch-to-zoom always updates the zoom signal (clamped to the viewer
-	 *     range), with `preventDefault()` on the pinch path to suppress the
-	 *     browser's native pinch-zoom;
-	 *   - horizontal swipe navigates slides, but only when editing is off
-	 *     (`!canEdit()`): in edit mode single-finger gestures belong to element
-	 *     manipulation (move/resize/rotate), so we never hijack them. The large
-	 *     ‹ › buttons remain available for explicit navigation in all modes;
-	 *   - long-press in edit mode opens the editor context menu at the press
-	 *     point for the current selection (mirrors React's onLongPress path).
-	 *
-	 * The recogniser's swipe/long-press callbacks check the live `canEdit()` /
-	 * selection state, so a single attach handles every mode without re-binding.
-	 */
-	private setupTouchGestures(): void {
-		const destroyRef = inject(DestroyRef);
-		afterNextRender(() => {
-			const el = this.mainEl()?.nativeElement;
-			if (!el) {
-				return;
-			}
-			const teardown = attachTouchGestures(el, {
-				getScale: () => this.zoomSvc.zoom(),
-				callbacks: {
-					onPinchZoom: (newScale) => this.zoomSvc.zoom.set(newScale),
-					onSwipe: (direction) => {
-						// Edit mode: leave single-finger gestures to element manipulation.
-						if (this.canEdit()) {
-							return;
-						}
-						// direction 1 = swipe right (previous), -1 = swipe left (next).
-						if (direction === 1) {
-							this.goPrev();
-						} else {
-							this.goNext();
-						}
-					},
-					onLongPress: (x, y) => {
-						if (!this.canEdit() || this.presenting()) {
-							return;
-						}
-						const selected = this.selectedElement();
-						if (!selected) {
-							return;
-						}
-						this.contextMenuPos.set({ x, y });
-					},
-				},
-			});
-			destroyRef.onDestroy(teardown);
-		});
 	}
 
 	/** Open the fullscreen presentation overlay from the current slide. */
