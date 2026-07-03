@@ -1,0 +1,142 @@
+/**
+ * ribbon-home-section.component.ts: the Home ribbon tab (Clipboard, Slides, Font
+ * and Paragraph groups). Split out of {@link RibbonComponent}; behaviour and
+ * markup are unchanged. Font/Paragraph controls are the shared
+ * {@link RibbonFontControlsComponent} / {@link RibbonParagraphControlsComponent}.
+ */
+import { NgClass } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
+import type { PptxElement } from 'pptx-viewer-core';
+
+import { EditorStateService } from './editor-state.service';
+import { RibbonFontControlsComponent } from './ribbon-font-controls.component';
+import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.component';
+
+@Component({
+	selector: 'pptx-ribbon-home-section',
+	standalone: true,
+	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [NgClass, TranslatePipe, RibbonFontControlsComponent, RibbonParagraphControlsComponent],
+	template: `
+		<!-- Clipboard -->
+		<div class="flex flex-col items-center gap-0.5">
+			<div class="pptx-rb-grp">
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[title]="'pptx.arrange.paste' | translate"
+					(click)="paste()"
+				>
+					{{ 'pptx.arrange.paste' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[title]="'pptx.arrange.cut' | translate"
+					[disabled]="!hasSel()"
+					(click)="cut()"
+				>
+					{{ 'pptx.arrange.cut' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[title]="'pptx.arrange.copy' | translate"
+					[disabled]="!hasSel()"
+					(click)="copy()"
+				>
+					{{ 'pptx.arrange.copy' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gl"
+					data-testid="format-painter-toggle"
+					[attr.data-active]="formatPainterActive() ? 'true' : 'false'"
+					[ngClass]="formatPainterActive() ? 'bg-primary text-primary-foreground' : ''"
+					[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
+					[title]="'pptx.arrange.formatPainter' | translate"
+					(click)="toggleFormatPainter.emit()"
+				>
+					{{ 'pptx.ribbon.painter' | translate }}
+				</button>
+			</div>
+			<span class="text-[9px] leading-none text-muted-foreground">
+				{{ 'pptx.ribbon.clipboard' | translate }}
+			</span>
+		</div>
+		<span class="pptx-rb-sep"></span>
+		<!-- Slides -->
+		<div class="flex flex-col items-center gap-0.5">
+			<div class="pptx-rb-grp">
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[title]="'pptx.ribbon.newSlide' | translate"
+					(click)="editor.addSlide(slideIndex())"
+				>
+					＋ {{ 'pptx.ribbon.slide' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gl"
+					[title]="'pptx.ribbon.duplicateSlide' | translate"
+					(click)="editor.duplicateSlide(slideIndex())"
+				>
+					{{ 'pptx.arrange.duplicate' | translate }}
+				</button>
+			</div>
+			<span class="text-[9px] leading-none text-muted-foreground">
+				{{ 'pptx.sections.slides' | translate }}
+			</span>
+		</div>
+		<span class="pptx-rb-sep"></span>
+		<!-- Font -->
+		<div class="flex flex-col items-center gap-0.5">
+			<div class="flex items-center gap-1">
+				<pptx-ribbon-font-controls
+					[slideIndex]="slideIndex()"
+					[selectedElement]="selectedElement()"
+				/>
+			</div>
+			<span class="text-[9px] leading-none text-muted-foreground">
+				{{ 'pptx.ribbon.font' | translate }}
+			</span>
+		</div>
+		<span class="pptx-rb-sep"></span>
+		<!-- Paragraph -->
+		<div class="flex flex-col items-center gap-0.5">
+			<pptx-ribbon-paragraph-controls
+				[slideIndex]="slideIndex()"
+				[selectedElement]="selectedElement()"
+			/>
+			<span class="text-[9px] leading-none text-muted-foreground">
+				{{ 'pptx.ribbon.paragraph' | translate }}
+			</span>
+		</div>
+	`,
+})
+export class RibbonHomeSectionComponent {
+	protected readonly editor = inject(EditorStateService);
+
+	readonly slideIndex = input<number>(0);
+	readonly selectedElement = input<PptxElement | null>(null);
+	readonly formatPainterActive = input<boolean>(false);
+	readonly canActivateFormatPainter = input<boolean>(false);
+
+	readonly toggleFormatPainter = output<void>();
+
+	protected hasSel(): boolean {
+		return this.editor.selectedIds().length > 0;
+	}
+
+	protected copy(): void {
+		this.editor.copySelected(this.slideIndex());
+	}
+	protected cut(): void {
+		this.editor.cutSelected(this.slideIndex());
+	}
+	protected paste(): void {
+		this.editor.paste(this.slideIndex());
+	}
+}

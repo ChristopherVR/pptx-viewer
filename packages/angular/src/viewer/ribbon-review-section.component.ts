@@ -1,0 +1,49 @@
+/**
+ * ribbon-review-section.component.ts: the Review ribbon tab (Comments,
+ * Accessibility, Compare, and the selection-gated Link action). Split out of
+ * {@link RibbonComponent}; behaviour and markup are unchanged.
+ */
+import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
+
+import { EditorStateService } from './editor-state.service';
+
+@Component({
+	selector: 'pptx-ribbon-review-section',
+	standalone: true,
+	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
+	template: `
+		<button type="button" class="pptx-rb-pill" (click)="comments.emit()">
+			{{ 'pptx.toolbar.comments' | translate }}
+		</button>
+		<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">
+			{{ 'pptx.ribbon.accessibility' | translate }}
+		</button>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[title]="'pptx.ribbon.compareTitle' | translate"
+			(click)="openCompare.emit()"
+		>
+			{{ 'pptx.ribbon.compare' | translate }}
+		</button>
+		@if (hasSel()) {
+			<button type="button" class="pptx-rb-pill" (click)="link.emit()">
+				{{ 'pptx.ribbon.link' | translate }}
+			</button>
+		}
+	`,
+})
+export class RibbonReviewSectionComponent {
+	private readonly editor = inject(EditorStateService);
+
+	readonly comments = output<void>();
+	readonly a11y = output<void>();
+	readonly openCompare = output<void>();
+	readonly link = output<void>();
+
+	protected hasSel(): boolean {
+		return this.editor.selectedIds().length > 0;
+	}
+}

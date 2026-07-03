@@ -1,0 +1,118 @@
+/**
+ * ribbon-draw-section.component.ts: the Draw ribbon tab (tool selector, pen
+ * colour, stroke width). Split out of {@link RibbonComponent}; behaviour and
+ * markup are unchanged.
+ *
+ * The tool/colour/width state is owned by the parent ribbon (so it persists
+ * across tab switches) and passed in via inputs; each interaction emits the full
+ * {@link DrawToolState} the parent re-broadcasts as `drawToolChange`.
+ */
+import { NgClass } from '@angular/common';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
+
+/** Drawing tool IDs (mirrors React DRAW_TOOLS). */
+export type DrawTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform';
+
+/** The full draw-tool state broadcast on every Draw-tab interaction. */
+export interface DrawToolState {
+	tool: DrawTool;
+	color: string;
+	width: number;
+}
+
+interface DrawToolDef {
+	id: DrawTool;
+	labelKey: string;
+	icon: string;
+}
+
+const DRAW_TOOLS: readonly DrawToolDef[] = [
+	{ id: 'select', labelKey: 'pptx.ribbon.tool.select', icon: '↖' },
+	{ id: 'pen', labelKey: 'pptx.ribbon.tool.pen', icon: '✏' },
+	{ id: 'highlighter', labelKey: 'pptx.ribbon.tool.highlighter', icon: 'Hl' },
+	{ id: 'eraser', labelKey: 'pptx.ribbon.tool.eraser', icon: '⌫' },
+	{ id: 'freeform', labelKey: 'pptx.ribbon.tool.freeform', icon: '∿' },
+];
+
+@Component({
+	selector: 'pptx-ribbon-draw-section',
+	standalone: true,
+	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [NgClass, TranslatePipe],
+	template: `
+		<!--
+			Draw tool state is held in the parent ribbon and pushed up via
+			drawToolChange; power-point-viewer.component.ts consumes it and appends
+			real ink elements on stroke completion (see onDrawToolChange/
+			onInkStrokeComplete there).
+		-->
+		<!-- Tool selector -->
+		<div class="pptx-rb-grp">
+			@for (tool of drawTools; track tool.id; let last = $last) {
+				<button
+					type="button"
+					[class]="last ? 'pptx-rb-gl' : 'pptx-rb-gb'"
+					[ngClass]="activeTool() === tool.id ? 'bg-primary text-primary-foreground' : ''"
+					[title]="tool.labelKey | translate"
+					(click)="selectTool(tool.id)"
+				>
+					{{ tool.icon }}
+				</button>
+			}
+		</div>
+		<span class="pptx-rb-sep"></span>
+		<!-- Colour + width -->
+		<label
+			class="inline-flex items-center gap-1 text-xs text-muted-foreground"
+			[title]="'pptx.ribbon.penColour' | translate"
+		>
+			{{ 'pptx.ribbon.colour' | translate }}
+			<input
+				type="color"
+				[value]="drawingColor()"
+				(input)="onColorInput($event)"
+				class="h-6 w-6 cursor-pointer rounded border border-border bg-transparent"
+			/>
+		</label>
+		<span class="pptx-rb-sep"></span>
+		<label
+			class="inline-flex items-center gap-1 text-xs text-muted-foreground"
+			[title]="'pptx.ribbon.strokeWidth' | translate"
+		>
+			{{ 'pptx.ribbon.width' | translate }}
+			<input
+				type="range"
+				min="1"
+				max="12"
+				[value]="drawingWidth()"
+				(input)="onWidthInput($event)"
+				class="h-1 w-16 accent-primary"
+			/>
+			<span class="w-4 text-right text-foreground">{{ drawingWidth() }}</span>
+		</label>
+	`,
+})
+export class RibbonDrawSectionComponent {
+	readonly activeTool = input<DrawTool>('select');
+	readonly drawingColor = input<string>('#000000');
+	readonly drawingWidth = input<number>(3);
+
+	readonly drawToolChange = output<DrawToolState>();
+
+	protected readonly drawTools = DRAW_TOOLS;
+
+	protected selectTool(tool: DrawTool): void {
+		this.drawToolChange.emit({ tool, color: this.drawingColor(), width: this.drawingWidth() });
+	}
+
+	protected onColorInput(event: Event): void {
+		const color = (event.target as HTMLInputElement).value;
+		this.drawToolChange.emit({ tool: this.activeTool(), color, width: this.drawingWidth() });
+	}
+
+	protected onWidthInput(event: Event): void {
+		const width = Number((event.target as HTMLInputElement).value);
+		this.drawToolChange.emit({ tool: this.activeTool(), color: this.drawingColor(), width });
+	}
+}
