@@ -32,6 +32,16 @@
 	width: 100%;
 	height: 100%;
 	min-height: 0;
+	/* Mirrors React's root `overflow-hidden`: several ribbon rows use
+	   `overflow-visible flex-nowrap` internally (so their own dropdowns and
+	   tooltips are never clipped) and are allowed to be wider than the
+	   viewport between the mobile and desktop breakpoints. Without this the
+	   ribbon's true content width leaks into `document.scrollWidth` and the
+	   whole page gains a horizontal scrollbar; with it, the overflow is
+	   clipped at the viewer boundary while descendants that need their own
+	   scrolling (side panels, canvas area) keep working via their own
+	   `overflow-*-auto` rules. */
+	overflow: hidden;
 	background: var(--pptx-background);
 	color: var(--pptx-foreground);
 	font-family:
