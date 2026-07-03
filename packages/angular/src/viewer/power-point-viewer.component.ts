@@ -107,11 +107,8 @@ import { ViewerExtraDialogsComponent } from './viewer-extra-dialogs.component';
 import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
 import { ViewerKeyboardService } from './viewer-keyboard.service';
+import { ViewerZoomService } from './viewer-zoom.service';
 import { ZoomTargetService } from './zoom-target.service';
-
-const ZOOM_STEP = 0.1;
-const ZOOM_MIN = 0.2;
-const ZOOM_MAX = 3;
 
 /**
  * PowerPointViewerComponent: Angular port of the React `PowerPointViewer.tsx`
@@ -154,6 +151,7 @@ const ZOOM_MAX = 3;
 		ViewerCollaborationSessionService,
 		ViewerFormatPainterService,
 		ViewerKeyboardService,
+		ViewerZoomService,
 	],
 	imports: [
 		NgClass,
@@ -218,7 +216,7 @@ const ZOOM_MAX = 3;
 					[slideCount]="slideCount()"
 					[canEdit]="canEdit()"
 					[selectedElement]="selectedElement()"
-					[zoomPercent]="zoomPercent()"
+					[zoomPercent]="zoomSvc.zoomPercent()"
 					[formatPainterActive]="formatPainter.active()"
 					[canActivateFormatPainter]="formatPainter.canActivate()"
 					[exporting]="xport.exporting()"
@@ -232,9 +230,9 @@ const ZOOM_MAX = 3;
 					(toggleSidebar)="slidesPanelCollapsed.update(v => !v)"
 					(prev)="goPrev()"
 					(next)="goNext()"
-					(zoomIn)="zoomIn()"
-					(zoomOut)="zoomOut()"
-					(zoomReset)="zoomReset()"
+					(zoomIn)="zoomSvc.zoomIn()"
+					(zoomOut)="zoomSvc.zoomOut()"
+					(zoomReset)="zoomSvc.zoomReset()"
 					(find)="findReplace.showFind.set(true)"
 					(present)="present()"
 					(presenter)="presentPresenter()"
@@ -326,7 +324,7 @@ const ZOOM_MAX = 3;
 							[slide]="activeSlide()"
 							[canvasSize]="loader.canvasSize()"
 							[mediaDataUrls]="loader.mediaDataUrls()"
-							[zoom]="zoom()"
+							[zoom]="zoomSvc.zoom()"
 							[editable]="canEdit()"
 							[selectedIds]="editor.selectedIds()"
 							[showGrid]="showGrid()"
@@ -359,12 +357,12 @@ const ZOOM_MAX = 3;
 							(tableChange)="onTableChange($event)"
 						/>
 						@if (collab.connected()) {
-							<pptx-collaboration-cursors [cursors]="collabCursors()" [zoom]="zoom()" />
+							<pptx-collaboration-cursors [cursors]="collabCursors()" [zoom]="zoomSvc.zoom()" />
 							<pptx-remote-selection-overlay
 								[presences]="collab.presence()"
 								[elements]="activeSlide()?.elements ?? []"
 								[activeSlideIndex]="activeSlideIndex()"
-								[zoom]="zoom()"
+								[zoom]="zoomSvc.zoom()"
 							/>
 						}
 						@if (collab.active() && collab.presence().length > 0) {
@@ -489,16 +487,16 @@ const ZOOM_MAX = 3;
 						[canEdit]="canEdit()"
 						[dirty]="editor.dirty()"
 						[notesOpen]="showNotes()"
-						[zoomPercent]="zoomPercent()"
+						[zoomPercent]="zoomSvc.zoomPercent()"
 						[sorterActive]="showSorter()"
 						[presenting]="presenting()"
 						(toggleNotes)="toggleNotes()"
 						(normalView)="showSorter.set(false)"
 						(openSorter)="showSorter.set(true)"
 						(slideShow)="present()"
-						(zoomIn)="zoomIn()"
-						(zoomOut)="zoomOut()"
-						(zoomReset)="zoomReset()"
+						(zoomIn)="zoomSvc.zoomIn()"
+						(zoomOut)="zoomSvc.zoomOut()"
+						(zoomReset)="zoomSvc.zoomReset()"
 					/>
 				}
 			}
@@ -846,6 +844,7 @@ export class PowerPointViewerComponent {
 	protected readonly session = inject(ViewerCollaborationSessionService);
 	protected readonly formatPainter = inject(ViewerFormatPainterService);
 	private readonly keyboard = inject(ViewerKeyboardService);
+	protected readonly zoomSvc = inject(ViewerZoomService);
 
 	/** Handle on the secondary-dialog host (keep-annotations prompt). */
 	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
@@ -889,9 +888,6 @@ export class PowerPointViewerComponent {
 		return this.editor.templateElementsBySlideId()[slide.id] ?? [];
 	});
 	protected readonly rootStyle = computed(() => themeStyle(this.theme()));
-
-	protected readonly zoom = signal(1);
-	protected readonly zoomPercent = computed(() => Math.round(this.zoom() * 100));
 
 	/**
 	 * Remote cursors filtered to the slide the local user is viewing, so peers'
@@ -1328,7 +1324,7 @@ export class PowerPointViewerComponent {
 			return;
 		}
 		const rect = host.getBoundingClientRect();
-		const zoom = this.zoom() || 1;
+		const zoom = this.zoomSvc.zoom() || 1;
 		const size = this.loader.canvasSize();
 		const x = clampCursorPosition((event.clientX - rect.left) / zoom, 0, size.width);
 		const y = clampCursorPosition((event.clientY - rect.top) / zoom, 0, size.height);
@@ -1399,9 +1395,9 @@ export class PowerPointViewerComponent {
 				return;
 			}
 			const teardown = attachTouchGestures(el, {
-				getScale: () => this.zoom(),
+				getScale: () => this.zoomSvc.zoom(),
 				callbacks: {
-					onPinchZoom: (newScale) => this.zoom.set(newScale),
+					onPinchZoom: (newScale) => this.zoomSvc.zoom.set(newScale),
 					onSwipe: (direction) => {
 						// Edit mode: leave single-finger gestures to element manipulation.
 						if (this.canEdit()) {
@@ -1428,16 +1424,6 @@ export class PowerPointViewerComponent {
 			});
 			destroyRef.onDestroy(teardown);
 		});
-	}
-
-	zoomIn(): void {
-		this.zoom.set(Math.min(ZOOM_MAX, Number((this.zoom() + ZOOM_STEP).toFixed(2))));
-	}
-	zoomOut(): void {
-		this.zoom.set(Math.max(ZOOM_MIN, Number((this.zoom() - ZOOM_STEP).toFixed(2))));
-	}
-	zoomReset(): void {
-		this.zoom.set(1);
 	}
 
 	/** Open the fullscreen presentation overlay from the current slide. */
