@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.46](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.1.46) - 2026-07-03
+
+### Features
+
+- **cli:** Arrow-key colour prompts and PowerPoint-ready scaffolds (by @ChristopherVR) ([8de03c9](https://github.com/ChristopherVR/pptx-viewer/commit/8de03c9da8c8d20e28cca253ff6d7083de65a0d8))
+
 ## [1.1.45](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.1.45) - 2026-07-02
 
 ### Features

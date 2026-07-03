@@ -8,6 +8,17 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **cli:** Arrow-key colour prompts and PowerPoint-ready scaffolds (by @ChristopherVR) ([8de03c9](https://github.com/ChristopherVR/pptx-viewer/commit/8de03c9da8c8d20e28cca253ff6d7083de65a0d8))
+
+### Bug Fixes
+
+- **react:** Translate SmartArt preset gallery labels (by @ChristopherVR) ([d67344d](https://github.com/ChristopherVR/pptx-viewer/commit/d67344d717b303271b92b8c5ac832001e96818aa))
+- **angular:** Stop demo prod build crashing on open (by @ChristopherVR) ([7d3f491](https://github.com/ChristopherVR/pptx-viewer/commit/7d3f491061a92b40c7add2a2044cb735bd29ee05))
+
+## [1.1.80](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.80) - 2026-07-02
+
+### Features
+
 - **shared:** Add canonical i18n translation dictionary (by @ChristopherVR) ([429e386](https://github.com/ChristopherVR/pptx-viewer/commit/429e386c7245fc5cf526ac72481fd5ab23b3e09d))
 - **angular:** Wire ngx-translate, convert hardcoded UI strings to translation keys (by @ChristopherVR) ([33bc42e](https://github.com/ChristopherVR/pptx-viewer/commit/33bc42e0f221a8c8644f1cc80cc314971abc9791))
 - **shared:** Backfill i18n dictionary with keys React already calls (by @ChristopherVR) ([5e4760a](https://github.com/ChristopherVR/pptx-viewer/commit/5e4760a957056c366c01b7687e764599bf6f9bae))
