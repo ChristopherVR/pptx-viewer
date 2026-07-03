@@ -15,12 +15,11 @@ import {
 	viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import { applyThemeToData, hasShapeProperties } from 'pptx-viewer-core';
+import { applyThemeToData } from 'pptx-viewer-core';
 import type {
 	InkPptxElement,
 	PptxComment,
 	PptxCoreProperties,
-	PptxCustomShow,
 	PptxData,
 	PptxElement,
 	PptxSlide,
@@ -30,21 +29,11 @@ import type {
 } from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
-import {
-	EXPORT_ASSEMBLING_PERCENT,
-	EXPORT_DONE_PERCENT,
-	isExportAbortError,
-	openPptxFile,
-	recordProgressPercent,
-	slideProgressPercent,
-	slideStatusLabel,
-} from '../internal/shared';
+import { openPptxFile } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
 import { BroadcastDialogComponent } from './broadcast-dialog.component';
-import { buildBroadcastViewerUrl } from './broadcast-helpers';
-import type { BroadcastConfig } from './broadcast-helpers';
 import { CollaborationCursorsComponent } from './collaboration-cursors.component';
 import { CollaborationService } from './collaboration.service';
 import {
@@ -53,26 +42,17 @@ import {
 	toggleCommentResolvedInList,
 } from './comments-helpers';
 import { CommentsPanelComponent } from './comments-panel.component';
-import { createCustomShow } from './custom-shows-helpers';
-import type { CustomShow } from './custom-shows-helpers';
 import { CustomShowsComponent } from './custom-shows.component';
 import { EditorContextMenuComponent } from './editor-context-menu.component';
 import { newTextElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
 import { EditorToolbarComponent } from './editor-toolbar.component';
 import { EmbeddedFontsService } from './embedded-fonts.service';
-import { slideFileName } from './export-helpers';
 import { ExportProgressModalComponent } from './export-progress-modal.component';
 import { ExportService } from './export.service';
-import { eyedropperAvailable, openNativeEyeDropper, pickColorByClickFallback } from './eyedropper';
 import { FieldContextService } from './field-context.service';
 import { FindBarComponent } from './find-bar.component';
 import { FindReplaceBarComponent } from './find-replace-bar.component';
-import type { FindEvent, ReplaceEvent } from './find-replace-bar.component';
-import { findInSlides, replaceInSlides, replaceMatch } from './find-replace-helpers';
-import type { FindResult } from './find-replace-helpers';
-import { applyFormatToElement, copyFormatFromElement, hasCopyableFormat } from './format-painter';
-import type { CopiedFormat } from './format-painter';
 import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InsertSmartArtDialogComponent } from './insert-smart-art-dialog.component';
 import type { SmartArtInsertEvent } from './insert-smart-art-dialog.component';
@@ -92,13 +72,11 @@ import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { PresenterViewComponent } from './presenter-view.component';
 import { PresenterWindowService } from './presenter-window.service';
 import { PrintDialogComponent } from './print-dialog.component';
-import type { PrintSettings } from './print-helpers';
 import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
 import { RibbonComponent } from './ribbon.component';
 import { SelectionPaneComponent } from './selection-pane.component';
 import { ShareDialogComponent } from './share-dialog.component';
-import { buildShareUrl } from './share-helpers';
 import { SignaturesPanelComponent } from './signatures-panel.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
@@ -113,9 +91,15 @@ import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
 import { attachTouchGestures } from './touch-gestures';
 import type { CollaborationConfig } from './types';
+import { ViewerCollaborationSessionService } from './viewer-collaboration-session.service';
 import { ViewerCompareService } from './viewer-compare.service';
+import { ViewerCustomShowsService } from './viewer-custom-shows.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
+import { ViewerExportService } from './viewer-export.service';
 import { ViewerExtraDialogsComponent } from './viewer-extra-dialogs.component';
+import { ViewerFindReplaceService } from './viewer-find-replace.service';
+import { ViewerFormatPainterService } from './viewer-format-painter.service';
+import { ViewerKeyboardService } from './viewer-keyboard.service';
 import { ZoomTargetService } from './zoom-target.service';
 
 const ZOOM_STEP = 0.1;
@@ -158,6 +142,12 @@ const ZOOM_MAX = 3;
 		ZoomTargetService,
 		ViewerDialogsService,
 		ViewerCompareService,
+		ViewerExportService,
+		ViewerFindReplaceService,
+		ViewerCustomShowsService,
+		ViewerCollaborationSessionService,
+		ViewerFormatPainterService,
+		ViewerKeyboardService,
 	],
 	imports: [
 		NgClass,
@@ -221,14 +211,14 @@ const ZOOM_MAX = 3;
 					[canEdit]="canEdit()"
 					[selectedElement]="selectedElement()"
 					[zoomPercent]="zoomPercent()"
-					[formatPainterActive]="formatPainterActive()"
-					[canActivateFormatPainter]="canActivateFormatPainter()"
-					[exporting]="exporting()"
+					[formatPainterActive]="formatPainter.active()"
+					[canActivateFormatPainter]="formatPainter.canActivate()"
+					[exporting]="xport.exporting()"
 					[sidebarCollapsed]="slidesPanelCollapsed()"
 					[inspectorOpen]="inspectorPaneOpen()"
 					[commentsOpen]="activePanel() === 'comments'"
 					[commentCount]="activeComments().length"
-					[findOpen]="showFind() || showFindReplace()"
+					[findOpen]="findReplace.showFind() || findReplace.showFindReplace()"
 					[collabConnected]="collab.connected()"
 					[connectedCount]="collab.connectedCount()"
 					(toggleSidebar)="slidesPanelCollapsed.update(v => !v)"
@@ -237,11 +227,11 @@ const ZOOM_MAX = 3;
 					(zoomIn)="zoomIn()"
 					(zoomOut)="zoomOut()"
 					(zoomReset)="zoomReset()"
-					(find)="showFind.set(true)"
+					(find)="findReplace.showFind.set(true)"
 					(present)="present()"
 					(presenter)="presentPresenter()"
-					(share)="showShare.set(true)"
-					(broadcast)="showBroadcast.set(true)"
+					(share)="session.showShare.set(true)"
+					(broadcast)="session.showBroadcast.set(true)"
 					(openFile)="openFile()"
 					(save)="saveAsPptx()"
 					(info)="showProperties.set(true)"
@@ -252,28 +242,28 @@ const ZOOM_MAX = 3;
 					(link)="showHyperlink.set(true)"
 					(openSorter)="showSorter.set(true)"
 					(toggleNotes)="toggleNotes()"
-					(toggleFormatPainter)="toggleFormatPainter()"
-					(exportPng)="exportPng()"
-					(exportPdf)="exportPdf()"
-					(exportGif)="exportGif()"
-					(exportVideo)="exportVideo()"
-					(replace)="openFindReplace()"
+					(toggleFormatPainter)="formatPainter.toggle()"
+					(exportPng)="xport.exportPng()"
+					(exportPdf)="xport.exportPdf()"
+					(exportGif)="xport.exportGif()"
+					(exportVideo)="xport.exportVideo()"
+					(replace)="findReplace.openFindReplace()"
 					(toggleInspector)="activePanel.set(null)"
 					(drawToolChange)="onDrawToolChange($event)"
 					[showGrid]="showGrid()"
 					[showRulers]="showRulers()"
 					[showGuides]="showGuides()"
 					[snapToGrid]="snapToGrid()"
-					[eyedropperActive]="eyedropperActive()"
+					[eyedropperActive]="formatPainter.eyedropperActive()"
 					(toggleGrid)="showGrid.update(v => !v)"
 					(toggleRulers)="showRulers.update(v => !v)"
 					(toggleGuides)="showGuides.update(v => !v)"
 					(toggleSnapToGrid)="snapToGrid.update(v => !v)"
-					(toggleEyedropper)="onToggleEyedropper()"
+					(toggleEyedropper)="formatPainter.toggleEyedropper()"
 					[themeGalleryOpen]="showThemeGallery()"
 					(toggleThemeGallery)="showThemeGallery.update(v => !v)"
 					(toggleSelectionPane)="togglePanel('selection')"
-					(openCustomShows)="showCustomShows.set(true)"
+					(openCustomShows)="customShowsCtl.showDialog.set(true)"
 					(openSmartArtDialog)="showSmartArtInsert.set(true)"
 					(openEquationDialog)="dialogs.openEquationInsert()"
 					(openSetUpSlideShow)="dialogs.showSetUpSlideShow.set(true)"
@@ -503,10 +493,10 @@ const ZOOM_MAX = 3;
 
 			@if (presenting()) {
 				<pptx-presentation-overlay
-					[slides]="presentationSlides()"
+					[slides]="customShowsCtl.presentationSlides()"
 					[canvasSize]="loader.canvasSize()"
 					[mediaDataUrls]="loader.mediaDataUrls()"
-					[startIndex]="presentationStartIndex()"
+					[startIndex]="customShowsCtl.presentationStartIndex()"
 					(indexChange)="onPresentationIndexChange($event)"
 					(annotationsExit)="onPresentationAnnotationsExit($event)"
 					(closed)="presenting.set(false)"
@@ -541,23 +531,23 @@ const ZOOM_MAX = 3;
 				}
 			}
 
-			@if (showFind()) {
+			@if (findReplace.showFind()) {
 				<pptx-find-bar
 					[slides]="loader.slides()"
 					(navigate)="goTo($event)"
-					(closed)="showFind.set(false)"
+					(closed)="findReplace.showFind.set(false)"
 				/>
 			}
 
-			@if (showFindReplace()) {
+			@if (findReplace.showFindReplace()) {
 				<pptx-find-replace-bar
-					[matchCount]="findResults().length"
-					[matchIndex]="findActiveIndex()"
-					(find)="onFindReplaceFind($event)"
-					(navigate)="onFindReplaceNavigate($event)"
-					(replaceOne)="onFindReplaceReplaceOne($event)"
-					(replaceAll)="onFindReplaceReplaceAll($event)"
-					(close)="showFindReplace.set(false)"
+					[matchCount]="findReplace.results().length"
+					[matchIndex]="findReplace.activeIndex()"
+					(find)="findReplace.onFind($event)"
+					(navigate)="findReplace.onNavigate($event)"
+					(replaceOne)="findReplace.onReplaceOne($event)"
+					(replaceAll)="findReplace.onReplaceAll($event)"
+					(close)="findReplace.showFindReplace.set(false)"
 				/>
 			}
 
@@ -591,7 +581,7 @@ const ZOOM_MAX = 3;
 				[activeSlideIndex]="activeSlideIndex()"
 				[selectedElementId]="selectedElement()?.id ?? null"
 				[filePath]="filePath()"
-				[customShows]="pptxCustomShows()"
+				[customShows]="customShowsCtl.pptxCustomShows()"
 				(restoreContent)="onRestoreVersion($event)"
 			/>
 
@@ -608,54 +598,54 @@ const ZOOM_MAX = 3;
 				<pptx-print-dialog
 					[slides]="displaySlidesMut()"
 					[activeSlideIndex]="activeSlideIndex()"
-					(print)="onPrint($event)"
+					(print)="xport.onPrint($event)"
 					(cancel)="print.closeDialog()"
 				/>
 			}
 
 			<pptx-export-progress-modal
-				[open]="exportModalOpen()"
-				[title]="exportModalTitle()"
-				[progress]="exportProgress()"
-				[statusMessage]="exportStatusMessage()"
-				(cancel)="onCancelExport()"
+				[open]="xport.modalOpen()"
+				[title]="xport.modalTitle()"
+				[progress]="xport.progress()"
+				[statusMessage]="xport.statusMessage()"
+				(cancel)="xport.onCancelExport()"
 			/>
 
 			<pptx-share-dialog
-				[open]="showShare()"
+				[open]="session.showShare()"
 				[active]="collab.active()"
 				[connected]="collab.connected()"
 				[userCount]="collab.connectedCount()"
-				[shareUrl]="shareUrl()"
-				[defaults]="shareDialogDefaults()"
-				(start)="onShareStart($event)"
-				(stop)="onShareStop()"
-				(close)="showShare.set(false)"
+				[shareUrl]="session.shareUrl()"
+				[defaults]="session.shareDialogDefaults()"
+				(start)="session.onShareStart($event)"
+				(stop)="session.onShareStop()"
+				(close)="session.showShare.set(false)"
 			/>
 
 			<pptx-broadcast-dialog
-				[open]="showBroadcast()"
+				[open]="session.showBroadcast()"
 				[active]="collab.active()"
 				[connected]="collab.connected()"
 				[viewerCount]="collab.presence().length"
-				[viewerUrl]="broadcastViewerUrl()"
+				[viewerUrl]="session.broadcastViewerUrl()"
 				[defaults]="{ serverUrl: shareDefaults()?.serverUrl }"
-				(start)="onBroadcastStart($event)"
-				(stop)="onBroadcastStop()"
-				(close)="showBroadcast.set(false)"
+				(start)="session.onBroadcastStart($event)"
+				(stop)="session.onBroadcastStop()"
+				(close)="session.showBroadcast.set(false)"
 			/>
 
 			@if (canEdit()) {
 				<pptx-custom-shows
-					[open]="showCustomShows()"
+					[open]="customShowsCtl.showDialog()"
 					[slides]="displaySlidesMut()"
-					[customShows]="customShows()"
-					[activeCustomShowId]="activeCustomShowId()"
-					(create)="onCustomShowCreate($event)"
-					(remove)="onCustomShowRemove($event)"
-					(update)="onCustomShowUpdate($event)"
-					(setActive)="activeCustomShowId.set($event)"
-					(close)="showCustomShows.set(false)"
+					[customShows]="customShowsCtl.shows()"
+					[activeCustomShowId]="customShowsCtl.activeId()"
+					(create)="customShowsCtl.onCreate($event)"
+					(remove)="customShowsCtl.onRemove($event)"
+					(update)="customShowsCtl.onUpdate($event)"
+					(setActive)="customShowsCtl.activeId.set($event)"
+					(close)="customShowsCtl.showDialog.set(false)"
 				/>
 
 				<!-- ── Insert SmartArt gallery dialog ─────────────────────────── -->
@@ -681,21 +671,21 @@ const ZOOM_MAX = 3;
 				<pptx-mobile-menu-sheet
 					[open]="mobileSheet() === 'menu'"
 					[slideCount]="slideCount()"
-					[exporting]="exporting()"
+					[exporting]="xport.exporting()"
 					[showNotes]="showNotes()"
 					[canEdit]="canEdit()"
 					(closed)="mobileSheet.set(null)"
-					(openFind)="showFind.set(true)"
+					(openFind)="findReplace.showFind.set(true)"
 					(openSorter)="showSorter.set(true)"
 					(toggleNotes)="toggleNotes()"
 					(insertText)="onMobileInsert()"
 					(present)="present()"
 					(openFile)="openFile()"
 					(savePptx)="saveAsPptx()"
-					(exportPng)="exportPng()"
-					(exportPdf)="exportPdf()"
-					(exportGif)="exportGif()"
-					(exportVideo)="exportVideo()"
+					(exportPng)="xport.exportPng()"
+					(exportPdf)="xport.exportPdf()"
+					(exportGif)="xport.exportGif()"
+					(exportVideo)="xport.exportVideo()"
 					(print)="print.openDialog()"
 				/>
 
@@ -825,6 +815,12 @@ export class PowerPointViewerComponent {
 	protected readonly presenterWindow = inject(PresenterWindowService);
 	protected readonly dialogs = inject(ViewerDialogsService);
 	private readonly compareSvc = inject(ViewerCompareService);
+	protected readonly xport = inject(ViewerExportService);
+	protected readonly findReplace = inject(ViewerFindReplaceService);
+	protected readonly customShowsCtl = inject(ViewerCustomShowsService);
+	protected readonly session = inject(ViewerCollaborationSessionService);
+	protected readonly formatPainter = inject(ViewerFormatPainterService);
+	private readonly keyboard = inject(ViewerKeyboardService);
 
 	/** Handle on the secondary-dialog host (keep-annotations prompt). */
 	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
@@ -836,27 +832,8 @@ export class PowerPointViewerComponent {
 		}
 	});
 
-	/** Custom shows mapped to the core shape consumed by set-up-slide-show. */
-	protected readonly pptxCustomShows = computed<PptxCustomShow[]>(() =>
-		this.customShows().map((show) => ({
-			id: show.id,
-			name: show.name,
-			slideRIds: [...show.slideIds],
-		})),
-	);
-
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
-	/** True while a PNG/PDF export is in progress (disables the buttons). */
-	protected readonly exporting = signal(false);
-
-	/** Export-progress modal state (PDF / GIF / WebM). */
-	protected readonly exportModalOpen = signal(false);
-	protected readonly exportModalTitle = signal('');
-	protected readonly exportProgress = signal(0);
-	protected readonly exportStatusMessage = signal('');
-	/** Cooperative cancellation: the capture loop checks `signal.aborted`. */
-	private exportAbort: AbortController | null = null;
 
 	protected readonly activeSlideIndex = signal(0);
 	/** Slides to display: the editable deck when `canEdit`, else the loaded deck. */
@@ -905,11 +882,6 @@ export class PowerPointViewerComponent {
 	protected readonly showNotes = signal(false);
 	/** Whether the left slides panel is collapsed (top-bar sidebar toggle). */
 	protected readonly slidesPanelCollapsed = signal(false);
-	/** Find-in-slides bar visibility. */
-	protected readonly showFind = signal(false);
-
-	/** Find-and-replace bar state (edit mode only). */
-	protected readonly showFindReplace = signal(false);
 
 	// ── Draw tool state (forwarded to slide-canvas) ───────────────────────────
 	/** Active drawing tool (from the ribbon Draw tab). */
@@ -920,9 +892,6 @@ export class PowerPointViewerComponent {
 	protected readonly activeDrawColor = signal<string>('#000000');
 	/** Active ink stroke width in stage pixels. */
 	protected readonly activeDrawWidth = signal<number>(3);
-	protected readonly findResults = signal<readonly FindResult[]>([]);
-	protected readonly findActiveIndex = signal(-1);
-	private findMatchCase = false;
 
 	/** Active right-docked tool panel (comments / accessibility / selection), or null. */
 	protected readonly activePanel = signal<
@@ -1022,52 +991,6 @@ export class PowerPointViewerComponent {
 	protected readonly showProperties = signal(false);
 	/** Hyperlink-edit dialog visibility. */
 	protected readonly showHyperlink = signal(false);
-	/** Share (collaboration) dialog visibility. */
-	protected readonly showShare = signal(false);
-	/** Broadcast dialog visibility. */
-	protected readonly showBroadcast = signal(false);
-	/**
-	 * Room/server of the currently active session, used to build the shareable
-	 * join/follow links shown in the dialogs. Null when no session is active.
-	 */
-	protected readonly activeSession = signal<{ roomId: string; serverUrl: string } | null>(null);
-
-	/** Browser location used to assemble share/follow URLs (omitted in SSR). */
-	private readonly browserLocation = (): { origin: string; pathname: string } | undefined =>
-		typeof window === 'undefined'
-			? undefined
-			: { origin: window.location.origin, pathname: window.location.pathname };
-
-	/** Shareable join link for the active collaboration session. */
-	protected readonly shareUrl = computed<string>(() => {
-		const session = this.activeSession();
-		return session ? buildShareUrl(session.roomId, session.serverUrl, this.browserLocation()) : '';
-	});
-
-	/** Shareable follow link for the active broadcast. */
-	protected readonly broadcastViewerUrl = computed<string>(() => {
-		const session = this.activeSession();
-		return session
-			? buildBroadcastViewerUrl(session.roomId, session.serverUrl, this.browserLocation())
-			: '';
-	});
-
-	/**
-	 * Seed values for the Share dialog: the host-supplied {@link shareDefaults},
-	 * with `userName` falling back to {@link authorName} (then "You") so the
-	 * local user's name pre-fills the form. Mirrors React/Vue.
-	 */
-	protected readonly shareDialogDefaults = computed<{
-		roomId?: string;
-		userName?: string;
-		serverUrl?: string;
-	}>(() => {
-		const defaults = this.shareDefaults() ?? {};
-		return {
-			...defaults,
-			userName: defaults.userName ?? this.authorName() ?? 'You',
-		};
-	});
 	/** Local overrides applied to document properties via the Info dialog. */
 	private readonly coreOverride = signal<Partial<PptxCoreProperties>>({});
 	/** Comments on the active slide. */
@@ -1091,48 +1014,10 @@ export class PowerPointViewerComponent {
 	protected readonly showGuides = signal(false);
 	/** Whether snap-to-grid is active on the editor canvas. */
 	protected readonly snapToGrid = signal(false);
-	/** Whether the eyedropper is currently active. */
-	protected readonly eyedropperActive = signal(false);
 	/** Whether the theme-gallery overlay is visible (Design → Browse Themes). */
 	protected readonly showThemeGallery = signal(false);
-	/** Whether the custom-shows dialog is open. */
-	protected readonly showCustomShows = signal(false);
 	/** Whether the Insert SmartArt gallery dialog is open. */
 	protected readonly showSmartArtInsert = signal(false);
-	/** The list of user-defined custom shows for this session. */
-	protected readonly customShows = signal<readonly CustomShow[]>([]);
-	/** The id of the currently active custom show, or null. */
-	protected readonly activeCustomShowId = signal<string | null>(null);
-
-	/**
-	 * The active custom show's slides, in its defined order, or null when no show
-	 * is active (or it resolves to nothing). Used to filter the presentation.
-	 */
-	private resolveActiveShowSlides(): PptxSlide[] | null {
-		const id = this.activeCustomShowId();
-		if (!id) {
-			return null;
-		}
-		const show = this.customShows().find((s) => s.id === id);
-		if (!show || show.slideIds.length === 0) {
-			return null;
-		}
-		const byId = new Map(this.loader.slides().map((s) => [s.id, s]));
-		const picked = show.slideIds
-			.map((sid) => byId.get(sid))
-			.filter((s): s is PptxSlide => s !== undefined);
-		return picked.length > 0 ? picked : null;
-	}
-
-	/** Slides shown in presentation mode: the active custom show, else the full deck. */
-	protected readonly presentationSlides = computed<PptxSlide[]>(
-		() => this.resolveActiveShowSlides() ?? [...this.loader.slides()],
-	);
-
-	/** Start index into {@link presentationSlides}: first slide of a custom show, else the active slide. */
-	protected readonly presentationStartIndex = computed<number>(() =>
-		this.resolveActiveShowSlides() ? 0 : this.activeSlideIndex(),
-	);
 	/** The `name` property of the loaded deck's theme (for check-mark in gallery). */
 	protected readonly activeThemeName = computed<string | undefined>(
 		() => this.loader.theme()?.name,
@@ -1159,18 +1044,6 @@ export class PowerPointViewerComponent {
 			null
 		);
 	});
-
-	// ── Format painter ─────────────────────────────────────────────────────
-	// Arm by copying the selected element's format; the next element click applies
-	// it. Escape or an empty-canvas click cancels (mirrors React/Vue).
-	/** True while the painter is armed (next element click applies the copied format). */
-	protected readonly formatPainterActive = signal(false);
-	/** Format copied from the source element when the painter was armed. */
-	private copiedFormat: CopiedFormat | null = null;
-	/** Whether the painter can be armed: exactly one selected element with copyable format. */
-	protected readonly canActivateFormatPainter = computed(() =>
-		hasCopyableFormat(this.selectedElement()),
-	);
 
 	/**
 	 * Built-in File ▸ Open override of the `content` input. The native picker
@@ -1259,16 +1132,51 @@ export class PowerPointViewerComponent {
 
 		// Connect / disconnect real-time collaboration when the host config changes.
 		effect(() => {
-			const config = this.collaboration();
-			if (config) {
-				this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
-				void this.collab.connect(config, {
-					getTemplateElements: () => this.editor.templateElementsBySlideId(),
-				});
-			} else {
-				this.collab.disconnect();
-				this.activeSession.set(null);
-			}
+			this.session.syncHostConfig(this.collaboration());
+		});
+
+		// Hand the export/print orchestrator the live navigation signal + deck
+		// accessors + stage resolver so it can flip the stage and capture slides.
+		this.xport.bind({
+			activeSlideIndex: this.activeSlideIndex,
+			slideCount: () => this.slideCount(),
+			mergedSlides: () => this.mergedSlides(),
+			resolveStage: () => this.stageElement(),
+		});
+
+		// Hand the find/replace controller a slide-navigation callback so a match
+		// can scroll its slide into view.
+		this.findReplace.bind((index) => this.goTo(index));
+
+		// Hand the custom-shows controller the active-slide-index accessor so a
+		// normal (non-custom) show starts at the current slide.
+		this.customShowsCtl.bind(() => this.activeSlideIndex());
+
+		// Hand the collaboration-session controller the host inputs it cannot own
+		// (author name, share defaults, template-element supplier) and the
+		// start/stop output emitters.
+		this.session.bind({
+			authorName: () => this.authorName(),
+			shareDefaults: () => this.shareDefaults(),
+			getTemplateElements: () => this.editor.templateElementsBySlideId(),
+			emitStart: (config) => this.startCollaboration.emit(config),
+			emitStop: () => this.stopCollaboration.emit(),
+		});
+
+		// Hand the format-painter/eyedropper controller the selection + active-slide
+		// accessors it applies styles against.
+		this.formatPainter.bind({
+			selectedElement: () => this.selectedElement(),
+			activeSlideIndex: () => this.activeSlideIndex(),
+			findActiveElement: (id) => this.activeSlide()?.elements.find((e) => e.id === id),
+		});
+
+		// Hand the keyboard-shortcut handler the mode/navigation accessors it gates
+		// on (the @HostListener stays on the component).
+		this.keyboard.bind({
+			canEdit: () => this.canEdit(),
+			presenting: () => this.presenting(),
+			activeSlideIndex: () => this.activeSlideIndex(),
 		});
 
 		// Attach multi-touch gestures (pinch-zoom / swipe-nav / long-press menu)
@@ -1344,112 +1252,6 @@ export class PowerPointViewerComponent {
 		this.loader.theme.set(result.theme);
 		this.loader.themeColorMap.set(result.themeColorMap);
 		this.showThemeGallery.set(false);
-	}
-
-	// ── Find & replace (edit mode) ─────────────────────────────────────────────
-
-	/** Open the find/replace bar (mutually exclusive with the find-only bar). */
-	protected openFindReplace(): void {
-		this.showFind.set(false);
-		this.showFindReplace.set(true);
-	}
-
-	/** Re-run the search over the editable deck and refresh the match list. */
-	private refreshFindResults(query: string): void {
-		if (query.length === 0) {
-			this.findResults.set([]);
-			this.findActiveIndex.set(-1);
-			return;
-		}
-		const results = findInSlides(this.editor.slides(), query, { matchCase: this.findMatchCase });
-		this.findResults.set(results);
-		this.findActiveIndex.set(results.length > 0 ? 0 : -1);
-		if (results.length > 0) {
-			this.goTo(results[0].slideIndex);
-		}
-	}
-
-	protected onFindReplaceFind(evt: FindEvent): void {
-		this.findMatchCase = evt.matchCase;
-		this.refreshFindResults(evt.query);
-	}
-
-	protected onFindReplaceNavigate(dir: 1 | -1): void {
-		const results = this.findResults();
-		if (results.length === 0) {
-			return;
-		}
-		const next = (this.findActiveIndex() + dir + results.length) % results.length;
-		this.findActiveIndex.set(next);
-		this.goTo(results[next].slideIndex);
-	}
-
-	protected onFindReplaceReplaceOne(evt: ReplaceEvent): void {
-		const results = this.findResults();
-		const idx = this.findActiveIndex();
-		if (idx < 0 || idx >= results.length) {
-			return;
-		}
-		const updated = replaceMatch(this.editor.slides(), results, idx, evt.replacement);
-		this.editor.applyReplacement(updated.slides, 'Replace');
-		this.refreshFindResults(evt.query);
-	}
-
-	protected onFindReplaceReplaceAll(evt: ReplaceEvent): void {
-		const updated = replaceInSlides(this.editor.slides(), evt.query, evt.replacement, {
-			matchCase: this.findMatchCase,
-		});
-		if (updated.replacements > 0) {
-			this.editor.applyReplacement(updated.slides, 'Replace all');
-		}
-		this.refreshFindResults(evt.query);
-	}
-
-	// ── Collaboration: share & broadcast ───────────────────────────────────────
-
-	/** Start a real-time collaboration session from the share dialog config. */
-	protected onShareStart(config: CollaborationConfig): void {
-		// Two-way collaboration: peers edit together (default `collaborator` role).
-		const collaboratorConfig: CollaborationConfig = {
-			role: 'collaborator',
-			...config,
-			userName: config.userName || (this.authorName() ?? 'You'),
-		};
-		this.activeSession.set({
-			roomId: collaboratorConfig.roomId,
-			serverUrl: collaboratorConfig.serverUrl,
-		});
-		void this.collab.connect(collaboratorConfig, {
-			getTemplateElements: () => this.editor.templateElementsBySlideId(),
-		});
-		this.startCollaboration.emit(collaboratorConfig);
-	}
-
-	protected onShareStop(): void {
-		this.collab.disconnect();
-		this.activeSession.set(null);
-		this.stopCollaboration.emit();
-	}
-
-	/** Start broadcasting (presenter as session owner) from the broadcast config. */
-	protected onBroadcastStart(config: BroadcastConfig): void {
-		const collabConfig: CollaborationConfig = {
-			roomId: config.roomId,
-			serverUrl: config.serverUrl,
-			userName: this.authorName() ?? 'Presenter',
-			role: 'owner',
-		};
-		this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
-		void this.collab.connect(collabConfig, {
-			getTemplateElements: () => this.editor.templateElementsBySlideId(),
-		});
-		this.startCollaboration.emit(collabConfig);
-	}
-
-	protected onBroadcastStop(): void {
-		this.collab.disconnect();
-		this.activeSession.set(null);
-		this.stopCollaboration.emit();
 	}
 
 	/**
@@ -1535,7 +1337,7 @@ export class PowerPointViewerComponent {
 	 * selection correct when the show closes.
 	 */
 	onPresentationIndexChange(index: number): void {
-		const target = this.presentationSlides()[index];
+		const target = this.customShowsCtl.presentationSlides()[index];
 		if (!target) {
 			return;
 		}
@@ -1772,41 +1574,6 @@ export class PowerPointViewerComponent {
 		this.editor.deleteSelected(this.activeSlideIndex());
 	}
 
-	/**
-	 * Activate the eyedropper to pick a colour from the screen. Uses the native
-	 * EyeDropper API where available (Chrome/Edge); on Firefox/Safari it falls
-	 * back to a one-shot click that samples the slide DOM under the pointer.
-	 * When a shape/text/connector/image element is selected, applies the colour
-	 * to its fill; otherwise copies it to the clipboard. No-ops when the user
-	 * cancels (Escape) or nothing paintable is under the pointer.
-	 */
-	protected async onToggleEyedropper(): Promise<void> {
-		this.eyedropperActive.set(true);
-		try {
-			const color = eyedropperAvailable()
-				? await openNativeEyeDropper()
-				: await pickColorByClickFallback();
-			if (color) {
-				await this.applyEyedropperColor(color);
-			}
-		} finally {
-			this.eyedropperActive.set(false);
-		}
-	}
-
-	/** Apply a picked colour to the selected shape's fill, else copy to clipboard. */
-	private async applyEyedropperColor(color: string): Promise<void> {
-		const sel = this.selectedElement();
-		const idx = this.activeSlideIndex();
-		if (sel !== null && hasShapeProperties(sel)) {
-			this.editor.updateElement(idx, sel.id, {
-				shapeStyle: { ...sel.shapeStyle, fillColor: color },
-			} as Partial<PptxElement>);
-		} else {
-			await navigator.clipboard.writeText(color).catch(() => undefined);
-		}
-	}
-
 	/** Append a comment to the active slide (one history entry). */
 	onCommentAdd(text: string): void {
 		const next = addCommentToList(this.activeComments(), text, 'You');
@@ -1855,32 +1622,6 @@ export class PowerPointViewerComponent {
 		this.showHyperlink.set(false);
 	}
 
-	/** Run a print job for the chosen settings, rasterising each slide off the live stage. */
-	async onPrint(settings: PrintSettings): Promise<void> {
-		const original = this.activeSlideIndex();
-		try {
-			await this.print.print(settings, [...this.mergedSlides()], original, (index) =>
-				this.captureSlideDataUrl(index),
-			);
-		} finally {
-			this.activeSlideIndex.set(original);
-		}
-	}
-
-	/** Flip the live stage to `index`, let it settle, and capture it to a PNG data URL. */
-	private async captureSlideDataUrl(index: number): Promise<string | null> {
-		this.activeSlideIndex.set(index);
-		await new Promise<void>((resolve) => {
-			setTimeout(resolve, 150);
-		});
-		const el = this.stageElement();
-		if (!el) {
-			return null;
-		}
-		const canvas = await this.exportSvc.renderElement(el);
-		return canvas.toDataURL('image/png');
-	}
-
 	/**
 	 * Handle an element press from the canvas. Additive (Shift/Ctrl) toggles
 	 * membership; a plain press selects the element (keeping it selected if it
@@ -1889,9 +1630,9 @@ export class PowerPointViewerComponent {
 	onElementSelect(event: { id: string; additive: boolean }): void {
 		// The armed format painter intercepts the next element click: apply the
 		// copied format to the target, then disarm (no selection change).
-		if (this.formatPainterActive()) {
-			this.applyFormatToTarget(event.id);
-			this.cancelFormatPainter();
+		if (this.formatPainter.active()) {
+			this.formatPainter.applyToTarget(event.id);
+			this.formatPainter.cancel();
 			return;
 		}
 		if (event.additive) {
@@ -1903,51 +1644,11 @@ export class PowerPointViewerComponent {
 
 	/** Empty-stage press: disarm the painter if armed, else clear the selection. */
 	onBackgroundClick(): void {
-		if (this.formatPainterActive()) {
-			this.cancelFormatPainter();
+		if (this.formatPainter.active()) {
+			this.formatPainter.cancel();
 			return;
 		}
 		this.editor.clearSelection();
-	}
-
-	/** Toggle the format painter: arm from the current selection, or disarm. */
-	toggleFormatPainter(): void {
-		if (this.formatPainterActive()) {
-			this.cancelFormatPainter();
-			return;
-		}
-		const source = this.selectedElement();
-		if (!source || !hasCopyableFormat(source)) {
-			return;
-		}
-		this.copiedFormat = copyFormatFromElement(source);
-		this.formatPainterActive.set(true);
-	}
-
-	/** Disarm the painter and drop the copied format. */
-	cancelFormatPainter(): void {
-		this.formatPainterActive.set(false);
-		this.copiedFormat = null;
-	}
-
-	/** Apply the copied format to a target element (shape/text style only; one history entry). */
-	private applyFormatToTarget(id: string): void {
-		const format = this.copiedFormat;
-		const target = this.activeSlide()?.elements.find((e) => e.id === id);
-		if (!format || !target) {
-			return;
-		}
-		const updated = applyFormatToElement(target, format) as unknown as Record<string, unknown>;
-		const patch: Record<string, unknown> = {};
-		if (format.shapeStyle && updated['shapeStyle'] !== undefined) {
-			patch['shapeStyle'] = updated['shapeStyle'];
-		}
-		if (format.textStyle && updated['textStyle'] !== undefined) {
-			patch['textStyle'] = updated['textStyle'];
-		}
-		if (Object.keys(patch).length > 0) {
-			this.editor.updateElement(this.activeSlideIndex(), id, patch as Partial<PptxElement>);
-		}
 	}
 
 	/** Right-click: select the element under the cursor and open the menu. */
@@ -2009,25 +1710,6 @@ export class PowerPointViewerComponent {
 		this.showSmartArtInsert.set(false);
 	}
 
-	// ── Custom shows handlers ──────────────────────────────────────────────────
-
-	onCustomShowCreate(show: { name: string; slideIds: string[] }): void {
-		this.customShows.update((list) => [...list, createCustomShow(show.name, show.slideIds)]);
-	}
-
-	onCustomShowRemove(id: string): void {
-		this.customShows.update((list) => list.filter((s) => s.id !== id));
-		if (this.activeCustomShowId() === id) {
-			this.activeCustomShowId.set(null);
-		}
-	}
-
-	onCustomShowUpdate(show: { id: string; name: string; slideIds: string[] }): void {
-		this.customShows.update((list) =>
-			list.map((s) => (s.id === show.id ? { ...s, name: show.name, slideIds: show.slideIds } : s)),
-		);
-	}
-
 	/** Commit an inline text edit: replace the element's text (one history entry). */
 	onTextCommit(event: { id: string; text: string }): void {
 		this.editor.updateElement(this.activeSlideIndex(), event.id, {
@@ -2076,117 +1758,12 @@ export class PowerPointViewerComponent {
 
 	/**
 	 * Editing keyboard shortcuts (only when `canEdit` and not typing in a
-	 * field or presenting): Delete, Ctrl/Cmd+Z/Y undo/redo, Ctrl/Cmd+D
-	 * duplicate, arrow-key nudge (Shift = ×10).
+	 * field or presenting). The decorator must live on the component; the logic
+	 * is delegated to {@link ViewerKeyboardService}.
 	 */
 	@HostListener('document:keydown', ['$event'])
 	onKeyDown(event: KeyboardEvent): void {
-		if (!this.canEdit() || this.presenting()) {
-			return;
-		}
-		const target = event.target as HTMLElement | null;
-		const tag = target?.tagName;
-		if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) {
-			return;
-		}
-
-		// Escape disarms the format painter first (mirrors React/Vue).
-		if (event.key === 'Escape' && this.formatPainterActive()) {
-			event.preventDefault();
-			this.cancelFormatPainter();
-			return;
-		}
-
-		// "?" opens the keyboard-shortcut cheat sheet (mirrors React).
-		if (event.key === '?' && !event.ctrlKey && !event.metaKey && !event.altKey) {
-			event.preventDefault();
-			this.dialogs.showShortcuts.set(true);
-			return;
-		}
-
-		const mod = event.ctrlKey || event.metaKey;
-		const idx = this.activeSlideIndex();
-
-		if (mod && (event.key === 'z' || event.key === 'Z')) {
-			event.preventDefault();
-			if (event.shiftKey) {
-				this.editor.redo();
-			} else {
-				this.editor.undo();
-			}
-			return;
-		}
-		if (mod && (event.key === 'y' || event.key === 'Y')) {
-			event.preventDefault();
-			this.editor.redo();
-			return;
-		}
-		if (mod && (event.key === 'd' || event.key === 'D')) {
-			event.preventDefault();
-			this.editor.duplicateSelected(idx);
-			return;
-		}
-		if (mod && (event.key === 'c' || event.key === 'C')) {
-			event.preventDefault();
-			this.editor.copySelected(idx);
-			return;
-		}
-		if (mod && (event.key === 'x' || event.key === 'X')) {
-			event.preventDefault();
-			this.editor.cutSelected(idx);
-			return;
-		}
-		if (mod && (event.key === 'v' || event.key === 'V')) {
-			event.preventDefault();
-			this.editor.paste(idx);
-			return;
-		}
-		if (mod && (event.key === 'a' || event.key === 'A')) {
-			event.preventDefault();
-			this.editor.selectAll(idx);
-			return;
-		}
-		if (mod && (event.key === 'g' || event.key === 'G')) {
-			event.preventDefault();
-			if (event.shiftKey) {
-				this.editor.ungroupSelected(idx);
-			} else {
-				this.editor.groupSelected(idx);
-			}
-			return;
-		}
-
-		if (!this.editor.hasSelection()) {
-			return;
-		}
-
-		if (event.key === 'Delete' || event.key === 'Backspace') {
-			event.preventDefault();
-			this.editor.deleteSelected(idx);
-			return;
-		}
-
-		const step = event.shiftKey ? 10 : 1;
-		switch (event.key) {
-			case 'ArrowLeft':
-				event.preventDefault();
-				this.editor.moveSelectedBy(idx, -step, 0);
-				break;
-			case 'ArrowRight':
-				event.preventDefault();
-				this.editor.moveSelectedBy(idx, step, 0);
-				break;
-			case 'ArrowUp':
-				event.preventDefault();
-				this.editor.moveSelectedBy(idx, 0, -step);
-				break;
-			case 'ArrowDown':
-				event.preventDefault();
-				this.editor.moveSelectedBy(idx, 0, step);
-				break;
-			default:
-				break;
-		}
+		this.keyboard.handleKeyDown(event);
 	}
 
 	/** Resolve the live slide-stage element within `<main>`. */
@@ -2194,163 +1771,5 @@ export class PowerPointViewerComponent {
 		return (
 			this.mainEl()?.nativeElement.querySelector<HTMLElement>('.pptx-ng-canvas-stage') ?? undefined
 		);
-	}
-
-	/** Export the current slide as a PNG download. */
-	async exportPng(): Promise<void> {
-		const el = this.stageElement();
-		if (!el || this.exporting()) {
-			return;
-		}
-		this.exporting.set(true);
-		try {
-			await this.exportSvc.exportElementToPng(
-				el,
-				slideFileName('slide', this.activeSlideIndex() + 1, 'png'),
-			);
-		} finally {
-			this.exporting.set(false);
-		}
-	}
-
-	/**
-	 * Open the progress modal and arm a fresh `AbortController` for an export.
-	 * Returns the controller whose `signal` the capture loop checks per slide.
-	 */
-	private beginExport(title: string): AbortController {
-		const controller = new AbortController();
-		this.exportAbort = controller;
-		this.exportModalTitle.set(title);
-		this.exportStatusMessage.set('Capturing slides...');
-		this.exportProgress.set(0);
-		this.exportModalOpen.set(true);
-		this.exporting.set(true);
-		return controller;
-	}
-
-	/** Tear down the progress modal + export-in-flight state. */
-	private endExport(): void {
-		this.exportAbort = null;
-		this.exportModalOpen.set(false);
-		this.exporting.set(false);
-	}
-
-	/** User pressed Cancel: abort the loop and close the modal. */
-	onCancelExport(): void {
-		this.exportAbort?.abort();
-		this.exportAbort = null;
-		this.exportModalOpen.set(false);
-		this.exportProgress.set(0);
-	}
-
-	/**
-	 * Render every slide to a canvas (each made the live stage in turn), reporting
-	 * per-slide progress and bailing out cooperatively when `abortSignal.aborted`.
-	 */
-	private async captureSlideCanvases(
-		abortSignal: AbortSignal,
-		verb: string,
-		span: number,
-	): Promise<HTMLCanvasElement[]> {
-		const total = this.slideCount();
-		const original = this.activeSlideIndex();
-		const canvases: HTMLCanvasElement[] = [];
-		try {
-			for (let i = 0; i < total; i++) {
-				if (abortSignal.aborted) {
-					throw new DOMException('Export cancelled', 'AbortError');
-				}
-				this.exportProgress.set(slideProgressPercent(i, total, span));
-				this.exportStatusMessage.set(slideStatusLabel(verb, i, total));
-				this.activeSlideIndex.set(i);
-				await new Promise<void>((resolve) => {
-					setTimeout(resolve, 150);
-				});
-				const el = this.stageElement();
-				if (el) {
-					canvases.push(await this.exportSvc.renderElement(el));
-				}
-			}
-		} finally {
-			this.activeSlideIndex.set(original);
-		}
-		return canvases;
-	}
-
-	/**
-	 * Export every slide to a multi-page PDF. Each slide is made the live stage,
-	 * given a render tick to settle, captured to a canvas, then the original
-	 * slide is restored. Progress + Cancel drive the export-progress modal.
-	 */
-	async exportPdf(): Promise<void> {
-		if (this.slideCount() === 0 || this.exporting()) {
-			return;
-		}
-		const controller = this.beginExport('Export as PDF');
-		const { width, height } = this.loader.canvasSize();
-		try {
-			const canvases = await this.captureSlideCanvases(controller.signal, 'Rendering', 90);
-			this.exportProgress.set(EXPORT_ASSEMBLING_PERCENT);
-			this.exportStatusMessage.set('Building PDF...');
-			this.exportSvc.exportCanvasesToPdf(canvases, width, height, 'presentation.pdf');
-			this.exportProgress.set(EXPORT_DONE_PERCENT);
-		} catch (err) {
-			if (!isExportAbortError(err)) {
-				console.error('[PowerPointViewer] PDF export failed:', err);
-			}
-		} finally {
-			this.endExport();
-		}
-	}
-
-	/** Export every slide as an animated GIF (2s per slide). */
-	async exportGif(): Promise<void> {
-		if (this.slideCount() === 0 || this.exporting()) {
-			return;
-		}
-		const controller = this.beginExport('Export as GIF');
-		try {
-			const canvases = await this.captureSlideCanvases(controller.signal, 'Encoding', 90);
-			this.exportProgress.set(EXPORT_ASSEMBLING_PERCENT);
-			this.exportStatusMessage.set('Saving file...');
-			this.exportSvc.exportCanvasesToGif(canvases, 2000, 'presentation.gif');
-			this.exportProgress.set(EXPORT_DONE_PERCENT);
-		} catch (err) {
-			if (!isExportAbortError(err)) {
-				console.error('[PowerPointViewer] GIF export failed:', err);
-			}
-		} finally {
-			this.endExport();
-		}
-	}
-
-	/** Export every slide as a WebM video (3s per slide) via MediaRecorder. */
-	async exportVideo(): Promise<void> {
-		if (this.slideCount() === 0 || this.exporting()) {
-			return;
-		}
-		const controller = this.beginExport('Export as Video');
-		try {
-			const canvases = await this.captureSlideCanvases(controller.signal, 'Capturing', 45);
-			this.exportProgress.set(EXPORT_ASSEMBLING_PERCENT);
-			this.exportStatusMessage.set('Recording video...');
-			await this.exportSvc.exportCanvasesToWebm(
-				canvases,
-				3000,
-				'presentation.webm',
-				controller.signal,
-				(current, total) => {
-					this.exportProgress.set(recordProgressPercent(current, total));
-					this.exportStatusMessage.set(slideStatusLabel('Recording', current, total));
-				},
-			);
-			this.exportProgress.set(EXPORT_DONE_PERCENT);
-		} catch (err) {
-			if (!isExportAbortError(err)) {
-				console.error('[PowerPointViewer] Video export failed:', err);
-			}
-		} finally {
-			this.endExport();
-		}
 	}
 }
