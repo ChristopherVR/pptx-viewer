@@ -1,11 +1,15 @@
 /**
  * collab-server-hocuspocus.example.mjs
  *
- * Minimal Hocuspocus server that pairs with pptx-viewer's built-in
- * collaboration stack (Yjs + y-websocket protocol).
+ * Hocuspocus-based collaboration server that pairs with pptx-viewer's
+ * built-in collaboration stack (Yjs + y-websocket protocol). Prefer this
+ * over `collab-server.example.mjs` when you already run a Node/Hocuspocus
+ * stack or want its extension ecosystem (database persistence, Redis
+ * horizontal scaling, webhooks); otherwise the sibling example is a
+ * zero-dependency Bun server with the same auth + persistence contract.
  *
  * Prerequisites:
- *   npm install @hocuspocus/server @hocuspocus/extension-database
+ *   npm install @hocuspocus/server @hocuspocus/extension-sqlite
  *
  * Run:
  *   node demos/collab-server-hocuspocus.example.mjs
@@ -13,70 +17,74 @@
  * Then point every viewer client at:
  *   serverUrl: 'ws://localhost:1234'
  *   roomId:    '<document-id>'
- *
- * Security note: the `authenticate` hook below enforces a bearer-token
- * contract. Replace the stub with real validation (JWT, session lookup,
- * database query, etc.) before shipping to production.
+ *   authToken: '<token>'
  */
 
+import { SQLite } from '@hocuspocus/extension-sqlite';
 import { Server } from '@hocuspocus/server';
 
 // ---------------------------------------------------------------------------
 // Auth contract
 //
-// Clients pass `authToken` in CollaborationConfig; y-websocket forwards it as
-// a `token` query parameter when it opens the websocket. Hocuspocus surfaces
-// it in `data.token` inside the `authenticate` hook.
+// Clients pass `authToken` in CollaborationConfig; the viewer bindings use
+// y-websocket, which forwards it as a `?token=` query parameter on the
+// websocket handshake.
+//
+// IMPORTANT: Hocuspocus' `onAuthenticate` hook only fires for clients that
+// speak Hocuspocus' own auth protocol message (e.g. @hocuspocus/provider).
+// Plain y-websocket clients - which is what pptx-viewer uses - never send
+// that message, so the token MUST be validated in `onConnect` via
+// `data.requestParameters` instead. Throwing there rejects the connection.
 // ---------------------------------------------------------------------------
 
 /** @param {string} token */
 async function validateToken(token) {
-	// TODO: replace with your real auth (JWT verify, session DB lookup, etc.)
-	if (!token || token === 'INVALID') {
+	// Replace with your real auth (JWT verify, session DB lookup, etc.).
+	const allowed = (process.env.COLLAB_AUTH_TOKENS ?? '')
+		.split(',')
+		.map((t) => t.trim())
+		.filter(Boolean);
+	if (allowed.length === 0) {
+		console.warn('[hocuspocus] COLLAB_AUTH_TOKENS unset: auth disabled (dev only)');
+		return { userId: 'anonymous' };
+	}
+	if (!allowed.includes(token)) {
 		throw new Error('Unauthorized');
 	}
-	// Return arbitrary context that will be available in all subsequent hooks.
 	return { userId: 'user-from-token' };
 }
 
 // ---------------------------------------------------------------------------
-// Optional: persistence via a database extension
-//
-// Uncomment + configure to persist Y.Doc state across server restarts.
-// Any store that implements the `fetch` / `store` callbacks works.
+// Persistence: SQLite out of the box. Documents survive restarts with zero
+// configuration; swap for @hocuspocus/extension-database to plug in any
+// store that implements fetch/store callbacks.
 // ---------------------------------------------------------------------------
 
-// import { Database } from '@hocuspocus/extension-database';
-//
-// const persistence = new Database({
-//   async fetch({ documentName }) {
-//     // Return a Uint8Array snapshot for the document, or null to start fresh.
-//     return await myDb.getYDocState(documentName);
-//   },
-//   async store({ documentName, state }) {
-//     await myDb.setYDocState(documentName, state);
-//   },
-// });
+const persistence = new SQLite({
+	database: process.env.COLLAB_DB_PATH ?? 'collab-documents.sqlite',
+});
 
 // ---------------------------------------------------------------------------
 // Server
 // ---------------------------------------------------------------------------
 
 const server = Server.configure({
-	port: 1234,
+	port: Number(process.env.PORT ?? 1234),
 
-	// extensions: [persistence],  // uncomment once database is configured
+	extensions: [persistence],
 
-	async onAuthenticate(data) {
-		const token = data.token ?? '';
+	// Fires for every incoming connection, including plain y-websocket
+	// clients. Throwing rejects the connection.
+	async onConnect(data) {
+		const token = data.requestParameters.get('token') ?? '';
 		const context = await validateToken(token);
-		// Context is forwarded to onLoadDocument, onStoreDocument, etc.
+		console.log(`[hocuspocus] client connected to "${data.documentName}"`, context);
 		return context;
 	},
 
-	async onConnect(data) {
-		// data.context holds whatever onAuthenticate returned.
-		console.log(`[hocuspocus] client connected to "${data.documentName}"`, data.context);
+	// Also honour Hocuspocus-provider clients that send the auth message.
+	async onAuthenticate(data) {
+		return validateToken(data.token ?? '');
 	},
 
 	async onDisconnect(data) {
@@ -85,4 +93,4 @@ const server = Server.configure({
 });
 
 await server.listen();
-console.log('[hocuspocus] listening on ws://localhost:1234');
+console.log(`[hocuspocus] listening on ws://localhost:${process.env.PORT ?? 1234}`);

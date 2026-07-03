@@ -171,10 +171,31 @@ See [Hooks › Collaboration hooks](/react/hooks#collaboration-hooks) for the ho
 
 ## Server side
 
-With the default `websocket` transport you need a running `y-websocket` server (or compatible Yjs
-provider) reachable at `serverUrl`; see `demos/collab-server-hocuspocus.example.mjs` for a
-production-style starting point with auth and persistence hooks. With `transport: 'webrtc'` no
-document server is required.
+With the default `websocket` transport you need a running `y-websocket`-compatible relay reachable
+at `serverUrl`. Two production-shaped reference servers ship in `demos/`:
+
+- **`demos/collab-server.example.mjs`** - zero-dependency Bun server (uses the repo's existing
+  `yjs` / `y-protocols` / `lib0`). Token auth: set `COLLAB_AUTH_TOKENS=a,b,c` and connections whose
+  `authToken` is not in the allowlist are rejected with 401 at the websocket handshake. File
+  persistence: each room's Y.Doc is snapshotted to `COLLAB_DATA_DIR` (debounced plus on last
+  disconnect) and restored on the next join, so documents survive server restarts.
+
+  ```bash
+  COLLAB_AUTH_TOKENS=secret bun demos/collab-server.example.mjs
+  ```
+
+- **`demos/collab-server-hocuspocus.example.mjs`** - the same contract on a Node/Hocuspocus stack
+  (SQLite persistence via `@hocuspocus/extension-sqlite`, plus its extension ecosystem for Redis
+  scaling, webhooks, database stores). Note that plain y-websocket clients never trigger
+  Hocuspocus' `onAuthenticate`; the example validates the `?token=` request parameter in
+  `onConnect` instead.
+
+Both validate the token every binding sends: `authToken` in `CollaborationConfig` becomes the
+`?token=` query parameter on the websocket handshake. In production, terminate TLS in front of the
+relay (`wss://`) and swap the static allowlist for short-lived per-user tokens (JWT / session
+lookup) minted by your app server.
+
+With `transport: 'webrtc'` no document server is required.
 
 The MCP package ships its own server-side Yjs codec ([/packages/mcp](/packages/mcp)); note its Y.Doc
 key layout differs from the viewer bindings' sync schema, so the two cannot share one Y.Doc.

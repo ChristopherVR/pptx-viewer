@@ -7,10 +7,10 @@ from. React (`packages/react`) is the reference; Vue and Angular are ports.
 Status legend: ✅ done · 🟡 partial · ❌ missing.
 
 Progress: M1-M5 and C1-C4 are shipped across React, Vue, and Angular,
-including character-level merging of concurrent edits to the same text run
-(C3). The only remaining C3 item is server-side auth + persistence, which is a
-deployment concern (see `demos/collab-server-hocuspocus.example.mjs`), not
-library code.
+including character-level merging of concurrent edits to the same text run and
+reference relay servers with token auth + persistence (C3). Nothing on this
+roadmap remains open; wiring a production credential backend (JWT / session
+validation) into the reference servers is inherently per-deployment.
 
 ## Mobile / touch
 
@@ -82,11 +82,15 @@ elected-writer (`role: 'owner'`) PPTX write-back wired in all bindings, and
 character-level merging of concurrent edits to the same text run
 (`collaboration-text-merge.ts`: minimal in-place Y.Text diffs instead of
 per-element replacement, so simultaneous typing in one text box converges).
-Remaining (deployment concern, not library code): server-side auth +
-persistence for self-hosted relays (see
-`demos/collab-server-hocuspocus.example.mjs`).
+Server-side auth + persistence: two reference relays ship in `demos/` -
+`collab-server.example.mjs` (zero-dependency Bun server; `?token=` allowlist
+auth enforced at the websocket handshake, per-room Y.Doc snapshots restored
+across restarts; verified end-to-end against the y-websocket clients) and
+`collab-server-hocuspocus.example.mjs` (same contract on Node/Hocuspocus with
+SQLite persistence). Swapping the token allowlist for a real credential
+backend (JWT / session lookup) is per-deployment by nature.
 
-- Cross-cutting · library-side done, server-side is per-deployment.
+- Cross-cutting · ✅ done (credential backends are per-deployment).
 
 ### C4. Serverless (static-host) collaboration transport
 
