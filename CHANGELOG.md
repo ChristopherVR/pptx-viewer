@@ -8,6 +8,22 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **demos:** Reference collab servers with token auth + persistence (by @ChristopherVR) ([22cf973](https://github.com/ChristopherVR/pptx-viewer/commit/22cf973f5955b852395c4ec79369313b66351c53))
+
+### Bug Fixes
+
+- **vue:** Correct mobile toolbar aria-label translation keys (by @ChristopherVR) ([62c67c0](https://github.com/ChristopherVR/pptx-viewer/commit/62c67c0b38df57febfd9bdc368d9d607e2ff901a))
+- **vue:** Auto-hide presentation toolbar and unmount edit chrome while presenting (by @ChristopherVR) ([e05a941](https://github.com/ChristopherVR/pptx-viewer/commit/e05a941a02f218fe4c01251606b4d79bc6ece548))
+- **vue:** Clip descendant overflow at the viewer root (by @ChristopherVR) ([081fc4b](https://github.com/ChristopherVR/pptx-viewer/commit/081fc4b3f0d68884d767e44f2b57fd852dba4fab))
+
+### Testing
+
+- **e2e:** Enable mobile chrome/selection-chrome specs for vue (by @ChristopherVR) ([d41fccc](https://github.com/ChristopherVR/pptx-viewer/commit/d41fccc4939149b8617cc6f6332defcfae175ca9))
+
+## [1.1.86](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.86) - 2026-07-03
+
+### Features
+
 - **shared:** Character-level merge of concurrent text-run edits (by @ChristopherVR) ([dec527e](https://github.com/ChristopherVR/pptx-viewer/commit/dec527e871108a736d42137c499e76ae556a8e39))
 
 ### Bug Fixes
