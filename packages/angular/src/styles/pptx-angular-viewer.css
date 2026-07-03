@@ -74,7 +74,8 @@ pptx-ribbon-draw-section,
 pptx-ribbon-design-section,
 pptx-ribbon-transitions-section,
 pptx-ribbon-animations-section,
-pptx-ribbon-paragraph-controls {
+pptx-ribbon-paragraph-controls,
+pptx-ribbon-insert-fields {
 	display: contents;
 }
 

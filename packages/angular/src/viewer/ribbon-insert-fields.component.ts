@@ -54,6 +54,7 @@ function newFieldGuid(): string {
 	selector: 'pptx-ribbon-insert-fields',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [TranslatePipe],
 	template: `
 		<!-- Action Buttons dropdown (hover-reveal, mirrors React/Vue) -->
