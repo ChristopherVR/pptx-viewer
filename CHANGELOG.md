@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [Unreleased]
+
+### Features
+
+- **demos:** Real JWT auth + server-enforced viewer role in collab relay (by @ChristopherVR) ([af21048](https://github.com/ChristopherVR/pptx-viewer/commit/af210481458eeedc196a5bd397ee84ab779887af))
+
+### Documentation
+
+- Remove completed ROADMAP and PORTING trackers, scrub stale references (by @ChristopherVR) ([8a745a1](https://github.com/ChristopherVR/pptx-viewer/commit/8a745a1d2a1ee3932503d37dd022494ab9cfcc4b))
+
 ## [1.1.87](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.87) - 2026-07-03
 
 ### Features

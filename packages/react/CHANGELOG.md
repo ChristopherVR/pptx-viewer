@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.78](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.78) - 2026-07-03
+
+### Documentation
+
+- Remove completed ROADMAP and PORTING trackers, scrub stale references (by @ChristopherVR) ([8a745a1](https://github.com/ChristopherVR/pptx-viewer/commit/8a745a1d2a1ee3932503d37dd022494ab9cfcc4b))
+
 ## [1.1.74](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.74) - 2026-07-03
 
 ### Dependencies
