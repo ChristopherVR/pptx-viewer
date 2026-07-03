@@ -56,13 +56,15 @@
 }
 
 /* Ribbon tab-section / multi-group custom elements render several sibling
-   group <div>s that must lay out as direct children of the ribbon content
-   row's `flex flex-nowrap` container (ribbon.component.ts). `host: { class:
-   'contents' }` in the @Component decorator does not survive ng-packagr's
-   partial-ivy output through every Angular linker (some drop host metadata
-   entirely), so set it here instead: a plain CSS selector no compiler step
-   can drop. Single-root components (ribbon-font-controls, ribbon-color-
-   popover) already lay themselves out internally and are excluded. */
+   group <div>s that must lay out as direct children of whatever `flex
+   flex-nowrap` row they're placed in (the ribbon content row in
+   ribbon.component.ts, or a group wrapper like ribbon-home-section's Font
+   slot). `host: { class: 'contents' }` in the @Component decorator does not
+   survive ng-packagr's partial-ivy output through every Angular linker (some
+   drop host metadata entirely), so set it here instead: a plain CSS selector
+   no compiler step can drop. Only ribbon-color-popover is genuinely
+   single-root (one wrapping <div> around its whole template) and is
+   excluded; every other name below renders 2+ top-level sibling elements. */
 pptx-ribbon-file-section,
 pptx-ribbon-home-section,
 pptx-ribbon-insert-section,
@@ -75,7 +77,8 @@ pptx-ribbon-design-section,
 pptx-ribbon-transitions-section,
 pptx-ribbon-animations-section,
 pptx-ribbon-paragraph-controls,
-pptx-ribbon-insert-fields {
+pptx-ribbon-insert-fields,
+pptx-ribbon-font-controls {
 	display: contents;
 }
 

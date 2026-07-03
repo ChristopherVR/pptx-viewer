@@ -58,6 +58,7 @@ const HIGHLIGHT_COLOR_PRESETS = [
 	selector: 'pptx-ribbon-font-controls',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [NgClass, TranslatePipe, RibbonColorPopoverComponent],
 	template: `
 		<div class="flex items-center gap-1">

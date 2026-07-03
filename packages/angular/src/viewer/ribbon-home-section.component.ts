@@ -107,10 +107,12 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 		<span class="pptx-rb-sep"></span>
 		<!-- Paragraph -->
 		<div class="flex flex-col items-center gap-0.5">
-			<pptx-ribbon-paragraph-controls
-				[slideIndex]="slideIndex()"
-				[selectedElement]="selectedElement()"
-			/>
+			<div class="flex items-center gap-1">
+				<pptx-ribbon-paragraph-controls
+					[slideIndex]="slideIndex()"
+					[selectedElement]="selectedElement()"
+				/>
+			</div>
 			<span class="text-[9px] leading-none text-muted-foreground">
 				{{ 'pptx.ribbon.paragraph' | translate }}
 			</span>
