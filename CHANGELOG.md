@@ -8,11 +8,34 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **shared:** Add 141 i18n keys missing across Vue and Angular (by @ChristopherVR) ([ab9e9a0](https://github.com/ChristopherVR/pptx-viewer/commit/ab9e9a0756bc6d73c93442eb2be2475d073ad714))
+- **shared:** Add 112 more i18n keys referenced indirectly via labelKey (by @ChristopherVR) ([108cd7c](https://github.com/ChristopherVR/pptx-viewer/commit/108cd7c3e8298cb7f21bcd1ac653726a8254ad6f))
+
+### Bug Fixes
+
+- **demo:** Define the missing isP2PConfig helper in the React demo (by @ChristopherVR) ([fc5ad63](https://github.com/ChristopherVR/pptx-viewer/commit/fc5ad63fc5aa48f69805f779eb6dc56763d08e34))
+- **angular:** Repoint i18n calls to their correct dictionary keys (by @ChristopherVR) ([ac27068](https://github.com/ChristopherVR/pptx-viewer/commit/ac270684ef180f6b6a4c44242ca03f022c3121f2))
+- **vue:** Repoint i18n calls to their correct dictionary keys (by @ChristopherVR) ([9978cf4](https://github.com/ChristopherVR/pptx-viewer/commit/9978cf4584af1c8b15c0d20b543e963e75c8ea62))
+- **shared:** Dedupe 9 i18n keys added independently by a parallel session (by @ChristopherVR) ([77e80f6](https://github.com/ChristopherVR/pptx-viewer/commit/77e80f68fc595a58e2fa1261f5f3586fd3dee4ed))
+- **vue:** Repoint document-properties fields to pptx.properties.\*, fix last stale test strings (by @ChristopherVR) ([4c78d1d](https://github.com/ChristopherVR/pptx-viewer/commit/4c78d1d2d5a560e1ef0c9b72eda4dd972dbb764e))
+
+### Testing
+
+- **vue:** Install a real vue-i18n instance globally for component tests (by @ChristopherVR) ([47edca1](https://github.com/ChristopherVR/pptx-viewer/commit/47edca1d9060ef30899970038510c278716fe23a))
+
+## [1.1.84](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.84) - 2026-07-03
+
+### Features
+
 - **shared:** Gate the first collaborative doc write on provider sync (by @ChristopherVR) ([f68aa79](https://github.com/ChristopherVR/pptx-viewer/commit/f68aa79242e0cfdabc7a701d4b58bf124c483c02))
 
 ### Bug Fixes
 
 - **angular:** Apply display:contents to 3 more multi-root components (by @ChristopherVR) ([d3641fd](https://github.com/ChristopherVR/pptx-viewer/commit/d3641fda45426cdeafb7058a98d6cfc8efa026c7))
+
+### Testing
+
+- **vue:** Fix stale string expectations that match the real dictionary (by @ChristopherVR) ([8029646](https://github.com/ChristopherVR/pptx-viewer/commit/802964666ebaf0723626f242b1622fb52cc4ba29))
 
 ## [1.1.83](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.83) - 2026-07-03
 
