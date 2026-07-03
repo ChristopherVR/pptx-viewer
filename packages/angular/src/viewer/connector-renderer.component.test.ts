@@ -280,6 +280,46 @@ describe('buildConnectorGeometry', () => {
 		expect(geo.pathD).toBeDefined();
 		expect(geo.pathD).toContain('C');
 	});
+
+	it('defaults to a single strand with a round cap', () => {
+		const geo = buildConnectorGeometry(connector(), 0);
+		expect(geo.strokeLinecap).toBe('round');
+		expect(geo.compoundOffsets).toStrictEqual([0]);
+		expect(geo.compoundWidths).toHaveLength(1);
+	});
+
+	it('maps the OOXML line cap to an SVG stroke-linecap', () => {
+		const flat = buildConnectorGeometry(
+			connector({ shapeStyle: { strokeWidth: 3, lineCap: 'flat' } }),
+			0,
+		);
+		expect(flat.strokeLinecap).toBe('butt');
+		const sq = buildConnectorGeometry(
+			connector({ shapeStyle: { strokeWidth: 3, lineCap: 'sq' } }),
+			0,
+		);
+		expect(sq.strokeLinecap).toBe('square');
+	});
+
+	it('emits parallel strands for a double compound line', () => {
+		const geo = buildConnectorGeometry(
+			connector({ shapeStyle: { strokeWidth: 4, compoundLine: 'dbl' } }),
+			0,
+		);
+		expect(geo.compoundOffsets).toHaveLength(2);
+		expect(geo.compoundWidths).toHaveLength(2);
+		expect(geo.compoundOffsets[0]).toBeLessThan(0);
+		expect(geo.compoundOffsets[1]).toBeGreaterThan(0);
+	});
+
+	it('emits three strands for a triple compound line', () => {
+		const geo = buildConnectorGeometry(
+			connector({ shapeStyle: { strokeWidth: 4, compoundLine: 'tri' } }),
+			0,
+		);
+		expect(geo.compoundOffsets).toHaveLength(3);
+		expect(geo.compoundOffsets[1]).toBe(0);
+	});
 });
 
 // ---------------------------------------------------------------------------

@@ -23,9 +23,10 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
  *
  * All path/style math lives in `connector-path.ts` / `connector-routing.ts`
  * (pure TS, no Angular dependency) so it can be unit-tested without TestBed.
+ * Compound (double/triple) lines render as parallel strands and line caps map
+ * from `a:ln/@cap`; both derive from the shared connector geometry.
  *
- * Not yet ported (TODO, see PORTING.md): compound (double/triple) lines, line
- * shadows/glow.
+ * Not yet ported (TODO, see PORTING.md): line shadows/glow.
  */
 @Component({
 	selector: 'pptx-connector-renderer',
@@ -83,33 +84,37 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 						</marker>
 					}
 				</defs>
-				@if (geo().pathD) {
-					<path
-						[attr.d]="geo().pathD"
-						fill="none"
-						[attr.stroke]="geo().strokeColor"
-						[attr.stroke-width]="geo().strokeWidth"
-						[attr.stroke-opacity]="geo().strokeOpacity"
-						[attr.stroke-dasharray]="geo().dashArray ?? null"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						[attr.marker-start]="geo().startMarkerRef"
-						[attr.marker-end]="geo().endMarkerRef"
-					/>
-				} @else {
-					<line
-						[attr.x1]="geo().x1"
-						[attr.y1]="geo().y1"
-						[attr.x2]="geo().x2"
-						[attr.y2]="geo().y2"
-						[attr.stroke]="geo().strokeColor"
-						[attr.stroke-width]="geo().strokeWidth"
-						[attr.stroke-opacity]="geo().strokeOpacity"
-						[attr.stroke-dasharray]="geo().dashArray ?? null"
-						stroke-linecap="round"
-						[attr.marker-start]="geo().startMarkerRef"
-						[attr.marker-end]="geo().endMarkerRef"
-					/>
+				@for (strand of strands(); track strand.key) {
+					@if (geo().pathD) {
+						<path
+							[attr.d]="geo().pathD"
+							fill="none"
+							[attr.stroke]="geo().strokeColor"
+							[attr.stroke-width]="strand.width"
+							[attr.stroke-opacity]="geo().strokeOpacity"
+							[attr.stroke-dasharray]="geo().dashArray ?? null"
+							[attr.stroke-linecap]="geo().strokeLinecap"
+							stroke-linejoin="round"
+							[attr.transform]="strand.transform"
+							[attr.marker-start]="strand.markerStart"
+							[attr.marker-end]="strand.markerEnd"
+						/>
+					} @else {
+						<line
+							[attr.x1]="geo().x1"
+							[attr.y1]="geo().y1"
+							[attr.x2]="geo().x2"
+							[attr.y2]="geo().y2"
+							[attr.stroke]="geo().strokeColor"
+							[attr.stroke-width]="strand.width"
+							[attr.stroke-opacity]="geo().strokeOpacity"
+							[attr.stroke-dasharray]="geo().dashArray ?? null"
+							[attr.stroke-linecap]="geo().strokeLinecap"
+							[attr.transform]="strand.transform"
+							[attr.marker-start]="strand.markerStart"
+							[attr.marker-end]="strand.markerEnd"
+						/>
+					}
 				}
 			</svg>
 			<pptx-connector-text-overlay
@@ -142,6 +147,25 @@ export class ConnectorRendererComponent {
 
 	readonly viewBox = computed(() => `0 0 ${this.geo().svgW} ${this.geo().svgH}`);
 
+	/**
+	 * Parallel strokes for compound (double/triple) line styles. A single line
+	 * yields one strand at offset 0. Each strand carries its own width and is
+	 * translated perpendicular to the line; only the first strand paints the
+	 * start marker and only the last paints the end marker.
+	 */
+	readonly strands = computed<ConnectorStrand[]>(() => {
+		const g = this.geo();
+		const offsets = g.compoundOffsets;
+		const last = offsets.length - 1;
+		return offsets.map((offset, idx) => ({
+			key: idx,
+			width: Math.max(g.compoundWidths[idx] ?? g.strokeWidth, 1),
+			transform: offset !== 0 ? `translate(0 ${offset})` : null,
+			markerStart: idx === 0 ? g.startMarkerRef : null,
+			markerEnd: idx === last ? g.endMarkerRef : null,
+		}));
+	});
+
 	// Connectors carry an optional text label (PptxTextProperties). Narrow the
 	// union once here so the template can bind the overlay inputs.
 	private readonly textProps = computed(
@@ -150,6 +174,15 @@ export class ConnectorRendererComponent {
 	readonly connectorText = computed(() => this.textProps().text);
 	readonly connectorSegments = computed(() => this.textProps().textSegments);
 	readonly connectorTextStyle = computed(() => this.textProps().textStyle);
+}
+
+/** One parallel stroke of a (possibly compound) connector line. */
+interface ConnectorStrand {
+	key: number;
+	width: number;
+	transform: string | null;
+	markerStart: string | null;
+	markerEnd: string | null;
 }
 
 // Re-export the MarkerShape type so consumers can reference it if needed.

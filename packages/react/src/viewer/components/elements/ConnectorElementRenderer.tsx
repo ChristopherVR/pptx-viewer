@@ -1,4 +1,5 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+import { svgLineCap } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_STROKE_COLOR, MIN_ELEMENT_SIZE } from '../../constants';
@@ -60,6 +61,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 
 		const compoundOffsets = getCompoundLineOffsets(compoundLine, strokeWidth);
 		const compoundWidths = getCompoundLineWidths(compoundLine, strokeWidth);
+		const strokeCap = svgLineCap(ss?.lineCap);
 
 		const textEl = hasTextProperties(el) ? el : undefined;
 		const connectorText = textEl?.text?.trim() ?? '';
@@ -187,7 +189,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 							stroke={strokePaint}
 							strokeWidth={Math.max(compoundWidths[idx] ?? strokeWidth, 1)}
 							strokeDasharray={dashArray}
-							strokeLinecap='round'
+							strokeLinecap={strokeCap}
 							strokeLinejoin='round'
 							markerStart={
 								idx === 0 && startArrow && startArrow !== 'none'

@@ -70,6 +70,25 @@ export function getCompoundLineWidths(
 	return [base];
 }
 
+/**
+ * Map an OOXML line-cap token (`a:ln/@cap`) to its SVG `stroke-linecap` value.
+ *
+ * `flat` -> `butt`, `sq` -> `square`, `rnd` -> `round`. Anything absent or
+ * unrecognised falls back to `round`, matching the viewer's historical default.
+ */
+export function svgLineCap(
+	lineCap: 'flat' | 'rnd' | 'sq' | undefined,
+): 'butt' | 'round' | 'square' {
+	switch (lineCap) {
+		case 'flat':
+			return 'butt';
+		case 'sq':
+			return 'square';
+		default:
+			return 'round';
+	}
+}
+
 /** Connector routing family, derived from the OOXML preset shape type. */
 export type ConnectorKind = 'straight' | 'bent' | 'curved';
 

@@ -5,6 +5,7 @@ import {
 	connectorNeedsPath,
 	getCompoundLineOffsets,
 	getCompoundLineWidths,
+	svgLineCap,
 } from './connector-style';
 
 // ── connectorKind ──────────────────────────────────────────────────────────
@@ -112,5 +113,19 @@ describe('getCompoundLineWidths', () => {
 	it('enforces minimum base of 1 when strokeWidth is 0', () => {
 		const widths = getCompoundLineWidths('sng', 0);
 		expect(widths[0]).toBe(1);
+	});
+});
+
+// ── svgLineCap ───────────────────────────────────────────────────────────────
+
+describe('svgLineCap', () => {
+	it('maps OOXML cap tokens to SVG stroke-linecap values', () => {
+		expect(svgLineCap('flat')).toBe('butt');
+		expect(svgLineCap('sq')).toBe('square');
+		expect(svgLineCap('rnd')).toBe('round');
+	});
+
+	it('falls back to round for an unset cap', () => {
+		expect(svgLineCap(undefined)).toBe('round');
 	});
 });

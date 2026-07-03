@@ -17,7 +17,12 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 import { DEFAULT_STROKE_COLOR } from '../constants';
 import { routeOrthogonalConnector, waypointsToPathD } from './connector-router';
 import type { RouterRect } from './connector-router';
-import { connectorKind } from './connector-style';
+import {
+	connectorKind,
+	getCompoundLineOffsets,
+	getCompoundLineWidths,
+	svgLineCap,
+} from './connector-style';
 
 /**
  * Optional obstacle-avoidance routing context for bent connectors. When
@@ -43,6 +48,16 @@ export interface ConnectorGeometry {
 	strokeColor: string;
 	strokeOpacity: number;
 	dashArray: string | undefined;
+	/** SVG `stroke-linecap`, derived from the connector's `a:ln/@cap`. */
+	strokeLinecap: 'butt' | 'round' | 'square';
+	/**
+	 * Perpendicular offsets (px) for each parallel strand of a compound
+	 * (double/triple) line. A single line yields `[0]`. Strands render the same
+	 * path/line translated vertically by each offset.
+	 */
+	compoundOffsets: number[];
+	/** Per-strand stroke widths, index-aligned with {@link compoundOffsets}. */
+	compoundWidths: number[];
 	/** SVG width (clamped to at least 1). */
 	svgW: number;
 	/** SVG height (clamped to at least 1). */
@@ -84,6 +99,9 @@ export function buildConnectorGeometry(
 	const strokeColor = ss?.strokeColor ?? DEFAULT_STROKE_COLOR;
 	const strokeOpacity = ss?.strokeOpacity ?? 1;
 	const dashArray = buildDashArray(ss?.strokeDash, strokeWidth);
+	const strokeLinecap = svgLineCap(ss?.lineCap);
+	const compoundOffsets = getCompoundLineOffsets(ss?.compoundLine, strokeWidth);
+	const compoundWidths = getCompoundLineWidths(ss?.compoundLine, strokeWidth);
 
 	const svgW = Math.max(element.width, 1);
 	const svgH = Math.max(element.height, 1);
@@ -138,6 +156,9 @@ export function buildConnectorGeometry(
 		strokeColor,
 		strokeOpacity,
 		dashArray,
+		strokeLinecap,
+		compoundOffsets,
+		compoundWidths,
 		svgW,
 		svgH,
 		x1,
