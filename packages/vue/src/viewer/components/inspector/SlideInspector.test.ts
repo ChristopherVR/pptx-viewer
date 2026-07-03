@@ -15,7 +15,7 @@ function slide(transition?: PptxSlideTransition): PptxSlide {
 describe('slideInspector', () => {
 	it('renders the Slide Transition section', () => {
 		const wrapper = mount(SlideInspector, { props: { slide: slide() } });
-		expect(wrapper.text()).toContain('Slide Transition');
+		expect(wrapper.text()).toContain('Slide transition');
 		expect(wrapper.find('[data-testid="transition-type"]').exists()).toBeTruthy();
 	});
 

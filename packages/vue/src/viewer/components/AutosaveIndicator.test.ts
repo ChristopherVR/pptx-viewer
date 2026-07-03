@@ -36,7 +36,7 @@ describe('autosaveIndicator', () => {
 
 	it('shows the error label when a save fails', () => {
 		const wrapper = mountPill('error', true);
-		expect(wrapper.text()).toContain('Save failed');
+		expect(wrapper.text()).toContain('Autosave error');
 		expect(wrapper.classes()).toContain('pptx-vue-autosave--error');
 	});
 

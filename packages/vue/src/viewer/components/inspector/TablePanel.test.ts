@@ -80,8 +80,8 @@ describe('tablePanel', () => {
 
 	it('displays row and column counts', () => {
 		const wrapper = mountPanel(makeTableElement(3, 2));
-		expect(wrapper.text()).toContain('Rows: 3');
-		expect(wrapper.text()).toContain('Columns: 2');
+		expect(wrapper.text()).toContain('3 rows');
+		expect(wrapper.text()).toContain('2 columns');
 	});
 
 	it('insert row above inserts at the selected row', () => {
@@ -177,19 +177,19 @@ describe('tablePanel', () => {
 				{ row: 0, col: 1 },
 			],
 		});
-		findButton(wrapper, 'Merge selected cells').trigger('click');
+		findButton(wrapper, 'Merge selected').trigger('click');
 		const td = lastEmittedTableData(wrapper);
 		expect(td.rows[0].cells[0].gridSpan).toBe(2);
 	});
 
 	it('shows the cell formatting panel only when a cell is selected', () => {
 		const noSel = mountPanel(makeTableElement(2, 2));
-		expect(noSel.text()).not.toContain('Font size');
+		expect(noSel.text()).not.toContain('Size');
 		const withSel = mountPanel(makeTableElement(2, 2), {
 			elementId: 'tbl1',
 			rowIndex: 0,
 			columnIndex: 0,
 		});
-		expect(withSel.text()).toContain('Font size');
+		expect(withSel.text()).toContain('Size');
 	});
 });

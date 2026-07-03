@@ -22,10 +22,10 @@ interface GeneralField {
 }
 
 const CORE_FIELDS: GeneralField[] = [
-	{ key: 'title', labelKey: 'pptx.documentProperties.summary.title' },
-	{ key: 'subject', labelKey: 'pptx.documentProperties.summary.subject' },
-	{ key: 'creator', labelKey: 'pptx.documentProperties.summary.author' },
-	{ key: 'keywords', labelKey: 'pptx.documentProperties.summary.keywords' },
+	{ key: 'title', labelKey: 'pptx.properties.titleLabel' },
+	{ key: 'subject', labelKey: 'pptx.properties.subject' },
+	{ key: 'creator', labelKey: 'pptx.properties.author' },
+	{ key: 'keywords', labelKey: 'pptx.properties.keywords' },
 	{ key: 'description', labelKey: 'pptx.documentProperties.summary.description', multiline: true },
 	{ key: 'category', labelKey: 'pptx.documentProperties.summary.category' },
 ];

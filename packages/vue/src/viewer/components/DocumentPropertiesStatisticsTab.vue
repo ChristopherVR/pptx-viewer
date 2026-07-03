@@ -28,8 +28,8 @@ interface StatRow {
 const rows = computed<StatRow[]>(() => {
 	const s = props.statistics;
 	return [
-		{ labelKey: 'pptx.documentProperties.statistics.created', value: formatDate(s.created) },
-		{ labelKey: 'pptx.documentProperties.statistics.modified', value: formatDate(s.modified) },
+		{ labelKey: 'pptx.properties.created', value: formatDate(s.created) },
+		{ labelKey: 'pptx.properties.modified', value: formatDate(s.modified) },
 		{
 			labelKey: 'pptx.documentProperties.statistics.lastModifiedBy',
 			value: s.lastModifiedBy ?? '—',
