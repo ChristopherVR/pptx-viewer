@@ -218,7 +218,7 @@ describe('reconcileSlidesInYDoc', () => {
 		expect(origins).toStrictEqual([LOCAL_SYNC_ORIGIN, 'custom-origin']);
 	});
 
-	it('only replaces the Y.Text of elements whose text changed', () => {
+	it('edits the Y.Text of changed elements in place, keeping its identity', () => {
 		const doc = new Y.Doc();
 		reconcileSlidesInYDoc(
 			[makeSlide('s1', [makeElement('e1', 'Stable'), makeElement('e2', 'Changing')])],
@@ -237,8 +237,36 @@ describe('reconcileSlidesInYDoc', () => {
 			factories,
 		);
 		expect(elements.get(0).get('textBody')).toBe(stableText);
-		expect(elements.get(1).get('textBody')).not.toBe(changingText);
+		expect(elements.get(1).get('textBody')).toBe(changingText);
 		expect((elements.get(1).get('textBody') as Y.Text).toString()).toBe('Changed!');
+	});
+
+	it('merges concurrent edits to the SAME text element at character level', () => {
+		const docA = new Y.Doc();
+		const docB = new Y.Doc();
+		reconcileSlidesInYDoc([makeSlide('s1', [makeElement('e1', 'Beta')])], asDoc(docA), factories);
+		syncDocs(docA, docB);
+
+		// Peer A prepends to the text while peer B appends to the same run.
+		const slidesA = readSlidesFromYDoc(asDoc(docA));
+		(slidesA[0].elements[0] as unknown as { textSegments: unknown }).textSegments = [
+			{ text: 'Hello Beta', style: {} },
+		];
+		reconcileSlidesInYDoc(slidesA, asDoc(docA), factories);
+
+		const slidesB = readSlidesFromYDoc(asDoc(docB));
+		(slidesB[0].elements[0] as unknown as { textSegments: unknown }).textSegments = [
+			{ text: 'Beta!', style: {} },
+		];
+		reconcileSlidesInYDoc(slidesB, asDoc(docB), factories);
+
+		syncDocs(docA, docB);
+		for (const doc of [docA, docB]) {
+			const read = readSlidesFromYDoc(asDoc(doc));
+			const seg = (read[0].elements[0] as unknown as { textSegments: { text: string }[] })
+				.textSegments[0];
+			expect(seg.text).toBe('Hello Beta!');
+		}
 	});
 });
 

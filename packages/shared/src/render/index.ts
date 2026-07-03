@@ -306,6 +306,9 @@ export * from './collaboration-sync';
 // Granular local -> Y.Doc reconciliation (per-slide/element/field diffing,
 // origin-tagged transactions). Prefer over writeSlidesToYDoc for live editing.
 export * from './collaboration-reconcile';
+// Character-level in-place Y.Text merging (minimal text diff + attribute-run
+// reconcile) so concurrent edits to the same text element converge.
+export * from './collaboration-text-merge';
 // First-write gate: block local doc writes until the provider's initial sync
 // (or a grace period) so late joiners never seed placeholder content.
 export * from './collaboration-sync-gate';

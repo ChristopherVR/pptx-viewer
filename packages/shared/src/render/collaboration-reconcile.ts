@@ -10,7 +10,9 @@
  *  - slides and elements are matched by `id`; unchanged ones keep their Y.Map
  *    instance so concurrent field edits merge via Yjs
  *  - scalar / complex fields are compared and only set when different
- *  - textBody is only replaced when its canonical decoded form differs
+ *  - textBody is edited in place (minimal char-level diff via
+ *    collaboration-text-merge.ts) when its canonical decoded form differs;
+ *    wholesale replacement is only a fallback
  *  - removed items are deleted, new ones inserted at their position; moves
  *    are delete+reinsert (Yjs has no move primitive)
  *
@@ -36,6 +38,7 @@ import {
 	encodeTextBody,
 	isYTextLike,
 } from './collaboration-text-codec';
+import { isYTextEditable, mergeDeltaIntoYText } from './collaboration-text-merge';
 
 /** Transaction origin used for local reconcile writes. */
 export const LOCAL_SYNC_ORIGIN = 'pptx-viewer:local-sync';
@@ -93,9 +96,15 @@ function reconcileTextBody(
 		}
 		return;
 	}
-	const desired = decodeDelta(encodeSegmentsToDelta(segments));
+	const desiredDelta = encodeSegmentsToDelta(segments);
+	const desired = decodeDelta(desiredDelta);
 	const existing = isYTextLike(current) ? decodeDelta(current.toDelta()) : undefined;
 	if (existing !== undefined && jsonEqual(existing, desired)) {
+		return;
+	}
+	// Prefer an in-place minimal edit so concurrent edits to the same text
+	// element merge at character granularity instead of element-level LWW.
+	if (isYTextEditable(current) && mergeDeltaIntoYText(current, desiredDelta)) {
 		return;
 	}
 	const ytext = factories.createText();
