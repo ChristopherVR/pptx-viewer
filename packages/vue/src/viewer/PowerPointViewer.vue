@@ -17,44 +17,28 @@ import {
 	applyThemeToData,
 	cloneElement,
 	createEditorId,
-	createShapeElement,
-	createTextElement,
 	hasTextProperties,
 	updateSmartArtNodeText,
 } from 'pptx-viewer-core';
 import type {
 	MasterViewTab,
-	PptxAnimationPreset,
-	PptxChartType,
 	PptxData,
 	PptxElement,
-	PptxElementAnimation,
 	PptxHeaderFooter,
 	PptxSaveFormat,
 	PptxSlide,
-	PptxSlideTransition,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemePreset,
-	PptxTableCellStyle,
-	PptxTableData,
-	TablePptxElement,
-	TextStyle,
 } from 'pptx-viewer-core';
-import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
+import type { DistributeAxis } from 'pptx-viewer-shared';
 import {
-	alignElements,
-	applyDragDelta,
 	buildBroadcastViewerUrl,
-	createDefaultChartElement,
-	distributeElements,
 	downloadBlob,
-	groupElements,
 	isTemplateElementId,
 	openPptxFile,
 	setCellText,
 	strokeToInkElement,
-	ungroupElements,
 } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
 
@@ -68,7 +52,6 @@ import CommentMarkersOverlay from './components/CommentMarkersOverlay.vue';
 import CommentsPanel from './components/CommentsPanel.vue';
 import ComparePanel from './components/ComparePanel.vue';
 import ContextMenu from './components/ContextMenu.vue';
-import type { ContextMenuItem } from './components/ContextMenu.vue';
 import CustomShowsPanel from './components/CustomShowsPanel.vue';
 import DocumentPropertiesDialog from './components/DocumentPropertiesDialog.vue';
 import type { DocumentPropertiesSavePatch } from './components/DocumentPropertiesDialog.vue';
@@ -102,9 +85,7 @@ import type {
 	DrawingTool,
 	RibbonProps,
 	SupportedShapeType,
-	TableCellEditorState,
 	ToolbarSection,
-	ViewerMode,
 } from './components/ribbon/ribbon-types';
 import RibbonToolbar from './components/ribbon/RibbonToolbar.vue';
 import SectionList from './components/SectionList.vue';
@@ -127,9 +108,6 @@ import ThemeGallery from './components/ThemeGallery.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import { DEFAULT_VIEWER_SETTINGS } from './components/viewer-settings';
 import type { ViewerSettings } from './components/viewer-settings';
-import { buildActionButtonElement } from './composables/action-buttons';
-import { applyAnimationPreset, removeElementAnimation } from './composables/element-animation';
-import type { AnimationGroup } from './composables/element-animation';
 import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
 import {
 	applyFormatToElement,
@@ -137,26 +115,12 @@ import {
 	hasCopyableFormat,
 } from './composables/format-painter';
 import type { CopiedFormat } from './composables/format-painter';
-import { createGuide, moveGuide, removeGuide } from './composables/guides';
-import type { Guide } from './composables/guides';
 import { remapTextToSegments } from './composables/remap-text';
 import { compareSlides } from './composables/slide-compare';
 import type { CompareResult } from './composables/slide-compare';
 import { SmartArt3DKey } from './composables/smart-art-3d';
 import { SmartArtNodeEditKey } from './composables/smartart-node-edit';
-import { snapBox } from './composables/snap';
-import { computeSnapToShape } from './composables/snap-shape';
 import { TableCellEditKey } from './composables/table-edit';
-import {
-	applyDeleteColumn,
-	applyDeleteRow,
-	applyInsertColumn,
-	applyInsertRow,
-	applyMergeDown,
-	applyMergeRight,
-	applyMergeSelected,
-	applySplitCell,
-} from './composables/table-mutations';
 import type { TableSelectionState } from './composables/table-selection';
 import { provideTableSelection } from './composables/table-selection';
 import { TableThemeKey } from './composables/table-theme';
@@ -166,12 +130,16 @@ import {
 	setTemplateElements,
 } from './composables/template-editing';
 import { useAccessibility } from './composables/useAccessibility';
+import { useAlignGroup } from './composables/useAlignGroup';
 import { useAutosave } from './composables/useAutosave';
 import { useCollaboration } from './composables/useCollaboration';
 import { useComments } from './composables/useComments';
+import { useContextMenu } from './composables/useContextMenu';
 import { useCustomShows } from './composables/useCustomShows';
 import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorOperations } from './composables/useEditorOperations';
+import { useElementDrag } from './composables/useElementDrag';
+import { useElementInsertion } from './composables/useElementInsertion';
 import { useEmbeddedFonts } from './composables/useEmbeddedFonts';
 import { useExport } from './composables/useExport';
 import { useExportProgress } from './composables/useExportProgress';
@@ -183,8 +151,10 @@ import { useLoadContent } from './composables/useLoadContent';
 import { useMediaExport } from './composables/useMediaExport';
 import type { SlideAnnotationMap } from './composables/usePresentationAnnotations';
 import { usePrint } from './composables/usePrint';
+import { RIBBON_ALIGN, toShapePreset, useRibbonActions } from './composables/useRibbonActions';
 import { useSectionOperations } from './composables/useSectionOperations';
 import { useSignatures } from './composables/useSignatures';
+import { useSlideMutations } from './composables/useSlideMutations';
 import { useSlideOperations } from './composables/useSlideOperations';
 import { useTouchGestures } from './composables/useTouchGestures';
 import { useVersionHistory } from './composables/useVersionHistory';
@@ -195,16 +165,6 @@ import type {
 	PowerPointViewerExpose,
 	PowerPointViewerProps,
 } from './types';
-
-/** Geometry patch emitted by the selection overlay during a drag/resize/rotate. */
-interface TransformPayload {
-	id: string;
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-	rotation: number;
-}
 
 const props = withDefaults(defineProps<PowerPointViewerProps>(), {
 	canEdit: false,
@@ -485,6 +445,14 @@ const THUMB_WIDTH = 104; // px - matches the thumbnail rail content width
 // `props.canEdit` is true. `slides` is the writable `ShallowRef` from
 // `useLoadContent`, and `getContent` serialises it, so edits flow to export.
 const selectedElementIds = ref<string[]>([]);
+/**
+ * View ▸ Templates: when on, the master/layout shapes a slide inherits (already
+ * present in `slide.elements` with `layout-`/`master-` ids) become selectable,
+ * draggable and editable on the canvas instead of being interaction-locked.
+ * Editing one mutates the shared template part, so all slides inheriting it
+ * change together.
+ */
+const editTemplateMode = ref(false);
 const history = useEditorHistory(slides, templateElementsBySlideId);
 const ops = useEditorOperations({
 	slides,
@@ -716,396 +684,58 @@ function onCanvasPointerDown(event: PointerEvent): void {
 	}
 }
 
-// ── Element drag-to-move + tap-to-edit (driven from the element) ──────
-interface ElementDragState {
-	id: string;
-	startClientX: number;
-	startClientY: number;
-	startBox: { x: number; y: number; width: number; height: number; rotation: number };
-	moved: boolean;
-	wasSelected: boolean;
-}
-let elementDrag: ElementDragState | null = null;
-function startElementDrag(id: string, event: PointerEvent, wasSelected: boolean): void {
-	const el = findActiveElement(id);
-	if (!el) {
-		return;
-	}
-	elementDrag = {
-		id,
-		startClientX: event.clientX,
-		startClientY: event.clientY,
-		startBox: { x: el.x, y: el.y, width: el.width, height: el.height, rotation: el.rotation ?? 0 },
-		moved: false,
-		wasSelected,
-	};
-	window.addEventListener('pointermove', onElementDragMove);
-	window.addEventListener('pointerup', onElementDragUp);
-	window.addEventListener('pointercancel', onElementDragUp);
-}
-function onElementDragMove(event: PointerEvent): void {
-	const drag = elementDrag;
-	if (!drag) {
-		return;
-	}
-	const dx = event.clientX - drag.startClientX;
-	const dy = event.clientY - drag.startClientY;
-	if (!drag.moved && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
-		drag.moved = true;
-		history.pushHistory();
-	}
-	if (!drag.moved) {
-		return;
-	}
-	const box = applyDragDelta(drag.startBox, dx, dy, effectiveZoom.value);
-	let nextX = box.x;
-	let nextY = box.y;
-	// Snap to other shapes' edges/centres (+ user guides), with visual snap lines.
-	if (snapToShape.value && !box.rotation) {
-		// Snap against siblings in the same store as the dragged element (slide
-		// content, or the template layer when dragging a template element).
-		const dragSiblings = isTemplateElementId(drag.id)
-			? activeTemplateElements.value
-			: (activeSlide.value?.elements ?? []);
-		const siblings = dragSiblings.map((el) => ({
-			id: el.id,
-			x: el.x,
-			y: el.y,
-			width: el.width,
-			height: el.height,
-		}));
-		const result = computeSnapToShape(
-			box.x,
-			box.y,
-			box.width,
-			box.height,
-			siblings,
-			new Set([drag.id]),
-			guides.value,
-		);
-		nextX = result.x;
-		nextY = result.y;
-		snapLines.value = result.lines.map((line) => ({
-			axis: line.axis === 'v' ? 'x' : 'y',
-			position: line.position,
-		}));
-	} else if (snapLines.value.length > 0) {
-		snapLines.value = [];
-	}
-	patchActiveElementGeometry({
-		id: drag.id,
-		x: nextX,
-		y: nextY,
-		width: box.width,
-		height: box.height,
-		rotation: box.rotation ?? 0,
-	});
-}
-function onElementDragUp(): void {
-	const drag = elementDrag;
-	elementDrag = null;
-	if (snapLines.value.length > 0) {
-		snapLines.value = [];
-	}
-	window.removeEventListener('pointermove', onElementDragMove);
-	window.removeEventListener('pointerup', onElementDragUp);
-	window.removeEventListener('pointercancel', onElementDragUp);
-	// A tap (no drag) on an already-selected element enters inline edit.
-	if (drag && !drag.moved && drag.wasSelected) {
-		enterInlineEdit(drag.id);
-	}
-}
+// ── Element drag / transform / adjust + snap & alignment guides ───────
+const {
+	snapToShape,
+	snapToGrid,
+	snapLines,
+	guides,
+	addGuide,
+	onMoveGuide,
+	onRemoveGuide,
+	startElementDrag,
+	onTransformStart,
+	onTransform,
+	onTransformEnd,
+	onAdjustStart,
+	onAdjust,
+	onAdjustEnd,
+} = useElementDrag({
+	findActiveElement,
+	pushHistory: history.pushHistory,
+	effectiveZoom,
+	activeTemplateElements,
+	activeSlide,
+	activeSlideIndex,
+	slides,
+	templateElementsBySlideId,
+	canvasSize,
+	enterInlineEdit,
+});
 
-/**
- * Map one element in its current store (slide content, or the active slide's
- * template layer for `master-` / `layout-` ids) WITHOUT a history entry. Used by
- * the live drag/resize/adjust patches (history is snapshotted at gesture start).
- */
-function patchElementInStore(id: string, mapElement: (el: PptxElement) => PptxElement): void {
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	if (isTemplateElementId(id)) {
-		const current = templateElementsBySlideId.value[slide.id];
-		if (!current) {
-			return;
-		}
-		const next = current.map((el) => (el.id === id ? mapElement(el) : el));
-		templateElementsBySlideId.value = setTemplateElements(
-			templateElementsBySlideId.value,
-			slide.id,
-			next,
-		);
-		return;
-	}
-	const nextElements = slide.elements.map((el) => (el.id === id ? mapElement(el) : el));
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, elements: nextElements };
-	slides.value = nextSlides;
-}
-
-/** Patch one element's geometry in its store WITHOUT a history entry. */
-function patchActiveElementGeometry(payload: TransformPayload): void {
-	// Snap-to-grid (View tab): round position + size to the grid. Skipped while
-	// rotating (rounding a rotated box's x/y fights the rotation).
-	const useSnap = snapToGrid.value && !payload.rotation;
-	const { x, y, width, height } = useSnap
-		? snapBox(payload, GRID_SIZE)
-		: { x: payload.x, y: payload.y, width: payload.width, height: payload.height };
-	patchElementInStore(payload.id, (el) => ({
-		...el,
-		x,
-		y,
-		width,
-		height,
-		rotation: payload.rotation,
-	}));
-}
-
-// One history entry per gesture: snapshot on start, live-patch (no history)
-// during the drag and on commit.
-function onTransformStart(): void {
-	history.pushHistory();
-}
-function onTransform(payload: TransformPayload): void {
-	patchActiveElementGeometry(payload);
-}
-function onTransformEnd(payload: TransformPayload): void {
-	patchActiveElementGeometry(payload);
-}
-
-/** Patch an element's round-rect corner-radius adjustment WITHOUT a history entry. */
-function patchActiveElementAdjustment(id: string, value: number): void {
-	patchElementInStore(
-		id,
-		(el) =>
-			({
-				...el,
-				shapeAdjustments: {
-					...(el as { shapeAdjustments?: Record<string, number> }).shapeAdjustments,
-					adj: value,
-				},
-			}) as PptxElement,
-	);
-}
-function onAdjustStart(): void {
-	history.pushHistory();
-}
-function onAdjust(payload: { id: string; value: number }): void {
-	patchActiveElementAdjustment(payload.id, payload.value);
-}
-function onAdjustEnd(payload: { id: string; value: number }): void {
-	patchActiveElementAdjustment(payload.id, payload.value);
-}
-
-/** Centre a newly-created element (default box) on the slide. */
-function centreNewElement(el: PptxElement, width: number, height: number): void {
-	el.width = width;
-	el.height = height;
-	el.x = Math.max(0, Math.round((canvasSize.value.width - width) / 2));
-	el.y = Math.max(0, Math.round((canvasSize.value.height - height) / 2));
-}
-
-function addText(): void {
-	const el = createTextElement('Text');
-	centreNewElement(el, 320, 80);
-	ops.addElement(el);
-	selectedElementIds.value = [el.id];
-}
-function addShape(preset: ShapePreset): void {
-	const el = createShapeElement(preset);
-	centreNewElement(el, 240, 160);
-	ops.addElement(el);
-	selectedElementIds.value = [el.id];
-}
-
-/** Insert a default 3×3 table, centred on the slide (mirrors React's handleAddTable). */
-function addTable(): void {
-	const rows = 3;
-	const cols = 3;
-	const el = {
-		id: createEditorId('table'),
-		type: 'table',
-		x: 0,
-		y: 0,
-		width: 600,
-		height: 250,
-		tableData: {
-			rows: Array.from({ length: rows }, () => ({
-				cells: Array.from({ length: cols }, () => ({ text: '', style: {} })),
-			})),
-			columnWidths: Array.from({ length: cols }, () => 1 / cols),
-		},
-	} as unknown as PptxElement;
-	centreNewElement(el, 600, 250);
-	ops.addElement(el);
-	selectedElementIds.value = [el.id];
-}
-
-/** Insert a default chart of the given type, centred on the slide. */
-function addChart(chartType: PptxChartType): void {
-	const el = createDefaultChartElement(chartType) as PptxElement;
-	centreNewElement(el, el.width, el.height);
-	ops.addElement(el);
-	selectedElementIds.value = [el.id];
-}
-
-// ── Image picker (Insert tab) ──
-const imageInputRef = ref<HTMLInputElement | null>(null);
-function openImagePicker(): void {
-	imageInputRef.value?.click();
-}
-function onImageFileSelected(e: Event): void {
-	const input = e.target as HTMLInputElement;
-	const file = input.files?.[0];
-	input.value = '';
-	if (!file) {
-		return;
-	}
-	const reader = new FileReader();
-	reader.onload = () => {
-		const dataUrl = typeof reader.result === 'string' ? reader.result : '';
-		if (!dataUrl) {
-			return;
-		}
-		// Size the picture to ~60% of the slide width, preserving aspect ratio.
-		const probe = new Image();
-		probe.onload = () => {
-			const maxW = Math.round(canvasSize.value.width * 0.6);
-			const ratio = probe.width / Math.max(1, probe.height);
-			const width = Math.min(maxW, probe.width || maxW);
-			const height = Math.max(1, Math.round(width / (ratio || 1)));
-			const el = {
-				id: createEditorId('image'),
-				type: 'image',
-				x: 0,
-				y: 0,
-				width,
-				height,
-				imageData: dataUrl,
-			} as unknown as PptxElement;
-			centreNewElement(el, width, height);
-			ops.addElement(el);
-			selectedElementIds.value = [el.id];
-		};
-		probe.src = dataUrl;
-	};
-	reader.readAsDataURL(file);
-}
-
-// ── Media picker (Insert tab): audio / video ──
-const mediaInputRef = ref<HTMLInputElement | null>(null);
-function openMediaPicker(): void {
-	mediaInputRef.value?.click();
-}
-function onMediaFileSelected(e: Event): void {
-	const input = e.target as HTMLInputElement;
-	const file = input.files?.[0];
-	input.value = '';
-	if (!file) {
-		return;
-	}
-	const mediaType: 'audio' | 'video' | null = file.type.startsWith('audio/')
-		? 'audio'
-		: file.type.startsWith('video/')
-			? 'video'
-			: null;
-	if (!mediaType) {
-		return;
-	}
-	const reader = new FileReader();
-	reader.onload = () => {
-		const dataUrl = typeof reader.result === 'string' ? reader.result : '';
-		if (!dataUrl) {
-			return;
-		}
-		const insert = (width: number, height: number): void => {
-			const el = {
-				id: createEditorId('media'),
-				type: 'media',
-				mediaType,
-				mediaMimeType: file.type || undefined,
-				mediaData: dataUrl,
-				x: 0,
-				y: 0,
-				width,
-				height,
-			} as unknown as PptxElement;
-			centreNewElement(el, width, height);
-			ops.addElement(el);
-			selectedElementIds.value = [el.id];
-		};
-		// Audio: fixed control-bar box. Video: probe intrinsic size, cap at 640×360.
-		if (mediaType === 'audio') {
-			insert(420, 64);
-			return;
-		}
-		const probe = document.createElement('video');
-		probe.preload = 'metadata';
-		probe.onloadedmetadata = () => {
-			const maxW = 640;
-			const maxH = 360;
-			let w = probe.videoWidth || maxW;
-			let h = probe.videoHeight || maxH;
-			if (w > maxW || h > maxH) {
-				const scale = Math.min(maxW / w, maxH / h);
-				w = Math.round(w * scale);
-				h = Math.round(h * scale);
-			}
-			insert(w, h);
-		};
-		probe.onerror = () => insert(640, 360);
-		probe.src = dataUrl;
-	};
-	reader.readAsDataURL(file);
-}
-
-/** Insert an OOXML action button (Insert ▸ Action), centred + selected. */
-function addActionButton(shapeType: string): void {
-	const el = buildActionButtonElement(shapeType, createEditorId('action'));
-	if (!el) {
-		return;
-	}
-	centreNewElement(el, 120, 50);
-	ops.addElement(el);
-	selectedElementIds.value = [el.id];
-}
-
-/**
- * Insert a new slide based on a chosen layout (New-Slide gallery). The draft
- * carries `layoutPath` so placeholders render immediately; the handler then
- * walks the layout XML to populate background/placeholders (mirrors React's
- * `handleInsertSlideFromLayout`).
- */
-async function insertSlideFromLayout(layoutPath: string, layoutName?: string): Promise<void> {
-	const insertAt = activeSlideIndex.value + 1;
-	history.pushHistory();
-	const draft = {
-		id: createEditorId('slide'),
-		rId: '',
-		slideNumber: slides.value.length + 1,
-		elements: [],
-		layoutPath,
-		...(layoutName ? { layoutName } : {}),
-	} as unknown as PptxSlide;
-	const next = slides.value.slice();
-	next.splice(insertAt, 0, draft);
-	slides.value = next;
-	activeSlideIndex.value = insertAt;
-	const h = handler.value;
-	if (!h) {
-		return;
-	}
-	// Returns the single updated slide (layout metadata/placeholders applied).
-	const updated = await h.applyLayoutToSlide(insertAt, layoutPath, slides.value).catch(() => null);
-	if (updated && updated.id === draft.id && slides.value[insertAt]?.id === draft.id) {
-		const merged = slides.value.slice();
-		merged[insertAt] = updated;
-		slides.value = merged;
-	}
-}
+// ── Element insertion (Insert tab) ───────────────────────────────────
+const {
+	imageInputRef,
+	mediaInputRef,
+	addText,
+	addShape,
+	addTable,
+	addChart,
+	openImagePicker,
+	onImageFileSelected,
+	openMediaPicker,
+	onMediaFileSelected,
+	addActionButton,
+	insertSlideFromLayout,
+} = useElementInsertion({
+	canvasSize,
+	ops,
+	selectedElementIds,
+	slides,
+	activeSlideIndex,
+	pushHistory: history.pushHistory,
+	handler,
+});
 function deleteSelected(): void {
 	for (const id of [...selectedElementIds.value]) {
 		ops.removeElement(id);
@@ -1255,191 +885,6 @@ function onPresentSlideChange(index: number): void {
 	activeSlideIndex.value = index;
 }
 
-// ── Element context menu ──────────────────────────────────────────────
-const contextMenu = ref<{ open: boolean; x: number; y: number; elementId: string | null }>({
-	open: false,
-	x: 0,
-	y: 0,
-	elementId: null,
-});
-/**
- * The table element under the context menu, when it is a table whose selected
- * cell is known: gates the row/column/merge entries. Mirrors React's ContextMenu
- * `isTable` / `hasMultiCellSelection` / `isMergedCell` derivation.
- */
-const contextTable = computed(() => {
-	const id = contextMenu.value.elementId;
-	const el = id ? findActiveElement(id) : undefined;
-	if (!el || el.type !== 'table' || !el.tableData) {
-		return null;
-	}
-	const sel =
-		tableSelection.value && tableSelection.value.elementId === el.id ? tableSelection.value : null;
-	if (!sel) {
-		return null;
-	}
-	const cell = el.tableData.rows[sel.rowIndex]?.cells[sel.columnIndex];
-	const isMerged = Boolean(cell && ((cell.gridSpan ?? 1) > 1 || (cell.rowSpan ?? 1) > 1));
-	const hasMulti = Array.isArray(sel.selectedCells) && sel.selectedCells.length >= 2;
-	return { el, sel, isMerged, hasMulti };
-});
-
-const contextItems = computed<ContextMenuItem[]>(() => {
-	const items: ContextMenuItem[] = [
-		{ id: 'cut', label: 'Cut' },
-		{ id: 'copy', label: 'Copy' },
-		{ id: 'paste', label: 'Paste', disabled: !hasClipboard.value },
-		{ id: 'sep1', label: '', separator: true },
-		{ id: 'duplicate', label: 'Duplicate' },
-		{ id: 'delete', label: 'Delete' },
-		{ id: 'sep2', label: '', separator: true },
-		{ id: 'bring-forward', label: 'Bring forward' },
-		{ id: 'send-backward', label: 'Send backward' },
-		{ id: 'sep3', label: '', separator: true },
-		{ id: 'group', label: 'Group', disabled: !canGroup.value },
-		{ id: 'ungroup', label: 'Ungroup', disabled: !canUngroup.value },
-		{ id: 'sep4', label: '', separator: true },
-		{ id: 'hyperlink', label: 'Hyperlink…' },
-	];
-	const tbl = contextTable.value;
-	if (tbl) {
-		items.push(
-			{ id: 'sep-table', label: '', separator: true },
-			{ id: 'table-insert-row-above', label: 'Insert row above' },
-			{ id: 'table-insert-row-below', label: 'Insert row below' },
-			{ id: 'table-delete-row', label: 'Delete row' },
-			{ id: 'table-insert-col-left', label: 'Insert column left' },
-			{ id: 'table-insert-col-right', label: 'Insert column right' },
-			{ id: 'table-delete-col', label: 'Delete column' },
-			{ id: 'sep-table-merge', label: '', separator: true },
-		);
-		if (tbl.hasMulti) {
-			items.push({ id: 'table-merge-selected', label: 'Merge selected cells' });
-		} else if (tbl.isMerged) {
-			items.push({ id: 'table-split', label: 'Split cell' });
-		} else {
-			items.push(
-				{ id: 'table-merge-right', label: 'Merge cells' },
-				{ id: 'table-merge-down', label: 'Merge down' },
-			);
-		}
-	}
-	return items;
-});
-
-/** Apply a table op result (or no-op when null) to the context-menu table. */
-function applyContextTableData(next: PptxTableData | null): void {
-	const tbl = contextTable.value;
-	if (tbl && next) {
-		ops.updateElement(tbl.el.id, { tableData: next } as Partial<PptxElement>);
-	}
-}
-function onCanvasContextMenu(event: MouseEvent): void {
-	if (!props.canEdit) {
-		return;
-	}
-	const host = (event.target as HTMLElement | null)?.closest(
-		'[data-element-id]',
-	) as HTMLElement | null;
-	const id = host?.dataset.elementId;
-	// Locked template elements (edit-template mode off) are not actionable.
-	if (!id || !isElementIdInteractive(id, editTemplateMode.value)) {
-		return;
-	}
-	event.preventDefault();
-	if (!selectedElementIds.value.includes(id)) {
-		selectedElementIds.value = [id];
-	}
-	contextMenu.value = { open: true, x: event.clientX, y: event.clientY, elementId: id };
-}
-function onContextSelect(actionId: string): void {
-	const target = contextMenu.value.elementId;
-	if (!target) {
-		return;
-	}
-	switch (actionId) {
-		case 'cut':
-			cutElement(target);
-			break;
-		case 'copy':
-			copyElement(target);
-			break;
-		case 'paste':
-			pasteElement();
-			break;
-		case 'duplicate':
-			ops.duplicateElement(target);
-			break;
-		case 'delete':
-			ops.removeElement(target);
-			selectedElementIds.value = selectedElementIds.value.filter((x) => x !== target);
-			break;
-		case 'bring-forward':
-			ops.bringForward(target);
-			break;
-		case 'send-backward':
-			ops.sendBackward(target);
-			break;
-		case 'group':
-			onGroup();
-			break;
-		case 'ungroup':
-			onUngroup();
-			break;
-		case 'hyperlink':
-			openHyperlinkDialog(target);
-			break;
-		default:
-			onContextTableSelect(actionId);
-			break;
-	}
-}
-
-/** Handle the table-specific context-menu entries (row / column / merge / split). */
-function onContextTableSelect(actionId: string): void {
-	const tbl = contextTable.value;
-	if (!tbl) {
-		return;
-	}
-	const td = tbl.el.tableData;
-	if (!td) {
-		return;
-	}
-	const { rowIndex, columnIndex } = tbl.sel;
-	switch (actionId) {
-		case 'table-insert-row-above':
-			applyContextTableData(applyInsertRow(td, rowIndex, 'above'));
-			break;
-		case 'table-insert-row-below':
-			applyContextTableData(applyInsertRow(td, rowIndex, 'below'));
-			break;
-		case 'table-delete-row':
-			applyContextTableData(applyDeleteRow(td, rowIndex));
-			break;
-		case 'table-insert-col-left':
-			applyContextTableData(applyInsertColumn(td, columnIndex, 'left'));
-			break;
-		case 'table-insert-col-right':
-			applyContextTableData(applyInsertColumn(td, columnIndex, 'right'));
-			break;
-		case 'table-delete-col':
-			applyContextTableData(applyDeleteColumn(td, columnIndex));
-			break;
-		case 'table-merge-right':
-			applyContextTableData(applyMergeRight(td, rowIndex, columnIndex));
-			break;
-		case 'table-merge-down':
-			applyContextTableData(applyMergeDown(td, rowIndex, columnIndex));
-			break;
-		case 'table-merge-selected':
-			applyContextTableData(applyMergeSelected(td, tbl.sel.selectedCells));
-			break;
-		case 'table-split':
-			applyContextTableData(applySplitCell(td, rowIndex, columnIndex));
-			break;
-	}
-}
-
 // ── Hyperlink dialog ──────────────────────────────────────────────────
 const hyperlinkOpen = ref(false);
 const hyperlinkTarget = ref<PptxElement | null>(null);
@@ -1557,182 +1002,52 @@ function onSorterReorder(from: number, to: number): void {
 const showA11y = ref(false);
 const a11y = useAccessibility(slides);
 
-// ── Speaker notes ─────────────────────────────────────────────────────
-function onNotesUpdate(notes: string): void {
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	history.pushHistory();
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, notes };
-	slides.value = nextSlides;
-}
+// ── Slide-level mutations (notes / hidden / transition / animations) ──
+const {
+	onNotesUpdate,
+	toggleSlideHidden,
+	applySlideTransition,
+	applySlideBackgroundPatch,
+	onTransitionChange,
+	onApplyTransitionToAll,
+	onAddAnimation,
+	onRemoveAnimation,
+} = useSlideMutations({
+	slides,
+	activeSlideIndex,
+	activeSlide,
+	pushHistory: history.pushHistory,
+	selectedElements,
+});
 
-// ── Slide transition ──────────────────────────────────────────────────
-/** Toggle the hidden flag on the slide at `index` (from the rail context menu). */
-function toggleSlideHidden(index: number): void {
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	history.pushHistory();
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, hidden: !slide.hidden };
-	slides.value = nextSlides;
-}
-
-/** Apply a transition (or clear it) on the active slide, from the SlideInspector. */
-function applySlideTransition(transition: PptxSlideTransition | undefined): void {
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	history.pushHistory();
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, transition };
-	slides.value = nextSlides;
-}
-
-/** Merge a partial patch (e.g. background colour/image) into the active slide. */
-function applySlideBackgroundPatch(patch: Partial<PptxSlide>): void {
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	history.pushHistory();
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, ...patch };
-	slides.value = nextSlides;
-}
-
-/** Merge a partial transition patch into the active slide (Transitions ribbon). */
-function onTransitionChange(updates: Partial<PptxSlideTransition>): void {
-	const current = (activeSlide.value?.transition ?? {}) as PptxSlideTransition;
-	applySlideTransition({ ...current, ...updates });
-}
-
-/** Copy the active slide's transition onto every slide (Apply To All). */
-function onApplyTransitionToAll(): void {
-	const transition = activeSlide.value?.transition;
-	history.pushHistory();
-	slides.value = slides.value.map((slide) => ({ ...slide, transition }));
-}
-
-/** Replace the active slide's animation list (history-aware). */
-function writeActiveSlideAnimations(animations: PptxElementAnimation[]): void {
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	history.pushHistory();
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, animations };
-	slides.value = nextSlides;
-}
-
-/** Apply an entrance/emphasis/exit preset to the selected element (Animations tab). */
-function onAddAnimation(preset: string, group: AnimationGroup): void {
-	const el = selectedElements.value[0];
-	const slide = activeSlide.value;
-	if (!el || !slide) {
-		return;
-	}
-	writeActiveSlideAnimations(
-		applyAnimationPreset(slide.animations ?? [], el.id, group, preset as PptxAnimationPreset),
-	);
-}
-
-/** Remove the selected element's animation entry (Animations tab). */
-function onRemoveAnimation(): void {
-	const el = selectedElements.value[0];
-	const slide = activeSlide.value;
-	if (!el || !slide) {
-		return;
-	}
-	writeActiveSlideAnimations(removeElementAnimation(slide.animations ?? [], el.id));
-}
-
-// ── Align / group ─────────────────────────────────────────────────────
-const canGroup = computed(() => selectedElements.value.length >= 2);
-const canUngroup = computed(
-	() => selectedElements.value.length === 1 && selectedElements.value[0]?.type === 'group',
-);
-
-/** Apply a {id → {x?,y?}} position map to the active slide as one history entry. */
-function applyPositionMap(map: Map<string, { x?: number; y?: number }>): void {
-	if (map.size === 0) {
-		return;
-	}
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	history.pushHistory();
-	const nextElements = slide.elements.map((el) => {
-		const pos = map.get(el.id);
-		if (!pos) {
-			return el;
-		}
-		return {
-			...el,
-			...(pos.x === undefined ? {} : { x: pos.x }),
-			...(pos.y === undefined ? {} : { y: pos.y }),
-		};
+// ── Align / distribute / group ────────────────────────────────────────
+const { canGroup, canUngroup, canDistribute, onAlign, onDistribute, onGroup, onUngroup } =
+	useAlignGroup({
+		selectedElements,
+		selectedElementIds,
+		activeSlideIndex,
+		slides,
+		pushHistory: history.pushHistory,
 	});
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, elements: nextElements };
-	slides.value = nextSlides;
-}
-function onAlign(edge: AlignEdge): void {
-	applyPositionMap(alignElements(selectedElements.value, edge));
-}
-function onDistribute(axis: DistributeAxis): void {
-	applyPositionMap(distributeElements(selectedElements.value, axis));
-}
-const canDistribute = computed(() => selectedElements.value.length >= 3);
-function onGroup(): void {
-	const sel = selectedElements.value;
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (sel.length < 2 || !slide) {
-		return;
-	}
-	const { elements, groupId } = groupElements(
-		slide.elements,
-		sel.map((e) => e.id),
-		createEditorId('grp'),
-	);
-	if (groupId === null) {
-		return;
-	}
-	history.pushHistory();
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, elements };
-	slides.value = nextSlides;
-	selectedElementIds.value = [groupId];
-}
-function onUngroup(): void {
-	const g = selectedElements.value[0];
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!g || g.type !== 'group' || !slide) {
-		return;
-	}
-	// Keep the existing child ids (pass them through as the new ids).
-	const childIds = (g.children ?? []).map((c) => c.id);
-	const { elements, childIds: appliedIds } = ungroupElements(slide.elements, g.id, childIds);
-	history.pushHistory();
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, elements };
-	slides.value = nextSlides;
-	selectedElementIds.value = appliedIds;
-}
+
+// ── Element context menu (right-click / long-press) ───────────────────
+const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useContextMenu({
+	canEdit: () => props.canEdit,
+	findActiveElement,
+	tableSelection,
+	hasClipboard,
+	canGroup,
+	canUngroup,
+	editTemplateMode,
+	selectedElementIds,
+	ops,
+	cutElement,
+	copyElement,
+	pasteElement,
+	onGroup,
+	onUngroup,
+	openHyperlinkDialog,
+});
 
 // ── Autosave ──────────────────────────────────────────────────────────
 const autosaveEnabled = computed(() => props.canEdit && (props.autosave ?? false));
@@ -2349,41 +1664,12 @@ const ribbonExpanded = ref(true);
 const overflowOpen = ref(false);
 /** Status-bar Notes toggle: expands/collapses the desktop notes panel. */
 const notesExpanded = ref(true);
-/** View-tab canvas aids: dot grid overlay + snap-to-grid during drag/resize. */
+/** View-tab dot-grid overlay (snap-to-grid state lives in useElementDrag). */
 const showGrid = ref(false);
-const snapToGrid = ref(false);
 /** View ▸ Rulers: horizontal/vertical rulers along the slide edges. */
 const showRulers = ref(false);
-/**
- * View ▸ Templates: when on, the master/layout shapes a slide inherits (already
- * present in `slide.elements` with `layout-`/`master-` ids) become selectable,
- * draggable and editable on the canvas instead of being interaction-locked.
- * Editing one mutates the shared template part, so all slides inheriting it
- * change together.
- */
-const editTemplateMode = ref(false);
 /** View ▸ Spell: draw the browser's native spell-check squiggles while editing. */
 const spellCheckEnabled = ref(true);
-/** View ▸ Snap to Shape: snap dragged elements to other elements' edges/centres. */
-const snapToShape = ref(false);
-/** Transient red snap-alignment lines shown during a snap-to-shape drag. */
-const snapLines = ref<Array<{ axis: 'x' | 'y'; position: number }>>([]);
-/** View ▸ H/V Guides: draggable alignment guides (authored slide px). */
-const guides = ref<Guide[]>([]);
-/** Add a centred horizontal/vertical guide (View ▸ H/V Guide buttons). */
-function addGuide(axis: 'h' | 'v'): void {
-	guides.value = [...guides.value, createGuide(createEditorId('guide'), axis, canvasSize.value)];
-}
-/** Drag a guide to a new (clamped) position. */
-function onMoveGuide(payload: { id: string; position: number }): void {
-	guides.value = moveGuide(guides.value, payload.id, payload.position, canvasSize.value);
-}
-/** Double-click removes a guide. */
-function onRemoveGuide(id: string): void {
-	guides.value = removeGuide(guides.value, id);
-}
-/** Grid spacing in px (matches React's GRID_SIZE). */
-const GRID_SIZE = 8;
 /** Design ▸ Themes gallery overlay. */
 const themeGalleryOpen = ref(false);
 
@@ -2492,127 +1778,20 @@ function applyThemeEdit(payload: {
 	themeEditorOpen.value = false;
 }
 
-const ribbonMode = computed<ViewerMode>(() =>
-	presenting.value
-		? 'present'
-		: showMasterView.value
-			? 'master'
-			: props.canEdit
-				? 'edit'
-				: 'preview',
-);
-
-const RIBBON_ALIGN: Record<string, AlignEdge> = {
-	left: 'left',
-	center: 'centerH',
-	right: 'right',
-	top: 'top',
-	middle: 'middle',
-	bottom: 'bottom',
-};
-
-/** Narrow a ribbon `SupportedShapeType` to the EditorToolbar's `ShapePreset`. */
-function toShapePreset(t: SupportedShapeType): ShapePreset {
-	return t === 'ellipse' || t === 'roundRect' || t === 'triangle' ? t : 'rect';
-}
-
-/** Apply a character/paragraph style patch to the selected text element. */
-/**
- * The active table cell selection remapped to the ribbon's `TableCellEditorState`
- * shape, but only when the selected element is the table that owns the selection.
- * Feeds the ribbon Text section so cell-cell toggles read the cell's own style.
- */
-const activeTableSelection = computed<TableCellEditorState | null>(() => {
-	const sel = tableSelection.value;
-	const el = selectedElements.value[0];
-	if (!sel || !el || el.type !== 'table' || sel.elementId !== el.id) {
-		return null;
-	}
-	return { elementId: sel.elementId, rowIndex: sel.rowIndex, columnIndex: sel.columnIndex };
-});
-
-/** Apply a text-style delta to the selected table cell (ribbon Text section). */
-function applyCellTextStyle(el: TablePptxElement, updates: Partial<TextStyle>): void {
-	const sel = tableSelection.value;
-	if (!props.canEdit || !el.tableData || !sel || sel.elementId !== el.id) {
-		return;
-	}
-	const { rowIndex, columnIndex } = sel;
-	const rows = el.tableData.rows.map((row, ri) =>
-		ri !== rowIndex
-			? row
-			: {
-					...row,
-					cells: row.cells.map((c, ci) =>
-						ci !== columnIndex
-							? c
-							: { ...c, style: { ...c.style, ...updates } as PptxTableCellStyle },
-					),
-				},
-	);
-	ops.updateElement(el.id, { tableData: { ...el.tableData, rows } } as Partial<PptxElement>);
-}
-
-function ribbonUpdateTextStyle(updates: Partial<TextStyle>): void {
-	const id = selectedElementIds.value[0];
-	if (!id) {
-		return;
-	}
-	const el = activeSlide.value?.elements.find((e) => e.id === id);
-	if (!el) {
-		return;
-	}
-	// Tables route to the selected cell's style; other elements to their textStyle.
-	if (el.type === 'table') {
-		applyCellTextStyle(el, updates);
-		return;
-	}
-	if (!hasTextProperties(el)) {
-		return;
-	}
-	const textStyle = { ...el.textStyle, ...updates };
-	const segments =
-		el.textSegments && el.textSegments.length > 0
-			? el.textSegments.map((s) => ({ ...s, style: { ...s.style, ...updates } }))
-			: undefined;
-	ops.updateElement(
-		id,
-		(segments ? { textStyle, textSegments: segments } : { textStyle }) as Partial<PptxElement>,
-	);
-}
-
-/** Flip the selected elements horizontally / vertically as one history entry. */
-function ribbonFlip(direction: 'horizontal' | 'vertical'): void {
-	const ids = new Set(selectedElementIds.value);
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (ids.size === 0 || !slide) {
-		return;
-	}
-	history.pushHistory();
-	const nextElements = slide.elements.map((el) => {
-		if (!ids.has(el.id)) {
-			return el;
-		}
-		return direction === 'horizontal'
-			? { ...el, flipHorizontal: !el.flipHorizontal }
-			: { ...el, flipVertical: !el.flipVertical };
+const { ribbonMode, activeTableSelection, ribbonUpdateTextStyle, ribbonFlip, ribbonMoveToEdge } =
+	useRibbonActions({
+		canEdit: () => props.canEdit,
+		presenting,
+		showMasterView,
+		tableSelection,
+		selectedElements,
+		selectedElementIds,
+		activeSlide,
+		activeSlideIndex,
+		slides,
+		pushHistory: history.pushHistory,
+		ops,
 	});
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, elements: nextElements };
-	slides.value = nextSlides;
-}
-
-/** Move the first selected element to the front/back of the slide z-order. */
-function ribbonMoveToEdge(dir: string): void {
-	const id = selectedElementIds.value[0];
-	const slide = activeSlide.value;
-	if (!id || !slide) {
-		return;
-	}
-	const toFront = dir === 'front' || dir === 'forward' || dir === 'up';
-	ops.reorder(id, toFront ? slide.elements.length - 1 : 0);
-}
 
 const ribbonProps = computed<RibbonProps>(() => ({
 	mode: ribbonMode.value,
