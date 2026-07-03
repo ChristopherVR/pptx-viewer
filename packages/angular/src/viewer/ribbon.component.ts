@@ -933,11 +933,10 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					}
 					@case ('draw') {
 						<!--
-							Draw tool state is held here in the ribbon as local signals.
-							TODO: wire activeTool/drawingColor/drawingWidth to an actual
-							freehand-ink layer when the editor annotation back-end ships.
-							The toolbar is fully interactive and emits drawToolChange so
-							the parent can opt in to the state.
+							Draw tool state is held here in the ribbon as local signals
+							and pushed up via drawToolChange; power-point-viewer.component.ts
+							consumes it and appends real ink elements on stroke completion
+							(see onDrawToolChange/onInkStrokeComplete there).
 						-->
 						<!-- Tool selector -->
 						<div class="pptx-rb-grp">
