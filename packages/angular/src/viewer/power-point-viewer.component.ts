@@ -16,7 +16,6 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxComment, PptxCoreProperties, PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
-import { BROADCAST_THROTTLE_MS, clampCursorPosition, presenceToCursors } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
@@ -75,6 +74,7 @@ import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
 import type { CollaborationConfig } from './types';
 import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
+import { ViewerCollabCursorService } from './viewer-collab-cursor.service';
 import { ViewerCollaborationSessionService } from './viewer-collaboration-session.service';
 import { ViewerCompareService } from './viewer-compare.service';
 import { ViewerCustomShowsService } from './viewer-custom-shows.service';
@@ -133,6 +133,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		ViewerCustomShowsService,
 		ViewerCollaborationSessionService,
 		ViewerCanvasEditingService,
+		ViewerCollabCursorService,
 		ViewerFileIOService,
 		ViewerFormatPainterService,
 		ViewerInspectorPanelService,
@@ -309,7 +310,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						</nav>
 					}
 
-					<main class="pptx-ng-main" #mainEl (pointermove)="onCollabPointerMove($event)">
+					<main class="pptx-ng-main" #mainEl (pointermove)="collabCursor.onPointerMove($event)">
 						<pptx-slide-canvas
 							[slide]="activeSlide()"
 							[canvasSize]="loader.canvasSize()"
@@ -347,7 +348,7 @@ import { ZoomTargetService } from './zoom-target.service';
 							(tableChange)="canvasEditing.onTableChange($event)"
 						/>
 						@if (collab.connected()) {
-							<pptx-collaboration-cursors [cursors]="collabCursors()" [zoom]="zoomSvc.zoom()" />
+							<pptx-collaboration-cursors [cursors]="collabCursor.cursors()" [zoom]="zoomSvc.zoom()" />
 							<pptx-remote-selection-overlay
 								[presences]="collab.presence()"
 								[elements]="activeSlide()?.elements ?? []"
@@ -842,6 +843,7 @@ export class PowerPointViewerComponent {
 	protected readonly fileIO = inject(ViewerFileIOService);
 	protected readonly themeGallery = inject(ViewerThemeGalleryService);
 	protected readonly canvasEditing = inject(ViewerCanvasEditingService);
+	protected readonly collabCursor = inject(ViewerCollabCursorService);
 
 	/** Handle on the secondary-dialog host (keep-annotations prompt). */
 	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
@@ -885,16 +887,6 @@ export class PowerPointViewerComponent {
 		return this.editor.templateElementsBySlideId()[slide.id] ?? [];
 	});
 	protected readonly rootStyle = computed(() => themeStyle(this.theme()));
-
-	/**
-	 * Remote cursors filtered to the slide the local user is viewing, so peers'
-	 * cursors only appear on the shared slide (mirrors React/Vue).
-	 */
-	protected readonly collabCursors = computed(() =>
-		presenceToCursors(this.collab.presence(), this.activeSlideIndex()),
-	);
-	/** Timestamp of the last cursor broadcast (throttle gate). */
-	private lastCursorBroadcast = 0;
 
 	/** Slide-sorter grid overlay visibility. */
 	protected readonly showSorter = signal(false);
@@ -1217,6 +1209,15 @@ export class PowerPointViewerComponent {
 			activeSlide: () => this.activeSlide(),
 			activeSlideIndex: () => this.activeSlideIndex(),
 		});
+
+		// Hand the collab-cursor controller the accessors it alone needs from the
+		// component (the `<main>` host, zoom, canvas size, active-slide-index).
+		this.collabCursor.bind({
+			mainElement: () => this.mainEl()?.nativeElement,
+			zoom: () => this.zoomSvc.zoom(),
+			canvasSize: () => this.loader.canvasSize(),
+			activeSlideIndex: () => this.activeSlideIndex(),
+		});
 	}
 
 	/**
@@ -1238,33 +1239,6 @@ export class PowerPointViewerComponent {
 	}
 	goNext(): void {
 		this.goTo(this.activeSlideIndex() + 1);
-	}
-
-	/**
-	 * Publish the local cursor while the pointer moves over the canvas. Throttled
-	 * to {@link BROADCAST_THROTTLE_MS}; coordinates are mapped from client space
-	 * into unscaled slide space (dividing by zoom, matching the cursor overlay)
-	 * and clamped to the canvas bounds.
-	 */
-	protected onCollabPointerMove(event: PointerEvent): void {
-		if (!this.collab.active()) {
-			return;
-		}
-		const now = Date.now();
-		if (now - this.lastCursorBroadcast < BROADCAST_THROTTLE_MS) {
-			return;
-		}
-		this.lastCursorBroadcast = now;
-		const host = this.mainEl()?.nativeElement;
-		if (!host) {
-			return;
-		}
-		const rect = host.getBoundingClientRect();
-		const zoom = this.zoomSvc.zoom() || 1;
-		const size = this.loader.canvasSize();
-		const x = clampCursorPosition((event.clientX - rect.left) / zoom, 0, size.width);
-		const y = clampCursorPosition((event.clientY - rect.top) / zoom, 0, size.height);
-		this.collab.setCursor(x, y, this.activeSlideIndex());
 	}
 
 	/** Review ▸ Compare: pick a `.pptx` and diff it against the current deck. */
