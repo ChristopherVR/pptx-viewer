@@ -266,6 +266,77 @@ export const buildGlowBoxShadow = getGlowBoxShadowCss;
 /** Alias of {@link buildReflectionCssValue} (React `buildReflectionCss`). */
 export const buildReflectionCss = buildReflectionCssValue;
 
+// ── Line effects (connector / shape outline shadow + glow) ─────────────────
+
+/** Resolved parameters for a line-level (`a:ln`) outer shadow. */
+export interface LineShadowParams {
+	offsetX: number;
+	offsetY: number;
+	blur: number;
+	color: string;
+	opacity: number;
+}
+
+/**
+ * Resolve the line-level shadow (`a:ln/a:effectLst/a:outerShdw`) parameters from
+ * a {@link ShapeStyle}, applying PowerPoint's defaults for any missing values.
+ * Returns `undefined` when no line shadow colour is defined, so callers can gate
+ * on it. Feeds both the CSS box-shadow ({@link getLineShadowCss}) and the SVG
+ * `feDropShadow` used to shadow connector strokes.
+ */
+export function getLineShadowParams(style: ShapeStyle | undefined): LineShadowParams | undefined {
+	if (!style?.lineShadowColor || style.lineShadowColor === 'transparent') {
+		return undefined;
+	}
+	return {
+		offsetX: typeof style.lineShadowOffsetX === 'number' ? style.lineShadowOffsetX : 2,
+		offsetY: typeof style.lineShadowOffsetY === 'number' ? style.lineShadowOffsetY : 2,
+		blur: typeof style.lineShadowBlur === 'number' ? Math.max(0, style.lineShadowBlur) : 4,
+		color: normalizeHexColor(style.lineShadowColor, DEFAULT_SHADOW_COLOR),
+		opacity:
+			typeof style.lineShadowOpacity === 'number'
+				? clampUnitInterval(style.lineShadowOpacity)
+				: 0.35,
+	};
+}
+
+/**
+ * Build a CSS `box-shadow` value for a line-level shadow. Returns `undefined`
+ * when no line shadow is defined. Mirrors React's `buildLineShadowCss`.
+ */
+export function getLineShadowCss(style: ShapeStyle | undefined): string | undefined {
+	const p = getLineShadowParams(style);
+	if (!p) {
+		return undefined;
+	}
+	return `${Math.round(p.offsetX)}px ${Math.round(p.offsetY)}px ${Math.round(
+		p.blur,
+	)}px ${colorWithOpacity(p.color, p.opacity)}`;
+}
+
+/**
+ * Build a CSS `filter` value for a line-level glow (`a:ln/a:effectLst/a:glow`).
+ * Returns `undefined` when no line glow is defined. Mirrors React's
+ * `buildLineGlowFilter`.
+ */
+export function getLineGlowFilterCss(style: ShapeStyle | undefined): string | undefined {
+	if (!style?.lineGlowColor || style.lineGlowColor === 'transparent' || !style.lineGlowRadius) {
+		return undefined;
+	}
+	const glowOpacity = typeof style.lineGlowOpacity === 'number' ? style.lineGlowOpacity : 0.75;
+	const glowRad = Math.round(Math.max(0, style.lineGlowRadius));
+	const glowCol = colorWithOpacity(
+		normalizeHexColor(style.lineGlowColor, DEFAULT_GLOW_COLOR),
+		glowOpacity,
+	);
+	return `drop-shadow(0 0 ${glowRad}px ${glowCol})`;
+}
+
+/** Alias of {@link getLineShadowCss} (React `buildLineShadowCss`). */
+export const buildLineShadowCss = getLineShadowCss;
+/** Alias of {@link getLineGlowFilterCss} (React `buildLineGlowFilter`). */
+export const buildLineGlowFilter = getLineGlowFilterCss;
+
 // ── Glow / soft-edge / blur / DAG (CSS filter) ─────────────────────────────
 
 /**

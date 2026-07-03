@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ConnectorArrowType, PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-import { markerPath } from 'pptx-viewer-shared';
+import { getLineGlowFilterCss, getLineShadowParams, markerPath } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -33,7 +33,9 @@ import ConnectorTextOverlay from './ConnectorTextOverlay.vue';
  * Connector labels (a non-empty `<p:txBody>` on the connector) render via the
  * {@link ConnectorTextOverlay} child, centred over the bounding box.
  *
- * Not yet ported (TODO, see PORTING.md): line shadows/glow effects.
+ * Line-level shadow (`a:ln/a:outerShdw`) renders as an SVG `feDropShadow` on the
+ * primary stroke; line glow (`a:ln/a:glow`) as a CSS `drop-shadow` filter on the
+ * wrapper. Both reuse the shared visual-effects helpers.
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -139,6 +141,9 @@ const wrapperStyle = computed<CSSProperties>(() => {
 	if (typeof el.opacity === 'number') {
 		style.opacity = el.opacity;
 	}
+	if (lineGlow.value) {
+		style.filter = lineGlow.value;
+	}
 	if (el.hidden) {
 		style.display = 'none';
 	}
@@ -149,6 +154,15 @@ const wrapperStyle = computed<CSSProperties>(() => {
 
 const startMarker = computed(() => (startArrow.value ? markerPath(startArrow.value) : null));
 const endMarker = computed(() => (endArrow.value ? markerPath(endArrow.value) : null));
+
+// ── Line shadow / glow effects ─────────────────────────────────────────────────
+
+/** Resolved line-shadow params (feDropShadow), or undefined when no shadow. */
+const lineShadow = computed(() => getLineShadowParams(ss.value));
+/** CSS `drop-shadow` filter for a line glow, applied to the wrapper. */
+const lineGlow = computed(() => getLineGlowFilterCss(ss.value));
+/** DOM-safe id for the shadow <filter>. */
+const shadowFilterId = computed(() => `${markerSeed.value}-line-shadow`);
 
 // ── Connector text label ───────────────────────────────────────────────────────
 
@@ -219,6 +233,15 @@ function offsetTransform(offset: number): string | undefined {
 					<circle v-if="endMarker.shape === 'circle'" cx="5" cy="5" r="4" :fill="strokeColor" />
 					<path v-else :d="endMarker.d" :fill="strokeColor" />
 				</marker>
+				<filter v-if="lineShadow" :id="shadowFilterId" x="-50%" y="-50%" width="200%" height="200%">
+					<feDropShadow
+						:dx="lineShadow.offsetX"
+						:dy="lineShadow.offsetY"
+						:stdDeviation="lineShadow.blur / 2"
+						:flood-color="lineShadow.color"
+						:flood-opacity="lineShadow.opacity"
+					/>
+				</filter>
 			</defs>
 
 			<!-- ── Bent / curved connector: multi-segment <path> ─────────────────── -->
@@ -234,6 +257,7 @@ function offsetTransform(offset: number): string | undefined {
 					:stroke-dasharray="dashArray"
 					stroke-linecap="round"
 					stroke-linejoin="round"
+					:filter="idx === 0 && lineShadow ? `url(#${shadowFilterId})` : undefined"
 					:style="offsetTransform(offset) ? { transform: offsetTransform(offset) } : undefined"
 					:marker-start="idx === 0 && startMarker ? `url(#${startMarkerId})` : undefined"
 					:marker-end="
@@ -256,6 +280,7 @@ function offsetTransform(offset: number): string | undefined {
 					:stroke-opacity="strokeOpacity"
 					:stroke-dasharray="dashArray"
 					stroke-linecap="round"
+					:filter="idx === 0 && lineShadow ? `url(#${shadowFilterId})` : undefined"
 					:marker-start="idx === 0 && startMarker ? `url(#${startMarkerId})` : undefined"
 					:marker-end="
 						idx === compoundOffsets.length - 1 && endMarker ? `url(#${endMarkerId})` : undefined
