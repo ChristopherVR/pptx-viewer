@@ -102,9 +102,7 @@ export function SlideTransitionSection({
 								}`}
 							>
 								{t(
-									o === 'horz'
-										? 'pptx.slideInspector.horizontal'
-										: 'pptx.slideInspector.vertical',
+									o === 'horz' ? 'pptx.slideInspector.horizontal' : 'pptx.slideInspector.vertical',
 								)}
 							</button>
 						))}
