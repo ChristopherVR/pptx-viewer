@@ -39,6 +39,8 @@ import type { StyleMap } from './element-style';
 import { FieldContextService } from './field-context.service';
 import { pointsToSvgPathD, strokeToInkElement } from './ink-drawing-helpers';
 import type { InkPoint } from './ink-drawing-helpers';
+import { generateRulerTicks, RULER_THICKNESS } from './ruler-ticks';
+import type { RulerTick } from './ruler-ticks';
 import { getSlideBackgroundStyle } from './slide-background';
 import { isViewportBackgroundPressTarget } from './slide-canvas-helpers';
 import { computeSnap, snapToGridStep } from './snap-guides';
@@ -49,48 +51,6 @@ import { isElementInteractive } from './template-mode';
 /** Pixels (screen-space) a pointer must move before a click becomes a drag. */
 const DRAG_THRESHOLD = 3;
 
-// ── Ruler constants ───────────────────────────────────────────────────────────
-
-/** Height/width (px) of the ruler strips: mirrors React's RULER_THICKNESS. */
-const RULER_THICKNESS = 20;
-/** Pixels per inch on the slide canvas (PPTX slides are 10" wide = 960 px). */
-const SLIDE_PX_PER_INCH = 96;
-
-/** A single tick mark on a ruler strip. */
-interface RulerTick {
-	/** Position in screen pixels along the ruler. */
-	position: number;
-	/** Whether this is a major (inch) tick. */
-	isMajor: boolean;
-	/** Label to display (only on major ticks, every N inches). */
-	label: string | null;
-}
-
-/**
- * Generate ruler tick marks for a given slide dimension and scale.
- * Produces ticks every 1/4 inch (minor) and every inch (major).
- */
-function generateRulerTicks(slidePx: number, scale: number): ReadonlyArray<RulerTick> {
-	const scaledLength = slidePx * scale;
-	const quarterInchPx = (SLIDE_PX_PER_INCH / 4) * scale;
-	if (quarterInchPx < 2) {
-		return [];
-	}
-	const ticks: RulerTick[] = [];
-	let pos = 0;
-	let inchIndex = 0;
-	while (pos <= scaledLength + 0.5) {
-		const isMajor = inchIndex % 4 === 0;
-		ticks.push({
-			position: pos,
-			isMajor,
-			label: isMajor && inchIndex > 0 ? String(inchIndex / 4) : null,
-		});
-		pos += quarterInchPx;
-		inchIndex++;
-	}
-	return ticks;
-}
 /** Handle size in screen pixels (fine pointer: mouse/trackpad). */
 const HANDLE_SCREEN_PX_FINE = 9;
 /** Handle size in screen pixels (coarse pointer: touch); larger hit target. */
