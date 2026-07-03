@@ -16,9 +16,13 @@ import type { InkStroke } from './ink-renderer-helpers';
  * width, and opacity resolved from the parallel `inkColors`/`inkWidths`/
  * `inkOpacities` arrays.
  *
- * Not ported (TODO, see PORTING.md): pressure-sensitive variable-width strokes
- * (`inkPointPressures`), ink replay animation, and the highlighter/eraser tool
- * blend modes. These all degrade gracefully to plain constant-width strokes.
+ * Pressure-sensitive variable-width strokes (`inkPointPressures`, or a varying
+ * `inkWidths` array) are rendered as a set of filled `<circle>` elements whose
+ * radii follow the per-point pressure, matching React's `renderInk`. Strokes
+ * without pressure variation degrade to a plain constant-width `<path>`.
+ *
+ * Not ported (TODO, see PORTING.md): ink replay animation and the
+ * highlighter/eraser tool blend modes.
  *
  * All non-trivial pure computation lives in `ink-renderer-helpers.ts` (no
  * Angular dependency) so it can be unit-tested without TestBed.
@@ -42,16 +46,29 @@ import type { InkStroke } from './ink-renderer-helpers';
 					style="width:100%;height:100%;pointer-events:none;display:block"
 				>
 					@for (stroke of strokes(); track $index) {
-						<path
-							[attr.d]="stroke.d"
-							fill="none"
-							[attr.stroke]="stroke.color"
-							[attr.stroke-width]="stroke.width"
-							[attr.stroke-opacity]="stroke.opacity"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							vector-effect="non-scaling-stroke"
-						/>
+						@if (stroke.circles && stroke.circles.length > 0) {
+							<g [attr.opacity]="stroke.opacity">
+								@for (c of stroke.circles; track $index) {
+									<circle
+										[attr.cx]="c.cx"
+										[attr.cy]="c.cy"
+										[attr.r]="c.r"
+										[attr.fill]="stroke.color"
+									/>
+								}
+							</g>
+						} @else {
+							<path
+								[attr.d]="stroke.d"
+								fill="none"
+								[attr.stroke]="stroke.color"
+								[attr.stroke-width]="stroke.width"
+								[attr.stroke-opacity]="stroke.opacity"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								vector-effect="non-scaling-stroke"
+							/>
+						}
 					}
 				</svg>
 			}

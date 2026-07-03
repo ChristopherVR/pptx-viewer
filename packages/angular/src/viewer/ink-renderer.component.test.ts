@@ -9,7 +9,15 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_STROKE_COLOR } from './constants';
-import { buildInkStrokes, inkViewBox } from './ink-renderer-helpers';
+import {
+	buildInkStrokes,
+	extractPathPoints,
+	generatePressureCircles,
+	hasPressureVariation,
+	interpolateWidth,
+	inkViewBox,
+	pressuresToWidths,
+} from './ink-renderer-helpers';
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -79,6 +87,40 @@ describe('buildInkStrokes', () => {
 		} as PptxElement;
 		expect(buildInkStrokes(shape)).toStrictEqual([]);
 	});
+
+	it('leaves circles undefined for constant-width strokes', () => {
+		const strokes = buildInkStrokes(ink({ inkWidths: [2, 2] }));
+		expect(strokes[0].circles).toBeUndefined();
+		expect(strokes[1].circles).toBeUndefined();
+	});
+
+	it('emits pressure circles when inkPointPressures varies', () => {
+		const strokes = buildInkStrokes(
+			ink({
+				inkPaths: ['M0 0 L10 10 L20 20'],
+				inkWidths: [4],
+				inkPointPressures: [[0, 0.5, 1]],
+			}),
+		);
+		expect(strokes[0].circles).toBeDefined();
+		expect(strokes[0].circles).toHaveLength(3);
+		// Radius grows with pressure along the stroke.
+		const rs = strokes[0].circles!.map((c) => c.r);
+		expect(rs[2]).toBeGreaterThan(rs[0]);
+	});
+
+	it('falls back to a varying inkWidths array as per-point widths', () => {
+		const strokes = buildInkStrokes(
+			ink({
+				inkPaths: ['M0 0 L10 10 L20 20'],
+				inkWidths: [1, 3, 6],
+				inkColors: undefined,
+				inkOpacities: undefined,
+			}),
+		);
+		expect(strokes[0].circles).toBeDefined();
+		expect(strokes[0].circles).toHaveLength(3);
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -96,5 +138,82 @@ describe('inkViewBox', () => {
 
 	it('only clamps the zero dimension', () => {
 		expect(inkViewBox(ink({ width: 0, height: 50 }))).toBe('0 0 1 50');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Pressure math
+// ---------------------------------------------------------------------------
+
+describe('extractPathPoints', () => {
+	it('extracts coordinate pairs from an SVG path', () => {
+		expect(extractPathPoints('M0 0 L10 10 L20 30')).toStrictEqual([
+			{ x: 0, y: 0 },
+			{ x: 10, y: 10 },
+			{ x: 20, y: 30 },
+		]);
+	});
+
+	it('returns an empty array for a path with no numbers', () => {
+		expect(extractPathPoints('Z')).toStrictEqual([]);
+	});
+});
+
+describe('interpolateWidth', () => {
+	it('interpolates linearly between samples', () => {
+		expect(interpolateWidth([0, 10], 0.5)).toBe(5);
+	});
+
+	it('clamps t to [0, 1]', () => {
+		expect(interpolateWidth([2, 8], -1)).toBe(2);
+		expect(interpolateWidth([2, 8], 5)).toBe(8);
+	});
+
+	it('returns the single sample when only one is present', () => {
+		expect(interpolateWidth([7], 0.9)).toBe(7);
+	});
+});
+
+describe('hasPressureVariation', () => {
+	it('is false for uniform values', () => {
+		expect(hasPressureVariation([3, 3, 3])).toBeFalsy();
+	});
+
+	it('is false for a single value', () => {
+		expect(hasPressureVariation([3])).toBeFalsy();
+	});
+
+	it('is true when values differ', () => {
+		expect(hasPressureVariation([1, 2, 3])).toBeTruthy();
+	});
+});
+
+describe('pressuresToWidths', () => {
+	it('maps 0..1 pressure to baseWidth * (minScale..maxScale)', () => {
+		expect(pressuresToWidths([0, 1], 10)).toStrictEqual([3, 18]);
+	});
+
+	it('clamps out-of-range pressures', () => {
+		expect(pressuresToWidths([-1, 2], 10)).toStrictEqual([3, 18]);
+	});
+});
+
+describe('generatePressureCircles', () => {
+	it('returns one circle per point', () => {
+		const circles = generatePressureCircles(
+			[
+				{ x: 0, y: 0 },
+				{ x: 5, y: 5 },
+			],
+			[2, 6],
+			4,
+		);
+		expect(circles).toHaveLength(2);
+		expect(circles[0].cx).toBe(0);
+		expect(circles[1].cx).toBe(5);
+	});
+
+	it('returns an empty array for no points', () => {
+		expect(generatePressureCircles([], [1], 2)).toStrictEqual([]);
 	});
 });
