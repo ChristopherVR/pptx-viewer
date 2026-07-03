@@ -13,15 +13,7 @@ import {
 	viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import type {
-	InkPptxElement,
-	PptxComment,
-	PptxCoreProperties,
-	PptxElement,
-	PptxSlide,
-	PptxTableData,
-	TextStyle,
-} from 'pptx-viewer-core';
+import type { PptxComment, PptxCoreProperties, PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
 import { BROADCAST_THROTTLE_MS, clampCursorPosition, presenceToCursors } from '../internal/shared';
@@ -51,7 +43,6 @@ import { FollowModeBarComponent } from './follow-mode-bar.component';
 import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InsertSmartArtDialogComponent } from './insert-smart-art-dialog.component';
 import type { SmartArtInsertEvent } from './insert-smart-art-dialog.component';
-import { textStylePatch } from './inspector-helpers';
 import { InspectorPanelComponent } from './inspector-panel.component';
 import { IsMobileService } from './is-mobile';
 import { LoadContentService } from './load-content.service';
@@ -79,12 +70,11 @@ import { SlidesPanelComponent } from './slides-panel.component';
 import { SmartArt3DService } from './smart-art-3d.service';
 import { buildSmartArtInsertElement } from './smart-art-insert-helpers';
 import { StatusBarComponent } from './status-bar.component';
-import { setCellText } from './table-data-helpers';
-import type { TableCellCommit } from './table-renderer.component';
 import { TableSelectionService } from './table-selection.service';
 import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
 import type { CollaborationConfig } from './types';
+import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 import { ViewerCollaborationSessionService } from './viewer-collaboration-session.service';
 import { ViewerCompareService } from './viewer-compare.service';
 import { ViewerCustomShowsService } from './viewer-custom-shows.service';
@@ -142,6 +132,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		ViewerFindReplaceService,
 		ViewerCustomShowsService,
 		ViewerCollaborationSessionService,
+		ViewerCanvasEditingService,
 		ViewerFileIOService,
 		ViewerFormatPainterService,
 		ViewerInspectorPanelService,
@@ -336,24 +327,24 @@ import { ZoomTargetService } from './zoom-target.service';
 							[drawWidth]="activeDrawWidth()"
 							[editTemplateMode]="editor.editTemplateMode()"
 							[templateElements]="activeTemplateElements()"
-							(elementSelect)="onElementSelect($event)"
-							(backgroundClick)="onBackgroundClick()"
+							(elementSelect)="canvasEditing.onElementSelect($event)"
+							(backgroundClick)="canvasEditing.onBackgroundClick()"
 							(marqueeSelect)="editor.select($event)"
 							(transformStart)="editor.beginTransform($event.label)"
 							(transformUpdate)="editor.applyTransform(activeSlideIndex(), $event.id, $event.box)"
 							(rotateUpdate)="
 								editor.applyTransform(activeSlideIndex(), $event.id, { rotation: $event.rotation })
 							"
-							(contextMenu)="onContextMenu($event)"
-							[editingId]="editingId()"
-							(textEditStart)="onTextEditStart($event.id)"
-							(textCommit)="onTextCommit($event)"
-							(textCancel)="editingId.set(null)"
-							(textFormat)="onTextFormat($event)"
-							(inkStrokeComplete)="onInkStrokeComplete($event)"
-							(eraserHit)="onEraserHit($event)"
-							(cellCommit)="onTableCellCommit($event)"
-							(tableChange)="onTableChange($event)"
+							(contextMenu)="canvasEditing.onContextMenu($event)"
+							[editingId]="canvasEditing.editingId()"
+							(textEditStart)="canvasEditing.onTextEditStart($event.id)"
+							(textCommit)="canvasEditing.onTextCommit($event)"
+							(textCancel)="canvasEditing.editingId.set(null)"
+							(textFormat)="canvasEditing.onTextFormat($event)"
+							(inkStrokeComplete)="canvasEditing.onInkStrokeComplete($event)"
+							(eraserHit)="canvasEditing.onEraserHit($event)"
+							(cellCommit)="canvasEditing.onTableCellCommit($event)"
+							(tableChange)="canvasEditing.onTableChange($event)"
 						/>
 						@if (collab.connected()) {
 							<pptx-collaboration-cursors [cursors]="collabCursors()" [zoom]="zoomSvc.zoom()" />
@@ -377,7 +368,7 @@ import { ZoomTargetService } from './zoom-target.service';
 							<aside class="pptx-ng-notes" [attr.aria-label]="'pptx.notes.speakerNotes' | translate">
 								<pptx-notes-panel
 									[slide]="activeSlide()"
-									(update)="onNotesUpdate($event)"
+									(update)="canvasEditing.onNotesUpdate($event)"
 								/>
 							</aside>
 						}
@@ -432,9 +423,9 @@ import { ZoomTargetService } from './zoom-target.service';
 										[elements]="activeSlide()?.elements ?? []"
 										[selectedIds]="editor.selectedIds()"
 										(selectElement)="editor.select([$event])"
-										(bringForward)="onSelectionPaneBringForward($event)"
-										(sendBackward)="onSelectionPaneSendBackward($event)"
-										(toggleHidden)="onToggleElementHidden($event)"
+										(bringForward)="canvasEditing.onSelectionPaneBringForward($event)"
+										(sendBackward)="canvasEditing.onSelectionPaneSendBackward($event)"
+										(toggleHidden)="canvasEditing.onToggleElementHidden($event)"
 									/>
 								}
 								@case ('element') {
@@ -458,7 +449,7 @@ import { ZoomTargetService } from './zoom-target.service';
 													<input
 														type="color"
 														[attr.value]="sl.backgroundColor || '#ffffff'"
-														(change)="onSlideBackground($event)"
+														(change)="canvasEditing.onSlideBackground($event)"
 													/>
 												</label>
 												<label class="pptx-ng-prop-row pptx-ng-prop-col">
@@ -466,8 +457,8 @@ import { ZoomTargetService } from './zoom-target.service';
 													<textarea
 														rows="5"
 														[attr.placeholder]="'pptx.viewer.speakerNotesPlaceholder' | translate"
-														(change)="onSlideNotes($event)"
-														(blur)="onSlideNotes($event)"
+														(change)="canvasEditing.onSlideNotes($event)"
+														(blur)="canvasEditing.onSlideNotes($event)"
 														>{{ sl.notes || '' }}</textarea
 													>
 												</label>
@@ -572,12 +563,12 @@ import { ZoomTargetService } from './zoom-target.service';
 				/>
 			}
 
-			@if (canEdit() && contextMenuPos(); as m) {
+			@if (canEdit() && canvasEditing.contextMenuPos(); as m) {
 				<pptx-editor-context-menu
 					[x]="m.x"
 					[y]="m.y"
 					[slideIndex]="activeSlideIndex()"
-					(closed)="contextMenuPos.set(null)"
+					(closed)="canvasEditing.contextMenuPos.set(null)"
 				/>
 			}
 
@@ -737,7 +728,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						>
 							<div class="pptx-ng-mnotes-handle"></div>
 						</div>
-						<pptx-notes-panel [slide]="activeSlide()" (update)="onNotesUpdate($event)" />
+						<pptx-notes-panel [slide]="activeSlide()" (update)="canvasEditing.onNotesUpdate($event)" />
 					</div>
 				}
 
@@ -850,6 +841,7 @@ export class PowerPointViewerComponent {
 	protected readonly inspectorPanel = inject(ViewerInspectorPanelService);
 	protected readonly fileIO = inject(ViewerFileIOService);
 	protected readonly themeGallery = inject(ViewerThemeGalleryService);
+	protected readonly canvasEditing = inject(ViewerCanvasEditingService);
 
 	/** Handle on the secondary-dialog host (keep-annotations prompt). */
 	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
@@ -955,10 +947,6 @@ export class PowerPointViewerComponent {
 		...(this.loader.coreProperties() ?? {}),
 		...this.coreOverride(),
 	}));
-	/** Open editor context-menu position (client coords), or null. */
-	protected readonly contextMenuPos = signal<{ x: number; y: number } | null>(null);
-	/** Id of the element being inline text-edited, or null. */
-	protected readonly editingId = signal<string | null>(null);
 	/** Whether the dot-grid overlay is visible on the editor canvas. */
 	protected readonly showGrid = signal(false);
 	/** Whether ruler strips are visible on the editor canvas. */
@@ -1176,7 +1164,7 @@ export class PowerPointViewerComponent {
 			selectedElement: () => this.selectedElement(),
 			goPrev: () => this.goPrev(),
 			goNext: () => this.goNext(),
-			setContextMenuPos: (pos) => this.contextMenuPos.set(pos),
+			setContextMenuPos: (pos) => this.canvasEditing.contextMenuPos.set(pos),
 		});
 
 		// Hand the presentation-mode controller the few accessors it alone needs
@@ -1187,7 +1175,7 @@ export class PowerPointViewerComponent {
 			slideCount: () => this.slideCount(),
 			activeSlideIndex: () => this.activeSlideIndex(),
 			setActiveSlideIndex: (index) => this.activeSlideIndex.set(index),
-			clearEditing: () => this.editingId.set(null),
+			clearEditing: () => this.canvasEditing.editingId.set(null),
 			clearSelection: () => this.editor.clearSelection(),
 			sourceContent: () => this.fileIO.activeContent(),
 			canEdit: () => this.canEdit(),
@@ -1220,6 +1208,14 @@ export class PowerPointViewerComponent {
 			slides: () => this.editor.slides(),
 			templateElementsBySlideId: () => this.editor.templateElementsBySlideId(),
 			emitContentChange: (bytes) => this.contentChange.emit(bytes),
+		});
+
+		// Hand the canvas-editing controller the accessors it alone needs from the
+		// component (canEdit / active-slide / active-slide-index).
+		this.canvasEditing.bind({
+			canEdit: () => this.canEdit(),
+			activeSlide: () => this.activeSlide(),
+			activeSlideIndex: () => this.activeSlideIndex(),
 		});
 	}
 
@@ -1276,37 +1272,6 @@ export class PowerPointViewerComponent {
 		this.compareSvc.startCompare();
 	}
 
-	/**
-	 * Double-click text edit entry: equations open the equation editor instead
-	 * of the inline text editor (mirrors React's dbl-click-to-edit-equation).
-	 */
-	protected onTextEditStart(id: string): void {
-		const element = this.activeSlide()?.elements.find((el) => el.id === id);
-		const segments = element && 'textSegments' in element ? element.textSegments : undefined;
-		const equation = segments?.find((segment) => segment.equationXml);
-		if (this.canEdit() && equation?.equationXml) {
-			this.dialogs.openEquationEdit(id, equation.equationXml);
-			return;
-		}
-		this.editingId.set(id);
-	}
-
-	/** Apply a Ctrl/Cmd+B/I/U toggle from the inline editor (undoable). */
-	protected onTextFormat(event: { id: string; updates: Partial<TextStyle> }): void {
-		if (!this.canEdit()) {
-			return;
-		}
-		const element = this.activeSlide()?.elements.find((el) => el.id === event.id);
-		if (!element) {
-			return;
-		}
-		this.editor.updateElement(
-			this.activeSlideIndex(),
-			event.id,
-			textStylePatch(element, event.updates),
-		);
-	}
-
 	/** Swap the deck for a restored version-history snapshot. */
 	protected onRestoreVersion(bytes: Uint8Array): void {
 		this.fileIO.contentOverride.set(bytes);
@@ -1331,23 +1296,6 @@ export class PowerPointViewerComponent {
 		this.activeDrawTool.set(state.tool as 'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform');
 		this.activeDrawColor.set(state.color);
 		this.activeDrawWidth.set(state.width);
-	}
-
-	/** Receive a completed ink stroke and append it to the active slide. */
-	protected onInkStrokeComplete(ink: InkPptxElement): void {
-		if (!this.canEdit()) {
-			return;
-		}
-		this.editor.addElement(this.activeSlideIndex(), ink);
-	}
-
-	/** Receive an eraser hit and delete the targeted ink element. */
-	protected onEraserHit(id: string): void {
-		if (!this.canEdit()) {
-			return;
-		}
-		this.editor.select([id]);
-		this.editor.deleteSelected(this.activeSlideIndex());
 	}
 
 	/** Append a comment to the active slide (one history entry). */
@@ -1398,81 +1346,6 @@ export class PowerPointViewerComponent {
 		this.showHyperlink.set(false);
 	}
 
-	/**
-	 * Handle an element press from the canvas. Additive (Shift/Ctrl) toggles
-	 * membership; a plain press selects the element (keeping it selected if it
-	 * already was, so a subsequent drag works).
-	 */
-	onElementSelect(event: { id: string; additive: boolean }): void {
-		// The armed format painter intercepts the next element click: apply the
-		// copied format to the target, then disarm (no selection change).
-		if (this.formatPainter.active()) {
-			this.formatPainter.applyToTarget(event.id);
-			this.formatPainter.cancel();
-			return;
-		}
-		if (event.additive) {
-			this.editor.toggleSelect(event.id, true);
-		} else if (!this.editor.isSelected(event.id)) {
-			this.editor.select([event.id]);
-		}
-	}
-
-	/** Empty-stage press: disarm the painter if armed, else clear the selection. */
-	onBackgroundClick(): void {
-		if (this.formatPainter.active()) {
-			this.formatPainter.cancel();
-			return;
-		}
-		this.editor.clearSelection();
-	}
-
-	/** Right-click: select the element under the cursor and open the menu. */
-	onContextMenu(event: { id: string | null; x: number; y: number }): void {
-		if (event.id && !this.editor.isSelected(event.id)) {
-			this.editor.select([event.id]);
-		}
-		this.contextMenuPos.set({ x: event.x, y: event.y });
-	}
-
-	/** Update the active slide's background colour. */
-	onSlideBackground(event: Event): void {
-		this.editor.updateSlide(this.activeSlideIndex(), {
-			backgroundColor: (event.target as HTMLInputElement).value,
-		});
-	}
-
-	/** Update the active slide's speaker notes. */
-	onSlideNotes(event: Event): void {
-		this.editor.updateSlide(this.activeSlideIndex(), {
-			notes: (event.target as HTMLTextAreaElement).value,
-		});
-	}
-
-	/** Update the active slide's speaker notes from the editable NotesPanel. */
-	onNotesUpdate(notes: string): void {
-		this.editor.updateSlide(this.activeSlideIndex(), { notes });
-	}
-
-	// ── Selection pane handlers ────────────────────────────────────────────────
-
-	onSelectionPaneBringForward(id: string): void {
-		this.editor.select([id]);
-		this.editor.bringSelectedForward(this.activeSlideIndex());
-	}
-
-	onSelectionPaneSendBackward(id: string): void {
-		this.editor.select([id]);
-		this.editor.sendSelectedBackward(this.activeSlideIndex());
-	}
-
-	onToggleElementHidden(id: string): void {
-		const el = this.activeSlide()?.elements.find((e) => e.id === id);
-		if (el) {
-			this.editor.updateElement(this.activeSlideIndex(), id, { hidden: !el.hidden });
-		}
-	}
-
 	// ── Insert SmartArt ────────────────────────────────────────────────────────
 
 	/**
@@ -1484,52 +1357,6 @@ export class PowerPointViewerComponent {
 		const element = buildSmartArtInsertElement(event.layout, event.items);
 		this.editor.addElement(this.activeSlideIndex(), element);
 		this.showSmartArtInsert.set(false);
-	}
-
-	/** Commit an inline text edit: replace the element's text (one history entry). */
-	onTextCommit(event: { id: string; text: string }): void {
-		this.editor.updateElement(this.activeSlideIndex(), event.id, {
-			text: event.text,
-			textSegments: [],
-		});
-		this.editingId.set(null);
-	}
-
-	/**
-	 * Commit a table cell's inline text edit. Finds the table element on the
-	 * active slide, rebuilds its `tableData` with the new cell text, and patches
-	 * it through the editor (which records undo history).
-	 */
-	protected onTableCellCommit(event: { id: string; commit: TableCellCommit }): void {
-		if (!this.canEdit()) {
-			return;
-		}
-		const el = this.activeSlide()?.elements.find((e) => e.id === event.id);
-		if (!el || el.type !== 'table') {
-			return;
-		}
-		const updated = setCellText(
-			el,
-			event.commit.rowIndex,
-			event.commit.colIndex,
-			event.commit.text,
-		);
-		this.editor.updateElement(this.activeSlideIndex(), event.id, {
-			tableData: updated.tableData,
-		});
-	}
-
-	/**
-	 * Persist a structural table change originating on the canvas (column / row
-	 * drag-resize) as one undoable history entry.
-	 */
-	protected onTableChange(event: { id: string; tableData: PptxTableData }): void {
-		if (!this.canEdit()) {
-			return;
-		}
-		this.editor.updateElement(this.activeSlideIndex(), event.id, {
-			tableData: event.tableData,
-		});
 	}
 
 	/**
