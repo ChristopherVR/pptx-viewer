@@ -67,22 +67,11 @@ export interface UseCollaborationResult {
 	followUser: (clientId: number | null) => void;
 }
 
-// Internal structural types for the lazily-imported Yjs provider surface.
+// Internal structural type for the lazily-imported Yjs awareness surface.
 export interface AwarenessLike {
 	clientID?: number;
 	setLocalStateField: (field: string, value: unknown) => void;
 	getStates: () => Map<number, Record<string, unknown>>;
 	on: (event: string, cb: () => void) => void;
 	off?: (event: string, cb: () => void) => void;
-}
-
-export interface AwarenessUser {
-	name?: string;
-	color?: string;
-	role?: string;
-}
-
-export interface AwarenessCursor {
-	x: number;
-	y: number;
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CollaborationConfig } from 'pptx-viewer-shared';
+import { resolveTransportForServerUrl } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -54,21 +55,22 @@ watch(
 	{ immediate: true },
 );
 
-const canStart = computed(
-	() =>
-		roomId.value.trim().length > 0 &&
-		userName.value.trim().length > 0 &&
-		serverUrl.value.trim().length > 0,
-);
+// A blank server URL is valid: it selects serverless peer-to-peer (webrtc).
+const canStart = computed(() => roomId.value.trim().length > 0 && userName.value.trim().length > 0);
+
+// True when the current server field selects serverless peer-to-peer mode.
+const isPeerToPeer = computed(() => resolveTransportForServerUrl(serverUrl.value) === 'webrtc');
 
 function handleStart(): void {
 	if (!canStart.value) {
 		return;
 	}
+	const trimmedServer = serverUrl.value.trim();
 	emit('start', {
 		roomId: roomId.value.trim(),
 		userName: userName.value.trim(),
-		serverUrl: serverUrl.value.trim(),
+		serverUrl: trimmedServer,
+		transport: resolveTransportForServerUrl(trimmedServer),
 	});
 }
 
@@ -86,6 +88,9 @@ function handleStop(): void {
 		<div v-if="active" class="pptx-vue-share-active flex flex-col gap-4">
 			<p class="pptx-vue-share-desc text-[13px] leading-relaxed text-muted-foreground">
 				{{ t('pptx.share.activeDescription') }}
+			</p>
+			<p v-if="isPeerToPeer" class="pptx-vue-share-server-value text-[12px] text-muted-foreground">
+				{{ t('pptx.share.p2pServerValue') }}
 			</p>
 			<button
 				type="button"
@@ -147,6 +152,9 @@ function handleStop(): void {
 					class="pptx-vue-share-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 					:placeholder="t('pptx.share.serverPlaceholder')"
 				/>
+				<p v-if="isPeerToPeer" class="pptx-vue-share-p2p-hint text-[11px] text-muted-foreground">
+					{{ t('pptx.share.p2pHint') }}
+				</p>
 			</div>
 		</div>
 

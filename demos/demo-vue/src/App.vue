@@ -107,8 +107,15 @@ onBeforeUnmount(() => {
 const params = new URLSearchParams(window.location.search);
 const urlRoom = ref(params.get('room'));
 const urlBroadcast = ref(params.get('broadcast'));
-const urlServer = params.get('server') ?? resolveDefaultServerUrl();
 const urlName = params.get('name');
+// Serverless peer-to-peer joins carry `?transport=webrtc` (and optional
+// `?signaling=a,b`); they need no `?server=` and no file server round-trip.
+const urlTransport = params.get('transport');
+const urlSignaling = params.get('signaling')?.split(',').filter(Boolean) ?? [];
+const isWebrtcJoin = urlTransport === 'webrtc';
+// For a webrtc join the server URL is intentionally blank (P2P); otherwise fall
+// back to the configured relay / localhost default.
+const urlServer = isWebrtcJoin ? '' : (params.get('server') ?? resolveDefaultServerUrl());
 // Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`.
 const smartArt3D = params.get('smartArt3D') === '1';
 
@@ -120,33 +127,43 @@ const defaultServerUrl = resolveDefaultServerUrl();
 // ── Collaboration state ────────────────────────────────────────────────────
 const collaborationConfig = shallowRef<CollaborationConfig | null>(null);
 
-// Auto-connect if room is in URL (collaboration mode), only if server trusted.
+// A webrtc join is serverless, so it bypasses the trusted-host allowlist (there
+// is no server to trust); a websocket join still requires a trusted server.
+const joinAllowed = isWebrtcJoin || isTrustedServerUrl(urlServer);
+
+// Auto-connect if room is in URL (collaboration mode).
 watchEffect(() => {
-	if (urlRoom.value && !collaborationConfig.value && isTrustedServerUrl(urlServer)) {
+	if (urlRoom.value && !collaborationConfig.value && joinAllowed) {
 		collaborationConfig.value = {
 			roomId: urlRoom.value,
 			serverUrl: urlServer,
 			userName: urlName ?? autoName,
 			userColor: randomUserColor(),
+			...(isWebrtcJoin
+				? { transport: 'webrtc', signaling: urlSignaling.length ? urlSignaling : undefined }
+				: {}),
 		};
-	} else if (urlRoom.value && !isTrustedServerUrl(urlServer)) {
+	} else if (urlRoom.value && !joinAllowed) {
 		console.warn(
 			`Ignoring ?room= auto-connect because ?server=${urlServer} is not in the trusted-host allowlist. Use the Share dialog to connect explicitly.`,
 		);
 	}
 });
 
-// Auto-connect if broadcast is in URL (viewer mode), only if server trusted.
+// Auto-connect if broadcast is in URL (viewer mode).
 watchEffect(() => {
-	if (urlBroadcast.value && !collaborationConfig.value && isTrustedServerUrl(urlServer)) {
+	if (urlBroadcast.value && !collaborationConfig.value && joinAllowed) {
 		collaborationConfig.value = {
 			roomId: urlBroadcast.value,
 			serverUrl: urlServer,
 			userName: urlName ?? autoName,
 			userColor: randomUserColor(),
 			role: 'viewer',
+			...(isWebrtcJoin
+				? { transport: 'webrtc', signaling: urlSignaling.length ? urlSignaling : undefined }
+				: {}),
 		};
-	} else if (urlBroadcast.value && !isTrustedServerUrl(urlServer)) {
+	} else if (urlBroadcast.value && !joinAllowed) {
 		console.warn(
 			`Ignoring ?broadcast= auto-connect because ?server=${urlServer} is not in the trusted-host allowlist.`,
 		);
@@ -155,6 +172,7 @@ watchEffect(() => {
 
 function handleStartCollaboration(config: CollaborationConfig): void {
 	collaborationConfig.value = config;
+	const webrtc = config.transport === 'webrtc';
 	// Update URL with room/broadcast info for sharing.
 	const url = new URL(window.location.href);
 	// The viewer's broadcast session is the session owner (role 'owner'); a
@@ -164,13 +182,26 @@ function handleStartCollaboration(config: CollaborationConfig): void {
 	} else {
 		url.searchParams.set('room', config.roomId);
 	}
-	url.searchParams.set('server', config.serverUrl);
+	// A serverless webrtc session shares `transport=webrtc` (no server URL);
+	// a websocket session shares its server so joiners fetch the file from it.
+	if (webrtc) {
+		url.searchParams.set('transport', 'webrtc');
+		url.searchParams.delete('server');
+		if (config.signaling?.length) {
+			url.searchParams.set('signaling', config.signaling.join(','));
+		}
+	} else {
+		url.searchParams.set('server', config.serverUrl);
+		url.searchParams.delete('transport');
+		url.searchParams.delete('signaling');
+	}
 	window.history.replaceState({}, '', url.toString());
 	// Upload PPTX content to the collab server so joiners can download it.
 	// Restricted to trusted hosts to prevent crafted ?server= URLs from
-	// exfiltrating user content.
+	// exfiltrating user content. Serverless webrtc has no file server: joiners
+	// receive the deck through Y.Doc late-joiner sync instead.
 	const bytes = content.value;
-	if (bytes && isTrustedServerUrl(config.serverUrl)) {
+	if (!webrtc && bytes && isTrustedServerUrl(config.serverUrl)) {
 		const httpUrl = config.serverUrl.replace(/^ws/u, 'http');
 		void fetch(`${httpUrl}/file/${encodeURIComponent(config.roomId)}`, {
 			method: 'POST',
@@ -189,6 +220,8 @@ function handleStopCollaboration(): void {
 	url.searchParams.delete('room');
 	url.searchParams.delete('broadcast');
 	url.searchParams.delete('server');
+	url.searchParams.delete('transport');
+	url.searchParams.delete('signaling');
 	url.searchParams.delete('name');
 	window.history.replaceState({}, '', url.toString());
 }
@@ -199,6 +232,11 @@ const joinRoomId = computed(() => urlRoom.value ?? urlBroadcast.value);
 watchEffect((onCleanup) => {
 	const roomId = joinRoomId.value;
 	if (!roomId || content.value) {
+		return;
+	}
+	// Serverless webrtc joins have no file server: the deck arrives via Y.Doc
+	// late-joiner sync, so skip the HTTP fetch entirely.
+	if (isWebrtcJoin) {
 		return;
 	}
 	if (!isTrustedServerUrl(urlServer)) {
@@ -251,6 +289,29 @@ watchEffect((onCleanup) => {
 	onCleanup(() => {
 		cancelled = true;
 		clearTimeout(timer);
+	});
+});
+
+// Serverless webrtc joins have no file server and no IndexedDB seed: bootstrap
+// a blank deck so the viewer mounts and starts collaborating. The owner's real
+// slides then arrive through Y.Doc late-joiner sync and replace the blank deck.
+watchEffect((onCleanup) => {
+	if (!isWebrtcJoin || !joinRoomId.value || content.value) {
+		return;
+	}
+	let cancelled = false;
+	void PptxHandler.createBlank({ title: 'Collaboration Session', initialSlideCount: 1 })
+		.then(({ handler, data }) => handler.save(data.slides))
+		.then((bytes) => {
+			if (cancelled || content.value) {
+				return undefined;
+			}
+			content.value = bytes;
+			fileName.value = 'Collaboration Session';
+			return undefined;
+		});
+	onCleanup(() => {
+		cancelled = true;
 	});
 });
 

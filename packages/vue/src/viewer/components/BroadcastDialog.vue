@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { DEFAULT_BROADCAST_SERVER_URL, generateBroadcastRoomId } from 'pptx-viewer-shared';
+import {
+	DEFAULT_BROADCAST_SERVER_URL,
+	generateBroadcastRoomId,
+	resolveTransportForServerUrl,
+} from 'pptx-viewer-shared';
+import type { CollaborationTransport } from 'pptx-viewer-shared';
 /**
  * BroadcastDialog: start / stop a one-way live broadcast for the Vue viewer.
  *
@@ -36,6 +41,7 @@ interface BroadcastDefaults {
 interface BroadcastConfig {
 	roomId: string;
 	serverUrl: string;
+	transport?: CollaborationTransport;
 }
 
 const props = defineProps<{
@@ -70,9 +76,11 @@ watch(
 	{ immediate: true },
 );
 
-const canStart = computed(
-	() => roomId.value.trim().length > 0 && serverUrl.value.trim().length > 0,
-);
+// A blank server URL is valid: it selects serverless peer-to-peer (webrtc).
+const canStart = computed(() => roomId.value.trim().length > 0);
+
+// True when the current server field selects serverless peer-to-peer mode.
+const isPeerToPeer = computed(() => resolveTransportForServerUrl(serverUrl.value) === 'webrtc');
 
 const title = computed(() =>
 	props.active ? t('pptx.broadcast.titleBroadcasting') : t('pptx.broadcast.titleStart'),
@@ -86,7 +94,12 @@ function onStart(): void {
 	if (!canStart.value) {
 		return;
 	}
-	emit('start', { roomId: roomId.value.trim(), serverUrl: serverUrl.value.trim() });
+	const trimmedServer = serverUrl.value.trim();
+	emit('start', {
+		roomId: roomId.value.trim(),
+		serverUrl: trimmedServer,
+		transport: resolveTransportForServerUrl(trimmedServer),
+	});
 }
 
 function onStop(): void {
@@ -150,6 +163,12 @@ function onCopyLink(): void {
 				<p class="pptx-vue-broadcast-hint text-[11px] text-muted-foreground">
 					{{ t('pptx.broadcast.viewerFollowHint') }}
 				</p>
+				<p
+					v-if="isPeerToPeer"
+					class="pptx-vue-broadcast-server-value text-[11px] text-muted-foreground"
+				>
+					{{ t('pptx.broadcast.p2pServerValue') }}
+				</p>
 			</div>
 
 			<button
@@ -197,6 +216,12 @@ function onCopyLink(): void {
 					type="text"
 					placeholder="ws://localhost:1234"
 				/>
+				<p
+					v-if="isPeerToPeer"
+					class="pptx-vue-broadcast-p2p-hint text-[11px] text-muted-foreground"
+				>
+					{{ t('pptx.broadcast.p2pHint') }}
+				</p>
 			</div>
 		</div>
 

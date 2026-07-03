@@ -4,17 +4,15 @@ import { describe, expect, it } from 'vitest';
 
 import ShareDialog from './ShareDialog.vue';
 
+const mountOptions = { global: { stubs: { teleport: true } } } as const;
+
 describe('shareDialog', () => {
 	it('prefills the fields from the defaults prop', () => {
 		const wrapper = mount(ShareDialog, {
-			global: { stubs: { teleport: true } },
+			...mountOptions,
 			props: {
 				open: true,
-				defaults: {
-					roomId: 'team-room',
-					userName: 'Ada',
-					serverUrl: 'wss://collab.example.com',
-				},
+				defaults: { roomId: 'team-room', userName: 'Ada', serverUrl: 'wss://collab.example.com' },
 			},
 		});
 
@@ -26,65 +24,75 @@ describe('shareDialog', () => {
 		expect(server.value).toBe('wss://collab.example.com');
 	});
 
-	it('emits start with a CollaborationConfig built from the fields', async () => {
+	it('emits start with a CollaborationConfig incl. the websocket transport', async () => {
 		const wrapper = mount(ShareDialog, {
-			global: { stubs: { teleport: true } },
-			props: {
-				open: true,
-				defaults: { serverUrl: 'wss://collab.example.com' },
-			},
+			...mountOptions,
+			props: { open: true, defaults: { serverUrl: 'wss://collab.example.com' } },
 		});
 
 		await wrapper.get('#pptx-vue-share-room').setValue('  edited-room  ');
 		await wrapper.get('#pptx-vue-share-name').setValue('Grace');
-
-		const startButton = wrapper.findAll('button').find((b) => b.text() === 'Start sharing');
-		expect(startButton).toBeDefined();
-		await startButton!.trigger('click');
+		await wrapper.get('.pptx-vue-share-btn-primary').trigger('click');
 
 		const events = wrapper.emitted('start');
 		expect(events).toHaveLength(1);
 		const config = events![0][0] as CollaborationConfig;
+		// A non-empty server URL selects the y-websocket transport.
 		expect(config).toStrictEqual({
 			roomId: 'edited-room',
 			userName: 'Grace',
 			serverUrl: 'wss://collab.example.com',
+			transport: 'websocket',
 		});
 	});
 
-	it('does not emit start when required fields are blank', async () => {
+	it('emits the webrtc transport when the server url is blank (P2P)', async () => {
+		const wrapper = mount(ShareDialog, { ...mountOptions, props: { open: true } });
+
+		await wrapper.get('#pptx-vue-share-room').setValue('p2p-room');
+		await wrapper.get('#pptx-vue-share-name').setValue('Grace');
+		// The server field is left blank, which selects serverless peer-to-peer.
+		expect(wrapper.find('.pptx-vue-share-p2p-hint').exists()).toBeTruthy();
+		await wrapper.get('.pptx-vue-share-btn-primary').trigger('click');
+
+		expect(wrapper.emitted('start')?.[0][0]).toStrictEqual({
+			roomId: 'p2p-room',
+			userName: 'Grace',
+			serverUrl: '',
+			transport: 'webrtc',
+		});
+	});
+
+	it('does not emit start when the room or name is blank', async () => {
 		const wrapper = mount(ShareDialog, {
-			global: { stubs: { teleport: true } },
+			...mountOptions,
+			// Room supplied but no display name: start stays disabled.
 			props: { open: true, defaults: { roomId: 'room' } },
 		});
 
-		const startButton = wrapper.findAll('button').find((b) => b.text() === 'Start sharing');
-		await startButton!.trigger('click');
-
+		await wrapper.get('.pptx-vue-share-btn-primary').trigger('click');
 		expect(wrapper.emitted('start')).toBeUndefined();
 	});
 
-	it('shows a stop button and emits stop when active', async () => {
-		const wrapper = mount(ShareDialog, {
-			global: { stubs: { teleport: true } },
-			props: { open: true, active: true },
-		});
+	it('shows a stop button (and the P2P server value) and emits stop when active', async () => {
+		const wrapper = mount(ShareDialog, { ...mountOptions, props: { open: true, active: true } });
 
-		const stopButton = wrapper.findAll('button').find((b) => b.text() === 'Stop sharing');
-		expect(stopButton).toBeDefined();
-		expect(wrapper.findAll('button').some((b) => b.text() === 'Start sharing')).toBeFalsy();
+		// No server configured -> the active view labels the session as P2P.
+		expect(wrapper.find('.pptx-vue-share-server-value').exists()).toBeTruthy();
+		const stopButton = wrapper.get('.pptx-vue-share-stop');
+		expect(wrapper.find('.pptx-vue-share-btn-primary').exists()).toBeFalsy();
 
-		await stopButton!.trigger('click');
+		await stopButton.trigger('click');
 		expect(wrapper.emitted('stop')).toHaveLength(1);
 	});
 
 	it('emits close from the cancel button', async () => {
-		const wrapper = mount(ShareDialog, {
-			global: { stubs: { teleport: true } },
-			props: { open: true },
-		});
-		const cancel = wrapper.findAll('button').find((b) => b.text() === 'Cancel');
-		await cancel!.trigger('click');
+		const wrapper = mount(ShareDialog, { ...mountOptions, props: { open: true } });
+
+		const cancel = wrapper
+			.findAll('.pptx-vue-share-btn')
+			.find((b) => !b.classes().includes('pptx-vue-share-btn-primary'));
+		await cancel?.trigger('click');
 		expect(wrapper.emitted('close')).toHaveLength(1);
 	});
 });

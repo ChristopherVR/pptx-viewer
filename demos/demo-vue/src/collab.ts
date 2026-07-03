@@ -8,13 +8,30 @@
  */
 const TRUSTED_COLLAB_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
 
+/**
+ * A build-time `VITE_COLLAB_SERVER_URL` names the relay this deploy trusts, so
+ * its host joins the allowlist: auto-connect / auto-upload to it is safe even
+ * though it is not a loopback host.
+ */
+function configuredServerHost(): string | null {
+	if (!CONFIGURED_SERVER_URL) {
+		return null;
+	}
+	try {
+		return new URL(CONFIGURED_SERVER_URL).hostname;
+	} catch {
+		return null;
+	}
+}
+
 export function isTrustedServerUrl(url: string): boolean {
 	try {
 		const u = new URL(url);
 		if (u.protocol !== 'ws:' && u.protocol !== 'wss:') {
 			return false;
 		}
-		return TRUSTED_COLLAB_HOSTS.includes(u.hostname);
+		const configured = configuredServerHost();
+		return TRUSTED_COLLAB_HOSTS.includes(u.hostname) || u.hostname === configured;
 	} catch {
 		return false;
 	}

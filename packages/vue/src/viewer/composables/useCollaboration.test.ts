@@ -5,22 +5,25 @@ import { effectScope, ref } from 'vue';
 
 import { useCollaboration } from './useCollaboration';
 
-// ── Mock Yjs + y-websocket with the minimum surface the composable uses ──────
+// ── Mock Yjs + y-websocket + y-webrtc with the minimum surface used ──────────
 const { state } = vi.hoisted(() => ({
 	state: {
 		slidesArray: null as {
 			length: number;
 			push: (items: unknown[]) => void;
 			delete: (i: number, n: number) => void;
+			insert: (i: number, items: unknown[]) => void;
 			get: (i: number) => unknown;
 			toArray: () => unknown[];
 			observeDeep: (cb: () => void) => void;
 			unobserveDeep: (cb: () => void) => void;
 		} | null,
-		slidesObserverCb: null as null | (() => void),
+		slidesObserverCb: null as null | ((events?: unknown, tx?: { origin?: unknown }) => void),
 		awarenessStates: new Map<number, Record<string, unknown>>(),
 		awarenessChange: null as null | (() => void),
 		statusCb: null as null | ((p: { status?: string }) => void),
+		webrtcCreated: 0,
+		lastTransactionOrigin: undefined as unknown,
 	},
 }));
 
@@ -32,6 +35,9 @@ vi.mock(import('yjs'), () => {
 		}
 		get(k: string) {
 			return this._data.get(k);
+		}
+		delete(k: string) {
+			this._data.delete(k);
 		}
 		forEach(cb: (v: unknown, k: string) => void) {
 			this._data.forEach((v, k) => cb(v, k));
@@ -93,7 +99,8 @@ vi.mock(import('yjs'), () => {
 				}
 				return this._arrays.get(name)!;
 			}
-			transact(fn: () => void) {
+			transact(fn: () => void, origin?: unknown) {
+				state.lastTransactionOrigin = origin;
 				fn();
 			}
 			destroy() {}
@@ -104,24 +111,39 @@ vi.mock(import('yjs'), () => {
 	};
 });
 
+const awarenessSurface = {
+	clientID: 1,
+	setLocalStateField: (field: string, value: unknown) => {
+		const self = state.awarenessStates.get(1) ?? {};
+		self[field] = value;
+		state.awarenessStates.set(1, self);
+	},
+	getStates: () => state.awarenessStates,
+	on: (_e: string, cb: () => void) => {
+		state.awarenessChange = cb;
+	},
+	off: () => {},
+};
+
 vi.mock(import('y-websocket'), () => ({
 	WebsocketProvider: class {
-		awareness = {
-			clientID: 1,
-			setLocalStateField: (field: string, value: unknown) => {
-				const self = state.awarenessStates.get(1) ?? {};
-				self[field] = value;
-				state.awarenessStates.set(1, self);
-			},
-			getStates: () => state.awarenessStates,
-			on: (_e: string, cb: () => void) => {
-				state.awarenessChange = cb;
-			},
-			off: () => {},
-		};
+		awareness = awarenessSurface;
+		wsconnected = false;
 		on(_e: string, cb: (p: { status?: string }) => void) {
 			state.statusCb = cb;
 		}
+		disconnect() {}
+		destroy() {}
+	},
+}));
+
+vi.mock(import('y-webrtc'), () => ({
+	WebrtcProvider: class {
+		awareness = awarenessSurface;
+		constructor() {
+			state.webrtcCreated += 1;
+		}
+		on(_e: string, _cb: (p: { connected?: boolean }) => void) {}
 		disconnect() {}
 		destroy() {}
 	},
@@ -131,6 +153,25 @@ function slide(id: string): PptxSlide {
 	return { id, elements: [] } as unknown as PptxSlide;
 }
 const config = { roomId: 'r', serverUrl: 'wss://x', userName: 'Ada' };
+
+/**
+ * Publish a remote peer's presence in the shared cross-framework wire format:
+ * a single nested `presence` awareness field (not the old flat top-level
+ * fields), so React / Vue / Angular peers all interoperate.
+ */
+function remotePresence(clientId: number, over: Record<string, unknown>): void {
+	state.awarenessStates.set(clientId, {
+		presence: {
+			userName: 'Peer',
+			userColor: '#00ff00',
+			activeSlideIndex: 0,
+			cursorX: 0,
+			cursorY: 0,
+			lastUpdated: new Date().toISOString(),
+			...over,
+		},
+	});
+}
 
 describe('useCollaboration', () => {
 	it('connects, reflects status, and maps remote cursors', async () => {
@@ -147,11 +188,8 @@ describe('useCollaboration', () => {
 		state.statusCb?.({ status: 'connected' });
 		expect(collab.connected.value).toBeTruthy();
 
-		// A remote peer appears with a cursor.
-		state.awarenessStates.set(2, {
-			user: { name: 'Bob', color: '#ff0000' },
-			cursor: { x: 10, y: 20 },
-		});
+		// A remote peer appears with a cursor on the same slide (index 0).
+		remotePresence(2, { userName: 'Bob', userColor: '#ff0000', cursorX: 10, cursorY: 20 });
 		state.awarenessChange?.();
 		expect(collab.cursors.value).toHaveLength(1);
 		expect(collab.cursors.value[0]).toMatchObject({ userName: 'Bob', x: 10, y: 20 });
@@ -159,7 +197,7 @@ describe('useCollaboration', () => {
 		scope.stop();
 	});
 
-	it('publishes selection + active slide and surfaces remote presence', async () => {
+	it('publishes a single nested presence field in the shared wire format', async () => {
 		state.slidesArray = null;
 		state.awarenessStates.clear();
 		const slides = ref<PptxSlide[]>([slide('1')]);
@@ -168,20 +206,40 @@ describe('useCollaboration', () => {
 		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides }))!;
 		await collab.start(config);
 
-		// Local publishers write into the self awareness state.
+		// Local publishers accumulate into the nested `presence` field. Selection
+		// and active-slide land within one throttle window; wait it out.
 		collab.setSelection(['el-1', 'el-2']);
 		collab.setActiveSlide(3);
-		expect(state.awarenessStates.get(1)).toMatchObject({
-			selection: ['el-1', 'el-2'],
-			activeSlide: 3,
+		await new Promise((r) => {
+			setTimeout(r, 70);
 		});
 
-		// A remote peer publishes selection + active slide (no cursor yet).
-		state.awarenessStates.set(2, {
-			user: { name: 'Bob', color: '#00ff00' },
-			selection: ['el-9'],
-			activeSlide: 2,
+		const self = state.awarenessStates.get(1);
+		expect(self).toBeDefined();
+		// No flat top-level fields (those are invisible to React/Angular peers).
+		expect(self).not.toHaveProperty('selection');
+		expect(self).not.toHaveProperty('activeSlide');
+		expect(self).not.toHaveProperty('cursor');
+		expect(self?.presence).toMatchObject({
+			userName: 'Ada',
+			selectedElementId: 'el-1',
+			activeSlideIndex: 3,
 		});
+
+		scope.stop();
+	});
+
+	it('surfaces remote presence + selection from the nested schema', async () => {
+		state.slidesArray = null;
+		state.awarenessStates.clear();
+		const slides = ref<PptxSlide[]>([slide('1')]);
+		const onRemoteSlides = vi.fn();
+		const scope = effectScope();
+		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides }))!;
+		await collab.start(config);
+
+		// A remote peer publishes selection + active slide (no cursor movement).
+		remotePresence(2, { userName: 'Bob', selectedElementId: 'el-9', activeSlideIndex: 2 });
 		state.awarenessChange?.();
 
 		expect(collab.remotePresences.value).toHaveLength(1);
@@ -190,9 +248,8 @@ describe('useCollaboration', () => {
 			userName: 'Bob',
 			selectionIds: ['el-9'],
 			activeSlide: 2,
-			cursor: undefined,
 		});
-		// Peers without a cursor are absent from the cursor projection.
+		// The peer is on slide 2 while we view slide 0, so its cursor is hidden.
 		expect(collab.cursors.value).toHaveLength(0);
 
 		scope.stop();
@@ -207,10 +264,7 @@ describe('useCollaboration', () => {
 		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides }))!;
 		await collab.start(config);
 
-		state.awarenessStates.set(2, {
-			user: { name: 'Bob', color: '#00ff00' },
-			activeSlide: 4,
-		});
+		remotePresence(2, { userName: 'Bob', activeSlideIndex: 4 });
 		state.awarenessChange?.();
 
 		// Not following yet -> null.
@@ -221,10 +275,7 @@ describe('useCollaboration', () => {
 		expect(collab.followedSlideIndex.value).toBe(4);
 
 		// The followed peer navigates; followedSlideIndex tracks it.
-		state.awarenessStates.set(2, {
-			user: { name: 'Bob', color: '#00ff00' },
-			activeSlide: 7,
-		});
+		remotePresence(2, { userName: 'Bob', activeSlideIndex: 7 });
 		state.awarenessChange?.();
 		expect(collab.followedSlideIndex.value).toBe(7);
 
@@ -241,9 +292,10 @@ describe('useCollaboration', () => {
 		scope.stop();
 	});
 
-	it('broadcasts local slide changes via pptx:slides Y.Array', async () => {
+	it('reconciles local slide changes into pptx:slides tagged with the local origin', async () => {
 		state.slidesArray = null;
 		state.awarenessStates.clear();
+		state.lastTransactionOrigin = undefined;
 		const slides = ref<PptxSlide[]>([slide('1')]);
 		const onRemoteSlides = vi.fn();
 		const scope = effectScope();
@@ -253,15 +305,18 @@ describe('useCollaboration', () => {
 		// Trigger local slide change.
 		slides.value = [slide('1'), slide('2')];
 		await Promise.resolve();
-		// writeSlidesToYDoc should have pushed slide maps into the Y.Array.
+		await Promise.resolve();
+		// reconcileSlidesInYDoc should have seeded the Y.Array in a transaction
+		// tagged with the local-sync origin so peers can skip the echo.
 		expect(state.slidesArray?.length).toBeGreaterThan(0);
+		expect(state.lastTransactionOrigin).toBe('pptx-viewer:local-sync');
 
 		collab.stop();
 		expect(collab.active.value).toBeFalsy();
 		scope.stop();
 	});
 
-	it('applies remote slides when pptx:slides Y.Array changes', async () => {
+	it('ignores slide observer events from its own local-sync transaction', async () => {
 		state.slidesArray = null;
 		state.slidesObserverCb = null;
 		state.awarenessStates.clear();
@@ -271,52 +326,13 @@ describe('useCollaboration', () => {
 		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides }))!;
 		await collab.start(config);
 
-		// Simulate a remote peer writing a slide into the Y.Array.
-		// We push a Y.Map-like object for slide '9' with minimal fields.
-		const remoteSlideMap = {
-			get: (k: string) => {
-				if (k === 'id') {
-					return '9';
-				}
-				if (k === 'elements') {
-					return {
-						length: 0,
-						get: () => undefined,
-						push: () => {},
-						delete: () => {},
-						insert: () => {},
-						toArray: () => [],
-						observe: () => {},
-						unobserve: () => {},
-						observeDeep: () => {},
-						unobserveDeep: () => {},
-					};
-				}
-				return undefined;
-			},
-			set: () => {},
-			forEach: (_cb: (v: unknown, k: string) => void) => {
-				_cb('9', 'id');
-				_cb(
-					{
-						length: 0,
-						get: () => undefined,
-						push: () => {},
-						delete: () => {},
-						insert: () => {},
-						toArray: () => [],
-						observe: () => {},
-						unobserve: () => {},
-						observeDeep: () => {},
-						unobserveDeep: () => {},
-					},
-					'elements',
-				);
-			},
-		};
-		state.slidesArray?.push([remoteSlideMap]);
-		state.slidesObserverCb?.();
+		state.slidesArray?.push([remoteSlideMap('9')]);
+		// An event carrying our own origin is skipped (primary echo guard).
+		state.slidesObserverCb?.(undefined, { origin: 'pptx-viewer:local-sync' });
+		expect(onRemoteSlides).not.toHaveBeenCalled();
 
+		// A genuine remote event (no local origin) is applied.
+		state.slidesObserverCb?.(undefined, { origin: 'remote-peer' });
 		expect(onRemoteSlides).toHaveBeenCalledWith([expect.objectContaining({ id: '9' })]);
 
 		scope.stop();
@@ -347,7 +363,7 @@ describe('useCollaboration', () => {
 		state.statusCb?.({ status: 'connected' });
 		expect(collab.status.value).toBe('connected');
 
-		state.awarenessStates.set(2, { user: { name: 'Bob', color: '#ff0000' } });
+		remotePresence(2, { userName: 'Bob' });
 		state.awarenessChange?.();
 		expect(collab.connectedCount.value).toBe(2); // self + Bob
 		scope.stop();
@@ -364,10 +380,7 @@ describe('useCollaboration', () => {
 		expect(collab.broadcasterSlideIndex.value).toBeNull();
 
 		// A peer with the owner (broadcaster) role publishes their active slide.
-		state.awarenessStates.set(2, {
-			user: { name: 'Host', color: '#00ff00', role: 'owner' },
-			activeSlide: 5,
-		});
+		remotePresence(2, { userName: 'Host', role: 'owner', activeSlideIndex: 5 });
 		state.awarenessChange?.();
 		expect(collab.broadcasterSlideIndex.value).toBe(5);
 		scope.stop();
@@ -383,9 +396,11 @@ describe('useCollaboration', () => {
 		)!;
 		await collab.start(config);
 
-		state.awarenessStates.set(2, {
-			user: { name: 'Mallory', color: 'not-a-color' },
-			cursor: { x: 99999, y: -99999 },
+		remotePresence(2, {
+			userName: 'Mallory',
+			userColor: 'not-a-color',
+			cursorX: 99999,
+			cursorY: -99999,
 		});
 		state.awarenessChange?.();
 
@@ -395,4 +410,52 @@ describe('useCollaboration', () => {
 		expect(cursor.color).toBe('#4c8bf5'); // invalid colour -> safe fallback
 		scope.stop();
 	});
+
+	it('uses the serverless webrtc transport when requested', async () => {
+		state.slidesArray = null;
+		state.awarenessStates.clear();
+		state.webrtcCreated = 0;
+		const slides = ref<PptxSlide[]>([slide('1')]);
+		const scope = effectScope();
+		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides: vi.fn() }))!;
+
+		// A blank server URL selects webrtc; the provider reports connected at once.
+		await collab.start({ roomId: 'p2p-room', serverUrl: '', userName: 'Ada' });
+		expect(state.webrtcCreated).toBe(1);
+		expect(collab.status.value).toBe('connected');
+		expect(collab.active.value).toBeTruthy();
+
+		collab.stop();
+		scope.stop();
+	});
 });
+
+/** A minimal Y.Map-like slide entry the observer can read back. */
+function remoteSlideMap(id: string): {
+	get: (k: string) => unknown;
+	set: () => void;
+	delete: () => void;
+	forEach: (cb: (v: unknown, k: string) => void) => void;
+} {
+	const emptyElements = {
+		length: 0,
+		get: () => undefined,
+		push: () => {},
+		delete: () => {},
+		insert: () => {},
+		toArray: () => [],
+		observe: () => {},
+		unobserve: () => {},
+		observeDeep: () => {},
+		unobserveDeep: () => {},
+	};
+	return {
+		get: (k: string) => (k === 'id' ? id : k === 'elements' ? emptyElements : undefined),
+		set: () => {},
+		delete: () => {},
+		forEach: (cb) => {
+			cb(id, 'id');
+			cb(emptyElements, 'elements');
+		},
+	};
+}

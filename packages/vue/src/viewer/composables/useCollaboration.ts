@@ -1,59 +1,38 @@
 /**
- * Minimal real-time collaboration over Yjs + y-websocket (Vue 3).
- *
- * Changes from the original implementation:
- *  - Slides sync uses the granular `pptx:slides` Y.Array (one Y.Map per slide,
- *    Y.Text for text bodies) instead of a monolithic JSON blob, enabling true
- *    structural CRDT merging.
- *  - Elected-writer write-back: when role === 'owner', the composable debounces
- *    Y.Doc changes and calls `config.onWriteBack` with serialized PPTX bytes.
+ * Real-time collaboration over Yjs (Vue 3): y-websocket or serverless y-webrtc.
+ * Presence is a single nested `presence` awareness field in the shared wire
+ * format (React/Vue/Angular interop). Slide sync is granular via
+ * `reconcileSlidesInYDoc` (tagged `LOCAL_SYNC_ORIGIN`; the observer skips its
+ * own writes). Role 'owner' debounces write-back.
  */
-import type { CollaborationConfig, YjsFactories } from 'pptx-viewer-shared';
+import type { CollaborationConfig, YjsFactories, YDocLike } from 'pptx-viewer-shared';
 import {
-	asSelectionIds,
-	clampCursorPosition,
 	CONNECTION_TIMEOUT_MS,
 	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
-	isPresenceFresh,
-	PRESENCE_HEARTBEAT_MS,
-	sanitizeColor,
-	sanitizeSlideIndex,
-	sanitizeUserName,
-	validateRoomId,
-	writeSlidesToYDoc,
-	readSlidesFromYDoc,
+	LOCAL_SYNC_ORIGIN,
 	observeYDocSlides,
+	PRESENCE_HEARTBEAT_MS,
+	reconcileSlidesInYDoc,
+	readSlidesFromYDoc,
+	resolveTransportForServerUrl,
+	validateRoomId,
 } from 'pptx-viewer-shared';
 import { computed, onScopeDispose, ref, watch } from 'vue';
 
+import type { RemoteCursor } from '../components/CollaborationCursors.vue';
+import { createPresencePublisher } from './collaboration-presence-publisher';
+import type { PresencePublisher } from './collaboration-presence-publisher';
+import { projectPresence, readBound } from './collaboration-presence-view';
+import { createCollabProvider } from './collaboration-provider';
+import type { CollabProviderHandle } from './collaboration-provider';
 import type {
 	UseCollaborationOptions,
 	UseCollaborationResult,
 	AwarenessLike,
-	AwarenessUser,
-	AwarenessCursor,
 	RemotePresence,
 } from './collaboration-types';
-import { buildSaveSlides } from './template-editing';
-
-const DEFAULT_CANVAS_BOUND = 100_000;
-const WRITE_BACK_DEBOUNCE_MS = 5_000;
-
-const VALID_ROLES = ['owner', 'collaborator', 'viewer'] as const;
-function asRole(v: unknown) {
-	return VALID_ROLES.includes(v as (typeof VALID_ROLES)[number])
-		? (v as RemotePresence['role'])
-		: undefined;
-}
-
-function readBound(source: import('vue').Ref<number> | number | undefined): number {
-	if (source === undefined) {
-		return DEFAULT_CANVAS_BOUND;
-	}
-	const value = typeof source === 'number' ? source : source.value;
-	return value > 0 ? value : DEFAULT_CANVAS_BOUND;
-}
+import { createWriteBackScheduler } from './collaboration-writeback';
 
 export type { RemotePresence, UseCollaborationOptions, UseCollaborationResult };
 
@@ -63,7 +42,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 	const remotePresences = ref<RemotePresence[]>([]);
 	const active = ref(false);
 	const followedClientId = ref<number | null>(null);
-	const cursors = ref<import('../components/CollaborationCursors.vue').RemoteCursor[]>([]);
+	const cursors = ref<RemoteCursor[]>([]);
 	const connectedCount = computed(() => remotePresences.value.length + (active.value ? 1 : 0));
 
 	const followedSlideIndex = computed<number | null>(() => {
@@ -79,24 +58,26 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 	);
 
 	let ydoc: { destroy: () => void } | null = null;
-	let provider: {
-		awareness: AwarenessLike;
-		disconnect: () => void;
-		destroy: () => void;
-		on: (e: string, cb: (p: { status?: string }) => void) => void;
-	} | null = null;
+	let provider: CollabProviderHandle | null = null;
 	let awareness: AwarenessLike | null = null;
+	let publisher: PresencePublisher | null = null;
 	let selfId = -1;
+	let localActiveSlide = 0;
 	let applyingRemote = false;
 	let stopWatch: (() => void) | null = null;
 	let unobserveSlides: (() => void) | null = null;
 	let connectTimer: ReturnType<typeof setTimeout> | null = null;
 	let heartbeat: ReturnType<typeof setInterval> | null = null;
-	let writeBackTimer: ReturnType<typeof setTimeout> | null = null;
 	let lastSynced = '';
 	let lastConfig: CollaborationConfig | null = null;
 	let yFactories: YjsFactories | null = null;
-	let currentYDoc: Parameters<typeof writeSlidesToYDoc>[1] | null = null;
+	let currentYDoc: YDocLike | null = null;
+
+	const writeBack = createWriteBackScheduler({
+		getYDoc: () => currentYDoc,
+		getSourceBytes: options.getSourceBytes,
+		getTemplateElements: options.getTemplateElements,
+	});
 
 	function clearTimers(): void {
 		if (connectTimer !== null) {
@@ -107,10 +88,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 			clearInterval(heartbeat);
 			heartbeat = null;
 		}
-		if (writeBackTimer !== null) {
-			clearTimeout(writeBackTimer);
-			writeBackTimer = null;
-		}
+		writeBack.cancel();
 	}
 
 	function refreshPresence(): void {
@@ -119,53 +97,13 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 			cursors.value = [];
 			return;
 		}
-		const now = Date.now();
-		const width = readBound(options.canvasWidth);
-		const height = readBound(options.canvasHeight);
-		const presences: RemotePresence[] = [];
-		const nextCursors: import('../components/CollaborationCursors.vue').RemoteCursor[] = [];
-		for (const [clientId, state] of awareness.getStates()) {
-			if (clientId === selfId) {
-				continue;
-			}
-			const lastUpdated = state.lastUpdated;
-			if (typeof lastUpdated === 'string' && !isPresenceFresh(lastUpdated, now)) {
-				continue;
-			}
-			const user = state.user as AwarenessUser | undefined;
-			const cursor = state.cursor as AwarenessCursor | undefined;
-			const userName = typeof user?.name === 'string' ? sanitizeUserName(user.name) : 'Guest';
-			const color = sanitizeColor(user?.color, DEFAULT_CURSOR_COLOR);
-			const selectionIds = asSelectionIds(state.selection);
-			const activeSlide = sanitizeSlideIndex(state.activeSlide);
-			const role = asRole(user?.role);
-			const safeCursor =
-				cursor && typeof cursor.x === 'number' && typeof cursor.y === 'number'
-					? {
-							x: clampCursorPosition(cursor.x, 0, width),
-							y: clampCursorPosition(cursor.y, 0, height),
-						}
-					: undefined;
-			presences.push({
-				clientId,
-				userName,
-				color,
-				cursor: safeCursor,
-				selectionIds,
-				activeSlide,
-				role,
-			});
-			if (safeCursor) {
-				nextCursors.push({
-					clientId,
-					userName,
-					color,
-					x: safeCursor.x,
-					y: safeCursor.y,
-					selectionIds,
-				});
-			}
-		}
+		const { presences, cursors: nextCursors } = projectPresence(
+			awareness.getStates(),
+			selfId,
+			readBound(options.canvasWidth),
+			readBound(options.canvasHeight),
+			localActiveSlide,
+		);
 		remotePresences.value = presences;
 		cursors.value = nextCursors;
 		if (
@@ -174,43 +112,6 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		) {
 			followedClientId.value = null;
 		}
-	}
-
-	function scheduleWriteBack(config: CollaborationConfig): void {
-		if (!config.onWriteBack || config.role !== 'owner' || !currentYDoc) {
-			return;
-		}
-		if (writeBackTimer !== null) {
-			clearTimeout(writeBackTimer);
-		}
-		const debounceMs = config.writeBackDebounceMs ?? WRITE_BACK_DEBOUNCE_MS;
-		writeBackTimer = setTimeout(async () => {
-			writeBackTimer = null;
-			if (!currentYDoc || !config.onWriteBack) {
-				return;
-			}
-			const sourceBytes = options.getSourceBytes?.();
-			if (!sourceBytes) {
-				return;
-			}
-			try {
-				const { PptxHandler } = await import('pptx-viewer-core');
-				const handler = new PptxHandler();
-				await handler.load(sourceBytes.buffer as ArrayBuffer);
-				const slides = readSlidesFromYDoc(currentYDoc);
-				// Merge the separately-stored template (master/layout) elements back
-				// (behind each slide's content) so template edits persist.
-				const merged = buildSaveSlides(slides, options.getTemplateElements?.() ?? {});
-				const bytes = await handler.save(merged);
-				config.onWriteBack(bytes);
-			} catch {
-				/* non-fatal */
-			}
-		}, debounceMs);
-	}
-
-	function touchHeartbeat(): void {
-		awareness?.setLocalStateField('lastUpdated', new Date().toISOString());
 	}
 
 	async function start(config: CollaborationConfig): Promise<void> {
@@ -222,13 +123,15 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 			status.value = 'error';
 			return;
 		}
-		if (isMixedContentBlocked(config.serverUrl)) {
+		const transport = config.transport ?? resolveTransportForServerUrl(config.serverUrl);
+		// Mixed-content only affects a ws:// socket from an https page.
+		if (transport === 'websocket' && isMixedContentBlocked(config.serverUrl)) {
 			status.value = 'error';
 			return;
 		}
 		status.value = 'connecting';
 		try {
-			const [Y, { WebsocketProvider }] = await Promise.all([import('yjs'), import('y-websocket')]);
+			const Y = await import('yjs');
 			const doc = new Y.Doc();
 			ydoc = doc;
 			yFactories = {
@@ -236,41 +139,52 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 				createArray: () => new Y.Array(),
 				createText: () => new Y.Text(),
 			};
-			currentYDoc = doc as unknown as Parameters<typeof writeSlidesToYDoc>[1];
+			currentYDoc = doc as unknown as YDocLike;
 
-			const wsProvider = new WebsocketProvider(config.serverUrl, config.roomId, doc, {
-				params: config.authToken ? { token: config.authToken } : undefined,
-			});
-			provider = wsProvider as unknown as typeof provider;
-			awareness = wsProvider.awareness as unknown as AwarenessLike;
+			provider = await createCollabProvider(transport, config, doc);
+			awareness = provider.awareness;
 			selfId = awareness.clientID ?? -1;
 
-			awareness.setLocalStateField('user', {
-				name: config.userName,
-				color: options.userColor ?? config.userColor ?? DEFAULT_CURSOR_COLOR,
+			publisher = createPresencePublisher(awareness, {
+				userName: config.userName,
+				userColor: options.userColor ?? config.userColor ?? DEFAULT_CURSOR_COLOR,
+				userAvatar: config.userAvatar,
 				role: config.role,
 			});
-			awareness.setLocalStateField('selection', []);
-			awareness.setLocalStateField('activeSlide', 0);
-			touchHeartbeat();
 			awareness.on('change', refreshPresence);
 			awareness.on('update', refreshPresence);
 
-			wsProvider.on('status', (payload: { status?: string }) => {
-				if (payload.status === 'connected') {
-					if (connectTimer !== null) {
-						clearTimeout(connectTimer);
-						connectTimer = null;
+			if (transport === 'webrtc') {
+				// Same-browser tabs meet over BroadcastChannel at once (no server wait).
+				status.value = 'connected';
+			} else {
+				provider.onStatus((isConnected) => {
+					if (isConnected) {
+						if (connectTimer !== null) {
+							clearTimeout(connectTimer);
+							connectTimer = null;
+						}
+						status.value = 'connected';
+					} else if (active.value) {
+						status.value = 'disconnected';
 					}
+				});
+				if (provider.connectedNow) {
 					status.value = 'connected';
-				} else if (payload.status === 'disconnected' && active.value) {
-					status.value = 'disconnected';
+				} else {
+					connectTimer = setTimeout(() => {
+						connectTimer = null;
+						if (status.value !== 'connected') {
+							stop();
+							status.value = 'error';
+						}
+					}, CONNECTION_TIMEOUT_MS);
 				}
-			});
+			}
 
-			// Observe remote slide changes
-			unobserveSlides = observeYDocSlides(currentYDoc, () => {
-				if (applyingRemote || !currentYDoc) {
+			// Observe remote slide changes, skipping our own reconcile transactions.
+			unobserveSlides = observeYDocSlides(currentYDoc, (_events, transaction) => {
+				if (transaction?.origin === LOCAL_SYNC_ORIGIN || applyingRemote || !currentYDoc) {
 					return;
 				}
 				const remote = readSlidesFromYDoc(currentYDoc);
@@ -280,10 +194,12 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 				applyingRemote = true;
 				options.onRemoteSlides(remote);
 				applyingRemote = false;
-				scheduleWriteBack(config);
+				// Dedupe the echo: the watch this assignment schedules is a no-op.
+				lastSynced = JSON.stringify(remote);
+				writeBack.schedule(config);
 			});
 
-			// Broadcast local slide edits
+			// Broadcast local slide edits granularly (diff by id, one transaction).
 			stopWatch = watch(
 				options.slides,
 				() => {
@@ -295,24 +211,13 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 						return;
 					}
 					lastSynced = s;
-					writeSlidesToYDoc(options.slides.value, currentYDoc, yFactories);
-					scheduleWriteBack(config);
+					reconcileSlidesInYDoc(options.slides.value, currentYDoc, yFactories);
+					writeBack.schedule(config);
 				},
 				{ deep: false },
 			);
 
-			heartbeat = setInterval(touchHeartbeat, PRESENCE_HEARTBEAT_MS);
-			if (!wsProvider.wsconnected) {
-				connectTimer = setTimeout(() => {
-					connectTimer = null;
-					if (status.value !== 'connected') {
-						stop();
-						status.value = 'error';
-					}
-				}, CONNECTION_TIMEOUT_MS);
-			} else {
-				status.value = 'connected';
-			}
+			heartbeat = setInterval(() => publisher?.flush(), PRESENCE_HEARTBEAT_MS);
 			active.value = true;
 			refreshPresence();
 		} catch {
@@ -329,13 +234,15 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		stopWatch = null;
 		awareness?.off?.('change', refreshPresence);
 		awareness?.off?.('update', refreshPresence);
-		provider?.disconnect();
+		publisher?.dispose();
+		publisher = null;
 		provider?.destroy();
 		ydoc?.destroy();
 		provider = null;
 		ydoc = null;
 		awareness = null;
 		selfId = -1;
+		localActiveSlide = 0;
 		applyingRemote = false;
 		yFactories = null;
 		currentYDoc = null;
@@ -354,27 +261,18 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 	}
 
 	function setCursor(x: number, y: number): void {
-		if (!awareness) {
-			return;
-		}
-		awareness.setLocalStateField('cursor', { x, y });
-		touchHeartbeat();
+		publisher?.update({ cursorX: x, cursorY: y });
 	}
 
 	function setSelection(ids: string[]): void {
-		if (!awareness) {
-			return;
-		}
-		awareness.setLocalStateField('selection', [...ids]);
-		touchHeartbeat();
+		// The shared wire format carries a single primary selected element.
+		publisher?.update({ selectedElementId: ids[0] });
 	}
 
 	function setActiveSlide(index: number): void {
-		if (!awareness) {
-			return;
-		}
-		awareness.setLocalStateField('activeSlide', Math.max(0, Math.floor(index)));
-		touchHeartbeat();
+		localActiveSlide = Math.max(0, Math.floor(index));
+		publisher?.update({ activeSlideIndex: localActiveSlide });
+		refreshPresence(); // re-filter which peer cursors are visible
 	}
 
 	function followUser(clientId: number | null): void {

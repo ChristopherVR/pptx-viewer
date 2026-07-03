@@ -56,8 +56,9 @@ export interface PowerPointViewerProps {
 	 */
 	theme?: ViewerTheme;
 	/**
-	 * Optional real-time collaboration configuration. (Not yet implemented in
-	 * the Vue port, accepted for API parity.)
+	 * Optional real-time collaboration configuration. When provided, the viewer
+	 * joins a Yjs session (y-websocket or serverless y-webrtc) with live cursors,
+	 * remote selections, follow mode and elected-writer write-back.
 	 */
 	collaboration?: CollaborationConfig;
 	/** Default values for the Share dialog fields. */

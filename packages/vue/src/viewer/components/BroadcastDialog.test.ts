@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 describe('broadcastDialog', () => {
-	it('emits start with the configured room id and server url', async () => {
+	it('emits start with the room id, server url, and websocket transport', async () => {
 		const wrapper = mount(BroadcastDialog, {
 			...mountOptions,
 			props: {
@@ -20,35 +20,54 @@ describe('broadcastDialog', () => {
 			},
 		});
 
-		const buttons = wrapper.findAll('button');
-		const startButton = buttons.find((b) => b.text() === 'Start broadcast');
-		expect(startButton).toBeDefined();
-
-		await startButton?.trigger('click');
+		await wrapper.get('.pptx-vue-broadcast-btn-primary').trigger('click');
 
 		const startEvents = wrapper.emitted('start');
 		expect(startEvents).toHaveLength(1);
+		// A non-empty server URL selects the y-websocket transport.
 		expect(startEvents?.[0][0]).toStrictEqual({
 			roomId: 'broadcast-fixed',
 			serverUrl: 'ws://example.test:1234',
+			transport: 'websocket',
 		});
 	});
 
 	it('auto-generates a broadcast room id when no default is supplied', async () => {
-		const wrapper = mount(BroadcastDialog, {
-			...mountOptions,
-			props: { open: true },
-		});
+		const wrapper = mount(BroadcastDialog, { ...mountOptions, props: { open: true } });
 
 		const roomInput = wrapper.get('#pptx-vue-broadcast-room-id').element as HTMLInputElement;
 		expect(roomInput.value).toMatch(/^broadcast-[a-z0-9]+$/u);
 
-		const startButton = wrapper.findAll('button').find((b) => b.text() === 'Start broadcast');
-		await startButton?.trigger('click');
+		await wrapper.get('.pptx-vue-broadcast-btn-primary').trigger('click');
 
-		const payload = wrapper.emitted('start')?.[0][0] as { roomId: string; serverUrl: string };
+		const payload = wrapper.emitted('start')?.[0][0] as {
+			roomId: string;
+			serverUrl: string;
+			transport: string;
+		};
 		expect(payload.roomId).toMatch(/^broadcast-[a-z0-9]+$/u);
 		expect(payload.serverUrl).toBe('ws://localhost:1234');
+		expect(payload.transport).toBe('websocket');
+	});
+
+	it('emits the webrtc transport when the server url is left blank (P2P)', async () => {
+		const wrapper = mount(BroadcastDialog, {
+			...mountOptions,
+			props: { open: true, defaults: { roomId: 'broadcast-p2p' } },
+		});
+
+		// Clear the server field: a blank server selects serverless peer-to-peer.
+		await wrapper.get('#pptx-vue-broadcast-server-url').setValue('');
+		// The P2P hint appears when the server is blank.
+		expect(wrapper.find('.pptx-vue-broadcast-p2p-hint').exists()).toBeTruthy();
+
+		await wrapper.get('.pptx-vue-broadcast-btn-primary').trigger('click');
+
+		expect(wrapper.emitted('start')?.[0][0]).toStrictEqual({
+			roomId: 'broadcast-p2p',
+			serverUrl: '',
+			transport: 'webrtc',
+		});
 	});
 
 	it('shows the viewer url and emits stop when active', async () => {
@@ -65,10 +84,7 @@ describe('broadcastDialog', () => {
 		expect(urlInput.value).toBe('https://app.test/?broadcast=room-1&server=ws%3A%2F%2Fx');
 		expect(urlInput.readOnly).toBeTruthy();
 
-		const stopButton = wrapper.findAll('button').find((b) => b.text() === 'Stop broadcast');
-		expect(stopButton).toBeDefined();
-		await stopButton?.trigger('click');
-
+		await wrapper.get('.pptx-vue-broadcast-stop').trigger('click');
 		expect(wrapper.emitted('stop')).toHaveLength(1);
 	});
 
@@ -78,17 +94,10 @@ describe('broadcastDialog', () => {
 
 		const wrapper = mount(BroadcastDialog, {
 			...mountOptions,
-			props: {
-				open: true,
-				active: true,
-				viewerUrl: 'https://app.test/?broadcast=room-1',
-			},
+			props: { open: true, active: true, viewerUrl: 'https://app.test/?broadcast=room-1' },
 		});
 
-		const copyButton = wrapper.findAll('button').find((b) => b.text() === 'Copy link');
-		expect(copyButton).toBeDefined();
-		await copyButton?.trigger('click');
-
+		await wrapper.get('.pptx-vue-broadcast-link-row button').trigger('click');
 		expect(writeText).toHaveBeenCalledWith('https://app.test/?broadcast=room-1');
 	});
 
@@ -97,24 +106,19 @@ describe('broadcastDialog', () => {
 
 		const wrapper = mount(BroadcastDialog, {
 			...mountOptions,
-			props: {
-				open: true,
-				active: true,
-				viewerUrl: 'https://app.test/?broadcast=room-1',
-			},
+			props: { open: true, active: true, viewerUrl: 'https://app.test/?broadcast=room-1' },
 		});
 
-		const copyButton = wrapper.findAll('button').find((b) => b.text() === 'Copy link');
-		expect(copyButton?.attributes('disabled')).toBeDefined();
+		const copyButton = wrapper.get('.pptx-vue-broadcast-link-row button');
+		expect(copyButton.attributes('disabled')).toBeDefined();
 	});
 
 	it('emits close from the footer close button', async () => {
-		const wrapper = mount(BroadcastDialog, {
-			...mountOptions,
-			props: { open: true },
-		});
+		const wrapper = mount(BroadcastDialog, { ...mountOptions, props: { open: true } });
 
-		const closeButton = wrapper.findAll('button').find((b) => b.text() === 'Close');
+		const closeButton = wrapper
+			.findAll('.pptx-vue-broadcast-btn')
+			.find((b) => !b.classes().includes('pptx-vue-broadcast-btn-primary'));
 		await closeButton?.trigger('click');
 
 		expect(wrapper.emitted('close')).toHaveLength(1);

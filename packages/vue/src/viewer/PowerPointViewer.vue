@@ -31,7 +31,7 @@ import type {
 	PptxThemeFontScheme,
 	PptxThemePreset,
 } from 'pptx-viewer-core';
-import type { DistributeAxis } from 'pptx-viewer-shared';
+import type { CollaborationTransport, DistributeAxis } from 'pptx-viewer-shared';
 import {
 	buildBroadcastViewerUrl,
 	downloadBlob,
@@ -1101,12 +1101,41 @@ const collab = useCollaboration({
 		slides.value = remote;
 	},
 	getTemplateElements: () => templateElementsBySlideId.value,
+	// Retain the loaded source bytes for elected-writer (role 'owner') write-back:
+	// the write-back reloads the original file, overlays the live Y.Doc slides,
+	// and re-serializes so template/master content survives the round-trip.
+	getSourceBytes: () => {
+		const c = activeContent.value;
+		if (!c) {
+			return null;
+		}
+		return c instanceof Uint8Array ? c : new Uint8Array(c);
+	},
 	userColor: props.collaboration?.userColor,
 	canvasWidth: collabCanvasWidth,
 	canvasHeight: collabCanvasHeight,
 });
 const shareOpen = ref(false);
 const collabActive = collab.active;
+
+// Auto-start/stop a session when the host supplies (or clears) a `collaboration`
+// config, so URL-driven joins connect without opening the Share dialog.
+// Dialog-initiated sessions echo the same config object back through this prop,
+// so we compare by reference to avoid restarting a session we already started.
+let lastStartedCollab: CollaborationConfig | null = null;
+watch(
+	() => props.collaboration,
+	(config) => {
+		if (config && config !== lastStartedCollab) {
+			lastStartedCollab = config;
+			void collab.start(config);
+		} else if (!config && collab.active.value) {
+			lastStartedCollab = null;
+			collab.stop();
+		}
+	},
+	{ immediate: true },
+);
 
 // Publish local selection + active slide to peers; follow a peer's active slide.
 watch(selectedElementIds, (ids) => {
@@ -1134,11 +1163,13 @@ watch(collab.broadcasterSlideIndex, (index) => {
 function onShareStart(config: CollaborationConfig): void {
 	// Two-way collaboration: peers edit together (default role).
 	const collaboratorConfig: CollaborationConfig = { role: 'collaborator', ...config };
+	lastStartedCollab = collaboratorConfig;
 	void collab.start(collaboratorConfig);
 	emit('start-collaboration', collaboratorConfig);
 	shareOpen.value = false;
 }
 function onShareStop(): void {
+	lastStartedCollab = null;
 	collab.stop();
 	emit('stop-collaboration');
 	shareOpen.value = false;
@@ -1182,7 +1213,11 @@ function onAckSignatureStripped(): void {
 
 // ── Broadcast ─────────────────────────────────────────────────────────
 const broadcastOpen = ref(false);
-const broadcastConfig = ref<{ roomId: string; serverUrl: string } | null>(null);
+const broadcastConfig = ref<{
+	roomId: string;
+	serverUrl: string;
+	transport?: CollaborationTransport;
+} | null>(null);
 const broadcastViewerUrl = computed(() => {
 	if (!broadcastConfig.value || typeof window === 'undefined') {
 		return '';
@@ -1190,7 +1225,11 @@ const broadcastViewerUrl = computed(() => {
 	const { roomId, serverUrl } = broadcastConfig.value;
 	return buildBroadcastViewerUrl(roomId, serverUrl, window.location);
 });
-function onBroadcastStart(config: { roomId: string; serverUrl: string }): void {
+function onBroadcastStart(config: {
+	roomId: string;
+	serverUrl: string;
+	transport?: CollaborationTransport;
+}): void {
 	broadcastConfig.value = config;
 	// One-way broadcast: the presenter owns navigation; viewers auto-follow via
 	// `broadcasterSlideIndex`. The presenter joins with the `owner` role.
@@ -1199,11 +1238,13 @@ function onBroadcastStart(config: { roomId: string; serverUrl: string }): void {
 		userName: props.authorName ?? 'Presenter',
 		role: 'owner',
 	};
+	lastStartedCollab = broadcastSession;
 	void collab.start(broadcastSession);
 	emit('start-collaboration', broadcastSession);
 	broadcastOpen.value = false;
 }
 function onBroadcastStop(): void {
+	lastStartedCollab = null;
 	broadcastConfig.value = null;
 	collab.stop();
 	emit('stop-collaboration');
