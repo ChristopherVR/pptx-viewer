@@ -16,6 +16,7 @@ import { DestroyRef, Injector, runInInjectionContext } from '@angular/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
+import { CONNECTION_TIMEOUT_MS } from '../internal/shared';
 import {
 	CURSOR_PALETTE,
 	DEFAULT_CURSOR_COLOR,
@@ -387,26 +388,45 @@ vi.mock(import('yjs'), () => {
 	};
 });
 
+function makeMockAwareness(): {
+	clientID: number;
+	setLocalStateField: (field: string, value: unknown) => void;
+	getStates: () => Map<number, Record<string, unknown>>;
+	on: (e: string, cb: () => void) => void;
+	off: () => void;
+} {
+	return {
+		clientID: 1,
+		setLocalStateField: (field: string, value: unknown) => {
+			const self = hoisted.awarenessStates.get(1) ?? {};
+			self[field] = value;
+			hoisted.awarenessStates.set(1, self);
+		},
+		getStates: () => hoisted.awarenessStates,
+		on: (e: string, cb: () => void) => {
+			if (e === 'change') {
+				hoisted.awarenessChange = cb;
+			}
+		},
+		off: () => {},
+	};
+}
+
 vi.mock(import('y-websocket'), () => ({
 	WebsocketProvider: class {
-		awareness = {
-			clientID: 1,
-			setLocalStateField: (field: string, value: unknown) => {
-				const self = hoisted.awarenessStates.get(1) ?? {};
-				self[field] = value;
-				hoisted.awarenessStates.set(1, self);
-			},
-			getStates: () => hoisted.awarenessStates,
-			on: (e: string, cb: () => void) => {
-				if (e === 'change') {
-					hoisted.awarenessChange = cb;
-				}
-			},
-			off: () => {},
-		};
+		awareness = makeMockAwareness();
 		on(_e: string, cb: (p: { status?: string }) => void) {
 			hoisted.statusCb = cb;
 		}
+		disconnect() {}
+		destroy() {}
+	},
+}));
+
+vi.mock(import('y-webrtc'), () => ({
+	WebrtcProvider: class {
+		awareness = makeMockAwareness();
+		on() {}
 		disconnect() {}
 		destroy() {}
 	},
@@ -584,5 +604,44 @@ describe('collaborationService', () => {
 		expect(svc.active()).toBeFalsy();
 		expect(svc.connected()).toBeFalsy();
 		expect(svc.presence()).toHaveLength(0);
+	});
+
+	it('connects via the webrtc transport with no server gating', async () => {
+		reset();
+		const { svc, destroy } = makeService();
+		// Blank server + webrtc: no mixed-content check, no timeout; connected now.
+		await svc.connect({ ...config, serverUrl: '', transport: 'webrtc' });
+		expect(svc.active()).toBeTruthy();
+		expect(svc.status()).toBe('connected');
+		expect(svc.connected()).toBeTruthy();
+		destroy();
+	});
+
+	it('times out to error when the websocket never connects', async () => {
+		reset();
+		vi.useFakeTimers();
+		try {
+			const { svc, destroy } = makeService();
+			await svc.connect(config);
+			expect(svc.status()).toBe('connecting');
+			vi.advanceTimersByTime(CONNECTION_TIMEOUT_MS + 1);
+			expect(svc.status()).toBe('error');
+			expect(svc.active()).toBeFalsy();
+			destroy();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('retry() reconnects with the last config', async () => {
+		reset();
+		const { svc, destroy } = makeService();
+		await svc.connect(config);
+		svc.disconnect();
+		expect(svc.active()).toBeFalsy();
+
+		await svc.retry();
+		expect(svc.active()).toBeTruthy();
+		destroy();
 	});
 });

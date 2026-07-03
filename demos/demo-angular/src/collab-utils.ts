@@ -11,20 +11,32 @@
 // but a crafted ?server=... must never silently fetch or POST a presentation.
 const TRUSTED_COLLAB_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
 
+// A deploy can always override the default by setting VITE_COLLAB_SERVER_URL.
+const CONFIGURED_SERVER_URL = import.meta.env.VITE_COLLAB_SERVER_URL?.trim() ?? '';
+
+/** Host of the configured relay (if any), so it is trusted for auto-connect. */
+function configuredServerHost(): string | null {
+	if (!CONFIGURED_SERVER_URL) {
+		return null;
+	}
+	try {
+		return new URL(CONFIGURED_SERVER_URL).hostname;
+	} catch {
+		return null;
+	}
+}
+
 export function isTrustedServerUrl(url: string): boolean {
 	try {
 		const u = new URL(url);
 		if (u.protocol !== 'ws:' && u.protocol !== 'wss:') {
 			return false;
 		}
-		return TRUSTED_COLLAB_HOSTS.includes(u.hostname);
+		return TRUSTED_COLLAB_HOSTS.includes(u.hostname) || u.hostname === configuredServerHost();
 	} catch {
 		return false;
 	}
 }
-
-// A deploy can always override the default by setting VITE_COLLAB_SERVER_URL.
-const CONFIGURED_SERVER_URL = import.meta.env.VITE_COLLAB_SERVER_URL?.trim() ?? '';
 
 function isLocalhostOrigin(): boolean {
 	if (typeof window === 'undefined') {

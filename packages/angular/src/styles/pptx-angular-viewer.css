@@ -229,10 +229,21 @@ pptx-ribbon-font-controls {
 }
 
 .pptx-ng-main {
+	position: relative;
 	flex: 1;
 	min-width: 0;
 	overflow: auto;
 	background: #1e293b;
+}
+
+/* Floating follow-mode bar: centred at the top of the canvas area. */
+.pptx-ng-collab-follow {
+	position: absolute;
+	top: 0.5rem;
+	left: 50%;
+	z-index: 9998;
+	transform: translateX(-50%);
+	pointer-events: auto;
 }
 
 /* ── Canvas ─────────────────────────────────────────────────────────── */

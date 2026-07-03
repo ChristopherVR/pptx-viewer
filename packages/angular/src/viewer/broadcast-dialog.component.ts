@@ -58,6 +58,10 @@ import { ModalDialogComponent } from './modal-dialog.component';
 						</span>
 					</div>
 
+					@if (p2p()) {
+						<p class="pptx-ng-broadcast-hint">{{ 'pptx.broadcast.p2pServerValue' | translate }}</p>
+					}
+
 					<p class="pptx-ng-broadcast-desc">
 						{{ 'pptx.broadcast.liveDesc' | translate }}
 					</p>
@@ -124,6 +128,9 @@ import { ModalDialogComponent } from './modal-dialog.component';
 							[value]="serverUrl()"
 							(input)="serverUrl.set(asValue($event))"
 						/>
+						@if (isP2p()) {
+							<p class="pptx-ng-broadcast-hint">{{ 'pptx.broadcast.p2pHint' | translate }}</p>
+						}
 					</div>
 				</div>
 			}
@@ -297,6 +304,9 @@ export class BroadcastDialogComponent {
 	/** The shareable follow link (shown while `active`). */
 	readonly viewerUrl = input<string>();
 
+	/** Whether the active broadcast is peer-to-peer (serverless webrtc). */
+	readonly p2p = input<boolean>(false);
+
 	/** Fired when the presenter starts a broadcast. */
 	readonly start = output<BroadcastConfig>();
 
@@ -313,6 +323,9 @@ export class BroadcastDialogComponent {
 	readonly canStart = computed(() =>
 		canStartBroadcast({ roomId: this.roomId(), serverUrl: this.serverUrl() }),
 	);
+
+	/** Blank server URL selects the serverless peer-to-peer (webrtc) transport. */
+	readonly isP2p = computed(() => this.serverUrl().trim().length === 0);
 
 	private readonly broadcastingTitle = translate('pptx.broadcast.broadcastingTitle');
 	private readonly startTitle = translate('pptx.broadcast.startTitle');

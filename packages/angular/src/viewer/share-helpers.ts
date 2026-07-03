@@ -9,6 +9,7 @@
  */
 
 import type { CollaborationConfig } from '../internal/shared';
+import { resolveTransportForServerUrl } from '../internal/shared';
 
 /** Prefilled values for the Share form fields. */
 export interface ShareDefaults {
@@ -33,27 +34,30 @@ export function seedShareFields(defaults?: ShareDefaults): ShareFormFields {
 	};
 }
 
-/** Whether all three required fields are non-blank (after trimming). */
+/**
+ * Whether the required fields are non-blank (after trimming). The server URL is
+ * optional: a blank server selects the serverless (webrtc) peer-to-peer
+ * transport, so only the room id and display name are required.
+ */
 export function canStartShare(fields: ShareFormFields): boolean {
-	return (
-		fields.roomId.trim().length > 0 &&
-		fields.userName.trim().length > 0 &&
-		fields.serverUrl.trim().length > 0
-	);
+	return fields.roomId.trim().length > 0 && fields.userName.trim().length > 0;
 }
 
 /**
  * Assemble a {@link CollaborationConfig} from the (trimmed) form fields, or
- * `null` when the form is incomplete.
+ * `null` when the form is incomplete. A blank server URL yields
+ * `transport: 'webrtc'`; otherwise the default websocket transport is used.
  */
 export function buildCollaborationConfig(fields: ShareFormFields): CollaborationConfig | null {
 	if (!canStartShare(fields)) {
 		return null;
 	}
+	const serverUrl = fields.serverUrl.trim();
 	return {
 		roomId: fields.roomId.trim(),
 		userName: fields.userName.trim(),
-		serverUrl: fields.serverUrl.trim(),
+		serverUrl,
+		transport: resolveTransportForServerUrl(serverUrl),
 	};
 }
 
@@ -70,6 +74,10 @@ export function buildShareUrl(
 		return roomId;
 	}
 	const room = encodeURIComponent(roomId);
-	const server = encodeURIComponent(serverUrl);
+	const trimmed = serverUrl.trim();
+	if (trimmed.length === 0) {
+		return `${location.origin}${location.pathname}?room=${room}&transport=webrtc`;
+	}
+	const server = encodeURIComponent(trimmed);
 	return `${location.origin}${location.pathname}?room=${room}&server=${server}`;
 }

@@ -116,6 +116,13 @@ export class AppComponent {
 	readonly urlBroadcast = this.params.get('broadcast');
 	private readonly urlServer = this.params.get('server') ?? resolveDefaultServerUrl();
 	private readonly urlName = this.params.get('name');
+	/** Serverless peer-to-peer join requested via `?transport=webrtc`. */
+	private readonly webrtcRequested = this.params.get('transport') === 'webrtc';
+	/** Optional `?signaling=a,b` WebRTC signaling server override. */
+	private readonly signaling = (this.params.get('signaling') ?? '')
+		.split(',')
+		.map((s) => s.trim())
+		.filter((s) => s.length > 0);
 
 	readonly autoName = generateAutoName();
 	/** Stable per-session room id, seeded into the Share dialog defaults. */
@@ -184,10 +191,22 @@ export class AppComponent {
 		} else {
 			url.searchParams.set('room', config.roomId);
 		}
-		url.searchParams.set('server', config.serverUrl);
+		if (config.transport === 'webrtc') {
+			// Serverless P2P: carry the transport, not a (blank) server URL.
+			url.searchParams.set('transport', 'webrtc');
+			url.searchParams.delete('server');
+			if (config.signaling?.length) {
+				url.searchParams.set('signaling', config.signaling.join(','));
+			}
+		} else {
+			url.searchParams.set('server', config.serverUrl);
+			url.searchParams.delete('transport');
+			url.searchParams.delete('signaling');
+		}
 		window.history.replaceState({}, '', url.toString());
 		const bytes = this.content();
-		if (bytes && isTrustedServerUrl(config.serverUrl)) {
+		// P2P has no file server; joiners receive the deck via Y.Doc sync instead.
+		if (bytes && config.transport !== 'webrtc' && isTrustedServerUrl(config.serverUrl)) {
 			const httpUrl = config.serverUrl.replace(/^ws/u, 'http');
 			void fetch(`${httpUrl}/file/${encodeURIComponent(config.roomId)}`, {
 				method: 'POST',
@@ -205,6 +224,8 @@ export class AppComponent {
 		url.searchParams.delete('room');
 		url.searchParams.delete('broadcast');
 		url.searchParams.delete('server');
+		url.searchParams.delete('transport');
+		url.searchParams.delete('signaling');
 		url.searchParams.delete('name');
 		window.history.replaceState({}, '', url.toString());
 	}
@@ -232,39 +253,51 @@ export class AppComponent {
 
 	// ── Collaboration / broadcast / audience wiring ──────────────────────────
 	private autoConnectFromUrl(): void {
-		if (this.urlRoom) {
-			if (isTrustedServerUrl(this.urlServer)) {
-				this.collaborationConfig.set({
-					roomId: this.urlRoom,
-					serverUrl: this.urlServer,
-					userName: this.urlName ?? this.autoName,
-					userColor: randomCursorColor(),
-				});
-			} else {
-				console.warn(
-					`Ignoring ?room= auto-connect because ?server=${this.urlServer} is not in the trusted-host allowlist. Use the Share dialog to connect explicitly.`,
-				);
-			}
-		} else if (this.urlBroadcast) {
-			if (isTrustedServerUrl(this.urlServer)) {
-				this.collaborationConfig.set({
-					roomId: this.urlBroadcast,
-					serverUrl: this.urlServer,
-					userName: this.urlName ?? this.autoName,
-					userColor: randomCursorColor(),
-					role: 'viewer',
-				});
-			} else {
-				console.warn(
-					`Ignoring ?broadcast= auto-connect because ?server=${this.urlServer} is not in the trusted-host allowlist.`,
-				);
-			}
+		const joinRoomId = this.urlRoom ?? this.urlBroadcast;
+		if (!joinRoomId) {
+			return;
 		}
+		const role = this.urlBroadcast ? ('viewer' as const) : undefined;
+
+		// Serverless peer-to-peer: no server to trust; join over WebRTC directly.
+		if (this.webrtcRequested) {
+			this.collaborationConfig.set({
+				roomId: joinRoomId,
+				serverUrl: '',
+				transport: 'webrtc',
+				...(this.signaling.length > 0 ? { signaling: this.signaling } : {}),
+				userName: this.urlName ?? this.autoName,
+				userColor: randomCursorColor(),
+				...(role ? { role } : {}),
+			});
+			return;
+		}
+
+		if (!isTrustedServerUrl(this.urlServer)) {
+			console.warn(
+				`Ignoring auto-connect because ?server=${this.urlServer} is not in the trusted-host allowlist. Use the Share dialog to connect explicitly.`,
+			);
+			return;
+		}
+		this.collaborationConfig.set({
+			roomId: joinRoomId,
+			serverUrl: this.urlServer,
+			userName: this.urlName ?? this.autoName,
+			userColor: randomCursorColor(),
+			...(role ? { role } : {}),
+		});
 	}
 
 	private joinFromUrl(): void {
 		const joinRoomId = this.urlRoom ?? this.urlBroadcast;
 		if (!joinRoomId || this.content()) {
+			return;
+		}
+		// Serverless peer-to-peer: there is no file server to fetch from. Bootstrap
+		// a placeholder deck so the viewer mounts and connects; the Y.Doc
+		// late-joiner sync then populates the real slides via applyRemoteSlides.
+		if (this.webrtcRequested) {
+			void this.bootstrapForRemoteSync();
 			return;
 		}
 		if (!isTrustedServerUrl(this.urlServer)) {
@@ -275,6 +308,23 @@ export class AppComponent {
 		}
 		void this.downloadFromServer(joinRoomId);
 		this.scheduleAudienceFallback();
+	}
+
+	/** Bootstrap a blank deck so a serverless (webrtc) joiner mounts + syncs. */
+	private async bootstrapForRemoteSync(): Promise<void> {
+		if (this.content()) {
+			return;
+		}
+		const { handler, data } = await PptxHandler.createBlank({
+			title: 'Collaboration Session',
+			initialSlideCount: 1,
+		});
+		const bytes = await handler.save(data.slides);
+		if (this.content()) {
+			return;
+		}
+		this.content.set(bytes);
+		this.fileName.set(this.urlBroadcast ? 'Broadcast Session' : 'Collaboration Session');
 	}
 
 	private async downloadFromServer(joinRoomId: string): Promise<void> {

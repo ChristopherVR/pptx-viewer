@@ -61,6 +61,14 @@ import type { ShareDefaults } from './share-helpers';
 						</span>
 					</div>
 
+					@if (p2p()) {
+						<div class="pptx-ng-share-status-row">
+							<span class="pptx-ng-share-count" style="margin-left: 0">
+								{{ 'pptx.share.p2pServerValue' | translate }}
+							</span>
+						</div>
+					}
+
 					@if (shareUrl()) {
 						<div class="pptx-ng-share-field">
 							<label class="pptx-ng-share-label">{{
@@ -137,6 +145,9 @@ import type { ShareDefaults } from './share-helpers';
 							[value]="serverUrl()"
 							(input)="serverUrl.set(asValue($event))"
 						/>
+						@if (isP2p()) {
+							<p class="pptx-ng-share-hint">{{ 'pptx.share.p2pHint' | translate }}</p>
+						}
 					</div>
 				</div>
 			}
@@ -298,6 +309,9 @@ export class ShareDialogComponent {
 	/** Shareable join link surfaced while the session is active. */
 	readonly shareUrl = input<string>('');
 
+	/** Whether the active session is peer-to-peer (serverless webrtc). */
+	readonly p2p = input<boolean>(false);
+
 	/** Fired with the assembled config when the user starts sharing. */
 	readonly start = output<CollaborationConfig>();
 
@@ -319,6 +333,9 @@ export class ShareDialogComponent {
 			serverUrl: this.serverUrl(),
 		}),
 	);
+
+	/** Blank server URL selects the serverless peer-to-peer (webrtc) transport. */
+	readonly isP2p = computed(() => this.serverUrl().trim().length === 0);
 
 	readonly canCopy = computed(() =>
 		canUseClipboard(typeof navigator !== 'undefined' ? navigator : undefined),

@@ -197,6 +197,32 @@ functional parity (28/0 e2e, the same shared specs React passes).
    is not pixel-identical to every React control (spacing, icons, split-button
    affordances, dropdown chrome). A per-tab visual-diff pass would close it.
 
+> **Recently closed** (2026-07-03): **real-time collaboration wired end-to-end.**
+> Previously the `CollaborationService` was built + unit-tested but the component
+> never drove it, so collaboration was non-functional. Now
+> `power-point-viewer.component.ts` connects at all three call sites (host
+> `[collaboration]` input, Share dialog, Broadcast dialog) with a full
+> `ConnectOptions` bundle: remote slides apply to the editor
+> (`EditorStateService.applyRemoteSlides`), local edits reconcile into the Y.Doc
+> (granular `reconcileSlidesInYDoc` + `LOCAL_SYNC_ORIGIN`, echo-guarded and
+> baseline-seeded so a joiner never clobbers), pointer moves publish the local
+> cursor (throttled + clamped), the selection + active slide publish into
+> presence, remote cursors filter to the active slide, and a new
+> `RemoteSelectionOverlayComponent` draws peers' selection boxes. Added
+> `FollowModeBarComponent` (+ auto-follow: a broadcast `viewer` tracks the owner
+> peer's active slide). The service now hardens the transport layer:
+> **y-webrtc** serverless P2P transport (`config.transport === 'webrtc'`, blank
+> server), websocket **connect timeout -> `'error'`** + **`retry()`**, and
+> **mixed-content fail-fast**. Service split into focused helpers
+> (`collaboration-providers`, `collaboration-local-presence`,
+> `collaboration-writeback`). Dialogs accept an optional (blank = P2P) server URL
+> with the `pptx.{share,broadcast}.p2p*` hints; the demo joins P2P via
+> `?transport=webrtc[&signaling=…]`, skipping the trusted-host check and file
+> fetch and bootstrapping a placeholder deck for Y.Doc late-joiner sync.
+> Caveat: the `pptx.followMode.*` i18n keys are not yet in the shared
+> translations (they fall back to key-derived labels via the demo's
+> MissingTranslationHandler); adding them to `pptx-viewer-shared` is a follow-up.
+>
 > **Recently closed** (2026-07-02): the **secondary dialog suite** that was
 > previously absent (the earlier "whole surface" parity claim overstated this).
 > Now implemented as standalone components wired through `ViewerExtraDialogsComponent`

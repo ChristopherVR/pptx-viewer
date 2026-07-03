@@ -119,6 +119,17 @@ export class EditorStateService {
 		this.syncHistory();
 	}
 
+	/**
+	 * Apply a remote collaborator's slide set (already template-free, as broadcast
+	 * over the CRDT) to the editable deck. Selection, history, and this peer's own
+	 * separated template store are left untouched; remote edits are not local undo
+	 * steps.
+	 */
+	applyRemoteSlides(slides: readonly PptxSlide[]): void {
+		this.slides.set(this.clone(slides));
+		this.dirty.set(true);
+	}
+
 	// ── Snapshot (deck + template store) ─────────────────────────────────────
 
 	/** Capture the current deck + template store as one undo/redo snapshot. */
