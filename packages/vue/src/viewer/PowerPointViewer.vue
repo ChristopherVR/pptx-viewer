@@ -25,9 +25,8 @@ import type {
 	PptxSaveFormat,
 	PptxSlide,
 } from 'pptx-viewer-core';
-import type { CollaborationTransport, DistributeAxis } from 'pptx-viewer-shared';
+import type { DistributeAxis } from 'pptx-viewer-shared';
 import {
-	buildBroadcastViewerUrl,
 	downloadBlob,
 	isTemplateElementId,
 	openPptxFile,
@@ -112,7 +111,7 @@ import { buildSaveSlides, isElementIdInteractive } from './composables/template-
 import { useAccessibility } from './composables/useAccessibility';
 import { useAlignGroup } from './composables/useAlignGroup';
 import { useAutosave } from './composables/useAutosave';
-import { useCollaboration } from './composables/useCollaboration';
+import { useCollaborationWiring } from './composables/useCollaborationWiring';
 import { useComments } from './composables/useComments';
 import { useContextMenu } from './composables/useContextMenu';
 import { useCustomShowsWiring } from './composables/useCustomShowsWiring';
@@ -144,12 +143,7 @@ import { useThemeEditing } from './composables/useThemeEditing';
 import { useTouchGestures } from './composables/useTouchGestures';
 import { useVersionHistoryWiring } from './composables/useVersionHistoryWiring';
 import { provideZoomTargetLookup, toZoomTargetInfo } from './composables/zoom-target';
-import type {
-	CollaborationConfig,
-	PowerPointViewerEmits,
-	PowerPointViewerExpose,
-	PowerPointViewerProps,
-} from './types';
+import type { PowerPointViewerEmits, PowerPointViewerExpose, PowerPointViewerProps } from './types';
 
 const props = withDefaults(defineProps<PowerPointViewerProps>(), {
 	canEdit: false,
@@ -992,14 +986,20 @@ function commitComments(next: ReturnType<typeof commentsApi.addComment>): void {
 	slides.value = nextSlides;
 }
 
-// ── Collaboration (Yjs) ───────────────────────────────────────────────
-const collabCanvasWidth = computed(() => canvasSize.value.width);
-const collabCanvasHeight = computed(() => canvasSize.value.height);
-const collab = useCollaboration({
+// ── Collaboration (Yjs) + broadcast ────────────────────────────────────
+const {
+	collab,
+	collabActive,
+	shareOpen,
+	onShareStart,
+	onShareStop,
+	onCollabPointerMove,
+	broadcastOpen,
+	broadcastViewerUrl,
+	onBroadcastStart,
+	onBroadcastStop,
+} = useCollaborationWiring({
 	slides,
-	onRemoteSlides: (remote) => {
-		slides.value = remote;
-	},
 	getTemplateElements: () => templateElementsBySlideId.value,
 	// Retain the loaded source bytes for elected-writer (role 'owner') write-back:
 	// the write-back reloads the original file, overlays the live Y.Doc slides,
@@ -1011,84 +1011,18 @@ const collab = useCollaboration({
 		}
 		return c instanceof Uint8Array ? c : new Uint8Array(c);
 	},
-	userColor: props.collaboration?.userColor,
-	canvasWidth: collabCanvasWidth,
-	canvasHeight: collabCanvasHeight,
+	initialUserColor: props.collaboration?.userColor,
+	canvasWidth: computed(() => canvasSize.value.width),
+	canvasHeight: computed(() => canvasSize.value.height),
+	collaborationProp: () => props.collaboration,
+	selectedElementIds,
+	activeSlideIndex,
+	goTo,
+	effectiveZoom,
+	authorName: () => props.authorName,
+	onStartCollaboration: (config) => emit('start-collaboration', config),
+	onStopCollaboration: () => emit('stop-collaboration'),
 });
-const shareOpen = ref(false);
-const collabActive = collab.active;
-
-// Auto-start/stop a session when the host supplies (or clears) a `collaboration`
-// config, so URL-driven joins connect without opening the Share dialog.
-// Dialog-initiated sessions echo the same config object back through this prop,
-// so we compare by reference to avoid restarting a session we already started.
-let lastStartedCollab: CollaborationConfig | null = null;
-watch(
-	() => props.collaboration,
-	(config) => {
-		if (config && config !== lastStartedCollab) {
-			lastStartedCollab = config;
-			void collab.start(config);
-		} else if (!config && collab.active.value) {
-			lastStartedCollab = null;
-			collab.stop();
-		}
-	},
-	{ immediate: true },
-);
-
-// Publish local selection + active slide to peers; follow a peer's active slide.
-watch(selectedElementIds, (ids) => {
-	if (collab.active.value) {
-		collab.setSelection(ids);
-	}
-});
-watch(activeSlideIndex, (index) => {
-	if (collab.active.value) {
-		collab.setActiveSlide(index);
-	}
-});
-watch(collab.followedSlideIndex, (index) => {
-	if (index !== null) {
-		goTo(index);
-	}
-});
-// Viewers in a one-way broadcast auto-follow the broadcaster's active slide.
-watch(collab.broadcasterSlideIndex, (index) => {
-	if (index !== null && collab.followedClientId.value === null) {
-		goTo(index);
-	}
-});
-
-function onShareStart(config: CollaborationConfig): void {
-	// Two-way collaboration: peers edit together (default role).
-	const collaboratorConfig: CollaborationConfig = { role: 'collaborator', ...config };
-	lastStartedCollab = collaboratorConfig;
-	void collab.start(collaboratorConfig);
-	emit('start-collaboration', collaboratorConfig);
-	shareOpen.value = false;
-}
-function onShareStop(): void {
-	lastStartedCollab = null;
-	collab.stop();
-	emit('stop-collaboration');
-	shareOpen.value = false;
-}
-/** Publish the local cursor in slide coordinates while collaborating. */
-function onCollabPointerMove(event: PointerEvent): void {
-	if (!collab.active.value) {
-		return;
-	}
-	const stage = (event.currentTarget as HTMLElement | null)?.querySelector('.pptx-vue-stage');
-	if (!stage) {
-		return;
-	}
-	const rect = stage.getBoundingClientRect();
-	collab.setCursor(
-		(event.clientX - rect.left) / effectiveZoom.value,
-		(event.clientY - rect.top) / effectiveZoom.value,
-	);
-}
 
 // ── Digital signatures ────────────────────────────────────────────────
 const {
@@ -1098,46 +1032,6 @@ const {
 	showSignatureStripped,
 	onAckSignatureStripped,
 } = useSignatureWorkflow({ signatures, isDirty: autosave.isDirty });
-
-// ── Broadcast ─────────────────────────────────────────────────────────
-const broadcastOpen = ref(false);
-const broadcastConfig = ref<{
-	roomId: string;
-	serverUrl: string;
-	transport?: CollaborationTransport;
-} | null>(null);
-const broadcastViewerUrl = computed(() => {
-	if (!broadcastConfig.value || typeof window === 'undefined') {
-		return '';
-	}
-	const { roomId, serverUrl } = broadcastConfig.value;
-	return buildBroadcastViewerUrl(roomId, serverUrl, window.location);
-});
-function onBroadcastStart(config: {
-	roomId: string;
-	serverUrl: string;
-	transport?: CollaborationTransport;
-}): void {
-	broadcastConfig.value = config;
-	// One-way broadcast: the presenter owns navigation; viewers auto-follow via
-	// `broadcasterSlideIndex`. The presenter joins with the `owner` role.
-	const broadcastSession: CollaborationConfig = {
-		...config,
-		userName: props.authorName ?? 'Presenter',
-		role: 'owner',
-	};
-	lastStartedCollab = broadcastSession;
-	void collab.start(broadcastSession);
-	emit('start-collaboration', broadcastSession);
-	broadcastOpen.value = false;
-}
-function onBroadcastStop(): void {
-	lastStartedCollab = null;
-	broadcastConfig.value = null;
-	collab.stop();
-	emit('stop-collaboration');
-	broadcastOpen.value = false;
-}
 
 // ── Set Up Slide Show ─────────────────────────────────────────────────
 // Edits a draft copy of the presentation-level properties; on save we commit
