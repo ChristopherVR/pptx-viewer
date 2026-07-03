@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.81](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.81) - 2026-07-03
+
+### Features
+
+- Document localization and add demo language pickers (by @ChristopherVR) ([a07ad82](https://github.com/ChristopherVR/pptx-viewer/commit/a07ad8279e906590e0392d19cd1637855012a80e))
+
+### Documentation
+
+- **vue:** Correct stale parity-gap claims in PORTING.md (by @ChristopherVR) ([1ce524c](https://github.com/ChristopherVR/pptx-viewer/commit/1ce524cf5af80064b0d8268610e40c900ea43204))
+- Close out fixed parity gaps, drop the limitations caveat (by @ChristopherVR) ([53ae1f8](https://github.com/ChristopherVR/pptx-viewer/commit/53ae1f8460c47b1aa313020d2231edee91809fb0))
+
 ## [1.1.80](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.80) - 2026-07-02
 
 ### Features

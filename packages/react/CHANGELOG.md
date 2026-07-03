@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.73](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.73) - 2026-07-03
+
+### Features
+
+- Document localization and add demo language pickers (by @ChristopherVR) ([a07ad82](https://github.com/ChristopherVR/pptx-viewer/commit/a07ad8279e906590e0392d19cd1637855012a80e))
+
 ## [1.1.71](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.71) - 2026-07-02
 
 ### Features

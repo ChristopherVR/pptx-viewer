@@ -8,6 +8,36 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- Document localization and add demo language pickers (by @ChristopherVR) ([a07ad82](https://github.com/ChristopherVR/pptx-viewer/commit/a07ad8279e906590e0392d19cd1637855012a80e))
+- **angular:** Render pressure-sensitive ink strokes (by @ChristopherVR) ([64f47fc](https://github.com/ChristopherVR/pptx-viewer/commit/64f47fc4b736a07a9438c19b302ad835be731129))
+- **vue,shared:** Render connector shadow and glow effects (by @ChristopherVR) ([1a5f32a](https://github.com/ChristopherVR/pptx-viewer/commit/1a5f32ad67e2190e2369c805aea00c3fdf71da79))
+- **angular,shared:** Render compound connector lines and line caps (by @ChristopherVR) ([60592e7](https://github.com/ChristopherVR/pptx-viewer/commit/60592e77eae6d1b44f89a642192b9e3dd3fb1e15))
+- **angular:** Play audio/video media elements instead of poster-only (by @ChristopherVR) ([82d3288](https://github.com/ChristopherVR/pptx-viewer/commit/82d32885b0b3ebcb1783f0f3e75752f0991aeca1))
+- **vue,shared,react:** Render pressure-sensitive ink strokes (by @ChristopherVR) ([6d07dfd](https://github.com/ChristopherVR/pptx-viewer/commit/6d07dfdeac15000540f77cc72397c3f221cc4368))
+
+### Bug Fixes
+
+- **vue:** Stop vue-i18n crashing on the shared dictionary, close notes panel by default (by @ChristopherVR) ([80c4209](https://github.com/ChristopherVR/pptx-viewer/commit/80c420913b0ce126ab207dd6bc6791b9104eecf0))
+- **angular:** Stop ribbon groups stacking vertically after the section split (by @ChristopherVR) ([9ae8bf3](https://github.com/ChristopherVR/pptx-viewer/commit/9ae8bf387c996b341e16e2ddc0e5791b67b5dd34))
+
+### Refactor
+
+- **angular:** Split ribbon.component.ts into per-tab section components (by @ChristopherVR) ([b07f27d](https://github.com/ChristopherVR/pptx-viewer/commit/b07f27ddecafe5b07f448b88bcc1ae22987cfaa4))
+- **angular:** Split power-point-viewer.component.ts into services (by @ChristopherVR) ([ed99083](https://github.com/ChristopherVR/pptx-viewer/commit/ed9908353763e6dd9512ddaa91fbe2ddf871d9e6))
+- **vue:** Split PowerPointViewer.vue into composables (by @ChristopherVR) ([886851d](https://github.com/ChristopherVR/pptx-viewer/commit/886851d2eebb4f4d237ddeb8dc3a0cc6da05174b))
+
+### Documentation
+
+- **vue:** Correct stale parity-gap claims in PORTING.md (by @ChristopherVR) ([1ce524c](https://github.com/ChristopherVR/pptx-viewer/commit/1ce524cf5af80064b0d8268610e40c900ea43204))
+- **angular:** Correct stale parity-gap claims in PORTING.md (by @ChristopherVR) ([55bca21](https://github.com/ChristopherVR/pptx-viewer/commit/55bca2108e6f0e498c7daff3660d1d9bb7f423dd))
+- Soften Vue/Angular parity claim to list real remaining gaps (by @ChristopherVR) ([f460dd1](https://github.com/ChristopherVR/pptx-viewer/commit/f460dd1c49b161b339fb612bfced4890b4542eeb))
+- Close out fixed parity gaps, drop the limitations caveat (by @ChristopherVR) ([53ae1f8](https://github.com/ChristopherVR/pptx-viewer/commit/53ae1f8460c47b1aa313020d2231edee91809fb0))
+- Remove the Vue/Angular parity limitation entirely (by @ChristopherVR) ([7825bfb](https://github.com/ChristopherVR/pptx-viewer/commit/7825bfb2ac55be3e8eeef894595672eaa891c400))
+
+## [1.1.72](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.72) - 2026-07-03
+
+### Features
+
 - **cli:** Arrow-key colour prompts and PowerPoint-ready scaffolds (by @ChristopherVR) ([8de03c9](https://github.com/ChristopherVR/pptx-viewer/commit/8de03c9da8c8d20e28cca253ff6d7083de65a0d8))
 
 ### Bug Fixes

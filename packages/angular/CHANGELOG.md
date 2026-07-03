@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.57](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.57) - 2026-07-03
+
+### Features
+
+- Document localization and add demo language pickers (by @ChristopherVR) ([a07ad82](https://github.com/ChristopherVR/pptx-viewer/commit/a07ad8279e906590e0392d19cd1637855012a80e))
+
+### Documentation
+
+- **angular:** Correct stale parity-gap claims in PORTING.md (by @ChristopherVR) ([55bca21](https://github.com/ChristopherVR/pptx-viewer/commit/55bca2108e6f0e498c7daff3660d1d9bb7f423dd))
+- Close out fixed parity gaps, drop the limitations caveat (by @ChristopherVR) ([53ae1f8](https://github.com/ChristopherVR/pptx-viewer/commit/53ae1f8460c47b1aa313020d2231edee91809fb0))
+
 ## [1.1.56](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.56) - 2026-07-02
 
 ### Features
