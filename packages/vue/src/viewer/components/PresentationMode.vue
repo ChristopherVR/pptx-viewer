@@ -8,6 +8,7 @@ import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import { useIsMobile } from '../composables/useIsMobile';
 import { usePresentationAnnotations } from '../composables/usePresentationAnnotations';
 import type { SlideAnnotationMap } from '../composables/usePresentationAnnotations';
+import { useToolbarAutoHide } from '../composables/useToolbarAutoHide';
 import { useTouchGestures } from '../composables/useTouchGestures';
 import { provideZoomNavigation } from '../composables/zoom-navigation';
 import type { CanvasSize } from '../types';
@@ -194,6 +195,14 @@ const presenterMode = ref(false);
 const { isMobile, isTouchDevice } = useIsMobile();
 /** Whether the live-caption (subtitle) bar is shown. */
 const subtitlesOn = ref(false);
+
+/**
+ * The floating mouse toolbar only appears on `mousemove` and hides again
+ * after an idle delay; while hidden it must not intercept pointer events; see
+ * `useToolbarAutoHide` for why (it otherwise sits over the persistent touch
+ * controls' fixed prev/next buttons).
+ */
+const { toolbarVisible } = useToolbarAutoHide();
 
 const annotations = usePresentationAnnotations({
 	isActive: () => true,
@@ -456,27 +465,6 @@ onBeforeUnmount(() => {
 			<!-- Live caption bar. -->
 			<PresentationSubtitleBar :visible="subtitlesOn" @click.stop />
 
-			<!-- Control bar (nav + ink tools + presenter toggle + end). -->
-			<PresentationToolbar
-				:presentation-tool="annotations.presentationTool.value"
-				:pen-color="annotations.penColor.value"
-				:highlighter-color="annotations.highlighterColor.value"
-				:has-annotations="annotations.hasAnyAnnotations.value"
-				:current-slide-index="currentIndex"
-				:total-slides="slides.length"
-				:presentation-start-time="presentationStartTime"
-				:presenter-mode="presenterMode"
-				:show-presenter-toggle="true"
-				@click.stop
-				@set-tool="annotations.setPresentationTool"
-				@set-pen-color="annotations.setPenColor"
-				@set-highlighter-color="annotations.setHighlighterColor"
-				@clear-annotations="annotations.clearAnnotations"
-				@move="onToolbarMove"
-				@end-presentation="close"
-				@toggle-presenter-view="presenterMode = !presenterMode"
-			/>
-
 			<!-- Mouse users get a slide counter; the auto-hiding PresentationToolbar
 			     already carries their nav + end controls. -->
 			<div v-if="!isTouchDevice" class="pptx-vue-presentation-counter" @click.stop>
@@ -486,13 +474,50 @@ onBeforeUnmount(() => {
 			<!-- Persistent touch controls (close + prev/next + counter): the primary
 			     touch affordance for exiting / navigating the slideshow, since the
 			     mouse toolbar stays hidden without a pointer move and a phone has no
-			     Escape key. Touch-only and safe-area aware. -->
+			     Escape key. Touch-only and safe-area aware. Rendered BEFORE the
+			     auto-hiding toolbar below (mirrors React's `ViewerCanvasArea` order)
+			     so that role/name queries which grab the first accessible match
+			     (e.g. `getByRole('button', { name: /next slide/i }).first()`) resolve
+			     to this always-interactive control rather than the toolbar's copy,
+			     which is genuinely non-interactive (`pointer-events: none`) while
+			     hidden. -->
 			<PresentationTouchControls
 				:current-slide-index="currentIndex"
 				:total-slides="slides.length"
 				@move="onToolbarMove"
 				@end="close"
 			/>
+
+			<!-- Control bar (nav + ink tools + presenter toggle + end). Hidden
+			     (opacity 0, pointer-events none) until the mouse moves, and hidden
+			     again after an idle delay: see `useToolbarAutoHide`. A touch-only
+			     device never dispatches `mousemove`, so this bar simply never
+			     appears there, which matters because it visually and physically
+			     overlaps `PresentationTouchControls`' fixed prev/next buttons. -->
+			<div
+				class="pptx-vue-presentation-toolbar-slot"
+				:class="{ 'is-visible': toolbarVisible }"
+				@click.stop
+			>
+				<PresentationToolbar
+					:presentation-tool="annotations.presentationTool.value"
+					:pen-color="annotations.penColor.value"
+					:highlighter-color="annotations.highlighterColor.value"
+					:has-annotations="annotations.hasAnyAnnotations.value"
+					:current-slide-index="currentIndex"
+					:total-slides="slides.length"
+					:presentation-start-time="presentationStartTime"
+					:presenter-mode="presenterMode"
+					:show-presenter-toggle="true"
+					@set-tool="annotations.setPresentationTool"
+					@set-pen-color="annotations.setPenColor"
+					@set-highlighter-color="annotations.setHighlighterColor"
+					@clear-annotations="annotations.clearAnnotations"
+					@move="onToolbarMove"
+					@end-presentation="close"
+					@toggle-presenter-view="presenterMode = !presenterMode"
+				/>
+			</div>
 
 			<!-- Keep-or-discard ink annotations on exit. -->
 			<KeepAnnotationsDialog
@@ -525,6 +550,22 @@ onBeforeUnmount(() => {
 .pptx-vue-presentation-frame {
 	position: relative;
 	overflow: hidden;
+}
+
+.pptx-vue-presentation-toolbar-slot {
+	position: absolute;
+	bottom: 24px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 80;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 300ms;
+}
+
+.pptx-vue-presentation-toolbar-slot.is-visible {
+	opacity: 1;
+	pointer-events: auto;
 }
 
 .pptx-vue-presentation-counter {

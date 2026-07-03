@@ -2109,9 +2109,16 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			     (< 768px container width). Mirrors React's Toolbar.tsx which
 			     swaps in <MobileToolbar> when isNarrowViewport is true. The
 			     hamburger opens MobileMenuSheet so every ribbon section stays
-			     reachable on a phone where the desktop ribbon is hidden. -->
-			<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
-			<MobileToolbar v-else v-bind="ribbonProps" />
+			     reachable on a phone where the desktop ribbon is hidden.
+			     Unmounted while presenting (mirrors React's `mode !== 'present'`
+			     gate on `ViewerToolbarSection`): the full-screen PresentationMode
+			     overlay already covers it visually, but leaving it mounted keeps
+			     its controls tab-focusable and creates duplicate accessible names
+			     (e.g. a second "Present" / "Menu" button) underneath the overlay. -->
+			<template v-if="!presenting">
+				<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
+				<MobileToolbar v-else v-bind="ribbonProps" />
+			</template>
 
 			<!-- Hidden pickers for Insert ▸ Image / Media -->
 			<input
@@ -2566,9 +2573,14 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@cancel="onAckSignatureStripped"
 			/>
 
-			<!-- Mobile bottom bar -->
+			<!-- Mobile bottom bar. Unmounted while presenting (mirrors React's
+			     `mode !== 'present'` gate on `MobileChromeOverlay`): otherwise its
+			     own "Next slide" / "Previous slide" buttons stay mounted (just
+			     covered by the full-screen PresentationMode overlay) and collide
+			     with the presentation's own same-named touch controls for
+			     accessible-role queries. -->
 			<MobileBottomBar
-				v-if="isMobile"
+				v-if="isMobile && !presenting"
 				:slide-index="activeSlideIndex"
 				:slide-count="slideCount"
 				:zoom-percent="zoomPercent"
@@ -2593,7 +2605,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			     desktop, hidden inline on mobile). Reuses SlidesPaneSidebar inside
 			     the shared swipe-dismiss MobileSheet; selecting a slide closes it. -->
 			<MobileSlidesSheet
-				v-if="isMobile"
+				v-if="isMobile && !presenting"
 				:open="mobileSlidesOpen"
 				:slides="mergedSlides"
 				:active-index="activeSlideIndex"
@@ -2612,7 +2624,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			<!-- Mobile speaker-notes sheet (toggled from the bottom bar). Uses the
 			     shared MobileSheet so it swipe-dismisses like Format/Comments. -->
 			<MobileSheet
-				v-if="isMobile"
+				v-if="isMobile && !presenting"
 				:open="mobileNotesOpen"
 				title="Notes"
 				@close="mobileNotesOpen = false"
@@ -2622,7 +2634,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 			<!-- Mobile Format / properties sheet (right-rail inspector on desktop) -->
 			<MobileSheet
-				v-if="isMobile && props.canEdit"
+				v-if="isMobile && props.canEdit && !presenting"
 				:open="mobileInspectorOpen"
 				title="Format"
 				@close="mobileInspectorOpen = false"
@@ -2650,7 +2662,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 			<!-- Mobile Comments sheet (right-rail panel on desktop) -->
 			<MobileSheet
-				v-if="isMobile && props.canEdit"
+				v-if="isMobile && props.canEdit && !presenting"
 				:open="mobileCommentsOpen"
 				title="Comments"
 				@close="mobileCommentsOpen = false"
