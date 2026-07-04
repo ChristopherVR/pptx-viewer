@@ -8,13 +8,14 @@ import type {
 	MediaPptxElement,
 	OlePptxElement,
 	PptxImageLikeElement,
+	SmartArtPptxElement,
 	TablePptxElement,
 } from '../../types';
 import { buildChartSpaceXml } from '../../utils/chart-xml-generator';
 import { BLIP_FILL_ORDER, SP_PR_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElementEmbedding';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
 import { CHART_CONTENT_TYPE, CHART_RELATIONSHIP_TYPE } from './PptxHandlerRuntimeSaveShapeXml';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveSmartArtFabrication';
 
 export type { SaveSlideContext };
 
@@ -260,6 +261,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// frame; without this the chart falls through to SAVE_ELEMENT_SKIPPED
 			// and is dropped from the saved slide.
 			shape = this.createChartElementXml(el as ChartPptxElement, ctx);
+		}
+		if (!shape && el.type === 'smartArt' && (el as SmartArtPptxElement).smartArtData) {
+			// SDK-created SmartArt (inserted via the viewer) has no rawXml and no
+			// diagram parts. Fabricate the data/layout/quickStyle/colors part
+			// family, register the slide relationships + content-type overrides,
+			// and build the graphic frame; without this the diagram falls through
+			// to SAVE_ELEMENT_SKIPPED and vanishes from the saved slide.
+			shape = this.createSmartArtElementXml(el as SmartArtPptxElement, ctx);
 		}
 		if (el.type === 'ole') {
 			// OLE round-trip strategy:

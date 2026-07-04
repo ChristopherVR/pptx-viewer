@@ -6,6 +6,7 @@ import type {
 } from '../../types';
 import { MAX_SMARTART_NODES } from '../builders/smart-art-text-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtParsing';
+import { resolveSmartArtLayoutCategory } from './smartart-layout-category';
 import { isContentPoint } from './smartart-xml-builders';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -101,6 +102,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				.pop()
 				?.replace(/\.[^.]+$/u, '') || undefined;
 
+		// The filename ("layout1") says nothing about the algorithm; the layout
+		// definition's categories / uniqueId do. Without this, any diagram with
+		// no cached drawing part renders as a plain list after reload.
+		const layoutDefXml = this.xmlLookupService.getChildByLocalName(layoutPart?.xml, 'layoutDef');
+		const layoutCategories = this.xmlLookupService
+			.getChildrenArrayByLocalName(
+				this.xmlLookupService.getChildByLocalName(layoutDefXml, 'catLst'),
+				'cat',
+			)
+			.map((cat) => String(cat?.['@_type'] || ''));
+		const resolvedLayoutType = resolveSmartArtLayoutCategory(
+			String(layoutDefXml?.['@_uniqueId'] || ''),
+			layoutCategories,
+		);
+
 		// ── Parse background (dgm:bg) and outline (dgm:whole) ───────────
 		const chrome = this.parseSmartArtChrome(dataModel);
 
@@ -130,6 +146,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		return {
 			layoutType,
+			resolvedLayoutType,
 			nodes,
 			connections: parsedConnections.length > 0 ? parsedConnections : undefined,
 			drawingShapes: drawingShapes.length > 0 ? drawingShapes : undefined,
