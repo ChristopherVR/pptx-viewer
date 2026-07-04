@@ -215,13 +215,13 @@ export function SettingsDialog({
 							<div className='space-y-0.5'>
 								{SHORTCUT_REFERENCE_ITEMS.map((shortcut, i) => (
 									<div
-										key={shortcut.action}
+										key={shortcut.actionKey}
 										className={cn(
 											'flex items-center justify-between gap-3 rounded px-3 py-2',
 											i % 2 === 0 ? 'bg-muted/60' : '',
 										)}
 									>
-										<span className='text-xs text-foreground'>{shortcut.action}</span>
+										<span className='text-xs text-foreground'>{t(shortcut.actionKey)}</span>
 										<span className='font-mono text-[11px] text-muted-foreground whitespace-nowrap'>
 											{shortcut.shortcut}
 										</span>

@@ -184,7 +184,7 @@ export type DrawingTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'freefor
 
 /** A single entry in the keyboard shortcuts help panel. */
 export interface ShortcutReferenceItem {
-	action: string;
+	actionKey: string;
 	shortcut: string;
 }
 

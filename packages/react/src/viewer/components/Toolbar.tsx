@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { TOOLBAR_SECTIONS } from '../constants';
 import { cn } from '../utils';
@@ -25,6 +26,7 @@ export type { ToolbarProps } from './toolbar/toolbar-types';
 
 export function Toolbar(p: ToolbarProps): React.ReactElement {
 	const { mode, isNarrowViewport, isCompactToolbarOpen, toolbarSection, onSetToolbarSection } = p;
+	const { t } = useTranslation();
 
 	// Mobile-first: at <768px we swap the entire desktop ribbon for a compact
 	// top bar plus a slide-up sheet exposing every section. The bottom action
@@ -77,7 +79,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 										: 'text-muted-foreground hover:text-foreground hover:bg-accent/30',
 							)}
 						>
-							{s.label}
+							{t(s.labelKey)}
 						</button>
 					))}
 					<div className='flex-1' />
@@ -91,9 +93,11 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 									? 'bg-primary/80 text-white'
 									: 'text-muted-foreground hover:text-foreground',
 							)}
-							title='Toggle ribbon'
+							title={t(
+								isCompactToolbarOpen ? 'pptx.ribbon.collapseRibbon' : 'pptx.ribbon.expandRibbon',
+							)}
 						>
-							{isCompactToolbarOpen ? 'Collapse' : 'Expand'}
+							{t(isCompactToolbarOpen ? 'pptx.ribbon.collapseRibbon' : 'pptx.ribbon.expandRibbon')}
 						</button>
 					)}
 				</div>
@@ -292,17 +296,17 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 								type='button'
 								onClick={p.onToggleShortcuts}
 								className={pill}
-								title='Keyboard shortcuts'
+								title={t('pptx.settings.keyboardShortcuts')}
 							>
-								Keyboard Shortcuts
+								{t('pptx.settings.keyboardShortcuts')}
 							</button>
 							<button
 								type='button'
 								onClick={p.onRunAccessibilityCheck}
 								className={pill}
-								title='Accessibility check'
+								title={t('pptx.ribbon.accessibilityCheck')}
 							>
-								Accessibility
+								{t('pptx.ribbon.accessibilityCheck')}
 							</button>
 						</>
 					)}

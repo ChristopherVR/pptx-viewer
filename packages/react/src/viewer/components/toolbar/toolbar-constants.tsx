@@ -71,138 +71,147 @@ export const DISTRIBUTE_BTNS = [
 export const DRAW_TOOLS: Array<{
 	id: DrawingTool;
 	icon: React.ReactNode;
-	t: string;
+	labelKey: string;
 	ac?: string;
 }> = [
 	{
 		id: 'select',
 		icon: <LuMoveRight className={ic} />,
-		t: 'Select',
+		labelKey: 'pptx.ribbon.tool.select',
 		ac: 'bg-primary text-white',
 	},
 	{
 		id: 'pen',
 		icon: <LuPencil className={ic} />,
-		t: 'Pen',
+		labelKey: 'pptx.ribbon.tool.pen',
 		ac: 'bg-primary text-white',
 	},
 	{
 		id: 'highlighter',
 		icon: <LuType className={ic} />,
-		t: 'Highlighter',
+		labelKey: 'pptx.ribbon.tool.highlighter',
 		ac: 'bg-yellow-600 text-white',
 	},
-	{ id: 'eraser', icon: <LuMinus className={ic} />, t: 'Eraser', ac: 'bg-red-600 text-white' },
+	{
+		id: 'eraser',
+		icon: <LuMinus className={ic} />,
+		labelKey: 'pptx.ribbon.tool.eraser',
+		ac: 'bg-red-600 text-white',
+	},
 	{
 		id: 'freeform',
 		icon: <LuSpline className={ic} />,
-		t: 'Freeform',
+		labelKey: 'pptx.ribbon.tool.freeform',
 		ac: 'bg-primary text-white',
 	},
 ];
 
-export const OV: Array<{ l: string; i: React.ReactNode; k: string }> = [
+export const OV: Array<{ labelKey: string; i: React.ReactNode; k: string }> = [
 	{
 		k: 'png',
-		l: 'Export as PNG',
+		labelKey: 'pptx.ribbon.exportPng',
 		i: <LuDownload className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'pdf',
-		l: 'Export as PDF',
+		labelKey: 'pptx.ribbon.exportPdf',
 		i: <LuFileText className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'video',
-		l: 'Export as Video',
+		labelKey: 'pptx.ribbon.exportVideo',
 		i: <LuVideo className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'gif',
-		l: 'Export as GIF',
+		labelKey: 'pptx.ribbon.exportGif',
 		i: <LuImage className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'package',
-		l: 'Package for Sharing',
+		labelKey: 'pptx.file.packageTooltip',
 		i: <LuFolderOpen className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'pptx',
-		l: 'Save as Presentation (.pptx)',
+		labelKey: 'pptx.file.saveAsPptxTooltip',
 		i: <LuDownload className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'ppsx',
-		l: 'Save as Slide Show (.ppsx)',
+		labelKey: 'pptx.file.saveAsPpsxTooltip',
 		i: <LuPlay className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'pptm',
-		l: 'Save as Macro-Enabled (.pptm)',
+		labelKey: 'pptx.file.saveAsPptmTooltip',
 		i: <LuDatabase className={`${ics} text-muted-foreground`} />,
 	},
-	{ k: '---0', l: '', i: null },
+	{ k: '---0', labelKey: '', i: null },
 	{
 		k: 'print',
-		l: 'Print',
+		labelKey: 'pptx.print.printButton',
 		i: <LuPrinter className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'copyImg',
-		l: 'Copy Slide as Image',
+		labelKey: 'pptx.file.copyImageTooltip',
 		i: <LuCopy className={`${ics} text-muted-foreground`} />,
 	},
-	{ k: '---', l: '', i: null },
+	{ k: '---', labelKey: '', i: null },
 	{
 		k: 'a11y',
-		l: 'Accessibility Check',
+		labelKey: 'pptx.ribbon.accessibilityCheck',
 		i: <LuCheck className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'shortcuts',
-		l: 'Keyboard Shortcuts',
+		labelKey: 'pptx.settings.keyboardShortcuts',
 		i: <LuSearch className={`${ics} text-muted-foreground`} />,
 	},
-	{ k: '---2', l: '', i: null },
+	{ k: '---2', labelKey: '', i: null },
 	{
 		k: 'versionHistory',
-		l: 'Version History',
+		labelKey: 'pptx.ribbon.versionHistory',
 		i: <LuClock className={`${ics} text-muted-foreground`} />,
 	},
-	{ k: '---3', l: '', i: null },
+	{ k: '---3', labelKey: '', i: null },
 	{
 		k: 'documentProperties',
-		l: 'Document Properties\u2026',
+		labelKey: 'pptx.ribbon.documentProperties',
 		i: <LuInfo className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'passwordProtection',
-		l: 'Protect Presentation',
+		labelKey: 'pptx.security.protectPresentation',
 		i: <LuLock className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'fontEmbedding',
-		l: 'Embed Fonts',
+		labelKey: 'pptx.ribbon.embedFonts',
 		i: <LuType className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'digitalSignatures',
-		l: 'Digital Signatures\u2026',
+		labelKey: 'pptx.viewer.digitalSignatures',
 		i: <LuShieldAlert className={`${ics} text-muted-foreground`} />,
 	},
 ];
 
 export const FMT = [
-	{ i: <LuBold className={ic} />, t: 'Bold' },
-	{ i: <LuItalic className={ic} />, t: 'Italic' },
-	{ i: <LuUnderline className={ic} />, t: 'Underline' },
-	{ i: <LuStrikethrough className={ic} />, t: 'Strikethrough' },
+	{ id: 'bold', i: <LuBold className={ic} />, labelKey: 'pptx.textPanel.bold' },
+	{ id: 'italic', i: <LuItalic className={ic} />, labelKey: 'pptx.textPanel.italic' },
+	{ id: 'underline', i: <LuUnderline className={ic} />, labelKey: 'pptx.textPanel.underline' },
+	{
+		id: 'strikethrough',
+		i: <LuStrikethrough className={ic} />,
+		labelKey: 'pptx.textPanel.strikethrough',
+	},
 ];
 
 export const ATXT = [
-	{ i: <LuAlignLeft className={ic} />, t: 'Align left' },
-	{ i: <LuAlignCenter className={ic} />, t: 'Align center' },
-	{ i: <LuAlignRight className={ic} />, t: 'Align right' },
-	{ i: <LuAlignJustify className={ic} />, t: 'Justify' },
+	{ id: 'left', i: <LuAlignLeft className={ic} />, labelKey: 'pptx.ribbon.alignLeft' },
+	{ id: 'center', i: <LuAlignCenter className={ic} />, labelKey: 'pptx.ribbon.alignCenter' },
+	{ id: 'right', i: <LuAlignRight className={ic} />, labelKey: 'pptx.ribbon.alignRight' },
+	{ id: 'justify', i: <LuAlignJustify className={ic} />, labelKey: 'pptx.ribbon.justify' },
 ];

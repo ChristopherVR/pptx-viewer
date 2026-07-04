@@ -118,11 +118,11 @@ describe('dRAW_TOOLS', () => {
 		expect(DRAW_TOOLS).toHaveLength(5);
 	});
 
-	it('each tool has id, icon, and t properties', () => {
+	it('each tool has id, icon, and labelKey properties', () => {
 		for (const tool of DRAW_TOOLS) {
 			expectTypeOf(tool.id).toBeString();
 			expect(tool.icon).toBeDefined();
-			expectTypeOf(tool.t).toBeString();
+			expectTypeOf(tool.labelKey).toBeString();
 		}
 	});
 
@@ -161,9 +161,9 @@ describe('oV', () => {
 		expect(OV.length).toBeGreaterThan(0);
 	});
 
-	it('each item has l, i, and k properties', () => {
+	it('each item has labelKey, i, and k properties', () => {
 		for (const item of OV) {
-			expect(item).toHaveProperty('l');
+			expect(item).toHaveProperty('labelKey');
 			expect(item).toHaveProperty('i');
 			expect(item).toHaveProperty('k');
 		}
@@ -181,7 +181,7 @@ describe('oV', () => {
 		const seps = OV.filter((o) => o.k.startsWith('---'));
 		expect(seps.length).toBeGreaterThan(0);
 		for (const sep of seps) {
-			expect(sep.l).toBe('');
+			expect(sep.labelKey).toBe('');
 			expect(sep.i).toBeNull();
 		}
 	});
@@ -212,16 +212,21 @@ describe('fMT', () => {
 		expect(FMT).toHaveLength(4);
 	});
 
-	it('each button has i and t properties', () => {
+	it('each button has i and labelKey properties', () => {
 		for (const btn of FMT) {
 			expect(btn.i).toBeDefined();
-			expectTypeOf(btn.t).toBeString();
+			expectTypeOf(btn.labelKey).toBeString();
 		}
 	});
 
 	it('includes Bold, Italic, Underline, and Strikethrough', () => {
-		const labels = FMT.map((f) => f.t);
-		expect(labels).toStrictEqual(['Bold', 'Italic', 'Underline', 'Strikethrough']);
+		const labelKeys = FMT.map((f) => f.labelKey);
+		expect(labelKeys).toStrictEqual([
+			'pptx.textPanel.bold',
+			'pptx.textPanel.italic',
+			'pptx.textPanel.underline',
+			'pptx.textPanel.strikethrough',
+		]);
 	});
 });
 
@@ -234,15 +239,20 @@ describe('aTXT', () => {
 		expect(ATXT).toHaveLength(4);
 	});
 
-	it('each button has i and t properties', () => {
+	it('each button has i and labelKey properties', () => {
 		for (const btn of ATXT) {
 			expect(btn.i).toBeDefined();
-			expectTypeOf(btn.t).toBeString();
+			expectTypeOf(btn.labelKey).toBeString();
 		}
 	});
 
 	it('includes left, center, right, and justify', () => {
-		const labels = ATXT.map((a) => a.t);
-		expect(labels).toStrictEqual(['Align left', 'Align center', 'Align right', 'Justify']);
+		const labelKeys = ATXT.map((a) => a.labelKey);
+		expect(labelKeys).toStrictEqual([
+			'pptx.ribbon.alignLeft',
+			'pptx.ribbon.alignCenter',
+			'pptx.ribbon.alignRight',
+			'pptx.ribbon.justify',
+		]);
 	});
 });

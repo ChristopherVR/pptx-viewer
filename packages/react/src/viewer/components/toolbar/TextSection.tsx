@@ -1,6 +1,7 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import React, { useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
 	LuAArrowDown,
 	LuAArrowUp,
@@ -78,6 +79,7 @@ export interface TextSectionProps {
 }
 
 export function TextSection(p: TextSectionProps): React.ReactElement {
+	const { t } = useTranslation();
 	const hasSel = Boolean(p.selectedElement);
 	const canMut = hasSel && p.canEdit;
 	const isTextEl = hasSel && p.selectedElement !== null && hasTextProperties(p.selectedElement);
@@ -133,19 +135,19 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 									return;
 								}
 								const ts = effectiveTs;
-								switch (b.t) {
-									case 'Bold':
+								switch (b.id) {
+									case 'bold':
 										p.onUpdateTextStyle({ bold: !ts?.bold });
 										break;
-									case 'Italic':
+									case 'italic':
 										p.onUpdateTextStyle({ italic: !ts?.italic });
 										break;
-									case 'Underline':
+									case 'underline':
 										p.onUpdateTextStyle({
 											underline: !ts?.underline,
 										});
 										break;
-									case 'Strikethrough':
+									case 'strikethrough':
 										p.onUpdateTextStyle({
 											strikethrough: !ts?.strikethrough,
 										});
@@ -154,13 +156,13 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 							};
 							return (
 								<button
-									key={b.t}
+									key={b.id}
 									type='button'
 									disabled={!canMut}
 									onMouseDown={(e) => e.preventDefault()}
 									onClick={handleClick}
 									className={i < a.length - 1 ? gB : gL}
-									title={b.t}
+									title={t(b.labelKey)}
 								>
 									{b.i}
 								</button>
@@ -233,6 +235,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 							onMouseDown={(e) => e.preventDefault()}
 							className={pill}
 							title='Font Color'
+							aria-label='Font Color'
 						>
 							<svg
 								className={ic}
@@ -257,6 +260,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 										<button
 											key={c}
 											type='button'
+											aria-label={c}
 											className={`w-5 h-5 rounded-full border transition-transform hover:scale-125 ${
 												currentColor?.toLowerCase() === c
 													? 'border-primary ring-1 ring-primary'
@@ -295,6 +299,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 							onMouseDown={(e) => e.preventDefault()}
 							className={pill}
 							title='Text Highlight Color'
+							aria-label='Text Highlight Color'
 						>
 							<LuHighlighter className={ic} />
 							<div
@@ -309,6 +314,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 										<button
 											key={c}
 											type='button'
+											aria-label={c}
 											className={`w-5 h-5 rounded-full border transition-transform hover:scale-125 ${
 												currentHighlight?.toLowerCase() === c
 													? 'border-primary ring-1 ring-primary'
@@ -432,26 +438,17 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								if (!canFormat) {
 									return;
 								}
-								const alignMap: Record<string, 'left' | 'center' | 'right' | 'justify'> = {
-									'Align left': 'left',
-									'Align center': 'center',
-									'Align right': 'right',
-									Justify: 'justify',
-								};
-								const align = alignMap[b.t];
-								if (align) {
-									p.onUpdateTextStyle({ align });
-								}
+								p.onUpdateTextStyle({ align: b.id as 'left' | 'center' | 'right' | 'justify' });
 							};
 							return (
 								<button
-									key={b.t}
+									key={b.id}
 									type='button'
 									disabled={!canMut}
 									onMouseDown={(e) => e.preventDefault()}
 									onClick={handleClick}
 									className={i < a.length - 1 ? gB : gL}
-									title={b.t}
+									title={t(b.labelKey)}
 								>
 									{b.i}
 								</button>

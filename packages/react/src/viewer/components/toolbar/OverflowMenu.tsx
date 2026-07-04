@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuEllipsis } from 'react-icons/lu';
 
 import { cn } from '../../utils';
@@ -30,6 +31,7 @@ type OverflowKeys =
 export type OverflowMenuProps = Pick<ToolbarProps, OverflowKeys>;
 
 export function OverflowMenu(p: OverflowMenuProps): React.ReactElement {
+	const { t } = useTranslation();
 	const ovAct = (k: string) => {
 		p.onSetOverflowMenuOpen(false);
 		(
@@ -64,8 +66,8 @@ export function OverflowMenu(p: OverflowMenuProps): React.ReactElement {
 					'p-1.5 rounded transition-colors',
 					p.isOverflowMenuOpen ? 'bg-primary/80 text-white' : 'bg-muted hover:bg-accent',
 				)}
-				title='More actions'
-				aria-label='More actions'
+				title={t('pptx.ribbon.moreActions')}
+				aria-label={t('pptx.ribbon.moreActions')}
 			>
 				<LuEllipsis className={ic} />
 			</button>
@@ -74,7 +76,7 @@ export function OverflowMenu(p: OverflowMenuProps): React.ReactElement {
 					<button
 						type='button'
 						className='fixed inset-0 z-40'
-						aria-label='Close menu'
+						aria-label={t('pptx.overflow.closeMenu')}
 						onClick={() => p.onSetOverflowMenuOpen(false)}
 					/>
 					<div className='absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1'>
@@ -89,7 +91,7 @@ export function OverflowMenu(p: OverflowMenuProps): React.ReactElement {
 									className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
 								>
 									{o.i}
-									{o.l}
+									{t(o.labelKey)}
 								</button>
 							),
 						)}
