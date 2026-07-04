@@ -7,7 +7,7 @@ import { bold, cyan, dim, gray, green, red, yellow } from './colors';
 import { checkCompat } from './compat';
 import { detectPackageManager, installCommand } from './package-manager';
 import { confirm, input, multiSelect, selectOption } from './prompt';
-import { findTargetsByIds, mergePackages, parseTargetIds } from './resolve';
+import { assertSingleFramework, findTargetsByIds, mergePackages, parseTargetIds } from './resolve';
 import { runCommand } from './run-command';
 import { sanitizeProjectName, scaffoldProject } from './scaffold';
 import { TARGETS } from './targets';
@@ -24,6 +24,7 @@ ${bold('Usage:')} npx @christophervr/pptx-viewer [options]
 
 ${bold('Options:')}
   ${cyan('--target <ids>')}  Skip the picker; comma-separated, any of: ${TARGETS.map((t) => t.id).join(', ')}
+                   (react, vue, and angular are mutually exclusive; pick at most one)
   ${cyan('--scaffold')}      Bootstrap a brand-new starter project instead of installing here
   ${cyan('--dir <name>')}    Project directory name for --scaffold
   ${cyan('--pm <manager>')}  Package manager to use: bun, pnpm, yarn, npm (default: auto-detected)
@@ -80,6 +81,8 @@ async function resolveScaffoldChoice(
 	installTargets: Target[],
 	args: ParsedArgs,
 ): Promise<ScaffoldChoice> {
+	// At most one scaffoldable (react/vue/angular) target can reach here:
+	// assertSingleFramework already rejected picking more than one in main().
 	const scaffoldable = installTargets.filter((t) => t.scaffold);
 
 	if (args.scaffold) {
@@ -87,13 +90,6 @@ async function resolveScaffoldChoice(
 			throw new Error('--scaffold requires exactly one of: react, vue, angular to be selected.');
 		}
 		return { useScaffold: true, scaffoldTarget: scaffoldable[0] };
-	}
-
-	if (scaffoldable.length > 1) {
-		console.log(
-			`\n${dim('Scaffolding a new project only supports one UI framework at a time; installing instead.')}`,
-		);
-		return { useScaffold: false };
 	}
 
 	if (scaffoldable.length === 1 && process.stdin.isTTY) {
@@ -217,6 +213,7 @@ async function main(): Promise<void> {
 
 	printBanner();
 	const targets = await resolveTargets(args.target);
+	assertSingleFramework(targets);
 
 	const installTargets = targets.filter((t) => t.mode === 'install');
 	const configTargets = targets.filter((t) => t.mode === 'print-config');

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { findTargetsByIds, mergePackages, parseTargetIds } from './resolve';
+import { assertSingleFramework, findTargetsByIds, mergePackages, parseTargetIds } from './resolve';
 import { TARGETS } from './targets';
 
 describe('parseTargetIds', () => {
@@ -21,6 +21,23 @@ describe('findTargetsByIds', () => {
 
 	it('throws naming the unknown id', () => {
 		expect(() => findTargetsByIds(['react', 'svelte'])).toThrow('Unknown target "svelte"');
+	});
+});
+
+describe('assertSingleFramework', () => {
+	it('allows a single UI framework alongside non-framework targets', () => {
+		const targets = findTargetsByIds(['react', 'mcp', 'core']);
+		expect(() => assertSingleFramework(targets)).not.toThrow();
+	});
+
+	it('throws when more than one UI framework is picked together', () => {
+		const targets = findTargetsByIds(['react', 'vue', 'angular']);
+		expect(() => assertSingleFramework(targets)).toThrow(/React, Vue, Angular/u);
+	});
+
+	it('allows targets with no group at all', () => {
+		const targets = findTargetsByIds(['core', 'mcp']);
+		expect(() => assertSingleFramework(targets)).not.toThrow();
 	});
 });
 

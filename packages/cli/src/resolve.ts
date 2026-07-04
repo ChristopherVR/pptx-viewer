@@ -26,6 +26,30 @@ export function findTargetsByIds(ids: string[]): Target[] {
 	});
 }
 
+/**
+ * React, Vue, and Angular bindings are separate, framework-specific packages,
+ * not meant to be installed into the same project together. Throws naming the
+ * conflicting targets if more than one `group`-sharing target was picked.
+ */
+export function assertSingleFramework(targets: Target[]): void {
+	const grouped = new Map<string, Target[]>();
+	for (const target of targets) {
+		if (!target.group) {
+			continue;
+		}
+		const mates = grouped.get(target.group) ?? [];
+		mates.push(target);
+		grouped.set(target.group, mates);
+	}
+	for (const mates of grouped.values()) {
+		if (mates.length > 1) {
+			throw new Error(
+				`${mates.map((t) => t.label).join(', ')} can't be selected together; pick a single UI framework.`,
+			);
+		}
+	}
+}
+
 /** Dedupe package names across multiple targets' install lists, preserving first-seen order. */
 export function mergePackages(targets: Target[]): string[] {
 	const seen = new Set<string>();

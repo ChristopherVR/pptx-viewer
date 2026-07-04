@@ -33,6 +33,8 @@ export interface Target {
 	compat?: FrameworkCompat;
 	/** Present for UI framework targets: enables "scaffold a new project" mode. */
 	scaffold?: ScaffoldRecipe;
+	/** Targets sharing a `group` are mutually exclusive: React, Vue, and Angular bindings aren't meant to be picked together. */
+	group?: string;
 }
 
 // Mirrors the demo apps (demos/demo-react, demo-vue, demo-angular): a picker
@@ -40,10 +42,16 @@ export interface Target {
 // viewer a freshly built blank deck via PptxHandler.createBlank, so the
 // scaffolded app actually shows a working PowerPoint presentation right away
 // instead of a bare, empty file input.
+//
+// The style import uses the `/styles.css` subpath, not the extension-less
+// `/styles` alias: Vite's ambient `declare module '*.css'` (from its
+// `vite/client` types) only matches specifiers that literally end in
+// `.css`, so the extension-less form fails `vue-tsc -b`/`tsc -b` in a fresh
+// scaffold with "Cannot find module ... for side-effect import".
 const REACT_APP_TSX = `import { useCallback, useState } from 'react';
 import { PptxHandler } from 'pptx-viewer-core';
 import { PowerPointViewer } from 'pptx-react-viewer';
-import 'pptx-react-viewer/styles';
+import 'pptx-react-viewer/styles.css';
 
 export default function App() {
 	const [content, setContent] = useState<Uint8Array | null>(null);
@@ -90,7 +98,7 @@ const VUE_APP_VUE = `<script setup lang="ts">
 import { ref } from 'vue';
 import { PptxHandler } from 'pptx-viewer-core';
 import { PowerPointViewer } from 'pptx-vue-viewer';
-import 'pptx-vue-viewer/styles';
+import 'pptx-vue-viewer/styles.css';
 
 const content = ref<Uint8Array>();
 
@@ -172,6 +180,7 @@ export const TARGETS: Target[] = [
 		label: 'React',
 		description: 'pptx-react-viewer - viewer/editor component for a React 19 app',
 		mode: 'install',
+		group: 'framework',
 		packages: [
 			'pptx-react-viewer',
 			'react',
@@ -186,7 +195,7 @@ export const TARGETS: Target[] = [
 			'react-i18next',
 		],
 		nextSteps: `import { PowerPointViewer } from 'pptx-react-viewer';
-import 'pptx-react-viewer/styles';
+import 'pptx-react-viewer/styles.css';
 
 <PowerPointViewer content={arrayBuffer} canEdit />
 
@@ -194,7 +203,11 @@ Docs: https://www.npmjs.com/package/pptx-react-viewer`,
 		compat: { peerPackage: 'react', requiredMajor: 19 },
 		scaffold: {
 			command: 'create-vite@latest',
-			args: (dir) => [dir, '--template', 'react-ts'],
+			// --no-interactive/--no-immediate stop create-vite from prompting for a linter
+			// choice and then auto-installing + auto-starting its own dev server; if it did,
+			// that dev server would block forever and our own entry-file patch + extra
+			// package install below would never run, leaving the default Vite template in place.
+			args: (dir) => [dir, '--template', 'react-ts', '--no-interactive', '--no-immediate'],
 			extraPackages: [
 				'pptx-react-viewer',
 				'pptx-viewer-core',
@@ -216,10 +229,11 @@ Docs: https://www.npmjs.com/package/pptx-react-viewer`,
 		label: 'Vue',
 		description: 'pptx-vue-viewer - viewer/editor component for a Vue 3.5+ app',
 		mode: 'install',
+		group: 'framework',
 		packages: ['pptx-vue-viewer', 'vue', 'jszip', 'fast-xml-parser'],
 		nextSteps: `<script setup lang="ts">
 import { PowerPointViewer } from 'pptx-vue-viewer';
-import 'pptx-vue-viewer/styles';
+import 'pptx-vue-viewer/styles.css';
 </script>
 
 <template>
@@ -230,7 +244,7 @@ Docs: https://www.npmjs.com/package/pptx-vue-viewer`,
 		compat: { peerPackage: 'vue', requiredMajor: 3 },
 		scaffold: {
 			command: 'create-vite@latest',
-			args: (dir) => [dir, '--template', 'vue-ts'],
+			args: (dir) => [dir, '--template', 'vue-ts', '--no-interactive', '--no-immediate'],
 			extraPackages: ['pptx-vue-viewer', 'pptx-viewer-core', 'jszip', 'fast-xml-parser'],
 			entryCandidates: ['src/App.vue'],
 			entryContent: VUE_APP_VUE,
@@ -241,9 +255,10 @@ Docs: https://www.npmjs.com/package/pptx-vue-viewer`,
 		label: 'Angular',
 		description: 'pptx-angular-viewer - viewer/editor component for an Angular 22+ app',
 		mode: 'install',
+		group: 'framework',
 		packages: ['pptx-angular-viewer', '@angular/core', '@angular/common', 'rxjs'],
 		nextSteps: `import { PowerPointViewerComponent } from 'pptx-angular-viewer';
-import 'pptx-angular-viewer/styles';
+import 'pptx-angular-viewer/styles.css';
 
 <pptx-power-point-viewer [content]="content" />
 
@@ -251,7 +266,19 @@ Docs: https://www.npmjs.com/package/pptx-angular-viewer`,
 		compat: { peerPackage: '@angular/core', requiredMajor: 22 },
 		scaffold: {
 			command: '@angular/cli@latest',
-			args: (dir) => ['new', dir, '--standalone', '--skip-git', '--style=css', '--skip-install'],
+			// --no-interactive matters even with the flags above supplied: the
+			// `application` schematic's `ssr` option has an `x-prompt`, and `ng new`
+			// prompts for it (plus anything else not already given a value) whenever
+			// stdin is a TTY, which ours is (we inherit the real user's terminal).
+			args: (dir) => [
+				'new',
+				dir,
+				'--standalone',
+				'--skip-git',
+				'--style=css',
+				'--skip-install',
+				'--no-interactive',
+			],
 			extraPackages: ['pptx-angular-viewer', 'pptx-viewer-core'],
 			// Angular v20+ generates `app.ts`; older schematics generate `app.component.ts`.
 			entryCandidates: ['src/app/app.ts', 'src/app/app.component.ts'],
