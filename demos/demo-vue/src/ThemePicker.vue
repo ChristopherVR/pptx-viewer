@@ -40,7 +40,11 @@ function pick(key: string): void {
 
 <template>
 	<Teleport to="body">
-		<div class="theme-picker" :class="{ 'theme-picker--small': isSmallScreen }">
+		<div
+			class="theme-picker"
+			:class="{ 'theme-picker--small': isSmallScreen }"
+			:style="{ zIndex: open ? 100000 : 99999 }"
+		>
 			<button
 				type="button"
 				class="theme-picker__btn"

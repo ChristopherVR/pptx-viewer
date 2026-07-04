@@ -72,7 +72,11 @@ type DemoContent = Uint8Array | ArrayBuffer;
 	],
 	template: `
 		<app-theme-picker [current]="themeKey()" (themeChange)="onThemeChange($event)" />
-		<app-language-picker [current]="languageKey()" (languageChange)="onLanguageChange($event)" />
+		<app-language-picker
+			[current]="languageKey()"
+			[theme]="themeKey()"
+			(languageChange)="onLanguageChange($event)"
+		/>
 
 		@if (content()) {
 			<div class="demo-viewer-host">

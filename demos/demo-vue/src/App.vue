@@ -390,7 +390,7 @@ function browse(): void {
 <template>
 	<div v-if="content" class="demo-shell">
 		<ThemePicker :current="themeKey" @change="setTheme" />
-		<LanguagePicker :current="languageKey" @change="setLanguage" />
+		<LanguagePicker :current="languageKey" :theme="themeKey" @change="setLanguage" />
 		<PowerPointViewer
 			:content="content"
 			:theme="currentPreset.theme"
@@ -407,7 +407,7 @@ function browse(): void {
 
 	<div v-else class="demo-stage">
 		<ThemePicker :current="themeKey" @change="setTheme" />
-		<LanguagePicker :current="languageKey" @change="setLanguage" />
+		<LanguagePicker :current="languageKey" :theme="themeKey" @change="setLanguage" />
 		<div
 			class="demo-dropzone"
 			role="button"

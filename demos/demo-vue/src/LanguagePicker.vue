@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import type { LanguageCode } from './languages';
 import { languages } from './languages';
+import { themes } from './themes';
 
 /**
  * Floating language picker, styled to match `ThemePicker.vue`.
@@ -11,10 +12,16 @@ import { languages } from './languages';
  * beside it, so the two never collide regardless of how wide either button's
  * label happens to be.
  */
-const props = defineProps<{ current: LanguageCode }>();
+const props = defineProps<{ current: LanguageCode; theme: string }>();
 const emit = defineEmits<{ (e: 'change', code: LanguageCode): void }>();
 
 const open = ref(false);
+
+const preset = computed(() => themes[props.theme] ?? themes.dark);
+const bg = computed(() => preset.value.theme.colors?.card ?? '#111827');
+const border = computed(() => preset.value.theme.colors?.border ?? '#374151');
+const fg = computed(() => preset.value.theme.colors?.mutedForeground ?? '#9ca3af');
+const primary = computed(() => preset.value.theme.colors?.primary ?? '#6366f1');
 
 const isSmallScreen = ref(typeof window !== 'undefined' && window.innerWidth < 768);
 function onResize(): void {
@@ -35,11 +42,16 @@ function pick(code: LanguageCode): void {
 
 <template>
 	<Teleport to="body">
-		<div class="language-picker" :class="{ 'language-picker--small': isSmallScreen }">
+		<div
+			class="language-picker"
+			:class="{ 'language-picker--small': isSmallScreen }"
+			:style="{ zIndex: open ? 100000 : 99999 }"
+		>
 			<button
 				type="button"
 				class="language-picker__btn"
 				title="Switch language"
+				:style="{ border: `1px solid ${border}`, background: bg, color: fg }"
 				@click="open = !open"
 			>
 				<svg
@@ -60,13 +72,21 @@ function pick(code: LanguageCode): void {
 				</svg>
 				{{ activeLabel(props.current) }}
 			</button>
-			<div v-if="open" class="language-picker__menu">
+			<div
+				v-if="open"
+				class="language-picker__menu"
+				:style="{ background: bg, border: `1px solid ${border}` }"
+			>
 				<button
 					v-for="language in languages"
 					:key="language.code"
 					type="button"
 					class="language-picker__item"
-					:class="{ 'language-picker__item--active': language.code === current }"
+					:style="{
+						background: language.code === current ? `${primary}22` : 'transparent',
+						color: language.code === current ? primary : fg,
+						fontWeight: language.code === current ? 600 : 400,
+					}"
 					@click="pick(language.code)"
 				>
 					{{ language.label }}
@@ -97,9 +117,6 @@ function pick(code: LanguageCode): void {
 	gap: 6px;
 	padding: 6px 12px;
 	border-radius: 9999px;
-	border: 1px solid #374151;
-	background: #111827;
-	color: #9ca3af;
 	cursor: pointer;
 	font-size: 13px;
 	font-weight: 500;
@@ -111,8 +128,6 @@ function pick(code: LanguageCode): void {
 	bottom: 100%;
 	margin-bottom: 4px;
 	right: 0;
-	background: #111827;
-	border: 1px solid #374151;
 	border-radius: 8px;
 	overflow-y: auto;
 	max-height: 60dvh;
@@ -133,16 +148,8 @@ function pick(code: LanguageCode): void {
 	width: 100%;
 	padding: 8px 14px;
 	border: none;
-	background: transparent;
-	color: #9ca3af;
 	cursor: pointer;
 	font-size: 13px;
 	text-align: left;
-}
-
-.language-picker__item--active {
-	background: #6366f122;
-	color: #6366f1;
-	font-weight: 600;
 }
 </style>

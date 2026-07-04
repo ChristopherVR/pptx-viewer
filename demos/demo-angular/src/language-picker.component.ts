@@ -1,3 +1,4 @@
+import { NgStyle } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
@@ -9,6 +10,7 @@ import {
 } from '@angular/core';
 
 import { LANGUAGES } from './languages';
+import { THEMES } from './themes';
 
 /**
  * Floating language picker (Angular port of the React/Vue demos' `LanguagePicker`).
@@ -21,9 +23,16 @@ import { LANGUAGES } from './languages';
 	selector: 'app-language-picker',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [NgStyle],
 	template: `
-		<div class="picker" [class.picker--small]="isSmallScreen()">
-			<button type="button" class="pill" title="Switch language" (click)="toggle()">
+		<div class="picker" [class.picker--small]="isSmallScreen()" [ngStyle]="containerStyle()">
+			<button
+				type="button"
+				class="pill"
+				title="Switch language"
+				[ngStyle]="pillStyle()"
+				(click)="toggle()"
+			>
 				<svg
 					width="14"
 					height="14"
@@ -43,12 +52,12 @@ import { LANGUAGES } from './languages';
 				{{ label(current()) }}
 			</button>
 			@if (open()) {
-				<div class="menu">
+				<div class="menu" [ngStyle]="menuStyle()">
 					@for (language of languages; track language.code) {
 						<button
 							type="button"
 							class="row"
-							[class.row--active]="language.code === current()"
+							[ngStyle]="rowStyle(language.code)"
 							(click)="choose(language.code)"
 						>
 							{{ language.label }}
@@ -64,7 +73,6 @@ import { LANGUAGES } from './languages';
 				position: fixed;
 				bottom: 92px;
 				right: 12px;
-				z-index: 99999;
 				font-family: system-ui, sans-serif;
 			}
 			.picker--small {
@@ -78,9 +86,6 @@ import { LANGUAGES } from './languages';
 				gap: 6px;
 				padding: 6px 12px;
 				border-radius: 9999px;
-				border: 1px solid #374151;
-				background: #111827;
-				color: #9ca3af;
 				cursor: pointer;
 				font-size: 13px;
 				font-weight: 500;
@@ -91,8 +96,6 @@ import { LANGUAGES } from './languages';
 				bottom: 100%;
 				margin-bottom: 4px;
 				right: 0;
-				background: #111827;
-				border: 1px solid #374151;
 				border-radius: 8px;
 				overflow-y: auto;
 				max-height: 60dvh;
@@ -111,16 +114,9 @@ import { LANGUAGES } from './languages';
 				width: 100%;
 				padding: 8px 14px;
 				border: none;
-				background: transparent;
-				color: #9ca3af;
 				cursor: pointer;
 				font-size: 13px;
 				text-align: left;
-			}
-			.row--active {
-				background: #6366f122;
-				color: #6366f1;
-				font-weight: 600;
 			}
 		`,
 	],
@@ -128,6 +124,8 @@ import { LANGUAGES } from './languages';
 export class LanguagePickerComponent {
 	/** Active language code. */
 	readonly current = input.required<string>();
+	/** Active theme key, used to colour the picker to match the active theme. */
+	readonly theme = input.required<string>();
 	/** Emits the newly selected language code. */
 	readonly languageChange = output<string>();
 
@@ -137,6 +135,27 @@ export class LanguagePickerComponent {
 		typeof window !== 'undefined' && window.innerWidth < 768,
 	);
 	protected readonly isSmallScreen = computed(() => this.isSmallScreenState());
+
+	private readonly preset = computed(() => THEMES[this.theme()] ?? THEMES['dark']);
+	private readonly bg = computed(() => this.preset().theme.colors?.card ?? '#111827');
+	private readonly border = computed(() => this.preset().theme.colors?.border ?? '#374151');
+	private readonly fg = computed(() => this.preset().theme.colors?.mutedForeground ?? '#9ca3af');
+	private readonly primary = computed(() => this.preset().theme.colors?.primary ?? '#6366f1');
+
+	protected readonly containerStyle = computed<Record<string, string>>(() => ({
+		zIndex: this.open() ? '100000' : '99999',
+	}));
+
+	protected readonly pillStyle = computed<Record<string, string>>(() => ({
+		border: `1px solid ${this.border()}`,
+		background: this.bg(),
+		color: this.fg(),
+	}));
+
+	protected readonly menuStyle = computed<Record<string, string>>(() => ({
+		background: this.bg(),
+		border: `1px solid ${this.border()}`,
+	}));
 
 	@HostListener('window:resize')
 	protected onResize(): void {
@@ -154,5 +173,14 @@ export class LanguagePickerComponent {
 
 	protected label(code: string): string {
 		return (this.languages.find((language) => language.code === code) ?? this.languages[0]).label;
+	}
+
+	protected rowStyle(code: string): Record<string, string> {
+		const isActive = code === this.current();
+		return {
+			background: isActive ? `${this.primary()}22` : 'transparent',
+			color: isActive ? this.primary() : this.fg(),
+			fontWeight: isActive ? '600' : '400',
+		};
 	}
 }

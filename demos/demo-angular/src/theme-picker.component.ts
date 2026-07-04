@@ -135,7 +135,7 @@ export class ThemePickerComponent {
 
 	protected readonly containerStyle = computed<Record<string, string>>(() => ({
 		position: 'fixed',
-		zIndex: '99999',
+		zIndex: this.open() ? '100000' : '99999',
 		...(this.isSmallScreen()
 			? { top: 'calc(env(safe-area-inset-top, 0px) + 60px)', right: '8px' }
 			: { bottom: '48px', right: '12px' }),

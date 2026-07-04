@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import type { ViewerTheme } from '../../packages/react/src/theme';
 import { languages } from './languages';
 
 /**
@@ -15,9 +16,11 @@ const pickerRoot = document.getElementById('language-picker-root')!;
 export function LanguagePicker({
 	current,
 	onChange,
+	theme,
 }: {
 	current: string;
 	onChange: (code: string) => void;
+	theme: { theme: ViewerTheme };
 }) {
 	const [open, setOpen] = useState(false);
 	const [isSmallScreen, setIsSmallScreen] = useState(
@@ -29,6 +32,11 @@ export function LanguagePicker({
 		return () => window.removeEventListener('resize', onResize);
 	}, []);
 
+	const bg = theme.theme.colors?.card ?? '#111827';
+	const border = theme.theme.colors?.border ?? '#374151';
+	const fg = theme.theme.colors?.mutedForeground ?? '#9ca3af';
+	const primary = theme.theme.colors?.primary ?? '#6366f1';
+
 	const active = languages.find((language) => language.code === current) ?? languages[0];
 
 	const picker = (
@@ -38,7 +46,7 @@ export function LanguagePicker({
 				...(isSmallScreen
 					? { top: 'calc(env(safe-area-inset-top, 0px) + 104px)', right: 8 }
 					: { bottom: 92, right: 12 }),
-				zIndex: 99999,
+				zIndex: open ? 100000 : 99999,
 				fontFamily: 'system-ui, sans-serif',
 			}}
 		>
@@ -51,9 +59,9 @@ export function LanguagePicker({
 					gap: 6,
 					padding: '6px 12px',
 					borderRadius: 9999,
-					border: '1px solid #374151',
-					background: '#111827',
-					color: '#9ca3af',
+					border: `1px solid ${border}`,
+					background: bg,
+					color: fg,
 					cursor: 'pointer',
 					fontSize: 13,
 					fontWeight: 500,
@@ -84,8 +92,8 @@ export function LanguagePicker({
 							? { top: '100%', marginTop: 4 }
 							: { bottom: '100%', marginBottom: 4 }),
 						right: 0,
-						background: '#111827',
-						border: '1px solid #374151',
+						background: bg,
+						border: `1px solid ${border}`,
 						borderRadius: 8,
 						overflowY: 'auto',
 						maxHeight: '60dvh',
@@ -108,8 +116,8 @@ export function LanguagePicker({
 									width: '100%',
 									padding: '8px 14px',
 									border: 'none',
-									background: isActive ? '#6366f122' : 'transparent',
-									color: isActive ? '#6366f1' : '#9ca3af',
+									background: isActive ? `${primary}22` : 'transparent',
+									color: isActive ? primary : fg,
 									cursor: 'pointer',
 									fontSize: 13,
 									fontWeight: isActive ? 600 : 400,

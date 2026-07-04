@@ -277,7 +277,7 @@ function ThemePicker({ current, onChange }: { current: string; onChange: (key: s
 				...(isSmallScreen
 					? { top: 'calc(env(safe-area-inset-top, 0px) + 60px)', right: 8 }
 					: { bottom: 48, right: 12 }),
-				zIndex: 99999,
+				zIndex: open ? 100000 : 99999,
 				fontFamily: 'system-ui, sans-serif',
 			}}
 		>
@@ -799,7 +799,11 @@ function App() {
 		return (
 			<div className='h-[100dvh] w-screen'>
 				<ThemePicker current={themeKey} onChange={handleThemeChange} />
-				<LanguagePicker current={languageKey} onChange={handleLanguageChange} />
+				<LanguagePicker
+					current={languageKey}
+					onChange={handleLanguageChange}
+					theme={currentPreset}
+				/>
 				<PowerPointViewer
 					content={content}
 					canEdit
@@ -824,7 +828,7 @@ function App() {
 	return (
 		<div className='flex items-center justify-center h-[100dvh] w-screen bg-background text-foreground'>
 			<ThemePicker current={themeKey} onChange={handleThemeChange} />
-			<LanguagePicker current={languageKey} onChange={handleLanguageChange} />
+			<LanguagePicker current={languageKey} onChange={handleLanguageChange} theme={currentPreset} />
 			<div
 				className='max-w-[900px] w-full border-2 border-dashed border-border rounded-xl p-12 text-center cursor-pointer transition-colors hover:border-primary hover:bg-accent'
 				onDrop={handleDrop}
