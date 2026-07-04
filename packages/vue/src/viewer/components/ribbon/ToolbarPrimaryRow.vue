@@ -2,25 +2,18 @@
 /**
  * ToolbarPrimaryRow: Vue port of React's `toolbar/ToolbarPrimaryRow.tsx`.
  *
- * The ribbon's quick-access strip: slides-pane toggle, undo/redo, find, then a
- * right cluster of comments, mode switcher, custom-show controls, share,
- * inspector toggle, settings, and the overflow menu.
+ * The ribbon's quick-access strip: slides-pane toggle, then a right cluster of
+ * comments, mode switcher, custom-show controls, inspector toggle, settings,
+ * read-only badge, and the overflow menu.
+ *
+ * Undo/Redo and the Find button now live in the title bar; the Share button
+ * moved to the tab row (`TabRowActions`), mirroring React's PowerPoint chrome.
  *
  * The React row also renders inline collaboration avatars from a
  * `useCollaboration()` context; in Vue collaboration is host-instantiated (not a
- * ribbon-level context), so that purely-decorative avatar cluster is omitted;
- * the Share button still reflects/launches sharing via `onOpenShareDialog`.
+ * ribbon-level context), so that purely-decorative avatar cluster is omitted.
  */
-import {
-	MessageSquare,
-	PanelLeft,
-	PanelRight,
-	Redo,
-	Search,
-	Settings,
-	Share2,
-	Undo,
-} from 'lucide-vue-next';
+import { MessageSquare, PanelLeft, PanelRight, Settings } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
@@ -41,7 +34,7 @@ const qab =
 
 <template>
 	<div class="flex items-center gap-0.5 max-md:gap-0 px-1.5 py-0.5 max-md:px-1">
-		<!-- Left: Slides pane toggle + Undo/Redo + Find -->
+		<!-- Left: Slides pane toggle -->
 		<button
 			v-if="props.mode !== 'present'"
 			type="button"
@@ -52,56 +45,11 @@ const qab =
 		>
 			<PanelLeft :class="ic" />
 		</button>
-		<div :class="SEP" />
-		<button
-			type="button"
-			:disabled="!props.canEdit || !props.canUndo"
-			:class="cn(qab, 'text-muted-foreground')"
-			:title="
-				props.undoLabel
-					? t('pptx.toolbar.undoAction', { action: props.undoLabel })
-					: t('pptx.toolbar.undo')
-			"
-			:aria-label="t('pptx.toolbar.undo')"
-			@click="props.onUndo()"
-		>
-			<Undo :class="ics" />
-		</button>
-		<button
-			type="button"
-			:disabled="!props.canEdit || !props.canRedo"
-			:class="cn(qab, 'text-muted-foreground')"
-			:title="
-				props.redoLabel
-					? t('pptx.toolbar.redoAction', { action: props.redoLabel })
-					: t('pptx.toolbar.redo')
-			"
-			:aria-label="t('pptx.toolbar.redo')"
-			@click="props.onRedo()"
-		>
-			<Redo :class="ics" />
-		</button>
-		<button
-			v-if="props.mode === 'edit' || props.mode === 'master'"
-			type="button"
-			:class="
-				cn(
-					qab,
-					'max-md:hidden',
-					props.findReplaceOpen ? 'text-foreground' : 'text-muted-foreground',
-				)
-			"
-			:title="t('pptx.findReplace.title')"
-			:aria-label="t('pptx.findReplace.title')"
-			@click="props.onToggleFindReplace()"
-		>
-			<Search :class="ics" />
-		</button>
 
 		<!-- Center spacer -->
 		<div class="flex-1 min-w-2 max-md:min-w-1" />
 
-		<!-- Right: Comments + Present + Share + Inspector + Settings + Overflow -->
+		<!-- Right: Comments + Present + Inspector + Settings + Overflow -->
 		<button
 			v-if="props.mode === 'edit' || props.mode === 'master'"
 			type="button"
@@ -150,19 +98,6 @@ const qab =
 		/>
 
 		<div :class="SEP" />
-
-		<!-- Share -->
-		<button
-			v-if="props.mode === 'edit' || props.mode === 'master'"
-			type="button"
-			class="relative inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-[11px] font-medium transition-colors bg-primary hover:bg-primary/90 text-white"
-			:title="t('pptx.toolbar.share')"
-			:aria-label="t('pptx.toolbar.share')"
-			@click="(props.onOpenShareDialog ?? props.onPackageForSharing)()"
-		>
-			<Share2 class="w-3 h-3" />
-			<span class="max-md:hidden">{{ t('pptx.toolbar.share') }}</span>
-		</button>
 
 		<button
 			v-if="props.mode === 'edit' || props.mode === 'master'"

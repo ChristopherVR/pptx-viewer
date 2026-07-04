@@ -3,22 +3,20 @@
  * chrome, at parity with React's `toolbar/ToolbarPrimaryRow.tsx`.
  *
  * Layout (mirrors React):
- *   LEFT  : slides-pane toggle, Undo, Redo, Find
+ *   LEFT  : slides-pane toggle
  *   RIGHT : Comments (with count), Present split-button + dropdown
  *           (From Beginning / Presenter View / Broadcast), +Show (custom
- *           shows), Share, Inspector toggle, overflow "..." menu (exports /
- *           print / properties / accessibility / save).
+ *           shows), Inspector toggle, overflow "..." menu (exports / print /
+ *           properties / accessibility / save).
  *
- * Slide navigation and zoom intentionally live in the bottom status bar (see
- * {@link StatusBarComponent}), matching React. Undo/redo bind straight to the
- * shared {@link EditorStateService}; everything else is an `output()` the
- * {@link PowerPointViewerComponent} already handles.
+ * Undo/Redo/Find and Save moved up to the title bar; Record and Share moved to
+ * the ribbon tab row (both mirroring React). Slide navigation and zoom live in
+ * the bottom status bar (see {@link StatusBarComponent}). Everything here is an
+ * `output()` the {@link PowerPointViewerComponent} already handles.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-
-import { EditorStateService } from './editor-state.service';
 
 @Component({
 	selector: 'pptx-ribbon-primary-row',
@@ -27,7 +25,7 @@ import { EditorStateService } from './editor-state.service';
 	imports: [NgClass, TranslatePipe],
 	template: `
 		<div class="flex items-center gap-0.5 px-1.5 py-0.5">
-			<!-- Left: slides pane toggle + undo/redo + find -->
+			<!-- Left: slides pane toggle (undo/redo/find moved to the title bar) -->
 			<button
 				type="button"
 				class="pptx-rb-icon"
@@ -38,40 +36,11 @@ import { EditorStateService } from './editor-state.service';
 			>
 				⫐
 			</button>
-			<span class="mx-1 h-5 w-px self-center bg-border/50"></span>
-			<button
-				type="button"
-				class="pptx-rb-icon"
-				[attr.aria-label]="'pptx.toolbar.undo' | translate"
-				[disabled]="!canEdit() || !editor.canUndo()"
-				(click)="editor.undo()"
-			>
-				↶
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-icon"
-				[attr.aria-label]="'pptx.toolbar.redo' | translate"
-				[disabled]="!canEdit() || !editor.canRedo()"
-				(click)="editor.redo()"
-			>
-				↷
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-icon"
-				[ngClass]="findOpen() ? 'text-foreground' : 'text-muted-foreground'"
-				[title]="'pptx.toolbar.findAndReplace' | translate"
-				[attr.aria-label]="'pptx.toolbar.findAndReplace' | translate"
-				(click)="toggleFind.emit()"
-			>
-				⌕
-			</button>
 
 			<!-- Center spacer -->
 			<div class="min-w-2 flex-1"></div>
 
-			<!-- Right: comments + present + show + share + inspector + overflow -->
+			<!-- Right: comments + present + show + inspector + overflow -->
 			<button
 				type="button"
 				class="pptx-rb-icon relative"
@@ -154,24 +123,6 @@ import { EditorStateService } from './editor-state.service';
 
 			<button
 				type="button"
-				class="inline-flex items-center gap-1 rounded-sm px-2.5 py-1 text-[11px] font-medium text-white transition-colors"
-				[ngClass]="
-					collabConnected() ? 'bg-green-600 hover:bg-green-500' : 'bg-primary hover:bg-primary/90'
-				"
-				[title]="'pptx.ribbon.shareForCollaboration' | translate"
-				[attr.aria-label]="'pptx.toolbar.share' | translate"
-				(click)="share.emit()"
-			>
-				⇪
-				{{
-					collabConnected()
-						? ('pptx.toolbar.sharingCount' | translate: { count: connectedCount() })
-						: ('pptx.toolbar.share' | translate)
-				}}
-			</button>
-
-			<button
-				type="button"
 				class="pptx-rb-icon"
 				[ngClass]="inspectorOpen() ? 'text-foreground' : 'text-muted-foreground'"
 				[title]="'pptx.toolbar.toggleInspector' | translate"
@@ -218,26 +169,18 @@ import { EditorStateService } from './editor-state.service';
 	`,
 })
 export class RibbonPrimaryRowComponent {
-	protected readonly editor = inject(EditorStateService);
-
 	readonly slideCount = input<number>(0);
-	readonly canEdit = input<boolean>(false);
 	readonly sidebarCollapsed = input<boolean>(false);
 	readonly inspectorOpen = input<boolean>(false);
 	readonly commentsOpen = input<boolean>(false);
 	readonly commentCount = input<number>(0);
-	readonly findOpen = input<boolean>(false);
-	readonly collabConnected = input<boolean>(false);
-	readonly connectedCount = input<number>(0);
 
 	readonly toggleSidebar = output<void>();
-	readonly toggleFind = output<void>();
 	readonly toggleComments = output<void>();
 	readonly present = output<void>();
 	readonly presenter = output<void>();
 	readonly broadcast = output<void>();
 	readonly openCustomShows = output<void>();
-	readonly share = output<void>();
 	readonly toggleInspector = output<void>();
 	readonly exportPng = output<void>();
 	readonly exportPdf = output<void>();

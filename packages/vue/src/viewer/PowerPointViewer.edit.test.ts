@@ -26,9 +26,14 @@ describe('powerPointViewer editing wiring', () => {
 		await flushPromises();
 		const ribbon = wrapper.find('[aria-label="Presentation toolbar"]');
 		expect(ribbon.exists()).toBeTruthy();
-		// Undo starts disabled (empty history) even though canEdit is set.
-		const undo = ribbon.get('button[aria-label="Undo"]');
+		// Undo moved to the PowerPoint-style title bar (above, outside the ribbon).
+		// It starts disabled (empty history) even though canEdit is set, and no
+		// longer appears inside the role="toolbar" ribbon element.
+		const titleBar = wrapper.find('[data-pptx-title-bar]');
+		expect(titleBar.exists()).toBeTruthy();
+		const undo = titleBar.get('button[aria-label="Undo"]');
 		expect(undo.attributes('disabled')).toBeDefined();
+		expect(ribbon.find('button[aria-label="Undo"]').exists()).toBeFalsy();
 		// The format-painter hook the e2e contract depends on is present.
 		expect(ribbon.find('[data-testid="format-painter-toggle"]').exists()).toBeTruthy();
 	});

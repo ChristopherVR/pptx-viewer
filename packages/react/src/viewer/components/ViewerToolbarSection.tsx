@@ -13,6 +13,7 @@ import type {
 import React, { useCallback } from 'react';
 
 import { Toolbar, SignatureStatusBadge } from '.';
+import type { AutosaveStatus } from '../hooks/useAutosave';
 import type { EditorHistoryResult } from '../hooks/useEditorHistory';
 import type { ElementManipulationHandlers } from '../hooks/useElementManipulation';
 import type { ElementOperations } from '../hooks/useElementOperations';
@@ -27,6 +28,7 @@ import type { SupportedShapeType, ViewerMode } from '../types';
 import type { ElementClipboardPayload } from '../types-core';
 import type { DrawingTool, TableCellEditorState, ToolbarSection } from '../types-ui';
 import { hasCopyableFormat } from '../utils/format-painter';
+import { TitleBar } from './toolbar/TitleBar';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -36,6 +38,7 @@ export interface ViewerToolbarSectionProps {
 	mode: ViewerMode;
 	canEdit: boolean;
 	state: {
+		isDirty: boolean;
 		isSlidesPaneOpen: boolean;
 		setIsSlidesPaneOpen: React.Dispatch<React.SetStateAction<boolean>>;
 		isInspectorPaneOpen: boolean;
@@ -121,6 +124,11 @@ export interface ViewerToolbarSectionProps {
 	onOpenShareDialog?: () => void;
 	onOpenFile?: () => void;
 	onToggleFormatPainter?: () => void;
+	/** Title-bar wiring (PowerPoint-style top chrome row). */
+	fileName?: string;
+	autosaveStatus?: AutosaveStatus;
+	autosaveEnabled?: boolean;
+	onToggleAutosave?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -152,6 +160,10 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		onOpenShareDialog,
 		onOpenFile,
 		onToggleFormatPainter: onToggleFormatPainterProp,
+		fileName,
+		autosaveStatus,
+		autosaveEnabled = true,
+		onToggleAutosave,
 	} = props;
 
 	const handleAddAnimation = useCallback(
@@ -217,6 +229,26 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 
 	return (
 		<>
+			{!dialogs.isNarrowViewport && (
+				<TitleBar
+					mode={mode}
+					canEdit={canEdit}
+					fileName={fileName}
+					isDirty={s.isDirty}
+					autosaveStatus={autosaveStatus}
+					autosaveEnabled={autosaveEnabled}
+					onToggleAutosave={onToggleAutosave ?? (() => {})}
+					canUndo={history.canUndo}
+					canRedo={history.canRedo}
+					undoLabel={history.undoLabel}
+					redoLabel={history.redoLabel}
+					onUndo={history.handleUndo}
+					onRedo={history.handleRedo}
+					onSave={exportHandlers.handleSaveAsPptx}
+					findReplaceOpen={findReplace.findReplaceOpen}
+					onToggleFindReplace={() => findReplace.setFindReplaceOpen(!findReplace.findReplaceOpen)}
+				/>
+			)}
 			<Toolbar
 				mode={mode}
 				canEdit={canEdit}

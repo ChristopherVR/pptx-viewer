@@ -33,6 +33,8 @@ export interface PowerPointViewerProps {
 	content: Uint8Array | ArrayBuffer;
 	/** Original file path, used for autosave recovery. */
 	filePath?: string;
+	/** Display name of the open document, shown in the title bar. */
+	fileName?: string;
 	/** Whether editing actions are enabled. */
 	canEdit?: boolean;
 	/** Enable debounced autosave (emits `@autosave` with serialised bytes). */

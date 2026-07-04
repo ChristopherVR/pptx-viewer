@@ -239,6 +239,11 @@ export interface PowerPointViewerProps {
 	content: Uint8Array;
 	/** Original file path, used for autosave recovery */
 	filePath?: string;
+	/**
+	 * Display name of the open document, shown in the PowerPoint-style title
+	 * bar (e.g. "quarterly-review.pptx"). Falls back to a generic label.
+	 */
+	fileName?: string;
 	/** Callback when content has unsaved changes */
 	onDirtyChange?: (isDirty: boolean) => void;
 	onContentChange?: (content: Uint8Array) => void;

@@ -27,6 +27,7 @@ import ReviewSection from './ReviewSection.vue';
 import { pill, TOOLBAR_SECTIONS } from './ribbon-constants';
 import type { RibbonProps } from './ribbon-types';
 import SlideShowSection from './SlideShowSection.vue';
+import TabRowActions from './TabRowActions.vue';
 import TextSection from './TextSection.vue';
 import ToolbarPrimaryRow from './ToolbarPrimaryRow.vue';
 import TransitionsSection from './TransitionsSection.vue';
@@ -78,6 +79,17 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				{{ t(sec.labelKey) }}
 			</button>
 			<div class="flex-1" />
+			<TabRowActions
+				:on-enter-rehearsal-mode="
+					props.canEdit
+						? (props.onEnterRehearsalMode ?? (() => props.onSetMode('present')))
+						: undefined
+				"
+				:on-open-share-dialog="props.onOpenShareDialog"
+				:on-package-for-sharing="props.onPackageForSharing"
+				:is-collaborating="props.isCollaborating"
+				:collaborator-count="props.collaboratorCount"
+			/>
 			<button
 				type="button"
 				class="mr-1 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"

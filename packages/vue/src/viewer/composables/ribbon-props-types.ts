@@ -19,6 +19,7 @@ import type {
 	ToolbarSection,
 	ViewerMode,
 } from '../components/ribbon/ribbon-types';
+import type { UseCollaborationResult } from './useCollaboration';
 
 /**
  * Input types for `useRibbonProps` (split out to keep every ribbon-props file
@@ -85,6 +86,8 @@ export interface UseRibbonPropsStateInput {
 	broadcastOpen: Ref<boolean>;
 	showInsertSmartArt: Ref<boolean>;
 	showEquationEditor: Ref<boolean>;
+	/** Collaboration session, for the tab-row Share button's connected state. */
+	collab: UseCollaborationResult;
 }
 
 /** Action callbacks the ribbon adapter dispatches. */

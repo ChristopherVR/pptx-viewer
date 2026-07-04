@@ -22,6 +22,8 @@ import type { ViewerState } from './useViewerState';
 export interface UseContentLifecycleInput {
 	content: ArrayBuffer | Uint8Array | null;
 	filePath: string | undefined;
+	/** AutoSave toggle state; when false the recovery autosave timer is off. */
+	autosaveEnabled?: boolean;
 	slides: PptxSlide[];
 	state: ViewerState;
 	history: EditorHistoryResult;
@@ -49,6 +51,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 	const {
 		content,
 		filePath,
+		autosaveEnabled = true,
 		slides,
 		state,
 		history,
@@ -125,6 +128,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		isDirty: state.isDirty,
 		filePath,
 		serializeSlides,
+		enabled: autosaveEnabled,
 	});
 
 	return { handlerRef, serializeSlides, autosaveStatus };

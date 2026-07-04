@@ -23,6 +23,10 @@
 @import 'tailwindcss';
 
 @source '../viewer/**/*.ts';
+/* Shared class-token modules consumed verbatim by the Angular chrome (the
+   title bar reads TITLE_BAR_CLASSES / TAB_ROW_ACTION_CLASSES from the vendored
+   shared source); scan them so their utilities are emitted. */
+@source '../internal/shared-src/render/title-bar.ts';
 
 @import './theme.css';
 

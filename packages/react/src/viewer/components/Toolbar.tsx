@@ -16,6 +16,7 @@ import { FileSection } from './toolbar/FileSection';
 import { HomeSection } from './toolbar/HomeSection';
 import { InsertSection } from './toolbar/InsertSection';
 import { SlideShowSection } from './toolbar/SlideShowSection';
+import { TabRowActions } from './toolbar/TabRowActions';
 import { TextSection } from './toolbar/TextSection';
 import { pill } from './toolbar/toolbar-constants';
 import type { ToolbarProps } from './toolbar/toolbar-types';
@@ -83,6 +84,11 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 						</button>
 					))}
 					<div className='flex-1' />
+					<TabRowActions
+						onEnterRehearsalMode={p.canEdit ? p.onEnterRehearsalMode : undefined}
+						onOpenShareDialog={p.onOpenShareDialog}
+						onPackageForSharing={p.onPackageForSharing}
+					/>
 					{isNarrowViewport && (
 						<button
 							type='button'

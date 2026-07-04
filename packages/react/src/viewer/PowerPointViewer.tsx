@@ -85,6 +85,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		const {
 			content: incomingContent,
 			filePath,
+			fileName,
 			canEdit = false,
 			onContentChange,
 			onDirtyChange,
@@ -125,6 +126,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 
 		// ── Settings dialog ─────────────────────────────────────────
 		const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+		// ── AutoSave toggle (title bar) ─────────────────────────────
+		const [autosaveEnabled, setAutosaveEnabled] = useState(true);
 
 		// ── Share dialog ────────────────────────────────────────────
 		const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
@@ -380,6 +384,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			gridSpacingPx,
 			content,
 			filePath,
+			autosaveEnabled,
 			canEdit,
 			mode,
 			slides,
@@ -445,6 +450,10 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 						onOpenSettings={() => setIsSettingsOpen(true)}
 						onOpenShareDialog={() => setIsShareDialogOpen(true)}
 						onOpenFile={handleOpenFile}
+						fileName={fileName}
+						autosaveStatus={autosaveStatus}
+						autosaveEnabled={autosaveEnabled}
+						onToggleAutosave={() => setAutosaveEnabled((p) => !p)}
 					/>
 				)}
 

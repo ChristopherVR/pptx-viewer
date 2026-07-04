@@ -19,6 +19,7 @@ import type { ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
+import { AutosaveService } from './autosave.service';
 import { BroadcastDialogComponent } from './broadcast-dialog.component';
 import { CollaborationCursorsComponent } from './collaboration-cursors.component';
 import { CollaborationService } from './collaboration.service';
@@ -72,6 +73,7 @@ import { StatusBarComponent } from './status-bar.component';
 import { TableSelectionService } from './table-selection.service';
 import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
+import { TitleBarComponent } from './title-bar.component';
 import type { CollaborationConfig } from './types';
 import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 import { ViewerCollabCursorService } from './viewer-collab-cursor.service';
@@ -122,6 +124,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		EmbeddedFontsService,
 		CollaborationService,
 		AccessibilityService,
+		AutosaveService,
 		PrintService,
 		IsMobileService,
 		SmartArt3DService,
@@ -179,6 +182,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		MobileToolbarComponent,
 		NotesPanelComponent,
 		RibbonComponent,
+		TitleBarComponent,
 		ThemeGalleryComponent,
 		SelectionPaneComponent,
 		CustomShowsComponent,
@@ -204,6 +208,23 @@ import { ZoomTargetService } from './zoom-target.service';
 				</div>
 			} @else {
 				@if (!mobile.isMobile()) {
+					<pptx-title-bar
+						[canEdit]="canEdit()"
+						[fileName]="fileName()"
+						[isDirty]="editor.dirty()"
+						[autosaveStatus]="autosave.status()"
+						[autosaveEnabled]="autosaveEnabled()"
+						[canUndo]="editor.canUndo()"
+						[canRedo]="editor.canRedo()"
+						[undoLabel]="editor.undoLabel()"
+						[redoLabel]="editor.redoLabel()"
+						[findReplaceOpen]="findReplace.showFind() || findReplace.showFindReplace()"
+						(toggleAutosave)="autosaveEnabled.update(v => !v)"
+						(save)="fileIO.saveAsPptx()"
+						(undo)="editor.undo()"
+						(redo)="editor.redo()"
+						(toggleFindReplace)="toggleFindReplace()"
+					/>
 					<pptx-ribbon
 					[slideIndex]="activeSlideIndex()"
 					[slideCount]="slideCount()"
@@ -229,6 +250,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(find)="findReplace.showFind.set(true)"
 					(present)="presentationMode.present()"
 					(presenter)="presentationMode.presentPresenter()"
+					(record)="presentationMode.present()"
 					(share)="session.showShare.set(true)"
 					(broadcast)="session.showBroadcast.set(true)"
 					(openFile)="fileIO.openFile()"
@@ -480,6 +502,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[slideCount]="slideCount()"
 						[canEdit]="canEdit()"
 						[dirty]="editor.dirty()"
+						[autosaveStatus]="autosave.status()"
 						[notesOpen]="mobileSheetSvc.showNotes()"
 						[zoomPercent]="zoomSvc.zoomPercent()"
 						[sorterActive]="showSorter()"
@@ -770,6 +793,12 @@ export class PowerPointViewerComponent {
 	 * `filePath` prop.
 	 */
 	readonly filePath = input<string | undefined>(undefined);
+	/**
+	 * Display name of the open document, shown in the title bar next to the
+	 * save-location status. Falls back to a localised "Presentation" when omitted.
+	 * Mirrors React's `fileName` prop.
+	 */
+	readonly fileName = input<string | undefined>(undefined);
 	/** Optional real-time collaboration config; when set, connects and shows remote cursors. */
 	readonly collaboration = input<CollaborationConfig | undefined>(undefined);
 	/**
@@ -824,6 +853,7 @@ export class PowerPointViewerComponent {
 	private readonly fonts = inject(EmbeddedFontsService);
 	protected readonly collab = inject(CollaborationService);
 	protected readonly accessibility = inject(AccessibilityService);
+	protected readonly autosave = inject(AutosaveService);
 	protected readonly print = inject(PrintService);
 	protected readonly mobile = inject(IsMobileService);
 	private readonly smartArt3DSvc = inject(SmartArt3DService);
@@ -895,6 +925,8 @@ export class PowerPointViewerComponent {
 	protected readonly showSorter = signal(false);
 	/** Whether the left slides panel is collapsed (top-bar sidebar toggle). */
 	protected readonly slidesPanelCollapsed = signal(false);
+	/** Whether periodic autosave is enabled (title-bar AutoSave toggle; default on). */
+	protected readonly autosaveEnabled = signal(true);
 
 	// ── Draw tool state (forwarded to slide-canvas) ───────────────────────────
 	/** Active drawing tool (from the ribbon Draw tab). */
@@ -1219,6 +1251,16 @@ export class PowerPointViewerComponent {
 			activeSlideIndex: () => this.activeSlideIndex(),
 			emitPropertiesChange: (patch) => this.propertiesChange.emit(patch),
 		});
+
+		// Hand the autosave engine the reactive accessors it reads (enabled toggle,
+		// file-path key, dirty flag) and a deck serialiser. It writes a recovery
+		// snapshot to the shared IndexedDB store every N seconds while dirty.
+		this.autosave.bind({
+			enabled: () => this.autosaveEnabled(),
+			filePath: () => this.filePath(),
+			isDirty: () => this.editor.dirty(),
+			serialize: () => this.serializeForAutosave(),
+		});
 	}
 
 	/**
@@ -1240,6 +1282,31 @@ export class PowerPointViewerComponent {
 	}
 	goNext(): void {
 		this.goTo(this.activeSlideIndex() + 1);
+	}
+
+	/** Toggle the Find & Replace panel from the title-bar search button. */
+	protected toggleFindReplace(): void {
+		if (this.findReplace.showFindReplace()) {
+			this.findReplace.showFindReplace.set(false);
+			return;
+		}
+		this.findReplace.openFindReplace();
+	}
+
+	/**
+	 * Serialise the edited deck (templates merged back) to `.pptx` bytes for an
+	 * autosave recovery snapshot. Returns null when the deck is read-only so the
+	 * autosave engine skips the write. Distinct from {@link getContent}, this does
+	 * NOT emit `contentChange` (autosave is a background recovery write, not a
+	 * host-visible save).
+	 */
+	private async serializeForAutosave(): Promise<Uint8Array | null> {
+		if (!this.canEdit()) {
+			return null;
+		}
+		return this.loader.saveSlides(
+			buildSaveSlides(this.editor.slides(), this.editor.templateElementsBySlideId()),
+		);
 	}
 
 	/** Review ▸ Compare: pick a `.pptx` and diff it against the current deck. */

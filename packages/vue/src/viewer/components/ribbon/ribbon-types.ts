@@ -137,6 +137,10 @@ export interface RibbonProps {
 	eyedropperActive?: boolean;
 	showSubtitles?: boolean;
 	activeSlide?: PptxSlide;
+	/** True when a collaboration session is connected (Share button turns green). */
+	isCollaborating?: boolean;
+	/** Connected collaborator count, shown on the Share button while collaborating. */
+	collaboratorCount?: number;
 
 	onSetMode: (mode: ViewerMode) => void;
 	onToggleSidebar: () => void;

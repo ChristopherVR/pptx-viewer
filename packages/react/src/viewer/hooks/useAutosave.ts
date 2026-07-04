@@ -1,3 +1,4 @@
+import { saveAutosaveSnapshot } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
@@ -36,112 +37,7 @@ export interface UseAutosaveResult {
 }
 
 // ---------------------------------------------------------------------------
-// IndexedDB-based autosave storage
-// ---------------------------------------------------------------------------
-
-const DB_NAME = 'pptx-viewer-autosave';
-const DB_VERSION = 1;
-const STORE_NAME = 'recoveryVersions';
-
-function openAutosaveDb(): Promise<IDBDatabase> {
-	return new Promise((resolve, reject) => {
-		const req = indexedDB.open(DB_NAME, DB_VERSION);
-		req.onupgradeneeded = () => {
-			const db = req.result;
-			if (!db.objectStoreNames.contains(STORE_NAME)) {
-				db.createObjectStore(STORE_NAME, { keyPath: 'key' });
-			}
-		};
-		req.onsuccess = () => resolve(req.result);
-		req.onerror = () => reject(req.error);
-	});
-}
-
-/** Delete the oldest entry in the autosave store. Returns true if one was removed. */
-async function deleteOldestAutosaveEntry(): Promise<boolean> {
-	const db = await openAutosaveDb();
-	return new Promise((resolve) => {
-		try {
-			const tx = db.transaction(STORE_NAME, 'readwrite');
-			const store = tx.objectStore(STORE_NAME);
-			let oldestKey: IDBValidKey | null = null;
-			let oldestTimestamp = Infinity;
-			const cursorReq = store.openCursor();
-			cursorReq.onsuccess = () => {
-				const cursor = cursorReq.result;
-				if (cursor) {
-					const value = cursor.value as { timestamp?: number };
-					if (typeof value.timestamp === 'number' && value.timestamp < oldestTimestamp) {
-						oldestTimestamp = value.timestamp;
-						oldestKey = cursor.primaryKey;
-					}
-					cursor.continue();
-				} else if (oldestKey !== null) {
-					store.delete(oldestKey);
-				}
-			};
-			tx.oncomplete = () => {
-				db.close();
-				resolve(oldestKey !== null);
-			};
-			tx.onerror = () => {
-				db.close();
-				resolve(false);
-			};
-		} catch {
-			try {
-				db.close();
-			} catch {
-				// Ignore
-			}
-			resolve(false);
-		}
-	});
-}
-
-function putAutosaveRecord(filePath: string, data: Uint8Array): Promise<boolean> {
-	return openAutosaveDb().then(
-		(db) =>
-			new Promise<boolean>((resolve, reject) => {
-				const tx = db.transaction(STORE_NAME, 'readwrite');
-				const store = tx.objectStore(STORE_NAME);
-				store.put({
-					key: filePath,
-					data,
-					timestamp: Date.now(),
-					size: data.byteLength,
-				});
-				tx.oncomplete = () => {
-					db.close();
-					resolve(true);
-				};
-				tx.onerror = () => {
-					db.close();
-					reject(tx.error);
-				};
-			}),
-	);
-}
-
-async function saveToIndexedDb(filePath: string, data: Uint8Array): Promise<boolean> {
-	try {
-		return await putAutosaveRecord(filePath, data);
-	} catch (err) {
-		// On QuotaExceededError, drop the oldest record and retry once.
-		const errName = err instanceof Error || err instanceof DOMException ? err.name : '';
-		if (errName !== 'QuotaExceededError') {
-			throw err;
-		}
-		const deleted = await deleteOldestAutosaveEntry();
-		if (!deleted) {
-			throw err;
-		}
-		return putAutosaveRecord(filePath, data);
-	}
-}
-
-// ---------------------------------------------------------------------------
-// Hook
+// Hook (the IndexedDB store itself lives in pptx-viewer-shared)
 // ---------------------------------------------------------------------------
 
 export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
@@ -196,7 +92,7 @@ export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
 				return;
 			}
 
-			await saveToIndexedDb(filePathRef.current, data);
+			await saveAutosaveSnapshot(filePathRef.current, data);
 			setAutosaveStatus({ state: 'saved', timestamp: Date.now() });
 		} catch (err) {
 			setAutosaveStatus({

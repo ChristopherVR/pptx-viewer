@@ -806,6 +806,8 @@ function App() {
 				/>
 				<PowerPointViewer
 					content={content}
+					fileName={fileName}
+					filePath={fileName}
 					canEdit
 					smartArt3D={smartArt3D}
 					authorName={collaborationConfig?.userName ?? autoName}

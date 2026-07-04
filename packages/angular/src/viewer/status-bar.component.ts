@@ -12,8 +12,10 @@ import { NgClass } from '@angular/common';
  * {@link PowerPointViewerComponent} already has handlers for. Slide-nav and
  * zoom live here (not in the top bar), matching React.
  */
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+
+import type { AutosaveStatus } from './autosave.service';
 
 @Component({
 	selector: 'pptx-status-bar',
@@ -39,9 +41,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 			@if (canEdit()) {
 				<div class="mx-1 h-3 w-px bg-border/60"></div>
-				<span class="shrink-0">{{
-					(dirty() ? 'pptx.statusBar.unsavedChanges' : 'pptx.statusBar.allSaved') | translate
-				}}</span>
+				<span class="shrink-0" [ngClass]="saveStateClass()">{{ saveStatusText() }}</span>
 			}
 
 			<!-- Center spacer -->
@@ -135,6 +135,8 @@ export class StatusBarComponent {
 	readonly slideCount = input<number>(0);
 	readonly canEdit = input<boolean>(false);
 	readonly dirty = input<boolean>(false);
+	/** Current autosave engine status; drives the save-state text + colour. */
+	readonly autosaveStatus = input<AutosaveStatus | undefined>(undefined);
 	readonly notesOpen = input<boolean>(false);
 	readonly zoomPercent = input<number>(100);
 	/** True when the slide-sorter overlay is open (active-state styling). */
@@ -150,6 +152,8 @@ export class StatusBarComponent {
 	readonly zoomOut = output<void>();
 	readonly zoomReset = output<void>();
 
+	private readonly translate = inject(TranslateService);
+
 	/** "Normal" is active when neither the sorter nor the slideshow is showing. */
 	protected isNormal(): boolean {
 		return !this.sorterActive() && !this.presenting();
@@ -157,5 +161,52 @@ export class StatusBarComponent {
 
 	protected min(a: number, b: number): number {
 		return Math.min(a, b);
+	}
+
+	/**
+	 * Save-state text next to the slide counter, mirroring React's StatusBar:
+	 * autosave saving/saved-time/error take precedence, then the dirty flag, then
+	 * "All saved".
+	 */
+	protected saveStatusText(): string {
+		const status = this.autosaveStatus();
+		if (status?.state === 'saving') {
+			return this.translate.instant('pptx.autosave.saving');
+		}
+		if (status?.state === 'saved') {
+			return this.translate.instant('pptx.autosave.saved', {
+				time: this.formatAutosaveAge(status.timestamp),
+			});
+		}
+		if (status?.state === 'error') {
+			return this.translate.instant('pptx.autosave.error');
+		}
+		return this.translate.instant(
+			this.dirty() ? 'pptx.statusBar.unsavedChanges' : 'pptx.statusBar.allSaved',
+		);
+	}
+
+	/** Colour override for the save-state text while saving (yellow) / errored (red). */
+	protected saveStateClass(): string {
+		const state = this.autosaveStatus()?.state;
+		if (state === 'error') {
+			return 'text-red-400';
+		}
+		if (state === 'saving') {
+			return 'text-yellow-400';
+		}
+		return '';
+	}
+
+	/** Relative age label for a saved timestamp ("just now" / "N min ago"). */
+	private formatAutosaveAge(timestamp: number): string {
+		const minutes = Math.floor((Date.now() - timestamp) / 60_000);
+		if (minutes < 1) {
+			return this.translate.instant('pptx.autosave.justNow');
+		}
+		if (minutes === 1) {
+			return this.translate.instant('pptx.autosave.oneMinAgo');
+		}
+		return this.translate.instant('pptx.autosave.minutesAgo', { count: minutes });
 	}
 }

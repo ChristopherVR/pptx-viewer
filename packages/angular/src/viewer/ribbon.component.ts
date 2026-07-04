@@ -27,7 +27,7 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxChartType, PptxElement, PptxTransitionType } from 'pptx-viewer-core';
 
-import { DEFAULT_INSERT_CHART_TYPE } from '../internal/shared';
+import { DEFAULT_INSERT_CHART_TYPE, TAB_ROW_ACTION_CLASSES } from '../internal/shared';
 import { RibbonAnimationsSectionComponent } from './ribbon-animations-section.component';
 import { RibbonArrangeSectionComponent } from './ribbon-arrange-section.component';
 import { RibbonDesignSectionComponent } from './ribbon-design-section.component';
@@ -112,22 +112,16 @@ const TABS: readonly TabDef[] = [
 			<!-- ── Primary quick-access row (ToolbarPrimaryRow parity) ──── -->
 			<pptx-ribbon-primary-row
 				[slideCount]="slideCount()"
-				[canEdit]="canEdit()"
 				[sidebarCollapsed]="sidebarCollapsed()"
 				[inspectorOpen]="inspectorOpen()"
 				[commentsOpen]="commentsOpen()"
 				[commentCount]="commentCount()"
-				[findOpen]="findOpen()"
-				[collabConnected]="collabConnected()"
-				[connectedCount]="connectedCount()"
 				(toggleSidebar)="toggleSidebar.emit()"
-				(toggleFind)="replace.emit()"
 				(toggleComments)="comments.emit()"
 				(present)="present.emit()"
 				(presenter)="presenter.emit()"
 				(broadcast)="broadcast.emit()"
 				(openCustomShows)="openCustomShows.emit()"
-				(share)="share.emit()"
 				(toggleInspector)="toggleInspector.emit()"
 				(exportPng)="exportPng.emit()"
 				(exportPdf)="exportPdf.emit()"
@@ -156,6 +150,46 @@ const TABS: readonly TabDef[] = [
 					</button>
 				}
 				<div class="flex-1"></div>
+
+				<!-- Tab-row right actions (Record + Share), mirroring React's TabRowActions -->
+				<div class="flex items-center gap-1 pr-1">
+					@if (canEdit()) {
+						<button
+							type="button"
+							[class]="tra.record"
+							[title]="'pptx.titleBar.record' | translate"
+							[attr.aria-label]="'pptx.titleBar.record' | translate"
+							(click)="record.emit()"
+						>
+							<span [class]="tra.recordDot" aria-hidden="true"></span>
+							<span>{{ 'pptx.titleBar.record' | translate }}</span>
+						</button>
+					}
+					<button
+						type="button"
+						class="relative inline-flex items-center gap-1 whitespace-nowrap rounded-sm px-2.5 py-1 text-[11px] font-medium text-white transition-colors"
+						[ngClass]="
+							collabConnected()
+								? 'bg-green-600 hover:bg-green-500'
+								: 'bg-primary hover:bg-primary/90'
+						"
+						[title]="
+							collabConnected()
+								? ('pptx.toolbar.sharingUsers' | translate: { count: connectedCount() })
+								: ('pptx.toolbar.share' | translate)
+						"
+						[attr.aria-label]="'pptx.toolbar.share' | translate"
+						(click)="share.emit()"
+					>
+						⇪
+						<span>{{
+							collabConnected()
+								? ('pptx.toolbar.sharingCount' | translate: { count: connectedCount() })
+								: ('pptx.toolbar.share' | translate)
+						}}</span>
+					</button>
+				</div>
+
 				<button
 					type="button"
 					class="mr-1 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
@@ -360,6 +394,8 @@ export class RibbonComponent {
 	readonly find = output<void>();
 	readonly present = output<void>();
 	readonly presenter = output<void>();
+	/** Emitted by the tab-row Record button (starts a slide-show run-through). */
+	readonly record = output<void>();
 	readonly share = output<void>();
 	readonly broadcast = output<void>();
 	readonly openFile = output<void>();
@@ -435,6 +471,9 @@ export class RibbonComponent {
 	readonly openShortcuts = output<void>();
 
 	protected readonly tabs = TABS;
+
+	/** Shared class tokens for the tab-row Record button. */
+	protected readonly tra = TAB_ROW_ACTION_CLASSES;
 
 	protected readonly activeTab = signal<RibbonTab>('home');
 

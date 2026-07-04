@@ -79,6 +79,7 @@ import PresentationMode from './components/PresentationMode.vue';
 import PrintDialog from './components/PrintDialog.vue';
 import RemoteSelectionOverlay from './components/RemoteSelectionOverlay.vue';
 import RibbonToolbar from './components/ribbon/RibbonToolbar.vue';
+import TitleBar from './components/ribbon/TitleBar.vue';
 import SectionList from './components/SectionList.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
 import SelectionPane from './components/SelectionPane.vue';
@@ -788,10 +789,19 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 });
 
 // ── Autosave ──────────────────────────────────────────────────────────
-const autosaveEnabled = computed(() => props.canEdit && (props.autosave ?? false));
+// `autosaveEnabled` is the title-bar AutoSave toggle (user-facing, defaults on),
+// mirroring React's `autosaveEnabled` useState(true). The engine only runs when
+// the host has opted into autosave AND editing is allowed AND the toggle is on.
+const autosaveEnabled = ref(true);
+const autosaveActive = computed(
+	() => props.canEdit && (props.autosave ?? false) && autosaveEnabled.value,
+);
+function toggleAutosave(): void {
+	autosaveEnabled.value = !autosaveEnabled.value;
+}
 const autosave = useAutosave({
 	slides,
-	enabled: autosaveEnabled,
+	enabled: autosaveActive,
 	intervalMs: props.autosaveIntervalMs ?? 2000,
 	onSave: async () => {
 		const bytes = await getContent();
@@ -799,6 +809,14 @@ const autosave = useAutosave({
 		// Snapshot a restorable version on each autosave.
 		versionHistory.capture('Autosave', Date.now());
 	},
+});
+// Loading a deck reassigns `slides`, which the autosave watcher counts as an
+// edit; clear the dirty flag once loading settles so a freshly opened deck
+// reads "Saved to this PC" in the title bar, matching React.
+watch(loading, (now, was) => {
+	if (was && !now) {
+		autosave.isDirty.value = false;
+	}
 });
 
 // ── Comments ──────────────────────────────────────────────────────────
@@ -1164,6 +1182,7 @@ const ribbonProps = useRibbonProps({
 	broadcastOpen,
 	showInsertSmartArt,
 	showEquationEditor,
+	collab,
 	startPresenting,
 	onAddAnimation,
 	onRemoveAnimation,
@@ -1254,6 +1273,26 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			     its controls tab-focusable and creates duplicate accessible names
 			     (e.g. a second "Present" / "Menu" button) underneath the overlay. -->
 			<template v-if="!presenting">
+				<!-- PowerPoint-style title bar sits ABOVE and OUTSIDE the
+				     role="toolbar" ribbon element (which e2e measures for height
+				     parity), gated like React on desktop + non-present. -->
+				<TitleBar
+					v-if="!isMobile"
+					:mode="ribbonMode"
+					:can-edit="props.canEdit"
+					:file-name="props.fileName"
+					:is-dirty="autosave.isDirty.value"
+					:autosave-status="autosave.status.value"
+					:autosave-enabled="autosaveEnabled"
+					:on-toggle-autosave="toggleAutosave"
+					:can-undo="history.canUndo.value"
+					:can-redo="history.canRedo.value"
+					:on-undo="history.undo"
+					:on-redo="history.redo"
+					:on-save="() => void downloadAs('pptx')"
+					:find-replace-open="findOpen"
+					:on-toggle-find-replace="() => (findOpen = !findOpen)"
+				/>
 				<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
 				<MobileToolbar v-else v-bind="ribbonProps" />
 			</template>

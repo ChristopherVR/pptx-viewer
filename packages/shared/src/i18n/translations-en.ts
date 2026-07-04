@@ -33,6 +33,17 @@ export const translationsEn: Record<string, string> = {
 	'pptx.autosave.savedShort': 'Saved',
 	'pptx.autosave.allChangesSaved': 'All changes saved',
 
+	// Title bar (PowerPoint-style top chrome row)
+	'pptx.titleBar.autoSave': 'AutoSave',
+	'pptx.titleBar.autoSaveOn': 'On',
+	'pptx.titleBar.autoSaveOff': 'Off',
+	'pptx.titleBar.toggleAutoSave': 'Toggle AutoSave',
+	'pptx.titleBar.save': 'Save',
+	'pptx.titleBar.savedToThisPc': 'Saved to this PC',
+	'pptx.titleBar.defaultFileName': 'Presentation',
+	'pptx.titleBar.search': 'Search',
+	'pptx.titleBar.record': 'Record',
+
 	// Toolbar
 	'pptx.toolbar.toggleSlidesPanel': 'Toggle slides panel',
 	'pptx.toolbar.undo': 'Undo',

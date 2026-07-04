@@ -40,6 +40,8 @@ export interface UseViewerIntegrationInput {
 	gridSpacingPx: number;
 	content: ArrayBuffer | Uint8Array | null;
 	filePath: string | undefined;
+	/** AutoSave toggle state from the title bar. */
+	autosaveEnabled: boolean;
 	canEdit: boolean;
 	mode: ViewerState['mode'];
 	slides: PptxSlide[];
@@ -92,6 +94,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		gridSpacingPx,
 		content,
 		filePath,
+		autosaveEnabled,
 		canEdit,
 		mode,
 		slides,
@@ -142,6 +145,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 	const { handlerRef, serializeSlides, autosaveStatus } = useContentLifecycle({
 		content,
 		filePath,
+		autosaveEnabled,
 		slides,
 		state,
 		history,

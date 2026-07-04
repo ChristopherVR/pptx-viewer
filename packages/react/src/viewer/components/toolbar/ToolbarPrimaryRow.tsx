@@ -1,15 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-	LuMessageSquare,
-	LuPanelLeft,
-	LuPanelRight,
-	LuRedo,
-	LuSearch,
-	LuSettings,
-	LuShare2,
-	LuUndo,
-} from 'react-icons/lu';
+import { LuMessageSquare, LuPanelLeft, LuPanelRight, LuSettings } from 'react-icons/lu';
 
 import { cn } from '../../utils';
 import { useCollaboration, UserAvatarBar } from '../collaboration';
@@ -26,16 +17,8 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 		canEdit,
 		isSidebarCollapsed,
 		isInspectorPaneOpen,
-		canUndo,
-		canRedo,
-		undoLabel,
-		redoLabel,
-		findReplaceOpen,
 		onToggleSidebar,
 		onToggleInspector,
-		onUndo,
-		onRedo,
-		onToggleFindReplace,
 	} = p;
 
 	const collab = useCollaboration();
@@ -57,47 +40,6 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 					<LuPanelLeft className={ic} />
 				</button>
 			)}
-			{sep}
-			<button
-				type='button'
-				onClick={onUndo}
-				disabled={!canEdit || !canUndo}
-				className={cn(qab, 'text-muted-foreground')}
-				title={
-					undoLabel ? t('pptx.toolbar.undoAction', { action: undoLabel }) : t('pptx.toolbar.undo')
-				}
-				aria-label={t('pptx.toolbar.undo')}
-			>
-				<LuUndo className={ics} />
-			</button>
-			<button
-				type='button'
-				onClick={onRedo}
-				disabled={!canEdit || !canRedo}
-				className={cn(qab, 'text-muted-foreground')}
-				title={
-					redoLabel ? t('pptx.toolbar.redoAction', { action: redoLabel }) : t('pptx.toolbar.redo')
-				}
-				aria-label={t('pptx.toolbar.redo')}
-			>
-				<LuRedo className={ics} />
-			</button>
-			{(mode === 'edit' || mode === 'master') && (
-				<button
-					type='button'
-					onClick={onToggleFindReplace}
-					className={cn(
-						qab,
-						'max-md:hidden',
-						findReplaceOpen ? 'text-foreground' : 'text-muted-foreground',
-					)}
-					title={t('pptx.findReplace.title')}
-					aria-label={t('pptx.findReplace.title')}
-				>
-					<LuSearch className={ics} />
-				</button>
-			)}
-
 			{/* Center spacer */}
 			<div className='flex-1 min-w-2 max-md:min-w-1' />
 
@@ -169,33 +111,6 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 			/>
 
 			{sep}
-
-			{/* Share button: shows user count when collaborating */}
-			{(mode === 'edit' || mode === 'master') && (
-				<button
-					type='button'
-					onClick={p.onOpenShareDialog ?? p.onPackageForSharing}
-					className={cn(
-						'relative inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-[11px] font-medium transition-colors',
-						collab && collab.status === 'connected'
-							? 'bg-green-600 hover:bg-green-500 text-white'
-							: 'bg-primary hover:bg-primary/90 text-white',
-					)}
-					title={
-						collab && collab.status === 'connected'
-							? t('pptx.toolbar.sharingUsers', { count: collab.connectedCount })
-							: t('pptx.toolbar.share')
-					}
-					aria-label={t('pptx.toolbar.share')}
-				>
-					<LuShare2 className='w-3 h-3' />
-					<span className='max-md:hidden'>
-						{collab && collab.status === 'connected'
-							? t('pptx.toolbar.sharingCount', { count: collab.connectedCount })
-							: t('pptx.toolbar.share')}
-					</span>
-				</button>
-			)}
 
 			{(mode === 'edit' || mode === 'master') && (
 				<button

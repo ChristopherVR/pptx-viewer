@@ -393,7 +393,9 @@ function browse(): void {
 		<LanguagePicker :current="languageKey" :theme="themeKey" @change="setLanguage" />
 		<PowerPointViewer
 			:content="content"
+			:file-name="fileName"
 			:theme="currentPreset.theme"
+			autosave
 			can-edit
 			:smartArt3D="smartArt3D"
 			:author-name="collaborationConfig?.userName ?? autoName"
