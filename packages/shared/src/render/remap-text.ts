@@ -6,6 +6,36 @@
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 
 /**
+ * Copy segment-level metadata (equation, field) from an original segment onto
+ * its remapped counterpart. Without this, entering and leaving inline text
+ * editing destroys the data these fields carry even when nothing was typed:
+ * an equation collapses to its literal "[Equation]" placeholder text and a
+ * slide-number/date field degrades to frozen plain text. Hyperlink and other
+ * style-level properties already survive via the copied `style` object.
+ */
+function copySegmentMetadata(from: TextSegment, to: TextSegment): TextSegment {
+	if (from.equationXml !== undefined) {
+		to.equationXml = from.equationXml;
+	}
+	if (from.equationNumber !== undefined) {
+		to.equationNumber = from.equationNumber;
+	}
+	if (from.fieldType !== undefined) {
+		to.fieldType = from.fieldType;
+	}
+	if (from.fieldGuid !== undefined) {
+		to.fieldGuid = from.fieldGuid;
+	}
+	if (from.fieldGuidAttr !== undefined) {
+		to.fieldGuidAttr = from.fieldGuidAttr;
+	}
+	if (from.fieldParagraphPropertiesXml !== undefined) {
+		to.fieldParagraphPropertiesXml = from.fieldParagraphPropertiesXml;
+	}
+	return to;
+}
+
+/**
  * Strategy:
  * 1. Split both original segments and new text into paragraphs by "\n".
  * 2. Distribute new characters proportionally across segments.
@@ -62,7 +92,10 @@ export function remapTextToSegments(
 
 		if (totalOrigLen === 0) {
 			const result: TextSegment[] = [
-				{ text: paraNewText, style: { ...paraOrigSegments[0].style } },
+				copySegmentMetadata(paraOrigSegments[0], {
+					text: paraNewText,
+					style: { ...paraOrigSegments[0].style },
+				}),
 			];
 			if (paragraphBulletInfo) {
 				result[0].bulletInfo = paragraphBulletInfo;
@@ -90,10 +123,10 @@ export function remapTextToSegments(
 			}
 
 			if (segText.length > 0) {
-				const outSeg: TextSegment = {
+				const outSeg: TextSegment = copySegmentMetadata(origSeg, {
 					text: segText,
 					style: { ...origSeg.style },
-				};
+				});
 				if (remapped.length === 0 && paragraphBulletInfo) {
 					outSeg.bulletInfo = paragraphBulletInfo;
 				}
@@ -104,10 +137,10 @@ export function remapTextToSegments(
 		}
 
 		if (remapped.length === 0) {
-			const fallback: TextSegment = {
+			const fallback: TextSegment = copySegmentMetadata(paraOrigSegments[0], {
 				text: paraNewText,
 				style: { ...paraOrigSegments[0].style },
-			};
+			});
 			if (paragraphBulletInfo) {
 				fallback.bulletInfo = paragraphBulletInfo;
 			}

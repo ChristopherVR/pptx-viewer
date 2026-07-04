@@ -117,4 +117,58 @@ describe('remapTextToSegments', () => {
 			expect(result[0].bulletInfo).toStrictEqual(bulletInfo);
 		});
 	});
+
+	describe('segment metadata preservation', () => {
+		it('preserves equationXml on an untouched commit (click in, click away)', () => {
+			const omml = { 'm:oMath': { 'm:r': { 'm:t': 'x' } } };
+			const original: TextSegment[] = [
+				{ text: '[Equation]', style: { fontFamily: 'Cambria Math' }, equationXml: omml },
+			];
+			const result = remapTextToSegments('[Equation]', original, {});
+			expect(result).toHaveLength(1);
+			expect(result[0].equationXml).toBe(omml);
+			expect(result[0].text).toBe('[Equation]');
+		});
+
+		it('preserves equationXml and equationNumber when the text was edited', () => {
+			const omml = { 'm:oMathPara': {} };
+			const original: TextSegment[] = [
+				{ text: '[Equation]', style: {}, equationXml: omml, equationNumber: '(1)' },
+			];
+			const result = remapTextToSegments('renamed', original, {});
+			expect(result[0].equationXml).toBe(omml);
+			expect(result[0].equationNumber).toBe('(1)');
+		});
+
+		it('preserves field metadata (fieldType, fieldGuid, fieldGuidAttr)', () => {
+			const original: TextSegment[] = [
+				{
+					text: '4',
+					style: {},
+					fieldType: 'slidenum',
+					fieldGuid: '{ABC}',
+					fieldGuidAttr: 'id',
+				},
+			];
+			const result = remapTextToSegments('5', original, {});
+			expect(result[0].fieldType).toBe('slidenum');
+			expect(result[0].fieldGuid).toBe('{ABC}');
+			expect(result[0].fieldGuidAttr).toBe('id');
+		});
+
+		it('preserves metadata through the empty-original-text remap path', () => {
+			const omml = { 'm:oMath': {} };
+			const original: TextSegment[] = [{ text: '', style: { bold: true }, equationXml: omml }];
+			const result = remapTextToSegments('typed', original, {});
+			expect(result).toHaveLength(1);
+			expect(result[0].equationXml).toBe(omml);
+		});
+
+		it('does not invent metadata on plain segments', () => {
+			const original: TextSegment[] = [seg('plain', { bold: true })];
+			const result = remapTextToSegments('plain', original, {});
+			expect(result[0].equationXml).toBeUndefined();
+			expect(result[0].fieldType).toBeUndefined();
+		});
+	});
 });
