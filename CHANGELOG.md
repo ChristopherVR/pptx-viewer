@@ -6,6 +6,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-04
 
+_Releases: pptx-react-viewer@1.5.2, pptx-vue-viewer@1.5.2, pptx-angular-viewer@1.5.2_
+
+## 2026-07-04
+
 _Releases: pptx-react-viewer@1.5.1, pptx-vue-viewer@1.5.1, pptx-angular-viewer@1.5.1_
 
 ## 2026-07-04
