@@ -107,13 +107,13 @@ function close(): void {
 					class="pptx-vue-settings-row flex items-center justify-between gap-3 px-1 py-2"
 				>
 					<span class="pptx-vue-settings-row-label text-[13px] text-foreground">
-						{{ spec.label }}
+						{{ t(spec.labelKey) }}
 					</span>
 					<button
 						type="button"
 						role="switch"
 						:aria-checked="draft[spec.key]"
-						:aria-label="spec.label"
+						:aria-label="t(spec.labelKey)"
 						class="pptx-vue-settings-switch relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
 						:class="
 							draft[spec.key] ? 'pptx-vue-settings-switch--on bg-primary' : 'bg-muted-foreground/30'
@@ -131,12 +131,12 @@ function close(): void {
 			<div v-else class="pptx-vue-settings-panel flex max-h-[56vh] flex-col overflow-y-auto">
 				<div
 					v-for="(item, i) in shortcuts"
-					:key="item.action"
+					:key="item.actionKey"
 					class="pptx-vue-settings-shortcut flex items-center justify-between gap-3 rounded px-2 py-1.5"
 					:class="{ 'pptx-vue-settings-shortcut--alt bg-muted/60': i % 2 === 0 }"
 				>
 					<span class="pptx-vue-settings-shortcut-action text-xs text-foreground">
-						{{ item.action }}
+						{{ t(item.actionKey) }}
 					</span>
 					<span
 						class="pptx-vue-settings-shortcut-keys whitespace-nowrap font-mono text-[11px] text-muted-foreground"

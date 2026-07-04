@@ -78,7 +78,7 @@ function ovAct(k: string): void {
 						@click="ovAct(o.k)"
 					>
 						<component :is="o.icon" v-if="o.icon" :class="ics + ' text-muted-foreground'" />
-						{{ o.l }}
+						{{ t(o.labelKey) }}
 					</button>
 				</template>
 			</div>

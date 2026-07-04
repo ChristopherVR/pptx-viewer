@@ -135,8 +135,8 @@ export interface ShortcutDefinition {
 	combo: string;
 	/** Logical group for the help overlay. */
 	group: ShortcutGroup;
-	/** Help-panel description. */
-	description: string;
+	/** i18n key for the help-panel description. */
+	descriptionKey: string;
 }
 
 /** Result of matching a keyboard event against the catalog. */
@@ -175,75 +175,95 @@ export interface UseKeyboardShortcutsResult {
  * by `ShortcutPanel.vue`). This is the single source of truth for the help UI.
  */
 export const SHORTCUT_CATALOG: readonly ShortcutDefinition[] = [
-	{ id: 'undo', combo: 'Mod+Z', group: 'history', description: 'Undo' },
-	{ id: 'redo', combo: 'Mod+Shift+Z', group: 'history', description: 'Redo' },
-	{ id: 'redo-y', combo: 'Mod+Y', group: 'history', description: 'Redo (alternate)' },
-	{ id: 'copy', combo: 'Mod+C', group: 'clipboard', description: 'Copy selected element' },
-	{ id: 'cut', combo: 'Mod+X', group: 'clipboard', description: 'Cut selected element' },
-	{ id: 'paste', combo: 'Mod+V', group: 'clipboard', description: 'Paste element' },
+	{ id: 'undo', combo: 'Mod+Z', group: 'history', descriptionKey: 'pptx.toolbar.undo' },
+	{ id: 'redo', combo: 'Mod+Shift+Z', group: 'history', descriptionKey: 'pptx.toolbar.redo' },
+	{
+		id: 'redo-y',
+		combo: 'Mod+Y',
+		group: 'history',
+		descriptionKey: 'pptx.shortcuts.action.redoAlternate',
+	},
+	{
+		id: 'copy',
+		combo: 'Mod+C',
+		group: 'clipboard',
+		descriptionKey: 'pptx.shortcuts.action.copyElement',
+	},
+	{
+		id: 'cut',
+		combo: 'Mod+X',
+		group: 'clipboard',
+		descriptionKey: 'pptx.shortcuts.action.cutElement',
+	},
+	{
+		id: 'paste',
+		combo: 'Mod+V',
+		group: 'clipboard',
+		descriptionKey: 'pptx.shortcuts.action.pasteElement',
+	},
 	{
 		id: 'duplicate',
 		combo: 'Mod+D',
 		group: 'editing',
-		description: 'Duplicate selected element',
+		descriptionKey: 'pptx.shortcuts.action.duplicateElement',
 	},
 	{
 		id: 'delete',
 		combo: 'Delete',
 		group: 'editing',
-		description: 'Delete selected element',
+		descriptionKey: 'pptx.shortcuts.action.deleteElement',
 	},
 	{
 		id: 'select-all',
 		combo: 'Mod+A',
 		group: 'editing',
-		description: 'Select all elements',
+		descriptionKey: 'pptx.shortcuts.action.selectAll',
 	},
 	{
 		id: 'nudge',
 		combo: 'ArrowKeys',
 		group: 'editing',
-		description: 'Nudge selected element',
+		descriptionKey: 'pptx.shortcuts.action.nudgeElement',
 	},
 	{
 		id: 'nudge-large',
 		combo: 'Shift+ArrowKeys',
 		group: 'editing',
-		description: 'Nudge selected element (large)',
+		descriptionKey: 'pptx.shortcuts.action.nudgeElementLarge',
 	},
 	{
 		id: 'prev-slide',
 		combo: 'ArrowLeft',
 		group: 'navigation',
-		description: 'Previous slide (no selection)',
+		descriptionKey: 'pptx.shortcuts.action.prevSlide',
 	},
 	{
 		id: 'next-slide',
 		combo: 'ArrowRight',
 		group: 'navigation',
-		description: 'Next slide (no selection)',
+		descriptionKey: 'pptx.shortcuts.action.nextSlide',
 	},
 	{
 		id: 'escape',
 		combo: 'Escape',
 		group: 'general',
-		description: 'Clear selection / close menus / cancel edit',
+		descriptionKey: 'pptx.shortcuts.action.clearSelection',
 	},
 ] as const;
 
-/** Human-readable labels for each group, in display order. */
-export const SHORTCUT_GROUP_LABELS: Record<ShortcutGroup, string> = {
-	history: 'History',
-	clipboard: 'Clipboard',
-	editing: 'Editing',
-	navigation: 'Navigation',
-	general: 'General',
+/** i18n keys for each group's label, in display order. */
+export const SHORTCUT_GROUP_LABEL_KEYS: Record<ShortcutGroup, string> = {
+	history: 'pptx.editorToolbar.history',
+	clipboard: 'pptx.ribbon.clipboard',
+	editing: 'pptx.shortcuts.group.editing',
+	navigation: 'pptx.shortcuts.group.navigation',
+	general: 'pptx.settings.general',
 };
 
-/** The catalog grouped by `group`, in `SHORTCUT_GROUP_LABELS` order. */
+/** The catalog grouped by `group`, in `SHORTCUT_GROUP_LABEL_KEYS` order. */
 export interface ShortcutCatalogGroup {
 	group: ShortcutGroup;
-	label: string;
+	labelKey: string;
 	shortcuts: ShortcutDefinition[];
 }
 
@@ -251,11 +271,11 @@ export interface ShortcutCatalogGroup {
 export function groupShortcutCatalog(
 	catalog: readonly ShortcutDefinition[] = SHORTCUT_CATALOG,
 ): ShortcutCatalogGroup[] {
-	const order = Object.keys(SHORTCUT_GROUP_LABELS) as ShortcutGroup[];
+	const order = Object.keys(SHORTCUT_GROUP_LABEL_KEYS) as ShortcutGroup[];
 	return order
 		.map((group) => ({
 			group,
-			label: SHORTCUT_GROUP_LABELS[group],
+			labelKey: SHORTCUT_GROUP_LABEL_KEYS[group],
 			shortcuts: catalog.filter((entry) => entry.group === group),
 		}))
 		.filter((bucket) => bucket.shortcuts.length > 0);

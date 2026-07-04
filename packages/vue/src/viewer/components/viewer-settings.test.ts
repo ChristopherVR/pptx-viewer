@@ -27,6 +27,9 @@ describe('viewer-settings', () => {
 
 	it('provides keyboard shortcut reference entries', () => {
 		expect(SHORTCUT_REFERENCE_ITEMS.length).toBeGreaterThan(0);
-		expect(SHORTCUT_REFERENCE_ITEMS[0]).toStrictEqual({ action: 'Undo', shortcut: 'Ctrl/Cmd+Z' });
+		expect(SHORTCUT_REFERENCE_ITEMS[0]).toStrictEqual({
+			actionKey: 'pptx.toolbar.undo',
+			shortcut: 'Ctrl/Cmd+Z',
+		});
 	});
 });

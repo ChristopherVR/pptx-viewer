@@ -40,7 +40,7 @@ const { t } = useI18n();
 					props.activeTool === tool.id ? (tool.ac ?? 'bg-accent text-foreground') : '',
 				)
 			"
-			:title="tool.t"
+			:title="t(tool.labelKey)"
 			@click="props.onSetActiveTool(tool.id)"
 		>
 			<component :is="tool.icon" :class="ic" />

@@ -75,7 +75,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				"
 				@click="props.onSetToolbarSection(sec.id)"
 			>
-				{{ sec.label }}
+				{{ t(sec.labelKey) }}
 			</button>
 			<div class="flex-1" />
 			<button

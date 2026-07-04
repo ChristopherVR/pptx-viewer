@@ -87,69 +87,89 @@ export const DISTRIBUTE_BTNS: Array<{ k: string; icon: Component }> = [
 	{ k: 'vertical', icon: AlignVerticalSpaceAround },
 ];
 
-export const DRAW_TOOLS: Array<{ id: DrawingTool; icon: Component; t: string; ac?: string }> = [
-	{ id: 'select', icon: MoveRight, t: 'Select', ac: 'bg-primary text-white' },
-	{ id: 'pen', icon: Pencil, t: 'Pen', ac: 'bg-primary text-white' },
-	{ id: 'highlighter', icon: Type, t: 'Highlighter', ac: 'bg-yellow-600 text-white' },
-	{ id: 'eraser', icon: Minus, t: 'Eraser', ac: 'bg-red-600 text-white' },
-	{ id: 'freeform', icon: Spline, t: 'Freeform', ac: 'bg-primary text-white' },
+export const DRAW_TOOLS: Array<{
+	id: DrawingTool;
+	icon: Component;
+	labelKey: string;
+	ac?: string;
+}> = [
+	{
+		id: 'select',
+		icon: MoveRight,
+		labelKey: 'pptx.ribbon.tool.select',
+		ac: 'bg-primary text-white',
+	},
+	{ id: 'pen', icon: Pencil, labelKey: 'pptx.ribbon.tool.pen', ac: 'bg-primary text-white' },
+	{
+		id: 'highlighter',
+		icon: Type,
+		labelKey: 'pptx.ribbon.tool.highlighter',
+		ac: 'bg-yellow-600 text-white',
+	},
+	{ id: 'eraser', icon: Minus, labelKey: 'pptx.ribbon.tool.eraser', ac: 'bg-red-600 text-white' },
+	{
+		id: 'freeform',
+		icon: Spline,
+		labelKey: 'pptx.ribbon.tool.freeform',
+		ac: 'bg-primary text-white',
+	},
 ];
 
 /** Overflow / File menu entries (`---*` keys render as separators). */
-export const OV: Array<{ l: string; icon: Component | null; k: string }> = [
-	{ k: 'png', l: 'Export as PNG', icon: Download },
-	{ k: 'pdf', l: 'Export as PDF', icon: FileText },
-	{ k: 'video', l: 'Export as Video', icon: Video },
-	{ k: 'gif', l: 'Export as GIF', icon: Image },
-	{ k: 'package', l: 'Package for Sharing', icon: FolderOpen },
-	{ k: 'pptx', l: 'Save as Presentation (.pptx)', icon: Download },
-	{ k: 'ppsx', l: 'Save as Slide Show (.ppsx)', icon: Play },
-	{ k: 'pptm', l: 'Save as Macro-Enabled (.pptm)', icon: Database },
-	{ k: '---0', l: '', icon: null },
-	{ k: 'print', l: 'Print', icon: Printer },
-	{ k: 'copyImg', l: 'Copy Slide as Image', icon: Copy },
-	{ k: '---', l: '', icon: null },
-	{ k: 'a11y', l: 'Accessibility Check', icon: Check },
-	{ k: 'shortcuts', l: 'Keyboard Shortcuts', icon: Search },
-	{ k: '---2', l: '', icon: null },
-	{ k: 'versionHistory', l: 'Version History', icon: Clock },
-	{ k: '---3', l: '', icon: null },
-	{ k: 'documentProperties', l: 'Document Properties…', icon: Info },
-	{ k: 'passwordProtection', l: 'Protect Presentation', icon: Lock },
-	{ k: 'fontEmbedding', l: 'Embed Fonts', icon: Type },
-	{ k: 'digitalSignatures', l: 'Digital Signatures…', icon: ShieldAlert },
+export const OV: Array<{ labelKey: string; icon: Component | null; k: string }> = [
+	{ k: 'png', labelKey: 'pptx.ribbon.exportPng', icon: Download },
+	{ k: 'pdf', labelKey: 'pptx.ribbon.exportPdf', icon: FileText },
+	{ k: 'video', labelKey: 'pptx.ribbon.exportVideo', icon: Video },
+	{ k: 'gif', labelKey: 'pptx.ribbon.exportGif', icon: Image },
+	{ k: 'package', labelKey: 'pptx.file.packageTooltip', icon: FolderOpen },
+	{ k: 'pptx', labelKey: 'pptx.file.saveAsPptxTooltip', icon: Download },
+	{ k: 'ppsx', labelKey: 'pptx.file.saveAsPpsxTooltip', icon: Play },
+	{ k: 'pptm', labelKey: 'pptx.file.saveAsPptmTooltip', icon: Database },
+	{ k: '---0', labelKey: '', icon: null },
+	{ k: 'print', labelKey: 'pptx.print.printButton', icon: Printer },
+	{ k: 'copyImg', labelKey: 'pptx.file.copyImageTooltip', icon: Copy },
+	{ k: '---', labelKey: '', icon: null },
+	{ k: 'a11y', labelKey: 'pptx.ribbon.accessibilityCheck', icon: Check },
+	{ k: 'shortcuts', labelKey: 'pptx.settings.keyboardShortcuts', icon: Search },
+	{ k: '---2', labelKey: '', icon: null },
+	{ k: 'versionHistory', labelKey: 'pptx.ribbon.versionHistory', icon: Clock },
+	{ k: '---3', labelKey: '', icon: null },
+	{ k: 'documentProperties', labelKey: 'pptx.ribbon.documentProperties', icon: Info },
+	{ k: 'passwordProtection', labelKey: 'pptx.security.protectPresentation', icon: Lock },
+	{ k: 'fontEmbedding', labelKey: 'pptx.ribbon.embedFonts', icon: Type },
+	{ k: 'digitalSignatures', labelKey: 'pptx.viewer.digitalSignatures', icon: ShieldAlert },
 ];
 
 /** Character formatting toggles (Bold/Italic/Underline/Strikethrough). */
-export const FMT: Array<{ icon: Component; t: string }> = [
-	{ icon: Bold, t: 'Bold' },
-	{ icon: Italic, t: 'Italic' },
-	{ icon: Underline, t: 'Underline' },
-	{ icon: Strikethrough, t: 'Strikethrough' },
+export const FMT: Array<{ id: string; icon: Component; labelKey: string }> = [
+	{ id: 'bold', icon: Bold, labelKey: 'pptx.textPanel.bold' },
+	{ id: 'italic', icon: Italic, labelKey: 'pptx.textPanel.italic' },
+	{ id: 'underline', icon: Underline, labelKey: 'pptx.textPanel.underline' },
+	{ id: 'strikethrough', icon: Strikethrough, labelKey: 'pptx.textPanel.strikethrough' },
 ];
 
 /** Paragraph alignment toggles. */
-export const ATXT: Array<{ icon: Component; t: string }> = [
-	{ icon: AlignLeft, t: 'Align left' },
-	{ icon: AlignCenter, t: 'Align center' },
-	{ icon: AlignRight, t: 'Align right' },
-	{ icon: AlignJustify, t: 'Justify' },
+export const ATXT: Array<{ id: string; icon: Component; labelKey: string }> = [
+	{ id: 'left', icon: AlignLeft, labelKey: 'pptx.ribbon.alignLeft' },
+	{ id: 'center', icon: AlignCenter, labelKey: 'pptx.ribbon.alignCenter' },
+	{ id: 'right', icon: AlignRight, labelKey: 'pptx.ribbon.alignRight' },
+	{ id: 'justify', icon: AlignJustify, labelKey: 'pptx.ribbon.justify' },
 ];
 
-export const TOOLBAR_SECTIONS: Array<{ id: ToolbarSection; label: string }> = [
-	{ id: 'file', label: 'File' },
-	{ id: 'home', label: 'Home' },
-	{ id: 'insert', label: 'Insert' },
-	{ id: 'text', label: 'Text' },
-	{ id: 'draw', label: 'Draw' },
-	{ id: 'arrange', label: 'Arrange' },
-	{ id: 'design', label: 'Design' },
-	{ id: 'transitions', label: 'Transitions' },
-	{ id: 'animations', label: 'Animations' },
-	{ id: 'slideShow', label: 'Slide Show' },
-	{ id: 'review', label: 'Review' },
-	{ id: 'view', label: 'View' },
-	{ id: 'help', label: 'Help' },
+export const TOOLBAR_SECTIONS: Array<{ id: ToolbarSection; labelKey: string }> = [
+	{ id: 'file', labelKey: 'pptx.ribbon.tab.file' },
+	{ id: 'home', labelKey: 'pptx.ribbon.tab.home' },
+	{ id: 'insert', labelKey: 'pptx.ribbon.tab.insert' },
+	{ id: 'text', labelKey: 'pptx.ribbon.tab.text' },
+	{ id: 'draw', labelKey: 'pptx.ribbon.tab.draw' },
+	{ id: 'arrange', labelKey: 'pptx.ribbon.tab.arrange' },
+	{ id: 'design', labelKey: 'pptx.ribbon.tab.design' },
+	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
+	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
+	{ id: 'slideShow', labelKey: 'pptx.ribbon.tab.slideShow' },
+	{ id: 'review', labelKey: 'pptx.ribbon.tab.review' },
+	{ id: 'view', labelKey: 'pptx.ribbon.tab.view' },
+	{ id: 'help', labelKey: 'pptx.ribbon.tab.help' },
 ];
 
 export const COMMON_FONTS = [

@@ -89,7 +89,7 @@ const groups = computed(() => {
 			? [...SHORTCUT_CATALOG]
 			: SHORTCUT_CATALOG.filter(
 					(entry) =>
-						entry.description.toLowerCase().includes(needle) ||
+						t(entry.descriptionKey).toLowerCase().includes(needle) ||
 						comboGlyphs(entry.combo).toLowerCase().includes(needle) ||
 						entry.combo.toLowerCase().includes(needle),
 				);
@@ -129,7 +129,7 @@ function requestClose(): void {
 					<h3
 						class="pptx-vue-shortcuts-group-title text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 					>
-						{{ bucket.label }}
+						{{ t(bucket.labelKey) }}
 					</h3>
 					<div
 						v-for="shortcut in bucket.shortcuts"
@@ -137,7 +137,7 @@ function requestClose(): void {
 						class="pptx-vue-shortcuts-row flex items-center justify-between gap-3 rounded bg-muted px-2 py-1.5"
 					>
 						<span class="pptx-vue-shortcuts-desc text-[13px] text-foreground">
-							{{ shortcut.description }}
+							{{ t(shortcut.descriptionKey) }}
 						</span>
 						<kbd
 							class="pptx-vue-shortcuts-combo shrink-0 whitespace-nowrap rounded border border-border bg-popover px-2 py-0.5 font-mono text-xs text-foreground"

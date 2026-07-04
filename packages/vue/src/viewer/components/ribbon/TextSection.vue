@@ -138,22 +138,22 @@ function handleHighlightChange(highlightColor: string): void {
 	props.onUpdateTextStyle({ highlightColor });
 }
 
-function handleFmtClick(fmt: string): void {
+function handleFmtClick(id: string): void {
 	if (!canFormat.value || !props.selectedElement) {
 		return;
 	}
 	const ts = effectiveTs.value;
-	switch (fmt) {
-		case 'Bold':
+	switch (id) {
+		case 'bold':
 			props.onUpdateTextStyle({ bold: !ts?.bold });
 			break;
-		case 'Italic':
+		case 'italic':
 			props.onUpdateTextStyle({ italic: !ts?.italic });
 			break;
-		case 'Underline':
+		case 'underline':
 			props.onUpdateTextStyle({ underline: !ts?.underline });
 			break;
-		case 'Strikethrough':
+		case 'strikethrough':
 			props.onUpdateTextStyle({ strikethrough: !ts?.strikethrough });
 			break;
 	}
@@ -222,19 +222,12 @@ function handleIncreaseIndent(): void {
 	props.onUpdateTextStyle({ paragraphMarginLeft: current + 24 });
 }
 
-function handleAlignClick(label: string): void {
+function handleAlignClick(id: string): void {
 	if (!canFormat.value) {
 		return;
 	}
-	const alignMap: Record<string, 'left' | 'center' | 'right' | 'justify'> = {
-		'Align left': 'left',
-		'Align center': 'center',
-		'Align right': 'right',
-		Justify: 'justify',
-	};
-	const align = alignMap[label];
-	if (align) {
-		props.onUpdateTextStyle({ align });
+	if (id === 'left' || id === 'center' || id === 'right' || id === 'justify') {
+		props.onUpdateTextStyle({ align: id });
 	}
 }
 </script>
@@ -246,13 +239,13 @@ function handleAlignClick(label: string): void {
 			<div :class="grp">
 				<button
 					v-for="(b, i) in FMT"
-					:key="b.t"
+					:key="b.id"
 					type="button"
 					:disabled="!canMut"
 					:class="i < FMT.length - 1 ? gB : gL"
-					:title="b.t"
+					:title="t(b.labelKey)"
 					@mousedown.prevent
-					@click="handleFmtClick(b.t)"
+					@click="handleFmtClick(b.id)"
 				>
 					<component :is="b.icon" :class="ic" />
 				</button>
@@ -464,13 +457,13 @@ function handleAlignClick(label: string): void {
 			<div :class="grp">
 				<button
 					v-for="(b, i) in ATXT"
-					:key="b.t"
+					:key="b.id"
 					type="button"
 					:disabled="!canMut"
 					:class="i < ATXT.length - 1 ? gB : gL"
-					:title="b.t"
+					:title="t(b.labelKey)"
 					@mousedown.prevent
-					@click="handleAlignClick(b.t)"
+					@click="handleAlignClick(b.id)"
 				>
 					<component :is="b.icon" :class="ic" />
 				</button>
