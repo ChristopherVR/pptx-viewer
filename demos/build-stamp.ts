@@ -10,6 +10,10 @@ import type { Plugin } from 'vite';
  * this hosted demo?" question answerable at a glance without touching any
  * demo source file.
  *
+ * The badge shows only on the landing screen: once a presentation is created
+ * or opened (i.e. a viewer root mounts), it hides so it can never clip over
+ * viewer chrome like the notes panel.
+ *
  * The commit comes from GITHUB_SHA in CI (set automatically for every
  * workflow step) with a local `git rev-parse` fallback for dev builds.
  */
@@ -54,10 +58,20 @@ export function buildStamp(pkgJsonPath: string): Plugin {
 		`style="${BADGE_STYLE}" ` +
 		`onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.45" ` +
 		`title="Built from ${sha || 'a local checkout'} on ${date}">${label}</a>`;
+	// Root markers of the mounted viewer, one per binding (React attribute,
+	// Vue root class, Angular element). Badge is visible only while none exist.
+	const viewerRoots = '[data-pptx-viewer],.pptx-vue-viewer,pptx-viewer';
+	const toggle =
+		'<script>(()=>{' +
+		'const b=document.getElementById("demo-build-stamp");if(!b)return;' +
+		`const u=()=>{b.style.display=document.querySelector("${viewerRoots}")?"none":"";};` +
+		'new MutationObserver(u).observe(document.body,{childList:true,subtree:true});u();' +
+		'})();</scr' +
+		'ipt>';
 	return {
 		name: 'demo-build-stamp',
 		transformIndexHtml(html: string): string {
-			return html.replace('</body>', `${badge}\n</body>`);
+			return html.replace('</body>', `${badge}\n${toggle}\n</body>`);
 		},
 	};
 }
