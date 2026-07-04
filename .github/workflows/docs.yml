@@ -1,15 +1,19 @@
 name: Deploy Docs + Demo to GitHub Pages
 
 on:
+  # Docs-only edits deploy immediately; package/demo changes deploy via the
+  # Release trigger below, so the public demos always correspond to the latest
+  # published packages instead of whatever main HEAD happens to be.
   push:
     branches: [main]
     paths:
       - 'docs/**'
-      - 'demos/demo-react/**'
-      - 'demos/demo-vue/**'
-      - 'demos/demo-angular/**'
-      - 'packages/**'
       - '.github/workflows/docs.yml'
+  # Redeploy the site (docs + demos) after each release run.
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+    branches: [main]
   # Allow manual runs from the Actions tab
   workflow_dispatch:
 
@@ -26,6 +30,8 @@ concurrency:
 
 jobs:
   build:
+    # For the Release trigger, only deploy when the release run succeeded.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

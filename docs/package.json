@@ -5,8 +5,8 @@
 	"description": "VitePress documentation site for the pptx-viewer monorepo.",
 	"type": "module",
 	"scripts": {
-		"docs:dev": "vitepress dev",
-		"docs:build": "vitepress build",
+		"docs:dev": "node sync-changelogs.mjs && vitepress dev",
+		"docs:build": "node sync-changelogs.mjs && vitepress build",
 		"docs:preview": "vitepress preview"
 	},
 	"devDependencies": {
