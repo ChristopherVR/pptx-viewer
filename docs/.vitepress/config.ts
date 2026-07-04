@@ -50,12 +50,13 @@ export default defineConfig({
 				],
 			},
 			{ text: 'Contributing', link: '/contributing/development', activeMatch: '/contributing/' },
+			{ text: 'Releases', link: '/releases/', activeMatch: '/releases/' },
 			{
 				text: 'v1.x',
 				items: [
 					{
-						text: 'Changelog',
-						link: 'https://github.com/ChristopherVR/pptx-viewer/blob/main/CHANGELOG.md',
+						text: 'Release Notes',
+						link: '/releases/',
 					},
 					{ text: 'npm: pptx-viewer-core', link: 'https://www.npmjs.com/package/pptx-viewer-core' },
 					{
@@ -166,6 +167,21 @@ export default defineConfig({
 					items: [
 						{ text: 'Development', link: '/contributing/development' },
 						{ text: 'Adding an Element Type', link: '/contributing/adding-element-type' },
+					],
+				},
+			],
+
+			'/releases/': [
+				{
+					text: 'Release Notes',
+					items: [
+						{ text: 'Overview', link: '/releases/' },
+						{ text: 'pptx-viewer-core', link: '/releases/core' },
+						{ text: 'pptx-react-viewer', link: '/releases/react' },
+						{ text: 'pptx-vue-viewer', link: '/releases/vue' },
+						{ text: 'pptx-angular-viewer', link: '/releases/angular' },
+						{ text: 'pptx-viewer-mcp', link: '/releases/mcp' },
+						{ text: '@christophervr/pptx-viewer (CLI)', link: '/releases/cli' },
 					],
 				},
 			],

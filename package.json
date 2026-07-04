@@ -36,7 +36,6 @@
 		"pack:vue": "cd packages/vue && bun run pack",
 		"pack:angular": "cd packages/angular && bun run pack",
 		"pack:cli": "cd packages/cli && bun run pack",
-		"changelog": "bunx git-cliff --config cliff-root.toml --output CHANGELOG.md",
 		"changelog:latest": "bunx git-cliff --config cliff-root.toml --latest --strip header",
 		"changelog:unreleased": "bunx git-cliff --config cliff-root.toml --unreleased",
 		"release:plan": "node scripts/release-plan.mjs",

@@ -16,8 +16,8 @@ bun run lint:fix             # Auto-fix lint issues
 bun run demo                 # Start the React demo dev server (Vite, port 4173)
 bun run demo:vue             # Start the Vue demo dev server (Vite, port 4175)
 bun run demo:angular         # Start the Angular demo dev server (Vite, port 4174)
-bun run changelog            # Regenerate CHANGELOG.md from Conventional Commits (git-cliff)
-bun run changelog:unreleased # Preview changelog notes for commits since the last tag
+bun run changelog:unreleased # Preview changelog notes for commits since the last release run
+bun run release:plan         # Dry-run the release planner (per-package versions + bump levels)
 
 # Per-package (run from package directory)
 bun run build                # Build via tsup
@@ -125,15 +125,22 @@ any default "branch before committing" assumption.
 
 Commits **must** follow [Conventional Commits](https://www.conventionalcommits.org).
 Each published package is versioned and released **independently**: the release
-pipeline (`scripts/release-plan.mjs`) bumps a package only when files under its
-directory (or a bundled dependency) change since its own last
-`<npm-name>@<version>` tag, then generates that package's own
-`packages/<pkg>/CHANGELOG.md` with [git-cliff](https://git-cliff.org) (config:
-`cliff.toml`) scoped to the same paths, and cuts a `<npm-name>@<version>` tag +
-GitHub release that publishes just that package. Non-conforming commits are
-silently dropped from the changelog, so the format is load-bearing, not
-cosmetic. Which package(s) a commit lands in is determined by the **paths** it
-touches, so keep a commit's changes within one package where practical.
+pipeline (`scripts/release-plan.mjs`, run on a schedule / manual dispatch by
+`release.yml`, batching everything merged since the previous run) bumps a
+package only when files under its directory (or a bundled dependency) change
+since its own last `<npm-name>@<version>` tag. **The bump level comes from the
+commit types**: a breaking change (`!` or `BREAKING CHANGE:` footer) bumps
+major, `feat` bumps minor, everything else bumps patch. It then PREPENDS the
+new section to that package's `packages/<pkg>/CHANGELOG.md` with
+[git-cliff](https://git-cliff.org) (config: `cliff.toml`) scoped to the same
+paths, commits the version bumps + changelogs back to main, and cuts a
+`<npm-name>@<version>` tag + GitHub release that publishes just that package.
+Old tags/releases are culled weekly (`prune-releases.yml`), which is safe only
+because changelogs are prepend-only; never regenerate a CHANGELOG.md from tag
+history. Non-conforming commits are silently dropped from the changelog, and a
+mislabelled type now also mis-bumps the version, so the format is load-bearing,
+not cosmetic. Which package(s) a commit lands in is determined by the **paths**
+it touches, so keep a commit's changes within one package where practical.
 
 Format:
 

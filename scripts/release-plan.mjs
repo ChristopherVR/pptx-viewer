@@ -8,8 +8,10 @@
  * `pptx-viewer-core@1.6.0`), bumped only when that package actually changes.
  * This script computes, from the git history since each package's last tag,
  * which packages changed (directly or through a bundled dependency) and the
- * next version for each. Unchanged packages keep their published version and
- * get no tag, no GitHub release, and no npm publish.
+ * next version for each. The bump level follows Conventional Commits: a
+ * breaking change (`!` or BREAKING CHANGE footer) bumps major, a `feat` bumps
+ * minor, anything else bumps patch. Unchanged packages keep their published
+ * version and get no tag, no GitHub release, and no npm publish.
  *
  * It is the single source of truth for `.github/workflows/release.yml` (tags +
  * GitHub releases + per-package changelogs) and is fully runnable locally:
@@ -119,9 +121,62 @@ function maxSemver(versions) {
 	return versions.reduce((best, v) => (cmpSemver(v, best) > 0 ? v : best), '0.0.0');
 }
 
-function bumpPatch(version) {
+/** Bump a `x.y.z` version by a Conventional Commit level. */
+function bumpVersion(version, level) {
 	const [maj, min, patch] = version.split('.').map(Number);
+	if (level === 'major') {
+		return `${maj + 1}.0.0`;
+	}
+	if (level === 'minor') {
+		return `${maj}.${min + 1}.0`;
+	}
 	return `${maj}.${min}.${patch + 1}`;
+}
+
+const BUMP_RANK = { patch: 0, minor: 1, major: 2 };
+
+/** Published files a single commit touches inside the given dirs. */
+function commitPublishedFiles(hash, dirs) {
+	const out = git(['show', hash, '--name-only', '--format=']);
+	return out
+		.split('\n')
+		.map((f) => f.trim())
+		.filter((f) => f.length > 0 && isPublishedFile(f) && dirs.some((d) => dirTouched([f], d)));
+}
+
+/**
+ * Highest Conventional Commit bump level among commits since `base` that touch
+ * published files under `dirs`: `major` for breaking changes (a `!` marker or
+ * a BREAKING CHANGE footer), `minor` for `feat`, otherwise `patch`. A commit
+ * only raises the level if its published-file footprint inside `dirs` is
+ * non-empty, so a test-only `feat` does not force a minor bump.
+ */
+function bumpLevel(base, dirs) {
+	if (!base) {
+		return 'patch';
+	}
+	const raw = git(['log', '--format=%H%x1f%s%x1f%b%x1e', `${base}..HEAD`, '--', ...dirs]);
+	let best = 'patch';
+	for (const record of raw.split('\x1e')) {
+		const [hash, subject = '', body = ''] = record.trim().split('\x1f');
+		if (!hash) {
+			continue;
+		}
+		let level = 'patch';
+		if (/^[a-z]+(?:\([^)]*\))?!:/iu.test(subject) || /(?:^|\n)BREAKING[ -]CHANGE:/u.test(body)) {
+			level = 'major';
+		} else if (/^feat(?:\([^)]*\))?:/u.test(subject)) {
+			level = 'minor';
+		}
+		// Only pay for the per-commit file check when it would raise the level.
+		if (BUMP_RANK[level] > BUMP_RANK[best] && commitPublishedFiles(hash, dirs).length > 0) {
+			best = level;
+		}
+		if (best === 'major') {
+			break;
+		}
+	}
+	return best;
 }
 
 /** All `<npmName>@x.y.z` versions that already have a git tag, newest first. */
@@ -229,7 +284,8 @@ function main() {
 		const viaTrigger = meta.triggers.some((dir) => dirTouched(files, dir));
 		const release = base ? own || viaTrigger : true;
 		const current = publishedVersion(meta, args.npm);
-		const version = release ? bumpPatch(current) : current;
+		const bump = release ? bumpLevel(base, [meta.dir, ...meta.triggers]) : null;
+		const version = release ? bumpVersion(current, bump) : current;
 		const includePaths = [meta.dir, ...meta.triggers].map((d) => `${d}/**`);
 		packages[key] = {
 			npm: meta.npm,
@@ -237,6 +293,7 @@ function main() {
 			packDir: meta.packDir,
 			baseline: base,
 			release,
+			bump,
 			currentVersion: current,
 			version,
 			tag: `${meta.npm}@${version}`,
@@ -269,7 +326,9 @@ function main() {
 
 	console.log('Release plan (independent per-package versions):');
 	for (const [key, p] of Object.entries(packages)) {
-		const arrow = p.release ? `${p.currentVersion} -> ${p.version}` : `${p.currentVersion} (skip)`;
+		const arrow = p.release
+			? `${p.currentVersion} -> ${p.version} (${p.bump})`
+			: `${p.currentVersion} (skip)`;
 		console.log(`  ${key.padEnd(8)} ${arrow}${p.release ? `  tag ${p.tag}` : ''}`);
 	}
 	console.log(`core dep range: ^${coreVersion}`);

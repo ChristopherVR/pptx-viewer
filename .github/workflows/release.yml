@@ -1,19 +1,24 @@
 name: Release
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
-  # Manual re-publish: runs only the publish job for a specific tag without
-  # going through the full release pipeline. Useful for re-publishing a tag
-  # that was skipped or failed in an automated run:
-  #   gh workflow run release.yml -f tag=pptx-viewer-core@1.2.3
+  # Batched releases: cut on a schedule instead of after every green push to
+  # main. The planner is cumulative (each package is diffed from its own last
+  # tag), so everything merged since the previous run lands in one release per
+  # changed package, with a multi-commit changelog section.
+  schedule:
+    # Monday and Thursday, 05:00 UTC.
+    - cron: '0 5 * * 1,4'
+  # Manual runs, two modes:
+  #   - no input: run a full release now (same as the schedule).
+  #   - tag=<npm-name>@<version>: re-publish ONLY that existing tag to npm,
+  #     skipping the release job. Useful when a publish was skipped or failed:
+  #       gh workflow run release.yml -f tag=pptx-viewer-core@1.2.3
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to (re-)publish, e.g. pptx-viewer-core@1.2.3'
-        required: true
+        description: 'Existing tag to re-publish (leave empty to cut a full release)'
+        required: false
+        default: ''
         type: string
 
 permissions:
@@ -22,12 +27,11 @@ permissions:
 
 jobs:
   release:
-    # Only create releases when triggered by CI completing, not manual dispatch.
+    # Full release on schedule, or on manual dispatch without a tag input.
+    # Dispatch WITH a tag skips straight to the publish job (re-publish mode).
     if: |
-      github.event_name == 'workflow_run' && (
-        github.event.workflow_run.conclusion == 'success' ||
-        github.event.workflow_run.conclusion == 'failure'
-      )
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.tag == '')
     runs-on: ubuntu-latest
     outputs:
       any_released: ${{ steps.tagged.outputs.any_released || 'false' }}
@@ -47,10 +51,10 @@ jobs:
         run: bun install
 
       # Run the release plan FIRST (before any builds) -- it only reads git
-      # history and the npm registry, so no built artifacts are needed.
-      # `workflow_run` does not support paths: filtering, so this is also our
-      # early-exit gate: if no packages changed the plan outputs
-      # any_changed=false and all subsequent build + release steps are skipped.
+      # history and the npm registry, so no built artifacts are needed. It is
+      # also the early-exit gate: if no package changed since its last tag the
+      # plan outputs any_changed=false and all later steps are skipped, so a
+      # scheduled run on a quiet week is a cheap no-op.
       - name: Plan release
         id: plan
         run: node scripts/release-plan.mjs --write
@@ -83,10 +87,10 @@ jobs:
         run: bun run --filter 'pptx-angular-viewer' build
         continue-on-error: true
 
-      # Regenerate each released package's own CHANGELOG.md from the commits that
-      # touch it (or a bundled dependency), labelling unreleased commits with the
-      # new per-package tag. git-cliff fully regenerates the file each time, so it
-      # stays idempotent.
+      # Prepend the new release section to each released package's CHANGELOG.md.
+      # Prepend (rather than full regeneration) means shipped sections are never
+      # rewritten, so old tags can be culled by prune-releases without corrupting
+      # changelog history.
       - name: Generate per-package changelogs
         if: steps.plan.outputs.any_changed == 'true'
         run: |
@@ -98,17 +102,34 @@ jobs:
             tag=$(node -p "require('./release-plan.json').packages.$key.tag")
             inc=$(node -e "console.log(require('./release-plan.json').packages.$key.includePaths.map(p => '--include-path ' + p).join(' '))")
             echo "Changelog for $npm -> $tag"
-            bunx git-cliff --config cliff.toml --tag-pattern "^${npm}@" $inc --tag "$tag" --output "$dir/CHANGELOG.md"
+            if [ -f "$dir/CHANGELOG.md" ]; then
+              bunx git-cliff --config cliff.toml --tag-pattern "^${npm}@" $inc --unreleased --tag "$tag" --prepend "$dir/CHANGELOG.md"
+            else
+              bunx git-cliff --config cliff.toml --tag-pattern "^${npm}@" $inc --tag "$tag" --output "$dir/CHANGELOG.md"
+            fi
           done
 
-      # Regenerate the root CHANGELOG.md using all per-package and legacy v* tags
-      # so it stays a consolidated view of every release across all packages.
+      # Prepend a consolidated, dated section for this run to the root
+      # CHANGELOG.md: all conventional commits since the previous release run,
+      # plus the list of tags being cut. Prepend-only for the same reason as
+      # above: culled tags must never rewrite shipped history.
       - name: Generate root changelog
         if: steps.plan.outputs.any_changed == 'true'
         run: |
-          bunx git-cliff --config cliff-root.toml --output CHANGELOG.md
+          DATE=$(date -u +%Y-%m-%d)
+          TAGS=$(node -p "Object.values(require('./release-plan.json').packages).filter(p => p.release).map(p => p.tag).join(', ')")
+          bunx git-cliff --config cliff-root.toml --unreleased --strip all --output "${RUNNER_TEMP}/root-section.md"
+          sed -i "s|^## \[Unreleased\]|## ${DATE}\n\n_Releases: ${TAGS}_|" "${RUNNER_TEMP}/root-section.md"
+          # Drop any stale "[Unreleased]" section left by the old full-regeneration
+          # flow; its commits are re-rendered into the dated section above.
+          awk '/^## \[Unreleased\]/{skip=1; next} /^## /{skip=0} !skip{print}' CHANGELOG.md > "${RUNNER_TEMP}/root-clean.md"
+          # Insert the new section after the header (before the first existing
+          # "## " heading); append at the end if the file has none yet.
+          awk 'NR==FNR{sec=sec $0 ORS; next} /^## /&&!ins{printf "%s", sec; ins=1} {print} END{if(!ins) printf "%s", sec}' \
+            "${RUNNER_TEMP}/root-section.md" "${RUNNER_TEMP}/root-clean.md" > "${RUNNER_TEMP}/root-out.md"
+          mv "${RUNNER_TEMP}/root-out.md" CHANGELOG.md
 
-      - name: Commit changelogs
+      - name: Commit version bumps and changelogs
         if: steps.plan.outputs.any_changed == 'true'
         # The GITHUB_TOKEN push does not retrigger workflows, and `[skip ci]`
         # guards against it regardless. NOTE: if `main` is protected against
@@ -116,20 +137,21 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Stage per-package changelogs and the root consolidated changelog.
-          # The --write version bumps are deliberately left uncommitted; tags + npm
-          # are the source of truth for versions.
-          git add packages/*/CHANGELOG.md CHANGELOG.md
+          # Stage the changelogs AND the --write version bumps, so package.json
+          # in the repo always matches what is published; the release tag then
+          # points at a commit whose manifests are truthful.
+          git add packages/*/CHANGELOG.md CHANGELOG.md packages/*/package.json
           if git diff --cached --quiet; then
-            echo "No changelog changes to commit"
+            echo "No release changes to commit"
           else
-            git commit -m "docs(changelog): update package changelogs [skip ci]"
+            git commit -m "chore(release): bump versions and update changelogs [skip ci]"
             git push origin HEAD:main
           fi
 
-      # Pack each changed package and cut a per-package tag + GitHub release. The
-      # tag points at the (pushed) changelog commit; the release body is that
-      # package's newest changelog section.
+      # Cut a per-package tag + GitHub release. The tag points at the (pushed)
+      # release commit; the release body is that package's newest changelog
+      # section. No tarball assets: npm (with provenance) is the artifact
+      # registry, and asset-free releases are cheap to keep forever.
       # A package is released only if it: (a) changed since its last tag AND
       # (b) its framework build succeeded (or it is a non-framework package).
       - name: Tag and release changed packages
@@ -142,7 +164,6 @@ jobs:
           ANGULAR_BUILT: ${{ steps.build-angular.outcome == 'success' }}
         run: |
           COMMIT=$(git rev-parse HEAD)
-          CORE_VERSION=$(node -p "require('./release-plan.json').coreVersion")
           RELEASED_KEYS=""
           for key in core react vue angular tools cli; do
             release=$(node -p "require('./release-plan.json').packages.$key.release")
@@ -156,8 +177,6 @@ jobs:
             esac
 
             dir=$(node -p "require('./release-plan.json').packages.$key.dir")
-            packdir=$(node -p "require('./release-plan.json').packages.$key.packDir")
-            version=$(node -p "require('./release-plan.json').packages.$key.version")
             tag=$(node -p "require('./release-plan.json').packages.$key.tag")
 
             if gh release view "$tag" >/dev/null 2>&1; then
@@ -165,31 +184,11 @@ jobs:
               continue
             fi
 
-            # Angular ships from its ng-packagr dist/: stamp the version, point
-            # the core range at the live core version (which differs from angular's
-            # own version, and from the release version when core did not change),
-            # and copy the changelog into dist so it ships in the tarball.
-            if [ "$key" = "angular" ]; then
-              node -e "
-                const fs = require('fs');
-                const p = 'packages/angular/dist/package.json';
-                const d = JSON.parse(fs.readFileSync(p, 'utf8'));
-                d.version = '${version}';
-                for (const f of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
-                  if (d[f] && d[f]['pptx-viewer-core']) d[f]['pptx-viewer-core'] = '^${CORE_VERSION}';
-                }
-                fs.writeFileSync(p, JSON.stringify(d, null, '\t') + '\n');
-              "
-              cp "$dir/CHANGELOG.md" packages/angular/dist/CHANGELOG.md
-            fi
-
-            (cd "$packdir" && bun pm pack)
             awk '/^## \[/{c++} c==1{print} c==2{exit}' "$dir/CHANGELOG.md" > "${RUNNER_TEMP}/notes.md"
             gh release create "$tag" \
               --target "$COMMIT" \
               --title "$tag" \
-              --notes-file "${RUNNER_TEMP}/notes.md" \
-              "$packdir"/*.tgz
+              --notes-file "${RUNNER_TEMP}/notes.md"
             echo "Released $tag"
             RELEASED_KEYS="${RELEASED_KEYS}${key} "
           done
@@ -214,12 +213,13 @@ jobs:
   # ── Publish to npm ─────────────────────────────────────────────────────────
   # Runs in two modes:
   #
-  # AUTO (workflow_run): triggered after the `release` job above; reads the
-  #   released package list and versions from the release-plan.json artifact.
+  # AUTO (schedule, or dispatch without a tag): runs after the `release` job
+  #   above; reads the released package list and versions from the
+  #   release-plan.json artifact.
   #
-  # MANUAL (workflow_dispatch): skips the `release` job entirely and publishes
-  #   exactly the tag supplied via the `tag` input. Checks out at that tag so
-  #   the build matches the released snapshot.
+  # RE-PUBLISH (dispatch with a tag): skips the `release` job entirely and
+  #   publishes exactly the tag supplied via the `tag` input. Checks out at
+  #   that tag so the build matches the released snapshot.
   #
   # Auth: OIDC trusted publishing (default) or NPM_TOKEN secret.
   #   - OIDC: requires Node 24+ (npm >= 11.5.1) and publishers linked on
@@ -231,14 +231,14 @@ jobs:
   #   pptx-viewer-core       https://www.npmjs.com/package/pptx-viewer-core
   publish:
     needs: [release]
-    # `always()` lets this job run even when `release` was skipped (manual dispatch).
-    # Guard: release must not have failed outright, and either something was
-    # released or this is a manual dispatch.
+    # `always()` lets this job run even when `release` was skipped (re-publish
+    # dispatch). Guard: release must not have failed outright, and either
+    # something was released or this is a re-publish dispatch with a tag.
     if: |
       always() &&
       needs.release.result != 'failure' && (
         needs.release.outputs.any_released == 'true' ||
-        github.event_name == 'workflow_dispatch'
+        (github.event_name == 'workflow_dispatch' && inputs.tag != '')
       )
     runs-on: ubuntu-latest
     environment: npm
@@ -257,25 +257,25 @@ jobs:
           echo "Set the NPM_PUBLISH repository variable to 'true' to enable, or re-run this job."
           exit 1
 
-      # Auto mode: check out HEAD so the build includes the changelog commit.
+      # Auto mode: check out HEAD so the build includes the release commit.
       - name: Checkout (automated)
-        if: github.event_name != 'workflow_dispatch'
+        if: inputs.tag == null || inputs.tag == ''
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      # Manual mode: check out at the exact tag so the build matches the release.
-      - name: Checkout at tag (manual)
-        if: github.event_name == 'workflow_dispatch'
+      # Re-publish mode: check out at the exact tag so the build matches the release.
+      - name: Checkout at tag (re-publish)
+        if: inputs.tag != null && inputs.tag != ''
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ inputs.tag }}
 
       # Download the release plan uploaded by the release job (auto mode only).
-      # In manual mode the version comes directly from the tag input.
+      # In re-publish mode the version comes directly from the tag input.
       - name: Download release plan
-        if: github.event_name != 'workflow_dispatch'
+        if: inputs.tag == null || inputs.tag == ''
         uses: actions/download-artifact@v8
         with:
           name: release-plan-${{ github.run_id }}
@@ -303,10 +303,9 @@ jobs:
       - name: Build released framework packages
         env:
           RELEASED_KEYS: ${{ needs.release.outputs.released_keys }}
-          EVENT_NAME: ${{ github.event_name }}
           INPUT_TAG: ${{ inputs.tag }}
         run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+          if [ -n "$INPUT_TAG" ]; then
             NAME="${INPUT_TAG%@*}"
             case "$NAME" in
               pptx-react-viewer)   bun run --filter 'pptx-react-viewer' build ;;
@@ -338,15 +337,14 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RELEASED_KEYS: ${{ needs.release.outputs.released_keys }}
-          EVENT_NAME: ${{ github.event_name }}
           INPUT_TAG: ${{ inputs.tag }}
         run: |
           # Resolve the list of keys to publish and a version for each.
-          # In manual mode: parse key + version from the tag input.
+          # In re-publish mode: parse key + version from the tag input.
           # In auto mode: read from the release-plan.json artifact.
           declare -A VERSIONS
 
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+          if [ -n "$INPUT_TAG" ]; then
             TAG="$INPUT_TAG"
             # Validate: only allow characters legal in an npm tag (<name>@<semver>).
             case "$TAG" in
