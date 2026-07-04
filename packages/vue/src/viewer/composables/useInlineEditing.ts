@@ -48,6 +48,13 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 		if (!el || !hasTextProperties(el) || el.locks?.noTextEdit) {
 			return;
 		}
+		// Equation elements never enter inline text editing: the editor only
+		// sees the literal "[Equation]" placeholder, so committing would remap
+		// the segments from plain text and permanently drop the OMML
+		// (`textSegments[].equationXml`). Mirrors the React/Angular guard.
+		if (el.textSegments?.some((seg) => seg.equationXml)) {
+			return;
+		}
 		inlineEditingElementId.value = id;
 		inlineEditingText.value = (el as { text?: string }).text ?? '';
 	}
