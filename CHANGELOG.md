@@ -6,6 +6,30 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-04
 
+_Releases: pptx-react-viewer@1.5.3, pptx-vue-viewer@1.5.3, pptx-angular-viewer@1.5.3_
+
+## 2026-07-04
+
+_Releases: pptx-react-viewer@1.5.2, pptx-vue-viewer@1.5.2, pptx-angular-viewer@1.5.2_
+
+## 2026-07-04
+
+_Releases: pptx-react-viewer@1.5.1, pptx-vue-viewer@1.5.1, pptx-angular-viewer@1.5.1_
+
+## 2026-07-04
+
+_Releases: pptx-react-viewer@1.5.0, pptx-vue-viewer@1.5.0, pptx-angular-viewer@1.5.0_
+
+## 2026-07-04
+
+_Releases: pptx-react-viewer@1.4.0, pptx-vue-viewer@1.4.0, pptx-angular-viewer@1.4.0_
+
+### Features
+
+- Reworking the UI to align more on MS powerpoint UI (by @ChristopherVR) ([39386c0](https://github.com/ChristopherVR/pptx-viewer/commit/39386c0c8ff93b185352d8e5b9f17ec6b8cd7d45))
+
+## 2026-07-04
+
 _Releases: pptx-viewer-core@1.1.48, pptx-react-viewer@1.3.1, pptx-vue-viewer@1.3.1, pptx-angular-viewer@1.3.1_
 
 ### Bug Fixes
