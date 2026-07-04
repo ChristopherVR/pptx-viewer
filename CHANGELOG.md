@@ -6,6 +6,17 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-04
 
+_Releases: pptx-viewer-core@1.1.48, pptx-react-viewer@1.3.1, pptx-vue-viewer@1.3.1, pptx-angular-viewer@1.3.1_
+
+### Bug Fixes
+
+- **core:** Fabricate diagram parts so inserted SmartArt survives save (by @ChristopherVR) ([0d1341f](https://github.com/ChristopherVR/pptx-viewer/commit/0d1341fd4402518c51b3ed1e301aa4115a9af3b4))
+- **shared:** Preserve equation and field metadata in remapTextToSegments (by @ChristopherVR) ([9675d18](https://github.com/ChristopherVR/pptx-viewer/commit/9675d18a652f1c87cc65b40bf7150251fc945587))
+- **react:** Route equations to the equation dialog on click-to-edit (by @ChristopherVR) ([fe56623](https://github.com/ChristopherVR/pptx-viewer/commit/fe56623134575e1a2bd5112158e083ffde7b7bb7))
+- **vue:** Block inline text editing on equation elements (by @ChristopherVR) ([4b52d06](https://github.com/ChristopherVR/pptx-viewer/commit/4b52d069dec95c228691f84b0292eed957d46e1c))
+
+## 2026-07-04
+
 _Releases: pptx-react-viewer@1.3.0, pptx-vue-viewer@1.3.0, pptx-angular-viewer@1.3.0, @christophervr/pptx-viewer@1.3.0_
 
 ## 2026-07-04
