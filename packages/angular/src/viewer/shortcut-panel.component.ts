@@ -31,9 +31,9 @@ import { SHORTCUT_REFERENCE_ITEMS } from './shortcut-reference';
 					</button>
 				</div>
 				<div class="pptx-ng-shortcuts-list">
-					@for (item of items; track item.action) {
+					@for (item of items; track item.actionKey) {
 						<div class="pptx-ng-shortcuts-row">
-							<span class="pptx-ng-shortcuts-action">{{ item.action }}</span>
+							<span class="pptx-ng-shortcuts-action">{{ item.actionKey | translate }}</span>
 							<span class="pptx-ng-shortcuts-keys">{{ item.shortcut }}</span>
 						</div>
 					}
