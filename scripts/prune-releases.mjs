@@ -1,26 +1,28 @@
 #!/usr/bin/env node
 /**
- * prune-releases.mjs: enforce GitHub Release retention, per published package.
+ * prune-releases.mjs: enforce release retention, per published package.
  *
  * Each package publishes its own GitHub Releases tagged `<npm-name>@<version>`
- * (see scripts/release-plan.mjs and .github/workflows/release.yml). Over time the
- * Releases list grows without bound. This script keeps only the newest N releases
- * (by semver) for each package and DELETES the older GitHub Release entries.
+ * (see scripts/release-plan.mjs and .github/workflows/release.yml). Over time
+ * both the Releases list and the tag list grow without bound. This script keeps
+ * only the newest N versions (by semver) for each package and deletes BOTH the
+ * GitHub Release entry and the underlying git tag for anything older.
  *
- * Scope of deletion (deliberately narrow):
- *   - Deletes the GitHub Release page and its uploaded `.tgz` assets only.
- *   - Does NOT delete the underlying git tag (`gh release delete` without
- *     `--cleanup-tag`), so history and `release-plan.mjs` baselines are intact.
- *   - Does NOT touch npm; old versions stay installable.
+ * Deleting old tags is safe because:
+ *   - release-plan.mjs only needs each package's newest tags (baseline + version).
+ *   - Changelogs are prepend-only (never regenerated from tag history), so
+ *     shipped sections survive tag deletion untouched.
+ *   - npm is untouched; old versions stay installable.
  *
  * Usage:
  *   node scripts/prune-releases.mjs                 # prune, keep newest 5 each
  *   node scripts/prune-releases.mjs --keep 10       # keep newest 10 each
  *   node scripts/prune-releases.mjs --dry-run       # print what would be deleted
  *   node scripts/prune-releases.mjs --package core  # limit to one package (repeatable)
+ *   node scripts/prune-releases.mjs --legacy        # ALSO delete retired global v* tags
  *
- * Requires the `gh` CLI authenticated (GH_TOKEN in CI). Releases whose tag does
- * not match `<npm-name>@x.y.z` are ignored, so manual/legacy releases are safe.
+ * Requires the `gh` CLI authenticated (GH_TOKEN in CI). Tags that do not match
+ * `<npm-name>@x.y.z` (or `v*` under --legacy) are never touched.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -32,12 +34,13 @@ const NPM_NAMES = [
 	'pptx-vue-viewer',
 	'pptx-angular-viewer',
 	'pptx-viewer-mcp',
+	'@christophervr/pptx-viewer',
 ];
 
 const DEFAULT_KEEP = 5;
 
 function parseArgs(argv) {
-	const args = { keep: DEFAULT_KEEP, dryRun: false, packages: [] };
+	const args = { keep: DEFAULT_KEEP, dryRun: false, packages: [], legacy: false };
 	for (let i = 0; i < argv.length; i++) {
 		const a = argv[i];
 		if (a === '--dry-run') {
@@ -46,6 +49,8 @@ function parseArgs(argv) {
 			args.keep = Number(argv[++i]);
 		} else if (a === '--package') {
 			args.packages.push(argv[++i]);
+		} else if (a === '--legacy') {
+			args.legacy = true;
 		}
 	}
 	if (!Number.isInteger(args.keep) || args.keep < 0) {
@@ -71,16 +76,41 @@ function cmpSemver(a, b) {
 	return 0;
 }
 
-/** All release tags for a package, newest-version first. */
-function releasesFor(npmName) {
-	// `gh release list` paginates; pull a generous page and filter by tag prefix.
+/** All tag names in the repo (source of truth: git refs, not the Releases list). */
+function allTags() {
+	const raw = gh([
+		'api',
+		'repos/{owner}/{repo}/git/matching-refs/tags/',
+		'--paginate',
+		'--jq',
+		'.[].ref',
+	]);
+	return raw
+		.split('\n')
+		.map((r) => r.trim())
+		.filter((r) => r.startsWith('refs/tags/'))
+		.map((r) => r.slice('refs/tags/'.length));
+}
+
+/** Tag names that currently have a GitHub Release attached. */
+function releaseTagSet() {
 	const raw = gh(['release', 'list', '--limit', '1000', '--json', 'tagName']);
-	const all = JSON.parse(raw);
-	const prefix = `${npmName}@`;
-	return all
-		.map((r) => r.tagName)
-		.filter((t) => t.startsWith(prefix) && /^\d+\.\d+\.\d+$/u.test(t.slice(prefix.length)))
-		.sort((a, b) => -cmpSemver(a.slice(prefix.length), b.slice(prefix.length)));
+	return new Set(JSON.parse(raw).map((r) => r.tagName));
+}
+
+/** Delete one tag, and its GitHub Release if it has one. */
+function deleteTag(tag, hasRelease, dryRun) {
+	if (dryRun) {
+		console.log(`  would delete ${tag}${hasRelease ? ' (+ release)' : ''}`);
+		return;
+	}
+	if (hasRelease) {
+		// --cleanup-tag removes the Release, its assets, and the git tag in one go.
+		gh(['release', 'delete', tag, '--yes', '--cleanup-tag']);
+	} else {
+		gh(['api', '-X', 'DELETE', `repos/{owner}/{repo}/git/refs/tags/${tag}`]);
+	}
+	console.log(`  deleted ${tag}${hasRelease ? ' (+ release)' : ''}`);
 }
 
 function main() {
@@ -91,25 +121,40 @@ function main() {
 			)
 		: NPM_NAMES;
 
+	const tags = allTags();
+	const withRelease = releaseTagSet();
 	let deleted = 0;
+
 	for (const npm of names) {
-		const tags = releasesFor(npm);
-		const keep = tags.slice(0, args.keep);
-		const prune = tags.slice(args.keep);
-		console.log(`${npm}: ${tags.length} release(s), keep ${keep.length}, prune ${prune.length}`);
+		const prefix = `${npm}@`;
+		const versions = tags
+			.filter((t) => t.startsWith(prefix) && /^\d+\.\d+\.\d+$/u.test(t.slice(prefix.length)))
+			.sort((a, b) => -cmpSemver(a.slice(prefix.length), b.slice(prefix.length)));
+		const keep = versions.slice(0, args.keep);
+		const prune = versions.slice(args.keep);
+		console.log(`${npm}: ${versions.length} tag(s), keep ${keep.length}, prune ${prune.length}`);
 		for (const tag of prune) {
-			if (args.dryRun) {
-				console.log(`  would delete ${tag}`);
-				continue;
-			}
-			// No --cleanup-tag: keep the git tag, drop only the Release + assets.
-			gh(['release', 'delete', tag, '--yes']);
-			console.log(`  deleted ${tag}`);
+			deleteTag(tag, withRelease.has(tag), args.dryRun);
 			deleted++;
 		}
 	}
+
+	// Retired global tag scheme (v1.2.3, v20260316.093408, ...): nothing reads
+	// these anymore (changelogs are prepend-only, baselines are per-package), so
+	// --legacy removes them all.
+	if (args.legacy) {
+		const legacy = tags.filter((t) => /^v\d/u.test(t));
+		console.log(`legacy v*: ${legacy.length} tag(s), prune all`);
+		for (const tag of legacy) {
+			deleteTag(tag, withRelease.has(tag), args.dryRun);
+			deleted++;
+		}
+	}
+
 	console.log(
-		args.dryRun ? 'Dry run: no releases deleted.' : `Done: deleted ${deleted} release(s).`,
+		args.dryRun
+			? `Dry run: ${deleted} tag(s) would be deleted.`
+			: `Done: deleted ${deleted} tag(s).`,
 	);
 }
 

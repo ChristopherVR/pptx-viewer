@@ -1,9 +1,10 @@
 name: Prune releases
 
-# Retention for the GitHub Releases list: keep only the newest N releases per
-# published package (tagged `<npm-name>@x.y.z`) and delete the older Release
-# entries. Git tags and npm versions are left intact - only the Release page and
-# its uploaded assets are removed. See scripts/prune-releases.mjs.
+# Retention for releases AND tags: keep only the newest N versions per
+# published package (tagged `<npm-name>@x.y.z`) and delete both the older
+# GitHub Release entries and their git tags. Safe because changelogs are
+# prepend-only and release-plan.mjs only reads each package's newest tags.
+# npm versions are never touched. See scripts/prune-releases.mjs.
 
 on:
   schedule:
@@ -12,11 +13,16 @@ on:
   workflow_dispatch:
     inputs:
       keep:
-        description: 'Number of newest releases to keep per package'
+        description: 'Number of newest versions (release + tag) to keep per package'
         required: false
         default: '5'
       dry_run:
         description: 'List what would be deleted without deleting'
+        type: boolean
+        required: false
+        default: false
+      legacy:
+        description: 'Also delete retired global v* tags'
         type: boolean
         required: false
         default: false
@@ -34,13 +40,16 @@ jobs:
         with:
           node-version: 22
 
-      - name: Prune old GitHub Releases
+      - name: Prune old releases and tags
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           keep="${{ github.event.inputs.keep || '5' }}"
-          dry=""
+          flags=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            dry="--dry-run"
+            flags="$flags --dry-run"
           fi
-          node scripts/prune-releases.mjs --keep "$keep" $dry
+          if [ "${{ github.event.inputs.legacy }}" = "true" ]; then
+            flags="$flags --legacy"
+          fi
+          node scripts/prune-releases.mjs --keep "$keep" $flags
