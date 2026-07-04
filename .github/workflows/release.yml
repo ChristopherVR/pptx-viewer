@@ -1,13 +1,13 @@
 name: Release
 
 on:
-  # Batched releases: cut on a schedule instead of after every green push to
-  # main. The planner is cumulative (each package is diffed from its own last
-  # tag), so everything merged since the previous run lands in one release per
-  # changed package, with a multi-commit changelog section.
+  # Scheduled releases: the planner is cumulative (each package is diffed from
+  # its own last tag), so everything merged since the previous run lands in one
+  # release per changed package. A run with no changes exits at the planning
+  # step, so quiet hours are cheap no-ops.
   schedule:
-    # Monday and Thursday, 05:00 UTC.
-    - cron: '0 5 * * 1,4'
+    # Hourly, on the hour.
+    - cron: '0 * * * *'
   # Manual runs, two modes:
   #   - no input: run a full release now (same as the schedule).
   #   - tag=<npm-name>@<version>: re-publish ONLY that existing tag to npm,
@@ -24,6 +24,7 @@ on:
 permissions:
   contents: write
   id-token: write # Required for OIDC npm trusted publishing and provenance
+  actions: write # Required to dispatch the docs/Pages deploy after a release
 
 jobs:
   release:
@@ -209,6 +210,16 @@ jobs:
           name: release-plan-${{ github.run_id }}
           path: release-plan.json
           retention-days: 1
+
+      # Redeploy the docs site + demos ONLY when something was actually
+      # released. With an hourly schedule, triggering docs via workflow_run
+      # would redeploy Pages on every no-op run; an explicit dispatch here
+      # keeps the site tracking releases without the churn.
+      - name: Trigger docs deploy
+        if: steps.tagged.outputs.any_released == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run docs.yml --ref main
 
   # ── Publish to npm ─────────────────────────────────────────────────────────
   # Runs in two modes:

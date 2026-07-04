@@ -8,8 +8,8 @@ name: Prune releases
 
 on:
   schedule:
-    # Weekly, Monday 04:00 UTC.
-    - cron: '0 4 * * 1'
+    # Daily, 04:30 UTC (releases run hourly, so tags accumulate quickly).
+    - cron: '30 4 * * *'
   workflow_dispatch:
     inputs:
       keep:
