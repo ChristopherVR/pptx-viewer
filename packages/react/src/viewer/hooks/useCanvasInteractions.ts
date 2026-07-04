@@ -107,6 +107,26 @@ export function useCanvasInteractions(
 		setInlineEditingText('');
 	};
 
+	/**
+	 * Route an equation-bearing element to the equation editor dialog instead
+	 * of inline text editing. Inline editing an equation element is always
+	 * destructive: the contentEditable only sees the "[Equation]" placeholder
+	 * text, so the blur commit rebuilds the segments from plain text and the
+	 * OMML is lost for good. Returns true when the dialog was opened.
+	 */
+	const openEquationEditorForElement = (el: PptxElement): boolean => {
+		if (!hasTextProperties(el)) {
+			return false;
+		}
+		const eqSeg = el.textSegments?.find((seg) => seg.equationXml);
+		if (!eqSeg?.equationXml) {
+			return false;
+		}
+		setEditingEquationOmml(eqSeg.equationXml);
+		setIsEquationDialogOpen(true);
+		return true;
+	};
+
 	const handleElementClick = (elementId: string, e: React.MouseEvent) => {
 		e.stopPropagation();
 		if (mode === 'present') {
@@ -136,8 +156,12 @@ export function useCanvasInteractions(
 			} else {
 				const el = elementLookup.get(elementId);
 				if (el && hasTextProperties(el) && !el.locks?.noTextEdit) {
-					setInlineEditingElementId(elementId);
-					setInlineEditingText(el.text ?? '');
+					// Equations open the equation editor (same as double-click);
+					// letting them into inline text editing destroys the OMML.
+					if (!openEquationEditorForElement(el)) {
+						setInlineEditingElementId(elementId);
+						setInlineEditingText(el.text ?? '');
+					}
 				}
 			}
 		} else {
@@ -150,13 +174,8 @@ export function useCanvasInteractions(
 		if (!el) {
 			return;
 		}
-		if (hasTextProperties(el) && el.textSegments?.some((seg) => seg.equationXml)) {
-			const eqSeg = el.textSegments?.find((seg) => seg.equationXml);
-			if (eqSeg?.equationXml) {
-				setEditingEquationOmml(eqSeg.equationXml);
-				setIsEquationDialogOpen(true);
-				return;
-			}
+		if (openEquationEditorForElement(el)) {
+			return;
 		}
 		if (hasTextProperties(el)) {
 			setInlineEditingElementId(elementId);

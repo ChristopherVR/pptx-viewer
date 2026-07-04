@@ -155,6 +155,55 @@ describe('shouldEnterInlineEdit', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Extracted pure logic: equation elements route to the equation dialog
+// ---------------------------------------------------------------------------
+
+/**
+ * Classify what a click-to-edit entry should do with a text-bearing element.
+ * Mirrors `openEquationEditorForElement` + the inline-edit entry in
+ * handleElementClick / handleElementDoubleClick: equation-bearing elements
+ * must open the equation editor dialog; letting them into inline text
+ * editing destroys the OMML on commit (the contentEditable only carries the
+ * literal "[Equation]" placeholder text).
+ */
+function classifyTextEditEntry(el: PptxElement): 'equation-dialog' | 'inline-edit' {
+	const segments = (el as { textSegments?: Array<{ equationXml?: Record<string, unknown> }> })
+		.textSegments;
+	const eqSeg = segments?.find((seg) => seg.equationXml);
+	return eqSeg?.equationXml ? 'equation-dialog' : 'inline-edit';
+}
+
+describe('classifyTextEditEntry', () => {
+	it('routes equation-bearing shapes to the equation dialog', () => {
+		const el = {
+			id: 'eq1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 50,
+			text: '[Equation]',
+			textSegments: [{ text: '[Equation]', style: {}, equationXml: { 'm:oMath': {} } }],
+		} as unknown as PptxElement;
+		expect(classifyTextEditEntry(el)).toBe('equation-dialog');
+	});
+
+	it('routes plain text shapes to inline editing', () => {
+		const el = {
+			id: 't1',
+			type: 'text',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 50,
+			text: 'Hello',
+			textSegments: [{ text: 'Hello', style: {} }],
+		} as unknown as PptxElement;
+		expect(classifyTextEditEntry(el)).toBe('inline-edit');
+	});
+});
+
+// ---------------------------------------------------------------------------
 // Extracted pure logic: marquee selection coordinates
 // ---------------------------------------------------------------------------
 
