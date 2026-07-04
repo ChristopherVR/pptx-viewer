@@ -1,5 +1,5 @@
 {
 	"permissions": {
-		"allow": ["Bash(xargs grep:*)", "Bash(bun install:*)", "Bash(npx:*)"]
+		"allow": ["Bash(xargs grep:*)", "Bash(bun install:*)", "Bash(npx:*)", "Bash(git diff *)"]
 	}
 }
