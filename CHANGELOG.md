@@ -6,6 +6,12 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- **angular:** Load @angular/compiler in vitest so component-file imports don't crash (by @ChristopherVR) ([8c48b93](https://github.com/ChristopherVR/pptx-viewer/commit/8c48b9322fa684aad4963f43efa528c51e4f2a00))
+
+## [1.1.80](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.80) - 2026-07-03
+
 ### Styling
 
 - **react:** Fix pre-existing oxfmt formatting violation (by @ChristopherVR) ([8ef5da9](https://github.com/ChristopherVR/pptx-viewer/commit/8ef5da9dcb436307c3c6f1a0a81055fc8fe63eea))
