@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.66](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.66) - 2026-07-04
+
+### Bug Fixes
+
+- **angular:** Load @angular/compiler in vitest so component-file imports don't crash (by @ChristopherVR) ([8c48b93](https://github.com/ChristopherVR/pptx-viewer/commit/8c48b9322fa684aad4963f43efa528c51e4f2a00))
+
 ## [1.1.63](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.63) - 2026-07-03
 
 ### Documentation
