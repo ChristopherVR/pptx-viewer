@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 
+import { buildStamp } from '../build-stamp';
+
 /**
  * Vite + Vue dev server / build for the pptx-vue-viewer demo.
  *
@@ -20,7 +22,7 @@ export default defineConfig({
 	// Served from a subpath (e.g. /pptx-viewer/demo-vue/) on GitHub Pages.
 	// CI sets DEMO_BASE so the demo's asset URLs resolve under that subpath.
 	base: process.env.DEMO_BASE ?? '/',
-	plugins: [vue(), tailwindcss()],
+	plugins: [vue(), tailwindcss(), buildStamp(pkg('vue', 'package.json'))],
 	server: {
 		port: 4175,
 		open: true,
