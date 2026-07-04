@@ -5,7 +5,7 @@ description: Install the pptx-viewer packages from npm, set up peer dependencies
 
 # Installation
 
-The `pptx-viewer` packages are published independently on npm. Install only what you need: the framework-agnostic [core engine](/core/), one of the framework viewer packages, or the low-level binary converters.
+The `pptx-viewer` packages are published independently on npm. Install only what you need: the framework-agnostic [core engine](/core/) or one of the framework viewer packages.
 
 ::: tip Node version
 Node.js **18 or newer** is required for TypeScript compilation and for running the packages outside the browser.
@@ -16,10 +16,10 @@ Node.js **18 or newer** is required for TypeScript compilation and for running t
 | Framework                 | Package               | Notes                                                           |
 | ------------------------- | --------------------- | --------------------------------------------------------------- |
 | React                     | `pptx-react-viewer`   | Full-featured: viewer, editor, presenter, export, collaboration |
-| Vue 3                     | `pptx-vue-viewer`     | Viewer-first; editor features being ported                      |
-| Angular                   | `pptx-angular-viewer` | Viewer-first; editor features being ported                      |
+| Vue 3                     | `pptx-vue-viewer`     | Same engine and feature set as the React binding                |
+| Angular                   | `pptx-angular-viewer` | Same engine and feature set as the React binding                |
 | Headless (Node / browser) | `pptx-viewer-core`    | No UI, no framework dependency                                  |
-| AI / MCP tooling          | `pptx-viewer-mcp`     | 24 MCP tools + CLI + Y.Doc codec                                |
+| AI / MCP tooling          | `pptx-viewer-mcp`     | 25 MCP tools + CLI + Y.Doc codec                                |
 
 ## Installing from npm
 
@@ -153,7 +153,7 @@ bun add pptx-viewer-core
 
 ### MCP server and tools
 
-24 PPTX manipulation tool functions, an MCP server for AI agents, and the Y.Doc collaboration codec - all built on the core engine.
+25 PPTX manipulation tool functions, an MCP server for AI agents, and the Y.Doc collaboration codec - all built on the core engine.
 
 ::: code-group
 
@@ -171,30 +171,6 @@ yarn add pptx-viewer-mcp
 
 ```bash [bun]
 bun add pptx-viewer-mcp
-```
-
-:::
-
-### Low-level converters
-
-The `emf-converter` and `mtx-decompressor` packages are pulled in transitively by the core engine, but can also be installed standalone.
-
-::: code-group
-
-```bash [npm]
-npm install emf-converter mtx-decompressor
-```
-
-```bash [pnpm]
-pnpm add emf-converter mtx-decompressor
-```
-
-```bash [yarn]
-yarn add emf-converter mtx-decompressor
-```
-
-```bash [bun]
-bun add emf-converter mtx-decompressor
 ```
 
 :::

@@ -1,54 +1,50 @@
 ---
 title: Limitations
-description: What is and isn't supported across the core engine, the React viewer, and the EMF converter - read before adopting the library.
+description: What is not supported across the core engine and the viewer bindings - read before adopting the library.
 ---
 
 # Limitations
 
 ::: warning Read this before adopting
-`pptx-viewer` covers an enormous surface of the OpenXML specification, but some features are intentionally approximated or read-only. The caveats below are grouped by package. Knowing them up front avoids surprises in production.
+`pptx-viewer` covers a large surface of the OpenXML specification, but some things are approximated or read-only. This page lists only what you **cannot** do.
 :::
 
 ## Core engine (`pptx-viewer-core`)
 
-::: warning Embedded OLE objects cannot be edited in-app
-OLE objects (embedded Excel, Word, etc.) are recognised and their preview images are displayed. On load the engine now also recovers the embedded payload (unwrapping the OLE2 `Package` stream to its original file) and exposes it, so the viewer offers **Download** / **Open in a new tab** for the embedded file plus richer info (object type, original file name, size, source application). Their internal content still **cannot be edited in place**: a browser cannot launch the native desktop application, and deserialising/re-serialising the internal object structure (e.g. an embedded Excel workbook) would require embedding the full application runtime.
-:::
+- **OLE objects are read-only.** Embedded Excel/Word content renders as its preview image, and the embedded file can be downloaded or opened in a new tab, but it cannot be edited in place: a browser cannot run the native application that owns the object.
+- **SmartArt layout can be approximate.** Diagrams are decomposed into positioned shapes. When a file carries PowerPoint's own pre-computed drawing data that exact layout is used; when it doesn't, an algorithmic layout engine approximates it, so complex custom layouts may not match PowerPoint pixel-for-pixel.
 
-- **SmartArt editing (text and structural) round-trips losslessly** - SmartArt diagrams are decomposed into individual positioned shapes, preferring PowerPoint's own pre-computed drawing data and falling back to an algorithmic layout engine (linear, snake, hierarchy, cycle, pyramid, matrix) covering every layout category. Node text is editable both through the inspector and directly on the canvas (double-click a node in the rendered diagram to edit in place, in all three bindings), and per-run rich text inside a node is preserved when its text is edited. The diagram data part (`data*.xml`) and connection list (`cxnLst`) are merged surgically on save so the data model (nodes, connections, text) plus presentation/doc/parTrans/sibTrans points and their attributes (including each connection's required `modelId`) survive a round-trip; background and outline chrome persist too. The colour part (`colors*.xml`) is regenerated and merged on save, so a colour-scheme change persists and PowerPoint honours it on open. Node add/remove/reorder/promote/demote reflow correctly in-app; saving a structural edit that introduces a brand-new node (add, or remove-with-reparenting) synthesises the full point/connection family PowerPoint's data model requires for it (matching `parTrans`/`sibTrans` support points and `presOf`/`presParOf` presentation-point wiring, grafted under the new node's actual parent), so the result opens cleanly in PowerPoint just like a text-only edit.
-- **Chart editing is comprehensive** - Build charts from scratch (`SlideBuilder.addChart`), add/remove series and categories, edit data points, and change chart type and grouping. Formatting round-trips on save too: axis min/max, major/minor units, display units, number format, titles (text plus font styling), tick-label position, linear/logarithmic scaling, and gridline visibility and styling; legend visibility and position; chart-level data labels; per-series colour, markers, trendlines, error bars, and per-series type within combo charts; and per-data-point fill plus pie-slice explosion. Combo charts whose series span multiple chart-type containers now load fully (every container in the plot area is parsed and each series re-serialised under its own container), and individual per-data-point label overrides are separately editable and round-trip on save.
-- **Strict OOXML conformance round-trips fully** - Office 365 can save files in ISO/IEC 29500 Strict mode, which uses different namespace URIs than the common Transitional (ECMA-376) format. The engine normalises Strict to Transitional on load and converts back on save. Rather than depending on a fixed lookup table, it applies the structural Strict/Transitional rule (host swap plus the `2006` version segment) across the PresentationML, DrawingML, SpreadsheetML, WordprocessingML, officeDocument, and SchemaLibrary namespace families (plus the content-type Descriptions namespaces), so every namespace in those families round-trips, including strict-only relationship types and sub-namespaces that are not individually enumerated. The Open Packaging Conventions (`package/*` content-types and relationships, plus OPC-defined relationship types such as core-properties and digital-signature) and Markup Compatibility namespaces are conformance-independent shared specifications: real Strict packages keep them in their canonical `schemas.openxmlformats.org` form, so they are preserved unchanged in both directions. Third-party extension namespaces (for example Microsoft's) are likewise preserved.
+Everything else round-trips: SmartArt text and structural edits, chart data and formatting, and Strict OOXML files (normalised to Transitional on load, converted back on save) all survive load, edit, and save.
 
 ## Framework viewers (React, Vue 3, Angular)
 
 ::: warning CSS-based rendering trades some visual effects for fidelity elsewhere
-Slides render as HTML/CSS rather than Canvas, giving sharp text at any zoom, native accessibility, and DOM interactivity. The tradeoff is that some effects are approximated: `backdrop-filter` becomes a semi-transparent background, `mix-blend-mode` maps to opacity fallbacks, CSS 3D transforms (`rotateX`/`rotateY`) flatten to 2D, and path gradients approximate as elliptical radials.
+Slides render as HTML/CSS rather than Canvas, giving sharp text at any zoom, native accessibility, and DOM interactivity. The tradeoff: `backdrop-filter` becomes a semi-transparent background, `mix-blend-mode` maps to opacity fallbacks, CSS 3D transforms (`rotateX`/`rotateY`) flatten to 2D, and path gradients approximate as elliptical radials.
 :::
 
-- **Font availability** - Text renders using fonts available in the browser. Missing fonts fall back to system defaults, which may affect text metrics and layout fidelity. Embedded fonts in the PPTX are deobfuscated and injected into the DOM when available.
-- **Embedded media** - Audio/video playback depends on browser codec support (browsers may not support WMV or legacy codecs). DRM-protected media will not play.
-- **Animation triggers** - 40+ animation presets are supported with `onClick`, `withPrevious`, `afterPrevious`, `afterDelay`, `onHover`, and `onShapeClick` triggers. Compound and simultaneous OOXML timing-tree conditions (multiple `p:cond` entries in a start/end condition list) are parsed in full and drive playback ordering and triggering, rather than being collapsed to a single condition.
-- **Morph transitions** - Morph matches elements across slides via three strategies: explicit `!!` naming, element ID matching, and proximity matching (within 300px). Position, size, opacity, rotation, and colour are interpolated. Shape-geometry morphing between different shape types (outline sampling plus vertex-wise interpolation across baked clip-path keyframes) and token-level text morphing (LCS diff: shared tokens slide, added fade in, removed fade out) are now implemented; elements with no counterpart still crossfade.
-- **Chart editing surface** - Charts render as static SVG with hover tooltips and are edited through the inspector panel, not by clicking the chart directly. Insert a new chart from the Insert toolbar. All three bindings (React, Vue, Angular) now expose the full chart editor: data, axes, legend, data labels, trendlines, error bars, series colour and markers, combo per-series type, log scale, gridline and title styling, and per-point formatting. The option lists are shared via `pptx-viewer-shared` and the edit operations come from `pptx-viewer-core`.
-- **Print and export fidelity** - Raster exports (PNG/JPEG/PDF) go through `html2canvas`, which does not support `backdrop-filter`, CSS custom properties (`var()`), or CSS 3D transforms. The library preprocesses CSS to approximate these, but some fidelity is lost. An SVG export path is available as a vector alternative.
-- **Maximum export resolution** - Canvas-based exports are constrained by the browser's maximum canvas size (typically 16384×16384 or 32768×32768 pixels, depending on browser and GPU).
-- **Mobile support** - Touch interactions (drag, pinch-zoom) are supported, and the UI adapts to small viewports in all three bindings: a compact mobile toolbar plus bottom-sheet slide/menu navigation, an inspector that becomes a full-width bottom sheet, and dialogs that present full-screen / as bottom sheets with a scrollable body instead of fixed desktop widths. Very small phones (~360px) are accommodated; the most data-dense panels (for example the full chart editor) still suit a tablet or larger screen best.
-- **3D models** - Rendering GLB/GLTF 3D models (and 3D surface charts) requires the single optional `three` peer dependency, loaded dynamically. Without it, the element falls back to its poster image - see [Installation](/guide/installation#optional-peer-dependencies).
-- **Collaboration transports** - Real-time co-editing merges concurrent changes per slide/element/field via Yjs; concurrent edits to the _same_ text run resolve at element granularity (last writer wins for that run). The serverless `webrtc` transport needs no infrastructure for tabs in the same browser (BroadcastChannel); _cross-device_ peer-to-peer sessions depend on reachable WebRTC signaling servers and STUN-friendly networks - for production sessions across devices, self-host a `y-websocket`/Hocuspocus relay or your own signaling servers.
+- **Fonts** - text uses fonts available in the browser; missing fonts fall back to system defaults, which can shift text metrics and layout. Fonts embedded in the PPTX are injected when present.
+- **Media codecs** - audio/video playback depends on browser codec support (WMV and legacy codecs may not play); DRM-protected media will not play.
+- **Morph transitions** - elements with no counterpart on the next slide crossfade instead of morphing.
+- **Charts are not directly manipulable** - charts render as static SVG (hover tooltips only) and are edited through the inspector panel, not by clicking into the chart itself.
+- **Raster export fidelity** - PNG/JPEG/PDF export goes through `html2canvas`, which cannot reproduce `backdrop-filter`, CSS custom properties, or CSS 3D transforms; approximations are applied and some fidelity is lost. Use the SVG export for a vector alternative.
+- **Maximum export resolution** - canvas exports are capped by the browser's maximum canvas size (typically 16384 or 32768 pixels per side).
+- **Small screens** - the UI adapts down to ~360px phones, but the most data-dense panels (for example the full chart editor) are best used on a tablet or larger.
+- **3D models need `three`** - GLB/GLTF elements (and 3D surface charts) require the optional `three` peer dependency; without it they fall back to a poster image. See [Installation](/guide/installation#optional-peer-dependencies).
+- **Collaboration** - concurrent edits to the _same_ text run resolve last-writer-wins for that run. The serverless `webrtc` transport works without infrastructure only within one browser; cross-device peer-to-peer needs reachable signaling/STUN, and production sessions should self-host a `y-websocket`/Hocuspocus relay.
 
-## EMF converter (`emf-converter`)
+## EMF/WMF metafiles (`emf-converter` dependency)
 
 ::: warning Canvas API required
-The library needs either `OffscreenCanvas` (for Web Worker support) or `HTMLCanvasElement` to be available in the runtime. Pure Node.js without a canvas polyfill is not supported.
+Metafile conversion needs `OffscreenCanvas` or `HTMLCanvasElement`. Pure Node.js without a canvas polyfill is not supported.
 :::
 
-- **Gradient brushes are simplified** - GDI+ `LinearGradient` and `PathGradient` brush types extract only the primary colour rather than rendering full multi-stop gradient fills. The Canvas 2D API has no direct equivalent for GDI+ path gradients.
-- **No raster operations (ROP)** - `SetROP2` is acknowledged, but GDI raster-operation blending modes (XOR, NOT, AND, etc.) have no direct Canvas 2D equivalent and are not applied.
-- **Limited clipping** - `IntersectClipRect` and `SelectClipPath` are supported. Complex GDI region clipping (combining multiple regions with union/intersect/exclude) is not, as Canvas 2D only supports a single clip path.
-- **Maximum canvas size** - Output is clamped to 4096×4096 pixels to prevent excessive memory use from malformed or very large metafiles.
-- **Font rendering** - Text is rendered with the browser's font engine and CSS font matching, so glyph metrics and kerning may differ from the original Windows GDI text rendering.
+- **Gradient brushes are simplified** - GDI+ linear and path gradients render with their primary colour only.
+- **No raster operations** - GDI ROP blending modes (XOR, NOT, AND, ...) are not applied.
+- **Limited clipping** - single-path clipping only; combined GDI region operations (union/intersect/exclude) are not supported.
+- **Maximum canvas size** - output is clamped to 4096x4096 pixels.
+- **Font rendering** - text uses the browser's font engine, so glyph metrics can differ from Windows GDI.
 
 ## Related reading
 
 - [Introduction](/guide/introduction) - what the project supports overall.
-- [Architecture](/guide/architecture) - why these tradeoffs exist (CSS rendering, namespace normalisation, deferred image processing).
+- [Architecture](/guide/architecture) - why these tradeoffs exist.

@@ -1,11 +1,11 @@
 ---
 title: React Viewer Overview
-description: pptx-viewer is a full-featured React component for viewing, editing, presenting, exporting, and collaboratively editing PowerPoint (.pptx) files in the browser.
+description: pptx-react-viewer is a full-featured React component for viewing, editing, presenting, exporting, and collaboratively editing PowerPoint (.pptx) files in the browser.
 ---
 
 # React Viewer Overview
 
-`pptx-viewer` is a drop-in **React 19** component that turns raw `.pptx` bytes into a fully
+`pptx-react-viewer` is a drop-in **React 19** component that turns raw `.pptx` bytes into a fully
 interactive PowerPoint experience. It is built on top of [`pptx-viewer-core`](/core/) and bundles a
 complete UI: toolbar, inspector panels, slide canvas, animation engine, presentation mode,
 real-time collaboration, and export.
@@ -28,11 +28,11 @@ see [Limitations](/guide/limitations).
 ## Installation
 
 ```bash
-npm i pptx-viewer pptx-viewer-core
+npm i pptx-react-viewer
 ```
 
-`pptx-viewer` depends on `pptx-viewer-core` (declared as a `workspace:*`/bundled dependency, but it is
-the framework-agnostic engine you may also use directly).
+The core engine (`pptx-viewer-core`) is **bundled in**, so you don't install it separately; add it
+only if you also want to use the framework-agnostic engine directly.
 
 **Peer dependencies** (you provide these in your app):
 
@@ -44,7 +44,8 @@ the framework-agnostic engine you may also use directly).
 **Optional dependencies** (only needed for specific features):
 
 - `three` - GLB/GLTF 3D models and 3D surface charts
-- `yjs`, `y-websocket` - real-time collaboration
+- `yjs`, `y-websocket` - real-time collaboration (relay transport)
+- `y-webrtc` - serverless peer-to-peer collaboration
 
 ::: tip
 3D and collaboration features degrade gracefully. Without `three`, 3D models fall back to their
@@ -63,7 +64,7 @@ import { PowerPointViewer } from 'pptx-react-viewer';
 import { PowerPointViewer } from 'pptx-react-viewer/viewer';
 ```
 
-Both entries export `PowerPointViewer`. The `pptx-viewer/viewer` entry additionally exposes the
+Both entries export `PowerPointViewer`. The `pptx-react-viewer/viewer` entry additionally exposes the
 opt-in, tree-shakeable hooks and collaboration components (see [Hooks](/react/hooks)). Use the root
 entry for the common case.
 
@@ -86,7 +87,7 @@ full list lives in [Limitations](/guide/limitations).
 The component is a `forwardRef` orchestrator. Its logic is decomposed into **67+ custom hooks**
 composed inside `PowerPointViewer.tsx`; the visual components are almost purely presentational. Most
 hooks are internal architecture, but a curated, tree-shakeable subset is exported from
-`pptx-viewer/viewer` for advanced integrations. See [Hooks](/react/hooks) for which are public API.
+`pptx-react-viewer/viewer` for advanced integrations. See [Hooks](/react/hooks) for which are public API.
 
 ## Key exports
 

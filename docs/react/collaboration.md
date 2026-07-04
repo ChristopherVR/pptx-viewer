@@ -144,7 +144,7 @@ last-updated timestamp), which drives the cursor and avatar UI.
 
 ## Building custom collaboration UI
 
-The collaboration hooks and components are exported from `pptx-viewer/viewer` (opt-in,
+The collaboration hooks and components are exported from `pptx-react-viewer/viewer` (opt-in,
 tree-shakeable) if you want to drive sync or render your own presence UI:
 
 ```tsx
@@ -179,10 +179,10 @@ at `serverUrl`. Two production-shaped reference servers ship in `demos/`:
   (401 before upgrade):
 
   - **JWT mode** (production): set `COLLAB_AUTH_JWT_SECRET` and have your app server mint
-    short-lived HS256 tokens (one `createHmac` call, minting snippet in the example header).
-    Verified claims: `exp` (required), `room` (token only opens that room), `sub` (user id), and
-    `role` - a `role: 'viewer'` token gets a **read-only connection**: the relay drops its document
-    writes, so the viewer role is enforced server-side rather than trusting client-side `canEdit`.
+    short-lived HS256 tokens (one `createHmac` call; a minting snippet is in the example header).
+  - The relay verifies the `exp`, `room` (token only opens that room), `sub` (user id), and `role`
+    claims. A `role: 'viewer'` token gets a **read-only connection**: the relay drops its document
+    writes, so read-only is enforced server-side rather than trusting client-side `canEdit`.
   - **Allowlist mode** (dev): `COLLAB_AUTH_TOKENS=a,b,c` static tokens.
 
   File persistence: each room's Y.Doc is snapshotted to `COLLAB_DATA_DIR` (debounced plus on last

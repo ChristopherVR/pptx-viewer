@@ -38,11 +38,12 @@ conversion from a `fetch`/file `ArrayBuffer`.
 
 ## Callbacks
 
-| Prop                  | Type                            | Default | Description                                                        |
-| --------------------- | ------------------------------- | ------- | ------------------------------------------------------------------ |
-| `onDirtyChange`       | `(isDirty: boolean) => void`    | -       | Called when the unsaved-changes flag flips.                        |
-| `onContentChange`     | `(content: Uint8Array) => void` | -       | Called with the re-serialized document bytes when content changes. |
-| `onActiveSlideChange` | `(slideIndex: number) => void`  | -       | Called when the active slide changes.                              |
+| Prop                  | Type                            | Default | Description                                                                                                                         |
+| --------------------- | ------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `onDirtyChange`       | `(isDirty: boolean) => void`    | -       | Called when the unsaved-changes flag flips.                                                                                         |
+| `onContentChange`     | `(content: Uint8Array) => void` | -       | Called with the re-serialized document bytes when content changes.                                                                  |
+| `onActiveSlideChange` | `(slideIndex: number) => void`  | -       | Called when the active slide changes.                                                                                               |
+| `onOpenFile`          | `() => void`                    | -       | Host override for the File > Open action: bypasses the built-in file picker; the host then supplies a new `content` buffer instead. |
 
 ::: info
 `onContentChange` delivers a `Uint8Array` (the serialized document), not a boolean. To pull content
@@ -51,10 +52,11 @@ on demand instead, use the handle's [`getContent()`](/react/handle).
 
 ## Presentation / authoring
 
-| Prop         | Type     | Default | Description                                                                                                                                 |
-| ------------ | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `authorName` | `string` | -       | Display name used as the author for comments and annotations. Falls back to `collaboration.userName` when collaborating, otherwise `'You'`. |
-| `className`  | `string` | -       | Optional class name applied to the viewer root element.                                                                                     |
+| Prop         | Type      | Default | Description                                                                                                                                            |
+| ------------ | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `authorName` | `string`  | -       | Display name used as the author for comments and annotations. Falls back to `collaboration.userName` when collaborating, otherwise `'You'`.            |
+| `className`  | `string`  | -       | Optional class name applied to the viewer root element.                                                                                                |
+| `smartArt3D` | `boolean` | `false` | Opt in to the experimental Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it. |
 
 ## Theming
 
@@ -99,10 +101,12 @@ interface PowerPointViewerProps {
 	onDirtyChange?: (isDirty: boolean) => void;
 	onContentChange?: (content: Uint8Array) => void;
 	onActiveSlideChange?: (slideIndex: number) => void;
+	onOpenFile?: () => void;
 
 	canEdit?: boolean;
 	className?: string;
 	authorName?: string;
+	smartArt3D?: boolean;
 
 	theme?: ViewerTheme;
 
