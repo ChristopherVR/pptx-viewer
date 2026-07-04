@@ -4,12 +4,18 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+import { buildStamp } from '../build-stamp';
+
 export default defineConfig({
 	root: __dirname,
 	// Served from the repo root locally ("/"), but under "/pptx-viewer/demo/" when
 	// deployed to GitHub Pages. CI sets DEMO_BASE to the subpath.
 	base: process.env.DEMO_BASE ?? '/',
-	plugins: [react(), tailwindcss()],
+	plugins: [
+		react(),
+		tailwindcss(),
+		buildStamp(path.resolve(__dirname, '../../packages/react/package.json')),
+	],
 	server: {
 		port: 4173,
 		open: true,

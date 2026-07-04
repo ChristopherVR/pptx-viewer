@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 import angular from '@analogjs/vite-plugin-angular';
 import { defineConfig } from 'vite';
 
+import { buildStamp } from '../build-stamp';
+
 /**
  * Vite + Angular dev server / build for the pptx-angular-viewer demo.
  *
@@ -28,7 +30,10 @@ export default defineConfig({
 	// Served from a subpath (e.g. /pptx-viewer/demo-angular/) on GitHub Pages.
 	// CI sets DEMO_BASE so the demo's asset URLs resolve under that subpath.
 	base: process.env.DEMO_BASE ?? '/',
-	plugins: [angular({ tsconfig: './tsconfig.json', jit: true })],
+	plugins: [
+		angular({ tsconfig: './tsconfig.json', jit: true }),
+		buildStamp(resolve(__dirname, '../../packages/angular/package.json')),
+	],
 	resolve: {
 		alias: [
 			{
