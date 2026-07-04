@@ -4,11 +4,43 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## [Unreleased]
+## 2026-07-04
+
+_Releases: pptx-react-viewer@1.2.0, pptx-vue-viewer@1.2.0, pptx-angular-viewer@1.2.0, @christophervr/pptx-viewer@1.2.0_
+
+### Features
+
+- **cli:** Enforce a single UI framework and harden terminal handling (by @ChristopherVR) ([d1c9ae5](https://github.com/ChristopherVR/pptx-viewer/commit/d1c9ae551070ec29bf474a76af21f3b0682fb36d))
+- **shared:** Add i18n keys for ribbon, shortcuts panel, and text formatting (by @ChristopherVR) ([6e97c3b](https://github.com/ChristopherVR/pptx-viewer/commit/6e97c3bc158e43fda5faba9bc9a9d661d0a71994))
+- **demos:** Add French/Spanish translations for ribbon and shortcuts panel (by @ChristopherVR) ([4c336be](https://github.com/ChristopherVR/pptx-viewer/commit/4c336be85e923338377e4ff7caa3be41e3dc58e7))
+- **demos:** Show a build-stamp badge with version/commit/date (by @ChristopherVR) ([62d1cdf](https://github.com/ChristopherVR/pptx-viewer/commit/62d1cdf46619ba1319787a0a57060d1613906338))
+- **demos:** Stamp each demo with version, commit, and build date (by @ChristopherVR) ([c62406a](https://github.com/ChristopherVR/pptx-viewer/commit/c62406a82923b0d0e070f832f819b95c5a2af147))
 
 ### Bug Fixes
 
-- **angular:** Load @angular/compiler in vitest so component-file imports don't crash (by @ChristopherVR) ([8c48b93](https://github.com/ChristopherVR/pptx-viewer/commit/8c48b9322fa684aad4963f43efa528c51e4f2a00))
+- **demos:** Theme-aware picker colors and correct open-menu stacking (by @ChristopherVR) ([0a43091](https://github.com/ChristopherVR/pptx-viewer/commit/0a43091bcdf36a3d451f3ccdbcd560b5124473a0))
+- **demos:** Show the build stamp only on the landing screen (by @ChristopherVR) ([40c2472](https://github.com/ChristopherVR/pptx-viewer/commit/40c24725b2061eefadaffcfb47b9a994e0be95a4))
+
+### Refactor
+
+- **react:** Route ribbon/toolbar/shortcut labels through i18n (by @ChristopherVR) ([36bef8c](https://github.com/ChristopherVR/pptx-viewer/commit/36bef8cabb772f58fcf8603e56bb2001e4d958be))
+- **vue:** Route ribbon/toolbar/shortcut labels through i18n (by @ChristopherVR) ([7d391a4](https://github.com/ChristopherVR/pptx-viewer/commit/7d391a4c532ca82c389989756de9c0685fe19847))
+- **angular:** Route shortcut labels through i18n (by @ChristopherVR) ([c39ea0e](https://github.com/ChristopherVR/pptx-viewer/commit/c39ea0eaa2c86fc5d34df1e52a4c91d2e3d5e07f))
+
+### Documentation
+
+- Fix stale package names, tool counts, and feature descriptions (by @ChristopherVR) ([e62dc7a](https://github.com/ChristopherVR/pptx-viewer/commit/e62dc7a2154a3069547913a9515ad2810b07a0bf))
+- **site:** Add per-package release notes and deploy after releases (by @ChristopherVR) ([948f342](https://github.com/ChristopherVR/pptx-viewer/commit/948f34228aa35bb36f014cd67160b18cb8610c9c))
+- **site:** Limitations-only limitations page, fix stale and wrong content (by @ChristopherVR) ([60d2a69](https://github.com/ChristopherVR/pptx-viewer/commit/60d2a69c86ca159d9880ea57f1634906a6f8e489))
+
+### Build & CI
+
+- **release:** Batch releases on a schedule with commit-driven semver bumps (by @ChristopherVR) ([c882105](https://github.com/ChristopherVR/pptx-viewer/commit/c8821058a7b70f4f77818fe569524b898015f5a3))
+- Run package tests as a matrix job and cache bun downloads (by @ChristopherVR) ([0618228](https://github.com/ChristopherVR/pptx-viewer/commit/0618228d8ff8fe03af660723f7148f96276516f3))
+- **release:** Derive semver bumps from commits and batch releases (by @ChristopherVR) ([90607eb](https://github.com/ChristopherVR/pptx-viewer/commit/90607eb0cea984dc8a4463614d3ac491637742cf))
+- **prune:** Cull old git tags along with pruned releases (by @ChristopherVR) ([37c23d2](https://github.com/ChristopherVR/pptx-viewer/commit/37c23d206b51266fc9c3b83ec03ed57fe825e36f))
+- Collapse test jobs into a matrix and slim CI artifacts (by @ChristopherVR) ([6235539](https://github.com/ChristopherVR/pptx-viewer/commit/62355398e26aa995f6911ca473c13d02a5e094ee))
+- **release:** Run releases hourly; dispatch docs deploy only on real releases (by @ChristopherVR) ([326f525](https://github.com/ChristopherVR/pptx-viewer/commit/326f525ec43d1c6923d3fecb9675971e2b7bda7b))
 
 ## [1.1.80](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.80) - 2026-07-03
 
