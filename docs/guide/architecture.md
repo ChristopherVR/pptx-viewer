@@ -1,17 +1,17 @@
 ---
 title: Architecture
-description: The layered architecture of pptx-viewer - React package, core engine, low-level converters, the mixin-composition runtime, and the load/save pipelines.
+description: The layered architecture of pptx-viewer - viewer bindings, core engine, the mixin-composition runtime, and the load/save pipelines.
 ---
 
 # Architecture
 
-`pptx-viewer` is organized as a layered stack. The React package renders and edits; the core engine parses, mutates, and serializes; and two low-level packages handle binary metafile and font formats. Each layer depends only on the layer below it.
+`pptx-viewer` is organized as a layered stack. The framework bindings (React, Vue 3, Angular) render and edit; the core engine parses, mutates, and serializes; and two external npm dependencies (`emf-converter`, `mtx-decompressor`) handle binary metafile and font formats. Each layer depends only on the layer below it.
 
 ## High-level architecture
 
 ```
 +-------------------------------------------------------------------+
-|                     React Package (pptx-viewer)                    |
+|            Binding Packages (React / Vue 3 / Angular)              |
 |                                                                    |
 |  +----------------+  +--------------+  +------------------------+  |
 |  | PowerPoint     |  | SlideCanvas  |  |   Inspector/Toolbar    |  |
@@ -50,18 +50,18 @@ description: The layered architecture of pptx-viewer - React package, core engin
 +---------------------------+---------------------------------------+
                             | imports
 +---------------------------+---------------------------------------+
-|          EMF Converter Package (emf-converter)                    |
+|        emf-converter (external npm dependency)                    |
 |  Binary EMF/WMF parsing -> GDI record replay -> Canvas -> PNG     |
 +------------------------------------------------------------------+
 +------------------------------------------------------------------+
-|       MTX Decompressor Package (mtx-decompressor)                |
+|      mtx-decompressor (external npm dependency)                  |
 |  EOT/MTX compressed fonts -> LZ decompression -> CTF -> TrueType |
 +------------------------------------------------------------------+
 ```
 
-- **React package** - purely presentational components driven by 67+ custom hooks. `PowerPointViewer` is the forwardRef orchestrator. Slides render as scaled HTML/SVG using CSS transforms rather than Canvas.
+- **Binding packages** - purely presentational views driven by shared logic (`pptx-viewer-shared`, bundled at build time). In React, `PowerPointViewer` is a forwardRef orchestrator over 67+ custom hooks; the Vue and Angular bindings mirror the same structure. Slides render as scaled HTML/SVG using CSS transforms rather than Canvas.
 - **Core package** - the framework-agnostic engine. The `PptxHandler` facade is the public entry point; everything else (runtime, converter, services, types, geometry, colour, builders) sits beneath it.
-- **emf-converter / mtx-decompressor** - pure binary-format workers invoked by the core engine to rasterize EMF/WMF metafiles and decompress embedded MicroType Express fonts.
+- **emf-converter / mtx-decompressor** - external npm packages the core engine calls to rasterize EMF/WMF metafiles and decompress embedded MicroType Express fonts. They live in their own repositories.
 
 ## Mixin-composition runtime
 
@@ -80,7 +80,7 @@ PptxHandler            (public facade - the class you instantiate)
               · …
 ```
 
-This keeps each concern isolated and individually testable. New capabilities - including new element types - are added as new mixins rather than by growing a monolithic class. See [Adding a new element type](/guide/data-model) for the end-to-end checklist.
+This keeps each concern isolated and individually testable. New capabilities - including new element types - are added as new mixins rather than by growing a monolithic class. See [Adding a new element type](/contributing/adding-element-type) for the end-to-end checklist.
 
 ## Load pipeline
 

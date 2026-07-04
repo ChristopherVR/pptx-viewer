@@ -5,7 +5,7 @@ description: How pptx-viewer's UI strings work across React, Vue 3, and Angular,
 
 # Localization (i18n)
 
-Every UI label in the viewer (toolbar, ribbon, dialogs, inspector panels, context menus, the animation/chart/SmartArt editors, and so on) is looked up through a dotted `pptx.*` translation key rather than being hard-coded in English. **None of the three binding packages ships a translation library or a bundled set of languages.** Instead, each package calls its host framework's own i18n function against these keys, and your app supplies the dictionary and the library that resolves it:
+**The viewer looks up every UI label through a `pptx.*` translation key; your app supplies the i18n library and the dictionary.** No binding ships a translation library or bundled languages. Each package calls its host framework's own i18n function:
 
 | Framework | Translation call the viewer makes                        | Library you provide                                                               |
 | --------- | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -167,7 +167,7 @@ This is exactly the pattern used to add French and Spanish to the three demo app
 
 ## Contributing a translation upstream
 
-The packages only ship `translationsEn` today; there's no built-in registry of other locales; there is nothing stopping you from contributing one. To add a first-class language to `pptx-viewer-shared` (and therefore to all three bindings at once, since each bundles it in):
+The packages only ship `translationsEn` today; there's no built-in registry of other locales yet, but nothing stops you from contributing one. To add a first-class language to `pptx-viewer-shared` (and therefore to all three bindings at once, since each bundles it in):
 
 1. Add `packages/shared/src/i18n/translations-<code>.ts` (e.g. `translations-fr.ts`) that exports `translationsFr` (or your locale's name) typed as `Record<TranslationKey, string>`, importing `TranslationKey` from `./translations-en`. The type parameter alone will tell you (at typecheck time) about any key you're missing.
 2. Translate every value, preserving `{{token}}` interpolation placeholders exactly and keeping the dotted keys unchanged.
@@ -178,7 +178,13 @@ Machine-translated first drafts are a reasonable starting point, but flag them a
 
 ## Try it in the demos
 
-The [React](https://christophervr.github.io/pptx-viewer/demo-react/), [Vue](https://christophervr.github.io/pptx-viewer/demo-vue/), and [Angular](https://christophervr.github.io/pptx-viewer/demo-angular/) demos each include a language picker (the globe icon next to the theme picker) that switches between English, French, and Spanish. The French/Spanish dictionaries translate the high-visibility core (status bar, toolbar, ribbon actions, dialogs, comments, presenter view, and so on) and fall back to English for less common panels not yet overridden - a realistic example of the graceful, partial-coverage rollout described above, not a claim of 100% coverage. It's a demo-only feature - the picker component and the dictionaries live in each `demos/demo-*` app, not in the published packages - but its source is a complete, working reference for wiring up multi-language support: `demos/demo-react/i18n.ts` + `i18n-locales.ts` + `LanguagePicker.tsx`, `demos/demo-vue/src/i18n.ts` + `i18n-locales.ts` + `LanguagePicker.vue`, and `demos/demo-angular/src/i18n.ts` + `i18n-locales.ts` + `language-picker.component.ts`.
+The [React](https://christophervr.github.io/pptx-viewer/demo/), [Vue](https://christophervr.github.io/pptx-viewer/demo-vue/), and [Angular](https://christophervr.github.io/pptx-viewer/demo-angular/) demos each include a language picker (the globe icon next to the theme picker) that switches between English, French, and Spanish. The French/Spanish dictionaries cover the high-visibility UI and fall back to English elsewhere - a realistic partial-coverage rollout, exactly as described above.
+
+The picker and dictionaries are demo-only code (not part of the published packages), but they're a complete working reference for wiring up multi-language support:
+
+- **React**: `demos/demo-react/i18n.ts`, `i18n-locales.ts`, `LanguagePicker.tsx`
+- **Vue**: `demos/demo-vue/src/i18n.ts`, `i18n-locales.ts`, `LanguagePicker.vue`
+- **Angular**: `demos/demo-angular/src/i18n.ts`, `i18n-locales.ts`, `language-picker.component.ts`
 
 ## Next steps
 

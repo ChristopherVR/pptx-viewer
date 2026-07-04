@@ -85,16 +85,17 @@ The root `build` script chains the per-package builds with Bun's `--filter` so t
 
 ```
 packages/
-  core/             pptx-viewer-core     – Parse, create, edit, serialize PPTX (framework-agnostic)
-  shared/           pptx-viewer-shared   – Framework-agnostic viewer logic (internal, bundled into each binding)
-  react/            pptx-viewer          – React viewer/editor/presenter component
-  vue/              pptx-vue-viewer      – Vue 3 viewer/editor component
-  angular/          pptx-angular-viewer  – Angular viewer/editor component
-  tools/            pptx-viewer-mcp      – Supporting tooling / MCP server
+  core/             pptx-viewer-core            - Parse, create, edit, serialize PPTX (framework-agnostic)
+  shared/           pptx-viewer-shared          - Framework-agnostic viewer logic (internal, bundled into each binding)
+  react/            pptx-react-viewer           - React viewer/editor/presenter component
+  vue/              pptx-vue-viewer             - Vue 3 viewer/editor/presenter component
+  angular/          pptx-angular-viewer         - Angular viewer/editor/presenter component
+  tools/            pptx-viewer-mcp             - MCP server + tool functions
+  cli/              @christophervr/pptx-viewer  - Interactive installer CLI
 demos/
-  demo-react/                            – Vite + React demo app
-  demo-vue/                              – Vite + Vue 3 demo app
-  demo-angular/                          – Vite + Angular demo app
+  demo-react/                                   - Vite + React demo app
+  demo-vue/                                     - Vite + Vue 3 demo app
+  demo-angular/                                 - Vite + Angular demo app
 ```
 
 Packages link to one another with the `workspace:*` protocol, and the Bun workspaces are declared at the repository root (`packages/*` and `demos/*`).

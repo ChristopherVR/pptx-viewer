@@ -1,6 +1,6 @@
 ---
 title: SVG Export
-description: Export PPTX slides to standalone SVG strings with the headless SvgExporter - no browser DOM required. A vector alternative to the React package's raster export.
+description: Export PPTX slides to standalone SVG strings with the headless SvgExporter - no browser DOM required. A vector alternative to the viewer packages' raster export.
 ---
 
 # SVG Export
@@ -8,7 +8,7 @@ description: Export PPTX slides to standalone SVG strings with the headless SvgE
 `SvgExporter` renders parsed slides to **SVG XML strings** with no browser DOM. Output is built by string concatenation, so it runs in any JavaScript runtime - Node, Bun, Deno, Workers, and server-side pipelines.
 
 ::: tip Vector, not raster
-This is the headless, dependency-free way to get a vector rendering of each slide. The React package's export (PNG/PDF/GIF/video) rasterizes the live DOM with html2canvas and needs a browser; `SvgExporter` does not. See [/react/](/react/).
+This is the headless, dependency-free way to get a vector rendering of each slide. The framework bindings' raster export (PNG/PDF/GIF/video) rasterizes the live DOM with html2canvas and needs a browser; `SvgExporter` does not. See [/react/](/react/).
 :::
 
 ## API

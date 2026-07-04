@@ -7,10 +7,10 @@ description: pptx-viewer-core is a framework-agnostic TypeScript engine for pars
 
 `pptx-viewer-core` is a **framework-agnostic** TypeScript engine for working with PowerPoint (`.pptx`) files. It parses, creates, edits, serializes, and converts presentations entirely in memory on the OpenXML ZIP archive - no native dependencies, no browser DOM required.
 
-A `.pptx` file is a ZIP archive of XML documents conforming to the [Office Open XML (OOXML)](https://www.ecma-international.org/publications-and-standards/standards/ecma-376/) specification. This package gives you a complete, typed SDK over that format. It has only two runtime dependencies: **jszip** (ZIP handling) and **fast-xml-parser** (XML parse/build).
+A `.pptx` file is a ZIP archive of XML documents conforming to the [Office Open XML (OOXML)](https://www.ecma-international.org/publications-and-standards/standards/ecma-376/) specification. This package gives you a complete, typed SDK over that format. It has four runtime dependencies: **jszip** (ZIP handling), **fast-xml-parser** (XML parse/build), and the extracted **emf-converter** and **mtx-decompressor** binary-format packages.
 
 ::: tip Where this fits
-The React package (`pptx-viewer`) renders the data model this engine produces. The MCP tools package wraps it for AI agents. See [/react/](/react/) and [/packages/mcp](/packages/mcp).
+The viewer bindings (`pptx-react-viewer`, `pptx-vue-viewer`, `pptx-angular-viewer`) render the data model this engine produces. The MCP tools package wraps it for AI agents. See [/react/](/react/) and [/packages/mcp](/packages/mcp).
 :::
 
 ## Install

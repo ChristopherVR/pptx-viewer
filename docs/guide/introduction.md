@@ -27,15 +27,16 @@ The engine handles the full OpenXML specification including 16 element types, 18
 
 ## The packages
 
-The monorepo ships five published packages.
+The monorepo ships six published packages.
 
-| Package         | npm name              | Purpose                                                                                       |
-| --------------- | --------------------- | --------------------------------------------------------------------------------------------- |
-| **Core**        | `pptx-viewer-core`    | Parse, create, edit, serialize, and convert PPTX files. Framework-agnostic.                   |
-| **React**       | `pptx-react-viewer`   | React-based viewer, editor, and presenter with toolbar, inspector, collaboration, and export. |
-| **Vue 3**       | `pptx-vue-viewer`     | Vue 3 viewer component (viewer-first; editor features being ported).                          |
-| **Angular**     | `pptx-angular-viewer` | Angular viewer component (viewer-first; editor features being ported).                        |
-| **Tools / MCP** | `pptx-viewer-mcp`     | 24 PPTX tool functions, an MCP server for AI agents, and the Y.Doc collaboration codec.       |
+| Package         | npm name                     | Purpose                                                                                 |
+| --------------- | ---------------------------- | --------------------------------------------------------------------------------------- |
+| **Core**        | `pptx-viewer-core`           | Parse, create, edit, serialize, and convert PPTX files. Framework-agnostic.             |
+| **React**       | `pptx-react-viewer`          | React viewer, editor, and presenter with toolbar, inspector, collaboration, and export. |
+| **Vue 3**       | `pptx-vue-viewer`            | Vue 3 viewer/editor built on the same engine, with the same feature set.                |
+| **Angular**     | `pptx-angular-viewer`        | Angular viewer/editor built on the same engine, with the same feature set.              |
+| **Tools / MCP** | `pptx-viewer-mcp`            | 25 PPTX tool functions, an MCP server for AI agents, and the Y.Doc collaboration codec. |
+| **Installer**   | `@christophervr/pptx-viewer` | Interactive CLI that scaffolds the right viewer package into your project.              |
 
 ### Dependency graph
 
@@ -52,27 +53,12 @@ pptx-angular-viewer ┘                               ├── emf-converter
 
 ## Who it's for
 
-- **React developers building viewer/editor UIs** - use [`pptx-react-viewer`](/react/). It wraps the core engine in a `PowerPointViewer` component that renders, edits, presents, and exports slides out of the box. This is the most complete binding.
-- **Vue 3 developers** - use `pptx-vue-viewer`. The viewer component shares the same rendering engine as the React package. Editor and presenter features are being ported.
-- **Angular developers** - use `pptx-angular-viewer`. Same story: same engine, viewer-first, editor features incoming.
+- **React developers building viewer/editor UIs** - use [`pptx-react-viewer`](/react/). It wraps the core engine in a `PowerPointViewer` component that renders, edits, presents, and exports slides out of the box.
+- **Vue 3 developers** - use `pptx-vue-viewer`. Same engine and feature set as the React binding: viewing, editing, presenter mode, export, and collaboration.
+- **Angular developers** - use `pptx-angular-viewer`. Same story: same engine, same feature set.
 - **Developers automating or embedding PowerPoint headlessly** - use [`pptx-viewer-core`](/core/). No UI, no framework dependency. Runs identically in a browser tab, a serverless function, a Node.js build script, or a Web Worker.
-- **AI / LLM workflows** - use [`pptx-viewer-mcp`](/packages/mcp). The MCP server exposes all 24 tool functions to any MCP-compatible client (Claude Desktop, Cursor, VS Code Copilot). Or call the tool functions directly in your own pipeline.
+- **AI / LLM workflows** - use [`pptx-viewer-mcp`](/packages/mcp). The MCP server exposes all 25 tool functions to any MCP-compatible client (Claude Desktop, Cursor, VS Code Copilot). Or call the tool functions directly in your own pipeline.
 - **End users of an embedding app** - interact with the rendered viewer chrome (toolbar, inspector, presenter mode). See the [User Guide](/user/).
-
-## Feature parity across frameworks
-
-| Feature                    | React | Vue 3 | Angular |
-| -------------------------- | :---: | :---: | :-----: |
-| Slide rendering            |  Yes  |  Yes  |   Yes   |
-| Animations & transitions   |  Yes  |  Yes  |   Yes   |
-| Text / shape editing       |  Yes  |       |         |
-| Presenter mode             |  Yes  |       |         |
-| Export (PNG/PDF/GIF/video) |  Yes  |       |         |
-| Real-time collaboration    |  Yes  |       |         |
-| Inspector panel            |  Yes  |       |         |
-| Find & replace             |  Yes  |       |         |
-
-Vue and Angular editor features are being ported incrementally. See each package's README for the current status.
 
 ## Next steps
 

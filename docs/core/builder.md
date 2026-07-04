@@ -52,7 +52,7 @@ const { handler, data, createSlide } = await PptxHandler.create({
 });
 ```
 
-`SlideSizes` includes `WIDESCREEN_16_9`, `STANDARD_4_3`, and `A4_LANDSCAPE` (EMU values). The `theme.colors` object accepts the OOXML scheme slots (`dk1`, `lt1`, `dk2`, `lt2`, `accent1`–`accent6`, …) and `theme.fonts` accepts `majorFont` / `minorFont`.
+`SlideSizes` includes `WIDESCREEN_16_9`, `STANDARD_4_3`, and `A4_LANDSCAPE` (EMU values). The `theme.colors` object accepts the OOXML scheme slots (`dk1`, `lt1`, `dk2`, `lt2`, `accent1`-`accent6`, …) and `theme.fonts` accepts `majorFont` / `minorFont`.
 
 ::: tip High-level `Presentation` class
 The `Presentation` class wraps the same engine with auto-tracked slides (`Presentation.create(options)` / `Presentation.load(buffer)`), plus `replaceText`, `merge`, `diff`, sections, templates, `applyTemplate`, `mailMerge`, `save()`, and `saveEncrypted()`. It's the recommended top-level entry when you don't need the raw `handler`/`data` references.

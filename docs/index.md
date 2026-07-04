@@ -48,7 +48,7 @@ features:
     linkText: Core Concepts
   - icon: 🤖
     title: MCP & AI Tooling
-    details: 24 pure tool functions, Zod schemas, and an MCP server so AI agents (Claude, Cursor, Copilot) can read, write, and transform PPTX files directly.
+    details: 25 pure tool functions, Zod schemas, and an MCP server so AI agents (Claude, Cursor, Copilot) can read, write, and transform PPTX files directly.
     link: /packages/mcp
     linkText: MCP & Tools
   - icon: 🤝
@@ -77,15 +77,15 @@ The viewer/editor rendered entirely with HTML, CSS, and SVG - sharp text at any 
 
 The UI packages **bundle the core engine**, so you install exactly one package:
 
-| I'm building...               | Install                     | What you get                                                                  |
-| ----------------------------- | --------------------------- | ----------------------------------------------------------------------------- |
-| **React app**                 | `npm i pptx-react-viewer`   | Full-featured viewer + WYSIWYG editor, presenter mode, export, collaboration  |
-| **Vue 3 app**                 | `npm i pptx-vue-viewer`     | Viewer component with the same rendering engine; editor features being ported |
-| **Angular app**               | `npm i pptx-angular-viewer` | Viewer component with the same rendering engine; editor features being ported |
-| **Headless (Node / browser)** | `npm i pptx-viewer-core`    | Parse, create, edit, convert, encrypt - no UI, no framework dependency        |
-| **AI / MCP tooling**          | `npm i pptx-viewer-mcp`     | 24 MCP tools, CLI, Y.Doc collaboration codec                                  |
+| I'm building...               | Install                     | What you get                                                                 |
+| ----------------------------- | --------------------------- | ---------------------------------------------------------------------------- |
+| **React app**                 | `npm i pptx-react-viewer`   | Full-featured viewer + WYSIWYG editor, presenter mode, export, collaboration |
+| **Vue 3 app**                 | `npm i pptx-vue-viewer`     | The same viewer + editor feature set, built on the same engine               |
+| **Angular app**               | `npm i pptx-angular-viewer` | The same viewer + editor feature set, built on the same engine               |
+| **Headless (Node / browser)** | `npm i pptx-viewer-core`    | Parse, create, edit, convert, encrypt - no UI, no framework dependency       |
+| **AI / MCP tooling**          | `npm i pptx-viewer-mcp`     | 25 MCP tools, CLI, Y.Doc collaboration codec                                 |
 
-Full installation details and peer dependency requirements are in the [installation guide](/guide/installation).
+Not sure which one? `npx @christophervr/pptx-viewer` walks you through it interactively. Full installation details and peer dependency requirements are in the [installation guide](/guide/installation), and per-package release notes live under [Releases](/releases/).
 
 ## Programmatic use
 
@@ -116,7 +116,7 @@ The core engine runs identically in Node.js, Bun, Deno, browser tabs, Web Worker
 
 ## MCP and AI agents
 
-`pptx-viewer-mcp` exposes 24 PPTX manipulation tools as an MCP server. Any MCP-compatible client (Claude Desktop, Cursor, VS Code Copilot) can use them to read, edit, and convert presentations without writing code:
+`pptx-viewer-mcp` exposes 25 PPTX manipulation tools as an MCP server. Any MCP-compatible client (Claude Desktop, Cursor, VS Code Copilot) can use them to read, edit, and convert presentations without writing code:
 
 ```json
 {
