@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  # ── Foundation: emf-converter + core + shared + mcp (must all succeed) ──────
+  # ── Foundation: core + shared + mcp + cli (must all succeed) ────────────────
   build:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
@@ -27,10 +27,17 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
+      - name: Cache bun downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
       - name: Install dependencies
         run: bun install
 
-      # Foundation packages — hard failure if any of these break.
+      # Foundation packages: hard failure if any of these break.
       - name: Build foundation packages
         run: |
           bun run --filter 'pptx-viewer-core' build
@@ -38,7 +45,7 @@ jobs:
           bun run --filter 'pptx-viewer-mcp' build
           bun run --filter '@christophervr/pptx-viewer' build
 
-      # Framework bindings — each can fail independently without blocking others.
+      # Framework bindings: each can fail independently without blocking others.
       - name: Build React
         id: build-react
         run: bun run --filter 'pptx-react-viewer' build
@@ -64,16 +71,14 @@ jobs:
             exit 1
           fi
 
-      # Upload whatever was built — partial artifacts are fine for test jobs.
+      # Upload only the built dists (each job runs its own `bun install`, so
+      # shipping node_modules around is pure waste). Partial dists are fine.
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: build-output
-          path: |
-            packages/*/dist
-            node_modules
-            packages/*/node_modules
+          path: packages/*/dist
           retention-days: 1
 
   lint:
@@ -83,6 +88,13 @@ jobs:
       - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
+
+      - name: Cache bun downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
 
       - name: Install dependencies
         run: bun install
@@ -106,10 +118,19 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
+      - name: Cache bun downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      # The artifact holds packages/*/dist with `packages` as its root.
       - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
           name: build-output
+          path: packages
 
       - name: Install dependencies
         run: bun install
@@ -117,180 +138,78 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
-  test-core:
+  # ── Tests: one matrix job per package ───────────────────────────────────────
+  # Framework entries are enabled only when their build succeeded; a disabled
+  # entry no-ops (every step is guarded) instead of failing the run.
+  test:
     needs: build
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    name: test-${{ matrix.key }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - key: core
+            dir: packages/core
+            cmd: bun vitest run --reporter=verbose --reporter=github-actions --exclude 'src/core/utils/ooxml-crypto.test.ts'
+            enabled: 'true'
+          - key: core-crypto
+            dir: packages/core
+            cmd: bun vitest run --reporter=verbose --reporter=github-actions src/core/utils/ooxml-crypto.test.ts
+            enabled: 'true'
+          - key: react
+            dir: packages/react
+            cmd: bun vitest run --reporter=verbose --reporter=github-actions
+            enabled: ${{ needs.build.outputs.react-built }}
+          - key: vue
+            dir: packages/vue
+            cmd: bun vitest run --reporter=verbose --reporter=github-actions
+            enabled: ${{ needs.build.outputs.vue-built }}
+          - key: angular
+            dir: packages/angular
+            # inline-shared vendors the shared source the Angular lib compiles against
+            cmd: bun run inline-shared && bun vitest run --reporter=verbose --reporter=github-actions
+            enabled: ${{ needs.build.outputs.angular-built }}
+          - key: tools
+            dir: packages/tools
+            cmd: bun vitest run --reporter=verbose --reporter=github-actions
+            enabled: 'true'
+          - key: cli
+            dir: packages/cli
+            cmd: bun vitest run --reporter=verbose --reporter=github-actions
+            enabled: 'true'
     steps:
       - uses: actions/checkout@v7
+        if: matrix.enabled == 'true'
 
       - uses: actions/setup-node@v6
+        if: matrix.enabled == 'true'
         with:
           node-version: 22
 
       - uses: oven-sh/setup-bun@v2
+        if: matrix.enabled == 'true'
+
+      - name: Cache bun downloads
+        if: matrix.enabled == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
 
       - name: Download build artifacts
+        if: matrix.enabled == 'true'
         uses: actions/download-artifact@v8
         with:
           name: build-output
+          path: packages
 
       - name: Install dependencies
+        if: matrix.enabled == 'true'
         run: bun install
 
-      - name: Test core (excluding crypto)
-        run: cd packages/core && bun vitest run --reporter=verbose --reporter=github-actions --exclude 'src/core/utils/ooxml-crypto.test.ts'
-
-  test-core-crypto:
-    needs: build
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-output
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Test core (ooxml-crypto)
-        run: cd packages/core && bun vitest run --reporter=verbose --reporter=github-actions src/core/utils/ooxml-crypto.test.ts
-
-  test-react:
-    needs: build
-    # Only run if the React build succeeded.
-    if: |
-      (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
-      && needs.build.outputs.react-built == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-output
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Test react
-        run: cd packages/react && bun vitest run --reporter=verbose --reporter=github-actions
-
-  test-tools:
-    needs: build
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-output
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Test tools
-        run: cd packages/tools && bun vitest run --reporter=verbose --reporter=github-actions
-
-  test-cli:
-    needs: build
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-output
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Test @christophervr/pptx-viewer
-        run: cd packages/cli && bun vitest run --reporter=verbose --reporter=github-actions
-
-  test-vue:
-    needs: build
-    # Only run if the Vue build succeeded.
-    if: |
-      (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
-      && needs.build.outputs.vue-built == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-output
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Test vue
-        run: cd packages/vue && bun vitest run --reporter=verbose --reporter=github-actions
-
-  test-angular:
-    needs: build
-    # Only run if the Angular build succeeded.
-    if: |
-      (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
-      && needs.build.outputs.angular-built == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-output
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Test angular
-        # inline-shared vendors the shared source the Angular lib compiles against
-        run: cd packages/angular && bun run inline-shared && bun vitest run --reporter=verbose --reporter=github-actions
+      - name: Test ${{ matrix.key }}
+        if: matrix.enabled == 'true'
+        run: cd ${{ matrix.dir }} && ${{ matrix.cmd }}
