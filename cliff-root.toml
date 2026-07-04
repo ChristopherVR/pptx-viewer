@@ -5,11 +5,13 @@
 # (pptx-viewer-core@x.y.z, pptx-react-viewer@x.y.z, etc.).
 #
 # Used by:
-#   bun run changelog             # regenerate CHANGELOG.md
-#   bun run changelog:unreleased  # preview unreleased commits
+#   bun run changelog:unreleased  # preview commits since the last release run
+#   bun run changelog:latest      # preview the latest release section
 #
-# The Release workflow also runs `bunx git-cliff --config cliff-root.toml`
-# after cutting per-package tags so the root file stays up to date.
+# The Release workflow PREPENDS a dated consolidated section to CHANGELOG.md
+# per release run (never a full regeneration): old tags are culled by
+# prune-releases.mjs, so regenerating from tag history would lose shipped
+# sections. Do not run this config with --output CHANGELOG.md.
 
 [changelog]
 header = """
