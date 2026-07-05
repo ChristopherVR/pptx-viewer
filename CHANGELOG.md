@@ -6,6 +6,23 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-05
 
+_Releases: pptx-react-viewer@1.7.0, pptx-vue-viewer@1.7.0, pptx-angular-viewer@1.7.0, @christophervr/pptx-viewer@1.4.1_
+
+### Features
+
+- **react,vue:** Add editing section, paragraph dropdowns, text shadow to toolbar (by @ChristopherVR) ([13232d0](https://github.com/ChristopherVR/pptx-viewer/commit/13232d00a00029d95087b30bf1d82be142e9a0eb))
+- **vue,angular:** Add line spacing, text direction, columns, and editing controls (by @ChristopherVR) ([71e1c69](https://github.com/ChristopherVR/pptx-viewer/commit/71e1c69c4e3dca22329fb4125da67373e0851efe))
+- **react,vue,angular:** Remove Text and Arrange tabs, merge into Home (by @ChristopherVR) ([6183ff3](https://github.com/ChristopherVR/pptx-viewer/commit/6183ff3a4c50e31b5d267eb31de8aab9da068aff))
+- **react,vue,angular:** Add Drawing group, Slides controls, and Record tab (by @ChristopherVR) ([8b68ba7](https://github.com/ChristopherVR/pptx-viewer/commit/8b68ba78599c3c3ded50ab99ab2bbcf38991caf2))
+
+### Bug Fixes
+
+- **react:** Mobile sheet hidden on landscape phones, isMobile desync (by @ChristopherVR) ([f4d0a3e](https://github.com/ChristopherVR/pptx-viewer/commit/f4d0a3e7c259b96290430851db514ed588ae5e13))
+- **cli:** Scaffold i18n setup, suppress scaffolder output, auto-run dev (by @ChristopherVR) ([d99b463](https://github.com/ChristopherVR/pptx-viewer/commit/d99b463ccbf39d05f47c044af7053c53f400b2d9))
+- **vue:** UseIsMobile container ref resolved too early, missed late mount (by @ChristopherVR) ([e81999a](https://github.com/ChristopherVR/pptx-viewer/commit/e81999aeacf362602698d33797e5e2c6670014af))
+
+## 2026-07-05
+
 _Releases: pptx-viewer-core@1.2.0, pptx-react-viewer@1.6.0, pptx-vue-viewer@1.6.0, pptx-angular-viewer@1.6.0, @christophervr/pptx-viewer@1.4.0_
 
 ### Features
