@@ -117,6 +117,10 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v6
 
+      # Remove source maps from the artifact to stay under Pages' 1 GB limit.
+      - name: Strip source maps
+        run: find docs/.vitepress/dist -name '*.map' -delete
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
@@ -132,3 +136,6 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+        with:
+          timeout: 600000
+          error_count: 3
