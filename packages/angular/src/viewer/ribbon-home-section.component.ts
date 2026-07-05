@@ -10,6 +10,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import { EditorStateService } from './editor-state.service';
+import { RibbonEditingSectionComponent } from './ribbon-editing-section.component';
 import { RibbonFontControlsComponent } from './ribbon-font-controls.component';
 import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.component';
 
@@ -18,7 +19,13 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [NgClass, TranslatePipe, RibbonFontControlsComponent, RibbonParagraphControlsComponent],
+	imports: [
+		NgClass,
+		TranslatePipe,
+		RibbonFontControlsComponent,
+		RibbonParagraphControlsComponent,
+		RibbonEditingSectionComponent,
+	],
 	template: `
 		<!-- Clipboard -->
 		<div class="flex flex-col items-center gap-0.5">
@@ -117,6 +124,17 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 				{{ 'pptx.ribbon.paragraph' | translate }}
 			</span>
 		</div>
+		<span class="pptx-rb-sep"></span>
+		<!-- Editing -->
+		<div class="flex flex-col items-center gap-0.5">
+			<pptx-ribbon-editing-section
+				(toggleFindReplace)="findReplace.emit()"
+				(selectAll)="onSelectAll()"
+			/>
+			<span class="text-[9px] leading-none text-muted-foreground">
+				{{ 'pptx.ribbon.editing' | translate }}
+			</span>
+		</div>
 	`,
 })
 export class RibbonHomeSectionComponent {
@@ -128,6 +146,7 @@ export class RibbonHomeSectionComponent {
 	readonly canActivateFormatPainter = input<boolean>(false);
 
 	readonly toggleFormatPainter = output<void>();
+	readonly findReplace = output<void>();
 
 	protected hasSel(): boolean {
 		return this.editor.selectedIds().length > 0;
@@ -141,5 +160,8 @@ export class RibbonHomeSectionComponent {
 	}
 	protected paste(): void {
 		this.editor.paste(this.slideIndex());
+	}
+	protected onSelectAll(): void {
+		this.editor.selectAll(this.slideIndex());
 	}
 }

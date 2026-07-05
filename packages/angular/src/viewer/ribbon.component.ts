@@ -236,6 +236,7 @@ const TABS: readonly TabDef[] = [
 							[formatPainterActive]="formatPainterActive()"
 							[canActivateFormatPainter]="canActivateFormatPainter()"
 							(toggleFormatPainter)="toggleFormatPainter.emit()"
+							(findReplace)="find.emit()"
 						/>
 					}
 					@case ('insert') {

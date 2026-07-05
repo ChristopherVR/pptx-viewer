@@ -12,6 +12,20 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { EditorStateService } from './editor-state.service';
 import { isTextElement, patchTextStyle, textStyleOf } from './ribbon-text-helpers';
 
+/** Line spacing multiplier presets. */
+const LINE_SPACING_OPTIONS = [1.0, 1.15, 1.5, 2.0, 2.5, 3.0];
+
+/** Text direction presets (mirrors React/Vue). */
+const TEXT_DIRECTION_OPTIONS = [
+	{ label: 'Horizontal', value: 'horizontal' },
+	{ label: 'Rotate 90\u00B0', value: 'vertical' },
+	{ label: 'Rotate 270\u00B0', value: 'vertical270' },
+	{ label: 'Stacked', value: 'wordArtVert' },
+] as const;
+
+/** Column count presets. */
+const COLUMN_OPTIONS = [1, 2, 3];
+
 @Component({
 	selector: 'pptx-ribbon-paragraph-controls',
 	standalone: true,
@@ -106,6 +120,41 @@ import { isTextElement, patchTextStyle, textStyleOf } from './ribbon-text-helper
 				☰
 			</button>
 		</div>
+		<!-- Line Spacing -->
+		<select
+			class="pptx-rb-select w-14"
+			[attr.aria-label]="'pptx.ribbon.lineSpacing' | translate"
+			[disabled]="!isText()"
+			(change)="setLineSpacing($event)"
+		>
+			@for (ls of lineSpacingOptions; track ls) {
+				<option [value]="ls" [selected]="ls === curLineSpacing()">{{ ls }}</option>
+			}
+		</select>
+		<!-- Text Direction -->
+		<select
+			class="pptx-rb-select w-24"
+			[attr.aria-label]="'pptx.ribbon.textDirection' | translate"
+			[disabled]="!isText()"
+			(change)="setTextDirection($event)"
+		>
+			@for (dir of textDirectionOptions; track dir.value) {
+				<option [value]="dir.value" [selected]="dir.value === curTextDirection()">
+					{{ dir.label }}
+				</option>
+			}
+		</select>
+		<!-- Columns -->
+		<select
+			class="pptx-rb-select w-12"
+			[attr.aria-label]="'pptx.ribbon.columns' | translate"
+			[disabled]="!isText()"
+			(change)="setColumns($event)"
+		>
+			@for (c of columnOptions; track c) {
+				<option [value]="c" [selected]="c === curColumns()">{{ c }}</option>
+			}
+		</select>
 	`,
 })
 export class RibbonParagraphControlsComponent {
@@ -114,12 +163,29 @@ export class RibbonParagraphControlsComponent {
 	readonly slideIndex = input<number>(0);
 	readonly selectedElement = input<PptxElement | null>(null);
 
+	protected readonly lineSpacingOptions = LINE_SPACING_OPTIONS;
+	protected readonly textDirectionOptions = TEXT_DIRECTION_OPTIONS;
+	protected readonly columnOptions = COLUMN_OPTIONS;
+
 	protected isText(): boolean {
 		return isTextElement(this.selectedElement());
 	}
 
 	/** Current text style of the selection (for active-state highlighting). */
 	protected readonly curStyle = computed(() => textStyleOf(this.selectedElement()));
+
+	/** Current line spacing multiplier. */
+	protected curLineSpacing(): number {
+		return this.curStyle()?.lineSpacing ?? 1.0;
+	}
+	/** Current text direction. */
+	protected curTextDirection(): string {
+		return this.curStyle()?.textDirection ?? 'horizontal';
+	}
+	/** Current column count. */
+	protected curColumns(): number {
+		return this.curStyle()?.columnCount ?? 1;
+	}
 
 	/** Toggle the paragraph list style (bullet / numbered) off when already set. */
 	protected toggleList(kind: 'bullet' | 'numbered'): void {
@@ -132,6 +198,15 @@ export class RibbonParagraphControlsComponent {
 	}
 	protected setAlign(align: 'left' | 'center' | 'right' | 'justify'): void {
 		this.patch({ align });
+	}
+	protected setLineSpacing(event: Event): void {
+		this.patch({ lineSpacing: Number((event.target as HTMLSelectElement).value) });
+	}
+	protected setTextDirection(event: Event): void {
+		this.patch({ textDirection: (event.target as HTMLSelectElement).value as 'horizontal' });
+	}
+	protected setColumns(event: Event): void {
+		this.patch({ columnCount: Number((event.target as HTMLSelectElement).value) });
 	}
 
 	private patch(patch: Parameters<typeof patchTextStyle>[3]): void {

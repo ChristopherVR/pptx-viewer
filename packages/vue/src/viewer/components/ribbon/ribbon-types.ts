@@ -156,6 +156,7 @@ export interface RibbonProps {
 	onUndo: () => void;
 	onRedo: () => void;
 	onToggleFindReplace: () => void;
+	onSelectAll?: () => void;
 	onSetNewShapeType: (type: SupportedShapeType) => void;
 	onAddTextBox: () => void;
 	onAddShape: () => void;

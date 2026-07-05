@@ -54,6 +54,15 @@ const HIGHLIGHT_COLOR_PRESETS = [
 	'#800080',
 ];
 
+/** Character spacing presets (hundredths of a point, per OOXML `a:rPr/@spc`). */
+const CHAR_SPACING_OPTIONS = [
+	{ label: 'Very Tight', value: -300 },
+	{ label: 'Tight', value: -150 },
+	{ label: 'Normal', value: 0 },
+	{ label: 'Loose', value: 300 },
+	{ label: 'Very Loose', value: 600 },
+];
+
 @Component({
 	selector: 'pptx-ribbon-font-controls',
 	standalone: true,
@@ -154,6 +163,30 @@ const HIGHLIGHT_COLOR_PRESETS = [
 				S
 			</button>
 		</div>
+		<!-- Text Shadow toggle -->
+		<button
+			type="button"
+			class="pptx-rb-gb"
+			[disabled]="!isText()"
+			[ngClass]="curStyle()?.textShadowColor ? 'bg-accent' : ''"
+			[title]="'pptx.ribbon.textShadow' | translate"
+			(click)="toggleShadow()"
+		>
+			Shadow
+		</button>
+		<!-- Character Spacing -->
+		<select
+			class="pptx-rb-select w-20"
+			[attr.aria-label]="'pptx.ribbon.charSpacing' | translate"
+			[disabled]="!isText()"
+			(change)="setCharSpacing($event)"
+		>
+			@for (opt of charSpacingOptions; track opt.value) {
+				<option [value]="opt.value" [selected]="opt.value === curCharSpacing()">
+					{{ opt.label }}
+				</option>
+			}
+		</select>
 		<!-- Font colour popover -->
 		<pptx-ribbon-color-popover
 			[current]="curColor()"
@@ -198,6 +231,7 @@ export class RibbonFontControlsComponent {
 	protected readonly fontSizes = FONT_SIZES;
 	protected readonly fontColorPresets = FONT_COLOR_PRESETS;
 	protected readonly highlightColorPresets = HIGHLIGHT_COLOR_PRESETS;
+	protected readonly charSpacingOptions = CHAR_SPACING_OPTIONS;
 
 	protected isText(): boolean {
 		return isTextElement(this.selectedElement());
@@ -219,6 +253,33 @@ export class RibbonFontControlsComponent {
 	/** Current highlight colour of the selection (for the swatch + active-state ring). */
 	protected curHighlight(): string {
 		return this.curStyle()?.highlightColor ?? '#ffff00';
+	}
+	/** Current character spacing of the selection (for dropdown state). */
+	protected curCharSpacing(): number {
+		return this.curStyle()?.characterSpacing ?? 0;
+	}
+
+	protected toggleShadow(): void {
+		const has = Boolean(this.curStyle()?.textShadowColor);
+		this.patch(
+			has
+				? {
+						textShadowColor: undefined,
+						textShadowBlur: undefined,
+						textShadowOffsetX: undefined,
+						textShadowOffsetY: undefined,
+					}
+				: {
+						textShadowColor: '#000000',
+						textShadowBlur: 4,
+						textShadowOffsetX: 1,
+						textShadowOffsetY: 1,
+						textShadowOpacity: 0.5,
+					},
+		);
+	}
+	protected setCharSpacing(event: Event): void {
+		this.patch({ characterSpacing: Number((event.target as HTMLSelectElement).value) });
 	}
 
 	protected toggleStyle(key: 'bold' | 'italic' | 'underline' | 'strikethrough'): void {

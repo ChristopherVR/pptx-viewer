@@ -20,6 +20,7 @@ import AnimationsSection from './AnimationsSection.vue';
 import ArrangeSection from './ArrangeSection.vue';
 import DesignSection from './DesignSection.vue';
 import DrawSection from './DrawSection.vue';
+import EditingSection from './EditingSection.vue';
 import FileSection from './FileSection.vue';
 import HomeSection from './HomeSection.vue';
 import InsertSection from './InsertSection.vue';
@@ -170,6 +171,12 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:selected-element="props.selectedElement"
 				:table-editor-state="props.tableEditorState"
 				:on-update-text-style="props.onUpdateTextStyle"
+			/>
+
+			<EditingSection
+				v-if="s === 'home'"
+				:on-toggle-find-replace="props.onToggleFindReplace"
+				:on-select-all="props.onSelectAll"
 			/>
 
 			<DrawSection
