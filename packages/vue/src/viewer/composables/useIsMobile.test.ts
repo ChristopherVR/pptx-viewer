@@ -250,15 +250,16 @@ describe('useIsMobile', () => {
 			expect(ro.disconnect).toHaveBeenCalledOnce();
 		});
 
-		it('falls back to the matchMedia viewport path when the ref is empty', () => {
-			const { mql } = installMatchMedia(true);
+		it('uses a temporary viewport fallback when the ref is initially empty', () => {
+			installMatchMedia(true);
 			installResizeObserver();
 			const container = ref<HTMLElement | null>(null);
 			const scope = effectScope();
 			const result = scope.run(() => useIsMobile(768, container))!;
-			// No element to observe: matchMedia drives isMobile instead.
-			expect(mql.addEventListener).toHaveBeenCalledOnce();
-			expect(result.isMobile.value).toBeTruthy();
+			// Container is null: uses window dimensions as interim fallback
+			// (does NOT fall through to the matchMedia path because it will
+			// upgrade to ResizeObserver once the ref populates).
+			expect(result.containerWidth.value).toBe(window.innerWidth);
 			scope.stop();
 		});
 	});

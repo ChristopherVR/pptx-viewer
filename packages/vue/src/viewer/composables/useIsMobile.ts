@@ -7,7 +7,7 @@ import {
 	TABLET_BREAKPOINT,
 } from 'pptx-viewer-shared';
 import type { DeviceOrientation } from 'pptx-viewer-shared';
-import { onScopeDispose, readonly, ref } from 'vue';
+import { onScopeDispose, readonly, ref, watchEffect } from 'vue';
 import type { Ref } from 'vue';
 
 // The viewport breakpoint maths and the touch / orientation probes live in
@@ -156,23 +156,54 @@ export function useIsMobile(breakpoint = 768, container?: ContainerSource): UseI
 
 	const hasWindow = typeof window !== 'undefined';
 	const hasResizeObserver = hasWindow && typeof ResizeObserver !== 'undefined';
-	const containerEl = resolveContainer(container);
 
 	// ── Container-driven path (ResizeObserver on the host box) ───────────────
-	if (hasResizeObserver && containerEl) {
-		const observer = new ResizeObserver((entries) => {
-			const entry = entries[0];
-			if (entry) {
-				applyDimensions(entry.contentRect.width, entry.contentRect.height);
+	// The container source (a template ref) is typically null during setup and
+	// becomes available after mount. Use watchEffect to reactively detect when
+	// the element appears and upgrade from viewport to container detection.
+	if (hasResizeObserver && container) {
+		let observer: ResizeObserver | null = null;
+		let viewportCleanup: (() => void) | null = null;
+
+		// Temporary viewport fallback while waiting for the container to mount.
+		const startViewportFallback = (): void => {
+			applyDimensions(window.innerWidth, window.innerHeight);
+			const onResize = (): void => applyDimensions(window.innerWidth, window.innerHeight);
+			window.addEventListener('resize', onResize);
+			viewportCleanup = () => window.removeEventListener('resize', onResize);
+		};
+
+		const stopViewportFallback = (): void => {
+			viewportCleanup?.();
+			viewportCleanup = null;
+		};
+
+		watchEffect(() => {
+			const el = resolveContainer(container);
+			if (el && !observer) {
+				// Container became available: upgrade to container observation.
+				stopViewportFallback();
+				observer = new ResizeObserver((entries) => {
+					const entry = entries[0];
+					if (entry) {
+						applyDimensions(entry.contentRect.width, entry.contentRect.height);
+					}
+				});
+				observer.observe(el);
+				applyDimensions(el.clientWidth, el.clientHeight);
+			} else if (!el && !observer) {
+				// Container not yet mounted: use viewport as interim fallback.
+				if (!viewportCleanup) {
+					startViewportFallback();
+				}
 			}
 		});
-		observer.observe(containerEl);
-		applyDimensions(containerEl.clientWidth, containerEl.clientHeight);
 
 		wireOrientationAndKeyboard();
 
 		onScopeDispose(() => {
-			observer.disconnect();
+			observer?.disconnect();
+			stopViewportFallback();
 		});
 		return result;
 	}
