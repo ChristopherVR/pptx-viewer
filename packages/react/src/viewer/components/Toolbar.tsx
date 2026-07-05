@@ -11,6 +11,7 @@ import {
 	TransitionsSection,
 	ReviewSection,
 } from './toolbar/DesignTransitionsReviewSection';
+import { DrawingGroup } from './toolbar/DrawingGroup';
 import { DrawSection } from './toolbar/DrawSection';
 import { EditingSection } from './toolbar/EditingSection';
 import { FileSection } from './toolbar/FileSection';
@@ -47,6 +48,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 	const sTrn = toolbarSection === 'transitions';
 	const sAni = toolbarSection === 'animations';
 	const sSlw = toolbarSection === 'slideShow';
+	const sRec = toolbarSection === 'record';
 	const sRev = toolbarSection === 'review';
 	const sViw = toolbarSection === 'view';
 	const sHlp = toolbarSection === 'help';
@@ -185,6 +187,18 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 
 					{sHome && <EditingSection onToggleFindReplace={p.onToggleFindReplace} />}
 
+					{sHome && (
+						<DrawingGroup
+							canEdit={p.canEdit}
+							selectedElement={p.selectedElement}
+							newShapeType={p.newShapeType}
+							onSetNewShapeType={p.onSetNewShapeType}
+							onAddShape={p.onAddShape}
+							onMoveLayer={p.onMoveLayer}
+							onMoveLayerToEdge={p.onMoveLayerToEdge}
+						/>
+					)}
+
 					{sDrw && (
 						<DrawSection
 							activeTool={p.activeTool}
@@ -261,6 +275,13 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							showSubtitles={p.showSubtitles ?? false}
 							onSetMode={p.onSetMode}
 						/>
+					)}
+
+					{sRec && (
+						<div className='flex items-center gap-2 px-2'>
+							<span className='inline-block w-3 h-3 rounded-full bg-red-500' />
+							<span className='text-xs text-foreground'>Record</span>
+						</div>
 					)}
 
 					{sRev && (

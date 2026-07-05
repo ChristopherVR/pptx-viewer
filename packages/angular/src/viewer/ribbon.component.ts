@@ -33,6 +33,7 @@ import { RibbonArrangeSectionComponent } from './ribbon-arrange-section.componen
 import { RibbonDesignSectionComponent } from './ribbon-design-section.component';
 import type { DrawTool, DrawToolState } from './ribbon-draw-section.component';
 import { RibbonDrawSectionComponent } from './ribbon-draw-section.component';
+import { RibbonDrawingGroupComponent } from './ribbon-drawing-group.component';
 import { RibbonFileSectionComponent } from './ribbon-file-section.component';
 import { RibbonFontControlsComponent } from './ribbon-font-controls.component';
 import { RibbonHomeSectionComponent } from './ribbon-home-section.component';
@@ -56,6 +57,7 @@ type RibbonTab =
 	| 'transitions'
 	| 'animations'
 	| 'slideShow'
+	| 'record'
 	| 'review'
 	| 'view'
 	| 'help';
@@ -74,6 +76,7 @@ const TABS: readonly TabDef[] = [
 	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
 	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
 	{ id: 'slideShow', labelKey: 'pptx.ribbon.tab.slideShow' },
+	{ id: 'record', labelKey: 'pptx.ribbon.tab.record' },
 	{ id: 'review', labelKey: 'pptx.ribbon.tab.review' },
 	{ id: 'view', labelKey: 'pptx.ribbon.tab.view' },
 	{ id: 'help', labelKey: 'pptx.ribbon.tab.help' },
@@ -97,6 +100,7 @@ const TABS: readonly TabDef[] = [
 		RibbonReviewSectionComponent,
 		RibbonViewSectionComponent,
 		RibbonDrawSectionComponent,
+		RibbonDrawingGroupComponent,
 		RibbonDesignSectionComponent,
 		RibbonTransitionsSectionComponent,
 		RibbonAnimationsSectionComponent,
@@ -246,6 +250,13 @@ const TABS: readonly TabDef[] = [
 							[slideIndex]="slideIndex()"
 							[selectedElement]="selectedElement()"
 						/>
+						<span class="pptx-rb-sep"></span>
+						<pptx-ribbon-drawing-group
+							[canEdit]="canEdit()"
+							(shapeInsert)="shapeInsert.emit($event)"
+							(moveLayer)="moveLayer.emit($event)"
+							(moveLayerToEdge)="moveLayerToEdge.emit($event)"
+						/>
 					}
 					@case ('insert') {
 						<pptx-ribbon-insert-section
@@ -352,6 +363,12 @@ const TABS: readonly TabDef[] = [
 						<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">
 							{{ 'pptx.ribbon.accessibility' | translate }}
 						</button>
+					}
+					@case ('record') {
+						<div class="flex items-center gap-2 px-2 py-1 text-[12px] text-muted-foreground">
+							<span class="text-red-500">&#x1F534;</span>
+							<span>{{ 'pptx.titleBar.record' | translate }}</span>
+						</div>
 					}
 				}
 			</div>
@@ -478,6 +495,12 @@ export class RibbonComponent {
 	readonly openVersionHistory = output<void>();
 	/** Emitted when the user clicks "Shortcuts" in the Help tab. */
 	readonly openShortcuts = output<void>();
+	/** Emitted when a shape is inserted from the Drawing group. */
+	readonly shapeInsert = output<string>();
+	/** Emitted when the user reorders an element layer (up/down). */
+	readonly moveLayer = output<string>();
+	/** Emitted when the user moves an element to front/back. */
+	readonly moveLayerToEdge = output<string>();
 
 	protected readonly tabs = TABS;
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ClipboardPaste, Copy, Paintbrush, Plus, Scissors } from 'lucide-vue-next';
+import { ChevronDown, ClipboardPaste, Copy, Paintbrush, Scissors } from 'lucide-vue-next';
 /**
  * HomeSection: the Vue 3 port of React's
  * `toolbar/HomeSection.tsx`. Renders the Home ribbon tab's Clipboard, Slides and
@@ -28,6 +28,7 @@ import {
 	SEP,
 } from './ribbon-constants';
 import type { ElementClipboardPayload, LayoutOption } from './ribbon-types';
+import SlidesGroup from './SlidesGroup.vue';
 import { useDropdown } from './use-dropdown';
 
 interface Props {
@@ -41,6 +42,9 @@ interface Props {
 	onToggleFormatPainter?: () => void;
 	layoutOptions: LayoutOption[];
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
+	onApplyLayout?: (path: string) => void;
+	onResetSlide?: () => void;
+	onAddSection?: () => void;
 	selectedElement?: PptxElement | null;
 	onUpdateTextStyle?: (style: Partial<TextStyle>) => void;
 }
@@ -74,19 +78,11 @@ const fontInfo = computed(() => extractFontInfo(props.selectedElement));
 const fontFamily = computed(() => fontInfo.value.fontFamily);
 const fontSize = computed(() => fontInfo.value.fontSize);
 
-const layoutMenu = useDropdown();
 const fontMenu = useDropdown();
 const sizeMenu = useDropdown();
 
 const copiedFeedback = ref(false);
 const cutFeedback = ref(false);
-
-function handleNewSlide(): void {
-	if (props.layoutOptions.length > 0) {
-		const first = props.layoutOptions[0];
-		props.onInsertSlideFromLayout(first.path, first.name);
-	}
-}
 
 function handleCut(): void {
 	props.onCut();
@@ -102,11 +98,6 @@ function handleCopy(): void {
 	setTimeout(() => {
 		copiedFeedback.value = false;
 	}, 600);
-}
-
-function handlePickLayout(lo: LayoutOption): void {
-	props.onInsertSlideFromLayout(lo.path, lo.name);
-	layoutMenu.close();
 }
 
 function handlePickFont(f: string): void {
@@ -175,51 +166,14 @@ function handlePickSize(s: number): void {
 	<div :class="SEP" />
 
 	<!-- Slides group -->
-	<div class="flex flex-col items-center gap-0.5">
-		<div :ref="layoutMenu.root" class="relative inline-flex items-center">
-			<button
-				type="button"
-				:disabled="!props.canEdit || props.layoutOptions.length === 0"
-				:class="
-					cn(pill, 'whitespace-nowrap', props.layoutOptions.length > 0 ? 'rounded-r-none' : '')
-				"
-				:title="t('pptx.home.newSlide')"
-				@click="handleNewSlide()"
-			>
-				<Plus :class="ic" />
-				{{ t('pptx.home.newSlide') }}
-			</button>
-			<button
-				v-if="props.layoutOptions.length > 0"
-				type="button"
-				:disabled="!props.canEdit"
-				class="inline-flex items-center justify-center self-stretch px-1 rounded-r bg-muted hover:bg-accent text-xs transition-colors border-l border-border/40 active:scale-95 active:opacity-80"
-				:title="t('pptx.home.chooseLayout')"
-				@click="layoutMenu.toggle()"
-			>
-				<ChevronDown class="w-3 h-3" />
-			</button>
-			<div
-				v-if="layoutMenu.open.value"
-				class="absolute left-0 top-full z-50 flex flex-col w-48 pt-1"
-			>
-				<div :class="MENU_PANEL">
-					<button
-						v-for="lo in props.layoutOptions"
-						:key="lo.path"
-						type="button"
-						:class="MENU_ITEM"
-						@click="handlePickLayout(lo)"
-					>
-						{{ lo.name }}
-					</button>
-				</div>
-			</div>
-		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">{{
-			t('pptx.sections.slides')
-		}}</span>
-	</div>
+	<SlidesGroup
+		:can-edit="props.canEdit"
+		:layout-options="props.layoutOptions"
+		:on-insert-slide-from-layout="props.onInsertSlideFromLayout"
+		:on-apply-layout="props.onApplyLayout"
+		:on-reset-slide="props.onResetSlide"
+		:on-add-section="props.onAddSection"
+	/>
 
 	<div :class="SEP" />
 

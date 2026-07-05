@@ -172,6 +172,7 @@ export type ToolbarSection =
 	| 'transitions'
 	| 'animations'
 	| 'slideShow'
+	| 'record'
 	| 'review'
 	| 'view'
 	| 'help';

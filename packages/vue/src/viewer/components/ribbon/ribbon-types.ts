@@ -33,6 +33,7 @@ export type ToolbarSection =
 	| 'transitions'
 	| 'animations'
 	| 'slideShow'
+	| 'record'
 	| 'review'
 	| 'view'
 	| 'help';
@@ -209,6 +210,9 @@ export interface RibbonProps {
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
 	onSetOverflowMenuOpen: (open: boolean) => void;
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
+	onApplyLayout?: (path: string) => void;
+	onResetSlide?: () => void;
+	onAddSection?: () => void;
 	onSetActiveCustomShowId: (id: string | null) => void;
 	onCreateCustomShow: () => void;
 	onRenameActiveCustomShow: () => void;

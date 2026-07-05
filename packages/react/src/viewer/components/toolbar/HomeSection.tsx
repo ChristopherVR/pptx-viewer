@@ -1,18 +1,12 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import {
-	LuChevronDown,
-	LuClipboardPaste,
-	LuCopy,
-	LuPaintbrush,
-	LuPlus,
-	LuScissors,
-} from 'react-icons/lu';
+import React, { useState, useRef, useEffect } from 'react';
+import { LuChevronDown, LuClipboardPaste, LuCopy, LuPaintbrush, LuScissors } from 'react-icons/lu';
 
 import type { ElementClipboardPayload } from '../../types';
 import { cn } from '../../utils';
-import { gB, gL, grp, ic, pill, sep } from './toolbar-constants';
+import { SlidesGroup } from './SlidesGroup';
+import { gB, gL, grp, ic, sep } from './toolbar-constants';
 
 export interface HomeSectionProps {
 	canEdit: boolean;
@@ -25,6 +19,9 @@ export interface HomeSectionProps {
 	onToggleFormatPainter?: () => void;
 	layoutOptions: Array<{ path: string; name: string }>;
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
+	onApplyLayout?: (path: string) => void;
+	onResetSlide?: () => void;
+	onAddSection?: () => void;
 	selectedElement?: PptxElement | null;
 	onUpdateTextStyle?: (style: Record<string, unknown>) => void;
 }
@@ -69,36 +66,13 @@ const COMMON_FONTS = [
 const COMMON_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 72, 96];
 
 export function HomeSection(p: HomeSectionProps): React.ReactElement {
-	const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
 	const [fontMenuOpen, setFontMenuOpen] = useState(false);
 	const [sizeMenuOpen, setSizeMenuOpen] = useState(false);
 	const [copiedFeedback, setCopiedFeedback] = useState(false);
 	const [cutFeedback, setCutFeedback] = useState(false);
-	const layoutMenuRef = useRef<HTMLDivElement>(null);
 	const fontMenuRef = useRef<HTMLDivElement>(null);
 	const sizeMenuRef = useRef<HTMLDivElement>(null);
 	const { fontFamily, fontSize } = extractFontInfo(p.selectedElement);
-
-	const handleNewSlide = useCallback(() => {
-		if (p.layoutOptions.length > 0) {
-			const first = p.layoutOptions[0];
-			p.onInsertSlideFromLayout(first.path, first.name);
-		}
-	}, [p]);
-
-	// Close layout menu on outside click
-	useEffect(() => {
-		if (!layoutMenuOpen) {
-			return;
-		}
-		const handler = (e: MouseEvent) => {
-			if (layoutMenuRef.current && !layoutMenuRef.current.contains(e.target as Node)) {
-				setLayoutMenuOpen(false);
-			}
-		};
-		document.addEventListener('mousedown', handler);
-		return () => document.removeEventListener('mousedown', handler);
-	}, [layoutMenuOpen]);
 
 	// Close font menu on outside click
 	useEffect(() => {
@@ -191,58 +165,14 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 
 			{sep}
 
-			{/* Slides group */}
-			<div className='flex flex-col items-center gap-0.5'>
-				<div className='relative inline-flex items-center' ref={layoutMenuRef}>
-					<button
-						type='button'
-						onClick={handleNewSlide}
-						disabled={!p.canEdit || p.layoutOptions.length === 0}
-						className={cn(
-							pill,
-							'whitespace-nowrap',
-							p.layoutOptions.length > 0 ? 'rounded-r-none' : '',
-						)}
-						title='New Slide'
-					>
-						<LuPlus className={ic} />
-						New Slide
-					</button>
-					{p.layoutOptions.length > 0 && (
-						<button
-							type='button'
-							disabled={!p.canEdit}
-							className='inline-flex items-center justify-center self-stretch px-1 rounded-r bg-muted hover:bg-accent text-xs transition-colors border-l border-border/40 active:scale-95 active:opacity-80'
-							title='Choose layout'
-							onClick={() => setLayoutMenuOpen((v) => !v)}
-						>
-							<LuChevronDown className='w-3 h-3' />
-						</button>
-					)}
-					{layoutMenuOpen && (
-						<div className='absolute left-0 top-full z-50 flex flex-col w-48 pt-1'>
-							<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
-								{p.layoutOptions.map((lo) => (
-									<button
-										key={lo.path}
-										type='button'
-										className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
-										onClick={() => {
-											p.onInsertSlideFromLayout(lo.path, lo.name);
-											setLayoutMenuOpen(false);
-										}}
-									>
-										{lo.name}
-									</button>
-								))}
-							</div>
-						</div>
-					)}
-				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>Slides</span>
-			</div>
-
-			{sep}
+			<SlidesGroup
+				canEdit={p.canEdit}
+				layoutOptions={p.layoutOptions}
+				onInsertSlideFromLayout={p.onInsertSlideFromLayout}
+				onApplyLayout={p.onApplyLayout}
+				onResetSlide={p.onResetSlide}
+				onAddSection={p.onAddSection}
+			/>
 
 			{/* Font group */}
 			<div className='flex flex-col items-center gap-0.5'>

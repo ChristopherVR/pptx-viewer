@@ -1691,6 +1691,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.ribbon.tab.transitions': 'Transitions',
 	'pptx.ribbon.tab.animations': 'Animations',
 	'pptx.ribbon.tab.slideShow': 'Slide Show',
+	'pptx.ribbon.tab.record': 'Record',
 	'pptx.ribbon.tab.review': 'Review',
 	'pptx.ribbon.tab.view': 'View',
 	'pptx.ribbon.tab.help': 'Help',

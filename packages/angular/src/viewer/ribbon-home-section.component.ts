@@ -93,6 +93,30 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 				>
 					{{ 'pptx.arrange.duplicate' | translate }}
 				</button>
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[title]="'pptx.ribbon.layout' | translate"
+					(click)="applyLayout.emit('blank')"
+				>
+					{{ 'pptx.ribbon.layout' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[title]="'pptx.ribbon.resetSlide' | translate"
+					(click)="resetSlide.emit()"
+				>
+					{{ 'pptx.ribbon.resetSlide' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[title]="'pptx.ribbon.section' | translate"
+					(click)="addSection.emit()"
+				>
+					{{ 'pptx.ribbon.section' | translate }}
+				</button>
 			</div>
 			<span class="text-[9px] leading-none text-muted-foreground">
 				{{ 'pptx.sections.slides' | translate }}
@@ -147,6 +171,9 @@ export class RibbonHomeSectionComponent {
 
 	readonly toggleFormatPainter = output<void>();
 	readonly findReplace = output<void>();
+	readonly applyLayout = output<string>();
+	readonly resetSlide = output<void>();
+	readonly addSection = output<void>();
 
 	protected hasSel(): boolean {
 		return this.editor.selectedIds().length > 0;

@@ -19,6 +19,7 @@ import { cn } from '../../../utils';
 import AnimationsSection from './AnimationsSection.vue';
 import ArrangeSection from './ArrangeSection.vue';
 import DesignSection from './DesignSection.vue';
+import DrawingGroup from './DrawingGroup.vue';
 import DrawSection from './DrawSection.vue';
 import EditingSection from './EditingSection.vue';
 import FileSection from './FileSection.vue';
@@ -144,6 +145,9 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:on-toggle-format-painter="props.onToggleFormatPainter"
 				:layout-options="props.layoutOptions"
 				:on-insert-slide-from-layout="props.onInsertSlideFromLayout"
+				:on-apply-layout="props.onApplyLayout"
+				:on-reset-slide="props.onResetSlide"
+				:on-add-section="props.onAddSection"
 				:selected-element="props.selectedElement"
 				:on-update-text-style="props.onUpdateTextStyle"
 			/>
@@ -177,6 +181,17 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				v-if="s === 'home'"
 				:on-toggle-find-replace="props.onToggleFindReplace"
 				:on-select-all="props.onSelectAll"
+			/>
+
+			<DrawingGroup
+				v-if="s === 'home'"
+				:can-edit="props.canEdit"
+				:selected-element="props.selectedElement"
+				:new-shape-type="props.newShapeType"
+				:on-set-new-shape-type="props.onSetNewShapeType"
+				:on-add-shape="props.onAddShape"
+				:on-move-layer="props.onMoveLayer"
+				:on-move-layer-to-edge="props.onMoveLayerToEdge"
 			/>
 
 			<DrawSection
@@ -261,6 +276,14 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:slide-comment-count="props.slideCommentCount"
 				:on-compare="props.onCompare"
 			/>
+
+			<!-- Record tab (placeholder) -->
+			<template v-if="s === 'record'">
+				<button type="button" :class="pill" disabled>
+					<span class="w-2.5 h-2.5 rounded-full bg-red-500 mr-1.5" />
+					Record
+				</button>
+			</template>
 
 			<ViewSection
 				v-if="s === 'view'"

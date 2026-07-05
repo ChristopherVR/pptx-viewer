@@ -94,6 +94,7 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 				'pptx.ribbon.tab.transitions': 'Transitions',
 				'pptx.ribbon.tab.animations': 'Animations',
 				'pptx.ribbon.tab.slideShow': 'Slide Show',
+				'pptx.ribbon.tab.record': 'Record',
 				'pptx.ribbon.tab.review': 'Review',
 				'pptx.ribbon.tab.view': 'View',
 				'pptx.ribbon.tab.help': 'Help',
@@ -350,7 +351,7 @@ describe('toolbar - tab navigation', () => {
 		expect(html).toContain('aria-label="Presentation toolbar"');
 	});
 
-	it('renders all 11 tab buttons when mode is edit', () => {
+	it('renders all 12 tab buttons when mode is edit', () => {
 		const html = render(React.createElement(Toolbar, createMockToolbarProps({ mode: 'edit' })));
 		const expectedLabels = [
 			'File',
@@ -361,6 +362,7 @@ describe('toolbar - tab navigation', () => {
 			'Transitions',
 			'Animations',
 			'Slide Show',
+			'Record',
 			'Review',
 			'View',
 			'Help',
@@ -368,7 +370,7 @@ describe('toolbar - tab navigation', () => {
 		for (const label of expectedLabels) {
 			expect(html, `Tab "${label}" should be rendered`).toContain(`>${label}</button>`);
 		}
-		expect(expectedLabels).toHaveLength(11);
+		expect(expectedLabels).toHaveLength(12);
 	});
 
 	it('does not render tabs when mode is present', () => {

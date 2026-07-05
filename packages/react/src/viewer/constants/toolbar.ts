@@ -13,6 +13,7 @@ export const TOOLBAR_SECTIONS: Array<{ id: ToolbarSection; labelKey: string }> =
 	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
 	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
 	{ id: 'slideShow', labelKey: 'pptx.ribbon.tab.slideShow' },
+	{ id: 'record', labelKey: 'pptx.ribbon.tab.record' },
 	{ id: 'review', labelKey: 'pptx.ribbon.tab.review' },
 	{ id: 'view', labelKey: 'pptx.ribbon.tab.view' },
 	{ id: 'help', labelKey: 'pptx.ribbon.tab.help' },
