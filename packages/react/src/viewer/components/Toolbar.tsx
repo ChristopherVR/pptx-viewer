@@ -41,7 +41,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 	const sHome = toolbarSection === 'home';
 	const sIns = toolbarSection === 'insert';
 	const sTxt = sHome || toolbarSection === 'text';
-	const sArr = toolbarSection === 'arrange';
+	const sArr = sHome || toolbarSection === 'arrange';
 	const sDrw = toolbarSection === 'draw';
 	const sDes = toolbarSection === 'design';
 	const sTrn = toolbarSection === 'transitions';

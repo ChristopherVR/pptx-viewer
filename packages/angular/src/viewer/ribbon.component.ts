@@ -69,9 +69,7 @@ const TABS: readonly TabDef[] = [
 	{ id: 'file', labelKey: 'pptx.ribbon.tab.file' },
 	{ id: 'home', labelKey: 'pptx.ribbon.tab.home' },
 	{ id: 'insert', labelKey: 'pptx.ribbon.tab.insert' },
-	{ id: 'text', labelKey: 'pptx.ribbon.tab.text' },
 	{ id: 'draw', labelKey: 'pptx.ribbon.tab.draw' },
-	{ id: 'arrange', labelKey: 'pptx.ribbon.tab.arrange' },
 	{ id: 'design', labelKey: 'pptx.ribbon.tab.design' },
 	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
 	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
@@ -237,6 +235,16 @@ const TABS: readonly TabDef[] = [
 							[canActivateFormatPainter]="canActivateFormatPainter()"
 							(toggleFormatPainter)="toggleFormatPainter.emit()"
 							(findReplace)="find.emit()"
+						/>
+						<span class="pptx-rb-sep"></span>
+						<pptx-ribbon-font-controls
+							[slideIndex]="slideIndex()"
+							[selectedElement]="selectedElement()"
+						/>
+						<span class="pptx-rb-sep"></span>
+						<pptx-ribbon-paragraph-controls
+							[slideIndex]="slideIndex()"
+							[selectedElement]="selectedElement()"
 						/>
 					}
 					@case ('insert') {

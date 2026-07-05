@@ -190,7 +190,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 			/>
 
 			<ArrangeSection
-				v-if="s === 'arrange'"
+				v-if="s === 'home' || s === 'arrange'"
 				:can-edit="props.canEdit"
 				:selected-element="props.selectedElement"
 				:clipboard-payload="props.clipboardPayload"

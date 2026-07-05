@@ -350,26 +350,25 @@ describe('toolbar - tab navigation', () => {
 		expect(html).toContain('aria-label="Presentation toolbar"');
 	});
 
-	it('renders all 12 tab buttons when mode is edit', () => {
+	it('renders all 11 tab buttons when mode is edit', () => {
 		const html = render(React.createElement(Toolbar, createMockToolbarProps({ mode: 'edit' })));
 		const expectedLabels = [
 			'File',
 			'Home',
 			'Insert',
-			'Text',
 			'Draw',
-			'Arrange',
 			'Design',
 			'Transitions',
 			'Animations',
 			'Slide Show',
 			'Review',
 			'View',
+			'Help',
 		];
 		for (const label of expectedLabels) {
 			expect(html, `Tab "${label}" should be rendered`).toContain(`>${label}</button>`);
 		}
-		expect(expectedLabels).toHaveLength(12);
+		expect(expectedLabels).toHaveLength(11);
 	});
 
 	it('does not render tabs when mode is present', () => {
