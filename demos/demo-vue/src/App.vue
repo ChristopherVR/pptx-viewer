@@ -9,6 +9,7 @@ import {
 import type { CollaborationConfig } from 'pptx-vue-viewer';
 import 'pptx-vue-viewer/styles';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watchEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
 	isTrustedServerUrl,
@@ -47,6 +48,8 @@ function readStoredTheme(): string {
 }
 
 const currentPreset = computed(() => themes[themeKey.value] ?? themes.dark);
+
+const { t } = useI18n();
 
 function setTheme(key: string): void {
 	themeKey.value = key;
@@ -421,27 +424,29 @@ function browse(): void {
 		>
 			<template v-if="urlBroadcast">
 				<p class="demo-join">
-					Joining broadcast: <code>{{ urlBroadcast }}</code>
+					{{ t('demo.dropzone.joiningBroadcast') }} <code>{{ urlBroadcast }}</code>
 				</p>
-				<p class="demo-hint">Loading presentation from broadcaster...</p>
+				<p class="demo-hint">{{ t('demo.dropzone.loadingBroadcast') }}</p>
 			</template>
 			<template v-else-if="urlRoom">
 				<p class="demo-join">
-					Joining collaboration session: <code>{{ urlRoom }}</code>
+					{{ t('demo.dropzone.joiningSession') }} <code>{{ urlRoom }}</code>
 				</p>
-				<p class="demo-hint">Drop a .pptx file here or click to browse to start collaborating</p>
+				<p class="demo-hint">{{ t('demo.dropzone.hintCollab') }}</p>
 			</template>
 			<template v-else>
-				<p class="demo-hint">Drop a <code>.pptx</code> file here or click to browse</p>
+				<p class="demo-hint">{{ t('demo.dropzone.hint') }}</p>
 			</template>
-			<p class="demo-sub">The file is processed entirely in the browser.</p>
-			<button type="button" @click.stop="newPresentation">or create a New Presentation</button>
+			<p class="demo-sub">{{ t('demo.dropzone.processed') }}</p>
+			<button type="button" @click.stop="newPresentation">
+				{{ t('demo.dropzone.newPresentation') }}
+			</button>
 			<input
 				id="file-input"
 				ref="fileInput"
 				type="file"
 				accept=".pptx"
-				aria-label="Upload PPTX file"
+				:aria-label="t('demo.dropzone.uploadAriaLabel')"
 				style="display: none"
 				@change="onInputChange"
 			/>

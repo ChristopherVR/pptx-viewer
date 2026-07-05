@@ -1,4 +1,4 @@
-export const LANGUAGE_CODES = ['en', 'fr', 'es'] as const;
+export const LANGUAGE_CODES = ['en', 'fr', 'es', 'de'] as const;
 export type LanguageCode = (typeof LANGUAGE_CODES)[number];
 
 export interface LanguageOption {
@@ -15,6 +15,7 @@ export const languages: LanguageOption[] = [
 	{ code: 'en', label: 'English' },
 	{ code: 'fr', label: 'Français' },
 	{ code: 'es', label: 'Español' },
+	{ code: 'de', label: 'Deutsch' },
 ];
 
 export const languageKeys = languages.map((language) => language.code);

@@ -12,15 +12,17 @@ import { createInstance } from 'i18next';
 import { keyToLabel, translationsEn } from 'pptx-react-viewer/i18n';
 import { initReactI18next } from 'react-i18next';
 
-import { translationsEs, translationsFr } from './i18n-locales';
+import { demoStringsDe, demoStringsEn, demoStringsFr, demoStringsEs } from './demo-locales';
+import { translationsDe, translationsEs, translationsFr } from './i18n-locales';
 
 const i18nInstance = createInstance();
 
 i18nInstance.use(initReactI18next).init({
 	resources: {
-		en: { translation: translationsEn },
-		fr: { translation: translationsFr },
-		es: { translation: translationsEs },
+		en: { translation: { ...translationsEn, ...demoStringsEn } },
+		fr: { translation: { ...translationsFr, ...demoStringsFr } },
+		es: { translation: { ...translationsEs, ...demoStringsEs } },
+		de: { translation: { ...translationsDe, ...demoStringsDe } },
 	},
 	lng: 'en',
 	fallbackLng: 'en',

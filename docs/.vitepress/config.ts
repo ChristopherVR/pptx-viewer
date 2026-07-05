@@ -23,16 +23,142 @@ export default defineConfig({
 			label: 'Français',
 			lang: 'fr-FR',
 			link: '/fr/',
+			themeConfig: {
+				nav: [
+					{ text: 'Guide', link: '/fr/guide/introduction', activeMatch: '/fr/guide/' },
+					{ text: 'Guide utilisateur', link: '/user/', activeMatch: '/user/' },
+					{
+						text: 'Packages',
+						items: [
+							{ text: 'Core (pptx-viewer-core)', link: '/core/' },
+							{ text: 'React (pptx-react-viewer)', link: '/react/' },
+							{
+								text: 'Vue 3 (pptx-vue-viewer)',
+								link: 'https://www.npmjs.com/package/pptx-vue-viewer',
+							},
+							{
+								text: 'Angular (pptx-angular-viewer)',
+								link: 'https://www.npmjs.com/package/pptx-angular-viewer',
+							},
+							{ text: 'MCP et outils', link: '/packages/mcp' },
+						],
+					},
+					{ text: 'Contribuer', link: '/contributing/development', activeMatch: '/contributing/' },
+					{ text: 'Versions', link: '/releases/', activeMatch: '/releases/' },
+					{
+						text: 'Ressources',
+						items: [
+							{ text: 'Notes de version', link: '/releases/' },
+							{
+								text: 'npm: pptx-viewer-core',
+								link: 'https://www.npmjs.com/package/pptx-viewer-core',
+							},
+							{
+								text: 'npm: pptx-react-viewer',
+								link: 'https://www.npmjs.com/package/pptx-react-viewer',
+							},
+							{
+								text: 'npm: pptx-vue-viewer',
+								link: 'https://www.npmjs.com/package/pptx-vue-viewer',
+							},
+						],
+					},
+				],
+			},
 		},
 		es: {
 			label: 'Español',
 			lang: 'es-ES',
 			link: '/es/',
+			themeConfig: {
+				nav: [
+					{ text: 'Guia', link: '/es/guide/introduction', activeMatch: '/es/guide/' },
+					{ text: 'Guia de usuario', link: '/user/', activeMatch: '/user/' },
+					{
+						text: 'Paquetes',
+						items: [
+							{ text: 'Core (pptx-viewer-core)', link: '/core/' },
+							{ text: 'React (pptx-react-viewer)', link: '/react/' },
+							{
+								text: 'Vue 3 (pptx-vue-viewer)',
+								link: 'https://www.npmjs.com/package/pptx-vue-viewer',
+							},
+							{
+								text: 'Angular (pptx-angular-viewer)',
+								link: 'https://www.npmjs.com/package/pptx-angular-viewer',
+							},
+							{ text: 'MCP y herramientas', link: '/packages/mcp' },
+						],
+					},
+					{ text: 'Contribuir', link: '/contributing/development', activeMatch: '/contributing/' },
+					{ text: 'Versiones', link: '/releases/', activeMatch: '/releases/' },
+					{
+						text: 'Recursos',
+						items: [
+							{ text: 'Notas de version', link: '/releases/' },
+							{
+								text: 'npm: pptx-viewer-core',
+								link: 'https://www.npmjs.com/package/pptx-viewer-core',
+							},
+							{
+								text: 'npm: pptx-react-viewer',
+								link: 'https://www.npmjs.com/package/pptx-react-viewer',
+							},
+							{
+								text: 'npm: pptx-vue-viewer',
+								link: 'https://www.npmjs.com/package/pptx-vue-viewer',
+							},
+						],
+					},
+				],
+			},
 		},
 		de: {
 			label: 'Deutsch',
 			lang: 'de-DE',
 			link: '/de/',
+			themeConfig: {
+				nav: [
+					{ text: 'Anleitung', link: '/de/guide/introduction', activeMatch: '/de/guide/' },
+					{ text: 'Benutzerhandbuch', link: '/user/', activeMatch: '/user/' },
+					{
+						text: 'Pakete',
+						items: [
+							{ text: 'Core (pptx-viewer-core)', link: '/core/' },
+							{ text: 'React (pptx-react-viewer)', link: '/react/' },
+							{
+								text: 'Vue 3 (pptx-vue-viewer)',
+								link: 'https://www.npmjs.com/package/pptx-vue-viewer',
+							},
+							{
+								text: 'Angular (pptx-angular-viewer)',
+								link: 'https://www.npmjs.com/package/pptx-angular-viewer',
+							},
+							{ text: 'MCP und Werkzeuge', link: '/packages/mcp' },
+						],
+					},
+					{ text: 'Mitwirken', link: '/contributing/development', activeMatch: '/contributing/' },
+					{ text: 'Versionen', link: '/releases/', activeMatch: '/releases/' },
+					{
+						text: 'Ressourcen',
+						items: [
+							{ text: 'Versionshinweise', link: '/releases/' },
+							{
+								text: 'npm: pptx-viewer-core',
+								link: 'https://www.npmjs.com/package/pptx-viewer-core',
+							},
+							{
+								text: 'npm: pptx-react-viewer',
+								link: 'https://www.npmjs.com/package/pptx-react-viewer',
+							},
+							{
+								text: 'npm: pptx-vue-viewer',
+								link: 'https://www.npmjs.com/package/pptx-vue-viewer',
+							},
+						],
+					},
+				],
+			},
 		},
 	},
 

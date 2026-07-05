@@ -2,6 +2,7 @@ import { PptxHandler } from 'pptx-viewer-core';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
+import { useTranslation } from 'react-i18next';
 
 import { themeToCssVars } from '../../packages/react/src/theme';
 import type { ViewerTheme } from '../../packages/react/src/theme';
@@ -723,6 +724,8 @@ function App() {
 	// Apply theme CSS vars to :root so Tailwind's @theme var() references resolve
 	useRootTheme(currentPreset.theme);
 
+	const { t } = useTranslation();
+
 	const handleThemeChange = useCallback((key: string) => {
 		setThemeKey(key);
 		try {
@@ -840,31 +843,27 @@ function App() {
 				{urlBroadcast ? (
 					<>
 						<p className='text-foreground mb-2 font-medium'>
-							Joining broadcast:{' '}
+							{t('demo.dropzone.joiningBroadcast')}{' '}
 							<code className='px-1.5 py-0.5 rounded bg-muted text-primary text-sm font-mono'>
 								{urlBroadcast}
 							</code>
 						</p>
-						<p className='text-muted-foreground mb-3'>Loading presentation from broadcaster…</p>
+						<p className='text-muted-foreground mb-3'>{t('demo.dropzone.loadingBroadcast')}</p>
 					</>
 				) : urlRoom ? (
 					<>
 						<p className='text-foreground mb-2 font-medium'>
-							Joining collaboration session:{' '}
+							{t('demo.dropzone.joiningSession')}{' '}
 							<code className='px-1.5 py-0.5 rounded bg-muted text-primary text-sm font-mono'>
 								{urlRoom}
 							</code>
 						</p>
-						<p className='text-muted-foreground mb-3'>
-							Drop a .pptx file here or click to browse to start collaborating
-						</p>
+						<p className='text-muted-foreground mb-3'>{t('demo.dropzone.hintCollab')}</p>
 					</>
 				) : (
-					<p className='text-muted-foreground mb-3'>Drop a .pptx file here or click to browse</p>
+					<p className='text-muted-foreground mb-3'>{t('demo.dropzone.hint')}</p>
 				)}
-				<p className='text-sm text-muted-foreground/60'>
-					The file is processed entirely in the browser
-				</p>
+				<p className='text-sm text-muted-foreground/60'>{t('demo.dropzone.processed')}</p>
 				<button
 					onClick={(e) => {
 						e.stopPropagation();
@@ -872,13 +871,13 @@ function App() {
 					}}
 					className='mt-4 px-4 py-2 rounded-lg border border-border bg-muted hover:bg-accent text-foreground text-sm transition-colors'
 				>
-					or create a New Presentation
+					{t('demo.dropzone.newPresentation')}
 				</button>
 				<input
 					type='file'
 					id='file-input'
 					accept='.pptx'
-					aria-label='Upload PPTX file'
+					aria-label={t('demo.dropzone.uploadAriaLabel')}
 					style={{ display: 'none' }}
 					onChange={handleInputChange}
 				/>

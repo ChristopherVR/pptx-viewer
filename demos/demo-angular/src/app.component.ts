@@ -24,8 +24,9 @@ import {
 	randomCursorColor,
 	resolveDefaultServerUrl,
 } from './collab-utils';
+import { demoStringsDe, demoStringsEn, demoStringsFr, demoStringsEs } from './demo-locales';
 import { DropzoneComponent } from './dropzone.component';
-import { translationsEs, translationsFr } from './i18n-locales';
+import { translationsEs, translationsFr, translationsDe } from './i18n-locales';
 import { LanguagePickerComponent } from './language-picker.component';
 import { persistLanguageKey, restoreLanguageKey } from './languages';
 import { ThemePickerComponent } from './theme-picker.component';
@@ -143,9 +144,10 @@ export class AppComponent {
 	);
 
 	constructor() {
-		this.translate.setTranslation('en', translationsEn);
-		this.translate.setTranslation('fr', translationsFr);
-		this.translate.setTranslation('es', translationsEs);
+		this.translate.setTranslation('en', { ...translationsEn, ...demoStringsEn });
+		this.translate.setTranslation('fr', { ...translationsFr, ...demoStringsFr });
+		this.translate.setTranslation('es', { ...translationsEs, ...demoStringsEs });
+		this.translate.setTranslation('de', { ...translationsDe, ...demoStringsDe });
 		this.translate.use(this.languageKey());
 
 		this.autoConnectFromUrl();

@@ -3,10 +3,12 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	ElementRef,
+	inject,
 	input,
 	output,
 	viewChild,
 } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import type { ViewerTheme } from 'pptx-angular-viewer';
 
 type ColorKey = keyof NonNullable<ViewerTheme['colors']>;
@@ -37,27 +39,27 @@ type ColorKey = keyof NonNullable<ViewerTheme['colors']>;
 			<div class="demo-card" [ngStyle]="cardStyle()">
 				@if (urlBroadcast()) {
 					<p class="demo-hint" [style.color]="color('foreground')">
-						Joining broadcast:
+						{{ tr('demo.dropzone.joiningBroadcast') }}
 						<code [ngStyle]="codeStyle()">{{ urlBroadcast() }}</code>
 					</p>
 					<p class="demo-hint" [style.color]="color('mutedForeground')">
-						Loading presentation from broadcaster...
+						{{ tr('demo.dropzone.loadingBroadcast') }}
 					</p>
 				} @else if (urlRoom()) {
 					<p class="demo-hint" [style.color]="color('foreground')">
-						Joining collaboration session:
+						{{ tr('demo.dropzone.joiningSession') }}
 						<code [ngStyle]="codeStyle()">{{ urlRoom() }}</code>
 					</p>
 					<p class="demo-hint" [style.color]="color('mutedForeground')">
-						Drop a .pptx file here or click to browse to start collaborating
+						{{ tr('demo.dropzone.hintCollab') }}
 					</p>
 				} @else {
 					<p class="demo-hint" [style.color]="color('mutedForeground')">
-						Drop a .pptx file here or click to browse
+						{{ tr('demo.dropzone.hint') }}
 					</p>
 				}
 				<p class="demo-sub" [style.color]="color('mutedForeground')">
-					The file is processed entirely in the browser
+					{{ tr('demo.dropzone.processed') }}
 				</p>
 				<button
 					type="button"
@@ -66,14 +68,14 @@ type ColorKey = keyof NonNullable<ViewerTheme['colors']>;
 					[disabled]="busy()"
 					(click)="$event.stopPropagation(); create.emit()"
 				>
-					{{ busy() ? 'Creating...' : 'or create a New Presentation' }}
+					{{ busy() ? tr('demo.dropzone.creating') : tr('demo.dropzone.newPresentation') }}
 				</button>
 				<input
 					#fileInput
 					id="file-input"
 					type="file"
 					accept=".pptx"
-					aria-label="Upload PPTX file"
+					[attr.aria-label]="tr('demo.dropzone.uploadAriaLabel')"
 					style="display: none"
 					(change)="onInputChange($event)"
 				/>
@@ -143,6 +145,12 @@ export class DropzoneComponent {
 	readonly create = output<void>();
 
 	private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+	private readonly translate = inject(TranslateService);
+
+	/** Translate a key using the active language (instant, no async). */
+	protected tr(key: string): string {
+		return this.translate.instant(key);
+	}
 
 	protected color(key: ColorKey): string {
 		return this.theme().colors?.[key] ?? '';
