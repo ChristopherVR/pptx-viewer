@@ -123,13 +123,22 @@ export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 		typeof window !== 'undefined' ? window.innerHeight : 800,
 	);
 
-	// Container width tracking
+	// Container width tracking -- polls with rAF until the containerRef mounts
+	// (the viewer renders LoadingState first so the ref starts null), then
+	// upgrades to a ResizeObserver. Mirrors the approach in useViewerDialogs so
+	// both hooks see the same container dimensions and stay in sync.
 	useEffect(() => {
-		const el = containerRef?.current;
+		let observer: ResizeObserver | null = null;
+		let raf = 0;
 
-		if (el) {
-			// Use ResizeObserver on the container
-			const observer = new ResizeObserver((entries) => {
+		const attach = () => {
+			const el = containerRef?.current;
+			if (!el) {
+				// Container not yet mounted; poll until it is.
+				raf = requestAnimationFrame(attach);
+				return;
+			}
+			observer = new ResizeObserver((entries) => {
 				const entry = entries[0];
 				if (entry) {
 					setContainerWidth(entry.contentRect.width);
@@ -139,17 +148,24 @@ export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 			observer.observe(el);
 			setContainerWidth(el.clientWidth);
 			setContainerHeight(el.clientHeight);
-			return () => observer.disconnect();
-		}
+		};
+		attach();
 
-		// Fallback: track window size
+		// Fallback: also track window resize for when the container is not
+		// provided (containerRef is undefined/null).
 		const handleResize = () => {
-			setContainerWidth(window.innerWidth);
-			setContainerHeight(window.innerHeight);
+			if (!containerRef?.current) {
+				setContainerWidth(window.innerWidth);
+				setContainerHeight(window.innerHeight);
+			}
 		};
 		window.addEventListener('resize', handleResize);
-		handleResize();
-		return () => window.removeEventListener('resize', handleResize);
+
+		return () => {
+			cancelAnimationFrame(raf);
+			observer?.disconnect();
+			window.removeEventListener('resize', handleResize);
+		};
 	}, [containerRef]);
 
 	// Orientation change tracking

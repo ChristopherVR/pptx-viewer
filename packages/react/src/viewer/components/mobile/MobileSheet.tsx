@@ -66,11 +66,7 @@ export function MobileSheet({
 			: { height: `${Math.round(heightFraction * 100)}dvh` };
 
 	return (
-		<div
-			className='fixed inset-0 z-50 flex flex-col justify-end md:hidden'
-			role='dialog'
-			aria-modal='true'
-		>
+		<div className='fixed inset-0 z-50 flex flex-col justify-end' role='dialog' aria-modal='true'>
 			{/* Backdrop */}
 			<button
 				type='button'

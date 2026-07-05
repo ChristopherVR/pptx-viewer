@@ -425,124 +425,134 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		// ── JSX ───────────────────────────────────────────────────────
 		const viewerContent = (
 			<div
-				ref={containerRef}
-				// oxlint-disable-next-line no-noninteractive-tabindex
-				tabIndex={0}
 				style={themeStyle}
 				data-pptx-viewer=''
-				className='h-full w-full bg-background text-foreground flex flex-col relative overflow-hidden outline-none'
+				className='h-full w-full bg-background text-foreground relative'
 			>
-				{/* Clean background, no decorative gradient */}
+				{/* Inner measured container: only layout content (toolbar, canvas,
+				    bottom panels) lives here. Fixed-position dialogs/overlays are
+				    rendered as siblings below to prevent their mount/unmount from
+				    triggering ResizeObserver layout recalculations that can flip the
+				    desktop/mobile breakpoint. */}
+				<div
+					ref={containerRef}
+					// oxlint-disable-next-line no-noninteractive-tabindex
+					tabIndex={0}
+					className='h-full w-full flex flex-col overflow-hidden outline-none'
+				>
+					{mode !== 'present' && (
+						<ViewerToolbarSection
+							mode={mode}
+							canEdit={canEdit}
+							state={state}
+							selectedElement={selectedElement}
+							activeSlide={activeSlide}
+							zoom={zoom}
+							history={history}
+							findReplace={editorOps.findReplace}
+							manipulation={editorOps.manipulation}
+							insertHandlers={editorOps.insertHandlers}
+							exportHandlers={exportHandlers}
+							printHandlers={printHandlers}
+							propertyHandlers={propertyHandlers}
+							dialogs={dialogs}
+							slideOps={editorOps.slideOps}
+							ops={editorOps.ops}
+							onSetMode={handleSetMode}
+							onEnterPresenterView={handleEnterPresenterView}
+							onEnterRehearsalMode={handleEnterRehearsalMode}
+							onOpenSettings={() => setIsSettingsOpen(true)}
+							onOpenShareDialog={() => setIsShareDialogOpen(true)}
+							onOpenFile={handleOpenFile}
+							fileName={fileName}
+							autosaveStatus={autosaveStatus}
+							autosaveEnabled={autosaveEnabled}
+							onToggleAutosave={() => setAutosaveEnabled((p) => !p)}
+						/>
+					)}
 
-				{mode !== 'present' && (
-					<ViewerToolbarSection
+					<ViewerMainContent
 						mode={mode}
 						canEdit={canEdit}
-						state={state}
-						selectedElement={selectedElement}
+						slides={slides}
 						activeSlide={activeSlide}
-						zoom={zoom}
-						history={history}
-						findReplace={editorOps.findReplace}
-						manipulation={editorOps.manipulation}
-						insertHandlers={editorOps.insertHandlers}
-						exportHandlers={exportHandlers}
-						printHandlers={printHandlers}
-						propertyHandlers={propertyHandlers}
+						masterPseudoSlide={masterPseudoSlide}
+						activeSlideIndex={activeSlideIndex}
+						canvasSize={canvasSize}
+						gridSpacingPx={gridSpacingPx}
+						slideSectionGroups={slideSectionGroups}
+						showSlidesPane={showSlidesPane}
+						showMasterPane={showMasterPane}
+						selectedElement={selectedElement}
+						state={state}
+						editorOps={editorOps}
 						dialogs={dialogs}
-						slideOps={editorOps.slideOps}
-						ops={editorOps.ops}
-						onSetMode={handleSetMode}
-						onEnterPresenterView={handleEnterPresenterView}
-						onEnterRehearsalMode={handleEnterRehearsalMode}
-						onOpenSettings={() => setIsSettingsOpen(true)}
-						onOpenShareDialog={() => setIsShareDialogOpen(true)}
-						onOpenFile={handleOpenFile}
-						fileName={fileName}
-						autosaveStatus={autosaveStatus}
-						autosaveEnabled={autosaveEnabled}
-						onToggleAutosave={() => setAutosaveEnabled((p) => !p)}
+						presentation={presentation}
+						annotations={annotations}
+						propertyHandlers={propertyHandlers}
+						themeHandlers={themeHandlers}
+						history={history}
+						comments={editorOps.comments}
+						zoom={zoom}
+						isMobile={isMobile}
+						isTouchDevice={isTouchDevice}
+						onEndPresentation={() => handleSetMode('edit')}
+						leftPanelWidth={isMobile ? undefined : resizablePanels.leftWidth}
+						onResizeLeft={isMobile ? undefined : resizablePanels.onResizeLeft}
+						rightPanelWidth={isMobile ? undefined : resizablePanels.rightWidth}
+						onResizeRight={isMobile ? undefined : resizablePanels.onResizeRight}
 					/>
-				)}
 
-				<ViewerMainContent
-					mode={mode}
-					canEdit={canEdit}
-					slides={slides}
-					activeSlide={activeSlide}
-					masterPseudoSlide={masterPseudoSlide}
-					activeSlideIndex={activeSlideIndex}
-					canvasSize={canvasSize}
-					gridSpacingPx={gridSpacingPx}
-					slideSectionGroups={slideSectionGroups}
-					showSlidesPane={showSlidesPane}
-					showMasterPane={showMasterPane}
-					selectedElement={selectedElement}
-					state={state}
-					editorOps={editorOps}
-					dialogs={dialogs}
-					presentation={presentation}
-					annotations={annotations}
-					propertyHandlers={propertyHandlers}
-					themeHandlers={themeHandlers}
-					history={history}
-					comments={editorOps.comments}
-					zoom={zoom}
-					isMobile={isMobile}
-					isTouchDevice={isTouchDevice}
-					onEndPresentation={() => handleSetMode('edit')}
-					leftPanelWidth={isMobile ? undefined : resizablePanels.leftWidth}
-					onResizeLeft={isMobile ? undefined : resizablePanels.onResizeLeft}
-					rightPanelWidth={isMobile ? undefined : resizablePanels.rightWidth}
-					onResizeRight={isMobile ? undefined : resizablePanels.onResizeRight}
-				/>
-
-				{/* Keep the bottom panels mounted while the notes panel is expanded:
+					{/* Keep the bottom panels mounted while the notes panel is expanded:
 				    focusing the notes textbox opens the virtual keyboard, and
 				    unmounting on `isVirtualKeyboardOpen` would yank the textbox the
 				    user just tapped out from under them. When notes is collapsed we
 				    still hide the strip on keyboard-open to free room for canvas
 				    inline editing. */}
-				{mode !== 'present' && (!isVirtualKeyboardOpen || !state.isSlideNotesCollapsed) && (
-					<ViewerBottomPanels
-						activeSlide={activeSlide}
-						allSlides={slides}
-						isSlideNotesCollapsed={state.isSlideNotesCollapsed}
-						canEdit={canEdit}
-						slideCount={slides.length}
-						activeSlideIndex={activeSlideIndex}
-						isDirty={state.isDirty}
-						autosaveStatus={autosaveStatus}
-						onToggleNotes={() => state.setIsSlideNotesCollapsed((p) => !p)}
-						onUpdateNotes={propertyHandlers.handleUpdateNotes}
-						collaborationSlot={collaboration ? <CollaborationStatusStrip /> : undefined}
-						notesPanelHeight={isMobile ? undefined : resizablePanels.bottomHeight}
-						onResizeBottom={isMobile ? undefined : resizablePanels.onResizeBottom}
-						scale={zoom.scale}
-						onZoomIn={zoom.handleZoomIn}
-						onZoomOut={zoom.handleZoomOut}
-						onZoomToFit={zoom.handleZoomToFit}
-						mode={mode}
-						onSetMode={handleSetMode}
-						onToggleSlideSorter={() => state.setShowSlideSorter((p) => !p)}
-						hideStatusBar={isMobile}
-					/>
-				)}
+					{mode !== 'present' && (!isVirtualKeyboardOpen || !state.isSlideNotesCollapsed) && (
+						<ViewerBottomPanels
+							activeSlide={activeSlide}
+							allSlides={slides}
+							isSlideNotesCollapsed={state.isSlideNotesCollapsed}
+							canEdit={canEdit}
+							slideCount={slides.length}
+							activeSlideIndex={activeSlideIndex}
+							isDirty={state.isDirty}
+							autosaveStatus={autosaveStatus}
+							onToggleNotes={() => state.setIsSlideNotesCollapsed((p) => !p)}
+							onUpdateNotes={propertyHandlers.handleUpdateNotes}
+							collaborationSlot={collaboration ? <CollaborationStatusStrip /> : undefined}
+							notesPanelHeight={isMobile ? undefined : resizablePanels.bottomHeight}
+							onResizeBottom={isMobile ? undefined : resizablePanels.onResizeBottom}
+							scale={zoom.scale}
+							onZoomIn={zoom.handleZoomIn}
+							onZoomOut={zoom.handleZoomOut}
+							onZoomToFit={zoom.handleZoomToFit}
+							mode={mode}
+							onSetMode={handleSetMode}
+							onToggleSlideSorter={() => state.setShowSlideSorter((p) => !p)}
+							hideStatusBar={isMobile}
+						/>
+					)}
 
-				{mode !== 'present' && isMobile && (
-					<MobileChromeOverlay
-						state={state}
-						editorOps={editorOps}
-						presentation={presentation}
-						slides={slides}
-						activeSlideIndex={activeSlideIndex}
-						canvasSize={canvasSize}
-						slideSectionGroups={slideSectionGroups}
-						canEdit={canEdit}
-						commentCount={activeSlide?.comments?.length ?? 0}
-					/>
-				)}
+					{mode !== 'present' && isMobile && (
+						<MobileChromeOverlay
+							state={state}
+							editorOps={editorOps}
+							presentation={presentation}
+							slides={slides}
+							activeSlideIndex={activeSlideIndex}
+							canvasSize={canvasSize}
+							slideSectionGroups={slideSectionGroups}
+							canEdit={canEdit}
+							commentCount={activeSlide?.comments?.length ?? 0}
+						/>
+					)}
+				</div>
 
+				{/* Fixed-position dialogs and overlays: rendered outside the measured
+				    container so their mount/unmount cannot trigger ResizeObserver
+				    callbacks that flip the desktop/mobile breakpoint. */}
 				<ViewerDialogGroup
 					dialogs={dialogs}
 					insertHandlers={editorOps.insertHandlers}
