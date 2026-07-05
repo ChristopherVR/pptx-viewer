@@ -12,6 +12,7 @@ import {
 	ReviewSection,
 } from './toolbar/DesignTransitionsReviewSection';
 import { DrawSection } from './toolbar/DrawSection';
+import { EditingSection } from './toolbar/EditingSection';
 import { FileSection } from './toolbar/FileSection';
 import { HomeSection } from './toolbar/HomeSection';
 import { InsertSection } from './toolbar/InsertSection';
@@ -181,6 +182,8 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onUpdateTextStyle={p.onUpdateTextStyle}
 						/>
 					)}
+
+					{sHome && <EditingSection onToggleFindReplace={p.onToggleFindReplace} />}
 
 					{sDrw && (
 						<DrawSection

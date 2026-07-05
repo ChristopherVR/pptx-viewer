@@ -14,6 +14,7 @@ import {
 } from 'react-icons/lu';
 
 import type { TableCellEditorState } from '../../types';
+import { ColumnsDropdown, LineSpacingDropdown, TextDirectionDropdown } from './ParagraphDropdowns';
 import { gB, gL, grp, FMT, ATXT, pill, ic, sep } from './toolbar-constants';
 
 /**
@@ -170,6 +171,62 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 						})}
 					</div>
 
+					{/* Text Shadow toggle */}
+					<button
+						type='button'
+						disabled={!canMut}
+						onMouseDown={(e) => e.preventDefault()}
+						onClick={() => {
+							if (!canFormat) {
+								return;
+							}
+							const hasShadow = Boolean(effectiveTs?.textShadowColor);
+							p.onUpdateTextStyle(
+								hasShadow
+									? {
+											textShadowColor: undefined,
+											textShadowBlur: undefined,
+											textShadowOffsetX: undefined,
+											textShadowOffsetY: undefined,
+										}
+									: {
+											textShadowColor: '#000000',
+											textShadowBlur: 2,
+											textShadowOffsetX: 1,
+											textShadowOffsetY: 1,
+											textShadowOpacity: 0.5,
+										},
+							);
+						}}
+						className={pill}
+						title='Text Shadow'
+						aria-label='Text Shadow'
+					>
+						<svg
+							className={ic}
+							viewBox='0 0 24 24'
+							fill='none'
+							stroke='currentColor'
+							strokeWidth='2'
+						>
+							<text x='6' y='17' fontSize='16' fontWeight='bold' fill='currentColor' stroke='none'>
+								S
+							</text>
+							<text
+								x='7.5'
+								y='18.5'
+								fontSize='16'
+								fontWeight='bold'
+								fill='none'
+								stroke='currentColor'
+								strokeWidth='0.5'
+								opacity='0.4'
+							>
+								S
+							</text>
+						</svg>
+					</button>
+
 					{/* Font size increase / decrease / clear formatting */}
 					<div className={grp}>
 						<button
@@ -225,6 +282,65 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 						>
 							<LuRemoveFormatting className={ic} />
 						</button>
+					</div>
+
+					{/* Character Spacing */}
+					<div className='relative group'>
+						<button
+							type='button'
+							disabled={!canMut}
+							onMouseDown={(e) => e.preventDefault()}
+							className={pill}
+							title='Character Spacing'
+							aria-label='Character Spacing'
+						>
+							<svg
+								className={ic}
+								viewBox='0 0 24 24'
+								fill='none'
+								stroke='currentColor'
+								strokeWidth='1.5'
+							>
+								<text
+									x='4'
+									y='16'
+									fontSize='11'
+									fontWeight='bold'
+									fill='currentColor'
+									stroke='none'
+								>
+									AV
+								</text>
+								<path d='M3 20 L1 20 M3 20 L5 20' strokeWidth='1.5' />
+								<path d='M21 20 L19 20 M21 20 L23 20' strokeWidth='1.5' />
+							</svg>
+						</button>
+						<div className='absolute left-0 top-full z-50 hidden group-hover:block pt-1'>
+							<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 w-32'>
+								{[
+									{ label: 'Very Tight', value: -150 },
+									{ label: 'Tight', value: -75 },
+									{ label: 'Normal', value: 0 },
+									{ label: 'Loose', value: 75 },
+									{ label: 'Very Loose', value: 150 },
+								].map((opt) => (
+									<button
+										key={opt.label}
+										type='button'
+										className='flex items-center w-full px-3 py-1.5 text-xs hover:bg-muted transition-colors'
+										onMouseDown={(e) => e.preventDefault()}
+										onClick={() => {
+											if (!canFormat) {
+												return;
+											}
+											p.onUpdateTextStyle({ characterSpacing: opt.value });
+										}}
+									>
+										{opt.label}
+									</button>
+								))}
+							</div>
+						</div>
 					</div>
 
 					{/* Font colour */}
@@ -455,6 +571,28 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 							);
 						})}
 					</div>
+
+					{/* Line Spacing */}
+					<LineSpacingDropdown
+						canMut={canMut}
+						canFormat={canFormat}
+						effectiveTs={effectiveTs}
+						onUpdateTextStyle={p.onUpdateTextStyle}
+					/>
+
+					{/* Text Direction */}
+					<TextDirectionDropdown
+						canMut={canMut}
+						canFormat={canFormat}
+						onUpdateTextStyle={p.onUpdateTextStyle}
+					/>
+
+					{/* Columns */}
+					<ColumnsDropdown
+						canMut={canMut}
+						canFormat={canFormat}
+						onUpdateTextStyle={p.onUpdateTextStyle}
+					/>
 				</div>
 				<span className='text-[9px] text-muted-foreground leading-none'>Paragraph</span>
 			</div>

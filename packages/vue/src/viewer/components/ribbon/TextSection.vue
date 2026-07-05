@@ -2,6 +2,7 @@
 import {
 	AArrowDown,
 	AArrowUp,
+	ChevronDown,
 	Highlighter,
 	IndentDecrease,
 	IndentIncrease,
@@ -24,8 +25,10 @@ import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { gB, gL, grp, FMT, ATXT, pill, ic, SEP } from './ribbon-constants';
+import ParagraphDropdowns from './ParagraphDropdowns.vue';
+import { gB, gL, grp, FMT, ATXT, pill, ic, SEP, MENU_PANEL, MENU_ITEM } from './ribbon-constants';
 import type { TableCellEditorState } from './ribbon-types';
+import { useDropdown } from './use-dropdown';
 
 interface Props {
 	canEdit: boolean;
@@ -230,6 +233,43 @@ function handleAlignClick(id: string): void {
 		props.onUpdateTextStyle({ align: id });
 	}
 }
+
+/* ── Text Shadow ── */
+function handleToggleTextShadow(): void {
+	if (!canFormat.value) {
+		return;
+	}
+	const hasShadow = Boolean(effectiveTs.value?.textShadowColor);
+	if (hasShadow) {
+		props.onUpdateTextStyle({ textShadowColor: undefined });
+	} else {
+		props.onUpdateTextStyle({
+			textShadowColor: '#000000',
+			textShadowBlur: 2,
+			textShadowOffsetX: 1,
+			textShadowOffsetY: 1,
+		});
+	}
+}
+
+/* ── Character Spacing ── */
+const CHAR_SPACING_OPTIONS = [
+	{ label: 'Very Tight', value: -300 },
+	{ label: 'Tight', value: -150 },
+	{ label: 'Normal', value: 0 },
+	{ label: 'Loose', value: 150 },
+	{ label: 'Very Loose', value: 300 },
+];
+
+const charSpacingMenu = useDropdown();
+
+function handleCharSpacing(value: number): void {
+	if (!canFormat.value) {
+		return;
+	}
+	props.onUpdateTextStyle({ characterSpacing: value });
+	charSpacingMenu.close();
+}
 </script>
 
 <template>
@@ -396,6 +436,66 @@ function handleAlignClick(id: string): void {
 					</div>
 				</div>
 			</div>
+
+			<!-- Text Shadow toggle -->
+			<button
+				type="button"
+				:disabled="!canMut"
+				:class="[pill, effectiveTs?.textShadowColor ? 'bg-primary/20 ring-1 ring-primary' : '']"
+				title="Text Shadow"
+				@mousedown.prevent
+				@click="handleToggleTextShadow"
+			>
+				<svg :class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<text x="5" y="16" font-size="14" font-weight="bold" stroke="none" fill="currentColor">
+						S
+					</text>
+					<text
+						x="7"
+						y="18"
+						font-size="14"
+						font-weight="bold"
+						stroke="none"
+						fill="currentColor"
+						opacity="0.3"
+					>
+						S
+					</text>
+				</svg>
+			</button>
+
+			<!-- Character Spacing dropdown -->
+			<div :ref="charSpacingMenu.root" class="relative">
+				<button
+					type="button"
+					:disabled="!canMut"
+					:class="pill"
+					title="Character Spacing"
+					@mousedown.prevent
+					@click="charSpacingMenu.toggle()"
+				>
+					<svg :class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4" />
+					</svg>
+					<ChevronDown class="w-3 h-3" />
+				</button>
+				<div
+					v-if="charSpacingMenu.open.value"
+					class="absolute left-0 top-full z-50 flex flex-col w-36 pt-1"
+				>
+					<div :class="MENU_PANEL">
+						<button
+							v-for="opt in CHAR_SPACING_OPTIONS"
+							:key="opt.value"
+							type="button"
+							:class="MENU_ITEM"
+							@click="handleCharSpacing(opt.value)"
+						>
+							{{ opt.label }}
+						</button>
+					</div>
+				</div>
+			</div>
 		</div>
 		<span class="text-[9px] text-muted-foreground leading-none">{{ t('pptx.ribbon.font') }}</span>
 	</div>
@@ -468,6 +568,9 @@ function handleAlignClick(id: string): void {
 					<component :is="b.icon" :class="ic" />
 				</button>
 			</div>
+
+			<!-- Line Spacing / Text Direction / Columns -->
+			<ParagraphDropdowns :can-mut="canMut" :on-update-text-style="props.onUpdateTextStyle" />
 		</div>
 		<span class="text-[9px] text-muted-foreground leading-none">{{
 			t('pptx.ribbon.paragraph')
