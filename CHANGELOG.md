@@ -4,6 +4,22 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-05
+
+_Releases: pptx-viewer-core@1.2.0, pptx-react-viewer@1.6.0, pptx-vue-viewer@1.6.0, pptx-angular-viewer@1.6.0, @christophervr/pptx-viewer@1.4.0_
+
+### Features
+
+- **core,cli:** Add react, angular, vue to npm keywords (by @ChristopherVR) ([528ec61](https://github.com/ChristopherVR/pptx-viewer/commit/528ec6182bb77c07444dd0e93560b65e604b9524))
+- **docs,demos:** Add i18n language selector with French, Spanish, and German (by @ChristopherVR) ([a61316d](https://github.com/ChristopherVR/pptx-viewer/commit/a61316d8317dea35ba93ccf92717c68bddca3361))
+- **shared:** Progressive imperative API for all viewer bindings (by @ChristopherVR) ([877339d](https://github.com/ChristopherVR/pptx-viewer/commit/877339d05b486d697f2d04d01b3fd954e3c54746))
+
+### Bug Fixes
+
+- Release plan incorrectly pumping every 1 hour (by @ChristopherVR) ([b21e8e5](https://github.com/ChristopherVR/pptx-viewer/commit/b21e8e5dfe74488a3c5ef77f27cadc883c80e722))
+- Release plan incorrectly pumping every 1 hour (by @ChristopherVR) ([de5c3a5](https://github.com/ChristopherVR/pptx-viewer/commit/de5c3a5c5ce06c8405cb6d241d7ddb4370f6532c))
+- **ci:** Add retry, timeout, and strip source maps for Pages deploy (by @ChristopherVR) ([4a27b1f](https://github.com/ChristopherVR/pptx-viewer/commit/4a27b1f349454ab650227b5fb5c1a8aa4fd99943))
+
 ## 2026-07-04
 
 _Releases: pptx-react-viewer@1.5.3, pptx-vue-viewer@1.5.3, pptx-angular-viewer@1.5.3_

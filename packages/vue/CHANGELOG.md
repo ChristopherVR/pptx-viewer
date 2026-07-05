@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.6.0) - 2026-07-05
+
+### Features
+
+- **core,cli:** Add react, angular, vue to npm keywords (by @ChristopherVR) ([528ec61](https://github.com/ChristopherVR/pptx-viewer/commit/528ec6182bb77c07444dd0e93560b65e604b9524))
+- **shared:** Progressive imperative API for all viewer bindings (by @ChristopherVR) ([877339d](https://github.com/ChristopherVR/pptx-viewer/commit/877339d05b486d697f2d04d01b3fd954e3c54746))
+
 ## [1.5.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.5.3) - 2026-07-04
 
 ## [1.5.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.5.2) - 2026-07-04
