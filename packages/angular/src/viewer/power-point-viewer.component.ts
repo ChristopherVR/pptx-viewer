@@ -839,6 +839,14 @@ export class PowerPointViewerComponent {
 	readonly contentChange = output<Uint8Array>();
 	/** Fired when the user edits document properties in the Info dialog. */
 	readonly propertiesChange = output<Partial<PptxCoreProperties>>();
+	/** Fired when the viewer mode changes (preview, edit, present, master). */
+	readonly modeChange = output<string>();
+	/** Fired when the zoom level changes. */
+	readonly zoomChange = output<number>();
+	/** Fired when element selection changes. */
+	readonly selectionChange = output<string[]>();
+	/** Fired when the total slide count changes (slide added/deleted). */
+	readonly slideCountChange = output<number>();
 	/**
 	 * Fired when a collaboration/broadcast session starts, with the connected
 	 * config (role `collaborator` for Share, `owner` for Broadcast). Lets the
@@ -1046,6 +1054,33 @@ export class PowerPointViewerComponent {
 		// Surface the editor's dirty flag to the host.
 		effect(() => {
 			this.dirtyChange.emit(this.editor.dirty());
+		});
+
+		// Emit mode changes.
+		effect(() => {
+			const mode = this.presentationMode.presenting()
+				? 'present'
+				: this.editor.editTemplateMode()
+					? 'master'
+					: this.canEdit()
+						? 'edit'
+						: 'preview';
+			this.modeChange.emit(mode);
+		});
+
+		// Emit zoom changes.
+		effect(() => {
+			this.zoomChange.emit(this.zoomSvc.zoom());
+		});
+
+		// Emit selection changes.
+		effect(() => {
+			this.selectionChange.emit([...this.editor.selectedIds()]);
+		});
+
+		// Emit slide count changes.
+		effect(() => {
+			this.slideCountChange.emit(this.slideCount());
 		});
 
 		// Keep the active index in range when the deck shrinks (slide deleted).
@@ -1282,6 +1317,179 @@ export class PowerPointViewerComponent {
 	}
 	goNext(): void {
 		this.goTo(this.activeSlideIndex() + 1);
+	}
+
+	/** Undo the last editing action. No-op when nothing to undo. */
+	undo(): void {
+		this.editor.undo();
+	}
+	/** Redo the last undone action. No-op when nothing to redo. */
+	redo(): void {
+		this.editor.redo();
+	}
+	/** Whether an undo action is available. */
+	canUndo(): boolean {
+		return this.editor.canUndo();
+	}
+	/** Whether a redo action is available. */
+	canRedo(): boolean {
+		return this.editor.canRedo();
+	}
+
+	/** Get the current zoom level (1 = 100%). */
+	getZoom(): number {
+		return this.zoomSvc.zoom();
+	}
+	/** Set the zoom level (clamped to min/max bounds). */
+	setZoom(level: number): void {
+		this.zoomSvc.zoom.set(Math.min(Math.max(level, 0.2), 3));
+	}
+	/** Zoom in by one step. */
+	zoomIn(): void {
+		this.zoomSvc.zoomIn();
+	}
+	/** Zoom out by one step. */
+	zoomOut(): void {
+		this.zoomSvc.zoomOut();
+	}
+	/** Reset zoom to 100%. */
+	zoomReset(): void {
+		this.zoomSvc.zoomReset();
+	}
+
+	/** Get the current viewer mode. */
+	getMode(): string {
+		if (this.presentationMode.presenting()) {
+			return 'present';
+		}
+		if (this.editor.editTemplateMode()) {
+			return 'master';
+		}
+		return this.canEdit() ? 'edit' : 'preview';
+	}
+	/** Switch the viewer mode (e.g. 'edit', 'preview', 'present'). */
+	setMode(mode: string): void {
+		if (mode === 'present') {
+			this.presentationMode.present();
+		} else if (mode === 'master') {
+			this.editor.setEditTemplateMode(true);
+		} else {
+			this.presentationMode.presenting.set(false);
+			this.editor.setEditTemplateMode(false);
+		}
+	}
+
+	/** Get the zero-based active slide index. */
+	getActiveSlideIndex(): number {
+		return this.activeSlideIndex();
+	}
+	/** Get the total number of slides. */
+	getSlideCount(): number {
+		return this.slideCount();
+	}
+	/** Whether the document has unsaved changes. */
+	isDirty(): boolean {
+		return this.editor.dirty();
+	}
+
+	/** Get the IDs of currently selected elements. */
+	getSelectedElementIds(): string[] {
+		return [...this.editor.selectedIds()];
+	}
+	/** Programmatically select elements by their IDs. */
+	selectElements(ids: string[]): void {
+		this.editor.selectedIds.set(ids);
+	}
+	/** Clear the current selection. */
+	clearSelection(): void {
+		this.editor.selectedIds.set([]);
+	}
+
+	/** Set the active slide by zero-based index (alias of goTo). */
+	setActiveSlideIndex(index: number): void {
+		this.goTo(index);
+	}
+
+	/** Get a read-only reference to all slides. */
+	getSlides(): readonly PptxSlide[] {
+		return this.displaySlides();
+	}
+
+	/** Get a single slide by zero-based index. */
+	getSlide(index: number): PptxSlide | undefined {
+		return this.displaySlides()[index];
+	}
+
+	/** Get the currently active slide. */
+	getActiveSlide(): PptxSlide | undefined {
+		return this.displaySlides()[this.activeSlideIndex()];
+	}
+
+	/** Add a blank slide after the given index (or after the active slide). */
+	addSlide(afterIndex?: number): void {
+		const idx = afterIndex ?? this.activeSlideIndex();
+		this.editor.addSlide(idx);
+	}
+
+	/** Delete slides at the given zero-based indexes. */
+	deleteSlides(indexes: number[]): void {
+		for (const i of [...indexes].sort((a, b) => b - a)) {
+			this.editor.deleteSlide(i);
+		}
+	}
+
+	/** Duplicate slides at the given zero-based indexes. */
+	duplicateSlides(indexes: number[]): void {
+		for (const i of indexes) {
+			this.editor.duplicateSlide(i);
+		}
+	}
+
+	/** Move a slide from one position to another. */
+	moveSlide(fromIndex: number, toIndex: number): void {
+		this.editor.moveSlide(fromIndex, toIndex);
+	}
+
+	/** Toggle the hidden flag on slides at the given indexes. */
+	toggleHideSlides(indexes: number[]): void {
+		for (const i of indexes) {
+			const s = this.displaySlides()[i];
+			if (s) {
+				this.editor.updateSlide(i, { hidden: !s.hidden });
+			}
+		}
+	}
+
+	/** Get elements on a slide (defaults to active slide). */
+	getElements(slideIndex?: number): readonly PptxElement[] {
+		const idx = slideIndex ?? this.activeSlideIndex();
+		const s = this.displaySlides()[idx];
+		return s?.elements ?? [];
+	}
+
+	/** Get a single element by ID. */
+	getElementById(elementId: string, slideIndex?: number): PptxElement | undefined {
+		const idx = slideIndex ?? this.activeSlideIndex();
+		const s = this.displaySlides()[idx];
+		return s?.elements.find((e) => e.id === elementId);
+	}
+
+	/** Update one or more properties of an element by ID. */
+	updateElement(elementId: string, updates: Partial<PptxElement>): void {
+		this.editor.updateElement(this.activeSlideIndex(), elementId, updates);
+	}
+
+	/** Delete elements by their IDs from the active slide. */
+	deleteElements(elementIds: string[]): void {
+		this.editor.selectedIds.set(elementIds);
+		this.editor.deleteSelected(this.activeSlideIndex());
+	}
+
+	/** Duplicate an element. Returns the new element's ID. */
+	duplicateElement(elementId: string): string | undefined {
+		this.editor.selectedIds.set([elementId]);
+		this.editor.duplicateSelected(this.activeSlideIndex());
+		return this.editor.selectedIds()[0];
 	}
 
 	/** Toggle the Find & Replace panel from the title-bar search button. */

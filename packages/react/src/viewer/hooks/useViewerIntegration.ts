@@ -1,4 +1,5 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { ViewerMode } from 'pptx-viewer-shared';
 /**
  * useViewerIntegration: Wires pointer handling, content lifecycle,
  * I/O, annotations, recovery, imperative handle, parent callbacks,
@@ -7,6 +8,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import { useEffect, useImperativeHandle, useState } from 'react';
 import type { Dispatch, ForwardedRef, SetStateAction } from 'react';
 
+import { MIN_ZOOM_SCALE, MAX_ZOOM_SCALE } from '../constants';
 import type { PowerPointViewerHandle } from '../types';
 import type { AnnotationHandlersResult } from './useAnnotationHandlers';
 import { useAnnotationHandlers } from './useAnnotationHandlers';
@@ -55,6 +57,10 @@ export interface UseViewerIntegrationInput {
 	onContentChange: ((content: Uint8Array) => void) | undefined;
 	onDirtyChange: ((dirty: boolean) => void) | undefined;
 	onActiveSlideChange: ((index: number) => void) | undefined;
+	onModeChange: ((mode: ViewerMode) => void) | undefined;
+	onZoomChange: ((zoom: number) => void) | undefined;
+	onSelectionChange: ((ids: string[]) => void) | undefined;
+	onSlideCountChange: ((count: number) => void) | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -108,6 +114,10 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		onContentChange,
 		onDirtyChange,
 		onActiveSlideChange,
+		onModeChange,
+		onZoomChange,
+		onSelectionChange,
+		onSlideCountChange,
 	} = input;
 
 	// ── Global pointer handlers for drag / resize / adjustment ────
@@ -209,8 +219,146 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 				}
 				return data ?? new Uint8Array(0);
 			},
+			goTo(index: number) {
+				if (index >= 0 && index < slides.length) {
+					state.setActiveSlideIndex(index);
+				}
+			},
+			goPrev() {
+				const next = activeSlideIndex - 1;
+				if (next >= 0) {
+					state.setActiveSlideIndex(next);
+				}
+			},
+			goNext() {
+				const next = activeSlideIndex + 1;
+				if (next < slides.length) {
+					state.setActiveSlideIndex(next);
+				}
+			},
+			undo() {
+				history.handleUndo();
+			},
+			redo() {
+				history.handleRedo();
+			},
+			canUndo() {
+				return history.canUndo;
+			},
+			canRedo() {
+				return history.canRedo;
+			},
+			getZoom() {
+				return zoom.scale;
+			},
+			setZoom(level: number) {
+				zoom.setScale(Math.min(Math.max(level, MIN_ZOOM_SCALE), MAX_ZOOM_SCALE));
+			},
+			zoomIn() {
+				zoom.handleZoomIn();
+			},
+			zoomOut() {
+				zoom.handleZoomOut();
+			},
+			zoomReset() {
+				zoom.handleResetZoom();
+			},
+			getMode() {
+				return mode;
+			},
+			setMode(newMode) {
+				state.setMode(newMode);
+			},
+			getActiveSlideIndex() {
+				return activeSlideIndex;
+			},
+			getSlideCount() {
+				return slides.length;
+			},
+			isDirty() {
+				return state.isDirty;
+			},
+			getSelectedElementIds() {
+				return state.selectedElementIds;
+			},
+			selectElements(ids: string[]) {
+				state.setSelectedElementIds(ids);
+				state.setSelectedElementId(ids[0] ?? null);
+			},
+			clearSelection() {
+				state.setSelectedElementIds([]);
+				state.setSelectedElementId(null);
+			},
+			// -- Active slide (alias) --
+			setActiveSlideIndex(index: number) {
+				if (index >= 0 && index < slides.length) {
+					state.setActiveSlideIndex(index);
+				}
+			},
+			// -- Slide access --
+			getSlides() {
+				return slides;
+			},
+			getSlide(index: number) {
+				return slides[index];
+			},
+			getActiveSlide() {
+				return slides[activeSlideIndex];
+			},
+			// -- Slide manipulation --
+			addSlide(_afterIndex?: number) {
+				editorOps.slideOps.handleAddSlide();
+			},
+			deleteSlides(indexes: number[]) {
+				editorOps.slideOps.handleDeleteSlides(indexes);
+			},
+			duplicateSlides(indexes: number[]) {
+				editorOps.slideOps.handleDuplicateSlides(indexes);
+			},
+			moveSlide(fromIndex: number, toIndex: number) {
+				editorOps.slideOps.handleMoveSlide(fromIndex, toIndex);
+			},
+			toggleHideSlides(indexes: number[]) {
+				editorOps.slideOps.handleToggleHideSlides(indexes);
+			},
+			// -- Element access --
+			getElements(slideIndex?: number) {
+				const idx = slideIndex ?? activeSlideIndex;
+				const s = slides[idx];
+				return s?.elements ?? [];
+			},
+			getElementById(elementId: string, slideIndex?: number) {
+				const idx = slideIndex ?? activeSlideIndex;
+				const s = slides[idx];
+				return s?.elements.find((e) => e.id === elementId);
+			},
+			// -- Element manipulation --
+			updateElement(elementId: string, updates: Partial<PptxElement>) {
+				editorOps.ops.updateElementById(elementId, updates);
+			},
+			deleteElements(elementIds: string[]) {
+				state.setSelectedElementIds(elementIds);
+				state.setSelectedElementId(elementIds[0] ?? null);
+				editorOps.manipulation.handleDelete();
+			},
+			duplicateElement(elementId: string) {
+				state.setSelectedElementIds([elementId]);
+				state.setSelectedElementId(elementId);
+				editorOps.manipulation.handleDuplicate();
+				return state.selectedElementIds[0];
+			},
 		}),
-		[serializeSlides, onContentChange],
+		[
+			serializeSlides,
+			onContentChange,
+			slides,
+			activeSlideIndex,
+			state,
+			history,
+			zoom,
+			mode,
+			editorOps,
+		],
 	);
 
 	// ── Notify parent callbacks ───────────────────────────────────
@@ -229,6 +377,30 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 	useEffect(() => {
 		state.activeSlideIndexRef.current = activeSlideIndex;
 	}, [activeSlideIndex, state.activeSlideIndexRef]);
+
+	useEffect(() => {
+		if (onModeChange) {
+			onModeChange(mode);
+		}
+	}, [mode, onModeChange]);
+
+	useEffect(() => {
+		if (onZoomChange) {
+			onZoomChange(zoom.scale);
+		}
+	}, [zoom.scale, onZoomChange]);
+
+	useEffect(() => {
+		if (onSelectionChange) {
+			onSelectionChange(state.selectedElementIds);
+		}
+	}, [state.selectedElementIds, onSelectionChange]);
+
+	useEffect(() => {
+		if (onSlideCountChange) {
+			onSlideCountChange(slides.length);
+		}
+	}, [slides.length, onSlideCountChange]);
 
 	// ── Keyboard shortcuts ────────────────────────────────────────
 	useKeyboardShortcutWiring({

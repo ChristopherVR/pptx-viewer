@@ -9,6 +9,9 @@ export type {
 	CanvasSize,
 } from './viewer';
 
+// ── Shared API types ──
+export type { ViewerMode, PowerPointViewerAPI } from 'pptx-viewer-shared';
+
 // ── Audience / presenter content sharing (IndexedDB, wire-compatible with React) ──
 export {
 	AUDIENCE_HASH,

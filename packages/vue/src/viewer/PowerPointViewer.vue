@@ -401,6 +401,17 @@ const ops = useEditorOperations({
 });
 const hasSelection = computed(() => selectedElementIds.value.length > 0);
 
+// ── Emit events for zoom, selection, and slide count ──────────────────
+watch(zoom, (level) => {
+	emit('zoom-change', level);
+});
+watch(selectedElementIds, (ids) => {
+	emit('selection-change', ids);
+});
+watch(slideCount, (count) => {
+	emit('slide-count-change', count);
+});
+
 /** The active slide's separate template (master/layout) element layer. */
 const activeTemplateElements = computed<PptxElement[]>(
 	() => templateElementsBySlideId.value[activeSlide.value?.id ?? ''] ?? [],
@@ -1125,6 +1136,10 @@ const { ribbonMode, activeTableSelection, ribbonUpdateTextStyle, ribbonFlip, rib
 		ops,
 	});
 
+watch(ribbonMode, (mode) => {
+	emit('mode-change', mode);
+});
+
 const ribbonProps = useRibbonProps({
 	ribbonMode,
 	canEdit: () => props.canEdit,
@@ -1229,8 +1244,90 @@ const ribbonProps = useRibbonProps({
 	onApplyTransitionToAll,
 });
 
-// ── Imperative surface (mirrors the React forwardRef handle) ──────────
-defineExpose<PowerPointViewerExpose>({ getContent });
+// ── Imperative surface (implements the shared PowerPointViewerAPI) ────
+defineExpose<PowerPointViewerExpose>({
+	getContent,
+	goTo,
+	goPrev,
+	goNext,
+	undo: () => history.undo(),
+	redo: () => history.redo(),
+	canUndo: () => history.canUndo.value,
+	canRedo: () => history.canRedo.value,
+	getZoom: () => zoom.value,
+	setZoom: (level: number) => {
+		zoom.value = Math.min(Math.max(level, ZOOM_MIN), ZOOM_MAX);
+	},
+	zoomIn,
+	zoomOut,
+	zoomReset,
+	getMode: () => ribbonMode.value,
+	setMode: (newMode) => {
+		if (newMode === 'present') {
+			startPresenting();
+		} else if (newMode === 'master') {
+			showMasterView.value = true;
+		} else {
+			presenting.value = false;
+			showMasterView.value = false;
+		}
+	},
+	getActiveSlideIndex: () => activeSlideIndex.value,
+	setActiveSlideIndex: (index: number) => goTo(index),
+	getSlideCount: () => slideCount.value,
+	isDirty: () => autosave.isDirty.value,
+	// -- Slide access --
+	getSlides: () => slides.value,
+	getSlide: (index: number) => slides.value[index],
+	getActiveSlide: () => activeSlide.value,
+	// -- Slide manipulation --
+	addSlide: () => slideOps.addSlide(),
+	deleteSlides: (indexes: number[]) => {
+		for (const i of [...indexes].sort((a, b) => b - a)) {
+			slideOps.deleteSlide(i);
+		}
+	},
+	duplicateSlides: (indexes: number[]) => {
+		for (const i of indexes) {
+			slideOps.duplicateSlide(i);
+		}
+	},
+	moveSlide: (from: number, to: number) => slideOps.moveSlide(from, to),
+	toggleHideSlides: (indexes: number[]) => {
+		for (const i of indexes) {
+			toggleSlideHidden(i);
+		}
+	},
+	// -- Element access --
+	getElements: (slideIndex?: number) => {
+		const idx = slideIndex ?? activeSlideIndex.value;
+		const s = slides.value[idx];
+		return s?.elements ?? [];
+	},
+	getElementById: (elementId: string, slideIndex?: number) => {
+		const idx = slideIndex ?? activeSlideIndex.value;
+		const s = slides.value[idx];
+		return s?.elements.find((e) => e.id === elementId);
+	},
+	// -- Element manipulation --
+	updateElement: (elementId: string, updates: Partial<PptxElement>) => {
+		ops.updateElement(elementId, updates);
+	},
+	deleteElements: (elementIds: string[]) => {
+		for (const id of elementIds) {
+			ops.removeElement(id);
+		}
+	},
+	duplicateElement: (elementId: string) => ops.duplicateElement(elementId),
+	// -- Selection --
+	getSelectedElementIds: () => selectedElementIds.value,
+	selectElements: (ids: string[]) => {
+		selectedElementIds.value = ids;
+	},
+	clearSelection: () => {
+		selectedElementIds.value = [];
+	},
+});
 </script>
 
 <template>

@@ -16,12 +16,9 @@ import type { PptxElement, PptxSlide, ShapeStyle } from 'pptx-viewer-core';
 /**
  * The current operating mode of the PowerPoint viewer.
  *
- * - `"preview"` -- Read-only viewing with no editing controls.
- * - `"edit"` -- Full editing mode with toolbar, inspector, and canvas interaction.
- * - `"present"` -- Fullscreen presentation/slideshow mode with animations.
- * - `"master"` -- Slide master editing mode for template/layout manipulation.
+ * Re-exported from `pptx-viewer-shared` for backward compatibility.
  */
-export type ViewerMode = 'preview' | 'edit' | 'present' | 'master';
+export type { ViewerMode } from 'pptx-viewer-shared';
 
 // ---------------------------------------------------------------------------
 // Shape types

@@ -2,6 +2,9 @@
 export { PowerPointViewer, getAnimationInitialStyle } from './viewer/PowerPointViewer';
 export type { PowerPointViewerProps, PowerPointViewerHandle } from './viewer/PowerPointViewer';
 
+// ── Shared API types ──
+export type { ViewerMode, PowerPointViewerAPI } from 'pptx-viewer-shared';
+
 // ── Canvas export (html2canvas oklch wrapper) ──
 export { renderToCanvas } from './lib/canvas-export';
 

@@ -6,6 +6,7 @@ import type {
 	StrokeDashType,
 	XmlObject,
 } from 'pptx-viewer-core';
+import type { PowerPointViewerAPI } from 'pptx-viewer-shared';
 /**
  * UI-related and interaction types for the PowerPoint viewer/editor plugin.
  *
@@ -249,6 +250,14 @@ export interface PowerPointViewerProps {
 	onContentChange?: (content: Uint8Array) => void;
 	/** Callback when active slide changes */
 	onActiveSlideChange?: (slideIndex: number) => void;
+	/** Callback when the viewer mode changes (e.g. edit to present). */
+	onModeChange?: (mode: import('pptx-viewer-shared').ViewerMode) => void;
+	/** Callback when the zoom level changes. */
+	onZoomChange?: (zoom: number) => void;
+	/** Callback when element selection changes. */
+	onSelectionChange?: (elementIds: string[]) => void;
+	/** Callback when the total slide count changes (slide added/deleted). */
+	onSlideCountChange?: (count: number) => void;
 	/**
 	 * Host override for the File ▸ Open action. When provided, the built-in
 	 * native file picker is bypassed and this is invoked instead; the host is
@@ -357,6 +366,6 @@ export interface PowerPointViewerProps {
 	smartArt3D?: boolean;
 }
 
-export interface PowerPointViewerHandle extends FileViewerHandle {
+export interface PowerPointViewerHandle extends FileViewerHandle, PowerPointViewerAPI {
 	getContent: () => Promise<Uint8Array>;
 }

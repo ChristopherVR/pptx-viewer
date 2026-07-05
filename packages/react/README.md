@@ -101,13 +101,37 @@ const bytes = await viewerRef.current?.getContent(); // Uint8Array of a valid .p
 | `onContentChange`     | `(dirty: boolean) => void`          | n/a      | Called when content changes                                       |
 | `onDirtyChange`       | `(isDirty: boolean) => void`        | n/a      | Called when dirty state changes                                   |
 | `onActiveSlideChange` | `(index: number) => void`           | n/a      | Called when the active slide changes                              |
+| `onModeChange`        | `(mode: ViewerMode) => void`        | n/a      | Called when the viewer mode changes                               |
+| `onZoomChange`        | `(zoom: number) => void`            | n/a      | Called when the zoom level changes                                |
+| `onSelectionChange`   | `(ids: string[]) => void`           | n/a      | Called when element selection changes                             |
+| `onSlideCountChange`  | `(count: number) => void`           | n/a      | Called when the total slide count changes                         |
 | `theme`               | `ViewerTheme`                       | n/a      | Theme configuration for customising colours, radius, and CSS vars |
 
 ### `PowerPointViewerHandle` (via `ref`)
 
-| Method       | Signature                             | Description                            |
-| ------------ | ------------------------------------- | -------------------------------------- |
-| `getContent` | `() => Promise<string \| Uint8Array>` | Serialise current state to .pptx bytes |
+| Method                  | Signature                    | Description                              |
+| ----------------------- | ---------------------------- | ---------------------------------------- |
+| `getContent`            | `() => Promise<Uint8Array>`  | Serialise current state to .pptx bytes   |
+| `goTo`                  | `(index: number) => void`    | Navigate to a slide by zero-based index  |
+| `goPrev`                | `() => void`                 | Navigate to the previous slide           |
+| `goNext`                | `() => void`                 | Navigate to the next slide               |
+| `undo`                  | `() => void`                 | Undo the last editing action             |
+| `redo`                  | `() => void`                 | Redo the last undone action              |
+| `canUndo`               | `() => boolean`              | Whether an undo action is available      |
+| `canRedo`               | `() => boolean`              | Whether a redo action is available       |
+| `getZoom`               | `() => number`               | Get the current zoom level (1 = 100%)    |
+| `setZoom`               | `(level: number) => void`    | Set the zoom level                       |
+| `zoomIn`                | `() => void`                 | Zoom in by one step                      |
+| `zoomOut`               | `() => void`                 | Zoom out by one step                     |
+| `zoomReset`             | `() => void`                 | Reset zoom to 100%                       |
+| `getMode`               | `() => ViewerMode`           | Get the current viewer mode              |
+| `setMode`               | `(mode: ViewerMode) => void` | Switch mode programmatically             |
+| `getActiveSlideIndex`   | `() => number`               | Get the zero-based active slide index    |
+| `getSlideCount`         | `() => number`               | Get the total number of slides           |
+| `isDirty`               | `() => boolean`              | Whether the document has unsaved changes |
+| `getSelectedElementIds` | `() => string[]`             | Get IDs of selected elements             |
+| `selectElements`        | `(ids: string[]) => void`    | Programmatically select elements by ID   |
+| `clearSelection`        | `() => void`                 | Clear the current selection              |
 
 ### `renderToCanvas`
 

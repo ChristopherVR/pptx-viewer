@@ -90,6 +90,10 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onContentChange,
 			onDirtyChange,
 			onActiveSlideChange,
+			onModeChange,
+			onZoomChange,
+			onSelectionChange,
+			onSlideCountChange,
 			onOpenFile: hostOpenFile,
 			theme,
 			authorName,
@@ -398,6 +402,10 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onContentChange,
 			onDirtyChange,
 			onActiveSlideChange,
+			onModeChange,
+			onZoomChange,
+			onSelectionChange,
+			onSlideCountChange,
 		});
 
 		// ── Early returns ─────────────────────────────────────────────

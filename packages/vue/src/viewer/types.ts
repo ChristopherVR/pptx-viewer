@@ -1,4 +1,9 @@
-import type { CanvasSize, CollaborationConfig, CollaborationRole } from 'pptx-viewer-shared';
+import type {
+	CanvasSize,
+	CollaborationConfig,
+	CollaborationRole,
+	PowerPointViewerAPI,
+} from 'pptx-viewer-shared';
 
 import type { ViewerTheme } from '../theme';
 
@@ -93,6 +98,10 @@ export interface PowerPointViewerProps {
  *  - `onDirtyChange`       → `@dirty-change`
  *  - `onContentChange`     → `@content-change`
  *  - `onActiveSlideChange` → `@active-slide-change`
+ *  - `onModeChange`        → `@mode-change`
+ *  - `onZoomChange`        → `@zoom-change`
+ *  - `onSelectionChange`   → `@selection-change`
+ *  - `onSlideCountChange`  → `@slide-count-change`
  */
 export interface PowerPointViewerEmits {
 	/** Fired when the unsaved-changes flag toggles. */
@@ -102,8 +111,12 @@ export interface PowerPointViewerEmits {
 	 * edits) and when autosave persists the presentation.
 	 */
 	(e: 'content-change' | 'autosave', content: Uint8Array): void;
-	/** Fired when the active slide changes. */
-	(e: 'active-slide-change', slideIndex: number): void;
+	/** Fired when the active slide, zoom level, or slide count changes. */
+	(e: 'active-slide-change' | 'zoom-change' | 'slide-count-change', value: number): void;
+	/** Fired when the viewer mode changes. */
+	(e: 'mode-change', mode: string): void;
+	/** Fired when element selection changes. */
+	(e: 'selection-change', elementIds: string[]): void;
 	/** Fired when the user starts a collaboration session from the Share dialog. */
 	(e: 'start-collaboration', config: CollaborationConfig): void;
 	/** Fired when the user stops a collaboration session from the Share dialog. */
@@ -112,7 +125,7 @@ export interface PowerPointViewerEmits {
 
 /**
  * Imperative surface exposed via `defineExpose`, retrievable through a
- * template ref. Mirrors the React `PowerPointViewerHandle`.
+ * template ref. Implements the shared {@link PowerPointViewerAPI} contract.
  *
  * @example
  * ```vue
@@ -126,7 +139,7 @@ export interface PowerPointViewerEmits {
  * </script>
  * ```
  */
-export interface PowerPointViewerExpose {
+export interface PowerPointViewerExpose extends PowerPointViewerAPI {
 	/** Serialise the current presentation to `.pptx` bytes. */
 	getContent: () => Promise<Uint8Array>;
 }

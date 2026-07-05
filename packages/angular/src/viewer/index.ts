@@ -357,6 +357,7 @@ export type {
 } from './presenter-window.service';
 
 export type { CanvasSize, CollaborationConfig, CollaborationRole } from './types';
+export type { ViewerMode, PowerPointViewerAPI } from '../internal/shared';
 export type { StyleMap } from './element-style';
 export {
 	getContainerStyle,

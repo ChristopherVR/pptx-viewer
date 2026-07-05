@@ -38,12 +38,16 @@ conversion from a `fetch`/file `ArrayBuffer`.
 
 ## Callbacks
 
-| Prop                  | Type                            | Default | Description                                                                                                                         |
-| --------------------- | ------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `onDirtyChange`       | `(isDirty: boolean) => void`    | -       | Called when the unsaved-changes flag flips.                                                                                         |
-| `onContentChange`     | `(content: Uint8Array) => void` | -       | Called with the re-serialized document bytes when content changes.                                                                  |
-| `onActiveSlideChange` | `(slideIndex: number) => void`  | -       | Called when the active slide changes.                                                                                               |
-| `onOpenFile`          | `() => void`                    | -       | Host override for the File > Open action: bypasses the built-in file picker; the host then supplies a new `content` buffer instead. |
+| Prop                  | Type                             | Default | Description                                                                                                                         |
+| --------------------- | -------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `onDirtyChange`       | `(isDirty: boolean) => void`     | -       | Called when the unsaved-changes flag flips.                                                                                         |
+| `onContentChange`     | `(content: Uint8Array) => void`  | -       | Called with the re-serialized document bytes when content changes.                                                                  |
+| `onActiveSlideChange` | `(slideIndex: number) => void`   | -       | Called when the active slide changes.                                                                                               |
+| `onModeChange`        | `(mode: ViewerMode) => void`     | -       | Called when the viewer mode changes (e.g. edit to present).                                                                         |
+| `onZoomChange`        | `(zoom: number) => void`         | -       | Called when the zoom level changes.                                                                                                 |
+| `onSelectionChange`   | `(elementIds: string[]) => void` | -       | Called when element selection changes.                                                                                              |
+| `onSlideCountChange`  | `(count: number) => void`        | -       | Called when the total slide count changes (slide added/deleted).                                                                    |
+| `onOpenFile`          | `() => void`                     | -       | Host override for the File > Open action: bypasses the built-in file picker; the host then supplies a new `content` buffer instead. |
 
 ::: info
 `onContentChange` delivers a `Uint8Array` (the serialized document), not a boolean. To pull content
@@ -123,6 +127,7 @@ interface PowerPointViewerProps {
 
 ## Notes on triggering features
 
-The viewer exposes **no props** for triggering export, navigation, mode-switching, or
-print. Those are driven internally through the toolbar/dialogs and, for saving, through the
-imperative [handle](/react/handle). Export specifically is documented in [Export](/react/export).
+Navigation, mode-switching, zoom, undo/redo, and selection are available through the imperative
+[handle](/react/handle) (`ref.current.goNext()`, `ref.current.setMode('present')`, etc.).
+Export and print are driven through the built-in toolbar/dialogs.
+See [Export](/react/export) for details on document export.

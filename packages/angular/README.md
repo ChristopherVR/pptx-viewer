@@ -143,17 +143,41 @@ async save() {
 
 ### Outputs
 
-| Output              | Payload      | Description                                        |
-| ------------------- | ------------ | -------------------------------------------------- |
-| `activeSlideChange` | `number`     | Emits the active slide index on navigation.        |
-| `dirtyChange`       | `boolean`    | Emits `true`/`false` when the dirty state changes. |
-| `contentChange`     | `Uint8Array` | Emits updated bytes after any editing change.      |
+| Output              | Payload      | Description                                                          |
+| ------------------- | ------------ | -------------------------------------------------------------------- |
+| `activeSlideChange` | `number`     | Emits the active slide index on navigation.                          |
+| `dirtyChange`       | `boolean`    | Emits `true`/`false` when the dirty state changes.                   |
+| `contentChange`     | `Uint8Array` | Emits updated bytes after any editing change.                        |
+| `modeChange`        | `string`     | Emits the new mode (`'preview'`, `'edit'`, `'present'`, `'master'`). |
+| `zoomChange`        | `number`     | Emits the new zoom level (1 = 100%).                                 |
+| `selectionChange`   | `string[]`   | Emits the selected element IDs when selection changes.               |
+| `slideCountChange`  | `number`     | Emits the total slide count when slides change.                      |
 
 ### Methods
 
-| Method         | Returns               | Description                                    |
-| -------------- | --------------------- | ---------------------------------------------- |
-| `getContent()` | `Promise<Uint8Array>` | Serialise the current presentation to `.pptx`. |
+| Method                    | Returns               | Description                                    |
+| ------------------------- | --------------------- | ---------------------------------------------- |
+| `getContent()`            | `Promise<Uint8Array>` | Serialise the current presentation to `.pptx`. |
+| `goTo(index)`             | `void`                | Navigate to a slide by zero-based index.       |
+| `goPrev()`                | `void`                | Navigate to the previous slide.                |
+| `goNext()`                | `void`                | Navigate to the next slide.                    |
+| `undo()`                  | `void`                | Undo the last editing action.                  |
+| `redo()`                  | `void`                | Redo the last undone action.                   |
+| `canUndo()`               | `boolean`             | Whether an undo action is available.           |
+| `canRedo()`               | `boolean`             | Whether a redo action is available.            |
+| `getZoom()`               | `number`              | Get the current zoom level.                    |
+| `setZoom(level)`          | `void`                | Set the zoom level (clamped to 0.2 - 3.0).     |
+| `zoomIn()`                | `void`                | Zoom in by one step.                           |
+| `zoomOut()`               | `void`                | Zoom out by one step.                          |
+| `zoomReset()`             | `void`                | Reset zoom to 100%.                            |
+| `getMode()`               | `string`              | Get the current viewer mode.                   |
+| `setMode(mode)`           | `void`                | Switch mode programmatically.                  |
+| `getActiveSlideIndex()`   | `number`              | Get the zero-based active slide index.         |
+| `getSlideCount()`         | `number`              | Get the total number of slides.                |
+| `isDirty()`               | `boolean`             | Whether the document has unsaved changes.      |
+| `getSelectedElementIds()` | `string[]`            | Get IDs of currently selected elements.        |
+| `selectElements(ids)`     | `void`                | Programmatically select elements by ID.        |
+| `clearSelection()`        | `void`                | Clear the current selection.                   |
 
 ### Exported components & helpers
 
