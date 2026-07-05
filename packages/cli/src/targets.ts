@@ -16,6 +16,8 @@ export interface ScaffoldRecipe {
 	/** Entry-file paths (relative to the project dir) to try, in order; the first that exists gets overwritten. */
 	entryCandidates: string[];
 	entryContent: string;
+	/** Additional files to write after scaffolding (relative path -> content). Used for i18n setup, main.ts overrides, etc. */
+	extraFiles?: Record<string, string>;
 }
 
 /** One thing a user can scaffold: a UI binding, the bare engine, or the MCP server. */
@@ -52,6 +54,7 @@ const REACT_APP_TSX = `import { useCallback, useState } from 'react';
 import { PptxHandler } from 'pptx-viewer-core';
 import { PowerPointViewer } from 'pptx-react-viewer';
 import 'pptx-react-viewer/styles.css';
+import './i18n';
 
 export default function App() {
 	const [content, setContent] = useState<Uint8Array | null>(null);
@@ -94,6 +97,26 @@ export default function App() {
 }
 `;
 
+const REACT_I18N_TS = `import { createInstance } from 'i18next';
+import { translationsEn, keyToLabel } from 'pptx-react-viewer/i18n';
+import { initReactI18next } from 'react-i18next';
+
+const i18n = createInstance();
+
+i18n.use(initReactI18next).init({
+	resources: {
+		en: { translation: translationsEn },
+	},
+	lng: 'en',
+	fallbackLng: 'en',
+	interpolation: { escapeValue: false },
+	parseMissingKeyHandler: (key: string) => keyToLabel(key),
+	missingKeyHandler: false,
+});
+
+export default i18n;
+`;
+
 const VUE_APP_VUE = `<script setup lang="ts">
 import { ref } from 'vue';
 import { PptxHandler } from 'pptx-viewer-core';
@@ -131,6 +154,24 @@ async function newPresentation() {
 		<button @click="newPresentation">or create a New Presentation</button>
 	</div>
 </template>
+`;
+
+const VUE_MAIN_TS = `import { createApp } from 'vue';
+import { createI18n } from 'vue-i18n';
+import { translationsEn, keyToLabel } from 'pptx-vue-viewer/i18n';
+import App from './App.vue';
+
+const i18n = createI18n({
+	legacy: false,
+	locale: 'en',
+	fallbackLocale: 'en',
+	messages: { en: translationsEn },
+	missing: (_locale, key) => keyToLabel(key),
+	missingWarn: false,
+	fallbackWarn: false,
+});
+
+createApp(App).use(i18n).mount('#app');
 `;
 
 const ANGULAR_APP_TS = `import { Component, signal } from '@angular/core';
@@ -172,6 +213,37 @@ export class App {
 		this.content.set(await handler.save(data.slides));
 	}
 }
+`;
+
+const ANGULAR_MAIN_TS = `import 'zone.js';
+import '@angular/compiler';
+import { bootstrapApplication } from '@angular/platform-browser';
+import { Injectable } from '@angular/core';
+import type { MissingTranslationHandlerParams } from '@ngx-translate/core';
+import { MissingTranslationHandler, provideTranslateService } from '@ngx-translate/core';
+import { keyToLabel } from 'pptx-angular-viewer';
+
+import { App } from './app/app.ts';
+
+@Injectable()
+class LabelFallbackHandler implements MissingTranslationHandler {
+	handle(params: MissingTranslationHandlerParams): string {
+		return keyToLabel(params.key);
+	}
+}
+
+bootstrapApplication(App, {
+	providers: [
+		provideTranslateService({
+			lang: 'en',
+			fallbackLang: 'en',
+			missingTranslationHandler: {
+				provide: MissingTranslationHandler,
+				useClass: LabelFallbackHandler,
+			},
+		}),
+	],
+}).catch((err) => console.error(err));
 `;
 
 export const TARGETS: Target[] = [
@@ -222,6 +294,7 @@ Docs: https://www.npmjs.com/package/pptx-react-viewer`,
 			],
 			entryCandidates: ['src/App.tsx'],
 			entryContent: REACT_APP_TSX,
+			extraFiles: { 'src/i18n.ts': REACT_I18N_TS },
 		},
 	},
 	{
@@ -245,9 +318,16 @@ Docs: https://www.npmjs.com/package/pptx-vue-viewer`,
 		scaffold: {
 			command: 'create-vite@latest',
 			args: (dir) => [dir, '--template', 'vue-ts', '--no-interactive', '--no-immediate'],
-			extraPackages: ['pptx-vue-viewer', 'pptx-viewer-core', 'jszip', 'fast-xml-parser'],
+			extraPackages: [
+				'pptx-vue-viewer',
+				'pptx-viewer-core',
+				'vue-i18n',
+				'jszip',
+				'fast-xml-parser',
+			],
 			entryCandidates: ['src/App.vue'],
 			entryContent: VUE_APP_VUE,
+			extraFiles: { 'src/main.ts': VUE_MAIN_TS },
 		},
 	},
 	{
@@ -279,10 +359,11 @@ Docs: https://www.npmjs.com/package/pptx-angular-viewer`,
 				'--skip-install',
 				'--no-interactive',
 			],
-			extraPackages: ['pptx-angular-viewer', 'pptx-viewer-core'],
+			extraPackages: ['pptx-angular-viewer', 'pptx-viewer-core', '@ngx-translate/core'],
 			// Angular v20+ generates `app.ts`; older schematics generate `app.component.ts`.
 			entryCandidates: ['src/app/app.ts', 'src/app/app.component.ts'],
 			entryContent: ANGULAR_APP_TS,
+			extraFiles: { 'src/main.ts': ANGULAR_MAIN_TS },
 		},
 	},
 	{

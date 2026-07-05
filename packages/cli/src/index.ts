@@ -146,11 +146,18 @@ async function runScaffoldMode(
 		);
 	}
 
-	console.log(
-		`\n${green('✔')} ${bold('Done.')} Next steps:\n\n  ${cyan(`cd ${projectName}`)}\n  ${cyan(`${pm} run dev`)}\n\n${target.nextSteps}\n`,
-	);
 	for (const configTarget of configTargets) {
-		console.log(`${configTarget.nextSteps}\n`);
+		console.log(`\n${configTarget.nextSteps}\n`);
+	}
+
+	// Start the dev server automatically, mirroring what `create-vite` does
+	// after a successful scaffold.
+	console.log(`\n${green('✔')} ${bold('Done!')} Starting dev server...\n`);
+	const projectDir = result.projectDir;
+	const devExit = await runCommand(pm, ['run', 'dev'], projectDir);
+	if (devExit !== 0) {
+		// Dev server exited (user Ctrl-C'd, or error); print manual instructions as fallback.
+		console.log(`\n  ${cyan(`cd ${projectName}`)}\n  ${cyan(`${pm} run dev`)}\n`);
 	}
 }
 

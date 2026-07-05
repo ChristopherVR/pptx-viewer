@@ -1,5 +1,5 @@
-import { existsSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import { installCommand } from './package-manager';
 import type { PackageManager } from './package-manager';
@@ -43,10 +43,13 @@ export async function scaffoldProject(
 	pm: PackageManager,
 	cwd: string,
 ): Promise<ScaffoldResult> {
+	// Run the scaffolder silently: its "Done. Now run: cd ..." messages are
+	// confusing because our own post-scaffold steps haven't completed yet.
 	const scaffoldExit = await runCommand(
 		'npx',
 		['--yes', recipe.command, ...recipe.args(projectName)],
 		cwd,
+		{ silent: true },
 	);
 	if (scaffoldExit !== 0) {
 		throw new Error(`${recipe.command} exited with code ${scaffoldExit}`);
@@ -56,6 +59,15 @@ export async function scaffoldProject(
 	const patchedFile = findEntryFile(projectDir, recipe.entryCandidates);
 	if (patchedFile) {
 		writeFileSync(join(projectDir, patchedFile), recipe.entryContent);
+	}
+
+	// Write any extra files the recipe defines (i18n setup, main.ts overrides, etc.)
+	if (recipe.extraFiles) {
+		for (const [relativePath, content] of Object.entries(recipe.extraFiles)) {
+			const fullPath = join(projectDir, relativePath);
+			mkdirSync(dirname(fullPath), { recursive: true });
+			writeFileSync(fullPath, content);
+		}
 	}
 
 	if (recipe.extraPackages.length > 0) {
