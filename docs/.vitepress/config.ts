@@ -14,6 +14,28 @@ export default defineConfig({
 	cleanUrls: true,
 	ignoreDeadLinks: true,
 
+	locales: {
+		root: {
+			label: 'English',
+			lang: 'en-US',
+		},
+		fr: {
+			label: 'Français',
+			lang: 'fr-FR',
+			link: '/fr/',
+		},
+		es: {
+			label: 'Español',
+			lang: 'es-ES',
+			link: '/es/',
+		},
+		de: {
+			label: 'Deutsch',
+			lang: 'de-DE',
+			link: '/de/',
+		},
+	},
+
 	head: [
 		['meta', { name: 'theme-color', content: '#d35400' }],
 		['meta', { property: 'og:type', content: 'website' }],
@@ -52,7 +74,7 @@ export default defineConfig({
 			{ text: 'Contributing', link: '/contributing/development', activeMatch: '/contributing/' },
 			{ text: 'Releases', link: '/releases/', activeMatch: '/releases/' },
 			{
-				text: 'v1.x',
+				text: 'Resources',
 				items: [
 					{
 						text: 'Release Notes',

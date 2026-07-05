@@ -180,18 +180,12 @@ Unlike React/Vue, `translationsEn`, `keyToLabel`, and the `TranslationKey` type 
 
 ## Limitations
 
-The Angular package has reached functional parity with the React package: all 11
-element types render; the full Tailwind 4 Office ribbon is wired; editing
-(including slide master/layout template editing), presentation, export,
-collaboration, comments, and mobile chrome all work. The remaining items are
-polish/cosmetic, not behavioural gaps:
-
-- **Pixel-level cosmetic differences** - Some toolbar controls are not pixel-
-  identical to their React counterparts (spacing, split-button affordances,
-  dropdown chrome).
 - **3D models need the Three.js peer** - GLB/GLTF models render interactively when
   the optional `three` peer dependency is installed, and fall back to their poster
-  image otherwise (the same as the React package).
+  image otherwise.
+- **CSS-rendering approximations** - A handful of effects (`backdrop-filter`, path
+  gradients) are approximated on screen, and a few effects flatten in raster
+  export; see the root README's Limitations for details.
 
 The `pptx-viewer-core` engine parses all element data, so you can access it from
 the model even where the UI does not expose it yet.

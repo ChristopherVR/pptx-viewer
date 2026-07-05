@@ -3,6 +3,7 @@
 	"version": "1.1.48",
 	"description": "PowerPoint PPTX engine: parse, edit, serialize, and convert .pptx files. Framework-agnostic TypeScript SDK.",
 	"keywords": [
+		"angular",
 		"converter",
 		"markdown",
 		"office",
@@ -13,10 +14,12 @@
 		"ppt",
 		"pptx",
 		"presentation",
+		"react",
 		"sdk",
 		"serializer",
 		"slides",
-		"typescript"
+		"typescript",
+		"vue"
 	],
 	"homepage": "https://github.com/ChristopherVR/pptx-viewer",
 	"bugs": {

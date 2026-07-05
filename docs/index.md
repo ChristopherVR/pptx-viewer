@@ -140,7 +140,6 @@ Before adopting the library, read the [full limitations page](/guide/limitations
 
 - **OLE objects are read-only** - embedded Excel/Word content can be displayed and downloaded but not edited in place
 - **CSS rendering approximates some effects** - backdrop-filter and path gradients are approximated on screen; more effects flatten in raster export
-- **Vue / Angular are at parity with React** - editing, presenter mode, export, dialogs, and table/SmartArt/chart editing are available in all three bindings; remaining differences are cosmetic
 - **EMF/WMF on Canvas only** - the EMF converter requires `HTMLCanvasElement` or `OffscreenCanvas`; pure Node.js needs a canvas polyfill
 
 ## Extending the viewer

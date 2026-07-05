@@ -33,6 +33,7 @@ The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www
 - **Export**: PNG, PDF, GIF, and WebM video; print; Save As (pptx/ppsx/pptm).
 - **Collaboration**: real-time Yjs-based co-editing with cursor/selection presence.
 - **Comments, find/replace, accessibility panel, version history**, and more.
+- **Mobile chrome**: touch toolbar, bottom bar with sheets, and touch editing.
 - **Slide navigation**: live thumbnail previews, previous/next, and a slide counter.
 - **Zoom**: in, out, and reset.
 - **Themeable**: change colours through CSS custom properties.
@@ -200,17 +201,10 @@ Switch languages with `i18n.global.locale.value = 'fr'`. `pptx-vue-viewer/i18n` 
 
 ## Limitations
 
-The Vue package is at functional parity with the React package across the
-editing, rendering, and presentation surface: secondary/log/display-unit chart
-axes (with trendlines, error bars, and data tables), real CSS-3D extruded faces,
-image `clrChange` chroma-key and shape `effectDag` duotone, interactive GLB/GLTF
-3D models, slide master/layout template editing, and zoom tiles that show the
-target slide's background, number, and section name (matching React; as in React,
-the tile is a styled summary rather than a live re-render of the target slide).
+A handful of effects (`backdrop-filter`, path gradients) are approximated on
+screen, and a few effects flatten in raster export; see the root README's
+Limitations for details.
 
-The only differences from React are the CSS-rendering approximations the two
-share by design (see the root README's Limitations: `backdrop-filter` and path
-gradients are approximated on screen, and a few effects flatten in raster export).
 The `pptx-viewer-core` engine parses all slide data, so anything not surfaced in
 the UI is still readable from the model.
 

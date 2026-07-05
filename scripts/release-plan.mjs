@@ -192,25 +192,23 @@ function taggedVersions(npmName) {
 
 /**
  * Per-package baseline ref to diff against: the newest `<npmName>@*` tag that is
- * an ancestor of HEAD (and not HEAD itself). Falls back to null (first release).
+ * an ancestor of HEAD. Falls back to null (first release).
+ *
+ * A tag that points AT HEAD is a valid baseline: it yields an empty diff, which
+ * is exactly what we want for an already-released HEAD (no re-release). Skipping
+ * it would fall back to the previous release commit, whose diff always contains
+ * the last release's own version/changelog bump and would re-trigger a release
+ * on every scheduled run.
  */
 function baselineTag(npmName) {
-	const headSha = git(['rev-parse', 'HEAD']);
 	const tags = git(['tag', '--list', `${npmName}@*`, '--sort=-version:refname'])
 		.split('\n')
 		.map((t) => t.trim())
 		.filter((t) => /^.+@\d+\.\d+\.\d+$/u.test(t));
 	for (const tag of tags) {
-		let sha;
 		try {
-			sha = git(['rev-list', '-n', '1', tag]);
-		} catch {
-			continue;
-		}
-		if (sha === headSha) {
-			continue;
-		}
-		try {
+			// `--is-ancestor` treats a commit as its own ancestor, so a tag on HEAD
+			// qualifies and produces the desired empty diff.
 			git(['merge-base', '--is-ancestor', tag, 'HEAD']);
 			return tag;
 		} catch {
@@ -231,12 +229,57 @@ function isPublishedFile(path) {
 	return true;
 }
 
+/**
+ * True if the only difference in a JSON file between `base` and HEAD is its
+ * top-level `version` field. Used to ignore the version bump that the release
+ * commit writes into each released package's package.json.
+ */
+function isVersionOnlyChange(path, base) {
+	if (!base) {
+		return false;
+	}
+	let before;
+	let after;
+	try {
+		before = git(['show', `${base}:${path}`]);
+		after = git(['show', `HEAD:${path}`]);
+	} catch {
+		return false; // added/removed on one side -> treat as a real change
+	}
+	try {
+		const a = JSON.parse(before);
+		const b = JSON.parse(after);
+		delete a.version;
+		delete b.version;
+		return JSON.stringify(a) === JSON.stringify(b);
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * True if `path` is a release-generated artifact that must not, on its own,
+ * force a re-release: a generated CHANGELOG.md, or a package.json whose only
+ * change since `base` is its `version` field (the release commit's bump).
+ * Without this, the previous release commit's own edits fall inside the next
+ * run's diff window and re-trigger a release on every scheduled run.
+ */
+function isReleaseArtifact(path, base) {
+	if (/(?:^|\/)CHANGELOG\.md$/u.test(path)) {
+		return true;
+	}
+	if (/(?:^|\/)package\.json$/u.test(path)) {
+		return isVersionOnlyChange(path, base);
+	}
+	return false;
+}
+
 function changedFiles(base) {
 	const out = base ? git(['diff', '--name-only', `${base}..HEAD`]) : git(['ls-files']);
 	return out
 		.split('\n')
 		.map((f) => f.trim())
-		.filter((f) => f.length > 0 && isPublishedFile(f));
+		.filter((f) => f.length > 0 && isPublishedFile(f) && !isReleaseArtifact(f, base));
 }
 
 function dirTouched(files, dir) {
