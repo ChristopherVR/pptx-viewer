@@ -199,7 +199,7 @@ export function getTextBlockStyle(el: PptxElement): CSSProperties {
 		flexDirection: 'column',
 		width: '100%',
 		height: '100%',
-		overflow: 'hidden',
+		overflow: 'visible',
 		whiteSpace: 'pre-wrap',
 		wordBreak: 'break-word',
 		paddingTop: px(bodyTop),

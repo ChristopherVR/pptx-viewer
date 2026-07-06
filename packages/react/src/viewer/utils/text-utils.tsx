@@ -181,7 +181,7 @@ export function getTextStyleForElement(
 		paddingLeft: bodyLeft + (element.textStyle?.paragraphMarginLeft || 0),
 		paddingRight: bodyRight + (element.textStyle?.paragraphMarginRight || 0),
 		textIndent: element.textStyle?.paragraphIndent || 0,
-		overflow: element.textStyle?.autoFit ? 'hidden' : undefined,
+		overflow: 'visible',
 		writingMode,
 		textOrientation,
 		...(element.textStyle?.textWrap === 'none'
