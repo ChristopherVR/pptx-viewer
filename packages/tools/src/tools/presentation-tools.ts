@@ -4,9 +4,7 @@ import type { ToolContext, ToolResult } from '../types.js';
 
 // ── getPresentationProperties ────────────────────────────────────────────────
 
-export function getPresentationProperties(
-	ctx: ToolContext,
-): ToolResult<{
+export function getPresentationProperties(ctx: ToolContext): ToolResult<{
 	properties: PptxPresentationProperties | undefined;
 	slideCount: number;
 	width?: number;

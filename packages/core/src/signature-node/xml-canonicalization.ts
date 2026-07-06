@@ -63,5 +63,11 @@ export function canonicalizeSignedInfoXml(signedInfoXml: string): string {
 	if (!signedInfoDoc.documentElement) {
 		throw new Error('Unable to canonicalize SignedInfo: invalid XML.');
 	}
-	return canonicalizeNode(signedInfoDoc.documentElement, 'http://www.w3.org/2001/10/xml-exc-c14n#');
+	// Cast via unknown: @xmldom/xmldom's Element type lacks standard addEventListener/
+	// dispatchEvent/removeEventListener from lib.dom.d.ts Node, but is structurally
+	// compatible at runtime with what xml-crypto's getCanonXml expects.
+	return canonicalizeNode(
+		signedInfoDoc.documentElement as unknown as Node,
+		'http://www.w3.org/2001/10/xml-exc-c14n#',
+	);
 }
