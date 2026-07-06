@@ -21,11 +21,12 @@ import {
 	getFirstDescendantElementByLocalName,
 	getNodeLocalName,
 } from './xml-canonicalization';
+import type { XmlDocument, XmlElement } from './xml-canonicalization';
 
 /**
  * Parse `<ds:Transform>` elements from a `<ds:Reference>` node.
  */
-export function extractReferenceTransforms(referenceNode: Element): ParsedReferenceTransform[] {
+export function extractReferenceTransforms(referenceNode: XmlElement): ParsedReferenceTransform[] {
 	const transforms: ParsedReferenceTransform[] = [];
 	const transformNodes = referenceNode.getElementsByTagNameNS(XMLDSIG_NS, 'Transform');
 	for (let index = 0; index < transformNodes.length; index += 1) {
@@ -68,13 +69,14 @@ function applyRelationshipTransform(
 	try {
 		const parser = new DOMParser();
 		const serializer = new XMLSerializer();
-		const doc = parser.parseFromString(xmlText, 'text/xml');
+		const doc = parser.parseFromString(xmlText, 'text/xml') as unknown as XmlDocument;
 		const relationshipsRoot = getFirstDescendantElementByLocalName(doc, 'Relationships');
 		if (!relationshipsRoot) {
 			return undefined;
 		}
 		if (relationshipIds.length === 0) {
-			return serializer.serializeToString(doc);
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			return serializer.serializeToString(doc as any);
 		}
 		const idSet = new Set<string>(relationshipIds);
 		const relationshipNodes = Array.from(relationshipsRoot.getElementsByTagName('*')).filter(
@@ -86,7 +88,8 @@ function applyRelationshipTransform(
 				relationshipNode.parentNode?.removeChild(relationshipNode);
 			}
 		}
-		return serializer.serializeToString(doc);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		return serializer.serializeToString(doc as any);
 	} catch {
 		return undefined;
 	}
@@ -126,15 +129,12 @@ export function applyReferenceTransforms(
 			const doc = parser.parseFromString(
 				Buffer.from(transformedBytes).toString('utf8'),
 				'text/xml',
-			);
+			) as unknown as XmlDocument;
 			if (!doc.documentElement) {
 				unsupportedAlgorithms.push(transform.algorithm);
 				continue;
 			}
-			const canonical = canonicalizeNode(
-				doc.documentElement as unknown as Node,
-				transform.algorithm,
-			);
+			const canonical = canonicalizeNode(doc.documentElement, transform.algorithm);
 			transformedBytes = new Uint8Array(Buffer.from(canonical, 'utf8'));
 		} catch {
 			unsupportedAlgorithms.push(transform.algorithm);

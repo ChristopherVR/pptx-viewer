@@ -18,6 +18,7 @@ import type {
 } from '../core/utils/signature-types';
 import { certPemFromBase64 } from './pki-validation';
 import { canonicalizeNode } from './xml-canonicalization';
+import type { XmlDocument } from './xml-canonicalization';
 
 /** Extract certificate metadata from a Base64-encoded DER certificate. */
 export function certificateInfoFromBase64(
@@ -99,7 +100,7 @@ export function verifySignatureValue(
 ): 'verified' | 'invalid' | 'not-checked' {
 	try {
 		const parser = new DOMParser();
-		const doc = parser.parseFromString(signatureXml, 'text/xml');
+		const doc = parser.parseFromString(signatureXml, 'text/xml') as unknown as XmlDocument;
 		const signatureNode = doc.getElementsByTagNameNS(XMLDSIG_NS, 'Signature')[0];
 		if (!signatureNode) {
 			return 'not-checked';
@@ -126,10 +127,7 @@ export function verifySignatureValue(
 		if (!verifyAlgorithm) {
 			return 'invalid';
 		}
-		const canonicalSignedInfo = canonicalizeNode(
-			signedInfoNode as unknown as Node,
-			canonicalizationMethod,
-		);
+		const canonicalSignedInfo = canonicalizeNode(signedInfoNode, canonicalizationMethod);
 		const signatureValueBase64 = signatureValueNode.textContent?.replace(/\s+/g, '').trim() ?? '';
 		if (signatureValueBase64.length === 0) {
 			return 'invalid';

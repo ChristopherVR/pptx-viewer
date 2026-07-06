@@ -19,6 +19,7 @@ import { resolveReferenceUriToPart } from '../core/utils/signature-reference-uti
 import type { SignatureReferenceCheck } from '../core/utils/signature-types';
 import { extractReferenceTransforms, applyReferenceTransforms } from './reference-transforms';
 import { getFirstDescendantElementByLocalName } from './xml-canonicalization';
+import type { XmlDocument } from './xml-canonicalization';
 
 /**
  * Compute a Base64-encoded digest using Node.js `crypto` (synchronous).
@@ -42,7 +43,7 @@ export async function buildReferenceChecksFromSignatureXml(
 	signatureXml: string,
 ): Promise<SignatureReferenceCheck[]> {
 	const parser = new DOMParser();
-	const doc = parser.parseFromString(signatureXml, 'text/xml');
+	const doc = parser.parseFromString(signatureXml, 'text/xml') as unknown as XmlDocument;
 	const referenceNodes = doc.getElementsByTagNameNS(XMLDSIG_NS, 'Reference');
 	const checks: SignatureReferenceCheck[] = [];
 	for (let index = 0; index < referenceNodes.length; index += 1) {
