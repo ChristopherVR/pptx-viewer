@@ -90,5 +90,4 @@ for (const element of slide.elements) {
 
 ## Lectures connexes
 
-- [Concepts fondamentaux](/fr/guide/concepts) - unites EMU et chaine de resolution de theme.
 - [Architecture](/fr/guide/architecture) - comment `PptxData` est produit.

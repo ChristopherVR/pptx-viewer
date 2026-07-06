@@ -43,8 +43,8 @@ features:
   - icon: "\U0001F3A8"
     title: Rendu fidele
     details: 187+ formes prefinies, 23 types de graphiques, SmartArt, animations, transitions morphe, metafichiers EMF/WMF, polices incorporees et modeles 3D - rendus avec HTML, CSS et SVG.
-    link: /guide/concepts
-    linkText: Concepts fondamentaux
+    link: /guide/data-model
+    linkText: Le modele PptxData
   - icon: "\U0001F916"
     title: Outils MCP et IA
     details: 25 fonctions d'outils pures, schemas Zod et un serveur MCP pour que les agents IA (Claude, Cursor, Copilot) puissent lire, ecrire et transformer des fichiers PPTX.

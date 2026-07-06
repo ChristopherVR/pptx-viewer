@@ -62,5 +62,4 @@ La contrepartie est documentee dans les [Limitations](/fr/guide/limitations).
 
 ## Lectures connexes
 
-- [Concepts fondamentaux](/fr/guide/concepts) - unites EMU et modele d'elements.
 - [Le modele PptxData](/fr/guide/data-model) - la structure des donnees analysees.

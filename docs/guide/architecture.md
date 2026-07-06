@@ -1,144 +1,96 @@
 ---
 title: Architecture
-description: The layered architecture of pptx-viewer - viewer bindings, core engine, the mixin-composition runtime, and the load/save pipelines.
+description: How pptx-viewer is structured - the relationship between framework bindings, the shared rendering layer, and the core engine.
 ---
 
 # Architecture
 
-`pptx-viewer` is organized as a layered stack. The framework bindings (React, Vue 3, Angular) render and edit; the core engine parses, mutates, and serializes; and two external npm dependencies (`emf-converter`, `mtx-decompressor`) handle binary metafile and font formats. Each layer depends only on the layer below it.
+`pptx-viewer` is a layered system. Framework bindings (React, Vue 3, Angular) handle the UI; a shared rendering layer provides framework-agnostic logic; and the core engine handles everything related to parsing, editing, and saving PowerPoint files. Each layer depends only on the one below it.
 
-## High-level architecture
+## Overview
 
-```
-+-------------------------------------------------------------------+
-|            Binding Packages (React / Vue 3 / Angular)              |
-|                                                                    |
-|  +----------------+  +--------------+  +------------------------+  |
-|  | PowerPoint     |  | SlideCanvas  |  |   Inspector/Toolbar    |  |
-|  |   Viewer       |--|  + Elements  |  |   + Dialogs            |  |
-|  | (orchestrator) |  |  Rendering   |  |   (editing UI)         |  |
-|  +-------+--------+  +--------------+  +------------------------+  |
-|          |                                                         |
-|  +-------+-----------------------------------------------------+  |
-|  |              Hooks Layer (67+ custom hooks)                  |  |
-|  |  State, editing, loading, interaction, presentation,        |  |
-|  |  export, collaboration, comments, find/replace, ...         |  |
-|  +-------------------------------------------------------------+  |
-+---------------------------+---------------------------------------+
-                            | imports
-+---------------------------+---------------------------------------+
-|                   Core Package (pptx-viewer-core)                 |
-|                                                                   |
-|  +----------------+  +------------------+  +-------------------+  |
-|  | PptxHandler    |  |   Converter      |  |    Services       |  |
-|  | (public API)   |  | (PPTX -> MD)     |  | (animation,       |  |
-|  +-------+--------+  +------------------+  |  loader, crypto)  |  |
-|          |                                 +-------------------+  |
-|  +-------+-------------------------------+                        |
-|  |              Runtime Layer            |                        |
-|  |  PptxHandlerRuntime -- 50+ mixin      |                        |
-|  |  modules for parsing, serializing,    |                        |
-|  |  theme resolution, element processing |                        |
-|  +-------+-------------------------------+                        |
-|          |                                                        |
-|  +-------+----------------------------------------------------+  |
-|  |  +---------+  +----------+  +---------+  +----------+       |  |
-|  |  |  Types  |  | Geometry |  |  Color  |  | Builders |       |  |
-|  |  | System  |  |  Engine  |  |  Engine |  | (SDK)    |       |  |
-|  |  +---------+  +----------+  +---------+  +----------+       |  |
-|  +------------------------------------------------------------+  |
-+---------------------------+---------------------------------------+
-                            | imports
-+---------------------------+---------------------------------------+
-|        emf-converter (external npm dependency)                    |
-|  Binary EMF/WMF parsing -> GDI record replay -> Canvas -> PNG     |
-+------------------------------------------------------------------+
-+------------------------------------------------------------------+
-|      mtx-decompressor (external npm dependency)                  |
-|  EOT/MTX compressed fonts -> LZ decompression -> CTF -> TrueType |
-+------------------------------------------------------------------+
+```mermaid
+graph TD
+    subgraph Bindings["Framework Bindings"]
+        React["React<br/><small>pptx-react-viewer</small>"]
+        Vue["Vue 3<br/><small>pptx-vue-viewer</small>"]
+        Angular["Angular<br/><small>pptx-angular-viewer</small>"]
+    end
+
+    Shared["Shared Rendering Layer<br/><small>pptx-viewer-shared</small><br/><small>Geometry, styles, gradients, charts, connectors</small>"]
+
+    subgraph Core["Core Engine"]
+        Handler["PptxHandler<br/><small>Public API</small>"]
+        Runtime["Runtime<br/><small>Parsing, serialization,<br/>theme resolution</small>"]
+        Subsystems["Types, Geometry, Colour,<br/>Builders, Converter"]
+    end
+
+    React --> Shared
+    Vue --> Shared
+    Angular --> Shared
+    Shared --> Handler
+    Handler --> Runtime
+    Runtime --> Subsystems
 ```
 
-- **Binding packages** - purely presentational views driven by shared logic (`pptx-viewer-shared`, bundled at build time). In React, `PowerPointViewer` is a forwardRef orchestrator over 67+ custom hooks; the Vue and Angular bindings mirror the same structure. Slides render as scaled HTML/SVG using CSS transforms rather than Canvas.
-- **Core package** - the framework-agnostic engine. The `PptxHandler` facade is the public entry point; everything else (runtime, converter, services, types, geometry, colour, builders) sits beneath it.
-- **emf-converter / mtx-decompressor** - external npm packages the core engine calls to rasterize EMF/WMF metafiles and decompress embedded MicroType Express fonts. They live in their own repositories.
+## Framework bindings
 
-## Mixin-composition runtime
+The binding packages are thin presentation layers. They consume pre-computed rendering data from `pptx-viewer-shared` and translate it into framework-specific templates (JSX, Vue SFCs, Angular components). Slides render as scaled HTML/SVG with CSS transforms, giving sharp text at any zoom, native accessibility, and full DOM interactivity.
 
-The heart of the core engine is `PptxHandlerRuntime`, assembled from **50+ focused mixin modules**. Each module (`PptxHandlerRuntime*.ts`) adds one concern - XML parsing, theme resolution, a specific element type's parsing, serialization, save-pipeline steps, and so on.
+Each binding exposes a top-level viewer/editor component that orchestrates state, editing, loading, export, collaboration, and presentation mode through composable hooks or services.
 
-The public surface narrows progressively:
+## Shared rendering layer
 
-```
-PptxHandler            (public facade - the class you instantiate)
-  └── PptxHandlerCore  (facade over the runtime)
-        └── PptxHandlerRuntime
-              ↑ composed from 50+ mixins:
-              · load pipeline      · save pipeline
-              · theme resolution   · per-element parsing
-              · per-element saving  · media/chart/SmartArt extraction
-              · …
-```
+Most of the rendering logic is not framework-specific: geometry calculations, style/colour/gradient resolution, text and paragraph building, chart axis maths, connector routing, and export data preparation. All of this lives in `pptx-viewer-shared` and is imported identically by every binding. This ensures feature parity across React, Vue, and Angular without duplicating code.
 
-This keeps each concern isolated and individually testable. New capabilities - including new element types - are added as new mixins rather than by growing a monolithic class. See [Adding a new element type](/contributing/adding-element-type) for the end-to-end checklist.
+## Core engine (`pptx-viewer-core`)
 
-## Load pipeline
+The core package is entirely framework-agnostic. It runs in any JavaScript environment: browser, Node.js, Web Worker, or serverless function. Its public entry point is `PptxHandler`.
 
-`handler.load(buffer)` turns a raw `ArrayBuffer` into the structured [`PptxData`](/guide/data-model) model:
+Internally the engine is composed from many focused modules, each responsible for one concern (e.g. parsing a specific element type, resolving theme colours, serializing relationships). This modular design keeps each piece isolated and testable.
 
-```
-ArrayBuffer
-   │  detectFileFormat() - and decrypt if password-protected
-   ▼
-JSZip.loadAsync()                 (ZIP opened in memory)
-   │
-   ▼
-Parse [Content_Types].xml + ppt/presentation.xml
-   │
-   ▼
-fast-xml-parser  (XML → JS object trees)
-   │
-   ▼
-Resolve themes → slide masters → layouts
-   │
-   ▼
-Parse each slide's elements (text, shapes, images, tables, charts, …)
-   │
-   ▼
-PptxData  { slides, theme, masters, metadata, … }
+### How loading works
+
+```mermaid
+flowchart LR
+    A[".pptx file<br/>(ArrayBuffer)"] --> B["Unzip"]
+    B --> C["Parse XML"]
+    C --> D["Resolve themes,<br/>masters, layouts"]
+    D --> E["Parse slide<br/>elements"]
+    E --> F["PptxData"]
 ```
 
-Strict (ISO/IEC 29500) files are normalized to Transitional (ECMA-376) namespaces on load and converted back on save, so most files round-trip losslessly.
+1. The `.pptx` file (a ZIP archive) is opened in memory.
+2. XML parts are parsed into JavaScript objects.
+3. Themes, slide masters, and layouts are resolved to build the style inheritance chain.
+4. Each slide's shape tree is parsed into typed element objects.
+5. The result is a structured [`PptxData`](/guide/data-model) model you can inspect, edit, and render.
 
-## Save pipeline
+Password-protected files are detected and decrypted automatically when a password is provided.
 
-`handler.save(slides)` reverses the process, producing a valid `.pptx` archive:
+### How saving works
 
+```mermaid
+flowchart LR
+    A["PptxSlide[]"] --> B["Serialize elements<br/>to OpenXML"]
+    B --> C["Rebuild relationships<br/>and content types"]
+    C --> D["Generate ZIP"]
+    D --> E[".pptx file<br/>(Uint8Array)"]
 ```
-PptxSlide[]
-   │  serialize each element to OpenXML (per-type save writers)
-   ▼
-Rebuild relationships (.rels) + [Content_Types].xml
-   │
-   ▼
-JSZip.generateAsync()
-   ▼
-Uint8Array  (a valid .pptx file)
-```
+
+Saving reverses the load process: elements are serialized back to OpenXML, relationships and content types are rebuilt, and the result is packaged into a valid `.pptx` ZIP archive.
 
 ## Key design decisions
 
-| Decision                              | Rationale                                                                                                     |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **CSS-based rendering** (not Canvas)  | Sharp text at any zoom, native accessibility, DOM interactivity, and standard CSS styling.                    |
-| **Mixin composition** for the runtime | 50+ focused modules keep each concern isolated and testable; new capabilities are added as new mixins.        |
-| **Discriminated union** for elements  | TypeScript narrows to the correct element type via the `type` field - no casting needed.                      |
-| **EMU units** internally              | PowerPoint uses English Metric Units (1 inch = 914,400 EMU). Conversion constants live in `constants.ts`.     |
-| **Theme resolution chain**            | Element → Placeholder → Layout → Master → Theme mirrors PowerPoint's own style inheritance.                   |
-| **Deferred image processing**         | EMF/WMF record replay is synchronous for performance; bitmap draws are collected and resolved asynchronously. |
+| Decision                             | Rationale                                                                                                                                                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CSS-based rendering** (not Canvas) | Sharp text at any zoom, native accessibility, DOM interactivity, and standard CSS styling.                                                                                            |
+| **Modular engine**                   | Many small, focused modules keep each concern isolated and testable. New capabilities (including new element types) are added as new modules.                                         |
+| **Discriminated union for elements** | TypeScript narrows to the correct element type via the `type` field, giving full type safety with no casting.                                                                         |
+| **Theme resolution chain**           | Element, Placeholder, Layout, Master, Theme mirrors PowerPoint's own style inheritance.                                                                                               |
+| **EMU units internally**             | PowerPoint uses English Metric Units (1 inch = 914,400 EMU). Parsed elements expose approximate pixel values for convenience; exact EMU values are preserved for round-trip fidelity. |
 
 ## Related reading
 
-- [Core Concepts](/guide/concepts) - EMU units, the element model, and theme resolution in depth.
-- [The PptxData Model](/guide/data-model) - the full shape of a parsed presentation.
+- [The PptxData Model](/guide/data-model) - the full shape of a parsed presentation, element types, and units.
 - [Core package overview](/core/) - the public API reference.

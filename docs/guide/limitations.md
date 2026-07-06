@@ -29,8 +29,6 @@ Slides render as HTML/CSS rather than Canvas, giving sharp text at any zoom, nat
 - **Raster export fidelity** - PNG/JPEG/PDF export goes through `html2canvas`, which cannot reproduce `backdrop-filter`, CSS custom properties, or CSS 3D transforms; approximations are applied and some fidelity is lost. Use the SVG export for a vector alternative.
 - **Maximum export resolution** - canvas exports are capped by the browser's maximum canvas size (typically 16384 or 32768 pixels per side).
 - **Small screens** - the UI adapts down to ~360px phones, but the most data-dense panels (for example the full chart editor) are best used on a tablet or larger.
-- **3D models need `three`** - GLB/GLTF elements (and 3D surface charts) require the optional `three` peer dependency; without it they fall back to a poster image. See [Installation](/guide/installation#optional-peer-dependencies).
-- **Collaboration** - concurrent edits to the _same_ text run resolve last-writer-wins for that run. The serverless `webrtc` transport works without infrastructure only within one browser; cross-device peer-to-peer needs reachable signaling/STUN, and production sessions should self-host a `y-websocket`/Hocuspocus relay.
 
 ## EMF/WMF metafiles (`emf-converter` dependency)
 

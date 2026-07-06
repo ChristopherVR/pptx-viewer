@@ -58,5 +58,4 @@ La contrapartida esta documentada en las [Limitaciones](/es/guide/limitations).
 
 ## Lecturas relacionadas
 
-- [Conceptos fundamentales](/es/guide/concepts)
 - [El modelo PptxData](/es/guide/data-model)

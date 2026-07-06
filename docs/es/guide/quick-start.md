@@ -103,4 +103,3 @@ function App() {
 - [Descripcion del paquete Core](/core/) - las APIs completas de handler, builder y converter.
 - [Descripcion del paquete React](/react/) - props del visualizador, edicion, presentacion y exportacion.
 - [El modelo PptxData](/es/guide/data-model) - la estructura de las presentaciones analizadas.
-- [Conceptos fundamentales](/es/guide/concepts) - unidades EMU, modelo de elementos y resolucion de tema.

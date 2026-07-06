@@ -103,4 +103,3 @@ function App() {
 - [Core-Paket-Uberblick](/core/) - die vollstandigen Handler-, Builder- und Converter-APIs.
 - [React-Paket-Uberblick](/react/) - Viewer-Props, Bearbeitung, Prasentation und Export.
 - [Das PptxData-Modell](/de/guide/data-model) - die Struktur analysierter Prasentation.
-- [Grundlegende Konzepte](/de/guide/concepts) - EMU-Einheiten, Elementmodell und Design-Auflosung.

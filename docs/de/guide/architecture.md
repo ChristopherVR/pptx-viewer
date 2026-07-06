@@ -58,5 +58,4 @@ Der Kompromiss ist in den [Einschrankungen](/de/guide/limitations) dokumentiert.
 
 ## Weiterfuhrend
 
-- [Grundlegende Konzepte](/de/guide/concepts)
 - [Das PptxData-Modell](/de/guide/data-model)
