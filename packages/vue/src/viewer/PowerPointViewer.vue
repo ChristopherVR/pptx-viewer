@@ -505,6 +505,13 @@ function onEscape(): void {
 }
 
 /** Click-to-select via event delegation (elements render `data-element-id`). */
+// ── Touch double-tap detection (mirrors React/Angular canvas-level detection) ──
+// On mobile, native `dblclick` is not reliably synthesised from two quick taps.
+// We track the last touch tap by element id + coordinates and, when a second tap
+// lands within DOUBLE_TAP_MS on the same element, treat it as a double-tap.
+const DOUBLE_TAP_MS = 400;
+const lastCanvasTap = ref<{ id: string; time: number; x: number; y: number } | null>(null);
+
 function onCanvasPointerDown(event: PointerEvent): void {
 	if (!props.canEdit) {
 		return;
@@ -516,6 +523,87 @@ function onCanvasPointerDown(event: PointerEvent): void {
 	// turns on edit-template mode; a click on a locked one behaves like an
 	// empty-canvas click (no select / drag / inline-edit).
 	const id = hitId && isElementIdInteractive(hitId, editTemplateMode.value) ? hitId : undefined;
+
+	// On touch, if a table cell is being edited and the tap did NOT land inside
+	// the cell input itself (the input stops its own pointerdown), the
+	// TableRenderer's document-level pointerdown listener handles blur/commit.
+	// (See TableRenderer.vue: docListener.)
+
+	// Touch double-tap detection: two quick taps on the same element (or close
+	// enough coordinates that the element didn't move) trigger inline/cell edit.
+	// Mouse presses are excluded — desktop uses native dblclick.
+	if (event.pointerType !== 'mouse') {
+		const now = event.timeStamp || Date.now();
+		const last = lastCanvasTap.value;
+
+		// Resolve the element id: prefer the event target's ancestry, but fall
+		// back to elementFromPoint (covers cases where an overlay div intercepts).
+		const hitEl = document.elementFromPoint(event.clientX, event.clientY);
+		const hitHost = (hitEl?.closest('[data-element-id]') ??
+			target?.closest('[data-element-id]')) as HTMLElement | null;
+		const hitElementId = hitHost?.dataset.elementId;
+		const resolvedId =
+			hitElementId && isElementIdInteractive(hitElementId, editTemplateMode.value)
+				? hitElementId
+				: id;
+
+		// On the second tap, match against the first tap's element. Layout may
+		// shift between taps (selection causing fitScale change), so the second
+		// tap might not resolve to ANY element. Use proximity + the stored id.
+		const TAP_DISTANCE = 40; // px tolerance for matching taps after reflow
+		const isSameTarget =
+			last &&
+			now - last.time < DOUBLE_TAP_MS &&
+			(resolvedId === last.id ||
+				(Math.abs(event.clientX - last.x) < TAP_DISTANCE &&
+					Math.abs(event.clientY - last.y) < TAP_DISTANCE));
+
+		if (last && isSameTarget) {
+			lastCanvasTap.value = null;
+			const doubleTapId = resolvedId ?? last.id;
+			const el = findActiveElement(doubleTapId);
+			if (el?.type === 'table') {
+				// For table elements: find the cell under the tap coordinates.
+				// After selection reflow, elementFromPoint may not hit the <td>
+				// directly; search the table element's DOM for the closest cell.
+				const tableHost = document.querySelector(`[data-element-id="${doubleTapId}"]`);
+				const tds = tableHost?.querySelectorAll('td');
+				let closestTd: HTMLElement | null = null;
+				if (tds && tds.length > 0) {
+					let minDist = Infinity;
+					for (const td of tds) {
+						const r = td.getBoundingClientRect();
+						if (r.width === 0 || r.height === 0) continue;
+						const cx = r.left + r.width / 2;
+						const cy = r.top + r.height / 2;
+						const dist = Math.hypot(event.clientX - cx, event.clientY - cy);
+						if (dist < minDist) {
+							minDist = dist;
+							closestTd = td as HTMLElement;
+						}
+					}
+				}
+				if (closestTd) {
+					closestTd.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+					return;
+				}
+			}
+			// For text elements: enter inline text edit.
+			if (doubleTapId) {
+				enterInlineEdit(doubleTapId);
+			}
+			return;
+		}
+		if (resolvedId) {
+			lastCanvasTap.value = { id: resolvedId, time: now, x: event.clientX, y: event.clientY };
+		} else if (last && now - last.time < DOUBLE_TAP_MS) {
+			// Keep the previous tap alive if no element resolved (second tap in
+			// reflowed area); the proximity check above will still match.
+		} else {
+			lastCanvasTap.value = null;
+		}
+	}
+
 	// While inline-editing, a tap elsewhere (another element or empty canvas)
 	// commits the pending edit first (the typed text must be kept).
 	if (inlineEditingElementId.value && id !== inlineEditingElementId.value) {

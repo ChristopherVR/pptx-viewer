@@ -80,7 +80,7 @@ watch(
 	{ immediate: true, deep: true },
 );
 
-function onPointerMove(event: PointerEvent): void {
+function onMouseMove(event: MouseEvent): void {
 	if (!drag) {
 		return;
 	}
@@ -90,7 +90,7 @@ function onPointerMove(event: PointerEvent): void {
 		drag.type === 'col' ? `translateX(${delta}px)` : `translateY(${delta}px)`;
 }
 
-function onPointerUp(event: PointerEvent): void {
+function onMouseUp(event: MouseEvent): void {
 	const container = containerRef.value;
 	if (!drag || !container) {
 		return;
@@ -110,53 +110,81 @@ function onPointerUp(event: PointerEvent): void {
 	drag.handleEl.style.transform = '';
 	document.body.style.cursor = '';
 	document.body.style.userSelect = '';
-	window.removeEventListener('pointermove', onPointerMove);
-	window.removeEventListener('pointerup', onPointerUp);
+	window.removeEventListener('mousemove', onMouseMove);
+	window.removeEventListener('mouseup', onMouseUp);
 	drag = null;
 }
 
-function startColDrag(event: PointerEvent, index: number): void {
-	event.preventDefault();
-	event.stopPropagation();
-	document.body.style.cursor = 'col-resize';
-	document.body.style.userSelect = 'none';
-	drag = {
-		type: 'col',
-		index,
-		startPos: event.clientX,
-		handleEl: event.currentTarget as HTMLElement,
-		initialWidths: [...props.columnWidths],
-	};
-	window.addEventListener('pointermove', onPointerMove);
-	window.addEventListener('pointerup', onPointerUp);
-}
+/** Proximity-based drag initiation: detect clicks near column/row boundaries. */
+const HANDLE_ZONE = 3; // px tolerance for boundary hit detection
+function onContainerMouseDown(event: MouseEvent): void {
+	if (!props.editable) {
+		return;
+	}
+	const container = containerRef.value;
+	if (!container) {
+		return;
+	}
+	const rect = container.getBoundingClientRect();
+	const localX = event.clientX - rect.left;
+	const localY = event.clientY - rect.top;
 
-function startRowDrag(event: PointerEvent, index: number): void {
-	event.preventDefault();
-	event.stopPropagation();
-	const table = containerRef.value?.querySelector('table');
-	const tr = table?.querySelectorAll('tbody > tr')[index] as HTMLElement | undefined;
-	document.body.style.cursor = 'row-resize';
-	document.body.style.userSelect = 'none';
-	drag = {
-		type: 'row',
-		index,
-		startPos: event.clientY,
-		handleEl: event.currentTarget as HTMLElement,
-		initialRowHeight: tr?.offsetHeight ?? DEFAULT_ROW_HEIGHT,
-	};
-	window.addEventListener('pointermove', onPointerMove);
-	window.addEventListener('pointerup', onPointerUp);
+	// Check column boundaries
+	for (let i = 0; i < colBoundaries.value.length; i++) {
+		const boundaryX = (colBoundaries.value[i] / 100) * rect.width;
+		if (Math.abs(localX - boundaryX) <= HANDLE_ZONE) {
+			event.preventDefault();
+			event.stopPropagation();
+			document.body.style.cursor = 'col-resize';
+			document.body.style.userSelect = 'none';
+			drag = {
+				type: 'col',
+				index: i,
+				startPos: event.clientX,
+				handleEl: container,
+				initialWidths: [...props.columnWidths],
+			};
+			window.addEventListener('mousemove', onMouseMove);
+			window.addEventListener('mouseup', onMouseUp);
+			return;
+		}
+	}
+
+	// Check row boundaries
+	for (let i = 0; i < rowBounds.value.length; i++) {
+		if (Math.abs(localY - rowBounds.value[i]) <= HANDLE_ZONE) {
+			event.preventDefault();
+			event.stopPropagation();
+			const table = container.querySelector('table');
+			const tr = table?.querySelectorAll('tbody > tr')[i] as HTMLElement | undefined;
+			document.body.style.cursor = 'row-resize';
+			document.body.style.userSelect = 'none';
+			drag = {
+				type: 'row',
+				index: i,
+				startPos: event.clientY,
+				handleEl: container,
+				initialRowHeight: tr?.offsetHeight ?? DEFAULT_ROW_HEIGHT,
+			};
+			window.addEventListener('mousemove', onMouseMove);
+			window.addEventListener('mouseup', onMouseUp);
+			return;
+		}
+	}
 }
 
 onBeforeUnmount(() => {
-	window.removeEventListener('pointermove', onPointerMove);
-	window.removeEventListener('pointerup', onPointerUp);
+	window.removeEventListener('mousemove', onMouseMove);
+	window.removeEventListener('mouseup', onMouseUp);
 });
 </script>
 
 <template>
-	<div ref="containerRef" class="pptx-vue-table-resize relative h-full w-full">
+	<div
+		ref="containerRef"
+		class="pptx-vue-table-resize relative h-full w-full"
+		@mousedown="onContainerMouseDown"
+	>
 		<slot />
 		<template v-if="editable">
 			<div
@@ -164,7 +192,6 @@ onBeforeUnmount(() => {
 				:key="`col-h-${i}`"
 				class="pptx-vue-table-resize__col group absolute bottom-0 top-0 z-10 w-[6px] cursor-col-resize"
 				:style="{ left: `calc(${leftPct}% - 3px)` }"
-				@pointerdown="startColDrag($event, i)"
 			>
 				<div
 					class="mx-auto h-full w-px bg-transparent transition-colors group-hover:bg-blue-400/60"
@@ -175,7 +202,6 @@ onBeforeUnmount(() => {
 				:key="`row-h-${i}`"
 				class="pptx-vue-table-resize__row group absolute left-0 right-0 z-10 h-[6px] cursor-row-resize"
 				:style="{ top: `${topPx - 3}px` }"
-				@pointerdown="startRowDrag($event, i)"
 			>
 				<div
 					class="my-auto h-px w-full bg-transparent transition-colors group-hover:bg-blue-400/60"
@@ -184,3 +210,18 @@ onBeforeUnmount(() => {
 		</template>
 	</div>
 </template>
+
+<style scoped>
+/*
+ * Resize handles must be transparent to pointer events. They sit above the
+ * table cells (z-10) purely for visual stacking (hover indicator), but mouse
+ * drag initiation is handled by the container's proximity-based mousedown
+ * delegation below. This ensures touch taps always pass through to the
+ * underlying table cells (enabling double-tap-to-edit on mobile) while
+ * keeping the desktop mouse drag-to-resize functional.
+ */
+.pptx-vue-table-resize__col,
+.pptx-vue-table-resize__row {
+	pointer-events: none;
+}
+</style>

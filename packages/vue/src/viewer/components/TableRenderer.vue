@@ -20,7 +20,7 @@ import {
 	getTableCellBandStyle,
 } from 'pptx-viewer-shared';
 import type { ComponentPublicInstance, CSSProperties } from 'vue';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
 import { injectTableCellEdit } from '../composables/table-edit';
@@ -55,6 +55,12 @@ const props = defineProps<{
 	/** Accepted for parity with `ElementRenderer`; unused (no image fills yet). */
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
+	/**
+	 * Whether this table is in an interactive context (main editable canvas).
+	 * When false (e.g. in a slide thumbnail), resize handles and cell editing
+	 * are disabled regardless of the injected editing context.
+	 */
+	interactive?: boolean;
 	/**
 	 * PPTX theme colour scheme from the active presentation theme.
 	 * When supplied, band / header emphasis colours are resolved against
@@ -299,11 +305,48 @@ function setCellInput(el: Element | ComponentPublicInstance | null): void {
 	cellInputRef.value = el instanceof HTMLInputElement ? el : null;
 }
 
-const editingEnabled = computed(() => cellEdit?.canEdit() ?? false);
+const editingEnabled = computed(
+	() => (props.interactive ?? true) && (cellEdit?.canEdit() ?? false),
+);
 
 function isEditing(cell: RenderableCell): boolean {
 	const e = editingCell.value;
 	return e !== null && e.rowIndex === cell.rowIndex && e.colIndex === cell.colIndex;
+}
+
+// ── Touch double-tap detection ────────────────────────────────────────────
+// On mobile, `dblclick` is not reliably synthesised from two quick taps.
+// React/Angular detect the double-tap manually in their canvas pointerdown
+// handler; Vue must do the same per-cell so tapping a cell twice on touch
+// correctly enters inline edit mode.
+const DOUBLE_TAP_MS = 400;
+const lastCellTap = ref<{ rowIndex: number; colIndex: number; time: number } | null>(null);
+
+/** Detect touch double-tap on a cell (native dblclick is unreliable on touch). */
+function onCellPointerDown(event: PointerEvent, cell: RenderableCell): void {
+	if (event.pointerType === 'mouse' || !editingEnabled.value) {
+		return;
+	}
+	const now = event.timeStamp || Date.now();
+	const last = lastCellTap.value;
+	if (
+		last &&
+		last.rowIndex === cell.rowIndex &&
+		last.colIndex === cell.colIndex &&
+		now - last.time < DOUBLE_TAP_MS
+	) {
+		lastCellTap.value = null;
+		event.stopPropagation();
+		enterCellEdit(cell);
+		return;
+	}
+	lastCellTap.value = { rowIndex: cell.rowIndex, colIndex: cell.colIndex, time: now };
+}
+
+/** Enter inline cell editing for the given cell. */
+function enterCellEdit(cell: RenderableCell): void {
+	editText.value = cell.text === ' ' ? '' : cell.text;
+	editingCell.value = { rowIndex: cell.rowIndex, colIndex: cell.colIndex };
 }
 
 /** Double-tap / double-click on a cell enters inline edit mode. */
@@ -312,8 +355,7 @@ function onCellDblClick(event: Event, cell: RenderableCell): void {
 		return;
 	}
 	event.stopPropagation();
-	editText.value = cell.text === ' ' ? '' : cell.text;
-	editingCell.value = { rowIndex: cell.rowIndex, colIndex: cell.colIndex };
+	enterCellEdit(cell);
 }
 
 /** Commit the current edit (called on blur). No-ops if already cancelled. */
@@ -343,17 +385,47 @@ function onCellInputKeydown(event: KeyboardEvent): void {
 
 // Focus + select-all the input as soon as it mounts (mirrors React's
 // TableCellInput useEffect: focus(); select();).
+// Also install a document-level pointerdown listener to commit on tap-away:
+// on mobile, the browser does not reliably blur an <input> when tapping a
+// non-focusable element elsewhere. A global listener ensures the edit is
+// committed regardless of where the tap lands (matching React's behaviour
+// where setPointerCapture on the canvas stage forces blur).
+let docListener: ((e: PointerEvent) => void) | null = null;
+
 watch(editingCell, (cell) => {
-	if (!cell) {
-		return;
-	}
-	void nextTick(() => {
-		const el = cellInputRef.value;
-		if (el) {
-			el.focus();
-			el.select();
+	if (cell) {
+		void nextTick(() => {
+			const el = cellInputRef.value;
+			if (el) {
+				el.focus();
+				el.select();
+			}
+		});
+		// Install document listener to catch taps outside the input
+		if (!docListener) {
+			docListener = (e: PointerEvent) => {
+				if (e.pointerType === 'mouse') return;
+				const input = cellInputRef.value;
+				if (input && !input.contains(e.target as Node)) {
+					input.blur(); // triggers commitCellEdit via @blur
+				}
+			};
+			document.addEventListener('pointerdown', docListener, true);
 		}
-	});
+	} else {
+		// Clean up document listener when editing ends
+		if (docListener) {
+			document.removeEventListener('pointerdown', docListener, true);
+			docListener = null;
+		}
+	}
+});
+
+onBeforeUnmount(() => {
+	if (docListener) {
+		document.removeEventListener('pointerdown', docListener, true);
+		docListener = null;
+	}
 });
 </script>
 
@@ -401,6 +473,7 @@ watch(editingCell, (cell) => {
 							:colspan="cell.colSpan"
 							:rowspan="cell.rowSpan"
 							:style="tdStyle(cell)"
+							@pointerdown="onCellPointerDown($event, cell)"
 							@click="onCellClick($event, cell)"
 							@dblclick="onCellDblClick($event, cell)"
 						>
