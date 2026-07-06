@@ -97,6 +97,7 @@ typings/
 .vite/
 
 public
+!docs/public/
 .temp
 dist/
 start-output.txt

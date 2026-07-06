@@ -21,6 +21,8 @@ Editing is only available when the app is configured with edit mode enabled (the
 
 When something is selected, the **inspector panel** on the right updates to show that element's properties.
 
+![Element selected with resize handles visible](/user-guide/editing-element-selected.jpg)
+
 ## Moving, resizing, and rotating
 
 With an element selected:
@@ -31,6 +33,8 @@ With an element selected:
 
 You can also type exact **position** (X/Y) and **size** (width/height) values into the inspector's element properties for precise placement.
 
+![Dragging and resizing elements](/user-guide/editing-drag-resize.gif)
+
 ## Editing text
 
 - **Double-click** a shape or text box to start editing its text inline. A blinking cursor appears and you can type.
@@ -38,6 +42,8 @@ You can also type exact **position** (X/Y) and **size** (width/height) values in
 - Press **Ctrl/Cmd + Enter** to commit the text edit, or **Escape** to cancel it.
 
 For table cells, double-click a cell to edit its text the same way.
+
+![Inline text editing with cursor active](/user-guide/editing-inline-text.jpg)
 
 ## Adding new elements
 
@@ -54,6 +60,8 @@ Use the **Insert** toolbar tab to add elements to the current slide:
 | **Connector**       | Draw a line/connector between shapes.                                                 |
 
 New elements appear on the slide ready to be moved, resized, and styled.
+
+![Insert tab with element options](/user-guide/editing-insert-tab.jpg)
 
 ## The inspector panel (properties)
 
@@ -72,6 +80,8 @@ The inspector on the right is **context-sensitive** - it changes based on what y
 | **Any element**          | Animations (entrance/emphasis/exit/motion) via the animation panel.        |
 | **The slide**            | Transition type, duration, and advance settings.                           |
 
+![Inspector panel showing element properties](/user-guide/editing-inspector-panel.jpg)
+
 ## Arranging elements
 
 Use the **Arrange** toolbar tab (or right-click context menu) to:
@@ -79,6 +89,8 @@ Use the **Arrange** toolbar tab (or right-click context menu) to:
 - **Group / ungroup** elements so they move together.
 - **Align** and **distribute** multiple selected elements.
 - Change **z-order** (bring to front / send to back).
+
+![Arrange toolbar tab](/user-guide/editing-arrange-tab.jpg)
 
 ## Undo and redo
 
