@@ -66,7 +66,7 @@
 		"pptx-viewer-core": "workspace:*",
 		"rxjs": "^7.8.2",
 		"tailwindcss": "^4.3.1",
-		"three": "^0.185.0",
+		"three": "^0.185.1",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9",
 		"y-webrtc": "^10.3.0",
@@ -79,7 +79,7 @@
 		"@angular/core": "^22.0.1",
 		"@ngx-translate/core": "^18.0.0",
 		"rxjs": "^7.8.0",
-		"three": "^0.185.0",
+		"three": "^0.185.1",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
 		"yjs": "^13.6.31"
