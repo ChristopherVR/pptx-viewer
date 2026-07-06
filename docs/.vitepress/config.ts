@@ -43,7 +43,6 @@ export default defineConfig({
 							{ text: 'MCP et outils', link: '/packages/mcp' },
 						],
 					},
-					{ text: 'Contribuer', link: '/contributing/development', activeMatch: '/contributing/' },
 					{ text: 'Versions', link: '/releases/', activeMatch: '/releases/' },
 					{
 						text: 'Ressources',
@@ -90,7 +89,6 @@ export default defineConfig({
 							{ text: 'MCP y herramientas', link: '/packages/mcp' },
 						],
 					},
-					{ text: 'Contribuir', link: '/contributing/development', activeMatch: '/contributing/' },
 					{ text: 'Versiones', link: '/releases/', activeMatch: '/releases/' },
 					{
 						text: 'Recursos',
@@ -137,7 +135,6 @@ export default defineConfig({
 							{ text: 'MCP und Werkzeuge', link: '/packages/mcp' },
 						],
 					},
-					{ text: 'Mitwirken', link: '/contributing/development', activeMatch: '/contributing/' },
 					{ text: 'Versionen', link: '/releases/', activeMatch: '/releases/' },
 					{
 						text: 'Ressourcen',
@@ -197,7 +194,6 @@ export default defineConfig({
 					{ text: 'MCP & Tools', link: '/packages/mcp' },
 				],
 			},
-			{ text: 'Contributing', link: '/contributing/development', activeMatch: '/contributing/' },
 			{ text: 'Releases', link: '/releases/', activeMatch: '/releases/' },
 			{
 				text: 'Resources',
@@ -230,7 +226,6 @@ export default defineConfig({
 					text: 'Concepts',
 					items: [
 						{ text: 'Architecture', link: '/guide/architecture' },
-						{ text: 'Core Concepts', link: '/guide/concepts' },
 						{ text: 'The PptxData Model', link: '/guide/data-model' },
 						{ text: 'Localization (i18n)', link: '/guide/localization' },
 						{ text: 'Limitations', link: '/guide/limitations' },
@@ -306,16 +301,6 @@ export default defineConfig({
 				{
 					text: 'Supporting Packages',
 					items: [{ text: 'MCP & Tools', link: '/packages/mcp' }],
-				},
-			],
-
-			'/contributing/': [
-				{
-					text: 'Contributing',
-					items: [
-						{ text: 'Development', link: '/contributing/development' },
-						{ text: 'Adding an Element Type', link: '/contributing/adding-element-type' },
-					],
 				},
 			],
 
