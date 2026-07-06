@@ -11,9 +11,13 @@ Presentation mode turns the viewer into a fullscreen slideshow that plays your t
 
 Start presenting from the **Slide Show** toolbar tab (or the matching action in your app). The current slide expands to fill the screen and the editing chrome disappears.
 
+![Slideshow mode fullscreen](/user-guide/presenting-slideshow.jpg)
+
 ::: tip
 A floating slideshow toolbar lives at the bottom of the screen. It **auto-hides** after a few seconds of no mouse movement and reappears when you move the mouse (especially toward the bottom of the screen).
 :::
+
+![Slideshow toolbar](/user-guide/presenting-toolbar.jpg)
 
 ## Navigating during a slideshow
 
@@ -39,6 +43,8 @@ When you move between slides, the **slide transition** assigned to each slide pl
 
 Entrance, emphasis, exit, and motion-path animations are all played back.
 
+![Slideshow with transitions between slides](/user-guide/presenting-transitions.gif)
+
 ::: warning Fidelity notes
 Transitions and animations are approximations of PowerPoint's behaviour. Morph matches elements between slides and interpolates their position, size, opacity, rotation, and colour, but does not morph between different shape geometries or intelligently morph text. Advanced timing-tree conditions are simplified during playback. See [Limitations](/guide/limitations) for the full details.
 :::
@@ -53,6 +59,8 @@ Presenter view splits the screen so you can see information the audience doesn't
 
 Toggle presenter view during a slideshow by pressing **N**, or using the presenter-view button on the slideshow toolbar.
 
+![Presenter view showing notes, next slide preview, and timer](/user-guide/presenting-presenter-view.jpg)
+
 ## Annotating live
 
 While presenting, you can draw on the slides to emphasise points. The annotation tools are on the slideshow toolbar, and several have keyboard toggles:
@@ -66,6 +74,10 @@ While presenting, you can draw on the slides to emphasise points. The annotation
 | **Clear**         | Removes all annotations on the slide.                     | (toolbar) |
 
 Right-click (or use the small dropdown next to) the pen or highlighter to pick a colour.
+
+![Pen annotation on a slide during presentation](/user-guide/presenting-pen-annotation.gif)
+
+![Annotation drawn on a slide](/user-guide/presenting-annotation.jpg)
 
 ::: tip Show/hide the slideshow toolbar
 Press **Ctrl + M** to toggle the slideshow toolbar on or off.

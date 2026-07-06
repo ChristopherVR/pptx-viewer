@@ -45,6 +45,15 @@
 		"typescript/no-unsafe-return": "off",
 		"typescript/no-deprecated": "off",
 		"typescript/no-misused-promises": "off",
+		// ── Pedantic regex rules: require-unicode-regexp and prefer-named-capture-group
+		//    generate hundreds of warnings across test files. Adding /u flag or named
+		//    groups to every regex literal is mechanical churn with no correctness
+		//    benefit for this codebase; suppress both. ──
+		"require-unicode-regexp": "off",
+		"prefer-named-capture-group": "off",
+		// ── vitest/prefer-each: manual loops in tests are fine for readability ──
+		"vitest/prefer-each": "off",
+
 		// ── Typescript-plugin stylistic rules: noisy and not worth churn ──
 		"typescript/array-type": "off",
 		"typescript/method-signature-style": "off",

@@ -13,7 +13,7 @@ Always call `save()` on the handler that produced the data. It owns the in-memor
 
 ## Editing text
 
-The quickest edit is the `text` field on a text/shape element. Narrow on `type` first (see [/guide/concepts](/guide/concepts)):
+The quickest edit is the `text` field on a text/shape element. Narrow on `type` first (see [/guide/data-model](/guide/data-model)):
 
 ```ts
 const data = await handler.load(buffer);

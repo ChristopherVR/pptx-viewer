@@ -126,6 +126,7 @@ export function TablePropertiesPanel({
 							type='button'
 							disabled={!canEdit}
 							title={preset.label}
+							aria-label={preset.label}
 							className='rounded border border-border hover:border-primary overflow-hidden h-10 transition-colors'
 							onClick={() => {
 								const newRows = td.rows.map((row, ri) => ({

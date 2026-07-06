@@ -223,6 +223,7 @@ const linkTooltipLabel = computed(
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
 	/>
 	<ChartRenderer
 		v-else-if="element.type === 'chart'"

@@ -59,7 +59,7 @@ When you call `load()`, the runtime:
 1. Detects the file format. Encrypted (OLE2/CFB) files are decrypted first when a password is supplied.
 2. Opens the ZIP with JSZip and parses `[Content_Types].xml` and `ppt/presentation.xml`.
 3. Parses each slide master, its theme, colour map, and layouts.
-4. For each slide, parses the shape tree and resolves the **layout → master → theme** style chain (see [/guide/concepts](/guide/concepts)).
+4. For each slide, parses the shape tree and resolves the **layout → master → theme** style chain (see [/guide/architecture](/guide/architecture)).
 5. Parses text with style inheritance, animations, transitions, and media relationships.
 6. Parses comments, document properties, and embedded fonts.
 
@@ -138,7 +138,7 @@ for (const slide of data.slides) {
 ```
 
 ::: warning Narrow before access
-TypeScript only exposes variant fields (like `imagePath` or `tableData`) after you've narrowed on `el.type`. This is the intended pattern - see [/guide/concepts](/guide/concepts).
+TypeScript only exposes variant fields (like `imagePath` or `tableData`) after you've narrowed on `el.type`. This is the intended pattern - see [/guide/data-model](/guide/data-model).
 :::
 
 ## Embedded media

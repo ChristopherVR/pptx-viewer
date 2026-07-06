@@ -91,7 +91,7 @@ Everything is re-exported from the package root (`pptx-viewer-core`). Import fro
 
 - **`PptxHandler`** → wraps `PptxHandlerCore` → wraps `PptxHandlerRuntime`.
 - The **runtime** is assembled from 50+ focused mixin modules (theme loading, element parsing, save pipeline, etc.).
-- The **type system** centres on `PptxElement`, a discriminated union of 16 variants narrowed by `element.type`. See [/guide/concepts](/guide/concepts) and [/guide/data-model](/guide/data-model).
+- The **type system** centres on `PptxElement`, a discriminated union of 16 variants narrowed by `element.type`. See [/guide/data-model](/guide/data-model).
 - **EMU** (English Metric Units) is the native coordinate system: `1 inch = 914,400 EMU`, `1 point = 12,700 EMU`, `1 pixel = 9,525 EMU` at 96 DPI.
 
 ## Next steps

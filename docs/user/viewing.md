@@ -20,6 +20,8 @@ If the file is password-protected, the app shows a password dialog. Enter the pa
 
 Once loaded, the first slide appears on the **slide canvas** in the centre, with a strip of slide thumbnails in the **slides panel** on the left.
 
+![Slide canvas showing a loaded presentation](/user-guide/viewing-slide-canvas.jpg)
+
 ## Navigating slides
 
 You can move between slides in several ways:
@@ -27,6 +29,8 @@ You can move between slides in several ways:
 - **Slides panel** - Click any thumbnail on the left to jump straight to that slide.
 - **Arrow keys** - With nothing selected on the canvas, press **Left Arrow** / **Right Arrow** to step to the previous / next slide.
 - **Click navigation** - Some elements (such as "Zoom" links) jump to another slide when clicked.
+
+![Navigating between slides](/user-guide/viewing-navigation.gif)
 
 The slides panel highlights the slide you are currently viewing, and the **status bar** at the bottom shows the current slide number.
 
@@ -47,6 +51,8 @@ Use the zoom controls in the **status bar** (or the **View** toolbar tab) to cha
 | **Zoom to selection** | (Edit mode) Zooms in on the currently selected element. |
 
 You can also hold **Ctrl/Cmd** and scroll the mouse wheel over the canvas to zoom in and out smoothly. Drag on empty canvas space to pan when zoomed in.
+
+![Zoom controls in the status bar](/user-guide/viewing-status-bar.jpg)
 
 ## The slide sorter
 
