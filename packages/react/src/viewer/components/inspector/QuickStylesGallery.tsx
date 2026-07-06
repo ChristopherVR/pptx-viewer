@@ -28,6 +28,7 @@ export function QuickStylesGallery({
 						key={idx}
 						type='button'
 						title={qs.name}
+						aria-label={qs.name}
 						className='h-7 w-full rounded border border-border hover:border-primary transition-colors'
 						style={{
 							background: qs.style.fillGradient || qs.style.fillColor || 'transparent',

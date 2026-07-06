@@ -1,4 +1,9 @@
-import type { ChartPptxElement } from 'pptx-viewer-core';
+import type {
+	ChartPptxElement,
+	PptxChartLegendPosition,
+	PptxChartAxisType,
+	ChartAxisEdit,
+} from 'pptx-viewer-core';
 import {
 	setChartType,
 	addChartSeries,
@@ -12,7 +17,6 @@ import {
 	setChartAxis,
 	ChartBuilder,
 } from 'pptx-viewer-core';
-import type { PptxChartLegendPosition, PptxChartAxisType, ChartAxisEdit } from 'pptx-viewer-core';
 
 import type { ToolContext, ToolResult } from '../types.js';
 import { validateSlideIndex } from './helpers.js';

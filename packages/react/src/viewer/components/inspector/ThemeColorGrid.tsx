@@ -70,6 +70,7 @@ export function ThemeColorGrid({
 									} disabled:opacity-40 disabled:cursor-not-allowed`}
 									style={{ backgroundColor: cell.hex }}
 									title={`${cell.colLabel} — ${cell.rowLabel} (${cell.hex})`}
+									aria-label={`${cell.colLabel} — ${cell.rowLabel} (${cell.hex})`}
 									onClick={() => onSelectColor(cell.hex)}
 								/>
 							);

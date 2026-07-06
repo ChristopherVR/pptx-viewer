@@ -573,7 +573,9 @@ function onCanvasPointerDown(event: PointerEvent): void {
 					let minDist = Infinity;
 					for (const td of tds) {
 						const r = td.getBoundingClientRect();
-						if (r.width === 0 || r.height === 0) continue;
+						if (r.width === 0 || r.height === 0) {
+							continue;
+						}
 						const cx = r.left + r.width / 2;
 						const cy = r.top + r.height / 2;
 						const dist = Math.hypot(event.clientX - cx, event.clientY - cy);

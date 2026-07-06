@@ -50,29 +50,32 @@ import TableResizeOverlay from './TableResizeOverlay.vue';
  * highlight, and column/row drag-resize handles) are layered on when an edit
  * context is provided. The raw-OOXML render path is not ported.
  */
-const props = defineProps<{
-	element: PptxElement;
-	/** Accepted for parity with `ElementRenderer`; unused (no image fills yet). */
-	mediaDataUrls?: Map<string, string>;
-	zIndex: number;
-	/**
-	 * Whether this table is in an interactive context (main editable canvas).
-	 * When false (e.g. in a slide thumbnail), resize handles and cell editing
-	 * are disabled regardless of the injected editing context.
-	 */
-	interactive?: boolean;
-	/**
-	 * PPTX theme colour scheme from the active presentation theme.
-	 * When supplied, band / header emphasis colours are resolved against
-	 * the real scheme instead of using hardcoded fallback colours.
-	 */
-	colorScheme?: PptxThemeColorScheme;
-	/**
-	 * Parsed table style map (from `ppt/tableStyles.xml`).
-	 * Enables accurate banding / header style lookups by table style GUID.
-	 */
-	tableStyleMap?: ParsedTableStyleMap;
-}>();
+const props = withDefaults(
+	defineProps<{
+		element: PptxElement;
+		/** Accepted for parity with `ElementRenderer`; unused (no image fills yet). */
+		mediaDataUrls?: Map<string, string>;
+		zIndex: number;
+		/**
+		 * Whether this table is in an interactive context (main editable canvas).
+		 * When false (e.g. in a slide thumbnail), resize handles and cell editing
+		 * are disabled regardless of the injected editing context.
+		 */
+		interactive?: boolean;
+		/**
+		 * PPTX theme colour scheme from the active presentation theme.
+		 * When supplied, band / header emphasis colours are resolved against
+		 * the real scheme instead of using hardcoded fallback colours.
+		 */
+		colorScheme?: PptxThemeColorScheme;
+		/**
+		 * Parsed table style map (from `ppt/tableStyles.xml`).
+		 * Enables accurate banding / header style lookups by table style GUID.
+		 */
+		tableStyleMap?: ParsedTableStyleMap;
+	}>(),
+	{ interactive: true },
+);
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
@@ -305,9 +308,7 @@ function setCellInput(el: Element | ComponentPublicInstance | null): void {
 	cellInputRef.value = el instanceof HTMLInputElement ? el : null;
 }
 
-const editingEnabled = computed(
-	() => (props.interactive ?? true) && (cellEdit?.canEdit() ?? false),
-);
+const editingEnabled = computed(() => props.interactive && (cellEdit?.canEdit() ?? false));
 
 function isEditing(cell: RenderableCell): boolean {
 	const e = editingCell.value;
@@ -404,7 +405,9 @@ watch(editingCell, (cell) => {
 		// Install document listener to catch taps outside the input
 		if (!docListener) {
 			docListener = (e: PointerEvent) => {
-				if (e.pointerType === 'mouse') return;
+				if (e.pointerType === 'mouse') {
+					return;
+				}
 				const input = cellInputRef.value;
 				if (input && !input.contains(e.target as Node)) {
 					input.blur(); // triggers commitCellEdit via @blur
@@ -412,12 +415,10 @@ watch(editingCell, (cell) => {
 			};
 			document.addEventListener('pointerdown', docListener, true);
 		}
-	} else {
+	} else if (docListener) {
 		// Clean up document listener when editing ends
-		if (docListener) {
-			document.removeEventListener('pointerdown', docListener, true);
-			docListener = null;
-		}
+		document.removeEventListener('pointerdown', docListener, true);
+		docListener = null;
 	}
 });
 

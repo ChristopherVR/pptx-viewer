@@ -73,6 +73,7 @@ export function ThemeColorSchemeEditor({
 								} disabled:opacity-40 disabled:cursor-not-allowed`}
 								style={{ backgroundColor: editColors[key] }}
 								title={`${THEME_COLOR_LABELS[key]}: ${editColors[key]}`}
+								aria-label={`${THEME_COLOR_LABELS[key]}: ${editColors[key]}`}
 								onClick={() => onSetActivePickerKey(activePickerKey === key ? null : key)}
 							/>
 							<span className='text-[9px] text-muted-foreground truncate w-full text-center'>

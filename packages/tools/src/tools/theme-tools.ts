@@ -1,6 +1,10 @@
-import type { PptxThemeColorScheme, PptxThemeFontScheme, PptxTheme } from 'pptx-viewer-core';
+import type {
+	PptxThemeColorScheme,
+	PptxThemeFontScheme,
+	PptxTheme,
+	ThemePresetName,
+} from 'pptx-viewer-core';
 import { getThemePreset, ThemePresets } from 'pptx-viewer-core';
-import type { ThemePresetName } from 'pptx-viewer-core';
 
 import type { ToolContext, ToolResult } from '../types.js';
 

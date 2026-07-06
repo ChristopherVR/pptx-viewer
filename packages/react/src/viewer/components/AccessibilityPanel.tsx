@@ -80,6 +80,7 @@ export function AccessibilityPanel({
 						id='reduced-motion-toggle'
 						type='button'
 						role='switch'
+						aria-label={t('pptx.accessibility.reduceMotion')}
 						aria-checked={reducedMotion ?? false}
 						onClick={onToggleReducedMotion}
 						className={cn(

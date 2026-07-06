@@ -85,6 +85,7 @@ export const ColorPickerRow: React.FC<{
 						className={`${SWATCH} ${DIS}`}
 						style={{ backgroundColor: c }}
 						title={`${label} ${c}`}
+						aria-label={`${label} ${c}`}
 						disabled={disabled}
 						onClick={() => onChange(c)}
 					/>
@@ -96,6 +97,7 @@ export const ColorPickerRow: React.FC<{
 						className='h-4 w-4 rounded border border-primary'
 						style={{ backgroundColor: c }}
 						title={`Recent ${c}`}
+						aria-label={`Recent ${c}`}
 						onClick={() => onChange(c)}
 					/>
 				))}

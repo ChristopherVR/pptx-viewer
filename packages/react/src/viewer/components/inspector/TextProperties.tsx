@@ -131,6 +131,7 @@ export function TextProperties({
 								className='h-5 w-5 rounded border border-border'
 								style={{ backgroundColor: c }}
 								title={`Use ${c}`}
+								aria-label={`Use ${c}`}
 								onClick={() => onSetTextColor(c)}
 							/>
 						))}
@@ -141,6 +142,7 @@ export function TextProperties({
 								className='h-5 w-5 rounded border border-primary'
 								style={{ backgroundColor: c }}
 								title={`Recent ${c}`}
+								aria-label={`Recent ${c}`}
 								onClick={() => onSetTextColor(c)}
 							/>
 						))}

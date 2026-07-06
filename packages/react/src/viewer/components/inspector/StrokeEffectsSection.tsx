@@ -124,6 +124,7 @@ export function StrokeEffectsSection({
 							key={opt.value}
 							type='button'
 							title={opt.label}
+							aria-label={opt.label}
 							className={`h-10 px-2 rounded border transition-all ${
 								(style?.compoundLine || 'sng') === opt.value
 									? 'border-primary bg-accent'
