@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.7.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.7.1) - 2026-07-06
+
+### Dependencies
+
+- **deps:** Update tailwindcss to ^4.3.2 and @angular/common to ^22.0.5 (by @ChristopherVR) ([ae1b615](https://github.com/ChristopherVR/pptx-viewer/commit/ae1b615b3632a8dc3bcd9a201fbab583648da97c))
+
 ## [1.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.7.0) - 2026-07-05
 
 ## [1.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.6.0) - 2026-07-05

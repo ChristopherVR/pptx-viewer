@@ -4,6 +4,36 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-06
+
+_Releases: pptx-viewer-core@1.2.1, pptx-react-viewer@1.7.1, pptx-vue-viewer@1.7.1, pptx-angular-viewer@1.7.1, pptx-viewer-mcp@1.2.0_
+
+### Features
+
+- **tools:** Add 26 new MCP tools expanding coverage to 51 total (by @ChristopherVR) ([c784579](https://github.com/ChristopherVR/pptx-viewer/commit/c784579cf91431eac28bb40c874b4e2cbb6d7a20))
+
+### Bug Fixes
+
+- **vue:** Mobile table cell edit lost on tap-away (by @ChristopherVR) ([27c9f0c](https://github.com/ChristopherVR/pptx-viewer/commit/27c9f0cc69e8df04a6ab2f00edd22cdfeb419930))
+- **vue,react:** Resolve lint warnings and TableRenderer interactive-prop default (by @ChristopherVR) ([6a69635](https://github.com/ChristopherVR/pptx-viewer/commit/6a69635214f389dea16ceafe37b10cfcbb236540))
+- **core:** Cast xmldom Element to Node for xml-crypto canonicalization (by @ChristopherVR) ([8fbd97e](https://github.com/ChristopherVR/pptx-viewer/commit/8fbd97eb1221f66650a7bcb45e089ee08034439f))
+- **core:** Cast xmldom Element to Node at all canonicalization call sites (by @ChristopherVR) ([5f0fa32](https://github.com/ChristopherVR/pptx-viewer/commit/5f0fa325b57931a43fecd9d3de2d17b406a509f1))
+- **core:** Replace standard DOM types with structural interfaces in signature-node (by @ChristopherVR) ([febe7bd](https://github.com/ChristopherVR/pptx-viewer/commit/febe7bd5b392c7b972a8588891ddf56fc7181d61))
+
+### Documentation
+
+- Remove Contributing navbar button and pages (by @ChristopherVR) ([21e4639](https://github.com/ChristopherVR/pptx-viewer/commit/21e46392c4543b8fd811beff5c221067cd5b2a3c))
+- Rework architecture, introduction, and limitations pages (by @ChristopherVR) ([51b2459](https://github.com/ChristopherVR/pptx-viewer/commit/51b24598a105e748290279e869ddc33869dfbf15))
+- Add screenshots and GIFs to user guide (by @ChristopherVR) ([a136fa5](https://github.com/ChristopherVR/pptx-viewer/commit/a136fa57b090a32fa28acdce4961c6caa9f20367))
+
+### Dependencies
+
+- **deps:** Update tailwindcss to ^4.3.2 and @angular/common to ^22.0.5 (by @ChristopherVR) ([ae1b615](https://github.com/ChristopherVR/pptx-viewer/commit/ae1b615b3632a8dc3bcd9a201fbab583648da97c))
+
+### Chores
+
+- Bump (by @ChristopherVR) ([1a9ecfa](https://github.com/ChristopherVR/pptx-viewer/commit/1a9ecfafaa5f470146340de26303a6bf36a0b634))
+
 ## 2026-07-05
 
 _Releases: pptx-react-viewer@1.7.0, pptx-vue-viewer@1.7.0, pptx-angular-viewer@1.7.0, @christophervr/pptx-viewer@1.4.1_
