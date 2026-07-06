@@ -175,9 +175,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		for (const [, target] of layoutRels.entries()) {
 			if (target.includes('slideMaster')) {
 				const layoutDir = layoutPath.substring(0, layoutPath.lastIndexOf('/') + 1);
-				masterPath = target.startsWith('..')
-					? this.resolvePath(layoutDir, target)
-					: `ppt/${target.replace('../', '')}`;
+				masterPath = target.startsWith('/')
+					? target.substring(1)
+					: target.startsWith('..')
+						? this.resolvePath(layoutDir, target)
+						: `ppt/${target.replace('../', '')}`;
 				break;
 			}
 		}

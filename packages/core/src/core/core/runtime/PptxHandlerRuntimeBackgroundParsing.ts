@@ -275,9 +275,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		for (const [, target] of layoutRels.entries()) {
 			if (target.includes('slideMaster')) {
 				const layoutDir = layoutPath.substring(0, layoutPath.lastIndexOf('/') + 1);
-				const masterPath = target.startsWith('..')
-					? this.resolvePath(layoutDir, target)
-					: `ppt/${target.replace('../', '')}`;
+				const masterPath = target.startsWith('/')
+					? target.substring(1)
+					: target.startsWith('..')
+						? this.resolvePath(layoutDir, target)
+						: `ppt/${target.replace('../', '')}`;
 
 				try {
 					const masterXmlStr = await this.zip.file(masterPath)?.async('string');
@@ -306,9 +308,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		for (const [, target] of slideRels.entries()) {
 			if (target.includes('slideLayout')) {
 				const slideDir = slidePath.substring(0, slidePath.lastIndexOf('/') + 1);
-				const layoutPath = target.startsWith('..')
-					? this.resolvePath(slideDir, target)
-					: `ppt/${target.replace('../', '')}`;
+				const layoutPath = target.startsWith('/')
+					? target.substring(1)
+					: target.startsWith('..')
+						? this.resolvePath(slideDir, target)
+						: `ppt/${target.replace('../', '')}`;
 
 				try {
 					const layoutXmlStr = await this.zip.file(layoutPath)?.async('string');
@@ -345,9 +349,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		for (const [, target] of slideRels.entries()) {
 			if (target.includes('slideLayout')) {
 				const slideDir = slidePath.substring(0, slidePath.lastIndexOf('/') + 1);
-				const layoutPath = target.startsWith('..')
-					? this.resolvePath(slideDir, target)
-					: `ppt/${target.replace('../', '')}`;
+				const layoutPath = target.startsWith('/')
+					? target.substring(1)
+					: target.startsWith('..')
+						? this.resolvePath(slideDir, target)
+						: `ppt/${target.replace('../', '')}`;
 
 				try {
 					const layoutXmlStr = await this.zip.file(layoutPath)?.async('string');
@@ -382,9 +388,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		for (const [, target] of layoutRels.entries()) {
 			if (target.includes('slideMaster')) {
 				const layoutDir = layoutPath.substring(0, layoutPath.lastIndexOf('/') + 1);
-				const masterPath = target.startsWith('..')
-					? this.resolvePath(layoutDir, target)
-					: `ppt/${target.replace('../', '')}`;
+				const masterPath = target.startsWith('/')
+					? target.substring(1)
+					: target.startsWith('..')
+						? this.resolvePath(layoutDir, target)
+						: `ppt/${target.replace('../', '')}`;
 
 				try {
 					const masterXmlStr = await this.zip.file(masterPath)?.async('string');

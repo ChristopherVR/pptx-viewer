@@ -290,9 +290,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		for (const [, target] of layoutRels.entries()) {
 			if (target.includes('slideMaster')) {
 				const layoutDir = layoutPath.substring(0, layoutPath.lastIndexOf('/') + 1);
-				return target.startsWith('..')
-					? this.resolvePath(layoutDir, target)
-					: `ppt/${target.replace('../', '')}`;
+				return target.startsWith('/')
+					? target.substring(1)
+					: target.startsWith('..')
+						? this.resolvePath(layoutDir, target)
+						: `ppt/${target.replace('../', '')}`;
 			}
 		}
 		return undefined;
@@ -373,9 +375,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		for (const [, target] of masterRels.entries()) {
 			if (target.includes('slideLayout')) {
 				const masterDir = masterPath.substring(0, masterPath.lastIndexOf('/') + 1);
-				const resolved = target.startsWith('..')
-					? this.resolvePath(masterDir, target)
-					: `ppt/${target.replace('../', '')}`;
+				const resolved = target.startsWith('/')
+					? target.substring(1)
+					: target.startsWith('..')
+						? this.resolvePath(masterDir, target)
+						: `ppt/${target.replace('../', '')}`;
 				masterLayoutPaths.add(resolved);
 			}
 		}
