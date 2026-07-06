@@ -777,13 +777,13 @@ describe('getTextStyleForElement', () => {
 		expect(style.lineHeight).toBeCloseTo(1.2, 10);
 	});
 
-	it('should set overflow hidden for autofit text', () => {
+	it('should set overflow visible for autofit text', () => {
 		const el = makeTextElement({
 			textStyle: { autoFit: true },
 		});
 		const style = getTextStyleForElement(el, DEFAULT_TEXT_COLOR);
 
-		expect(style.overflow).toBe('hidden');
+		expect(style.overflow).toBe('visible');
 	});
 
 	it('should apply nowrap for textWrap none', () => {
