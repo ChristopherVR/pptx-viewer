@@ -71,7 +71,10 @@ export function ChartDataGrid({
 				<table className='w-full text-[11px] border-collapse'>
 					<thead>
 						<tr>
-							<th className='text-muted-foreground p-0.5 text-left min-w-[60px]' />
+							<th
+								aria-label='Categories'
+								className='text-muted-foreground p-0.5 text-left min-w-[60px]'
+							/>
 							{series.map((s, si) => (
 								<th key={si} className='p-0.5 font-normal min-w-[72px]'>
 									<div className='flex items-center gap-0.5'>
@@ -125,6 +128,7 @@ export function ChartDataGrid({
 									<td key={si} className='p-0.5'>
 										<input
 											type='number'
+											aria-label={`${s.name} value ${ci + 1}`}
 											disabled={!canEdit}
 											className={CELL_INPUT}
 											value={s.values[ci] ?? 0}

@@ -63,6 +63,7 @@ export function renderChartDataTable(
 					<tr>
 						{showK && (
 							<th
+								aria-label='Row labels'
 								style={{
 									padding: '1px 4px',
 									fontWeight: 400,

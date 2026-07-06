@@ -43,8 +43,8 @@ features:
   - icon: "\U0001F3A8"
     title: Renderizado fiel
     details: 187+ formas predefinidas, 23 tipos de graficos, SmartArt, animaciones, transiciones morph, metarchivos EMF/WMF, fuentes incrustadas y modelos 3D.
-    link: /guide/concepts
-    linkText: Conceptos fundamentales
+    link: /guide/data-model
+    linkText: El modelo PptxData
   - icon: "\U0001F916"
     title: Herramientas MCP e IA
     details: 25 funciones de herramientas puras, esquemas Zod y un servidor MCP para que los agentes de IA puedan leer, escribir y transformar archivos PPTX.

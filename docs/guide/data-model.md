@@ -44,7 +44,7 @@ interface PptxData {
 ```
 
 ::: info Pixels vs EMU
-`width` / `height` are approximate pixels for convenient layout math; `widthEmu` / `heightEmu` preserve the exact source values for round-trip. See [EMU units](/guide/concepts#emu-units).
+`width` / `height` are approximate pixels for convenient layout math; `widthEmu` / `heightEmu` preserve the exact source values for round-trip. EMU (English Metric Units) is PowerPoint's native coordinate system: 1 inch = 914,400 EMU, 1 pixel = 9,525 EMU at 96 DPI.
 :::
 
 ## `PptxSlide`
@@ -70,7 +70,7 @@ interface PptxSlide {
 }
 ```
 
-A slide resolves its unspecified styling through its layout and master - see the [theme resolution chain](/guide/concepts#theme-resolution-chain).
+A slide resolves its unspecified styling through its layout and master - see [Architecture](/guide/architecture) for the resolution chain.
 
 ## The `PptxElement` union
 
@@ -140,5 +140,5 @@ for (const slide of data.slides) {
 
 ## Related reading
 
-- [Core Concepts](/guide/concepts) - the element model and theme resolution explained.
+- [Architecture](/guide/architecture) - how the engine is structured and how theme resolution works.
 - [Core package overview](/core/) - handler, builder, and converter APIs.

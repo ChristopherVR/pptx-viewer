@@ -88,5 +88,4 @@ for (const element of slide.elements) {
 
 ## Lecturas relacionadas
 
-- [Conceptos fundamentales](/es/guide/concepts)
 - [Arquitectura](/es/guide/architecture)

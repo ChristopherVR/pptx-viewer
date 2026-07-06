@@ -28,9 +28,9 @@ describe('mcp server tool registration', () => {
 		await client.connect(clientTransport);
 	});
 
-	it('lists all 25 registered tools', async () => {
+	it('lists all 51 registered tools', async () => {
 		const result = await client.listTools();
-		expect(result.tools).toHaveLength(25);
+		expect(result.tools).toHaveLength(51);
 	});
 
 	it('includes all expected tool names', async () => {
@@ -63,6 +63,32 @@ describe('mcp server tool registration', () => {
 			'replace_text',
 			'manage_comments',
 			'convert_to_markdown',
+			'get_theme_info',
+			'apply_theme_preset',
+			'update_theme_colors',
+			'update_theme_fonts',
+			'update_chart',
+			'add_chart_series',
+			'remove_chart_series',
+			'update_chart_series_data',
+			'create_chart',
+			'manage_smart_art',
+			'find_placeholders',
+			'apply_template',
+			'get_metadata',
+			'update_metadata',
+			'manage_sections',
+			'export_to_svg',
+			'export_slide_svg',
+			'manage_hyperlinks',
+			'replace_geometry',
+			'set_element_lock',
+			'validate_presentation',
+			'repair_presentation',
+			'get_presentation_properties',
+			'update_presentation_properties',
+			'get_layouts',
+			'apply_layout',
 		];
 
 		for (const tool of expectedTools) {

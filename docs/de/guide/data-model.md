@@ -88,5 +88,4 @@ for (const element of slide.elements) {
 
 ## Weiterfuhrend
 
-- [Grundlegende Konzepte](/de/guide/concepts)
 - [Architektur](/de/guide/architecture)

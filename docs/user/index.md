@@ -28,8 +28,16 @@ pptx-viewer is a configurable component, so the exact buttons and panels you see
 
 When you open a presentation in edit or preview mode, the screen is divided into a few regions:
 
+![Full editor layout](/user-guide/overview-full-layout.jpg)
+
 - **Toolbar** (top) - A tabbed ribbon with sections such as **File, Home, Insert, Text, Draw, Arrange, Design, Transitions, Animations, Slide Show, Review, View,** and **Help**. The available tabs and buttons depend on the current mode and whether editing is enabled.
+
+![Toolbar close-up](/user-guide/overview-toolbar.jpg)
+
 - **Slides panel** (left) - A scrollable strip of slide thumbnails. Click a thumbnail to jump to that slide; drag to reorder. Slides can be organised into sections.
+
+![Slides panel](/user-guide/overview-slides-panel.jpg)
+
 - **Slide canvas** (centre) - The large editing/viewing area where the active slide is rendered. You can zoom and pan here, and (in edit mode) select and manipulate elements directly.
 - **Inspector panel** (right) - A context-sensitive properties panel. What it shows depends on what is selected: slide background and layout when nothing is selected, or position, size, fill, stroke, text, image, table, chart, animation, and transition properties for the selected element.
 - **Notes panel** (below the canvas) - An editor for the current slide's speaker notes.
@@ -44,6 +52,17 @@ The viewer renders slides as crisp HTML/CSS (not a flat image), so text stays sh
 ::: warning Designed for desktop
 The toolbar, inspector panels, and dialogs are designed for desktop-sized screens. On a phone or small tablet, the app adapts key controls into **bottom sheets** and supports touch gestures (drag, pinch-to-zoom), but the full editing experience is best on a larger screen. For serious editing, use a desktop or laptop.
 :::
+
+<div style="display: flex; gap: 1rem; align-items: flex-start;">
+  <figure style="flex: 1;">
+    <img src="/user-guide/overview-mobile-layout.jpg" alt="Mobile viewer layout" style="max-width: 280px;" />
+    <figcaption>Mobile viewer</figcaption>
+  </figure>
+  <figure style="flex: 1;">
+    <img src="/user-guide/overview-mobile-inspector.jpg" alt="Mobile inspector bottom sheet" style="max-width: 280px;" />
+    <figcaption>Mobile inspector (bottom sheet)</figcaption>
+  </figure>
+</div>
 
 ## Where to next
 

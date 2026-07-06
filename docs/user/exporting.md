@@ -33,6 +33,8 @@ A vector **SVG** export path is also available. Because SVG is vector-based, it 
 3. For whole-deck formats (PDF, GIF, video), a **progress dialog** appears while each slide is captured and the file is assembled. You can **cancel** mid-way if needed.
 4. The finished file downloads automatically (or, for "copy as image", lands on your clipboard).
 
+![File tab showing export options](/user-guide/exporting-file-menu.jpg)
+
 ## Saving back to PowerPoint
 
 Choose **Save as PPTX** to write your edits to a standard `.pptx` file that opens in Microsoft PowerPoint and other apps. This round-trips your changes - added/edited elements, slide changes, notes, and so on. Use **PPSX** if you want a file that opens straight into a slideshow, or **PPTM** for macro-enabled decks.

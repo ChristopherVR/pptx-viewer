@@ -43,8 +43,8 @@ features:
   - icon: "\U0001F3A8"
     title: Getreues Rendering
     details: 187+ voreingestellte Formen, 23 Diagrammtypen, SmartArt, Animationen, Morph-Ubergange, EMF/WMF-Metadateien, eingebettete Schriften und 3D-Modelle.
-    link: /guide/concepts
-    linkText: Grundlegende Konzepte
+    link: /guide/data-model
+    linkText: Das PptxData-Modell
   - icon: "\U0001F916"
     title: MCP und KI-Werkzeuge
     details: 25 reine Tool-Funktionen, Zod-Schemas und ein MCP-Server, damit KI-Agenten (Claude, Cursor, Copilot) PPTX-Dateien lesen, schreiben und transformieren konnen.
