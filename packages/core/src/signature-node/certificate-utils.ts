@@ -126,7 +126,10 @@ export function verifySignatureValue(
 		if (!verifyAlgorithm) {
 			return 'invalid';
 		}
-		const canonicalSignedInfo = canonicalizeNode(signedInfoNode, canonicalizationMethod);
+		const canonicalSignedInfo = canonicalizeNode(
+			signedInfoNode as unknown as Node,
+			canonicalizationMethod,
+		);
 		const signatureValueBase64 = signatureValueNode.textContent?.replace(/\s+/g, '').trim() ?? '';
 		if (signatureValueBase64.length === 0) {
 			return 'invalid';

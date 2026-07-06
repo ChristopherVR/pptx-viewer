@@ -131,7 +131,10 @@ export function applyReferenceTransforms(
 				unsupportedAlgorithms.push(transform.algorithm);
 				continue;
 			}
-			const canonical = canonicalizeNode(doc.documentElement, transform.algorithm);
+			const canonical = canonicalizeNode(
+				doc.documentElement as unknown as Node,
+				transform.algorithm,
+			);
 			transformedBytes = new Uint8Array(Buffer.from(canonical, 'utf8'));
 		} catch {
 			unsupportedAlgorithms.push(transform.algorithm);
