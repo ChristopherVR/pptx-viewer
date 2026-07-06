@@ -15,6 +15,9 @@ export function TableCellInput({
 	onCancel: () => void;
 }) {
 	const inputRef = useRef<HTMLInputElement>(null);
+	const committedRef = useRef(false);
+	const onCommitRef = useRef(onCommit);
+	onCommitRef.current = onCommit;
 
 	useEffect(() => {
 		// Auto-focus and select all text when entering edit mode
@@ -24,6 +27,32 @@ export function TableCellInput({
 			el.select();
 		}
 	}, []);
+
+	// Commit on unmount: on mobile, tapping away deselects the element and
+	// unmounts this input before the browser fires blur (React does not
+	// synthesise blur on unmount). Guard with committedRef so we never
+	// double-commit when blur fires normally before unmount.
+	useEffect(() => {
+		const input = inputRef.current;
+		return () => {
+			if (!committedRef.current && input) {
+				onCommitRef.current(input.value);
+			}
+		};
+	}, []);
+
+	const doCommit = (text: string) => {
+		if (committedRef.current) {
+			return;
+		}
+		committedRef.current = true;
+		onCommit(text);
+	};
+
+	const doCancel = () => {
+		committedRef.current = true;
+		onCancel();
+	};
 
 	return (
 		<input
@@ -47,18 +76,18 @@ export function TableCellInput({
 			onMouseDown={(e) => e.stopPropagation()}
 			onClick={(e) => e.stopPropagation()}
 			onDoubleClick={(e) => e.stopPropagation()}
-			onBlur={(e) => onCommit(e.currentTarget.value)}
+			onBlur={(e) => doCommit(e.currentTarget.value)}
 			onKeyDown={(e) => {
 				e.stopPropagation();
 				if (e.key === 'Escape') {
 					e.preventDefault();
-					onCancel();
+					doCancel();
 				} else if (e.key === 'Enter') {
 					e.preventDefault();
-					onCommit(e.currentTarget.value);
+					doCommit(e.currentTarget.value);
 				} else if (e.key === 'Tab') {
 					e.preventDefault();
-					onCommit(e.currentTarget.value);
+					doCommit(e.currentTarget.value);
 				}
 			}}
 		/>
