@@ -35,4 +35,36 @@ describe('resolveTitleBarStatusKey', () => {
 			resolveTitleBarStatusKey({ autosaveState: 'saved', isDirty: false, autosaveEnabled: true }),
 		).toBe('pptx.titleBar.savedToThisPc');
 	});
+
+	it('shows disabled-no-file-path when autosave is disabled due to missing filePath', () => {
+		expect(
+			resolveTitleBarStatusKey({
+				autosaveState: 'disabled',
+				isDirty: false,
+				autosaveEnabled: true,
+				disabledReason: 'no_file_path',
+			}),
+		).toBe('pptx.autosave.disabledNoFilePath');
+	});
+
+	it('shows disabled-toggle-off when autosave is disabled by user toggle', () => {
+		expect(
+			resolveTitleBarStatusKey({
+				autosaveState: 'disabled',
+				isDirty: true,
+				autosaveEnabled: false,
+				disabledReason: 'autosave_toggle_off',
+			}),
+		).toBe('pptx.autosave.disabledToggleOff');
+	});
+
+	it('shows generic disabled when reason is unknown', () => {
+		expect(
+			resolveTitleBarStatusKey({
+				autosaveState: 'disabled',
+				isDirty: false,
+				autosaveEnabled: true,
+			}),
+		).toBe('pptx.autosave.disabled');
+	});
 });

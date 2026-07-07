@@ -897,6 +897,25 @@ const autosaveEnabled = ref(true);
 const autosaveActive = computed(
 	() => props.canEdit && (props.autosave ?? false) && autosaveEnabled.value,
 );
+/**
+ * When autosave is inactive, this computed explains why so the title bar can
+ * display a meaningful status message to the user.
+ */
+const autosaveDisabledReason = computed<string | undefined>(() => {
+	if (autosaveActive.value) {
+		return undefined;
+	}
+	if (!autosaveEnabled.value) {
+		return 'autosave_toggle_off';
+	}
+	if (!props.autosave) {
+		return 'no_file_path';
+	}
+	if (!props.canEdit) {
+		return 'autosave_toggle_off';
+	}
+	return undefined;
+});
 function toggleAutosave(): void {
 	autosaveEnabled.value = !autosaveEnabled.value;
 }
@@ -1469,8 +1488,9 @@ defineExpose<PowerPointViewerExpose>({
 					:can-edit="props.canEdit"
 					:file-name="props.fileName"
 					:is-dirty="autosave.isDirty.value"
-					:autosave-status="autosave.status.value"
+					:autosave-status="autosaveDisabledReason ? 'disabled' : autosave.status.value"
 					:autosave-enabled="autosaveEnabled"
+					:autosave-disabled-reason="autosaveDisabledReason"
 					:on-toggle-autosave="toggleAutosave"
 					:can-undo="history.canUndo.value"
 					:can-redo="history.canRedo.value"
@@ -1759,7 +1779,9 @@ defineExpose<PowerPointViewerExpose>({
 				:slide-count="slideCount"
 				:active-slide-index="activeSlideIndex"
 				:is-dirty="autosave.isDirty.value"
-				:autosave-status="autosaveEnabled ? autosave.status.value : undefined"
+				:autosave-status="
+					autosaveDisabledReason ? 'disabled' : autosaveEnabled ? autosave.status.value : undefined
+				"
 				:scale="zoom"
 				:mode="ribbonMode"
 				:is-notes-expanded="notesExpanded"

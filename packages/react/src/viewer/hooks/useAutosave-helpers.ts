@@ -68,7 +68,7 @@ export function canAutosave(input: CanAutosaveInput): boolean {
 // Autosave status helpers
 // ---------------------------------------------------------------------------
 
-export type AutosaveState = 'idle' | 'saving' | 'saved' | 'error';
+export type AutosaveState = 'idle' | 'disabled' | 'saving' | 'saved' | 'error';
 
 /**
  * Determine the display label for an autosave state.
@@ -77,6 +77,8 @@ export function getAutosaveStatusLabel(state: AutosaveState): string {
 	switch (state) {
 		case 'idle':
 			return 'Idle';
+		case 'disabled':
+			return 'Disabled';
 		case 'saving':
 			return 'Saving...';
 		case 'saved':

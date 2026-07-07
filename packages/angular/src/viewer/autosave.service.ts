@@ -25,6 +25,7 @@ import {
 /** Lifecycle status of the autosave engine (mirrors React's `AutosaveStatus`). */
 export type AutosaveStatus =
 	| { state: 'idle' }
+	| { state: 'disabled'; reason: string }
 	| { state: 'saving' }
 	| { state: 'saved'; timestamp: number }
 	| { state: 'error'; message: string };
@@ -69,8 +70,17 @@ export class AutosaveService {
 				const filePath = host.filePath();
 				const seconds = host.intervalSeconds?.() ?? AUTOSAVE_DEFAULT_INTERVAL_SECONDS;
 				this.clearTimer();
-				if (!enabled || !filePath) {
+				if (!enabled) {
+					this.status.set({ state: 'disabled', reason: 'autosave_toggle_off' });
 					return;
+				}
+				if (!filePath) {
+					this.status.set({ state: 'disabled', reason: 'no_file_path' });
+					return;
+				}
+				// Requirements met; reset to idle if currently disabled.
+				if (this.status().state === 'disabled') {
+					this.status.set({ state: 'idle' });
 				}
 				this.timer = setInterval(() => {
 					void this.doAutosave();

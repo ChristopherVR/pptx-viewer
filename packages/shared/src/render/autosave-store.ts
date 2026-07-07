@@ -103,6 +103,112 @@ function putAutosaveRecord(filePath: string, data: Uint8Array): Promise<boolean>
 	);
 }
 
+// ---------------------------------------------------------------------------
+// Read helpers (for host-app recovery flows)
+// ---------------------------------------------------------------------------
+
+export interface AutosaveRecord {
+	key: string;
+	data: Uint8Array;
+	timestamp: number;
+	size: number;
+}
+
+/**
+ * Retrieve a single autosave snapshot by file path.
+ * Returns undefined when no snapshot exists.
+ */
+export async function getAutosaveSnapshot(filePath: string): Promise<AutosaveRecord | undefined> {
+	const db = await openAutosaveDb();
+	return new Promise((resolve) => {
+		const tx = db.transaction(AUTOSAVE_STORE_NAME, 'readonly');
+		const store = tx.objectStore(AUTOSAVE_STORE_NAME);
+		const req = store.get(filePath);
+		req.onsuccess = () => {
+			db.close();
+			resolve(req.result as AutosaveRecord | undefined);
+		};
+		req.onerror = () => {
+			db.close();
+			resolve(undefined);
+		};
+	});
+}
+
+/**
+ * List all autosave snapshots (without the heavy `data` blob).
+ * Useful for showing a recovery picker on app start.
+ */
+export async function listAutosaveSnapshots(): Promise<
+	Array<{ key: string; timestamp: number; size: number }>
+> {
+	const db = await openAutosaveDb();
+	return new Promise((resolve) => {
+		const results: Array<{ key: string; timestamp: number; size: number }> = [];
+		try {
+			const tx = db.transaction(AUTOSAVE_STORE_NAME, 'readonly');
+			const store = tx.objectStore(AUTOSAVE_STORE_NAME);
+			const cursorReq = store.openCursor();
+			cursorReq.onsuccess = () => {
+				const cursor = cursorReq.result;
+				if (cursor) {
+					const val = cursor.value as AutosaveRecord;
+					results.push({ key: val.key, timestamp: val.timestamp, size: val.size });
+					cursor.continue();
+				}
+			};
+			tx.oncomplete = () => {
+				db.close();
+				resolve(results);
+			};
+			tx.onerror = () => {
+				db.close();
+				resolve([]);
+			};
+		} catch {
+			try {
+				db.close();
+			} catch {
+				// Ignore
+			}
+			resolve([]);
+		}
+	});
+}
+
+/**
+ * Delete an autosave snapshot by file path.
+ */
+export async function deleteAutosaveSnapshot(filePath: string): Promise<boolean> {
+	const db = await openAutosaveDb();
+	return new Promise((resolve) => {
+		try {
+			const tx = db.transaction(AUTOSAVE_STORE_NAME, 'readwrite');
+			const store = tx.objectStore(AUTOSAVE_STORE_NAME);
+			store.delete(filePath);
+			tx.oncomplete = () => {
+				db.close();
+				resolve(true);
+			};
+			tx.onerror = () => {
+				db.close();
+				resolve(false);
+			};
+		} catch {
+			try {
+				db.close();
+			} catch {
+				// Ignore
+			}
+			resolve(false);
+		}
+	});
+}
+
+// ---------------------------------------------------------------------------
+// Write helpers
+// ---------------------------------------------------------------------------
+
 /**
  * Persist a recovery snapshot. On QuotaExceededError the oldest record is
  * dropped and the write retried once.

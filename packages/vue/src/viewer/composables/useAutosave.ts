@@ -5,12 +5,13 @@ import type { Ref } from 'vue';
 /**
  * Autosave status, surfaced for status-pill rendering.
  *
- *  - `idle`  : nothing has been saved yet (or no edits since mount).
- *  - `saving`: an `onSave` invocation is currently in flight.
- *  - `saved` : the most recent save succeeded.
- *  - `error` : the most recent save threw.
+ *  - `idle`     : nothing has been saved yet (or no edits since mount).
+ *  - `disabled` : autosave is inactive because requirements are not met.
+ *  - `saving`   : an `onSave` invocation is currently in flight.
+ *  - `saved`    : the most recent save succeeded.
+ *  - `error`    : the most recent save threw.
  */
-export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+export type AutosaveStatus = 'idle' | 'disabled' | 'saving' | 'saved' | 'error';
 
 /**
  * Timer-injection seam so the debounce window is testable with

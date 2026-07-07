@@ -161,13 +161,15 @@ export class TitleBarComponent {
 	protected readonly defaultFileKey = TITLE_BAR_DEFAULT_FILE_KEY;
 
 	/** The i18n key for the save-location status text (next to the file name). */
-	protected readonly statusKey = computed(() =>
-		resolveTitleBarStatusKey({
-			autosaveState: this.autosaveStatus()?.state ?? 'idle',
+	protected readonly statusKey = computed(() => {
+		const status = this.autosaveStatus();
+		return resolveTitleBarStatusKey({
+			autosaveState: status?.state ?? 'idle',
 			isDirty: this.isDirty(),
 			autosaveEnabled: this.autosaveEnabled(),
-		}),
-	);
+			disabledReason: status?.state === 'disabled' ? status.reason : undefined,
+		});
+	});
 
 	/** Colour override for the status text on saving/error (when autosave is on). */
 	protected readonly statusStateClass = computed(() => {

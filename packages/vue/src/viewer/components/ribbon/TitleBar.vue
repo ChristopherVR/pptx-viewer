@@ -32,6 +32,8 @@ interface Props {
 	isDirty: boolean;
 	autosaveStatus?: AutosaveStatus;
 	autosaveEnabled: boolean;
+	/** Reason code when autosave is disabled (e.g. 'no_file_path'). */
+	autosaveDisabledReason?: string;
 	onToggleAutosave: () => void;
 	canUndo: boolean;
 	canRedo: boolean;
@@ -55,6 +57,7 @@ const statusKey = computed(() =>
 		autosaveState: props.autosaveStatus ?? 'idle',
 		isDirty: props.isDirty,
 		autosaveEnabled: props.autosaveEnabled,
+		disabledReason: props.autosaveDisabledReason,
 	}),
 );
 </script>

@@ -12,6 +12,7 @@ import {
 
 export type AutosaveStatus =
 	| { state: 'idle' }
+	| { state: 'disabled'; reason: string }
 	| { state: 'saving' }
 	| { state: 'saved'; timestamp: number }
 	| { state: 'error'; message: string };
@@ -106,9 +107,20 @@ export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
 
 	// ── Interval timer ──────────────────────────────────────────────
 	useEffect(() => {
-		if (!enabled || !filePath) {
+		if (!enabled) {
+			setAutosaveStatus({ state: 'disabled', reason: 'autosave_toggle_off' });
 			return;
 		}
+		if (!filePath) {
+			setAutosaveStatus({
+				state: 'disabled',
+				reason: 'no_file_path',
+			});
+			return;
+		}
+
+		// Requirements met; reset to idle if currently disabled.
+		setAutosaveStatus((prev) => (prev.state === 'disabled' ? { state: 'idle' } : prev));
 
 		const ms = computeAutosaveIntervalMs(intervalSeconds);
 		const id = setInterval(() => {

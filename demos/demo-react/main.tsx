@@ -13,6 +13,11 @@ import {
 	storeAudienceContent,
 } from '../../packages/react/src/viewer';
 import type { CollaborationConfig } from '../../packages/react/src/viewer';
+import {
+	getAutosaveSnapshot,
+	listAutosaveSnapshots,
+	deleteAutosaveSnapshot,
+} from '../../packages/shared/src/render/autosave-store';
 import i18nInstance from './i18n'; // Initialises i18next before any component renders
 import { LanguagePicker } from './LanguagePicker';
 
@@ -391,9 +396,16 @@ function ThemePicker({ current, onChange }: { current: string; onChange: (key: s
 
 // ── App ────────────────────────────────────────────────────────────────────
 
+const RECOVERY_STORAGE_KEY = 'pptx-demo-last-file';
+
 function App() {
 	const [content, setContent] = useState<Uint8Array | null>(null);
 	const [fileName, setFileName] = useState<string>('');
+	const [recoveryOffer, setRecoveryOffer] = useState<{
+		filePath: string;
+		timestamp: number;
+		size: number;
+	} | null>(null);
 	const [themeKey, setThemeKey] = useState<string>(() => {
 		try {
 			return localStorage.getItem('pptx-demo-theme') ?? 'dark';
@@ -705,6 +717,71 @@ function App() {
 		};
 	}, []);
 
+	// ── Recovery detection on mount ─────────────────────────────────────────
+	// Check IndexedDB for autosave snapshots. If we find one for the last opened
+	// file (persisted in localStorage), offer to restore it.
+	useEffect(() => {
+		if (content) {
+			return;
+		}
+		void (async () => {
+			try {
+				const lastFile = localStorage.getItem(RECOVERY_STORAGE_KEY);
+				if (lastFile) {
+					const snapshot = await getAutosaveSnapshot(lastFile);
+					if (snapshot && Date.now() - snapshot.timestamp < 24 * 60 * 60 * 1000) {
+						setRecoveryOffer({
+							filePath: snapshot.key,
+							timestamp: snapshot.timestamp,
+							size: snapshot.size,
+						});
+						return;
+					}
+				}
+				// No specific file match; check if any snapshots exist
+				const all = await listAutosaveSnapshots();
+				const recent = all.find((s) => Date.now() - s.timestamp < 24 * 60 * 60 * 1000);
+				if (recent) {
+					setRecoveryOffer({
+						filePath: recent.key,
+						timestamp: recent.timestamp,
+						size: recent.size,
+					});
+				}
+			} catch {
+				// Silently ignore recovery check errors
+			}
+		})();
+	}, [content]);
+
+	const handleRecoveryRestore = useCallback(async () => {
+		if (!recoveryOffer) {
+			return;
+		}
+		try {
+			const snapshot = await getAutosaveSnapshot(recoveryOffer.filePath);
+			if (snapshot) {
+				setContent(snapshot.data);
+				setFileName(snapshot.key);
+				try {
+					localStorage.setItem(RECOVERY_STORAGE_KEY, snapshot.key);
+				} catch {
+					/* ignore */
+				}
+			}
+		} catch {
+			// Silently ignore
+		}
+		setRecoveryOffer(null);
+	}, [recoveryOffer]);
+
+	const handleRecoveryDismiss = useCallback(() => {
+		if (recoveryOffer) {
+			void deleteAutosaveSnapshot(recoveryOffer.filePath);
+		}
+		setRecoveryOffer(null);
+	}, [recoveryOffer]);
+
 	// Update document title when in collaboration/broadcast mode
 	useEffect(() => {
 		if (collaborationConfig && content) {
@@ -750,6 +827,11 @@ function App() {
 
 	const handleFile = useCallback((file: File) => {
 		setFileName(file.name);
+		try {
+			localStorage.setItem(RECOVERY_STORAGE_KEY, file.name);
+		} catch {
+			/* ignore */
+		}
 		const reader = new FileReader();
 		reader.onload = () => {
 			const bytes = new Uint8Array(reader.result as ArrayBuffer);
@@ -766,6 +848,11 @@ function App() {
 		const bytes = await handler.save(data.slides);
 		setContent(bytes);
 		setFileName('Untitled Presentation');
+		try {
+			localStorage.setItem(RECOVERY_STORAGE_KEY, 'Untitled Presentation');
+		} catch {
+			/* ignore */
+		}
 	}, []);
 
 	const handleDrop = useCallback(
@@ -831,9 +918,34 @@ function App() {
 	}
 
 	return (
-		<div className='flex items-center justify-center h-[100dvh] w-screen bg-background text-foreground'>
+		<div className='flex flex-col items-center justify-center h-[100dvh] w-screen bg-background text-foreground'>
 			<ThemePicker current={themeKey} onChange={handleThemeChange} />
 			<LanguagePicker current={languageKey} onChange={handleLanguageChange} theme={currentPreset} />
+			{recoveryOffer && (
+				<div className='max-w-[900px] w-full mb-4 p-4 rounded-lg border border-primary/40 bg-primary/5 flex items-center justify-between gap-4'>
+					<div>
+						<p className='text-foreground font-medium text-sm'>Unsaved changes recovered</p>
+						<p className='text-muted-foreground text-xs mt-0.5'>
+							{recoveryOffer.filePath} - saved {new Date(recoveryOffer.timestamp).toLocaleString()}{' '}
+							({(recoveryOffer.size / 1024).toFixed(0)} KB)
+						</p>
+					</div>
+					<div className='flex gap-2 shrink-0'>
+						<button
+							onClick={() => void handleRecoveryRestore()}
+							className='px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors'
+						>
+							Restore
+						</button>
+						<button
+							onClick={handleRecoveryDismiss}
+							className='px-3 py-1.5 rounded-md border border-border text-muted-foreground text-sm hover:bg-accent transition-colors'
+						>
+							Dismiss
+						</button>
+					</div>
+				</div>
+			)}
 			<div
 				className='max-w-[900px] w-full border-2 border-dashed border-border rounded-xl p-12 text-center cursor-pointer transition-colors hover:border-primary hover:bg-accent'
 				onDrop={handleDrop}

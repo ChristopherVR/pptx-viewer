@@ -12,7 +12,7 @@
 // ---------------------------------------------------------------------------
 
 /** Lifecycle state of the autosave engine, normalised across bindings. */
-export type TitleBarAutosaveState = 'idle' | 'saving' | 'saved' | 'error';
+export type TitleBarAutosaveState = 'idle' | 'saving' | 'saved' | 'error' | 'disabled';
 
 export interface ResolveTitleBarStatusInput {
 	/** Current autosave lifecycle state. */
@@ -21,6 +21,8 @@ export interface ResolveTitleBarStatusInput {
 	isDirty: boolean;
 	/** Whether the AutoSave toggle is on. */
 	autosaveEnabled: boolean;
+	/** When autosaveState is 'disabled', the reason code. */
+	disabledReason?: string;
 }
 
 /**
@@ -28,7 +30,16 @@ export interface ResolveTitleBarStatusInput {
  * (PowerPoint shows "Saved to this PC" there).
  */
 export function resolveTitleBarStatusKey(input: ResolveTitleBarStatusInput): string {
-	const { autosaveState, isDirty, autosaveEnabled } = input;
+	const { autosaveState, isDirty, autosaveEnabled, disabledReason } = input;
+	if (autosaveState === 'disabled') {
+		if (disabledReason === 'no_file_path') {
+			return 'pptx.autosave.disabledNoFilePath';
+		}
+		if (disabledReason === 'autosave_toggle_off') {
+			return 'pptx.autosave.disabledToggleOff';
+		}
+		return 'pptx.autosave.disabled';
+	}
 	if (autosaveEnabled && autosaveState === 'saving') {
 		return 'pptx.autosave.saving';
 	}

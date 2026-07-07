@@ -45,6 +45,7 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 		autosaveState: p.autosaveStatus?.state ?? 'idle',
 		isDirty: p.isDirty,
 		autosaveEnabled: p.autosaveEnabled,
+		disabledReason: p.autosaveStatus?.state === 'disabled' ? p.autosaveStatus.reason : undefined,
 	});
 
 	return (
