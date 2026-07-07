@@ -6,6 +6,18 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-07
 
+_Releases: pptx-react-viewer@1.8.0, pptx-vue-viewer@1.8.0, pptx-angular-viewer@1.8.0, @christophervr/pptx-viewer@1.4.2_
+
+### Features
+
+- **shared:** Autosave disabled status with reason, recovery helpers (by @ChristopherVR) ([8ccc7eb](https://github.com/ChristopherVR/pptx-viewer/commit/8ccc7ebd451a8101c6e045708ee7c3a1cb006e1d))
+
+### Bug Fixes
+
+- CLI interactive installation (by @ChristopherVR) ([7b0f649](https://github.com/ChristopherVR/pptx-viewer/commit/7b0f649caa2a2f7bdea949f2583f6c86ff218cc5))
+
+## 2026-07-07
+
 _Releases: pptx-viewer-core@1.2.2, pptx-react-viewer@1.7.2, pptx-vue-viewer@1.7.2, pptx-angular-viewer@1.7.2_
 
 ### Bug Fixes
