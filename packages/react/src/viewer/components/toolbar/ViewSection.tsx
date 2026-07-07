@@ -37,23 +37,29 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 			{/* Presentation Views group */}
 			<div className='flex flex-col items-center gap-0.5'>
 				<div className='flex items-center gap-0.5'>
-					<button className={pill} title='Normal view'>
-						Normal
+					<button className={pill} title={t('pptx.statusBar.normalView')}>
+						{t('pptx.view.normal')}
 					</button>
 					{p.onToggleSlideSorter ? (
-						<button className={pill} onClick={p.onToggleSlideSorter} title='Slide Sorter view'>
-							Slide Sorter
+						<button
+							className={pill}
+							onClick={p.onToggleSlideSorter}
+							title={t('pptx.view.slideSorterTooltip')}
+						>
+							{t('pptx.slideSorter.title')}
 						</button>
 					) : (
-						<button className={pill} title='Slide Sorter view'>
-							Slide Sorter
+						<button className={pill} title={t('pptx.view.slideSorterTooltip')}>
+							{t('pptx.slideSorter.title')}
 						</button>
 					)}
-					<button className={pill} title='Reading View'>
-						Reading View
+					<button className={pill} title={t('pptx.view.readingView')}>
+						{t('pptx.view.readingView')}
 					</button>
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>Presentation Views</span>
+				<span className='text-[9px] text-muted-foreground leading-none'>
+					{t('pptx.view.presentationViews')}
+				</span>
 			</div>
 			{sep}
 
@@ -64,12 +70,14 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 						onClick={p.onEnterMasterView}
 						disabled={!p.canEdit}
 						className={pill}
-						title='Edit slide masters and layouts'
+						title={t('pptx.view.slideMasterTooltip')}
 					>
-						Slide Master
+						{t('pptx.master.title')}
 					</button>
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>Master Views</span>
+				<span className='text-[9px] text-muted-foreground leading-none'>
+					{t('pptx.view.masterViews')}
+				</span>
 			</div>
 			{sep}
 
@@ -77,12 +85,18 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 			<div className='flex flex-col items-center gap-0.5'>
 				<div className='flex items-center gap-0.5'>
 					{p.onZoomToFit && (
-						<button className={pill} onClick={p.onZoomToFit} title='Zoom to fit slide in window'>
-							Zoom to Fit
+						<button
+							className={pill}
+							onClick={p.onZoomToFit}
+							title={t('pptx.view.zoomToFitTooltip')}
+						>
+							{t('pptx.view.zoomToFit')}
 						</button>
 					)}
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>Zoom</span>
+				<span className='text-[9px] text-muted-foreground leading-none'>
+					{t('pptx.slideSorter.zoom')}
+				</span>
 			</div>
 			{sep}
 
@@ -93,9 +107,9 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 					pill,
 					p.editTemplateMode ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '',
 				)}
-				title='Toggle template/master element editing'
+				title={t('pptx.view.templateEditingTooltip')}
 			>
-				{p.editTemplateMode ? 'Templates On' : 'Templates Off'}
+				{p.editTemplateMode ? t('pptx.ribbon.templatesOn') : t('pptx.ribbon.templatesOff')}
 			</button>
 			{p.onToggleSelectionPane && (
 				<button
@@ -105,10 +119,10 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 						pill,
 						p.isSelectionPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
 					)}
-					title='Selection Pane'
+					title={t('pptx.selectionPane.title')}
 				>
 					<LuList className={ic} />
-					Selection
+					{t('pptx.view.selection')}
 				</button>
 			)}
 			{p.onToggleEyedropper && (
@@ -120,10 +134,10 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 						pill,
 						p.eyedropperActive ? 'bg-purple-600 hover:bg-purple-500 text-purple-50' : '',
 					)}
-					title='Eyedropper — sample a colour from the slide'
+					title={t('pptx.view.eyedropperTooltip')}
 				>
 					<LuPipette className={ic} />
-					Eyedropper
+					{t('pptx.ribbon.eyedropper')}
 				</button>
 			)}
 			<button
@@ -154,18 +168,26 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 			>
 				{t('pptx.grid.snapToShape')}
 			</button>
-			<button onClick={() => p.onAddGuide('h')} className={pill} title='Add horizontal guide'>
-				H Guide
+			<button
+				onClick={() => p.onAddGuide('h')}
+				className={pill}
+				title={t('pptx.view.addHorizontalGuide')}
+			>
+				{t('pptx.view.hGuide')}
 			</button>
-			<button onClick={() => p.onAddGuide('v')} className={pill} title='Add vertical guide'>
-				V Guide
+			<button
+				onClick={() => p.onAddGuide('v')}
+				className={pill}
+				title={t('pptx.view.addVerticalGuide')}
+			>
+				{t('pptx.view.vGuide')}
 			</button>
 			<button
 				onClick={() => p.onSetSpellCheckEnabled(!p.spellCheckEnabled)}
 				className={cn(pill, p.spellCheckEnabled ? 'bg-primary text-white' : '')}
-				title='Toggle spell check'
+				title={t('pptx.view.toggleSpellCheck')}
 			>
-				Spell
+				{t('pptx.view.spell')}
 			</button>
 		</>
 	);

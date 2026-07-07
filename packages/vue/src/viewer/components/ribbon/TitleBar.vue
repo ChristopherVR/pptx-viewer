@@ -1,23 +1,13 @@
 <script setup lang="ts">
 import { Redo, Save, Search, Undo } from 'lucide-vue-next';
-/**
- * TitleBar: Vue port of React's `toolbar/TitleBar.tsx`.
- *
- * PowerPoint-style title bar: AutoSave toggle, quick-access Save/Undo/Redo,
- * file name + save-location status, and a centred search box that opens the
- * Find & Replace panel. Rendered above (outside) the ribbon toolbar so it never
- * inflates the `role="toolbar"` element's measured height.
- *
- * The class tokens + status-key resolution come from `pptx-viewer-shared`
- * (`TITLE_BAR_CLASSES`, `resolveTitleBarStatusKey`), used verbatim like React,
- * so all three bindings render pixel-identical chrome.
- */
 import {
+	filterCommands,
 	resolveTitleBarStatusKey,
 	TITLE_BAR_CLASSES as TB,
 	TITLE_BAR_DEFAULT_FILE_KEY,
 } from 'pptx-viewer-shared';
-import { computed } from 'vue';
+import type { CommandSearchEntry } from 'pptx-viewer-shared';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
@@ -27,12 +17,10 @@ import type { ViewerMode } from './ribbon-types';
 interface Props {
 	mode: ViewerMode;
 	canEdit: boolean;
-	/** Display name of the open document (host-supplied). */
 	fileName?: string;
 	isDirty: boolean;
 	autosaveStatus?: AutosaveStatus;
 	autosaveEnabled: boolean;
-	/** Reason code when autosave is disabled (e.g. 'no_file_path'). */
 	autosaveDisabledReason?: string;
 	onToggleAutosave: () => void;
 	canUndo: boolean;
@@ -41,10 +29,10 @@ interface Props {
 	redoLabel?: string | null;
 	onUndo: () => void;
 	onRedo: () => void;
-	/** Quick-access save (downloads the .pptx). */
 	onSave?: () => void;
 	findReplaceOpen: boolean;
 	onToggleFindReplace: () => void;
+	onCommandSearch?: (command: string) => void;
 }
 
 const props = defineProps<Props>();
@@ -60,6 +48,41 @@ const statusKey = computed(() =>
 		disabledReason: props.autosaveDisabledReason,
 	}),
 );
+
+const searchQuery = ref('');
+const searchFocused = ref(false);
+const searchRef = ref<HTMLDivElement | null>(null);
+
+const commandResults = computed(() => filterCommands(searchQuery.value, t));
+
+function handleCommandSelect(entry: CommandSearchEntry): void {
+	props.onCommandSearch?.(entry.command);
+	searchQuery.value = '';
+	searchFocused.value = false;
+}
+
+function handleSearchKeyDown(e: KeyboardEvent): void {
+	if (e.key === 'Enter' && searchQuery.value.trim()) {
+		if (commandResults.value.length > 0) {
+			handleCommandSelect(commandResults.value[0]);
+		} else {
+			props.onToggleFindReplace();
+			searchFocused.value = false;
+		}
+	} else if (e.key === 'Escape') {
+		searchQuery.value = '';
+		searchFocused.value = false;
+	}
+}
+
+function handleOutsideClick(e: MouseEvent): void {
+	if (searchRef.value && !searchRef.value.contains(e.target as Node)) {
+		searchFocused.value = false;
+	}
+}
+
+onMounted(() => document.addEventListener('mousedown', handleOutsideClick));
+onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutsideClick));
 </script>
 
 <template>
@@ -150,17 +173,72 @@ const statusKey = computed(() =>
 		</span>
 
 		<span :class="TB.searchWrap">
-			<button
+			<div
 				v-if="props.mode === 'edit' || props.mode === 'master'"
-				type="button"
-				:class="cn(TB.searchBox, props.findReplaceOpen ? 'text-foreground bg-background' : '')"
-				:title="t('pptx.findReplace.title')"
-				:aria-label="t('pptx.titleBar.search')"
-				@click="props.onToggleFindReplace()"
+				ref="searchRef"
+				class="relative w-full max-w-md"
 			>
-				<Search :class="TB.searchIcon" />
-				<span :class="TB.searchLabel">{{ t('pptx.titleBar.search') }}</span>
-			</button>
+				<div
+					:class="
+						cn(
+							TB.searchBox,
+							searchFocused || props.findReplaceOpen ? 'text-foreground bg-background' : '',
+						)
+					"
+				>
+					<Search :class="TB.searchIcon" />
+					<input
+						v-model="searchQuery"
+						type="text"
+						class="flex-1 bg-transparent text-[11px] outline-none placeholder:text-muted-foreground/60"
+						:placeholder="t('pptx.titleBar.searchPlaceholder')"
+						:aria-label="t('pptx.titleBar.search')"
+						@focus="searchFocused = true"
+						@keydown="handleSearchKeyDown"
+					/>
+				</div>
+				<div
+					v-if="searchFocused && searchQuery.trim()"
+					class="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-popover shadow-xl max-h-64 overflow-y-auto"
+				>
+					<template v-if="commandResults.length > 0">
+						<div
+							class="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider"
+						>
+							{{ t('pptx.titleBar.searchCommands') }}
+						</div>
+						<button
+							v-for="entry in commandResults.slice(0, 8)"
+							:key="entry.command"
+							type="button"
+							class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
+							@mousedown="handleCommandSelect(entry)"
+						>
+							<span class="truncate">{{ t(entry.labelKey) }}</span>
+							<span class="ml-auto text-[10px] text-muted-foreground capitalize">{{
+								entry.category
+							}}</span>
+						</button>
+					</template>
+					<div v-else class="px-3 py-2 text-xs text-muted-foreground">
+						{{ t('pptx.titleBar.searchNoResults') }}
+					</div>
+					<div class="border-t border-border/60">
+						<button
+							type="button"
+							class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
+							@mousedown="
+								props.onToggleFindReplace();
+								searchFocused = false;
+								searchQuery = '';
+							"
+						>
+							<Search class="w-3 h-3 shrink-0" />
+							<span>{{ t('pptx.titleBar.searchContent') }} &ldquo;{{ searchQuery }}&rdquo;</span>
+						</button>
+					</div>
+				</div>
+			</div>
 		</span>
 
 		<!-- Right block mirrors the left visually; kept minimal. -->

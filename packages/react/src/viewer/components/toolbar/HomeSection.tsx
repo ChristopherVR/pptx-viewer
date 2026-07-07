@@ -1,6 +1,7 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuChevronDown, LuClipboardPaste, LuCopy, LuPaintbrush, LuScissors } from 'react-icons/lu';
 
 import type { ElementClipboardPayload } from '../../types';
@@ -66,6 +67,7 @@ const COMMON_FONTS = [
 const COMMON_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 72, 96];
 
 export function HomeSection(p: HomeSectionProps): React.ReactElement {
+	const { t } = useTranslation();
 	const [fontMenuOpen, setFontMenuOpen] = useState(false);
 	const [sizeMenuOpen, setSizeMenuOpen] = useState(false);
 	const [copiedFeedback, setCopiedFeedback] = useState(false);
@@ -112,7 +114,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 						onClick={p.onPaste}
 						disabled={!p.clipboardPayload || !p.canEdit}
 						className={gB}
-						title='Paste'
+						title={t('pptx.arrange.paste')}
 					>
 						<LuClipboardPaste className={ic} />
 					</button>
@@ -125,7 +127,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 						}}
 						disabled={!p.canEdit}
 						className={cn(gB, cutFeedback && 'bg-green-600/20 text-green-400')}
-						title='Cut'
+						title={t('pptx.arrange.cut')}
 					>
 						<LuScissors className={ic} />
 					</button>
@@ -137,7 +139,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 							setTimeout(() => setCopiedFeedback(false), 600);
 						}}
 						className={cn(gB, copiedFeedback && 'bg-green-600/20 text-green-400')}
-						title='Copy'
+						title={t('pptx.arrange.copy')}
 					>
 						<LuCopy className={ic} />
 					</button>
@@ -154,13 +156,15 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 								gL,
 								p.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '',
 							)}
-							title='Format Painter'
+							title={t('pptx.arrange.formatPainter')}
 						>
 							<LuPaintbrush className={ic} />
 						</button>
 					)}
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>Clipboard</span>
+				<span className='text-[9px] text-muted-foreground leading-none'>
+					{t('pptx.ribbon.clipboard')}
+				</span>
 			</div>
 
 			{sep}

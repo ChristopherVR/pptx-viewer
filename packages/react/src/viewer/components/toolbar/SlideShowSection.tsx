@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuCaptions, LuCast, LuClock, LuMonitor, LuPlay, LuSettings } from 'react-icons/lu';
 
 import type { ViewerMode } from '../../types';
@@ -17,46 +18,64 @@ export interface SlideShowSectionProps {
 }
 
 export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
+	const { t } = useTranslation();
+
 	return (
 		<>
 			<button
 				onClick={() => p.onSetMode('present')}
 				className={pill}
-				title='Start slide show from beginning'
+				title={t('pptx.slideShow.fromBeginningTooltip')}
 			>
 				<LuPlay className={ic} />
-				From Beginning
+				{t('pptx.slideShow.fromBeginning')}
 			</button>
-			<button onClick={p.onPresent} className={pill} title='Start slide show from current slide'>
+			<button onClick={p.onPresent} className={pill} title={t('pptx.slideShow.fromCurrentTooltip')}>
 				<LuPlay className={ic} />
-				From Current Slide
+				{t('pptx.slideShow.fromCurrent')}
 			</button>
 			{sep}
-			<button onClick={p.onEnterPresenterView} className={pill} title='Presenter view'>
+			<button
+				onClick={p.onEnterPresenterView}
+				className={pill}
+				title={t('pptx.slideShow.presenterViewTooltip')}
+			>
 				<LuMonitor className={ic} />
-				Presenter View
+				{t('pptx.slideShow.presenterView')}
 			</button>
-			<button onClick={p.onEnterRehearsalMode} className={pill} title='Rehearse timings'>
+			<button
+				onClick={p.onEnterRehearsalMode}
+				className={pill}
+				title={t('pptx.slideShow.rehearseTimingsTooltip')}
+			>
 				<LuClock className={ic} />
-				Rehearse Timings
+				{t('pptx.slideShow.rehearseTimings')}
 			</button>
 			{sep}
-			<button onClick={p.onOpenSetUpSlideShow} className={pill} title='Set up slide show'>
+			<button
+				onClick={p.onOpenSetUpSlideShow}
+				className={pill}
+				title={t('pptx.slideShow.setUpTooltip')}
+			>
 				<LuSettings className={ic} />
-				Set Up Slide Show
+				{t('pptx.slideShow.setUp')}
 			</button>
-			<button onClick={p.onOpenBroadcastDialog} className={pill} title='Broadcast slide show'>
+			<button
+				onClick={p.onOpenBroadcastDialog}
+				className={pill}
+				title={t('pptx.slideShow.broadcastTooltip')}
+			>
 				<LuCast className={ic} />
-				Broadcast
+				{t('pptx.slideShow.broadcast')}
 			</button>
 			{sep}
 			<button
 				onClick={p.onToggleSubtitles}
 				className={cn(pill, p.showSubtitles ? 'bg-primary hover:bg-primary/80 text-white' : '')}
-				title='Toggle subtitles'
+				title={t('pptx.slideShow.subtitlesTooltip')}
 			>
 				<LuCaptions className={ic} />
-				Subtitles
+				{t('pptx.slideShow.subtitles')}
 			</button>
 		</>
 	);

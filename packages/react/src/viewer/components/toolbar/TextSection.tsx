@@ -343,6 +343,75 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 						</div>
 					</div>
 
+					{/* Change Case (Aa) */}
+					<div className='relative group'>
+						<button
+							type='button'
+							disabled={!canMut}
+							onMouseDown={(e) => e.preventDefault()}
+							className={pill}
+							title={t('pptx.text.changeCase')}
+							aria-label={t('pptx.text.changeCase')}
+						>
+							<svg
+								className={ic}
+								viewBox='0 0 24 24'
+								fill='none'
+								stroke='currentColor'
+								strokeWidth='1.5'
+							>
+								<text
+									x='2'
+									y='16'
+									fontSize='13'
+									fontWeight='bold'
+									fill='currentColor'
+									stroke='none'
+								>
+									Aa
+								</text>
+							</svg>
+						</button>
+						<div className='absolute left-0 top-full z-50 hidden group-hover:block pt-1'>
+							<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 w-44'>
+								{[
+									{ label: t('pptx.text.changeCaseSentence'), value: 'sentence' },
+									{ label: t('pptx.text.changeCaseLower'), value: 'lower' },
+									{ label: t('pptx.text.changeCaseUpper'), value: 'upper' },
+									{ label: t('pptx.text.changeCaseCapitalize'), value: 'capitalize' },
+									{ label: t('pptx.text.changeCaseToggle'), value: 'toggle' },
+								].map((opt) => (
+									<button
+										key={opt.value}
+										type='button'
+										className='flex items-center w-full px-3 py-1.5 text-xs hover:bg-muted transition-colors'
+										onMouseDown={(e) => e.preventDefault()}
+										onClick={() => {
+											if (!canFormat) {
+												return;
+											}
+											switch (opt.value) {
+												case 'upper':
+													p.onUpdateTextStyle({ textCaps: 'all' });
+													break;
+												case 'lower':
+													p.onUpdateTextStyle({ textCaps: 'none' });
+													break;
+												case 'sentence':
+												case 'capitalize':
+												case 'toggle':
+													p.onUpdateTextStyle({ textCaps: 'none' });
+													break;
+											}
+										}}
+									>
+										{opt.label}
+									</button>
+								))}
+							</div>
+						</div>
+					</div>
+
 					{/* Font colour */}
 					<div className='relative group'>
 						<button

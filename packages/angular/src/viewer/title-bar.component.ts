@@ -16,14 +16,24 @@
  * renders as one 36px flex strip.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	signal,
+} from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import {
+	filterCommands,
 	resolveTitleBarStatusKey,
 	TITLE_BAR_CLASSES,
 	TITLE_BAR_DEFAULT_FILE_KEY,
 } from '../internal/shared';
+import type { CommandSearchEntry } from '../internal/shared';
 import type { AutosaveStatus } from './autosave.service';
 
 @Component({
@@ -114,17 +124,70 @@ import type { AutosaveStatus } from './autosave.service';
 
 			<span [class]="tb.searchWrap">
 				@if (canEdit()) {
-					<button
-						type="button"
-						[class]="tb.searchBox"
-						[ngClass]="findReplaceOpen() ? 'text-foreground bg-background' : ''"
-						[title]="'pptx.findReplace.title' | translate"
-						[attr.aria-label]="'pptx.titleBar.search' | translate"
-						(click)="toggleFindReplace.emit()"
-					>
-						<span [class]="tb.searchIcon" aria-hidden="true">⌕</span>
-						<span [class]="tb.searchLabel">{{ 'pptx.titleBar.search' | translate }}</span>
-					</button>
+					<div class="relative w-full max-w-md">
+						<div
+							[class]="tb.searchBox"
+							[ngClass]="
+								searchFocused() || findReplaceOpen() ? 'text-foreground bg-background' : ''
+							"
+						>
+							<span [class]="tb.searchIcon" aria-hidden="true">⌕</span>
+							<input
+								type="text"
+								[value]="searchQuery()"
+								(input)="searchQuery.set($any($event.target).value)"
+								(focus)="searchFocused.set(true)"
+								(blur)="onSearchBlur()"
+								(keydown)="onSearchKeyDown($event)"
+								class="flex-1 bg-transparent text-[11px] outline-none placeholder:text-muted-foreground/60"
+								[placeholder]="'pptx.titleBar.searchPlaceholder' | translate"
+								[attr.aria-label]="'pptx.titleBar.search' | translate"
+							/>
+						</div>
+						@if (searchFocused() && searchQuery().trim()) {
+							<div
+								class="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-popover shadow-xl max-h-64 overflow-y-auto"
+							>
+								@if (commandResults().length > 0) {
+									<div
+										class="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider"
+									>
+										{{ 'pptx.titleBar.searchCommands' | translate }}
+									</div>
+									@for (entry of commandResults().slice(0, 8); track entry.command) {
+										<button
+											type="button"
+											class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
+											(mousedown)="selectCommand(entry)"
+										>
+											<span class="truncate">{{ entry.labelKey | translate }}</span>
+											<span class="ml-auto text-[10px] text-muted-foreground capitalize">{{
+												entry.category
+											}}</span>
+										</button>
+									}
+								} @else {
+									<div class="px-3 py-2 text-xs text-muted-foreground">
+										{{ 'pptx.titleBar.searchNoResults' | translate }}
+									</div>
+								}
+								<div class="border-t border-border/60">
+									<button
+										type="button"
+										class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
+										(mousedown)="openFindReplace()"
+									>
+										<span aria-hidden="true">⌕</span>
+										<span
+											>{{ 'pptx.titleBar.searchContent' | translate }} &ldquo;{{
+												searchQuery()
+											}}&rdquo;</span
+										>
+									</button>
+								</div>
+							</div>
+						}
+					</div>
 				}
 			</span>
 
@@ -151,14 +214,22 @@ export class TitleBarComponent {
 	readonly findReplaceOpen = input<boolean>(false);
 
 	readonly toggleAutosave = output<void>();
-	/** Quick-access save (downloads the `.pptx`). */
 	readonly save = output<void>();
 	readonly undo = output<void>();
 	readonly redo = output<void>();
 	readonly toggleFindReplace = output<void>();
+	readonly commandSearch = output<string>();
 
+	private readonly translate = inject(TranslateService);
 	protected readonly tb = TITLE_BAR_CLASSES;
 	protected readonly defaultFileKey = TITLE_BAR_DEFAULT_FILE_KEY;
+
+	protected readonly searchQuery = signal('');
+	protected readonly searchFocused = signal(false);
+
+	protected readonly commandResults = computed(() =>
+		filterCommands(this.searchQuery(), (key) => this.translate.instant(key)),
+	);
 
 	/** The i18n key for the save-location status text (next to the file name). */
 	protected readonly statusKey = computed(() => {
@@ -185,4 +256,35 @@ export class TitleBarComponent {
 		}
 		return '';
 	});
+
+	protected selectCommand(entry: CommandSearchEntry): void {
+		this.commandSearch.emit(entry.command);
+		this.searchQuery.set('');
+		this.searchFocused.set(false);
+	}
+
+	protected openFindReplace(): void {
+		this.toggleFindReplace.emit();
+		this.searchFocused.set(false);
+		this.searchQuery.set('');
+	}
+
+	protected onSearchBlur(): void {
+		// Delay to allow mousedown on dropdown items to fire first.
+		setTimeout(() => this.searchFocused.set(false), 150);
+	}
+
+	protected onSearchKeyDown(event: KeyboardEvent): void {
+		if (event.key === 'Enter' && this.searchQuery().trim()) {
+			const results = this.commandResults();
+			if (results.length > 0) {
+				this.selectCommand(results[0]);
+			} else {
+				this.openFindReplace();
+			}
+		} else if (event.key === 'Escape') {
+			this.searchQuery.set('');
+			this.searchFocused.set(false);
+		}
+	}
 }

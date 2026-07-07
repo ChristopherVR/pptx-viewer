@@ -62,7 +62,9 @@ describe('titleBar', () => {
 	it('toggles find & replace from the centred search box', async () => {
 		const onToggleFindReplace = vi.fn();
 		const wrapper = mountTitleBar({ onToggleFindReplace });
-		await wrapper.get('button[aria-label="Search"]').trigger('click');
+		const input = wrapper.get('input[aria-label="Search"]');
+		await input.setValue('test');
+		await input.trigger('keydown', { key: 'Enter' });
 		expect(onToggleFindReplace).toHaveBeenCalledOnce();
 	});
 

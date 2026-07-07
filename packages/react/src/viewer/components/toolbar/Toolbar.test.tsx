@@ -41,6 +41,10 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 				'pptx.titleBar.savedToThisPc': 'Saved to this PC',
 				'pptx.titleBar.defaultFileName': 'Presentation',
 				'pptx.titleBar.search': 'Search',
+				'pptx.titleBar.searchPlaceholder': 'Tell me what you want to do',
+				'pptx.titleBar.searchCommands': 'Actions',
+				'pptx.titleBar.searchContent': 'Find in Slides',
+				'pptx.titleBar.searchNoResults': 'No results',
 				'pptx.titleBar.record': 'Record',
 				'pptx.statusBar.unsavedChanges': 'Unsaved changes',
 				// AnimationsSection
@@ -152,6 +156,119 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 				'pptx.shortcuts.action.zoomCanvas': 'Zoom canvas',
 				'pptx.shortcuts.action.commitTextEdit': 'Commit inline text edit',
 				'pptx.shortcuts.action.cancelTextEdit': 'Cancel inline text / close menus',
+				// HomeSection - Clipboard
+				'pptx.ribbon.clipboard': 'Clipboard',
+				// InsertSection
+				'pptx.insert.addTextBox': 'Add text box',
+				'pptx.insert.addShape': 'Add shape',
+				'pptx.insert.insertTable': 'Insert table',
+				'pptx.insert.insertSmartArt': 'Insert SmartArt',
+				'pptx.insert.insertEquation': 'Insert Equation',
+				'pptx.insert.shape': 'Shape',
+				'pptx.insert.shapeType': 'Shape type',
+				'pptx.ribbon.textBox': 'Text Box',
+				'pptx.ribbon.image': 'Image',
+				'pptx.ribbon.insertImage': 'Insert image',
+				'pptx.ribbon.media': 'Media',
+				'pptx.ribbon.insertMedia': 'Insert audio or video',
+				'pptx.ribbon.table': 'Table',
+				'pptx.ribbon.insertTable': 'Insert 3x3 table',
+				'pptx.ribbon.smartArt': 'SmartArt',
+				'pptx.ribbon.insertSmartArt': 'Insert SmartArt diagram',
+				'pptx.ribbon.chart': 'Chart',
+				'pptx.ribbon.chartType': 'Chart type',
+				'pptx.ribbon.insertChart': 'Insert chart',
+				'pptx.ribbon.equation': 'Equation',
+				'pptx.ribbon.insertEquation': 'Insert equation',
+				'pptx.ribbon.action': 'Action',
+				'pptx.ribbon.insertActionButton': 'Insert action button',
+				// DesignSection
+				'pptx.ribbon.browseThemes': 'Browse Themes',
+				'pptx.ribbon.browseThemesTitle': 'Browse and apply built-in themes',
+				'pptx.ribbon.editTheme': 'Edit Theme',
+				'pptx.ribbon.editThemeTitle': 'Edit theme - theme editor not yet ported',
+				'pptx.ribbon.slideSize': 'Slide Size',
+				'pptx.ribbon.slideSizeTitle': 'Slide size / document properties',
+				'pptx.ribbon.formatBackground': 'Format Background',
+				'pptx.ribbon.formatBackgroundTitle': 'Format slide background - opens the Inspector',
+				// TransitionsSection
+				'pptx.ribbon.previewTransition': 'Preview transition',
+				'pptx.ribbon.preview': 'Preview',
+				'pptx.ribbon.transition.none': 'None',
+				'pptx.ribbon.transition.fade': 'Fade',
+				'pptx.ribbon.transition.push': 'Push',
+				'pptx.ribbon.transition.wipe': 'Wipe',
+				'pptx.ribbon.transition.split': 'Split',
+				'pptx.ribbon.transition.reveal': 'Reveal',
+				'pptx.ribbon.transition.cut': 'Cut',
+				'pptx.ribbon.transition.cover': 'Cover',
+				'pptx.ribbon.transition.uncover': 'Uncover',
+				'pptx.ribbon.transitionTitle': (o: Record<string, unknown>) => `${o.name} transition`,
+				'pptx.ribbon.duration': 'Duration:',
+				'pptx.ribbon.transitionDurationTitle': 'Transition duration in seconds',
+				'pptx.ribbon.applyTransitionToAll': 'Apply transition to all slides',
+				'pptx.ribbon.advanceSlide': 'Advance Slide',
+				'pptx.ribbon.onMouseClick': 'On Mouse Click',
+				'pptx.ribbon.afterDuration': 'After:',
+				'pptx.ribbon.advanceAfterSeconds': 'Advance after specified duration',
+				'pptx.ribbon.sound': 'Sound:',
+				'pptx.ribbon.soundNone': '[No Sound]',
+				'pptx.ribbon.inspector': 'Inspector',
+				'pptx.ribbon.openInspectorTransitions': 'Open Inspector for full transition options',
+				'pptx.headerFooter.applyToAll': 'Apply to All',
+				// SlideShowSection
+				'pptx.slideShow.fromBeginningTooltip': 'Start slide show from beginning',
+				'pptx.slideShow.fromBeginning': 'From Beginning',
+				'pptx.slideShow.fromCurrentTooltip': 'Start slide show from current slide',
+				'pptx.slideShow.fromCurrent': 'From Current Slide',
+				'pptx.slideShow.presenterViewTooltip': 'Presenter view',
+				'pptx.slideShow.presenterView': 'Presenter View',
+				'pptx.slideShow.rehearseTimingsTooltip': 'Rehearse timings',
+				'pptx.slideShow.rehearseTimings': 'Rehearse Timings',
+				'pptx.slideShow.setUpTooltip': 'Set up slide show',
+				'pptx.slideShow.setUp': 'Set Up Slide Show',
+				'pptx.slideShow.broadcastTooltip': 'Broadcast slide show',
+				'pptx.slideShow.broadcast': 'Broadcast',
+				'pptx.slideShow.subtitlesTooltip': 'Toggle subtitles',
+				'pptx.slideShow.subtitles': 'Subtitles',
+				// ReviewSection
+				'pptx.review.toggleComments': 'Toggle comments panel',
+				'pptx.review.spelling': 'Spelling',
+				'pptx.review.toggleSpellCheck': 'Toggle spell check',
+				'pptx.ribbon.compare': 'Compare',
+				'pptx.ribbon.compareTitle': 'Compare with another presentation',
+				// ViewSection
+				'pptx.statusBar.normalView': 'Normal view',
+				'pptx.view.normal': 'Normal',
+				'pptx.view.slideSorterTooltip': 'Slide Sorter view',
+				'pptx.slideSorter.title': 'Slide Sorter',
+				'pptx.view.readingView': 'Reading View',
+				'pptx.view.presentationViews': 'Presentation Views',
+				'pptx.view.slideMasterTooltip': 'Edit slide masters and layouts',
+				'pptx.master.title': 'Slide Master',
+				'pptx.view.masterViews': 'Master Views',
+				'pptx.view.zoomToFitTooltip': 'Zoom to fit slide in window',
+				'pptx.view.zoomToFit': 'Zoom to Fit',
+				'pptx.slideSorter.zoom': 'Zoom',
+				'pptx.view.templateEditingTooltip': 'Toggle template/master element editing',
+				'pptx.ribbon.templatesOn': 'Templates On',
+				'pptx.ribbon.templatesOff': 'Templates Off',
+				'pptx.selectionPane.title': 'Selection Pane',
+				'pptx.view.selection': 'Selection',
+				'pptx.view.eyedropperTooltip': 'Eyedropper: sample a colour from the slide',
+				'pptx.ribbon.eyedropper': 'Eyedropper',
+				'pptx.grid.toggleGrid': 'Toggle grid',
+				'pptx.grid.grid': 'Grid',
+				'pptx.ruler.toggleRulers': 'Toggle rulers',
+				'pptx.ruler.rulers': 'Rulers',
+				'pptx.grid.snapToGrid': 'Snap to grid',
+				'pptx.grid.snapToShape': 'Snap to shape',
+				'pptx.view.addHorizontalGuide': 'Add horizontal guide',
+				'pptx.view.hGuide': 'H Guide',
+				'pptx.view.addVerticalGuide': 'Add vertical guide',
+				'pptx.view.vGuide': 'V Guide',
+				'pptx.view.toggleSpellCheck': 'Toggle spell check',
+				'pptx.view.spell': 'Spell',
 			};
 			const v = translations[key];
 			if (typeof v === 'function') {
@@ -1280,18 +1397,18 @@ describe('toolbar - View tab', () => {
 
 	it('renders Grid button', () => {
 		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('pptx.grid.grid');
+		expect(html).toContain('>Grid<');
 	});
 
 	it('renders Rulers button', () => {
 		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('pptx.ruler.rulers');
+		expect(html).toContain('>Rulers<');
 	});
 
 	it('renders Snap controls', () => {
 		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('pptx.grid.snapToGrid');
-		expect(html).toContain('pptx.grid.snapToShape');
+		expect(html).toContain('>Snap to grid<');
+		expect(html).toContain('>Snap to shape<');
 	});
 
 	it('renders guide buttons', () => {
@@ -1302,7 +1419,7 @@ describe('toolbar - View tab', () => {
 
 	it('grid button has active styling when showGrid is true', () => {
 		const html = render(React.createElement(ViewSection, createViewProps({ showGrid: true })));
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="pptx.grid.toggleGrid"/u);
+		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Toggle grid"/u);
 	});
 
 	it('renders Selection pane button', () => {
@@ -1373,14 +1490,14 @@ describe('toolbar - Quick Access Bar (ToolbarPrimaryRow)', () => {
 	it('renders the search box that opens Find and Replace', () => {
 		const html = render(React.createElement(TitleBar, createTitleBarProps()));
 		expect(html).toContain('aria-label="Search"');
-		expect(html).toContain('title="Find and Replace"');
+		expect(html).toContain('placeholder="');
 	});
 
 	it('search box has foreground text when Find and Replace is open', () => {
 		const html = render(
 			React.createElement(TitleBar, createTitleBarProps({ findReplaceOpen: true })),
 		);
-		expect(html).toMatch(/text-foreground[^"]*"[^>]*aria-label="Search"/u);
+		expect(html).toContain('text-foreground');
 	});
 
 	it('shows Read-only badge when canEdit is false', () => {

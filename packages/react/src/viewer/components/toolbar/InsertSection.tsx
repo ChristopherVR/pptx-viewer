@@ -106,16 +106,21 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 
 	return (
 		<>
-			<button onClick={p.onAddTextBox} disabled={!canEdit} className={pill} title='Add text box'>
+			<button
+				onClick={p.onAddTextBox}
+				disabled={!canEdit}
+				className={pill}
+				title={t('pptx.insert.addTextBox')}
+			>
 				<LuType className={ic} />
-				Text
+				{t('pptx.ribbon.textBox')}
 			</button>
 			<div className={grp}>
 				<select
 					value={p.newShapeType}
 					onChange={(e) => p.onSetNewShapeType(e.target.value as SupportedShapeType)}
 					className='bg-transparent py-1.5 pl-2 pr-1 outline-none text-xs'
-					title='Shape type'
+					title={t('pptx.insert.shapeType')}
 				>
 					{SHAPE_PRESETS.map((sp) => (
 						<option key={sp.type} value={sp.type} className='bg-background'>
@@ -127,35 +132,40 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 					onClick={p.onAddShape}
 					disabled={!canEdit}
 					className='inline-flex items-center gap-1.5 px-2.5 py-1.5 border-l border-border hover:bg-accent transition-colors text-xs'
-					title='Add shape'
+					title={t('pptx.insert.addShape')}
 				>
 					{SHAPE_PRESETS.find((sp) => sp.type === p.newShapeType)?.icon || (
 						<LuSquare className={ic} />
 					)}
-					Shape
+					{t('pptx.insert.shape')}
 				</button>
 			</div>
 			<button
 				onClick={p.onOpenImagePicker}
 				disabled={!canEdit}
 				className={pill}
-				title='Insert image'
+				title={t('pptx.ribbon.insertImage')}
 			>
 				<LuImage className={ic} />
-				Image
+				{t('pptx.ribbon.image')}
 			</button>
 			<button
 				onClick={p.onOpenMediaPicker}
 				disabled={!canEdit}
 				className={pill}
-				title='Insert audio or video'
+				title={t('pptx.ribbon.insertMedia')}
 			>
 				<LuVideo className={ic} />
-				Media
+				{t('pptx.ribbon.media')}
 			</button>
-			<button onClick={p.onAddTable} disabled={!canEdit} className={pill} title='Insert table'>
+			<button
+				onClick={p.onAddTable}
+				disabled={!canEdit}
+				className={pill}
+				title={t('pptx.insert.insertTable')}
+			>
 				<LuDatabase className={ic} />
-				Table
+				{t('pptx.ribbon.table')}
 			</button>
 			{p.onAddChart && (
 				<div className={grp}>
@@ -163,7 +173,7 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 						value={newChartType}
 						onChange={(e) => setNewChartType(e.target.value as PptxChartType)}
 						className='bg-transparent py-1.5 pl-2 pr-1 outline-none text-xs'
-						title='Chart type'
+						title={t('pptx.ribbon.chartType')}
 					>
 						{INSERT_CHART_TYPES.map((ct) => (
 							<option key={ct.type} value={ct.type} className='bg-background'>
@@ -175,7 +185,7 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 						onClick={() => p.onAddChart!(newChartType)}
 						disabled={!canEdit}
 						className='inline-flex items-center gap-1.5 px-2.5 py-1.5 border-l border-border hover:bg-accent transition-colors text-xs'
-						title='Insert chart'
+						title={t('pptx.ribbon.insertChart')}
 					>
 						<svg
 							className={ic}
@@ -191,7 +201,7 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 							<rect x='12' y='7' width='3' height='10' />
 							<rect x='17' y='13' width='3' height='4' />
 						</svg>
-						Chart
+						{t('pptx.ribbon.chart')}
 					</button>
 				</div>
 			)}
@@ -199,16 +209,16 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 				onClick={p.onAddSmartArt}
 				disabled={!canEdit}
 				className={pill}
-				title='Insert SmartArt'
+				title={t('pptx.insert.insertSmartArt')}
 			>
 				<LuLayers className={ic} />
-				SmartArt
+				{t('pptx.ribbon.smartArt')}
 			</button>
 			<button
 				onClick={p.onAddEquation}
 				disabled={!canEdit}
 				className={pill}
-				title='Insert Equation'
+				title={t('pptx.insert.insertEquation')}
 			>
 				<svg
 					className={ic}
@@ -221,11 +231,16 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 				>
 					<path d='M4 17h6M7 14v6M14 7l4.5 10M15.5 14h5' />
 				</svg>
-				Equation
+				{t('pptx.ribbon.equation')}
 			</button>
 			{/* Action Buttons dropdown */}
 			<div className='relative group'>
-				<button type='button' disabled={!canEdit} className={pill} title='Insert action button'>
+				<button
+					type='button'
+					disabled={!canEdit}
+					className={pill}
+					title={t('pptx.ribbon.insertActionButton')}
+				>
 					<svg
 						className={ic}
 						viewBox='0 0 24 24'
@@ -238,7 +253,7 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 						<rect x='3' y='3' width='18' height='18' rx='2' />
 						<path d='M13 7l4 5-4 5' />
 					</svg>
-					Action
+					{t('pptx.ribbon.action')}
 					<LuChevronDown className='w-3 h-3' />
 				</button>
 				<div className='absolute left-0 top-full z-50 hidden group-hover:flex flex-col w-40 pt-1'>

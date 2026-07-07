@@ -1,9 +1,11 @@
 import {
+	filterCommands,
 	resolveTitleBarStatusKey,
 	TITLE_BAR_CLASSES as TB,
 	TITLE_BAR_DEFAULT_FILE_KEY,
 } from 'pptx-viewer-shared';
-import React from 'react';
+import type { CommandSearchEntry } from 'pptx-viewer-shared';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuRedo, LuSave, LuSearch, LuUndo } from 'react-icons/lu';
 
@@ -30,6 +32,8 @@ export interface TitleBarProps {
 	onSave?: () => void;
 	findReplaceOpen: boolean;
 	onToggleFindReplace: () => void;
+	/** Dispatch a command from the search palette. */
+	onCommandSearch?: (command: string) => void;
 }
 
 /**
@@ -40,6 +44,48 @@ export interface TitleBarProps {
 export function TitleBar(p: TitleBarProps): React.ReactElement {
 	const { t } = useTranslation();
 	const editing = (p.mode === 'edit' || p.mode === 'master') && p.canEdit;
+
+	const [searchQuery, setSearchQuery] = useState('');
+	const [searchFocused, setSearchFocused] = useState(false);
+	const searchRef = useRef<HTMLDivElement>(null);
+
+	const commandResults = filterCommands(searchQuery, t);
+
+	const handleCommandSelect = useCallback(
+		(entry: CommandSearchEntry) => {
+			p.onCommandSearch?.(entry.command);
+			setSearchQuery('');
+			setSearchFocused(false);
+		},
+		[p],
+	);
+
+	const handleSearchKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			if (e.key === 'Enter' && searchQuery.trim()) {
+				if (commandResults.length > 0) {
+					handleCommandSelect(commandResults[0]);
+				} else {
+					p.onToggleFindReplace();
+					setSearchFocused(false);
+				}
+			} else if (e.key === 'Escape') {
+				setSearchQuery('');
+				setSearchFocused(false);
+			}
+		},
+		[searchQuery, commandResults, handleCommandSelect, p],
+	);
+
+	useEffect(() => {
+		const handler = (e: MouseEvent) => {
+			if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+				setSearchFocused(false);
+			}
+		};
+		document.addEventListener('mousedown', handler);
+		return () => document.removeEventListener('mousedown', handler);
+	}, []);
 
 	const statusKey = resolveTitleBarStatusKey({
 		autosaveState: p.autosaveStatus?.state ?? 'idle',
@@ -150,16 +196,70 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 
 			<span className={TB.searchWrap}>
 				{(p.mode === 'edit' || p.mode === 'master') && (
-					<button
-						type='button'
-						onClick={p.onToggleFindReplace}
-						className={cn(TB.searchBox, p.findReplaceOpen && 'text-foreground bg-background')}
-						title={t('pptx.findReplace.title')}
-						aria-label={t('pptx.titleBar.search')}
-					>
-						<LuSearch className={TB.searchIcon} />
-						<span className={TB.searchLabel}>{t('pptx.titleBar.search')}</span>
-					</button>
+					<div ref={searchRef} className='relative w-full max-w-md'>
+						<div
+							className={cn(
+								TB.searchBox,
+								(searchFocused || p.findReplaceOpen) && 'text-foreground bg-background',
+							)}
+						>
+							<LuSearch className={TB.searchIcon} />
+							<input
+								type='text'
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								onFocus={() => setSearchFocused(true)}
+								onKeyDown={handleSearchKeyDown}
+								placeholder={t('pptx.titleBar.searchPlaceholder')}
+								className='flex-1 bg-transparent text-[11px] outline-none placeholder:text-muted-foreground/60'
+								aria-label={t('pptx.titleBar.search')}
+							/>
+						</div>
+						{searchFocused && searchQuery.trim() && (
+							<div className='absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-popover shadow-xl max-h-64 overflow-y-auto'>
+								{commandResults.length > 0 ? (
+									<>
+										<div className='px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider'>
+											{t('pptx.titleBar.searchCommands')}
+										</div>
+										{commandResults.slice(0, 8).map((entry) => (
+											<button
+												key={entry.command}
+												type='button'
+												className='flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors'
+												onMouseDown={() => handleCommandSelect(entry)}
+											>
+												<span className='truncate'>{t(entry.labelKey)}</span>
+												<span className='ml-auto text-[10px] text-muted-foreground capitalize'>
+													{entry.category}
+												</span>
+											</button>
+										))}
+									</>
+								) : (
+									<div className='px-3 py-2 text-xs text-muted-foreground'>
+										{t('pptx.titleBar.searchNoResults')}
+									</div>
+								)}
+								<div className='border-t border-border/60'>
+									<button
+										type='button'
+										className='flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors'
+										onMouseDown={() => {
+											p.onToggleFindReplace();
+											setSearchFocused(false);
+											setSearchQuery('');
+										}}
+									>
+										<LuSearch className='w-3 h-3 shrink-0' />
+										<span>
+											{t('pptx.titleBar.searchContent')} &ldquo;{searchQuery}&rdquo;
+										</span>
+									</button>
+								</div>
+							</div>
+						)}
+					</div>
 				)}
 			</span>
 

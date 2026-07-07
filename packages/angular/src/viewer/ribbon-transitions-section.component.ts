@@ -9,7 +9,7 @@
  * back so the parent keeps its signals in sync.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide, PptxTransitionType } from 'pptx-viewer-core';
 
@@ -83,6 +83,14 @@ const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: s
 			<span>s</span>
 		</label>
 		<span class="pptx-rb-sep"></span>
+		<!-- Sound -->
+		<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+			<span class="whitespace-nowrap">{{ 'pptx.ribbon.sound' | translate }}</span>
+			<select class="pptx-rb-select w-24">
+				<option value="none">{{ 'pptx.ribbon.soundNone' | translate }}</option>
+			</select>
+		</label>
+		<span class="pptx-rb-sep"></span>
 		<!-- Apply to all -->
 		<button
 			type="button"
@@ -92,6 +100,39 @@ const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: s
 		>
 			⧉ {{ 'pptx.headerFooter.applyToAll' | translate }}
 		</button>
+		<span class="pptx-rb-sep"></span>
+		<!-- Advance Slide -->
+		<div class="inline-flex flex-col gap-1 text-xs text-muted-foreground">
+			<span class="text-[10px] font-medium text-foreground">{{
+				'pptx.ribbon.advanceSlide' | translate
+			}}</span>
+			<label class="inline-flex cursor-pointer items-center gap-1.5">
+				<input
+					type="checkbox"
+					[checked]="advanceOnClick()"
+					(change)="advanceOnClick.set($any($event.target).checked)"
+					class="accent-primary h-3 w-3"
+				/>
+				<span class="whitespace-nowrap">{{ 'pptx.ribbon.onMouseClick' | translate }}</span>
+			</label>
+			<label class="inline-flex cursor-pointer items-center gap-1.5">
+				<input
+					type="checkbox"
+					[checked]="advanceAfter()"
+					(change)="advanceAfter.set($any($event.target).checked)"
+					class="accent-primary h-3 w-3"
+				/>
+				<span class="whitespace-nowrap">{{ 'pptx.ribbon.afterDuration' | translate }}</span>
+				<input
+					type="text"
+					[value]="advanceAfterSeconds()"
+					(input)="advanceAfterSeconds.set($any($event.target).value)"
+					[disabled]="!advanceAfter()"
+					class="pptx-rb-select w-16 text-center disabled:opacity-50"
+					[title]="'pptx.ribbon.advanceAfterSeconds' | translate"
+				/>
+			</label>
+		</div>
 		<span class="pptx-rb-sep"></span>
 		<!-- Inspector -->
 		<button
@@ -117,6 +158,9 @@ export class RibbonTransitionsSectionComponent {
 	readonly durationChange = output<number>();
 
 	protected readonly transitionPresets = TRANSITION_PRESETS;
+	protected readonly advanceOnClick = signal(true);
+	protected readonly advanceAfter = signal(false);
+	protected readonly advanceAfterSeconds = signal('00:00.00');
 
 	/** Apply the chosen transition to the active slide. */
 	protected setTransition(type: PptxTransitionType): void {

@@ -270,6 +270,35 @@ function handleCharSpacing(value: number): void {
 	props.onUpdateTextStyle({ characterSpacing: value });
 	charSpacingMenu.close();
 }
+
+/* ── Change Case ── */
+const CHANGE_CASE_OPTIONS = [
+	{ label: 'pptx.text.changeCaseSentence', value: 'sentence' },
+	{ label: 'pptx.text.changeCaseLower', value: 'lower' },
+	{ label: 'pptx.text.changeCaseUpper', value: 'upper' },
+	{ label: 'pptx.text.changeCaseCapitalize', value: 'capitalize' },
+	{ label: 'pptx.text.changeCaseToggle', value: 'toggle' },
+];
+
+const changeCaseMenu = useDropdown();
+
+function handleChangeCase(value: string): void {
+	if (!canFormat.value) {
+		return;
+	}
+	switch (value) {
+		case 'upper':
+			props.onUpdateTextStyle({ textCaps: 'all' });
+			break;
+		case 'lower':
+		case 'sentence':
+		case 'capitalize':
+		case 'toggle':
+			props.onUpdateTextStyle({ textCaps: 'none' });
+			break;
+	}
+	changeCaseMenu.close();
+}
 </script>
 
 <template>
@@ -492,6 +521,41 @@ function handleCharSpacing(value: number): void {
 							@click="handleCharSpacing(opt.value)"
 						>
 							{{ opt.label }}
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<!-- Change Case (Aa) dropdown -->
+			<div :ref="changeCaseMenu.root" class="relative">
+				<button
+					type="button"
+					:disabled="!canMut"
+					:class="pill"
+					:title="t('pptx.text.changeCase')"
+					@mousedown.prevent
+					@click="changeCaseMenu.toggle()"
+				>
+					<svg :class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+						<text x="2" y="16" font-size="13" font-weight="bold" fill="currentColor" stroke="none">
+							Aa
+						</text>
+					</svg>
+					<ChevronDown class="w-3 h-3" />
+				</button>
+				<div
+					v-if="changeCaseMenu.open.value"
+					class="absolute left-0 top-full z-50 flex flex-col w-44 pt-1"
+				>
+					<div :class="MENU_PANEL">
+						<button
+							v-for="opt in CHANGE_CASE_OPTIONS"
+							:key="opt.value"
+							type="button"
+							:class="MENU_ITEM"
+							@click="handleChangeCase(opt.value)"
+						>
+							{{ t(opt.label) }}
 						</button>
 					</div>
 				</div>

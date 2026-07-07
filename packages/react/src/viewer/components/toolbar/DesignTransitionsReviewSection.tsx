@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
 	LuCopy,
 	LuGitCompare,
@@ -29,6 +30,8 @@ export interface DesignSectionProps {
 }
 
 export function DesignSection(p: DesignSectionProps): React.ReactElement {
+	const { t } = useTranslation();
+
 	return (
 		<>
 			{/* Themes */}
@@ -39,19 +42,19 @@ export function DesignSection(p: DesignSectionProps): React.ReactElement {
 					pill,
 					p.isThemeGalleryOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
 				)}
-				title='Browse and apply built-in themes'
+				title={t('pptx.ribbon.browseThemesTitle')}
 			>
 				<LuPalette className={ics} />
-				Browse Themes
+				{t('pptx.ribbon.browseThemes')}
 			</button>
 			<button
 				onClick={p.onToggleThemeEditor}
 				disabled={!p.canEdit}
 				className={cn(pill, p.isThemeEditorOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')}
-				title='Edit presentation theme colors and fonts'
+				title={t('pptx.ribbon.editThemeTitle')}
 			>
 				<LuPencil className={ics} />
-				Edit Theme
+				{t('pptx.ribbon.editTheme')}
 			</button>
 
 			{sep}
@@ -61,10 +64,10 @@ export function DesignSection(p: DesignSectionProps): React.ReactElement {
 				<button
 					onClick={p.onOpenDocumentProperties}
 					className={pill}
-					title='Change slide dimensions (16:9, 4:3, custom)'
+					title={t('pptx.ribbon.slideSizeTitle')}
 				>
 					<LuMonitor className={ics} />
-					Slide Size
+					{t('pptx.ribbon.slideSize')}
 				</button>
 			)}
 			{p.onToggleInspector && (
@@ -74,10 +77,10 @@ export function DesignSection(p: DesignSectionProps): React.ReactElement {
 						pill,
 						p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
 					)}
-					title='Open inspector to edit slide background'
+					title={t('pptx.ribbon.formatBackgroundTitle')}
 				>
 					<LuPaintBucket className={ics} />
-					Format Background
+					{t('pptx.ribbon.formatBackground')}
 				</button>
 			)}
 		</>
@@ -87,15 +90,15 @@ export function DesignSection(p: DesignSectionProps): React.ReactElement {
 /* ── Transitions ───────────────────────────────────────── */
 
 const TRANSITION_PRESETS = [
-	{ value: 'none', label: 'None' },
-	{ value: 'fade', label: 'Fade' },
-	{ value: 'push', label: 'Push' },
-	{ value: 'wipe', label: 'Wipe' },
-	{ value: 'split', label: 'Split' },
-	{ value: 'reveal', label: 'Reveal' },
-	{ value: 'cut', label: 'Cut' },
-	{ value: 'cover', label: 'Cover' },
-	{ value: 'uncover', label: 'Uncover' },
+	{ value: 'none', labelKey: 'pptx.ribbon.transition.none' },
+	{ value: 'fade', labelKey: 'pptx.ribbon.transition.fade' },
+	{ value: 'push', labelKey: 'pptx.ribbon.transition.push' },
+	{ value: 'wipe', labelKey: 'pptx.ribbon.transition.wipe' },
+	{ value: 'split', labelKey: 'pptx.ribbon.transition.split' },
+	{ value: 'reveal', labelKey: 'pptx.ribbon.transition.reveal' },
+	{ value: 'cut', labelKey: 'pptx.ribbon.transition.cut' },
+	{ value: 'cover', labelKey: 'pptx.ribbon.transition.cover' },
+	{ value: 'uncover', labelKey: 'pptx.ribbon.transition.uncover' },
 ] as const;
 
 export interface TransitionsSectionProps {
@@ -104,35 +107,39 @@ export interface TransitionsSectionProps {
 }
 
 export function TransitionsSection(p: TransitionsSectionProps): React.ReactElement {
+	const { t } = useTranslation();
 	const [selected, setSelected] = React.useState('none');
 	const [duration, setDuration] = React.useState('00.50');
+	const [advanceOnClick, setAdvanceOnClick] = React.useState(true);
+	const [advanceAfter, setAdvanceAfter] = React.useState(false);
+	const [advanceAfterSeconds, setAdvanceAfterSeconds] = React.useState('00:00.00');
 
 	return (
 		<>
 			{/* Preview */}
-			<button type='button' className={pill} title='Preview transition'>
+			<button type='button' className={pill} title={t('pptx.ribbon.previewTransition')}>
 				<LuPlay className={ics} />
-				Preview
+				{t('pptx.ribbon.preview')}
 			</button>
 
 			{sep}
 
 			{/* Transition preset gallery */}
 			<div className='inline-flex items-center gap-0.5 overflow-x-auto max-w-[420px]'>
-				{TRANSITION_PRESETS.map((t) => (
+				{TRANSITION_PRESETS.map((preset) => (
 					<button
-						key={t.value}
+						key={preset.value}
 						type='button'
-						onClick={() => setSelected(t.value)}
+						onClick={() => setSelected(preset.value)}
 						className={cn(
 							'flex-shrink-0 px-2 py-1 max-md:min-h-[44px] rounded border text-[11px] leading-tight transition-colors',
-							selected === t.value
+							selected === preset.value
 								? 'border-primary bg-primary/10 text-primary font-medium'
 								: 'border-border bg-muted hover:bg-accent text-foreground',
 						)}
-						title={`${t.label} transition`}
+						title={t('pptx.ribbon.transitionTitle', { name: t(preset.labelKey) })}
 					>
-						{t.label}
+						{t(preset.labelKey)}
 					</button>
 				))}
 			</div>
@@ -141,23 +148,71 @@ export function TransitionsSection(p: TransitionsSectionProps): React.ReactEleme
 
 			{/* Duration */}
 			<label className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'>
-				<span className='whitespace-nowrap'>Duration:</span>
+				<span className='whitespace-nowrap'>{t('pptx.ribbon.duration')}</span>
 				<input
 					type='text'
 					value={duration}
 					onChange={(e) => setDuration(e.target.value)}
 					className='w-14 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground text-center'
-					title='Transition duration in seconds'
+					title={t('pptx.ribbon.transitionDurationTitle')}
 				/>
 			</label>
 
 			{sep}
 
+			{/* Sound */}
+			<label className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'>
+				<span className='whitespace-nowrap'>{t('pptx.ribbon.sound')}</span>
+				<select
+					className='w-24 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground'
+					defaultValue='none'
+				>
+					<option value='none'>{t('pptx.ribbon.soundNone')}</option>
+				</select>
+			</label>
+
+			{sep}
+
 			{/* Apply to All */}
-			<button type='button' className={pill} title='Apply transition to all slides'>
+			<button type='button' className={pill} title={t('pptx.ribbon.applyTransitionToAll')}>
 				<LuCopy className={ics} />
-				Apply to All
+				{t('pptx.headerFooter.applyToAll')}
 			</button>
+
+			{sep}
+
+			{/* Advance Slide group */}
+			<div className='inline-flex flex-col gap-1 text-xs text-muted-foreground'>
+				<span className='text-[10px] font-medium text-foreground'>
+					{t('pptx.ribbon.advanceSlide')}
+				</span>
+				<label className='inline-flex items-center gap-1.5 cursor-pointer'>
+					<input
+						type='checkbox'
+						checked={advanceOnClick}
+						onChange={(e) => setAdvanceOnClick(e.target.checked)}
+						className='accent-primary h-3 w-3'
+					/>
+					<span className='whitespace-nowrap'>{t('pptx.ribbon.onMouseClick')}</span>
+				</label>
+				<label className='inline-flex items-center gap-1.5 cursor-pointer'>
+					<input
+						type='checkbox'
+						checked={advanceAfter}
+						onChange={(e) => setAdvanceAfter(e.target.checked)}
+						className='accent-primary h-3 w-3'
+					/>
+					<span className='whitespace-nowrap'>{t('pptx.ribbon.afterDuration')}</span>
+					<input
+						type='text'
+						value={advanceAfterSeconds}
+						onChange={(e) => setAdvanceAfterSeconds(e.target.value)}
+						disabled={!advanceAfter}
+						className='w-16 px-1 py-0.5 rounded border border-border bg-muted text-xs text-foreground text-center disabled:opacity-50'
+						title={t('pptx.ribbon.advanceAfterSeconds')}
+					/>
+				</label>
+			</div>
 
 			{sep}
 
@@ -169,10 +224,10 @@ export function TransitionsSection(p: TransitionsSectionProps): React.ReactEleme
 					pill,
 					p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
 				)}
-				title='Open Inspector for full transition options'
+				title={t('pptx.ribbon.openInspectorTransitions')}
 			>
 				<LuPanelRight className={ic} />
-				Inspector
+				{t('pptx.ribbon.inspector')}
 			</button>
 		</>
 	);
@@ -191,6 +246,8 @@ export interface ReviewSectionProps {
 }
 
 export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
+	const { t } = useTranslation();
+
 	return (
 		<>
 			{p.onToggleComments && (
@@ -200,10 +257,10 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 						pill,
 						p.isCommentsPanelOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
 					)}
-					title='Toggle comments panel'
+					title={t('pptx.review.toggleComments')}
 				>
 					<LuMessageSquare className={ic} />
-					Comments
+					{t('pptx.toolbar.comments')}
 					{(p.slideCommentCount ?? 0) > 0 && (
 						<span className='inline-flex items-center justify-center min-w-[16px] h-4 rounded-full bg-amber-500 text-[10px] font-medium text-white px-1'>
 							{p.slideCommentCount}
@@ -214,20 +271,20 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 			<button
 				onClick={() => p.onSetSpellCheckEnabled(!p.spellCheckEnabled)}
 				className={cn(pill, p.spellCheckEnabled ? 'bg-primary hover:bg-primary/80 text-white' : '')}
-				title='Toggle spell check'
+				title={t('pptx.review.toggleSpellCheck')}
 			>
 				<LuSpellCheck className={ic} />
-				Spelling
+				{t('pptx.review.spelling')}
 			</button>
 			{p.onCompare && (
 				<button
 					onClick={p.onCompare}
 					disabled={!p.canEdit}
 					className={pill}
-					title='Compare with another presentation'
+					title={t('pptx.ribbon.compareTitle')}
 				>
 					<LuGitCompare className={ic} />
-					Compare
+					{t('pptx.ribbon.compare')}
 				</button>
 			)}
 		</>

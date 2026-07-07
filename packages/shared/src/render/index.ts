@@ -521,4 +521,5 @@ export * from './text-3d-presets';
 // search) and the shared IndexedDB autosave recovery store behind it. Pure
 // logic + class tokens; each binding renders its own thin view from these.
 export * from './title-bar';
+export * from './command-search';
 export * from './autosave-store';

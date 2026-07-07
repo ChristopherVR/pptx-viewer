@@ -63,6 +63,15 @@ const CHAR_SPACING_OPTIONS = [
 	{ label: 'Very Loose', value: 600 },
 ];
 
+/** Change Case options matching PowerPoint's Aa dropdown. */
+const CHANGE_CASE_OPTIONS = [
+	{ label: 'Sentence case.', value: 'sentence' },
+	{ label: 'lowercase', value: 'lower' },
+	{ label: 'UPPERCASE', value: 'upper' },
+	{ label: 'Capitalize Each Word', value: 'capitalize' },
+	{ label: 'tOGGLE cASE', value: 'toggle' },
+];
+
 @Component({
 	selector: 'pptx-ribbon-font-controls',
 	standalone: true,
@@ -187,6 +196,18 @@ const CHAR_SPACING_OPTIONS = [
 				</option>
 			}
 		</select>
+		<!-- Change Case -->
+		<select
+			class="pptx-rb-select w-24"
+			[attr.aria-label]="'pptx.text.changeCase' | translate"
+			[disabled]="!isText()"
+			(change)="setChangeCase($event)"
+		>
+			<option value="" selected disabled>Aa</option>
+			@for (opt of changeCaseOptions; track opt.value) {
+				<option [value]="opt.value">{{ opt.label }}</option>
+			}
+		</select>
 		<!-- Font colour popover -->
 		<pptx-ribbon-color-popover
 			[current]="curColor()"
@@ -232,6 +253,7 @@ export class RibbonFontControlsComponent {
 	protected readonly fontColorPresets = FONT_COLOR_PRESETS;
 	protected readonly highlightColorPresets = HIGHLIGHT_COLOR_PRESETS;
 	protected readonly charSpacingOptions = CHAR_SPACING_OPTIONS;
+	protected readonly changeCaseOptions = CHANGE_CASE_OPTIONS;
 
 	protected isText(): boolean {
 		return isTextElement(this.selectedElement());
@@ -280,6 +302,22 @@ export class RibbonFontControlsComponent {
 	}
 	protected setCharSpacing(event: Event): void {
 		this.patch({ characterSpacing: Number((event.target as HTMLSelectElement).value) });
+	}
+
+	protected setChangeCase(event: Event): void {
+		const value = (event.target as HTMLSelectElement).value;
+		switch (value) {
+			case 'upper':
+				this.patch({ textCaps: 'all' });
+				break;
+			case 'lower':
+			case 'sentence':
+			case 'capitalize':
+			case 'toggle':
+				this.patch({ textCaps: 'none' });
+				break;
+		}
+		(event.target as HTMLSelectElement).selectedIndex = 0;
 	}
 
 	protected toggleStyle(key: 'bold' | 'italic' | 'underline' | 'strikethrough'): void {
