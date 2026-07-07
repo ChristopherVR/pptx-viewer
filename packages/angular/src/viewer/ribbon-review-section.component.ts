@@ -18,8 +18,13 @@ import { EditorStateService } from './editor-state.service';
 		<button type="button" class="pptx-rb-pill" (click)="comments.emit()">
 			{{ 'pptx.toolbar.comments' | translate }}
 		</button>
-		<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">
-			{{ 'pptx.ribbon.accessibility' | translate }}
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[title]="'pptx.review.toggleSpellCheck' | translate"
+			(click)="spelling.emit()"
+		>
+			{{ 'pptx.review.spelling' | translate }}
 		</button>
 		<button
 			type="button"
@@ -28,6 +33,23 @@ import { EditorStateService } from './editor-state.service';
 			(click)="openCompare.emit()"
 		>
 			{{ 'pptx.ribbon.compare' | translate }}
+		</button>
+		<span class="pptx-rb-sep"></span>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[title]="'pptx.review.languageTooltip' | translate"
+			(click)="language.emit()"
+		>
+			{{ 'pptx.review.language' | translate }}
+		</button>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[title]="'pptx.review.accessibilityCheckTooltip' | translate"
+			(click)="a11y.emit()"
+		>
+			{{ 'pptx.review.accessibilityCheck' | translate }}
 		</button>
 		@if (hasSel()) {
 			<button type="button" class="pptx-rb-pill" (click)="link.emit()">
@@ -40,8 +62,10 @@ export class RibbonReviewSectionComponent {
 	private readonly editor = inject(EditorStateService);
 
 	readonly comments = output<void>();
+	readonly spelling = output<void>();
 	readonly a11y = output<void>();
 	readonly openCompare = output<void>();
+	readonly language = output<void>();
 	readonly link = output<void>();
 
 	protected hasSel(): boolean {

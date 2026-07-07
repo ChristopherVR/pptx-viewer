@@ -1,16 +1,9 @@
 <script setup lang="ts">
-/**
- * ReviewSection: the Vue 3 port of React's `ReviewSection` from
- * `toolbar/DesignTransitionsReviewSection.tsx`. Renders the Review ribbon tab's
- * Comments (with slide comment-count badge), Spelling toggle and Compare
- * buttons. A faithful, mechanical port for visual + behavioral parity: class
- * strings are copied verbatim, callbacks arrive as function props.
- */
-import { GitCompare, MessageSquare, SpellCheck } from 'lucide-vue-next';
+import { GitCompare, Globe, MessageSquare, ShieldCheck, SpellCheck } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
-import { ic, pill } from './ribbon-constants';
+import { ic, pill, SEP } from './ribbon-constants';
 
 interface Props {
 	canEdit: boolean;
@@ -20,6 +13,8 @@ interface Props {
 	isCommentsPanelOpen?: boolean;
 	slideCommentCount?: number;
 	onCompare?: () => void;
+	onOpenAccessibilityCheck?: () => void;
+	onSetLanguage?: () => void;
 }
 
 const props = defineProps<Props>();
@@ -60,5 +55,26 @@ const { t } = useI18n();
 	>
 		<GitCompare :class="ic" />
 		{{ t('pptx.ribbon.compare') }}
+	</button>
+
+	<div :class="SEP" />
+
+	<button
+		v-if="props.onSetLanguage"
+		:class="pill"
+		:title="t('pptx.review.languageTooltip')"
+		@click="props.onSetLanguage()"
+	>
+		<Globe :class="ic" />
+		{{ t('pptx.review.language') }}
+	</button>
+	<button
+		v-if="props.onOpenAccessibilityCheck"
+		:class="pill"
+		:title="t('pptx.review.accessibilityCheckTooltip')"
+		@click="props.onOpenAccessibilityCheck()"
+	>
+		<ShieldCheck :class="ic" />
+		{{ t('pptx.review.accessibilityCheck') }}
 	</button>
 </template>

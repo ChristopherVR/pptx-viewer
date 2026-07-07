@@ -163,6 +163,31 @@ export const COMMAND_SEARCH_ENTRIES: readonly CommandSearchEntry[] = [
 		icon: 'copy',
 		category: 'arrange',
 	},
+	// Review
+	{
+		labelKey: 'pptx.review.spelling',
+		command: 'review.spelling',
+		icon: 'spellCheck',
+		category: 'format',
+	},
+	{
+		labelKey: 'pptx.review.language',
+		command: 'review.language',
+		icon: 'globe',
+		category: 'format',
+	},
+	{
+		labelKey: 'pptx.review.accessibilityCheck',
+		command: 'review.accessibility',
+		icon: 'shieldCheck',
+		category: 'view',
+	},
+	{
+		labelKey: 'pptx.ribbon.link',
+		command: 'insert.link',
+		icon: 'link',
+		category: 'insert',
+	},
 ] as const;
 
 /**

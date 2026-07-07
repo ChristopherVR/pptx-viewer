@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
 	LuCopy,
 	LuGitCompare,
+	LuGlobe,
 	LuMessageSquare,
 	LuMonitor,
 	LuPaintBucket,
@@ -10,6 +11,7 @@ import {
 	LuPanelRight,
 	LuPencil,
 	LuPlay,
+	LuShieldCheck,
 	LuSpellCheck,
 } from 'react-icons/lu';
 
@@ -243,6 +245,8 @@ export interface ReviewSectionProps {
 	isCommentsPanelOpen?: boolean;
 	slideCommentCount?: number;
 	onCompare?: () => void;
+	onOpenAccessibilityCheck?: () => void;
+	onSetLanguage?: () => void;
 }
 
 export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
@@ -285,6 +289,25 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 				>
 					<LuGitCompare className={ic} />
 					{t('pptx.ribbon.compare')}
+				</button>
+			)}
+
+			{sep}
+
+			{p.onSetLanguage && (
+				<button onClick={p.onSetLanguage} className={pill} title={t('pptx.review.languageTooltip')}>
+					<LuGlobe className={ic} />
+					{t('pptx.review.language')}
+				</button>
+			)}
+			{p.onOpenAccessibilityCheck && (
+				<button
+					onClick={p.onOpenAccessibilityCheck}
+					className={pill}
+					title={t('pptx.review.accessibilityCheckTooltip')}
+				>
+					<LuShieldCheck className={ic} />
+					{t('pptx.review.accessibilityCheck')}
 				</button>
 			)}
 		</>
