@@ -4,6 +4,27 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-07
+
+_Releases: pptx-viewer-core@1.2.2, pptx-react-viewer@1.7.2, pptx-vue-viewer@1.7.2, pptx-angular-viewer@1.7.2_
+
+### Bug Fixes
+
+- **react:** Commit table cell edit on unmount for mobile tap-away (by @ChristopherVR) ([e58cb2e](https://github.com/ChristopherVR/pptx-viewer/commit/e58cb2ee23e8b3e824d199a7a0331d882421e349))
+- **core:** Handle absolute relationship target paths in layout/master resolution (by @ChristopherVR) ([5ea40c2](https://github.com/ChristopherVR/pptx-viewer/commit/5ea40c22eca8420aa872b0ea923770085df72a0e))
+- **react:** Stop text boxes clipping their own glyphs (by @adamschoenemann) ([0de4340](https://github.com/ChristopherVR/pptx-viewer/commit/0de4340551163b02338bfb9aa5a4e3b82ff401b6))
+- **vue:** Stop text boxes clipping their own glyphs (by @adamschoenemann) ([bfb01b9](https://github.com/ChristopherVR/pptx-viewer/commit/bfb01b91b7564885b2c3cb29da7e71befeb57158))
+- **angular:** Stop text boxes clipping their own glyphs (by @adamschoenemann) ([67df04b](https://github.com/ChristopherVR/pptx-viewer/commit/67df04b4494289dfaa72f80ae32b025a928cb1b9))
+
+### Testing
+
+- **e2e:** Cover text-box glyph clipping across bindings (by @adamschoenemann) ([6f999ed](https://github.com/ChristopherVR/pptx-viewer/commit/6f999ed9e982224d40ef7a0e23326144b7416855))
+- **core:** Add e2e test for absolute-path relationship targets (by @ChristopherVR) ([39670de](https://github.com/ChristopherVR/pptx-viewer/commit/39670de025ddb4f6d9195661e293b92d4c27380d))
+
+### Chores
+
+- Added fixtures (by @ChristopherVR) ([d6c8d18](https://github.com/ChristopherVR/pptx-viewer/commit/d6c8d1820a86b0cc58260382cb3bae8195bfd67e))
+
 ## 2026-07-06
 
 _Releases: pptx-viewer-core@1.2.1, pptx-react-viewer@1.7.1, pptx-vue-viewer@1.7.1, pptx-angular-viewer@1.7.1, pptx-viewer-mcp@1.2.0_
