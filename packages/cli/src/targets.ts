@@ -82,16 +82,27 @@ export default function App() {
 	}
 
 	return (
-		<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, height: '100vh' }}>
-			<input
-				type="file"
-				accept=".pptx"
-				onChange={(e) => {
-					const file = e.target.files?.[0];
-					if (file) loadFile(file);
-				}}
-			/>
-			<button onClick={() => void newPresentation()}>or create a New Presentation</button>
+		<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, height: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+			<h1 style={{ margin: 0, fontSize: 24, fontWeight: 500, color: '#e5e7eb' }}>Open a Presentation</h1>
+			<label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 8, border: '1px solid #4b5563', background: '#1f2937', color: '#f3f4f6', cursor: 'pointer', fontSize: 14, transition: 'background 0.15s' }}>
+				Choose .pptx file
+				<input
+					type="file"
+					accept=".pptx"
+					style={{ display: 'none' }}
+					onChange={(e) => {
+						const file = e.target.files?.[0];
+						if (file) loadFile(file);
+					}}
+				/>
+			</label>
+			<span style={{ color: '#6b7280', fontSize: 13 }}>or</span>
+			<button
+				onClick={() => void newPresentation()}
+				style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 500 }}
+			>
+				New Presentation
+			</button>
 		</div>
 	);
 }
@@ -116,7 +127,14 @@ i18n.use(initReactI18next).init({
 
 export default i18n;
 `;
+const REACT_INDEX_CSS = `:root {
+  color-scheme: light dark;
+}
 
+body {
+  margin: 0;
+}
+`;
 const VUE_APP_VUE = `<script setup lang="ts">
 import { ref } from 'vue';
 import { PptxHandler } from 'pptx-viewer-core';
@@ -149,9 +167,14 @@ async function newPresentation() {
 	<div v-if="content" style="height: 100vh">
 		<PowerPointViewer :content="content" can-edit style="height: 100%" />
 	</div>
-	<div v-else style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; height: 100vh">
-		<input type="file" accept=".pptx" @change="onPick" />
-		<button @click="newPresentation">or create a New Presentation</button>
+	<div v-else style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; height: 100vh; font-family: system-ui, sans-serif">
+		<h1 style="margin: 0; font-size: 24px; font-weight: 500; color: #e5e7eb">Open a Presentation</h1>
+		<label style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; border: 1px solid #4b5563; background: #1f2937; color: #f3f4f6; cursor: pointer; font-size: 14px">
+			Choose .pptx file
+			<input type="file" accept=".pptx" style="display: none" @change="onPick" />
+		</label>
+		<span style="color: #6b7280; font-size: 13px">or</span>
+		<button style="padding: 10px 20px; border-radius: 8px; border: none; background: #2563eb; color: #fff; cursor: pointer; font-size: 14px; font-weight: 500" @click="newPresentation">New Presentation</button>
 	</div>
 </template>
 `;
@@ -188,9 +211,14 @@ import { PowerPointViewerComponent } from 'pptx-angular-viewer';
 				<pptx-power-point-viewer [content]="c" [canEdit]="true" style="height: 100%" />
 			</div>
 		} @else {
-			<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; height: 100vh">
-				<input type="file" accept=".pptx" (change)="onPick($event)" />
-				<button (click)="newPresentation()">or create a New Presentation</button>
+			<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; height: 100vh; font-family: system-ui, sans-serif">
+				<h1 style="margin: 0; font-size: 24px; font-weight: 500; color: #e5e7eb">Open a Presentation</h1>
+				<label style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; border: 1px solid #4b5563; background: #1f2937; color: #f3f4f6; cursor: pointer; font-size: 14px">
+					Choose .pptx file
+					<input type="file" accept=".pptx" style="display: none" (change)="onPick($event)" />
+				</label>
+				<span style="color: #6b7280; font-size: 13px">or</span>
+				<button style="padding: 10px 20px; border-radius: 8px; border: none; background: #2563eb; color: #fff; cursor: pointer; font-size: 14px; font-weight: 500" (click)="newPresentation()">New Presentation</button>
 			</div>
 		}
 	\`,
@@ -294,7 +322,10 @@ Docs: https://www.npmjs.com/package/pptx-react-viewer`,
 			],
 			entryCandidates: ['src/App.tsx'],
 			entryContent: REACT_APP_TSX,
-			extraFiles: { 'src/i18n.ts': REACT_I18N_TS },
+			extraFiles: {
+				'src/i18n.ts': REACT_I18N_TS,
+				'src/index.css': REACT_INDEX_CSS,
+			},
 		},
 	},
 	{
