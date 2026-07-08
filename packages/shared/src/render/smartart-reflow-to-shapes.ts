@@ -185,10 +185,18 @@ export function rebuildDrawingShapesIfCleared(
 	box: BoundingBox,
 ): PptxSmartArtData {
 	const shapes = smartArtData.drawingShapes;
-	if ((shapes !== undefined && shapes.length > 0) || smartArtData.nodes.length === 0) {
+
+	// Skip when:
+	// - shapes is undefined: the element never had drawing shapes (freshly
+	//   inserted); the family SVG renderer handles display from node data.
+	// - shapes is populated (length > 0): already current, no rebuild needed.
+	// - no nodes: nothing to lay out.
+	if (shapes === undefined || shapes.length > 0 || smartArtData.nodes.length === 0) {
 		return smartArtData;
 	}
 
+	// shapes is an empty array [] -- a structural edit cleared previously-
+	// populated shapes. Rebuild them from the algorithmic layout engine.
 	const layoutResult = computeSmartArtLayout(
 		smartArtData.nodes,
 		box,

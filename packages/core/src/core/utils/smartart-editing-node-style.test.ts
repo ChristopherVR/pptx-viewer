@@ -35,8 +35,32 @@ describe('setSmartArtNodeStyle', () => {
 		expect(next.nodes[1]).not.toHaveProperty('style');
 	});
 
-	it('clears drawingShapes to force a reflow', () => {
+	it('marks drawingShapes as stale when shape cannot be matched', () => {
 		const next = setSmartArtNodeStyle(data(), '1', { fillColor: '#FF0000' });
+		expect(next.drawingShapes).toStrictEqual([]);
+	});
+
+	it('patches fillColor in-place when shapes can be matched positionally', () => {
+		const input: PptxSmartArtData = {
+			nodes: [
+				{ id: '1', text: 'One' },
+				{ id: '2', text: 'Two', style: { fillColor: '#000000', bold: true } },
+			],
+			drawingShapes: [
+				{ id: 's1', x: 0, y: 0, width: 10, height: 10 },
+				{ id: 's2', x: 20, y: 0, width: 10, height: 10 },
+			],
+		};
+		const next = setSmartArtNodeStyle(input, '1', { fillColor: '#FF0000' });
+		expect(next.drawingShapes).toHaveLength(2);
+		expect(next.drawingShapes![0].fillColor).toBe('#FF0000');
+	});
+
+	it('preserves undefined drawingShapes for freshly inserted SmartArt', () => {
+		const input: PptxSmartArtData = {
+			nodes: [{ id: '1', text: 'One' }],
+		};
+		const next = setSmartArtNodeStyle(input, '1', { fillColor: '#FF0000' });
 		expect(next.drawingShapes).toBeUndefined();
 	});
 

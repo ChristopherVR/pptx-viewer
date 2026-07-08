@@ -82,13 +82,13 @@ describe('addSmartArtNode', () => {
 		expect(newNode.parentId).toBe('p');
 	});
 
-	it('clears drawingShapes to trigger reflow', () => {
+	it('marks drawingShapes as stale to trigger reflow', () => {
 		const data: PptxSmartArtData = {
 			nodes: [{ id: '1', text: 'A' }],
 			drawingShapes: [{ id: 'ds1', x: 0, y: 0, width: 100, height: 50 }],
 		};
 		const result = addSmartArtNode(data, 'B');
-		expect(result.drawingShapes).toBeUndefined();
+		expect(result.drawingShapes).toStrictEqual([]);
 	});
 
 	it('adds a connection when sibling has a parent', () => {
@@ -140,13 +140,13 @@ describe('addSmartArtNodeAsChild', () => {
 		expect(result.nodes[2].text).toBe('Item 3');
 	});
 
-	it('clears drawingShapes to trigger reflow', () => {
+	it('marks drawingShapes as stale to trigger reflow', () => {
 		const data: PptxSmartArtData = {
 			nodes: [{ id: '1', text: 'A' }],
 			drawingShapes: [{ id: 'ds1', x: 0, y: 0, width: 100, height: 50 }],
 		};
 		const result = addSmartArtNodeAsChild(data);
-		expect(result.drawingShapes).toBeUndefined();
+		expect(result.drawingShapes).toStrictEqual([]);
 	});
 
 	it('creates a parOf connection when adding under a parent', () => {
@@ -193,7 +193,7 @@ describe('removeSmartArtNode', () => {
 		expect(result.nodes[0].parentId).toBeUndefined();
 	});
 
-	it('clears drawingShapes to trigger reflow', () => {
+	it('marks drawingShapes as stale to trigger reflow', () => {
 		const data: PptxSmartArtData = {
 			nodes: [
 				{ id: '1', text: 'A' },
@@ -202,7 +202,7 @@ describe('removeSmartArtNode', () => {
 			drawingShapes: [{ id: 'ds1', x: 0, y: 0, width: 100, height: 50 }],
 		};
 		const result = removeSmartArtNode(data, '2');
-		expect(result.drawingShapes).toBeUndefined();
+		expect(result.drawingShapes).toStrictEqual([]);
 	});
 
 	it('removes connections referencing the deleted node', () => {
@@ -251,13 +251,44 @@ describe('updateSmartArtNodeText', () => {
 		expect(result.nodes[2].text).toBe('C');
 	});
 
-	it('clears drawingShapes to trigger reflow', () => {
+	it('patches text in-place when drawing shapes match positionally', () => {
 		const data: PptxSmartArtData = {
 			nodes: [{ id: '1', text: 'A' }],
 			drawingShapes: [{ id: 'ds1', x: 0, y: 0, width: 100, height: 50 }],
 		};
 		const result = updateSmartArtNodeText(data, '1', 'B');
+		expect(result.drawingShapes).toHaveLength(1);
+		expect(result.drawingShapes![0].text).toBe('B');
+	});
+
+	it('patches text in-place when drawing shape matches positionally', () => {
+		const data: PptxSmartArtData = {
+			nodes: [{ id: '1', text: 'A' }],
+			drawingShapes: [{ id: 'ds1', x: 0, y: 0, width: 100, height: 50, text: 'A' }],
+		};
+		const result = updateSmartArtNodeText(data, '1', 'B');
+		expect(result.drawingShapes).toHaveLength(1);
+		expect(result.drawingShapes![0].text).toBe('B');
+	});
+
+	it('preserves undefined drawingShapes for freshly inserted SmartArt', () => {
+		const data: PptxSmartArtData = {
+			nodes: [{ id: '1', text: 'A' }],
+		};
+		const result = updateSmartArtNodeText(data, '1', 'B');
 		expect(result.drawingShapes).toBeUndefined();
+	});
+
+	it('marks shapes as stale when shape cannot be matched', () => {
+		const data: PptxSmartArtData = {
+			nodes: [
+				{ id: '1', text: 'A' },
+				{ id: '2', text: 'B' },
+			],
+			drawingShapes: [{ id: 'ds1', x: 0, y: 0, width: 100, height: 50 }],
+		};
+		const result = updateSmartArtNodeText(data, '1', 'C');
+		expect(result.drawingShapes).toStrictEqual([]);
 	});
 
 	it('preserves other data properties', () => {
@@ -329,7 +360,7 @@ describe('reorderSmartArtNode', () => {
 		expect(result.nodes[0].id).toBe('p');
 	});
 
-	it('clears drawingShapes to trigger reflow', () => {
+	it('marks drawingShapes as stale to trigger reflow', () => {
 		const data: PptxSmartArtData = {
 			nodes: [
 				{ id: '1', text: 'A' },
@@ -338,7 +369,7 @@ describe('reorderSmartArtNode', () => {
 			drawingShapes: [{ id: 'ds1', x: 0, y: 0, width: 100, height: 50 }],
 		};
 		const result = reorderSmartArtNode(data, '1', 1);
-		expect(result.drawingShapes).toBeUndefined();
+		expect(result.drawingShapes).toStrictEqual([]);
 	});
 });
 
@@ -414,7 +445,7 @@ describe('reorderSmartArtNodeToIndex', () => {
 		expect(result.nodes[0].id).toBe('p');
 	});
 
-	it('clears drawingShapes to trigger reflow', () => {
+	it('marks drawingShapes as stale to trigger reflow', () => {
 		const data: PptxSmartArtData = {
 			nodes: [
 				{ id: '1', text: 'A' },
@@ -423,7 +454,7 @@ describe('reorderSmartArtNodeToIndex', () => {
 			drawingShapes: [{ id: 'ds1', x: 0, y: 0, width: 100, height: 50 }],
 		};
 		const result = reorderSmartArtNodeToIndex(data, '1', 1);
-		expect(result.drawingShapes).toBeUndefined();
+		expect(result.drawingShapes).toStrictEqual([]);
 	});
 });
 

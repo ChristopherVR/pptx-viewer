@@ -11,8 +11,25 @@
  * @module smartart-editing-node-ops
  */
 
-import type { PptxSmartArtData, PptxSmartArtNode } from '../types';
+import type { PptxSmartArtData, PptxSmartArtDrawingShape, PptxSmartArtNode } from '../types';
 import { generateFontGuid } from './font-deobfuscation';
+
+// ── Drawing shape helpers ────────────────────────────────────────────────
+
+/**
+ * Mark drawing shapes as stale after a structural node edit.
+ *
+ * - If the element previously had drawing shapes (from file load or a prior
+ *   reflow), returns an empty array `[]` to signal that a rebuild is needed.
+ * - If the element never had drawing shapes (`undefined`), returns `undefined`
+ *   so the family SVG renderer continues handling display without triggering
+ *   a lossy reflow (e.g. polygon-to-chevron downgrade for pyramid layouts).
+ */
+function markShapesStale(
+	shapes: PptxSmartArtDrawingShape[] | undefined,
+): PptxSmartArtDrawingShape[] | undefined {
+	return shapes !== undefined && shapes.length > 0 ? [] : undefined;
+}
 
 // ── ID generation ────────────────────────────────────────────────────────
 
@@ -115,8 +132,7 @@ export function addSmartArtNode(
 		...data,
 		nodes,
 		connections: connections.length > 0 ? connections : undefined,
-		// Clear pre-computed shapes to force layout reflow
-		drawingShapes: undefined,
+		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }
 
@@ -167,13 +183,17 @@ export function removeSmartArtNode(data: PptxSmartArtData, nodeId: string): Pptx
 		...data,
 		nodes,
 		connections: connections.length > 0 ? connections : undefined,
-		drawingShapes: undefined,
+		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }
 
 /**
  * Update the text of a SmartArt node by ID.
- * Clears drawing shapes to trigger layout reflow.
+ *
+ * When drawing shapes exist, updates the matching shape's text in-place so the
+ * renderer path does not change (avoids polygon-to-chevron downgrade that makes
+ * a pyramid look like stacked bars). When no drawing shapes are present the
+ * family renderer reads text directly from the node array.
  */
 export function updateSmartArtNodeText(
 	data: PptxSmartArtData,
@@ -185,8 +205,72 @@ export function updateSmartArtNodeText(
 	return {
 		...data,
 		nodes,
-		drawingShapes: undefined,
+		drawingShapes: patchDrawingShapeText(data.drawingShapes, data.nodes, nodeId, newText),
 	};
+}
+
+/**
+ * Patch a single drawing shape's text field in-place (immutable copy).
+ * Returns `undefined` unchanged when no drawing shapes exist.
+ */
+function patchDrawingShapeText(
+	shapes: PptxSmartArtDrawingShape[] | undefined,
+	nodes: readonly PptxSmartArtNode[],
+	nodeId: string,
+	newText: string,
+): PptxSmartArtDrawingShape[] | undefined {
+	if (!shapes || shapes.length === 0) {
+		return shapes;
+	}
+	const idx = findDrawingShapeIndex(shapes, nodes, nodeId);
+	if (idx < 0) {
+		// Cannot resolve which shape corresponds to this node (e.g. PowerPoint-
+		// generated shapes with opaque IDs). Mark as stale so a full rebuild
+		// picks up the new text.
+		return [];
+	}
+	const updated = [...shapes];
+	updated[idx] = { ...updated[idx]!, text: newText };
+	return updated;
+}
+
+/**
+ * Find the drawing shape index that corresponds to a given node ID.
+ * Uses the same resolution logic as `resolveDrawingShapeNodeId` (shared pkg).
+ */
+function findDrawingShapeIndex(
+	shapes: readonly PptxSmartArtDrawingShape[],
+	nodes: readonly PptxSmartArtNode[],
+	nodeId: string,
+): number {
+	// 1. Reflow shapes embed the node id as the id suffix.
+	for (let i = 0; i < shapes.length; i++) {
+		if (shapes[i]!.id.startsWith('reflow-') && shapes[i]!.id.endsWith(`-${nodeId}`)) {
+			return i;
+		}
+	}
+	// 2. 1:1 positional mapping when counts align.
+	if (shapes.length === nodes.length) {
+		const nodeIdx = nodes.findIndex((n) => n.id === nodeId);
+		if (nodeIdx >= 0) {
+			return nodeIdx;
+		}
+	}
+	// 3. Unique non-empty text match.
+	const node = nodes.find((n) => n.id === nodeId);
+	if (node?.text) {
+		const text = node.text.trim();
+		const matches: number[] = [];
+		for (let i = 0; i < shapes.length; i++) {
+			if (shapes[i]!.text?.trim() === text) {
+				matches.push(i);
+			}
+		}
+		if (matches.length === 1) {
+			return matches[0]!;
+		}
+	}
+	return -1;
 }
 
 /**
@@ -226,7 +310,7 @@ export function reorderSmartArtNode(
 	return {
 		...data,
 		nodes,
-		drawingShapes: undefined,
+		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }
 
@@ -265,7 +349,7 @@ export function promoteSmartArtNode(data: PptxSmartArtData, nodeId: string): Ppt
 		...data,
 		nodes,
 		connections: connections.length > 0 ? connections : undefined,
-		drawingShapes: undefined,
+		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }
 
@@ -306,7 +390,7 @@ export function demoteSmartArtNode(data: PptxSmartArtData, nodeId: string): Pptx
 		...data,
 		nodes,
 		connections: connections.length > 0 ? connections : undefined,
-		drawingShapes: undefined,
+		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }
 
@@ -361,7 +445,7 @@ export function addSmartArtNodeAsChild(
 		...data,
 		nodes,
 		connections: connections.length > 0 ? connections : undefined,
-		drawingShapes: undefined,
+		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }
 
@@ -415,6 +499,6 @@ export function reorderSmartArtNodeToIndex(
 	return {
 		...data,
 		nodes,
-		drawingShapes: undefined,
+		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }

@@ -10,7 +10,12 @@
  * @module smartart-editing-node-style
  */
 
-import type { PptxSmartArtData, PptxSmartArtNode, PptxSmartArtNodeStyle } from '../types';
+import type {
+	PptxSmartArtData,
+	PptxSmartArtDrawingShape,
+	PptxSmartArtNode,
+	PptxSmartArtNodeStyle,
+} from '../types';
 
 /** Merge a partial style onto an existing one, dropping cleared (undefined) keys. */
 function mergeNodeStyle(
@@ -76,6 +81,82 @@ export function setSmartArtNodeStyle(
 	return {
 		...data,
 		nodes,
-		drawingShapes: undefined,
+		drawingShapes: patchDrawingShapeStyle(data.drawingShapes, data.nodes, nodeId, style),
 	};
+}
+
+/**
+ * Patch a single drawing shape's visual properties in-place (immutable copy).
+ * Returns `undefined` unchanged when no drawing shapes exist.
+ */
+function patchDrawingShapeStyle(
+	shapes: PptxSmartArtDrawingShape[] | undefined,
+	nodes: readonly PptxSmartArtNode[],
+	nodeId: string,
+	style: Partial<PptxSmartArtNodeStyle>,
+): PptxSmartArtDrawingShape[] | undefined {
+	if (!shapes || shapes.length === 0) {
+		return shapes;
+	}
+	const idx = findShapeIndexForNode(shapes, nodes, nodeId);
+	if (idx < 0) {
+		// Cannot resolve which shape corresponds to this node (e.g. PowerPoint-
+		// generated shapes with opaque IDs). Mark as stale so a full rebuild
+		// picks up the new style.
+		return [];
+	}
+	const patch: Partial<PptxSmartArtDrawingShape> = {};
+	if (style.fillColor !== undefined) {
+		patch.fillColor = style.fillColor;
+	}
+	if (style.lineColor !== undefined) {
+		patch.strokeColor = style.lineColor;
+	}
+	if (style.fontColor !== undefined) {
+		patch.fontColor = style.fontColor;
+	}
+	if (Object.keys(patch).length === 0) {
+		return shapes;
+	}
+	const updated = [...shapes];
+	updated[idx] = { ...updated[idx]!, ...patch };
+	return updated;
+}
+
+/**
+ * Find the drawing shape index that corresponds to a given node ID.
+ */
+function findShapeIndexForNode(
+	shapes: readonly PptxSmartArtDrawingShape[],
+	nodes: readonly PptxSmartArtNode[],
+	nodeId: string,
+): number {
+	// 1. Reflow shapes embed the node id as the id suffix.
+	for (let i = 0; i < shapes.length; i++) {
+		if (shapes[i]!.id.startsWith('reflow-') && shapes[i]!.id.endsWith(`-${nodeId}`)) {
+			return i;
+		}
+	}
+	// 2. 1:1 positional mapping when counts align.
+	if (shapes.length === nodes.length) {
+		const nodeIdx = nodes.findIndex((n) => n.id === nodeId);
+		if (nodeIdx >= 0) {
+			return nodeIdx;
+		}
+	}
+	// 3. Unique non-empty text match.
+	const node = nodes.find((n) => n.id === nodeId);
+	if (node?.text) {
+		const text = node.text.trim();
+		const matches: number[] = [];
+		for (let i = 0; i < shapes.length; i++) {
+			if (shapes[i]!.text?.trim() === text) {
+				matches.push(i);
+			}
+		}
+		if (matches.length === 1) {
+			return matches[0]!;
+		}
+	}
+	return -1;
 }

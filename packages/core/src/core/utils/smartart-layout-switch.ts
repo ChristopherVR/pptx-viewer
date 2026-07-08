@@ -1,4 +1,4 @@
-import type { PptxSmartArtData, SmartArtLayoutType } from '../types';
+import type { PptxSmartArtData, PptxSmartArtDrawingShape, SmartArtLayoutType } from '../types';
 
 /**
  * Supported layout types for the visual layout switcher.
@@ -51,19 +51,30 @@ export function switchSmartArtLayout(
 	return {
 		...currentData,
 		// Clear the raw layoutType string since the user is explicitly
-		// choosing a resolved category — this avoids the heuristic
+		// choosing a resolved category - this avoids the heuristic
 		// re-resolve overriding their choice.
 		layoutType: newLayoutType,
 		resolvedLayoutType: newLayoutType,
-		// Clear the named layout preset — switching category invalidates it
+		// Clear the named layout preset - switching category invalidates it
 		layout: undefined,
-		// Clear stale pre-computed drawing shapes from the old layout so the
+		// Mark stale pre-computed drawing shapes from the old layout so the
 		// reflow pipeline (rebuildDrawingShapesIfCleared) regenerates them for
-		// the new layout type; otherwise the renderer keeps preferring the old
-		// shapes and the switch has no visible effect.
-		drawingShapes: undefined,
+		// the new layout type. If the element never had drawing shapes (freshly
+		// inserted), leave undefined so the family SVG renderer handles it
+		// without triggering a lossy polygon-to-chevron reflow.
+		drawingShapes: markShapesStale(currentData.drawingShapes),
 		// Preserve everything else: nodes, connections, colours, styles, chrome, etc.
 	};
+}
+
+/**
+ * Mark drawing shapes as stale (needs rebuild) when they were previously
+ * populated, or leave undefined when they never existed.
+ */
+function markShapesStale(
+	shapes: PptxSmartArtDrawingShape[] | undefined,
+): PptxSmartArtDrawingShape[] | undefined {
+	return shapes !== undefined && shapes.length > 0 ? [] : undefined;
 }
 
 /**
