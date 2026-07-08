@@ -12,6 +12,11 @@
  * prompt trigger) via {@link bind}; the template reads the signals / invokes the
  * handlers off the injected instance directly (same pattern as `session`/`xport`).
  *
+ * This service owns no DOM node, so the real browser Fullscreen API request/exit
+ * (mirroring React's `usePresentationMode` / Vue's `PresentationMode.vue`) is
+ * driven by `PresentationOverlayComponent` itself off this `presenting` signal's
+ * mount/unmount, not from here; see that component for the fullscreen wiring.
+ *
  * Provide it once on the viewer component (`providers: [ViewerPresentationModeService]`).
  */
 
@@ -61,7 +66,11 @@ export class ViewerPresentationModeService {
 		return this.host;
 	}
 
-	/** Open the fullscreen presentation overlay from the current slide. */
+	/**
+	 * Open the presentation overlay from the current slide. The overlay itself
+	 * (`PresentationOverlayComponent`) requests real browser fullscreen once it
+	 * mounts as a result of `presenting` flipping true.
+	 */
 	present(): void {
 		const host = this.requireHost();
 		if (host.slideCount() > 0) {

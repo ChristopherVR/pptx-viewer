@@ -24,6 +24,11 @@ import { PresentationAnnotationOverlayComponent } from './presentation-annotatio
 import { PresentationAnnotationsService } from './presentation-annotations.service';
 import type { SlideAnnotationMap } from './presentation-annotations.service';
 import {
+	exitPresentationFullscreen,
+	hasExitedFullscreen,
+	requestPresentationFullscreen,
+} from './presentation-fullscreen';
+import {
 	clampIndex,
 	fitZoom,
 	nextVisibleIndex,
@@ -64,6 +69,17 @@ import { ZoomNavigationService } from './zoom-navigation.service';
  *   Horizontal swipe                    → left → next, right → previous
  *
  * Click on the overlay body → advance to next visible slide.
+ *
+ * Fullscreen (mirrors the React `usePresentationMode` / Vue `PresentationMode.vue`
+ * behavior, on top of the CSS-fixed full-viewport overlay above): the real
+ * Fullscreen API is requested on this component's root element once it mounts,
+ * and released again on destroy, so the browser chrome (address bar, etc.) gets
+ * out of the way on mobile the same way it does for React/Vue. A
+ * `fullscreenchange` listener syncs back to `closed` when fullscreen is exited
+ * from outside this component's own close/Escape handling (browser UI, the
+ * Android back gesture, etc.). Environments without Fullscreen API support
+ * (iOS Safari's partial support, `jsdom` in tests) degrade silently to the
+ * plain CSS overlay.
  */
 @Component({
 	selector: 'pptx-presentation-overlay',
@@ -326,11 +342,24 @@ export class PresentationOverlayComponent implements OnInit {
 	/** The slide stage root; animation styles are applied to its elements. */
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
 
-	/** The overlay root; the shared touch-gesture recogniser attaches here. */
+	/**
+	 * The overlay root; the shared touch-gesture recogniser attaches here, and
+	 * it is the element the real Fullscreen API is requested on (see
+	 * {@link setupFullscreen}).
+	 */
 	private readonly rootRef = viewChild<ElementRef<HTMLElement>>('root');
+
+	/**
+	 * Guards against handling the same exit twice: e.g. Escape both reaches our
+	 * own `keydown` handler AND causes the browser to natively exit fullscreen
+	 * (firing `fullscreenchange`), or the close button's `click` and `touchend`
+	 * both fire for one tap.
+	 */
+	private closing = false;
 
 	constructor() {
 		this.setupTouchGestures();
+		this.setupFullscreen();
 
 		// Wire the zoom-navigation context to this overlay's slide navigation so a
 		// descendant zoom tile can jump to its target slide on click.
@@ -542,6 +571,43 @@ export class PresentationOverlayComponent implements OnInit {
 	}
 
 	// ------------------------------------------------------------------
+	// Real Fullscreen API (layered on top of the CSS-fixed overlay)
+	// ------------------------------------------------------------------
+
+	/**
+	 * Request real fullscreen on the overlay root once it mounts, and release
+	 * it again when the overlay is destroyed (`presenting` flips back to
+	 * false, closing this `@if` block). Mirrors Vue's `onMounted` /
+	 * `onBeforeUnmount` pair on its own overlay root; feature-detected so
+	 * unsupported environments just keep the CSS overlay.
+	 */
+	private setupFullscreen(): void {
+		const destroyRef = inject(DestroyRef);
+		afterNextRender(() => {
+			requestPresentationFullscreen(this.rootRef()?.nativeElement);
+		});
+		destroyRef.onDestroy(() => {
+			exitPresentationFullscreen(typeof document === 'undefined' ? null : document);
+		});
+	}
+
+	/**
+	 * Sync back to `closed` when fullscreen is exited from OUTSIDE this
+	 * component's own close/Escape handling: the browser's native Esc handling
+	 * can beat (or replace) our `keydown` listener, and mobile back
+	 * gestures/browser-UI exits never reach it at all. Without this, `presenting`
+	 * would stay stuck true while the app has silently fallen back to the plain
+	 * CSS overlay. `emitClosed()` is itself guarded against double-firing, so it
+	 * is safe if our own close flow *also* triggers this event.
+	 */
+	@HostListener('document:fullscreenchange')
+	protected onFullscreenChange(): void {
+		if (hasExitedFullscreen(typeof document === 'undefined' ? null : document)) {
+			this.emitClosed();
+		}
+	}
+
+	// ------------------------------------------------------------------
 	// Lifecycle
 	// ------------------------------------------------------------------
 
@@ -747,6 +813,10 @@ export class PresentationOverlayComponent implements OnInit {
 	}
 
 	private emitClosed(): void {
+		if (this.closing) {
+			return;
+		}
+		this.closing = true;
 		if (this.annotations.hasAnyAnnotations()) {
 			this.annotationsExit.emit(this.annotations.getAllSlideAnnotations());
 		}
