@@ -19,6 +19,7 @@ import type {
 	PptxSmartArtNode,
 	PptxSmartArtDrawingShape,
 	PptxSmartArtQuickStyle,
+	SmartArtLayout,
 	SmartArtLayoutType,
 } from '../types';
 import {
@@ -203,8 +204,9 @@ export function decomposeSmartArt(
 		smartArtData.colorTransform?.fillColors,
 	);
 
-	const layoutType: SmartArtLayoutType =
-		smartArtData.resolvedLayoutType ?? resolveLayoutFromRawType(smartArtData.layoutType);
+	// Resolve the effective layout type, preferring the named preset over
+	// the resolved/raw type so SDK-created diagrams get the right algorithm.
+	const layoutType = resolveEffectiveLayoutType(smartArtData);
 
 	// Check for specific named layouts that have their own algorithm,
 	// before falling through to the general category dispatch.
@@ -251,6 +253,68 @@ function dispatchLayoutByType(
 }
 
 // ── Internal helpers ────────────────────────────────────────────────────
+
+/**
+ * Canonical layout-type lookup for every named SmartArt preset the viewer
+ * can insert. Covers all `SmartArtLayout` variants so that SDK-created or
+ * freshly-inserted diagrams that carry only a `layout` string (no
+ * `resolvedLayoutType`) pick the correct geometry and algorithm.
+ */
+const LAYOUT_PRESET_TO_TYPE: Partial<Record<SmartArtLayout, SmartArtLayoutType>> = {
+	basicBlockList: 'list',
+	alternatingHexagons: 'list',
+	horizontalBulletList: 'list',
+	stackedList: 'list',
+	tableList: 'list',
+	trapezoidList: 'list',
+	pictureAccentList: 'list',
+	verticalBlockList: 'list',
+	groupedList: 'list',
+	pyramidList: 'list',
+	horizontalPictureList: 'list',
+	basicMatrix: 'matrix',
+	basicPyramid: 'pyramid',
+	invertedPyramid: 'pyramid',
+	basicChevronProcess: 'chevron',
+	continuousBlockProcess: 'process',
+	segmentedProcess: 'process',
+	upwardArrow: 'process',
+	basicTimeline: 'timeline',
+	bendingProcess: 'bending',
+	stepDownProcess: 'process',
+	alternatingFlow: 'process',
+	descendingProcess: 'process',
+	accentProcess: 'process',
+	verticalChevronList: 'chevron',
+	basicFunnel: 'funnel',
+	basicCycle: 'cycle',
+	basicPie: 'cycle',
+	basicRadial: 'cycle',
+	basicVenn: 'relationship',
+	convergingRadial: 'cycle',
+	linearVenn: 'relationship',
+	basicTarget: 'target',
+	interlockingGears: 'gear',
+	hierarchy: 'hierarchy',
+};
+
+/**
+ * Resolve the effective SmartArtLayoutType for a data model.
+ *
+ * Priority order:
+ *   1. `resolvedLayoutType` (set by the parser from the layout-definition XML)
+ *   2. Named `layout` preset (SDK-created / inserted diagrams)
+ *   3. Raw `layoutType` string heuristic (legacy / unknown sources)
+ */
+function resolveEffectiveLayoutType(data: PptxSmartArtData): SmartArtLayoutType {
+	if (data.resolvedLayoutType && data.resolvedLayoutType !== 'unknown') {
+		return data.resolvedLayoutType;
+	}
+	if (data.layout && LAYOUT_PRESET_TO_TYPE[data.layout]) {
+		return LAYOUT_PRESET_TO_TYPE[data.layout]!;
+	}
+	return resolveLayoutFromRawType(data.layoutType);
+}
 
 /**
  * Build an effective theme colour map by overlaying color-transform fills

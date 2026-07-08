@@ -312,6 +312,7 @@ function getDefaultShapeType(layoutType: SmartArtLayoutType): string {
 		case 'cycle':
 		case 'target':
 		case 'gear':
+			return 'ellipse';
 		case 'relationship':
 		case 'venn':
 			return 'ellipse';
@@ -319,7 +320,10 @@ function getDefaultShapeType(layoutType: SmartArtLayoutType): string {
 			return 'chevron';
 		case 'pyramid':
 		case 'funnel':
-			return 'rect';
+			return 'trapezoid';
+		case 'timeline':
+		case 'bending':
+			return 'roundRect';
 		default:
 			return 'roundRect';
 	}

@@ -902,11 +902,11 @@ describe('layoutEngineShapesToDrawingShapes', () => {
 		expect(drawingShapes[0].shapeType).toBe('ellipse');
 	});
 
-	it('uses rect shape type for pyramid layouts', () => {
+	it('uses trapezoid shape type for pyramid layouts', () => {
 		const nodes = makeNodes(['A']);
 		const engineShapes: LayoutEngineShape[] = [{ nodeId: '1', x: 0, y: 0, width: 100, height: 30 }];
 		const drawingShapes = layoutEngineShapesToDrawingShapes(engineShapes, nodes, 'pyramid');
-		expect(drawingShapes[0].shapeType).toBe('rect');
+		expect(drawingShapes[0].shapeType).toBe('trapezoid');
 	});
 
 	it('handles missing node text gracefully', () => {

@@ -73,6 +73,41 @@ function docPointXml(docGuid: string, ids: FabricatedDefIds): string {
 }
 
 /**
+ * Build the stable `nodeId -> {GUID}` model-id map for a fabricated diagram.
+ *
+ * Shared between the data part (point model ids) and the cached drawing part
+ * (`dsp:sp` model ids) so PowerPoint correlates each drawn shape with its
+ * data point and keeps the cached geometry instead of recomputing it.
+ */
+export function buildNodeGuidMap(nodes: PptxSmartArtData['nodes']): Map<string, string> {
+	const guidByNodeId = new Map<string, string>();
+	for (const node of nodes) {
+		if (node.id && !guidByNodeId.has(node.id)) {
+			guidByNodeId.set(node.id, GUID_MODEL_ID.test(node.id) ? node.id : newSmartArtGuid());
+		}
+	}
+	return guidByNodeId;
+}
+
+/** Options controlling optional data-model extensions. */
+export interface FabricatedDiagramDataOptions {
+	/**
+	 * Relationship id (local to the data part's own rels file) of the cached
+	 * `drawingN.xml`. When set, a `dsp:dataModelExt` extension is emitted so
+	 * PowerPoint loads the cached drawing instead of recomputing the layout.
+	 */
+	drawingRelId?: string;
+	/**
+	 * Pre-built `nodeId -> {GUID}` map. Supply the same map used to build the
+	 * cached drawing so point and shape model ids match. Built internally when
+	 * omitted.
+	 */
+	guidByNodeId?: Map<string, string>;
+}
+
+const DSP_DATA_MODEL_EXT_URI = 'http://schemas.microsoft.com/office/drawing/2008/diagram';
+
+/**
  * Build the complete `dataN.xml` payload for a fabricated SmartArt diagram.
  *
  * Node parent wiring comes from each node's `parentId`; a missing or
@@ -83,14 +118,10 @@ function docPointXml(docGuid: string, ids: FabricatedDefIds): string {
 export function buildFabricatedDiagramDataXml(
 	data: PptxSmartArtData,
 	ids: FabricatedDefIds,
+	options: FabricatedDiagramDataOptions = {},
 ): string {
 	const docGuid = newSmartArtGuid();
-	const guidByNodeId = new Map<string, string>();
-	for (const node of data.nodes) {
-		if (node.id && !guidByNodeId.has(node.id)) {
-			guidByNodeId.set(node.id, GUID_MODEL_ID.test(node.id) ? node.id : newSmartArtGuid());
-		}
-	}
+	const guidByNodeId = options.guidByNodeId ?? buildNodeGuidMap(data.nodes);
 
 	const points: string[] = [docPointXml(docGuid, ids)];
 	const connections: string[] = [];
@@ -121,6 +152,24 @@ export function buildFabricatedDiagramDataXml(
 		`${XML_PROLOG}\r\n<dgm:dataModel ${DGM_XMLNS}>` +
 		`<dgm:ptLst>${points.join('')}</dgm:ptLst>` +
 		`<dgm:cxnLst>${connections.join('')}</dgm:cxnLst>` +
-		`<dgm:bg/><dgm:whole/></dgm:dataModel>`
+		`<dgm:bg/><dgm:whole/>${dataModelExtXml(options.drawingRelId)}</dgm:dataModel>`
+	);
+}
+
+/**
+ * Build the `dgm:extLst` carrying the `dsp:dataModelExt` that links the data
+ * model to its cached drawing part. Empty when no drawing rel is supplied.
+ */
+function dataModelExtXml(drawingRelId: string | undefined): string {
+	if (!drawingRelId) {
+		return '';
+	}
+	return (
+		`<dgm:extLst>` +
+		`<a:ext uri="${DSP_DATA_MODEL_EXT_URI}">` +
+		`<dsp:dataModelExt xmlns:dsp="${DSP_DATA_MODEL_EXT_URI}" relId="${xmlEscape(drawingRelId)}"` +
+		` minVer="http://schemas.openxmlformats.org/drawingml/2006/diagram"/>` +
+		`</a:ext>` +
+		`</dgm:extLst>`
 	);
 }

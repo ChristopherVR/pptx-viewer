@@ -134,7 +134,7 @@ export function layoutCycle(
 		const fill = accentColor(i, themeColorMap);
 
 		elements.push(
-			makeShapeElement(nextId('sa-cycle'), nx, ny, nodeW, nodeH, 'roundRect', fill, node.text, {
+			makeShapeElement(nextId('sa-cycle'), nx, ny, nodeW, nodeH, 'ellipse', fill, node.text, {
 				fontSize: Math.max(7, Math.min(10, nodeW * 0.1)),
 			}),
 		);
@@ -228,7 +228,7 @@ export function layoutPyramid(
 		const y = bounds.y + padding + i * (bandH + gap);
 		const fill = accentColor(i, themeColorMap);
 
-		return makeShapeElement(nextId('sa-pyramid'), x, y, w, bandH, 'rect', fill, node.text, {
+		return makeShapeElement(nextId('sa-pyramid'), x, y, w, bandH, 'trapezoid', fill, node.text, {
 			fontSize: Math.max(8, Math.min(11, bandH * 0.4)),
 		});
 	});
