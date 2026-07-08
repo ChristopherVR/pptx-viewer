@@ -457,6 +457,9 @@ export * from './action-buttons';
 // SmartArt insert-gallery catalogue: preset entries (layout/label/category/
 // default node texts) + the sidebar category list.
 export * from './smart-art-presets';
+// SmartArt preset data builder: the node tree / PptxSmartArtData a preset
+// inserts, shared by insert handlers and dialog previews so they never drift.
+export * from './smart-art-preset-data';
 // Draggable alignment guides (View > H/V Guides): persistent guide-list CRUD
 // (`Guide` carries an `id`). Distinct from `snap-guides` drag-time snapping.
 export * from './alignment-guides';
