@@ -30,6 +30,7 @@ import {
 	afterNextRender,
 	ChangeDetectionStrategy,
 	Component,
+	computed,
 	effect,
 	ElementRef,
 	input,
@@ -132,9 +133,9 @@ import { NotesToolbarComponent } from './notes-toolbar.component';
 			.pptx-ng-notes-panel {
 				display: flex;
 				flex-direction: column;
-				border-top: 1px solid rgba(0, 0, 0, 0.1);
-				background: #ffffff;
-				color: #111827;
+				border-top: 1px solid var(--pptx-border, rgba(0, 0, 0, 0.1));
+				background: var(--pptx-background, #ffffff);
+				color: var(--pptx-foreground, #111827);
 			}
 			.pptx-ng-notes-header {
 				display: flex;
@@ -146,11 +147,11 @@ import { NotesToolbarComponent } from './notes-toolbar.component';
 				background: transparent;
 				font-size: 0.8125rem;
 				font-weight: 600;
-				color: #6b7280;
+				color: var(--pptx-muted-foreground, #6b7280);
 				cursor: pointer;
 			}
 			.pptx-ng-notes-header:hover {
-				color: #111827;
+				color: var(--pptx-foreground, #111827);
 			}
 			.pptx-ng-notes-body {
 				padding: 0 0.75rem 0.75rem;
@@ -193,10 +194,21 @@ export class NotesPanelComponent {
 	/** The active slide whose notes are shown / edited. */
 	readonly slide = input<PptxSlide | undefined>(undefined);
 
+	/**
+	 * Whether the notes body is expanded. When false the panel collapses to just
+	 * its header strip (React parity: the notes footer is always present below
+	 * the canvas, the body toggles). Host-controlled so the status-bar Notes
+	 * button and the header chevron stay in sync.
+	 */
+	readonly expanded = input<boolean>(false);
+
 	/** Emits the new plain-text notes on commit. */
 	readonly update = output<string>();
 
-	readonly collapsed = signal(false);
+	/** Emits when the header strip is clicked to expand / collapse the body. */
+	readonly notesToggle = output<void>();
+
+	readonly collapsed = computed<boolean>(() => !this.expanded());
 	protected readonly isRichEnabled = signal<boolean>(defaultRichEnabled());
 	protected readonly showLinkPopover = signal(false);
 	protected readonly savedSelectionText = signal('');
@@ -267,7 +279,7 @@ export class NotesPanelComponent {
 	}
 
 	toggle(): void {
-		this.collapsed.update((v) => !v);
+		this.notesToggle.emit();
 	}
 
 	/* --- Rich editor --- */

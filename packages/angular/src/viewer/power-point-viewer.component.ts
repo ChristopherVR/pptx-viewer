@@ -392,11 +392,13 @@ import { ZoomTargetService } from './zoom-target.service';
 								/>
 							</div>
 						}
-						@if (mobileSheetSvc.showNotes() && !mobile.isMobile()) {
+						@if (canEdit() && !mobile.isMobile()) {
 							<aside class="pptx-ng-notes" [attr.aria-label]="'pptx.notes.speakerNotes' | translate">
 								<pptx-notes-panel
 									[slide]="activeSlide()"
+									[expanded]="mobileSheetSvc.showNotes()"
 									(update)="canvasEditing.onNotesUpdate($event)"
+									(notesToggle)="mobileSheetSvc.toggleNotes()"
 								/>
 							</aside>
 						}
