@@ -11,8 +11,9 @@
  * new SmartArt element via {@link buildSmartArtInsertElement} and commits it
  * through `EditorStateService.addElement` (one history entry).
  *
- * All non-trivial logic lives in `smart-art-insert-helpers.ts` /
- * `smart-art-preview-geometry.ts`; this component is a thin reactive shell.
+ * All non-trivial logic lives in `smart-art-insert-helpers.ts`; the gallery
+ * tiles are live scaled `pptx-smart-art-renderer` previews
+ * (`smart-art-preview.component.ts`). This component is a thin reactive shell.
  *
  * @module angular-viewer/insert-smart-art-dialog
  */

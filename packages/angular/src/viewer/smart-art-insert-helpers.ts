@@ -19,7 +19,7 @@
 
 import type { PptxElement, PptxSmartArtNode, SmartArtLayout } from 'pptx-viewer-core';
 
-import { PRESETS } from '../internal/shared';
+import { buildSmartArtPresetNodes, PRESETS } from '../internal/shared';
 import type { SmartArtCategory, SmartArtPreset } from '../internal/shared';
 
 /** Default insert position / size for a new SmartArt element (mirrors React). */
@@ -51,14 +51,7 @@ export function buildSmartArtNodes(
 	items: readonly string[],
 	idSeed: string = String(Date.now()),
 ): PptxSmartArtNode[] {
-	const ids = items.map((_, i) => `node-${idSeed}-${i}`);
-	return items.map((text, i) => {
-		const node: PptxSmartArtNode = { id: ids[i], text };
-		if (layout === 'hierarchy' && i > 0) {
-			node.parentId = ids[0];
-		}
-		return node;
-	});
+	return buildSmartArtPresetNodes(layout, [...items], (i) => `node-${idSeed}-${i}`);
 }
 
 /**
