@@ -38,6 +38,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import { LucideChevronDown, LucideChevronRight } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 
@@ -63,7 +64,7 @@ import { NotesToolbarComponent } from './notes-toolbar.component';
 	selector: 'pptx-notes-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NotesToolbarComponent, TranslatePipe],
+	imports: [NotesToolbarComponent, TranslatePipe, LucideChevronRight, LucideChevronDown],
 	template: `
 		<section class="pptx-ng-notes-panel" [attr.data-collapsed]="collapsed()">
 			<button
@@ -73,7 +74,13 @@ import { NotesToolbarComponent } from './notes-toolbar.component';
 				(click)="toggle()"
 			>
 				<span class="pptx-ng-notes-label">{{ 'pptx.notes.speakerNotes' | translate }}</span>
-				<span class="pptx-ng-notes-chevron" aria-hidden="true">{{ collapsed() ? '▸' : '▾' }}</span>
+				<span class="pptx-ng-notes-chevron" aria-hidden="true">
+					@if (collapsed()) {
+						<svg lucideChevronRight class="h-4 w-4"></svg>
+					} @else {
+						<svg lucideChevronDown class="h-4 w-4"></svg>
+					}
+				</span>
 			</button>
 
 			@if (!collapsed()) {

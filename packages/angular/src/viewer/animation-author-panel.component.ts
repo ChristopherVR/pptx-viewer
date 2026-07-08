@@ -26,6 +26,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { LucideArrowDown, LucideArrowUp, LucideX } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	PptxAnimationDirection,
@@ -71,7 +72,7 @@ import {
 	selector: 'pptx-animation-author-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, LucideX, LucideArrowUp, LucideArrowDown],
 	template: `
 		<aside class="pptx-ng-anim" [attr.aria-label]="'pptx.animations.propertiesLabel' | translate">
 			<!-- ── Header ───────────────────────────────────────────────────── -->
@@ -80,11 +81,11 @@ import {
 				@if (currentHasAnimation()) {
 					<button
 						type="button"
-						class="pptx-ng-anim__remove-btn"
+						class="pptx-ng-anim__remove-btn inline-flex items-center gap-1"
 						[title]="'pptx.animations.removeFromElement' | translate"
 						(click)="onRemove()"
 					>
-						✕ {{ 'pptx.animations.remove' | translate }}
+						<svg lucideX class="h-3.5 w-3.5"></svg> {{ 'pptx.animations.remove' | translate }}
 					</button>
 				}
 			</div>
@@ -342,21 +343,23 @@ import {
 					<div class="pptx-ng-anim__row">
 						<button
 							type="button"
-							class="pptx-ng-anim__order-btn"
+							class="pptx-ng-anim__order-btn inline-flex items-center gap-1"
 							[disabled]="!canEdit()"
 							[title]="'pptx.animations.moveEarlier' | translate"
 							(click)="onMoveUp()"
 						>
-							↑ {{ 'pptx.animations.earlier' | translate }}
+							<svg lucideArrowUp class="h-3.5 w-3.5"></svg>
+							{{ 'pptx.animations.earlier' | translate }}
 						</button>
 						<button
 							type="button"
-							class="pptx-ng-anim__order-btn"
+							class="pptx-ng-anim__order-btn inline-flex items-center gap-1"
 							[disabled]="!canEdit()"
 							[title]="'pptx.animations.moveLater' | translate"
 							(click)="onMoveDown()"
 						>
-							↓ {{ 'pptx.animations.later' | translate }}
+							<svg lucideArrowDown class="h-3.5 w-3.5"></svg>
+							{{ 'pptx.animations.later' | translate }}
 						</button>
 					</div>
 				</section>

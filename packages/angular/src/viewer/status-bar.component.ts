@@ -13,6 +13,14 @@ import { NgClass } from '@angular/common';
  * zoom live here (not in the top bar), matching React.
  */
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import {
+	LucideColumns2,
+	LucideMinus,
+	LucideMonitor,
+	LucidePlus,
+	LucidePresentation,
+	LucideStickyNote,
+} from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import type { AutosaveStatus } from './autosave.service';
@@ -21,7 +29,16 @@ import type { AutosaveStatus } from './autosave.service';
 	selector: 'pptx-status-bar',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass, TranslatePipe],
+	imports: [
+		NgClass,
+		TranslatePipe,
+		LucideStickyNote,
+		LucideMonitor,
+		LucideColumns2,
+		LucidePresentation,
+		LucideMinus,
+		LucidePlus,
+	],
 	template: `
 		<div
 			class="flex w-full items-center gap-1 border-t border-border bg-secondary/50 px-2 py-0.5 text-[10px] text-muted-foreground"
@@ -56,7 +73,7 @@ import type { AutosaveStatus } from './autosave.service';
 				[attr.aria-label]="'pptx.statusBar.toggleNotes' | translate"
 				(click)="toggleNotes.emit()"
 			>
-				<span aria-hidden="true">🗒</span>
+				<svg lucideStickyNote class="h-3 w-3"></svg>
 				<span>{{ 'pptx.notes.title' | translate }}</span>
 			</button>
 
@@ -72,7 +89,7 @@ import type { AutosaveStatus } from './autosave.service';
 					[attr.aria-label]="'pptx.statusBar.normalView' | translate"
 					(click)="normalView.emit()"
 				>
-					<span aria-hidden="true">🖵</span>
+					<svg lucideMonitor class="h-3.5 w-3.5"></svg>
 				</button>
 				<button
 					type="button"
@@ -82,7 +99,7 @@ import type { AutosaveStatus } from './autosave.service';
 					[attr.aria-label]="'pptx.statusBar.slideSorter' | translate"
 					(click)="openSorter.emit()"
 				>
-					<span aria-hidden="true">▦</span>
+					<svg lucideColumns2 class="h-3.5 w-3.5"></svg>
 				</button>
 				<button
 					type="button"
@@ -93,7 +110,7 @@ import type { AutosaveStatus } from './autosave.service';
 					[attr.aria-label]="'pptx.statusBar.slideShow' | translate"
 					(click)="slideShow.emit()"
 				>
-					<span aria-hidden="true">▶</span>
+					<svg lucidePresentation class="h-3.5 w-3.5"></svg>
 				</button>
 			</div>
 
@@ -107,7 +124,7 @@ import type { AutosaveStatus } from './autosave.service';
 					[attr.aria-label]="'pptx.statusBar.zoomOut' | translate"
 					(click)="zoomOut.emit()"
 				>
-					<span aria-hidden="true">−</span>
+					<svg lucideMinus class="h-3 w-3"></svg>
 				</button>
 				<button
 					type="button"
@@ -124,7 +141,7 @@ import type { AutosaveStatus } from './autosave.service';
 					[attr.aria-label]="'pptx.statusBar.zoomIn' | translate"
 					(click)="zoomIn.emit()"
 				>
-					<span aria-hidden="true">+</span>
+					<svg lucidePlus class="h-3 w-3"></svg>
 				</button>
 			</div>
 		</div>

@@ -6,6 +6,7 @@
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { LucidePlus } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
@@ -22,6 +23,7 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 	imports: [
 		NgClass,
 		TranslatePipe,
+		LucidePlus,
 		RibbonFontControlsComponent,
 		RibbonParagraphControlsComponent,
 		RibbonEditingSectionComponent,
@@ -79,11 +81,11 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 			<div class="pptx-rb-grp">
 				<button
 					type="button"
-					class="pptx-rb-gb"
+					class="pptx-rb-gb gap-1.5"
 					[title]="'pptx.ribbon.newSlide' | translate"
 					(click)="editor.addSlide(slideIndex())"
 				>
-					＋ {{ 'pptx.ribbon.slide' | translate }}
+					<svg lucidePlus class="h-4 w-4"></svg> {{ 'pptx.ribbon.slide' | translate }}
 				</button>
 				<button
 					type="button"

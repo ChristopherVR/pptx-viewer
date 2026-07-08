@@ -57,6 +57,17 @@
 	.pptx-rb-select {
 		@apply rounded border border-border bg-card px-1 py-1 text-xs text-foreground;
 	}
+	/* Horizontal-scroll container for the ribbon tab row with a hidden
+	   scrollbar (mirrors React's `overflow-x-auto scrollbar-none`), so on
+	   narrow widths the tabs scroll instead of clipping while the right-side
+	   Record/Share actions stay pinned. */
+	.pptx-scrollbar-none {
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+	}
+	.pptx-scrollbar-none::-webkit-scrollbar {
+		display: none;
+	}
 }
 
 /* Ribbon tab-section / multi-group custom elements render several sibling

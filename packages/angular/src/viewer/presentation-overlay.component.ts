@@ -15,6 +15,16 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import {
+	LucideChevronLeft,
+	LucideChevronRight,
+	LucideEraser,
+	LucideHighlighter,
+	LucideMousePointer2,
+	LucidePenTool,
+	LucideTrash2,
+	LucideX,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
@@ -76,6 +86,14 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 		PresentationAnnotationOverlayComponent,
 		PresentationSubtitleBarComponent,
 		TranslatePipe,
+		LucidePenTool,
+		LucideHighlighter,
+		LucideEraser,
+		LucideMousePointer2,
+		LucideTrash2,
+		LucideX,
+		LucideChevronLeft,
+		LucideChevronRight,
 	],
 	providers: [AnimationPlaybackService, PresentationAnnotationsService, ZoomNavigationService],
 	styles: `
@@ -191,7 +209,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 					(click)="selectTool('pen')"
 					[attr.aria-label]="'pptx.presentation.pen' | translate"
 				>
-					✎
+					<svg lucidePenTool class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -199,7 +217,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 					(click)="selectTool('highlighter')"
 					[attr.aria-label]="'pptx.presentation.highlighter' | translate"
 				>
-					▭
+					<svg lucideHighlighter class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -207,7 +225,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 					(click)="selectTool('eraser')"
 					[attr.aria-label]="'pptx.presentation.eraser' | translate"
 				>
-					⌫
+					<svg lucideEraser class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -215,14 +233,14 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 					(click)="selectTool('laser')"
 					[attr.aria-label]="'pptx.presentation.laserPointer' | translate"
 				>
-					•
+					<svg lucideMousePointer2 class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
 					(click)="annotations.clearAnnotations()"
 					[attr.aria-label]="'pptx.presentation.clearAnnotations' | translate"
 				>
-					🗑
+					<svg lucideTrash2 class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -243,7 +261,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 				(touchend)="onCloseTouch($event)"
 				[attr.aria-label]="'pptx.presenter.endPresentation' | translate"
 			>
-				&#x2715;
+				<svg lucideX class="h-5 w-5"></svg>
 			</button>
 
 			<!-- Edge navigation buttons (vertically centred, touch-friendly). -->
@@ -255,7 +273,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 				(touchend)="onPrevTouch($event)"
 				[attr.aria-label]="'pptx.presenter.previousSlide' | translate"
 			>
-				&#x2039;
+				<svg lucideChevronLeft class="h-6 w-6"></svg>
 			</button>
 			<button
 				type="button"
@@ -265,7 +283,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 				(touchend)="onNextTouch($event)"
 				[attr.aria-label]="'pptx.presenter.nextSlide' | translate"
 			>
-				&#x203A;
+				<svg lucideChevronRight class="h-6 w-6"></svg>
 			</button>
 		</div>
 	`,

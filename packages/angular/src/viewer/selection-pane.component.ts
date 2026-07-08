@@ -12,6 +12,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { LucideArrowDown, LucideArrowUp, LucideEye, LucideEyeOff } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
@@ -45,7 +46,7 @@ function elementLabel(el: PptxElement): string {
 	selector: 'pptx-selection-pane',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, LucideEye, LucideEyeOff, LucideArrowUp, LucideArrowDown],
 	template: `
 		<aside class="pptx-ng-sel-pane" [attr.aria-label]="'pptx.selectionPane.title' | translate">
 			<header class="pptx-ng-sel-pane__header">
@@ -85,7 +86,11 @@ function elementLabel(el: PptxElement): string {
 									"
 									(click)="toggleHidden.emit(el.id)"
 								>
-									{{ el.hidden ? '🙈' : '👁' }}
+									@if (el.hidden) {
+										<svg lucideEyeOff class="h-3.5 w-3.5"></svg>
+									} @else {
+										<svg lucideEye class="h-3.5 w-3.5"></svg>
+									}
 								</button>
 								<button
 									type="button"
@@ -94,7 +99,7 @@ function elementLabel(el: PptxElement): string {
 									[title]="'pptx.arrange.bringForward' | translate"
 									(click)="bringForward.emit(el.id)"
 								>
-									↑
+									<svg lucideArrowUp class="h-3.5 w-3.5"></svg>
 								</button>
 								<button
 									type="button"
@@ -103,7 +108,7 @@ function elementLabel(el: PptxElement): string {
 									[title]="'pptx.arrange.sendBackward' | translate"
 									(click)="sendBackward.emit(el.id)"
 								>
-									↓
+									<svg lucideArrowDown class="h-3.5 w-3.5"></svg>
 								</button>
 							</div>
 						</li>

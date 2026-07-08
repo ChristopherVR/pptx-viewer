@@ -2,6 +2,7 @@
 	"$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
 	"dest": "dist",
 	"allowedNonPeerDependencies": [
+		"@lucide/angular",
 		"html2canvas-pro",
 		"jspdf",
 		"jszip",

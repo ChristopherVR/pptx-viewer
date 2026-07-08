@@ -16,6 +16,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { LucideArrowDown, LucideArrowUp } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
@@ -67,6 +68,8 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 		SmartArtPropertiesComponent,
 		AnimationAuthorPanelComponent,
 		TranslatePipe,
+		LucideArrowUp,
+		LucideArrowDown,
 	],
 	providers: [IsMobileService],
 	template: `
@@ -310,7 +313,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 						[title]="'pptx.contextMenu.bringForward' | translate"
 						(click)="editor.bringSelectedForward(slideIndex())"
 					>
-						↑
+						<svg lucideArrowUp class="h-3.5 w-3.5"></svg>
 					</button>
 					<button
 						type="button"
@@ -318,7 +321,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 						[title]="'pptx.contextMenu.sendBackward' | translate"
 						(click)="editor.sendSelectedBackward(slideIndex())"
 					>
-						↓
+						<svg lucideArrowDown class="h-3.5 w-3.5"></svg>
 					</button>
 				</div>
 			</section>

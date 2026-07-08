@@ -24,6 +24,7 @@
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { LucideChevronDown, LucideChevronUp, LucideShare2 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxChartType, PptxElement, PptxTransitionType } from 'pptx-viewer-core';
 
@@ -89,6 +90,9 @@ const TABS: readonly TabDef[] = [
 	imports: [
 		NgClass,
 		TranslatePipe,
+		LucideShare2,
+		LucideChevronUp,
+		LucideChevronDown,
 		RibbonPrimaryRowComponent,
 		RibbonFileSectionComponent,
 		RibbonHomeSectionComponent,
@@ -137,24 +141,28 @@ const TABS: readonly TabDef[] = [
 
 			<!-- ── Tab bar ───────────────────────────────────────────────────── -->
 			<div class="flex items-center border-b border-border/60 px-1">
-				@for (t of tabs; track t.id) {
-					<button
-						type="button"
-						(click)="activeTab.set(t.id)"
-						class="relative whitespace-nowrap px-3.5 py-2 text-[12px] font-medium transition-colors"
-						[ngClass]="
-							activeTab() === t.id
-								? 'text-foreground after:absolute after:-bottom-px after:left-0 after:right-0 after:h-[2.5px] after:bg-primary'
-								: 'text-muted-foreground hover:bg-accent/30 hover:text-foreground'
-						"
-					>
-						{{ t.labelKey | translate }}
-					</button>
-				}
-				<div class="flex-1"></div>
+				<!-- Scrollable tab strip: on narrow widths the tabs scroll instead of
+				     clipping (mirrors React's max-md:overflow-x-auto scrollbar-none),
+				     while the Record/Share actions and collapse toggle stay pinned. -->
+				<div class="flex min-w-0 flex-1 items-center overflow-x-auto pptx-scrollbar-none">
+					@for (t of tabs; track t.id) {
+						<button
+							type="button"
+							(click)="activeTab.set(t.id)"
+							class="relative whitespace-nowrap px-3.5 py-2 text-[12px] font-medium transition-colors"
+							[ngClass]="
+								activeTab() === t.id
+									? 'text-foreground after:absolute after:-bottom-px after:left-0 after:right-0 after:h-[2.5px] after:bg-primary'
+									: 'text-muted-foreground hover:bg-accent/30 hover:text-foreground'
+							"
+						>
+							{{ t.labelKey | translate }}
+						</button>
+					}
+				</div>
 
 				<!-- Tab-row right actions (Record + Share), mirroring React's TabRowActions -->
-				<div class="flex items-center gap-1 pr-1">
+				<div class="flex shrink-0 items-center gap-1 pr-1">
 					@if (canEdit()) {
 						<button
 							type="button"
@@ -183,7 +191,7 @@ const TABS: readonly TabDef[] = [
 						[attr.aria-label]="'pptx.toolbar.share' | translate"
 						(click)="share.emit()"
 					>
-						⇪
+						<svg lucideShare2 class="h-3.5 w-3.5"></svg>
 						<span>{{
 							collabConnected()
 								? ('pptx.toolbar.sharingCount' | translate: { count: connectedCount() })
@@ -194,7 +202,7 @@ const TABS: readonly TabDef[] = [
 
 				<button
 					type="button"
-					class="mr-1 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+					class="mr-1 shrink-0 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
 					[attr.aria-pressed]="!ribbonExpanded()"
 					[title]="
 						(ribbonExpanded() ? 'pptx.ribbon.collapseRibbon' : 'pptx.ribbon.expandRibbon')
@@ -202,7 +210,11 @@ const TABS: readonly TabDef[] = [
 					"
 					(click)="ribbonExpanded.set(!ribbonExpanded())"
 				>
-					{{ ribbonExpanded() ? '▴' : '▾' }}
+					@if (ribbonExpanded()) {
+						<svg lucideChevronUp class="h-3.5 w-3.5"></svg>
+					} @else {
+						<svg lucideChevronDown class="h-3.5 w-3.5"></svg>
+					}
 				</button>
 			</div>
 

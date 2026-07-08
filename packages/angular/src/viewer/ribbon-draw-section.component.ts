@@ -9,6 +9,13 @@
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+	LucideMinus,
+	LucideMoveRight,
+	LucidePencil,
+	LucideSpline,
+	LucideType,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
 /** Drawing tool IDs (mirrors React DRAW_TOOLS). */
@@ -24,15 +31,14 @@ export interface DrawToolState {
 interface DrawToolDef {
 	id: DrawTool;
 	labelKey: string;
-	icon: string;
 }
 
 const DRAW_TOOLS: readonly DrawToolDef[] = [
-	{ id: 'select', labelKey: 'pptx.ribbon.tool.select', icon: '↖' },
-	{ id: 'pen', labelKey: 'pptx.ribbon.tool.pen', icon: '✏' },
-	{ id: 'highlighter', labelKey: 'pptx.ribbon.tool.highlighter', icon: 'Hl' },
-	{ id: 'eraser', labelKey: 'pptx.ribbon.tool.eraser', icon: '⌫' },
-	{ id: 'freeform', labelKey: 'pptx.ribbon.tool.freeform', icon: '∿' },
+	{ id: 'select', labelKey: 'pptx.ribbon.tool.select' },
+	{ id: 'pen', labelKey: 'pptx.ribbon.tool.pen' },
+	{ id: 'highlighter', labelKey: 'pptx.ribbon.tool.highlighter' },
+	{ id: 'eraser', labelKey: 'pptx.ribbon.tool.eraser' },
+	{ id: 'freeform', labelKey: 'pptx.ribbon.tool.freeform' },
 ];
 
 @Component({
@@ -40,7 +46,15 @@ const DRAW_TOOLS: readonly DrawToolDef[] = [
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [NgClass, TranslatePipe],
+	imports: [
+		NgClass,
+		TranslatePipe,
+		LucideMoveRight,
+		LucidePencil,
+		LucideType,
+		LucideMinus,
+		LucideSpline,
+	],
 	template: `
 		<!--
 			Draw tool state is held in the parent ribbon and pushed up via
@@ -58,7 +72,23 @@ const DRAW_TOOLS: readonly DrawToolDef[] = [
 					[title]="tool.labelKey | translate"
 					(click)="selectTool(tool.id)"
 				>
-					{{ tool.icon }}
+					@switch (tool.id) {
+						@case ('select') {
+							<svg lucideMoveRight class="h-4 w-4"></svg>
+						}
+						@case ('pen') {
+							<svg lucidePencil class="h-4 w-4"></svg>
+						}
+						@case ('highlighter') {
+							<svg lucideType class="h-4 w-4"></svg>
+						}
+						@case ('eraser') {
+							<svg lucideMinus class="h-4 w-4"></svg>
+						}
+						@case ('freeform') {
+							<svg lucideSpline class="h-4 w-4"></svg>
+						}
+					}
 				</button>
 			}
 		</div>

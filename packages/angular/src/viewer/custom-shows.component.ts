@@ -12,6 +12,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { LucideX } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
@@ -21,7 +22,7 @@ import type { CustomShow } from './custom-shows-helpers';
 	selector: 'pptx-custom-shows',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, LucideX],
 	template: `
 		@if (open()) {
 			<!-- Backdrop -->
@@ -44,7 +45,7 @@ import type { CustomShow } from './custom-shows-helpers';
 						[attr.aria-label]="'pptx.customShows.closeDialog' | translate"
 						(click)="close.emit()"
 					>
-						✕
+						<svg lucideX class="h-4 w-4"></svg>
 					</button>
 				</header>
 

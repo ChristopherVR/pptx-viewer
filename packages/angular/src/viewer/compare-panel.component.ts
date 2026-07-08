@@ -13,6 +13,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { LucideCheck, LucideX } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import type { CanvasSize, CompareResult } from '../internal/shared';
@@ -22,7 +23,7 @@ import { SlideDiffRowComponent } from './slide-diff-row.component';
 	selector: 'pptx-compare-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [SlideDiffRowComponent, TranslatePipe],
+	imports: [SlideDiffRowComponent, TranslatePipe, LucideCheck, LucideX],
 	template: `
 		@if (open() && compareResult(); as result) {
 			<div class="pptx-ng-compare">
@@ -49,15 +50,19 @@ import { SlideDiffRowComponent } from './slide-diff-row.component';
 						[attr.aria-label]="'pptx.compare.closePanel' | translate"
 						(click)="close.emit()"
 					>
-						✕
+						<svg lucideX class="h-4 w-4"></svg>
 					</button>
 				</div>
 
 				<!-- Accept all -->
 				@if (nonTrivialCount() > 0) {
 					<div class="pptx-ng-compare-acceptall">
-						<button type="button" class="pptx-ng-compare-acceptall-btn" (click)="handleAcceptAll()">
-							✓ {{ 'pptx.compare.acceptAll' | translate }}
+						<button
+							type="button"
+							class="pptx-ng-compare-acceptall-btn inline-flex items-center gap-1"
+							(click)="handleAcceptAll()"
+						>
+							<svg lucideCheck class="h-3.5 w-3.5"></svg> {{ 'pptx.compare.acceptAll' | translate }}
 						</button>
 					</div>
 				}

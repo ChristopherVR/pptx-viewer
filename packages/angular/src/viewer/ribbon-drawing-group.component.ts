@@ -3,6 +3,7 @@
  * Provides shape insertion, layer arrangement, and shape formatting placeholders.
  */
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { LucideChevronDown } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
 const SHAPE_PRESETS: readonly string[] = [
@@ -25,7 +26,7 @@ const SHAPE_PRESETS: readonly string[] = [
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, LucideChevronDown],
 	template: `
 		<!-- Shapes -->
 		<div class="flex flex-col items-center gap-0.5">
@@ -33,12 +34,12 @@ const SHAPE_PRESETS: readonly string[] = [
 				<div class="relative">
 					<button
 						type="button"
-						class="pptx-rb-gb"
+						class="pptx-rb-gb gap-1.5"
 						[disabled]="!canEdit()"
 						[title]="'pptx.ribbon.shapes' | translate"
 						(click)="shapesOpen.set(!shapesOpen())"
 					>
-						{{ 'pptx.ribbon.shapes' | translate }} ▾
+						{{ 'pptx.ribbon.shapes' | translate }} <svg lucideChevronDown class="h-3 w-3"></svg>
 					</button>
 					@if (shapesOpen()) {
 						<div
@@ -60,12 +61,12 @@ const SHAPE_PRESETS: readonly string[] = [
 				<div class="relative">
 					<button
 						type="button"
-						class="pptx-rb-gb"
+						class="pptx-rb-gb gap-1.5"
 						[disabled]="!canEdit()"
 						[title]="'pptx.arrange.arrange' | translate"
 						(click)="arrangeOpen.set(!arrangeOpen())"
 					>
-						{{ 'pptx.arrange.arrange' | translate }} ▾
+						{{ 'pptx.arrange.arrange' | translate }} <svg lucideChevronDown class="h-3 w-3"></svg>
 					</button>
 					@if (arrangeOpen()) {
 						<div

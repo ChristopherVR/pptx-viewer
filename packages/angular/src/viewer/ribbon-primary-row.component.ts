@@ -16,13 +16,32 @@
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import {
+	LucideChevronDown,
+	LucideEllipsis,
+	LucideMessageSquare,
+	LucidePanelLeft,
+	LucidePanelRight,
+	LucidePlay,
+	LucidePlus,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
 	selector: 'pptx-ribbon-primary-row',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass, TranslatePipe],
+	imports: [
+		NgClass,
+		TranslatePipe,
+		LucidePanelLeft,
+		LucidePanelRight,
+		LucideMessageSquare,
+		LucidePlay,
+		LucideChevronDown,
+		LucidePlus,
+		LucideEllipsis,
+	],
 	template: `
 		<div class="flex items-center gap-0.5 px-1.5 py-0.5">
 			<!-- Left: slides pane toggle (undo/redo/find moved to the title bar) -->
@@ -34,7 +53,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 				[attr.aria-label]="'pptx.toolbar.toggleSlidesPanel' | translate"
 				(click)="toggleSidebar.emit()"
 			>
-				⫐
+				<svg lucidePanelLeft class="h-4 w-4"></svg>
 			</button>
 
 			<!-- Center spacer -->
@@ -49,7 +68,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 				[attr.aria-label]="'pptx.toolbar.comments' | translate"
 				(click)="toggleComments.emit()"
 			>
-				💬
+				<svg lucideMessageSquare class="h-3.5 w-3.5"></svg>
 				@if (commentCount() > 0) {
 					<span
 						class="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[8px] leading-none text-white"
@@ -66,7 +85,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 					[disabled]="slideCount() === 0"
 					(click)="present.emit()"
 				>
-					▶ {{ 'pptx.toolbar.present' | translate }}
+					<svg lucidePlay class="h-3.5 w-3.5"></svg> {{ 'pptx.toolbar.present' | translate }}
 				</button>
 				<button
 					type="button"
@@ -76,7 +95,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 					[attr.aria-label]="'pptx.ribbon.slideShowOptions' | translate"
 					(click)="presentMenuOpen.set(!presentMenuOpen())"
 				>
-					▾
+					<svg lucideChevronDown class="h-3 w-3"></svg>
 				</button>
 				@if (presentMenuOpen()) {
 					<div class="absolute right-0 top-full z-50 w-48 pt-1">
@@ -116,7 +135,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 				[attr.aria-label]="'pptx.ribbon.customShows' | translate"
 				(click)="openCustomShows.emit()"
 			>
-				＋ {{ 'pptx.ribbon.show' | translate }}
+				<svg lucidePlus class="h-3.5 w-3.5"></svg> {{ 'pptx.ribbon.show' | translate }}
 			</button>
 
 			<span class="mx-1 h-5 w-px self-center bg-border/50"></span>
@@ -129,7 +148,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 				[attr.aria-label]="'pptx.toolbar.toggleInspector' | translate"
 				(click)="toggleInspector.emit()"
 			>
-				⫏
+				<svg lucidePanelRight class="h-4 w-4"></svg>
 			</button>
 
 			<!-- Overflow menu -->
@@ -142,7 +161,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 					[attr.aria-label]="'pptx.ribbon.moreActions' | translate"
 					(click)="overflowOpen.set(!overflowOpen())"
 				>
-					⋯
+					<svg lucideEllipsis class="h-3.5 w-3.5"></svg>
 				</button>
 				@if (overflowOpen()) {
 					<div class="absolute right-0 top-full z-50 w-52 pt-1">
