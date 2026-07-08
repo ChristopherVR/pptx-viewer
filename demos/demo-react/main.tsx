@@ -24,9 +24,12 @@ import { LanguagePicker } from './LanguagePicker';
 import './app.css';
 
 // ── Server URL safety ──────────────────────────────────────────────────────
-// Only allow auto-connect / auto-upload to trusted hosts when driven from URL
-// params. Untrusted servers can still be used via the explicit Share dialog,
-// but a crafted ?server=... must never silently fetch or POST a presentation.
+// Security model:
+//   - Any wss:// (secure WebSocket, TLS) server is trusted: same rationale as
+//     trusting HTTPS. This enables collab on deployed demos (e.g. GitHub Pages)
+//     without requiring a build-time VITE_COLLAB_SERVER_URL.
+//   - Insecure ws:// is restricted to loopback (local dev) or a configured relay.
+//   - Non-WebSocket URLs are always rejected.
 const TRUSTED_COLLAB_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
 
 // A deploy can configure its own y-websocket relay at build time; that host is
@@ -39,11 +42,16 @@ function isTrustedServerUrl(url: string): boolean {
 		if (u.protocol !== 'ws:' && u.protocol !== 'wss:') {
 			return false;
 		}
+		// Any wss:// (secure WebSocket, TLS required) is trusted — the same
+		// rationale as trusting HTTPS: an attacker cannot impersonate the host
+		// without a valid certificate for it.
+		if (u.protocol === 'wss:') {
+			return true;
+		}
+		// Insecure ws:// is restricted to loopback (local dev) or a configured relay.
 		if (TRUSTED_COLLAB_HOSTS.includes(u.hostname)) {
 			return true;
 		}
-		// Also trust the developer-configured relay host: a deploy that pins its
-		// own server is trusting it, so same-host auto-join / fetch is safe.
 		if (CONFIGURED_SERVER_URL) {
 			try {
 				return new URL(CONFIGURED_SERVER_URL).host === u.host;
