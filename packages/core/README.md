@@ -20,7 +20,7 @@ There is no UI here: this is the engine on its own. Use it directly when you nee
 npm install pptx-viewer-core
 ```
 
-> That's it, nothing else to install. **jszip** (a `.pptx` is a ZIP file, and this reads and writes that container) and **fast-xml-parser** (the slides inside are XML, and this reads and writes it) are regular dependencies of `pptx-viewer-core`, so your package manager pulls them in automatically. Password protection and digital signatures need a few extra packages (`node-forge`, `xml-crypto`, `@xmldom/xmldom`), but only if you actually use those features.
+> That's it, nothing else to install. All runtime dependencies are pulled in automatically by your package manager. Password protection and digital signatures need a few extra packages (`node-forge`, `xml-crypto`, `@xmldom/xmldom`), but only if you actually use those features.
 
 ## What it does
 
