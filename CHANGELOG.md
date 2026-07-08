@@ -6,6 +6,27 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-08
 
+_Releases: pptx-react-viewer@1.10.0, pptx-vue-viewer@1.10.0, pptx-angular-viewer@1.10.0_
+
+### Features
+
+- **shared:** Add smartart preset data builder (by @ChristopherVR) ([872b0ff](https://github.com/ChristopherVR/pptx-viewer/commit/872b0ff274950ab50193456e4398b9ef2f112fdd))
+
+### Bug Fixes
+
+- **vue:** Theme-aware backgrounds and larger slide thumbnails (by @ChristopherVR) ([142e125](https://github.com/ChristopherVR/pptx-viewer/commit/142e1258452dd91831b07b52d824dd7544af8caa))
+- **vue:** Always show the speaker-notes footer strip (by @ChristopherVR) ([6b50f3b](https://github.com/ChristopherVR/pptx-viewer/commit/6b50f3b3fde2faf6163070c6454081e8aed05f28))
+- **angular:** Always show the speaker-notes footer strip (by @ChristopherVR) ([43274fa](https://github.com/ChristopherVR/pptx-viewer/commit/43274fa97649335bcca4775c1bf44d34fffa0df7))
+- **react:** True-to-layout smartart previews and styled insert tables (by @ChristopherVR) ([dc1edde](https://github.com/ChristopherVR/pptx-viewer/commit/dc1eddea5ffd1c6b7da72968ecea9e405ee4adcf))
+- **vue:** Live smartart gallery previews and styled insert tables (by @ChristopherVR) ([7c7a687](https://github.com/ChristopherVR/pptx-viewer/commit/7c7a68799ee379473d8992a9bcc90db52f4df26f))
+- **angular:** Live smartart gallery previews via the real renderer (by @ChristopherVR) ([147c788](https://github.com/ChristopherVR/pptx-viewer/commit/147c788df835336c316ac0efde82cb84b4dd7315))
+
+### Testing
+
+- **vue:** Align NotesPanel spec with controlled expanded prop (by @ChristopherVR) ([c215056](https://github.com/ChristopherVR/pptx-viewer/commit/c215056ac54cfc1d2e9095be21ddd9b72b2867fd))
+
+## 2026-07-08
+
 _Releases: pptx-viewer-core@1.2.3, pptx-react-viewer@1.9.1, pptx-vue-viewer@1.9.1, pptx-angular-viewer@1.9.1_
 
 ### Bug Fixes
