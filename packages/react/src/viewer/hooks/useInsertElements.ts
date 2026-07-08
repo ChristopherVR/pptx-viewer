@@ -12,7 +12,7 @@ import type {
 	InkPptxElement,
 	SmartArtLayout,
 } from 'pptx-viewer-core';
-import { createDefaultChartElement } from 'pptx-viewer-shared';
+import { createDefaultChartElement, newTableElement } from 'pptx-viewer-shared';
 
 import type { HyperlinkEditData } from '../components/hyperlink-edit-types';
 import { DEFAULT_TABLE_ROWS, DEFAULT_TABLE_COLUMNS, DEFAULT_TEXT_FONT_SIZE } from '../constants';
@@ -112,25 +112,12 @@ export function useInsertElements(input: UseInsertElementsInput): InsertElementH
 		if (!activeSlide) {
 			return;
 		}
-		const rows = Array.from({ length: DEFAULT_TABLE_ROWS }, () => ({
-			cells: Array.from({ length: DEFAULT_TABLE_COLUMNS }, () => ({
-				text: '',
-				style: {},
-			})),
-		}));
-		const columnWidths = Array.from(
-			{ length: DEFAULT_TABLE_COLUMNS },
-			() => 1 / DEFAULT_TABLE_COLUMNS,
-		);
+		// Shared factory: header row + banded rows + visible borders, matching
+		// the Angular insert defaults (a bare unstyled grid is invisible).
 		addElement({
+			...newTableElement(DEFAULT_TABLE_ROWS, DEFAULT_TABLE_COLUMNS, 100, 200),
 			id: generateElementId(),
-			type: 'table' as const,
-			x: 100,
-			y: 200,
-			width: 600,
-			height: 250,
-			tableData: { rows, columnWidths },
-		} as PptxElement);
+		});
 	};
 
 	const handleAddChart = (chartType: PptxChartType) => {

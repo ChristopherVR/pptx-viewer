@@ -1,4 +1,11 @@
-import type { PptxElement, PptxSlide, TextPptxElement, ShapePptxElement } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxSlide,
+	TextPptxElement,
+	ShapePptxElement,
+	TablePptxElement,
+} from 'pptx-viewer-core';
+import { newTableElement } from 'pptx-viewer-shared';
 import { describe, it, expect, vi } from 'vitest';
 
 import { DEFAULT_TABLE_ROWS, DEFAULT_TABLE_COLUMNS, DEFAULT_TEXT_FONT_SIZE } from '../constants';
@@ -158,44 +165,34 @@ describe('handleAddShape element shape', () => {
 // ---------------------------------------------------------------------------
 
 describe('handleAddTable element shape', () => {
-	it('creates correct number of rows and columns', () => {
-		const rows = Array.from({ length: DEFAULT_TABLE_ROWS }, () => ({
-			cells: Array.from({ length: DEFAULT_TABLE_COLUMNS }, () => ({
-				text: '',
-				style: {},
-			})),
-		}));
+	const table = newTableElement(DEFAULT_TABLE_ROWS, DEFAULT_TABLE_COLUMNS, 100, 200);
+	const tableData = (table as TablePptxElement).tableData!;
 
-		expect(rows).toHaveLength(3);
-		expect(rows[0].cells).toHaveLength(3);
-		expect(rows[1].cells).toHaveLength(3);
-		expect(rows[2].cells).toHaveLength(3);
+	it('creates correct number of rows and columns', () => {
+		expect(tableData.rows).toHaveLength(3);
+		for (const row of tableData.rows) {
+			expect(row.cells).toHaveLength(3);
+		}
 	});
 
 	it('creates equal column widths summing to 1', () => {
-		const columnWidths = Array.from(
-			{ length: DEFAULT_TABLE_COLUMNS },
-			() => 1 / DEFAULT_TABLE_COLUMNS,
-		);
-
-		expect(columnWidths).toHaveLength(3);
-		const sum = columnWidths.reduce((a, b) => a + b, 0);
+		expect(tableData.columnWidths).toHaveLength(3);
+		const sum = tableData.columnWidths.reduce((a, b) => a + b, 0);
 		expect(sum).toBeCloseTo(1, 10);
-		columnWidths.forEach((w) => {
+		tableData.columnWidths.forEach((w) => {
 			expect(w).toBeCloseTo(1 / 3, 10);
 		});
 	});
 
-	it('initializes cells with empty text and empty style', () => {
-		const cells = Array.from({ length: DEFAULT_TABLE_COLUMNS }, () => ({
-			text: '',
-			style: {},
-		}));
-
-		cells.forEach((cell) => {
-			expect(cell.text).toBe('');
-			expect(cell.style).toStrictEqual({});
-		});
+	it('creates a visible default style: header row + banded rows + borders', () => {
+		expect(tableData.firstRowHeader).toBeTruthy();
+		expect(tableData.bandedRows).toBeTruthy();
+		const headerCell = tableData.rows[0].cells[0];
+		expect(headerCell.style?.bold).toBeTruthy();
+		expect(headerCell.style?.backgroundColor).toBeTruthy();
+		const bodyCell = tableData.rows[1].cells[0];
+		expect(bodyCell.text).toBe('');
+		expect(bodyCell.style?.borderTopWidth).toBeGreaterThan(0);
 	});
 });
 

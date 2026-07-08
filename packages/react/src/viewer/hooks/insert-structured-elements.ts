@@ -9,9 +9,9 @@ import type {
 	TextSegment,
 	TextStyle,
 	SmartArtLayout,
-	PptxSmartArtNode,
 } from 'pptx-viewer-core';
 import { elementActionToPptxAction } from 'pptx-viewer-core';
+import { buildSmartArtPresetData } from 'pptx-viewer-shared';
 
 import type { HyperlinkEditData } from '../components/hyperlink-edit-types';
 import { resolveHyperlinkEditResult } from '../components/hyperlink-edit-utils';
@@ -47,16 +47,6 @@ export function createStructuredElementHandlers(
 		if (!activeSlide) {
 			return;
 		}
-		const nodeIds = defaultItems.map(
-			(_, i) => `node-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
-		);
-		const nodes: PptxSmartArtNode[] = defaultItems.map((text, i) => {
-			const node: PptxSmartArtNode = { id: nodeIds[i]!, text };
-			if (layout === 'hierarchy' && i > 0) {
-				node.parentId = nodeIds[0];
-			}
-			return node;
-		});
 		addElement({
 			id: generateElementId(),
 			type: 'smartArt' as const,
@@ -64,12 +54,11 @@ export function createStructuredElementHandlers(
 			y: 120,
 			width: 600,
 			height: 340,
-			smartArtData: {
+			smartArtData: buildSmartArtPresetData(
 				layout,
-				colorScheme: 'colorful1' as const,
-				style: 'flat' as const,
-				nodes,
-			},
+				defaultItems,
+				(i) => `node-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
+			),
 		} as PptxElement);
 	};
 

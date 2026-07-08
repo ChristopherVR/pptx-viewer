@@ -38,9 +38,9 @@ import {
 	extractTableCellStyle,
 	ensureArrayValue,
 } from '../utils';
-import { colour, layoutToCategory, resolvePalette } from '../utils/smartart-helpers';
 import { getTableCellBandStyle } from '../utils/table-band-style';
 import { cellStyleToCss } from '../utils/table-render-helpers';
+import { SmartArtRenderer } from './elements/SmartArtRenderer';
 
 interface SlideThumbnailProps {
 	slide: PptxSlide;
@@ -362,120 +362,9 @@ function ThumbnailSmartArt({ element }: { element: SmartArtPptxElement }): React
 		);
 	}
 
-	const palette = resolvePalette(element);
-	const shapes = data.drawingShapes;
-
-	if (shapes && shapes.length > 0) {
-		// Use pre-computed drawing shapes
-		let minX = Infinity;
-		let minY = Infinity;
-		let maxX = -Infinity;
-		let maxY = -Infinity;
-		for (const s of shapes) {
-			if (s.x < minX) {
-				minX = s.x;
-			}
-			if (s.y < minY) {
-				minY = s.y;
-			}
-			if (s.x + s.width > maxX) {
-				maxX = s.x + s.width;
-			}
-			if (s.y + s.height > maxY) {
-				maxY = s.y + s.height;
-			}
-		}
-		const drawingW = maxX - minX || 1;
-		const drawingH = maxY - minY || 1;
-
-		return (
-			<svg
-				viewBox={`0 0 ${drawingW} ${drawingH}`}
-				className='w-full h-full pointer-events-none'
-				preserveAspectRatio='xMidYMid meet'
-			>
-				{shapes.map((shape, i) => {
-					const fill = shape.fillColor ?? colour(i, palette);
-					const relX = shape.x - minX;
-					const relY = shape.y - minY;
-					const isEllipse = shape.shapeType === 'ellipse';
-					const isChevron = shape.shapeType === 'chevron' || shape.shapeType === 'homePlate';
-
-					if (isEllipse) {
-						return (
-							<ellipse
-								key={`${element.id}-ts-${i}`}
-								cx={relX + shape.width / 2}
-								cy={relY + shape.height / 2}
-								rx={shape.width / 2}
-								ry={shape.height / 2}
-								fill={fill}
-							/>
-						);
-					}
-					if (isChevron) {
-						const x0 = relX;
-						const y0 = relY;
-						const w = shape.width;
-						const h = shape.height;
-						const notch = w * 0.2;
-						const points = `${x0},${y0} ${x0 + w - notch},${y0} ${x0 + w},${y0 + h / 2} ${x0 + w - notch},${y0 + h} ${x0},${y0 + h} ${x0 + notch},${y0 + h / 2}`;
-						return <polygon key={`${element.id}-ts-${i}`} points={points} fill={fill} />;
-					}
-					const rx =
-						shape.shapeType === 'roundRect' ? Math.min(shape.width, shape.height) * 0.1 : 0;
-					return (
-						<rect
-							key={`${element.id}-ts-${i}`}
-							x={relX}
-							y={relY}
-							width={shape.width}
-							height={shape.height}
-							rx={rx}
-							fill={fill}
-						/>
-					);
-				})}
-			</svg>
-		);
-	}
-
-	// Fallback: render layout-appropriate shapes for each node
-	const nodes = data.nodes;
-	const count = nodes.length;
-	const category = data.layout
-		? layoutToCategory(data.layout)
-		: (data.resolvedLayoutType ?? 'list');
-	const useCircles = category === 'cycle' || category === 'radial' || category === 'venn';
-	const useChevrons = category === 'process' || category === 'chevron';
-	const gap = 2;
-	return (
-		<svg
-			viewBox='0 0 100 60'
-			className='w-full h-full pointer-events-none'
-			preserveAspectRatio='xMidYMid meet'
-		>
-			{nodes.map((node, i) => {
-				const w = (100 - gap * (count - 1)) / count;
-				const fill = colour(i, palette);
-				if (useCircles) {
-					const r = Math.min(w, 40) / 2;
-					return (
-						<ellipse key={node.id} cx={i * (w + gap) + w / 2} cy={30} rx={r} ry={r} fill={fill} />
-					);
-				}
-				if (useChevrons) {
-					const x0 = i * (w + gap);
-					const notch = w * 0.2;
-					const points = `${x0},10 ${x0 + w - notch},10 ${x0 + w},30 ${x0 + w - notch},50 ${x0},50 ${x0 + notch},30`;
-					return <polygon key={node.id} points={points} fill={fill} />;
-				}
-				return (
-					<rect key={node.id} x={i * (w + gap)} y={10} width={w} height={40} rx={3} fill={fill} />
-				);
-			})}
-		</svg>
-	);
+	// Reuse the real canvas renderer (static, non-editable) so the thumbnail
+	// shows the same layout geometry as the slide instead of an approximation.
+	return <SmartArtRenderer element={element} className='pointer-events-none' />;
 }
 
 /**
