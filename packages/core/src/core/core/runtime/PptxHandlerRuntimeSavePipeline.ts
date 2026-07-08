@@ -49,6 +49,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			relationshipsNamespace,
 		});
 
+		// Process each slide (this may embed new media files that register
+		// extensions in usedMediaPaths, so content-types must be updated after).
+		for (const slide of slides) {
+			await this.processSlideForSave(slide, saveSession, saveConstants);
+		}
+
+		// Update [Content_Types].xml with slide overrides and media Defaults.
+		// This runs AFTER slide processing so that newly-embedded media (e.g. a
+		// user-inserted GIF) is already registered in usedMediaPaths.
 		const contentTypesXml = await this.zip.file('[Content_Types].xml')?.async('string');
 		if (contentTypesXml) {
 			const contentTypesData = this.parser.parse(contentTypesXml) as XmlObject;
@@ -59,11 +68,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				slideContentType,
 			});
 			this.zip.file('[Content_Types].xml', this.builder.build(contentTypesData));
-		}
-
-		// Process each slide
-		for (const slide of slides) {
-			await this.processSlideForSave(slide, saveSession, saveConstants);
 		}
 
 		// ── Post-processing ──────────────────────────────────────
