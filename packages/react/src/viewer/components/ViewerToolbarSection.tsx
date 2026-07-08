@@ -227,6 +227,135 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		history.markDirty();
 	}, [activeSlide, ops, history]);
 
+	const handleCommandSearch = useCallback(
+		(command: string) => {
+			const [category, action] = command.split('.');
+			switch (category) {
+				case 'format':
+					switch (action) {
+						case 'bold':
+							ops.updateSelectedTextStyle({ bold: true });
+							break;
+						case 'italic':
+							ops.updateSelectedTextStyle({ italic: true });
+							break;
+						case 'underline':
+							ops.updateSelectedTextStyle({ underline: true });
+							break;
+						case 'alignLeft':
+							ops.updateSelectedTextStyle({ align: 'left' });
+							break;
+						case 'alignCenter':
+							ops.updateSelectedTextStyle({ align: 'center' });
+							break;
+						case 'alignRight':
+							ops.updateSelectedTextStyle({ align: 'right' });
+							break;
+						case 'clear':
+							ops.updateSelectedTextStyle({
+								bold: false,
+								italic: false,
+								underline: false,
+								strikethrough: false,
+							});
+							break;
+					}
+					break;
+				case 'insert':
+					switch (action) {
+						case 'textBox':
+							insertHandlers.handleAddTextBox();
+							break;
+						case 'shape':
+							insertHandlers.handleAddShape();
+							break;
+						case 'image':
+							s.imageInputRef.current?.click();
+							break;
+						case 'media':
+							s.mediaInputRef.current?.click();
+							break;
+						case 'table':
+							insertHandlers.handleAddTable();
+							break;
+						case 'chart':
+							insertHandlers.handleAddChart();
+							break;
+						case 'smartArt':
+							dialogs.setIsSmartArtDialogOpen(true);
+							break;
+						case 'equation':
+							dialogs.setIsEquationDialogOpen(true);
+							break;
+						case 'link':
+							dialogs.setIsHyperlinkDialogOpen(true);
+							break;
+					}
+					break;
+				case 'view':
+					switch (action) {
+						case 'toggleGrid':
+							s.setShowGrid((p) => !p);
+							break;
+						case 'toggleRulers':
+							s.setShowRulers((p) => !p);
+							break;
+						case 'slideSorter':
+							s.setShowSlideSorter((p) => !p);
+							break;
+						case 'zoomToFit':
+							zoom.handleZoomToFit();
+							break;
+					}
+					break;
+				case 'slideShow':
+					switch (action) {
+						case 'fromBeginning':
+							onSetMode('present');
+							break;
+						case 'presenterView':
+							onEnterPresenterView();
+							break;
+					}
+					break;
+				case 'design':
+					switch (action) {
+						case 'browseThemes':
+							s.setIsThemeGalleryOpen((p) => !p);
+							break;
+						case 'slideSize':
+							dialogs.setIsSetUpSlideShowOpen(true);
+							break;
+					}
+					break;
+				case 'arrange':
+					switch (action) {
+						case 'bringToFront':
+							manipulation.handleMoveLayerToEdge('front');
+							break;
+						case 'sendToBack':
+							manipulation.handleMoveLayerToEdge('back');
+							break;
+						case 'duplicate':
+							manipulation.handleDuplicate();
+							break;
+					}
+					break;
+				case 'review':
+					switch (action) {
+						case 'spelling':
+							s.setSpellCheckEnabled((p) => !p);
+							break;
+						case 'accessibility':
+							dialogs.handleRunAccessibilityCheck();
+							break;
+					}
+					break;
+			}
+		},
+		[ops, insertHandlers, s, dialogs, zoom, onSetMode, onEnterPresenterView, manipulation],
+	);
+
 	return (
 		<>
 			{!dialogs.isNarrowViewport && (
@@ -247,6 +376,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 					onSave={exportHandlers.handleSaveAsPptx}
 					findReplaceOpen={findReplace.findReplaceOpen}
 					onToggleFindReplace={() => findReplace.setFindReplaceOpen(!findReplace.findReplaceOpen)}
+					onCommandSearch={handleCommandSearch}
 				/>
 			)}
 			<Toolbar

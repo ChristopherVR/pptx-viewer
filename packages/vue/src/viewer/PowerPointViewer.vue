@@ -1437,6 +1437,126 @@ defineExpose<PowerPointViewerExpose>({
 		selectedElementIds.value = [];
 	},
 });
+
+function handleCommandSearch(command: string): void {
+	const [category, action] = command.split('.');
+	switch (category) {
+		case 'format':
+			switch (action) {
+				case 'bold':
+					ribbonUpdateTextStyle({ bold: true });
+					break;
+				case 'italic':
+					ribbonUpdateTextStyle({ italic: true });
+					break;
+				case 'underline':
+					ribbonUpdateTextStyle({ underline: true });
+					break;
+				case 'alignLeft':
+					ribbonUpdateTextStyle({ align: 'left' });
+					break;
+				case 'alignCenter':
+					ribbonUpdateTextStyle({ align: 'center' });
+					break;
+				case 'alignRight':
+					ribbonUpdateTextStyle({ align: 'right' });
+					break;
+				case 'clear':
+					ribbonUpdateTextStyle({
+						bold: false,
+						italic: false,
+						underline: false,
+						strikethrough: false,
+					});
+					break;
+			}
+			break;
+		case 'insert':
+			switch (action) {
+				case 'textBox':
+					addText();
+					break;
+				case 'shape':
+					addShape('rect');
+					break;
+				case 'image':
+					openImagePicker();
+					break;
+				case 'media':
+					openMediaPicker();
+					break;
+				case 'table':
+					addTable();
+					break;
+				case 'chart':
+					addChart('bar');
+					break;
+				case 'smartArt':
+					showInsertSmartArt.value = true;
+					break;
+				case 'equation':
+					showEquationEditor.value = true;
+					break;
+				case 'link':
+					hyperlinkOpen.value = true;
+					break;
+			}
+			break;
+		case 'view':
+			switch (action) {
+				case 'toggleGrid':
+					showGrid.value = !showGrid.value;
+					break;
+				case 'toggleRulers':
+					showRulers.value = !showRulers.value;
+					break;
+				case 'slideSorter':
+					showSorter.value = true;
+					break;
+				case 'zoomToFit':
+					zoomReset();
+					break;
+			}
+			break;
+		case 'slideShow':
+			switch (action) {
+				case 'fromBeginning':
+					startPresenting();
+					break;
+				case 'presenterView':
+					startPresenting();
+					break;
+			}
+			break;
+		case 'design':
+			switch (action) {
+				case 'browseThemes':
+					themeGalleryOpen.value = !themeGalleryOpen.value;
+					break;
+			}
+			break;
+		case 'arrange':
+			switch (action) {
+				case 'bringToFront':
+					ribbonMoveToEdge('front');
+					break;
+				case 'sendToBack':
+					ribbonMoveToEdge('back');
+					break;
+				case 'duplicate':
+					duplicateSelected();
+					break;
+			}
+			break;
+		case 'review':
+			switch (action) {
+				case 'spelling':
+					spellCheckEnabled.value = !spellCheckEnabled.value;
+					break;
+			}
+			break;
+	}
+}
 </script>
 
 <template>
@@ -1499,6 +1619,7 @@ defineExpose<PowerPointViewerExpose>({
 					:on-save="() => void downloadAs('pptx')"
 					:find-replace-open="findOpen"
 					:on-toggle-find-replace="() => (findOpen = !findOpen)"
+					:on-command-search="handleCommandSearch"
 				/>
 				<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
 				<MobileToolbar v-else v-bind="ribbonProps" />

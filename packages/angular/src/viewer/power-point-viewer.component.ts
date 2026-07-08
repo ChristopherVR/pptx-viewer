@@ -31,6 +31,7 @@ import {
 import { CommentsPanelComponent } from './comments-panel.component';
 import { CustomShowsComponent } from './custom-shows.component';
 import { EditorContextMenuComponent } from './editor-context-menu.component';
+import { newChartElement, newShapeElement, newTableElement, newTextElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
 import { EditorToolbarComponent } from './editor-toolbar.component';
 import { EmbeddedFontsService } from './embedded-fonts.service';
@@ -60,6 +61,7 @@ import { PrintDialogComponent } from './print-dialog.component';
 import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
 import { RemoteSelectionOverlayComponent } from './remote-selection-overlay.component';
+import { patchTextStyle } from './ribbon-text-helpers';
 import { RibbonComponent } from './ribbon.component';
 import { SelectionPaneComponent } from './selection-pane.component';
 import { ShareDialogComponent } from './share-dialog.component';
@@ -224,6 +226,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						(undo)="editor.undo()"
 						(redo)="editor.redo()"
 						(toggleFindReplace)="toggleFindReplace()"
+						(commandSearch)="handleCommandSearch($event)"
 					/>
 					<pptx-ribbon
 					[slideIndex]="activeSlideIndex()"
@@ -1499,6 +1502,131 @@ export class PowerPointViewerComponent {
 			return;
 		}
 		this.findReplace.openFindReplace();
+	}
+
+	/** Dispatch a command from the title-bar search palette. */
+	protected handleCommandSearch(command: string): void {
+		const [category, action] = command.split('.');
+		switch (category) {
+			case 'format':
+				this.dispatchFormatCommand(action);
+				break;
+			case 'insert':
+				this.dispatchInsertCommand(action);
+				break;
+			case 'view':
+				this.dispatchViewCommand(action);
+				break;
+			case 'slideShow':
+				if (action === 'fromBeginning') {
+					this.presentationMode.present();
+				} else if (action === 'presenterView') {
+					this.presentationMode.presentPresenter();
+				}
+				break;
+			case 'design':
+				if (action === 'browseThemes') {
+					this.themeGallery.showThemeGallery.update((v) => !v);
+				} else if (action === 'slideSize') {
+					this.dialogs.showSetUpSlideShow.set(true);
+				}
+				break;
+			case 'arrange':
+				this.dispatchArrangeCommand(action);
+				break;
+			case 'review':
+				if (action === 'spelling') {
+					this.findReplace.openFindReplace();
+				} else if (action === 'accessibility') {
+					this.inspectorPanel.togglePanel('accessibility');
+				}
+				break;
+		}
+	}
+
+	private dispatchFormatCommand(action: string): void {
+		const el = this.selectedElement();
+		const idx = this.activeSlideIndex();
+		switch (action) {
+			case 'bold':
+				patchTextStyle(this.editor, idx, el, { bold: true });
+				break;
+			case 'italic':
+				patchTextStyle(this.editor, idx, el, { italic: true });
+				break;
+			case 'underline':
+				patchTextStyle(this.editor, idx, el, { underline: true });
+				break;
+			case 'alignLeft':
+				patchTextStyle(this.editor, idx, el, { align: 'left' });
+				break;
+			case 'alignCenter':
+				patchTextStyle(this.editor, idx, el, { align: 'center' });
+				break;
+			case 'alignRight':
+				patchTextStyle(this.editor, idx, el, { align: 'right' });
+				break;
+			case 'clear':
+				patchTextStyle(this.editor, idx, el, {
+					bold: false,
+					italic: false,
+					underline: false,
+					strikethrough: false,
+				});
+				break;
+		}
+	}
+
+	private dispatchInsertCommand(action: string): void {
+		const idx = this.activeSlideIndex();
+		switch (action) {
+			case 'textBox':
+				this.editor.addElement(idx, newTextElement());
+				break;
+			case 'shape':
+				this.editor.addElement(idx, newShapeElement('rect'));
+				break;
+			case 'table':
+				this.editor.addElement(idx, newTableElement());
+				break;
+			case 'chart':
+				this.editor.addElement(idx, newChartElement('bar'));
+				break;
+			case 'smartArt':
+				this.showSmartArtInsert.set(true);
+				break;
+			case 'equation':
+				this.dialogs.openEquationInsert();
+				break;
+			case 'link':
+				this.docProperties.showHyperlink.set(true);
+				break;
+		}
+	}
+
+	private dispatchViewCommand(action: string): void {
+		switch (action) {
+			case 'toggleGrid':
+				this.showGrid.update((v) => !v);
+				break;
+			case 'toggleRulers':
+				this.showRulers.update((v) => !v);
+				break;
+			case 'slideSorter':
+				this.showSorter.set(true);
+				break;
+			case 'zoomToFit':
+				this.zoomSvc.zoomReset();
+				break;
+		}
+	}
+
+	private dispatchArrangeCommand(action: string): void {
+		switch (action) {
+			case 'duplicate':
+				this.editor.duplicateSelected(this.activeSlideIndex());
+				break;
+		}
 	}
 
 	/**
