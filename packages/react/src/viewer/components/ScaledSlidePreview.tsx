@@ -27,7 +27,7 @@ import {
 	isImageTiled,
 	getImageTilingStyle,
 } from '../utils';
-import { colour, resolvePalette } from '../utils/smartart-helpers';
+import { colour, layoutToCategory, resolvePalette } from '../utils/smartart-helpers';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -300,9 +300,14 @@ function PreviewSmartArt({ element }: { element: SmartArtPptxElement }): React.R
 		);
 	}
 
-	// Fallback: coloured rectangles for each node
+	// Fallback: render layout-appropriate shapes for each node
 	const nodes = data.nodes;
 	const count = nodes.length;
+	const category = data.layout
+		? layoutToCategory(data.layout)
+		: (data.resolvedLayoutType ?? 'list');
+	const useCircles = category === 'cycle' || category === 'radial' || category === 'venn';
+	const useChevrons = category === 'process' || category === 'chevron';
 	const gap = 2;
 	return (
 		<svg
@@ -312,16 +317,21 @@ function PreviewSmartArt({ element }: { element: SmartArtPptxElement }): React.R
 		>
 			{nodes.map((node, i) => {
 				const w = (100 - gap * (count - 1)) / count;
+				const fill = colour(i, palette);
+				if (useCircles) {
+					const r = Math.min(w, 40) / 2;
+					return (
+						<ellipse key={node.id} cx={i * (w + gap) + w / 2} cy={30} rx={r} ry={r} fill={fill} />
+					);
+				}
+				if (useChevrons) {
+					const x0 = i * (w + gap);
+					const notch = w * 0.2;
+					const points = `${x0},10 ${x0 + w - notch},10 ${x0 + w},30 ${x0 + w - notch},50 ${x0},50 ${x0 + notch},30`;
+					return <polygon key={node.id} points={points} fill={fill} />;
+				}
 				return (
-					<rect
-						key={node.id}
-						x={i * (w + gap)}
-						y={10}
-						width={w}
-						height={40}
-						rx={3}
-						fill={colour(i, palette)}
-					/>
+					<rect key={node.id} x={i * (w + gap)} y={10} width={w} height={40} rx={3} fill={fill} />
 				);
 			})}
 		</svg>
