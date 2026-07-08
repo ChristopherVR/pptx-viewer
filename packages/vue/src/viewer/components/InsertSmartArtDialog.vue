@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import type {
-	PptxElement,
-	PptxSmartArtNode,
-	SmartArtLayout,
-	SmartArtPptxElement,
-} from 'pptx-viewer-core';
+import type { PptxElement, SmartArtLayout, SmartArtPptxElement } from 'pptx-viewer-core';
+import { buildSmartArtPresetData } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -99,14 +95,6 @@ function newId(prefix: string): string {
  * after the first under the root; all others stay flat.
  */
 function buildSmartArtElement(layout: SmartArtLayout, items: string[]): SmartArtPptxElement {
-	const nodeIds = items.map((_, i) => newId(`node-${i}`));
-	const nodes: PptxSmartArtNode[] = items.map((text, i) => {
-		const node: PptxSmartArtNode = { id: nodeIds[i]!, text };
-		if (layout === 'hierarchy' && i > 0) {
-			node.parentId = nodeIds[0];
-		}
-		return node;
-	});
 	return {
 		id: newId('smartart'),
 		type: 'smartArt',
@@ -114,12 +102,7 @@ function buildSmartArtElement(layout: SmartArtLayout, items: string[]): SmartArt
 		y: 120,
 		width: 600,
 		height: 340,
-		smartArtData: {
-			layout,
-			colorScheme: 'colorful1',
-			style: 'flat',
-			nodes,
-		},
+		smartArtData: buildSmartArtPresetData(layout, items, (i) => newId(`node-${i}`)),
 	};
 }
 

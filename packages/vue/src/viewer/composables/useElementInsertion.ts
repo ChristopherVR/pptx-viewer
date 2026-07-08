@@ -1,6 +1,6 @@
 import { createEditorId, createShapeElement, createTextElement } from 'pptx-viewer-core';
 import type { PptxChartType, PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
-import { createDefaultChartElement } from 'pptx-viewer-shared';
+import { createDefaultChartElement, newTableElement } from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import type { Ref, ShallowRef } from 'vue';
 
@@ -66,24 +66,13 @@ export function useElementInsertion(input: UseElementInsertionInput): UseElement
 		selectedElementIds.value = [el.id];
 	}
 
-	/** Insert a default 3×3 table, centred on the slide (mirrors React's handleAddTable). */
+	/**
+	 * Insert a default 3×3 table, centred on the slide. Uses the shared factory
+	 * so the new table gets the visible default style (header row + banded rows
+	 * + borders), consistent with the React and Angular insert defaults.
+	 */
 	function addTable(): void {
-		const rows = 3;
-		const cols = 3;
-		const el = {
-			id: createEditorId('table'),
-			type: 'table',
-			x: 0,
-			y: 0,
-			width: 600,
-			height: 250,
-			tableData: {
-				rows: Array.from({ length: rows }, () => ({
-					cells: Array.from({ length: cols }, () => ({ text: '', style: {} })),
-				})),
-				columnWidths: Array.from({ length: cols }, () => 1 / cols),
-			},
-		} as unknown as PptxElement;
+		const el = { ...newTableElement(3, 3), id: createEditorId('table') } as PptxElement;
 		centreNewElement(el, 600, 250);
 		ops.addElement(el);
 		selectedElementIds.value = [el.id];
