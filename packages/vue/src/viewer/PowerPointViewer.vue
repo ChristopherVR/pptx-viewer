@@ -1789,9 +1789,11 @@ function handleCommandSearch(command: string): void {
 						/>
 					</SlideCanvas>
 					<NotesPanel
-						v-if="props.canEdit && !isMobile && notesExpanded"
+						v-if="props.canEdit && !isMobile"
 						:slide="activeSlide"
+						:expanded="notesExpanded"
 						@update="onNotesUpdate"
+						@toggle="notesExpanded = !notesExpanded"
 					/>
 				</main>
 

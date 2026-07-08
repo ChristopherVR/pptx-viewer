@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PptxSlide } from 'pptx-viewer-core';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import NotesToolbar from './NotesToolbar.vue';
@@ -38,15 +38,21 @@ import { useNotesEditor } from './useNotesEditor';
  */
 const props = defineProps<{
 	slide: PptxSlide | undefined;
+	/**
+	 * Whether the notes body is expanded. When false the panel collapses to just
+	 * its header strip (React parity: the notes footer is always present below
+	 * the canvas, the body toggles). Controlled by the host so the status-bar
+	 * Notes button and the header chevron stay in sync.
+	 */
+	expanded?: boolean;
 }>();
 
 const emit = defineEmits<{
 	update: [notes: string];
+	toggle: [];
 }>();
 
 const { t } = useI18n();
-
-const collapsed = ref(false);
 
 const hasSlide = computed<boolean>(() => props.slide !== undefined);
 
@@ -78,8 +84,10 @@ const {
  */
 const showRich = computed<boolean>(() => hasSlide.value && isRichEnabled.value);
 
+const collapsed = computed<boolean>(() => !(props.expanded ?? false));
+
 function toggle(): void {
-	collapsed.value = !collapsed.value;
+	emit('toggle');
 }
 </script>
 
