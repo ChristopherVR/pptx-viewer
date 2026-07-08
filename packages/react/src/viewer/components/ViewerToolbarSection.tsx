@@ -6,6 +6,7 @@ import type {
 	PptxElementAnimation,
 	PptxAnimationPreset,
 } from 'pptx-viewer-core';
+import { DEFAULT_INSERT_CHART_TYPE } from 'pptx-viewer-shared';
 /**
  * ViewerToolbarSection: Renders the top toolbar, signature badge,
  * and hidden file-input elements.
@@ -279,7 +280,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 							insertHandlers.handleAddTable();
 							break;
 						case 'chart':
-							insertHandlers.handleAddChart();
+							insertHandlers.handleAddChart(DEFAULT_INSERT_CHART_TYPE);
 							break;
 						case 'smartArt':
 							dialogs.setIsSmartArtDialogOpen(true);
