@@ -6,6 +6,15 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-07
 
+_Releases: pptx-react-viewer@1.9.0, pptx-vue-viewer@1.9.0, pptx-angular-viewer@1.9.0_
+
+### Features
+
+- **shared:** Ribbon parity with PowerPoint - localize all tabs, add command search, advance slide controls (by @ChristopherVR) ([6bd1e5a](https://github.com/ChristopherVR/pptx-viewer/commit/6bd1e5ad16c079fd994080888119fe2e027c9a5c))
+- **shared:** Add Review tab Language and Accessibility buttons across all frameworks (by @ChristopherVR) ([2dfd7bf](https://github.com/ChristopherVR/pptx-viewer/commit/2dfd7bf17d4583fa591246b77e178951b795aa32))
+
+## 2026-07-07
+
 _Releases: pptx-react-viewer@1.8.0, pptx-vue-viewer@1.8.0, pptx-angular-viewer@1.8.0, @christophervr/pptx-viewer@1.4.2_
 
 ### Features
