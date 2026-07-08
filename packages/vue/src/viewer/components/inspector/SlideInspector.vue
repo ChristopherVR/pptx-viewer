@@ -100,7 +100,7 @@ function onAdvanceChange(e: Event): void {
 
 <template>
 	<aside
-		class="pptx-vue-inspector overflow-y-auto bg-card box-border px-3 pb-8 text-xs text-foreground"
+		class="pptx-vue-inspector overflow-y-auto bg-background box-border px-3 pb-8 text-xs text-foreground"
 		:class="mobile ? 'w-full pt-1' : 'w-60 flex-[0_0_15rem] border-l border-border pt-2'"
 		:aria-label="t('pptx.viewer.slideProperties')"
 	>

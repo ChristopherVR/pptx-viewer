@@ -147,7 +147,9 @@
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
-	width: 8rem;
+	/* 180px rail (matches React's LEFT_DEFAULT); with 0.75rem padding each side
+	   the thumbnail content width is 156px = SLIDE_NAV_THUMBNAIL_WIDTH. */
+	width: 11.25rem;
 	padding: 0.75rem;
 	overflow-y: auto;
 	border-right: 1px solid var(--pptx-border);
@@ -192,7 +194,9 @@
 	flex: 1;
 	min-width: 0;
 	overflow: auto;
-	background: #1e293b;
+	/* Theme-aware canvas backdrop (mirrors React's `<main class="bg-background">`)
+	   so non-dark themes (e.g. Warm Sepia) don't leave a hardcoded dark slate. */
+	background: var(--pptx-background);
 }
 
 /*

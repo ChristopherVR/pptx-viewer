@@ -376,7 +376,10 @@ const fitScale = ref(1);
 const effectiveZoom = computed(() => fitScale.value * zoom.value);
 
 // ── Thumbnail previews ────────────────────────────────────────────────
-const THUMB_WIDTH = 104; // px - matches the thumbnail rail content width
+// px - matches the thumbnail rail content width (180px rail - 2x0.75rem
+// padding) and React's SLIDE_NAV_THUMBNAIL_WIDTH so thumbnails render at the
+// same size across bindings.
+const THUMB_WIDTH = 156;
 
 // ── Editing: selection, history, operations ───────────────────────────
 // Composed unconditionally (cheap); the toolbar/overlay/handlers only act when
