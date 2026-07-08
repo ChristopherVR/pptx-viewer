@@ -84,11 +84,18 @@ describe('notesPanel', () => {
 		expect(wrapper.find('.pptx-vue-notes-toolbar').exists()).toBeFalsy();
 	});
 
-	it('toggles collapse when the header is clicked', async () => {
-		const wrapper = mount(NotesPanel, { props: { slide: makeSlide() } });
+	it('reflects the controlled expanded prop and emits toggle on header click', async () => {
+		const wrapper = mount(NotesPanel, { props: { slide: makeSlide(), expanded: true } });
 		const header = wrapper.get('.pptx-vue-notes-header');
 		expect(header.attributes('aria-expanded')).toBe('true');
+
 		await header.trigger('click');
+		// Collapse state is host-owned: the click emits `toggle` instead of
+		// flipping locally (the footer strip is always visible).
+		expect(wrapper.emitted('toggle')).toBeTruthy();
+		expect(header.attributes('aria-expanded')).toBe('true');
+
+		await wrapper.setProps({ expanded: false });
 		expect(header.attributes('aria-expanded')).toBe('false');
 	});
 });
