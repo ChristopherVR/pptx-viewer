@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.2.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.2.3) - 2026-07-08
+
+### Documentation
+
+- **core:** Remove explicit jszip/fast-xml-parser mention from install section (by @ChristopherVR) ([6b72906](https://github.com/ChristopherVR/pptx-viewer/commit/6b72906c08447ba38a704ff4572c89d7cad7e60c))
+
 ## [1.2.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.2.2) - 2026-07-07
 
 ## [1.2.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.2.1) - 2026-07-06

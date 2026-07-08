@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.9.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.9.1) - 2026-07-08
+
+### Documentation
+
+- **core:** Remove explicit jszip/fast-xml-parser mention from install section (by @ChristopherVR) ([6b72906](https://github.com/ChristopherVR/pptx-viewer/commit/6b72906c08447ba38a704ff4572c89d7cad7e60c))
+
 ## [1.9.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.9.0) - 2026-07-07
 
 ## [1.8.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.8.0) - 2026-07-07

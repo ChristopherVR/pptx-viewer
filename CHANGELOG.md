@@ -4,6 +4,27 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-08
+
+_Releases: pptx-viewer-core@1.2.3, pptx-react-viewer@1.9.1, pptx-vue-viewer@1.9.1, pptx-angular-viewer@1.9.1_
+
+### Bug Fixes
+
+- **shared:** Wire command search dispatch in TitleBar across all bindings (by @ChristopherVR) ([a85c3b8](https://github.com/ChristopherVR/pptx-viewer/commit/a85c3b83569719583ed6d3fd340e24abf61caed3))
+- **core:** Preserve SmartArt layout when editing text or colour (by @ChristopherVR) ([7812b91](https://github.com/ChristopherVR/pptx-viewer/commit/7812b915e8c8eabe3fb8f7e6f445e5cab53ac5f0))
+- **core:** Update content types after slide processing to include new media (by @ChristopherVR) ([e96ed45](https://github.com/ChristopherVR/pptx-viewer/commit/e96ed453c01412888920fa13be8fac69b5f08dda))
+- **react:** Render SmartArt shapes in slide thumbnail previews (by @ChristopherVR) ([1031d6c](https://github.com/ChristopherVR/pptx-viewer/commit/1031d6c26da5ebabaea16b145d21ef98e26c8d7c))
+- **react:** Use layout-appropriate shapes in SmartArt thumbnail fallback (by @ChristopherVR) ([9c2a93d](https://github.com/ChristopherVR/pptx-viewer/commit/9c2a93de774e97fc65ba53df9183abe75f651952))
+- **react:** Pass default chart type to handleAddChart call (by @ChristopherVR) ([2491664](https://github.com/ChristopherVR/pptx-viewer/commit/24916640f167adf4afb93c4618b947c9efe9907a))
+
+### Documentation
+
+- **core:** Remove explicit jszip/fast-xml-parser mention from install section (by @ChristopherVR) ([6b72906](https://github.com/ChristopherVR/pptx-viewer/commit/6b72906c08447ba38a704ff4572c89d7cad7e60c))
+
+### Chores
+
+- Added missing e2e fixtures (by @ChristopherVR) ([67ec580](https://github.com/ChristopherVR/pptx-viewer/commit/67ec58013bdad85f3799c8f59c1de6f3f1828d59))
+
 ## 2026-07-07
 
 _Releases: pptx-react-viewer@1.9.0, pptx-vue-viewer@1.9.0, pptx-angular-viewer@1.9.0_
