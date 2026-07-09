@@ -1,12 +1,19 @@
+<script setup lang="ts">
+import { useLandingCopy } from './copy';
+
+const copy = useLandingCopy();
+</script>
+
 <template>
 	<section class="pv-section pv-statement">
-		<p class="pv-kicker" data-reveal>Why it renders differently</p>
+		<p class="pv-kicker" data-reveal>{{ copy.statement.kicker }}</p>
 		<h2 class="pv-statement__text">
-			<span data-reveal>Most viewers flatten slides into pictures.</span>
-			<span data-reveal="2"> pptx-viewer renders them as live HTML, CSS, and SVG: </span>
-			<span data-reveal="3">
-				<em>text stays text</em>, sharp at any zoom, accessible by default.
+			<span data-reveal>{{ copy.statement.line1 }}</span>
+			<span data-reveal="2">
+				{{ copy.statement.line2Pre }}<em>{{ copy.statement.line2Em }}</em
+				>{{ copy.statement.line2Post }}
 			</span>
+			<span data-reveal="3">{{ copy.statement.line3 }}</span>
 		</h2>
 	</section>
 </template>

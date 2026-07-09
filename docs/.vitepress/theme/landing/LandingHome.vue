@@ -4,7 +4,6 @@ import { ref } from 'vue';
 import LandingBento from './LandingBento.vue';
 import LandingFinale from './LandingFinale.vue';
 import LandingHero from './LandingHero.vue';
-import LandingMarquee from './LandingMarquee.vue';
 import LandingSections from './LandingSections.vue';
 import LandingStack from './LandingStack.vue';
 import LandingStatement from './LandingStatement.vue';
@@ -17,7 +16,6 @@ useReveals(root);
 <template>
 	<div ref="root" class="pv-landing">
 		<LandingHero />
-		<LandingMarquee />
 		<LandingStatement />
 		<LandingSections />
 		<LandingBento />

@@ -19,7 +19,7 @@ Node.js **18 or newer** is required for TypeScript compilation and for running t
 | Vue 3                     | `pptx-vue-viewer`     | Same engine and feature set as the React binding                |
 | Angular                   | `pptx-angular-viewer` | Same engine and feature set as the React binding                |
 | Headless (Node / browser) | `pptx-viewer-core`    | No UI, no framework dependency                                  |
-| AI / MCP tooling          | `pptx-viewer-mcp`     | 25 MCP tools + CLI + Y.Doc codec                                |
+| AI / MCP tooling          | `pptx-viewer-mcp`     | 51 MCP tools + CLI + Y.Doc codec                                |
 
 ## Installing from npm
 

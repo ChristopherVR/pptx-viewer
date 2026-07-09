@@ -5,7 +5,7 @@ const tools = [
 	'convertToMarkdown',
 	'extractMedia',
 	'applyTheme',
-	'+ 20 more',
+	'+ 45 more',
 ];
 </script>
 

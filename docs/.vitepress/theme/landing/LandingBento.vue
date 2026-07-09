@@ -1,48 +1,20 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
 
-const tiles = [
-	{
-		title: 'Real-time collaboration',
-		copy: 'Co-edit through a Yjs CRDT with presence tracking, character-level text merging, and a P2P transport that needs no server.',
-		href: '/react/collaboration',
-	},
-	{
-		title: 'Encryption',
-		copy: 'Open and save password-protected files with AES-128 and AES-256 agile encryption.',
-		href: '/core/encryption',
-	},
-	{
-		title: 'Export everything',
-		copy: 'PNG, JPEG, SVG, PDF, GIF, and video from the browser. SVG export also runs headlessly in Node.js with no DOM.',
-		href: '/react/export',
-	},
-	{
-		title: 'Convert to Markdown',
-		copy: 'Turn decks into clean Markdown or positioned HTML, with media extraction, speaker notes, and metadata.',
-		href: '/core/converter',
-	},
-	{
-		title: 'Build from scratch',
-		copy: 'A fluent builder API creates presentations programmatically: text, shapes, images, tables, and charts without raw OpenXML.',
-		href: '/core/builder',
-	},
-	{
-		title: 'Know the limits',
-		copy: 'OLE objects are read-only and some effects are approximated on screen. The limitations page states exactly what to expect.',
-		href: '/guide/limitations',
-	},
-];
+import { useLandingCopy } from './copy';
+
+const copy = useLandingCopy();
 </script>
 
 <template>
 	<section class="pv-section pv-bento">
-		<p class="pv-kicker" data-reveal>And the rest of the spec sheet</p>
+		<p class="pv-kicker" data-reveal>{{ copy.bento.kicker }}</p>
 		<div class="pv-bento__grid">
 			<a
-				v-for="(tile, i) in tiles"
+				v-for="(tile, i) in copy.bento.tiles"
 				:key="tile.title"
 				class="pv-bento__tile"
+				:class="{ 'pv-bento__tile--wide': tile.wide }"
 				:href="withBase(tile.href)"
 				:data-reveal="String((i % 3) + 1)"
 			>
@@ -75,6 +47,10 @@ const tiles = [
 		box-shadow 0.35s ease;
 }
 
+.pv-bento__tile--wide {
+	grid-column: 1 / -1;
+}
+
 .pv-bento__tile:hover {
 	transform: translateY(-5px);
 	border-color: var(--pv-accent);
@@ -94,6 +70,7 @@ const tiles = [
 	line-height: 1.65;
 	color: var(--pv-ink-soft);
 	margin: 0;
+	max-width: 72ch;
 }
 
 .pv-bento__go {

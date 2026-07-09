@@ -1,29 +1,30 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
+
+import { useLandingCopy } from './copy';
+
+const copy = useLandingCopy();
 </script>
 
 <template>
 	<section class="pv-finale">
 		<div class="pv-finale__inner">
 			<span class="pv-finale__mark" aria-hidden="true"><i></i></span>
-			<p class="pv-kicker pv-finale__kicker" data-reveal>Get started</p>
-			<h2 class="pv-finale__title" data-reveal="2">Ship slides in your product this sprint.</h2>
-			<p class="pv-finale__sub" data-reveal="3">
-				Apache-2.0 licensed, strict TypeScript, zero native dependencies. Load a real deck in the
-				demo, then wire the component into your app.
-			</p>
+			<p class="pv-kicker pv-finale__kicker" data-reveal>{{ copy.finale.kicker }}</p>
+			<h2 class="pv-finale__title" data-reveal="2">{{ copy.finale.title }}</h2>
+			<p class="pv-finale__sub" data-reveal="3">{{ copy.finale.sub }}</p>
 			<div class="pv-finale__actions" data-reveal="3">
-				<a class="pv-btn pv-btn--accent" :href="withBase('/guide/quick-start')">
-					<span>Quick start</span>
+				<a class="pv-btn pv-btn--accent" :href="withBase(copy.finale.quick.href)">
+					<span>{{ copy.finale.quick.text }}</span>
 				</a>
 				<a class="pv-btn pv-btn--outline" href="https://github.com/ChristopherVR/pptx-viewer">
-					<span>View on GitHub</span>
+					<span>{{ copy.finale.github }}</span>
 				</a>
 			</div>
 		</div>
 		<div class="pv-finale__foot">
-			<span>pptx-viewer &middot; the PowerPoint engine for the web</span>
-			<span>Apache-2.0 &middot; TypeScript strict &middot; no native dependencies</span>
+			<span>{{ copy.finale.footLeft }}</span>
+			<span>{{ copy.finale.footRight }}</span>
 		</div>
 	</section>
 </template>
