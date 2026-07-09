@@ -32,14 +32,8 @@ export default defineConfig({
 						items: [
 							{ text: 'Core (pptx-viewer-core)', link: '/core/' },
 							{ text: 'React (pptx-react-viewer)', link: '/react/' },
-							{
-								text: 'Vue 3 (pptx-vue-viewer)',
-								link: 'https://www.npmjs.com/package/pptx-vue-viewer',
-							},
-							{
-								text: 'Angular (pptx-angular-viewer)',
-								link: 'https://www.npmjs.com/package/pptx-angular-viewer',
-							},
+							{ text: 'Vue 3 (pptx-vue-viewer)', link: '/vue/' },
+							{ text: 'Angular (pptx-angular-viewer)', link: '/angular/' },
 							{ text: 'MCP et outils', link: '/packages/mcp' },
 						],
 					},
@@ -60,6 +54,10 @@ export default defineConfig({
 								text: 'npm: pptx-vue-viewer',
 								link: 'https://www.npmjs.com/package/pptx-vue-viewer',
 							},
+							{
+								text: 'npm: pptx-angular-viewer',
+								link: 'https://www.npmjs.com/package/pptx-angular-viewer',
+							},
 						],
 					},
 				],
@@ -78,14 +76,8 @@ export default defineConfig({
 						items: [
 							{ text: 'Core (pptx-viewer-core)', link: '/core/' },
 							{ text: 'React (pptx-react-viewer)', link: '/react/' },
-							{
-								text: 'Vue 3 (pptx-vue-viewer)',
-								link: 'https://www.npmjs.com/package/pptx-vue-viewer',
-							},
-							{
-								text: 'Angular (pptx-angular-viewer)',
-								link: 'https://www.npmjs.com/package/pptx-angular-viewer',
-							},
+							{ text: 'Vue 3 (pptx-vue-viewer)', link: '/vue/' },
+							{ text: 'Angular (pptx-angular-viewer)', link: '/angular/' },
 							{ text: 'MCP y herramientas', link: '/packages/mcp' },
 						],
 					},
@@ -106,6 +98,10 @@ export default defineConfig({
 								text: 'npm: pptx-vue-viewer',
 								link: 'https://www.npmjs.com/package/pptx-vue-viewer',
 							},
+							{
+								text: 'npm: pptx-angular-viewer',
+								link: 'https://www.npmjs.com/package/pptx-angular-viewer',
+							},
 						],
 					},
 				],
@@ -124,14 +120,8 @@ export default defineConfig({
 						items: [
 							{ text: 'Core (pptx-viewer-core)', link: '/core/' },
 							{ text: 'React (pptx-react-viewer)', link: '/react/' },
-							{
-								text: 'Vue 3 (pptx-vue-viewer)',
-								link: 'https://www.npmjs.com/package/pptx-vue-viewer',
-							},
-							{
-								text: 'Angular (pptx-angular-viewer)',
-								link: 'https://www.npmjs.com/package/pptx-angular-viewer',
-							},
+							{ text: 'Vue 3 (pptx-vue-viewer)', link: '/vue/' },
+							{ text: 'Angular (pptx-angular-viewer)', link: '/angular/' },
 							{ text: 'MCP und Werkzeuge', link: '/packages/mcp' },
 						],
 					},
@@ -151,6 +141,10 @@ export default defineConfig({
 							{
 								text: 'npm: pptx-vue-viewer',
 								link: 'https://www.npmjs.com/package/pptx-vue-viewer',
+							},
+							{
+								text: 'npm: pptx-angular-viewer',
+								link: 'https://www.npmjs.com/package/pptx-angular-viewer',
 							},
 						],
 					},
@@ -192,14 +186,8 @@ export default defineConfig({
 				items: [
 					{ text: 'Core (pptx-viewer-core)', link: '/core/' },
 					{ text: 'React (pptx-react-viewer)', link: '/react/' },
-					{
-						text: 'Vue 3 (pptx-vue-viewer)',
-						link: 'https://www.npmjs.com/package/pptx-vue-viewer',
-					},
-					{
-						text: 'Angular (pptx-angular-viewer)',
-						link: 'https://www.npmjs.com/package/pptx-angular-viewer',
-					},
+					{ text: 'Vue 3 (pptx-vue-viewer)', link: '/vue/' },
+					{ text: 'Angular (pptx-angular-viewer)', link: '/angular/' },
 					{ text: 'MCP & Tools', link: '/packages/mcp' },
 				],
 			},
@@ -217,6 +205,10 @@ export default defineConfig({
 						link: 'https://www.npmjs.com/package/pptx-react-viewer',
 					},
 					{ text: 'npm: pptx-vue-viewer', link: 'https://www.npmjs.com/package/pptx-vue-viewer' },
+					{
+						text: 'npm: pptx-angular-viewer',
+						link: 'https://www.npmjs.com/package/pptx-angular-viewer',
+					},
 				],
 			},
 		],
@@ -300,8 +292,53 @@ export default defineConfig({
 					items: [
 						{ text: 'Theming', link: '/react/theming' },
 						{ text: 'Hooks', link: '/react/hooks' },
+						{ text: 'Complete Hooks Reference', link: '/react/hooks-reference' },
 						{ text: 'Export', link: '/react/export' },
 						{ text: 'Collaboration', link: '/react/collaboration' },
+					],
+				},
+			],
+
+			'/vue/': [
+				{
+					text: 'Vue Viewer',
+					items: [
+						{ text: 'Overview', link: '/vue/' },
+						{ text: 'Getting Started', link: '/vue/getting-started' },
+						{ text: 'Component Props', link: '/vue/props' },
+						{ text: 'Imperative Handle', link: '/vue/handle' },
+					],
+				},
+				{
+					text: 'Customisation',
+					items: [
+						{ text: 'Theming', link: '/vue/theming' },
+						{ text: 'Composables', link: '/vue/composables' },
+						{ text: 'Complete Composables Reference', link: '/vue/composables-reference' },
+						{ text: 'Export', link: '/vue/export' },
+						{ text: 'Collaboration', link: '/vue/collaboration' },
+					],
+				},
+			],
+
+			'/angular/': [
+				{
+					text: 'Angular Viewer',
+					items: [
+						{ text: 'Overview', link: '/angular/' },
+						{ text: 'Getting Started', link: '/angular/getting-started' },
+						{ text: 'Component Inputs & Outputs', link: '/angular/props' },
+						{ text: 'Public API', link: '/angular/api' },
+					],
+				},
+				{
+					text: 'Customisation',
+					items: [
+						{ text: 'Theming', link: '/angular/theming' },
+						{ text: 'Services', link: '/angular/services' },
+						{ text: 'Complete Services Reference', link: '/angular/services-reference' },
+						{ text: 'Export', link: '/angular/export' },
+						{ text: 'Collaboration', link: '/angular/collaboration' },
 					],
 				},
 			],
