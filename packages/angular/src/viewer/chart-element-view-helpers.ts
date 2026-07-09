@@ -12,7 +12,7 @@ import type { PptxChartData, PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import { dragAnchorViewY, dragValueForPart, withChartPointValue } from '../internal/shared';
 import type { ChartPartRef, ChartValueDrag, ChartViewModel } from './chart-renderer-helpers';
-import { findSlideIndexByElementId } from './smart-art-inline-edit';
+import { findOwningSlideIndex } from './smart-art-inline-edit';
 
 /** Minimum pointer travel (px) before a mark press becomes a value drag. */
 export const CHART_DRAG_THRESHOLD_PX = 3;
@@ -132,16 +132,21 @@ export interface ChartCommitTarget {
  * Commit an on-canvas chart edit through the editor's normal element-update
  * path (the exact channel the inspector uses: one history snapshot per call).
  * No-op without an editor or when the element is not on any slide.
+ *
+ * `templateSlideId` is the id of the slide the hosting canvas renders (from
+ * `SLIDE_CONTEXT`); it resolves template (master/layout) chart elements, which
+ * live in the per-slide template store rather than in `slides[].elements`.
  */
 export function commitChartElementData(
 	editor: ChartCommitTarget | null,
 	elementId: string,
 	chartData: PptxChartData,
+	templateSlideId?: string | null,
 ): void {
 	if (!editor) {
 		return;
 	}
-	const slideIndex = findSlideIndexByElementId(editor.slides(), elementId);
+	const slideIndex = findOwningSlideIndex(editor.slides(), elementId, templateSlideId);
 	if (slideIndex < 0) {
 		return;
 	}

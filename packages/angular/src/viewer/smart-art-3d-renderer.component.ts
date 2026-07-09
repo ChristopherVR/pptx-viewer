@@ -25,7 +25,8 @@ import type { mountSmartArt3D as MountSmartArt3D } from '../internal/shared-src/
 import { EditorStateService } from './editor-state.service';
 import { getContainerStyle } from './element-style';
 import type { StyleMap } from './element-style';
-import { commitNodeText, findSlideIndexByElementId } from './smart-art-inline-edit';
+import { SLIDE_CONTEXT } from './slide-context';
+import { commitNodeText, findOwningSlideIndex } from './smart-art-inline-edit';
 import type { InlineEditState } from './smart-art-inline-edit';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
 
@@ -157,6 +158,8 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 	private editSettled = false;
 
 	private readonly editor = inject(EditorStateService, { optional: true });
+	/** The hosting canvas's slide, for resolving template (master/layout) SmartArt. */
+	private readonly slideContext = inject(SLIDE_CONTEXT, { optional: true });
 	private readonly injector = inject(Injector);
 
 	readonly containerStyle = computed<StyleMap>(() =>
@@ -348,7 +351,11 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 		if (next === data) {
 			return;
 		} // no-op: text unchanged
-		const slideIndex = findSlideIndexByElementId(this.editor.slides(), this.element().id);
+		const slideIndex = findOwningSlideIndex(
+			this.editor.slides(),
+			this.element().id,
+			this.slideContext?.slideId() ?? null,
+		);
 		if (slideIndex < 0) {
 			return;
 		}

@@ -34,6 +34,7 @@ import type {
 import { EditorStateService } from './editor-state.service';
 import type { StyleMap } from './element-style';
 import { getContainerStyle } from './element-style';
+import { SLIDE_CONTEXT } from './slide-context';
 import {
 	buildChromeStyle,
 	computeDrawingViewBox,
@@ -45,7 +46,7 @@ import type { DrawingViewBox, RenderedShape } from './smart-art-drawing';
 import {
 	beginNodeEdit,
 	commitNodeText,
-	findSlideIndexByElementId,
+	findOwningSlideIndex,
 	nodeIdFromKey,
 } from './smart-art-inline-edit';
 import type { InlineEditState } from './smart-art-inline-edit';
@@ -424,6 +425,8 @@ export class SmartArtRendererComponent {
 	 * inspector's SmartArt panel uses, so undo/redo + save round-trip are shared.
 	 */
 	private readonly editor = inject(EditorStateService, { optional: true });
+	/** The hosting canvas's slide, for resolving template (master/layout) SmartArt. */
+	private readonly slideContext = inject(SLIDE_CONTEXT, { optional: true });
 	private readonly injector = inject(Injector);
 	private readonly translate = inject(TranslateService);
 
@@ -683,7 +686,11 @@ export class SmartArtRendererComponent {
 		if (next === data) {
 			return;
 		}
-		const slideIndex = findSlideIndexByElementId(editor.slides(), this.element().id);
+		const slideIndex = findOwningSlideIndex(
+			editor.slides(),
+			this.element().id,
+			this.slideContext?.slideId() ?? null,
+		);
 		if (slideIndex < 0) {
 			return;
 		}
@@ -790,7 +797,11 @@ export class SmartArtRendererComponent {
 		if (next === data) {
 			return;
 		}
-		const slideIndex = findSlideIndexByElementId(this.editor.slides(), this.element().id);
+		const slideIndex = findOwningSlideIndex(
+			this.editor.slides(),
+			this.element().id,
+			this.slideContext?.slideId() ?? null,
+		);
 		if (slideIndex < 0) {
 			return;
 		}

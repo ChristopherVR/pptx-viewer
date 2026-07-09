@@ -18,6 +18,7 @@ import { DEFAULT_PALETTE } from './smart-art-drawing';
 import {
 	beginNodeEdit,
 	commitNodeText,
+	findOwningSlideIndex,
 	findSlideIndexByElementId,
 	nodeEditBox,
 	nodeIdFromKey,
@@ -241,5 +242,33 @@ describe('findSlideIndexByElementId', () => {
 	it('returns -1 when the element is absent', () => {
 		const slides = [slide('s0', [smartArtElement('a')])];
 		expect(findSlideIndexByElementId(slides, 'missing')).toBe(-1);
+	});
+});
+
+describe('findOwningSlideIndex', () => {
+	function slide(id: string, elements: PptxElement[]): PptxSlide {
+		return { id, rId: id, slideNumber: 0, elements } as PptxSlide;
+	}
+	const el = (id: string): PptxElement =>
+		({ id, type: 'shape', x: 0, y: 0, width: 10, height: 10 }) as PptxElement;
+
+	it('resolves normal element ids via the deck search', () => {
+		const slides = [slide('s0', [el('a')]), slide('s1', [el('b')])];
+		expect(findOwningSlideIndex(slides, 'b', 's0')).toBe(1);
+	});
+
+	it('resolves template element ids to the hosting canvas slide', () => {
+		// Template elements are partitioned OUT of slides[].elements, so the
+		// deck search cannot see them; the canvas slide id decides ownership.
+		const slides = [slide('s0', [el('a')]), slide('s1', [el('b')])];
+		expect(findOwningSlideIndex(slides, 'layout-shape-1', 's1')).toBe(1);
+		expect(findOwningSlideIndex(slides, 'master-shape-2', 's0')).toBe(0);
+	});
+
+	it('returns -1 for a template id without a hosting slide or with an unknown one', () => {
+		const slides = [slide('s0', [el('a')])];
+		expect(findOwningSlideIndex(slides, 'layout-shape-1', null)).toBe(-1);
+		expect(findOwningSlideIndex(slides, 'layout-shape-1', undefined)).toBe(-1);
+		expect(findOwningSlideIndex(slides, 'layout-shape-1', 'nope')).toBe(-1);
 	});
 });

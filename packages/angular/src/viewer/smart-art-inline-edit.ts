@@ -21,6 +21,7 @@
 import type { PptxElement, PptxSlide, PptxSmartArtData } from 'pptx-viewer-core';
 
 import type { RenderedNode } from '../internal/shared';
+import { isTemplateElementId } from '../internal/shared';
 import { updateSmartArtNodeText } from './editor-insert';
 
 /**
@@ -197,6 +198,30 @@ export function findSlideIndexByElementId(slides: readonly PptxSlide[], id: stri
 		}
 	}
 	return -1;
+}
+
+/**
+ * Resolve the slide index that owns an element for a commit, template-aware.
+ *
+ * Template (master/layout) elements are partitioned OUT of `slides[].elements`
+ * into the per-slide template store, so the deck search above cannot find them
+ * and on-canvas commits used to silently no-op in `editTemplateMode`. The
+ * hosting canvas knows which slide it renders (via `SLIDE_CONTEXT`), and an
+ * editable template element is by construction on that slide, so template ids
+ * resolve to `templateSlideId`. Normal ids keep the recursive deck search.
+ */
+export function findOwningSlideIndex(
+	slides: readonly PptxSlide[],
+	id: string,
+	templateSlideId: string | null | undefined,
+): number {
+	if (isTemplateElementId(id)) {
+		if (!templateSlideId) {
+			return -1;
+		}
+		return slides.findIndex((s) => s.id === templateSlideId);
+	}
+	return findSlideIndexByElementId(slides, id);
 }
 
 /** Whether an element id appears anywhere in an element tree (groups recurse). */

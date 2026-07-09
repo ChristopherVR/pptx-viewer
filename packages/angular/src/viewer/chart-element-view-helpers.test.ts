@@ -9,7 +9,7 @@
  * commit-once, cancel), the title edit contract, and the selected-part DOM
  * highlight (on a real happy-dom tree).
  */
-import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
+import type { ChartPptxElement, PptxChartData, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -24,9 +24,11 @@ import {
 	CHART_PART_SELECTED_CLASS,
 	chartDragCommitData,
 	chartPartSelector,
+	commitChartElementData,
 	ensureChartInteractionStyles,
 	moveChartValueDrag,
 } from './chart-element-view-helpers';
+import type { ChartCommitTarget } from './chart-element-view-helpers';
 import { buildChartViewModel } from './chart-renderer-helpers';
 
 // ==========================================================================
@@ -210,6 +212,45 @@ describe('title editing contract', () => {
 		const vm = buildChartViewModel(makeChartElement());
 		// The renderer only draws (and tags) the title when the VM carries one.
 		expect(vm.title).toBe('Sales');
+	});
+});
+
+// ==========================================================================
+// Commit routing (slide vs template store)
+// ==========================================================================
+
+describe('commitChartElementData', () => {
+	function slide(id: string, elements: PptxElement[]): PptxSlide {
+		return { id, rId: id, slideNumber: 0, elements } as PptxSlide;
+	}
+
+	function recorder(slides: PptxSlide[]) {
+		const calls: Array<{ slideIndex: number; id: string }> = [];
+		const editor: ChartCommitTarget = {
+			slides: () => slides,
+			updateElement: (slideIndex, id) => calls.push({ slideIndex, id }),
+		};
+		return { editor, calls };
+	}
+
+	it('commits a slide chart to its owning slide', () => {
+		const { editor, calls } = recorder([slide('s0', []), slide('s1', [makeChartElement()])]);
+		commitChartElementData(editor, 'ch_1', makeChartData());
+		expect(calls).toStrictEqual([{ slideIndex: 1, id: 'ch_1' }]);
+	});
+
+	it('commits a template (layout/master) chart to the hosting canvas slide', () => {
+		// Template elements are absent from slides[].elements; without the
+		// hosting slide id this used to silently no-op in editTemplateMode.
+		const { editor, calls } = recorder([slide('s0', []), slide('s1', [])]);
+		commitChartElementData(editor, 'layout-chart-1', makeChartData(), 's1');
+		expect(calls).toStrictEqual([{ slideIndex: 1, id: 'layout-chart-1' }]);
+	});
+
+	it('still no-ops for a template chart without a hosting slide id', () => {
+		const { editor, calls } = recorder([slide('s0', [])]);
+		commitChartElementData(editor, 'layout-chart-1', makeChartData());
+		expect(calls).toHaveLength(0);
 	});
 });
 

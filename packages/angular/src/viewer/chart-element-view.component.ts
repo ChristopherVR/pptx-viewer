@@ -38,6 +38,7 @@ import { ChartPartSelectionService } from './chart-part-selection.service';
 import { buildChartViewModel, formatAxisValue } from './chart-renderer-helpers';
 import { ChartRendererComponent } from './chart-renderer.component';
 import { EditorStateService } from './editor-state.service';
+import { SLIDE_CONTEXT } from './slide-context';
 
 @Component({
 	selector: 'pptx-chart-element-view',
@@ -92,6 +93,8 @@ export class ChartElementViewComponent {
 	private readonly editor = inject(EditorStateService, { optional: true });
 	/** Canvas <-> inspector chart-part selection bridge (viewer-scoped). */
 	private readonly partSelection = inject(ChartPartSelectionService, { optional: true });
+	/** The hosting canvas's slide, for resolving template (master/layout) charts. */
+	private readonly slideContext = inject(SLIDE_CONTEXT, { optional: true });
 	private readonly injector = inject(Injector);
 
 	private readonly wrapper = viewChild<ElementRef<HTMLElement>>('wrapper');
@@ -249,7 +252,12 @@ export class ChartElementViewComponent {
 		this.previewData.set(null);
 		this.dragValue.set(null);
 		if (data) {
-			commitChartElementData(this.editor, this.element().id, data);
+			commitChartElementData(
+				this.editor,
+				this.element().id,
+				data,
+				this.slideContext?.slideId() ?? null,
+			);
 		}
 	}
 
@@ -292,7 +300,12 @@ export class ChartElementViewComponent {
 		const draft = this.titleDraft();
 		const chartData = this.chartData();
 		if (draft !== null && chartData) {
-			commitChartElementData(this.editor, this.element().id, withChartTitle(chartData, draft));
+			commitChartElementData(
+				this.editor,
+				this.element().id,
+				withChartTitle(chartData, draft),
+				this.slideContext?.slideId() ?? null,
+			);
 		}
 		this.titleDraft.set(null);
 	}
