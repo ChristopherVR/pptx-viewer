@@ -140,9 +140,20 @@ export function flattenMixBlendMode(root: HTMLElement): void {
 /*  3D Transform Flattening                                            */
 /* ------------------------------------------------------------------ */
 
-/** Matches 3D transform functions in a CSS transform value. */
+/**
+ * Matches the *start* of a 3D transform function call (name + opening
+ * paren) in a CSS transform value. Deliberately does not also match through
+ * to the closing paren: this is used only to detect whether a 3D function is
+ * present, and requiring `[^)]*\)` after the alternation made the pattern
+ * retry an unbounded scan-to-end at every occurrence of a 3D function name in
+ * the input. On a crafted value with many repeated `scaleZ(` (etc.)
+ * substrings and no closing paren, that produced quadratic (polynomial-
+ * ReDoS) behaviour. Matching just the name + `(` keeps each attempt O(1),
+ * so scanning the whole string stays linear. The actual argument parsing
+ * (which needs the closing paren) happens separately, per-function, below.
+ */
 const TRANSFORM_3D_RE =
-	/(?:translate3d|rotate3d|scale3d|matrix3d|perspective|translateZ|rotateX|rotateY|scaleZ)\s*\([^)]*\)/gi;
+	/(?:translate3d|rotate3d|scale3d|matrix3d|perspective|translateZ|rotateX|rotateY|scaleZ)\s*\(/gi;
 
 /**
  * Check whether a CSS transform value contains 3D transform functions.
@@ -153,7 +164,7 @@ export function has3dTransform(transformValue: string): boolean {
 		return false;
 	}
 	const re =
-		/(?:translate3d|rotate3d|scale3d|matrix3d|perspective|translateZ|rotateX|rotateY|scaleZ)\s*\([^)]*\)/i;
+		/(?:translate3d|rotate3d|scale3d|matrix3d|perspective|translateZ|rotateX|rotateY|scaleZ)\s*\(/i;
 	return re.test(transformValue);
 }
 
@@ -185,14 +196,47 @@ export function flatten3dTransform(transformValue: string): string {
 
 	let result = transformValue;
 
+	// `translate3d(x, y, z)` -> `translate(x, y)` and `scale3d(x, y, z)` ->
+	// `scale(x, y)`. Previously these used a single regex with adjacent
+	// `([^,]+)\s*` groups (e.g. `\s*([^,]+)\s*,\s*([^,]+)\s*,\s*[^)]+\)`). Since
+	// `[^,]+` can itself consume whitespace, that whitespace could be
+	// attributed to either the capture group or the following `\s*` in many
+	// different ways, so a value with many repeated spaces before a missing
+	// terminator (e.g. `translate3d(` followed by thousands of spaces) forced
+	// the regex engine through an exponential number of backtracking
+	// partitions (polynomial/catastrophic ReDoS). Splitting this into an
+	// unambiguous boundary match (`[^)]*` has no overlapping quantifier) plus
+	// plain string `split`/`trim` for the argument list removes the ambiguity
+	// entirely.
+	// Args may themselves contain one level of nested parens (e.g.
+	// `translate3d(calc(50% - 10px), 20px, 0)`), so the boundary match allows
+	// a single `(...)` nesting rather than stopping at the first `)`. Each
+	// nested group requires a literal `(` to start, so there is no ambiguity
+	// in how repetitions are split, unlike the old adjacent-quantifier
+	// pattern.
 	result = result.replace(
-		/translate3d\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*[^)]+\)/gi,
-		'translate($1, $2)',
+		/translate3d\(([^()]*(?:\([^()]*\)[^()]*)*)\)/gi,
+		(match, args: string) => {
+			const parts = args.split(',');
+			// Mirrors the old regex's requirement of at least two commas (x, y,
+			// z[, ...]); extra segments beyond the third are ignored, same as
+			// the old greedy `[^)]+` z-argument absorbing them.
+			if (parts.length < 3) {
+				return match;
+			}
+			return `translate(${parts[0].trim()}, ${parts[1].trim()})`;
+		},
 	);
 
 	result = result.replace(/translateZ\([^)]*\)/gi, '');
 
-	result = result.replace(/scale3d\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*[^)]+\)/gi, 'scale($1, $2)');
+	result = result.replace(/scale3d\(([^()]*(?:\([^()]*\)[^()]*)*)\)/gi, (match, args: string) => {
+		const parts = args.split(',');
+		if (parts.length < 3) {
+			return match;
+		}
+		return `scale(${parts[0].trim()}, ${parts[1].trim()})`;
+	});
 
 	result = result.replace(/scaleZ\([^)]*\)/gi, '');
 

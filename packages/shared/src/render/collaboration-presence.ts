@@ -136,7 +136,6 @@ export const CURSOR_PALETTE: readonly string[] = [
 
 const ROOM_ID_REGEX = /^[a-zA-Z0-9_-]{1,128}$/u;
 const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/u;
-const HTML_TAG_REGEX = /<[^>]*>/gu;
 
 /** True when `roomId` is a safe 1-128 char alphanumeric/`-`/`_` token. */
 export function isValidRoomId(roomId: string): boolean {
@@ -156,12 +155,45 @@ export function validateRoomId(roomId: string): string {
 	return roomId;
 }
 
+/**
+ * Remove HTML tags from `text`, keeping only the text outside them, in a
+ * single linear pass with no regex backtracking.
+ *
+ * This deliberately avoids a regex like `/<[^>]*>/g`: the negated character
+ * class re-scans from every failed start position, which is a polynomial
+ * (O(n^2)) ReDoS on strings with many unmatched `<` characters. Worse, a
+ * "match one `<...>` pair and remove it" regex is an *incomplete* sanitizer:
+ * a crafted `<scr<script>ipt>` still contains a live `<script>` after the
+ * outer match is stripped, because the removal only ever considers one
+ * paired match at a time.
+ *
+ * Tracking open/closed tag state while walking the string once closes both
+ * holes. It is O(n) with no backtracking, and every character is classified
+ * exactly once as "inside a tag" or "text", so there is nothing left to
+ * reconstruct: overlapping or nested `<`/`>` sequences can never leave a
+ * live tag behind, however they are arranged.
+ */
+function stripHtmlTags(text: string): string {
+	let result = '';
+	let insideTag = false;
+	for (const char of text) {
+		if (char === '<') {
+			insideTag = true;
+		} else if (char === '>') {
+			insideTag = false;
+		} else if (!insideTag) {
+			result += char;
+		}
+	}
+	return result;
+}
+
 /** Strip HTML tags, trim, and clamp to 64 chars; falls back to `'Anonymous'`. */
 export function sanitizeUserName(name: unknown): string {
 	if (typeof name !== 'string') {
 		return 'Anonymous';
 	}
-	const stripped = name.replace(HTML_TAG_REGEX, '');
+	const stripped = stripHtmlTags(name);
 	const trimmed = stripped.trim().slice(0, 64);
 	return trimmed || 'Anonymous';
 }

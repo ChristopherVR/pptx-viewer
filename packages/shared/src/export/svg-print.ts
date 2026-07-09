@@ -64,6 +64,57 @@ export function escapeXml(text: string): string {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Non-text interpolation guards                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Characters permitted in a caller-supplied CSS declaration (e.g. a
+ * `filter: ...;` rule) that gets interpolated, unescaped, into a `<style>`
+ * element. HTML-escaping isn't an option here since the value must remain
+ * valid CSS, so instead this is a strict allow-list: letters, digits,
+ * whitespace, and common declaration punctuation. Deliberately excludes
+ * `<`, `>`, `/`, quotes, and `{`/`}`, so nothing in this set can close the
+ * surrounding `<style>` tag or smuggle in a sibling element.
+ */
+const SAFE_CSS_DECLARATION = /^[a-zA-Z0-9\s():;,.%-]*$/u;
+
+/**
+ * Sanitize a caller-supplied CSS declaration before it is embedded into the
+ * print stylesheet. Callers of this library only ever pass a handful of
+ * known-literal `filter:` values, but this function is a public export, so
+ * it cannot assume that holds; anything outside the safe character set
+ * (e.g. an attempt to close the `<style>` tag) is dropped rather than
+ * embedded.
+ */
+export function sanitizeCssDeclaration(value: string): string {
+	return SAFE_CSS_DECLARATION.test(value) ? value : '';
+}
+
+/**
+ * Coerce a caller-supplied orientation to one of the two literal values it
+ * is typed as. `PrintDocumentOptions.orientation` is typed as a union at
+ * compile time, but this function is a public export reachable from plain
+ * JS callers, so a runtime check keeps the value that reaches `@page` /
+ * `<style>` interpolation confined to those two known-safe strings.
+ */
+export function sanitizeOrientation(value: 'landscape' | 'portrait'): 'landscape' | 'portrait' {
+	return value === 'portrait' ? 'portrait' : 'landscape';
+}
+
+/**
+ * Guard against a malformed or tampered per-slide SVG string breaking out
+ * of the `<section>` wrapper it's embedded in (unescaped) by
+ * {@link buildPrintDocument}. Legitimate SVG produced by this library's own
+ * `SvgExporter` render path is well-formed markup that never contains a
+ * `</section` or `<script` substring, so this only ever rejects input that
+ * has been corrupted or crafted to inject sibling markup.
+ */
+export function isSafeSvgMarkup(svg: string): boolean {
+	const lower = svg.toLowerCase();
+	return !lower.includes('</section') && !lower.includes('<script');
+}
+
+/* ------------------------------------------------------------------ */
 /*  Print stylesheet / document construction                           */
 /* ------------------------------------------------------------------ */
 
@@ -110,14 +161,16 @@ export function buildPrintDocument(
 	options: PrintDocumentOptions = {},
 ): string {
 	const { title = 'Print', orientation = 'landscape', colorFilter = '' } = options;
+	const safeOrientation = sanitizeOrientation(orientation);
+	const safeColorFilter = sanitizeCssDeclaration(colorFilter);
 
 	const slidePages = svgs
-		.map(
-			(svg, i) =>
-				`<section class="print-slide-page" aria-label="Slide ${i + 1}">
-  ${svg}
-</section>`,
-		)
+		.map((svg, i) => {
+			const safeSvg = isSafeSvgMarkup(svg) ? svg : '';
+			return `<section class="print-slide-page" aria-label="Slide ${i + 1}">
+  ${safeSvg}
+</section>`;
+		})
 		.join('\n');
 
 	return `<!doctype html>
@@ -130,7 +183,7 @@ export function buildPrintDocument(
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: #fff;
-      ${colorFilter}
+      ${safeColorFilter}
     }
     .print-slide-page {
       page-break-after: always;
@@ -151,7 +204,7 @@ export function buildPrintDocument(
       height: auto;
     }
     @page {
-      size: ${orientation};
+      size: ${safeOrientation};
       margin: 5mm;
     }
     @media print {
@@ -174,8 +227,8 @@ export function buildPrintDocument(
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         border-radius: 4px;
         page-break-after: auto;
-        width: ${orientation === 'landscape' ? '297mm' : '210mm'};
-        height: ${orientation === 'landscape' ? '210mm' : '297mm'};
+        width: ${safeOrientation === 'landscape' ? '297mm' : '210mm'};
+        height: ${safeOrientation === 'landscape' ? '210mm' : '297mm'};
       }
     }
   </style>
