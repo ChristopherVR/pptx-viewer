@@ -1,3 +1,4 @@
+import { remapEditorAnimationsToShapeIds } from '../../services';
 import { XmlObject, PptxSlide } from '../../types';
 import type { MediaPptxElement } from '../../types';
 import type { AlternateContentBlock } from '../../utils';
@@ -53,13 +54,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				delete slideNode['p:transition'];
 			}
 		}
-		if (slide.animations !== undefined) {
-			this.applyEditorAnimations(slideNode, slide.animations);
+		// Editor animations key their target by the positional `element.id`. On
+		// save, rewrite those references to the target shape's native OOXML
+		// `p:cNvPr/@id` (minting one for SDK-created shapes) so `p:spTgt/@spid`
+		// and the `pptx:editorMeta` extension reference a shape id real
+		// PowerPoint can bind, and so `reconcileAnimationTargets` can map them
+		// back on the next load. Shapes are stamped with the same id below.
+		const shapeIdAnimations =
+			slide.animations !== undefined
+				? remapEditorAnimationsToShapeIds(
+						slide.elements,
+						slide.animations,
+						this.maxCnvPrId(this.ensureSlideTree(xmlObj)),
+					)
+				: undefined;
+		if (shapeIdAnimations !== undefined) {
+			this.applyEditorAnimations(slideNode, shapeIdAnimations);
 		}
-		if (slide.animations && slide.animations.length > 0) {
+		if (shapeIdAnimations && shapeIdAnimations.length > 0) {
 			// When rawTiming exists, surgical update preserves complex structures
 			const generatedTiming = this.animationWriteService.buildTimingXml(
-				slide.animations,
+				shapeIdAnimations,
 				slide.rawTiming,
 			);
 			if (generatedTiming) {
@@ -249,6 +264,41 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		this.zip.file(slide.id, this.builder.build(xmlObj));
+	}
+
+	/**
+	 * Largest `p:cNvPr/@id` already present anywhere in a shape tree, including
+	 * the implicit `<p:spTree>` group's own reserved id. Used to seed minting of
+	 * fresh animation-target shape ids so they never collide with a reserved id.
+	 */
+	protected maxCnvPrId(spTree: XmlObject): number {
+		let max = 0;
+		const nvContainers = [
+			'p:nvSpPr',
+			'p:nvPicPr',
+			'p:nvCxnSpPr',
+			'p:nvGraphicFramePr',
+			'p:nvGrpSpPr',
+		];
+		const visit = (node: XmlObject): void => {
+			for (const nvKey of nvContainers) {
+				const nv = node[nvKey] as XmlObject | undefined;
+				const cNvPr = nv?.['p:cNvPr'] as XmlObject | undefined;
+				if (cNvPr?.['@_id'] !== undefined) {
+					const n = Number.parseInt(String(cNvPr['@_id']), 10);
+					if (Number.isFinite(n) && n > max) {
+						max = n;
+					}
+				}
+			}
+			for (const listKey of ['p:sp', 'p:pic', 'p:cxnSp', 'p:graphicFrame', 'p:grpSp']) {
+				for (const child of this.ensureArray(node[listKey]) as XmlObject[]) {
+					visit(child);
+				}
+			}
+		};
+		visit(spTree);
+		return max;
 	}
 
 	/**
