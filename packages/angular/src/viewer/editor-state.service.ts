@@ -13,6 +13,7 @@
  */
 
 import { computed, Injectable, signal } from '@angular/core';
+import { cloneElement, cloneSlide, cloneTemplateElementsBySlideId } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import { isTemplateElement, isTemplateElementId } from '../internal/shared';
@@ -93,7 +94,7 @@ export class EditorStateService {
 	 * layer and re-merged on save.
 	 */
 	setSlides(slides: readonly PptxSlide[]): void {
-		const partitioned = partitionSlides(this.clone(slides));
+		const partitioned = partitionSlides(slides.map(cloneSlide));
 		this.slides.set(partitioned.slides);
 		this.templateElementsBySlideId.set(partitioned.templateElementsBySlideId);
 		this.selectedIds.set([]);
@@ -104,7 +105,7 @@ export class EditorStateService {
 
 	/** Current editable (template-free) slides as a fresh (cloned) array. */
 	snapshot(): readonly PptxSlide[] {
-		return this.clone(this.slides());
+		return this.slides().map(cloneSlide);
 	}
 
 	/**
@@ -114,7 +115,7 @@ export class EditorStateService {
 	 */
 	applyReplacement(newSlides: readonly PptxSlide[], label = 'Replace'): void {
 		this.history.record(this.captureSnapshot(), label);
-		this.slides.set(this.clone(newSlides));
+		this.slides.set(newSlides.map(cloneSlide));
 		this.dirty.set(true);
 		this.syncHistory();
 	}
@@ -126,7 +127,7 @@ export class EditorStateService {
 	 * steps.
 	 */
 	applyRemoteSlides(slides: readonly PptxSlide[]): void {
-		this.slides.set(this.clone(slides));
+		this.slides.set(slides.map(cloneSlide));
 		this.dirty.set(true);
 	}
 
@@ -135,8 +136,8 @@ export class EditorStateService {
 	/** Capture the current deck + template store as one undo/redo snapshot. */
 	private captureSnapshot(): EditorSnapshot {
 		return {
-			slides: this.clone(this.slides()),
-			templateElementsBySlideId: this.clone(this.templateElementsBySlideId()),
+			slides: this.slides().map(cloneSlide),
+			templateElementsBySlideId: cloneTemplateElementsBySlideId(this.templateElementsBySlideId()),
 		};
 	}
 
@@ -447,7 +448,7 @@ export class EditorStateService {
 		if (picked.length === 0) {
 			return;
 		}
-		this.clipboard = this.clone(picked);
+		this.clipboard = picked.map(cloneElement);
 		this.hasClipboard.set(true);
 	}
 
@@ -471,7 +472,7 @@ export class EditorStateService {
 		const additions = this.clipboard.map((el) => {
 			const id = this.newId();
 			newIds.push(id);
-			return { ...this.clone(el), id, x: el.x + 12, y: el.y + 12 };
+			return { ...cloneElement(el), id, x: el.x + 12, y: el.y + 12 };
 		});
 		this.slides.set(
 			slides.map((slide, i) =>
@@ -552,7 +553,7 @@ export class EditorStateService {
 		}
 		this.history.record(this.captureSnapshot(), 'Duplicate slide');
 		const id = this.newId();
-		const copy: PptxSlide = { ...this.clone(slides[index]), id, rId: id };
+		const copy: PptxSlide = { ...cloneSlide(slides[index]), id, rId: id };
 		const next = [...slides];
 		next.splice(index + 1, 0, copy);
 		this.slides.set(this.renumber(next));
@@ -628,10 +629,6 @@ export class EditorStateService {
 		this.canRedo.set(this.history.canRedo);
 		this.undoLabel.set(this.history.undoLabel);
 		this.redoLabel.set(this.history.redoLabel);
-	}
-
-	private clone<T>(value: T): T {
-		return structuredClone(value);
 	}
 
 	private newId(): string {
