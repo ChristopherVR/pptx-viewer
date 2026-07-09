@@ -120,6 +120,7 @@ export function renderMediaElement(
 				<PresentationMediaController
 					element={element}
 					isPresentationMode={isPresentationMode}
+					shouldAutoPlay={shouldAutoPlay}
 					isFullScreen={isFullScreen}
 					onPlayStateChange={options?.onPlayStateChange}
 				>
@@ -186,6 +187,7 @@ export function renderMediaElement(
 				<PresentationMediaController
 					element={element}
 					isPresentationMode={isPresentationMode}
+					shouldAutoPlay={shouldAutoPlay}
 					isFullScreen={false}
 					onPlayStateChange={options?.onPlayStateChange}
 				>
