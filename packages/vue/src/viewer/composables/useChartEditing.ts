@@ -44,6 +44,8 @@ import {
 import type { ComputedRef } from 'vue';
 import { toRaw } from 'vue';
 
+import { useSafeTranslate } from './useSafeTranslate';
+
 /** Edit shape for axis-title font styling (matches the core op). */
 export interface ChartAxisTitleStyleEdit {
 	fontFamily?: string | null;
@@ -121,6 +123,7 @@ export function useChartEditing(
 	chartData: ComputedRef<PptxChartData | null>,
 	emitUpdate: (next: PptxChartData) => void,
 ): ChartEditing {
+	const t = useSafeTranslate();
 	const replaceChartData = (next: PptxChartData): void => emitUpdate(next);
 
 	const patchChartData = (patch: Partial<PptxChartData>): void => {
@@ -218,7 +221,7 @@ export function useChartEditing(
 		}
 		replaceChartData(
 			chartDataAddSeries(data, {
-				name: `Series ${data.series.length + 1}`,
+				name: t('pptx.chart.seriesDefaultName', { number: data.series.length + 1 }),
 				values: data.categories.map(() => 0),
 			}),
 		);

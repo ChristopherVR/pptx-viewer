@@ -2,6 +2,7 @@
 import type { PptxComment } from 'pptx-viewer-core';
 import { getCommentMarkerPosition } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { CanvasSize } from '../types';
 
@@ -19,6 +20,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	'marker-click': [commentId: string];
 }>();
+
+const { t } = useI18n();
 
 const markers = computed(() =>
 	props.comments.map((comment, index) => ({
@@ -43,7 +46,7 @@ const markers = computed(() =>
 				height: '20px',
 				backgroundColor: 'rgba(255, 165, 0, 0.9)',
 			}"
-			:title="`${comment.author ?? 'Comment'}: ${comment.text}`"
+			:title="`${comment.author ?? t('pptx.comments.unknownAuthor')}: ${comment.text}`"
 			@click.stop="emit('marker-click', comment.id)"
 		>
 			{{ index + 1 }}

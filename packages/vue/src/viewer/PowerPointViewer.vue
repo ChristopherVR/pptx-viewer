@@ -39,6 +39,7 @@ import {
 	strokeToInkElement,
 } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
@@ -157,6 +158,8 @@ const props = withDefaults(defineProps<PowerPointViewerProps>(), {
 	smartArt3D: false,
 });
 const emit = defineEmits<PowerPointViewerEmits>();
+
+const { t } = useI18n();
 
 // ── Theme ─────────────────────────────────────────────────────────────
 const theme = toRef(props, 'theme');
@@ -1608,17 +1611,17 @@ function handleCommandSearch(command: string): void {
 		<!-- Loading -->
 		<div v-if="loading" class="pptx-vue-state pptx-vue-loading">
 			<div class="pptx-vue-spinner" aria-hidden="true" />
-			<p>Loading presentation…</p>
+			<p>{{ t('pptx.viewer.loading') }}</p>
 		</div>
 
 		<!-- Encrypted -->
 		<div v-else-if="isEncrypted" class="pptx-vue-state pptx-vue-error">
-			<p>This presentation is password-protected and cannot be opened.</p>
+			<p>{{ t('pptx.viewer.encrypted') }}</p>
 		</div>
 
 		<!-- Error -->
 		<div v-else-if="error" class="pptx-vue-state pptx-vue-error">
-			<p>Failed to load presentation.</p>
+			<p>{{ t('pptx.viewer.loadError') }}</p>
 			<pre class="pptx-vue-error-detail">{{ error }}</pre>
 		</div>
 
@@ -1718,7 +1721,7 @@ function handleCommandSearch(command: string): void {
 				<nav
 					v-else-if="!isMobile && !sidebarCollapsed"
 					class="pptx-vue-thumbnails"
-					aria-label="Slides"
+					:aria-label="t('pptx.sections.slides')"
 				>
 					<SectionList
 						:groups="mergedSlidesBySection"
@@ -1732,7 +1735,7 @@ function handleCommandSearch(command: string): void {
 						@move-up="sectionOps.moveSectionUp"
 						@move-down="sectionOps.moveSectionDown"
 						@delete="sectionOps.deleteSection"
-						@add-section="(idx) => sectionOps.addSection('Untitled Section', idx)"
+						@add-section="(idx) => sectionOps.addSection(t('pptx.sections.defaultName'), idx)"
 					/>
 				</nav>
 
@@ -2064,7 +2067,7 @@ function handleCommandSearch(command: string): void {
 				v-if="showMasterView"
 				class="pptx-vue-master-overlay"
 				role="dialog"
-				aria-label="Master views"
+				:aria-label="t('pptx.view.masterViews')"
 				style="
 					position: fixed;
 					inset: 0;
@@ -2210,7 +2213,7 @@ function handleCommandSearch(command: string): void {
 			<MobileSheet
 				v-if="isMobile && !presenting"
 				:open="mobileNotesOpen"
-				title="Notes"
+				:title="t('pptx.notes.title')"
 				@close="mobileNotesOpen = false"
 			>
 				<NotesPanel
@@ -2225,7 +2228,7 @@ function handleCommandSearch(command: string): void {
 			<MobileSheet
 				v-if="isMobile && props.canEdit && !presenting"
 				:open="mobileInspectorOpen"
-				title="Format"
+				:title="t('pptx.arrange.format')"
 				@close="mobileInspectorOpen = false"
 			>
 				<InspectorPane
@@ -2246,14 +2249,16 @@ function handleCommandSearch(command: string): void {
 					@slide-update="applySlideBackgroundPatch"
 					@presentation-update="onPresentationPropertiesUpdate"
 				/>
-				<p v-else class="px-4 py-6 text-center text-xs text-muted-foreground">No slide selected.</p>
+				<p v-else class="px-4 py-6 text-center text-xs text-muted-foreground">
+					{{ t('pptx.inspector.noSlideSelected') }}
+				</p>
 			</MobileSheet>
 
 			<!-- Mobile Comments sheet (right-rail panel on desktop) -->
 			<MobileSheet
 				v-if="isMobile && props.canEdit && !presenting"
 				:open="mobileCommentsOpen"
-				title="Comments"
+				:title="t('pptx.toolbar.comments')"
 				@close="mobileCommentsOpen = false"
 			>
 				<CommentsPanel

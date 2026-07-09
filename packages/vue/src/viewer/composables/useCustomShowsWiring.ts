@@ -1,6 +1,7 @@
 import type { PptxCustomShow, PptxSlide } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { useCustomShows } from './useCustomShows';
 import type { UseCustomShowsResult } from './useCustomShows';
@@ -33,6 +34,7 @@ export interface UseCustomShowsWiringResult {
  */
 export function useCustomShowsWiring(input: UseCustomShowsWiringInput): UseCustomShowsWiringResult {
 	const { customShows, slides, activeSlideIndex, activeSlide, pushHistory } = input;
+	const { t } = useI18n();
 
 	const showCustomShows = ref(false);
 	const activeCustomShowId = ref<string | null>(null);
@@ -66,7 +68,7 @@ export function useCustomShowsWiring(input: UseCustomShowsWiringInput): UseCusto
 			return;
 		}
 		const show = customShows.value.find((s) => s.id === id);
-		const next = window.prompt('Rename custom show', show?.name ?? '')?.trim();
+		const next = window.prompt(t('pptx.customShows.renamePrompt'), show?.name ?? '')?.trim();
 		if (next) {
 			customShowOps.renameCustomShow(id, next);
 		}
@@ -78,7 +80,7 @@ export function useCustomShowsWiring(input: UseCustomShowsWiringInput): UseCusto
 			return;
 		}
 		const show = customShows.value.find((s) => s.id === id);
-		if (window.confirm(`Delete custom show "${show?.name ?? ''}"?`)) {
+		if (window.confirm(t('pptx.customShows.deleteConfirm', { name: show?.name ?? '' }))) {
 			onDeleteCustomShow(id);
 		}
 	}

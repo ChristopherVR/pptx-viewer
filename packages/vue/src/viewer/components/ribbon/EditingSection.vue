@@ -4,6 +4,7 @@
  * Vue port matching the React EditingSection component.
  */
 import { ArrowRightLeft, ChevronDown, Search } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 import { ic, MENU_ITEM, MENU_PANEL, pill, SEP } from './ribbon-constants';
 import { useDropdown } from './use-dropdown';
@@ -14,6 +15,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 const selectMenu = useDropdown();
 
@@ -32,7 +34,7 @@ function handleSelectAll(): void {
 			<button
 				type="button"
 				:class="pill"
-				title="Find"
+				:title="t('pptx.editing.find')"
 				@mousedown.prevent
 				@click="props.onToggleFindReplace()"
 			>
@@ -43,7 +45,7 @@ function handleSelectAll(): void {
 			<button
 				type="button"
 				:class="pill"
-				title="Replace"
+				:title="t('pptx.ribbon.replace')"
 				@mousedown.prevent
 				@click="props.onToggleFindReplace()"
 			>
@@ -55,11 +57,11 @@ function handleSelectAll(): void {
 				<button
 					type="button"
 					:class="pill"
-					title="Select"
+					:title="t('pptx.ribbon.tool.select')"
 					@mousedown.prevent
 					@click="selectMenu.toggle()"
 				>
-					Select
+					{{ t('pptx.ribbon.tool.select') }}
 					<ChevronDown class="w-3 h-3" />
 				</button>
 				<div
@@ -67,11 +69,15 @@ function handleSelectAll(): void {
 					class="absolute right-0 top-full z-50 flex flex-col w-32 pt-1"
 				>
 					<div :class="MENU_PANEL">
-						<button type="button" :class="MENU_ITEM" @click="handleSelectAll">Select All</button>
+						<button type="button" :class="MENU_ITEM" @click="handleSelectAll">
+							{{ t('pptx.editing.selectAll') }}
+						</button>
 					</div>
 				</div>
 			</div>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">Editing</span>
+		<span class="text-[9px] text-muted-foreground leading-none">{{
+			t('pptx.shortcuts.group.editing')
+		}}</span>
 	</div>
 </template>

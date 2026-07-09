@@ -69,50 +69,140 @@ const canEdit = computed(() => props.canEdit);
 /** Shape presets with lucide icon component + className. Mirrors React's `SHAPE_PRESETS`. */
 const SHAPE_PRESETS: Array<{
 	type: SupportedShapeType;
-	label: string;
+	labelKey: string;
 	icon: Component;
 	iconClass: string;
 }> = [
-	{ type: 'rect', label: 'Rectangle', icon: Square, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'roundRect', label: 'Rounded', icon: Square, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'ellipse', label: 'Circle', icon: Circle, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'cylinder', label: 'Cylinder', icon: Database, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'rtArrow', label: 'Right Arrow', icon: MoveRight, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'leftArrow', label: 'Left Arrow', icon: MoveRight, iconClass: 'w-3.5 h-3.5 rotate-180' },
-	{ type: 'upArrow', label: 'Up Arrow', icon: MoveRight, iconClass: 'w-3.5 h-3.5 -rotate-90' },
-	{ type: 'downArrow', label: 'Down Arrow', icon: MoveRight, iconClass: 'w-3.5 h-3.5 rotate-90' },
-	{ type: 'triangle', label: 'Triangle', icon: Triangle, iconClass: 'w-3.5 h-3.5' },
+	{
+		type: 'rect',
+		labelKey: 'pptx.editorToolbar.shapeRectangle',
+		icon: Square,
+		iconClass: 'w-3.5 h-3.5',
+	},
+	{
+		type: 'roundRect',
+		labelKey: 'pptx.shapePresets.rounded',
+		icon: Square,
+		iconClass: 'w-3.5 h-3.5',
+	},
+	{ type: 'ellipse', labelKey: 'pptx.shapePresets.circle', icon: Circle, iconClass: 'w-3.5 h-3.5' },
+	{
+		type: 'cylinder',
+		labelKey: 'pptx.shapePresets.cylinder',
+		icon: Database,
+		iconClass: 'w-3.5 h-3.5',
+	},
+	{
+		type: 'rtArrow',
+		labelKey: 'pptx.shapePresets.rightArrow',
+		icon: MoveRight,
+		iconClass: 'w-3.5 h-3.5',
+	},
+	{
+		type: 'leftArrow',
+		labelKey: 'pptx.shapePresets.leftArrow',
+		icon: MoveRight,
+		iconClass: 'w-3.5 h-3.5 rotate-180',
+	},
+	{
+		type: 'upArrow',
+		labelKey: 'pptx.shapePresets.upArrow',
+		icon: MoveRight,
+		iconClass: 'w-3.5 h-3.5 -rotate-90',
+	},
+	{
+		type: 'downArrow',
+		labelKey: 'pptx.shapePresets.downArrow',
+		icon: MoveRight,
+		iconClass: 'w-3.5 h-3.5 rotate-90',
+	},
+	{
+		type: 'triangle',
+		labelKey: 'pptx.editorToolbar.shapeTriangle',
+		icon: Triangle,
+		iconClass: 'w-3.5 h-3.5',
+	},
 	{
 		type: 'rtTriangle',
-		label: 'Right Triangle',
+		labelKey: 'pptx.shapePresets.rightTriangle',
 		icon: Triangle,
 		iconClass: 'w-3.5 h-3.5 rotate-90',
 	},
-	{ type: 'diamond', label: 'Diamond', icon: Diamond, iconClass: 'w-3.5 h-3.5' },
+	{
+		type: 'diamond',
+		labelKey: 'pptx.shapePresets.diamond',
+		icon: Diamond,
+		iconClass: 'w-3.5 h-3.5',
+	},
 	{
 		type: 'parallelogram',
-		label: 'Parallelogram',
+		labelKey: 'pptx.shapePresets.parallelogram',
 		icon: Square,
 		iconClass: 'w-3.5 h-3.5 -skew-x-12',
 	},
-	{ type: 'trapezoid', label: 'Trapezoid', icon: Square, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'pentagon', label: 'Pentagon', icon: Diamond, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'hexagon', label: 'Hexagon', icon: Diamond, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'octagon', label: 'Octagon', icon: Circle, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'chevron', label: 'Chevron', icon: MoveRight, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'star5', label: 'Star', icon: Diamond, iconClass: 'w-3.5 h-3.5 rotate-45' },
-	{ type: 'star6', label: 'Star 6', icon: Diamond, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'star8', label: 'Star 8', icon: Diamond, iconClass: 'w-3.5 h-3.5 rotate-45' },
-	{ type: 'plus', label: 'Plus', icon: Plus, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'heart', label: 'Heart', icon: Circle, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'cloud', label: 'Cloud', icon: Circle, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'sun', label: 'Sun', icon: Circle, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'moon', label: 'Moon', icon: Circle, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'pie', label: 'Pie', icon: Circle, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'plaque', label: 'Plaque', icon: Square, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'teardrop', label: 'Teardrop', icon: Circle, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'line', label: 'Line', icon: Minus, iconClass: 'w-3.5 h-3.5' },
-	{ type: 'connector', label: 'Connector', icon: MoveRight, iconClass: 'w-3.5 h-3.5' },
+	{
+		type: 'trapezoid',
+		labelKey: 'pptx.shapePresets.trapezoid',
+		icon: Square,
+		iconClass: 'w-3.5 h-3.5',
+	},
+	{
+		type: 'pentagon',
+		labelKey: 'pptx.shapePresets.pentagon',
+		icon: Diamond,
+		iconClass: 'w-3.5 h-3.5',
+	},
+	{
+		type: 'hexagon',
+		labelKey: 'pptx.shapePresets.hexagon',
+		icon: Diamond,
+		iconClass: 'w-3.5 h-3.5',
+	},
+	{
+		type: 'octagon',
+		labelKey: 'pptx.shapePresets.octagon',
+		icon: Circle,
+		iconClass: 'w-3.5 h-3.5',
+	},
+	{
+		type: 'chevron',
+		labelKey: 'pptx.shapePresets.chevron',
+		icon: MoveRight,
+		iconClass: 'w-3.5 h-3.5',
+	},
+	{
+		type: 'star5',
+		labelKey: 'pptx.shapePresets.star',
+		icon: Diamond,
+		iconClass: 'w-3.5 h-3.5 rotate-45',
+	},
+	{ type: 'star6', labelKey: 'pptx.shapePresets.star6', icon: Diamond, iconClass: 'w-3.5 h-3.5' },
+	{
+		type: 'star8',
+		labelKey: 'pptx.shapePresets.star8',
+		icon: Diamond,
+		iconClass: 'w-3.5 h-3.5 rotate-45',
+	},
+	{ type: 'plus', labelKey: 'pptx.shapePresets.plus', icon: Plus, iconClass: 'w-3.5 h-3.5' },
+	{ type: 'heart', labelKey: 'pptx.shapePresets.heart', icon: Circle, iconClass: 'w-3.5 h-3.5' },
+	{ type: 'cloud', labelKey: 'pptx.shapePresets.cloud', icon: Circle, iconClass: 'w-3.5 h-3.5' },
+	{ type: 'sun', labelKey: 'pptx.shapePresets.sun', icon: Circle, iconClass: 'w-3.5 h-3.5' },
+	{ type: 'moon', labelKey: 'pptx.shapePresets.moon', icon: Circle, iconClass: 'w-3.5 h-3.5' },
+	{ type: 'pie', labelKey: 'pptx.shapePresets.pie', icon: Circle, iconClass: 'w-3.5 h-3.5' },
+	{ type: 'plaque', labelKey: 'pptx.shapePresets.plaque', icon: Square, iconClass: 'w-3.5 h-3.5' },
+	{
+		type: 'teardrop',
+		labelKey: 'pptx.shapePresets.teardrop',
+		icon: Circle,
+		iconClass: 'w-3.5 h-3.5',
+	},
+	{ type: 'line', labelKey: 'pptx.ribbon.line', icon: Minus, iconClass: 'w-3.5 h-3.5' },
+	{
+		type: 'connector',
+		labelKey: 'pptx.elementType.connector',
+		icon: MoveRight,
+		iconClass: 'w-3.5 h-3.5',
+	},
 ];
 
 /** The preset whose icon shows in the Add-shape button (the currently chosen type). */
@@ -230,7 +320,7 @@ function previewTime(): string {
 			"
 		>
 			<option v-for="sp in SHAPE_PRESETS" :key="sp.type" :value="sp.type" class="bg-background">
-				{{ sp.label }}
+				{{ t(sp.labelKey) }}
 			</option>
 		</select>
 		<button

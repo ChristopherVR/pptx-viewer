@@ -4,7 +4,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import {
-	CROP_SIDES,
+	useCropSides,
 	cropFractionToPercent,
 	cropPercentToFraction,
 } from '../../composables/useImageEditing';
@@ -28,7 +28,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const sides = CROP_SIDES;
+const sides = useCropSides();
 
 const cropPercents = computed<Record<string, number>>(() => {
 	const el = props.element as unknown as Record<string, number | undefined>;

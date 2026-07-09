@@ -198,7 +198,7 @@ function onCopyLink(): void {
 					v-model="roomId"
 					class="pptx-vue-broadcast-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 					type="text"
-					placeholder="broadcast-abc123"
+					:placeholder="t('pptx.broadcast.roomIdPlaceholder')"
 				/>
 			</div>
 

@@ -5,6 +5,7 @@
  */
 import { ChevronDown, Columns2, Columns3, RotateCw } from 'lucide-vue-next';
 import type { TextStyle } from 'pptx-viewer-core';
+import { useI18n } from 'vue-i18n';
 
 import { ic, MENU_ITEM, MENU_PANEL, pill } from './ribbon-constants';
 import { useDropdown } from './use-dropdown';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 /* ── Line Spacing ── */
 const LINE_SPACING_OPTIONS = [
@@ -37,11 +39,11 @@ function handleLineSpacing(value: number): void {
 }
 
 /* ── Text Direction ── */
-const TEXT_DIRECTION_OPTIONS: Array<{ label: string; value: TextStyle['textDirection'] }> = [
-	{ label: 'Horizontal', value: 'horizontal' },
-	{ label: 'Rotate 90\u00B0', value: 'vertical' },
-	{ label: 'Rotate 270\u00B0', value: 'vertical270' },
-	{ label: 'Stacked', value: 'wordArtVert' },
+const TEXT_DIRECTION_OPTIONS: Array<{ labelKey: string; value: TextStyle['textDirection'] }> = [
+	{ labelKey: 'pptx.slideInspector.horizontal', value: 'horizontal' },
+	{ labelKey: 'pptx.ribbon.textDirectionRotate90', value: 'vertical' },
+	{ labelKey: 'pptx.ribbon.textDirectionRotate270', value: 'vertical270' },
+	{ labelKey: 'pptx.ribbon.textDirectionStacked', value: 'wordArtVert' },
 ];
 
 const textDirectionMenu = useDropdown();
@@ -56,9 +58,9 @@ function handleTextDirection(value: TextStyle['textDirection']): void {
 
 /* ── Columns ── */
 const COLUMN_OPTIONS = [
-	{ label: '1 Column', value: 1 },
-	{ label: '2 Columns', value: 2 },
-	{ label: '3 Columns', value: 3 },
+	{ labelKey: 'pptx.ribbon.columns1', value: 1 },
+	{ labelKey: 'pptx.ribbon.columns2', value: 2 },
+	{ labelKey: 'pptx.ribbon.columns3', value: 3 },
 ];
 
 const columnsMenu = useDropdown();
@@ -79,7 +81,7 @@ function handleColumns(value: number): void {
 			type="button"
 			:disabled="!props.canMut"
 			:class="pill"
-			title="Line Spacing"
+			:title="t('pptx.paragraph.lineSpacing')"
 			@mousedown.prevent
 			@click="lineSpacingMenu.toggle()"
 		>
@@ -112,7 +114,7 @@ function handleColumns(value: number): void {
 			type="button"
 			:disabled="!props.canMut"
 			:class="pill"
-			title="Text Direction"
+			:title="t('pptx.paragraph.textDirection')"
 			@mousedown.prevent
 			@click="textDirectionMenu.toggle()"
 		>
@@ -131,7 +133,7 @@ function handleColumns(value: number): void {
 					:class="MENU_ITEM"
 					@click="handleTextDirection(opt.value)"
 				>
-					{{ opt.label }}
+					{{ t(opt.labelKey) }}
 				</button>
 			</div>
 		</div>
@@ -143,7 +145,7 @@ function handleColumns(value: number): void {
 			type="button"
 			:disabled="!props.canMut"
 			:class="pill"
-			title="Columns"
+			:title="t('pptx.table.columns')"
 			@mousedown.prevent
 			@click="columnsMenu.toggle()"
 		>
@@ -162,7 +164,7 @@ function handleColumns(value: number): void {
 					:class="MENU_ITEM"
 					@click="handleColumns(opt.value)"
 				>
-					{{ opt.label }}
+					{{ t(opt.labelKey) }}
 				</button>
 			</div>
 		</div>

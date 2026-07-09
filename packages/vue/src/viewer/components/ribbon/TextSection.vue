@@ -254,11 +254,11 @@ function handleToggleTextShadow(): void {
 
 /* ── Character Spacing ── */
 const CHAR_SPACING_OPTIONS = [
-	{ label: 'Very Tight', value: -300 },
-	{ label: 'Tight', value: -150 },
-	{ label: 'Normal', value: 0 },
-	{ label: 'Loose', value: 150 },
-	{ label: 'Very Loose', value: 300 },
+	{ labelKey: 'pptx.text.characterSpacingVeryTight', value: -300 },
+	{ labelKey: 'pptx.text.characterSpacingTight', value: -150 },
+	{ labelKey: 'pptx.view.normal', value: 0 },
+	{ labelKey: 'pptx.text.characterSpacingLoose', value: 150 },
+	{ labelKey: 'pptx.text.characterSpacingVeryLoose', value: 300 },
 ];
 
 const charSpacingMenu = useDropdown();
@@ -471,7 +471,7 @@ function handleChangeCase(value: string): void {
 				type="button"
 				:disabled="!canMut"
 				:class="[pill, effectiveTs?.textShadowColor ? 'bg-primary/20 ring-1 ring-primary' : '']"
-				title="Text Shadow"
+				:title="t('pptx.textEffects.shadow')"
 				@mousedown.prevent
 				@click="handleToggleTextShadow"
 			>
@@ -499,7 +499,7 @@ function handleChangeCase(value: string): void {
 					type="button"
 					:disabled="!canMut"
 					:class="pill"
-					title="Character Spacing"
+					:title="t('pptx.text.characterSpacing')"
 					@mousedown.prevent
 					@click="charSpacingMenu.toggle()"
 				>
@@ -520,7 +520,7 @@ function handleChangeCase(value: string): void {
 							:class="MENU_ITEM"
 							@click="handleCharSpacing(opt.value)"
 						>
-							{{ opt.label }}
+							{{ t(opt.labelKey) }}
 						</button>
 					</div>
 				</div>

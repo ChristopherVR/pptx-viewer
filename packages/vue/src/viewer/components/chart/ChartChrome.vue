@@ -3,6 +3,7 @@ import type { PptxChartData } from 'pptx-viewer-core';
 import type { PlotLayout, ValueRange } from 'pptx-viewer-shared';
 import { formatAxisValue, seriesColor, valueToY } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ChartChrome: Vue port of the React `chart-chrome.tsx` common chrome:
@@ -23,6 +24,8 @@ const props = defineProps<{
 	/** 'bar' centres category labels in slots; 'line' anchors them at points. */
 	categoryAxisStyle: 'bar' | 'line';
 }>();
+
+const { t } = useI18n();
 
 const style = computed(() => props.chartData.style);
 const styleId = computed(() => props.chartData.style?.styleId);
@@ -106,7 +109,7 @@ const legend = computed<LegendItem[]>(() => {
 				x: cx,
 				y,
 				color: seriesColor(s, i, styleId.value, colorPalette.value),
-				label: s.name || `Series ${i + 1}`,
+				label: s.name || t('pptx.chart.seriesDefaultName', { number: i + 1 }),
 			});
 			cx += (s.name?.length ?? 4) * charWidth + gap;
 		});
@@ -119,7 +122,7 @@ const legend = computed<LegendItem[]>(() => {
 			x,
 			y: props.layout.plotTop + i * 16,
 			color: seriesColor(s, i, styleId.value, colorPalette.value),
-			label: s.name || `Series ${i + 1}`,
+			label: s.name || t('pptx.chart.seriesDefaultName', { number: i + 1 }),
 		});
 	});
 	return items;

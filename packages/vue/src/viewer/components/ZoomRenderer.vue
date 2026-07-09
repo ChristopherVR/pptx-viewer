@@ -125,7 +125,7 @@ function onKeydown(event: KeyboardEvent): void {
 			<img
 				v-if="previewSrc"
 				:src="previewSrc"
-				:alt="`Preview of slide ${targetSlideIndex + 1}`"
+				:alt="t('pptx.zoom.slidePreviewAlt', { number: targetSlideIndex + 1 })"
 				class="pptx-vue-zoom-img"
 				draggable="false"
 			/>

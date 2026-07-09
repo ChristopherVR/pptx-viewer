@@ -118,7 +118,7 @@ function handleStop(): void {
 					v-model="roomId"
 					type="text"
 					class="pptx-vue-share-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-					placeholder="my-presentation"
+					:placeholder="t('pptx.share.roomIdPlaceholder')"
 				/>
 			</div>
 
@@ -134,7 +134,7 @@ function handleStop(): void {
 					v-model="userName"
 					type="text"
 					class="pptx-vue-share-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-					placeholder="Jane Doe"
+					:placeholder="t('pptx.share.yourNamePlaceholder')"
 				/>
 			</div>
 

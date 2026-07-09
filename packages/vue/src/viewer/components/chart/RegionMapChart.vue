@@ -8,6 +8,7 @@ import {
 	sequentialColorScale,
 } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * RegionMapChart: Vue port of React `chart-map.tsx` choropleth map renderer.
@@ -25,6 +26,8 @@ const props = defineProps<{
 	layout: PlotLayout;
 	categories: ReadonlyArray<string>;
 }>();
+
+const { t } = useI18n();
 
 // ── SVG path data ─────────────────────────────────────────────────
 // Simplified world region outlines on a 1000x500 coordinate system.
@@ -423,7 +426,7 @@ const strokeWidth = computed(() => 0.5 / mapScale.value);
 		<!-- Fallback table for unmatched regions -->
 		<template v-if="unmatchedRows.length > 0">
 			<text :x="svgWidth / 2" :y="legendY + 26" text-anchor="middle" font-size="7" fill="#94a3b8">
-				Additional regions (not shown on map)
+				{{ t('pptx.chart.additionalRegionsFallback') }}
 			</text>
 			<template v-for="row in fallbackRows" :key="`ft-row-${row.index}`">
 				<rect

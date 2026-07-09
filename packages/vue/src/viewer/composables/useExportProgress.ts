@@ -8,6 +8,7 @@ import {
 } from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { ExportPdfOptions, UseExportResult } from './useExport';
 import type { MediaExportOptions, UseMediaExportResult, WebmExportOptions } from './useMediaExport';
@@ -53,6 +54,7 @@ export interface UseExportProgressResult {
 
 export function useExportProgress(options: UseExportProgressOptions): UseExportProgressResult {
 	const { exporter, mediaExport } = options;
+	const { t } = useI18n();
 
 	const exportModalOpen = ref(false);
 	const exportModalTitle = ref('');
@@ -64,7 +66,7 @@ export function useExportProgress(options: UseExportProgressOptions): UseExportP
 		const controller = new AbortController();
 		abortController = controller;
 		exportModalTitle.value = title;
-		exportStatusMessage.value = 'Capturing slides...';
+		exportStatusMessage.value = t('pptx.export.capturingSlides');
 		exportProgress.value = 0;
 		exportModalOpen.value = true;
 		return controller;
@@ -76,18 +78,18 @@ export function useExportProgress(options: UseExportProgressOptions): UseExportP
 	}
 
 	async function runPdf(): Promise<void> {
-		const controller = beginExport('Export as PDF');
+		const controller = beginExport(t('pptx.ribbon.exportPdf'));
 		const pdfOptions: ExportPdfOptions = {
 			signal: controller.signal,
 			onProgress: (current, total) => {
 				exportProgress.value = slideProgressPercent(current, total);
-				exportStatusMessage.value = slideStatusLabel('Rendering', current, total);
+				exportStatusMessage.value = slideStatusLabel(t('pptx.export.rendering'), current, total);
 			},
 		};
 		try {
 			await exporter.exportPdf(pdfOptions);
 			exportProgress.value = EXPORT_ASSEMBLING_PERCENT;
-			exportStatusMessage.value = 'Building PDF...';
+			exportStatusMessage.value = t('pptx.export.buildingPdf');
 			exportProgress.value = EXPORT_DONE_PERCENT;
 		} catch (err) {
 			if (!isExportAbortError(err)) {
@@ -99,17 +101,17 @@ export function useExportProgress(options: UseExportProgressOptions): UseExportP
 	}
 
 	async function runGif(): Promise<void> {
-		const controller = beginExport('Export as GIF');
+		const controller = beginExport(t('pptx.ribbon.exportGif'));
 		const gifOptions: MediaExportOptions = {
 			signal: controller.signal,
 			onProgress: (current, total) => {
 				exportProgress.value = slideProgressPercent(current, total);
-				exportStatusMessage.value = slideStatusLabel('Encoding', current, total);
+				exportStatusMessage.value = slideStatusLabel(t('pptx.export.encoding'), current, total);
 			},
 		};
 		try {
 			await mediaExport.exportGif(gifOptions);
-			exportStatusMessage.value = 'Saving file...';
+			exportStatusMessage.value = t('pptx.export.savingFile');
 		} catch (err) {
 			if (!isExportAbortError(err)) {
 				console.error('[PowerPointViewer] GIF export failed:', err);
@@ -120,21 +122,21 @@ export function useExportProgress(options: UseExportProgressOptions): UseExportP
 	}
 
 	async function runWebm(): Promise<void> {
-		const controller = beginExport('Export as Video');
+		const controller = beginExport(t('pptx.ribbon.exportVideo'));
 		const webmOptions: WebmExportOptions = {
 			signal: controller.signal,
 			onProgress: (current, total) => {
 				exportProgress.value = slideProgressPercent(current, total, 45);
-				exportStatusMessage.value = slideStatusLabel('Capturing', current, total);
+				exportStatusMessage.value = slideStatusLabel(t('pptx.export.capturing'), current, total);
 			},
 			onRecordProgress: (current, total) => {
 				exportProgress.value = recordProgressPercent(current, total);
-				exportStatusMessage.value = slideStatusLabel('Recording', current, total);
+				exportStatusMessage.value = slideStatusLabel(t('pptx.export.recording'), current, total);
 			},
 		};
 		try {
 			await mediaExport.exportWebm(webmOptions);
-			exportStatusMessage.value = 'Saving file...';
+			exportStatusMessage.value = t('pptx.export.savingFile');
 		} catch (err) {
 			if (!isExportAbortError(err)) {
 				console.error('[PowerPointViewer] Video export failed:', err);

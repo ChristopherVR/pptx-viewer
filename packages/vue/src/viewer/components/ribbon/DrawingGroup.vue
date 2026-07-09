@@ -6,6 +6,7 @@ import { Layers, PaintBucket, PenLine, Shapes, Sparkles } from 'lucide-vue-next'
  * Vue port of React's `toolbar/DrawingGroup.tsx`.
  */
 import type { PptxElement } from 'pptx-viewer-core';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { ic, MENU_ITEM, MENU_PANEL, pill, SEP } from './ribbon-constants';
@@ -24,20 +25,21 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
-const TOP_SHAPES: Array<{ type: SupportedShapeType; label: string }> = [
-	{ type: 'rect', label: 'Rectangle' },
-	{ type: 'roundRect', label: 'Rounded Rectangle' },
-	{ type: 'ellipse', label: 'Ellipse' },
-	{ type: 'triangle', label: 'Triangle' },
-	{ type: 'diamond', label: 'Diamond' },
-	{ type: 'pentagon', label: 'Pentagon' },
-	{ type: 'hexagon', label: 'Hexagon' },
-	{ type: 'star5', label: '5-Point Star' },
-	{ type: 'rtArrow', label: 'Arrow' },
-	{ type: 'chevron', label: 'Chevron' },
-	{ type: 'heart', label: 'Heart' },
-	{ type: 'cloud', label: 'Cloud' },
+const TOP_SHAPES: Array<{ type: SupportedShapeType; labelKey: string }> = [
+	{ type: 'rect', labelKey: 'pptx.editorToolbar.shapeRectangle' },
+	{ type: 'roundRect', labelKey: 'pptx.editorToolbar.shapeRoundedRectangle' },
+	{ type: 'ellipse', labelKey: 'pptx.editorToolbar.shapeEllipse' },
+	{ type: 'triangle', labelKey: 'pptx.editorToolbar.shapeTriangle' },
+	{ type: 'diamond', labelKey: 'pptx.shapePresets.diamond' },
+	{ type: 'pentagon', labelKey: 'pptx.shapePresets.pentagon' },
+	{ type: 'hexagon', labelKey: 'pptx.shapePresets.hexagon' },
+	{ type: 'star5', labelKey: 'pptx.ribbon.shapeStar5' },
+	{ type: 'rtArrow', labelKey: 'pptx.shapePresets.arrow' },
+	{ type: 'chevron', labelKey: 'pptx.shapePresets.chevron' },
+	{ type: 'heart', labelKey: 'pptx.shapePresets.heart' },
+	{ type: 'cloud', labelKey: 'pptx.shapePresets.cloud' },
 ];
 
 const FILL_COLORS = [
@@ -95,11 +97,11 @@ function handleOutline(color: string): void {
 					type="button"
 					:disabled="!props.canEdit"
 					:class="pill"
-					title="Shapes"
+					:title="t('pptx.drawing.shapes')"
 					@click="shapesMenu.toggle()"
 				>
 					<Shapes :class="ic" />
-					Shapes
+					{{ t('pptx.drawing.shapes') }}
 				</button>
 				<div
 					v-if="shapesMenu.open.value"
@@ -113,7 +115,7 @@ function handleOutline(color: string): void {
 							:class="cn(MENU_ITEM, props.newShapeType === s.type && 'bg-accent')"
 							@click="handlePickShape(s)"
 						>
-							{{ s.label }}
+							{{ t(s.labelKey) }}
 						</button>
 					</div>
 				</div>
@@ -125,11 +127,11 @@ function handleOutline(color: string): void {
 					type="button"
 					:disabled="!props.canEdit || !props.selectedElement"
 					:class="pill"
-					title="Arrange"
+					:title="t('pptx.ribbon.arrange')"
 					@click="arrangeMenu.toggle()"
 				>
 					<Layers :class="ic" />
-					Arrange
+					{{ t('pptx.ribbon.arrange') }}
 				</button>
 				<div
 					v-if="arrangeMenu.open.value"
@@ -137,16 +139,16 @@ function handleOutline(color: string): void {
 				>
 					<div :class="MENU_PANEL">
 						<button type="button" :class="MENU_ITEM" @click="handleArrange('forward', false)">
-							Bring Forward
+							{{ t('pptx.contextMenu.bringForward') }}
 						</button>
 						<button type="button" :class="MENU_ITEM" @click="handleArrange('backward', false)">
-							Send Backward
+							{{ t('pptx.contextMenu.sendBackward') }}
 						</button>
 						<button type="button" :class="MENU_ITEM" @click="handleArrange('front', true)">
-							Bring to Front
+							{{ t('pptx.contextMenu.bringToFront') }}
 						</button>
 						<button type="button" :class="MENU_ITEM" @click="handleArrange('back', true)">
-							Send to Back
+							{{ t('pptx.contextMenu.sendToBack') }}
 						</button>
 					</div>
 				</div>
@@ -158,7 +160,7 @@ function handleOutline(color: string): void {
 					type="button"
 					:disabled="!props.canEdit || !props.selectedElement"
 					:class="pill"
-					title="Shape Fill"
+					:title="t('pptx.drawing.shapeFill')"
 					@click="fillMenu.toggle()"
 				>
 					<PaintBucket :class="ic" />
@@ -186,7 +188,7 @@ function handleOutline(color: string): void {
 					type="button"
 					:disabled="!props.canEdit || !props.selectedElement"
 					:class="pill"
-					title="Shape Outline"
+					:title="t('pptx.drawing.shapeOutline')"
 					@click="outlineMenu.toggle()"
 				>
 					<PenLine :class="ic" />
@@ -213,12 +215,14 @@ function handleOutline(color: string): void {
 				type="button"
 				disabled
 				:class="cn(pill, 'opacity-50 cursor-not-allowed')"
-				title="Shape Effects (not available)"
+				:title="t('pptx.drawing.shapeEffectsUnavailable')"
 			>
 				<Sparkles :class="ic" />
 			</button>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">Drawing</span>
+		<span class="text-[9px] text-muted-foreground leading-none">{{
+			t('pptx.ribbon.groupDrawing')
+		}}</span>
 	</div>
 
 	<div :class="SEP" />

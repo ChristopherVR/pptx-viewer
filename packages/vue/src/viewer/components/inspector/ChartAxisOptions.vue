@@ -162,7 +162,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 						:class="INPUT"
 						data-testid="chart-axis-number-format"
 						:value="row.axis.numFmt?.formatCode ?? ''"
-						placeholder="General"
+						:placeholder="t('pptx.chart.numberFormatPlaceholder')"
 						@input="onNumberFormat($event, row.type)"
 					/>
 				</label>

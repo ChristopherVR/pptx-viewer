@@ -1,6 +1,7 @@
 import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { ContextMenuItem } from '../components/ContextMenu.vue';
 import {
@@ -57,6 +58,7 @@ export interface UseContextMenuResult {
  * dispatches each action. Extracted verbatim from `PowerPointViewer.vue`.
  */
 export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult {
+	const { t } = useI18n();
 	const {
 		canEdit,
 		findActiveElement,
@@ -107,41 +109,44 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 
 	const contextItems = computed<ContextMenuItem[]>(() => {
 		const items: ContextMenuItem[] = [
-			{ id: 'cut', label: 'Cut' },
-			{ id: 'copy', label: 'Copy' },
-			{ id: 'paste', label: 'Paste', disabled: !hasClipboard.value },
+			{ id: 'cut', label: t('pptx.contextMenu.cut') },
+			{ id: 'copy', label: t('pptx.contextMenu.copy') },
+			{ id: 'paste', label: t('pptx.contextMenu.paste'), disabled: !hasClipboard.value },
 			{ id: 'sep1', label: '', separator: true },
-			{ id: 'duplicate', label: 'Duplicate' },
-			{ id: 'delete', label: 'Delete' },
+			{ id: 'duplicate', label: t('pptx.contextMenu.duplicate') },
+			{ id: 'delete', label: t('pptx.contextMenu.delete') },
 			{ id: 'sep2', label: '', separator: true },
-			{ id: 'bring-forward', label: 'Bring forward' },
-			{ id: 'send-backward', label: 'Send backward' },
+			{ id: 'bring-forward', label: t('pptx.contextMenu.bringForward') },
+			{ id: 'send-backward', label: t('pptx.contextMenu.sendBackward') },
 			{ id: 'sep3', label: '', separator: true },
-			{ id: 'group', label: 'Group', disabled: !canGroup.value },
-			{ id: 'ungroup', label: 'Ungroup', disabled: !canUngroup.value },
+			{ id: 'group', label: t('pptx.contextMenu.group'), disabled: !canGroup.value },
+			{ id: 'ungroup', label: t('pptx.contextMenu.ungroup'), disabled: !canUngroup.value },
 			{ id: 'sep4', label: '', separator: true },
-			{ id: 'hyperlink', label: 'Hyperlink…' },
+			{ id: 'hyperlink', label: t('pptx.contextMenu.editHyperlink') },
 		];
 		const tbl = contextTable.value;
 		if (tbl) {
 			items.push(
 				{ id: 'sep-table', label: '', separator: true },
-				{ id: 'table-insert-row-above', label: 'Insert row above' },
-				{ id: 'table-insert-row-below', label: 'Insert row below' },
-				{ id: 'table-delete-row', label: 'Delete row' },
-				{ id: 'table-insert-col-left', label: 'Insert column left' },
-				{ id: 'table-insert-col-right', label: 'Insert column right' },
-				{ id: 'table-delete-col', label: 'Delete column' },
+				{ id: 'table-insert-row-above', label: t('pptx.contextMenu.insertRowAbove') },
+				{ id: 'table-insert-row-below', label: t('pptx.contextMenu.insertRowBelow') },
+				{ id: 'table-delete-row', label: t('pptx.contextMenu.deleteRow') },
+				{ id: 'table-insert-col-left', label: t('pptx.contextMenu.insertColumnLeft') },
+				{ id: 'table-insert-col-right', label: t('pptx.contextMenu.insertColumnRight') },
+				{ id: 'table-delete-col', label: t('pptx.contextMenu.deleteColumn') },
 				{ id: 'sep-table-merge', label: '', separator: true },
 			);
 			if (tbl.hasMulti) {
-				items.push({ id: 'table-merge-selected', label: 'Merge selected cells' });
+				items.push({
+					id: 'table-merge-selected',
+					label: t('pptx.contextMenu.mergeSelectedCells'),
+				});
 			} else if (tbl.isMerged) {
-				items.push({ id: 'table-split', label: 'Split cell' });
+				items.push({ id: 'table-split', label: t('pptx.contextMenu.splitCell') });
 			} else {
 				items.push(
-					{ id: 'table-merge-right', label: 'Merge cells' },
-					{ id: 'table-merge-down', label: 'Merge down' },
+					{ id: 'table-merge-right', label: t('pptx.contextMenu.mergeCells') },
+					{ id: 'table-merge-down', label: t('pptx.table.mergeDown') },
 				);
 			}
 		}

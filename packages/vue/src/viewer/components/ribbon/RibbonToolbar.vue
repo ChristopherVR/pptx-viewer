@@ -49,7 +49,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 <template>
 	<div
 		role="toolbar"
-		aria-label="Presentation toolbar"
+		:aria-label="t('pptx.toolbar.presentationToolbarAria')"
 		class="relative z-20 border-b border-border bg-secondary/50 overflow-visible"
 	>
 		<!-- Quick Access Row -->
@@ -281,7 +281,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 			<template v-if="s === 'record'">
 				<button type="button" :class="pill" disabled>
 					<span class="w-2.5 h-2.5 rounded-full bg-red-500 mr-1.5" />
-					Record
+					{{ t('pptx.ribbon.tab.record') }}
 				</button>
 			</template>
 

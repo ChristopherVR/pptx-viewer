@@ -96,11 +96,11 @@ function handleApplyLayout(lo: LayoutOption): void {
 					type="button"
 					:disabled="!props.canEdit || props.layoutOptions.length === 0"
 					:class="pill"
-					title="Layout"
+					:title="t('pptx.master.layout')"
 					@click="layoutApplyMenu.toggle()"
 				>
 					<LayoutGrid :class="ic" />
-					Layout
+					{{ t('pptx.master.layout') }}
 				</button>
 				<div
 					v-if="layoutApplyMenu.open.value"
@@ -125,11 +125,11 @@ function handleApplyLayout(lo: LayoutOption): void {
 				type="button"
 				:disabled="!props.canEdit"
 				:class="pill"
-				title="Reset Slide"
+				:title="t('pptx.sections.resetSlideTitle')"
 				@click="props.onResetSlide?.()"
 			>
 				<RotateCcw :class="ic" />
-				Reset
+				{{ t('pptx.animations.reset') }}
 			</button>
 
 			<!-- Section -->
@@ -137,11 +137,11 @@ function handleApplyLayout(lo: LayoutOption): void {
 				type="button"
 				:disabled="!props.canEdit"
 				:class="pill"
-				title="Add Section"
+				:title="t('pptx.sections.addSection')"
 				@click="props.onAddSection?.()"
 			>
 				<FolderPlus :class="ic" />
-				Section
+				{{ t('pptx.sections.sectionButtonLabel') }}
 			</button>
 		</div>
 		<span class="text-[9px] text-muted-foreground leading-none">{{
