@@ -1,37 +1,38 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
+
+import { useLandingCopy } from './copy';
+
+const DEMO_URL = 'https://christophervr.github.io/pptx-viewer/demo/';
+const copy = useLandingCopy();
 </script>
 
 <template>
 	<section class="pv-hero">
 		<div class="pv-hero__inner">
 			<div class="pv-hero__copy">
-				<p class="pv-kicker pv-enter">Open source &middot; Apache-2.0 &middot; TypeScript</p>
+				<p class="pv-kicker pv-enter">{{ copy.hero.kicker }}</p>
 				<h1 class="pv-hero__title pv-enter pv-enter--2">
-					The PowerPoint engine<br />
-					<em>for the web.</em>
+					{{ copy.hero.titleTop }}<br />
+					<em>{{ copy.hero.titleAccent }}</em>
 				</h1>
-				<p class="pv-hero__sub pv-enter pv-enter--3">
-					pptx-viewer parses, renders, edits, and saves .pptx files entirely in the browser or
-					Node.js. Real HTML and SVG rendering, full round-trip fidelity, and drop-in viewer
-					components for React, Vue, and Angular.
-				</p>
+				<p class="pv-hero__sub pv-enter pv-enter--3">{{ copy.hero.sub }}</p>
 				<div class="pv-hero__actions pv-enter pv-enter--4">
-					<a class="pv-btn pv-btn--solid" :href="withBase('/guide/introduction')">
-						<span>Get started</span>
+					<a class="pv-btn pv-btn--solid" :href="withBase(copy.hero.start.href)">
+						<span>{{ copy.hero.start.text }}</span>
 					</a>
-					<a class="pv-btn pv-btn--ghost" href="https://christophervr.github.io/pptx-viewer/demo/">
-						<span>Open the live demo</span>
+					<a class="pv-btn pv-btn--ghost" :href="DEMO_URL">
+						<span>{{ copy.hero.demo }}</span>
 					</a>
 				</div>
 				<code class="pv-hero__install pv-enter pv-enter--4">npm install pptx-react-viewer</code>
 			</div>
 			<div class="pv-hero__stage pv-enter pv-enter--3">
-				<a class="pv-hero__frame" href="https://christophervr.github.io/pptx-viewer/demo/">
+				<a class="pv-hero__frame" :href="DEMO_URL">
 					<span class="pv-hero__framebar">
 						<span class="pv-hero__dots" aria-hidden="true"><i></i><i></i><i></i></span>
-						<span class="pv-hero__framefile">sample-deck.pptx &middot; live in the browser</span>
-						<span class="pv-hero__frametry">Try it &rarr;</span>
+						<span class="pv-hero__framefile">{{ copy.hero.frameCaption }}</span>
+						<span class="pv-hero__frametry">{{ copy.hero.frameTry }} &rarr;</span>
 					</span>
 					<img
 						:src="withBase('/hero-viewer.gif')"
@@ -44,7 +45,7 @@ import { withBase } from 'vitepress';
 			</div>
 		</div>
 		<div class="pv-hero__cue" aria-hidden="true">
-			<span>Scroll</span>
+			<span>{{ copy.hero.scroll }}</span>
 			<i></i>
 		</div>
 	</section>

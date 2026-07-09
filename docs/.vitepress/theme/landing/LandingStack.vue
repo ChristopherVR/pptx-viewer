@@ -1,51 +1,22 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
 
-const packages = [
-	{
-		name: 'pptx-react-viewer',
-		desc: 'Viewer + WYSIWYG editor for React 19',
-		href: '/react/getting-started',
-		external: false,
-	},
-	{
-		name: 'pptx-vue-viewer',
-		desc: 'The same feature set for Vue 3',
-		href: 'https://www.npmjs.com/package/pptx-vue-viewer',
-		external: true,
-	},
-	{
-		name: 'pptx-angular-viewer',
-		desc: 'The same feature set for Angular',
-		href: 'https://www.npmjs.com/package/pptx-angular-viewer',
-		external: true,
-	},
-	{
-		name: 'pptx-viewer-core',
-		desc: 'Headless engine: parse, edit, convert, encrypt',
-		href: '/core/',
-		external: false,
-	},
-	{
-		name: 'pptx-viewer-mcp',
-		desc: '25 MCP tools, CLI, collaboration codec',
-		href: '/packages/mcp',
-		external: false,
-	},
-];
+import { useLandingCopy } from './copy';
+
+const copy = useLandingCopy();
 </script>
 
 <template>
 	<section class="pv-section pv-stack">
-		<p class="pv-kicker" data-reveal>Choose your stack</p>
-		<h2 class="pv-h2" data-reveal="2">One install. The whole engine.</h2>
+		<p class="pv-kicker" data-reveal>{{ copy.stack.kicker }}</p>
+		<h2 class="pv-h2" data-reveal="2">{{ copy.stack.title }}</h2>
 		<p class="pv-copy" data-reveal="3">
-			Every UI package bundles the core engine, so you add exactly one dependency. Not sure which
-			one? <code>npx @christophervr/pptx-viewer</code> walks you through it.
+			{{ copy.stack.copyPre }}<code>{{ copy.stack.copyCode }}</code
+			>{{ copy.stack.copyPost }}
 		</p>
 		<div class="pv-stack__grid">
 			<a
-				v-for="(pkg, i) in packages"
+				v-for="(pkg, i) in copy.stack.packages"
 				:key="pkg.name"
 				class="pv-stack__card"
 				:href="pkg.external ? pkg.href : withBase(pkg.href)"
