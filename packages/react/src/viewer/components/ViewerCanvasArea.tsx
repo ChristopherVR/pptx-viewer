@@ -12,6 +12,7 @@ import {
 	SlideCanvas,
 	PresentationAnnotationOverlay,
 	PresentationSubtitleBar,
+	PresentationTransitionOverlay,
 	PresentationToolbar,
 	PresentationTouchControls,
 } from '.';
@@ -370,6 +371,23 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					}}
 				/>
 			)}
+
+			{/* Slide-transition overlay: animates the outgoing slide over the
+			    incoming one (already live on the main stage) while a transition
+			    plays, then tears itself down on completion. */}
+			{mode === 'present' &&
+				presentation.transitionOverlay &&
+				slides[presentation.transitionOverlay.outgoingSlideIndex] && (
+					<PresentationTransitionOverlay
+						key={`${presentation.transitionOverlay.outgoingSlideIndex}-${presentation.transitionOverlay.incomingSlideIndex}`}
+						outgoingSlide={slides[presentation.transitionOverlay.outgoingSlideIndex]}
+						templateElements={templateElements}
+						canvasSize={canvasSize}
+						transition={presentation.transitionOverlay.transition}
+						durationMs={presentation.transitionOverlay.durationMs}
+						onComplete={presentation.handleTransitionOverlayComplete}
+					/>
+				)}
 
 			{/* Presentation annotation overlay */}
 			{mode === 'present' && annotations.presentationTool !== 'none' && (

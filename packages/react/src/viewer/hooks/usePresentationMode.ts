@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 
 import type {
+	PresentationTransitionOverlayState,
 	UsePresentationModeInput,
 	UsePresentationModeResult,
 } from './presentation-mode/types';
@@ -45,6 +46,11 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 
 	const [presentationSlideIndex, setPresentationSlideIndex] = useState(0);
 	const [presentationSlideVisible, setPresentationSlideVisible] = useState(true);
+	const [transitionOverlay, setTransitionOverlay] =
+		useState<PresentationTransitionOverlayState | null>(null);
+	const handleTransitionOverlayComplete = useCallback(() => {
+		setTransitionOverlay(null);
+	}, []);
 	const [presenterMode, setPresenterMode] = useState(false);
 	const [presentationStartTime, setPresentationStartTime] = useState<number | null>(null);
 	// Guards against the fullscreenchange listener exiting present mode
@@ -102,6 +108,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		presentationSlideIndex,
 		setPresentationSlideIndex,
 		setPresentationSlideVisible,
+		setTransitionOverlay,
 		onSetMode,
 		onSetActiveSlideIndex,
 		onPlayActionSound,
@@ -246,6 +253,9 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 			setPresentationSlideIndex(idx);
 			runEntranceAnimationsRef.current(idx);
 			scheduleAutoAdvanceRef.current(idx);
+		} else {
+			// Leaving present mode: drop any in-flight transition overlay.
+			setTransitionOverlay(null);
 		}
 		// NOTE: fullscreen exit is handled by the dedicated effect below -
 		// doing it here would fire on every dependency change (e.g. slide
@@ -339,6 +349,8 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		presentationSlideIndex,
 		setPresentationSlideIndex,
 		presentationSlideVisible,
+		transitionOverlay,
+		handleTransitionOverlayComplete,
 		presentationAnimations,
 		presentationElementStates,
 		presentationKeyframesCss,

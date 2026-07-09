@@ -12,9 +12,18 @@ function createMockSlide(overrides: Partial<PptxSlide> = {}): PptxSlide {
 	} as PptxSlide;
 }
 
+/** A slide carrying a real animated transition (fade, 300ms). */
+function createTransitionSlide(): PptxSlide {
+	return createMockSlide({
+		id: 'slide-2',
+		transition: { type: 'fade', durationMs: 300 } as PptxSlide['transition'],
+	});
+}
+
 function createMockDeps(overrides: Partial<SlideTransitionDeps> = {}): SlideTransitionDeps {
 	return {
-		slides: [createMockSlide(), createMockSlide({ id: 'slide-2' })],
+		// Default: advancing from slide 1 (index 0) into a transition-bearing slide 2.
+		slides: [createMockSlide(), createTransitionSlide()],
 		currentSlideIndex: 0,
 		onPlayActionSound: vi.fn<() => void>(),
 		setPresentationSlideVisible: vi.fn<() => void>(),
@@ -24,6 +33,8 @@ function createMockDeps(overrides: Partial<SlideTransitionDeps> = {}): SlideTran
 		runPresentationEntranceAnimations: vi.fn<() => void>(),
 		scheduleAutoAdvanceForSlide: vi.fn<() => void>(),
 		presentationTimersRef: { current: [] },
+		setTransitionOverlay: vi.fn<() => void>(),
+		playTransition: true,
 		...overrides,
 	};
 }
@@ -42,110 +53,101 @@ describe('executeSlideTransition', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('should hide the current slide immediately', () => {
+	it('swaps to the incoming slide immediately (main stage renders it under the overlay)', () => {
 		const deps = createMockDeps();
 		executeSlideTransition(1, deps);
-		expect(deps.setPresentationSlideVisible).toHaveBeenCalledWith(false);
+		expect(deps.setPresentationSlideIndex).toHaveBeenCalledWith(1);
+		expect(deps.onSetActiveSlideIndex).toHaveBeenCalledWith(1);
+		expect(deps.setPresentationSlideVisible).toHaveBeenCalledWith(true);
 	});
 
-	it('should clear existing timers', () => {
+	it('clears existing timers', () => {
 		const deps = createMockDeps();
 		executeSlideTransition(1, deps);
 		expect(deps.clearPresentationTimers).toHaveBeenCalledWith();
 	});
 
-	it('should play transition sound when slide has one', () => {
-		const slide = createMockSlide({
-			transition: { soundPath: 'swoosh.wav', durationMs: 500 } as PptxSlide['transition'],
+	it('mounts the transition overlay for a forward move into a transition slide', () => {
+		const deps = createMockDeps();
+		executeSlideTransition(1, deps);
+		expect(deps.setTransitionOverlay).toHaveBeenCalledWith({
+			outgoingSlideIndex: 0,
+			incomingSlideIndex: 1,
+			transition: { type: 'fade', durationMs: 300 },
+			durationMs: 300,
 		});
-		const deps = createMockDeps({ slides: [slide, createMockSlide()] });
+	});
+
+	it('plays the incoming slide transition sound when present', () => {
+		const deps = createMockDeps({
+			slides: [
+				createMockSlide(),
+				createMockSlide({
+					transition: {
+						type: 'fade',
+						durationMs: 300,
+						soundPath: 'swoosh.wav',
+					} as PptxSlide['transition'],
+				}),
+			],
+		});
 		executeSlideTransition(1, deps);
 		expect(deps.onPlayActionSound).toHaveBeenCalledWith('swoosh.wav');
 	});
 
-	it('should not play sound when slide has no transition sound', () => {
+	it('does not play sound when the incoming transition has none', () => {
 		const deps = createMockDeps();
 		executeSlideTransition(1, deps);
 		expect(deps.onPlayActionSound).not.toHaveBeenCalled();
 	});
 
-	it('should set next slide index after transition duration', () => {
-		const slide = createMockSlide({
-			transition: { durationMs: 300 } as PptxSlide['transition'],
-		});
-		const deps = createMockDeps({ slides: [slide, createMockSlide()] });
-		executeSlideTransition(1, deps);
-
-		expect(deps.setPresentationSlideIndex).not.toHaveBeenCalled();
-
-		// Advance past transition duration (clamped to max 480)
-		vi.advanceTimersByTime(310);
-		expect(deps.setPresentationSlideIndex).toHaveBeenCalledWith(1);
-	});
-
-	it('should make next slide visible after transition', () => {
+	it('defers entrance animations until the transition duration elapses', () => {
 		const deps = createMockDeps();
 		executeSlideTransition(1, deps);
 
-		vi.advanceTimersByTime(500);
-		expect(deps.setPresentationSlideVisible).toHaveBeenCalledWith(true);
-	});
+		// Not run synchronously: the overlay is still covering the incoming slide.
+		expect(deps.runPresentationEntranceAnimations).not.toHaveBeenCalled();
 
-	it('should set active slide index after transition', () => {
-		const deps = createMockDeps();
-		executeSlideTransition(1, deps);
-
-		vi.advanceTimersByTime(500);
-		expect(deps.onSetActiveSlideIndex).toHaveBeenCalledWith(1);
-	});
-
-	it('should run entrance animations after transition', () => {
-		const deps = createMockDeps();
-		executeSlideTransition(1, deps);
-
-		vi.advanceTimersByTime(500);
+		vi.advanceTimersByTime(300);
 		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1);
-	});
-
-	it('should schedule auto-advance for the next slide', () => {
-		const deps = createMockDeps();
-		executeSlideTransition(1, deps);
-
-		vi.advanceTimersByTime(500);
 		expect(deps.scheduleAutoAdvanceForSlide).toHaveBeenCalledWith(1);
 	});
 
-	it('should push timer to presentationTimersRef', () => {
+	it('pushes the deferred entrance timer to presentationTimersRef', () => {
 		const deps = createMockDeps();
 		executeSlideTransition(1, deps);
 		expect(deps.presentationTimersRef.current).toHaveLength(1);
 	});
 
-	it('should use minimum transition duration of 120ms', () => {
-		const slide = createMockSlide({
-			transition: { durationMs: 50 } as PptxSlide['transition'],
-		});
-		const deps = createMockDeps({ slides: [slide, createMockSlide()] });
+	it('does not mount an overlay for a backward / non-forward move', () => {
+		const deps = createMockDeps({ playTransition: false });
 		executeSlideTransition(1, deps);
-
-		// At 100ms, transition should NOT have fired yet (minimum is 120)
-		vi.advanceTimersByTime(100);
-		expect(deps.setPresentationSlideIndex).not.toHaveBeenCalled();
-
-		// At 130ms, the timer fires
-		vi.advanceTimersByTime(30);
-		expect(deps.setPresentationSlideIndex).toHaveBeenCalledWith(1);
+		expect(deps.setTransitionOverlay).toHaveBeenCalledWith(null);
+		// Instant: entrance runs synchronously, no deferred timer.
+		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1);
+		expect(deps.scheduleAutoAdvanceForSlide).toHaveBeenCalledWith(1);
+		expect(deps.presentationTimersRef.current).toHaveLength(0);
 	});
 
-	it('should cap transition duration at 480ms', () => {
-		const slide = createMockSlide({
-			transition: { durationMs: 2000 } as PptxSlide['transition'],
+	it('does not mount an overlay for an instant (none) transition', () => {
+		const deps = createMockDeps({
+			slides: [
+				createMockSlide(),
+				createMockSlide({ transition: { type: 'none' } as PptxSlide['transition'] }),
+			],
 		});
-		const deps = createMockDeps({ slides: [slide, createMockSlide()] });
 		executeSlideTransition(1, deps);
+		expect(deps.setTransitionOverlay).toHaveBeenCalledWith(null);
+		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1);
+	});
 
-		// At 480ms, the transition should complete (not wait for 2000ms)
-		vi.advanceTimersByTime(490);
-		expect(deps.setPresentationSlideIndex).toHaveBeenCalledWith(1);
+	it('reveals the slide instantly when it has no transition at all', () => {
+		const deps = createMockDeps({
+			slides: [createMockSlide(), createMockSlide({ id: 'slide-2' })],
+		});
+		executeSlideTransition(1, deps);
+		expect(deps.setTransitionOverlay).toHaveBeenCalledWith(null);
+		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1);
+		expect(deps.presentationTimersRef.current).toHaveLength(0);
 	});
 });

@@ -51,6 +51,7 @@ export { PresentationAnnotationOverlay } from './PresentationAnnotationOverlay';
 export { PresentationToolbar, PresentationToolbarWrapper } from './PresentationToolbar';
 export { PresentationTouchControls } from './PresentationTouchControls';
 export { PresentationSubtitleBar } from './PresentationSubtitleBar';
+export { PresentationTransitionOverlay } from './PresentationTransitionOverlay';
 export { KeepAnnotationsDialog } from './KeepAnnotationsDialog';
 
 // Print dialog

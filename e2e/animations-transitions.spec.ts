@@ -8,25 +8,22 @@
  * `ribbon-tab-parity.spec.ts`, which checks the ribbon tabs switch, not that
  * anything animates). Both features are genuinely implemented in core - a
  * typed `PptxSlideTransition` model (parsed/serialized as real `p:transition`
- * XML) and native `p:timing` animation timelines - but investigation while
- * writing this spec found the three bindings render them via **architecturally
- * different mechanisms**, with one real gap:
+ * XML) and native `p:timing` animation timelines - and all three bindings now
+ * play transitions via the same mechanism (mount a transient overlay whose
+ * outgoing-slide layer carries a real CSS `animation`, then tear it down once
+ * the duration elapses):
  *
- *  - VUE (`PresentationTransitionOverlay.vue`) and ANGULAR
- *    (`presentation-transition-overlay.component.ts`) mount a genuine transient
- *    overlay while a transition plays: the outgoing slide (Vue: + a second,
- *    redundant incoming layer) is snapshotted into its own DOM subtree with a
- *    real CSS `animation` applied, then torn down once the duration elapses.
- *    This is directly assertable.
- *  - REACT's live "Present" flow does NOT wire up its equivalent
- *    (`PresentationTransitionOverlay.tsx` exists but is dead code - imported
- *    nowhere). `executeSlideTransition()` in
- *    `packages/react/src/viewer/hooks/presentation-mode/slide-transition.ts`
- *    only delays the slide swap by `min(transitionDuration, 480)`ms before an
- *    instant DOM replace; there is no CSS transition state to observe. The
- *    transition test below asserts what's actually true for React (a timing
- *    gap before an instant swap) rather than pretending a CSS transition
- *    plays, and documents the gap inline - see the "KNOWN GAP" comment.
+ *  - VUE (`PresentationTransitionOverlay.vue`) mounts an overlay with two
+ *    layers (outgoing + a redundant incoming), each with a real CSS
+ *    `animation`.
+ *  - ANGULAR (`presentation-transition-overlay.component.ts`) and REACT
+ *    (`PresentationTransitionOverlay.tsx`) mount an overlay whose single layer
+ *    snapshots the OUTGOING slide with a real CSS `animation`, over the
+ *    always-current incoming slide on the main stage underneath. React's
+ *    `executeSlideTransition()`
+ *    (`packages/react/src/viewer/hooks/presentation-mode/slide-transition.ts`)
+ *    swaps the incoming slide in immediately and mounts
+ *    `.pptx-react-transition-overlay` for the transition's duration.
  *
  * Element animations, by contrast, are observable in *all three* bindings, but
  * via different signals:
@@ -228,18 +225,20 @@ test.describe('slide transition playback', () => {
 
 			await expect(overlay).toHaveCount(0, { timeout: TRANSITION_SETTLE_TIMEOUT_MS });
 		} else {
-			// KNOWN GAP (react): `executeSlideTransition()` delays the slide swap
-			// by `min(transitionDuration, 480)`ms then replaces the DOM instantly;
-			// there is no CSS transition overlay wired to the live Present flow to
-			// assert against (see the module doc above). This asserts the actual,
-			// honest behaviour: the outgoing slide is still on screen immediately
-			// after the advancing keypress, and the incoming slide only appears
-			// once the swap fires.
+			const overlay = page.locator('.pptx-react-transition-overlay');
 			await advance(page);
-			await expect(await slideTitle(page, SLIDES.first)).toBeVisible();
-			await expect(await slideTitle(page, SLIDES.transitionTarget)).toBeVisible({
-				timeout: TRANSITION_SETTLE_TIMEOUT_MS,
-			});
+
+			await expect(overlay).toBeVisible();
+			const layer = overlay.locator('.pptx-react-transition-layer');
+			// The overlay renders only the OUTGOING slide as a snapshot layer; the
+			// incoming slide is the always-current main stage underneath it - both
+			// coexist for the transition's duration (same design as Angular).
+			await expect(layer).toContainText(SLIDES.first);
+			const animation = await layer.evaluate((el) => (el as HTMLElement).style.animation);
+			expect(animation, 'transition layer has a CSS animation applied').not.toBe('');
+			await expect(await slideTitle(page, SLIDES.transitionTarget)).toBeVisible();
+
+			await expect(overlay).toHaveCount(0, { timeout: TRANSITION_SETTLE_TIMEOUT_MS });
 		}
 
 		// Steady state is identical across all three once the transition settles:
@@ -267,6 +266,9 @@ test.describe('element animation playback', () => {
 			timeout: TRANSITION_SETTLE_TIMEOUT_MS,
 		});
 		await expect(page.locator('pptx-presentation-transition-overlay')).toHaveCount(0, {
+			timeout: TRANSITION_SETTLE_TIMEOUT_MS,
+		});
+		await expect(page.locator('.pptx-react-transition-overlay')).toHaveCount(0, {
 			timeout: TRANSITION_SETTLE_TIMEOUT_MS,
 		});
 
