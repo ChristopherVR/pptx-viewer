@@ -98,6 +98,7 @@ import {
 				} @else if (hasDrawingShapes()) {
 					<svg
 						class="pptx-ng-smartart-svg"
+						data-testid="smartart-drawing-shapes"
 						[attr.viewBox]="svgViewBox()"
 						preserveAspectRatio="xMidYMid meet"
 					>
@@ -154,6 +155,7 @@ import {
 				} @else if (hasLayout()) {
 					<svg
 						class="pptx-ng-smartart-svg"
+						[attr.data-testid]="'smartart-' + layout().family"
 						[attr.viewBox]="layout().viewBox"
 						preserveAspectRatio="xMidYMid meet"
 						[attr.data-layout-family]="layout().family"
