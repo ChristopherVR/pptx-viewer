@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PptxChartSeries } from 'pptx-viewer-core';
-import { computed } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 /**
@@ -12,10 +12,15 @@ import { useI18n } from 'vue-i18n';
  *
  * All mutation is emitted upward; the parent routes it through `useChartEditing`
  * so the full new `chartData` is emitted via the panel's `update` contract.
+ *
+ * `highlightCell` is driven by the on-canvas chart part selection: a
+ * `pointIndex` ring-highlights one value cell, series-only highlights the
+ * series name header, and the highlighted cell is scrolled into view.
  */
 const props = defineProps<{
 	series: readonly PptxChartSeries[];
 	categories: readonly string[];
+	highlightCell?: { seriesIndex: number; pointIndex?: number } | null;
 }>();
 
 const emit = defineEmits<{
@@ -51,10 +56,41 @@ const CELL_INPUT =
 	'pptx-vue-chart-cell w-full bg-muted border border-border rounded px-1 py-0.5 text-[11px]';
 const BTN =
 	'pptx-vue-chart-grid-btn px-1.5 py-0.5 rounded border border-border bg-muted hover:bg-accent text-[11px]';
+
+// ── On-canvas part selection highlight ────────────────────────────
+const HIGHLIGHT_CLASS = 'pptx-vue-chart-cell-highlight ring-1 ring-primary';
+
+function isSeriesHighlight(seriesIndex: number): boolean {
+	return (
+		props.highlightCell?.seriesIndex === seriesIndex && props.highlightCell.pointIndex === undefined
+	);
+}
+
+function isValueHighlight(seriesIndex: number, catIndex: number): boolean {
+	return (
+		props.highlightCell?.seriesIndex === seriesIndex && props.highlightCell.pointIndex === catIndex
+	);
+}
+
+const rootEl = ref<HTMLElement | null>(null);
+
+// Bring the canvas-selected cell into view when the selection changes.
+watch(
+	() => [props.highlightCell?.seriesIndex, props.highlightCell?.pointIndex] as const,
+	async ([seriesIndex]) => {
+		if (seriesIndex === undefined) {
+			return;
+		}
+		await nextTick();
+		rootEl.value
+			?.querySelector('.pptx-vue-chart-cell-highlight')
+			?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+	},
+);
 </script>
 
 <template>
-	<div class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2">
+	<div ref="rootEl" class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2">
 		<div class="flex items-center justify-between">
 			<div class="pptx-vue-chart-heading text-[11px] uppercase tracking-wide text-muted-foreground">
 				{{ t('pptx.chart.data') }}
@@ -101,7 +137,7 @@ const BTN =
 							<div class="flex items-center gap-0.5">
 								<input
 									type="text"
-									:class="CELL_INPUT"
+									:class="[CELL_INPUT, isSeriesHighlight(si) ? HIGHLIGHT_CLASS : '']"
 									data-testid="chart-grid-series-name"
 									:value="s.name"
 									@input="onSeriesName($event, si)"
@@ -146,7 +182,7 @@ const BTN =
 						<td v-for="(s, si) in props.series" :key="`c-${si}-${ci}`" class="p-0.5">
 							<input
 								type="number"
-								:class="CELL_INPUT"
+								:class="[CELL_INPUT, isValueHighlight(si, ci) ? HIGHLIGHT_CLASS : '']"
 								data-testid="chart-grid-value"
 								:value="s.values[ci] ?? 0"
 								@input="onValue($event, si, ci)"

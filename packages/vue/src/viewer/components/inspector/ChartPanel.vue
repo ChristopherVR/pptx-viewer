@@ -4,6 +4,7 @@ import { GROUPING_OPTIONS, GROUPING_SUPPORTED_TYPES, CHART_TYPE_OPTIONS } from '
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectChartCanvasEdit } from '../../composables/chart-part-selection';
 import { useChartEditing } from '../../composables/useChartEditing';
 import { useDebouncedCallback } from '../../composables/useDebouncedCallback';
 import ChartAxisOptions from './ChartAxisOptions.vue';
@@ -60,6 +61,17 @@ const currentGrouping = computed<string>(() => chartData.value?.grouping ?? 'clu
 const showGrouping = computed(
 	() => chartData.value !== null && GROUPING_SUPPORTED_TYPES.has(chartData.value.chartType),
 );
+
+// Part selected by clicking a mark on the canvas chart, if it is this chart's:
+// ring-highlights + scrolls to the matching cell in the data grid below.
+const chartCanvasEdit = injectChartCanvasEdit();
+const highlightCell = computed<{ seriesIndex: number; pointIndex?: number } | null>(() => {
+	const selection = chartCanvasEdit?.selection.value;
+	if (!selection || selection.elementId !== props.element.id) {
+		return null;
+	}
+	return { seriesIndex: selection.part.seriesIndex, pointIndex: selection.part.pointIndex };
+});
 
 function emitChartData(next: PptxChartData): void {
 	emit('update', { chartData: next } as Partial<PptxElement>);
@@ -238,6 +250,7 @@ const CONTROL =
 			<ChartDataGrid
 				:series="series"
 				:categories="categories"
+				:highlight-cell="highlightCell"
 				@update-series="editing.updateSeries"
 				@update-category-label="editing.updateCategoryLabel"
 				@update-value="editing.updateValue"

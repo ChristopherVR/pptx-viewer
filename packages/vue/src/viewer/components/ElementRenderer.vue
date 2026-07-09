@@ -234,6 +234,7 @@ const linkTooltipLabel = computed(
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
 	/>
 	<SmartArt3DRenderer
 		v-else-if="element.type === 'smartArt' && smartArt3D"

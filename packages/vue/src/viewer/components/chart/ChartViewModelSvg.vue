@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { chartPartToAttrs } from 'pptx-viewer-shared';
 import type {
+	ChartPartRef,
 	ChartViewModel,
 	SvgCircle,
 	SvgLine,
@@ -72,6 +74,15 @@ function isText(p: SvgPrimitive): p is SvgText {
 	return p.kind === 'text';
 }
 
+/**
+ * `data-chart-*` hit-testing attributes for a tagged data-mark primitive.
+ * Always emitted (they are inert without pointer events); the chart canvas
+ * interaction layer activates them in edit mode via CSS + event delegation.
+ */
+function partAttrs(part: ChartPartRef | undefined): Record<string, string> {
+	return part ? chartPartToAttrs(part) : {};
+}
+
 interface LegendLayout {
 	x: number;
 	y: number;
@@ -107,6 +118,7 @@ const legendItems = computed<LegendLayout[]>(() => {
 			font-size="12"
 			font-weight="600"
 			fill="#1e293b"
+			data-chart-part="title"
 		>
 			{{ vm.title }}
 		</text>
@@ -201,6 +213,7 @@ const legendItems = computed<LegendLayout[]>(() => {
 				:fill="prim.fill"
 				:rx="prim.rx ?? 0"
 				:opacity="prim.opacity ?? 1"
+				v-bind="partAttrs(prim.part)"
 			/>
 			<path
 				v-else-if="isPath(prim)"
@@ -209,6 +222,7 @@ const legendItems = computed<LegendLayout[]>(() => {
 				:stroke="prim.stroke ?? 'none'"
 				:stroke-width="prim.strokeWidth ?? 0"
 				:fill-opacity="prim.opacity ?? 1"
+				v-bind="partAttrs(prim.part)"
 			/>
 			<polyline
 				v-else-if="isPolyline(prim)"
@@ -217,6 +231,7 @@ const legendItems = computed<LegendLayout[]>(() => {
 				:stroke-width="prim.strokeWidth"
 				:fill="prim.fill"
 				:opacity="prim.opacity ?? 1"
+				v-bind="partAttrs(prim.part)"
 			/>
 			<circle
 				v-else-if="isCircle(prim)"
@@ -225,6 +240,7 @@ const legendItems = computed<LegendLayout[]>(() => {
 				:r="prim.r"
 				:fill="prim.fill"
 				:opacity="prim.opacity ?? 1"
+				v-bind="partAttrs(prim.part)"
 			/>
 			<line
 				v-else-if="isLine(prim)"
@@ -245,6 +261,7 @@ const legendItems = computed<LegendLayout[]>(() => {
 				:stroke-width="prim.strokeWidth"
 				:opacity="prim.opacity ?? 1"
 				:stroke-dasharray="prim.dashArray"
+				v-bind="partAttrs(prim.part)"
 			/>
 			<text
 				v-else-if="isText(prim)"

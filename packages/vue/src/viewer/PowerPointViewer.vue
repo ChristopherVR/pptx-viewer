@@ -98,6 +98,7 @@ import SnapLinesOverlay from './components/SnapLinesOverlay.vue';
 import StatusBar from './components/StatusBar.vue';
 import ThemeGallery from './components/ThemeGallery.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
+import { useChartCanvasEditContext } from './composables/chart-part-selection';
 import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
 import { SmartArt3DKey } from './composables/smart-art-3d';
 import { TableThemeKey } from './composables/table-theme';
@@ -812,6 +813,16 @@ const { presenting, startPresenting, onPresentClose, onPresentSlideChange } =
 		activeSlideIndex,
 		pushHistory: history.pushHistory,
 	});
+
+// Direct on-canvas chart editing context (mirrors the SmartArt node-edit
+// context above): gates mark interactivity to the selected chart in edit
+// mode, carries the canvas <-> inspector part selection, and routes commits
+// through the SAME history-tracked editor op the inspector uses.
+useChartCanvasEditContext({
+	canEditInline: () => props.canEdit && !presenting.value,
+	isElementSelected: (id) => selectedElementIds.value.includes(id),
+	updateElement: (id, patch) => ops.updateElement(id, patch),
+});
 
 // ── Hyperlink dialog ──────────────────────────────────────────────────
 const hyperlinkOpen = ref(false);

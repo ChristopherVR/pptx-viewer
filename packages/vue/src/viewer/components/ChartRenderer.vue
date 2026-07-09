@@ -3,12 +3,16 @@ import type { PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core
 import type { ChartViewModel, PlotLayout, ValueRange } from 'pptx-viewer-shared';
 import { computeLayout, computeValueRange, resolveCategoryLabels } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
+import { useChartCanvasInteraction } from '../composables/chart-canvas-interaction';
 import { getContainerStyle } from '../composables/element-style';
 import BoxWhiskerChart from './chart/BoxWhiskerChart.vue';
+import { resolveRenderKind, SHARED_VIEW_MODEL_KINDS } from './chart/chart-render-kind';
+import type { RenderKind } from './chart/chart-render-kind';
 import { buildVueChartViewModel } from './chart/chart-view-model';
 import ChartChrome from './chart/ChartChrome.vue';
+import ChartEditOverlays from './chart/ChartEditOverlays.vue';
 import ChartViewModelSvg from './chart/ChartViewModelSvg.vue';
 import ComboChart from './chart/ComboChart.vue';
 import FunnelChart from './chart/FunnelChart.vue';
@@ -42,18 +46,46 @@ const props = defineProps<{
 	element: PptxElement;
 	zIndex: number;
 	mediaDataUrls?: Map<string, string>;
+	/** True only on the primary editable canvas: enables direct chart editing. */
+	interactive?: boolean;
 }>();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
 );
 
+// ── Direct on-canvas editing ─────────────────────────────────────
+// Active only when the chart is selected + editable (gated inside the
+// composable via the injected chart-canvas-edit context). During a value
+// drag `renderedElement` carries the local preview chart data; the edit is
+// committed once on release through the normal element-update path.
+const rootEl = ref<HTMLElement | null>(null);
+const {
+	interactiveClass,
+	renderedElement,
+	dragLabel,
+	titleDraft,
+	onPointerdown,
+	onPointermove,
+	onPointerup,
+	onDblclick,
+	setTitleDraft,
+	commitTitle,
+	cancelTitle,
+} = useChartCanvasInteraction({
+	element: () => props.element,
+	interactive: () => props.interactive === true,
+	rootEl,
+	buildViewModel: buildVueChartViewModel,
+});
+
 /** Narrowed chart data, or undefined when the element is not a chart / empty. */
 const chartData = computed<PptxChartData | undefined>(() => {
-	if (props.element.type !== 'chart') {
+	const el = renderedElement.value;
+	if (el.type !== 'chart') {
 		return undefined;
 	}
-	const data = props.element.chartData;
+	const data = el.chartData;
 	if (!data || data.series.length === 0) {
 		return undefined;
 	}
@@ -66,90 +98,8 @@ const categoryLabels = computed<string[]>(() =>
 	chartData.value ? resolveCategoryLabels(chartData.value) : [],
 );
 
-/** Which renderer to dispatch to. 'placeholder' covers the remaining deferred types. */
-type RenderKind =
-	| 'bar'
-	| 'stackedBar'
-	| 'line'
-	| 'area'
-	| 'pie'
-	| 'radar'
-	| 'scatter'
-	| 'bubble'
-	| 'waterfall'
-	| 'funnel'
-	| 'treemap'
-	| 'sunburst'
-	| 'combo'
-	| 'stock'
-	| 'histogram'
-	| 'boxWhisker'
-	| 'surface'
-	| 'regionMap'
-	| 'placeholder';
-
-const renderKind = computed<RenderKind>(() => {
-	const data = chartData.value;
-	if (!data) {
-		return 'placeholder';
-	}
-	const t = chartType.value;
-	if (t === 'pie' || t === 'doughnut' || t === 'pie3D') {
-		return 'pie';
-	}
-	if (t === 'area' || t === 'area3D') {
-		return 'area';
-	}
-	if (t === 'line' || t === 'line3D') {
-		return 'line';
-	}
-	if (t === 'bar' && (data.grouping === 'stacked' || data.grouping === 'percentStacked')) {
-		return 'stackedBar';
-	}
-	if (t === 'bar' || t === 'bar3D') {
-		return 'bar';
-	}
-	if (t === 'radar') {
-		return 'radar';
-	}
-	if (t === 'scatter') {
-		return 'scatter';
-	}
-	if (t === 'bubble') {
-		return 'bubble';
-	}
-	if (t === 'waterfall') {
-		return 'waterfall';
-	}
-	if (t === 'funnel') {
-		return 'funnel';
-	}
-	if (t === 'treemap') {
-		return 'treemap';
-	}
-	if (t === 'sunburst') {
-		return 'sunburst';
-	}
-	if (t === 'combo') {
-		return 'combo';
-	}
-	if (t === 'stock') {
-		return 'stock';
-	}
-	if (t === 'histogram') {
-		return 'histogram';
-	}
-	if (t === 'boxWhisker') {
-		return 'boxWhisker';
-	}
-	if (t === 'surface') {
-		return 'surface';
-	}
-	if (t === 'regionMap') {
-		return 'regionMap';
-	}
-	return 'placeholder';
-});
+/** Which renderer to dispatch to (pure dispatch table in `chart-render-kind`). */
+const renderKind = computed<RenderKind>(() => resolveRenderKind(chartData.value));
 
 const isPlaceholder = computed(() => renderKind.value === 'placeholder');
 
@@ -191,21 +141,14 @@ const barRange = computed<ValueRange>(() =>
 // so only colour stays Vue-specific, not geometry.
 
 /** Render kinds projected through the shared view-model engine. */
-const usesSharedViewModel = computed(
-	() =>
-		renderKind.value === 'pie' ||
-		renderKind.value === 'radar' ||
-		renderKind.value === 'bar' ||
-		renderKind.value === 'stackedBar' ||
-		renderKind.value === 'line' ||
-		renderKind.value === 'area' ||
-		renderKind.value === 'scatter' ||
-		renderKind.value === 'bubble',
-);
+const usesSharedViewModel = computed(() => SHARED_VIEW_MODEL_KINDS.has(renderKind.value));
 
-/** Shared view-model for the kinds above, with Vue's palette threaded in. */
+/**
+ * Shared view-model for the kinds above, with Vue's palette threaded in.
+ * Built from `renderedElement` so an in-flight value drag previews live.
+ */
 const sharedViewModel = computed<ChartViewModel | undefined>(() =>
-	usesSharedViewModel.value ? buildVueChartViewModel(props.element) : undefined,
+	usesSharedViewModel.value ? buildVueChartViewModel(renderedElement.value) : undefined,
 );
 
 /** Pie / doughnut / radar keep their square `xMidYMid meet` aspect ratio. */
@@ -216,9 +159,15 @@ const sharedAspectRatio = computed<'none' | 'xMidYMid meet'>(() =>
 
 <template>
 	<div
+		ref="rootEl"
 		class="pptx-vue-element pptx-vue-chart"
+		:class="interactiveClass"
 		:style="containerStyle"
 		:data-element-id="element.id"
+		@pointerdown="onPointerdown"
+		@pointermove="onPointermove"
+		@pointerup="onPointerup"
+		@dblclick="onDblclick"
 	>
 		<!-- Labelled placeholder for unsupported / deferred chart types -->
 		<div v-if="isPlaceholder" class="pptx-vue-placeholder pptx-vue-chart-placeholder">
@@ -372,12 +321,28 @@ const sharedAspectRatio = computed<'none' | 'xMidYMid meet'>(() =>
 				:categories="categoryLabels"
 			/>
 		</svg>
+
+		<!-- Drag value badge + inline title editor (direct on-canvas editing) -->
+		<ChartEditOverlays
+			:drag-label="dragLabel"
+			:title-draft="titleDraft"
+			@title-input="setTitleDraft"
+			@title-commit="commitTitle"
+			@title-cancel="cancelTitle"
+		/>
 	</div>
 </template>
 
 <style scoped>
 .pptx-vue-chart {
 	pointer-events: none;
+}
+
+/* On the editable canvas the chart opts back into pointer events so it can be
+   click-selected like any other element (mirrors the SmartArt editable opt-in);
+   thumbnails / export / presentation stay click-transparent. */
+.pptx-vue-chart.pptx-vue-chart-selectable {
+	pointer-events: auto;
 }
 
 .pptx-vue-chart-svg {
