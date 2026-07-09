@@ -18,7 +18,12 @@
  *
  * Kept TestBed-free (vitest + happy-dom). ng-packagr lib-target constraints:
  * no `String.prototype.replaceAll`, no regex named-capture-groups.
+ *
+ * `slideLabel` accepts an optional `TranslateService` so callers with access
+ * to one get translated text; callers without one (e.g. plain unit tests)
+ * still get the English fallback.
  */
+import type { TranslateService } from '@ngx-translate/core';
 import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 
 import type { StyleMap } from './element-style';
@@ -129,7 +134,10 @@ export function nextSlideAfter(slides: readonly PptxSlide[], index: number): Ppt
 }
 
 /** "Slide 3 of 12" style label for the current position. */
-export function slideLabel(index: number, total: number): string {
+export function slideLabel(index: number, total: number, translate?: TranslateService): string {
+	if (translate) {
+		return translate.instant('pptx.presenter.slideLabel', { current: index + 1, total });
+	}
 	return `Slide ${index + 1} of ${total}`;
 }
 

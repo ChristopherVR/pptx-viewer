@@ -13,6 +13,7 @@
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 import { LucideCheck, LucideX } from '@lucide/angular';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxThemePreset } from 'pptx-viewer-core';
 
 import { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
@@ -21,33 +22,37 @@ import { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
 	selector: 'pptx-theme-gallery',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass, LucideX, LucideCheck],
+	imports: [NgClass, LucideX, LucideCheck, TranslatePipe],
 	template: `
 		@if (open()) {
 			<!-- Backdrop -->
 			<div
 				class="fixed inset-0 z-[1100] flex items-start justify-center bg-black/40 pt-20"
 				(click)="onBackdropClick($event)"
-				aria-label="Close theme gallery"
+				[attr.aria-label]="'pptx.themeGallery.close' | translate"
 			>
 				<!-- Panel -->
 				<div
 					class="w-[640px] max-w-[90vw] rounded-lg border border-border bg-popover shadow-2xl p-4"
 					role="dialog"
-					aria-label="Theme gallery"
+					[attr.aria-label]="'pptx.themeGallery.ariaLabel' | translate"
 					aria-modal="true"
 				>
 					<!-- Header: title + description + close icon -->
 					<div class="mb-3 flex items-start justify-between">
 						<div>
-							<h2 class="text-sm font-semibold text-foreground">Themes</h2>
-							<p class="text-xs text-muted-foreground">Pick a built-in theme for the deck.</p>
+							<h2 class="text-sm font-semibold text-foreground">
+								{{ 'pptx.themeGallery.title' | translate }}
+							</h2>
+							<p class="text-xs text-muted-foreground">
+								{{ 'pptx.themeGallery.description' | translate }}
+							</p>
 						</div>
 						<button
 							type="button"
 							class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
 							(click)="close.emit()"
-							aria-label="Close theme gallery"
+							[attr.aria-label]="'pptx.themeGallery.close' | translate"
 						>
 							<svg lucideX class="h-4 w-4"></svg>
 						</button>
@@ -98,7 +103,7 @@ import { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
 								@if (selected()?.id === preset.id || activeName() === preset.name) {
 									<span
 										class="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white"
-										aria-label="Selected theme"
+										[attr.aria-label]="'pptx.themeGallery.selectedTheme' | translate"
 										><svg lucideCheck class="h-2.5 w-2.5"></svg
 									></span>
 								}
@@ -108,14 +113,16 @@ import { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
 
 					<!-- Footer -->
 					<div class="flex items-center justify-end gap-2 mt-4">
-						<button type="button" class="pptx-rb-pill" (click)="close.emit()">Cancel</button>
+						<button type="button" class="pptx-rb-pill" (click)="close.emit()">
+							{{ 'pptx.common.cancel' | translate }}
+						</button>
 						<button
 							type="button"
 							class="pptx-rb-pill bg-primary text-primary-foreground hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed"
 							[disabled]="!selected()"
 							(click)="applySelected()"
 						>
-							Apply
+							{{ 'pptx.hyperlinkDialog.apply' | translate }}
 						</button>
 					</div>
 				</div>

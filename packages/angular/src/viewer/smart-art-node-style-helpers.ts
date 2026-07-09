@@ -14,8 +14,13 @@
  *     affordances can be disabled with an explanatory hint at the bounds.
  *
  * @module angular-viewer/smart-art-node-style-helpers
+ *
+ * `describeSmartArtBounds` accepts an optional `TranslateService` so callers
+ * with access to one get translated text; callers without one (e.g. plain
+ * unit tests) still get the English fallback.
  */
 
+import type { TranslateService } from '@ngx-translate/core';
 import type {
 	PptxSmartArtData,
 	PptxSmartArtNode,
@@ -135,16 +140,25 @@ export function canRemoveTopLevelNode(
  * Short, human-readable explanation of a layout's bounds for a tooltip / hint,
  * or `undefined` when the layout imposes no meaningful limit.
  */
-export function describeSmartArtBounds(layout: SmartArtLayoutType | undefined): string | undefined {
+export function describeSmartArtBounds(
+	layout: SmartArtLayoutType | undefined,
+	translate?: TranslateService,
+): string | undefined {
 	const { min, max } = getSmartArtNodeBounds(layout);
 	if (min <= 1 && max === undefined) {
 		return undefined;
 	}
 	if (max === undefined) {
-		return `Works best with at least ${min} items.`;
+		return translate
+			? translate.instant('pptx.smartArt.boundsHintMin', { min })
+			: `Works best with at least ${min} items.`;
 	}
 	if (min === max) {
-		return `This layout uses exactly ${max} items.`;
+		return translate
+			? translate.instant('pptx.smartArt.boundsHintExact', { max })
+			: `This layout uses exactly ${max} items.`;
 	}
-	return `Works best with ${min} to ${max} items.`;
+	return translate
+		? translate.instant('pptx.smartArt.boundsHintRange', { min, max })
+		: `Works best with ${min} to ${max} items.`;
 }

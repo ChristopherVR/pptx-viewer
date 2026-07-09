@@ -19,6 +19,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
@@ -40,14 +41,17 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 	selector: 'pptx-text-advanced-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		<div class="pptx-ng-txadv">
 			@if (!hasText()) {
-				<p class="pptx-ng-txadv__empty">Select a text element to edit advanced text properties.</p>
+				<p class="pptx-ng-txadv__empty">{{ 'pptx.textAdvanced.selectPrompt' | translate }}</p>
 			} @else {
 				<!-- ── Alignment row ─────────────────────────────────────── -->
 				<section class="pptx-ng-txadv__section">
-					<h4 class="pptx-ng-txadv__heading">Paragraph Alignment</h4>
+					<h4 class="pptx-ng-txadv__heading">
+						{{ 'pptx.textAdvanced.paragraphAlignment' | translate }}
+					</h4>
 					<div class="pptx-ng-txadv__row pptx-ng-txadv__row--wrap">
 						@for (opt of alignOptions; track opt[0]) {
 							<button
@@ -66,7 +70,9 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 				<!-- ── Vertical anchor ──────────────────────────────────── -->
 				<section class="pptx-ng-txadv__section">
 					<div class="pptx-ng-txadv__row">
-						<label class="pptx-ng-txadv__label" for="txadv-valign">V-Align</label>
+						<label class="pptx-ng-txadv__label" for="txadv-valign">{{
+							'pptx.textAdvanced.vAlign' | translate
+						}}</label>
 						<select
 							id="txadv-valign"
 							class="pptx-ng-txadv__select"
@@ -83,7 +89,9 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 				<!-- ── Text direction ────────────────────────────────────── -->
 				<section class="pptx-ng-txadv__section">
 					<div class="pptx-ng-txadv__row">
-						<label class="pptx-ng-txadv__label" for="txadv-dir">Direction</label>
+						<label class="pptx-ng-txadv__label" for="txadv-dir">{{
+							'pptx.animation.direction' | translate
+						}}</label>
 						<select
 							id="txadv-dir"
 							class="pptx-ng-txadv__select"
@@ -105,18 +113,20 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 								[checked]="state().rtl"
 								(change)="onRtlToggle($event)"
 							/>
-							RTL
+							{{ 'pptx.textAdvanced.rtl' | translate }}
 						</label>
 					</div>
 				</section>
 
 				<!-- ── Spacing ───────────────────────────────────────────── -->
 				<section class="pptx-ng-txadv__section">
-					<h4 class="pptx-ng-txadv__heading">Spacing</h4>
+					<h4 class="pptx-ng-txadv__heading">{{ 'pptx.textAdvanced.spacing' | translate }}</h4>
 					@if (elementKey(); as key) {
 						<div class="pptx-ng-txadv__grid" [attr.data-el-key]="key">
 							<!-- Character spacing -->
-							<label class="pptx-ng-txadv__label" for="txadv-cs">Letter Spc</label>
+							<label class="pptx-ng-txadv__label" for="txadv-cs">{{
+								'pptx.textAdvanced.letterSpc' | translate
+							}}</label>
 							<input
 								id="txadv-cs"
 								class="pptx-ng-txadv__input pptx-ng-txadv__input--number"
@@ -130,7 +140,9 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 							/>
 
 							<!-- Line spacing multiplier -->
-							<label class="pptx-ng-txadv__label" for="txadv-ls">Line Spc</label>
+							<label class="pptx-ng-txadv__label" for="txadv-ls">{{
+								'pptx.textAdvanced.lineSpc' | translate
+							}}</label>
 							<input
 								id="txadv-ls"
 								class="pptx-ng-txadv__input pptx-ng-txadv__input--number"
@@ -144,7 +156,9 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 							/>
 
 							<!-- Exact line spacing (pt) -->
-							<label class="pptx-ng-txadv__label" for="txadv-lspt">Line Spc pt</label>
+							<label class="pptx-ng-txadv__label" for="txadv-lspt">{{
+								'pptx.textAdvanced.lineSpcPt' | translate
+							}}</label>
 							<input
 								id="txadv-lspt"
 								class="pptx-ng-txadv__input pptx-ng-txadv__input--number"
@@ -154,12 +168,14 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 								max="200"
 								step="1"
 								[value]="state().lineSpacingExactPt ?? ''"
-								placeholder="auto"
+								[placeholder]="'pptx.textAdvanced.autoPlaceholder' | translate"
 								(change)="onLineSpacingExactPtChange($event)"
 							/>
 
 							<!-- Para spacing before -->
-							<label class="pptx-ng-txadv__label" for="txadv-spb">Space Before</label>
+							<label class="pptx-ng-txadv__label" for="txadv-spb">{{
+								'pptx.textAdvanced.spaceBefore' | translate
+							}}</label>
 							<input
 								id="txadv-spb"
 								class="pptx-ng-txadv__input pptx-ng-txadv__input--number"
@@ -172,7 +188,9 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 							/>
 
 							<!-- Para spacing after -->
-							<label class="pptx-ng-txadv__label" for="txadv-spa">Space After</label>
+							<label class="pptx-ng-txadv__label" for="txadv-spa">{{
+								'pptx.textAdvanced.spaceAfter' | translate
+							}}</label>
 							<input
 								id="txadv-spa"
 								class="pptx-ng-txadv__input pptx-ng-txadv__input--number"
@@ -189,10 +207,12 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 
 				<!-- ── Indent & margin ───────────────────────────────────── -->
 				<section class="pptx-ng-txadv__section">
-					<h4 class="pptx-ng-txadv__heading">Indent &amp; Margin</h4>
+					<h4 class="pptx-ng-txadv__heading">{{ 'pptx.textAdvanced.indentMargin' | translate }}</h4>
 					@if (elementKey(); as key) {
 						<div class="pptx-ng-txadv__grid" [attr.data-el-key]="key">
-							<label class="pptx-ng-txadv__label" for="txadv-ind">Indent</label>
+							<label class="pptx-ng-txadv__label" for="txadv-ind">{{
+								'pptx.textAdvanced.indent' | translate
+							}}</label>
 							<input
 								id="txadv-ind"
 								class="pptx-ng-txadv__input pptx-ng-txadv__input--number"
@@ -205,7 +225,9 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 								(change)="onIndentChange($event)"
 							/>
 
-							<label class="pptx-ng-txadv__label" for="txadv-ml">Left Margin</label>
+							<label class="pptx-ng-txadv__label" for="txadv-ml">{{
+								'pptx.textProperties.leftMargin' | translate
+							}}</label>
 							<input
 								id="txadv-ml"
 								class="pptx-ng-txadv__input pptx-ng-txadv__input--number"

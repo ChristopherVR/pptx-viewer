@@ -13,6 +13,7 @@
  */
 
 import { inject, Injectable, signal } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
 import { EditorStateService } from './editor-state.service';
 import type { FindEvent, ReplaceEvent } from './find-replace-bar.component';
@@ -22,6 +23,7 @@ import type { FindResult } from './find-replace-helpers';
 @Injectable()
 export class ViewerFindReplaceService {
 	private readonly editor = inject(EditorStateService);
+	private readonly translate = inject(TranslateService);
 
 	/** Find-in-slides bar visibility. */
 	readonly showFind = signal(false);
@@ -67,7 +69,7 @@ export class ViewerFindReplaceService {
 			return;
 		}
 		const updated = replaceMatch(this.editor.slides(), results, idx, evt.replacement);
-		this.editor.applyReplacement(updated.slides, 'Replace');
+		this.editor.applyReplacement(updated.slides, this.translate.instant('pptx.undoAction.replace'));
 		this.refreshResults(evt.query);
 	}
 
@@ -76,7 +78,10 @@ export class ViewerFindReplaceService {
 			matchCase: this.matchCase,
 		});
 		if (updated.replacements > 0) {
-			this.editor.applyReplacement(updated.slides, 'Replace all');
+			this.editor.applyReplacement(
+				updated.slides,
+				this.translate.instant('pptx.undoAction.replaceAll'),
+			);
 		}
 		this.refreshResults(evt.query);
 	}

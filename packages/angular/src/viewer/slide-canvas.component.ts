@@ -7,6 +7,7 @@ import {
 	DestroyRef,
 	effect,
 	ElementRef,
+	forwardRef,
 	HostListener,
 	inject,
 	input,
@@ -14,7 +15,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type {
 	InkPptxElement,
 	PptxElement,
@@ -44,6 +45,8 @@ import {
 } from './selection-geometry';
 import { getSlideBackgroundStyle } from './slide-background';
 import { isViewportBackgroundPressTarget } from './slide-canvas-helpers';
+import { SLIDE_CONTEXT } from './slide-context';
+import type { SlideContext } from './slide-context';
 import { computeSnap, snapToGridStep } from './snap-guides';
 import type { SnapGuide } from './snap-guides';
 import type { TableCellCommit } from './table-renderer.component';
@@ -112,7 +115,15 @@ function plainText(el: PptxElement): string {
 	selector: 'pptx-slide-canvas',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	providers: [CanvasFitService, InkDrawingService, RulerGuidesService],
+	providers: [
+		CanvasFitService,
+		InkDrawingService,
+		RulerGuidesService,
+		// Expose which slide this canvas renders to leaf renderers (chart /
+		// SmartArt), so template (master/layout) element commits can resolve
+		// their owning slide; template elements are absent from slides[].elements.
+		{ provide: SLIDE_CONTEXT, useExisting: forwardRef(() => SlideCanvasComponent) },
+	],
 	imports: [NgStyle, ElementRendererComponent, TranslatePipe],
 	styles: [
 		`
@@ -500,9 +511,14 @@ function plainText(el: PptxElement): string {
 		</div>
 	`,
 })
-export class SlideCanvasComponent {
+export class SlideCanvasComponent implements SlideContext {
 	readonly slide = input<PptxSlide | undefined>(undefined);
 	readonly canvasSize = input.required<CanvasSize>();
+
+	/** {@link SlideContext}: the id of the slide this canvas renders. */
+	slideId(): string | null {
+		return this.slide()?.id ?? null;
+	}
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly zoom = input<number>(1);
 	/** When true, elements are selectable and drag/resize handles are shown. */
@@ -627,6 +643,8 @@ export class SlideCanvasComponent {
 	);
 	/** Live alignment-snap guide lines (stage coords) during a move. */
 	readonly snapGuides = signal<readonly SnapGuide[]>([]);
+
+	private readonly translate = inject(TranslateService);
 
 	/** Per-instance pen/highlighter/freeform/eraser drawing controller. */
 	protected readonly inkDrawing = inject(InkDrawingService);
@@ -1108,7 +1126,12 @@ export class SlideCanvasComponent {
 				return;
 			}
 			drag.started = true;
-			const label = drag.mode === 'move' ? 'Move' : drag.mode === 'resize' ? 'Resize' : 'Rotate';
+			const label =
+				drag.mode === 'move'
+					? this.translate.instant('pptx.undoAction.move')
+					: drag.mode === 'resize'
+						? this.translate.instant('pptx.undoAction.resize')
+						: this.translate.instant('pptx.undoAction.rotate');
 			this.transformStart.emit({ id: drag.id, label });
 		}
 

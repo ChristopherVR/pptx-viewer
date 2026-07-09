@@ -98,26 +98,26 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 				<button
 					type="button"
 					class="pptx-rb-gb"
-					[title]="'pptx.ribbon.layout' | translate"
+					[title]="'pptx.master.layout' | translate"
 					(click)="applyLayout.emit('blank')"
 				>
-					{{ 'pptx.ribbon.layout' | translate }}
+					{{ 'pptx.master.layout' | translate }}
 				</button>
 				<button
 					type="button"
 					class="pptx-rb-gb"
-					[title]="'pptx.ribbon.resetSlide' | translate"
+					[title]="'pptx.sections.resetSlideTitle' | translate"
 					(click)="resetSlide.emit()"
 				>
-					{{ 'pptx.ribbon.resetSlide' | translate }}
+					{{ 'pptx.sections.resetSlideTitle' | translate }}
 				</button>
 				<button
 					type="button"
 					class="pptx-rb-gb"
-					[title]="'pptx.ribbon.section' | translate"
+					[title]="'pptx.sections.sectionButtonLabel' | translate"
 					(click)="addSection.emit()"
 				>
-					{{ 'pptx.ribbon.section' | translate }}
+					{{ 'pptx.sections.sectionButtonLabel' | translate }}
 				</button>
 			</div>
 			<span class="text-[9px] leading-none text-muted-foreground">
@@ -158,7 +158,7 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 				(selectAll)="onSelectAll()"
 			/>
 			<span class="text-[9px] leading-none text-muted-foreground">
-				{{ 'pptx.ribbon.editing' | translate }}
+				{{ 'pptx.shortcuts.group.editing' | translate }}
 			</span>
 		</div>
 	`,

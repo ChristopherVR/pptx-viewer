@@ -8,7 +8,12 @@
  *
  * The presentational action-model builders below stay local for now; they are
  * pure but small and binding-shaped. They build on the shared helpers.
+ *
+ * `buildOleInfoRows` / `buildOleActionModel` accept an optional `TranslateService`
+ * so callers with access to one get translated row labels; callers without one
+ * (e.g. plain unit tests) still get the English fallback.
  */
+import type { TranslateService } from '@ngx-translate/core';
 import type { OlePptxElement } from 'pptx-viewer-core';
 
 import {
@@ -63,20 +68,26 @@ export interface OleInfoRow {
  * A row is omitted when its value is unknown, so the result may contain only
  * the always-present type row.
  */
-export function buildOleInfoRows(el: OlePptxElement): OleInfoRow[] {
+export function buildOleInfoRows(el: OlePptxElement, translate?: TranslateService): OleInfoRow[] {
+	const t = (key: string, fallback: string): string =>
+		translate ? translate.instant(key) : fallback;
 	const rows: OleInfoRow[] = [
-		{ key: 'type', label: 'Type', value: getOleTypeLabel(resolveOleType(el)) },
+		{ key: 'type', label: t('pptx.ole.type', 'Type'), value: getOleTypeLabel(resolveOleType(el)) },
 	];
 	const fileName = el.oleEmbeddedFileName ?? el.fileName;
 	if (fileName) {
-		rows.push({ key: 'file', label: 'File', value: fileName });
+		rows.push({ key: 'file', label: t('pptx.hyperlink.tabFile', 'File'), value: fileName });
 	}
 	const sizeLabel = formatBytes(el.oleEmbeddedByteSize);
 	if (sizeLabel) {
-		rows.push({ key: 'size', label: 'Size', value: sizeLabel });
+		rows.push({ key: 'size', label: t('pptx.effects.size', 'Size'), value: sizeLabel });
 	}
 	if (el.oleProgId) {
-		rows.push({ key: 'application', label: 'Application', value: el.oleProgId });
+		rows.push({
+			key: 'application',
+			label: t('pptx.documentProperties.statistics.application', 'Application'),
+			value: el.oleProgId,
+		});
 	}
 	return rows;
 }
@@ -107,7 +118,10 @@ export interface OleActionModel {
  * non-empty embedded data-URL exists; Open is additionally offered when the
  * payload's MIME type is one a browser can render inline (PDF / image / text).
  */
-export function buildOleActionModel(el: OlePptxElement): OleActionModel {
+export function buildOleActionModel(
+	el: OlePptxElement,
+	translate?: TranslateService,
+): OleActionModel {
 	const downloadHref = el.oleEmbeddedData;
 	const canDownload = typeof downloadHref === 'string' && downloadHref.length > 0;
 	const canOpen = canDownload && isBrowserOpenableMime(el.oleEmbeddedMimeType);
@@ -117,6 +131,6 @@ export function buildOleActionModel(el: OlePptxElement): OleActionModel {
 		downloadHref,
 		downloadFileName: getOleDownloadFileName(el),
 		sizeLabel: formatBytes(el.oleEmbeddedByteSize),
-		info: buildOleInfoRows(el),
+		info: buildOleInfoRows(el, translate),
 	};
 }

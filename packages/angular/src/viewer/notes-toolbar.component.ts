@@ -48,7 +48,11 @@ interface ToolbarButton {
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe],
 	template: `
-		<div class="pptx-ng-notes-toolbar" role="toolbar" aria-label="Notes formatting">
+		<div
+			class="pptx-ng-notes-toolbar"
+			role="toolbar"
+			[attr.aria-label]="'pptx.notesToolbar.ariaLabel' | translate"
+		>
 			<div class="pptx-ng-notes-tb-group">
 				@for (btn of buttons; track btn.labelKey) {
 					<button

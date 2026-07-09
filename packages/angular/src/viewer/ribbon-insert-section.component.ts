@@ -19,7 +19,7 @@ import {
 	LucideSquare,
 	LucideVideo,
 } from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxChartType, PptxElement } from 'pptx-viewer-core';
 
 import { INSERT_CHART_TYPES } from '../internal/shared';
@@ -194,6 +194,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 })
 export class RibbonInsertSectionComponent {
 	private readonly editor = inject(EditorStateService);
+	private readonly translate = inject(TranslateService);
 
 	readonly slideIndex = input<number>(0);
 	readonly newChartType = input<PptxChartType>('bar');
@@ -242,7 +243,7 @@ export class RibbonInsertSectionComponent {
 		const element: PptxElement = {
 			type: 'image',
 			id: '',
-			name: file.name || 'Image',
+			name: file.name || this.translate.instant('pptx.elementType.image'),
 			x: 100,
 			y: 100,
 			width: Math.round(dims.width * scale),
@@ -261,7 +262,7 @@ export class RibbonInsertSectionComponent {
 		const element: PptxElement = {
 			type: 'media',
 			id: '',
-			name: file.name || 'Media',
+			name: file.name || this.translate.instant('pptx.elementType.media'),
 			x: 100,
 			y: 100,
 			width: isAudio ? 280 : 480,

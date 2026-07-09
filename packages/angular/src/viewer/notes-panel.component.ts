@@ -33,13 +33,14 @@ import {
 	computed,
 	effect,
 	ElementRef,
+	inject,
 	input,
 	output,
 	signal,
 	viewChild,
 } from '@angular/core';
 import { LucideChevronDown, LucideChevronRight } from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 
 import type { NotesInlineCommand, NotesParagraphCommand } from '../internal/shared';
@@ -198,6 +199,8 @@ import { NotesToolbarComponent } from './notes-toolbar.component';
 	],
 })
 export class NotesPanelComponent {
+	private readonly translate = inject(TranslateService);
+
 	/** The active slide whose notes are shown / edited. */
 	readonly slide = input<PptxSlide | undefined>(undefined);
 
@@ -391,7 +394,9 @@ export class NotesPanelComponent {
 		if (!slide || typeof document === 'undefined') {
 			return;
 		}
-		const html = buildNotesPrintHtml([slide], (n) => `Slide ${n}`);
+		const html = buildNotesPrintHtml([slide], (n) =>
+			this.translate.instant('pptx.notes.slideN', { n }),
+		);
 		const frame = document.createElement('iframe');
 		frame.setAttribute('aria-hidden', 'true');
 		frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';

@@ -1,5 +1,6 @@
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import type { StyleMap } from './element-style';
@@ -42,7 +43,7 @@ import { ZoomTargetService } from './zoom-target.service';
 	selector: 'pptx-zoom-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle],
+	imports: [NgStyle, TranslatePipe],
 	styles: `
 		.pptx-ng-zoom-interactive {
 			cursor: pointer;
@@ -73,7 +74,7 @@ import { ZoomTargetService } from './zoom-target.service';
 				@if (vm().previewSrc) {
 					<img
 						[src]="vm().previewSrc"
-						[alt]="'Preview of slide ' + (vm().targetSlideIndex + 1)"
+						[alt]="'pptx.zoom.slidePreviewAlt' | translate: { number: vm().targetSlideIndex + 1 }"
 						draggable="false"
 						style="width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;display:block"
 					/>

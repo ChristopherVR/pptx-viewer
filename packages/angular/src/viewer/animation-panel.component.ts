@@ -26,8 +26,8 @@
  *   - `seek`            : user clicked a step row (jump to that step index)
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxAnimationTrigger, PptxElementAnimation } from 'pptx-viewer-core';
 import { getAnimationPresetInfo } from 'pptx-viewer-core';
 
@@ -45,26 +45,31 @@ interface AnimationStepView {
 	readonly revealed: boolean;
 }
 
-const TRIGGER_LABELS: ReadonlyArray<{ value: PptxAnimationTrigger; label: string }> = [
-	{ value: 'onClick', label: 'On click' },
-	{ value: 'onShapeClick', label: 'On click' },
-	{ value: 'onHover', label: 'On hover' },
-	{ value: 'withPrevious', label: 'With previous' },
-	{ value: 'afterPrevious', label: 'After previous' },
-	{ value: 'afterDelay', label: 'After delay' },
+const TRIGGER_LABEL_KEYS: ReadonlyArray<{ value: PptxAnimationTrigger; key: string }> = [
+	{ value: 'onClick', key: 'pptx.animation.trigger.onClick' },
+	{ value: 'onShapeClick', key: 'pptx.animation.trigger.onClick' },
+	{ value: 'onHover', key: 'pptx.animation.trigger.onHover' },
+	{ value: 'withPrevious', key: 'pptx.animation.trigger.withPrevious' },
+	{ value: 'afterPrevious', key: 'pptx.animation.trigger.afterPrevious' },
+	{ value: 'afterDelay', key: 'pptx.animation.trigger.afterDelay' },
 ];
 
-function presetLabel(anim: PptxElementAnimation): string {
+function presetLabel(anim: PptxElementAnimation, translate: TranslateService): string {
 	const presetId = anim.entrance ?? anim.emphasis ?? anim.exit;
 	if (!presetId) {
-		return 'Animation';
+		return translate.instant('pptx.animation.animation');
 	}
 	const info = getAnimationPresetInfo(presetId);
 	return info?.label ?? presetId;
 }
 
-function triggerLabel(trigger: PptxAnimationTrigger | undefined): string {
-	return TRIGGER_LABELS.find((o) => o.value === trigger)?.label ?? 'On click';
+function triggerLabel(
+	trigger: PptxAnimationTrigger | undefined,
+	translate: TranslateService,
+): string {
+	const key =
+		TRIGGER_LABEL_KEYS.find((o) => o.value === trigger)?.key ?? 'pptx.animation.trigger.onClick';
+	return translate.instant(key);
 }
 
 @Component({
@@ -252,6 +257,8 @@ function triggerLabel(trigger: PptxAnimationTrigger | undefined): string {
 	`,
 })
 export class AnimationPanelComponent {
+	private readonly translate = inject(TranslateService);
+
 	// ------------------------------------------------------------------
 	// Inputs
 	// ------------------------------------------------------------------
@@ -285,12 +292,15 @@ export class AnimationPanelComponent {
 			const index = i + 1;
 			const first = group.animations[0];
 			const extra = group.animations.length - 1;
-			const base = first ? presetLabel(first) : 'Animation';
-			const label = extra > 0 ? `${base} +${extra} more` : base;
+			const base = first
+				? presetLabel(first, this.translate)
+				: this.translate.instant('pptx.animation.animation');
+			const label =
+				extra > 0 ? this.translate.instant('pptx.animationPanel.stepsMore', { base, extra }) : base;
 			return {
 				index,
 				label,
-				trigger: triggerLabel(first?.trigger),
+				trigger: triggerLabel(first?.trigger, this.translate),
 				revealed: index <= current,
 			};
 		});

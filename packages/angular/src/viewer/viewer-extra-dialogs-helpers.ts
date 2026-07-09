@@ -3,8 +3,13 @@
  * {@link ViewerExtraDialogsComponent}. Kept framework-free (no Angular / DOM)
  * so the container stays a thin view + wiring layer and this logic is unit
  * testable in isolation.
+ *
+ * `buildEquationSegment` / `buildEquationElement` accept an optional
+ * `TranslateService` so callers with access to one get translated text;
+ * callers without one (e.g. plain unit tests) still get the English fallback.
  */
 
+import type { TranslateService } from '@ngx-translate/core';
 import type {
 	InkPptxElement,
 	PptxElement,
@@ -27,8 +32,12 @@ const EQUATION_TEXT = '[Equation]';
  * Mirrors the structure produced by `newEquationElement` / the React equation
  * insert handler so the equation renderer consumes it identically.
  */
-export function buildEquationSegment(omml: Record<string, unknown>): TextSegment {
-	return { text: EQUATION_TEXT, style: EQUATION_STYLE, equationXml: omml };
+export function buildEquationSegment(
+	omml: Record<string, unknown>,
+	translate?: TranslateService,
+): TextSegment {
+	const text = translate ? translate.instant('pptx.equation.placeholderText') : EQUATION_TEXT;
+	return { text, style: EQUATION_STYLE, equationXml: omml };
 }
 
 /**
@@ -36,18 +45,24 @@ export function buildEquationSegment(omml: Record<string, unknown>): TextSegment
  * assign) whose text segment carries the supplied OMML. Matches the React
  * `handleInsertEquation` shape.
  */
-export function buildEquationElement(omml: Record<string, unknown>, x = 120, y = 200): PptxElement {
+export function buildEquationElement(
+	omml: Record<string, unknown>,
+	x = 120,
+	y = 200,
+	translate?: TranslateService,
+): PptxElement {
+	const text = translate ? translate.instant('pptx.equation.placeholderText') : EQUATION_TEXT;
 	return {
 		type: 'shape',
 		id: '',
-		name: 'Equation',
+		name: translate ? translate.instant('pptx.ribbon.equation') : 'Equation',
 		x,
 		y,
 		width: 400,
 		height: 80,
-		text: EQUATION_TEXT,
+		text,
 		textStyle: EQUATION_STYLE,
-		textSegments: [buildEquationSegment(omml)],
+		textSegments: [buildEquationSegment(omml, translate)],
 	} as PptxElement;
 }
 

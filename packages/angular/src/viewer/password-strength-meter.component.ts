@@ -10,12 +10,13 @@
  * nothing when the password is empty.
  */
 
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
 import {
 	getPasswordStrength,
+	getStrengthLabel,
 	STRENGTH_COLORS,
-	STRENGTH_LABELS,
 } from './password-protection-helpers';
 
 @Component({
@@ -71,9 +72,11 @@ export class PasswordStrengthMeterComponent {
 
 	readonly bars = [0, 1, 2, 3, 4];
 
+	private readonly translate = inject(TranslateService);
+
 	readonly strength = computed(() => getPasswordStrength(this.password()));
 	readonly strengthColor = computed(() => STRENGTH_COLORS[this.strength()]);
 	readonly strengthLabel = computed(() =>
-		this.password() ? STRENGTH_LABELS[this.strength()] : '',
+		this.password() ? getStrengthLabel(this.strength(), this.translate) : '',
 	);
 }

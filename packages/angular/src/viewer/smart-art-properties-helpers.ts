@@ -14,8 +14,13 @@
  *   packages/react/src/viewer/components/inspector/SmartArtLayoutSwitcher.tsx
  *
  * @module angular-viewer/smart-art-properties-helpers
+ *
+ * `addSubItem` accepts an optional `TranslateService` so callers with access
+ * to one get a translated sub-item label; callers without one (e.g. plain
+ * unit tests) still get the English fallback.
  */
 
+import type { TranslateService } from '@ngx-translate/core';
 import type {
 	PptxSmartArtData,
 	PptxSmartArtNode,
@@ -108,8 +113,13 @@ export function addItem(data: PptxSmartArtData): PptxSmartArtData {
 }
 
 /** Add a sub-item beneath the given parent node. */
-export function addSubItem(data: PptxSmartArtData, parentId: string): PptxSmartArtData {
-	return addSmartArtNodeAsChild(data, parentId, SUB_ITEM_LABEL);
+export function addSubItem(
+	data: PptxSmartArtData,
+	parentId: string,
+	translate?: TranslateService,
+): PptxSmartArtData {
+	const label = translate ? translate.instant('pptx.smartart.subItemShort') : SUB_ITEM_LABEL;
+	return addSmartArtNodeAsChild(data, parentId, label);
 }
 
 /** Remove a node by id (no-op when it would empty the diagram). */

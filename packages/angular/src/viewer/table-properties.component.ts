@@ -11,6 +11,7 @@
  * committed by the inspector as one undoable history entry.
  */
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 
 import type { TableStylePreset } from '../internal/shared';
@@ -30,6 +31,7 @@ import {
 	selector: 'pptx-table-properties',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (td(); as data) {
 			<div class="pptx-tp">
@@ -44,14 +46,14 @@ import {
 								[checked]="!!data[toggle.key]"
 								(change)="onToggle(toggle.key, $event)"
 							/>
-							<span>{{ toggle.label }}</span>
+							<span>{{ toggle.labelKey | translate }}</span>
 						</label>
 					}
 				</div>
 
 				@if (data.bandedRows) {
 					<label class="pptx-tp__field">
-						<span class="pptx-tp__lbl">Row band cycle</span>
+						<span class="pptx-tp__lbl">{{ 'pptx.table.bandRowCycle' | translate }}</span>
 						<input
 							type="number"
 							class="pptx-tp__num"
@@ -65,7 +67,7 @@ import {
 				}
 				@if (data.bandedColumns) {
 					<label class="pptx-tp__field">
-						<span class="pptx-tp__lbl">Col band cycle</span>
+						<span class="pptx-tp__lbl">{{ 'pptx.table.bandColCycle' | translate }}</span>
 						<input
 							type="number"
 							class="pptx-tp__num"
@@ -78,7 +80,7 @@ import {
 					</label>
 				}
 
-				<span class="pptx-tp__lbl">Style presets</span>
+				<span class="pptx-tp__lbl">{{ 'pptx.table.stylePresets' | translate }}</span>
 				<div class="pptx-tp__presets">
 					@for (preset of presets; track preset.id) {
 						<button
@@ -96,14 +98,14 @@ import {
 				</div>
 
 				<div class="pptx-tp__row-head">
-					<span class="pptx-tp__lbl">Column widths</span>
+					<span class="pptx-tp__lbl">{{ 'pptx.table.columnWidths' | translate }}</span>
 					<button
 						type="button"
 						class="pptx-tp__even"
 						[disabled]="!canEdit()"
 						(click)="onEvenCols()"
 					>
-						Even
+						{{ 'pptx.table.even' | translate }}
 					</button>
 				</div>
 				@for (w of data.columnWidths; track $index; let ci = $index) {
@@ -123,14 +125,14 @@ import {
 				}
 
 				<div class="pptx-tp__row-head">
-					<span class="pptx-tp__lbl">Row heights</span>
+					<span class="pptx-tp__lbl">{{ 'pptx.table.rowHeights' | translate }}</span>
 					<button
 						type="button"
 						class="pptx-tp__even"
 						[disabled]="!canEdit()"
 						(click)="onEvenRows()"
 					>
-						Even
+						{{ 'pptx.table.even' | translate }}
 					</button>
 				</div>
 				@for (row of data.rows; track $index; let ri = $index) {

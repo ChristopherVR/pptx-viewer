@@ -17,10 +17,10 @@ import { TranslatePipe } from '@ngx-translate/core';
 			<button
 				type="button"
 				class="pptx-rb-gb"
-				[title]="'pptx.ribbon.find' | translate"
+				[title]="'pptx.editing.find' | translate"
 				(click)="toggleFindReplace.emit()"
 			>
-				{{ 'pptx.ribbon.find' | translate }}
+				{{ 'pptx.editing.find' | translate }}
 			</button>
 			<button
 				type="button"
@@ -33,10 +33,10 @@ import { TranslatePipe } from '@ngx-translate/core';
 			<button
 				type="button"
 				class="pptx-rb-gl"
-				[title]="'pptx.ribbon.selectAll' | translate"
+				[title]="'pptx.editing.selectAll' | translate"
 				(click)="selectAll.emit()"
 			>
-				{{ 'pptx.ribbon.selectAll' | translate }}
+				{{ 'pptx.editing.selectAll' | translate }}
 			</button>
 		</div>
 	`,

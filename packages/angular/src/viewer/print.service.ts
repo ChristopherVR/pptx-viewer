@@ -19,7 +19,8 @@
  * `@Component({ providers: [PrintService] })`.
  */
 
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import {
@@ -44,6 +45,8 @@ export type CaptureSlideFn = (index: number) => Promise<string | null>;
 
 @Injectable()
 export class PrintService {
+	private readonly translate = inject(TranslateService);
+
 	/** Whether the print dialog is currently open. */
 	readonly isDialogOpen = signal(false);
 
@@ -109,7 +112,7 @@ export class PrintService {
 			const body = `<div class="outline-page">${buildOutlineHtml(slideIndices, slides)}</div>`;
 			return this._open(
 				buildPrintDocument({
-					title: 'Outline',
+					title: this.translate.instant('pptx.print.outline'),
 					bodyHtml: body,
 					orientation: settings.orientation,
 					colorFilter,
@@ -136,7 +139,7 @@ export class PrintService {
 		if (settings.printWhat === 'slides') {
 			return this._open(
 				buildPrintDocument({
-					title: 'Slides',
+					title: this.translate.instant('pptx.sections.slides'),
 					bodyHtml: buildSlidesHtml(slideImages, capturedIndices),
 					orientation: settings.orientation,
 					colorFilter,
@@ -148,7 +151,7 @@ export class PrintService {
 		if (settings.printWhat === 'notes') {
 			return this._open(
 				buildPrintDocument({
-					title: 'Notes Pages',
+					title: this.translate.instant('pptx.print.notesPages'),
 					bodyHtml: buildNotesHtml(slideImages, capturedIndices, slides),
 					orientation: 'portrait',
 					colorFilter,
@@ -160,7 +163,9 @@ export class PrintService {
 		// printWhat === 'handouts'
 		return this._open(
 			buildPrintDocument({
-				title: `Handout ${settings.slidesPerPage} per page`,
+				title: this.translate.instant('pptx.print.handoutPerPageTitle', {
+					count: settings.slidesPerPage,
+				}),
 				bodyHtml: buildHandoutsHtml(slideImages, capturedIndices, settings.slidesPerPage),
 				orientation: 'portrait',
 				colorFilter,

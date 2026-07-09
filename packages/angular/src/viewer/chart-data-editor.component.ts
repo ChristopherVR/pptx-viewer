@@ -41,8 +41,8 @@ import {
 	input,
 	output,
 } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
-import type { ChartPptxElement } from 'pptx-viewer-core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import type { ChartPptxElement, PptxChartSeries } from 'pptx-viewer-core';
 
 import { AdvancedChartEditorComponent } from './advanced-chart-editor.component';
 import {
@@ -143,12 +143,10 @@ import { ChartPartSelectionService } from './chart-part-selection.service';
 												[disabled]="!canEdit()"
 												[value]="s.color || '#4472c4'"
 												[title]="
-													'pptx.chart.seriesColor'
-														| translate: { name: s.name || 'Series ' + (si + 1) }
+													'pptx.chart.seriesColor' | translate: { name: seriesDisplayName(s, si) }
 												"
 												[attr.aria-label]="
-													'pptx.chart.seriesColor'
-														| translate: { name: s.name || 'Series ' + (si + 1) }
+													'pptx.chart.seriesColor' | translate: { name: seriesDisplayName(s, si) }
 												"
 												(input)="onSeriesColorChange($event, si)"
 											/>
@@ -430,6 +428,7 @@ import { ChartPartSelectionService } from './chart-part-selection.service';
 	`,
 })
 export class ChartDataEditorComponent {
+	private readonly translate = inject(TranslateService);
 	/** Canvas <-> inspector chart-part selection bridge (viewer-scoped, optional). */
 	private readonly partSelection = inject(ChartPartSelectionService, { optional: true });
 	private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -496,6 +495,13 @@ export class ChartDataEditorComponent {
 	protected readonly categories = computed(() => this.element().chartData?.categories ?? []);
 	protected readonly seriesCount = computed(() => this.series().length);
 	protected readonly catCount = computed(() => this.categories().length);
+
+	/** Series display name, falling back to a translated "Series N" when unnamed. */
+	protected seriesDisplayName(series: PptxChartSeries, index: number): string {
+		return (
+			series.name || this.translate.instant('pptx.chart.seriesDefaultName', { number: index + 1 })
+		);
+	}
 
 	// ── Event handlers ──────────────────────────────────────────────────────
 

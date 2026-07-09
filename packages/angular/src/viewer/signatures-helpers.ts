@@ -11,8 +11,13 @@
  * Overall status precedence (worst-wins), mirroring how a signature panel
  * should warn the user:
  *   invalid  >  expired  >  unknownCA  >  unverified  >  valid
+ *
+ * `headerLabel` / `statusLabel` / `signatureCountLabel` accept an optional
+ * `TranslateService` so callers with access to one get translated text;
+ * callers without one (e.g. plain unit tests) still get the English fallback.
  */
 
+import type { TranslateService } from '@ngx-translate/core';
 import type { ParsedSignature, SignatureStatus } from 'pptx-viewer-core';
 
 /** Coarse-grained "Signed / Invalid / Not signed" classification. */
@@ -61,30 +66,36 @@ export function overallStatus(signatures: readonly ParsedSignature[]): OverallSi
 }
 
 /** Header label for the panel given the overall package status. */
-export function headerLabel(overall: OverallSignatureStatus): string {
+export function headerLabel(overall: OverallSignatureStatus, translate?: TranslateService): string {
 	switch (overall) {
 		case 'invalid':
-			return 'Invalid signature';
+			return translate
+				? translate.instant('pptx.digitalSignatures.invalidHeader')
+				: 'Invalid signature';
 		case 'signed':
-			return 'Signed';
+			return translate ? translate.instant('pptx.digitalSignatures.headerSigned') : 'Signed';
 		default:
-			return 'Not signed';
+			return translate ? translate.instant('pptx.digitalSignatures.notSigned') : 'Not signed';
 	}
 }
 
 /** Human-readable label for a per-signature status. */
-export function statusLabel(status: SignatureStatus): string {
+export function statusLabel(status: SignatureStatus, translate?: TranslateService): string {
 	switch (status) {
 		case 'valid':
-			return 'Valid';
+			return translate ? translate.instant('pptx.digitalSignatures.statusValid') : 'Valid';
 		case 'invalid':
-			return 'Invalid';
+			return translate ? translate.instant('pptx.digitalSignatures.statusInvalid') : 'Invalid';
 		case 'expired':
-			return 'Expired';
+			return translate ? translate.instant('pptx.digitalSignatures.statusExpired') : 'Expired';
 		case 'unknownCA':
-			return 'Unknown certificate authority';
+			return translate
+				? translate.instant('pptx.digitalSignatures.statusUnknownCA')
+				: 'Unknown certificate authority';
 		default:
-			return 'Unverified';
+			return translate
+				? translate.instant('pptx.digitalSignatures.statusUnverified')
+				: 'Unverified';
 	}
 }
 
@@ -125,6 +136,9 @@ export function signatureKey(sig: ParsedSignature, index: number): string {
 }
 
 /** Human-readable "N signature(s)" count label. */
-export function signatureCountLabel(count: number): string {
+export function signatureCountLabel(count: number, translate?: TranslateService): string {
+	if (translate) {
+		return translate.instant('pptx.digitalSignatures.signatureCount', { count });
+	}
 	return `${count} signature${count === 1 ? '' : 's'}`;
 }

@@ -79,7 +79,7 @@ import { EditorStateService } from './editor-state.service';
 							[disabled]="!hasSel()"
 							(click)="addAnimation(item.value, 'entrance')"
 							class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-							[title]="'Entrance: ' + item.label"
+							[title]="'pptx.ribbonAnimations.entranceTooltip' | translate: { name: item.label }"
 						>
 							{{ item.label }}
 						</button>
@@ -96,7 +96,7 @@ import { EditorStateService } from './editor-state.service';
 							[disabled]="!hasSel()"
 							(click)="addAnimation(item.value, 'emphasis')"
 							class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-							[title]="'Emphasis: ' + item.label"
+							[title]="'pptx.ribbonAnimations.emphasisTooltip' | translate: { name: item.label }"
 						>
 							{{ item.label }}
 						</button>
@@ -113,7 +113,7 @@ import { EditorStateService } from './editor-state.service';
 							[disabled]="!hasSel()"
 							(click)="addAnimation(item.value, 'exit')"
 							class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-							[title]="'Exit: ' + item.label"
+							[title]="'pptx.ribbonAnimations.exitTooltip' | translate: { name: item.label }"
 						>
 							{{ item.label }}
 						</button>

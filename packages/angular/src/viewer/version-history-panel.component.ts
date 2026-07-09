@@ -11,6 +11,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { formatVersionTimestamp, formatRelativeTime } from '../internal/shared';
 import { deleteVersion, formatFileSize, getVersions } from './version-history-helpers';
@@ -20,11 +21,12 @@ import type { RecoveryVersion } from './version-history-helpers';
 	selector: 'pptx-version-history-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (open()) {
 			<div class="pptx-ng-versions">
 				<div class="pptx-ng-versions-header">
-					<span class="pptx-ng-versions-title">Version History</span>
+					<span class="pptx-ng-versions-title">{{ 'pptx.versionHistory.title' | translate }}</span>
 					<button type="button" class="pptx-ng-versions-close" (click)="close.emit()">
 						&times;
 					</button>
@@ -32,9 +34,13 @@ import type { RecoveryVersion } from './version-history-helpers';
 
 				<div class="pptx-ng-versions-body">
 					@if (loading()) {
-						<div class="pptx-ng-versions-empty">Loading...</div>
+						<div class="pptx-ng-versions-empty">
+							{{ 'pptx.versionHistory.loading' | translate }}
+						</div>
 					} @else if (versions().length === 0) {
-						<div class="pptx-ng-versions-empty">No saved versions</div>
+						<div class="pptx-ng-versions-empty">
+							{{ 'pptx.versionHistory.noVersionsYet' | translate }}
+						</div>
 					} @else {
 						@for (version of versions(); track version.key) {
 							<div class="pptx-ng-versions-row">
@@ -54,7 +60,11 @@ import type { RecoveryVersion } from './version-history-helpers';
 										[disabled]="restoringKey() === version.key"
 										(click)="onRestore(version)"
 									>
-										{{ restoringKey() === version.key ? 'Loading...' : 'Restore' }}
+										{{
+											restoringKey() === version.key
+												? ('pptx.versionHistory.loading' | translate)
+												: ('pptx.versionHistory.restore' | translate)
+										}}
 									</button>
 									<button
 										type="button"
@@ -62,7 +72,7 @@ import type { RecoveryVersion } from './version-history-helpers';
 										[disabled]="deletingKey() === version.key"
 										(click)="onDelete(version)"
 									>
-										Delete
+										{{ 'pptx.arrange.delete' | translate }}
 									</button>
 								</div>
 							</div>

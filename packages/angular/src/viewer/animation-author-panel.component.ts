@@ -25,9 +25,9 @@
  * @module viewer/animation-author-panel
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { LucideArrowDown, LucideArrowUp, LucideX } from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type {
 	PptxAnimationDirection,
 	PptxAnimationPreset,
@@ -542,6 +542,8 @@ import {
 	`,
 })
 export class AnimationAuthorPanelComponent {
+	private readonly translate = inject(TranslateService);
+
 	/** The selected element whose animation settings are being authored. */
 	readonly element = input.required<PptxElement>();
 
@@ -625,7 +627,10 @@ export class AnimationAuthorPanelComponent {
 		if (idx < 0) {
 			return '—';
 		}
-		return `${idx + 1} of ${sorted.length}`;
+		return this.translate.instant('pptx.findReplace.matchCount', {
+			current: idx + 1,
+			total: sorted.length,
+		});
 	});
 
 	/**

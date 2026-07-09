@@ -9,6 +9,7 @@
  */
 
 import { Injectable, inject } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import { PptxHandler } from 'pptx-viewer-core';
 
 import { compareSlides } from '../internal/shared';
@@ -21,6 +22,7 @@ import { applyAcceptedDiff } from './viewer-extra-dialogs-helpers';
 export class ViewerCompareService {
 	private readonly svc = inject(ViewerDialogsService);
 	private readonly editor = inject(EditorStateService);
+	private readonly translate = inject(TranslateService);
 
 	/**
 	 * Open a `.pptx` picker and diff it against the current deck, opening the
@@ -63,7 +65,7 @@ export class ViewerCompareService {
 		if (diff) {
 			this.editor.applyReplacement(
 				applyAcceptedDiff(this.editor.slides(), diff),
-				'Accept slide change',
+				this.translate.instant('pptx.undoAction.acceptSlideChange'),
 			);
 		}
 	}
@@ -85,7 +87,10 @@ export class ViewerCompareService {
 				slides = applyAcceptedDiff(slides, diff);
 			}
 		}
-		this.editor.applyReplacement(slides, 'Accept all slide changes');
+		this.editor.applyReplacement(
+			slides,
+			this.translate.instant('pptx.undoAction.acceptAllSlideChanges'),
+		);
 	}
 
 	private diffAt(index: number): SlideDiff | undefined {

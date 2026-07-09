@@ -67,7 +67,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 				(click)="exportVideo.emit()"
 				[title]="'pptx.ribbon.exportWebmVideo' | translate"
 			>
-				Video
+				{{ 'pptx.file.video' | translate }}
 			</button>
 		</div>
 		<span class="pptx-rb-sep"></span>

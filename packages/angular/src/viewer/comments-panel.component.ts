@@ -22,8 +22,16 @@
  * ```
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	signal,
+} from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxComment } from 'pptx-viewer-core';
 import { formatCommentTimestamp } from 'pptx-viewer-core';
 
@@ -277,8 +285,10 @@ export class CommentsPanelComponent {
 	/** The active slide's comments (already filtered to the active slide). */
 	readonly comments = input<PptxComment[]>([]);
 
+	private readonly translate = inject(TranslateService);
+
 	/** Display name shown in the compose label ("Commenting as …"). */
-	readonly authorName = input<string>('You');
+	readonly authorName = input<string>(this.translate.instant('pptx.comments.defaultAuthorName'));
 
 	/** Emits the trimmed comment text the user wants to add. */
 	readonly add = output<string>();

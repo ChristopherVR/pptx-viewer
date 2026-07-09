@@ -1,5 +1,6 @@
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxTableData, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
@@ -428,6 +429,7 @@ export class ElementRendererComponent {
 	 * the viewer subtree (thumbnails, export) default to the SVG renderer.
 	 */
 	private readonly smartArt3DService = inject(SmartArt3DService, { optional: true });
+	private readonly translate = inject(TranslateService);
 	readonly smartArt3D = computed(() => this.smartArt3DService?.enabled() ?? false);
 	/** Obstacle rects (absolute slide coords) for connector A* routing. */
 	readonly obstacles = input<readonly Rect[]>([]);
@@ -634,9 +636,10 @@ export class ElementRendererComponent {
 
 	readonly placeholderLabel = computed(() => {
 		const map: Record<string, string> = {
-			group: 'Group',
-			media: 'Media',
+			group: 'pptx.elementType.group',
+			media: 'pptx.elementType.media',
 		};
-		return map[this.element().type] ?? this.element().type;
+		const key = map[this.element().type];
+		return key ? this.translate.instant(key) : this.element().type;
 	});
 }

@@ -62,20 +62,20 @@ const HIGHLIGHT_COLOR_PRESETS = [
 
 /** Character spacing presets (hundredths of a point, per OOXML `a:rPr/@spc`). */
 const CHAR_SPACING_OPTIONS = [
-	{ label: 'Very Tight', value: -300 },
-	{ label: 'Tight', value: -150 },
-	{ label: 'Normal', value: 0 },
-	{ label: 'Loose', value: 300 },
-	{ label: 'Very Loose', value: 600 },
+	{ labelKey: 'pptx.text.characterSpacingVeryTight', value: -300 },
+	{ labelKey: 'pptx.text.characterSpacingTight', value: -150 },
+	{ labelKey: 'pptx.text.characterSpacingNormal', value: 0 },
+	{ labelKey: 'pptx.text.characterSpacingLoose', value: 300 },
+	{ labelKey: 'pptx.text.characterSpacingVeryLoose', value: 600 },
 ];
 
 /** Change Case options matching PowerPoint's Aa dropdown. */
 const CHANGE_CASE_OPTIONS = [
-	{ label: 'Sentence case.', value: 'sentence' },
-	{ label: 'lowercase', value: 'lower' },
-	{ label: 'UPPERCASE', value: 'upper' },
-	{ label: 'Capitalize Each Word', value: 'capitalize' },
-	{ label: 'tOGGLE cASE', value: 'toggle' },
+	{ labelKey: 'pptx.text.changeCaseSentence', value: 'sentence' },
+	{ labelKey: 'pptx.text.changeCaseLower', value: 'lower' },
+	{ labelKey: 'pptx.text.changeCaseUpper', value: 'upper' },
+	{ labelKey: 'pptx.text.changeCaseCapitalize', value: 'capitalize' },
+	{ labelKey: 'pptx.text.changeCaseToggle', value: 'toggle' },
 ];
 
 @Component({
@@ -192,7 +192,7 @@ const CHANGE_CASE_OPTIONS = [
 			class="pptx-rb-gb"
 			[disabled]="!isText()"
 			[ngClass]="curStyle()?.textShadowColor ? 'bg-accent' : ''"
-			[title]="'pptx.ribbon.textShadow' | translate"
+			[title]="'pptx.textEffects.shadow' | translate"
 			(click)="toggleShadow()"
 		>
 			Shadow
@@ -200,13 +200,13 @@ const CHANGE_CASE_OPTIONS = [
 		<!-- Character Spacing -->
 		<select
 			class="pptx-rb-select w-20"
-			[attr.aria-label]="'pptx.ribbon.charSpacing' | translate"
+			[attr.aria-label]="'pptx.text.characterSpacing' | translate"
 			[disabled]="!isText()"
 			(change)="setCharSpacing($event)"
 		>
 			@for (opt of charSpacingOptions; track opt.value) {
 				<option [value]="opt.value" [selected]="opt.value === curCharSpacing()">
-					{{ opt.label }}
+					{{ opt.labelKey | translate }}
 				</option>
 			}
 		</select>
@@ -219,7 +219,7 @@ const CHANGE_CASE_OPTIONS = [
 		>
 			<option value="" selected disabled>Aa</option>
 			@for (opt of changeCaseOptions; track opt.value) {
-				<option [value]="opt.value">{{ opt.label }}</option>
+				<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 			}
 		</select>
 		<!-- Font colour popover -->

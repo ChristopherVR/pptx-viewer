@@ -6,19 +6,24 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 import { LucideChevronDown } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
-const SHAPE_PRESETS: readonly string[] = [
-	'rectangle',
-	'roundedRectangle',
-	'ellipse',
-	'triangle',
-	'diamond',
-	'pentagon',
-	'hexagon',
-	'arrow',
-	'star5',
-	'heart',
-	'cloud',
-	'callout',
+interface ShapePreset {
+	id: string;
+	labelKey: string;
+}
+
+const SHAPE_PRESETS: readonly ShapePreset[] = [
+	{ id: 'rectangle', labelKey: 'pptx.editorToolbar.shapeRectangle' },
+	{ id: 'roundedRectangle', labelKey: 'pptx.editorToolbar.shapeRoundedRectangle' },
+	{ id: 'ellipse', labelKey: 'pptx.editorToolbar.shapeEllipse' },
+	{ id: 'triangle', labelKey: 'pptx.editorToolbar.shapeTriangle' },
+	{ id: 'diamond', labelKey: 'pptx.shapePresets.diamond' },
+	{ id: 'pentagon', labelKey: 'pptx.shapePresets.pentagon' },
+	{ id: 'hexagon', labelKey: 'pptx.shapePresets.hexagon' },
+	{ id: 'arrow', labelKey: 'pptx.shapePresets.arrow' },
+	{ id: 'star5', labelKey: 'pptx.shapePresets.star' },
+	{ id: 'heart', labelKey: 'pptx.shapePresets.heart' },
+	{ id: 'cloud', labelKey: 'pptx.shapePresets.cloud' },
+	{ id: 'callout', labelKey: 'pptx.editorToolbar.shapeCallout' },
 ];
 
 @Component({
@@ -36,22 +41,22 @@ const SHAPE_PRESETS: readonly string[] = [
 						type="button"
 						class="pptx-rb-gb gap-1.5"
 						[disabled]="!canEdit()"
-						[title]="'pptx.ribbon.shapes' | translate"
+						[title]="'pptx.drawing.shapes' | translate"
 						(click)="shapesOpen.set(!shapesOpen())"
 					>
-						{{ 'pptx.ribbon.shapes' | translate }} <svg lucideChevronDown class="h-3 w-3"></svg>
+						{{ 'pptx.drawing.shapes' | translate }} <svg lucideChevronDown class="h-3 w-3"></svg>
 					</button>
 					@if (shapesOpen()) {
 						<div
 							class="absolute left-0 top-full z-50 mt-0.5 grid grid-cols-4 gap-0.5 rounded border border-border bg-popover p-1 shadow-md"
 						>
-							@for (shape of shapes; track shape) {
+							@for (shape of shapes; track shape.id) {
 								<button
 									type="button"
 									class="rounded px-1.5 py-0.5 text-[10px] hover:bg-accent"
-									(click)="onShapeSelect(shape)"
+									(click)="onShapeSelect(shape.id)"
 								>
-									{{ shape }}
+									{{ shape.labelKey | translate }}
 								</button>
 							}
 						</div>
@@ -63,10 +68,10 @@ const SHAPE_PRESETS: readonly string[] = [
 						type="button"
 						class="pptx-rb-gb gap-1.5"
 						[disabled]="!canEdit()"
-						[title]="'pptx.arrange.arrange' | translate"
+						[title]="'pptx.ribbon.arrange' | translate"
 						(click)="arrangeOpen.set(!arrangeOpen())"
 					>
-						{{ 'pptx.arrange.arrange' | translate }} <svg lucideChevronDown class="h-3 w-3"></svg>
+						{{ 'pptx.ribbon.arrange' | translate }} <svg lucideChevronDown class="h-3 w-3"></svg>
 					</button>
 					@if (arrangeOpen()) {
 						<div
@@ -105,7 +110,7 @@ const SHAPE_PRESETS: readonly string[] = [
 				</div>
 			</div>
 			<span class="text-[9px] leading-none text-muted-foreground">
-				{{ 'pptx.ribbon.drawing' | translate }}
+				{{ 'pptx.ribbon.groupDrawing' | translate }}
 			</span>
 		</div>
 		<span class="pptx-rb-sep"></span>
@@ -113,17 +118,17 @@ const SHAPE_PRESETS: readonly string[] = [
 		<div class="flex flex-col items-center gap-0.5">
 			<div class="pptx-rb-grp">
 				<button type="button" class="pptx-rb-gb" disabled>
-					{{ 'pptx.ribbon.shapeFill' | translate }}
+					{{ 'pptx.drawing.shapeFill' | translate }}
 				</button>
 				<button type="button" class="pptx-rb-gb" disabled>
-					{{ 'pptx.ribbon.shapeOutline' | translate }}
+					{{ 'pptx.drawing.shapeOutline' | translate }}
 				</button>
 				<button type="button" class="pptx-rb-gb" disabled>
-					{{ 'pptx.ribbon.shapeEffects' | translate }}
+					{{ 'pptx.drawing.shapeEffectsUnavailable' | translate }}
 				</button>
 			</div>
 			<span class="text-[9px] leading-none text-muted-foreground">
-				{{ 'pptx.ribbon.shapeStyles' | translate }}
+				{{ 'pptx.ribbon.groupShapeStyles' | translate }}
 			</span>
 		</div>
 	`,

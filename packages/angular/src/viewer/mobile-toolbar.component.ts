@@ -39,7 +39,11 @@ import { TranslatePipe } from '@ngx-translate/core';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe],
 	template: `
-		<div class="pptx-ng-mtoolbar" role="toolbar" aria-label="Toolbar">
+		<div
+			class="pptx-ng-mtoolbar"
+			role="toolbar"
+			[attr.aria-label]="'pptx.mobileToolbar.toolbar' | translate"
+		>
 			@if (canEdit()) {
 				<button
 					type="button"

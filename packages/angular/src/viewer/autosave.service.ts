@@ -15,6 +15,7 @@
  */
 
 import { DestroyRef, effect, inject, Injectable, Injector, signal } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
 import {
 	AUTOSAVE_DEFAULT_INTERVAL_SECONDS,
@@ -48,6 +49,7 @@ export interface AutosaveHost {
 export class AutosaveService {
 	private readonly injector = inject(Injector);
 	private readonly destroyRef = inject(DestroyRef);
+	private readonly translate = inject(TranslateService);
 
 	/** Current autosave status, surfaced in the title bar and status bar. */
 	readonly status = signal<AutosaveStatus>({ state: 'idle' });
@@ -118,7 +120,7 @@ export class AutosaveService {
 		} catch (err) {
 			this.status.set({
 				state: 'error',
-				message: err instanceof Error ? err.message : 'Autosave failed',
+				message: err instanceof Error ? err.message : this.translate.instant('pptx.autosave.error'),
 			});
 		} finally {
 			this.saving = false;

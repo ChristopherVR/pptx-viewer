@@ -15,8 +15,13 @@
  * `InsertSmartArtDialog.tsx` + `insert-structured-elements.ts` spec.
  *
  * @module angular-viewer/smart-art-insert-helpers
+ *
+ * `buildSmartArtInsertElement` accepts an optional `TranslateService` so
+ * callers with access to one get a translated default element name; callers
+ * without one (e.g. plain unit tests) still get the English fallback.
  */
 
+import type { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxSmartArtNode, SmartArtLayout } from 'pptx-viewer-core';
 
 import { buildSmartArtPresetNodes, PRESETS } from '../internal/shared';
@@ -65,11 +70,12 @@ export function buildSmartArtInsertElement(
 	layout: SmartArtLayout,
 	items: readonly string[],
 	idSeed?: string,
+	translate?: TranslateService,
 ): PptxElement {
 	return {
 		type: 'smartArt',
 		id: '',
-		name: 'SmartArt',
+		name: translate ? translate.instant('pptx.elementType.smartArt') : 'SmartArt',
 		x: INSERT_X,
 		y: INSERT_Y,
 		width: INSERT_WIDTH,

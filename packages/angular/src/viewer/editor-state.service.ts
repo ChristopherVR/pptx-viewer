@@ -12,11 +12,13 @@
  * `@Component({ providers: [EditorStateService] })`.
  */
 
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import { cloneElement, cloneSlide, cloneTemplateElementsBySlideId } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import { isTemplateElement, isTemplateElementId } from '../internal/shared';
+import { translationsEn } from '../internal/shared-src/i18n';
 import { computeAlign, computeDistribute } from './align-distribute';
 import type { AlignMode, DistributeMode } from './align-distribute';
 import { EditorHistory } from './editor-history';
@@ -53,7 +55,38 @@ interface EditorSnapshot {
 
 @Injectable()
 export class EditorStateService {
+	/**
+	 * Optional: `inject()` requires an active Angular injection context, which
+	 * plain `new EditorStateService()` calls (used throughout this service's
+	 * unit tests, deliberately bypassing TestBed for speed) do not provide.
+	 * Falls back to raw dictionary keys via {@link t} when constructed outside
+	 * DI, which is fine since only undo/redo action labels use it.
+	 */
+	private readonly translate: TranslateService | null = (() => {
+		try {
+			return inject(TranslateService);
+		} catch {
+			return null;
+		}
+	})();
 	private readonly history = new EditorHistory<EditorSnapshot>();
+
+	/**
+	 * Resolve a translation. Outside an injection context (see {@link translate})
+	 * falls back to the canonical English dictionary text, then the raw key.
+	 */
+	private t(key: string, params?: Record<string, unknown>): string {
+		if (this.translate) {
+			return this.translate.instant(key, params);
+		}
+		const fallback = translationsEn[key];
+		if (fallback === undefined) {
+			return key;
+		}
+		return params
+			? fallback.replace(/\{\{(\w+)\}\}/gu, (_m, name: string) => String(params[name] ?? ''))
+			: fallback;
+	}
 
 	/** The editable slide deck (a clone of the loaded presentation). */
 	readonly slides = signal<readonly PptxSlide[]>([]);
@@ -113,7 +146,10 @@ export class EditorStateService {
 	 * result) as a single undoable history entry. Unlike {@link setSlides} this
 	 * preserves history and selection.
 	 */
-	applyReplacement(newSlides: readonly PptxSlide[], label = 'Replace'): void {
+	applyReplacement(
+		newSlides: readonly PptxSlide[],
+		label = this.t('pptx.undoAction.replace'),
+	): void {
 		this.history.record(this.captureSnapshot(), label);
 		this.slides.set(newSlides.map(cloneSlide));
 		this.dirty.set(true);
@@ -206,7 +242,7 @@ export class EditorStateService {
 		if (ids.length === 0) {
 			return;
 		}
-		this.commit('Move', slideIndex, (els) =>
+		this.commit(this.t('pptx.undoAction.move'), slideIndex, (els) =>
 			ids.reduce<PptxElement[]>((acc, id) => moveElementBy(acc, id, dx, dy), [...els]),
 		);
 	}
@@ -216,15 +252,21 @@ export class EditorStateService {
 	}
 
 	setPosition(slideIndex: number, id: string, x: number, y: number): void {
-		this.commit('Move', slideIndex, (els) => setElementPosition(els, id, x, y));
+		this.commit(this.t('pptx.undoAction.move'), slideIndex, (els) =>
+			setElementPosition(els, id, x, y),
+		);
 	}
 
 	resize(slideIndex: number, id: string, width: number, height: number): void {
-		this.commit('Resize', slideIndex, (els) => resizeElement(els, id, width, height));
+		this.commit(this.t('pptx.undoAction.resize'), slideIndex, (els) =>
+			resizeElement(els, id, width, height),
+		);
 	}
 
 	updateElement(slideIndex: number, id: string, patch: Partial<PptxElement>): void {
-		this.commit('Edit', slideIndex, (els) => updateElementById(els, id, patch));
+		this.commit(this.t('pptx.undoAction.edit'), slideIndex, (els) =>
+			updateElementById(els, id, patch),
+		);
 	}
 
 	deleteSelected(slideIndex: number): void {
@@ -232,7 +274,9 @@ export class EditorStateService {
 		if (ids.length === 0) {
 			return;
 		}
-		this.commit('Delete', slideIndex, (els) => deleteElementsByIds(els, ids));
+		this.commit(this.t('pptx.undoAction.delete'), slideIndex, (els) =>
+			deleteElementsByIds(els, ids),
+		);
 		this.selectedIds.set([]);
 	}
 
@@ -242,7 +286,7 @@ export class EditorStateService {
 			return;
 		}
 		const newIds: string[] = [];
-		this.commit('Duplicate', slideIndex, (els) =>
+		this.commit(this.t('pptx.undoAction.duplicate'), slideIndex, (els) =>
 			ids.reduce<PptxElement[]>(
 				(acc, id) => {
 					const newId = this.newId();
@@ -256,16 +300,16 @@ export class EditorStateService {
 	}
 
 	bringSelectedToFront(slideIndex: number): void {
-		this.zOrder(slideIndex, 'Bring to front', bringToFront);
+		this.zOrder(slideIndex, this.t('pptx.undoAction.bringToFront'), bringToFront);
 	}
 	sendSelectedToBack(slideIndex: number): void {
-		this.zOrder(slideIndex, 'Send to back', sendToBack);
+		this.zOrder(slideIndex, this.t('pptx.undoAction.sendToBack'), sendToBack);
 	}
 	bringSelectedForward(slideIndex: number): void {
-		this.zOrder(slideIndex, 'Bring forward', bringForward);
+		this.zOrder(slideIndex, this.t('pptx.undoAction.bringForward'), bringForward);
 	}
 	sendSelectedBackward(slideIndex: number): void {
-		this.zOrder(slideIndex, 'Send backward', sendBackward);
+		this.zOrder(slideIndex, this.t('pptx.undoAction.sendBackward'), sendBackward);
 	}
 
 	// ── Interactive transform (drag / resize: one history entry per gesture) ──
@@ -338,12 +382,16 @@ export class EditorStateService {
 
 	/** Align the selected elements within their group bounds (one history entry). */
 	alignSelected(slideIndex: number, mode: AlignMode): void {
-		this.applyPositionMap(slideIndex, `Align ${mode}`, (boxes) => computeAlign(boxes, mode));
+		this.applyPositionMap(slideIndex, this.t('pptx.undoAction.align', { mode }), (boxes) =>
+			computeAlign(boxes, mode),
+		);
 	}
 
 	/** Evenly distribute the selected elements along an axis (one history entry). */
 	distributeSelected(slideIndex: number, mode: DistributeMode): void {
-		this.applyPositionMap(slideIndex, 'Distribute', (boxes) => computeDistribute(boxes, mode));
+		this.applyPositionMap(slideIndex, this.t('pptx.undoAction.distribute'), (boxes) =>
+			computeDistribute(boxes, mode),
+		);
 	}
 
 	private applyPositionMap(
@@ -400,7 +448,7 @@ export class EditorStateService {
 		if (!groupId) {
 			return;
 		}
-		this.history.record(this.captureSnapshot(), 'Group');
+		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.group'));
 		this.slides.set(slides.map((s, i) => (i === slideIndex ? { ...s, elements } : s)));
 		this.selectedIds.set([groupId]);
 		this.dirty.set(true);
@@ -424,7 +472,7 @@ export class EditorStateService {
 		}
 		const childIds = (group.children ?? []).map(() => this.newId());
 		const { elements, childIds: used } = ungroupElements(slide.elements, ids[0], childIds);
-		this.history.record(this.captureSnapshot(), 'Ungroup');
+		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.ungroup'));
 		this.slides.set(slides.map((s, i) => (i === slideIndex ? { ...s, elements } : s)));
 		this.selectedIds.set(used);
 		this.dirty.set(true);
@@ -467,7 +515,7 @@ export class EditorStateService {
 		if (!slides[slideIndex]) {
 			return;
 		}
-		this.history.record(this.captureSnapshot(), 'Paste');
+		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.paste'));
 		const newIds: string[] = [];
 		const additions = this.clipboard.map((el) => {
 			const id = this.newId();
@@ -493,7 +541,7 @@ export class EditorStateService {
 			return;
 		}
 		const withId: PptxElement = { ...element, id: element.id || this.newId() };
-		this.history.record(this.captureSnapshot(), 'Insert');
+		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.insert'));
 		this.slides.set(
 			slides.map((slide, i) =>
 				i === slideIndex ? { ...slide, elements: [...slide.elements, withId] } : slide,
@@ -512,7 +560,7 @@ export class EditorStateService {
 		if (!slides[slideIndex]) {
 			return;
 		}
-		this.history.record(this.captureSnapshot(), 'Slide properties');
+		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.slideProperties'));
 		this.slides.set(slides.map((s, i) => (i === slideIndex ? { ...s, ...patch } : s)));
 		this.dirty.set(true);
 		this.syncHistory();
@@ -521,7 +569,7 @@ export class EditorStateService {
 	/** Insert a blank slide after `afterIndex` (records history). */
 	addSlide(afterIndex: number): void {
 		const slides = this.slides();
-		this.history.record(this.captureSnapshot(), 'Add slide');
+		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.addSlide'));
 		const id = this.newId();
 		const blank = { id, rId: id, slideNumber: 0, elements: [] } as PptxSlide;
 		const next = [...slides];
@@ -538,7 +586,7 @@ export class EditorStateService {
 		if (slides.length <= 1 || !slides[index]) {
 			return;
 		}
-		this.history.record(this.captureSnapshot(), 'Delete slide');
+		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.deleteSlide'));
 		this.slides.set(this.renumber(slides.filter((_, i) => i !== index)));
 		this.selectedIds.set([]);
 		this.dirty.set(true);
@@ -551,7 +599,7 @@ export class EditorStateService {
 		if (!slides[index]) {
 			return;
 		}
-		this.history.record(this.captureSnapshot(), 'Duplicate slide');
+		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.duplicateSlide'));
 		const id = this.newId();
 		const copy: PptxSlide = { ...cloneSlide(slides[index]), id, rId: id };
 		const next = [...slides];
@@ -567,7 +615,7 @@ export class EditorStateService {
 		if (from === to || !slides[from] || to < 0 || to >= slides.length) {
 			return;
 		}
-		this.history.record(this.captureSnapshot(), 'Move slide');
+		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.moveSlide'));
 		const next = [...slides];
 		const [moved] = next.splice(from, 1);
 		next.splice(to, 0, moved);

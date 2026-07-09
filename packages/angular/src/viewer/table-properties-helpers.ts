@@ -25,17 +25,17 @@ export type TableBooleanFlag =
 	| 'lastCol'
 	| 'lastRow';
 
-/** The structure / style toggle flags shown as checkboxes, with i18n-free labels. */
+/** The structure / style toggle flags shown as checkboxes, with i18n dictionary keys. */
 export const TABLE_STRUCTURE_TOGGLES: ReadonlyArray<{
 	key: TableBooleanFlag;
-	label: string;
+	labelKey: string;
 }> = [
-	{ key: 'bandedRows', label: 'Banded rows' },
-	{ key: 'firstRowHeader', label: 'Header row' },
-	{ key: 'bandedColumns', label: 'Banded columns' },
-	{ key: 'firstCol', label: 'First column' },
-	{ key: 'lastCol', label: 'Last column' },
-	{ key: 'lastRow', label: 'Total (last) row' },
+	{ key: 'bandedRows', labelKey: 'pptx.table.bandedRows' },
+	{ key: 'firstRowHeader', labelKey: 'pptx.table.headerRow' },
+	{ key: 'bandedColumns', labelKey: 'pptx.table.bandedColumns' },
+	{ key: 'firstCol', labelKey: 'pptx.table.firstColumn' },
+	{ key: 'lastCol', labelKey: 'pptx.table.lastColumn' },
+	{ key: 'lastRow', labelKey: 'pptx.table.lastRow' },
 ];
 
 /**

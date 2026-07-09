@@ -1,7 +1,13 @@
 /**
  * slide-diff-helpers.ts: Pure label / icon helpers for the slide-diff row and
  * its change list. Framework-free so they are unit testable in isolation.
+ *
+ * `statusLabel` / `changeCountLabel` accept an optional `TranslateService` so
+ * callers with access to one get translated text; callers without one (e.g.
+ * plain unit tests) still get the English fallback.
  */
+
+import type { TranslateService } from '@ngx-translate/core';
 
 import type { ElementChange, SlideDiff } from '../internal/shared';
 
@@ -23,21 +29,24 @@ export function changeIcon(kind: ElementChange['kind']): string {
 }
 
 /** Human-readable status pill label for a slide diff. */
-export function statusLabel(status: SlideDiff['status']): string {
+export function statusLabel(status: SlideDiff['status'], translate?: TranslateService): string {
 	switch (status) {
 		case 'added':
-			return 'Added';
+			return translate ? translate.instant('pptx.compare.statusAdded') : 'Added';
 		case 'removed':
-			return 'Removed';
+			return translate ? translate.instant('pptx.compare.statusRemoved') : 'Removed';
 		case 'changed':
-			return 'Changed';
+			return translate ? translate.instant('pptx.compare.statusChanged') : 'Changed';
 		default:
-			return 'Unchanged';
+			return translate ? translate.instant('pptx.compare.statusUnchanged') : 'Unchanged';
 	}
 }
 
 /** "N change" / "N changes" summary for a diff's change count. */
-export function changeCountLabel(count: number): string {
+export function changeCountLabel(count: number, translate?: TranslateService): string {
+	if (translate) {
+		return translate.instant('pptx.slideDiff.changeCount', { count });
+	}
 	return `${count} ${count === 1 ? 'change' : 'changes'}`;
 }
 

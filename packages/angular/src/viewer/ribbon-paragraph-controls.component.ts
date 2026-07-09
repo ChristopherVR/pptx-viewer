@@ -27,10 +27,10 @@ const LINE_SPACING_OPTIONS = [1.0, 1.15, 1.5, 2.0, 2.5, 3.0];
 
 /** Text direction presets (mirrors React/Vue). */
 const TEXT_DIRECTION_OPTIONS = [
-	{ label: 'Horizontal', value: 'horizontal' },
-	{ label: 'Rotate 90\u00B0', value: 'vertical' },
-	{ label: 'Rotate 270\u00B0', value: 'vertical270' },
-	{ label: 'Stacked', value: 'wordArtVert' },
+	{ labelKey: 'pptx.slideInspector.horizontal', value: 'horizontal' },
+	{ labelKey: 'pptx.ribbon.textDirectionRotate90', value: 'vertical' },
+	{ labelKey: 'pptx.ribbon.textDirectionRotate270', value: 'vertical270' },
+	{ labelKey: 'pptx.ribbon.textDirectionStacked', value: 'wordArtVert' },
 ] as const;
 
 /** Column count presets. */
@@ -144,7 +144,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 		<!-- Line Spacing -->
 		<select
 			class="pptx-rb-select w-14"
-			[attr.aria-label]="'pptx.ribbon.lineSpacing' | translate"
+			[attr.aria-label]="'pptx.paragraph.lineSpacing' | translate"
 			[disabled]="!isText()"
 			(change)="setLineSpacing($event)"
 		>
@@ -155,20 +155,20 @@ const COLUMN_OPTIONS = [1, 2, 3];
 		<!-- Text Direction -->
 		<select
 			class="pptx-rb-select w-24"
-			[attr.aria-label]="'pptx.ribbon.textDirection' | translate"
+			[attr.aria-label]="'pptx.paragraph.textDirection' | translate"
 			[disabled]="!isText()"
 			(change)="setTextDirection($event)"
 		>
 			@for (dir of textDirectionOptions; track dir.value) {
 				<option [value]="dir.value" [selected]="dir.value === curTextDirection()">
-					{{ dir.label }}
+					{{ dir.labelKey | translate }}
 				</option>
 			}
 		</select>
 		<!-- Columns -->
 		<select
 			class="pptx-rb-select w-12"
-			[attr.aria-label]="'pptx.ribbon.columns' | translate"
+			[attr.aria-label]="'pptx.paragraph.columns' | translate"
 			[disabled]="!isText()"
 			(change)="setColumns($event)"
 		>

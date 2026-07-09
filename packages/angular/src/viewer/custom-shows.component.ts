@@ -11,9 +11,17 @@
  * except for draft signals used to track the create-form state.
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	signal,
+} from '@angular/core';
 import { LucideX } from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import type { CustomShow } from './custom-shows-helpers';
@@ -467,6 +475,8 @@ import type { CustomShow } from './custom-shows-helpers';
 	],
 })
 export class CustomShowsComponent {
+	private readonly translate = inject(TranslateService);
+
 	/** Whether the dialog is open. */
 	readonly open = input<boolean>(false);
 	/** All slides in the presentation (for slide picker). */
@@ -513,7 +523,9 @@ export class CustomShowsComponent {
 
 	protected slideLabel(slide: PptxSlide, index: number): string {
 		const name = slide.name ?? '';
-		return name.trim().length > 0 ? `${index + 1}. ${name}` : `Slide ${index + 1}`;
+		return name.trim().length > 0
+			? `${index + 1}. ${name}`
+			: this.translate.instant('pptx.compare.slideNumber', { number: index + 1 });
 	}
 
 	// ── Create form handlers ─────────────────────────────────────────────────

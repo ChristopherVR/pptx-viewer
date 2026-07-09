@@ -29,6 +29,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { TablePptxElement } from 'pptx-viewer-core';
 
 import {
@@ -44,10 +45,14 @@ import { TableSelectionService } from './table-selection.service';
 	selector: 'pptx-table-data-editor',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
-		<section class="pptx-tbl-editor" aria-label="Table data editor">
+		<section
+			class="pptx-tbl-editor"
+			[attr.aria-label]="'pptx.tableDataEditor.ariaLabel' | translate"
+		>
 			<header class="pptx-tbl-editor__header">
-				<h3 class="pptx-tbl-editor__heading">Table Data</h3>
+				<h3 class="pptx-tbl-editor__heading">{{ 'pptx.inspector.tableData' | translate }}</h3>
 
 				@if (canEdit()) {
 					<div class="pptx-tbl-editor__actions">
@@ -55,37 +60,37 @@ import { TableSelectionService } from './table-selection.service';
 						<button
 							type="button"
 							class="pptx-tbl-editor__btn"
-							title="Add row below last"
+							[title]="'pptx.tableDataEditor.addRowTitle' | translate"
 							(click)="onAddRow()"
 						>
-							+ Row
+							{{ 'pptx.tableDataEditor.addRowLabel' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-tbl-editor__btn pptx-tbl-editor__btn--danger"
 							[disabled]="rowCount() <= 1"
-							title="Remove last row"
+							[title]="'pptx.tableDataEditor.removeRowTitle' | translate"
 							(click)="onRemoveLastRow()"
 						>
-							- Row
+							{{ 'pptx.tableDataEditor.removeRowLabel' | translate }}
 						</button>
 						<!-- Column add/remove -->
 						<button
 							type="button"
 							class="pptx-tbl-editor__btn"
-							title="Add column to the right"
+							[title]="'pptx.tableDataEditor.addColumnTitle' | translate"
 							(click)="onAddColumn()"
 						>
-							+ Col
+							{{ 'pptx.tableDataEditor.addColumnLabel' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-tbl-editor__btn pptx-tbl-editor__btn--danger"
 							[disabled]="colCount() <= 1"
-							title="Remove last column"
+							[title]="'pptx.tableDataEditor.removeColumnTitle' | translate"
 							(click)="onRemoveLastColumn()"
 						>
-							- Col
+							{{ 'pptx.tableDataEditor.removeColumnLabel' | translate }}
 						</button>
 					</div>
 				}
@@ -107,7 +112,9 @@ import { TableSelectionService } from './table-selection.service';
 									<button
 										type="button"
 										class="pptx-tbl-editor__remove-btn"
-										title="Remove column {{ colIdx + 1 }}"
+										[title]="
+											'pptx.tableDataEditor.removeColumnN' | translate: { number: colIdx + 1 }
+										"
 										(click)="onRemoveColumn(colIdx)"
 									>
 										×
@@ -125,7 +132,7 @@ import { TableSelectionService } from './table-selection.service';
 									<button
 										type="button"
 										class="pptx-tbl-editor__remove-btn"
-										title="Remove row {{ ri + 1 }}"
+										[title]="'pptx.tableDataEditor.removeRowN' | translate: { number: ri + 1 }"
 										(click)="onRemoveRow(ri)"
 									>
 										×

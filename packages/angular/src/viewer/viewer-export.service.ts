@@ -16,6 +16,7 @@
 
 import { inject, Injectable, signal } from '@angular/core';
 import type { WritableSignal } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import {
@@ -49,6 +50,7 @@ export class ViewerExportService {
 	private readonly exportSvc = inject(ExportService);
 	private readonly loader = inject(LoadContentService);
 	private readonly print = inject(PrintService);
+	private readonly translate = inject(TranslateService);
 
 	/** True while a PNG/PDF export is in progress (disables the buttons). */
 	readonly exporting = signal(false);
@@ -102,12 +104,16 @@ export class ViewerExportService {
 		if (host.slideCount() === 0 || this.exporting()) {
 			return;
 		}
-		const controller = this.beginExport('Export as PDF');
+		const controller = this.beginExport(this.translate.instant('pptx.mobileMenu.exportPdf'));
 		const { width, height } = this.loader.canvasSize();
 		try {
-			const canvases = await this.captureSlideCanvases(controller.signal, 'Rendering', 90);
+			const canvases = await this.captureSlideCanvases(
+				controller.signal,
+				this.translate.instant('pptx.export.rendering'),
+				90,
+			);
 			this.progress.set(EXPORT_ASSEMBLING_PERCENT);
-			this.statusMessage.set('Building PDF...');
+			this.statusMessage.set(this.translate.instant('pptx.export.buildingPdf'));
 			this.exportSvc.exportCanvasesToPdf(canvases, width, height, 'presentation.pdf');
 			this.progress.set(EXPORT_DONE_PERCENT);
 		} catch (err) {
@@ -125,11 +131,15 @@ export class ViewerExportService {
 		if (host.slideCount() === 0 || this.exporting()) {
 			return;
 		}
-		const controller = this.beginExport('Export as GIF');
+		const controller = this.beginExport(this.translate.instant('pptx.mobileMenu.exportGif'));
 		try {
-			const canvases = await this.captureSlideCanvases(controller.signal, 'Encoding', 90);
+			const canvases = await this.captureSlideCanvases(
+				controller.signal,
+				this.translate.instant('pptx.export.encoding'),
+				90,
+			);
 			this.progress.set(EXPORT_ASSEMBLING_PERCENT);
-			this.statusMessage.set('Saving file...');
+			this.statusMessage.set(this.translate.instant('pptx.export.savingFile'));
 			this.exportSvc.exportCanvasesToGif(canvases, 2000, 'presentation.gif');
 			this.progress.set(EXPORT_DONE_PERCENT);
 		} catch (err) {
@@ -147,11 +157,15 @@ export class ViewerExportService {
 		if (host.slideCount() === 0 || this.exporting()) {
 			return;
 		}
-		const controller = this.beginExport('Export as Video');
+		const controller = this.beginExport(this.translate.instant('pptx.mobileMenu.exportVideo'));
 		try {
-			const canvases = await this.captureSlideCanvases(controller.signal, 'Capturing', 45);
+			const canvases = await this.captureSlideCanvases(
+				controller.signal,
+				this.translate.instant('pptx.export.capturing'),
+				45,
+			);
 			this.progress.set(EXPORT_ASSEMBLING_PERCENT);
-			this.statusMessage.set('Recording video...');
+			this.statusMessage.set(this.translate.instant('pptx.export.recordingVideo'));
 			await this.exportSvc.exportCanvasesToWebm(
 				canvases,
 				3000,
@@ -159,7 +173,9 @@ export class ViewerExportService {
 				controller.signal,
 				(current, total) => {
 					this.progress.set(recordProgressPercent(current, total));
-					this.statusMessage.set(slideStatusLabel('Recording', current, total));
+					this.statusMessage.set(
+						slideStatusLabel(this.translate.instant('pptx.export.recording'), current, total),
+					);
 				},
 			);
 			this.progress.set(EXPORT_DONE_PERCENT);
@@ -201,7 +217,7 @@ export class ViewerExportService {
 		const controller = new AbortController();
 		this.abort = controller;
 		this.modalTitle.set(title);
-		this.statusMessage.set('Capturing slides...');
+		this.statusMessage.set(this.translate.instant('pptx.export.capturingSlides'));
 		this.progress.set(0);
 		this.modalOpen.set(true);
 		this.exporting.set(true);

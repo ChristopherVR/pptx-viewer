@@ -112,7 +112,7 @@ const TABS: readonly TabDef[] = [
 	template: `
 		<div
 			role="toolbar"
-			aria-label="Presentation toolbar"
+			[attr.aria-label]="'pptx.toolbar.presentationToolbarAria' | translate"
 			class="relative z-20 overflow-visible border-b border-border bg-secondary/50"
 		>
 			<!-- ── Primary quick-access row (ToolbarPrimaryRow parity) ──── -->

@@ -5,9 +5,11 @@ import {
 	ElementRef,
 	computed,
 	effect,
+	inject,
 	input,
 	viewChild,
 } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxMediaType } from 'pptx-viewer-core';
 
 import { startMediaAutoplay } from '../internal/shared';
@@ -144,7 +146,9 @@ export class MediaRendererComponent {
 	 */
 	readonly presenting = input<boolean>(false);
 	/** Fallback text shown when neither a source nor a poster is available. */
-	readonly placeholderLabel = input<string>('Media');
+	readonly placeholderLabel = input<string>(
+		inject(TranslateService).instant('pptx.elementType.media'),
+	);
 
 	/** The live `<video>`/`<audio>` node (only one is mounted at a time). */
 	private readonly mediaElRef = viewChild<ElementRef<HTMLMediaElement>>('mediaEl');
