@@ -407,6 +407,7 @@ onBeforeUnmount(() => {
 					:canvas-size="canvasSize"
 					:media-data-urls="mediaDataUrls"
 					:scale="scale"
+					:presenting="true"
 				/>
 				<!-- Ink / laser / eraser overlay (captures pointers only when armed). -->
 				<PresentationAnnotationOverlay

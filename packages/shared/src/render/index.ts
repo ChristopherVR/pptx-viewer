@@ -515,6 +515,11 @@ export * from './smartart-reflow-to-shapes';
 // presets, text-warp gallery presets + preview-path generator, shape quick-style
 // gallery, and 3D-text bevel/material option lists. Each binding's inspector
 // gallery consumes these instead of duplicating the data.
+// Presentation-mode media autoplay: a shared `.play()` helper (trim-start seek
+// + swallowed autoplay-blocked rejection) each binding calls when present mode
+// makes a media element's slide the live surface.
+export * from './media-playback';
+
 export * from './image-artistic-presets';
 export * from './text-warp-presets';
 export * from './shape-quick-styles';

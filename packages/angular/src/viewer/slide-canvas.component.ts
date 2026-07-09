@@ -178,6 +178,7 @@ function plainText(el: PptxElement): string {
 							[canvasWidth]="canvasSize().width"
 							[canvasHeight]="canvasSize().height"
 							[interactive]="interactive()"
+							[presenting]="presenting()"
 							[editable]="editable()"
 							[fieldContext]="fieldContext()"
 							[editTemplateMode]="false"
@@ -548,6 +549,12 @@ export class SlideCanvasComponent {
 	 * e2e selectors from matching multiple elements.
 	 */
 	readonly interactive = input<boolean>(true);
+	/**
+	 * True only for the live presentation stage: slide-content media autoplays.
+	 * Left false for thumbnails, the sorter and the editor canvas so their media
+	 * stays quiet (the template layer never autoplays regardless).
+	 */
+	readonly presenting = input<boolean>(false);
 	/** Ids of currently-selected elements (drawn with a selection outline). */
 	readonly selectedIds = input<readonly string[]>([]);
 	/** Id of the element currently being text-edited inline (or null). */

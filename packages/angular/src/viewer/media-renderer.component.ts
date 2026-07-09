@@ -1,7 +1,16 @@
 import { NgStyle } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	ElementRef,
+	computed,
+	effect,
+	input,
+	viewChild,
+} from '@angular/core';
 import type { PptxElement, PptxMediaType } from 'pptx-viewer-core';
 
+import { startMediaAutoplay } from '../internal/shared';
 import { getClrChangeParams } from './color-changed-image-helpers';
 import type { ClrChangeParams } from './color-changed-image-helpers';
 import { ColorChangedImageComponent } from './color-changed-image.component';
@@ -47,6 +56,7 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 			@if (mediaSrc(); as src) {
 				@if (mediaKind() === 'audio') {
 					<audio
+						#mediaEl
 						class="pptx-ng-media-el pptx-ng-media-audio"
 						[class.pptx-ng-media-inert]="interactive()"
 						[src]="src + trimFragment()"
@@ -56,6 +66,7 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 					></audio>
 				} @else {
 					<video
+						#mediaEl
 						class="pptx-ng-media-el pptx-ng-media-video"
 						[class.pptx-ng-media-inert]="interactive()"
 						[src]="src + trimFragment()"
@@ -125,8 +136,38 @@ export class MediaRendererComponent {
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly zIndex = input<number>(0);
 	readonly interactive = input<boolean>(true);
+	/**
+	 * True only on the live presentation stage. When set, the media element
+	 * starts playing on its own once mounted (as PowerPoint does when a slide
+	 * with media becomes active) instead of waiting for a manual click; the
+	 * thumbnail / sorter / editor canvases leave it false so their media is quiet.
+	 */
+	readonly presenting = input<boolean>(false);
 	/** Fallback text shown when neither a source nor a poster is available. */
 	readonly placeholderLabel = input<string>('Media');
+
+	/** The live `<video>`/`<audio>` node (only one is mounted at a time). */
+	private readonly mediaElRef = viewChild<ElementRef<HTMLMediaElement>>('mediaEl');
+
+	constructor() {
+		// Presentation autoplay: once the media node is in the DOM and this is the
+		// live stage, start playback; pause again if it leaves present mode. Reads
+		// mediaSrc so a source swap re-evaluates. The shared helper owns the
+		// `.play()` + blocked-autoplay handling so all three bindings match.
+		effect(() => {
+			const el = this.mediaElRef()?.nativeElement;
+			const presenting = this.presenting();
+			this.mediaSrc();
+			if (!el) {
+				return;
+			}
+			if (presenting) {
+				startMediaAutoplay(el, { trimStartMs: asMediaElement(this.element())?.trimStartMs });
+			} else if (!el.paused) {
+				el.pause();
+			}
+		});
+	}
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		getContainerStyle(this.element(), this.zIndex()),

@@ -34,9 +34,22 @@ export class ViewerCustomShowsService {
 	/** Active-slide index of the host viewer (bound from the component). */
 	private activeSlideIndex: () => number = () => 0;
 
-	/** Wire the host's active-slide-index accessor (called once from the constructor). */
-	bind(activeSlideIndex: () => number): void {
-		this.activeSlideIndex = activeSlideIndex;
+	/**
+	 * The viewer's LIVE (edited) slides accessor, bound from the component. The
+	 * presentation overlay must reflect in-session edits (inserted media, moved
+	 * shapes, etc.), so it reads these rather than the pristine loaded deck
+	 * (`loader.slides()`), mirroring React/Vue where present mode shows the
+	 * working set. Defaults to the loaded slides until bound.
+	 */
+	private liveSlides: () => readonly PptxSlide[] = () => this.loader.slides();
+
+	/** Wire the host's active-slide-index + live-slides accessors (called once from the constructor). */
+	bind(accessors: {
+		activeSlideIndex: () => number;
+		liveSlides: () => readonly PptxSlide[];
+	}): void {
+		this.activeSlideIndex = accessors.activeSlideIndex;
+		this.liveSlides = accessors.liveSlides;
 	}
 
 	/** Custom shows mapped to the core shape consumed by set-up-slide-show. */
@@ -48,9 +61,9 @@ export class ViewerCustomShowsService {
 		})),
 	);
 
-	/** Slides shown in presentation mode: the active custom show, else the full deck. */
+	/** Slides shown in presentation mode: the active custom show, else the full (live) deck. */
 	readonly presentationSlides = computed<PptxSlide[]>(
-		() => this.resolveActiveShowSlides() ?? [...this.loader.slides()],
+		() => this.resolveActiveShowSlides() ?? [...this.liveSlides()],
 	);
 
 	/** Start index into {@link presentationSlides}: first slide of a custom show, else the active slide. */
@@ -88,7 +101,7 @@ export class ViewerCustomShowsService {
 		if (!show || show.slideIds.length === 0) {
 			return null;
 		}
-		const byId = new Map(this.loader.slides().map((s) => [s.id, s]));
+		const byId = new Map(this.liveSlides().map((s) => [s.id, s]));
 		const picked = show.slideIds
 			.map((sid) => byId.get(sid))
 			.filter((s): s is PptxSlide => s !== undefined);

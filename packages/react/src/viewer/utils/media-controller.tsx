@@ -10,6 +10,14 @@ import { registerPersistentAudio } from './media-persistent-audio';
 interface PresentationMediaControllerProps {
 	element: MediaPptxElement;
 	isPresentationMode: boolean;
+	/**
+	 * Effective autoplay decision used to render the underlying element's
+	 * `autoPlay` prop (`options.autoPlay || element.autoPlay`), NOT the raw
+	 * persisted `element.autoPlay` flag. Present mode makes this true for any
+	 * media on the active slide, so the corrective `.play()` effect must gate
+	 * on this to actually start playback for media inserted without the flag.
+	 */
+	shouldAutoPlay: boolean;
 	/** Whether this media is in full-screen overlay mode. */
 	isFullScreen: boolean;
 	/** Callback fired when media play/pause state changes. */
@@ -24,6 +32,7 @@ interface PresentationMediaControllerProps {
 export function PresentationMediaController({
 	element,
 	isPresentationMode,
+	shouldAutoPlay,
 	isFullScreen,
 	onPlayStateChange,
 	children,
@@ -204,7 +213,7 @@ export function PresentationMediaController({
 
 	// Auto-play in presentation mode
 	useEffect(() => {
-		if (!isPresentationMode || !element.autoPlay) {
+		if (!isPresentationMode || !shouldAutoPlay) {
 			return;
 		}
 
@@ -248,7 +257,7 @@ export function PresentationMediaController({
 		return () => window.clearTimeout(timer);
 	}, [
 		isPresentationMode,
-		element.autoPlay,
+		shouldAutoPlay,
 		element.playAcrossSlides,
 		element.mediaType,
 		element.mediaData,

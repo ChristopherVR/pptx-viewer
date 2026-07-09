@@ -176,6 +176,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 					[zoom]="zoom()"
 					[autoFit]="false"
 					[interactive]="false"
+					[presenting]="true"
 				/>
 
 				@if (activeTransition(); as t) {

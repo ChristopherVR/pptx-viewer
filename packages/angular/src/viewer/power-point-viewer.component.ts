@@ -1177,9 +1177,14 @@ export class PowerPointViewerComponent {
 		// can scroll its slide into view.
 		this.findReplace.bind((index) => this.goTo(index));
 
-		// Hand the custom-shows controller the active-slide-index accessor so a
-		// normal (non-custom) show starts at the current slide.
-		this.customShowsCtl.bind(() => this.activeSlideIndex());
+		// Hand the custom-shows controller the active-slide-index accessor (so a
+		// normal show starts at the current slide) and the LIVE edited-slides
+		// accessor (so present mode reflects in-session edits like inserted media,
+		// mirroring React/Vue) rather than the pristine loaded deck.
+		this.customShowsCtl.bind({
+			activeSlideIndex: () => this.activeSlideIndex(),
+			liveSlides: () => this.displaySlidesMut(),
+		});
 
 		// Hand the collaboration-session controller the host inputs it cannot own
 		// (author name, share defaults, template-element supplier) and the
