@@ -127,7 +127,7 @@ export class ThemePickerComponent {
 		this.isSmallScreen.set(window.innerWidth < 768);
 	}
 
-	protected readonly preset = computed(() => THEMES[this.current()] ?? THEMES['dark']);
+	protected readonly preset = computed(() => THEMES[this.current()] ?? THEMES['vermilionDark']);
 	private readonly bg = computed(() => this.preset().theme.colors?.card ?? '#111827');
 	private readonly border = computed(() => this.preset().theme.colors?.border ?? '#374151');
 	private readonly fg = computed(() => this.preset().theme.colors?.mutedForeground ?? '#9ca3af');
@@ -165,7 +165,7 @@ export class ThemePickerComponent {
 	}
 
 	protected label(key: string): string {
-		return (THEMES[key] ?? THEMES['dark']).label;
+		return (THEMES[key] ?? THEMES['vermilionDark']).label;
 	}
 
 	protected rowStyle(key: string): Record<string, string> {
@@ -178,7 +178,7 @@ export class ThemePickerComponent {
 	}
 
 	protected swatchStyle(key: string): Record<string, string> {
-		const colors = (THEMES[key] ?? THEMES['dark']).theme.colors;
+		const colors = (THEMES[key] ?? THEMES['vermilionDark']).theme.colors;
 		return {
 			background: colors?.primary ?? '#6366f1',
 			border: `2px solid ${colors?.border ?? '#374151'}`,
