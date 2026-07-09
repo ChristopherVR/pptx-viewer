@@ -4,6 +4,22 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.12.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.12.0) - 2026-07-09
+
+### Features
+
+- **react:** Expose internal hooks via pptx-react-viewer/hooks-unstable (by @ChristopherVR) ([5ca17af](https://github.com/ChristopherVR/pptx-viewer/commit/5ca17af262dc69cf94ccde8c5e75a5f1114aeee5))
+
+### Bug Fixes
+
+- **react:** Route hardcoded UI text through i18n (by @ChristopherVR) ([62d5679](https://github.com/ChristopherVR/pptx-viewer/commit/62d567921c168bedd145f35a7ea7f440b10a5649))
+
+### Other
+
+- Reconcile with origin/main before push (by @ChristopherVR) ([c4a7e32](https://github.com/ChristopherVR/pptx-viewer/commit/c4a7e3223fa179f9239b1bc856e574011d4ca2c1))
+- Reconcile with origin/main before push (by @ChristopherVR) ([ef5fc85](https://github.com/ChristopherVR/pptx-viewer/commit/ef5fc85dca2e20ff3e105d622594e0f65d010fb0))
+- Reconcile with origin/main before push (by @ChristopherVR) ([030b28b](https://github.com/ChristopherVR/pptx-viewer/commit/030b28bb21697ed681e4e59aa40db29f4b4a18d0))
+
 ## [1.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.11.0) - 2026-07-09
 
 ### Features

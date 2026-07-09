@@ -6,6 +6,47 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-09
 
+_Releases: pptx-viewer-core@1.2.6, pptx-react-viewer@1.12.0, pptx-vue-viewer@1.12.0, pptx-angular-viewer@1.13.0_
+
+### Features
+
+- **react:** Expose internal hooks via pptx-react-viewer/hooks-unstable (by @ChristopherVR) ([5ca17af](https://github.com/ChristopherVR/pptx-viewer/commit/5ca17af262dc69cf94ccde8c5e75a5f1114aeee5))
+- **vue:** Expose internal composables via pptx-vue-viewer/composables-unstable (by @ChristopherVR) ([7f9d507](https://github.com/ChristopherVR/pptx-viewer/commit/7f9d5079aeae4fdd72a8a3bcf3defb901a366204))
+- **angular:** Expose internal services via the public API surface (by @ChristopherVR) ([0793002](https://github.com/ChristopherVR/pptx-viewer/commit/07930029161a2cfc3219d9007410358832af162b))
+- **shared:** Anchor chart value drags at the data point''s current value (by @ChristopherVR) ([e910070](https://github.com/ChristopherVR/pptx-viewer/commit/e9100708840f14c9a7f848b62ee316c52cfa3c59))
+- **react:** Direct on-canvas chart editing (by @ChristopherVR) ([f0d4988](https://github.com/ChristopherVR/pptx-viewer/commit/f0d49887bae16c1b70a7b3b95662a188e311ad4a))
+- **angular:** Direct on-canvas chart editing (by @ChristopherVR) ([bc90ad6](https://github.com/ChristopherVR/pptx-viewer/commit/bc90ad689a49c2e46e036b8edac6b5ea430b8528))
+- **vue:** Direct on-canvas chart editing (by @ChristopherVR) ([358a2ae](https://github.com/ChristopherVR/pptx-viewer/commit/358a2ae9206437711edfe14ccf2f246a8782fc05))
+- **demos:** Default all three demos to the vermilion dark preset (by @ChristopherVR) ([89befee](https://github.com/ChristopherVR/pptx-viewer/commit/89befeec2f55c60c1bc4c98c0bbc649ecc32d5a8))
+
+### Bug Fixes
+
+- **core:** Resolve CodeQL security findings across parsing/signing/templating (by @ChristopherVR) ([ec299c8](https://github.com/ChristopherVR/pptx-viewer/commit/ec299c815c6815a26ace0d85ebfe5a191a1ba5ab))
+- **shared:** Resolve CodeQL ReDoS, XSS, and insecure-randomness findings (by @ChristopherVR) ([7e7b1c4](https://github.com/ChristopherVR/pptx-viewer/commit/7e7b1c49b43fc9bc823830a97fa9bc8093f9510b))
+- **react:** Use crypto-strong randomness for presenter sessions; retest BroadcastChannel sync (by @ChristopherVR) ([478dfcf](https://github.com/ChristopherVR/pptx-viewer/commit/478dfcfc54e059ba3e82eeb4fb1a1347197d2f38))
+- **react:** Make content-only edits undoable via the pointer-commit nonce (by @ChristopherVR) ([be1a975](https://github.com/ChristopherVR/pptx-viewer/commit/be1a97569dc12396ebad3a648900794c6132e12d))
+- **angular:** Use crypto-strong randomness for session IDs and field GUIDs (by @ChristopherVR) ([afb26bb](https://github.com/ChristopherVR/pptx-viewer/commit/afb26bb14679ea410138581408101df136b4b8b7))
+- **demos:** Use crypto-strong randomness for room/cursor id generation (by @ChristopherVR) ([e89f48a](https://github.com/ChristopherVR/pptx-viewer/commit/e89f48a55722385789c1853173ba607f9f17b1c3))
+- **shared:** Add i18n keys for hardcoded UI text across bindings (by @ChristopherVR) ([6d17eb8](https://github.com/ChristopherVR/pptx-viewer/commit/6d17eb8b7298c0727f249ae863c7906258417acf))
+- **react:** Route hardcoded UI text through i18n (by @ChristopherVR) ([62d5679](https://github.com/ChristopherVR/pptx-viewer/commit/62d567921c168bedd145f35a7ea7f440b10a5649))
+- **vue:** Route hardcoded UI text through i18n (by @ChristopherVR) ([35216da](https://github.com/ChristopherVR/pptx-viewer/commit/35216daff3dc4bc24bc0c5021108dddb2f44e04d))
+- **angular:** Route hardcoded UI text through i18n (by @ChristopherVR) ([ffface5](https://github.com/ChristopherVR/pptx-viewer/commit/ffface5ad67e86eef821b0f981110e970ad444d1))
+- **angular:** Commit template-mode chart and SmartArt edits instead of no-op (by @ChristopherVR) ([dadb0d8](https://github.com/ChristopherVR/pptx-viewer/commit/dadb0d85f6396d6c1d9aa91c7baf18b8b09a62b3))
+
+### Other
+
+- Reconcile with origin/main before push (by @ChristopherVR) ([c4a7e32](https://github.com/ChristopherVR/pptx-viewer/commit/c4a7e3223fa179f9239b1bc856e574011d4ca2c1))
+- Reconcile with origin/main before push (by @ChristopherVR) ([ef5fc85](https://github.com/ChristopherVR/pptx-viewer/commit/ef5fc85dca2e20ff3e105d622594e0f65d010fb0))
+- Reconcile with origin/main before push (by @ChristopherVR) ([030b28b](https://github.com/ChristopherVR/pptx-viewer/commit/030b28bb21697ed681e4e59aa40db29f4b4a18d0))
+
+### Documentation
+
+- Wire Vue and Angular sections into VitePress nav and sidebar (by @ChristopherVR) ([7acb5b6](https://github.com/ChristopherVR/pptx-viewer/commit/7acb5b6aad0107281f4ba6825affb46fd14aa982))
+- Replace the chart-editing limitation with on-canvas editing guidance (by @ChristopherVR) ([72a2f76](https://github.com/ChristopherVR/pptx-viewer/commit/72a2f76309236926837290f21185c7b6e88d00b3))
+- Add SECURITY.md vulnerability reporting policy (by @ChristopherVR) ([41b7db0](https://github.com/ChristopherVR/pptx-viewer/commit/41b7db0bd6c8755528b5c5019366a01d3c0dd801))
+
+## 2026-07-09
+
 _Releases: pptx-react-viewer@1.11.0, pptx-vue-viewer@1.11.0, pptx-angular-viewer@1.12.0_
 
 ### Features
