@@ -10,7 +10,6 @@ import VisualMcp from './visuals/VisualMcp.vue';
 
 <template>
 	<FeaturePanel
-		num="03"
 		kicker="Rendering"
 		title="Faithful to the deck, native to the DOM."
 		:link-href="withBase('/guide/architecture')"
@@ -25,7 +24,6 @@ import VisualMcp from './visuals/VisualMcp.vue';
 	</FeaturePanel>
 
 	<FeaturePanel
-		num="04"
 		kicker="Data model"
 		title="Load it, change it, save it back."
 		:link-href="withBase('/core/loading')"
@@ -41,7 +39,6 @@ import VisualMcp from './visuals/VisualMcp.vue';
 	</FeaturePanel>
 
 	<FeaturePanel
-		num="05"
 		kicker="Frameworks"
 		title="One engine. React, Vue, and Angular."
 		:link-href="withBase('/guide/installation')"
@@ -56,7 +53,6 @@ import VisualMcp from './visuals/VisualMcp.vue';
 	</FeaturePanel>
 
 	<FeaturePanel
-		num="06"
 		kicker="Automation"
 		title="Built for agents as well as engineers."
 		:link-href="withBase('/packages/mcp')"

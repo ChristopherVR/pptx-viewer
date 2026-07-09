@@ -8,10 +8,10 @@ import LandingMarquee from './LandingMarquee.vue';
 import LandingSections from './LandingSections.vue';
 import LandingStack from './LandingStack.vue';
 import LandingStatement from './LandingStatement.vue';
-import { useSlideDeck } from './useSlideDeck';
+import { useReveals } from './useReveals';
 
 const root = ref<HTMLElement | null>(null);
-const { current, total, progress } = useSlideDeck(root);
+useReveals(root);
 </script>
 
 <template>
@@ -23,12 +23,5 @@ const { current, total, progress } = useSlideDeck(root);
 		<LandingBento />
 		<LandingStack />
 		<LandingFinale />
-
-		<div class="pv-presenter" aria-hidden="true">
-			<span class="pv-presenter__counter">{{ current }} / {{ total }}</span>
-			<span class="pv-presenter__track">
-				<i :style="{ transform: `scaleX(${progress})` }"></i>
-			</span>
-		</div>
 	</div>
 </template>

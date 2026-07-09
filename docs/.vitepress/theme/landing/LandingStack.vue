@@ -36,9 +36,8 @@ const packages = [
 </script>
 
 <template>
-	<section class="pv-section pv-stack" data-slide>
-		<span class="pv-slidenum" data-reveal>Slide 07</span>
-		<p class="pv-kicker pv-stack__kicker" data-reveal>Choose your stack</p>
+	<section class="pv-section pv-stack">
+		<p class="pv-kicker" data-reveal>Choose your stack</p>
 		<h2 class="pv-h2" data-reveal="2">One install. The whole engine.</h2>
 		<p class="pv-copy" data-reveal="3">
 			Every UI package bundles the core engine, so you add exactly one dependency. Not sure which
@@ -60,11 +59,6 @@ const packages = [
 </template>
 
 <style scoped>
-.pv-stack__kicker {
-	display: block;
-	margin-top: 1.6rem;
-}
-
 .pv-stack .pv-copy code {
 	font-family: var(--pv-mono);
 	font-size: 0.86em;

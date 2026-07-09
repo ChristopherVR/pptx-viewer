@@ -1,5 +1,5 @@
 <template>
-	<section class="pv-section pv-statement" data-slide>
+	<section class="pv-section pv-statement">
 		<p class="pv-kicker" data-reveal>Why it renders differently</p>
 		<h2 class="pv-statement__text">
 			<span data-reveal>Most viewers flatten slides into pictures.</span>

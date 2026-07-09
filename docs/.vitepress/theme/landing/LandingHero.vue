@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
-
-import SlideCanvas from './SlideCanvas.vue';
 </script>
 
 <template>
-	<section class="pv-hero" data-slide>
+	<section class="pv-hero">
 		<div class="pv-hero__inner">
 			<div class="pv-hero__copy">
 				<p class="pv-kicker pv-enter">Open source &middot; Apache-2.0 &middot; TypeScript</p>
@@ -29,7 +27,20 @@ import SlideCanvas from './SlideCanvas.vue';
 				<code class="pv-hero__install pv-enter pv-enter--4">npm install pptx-react-viewer</code>
 			</div>
 			<div class="pv-hero__stage pv-enter pv-enter--3">
-				<SlideCanvas />
+				<a class="pv-hero__frame" href="https://christophervr.github.io/pptx-viewer/demo/">
+					<span class="pv-hero__framebar">
+						<span class="pv-hero__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+						<span class="pv-hero__framefile">sample-deck.pptx &middot; live in the browser</span>
+						<span class="pv-hero__frametry">Try it &rarr;</span>
+					</span>
+					<img
+						:src="withBase('/hero-viewer.gif')"
+						alt="The pptx viewer editing a real deck: flipping slides, dragging an element, and rendering a chart"
+						width="960"
+						height="540"
+						fetchpriority="high"
+					/>
+				</a>
 			</div>
 		</div>
 		<div class="pv-hero__cue" aria-hidden="true">
@@ -107,6 +118,61 @@ import SlideCanvas from './SlideCanvas.vue';
 .pv-hero__install::before {
 	content: '$ ';
 	color: var(--pv-accent);
+}
+
+.pv-hero__frame {
+	display: block;
+	background: var(--pv-surface);
+	border: 1px solid var(--pv-line);
+	border-radius: 8px;
+	overflow: hidden;
+	box-shadow: var(--pv-shadow);
+	transition:
+		transform 0.35s cubic-bezier(0.25, 0.6, 0.3, 1),
+		border-color 0.35s ease;
+}
+
+.pv-hero__frame:hover {
+	transform: translateY(-4px);
+	border-color: var(--pv-accent);
+}
+
+.pv-hero__framebar {
+	display: flex;
+	align-items: center;
+	gap: 0.9rem;
+	padding: 0.6rem 0.9rem;
+	border-bottom: 1px solid var(--pv-line);
+	font-family: var(--pv-mono);
+	font-size: 0.68rem;
+	color: var(--pv-ink-soft);
+	letter-spacing: 0.05em;
+}
+
+.pv-hero__dots {
+	display: inline-flex;
+	gap: 0.3rem;
+}
+
+.pv-hero__dots i {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--pv-line);
+}
+
+.pv-hero__frametry {
+	margin-left: auto;
+	color: var(--pv-accent);
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.pv-hero__frame img {
+	display: block;
+	width: 100%;
+	height: auto;
 }
 
 .pv-hero__cue {
