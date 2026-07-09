@@ -54,6 +54,13 @@ const props = defineProps<{
 	element: PptxElement;
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
+	/**
+	 * True only for the main editable canvas instance. The `data-testid` layout
+	 * hooks are emitted solely when interactive so the identical mini-renders in
+	 * the thumbnail rail / slide sorter / presenter don't duplicate the id and
+	 * break single-element test locators.
+	 */
+	interactive?: boolean;
 }>();
 
 const { t } = useI18n();
@@ -465,6 +472,7 @@ function onEditorKeydown(event: KeyboardEvent): void {
 			<svg
 				v-else-if="hasDrawingShapes"
 				class="pptx-vue-smartart-svg"
+				:data-testid="props.interactive ? 'smartart-drawing-shapes' : undefined"
 				:viewBox="`0 0 ${drawingViewBox.width} ${drawingViewBox.height}`"
 				preserveAspectRatio="xMidYMid meet"
 			>
@@ -531,6 +539,7 @@ function onEditorKeydown(event: KeyboardEvent): void {
 				class="pptx-vue-smartart-svg"
 				:viewBox="fallbackLayout.viewBox"
 				preserveAspectRatio="xMidYMid meet"
+				:data-testid="props.interactive ? `smartart-${fallbackLayout.family}` : undefined"
 				:data-layout-family="fallbackLayout.family"
 			>
 				<!-- Connectors (render first so they appear behind nodes) -->

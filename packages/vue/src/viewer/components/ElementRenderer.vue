@@ -246,6 +246,7 @@ const linkTooltipLabel = computed(
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
 	/>
 	<InkRenderer
 		v-else-if="element.type === 'ink'"
