@@ -45,7 +45,12 @@ export { isMixedContentBlocked };
 // ---------------------------------------------------------------------------
 
 export interface UseYjsProviderInput {
-	config: CollaborationConfig;
+	/**
+	 * Collaboration config, or `undefined` when collaboration is inactive. The
+	 * hook is always called (React hook rules) but stays fully dormant, never
+	 * opening a transport, while config is absent.
+	 */
+	config?: CollaborationConfig;
 }
 
 export interface UseYjsProviderResult {
@@ -145,6 +150,9 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 	);
 
 	const initWebrtc = useCallback(async () => {
+		if (!config) {
+			return;
+		}
 		setStatus('connecting');
 		try {
 			// Dynamic imports: zero bundle cost when unused.
@@ -193,13 +201,31 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			);
 			setStatus('error');
 		}
-	}, [config.roomId, config.authToken, config.signaling, buildCleanup, armSyncGrace, markSynced]);
+		// The bare `config` is read only as a presence guard (bail when inactive);
+		// reconnection is intentionally keyed on the transport-affecting fields
+		// only, so identity-only changes (e.g. userName) never drop the peer link.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [
+		config?.roomId,
+		config?.authToken,
+		config?.signaling,
+		buildCleanup,
+		armSyncGrace,
+		markSynced,
+	]);
 
 	const init = useCallback(async () => {
 		// Clean up any previous connection before starting a new one.
 		// y-webrtc throws if the same room is opened twice in one page, so the
 		// previous provider must be destroyed before creating the next.
 		teardown();
+
+		// Collaboration inactive: stay dormant, do not open any transport. This
+		// keeps the provider (and thus the surrounding React tree) mounted with a
+		// stable shape whether or not a session is running.
+		if (!config) {
+			return;
+		}
 
 		// Validate room ID before connecting
 		const roomId = validateRoomId(config.roomId);
@@ -312,11 +338,14 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			);
 			setStatus('error');
 		}
+		// See initWebrtc: the bare `config` is only a presence guard; the transport
+		// is (re)opened solely on the connection-affecting fields listed below.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
-		config.roomId,
-		config.serverUrl,
-		config.authToken,
-		config.transport,
+		config?.roomId,
+		config?.serverUrl,
+		config?.authToken,
+		config?.transport,
 		initWebrtc,
 		teardown,
 		armSyncGrace,

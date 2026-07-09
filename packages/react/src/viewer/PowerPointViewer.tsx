@@ -655,32 +655,36 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			</div>
 		);
 
+		// The CollaborationProvider is rendered UNCONDITIONALLY, wrapping the same
+		// children whether or not a session is active. Gating it behind a ternary
+		// changed the React tree shape the moment collaboration started, which
+		// unmounted and remounted the entire editor subtree; that remount could
+		// leave the ResizeObserver-driven narrow-viewport breakpoint stuck in the
+		// compact mobile UI on a desktop viewport. When `collaboration` is
+		// undefined the provider stays dormant (no transport, null context), so
+		// its sync/follow children below are inert no-ops.
 		return (
 			<SmartArt3DContext.Provider value={smartArt3D}>
 				<ViewerThemeProvider theme={theme}>
-					{collaboration ? (
-						<CollaborationProvider
+					<CollaborationProvider
+						config={collaboration}
+						canvasWidth={canvasSize.width}
+						canvasHeight={canvasSize.height}
+					>
+						<CollaborationDocumentSync
+							slides={slides}
+							templateElementsBySlideId={templateElementsBySlideId}
+							setSlides={state.setSlides}
 							config={collaboration}
-							canvasWidth={canvasSize.width}
-							canvasHeight={canvasSize.height}
-						>
-							<CollaborationDocumentSync
-								slides={slides}
-								templateElementsBySlideId={templateElementsBySlideId}
-								setSlides={state.setSlides}
-								config={collaboration}
-								content={content}
-							/>
-							<CollaborationFollowLayer
-								activeSlideIndex={activeSlideIndex}
-								setActiveSlideIndex={state.setActiveSlideIndex}
-								slideCount={slides.length}
-							/>
-							{viewerContent}
-						</CollaborationProvider>
-					) : (
-						viewerContent
-					)}
+							content={content}
+						/>
+						<CollaborationFollowLayer
+							activeSlideIndex={activeSlideIndex}
+							setActiveSlideIndex={state.setActiveSlideIndex}
+							slideCount={slides.length}
+						/>
+						{viewerContent}
+					</CollaborationProvider>
 				</ViewerThemeProvider>
 			</SmartArt3DContext.Provider>
 		);
