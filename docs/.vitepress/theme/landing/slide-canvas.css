@@ -1,0 +1,303 @@
+/* Styles for SlideCanvas.vue; every selector is pv-canvas__ prefixed, so no scoping needed. */
+
+.pv-canvas {
+	margin: 0;
+	background: var(--pv-surface);
+	border: 1px solid var(--pv-line);
+	border-radius: 8px;
+	box-shadow: var(--pv-shadow);
+	overflow: hidden;
+}
+
+.pv-canvas__bar {
+	display: flex;
+	align-items: center;
+	gap: 0.9rem;
+	padding: 0.6rem 0.9rem;
+	border-bottom: 1px solid var(--pv-line);
+	font-family: var(--pv-mono);
+	font-size: 0.68rem;
+	color: var(--pv-ink-soft);
+}
+
+.pv-canvas__dots {
+	display: inline-flex;
+	gap: 0.3rem;
+}
+
+.pv-canvas__dots i {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--pv-line);
+}
+
+.pv-canvas__file {
+	letter-spacing: 0.06em;
+}
+
+.pv-canvas__mode {
+	margin-left: auto;
+	color: var(--pv-accent);
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+}
+
+.pv-canvas__ruler {
+	height: 10px;
+	border-bottom: 1px solid var(--pv-line);
+	background: repeating-linear-gradient(
+		to right,
+		transparent 0 9px,
+		color-mix(in srgb, var(--pv-ink) 22%, transparent) 9px 10px
+	);
+	background-size: 10px 5px;
+	background-position: 0 100%;
+	background-repeat: repeat-x;
+}
+
+.pv-canvas__slide {
+	position: relative;
+	aspect-ratio: 16 / 9;
+	padding: 7.5% 8%;
+	background: linear-gradient(
+		160deg,
+		var(--pv-surface),
+		color-mix(in srgb, var(--pv-surface) 94%, var(--pv-accent))
+	);
+}
+
+.pv-canvas__title {
+	font-family: var(--pv-display);
+	font-size: clamp(1.15rem, 2.1vw, 1.7rem);
+	font-weight: 640;
+	letter-spacing: -0.01em;
+	animation: pv-in 12s ease-in-out infinite;
+}
+
+.pv-canvas__rule {
+	width: 18%;
+	height: 3px;
+	background: var(--pv-accent);
+	margin: 5% 0 6%;
+	transform-origin: left;
+	animation: pv-rule 12s ease-in-out infinite;
+}
+
+.pv-canvas__bullet {
+	position: relative;
+	font-size: clamp(0.62rem, 1.15vw, 0.85rem);
+	color: var(--pv-ink-soft);
+	padding-left: 1.1em;
+	margin-bottom: 0.55em;
+}
+
+.pv-canvas__bullet::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	top: 0.42em;
+	width: 0.45em;
+	height: 0.45em;
+	background: var(--pv-accent);
+}
+
+.pv-canvas__bullet--1 {
+	animation: pv-in 12s ease-in-out infinite backwards;
+	animation-delay: 0.7s;
+}
+
+.pv-canvas__bullet--2 {
+	animation: pv-in 12s ease-in-out infinite backwards;
+	animation-delay: 1.3s;
+}
+
+.pv-canvas__chart {
+	position: absolute;
+	right: 8%;
+	bottom: 12%;
+	width: 38%;
+	height: 42%;
+	display: flex;
+	align-items: flex-end;
+	gap: 8%;
+	padding: 6%;
+	border-bottom: 1.5px solid var(--pv-line);
+}
+
+.pv-canvas__colbar {
+	flex: 1;
+	background: color-mix(in srgb, var(--pv-accent) 78%, var(--pv-ink));
+	transform-origin: bottom;
+	animation: pv-grow 12s cubic-bezier(0.3, 0.9, 0.3, 1) infinite backwards;
+}
+
+.pv-canvas__colbar--1 {
+	height: 42%;
+	animation-delay: 2.1s;
+}
+
+.pv-canvas__colbar--2 {
+	height: 58%;
+	animation-delay: 2.35s;
+	opacity: 0.85;
+}
+
+.pv-canvas__colbar--3 {
+	height: 50%;
+	animation-delay: 2.6s;
+	opacity: 0.7;
+}
+
+.pv-canvas__colbar--4 {
+	height: 82%;
+	animation-delay: 2.85s;
+	background: var(--pv-accent);
+}
+
+.pv-canvas__sel {
+	position: absolute;
+	inset: 0;
+	border: 1.5px dashed var(--pv-accent);
+	animation: pv-sel 12s ease-in-out infinite;
+}
+
+.pv-canvas__h {
+	position: absolute;
+	width: 7px;
+	height: 7px;
+	background: var(--pv-surface);
+	border: 1.5px solid var(--pv-accent);
+	border-radius: 1px;
+}
+
+.pv-canvas__h--1 {
+	top: -4px;
+	left: -4px;
+}
+.pv-canvas__h--2 {
+	top: -4px;
+	left: calc(50% - 4px);
+}
+.pv-canvas__h--3 {
+	top: -4px;
+	right: -4px;
+}
+.pv-canvas__h--4 {
+	top: calc(50% - 4px);
+	left: -4px;
+}
+.pv-canvas__h--5 {
+	top: calc(50% - 4px);
+	right: -4px;
+}
+.pv-canvas__h--6 {
+	bottom: -4px;
+	left: -4px;
+}
+.pv-canvas__h--7 {
+	bottom: -4px;
+	left: calc(50% - 4px);
+}
+.pv-canvas__h--8 {
+	bottom: -4px;
+	right: -4px;
+}
+
+.pv-canvas__status {
+	display: flex;
+	justify-content: space-between;
+	padding: 0.55rem 0.9rem;
+	border-top: 1px solid var(--pv-line);
+	font-family: var(--pv-mono);
+	font-size: 0.64rem;
+	letter-spacing: 0.1em;
+	color: var(--pv-ink-soft);
+}
+
+/* One 12s presentation loop: build in, hold, clear, rebuild */
+@keyframes pv-in {
+	0%,
+	2% {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+
+	8%,
+	90% {
+		opacity: 1;
+		transform: none;
+	}
+
+	96%,
+	100% {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+}
+
+@keyframes pv-rule {
+	0%,
+	4% {
+		transform: scaleX(0);
+	}
+
+	11%,
+	90% {
+		transform: scaleX(1);
+	}
+
+	96%,
+	100% {
+		transform: scaleX(0);
+	}
+}
+
+@keyframes pv-grow {
+	0%,
+	16% {
+		transform: scaleY(0);
+	}
+
+	26%,
+	90% {
+		transform: scaleY(1);
+	}
+
+	96%,
+	100% {
+		transform: scaleY(0);
+	}
+}
+
+@keyframes pv-sel {
+	0%,
+	17% {
+		opacity: 0;
+	}
+
+	21%,
+	52% {
+		opacity: 1;
+	}
+
+	58%,
+	100% {
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.pv-canvas__title,
+	.pv-canvas__rule,
+	.pv-canvas__bullet--1,
+	.pv-canvas__bullet--2,
+	.pv-canvas__colbar {
+		animation: none;
+	}
+
+	.pv-canvas__sel {
+		animation: none;
+		opacity: 0;
+	}
+}

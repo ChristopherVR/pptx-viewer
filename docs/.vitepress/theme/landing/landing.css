@@ -1,0 +1,283 @@
+/**
+ * Shared token system + utilities for the landing page (LandingHome layout).
+ * Everything is scoped under .pv-landing so it cannot leak into docs pages.
+ */
+
+.pv-landing {
+	/* Light: a projection screen in a bright room */
+	--pv-canvas: #fbfaf7;
+	--pv-surface: #ffffff;
+	--pv-ink: #1a1d21;
+	--pv-ink-soft: #5a626e;
+	--pv-line: #e6e2d9;
+	--pv-accent: #c2431f;
+	--pv-accent-deep: #8f2e12;
+	--pv-accent-soft: rgba(194, 67, 31, 0.08);
+	--pv-shadow: 0 24px 60px -24px rgba(26, 29, 33, 0.25);
+
+	--pv-display: 'Bricolage Grotesque', var(--vp-font-family-base);
+	--pv-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+	background: var(--pv-canvas);
+	color: var(--pv-ink);
+	font-family: var(--vp-font-family-base);
+	overflow-x: clip;
+}
+
+.dark .pv-landing {
+	/* Dark: the presenter room with the lights down */
+	--pv-canvas: #0f1113;
+	--pv-surface: #171a1e;
+	--pv-ink: #f0efec;
+	--pv-ink-soft: #9aa1ab;
+	--pv-line: #272c33;
+	--pv-accent: #e86a40;
+	--pv-accent-deep: #c2431f;
+	--pv-accent-soft: rgba(232, 106, 64, 0.1);
+	--pv-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.7);
+}
+
+/* ---- Section shell ------------------------------------------------ */
+
+.pv-section {
+	max-width: 84rem;
+	margin: 0 auto;
+	padding: clamp(4.5rem, 11vh, 8.5rem) clamp(1.4rem, 5vw, 4.5rem);
+}
+
+/* ---- Recurring text roles ----------------------------------------- */
+
+.pv-kicker {
+	font-family: var(--pv-mono);
+	font-size: 0.72rem;
+	font-weight: 500;
+	letter-spacing: 0.32em;
+	text-transform: uppercase;
+	color: var(--pv-accent);
+}
+
+.pv-slidenum {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55em;
+	font-family: var(--pv-mono);
+	font-size: 0.72rem;
+	letter-spacing: 0.18em;
+	color: var(--pv-ink-soft);
+	border: 1px solid var(--pv-line);
+	border-radius: 3px;
+	padding: 0.35em 0.8em;
+}
+
+.pv-slidenum::before {
+	content: '';
+	width: 0.9em;
+	height: calc(0.9em * 9 / 16);
+	border: 1px solid var(--pv-accent);
+	border-radius: 1px;
+}
+
+.pv-h2 {
+	font-family: var(--pv-display);
+	font-size: clamp(2.1rem, 4.6vw, 3.6rem);
+	font-weight: 640;
+	line-height: 1.04;
+	letter-spacing: -0.02em;
+	margin: 1.1rem 0 1.2rem;
+}
+
+.pv-copy {
+	font-size: 1.02rem;
+	line-height: 1.75;
+	color: var(--pv-ink-soft);
+	max-width: 30rem;
+}
+
+.pv-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.6rem;
+	margin-top: 1.6rem;
+	font-family: var(--pv-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--pv-ink);
+	border-bottom: 1px solid var(--pv-accent);
+	padding-bottom: 0.35rem;
+	transition: gap 0.3s ease;
+}
+
+.pv-link:hover {
+	gap: 1rem;
+}
+
+.pv-link i {
+	font-style: normal;
+	color: var(--pv-accent);
+}
+
+/* ---- Buttons ------------------------------------------------------- */
+
+.pv-btn {
+	display: inline-block;
+	font-family: var(--pv-mono);
+	font-size: 0.8rem;
+	font-weight: 500;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	padding: 0.95rem 2.1rem;
+	border-radius: 3px;
+	position: relative;
+	overflow: hidden;
+	transition:
+		color 0.35s ease,
+		border-color 0.35s ease;
+}
+
+.pv-btn span {
+	position: relative;
+	z-index: 1;
+}
+
+.pv-btn::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	transform: translateY(101%);
+	transition: transform 0.45s cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+.pv-btn:hover::before {
+	transform: translateY(0);
+}
+
+.pv-btn--solid {
+	background: var(--pv-accent);
+	color: #fff;
+	border: 1px solid var(--pv-accent);
+}
+
+.pv-btn--solid::before {
+	background: var(--pv-accent-deep);
+}
+
+.pv-btn--ghost {
+	border: 1px solid var(--pv-line);
+	color: var(--pv-ink);
+}
+
+.pv-btn--ghost::before {
+	background: var(--pv-ink);
+}
+
+.pv-btn--ghost:hover {
+	color: var(--pv-canvas);
+	border-color: var(--pv-ink);
+}
+
+/* ---- Load-time entrances (no JS needed; used above the fold) ------- */
+
+.pv-enter {
+	opacity: 0;
+	transform: translateY(26px);
+	animation: pv-enter 0.9s cubic-bezier(0.25, 0.4, 0.25, 1) forwards;
+}
+
+.pv-enter--2 {
+	animation-delay: 0.12s;
+}
+
+.pv-enter--3 {
+	animation-delay: 0.24s;
+}
+
+.pv-enter--4 {
+	animation-delay: 0.36s;
+}
+
+@keyframes pv-enter {
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+/* ---- Scroll reveals ------------------------------------------------ */
+
+.pv-landing [data-reveal] {
+	opacity: 0;
+	transform: translateY(26px);
+	transition:
+		opacity 0.8s cubic-bezier(0.25, 0.4, 0.25, 1),
+		transform 0.8s cubic-bezier(0.25, 0.4, 0.25, 1);
+}
+
+.pv-landing [data-reveal='2'] {
+	transition-delay: 0.12s;
+}
+
+.pv-landing [data-reveal='3'] {
+	transition-delay: 0.24s;
+}
+
+.pv-landing [data-reveal='4'] {
+	transition-delay: 0.36s;
+}
+
+.pv-landing [data-reveal].is-revealed {
+	opacity: 1;
+	transform: none;
+}
+
+/* ---- Presenter bar (fixed progress + slide counter) ---------------- */
+
+.pv-presenter {
+	position: fixed;
+	inset: auto 0 0 0;
+	z-index: 40;
+	pointer-events: none;
+}
+
+.pv-presenter__track {
+	display: block;
+	height: 3px;
+	background: color-mix(in srgb, var(--pv-line) 60%, transparent);
+}
+
+.pv-presenter__track i {
+	display: block;
+	height: 100%;
+	background: var(--pv-accent);
+	transform-origin: left;
+	transform: scaleX(0);
+}
+
+.pv-presenter__counter {
+	position: absolute;
+	right: clamp(0.8rem, 3vw, 2.2rem);
+	bottom: 0.8rem;
+	font-family: var(--pv-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.24em;
+	color: var(--pv-ink-soft);
+	background: color-mix(in srgb, var(--pv-canvas) 82%, transparent);
+	border: 1px solid var(--pv-line);
+	border-radius: 3px;
+	padding: 0.3em 0.75em;
+	backdrop-filter: blur(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.pv-landing [data-reveal],
+	.pv-enter {
+		opacity: 1;
+		transform: none;
+		transition: none;
+		animation: none;
+	}
+
+	.pv-btn::before {
+		transition: none;
+	}
+}
