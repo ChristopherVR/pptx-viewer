@@ -72,6 +72,46 @@ function defaultOpenPrintWindow(htmlDocument: string): boolean {
 	return true;
 }
 
+/**
+ * `orientation` is typed as a union at compile time, but `buildPrintDocument`
+ * is reachable from plain JS callers, so a runtime check keeps the value
+ * that reaches `@page` / `<style>` interpolation confined to those two
+ * known-safe strings.
+ */
+function sanitizeOrientation(value: 'landscape' | 'portrait'): 'landscape' | 'portrait' {
+	return value === 'portrait' ? 'portrait' : 'landscape';
+}
+
+/** Element/attribute shapes that must never appear in assembled print-window body HTML. */
+const UNSAFE_BODY_HTML_SUBSTRINGS = [
+	'<script',
+	'<iframe',
+	'<embed',
+	'<object',
+	'<foreignobject',
+	// eslint-disable-next-line no-script-url -- security deny-list entry: verifies the scheme is rejected, never executed.
+	'javascript:',
+];
+
+/** Matches an `on<event>=` handler attribute, e.g. `onload=`, `onclick=`. */
+const EVENT_HANDLER_ATTR_RE = /\son\w+\s*=/iu;
+
+/**
+ * Defense-in-depth guard for the assembled print-window body HTML. Every
+ * dynamic value the callers below embed (titles, notes, image `src`) is
+ * already escaped via {@link escapeHtml} / {@link safeDataImageSrc} before
+ * it's spliced into `bodyHtml`; this additionally screens the assembled
+ * fragment for script-injection shapes, so a future caller that forgets to
+ * escape a new field doesn't reach the printed window unnoticed.
+ */
+function isSafePrintBodyHtml(html: string): boolean {
+	const lower = html.toLowerCase();
+	if (UNSAFE_BODY_HTML_SUBSTRINGS.some((needle) => lower.includes(needle))) {
+		return false;
+	}
+	return !EVENT_HANDLER_ATTR_RE.test(html);
+}
+
 /** Assemble the print stylesheet + body into a complete HTML document. */
 function buildPrintDocument(
 	title: string,
@@ -80,6 +120,8 @@ function buildPrintDocument(
 	colorFilter: string,
 	frameSlides: boolean,
 ): string {
+	const safeOrientation = sanitizeOrientation(orientation);
+	const safeBodyHtml = isSafePrintBodyHtml(bodyHtml) ? bodyHtml : '';
 	const frameStyle = frameSlides
 		? 'img.slide-img, .notes-slide, .handout-cell img { border: 2px solid #000 !important; }'
 		: '';
@@ -110,7 +152,7 @@ function buildPrintDocument(
       .outline-page { padding: 10mm; }
       .outline-page h2 { font-size: 14px; margin: 12px 0 4px; color: #374151; }
       .outline-page p { font-size: 12px; margin: 2px 0 2px 16px; color: #4b5563; }
-      @page { size: ${orientation}; margin: 8mm; }
+      @page { size: ${safeOrientation}; margin: 8mm; }
       @media print {
         body {
           -webkit-print-color-adjust: exact;
@@ -127,7 +169,7 @@ function buildPrintDocument(
       ${frameStyle}
     </style>
   </head>
-  <body>${bodyHtml}</body>
+  <body>${safeBodyHtml}</body>
 </html>`;
 }
 
