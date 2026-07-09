@@ -45,6 +45,16 @@ For table cells, double-click a cell to edit its text the same way.
 
 ![Inline text editing with cursor active](/user-guide/editing-inline-text.jpg)
 
+## Editing charts on the canvas
+
+Select a chart and its data marks become directly editable:
+
+- **Click** a bar, point, slice, or series line to select it. The matching cell lights up in the inspector's data grid so you always know which number you are looking at.
+- **Drag** a bar or point up or down to change its value (bar, line, scatter, and bubble charts). A badge shows the value while you drag; release to commit, press **Escape** to cancel.
+- **Double-click the chart title** to rename it in place. Press **Enter** to commit or **Escape** to cancel; clearing the title hides it.
+
+Pie, radar, and stacked marks are click-to-select; edit their values in the inspector's data grid. Every change is a single undo step.
+
 ## Adding new elements
 
 Use the **Insert** toolbar tab to add elements to the current slide:
@@ -55,7 +65,7 @@ Use the **Insert** toolbar tab to add elements to the current slide:
 | **Shape**           | Pick from a palette of preset shapes (rectangles, arrows, callouts, stars, and more). |
 | **Image / Picture** | Add an image from a file.                                                             |
 | **Table**           | Choose the number of rows and columns.                                                |
-| **Chart**           | Insert a chart; edit its data in the inspector's chart data panel.                    |
+| **Chart**           | Insert a chart; drag its bars or points to change values, or use the inspector.       |
 | **SmartArt**        | Pick a SmartArt layout from the insert dialog.                                        |
 | **Connector**       | Draw a line/connector between shapes.                                                 |
 
@@ -74,7 +84,7 @@ The inspector on the right is **context-sensitive** - it changes based on what y
 | **A text element**       | Font, size, colour, alignment, and spacing.                                |
 | **An image**             | Crop and artistic effects/filters.                                         |
 | **A table**              | Cell formatting, borders, and banding.                                     |
-| **A chart**              | The series data grid and chart type.                                       |
+| **A chart**              | The series data grid and chart type (synced with on-canvas selection).     |
 | **SmartArt**             | Node text and layout.                                                      |
 | **Media**                | Playback settings, trim, and bookmarks.                                    |
 | **Any element**          | Animations (entrance/emphasis/exit/motion) via the animation panel.        |
