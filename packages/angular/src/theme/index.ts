@@ -5,4 +5,9 @@ export {
 	defaultRadius,
 	themeToCssVars,
 	defaultCssVars,
+	vermilionLightColors,
+	vermilionDarkColors,
+	vermilionLightTheme,
+	vermilionDarkTheme,
+	vermilionRadius,
 } from '../internal/shared';

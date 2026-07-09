@@ -132,6 +132,18 @@ import { provideViewerTheme } from 'pptx-vue-viewer';
 provideViewerTheme({ colors: { primary: '#6366f1' } });
 ```
 
+Two ready-made presets ship with the package: `vermilionLightTheme` (warm paper
+canvas) and `vermilionDarkTheme` (dimmed presenter room), the same vermilion
+brand look as the [documentation site](https://christophervr.github.io/pptx-viewer/):
+
+```ts
+import { vermilionLightTheme } from 'pptx-vue-viewer';
+// <PowerPointViewer :theme="vermilionLightTheme" … />
+```
+
+The underlying palettes (`vermilionLightColors`, `vermilionDarkColors`) and
+radius (`vermilionRadius`) are exported too for deriving your own variant.
+
 ### Reading the current presentation back
 
 `getContent()` turns the current presentation back into `.pptx` bytes. Reach it

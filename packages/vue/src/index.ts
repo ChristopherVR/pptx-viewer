@@ -34,4 +34,9 @@ export {
 	provideViewerTheme,
 	useViewerTheme,
 	useThemeStyle,
+	vermilionLightColors,
+	vermilionDarkColors,
+	vermilionLightTheme,
+	vermilionDarkTheme,
+	vermilionRadius,
 } from './theme';

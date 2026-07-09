@@ -115,6 +115,18 @@ bootstrapApplication(AppComponent, {
 });
 ```
 
+Two ready-made presets ship with the package: `vermilionLightTheme` (warm paper
+canvas) and `vermilionDarkTheme` (dimmed presenter room), the same vermilion
+brand look as the [documentation site](https://christophervr.github.io/pptx-viewer/):
+
+```ts
+import { vermilionLightTheme } from 'pptx-angular-viewer';
+// [theme]="vermilionLightTheme" or provideViewerTheme(vermilionLightTheme)
+```
+
+The underlying palettes (`vermilionLightColors`, `vermilionDarkColors`) and
+radius (`vermilionRadius`) are exported too for deriving your own variant.
+
 ### Reading the current presentation back
 
 `getContent()` turns the current presentation back into `.pptx` bytes. Reach it

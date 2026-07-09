@@ -17,4 +17,9 @@ export {
 	defaultCssVars,
 	ViewerThemeProvider,
 	useViewerTheme,
+	vermilionLightColors,
+	vermilionDarkColors,
+	vermilionLightTheme,
+	vermilionDarkTheme,
+	vermilionRadius,
 } from './theme';

@@ -1,4 +1,5 @@
 import type { ViewerTheme } from 'pptx-vue-viewer';
+import { vermilionDarkTheme, vermilionLightTheme } from 'pptx-vue-viewer';
 
 /**
  * Theme presets for the Vue demo, mirroring the React demo's `themes` object.
@@ -116,6 +117,14 @@ export const themes: Record<string, ThemePreset> = {
 				ring: '#b45309',
 			},
 		},
+	},
+	vermilionDark: {
+		label: 'Vermilion Dark',
+		theme: vermilionDarkTheme,
+	},
+	vermilionLight: {
+		label: 'Vermilion Light',
+		theme: vermilionLightTheme,
 	},
 };
 

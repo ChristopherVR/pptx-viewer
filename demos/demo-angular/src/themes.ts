@@ -1,4 +1,5 @@
 import type { ViewerTheme } from 'pptx-angular-viewer';
+import { vermilionDarkTheme, vermilionLightTheme } from 'pptx-angular-viewer';
 
 /**
  * Demo theme presets.
@@ -117,6 +118,14 @@ export const THEMES: Record<string, ThemePreset> = {
 				ring: '#b45309',
 			},
 		},
+	},
+	vermilionDark: {
+		label: 'Vermilion Dark',
+		theme: vermilionDarkTheme,
+	},
+	vermilionLight: {
+		label: 'Vermilion Light',
+		theme: vermilionLightTheme,
 	},
 };
 

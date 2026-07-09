@@ -167,6 +167,16 @@ Override specific values with the `theme` prop:
 
 All `ViewerTheme.colors` keys are optional; override only what you need. Helpers `defaultThemeColors`, `defaultRadius`, `themeToCssVars`, `defaultCssVars`, `ViewerThemeProvider`, and `useViewerTheme` are exported for advanced use. See the [full docs](https://christophervr.github.io/pptx-viewer/) for the complete token list.
 
+Two ready-made presets ship with the package: `vermilionLightTheme` (warm paper canvas) and `vermilionDarkTheme` (dimmed presenter room), the same vermilion brand look as the [documentation site](https://christophervr.github.io/pptx-viewer/):
+
+```tsx
+import { PowerPointViewer, vermilionLightTheme } from 'pptx-react-viewer';
+
+<PowerPointViewer content={bytes} theme={vermilionLightTheme} />;
+```
+
+The underlying palettes (`vermilionLightColors`, `vermilionDarkColors`) and radius (`vermilionRadius`) are exported too, so you can spread them into your own variant.
+
 ## Localization (i18n)
 
 UI labels go through [i18next](https://www.i18next.com/) / [react-i18next](https://react.i18next.com/) with dotted keys such as `pptx.statusBar.allSaved`. Initialise an i18next instance and wrap your app in `I18nextProvider` (the demo's `demo/i18n.ts` shows a minimal config, including a `parseMissingKeyHandler` that derives Title Case labels for any key you don't explicitly translate). `pptx-react-viewer/i18n` exports `translationsEn` (the English dictionary), `keyToLabel` (the fallback), and a `TranslationKey` type you can use to type-check a new locale dictionary (`Record<TranslationKey, string>`) at compile time. Add a new language by supplying a resource bundle under its language code. See the [Localization guide](https://christophervr.github.io/pptx-viewer/guide/localization) for full wiring examples and how to contribute a translation upstream; the live demo's language picker is a working reference.

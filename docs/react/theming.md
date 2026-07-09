@@ -62,6 +62,34 @@ import { PowerPointViewer } from 'pptx-react-viewer';
 />;
 ```
 
+## Built-in presets: vermilion light & dark
+
+Two ready-made themes ship with every binding (React, Vue, Angular). They carry the same vermilion
+brand as this documentation site: a warm paper canvas in light mode, a dimmed presenter room in
+dark mode.
+
+```tsx
+import { PowerPointViewer, vermilionLightTheme, vermilionDarkTheme } from 'pptx-react-viewer';
+
+<PowerPointViewer content={bytes} theme={vermilionLightTheme} />;
+```
+
+Each preset is a complete `ViewerTheme` (all 19 color tokens plus a `0.375rem` radius), so it fully
+replaces the built-in dark defaults. The raw palettes are exported alongside for deriving your own
+variant:
+
+```ts
+import { vermilionLightColors, vermilionDarkColors, vermilionRadius } from 'pptx-react-viewer';
+
+const custom: ViewerTheme = {
+	colors: { ...vermilionDarkColors, primary: '#38bdf8' },
+	radius: vermilionRadius,
+};
+```
+
+The Vue and Angular packages export the same five symbols from `pptx-vue-viewer` and
+`pptx-angular-viewer`.
+
 ## `ViewerTheme` and `ViewerThemeColors`
 
 ```ts

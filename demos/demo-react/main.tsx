@@ -4,7 +4,11 @@ import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
 
-import { themeToCssVars } from '../../packages/react/src/theme';
+import {
+	themeToCssVars,
+	vermilionDarkTheme,
+	vermilionLightTheme,
+} from '../../packages/react/src/theme';
 import type { ViewerTheme } from '../../packages/react/src/theme';
 import {
 	PowerPointViewer,
@@ -236,6 +240,14 @@ const themes: Record<string, ThemePreset> = {
 				ring: '#b45309',
 			},
 		},
+	},
+	vermilionDark: {
+		label: 'Vermilion Dark',
+		theme: vermilionDarkTheme,
+	},
+	vermilionLight: {
+		label: 'Vermilion Light',
+		theme: vermilionLightTheme,
 	},
 };
 
