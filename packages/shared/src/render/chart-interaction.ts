@@ -18,6 +18,7 @@
 import type { PptxChartData } from 'pptx-viewer-core';
 
 import type { ChartPartRef, ChartValueDrag, ValueRange } from './chart-view-model';
+import { valueToY } from './chart-view-model';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DOM data-attribute bridge
@@ -133,16 +134,31 @@ export function roundDragValue(value: number, range: ValueRange): number {
 	return Number.parseFloat(rounded.toPrecision(12));
 }
 
+/** The value range a series maps against (secondary when axis-mapped there). */
+function rangeForSeries(drag: ChartValueDrag, seriesIndex: number): ValueRange {
+	const useSecondary =
+		drag.secondaryRange !== undefined &&
+		(drag.secondarySeriesIndexes?.includes(seriesIndex) ?? false);
+	return useSecondary && drag.secondaryRange ? drag.secondaryRange : drag.range;
+}
+
 /**
  * Value for a dragged data point at `viewY` (view-box units), using the
  * secondary range when the part's series is mapped to the secondary axis.
  */
 export function dragValueForPart(viewY: number, drag: ChartValueDrag, seriesIndex: number): number {
-	const useSecondary =
-		drag.secondaryRange !== undefined &&
-		(drag.secondarySeriesIndexes?.includes(seriesIndex) ?? false);
-	const range = useSecondary && drag.secondaryRange ? drag.secondaryRange : drag.range;
+	const range = rangeForSeries(drag, seriesIndex);
 	return roundDragValue(valueFromY(viewY, range, drag.plotTop, drag.plotBottom), range);
+}
+
+/**
+ * Y coordinate (view-box units) where a data point's value currently sits.
+ * Drags anchor here so the value tracks the pointer's MOVEMENT rather than
+ * jumping to the pointer's absolute position when the user grabs the middle
+ * of a bar.
+ */
+export function dragAnchorViewY(value: number, drag: ChartValueDrag, seriesIndex: number): number {
+	return valueToY(value, rangeForSeries(drag, seriesIndex), drag.plotTop, drag.plotBottom);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
