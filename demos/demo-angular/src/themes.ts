@@ -134,12 +134,12 @@ export const THEME_KEYS = Object.keys(THEMES);
 /** Persisted-theme localStorage key (shared with the React demo). */
 export const THEME_STORAGE_KEY = 'pptx-demo-theme';
 
-/** Read the persisted theme key, defaulting to `dark`. */
+/** Read the persisted theme key, defaulting to `vermilionDark`. */
 export function restoreThemeKey(): string {
 	try {
-		return localStorage.getItem(THEME_STORAGE_KEY) ?? 'dark';
+		return localStorage.getItem(THEME_STORAGE_KEY) ?? 'vermilionDark';
 	} catch {
-		return 'dark';
+		return 'vermilionDark';
 	}
 }
 
