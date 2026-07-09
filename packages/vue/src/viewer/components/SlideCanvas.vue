@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { getSlideBackgroundStyle } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -56,6 +57,10 @@ const wrapperStyle = computed<CSSProperties>(() => ({
 	// Reserve room above for the horizontal ruler when it's shown.
 	margin: props.showRulers ? `${RULER_THICKNESS + 8}px auto 1rem` : '1rem auto',
 	boxShadow: '0 10px 40px rgba(0, 0, 0, 0.35)',
+	// Paint the resolved slide background on the labelled slide region so a
+	// master/layout-inherited background is exposed on the aria-roledescription
+	// ="slide" node, matching React/Angular (the inner SlideStage repaints it).
+	...(getSlideBackgroundStyle(props.slide) as CSSProperties),
 }));
 
 const viewportRef = ref<HTMLElement | null>(null);

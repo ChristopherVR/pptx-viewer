@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { getSlideBackgroundStyle } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -64,12 +65,8 @@ const stageStyle = computed<CSSProperties>(() => ({
 	transformOrigin: 'top left',
 	position: 'relative',
 	overflow: 'hidden',
-	backgroundColor:
-		props.slide?.backgroundColor && props.slide.backgroundColor !== 'transparent'
-			? props.slide.backgroundColor
-			: '#ffffff',
-	backgroundImage: props.slide?.backgroundImage ? `url(${props.slide.backgroundImage})` : undefined,
-	backgroundSize: '100% 100%',
+	// Resolved slide background: image -> gradient -> pattern -> solid colour.
+	...(getSlideBackgroundStyle(props.slide) as CSSProperties),
 }));
 </script>
 
