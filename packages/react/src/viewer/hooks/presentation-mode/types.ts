@@ -1,7 +1,28 @@
-import type { PptxAction, PptxSlide } from 'pptx-viewer-core';
+import type { PptxAction, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
 import type { ViewerMode, PresentationAnimationRuntime } from '../../types';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
+
+// ---------------------------------------------------------------------------
+// Slide-transition overlay
+// ---------------------------------------------------------------------------
+
+/**
+ * State describing the transition overlay that plays while advancing into a
+ * slide that carries a `p:transition`. The outgoing slide is snapshotted into
+ * an animated overlay layer while the incoming slide renders underneath on the
+ * main stage; the overlay tears down once `durationMs` elapses.
+ */
+export interface PresentationTransitionOverlayState {
+	/** Index of the leaving slide, rendered (animated) in the overlay layer. */
+	outgoingSlideIndex: number;
+	/** Index of the arriving slide, already live on the main stage. */
+	incomingSlideIndex: number;
+	/** The incoming slide's transition definition (drives the CSS animation). */
+	transition: PptxSlideTransition;
+	/** Resolved transition duration (ms). */
+	durationMs: number;
+}
 
 // ---------------------------------------------------------------------------
 // Input / output interfaces
@@ -40,6 +61,10 @@ export interface UsePresentationModeResult {
 	presentationSlideIndex: number;
 	setPresentationSlideIndex: (index: number) => void;
 	presentationSlideVisible: boolean;
+	/** Active slide-transition overlay, or `null` when no transition is playing. */
+	transitionOverlay: PresentationTransitionOverlayState | null;
+	/** Tear down the transition overlay once its animation completes. */
+	handleTransitionOverlayComplete: () => void;
 	presentationAnimations: PresentationAnimationRuntime[];
 	presentationElementStates: Map<string, ElementAnimationState>;
 	presentationKeyframesCss: string;

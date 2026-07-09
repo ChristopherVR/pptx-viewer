@@ -44,7 +44,10 @@ import {
 	extractTableCellStyle,
 	ensureArrayValue,
 } from '../utils';
-import { getSlideTransitionAnimations } from '../utils/slide-transitions';
+import {
+	getSlideTransitionAnimations,
+	SLIDE_TRANSITION_KEYFRAMES,
+} from '../utils/slide-transitions';
 import type { SlideTransitionAnimations } from '../utils/slide-transitions';
 import { colour, layoutToCategory, resolvePalette } from '../utils/smartart-helpers';
 import { getTableCellBandStyle } from '../utils/table-band-style';
@@ -493,24 +496,6 @@ export function PresentationTransitionOverlay({
 		setContainerSize({ width: rect.width, height: rect.height });
 	}, []);
 
-	// Play transition sound if present
-	const audioRef = useRef<HTMLAudioElement | null>(null);
-	useEffect(() => {
-		if (!transition.soundPath) {
-			return;
-		}
-		const audio = new Audio(transition.soundPath);
-		audioRef.current = audio;
-		audio.play().catch(() => {
-			// Browser autoplay policy may block; silently ignore
-		});
-		return () => {
-			audio.pause();
-			audio.src = '';
-			audioRef.current = null;
-		};
-	}, [transition.soundPath]);
-
 	// Fire completion callback after duration
 	useEffect(() => {
 		const timer = window.setTimeout(onComplete, durationMs + 50);
@@ -547,11 +532,13 @@ export function PresentationTransitionOverlay({
 	return (
 		<div
 			ref={containerRef}
-			className='absolute inset-0 pointer-events-none overflow-hidden'
+			className='pptx-react-transition-overlay absolute inset-0 pointer-events-none overflow-hidden'
 			style={{ zIndex: outgoingZIndex }}
 		>
+			{/* Inject the transition @keyframes so the `animation` shorthands resolve. */}
+			<style>{SLIDE_TRANSITION_KEYFRAMES}</style>
 			<div
-				className='absolute inset-0 flex items-center justify-center'
+				className='pptx-react-transition-layer absolute inset-0 flex items-center justify-center'
 				style={{
 					animation: animations.outgoing !== 'none' ? animations.outgoing : undefined,
 				}}

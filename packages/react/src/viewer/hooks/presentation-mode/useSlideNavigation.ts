@@ -4,6 +4,7 @@ import { useRef, useCallback } from 'react';
 import type { ViewerMode } from '../../types';
 import { handlePresentationActionImpl } from './presentation-actions';
 import { executeSlideTransition } from './slide-transition';
+import type { PresentationTransitionOverlayState } from './types';
 
 // ---------------------------------------------------------------------------
 // Sub-hook interface
@@ -15,6 +16,7 @@ export interface UseSlideNavigationInput {
 	presentationSlideIndex: number;
 	setPresentationSlideIndex: (index: number) => void;
 	setPresentationSlideVisible: (visible: boolean) => void;
+	setTransitionOverlay: (state: PresentationTransitionOverlayState | null) => void;
 	onSetMode: (mode: ViewerMode) => void;
 	onSetActiveSlideIndex: (index: number) => void;
 	onPlayActionSound?: (soundPath: string) => void;
@@ -48,6 +50,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 		presentationSlideIndex,
 		setPresentationSlideIndex,
 		setPresentationSlideVisible,
+		setTransitionOverlay,
 		onSetMode,
 		onSetActiveSlideIndex,
 		onPlayActionSound,
@@ -169,6 +172,9 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				runPresentationEntranceAnimations,
 				scheduleAutoAdvanceForSlide: rehearsing ? undefined : scheduleAutoAdvanceForSlide,
 				presentationTimersRef,
+				setTransitionOverlay,
+				// PowerPoint plays a slide's transition only when advancing into it.
+				playTransition: direction === 1,
 			});
 		},
 		[
@@ -189,6 +195,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 			visibleSlideIndexes,
 			setPresentationSlideVisible,
 			setPresentationSlideIndex,
+			setTransitionOverlay,
 		],
 	);
 
@@ -220,6 +227,9 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				runPresentationEntranceAnimations,
 				scheduleAutoAdvanceForSlide,
 				presentationTimersRef,
+				setTransitionOverlay,
+				// Direct jumps (action buttons, zoom tiles) are transition-less.
+				playTransition: false,
 			});
 		},
 		[
@@ -233,6 +243,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 			slides,
 			setPresentationSlideIndex,
 			setPresentationSlideVisible,
+			setTransitionOverlay,
 		],
 	);
 
