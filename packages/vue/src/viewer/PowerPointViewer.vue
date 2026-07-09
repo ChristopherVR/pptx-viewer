@@ -494,6 +494,33 @@ const {
 	commitTableCell,
 } = useInlineEditing({ canEdit: () => props.canEdit, findActiveElement, ops });
 
+// ── Insert SmartArt / equation ────────────────────────────────────────
+// Declared before the drag/selection wiring below so `requestElementEdit`
+// (the tap/double-click route into element editing) can consult it.
+const {
+	showInsertSmartArt,
+	showEquationEditor,
+	editingEquationOmml,
+	onInsertElement,
+	openEquationEditorForElement,
+	onApplyEquation,
+	closeEquationEditor,
+} = useInsertElementDialogs({ ops, selectedElementIds, findActiveElement });
+
+/**
+ * Route a tap / double-click that should open an element for editing: an
+ * equation element opens the equation editor (inline text editing would only
+ * see the "[Equation]" placeholder and destroy the OMML on commit), everything
+ * else enters ordinary inline text editing.
+ */
+function requestElementEdit(id: string): void {
+	const el = findActiveElement(id);
+	if (el && openEquationEditorForElement(el)) {
+		return;
+	}
+	enterInlineEdit(id);
+}
+
 /** Escape: disarm the painter first, otherwise clear the selection. */
 function onEscape(): void {
 	if (inlineEditingElementId.value) {
@@ -593,9 +620,10 @@ function onCanvasPointerDown(event: PointerEvent): void {
 					return;
 				}
 			}
-			// For text elements: enter inline text edit.
+			// For text elements: enter inline text edit (equations route to the
+			// equation editor instead of destructive plain-text editing).
 			if (doubleTapId) {
-				enterInlineEdit(doubleTapId);
+				requestElementEdit(doubleTapId);
 			}
 			return;
 		}
@@ -666,7 +694,7 @@ const {
 	slides,
 	templateElementsBySlideId,
 	canvasSize,
-	enterInlineEdit,
+	enterInlineEdit: requestElementEdit,
 });
 
 // ── Element insertion (Insert tab) ───────────────────────────────────
@@ -1155,12 +1183,6 @@ const {
 	onCompareAcceptAll,
 } = useVersionHistoryWiring({ slides, pushHistory: history.pushHistory });
 
-// ── Insert SmartArt / equation ────────────────────────────────────────
-const { showInsertSmartArt, showEquationEditor, onInsertElement } = useInsertElementDialogs({
-	ops,
-	selectedElementIds,
-});
-
 // ── Viewer settings ───────────────────────────────────────────────────
 const { showSettings, viewerSettings, onSettingsUpdate } = useViewerSettingsDialog();
 
@@ -1498,6 +1520,7 @@ function handleCommandSearch(command: string): void {
 					showInsertSmartArt.value = true;
 					break;
 				case 'equation':
+					editingEquationOmml.value = null;
 					showEquationEditor.value = true;
 					break;
 				case 'link':
@@ -1764,7 +1787,7 @@ function handleCommandSearch(command: string): void {
 							@adjust-start="onAdjustStart"
 							@adjust="onAdjust"
 							@adjust-end="onAdjustEnd"
-							@request-edit="(p) => enterInlineEdit(p.id)"
+							@request-edit="(p) => requestElementEdit(p.id)"
 						/>
 						<InlineTextEditor
 							v-if="props.canEdit && inlineEditingElement"
@@ -2106,11 +2129,13 @@ function handleCommandSearch(command: string): void {
 				@close="showInsertSmartArt = false"
 			/>
 
-			<!-- Insert ▸ Equation -->
+			<!-- Insert ▸ Equation (also re-edits an existing equation) -->
 			<EquationEditorDialog
 				:open="showEquationEditor"
+				:existing-omml="editingEquationOmml"
 				@insert="onInsertElement"
-				@close="showEquationEditor = false"
+				@apply="onApplyEquation"
+				@close="closeEquationEditor"
 			/>
 
 			<!-- First-edit warning: saving a signed deck strips its signatures. -->
