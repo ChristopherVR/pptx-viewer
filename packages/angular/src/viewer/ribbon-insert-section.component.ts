@@ -10,6 +10,15 @@
  * {@link EditorStateService}.
  */
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import {
+	LucideCircle,
+	LucideDatabase,
+	LucideImage,
+	LucideLayers,
+	LucideSlash,
+	LucideSquare,
+	LucideVideo,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxChartType, PptxElement } from 'pptx-viewer-core';
 
@@ -44,7 +53,17 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [TranslatePipe, RibbonInsertFieldsComponent],
+	imports: [
+		TranslatePipe,
+		RibbonInsertFieldsComponent,
+		LucideSquare,
+		LucideCircle,
+		LucideSlash,
+		LucideImage,
+		LucideVideo,
+		LucideDatabase,
+		LucideLayers,
+	],
 	template: `
 		<!-- Shapes group -->
 		<div class="pptx-rb-grp">
@@ -58,43 +77,43 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 			</button>
 			<button
 				type="button"
-				class="pptx-rb-gb"
+				class="pptx-rb-gb gap-1.5"
 				(click)="insertShape('rect')"
 				[title]="'pptx.ribbon.rectangle' | translate"
 			>
-				▭ {{ 'pptx.ribbon.rect' | translate }}
+				<svg lucideSquare class="h-4 w-4"></svg> {{ 'pptx.ribbon.rect' | translate }}
 			</button>
 			<button
 				type="button"
-				class="pptx-rb-gb"
+				class="pptx-rb-gb gap-1.5"
 				(click)="insertShape('ellipse')"
 				[title]="'pptx.ribbon.ellipse' | translate"
 			>
-				◯ {{ 'pptx.ribbon.ellipse' | translate }}
+				<svg lucideCircle class="h-4 w-4"></svg> {{ 'pptx.ribbon.ellipse' | translate }}
 			</button>
 			<button
 				type="button"
-				class="pptx-rb-gb"
+				class="pptx-rb-gb gap-1.5"
 				(click)="insertShape('line')"
 				[title]="'pptx.ribbon.line' | translate"
 			>
-				／ {{ 'pptx.ribbon.line' | translate }}
+				<svg lucideSlash class="h-4 w-4"></svg> {{ 'pptx.ribbon.line' | translate }}
 			</button>
 			<button
 				type="button"
-				class="pptx-rb-gb"
+				class="pptx-rb-gb gap-1.5"
 				(click)="insertImage()"
 				[title]="'pptx.ribbon.insertImage' | translate"
 			>
-				🖼 {{ 'pptx.ribbon.image' | translate }}
+				<svg lucideImage class="h-4 w-4"></svg> {{ 'pptx.ribbon.image' | translate }}
 			</button>
 			<button
 				type="button"
-				class="pptx-rb-gl"
+				class="pptx-rb-gl gap-1.5"
 				(click)="insertMedia()"
 				[title]="'pptx.ribbon.insertMedia' | translate"
 			>
-				🎬 {{ 'pptx.ribbon.media' | translate }}
+				<svg lucideVideo class="h-4 w-4"></svg> {{ 'pptx.ribbon.media' | translate }}
 			</button>
 		</div>
 		<span class="pptx-rb-sep"></span>
@@ -102,19 +121,19 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 		<div class="pptx-rb-grp">
 			<button
 				type="button"
-				class="pptx-rb-gb"
+				class="pptx-rb-gb gap-1.5"
 				(click)="insertTable()"
 				[title]="'pptx.ribbon.insertTable' | translate"
 			>
-				⊞ {{ 'pptx.ribbon.table' | translate }}
+				<svg lucideDatabase class="h-4 w-4"></svg> {{ 'pptx.ribbon.table' | translate }}
 			</button>
 			<button
 				type="button"
-				class="pptx-rb-gb"
+				class="pptx-rb-gb gap-1.5"
 				(click)="openSmartArtDialog.emit()"
 				[title]="'pptx.ribbon.insertSmartArt' | translate"
 			>
-				◈ {{ 'pptx.ribbon.smartArt' | translate }}
+				<svg lucideLayers class="h-4 w-4"></svg> {{ 'pptx.ribbon.smartArt' | translate }}
 			</button>
 			<select
 				class="pptx-rb-gl"
@@ -128,19 +147,44 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 			</select>
 			<button
 				type="button"
-				class="pptx-rb-gb"
+				class="pptx-rb-gb gap-1.5"
 				(click)="insertChart()"
 				[title]="'pptx.ribbon.insertChart' | translate"
 			>
-				▥ {{ 'pptx.ribbon.chart' | translate }}
+				<svg
+					class="h-4 w-4"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M3 3v18h18" />
+					<rect x="7" y="11" width="3" height="6" />
+					<rect x="12" y="7" width="3" height="10" />
+					<rect x="17" y="13" width="3" height="4" />
+				</svg>
+				{{ 'pptx.ribbon.chart' | translate }}
 			</button>
 			<button
 				type="button"
-				class="pptx-rb-gl"
+				class="pptx-rb-gl gap-1.5"
 				(click)="openEquationDialog.emit()"
 				[title]="'pptx.ribbon.insertEquation' | translate"
 			>
-				∑ {{ 'pptx.ribbon.equation' | translate }}
+				<svg
+					class="h-4 w-4"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M4 17h6M7 14v6M14 7l4.5 10M15.5 14h5" />
+				</svg>
+				{{ 'pptx.ribbon.equation' | translate }}
 			</button>
 		</div>
 		<span class="pptx-rb-sep"></span>

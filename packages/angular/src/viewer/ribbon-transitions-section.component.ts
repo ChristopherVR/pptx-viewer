@@ -10,6 +10,7 @@
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import { LucidePanelRight, LucidePlay } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide, PptxTransitionType } from 'pptx-viewer-core';
 
@@ -36,7 +37,7 @@ const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: s
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [NgClass, TranslatePipe],
+	imports: [NgClass, TranslatePipe, LucidePlay, LucidePanelRight],
 	template: `
 		<!-- Preview (fires existing presentation present path; no separate preview API yet) -->
 		<button
@@ -45,7 +46,7 @@ const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: s
 			[title]="'pptx.ribbon.previewTransition' | translate"
 			(click)="present.emit()"
 		>
-			▶ {{ 'pptx.ribbon.preview' | translate }}
+			<svg lucidePlay class="h-4 w-4"></svg> {{ 'pptx.ribbon.preview' | translate }}
 		</button>
 		<span class="pptx-rb-sep"></span>
 		<!-- Preset gallery -->
@@ -141,7 +142,7 @@ const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: s
 			[title]="'pptx.ribbon.openInspectorTransitions' | translate"
 			(click)="toggleInspector.emit()"
 		>
-			▤ {{ 'pptx.ribbon.inspector' | translate }}
+			<svg lucidePanelRight class="h-4 w-4"></svg> {{ 'pptx.ribbon.inspector' | translate }}
 		</button>
 	`,
 })

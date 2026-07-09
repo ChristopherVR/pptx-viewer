@@ -12,6 +12,7 @@
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { LucideCheck, LucideX } from '@lucide/angular';
 import type { PptxThemePreset } from 'pptx-viewer-core';
 
 import { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
@@ -20,7 +21,7 @@ import { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
 	selector: 'pptx-theme-gallery',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass],
+	imports: [NgClass, LucideX, LucideCheck],
 	template: `
 		@if (open()) {
 			<!-- Backdrop -->
@@ -48,7 +49,7 @@ import { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
 							(click)="close.emit()"
 							aria-label="Close theme gallery"
 						>
-							✕
+							<svg lucideX class="h-4 w-4"></svg>
 						</button>
 					</div>
 
@@ -98,8 +99,8 @@ import { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
 									<span
 										class="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white"
 										aria-label="Selected theme"
-										>✓</span
-									>
+										><svg lucideCheck class="h-2.5 w-2.5"></svg
+									></span>
 								}
 							</button>
 						}

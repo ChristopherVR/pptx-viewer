@@ -19,6 +19,26 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import {
+	LucideAlignHorizontalSpaceAround,
+	LucideAlignVerticalSpaceAround,
+	LucideArrowDown,
+	LucideArrowUp,
+	LucideChevronDown,
+	LucideChevronsDown,
+	LucideChevronsUp,
+	LucideChevronUp,
+	LucideCircle,
+	LucideCopy,
+	LucideGroup,
+	LucideSlash,
+	LucideSquare,
+	LucideTextAlignCenter,
+	LucideTextAlignEnd,
+	LucideTextAlignStart,
+	LucideTrash2,
+	LucideUngroup,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { newShapeElement, newTextElement } from './editor-insert';
@@ -27,7 +47,27 @@ import { EditorStateService } from './editor-state.service';
 @Component({
 	selector: 'pptx-editor-toolbar',
 	standalone: true,
-	imports: [TranslatePipe],
+	imports: [
+		TranslatePipe,
+		LucideSquare,
+		LucideCircle,
+		LucideSlash,
+		LucideCopy,
+		LucideTrash2,
+		LucideChevronsUp,
+		LucideChevronsDown,
+		LucideArrowUp,
+		LucideArrowDown,
+		LucideGroup,
+		LucideUngroup,
+		LucideTextAlignStart,
+		LucideTextAlignCenter,
+		LucideTextAlignEnd,
+		LucideChevronUp,
+		LucideChevronDown,
+		LucideAlignHorizontalSpaceAround,
+		LucideAlignVerticalSpaceAround,
+	],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<div
@@ -60,7 +100,7 @@ import { EditorStateService } from './editor-state.service';
 					[title]="'pptx.editorToolbar.insertRectangle' | translate"
 					(click)="onInsertShape('rect')"
 				>
-					▭
+					<svg lucideSquare class="h-4 w-4"></svg>
 				</button>
 
 				<button
@@ -69,7 +109,7 @@ import { EditorStateService } from './editor-state.service';
 					[title]="'pptx.editorToolbar.insertEllipse' | translate"
 					(click)="onInsertShape('ellipse')"
 				>
-					⬭
+					<svg lucideCircle class="h-4 w-4"></svg>
 				</button>
 
 				<button
@@ -78,7 +118,7 @@ import { EditorStateService } from './editor-state.service';
 					[title]="'pptx.editorToolbar.insertLine' | translate"
 					(click)="onInsertShape('line')"
 				>
-					╱
+					<svg lucideSlash class="h-4 w-4"></svg>
 				</button>
 			</div>
 
@@ -102,7 +142,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="editor.duplicateSelected(slideIndex())"
 				>
-					⧉
+					<svg lucideCopy class="h-4 w-4"></svg>
 				</button>
 
 				<button
@@ -112,7 +152,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="editor.deleteSelected(slideIndex())"
 				>
-					✕
+					<svg lucideTrash2 class="h-4 w-4"></svg>
 				</button>
 
 				<button
@@ -122,7 +162,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="editor.bringSelectedToFront(slideIndex())"
 				>
-					⤒
+					<svg lucideChevronsUp class="h-4 w-4"></svg>
 				</button>
 
 				<button
@@ -132,7 +172,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="editor.sendSelectedToBack(slideIndex())"
 				>
-					⤓
+					<svg lucideChevronsDown class="h-4 w-4"></svg>
 				</button>
 
 				<button
@@ -142,7 +182,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="editor.bringSelectedForward(slideIndex())"
 				>
-					↑
+					<svg lucideArrowUp class="h-4 w-4"></svg>
 				</button>
 
 				<button
@@ -152,7 +192,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="editor.sendSelectedBackward(slideIndex())"
 				>
-					↓
+					<svg lucideArrowDown class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -161,7 +201,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!canGroup()"
 					(click)="editor.groupSelected(slideIndex())"
 				>
-					⊡
+					<svg lucideGroup class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -170,7 +210,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!canUngroup()"
 					(click)="editor.ungroupSelected(slideIndex())"
 				>
-					⊠
+					<svg lucideUngroup class="h-4 w-4"></svg>
 				</button>
 			</div>
 
@@ -191,7 +231,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!canAlign()"
 					(click)="editor.alignSelected(slideIndex(), 'left')"
 				>
-					⊣
+					<svg lucideTextAlignStart class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -200,7 +240,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!canAlign()"
 					(click)="editor.alignSelected(slideIndex(), 'centerH')"
 				>
-					⊟
+					<svg lucideTextAlignCenter class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -209,7 +249,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!canAlign()"
 					(click)="editor.alignSelected(slideIndex(), 'right')"
 				>
-					⊢
+					<svg lucideTextAlignEnd class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -218,7 +258,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!canAlign()"
 					(click)="editor.alignSelected(slideIndex(), 'top')"
 				>
-					⊤
+					<svg lucideChevronUp class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -227,7 +267,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!canAlign()"
 					(click)="editor.alignSelected(slideIndex(), 'middle')"
 				>
-					⊞
+					<svg lucideTextAlignCenter class="h-4 w-4 rotate-90"></svg>
 				</button>
 				<button
 					type="button"
@@ -236,7 +276,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!canAlign()"
 					(click)="editor.alignSelected(slideIndex(), 'bottom')"
 				>
-					⊥
+					<svg lucideChevronDown class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -245,7 +285,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!canDistribute()"
 					(click)="editor.distributeSelected(slideIndex(), 'horizontal')"
 				>
-					↔
+					<svg lucideAlignHorizontalSpaceAround class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -254,7 +294,7 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="!canDistribute()"
 					(click)="editor.distributeSelected(slideIndex(), 'vertical')"
 				>
-					↕
+					<svg lucideAlignVerticalSpaceAround class="h-4 w-4"></svg>
 				</button>
 			</div>
 		</div>

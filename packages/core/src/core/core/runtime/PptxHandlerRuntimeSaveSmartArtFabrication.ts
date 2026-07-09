@@ -7,9 +7,16 @@
  * overrides, and return the `p:graphicFrame` envelope with `dgm:relIds`.
  */
 import type { XmlObject, SmartArtPptxElement } from '../../types';
+import { decomposeSmartArt } from '../../utils';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElementEmbedding';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
-import { buildFabricatedDiagramDataXml } from './smartart-fabrication-data';
+import { buildFabricatedDiagramDataXml, buildNodeGuidMap } from './smartart-fabrication-data';
+import {
+	DIAGRAM_DRAWING_CONTENT_TYPE,
+	buildDiagramDataRelsXml,
+	buildFabricatedDrawingXml,
+	smartArtElementsToDrawingShapes,
+} from './smartart-fabrication-drawing';
 import {
 	buildFabricatedLayoutDefXml,
 	fabricatedLayoutCategory,
@@ -96,14 +103,38 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const family = resolveFabricatedLayoutFamily(data);
 		const index = this.nextDiagramPartIndex();
 
+		// Cache the viewer-computed shape geometry so PowerPoint renders each node
+		// with its own preset (pyramid trapezoids, cycle ellipses, ...) instead of
+		// recomputing the simplified layout and drawing every node as a roundRect.
+		// SDK-inserted diagrams carry no `drawingShapes`, so fall back to running
+		// the same decompose/layout algorithms the viewer renders with.
+		const guidByNodeId = buildNodeGuidMap(data.nodes);
+		const drawingShapes =
+			data.drawingShapes && data.drawingShapes.length > 0
+				? data.drawingShapes
+				: smartArtElementsToDrawingShapes(
+						decomposeSmartArt(data, {
+							x: 0,
+							y: 0,
+							width: Math.max(el.width, 1),
+							height: Math.max(el.height, 1),
+						}),
+					);
+		const drawingRelId = 'rId1';
+		const drawingXml = buildFabricatedDrawingXml(drawingShapes, data.nodes, guidByNodeId);
+
 		const payloads: Record<(typeof DIAGRAM_PART_KINDS)[number]['prefix'], string> = {
-			data: buildFabricatedDiagramDataXml(data, {
-				layoutUniqueId: fabricatedLayoutUniqueId(family),
-				layoutCategory: fabricatedLayoutCategory(family),
-				quickStyleUniqueId: FABRICATED_QUICKSTYLE_UNIQUE_ID,
-				colorsUniqueId: fabricatedColorsUniqueId(data.colorScheme),
-				colorsCategory: fabricatedColorsCategory(data.colorScheme),
-			}),
+			data: buildFabricatedDiagramDataXml(
+				data,
+				{
+					layoutUniqueId: fabricatedLayoutUniqueId(family),
+					layoutCategory: fabricatedLayoutCategory(family),
+					quickStyleUniqueId: FABRICATED_QUICKSTYLE_UNIQUE_ID,
+					colorsUniqueId: fabricatedColorsUniqueId(data.colorScheme),
+					colorsCategory: fabricatedColorsCategory(data.colorScheme),
+				},
+				{ guidByNodeId, drawingRelId: drawingXml ? drawingRelId : undefined },
+			),
 			layout: buildFabricatedLayoutDefXml(family),
 			quickStyle: buildFabricatedQuickStyleXml(),
 			colors: buildFabricatedColorsXml(data.colorScheme),
@@ -127,6 +158,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				'@_Target': `../diagrams/${kind.prefix}${index}.xml`,
 			});
 			relIds[kind.relAttr] = relId;
+		}
+
+		// Emit the cached drawing part and link it from the data part's own rels
+		// file (`ppt/diagrams/_rels/dataN.xml.rels`); the `dsp:dataModelExt`
+		// written into the data model above references `drawingRelId` there.
+		if (drawingXml) {
+			const drawingFile = `drawing${index}.xml`;
+			const drawingPath = `ppt/diagrams/${drawingFile}`;
+			this.zip.file(drawingPath, drawingXml);
+			(this.pendingDiagramContentTypes ??= []).push({
+				partName: `/${drawingPath}`,
+				contentType: DIAGRAM_DRAWING_CONTENT_TYPE,
+			});
+			this.zip.file(
+				`ppt/diagrams/_rels/data${index}.xml.rels`,
+				buildDiagramDataRelsXml(drawingRelId, drawingFile),
+			);
 		}
 
 		const EMU = PptxHandlerRuntime.EMU_PER_PX;

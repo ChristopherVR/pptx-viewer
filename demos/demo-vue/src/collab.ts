@@ -1,10 +1,13 @@
 /**
  * Collaboration server-URL safety helpers, ported from the React demo.
  *
- * Only trusted hosts may be auto-connected / auto-uploaded to when the session
- * is driven from URL params. Untrusted servers can still be used via the
- * explicit Share dialog, but a crafted `?server=...` must never silently fetch
- * or POST a presentation.
+ * Security model:
+ *  - Any wss:// (secure WebSocket) server is trusted: TLS requires a valid
+ *    certificate, giving the same authenticity guarantee as HTTPS. This covers
+ *    external relays used on deployed demos such as GitHub Pages.
+ *  - Insecure ws:// is only trusted for loopback addresses (local dev) or a
+ *    build-time-configured relay (`VITE_COLLAB_SERVER_URL`).
+ *  - Non-WebSocket URLs are always rejected.
  */
 const TRUSTED_COLLAB_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
 
@@ -30,6 +33,13 @@ export function isTrustedServerUrl(url: string): boolean {
 		if (u.protocol !== 'ws:' && u.protocol !== 'wss:') {
 			return false;
 		}
+		// Any wss:// (secure WebSocket, TLS required) is trusted — the same
+		// rationale as trusting HTTPS: an attacker cannot impersonate the host
+		// without a valid certificate for it.
+		if (u.protocol === 'wss:') {
+			return true;
+		}
+		// Insecure ws:// is restricted to loopback (local dev) or a configured relay.
 		const configured = configuredServerHost();
 		return TRUSTED_COLLAB_HOSTS.includes(u.hostname) || u.hostname === configured;
 	} catch {

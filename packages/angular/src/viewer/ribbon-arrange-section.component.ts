@@ -6,6 +6,15 @@
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import {
+	LucideAlignHorizontalSpaceAround,
+	LucideAlignVerticalSpaceAround,
+	LucideChevronDown,
+	LucideChevronUp,
+	LucideTextAlignCenter,
+	LucideTextAlignEnd,
+	LucideTextAlignStart,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
@@ -16,7 +25,17 @@ import { EditorStateService } from './editor-state.service';
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [NgClass, TranslatePipe],
+	imports: [
+		NgClass,
+		TranslatePipe,
+		LucideTextAlignStart,
+		LucideTextAlignCenter,
+		LucideTextAlignEnd,
+		LucideChevronUp,
+		LucideChevronDown,
+		LucideAlignHorizontalSpaceAround,
+		LucideAlignVerticalSpaceAround,
+	],
 	template: `
 		<!-- Order -->
 		<div class="pptx-rb-grp">
@@ -67,7 +86,7 @@ import { EditorStateService } from './editor-state.service';
 				[title]="'pptx.ribbon.alignLeft' | translate"
 				(click)="editor.alignSelected(slideIndex(), 'left')"
 			>
-				⇤
+				<svg lucideTextAlignStart class="h-4 w-4"></svg>
 			</button>
 			<button
 				type="button"
@@ -76,7 +95,7 @@ import { EditorStateService } from './editor-state.service';
 				[title]="'pptx.ribbon.alignCenter' | translate"
 				(click)="editor.alignSelected(slideIndex(), 'centerH')"
 			>
-				⇔
+				<svg lucideTextAlignCenter class="h-4 w-4"></svg>
 			</button>
 			<button
 				type="button"
@@ -85,7 +104,7 @@ import { EditorStateService } from './editor-state.service';
 				[title]="'pptx.ribbon.alignRight' | translate"
 				(click)="editor.alignSelected(slideIndex(), 'right')"
 			>
-				⇥
+				<svg lucideTextAlignEnd class="h-4 w-4"></svg>
 			</button>
 			<button
 				type="button"
@@ -94,7 +113,7 @@ import { EditorStateService } from './editor-state.service';
 				[title]="'pptx.ribbon.alignTop' | translate"
 				(click)="editor.alignSelected(slideIndex(), 'top')"
 			>
-				⤒
+				<svg lucideChevronUp class="h-4 w-4"></svg>
 			</button>
 			<button
 				type="button"
@@ -103,7 +122,7 @@ import { EditorStateService } from './editor-state.service';
 				[title]="'pptx.ribbon.alignMiddle' | translate"
 				(click)="editor.alignSelected(slideIndex(), 'middle')"
 			>
-				⇕
+				<svg lucideTextAlignCenter class="h-4 w-4 rotate-90"></svg>
 			</button>
 			<button
 				type="button"
@@ -112,7 +131,7 @@ import { EditorStateService } from './editor-state.service';
 				[title]="'pptx.ribbon.alignBottom' | translate"
 				(click)="editor.alignSelected(slideIndex(), 'bottom')"
 			>
-				⤓
+				<svg lucideChevronDown class="h-4 w-4"></svg>
 			</button>
 		</div>
 		<span class="pptx-rb-sep"></span>
@@ -125,7 +144,7 @@ import { EditorStateService } from './editor-state.service';
 				[title]="'pptx.ribbon.distributeHorizontally' | translate"
 				(click)="editor.distributeSelected(slideIndex(), 'horizontal')"
 			>
-				&#x2194; H
+				<svg lucideAlignHorizontalSpaceAround class="h-4 w-4"></svg>
 			</button>
 			<button
 				type="button"
@@ -134,7 +153,7 @@ import { EditorStateService } from './editor-state.service';
 				[title]="'pptx.ribbon.distributeVertically' | translate"
 				(click)="editor.distributeSelected(slideIndex(), 'vertical')"
 			>
-				&#x2195; V
+				<svg lucideAlignVerticalSpaceAround class="h-4 w-4"></svg>
 			</button>
 		</div>
 		<span class="pptx-rb-sep"></span>

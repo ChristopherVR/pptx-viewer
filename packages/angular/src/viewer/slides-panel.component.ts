@@ -1,5 +1,12 @@
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	LucideArrowDown,
+	LucideArrowUp,
+	LucideCopy,
+	LucidePlus,
+	LucideTrash2,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import type { CanvasSize } from '../internal/shared';
@@ -34,7 +41,16 @@ const THUMB_W = 150;
 	selector: 'pptx-slides-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, SlideCanvasComponent, TranslatePipe],
+	imports: [
+		NgStyle,
+		SlideCanvasComponent,
+		TranslatePipe,
+		LucideCopy,
+		LucideTrash2,
+		LucideArrowUp,
+		LucideArrowDown,
+		LucidePlus,
+	],
 	template: `
 		<div class="pptx-ng-spanel">
 			<!-- Scrollable slide list -->
@@ -89,7 +105,7 @@ const THUMB_W = 150;
 								[attr.aria-label]="'pptx.arrange.duplicate' | translate"
 								(click)="onDuplicate(i)"
 							>
-								⧉
+								<svg lucideCopy class="h-3.5 w-3.5"></svg>
 							</button>
 							<button
 								type="button"
@@ -99,7 +115,7 @@ const THUMB_W = 150;
 								[disabled]="editor.slides().length <= 1"
 								(click)="onDelete(i)"
 							>
-								✕
+								<svg lucideTrash2 class="h-3.5 w-3.5"></svg>
 							</button>
 							<button
 								type="button"
@@ -109,7 +125,7 @@ const THUMB_W = 150;
 								[disabled]="i === 0"
 								(click)="onMoveUp(i)"
 							>
-								↑
+								<svg lucideArrowUp class="h-3.5 w-3.5"></svg>
 							</button>
 							<button
 								type="button"
@@ -119,7 +135,7 @@ const THUMB_W = 150;
 								[disabled]="i === editor.slides().length - 1"
 								(click)="onMoveDown(i)"
 							>
-								↓
+								<svg lucideArrowDown class="h-3.5 w-3.5"></svg>
 							</button>
 						</div>
 					</div>
@@ -134,7 +150,7 @@ const THUMB_W = 150;
 					[attr.aria-label]="'pptx.sections.addSlide' | translate"
 					(click)="onAddSlide()"
 				>
-					＋ {{ 'pptx.sections.addSlide' | translate }}
+					<svg lucidePlus class="h-3.5 w-3.5"></svg> {{ 'pptx.sections.addSlide' | translate }}
 				</button>
 			</footer>
 		</div>

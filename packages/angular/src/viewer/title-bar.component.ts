@@ -25,6 +25,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { LucideRedo, LucideSave, LucideSearch, LucideUndo } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import {
@@ -40,7 +41,7 @@ import type { AutosaveStatus } from './autosave.service';
 	selector: 'pptx-title-bar',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass, TranslatePipe],
+	imports: [NgClass, TranslatePipe, LucideSave, LucideUndo, LucideRedo, LucideSearch],
 	template: `
 		<div [class]="tb.container" data-pptx-title-bar>
 			<span [class]="tb.logo" aria-hidden="true">P</span>
@@ -78,7 +79,7 @@ import type { AutosaveStatus } from './autosave.service';
 					[attr.aria-label]="'pptx.titleBar.save' | translate"
 					(click)="save.emit()"
 				>
-					💾
+					<svg lucideSave class="h-3.5 w-3.5"></svg>
 				</button>
 				<button
 					type="button"
@@ -92,7 +93,7 @@ import type { AutosaveStatus } from './autosave.service';
 					[attr.aria-label]="'pptx.toolbar.undo' | translate"
 					(click)="undo.emit()"
 				>
-					↶
+					<svg lucideUndo class="h-3.5 w-3.5"></svg>
 				</button>
 				<button
 					type="button"
@@ -106,7 +107,7 @@ import type { AutosaveStatus } from './autosave.service';
 					[attr.aria-label]="'pptx.toolbar.redo' | translate"
 					(click)="redo.emit()"
 				>
-					↷
+					<svg lucideRedo class="h-3.5 w-3.5"></svg>
 				</button>
 
 				<div [class]="tb.separator"></div>
@@ -131,7 +132,9 @@ import type { AutosaveStatus } from './autosave.service';
 								searchFocused() || findReplaceOpen() ? 'text-foreground bg-background' : ''
 							"
 						>
-							<span [class]="tb.searchIcon" aria-hidden="true">⌕</span>
+							<span [class]="tb.searchIcon" aria-hidden="true"
+								><svg lucideSearch class="h-3.5 w-3.5"></svg
+							></span>
 							<input
 								type="text"
 								[value]="searchQuery()"
@@ -177,7 +180,7 @@ import type { AutosaveStatus } from './autosave.service';
 										class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
 										(mousedown)="openFindReplace()"
 									>
-										<span aria-hidden="true">⌕</span>
+										<svg lucideSearch class="h-3.5 w-3.5"></svg>
 										<span
 											>{{ 'pptx.titleBar.searchContent' | translate }} &ldquo;{{
 												searchQuery()

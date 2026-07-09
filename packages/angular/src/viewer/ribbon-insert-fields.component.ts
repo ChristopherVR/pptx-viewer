@@ -15,6 +15,7 @@
  * through the parent (matching the ribbon's existing inline insert handlers).
  */
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import { LucideChevronDown } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 
@@ -55,7 +56,7 @@ function newFieldGuid(): string {
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, LucideChevronDown],
 	template: `
 		<!-- Action Buttons dropdown (hover-reveal, mirrors React/Vue) -->
 		<div class="group relative">
@@ -76,7 +77,7 @@ function newFieldGuid(): string {
 					<rect x="3" y="3" width="18" height="18" rx="2" />
 					<path d="M13 7l4 5-4 5" />
 				</svg>
-				{{ 'pptx.ribbon.action' | translate }} ▾
+				{{ 'pptx.ribbon.action' | translate }} <svg lucideChevronDown class="h-3 w-3"></svg>
 			</button>
 			<div class="absolute left-0 top-full z-50 hidden w-44 pt-1 group-hover:block">
 				<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
@@ -120,7 +121,7 @@ function newFieldGuid(): string {
 					<path d="M4 7h16M4 12h10M4 17h12" />
 					<circle cx="19" cy="15" r="3" />
 				</svg>
-				{{ 'pptx.field.field' | translate }} ▾
+				{{ 'pptx.field.field' | translate }} <svg lucideChevronDown class="h-3 w-3"></svg>
 			</button>
 			<div class="absolute left-0 top-full z-50 hidden w-44 pt-1 group-hover:block">
 				<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">

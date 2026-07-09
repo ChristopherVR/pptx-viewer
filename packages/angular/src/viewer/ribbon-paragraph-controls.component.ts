@@ -6,6 +6,16 @@
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import {
+	LucideList,
+	LucideListIndentDecrease,
+	LucideListIndentIncrease,
+	LucideListOrdered,
+	LucideTextAlignCenter,
+	LucideTextAlignEnd,
+	LucideTextAlignJustify,
+	LucideTextAlignStart,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
@@ -31,7 +41,18 @@ const COLUMN_OPTIONS = [1, 2, 3];
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [NgClass, TranslatePipe],
+	imports: [
+		NgClass,
+		TranslatePipe,
+		LucideList,
+		LucideListOrdered,
+		LucideListIndentDecrease,
+		LucideListIndentIncrease,
+		LucideTextAlignStart,
+		LucideTextAlignCenter,
+		LucideTextAlignEnd,
+		LucideTextAlignJustify,
+	],
 	template: `
 		<!-- List style: bullets + numbering -->
 		<div class="pptx-rb-grp">
@@ -43,7 +64,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[title]="'pptx.ribbon.bulletList' | translate"
 				(click)="toggleList('bullet')"
 			>
-				•≡
+				<svg lucideList class="h-4 w-4"></svg>
 			</button>
 			<button
 				type="button"
@@ -53,7 +74,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[title]="'pptx.notes.numberedList' | translate"
 				(click)="toggleList('numbered')"
 			>
-				1.≡
+				<svg lucideListOrdered class="h-4 w-4"></svg>
 			</button>
 		</div>
 		<!-- Indent: outdent + indent -->
@@ -65,7 +86,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[title]="'pptx.notes.outdent' | translate"
 				(click)="changeIndent(-24)"
 			>
-				⇤
+				<svg lucideListIndentDecrease class="h-4 w-4"></svg>
 			</button>
 			<button
 				type="button"
@@ -74,7 +95,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[title]="'pptx.notes.indent' | translate"
 				(click)="changeIndent(24)"
 			>
-				⇥
+				<svg lucideListIndentIncrease class="h-4 w-4"></svg>
 			</button>
 		</div>
 		<!-- Alignment -->
@@ -87,7 +108,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[title]="'pptx.ribbon.alignLeft' | translate"
 				(click)="setAlign('left')"
 			>
-				⯇
+				<svg lucideTextAlignStart class="h-4 w-4"></svg>
 			</button>
 			<button
 				type="button"
@@ -97,7 +118,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[title]="'pptx.ribbon.alignCenter' | translate"
 				(click)="setAlign('center')"
 			>
-				≡
+				<svg lucideTextAlignCenter class="h-4 w-4"></svg>
 			</button>
 			<button
 				type="button"
@@ -107,7 +128,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[title]="'pptx.ribbon.alignRight' | translate"
 				(click)="setAlign('right')"
 			>
-				⯈
+				<svg lucideTextAlignEnd class="h-4 w-4"></svg>
 			</button>
 			<button
 				type="button"
@@ -117,7 +138,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[title]="'pptx.ribbon.justify' | translate"
 				(click)="setAlign('justify')"
 			>
-				☰
+				<svg lucideTextAlignJustify class="h-4 w-4"></svg>
 			</button>
 		</div>
 		<!-- Line Spacing -->

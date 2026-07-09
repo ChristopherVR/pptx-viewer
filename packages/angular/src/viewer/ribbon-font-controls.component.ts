@@ -7,6 +7,12 @@
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import {
+	LucideAArrowDown,
+	LucideAArrowUp,
+	LucideHighlighter,
+	LucideRemoveFormatting,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
@@ -77,7 +83,15 @@ const CHANGE_CASE_OPTIONS = [
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [NgClass, TranslatePipe, RibbonColorPopoverComponent],
+	imports: [
+		NgClass,
+		TranslatePipe,
+		RibbonColorPopoverComponent,
+		LucideAArrowUp,
+		LucideAArrowDown,
+		LucideRemoveFormatting,
+		LucideHighlighter,
+	],
 	template: `
 		<div class="flex items-center gap-1">
 			<select
@@ -109,7 +123,7 @@ const CHANGE_CASE_OPTIONS = [
 				[title]="'pptx.ribbon.growFont' | translate"
 				(click)="stepFontSize(1)"
 			>
-				A▴
+				<svg lucideAArrowUp class="h-4 w-4"></svg>
 			</button>
 			<button
 				type="button"
@@ -118,7 +132,7 @@ const CHANGE_CASE_OPTIONS = [
 				[title]="'pptx.ribbon.shrinkFont' | translate"
 				(click)="stepFontSize(-1)"
 			>
-				A▾
+				<svg lucideAArrowDown class="h-4 w-4"></svg>
 			</button>
 			<button
 				type="button"
@@ -127,7 +141,7 @@ const CHANGE_CASE_OPTIONS = [
 				[title]="'pptx.ribbon.clearFormatting' | translate"
 				(click)="clearFormatting()"
 			>
-				⌫
+				<svg lucideRemoveFormatting class="h-4 w-4"></svg>
 			</button>
 		</div>
 		<div class="pptx-rb-grp">
@@ -238,7 +252,7 @@ const CHANGE_CASE_OPTIONS = [
 			swatchAriaKey="pptx.ribbon.highlightColourValue"
 			(pick)="setHighlight($event)"
 		>
-			<span class="font-bold">🖍</span>
+			<svg lucideHighlighter class="h-3.5 w-3.5"></svg>
 		</pptx-ribbon-color-popover>
 	`,
 })

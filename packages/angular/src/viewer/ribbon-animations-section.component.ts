@@ -6,6 +6,13 @@
  * animation-author-helpers.ts and commit via {@link EditorStateService}.
  */
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import {
+	LucideChevronDown,
+	LucidePanelRight,
+	LucidePlay,
+	LucideSparkles,
+	LucideTrash2,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxAnimationPreset, PptxElement, PptxSlide } from 'pptx-viewer-core';
 
@@ -25,7 +32,14 @@ import { EditorStateService } from './editor-state.service';
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [TranslatePipe],
+	imports: [
+		TranslatePipe,
+		LucidePlay,
+		LucideSparkles,
+		LucideChevronDown,
+		LucideTrash2,
+		LucidePanelRight,
+	],
 	template: `
 		<!-- Preview: plays presentation from this slide; no element-only preview API yet -->
 		<button
@@ -35,7 +49,7 @@ import { EditorStateService } from './editor-state.service';
 			[title]="'pptx.animations.previewTooltip' | translate"
 			(click)="present.emit()"
 		>
-			▶ {{ 'pptx.animations.preview' | translate }}
+			<svg lucidePlay class="h-4 w-4"></svg> {{ 'pptx.animations.preview' | translate }}
 		</button>
 		<span class="pptx-rb-sep"></span>
 		<!-- Add Animation dropdown (hover-reveal, mirrors React pattern) -->
@@ -46,7 +60,9 @@ import { EditorStateService } from './editor-state.service';
 				[disabled]="!hasSel()"
 				[title]="'pptx.animations.addTooltip' | translate"
 			>
-				✨ {{ 'pptx.animations.addAnimation' | translate }} ▾
+				<svg lucideSparkles class="h-4 w-4"></svg>
+				{{ 'pptx.animations.addAnimation' | translate }}
+				<svg lucideChevronDown class="h-3 w-3"></svg>
 			</button>
 			<!-- Dropdown panel: shown on group hover -->
 			<div class="absolute left-0 top-full z-50 hidden w-44 pt-1 group-hover:block">
@@ -114,7 +130,7 @@ import { EditorStateService } from './editor-state.service';
 			[title]="'pptx.animations.removeTooltip' | translate"
 			(click)="removeAnim()"
 		>
-			✕ {{ 'pptx.ribbon.removeAnimation' | translate }}
+			<svg lucideTrash2 class="h-4 w-4"></svg> {{ 'pptx.ribbon.removeAnimation' | translate }}
 		</button>
 		<span class="pptx-rb-sep"></span>
 		<!-- Animation Panel -->
@@ -124,7 +140,8 @@ import { EditorStateService } from './editor-state.service';
 			[title]="'pptx.animations.openPanelTooltip' | translate"
 			(click)="toggleInspector.emit()"
 		>
-			▤ {{ 'pptx.animations.animationPanel' | translate }}
+			<svg lucidePanelRight class="h-4 w-4"></svg>
+			{{ 'pptx.animations.animationPanel' | translate }}
 		</button>
 	`,
 })
