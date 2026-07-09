@@ -25,6 +25,7 @@ import {
 	renderDagDuotoneFilterForElement,
 	getContainerStyle,
 	ActionIndicator,
+	elementHasTextHyperlink,
 } from './elements/element-renderer-helpers';
 import type { ElementRendererProps } from './elements/element-renderer-types';
 import { renderBody } from './elements/ElementBody';
@@ -165,10 +166,14 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const canEditSmartArt = effectiveCanInteract && !elementLocks?.noTextEdit;
 
 		// Elements with actions or hyperlinks should be clickable even when not
-		// in editing mode (e.g. during presentation mode).
+		// in editing mode (e.g. during presentation mode). `hasHyperlinks` must
+		// key off the element actually carrying a run-level hyperlink, not the
+		// mere presence of the always-supplied `onHyperlinkClick` handler, or
+		// every element (including inert template shapes) would stay actionable
+		// and bypass the `editTemplateMode` interaction gate.
 		const hasAction = Boolean(el.actionClick && onActionClick);
 		const hasHoverAction = Boolean(el.actionHover);
-		const hasHyperlinks = Boolean(onHyperlinkClick);
+		const hasHyperlinks = Boolean(onHyperlinkClick) && elementHasTextHyperlink(el);
 		const isZoom = el.type === 'zoom' && Boolean(onZoomClick);
 		const isActionable = hasAction || hasHoverAction || hasHyperlinks || isZoom;
 

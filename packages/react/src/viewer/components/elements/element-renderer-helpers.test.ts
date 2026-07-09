@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 import { describe, it, expect } from 'vitest';
 
 import type { ElementAnimationState } from '../../utils/animation-timeline';
-import { getContainerStyle } from './element-renderer-helpers';
+import { elementHasTextHyperlink, getContainerStyle } from './element-renderer-helpers';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -178,5 +178,40 @@ describe('getContainerStyle', () => {
 		});
 		expect(style.backgroundColor).toBe('red');
 		expect(style.borderRadius).toBe('4px');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// elementHasTextHyperlink
+// ---------------------------------------------------------------------------
+
+describe('elementHasTextHyperlink', () => {
+	it('returns true when a text run carries a hyperlink', () => {
+		const el = makeElement({
+			textSegments: [
+				{ text: 'plain', style: {} },
+				{ text: 'link', style: { hyperlink: 'https://example.com' } },
+			],
+		} as Partial<PptxElement>);
+		expect(elementHasTextHyperlink(el)).toBeTruthy();
+	});
+
+	it('returns false when no run carries a hyperlink', () => {
+		const el = makeElement({
+			textSegments: [
+				{ text: 'plain', style: {} },
+				{ text: 'more', style: { bold: true } },
+			],
+		} as Partial<PptxElement>);
+		expect(elementHasTextHyperlink(el)).toBeFalsy();
+	});
+
+	it('returns false for an element with no text segments', () => {
+		expect(elementHasTextHyperlink(makeElement())).toBeFalsy();
+	});
+
+	it('returns false for a non-text element type', () => {
+		const el = makeElement({ type: 'image' } as Partial<PptxElement>);
+		expect(elementHasTextHyperlink(el)).toBeFalsy();
 	});
 });
