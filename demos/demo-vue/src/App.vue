@@ -41,13 +41,13 @@ const themeKey = ref<string>(readStoredTheme());
 
 function readStoredTheme(): string {
 	try {
-		return localStorage.getItem('pptx-demo-theme') ?? 'dark';
+		return localStorage.getItem('pptx-demo-theme') ?? 'vermilionDark';
 	} catch {
-		return 'dark';
+		return 'vermilionDark';
 	}
 }
 
-const currentPreset = computed(() => themes[themeKey.value] ?? themes.dark);
+const currentPreset = computed(() => themes[themeKey.value] ?? themes.vermilionDark);
 
 const { t } = useI18n();
 

@@ -6,6 +6,36 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-09
 
+_Releases: pptx-react-viewer@1.11.0, pptx-vue-viewer@1.11.0, pptx-angular-viewer@1.12.0_
+
+### Features
+
+- **shared:** Chart interaction model for direct on-canvas editing (by @ChristopherVR) ([90753e2](https://github.com/ChristopherVR/pptx-viewer/commit/90753e28dc2188550b4069214c5cf90df06adddc))
+- **shared:** Add vermilion light/dark theme presets to all bindings (by @ChristopherVR) ([1b6e816](https://github.com/ChristopherVR/pptx-viewer/commit/1b6e8161679a3f984cbfedb09ece0c8c01570c0a))
+
+### Bug Fixes
+
+- **vue:** Name mobile bottom bar and stop tablet viewport collapse (by @ChristopherVR) ([2f0d7ab](https://github.com/ChristopherVR/pptx-viewer/commit/2f0d7abf03671c8d06dedafab6eaae39f311bdd2))
+- **vue:** Emit SmartArt canvas layout data-testid on the main canvas (by @ChristopherVR) ([5f24e12](https://github.com/ChristopherVR/pptx-viewer/commit/5f24e12cfdc8d51dd7ebd1781fbd8a8a840d36fa))
+- **react,angular:** Make inspector default-open/closeable state consistent (by @ChristopherVR) ([dbfd959](https://github.com/ChristopherVR/pptx-viewer/commit/dbfd959fa273ea74e7e92a0393178ab5ae703396))
+- **docs:** Stop the SPA router from intercepting the demo links (by @ChristopherVR) ([44637fb](https://github.com/ChristopherVR/pptx-viewer/commit/44637fbe49dd8138c89ece22bd6c1078d57a53d4))
+- **react:** Render real chart previews in sidebar thumbnails (by @ChristopherVR) ([c3788cf](https://github.com/ChristopherVR/pptx-viewer/commit/c3788cf6c569a93bd036ecf968fa38d0872b72f5))
+
+### Other
+
+- Reconcile with origin/main before push (by @ChristopherVR) ([10acef8](https://github.com/ChristopherVR/pptx-viewer/commit/10acef81a7f5d79e778e4e4464d956cc84682f7c))
+- Reconcile with origin/main before push (by @ChristopherVR) ([6afd435](https://github.com/ChristopherVR/pptx-viewer/commit/6afd4353efa08f46a4d1571e1e42c13bd2a14df4))
+
+### Documentation
+
+- Localize the landing page, rework copy, drop the marquee (by @ChristopherVR) ([3783503](https://github.com/ChristopherVR/pptx-viewer/commit/3783503d2a75c204191258232a9b0aa854744e0f))
+
+### Testing
+
+- **e2e:** Keep openInspector from closing Vue's already-open inspector (by @ChristopherVR) ([de4b8d6](https://github.com/ChristopherVR/pptx-viewer/commit/de4b8d651b6187275eadf562fc9a2384598d6eb8))
+
+## 2026-07-09
+
 _Releases: pptx-viewer-core@1.2.5, pptx-react-viewer@1.10.2, pptx-vue-viewer@1.10.2, pptx-angular-viewer@1.11.1_
 
 ### Bug Fixes
