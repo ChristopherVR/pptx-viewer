@@ -13,6 +13,12 @@
  * The resulting file triggers a "needs repair" prompt when opened in
  * PowerPoint. This spec captures the exact editing sequence for debugging.
  *
+ * React-only: this is a historical one-off corruption repro whose editing
+ * helpers are bound to React's ribbon DOM (`select[title]`, `button[title*=
+ * "Shape"]`, the `File` tab, the `Save .pptx` button). It is not a parity test
+ * and is skipped on Vue/Angular (see the `test.skip` guard below). Cross-
+ * framework SmartArt insertion is covered by `smartart-insert-edit.spec.ts`.
+ *
  * Run: bunx playwright test save-corruption-repro --project=react
  */
 import { resolve } from 'node:path';
@@ -120,7 +126,11 @@ async function editTableCell(page: Page, text: string): Promise<void> {
 test.describe('save corruption reproduction', () => {
 	test('rect + 2 smartart + gif + table with cell edit triggers repair in PowerPoint', async ({
 		page,
-	}) => {
+	}, testInfo) => {
+		test.skip(
+			testInfo.project.name !== 'react',
+			'React-only historical repro: the editing helpers target React-specific ribbon selectors (select[title], button[title*="Shape"], File tab, Save .pptx). Cross-framework SmartArt insert is covered by smartart-insert-edit.spec.ts.',
+		);
 		await page.goto('/');
 		// Wait for the viewer to be ready (empty state with drop zone)
 		await page.waitForTimeout(1000);
