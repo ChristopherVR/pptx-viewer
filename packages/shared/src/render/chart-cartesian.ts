@@ -41,6 +41,7 @@ import {
 	computeTrendlinePrimitives,
 } from './chart-overlays';
 import type {
+	ChartValueDrag,
 	ChartViewModel,
 	PlotLayout,
 	SupportedChartKind,
@@ -232,6 +233,19 @@ export function buildCartesianViewModel(
 
 	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
 
+	// Vertical drag-to-value only has a single-value meaning for un-stacked marks:
+	// stacked/percentStacked bar segments sit on running sums, so dragging one
+	// would not track the pointer.
+	const valueDrag: ChartValueDrag | undefined = isStacked
+		? undefined
+		: {
+				range: primaryRange,
+				secondaryRange,
+				secondarySeriesIndexes: useSecondary ? [...secondaryIdx] : undefined,
+				plotTop: layout.plotTop,
+				plotBottom: layout.plotBottom,
+			};
+
 	return {
 		svgWidth: layout.svgWidth,
 		svgHeight: layout.svgHeight,
@@ -252,5 +266,6 @@ export function buildCartesianViewModel(
 		secondaryAxisLabels: axisRes.secondaryAxisLabels,
 		overlays: overlays.length > 0 ? overlays : undefined,
 		dataTable: dataTablePrims.length > 0 ? dataTablePrims : undefined,
+		valueDrag,
 	};
 }

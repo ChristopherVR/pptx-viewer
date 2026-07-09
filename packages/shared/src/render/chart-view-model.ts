@@ -284,6 +284,38 @@ export function computePlotLayout(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Interactive chart parts
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Reference to an interactive chart sub-part, carried by the primitives that
+ * represent data marks (bars, dots, slices, series lines). Bindings use it to
+ * make marks clickable/draggable in edit mode and to sync selection with the
+ * chart inspector; primitives without a `part` stay purely decorative.
+ */
+export interface ChartPartRef {
+	/** 'dataPoint' targets one (series, category) cell; 'series' the whole series. */
+	role: 'dataPoint' | 'series';
+	seriesIndex: number;
+	/** Category/point index. Absent when the primitive spans the whole series. */
+	pointIndex?: number;
+}
+
+/**
+ * Vertical drag-to-value context, present on cartesian view-models whose data
+ * marks can be dragged vertically to change their value (clustered bar, line,
+ * scatter, bubble). `secondarySeriesIndexes` lists series plotted against
+ * `secondaryRange` instead of `range`.
+ */
+export interface ChartValueDrag {
+	range: ValueRange;
+	secondaryRange?: ValueRange;
+	secondarySeriesIndexes?: number[];
+	plotTop: number;
+	plotBottom: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SVG primitive descriptors
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -296,6 +328,7 @@ export interface SvgRect {
 	fill: string;
 	rx?: number;
 	opacity?: number;
+	part?: ChartPartRef;
 }
 
 export interface SvgPath {
@@ -305,6 +338,7 @@ export interface SvgPath {
 	stroke?: string;
 	strokeWidth?: number;
 	opacity?: number;
+	part?: ChartPartRef;
 }
 
 export interface SvgPolyline {
@@ -314,6 +348,7 @@ export interface SvgPolyline {
 	strokeWidth: number;
 	fill: string;
 	opacity?: number;
+	part?: ChartPartRef;
 }
 
 export interface SvgCircle {
@@ -323,6 +358,7 @@ export interface SvgCircle {
 	r: number;
 	fill: string;
 	opacity?: number;
+	part?: ChartPartRef;
 }
 
 export interface SvgLine {
@@ -360,6 +396,7 @@ export interface SvgPolygon {
 	strokeWidth: number;
 	opacity?: number;
 	dashArray?: string;
+	part?: ChartPartRef;
 }
 
 export interface SvgAreaGradient {
@@ -426,6 +463,12 @@ export interface ChartViewModel {
 	 * is set). Already appended to `primitives`; surfaced separately for projectors.
 	 */
 	dataTable?: SvgPrimitive[];
+	/**
+	 * Present when the chart's data marks support vertical drag-to-value editing
+	 * (clustered bar / line / scatter / bubble). Absent for stacked, polar, and
+	 * hierarchical kinds, where a vertical drag has no single-value meaning.
+	 */
+	valueDrag?: ChartValueDrag;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -561,6 +604,10 @@ export interface BarRect {
 	w: number;
 	h: number;
 	fill: string;
+	/** Source series index, carried so plot builders can tag interactive parts. */
+	seriesIndex?: number;
+	/** Source category index, carried so plot builders can tag interactive parts. */
+	pointIndex?: number;
 }
 
 export function computeBarRects(
@@ -627,11 +674,27 @@ export function computeStackedBarRects(
 			);
 			if (val > 0) {
 				const y = posTop - h;
-				rects.push({ x, y, w: barW, h, fill: seriesColor(series[si], si, colorPalette) });
+				rects.push({
+					x,
+					y,
+					w: barW,
+					h,
+					fill: seriesColor(series[si], si, colorPalette),
+					seriesIndex: si,
+					pointIndex: ci,
+				});
 				posTop = y;
 			} else {
 				const y = negBottom;
-				rects.push({ x, y, w: barW, h, fill: seriesColor(series[si], si, colorPalette) });
+				rects.push({
+					x,
+					y,
+					w: barW,
+					h,
+					fill: seriesColor(series[si], si, colorPalette),
+					seriesIndex: si,
+					pointIndex: ci,
+				});
 				negBottom = y + h;
 			}
 		}
@@ -1044,6 +1107,7 @@ function buildPieViewModel(
 				fill: chartData.series[0]?.color ?? paletteColor(i, chartData.colorPalette),
 				stroke: '#ffffff',
 				strokeWidth: 1.5,
+				part: { role: 'dataPoint', seriesIndex: 0, pointIndex: i },
 			}) satisfies SvgPath,
 	);
 
@@ -1183,10 +1247,18 @@ function buildRadarViewModel(
 			opacity: 0.2,
 			stroke: c,
 			strokeWidth: 1.5,
+			part: { role: 'series', seriesIndex: si },
 		} satisfies SvgPolygon);
-		for (const p of pts) {
-			primitives.push({ kind: 'circle', cx: p.x, cy: p.y, r: 3, fill: c } satisfies SvgCircle);
-		}
+		pts.forEach((p, vi) => {
+			primitives.push({
+				kind: 'circle',
+				cx: p.x,
+				cy: p.y,
+				r: 3,
+				fill: c,
+				part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
+			} satisfies SvgCircle);
+		});
 
 		if (chartData.style?.hasDataLabels) {
 			pts.forEach((p, vi) => {

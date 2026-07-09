@@ -66,6 +66,7 @@ export function buildBars(
 					h,
 					fill: seriesColor(series[si], si, palette),
 					rx: 1,
+					part: { role: 'dataPoint', seriesIndex: si, pointIndex: ci },
 				} satisfies SvgRect);
 
 				if (showLabels) {
@@ -91,7 +92,19 @@ export function buildBars(
 	if (grouping === 'stacked') {
 		const rects = computeStackedBarRects(series, catCount, layout, primaryRange, palette);
 		for (const r of rects) {
-			primitives.push({ kind: 'rect', x: r.x, y: r.y, w: r.w, h: r.h, fill: r.fill, rx: 1 });
+			primitives.push({
+				kind: 'rect',
+				x: r.x,
+				y: r.y,
+				w: r.w,
+				h: r.h,
+				fill: r.fill,
+				rx: 1,
+				part:
+					r.seriesIndex !== undefined && r.pointIndex !== undefined
+						? { role: 'dataPoint', seriesIndex: r.seriesIndex, pointIndex: r.pointIndex }
+						: undefined,
+			});
 		}
 		if (showLabels) {
 			pushClusteredStackedLabels(series, catCount, layout, primaryRange, dataLabels);
@@ -129,6 +142,7 @@ export function buildBars(
 				w: barW,
 				h,
 				fill: seriesColor(series[si], si, palette),
+				part: { role: 'dataPoint', seriesIndex: si, pointIndex: ci },
 			} satisfies SvgRect);
 
 			if (showLabels && Math.abs(val) > 0) {

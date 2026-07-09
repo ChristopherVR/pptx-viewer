@@ -77,6 +77,8 @@ export {
 	DEFAULT_PALETTE,
 } from './chart-view-model';
 export type {
+	ChartPartRef,
+	ChartValueDrag,
 	ChartViewModel,
 	SvgRect,
 	SvgPath,
@@ -96,6 +98,23 @@ export type {
 	SupportedChartKind,
 	PlotLayoutOptions,
 } from './chart-view-model';
+// Direct on-canvas chart editing: data-attribute hit-testing bridge,
+// drag-to-value inversion, and immutable chart-data edit helpers.
+export {
+	CHART_PART_ATTR,
+	CHART_PART_SERIES_ATTR,
+	CHART_PART_POINT_ATTR,
+	chartPartToAttrs,
+	chartPartFromElement,
+	findChartPartTarget,
+	isSameChartPart,
+	valueFromY,
+	roundDragValue,
+	dragValueForPart,
+	withChartPointValue,
+	withChartTitle,
+} from './chart-interaction';
+export type { ChartPartElement } from './chart-interaction';
 // Enriched cartesian builder (log axis / display units / secondary value axis /
 // percentStacked / overlays) + its value-axis gridline/label primitive builders.
 export { buildCartesianViewModel } from './chart-cartesian';

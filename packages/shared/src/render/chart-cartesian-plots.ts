@@ -62,10 +62,18 @@ export function buildLines(
 			stroke: c,
 			strokeWidth: 2.4,
 			fill: 'none',
+			part: { role: 'series', seriesIndex: si },
 		} satisfies SvgPolyline);
-		for (const pt of pts) {
-			primitives.push({ kind: 'circle', cx: pt.x, cy: pt.y, r: 2.5, fill: c } satisfies SvgCircle);
-		}
+		pts.forEach((pt, vi) => {
+			primitives.push({
+				kind: 'circle',
+				cx: pt.x,
+				cy: pt.y,
+				r: 2.5,
+				fill: c,
+				part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
+			} satisfies SvgCircle);
+		});
 		if (showLabels) {
 			series.values.forEach((val, vi) => {
 				const pt = pts[vi];
@@ -117,6 +125,7 @@ export function buildAreas(
 				strokeWidth: 0,
 				fill: c,
 				opacity: 0.25,
+				part: { role: 'series', seriesIndex: si },
 			} satisfies SvgPolyline);
 		}
 		primitives.push({
@@ -125,6 +134,7 @@ export function buildAreas(
 			stroke: c,
 			strokeWidth: 2,
 			fill: 'none',
+			part: { role: 'series', seriesIndex: si },
 		} satisfies SvgPolyline);
 		if (showLabels) {
 			series.values.forEach((val, vi) => {
@@ -163,7 +173,7 @@ export function buildScatter(
 		const series = chartData.series[si];
 		const c = seriesColor(series, si, chartData.colorPalette);
 		const dots = computeScatterDots(series.values, maxXIndex, layout, range);
-		for (const dot of dots) {
+		dots.forEach((dot, vi) => {
 			primitives.push({
 				kind: 'circle',
 				cx: dot.cx,
@@ -171,8 +181,9 @@ export function buildScatter(
 				r: 4,
 				fill: c,
 				opacity: 0.85,
+				part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
 			} satisfies SvgCircle);
-		}
+		});
 		if (showLabels) {
 			series.values.forEach((val, vi) => {
 				const dot = dots[vi];
@@ -223,6 +234,7 @@ export function buildBubbles(
 				r,
 				fill: c,
 				opacity: 0.6,
+				part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
 			} satisfies SvgCircle);
 		});
 		if (showLabels) {
