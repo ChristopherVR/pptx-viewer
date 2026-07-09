@@ -95,7 +95,9 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 
 	public parseSlideTransition(slideXml: XmlObject | undefined): PptxSlideTransition | undefined {
 		const slideRoot = this.xmlLookupService.getChildByLocalName(slideXml, 'sld');
-		const transitionNode = this.xmlLookupService.getChildByLocalName(slideRoot, 'transition');
+		const transitionNode =
+			this.xmlLookupService.getChildByLocalName(slideRoot, 'transition') ||
+			this.findTransitionInAlternateContent(slideRoot);
 		if (!transitionNode) {
 			return undefined;
 		}
@@ -187,7 +189,12 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 			}
 		}
 
-		const parsedDuration = Number.parseInt(String(transitionNode['@_dur'] || ''), 10);
+		// `@_dur` is the standard millisecond duration; PowerPoint's Office
+		// 2010+ `p14:dur` attribute (only present on the `mc:Choice
+		// Requires="p14"` copy of the transition) carries the same
+		// millisecond precision when the standard attribute is absent.
+		const rawDuration = transitionNode['@_dur'] ?? transitionNode['@_p14:dur'];
+		const parsedDuration = Number.parseInt(String(rawDuration || ''), 10);
 		const durationMs =
 			Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : undefined;
 
@@ -249,6 +256,38 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 			rawSoundAction,
 			rawExtLst,
 		};
+	}
+
+	/**
+	 * Locate a `<p:transition>` wrapped in a slide-root `mc:AlternateContent`
+	 * envelope.
+	 *
+	 * Real PowerPoint (verified via COM-authored fixtures) wraps the
+	 * transition in `mc:AlternateContent` whenever it carries an Office
+	 * 2010+ attribute such as `p14:dur` (sub-second transition duration):
+	 * an `mc:Choice Requires="p14"` branch carries the richer transition,
+	 * and `mc:Fallback` carries a plain one for older readers. Without this
+	 * unwrap, `p:sld`'s direct-child lookup for `transition` finds nothing
+	 * and the whole transition (including plain ones falling back with no
+	 * p14 data) is silently dropped, even though `mc:Choice` is otherwise a
+	 * complete, directly usable `p:transition` node.
+	 */
+	private findTransitionInAlternateContent(
+		slideRoot: XmlObject | undefined,
+	): XmlObject | undefined {
+		const altContent = this.xmlLookupService.getChildByLocalName(slideRoot, 'AlternateContent');
+		if (!altContent) {
+			return undefined;
+		}
+		const choices = this.xmlLookupService.getChildrenArrayByLocalName(altContent, 'Choice');
+		for (const choice of choices) {
+			const transitionNode = this.xmlLookupService.getChildByLocalName(choice, 'transition');
+			if (transitionNode) {
+				return transitionNode;
+			}
+		}
+		const fallback = this.xmlLookupService.getChildByLocalName(altContent, 'Fallback');
+		return this.xmlLookupService.getChildByLocalName(fallback, 'transition');
 	}
 
 	/**
