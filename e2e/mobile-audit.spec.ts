@@ -37,11 +37,20 @@ function shot(page: Page, name: string) {
 	return page.screenshot({ path: resolve(shotDir, `${name}.png`) });
 }
 
+// Bottom bar label differs between Vue ('Slide controls') and React/Angular
+// ('Editor actions') - see toolbar-breakpoints.spec.ts and
+// packages/vue/src/viewer/components/MobileBottomBar.vue.
+function bottomBarNav(page: Page, projectName: string) {
+	return page.getByRole('navigation', {
+		name: projectName === 'vue' ? 'Slide controls' : 'Editor actions',
+	});
+}
+
 test.describe('mobile audit (Pixel 7 touch)', () => {
-	test('01 layout: mobile toolbar + bottom bar render under 768px', async ({ page }) => {
+	test('01 layout: mobile toolbar + bottom bar render under 768px', async ({ page }, testInfo) => {
 		await load(page);
 		const toolbar = page.getByRole('toolbar', { name: 'Toolbar' });
-		const bottomBar = page.getByRole('navigation', { name: 'Editor actions' });
+		const bottomBar = bottomBarNav(page, testInfo.project.name);
 		await expect(toolbar).toBeVisible();
 		await expect(bottomBar).toBeVisible();
 		// The desktop ribbon (multi-row) must NOT be present at this width.
@@ -104,7 +113,7 @@ test.describe('mobile audit (Pixel 7 touch)', () => {
 		expect(after).toBeGreaterThan(before);
 	});
 
-	test('08 present mode: touch controls appear and navigate', async ({ page }) => {
+	test('08 present mode: touch controls appear and navigate', async ({ page }, testInfo) => {
 		await load(page);
 		await page
 			.getByRole('button', { name: /present/iu })
@@ -124,7 +133,7 @@ test.describe('mobile audit (Pixel 7 touch)', () => {
 		await close.tap();
 		await page.waitForTimeout(500);
 		// back to edit chrome
-		await expect(page.getByRole('navigation', { name: 'Editor actions' })).toBeVisible();
+		await expect(bottomBarNav(page, testInfo.project.name)).toBeVisible();
 	});
 
 	test('09 present mode: horizontal swipe advances the slide', async ({ page }) => {

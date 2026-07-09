@@ -98,7 +98,12 @@ export function useViewerUIState(): ViewerUIState {
 	const [isSlidesPaneOpen, setIsSlidesPaneOpen] = useState(() =>
 		typeof window === 'undefined' ? true : window.innerWidth >= 768,
 	);
-	const [isInspectorPaneOpen, setIsInspectorPaneOpen] = useState(false);
+	// Default open on desktop to match Vue/Angular; closed on mobile so the
+	// canvas owns the screen on first paint (same reasoning as isSlidesPaneOpen
+	// above - mobile opens it via the bottom bar's "Format" button instead).
+	const [isInspectorPaneOpen, setIsInspectorPaneOpen] = useState(() =>
+		typeof window === 'undefined' ? true : window.innerWidth >= 768,
+	);
 	const [isSlideNotesCollapsed, setIsSlideNotesCollapsed] = useState(true);
 	const [isOverflowMenuOpen, setIsOverflowMenuOpen] = useState(false);
 	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);

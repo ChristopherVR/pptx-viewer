@@ -29,10 +29,19 @@ async function load(page: Page): Promise<void> {
 	await page.waitForTimeout(500);
 }
 
+// Bottom bar label differs between Vue ('Slide controls') and React/Angular
+// ('Editor actions') - see toolbar-breakpoints.spec.ts and
+// packages/vue/src/viewer/components/MobileBottomBar.vue.
+function bottomBarNav(page: Page, projectName: string) {
+	return page.getByRole('navigation', {
+		name: projectName === 'vue' ? 'Slide controls' : 'Editor actions',
+	});
+}
+
 test.describe('tablet portrait (820×1180, touch)', () => {
 	test.use({ viewport: { width: 820, height: 1180 }, hasTouch: true, isMobile: true });
 
-	test('edit layout adapts without horizontal overflow', async ({ page }) => {
+	test('edit layout adapts without horizontal overflow', async ({ page }, testInfo) => {
 		await load(page);
 		await page.screenshot({ path: resolve(shotDir, 'tablet-edit.png') });
 
@@ -45,7 +54,7 @@ test.describe('tablet portrait (820×1180, touch)', () => {
 
 		// Tablet keeps the desktop chrome (no mobile bottom bar) — it's tall
 		// enough for the ribbon + panels.
-		await expect(page.getByRole('navigation', { name: 'Editor actions' })).toHaveCount(0);
+		await expect(bottomBarNav(page, testInfo.project.name)).toHaveCount(0);
 	});
 
 	test('present mode fits and shows touch controls', async ({ page }) => {
@@ -63,7 +72,7 @@ test.describe('tablet portrait (820×1180, touch)', () => {
 test.describe('landscape phone (915×412, touch)', () => {
 	test.use({ viewport: { width: 915, height: 412 }, hasTouch: true, isMobile: true });
 
-	test('edit layout uses mobile chrome in landscape', async ({ page }) => {
+	test('edit layout uses mobile chrome in landscape', async ({ page }, testInfo) => {
 		await load(page);
 		await page.screenshot({ path: resolve(shotDir, 'landscape-edit.png') });
 		const overflow = await page.evaluate(() => {
@@ -74,7 +83,7 @@ test.describe('landscape phone (915×412, touch)', () => {
 
 		// A short landscape phone must get the mobile chrome — both the bottom
 		// action bar and the compact top toolbar (not the desktop ribbon).
-		await expect(page.getByRole('navigation', { name: 'Editor actions' })).toBeVisible();
+		await expect(bottomBarNav(page, testInfo.project.name)).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Menu' })).toBeVisible();
 	});
 

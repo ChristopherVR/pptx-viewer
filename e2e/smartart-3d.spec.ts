@@ -192,20 +192,29 @@ function elementInViewport(page: Page, id: string): Locator {
 }
 
 /**
- * Open the inspector panel if it isn't already showing the SmartArt layout
- * switcher. Angular auto-opens on selection. Vue was found (by directly
- * probing it) to *also* auto-open its inspector once an element is selected,
- * so blindly clicking "Toggle inspector" there closes an already-open panel
- * instead of opening one; only toggle when the layout switcher isn't visible.
+ * Open the inspector panel if it isn't already showing. Angular auto-opens
+ * on selection. React and Vue both default the format panel to open and
+ * expose an independent open/close toggle (not tied to selection), so
+ * blindly clicking "Toggle inspector" would close an already-open panel
+ * instead of opening one - only toggle when the panel isn't visible.
+ *
+ * Vue's SmartArt inspector content carries a `data-testid` the panel wrapper
+ * itself doesn't, so check for that where available; React has no such
+ * testid, so fall back to the panel wrapper's own `role="complementary"`
+ * `aria-label="Properties"` (same contract inspector-responsiveness.spec.ts
+ * relies on).
  */
 async function openInspector(page: Page, project: string): Promise<void> {
 	if (project === 'angular') {
 		return;
 	}
-	const alreadyOpen = await page
-		.locator('[data-testid="smartart-layouts"], [data-testid="smartart-panel"]')
-		.first()
-		.isVisible();
+	const alreadyOpen =
+		project === 'vue'
+			? await page
+					.locator('[data-testid="smartart-layouts"], [data-testid="smartart-panel"]')
+					.first()
+					.isVisible()
+			: await page.getByRole('complementary', { name: 'Properties' }).isVisible();
 	if (alreadyOpen) {
 		return;
 	}

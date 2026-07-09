@@ -42,6 +42,14 @@ export class ViewerInspectorPanelService {
 	/** True once the user swiped the inspector away on mobile (until reopened). */
 	readonly mobileInspectorHidden = signal(false);
 	/**
+	 * True once the user has explicitly closed the format (element/slide)
+	 * panel via the ribbon toggle - independent of selection, mirroring
+	 * React's/Vue's own open/closed toggle state. Never affects the explicit
+	 * tool panels (comments/accessibility/signatures/selection), which show
+	 * regardless of this flag.
+	 */
+	readonly formatPanelClosed = signal(false);
+	/**
 	 * Swipe-to-dismiss drag for the inspector host. The host docks in-flow below
 	 * the canvas on mobile (same keyboard-reachability reason as the notes
 	 * sheet), so the gesture is wired here rather than via a fixed-overlay
@@ -100,17 +108,30 @@ export class ViewerInspectorPanelService {
 	});
 
 	/**
+	 * `inspectorContent`, but the format (element/slide) view collapses to
+	 * `null` once the user has explicitly closed it via the ribbon toggle.
+	 * Explicit tool panels (comments/accessibility/etc.) are untouched.
+	 */
+	private readonly formatPanelContent = computed<InspectorContent>(() => {
+		const content = this.inspectorContent();
+		if ((content === 'element' || content === 'slide') && this.formatPanelClosed()) {
+			return null;
+		}
+		return content;
+	});
+
+	/**
 	 * Whether the right-docked inspector is showing the format panel (element or
 	 * slide properties). Drives the top-bar inspector-toggle active state.
 	 */
 	readonly inspectorPaneOpen = computed<boolean>(() => {
-		const content = this.inspectorContent();
+		const content = this.formatPanelContent();
 		return content === 'element' || content === 'slide';
 	});
 
 	/** Inspector content, but null on mobile once the user has swiped it away. */
 	readonly visibleInspectorKind = computed(() =>
-		this.mobile.isMobile() && this.mobileInspectorHidden() ? null : this.inspectorContent(),
+		this.mobile.isMobile() && this.mobileInspectorHidden() ? null : this.formatPanelContent(),
 	);
 
 	/** Accessible-label translation key for the inspector host, by active content. */
@@ -138,5 +159,20 @@ export class ViewerInspectorPanelService {
 		this.activePanel.update((current) => (current === panel ? null : panel));
 		// Tapping a panel button re-opens the host even after a swipe-dismiss.
 		this.mobileInspectorHidden.set(false);
+	}
+
+	/**
+	 * Ribbon "toggle inspector" action: if a tool panel is active, return to
+	 * the format (element/slide) view; otherwise toggle the format view's
+	 * open/closed state, matching React's and Vue's independent open/close
+	 * toggle (closing/opening is not tied to selection changes).
+	 */
+	toggleFormatPanel(): void {
+		if (this.activePanel() !== null) {
+			this.activePanel.set(null);
+			this.formatPanelClosed.set(false);
+		} else {
+			this.formatPanelClosed.update((closed) => !closed);
+		}
 	}
 }
