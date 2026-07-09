@@ -32,16 +32,14 @@
  * `[data-element-id]:has(math)` finds the rendered equation identically
  * across all three.
  *
- * Known cross-framework gap exercised (and asserted, not silently skipped)
- * below: Vue has no click/dblclick route back into the equation editor for
- * an *existing* equation - `useInlineEditing`'s `enterInlineEdit` guards
- * equation elements from destructive plain-text editing but never opens
- * `EquationEditorDialog` in edit mode, and `PowerPointViewer.vue` wires the
- * dialog for insert only (no `existing-omml` prop, no `@apply` handler). So
- * re-editing an existing equation is currently a React/Angular-only
- * capability; the Vue branch of test 2 instead asserts the historical
- * data-loss bug stays fixed (the equation is not corrupted by the click
- * sequence), which is what Vue's guard actually guarantees today.
+ * Re-editing an existing equation now works uniformly across all three
+ * bindings: React routes a click on an already-selected equation into the
+ * editor, Angular a double-click, and Vue (as of `fix(vue): support
+ * re-editing an existing equation`) routes both through a `requestElementEdit`
+ * wrapper that opens `EquationEditorDialog` in edit mode (seeded from the
+ * element's `equationXml`) and patches the segment in place on apply, instead
+ * of the destructive plain-text inline edit its `enterInlineEdit` guard used
+ * to only block. Test 2 exercises that shared contract for every framework.
  *
  * Run: bunx playwright test equation-editing --project=react
  */
@@ -183,42 +181,28 @@ test.describe('equation editing', () => {
 		await expect(equation).toBeVisible();
 		await expect(equation.locator('math')).toContainText('42');
 
-		// Deselect, then repeat the click / click-again sequence that used to
-		// collapse an equation to the literal "[Equation]" placeholder text via
-		// plain inline editing (the fixed bug). On React, clicking an
-		// already-selected equation a second time itself routes to the editor
-		// (mirrors the exact bug trigger); Angular instead requires an explicit
-		// double-click. Try the cheaper single-click-again path first and only
-		// fall back to a double-click if no dialog appeared, so the same
-		// sequence works for both without double-clicking into an already-open
-		// dialog (which would fail: the modal backdrop intercepts the click).
-		await page.keyboard.press('Escape');
-		await equation.click();
-		await equation.click();
-		if (
-			!(await page
+		// Repeat the click / click-again sequence that used to collapse an
+		// equation to the literal "[Equation]" placeholder text via plain inline
+		// editing (the fixed bug). The exact trigger differs per binding: Vue
+		// routes a click on the still-selected freshly-inserted equation straight
+		// into the editor; React needs a second click on an already-selected
+		// equation; Angular needs an explicit double-click. So escalate
+		// gradually - click, then click again, then double-click - and stop as
+		// soon as a dialog appears. Re-checking visibility before each escalation
+		// avoids clicking into an already-open dialog (the modal backdrop would
+		// intercept and fail the click).
+		const dialogOpen = (): Promise<boolean> =>
+			page
 				.getByRole('dialog')
 				.isVisible()
-				.catch(() => false))
-		) {
-			await equation.dblclick();
+				.catch(() => false);
+		await page.keyboard.press('Escape');
+		await equation.click();
+		if (!(await dialogOpen())) {
+			await equation.click();
 		}
-
-		if (framework === 'vue') {
-			// KNOWN GAP: Vue has no click/dblclick route back into the equation
-			// editor for an existing equation (`enterInlineEdit` only guards
-			// against destructive plain-text editing; `PowerPointViewer.vue`
-			// never opens `EquationEditorDialog` with `existing-omml` set, nor
-			// handles its `@apply` event). So there is nothing to re-edit yet -
-			// what the fix *does* guarantee, and what we assert here, is that
-			// the click sequence leaves the equation exactly as it was:
-			// rendered MathML with its original content, never the destructive
-			// "[Equation]" fallback text.
-			await expect(page.getByRole('dialog')).toHaveCount(0);
-			await expect(equationElements(page)).toHaveCount(before + 1);
-			await expect(equation.locator('math')).toContainText('42');
-			await expect(equation).not.toHaveText('[Equation]');
-			return;
+		if (!(await dialogOpen())) {
+			await equation.dblclick();
 		}
 
 		const editDlg = editDialog(page);

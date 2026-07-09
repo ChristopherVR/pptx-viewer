@@ -52,7 +52,7 @@ describe('equationEditorDialog', () => {
 		expect(footerButton('Insert').disabled).toBeTruthy();
 	});
 
-	it('emits insert + apply with an equation payload on confirm', async () => {
+	it('emits insert (not apply) with a ready-to-add element in insert mode', async () => {
 		const wrapper = mount(EquationEditorDialog, {
 			props: { open: true },
 			attachTo: document.body,
@@ -63,14 +63,34 @@ describe('equationEditorDialog', () => {
 		await wrapper.vm.$nextTick();
 
 		const inserted = wrapper.emitted('insert');
-		const applied = wrapper.emitted('apply');
 		expect(inserted).toHaveLength(1);
-		expect(applied).toHaveLength(1);
+		// Insert mode must NOT also emit apply, or the parent would both add a new
+		// element and patch the selected one.
+		expect(wrapper.emitted('apply')).toBeUndefined();
 
 		const element = inserted?.[0]?.[0] as PptxElement;
 		expect(element.type).toBe('shape');
 		expect(element.id).toBeTruthy();
 		expect(element.textSegments?.[0]?.equationXml).toHaveProperty('m:oMathPara');
+		expect(wrapper.emitted('close')).toHaveLength(1);
+	});
+
+	it('emits apply (not insert) with the edited segment in edit mode', async () => {
+		const omml = convertLatexToOmml('\\frac{a}{b}');
+		const wrapper = mount(EquationEditorDialog, {
+			props: { open: true, existingOmml: omml },
+			attachTo: document.body,
+		});
+
+		await typeLatex(wrapper, 'x=42');
+		footerButton('Update').click();
+		await wrapper.vm.$nextTick();
+
+		const applied = wrapper.emitted('apply');
+		expect(applied).toHaveLength(1);
+		// Edit mode patches in place: it must NOT emit insert (which would add a
+		// duplicate element and leave the original stale).
+		expect(wrapper.emitted('insert')).toBeUndefined();
 
 		const segment = applied?.[0]?.[0] as TextSegment;
 		expect(segment.equationXml).toHaveProperty('m:oMathPara');

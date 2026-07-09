@@ -188,8 +188,14 @@ function confirm(): void {
 		return;
 	}
 	const segment = buildSegment(computedEquation.value.omml);
-	emit('apply', segment);
-	emit('insert', buildEquationElement(segment));
+	// Edit mode updates the existing equation's segment in place (`apply`);
+	// insert mode adds a brand-new element (`insert`). Emitting only the one
+	// that matches the mode keeps the parent from both patching AND inserting.
+	if (isEditing.value) {
+		emit('apply', segment);
+	} else {
+		emit('insert', buildEquationElement(segment));
+	}
 	emit('close');
 }
 
