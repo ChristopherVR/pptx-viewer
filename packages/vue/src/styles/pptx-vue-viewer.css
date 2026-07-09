@@ -253,7 +253,16 @@
  * (touchstart/touchend on <main>) for non-editing mode; the dedicated mobile
  * bottom bar and the large ‹ › buttons remain the always-available fallback.
  */
-@media (max-width: 640px), (pointer: coarse) {
+/*
+ * Gate the mobile layout on the SAME predicate the JS `isMobileViewport`
+ * (packages/shared/src/render/mobile-viewport.ts) uses: narrow width, or a
+ * short coarse-pointer viewport below the tablet width. A bare
+ * `(pointer: coarse)` here fired on ANY touch device regardless of width, so a
+ * touch tablet (e.g. 820x1180) kept the desktop chrome in JS while this CSS
+ * collapsed the body to a column and starved the canvas viewport of height.
+ */
+@media (max-width: 767.98px),
+	(pointer: coarse) and (max-height: 499.98px) and (max-width: 1023.98px) {
 	.pptx-vue-toolbar {
 		flex-wrap: wrap;
 		gap: 0.5rem;
