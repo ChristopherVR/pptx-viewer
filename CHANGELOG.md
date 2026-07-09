@@ -6,6 +6,89 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-09
 
+_Releases: pptx-viewer-core@1.2.5, pptx-react-viewer@1.10.2, pptx-vue-viewer@1.10.2, pptx-angular-viewer@1.11.1_
+
+### Bug Fixes
+
+- **angular:** Use real Fullscreen API in presentation mode (by @ChristopherVR) ([ad28f35](https://github.com/ChristopherVR/pptx-viewer/commit/ad28f35dd64dd6d5a043983edecb9c3b433af840))
+- **core:** Parse real PowerPoint OLE/media/transition AlternateContent envelopes (by @ChristopherVR) ([ff1409f](https://github.com/ChristopherVR/pptx-viewer/commit/ff1409fcf7daa69a2a7c3f4b3f40f5e50187b444))
+- **react:** Add dialog aria semantics to equation editor (by @ChristopherVR) ([6da3d9e](https://github.com/ChristopherVR/pptx-viewer/commit/6da3d9e08d590c4760e37a351cfdc6049a399c4d))
+- **angular:** Persist template element edits through save (by @ChristopherVR) ([f57556a](https://github.com/ChristopherVR/pptx-viewer/commit/f57556a1fa53d49ae386b481a97abfaa71786b81))
+- **vue:** Resolve inherited master/layout slide background (by @ChristopherVR) ([6d8a0c5](https://github.com/ChristopherVR/pptx-viewer/commit/6d8a0c5dd20aa18ab38f824a582a22bd865f42fd))
+- **react:** Gate template element interactivity on editTemplateMode (by @ChristopherVR) ([92ff0b7](https://github.com/ChristopherVR/pptx-viewer/commit/92ff0b77c2f252f34979687b0ca3b56b605ac708))
+- **vue:** Support re-editing an existing equation (by @ChristopherVR) ([0dba8c9](https://github.com/ChristopherVR/pptx-viewer/commit/0dba8c937e31df169151912221dfe6ef25bb419e))
+- **react:** Avoid remounting editor tree when collaboration toggles (by @ChristopherVR) ([22e2d98](https://github.com/ChristopherVR/pptx-viewer/commit/22e2d98ffa743c107ba94019653fa7915138f054))
+- **react:** Actually play slide transitions in presentation mode (by @ChristopherVR) ([b8d7c58](https://github.com/ChristopherVR/pptx-viewer/commit/b8d7c58cf6150d5df2f112f9cc38fb95d9b3f718))
+- **core:** Resolve OLE preview image on load (by @ChristopherVR) ([ac3a6eb](https://github.com/ChristopherVR/pptx-viewer/commit/ac3a6ebda5bdbb62e84cc61a003c3aa5036f24ab))
+- **shared:** Open OLE embedded file via object URL (by @ChristopherVR) ([f95179f](https://github.com/ChristopherVR/pptx-viewer/commit/f95179fcef1a45ec1c72df05f545c62040163321))
+- **shared:** Add presentation media autoplay helper (by @ChristopherVR) ([0b6042e](https://github.com/ChristopherVR/pptx-viewer/commit/0b6042e43769acc55875361842aca7403e18b1a3))
+- **react:** Autoplay present-mode media inserted without autoPlay flag (by @ChristopherVR) ([6f449f0](https://github.com/ChristopherVR/pptx-viewer/commit/6f449f0e005b06165fe874e32b0949d4a6ffee02))
+- **vue:** Autoplay media on the live presentation stage (by @ChristopherVR) ([f4b64a3](https://github.com/ChristopherVR/pptx-viewer/commit/f4b64a361f7f48e4de4a4a32e323e1a23268934c))
+- **angular:** Autoplay present-mode media and show live edits in slideshow (by @ChristopherVR) ([6deff51](https://github.com/ChristopherVR/pptx-viewer/commit/6deff51c9fbca25adae8f8b4fa5a5e73f68a9b3c))
+- **core:** Preserve animation-to-shape linkage across save/reload (by @ChristopherVR) ([aa23f7d](https://github.com/ChristopherVR/pptx-viewer/commit/aa23f7dcd7a0f90e9c6a9750bd72413561a1feac))
+- **angular:** Show editable notes surface in mobile bottom-bar sheet (by @ChristopherVR) ([f6f19ab](https://github.com/ChristopherVR/pptx-viewer/commit/f6f19ab204b09b59fd79f718ddceb27037adb07f))
+- **vue:** Show editable notes surface in mobile bottom-bar sheet (by @ChristopherVR) ([6f68e30](https://github.com/ChristopherVR/pptx-viewer/commit/6f68e3005e8d67866b2b3f9d2b706329a3a0f359))
+
+### Other
+
+- Angular fullscreen API fix (by @ChristopherVR) ([7c9694e](https://github.com/ChristopherVR/pptx-viewer/commit/7c9694e9fc68dd0759b9fb542470d90c32e28ab2))
+- Collaboration e2e coverage (by @ChristopherVR) ([b223895](https://github.com/ChristopherVR/pptx-viewer/commit/b223895bfcb48a70b546689ec83bab007d3b169f))
+- Real-world corpus + round-trip harness (+ 3 fidelity bug fixes) (by @ChristopherVR) ([473f74a](https://github.com/ChristopherVR/pptx-viewer/commit/473f74a2e7563efd86eeac1b58d7703db0623f0f))
+- Equation editing e2e coverage + dialog aria fix (by @ChristopherVR) ([2f54e08](https://github.com/ChristopherVR/pptx-viewer/commit/2f54e0820ab8bc21d7e7bab97a43b1abbe62d7ad))
+- 3D SmartArt e2e coverage (by @ChristopherVR) ([908a681](https://github.com/ChristopherVR/pptx-viewer/commit/908a681143670a1632e11ecce558afce0d87feb8))
+- Animations and transitions e2e coverage (by @ChristopherVR) ([39890ab](https://github.com/ChristopherVR/pptx-viewer/commit/39890aba00a08d4a3d556b302d1f26a0649f65a0))
+- Media playback e2e coverage (by @ChristopherVR) ([24ceba7](https://github.com/ChristopherVR/pptx-viewer/commit/24ceba72adb5ec88f3f359e6391a2b0f19ae2923))
+- Template/master element editing e2e coverage (by @ChristopherVR) ([0e6937d](https://github.com/ChristopherVR/pptx-viewer/commit/0e6937d1cfd2f3ad774627f54ea5359c4827d2d8))
+- Wire e2e suite into CI + fix stale e2e spec bugs (by @ChristopherVR) ([cbef754](https://github.com/ChristopherVR/pptx-viewer/commit/cbef7545282d930511ae6cf4d58f3f2427364e6a))
+- OLE and ink e2e coverage (by @ChristopherVR) ([e8a568e](https://github.com/ChristopherVR/pptx-viewer/commit/e8a568ea973fd456bfc338f590304623ebc2bb00))
+- Angular SmartArt data-testid parity fix (by @ChristopherVR) ([e11cef7](https://github.com/ChristopherVR/pptx-viewer/commit/e11cef7089fc9a1ca9cf7c0cf06e15ed8a37d215))
+- Fix Angular save dropping template element edits (by @ChristopherVR) ([0c01723](https://github.com/ChristopherVR/pptx-viewer/commit/0c017231f2c6a26e247c9341e254f0c79a2d9041))
+- Fix Vue slide background inheritance + gradient/pattern gap (by @ChristopherVR) ([874d014](https://github.com/ChristopherVR/pptx-viewer/commit/874d01437bd80d1d08275b3970c3e5e0d509f660))
+- Fix React template element interactivity gating (by @ChristopherVR) ([cf26286](https://github.com/ChristopherVR/pptx-viewer/commit/cf262862da2470b3f726f7e891ebeffbb26eee4c))
+- Support re-editing an existing equation in Vue (by @ChristopherVR) ([dd877a2](https://github.com/ChristopherVR/pptx-viewer/commit/dd877a2fc9929ccca89eb92e5fbd44b72de8cbe3))
+- Fix mobile-breakpoint e2e locator + lock in touch-desktop regression test (by @ChristopherVR) ([0bc8021](https://github.com/ChristopherVR/pptx-viewer/commit/0bc8021ff79066955f74fe4ec90468ffb3e56415))
+- Fix React collaboration toggle remounting editor tree (by @ChristopherVR) ([764d200](https://github.com/ChristopherVR/pptx-viewer/commit/764d200073579a965510a640f938754c533d1dda))
+- Wire real slide transitions into React presentation mode (by @ChristopherVR) ([7f82089](https://github.com/ChristopherVR/pptx-viewer/commit/7f82089c66e3ca30cfde2cd7023e2668048d59ac))
+- Fix OLE preview image resolution and Open no-op (by @ChristopherVR) ([160adb8](https://github.com/ChristopherVR/pptx-viewer/commit/160adb803c637aa8d87968b231bddf1b795d22e0))
+- Fix media autoplay in Present mode + Angular live-slides overlay bug (by @ChristopherVR) ([986929b](https://github.com/ChristopherVR/pptx-viewer/commit/986929be90db00596edebfd7df6fe07f8b33024d))
+- Preserve animation-to-shape linkage across save/reload (by @ChristopherVR) ([dd187b8](https://github.com/ChristopherVR/pptx-viewer/commit/dd187b86dc362585f97c702bd52c82c05f887f32))
+- Reconcile with origin/main before push (by @ChristopherVR) ([b8c46bc](https://github.com/ChristopherVR/pptx-viewer/commit/b8c46bc3622e301d3365f5c489144e5aa5401782))
+- Reconcile with origin/main before push (by @ChristopherVR) ([c69b979](https://github.com/ChristopherVR/pptx-viewer/commit/c69b9792c33f8a42cb11b045c5da0b9f97885979))
+- Reconcile with origin/main before push (by @ChristopherVR) ([39bd286](https://github.com/ChristopherVR/pptx-viewer/commit/39bd2869ab3418c7d974ec79c028c93aa3b552f7))
+
+### Documentation
+
+- Rebuild the landing page as a custom presentation-themed home (by @ChristopherVR) ([2c29ae4](https://github.com/ChristopherVR/pptx-viewer/commit/2c29ae4d0441e71c3360405947a4d0a729176ee7))
+- Hero shows the real viewer; drop presenter bar and slide numbers (by @ChristopherVR) ([4ac343c](https://github.com/ChristopherVR/pptx-viewer/commit/4ac343c064f93fe05693b614289ce15e639d98c8))
+
+### Testing
+
+- **e2e:** Add basic collaboration sync coverage (by @ChristopherVR) ([7b02146](https://github.com/ChristopherVR/pptx-viewer/commit/7b0214689f18b84a5e0601697c1a96d6c0c40995))
+- **core:** Add real-world .pptx corpus and round-trip diff harness (by @ChristopherVR) ([bba3eff](https://github.com/ChristopherVR/pptx-viewer/commit/bba3effd75772c1770bb319cee338b979c2eed72))
+- **e2e:** Add equation editing coverage (by @ChristopherVR) ([d8527a2](https://github.com/ChristopherVR/pptx-viewer/commit/d8527a274b28331d5fc181459e7a4a8754c7d007))
+- **e2e:** Add 3D SmartArt coverage (by @ChristopherVR) ([a9aad41](https://github.com/ChristopherVR/pptx-viewer/commit/a9aad410abe07c10c755d1cf090b3ed8290e83de))
+- **e2e:** Add transitions and animations playback coverage (by @ChristopherVR) ([a4a1803](https://github.com/ChristopherVR/pptx-viewer/commit/a4a180337e66a6fac9173e0b5d981f6fe4cce02d))
+- **e2e:** Add media playback coverage (by @ChristopherVR) ([c16ff01](https://github.com/ChristopherVR/pptx-viewer/commit/c16ff01c8409e12eb7a495e84ca80a78380dfd70))
+- **e2e:** Add template/master element editing coverage (by @ChristopherVR) ([3bae7f4](https://github.com/ChristopherVR/pptx-viewer/commit/3bae7f48f0dcc49d49f796c7ebf7a3a60bf99964))
+- **e2e:** Add OLE and ink coverage (by @ChristopherVR) ([c63e7d8](https://github.com/ChristopherVR/pptx-viewer/commit/c63e7d818cd1ff61b354893fd11555685cd4ce34))
+- **angular:** Add data-testid parity to SmartArt renderer (by @ChristopherVR) ([bc8fc6f](https://github.com/ChristopherVR/pptx-viewer/commit/bc8fc6f5f8cbd9b90e735f5a63e5f1c2fdf88fd6))
+- **e2e:** Match desktop toolbar name exactly in breakpoint spec (by @ChristopherVR) ([4ffe87e](https://github.com/ChristopherVR/pptx-viewer/commit/4ffe87e3382425b0639768ad53023d5563ac41f2))
+- **shared:** Lock in that touch-capable desktops stay desktop (by @ChristopherVR) ([33d16b6](https://github.com/ChristopherVR/pptx-viewer/commit/33d16b6553d02ecaa35c1cdc837ba5facd108b34))
+- **e2e:** Assert OLE preview render and object-URL open (by @ChristopherVR) ([7e9e738](https://github.com/ChristopherVR/pptx-viewer/commit/7e9e7380788d37c288005f22e9c250517d668c53))
+- **e2e:** Assert present-mode media autoplay across bindings (by @ChristopherVR) ([0f21d9f](https://github.com/ChristopherVR/pptx-viewer/commit/0f21d9f0958580a0bbccf46945283191f1e3270d))
+- **e2e:** Drop animation-target workaround from transitions fixture (by @ChristopherVR) ([4751685](https://github.com/ChristopherVR/pptx-viewer/commit/4751685757b429d289c394e002eaab27ab2f5f10))
+- **e2e:** Scope save-corruption-repro to react (by @ChristopherVR) ([302a956](https://github.com/ChristopherVR/pptx-viewer/commit/302a9569a350fbaf794e67f0421810dd59456dbe))
+
+### Build & CI
+
+- Run e2e suite in CI (by @ChristopherVR) ([f834433](https://github.com/ChristopherVR/pptx-viewer/commit/f83443395660d015057121467317b18907d697ac))
+
+### Styling
+
+- Fix formatting in e2e/global-setup.ts (by @ChristopherVR) ([57f799c](https://github.com/ChristopherVR/pptx-viewer/commit/57f799c7875403fd3020d6da54789ee9ffe11c30))
+
+## 2026-07-09
+
 _Releases: pptx-viewer-core@1.2.4, pptx-react-viewer@1.10.1, pptx-vue-viewer@1.10.1, pptx-angular-viewer@1.11.0_
 
 ### Features

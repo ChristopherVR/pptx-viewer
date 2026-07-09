@@ -1,0 +1,27 @@
+/**
+ * Site-wide brand overrides for the VitePress default theme.
+ * The landing page has its own token system in landing/landing.css;
+ * these variables keep the docs pages on the same vermilion brand.
+ */
+
+:root {
+	--vp-c-brand-1: #c2431f;
+	--vp-c-brand-2: #a83a1b;
+	--vp-c-brand-3: #8f2e12;
+	--vp-c-brand-soft: rgba(194, 67, 31, 0.14);
+
+	--vp-button-brand-bg: #c2431f;
+	--vp-button-brand-hover-bg: #a83a1b;
+	--vp-button-brand-active-bg: #8f2e12;
+}
+
+.dark {
+	--vp-c-brand-1: #e86a40;
+	--vp-c-brand-2: #d4552c;
+	--vp-c-brand-3: #c2431f;
+	--vp-c-brand-soft: rgba(232, 106, 64, 0.16);
+
+	--vp-button-brand-bg: #c2431f;
+	--vp-button-brand-hover-bg: #d4552c;
+	--vp-button-brand-active-bg: #a83a1b;
+}

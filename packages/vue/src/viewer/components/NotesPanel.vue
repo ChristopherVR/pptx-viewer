@@ -131,7 +131,7 @@ function toggle(): void {
 			<div
 				v-show="showRich"
 				ref="richEditorRef"
-				:contenteditable="hasSlide"
+				:contenteditable="showRich"
 				role="textbox"
 				aria-multiline="true"
 				:aria-label="t('pptx.presenter.speakerNotes')"

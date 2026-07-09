@@ -759,7 +759,12 @@ import { ZoomTargetService } from './zoom-target.service';
 						>
 							<div class="pptx-ng-mnotes-handle"></div>
 						</div>
-						<pptx-notes-panel [slide]="activeSlide()" (update)="canvasEditing.onNotesUpdate($event)" />
+						<pptx-notes-panel
+							[slide]="activeSlide()"
+							[expanded]="true"
+							(update)="canvasEditing.onNotesUpdate($event)"
+							(notesToggle)="mobileSheetSvc.toggleNotes()"
+						/>
 					</div>
 				}
 
