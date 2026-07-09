@@ -31,6 +31,23 @@ export interface SlideShapeCollectors {
 }
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	/**
+	 * Whether a shape XML represents a `<p:pic>` (picture-shaped) node.
+	 *
+	 * Real PowerPoint (verified via COM-authored fixtures) represents video
+	 * *and* audio media as `<p:pic>` (poster-frame blip + `p:nvPr/a:videoFile`
+	 * or `a:audioFile` + a `p14:media` extension) rather than the older
+	 * `<p:graphicFrame>` form. A `media`-typed element's `rawXml` is
+	 * therefore frequently `p:pic`-shaped, not a graphic frame; without this
+	 * check it falls into the generic `shapes` bucket, which the slide
+	 * writer serializes under `<p:sp>` -- corrupting the picture markup
+	 * (`p:nvPicPr`/`p:blipFill`) into an invalid shape and permanently
+	 * losing the media relationship on save.
+	 */
+	protected isPictureShape(shape: XmlObject): boolean {
+		return Boolean(shape['p:nvPicPr']);
+	}
+
 	/** Whether a shape XML represents a graphic frame. */
 	protected isGraphicFrameShape(shape: XmlObject): boolean {
 		return Boolean(shape['p:nvGraphicFramePr'] || (shape['a:graphic'] && shape['p:xfrm']));
@@ -356,6 +373,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			collectors.connectors.push(shape);
 		} else if (el.type === 'model3d') {
 			collectors.model3ds.push(shape);
+		} else if (el.type === 'media' && this.isPictureShape(shape)) {
+			collectors.pics.push(shape);
 		} else if (this.isGraphicFrameShape(shape)) {
 			collectors.graphicFrames.push(shape);
 		} else {

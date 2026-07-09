@@ -132,6 +132,44 @@ function findAinkInkPayload(graphicData: XmlObject | undefined): XmlObject | und
 }
 
 /**
+ * Locate the `<p:oleObj>` payload inside a graphicData node.
+ *
+ * Real PowerPoint (verified via COM-authored fixtures, not just the spec)
+ * wraps the OLE object in `mc:AlternateContent`: an `mc:Choice
+ * Requires="v"` branch carrying only a VML preview, and the actual
+ * `<p:oleObj>` (with its `p:pic` PNG/EMF fallback preview) inside
+ * `mc:Fallback`. Older/simpler files place `<p:oleObj>` directly under
+ * `<a:graphicData>`. A handful of producers may also put it inside an
+ * `mc:Choice` instead of `mc:Fallback`, so both are checked.
+ */
+function findOleObjPayload(graphicData: XmlObject | undefined): XmlObject | undefined {
+	if (!graphicData) {
+		return undefined;
+	}
+	const direct = graphicData['p:oleObj'] as XmlObject | undefined;
+	if (direct) {
+		return direct;
+	}
+	const altContent = graphicData['mc:AlternateContent'] as XmlObject | undefined;
+	if (!altContent) {
+		return undefined;
+	}
+	const fallback = altContent['mc:Fallback'] as XmlObject | undefined;
+	const fallbackOleObj = fallback?.['p:oleObj'] as XmlObject | undefined;
+	if (fallbackOleObj) {
+		return fallbackOleObj;
+	}
+	const choices = ensureArrayLike(altContent['mc:Choice'] as XmlObject | XmlObject[] | undefined);
+	for (const choice of choices) {
+		const node = choice?.['p:oleObj'] as XmlObject | undefined;
+		if (node) {
+			return node;
+		}
+	}
+	return undefined;
+}
+
+/**
  * Decode the `<aink:ink>` payload into stroke arrays for an
  * {@link InkPptxElement}. Reads `<aink:inkBrush>` for the default colour
  * and width (`@_brushColor`, `@_brushSize`) and walks each `<aink:trace>`
@@ -320,7 +358,7 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 			}
 
 			if (type === 'ole' && graphicData) {
-				const oleObject = graphicData['p:oleObj'] as XmlObject | undefined;
+				const oleObject = findOleObjPayload(graphicData);
 				const oleProgId = String(oleObject?.['@_progId'] || '').trim() || undefined;
 				const oleName = String(oleObject?.['@_name'] || '').trim() || undefined;
 				const oleClsId = String(oleObject?.['@_classid'] || '').trim() || undefined;
@@ -445,7 +483,11 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 		if (graphicData['dgm:relIds'] || uri.includes('/drawingml/2006/diagram')) {
 			return 'smartArt';
 		}
-		if (graphicData['p:oleObj'] || uri.includes('/drawingml/2006/ole')) {
+		if (
+			uri.includes('/presentationml/2006/ole') ||
+			uri.includes('/drawingml/2006/ole') ||
+			findOleObjPayload(graphicData)
+		) {
 			return 'ole';
 		}
 		if (
