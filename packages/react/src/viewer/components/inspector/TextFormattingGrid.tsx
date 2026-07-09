@@ -1,5 +1,6 @@
 import type { TextStyle } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { ListMode } from '../../utils';
 import { INPUT_CLS, TEXT_DIRECTIONS, createNumericChangeHandler } from './TextPropertiesHelpers';
@@ -29,6 +30,7 @@ export function TextFormattingGrid({
 	onApplyListMode,
 	onToggleTextFlag,
 }: TextFormattingGridProps): React.ReactElement {
+	const { t } = useTranslation();
 	const numChange = createNumericChangeHandler(onUpdateTextStyle);
 
 	return (
@@ -40,9 +42,9 @@ export function TextFormattingGrid({
 					onChange={(e) => onApplyListMode(e.target.value as ListMode)}
 					className={INPUT_CLS}
 				>
-					<option value='none'>None</option>
-					<option value='bullet'>Bulleted</option>
-					<option value='number'>Numbered</option>
+					<option value='none'>{t('pptx.fill.none')}</option>
+					<option value='bullet'>{t('pptx.textFormatting.bulleted')}</option>
+					<option value='number'>{t('pptx.textFormatting.numbered')}</option>
 					{/* TODO: Add Picture Bullet UI
 					 * - Add "Picture Bullet" option here
 					 * - Implement file picker dialog to upload image
@@ -54,7 +56,7 @@ export function TextFormattingGrid({
 				</select>
 			</label>
 			<label className='flex flex-col gap-1'>
-				<span className='text-muted-foreground'>Line Spacing</span>
+				<span className='text-muted-foreground'>{t('pptx.paragraph.lineSpacing')}</span>
 				<input
 					type='number'
 					min={0.8}
@@ -68,7 +70,7 @@ export function TextFormattingGrid({
 				/>
 			</label>
 			<label className='flex flex-col gap-1'>
-				<span className='text-muted-foreground'>Paragraph Before</span>
+				<span className='text-muted-foreground'>{t('pptx.textFormatting.paragraphBefore')}</span>
 				<input
 					type='number'
 					min={0}
@@ -82,7 +84,7 @@ export function TextFormattingGrid({
 				/>
 			</label>
 			<label className='flex flex-col gap-1'>
-				<span className='text-muted-foreground'>Paragraph After</span>
+				<span className='text-muted-foreground'>{t('pptx.textFormatting.paragraphAfter')}</span>
 				<input
 					type='number'
 					min={0}
@@ -102,12 +104,12 @@ export function TextFormattingGrid({
 					onChange={(e) => onUpdateTextStyle({ rtl: e.target.value === 'rtl' })}
 					className={INPUT_CLS}
 				>
-					<option value='ltr'>Left to Right</option>
-					<option value='rtl'>Right to Left</option>
+					<option value='ltr'>{t('pptx.paragraph.leftToRight')}</option>
+					<option value='rtl'>{t('pptx.paragraph.rightToLeft')}</option>
 				</select>
 			</label>
 			<label className='flex flex-col gap-1'>
-				<span className='text-muted-foreground'>Text Flow</span>
+				<span className='text-muted-foreground'>{t('pptx.textFormatting.textFlow')}</span>
 				<select
 					value={ts?.textDirection || 'horizontal'}
 					onChange={(e) => {
@@ -150,7 +152,7 @@ export function TextFormattingGrid({
 					checked={spellCheckEnabled}
 					onChange={() => onToggleTextFlag('spellCheck')}
 				/>
-				Spell Check
+				{t('pptx.settings.spellCheck')}
 			</label>
 		</div>
 	);

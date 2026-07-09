@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuImage } from 'react-icons/lu';
 
 import { clampCropValue } from '../../utils';
@@ -19,6 +20,7 @@ export function ImageCropSection({
 	updateElement,
 	onOpenImagePicker,
 }: ImageCropSectionProps): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className='space-y-2'>
 			<button type='button' className={BTN_CLS} onClick={onOpenImagePicker}>
@@ -67,14 +69,14 @@ export function ImageCropSection({
 						)
 					}
 				>
-					Reset Crop
+					{t('pptx.image.resetCrop')}
 				</button>
 			</div>
 			<label className='flex flex-col gap-1'>
-				<span className='text-muted-foreground'>Alt Text</span>
+				<span className='text-muted-foreground'>{t('pptx.image.altText')}</span>
 				<textarea
 					rows={2}
-					placeholder='Describe this image for accessibility'
+					placeholder={t('pptx.imageTransform.altTextPlaceholder')}
 					value={((selectedElement as unknown as Record<string, unknown>).altText as string) || ''}
 					onChange={(e) =>
 						updateElement((el) =>

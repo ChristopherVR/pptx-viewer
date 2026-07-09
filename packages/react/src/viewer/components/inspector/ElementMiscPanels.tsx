@@ -21,6 +21,7 @@ export function ConnectorPanel({
 	canEdit,
 	onUpdateElementStyle,
 }: ConnectorPanelProps): React.ReactElement | null {
+	const { t } = useTranslation();
 	if (selectedElement.type !== 'connector') {
 		return null;
 	}
@@ -42,12 +43,12 @@ export function ConnectorPanel({
 							value={selectedElement.shapeStyle?.[key] ?? 'none'}
 							onChange={(e) => onUpdateElementStyle({ [key]: e.target.value })}
 						>
-							<option value='none'>None</option>
-							<option value='triangle'>Triangle</option>
-							<option value='arrow'>Arrow</option>
-							<option value='stealth'>Stealth</option>
-							<option value='diamond'>Diamond</option>
-							<option value='oval'>Oval</option>
+							<option value='none'>{t('pptx.arrowhead.none')}</option>
+							<option value='triangle'>{t('pptx.arrowhead.triangle')}</option>
+							<option value='arrow'>{t('pptx.arrowhead.arrow')}</option>
+							<option value='stealth'>{t('pptx.arrowhead.stealth')}</option>
+							<option value='diamond'>{t('pptx.arrowhead.diamond')}</option>
+							<option value='oval'>{t('pptx.arrowhead.oval')}</option>
 						</select>
 					</label>
 				))}

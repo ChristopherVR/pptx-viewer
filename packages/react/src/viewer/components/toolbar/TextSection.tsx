@@ -199,8 +199,8 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 							);
 						}}
 						className={pill}
-						title='Text Shadow'
-						aria-label='Text Shadow'
+						title={t('pptx.textEffects.shadow')}
+						aria-label={t('pptx.textEffects.shadow')}
 					>
 						<svg
 							className={ic}
@@ -241,7 +241,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								p.onUpdateTextStyle({ fontSize: current + 2 });
 							}}
 							className={gB}
-							title='Increase Font Size'
+							title={t('pptx.text.increaseFontSize')}
 						>
 							<LuAArrowUp className={ic} />
 						</button>
@@ -257,7 +257,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								p.onUpdateTextStyle({ fontSize: Math.max(1, current - 2) });
 							}}
 							className={gB}
-							title='Decrease Font Size'
+							title={t('pptx.text.decreaseFontSize')}
 						>
 							<LuAArrowDown className={ic} />
 						</button>
@@ -278,7 +278,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								});
 							}}
 							className={gL}
-							title='Clear Formatting'
+							title={t('pptx.text.clearFormatting')}
 						>
 							<LuRemoveFormatting className={ic} />
 						</button>
@@ -291,8 +291,8 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 							disabled={!canMut}
 							onMouseDown={(e) => e.preventDefault()}
 							className={pill}
-							title='Character Spacing'
-							aria-label='Character Spacing'
+							title={t('pptx.text.characterSpacing')}
+							aria-label={t('pptx.text.characterSpacing')}
 						>
 							<svg
 								className={ic}
@@ -419,8 +419,8 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 							disabled={!canMut}
 							onMouseDown={(e) => e.preventDefault()}
 							className={pill}
-							title='Font Color'
-							aria-label='Font Color'
+							title={t('pptx.text.fontColor')}
+							aria-label={t('pptx.text.fontColor')}
 						>
 							<svg
 								className={ic}
@@ -463,7 +463,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 									onMouseDown={(e) => e.preventDefault()}
 									onClick={() => colorInputRef.current?.click()}
 								>
-									Custom colour...
+									{t('pptx.ribbon.customColour')}
 								</button>
 								<input
 									ref={colorInputRef}
@@ -483,8 +483,8 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 							disabled={!canMut}
 							onMouseDown={(e) => e.preventDefault()}
 							className={pill}
-							title='Text Highlight Color'
-							aria-label='Text Highlight Color'
+							title={t('pptx.text.highlightColor')}
+							aria-label={t('pptx.text.highlightColor')}
 						>
 							<LuHighlighter className={ic} />
 							<div
@@ -517,7 +517,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 									onMouseDown={(e) => e.preventDefault()}
 									onClick={() => highlightInputRef.current?.click()}
 								>
-									Custom colour...
+									{t('pptx.ribbon.customColour')}
 								</button>
 								<input
 									ref={highlightInputRef}
@@ -553,7 +553,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								});
 							}}
 							className={gB}
-							title='Bullet List'
+							title={t('pptx.text.bulletList')}
 						>
 							<LuList className={ic} />
 						</button>
@@ -570,7 +570,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								});
 							}}
 							className={gL}
-							title='Numbered List'
+							title={t('pptx.text.numberedList')}
 						>
 							<LuListOrdered className={ic} />
 						</button>
@@ -592,7 +592,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								});
 							}}
 							className={gB}
-							title='Decrease Indent'
+							title={t('pptx.text.decreaseIndent')}
 						>
 							<LuIndentDecrease className={ic} />
 						</button>
@@ -610,7 +610,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								});
 							}}
 							className={gL}
-							title='Increase Indent'
+							title={t('pptx.text.increaseIndent')}
 						>
 							<LuIndentIncrease className={ic} />
 						</button>

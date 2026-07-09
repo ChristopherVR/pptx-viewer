@@ -1,5 +1,6 @@
 import type { TextStyle } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { normalizeHexColor } from '../../utils';
 import { INPUT_CLS, COLOR_CLS } from './TextPropertiesHelpers';
@@ -25,6 +26,7 @@ export function TextEffectsPanel({
 	onUpdateTextStyle,
 	numChange,
 }: TextEffectsPanelProps): React.ReactElement {
+	const { t } = useTranslation();
 	const hasShadow = Boolean(
 		ts?.textShadowColor || (typeof ts?.textShadowBlur === 'number' && ts.textShadowBlur > 0),
 	);
@@ -35,7 +37,9 @@ export function TextEffectsPanel({
 
 	return (
 		<div className='mt-2 rounded border border-border bg-card p-2 space-y-2'>
-			<div className='text-[11px] uppercase tracking-wide text-muted-foreground'>Text Effects</div>
+			<div className='text-[11px] uppercase tracking-wide text-muted-foreground'>
+				{t('pptx.textEffects.title')}
+			</div>
 
 			{/* ── Text Shadow ── */}
 			<div className='space-y-1.5'>
@@ -63,7 +67,7 @@ export function TextEffectsPanel({
 							}
 						}}
 					/>
-					Text Shadow
+					{t('pptx.textEffects.shadow')}
 				</label>
 				{hasShadow && (
 					<div className='grid grid-cols-2 gap-2 pl-4'>
@@ -105,7 +109,7 @@ export function TextEffectsPanel({
 							/>
 						</label>
 						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Offset X</span>
+							<span className='text-muted-foreground'>{t('pptx.textEffects.offsetX')}</span>
 							<input
 								type='number'
 								min={-50}
@@ -117,7 +121,7 @@ export function TextEffectsPanel({
 							/>
 						</label>
 						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Offset Y</span>
+							<span className='text-muted-foreground'>{t('pptx.textEffects.offsetY')}</span>
 							<input
 								type='number'
 								min={-50}
@@ -154,7 +158,7 @@ export function TextEffectsPanel({
 							}
 						}}
 					/>
-					Text Glow
+					{t('pptx.textEffects.glow')}
 				</label>
 				{hasGlow && (
 					<div className='grid grid-cols-2 gap-2 pl-4'>
@@ -225,7 +229,7 @@ export function TextEffectsPanel({
 							}
 						}}
 					/>
-					Text Reflection
+					{t('pptx.textEffects.reflection')}
 				</label>
 				{hasReflection && (
 					<div className='grid grid-cols-2 gap-2 pl-4'>
@@ -258,7 +262,7 @@ export function TextEffectsPanel({
 							/>
 						</label>
 						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Start Opacity</span>
+							<span className='text-muted-foreground'>{t('pptx.textEffects.startOpacity')}</span>
 							<input
 								type='number'
 								min={0}
@@ -272,7 +276,7 @@ export function TextEffectsPanel({
 							/>
 						</label>
 						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>End Opacity</span>
+							<span className='text-muted-foreground'>{t('pptx.textEffects.endOpacity')}</span>
 							<input
 								type='number'
 								min={0}

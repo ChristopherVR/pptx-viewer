@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuRotateCw } from 'react-icons/lu';
 
 import type { ResizeHandle, ShapeAdjustmentHandleDescriptor } from '../../types';
@@ -97,6 +98,7 @@ export function ResizeHandles({
 	nonRotationTransform,
 	onRotate,
 }: ResizeHandlesProps) {
+	const { t } = useTranslation();
 	const peStyle = forcePointerEvents
 		? { ...HANDLE_TOUCH_ACTION, pointerEvents: 'auto' as const }
 		: HANDLE_TOUCH_ACTION;
@@ -208,7 +210,7 @@ export function ResizeHandles({
 			{onRotate ? (
 				<button
 					type='button'
-					aria-label='Rotate'
+					aria-label={t('pptx.resizeHandles.rotateAria')}
 					className='absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-5 h-5 max-md:w-7 max-md:h-7 rounded-full border border-white bg-primary text-white shadow cursor-grab active:cursor-grabbing'
 					style={peStyle}
 					onPointerDown={(e) => {
@@ -233,7 +235,7 @@ export function ResizeHandles({
 			{adjH ? (
 				<button
 					type='button'
-					aria-label='Adjust shape'
+					aria-label={t('pptx.canvas.adjustShape')}
 					className='absolute h-2.5 w-2.5 max-md:h-4 max-md:w-4 rotate-45 border border-amber-700 bg-amber-300 shadow z-10'
 					style={{
 						left: adjH.left - 5,

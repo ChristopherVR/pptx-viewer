@@ -3,6 +3,8 @@
  *
  * Extracted to keep the main SlideCanvas file under 300 lines.
  */
+import { useTranslation } from 'react-i18next';
+
 import type { MarqueeSelectionState } from '../../types';
 
 /* ------------------------------------------------------------------ */
@@ -16,6 +18,7 @@ interface CanvasGuidesProps {
 }
 
 export function CanvasGuides({ guides, onDeleteGuide, onStartGuideDrag }: CanvasGuidesProps) {
+	const { t } = useTranslation();
 	return (
 		<>
 			{guides.map((guide) => (
@@ -54,7 +57,7 @@ export function CanvasGuides({ guides, onDeleteGuide, onStartGuideDrag }: Canvas
 							pointerId: e.pointerId,
 						});
 					}}
-					title='Drag guide. Double-click to remove.'
+					title={t('pptx.canvas.dragGuideTooltip')}
 				/>
 			))}
 		</>

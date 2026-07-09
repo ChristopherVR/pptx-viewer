@@ -1,5 +1,6 @@
 import type { InlineEditRect } from 'pptx-viewer-shared';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 // ── Props ───────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ export function SmartArtInlineNodeEditor({
 	onCommit,
 	onCancel,
 }: SmartArtInlineNodeEditorProps): React.ReactElement {
+	const { t } = useTranslation();
 	const ref = React.useRef<HTMLTextAreaElement | null>(null);
 	const [value, setValue] = React.useState(initialText);
 	// Guards against blur firing a second commit after Enter/Escape already ran.
@@ -76,7 +78,7 @@ export function SmartArtInlineNodeEditor({
 		<textarea
 			ref={ref}
 			value={value}
-			aria-label='Edit SmartArt node text'
+			aria-label={t('pptx.smartArt.editNodeText')}
 			spellCheck={false}
 			className='absolute z-20 resize-none rounded-sm border border-primary bg-white/95 text-center text-black shadow outline-none'
 			style={{

@@ -1,5 +1,6 @@
 import type { ShapeStyle } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { SHAPE_QUICK_STYLES } from '../../constants';
 import { LBL } from './FillStrokeHelpers';
@@ -19,9 +20,10 @@ export interface QuickStylesGalleryProps {
 export function QuickStylesGallery({
 	onUpdateShapeStyle,
 }: QuickStylesGalleryProps): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className='flex flex-col gap-1'>
-			<span className={LBL}>Quick Styles</span>
+			<span className={LBL}>{t('pptx.shape.quickStyles')}</span>
 			<div className='grid grid-cols-6 gap-1'>
 				{SHAPE_QUICK_STYLES.map((qs, idx) => (
 					<button

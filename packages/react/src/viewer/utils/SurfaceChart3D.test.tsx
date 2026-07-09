@@ -1,8 +1,15 @@
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { SurfaceChart3D } from './SurfaceChart3D';
+
+vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
+	useTranslation: () => ({
+		t: (key: string) => translationsEn[key] ?? key,
+	}),
+}));
 
 // These tests run in the default node environment (no DOM, no `useEffect`), so
 // `renderToStaticMarkup` exercises the synchronous render path: the Three.js

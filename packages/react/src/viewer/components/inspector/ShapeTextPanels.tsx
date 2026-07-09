@@ -51,7 +51,7 @@ export function ShapeTextPanels({
 					>
 						{SHAPE_PRESETS.filter((p) => p.type !== 'connector').map((p) => (
 							<option key={p.type} value={p.type}>
-								{p.label}
+								{t(p.i18nKey)}
 							</option>
 						))}
 					</select>
@@ -82,7 +82,9 @@ export function ShapeTextPanels({
 							/>
 						</label>
 						<label className='flex items-center gap-1 col-span-2'>
-							<span className='w-16 text-muted-foreground'>Stroke W</span>
+							<span className='w-16 text-muted-foreground'>
+								{t('pptx.shapeText.strokeWidthAbbrev')}
+							</span>
 							<input
 								type='number'
 								disabled={!canEdit}

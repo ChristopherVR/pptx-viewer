@@ -42,7 +42,7 @@ export function StrokeEffectsSection({
 		<>
 			{/* Stroke color + swatches + recent colors */}
 			<ColorPickerRow
-				label='Stroke'
+				label={t('pptx.inspector.stroke')}
 				prefix='stroke'
 				value={normalizeHexColor(style?.strokeColor, DEFAULT_STROKE_COLOR)}
 				recentColors={recentColors}
@@ -51,7 +51,7 @@ export function StrokeEffectsSection({
 
 			{/* Stroke Width */}
 			<label className='flex flex-col gap-1'>
-				<span className={LBL}>Stroke Width</span>
+				<span className={LBL}>{t('pptx.strokeEffects.strokeWidth')}</span>
 				<input
 					type='number'
 					min={0}
@@ -66,7 +66,7 @@ export function StrokeEffectsSection({
 
 			{/* Fill Opacity */}
 			<label className='flex flex-col gap-1'>
-				<span className={LBL}>Fill Opacity</span>
+				<span className={LBL}>{t('pptx.strokeEffects.fillOpacity')}</span>
 				<input
 					type='range'
 					min={0}
@@ -80,7 +80,7 @@ export function StrokeEffectsSection({
 
 			{/* Stroke Opacity */}
 			<label className='flex flex-col gap-1'>
-				<span className={LBL}>Stroke Opacity</span>
+				<span className={LBL}>{t('pptx.strokeEffects.strokeOpacity')}</span>
 				<input
 					type='range'
 					min={0}
@@ -97,7 +97,7 @@ export function StrokeEffectsSection({
 
 			{/* Stroke Dash */}
 			<label className={`flex flex-col gap-1 ${COL2}`}>
-				<span className={LBL}>Stroke Dash</span>
+				<span className={LBL}>{t('pptx.strokeEffects.strokeDash')}</span>
 				<select
 					value={style?.strokeDash || 'solid'}
 					onChange={(e) =>
@@ -109,7 +109,7 @@ export function StrokeEffectsSection({
 				>
 					{STROKE_DASH_OPTIONS.map((o) => (
 						<option key={o.value} value={o.value}>
-							{o.label}
+							{t(o.i18nKey)}
 						</option>
 					))}
 				</select>
@@ -117,14 +117,14 @@ export function StrokeEffectsSection({
 
 			{/* Compound Line with visual preview */}
 			<label className={`flex flex-col gap-1 ${COL2}`}>
-				<span className={LBL}>Compound Line</span>
+				<span className={LBL}>{t('pptx.strokeEffects.compoundLine')}</span>
 				<div className='grid grid-cols-5 gap-1'>
 					{COMPOUND_LINE_OPTIONS.map((opt) => (
 						<button
 							key={opt.value}
 							type='button'
-							title={opt.label}
-							aria-label={opt.label}
+							title={t(opt.i18nKey)}
+							aria-label={t(opt.i18nKey)}
 							className={`h-10 px-2 rounded border transition-all ${
 								(style?.compoundLine || 'sng') === opt.value
 									? 'border-primary bg-accent'
@@ -170,14 +170,14 @@ export function StrokeEffectsSection({
 
 			{/* Line Join / Cap */}
 			<SelectRow
-				label='Line Join'
+				label={t('pptx.strokeEffects.lineJoin')}
 				value={style?.lineJoin || 'round'}
 				options={LINE_JOIN_OPTIONS}
 				onChange={(v) => onUpdateShapeStyle({ lineJoin: v as 'round' | 'bevel' | 'miter' })}
 			/>
 
 			<SelectRow
-				label='Line Cap'
+				label={t('pptx.strokeEffects.lineCap')}
 				value={style?.lineCap || 'flat'}
 				options={LINE_CAP_OPTIONS}
 				onChange={(v) => onUpdateShapeStyle({ lineCap: v as 'flat' | 'rnd' | 'sq' })}

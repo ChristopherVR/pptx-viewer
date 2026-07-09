@@ -1,3 +1,4 @@
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 /**
  * Comprehensive end-to-end tests for the Toolbar component.
@@ -274,7 +275,16 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 			if (typeof v === 'function') {
 				return v(opts ?? {});
 			}
-			return v ?? key;
+			if (typeof v === 'string') {
+				return v;
+			}
+			const fallback = translationsEn[key];
+			if (fallback === undefined) {
+				return key;
+			}
+			return opts
+				? fallback.replace(/\{\{(\w+)\}\}/gu, (_m, name: string) => String(opts[name] ?? ''))
+				: fallback;
 		},
 	}),
 }));
@@ -793,15 +803,14 @@ describe('toolbar - Insert tab', () => {
 		const html = render(
 			React.createElement(InsertSection, createInsertProps({ onInsertField: vi.fn<() => void>() })),
 		);
-		// The field button title uses the i18n key
-		expect(html).toContain('pptx.field.insertField');
+		expect(html).toContain('title="Insert Field"');
 	});
 
 	it('does not render Field button when onInsertField is undefined', () => {
 		const html = render(
 			React.createElement(InsertSection, createInsertProps({ onInsertField: undefined })),
 		);
-		expect(html).not.toContain('pptx.field.insertField');
+		expect(html).not.toContain('title="Insert Field"');
 	});
 
 	it('buttons are disabled when canEdit is false', () => {

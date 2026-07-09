@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { PresentDropdown } from './PresentDropdown';
 import type { ToolbarProps } from './toolbar-types';
@@ -28,19 +29,20 @@ export function ModeSwitcher({
 	onToggleSubtitles,
 	showSubtitles,
 }: ModeSwitcherProps): React.ReactElement {
+	const { t } = useTranslation();
 	if (mode === 'master') {
 		return (
 			<div className='inline-flex items-center gap-1.5'>
 				<span className='inline-flex items-center px-2 py-0.5 rounded-sm bg-amber-600/90 text-[10px] text-amber-50'>
-					Master View
+					{t('pptx.mode.masterView')}
 				</span>
 				<button
 					type='button'
 					onClick={onCloseMasterView}
 					className='px-2 py-0.5 rounded-sm hover:bg-accent text-[10px] text-foreground transition-colors'
-					title='Close master view'
+					title={t('pptx.mode.closeMasterViewTooltip')}
 				>
-					Close
+					{t('pptx.common.close')}
 				</button>
 			</div>
 		);

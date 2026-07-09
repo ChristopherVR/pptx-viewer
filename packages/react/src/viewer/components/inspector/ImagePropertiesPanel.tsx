@@ -45,7 +45,7 @@ export function ImagePropertiesPanel({
 			<div className='space-y-2'>
 				{/* Alt Text */}
 				<label className='flex flex-col gap-1 text-[11px]'>
-					<span className='text-muted-foreground'>Alt Text</span>
+					<span className='text-muted-foreground'>{t('pptx.image.altText')}</span>
 					<textarea
 						rows={2}
 						disabled={!canEdit}
@@ -62,13 +62,13 @@ export function ImagePropertiesPanel({
 				{/* Brightness / Contrast / Saturation */}
 				<div className='grid grid-cols-2 gap-1.5 text-[11px]'>
 					<RangeSlider
-						label='Brightness'
+						label={t('pptx.imageAdjustments.brightness')}
 						disabled={!canEdit}
 						value={fx?.brightness ?? 0}
 						onChange={(v) => updateEffects({ brightness: v })}
 					/>
 					<RangeSlider
-						label='Contrast'
+						label={t('pptx.imageAdjustments.contrast')}
 						disabled={!canEdit}
 						value={fx?.contrast ?? 0}
 						onChange={(v) => updateEffects({ contrast: v })}

@@ -1,8 +1,15 @@
 import type { OlePptxElement } from 'pptx-viewer-core';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { OleRenderer } from './OleRenderer';
+
+vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
+	useTranslation: () => ({
+		t: (key: string) => translationsEn[key] ?? key,
+	}),
+}));
 
 function makeOle(overrides: Partial<OlePptxElement> = {}): OlePptxElement {
 	return {

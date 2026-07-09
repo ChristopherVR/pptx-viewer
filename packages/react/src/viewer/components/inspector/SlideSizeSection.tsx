@@ -96,11 +96,11 @@ export function SlideSizeSection({
 				className='w-full bg-muted border border-border rounded px-2 py-1 text-xs text-foreground'
 			>
 				<option value=''>{t('pptx.slideSize.presets', 'Preset sizes...')}</option>
-				<option value='1280x720'>Widescreen 16:9 (1280x720)</option>
-				<option value='960x720'>Standard 4:3 (960x720)</option>
-				<option value='1280x1024'>Portrait 5:4 (1280x1024)</option>
-				<option value='1920x1080'>Full HD (1920x1080)</option>
-				<option value='2560x1440'>QHD (2560x1440)</option>
+				<option value='1280x720'>{t('pptx.slideSize.presetWidescreen')}</option>
+				<option value='960x720'>{t('pptx.slideSize.presetStandard')}</option>
+				<option value='1280x1024'>{t('pptx.slideSize.presetPortrait')}</option>
+				<option value='1920x1080'>{t('pptx.slideSize.presetFullHd')}</option>
+				<option value='2560x1440'>{t('pptx.slideSize.presetQhd')}</option>
 			</select>
 		</div>
 	);

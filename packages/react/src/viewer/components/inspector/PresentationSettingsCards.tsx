@@ -1,5 +1,6 @@
 import type { PptxPresentationProperties, PptxThemeOption } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { CanvasSize } from '../../types';
 import { cn } from '../../utils';
@@ -46,12 +47,13 @@ export function PresentationSettingsCard({
 	canEdit: boolean;
 	onUpdate: (patch: Partial<PptxPresentationProperties>) => void;
 }): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className={CARD}>
-			<div className={HEADING}>Presentation</div>
+			<div className={HEADING}>{t('pptx.slideInspector.presentation')}</div>
 			<div className='space-y-1.5 text-[11px]'>
 				<label className='flex items-center justify-between gap-2'>
-					<span className='text-muted-foreground'>Show Type</span>
+					<span className='text-muted-foreground'>{t('pptx.presentationSettings.showType')}</span>
 					<select
 						disabled={!canEdit}
 						className={cn(INPUT, 'w-28')}
@@ -62,37 +64,39 @@ export function PresentationSettingsCard({
 							})
 						}
 					>
-						<option value='presented'>Presented</option>
-						<option value='browsed'>Browsed</option>
-						<option value='kiosk'>Kiosk</option>
+						<option value='presented'>{t('pptx.presentationSettings.showTypePresented')}</option>
+						<option value='browsed'>{t('pptx.presentationSettings.showTypeBrowsed')}</option>
+						<option value='kiosk'>{t('pptx.presentationSettings.showTypeKiosk')}</option>
 					</select>
 				</label>
 				<CheckboxRow
-					label='Loop Continuously'
+					label={t('pptx.presentationSettings.loopContinuously')}
 					disabled={!canEdit}
 					checked={Boolean(presentationProperties.loopContinuously)}
 					onChange={(v) => onUpdate({ loopContinuously: v })}
 				/>
 				<CheckboxRow
-					label='Show Narration'
+					label={t('pptx.presentationSettings.showNarration')}
 					disabled={!canEdit}
 					checked={presentationProperties.showWithNarration !== false}
 					onChange={(v) => onUpdate({ showWithNarration: v })}
 				/>
 				<CheckboxRow
-					label='Show Animation'
+					label={t('pptx.presentationSettings.showAnimation')}
 					disabled={!canEdit}
 					checked={presentationProperties.showWithAnimation !== false}
 					onChange={(v) => onUpdate({ showWithAnimation: v })}
 				/>
 				<CheckboxRow
-					label='Frame Slides'
+					label={t('pptx.presentationSettings.frameSlides')}
 					disabled={!canEdit}
 					checked={Boolean(presentationProperties.printFrameSlides)}
 					onChange={(v) => onUpdate({ printFrameSlides: v })}
 				/>
 				<label className='flex items-center justify-between gap-2'>
-					<span className='text-muted-foreground'>Slides/Page</span>
+					<span className='text-muted-foreground'>
+						{t('pptx.presentationSettings.slidesPerPage')}
+					</span>
 					<input
 						type='number'
 						min={1}
@@ -125,12 +129,13 @@ export function ThemeSelectorCard({
 	canEdit: boolean;
 	onApplyTheme: (path: string, allMasters: boolean) => void;
 }): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className={CARD}>
-			<div className={HEADING}>Theme</div>
+			<div className={HEADING}>{t('pptx.documentProperties.themeHeading')}</div>
 			<div className='space-y-2 text-[11px]'>
 				<label className='flex flex-col gap-1'>
-					<span className='text-muted-foreground'>Theme</span>
+					<span className='text-muted-foreground'>{t('pptx.documentProperties.themeHeading')}</span>
 					<select
 						disabled={themeOptions.length === 0}
 						className={INPUT}
@@ -138,7 +143,7 @@ export function ThemeSelectorCard({
 						onChange={(e) => setSelectedThemePath(e.target.value)}
 					>
 						{themeOptions.length === 0 ? (
-							<option value=''>No themes</option>
+							<option value=''>{t('pptx.documentProperties.noThemesOption')}</option>
 						) : (
 							themeOptions.map((opt) => (
 								<option key={opt.path} value={opt.path}>
@@ -155,7 +160,7 @@ export function ThemeSelectorCard({
 						disabled={!canEdit || !selectedThemePath}
 						onClick={() => onApplyTheme(selectedThemePath, false)}
 					>
-						Apply First Master
+						{t('pptx.documentProperties.applyFirstMaster')}
 					</button>
 					<button
 						type='button'
@@ -163,7 +168,7 @@ export function ThemeSelectorCard({
 						disabled={!canEdit || !selectedThemePath}
 						onClick={() => onApplyTheme(selectedThemePath, true)}
 					>
-						Apply All Masters
+						{t('pptx.documentProperties.applyAllMasters')}
 					</button>
 				</div>
 			</div>
@@ -184,9 +189,10 @@ export function SlideSizeCard({
 	canEdit: boolean;
 	onUpdate: (size: CanvasSize) => void;
 }): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className={CARD}>
-			<div className={HEADING}>Slide Size</div>
+			<div className={HEADING}>{t('pptx.slideSize.title')}</div>
 			<div className='grid grid-cols-2 gap-1.5 text-[11px]'>
 				{(
 					[

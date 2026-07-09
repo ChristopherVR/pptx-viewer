@@ -1,5 +1,6 @@
 import type { ShapeStyle } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { DEFAULT_FILL_COLOR } from '../../constants';
 import { normalizeHexColor } from '../../utils';
@@ -42,13 +43,14 @@ export function FillAdvancedControls({
 	onUpdateGradientStops,
 	onSetFillColor: _onSetFillColor,
 }: FillAdvancedControlsProps): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<>
 			{/* Gradient controls */}
 			{showGradient && (
 				<>
 					<SelectRow
-						label='Gradient Type'
+						label={t('pptx.fillAdvanced.gradientType')}
 						span2
 						value={gradType}
 						options={GRADIENT_TYPE_OPTIONS}
@@ -62,7 +64,7 @@ export function FillAdvancedControls({
 
 					{gradType === 'linear' && (
 						<label className={`flex flex-col gap-1 ${COL2}`}>
-							<span className={LBL}>Gradient Angle</span>
+							<span className={LBL}>{t('pptx.fillAdvanced.gradientAngle')}</span>
 							<input
 								type='range'
 								min={0}
@@ -81,7 +83,7 @@ export function FillAdvancedControls({
 
 					<div className={`${COL2} space-y-1.5 rounded border border-border p-2`}>
 						<div className='text-[11px] uppercase tracking-wide text-muted-foreground'>
-							Gradient Stops
+							{t('pptx.fillAdvanced.gradientStops')}
 						</div>
 						{gradientStops.map((stop, i) => (
 							<GradientStopRow
@@ -107,7 +109,7 @@ export function FillAdvancedControls({
 								])
 							}
 						>
-							Add Stop
+							{t('pptx.gradient.addStop')}
 						</button>
 					</div>
 				</>
@@ -157,14 +159,14 @@ export function FillAdvancedControls({
 						</div>
 					</div>
 					<ColorPickerRow
-						label='Foreground Color'
+						label={t('pptx.fillAdvanced.foregroundColor')}
 						prefix='pattern-fg'
 						value={normalizeHexColor(style?.fillColor, DEFAULT_FILL_COLOR)}
 						disabled={isLine}
 						onChange={(color) => onUpdateShapeStyle({ fillMode: 'pattern', fillColor: color })}
 					/>
 					<ColorPickerRow
-						label='Background Color'
+						label={t('pptx.fillAdvanced.backgroundColor')}
 						prefix='pattern-bg'
 						value={normalizeHexColor(style?.fillPatternBackgroundColor, '#ffffff')}
 						disabled={isLine}
@@ -182,7 +184,7 @@ export function FillAdvancedControls({
 			{style?.fillMode === 'image' && (
 				<div className={`${COL2} space-y-2`}>
 					<label className='flex flex-col gap-1'>
-						<span className={LBL}>Image URL</span>
+						<span className={LBL}>{t('pptx.fillAdvanced.imageUrl')}</span>
 						<input
 							type='text'
 							placeholder='https://example.com/image.png'
@@ -192,7 +194,7 @@ export function FillAdvancedControls({
 						/>
 					</label>
 					<label className='flex flex-col gap-1'>
-						<span className={LBL}>Or choose a file</span>
+						<span className={LBL}>{t('pptx.fillAdvanced.orChooseFile')}</span>
 						<input
 							type='file'
 							accept='image/*'
@@ -209,7 +211,7 @@ export function FillAdvancedControls({
 						/>
 					</label>
 					<SelectRow
-						label='Image Mode'
+						label={t('pptx.fillAdvanced.imageMode')}
 						value={style?.fillImageMode || 'stretch'}
 						options={IMAGE_MODE_OPTIONS}
 						onChange={(v) => onUpdateShapeStyle({ fillImageMode: v as 'stretch' | 'tile' })}
@@ -218,7 +220,7 @@ export function FillAdvancedControls({
 						<div className='mt-1 rounded border border-border overflow-hidden h-16'>
 							<img
 								src={style.fillImageUrl}
-								alt='Fill preview'
+								alt={t('pptx.fillAdvanced.fillPreviewAlt')}
 								className='w-full h-full object-cover'
 							/>
 						</div>

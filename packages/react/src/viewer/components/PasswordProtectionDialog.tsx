@@ -186,7 +186,9 @@ export function PasswordProtectionDialog({
 									type='button'
 									onClick={() => setShowPassword(!showPassword)}
 									className='absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground'
-									aria-label={showPassword ? 'Hide password' : 'Show password'}
+									aria-label={
+										showPassword ? t('pptx.security.hidePassword') : t('pptx.security.showPassword')
+									}
 								>
 									{showPassword ? <LuEyeOff className='w-4 h-4' /> : <LuEye className='w-4 h-4' />}
 								</button>

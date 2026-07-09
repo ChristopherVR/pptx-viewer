@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
 	LuChevronRight,
 	LuClipboardCopy,
@@ -55,18 +56,18 @@ interface MenuItemDef {
 }
 
 const MENU_ITEMS: MenuItemDef[] = [
-	{ key: 'home', label: 'Home', icon: LuClipboardCopy },
-	{ key: 'insert', label: 'Insert', icon: LuPlus },
-	{ key: 'text', label: 'Text', icon: LuType },
-	{ key: 'draw', label: 'Draw', icon: LuPaintbrush },
-	{ key: 'arrange', label: 'Arrange', icon: LuShapes },
-	{ key: 'design', label: 'Design', icon: LuLayoutGrid },
-	{ key: 'transitions', label: 'Transitions', icon: LuSparkles },
-	{ key: 'animations', label: 'Animations', icon: LuWand },
-	{ key: 'slideShow', label: 'Slide Show', icon: LuPresentation },
-	{ key: 'review', label: 'Review', icon: LuTextCursorInput },
-	{ key: 'view', label: 'View', icon: LuSettings },
-	{ key: 'file', label: 'File', icon: LuFile },
+	{ key: 'home', label: 'pptx.ribbon.tab.home', icon: LuClipboardCopy },
+	{ key: 'insert', label: 'pptx.ribbon.tab.insert', icon: LuPlus },
+	{ key: 'text', label: 'pptx.ribbon.tab.text', icon: LuType },
+	{ key: 'draw', label: 'pptx.ribbon.tab.draw', icon: LuPaintbrush },
+	{ key: 'arrange', label: 'pptx.ribbon.tab.arrange', icon: LuShapes },
+	{ key: 'design', label: 'pptx.ribbon.tab.design', icon: LuLayoutGrid },
+	{ key: 'transitions', label: 'pptx.ribbon.tab.transitions', icon: LuSparkles },
+	{ key: 'animations', label: 'pptx.ribbon.tab.animations', icon: LuWand },
+	{ key: 'slideShow', label: 'pptx.ribbon.tab.slideShow', icon: LuPresentation },
+	{ key: 'review', label: 'pptx.ribbon.tab.review', icon: LuTextCursorInput },
+	{ key: 'view', label: 'pptx.ribbon.tab.view', icon: LuSettings },
+	{ key: 'file', label: 'pptx.ribbon.tab.file', icon: LuFile },
 ];
 
 export interface MobileMenuSheetProps extends ToolbarProps {
@@ -80,11 +81,12 @@ export interface MobileMenuSheetProps extends ToolbarProps {
  * components are reused so functionality is identical to desktop.
  */
 export function MobileMenuSheet(props: MobileMenuSheetProps): React.ReactElement {
+	const { t } = useTranslation();
 	const { open, onClose } = props;
 	const [active, setActive] = useState<MenuKey>('home');
 
 	return (
-		<MobileSheet open={open} onClose={onClose} autoHeight title='Menu'>
+		<MobileSheet open={open} onClose={onClose} autoHeight title={t('pptx.mobileToolbar.menu')}>
 			<div className='flex flex-col'>
 				{/* Section selector: chips wrap so every section stays reachable
 				    without horizontal scrolling (which hid the trailing sections). */}
@@ -103,7 +105,7 @@ export function MobileMenuSheet(props: MobileMenuSheetProps): React.ReactElement
 								)}
 							>
 								<Icon className='w-4 h-4' />
-								{label}
+								{t(label)}
 							</button>
 						))}
 					</div>

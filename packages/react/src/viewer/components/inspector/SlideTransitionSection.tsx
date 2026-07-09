@@ -50,7 +50,7 @@ export function SlideTransitionSection({
 	return (
 		<div className='mb-3 rounded border border-border bg-card p-2 space-y-2'>
 			<div className='text-[11px] uppercase tracking-wide text-muted-foreground'>
-				Slide Transition
+				{t('pptx.slideInspector.slideTransition')}
 			</div>
 
 			{/* Type */}
@@ -67,7 +67,7 @@ export function SlideTransitionSection({
 				>
 					{SLIDE_TRANSITION_OPTIONS.map((option) => (
 						<option key={option.value} value={option.value}>
-							{option.label}
+							{t(option.i18nKey)}
 						</option>
 					))}
 				</select>

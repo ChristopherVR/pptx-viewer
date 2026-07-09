@@ -1,5 +1,6 @@
 import type { TextStyle } from 'pptx-viewer-core';
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuColumns3 } from 'react-icons/lu';
 
 import { ic, pill } from './toolbar-constants';
@@ -55,6 +56,7 @@ function useCloseOnClickOutside(
 }
 
 export function LineSpacingDropdown(p: DropdownProps): React.ReactElement {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 	useCloseOnClickOutside(ref, open, setOpen);
@@ -67,8 +69,8 @@ export function LineSpacingDropdown(p: DropdownProps): React.ReactElement {
 				onMouseDown={(e) => e.preventDefault()}
 				onClick={() => setOpen((v) => !v)}
 				className={pill}
-				title='Line Spacing'
-				aria-label='Line Spacing'
+				title={t('pptx.paragraph.lineSpacing')}
+				aria-label={t('pptx.paragraph.lineSpacing')}
 			>
 				<svg className={ic} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
 					<line x1='5' y1='5' x2='19' y2='5' />
@@ -109,6 +111,7 @@ export function LineSpacingDropdown(p: DropdownProps): React.ReactElement {
 }
 
 export function TextDirectionDropdown(p: SimpleDropdownProps): React.ReactElement {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 	useCloseOnClickOutside(ref, open, setOpen);
@@ -121,8 +124,8 @@ export function TextDirectionDropdown(p: SimpleDropdownProps): React.ReactElemen
 				onMouseDown={(e) => e.preventDefault()}
 				onClick={() => setOpen((v) => !v)}
 				className={pill}
-				title='Text Direction'
-				aria-label='Text Direction'
+				title={t('pptx.paragraph.textDirection')}
+				aria-label={t('pptx.paragraph.textDirection')}
 			>
 				<svg className={ic} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
 					<text x='3' y='16' fontSize='12' fill='currentColor' stroke='none'>
@@ -160,6 +163,7 @@ export function TextDirectionDropdown(p: SimpleDropdownProps): React.ReactElemen
 }
 
 export function ColumnsDropdown(p: SimpleDropdownProps): React.ReactElement {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 	useCloseOnClickOutside(ref, open, setOpen);
@@ -172,7 +176,7 @@ export function ColumnsDropdown(p: SimpleDropdownProps): React.ReactElement {
 				onMouseDown={(e) => e.preventDefault()}
 				onClick={() => setOpen((v) => !v)}
 				className={pill}
-				title='Columns'
+				title={t('pptx.paragraph.columns')}
 			>
 				<LuColumns3 className={ic} />
 			</button>

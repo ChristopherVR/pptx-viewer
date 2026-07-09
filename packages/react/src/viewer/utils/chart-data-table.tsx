@@ -1,6 +1,7 @@
 import type { PptxChartData } from 'pptx-viewer-core';
 import React from 'react';
 
+import { translationsEn } from '../../i18n';
 import { seriesColor } from './chart-helpers';
 
 function formatValue(val: number): string {
@@ -63,7 +64,7 @@ export function renderChartDataTable(
 					<tr>
 						{showK && (
 							<th
-								aria-label='Row labels'
+								aria-label={translationsEn['pptx.chart.rowLabelsAria']}
 								style={{
 									padding: '1px 4px',
 									fontWeight: 400,

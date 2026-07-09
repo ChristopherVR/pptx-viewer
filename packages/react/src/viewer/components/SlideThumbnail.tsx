@@ -6,6 +6,7 @@ import type {
 } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
 	DEFAULT_TEXT_COLOR,
@@ -50,6 +51,13 @@ function SlideThumbnailImpl({
 	const scale = SLIDE_NAV_THUMBNAIL_WIDTH / safeCanvasWidth;
 	const previewHeight = Math.max(56, Math.round(safeCanvasHeight * scale));
 	const previewElements = [...templateElements, ...slide.elements].slice(0, 60);
+	const { t } = useTranslation();
+	const transitionLabel = slide.transition
+		? (() => {
+				const opt = SLIDE_TRANSITION_OPTIONS.find((o) => o.value === slide.transition?.type);
+				return opt ? t(opt.i18nKey) : slide.transition.type;
+			})()
+		: undefined;
 
 	return (
 		<div
@@ -93,10 +101,9 @@ function SlideThumbnailImpl({
 					slide.transition.type !== 'cut' && (
 						<div
 							className='absolute top-0.5 right-0.5 z-10 px-1 py-px rounded bg-primary/80 text-[7px] text-white leading-tight pointer-events-none'
-							title={`Transition: ${SLIDE_TRANSITION_OPTIONS.find((o) => o.value === slide.transition?.type)?.label ?? slide.transition.type}`}
+							title={t('pptx.slideThumbnail.transitionTooltip', { name: transitionLabel })}
 						>
-							{SLIDE_TRANSITION_OPTIONS.find((o) => o.value === slide.transition?.type)?.label ??
-								slide.transition.type}
+							{transitionLabel}
 						</div>
 					)}
 				{previewElements.map((element) => {

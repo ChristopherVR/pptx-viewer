@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import { renderCycle } from './smartart-cycle';
@@ -37,7 +38,7 @@ export function renderSmartArtElement(element: PptxElement): React.ReactNode {
 	if (element.type !== 'smartArt' || !element.smartArtData) {
 		return (
 			<div className='w-full h-full flex items-center justify-center text-[11px] text-white/80 pointer-events-none'>
-				SmartArt
+				{translationsEn['pptx.smartArt.placeholder']}
 			</div>
 		);
 	}
@@ -46,7 +47,7 @@ export function renderSmartArtElement(element: PptxElement): React.ReactNode {
 	if (nodes.length === 0) {
 		return (
 			<div className='w-full h-full flex items-center justify-center text-[11px] text-white/80 pointer-events-none'>
-				SmartArt
+				{translationsEn['pptx.smartArt.placeholder']}
 			</div>
 		);
 	}

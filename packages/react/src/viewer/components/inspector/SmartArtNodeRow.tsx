@@ -1,5 +1,6 @@
 import type { PptxSmartArtNodeStyle } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
 import { INPUT } from './inspector-pane-constants';
@@ -68,6 +69,7 @@ export function SmartArtNodeRow({
 	onRemove,
 	onChangeStyle,
 }: SmartArtNodeRowProps): React.ReactElement {
+	const { t } = useTranslation();
 	const label = isChild
 		? `Sub-item: ${text || 'empty'}`
 		: `Item ${displayIndex}: ${text || 'empty'}`;
@@ -93,7 +95,7 @@ export function SmartArtNodeRow({
 					value={text}
 					onChange={(e) => onChangeText(nodeId, e.target.value)}
 					onKeyDown={(e) => onKeyDown(e, nodeId)}
-					placeholder='Type here'
+					placeholder={t('pptx.smartArt.nodePlaceholder')}
 				/>
 				<div className='flex items-center gap-0.5 shrink-0'>
 					<button
@@ -102,7 +104,7 @@ export function SmartArtNodeRow({
 						className={MINI_BTN}
 						onClick={() => onMoveUp(nodeId)}
 						aria-label={`Move ${label} up`}
-						title='Move up'
+						title={t('pptx.smartArt.moveUp')}
 					>
 						↑
 					</button>
@@ -112,7 +114,7 @@ export function SmartArtNodeRow({
 						className={MINI_BTN}
 						onClick={() => onMoveDown(nodeId)}
 						aria-label={`Move ${label} down`}
-						title='Move down'
+						title={t('pptx.smartArt.moveDown')}
 					>
 						↓
 					</button>
@@ -123,7 +125,7 @@ export function SmartArtNodeRow({
 							className={MINI_BTN}
 							onClick={() => onAddSubItem(nodeId)}
 							aria-label={`Add sub-item under ${label}`}
-							title='Add sub-item'
+							title={t('pptx.smartArt.addSubItem')}
 						>
 							+Sub
 						</button>
@@ -134,7 +136,7 @@ export function SmartArtNodeRow({
 						className={cn(MINI_BTN, 'hover:text-red-400')}
 						onClick={() => onRemove(nodeId)}
 						aria-label={`Remove ${label}`}
-						title={removeDisabled ? 'Layout minimum reached' : 'Remove'}
+						title={removeDisabled ? t('pptx.smartArt.layoutMinimum') : t('pptx.smartArt.remove')}
 					>
 						x
 					</button>

@@ -5,6 +5,7 @@ import type { PptxSlide, PptxSlideMaster, PptxSlideLayout } from 'pptx-viewer-co
  * the four most expensive `useMemo` blocks in one place.
  */
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { EMU_PER_PX, GRID_SIZE, UNGROUPED_SECTION_ID } from '../constants';
 import type { SlideSectionGroup } from '../types';
@@ -181,6 +182,7 @@ export function computeMasterPseudoSlide(
 // ---------------------------------------------------------------------------
 
 export function useDerivedSlideState(input: UseDerivedSlideStateInput): DerivedSlideState {
+	const { t } = useTranslation();
 	const {
 		slides,
 		sections,
@@ -204,10 +206,21 @@ export function useDerivedSlideState(input: UseDerivedSlideStateInput): DerivedS
 		[slides, activeCustomShowId, customShows],
 	);
 
-	// Slide section groups for the slides pane sidebar
+	// Slide section groups for the slides pane sidebar. `computeSlideSectionGroups`
+	// is a pure helper (unit-tested with literal English labels), so translation
+	// of its two auto-generated group labels happens here, at the hook level.
 	const slideSectionGroups: SlideSectionGroup[] = useMemo(
-		() => computeSlideSectionGroups(slides, sections),
-		[slides, sections],
+		() =>
+			computeSlideSectionGroups(slides, sections).map((group) => {
+				if (group.id === UNGROUPED_SECTION_ID && group.label === 'Ungrouped Slides') {
+					return { ...group, label: t('pptx.slides.ungroupedSlides') };
+				}
+				if (group.id === 'default' && group.label === 'Slides') {
+					return { ...group, label: t('pptx.sections.slides') };
+				}
+				return group;
+			}),
+		[slides, sections, t],
 	);
 
 	// Pseudo-slide for master / layout canvas rendering

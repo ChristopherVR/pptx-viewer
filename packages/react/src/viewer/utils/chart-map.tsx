@@ -1,5 +1,6 @@
 import type { PptxElement, PptxChartData } from 'pptx-viewer-core';
 import { normalizeValue, resolveRegionCode, sequentialColorScale } from 'pptx-viewer-shared';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import { formatAxisValue } from './chart-helpers';
@@ -350,7 +351,7 @@ export function renderMapChart(
 				fontSize={7}
 				fill='#94a3b8'
 			>
-				Additional regions (not shown on map)
+				{translationsEn['pptx.chart.additionalRegionsFallback']}
 			</text>,
 		);
 

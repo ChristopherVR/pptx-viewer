@@ -58,7 +58,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 	return (
 		<div
 			role='toolbar'
-			aria-label='Presentation toolbar'
+			aria-label={t('pptx.toolbar.presentationToolbarAria')}
 			className='relative z-20 border-b border-border bg-secondary/50 overflow-visible'
 		>
 			{/* Quick Access Row: undo/redo + spacer + mode/toggles */}

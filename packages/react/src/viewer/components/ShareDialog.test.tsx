@@ -7,6 +7,7 @@
  *
  * @module ShareDialog.test
  */
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -60,7 +61,16 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 			if (typeof v === 'function') {
 				return v(opts ?? {});
 			}
-			return v ?? key;
+			if (typeof v === 'string') {
+				return v;
+			}
+			const fallback = translationsEn[key];
+			if (fallback === undefined) {
+				return key;
+			}
+			return opts
+				? fallback.replace(/\{\{(\w+)\}\}/gu, (_m, name: string) => String(opts[name] ?? ''))
+				: fallback;
 		},
 	}),
 }));

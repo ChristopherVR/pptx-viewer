@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuChevronDown, LuFolderPlus, LuPlus, LuRotateCcw, LuLayoutGrid } from 'react-icons/lu';
 
 import { cn } from '../../utils';
@@ -14,6 +15,7 @@ export interface SlidesGroupProps {
 }
 
 export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
+	const { t } = useTranslation();
 	const [newSlideMenuOpen, setNewSlideMenuOpen] = useState(false);
 	const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
 	const newSlideMenuRef = useRef<HTMLDivElement>(null);
@@ -67,17 +69,17 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 								'whitespace-nowrap',
 								p.layoutOptions.length > 0 ? 'rounded-r-none' : '',
 							)}
-							title='New Slide'
+							title={t('pptx.home.newSlide')}
 						>
 							<LuPlus className={ic} />
-							New Slide
+							{t('pptx.home.newSlide')}
 						</button>
 						{p.layoutOptions.length > 0 && (
 							<button
 								type='button'
 								disabled={!p.canEdit}
 								className='inline-flex items-center justify-center self-stretch px-1 rounded-r bg-muted hover:bg-accent text-xs transition-colors border-l border-border/40 active:scale-95 active:opacity-80'
-								title='Choose layout'
+								title={t('pptx.home.chooseLayout')}
 								onClick={() => setNewSlideMenuOpen((v) => !v)}
 							>
 								<LuChevronDown className='w-3 h-3' />
@@ -110,11 +112,11 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 							type='button'
 							disabled={!p.canEdit || p.layoutOptions.length === 0}
 							className={pill}
-							title='Layout'
+							title={t('pptx.master.layout')}
 							onClick={() => setLayoutMenuOpen((v) => !v)}
 						>
 							<LuLayoutGrid className={ic} />
-							Layout
+							{t('pptx.master.layout')}
 						</button>
 						{layoutMenuOpen && (
 							<div className='absolute left-0 top-full z-50 flex flex-col w-48 pt-1'>
@@ -142,11 +144,11 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 						type='button'
 						disabled={!p.canEdit}
 						className={pill}
-						title='Reset Slide'
+						title={t('pptx.sections.resetSlideTitle')}
 						onClick={p.onResetSlide}
 					>
 						<LuRotateCcw className={ic} />
-						Reset
+						{t('pptx.animations.reset')}
 					</button>
 
 					{/* Section button */}
@@ -154,11 +156,11 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 						type='button'
 						disabled={!p.canEdit}
 						className={pill}
-						title='Add Section'
+						title={t('pptx.sections.addSection')}
 						onClick={p.onAddSection}
 					>
 						<LuFolderPlus className={ic} />
-						Section
+						{t('pptx.sections.sectionButtonLabel')}
 					</button>
 				</div>
 				<span className='text-[9px] text-muted-foreground leading-none'>Slides</span>

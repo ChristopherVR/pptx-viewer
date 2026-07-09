@@ -1,5 +1,6 @@
 import type { BulletInfo } from 'pptx-viewer-core';
 import { sanitizeMathMl } from 'pptx-viewer-shared';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import { convertOmmlToMathMl } from './omml-to-mathml';
@@ -187,7 +188,7 @@ export function renderEquationSegment(
 		/>
 	) : (
 		<span className='inline-block px-1 py-0.5 rounded text-xs bg-gray-200/20 text-gray-400 italic'>
-			Equation
+			{translationsEn['pptx.textSegment.equationFallback']}
 		</span>
 	);
 
@@ -259,7 +260,7 @@ export function renderPictureBullet(
 					color: bulletInfo.color || undefined,
 					fontFamily: bulletInfo.fontFamily || undefined,
 				}}
-				aria-label='Bullet'
+				aria-label={translationsEn['pptx.textSegment.bulletAria']}
 			>
 				{'\u2022 '}
 			</span>
@@ -270,7 +271,7 @@ export function renderPictureBullet(
 		<img
 			key={`${elementId}-seg-${segmentIndex}-bullet-img`}
 			src={bulletInfo.imageDataUrl}
-			alt='Bullet'
+			alt={translationsEn['pptx.textSegment.bulletAria']}
 			style={{
 				width: bulletSize,
 				height: bulletSize,

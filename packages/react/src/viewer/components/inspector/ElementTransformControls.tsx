@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuChevronDown, LuChevronUp, LuImage } from 'react-icons/lu';
 
 import { MIN_ELEMENT_SIZE } from '../../constants';
@@ -51,6 +52,7 @@ export function ElementTransformControls({
 	onOpenImagePicker,
 	markDirty,
 }: ElementTransformControlsProps): React.ReactElement {
+	const { t } = useTranslation();
 	const showImage = selectedElement.type === 'picture' || selectedElement.type === 'image';
 
 	const updateElement = (updater: (el: PptxElement) => PptxElement): void => {
@@ -110,14 +112,14 @@ export function ElementTransformControls({
 								)
 							}
 						>
-							Reset Crop
+							{t('pptx.image.resetCrop')}
 						</button>
 					</div>
 					<label className='flex flex-col gap-1'>
-						<span className='text-muted-foreground'>Alt Text</span>
+						<span className='text-muted-foreground'>{t('pptx.image.altText')}</span>
 						<textarea
 							rows={2}
-							placeholder='Describe this image for accessibility'
+							placeholder={t('pptx.imageTransform.altTextPlaceholder')}
 							value={
 								showImage
 									? ((selectedElement as unknown as Record<string, unknown>).altText as string) ||
@@ -210,7 +212,7 @@ export function ElementTransformControls({
 							markDirty();
 						}}
 					/>
-					Flip Horizontally
+					{t('pptx.arrange.flipHorizontally')}
 				</label>
 				<label className='inline-flex items-center gap-2 text-foreground'>
 					<input
@@ -221,7 +223,7 @@ export function ElementTransformControls({
 							markDirty();
 						}}
 					/>
-					Flip Vertically
+					{t('pptx.arrange.flipVertically')}
 				</label>
 			</div>
 		</>

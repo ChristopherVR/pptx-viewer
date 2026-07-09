@@ -1,6 +1,7 @@
 import type { TextStyle } from 'pptx-viewer-core';
 import { TEXT_WARP_PRESETS, warpPreviewPath } from 'pptx-viewer-shared';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 // The warp preset catalogue + preview-path generator now live in
 // `pptx-viewer-shared` (consumed identically by Vue and Angular). Re-export them
@@ -20,6 +21,7 @@ export function TextWarpGallery({
 	ts,
 	onUpdateTextStyle,
 }: TextWarpGalleryProps): React.ReactElement {
+	const { t } = useTranslation();
 	const [expanded, setExpanded] = React.useState(false);
 	const currentPreset = ts?.textWarpPreset || 'textNoShape';
 
@@ -30,7 +32,7 @@ export function TextWarpGallery({
 				className='flex w-full items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground'
 				onClick={() => setExpanded(!expanded)}
 			>
-				<span>Text Warp</span>
+				<span>{t('pptx.textWarp.title')}</span>
 				<span className='text-muted-foreground'>{expanded ? '−' : '+'}</span>
 			</button>
 			{!expanded && (

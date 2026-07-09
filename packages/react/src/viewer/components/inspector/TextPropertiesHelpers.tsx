@@ -1,5 +1,6 @@
 import type { PptxElement, TextStyle, UnderlineStyle } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
 	LuBold,
 	LuItalic,
@@ -113,9 +114,12 @@ export function AdvancedTextFormatting({
 	onUpdateTextStyle,
 	numChange,
 }: AdvancedTextFormattingProps): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className='mt-2 rounded border border-border bg-card p-2 space-y-2'>
-			<div className='text-[11px] uppercase tracking-wide text-muted-foreground'>Advanced Text</div>
+			<div className='text-[11px] uppercase tracking-wide text-muted-foreground'>
+				{t('pptx.textProperties.advancedTextHeading')}
+			</div>
 
 			{/* Superscript / Subscript */}
 			<div className='grid grid-cols-2 gap-2'>
@@ -150,7 +154,7 @@ export function AdvancedTextFormatting({
 			{/* Underline Style + Colour */}
 			<div className='grid grid-cols-2 gap-2'>
 				<label className='flex flex-col gap-1'>
-					<span className='text-muted-foreground'>Underline Style</span>
+					<span className='text-muted-foreground'>{t('pptx.textProperties.underlineStyle')}</span>
 					<select
 						value={ts?.underlineStyle || 'sng'}
 						disabled={!canEdit}
@@ -170,7 +174,7 @@ export function AdvancedTextFormatting({
 					</select>
 				</label>
 				<label className='flex flex-col gap-1'>
-					<span className='text-muted-foreground'>Underline Colour</span>
+					<span className='text-muted-foreground'>{t('pptx.textProperties.underlineColour')}</span>
 					<input
 						type='color'
 						value={ts?.underlineColor || ts?.color || '#000000'}
@@ -183,7 +187,7 @@ export function AdvancedTextFormatting({
 			{/* Text Outline */}
 			<div className='grid grid-cols-2 gap-2'>
 				<label className='flex flex-col gap-1'>
-					<span className='text-muted-foreground'>Outline Width</span>
+					<span className='text-muted-foreground'>{t('pptx.textProperties.outlineWidth')}</span>
 					<input
 						type='number'
 						min={0}
@@ -200,7 +204,7 @@ export function AdvancedTextFormatting({
 				</label>
 				{(ts?.textOutlineWidth ?? 0) > 0 && (
 					<label className='flex flex-col gap-1'>
-						<span className='text-muted-foreground'>Outline Colour</span>
+						<span className='text-muted-foreground'>{t('pptx.textProperties.outlineColour')}</span>
 						<input
 							type='color'
 							value={ts?.textOutlineColor || '#000000'}
@@ -213,7 +217,7 @@ export function AdvancedTextFormatting({
 
 			{/* Character Spacing */}
 			<label className='flex flex-col gap-1'>
-				<span className='text-muted-foreground'>Character Spacing</span>
+				<span className='text-muted-foreground'>{t('pptx.text.characterSpacing')}</span>
 				<input
 					type='number'
 					min={-1000}
@@ -229,7 +233,7 @@ export function AdvancedTextFormatting({
 			{/* Paragraph Margins & Indent */}
 			<div className='grid grid-cols-2 gap-2'>
 				<label className='flex flex-col gap-1'>
-					<span className='text-muted-foreground'>Left Margin</span>
+					<span className='text-muted-foreground'>{t('pptx.textProperties.leftMargin')}</span>
 					<input
 						type='number'
 						min={0}
@@ -244,7 +248,7 @@ export function AdvancedTextFormatting({
 					/>
 				</label>
 				<label className='flex flex-col gap-1'>
-					<span className='text-muted-foreground'>First Indent</span>
+					<span className='text-muted-foreground'>{t('pptx.textProperties.firstIndent')}</span>
 					<input
 						type='number'
 						min={-500}

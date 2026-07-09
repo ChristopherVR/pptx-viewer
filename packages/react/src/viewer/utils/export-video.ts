@@ -7,6 +7,7 @@ import {
 	segmentFrameCount,
 	WEBM_MIME_CANDIDATES,
 } from 'pptx-viewer-shared';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import type { ExportProgressCallback } from './export-helpers';
@@ -91,7 +92,7 @@ export async function exportAllSlidesAsVideo(
 	setActiveSlide(currentSlideIndex);
 
 	if (slideCanvases.length === 0) {
-		throw new Error('No slides were captured for video export');
+		throw new Error(translationsEn['pptx.export.errorNoSlidesVideo']);
 	}
 
 	// Step 2: Create a recording canvas and start MediaRecorder
@@ -101,7 +102,7 @@ export async function exportAllSlidesAsVideo(
 	recordingCanvas.height = firstCanvas.height;
 	const ctx = recordingCanvas.getContext('2d');
 	if (!ctx) {
-		throw new Error('Failed to create 2D context for video recording');
+		throw new Error(translationsEn['pptx.export.errorNo2dContext']);
 	}
 
 	const fps = 30;

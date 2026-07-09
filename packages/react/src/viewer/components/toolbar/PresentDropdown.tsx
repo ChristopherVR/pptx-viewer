@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
 	LuCaptions,
 	LuCheck,
@@ -33,6 +34,7 @@ export function PresentDropdown({
 	onToggleSubtitles,
 	showSubtitles,
 }: PresentDropdownProps): React.ReactElement {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	return (
 		<div className='relative'>
@@ -44,9 +46,9 @@ export function PresentDropdown({
 						'px-2 py-1 transition-colors',
 						isActive ? 'bg-primary text-white' : 'hover:bg-accent text-foreground',
 					)}
-					title='Present (fullscreen)'
+					title={t('pptx.present.presentTooltip')}
 				>
-					Present
+					{t('pptx.toolbar.present')}
 				</button>
 				<button
 					type='button'
@@ -55,8 +57,8 @@ export function PresentDropdown({
 						'px-1 py-1 transition-colors border-l border-border',
 						open ? 'bg-primary text-white' : 'hover:bg-accent text-foreground',
 					)}
-					title='Presentation options'
-					aria-label='Presentation options'
+					title={t('pptx.present.optionsTooltip')}
+					aria-label={t('pptx.present.optionsTooltip')}
 				>
 					<LuChevronDown className='w-3 h-3' />
 				</button>
@@ -66,7 +68,7 @@ export function PresentDropdown({
 					<button
 						type='button'
 						className='fixed inset-0 z-40'
-						aria-label='Close menu'
+						aria-label={t('pptx.overflow.closeMenu')}
 						onClick={() => setOpen(false)}
 					/>
 					<div className='absolute right-0 top-full mt-1 z-50 w-52 rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1'>
@@ -79,7 +81,7 @@ export function PresentDropdown({
 							className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
 						>
 							<LuPlay className='w-3.5 h-3.5 text-muted-foreground' />
-							Present
+							{t('pptx.toolbar.present')}
 						</button>
 						{onPresenterView && (
 							<button
@@ -91,7 +93,7 @@ export function PresentDropdown({
 								className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
 							>
 								<LuMonitor className='w-3.5 h-3.5 text-muted-foreground' />
-								Presenter View
+								{t('pptx.slideShow.presenterView')}
 							</button>
 						)}
 						{onRehearse && (
@@ -104,7 +106,7 @@ export function PresentDropdown({
 								className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
 							>
 								<LuClock className='w-3.5 h-3.5 text-muted-foreground' />
-								Rehearse Timings
+								{t('pptx.slideShow.rehearseTimings')}
 							</button>
 						)}
 						{/* Slide Show settings divider */}
@@ -119,7 +121,7 @@ export function PresentDropdown({
 								className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
 							>
 								<LuSettings className='w-3.5 h-3.5 text-muted-foreground' />
-								Set Up Slide Show
+								{t('pptx.slideShow.setUp')}
 							</button>
 						)}
 						{onBroadcast && (
@@ -132,7 +134,7 @@ export function PresentDropdown({
 								className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
 							>
 								<LuRadio className='w-3.5 h-3.5 text-muted-foreground' />
-								Present Online
+								{t('pptx.present.presentOnline')}
 							</button>
 						)}
 						{onToggleSubtitles && (

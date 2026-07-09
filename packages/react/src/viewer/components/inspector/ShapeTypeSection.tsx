@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
 	SHAPE_PRESETS,
@@ -31,10 +32,11 @@ export function ShapeTypeSection({
 	onShapeTypeChange,
 	updateElement,
 }: ShapeTypeSectionProps): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<>
 			<label className='flex flex-col gap-1'>
-				<span className='text-muted-foreground'>Shape Type</span>
+				<span className='text-muted-foreground'>{t('pptx.shape.type')}</span>
 				<select
 					value={elType === 'connector' ? shapeType || 'straightConnector1' : shapeType || 'rect'}
 					onChange={onShapeTypeChange}
@@ -43,12 +45,12 @@ export function ShapeTypeSection({
 					{elType === 'connector'
 						? CONNECTOR_GEOMETRY_OPTIONS.map((o) => (
 								<option key={o.value} value={o.value}>
-									{o.label}
+									{t(o.i18nKey)}
 								</option>
 							))
 						: SHAPE_PRESETS.filter((p) => p.type !== 'connector').map((p) => (
 								<option key={p.type} value={p.type}>
-									{p.label}
+									{t(p.i18nKey)}
 								</option>
 							))}
 					{isUnknownShape ? <option value={shapeType}>{shapeType}</option> : null}
@@ -57,7 +59,7 @@ export function ShapeTypeSection({
 
 			{showRoundness && (
 				<label className='flex flex-col gap-1'>
-					<span className='text-muted-foreground'>Roundness</span>
+					<span className='text-muted-foreground'>{t('pptx.shape.roundness')}</span>
 					<input
 						type='range'
 						min={SHAPE_ADJUSTMENT_MIN}

@@ -1,6 +1,7 @@
 import type { OlePptxElement } from 'pptx-viewer-core';
 import { formatBytes, isBrowserOpenableMime, openUrlInNewTab } from 'pptx-viewer-shared';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
 	getOleAriaLabel,
@@ -76,6 +77,7 @@ interface OleActionFooterProps {
  * / "Open", never "Edit".
  */
 function OleActionFooter({ el, info }: OleActionFooterProps): React.ReactNode {
+	const { t } = useTranslation();
 	if (!info.canDownload || !el.oleEmbeddedData) {
 		return null;
 	}
@@ -100,7 +102,7 @@ function OleActionFooter({ el, info }: OleActionFooterProps): React.ReactNode {
 					className='rounded px-1.5 py-0.5 bg-white/15 hover:bg-white/25 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white'
 					title={`Download ${downloadName}`}
 				>
-					Download
+					{t('pptx.ole.download')}
 				</a>
 				{info.canOpenInBrowser && el.oleEmbeddedData && (
 					<button
@@ -109,7 +111,7 @@ function OleActionFooter({ el, info }: OleActionFooterProps): React.ReactNode {
 						className='rounded px-1.5 py-0.5 bg-white/15 hover:bg-white/25 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white'
 						title={`Open ${downloadName} in a new tab`}
 					>
-						Open
+						{t('pptx.ole.open')}
 					</button>
 				)}
 			</span>

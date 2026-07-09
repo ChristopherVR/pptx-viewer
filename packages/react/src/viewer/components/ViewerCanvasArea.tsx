@@ -4,6 +4,7 @@ import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
  * find/replace panel, and presentation annotation / toolbar overlays.
  */
 import { useCallback, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
 	FindReplacePanel,
@@ -105,6 +106,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 		onEndPresentation,
 		findReplace,
 	} = props;
+	const { t } = useTranslation();
 
 	const effectiveSlide = mode === 'master' ? masterPseudoSlide : activeSlide;
 	const effectiveTemplateElements =
@@ -225,7 +227,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 
 	return (
 		<main
-			aria-label='Slide editor'
+			aria-label={t('pptx.viewer.slideEditorAria')}
 			className='flex-1 min-w-0 relative flex flex-col bg-background'
 			onTouchStart={swipe.onTouchStart}
 			onTouchEnd={swipe.onTouchEnd}

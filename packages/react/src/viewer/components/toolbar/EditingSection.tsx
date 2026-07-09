@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuMousePointer2, LuReplace, LuSearch } from 'react-icons/lu';
 
 import { gB, gL, grp, ic, pill, sep } from './toolbar-constants';
@@ -9,6 +10,7 @@ export interface EditingSectionProps {
 }
 
 export function EditingSection(p: EditingSectionProps): React.ReactElement {
+	const { t } = useTranslation();
 	const [selectMenuOpen, setSelectMenuOpen] = useState(false);
 	const menuRef = useRef<HTMLDivElement>(null);
 
@@ -38,7 +40,7 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 							onMouseDown={(e) => e.preventDefault()}
 							onClick={p.onToggleFindReplace}
 							className={gB}
-							title='Find'
+							title={t('pptx.editing.find')}
 						>
 							<LuSearch className={ic} />
 						</button>
@@ -47,7 +49,7 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 							onMouseDown={(e) => e.preventDefault()}
 							onClick={p.onToggleFindReplace}
 							className={gL}
-							title='Replace'
+							title={t('pptx.ribbon.replace')}
 						>
 							<LuReplace className={ic} />
 						</button>
@@ -60,7 +62,7 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 							onMouseDown={(e) => e.preventDefault()}
 							onClick={() => setSelectMenuOpen((v) => !v)}
 							className={pill}
-							title='Select'
+							title={t('pptx.ribbon.tool.select')}
 						>
 							<LuMousePointer2 className={ic} />
 						</button>
@@ -76,7 +78,7 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 											setSelectMenuOpen(false);
 										}}
 									>
-										Select All
+										{t('pptx.editing.selectAll')}
 									</button>
 								</div>
 							</div>

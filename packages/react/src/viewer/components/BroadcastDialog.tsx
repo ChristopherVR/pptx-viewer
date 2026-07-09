@@ -165,7 +165,7 @@ export function BroadcastDialog({
 				type='button'
 				style={{ zIndex: 1200 }}
 				className='fixed inset-0 bg-black/50'
-				aria-label='Close dialog'
+				aria-label={t('pptx.share.closeDialog')}
 				onClick={onClose}
 			/>
 
@@ -196,7 +196,7 @@ export function BroadcastDialog({
 							type='button'
 							onClick={onClose}
 							className='text-muted-foreground hover:text-foreground text-lg leading-none'
-							aria-label='Close'
+							aria-label={t('pptx.common.close')}
 						>
 							&times;
 						</button>
@@ -308,7 +308,7 @@ function StartBroadcastForm({
 					type='text'
 					value={userName}
 					onChange={(e) => onUserNameChange(e.target.value)}
-					placeholder='Presenter'
+					placeholder={t('pptx.broadcast.presenterPlaceholder')}
 					className='w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary'
 				/>
 			</div>

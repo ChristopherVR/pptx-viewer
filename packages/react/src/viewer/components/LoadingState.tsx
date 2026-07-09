@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '../utils';
 
@@ -7,6 +8,7 @@ interface LoadingStateProps {
 }
 
 export function LoadingState({ className }: LoadingStateProps): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div
 			className={cn(
@@ -16,7 +18,7 @@ export function LoadingState({ className }: LoadingStateProps): React.ReactEleme
 		>
 			<div className='flex items-center gap-2'>
 				<div className='animate-spin rounded-full h-6 w-6 border-b-2 border-primary' />
-				<span>Loading presentation...</span>
+				<span>{t('pptx.viewer.loading')}</span>
 			</div>
 		</div>
 	);

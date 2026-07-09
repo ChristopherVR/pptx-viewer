@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuLink2 } from 'react-icons/lu';
 
 import {
@@ -67,6 +68,7 @@ export function TextProperties({
 	onApplyListMode,
 	onSetTextAlignment,
 }: TextPropertiesProps): React.ReactElement | null {
+	const { t } = useTranslation();
 	// Only render for elements that have text properties (shapes, text boxes, etc.)
 	if (!hasTextProperties(selectedElement)) {
 		return null;
@@ -106,7 +108,7 @@ export function TextProperties({
 			{/* Font Size & Text Color */}
 			<div className='grid grid-cols-2 gap-2'>
 				<label className='flex flex-col gap-1'>
-					<span className='text-muted-foreground'>Font Size</span>
+					<span className='text-muted-foreground'>{t('pptx.ribbon.fontSize')}</span>
 					<input
 						type='number'
 						min={8}
@@ -116,7 +118,7 @@ export function TextProperties({
 					/>
 				</label>
 				<label className='flex flex-col gap-1'>
-					<span className='text-muted-foreground'>Text Color</span>
+					<span className='text-muted-foreground'>{t('pptx.textProperties.textColor')}</span>
 					<input
 						type='color'
 						value={normalizeHexColor(ts?.color)}
@@ -152,7 +154,7 @@ export function TextProperties({
 
 			{/* Font Family */}
 			<label className='flex flex-col gap-1'>
-				<span className='text-muted-foreground'>Font Family</span>
+				<span className='text-muted-foreground'>{t('pptx.ribbon.fontFamily')}</span>
 				<select
 					value={ts?.fontFamily || ''}
 					onChange={(e) => {
@@ -161,7 +163,9 @@ export function TextProperties({
 					}}
 					className={INPUT_CLS}
 				>
-					<option value=''>Default ({DEFAULT_FONT_FAMILY})</option>
+					<option value=''>
+						{t('pptx.textProperties.defaultFontOption', { font: DEFAULT_FONT_FAMILY })}
+					</option>
 					{FONT_FAMILY_OPTIONS.map((f) => (
 						<option key={f} value={f}>
 							{f}

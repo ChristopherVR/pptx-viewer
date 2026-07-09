@@ -53,7 +53,7 @@ export function InsertSmartArtDialog({
 				style={{ zIndex: 1200 }}
 				className='fixed inset-0 bg-black/50'
 				onClick={onClose}
-				aria-label='Close'
+				aria-label={t('pptx.smartart.close')}
 			/>
 
 			{/* Dialog */}

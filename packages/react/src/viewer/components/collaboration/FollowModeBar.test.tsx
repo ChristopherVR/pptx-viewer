@@ -6,6 +6,7 @@
  *
  * @module collaboration/FollowModeBar.test
  */
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect, vi } from 'vitest';
@@ -28,7 +29,16 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 				'pptx.followMode.followUser': `Follow ${opts?.name ?? ''}`,
 				'pptx.followMode.stopFollowingUser': `Stop following ${opts?.name ?? ''}`,
 			};
-			return map[key] ?? key;
+			if (map[key] !== undefined) {
+				return map[key];
+			}
+			const fallback = translationsEn[key];
+			if (fallback === undefined) {
+				return key;
+			}
+			return opts
+				? fallback.replace(/\{\{(\w+)\}\}/gu, (_m, name: string) => String(opts[name] ?? ''))
+				: fallback;
 		},
 	}),
 }));

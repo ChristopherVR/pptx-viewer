@@ -1,5 +1,6 @@
 import type { PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
 import React, { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
 import { cn, normalizeHexColor } from '../../utils';
@@ -35,6 +36,7 @@ export function SlideBackgroundPanel({
 	onSetTemplateBackground,
 	onGetTemplateBackgroundColor,
 }: SlideBackgroundPanelProps): React.ReactElement {
+	const { t } = useTranslation();
 	const bgImageInputRef = useRef<HTMLInputElement>(null);
 
 	return (
@@ -88,21 +90,23 @@ export function SlideBackgroundPanel({
 							disabled={!canEdit}
 							onClick={() => bgImageInputRef.current?.click()}
 						>
-							{activeSlide.backgroundImage ? 'Replace Image' : 'Choose Image'}
+							{activeSlide.backgroundImage
+								? t('pptx.slideBackground.replaceImage')
+								: t('pptx.slideBackground.chooseImage')}
 						</button>
 					</div>
 					{activeSlide.backgroundImage && (
 						<div className='relative mt-1'>
 							<img
 								src={activeSlide.backgroundImage}
-								alt='Background preview'
+								alt={t('pptx.slideBackground.backgroundPreview')}
 								className='w-full h-16 object-cover rounded border border-border'
 							/>
 							<button
 								type='button'
 								className='absolute top-0.5 right-0.5 rounded bg-background/80 hover:bg-red-700 p-0.5 text-[10px] transition-colors'
 								disabled={!canEdit}
-								title='Remove background image'
+								title={t('pptx.slideBackground.removeBackgroundImage')}
 								onClick={() => onUpdateSlide({ backgroundImage: undefined })}
 							>
 								<LuX className='w-3 h-3' />
@@ -127,7 +131,7 @@ export function SlideBackgroundPanel({
 							})
 						}
 					>
-						Clear Background
+						{t('pptx.slideBackground.clearBackground')}
 					</button>
 				)}
 			</div>
@@ -163,9 +167,10 @@ function TemplateBackgroundCard({
 	onSetTemplateBackground: (path: string, color: string) => void;
 	onGetTemplateBackgroundColor: (path: string) => string | undefined;
 }): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className={cn(CARD, 'space-y-2')}>
-			<div className={HEADING}>Template Backgrounds</div>
+			<div className={HEADING}>{t('pptx.slideBackground.templateBackgroundsHeading')}</div>
 
 			{/* Layout background */}
 			{activeSlide.layoutPath && (
@@ -174,7 +179,7 @@ function TemplateBackgroundCard({
 						className='text-muted-foreground w-14 shrink-0 truncate'
 						title={activeSlide.layoutName ?? activeSlide.layoutPath}
 					>
-						Layout
+						{t('pptx.master.layout')}
 					</span>
 					<DebouncedColorInput
 						value={normalizeHexColor(
@@ -186,7 +191,7 @@ function TemplateBackgroundCard({
 						onCommit={(hex) => onSetTemplateBackground(activeSlide.layoutPath!, hex)}
 					/>
 					<span className='text-muted-foreground text-[10px] truncate'>
-						{activeSlide.layoutName ?? 'Layout'}
+						{activeSlide.layoutName ?? t('pptx.master.layout')}
 					</span>
 				</label>
 			)}
@@ -205,7 +210,7 @@ function TemplateBackgroundCard({
 							className='text-muted-foreground w-14 shrink-0 truncate'
 							title={master.name ?? master.path}
 						>
-							Master
+							{t('pptx.master.master')}
 						</span>
 						<DebouncedColorInput
 							value={normalizeHexColor(onGetTemplateBackgroundColor(master.path), '#ffffff')}
@@ -214,7 +219,7 @@ function TemplateBackgroundCard({
 							onCommit={(hex) => onSetTemplateBackground(master.path, hex)}
 						/>
 						<span className='text-muted-foreground text-[10px] truncate'>
-							{master.name ?? 'Master'}
+							{master.name ?? t('pptx.master.master')}
 						</span>
 					</label>
 				);

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
 	LuCopy,
 	LuDownload,
@@ -38,96 +39,125 @@ export interface FileSectionProps {
 }
 
 export function FileSection(p: FileSectionProps): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<>
 			{/* Open another presentation */}
 			{p.onOpenFile && (
 				<>
-					<button onClick={p.onOpenFile} className={pill} title='Open another presentation'>
+					<button
+						onClick={p.onOpenFile}
+						className={pill}
+						title={t('pptx.ribbon.openAnotherPresentation')}
+					>
 						<LuFolderOpen className={ic} />
-						Open
+						{t('pptx.ribbon.open')}
 					</button>
 					{sep}
 				</>
 			)}
 
 			{/* Save & Export */}
-			<button onClick={p.onSaveAsPptx} className={pill} title='Save as Presentation (.pptx)'>
+			<button onClick={p.onSaveAsPptx} className={pill} title={t('pptx.file.saveAsPptxTooltip')}>
 				<LuDownload className={ic} />
-				Save .pptx
+				{t('pptx.file.saveAsPptx')}
 			</button>
-			<button onClick={p.onSaveAsPpsx} className={pill} title='Save as Slide Show (.ppsx)'>
+			<button onClick={p.onSaveAsPpsx} className={pill} title={t('pptx.file.saveAsPpsxTooltip')}>
 				<LuPlay className={ic} />
-				Save .ppsx
+				{t('pptx.file.saveAsPpsx')}
 			</button>
 			{p.hasMacros && (
-				<button onClick={p.onSaveAsPptm} className={pill} title='Save as Macro-Enabled (.pptm)'>
+				<button onClick={p.onSaveAsPptm} className={pill} title={t('pptx.file.saveAsPptmTooltip')}>
 					<LuFileText className={ic} />
-					Save .pptm
+					{t('pptx.file.saveAsPptm')}
 				</button>
 			)}
-			<button onClick={p.onPackageForSharing} className={pill} title='Package for Sharing'>
+			<button
+				onClick={p.onPackageForSharing}
+				className={pill}
+				title={t('pptx.file.packageTooltip')}
+			>
 				<LuPackage className={ic} />
-				Package
+				{t('pptx.file.package')}
 			</button>
 
 			{sep}
 
 			{/* Export */}
-			<button onClick={p.onExportPng} className={pill} title='Export as PNG'>
+			<button onClick={p.onExportPng} className={pill} title={t('pptx.mobileMenu.exportPng')}>
 				<LuDownload className={ic} />
-				PNG
+				{t('pptx.file.png')}
 			</button>
-			<button onClick={p.onExportPdf} className={pill} title='Export as PDF'>
+			<button onClick={p.onExportPdf} className={pill} title={t('pptx.mobileMenu.exportPdf')}>
 				<LuFileText className={ic} />
-				PDF
+				{t('pptx.file.pdf')}
 			</button>
-			<button onClick={p.onExportVideo} className={pill} title='Export as Video'>
+			<button onClick={p.onExportVideo} className={pill} title={t('pptx.mobileMenu.exportVideo')}>
 				<LuVideo className={ic} />
-				Video
+				{t('pptx.file.video')}
 			</button>
-			<button onClick={p.onExportGif} className={pill} title='Export as GIF'>
+			<button onClick={p.onExportGif} className={pill} title={t('pptx.ribbon.exportGifTitle')}>
 				<LuImage className={ic} />
-				GIF
+				{t('pptx.file.gif')}
 			</button>
-			<button onClick={p.onCopySlideAsImage} className={pill} title='Copy Slide as Image'>
+			<button
+				onClick={p.onCopySlideAsImage}
+				className={pill}
+				title={t('pptx.file.copyImageTooltip')}
+			>
 				<LuCopy className={ic} />
-				Copy Image
+				{t('pptx.file.copyImage')}
 			</button>
 
 			{sep}
 
 			{/* Print */}
-			<button onClick={p.onPrint} className={pill} title='Print'>
+			<button onClick={p.onPrint} className={pill} title={t('pptx.print.title')}>
 				<LuPrinter className={ic} />
-				Print
+				{t('pptx.print.printButton')}
 			</button>
 
 			{sep}
 
 			{/* Info */}
 			{p.onOpenDocumentProperties && (
-				<button onClick={p.onOpenDocumentProperties} className={pill} title='Document Properties'>
+				<button
+					onClick={p.onOpenDocumentProperties}
+					className={pill}
+					title={t('pptx.ribbon.documentProperties')}
+				>
 					<LuInfo className={ic} />
-					Properties
+					{t('pptx.ribbon.properties')}
 				</button>
 			)}
 			{p.onOpenPasswordProtection && (
-				<button onClick={p.onOpenPasswordProtection} className={pill} title='Protect Presentation'>
+				<button
+					onClick={p.onOpenPasswordProtection}
+					className={pill}
+					title={t('pptx.password.title')}
+				>
 					<LuLock className={ic} />
-					Protect
+					{t('pptx.ribbon.protect')}
 				</button>
 			)}
 			{p.onOpenFontEmbedding && (
-				<button onClick={p.onOpenFontEmbedding} className={pill} title='Embed Fonts'>
+				<button
+					onClick={p.onOpenFontEmbedding}
+					className={pill}
+					title={t('pptx.ribbon.embedFonts')}
+				>
 					<LuType className={ic} />
-					Fonts
+					{t('pptx.file.fonts')}
 				</button>
 			)}
 			{p.onOpenDigitalSignatures && (
-				<button onClick={p.onOpenDigitalSignatures} className={pill} title='Digital Signatures'>
+				<button
+					onClick={p.onOpenDigitalSignatures}
+					className={pill}
+					title={t('pptx.digitalSignatures.title')}
+				>
 					<LuShieldAlert className={ic} />
-					Signatures
+					{t('pptx.ribbon.signatures')}
 				</button>
 			)}
 		</>

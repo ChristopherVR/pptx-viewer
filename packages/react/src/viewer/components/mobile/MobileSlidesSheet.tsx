@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { SlidesPaneSidebarProps } from '../slides-pane/types';
 import { SlidesPaneSidebar } from '../SlidesPaneSidebar';
@@ -20,8 +21,14 @@ export function MobileSlidesSheet({
 	onClose,
 	...sidebar
 }: MobileSlidesSheetProps): React.ReactElement {
+	const { t } = useTranslation();
 	return (
-		<MobileSheet open={open} onClose={onClose} heightFraction={0.7} title='Slides'>
+		<MobileSheet
+			open={open}
+			onClose={onClose}
+			heightFraction={0.7}
+			title={t('pptx.sections.slides')}
+		>
 			<div className='h-full'>
 				<SlidesPaneSidebar {...sidebar} />
 			</div>

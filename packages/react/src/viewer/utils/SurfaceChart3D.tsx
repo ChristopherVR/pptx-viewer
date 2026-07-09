@@ -13,6 +13,7 @@
 
 import type { PptxElement, PptxChartData } from 'pptx-viewer-core';
 import React, { Suspense, useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { computeValueRangeForChart } from './chart-helpers';
 import { surfaceColor } from './chart-surface-treemap';
@@ -119,6 +120,7 @@ function buildSurfaceData(
 // ---------------------------------------------------------------------------
 
 function LoadingPlaceholder({ width, height }: { width: number; height: number }) {
+	const { t } = useTranslation();
 	return (
 		<div
 			style={{
@@ -134,7 +136,7 @@ function LoadingPlaceholder({ width, height }: { width: number; height: number }
 				color: '#94a3b8',
 			}}
 		>
-			Loading 3D surface...
+			{t('pptx.chart.loading3dSurface')}
 		</div>
 	);
 }

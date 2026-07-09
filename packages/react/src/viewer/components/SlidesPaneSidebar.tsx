@@ -304,7 +304,7 @@ export function SlidesPaneSidebar({
 	return (
 		<aside
 			role='navigation'
-			aria-label='Slides'
+			aria-label={t('pptx.sections.slides')}
 			className='flex h-full flex-col border-r border-border bg-secondary/30'
 			style={panelWidth ? { width: panelWidth, flexShrink: 0 } : undefined}
 		>

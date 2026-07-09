@@ -124,7 +124,7 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 				>
 					{SHAPE_PRESETS.map((sp) => (
 						<option key={sp.type} value={sp.type} className='bg-background'>
-							{sp.label}
+							{t(sp.i18nKey)}
 						</option>
 					))}
 				</select>

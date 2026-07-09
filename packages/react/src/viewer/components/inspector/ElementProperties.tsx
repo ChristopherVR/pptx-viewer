@@ -1,6 +1,7 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuChevronDown, LuChevronUp } from 'react-icons/lu';
 
 import {
@@ -73,6 +74,7 @@ export function ElementProperties({
 	onOpenImagePicker,
 	markDirty,
 }: ElementPropertiesProps): React.ReactElement {
+	const { t } = useTranslation();
 	// Template elements (from layout/master slides) cannot be mutated in normal editing mode
 	const canMutate = canEdit && !selectedElementIsTemplate;
 	const elType = selectedElement.type;
@@ -269,7 +271,7 @@ export function ElementProperties({
 							markDirty();
 						}}
 					/>
-					Flip Horizontally
+					{t('pptx.arrange.flipHorizontally')}
 				</label>
 				<label className='inline-flex items-center gap-2 text-foreground'>
 					<input
@@ -280,7 +282,7 @@ export function ElementProperties({
 							markDirty();
 						}}
 					/>
-					Flip Vertically
+					{t('pptx.arrange.flipVertically')}
 				</label>
 			</div>
 		</>

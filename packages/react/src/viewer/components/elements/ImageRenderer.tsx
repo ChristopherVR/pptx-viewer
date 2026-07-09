@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import {
@@ -61,7 +62,7 @@ export function renderImg(
 		}
 		return (
 			<div className='w-full h-full flex items-center justify-center text-[11px] text-gray-500 bg-gray-100'>
-				Image
+				{translationsEn['pptx.elementType.image']}
 			</div>
 		);
 	}

@@ -2,6 +2,7 @@
  * Animated GIF export -- captures slides and encodes them via the
  * pure-JS GIF89a encoder in export-gif-encoder.ts.
  */
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import { encodeGif } from './export-gif-encoder';
@@ -76,7 +77,7 @@ export async function exportAllSlidesAsGif(
 	setActiveSlide(currentSlideIndex);
 
 	if (frames.length === 0) {
-		throw new Error('No slides were captured for GIF export');
+		throw new Error(translationsEn['pptx.export.errorNoSlidesGif']);
 	}
 
 	// Step 2: Encode as GIF

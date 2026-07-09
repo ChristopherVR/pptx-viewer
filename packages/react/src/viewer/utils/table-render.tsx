@@ -14,6 +14,7 @@ import type {
  *   - table-render-data.tsx       - renderTableFromTableData (programmatic tables)
  *   - table-render.tsx            - renderTableElement (XML-based tables)
  */
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import { cn } from '../../utils';
@@ -57,7 +58,7 @@ export function renderTableElement(
 		}
 		return (
 			<div className='w-full h-full flex items-center justify-center text-[11px] text-white/80 pointer-events-none'>
-				Table
+				{translationsEn['pptx.table.title']}
 			</div>
 		);
 	}

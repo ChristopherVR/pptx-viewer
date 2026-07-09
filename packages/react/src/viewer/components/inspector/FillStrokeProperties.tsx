@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { DEFAULT_FILL_COLOR } from '../../constants';
 import { normalizeHexColor, sanitizeGradientStops } from '../../utils';
@@ -39,6 +40,7 @@ export function FillStrokeProperties({
 	onSetFillColor,
 	onSetStrokeColor,
 }: FillStrokePropertiesProps): React.ReactElement {
+	const { t } = useTranslation();
 	// Lines (and line-like shapes) have fill disabled since they have no area to fill
 	const line = isLineish(selectedElement, selectedShapeType);
 	const style = selectedShapeStyle;
@@ -118,7 +120,7 @@ export function FillStrokeProperties({
 			<div className='grid grid-cols-2 gap-2'>
 				{/* Fill Mode */}
 				<SelectRow
-					label='Fill Mode'
+					label={t('pptx.table.fillMode')}
 					span2
 					value={style?.fillMode || (style?.fillColor === 'transparent' ? 'none' : 'solid')}
 					options={FILL_MODE_OPTIONS}
@@ -127,7 +129,7 @@ export function FillStrokeProperties({
 
 				{/* Fill Color */}
 				<ColorPickerRow
-					label='Fill'
+					label={t('pptx.fill.fill')}
 					prefix='fill'
 					value={normalizeHexColor(style?.fillColor, DEFAULT_FILL_COLOR)}
 					disabled={line}

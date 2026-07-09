@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuLayers, LuPaintBucket, LuPenLine, LuShapes, LuSparkles } from 'react-icons/lu';
 
 import { SHAPE_PRESETS } from '../../constants';
@@ -36,6 +37,7 @@ const FILL_COLORS = [
 const TOP_SHAPES = SHAPE_PRESETS.slice(0, 12);
 
 export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
+	const { t } = useTranslation();
 	const [shapesOpen, setShapesOpen] = useState(false);
 	const [arrangeOpen, setArrangeOpen] = useState(false);
 	const [fillOpen, setFillOpen] = useState(false);
@@ -107,11 +109,11 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 							type='button'
 							disabled={!p.canEdit}
 							className={pill}
-							title='Shapes'
+							title={t('pptx.drawing.shapes')}
 							onClick={() => setShapesOpen((v) => !v)}
 						>
 							<LuShapes className={ic} />
-							Shapes
+							{t('pptx.drawing.shapes')}
 						</button>
 						{shapesOpen && (
 							<div className='absolute left-0 top-full z-50 flex flex-col w-52 pt-1'>
@@ -131,7 +133,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 											}}
 										>
 											{s.icon}
-											{s.label}
+											{t(s.i18nKey)}
 										</button>
 									))}
 								</div>
@@ -145,11 +147,11 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 							type='button'
 							disabled={!p.canEdit || !p.selectedElement}
 							className={pill}
-							title='Arrange'
+							title={t('pptx.ribbon.arrange')}
 							onClick={() => setArrangeOpen((v) => !v)}
 						>
 							<LuLayers className={ic} />
-							Arrange
+							{t('pptx.ribbon.arrange')}
 						</button>
 						{arrangeOpen && (
 							<div className='absolute left-0 top-full z-50 flex flex-col w-44 pt-1'>
@@ -162,7 +164,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 											setArrangeOpen(false);
 										}}
 									>
-										Bring Forward
+										{t('pptx.contextMenu.bringForward')}
 									</button>
 									<button
 										type='button'
@@ -172,7 +174,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 											setArrangeOpen(false);
 										}}
 									>
-										Send Backward
+										{t('pptx.contextMenu.sendBackward')}
 									</button>
 									<button
 										type='button'
@@ -182,7 +184,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 											setArrangeOpen(false);
 										}}
 									>
-										Bring to Front
+										{t('pptx.contextMenu.bringToFront')}
 									</button>
 									<button
 										type='button'
@@ -192,7 +194,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 											setArrangeOpen(false);
 										}}
 									>
-										Send to Back
+										{t('pptx.contextMenu.sendToBack')}
 									</button>
 								</div>
 							</div>
@@ -205,7 +207,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 							type='button'
 							disabled={!p.canEdit || !p.selectedElement}
 							className={pill}
-							title='Shape Fill'
+							title={t('pptx.drawing.shapeFill')}
 							onClick={() => setFillOpen((v) => !v)}
 						>
 							<LuPaintBucket className={ic} />
@@ -238,7 +240,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 							type='button'
 							disabled={!p.canEdit || !p.selectedElement}
 							className={pill}
-							title='Shape Outline'
+							title={t('pptx.drawing.shapeOutline')}
 							onClick={() => setOutlineOpen((v) => !v)}
 						>
 							<LuPenLine className={ic} />
@@ -270,7 +272,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 						type='button'
 						disabled
 						className={cn(pill, 'opacity-50 cursor-not-allowed')}
-						title='Shape Effects (not available)'
+						title={t('pptx.drawing.shapeEffectsUnavailable')}
 					>
 						<LuSparkles className={ic} />
 					</button>

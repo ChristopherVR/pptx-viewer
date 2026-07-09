@@ -29,7 +29,7 @@ export function MobileToolbar(props: ToolbarProps): React.ReactElement {
 	return (
 		<div
 			role='toolbar'
-			aria-label='Toolbar'
+			aria-label={t('pptx.mobileToolbar.toolbar')}
 			className='relative z-20 flex items-center gap-1 px-2 py-1 border-b border-border bg-secondary/50 min-h-[52px] pt-[max(env(safe-area-inset-top),0px)]'
 		>
 			{/* Menu button (opens sheet with all sections) */}
@@ -38,8 +38,8 @@ export function MobileToolbar(props: ToolbarProps): React.ReactElement {
 					type='button'
 					onClick={() => setMenuOpen(true)}
 					className={btn}
-					title='Menu'
-					aria-label='Menu'
+					title={t('pptx.mobileToolbar.menu')}
+					aria-label={t('pptx.mobileToolbar.menu')}
 				>
 					<LuMenu className='w-5 h-5' />
 				</button>

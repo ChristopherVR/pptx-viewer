@@ -32,22 +32,22 @@ const STATUS_STYLES: Record<ConnectionStatus, { dot: string; text: string; label
 	connected: {
 		dot: 'bg-green-400',
 		text: 'text-green-400',
-		label: 'Connected',
+		label: 'pptx.collaboration.status.connected',
 	},
 	connecting: {
 		dot: 'bg-yellow-400 animate-pulse',
 		text: 'text-yellow-400',
-		label: 'Connecting...',
+		label: 'pptx.collaboration.status.connecting',
 	},
 	disconnected: {
 		dot: 'bg-gray-500',
 		text: 'text-gray-500',
-		label: 'Disconnected',
+		label: 'pptx.collaboration.status.disconnected',
 	},
 	error: {
 		dot: 'bg-red-400',
 		text: 'text-red-400',
-		label: 'Connection error',
+		label: 'pptx.collaboration.status.error',
 	},
 };
 

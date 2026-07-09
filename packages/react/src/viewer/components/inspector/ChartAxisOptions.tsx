@@ -143,7 +143,7 @@ export function ChartAxisOptions({ axes, canEdit, onUpdateAxis }: ChartAxisOptio
 								disabled={!canEdit}
 								className={INPUT}
 								value={axis.numFmt?.formatCode ?? ''}
-								placeholder='General'
+								placeholder={t('pptx.settings.general')}
 								onChange={(e) =>
 									onUpdateAxis(type, {
 										numFmt: e.target.value

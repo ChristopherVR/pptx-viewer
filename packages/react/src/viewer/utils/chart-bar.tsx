@@ -1,4 +1,5 @@
 import type { PptxElement, PptxChartData } from 'pptx-viewer-core';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import { formatAxisValue } from './chart-helpers';
@@ -84,7 +85,7 @@ export function renderMapChartFallback(
 			fontSize={8}
 			fill='#94a3b8'
 		>
-			Geographic Map (data view)
+			{translationsEn['pptx.chart.geoMapDataView']}
 		</text>,
 	);
 
@@ -98,7 +99,7 @@ export function renderMapChartFallback(
 			fontWeight={700}
 			fill='#1e293b'
 		>
-			Region
+			{translationsEn['pptx.chart.regionColumnHeader']}
 		</text>,
 	);
 	series.forEach((s, si) => {

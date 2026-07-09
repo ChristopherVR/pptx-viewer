@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
 import { sep } from './toolbar-constants';
@@ -28,6 +29,7 @@ export function CustomShowsControls({
 	onDeleteActiveCustomShow,
 	onToggleCurrentSlideInActiveShow,
 }: CustomShowsControlsProps): React.ReactElement | null {
+	const { t } = useTranslation();
 	if (customShows.length > 0) {
 		return (
 			<>
@@ -36,10 +38,10 @@ export function CustomShowsControls({
 					value={activeCustomShowId ?? ''}
 					onChange={(e) => onSetActiveCustomShowId(e.target.value || null)}
 					className='h-6 px-1.5 text-[11px] rounded bg-muted text-foreground border border-border hover:bg-accent transition-colors cursor-pointer'
-					title='Custom show'
-					aria-label='Select custom show'
+					title={t('pptx.customShows.customShowTooltip')}
+					aria-label={t('pptx.customShows.selectCustomShow')}
 				>
-					<option value=''>All Slides</option>
+					<option value=''>{t('pptx.customShows.allSlides')}</option>
 					{customShows.map((cs) => (
 						<option key={cs.id} value={cs.id}>
 							{cs.name}
@@ -52,7 +54,7 @@ export function CustomShowsControls({
 							type='button'
 							onClick={onCreateCustomShow}
 							className='px-2 py-1 rounded bg-muted hover:bg-accent text-[11px] transition-colors'
-							title='Create custom show'
+							title={t('pptx.customShows.createTooltip')}
 						>
 							+ Show
 						</button>
@@ -62,17 +64,17 @@ export function CustomShowsControls({
 									type='button'
 									onClick={onRenameActiveCustomShow}
 									className='px-2 py-1 rounded bg-muted hover:bg-accent text-[11px] transition-colors'
-									title='Rename active custom show'
+									title={t('pptx.customShows.renameTooltip')}
 								>
-									Rename
+									{t('pptx.sections.rename')}
 								</button>
 								<button
 									type='button'
 									onClick={onDeleteActiveCustomShow}
 									className='px-2 py-1 rounded bg-red-700/80 hover:bg-red-600 text-[11px] transition-colors'
-									title='Delete active custom show'
+									title={t('pptx.customShows.deleteTooltip')}
 								>
-									Delete
+									{t('pptx.customShows.delete')}
 								</button>
 								<button
 									type='button'
@@ -83,9 +85,11 @@ export function CustomShowsControls({
 											? 'bg-primary text-white'
 											: 'bg-muted hover:bg-accent',
 									)}
-									title='Include/exclude current slide in active custom show'
+									title={t('pptx.customShows.toggleSlideTooltip')}
 								>
-									{isCurrentSlideInActiveShow ? 'In Show' : 'Add Slide'}
+									{isCurrentSlideInActiveShow
+										? t('pptx.customShows.inShow')
+										: t('pptx.customShows.addSlide')}
 								</button>
 							</>
 						)}
@@ -103,7 +107,7 @@ export function CustomShowsControls({
 					type='button'
 					onClick={onCreateCustomShow}
 					className='px-2 py-1 rounded bg-muted hover:bg-accent text-[11px] transition-colors'
-					title='Create custom show'
+					title={t('pptx.customShows.createTooltip')}
 				>
 					+ Show
 				</button>

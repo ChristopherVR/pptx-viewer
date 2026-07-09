@@ -6,6 +6,7 @@ import {
 	rebuildDrawingShapesIfCleared,
 } from 'pptx-viewer-shared';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
 	resolvePalette,
@@ -98,12 +99,13 @@ function SmartArtRendererImpl({
 	canEdit = false,
 	onUpdateElement,
 }: SmartArtRendererProps): React.ReactElement {
+	const { t } = useTranslation();
 	if (element.type !== 'smartArt' || !element.smartArtData) {
 		return (
 			<div
 				className={`w-full h-full flex items-center justify-center text-[11px] text-white/80 pointer-events-none ${className}`}
 			>
-				SmartArt
+				{t('pptx.smartArt.placeholder')}
 			</div>
 		);
 	}
@@ -116,7 +118,7 @@ function SmartArtRendererImpl({
 			<div
 				className={`w-full h-full flex items-center justify-center text-[11px] text-white/80 pointer-events-none ${className}`}
 			>
-				SmartArt
+				{t('pptx.smartArt.placeholder')}
 			</div>
 		);
 	}

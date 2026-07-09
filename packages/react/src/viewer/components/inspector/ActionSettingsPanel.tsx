@@ -22,14 +22,14 @@ interface ActionSettingsPanelProps {
 // ---------------------------------------------------------------------------
 
 const ACTION_TYPE_OPTIONS: Array<{ value: ElementActionType; label: string }> = [
-	{ value: 'none', label: 'None' },
-	{ value: 'url', label: 'Go to URL' },
-	{ value: 'slide', label: 'Go to Slide' },
-	{ value: 'firstSlide', label: 'First Slide' },
-	{ value: 'lastSlide', label: 'Last Slide' },
-	{ value: 'prevSlide', label: 'Previous Slide' },
-	{ value: 'nextSlide', label: 'Next Slide' },
-	{ value: 'endShow', label: 'End Show' },
+	{ value: 'none', label: 'pptx.hyperlink.actionNone' },
+	{ value: 'url', label: 'pptx.action.gotoUrl' },
+	{ value: 'slide', label: 'pptx.action.gotoSlide' },
+	{ value: 'firstSlide', label: 'pptx.hyperlink.actionFirstSlide' },
+	{ value: 'lastSlide', label: 'pptx.hyperlink.actionLastSlide' },
+	{ value: 'prevSlide', label: 'pptx.hyperlink.actionPrevSlide' },
+	{ value: 'nextSlide', label: 'pptx.hyperlink.actionNextSlide' },
+	{ value: 'endShow', label: 'pptx.hyperlink.actionEndShow' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -142,6 +142,7 @@ function ActionTriggerSection({
 	onChangeUrl,
 	onChangeSlide,
 }: ActionTriggerSectionProps): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className='space-y-1.5'>
 			<span className='text-muted-foreground font-medium'>{label}</span>
@@ -153,7 +154,7 @@ function ActionTriggerSection({
 			>
 				{ACTION_TYPE_OPTIONS.map((o) => (
 					<option key={o.value} value={o.value}>
-						{o.label}
+						{t(o.label)}
 					</option>
 				))}
 			</select>
@@ -174,7 +175,7 @@ function ActionTriggerSection({
 					type='number'
 					disabled={!canEdit}
 					className={cn(INPUT, 'w-full')}
-					placeholder='Slide number (1-based)'
+					placeholder={t('pptx.action.slideNumberPlaceholder')}
 					min={1}
 					max={slideCount}
 					value={(action?.slideIndex ?? fallbackSlideIndex ?? 0) + 1}

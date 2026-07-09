@@ -11,6 +11,7 @@ import {
 	resolveOleType,
 } from 'pptx-viewer-shared';
 import type { ResolvedOleType } from 'pptx-viewer-shared';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 
 import { DEFAULT_TEXT_COLOR, MIN_ELEMENT_SIZE } from '../../constants';
 import {
@@ -204,7 +205,7 @@ export function renderGroup(children: PptxElement[]) {
 							) : (
 								<img
 									src={('svgData' in c && c.svgData ? c.svgData : c.imageData) as string}
-									alt='Group child'
+									alt={translationsEn['pptx.ink.groupChildAlt']}
 									className='pointer-events-none select-none'
 									style={getImageRenderStyle(c)}
 									draggable={false}
@@ -298,7 +299,7 @@ export function renderContentPart(el: ContentPartPptxElement, options?: InkRende
 	}
 	return (
 		<div className='w-full h-full flex items-center justify-center text-[11px] text-white/80 pointer-events-none'>
-			Content Part
+			{translationsEn['pptx.ink.contentPartFallback']}
 		</div>
 	);
 }
@@ -372,7 +373,7 @@ export function PdfIcon(color: string, size = 32) {
 			/>
 			{/* PDF text */}
 			<text x='12' y='14' textAnchor='middle' fill={color} fontSize='7' fontWeight='bold'>
-				PDF
+				{translationsEn['pptx.file.pdf']}
 			</text>
 		</svg>
 	);

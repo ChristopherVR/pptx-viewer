@@ -21,6 +21,7 @@ import type {
 	ShapeStyle,
 	TextStyle,
 } from 'pptx-viewer-core';
+import { useTranslation } from 'react-i18next';
 
 import type { UseCommentsResult } from '../hooks/useComments-helpers';
 import type { CanvasSize, ViewerMode, TableCellEditorState } from '../types';
@@ -131,6 +132,8 @@ export function ViewerInspector({
 	theme,
 	panelWidth,
 }: ViewerInspectorProps): React.ReactElement | null {
+	const { t } = useTranslation();
+
 	if (!isOpen) {
 		return null;
 	}
@@ -149,7 +152,7 @@ export function ViewerInspector({
 	return (
 		<div
 			role='complementary'
-			aria-label='Properties'
+			aria-label={t('pptx.inspector.properties')}
 			className='h-full flex-shrink-0 max-md:absolute max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:z-30'
 			style={panelWidth ? { width: panelWidth } : undefined}
 		>
@@ -164,7 +167,7 @@ export function ViewerInspector({
 				selectedElementIds={effectiveSelectedIds}
 				tableEditorState={tableEditorState}
 				activeTab={sidebarPanelMode as InspectorTab}
-				onSetActiveTab={(t) => onSetSidebarPanelMode(t)}
+				onSetActiveTab={(nextTab) => onSetSidebarPanelMode(nextTab)}
 				onClose={onClose}
 				onUpdateElementStyle={onUpdateElementStyle}
 				onUpdateTextStyle={onUpdateTextStyle}

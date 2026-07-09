@@ -6,6 +6,7 @@ import type {
 	PptxHandoutMaster,
 } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { CanvasSize } from '../../types';
 import { cn } from '../../utils';
@@ -66,10 +67,11 @@ function CustomPropertiesBlock({
 	canEdit: boolean;
 	onUpdate: (props: PptxCustomProperty[]) => void;
 }): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className='space-y-1'>
 			<div className='flex items-center justify-between'>
-				<span className='text-muted-foreground'>Custom Properties</span>
+				<span className='text-muted-foreground'>{t('pptx.documentProperties.custom.heading')}</span>
 				{canEdit && (
 					<button
 						type='button'
@@ -85,12 +87,14 @@ function CustomPropertiesBlock({
 							])
 						}
 					>
-						Add
+						{t('pptx.documentProperties.custom.add')}
 					</button>
 				)}
 			</div>
 			{customProperties.length === 0 ? (
-				<div className='text-[10px] text-muted-foreground'>No custom properties</div>
+				<div className='text-[10px] text-muted-foreground'>
+					{t('pptx.documentProperties.custom.empty')}
+				</div>
 			) : (
 				customProperties.map((entry, index) => (
 					<div key={`${entry.name}-${index}`} className='grid grid-cols-[1fr,1fr,auto] gap-1'>
@@ -149,30 +153,33 @@ export function NotesHandoutCard({
 	notesMaster: PptxNotesMaster | undefined;
 	handoutMaster: PptxHandoutMaster | undefined;
 }): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className={CARD}>
-			<div className={HEADING}>Notes & Handout</div>
+			<div className={HEADING}>{t('pptx.documentProperties.notesHandoutHeading')}</div>
 			<div className='space-y-1 text-[11px] text-muted-foreground'>
 				<InfoRow
-					label='Notes Size'
+					label={t('pptx.documentProperties.notesSize')}
 					value={
 						notesCanvasSize
 							? `${notesCanvasSize.width} × ${notesCanvasSize.height}px`
-							: 'Not available'
+							: t('pptx.digitalSignatures.notAvailable')
 					}
 				/>
 				<InfoRow
-					label='Notes Master'
+					label={t('pptx.master.notesMasterTitle')}
 					value={
-						notesMaster ? `${notesMaster.placeholders?.length ?? 0} placeholders` : 'Not available'
+						notesMaster
+							? `${notesMaster.placeholders?.length ?? 0} placeholders`
+							: t('pptx.digitalSignatures.notAvailable')
 					}
 				/>
 				<InfoRow
-					label='Handout Master'
+					label={t('pptx.master.handoutMasterTitle')}
 					value={
 						handoutMaster
 							? `${handoutMaster.placeholders?.length ?? 0} placeholders`
-							: 'Not available'
+							: t('pptx.digitalSignatures.notAvailable')
 					}
 				/>
 			</div>
@@ -201,30 +208,31 @@ export function DocumentPropertiesCard({
 	onUpdateAppProperties: (patch: Partial<PptxAppProperties>) => void;
 	onUpdateCustomProperties: (props: PptxCustomProperty[]) => void;
 }): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className={CARD}>
-			<div className={HEADING}>Document</div>
+			<div className={HEADING}>{t('pptx.documentProperties.documentHeading')}</div>
 			<div className='space-y-2 text-[11px] text-muted-foreground'>
 				<TextFieldRow
-					label='Title'
+					label={t('pptx.properties.titleLabel')}
 					disabled={!canEdit}
 					value={coreProperties?.title ?? ''}
 					onChange={(v) => onUpdateCoreProperties({ title: v })}
 				/>
 				<TextFieldRow
-					label='Author'
+					label={t('pptx.properties.author')}
 					disabled={!canEdit}
 					value={coreProperties?.creator ?? ''}
 					onChange={(v) => onUpdateCoreProperties({ creator: v })}
 				/>
 				<TextFieldRow
-					label='Company'
+					label={t('pptx.documentProperties.summary.company')}
 					disabled={!canEdit}
 					value={appProperties?.company ?? ''}
 					onChange={(v) => onUpdateAppProperties({ company: v })}
 				/>
 				<TextFieldRow
-					label='Application'
+					label={t('pptx.documentProperties.statistics.application')}
 					disabled={!canEdit}
 					value={appProperties?.application ?? ''}
 					onChange={(v) => onUpdateAppProperties({ application: v })}

@@ -1,6 +1,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuEyeOff } from 'react-icons/lu';
 
 import { cn } from '../../utils';
@@ -27,6 +28,7 @@ export function ElementsTab({
 	setSlides,
 	markDirty,
 }: ElementsTabProps): React.ReactElement {
+	const { t } = useTranslation();
 	const activeSlide = slides[activeSlideIndex] as PptxSlide | undefined;
 
 	return (
@@ -60,7 +62,11 @@ export function ElementsTab({
 							<button
 								type='button'
 								className='text-muted-foreground hover:text-foreground'
-								title={element.hidden ? 'Show element' : 'Hide element'}
+								title={
+									element.hidden
+										? t('pptx.selectionPane.showElement')
+										: t('pptx.selectionPane.hideElement')
+								}
 								onClick={(event) => {
 									event.stopPropagation();
 									setSlides((prevSlides) => {
@@ -98,7 +104,7 @@ export function ElementsTab({
 					);
 				})
 			) : (
-				<div className='text-muted-foreground italic'>No slide selected</div>
+				<div className='text-muted-foreground italic'>{t('pptx.inspector.noSlideSelected')}</div>
 			)}
 		</div>
 	);

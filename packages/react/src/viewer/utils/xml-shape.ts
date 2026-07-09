@@ -1,4 +1,5 @@
 import type { ConnectorPptxElement, PptxElementWithText, XmlObject } from 'pptx-viewer-core';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 
 import { DEFAULT_STROKE_COLOR, EMU_PER_PX } from '../constants';
 import { normalizeHexColor } from './color';
@@ -6,7 +7,9 @@ import { normalizeStrokeDashType } from './style';
 
 export function createTemplateShapeRawXml(element: PptxElementWithText): XmlObject {
 	const isText = element.type === 'text';
-	const name = isText ? 'TextBox' : 'Rectangle';
+	const name = isText
+		? translationsEn['pptx.elementType.textBox']
+		: translationsEn['pptx.editorToolbar.shapeRectangle'];
 	const geometry = element.shapeType === 'cylinder' ? 'can' : element.shapeType || 'rect';
 	const adjustmentEntries = Object.entries(element.shapeAdjustments || {}).filter(
 		([key, value]) => key.trim().length > 0 && Number.isFinite(value),

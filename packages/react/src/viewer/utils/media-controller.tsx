@@ -1,5 +1,6 @@
 import type { MediaPptxElement } from 'pptx-viewer-core';
 import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { registerPersistentAudio } from './media-persistent-audio';
 
@@ -37,6 +38,7 @@ export function PresentationMediaController({
 	onPlayStateChange,
 	children,
 }: PresentationMediaControllerProps): React.ReactElement {
+	const { t } = useTranslation();
 	const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null);
 	const fadeTimerRef = useRef<number | null>(null);
 	const trimTimerRef = useRef<number | null>(null);
@@ -293,7 +295,7 @@ export function PresentationMediaController({
 					type='button'
 					className='absolute bottom-3 right-3 z-30 rounded-full bg-black/50 hover:bg-black/70 text-white/80 hover:text-white p-2 transition-colors pointer-events-auto'
 					onClick={handleStopFullScreen}
-					aria-label='Stop full-screen playback'
+					aria-label={t('pptx.media.stopFullscreenAria')}
 				>
 					<svg width='18' height='18' viewBox='0 0 24 24' fill='currentColor' stroke='none'>
 						<rect x='6' y='6' width='12' height='12' rx='1' />

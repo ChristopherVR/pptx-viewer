@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import { MediaNotFoundPlaceholder, VideoWithMetadata, AudioWithMetadata } from './media-components';
@@ -34,7 +35,7 @@ export function renderMediaElement(
 	if (element.type !== 'media') {
 		return (
 			<div className='w-full h-full flex items-center justify-center text-[11px] text-white/80 pointer-events-none'>
-				Media
+				{translationsEn['pptx.media.title']}
 			</div>
 		);
 	}
@@ -90,7 +91,7 @@ export function renderMediaElement(
 				<div className='w-full h-full relative pointer-events-none'>
 					<img
 						src={posterUrl}
-						alt='Media poster'
+						alt={translationsEn['pptx.media.posterAlt']}
 						className='w-full h-full object-contain opacity-50'
 					/>
 					<div className='absolute inset-0 flex flex-col items-center justify-center gap-1'>
@@ -106,7 +107,9 @@ export function renderMediaElement(
 							<circle cx='12' cy='12' r='10' />
 							<line x1='4' y1='4' x2='20' y2='20' />
 						</svg>
-						<span className='text-[10px] text-white/60'>Media not found</span>
+						<span className='text-[10px] text-white/60'>
+							{translationsEn['pptx.media.notFound']}
+						</span>
 					</div>
 				</div>
 			);
@@ -146,7 +149,11 @@ export function renderMediaElement(
 		if (posterUrl) {
 			return (
 				<div className='w-full h-full relative pointer-events-none'>
-					<img src={posterUrl} alt='Video poster' className='w-full h-full object-contain' />
+					<img
+						src={posterUrl}
+						alt={translationsEn['pptx.media.videoPosterAlt']}
+						className='w-full h-full object-contain'
+					/>
 					<div className='absolute inset-0 flex items-center justify-center'>
 						<svg
 							width='48'

@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import { renderAreaChart, renderLineChart } from './chart-area-line';
@@ -21,7 +22,7 @@ export function renderChartElement(element: PptxElement): React.ReactNode {
 	if (element.type !== 'chart') {
 		return (
 			<div className='w-full h-full flex items-center justify-center text-[11px] text-white/80 pointer-events-none'>
-				Chart
+				{translationsEn['pptx.chart.heading']}
 			</div>
 		);
 	}
@@ -30,7 +31,7 @@ export function renderChartElement(element: PptxElement): React.ReactNode {
 	if (!chartData || chartData.series.length === 0) {
 		return (
 			<div className='w-full h-full flex items-center justify-center text-[11px] text-white/80 pointer-events-none'>
-				Chart
+				{translationsEn['pptx.chart.heading']}
 			</div>
 		);
 	}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuLayers, LuMessageSquare, LuPlus, LuSettings2, LuStickyNote } from 'react-icons/lu';
 
 import { cn } from '../../utils';
@@ -43,35 +44,36 @@ export function MobileBottomBar({
 	activeSheet,
 	commentCount,
 }: MobileBottomBarProps): React.ReactElement {
+	const { t } = useTranslation();
 	const actions: Action[] = [
 		{
 			key: 'slides',
-			label: 'Slides',
+			label: 'pptx.sections.slides',
 			icon: LuLayers,
 			onClick: onOpenSlides,
 		},
 		{
 			key: 'insert',
-			label: 'Insert',
+			label: 'pptx.mobileBar.insert',
 			icon: LuPlus,
 			onClick: onOpenInsert,
 		},
 		{
 			key: 'inspector',
-			label: 'Format',
+			label: 'pptx.field.format',
 			icon: LuSettings2,
 			onClick: onOpenInspector,
 		},
 		{
 			key: 'comments',
-			label: 'Comments',
+			label: 'pptx.toolbar.comments',
 			icon: LuMessageSquare,
 			onClick: onOpenComments,
 			badge: commentCount,
 		},
 		{
 			key: 'notes',
-			label: 'Notes',
+			label: 'pptx.notes.title',
 			icon: LuStickyNote,
 			onClick: onToggleNotes,
 		},
@@ -79,7 +81,7 @@ export function MobileBottomBar({
 
 	return (
 		<nav
-			aria-label='Editor actions'
+			aria-label={t('pptx.mobileBar.ariaLabel')}
 			// Visibility is owned by the parent (rendered only when `isMobile`), so
 			// no width-based `md:hidden` here; that would wrongly hide the bar on a
 			// wide-but-short landscape phone, which is still mobile.
@@ -99,7 +101,7 @@ export function MobileBottomBar({
 						aria-pressed={active}
 					>
 						<Icon className='w-5 h-5' />
-						<span>{label}</span>
+						<span>{t(label)}</span>
 						{badge !== undefined && badge > 0 && (
 							<span className='absolute top-1 right-1/4 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary text-[9px] font-semibold text-white'>
 								{badge > 99 ? '99+' : badge}

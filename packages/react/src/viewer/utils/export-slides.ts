@@ -1,6 +1,7 @@
 /**
  * PNG and PDF slide export utilities.
  */
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import type {
@@ -144,7 +145,7 @@ export async function exportAllSlidesAsPdf(
 	setActiveSlide(currentSlideIndex);
 
 	if (images.length === 0) {
-		throw new Error('No slides were captured for PDF export');
+		throw new Error(translationsEn['pptx.export.errorNoSlidesPdf']);
 	}
 
 	const pdfBlobUrl = buildPdfFromImageData(images);
@@ -251,7 +252,7 @@ export async function exportAllSlidesAsNotesPdf(
 	setActiveSlide(currentSlideIndex);
 
 	if (pages.length === 0) {
-		throw new Error('No slides were captured for notes PDF export');
+		throw new Error(translationsEn['pptx.export.errorNoSlidesNotesPdf']);
 	}
 
 	const pdfDataUrl = buildNotesPdf(pages);

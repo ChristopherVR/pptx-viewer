@@ -1,3 +1,4 @@
+import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 /**
  * Tests for collaboration UI components: pure logic and rendering checks.
@@ -36,7 +37,16 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 			if (typeof v === 'function') {
 				return v(opts ?? {});
 			}
-			return v ?? key;
+			if (typeof v === 'string') {
+				return v;
+			}
+			const fallback = translationsEn[key];
+			if (fallback === undefined) {
+				return key;
+			}
+			return opts
+				? fallback.replace(/\{\{(\w+)\}\}/gu, (_m, name: string) => String(opts[name] ?? ''))
+				: fallback;
 		},
 	}),
 }));
@@ -579,7 +589,7 @@ describe('collaborationStatusIndicator - extended', () => {
 		const html = render(
 			<CollaborationStatusIndicator status='error' connectedCount={0} onRetry={() => {}} />,
 		);
-		expect(html).toContain('pptx.collaboration.retry');
+		expect(html).toContain('>Retry<');
 		expect(html).toContain('<button');
 	});
 

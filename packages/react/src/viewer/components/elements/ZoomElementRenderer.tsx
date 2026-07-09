@@ -1,5 +1,6 @@
 import type { ZoomPptxElement, PptxSlide } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { renderImg } from './ImageRenderer';
 
@@ -30,6 +31,7 @@ export function ZoomElementRenderer({
 	onZoomClick,
 	sourceSlideIndex,
 }: ZoomElementRendererProps): React.ReactElement {
+	const { t } = useTranslation();
 	const targetSlide = slides?.[element.targetSlideIndex];
 
 	const handleClick = (e: React.MouseEvent) => {
@@ -124,7 +126,7 @@ export function ZoomElementRenderer({
 					lineHeight: '1.4',
 				}}
 			>
-				{element.zoomType === 'section' ? 'Section' : 'Slide'} Zoom
+				{element.zoomType === 'section' ? t('pptx.zoom.sectionZoom') : t('pptx.zoom.slideZoom')}
 			</div>
 		</div>
 	);

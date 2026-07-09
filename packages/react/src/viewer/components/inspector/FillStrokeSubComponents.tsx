@@ -18,20 +18,23 @@ export const SelectRow: React.FC<{
 	label: string;
 	value: string;
 	span2?: boolean;
-	options: Array<{ value: string; label: string }>;
+	options: Array<{ value: string; label: string; i18nKey?: string }>;
 	onChange: (v: string) => void;
-}> = ({ label, value, span2, options, onChange }) => (
-	<label className={`flex flex-col gap-1 ${span2 ? COL2 : ''}`}>
-		<span className={LBL}>{label}</span>
-		<select value={value} onChange={(e) => onChange(e.target.value)} className={SEL}>
-			{options.map((o) => (
-				<option key={o.value} value={o.value}>
-					{o.label}
-				</option>
-			))}
-		</select>
-	</label>
-);
+}> = ({ label, value, span2, options, onChange }) => {
+	const { t } = useTranslation();
+	return (
+		<label className={`flex flex-col gap-1 ${span2 ? COL2 : ''}`}>
+			<span className={LBL}>{label}</span>
+			<select value={value} onChange={(e) => onChange(e.target.value)} className={SEL}>
+				{options.map((o) => (
+					<option key={o.value} value={o.value}>
+						{o.i18nKey ? t(o.i18nKey) : o.label}
+					</option>
+				))}
+			</select>
+		</label>
+	);
+};
 
 // ---------------------------------------------------------------------------
 // ColorPickerRow
@@ -46,6 +49,7 @@ export const ColorPickerRow: React.FC<{
 	recentColors?: string[];
 	onChange: (c: string) => void;
 }> = ({ label, value, disabled, prefix, recentColors, onChange }) => {
+	const { t } = useTranslation();
 	const handleEyedropper = async (): Promise<void> => {
 		const color = await openNativeEyeDropper();
 		if (color) {
@@ -68,7 +72,7 @@ export const ColorPickerRow: React.FC<{
 					type='button'
 					disabled={disabled}
 					className='h-8 w-8 flex items-center justify-center rounded border border-border bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
-					title='Eyedropper — pick colour from screen'
+					title={t('pptx.fillStroke.eyedropperTooltip')}
 					onClick={(e) => {
 						e.preventDefault();
 						void handleEyedropper();
@@ -118,6 +122,7 @@ export const GradientStopRow: React.FC<{
 	onUpdate: (stops: GradientStop[]) => void;
 	allStops: GradientStop[];
 }> = ({ stop, index, total, onUpdate, allStops }) => {
+	const { t } = useTranslation();
 	const patchStop = (patch: Partial<GradientStop>): void => {
 		const next = allStops.map((s, i) => (i === index ? { ...s, ...patch } : s));
 		onUpdate(next);
@@ -145,7 +150,7 @@ export const GradientStopRow: React.FC<{
 					className='rounded bg-muted px-2 py-1 text-[11px] hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed'
 					onClick={() => onUpdate(allStops.filter((_, i) => i !== index))}
 				>
-					Remove
+					{t('pptx.comments.remove')}
 				</button>
 			</div>
 			<div className='grid grid-cols-[auto,1fr,auto] items-center gap-2 pl-1'>
