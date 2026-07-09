@@ -46,13 +46,17 @@ const FRAMEWORKS = [
 // Ordered to match the ribbon's own tab order. Slide Show is excluded: it can
 // trigger presentation-mode side effects on some builds, which isn't this
 // spec's concern (covered elsewhere) and isn't worth the flakiness risk here.
+// "Text" and "Arrange" are also excluded: they aren't top-level ribbon tabs in
+// any of the three frameworks' `TOOLBAR_SECTIONS` (React/Vue identical,
+// Angular's `ribbon.component.ts` mirrors React) - text/arrange controls are
+// folded into the Home tab rather than a standalone tab button, so clicking a
+// same-named "Text"/"Arrange" button here previously hit a *different*,
+// selection-gated control (e.g. DrawingGroup's Arrange dropdown) and timed out.
 const TABS = [
 	'File',
 	'Home',
 	'Insert',
-	'Text',
 	'Draw',
-	'Arrange',
 	'Design',
 	'Transitions',
 	'Animations',
