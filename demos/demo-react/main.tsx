@@ -74,11 +74,25 @@ function isP2PConfig(config: CollaborationConfig): boolean {
 	return config.transport === 'webrtc' || config.serverUrl.trim().length === 0;
 }
 
+/**
+ * Cryptographically strong base-36 token of `length` characters, a drop-in
+ * replacement for the insecure `Math.random().toString(36)` idiom.
+ */
+function secureRandomToken(length: number): string {
+	const bytes = new Uint8Array(length);
+	crypto.getRandomValues(bytes);
+	let out = '';
+	for (const b of bytes) {
+		out += (b % 36).toString(36);
+	}
+	return out;
+}
+
 /** Random hex colour for a local presence cursor. */
 function randomCursorColor(): string {
-	return `#${Math.floor(Math.random() * 0xffffff)
-		.toString(16)
-		.padStart(6, '0')}`;
+	const bytes = new Uint8Array(3);
+	crypto.getRandomValues(bytes);
+	return `#${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
 }
 
 /** Parse a comma-separated `?signaling=` list into a clean URL array. */
@@ -428,9 +442,9 @@ function App() {
 	} | null>(null);
 	const [themeKey, setThemeKey] = useState<string>(() => {
 		try {
-			return localStorage.getItem('pptx-demo-theme') ?? 'dark';
+			return localStorage.getItem('pptx-demo-theme') ?? 'vermilionDark';
 		} catch {
-			return 'dark';
+			return 'vermilionDark';
 		}
 	});
 	const [languageKey, setLanguageKey] = useState<string>(() => {
@@ -479,7 +493,7 @@ function App() {
 		if (stored) {
 			return stored;
 		}
-		const id = `session-${Math.random().toString(36).slice(2, 10)}`;
+		const id = `session-${secureRandomToken(8)}`;
 		sessionStorage.setItem('pptx-demo-room-id', id);
 		return id;
 	}, []);
@@ -494,7 +508,7 @@ function App() {
 		} else if (ua.includes('Linux')) {
 			platform = 'Linux';
 		}
-		const id = Math.random().toString(36).slice(2, 6);
+		const id = secureRandomToken(4);
 		return `${platform}-${id}`;
 	}, []);
 
@@ -816,7 +830,7 @@ function App() {
 		}
 	}, [collaborationConfig, content, fileName]);
 
-	const currentPreset = themes[themeKey] ?? themes.dark;
+	const currentPreset = themes[themeKey] ?? themes.vermilionDark;
 
 	// Apply theme CSS vars to :root so Tailwind's @theme var() references resolve
 	useRootTheme(currentPreset.theme);
