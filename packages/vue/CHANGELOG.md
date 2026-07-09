@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.11.0) - 2026-07-09
+
+### Features
+
+- **shared:** Add vermilion light/dark theme presets to all bindings (by @ChristopherVR) ([1b6e816](https://github.com/ChristopherVR/pptx-viewer/commit/1b6e8161679a3f984cbfedb09ece0c8c01570c0a))
+
+### Other
+
+- Reconcile with origin/main before push (by @ChristopherVR) ([10acef8](https://github.com/ChristopherVR/pptx-viewer/commit/10acef81a7f5d79e778e4e4464d956cc84682f7c))
+
 ## [1.10.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.10.2) - 2026-07-09
 
 ### Other
