@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-09
+
+_Releases: pptx-viewer-core@1.2.4, pptx-react-viewer@1.10.1, pptx-vue-viewer@1.10.1, pptx-angular-viewer@1.11.0_
+
+### Features
+
+- **angular:** Use lucide SVG icons and scrollable ribbon tabs (by @ChristopherVR) ([5a2e9aa](https://github.com/ChristopherVR/pptx-viewer/commit/5a2e9aaf07550f7dd1a6528dd3ce2bf8e5487da8))
+
+### Bug Fixes
+
+- **demos:** Trust any wss:// server for collab auto-connect (by @ChristopherVR) ([a662a84](https://github.com/ChristopherVR/pptx-viewer/commit/a662a845c931838a29b7caa77d2ea7816a0b0f82))
+- **core:** Preserve SmartArt node geometry when round-tripping (by @ChristopherVR) ([cc5bd78](https://github.com/ChristopherVR/pptx-viewer/commit/cc5bd789e59d3cc772c9600512377317cad05772))
+
 ## 2026-07-08
 
 _Releases: pptx-react-viewer@1.10.0, pptx-vue-viewer@1.10.0, pptx-angular-viewer@1.10.0_

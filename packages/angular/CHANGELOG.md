@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.11.0) - 2026-07-09
+
+### Features
+
+- **angular:** Use lucide SVG icons and scrollable ribbon tabs (by @ChristopherVR) ([5a2e9aa](https://github.com/ChristopherVR/pptx-viewer/commit/5a2e9aaf07550f7dd1a6528dd3ce2bf8e5487da8))
+
 ## [1.10.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.10.0) - 2026-07-08
 
 ## [1.9.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.9.1) - 2026-07-08
