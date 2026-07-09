@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { hasTextProperties } from 'pptx-viewer-core';
 import React from 'react';
 import type { CSSProperties } from 'react';
 
@@ -10,6 +11,23 @@ import {
 	renderDagDuotoneSvgFilter,
 } from '../../utils';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
+
+/**
+ * Whether the element actually carries a run-level text hyperlink
+ * (`a:hlinkClick` on any text run). Used to decide whether the element wrapper
+ * must stay pointer-interactive so an inner hyperlink span can receive clicks.
+ *
+ * This must reflect the ELEMENT's data, not the presence of an `onHyperlinkClick`
+ * handler prop: the handler is always supplied by the canvas, so keying off it
+ * would make every element (including inert layout/master template shapes)
+ * report as actionable and defeat the `editTemplateMode` interaction gate.
+ */
+export function elementHasTextHyperlink(el: PptxElement): boolean {
+	if (!hasTextProperties(el)) {
+		return false;
+	}
+	return Boolean(el.textSegments?.some((segment) => Boolean(segment.style?.hyperlink)));
+}
 
 /* ───────────────────────── DagDuotone SVG filter ──────────────────────── */
 
