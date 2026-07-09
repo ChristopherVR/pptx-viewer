@@ -1,4 +1,6 @@
 import type { PptxChartSeries } from 'pptx-viewer-core';
+import type { Ref } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPlus, LuTrash2 } from 'react-icons/lu';
 
@@ -12,6 +14,12 @@ export interface ChartDataGridProps {
 	series: PptxChartSeries[];
 	categories: string[];
 	canEdit: boolean;
+	/**
+	 * Cell to highlight, driven by the on-canvas chart part selection: a
+	 * `pointIndex` highlights one value cell, series-only highlights the
+	 * series name header.
+	 */
+	highlightCell?: { seriesIndex: number; pointIndex?: number } | null;
 	onUpdateSeries: (index: number, patch: Partial<PptxChartSeries>) => void;
 	onUpdateCategoryLabel: (catIndex: number, value: string) => void;
 	onUpdateValue: (seriesIndex: number, catIndex: number, raw: string) => void;
@@ -29,6 +37,7 @@ export function ChartDataGrid({
 	series,
 	categories,
 	canEdit,
+	highlightCell,
 	onUpdateSeries,
 	onUpdateCategoryLabel,
 	onUpdateValue,
@@ -38,6 +47,18 @@ export function ChartDataGrid({
 	onRemoveSeries,
 }: ChartDataGridProps) {
 	const { t } = useTranslation();
+	const highlightRef = useRef<HTMLElement | null>(null);
+
+	// Bring the canvas-selected cell into view when the selection changes.
+	useEffect(() => {
+		highlightRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+	}, [highlightCell?.seriesIndex, highlightCell?.pointIndex]);
+
+	const highlightClass = ' ring-1 ring-primary';
+	const isSeriesHighlight = (si: number) =>
+		highlightCell?.seriesIndex === si && highlightCell.pointIndex === undefined;
+	const isValueHighlight = (si: number, ci: number) =>
+		highlightCell?.seriesIndex === si && highlightCell.pointIndex === ci;
 
 	return (
 		<div className={CARD}>
@@ -72,7 +93,7 @@ export function ChartDataGrid({
 					<thead>
 						<tr>
 							<th
-								aria-label='Categories'
+								aria-label={t('pptx.chart.categories')}
 								className='text-muted-foreground p-0.5 text-left min-w-[60px]'
 							/>
 							{series.map((s, si) => (
@@ -81,7 +102,8 @@ export function ChartDataGrid({
 										<input
 											type='text'
 											disabled={!canEdit}
-											className={CELL_INPUT}
+											ref={isSeriesHighlight(si) ? (highlightRef as Ref<HTMLInputElement>) : null}
+											className={`${CELL_INPUT}${isSeriesHighlight(si) ? highlightClass : ''}`}
 											value={s.name}
 											onChange={(e) => onUpdateSeries(si, { name: e.target.value })}
 										/>
@@ -130,7 +152,10 @@ export function ChartDataGrid({
 											type='number'
 											aria-label={`${s.name} value ${ci + 1}`}
 											disabled={!canEdit}
-											className={CELL_INPUT}
+											ref={
+												isValueHighlight(si, ci) ? (highlightRef as Ref<HTMLInputElement>) : null
+											}
+											className={`${CELL_INPUT}${isValueHighlight(si, ci) ? highlightClass : ''}`}
 											value={s.values[ci] ?? 0}
 											onChange={(e) => onUpdateValue(si, ci, e.target.value)}
 										/>

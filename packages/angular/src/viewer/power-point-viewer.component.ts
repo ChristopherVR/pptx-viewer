@@ -21,6 +21,7 @@ import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
 import { AutosaveService } from './autosave.service';
 import { BroadcastDialogComponent } from './broadcast-dialog.component';
+import { ChartPartSelectionService } from './chart-part-selection.service';
 import { CollaborationCursorsComponent } from './collaboration-cursors.component';
 import { CollaborationService } from './collaboration.service';
 import {
@@ -122,6 +123,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		LoadContentService,
 		ExportService,
 		EditorStateService,
+		ChartPartSelectionService,
 		TableSelectionService,
 		EmbeddedFontsService,
 		CollaborationService,

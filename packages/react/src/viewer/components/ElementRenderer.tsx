@@ -112,6 +112,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const smartArtUpdateHandler = onUpdateSmartArtElement
 			? (updates: Partial<PptxElement>) => onUpdateSmartArtElement(el.id, updates)
 			: undefined;
+		// On-canvas chart edits route through the same generic element-update path
+		// (updateElementById) the SmartArt handler wraps, so they share it.
+		const chartUpdateHandler = smartArtUpdateHandler;
 		const { hf, fc, sw, sc } = shapeParams(el);
 		const elementLocks = el.locks;
 		const isTxt = isEditableTextElement(el) && !elementLocks?.noTextEdit;
@@ -164,6 +167,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		// element must be interactive (so not presentation/passive) and not text-
 		// locked. The leaf additionally requires the update handler to be present.
 		const canEditSmartArt = effectiveCanInteract && !elementLocks?.noTextEdit;
+		// Direct chart-part editing follows the interactivity gate only: chart data
+		// edits are not text edits, so `noTextEdit` does not apply.
+		const canEditChart = effectiveCanInteract;
 
 		// Elements with actions or hyperlinks should be clickable even when not
 		// in editing mode (e.g. during presentation mode). `hasHyperlinks` must
@@ -339,6 +345,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					tableStyleContext,
 					canEditSmartArt,
 					onUpdateSmartArtElement: smartArtUpdateHandler,
+					canEditChart,
+					onUpdateChartElement: chartUpdateHandler,
 					onFormatText,
 				})}
 				{(el.actionClick || el.actionHover) && canInteract && (

@@ -25,7 +25,7 @@ Las diapositivas se renderizan como HTML/CSS en lugar de Canvas, lo que da texto
 - **Fuentes** - el texto usa fuentes disponibles en el navegador; las fuentes faltantes recurren a los valores predeterminados del sistema.
 - **Codecs de medios** - la reproduccion de audio/video depende del soporte de codecs del navegador.
 - **Transiciones morph** - los elementos sin contraparte en la siguiente diapositiva se difuminan en lugar de hacer morph.
-- **Los graficos no son directamente manipulables** - los graficos se renderizan como SVG estatico y se editan a traves del panel inspector.
+- **La manipulacion directa de graficos depende del tipo de grafico** - las barras y los puntos de graficos de lineas, dispersion y burbujas se pueden arrastrar en el lienzo para cambiar sus valores (un clic selecciona una marca, doble clic en el titulo lo renombra); las marcas circulares, radiales y apiladas se seleccionan con clic y sus valores se editan en el panel inspector; los graficos de mapas y superficies 3D se renderizan como SVG estatico.
 - **Fidelidad de exportacion raster** - la exportacion PNG/JPEG/PDF usa `html2canvas`, que no puede reproducir `backdrop-filter`, propiedades CSS personalizadas o transformaciones CSS 3D.
 - **Pantallas pequenas** - la interfaz se adapta hasta telefonos de unos 360 px, pero los paneles mas densos en datos son mejores en una tableta o pantalla mas grande.
 - **Los modelos 3D necesitan `three`** - los elementos GLB/GLTF requieren la dependencia opcional `three`; sin ella, recurren a una imagen de poster.

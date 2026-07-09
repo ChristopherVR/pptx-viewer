@@ -26,18 +26,9 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { ChartPrimitivesComponent } from './chart-primitives.component';
 import { buildChartViewModel } from './chart-renderer-helpers';
-import type {
-	ChartViewModel,
-	SvgCircle,
-	SvgLine,
-	SvgPath,
-	SvgPolygon,
-	SvgPolyline,
-	SvgPrimitive,
-	SvgRect,
-	SvgText,
-} from './chart-renderer-helpers';
+import type { ChartViewModel } from './chart-renderer-helpers';
 
 export type { ChartViewModel };
 
@@ -48,7 +39,7 @@ const LEGEND_ITEM_WIDTH = 80;
 	selector: 'pptx-chart-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [],
+	imports: [ChartPrimitivesComponent],
 	template: `
 		<svg
 			[attr.width]="vm().svgWidth"
@@ -66,7 +57,7 @@ const LEGEND_ITEM_WIDTH = 80;
 				fill="#0f172a0d"
 			/>
 
-			<!-- Chart title -->
+			<!-- Chart title (data-chart-part enables in-place editing in edit mode) -->
 			@if (vm().title) {
 				<text
 					[attr.x]="vm().titleX"
@@ -75,6 +66,7 @@ const LEGEND_ITEM_WIDTH = 80;
 					font-size="12"
 					font-weight="600"
 					fill="#1e293b"
+					data-chart-part="title"
 				>
 					{{ vm().title }}
 				</text>
@@ -162,83 +154,9 @@ const LEGEND_ITEM_WIDTH = 80;
 				</text>
 			}
 
-			<!-- Data primitives (bars, lines, arcs, dots ...) -->
-			@for (prim of vm().primitives; track $index) {
-				@switch (prim.kind) {
-					@case ('rect') {
-						<rect
-							[attr.x]="asRect(prim).x"
-							[attr.y]="asRect(prim).y"
-							[attr.width]="asRect(prim).w"
-							[attr.height]="asRect(prim).h"
-							[attr.fill]="asRect(prim).fill"
-							[attr.rx]="asRect(prim).rx ?? 0"
-							[attr.opacity]="asRect(prim).opacity ?? 1"
-						/>
-					}
-					@case ('path') {
-						<path
-							[attr.d]="asPath(prim).d"
-							[attr.fill]="asPath(prim).fill"
-							[attr.stroke]="asPath(prim).stroke ?? 'none'"
-							[attr.stroke-width]="asPath(prim).strokeWidth ?? 0"
-						/>
-					}
-					@case ('polyline') {
-						<polyline
-							[attr.points]="asPolyline(prim).points"
-							[attr.stroke]="asPolyline(prim).stroke"
-							[attr.stroke-width]="asPolyline(prim).strokeWidth"
-							[attr.fill]="asPolyline(prim).fill"
-							[attr.opacity]="asPolyline(prim).opacity ?? 1"
-						/>
-					}
-					@case ('circle') {
-						<circle
-							[attr.cx]="asCircle(prim).cx"
-							[attr.cy]="asCircle(prim).cy"
-							[attr.r]="asCircle(prim).r"
-							[attr.fill]="asCircle(prim).fill"
-							[attr.opacity]="asCircle(prim).opacity ?? 1"
-						/>
-					}
-					@case ('line') {
-						<line
-							[attr.x1]="asLine(prim).x1"
-							[attr.y1]="asLine(prim).y1"
-							[attr.x2]="asLine(prim).x2"
-							[attr.y2]="asLine(prim).y2"
-							[attr.stroke]="asLine(prim).stroke"
-							[attr.stroke-width]="asLine(prim).strokeWidth"
-						/>
-					}
-					@case ('polygon') {
-						<polygon
-							[attr.points]="asPolygon(prim).points"
-							[attr.fill]="asPolygon(prim).fill"
-							[attr.stroke]="asPolygon(prim).stroke"
-							[attr.stroke-width]="asPolygon(prim).strokeWidth"
-							[attr.opacity]="asPolygon(prim).opacity ?? 1"
-							[attr.stroke-dasharray]="asPolygon(prim).dashArray ?? null"
-						/>
-					}
-					@case ('text') {
-						<text
-							[attr.x]="asText(prim).x"
-							[attr.y]="asText(prim).y"
-							[attr.text-anchor]="asText(prim).textAnchor"
-							[attr.font-size]="asText(prim).fontSize"
-							[attr.fill]="asText(prim).fill"
-							[attr.font-weight]="asText(prim).fontWeight ?? 'normal'"
-							[attr.dominant-baseline]="asText(prim).dominantBaseline ?? 'auto'"
-							[attr.opacity]="asText(prim).opacity ?? 1"
-							[attr.transform]="asText(prim).transform ?? null"
-						>
-							{{ asText(prim).text }}
-						</text>
-					}
-				}
-			}
+			<!-- Data primitives (bars, lines, arcs, dots ...); data marks carry
+			     data-chart-* hit-testing attributes (inert outside edit mode). -->
+			<g pptx-chart-primitives [primitives]="vm().primitives"></g>
 
 			<!-- Data labels -->
 			@for (dl of vm().dataLabels; track $index) {
@@ -290,27 +208,5 @@ export class ChartRendererComponent {
 			: v.legendX - (v.legend.length * LEGEND_ITEM_WIDTH) / 2 + index * LEGEND_ITEM_WIDTH;
 		const y = isVertical ? v.legendY + index * 14 : v.legendY;
 		return `translate(${x.toFixed(1)},${y.toFixed(1)})`;
-	}
-
-	asRect(p: SvgPrimitive): SvgRect {
-		return p as SvgRect;
-	}
-	asPath(p: SvgPrimitive): SvgPath {
-		return p as SvgPath;
-	}
-	asPolyline(p: SvgPrimitive): SvgPolyline {
-		return p as SvgPolyline;
-	}
-	asCircle(p: SvgPrimitive): SvgCircle {
-		return p as SvgCircle;
-	}
-	asLine(p: SvgPrimitive): SvgLine {
-		return p as SvgLine;
-	}
-	asPolygon(p: SvgPrimitive): SvgPolygon {
-		return p as SvgPolygon;
-	}
-	asText(p: SvgPrimitive): SvgText {
-		return p as SvgText;
 	}
 }

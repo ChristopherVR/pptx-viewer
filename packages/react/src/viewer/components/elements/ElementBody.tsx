@@ -1,4 +1,5 @@
 import type {
+	ChartPptxElement,
 	ContentPartPptxElement,
 	GroupPptxElement,
 	Model3DPptxElement,
@@ -15,7 +16,6 @@ import {
 	getTextCompensationTransform,
 	getTextLayoutStyle,
 	getTextWarpStyle,
-	renderChartElement,
 	renderMediaElement,
 	renderTableElement,
 	renderTextSegments,
@@ -25,6 +25,7 @@ import {
 import { buildTextBody3DSceneStyle } from '../../utils/text-effects';
 import { shouldUseSvgWarp, WarpedText } from '../../utils/text-warp';
 import { ActionButtonGlyphOverlay, isActionButtonShape } from './ActionButtonGlyphOverlay';
+import { ChartElementView } from './ChartElementView';
 import type { RenderBodyOptions } from './element-body-types';
 import { renderImg } from './ImageRenderer';
 import { renderInk, renderGroup, renderContentPart } from './InkGroupRenderers';
@@ -77,6 +78,8 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 		onFormatText,
 		canEditSmartArt,
 		onUpdateSmartArtElement,
+		canEditChart,
+		onUpdateChartElement,
 	} = options;
 	if (el.type === 'model3d') {
 		return (
@@ -135,7 +138,13 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 		});
 	}
 	if (el.type === 'chart') {
-		return renderChartElement(el);
+		return (
+			<ChartElementView
+				element={el as ChartPptxElement}
+				editable={Boolean(isSel && canEditChart)}
+				onUpdateElement={onUpdateChartElement}
+			/>
+		);
 	}
 	if (el.type === 'smartArt') {
 		return (

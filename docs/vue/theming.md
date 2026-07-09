@@ -1,0 +1,248 @@
+---
+title: Theming
+description: Customise the viewer with the ViewerTheme type, defaultThemeColors, themeToCssVars, provideViewerTheme/useViewerTheme, and the --pptx-* CSS custom properties.
+---
+
+# Theming
+
+The viewer's UI is built from utility classes that reference **CSS custom properties** (`--pptx-*`)
+for every visual token, the same convention as the React and Angular bindings. This means you can
+theme it three ways, in increasing order of control.
+
+## Three styling modes
+
+### Mode 1 - Tailwind CSS v4 project (no extra setup)
+
+If your app already uses Tailwind CSS v4 with the shadcn-style semantic tokens, the viewer's classes
+resolve through your existing config. No CSS import needed. Override specific values with the
+[`theme` prop](#the-theme-prop).
+
+### Mode 2 - bundled stylesheet
+
+If you do not use Tailwind, import the self-contained stylesheet once at your entry point. It ships
+all required utility classes plus dark-theme defaults.
+
+```ts
+import 'pptx-vue-viewer/styles';
+// or: import 'pptx-vue-viewer/styles.css';
+```
+
+### Mode 3 - raw CSS custom properties
+
+For full control, define the `--pptx-*` properties yourself and skip both the bundled CSS and the
+`theme` prop:
+
+```css
+:root {
+	--pptx-background: #030712;
+	--pptx-foreground: #f3f4f6;
+	--pptx-primary: #6366f1;
+	--pptx-primary-foreground: #ffffff;
+	--pptx-card: #111827;
+	--pptx-border: #374151;
+	--pptx-ring: #6366f1;
+	--pptx-radius: 0.5rem;
+	/* ...see defaultCssVars() for the complete list */
+}
+```
+
+## The `theme` prop
+
+The simplest path is to pass a `ViewerTheme` to the component. It is merged over the built-in dark
+defaults, so you only override what you need.
+
+```vue
+<script setup lang="ts">
+import { PowerPointViewer } from 'pptx-vue-viewer';
+</script>
+
+<template>
+	<PowerPointViewer
+		:content="bytes"
+		:theme="{ colors: { primary: '#6366f1', background: '#0f172a' }, radius: '0.75rem' }"
+	/>
+</template>
+```
+
+## Built-in presets: vermilion light & dark
+
+Two ready-made themes ship with every binding (React, Vue, Angular). They carry the same vermilion
+brand as this documentation site: a warm paper canvas in light mode, a dimmed presenter room in
+dark mode.
+
+```vue
+<script setup lang="ts">
+import { PowerPointViewer, vermilionLightTheme, vermilionDarkTheme } from 'pptx-vue-viewer';
+</script>
+
+<template>
+	<PowerPointViewer :content="bytes" :theme="vermilionLightTheme" />
+</template>
+```
+
+Each preset is a complete `ViewerTheme` (all 19 color tokens plus a `0.375rem` radius), so it fully
+replaces the built-in dark defaults. The raw palettes are exported alongside for deriving your own
+variant:
+
+```ts
+import { vermilionLightColors, vermilionDarkColors, vermilionRadius } from 'pptx-vue-viewer';
+import type { ViewerTheme } from 'pptx-vue-viewer';
+
+const custom: ViewerTheme = {
+	colors: { ...vermilionDarkColors, primary: '#38bdf8' },
+	radius: vermilionRadius,
+};
+```
+
+The React and Angular packages export the same five symbols from `pptx-react-viewer` and
+`pptx-angular-viewer`.
+
+## `ViewerTheme` and `ViewerThemeColors`
+
+```ts
+import type { ViewerTheme, ViewerThemeColors } from 'pptx-vue-viewer';
+```
+
+Both types live in `pptx-viewer-shared` and are re-exported from `pptx-vue-viewer` (via `./theme`)
+so the definition is identical across bindings. Every field is optional; unset values fall back to
+the dark-theme defaults. Each color key maps to a `--pptx-<kebab-key>` CSS custom property.
+
+```ts
+interface ViewerTheme {
+	/** Semantic UI colors. Each key maps to a --pptx-<key> custom property. */
+	colors?: Partial<ViewerThemeColors>;
+	/** Base border-radius value, e.g. "0.5rem", "8px". */
+	radius?: string;
+	/** Escape hatch: arbitrary CSS custom properties on the viewer root. Keys include the `--` prefix. */
+	cssVars?: Record<string, string>;
+}
+```
+
+`ViewerThemeColors` keys (all CSS color strings, hex, `rgb()`, `hsl()`, `oklch()`, named):
+
+| Key                     | CSS variable                    | Role                            |
+| ----------------------- | ------------------------------- | ------------------------------- |
+| `background`            | `--pptx-background`             | Page / root background          |
+| `foreground`            | `--pptx-foreground`             | Default text color              |
+| `card`                  | `--pptx-card`                   | Card / panel surface            |
+| `cardForeground`        | `--pptx-card-foreground`        | Text on card surfaces           |
+| `popover`               | `--pptx-popover`                | Popover / dropdown surface      |
+| `popoverForeground`     | `--pptx-popover-foreground`     | Text inside popovers            |
+| `primary`               | `--pptx-primary`                | Primary action color            |
+| `primaryForeground`     | `--pptx-primary-foreground`     | Text on primary backgrounds     |
+| `secondary`             | `--pptx-secondary`              | Secondary action color          |
+| `secondaryForeground`   | `--pptx-secondary-foreground`   | Text on secondary backgrounds   |
+| `muted`                 | `--pptx-muted`                  | Muted / disabled surface        |
+| `mutedForeground`       | `--pptx-muted-foreground`       | Secondary / muted text          |
+| `accent`                | `--pptx-accent`                 | Hover-highlight surface         |
+| `accentForeground`      | `--pptx-accent-foreground`      | Text on accent surfaces         |
+| `destructive`           | `--pptx-destructive`            | Danger / delete color           |
+| `destructiveForeground` | `--pptx-destructive-foreground` | Text on destructive backgrounds |
+| `border`                | `--pptx-border`                 | Default border color            |
+| `input`                 | `--pptx-input`                  | Input field border              |
+| `ring`                  | `--pptx-ring`                   | Focus ring color                |
+
+::: warning Required-vs-partial
+On `ViewerThemeColors` all keys are required, but the `theme.colors` field is typed
+`Partial<ViewerThemeColors>`, so when you pass colors to the component you can supply any subset.
+:::
+
+## Theme utilities
+
+```ts
+import {
+	defaultThemeColors, // full ViewerThemeColors dark-theme values
+	defaultRadius, // "0.5rem"
+	themeToCssVars, // (theme, omitDefaults?) => Record<string, string>
+	defaultCssVars, // () => Record<string, string> of all --pptx-* defaults
+	provideViewerTheme,
+	useViewerTheme,
+	useThemeStyle,
+} from 'pptx-vue-viewer';
+```
+
+### `defaultThemeColors` and `defaultRadius`
+
+The built-in dark theme (Tailwind gray scale + indigo primary). `defaultRadius` is `'0.5rem'`. Read
+them when you want to derive a theme from the defaults:
+
+```ts
+const lightish: ViewerTheme = {
+	colors: { ...defaultThemeColors, background: '#ffffff', foreground: '#0f172a' },
+};
+```
+
+### `themeToCssVars(theme, omitDefaults?)`
+
+Converts a `ViewerTheme` into a flat `Record<string, string>` of `--pptx-*` properties, ready to
+spread onto a `:style` binding. Color keys are mapped to their kebab-case CSS suffix, `radius`
+becomes `--pptx-radius`, and any `cssVars` entries pass through verbatim. When `omitDefaults` is
+`true`, values equal to the built-in defaults are skipped (default is `false`).
+
+```ts
+const style = themeToCssVars({ colors: { primary: '#6366f1' }, radius: '0.75rem' });
+// { '--pptx-primary': '#6366f1', '--pptx-radius': '0.75rem' }
+```
+
+### `defaultCssVars()`
+
+Returns the complete set of `--pptx-*` properties populated with the dark-theme defaults, useful for
+generating a full fallback stylesheet.
+
+## `provideViewerTheme` and `useViewerTheme`
+
+For most apps the `theme` prop is enough. `provideViewerTheme`/`useViewerTheme` are the Vue
+`provide`/`inject` equivalent of React's `ViewerThemeProvider`/`useViewerTheme` context, an advanced
+escape hatch for sharing one theme across multiple viewers or a wider subtree.
+
+```vue
+<script setup lang="ts">
+import { provideViewerTheme, useViewerTheme } from 'pptx-vue-viewer';
+import { ref } from 'vue';
+
+const theme = ref({ colors: { primary: '#6366f1' } });
+provideViewerTheme(theme);
+</script>
+```
+
+```vue
+<script setup lang="ts">
+// Anywhere below the provideViewerTheme call:
+import { useViewerTheme } from 'pptx-vue-viewer';
+
+const theme = useViewerTheme(); // ComputedRef<ViewerTheme | undefined>
+</script>
+```
+
+::: tip
+`useViewerTheme()` returns a `ComputedRef` wrapping the nearest provided `ViewerTheme` (or
+`undefined`). It reads the injected value only, it does not produce the CSS variables. Use
+`useThemeStyle` (which `PowerPointViewer` uses internally) or `themeToCssVars` for that.
+:::
+
+## Light theme example
+
+```vue
+<template>
+	<PowerPointViewer
+		:content="bytes"
+		:theme="{
+			colors: {
+				background: '#ffffff',
+				foreground: '#0f172a',
+				card: '#f8fafc',
+				cardForeground: '#0f172a',
+				primary: '#4f46e5',
+				primaryForeground: '#ffffff',
+				muted: '#f1f5f9',
+				mutedForeground: '#64748b',
+				accent: '#f1f5f9',
+				accentForeground: '#0f172a',
+				border: '#e2e8f0',
+				destructive: '#dc2626',
+				destructiveForeground: '#ffffff',
+			},
+		}"
+	/>
+</template>
+```

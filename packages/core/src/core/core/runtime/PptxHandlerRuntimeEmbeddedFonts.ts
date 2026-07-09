@@ -271,7 +271,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 					return stack.join('/');
 				}
-				return `ppt/${target.replace('../', '')}`;
+				return `ppt/${target.replace(/\.\.\//g, '')}`;
 			}
 		}
 		return undefined;

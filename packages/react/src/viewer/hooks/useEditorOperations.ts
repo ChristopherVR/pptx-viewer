@@ -174,6 +174,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		presentationHandleAction: presentation.handlePresentationAction,
 		setEditingEquationOmml: dialogs.setEditingEquationOmml,
 		setIsEquationDialogOpen: dialogs.setIsEquationDialogOpen,
+		setPointerCommitNonce: state.setPointerCommitNonce,
 	});
 
 	const insertHandlers = useInsertElements({

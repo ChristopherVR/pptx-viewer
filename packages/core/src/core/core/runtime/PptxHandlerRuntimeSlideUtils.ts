@@ -18,7 +18,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(slideDir, target)
-						: `ppt/${target.replace('../', '')}`;
+						: `ppt/${target.replace(/\.\.\//g, '')}`;
 
 				try {
 					const layoutXmlStr = await this.zip.file(layoutPath)?.async('string');
@@ -57,7 +57,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(layoutDir, target)
-						: `ppt/${target.replace('../', '')}`;
+						: `ppt/${target.replace(/\.\.\//g, '')}`;
 
 				try {
 					const masterXmlStr = await this.zip.file(masterPath)?.async('string');
@@ -89,7 +89,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(slideDir, target)
-						: `ppt/${target.replace('../', '')}`;
+						: `ppt/${target.replace(/\.\.\//g, '')}`;
 			}
 		}
 		return undefined;
@@ -110,7 +110,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(layoutDir, target)
-						: `ppt/${target.replace('../', '')}`;
+						: `ppt/${target.replace(/\.\.\//g, '')}`;
 			}
 		}
 		return undefined;

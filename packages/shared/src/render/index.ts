@@ -111,6 +111,7 @@ export {
 	valueFromY,
 	roundDragValue,
 	dragValueForPart,
+	dragAnchorViewY,
 	withChartPointValue,
 	withChartTitle,
 } from './chart-interaction';
@@ -460,6 +461,11 @@ export * from './mobile-viewport';
 // Format helpers: framework-agnostic date / timestamp display formatters for
 // the document-properties and version-history panels.
 export * from './format-helpers';
+// Cryptographically strong random-id helpers (`secureRandomUuid` /
+// `secureRandomToken`): prefer `crypto.randomUUID()`, fall back to
+// `crypto.getRandomValues` rather than `Math.random()`. Used anywhere a value
+// gates something security-sensitive (session nonces, room codes, GUIDs).
+export * from './secure-random';
 // Broadcast helpers: room-id generation, start-form validation, and the
 // viewer-link builder for the one-way broadcast (presenter -> viewers) session.
 export * from './broadcast-helpers';

@@ -7,7 +7,8 @@
  *
  * This file is the public API facade. Implementation is split across:
  * - `template-engine-types.ts` -- shared types
- * - `template-engine-helpers.ts` -- token replacement, conditionals, element processing
+ * - `template-engine-helpers.ts` -- token replacement, conditionals
+ * - `template-engine-segments.ts` -- cross-segment replacement, element processing
  * - `template-engine-loops.ts` -- `{{#each}}` loop expansion
  *
  * @module sdk/template-engine
@@ -18,13 +19,13 @@ import type { PptxElement } from '../../types/elements';
 import type { PptxData } from '../../types/presentation';
 import { hasTextProperties } from '../../types/type-guards';
 import { cloneSlide } from '../../utils/clone-utils';
+import { replaceTokensInString } from './template-engine-helpers';
+import { expandEachBlocks } from './template-engine-loops';
 import {
-	replaceTokensInString,
 	replaceTokensAcrossSegments,
 	processElements,
 	extractPlaceholdersFromText,
-} from './template-engine-helpers';
-import { expandEachBlocks } from './template-engine-loops';
+} from './template-engine-segments';
 // Internal imports used by this module's public functions
 import type { TemplateData } from './template-engine-types';
 

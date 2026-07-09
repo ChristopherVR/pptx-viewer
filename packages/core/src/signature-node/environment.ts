@@ -15,11 +15,13 @@ import {
 	ENTERPRISE_TRUST_ROOTS_PEM_ENV,
 } from '../core/utils/signature-constants';
 import type { SignatureValidationPolicy } from '../core/utils/signature-types';
+import { extractPemBlocks } from './pem-utils';
 
 /** Extract individual PEM certificates from a text block. */
 export function extractPemCertificatesFromText(text: string): string[] {
-	const matches = text.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g) ?? [];
-	return matches.map((value) => value.trim()).filter((value) => value.length > 0);
+	return extractPemBlocks(text, 'CERTIFICATE')
+		.map((value) => value.trim())
+		.filter((value) => value.length > 0);
 }
 
 function parseBooleanEnv(envValue: string | undefined): boolean {

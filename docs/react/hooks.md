@@ -1,6 +1,6 @@
 ---
 title: Hooks
-description: The hooks-based architecture of PowerPointViewer, and the curated set of public, tree-shakeable hooks exported from pptx-react-viewer/viewer.
+description: The hooks-based architecture of PowerPointViewer, the curated set of public, tree-shakeable hooks exported from pptx-react-viewer/viewer, and the full internal set exposed via pptx-react-viewer/hooks-unstable.
 ---
 
 # Hooks
@@ -9,16 +9,19 @@ description: The hooks-based architecture of PowerPointViewer, and the curated s
 hooks** composed inside `PowerPointViewer.tsx`, while the visual components are largely
 presentational. State is held entirely in React hooks - there is no external state library.
 
-::: info Internal vs public
+::: info Internal vs public vs unstable
 Most of these hooks are **internal architecture**: they assume a specific composition order and
-shared inputs, and are not importable from the package. A curated subset is exported from the
-`pptx-react-viewer/viewer` entry for advanced integrations. The tables below mark which is which.
+shared inputs. A small curated subset is exported from `pptx-react-viewer/viewer` with a normal
+semver-stable API. The **complete** set - every hook listed below - is also importable from
+`pptx-react-viewer/hooks-unstable`, but with **no compatibility guarantees**: see
+[Complete Hooks Reference](/react/hooks-reference). The tables below mark which category each hook falls into.
 :::
 
 ## Architecture (internal)
 
-These hooks describe how the viewer is wired. They are named in the source and the README but are
-**not** part of the supported public import surface - treat them as conceptual reference.
+These hooks describe how the viewer is wired. They are importable (see below) but assume a
+specific composition order and shared inputs - treat this table as conceptual reference, not an
+API contract.
 
 | Hook                     | Concern                                                                     |
 | ------------------------ | --------------------------------------------------------------------------- |
@@ -43,8 +46,9 @@ These hooks describe how the viewer is wired. They are named in the source and t
 | `useViewerIntegration`   | Top-level integration: I/O, export, print, pointers, lifecycle.             |
 
 There are dozens more (clipboard, comments, sections, autosave, font injection, recovery, theme
-handlers, presentation sub-hooks, etc.). The complete list is in the package README's _Hooks
-Reference_.
+handlers, presentation sub-hooks, etc.). See the **[Complete Hooks Reference](/react/hooks-reference)**
+for the full list, grouped by concern, and how to import all of them from
+`pptx-react-viewer/hooks-unstable`.
 
 ## Public hooks
 
@@ -82,12 +86,22 @@ The `CollaborationProvider` component and presence UI (`RemoteUserCursors`, `Use
 Not hooks, but exported from `pptx-react-viewer/viewer` for the presenter/audience-window flow:
 `isAudienceTab`, `loadAudienceContent`, `storeAudienceContent`, `clearAudienceContent`.
 
-::: warning Hooks reference table caveat
-The package README publishes a large "Hooks Reference" table listing ~40 hooks. Most of those are
-internal composition hooks and are **not** importable - only the hooks listed under _Public hooks_
-above are re-exported from `pptx-react-viewer/viewer`. Do not import internal hooks from deep paths; they
-have no stability guarantees.
+## Using an internal hook directly
+
+If the curated public hooks above don't cover what you need, every internal hook is also
+importable in full from `pptx-react-viewer/hooks-unstable`:
+
+```tsx
+import { useEditorHistory, useViewerState } from 'pptx-react-viewer/hooks-unstable';
+```
+
+::: warning No compatibility guarantees
+`pptx-react-viewer/hooks-unstable` re-exports the same hooks `PowerPointViewer` composes
+internally, unmodified. They are not part of the package's semver contract: signatures and
+behavior can change, and hooks can be renamed or removed, in **any** release including a patch
+release. Prefer the props/handle API or the curated `pptx-react-viewer/viewer` hooks first; reach
+for this only for advanced integrations, and pin an exact version if you depend on it.
 :::
 
-For the broader internal hook map, see [Overview](/react/#hooks-based-architecture) and the package
-README.
+See the **[Complete Hooks Reference](/react/hooks-reference)** for the full list and
+[Overview](/react/#hooks-based-architecture) for the broader architectural picture.

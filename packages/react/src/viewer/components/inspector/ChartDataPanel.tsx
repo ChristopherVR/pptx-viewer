@@ -29,6 +29,7 @@ import {
 } from 'pptx-viewer-core';
 import { useCallback } from 'react';
 
+import { useChartPartSelection } from '../chart-part-selection';
 import { ChartAxisOptions } from './ChartAxisOptions';
 import { ChartAxisStyleOptions } from './ChartAxisStyleOptions';
 import { ChartComboTypeOptions } from './ChartComboTypeOptions';
@@ -57,6 +58,9 @@ export interface ChartDataPanelProps {
 // ---------------------------------------------------------------------------
 export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: ChartDataPanelProps) {
 	const chartData = selectedElement.chartData;
+	// Part selected by clicking a mark on the canvas chart, if it is this chart's.
+	const { selection: partSelection } = useChartPartSelection();
+	const canvasPart = partSelection?.elementId === selectedElement.id ? partSelection.part : null;
 	const title = chartData?.title;
 	const chartType = chartData?.chartType;
 	const categories = chartData?.categories;
@@ -417,6 +421,11 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 				categories={categories}
 				series={series}
 				canEdit={canEdit}
+				highlightCell={
+					canvasPart
+						? { seriesIndex: canvasPart.seriesIndex, pointIndex: canvasPart.pointIndex }
+						: null
+				}
 				onUpdateSeries={updateSeries}
 				onUpdateCategoryLabel={updateCategoryLabel}
 				onUpdateValue={updateValue}

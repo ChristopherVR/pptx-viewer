@@ -25,7 +25,7 @@ Les diapositives sont rendues en HTML/CSS plutot qu'en Canvas, ce qui donne un t
 - **Polices** - le texte utilise les polices disponibles dans le navigateur ; les polices manquantes reviennent aux valeurs par defaut du systeme.
 - **Codecs media** - la lecture audio/video depend du support des codecs du navigateur.
 - **Transitions morph** - les elements sans equivalent sur la diapositive suivante effectuent un fondu enchaene.
-- **Les graphiques ne sont pas directement manipulables** - les graphiques s'affichent en SVG statique et sont edites via le panneau d'inspection.
+- **La manipulation directe des graphiques depend du type de graphique** - les barres et les points des graphiques en lignes, nuages de points et bulles peuvent etre glisses sur le canevas pour changer leurs valeurs (un clic selectionne une marque, un double clic sur le titre le renomme); les marques circulaires, radar et empilees se selectionnent au clic et leurs valeurs s'editent dans le panneau d'inspection; les graphiques cartographiques et surfaces 3D restent en SVG statique.
 - **Fidelite d'export raster** - l'export PNG/JPEG/PDF utilise `html2canvas`, qui ne peut pas reproduire `backdrop-filter`, les proprietes CSS personnalisees ou les transformations CSS 3D.
 - **Ecrans de petite taille** - l'interface s'adapte jusqu'aux telephones d'environ 360 px, mais les panneaux les plus denses en donnees sont mieux sur une tablette ou plus grand.
 - **Les modeles 3D necessitent `three`** - les elements GLB/GLTF necessitent la dependance optionnelle `three` ; sans elle, ils reviennent a une image d'affiche.

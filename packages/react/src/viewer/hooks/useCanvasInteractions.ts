@@ -49,6 +49,8 @@ export interface UseCanvasInteractionsInput {
 	presentationHandleAction: (action: Record<string, unknown>) => void;
 	setEditingEquationOmml: (omml: Record<string, unknown> | null) => void;
 	setIsEquationDialogOpen: (open: boolean) => void;
+	/** Bumped after a committed on-canvas edit so the history hook snapshots it. */
+	setPointerCommitNonce?: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export function useCanvasInteractions(
@@ -82,6 +84,7 @@ export function useCanvasInteractions(
 		presentationHandleAction,
 		setEditingEquationOmml,
 		setIsEquationDialogOpen,
+		setPointerCommitNonce,
 	} = input;
 
 	// Track whether the mouseDown event just selected the element.
@@ -306,16 +309,22 @@ export function useCanvasInteractions(
 		}
 		ops.updateElementById(elementId, { rotation: rotationDeg } as Partial<PptxElement>);
 		history.markDirty();
+		// Rotation changes no element counts; bump the pointer-commit nonce so
+		// the history hook records it as an undo step.
+		setPointerCommitNonce?.((n) => n + 1);
 	};
 
-	// Commit an inline (on-canvas) SmartArt node edit. Routes through the same
-	// element-update path (updateElementById) the inspector uses, so edits get
-	// undo/redo history and dirty marking for the save round-trip.
+	// Commit an inline (on-canvas) SmartArt or chart edit. Routes through the
+	// same element-update path (updateElementById) the inspector uses, then
+	// bumps the pointer-commit nonce so the history hook snapshots the edit as
+	// its own undo step (content-only edits change no element counts, so they
+	// would otherwise be skipped by the history cheap-hash gate).
 	const handleUpdateSmartArtElement = (elementId: string, updates: Partial<PptxElement>) => {
 		if (!elementLookup.has(elementId)) {
 			return;
 		}
 		ops.updateElementById(elementId, updates);
+		setPointerCommitNonce?.((n) => n + 1);
 	};
 
 	// Apply an inline-editing text-style toggle (Ctrl/Cmd+B/I/U) to the selected

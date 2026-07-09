@@ -25,7 +25,7 @@ Folien werden als HTML/CSS statt als Canvas gerendert, was scharfen Text bei jed
 - **Schriften** - Text verwendet im Browser verfugbare Schriften; fehlende Schriften fallen auf Systemstandards zuruck.
 - **Medien-Codecs** - Audio/Video-Wiedergabe hangt von der Browser-Codec-Unterstutzung ab.
 - **Morph-Ubergange** - Elemente ohne Gegenstuck auf der nachsten Folie uberblenden statt zu morphen.
-- **Diagramme sind nicht direkt manipulierbar** - Diagramme werden als statisches SVG gerendert und uber das Inspektionsfeld bearbeitet.
+- **Direkte Diagramm-Manipulation hangt von der Diagrammart ab** - Balken-, Linien-, Streu- und Blasen-Datenpunkte lassen sich direkt auf der Folie ziehen, um ihre Werte zu andern (Klick wahlt einen Datenpunkt aus, Doppelklick auf den Titel benennt ihn um); Kreis-, Netz- und gestapelte Datenpunkte sind per Klick auswahlbar und werden im Inspektionsfeld bearbeitet; Karten- und 3D-Oberflachendiagramme bleiben statisches SVG.
 - **Raster-Export-Treue** - PNG/JPEG/PDF-Export verwendet `html2canvas`, das `backdrop-filter`, CSS-Benutzereigenschaften oder CSS-3D-Transformationen nicht reproduzieren kann.
 - **Kleine Bildschirme** - die UI passt sich bis zu etwa 360-px-Telefonen an, aber die datendichtesten Panels sind auf einem Tablet oder grosser besser.
 - **3D-Modelle benotigen `three`** - GLB/GLTF-Elemente benotigen die optionale `three`-Peer-Abhangigkeit; ohne sie fallen sie auf ein Posterbild zuruck.

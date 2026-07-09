@@ -25,7 +25,7 @@ Slides render as HTML/CSS rather than Canvas, giving sharp text at any zoom, nat
 - **Fonts** - text uses fonts available in the browser; missing fonts fall back to system defaults, which can shift text metrics and layout. Fonts embedded in the PPTX are injected when present.
 - **Media codecs** - audio/video playback depends on browser codec support (WMV and legacy codecs may not play); DRM-protected media will not play.
 - **Morph transitions** - elements with no counterpart on the next slide crossfade instead of morphing.
-- **Charts are not directly manipulable** - charts render as static SVG (hover tooltips only) and are edited through the inspector panel, not by clicking into the chart itself.
+- **Chart direct manipulation varies by chart kind** - bar, line, scatter, and bubble marks can be dragged to new values on the canvas (click a mark to select it, double-click the title to rename it); pie, radar, and stacked marks are click-to-select with values edited in the inspector; map and 3D surface charts render as static SVG.
 - **Raster export fidelity** - PNG/JPEG/PDF export goes through `html2canvas`, which cannot reproduce `backdrop-filter`, CSS custom properties, or CSS 3D transforms; approximations are applied and some fidelity is lost. Use the SVG export for a vector alternative.
 - **Maximum export resolution** - canvas exports are capped by the browser's maximum canvas size (typically 16384 or 32768 pixels per side).
 - **Small screens** - the UI adapts down to ~360px phones, but the most data-dense panels (for example the full chart editor) are best used on a tablet or larger.

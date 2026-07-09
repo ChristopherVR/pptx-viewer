@@ -14,6 +14,7 @@
  * hash. The audience tab parses the nonce and rejects any message with a
  * different `sessionId`, preventing cross-talk between concurrent sessions.
  */
+import { secureRandomUuid } from 'pptx-viewer-shared';
 import { useRef, useCallback, useEffect } from 'react';
 
 import { storeAudienceContent, clearAudienceContent } from './audience-content-store';
@@ -34,12 +35,13 @@ export const PRESENTER_MSG_ORIGIN = 'pptx-viewer-presenter';
 /** Hash key used to pass the session nonce to the audience tab. */
 export const AUDIENCE_NONCE_KEY = 'nonce';
 
-/** Generate a per-presenter session UUID. Falls back to Math.random where crypto is missing. */
+/**
+ * Generate a per-presenter session UUID. Delegates to the shared
+ * `secureRandomUuid` helper, which prefers `crypto.randomUUID()` and falls
+ * back to a `crypto.getRandomValues`-backed UUID (never `Math.random()`).
+ */
 function generateSessionId(): string {
-	if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-		return crypto.randomUUID();
-	}
-	return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+	return secureRandomUuid();
 }
 
 /**

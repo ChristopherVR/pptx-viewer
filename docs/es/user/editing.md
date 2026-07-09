@@ -26,7 +26,7 @@ Use la pestana **Insertar** de la barra de herramientas:
 - **Formas** - dibuje rectangulos, elipses, flechas y mas de 187 formas predefinidas.
 - **Imagen** - inserte desde un archivo local o URL.
 - **Tabla** - inserte una tabla con un numero de filas y columnas elegido.
-- **Grafico** - inserte un grafico y edite sus datos.
+- **Grafico** - inserte un grafico; arrastre barras o puntos directamente en la diapositiva para cambiar valores, o edite los datos en el inspector.
 
 ## Formatear con el inspector
 

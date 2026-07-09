@@ -13,6 +13,7 @@ import {
 	CHART_PART_SERIES_ATTR,
 	chartPartFromElement,
 	chartPartToAttrs,
+	dragAnchorViewY,
 	dragValueForPart,
 	findChartPartTarget,
 	isSameChartPart,
@@ -149,6 +150,13 @@ describe('dragValueForPart', () => {
 
 	it('maps secondary-axis series against the secondary range', () => {
 		expect(dragValueForPart(50, drag, 1)).toBe(5);
+	});
+
+	it('dragAnchorViewY projects a value with the series range, inverse of dragValueForPart', () => {
+		expect(dragAnchorViewY(50, drag, 0)).toBe(50);
+		expect(dragValueForPart(dragAnchorViewY(37, drag, 0), drag, 0)).toBe(37);
+		// Secondary-axis series project against the secondary range.
+		expect(dragAnchorViewY(5, drag, 1)).toBe(50);
 	});
 });
 

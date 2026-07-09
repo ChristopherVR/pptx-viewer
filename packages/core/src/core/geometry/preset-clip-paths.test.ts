@@ -226,8 +226,20 @@ const OOXML_PRESET_SHAPE_NAMES = [
 // Regex patterns for CSS clip-path syntax validation
 // ---------------------------------------------------------------------------
 
-/** Matches a valid CSS `polygon(...)` expression with percentage coordinates. */
-const POLYGON_RE = /^polygon\(\s*(\d+(\.\d+)?%\s+\d+(\.\d+)?%\s*,?\s*)+\)$/;
+/**
+ * Matches a valid CSS `polygon(...)` expression with percentage coordinates.
+ *
+ * Built from an unambiguous "list separated by a required delimiter" shape
+ * (each `,` boundary is mandatory and consumes its own whitespace) rather
+ * than a quantified group with multiple optional/whitespace-only parts that
+ * can all match the same characters in different ways. The latter shape is
+ * vulnerable to exponential backtracking (ReDoS) on pathological input such
+ * as long runs of repeated coordinate pairs that ultimately fail to match.
+ */
+const POLYGON_COORD_PAIR = String.raw`\d+(?:\.\d+)?%\s+\d+(?:\.\d+)?%`;
+const POLYGON_RE = new RegExp(
+	String.raw`^polygon\(\s*${POLYGON_COORD_PAIR}(?:\s*,\s*${POLYGON_COORD_PAIR})*\s*\)$`,
+);
 
 /** Matches a valid CSS `ellipse(...)` expression. */
 const ELLIPSE_RE =

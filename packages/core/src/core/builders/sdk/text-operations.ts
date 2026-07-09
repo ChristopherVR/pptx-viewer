@@ -37,20 +37,117 @@ export interface FindResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Convert a string-or-RegExp search into a global RegExp so we can
- * iterate all matches.
+ * Build the RegExp used to search for `search`. String patterns are escaped
+ * so they only ever match literally. RegExp patterns are used exactly as
+ * given, never rebuilt from another RegExp's `.source` (rebuilding a pattern
+ * from `.source` is flagged as regex injection by static analysis, since
+ * escaping can't be verified over an opaque, already-compiled pattern) - see
+ * {@link execAll} for how a non-global RegExp is still iterated over all
+ * matches without reconstruction.
  */
-function toGlobalRegex(search: string | RegExp): RegExp {
+function toSearchRegex(search: string | RegExp): RegExp {
 	if (typeof search === 'string') {
-		// Escape special regex characters for literal string matching
 		const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 		return new RegExp(escaped, 'g');
 	}
-	// Ensure global flag is set so we can iterate all matches
-	if (search.global) {
-		return search;
+	return search;
+}
+
+/**
+ * Find every match of `regex` in `text` without mutating or reconstructing
+ * `regex`.
+ *
+ * When `regex` already has the `g` or `y` flag, matches are collected via
+ * the standard `lastIndex`-driven exec loop. Otherwise, a non-global,
+ * non-sticky RegExp always matches from the start of whatever string it is
+ * given, so matches are collected by re-running `exec` against the
+ * remaining unmatched tail of the string; this reproduces global-search
+ * semantics without ever constructing a new RegExp.
+ */
+function execAll(regex: RegExp, text: string): RegExpExecArray[] {
+	const results: RegExpExecArray[] = [];
+
+	if (regex.global || regex.sticky) {
+		regex.lastIndex = 0;
+		let match: RegExpExecArray | null;
+		while ((match = regex.exec(text)) !== null) {
+			results.push(match);
+			// Prevent infinite loop on zero-length matches
+			if (match[0].length === 0) {
+				regex.lastIndex += 1;
+			}
+		}
+		return results;
 	}
-	return new RegExp(search.source, `${search.flags}g`);
+
+	let offset = 0;
+	let remaining = text;
+	while (remaining.length > 0) {
+		const match = regex.exec(remaining);
+		if (!match) {
+			break;
+		}
+		const adjusted = [...match] as unknown as RegExpExecArray;
+		adjusted.index = offset + match.index;
+		adjusted.input = text;
+		adjusted.groups = match.groups;
+		results.push(adjusted);
+
+		// Prevent infinite loop on zero-length matches
+		const advance = match.index + (match[0].length || 1);
+		offset += advance;
+		remaining = remaining.slice(advance);
+	}
+	return results;
+}
+
+/**
+ * Expand `$$`, `$&`, `` $` ``, `$'`, `$1`-`$99` and `$<name>` references in
+ * `replacement`, mirroring the semantics `String.prototype.replace` applies
+ * to its replacement-string argument when given a RegExp.
+ */
+function expandReplacement(replacement: string, match: RegExpExecArray, fullText: string): string {
+	return replacement.replace(
+		/\$(\$|&|`|'|<([^>]+)>|\d{1,2})/g,
+		(whole: string, token: string, groupName: string | undefined) => {
+			if (token === '$') {
+				return '$';
+			}
+			if (token === '&') {
+				return match[0];
+			}
+			if (token === '`') {
+				return fullText.slice(0, match.index);
+			}
+			if (token === "'") {
+				return fullText.slice(match.index + match[0].length);
+			}
+			if (groupName !== undefined) {
+				return match.groups?.[groupName] ?? '';
+			}
+			const groupIndex = Number(token);
+			return groupIndex >= 1 && groupIndex < match.length ? (match[groupIndex] ?? '') : whole;
+		},
+	);
+}
+
+/**
+ * Apply `replacement` at every position in `matches`, expanding `$`
+ * references against each match, and return the resulting string.
+ */
+function applyReplacements(text: string, matches: RegExpExecArray[], replacement: string): string {
+	if (matches.length === 0) {
+		return text;
+	}
+	let result = '';
+	let cursor = 0;
+	for (const match of matches) {
+		result += text.slice(cursor, match.index);
+		result += expandReplacement(replacement, match, text);
+		cursor = match.index + match[0].length;
+	}
+	result += text.slice(cursor);
+	return result;
 }
 
 /**
@@ -93,7 +190,7 @@ export function findText(slides: PptxSlide[], search: string | RegExp): FindResu
 		return [];
 	}
 
-	const regex = toGlobalRegex(search);
+	const regex = toSearchRegex(search);
 	const results: FindResult[] = [];
 
 	slides.forEach((slide, slideIndex) => {
@@ -107,10 +204,7 @@ export function findText(slides: PptxSlide[], search: string | RegExp): FindResu
 			const segments = element.textSegments ?? [];
 			segments.forEach((seg, segIndex) => {
 				const text = seg.text ?? '';
-				// Reset regex lastIndex for each segment
-				regex.lastIndex = 0;
-				let match: RegExpExecArray | null;
-				while ((match = regex.exec(text)) !== null) {
+				for (const match of execAll(regex, text)) {
 					results.push({
 						slideIndex,
 						elementId: element.id,
@@ -118,10 +212,6 @@ export function findText(slides: PptxSlide[], search: string | RegExp): FindResu
 						text: match[0],
 						matchIndex: match.index,
 					});
-					// Prevent infinite loop on zero-length matches
-					if (match[0].length === 0) {
-						regex.lastIndex += 1;
-					}
 				}
 			});
 		}
@@ -156,7 +246,7 @@ export function replaceTextInSlide(
 		return 0;
 	}
 
-	const regex = toGlobalRegex(search);
+	const regex = toSearchRegex(search);
 	let totalReplacements = 0;
 
 	function processElements(elements: PptxElement[]): void {
@@ -172,26 +262,13 @@ export function replaceTextInSlide(
 			const segments = element.textSegments ?? [];
 			let elementTextChanged = false;
 
-			for (let segIdx = 0; segIdx < segments.length; segIdx++) {
-				const seg = segments[segIdx];
+			for (const seg of segments) {
 				const originalText = seg.text ?? '';
-				regex.lastIndex = 0;
+				const matches = execAll(regex, originalText);
 
-				// Count matches first
-				let matchCount = 0;
-				let m: RegExpExecArray | null;
-				const countRegex = toGlobalRegex(search);
-				while ((m = countRegex.exec(originalText)) !== null) {
-					matchCount++;
-					if (m[0].length === 0) {
-						countRegex.lastIndex += 1;
-					}
-				}
-
-				if (matchCount > 0) {
-					const newText = originalText.replace(toGlobalRegex(search), replacement);
-					seg.text = newText;
-					totalReplacements += matchCount;
+				if (matches.length > 0) {
+					seg.text = applyReplacements(originalText, matches, replacement);
+					totalReplacements += matches.length;
 					elementTextChanged = true;
 				}
 			}

@@ -9,11 +9,13 @@
  *
  * No `any`; all regexes use the `/u` flag; no `String.prototype.replaceAll`,
  * no regex named-capture-groups (Angular vendors this source under its
- * ng-packagr lib target). `Math.random` is read inside the generator at call
- * time, never at module eval.
+ * ng-packagr lib target). Room ids are generated with `secureRandomToken`
+ * (cryptographically strong), read inside the generator at call time, never
+ * at module eval.
  */
 
 import type { CollaborationTransport } from '../types';
+import { secureRandomToken } from './secure-random';
 
 /** Default y-websocket server URL used when no default is supplied. */
 export const DEFAULT_BROADCAST_SERVER_URL = 'ws://localhost:1234';
@@ -44,8 +46,7 @@ export function resolveTransportForServerUrl(serverUrl: string): CollaborationTr
 
 /** Generate a fresh, broadcast-scoped room id (`broadcast-<suffix>`). */
 export function generateBroadcastRoomId(): string {
-	const suffix = Math.random().toString(36).slice(2, 10);
-	return `broadcast-${suffix}`;
+	return `broadcast-${secureRandomToken(8)}`;
 }
 
 /**

@@ -23,6 +23,29 @@
 /* ------------------------------------------------------------------ */
 
 /**
+ * Extract a `blob:` URL from an arbitrary CSS value (e.g. the contents of a
+ * `background-image: url("blob:...")` declaration).
+ *
+ * Implemented as a plain `indexOf` scan plus a single anchored regex match
+ * rather than a single backtracking search across the whole string. A naive
+ * `/url\(["']?(blob:[^"')]+)["']?\)/` pattern is retried by the regex engine
+ * at every character offset; on a crafted string containing many repeated
+ * `url(blob:` substrings with no closing quote/paren, each retry rescans to
+ * the end of the string, giving quadratic (polynomial-ReDoS) behaviour. This
+ * version locates `blob:` once (linear) and then matches only from that
+ * fixed offset (`^` anchor, single attempt), so it stays linear regardless
+ * of how many `blob:` occurrences the input contains.
+ */
+function extractBlobUrl(cssValue: string): string | null {
+	const startIndex = cssValue.indexOf('blob:');
+	if (startIndex === -1) {
+		return null;
+	}
+	const match = /^[^"')]+/.exec(cssValue.slice(startIndex));
+	return match ? match[0] : null;
+}
+
+/**
  * Convert a single `blob:` URL to a `data:` URL via fetch + FileReader.
  * Returns `null` if the conversion fails (e.g. revoked blob).
  */
@@ -87,8 +110,7 @@ export async function convertBlobUrlsToDataUrls(root: HTMLElement): Promise<void
 		const htmlEl = el as HTMLElement;
 		const bg = htmlEl.style.backgroundImage;
 		if (bg && bg.includes('blob:')) {
-			const match = bg.match(/url\(["']?(?<blob>blob:[^"')]+)["']?\)/u);
-			const blobUrl = match?.groups?.blob;
+			const blobUrl = extractBlobUrl(bg);
 			if (blobUrl) {
 				promises.push(
 					blobUrlToDataUrl(blobUrl).then((dataUrl) => {
@@ -104,8 +126,7 @@ export async function convertBlobUrlsToDataUrls(root: HTMLElement): Promise<void
 
 	const rootBg = root.style.backgroundImage;
 	if (rootBg && rootBg.includes('blob:')) {
-		const match = rootBg.match(/url\(["']?(?<blob>blob:[^"')]+)["']?\)/u);
-		const blobUrl = match?.groups?.blob;
+		const blobUrl = extractBlobUrl(rootBg);
 		if (blobUrl) {
 			promises.push(
 				blobUrlToDataUrl(blobUrl).then((dataUrl) => {
@@ -369,6 +390,7 @@ export const _testing = {
 	patchStylesheets,
 	convertBlobUrlsToDataUrls,
 	blobUrlToDataUrl,
+	extractBlobUrl,
 	COLOR_PROPERTIES,
 	COMPLEX_COLOR_PROPERTIES,
 	/** Reset the lazily-cached scratch context (useful in tests). */

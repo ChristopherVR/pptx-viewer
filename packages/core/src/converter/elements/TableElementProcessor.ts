@@ -444,6 +444,10 @@ export class TableElementProcessor implements ElementProcessor {
 	}
 
 	private escapeMarkdownTableCell(text: string): string {
-		return text.replace(/\|/g, '\\|').replace(/\n+/g, ' ').trim();
+		// Backslash is the markdown escape character, so it must be escaped
+		// first; otherwise a literal `\` in the cell text would combine with
+		// the backslash inserted before a `|` and neutralize the escape,
+		// letting the pipe reach the renderer and corrupt the table row.
+		return text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n+/g, ' ').trim();
 	}
 }

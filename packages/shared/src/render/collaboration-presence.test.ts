@@ -41,6 +41,33 @@ describe('collaboration-presence: scalar sanitisers', () => {
 		expect(sanitizeUserName('x'.repeat(100))).toHaveLength(64);
 	});
 
+	it('neutralises nested/overlapping tag payloads that defeat a single-pass regex', () => {
+		// A naive `.replace(/<script[^>]*>.*?<\/script>/gi, '')` (or a paired
+		// `<...>` matcher) would strip the outer match and leave `<script>`
+		// behind. The result here must contain no `<` or `>` at all, so no
+		// browser HTML parser can ever construct a live element from it.
+		const nested = sanitizeUserName('<scr<script>ipt>alert(1)</script>');
+		expect(nested).not.toContain('<');
+		expect(nested).not.toContain('>');
+		expect(nested.toLowerCase()).not.toContain('<script');
+
+		const imgOnError = sanitizeUserName('<img src=x onerror=alert(1)>');
+		expect(imgOnError).not.toContain('<');
+		expect(imgOnError).not.toContain('>');
+	});
+
+	it('strips a large run of unmatched "<" characters without polynomial slowdown', () => {
+		// Regression test for the ReDoS: `/<[^>]*>/g` re-scans from every
+		// failed start position on a string of unclosed `<`, which is O(n^2).
+		// A linear-time implementation handles this instantly.
+		const adversarial = '<'.repeat(200_000);
+		const start = performance.now();
+		const result = sanitizeUserName(adversarial);
+		const elapsed = performance.now() - start;
+		expect(result).toBe('Anonymous');
+		expect(elapsed).toBeLessThan(500);
+	});
+
 	it('validates hex colours and falls back', () => {
 		// Build the unsafe scheme at runtime so the literal isn't a lint smell.
 		const unsafeScheme = `${'java'}script:alert(1)`;

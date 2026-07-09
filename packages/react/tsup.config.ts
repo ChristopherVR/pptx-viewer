@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig((options) => ({
-	entry: ['src/index.ts', 'src/viewer/index.ts', 'src/i18n.ts'],
+	entry: ['src/index.ts', 'src/viewer/index.ts', 'src/i18n.ts', 'src/hooks-unstable.ts'],
 	format: ['esm', 'cjs'],
 	minify: true,
 	// Inline the .d.ts of the bundled internal workspace packages so the

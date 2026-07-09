@@ -26,7 +26,7 @@ Verwenden Sie die Registerkarte **Einfugen** der Symbolleiste:
 - **Formen** - zeichnen Sie Rechtecke, Ellipsen, Pfeile und uber 187 voreingestellte Formen.
 - **Bild** - fugen Sie aus einer lokalen Datei oder URL ein.
 - **Tabelle** - fugen Sie eine Tabelle mit gewahlter Zeilen- und Spaltenzahl ein.
-- **Diagramm** - fugen Sie ein Diagramm ein und bearbeiten Sie seine Daten.
+- **Diagramm** - fugen Sie ein Diagramm ein; ziehen Sie Balken oder Punkte direkt auf der Folie, um Werte zu andern, oder bearbeiten Sie die Daten im Inspektor.
 
 ## Mit dem Inspektor formatieren
 

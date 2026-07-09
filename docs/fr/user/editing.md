@@ -26,7 +26,7 @@ Utilisez l'onglet **Insertion** de la barre d'outils :
 - **Formes** - dessinez des rectangles, ellipses, fleches et plus de 187 formes prefinies.
 - **Image** - inseser depuis un fichier local ou une URL.
 - **Tableau** - inseser un tableau avec un nombre de lignes et colonnes choisi.
-- **Graphique** - inseser un graphique et editez ses donnees.
+- **Graphique** - inserez un graphique; faites glisser les barres ou les points directement sur la diapositive pour changer les valeurs, ou editez les donnees dans l'inspecteur.
 
 ## Formater avec l'inspecteur
 

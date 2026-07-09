@@ -25,10 +25,10 @@ import {
 	verifySignatureValue,
 } from './certificate-utils';
 import { getSignatureValidationPolicy, loadEnterpriseTrustRoots } from './environment';
+import { evaluateCertificateRevocation } from './ocsp';
 import {
 	certFingerprintSha256,
 	certPemFromBase64,
-	evaluateCertificateRevocation,
 	evaluateTimestampAuthority,
 } from './pki-validation';
 import {

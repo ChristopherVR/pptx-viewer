@@ -248,6 +248,20 @@ describe('tableElementProcessor', () => {
 		expect(result).toContain('value \\| with pipe');
 	});
 
+	it('should escape a literal backslash before escaping a pipe in markdown table cells', async () => {
+		const ctx = makeContext({ semanticMode: true });
+		const element = makeTableElement({
+			rows: [{ cells: [{ text: 'Header' }] }, { cells: [{ text: 'foo\\|bar' }] }],
+			columnWidths: [1],
+		});
+		const result = await processor.process(element, ctx);
+		expect(result).not.toBeNull();
+		const dataRow = result!.split('\n').find((line) => line.includes('foo'));
+		// Backslash must be escaped first (\\) so the subsequent pipe escape
+		// (\|) is not neutralized by the literal backslash from the source text.
+		expect(dataRow).toBe('| foo\\\\\\|bar |');
+	});
+
 	it('should handle markdown table with no header row', async () => {
 		const ctx = makeContext({ semanticMode: true });
 		const element = makeTableElement({
