@@ -80,6 +80,23 @@ test.describe('landscape phone (915×412, touch)', () => {
 
 	test('present mode fills the landscape viewport', async ({ page }) => {
 		await load(page);
+
+		// At this short landscape height the mobile bottom bar's "Slides" panel
+		// can render as a full-screen modal (role="dialog") on first load rather
+		// than an inline strip, covering the Present button. That default-open
+		// state isn't this test's concern (covered by "edit layout uses mobile
+		// chrome in landscape" above); dismiss it if present. The sheet slides in
+		// (`animate-in slide-in-from-bottom duration-200`), so its own scrim
+		// briefly intercepts pointer events too - wait for the transition to
+		// settle, then force the close (a simple, always-safe control) rather
+		// than fight the transient animation overlay.
+		const blockingDialog = page.getByRole('dialog').first();
+		if (await blockingDialog.isVisible()) {
+			await page.waitForTimeout(300);
+			await blockingDialog.getByRole('button', { name: 'Close' }).click({ force: true });
+			await page.waitForTimeout(200);
+		}
+
 		await page
 			.getByRole('button', { name: /present/iu })
 			.first()

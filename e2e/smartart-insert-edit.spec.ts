@@ -29,15 +29,17 @@ async function loadDeck(page: Page): Promise<void> {
 }
 
 /**
- * Navigate to the Insert tab in the ribbon. All three frameworks use
- * `role="tab"` with name "Insert" for the ribbon tab.
+ * Navigate to the Insert tab in the ribbon. All three frameworks render the
+ * ribbon tab strip as plain `<button>` elements (no `role="tab"`), matching
+ * the neutral DOM contract used elsewhere (e.g. ribbon-tab-parity.spec.ts,
+ * save-corruption-repro.spec.ts). A previous `role="tab"` locator here never
+ * matched anything, so this helper silently no-opped and every test in this
+ * file failed downstream trying to find the SmartArt button on the Home tab.
  */
 async function switchToInsertTab(page: Page): Promise<void> {
-	const insertTab = page.getByRole('tab', { name: 'Insert' });
-	if (await insertTab.isVisible()) {
-		await insertTab.click();
-		await page.waitForTimeout(200);
-	}
+	const insertTab = page.getByRole('button', { name: 'Insert', exact: true });
+	await insertTab.click();
+	await page.waitForTimeout(200);
 }
 
 /**
@@ -104,15 +106,15 @@ test.describe('smartart insert and edit', () => {
 			await page.waitForTimeout(200);
 		}
 
-		// Pick the first available layout in the gallery (click to select).
-		const galleryItem = dialog.getByRole('option').first();
-		if (await galleryItem.isVisible()) {
-			await galleryItem.click();
-		} else {
-			// Fallback: click any clickable item in the gallery grid
-			const anyPreset = dialog.locator('button').filter({ hasText: /./u }).nth(2);
-			await anyPreset.click();
-		}
+		// Pick the first available layout in the gallery grid (click to select).
+		// The dialog has no role="option" elements; ".grid button" is the reliable
+		// selector for a preset thumbnail (see save-corruption-repro.spec.ts).
+		// Vue and Angular mark the gallery listbox/options with role="option";
+		// React's gallery is a plain button grid with no ARIA role, so fall back
+		// to the ".grid button" cell selector there. Angular also has no ".grid"
+		// class (its gallery uses BEM classes), so role="option" is required for
+		// Angular specifically - hence trying both rather than picking one.
+		await dialog.getByRole('option').or(dialog.locator('.grid button')).first().click();
 		await page.waitForTimeout(100);
 
 		// Click the Insert button to confirm.
@@ -136,13 +138,15 @@ test.describe('smartart insert and edit', () => {
 		const dialog = page.getByRole('dialog', { name: /Insert SmartArt/iu });
 		await expect(dialog).toBeVisible();
 
-		// Select the first preset in the gallery.
-		const galleryItem = dialog.getByRole('option').first();
-		if (await galleryItem.isVisible()) {
-			await galleryItem.click();
-		} else {
-			await dialog.locator('button').filter({ hasText: /./u }).nth(2).click();
-		}
+		// Select the first preset thumbnail in the gallery grid (the dialog has no
+		// role="option" elements; the reliable selector is the ".grid button" cells
+		// used elsewhere, e.g. save-corruption-repro.spec.ts).
+		// Vue and Angular mark the gallery listbox/options with role="option";
+		// React's gallery is a plain button grid with no ARIA role, so fall back
+		// to the ".grid button" cell selector there. Angular also has no ".grid"
+		// class (its gallery uses BEM classes), so role="option" is required for
+		// Angular specifically - hence trying both rather than picking one.
+		await dialog.getByRole('option').or(dialog.locator('.grid button')).first().click();
 		await page.waitForTimeout(100);
 
 		const insertBtn = dialog.getByRole('button', { name: /^Insert$/iu });
@@ -211,12 +215,14 @@ test.describe('smartart insert and edit', () => {
 		const dialog = page.getByRole('dialog', { name: /Insert SmartArt/iu });
 		await expect(dialog).toBeVisible();
 
-		const galleryItem = dialog.getByRole('option').first();
-		if (await galleryItem.isVisible()) {
-			await galleryItem.click();
-		} else {
-			await dialog.locator('button').filter({ hasText: /./u }).nth(2).click();
-		}
+		// Select the first preset thumbnail in the gallery grid (see the ".grid
+		// button" note above; role="option" never matches in this dialog).
+		// Vue and Angular mark the gallery listbox/options with role="option";
+		// React's gallery is a plain button grid with no ARIA role, so fall back
+		// to the ".grid button" cell selector there. Angular also has no ".grid"
+		// class (its gallery uses BEM classes), so role="option" is required for
+		// Angular specifically - hence trying both rather than picking one.
+		await dialog.getByRole('option').or(dialog.locator('.grid button')).first().click();
 		await page.waitForTimeout(100);
 
 		const insertBtn = dialog.getByRole('button', { name: /^Insert$/iu });
@@ -282,12 +288,14 @@ test.describe('smartart insert and edit', () => {
 		const dialog = page.getByRole('dialog', { name: /Insert SmartArt/iu });
 		await expect(dialog).toBeVisible();
 
-		const galleryItem = dialog.getByRole('option').first();
-		if (await galleryItem.isVisible()) {
-			await galleryItem.click();
-		} else {
-			await dialog.locator('button').filter({ hasText: /./u }).nth(2).click();
-		}
+		// Select the first preset thumbnail in the gallery grid (see the ".grid
+		// button" note above; role="option" never matches in this dialog).
+		// Vue and Angular mark the gallery listbox/options with role="option";
+		// React's gallery is a plain button grid with no ARIA role, so fall back
+		// to the ".grid button" cell selector there. Angular also has no ".grid"
+		// class (its gallery uses BEM classes), so role="option" is required for
+		// Angular specifically - hence trying both rather than picking one.
+		await dialog.getByRole('option').or(dialog.locator('.grid button')).first().click();
 		await page.waitForTimeout(100);
 
 		const insertBtn = dialog.getByRole('button', { name: /^Insert$/iu });

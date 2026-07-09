@@ -210,7 +210,14 @@ test.describe('tablet inspector (820x1180, touch)', () => {
 		await openInspector(page, testInfo.project.name);
 
 		// Select an element.
-		await page.locator('[data-pptx-element="true"]').first().click();
+		// force: true - at these viewport widths the first element (a rect) can be
+		// visually overlapped by a sibling title textbox once the inspector panel
+		// opens and narrows the canvas, which reflows the title's autofit text and
+		// makes it intercept pointer events over the rect below it. Which element
+		// ends up selected doesn't matter for these assertions (only "some element
+		// is selected so the inspector has content" does), so bypass the
+		// actionability/interception check rather than chase the exact overlap.
+		await page.locator('[data-pptx-element="true"]').first().click({ force: true });
 		await page.waitForTimeout(300);
 
 		// For Angular, ensure the inspector content is for the selected element.
@@ -239,7 +246,14 @@ test.describe('desktop inspector (1280x800, no touch)', () => {
 		await openInspector(page, testInfo.project.name);
 
 		// Select an element so the inspector has content to show.
-		await page.locator('[data-pptx-element="true"]').first().click();
+		// force: true - at these viewport widths the first element (a rect) can be
+		// visually overlapped by a sibling title textbox once the inspector panel
+		// opens and narrows the canvas, which reflows the title's autofit text and
+		// makes it intercept pointer events over the rect below it. Which element
+		// ends up selected doesn't matter for these assertions (only "some element
+		// is selected so the inspector has content" does), so bypass the
+		// actionability/interception check rather than chase the exact overlap.
+		await page.locator('[data-pptx-element="true"]').first().click({ force: true });
 		await page.waitForTimeout(300);
 
 		const inspector = inspectorLocator(page, testInfo.project.name);
@@ -273,7 +287,14 @@ test.describe('desktop inspector (1280x800, no touch)', () => {
 		await openInspector(page, testInfo.project.name);
 
 		// Select an element.
-		await page.locator('[data-pptx-element="true"]').first().click();
+		// force: true - at these viewport widths the first element (a rect) can be
+		// visually overlapped by a sibling title textbox once the inspector panel
+		// opens and narrows the canvas, which reflows the title's autofit text and
+		// makes it intercept pointer events over the rect below it. Which element
+		// ends up selected doesn't matter for these assertions (only "some element
+		// is selected so the inspector has content" does), so bypass the
+		// actionability/interception check rather than chase the exact overlap.
+		await page.locator('[data-pptx-element="true"]').first().click({ force: true });
 		await page.waitForTimeout(300);
 
 		const inspector = inspectorLocator(page, testInfo.project.name);

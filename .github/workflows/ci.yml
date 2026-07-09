@@ -213,3 +213,96 @@ jobs:
       - name: Test ${{ matrix.key }}
         if: matrix.enabled == 'true'
         run: cd ${{ matrix.dir }} && ${{ matrix.cmd }}
+
+  # ── E2E: Playwright suite against each framework demo ───────────────────────
+  # One matrix leg per framework (react/vue/angular), gated on that framework's
+  # own build like the `test` job above. This runs every e2e/*.spec.ts file
+  # EXCEPT capture-user-guide-assets.spec.ts and capture-user-guide-gifs.spec.ts:
+  # those two aren't tests (zero `expect()` calls between them) - they're
+  # docs-asset generators that screenshot/record the app for docs/public/
+  # user-guide, meant to be run deliberately via `bun run docs:screenshots`,
+  # not on every push/PR.
+  #
+  # ribbon-tab-parity.spec.ts opens all three demo servers directly (bypassing
+  # the per-project baseURL) to compare them in one test, so it self-limits to
+  # the react leg only (see its own `test.skip` guard) instead of tripling.
+  # `--workers=2` avoids saturating the single dev server per leg (observed
+  # spurious timeouts/HMR contention with the default higher worker count
+  # against one Vite dev server).
+  e2e:
+    needs: build
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    name: e2e-${{ matrix.key }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - key: react
+            project: react
+            enabled: ${{ needs.build.outputs.react-built }}
+          - key: vue
+            project: vue
+            enabled: ${{ needs.build.outputs.vue-built }}
+          - key: angular
+            project: angular
+            enabled: ${{ needs.build.outputs.angular-built }}
+    steps:
+      - uses: actions/checkout@v7
+        if: matrix.enabled == 'true'
+
+      - uses: actions/setup-node@v6
+        if: matrix.enabled == 'true'
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        if: matrix.enabled == 'true'
+
+      - name: Cache bun downloads
+        if: matrix.enabled == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      # The React and Vue demo dev servers alias bare `pptx-viewer-core` /
+      # `pptx-*-viewer` specifiers straight to package *source* (see
+      # demos/demo-{react,vue}/vite.config.ts), so they don't need those dists
+      # at all - but React does NOT alias the bare `pptx-viewer-shared`
+      # specifier, and the e2e fixture generator (e2e/global-setup.ts) imports
+      # `pptx-viewer-core` directly under plain Node, so core + shared's dist
+      # are required regardless of which framework leg is running. Angular's
+      # demo aliases straight to its own built dist (ng-packagr output), so it
+      # needs its dist too. All of this already sits in the `build` job's
+      # artifact.
+      - name: Download build artifacts
+        if: matrix.enabled == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: build-output
+          path: packages
+
+      - name: Install dependencies
+        if: matrix.enabled == 'true'
+        run: bun install
+
+      - name: Install Playwright browsers
+        if: matrix.enabled == 'true'
+        run: bun run e2e:install
+
+      - name: Run e2e (${{ matrix.project }})
+        if: matrix.enabled == 'true'
+        run: |
+          files=$(ls e2e/*.spec.ts | grep -v capture-user-guide)
+          bun run e2e -- $files --project=${{ matrix.project }} --workers=2
+
+      - name: Upload Playwright report
+        if: matrix.enabled == 'true' && failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-${{ matrix.key }}
+          path: playwright-report/
+          retention-days: 7
