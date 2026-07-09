@@ -10,6 +10,7 @@ export { ResizeHandle } from './ResizeHandle';
 
 // Medium components
 export { SlideThumbnail } from './SlideThumbnail';
+export { ThumbnailChart, ThumbnailSmartArt, ThumbnailTable } from './thumbnail-element-renderers';
 export { ContextMenu } from './ContextMenu';
 export { ElementRenderer } from './ElementRenderer';
 
