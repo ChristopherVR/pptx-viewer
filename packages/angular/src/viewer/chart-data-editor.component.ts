@@ -29,7 +29,18 @@
  * @module angular-viewer/chart-data-editor
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	afterNextRender,
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	effect,
+	ElementRef,
+	inject,
+	Injector,
+	input,
+	output,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { ChartPptxElement } from 'pptx-viewer-core';
 
@@ -44,6 +55,7 @@ import {
 	setSeriesName,
 	setSeriesValue,
 } from './chart-data-helpers';
+import { ChartPartSelectionService } from './chart-part-selection.service';
 
 @Component({
 	selector: 'pptx-chart-data-editor',
@@ -108,6 +120,7 @@ import {
 										<input
 											type="text"
 											class="pptx-chart-editor__name-input"
+											[class.pptx-chart-editor__input--highlight]="isSeriesHighlight(si)"
 											[disabled]="!canEdit()"
 											[value]="s.name"
 											(change)="onSeriesNameChange($event, si)"
@@ -185,6 +198,7 @@ import {
 											<input
 												type="number"
 												class="pptx-chart-editor__value-input"
+												[class.pptx-chart-editor__input--highlight]="isValueHighlight(si, ci)"
 												[disabled]="!canEdit()"
 												[value]="s.values[ci] ?? 0"
 												(change)="onValueChange($event, si, ci)"
@@ -394,6 +408,13 @@ import {
 			opacity: 0.6;
 		}
 
+		/* Cell matching the on-canvas chart part selection (ring highlight). */
+		.pptx-chart-editor__input--highlight {
+			outline: 1px solid var(--pptx-inspector-active, #0078d4);
+			outline-offset: -1px;
+			border-radius: 2px;
+		}
+
 		/* Remove browser spin buttons on number inputs */
 		.pptx-chart-editor__value-input::-webkit-outer-spin-button,
 		.pptx-chart-editor__value-input::-webkit-inner-spin-button {
@@ -409,6 +430,11 @@ import {
 	`,
 })
 export class ChartDataEditorComponent {
+	/** Canvas <-> inspector chart-part selection bridge (viewer-scoped, optional). */
+	private readonly partSelection = inject(ChartPartSelectionService, { optional: true });
+	private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+	private readonly injector = inject(Injector);
+
 	/** The chart element being edited. */
 	readonly element = input.required<ChartPptxElement>();
 	/** Whether editing is enabled (read-only mode when false). */
@@ -416,6 +442,48 @@ export class ChartDataEditorComponent {
 
 	/** Emits the updated element after any edit operation. */
 	readonly elementChange = output<ChartPptxElement>();
+
+	constructor() {
+		// Bring the canvas-selected cell into view when the selection changes.
+		effect(() => {
+			if (!this.highlightCell()) {
+				return;
+			}
+			afterNextRender(
+				() => {
+					this.host.nativeElement
+						.querySelector('.pptx-chart-editor__input--highlight')
+						?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+				},
+				{ injector: this.injector },
+			);
+		});
+	}
+
+	/**
+	 * Cell to highlight, driven by the on-canvas chart part selection: a
+	 * `pointIndex` highlights one value cell, series-only highlights the
+	 * series name header.
+	 */
+	protected readonly highlightCell = computed<{ seriesIndex: number; pointIndex?: number } | null>(
+		() => {
+			const sel = this.partSelection?.selection() ?? null;
+			if (!sel || sel.elementId !== this.element().id) {
+				return null;
+			}
+			return { seriesIndex: sel.part.seriesIndex, pointIndex: sel.part.pointIndex };
+		},
+	);
+
+	protected isSeriesHighlight(seriesIndex: number): boolean {
+		const cell = this.highlightCell();
+		return cell !== null && cell.seriesIndex === seriesIndex && cell.pointIndex === undefined;
+	}
+
+	protected isValueHighlight(seriesIndex: number, catIndex: number): boolean {
+		const cell = this.highlightCell();
+		return cell !== null && cell.seriesIndex === seriesIndex && cell.pointIndex === catIndex;
+	}
 
 	// ── Computed helpers ────────────────────────────────────────────────────
 

@@ -8,6 +8,10 @@ export type { Point as ConnectorPoint, Rect as ConnectorObstacle } from './conne
 export type { ConnectorRouting } from './connector-path';
 export { TableRendererComponent } from './table-renderer.component';
 export { ChartRendererComponent } from './chart-renderer.component';
+export { ChartPrimitivesComponent } from './chart-primitives.component';
+export { ChartElementViewComponent } from './chart-element-view.component';
+export { ChartPartSelectionService } from './chart-part-selection.service';
+export type { ChartPartSelection } from './chart-part-selection.service';
 export { SmartArtRendererComponent } from './smart-art-renderer.component';
 export { InkRendererComponent } from './ink-renderer.component';
 export { OleRendererComponent } from './ole-renderer.component';

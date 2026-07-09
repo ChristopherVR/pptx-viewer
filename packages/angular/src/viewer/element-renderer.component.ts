@@ -11,7 +11,7 @@ import {
 	substituteFieldText,
 } from '../internal/shared';
 import type { FieldSubstitutionContext } from '../internal/shared';
-import { ChartRendererComponent } from './chart-renderer.component';
+import { ChartElementViewComponent } from './chart-element-view.component';
 import { getClrChangeParams } from './color-changed-image-helpers';
 import type { ClrChangeParams } from './color-changed-image-helpers';
 import { ColorChangedImageComponent } from './color-changed-image.component';
@@ -133,7 +133,7 @@ interface Paragraph {
 		NgStyle,
 		ConnectorRendererComponent,
 		TableRendererComponent,
-		ChartRendererComponent,
+		ChartElementViewComponent,
 		SmartArtRendererComponent,
 		SmartArt3DRendererComponent,
 		InkRendererComponent,
@@ -215,7 +215,10 @@ interface Paragraph {
 					[attr.data-element-id]="element().id"
 					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
-					<pptx-chart-renderer [element]="element()" />
+					<pptx-chart-element-view
+						[element]="element()"
+						[editable]="interactive() && editable()"
+					/>
 				</div>
 			}
 			@case (element().type === 'table') {
