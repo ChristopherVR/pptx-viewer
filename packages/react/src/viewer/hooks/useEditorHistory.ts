@@ -258,7 +258,11 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		// Skip the deep stringify when slide / element counts and ids
 		// match the previous snapshot. This catches the very common case
 		// where the effect re-runs but no real state shape changed.
-		const cheapHash = `${slides.length}|${activeSlideIndex}|${canvasSize.width}x${canvasSize.height}|${slides
+		// `pointerCommitNonce` is part of the hash so a committed pointer
+		// interaction (move / resize / adjust / on-canvas chart edit) forces
+		// the deep comparison even though it changes no counts; without it
+		// those edits never reached the snapshot push and were not undoable.
+		const cheapHash = `${pointerCommitNonce}|${slides.length}|${activeSlideIndex}|${canvasSize.width}x${canvasSize.height}|${slides
 			.map((s) => `${s.id}:${s.elements.length}`)
 			.join('/')}`;
 		if (cheapHash === lastCheapHashRef.current) {
