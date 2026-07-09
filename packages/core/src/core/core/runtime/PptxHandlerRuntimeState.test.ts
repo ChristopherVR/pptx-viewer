@@ -1,33 +1,22 @@
 import { describe, it, expect } from 'vitest';
 
+import {
+	detectStrictConformance,
+	normalizeStrictXml as normalizeStrictXmlInPlace,
+} from '../../utils/strict-namespace-map';
+
 // ---------------------------------------------------------------------------
 // Extracted logic from PptxHandlerRuntimeState (protected methods)
 // ---------------------------------------------------------------------------
 
 /**
- * Re-implementation of detectAndSetStrictConformance logic for testing.
- * Tests the Strict Open XML detection and parser wrapping behavior.
+ * Tests the Strict Open XML detection and parser wrapping behavior, exercised
+ * against the real strict-namespace-map implementation rather than a stub.
  */
 
-// Simplified stub for detectStrictConformance
-function detectStrictConformance(xmlObj: Record<string, unknown>): boolean {
-	// Strict OOXML uses the "http://purl.oclc.org/ooxml/" namespace prefix
-	const stringified = JSON.stringify(xmlObj);
-	return stringified.includes('http://purl.oclc.org/ooxml/');
-}
-
-// Simplified stub for normalizeStrictXml
+// normalizeStrictXml mutates and returns its argument; the harness only cares about the mutation.
 function normalizeStrictXml(xmlObj: Record<string, unknown>): void {
-	const stringified = JSON.stringify(xmlObj);
-	const normalized = stringified.replace(
-		/http:\/\/purl\.oclc\.org\/ooxml\//g,
-		'http://schemas.openxmlformats.org/',
-	);
-	const parsed = JSON.parse(normalized);
-	for (const key of Object.keys(xmlObj)) {
-		delete xmlObj[key];
-	}
-	Object.assign(xmlObj, parsed);
+	normalizeStrictXmlInPlace(xmlObj);
 }
 
 /**
@@ -43,7 +32,7 @@ class RuntimeStateTestHarness {
 
 	constructor() {
 		this.parser = {
-			parse: (xml: string) => ({ raw: xml }),
+			parse: (xml: string) => JSON.parse(xml) as Record<string, unknown>,
 		};
 	}
 
@@ -81,6 +70,19 @@ class RuntimeStateTestHarness {
 			this._originalParser = null;
 		}
 	}
+}
+
+// A minimal parsed-XML shape that carries a Strict namespace declaration on
+// its root element, matching what detectStrictConformance actually walks
+// (top-level element -> @_xmlns* attributes) rather than an arbitrary blob.
+// The family must be one of the algorithmically-remapped families (see
+// strict-namespace-map.ts) so normalizeStrictXml actually rewrites it.
+function strictXmlObj(family = 'presentationml/main'): Record<string, unknown> {
+	return {
+		'p:presentation': {
+			'@_xmlns:p': `http://purl.oclc.org/ooxml/${family}`,
+		},
+	};
 }
 
 // ---------------------------------------------------------------------------
@@ -158,31 +160,20 @@ describe('detectAndSetStrictConformance', () => {
 
 	it('should wrap parser to auto-normalize subsequent parse calls', () => {
 		const harness = new RuntimeStateTestHarness();
-		const strictXml = {
-			'p:presentation': {
-				'@_xmlns:p': 'http://purl.oclc.org/ooxml/presentationml/main',
-			},
-		};
-		harness.detectAndSetStrictConformance(strictXml);
+		harness.detectAndSetStrictConformance(strictXmlObj());
 
 		// Parser should now be wrapped
-		const result = harness.parser.parse('{"ns": "http://purl.oclc.org/ooxml/test"}');
+		const result = harness.parser.parse(JSON.stringify(strictXmlObj()));
 		// The proxy should normalize the result
 		expect(JSON.stringify(result)).not.toContain('purl.oclc.org');
 	});
 
 	it('should not wrap parser twice if called again', () => {
 		const harness = new RuntimeStateTestHarness();
-		const strictXml1 = {
-			data: 'http://purl.oclc.org/ooxml/test',
-		};
-		harness.detectAndSetStrictConformance(strictXml1);
+		harness.detectAndSetStrictConformance(strictXmlObj('presentationml/main'));
 		const parserAfterFirst = harness.parser;
 
-		const strictXml2 = {
-			data: 'http://purl.oclc.org/ooxml/test2',
-		};
-		harness.detectAndSetStrictConformance(strictXml2);
+		harness.detectAndSetStrictConformance(strictXmlObj('drawingml/main'));
 		// Parser reference should stay the same (not double-wrapped)
 		expect(harness.parser).toBe(parserAfterFirst);
 	});
@@ -196,10 +187,7 @@ describe('restoreOriginalParser', () => {
 		const harness = new RuntimeStateTestHarness();
 		const originalParser = harness.parser;
 
-		const strictXml = {
-			data: 'http://purl.oclc.org/ooxml/test',
-		};
-		harness.detectAndSetStrictConformance(strictXml);
+		harness.detectAndSetStrictConformance(strictXmlObj());
 		expect(harness.parser).not.toBe(originalParser);
 
 		harness.restoreOriginalParser();
@@ -218,9 +206,7 @@ describe('restoreOriginalParser', () => {
 		const originalParser = harness.parser;
 
 		// Wrap
-		harness.detectAndSetStrictConformance({
-			data: 'http://purl.oclc.org/ooxml/test',
-		});
+		harness.detectAndSetStrictConformance(strictXmlObj('presentationml/main'));
 		expect(harness.parser).not.toBe(originalParser);
 
 		// Restore
@@ -229,9 +215,7 @@ describe('restoreOriginalParser', () => {
 
 		// Re-wrap
 		harness.isStrictOoxml = false;
-		harness.detectAndSetStrictConformance({
-			data: 'http://purl.oclc.org/ooxml/test2',
-		});
+		harness.detectAndSetStrictConformance(strictXmlObj('drawingml/main'));
 		expect(harness.parser).not.toBe(originalParser);
 		expect(harness.isStrictOoxml).toBeTruthy();
 	});

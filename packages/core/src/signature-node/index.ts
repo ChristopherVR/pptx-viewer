@@ -84,12 +84,15 @@ export {
 export {
 	certPemFromBase64,
 	certFingerprintSha256,
+	evaluateTimestampAuthority,
+} from './pki-validation';
+
+export {
 	extractOcspUrls,
 	buildOcspRequestDer,
 	parseOcspResponseStatus,
 	evaluateCertificateRevocation,
-	evaluateTimestampAuthority,
-} from './pki-validation';
+} from './ocsp';
 
 export {
 	extractPemCertificatesFromText,

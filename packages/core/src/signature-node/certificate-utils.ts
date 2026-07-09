@@ -16,9 +16,17 @@ import type {
 	LoadedSigningMaterial,
 	SignatureCertificateInfo,
 } from '../core/utils/signature-types';
+import { extractFirstPemBlock } from './pem-utils';
 import { certPemFromBase64 } from './pki-validation';
 import { canonicalizeNode } from './xml-canonicalization';
 import type { XmlDocument } from './xml-canonicalization';
+
+const PRIVATE_KEY_PEM_LABELS = [
+	'RSA PRIVATE KEY',
+	'EC PRIVATE KEY',
+	'ENCRYPTED PRIVATE KEY',
+	'PRIVATE KEY',
+];
 
 /** Extract certificate metadata from a Base64-encoded DER certificate. */
 export function certificateInfoFromBase64(
@@ -172,16 +180,14 @@ export function loadSigningMaterialFromBuffer(
 	}
 
 	const pem = Buffer.from(certificateBuffer).toString('utf8');
-	const privateKeyMatch = pem.match(
-		/-----BEGIN (?:RSA |EC |ENCRYPTED )?PRIVATE KEY-----[\s\S]+?-----END (?:RSA |EC |ENCRYPTED )?PRIVATE KEY-----/m,
-	);
-	const certMatch = pem.match(/-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/m);
-	if (!privateKeyMatch || !certMatch) {
+	const privateKeyPem = extractFirstPemBlock(pem, PRIVATE_KEY_PEM_LABELS);
+	const certificatePem = extractFirstPemBlock(pem, ['CERTIFICATE']);
+	if (!privateKeyPem || !certificatePem) {
 		throw new Error('PEM certificate must contain both private key and certificate.');
 	}
 	return {
-		privateKeyPem: privateKeyMatch[0],
-		certificatePem: certMatch[0],
+		privateKeyPem,
+		certificatePem,
 	};
 }
 

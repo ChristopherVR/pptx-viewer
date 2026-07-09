@@ -289,7 +289,7 @@ function resolveLayoutPathForSlide(
 		const slideDir = slidePath.substring(0, slidePath.lastIndexOf('/') + 1);
 		return target.startsWith('..')
 			? resolvePath(slideDir, target)
-			: `ppt/${target.replace('../', '')}`;
+			: `ppt/${target.replace(/\.\.\//g, '')}`;
 	}
 	return undefined;
 }

@@ -20,7 +20,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(slideDir, target)
-						: `ppt/${target.replace('../', '')}`;
+						: `ppt/${target.replace(/\.\.\//g, '')}`;
 				break;
 			}
 		}

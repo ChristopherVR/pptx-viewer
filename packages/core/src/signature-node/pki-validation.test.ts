@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
 
+import { extractOcspUrls, parseOcspResponseStatus } from './ocsp';
 import {
 	certPemFromBase64,
 	certFingerprintSha256,
-	extractOcspUrls,
-	parseOcspResponseStatus,
 	evaluateTimestampAuthority,
 } from './pki-validation';
 

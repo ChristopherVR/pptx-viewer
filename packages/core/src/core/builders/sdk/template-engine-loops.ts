@@ -11,12 +11,8 @@ import type { PptxElement } from '../../types/elements';
 import type { PptxSlide } from '../../types/presentation';
 import { hasTextProperties } from '../../types/type-guards';
 import { cloneSlide } from '../../utils/clone-utils';
-import {
-	resolvePath,
-	replaceTokensInString,
-	replaceTokensAcrossSegments,
-	processElements,
-} from './template-engine-helpers';
+import { resolvePath, replaceTokensInString } from './template-engine-helpers';
+import { replaceTokensAcrossSegments, processElements } from './template-engine-segments';
 import type { TemplateData } from './template-engine-types';
 
 // ---------------------------------------------------------------------------

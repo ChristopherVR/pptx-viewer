@@ -200,8 +200,12 @@ export function getShapeClipPathFromPreset(
 		return undefined;
 	}
 	// Single-quoted form is the most widely supported in CSS clip-path: path().
-	// Escape any embedded single quotes defensively (none are produced today).
-	const escaped = result.svgPath.replace(/'/g, "\\'");
+	// Escape backslashes first, then single quotes, defensively (neither is
+	// produced today). Order matters: backslash is the CSS escape character,
+	// so an unescaped backslash immediately preceding a quote would absorb
+	// the escaping backslash inserted below, leaving that quote unescaped
+	// and able to terminate the `path('...')` string early.
+	const escaped = result.svgPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 	return `path('${escaped}')`;
 }
 

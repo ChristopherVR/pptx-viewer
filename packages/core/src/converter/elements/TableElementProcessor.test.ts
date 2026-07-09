@@ -361,6 +361,20 @@ describe('tableElementProcessor', () => {
 			expect(result).toContain('A \\| B');
 		});
 
+		it('escapes backslashes before pipes so a literal backslash cannot neutralize the pipe escape', async () => {
+			const tableData = {
+				rows: [{ cells: [{ text: 'Header' }] }, { cells: [{ text: 'foo\\|bar' }] }],
+			};
+			const ctx = makeCtx({ semanticMode: true });
+			const result = await processor.process(makeTableElement(tableData), ctx);
+			const dataRow = result!.split('\n').find((line) => line.includes('foo'));
+			// The literal backslash (\) must itself be escaped (-> \\) before the
+			// pipe is escaped (-> \|); otherwise the backslash would combine with
+			// the inserted escape and leave the pipe unescaped, corrupting the
+			// single-column row's two delimiter pipes (leading + trailing).
+			expect(dataRow).toBe('| foo\\\\\\|bar |');
+		});
+
 		it('prepends empty header when firstRowHeader is false', async () => {
 			const tableData = {
 				firstRowHeader: false,
