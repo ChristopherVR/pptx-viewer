@@ -9,7 +9,7 @@ export default defineConfig((options) => ({
 	// `pptx-viewer-shared`, can't get) those packages from npm. Mirrors the
 	// runtime `noExternal` below and the Vue package's dts `bundledPackages`.
 	dts: { resolve: ['pptx-viewer-core', 'pptx-viewer-shared'] },
-	splitting: false,
+	splitting: true,
 	sourcemap: false,
 	clean: !options.watch,
 	external: [
