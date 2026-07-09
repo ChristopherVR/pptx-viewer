@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig((options) => ({
 	entry: ['src/index.ts', 'src/viewer/index.ts', 'src/i18n.ts'],
 	format: ['esm', 'cjs'],
-	minify: true,
+	minify: false,
 	// Inline the .d.ts of the bundled internal workspace packages so the
 	// published types resolve standalone: consumers don't need (and for
 	// `pptx-viewer-shared`, can't get) those packages from npm. Mirrors the
