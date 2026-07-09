@@ -6,6 +6,7 @@ import {
 	getOleTypeColor,
 	getOleTypeLabel,
 	isBrowserOpenableMime,
+	openUrlInNewTab,
 	resolveOleType,
 } from 'pptx-viewer-shared';
 import type { ResolvedOleType } from 'pptx-viewer-shared';
@@ -107,16 +108,16 @@ const ariaLabel = computed(() =>
 
 /**
  * Open the embedded payload in a new browser tab. Used for browser-renderable
- * MIME types only. The anchor `target="_blank"` would suffice, but routing
- * through a handler lets us stop the pointer/click from bubbling to the editor
- * selection/drag layer.
+ * MIME types only. Routes through the shared {@link openUrlInNewTab} helper,
+ * which converts the recovered `data:` URL to a Blob object URL first: browsers
+ * silently refuse to navigate a new top-level tab straight to a `data:` URL.
  */
 function openEmbedded(): void {
 	const data = embeddedData.value;
 	if (!data) {
 		return;
 	}
-	window.open(data, '_blank', 'noopener,noreferrer');
+	openUrlInNewTab(data);
 }
 
 /** Swallow pointer/mouse interactions on the action bar so clicking an action
@@ -400,6 +401,9 @@ const placeholderStyle = computed<CSSProperties>(() => ({
 	bottom: 4px;
 	right: 4px;
 	z-index: 10;
+	/* Decorative overlay: never intercept clicks meant for the action bar
+	   (Download / Open), which shares the bottom-right corner. */
+	pointer-events: none;
 }
 
 .pptx-vue-ole-placeholder {
