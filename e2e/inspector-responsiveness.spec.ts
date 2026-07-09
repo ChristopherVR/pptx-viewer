@@ -47,9 +47,26 @@ async function openInspector(page: Page, project: string): Promise<void> {
 		// Angular inspector auto-opens when selectedElement() is truthy; no toggle needed.
 		return;
 	}
+	// Vue's inspector pane starts OPEN (a slide-level "Slide Properties" panel is
+	// shown until an element is selected, when it becomes the "Properties" panel).
+	// React's starts closed. The toggle button flips the pane, so clicking it while
+	// the pane is already open would CLOSE it. Skip the click when a side panel is
+	// already present so this helper is idempotent across frameworks.
+	const alreadyOpen =
+		project === 'vue'
+			? page.locator('aside[aria-label="Properties"], aside[aria-label="Slide Properties"]')
+			: page.getByRole('complementary', { name: 'Properties' });
+	if (
+		await alreadyOpen
+			.first()
+			.isVisible()
+			.catch(() => false)
+	) {
+		return;
+	}
 	// React and Vue both have a toggle inspector button in the primary toolbar row.
 	// React:  aria-label="Toggle inspector panel"  (uses i18n key pptx.toolbar.toggleInspector)
-	// Vue:    aria-label="Toggle inspector"         (ToolbarPrimaryRow.vue)
+	// Vue:    aria-label="Toggle inspector panel"   (ToolbarPrimaryRow.vue, same key)
 	const label = project === 'react' ? 'Toggle inspector panel' : 'Toggle inspector';
 	const toggleBtn = page.getByRole('button', { name: label });
 	// Only click if the inspector is not already open (button may be hidden on mobile).

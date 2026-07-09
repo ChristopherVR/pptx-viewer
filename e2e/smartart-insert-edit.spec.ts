@@ -59,6 +59,22 @@ async function openInspector(page: Page, project: string): Promise<void> {
 	if (project === 'angular') {
 		return;
 	}
+	// Vue's inspector pane starts open (and stays open after inserting SmartArt,
+	// which auto-selects the new element); clicking the toggle would CLOSE it and
+	// drop the SmartArt properties/layout controls the tests need. Skip the click
+	// when a side panel is already present so the helper is idempotent.
+	const alreadyOpen =
+		project === 'vue'
+			? page.locator('aside[aria-label="Properties"], aside[aria-label="Slide Properties"]')
+			: page.getByRole('complementary', { name: 'Properties' });
+	if (
+		await alreadyOpen
+			.first()
+			.isVisible()
+			.catch(() => false)
+	) {
+		return;
+	}
 	const label = project === 'react' ? 'Toggle inspector panel' : 'Toggle inspector';
 	const toggleBtn = page.getByRole('button', { name: label });
 	if (await toggleBtn.isVisible()) {
