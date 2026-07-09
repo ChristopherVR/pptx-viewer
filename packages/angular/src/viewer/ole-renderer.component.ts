@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { TranslatePipe } from '@ngx-translate/core';
 import type { OlePptxElement, PptxElement } from 'pptx-viewer-core';
 
+import { openUrlInNewTab } from '../internal/shared';
 import { getContainerStyle } from './element-style';
 import type { StyleMap } from './element-style';
 import {
@@ -313,18 +314,16 @@ import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
 						{{ 'pptx.ole.download' | translate }}
 					</a>
 					@if (actions().canOpen) {
-						<a
+						<button
+							type="button"
 							class="pptx-ng-ole-action"
-							[href]="actions().downloadHref"
-							target="_blank"
-							rel="noopener noreferrer"
 							[attr.aria-label]="
 								'pptx.ole.openFileAria' | translate: { file: actions().downloadFileName }
 							"
-							(click)="$event.stopPropagation()"
+							(click)="$event.stopPropagation(); openEmbedded()"
 						>
 							{{ 'pptx.ole.open' | translate }}
-						</a>
+						</button>
 					}
 				</div>
 			}
@@ -502,4 +501,17 @@ export class OleRendererComponent {
 		}
 		return rows.map((row) => `${row.label}: ${row.value}`).join(', ');
 	});
+
+	/**
+	 * Open the recovered embedded payload in a new browser tab. Routes through
+	 * the shared {@link openUrlInNewTab} helper, which converts the `data:` URL to
+	 * a Blob object URL first: browsers silently refuse to navigate a new
+	 * top-level tab straight to a `data:` URL.
+	 */
+	openEmbedded(): void {
+		const href = this.actions().downloadHref;
+		if (href) {
+			openUrlInNewTab(href);
+		}
+	}
 }

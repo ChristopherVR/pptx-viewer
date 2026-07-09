@@ -48,7 +48,7 @@ describe('oleRenderer download/open actions', () => {
 		expect(html).not.toContain('>Open<');
 	});
 
-	it('offers an Open action in a new tab for a browser-openable PDF', () => {
+	it('offers an Open action button for a browser-openable PDF', () => {
 		const data = 'data:application/pdf;base64,JVBER';
 		const html = render(
 			makeOle({
@@ -59,8 +59,10 @@ describe('oleRenderer download/open actions', () => {
 			}),
 		);
 		expect(html).toContain('>Open<');
-		expect(html).toContain('target="_blank"');
-		expect(html).toContain('rel="noopener noreferrer"');
+		// Open is a real <button> (the click routes the data URL through an
+		// object URL); it must not navigate a raw data: URL via an anchor.
+		expect(html).toContain('<button');
+		expect(html).not.toContain('target="_blank"');
 	});
 
 	it('falls back to a generic download name when no file name is known', () => {

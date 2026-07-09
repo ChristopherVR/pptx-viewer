@@ -17,6 +17,14 @@ const FALLBACK_DOWNLOAD_NAME = 'presentation.pptx';
 const REVOKE_DELAY_MS = 200;
 
 /**
+ * Revoke delay (ms) after opening a payload in a new tab. Longer than the
+ * download delay: the new document may still be fetching the object URL (a PDF
+ * viewer, an image) well after the current task finishes, so we keep the URL
+ * alive for a minute before releasing it.
+ */
+const OPEN_REVOKE_DELAY_MS = 60_000;
+
+/**
  * Strip control characters, filesystem-reserved characters, and path-traversal
  * sequences from a user-supplied download filename. CR/LF in particular can
  * corrupt `Content-Disposition` headers when a server-side proxy re-emits the
@@ -93,4 +101,67 @@ export function downloadDataUrl(dataUrl: string, filename: string): void {
 	setTimeout(() => {
 		anchor.remove();
 	}, REVOKE_DELAY_MS);
+}
+
+/**
+ * Convert a `data:` URL into a {@link Blob}, preserving its MIME type. Handles
+ * both base64 and percent-encoded payloads. Returns `undefined` for a non-data
+ * URL or a payload that cannot be decoded, so callers can fall back gracefully.
+ *
+ * @param dataUrl - A `data:` URL string.
+ */
+export function dataUrlToBlob(dataUrl: string): Blob | undefined {
+	const match = /^data:(?<mime>[^;,]*)(?<base64>;base64)?,(?<payload>[\s\S]*)$/u.exec(dataUrl);
+	if (!match?.groups) {
+		return undefined;
+	}
+	const mime = match.groups.mime || 'application/octet-stream';
+	const isBase64 = Boolean(match.groups.base64);
+	const payload = match.groups.payload ?? '';
+	try {
+		if (isBase64) {
+			const binary = atob(payload);
+			const bytes = new Uint8Array(binary.length);
+			for (let i = 0; i < binary.length; i++) {
+				bytes[i] = binary.charCodeAt(i);
+			}
+			return new Blob([bytes], { type: mime });
+		}
+		return new Blob([decodeURIComponent(payload)], { type: mime });
+	} catch {
+		return undefined;
+	}
+}
+
+/**
+ * Open a payload in a new browser tab. Chromium (and other browsers) silently
+ * refuse to navigate a new top-level browsing context straight to a `data:`
+ * URL, so a data URL is first converted to a Blob object URL - which browsers
+ * do allow a new tab to open - and revoked after {@link OPEN_REVOKE_DELAY_MS}
+ * once the new document has had time to fetch it. Non-`data:` URLs (http(s),
+ * blob) are opened as-is.
+ *
+ * @param url - The payload URL (typically a recovered `data:` URL).
+ */
+export function openUrlInNewTab(url: string): void {
+	const blob = url.startsWith('data:') ? dataUrlToBlob(url) : undefined;
+	const target = blob ? URL.createObjectURL(blob) : url;
+	// NB: no `noopener` here. A `blob:` object URL is resolved from the opener's
+	// origin-partitioned blob store, and Chromium refuses to resolve it in the
+	// disconnected browsing context `noopener` creates (the new tab lands on an
+	// empty document). We instead sever the child's back-reference to us
+	// afterwards, which mitigates reverse-tabnabbing without breaking the blob.
+	const opened = window.open(target, '_blank');
+	if (opened) {
+		try {
+			opened.opener = null;
+		} catch {
+			// Some browsers disallow reassigning `opener`; best-effort only.
+		}
+	}
+	if (blob) {
+		setTimeout(() => {
+			URL.revokeObjectURL(target);
+		}, OPEN_REVOKE_DELAY_MS);
+	}
 }

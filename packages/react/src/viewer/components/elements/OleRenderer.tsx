@@ -1,5 +1,5 @@
 import type { OlePptxElement } from 'pptx-viewer-core';
-import { formatBytes, isBrowserOpenableMime } from 'pptx-viewer-shared';
+import { formatBytes, isBrowserOpenableMime, openUrlInNewTab } from 'pptx-viewer-shared';
 import React from 'react';
 
 import {
@@ -102,16 +102,15 @@ function OleActionFooter({ el, info }: OleActionFooterProps): React.ReactNode {
 				>
 					Download
 				</a>
-				{info.canOpenInBrowser && (
-					<a
-						href={el.oleEmbeddedData}
-						target='_blank'
-						rel='noopener noreferrer'
+				{info.canOpenInBrowser && el.oleEmbeddedData && (
+					<button
+						type='button'
+						onClick={() => openUrlInNewTab(el.oleEmbeddedData as string)}
 						className='rounded px-1.5 py-0.5 bg-white/15 hover:bg-white/25 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white'
 						title={`Open ${downloadName} in a new tab`}
 					>
 						Open
-					</a>
+					</button>
 				)}
 			</span>
 		</div>

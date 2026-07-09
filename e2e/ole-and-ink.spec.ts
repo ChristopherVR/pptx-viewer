@@ -19,35 +19,29 @@
  * already verified round-trip correctly - with genuine, spec-valid binary
  * payloads (a real one-page PDF with an accurate xref table, a real PNG).
  *
- * DISCOVERED BUG #1 (documented, not fixed - see `EXPECTS_PREVIEW_IMAGE`
- * below): `previewImageData` (the field every binding's OLE renderer actually
- * reads for the `<img>` preview) is never populated anywhere in the load
- * pipeline (`PptxHandlerRuntimeLoadSession.ts` populates `oleEmbeddedData`
- * for download/open, but nothing resolves the separately-parsed
- * `previewImage` relative path into `previewImageData`, and Vue's
- * `OleRenderer.vue` even accepts a `mediaDataUrls` prop it never reads). So a
- * real `.pptx`'s OLE preview image NEVER renders in any of the three bindings
- * today - every loaded OLE object falls back to the generic type-badge
- * placeholder, identically to how `chart-rendering.spec.ts` documented
- * `chartData` not being enriched on load before that was fixed.
+ * BUG #1 (now FIXED - see `EXPECTS_PREVIEW_IMAGE` below): `previewImageData`
+ * (the field every binding's OLE renderer actually reads for the `<img>`
+ * preview) was never populated anywhere in the load pipeline
+ * (`PptxHandlerRuntimeLoadSession.ts` populated `oleEmbeddedData` for
+ * download/open, but nothing resolved the separately-parsed `previewImage`
+ * relative path into `previewImageData`). So a real `.pptx`'s OLE preview image
+ * never rendered in any of the three bindings - every loaded OLE object fell
+ * back to the generic type-badge placeholder, identically to how
+ * `chart-rendering.spec.ts` documented `chartData` not being enriched on load
+ * before that was fixed. `enrichOleElementsWithEmbeddedData` now resolves the
+ * preview into `previewImageData`, so all three bindings render it.
  *
- * DISCOVERED BUG #2 (documented, not fixed - see `EXPECTS_OPEN_POPUP` below):
- * all three bindings' "Open" action (React `OleRenderer.tsx`, Vue
- * `OleRenderer.vue`'s `openEmbedded()`, Angular `ole-renderer.component.ts`)
- * point a `target="_blank"` anchor / `window.open()` directly at the
- * `oleEmbeddedData` **`data:` URL**. Empirically (confirmed with an isolated
- * `<a target="_blank" href="data:...">` + click repro against this same
- * Chromium build), Chromium silently refuses to navigate a new top-level
- * browsing context straight to a `data:` URL - clicking "Open" never opens a
- * tab and never surfaces an error to the user. The fix would be to open the
- * payload via a `Blob`/`URL.createObjectURL` object URL instead of the raw
- * `data:` URL, which browsers do allow to navigate a new tab.
- *
- * Also note (not a bug, but worth flagging for consistency): the "Open"
- * control's DOM shape differs across bindings - React/Angular render a real
- * `<a target="_blank">`, Vue renders a `<button>` that calls `window.open()`.
- * Functionally equivalent (both hit the same blocked `data:` URL path above),
- * but a minor cross-framework inconsistency.
+ * BUG #2 (now FIXED - see `EXPECTS_OPEN_POPUP` below): all three bindings'
+ * "Open" action (React `OleRenderer.tsx`, Vue `OleRenderer.vue`'s
+ * `openEmbedded()`, Angular `ole-renderer.component.ts`) pointed a
+ * `target="_blank"` anchor / `window.open()` directly at the `oleEmbeddedData`
+ * **`data:` URL**. Chromium silently refuses to navigate a new top-level
+ * browsing context straight to a `data:` URL - clicking "Open" never opened a
+ * tab and never surfaced an error. The fix routes the payload through the
+ * shared `openUrlInNewTab` helper, which converts the `data:` URL to a
+ * `Blob`/`URL.createObjectURL` object URL (which browsers do allow a new tab to
+ * navigate to) and revokes it after a delay. All three "Open" controls are now
+ * normalized to a `<button>` that calls this helper.
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -64,21 +58,21 @@ const inkFixturePath = resolve(
 
 /**
  * Whether the OLE preview image (`previewImageData`) is expected to render.
- * `false` today because of the discovered load-pipeline gap documented above;
- * flip to `true` once a loaded OLE object's `previewImage` relationship path
- * is resolved into `previewImageData` the same way regular picture elements
- * resolve their media.
+ * `true` now that the load pipeline resolves a loaded OLE object's
+ * `previewImage` relationship path into `previewImageData`
+ * (`enrichOleElementsWithEmbeddedData`), the same way regular picture elements
+ * resolve their media - so every binding renders the real preview `<img>`.
  */
-const EXPECTS_PREVIEW_IMAGE = false;
+const EXPECTS_PREVIEW_IMAGE = true;
 
 /**
- * Whether clicking the "Open in a new tab" action is expected to actually
- * open a new tab. `false` today because of discovered bug #2 above (the
- * anchor navigates straight to a `data:` URL, which Chromium refuses to open
- * as a new top-level document); flip to `true` once the action is switched to
- * an object URL (`URL.createObjectURL`).
+ * Whether clicking the "Open in a new tab" action is expected to actually open
+ * a new tab. `true` now that the action converts the recovered `data:` URL to a
+ * Blob object URL (`openUrlInNewTab` in `pptx-viewer-shared`) before opening,
+ * which browsers do allow a new top-level document to navigate to (they refuse
+ * a raw `data:` URL).
  */
-const EXPECTS_OPEN_POPUP = false;
+const EXPECTS_OPEN_POPUP = true;
 
 async function openFixture(page: Page, fixturePath: string): Promise<void> {
 	await page.goto('/');
@@ -130,14 +124,11 @@ test.describe('OLE embedded objects', () => {
 
 		// Open-in-new-tab action: the embedded payload is a real PDF
 		// (`application/pdf`), which `isBrowserOpenableMime` allows, so every
-		// binding also renders an "Open" control alongside "Download" - though
-		// NOT with a consistent DOM shape: React/Angular render a real
-		// `<a target="_blank" href="{dataUrl}">`, while Vue instead renders a
-		// `<button>` that calls `window.open(dataUrl, '_blank', ...)` on click
-		// (a minor, harmless but real cross-framework DOM inconsistency worth
-		// noting). Both ultimately call the same browser "open a new top-level
-		// document" primitive, so select by accessible name/role rather than
-		// tag to stay portable.
+		// binding also renders an "Open" control alongside "Download". All three
+		// now normalize it to a `<button>` that routes the recovered `data:` URL
+		// through the shared `openUrlInNewTab` helper (data URL -> Blob object
+		// URL -> new tab). Select by accessible name/role rather than tag to stay
+		// robust.
 		const openLink = ole
 			.getByRole('link', { name: /open/iu })
 			.or(ole.getByRole('button', { name: /open/iu }));
@@ -149,9 +140,18 @@ test.describe('OLE embedded objects', () => {
 		const popup = await popupWait;
 
 		if (EXPECTS_OPEN_POPUP) {
+			// The fix routes the recovered PDF `data:` URL through a Blob object
+			// URL before opening; a new top-level tab WILL open for that (the old
+			// raw `data:` URL path opened nothing at all - see the else branch).
+			// That a popup opens is the portable signal for the fix. The opened
+			// tab's document URL is environment-dependent and so NOT asserted: a
+			// `blob:` PDF renders inline in headed Chromium but is handed to the
+			// download manager in headless (leaving the tab URL empty). We only
+			// assert it is never the raw `data:` URL the browser used to refuse.
 			expect(popup, 'Open action opens a new tab once it uses an object URL').toBeDefined();
-			expect(popup!.url()).toMatch(/^data:application\/pdf/u);
-			await popup!.close();
+			expect(popup!.url()).not.toMatch(/^data:/u);
+			expect(page.context().pages().length).toBeGreaterThan(pagesBefore);
+			await popup!.close().catch(() => undefined);
 		} else {
 			// Discovered bug #2 (see header): Chromium silently refuses to
 			// navigate a new top-level document straight to a `data:` URL, so
