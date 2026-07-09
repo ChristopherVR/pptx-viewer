@@ -104,7 +104,7 @@ import { NotesToolbarComponent } from './notes-toolbar.component';
 						#richEditor
 						class="pptx-ng-notes-rich"
 						[hidden]="!showRich()"
-						[attr.contenteditable]="slide() ? 'true' : 'false'"
+						[attr.contenteditable]="showRich() ? 'true' : 'false'"
 						role="textbox"
 						aria-multiline="true"
 						[attr.aria-label]="'pptx.notes.speakerNotes' | translate"
