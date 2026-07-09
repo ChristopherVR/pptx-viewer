@@ -140,7 +140,7 @@ export class AppComponent {
 	readonly collaborationConfig = signal<CollaborationConfig | null>(null);
 
 	readonly activeTheme = computed<ViewerTheme>(
-		() => (THEMES[this.themeKey()] ?? THEMES['dark']).theme,
+		() => (THEMES[this.themeKey()] ?? THEMES['vermilionDark']).theme,
 	);
 
 	constructor() {

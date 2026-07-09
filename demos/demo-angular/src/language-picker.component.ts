@@ -136,7 +136,7 @@ export class LanguagePickerComponent {
 	);
 	protected readonly isSmallScreen = computed(() => this.isSmallScreenState());
 
-	private readonly preset = computed(() => THEMES[this.theme()] ?? THEMES['dark']);
+	private readonly preset = computed(() => THEMES[this.theme()] ?? THEMES['vermilionDark']);
 	private readonly bg = computed(() => this.preset().theme.colors?.card ?? '#111827');
 	private readonly border = computed(() => this.preset().theme.colors?.border ?? '#374151');
 	private readonly fg = computed(() => this.preset().theme.colors?.mutedForeground ?? '#9ca3af');

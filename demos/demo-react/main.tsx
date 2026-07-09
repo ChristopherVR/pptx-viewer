@@ -428,9 +428,9 @@ function App() {
 	} | null>(null);
 	const [themeKey, setThemeKey] = useState<string>(() => {
 		try {
-			return localStorage.getItem('pptx-demo-theme') ?? 'dark';
+			return localStorage.getItem('pptx-demo-theme') ?? 'vermilionDark';
 		} catch {
-			return 'dark';
+			return 'vermilionDark';
 		}
 	});
 	const [languageKey, setLanguageKey] = useState<string>(() => {
@@ -816,7 +816,7 @@ function App() {
 		}
 	}, [collaborationConfig, content, fileName]);
 
-	const currentPreset = themes[themeKey] ?? themes.dark;
+	const currentPreset = themes[themeKey] ?? themes.vermilionDark;
 
 	// Apply theme CSS vars to :root so Tailwind's @theme var() references resolve
 	useRootTheme(currentPreset.theme);
