@@ -6,6 +6,20 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-09
 
+_Releases: pptx-viewer-core@1.2.7, pptx-react-viewer@1.13.0, pptx-vue-viewer@1.13.0, pptx-angular-viewer@1.13.1_
+
+### Features
+
+- Updated default theme on demo sites (by @ChristopherVR) ([51b6f1b](https://github.com/ChristopherVR/pptx-viewer/commit/51b6f1b11acb0d75284eac7db697c450b50ce0df))
+- Addressing CodeQL issues (by @ChristopherVR) ([ec1be4f](https://github.com/ChristopherVR/pptx-viewer/commit/ec1be4fc01b1b6804055b7948728fd60348e0110))
+
+### Bug Fixes
+
+- **core:** Close residual ReDoS/path-traversal gaps from the last CodeQL pass (by @ChristopherVR) ([9b17db9](https://github.com/ChristopherVR/pptx-viewer/commit/9b17db9067fac5f1b230d6fcc50fa9f8936d96ae))
+- **shared:** Harden print-document HTML assembly against injection (by @ChristopherVR) ([e6add81](https://github.com/ChristopherVR/pptx-viewer/commit/e6add81b93dd71d42c2ef54e459fcc0629a17fa8))
+
+## 2026-07-09
+
 _Releases: pptx-viewer-core@1.2.6, pptx-react-viewer@1.12.0, pptx-vue-viewer@1.12.0, pptx-angular-viewer@1.13.0_
 
 ### Features
