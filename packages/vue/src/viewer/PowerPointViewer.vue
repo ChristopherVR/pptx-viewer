@@ -2202,7 +2202,12 @@ function handleCommandSearch(command: string): void {
 				title="Notes"
 				@close="mobileNotesOpen = false"
 			>
-				<NotesPanel :slide="activeSlide" @update="onNotesUpdate" />
+				<NotesPanel
+					:slide="activeSlide"
+					:expanded="true"
+					@update="onNotesUpdate"
+					@toggle="mobileNotesOpen = false"
+				/>
 			</MobileSheet>
 
 			<!-- Mobile Format / properties sheet (right-rail inspector on desktop) -->
