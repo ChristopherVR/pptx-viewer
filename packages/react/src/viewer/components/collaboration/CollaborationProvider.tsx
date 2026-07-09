@@ -5,8 +5,13 @@
  * remote user presence, broadcast function) to all child components via
  * `useCollaboration()`.
  *
- * This component is only rendered when `collaboration` config is provided to
- * `PowerPointViewer`, ensuring zero bundle/runtime cost when unused.
+ * This provider is rendered unconditionally by `PowerPointViewer` so that
+ * starting or stopping a collaboration session never changes the React tree
+ * shape (which would force a full unmount/remount of the editor subtree). When
+ * no `config` is supplied it stays completely dormant: it opens no transport,
+ * tracks no presence, and exposes a `null` context value so `useCollaboration()`
+ * reports "not collaborating". The Yjs packages remain dynamically imported, so
+ * there is still zero bundle cost until a session actually starts.
  *
  * @module collaboration/CollaborationProvider
  */
@@ -37,7 +42,8 @@ export function useCollaboration(): CollaborationContextValue | null {
 // ---------------------------------------------------------------------------
 
 export interface CollaborationProviderProps {
-	config: CollaborationConfig;
+	/** Collaboration config, or `undefined`/omitted while no session is active. */
+	config?: CollaborationConfig;
 	canvasWidth: number;
 	canvasHeight: number;
 	children: React.ReactNode;
@@ -49,6 +55,8 @@ export function CollaborationProvider({
 	canvasHeight,
 	children,
 }: CollaborationProviderProps): React.ReactElement {
+	// Returns `null` when `config` is absent, so consumers see "not collaborating"
+	// while the provider itself stays mounted around stable children.
 	const value = useCollaborativeState({
 		config,
 		canvasWidth,

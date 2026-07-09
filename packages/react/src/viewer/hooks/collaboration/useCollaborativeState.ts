@@ -21,7 +21,13 @@ import { useYjsProvider } from './useYjsProvider';
 // ---------------------------------------------------------------------------
 
 export interface UseCollaborativeStateInput {
-	config: CollaborationConfig;
+	/**
+	 * Collaboration config, or `undefined` when collaboration is inactive. The
+	 * hook is always called so the surrounding provider keeps a stable React
+	 * tree shape; it produces a dormant value (no transport, empty presence)
+	 * while config is absent.
+	 */
+	config?: CollaborationConfig;
 	canvasWidth: number;
 	canvasHeight: number;
 }
@@ -34,24 +40,31 @@ export function useCollaborativeState({
 	config,
 	canvasWidth,
 	canvasHeight,
-}: UseCollaborativeStateInput): CollaborationContextValue {
-	const userColor = sanitizeColor(config.userColor, '#6366f1');
+}: UseCollaborativeStateInput): CollaborationContextValue | null {
+	const userColor = sanitizeColor(config?.userColor, '#6366f1');
 
 	const { status, awareness, doc, clientId, synced, retry } = useYjsProvider({ config });
 
 	const { remoteUsers, broadcastPresence } = usePresenceTracking({
 		awareness,
 		localClientId: clientId,
-		userName: config.userName,
+		userName: config?.userName ?? '',
 		userColor,
-		userAvatar: config.userAvatar,
-		role: config.role,
+		userAvatar: config?.userAvatar,
+		role: config?.role,
 		canvasWidth,
 		canvasHeight,
 	});
 
 	// Total connected = remote users + local (if connected)
 	const connectedCount = status === 'connected' ? remoteUsers.length + 1 : remoteUsers.length;
+
+	// Collaboration inactive: all the hooks above ran (and stayed dormant) so the
+	// provider keeps a stable tree, but expose a null context value so
+	// `useCollaboration()` reports "not collaborating", exactly as before.
+	if (!config) {
+		return null;
+	}
 
 	return {
 		status,
