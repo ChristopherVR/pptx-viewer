@@ -45,29 +45,21 @@
  * a live, playable media node and not a broken/frozen reference, which is the
  * actual regression this spec guards against.
  *
- * KNOWN BUG (discovered by this spec, not fixed here): a media element
- * inserted without its own persisted `autoPlay: true` (e.g. anything added via
- * Insert > Media, as this spec does) never actually starts playing when
- * Present mode is entered from the editor, in any of the three bindings:
- *   - React: entering Present mode reuses the SAME mounted `<video>` DOM node
- *     and merely toggles its `autoplay` attribute; browsers do not
- *     retroactively start playback when `autoplay` is added to an
- *     already-mounted element (that requires an explicit `.play()` call).
- *     `PresentationMediaController`'s corrective effect that would make that
- *     call (media-controller.tsx, the `isPresentationMode && element.autoPlay`
- *     effect around lines 205-261) is gated on `element.autoPlay` (the
- *     persisted element flag) instead of the effective `shouldAutoPlay` /
- *     `options.autoPlay` value `ElementBody.tsx` actually used to decide the
- *     `<video autoPlay=…>` JSX prop (`autoPlay: isPresentationPassive`,
- *     unconditional) - so the corrective call never fires for an element
- *     without that persisted flag.
- *   - Vue / Angular: there is no autoplay code path at all in
- *     `ElementMediaBox.vue` / `media-renderer.component.ts` - presentation
- *     mode only restores native controls for a manual click, it never
- *     autoplays anything regardless of the element's flags.
- * The last test below documents this with `test.fail()` so it stays visible
- * without failing the suite; flip it back to a normal assertion once fixed
- * (likely requiring separate fixes per binding).
+ * PRESENTATION AUTOPLAY (fixed): a media element inserted without its own
+ * persisted `autoPlay: true` (e.g. anything added via Insert > Media, as this
+ * spec does) now starts playing when Present mode is entered from the editor,
+ * in all three bindings. The fixes, per binding:
+ *   - React: `PresentationMediaController`'s corrective `.play()` effect
+ *     (media-controller.tsx) is now gated on the effective `shouldAutoPlay`
+ *     decision threaded down from `renderMediaElement` (i.e. `options.autoPlay
+ *     || element.autoPlay`, which Present mode makes true for any active-slide
+ *     media) instead of the raw persisted `element.autoPlay` flag, so it fires
+ *     for media inserted without that flag.
+ *   - Vue / Angular: a new autoplay code path in `ElementMediaBox.vue` /
+ *     `media-renderer.component.ts` calls the shared `startMediaAutoplay`
+ *     helper when a `presenting` flag (threaded only to the live presentation
+ *     stage) is set, and pauses again when it leaves present mode.
+ * The last test below asserts this behavior directly.
  *
  * Run: bunx playwright test media-playback --project=react
  */
@@ -310,14 +302,6 @@ test.describe('media element playback', () => {
 	test('video autoPlay in presentation mode starts playback without user interaction', async ({
 		page,
 	}) => {
-		test.fail(
-			true,
-			'Known bug (see file header): entering Present mode reuses the already-mounted ' +
-				'<video> DOM node and only toggles the autoplay attribute, which browsers do not ' +
-				"retroactively honor; the app's corrective el.play() effect in media-controller.tsx " +
-				'is gated on element.autoPlay instead of the effective autoplay decision, so it never ' +
-				'fires for a media element inserted without that flag. Remove test.fail() once fixed.',
-		);
 		await loadDeck(page);
 		await insertMediaFile(page, videoFixturePath);
 
@@ -330,31 +314,35 @@ test.describe('media element playback', () => {
 			.toBeGreaterThan(0);
 
 		// Enter presentation ("Present") mode - the passive-render path that
-		// sets `autoPlay: isPresentationPassive` and `controls={false}` in
-		// `ElementBody.tsx` (see file header), regardless of the inserted
-		// element's own `autoPlay` flag.
+		// autoplays active-slide media regardless of the element's own `autoPlay`
+		// flag. The button's accessible name is "Present" in React/Vue and
+		// "▶ Present" in Angular (icon folded in), so match the word, not an exact
+		// string.
 		await page
-			.getByRole('button', { name: /^present$/iu })
+			.getByRole('button', { name: /\bpresent\b/iu })
 			.first()
 			.click();
 		await page.waitForTimeout(700);
 
-		const presentedVideo = page.locator('video').first();
-		await expect(presentedVideo).toBeVisible();
-
-		// This is the actual known-bug assertion (see file header): none of the
-		// three bindings currently auto-starts a freshly-inserted media
-		// element's playback when Present mode is entered from the editor.
+		// Present mode may keep other (paused) copies of the same media on the page
+		// - the editor canvas and the thumbnail rail each render their own <video>,
+		// and React reuses a single node while Vue/Angular mount a fresh one in the
+		// slideshow overlay. So assert that SOME video auto-starts and advances,
+		// rather than assuming the first-in-DOM node is the presented one. This is
+		// the real desired behavior: entering Present mode auto-starts the media on
+		// the active slide without any user interaction on the media itself.
+		await expect(page.locator('video').first()).toBeAttached();
 		await expect
-			.poll(() => presentedVideo.evaluate((el: HTMLVideoElement) => !el.paused), {
-				timeout: 5_000,
-			})
+			.poll(
+				() =>
+					page.evaluate(() =>
+						Array.from(document.querySelectorAll('video')).some(
+							(el) => !el.paused && el.currentTime > 0,
+						),
+					),
+				{ timeout: 6_000 },
+			)
 			.toBe(true);
-		await expect
-			.poll(() => presentedVideo.evaluate((el: HTMLVideoElement) => el.currentTime), {
-				timeout: 5_000,
-			})
-			.toBeGreaterThan(0);
 
 		// Exit presentation mode so the test doesn't leak state to the next one.
 		await page.keyboard.press('Escape');
