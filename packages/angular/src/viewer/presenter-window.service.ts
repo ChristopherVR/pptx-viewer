@@ -18,6 +18,7 @@
 
 import { Injectable } from '@angular/core';
 
+import { secureRandomUuid } from '../internal/shared';
 import {
 	AUDIENCE_HASH,
 	clearAudienceContent,
@@ -61,12 +62,13 @@ export function isPresenterMessage(data: unknown): data is PresenterMessage {
 	);
 }
 
-/** Generate a per-presenter session UUID, falling back where crypto is missing. */
+/**
+ * Generate a per-presenter session UUID. Delegates to the shared
+ * `secureRandomUuid` helper, which prefers `crypto.randomUUID()` and falls
+ * back to a `crypto.getRandomValues`-backed UUID (never `Math.random()`).
+ */
 function generateSessionId(): string {
-	if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-		return crypto.randomUUID();
-	}
-	return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+	return secureRandomUuid();
 }
 
 /**

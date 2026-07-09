@@ -16,39 +16,43 @@
  */
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { LucideChevronDown } from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 
-import { ACTION_BUTTON_PRESETS, buildActionButtonElement } from '../internal/shared';
+import {
+	ACTION_BUTTON_PRESETS,
+	buildActionButtonElement,
+	secureRandomUuid,
+} from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 
 /** Default display text per field type when no explicit value is supplied. */
-function defaultFieldText(fieldType: string, slideNumber: number): string {
+function defaultFieldText(
+	fieldType: string,
+	slideNumber: number,
+	translate: (key: string) => string,
+): string {
 	switch (fieldType) {
 		case 'slidenum':
 			return String(slideNumber);
 		case 'datetime':
 			return new Date().toLocaleDateString();
 		case 'header':
-			return 'Header';
+			return translate('pptx.field.header');
 		case 'footer':
-			return 'Footer';
+			return translate('pptx.field.footer');
 		default:
 			return fieldType;
 	}
 }
 
-/** Generate an OOXML field GUID (`{UPPER-CASE-UUID}`), with a non-crypto fallback. */
+/**
+ * Generate an OOXML field GUID (`{UPPER-CASE-UUID}`). Delegates to the shared
+ * `secureRandomUuid` helper, which prefers `crypto.randomUUID()` and falls
+ * back to a `crypto.getRandomValues`-backed UUID (never `Math.random()`).
+ */
 function newFieldGuid(): string {
-	const uuid =
-		typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-			? crypto.randomUUID()
-			: 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/gu, (c) => {
-					const r = (Math.random() * 16) | 0;
-					const v = c === 'x' ? r : (r & 0x3) | 0x8;
-					return v.toString(16);
-				});
-	return `{${uuid.toUpperCase()}}`;
+	return `{${secureRandomUuid().toUpperCase()}}`;
 }
 
 @Component({
@@ -212,6 +216,7 @@ function newFieldGuid(): string {
 })
 export class RibbonInsertFieldsComponent {
 	private readonly editor = inject(EditorStateService);
+	private readonly translate = inject(TranslateService);
 
 	/** Active slide index the inserted element is appended to. */
 	readonly slideIndex = input<number>(0);
@@ -234,7 +239,9 @@ export class RibbonInsertFieldsComponent {
 
 	/** Insert a field run (slide number / date-time / header / footer). */
 	protected insertField(fieldType: string, value?: string): void {
-		const displayText = value || defaultFieldText(fieldType, this.slideIndex() + 1);
+		const displayText =
+			value ||
+			defaultFieldText(fieldType, this.slideIndex() + 1, (key) => this.translate.instant(key));
 		const fieldGuid = newFieldGuid();
 		const element: PptxElement = {
 			type: 'shape',
