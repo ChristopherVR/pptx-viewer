@@ -101,17 +101,48 @@ export function sanitizeOrientation(value: 'landscape' | 'portrait'): 'landscape
 	return value === 'portrait' ? 'portrait' : 'landscape';
 }
 
+/** Element/attribute shapes that are never legitimate in a rendered slide SVG. */
+const UNSAFE_SVG_SUBSTRINGS = [
+	'</section',
+	'<script',
+	'<foreignobject',
+	'<iframe',
+	'<embed',
+	'<object',
+	// eslint-disable-next-line no-script-url -- security deny-list entry: verifies the scheme is rejected, never executed.
+	'javascript:',
+];
+
+/** Matches an `on<event>=` handler attribute, e.g. `onload=`, `onclick=`. */
+const EVENT_HANDLER_ATTR_RE = /\son\w+\s*=/iu;
+
 /**
  * Guard against a malformed or tampered per-slide SVG string breaking out
  * of the `<section>` wrapper it's embedded in (unescaped) by
- * {@link buildPrintDocument}. Legitimate SVG produced by this library's own
- * `SvgExporter` render path is well-formed markup that never contains a
- * `</section` or `<script` substring, so this only ever rejects input that
- * has been corrupted or crafted to inject sibling markup.
+ * {@link buildPrintDocument}.
+ *
+ * This is deliberately an allow-list first, deny-list second check, not
+ * just a deny-list: legitimate SVG produced by this library's own
+ * `SvgExporter` render path is always a single well-formed `<svg>...</svg>`
+ * root element, so anything that doesn't structurally look like that is
+ * rejected outright. The deny-list then additionally screens for common
+ * SVG-based script-injection vectors (`<script>`, `<foreignObject>` (which
+ * can embed arbitrary HTML), `on*=` event handler attributes, `javascript:`
+ * URIs) so a crafted-but-still-`<svg>...</svg>`-shaped payload is also
+ * rejected.
  */
 export function isSafeSvgMarkup(svg: string): boolean {
-	const lower = svg.toLowerCase();
-	return !lower.includes('</section') && !lower.includes('<script');
+	const trimmed = svg.trim();
+	if (!trimmed.toLowerCase().startsWith('<svg') || !trimmed.toLowerCase().endsWith('</svg>')) {
+		return false;
+	}
+
+	const lower = trimmed.toLowerCase();
+	if (UNSAFE_SVG_SUBSTRINGS.some((needle) => lower.includes(needle))) {
+		return false;
+	}
+
+	return !EVENT_HANDLER_ATTR_RE.test(trimmed);
 }
 
 /* ------------------------------------------------------------------ */

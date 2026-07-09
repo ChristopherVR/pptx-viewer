@@ -402,11 +402,54 @@ export interface PrintHtmlDocumentOptions {
 }
 
 /**
+ * `orientation` is typed as a union at compile time, but `buildPrintHtmlDocument`
+ * is a public export reachable from plain JS callers, so a runtime check keeps
+ * the value that reaches `@page` / `<style>` interpolation confined to those
+ * two known-safe strings.
+ */
+function sanitizeOrientation(value: PrintOrientation): PrintOrientation {
+	return value === 'portrait' ? 'portrait' : 'landscape';
+}
+
+/** Element/attribute shapes that must never appear in assembled print-window body HTML. */
+const UNSAFE_BODY_HTML_SUBSTRINGS = [
+	'<script',
+	'<iframe',
+	'<embed',
+	'<object',
+	'<foreignobject',
+	// eslint-disable-next-line no-script-url -- security deny-list entry: verifies the scheme is rejected, never executed.
+	'javascript:',
+];
+
+/** Matches an `on<event>=` handler attribute, e.g. `onload=`, `onclick=`. */
+const EVENT_HANDLER_ATTR_RE = /\son\w+\s*=/iu;
+
+/**
+ * Defense-in-depth guard for the assembled print-window body HTML. Every
+ * dynamic value the `build*Html` helpers above embed (titles, notes, image
+ * `src`) is already escaped via {@link escapeHtml} / {@link safeDataImageSrc}
+ * before it's spliced into `bodyHtml`; this additionally screens the
+ * assembled fragment for script-injection shapes, so a future caller that
+ * forgets to escape a new field doesn't reach the printed window unnoticed.
+ */
+function isSafePrintBodyHtml(html: string): boolean {
+	const lower = html.toLowerCase();
+	if (UNSAFE_BODY_HTML_SUBSTRINGS.some((needle) => lower.includes(needle))) {
+		return false;
+	}
+	return !EVENT_HANDLER_ATTR_RE.test(html);
+}
+
+/**
  * Assemble the complete printable HTML document string (doctype + head with
  * print CSS + body). Pure: the caller writes it into a print window.
  */
 export function buildPrintHtmlDocument(options: PrintHtmlDocumentOptions): string {
-	const { title, bodyHtml, orientation, colorFilter, frameSlides } = options;
+	const { title, bodyHtml, frameSlides } = options;
+	const orientation = sanitizeOrientation(options.orientation);
+	const colorFilter = options.colorFilter;
+	const safeBodyHtml = isSafePrintBodyHtml(bodyHtml) ? bodyHtml : '';
 	const frameStyle = frameSlides
 		? 'img.slide-img, .notes-slide, .handout-cell img { border: 2px solid #000 !important; }'
 		: '';
@@ -455,6 +498,6 @@ export function buildPrintHtmlDocument(options: PrintHtmlDocumentOptions): strin
       ${frameStyle}
     </style>
   </head>
-  <body>${bodyHtml}</body>
+  <body>${safeBodyHtml}</body>
 </html>`;
 }
