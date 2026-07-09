@@ -54,6 +54,11 @@
 			"import": "./dist/i18n.mjs",
 			"require": "./dist/i18n.js"
 		},
+		"./hooks-unstable": {
+			"types": "./dist/hooks-unstable.d.ts",
+			"import": "./dist/hooks-unstable.mjs",
+			"require": "./dist/hooks-unstable.js"
+		},
 		"./styles": "./dist/pptx-viewer.css",
 		"./styles.css": "./dist/pptx-viewer.css",
 		"./theme.css": "./src/styles/theme.css"
