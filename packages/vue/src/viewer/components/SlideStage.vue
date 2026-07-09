@@ -38,6 +38,12 @@ const props = withDefaults(
 		 * canvas threads this through.
 		 */
 		editTemplateMode?: boolean;
+		/**
+		 * True only for the live presentation stage: slide-content media autoplays
+		 * (as in a real slideshow). Left false for thumbnails, the sorter, presenter
+		 * previews and transition snapshots so their media stays quiet.
+		 */
+		presenting?: boolean;
 	}>(),
 	{ scale: 1 },
 );
@@ -93,6 +99,7 @@ const stageStyle = computed<CSSProperties>(() => ({
 			:media-data-urls="mediaDataUrls"
 			:z-index="index + templateCount"
 			:interactive="interactive ?? false"
+			:presenting="presenting ?? false"
 		/>
 		<!-- Optional editing overlay (selection handles, etc.) shares this scaled space -->
 		<slot />

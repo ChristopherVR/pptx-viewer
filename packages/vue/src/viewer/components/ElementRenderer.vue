@@ -57,6 +57,8 @@ const props = defineProps<{
 	 * the (now editable) shared template shapes from normal slide content.
 	 */
 	templateEditing?: boolean;
+	/** True only on the live presentation stage; enables media autoplay. */
+	presenting?: boolean;
 }>();
 
 const { t } = useI18n();
@@ -187,6 +189,7 @@ const linkTooltipLabel = computed(
 			:media-data-urls="mediaDataUrls"
 			:z-index="i"
 			:interactive="interactive"
+			:presenting="presenting"
 		/>
 	</div>
 
@@ -207,6 +210,7 @@ const linkTooltipLabel = computed(
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:interactive="interactive"
+		:presenting="presenting"
 		:class="templateClass"
 	/>
 
