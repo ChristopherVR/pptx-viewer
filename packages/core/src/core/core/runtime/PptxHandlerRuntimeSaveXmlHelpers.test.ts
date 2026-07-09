@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import type { XmlObject } from '../../types';
+import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 
 /**
  * The `PptxHandlerRuntimeSaveXmlHelpers` module has protected methods on a
@@ -289,7 +290,7 @@ function resolveLayoutPathForSlide(
 		const slideDir = slidePath.substring(0, slidePath.lastIndexOf('/') + 1);
 		return target.startsWith('..')
 			? resolvePath(slideDir, target)
-			: `ppt/${target.replace(/\.\.\//g, '')}`;
+			: `ppt/${stripParentDirSegments(target)}`;
 	}
 	return undefined;
 }

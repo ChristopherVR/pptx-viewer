@@ -1,4 +1,5 @@
 import { XmlObject, PptxElement } from '../../types';
+import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeMasterElements';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
@@ -20,7 +21,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(slideDir, target)
-						: `ppt/${target.replace(/\.\.\//g, '')}`;
+						: `ppt/${stripParentDirSegments(target)}`;
 				break;
 			}
 		}

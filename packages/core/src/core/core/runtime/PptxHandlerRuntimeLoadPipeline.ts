@@ -5,6 +5,7 @@ import { PptxData, PptxSlide, PptxCompatibilityWarning, PptxElement, XmlObject }
 import type { PptxSection, PptxLayoutOption } from '../../types';
 import { parsePresentationDrawingGuides } from '../../utils/guide-utils';
 import { resolveLayoutDisplayName } from '../../utils/layout-display-name';
+import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { PptxLoadDataBuilder } from '../builders';
 import type { PptxHandlerLoadOptions } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeLoadSession';
@@ -294,7 +295,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(layoutDir, target)
-						: `ppt/${target.replace(/\.\.\//g, '')}`;
+						: `ppt/${stripParentDirSegments(target)}`;
 			}
 		}
 		return undefined;
@@ -379,7 +380,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(masterDir, target)
-						: `ppt/${target.replace(/\.\.\//g, '')}`;
+						: `ppt/${stripParentDirSegments(target)}`;
 				masterLayoutPaths.add(resolved);
 			}
 		}

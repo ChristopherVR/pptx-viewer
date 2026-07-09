@@ -1,4 +1,5 @@
 import type { PptxSlideBackgroundPattern, XmlObject } from '../../types';
+import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { xmlAttr, xmlAttrNumber, xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeColorAndEffects';
 
@@ -279,7 +280,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(layoutDir, target)
-						: `ppt/${target.replace(/\.\.\//g, '')}`;
+						: `ppt/${stripParentDirSegments(target)}`;
 
 				try {
 					const masterXmlStr = await this.zip.file(masterPath)?.async('string');
@@ -312,7 +313,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(slideDir, target)
-						: `ppt/${target.replace(/\.\.\//g, '')}`;
+						: `ppt/${stripParentDirSegments(target)}`;
 
 				try {
 					const layoutXmlStr = await this.zip.file(layoutPath)?.async('string');
@@ -353,7 +354,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(slideDir, target)
-						: `ppt/${target.replace(/\.\.\//g, '')}`;
+						: `ppt/${stripParentDirSegments(target)}`;
 
 				try {
 					const layoutXmlStr = await this.zip.file(layoutPath)?.async('string');
@@ -392,7 +393,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(layoutDir, target)
-						: `ppt/${target.replace(/\.\.\//g, '')}`;
+						: `ppt/${stripParentDirSegments(target)}`;
 
 				try {
 					const masterXmlStr = await this.zip.file(masterPath)?.async('string');

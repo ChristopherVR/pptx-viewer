@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import type { PptxSlide, PptxLayoutOption, XmlObject, PptxElement } from '../../types';
+import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
 
 // ── Extracted logic matching PptxHandlerRuntimeLoadPipeline ──────────
@@ -34,7 +35,7 @@ function findLayoutPathForSlide(
 			const slideDir = slidePath.substring(0, slidePath.lastIndexOf('/') + 1);
 			return target.startsWith('..')
 				? resolvePath(slideDir, target)
-				: `ppt/${target.replace(/\.\.\//g, '')}`;
+				: `ppt/${stripParentDirSegments(target)}`;
 		}
 	}
 	return undefined;
@@ -53,7 +54,7 @@ function findMasterPathForLayout(
 			const layoutDir = layoutPath.substring(0, layoutPath.lastIndexOf('/') + 1);
 			return target.startsWith('..')
 				? resolvePath(layoutDir, target)
-				: `ppt/${target.replace(/\.\.\//g, '')}`;
+				: `ppt/${stripParentDirSegments(target)}`;
 		}
 	}
 	return undefined;
@@ -100,7 +101,7 @@ function getAvailableLayoutsForSlide(
 			const masterDir = masterPath.substring(0, masterPath.lastIndexOf('/') + 1);
 			const resolved = target.startsWith('..')
 				? resolvePath(masterDir, target)
-				: `ppt/${target.replace(/\.\.\//g, '')}`;
+				: `ppt/${stripParentDirSegments(target)}`;
 			masterLayoutPaths.add(resolved);
 		}
 	}

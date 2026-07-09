@@ -7,6 +7,7 @@ import {
 	extractGuidFromPartName,
 } from '../../utils/font-deobfuscation';
 import { resolveLayoutDisplayName } from '../../utils/layout-display-name';
+import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePresentationStructure';
 
@@ -271,7 +272,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 					return stack.join('/');
 				}
-				return `ppt/${target.replace(/\.\.\//g, '')}`;
+				return `ppt/${stripParentDirSegments(target)}`;
 			}
 		}
 		return undefined;

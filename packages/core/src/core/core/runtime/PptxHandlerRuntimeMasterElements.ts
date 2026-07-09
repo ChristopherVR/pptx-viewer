@@ -7,6 +7,7 @@ import {
 	PptxTextStyleLevels,
 	PptxHeaderFooterFlags,
 } from '../../types';
+import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePlaceholderDefaults';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
 
@@ -179,7 +180,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? target.substring(1)
 					: target.startsWith('..')
 						? this.resolvePath(layoutDir, target)
-						: `ppt/${target.replace(/\.\.\//g, '')}`;
+						: `ppt/${stripParentDirSegments(target)}`;
 				break;
 			}
 		}

@@ -105,30 +105,89 @@ function execAll(regex: RegExp, text: string): RegExpExecArray[] {
  * Expand `$$`, `$&`, `` $` ``, `$'`, `$1`-`$99` and `$<name>` references in
  * `replacement`, mirroring the semantics `String.prototype.replace` applies
  * to its replacement-string argument when given a RegExp.
+ *
+ * Implemented as a single left-to-right scan rather than a regex: a regex
+ * alternative like `<([^>]+)>` retried at every `$<` in the string is
+ * quadratic when there's no closing `>` (each attempt backtracks to the end
+ * of the string), which static analysis flags as a polynomial-ReDoS sink
+ * since `replacement` is caller-controlled. The `$<name>` branch below uses
+ * a two-pointer scan over a precomputed list of `>` positions so the total
+ * work across the whole string stays linear.
  */
 function expandReplacement(replacement: string, match: RegExpExecArray, fullText: string): string {
-	return replacement.replace(
-		/\$(\$|&|`|'|<([^>]+)>|\d{1,2})/g,
-		(whole: string, token: string, groupName: string | undefined) => {
-			if (token === '$') {
-				return '$';
+	const closeAngleIndices: number[] = [];
+	for (let k = 0; k < replacement.length; k += 1) {
+		if (replacement[k] === '>') {
+			closeAngleIndices.push(k);
+		}
+	}
+
+	let result = '';
+	let i = 0;
+	let gtPtr = 0;
+	while (i < replacement.length) {
+		if (replacement[i] !== '$' || i + 1 >= replacement.length) {
+			result += replacement[i];
+			i += 1;
+			continue;
+		}
+
+		const next = replacement[i + 1];
+		if (next === '$') {
+			result += '$';
+			i += 2;
+		} else if (next === '&') {
+			result += match[0];
+			i += 2;
+		} else if (next === '`') {
+			result += fullText.slice(0, match.index);
+			i += 2;
+		} else if (next === "'") {
+			result += fullText.slice(match.index + match[0].length);
+			i += 2;
+		} else if (next === '<') {
+			while (gtPtr < closeAngleIndices.length && closeAngleIndices[gtPtr] < i + 2) {
+				gtPtr += 1;
 			}
-			if (token === '&') {
-				return match[0];
+			const closeIdx = gtPtr < closeAngleIndices.length ? closeAngleIndices[gtPtr] : -1;
+			if (closeIdx === -1) {
+				result += '$';
+				i += 1;
+			} else {
+				const groupName = replacement.slice(i + 2, closeIdx);
+				result += match.groups?.[groupName] ?? '';
+				i = closeIdx + 1;
 			}
-			if (token === '`') {
-				return fullText.slice(0, match.index);
+		} else if (next >= '0' && next <= '9') {
+			let digits = next;
+			let digitsEnd = i + 2;
+			if (
+				digitsEnd < replacement.length &&
+				replacement[digitsEnd] >= '0' &&
+				replacement[digitsEnd] <= '9'
+			) {
+				digits += replacement[digitsEnd];
+				digitsEnd += 1;
 			}
-			if (token === "'") {
-				return fullText.slice(match.index + match[0].length);
+			let groupIndex = Number(digits);
+			if (digits.length === 2 && !(groupIndex >= 1 && groupIndex < match.length)) {
+				digits = digits.slice(0, 1);
+				groupIndex = Number(digits);
+				digitsEnd = i + 2;
 			}
-			if (groupName !== undefined) {
-				return match.groups?.[groupName] ?? '';
+			if (groupIndex >= 1 && groupIndex < match.length) {
+				result += match[groupIndex] ?? '';
+				i = digitsEnd;
+			} else {
+				result += '$';
+				i += 1;
 			}
-			const groupIndex = Number(token);
-			return groupIndex >= 1 && groupIndex < match.length ? (match[groupIndex] ?? '') : whole;
-		},
-	);
+		} else {
+			result += '$';
+			i += 1;
+		}
+	}
+	return result;
 }
 
 /**

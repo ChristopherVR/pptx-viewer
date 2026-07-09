@@ -45,6 +45,8 @@ export {
 
 export { parseDataUrlToBytes, fetchUrlToBytes } from './data-url-utils';
 
+export { stripParentDirSegments } from './strip-parent-dir-segments';
+
 export {
 	detectOleObjectType,
 	inferOleExtensionFromTarget,
