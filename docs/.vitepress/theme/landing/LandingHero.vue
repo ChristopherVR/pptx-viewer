@@ -21,14 +21,14 @@ const copy = useLandingCopy();
 					<a class="pv-btn pv-btn--solid" :href="withBase(copy.hero.start.href)">
 						<span>{{ copy.hero.start.text }}</span>
 					</a>
-					<a class="pv-btn pv-btn--ghost" :href="DEMO_URL">
+					<a class="pv-btn pv-btn--ghost" :href="DEMO_URL" target="_blank" rel="noreferrer">
 						<span>{{ copy.hero.demo }}</span>
 					</a>
 				</div>
 				<code class="pv-hero__install pv-enter pv-enter--4">npm install pptx-react-viewer</code>
 			</div>
 			<div class="pv-hero__stage pv-enter pv-enter--3">
-				<a class="pv-hero__frame" :href="DEMO_URL">
+				<a class="pv-hero__frame" :href="DEMO_URL" target="_blank" rel="noreferrer">
 					<span class="pv-hero__framebar">
 						<span class="pv-hero__dots" aria-hidden="true"><i></i><i></i><i></i></span>
 						<span class="pv-hero__framefile">{{ copy.hero.frameCaption }}</span>
