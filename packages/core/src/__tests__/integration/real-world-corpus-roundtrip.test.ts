@@ -159,6 +159,36 @@ describe('real-world corpus round-trip', () => {
 					original[i].nativeAnimations?.length,
 				);
 			}
+
+			// Animation-to-shape linkage: every native animation must target a
+			// shape that exists on the slide, keyed by the loaded `element.id`.
+			// A real PowerPoint deck references shapes by their OOXML
+			// `p:cNvPr/@id`; the loader reconciles that to the positional
+			// `element.id` so playback can match an animation to its element.
+			// This invariant must hold on the *reloaded* deck too, or the
+			// linkage was lost across the save/reload round trip.
+			const assertLinkage = (slides: PptxSlide[], label: string): number => {
+				let checked = 0;
+				for (let i = 0; i < slides.length; i++) {
+					const elementIds = new Set(slides[i].elements.map((el) => el.id));
+					for (const anim of slides[i].nativeAnimations ?? []) {
+						if (anim.targetId === undefined) {
+							continue;
+						}
+						expect(
+							elementIds.has(anim.targetId),
+							`${label} slide ${i + 1}: animation targetId "${anim.targetId}" resolves to an element.id`,
+						).toBeTruthy();
+						checked += 1;
+					}
+				}
+				return checked;
+			};
+
+			const linkedOriginal = assertLinkage(original, 'original');
+			// The deck genuinely animates shapes; guard against a vacuous pass.
+			expect(linkedOriginal).toBeGreaterThanOrEqual(3);
+			expect(assertLinkage(reloaded, 'reloaded')).toBe(linkedOriginal);
 		},
 	);
 

@@ -177,6 +177,36 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return elementId.startsWith('layout-') || elementId.startsWith('master-');
 	}
 
+	/** Non-visual property containers that hold a `p:cNvPr`. */
+	private static readonly NV_CONTAINERS = [
+		'p:nvSpPr',
+		'p:nvPicPr',
+		'p:nvCxnSpPr',
+		'p:nvGraphicFramePr',
+		'p:nvGrpSpPr',
+	] as const;
+
+	/**
+	 * Write an element's native shape id (`element.shapeId`) into the serialized
+	 * shape's `p:cNvPr/@id`. Animation targets (`p:spTgt/@spid`) reference this
+	 * id, so the two must agree for PowerPoint to bind an animation to its shape.
+	 * A no-op when the element carries no `shapeId` (nothing to reconcile) or the
+	 * shape XML has no cNvPr container.
+	 */
+	protected applyShapeIdToCnvPr(shape: XmlObject, el: PptxElement): void {
+		if (el.shapeId === undefined) {
+			return;
+		}
+		for (const nvKey of PptxHandlerRuntime.NV_CONTAINERS) {
+			const nv = shape[nvKey] as XmlObject | undefined;
+			const cNvPr = nv?.['p:cNvPr'] as XmlObject | undefined;
+			if (cNvPr) {
+				cNvPr['@_id'] = el.shapeId;
+				return;
+			}
+		}
+	}
+
 	/**
 	 * Process a single slide element during save. Handles embedding,
 	 * transforms, geometry, styles, text, and sorts into collectors.
@@ -365,6 +395,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			return;
 		}
+
+		// Keep the serialized `p:cNvPr/@id` in sync with the element's native
+		// shape id so animation `p:spTgt/@spid` references bind correctly.
+		this.applyShapeIdToCnvPr(shape, el);
 
 		// Sort into collector
 		if (el.type === 'picture' || el.type === 'image') {

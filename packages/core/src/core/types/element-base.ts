@@ -41,6 +41,16 @@ import type { TextStyle, TextSegment } from './text';
  */
 export interface PptxElementBase {
 	id: string;
+	/**
+	 * The shape's native OOXML id from `p:cNvPr/@id` (an unsigned integer, as a
+	 * string), captured on load. Distinct from {@link id}, which is a synthetic
+	 * positional identity (`${slidePath}-shape-${index}`) the loader assigns for
+	 * selection / undo / template tracking. Animations target shapes by this
+	 * native id (`p:spTgt/@spid`), so it is the stable key used to reconcile an
+	 * animation to the element it animates across a save/reload round trip.
+	 * Absent on SDK-created elements until one is minted at save time.
+	 */
+	shapeId?: string;
 	/** Element name from `cNvPr/@name`. Used for morph transition matching via the `!!` naming convention. */
 	name?: string;
 	x: number;

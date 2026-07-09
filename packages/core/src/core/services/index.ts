@@ -35,6 +35,8 @@ export {
 	type IPptxEditorAnimationService,
 	type PptxEditorAnimationServiceOptions,
 } from './PptxEditorAnimationService';
+export { reconcileAnimationTargets } from './animation-target-reconcile';
+export { remapEditorAnimationsToShapeIds } from './animation-shape-id-assign';
 export {
 	PptxNativeAnimationService,
 	type IPptxNativeAnimationService,

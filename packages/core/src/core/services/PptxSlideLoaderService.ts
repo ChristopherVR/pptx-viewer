@@ -9,6 +9,7 @@
  */
 import type { PptxSlide, XmlObject } from '../types';
 import { parseSlideDrawingGuides } from '../utils/guide-utils';
+import { reconcileAnimationTargets } from './animation-target-reconcile';
 import type { IPptxSlideLoaderService, PptxSlideLoaderParams } from './slide-loader-types';
 
 export type {
@@ -220,6 +221,11 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 			const transition = params.parseSlideTransition(slideXmlObj, path);
 			const animations = params.parseEditorAnimations(slideXmlObj);
 			const nativeAnimations = params.parseNativeAnimations(slideXmlObj);
+			// Reconcile animation shape references (native cNvPr ids in
+			// `p:spTgt/@spid`) against the positional `element.id`s assigned on
+			// load, and stamp each element's `shapeId`. Without this the animation
+			// target ids never match any loaded element id, so nothing animates.
+			reconcileAnimationTargets(elements, nativeAnimations, animations);
 			const rawTiming = (slideXmlObj['p:sld'] as XmlObject | undefined)?.['p:timing'] as
 				| XmlObject
 				| undefined;
