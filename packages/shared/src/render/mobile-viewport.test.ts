@@ -33,6 +33,16 @@ describe('mobile-viewport', () => {
 		it('does not treat a tall touch tablet as mobile', () => {
 			expect(isMobileViewport(820, 1180, true)).toBeFalsy();
 		});
+
+		it('does not treat a touch-capable desktop as mobile (wide viewport, touch present)', () => {
+			// A touchscreen laptop / all-in-one reports touch capability but has a
+			// full desktop viewport; touch presence alone must not force mobile chrome.
+			expect(isMobileViewport(1280, 800, true)).toBeFalsy();
+			expect(isMobileViewport(1920, 1080, true)).toBeFalsy();
+			// Even a short-but-wide (>= tablet width) touch viewport stays desktop:
+			// only viewports below the tablet width fall into the landscape-phone rule.
+			expect(isMobileViewport(1280, 400, true)).toBeFalsy();
+		});
 	});
 
 	describe('isTabletViewport', () => {

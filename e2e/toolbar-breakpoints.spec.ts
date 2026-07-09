@@ -51,7 +51,7 @@ test.describe('mobile portrait (375x812, touch)', () => {
 		await load(page);
 
 		// All frameworks render a compact top bar with role=toolbar aria-label=Toolbar on mobile.
-		const mobileToolbar = page.getByRole('toolbar', { name: 'Toolbar' });
+		const mobileToolbar = page.getByRole('toolbar', { name: 'Toolbar', exact: true });
 		await expect(mobileToolbar).toBeVisible();
 
 		// The desktop ribbon (Presentation toolbar) must NOT be in the DOM on any framework.
@@ -130,8 +130,10 @@ test.describe('desktop (1280x800, no touch)', () => {
 			await expect(page.getByRole('navigation', { name: 'Editor actions' })).toHaveCount(0);
 		}
 
-		// The mobile compact top toolbar must also be absent.
-		await expect(page.getByRole('toolbar', { name: 'Toolbar' })).toHaveCount(0);
+		// The mobile compact top toolbar must also be absent. `exact` is required:
+		// the desktop ribbon's accessible name is "Presentation toolbar", and a
+		// default (substring) name match for "Toolbar" would match the ribbon too.
+		await expect(page.getByRole('toolbar', { name: 'Toolbar', exact: true })).toHaveCount(0);
 
 		// No horizontal page overflow.
 		await assertNoHorizontalOverflow(page);
@@ -163,7 +165,7 @@ test.describe('narrow viewport (640x900, no touch)', () => {
 
 		// At 640px (< 768px) all frameworks are in mobile mode; the mobile compact
 		// toolbar should be present and visible.
-		const mobileToolbar = page.getByRole('toolbar', { name: 'Toolbar' });
+		const mobileToolbar = page.getByRole('toolbar', { name: 'Toolbar', exact: true });
 		await expect(mobileToolbar).toBeVisible();
 
 		// The toolbar element itself must not extend beyond the viewport width.
@@ -211,7 +213,7 @@ test.describe('dynamic resize: desktop to mobile (React only)', () => {
 		await page.waitForTimeout(300);
 
 		// Mobile chrome must now be present without a page reload.
-		await expect(page.getByRole('toolbar', { name: 'Toolbar' })).toBeVisible();
+		await expect(page.getByRole('toolbar', { name: 'Toolbar', exact: true })).toBeVisible();
 		await expect(page.getByRole('navigation', { name: 'Editor actions' })).toBeVisible();
 		await expect(page.getByRole('toolbar', { name: 'Presentation toolbar' })).toHaveCount(0);
 
