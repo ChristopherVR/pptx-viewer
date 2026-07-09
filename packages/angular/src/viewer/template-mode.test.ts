@@ -131,6 +131,34 @@ describe('editorStateService editTemplateMode', () => {
 		expect(saved[0].elements.map((el) => el.id)).toStrictEqual(['master-shape-1', 'shape-2']);
 	});
 
+	/**
+	 * Regression: the deck must be cloned with core's `cloneSlide`/`cloneElement`
+	 * (a shallow copy that shares `rawXml` by reference), NOT `structuredClone`
+	 * (which deep-clones `rawXml` into a disconnected object). Core's save writer
+	 * mutates a template element's `rawXml` IN PLACE and re-attaches the shape to
+	 * the cached layout/master `spTree` by OBJECT IDENTITY
+	 * (`ensureTemplateShapeAttached`). If the editor severs that identity, the
+	 * edited clone is discarded on save and the template edit silently vanishes
+	 * from the file, even though the typed-field data looks correct right up to
+	 * the `handler.save()` call.
+	 */
+	it('preserves the rawXml object identity of template elements through edit + save-merge', () => {
+		const svc = new EditorStateService();
+		const rawXml = { 'p:sp': { marker: 'cached-layout-node' } };
+		const templateEl = { ...element('layout-shape-1'), rawXml } as PptxElement;
+		svc.setSlides([slide('s1', [templateEl, element('shape-2')])]);
+
+		// Editing a typed field must not replace/deep-clone the rawXml reference.
+		svc.updateElement(0, 'layout-shape-1', { x: 321 });
+
+		const saved = buildSaveSlides(svc.slides(), svc.templateElementsBySlideId());
+		const savedTemplate = saved[0].elements.find((el) => el.id === 'layout-shape-1');
+		expect(savedTemplate?.x).toBe(321);
+		// Identity is preserved: this is the exact object core's save writer mutates
+		// in place and matches back into the cached layout spTree.
+		expect(savedTemplate?.rawXml).toBe(rawXml);
+	});
+
 	it('routes a normal-element edit to the slide without touching the template store', () => {
 		const svc = new EditorStateService();
 		svc.setSlides([slide('s1', [element('master-shape-1'), element('shape-2')])]);
