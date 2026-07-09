@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, expectTypeOf } from 'v
 import {
 	isPresenterMessage,
 	PRESENTER_MSG_ORIGIN,
+	PRESENTER_CHANNEL_NAME,
 	isAudienceTab,
 	AUDIENCE_HASH,
 } from './usePresenterWindow';
@@ -13,17 +14,21 @@ import type {
 } from './usePresenterWindow';
 
 // ---------------------------------------------------------------------------
-// Since @testing-library/react is not available, we test the pure helper
-// functions and the window management logic extracted from the hook.
-// The hook itself is thin (useRef + useCallback + useEffect), so testing
-// the logic functions covers the important behaviour.
+// This package has no @testing-library/react devDependency and this test
+// suite runs under vitest's default node environment (no DOM renderer), so
+// usePresenterWindow's useRef/useCallback/useEffect wiring cannot be driven
+// directly. Following the pattern used elsewhere in this directory
+// (useRehearsalTimings.test.ts, useSlideNavigation.test.ts) and in
+// collaboration/useYjsProvider.test.ts, we test the exported pure helpers
+// directly and exercise a faithful reproduction of the hook's channel
+// management logic against a mock BroadcastChannel.
 // ---------------------------------------------------------------------------
+
+const TEST_SESSION_ID = '00000000-0000-0000-0000-000000000001';
 
 // ---------------------------------------------------------------------------
 // isPresenterMessage
 // ---------------------------------------------------------------------------
-
-const TEST_SESSION_ID = '00000000-0000-0000-0000-000000000001';
 
 describe('isPresenterMessage', () => {
 	it('accepts a valid slide-change message', () => {
@@ -116,106 +121,124 @@ describe('isAudienceTab', () => {
 });
 
 // ---------------------------------------------------------------------------
-// PresenterWindowManager: simulates the hook's window management logic
+// Mock BroadcastChannel: mirrors the surface usePresenterWindow.ts relies on.
+//
+// Unlike window.postMessage, BroadcastChannel.postMessage takes exactly one
+// argument: there is no targetOrigin parameter, so there is no wildcard-origin
+// ('*') footgun to guard against. Delivery is scoped by the platform to
+// same-origin listeners on the same channel name.
 // ---------------------------------------------------------------------------
+
+class MockBroadcastChannel {
+	closed = false;
+	readonly postMessage = vi.fn<(message: PresenterMessage) => void>();
+
+	constructor(public readonly name: string) {}
+
+	close(): void {
+		this.closed = true;
+	}
+}
 
 interface MockWindow {
 	closed: boolean;
 	close: ReturnType<typeof vi.fn>;
-	postMessage: ReturnType<typeof vi.fn>;
-	document: {
-		open: ReturnType<typeof vi.fn>;
-		write: ReturnType<typeof vi.fn>;
-		close: ReturnType<typeof vi.fn>;
-	};
 }
 
 function createMockWindow(): MockWindow {
 	return {
 		closed: false,
 		close: vi.fn<() => void>(),
-		postMessage: vi.fn<() => void>(),
-		document: {
-			open: vi.fn<() => void>(),
-			write: vi.fn<() => void>(),
-			close: vi.fn<() => void>(),
-		},
 	};
 }
 
 /**
- * Simulates the core logic of usePresenterWindow without React hooks.
+ * Reproduces the channel-management logic of usePresenterWindow without
+ * React hooks: a lazily-created BroadcastChannel, a per-session nonce that
+ * gates every send, and exit-before-replace semantics on re-open.
  */
-class PresenterWindowManager {
+class PresenterChannelManager {
 	audienceWindow: MockWindow | null = null;
-	pollTimer: ReturnType<typeof setInterval> | null = null;
+	channel: MockBroadcastChannel | null = null;
+	sessionId = '';
+
+	private getChannel(): MockBroadcastChannel {
+		if (!this.channel) {
+			this.channel = new MockBroadcastChannel(PRESENTER_CHANNEL_NAME);
+		}
+		return this.channel;
+	}
 
 	isAudienceWindowOpen(): boolean {
 		return this.audienceWindow !== null && !this.audienceWindow.closed;
 	}
 
 	syncSlideToAudience(slideIndex: number): void {
-		const win = this.audienceWindow;
-		if (!win || win.closed) {
+		if (!this.sessionId) {
 			return;
 		}
 		const message: PresenterSlideChangeMessage = {
 			origin: PRESENTER_MSG_ORIGIN,
 			type: 'presenter-slide-change',
 			slideIndex,
-			sessionId: TEST_SESSION_ID,
+			sessionId: this.sessionId,
 		};
-		win.postMessage(message, '*');
+		try {
+			this.getChannel().postMessage(message);
+		} catch {
+			// BroadcastChannel may already be closed.
+		}
 	}
 
 	closeAudienceWindow(): void {
-		const win = this.audienceWindow;
-		if (win && !win.closed) {
-			const exitMsg: PresenterExitMessage = {
+		if (this.sessionId) {
+			const exitMessage: PresenterExitMessage = {
 				origin: PRESENTER_MSG_ORIGIN,
 				type: 'presenter-exit',
-				sessionId: TEST_SESSION_ID,
+				sessionId: this.sessionId,
 			};
 			try {
-				win.postMessage(exitMsg, '*');
+				this.getChannel().postMessage(exitMessage);
 			} catch {
-				// Window may already be closed
+				// Ignore.
 			}
+		}
+		const win = this.audienceWindow;
+		if (win && !win.closed) {
 			try {
 				win.close();
 			} catch {
-				// Ignore
+				// Ignore.
 			}
 		}
 		this.audienceWindow = null;
-		if (this.pollTimer !== null) {
-			clearInterval(this.pollTimer);
-			this.pollTimer = null;
-		}
+		this.sessionId = '';
 	}
 
-	openAudienceWindow(mockWin: MockWindow | null, currentSlideIndex: number): boolean {
+	openAudienceWindow(
+		mockWin: MockWindow | null,
+		currentSlideIndex: number,
+		sessionId: string,
+	): boolean {
 		if (this.isAudienceWindowOpen()) {
 			this.closeAudienceWindow();
 		}
-
 		if (!mockWin) {
 			return false;
 		}
-
 		this.audienceWindow = mockWin;
+		this.sessionId = sessionId;
 		this.syncSlideToAudience(currentSlideIndex);
-
 		return true;
 	}
 }
 
-describe('presenterWindowManager', () => {
-	let manager: PresenterWindowManager;
+describe('presenterChannelManager', () => {
+	let manager: PresenterChannelManager;
 	let mockWin: MockWindow;
 
 	beforeEach(() => {
-		manager = new PresenterWindowManager();
+		manager = new PresenterChannelManager();
 		mockWin = createMockWindow();
 	});
 
@@ -223,199 +246,217 @@ describe('presenterWindowManager', () => {
 		manager.closeAudienceWindow();
 	});
 
-	// -- isAudienceWindowOpen --------------------------------------------------
+	// -- isAudienceWindowOpen ---------------------------------------------------
 
 	it('reports window not open when no window has been opened', () => {
 		expect(manager.isAudienceWindowOpen()).toBeFalsy();
 	});
 
 	it('reports window open after successful open', () => {
-		manager.openAudienceWindow(mockWin, 0);
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
 		expect(manager.isAudienceWindowOpen()).toBeTruthy();
 	});
 
 	it('reports window not open after close', () => {
-		manager.openAudienceWindow(mockWin, 0);
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
 		manager.closeAudienceWindow();
 		expect(manager.isAudienceWindowOpen()).toBeFalsy();
 	});
 
 	it('reports window not open when external close (win.closed = true)', () => {
-		manager.openAudienceWindow(mockWin, 0);
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
 		mockWin.closed = true;
 		expect(manager.isAudienceWindowOpen()).toBeFalsy();
 	});
 
-	// -- openAudienceWindow ----------------------------------------------------
+	// -- openAudienceWindow -------------------------------------------------------
 
 	it('returns false when window.open returns null', () => {
-		const result = manager.openAudienceWindow(null, 0);
+		const result = manager.openAudienceWindow(null, 0, TEST_SESSION_ID);
 		expect(result).toBeFalsy();
 		expect(manager.isAudienceWindowOpen()).toBeFalsy();
 	});
 
 	it('returns true on successful open', () => {
-		const result = manager.openAudienceWindow(mockWin, 0);
+		const result = manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
 		expect(result).toBeTruthy();
 	});
 
-	it('sends initial slide index on open', () => {
-		manager.openAudienceWindow(mockWin, 5);
-		expect(mockWin.postMessage).toHaveBeenCalledWith(
-			{
-				origin: PRESENTER_MSG_ORIGIN,
-				type: 'presenter-slide-change',
-				slideIndex: 5,
-				sessionId: TEST_SESSION_ID,
-			},
-			'*',
-		);
+	it('sends the initial slide index over the channel on open, with no target-origin argument', () => {
+		manager.openAudienceWindow(mockWin, 5, TEST_SESSION_ID);
+
+		expect(manager.channel?.postMessage).toHaveBeenCalledWith({
+			origin: PRESENTER_MSG_ORIGIN,
+			type: 'presenter-slide-change',
+			slideIndex: 5,
+			sessionId: TEST_SESSION_ID,
+		});
+		// BroadcastChannel.postMessage has no targetOrigin parameter: a single
+		// argument is the whole contract, unlike window.postMessage(msg, '*').
+		expect(manager.channel?.postMessage.mock.calls[0]).toHaveLength(1);
 	});
 
-	it('closes existing window before opening a new one', () => {
-		const firstWin = createMockWindow();
-		manager.openAudienceWindow(firstWin, 0);
+	it('closes the existing session (posting exit) before opening a new one, reusing the same channel', () => {
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
 		expect(manager.isAudienceWindowOpen()).toBeTruthy();
+		const firstChannel = manager.channel;
 
 		const secondWin = createMockWindow();
-		manager.openAudienceWindow(secondWin, 1);
+		const secondSessionId = '00000000-0000-0000-0000-000000000002';
+		manager.openAudienceWindow(secondWin, 1, secondSessionId);
 
-		// First window should have received exit message and been closed
-		expect(firstWin.postMessage).toHaveBeenCalledWith(
-			expect.objectContaining({ type: 'presenter-exit' }),
-			'*',
+		// The prior session's exit message was posted before the new session
+		// started, and the same BroadcastChannel instance is reused (matches
+		// the hook's channelRef, which persists for the component lifetime).
+		expect(firstChannel?.postMessage).toHaveBeenCalledWith(
+			expect.objectContaining({ type: 'presenter-exit', sessionId: TEST_SESSION_ID }),
 		);
-		expect(firstWin.close).toHaveBeenCalledWith();
+		expect(manager.channel).toBe(firstChannel);
+		expect(mockWin.close).toHaveBeenCalledOnce();
 
-		// Second window should now be the active one
+		// The new session's slide-change message carries the new sessionId.
+		expect(manager.channel?.postMessage).toHaveBeenCalledWith(
+			expect.objectContaining({ type: 'presenter-slide-change', sessionId: secondSessionId }),
+		);
 		expect(manager.isAudienceWindowOpen()).toBeTruthy();
 	});
 
-	// -- syncSlideToAudience ---------------------------------------------------
+	// -- syncSlideToAudience -------------------------------------------------------
 
-	it('sends slide change message to audience window', () => {
-		manager.openAudienceWindow(mockWin, 0);
-		mockWin.postMessage.mockClear();
+	it('sends a slide-change message to the channel', () => {
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
+		manager.channel?.postMessage.mockClear();
 
 		manager.syncSlideToAudience(3);
 
-		expect(mockWin.postMessage).toHaveBeenCalledWith(
-			{
-				origin: PRESENTER_MSG_ORIGIN,
-				type: 'presenter-slide-change',
-				slideIndex: 3,
-				sessionId: TEST_SESSION_ID,
-			},
-			'*',
-		);
+		expect(manager.channel?.postMessage).toHaveBeenCalledWith({
+			origin: PRESENTER_MSG_ORIGIN,
+			type: 'presenter-slide-change',
+			slideIndex: 3,
+			sessionId: TEST_SESSION_ID,
+		});
 	});
 
-	it('does nothing when no window is open', () => {
-		// Should not throw
+	it('does nothing when no session has been started', () => {
+		// Should not throw, and no channel should even be created.
 		manager.syncSlideToAudience(5);
+		expect(manager.channel).toBeNull();
 	});
 
-	it('does nothing when window is closed externally', () => {
-		manager.openAudienceWindow(mockWin, 0);
+	it('still posts via the channel even if the window was closed externally, since delivery is channel-scoped, not window-scoped', () => {
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
 		mockWin.closed = true;
-		mockWin.postMessage.mockClear();
+		manager.channel?.postMessage.mockClear();
 
 		manager.syncSlideToAudience(5);
-		expect(mockWin.postMessage).not.toHaveBeenCalled();
+		expect(manager.channel?.postMessage).toHaveBeenCalledWith(
+			expect.objectContaining({ slideIndex: 5 }),
+		);
 	});
 
 	it('syncs slide index 0 correctly', () => {
-		manager.openAudienceWindow(mockWin, 0);
-		mockWin.postMessage.mockClear();
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
+		manager.channel?.postMessage.mockClear();
 
 		manager.syncSlideToAudience(0);
 
-		expect(mockWin.postMessage).toHaveBeenCalledWith(
+		expect(manager.channel?.postMessage).toHaveBeenCalledWith(
 			expect.objectContaining({ slideIndex: 0 }),
-			'*',
 		);
 	});
 
-	// -- closeAudienceWindow ---------------------------------------------------
+	// -- closeAudienceWindow -------------------------------------------------------
 
-	it('sends exit message before closing', () => {
-		manager.openAudienceWindow(mockWin, 0);
-		mockWin.postMessage.mockClear();
+	it('sends an exit message over the channel before closing', () => {
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
+		manager.channel?.postMessage.mockClear();
 
 		manager.closeAudienceWindow();
 
-		expect(mockWin.postMessage).toHaveBeenCalledWith(
-			{
-				origin: PRESENTER_MSG_ORIGIN,
-				type: 'presenter-exit',
-				sessionId: TEST_SESSION_ID,
-			},
-			'*',
-		);
+		expect(manager.channel?.postMessage).toHaveBeenCalledWith({
+			origin: PRESENTER_MSG_ORIGIN,
+			type: 'presenter-exit',
+			sessionId: TEST_SESSION_ID,
+		});
 	});
 
 	it('calls win.close()', () => {
-		manager.openAudienceWindow(mockWin, 0);
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
 		manager.closeAudienceWindow();
 		expect(mockWin.close).toHaveBeenCalledOnce();
 	});
 
-	it('is idempotent - calling close twice does not throw', () => {
-		manager.openAudienceWindow(mockWin, 0);
+	it('is idempotent: calling close twice does not throw', () => {
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
 		manager.closeAudienceWindow();
-		// Calling close again should be safe
 		expect(() => manager.closeAudienceWindow()).not.toThrow();
 	});
 
-	it('handles window already closed externally', () => {
-		manager.openAudienceWindow(mockWin, 0);
+	it('handles the window already being closed externally', () => {
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
 		mockWin.closed = true;
 
-		// Should not throw even though window is already closed
 		expect(() => manager.closeAudienceWindow()).not.toThrow();
 	});
 
-	it('handles postMessage throwing on close', () => {
-		manager.openAudienceWindow(mockWin, 0);
-		mockWin.postMessage.mockImplementation(() => {
-			throw new Error('Window already closed');
+	it('handles channel.postMessage throwing on close', () => {
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
+		manager.channel?.postMessage.mockImplementation(() => {
+			throw new Error('Channel already closed');
 		});
 
-		// Should not throw
 		expect(() => manager.closeAudienceWindow()).not.toThrow();
 	});
 
 	it('handles win.close() throwing', () => {
-		manager.openAudienceWindow(mockWin, 0);
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
 		mockWin.close.mockImplementation(() => {
 			throw new Error('Permission denied');
 		});
 
-		// Should not throw
 		expect(() => manager.closeAudienceWindow()).not.toThrow();
 	});
 
-	// -- Message protocol validation -------------------------------------------
+	// -- Message protocol / session-scoping validation -----------------------------
 
-	it('slide change messages include correct origin tag', () => {
-		manager.openAudienceWindow(mockWin, 0);
-		mockWin.postMessage.mockClear();
+	it('slide-change messages include the correct origin tag and validate as a presenter message', () => {
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
+		manager.channel?.postMessage.mockClear();
 
 		manager.syncSlideToAudience(7);
 
-		const sentMessage = mockWin.postMessage.mock.calls[0][0] as PresenterMessage;
+		const sentMessage = manager.channel?.postMessage.mock.calls[0]?.[0] as PresenterMessage;
 		expect(sentMessage.origin).toBe(PRESENTER_MSG_ORIGIN);
 		expect(isPresenterMessage(sentMessage)).toBeTruthy();
 	});
 
-	it('exit messages include correct origin tag', () => {
-		manager.openAudienceWindow(mockWin, 0);
-		mockWin.postMessage.mockClear();
+	it('exit messages include the correct origin tag and validate as a presenter message', () => {
+		manager.openAudienceWindow(mockWin, 0, TEST_SESSION_ID);
+		manager.channel?.postMessage.mockClear();
 
 		manager.closeAudienceWindow();
 
-		const sentMessage = mockWin.postMessage.mock.calls[0][0] as PresenterMessage;
+		const sentMessage = manager.channel?.postMessage.mock.calls[0]?.[0] as PresenterMessage;
 		expect(sentMessage.origin).toBe(PRESENTER_MSG_ORIGIN);
 		expect(isPresenterMessage(sentMessage)).toBeTruthy();
+	});
+
+	it('stamps a distinct sessionId per session, so a stale/rejoining audience tab can reject cross-talk', () => {
+		const managerA = new PresenterChannelManager();
+		const managerB = new PresenterChannelManager();
+		const sessionA = '00000000-0000-0000-0000-0000000000aa';
+		const sessionB = '00000000-0000-0000-0000-0000000000bb';
+
+		managerA.openAudienceWindow(createMockWindow(), 0, sessionA);
+		managerB.openAudienceWindow(createMockWindow(), 0, sessionB);
+
+		const messageA = managerA.channel?.postMessage.mock.calls[0]?.[0] as PresenterMessage;
+		const messageB = managerB.channel?.postMessage.mock.calls[0]?.[0] as PresenterMessage;
+		expect(messageA.sessionId).toBe(sessionA);
+		expect(messageB.sessionId).toBe(sessionB);
+		expect(messageA.sessionId).not.toBe(messageB.sessionId);
+
+		managerA.closeAudienceWindow();
+		managerB.closeAudienceWindow();
 	});
 });
