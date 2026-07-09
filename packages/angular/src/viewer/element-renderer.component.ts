@@ -246,6 +246,7 @@ interface Paragraph {
 							[mediaDataUrls]="mediaDataUrls()"
 							[zIndex]="$index"
 							[interactive]="interactive()"
+							[presenting]="presenting()"
 							[fieldContext]="fieldContext()"
 						/>
 					}
@@ -278,6 +279,7 @@ interface Paragraph {
 					[mediaDataUrls]="mediaDataUrls()"
 					[zIndex]="zIndex()"
 					[interactive]="interactive()"
+					[presenting]="presenting()"
 					[placeholderLabel]="placeholderLabel()"
 				/>
 			}
@@ -437,6 +439,13 @@ export class ElementRendererComponent {
 	 * separate lightweight renderer).
 	 */
 	readonly interactive = input<boolean>(true);
+
+	/**
+	 * True only on the live presentation stage; threaded to the media renderer so
+	 * a slide's media autoplays when the slide becomes active (and to group
+	 * children so nested media autoplays too). False everywhere else.
+	 */
+	readonly presenting = input<boolean>(false);
 
 	/** Whether inline editing (e.g. table-cell text input) is enabled. */
 	readonly editable = input<boolean>(false);
