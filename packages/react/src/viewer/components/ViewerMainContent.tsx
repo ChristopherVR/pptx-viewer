@@ -17,6 +17,7 @@ import type { ViewerState } from '../hooks/useViewerState';
 import type { UseZoomViewportResult } from '../hooks/useZoomViewport';
 import type { CanvasSize, SlideSectionGroup } from '../types';
 import type { ViewerMode } from '../types-core';
+import { ChartPartSelectionProvider } from './chart-part-selection';
 import { ResizeHandle } from './ResizeHandle';
 import { ViewerCanvasArea } from './ViewerCanvasArea';
 import { ViewerSidePanels } from './ViewerSidePanels';
@@ -113,115 +114,117 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 	} = editorOps;
 
 	return (
-		<div className='relative z-10 flex flex-1 min-h-0'>
-			{showSlidesPane && (
-				<>
-					<SlidesPaneSidebar
-						slides={slides}
-						activeSlideIndex={activeSlideIndex}
+		<ChartPartSelectionProvider>
+			<div className='relative z-10 flex flex-1 min-h-0'>
+				{showSlidesPane && (
+					<>
+						<SlidesPaneSidebar
+							slides={slides}
+							activeSlideIndex={activeSlideIndex}
+							canvasSize={canvasSize}
+							sectionGroups={slideSectionGroups}
+							isOpen={state.isSlidesPaneOpen}
+							canEdit={canEdit}
+							onSelectSlide={state.setActiveSlideIndex}
+							onSlideContextMenu={slideOps.handleSlideContextMenu}
+							onMoveSlide={slideOps.handleMoveSlide}
+							onAddSlide={slideOps.handleAddSlide}
+							onCollapse={() => state.setIsSlidesPaneOpen(false)}
+							onAddSection={sectionOps.addSection}
+							onRenameSection={sectionOps.renameSection}
+							onDeleteSection={sectionOps.deleteSection}
+							onMoveSectionUp={sectionOps.moveSectionUp}
+							onMoveSectionDown={sectionOps.moveSectionDown}
+							rehearsalTimings={
+								Object.keys(presentation.recordedTimings).length > 0
+									? presentation.recordedTimings
+									: undefined
+							}
+							panelWidth={leftPanelWidth}
+						/>
+						{onResizeLeft && <ResizeHandle direction='horizontal' onResize={onResizeLeft} />}
+					</>
+				)}
+				{showMasterPane && (
+					<MasterViewSidebar
+						slideMasters={state.slideMasters}
+						activeMasterIndex={state.activeMasterIndex}
+						activeLayoutIndex={state.activeLayoutIndex}
 						canvasSize={canvasSize}
-						sectionGroups={slideSectionGroups}
-						isOpen={state.isSlidesPaneOpen}
-						canEdit={canEdit}
-						onSelectSlide={state.setActiveSlideIndex}
-						onSlideContextMenu={slideOps.handleSlideContextMenu}
-						onMoveSlide={slideOps.handleMoveSlide}
-						onAddSlide={slideOps.handleAddSlide}
+						masterViewTab={state.masterViewTab}
+						notesMaster={state.notesMaster}
+						handoutMaster={state.handoutMaster}
+						handoutSlidesPerPage={state.handoutSlidesPerPage}
+						onSelectMaster={dialogs.handleSelectMaster}
+						onSelectLayout={dialogs.handleSelectLayout}
 						onCollapse={() => state.setIsSlidesPaneOpen(false)}
-						onAddSection={sectionOps.addSection}
-						onRenameSection={sectionOps.renameSection}
-						onDeleteSection={sectionOps.deleteSection}
-						onMoveSectionUp={sectionOps.moveSectionUp}
-						onMoveSectionDown={sectionOps.moveSectionDown}
-						rehearsalTimings={
-							Object.keys(presentation.recordedTimings).length > 0
-								? presentation.recordedTimings
-								: undefined
-						}
-						panelWidth={leftPanelWidth}
+						onTabChange={state.setMasterViewTab}
+						onHandoutSlidesPerPageChange={state.setHandoutSlidesPerPage}
 					/>
-					{onResizeLeft && <ResizeHandle direction='horizontal' onResize={onResizeLeft} />}
-				</>
-			)}
-			{showMasterPane && (
-				<MasterViewSidebar
-					slideMasters={state.slideMasters}
-					activeMasterIndex={state.activeMasterIndex}
-					activeLayoutIndex={state.activeLayoutIndex}
-					canvasSize={canvasSize}
-					masterViewTab={state.masterViewTab}
-					notesMaster={state.notesMaster}
-					handoutMaster={state.handoutMaster}
-					handoutSlidesPerPage={state.handoutSlidesPerPage}
-					onSelectMaster={dialogs.handleSelectMaster}
-					onSelectLayout={dialogs.handleSelectLayout}
-					onCollapse={() => state.setIsSlidesPaneOpen(false)}
-					onTabChange={state.setMasterViewTab}
-					onHandoutSlidesPerPageChange={state.setHandoutSlidesPerPage}
-				/>
-			)}
+				)}
 
-			<ViewerCanvasArea
-				mode={mode}
-				canEdit={canEdit}
-				slides={slides}
-				activeSlide={activeSlide}
-				masterPseudoSlide={masterPseudoSlide}
-				templateElements={state.templateElements}
-				canvasSize={canvasSize}
-				activeSlideIndex={activeSlideIndex}
-				gridSpacingPx={gridSpacingPx}
-				zoom={zoom}
-				state={state}
-				selectedElement={selectedElement}
-				canvasHandlers={canvasHandlers}
-				insertHandlers={insertHandlers}
-				tableOps={tableOps}
-				annotations={annotations}
-				presentation={presentation}
-				onEndPresentation={onEndPresentation}
-				findReplace={findReplace}
-			/>
-
-			{state.contextMenuState && (
-				<ContextMenu
-					contextMenuState={state.contextMenuState}
+				<ViewerCanvasArea
 					mode={mode}
+					canEdit={canEdit}
+					slides={slides}
+					activeSlide={activeSlide}
+					masterPseudoSlide={masterPseudoSlide}
+					templateElements={state.templateElements}
+					canvasSize={canvasSize}
+					activeSlideIndex={activeSlideIndex}
+					gridSpacingPx={gridSpacingPx}
+					zoom={zoom}
+					state={state}
 					selectedElement={selectedElement}
-					tableEditorState={state.tableEditorState}
-					hasMultiSelection={state.effectiveSelectedIds.length > 1}
-					onAction={manipulation.handleContextMenuAction}
-					onInsertTableRow={tableOps.handleInsertTableRow}
-					onDeleteTableRow={tableOps.handleDeleteTableRow}
-					onInsertTableColumn={tableOps.handleInsertTableColumn}
-					onDeleteTableColumn={tableOps.handleDeleteTableColumn}
-					onMergeCellRight={tableOps.handleMergeCellRight}
-					onMergeCellDown={tableOps.handleMergeCellDown}
-					onMergeSelectedCells={tableOps.handleMergeSelectedCells}
-					onSplitCell={tableOps.handleSplitCell}
-					onClose={() => state.setContextMenuState(null)}
+					canvasHandlers={canvasHandlers}
+					insertHandlers={insertHandlers}
+					tableOps={tableOps}
+					annotations={annotations}
+					presentation={presentation}
+					onEndPresentation={onEndPresentation}
+					findReplace={findReplace}
 				/>
-			)}
 
-			<ViewerSidePanels
-				mode={mode}
-				canEdit={canEdit}
-				activeSlide={activeSlide}
-				masterPseudoSlide={masterPseudoSlide}
-				slides={slides}
-				canvasSize={canvasSize}
-				activeSlideIndex={activeSlideIndex}
-				selectedElement={selectedElement}
-				state={state}
-				comments={comments}
-				ops={ops}
-				manipulation={manipulation}
-				propertyHandlers={propertyHandlers}
-				themeHandlers={themeHandlers}
-				history={history}
-				panelWidth={rightPanelWidth}
-				onResizeRight={onResizeRight}
-			/>
-		</div>
+				{state.contextMenuState && (
+					<ContextMenu
+						contextMenuState={state.contextMenuState}
+						mode={mode}
+						selectedElement={selectedElement}
+						tableEditorState={state.tableEditorState}
+						hasMultiSelection={state.effectiveSelectedIds.length > 1}
+						onAction={manipulation.handleContextMenuAction}
+						onInsertTableRow={tableOps.handleInsertTableRow}
+						onDeleteTableRow={tableOps.handleDeleteTableRow}
+						onInsertTableColumn={tableOps.handleInsertTableColumn}
+						onDeleteTableColumn={tableOps.handleDeleteTableColumn}
+						onMergeCellRight={tableOps.handleMergeCellRight}
+						onMergeCellDown={tableOps.handleMergeCellDown}
+						onMergeSelectedCells={tableOps.handleMergeSelectedCells}
+						onSplitCell={tableOps.handleSplitCell}
+						onClose={() => state.setContextMenuState(null)}
+					/>
+				)}
+
+				<ViewerSidePanels
+					mode={mode}
+					canEdit={canEdit}
+					activeSlide={activeSlide}
+					masterPseudoSlide={masterPseudoSlide}
+					slides={slides}
+					canvasSize={canvasSize}
+					activeSlideIndex={activeSlideIndex}
+					selectedElement={selectedElement}
+					state={state}
+					comments={comments}
+					ops={ops}
+					manipulation={manipulation}
+					propertyHandlers={propertyHandlers}
+					themeHandlers={themeHandlers}
+					history={history}
+					panelWidth={rightPanelWidth}
+					onResizeRight={onResizeRight}
+				/>
+			</div>
+		</ChartPartSelectionProvider>
 	);
 }

@@ -63,4 +63,8 @@ export interface RenderBodyOptions {
 	canEditSmartArt?: boolean;
 	/** Commit a SmartArt node text edit (scoped to this element). */
 	onUpdateSmartArtElement?: (updates: Partial<PptxElement>) => void;
+	/** Whether direct on-canvas chart editing is permitted for this element. */
+	canEditChart?: boolean;
+	/** Commit an on-canvas chart edit (scoped to this element). */
+	onUpdateChartElement?: (updates: Partial<PptxElement>) => void;
 }

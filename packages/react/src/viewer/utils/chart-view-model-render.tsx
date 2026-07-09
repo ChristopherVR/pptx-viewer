@@ -17,8 +17,9 @@
  * @module chart-view-model-render
  */
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
-import { buildChartViewModel, getChartStylePalette } from 'pptx-viewer-shared';
+import { buildChartViewModel, chartPartToAttrs, getChartStylePalette } from 'pptx-viewer-shared';
 import type {
+	ChartPartRef,
 	ChartViewModel,
 	SvgCircle,
 	SvgLine,
@@ -32,6 +33,15 @@ import type {
 import React from 'react';
 
 const LEGEND_ITEM_WIDTH = 80;
+
+/**
+ * `data-chart-*` hit-testing attributes for a tagged data-mark primitive.
+ * Always emitted (they are inert without pointer events); `ChartElementView`
+ * activates them in edit mode via CSS + event delegation.
+ */
+function partAttrs(part: ChartPartRef | undefined): Record<string, string> | undefined {
+	return part ? chartPartToAttrs(part) : undefined;
+}
 
 /**
  * Resolve the colour palette React uses for a chart, mirroring the precedence
@@ -78,6 +88,7 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					fill={r.fill}
 					rx={r.rx ?? 0}
 					opacity={r.opacity ?? 1}
+					{...partAttrs(r.part)}
 				/>
 			);
 		}
@@ -91,6 +102,7 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					stroke={p.stroke ?? 'none'}
 					strokeWidth={p.strokeWidth ?? 0}
 					fillOpacity={p.opacity ?? 1}
+					{...partAttrs(p.part)}
 				/>
 			);
 		}
@@ -104,13 +116,22 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					strokeWidth={p.strokeWidth}
 					fill={p.fill}
 					opacity={p.opacity ?? 1}
+					{...partAttrs(p.part)}
 				/>
 			);
 		}
 		case 'circle': {
 			const c = prim as SvgCircle;
 			return (
-				<circle key={key} cx={c.cx} cy={c.cy} r={c.r} fill={c.fill} opacity={c.opacity ?? 1} />
+				<circle
+					key={key}
+					cx={c.cx}
+					cy={c.cy}
+					r={c.r}
+					fill={c.fill}
+					opacity={c.opacity ?? 1}
+					{...partAttrs(c.part)}
+				/>
 			);
 		}
 		case 'line': {
@@ -140,6 +161,7 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					strokeWidth={p.strokeWidth}
 					opacity={p.opacity ?? 1}
 					strokeDasharray={p.dashArray}
+					{...partAttrs(p.part)}
 				/>
 			);
 		}
@@ -226,6 +248,7 @@ export function renderChartViewModel(
 					fontSize={12}
 					fontWeight={600}
 					fill='#1e293b'
+					data-chart-part='title'
 				>
 					{vm.title}
 				</text>
