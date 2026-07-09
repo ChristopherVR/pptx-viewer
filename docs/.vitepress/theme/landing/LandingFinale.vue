@@ -6,7 +6,7 @@ import { withBase } from 'vitepress';
 	<section class="pv-finale">
 		<div class="pv-finale__inner">
 			<span class="pv-finale__mark" aria-hidden="true"><i></i></span>
-			<p class="pv-kicker pv-finale__kicker" data-reveal>End of deck</p>
+			<p class="pv-kicker pv-finale__kicker" data-reveal>Get started</p>
 			<h2 class="pv-finale__title" data-reveal="2">Ship slides in your product this sprint.</h2>
 			<p class="pv-finale__sub" data-reveal="3">
 				Apache-2.0 licensed, strict TypeScript, zero native dependencies. Load a real deck in the

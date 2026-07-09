@@ -56,27 +56,6 @@
 	color: var(--pv-accent);
 }
 
-.pv-slidenum {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.55em;
-	font-family: var(--pv-mono);
-	font-size: 0.72rem;
-	letter-spacing: 0.18em;
-	color: var(--pv-ink-soft);
-	border: 1px solid var(--pv-line);
-	border-radius: 3px;
-	padding: 0.35em 0.8em;
-}
-
-.pv-slidenum::before {
-	content: '';
-	width: 0.9em;
-	height: calc(0.9em * 9 / 16);
-	border: 1px solid var(--pv-accent);
-	border-radius: 1px;
-}
-
 .pv-h2 {
 	font-family: var(--pv-display);
 	font-size: clamp(2.1rem, 4.6vw, 3.6rem);
@@ -228,44 +207,6 @@
 .pv-landing [data-reveal].is-revealed {
 	opacity: 1;
 	transform: none;
-}
-
-/* ---- Presenter bar (fixed progress + slide counter) ---------------- */
-
-.pv-presenter {
-	position: fixed;
-	inset: auto 0 0 0;
-	z-index: 40;
-	pointer-events: none;
-}
-
-.pv-presenter__track {
-	display: block;
-	height: 3px;
-	background: color-mix(in srgb, var(--pv-line) 60%, transparent);
-}
-
-.pv-presenter__track i {
-	display: block;
-	height: 100%;
-	background: var(--pv-accent);
-	transform-origin: left;
-	transform: scaleX(0);
-}
-
-.pv-presenter__counter {
-	position: absolute;
-	right: clamp(0.8rem, 3vw, 2.2rem);
-	bottom: 0.8rem;
-	font-family: var(--pv-mono);
-	font-size: 0.7rem;
-	letter-spacing: 0.24em;
-	color: var(--pv-ink-soft);
-	background: color-mix(in srgb, var(--pv-canvas) 82%, transparent);
-	border: 1px solid var(--pv-line);
-	border-radius: 3px;
-	padding: 0.3em 0.75em;
-	backdrop-filter: blur(6px);
 }
 
 @media (prefers-reduced-motion: reduce) {
