@@ -220,7 +220,7 @@ const TABS: readonly TabDef[] = [
 
 			<!-- ── Ribbon content (collapsible via the ribbon toggle) ──────────── -->
 			<div
-				class="flex flex-nowrap items-stretch gap-1.5 overflow-x-auto px-2 py-1.5"
+				class="flex flex-nowrap items-center gap-1.5 overflow-x-auto px-2 py-1"
 				[style.display]="ribbonExpanded() ? null : 'none'"
 			>
 				@switch (activeTab()) {
