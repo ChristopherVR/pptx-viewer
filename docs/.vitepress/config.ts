@@ -4,7 +4,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
 	title: 'pptx-viewer',
 	description:
-		'Parse, edit, render, and convert Microsoft PowerPoint (.pptx) files in the browser and Node.js - a TypeScript SDK with React, Vue 3, and Angular viewer components.',
+		'Parse, edit, render, and convert Microsoft PowerPoint (.pptx) files in the browser and Node.js - a TypeScript SDK with viewer components for React, Vue 3, Angular, Svelte, and vanilla JavaScript.',
 	lang: 'en-US',
 
 	// Deployed to https://christophervr.github.io/pptx-viewer/
@@ -34,6 +34,8 @@ export default defineConfig({
 							{ text: 'React (pptx-react-viewer)', link: '/react/' },
 							{ text: 'Vue 3 (pptx-vue-viewer)', link: '/vue/' },
 							{ text: 'Angular (pptx-angular-viewer)', link: '/angular/' },
+							{ text: 'Vanilla JS (pptx-vanilla-viewer)', link: '/vanilla/' },
+							{ text: 'Svelte (pptx-svelte-viewer)', link: '/svelte/' },
 							{ text: 'MCP et outils', link: '/packages/mcp' },
 						],
 					},
@@ -58,6 +60,14 @@ export default defineConfig({
 								text: 'npm: pptx-angular-viewer',
 								link: 'https://www.npmjs.com/package/pptx-angular-viewer',
 							},
+							{
+								text: 'npm: pptx-vanilla-viewer',
+								link: 'https://www.npmjs.com/package/pptx-vanilla-viewer',
+							},
+							{
+								text: 'npm: pptx-svelte-viewer',
+								link: 'https://www.npmjs.com/package/pptx-svelte-viewer',
+							},
 						],
 					},
 				],
@@ -78,6 +88,8 @@ export default defineConfig({
 							{ text: 'React (pptx-react-viewer)', link: '/react/' },
 							{ text: 'Vue 3 (pptx-vue-viewer)', link: '/vue/' },
 							{ text: 'Angular (pptx-angular-viewer)', link: '/angular/' },
+							{ text: 'Vanilla JS (pptx-vanilla-viewer)', link: '/vanilla/' },
+							{ text: 'Svelte (pptx-svelte-viewer)', link: '/svelte/' },
 							{ text: 'MCP y herramientas', link: '/packages/mcp' },
 						],
 					},
@@ -102,6 +114,14 @@ export default defineConfig({
 								text: 'npm: pptx-angular-viewer',
 								link: 'https://www.npmjs.com/package/pptx-angular-viewer',
 							},
+							{
+								text: 'npm: pptx-vanilla-viewer',
+								link: 'https://www.npmjs.com/package/pptx-vanilla-viewer',
+							},
+							{
+								text: 'npm: pptx-svelte-viewer',
+								link: 'https://www.npmjs.com/package/pptx-svelte-viewer',
+							},
 						],
 					},
 				],
@@ -122,6 +142,8 @@ export default defineConfig({
 							{ text: 'React (pptx-react-viewer)', link: '/react/' },
 							{ text: 'Vue 3 (pptx-vue-viewer)', link: '/vue/' },
 							{ text: 'Angular (pptx-angular-viewer)', link: '/angular/' },
+							{ text: 'Vanilla JS (pptx-vanilla-viewer)', link: '/vanilla/' },
+							{ text: 'Svelte (pptx-svelte-viewer)', link: '/svelte/' },
 							{ text: 'MCP und Werkzeuge', link: '/packages/mcp' },
 						],
 					},
@@ -145,6 +167,14 @@ export default defineConfig({
 							{
 								text: 'npm: pptx-angular-viewer',
 								link: 'https://www.npmjs.com/package/pptx-angular-viewer',
+							},
+							{
+								text: 'npm: pptx-vanilla-viewer',
+								link: 'https://www.npmjs.com/package/pptx-vanilla-viewer',
+							},
+							{
+								text: 'npm: pptx-svelte-viewer',
+								link: 'https://www.npmjs.com/package/pptx-svelte-viewer',
 							},
 						],
 					},
@@ -171,7 +201,7 @@ export default defineConfig({
 			{
 				property: 'og:description',
 				content:
-					'Parse, edit, render, and convert PowerPoint (.pptx) files in TypeScript - SDK with React, Vue 3, and Angular viewer components.',
+					'Parse, edit, render, and convert PowerPoint (.pptx) files in TypeScript - SDK with viewer components for React, Vue 3, Angular, Svelte, and vanilla JavaScript.',
 			},
 		],
 	],
@@ -188,6 +218,8 @@ export default defineConfig({
 					{ text: 'React (pptx-react-viewer)', link: '/react/' },
 					{ text: 'Vue 3 (pptx-vue-viewer)', link: '/vue/' },
 					{ text: 'Angular (pptx-angular-viewer)', link: '/angular/' },
+					{ text: 'Vanilla JS (pptx-vanilla-viewer)', link: '/vanilla/' },
+					{ text: 'Svelte (pptx-svelte-viewer)', link: '/svelte/' },
 					{ text: 'MCP & Tools', link: '/packages/mcp' },
 				],
 			},
@@ -208,6 +240,14 @@ export default defineConfig({
 					{
 						text: 'npm: pptx-angular-viewer',
 						link: 'https://www.npmjs.com/package/pptx-angular-viewer',
+					},
+					{
+						text: 'npm: pptx-vanilla-viewer',
+						link: 'https://www.npmjs.com/package/pptx-vanilla-viewer',
+					},
+					{
+						text: 'npm: pptx-svelte-viewer',
+						link: 'https://www.npmjs.com/package/pptx-svelte-viewer',
 					},
 				],
 			},
@@ -343,6 +383,36 @@ export default defineConfig({
 				},
 			],
 
+			'/vanilla/': [
+				{
+					text: 'Vanilla JS Viewer',
+					items: [
+						{ text: 'Overview', link: '/vanilla/' },
+						{ text: 'Getting Started', link: '/vanilla/getting-started' },
+						{ text: 'Options & Callbacks', link: '/vanilla/options' },
+						{ text: 'Instance API', link: '/vanilla/api' },
+					],
+				},
+				{
+					text: 'Customisation',
+					items: [
+						{ text: 'Theming', link: '/vanilla/theming' },
+						{ text: 'Element Renderers', link: '/vanilla/renderers' },
+					],
+				},
+			],
+
+			'/svelte/': [
+				{
+					text: 'Svelte Viewer',
+					items: [
+						{ text: 'Overview', link: '/svelte/' },
+						{ text: 'Getting Started', link: '/svelte/getting-started' },
+						{ text: 'Component Props', link: '/svelte/props' },
+					],
+				},
+			],
+
 			'/packages/': [
 				{
 					text: 'Supporting Packages',
@@ -359,6 +429,8 @@ export default defineConfig({
 						{ text: 'pptx-react-viewer', link: '/releases/react' },
 						{ text: 'pptx-vue-viewer', link: '/releases/vue' },
 						{ text: 'pptx-angular-viewer', link: '/releases/angular' },
+						{ text: 'pptx-vanilla-viewer', link: '/releases/vanilla' },
+						{ text: 'pptx-svelte-viewer', link: '/releases/svelte' },
 						{ text: 'pptx-viewer-mcp', link: '/releases/mcp' },
 						{ text: '@christophervr/pptx-viewer (CLI)', link: '/releases/cli' },
 					],

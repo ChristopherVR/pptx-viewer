@@ -5,7 +5,7 @@ export const fr: LandingCopy = {
 		kicker: 'Open source · Apache-2.0 · TypeScript',
 		titleTop: 'Le moteur PowerPoint',
 		titleAccent: 'pour le web.',
-		sub: 'Chargez, affichez, modifiez et enregistrez des fichiers .pptx dans le navigateur ou Node.js. Disponible en coeur TypeScript headless et en composants de visualisation/edition pour React, Vue 3 et Angular.',
+		sub: 'Chargez, affichez, modifiez et enregistrez des fichiers .pptx dans le navigateur ou Node.js. Disponible en coeur TypeScript headless, en composants de visualisation/edition pour React, Vue 3 et Angular, et en visionneuses pour Svelte et JavaScript vanilla.',
 		start: { text: 'Commencer', href: '/fr/guide/introduction' },
 		demo: 'Ouvrir la demo',
 		scroll: 'Defiler',
@@ -35,8 +35,8 @@ export const fr: LandingCopy = {
 		},
 		{
 			kicker: 'Frameworks',
-			title: 'Un seul moteur. React, Vue et Angular.',
-			copy: "La visionneuse et l'editeur WYSIWYG s'integrent comme composants prets a l'emploi pour React, Vue 3 et Angular. Chaque paquet embarque le moteur : une seule dependance donne les memes fonctionnalites partout, mode presentateur, export et collaboration en temps reel compris.",
+			title: 'Un seul moteur. Tous les frameworks, ou aucun.',
+			copy: "La visionneuse et l'editeur WYSIWYG s'integrent comme composants prets a l'emploi pour React, Vue 3 et Angular, avec des visionneuses pour Svelte 5 et JavaScript vanilla sans framework. Chaque paquet embarque le moteur : une seule dependance donne le meme rendu partout, mode presentateur, export et collaboration en temps reel compris dans les editions React, Vue et Angular.",
 			link: { text: 'Choisir un framework', href: '/fr/guide/installation' },
 		},
 		{
@@ -111,6 +111,18 @@ export const fr: LandingCopy = {
 				desc: 'Les memes fonctionnalites pour Angular',
 				href: 'https://www.npmjs.com/package/pptx-angular-viewer',
 				external: true,
+			},
+			{
+				name: 'pptx-vanilla-viewer',
+				desc: 'Visionneuse sans framework, DOM pur',
+				href: '/vanilla/',
+				external: false,
+			},
+			{
+				name: 'pptx-svelte-viewer',
+				desc: 'Composant visionneuse pour Svelte 5',
+				href: '/svelte/',
+				external: false,
 			},
 			{
 				name: 'pptx-viewer-core',

@@ -18,6 +18,8 @@ const PACKAGES = [
 	{ key: 'react', dir: 'packages/react', npm: 'pptx-react-viewer' },
 	{ key: 'vue', dir: 'packages/vue', npm: 'pptx-vue-viewer' },
 	{ key: 'angular', dir: 'packages/angular', npm: 'pptx-angular-viewer' },
+	{ key: 'vanilla', dir: 'packages/vanilla', npm: 'pptx-vanilla-viewer' },
+	{ key: 'svelte', dir: 'packages/svelte', npm: 'pptx-svelte-viewer' },
 	{ key: 'mcp', dir: 'packages/tools', npm: 'pptx-viewer-mcp' },
 	{ key: 'cli', dir: 'packages/cli', npm: '@christophervr/pptx-viewer' },
 ];
