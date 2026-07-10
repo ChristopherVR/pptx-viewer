@@ -1,0 +1,83 @@
+{
+	"name": "pptx-svelte-viewer",
+	"version": "0.1.0",
+	"description": "Svelte 5 PowerPoint viewer component: render PPTX slides in the browser.",
+	"keywords": [
+		"office",
+		"openxml",
+		"powerpoint",
+		"ppt",
+		"pptx",
+		"presentation",
+		"slides",
+		"slideshow",
+		"svelte",
+		"svelte-component",
+		"svelte5",
+		"viewer"
+	],
+	"homepage": "https://github.com/ChristopherVR/pptx-viewer",
+	"bugs": {
+		"url": "https://github.com/ChristopherVR/pptx-viewer/issues"
+	},
+	"license": "Apache-2.0",
+	"author": "ChristopherVR",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ChristopherVR/pptx-viewer.git",
+		"directory": "packages/svelte"
+	},
+	"files": [
+		"dist/",
+		"CHANGELOG.md",
+		"LICENSE",
+		"NOTICE",
+		"README.md"
+	],
+	"type": "module",
+	"module": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"svelte": "./dist/index.js",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"svelte": "./dist/index.js",
+			"import": "./dist/index.js"
+		},
+		"./viewer": {
+			"types": "./dist/viewer/index.d.ts",
+			"svelte": "./dist/viewer/index.js",
+			"import": "./dist/viewer/index.js"
+		},
+		"./i18n": {
+			"types": "./dist/i18n.d.ts",
+			"import": "./dist/i18n.js"
+		}
+	},
+	"scripts": {
+		"build": "vite build",
+		"dev": "vite build --watch",
+		"typecheck": "svelte-check --tsconfig ./tsconfig.json",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"pack": "bun run build && bun pm pack"
+	},
+	"devDependencies": {
+		"@microsoft/api-extractor": "^7.53.1",
+		"@sveltejs/vite-plugin-svelte": "^7.2.0",
+		"happy-dom": "^20.10.6",
+		"pptx-viewer-core": "workspace:*",
+		"pptx-viewer-shared": "workspace:*",
+		"svelte": "^5.46.4",
+		"svelte-check": "^4.7.2",
+		"typescript": "^6.0.3",
+		"vite": "^8.0.16",
+		"vite-plugin-dts": "^5.0.3",
+		"vitest": "^4.1.9"
+	},
+	"peerDependencies": {
+		"fast-xml-parser": "^5.8.0",
+		"jszip": "^3.10.1",
+		"svelte": "^5.0.0"
+	}
+}
