@@ -1,0 +1,84 @@
+import type { PptxSlide } from 'pptx-viewer-core';
+import type { CanvasSize } from 'pptx-viewer-shared';
+
+import type { Translator } from '../i18n';
+import { createEl } from '../render';
+
+/** Rendered thumbnail rail width available for each slide preview, in px. */
+const THUMB_STAGE_WIDTH = 128;
+
+export interface ThumbnailRail {
+	el: HTMLElement;
+	/** Rebuild the rail for a new slide list (uses `renderStage` per slide). */
+	render(
+		slides: PptxSlide[],
+		canvasSize: CanvasSize,
+		renderStage: (slide: PptxSlide, scale: number) => HTMLElement,
+	): void;
+	/** Highlight the active slide and scroll it into view. */
+	setActive(index: number): void;
+	/** Show or hide the rail. */
+	setVisible(visible: boolean): void;
+}
+
+/**
+ * The thumbnail sidebar: a scaled-down live render of every slide; clicking a
+ * thumbnail navigates to it. Rebuilt only when the slide list changes.
+ */
+export function createThumbnailRail(
+	doc: Document,
+	t: Translator,
+	onSelect: (index: number) => void,
+): ThumbnailRail {
+	const el = createEl(doc, 'div', 'pptxv-thumbs');
+	el.setAttribute('role', 'listbox');
+	el.setAttribute('aria-label', t('pptx.toolbar.toggleSlidesPanel'));
+	let buttons: HTMLButtonElement[] = [];
+	let activeIndex = 0;
+
+	return {
+		el,
+		render(slides, canvasSize, renderStage) {
+			el.replaceChildren();
+			buttons = [];
+			const scale = THUMB_STAGE_WIDTH / Math.max(canvasSize.width, 1);
+			slides.forEach((slide, index) => {
+				const btn = createEl(doc, 'button', 'pptxv-thumb');
+				btn.type = 'button';
+				btn.setAttribute('role', 'option');
+				btn.setAttribute('aria-label', `${index + 1}`);
+
+				const num = createEl(doc, 'span', 'pptxv-thumb-num');
+				num.textContent = String(index + 1);
+				btn.appendChild(num);
+
+				const frame = createEl(doc, 'span', 'pptxv-thumb-frame', {
+					display: 'block',
+					width: `${THUMB_STAGE_WIDTH}px`,
+					height: `${Math.round(canvasSize.height * scale)}px`,
+				});
+				frame.appendChild(renderStage(slide, scale));
+				btn.appendChild(frame);
+
+				btn.addEventListener('click', () => onSelect(index));
+				el.appendChild(btn);
+				buttons.push(btn);
+			});
+			this.setActive(activeIndex);
+		},
+		setActive(index) {
+			activeIndex = index;
+			buttons.forEach((btn, i) => {
+				btn.classList.toggle('is-active', i === index);
+				btn.setAttribute('aria-selected', i === index ? 'true' : 'false');
+			});
+			const active = buttons[index];
+			if (active && typeof active.scrollIntoView === 'function') {
+				active.scrollIntoView({ block: 'nearest' });
+			}
+		},
+		setVisible(visible) {
+			el.hidden = !visible;
+		},
+	};
+}

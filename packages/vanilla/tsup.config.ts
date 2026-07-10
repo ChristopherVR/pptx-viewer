@@ -1,0 +1,30 @@
+import { defineConfig } from 'tsup';
+
+export default defineConfig((options) => ({
+	entry: ['src/index.ts'],
+	format: ['esm', 'cjs'],
+	minify: true,
+	// Inline the .d.ts of the bundled internal workspace packages so the
+	// published types resolve standalone: consumers don't need (and for
+	// `pptx-viewer-shared`, can't get) those packages from npm. Mirrors the
+	// React package's tsup config and the Vue package's dts `bundledPackages`.
+	dts: { resolve: ['pptx-viewer-core', 'pptx-viewer-shared'] },
+	splitting: false,
+	sourcemap: false,
+	clean: !options.watch,
+	external: [
+		'jszip',
+		'fast-xml-parser',
+		'dompurify',
+		// Optional three.js surface reachable through the shared render barrel
+		// (Model3D / SmartArt 3D). The vanilla viewer never imports it, but keep
+		// it external so no accidental re-export drags it into the bundle.
+		'three',
+		/^three\//u,
+	],
+	// Bundle the internal workspace packages so consumers can install just
+	// `pptx-vanilla-viewer` without also pulling `pptx-viewer-core` from npm.
+	noExternal: [/^pptx-viewer-core(?:\/|$)/u, /^pptx-viewer-shared(?:\/|$)/u],
+	treeshake: true,
+	platform: 'browser',
+}));

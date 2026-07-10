@@ -1,0 +1,54 @@
+import { getComputedImageStyle, getContainerStyle, getImageSrc } from 'pptx-viewer-shared';
+
+import { createEl, createSvgEl, setSvgAttrs } from '../dom';
+import type { ElementRenderer } from '../types';
+
+/**
+ * Renderer for `image` / `picture` elements: an absolutely positioned box with
+ * an `<img>` (object-fit contain), the shared computed CSS filter, and any SVG
+ * `<filter>` defs required by duotone / artistic image effects.
+ */
+export const renderImageElement: ElementRenderer = (element, zIndex, context) => {
+	const doc = context.document;
+	const el = createEl(doc, 'div', 'pptxv-element pptxv-image', getContainerStyle(element, zIndex));
+	el.dataset.elementId = element.id;
+
+	const src = getImageSrc(element, new Map(context.mediaDataUrls));
+	if (!src) {
+		return el;
+	}
+
+	const fx = getComputedImageStyle(element);
+
+	// SVG <filter> defs so the `url(#...)` references in `fx.filter` resolve.
+	for (const f of fx.svgFilters) {
+		const svg = createSvgEl(doc, 'svg', { width: 0, height: 0, 'aria-hidden': 'true' });
+		svg.setAttribute('style', 'position:absolute;width:0;height:0;overflow:hidden');
+		const defs = createSvgEl(doc, 'defs');
+		const filter = createSvgEl(doc, 'filter');
+		setSvgAttrs(filter, { id: f.id, 'color-interpolation-filters': 'sRGB' });
+		// `f.markup` is shared-generated SVG filter-primitive markup (no user input).
+		filter.innerHTML = f.markup;
+		defs.appendChild(filter);
+		svg.appendChild(defs);
+		el.appendChild(svg);
+	}
+
+	const img = createEl(doc, 'img', undefined, {
+		width: '100%',
+		height: '100%',
+		objectFit: 'contain',
+		display: 'block',
+	});
+	img.src = src;
+	img.alt = '';
+	if (fx.filter) {
+		img.style.filter = fx.filter;
+	}
+	if (fx.opacity !== undefined) {
+		img.style.opacity = String(fx.opacity);
+	}
+	el.appendChild(img);
+
+	return el;
+};
