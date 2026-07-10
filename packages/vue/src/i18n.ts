@@ -10,8 +10,14 @@ export type { TranslationKey };
  * dictionary uses, since React and Angular both expect double braces).
  * Adapt the syntax once here so every Vue consumer gets a working
  * dictionary without needing to know about the mismatch.
+ *
+ * Exported so hosts registering their OWN non-English dictionaries (which
+ * naturally follow the shared `{{var}}` convention, e.g. ported from the
+ * other bindings' demos) can run them through the same conversion before
+ * handing them to `createI18n`; passing a raw `{{var}}` message crashes
+ * vue-i18n at first render of that message.
  */
-function toVueI18nSyntax(messages: Record<string, string>): Record<string, string> {
+export function toVueI18nSyntax(messages: Record<string, string>): Record<string, string> {
 	const converted: Record<string, string> = {};
 	for (const [key, value] of Object.entries(messages)) {
 		converted[key] = value.replace(/\{\{(?<name>\w+)\}\}/gu, '{$<name>}');
