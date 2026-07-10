@@ -8,6 +8,7 @@
 export { PowerPointViewer } from './viewer/component';
 export type {
 	CanvasSize,
+	PowerPointViewerApi,
 	PowerPointViewerProps,
 	ViewerLoadDetail,
 	ViewerTheme,

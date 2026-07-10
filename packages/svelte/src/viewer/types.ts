@@ -52,6 +52,14 @@ export interface PowerPointViewerProps {
 	 * used automatically. Default false.
 	 */
 	smartArt3D?: boolean;
+	/**
+	 * Enable in-place editing: click to select an element, drag to move, use the
+	 * 8 handles to resize (Shift locks aspect) and the rotate handle to rotate,
+	 * double-click text/shapes to edit their text, and the keyboard for
+	 * delete/duplicate/nudge/undo/redo. Adds an Undo/Redo/Save/Download group to
+	 * the toolbar. Default false (read-only viewer).
+	 */
+	editable?: boolean;
 	/** Optional class name applied to the root element. */
 	class?: string;
 	/** Fired after a presentation finishes loading. */
@@ -68,4 +76,34 @@ export interface PowerPointViewerProps {
 	 * panel read-only.
 	 */
 	onnotesupdate?: (notes: string) => void;
+	/**
+	 * Fired after every committed editing mutation (move / resize / rotate /
+	 * delete / duplicate / nudge / inline text / notes) when `editable`. Use it
+	 * to track the dirty state or mirror edits into host state.
+	 */
+	onchange?: () => void;
+}
+
+/**
+ * Imperative editing API exposed on the `<PowerPointViewer>` component
+ * instance (via `bind:this`). Mirrors the vanilla binding's `EditorController`
+ * surface subset the host drives directly.
+ */
+export interface PowerPointViewerApi {
+	/** Undo the last committed edit. */
+	undo(): void;
+	/** Redo the last undone edit. */
+	redo(): void;
+	/** Whether an undo step is available (snapshot; not reactive). */
+	canUndo(): boolean;
+	/** Whether a redo step is available (snapshot; not reactive). */
+	canRedo(): boolean;
+	/** Delete the selected element (no-op when nothing is selected). */
+	deleteSelected(): void;
+	/** The selected top-level element id, or null. */
+	getSelectedElementId(): string | null;
+	/** Serialize the edited slides to `.pptx` bytes via the core handler. */
+	save(): Promise<Uint8Array>;
+	/** Save + trigger a browser download of the `.pptx` (default name). */
+	downloadPptx(fileName?: string): Promise<void>;
 }

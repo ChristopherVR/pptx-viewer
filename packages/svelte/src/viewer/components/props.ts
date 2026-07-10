@@ -1,5 +1,8 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import type { CanvasSize, RenderParagraph } from 'pptx-viewer-shared';
+import type { CanvasSize, RenderParagraph, ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
+
+import type { EditorController } from '../editor/editor-controller.svelte';
+import type { OverlayBox } from '../editor/types';
 
 /**
  * Prop contracts for the internal viewer components. Kept in a plain `.ts`
@@ -55,6 +58,54 @@ export interface ViewerToolbarProps {
 	/** Whether the notes panel is currently expanded (drives the pressed state). */
 	notesExpanded?: boolean;
 	onnotestoggle?: () => void;
+	/** Show the editing action group (Undo / Redo / Save). Default false. */
+	editable?: boolean;
+	/** Whether an undo step is available (drives the Undo button's disabled state). */
+	canUndo?: boolean;
+	/** Whether a redo step is available (drives the Redo button's disabled state). */
+	canRedo?: boolean;
+	/** Whether there are unsaved edits (drives the Save button's emphasis). */
+	dirty?: boolean;
+	onundo?: () => void;
+	onredo?: () => void;
+	onsave?: () => void;
+	ondownload?: () => void;
+}
+
+/** Props for the selection overlay (box + 8 resize handles + rotate handle). */
+export interface SelectionOverlayProps {
+	/** Selection box in element (unscaled slide) px, or null to hide it. */
+	box: OverlayBox | null;
+	/** Stage scale (screen px per element px) applied when positioning. */
+	scale: number;
+	/** Transient snap-alignment lines (element px). */
+	snapLines: readonly SnapLine[];
+	/** Hide the box/handles while the inline text editor is open. */
+	editing?: boolean;
+	onhandlepointerdown: (handle: ResizeHandleId, event: PointerEvent) => void;
+	onrotatepointerdown: (event: PointerEvent) => void;
+}
+
+/** Props for the inline (double-click) text editing surface. */
+export interface InlineTextEditorProps {
+	/** The element being edited (seeds the initial text + font hints). */
+	element: PptxElement;
+	/** The element's box in element px (positioning). */
+	box: OverlayBox;
+	/** Stage scale (screen px per element px). */
+	scale: number;
+	/** Called with the edited plain text on commit (only when it changed). */
+	oncommit: (text: string) => void;
+	/** Called after the surface closes (commit or cancel). */
+	onclose: () => void;
+}
+
+/** Props for the editing layer (selection overlay + inline editor over the stage). */
+export interface EditorLayerProps {
+	/** The reactive editing orchestrator (owns overlay/snap/inline state). */
+	controller: EditorController;
+	/** Stage scale (screen px per element px). */
+	scale: number;
 }
 
 export interface ThumbnailRailProps {

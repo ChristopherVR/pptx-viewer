@@ -1,5 +1,11 @@
 export { PowerPointViewer } from './component';
-export type { CanvasSize, PowerPointViewerProps, ViewerLoadDetail, ViewerTheme } from './types';
+export type {
+	CanvasSize,
+	PowerPointViewerApi,
+	PowerPointViewerProps,
+	ViewerLoadDetail,
+	ViewerTheme,
+} from './types';
 export {
 	clampSlideIndex,
 	fitScale,

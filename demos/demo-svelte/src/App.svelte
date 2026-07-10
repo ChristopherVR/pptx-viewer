@@ -15,8 +15,12 @@
 
 	let bytes = $state<Uint8Array | null>(null);
 	let fileName = $state('');
+	// In-place editing is on by default (mirrors the vanilla demo's editable:true).
+	// eslint-disable-next-line prefer-const
+	let editable = $state(true);
 	let themeKey = $state(readStoredTheme());
 	let errorMessage = $state('');
+	// eslint-disable-next-line prefer-const
 	let fileInput = $state<HTMLInputElement | null>(null);
 
 	// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`
@@ -99,16 +103,41 @@
 	}
 </script>
 
+<style>
+	.demo-editable-toggle {
+		position: fixed;
+		bottom: 12px;
+		left: 12px;
+		z-index: 50;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 10px;
+		border-radius: 8px;
+		background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 85%, transparent);
+		color: var(--pptx-card-foreground, #e2e8f0);
+		font: 500 13px/1 system-ui, sans-serif;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+		cursor: pointer;
+		user-select: none;
+	}
+</style>
+
 <ThemePicker current={themeKey} onchange={setTheme} />
 <LanguagePicker current={language.current} theme={themeKey} onchange={setLanguage} />
 
 {#if bytes}
 	<div class="demo-shell">
+		<label class="demo-editable-toggle">
+			<input type="checkbox" bind:checked={editable} />
+			Edit
+		</label>
 		<PowerPointViewer
 			source={bytes}
 			theme={currentTheme}
 			locale={language.current}
 			{smartArt3D}
+			{editable}
 			onerror={onViewerError}
 		/>
 	</div>

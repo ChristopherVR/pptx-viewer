@@ -6,20 +6,22 @@
 	 * `pptx-viewer-core` / `pptx-viewer-shared` and this package's `.ts`
 	 * modules; this SFC is thin composition.
 	 */
-	import { onDestroy, untrack } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { defaultCssVars, themeToCssVars } from 'pptx-viewer-shared';
 
 	import { createTranslator } from '../i18n/translator';
 	import { provideTranslator } from '../i18n/context';
-	import NotesPanel from './components/NotesPanel.svelte';
-	import SlideStage from './components/SlideStage.svelte';
-	import ThumbnailRail from './components/ThumbnailRail.svelte';
+	import ViewerBody from './components/ViewerBody.svelte';
 	import ViewerToolbar from './components/ViewerToolbar.svelte';
+	import { createEditingApi } from './editor/editing-api';
+	import { EditorController } from './editor/editor-controller.svelte';
+	import { EditorState } from './editor/editor-state.svelte';
 	import { PresentationLoader } from './state/presentation-loader.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
 	import { ViewerState } from './state/viewer-state.svelte';
 	import { fitScale } from './state/navigation';
-	import { isFullscreenActive, toggleFullscreen } from './state/fullscreen';
+	import { useViewerEffects } from './state/viewer-effects.svelte';
+	import { createViewportHandlers } from './state/viewport-handlers';
 	import { mergeStyles, styleToString } from './style';
 	import type { PowerPointViewerProps } from './types';
 
@@ -32,11 +34,13 @@
 		showToolbar = true,
 		showNotes = true,
 		smartArt3D = false,
+		editable = false,
 		class: className = '',
 		onload,
 		onerror,
 		onslidechange,
 		onnotesupdate,
+		onchange,
 	}: PowerPointViewerProps = $props();
 
 	const t = createTranslator(() => locale);
@@ -45,45 +49,44 @@
 
 	const loader = new PresentationLoader();
 	const viewer = new ViewerState();
-	onDestroy(() => loader.dispose());
 
-	// ── Load pipeline ────────────────────────────────────────────────────
-	$effect(() => {
-		const raw = source;
-		if (raw) {
-			// untrack: load()'s synchronous prefix reads loader state (e.g. the
-			// previous handler); without this the effect would re-run, and
-			// re-load, every time a load commits.
-			untrack(() => void loader.load(raw));
-		}
+	// ── Editing ──────────────────────────────────────────────────────────
+	// `editor.slides` is the single editable source of truth for the stage,
+	// thumbnails, and notes; it is seeded from the loader on every successful
+	// load. The controller wires selection / gestures / inline text / keyboard
+	// to the history-tracked editor. Assigned by ViewerBody's onstageholder.
+	// eslint-disable-next-line prefer-const
+	let stageHolderEl = $state<HTMLDivElement>();
+	const editor = new EditorState({
+		getCurrent: () => viewer.current,
+		getHandler: () => loader.handler,
+		onChange: () => onchange?.(),
+	});
+	const controller = new EditorController(editor, {
+		getScale: () => scale,
+		getCurrent: () => viewer.current,
+		getPresenting: () => viewer.isFullscreen,
+		getStageRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
+		getHolderEl: () => stageHolderEl ?? null,
 	});
 
-	let announcedLoadCount = 0;
-	$effect(() => {
-		const count = loader.loadCount;
-		if (count > 0 && count !== announcedLoadCount) {
-			announcedLoadCount = count;
-			viewer.reset(loader.slides.length, initialSlide);
-			onload?.({ slideCount: loader.slides.length, canvasSize: loader.canvasSize });
-		}
+	useViewerEffects({
+		getSource: () => source,
+		getEditable: () => editable,
+		getInitialSlide: () => initialSlide,
+		getTranslator: () => t,
+		loader,
+		viewer,
+		editor,
+		controller,
+		getOnload: () => onload,
+		getOnerror: () => onerror,
+		getOnslidechange: () => onslidechange,
 	});
 
-	let announcedError: string | null = null;
-	$effect(() => {
-		const message = loader.isEncrypted ? t('pptx.encryptedFile.message') : loader.error;
-		if (message && message !== announcedError) {
-			announcedError = message;
-			onerror?.(message);
-		}
-	});
-
-	let announcedSlide = -1;
-	$effect(() => {
-		const index = viewer.current;
-		if (loader.loadCount > 0 && index !== announcedSlide) {
-			announcedSlide = index;
-			onslidechange?.(index);
-		}
+	onDestroy(() => {
+		controller.destroy();
+		loader.dispose();
 	});
 
 	// ── Layout / zoom ────────────────────────────────────────────────────
@@ -105,8 +108,12 @@
 		viewer.isFullscreen || viewer.zoomPercent === null ? fittedScale : viewer.zoomPercent / 100,
 	);
 	const effectivePercent = $derived(Math.max(1, Math.round(scale * 100)));
-	const activeSlide = $derived(loader.slides[viewer.current]);
+	// Render the editable slide array (single source of truth), so committed
+	// edits flow to the stage, thumbnails, and notes panel.
+	const displaySlides = $derived(editor.slides);
+	const activeSlide = $derived(displaySlides[viewer.current]);
 	const chromeVisible = $derived(!viewer.isFullscreen);
+	const editingActive = $derived(editable && !viewer.isFullscreen);
 
 	const rootStyle = $derived(
 		styleToString(mergeStyles(defaultCssVars(), themeToCssVars(theme))),
@@ -117,21 +124,12 @@
 	// eslint-disable-next-line no-unassigned-vars
 	let rootEl: HTMLDivElement | undefined;
 
-	function onFullscreenToggle(): void {
-		if (rootEl) {
-			void toggleFullscreen(rootEl);
-		}
-	}
-
-	function onFullscreenChange(): void {
-		viewer.isFullscreen = isFullscreenActive();
-	}
-
-	function onKeydown(event: KeyboardEvent): void {
-		if (viewer.handleNavigationKey(event.key)) {
-			event.preventDefault();
-		}
-	}
+	const { onFullscreenToggle, onFullscreenChange, onKeydown } = createViewportHandlers({
+		getRootEl: () => rootEl,
+		viewer,
+		controller,
+		getEditingActive: () => editingActive,
+	});
 
 	// ── Speaker notes ────────────────────────────────────────────────────
 	let notesExpanded = $state(false);
@@ -139,6 +137,27 @@
 	function onNotesToggle(): void {
 		notesExpanded = !notesExpanded;
 	}
+
+	// Route notes edits through the history-tracked editor when editable (so
+	// they participate in undo/redo and persist to `save()`), then always
+	// forward to the host `onnotesupdate` callback.
+	function onNotesCommit(notes: string): void {
+		if (editable) {
+			editor.commitNotes(notes);
+		}
+		onnotesupdate?.(notes);
+	}
+
+	// ── Imperative editing API (exposed on the component instance) ────────
+	const editingApi = createEditingApi(editor);
+	export const undo = editingApi.undo;
+	export const redo = editingApi.redo;
+	export const canUndo = editingApi.canUndo;
+	export const canRedo = editingApi.canRedo;
+	export const deleteSelected = editingApi.deleteSelected;
+	export const getSelectedElementId = editingApi.getSelectedElementId;
+	export const save = editingApi.save;
+	export const downloadPptx = editingApi.downloadPptx;
 </script>
 
 <svelte:document onfullscreenchange={onFullscreenChange} />
@@ -170,57 +189,45 @@
 			showNotes={showNotes && loader.slides.length > 0}
 			{notesExpanded}
 			onnotestoggle={onNotesToggle}
+			editable={editable && loader.slides.length > 0}
+			canUndo={editor.canUndo}
+			canRedo={editor.canRedo}
+			dirty={editor.dirty}
+			onundo={() => editor.undo()}
+			onredo={() => editor.redo()}
+			onsave={() => void editor.save()}
+			ondownload={() => void downloadPptx()}
 		/>
 	{/if}
-	<div class="pptx-svelte-body">
-		{#if showThumbnails && chromeVisible && loader.slides.length > 0}
-			<ThumbnailRail
-				slides={loader.slides}
-				canvasSize={loader.canvasSize}
-				mediaDataUrls={loader.mediaDataUrls}
-				current={viewer.current}
-				onselect={(index) => viewer.goTo(index)}
-			/>
-		{/if}
-		<div class="pptx-svelte-main">
-			<div
-				class="pptx-svelte-viewport"
-				bind:clientWidth={viewportWidth}
-				bind:clientHeight={viewportHeight}
-			>
-				{#if loader.loading}
-					<div class="pptx-svelte-message" role="status">{t('common.loading')}</div>
-				{:else if loader.isEncrypted}
-					<div class="pptx-svelte-message" role="alert">{t('pptx.encryptedFile.message')}</div>
-				{:else if loader.error}
-					<div class="pptx-svelte-message" role="alert">{loader.error}</div>
-				{:else if activeSlide}
-					<div
-						class="pptx-svelte-stage-holder"
-						style={`width: ${loader.canvasSize.width * scale}px; height: ${loader.canvasSize.height * scale}px`}
-					>
-						<SlideStage
-							slide={activeSlide}
-							canvasSize={loader.canvasSize}
-							mediaDataUrls={loader.mediaDataUrls}
-							{scale}
-							presenting={viewer.isFullscreen}
-						/>
-					</div>
-				{:else}
-					<div class="pptx-svelte-message" role="status">{t('pptx.statusBar.noSlides')}</div>
-				{/if}
-			</div>
-			{#if showNotes && chromeVisible && loader.slides.length > 0}
-				<NotesPanel
-					slide={activeSlide}
-					expanded={notesExpanded}
-					onupdate={onnotesupdate}
-					ontoggle={onNotesToggle}
-				/>
-			{/if}
-		</div>
-	</div>
+	<ViewerBody
+		{t}
+		{chromeVisible}
+		{showThumbnails}
+		{showNotes}
+		{displaySlides}
+		canvasSize={loader.canvasSize}
+		mediaDataUrls={loader.mediaDataUrls}
+		current={viewer.current}
+		onselect={(index) => viewer.goTo(index)}
+		loading={loader.loading}
+		isEncrypted={loader.isEncrypted}
+		error={loader.error}
+		{activeSlide}
+		{scale}
+		presenting={viewer.isFullscreen}
+		{editingActive}
+		{controller}
+		onstageresize={(width, height) => {
+			viewportWidth = width;
+			viewportHeight = height;
+		}}
+		onstageholder={(el) => {
+			stageHolderEl = el ?? undefined;
+		}}
+		{notesExpanded}
+		onNotesCommit={editable || onnotesupdate ? onNotesCommit : undefined}
+		{onNotesToggle}
+	/>
 </div>
 
 <style>
@@ -238,41 +245,5 @@
 
 	.pptx-svelte-fullscreen {
 		background: #000;
-	}
-
-	.pptx-svelte-body {
-		display: flex;
-		flex: 1;
-		min-height: 0;
-	}
-
-	.pptx-svelte-main {
-		display: flex;
-		flex-direction: column;
-		flex: 1;
-		min-width: 0;
-		min-height: 0;
-	}
-
-	.pptx-svelte-viewport {
-		flex: 1;
-		display: flex;
-		overflow: auto;
-		min-width: 0;
-		min-height: 0;
-	}
-
-	.pptx-svelte-stage-holder {
-		margin: auto;
-		flex: none;
-		overflow: hidden;
-		box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-	}
-
-	.pptx-svelte-message {
-		margin: auto;
-		font-family: system-ui, sans-serif;
-		font-size: 14px;
-		color: var(--pptx-muted-foreground, #94a3b8);
 	}
 </style>

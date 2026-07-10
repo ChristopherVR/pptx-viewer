@@ -21,12 +21,60 @@
 		showNotes = false,
 		notesExpanded = false,
 		onnotestoggle,
+		editable = false,
+		canUndo = false,
+		canRedo = false,
+		dirty = false,
+		onundo,
+		onredo,
+		onsave,
+		ondownload,
 	}: ViewerToolbarProps = $props();
 
 	const t = useTranslator();
 </script>
 
 <div class="pptx-svelte-toolbar" role="toolbar" aria-label={t('pptx.statusBar.slideShow')}>
+	{#if editable}
+		<div class="pptx-svelte-toolbar-group pptx-svelte-toolbar-edit">
+			<button
+				type="button"
+				aria-label={t('pptx.toolbar.undo')}
+				title={t('pptx.toolbar.undo')}
+				disabled={!canUndo}
+				onclick={() => onundo?.()}
+			>
+				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4 3 7l3 3M3 7h6.5a3.5 3.5 0 0 1 0 7H8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			</button>
+			<button
+				type="button"
+				aria-label={t('pptx.toolbar.redo')}
+				title={t('pptx.toolbar.redo')}
+				disabled={!canRedo}
+				onclick={() => onredo?.()}
+			>
+				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 4l3 3-3 3M13 7H6.5a3.5 3.5 0 0 0 0 7H8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			</button>
+			<button
+				type="button"
+				class="pptx-svelte-toolbar-save"
+				class:pptx-svelte-toolbar-dirty={dirty}
+				aria-label={t('pptx.toolbar.save')}
+				title={t('pptx.toolbar.save')}
+				onclick={() => onsave?.()}
+			>
+				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5h8l2 2v9h-10zM5 2.5v4h5v-4M5 13.5v-4h6v4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /></svg>
+			</button>
+			<button
+				type="button"
+				aria-label={t('pptx.ribbon.saveAsPptx')}
+				title={t('pptx.ribbon.saveAsPptx')}
+				onclick={() => ondownload?.()}
+			>
+				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0 3-3m-3 3-3-3M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			</button>
+		</div>
+	{/if}
 	<div class="pptx-svelte-toolbar-group">
 		<button
 			type="button"
@@ -178,5 +226,15 @@
 
 	.pptx-svelte-toolbar-notes-label {
 		font-size: 12px;
+	}
+
+	.pptx-svelte-toolbar-edit {
+		margin-right: 4px;
+		padding-right: 8px;
+		border-right: 1px solid var(--pptx-border, #33334d);
+	}
+
+	.pptx-svelte-toolbar-dirty {
+		color: var(--pptx-primary, #6366f1);
 	}
 </style>

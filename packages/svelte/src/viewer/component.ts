@@ -1,7 +1,7 @@
 import type { Component } from 'svelte';
 
 import PowerPointViewerComponent from './PowerPointViewer.svelte';
-import type { PowerPointViewerProps } from './types';
+import type { PowerPointViewerApi, PowerPointViewerProps } from './types';
 
 /**
  * Explicitly-typed public export of the viewer component.
@@ -12,5 +12,5 @@ import type { PowerPointViewerProps } from './types';
  * Re-exporting through this annotated constant keeps the published `.d.ts`
  * fully typed regardless of which compiler produced it.
  */
-export const PowerPointViewer: Component<PowerPointViewerProps> =
-	PowerPointViewerComponent as unknown as Component<PowerPointViewerProps>;
+export const PowerPointViewer: Component<PowerPointViewerProps, PowerPointViewerApi> =
+	PowerPointViewerComponent as unknown as Component<PowerPointViewerProps, PowerPointViewerApi>;
