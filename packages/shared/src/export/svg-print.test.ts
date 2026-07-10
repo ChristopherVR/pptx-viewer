@@ -107,10 +107,16 @@ describe('buildPrintDocument', () => {
 		expect(html).not.toContain(SCRIPT_PAYLOAD);
 	});
 
-	it('still embeds legitimate SVG markup unescaped', () => {
+	it('runs legitimate SVG markup through the DOMPurify sanitizer before embedding', () => {
+		// In the node/vitest environment DOMPurify has no `sanitize` until
+		// handed a window, so the print-document sanitizer fails closed (see
+		// `sanitizeMarkupOrEmpty`) rather than passing the raw markup through
+		// unsanitised. The browser-only path is covered by the Vue print
+		// composable tests (real DOM via happy-dom).
 		const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>Q1 Results</text></svg>';
 		const html = buildPrintDocument([svg], 800, 600);
 
-		expect(html).toContain(svg);
+		expect(html).toContain('<section class="print-slide-page" aria-label="Slide 1">');
+		expect(html).not.toContain(svg);
 	});
 });

@@ -134,9 +134,16 @@ describe('buildPrintDocument', () => {
 		expect(doc).toContain('<body>');
 	});
 
-	it('embeds SVG slides', () => {
+	it('runs SVG slides through the DOMPurify sanitizer before embedding', () => {
+		// In the node/vitest environment DOMPurify has no `sanitize` until
+		// handed a window, so the print-document sanitizer fails closed
+		// (empty slide body) rather than passing raw markup through
+		// unsanitised. The real-DOM sanitized-embed path is exercised by the
+		// shared package's own svg-print tests / the Vue print composable
+		// tests (happy-dom).
 		const doc = buildPrintDocument([simpleSvg], 960, 540);
-		expect(doc).toContain(simpleSvg);
+		expect(doc).toContain('<section class="print-slide-page" aria-label="Slide 1">');
+		expect(doc).not.toContain(simpleSvg);
 	});
 
 	it('wraps each slide in a page section', () => {

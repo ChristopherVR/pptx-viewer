@@ -12,11 +12,17 @@ import type { PptxSlide, PptxData } from 'pptx-viewer-core';
  *    `<foreignObject>`, producing resolution-independent print output
  *    that stays sharp at any DPI. Falls back to raster on error.
  */
+import {
+	buildHandoutsHtml,
+	buildNotesHtml,
+	buildOutlineHtml,
+	buildPrintHtmlDocument,
+	buildSlidesHtml,
+} from 'pptx-viewer-shared';
 import { useState } from 'react';
 import type { RefObject } from 'react';
 
 import type { PrintSettings } from '../components/print-dialog-types';
-import { escapeHtml } from '../utils/dom-helpers';
 import { captureAllSlidesAsPngDataUrls } from '../utils/export';
 import { exportAllSlidesToSvg } from '../utils/export-svg';
 import { buildPrintDocument } from '../utils/svg-print-serializer';
@@ -43,80 +49,14 @@ export interface PrintHandlersResult {
 }
 
 /* ------------------------------------------------------------------ */
-/*  HTML attribute escaping                                            */
-/* ------------------------------------------------------------------ */
-
-/**
- * Escape a value for safe interpolation inside an HTML attribute (single
- * or double quoted). Escapes `&`, `<`, `>`, `"`, and `'`.
- */
-function escapeHtmlAttr(value: string): string {
-	return value
-		.replace(/&/gu, '&amp;')
-		.replace(/</gu, '&lt;')
-		.replace(/>/gu, '&gt;')
-		.replace(/"/gu, '&quot;')
-		.replace(/'/gu, '&#39;');
-}
-
-/**
- * Validate and escape an `img` `src` for inclusion in print-window HTML.
- * Only `data:image/...` URLs are accepted; anything else returns an empty
- * 1x1 transparent PNG sentinel so the document stays well-formed.
- */
-function safeDataImageSrc(src: string): string {
-	if (typeof src !== 'string' || !src.startsWith('data:image/')) {
-		// Transparent 1x1 PNG fallback: keeps the layout stable but emits
-		// nothing exploitable.
-		return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgAAIAAAUAAen63NgAAAAASUVORK5CYII=';
-	}
-	return escapeHtmlAttr(src);
-}
-
-/**
- * `orientation` is typed as a union at compile time, but `openPrintWindow`
- * is reachable from plain JS callers, so a runtime check keeps the value
- * that reaches `@page` / `<style>` interpolation confined to those two
- * known-safe strings.
- */
-function sanitizeOrientation(value: 'landscape' | 'portrait'): 'landscape' | 'portrait' {
-	return value === 'portrait' ? 'portrait' : 'landscape';
-}
-
-/** Element/attribute shapes that must never appear in assembled print-window body HTML. */
-const UNSAFE_BODY_HTML_SUBSTRINGS = [
-	'<script',
-	'<iframe',
-	'<embed',
-	'<object',
-	'<foreignobject',
-	// eslint-disable-next-line no-script-url -- security deny-list entry: verifies the scheme is rejected, never executed.
-	'javascript:',
-];
-
-/** Matches an `on<event>=` handler attribute, e.g. `onload=`, `onclick=`. */
-const EVENT_HANDLER_ATTR_RE = /\son\w+\s*=/iu;
-
-/**
- * Defense-in-depth guard for the assembled print-window body HTML. Every
- * dynamic value the callers below embed (titles, notes, image `src`) is
- * already escaped via {@link escapeHtml} / {@link safeDataImageSrc} before
- * it's spliced into `bodyHtml`; this additionally screens the assembled
- * fragment for script-injection shapes, so a future caller that forgets to
- * escape a new field doesn't reach the printed window unnoticed.
- */
-function isSafePrintBodyHtml(html: string): boolean {
-	const lower = html.toLowerCase();
-	if (UNSAFE_BODY_HTML_SUBSTRINGS.some((needle) => lower.includes(needle))) {
-		return false;
-	}
-	return !EVENT_HANDLER_ATTR_RE.test(html);
-}
-
-/* ------------------------------------------------------------------ */
 /*  Print Window Builder                                               */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Open a print window and write a full print document assembled by the
+ * shared `buildPrintHtmlDocument` (title/orientation/colour-filter escaping
+ * and body sanitisation live there once, reused by every binding).
+ */
 function openPrintWindow(
 	title: string,
 	bodyHtml: string,
@@ -128,58 +68,10 @@ function openPrintWindow(
 	if (!printWindow) {
 		return false;
 	}
-	const safeOrientation = sanitizeOrientation(orientation);
-	const safeBodyHtml = isSafePrintBodyHtml(bodyHtml) ? bodyHtml : '';
-	const frameStyle = frameSlides
-		? 'img.slide-img, .notes-slide, .handout-cell img { border: 2px solid #000 !important; }'
-		: '';
 	printWindow.document.open();
-	printWindow.document.write(`<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>${escapeHtml(title)}</title>
-    <style>
-      :root { color-scheme: light; }
-      * { box-sizing: border-box; }
-      body { margin: 0; background: #ffffff; color: #111827; font: 12px/1.4 "Segoe UI", Arial, sans-serif; ${colorFilter} }
-      .page { page-break-after: always; padding: 10mm; width: 100%; }
-      .page:last-child { page-break-after: auto; }
-      .slide-page { display: flex; align-items: center; justify-content: center; min-height: 250mm; }
-      .slide-page img.slide-img { max-width: 100%; max-height: 240mm; border-radius: 4px; }
-      .notes-page { display: grid; grid-template-rows: auto 1fr; gap: 4mm; min-height: 250mm; }
-      .notes-slide { width: 100%; border: 1px solid #d1d5db; border-radius: 4px; }
-      .notes-text { border: 1px solid #d1d5db; border-radius: 4px; padding: 3mm; white-space: pre-wrap; }
-      .handout-grid { display: grid; gap: 3mm; width: 100%; height: 250mm; }
-      .handout-cell { border: 1px solid #d1d5db; border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #ffffff; }
-      .handout-cell img { width: 100%; height: 100%; object-fit: contain; display: block; }
-      .handout-grid-3 { display: flex; flex-direction: column; gap: 4mm; width: 100%; height: 250mm; }
-      .handout-row-3 { display: flex; gap: 4mm; flex: 1; }
-      .handout-row-3 .handout-cell { flex: 0 0 45%; }
-      .handout-note-lines { flex: 1; position: relative; border-left: 1px solid #d1d5db; padding-left: 3mm; }
-      .handout-note-line { position: absolute; left: 3mm; right: 0; height: 0; border-bottom: 1px solid #d1d5db; }
-      .outline-page { padding: 10mm; }
-      .outline-page h2 { font-size: 14px; margin: 12px 0 4px; color: #374151; }
-      .outline-page p { font-size: 12px; margin: 2px 0 2px 16px; color: #4b5563; }
-      @page { size: ${safeOrientation}; margin: 8mm; }
-      @media print {
-        body {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-          color-adjust: exact;
-        }
-        * {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          color-adjust: exact !important;
-        }
-        img { break-inside: avoid; }
-      }
-      ${frameStyle}
-    </style>
-  </head>
-  <body>${safeBodyHtml}</body>
-</html>`);
+	printWindow.document.write(
+		buildPrintHtmlDocument({ title, bodyHtml, orientation, colorFilter, frameSlides }),
+	);
 	printWindow.document.close();
 	printWindow.focus();
 	setTimeout(() => {
@@ -308,21 +200,9 @@ export function usePrintHandlers(input: UsePrintHandlersInput): PrintHandlersRes
 		})();
 
 		if (settings.printWhat === 'outline') {
-			const outlineHtml = slideIndices
-				.map((idx) => {
-					const slide = slides[idx];
-					if (!slide) {
-						return '';
-					}
-					const title = slide.elements?.find((el) => 'text' in el && el.text);
-					const titleText = title && 'text' in title ? String(title.text) : `Slide ${idx + 1}`;
-					const notes = slide.notes?.trim() || '';
-					return `<h2>${escapeHtml(titleText)}</h2>${notes ? `<p>${escapeHtml(notes)}</p>` : ''}`;
-				})
-				.join('');
 			openPrintWindow(
 				'Outline',
-				`<div class="outline-page">${outlineHtml}</div>`,
+				`<div class="outline-page">${buildOutlineHtml(slideIndices, slides)}</div>`,
 				settings.orientation,
 				colorFilter,
 				settings.frameSlides,
@@ -347,15 +227,9 @@ export function usePrintHandlers(input: UsePrintHandlersInput): PrintHandlersRes
 			const slideImages = slideIndices.map((idx) => allImages[idx]).filter(Boolean) as string[];
 
 			if (settings.printWhat === 'slides') {
-				const bodyHtml = slideImages
-					.map(
-						(img, i) =>
-							`<section class="page slide-page"><img class="slide-img" src="${safeDataImageSrc(img)}" alt="Slide ${slideIndices[i] + 1}" /></section>`,
-					)
-					.join('');
 				openPrintWindow(
 					'Slides',
-					bodyHtml,
+					buildSlidesHtml(slideImages, slideIndices),
 					settings.orientation,
 					colorFilter,
 					settings.frameSlides,
@@ -364,66 +238,21 @@ export function usePrintHandlers(input: UsePrintHandlersInput): PrintHandlersRes
 			}
 
 			if (settings.printWhat === 'notes') {
-				const notesPages = slideImages
-					.map((img, i) => {
-						const idx = slideIndices[i];
-						const notes = slides[idx]?.notes?.trim() || '';
-						return `<section class="page notes-page">
-  <img class="notes-slide" src="${safeDataImageSrc(img)}" alt="Slide ${idx + 1}" />
-  <div class="notes-text">${escapeHtml(notes)}</div>
-</section>`;
-					})
-					.join('');
-				openPrintWindow('Notes Pages', notesPages, 'portrait', colorFilter, settings.frameSlides);
+				openPrintWindow(
+					'Notes Pages',
+					buildNotesHtml(slideImages, slideIndices, slides),
+					'portrait',
+					colorFilter,
+					settings.frameSlides,
+				);
 				return;
 			}
 
 			if (settings.printWhat === 'handouts') {
 				const spp = settings.slidesPerPage;
-				const layoutMap: Record<number, { rows: number; columns: number }> = {
-					1: { rows: 1, columns: 1 },
-					2: { rows: 2, columns: 1 },
-					3: { rows: 3, columns: 1 },
-					4: { rows: 2, columns: 2 },
-					6: { rows: 3, columns: 2 },
-					9: { rows: 3, columns: 3 },
-				};
-				const grid = layoutMap[spp] ?? { rows: 3, columns: 2 };
-				const isThreePerPage = spp === 3;
-				const pages: string[] = [];
-				const buildNoteLines = () => {
-					const lines = Array.from(
-						{ length: 8 },
-						(_, i) => `<div class="handout-note-line" style="top: ${((i + 1) / 9) * 100}%"></div>`,
-					).join('');
-					return `<div class="handout-note-lines">${lines}</div>`;
-				};
-				for (let i = 0; i < slideImages.length; i += spp) {
-					const pageImgs = slideImages.slice(i, i + spp);
-					if (isThreePerPage) {
-						const rows = Array.from({ length: spp }, (_, cellIndex) => {
-							const img = pageImgs[cellIndex];
-							const slideCell = img
-								? `<div class="handout-cell"><img src="${safeDataImageSrc(img)}" alt="Slide ${slideIndices[i + cellIndex] + 1}" /></div>`
-								: `<div class="handout-cell"></div>`;
-							return `<div class="handout-row-3">${slideCell}${buildNoteLines()}</div>`;
-						}).join('');
-						pages.push(`<section class="page"><div class="handout-grid-3">${rows}</div></section>`);
-					} else {
-						const cells = Array.from({ length: spp }, (_, cellIndex) => {
-							const img = pageImgs[cellIndex];
-							return img
-								? `<div class="handout-cell"><img src="${safeDataImageSrc(img)}" alt="Slide ${slideIndices[i + cellIndex] + 1}" /></div>`
-								: `<div class="handout-cell"></div>`;
-						}).join('');
-						pages.push(
-							`<section class="page"><div class="handout-grid" style="grid-template-columns: repeat(${grid.columns}, minmax(0, 1fr)); grid-template-rows: repeat(${grid.rows}, minmax(0, 1fr));">${cells}</div></section>`,
-						);
-					}
-				}
 				openPrintWindow(
 					`Handout ${spp} per page`,
-					pages.join(''),
+					buildHandoutsHtml(slideImages, slideIndices, spp),
 					'portrait',
 					colorFilter,
 					settings.frameSlides,

@@ -14,6 +14,7 @@
 
 import type { PptxSlide } from 'pptx-viewer-core';
 
+import { sanitizeMarkupOrEmpty } from '../render/dompurify-safe';
 import { getHandoutGrid, HANDOUT_OPTIONS } from './handout-layout';
 import type { HandoutSlidesPerPage } from './handout-layout';
 
@@ -441,6 +442,9 @@ function isSafePrintBodyHtml(html: string): boolean {
 	return !EVENT_HANDLER_ATTR_RE.test(html);
 }
 
+/** DOMPurify config for the assembled print-window body: plain HTML, no MathML/SVG needed. */
+const PRINT_BODY_SANITIZE_CONFIG = { USE_PROFILES: { html: true } };
+
 /**
  * Assemble the complete printable HTML document string (doctype + head with
  * print CSS + body). Pure: the caller writes it into a print window.
@@ -449,7 +453,13 @@ export function buildPrintHtmlDocument(options: PrintHtmlDocumentOptions): strin
 	const { title, bodyHtml, frameSlides } = options;
 	const orientation = sanitizeOrientation(options.orientation);
 	const colorFilter = options.colorFilter;
-	const safeBodyHtml = isSafePrintBodyHtml(bodyHtml) ? bodyHtml : '';
+	// Belt-and-suspenders: the deny-list guard runs first, then DOMPurify
+	// actually transforms the markup (stripping `<script>`/`<iframe>`/event
+	// handlers/`javascript:` URIs) before it is spliced in, rather than
+	// merely gating the raw, untransformed string behind a boolean check.
+	const safeBodyHtml = isSafePrintBodyHtml(bodyHtml)
+		? sanitizeMarkupOrEmpty(bodyHtml, PRINT_BODY_SANITIZE_CONFIG)
+		: '';
 	const frameStyle = frameSlides
 		? 'img.slide-img, .notes-slide, .handout-cell img { border: 2px solid #000 !important; }'
 		: '';
