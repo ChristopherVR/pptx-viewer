@@ -28,7 +28,12 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			chrome.setPresenting(state.presenting);
 			callbacks.onPresentationChange?.(state.presenting);
 		}
-		if (state.slides !== previous.slides) {
+		// Thumbnails are skipped while a drag/resize gesture streams slide
+		// patches; one refresh happens when the gesture ends.
+		if (
+			(state.slides !== previous.slides && !state.interactionActive) ||
+			(previous.interactionActive && !state.interactionActive)
+		) {
 			renderer.renderThumbnails();
 		}
 		if (
@@ -45,6 +50,12 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		}
 		if (state.zoom !== previous.zoom) {
 			callbacks.onZoomChange?.(renderer.effectiveScale());
+		}
+		if (state.selectedElementId !== previous.selectedElementId) {
+			callbacks.onSelectionChange?.(state.selectedElementId);
+		}
+		if (state.dirty !== previous.dirty) {
+			callbacks.onDirtyChange?.(state.dirty);
 		}
 	};
 }

@@ -26,6 +26,17 @@ export interface ViewerState {
 	error: string | null;
 	/** True while presentation (fullscreen) mode is active. */
 	presenting: boolean;
+	/** True when editing interactions (select/move/resize/...) are enabled. */
+	editable: boolean;
+	/** Id of the selected element on the current slide, or null. */
+	selectedElementId: string | null;
+	/** True when the document has unsaved edits (cleared by a save). */
+	dirty: boolean;
+	/**
+	 * True while a pointer gesture (drag/resize/rotate) is in flight. Thumbnail
+	 * re-renders are deferred until the gesture ends.
+	 */
+	interactionActive: boolean;
 }
 
 export function createInitialViewerState(): ViewerState {
@@ -38,6 +49,10 @@ export function createInitialViewerState(): ViewerState {
 		loading: false,
 		error: null,
 		presenting: false,
+		editable: false,
+		selectedElementId: null,
+		dirty: false,
+		interactionActive: false,
 	};
 }
 

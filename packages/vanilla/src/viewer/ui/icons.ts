@@ -10,7 +10,10 @@ export type IconName =
 	| 'zoom-out'
 	| 'fit'
 	| 'play'
-	| 'sidebar';
+	| 'sidebar'
+	| 'undo'
+	| 'redo'
+	| 'save';
 
 const ICON_PATHS: Record<IconName, string[]> = {
 	'chevron-left': ['M15 18l-6-6 6-6'],
@@ -25,6 +28,9 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	],
 	play: ['M6 4l14 8-14 8V4z'],
 	sidebar: ['M4 4h16v16H4z', 'M9 4v16'],
+	undo: ['M3 7v6h6', 'M21 17a9 9 0 0 0-15-6.7L3 13'],
+	redo: ['M21 7v6h-6', 'M3 17a9 9 0 0 1 15-6.7L21 13'],
+	save: ['M12 3v12', 'M7 10l5 5 5-5', 'M5 21h14'],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

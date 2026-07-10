@@ -7,23 +7,27 @@ existing renderer files.
 
 ## Current status
 
-| Type                                        | Renderer                                            |
-| ------------------------------------------- | --------------------------------------------------- |
-| `text`, `shape`                             | `text-shape.ts`                                     |
-| `image`, `picture`                          | `image.ts`                                          |
-| `group`                                     | `group.ts`                                          |
-| `connector`                                 | `connector.ts`                                      |
-| `table`                                     | `table.ts` (\*)                                     |
-| `chart`                                     | `chart.ts` + `chart-svg.ts` (\*)                    |
-| `smartArt`                                  | `smartart.ts` + `smartart-{svg,fallback}.ts` (\*\*) |
-| `media`                                     | `media.ts` (\*\*)                                   |
-| `ink`                                       | `ink.ts` (\*\*)                                     |
-| `ole`                                       | `ole.ts` + `ole-icons.ts` (\*\*)                    |
-| `contentPart`, `zoom`, `model3d`, `unknown` | `placeholder.ts` (fallback)                         |
+| Type               | Renderer                                            |
+| ------------------ | --------------------------------------------------- |
+| `text`, `shape`    | `text-shape.ts`                                     |
+| `image`, `picture` | `image.ts`                                          |
+| `group`            | `group.ts`                                          |
+| `connector`        | `connector.ts`                                      |
+| `table`            | `table.ts` (\*)                                     |
+| `chart`            | `chart.ts` + `chart-svg.ts` (\*)                    |
+| `smartArt`         | `smartart.ts` + `smartart-{svg,fallback}.ts` (\*\*) |
+| `media`            | `media.ts` (\*\*)                                   |
+| `ink`              | `ink.ts` (\*\*)                                     |
+| `ole`              | `ole.ts` + `ole-icons.ts` (\*\*)                    |
+| `model3d`          | `model3d.ts` (\*\*\*)                               |
+| `zoom`             | `zoom.ts` (\*\*\*)                                  |
+| `contentPart`      | `contentpart.ts` (\*\*\*)                           |
+| `unknown`          | `placeholder.ts` (fallback)                         |
 
 (\*) Registered via `registerTableChartRenderers` in `register-table-chart.ts`.
 (\*\*) Registered via `registerRichMediaRenderers` in `register-rich-media.ts`.
-Both are wired into `createDefaultRegistry()` in `index.ts`.
+(\*\*\*) Registered via `registerExtraRenderers` in `register-extras.ts`.
+All are wired into `createDefaultRegistry()` in `index.ts`.
 
 ## Adding a renderer (e.g. `table`)
 

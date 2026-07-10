@@ -16,6 +16,11 @@ export interface RenderControllerDeps {
 	/** Getters so chrome/translator swaps (setLocale) are picked up live. */
 	getChrome(): ViewerChrome;
 	getTranslator(): Translator;
+	/**
+	 * Invoked after every stage render (the stage host is rebuilt with
+	 * `replaceChildren`); the editor re-mounts its overlay layer here.
+	 */
+	onStageRendered?(): void;
 }
 
 export interface RenderController {
@@ -81,6 +86,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			total: state.slides.length,
 			zoomPercent: scale * 100,
 		});
+		deps.onStageRendered?.();
 	};
 
 	const renderThumbnails = (): void => {

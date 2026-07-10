@@ -10,6 +10,9 @@ export interface ToolbarHandlers {
 	zoomOut(): void;
 	zoomToFit(): void;
 	togglePresentation(): void;
+	undo(): void;
+	redo(): void;
+	save(): void;
 }
 
 export interface ToolbarUpdate {
@@ -21,45 +24,70 @@ export interface ToolbarUpdate {
 	zoomPercent: number;
 }
 
+/** Editing-cluster state (Save / Undo / Redo buttons). */
+export interface ToolbarEditState {
+	/** Shows/hides the whole editing cluster. */
+	editable: boolean;
+	canUndo: boolean;
+	canRedo: boolean;
+}
+
 export interface Toolbar {
 	el: HTMLElement;
 	update(state: ToolbarUpdate): void;
+	setEditState(state: ToolbarEditState): void;
 }
 
 /**
- * The viewer toolbar: prev/next + slide counter, zoom out/in/fit + zoom label,
- * and the presentation (fullscreen) toggle. All labels come from the shared
- * i18n dictionary; all colors from the shared theme CSS vars.
+ * The viewer toolbar: an editing cluster (save + undo/redo, shown only when
+ * `editable`), prev/next + slide counter, zoom out/in/fit + zoom label, and
+ * the presentation (fullscreen) toggle. All labels come from the shared i18n
+ * dictionary; all colors from the shared theme CSS vars.
  */
 export function createToolbar(doc: Document, t: Translator, handlers: ToolbarHandlers): Toolbar {
 	const el = createEl(doc, 'div', 'pptxv-toolbar');
 	el.setAttribute('role', 'toolbar');
 
-	const button = (icon: IconName, label: string, onClick: () => void): HTMLButtonElement => {
+	const button = (
+		parent: HTMLElement,
+		icon: IconName,
+		label: string,
+		onClick: () => void,
+	): HTMLButtonElement => {
 		const btn = createEl(doc, 'button', 'pptxv-btn');
 		btn.type = 'button';
 		btn.title = label;
 		btn.setAttribute('aria-label', label);
 		btn.appendChild(createIcon(doc, icon));
 		btn.addEventListener('click', onClick);
-		el.appendChild(btn);
+		parent.appendChild(btn);
 		return btn;
 	};
 
-	const prevBtn = button('chevron-left', t('pptx.presenter.previousSlide'), handlers.prev);
+	// Editing cluster: hidden until `setEditState({ editable: true })`.
+	const editGroup = createEl(doc, 'span', 'pptxv-toolbar-edit');
+	editGroup.hidden = true;
+	el.appendChild(editGroup);
+	button(editGroup, 'save', t('pptx.toolbar.save'), handlers.save);
+	const undoBtn = button(editGroup, 'undo', t('pptx.toolbar.undo'), handlers.undo);
+	const redoBtn = button(editGroup, 'redo', t('pptx.toolbar.redo'), handlers.redo);
+	undoBtn.disabled = true;
+	redoBtn.disabled = true;
+
+	const prevBtn = button(el, 'chevron-left', t('pptx.presenter.previousSlide'), handlers.prev);
 	const counter = createEl(doc, 'span', 'pptxv-counter');
 	counter.setAttribute('aria-live', 'polite');
 	el.appendChild(counter);
-	const nextBtn = button('chevron-right', t('pptx.presenter.nextSlide'), handlers.next);
+	const nextBtn = button(el, 'chevron-right', t('pptx.presenter.nextSlide'), handlers.next);
 
 	el.appendChild(createEl(doc, 'span', 'pptxv-toolbar-spacer'));
 
-	button('zoom-out', t('pptx.statusBar.zoomOut'), handlers.zoomOut);
+	button(el, 'zoom-out', t('pptx.statusBar.zoomOut'), handlers.zoomOut);
 	const zoomLabel = createEl(doc, 'span', 'pptxv-zoom-label');
 	el.appendChild(zoomLabel);
-	button('zoom-in', t('pptx.statusBar.zoomIn'), handlers.zoomIn);
-	button('fit', t('pptx.statusBar.zoomToFit'), handlers.zoomToFit);
-	button('play', t('pptx.statusBar.slideShow'), handlers.togglePresentation);
+	button(el, 'zoom-in', t('pptx.statusBar.zoomIn'), handlers.zoomIn);
+	button(el, 'fit', t('pptx.statusBar.zoomToFit'), handlers.zoomToFit);
+	button(el, 'play', t('pptx.statusBar.slideShow'), handlers.togglePresentation);
 
 	return {
 		el,
@@ -71,6 +99,11 @@ export function createToolbar(doc: Document, t: Translator, handlers: ToolbarHan
 			zoomLabel.textContent = `${Math.round(zoomPercent)}%`;
 			prevBtn.disabled = current <= 0;
 			nextBtn.disabled = current >= total - 1;
+		},
+		setEditState({ editable, canUndo, canRedo }) {
+			editGroup.hidden = !editable;
+			undoBtn.disabled = !canUndo;
+			redoBtn.disabled = !canRedo;
 		},
 	};
 }

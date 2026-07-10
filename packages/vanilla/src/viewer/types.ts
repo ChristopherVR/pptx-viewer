@@ -26,6 +26,12 @@ export interface PptxViewerCallbacks {
 	onZoomChange?: (scale: number) => void;
 	/** Fired when presentation (fullscreen) mode is entered or exited. */
 	onPresentationChange?: (presenting: boolean) => void;
+	/** Fired after any document mutation (move, resize, edit, undo, ...). */
+	onChange?: () => void;
+	/** Fired when the unsaved-edits flag flips (a save resets it). */
+	onDirtyChange?: (dirty: boolean) => void;
+	/** Fired when the selected element changes (`null` = no selection). */
+	onSelectionChange?: (elementId: string | null) => void;
 }
 
 export interface PptxViewerOptions extends PptxViewerCallbacks {
@@ -47,8 +53,14 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	/** Zero-based slide to show after load (default 0). */
 	initialSlide?: number;
 	/**
-	 * Reserved for a future editing mode. The vanilla binding is currently
-	 * view-only regardless of this flag (default `true`).
+	 * Enable editing (default `false`): click to select, drag/resize/rotate,
+	 * inline text editing, keyboard shortcuts, undo/redo, and the toolbar
+	 * Save button. Toggle later via `setEditable`.
+	 */
+	editable?: boolean;
+	/**
+	 * Legacy flag superseded by {@link editable}; kept so existing option
+	 * objects stay type-valid. It has no effect.
 	 */
 	readOnly?: boolean;
 	/** Show the toolbar (default `true`). */
@@ -94,6 +106,22 @@ export interface PptxViewerInstance {
 	enterPresentation(): Promise<void>;
 	/** Exit presentation mode. */
 	exitPresentation(): Promise<void>;
+	/** Enable or disable editing at runtime (disabling clears the selection). */
+	setEditable(editable: boolean): void;
+	/** Undo the last edit (no-op when the undo stack is empty). */
+	undo(): void;
+	/** Redo the last undone edit (no-op when the redo stack is empty). */
+	redo(): void;
+	canUndo(): boolean;
+	canRedo(): boolean;
+	/** Serialise the (edited) presentation to `.pptx` bytes and clear dirty. */
+	save(): Promise<Uint8Array>;
+	/** `save()` + trigger a browser download (default `presentation.pptx`). */
+	downloadPptx(fileName?: string): Promise<void>;
+	/** Delete the selected element (no-op without a selection). */
+	deleteSelected(): void;
+	/** Id of the selected element, or `null`. */
+	getSelectedElementId(): string | null;
 	/** The element-renderer registry in effect (extension point). */
 	getRegistry(): ElementRendererRegistry;
 	/**
