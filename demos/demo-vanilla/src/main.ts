@@ -7,6 +7,7 @@ import { createDropzone } from './dropzone';
 import type { ExportBar } from './export-bar';
 import { createExportBar } from './export-bar';
 import { createLanguagePicker } from './language-picker';
+import { observeNotesHeight } from './notes-offset';
 import { createThemePicker } from './theme-picker';
 import { readStoredTheme, storeTheme, themes } from './themes';
 
@@ -29,6 +30,7 @@ let themeKey = readStoredTheme();
 let viewer: PptxViewerInstance | null = null;
 let exportBar: ExportBar | null = null;
 let appliedVarKeys: string[] = [];
+let stopNotesObserver: (() => void) | null = null;
 
 // Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`,
 // mirroring demo-vue's `App.vue`.
@@ -97,6 +99,8 @@ function openViewer(source: PptxViewerSource, name: string): void {
 	viewer = null;
 	exportBar?.destroy();
 	exportBar = null;
+	stopNotesObserver?.();
+	stopNotesObserver = null;
 	app.replaceChildren();
 
 	const shell = document.createElement('div');
@@ -122,6 +126,14 @@ function openViewer(source: PptxViewerSource, name: string): void {
 		exportPdf: () => viewer?.exportPdf() ?? Promise.resolve(),
 	});
 	shell.append(exportBar.el);
+
+	// Keep the pickers/export bar clear of the notes panel as it expands
+	// (see notes-offset.ts): the viewer chrome mounts synchronously above, so
+	// `.pptxv-notes` is already in the DOM here.
+	const notesEl = shell.querySelector('.pptxv-notes');
+	if (notesEl) {
+		stopNotesObserver = observeNotesHeight(notesEl);
+	}
 }
 
 function showLanding(): void {
@@ -129,6 +141,8 @@ function showLanding(): void {
 	viewer = null;
 	exportBar?.destroy();
 	exportBar = null;
+	stopNotesObserver?.();
+	stopNotesObserver = null;
 	document.title = 'pptx-vanilla-viewer demo';
 	app.replaceChildren();
 	app.append(

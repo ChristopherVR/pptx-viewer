@@ -92,7 +92,12 @@ body {
 .demo-export-bar {
 	position: fixed;
 	left: 12px;
-	bottom: 12px;
+	/* Clears the viewer's own bottom-docked speaker-notes panel, which spans
+	   the full chrome width and grows from its ~32px collapsed header up to
+	   ~230px when expanded for editing. `--demo-notes-h` mirrors the panel's
+	   live height (see notes-offset.ts); the 32px fallback covers the
+	   collapsed height before the observer's first measurement lands. */
+	bottom: calc(var(--demo-notes-h, 32px) + 16px);
 	z-index: 99999;
 	display: flex;
 	gap: 8px;
@@ -132,11 +137,12 @@ body {
 }
 
 .theme-picker {
-	bottom: 48px;
+	/* See .demo-export-bar above: stays clear of the notes panel's live height. */
+	bottom: calc(var(--demo-notes-h, 32px) + 16px);
 }
 
 .language-picker {
-	bottom: 92px;
+	bottom: calc(var(--demo-notes-h, 32px) + 60px);
 }
 
 .theme-picker--small,

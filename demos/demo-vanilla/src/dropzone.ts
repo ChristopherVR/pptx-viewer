@@ -33,6 +33,7 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 	sampleButton.textContent = t('demo.dropzone.newPresentation');
 
 	const input = document.createElement('input');
+	input.id = 'file-input';
 	input.type = 'file';
 	input.accept = '.pptx';
 	input.setAttribute('aria-label', t('demo.dropzone.uploadAriaLabel'));
