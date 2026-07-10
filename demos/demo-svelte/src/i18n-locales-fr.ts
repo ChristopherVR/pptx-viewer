@@ -1,0 +1,417 @@
+import type { TranslationKey } from 'pptx-svelte-viewer/i18n';
+
+/**
+ * French resource bundle for the demo's language picker, ported from
+ * demos/demo-vue/src/i18n-locales.ts. Only the high-visibility overrides are
+ * listed: the Svelte binding's translator falls back to the shared English
+ * dictionary for every key not covered here, so no "...translationsEn" spread
+ * is needed. The Partial<Record<TranslationKey, string>> typing still catches
+ * key typos.
+ */
+export const translationsFr: Partial<Record<TranslationKey, string>> = {
+	// Status bar
+	'pptx.statusBar.allSaved': 'Tout est enregistré',
+	'pptx.statusBar.unsavedChanges': 'Modifications non enregistrées',
+	'pptx.statusBar.slideOf': 'Diapositive {{current}} sur {{total}}',
+	'pptx.statusBar.noSlides': 'Aucune diapositive',
+	'pptx.statusBar.language': 'Français',
+	'pptx.statusBar.toggleNotes': 'Afficher/Masquer les notes',
+	'pptx.statusBar.normalView': 'Affichage normal',
+	'pptx.statusBar.slideSorter': 'Mode Trieuse',
+	'pptx.statusBar.slideShow': 'Diaporama',
+	'pptx.statusBar.zoomIn': 'Zoom avant',
+	'pptx.statusBar.zoomOut': 'Zoom arrière',
+	'pptx.statusBar.zoomToFit': 'Ajuster au zoom',
+
+	// Autosave
+	'pptx.autosave.saving': 'Enregistrement...',
+	'pptx.autosave.saved': 'Enregistré {{time}}',
+	'pptx.autosave.error': "Erreur d'enregistrement automatique",
+	'pptx.autosave.disabled': 'Enregistrement automatique indisponible',
+	'pptx.autosave.disabledNoFilePath': 'Enregistrement auto désactivé : aucun chemin de fichier',
+	'pptx.autosave.disabledToggleOff': 'Enregistrement auto désactivé',
+	'pptx.autosave.justNow': "à l'instant",
+	'pptx.autosave.oneMinAgo': 'il y a 1 min',
+	'pptx.autosave.minutesAgo': 'il y a {{count}} min',
+
+	// Toolbar
+	'pptx.toolbar.toggleSlidesPanel': 'Afficher/Masquer le volet des diapositives',
+	'pptx.toolbar.undo': 'Annuler',
+	'pptx.toolbar.undoAction': 'Annuler : {{action}}',
+	'pptx.toolbar.redo': 'Rétablir',
+	'pptx.toolbar.redoAction': 'Rétablir : {{action}}',
+	'pptx.toolbar.comments': 'Commentaires',
+	'pptx.toolbar.share': 'Partager',
+	'pptx.toolbar.sharingUsers': 'Partage en cours : {{count}} utilisateur(s) connecté(s)',
+	'pptx.toolbar.sharingCount': 'Partage ({{count}})',
+	'pptx.toolbar.toggleInspector': "Afficher/Masquer le panneau d'inspection",
+	'pptx.toolbar.settingsShortcuts': 'Paramètres et raccourcis',
+	'pptx.toolbar.settings': 'Paramètres',
+	'pptx.toolbar.readOnly': 'Lecture seule',
+
+	// Ribbon (tabs, tools, formatting, overflow menu)
+	'pptx.ribbon.tab.file': 'Fichier',
+	'pptx.ribbon.tab.home': 'Accueil',
+	'pptx.ribbon.tab.insert': 'Insertion',
+	'pptx.ribbon.tab.text': 'Texte',
+	'pptx.ribbon.tab.draw': 'Dessin',
+	'pptx.ribbon.tab.arrange': 'Organiser',
+	'pptx.ribbon.tab.design': 'Création',
+	'pptx.ribbon.tab.transitions': 'Transitions',
+	'pptx.ribbon.tab.animations': 'Animations',
+	'pptx.ribbon.tab.slideShow': 'Diaporama',
+	'pptx.ribbon.tab.review': 'Révision',
+	'pptx.ribbon.tab.view': 'Affichage',
+	'pptx.ribbon.tab.help': 'Aide',
+	'pptx.ribbon.tool.select': 'Sélection',
+	'pptx.ribbon.tool.pen': 'Stylo',
+	'pptx.ribbon.tool.highlighter': 'Surligneur',
+	'pptx.ribbon.tool.eraser': 'Gomme',
+	'pptx.ribbon.tool.freeform': 'Forme libre',
+	'pptx.ribbon.alignLeft': 'Aligner à gauche',
+	'pptx.ribbon.alignCenter': 'Centrer',
+	'pptx.ribbon.alignRight': 'Aligner à droite',
+	'pptx.ribbon.justify': 'Justifier',
+	'pptx.ribbon.exportPng': 'Exporter en PNG',
+	'pptx.ribbon.exportPdf': 'Exporter en PDF',
+	'pptx.ribbon.exportVideo': 'Exporter en vidéo',
+	'pptx.ribbon.exportGif': 'Exporter en GIF',
+	'pptx.ribbon.accessibilityCheck': "Vérificateur d'accessibilité",
+	'pptx.ribbon.versionHistory': 'Historique des versions',
+	'pptx.ribbon.embedFonts': 'Incorporer les polices',
+	'pptx.ribbon.documentProperties': 'Propriétés du document',
+	'pptx.ribbon.advanceSlide': 'Avancer la diapositive',
+	'pptx.ribbon.onMouseClick': 'Au clic de la souris',
+	'pptx.ribbon.afterDuration': 'Après :',
+	'pptx.ribbon.advanceAfterSeconds': 'Avancer après la durée spécifiée',
+	'pptx.ribbon.sound': 'Son :',
+	'pptx.ribbon.soundNone': '[Aucun son]',
+	'pptx.slideShow.fromBeginning': 'Depuis le début',
+	'pptx.slideShow.fromCurrent': 'À partir de la diapositive actuelle',
+	'pptx.slideShow.presenterView': 'Mode Présentateur',
+	'pptx.slideShow.rehearseTimings': 'Vérifier le minutage',
+	'pptx.slideShow.setUp': 'Paramétrer le diaporama',
+	'pptx.slideShow.broadcast': 'Diffuser',
+	'pptx.slideShow.subtitles': 'Sous-titres',
+	'pptx.textPanel.bold': 'Gras',
+	'pptx.textPanel.italic': 'Italique',
+	'pptx.textPanel.underline': 'Souligné',
+	'pptx.textPanel.strikethrough': 'Barré',
+	'pptx.file.copyImageTooltip': "Copier la diapositive en tant qu'image",
+	'pptx.file.packageTooltip': 'Empaqueter pour le partage',
+	'pptx.file.saveAsPptxTooltip': 'Enregistrer sous forme de présentation (.pptx)',
+	'pptx.file.saveAsPpsxTooltip': 'Enregistrer sous forme de diaporama (.ppsx)',
+	'pptx.file.saveAsPptmTooltip': 'Enregistrer avec macros (.pptm)',
+	'pptx.security.protectPresentation': 'Protéger la présentation',
+	'pptx.viewer.digitalSignatures': 'Signatures numériques',
+	'pptx.ribbon.collapseRibbon': 'Réduire le ruban',
+	'pptx.ribbon.expandRibbon': 'Développer le ruban',
+	'pptx.ribbon.accessibility': 'Accessibilité',
+
+	// Shortcuts panel
+	'pptx.shortcuts.title': 'Raccourcis clavier',
+	'pptx.shortcuts.close': 'Fermer',
+	'pptx.shortcuts.action.copyElement': "Copier l'élément sélectionné",
+	'pptx.shortcuts.action.cutElement': "Couper l'élément sélectionné",
+	'pptx.shortcuts.action.pasteElement': "Coller l'élément",
+	'pptx.shortcuts.action.duplicateElement': "Dupliquer l'élément sélectionné",
+	'pptx.shortcuts.action.deleteElement': "Supprimer l'élément sélectionné",
+	'pptx.shortcuts.action.nudgeElement': "Déplacer légèrement l'élément sélectionné",
+	'pptx.shortcuts.action.nudgeElementLarge': "Déplacer largement l'élément sélectionné",
+	'pptx.shortcuts.action.zoomCanvas': 'Zoomer sur le plan de travail',
+	'pptx.shortcuts.action.commitTextEdit': "Valider l'édition de texte en ligne",
+	'pptx.shortcuts.action.cancelTextEdit': "Annuler l'édition de texte en ligne / fermer les menus",
+	'pptx.shortcuts.action.clearSelection':
+		"Effacer la sélection / fermer les menus / annuler l'édition",
+	'pptx.shortcuts.action.nextSlide': 'Diapositive suivante (sans sélection)',
+	'pptx.shortcuts.action.prevSlide': 'Diapositive précédente (sans sélection)',
+	'pptx.shortcuts.action.redoAlternate': 'Rétablir (alternative)',
+	'pptx.shortcuts.action.selectAll': 'Sélectionner tous les éléments',
+	'pptx.shortcuts.group.editing': 'Édition',
+	'pptx.shortcuts.group.navigation': 'Navigation',
+
+	// Find & Replace
+	'pptx.findReplace.title': 'Rechercher et remplacer',
+	'pptx.findReplace.closeEscape': 'Fermer (Échap)',
+	'pptx.findReplace.closeAriaLabel': 'Fermer la recherche et le remplacement',
+	'pptx.findReplace.findPlaceholder': 'Rechercher...',
+	'pptx.findReplace.searchText': 'Texte à rechercher',
+	'pptx.findReplace.matchCase': 'Respecter la casse',
+	'pptx.findReplace.toggleMatchCase': 'Activer/Désactiver le respect de la casse',
+	'pptx.findReplace.previousMatch': 'Occurrence précédente',
+	'pptx.findReplace.nextMatch': 'Occurrence suivante',
+	'pptx.findReplace.replacePlaceholder': 'Remplacer par...',
+	'pptx.findReplace.replacementText': 'Texte de remplacement',
+	'pptx.findReplace.replaceCurrent': "Remplacer l'occurrence actuelle",
+	'pptx.findReplace.replace': 'Remplacer',
+	'pptx.findReplace.replaceAllMatches': 'Remplacer toutes les occurrences',
+	'pptx.findReplace.replaceAll': 'Tout remplacer',
+	'pptx.findReplace.matchCount': '{{current}} sur {{total}}',
+	'pptx.findReplace.noMatches': 'Aucune occurrence',
+
+	// Arrange
+	'pptx.arrange.align': 'Aligner {{direction}}',
+	'pptx.arrange.copy': 'Copier',
+	'pptx.arrange.cut': 'Couper',
+	'pptx.arrange.paste': 'Coller',
+	'pptx.arrange.formatPainter': 'Reproduire la mise en forme',
+	'pptx.arrange.format': 'Format',
+	'pptx.arrange.flipHorizontally': 'Retourner horizontalement',
+	'pptx.arrange.flipH': 'Retourn. H',
+	'pptx.arrange.flipVertically': 'Retourner verticalement',
+	'pptx.arrange.flipV': 'Retourn. V',
+	'pptx.arrange.sendBackward': 'Reculer',
+	'pptx.arrange.bringForward': 'Avancer',
+	'pptx.arrange.sendToBack': "Mettre à l'arrière-plan",
+	'pptx.arrange.back': 'Arrière-plan',
+	'pptx.arrange.bringToFront': 'Mettre au premier plan',
+	'pptx.arrange.front': 'Premier plan',
+	'pptx.arrange.duplicate': 'Dupliquer',
+	'pptx.arrange.delete': 'Supprimer',
+
+	// Accessibility
+	'pptx.accessibility.title': "Vérificateur d'accessibilité",
+	'pptx.accessibility.issueCount': '{{count}} problème(s)',
+	'pptx.accessibility.closePanel': "Fermer le panneau d'accessibilité",
+	'pptx.accessibility.close': 'Fermer',
+	'pptx.accessibility.reduceMotion': 'Réduire les animations',
+	'pptx.accessibility.issuesList': "Problèmes d'accessibilité",
+	'pptx.accessibility.noIssues': "Aucun problème d'accessibilité détecté.",
+	'pptx.accessibility.error': 'Erreur : ',
+	'pptx.accessibility.warning': 'Avertissement : ',
+	'pptx.accessibility.info': 'Info : ',
+
+	// Animations
+	'pptx.animations.previewTooltip': "Aperçu de l'animation sur l'élément sélectionné",
+	'pptx.animations.preview': 'Aperçu',
+	'pptx.animations.addTooltip': "Ajouter une animation à l'élément sélectionné",
+	'pptx.animations.addAnimation': 'Ajouter une animation',
+	'pptx.animations.group.entrance': 'Ouverture',
+	'pptx.animations.group.emphasis': 'Accentuation',
+	'pptx.animations.group.exit': 'Fermeture',
+	'pptx.animations.preset.appear': 'Apparaître',
+	'pptx.animations.preset.fadeIn': 'Fondu entrant',
+	'pptx.animations.preset.flyIn': 'Entrée en volant',
+	'pptx.animations.preset.pulse': 'Pulsation',
+	'pptx.animations.preset.spin': 'Rotation',
+	'pptx.animations.preset.disappear': 'Disparaître',
+	'pptx.animations.preset.fadeOut': 'Fondu sortant',
+	'pptx.animations.applyAnimation': "Appliquer l'animation {{name}}",
+	'pptx.animations.removeTooltip': "Supprimer l'animation de l'élément sélectionné",
+	'pptx.animations.remove': 'Supprimer',
+	'pptx.animations.openPanelTooltip': "Ouvrir le panneau Animation dans l'inspecteur",
+	'pptx.animations.animationPanel': 'Panneau Animation',
+
+	// Comments
+	'pptx.comments.addComment': 'Ajouter un commentaire',
+	'pptx.comments.noComments': 'Aucun commentaire',
+	'pptx.comments.author': 'Auteur',
+	'pptx.comments.resolved': 'Résolu',
+	'pptx.comments.clickToSelect': "Cliquer pour sélectionner l'élément",
+	'pptx.comments.deletedElement': 'Élément supprimé',
+	'pptx.comments.save': 'Enregistrer',
+	'pptx.comments.cancel': 'Annuler',
+	'pptx.comments.edit': 'Modifier',
+	'pptx.comments.reply': 'Répondre',
+	'pptx.comments.resolve': 'Résoudre',
+	'pptx.comments.unresolve': 'Rouvrir',
+	'pptx.comments.delete': 'Supprimer',
+	'pptx.comments.commentingOn': 'Commentaire sur :',
+	'pptx.comments.commentOnElement': 'Commenter {{element}}...',
+	'pptx.comments.addCommentPlaceholder': 'Ajouter un commentaire...',
+
+	// Header & Footer
+	'pptx.headerFooter.title': 'En-tête et pied de page',
+	'pptx.headerFooter.close': 'Fermer',
+	'pptx.headerFooter.dateAndTime': 'Date et heure',
+	'pptx.headerFooter.slideNumber': 'Numéro de diapositive',
+	'pptx.headerFooter.footer': 'Pied de page',
+	'pptx.headerFooter.footerPlaceholder': 'Saisir le texte du pied de page...',
+	'pptx.headerFooter.applyToAll': 'Appliquer à tout',
+	'pptx.headerFooter.applyToCurrent': 'Appliquer à la diapositive actuelle',
+
+	// Collaboration
+	'pptx.collaboration.status.connected': 'Connecté',
+	'pptx.collaboration.status.connecting': 'Connexion...',
+	'pptx.collaboration.status.disconnected': 'Déconnecté',
+	'pptx.collaboration.status.error': 'Erreur de connexion',
+	'pptx.collaboration.statusAriaLabel':
+		'Collaboration : {{status}}. {{count}} utilisateur(s) connecté(s).',
+	'pptx.collaboration.userCount': '{{count}} utilisateur(s)',
+	'pptx.collaboration.youLabel': '{{name}} (vous)',
+	'pptx.collaboration.usersConnected': '{{count}} utilisateur(s) connecté(s)',
+	'pptx.collaboration.moreUsers': '{{count}} utilisateur(s) supplémentaire(s)',
+	'pptx.collaboration.retry': 'Réessayer',
+
+	// Share dialog
+	'pptx.share.title': 'Partager la présentation',
+	'pptx.share.collaborationActive': 'Collaboration active',
+	'pptx.share.closeDialog': 'Fermer la boîte de dialogue',
+	'pptx.share.close': 'Fermer',
+	'pptx.share.cancel': 'Annuler',
+	'pptx.share.startSharing': 'Démarrer le partage',
+	'pptx.share.stopSharing': 'Arrêter le partage',
+	'pptx.share.description':
+		"Partagez cette présentation pour collaborer en temps réel. D'autres utilisateurs peuvent la rejoindre à l'aide du nom de session pour modifier ensemble avec des curseurs en direct et des modifications synchronisées.",
+	'pptx.share.preconfiguredDescription':
+		'Votre administrateur a configuré les paramètres de collaboration.',
+	'pptx.share.sessionName': 'Nom de la session',
+	'pptx.share.sessionPlaceholder': 'ex. session-abc123',
+	'pptx.share.sessionHint':
+		'Lettres, chiffres, tirets et underscores uniquement. Partagez ce nom avec vos collaborateurs.',
+	'pptx.share.displayName': "Votre nom d'affichage",
+	'pptx.share.namePlaceholder': 'ex. Alice',
+	'pptx.share.serverLabel': 'Serveur de collaboration',
+	'pptx.share.serverPlaceholder': 'wss://collab.example.com',
+	'pptx.share.serverHint':
+		"Saisissez l'URL WebSocket d'un serveur y-websocket. Utilisez une URL sécurisée wss:// lors du partage depuis une page https://.",
+	'pptx.share.shareLink': 'Lien de partage',
+	'pptx.share.copyLink': 'Copier le lien de partage',
+	'pptx.share.copied': 'Copié',
+	'pptx.share.copyUrl': "Copier l'URL",
+	'pptx.share.shareHint':
+		"Partagez cette URL avec d'autres personnes pour qu'elles puissent rejoindre la session.",
+	'pptx.share.room': 'Salle :',
+	'pptx.share.server': 'Serveur :',
+	'pptx.share.connectedUsers': 'Utilisateurs connectés',
+	'pptx.share.you': '(vous)',
+	'pptx.share.connectionError':
+		"Impossible de joindre le serveur de collaboration. Vérifiez l'URL du serveur : il doit s'agir d'un serveur y-websocket accessible, et d'une URL sécurisée wss:// lors du partage depuis une page https://.",
+
+	// Settings dialog
+	'pptx.settings.title': 'Paramètres',
+	'pptx.settings.general': 'Général',
+	'pptx.settings.keyboardShortcuts': 'Raccourcis clavier',
+	'pptx.settings.closeSettings': 'Fermer les paramètres',
+	'pptx.settings.close': 'Fermer',
+	'pptx.settings.autoSave': 'Enregistrement automatique',
+	'pptx.settings.spellCheck': 'Vérification orthographique',
+	'pptx.settings.showGrid': 'Afficher le quadrillage',
+	'pptx.settings.showRulers': 'Afficher les règles',
+	'pptx.settings.snapToGrid': 'Aligner sur le quadrillage',
+	'pptx.settings.reducedMotion': 'Animations réduites',
+
+	// Sections / slides pane
+	'pptx.sections.slides': 'Diapositives',
+	'pptx.sections.collapsePane': 'Réduire le volet',
+	'pptx.sections.addSlide': 'Ajouter une diapositive',
+	'pptx.sections.addSection': 'Ajouter une section',
+	'pptx.sections.defaultName': 'Section sans titre',
+	'pptx.sections.rename': 'Renommer',
+	'pptx.sections.delete': 'Supprimer',
+	'pptx.sections.moveUp': 'Déplacer vers le haut',
+	'pptx.sections.moveDown': 'Déplacer vers le bas',
+	'pptx.sections.addBefore': 'Ajouter une section avant',
+	'pptx.sections.addAfter': 'Ajouter une section après',
+
+	// Notes
+	'pptx.notes.title': 'Notes',
+	'pptx.notes.slideN': 'Diapositive {{n}}',
+	'pptx.notes.noSlide': 'Aucune diapositive sélectionnée',
+	'pptx.notes.clickToAddNotes': 'Cliquer pour ajouter des notes',
+	'pptx.notes.noNotes': 'Aucune note',
+
+	// Slide sorter
+	'pptx.slideSorter.title': 'Trieuse de diapositives',
+	'pptx.slideSorter.selectedCount': '{{count}} sélectionnée(s)',
+	'pptx.slideSorter.slideCount': '{{count}} diapositives',
+	'pptx.slideSorter.close': 'Fermer',
+	'pptx.slideSorter.zoomIn': 'Zoom avant',
+	'pptx.slideSorter.zoomOut': 'Zoom arrière',
+	'pptx.slideSorter.zoom': 'Zoom',
+
+	// Grid / ruler
+	'pptx.grid.grid': 'Quadrillage',
+	'pptx.grid.toggleGrid': 'Afficher/Masquer le quadrillage',
+	'pptx.grid.snapToGrid': 'Aligner sur le quadrillage',
+	'pptx.grid.snapToShape': 'Aligner sur la forme',
+	'pptx.ruler.rulers': 'Règles',
+	'pptx.ruler.toggleRulers': 'Afficher/Masquer les règles',
+
+	// Field insertion
+	'pptx.field.field': 'Champ',
+	'pptx.field.format': 'Format',
+	'pptx.field.insertField': 'Insérer un champ',
+	'pptx.field.slideNumber': 'Numéro de diapositive',
+	'pptx.field.dateTime': 'Date/Heure',
+	'pptx.field.header': 'En-tête',
+	'pptx.field.footer': 'Pied de page',
+
+	// Masters
+	'pptx.master.master': 'Masque',
+	'pptx.master.layout': 'Disposition',
+	'pptx.master.noMasters': 'Aucun masque',
+	'pptx.master.title': 'Masque des diapositives',
+
+	// Print
+	'pptx.print.title': 'Imprimer',
+	'pptx.print.printButton': 'Imprimer',
+
+	// Export
+	'pptx.export.processing': 'Traitement en cours...',
+	'pptx.export.cancel': 'Annuler',
+
+	// Version history
+	'pptx.versionHistory.title': 'Historique des versions',
+	'pptx.versionHistory.noVersions': 'Aucune version',
+	'pptx.versionHistory.restore': 'Restaurer',
+
+	// Presenter
+	'pptx.presenter.speakerNotes': 'Notes du présentateur',
+	'pptx.presenter.nextSlidePreview': 'Diapositive suivante',
+	'pptx.presenter.noNotes': 'Aucune note pour cette diapositive',
+	'pptx.presenter.endPresentation': 'Terminer la présentation',
+
+	// Presentation mode
+	'pptx.presentation.pen': 'Stylo',
+	'pptx.presentation.highlighter': 'Surligneur',
+	'pptx.presentation.eraser': 'Gomme',
+	'pptx.presentation.laserPointer': 'Pointeur laser',
+
+	// Selection pane
+	'pptx.selectionPane.title': 'Volet Sélection',
+	'pptx.selectionPane.empty': 'Aucun élément',
+	'pptx.selectionPane.show': 'Afficher',
+	'pptx.selectionPane.hide': 'Masquer',
+	'pptx.selectionPane.close': 'Fermer',
+
+	// Inspector
+	'pptx.inspector.element': 'Élément',
+	'pptx.inspector.noSlideSelected': 'Aucune diapositive sélectionnée',
+
+	// Broadcast
+	'pptx.broadcast.title': 'Diffuser le diaporama',
+	'pptx.broadcast.broadcasting': 'Diffusion en direct',
+	'pptx.broadcast.description':
+		'Démarrez une diffusion en direct pour que les spectateurs puissent suivre votre présentation en temps réel. Ils verront automatiquement la diapositive que vous présentez.',
+	'pptx.broadcast.sessionName': 'Session de diffusion',
+	'pptx.broadcast.displayName': 'Nom du présentateur',
+	'pptx.broadcast.serverLabel': 'Serveur de collaboration',
+	'pptx.broadcast.hint':
+		'Les spectateurs peuvent rejoindre via le lien affiché après le démarrage. Ils suivront automatiquement vos diapositives.',
+	'pptx.broadcast.startBroadcast': 'Démarrer la diffusion',
+	'pptx.broadcast.stopBroadcast': 'Arrêter la diffusion',
+	'pptx.broadcast.viewerLink': 'Lien spectateur',
+	'pptx.broadcast.copyLink': 'Copier le lien spectateur',
+	'pptx.broadcast.shareHint':
+		"Partagez cette URL avec votre public pour qu'il puisse suivre la présentation.",
+	'pptx.broadcast.viewers': 'Spectateurs',
+	'pptx.broadcast.viewerCount': '{{count}} spectateur(s)',
+
+	// Encrypted
+	'pptx.encryptedFile.title': 'Fichier chiffré',
+	'pptx.encryptedFile.message': 'Ce fichier est chiffré.',
+	'pptx.encryptedFile.instructions': "Saisissez le mot de passe pour l'ouvrir.",
+
+	// Common (shared verb/label vocabulary reused across dialogs and panels)
+	'common.close': 'Fermer',
+	'common.cancel': 'Annuler',
+	'common.apply': 'Appliquer',
+	'common.delete': 'Supprimer',
+	'common.done': 'Terminé',
+	'common.loading': 'Chargement...',
+	'common.ok': 'OK',
+	'common.remove': 'Supprimer',
+	'common.reset': 'Réinitialiser',
+	'common.save': 'Enregistrer',
+};

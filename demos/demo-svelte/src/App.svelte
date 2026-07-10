@@ -1,12 +1,16 @@
 <script lang="ts">
 	/**
-	 * Demo shell for `pptx-svelte-viewer`, mirroring the vanilla demo: the
-	 * viewer fills the screen, a floating theme picker hovers above it, and a
-	 * landing dropzone handles file open / sample deck loading.
+	 * Demo shell for `pptx-svelte-viewer`, mirroring demos/demo-vue/src/App.vue
+	 * (minus collaboration, which the Svelte binding does not support yet): the
+	 * viewer fills the screen, floating theme + language pickers hover above it,
+	 * and a landing dropzone handles file open / sample deck loading.
 	 */
 	import { PowerPointViewer, themeToCssVars } from 'pptx-svelte-viewer';
 
-	import { fileToBytes, readStoredTheme, storeTheme, themes } from './themes';
+	import { language, setLanguage, t } from './demo-i18n.svelte';
+	import LanguagePicker from './LanguagePicker.svelte';
+	import ThemePicker from './ThemePicker.svelte';
+	import { readStoredTheme, storeTheme, themes } from './themes';
 
 	let bytes = $state<Uint8Array | null>(null);
 	let fileName = $state('');
@@ -38,8 +42,8 @@
 	function openFile(file: File): void {
 		errorMessage = '';
 		fileName = file.name;
-		void fileToBytes(file).then((data) => {
-			bytes = data;
+		void file.arrayBuffer().then((buf) => {
+			bytes = new Uint8Array(buf);
 			document.title = `${file.name} - PPTX Viewer`;
 			return undefined;
 		});
@@ -60,8 +64,8 @@
 				document.title = 'Sample Deck - PPTX Viewer';
 				return undefined;
 			})
-			.catch((err: unknown) => {
-				errorMessage = err instanceof Error ? err.message : 'Failed to load the sample deck';
+			.catch(() => {
+				errorMessage = t('demo.dropzone.sampleError');
 			});
 	}
 
@@ -85,27 +89,23 @@
 	}
 
 	function onViewerError(message: string): void {
-		errorMessage = message || 'Failed to load the presentation';
+		errorMessage = message || t('demo.viewer.loadError');
 		bytes = null;
 		document.title = 'pptx-svelte-viewer demo';
 	}
 </script>
 
-<div class="demo-theme-picker">
-	<select
-		aria-label="Theme"
-		value={themeKey}
-		onchange={(e) => setTheme((e.target as HTMLSelectElement).value)}
-	>
-		{#each Object.entries(themes) as [key, preset] (key)}
-			<option value={key}>{preset.label}</option>
-		{/each}
-	</select>
-</div>
+<ThemePicker current={themeKey} onchange={setTheme} />
+<LanguagePicker current={language.current} theme={themeKey} onchange={setLanguage} />
 
 {#if bytes}
 	<div class="demo-shell">
-		<PowerPointViewer source={bytes} theme={currentTheme} onerror={onViewerError} />
+		<PowerPointViewer
+			source={bytes}
+			theme={currentTheme}
+			locale={language.current}
+			onerror={onViewerError}
+		/>
 	</div>
 {:else}
 	<div class="demo-stage">
@@ -118,10 +118,10 @@
 			onclick={browse}
 			onkeydown={(e) => e.key === 'Enter' && browse()}
 		>
-			<p class="demo-hint">Drop a .pptx file here, or click to browse</p>
-			<p class="demo-sub">Files are processed entirely in your browser</p>
+			<p class="demo-hint">{t('demo.dropzone.hint')}</p>
+			<p class="demo-sub">{t('demo.dropzone.processed')}</p>
 			<button type="button" onclick={(e) => (e.stopPropagation(), openSample())}>
-				Load sample deck
+				{t('demo.dropzone.loadSample')}
 			</button>
 			{#if errorMessage}
 				<p class="demo-error">{errorMessage}</p>
@@ -132,7 +132,7 @@
 				bind:this={fileInput}
 				type="file"
 				accept=".pptx"
-				aria-label="Upload a PowerPoint file"
+				aria-label={t('demo.dropzone.uploadAriaLabel')}
 				style="display: none"
 				onclick={(e) => e.stopPropagation()}
 				onchange={onInputChange}

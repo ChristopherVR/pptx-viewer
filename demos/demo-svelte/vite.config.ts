@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 import { buildStamp } from '../build-stamp';
@@ -22,7 +23,7 @@ export default defineConfig({
 	// The repo-wide .gitignore excludes public/ dirs, so the sample deck is
 	// served straight from the committed e2e fixtures instead.
 	publicDir: resolve(__dirname, '..', '..', 'e2e', 'fixtures'),
-	plugins: [svelte(), buildStamp(pkg('svelte', 'package.json'))],
+	plugins: [svelte(), tailwindcss(), buildStamp(pkg('svelte', 'package.json'))],
 	server: {
 		port: 4177,
 		open: true,
