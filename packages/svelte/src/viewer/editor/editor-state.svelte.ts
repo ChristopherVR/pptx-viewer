@@ -97,6 +97,28 @@ export class EditorState {
 		this.#syncHistoryFlags();
 	}
 
+	/**
+	 * Replace the working slides with a remote (collaboration) snapshot without
+	 * recording an undo step or touching the dirty flag: the granular reconcile
+	 * already merged the peer's change, and treating an incoming remote edit as
+	 * a local mutation would both pollute the undo stack and re-broadcast it.
+	 *
+	 * Selection is preserved when the selected element still exists so a remote
+	 * edit does not yank the local user's selection out from under them. Local
+	 * undo history is intentionally kept (see the collaboration module JSDoc):
+	 * shared defines no collaborative-undo semantics, so, matching React/Vue,
+	 * local undo may fight a concurrent remote edit.
+	 */
+	applyRemoteSlides(slides: PptxSlide[]): void {
+		this.slides = slides;
+		if (
+			this.selectedElementId &&
+			!findSlideElement(slides, this.#deps.getCurrent(), this.selectedElementId)
+		) {
+			this.selectedElementId = null;
+		}
+	}
+
 	/** Drop selection/dirty/interaction + history (new content or teardown). */
 	reset(): void {
 		this.selectedElementId = null;

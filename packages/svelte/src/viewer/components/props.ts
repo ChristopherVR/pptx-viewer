@@ -3,6 +3,7 @@ import type { CanvasSize, RenderParagraph, ResizeHandleId, SnapLine } from 'pptx
 
 import type { EditorController } from '../editor/editor-controller.svelte';
 import type { OverlayBox } from '../editor/types';
+import type { AutosaveStatus } from '../state/autosave.svelte';
 
 /**
  * Prop contracts for the internal viewer components. Kept in a plain `.ts`
@@ -85,6 +86,13 @@ export interface ViewerToolbarProps {
 	onredo?: () => void;
 	onsave?: () => void;
 	ondownload?: () => void;
+	/**
+	 * Autosave lifecycle status; when set (host opted into `autosave`) a small
+	 * status pill renders in the editing group. Omit to hide the pill entirely.
+	 */
+	autosaveStatus?: AutosaveStatus;
+	/** Whether there are unsaved autosave edits (drives the pill's "dirty" tone). */
+	autosaveDirty?: boolean;
 }
 
 /** Props for the selection overlay (box + 8 resize handles + rotate handle). */

@@ -5,6 +5,7 @@
 	 * i18n dictionary via the context translator; theming via `--pptx-*` vars.
 	 */
 	import { useTranslator } from '../../i18n/context';
+	import AutosaveIndicator from './AutosaveIndicator.svelte';
 	import type { ViewerToolbarProps } from './props';
 
 	const {
@@ -29,6 +30,8 @@
 		onredo,
 		onsave,
 		ondownload,
+		autosaveStatus,
+		autosaveDirty = false,
 	}: ViewerToolbarProps = $props();
 
 	const t = useTranslator();
@@ -73,6 +76,9 @@
 			>
 				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0 3-3m-3 3-3-3M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
 			</button>
+			{#if autosaveStatus}
+				<AutosaveIndicator status={autosaveStatus} isDirty={autosaveDirty} />
+			{/if}
 		</div>
 	{/if}
 	<div class="pptx-svelte-toolbar-group">

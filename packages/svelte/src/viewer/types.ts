@@ -1,4 +1,10 @@
-import type { CanvasSize, ViewerTheme } from 'pptx-viewer-shared';
+import type {
+	CanvasSize,
+	CollaborationConfig,
+	CollaborationRole,
+	CollaborationTransport,
+	ViewerTheme,
+} from 'pptx-viewer-shared';
 
 import type { ExportPdfOptions } from './export';
 
@@ -12,7 +18,13 @@ import type { ExportPdfOptions } from './export';
  *    callbacks as regular props (`onload`, `onerror`, `onslidechange`).
  *  - **`content` is named `source`.** The viewer accepts raw `.pptx` bytes.
  */
-export type { CanvasSize, ViewerTheme };
+export type {
+	CanvasSize,
+	CollaborationConfig,
+	CollaborationRole,
+	CollaborationTransport,
+	ViewerTheme,
+};
 
 /** Payload for the `onload` callback. */
 export interface ViewerLoadDetail {
@@ -84,6 +96,38 @@ export interface PowerPointViewerProps {
 	 * to track the dirty state or mirror edits into host state.
 	 */
 	onchange?: () => void;
+	/**
+	 * Enable debounced crash-recovery autosave. On each edit (when `editable`)
+	 * the current slides are serialized to `.pptx` bytes and written to the
+	 * shared IndexedDB recovery store (keyed by {@link filePath}), and
+	 * `onautosave` is fired with the bytes. Requires `filePath`; without one the
+	 * autosave indicator reads "disabled". This binding does not auto-restore on
+	 * load; recovery is a host concern (see the re-exported `getAutosaveSnapshot`
+	 * / `listAutosaveSnapshots` helpers). Default false.
+	 */
+	autosave?: boolean;
+	/**
+	 * IndexedDB record key for autosave (typically the open file's name/path).
+	 * Autosave is inert until this is set.
+	 */
+	filePath?: string;
+	/** Autosave debounce window in milliseconds. Default 2000. */
+	autosaveIntervalMs?: number;
+	/** Fired with the serialized `.pptx` bytes after each successful autosave. */
+	onautosave?: (bytes: Uint8Array) => void;
+	/**
+	 * Real-time collaboration configuration. When provided, the viewer connects
+	 * to the room (y-websocket or serverless y-webrtc), publishes local edits
+	 * granularly, and applies remote peers' edits into the editable slides.
+	 * Clearing it (undefined) tears the session down. A `viewer` role makes the
+	 * local user read-only. Remote presence/cursors are not rendered by this
+	 * binding (descoped); see `collab/collaboration.svelte.ts`.
+	 */
+	collaboration?: CollaborationConfig;
+	/** Fired when a collaboration session starts (with the resolved config). */
+	onstartcollaboration?: (config: CollaborationConfig) => void;
+	/** Fired when a collaboration session stops. */
+	onstopcollaboration?: () => void;
 }
 
 /**
