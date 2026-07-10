@@ -39,6 +39,12 @@ export interface Toolbar {
 	setEditState(state: ToolbarEditState): void;
 	/** Reflect the notes panel's expanded/collapsed state on the Notes button. */
 	setNotesExpanded(expanded: boolean): void;
+	/**
+	 * Show the autosave status pill. `label` is the (already localized) text;
+	 * `kind` drives the styling hook (`is-saving` / `is-error`). An empty label
+	 * hides the pill.
+	 */
+	setAutosaveStatus(label: string, kind: 'idle' | 'saving' | 'saved' | 'error'): void;
 }
 
 /**
@@ -77,6 +83,13 @@ export function createToolbar(doc: Document, t: Translator, handlers: ToolbarHan
 	undoBtn.disabled = true;
 	redoBtn.disabled = true;
 
+	// Autosave status pill: lives in the editing cluster, hidden until a status
+	// arrives. Uses aria-live so a save is announced to assistive tech.
+	const autosaveStatus = createEl(doc, 'span', 'pptxv-autosave-status');
+	autosaveStatus.setAttribute('aria-live', 'polite');
+	autosaveStatus.hidden = true;
+	editGroup.appendChild(autosaveStatus);
+
 	const prevBtn = button(el, 'chevron-left', t('pptx.presenter.previousSlide'), handlers.prev);
 	const counter = createEl(doc, 'span', 'pptxv-counter');
 	counter.setAttribute('aria-live', 'polite');
@@ -113,6 +126,12 @@ export function createToolbar(doc: Document, t: Translator, handlers: ToolbarHan
 		setNotesExpanded(expanded) {
 			notesBtn.setAttribute('aria-pressed', String(expanded));
 			notesBtn.classList.toggle('is-active', expanded);
+		},
+		setAutosaveStatus(label, kind) {
+			autosaveStatus.textContent = label;
+			autosaveStatus.hidden = label.length === 0;
+			autosaveStatus.classList.toggle('is-saving', kind === 'saving');
+			autosaveStatus.classList.toggle('is-error', kind === 'error');
 		},
 	};
 }

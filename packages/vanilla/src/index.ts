@@ -20,6 +20,16 @@ export type { PptxViewerCallbacks, PptxViewerInstance, PptxViewerOptions } from 
 export type { PptxViewerSource } from './viewer';
 export type { ViewerState, ZoomLevel } from './viewer';
 
+// ── Collaboration + autosave (config + status types re-exported for hosts) ─
+export type {
+	AutosaveRecord,
+	AutosaveStatus,
+	CollaborationConfig,
+	CollaborationRole,
+	CollaborationTransport,
+	ConnectionStatus,
+} from './viewer';
+
 // ── Element renderer extension surface ─────────────────────────────────
 export type {
 	CssStyleMap,

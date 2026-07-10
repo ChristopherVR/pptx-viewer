@@ -65,10 +65,18 @@
 		"pptx-viewer-shared": "workspace:*",
 		"tsup": "^8.5.1",
 		"typescript": "^6.0.3",
-		"vitest": "^4.1.9"
+		"vitest": "^4.1.9",
+		"y-webrtc": "^10.3.0",
+		"y-websocket": "^3.0.0",
+		"yjs": "^13.6.31"
 	},
 	"peerDependencies": {
 		"fast-xml-parser": "^5.8.0",
 		"jszip": "^3.10.1"
+	},
+	"optionalDependencies": {
+		"y-webrtc": "^10.3.0",
+		"y-websocket": "^3.0.0",
+		"yjs": "^13.6.31"
 	}
 }

@@ -27,6 +27,13 @@ export default defineConfig((options) => ({
 		// collapse the dynamic import into an eager one.
 		'html2canvas-pro',
 		'jspdf',
+		// Real-time collaboration transports: dynamically `import()`-ed only when
+		// a collaboration session actually starts (see collab/collaboration-*.ts).
+		// Optional peer deps kept external so a host that never collaborates does
+		// not pay for (or need to install) yjs.
+		'yjs',
+		'y-webrtc',
+		'y-websocket',
 	],
 	// Bundle the internal workspace packages so consumers can install just
 	// `pptx-vanilla-viewer` without also pulling `pptx-viewer-core` from npm.
