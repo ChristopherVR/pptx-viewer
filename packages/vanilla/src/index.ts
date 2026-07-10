@@ -41,6 +41,8 @@ export {
 // ── i18n / styles ──────────────────────────────────────────────────────
 export type { TranslationMessages, Translator } from './viewer';
 export { createTranslator, getViewerCss } from './viewer';
+export { keyToLabel, translationsEn } from 'pptx-viewer-shared/i18n';
+export type { TranslationKey } from 'pptx-viewer-shared/i18n';
 
 // ── Theme (re-exported from pptx-viewer-shared for host configuration) ─
 export type { ViewerTheme, ViewerThemeColors } from 'pptx-viewer-shared';
