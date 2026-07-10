@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 import { buildStamp } from '../build-stamp';
@@ -21,7 +22,7 @@ export default defineConfig({
 	// The repo-wide .gitignore excludes public/ dirs, so the sample deck is
 	// served straight from the committed e2e fixtures instead.
 	publicDir: resolve(__dirname, '..', '..', 'e2e', 'fixtures'),
-	plugins: [buildStamp(pkg('vanilla', 'package.json'))],
+	plugins: [tailwindcss(), buildStamp(pkg('vanilla', 'package.json'))],
 	server: {
 		port: 4176,
 		open: true,

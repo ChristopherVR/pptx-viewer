@@ -2,9 +2,11 @@ import type { ViewerTheme } from 'pptx-vanilla-viewer';
 import { vermilionDarkTheme, vermilionLightTheme } from 'pptx-vanilla-viewer';
 
 /**
- * Theme presets for the vanilla demo, mirroring the Vue demo's `themes`
- * object. Selection persists to `localStorage` under `pptx-demo-theme`
- * (see main.ts).
+ * Theme presets for the vanilla demo, mirroring demos/demo-vue/src/themes.ts
+ * (same presets, same order, same palettes). Each preset carries a full
+ * ViewerThemeColors palette so the floating theme picker and the viewer chrome
+ * both pick up the same look. Selection persists to `localStorage` under
+ * `pptx-demo-theme` (see main.ts).
  */
 export interface ThemePreset {
 	label: string;
@@ -12,8 +14,6 @@ export interface ThemePreset {
 }
 
 export const themes: Record<string, ThemePreset> = {
-	vermilionDark: { label: 'Vermilion Dark', theme: vermilionDarkTheme },
-	vermilionLight: { label: 'Vermilion Light', theme: vermilionLightTheme },
 	dark: {
 		label: 'Dark',
 		theme: {
@@ -66,7 +66,69 @@ export const themes: Record<string, ThemePreset> = {
 			},
 		},
 	},
+	midnight: {
+		label: 'Midnight Blue',
+		theme: {
+			colors: {
+				background: '#0c1222',
+				foreground: '#e2e8f0',
+				card: '#162032',
+				cardForeground: '#e2e8f0',
+				popover: '#162032',
+				popoverForeground: '#e2e8f0',
+				primary: '#38bdf8',
+				primaryForeground: '#0c1222',
+				secondary: '#1e3a5f',
+				secondaryForeground: '#e2e8f0',
+				muted: '#1e3a5f',
+				mutedForeground: '#7dd3fc',
+				accent: '#1e3a5f',
+				accentForeground: '#e2e8f0',
+				destructive: '#f87171',
+				destructiveForeground: '#ffffff',
+				border: '#1e3a5f',
+				input: '#1e3a5f',
+				ring: '#38bdf8',
+			},
+		},
+	},
+	sepia: {
+		label: 'Warm Sepia',
+		theme: {
+			colors: {
+				background: '#faf6f1',
+				foreground: '#292524',
+				card: '#ffffff',
+				cardForeground: '#292524',
+				popover: '#ffffff',
+				popoverForeground: '#292524',
+				primary: '#b45309',
+				primaryForeground: '#ffffff',
+				secondary: '#f5f0eb',
+				secondaryForeground: '#292524',
+				muted: '#f5f0eb',
+				mutedForeground: '#78716c',
+				accent: '#f5f0eb',
+				accentForeground: '#292524',
+				destructive: '#dc2626',
+				destructiveForeground: '#ffffff',
+				border: '#d6d3d1',
+				input: '#d6d3d1',
+				ring: '#b45309',
+			},
+		},
+	},
+	vermilionDark: {
+		label: 'Vermilion Dark',
+		theme: vermilionDarkTheme,
+	},
+	vermilionLight: {
+		label: 'Vermilion Light',
+		theme: vermilionLightTheme,
+	},
 };
+
+export const themeKeys = Object.keys(themes);
 
 export const defaultThemeKey = 'vermilionDark';
 

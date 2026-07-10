@@ -78,6 +78,40 @@
         "vite": "^8.0.16",
       },
     },
+    "demos/demo-svelte": {
+      "name": "pptx-svelte-demo",
+      "dependencies": {
+        "fast-xml-parser": "^5.9.2",
+        "jszip": "^3.10.1",
+        "pptx-svelte-viewer": "workspace:*",
+        "pptx-viewer-core": "workspace:*",
+        "svelte": "^5.46.4",
+      },
+      "devDependencies": {
+        "@sveltejs/vite-plugin-svelte": "^7.2.0",
+        "@tailwindcss/vite": "^4.3.2",
+        "@types/node": "^26.0.0",
+        "tailwindcss": "^4.3.2",
+        "typescript": "^6.0.3",
+        "vite": "^8.0.16",
+      },
+    },
+    "demos/demo-vanilla": {
+      "name": "pptx-vanilla-demo",
+      "dependencies": {
+        "fast-xml-parser": "^5.9.2",
+        "jszip": "^3.10.1",
+        "pptx-vanilla-viewer": "workspace:*",
+        "pptx-viewer-core": "workspace:*",
+      },
+      "devDependencies": {
+        "@tailwindcss/vite": "^4.3.2",
+        "@types/node": "^26.0.0",
+        "tailwindcss": "^4.3.2",
+        "typescript": "^6.0.3",
+        "vite": "^8.0.16",
+      },
+    },
     "demos/demo-vue": {
       "name": "pptx-vue-demo",
       "dependencies": {
@@ -1675,7 +1709,11 @@
 
     "pptx-react-viewer": ["pptx-react-viewer@workspace:packages/react"],
 
+    "pptx-svelte-demo": ["pptx-svelte-demo@workspace:demos/demo-svelte"],
+
     "pptx-svelte-viewer": ["pptx-svelte-viewer@workspace:packages/svelte"],
+
+    "pptx-vanilla-demo": ["pptx-vanilla-demo@workspace:demos/demo-vanilla"],
 
     "pptx-vanilla-viewer": ["pptx-vanilla-viewer@workspace:packages/vanilla"],
 

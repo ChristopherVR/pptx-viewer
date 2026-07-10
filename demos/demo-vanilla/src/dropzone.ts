@@ -1,3 +1,5 @@
+import { t } from './demo-i18n';
+
 /** Callbacks the dropzone reports back to the demo shell. */
 export interface DropzoneHandlers {
 	onFile: (file: File) => void;
@@ -6,7 +8,8 @@ export interface DropzoneHandlers {
 
 /**
  * Landing dropzone mirroring the Vue demo: drag-and-drop or click to browse
- * for a `.pptx` file, plus a one-click sample deck loader.
+ * for a `.pptx` file, plus a one-click sample deck loader. All strings come
+ * from the demo dictionary, so the shell re-renders it on language change.
  */
 export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 	const stage = document.createElement('div');
@@ -19,20 +22,20 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 
 	const hint = document.createElement('p');
 	hint.className = 'demo-hint';
-	hint.textContent = 'Drop a .pptx file here, or click to browse';
+	hint.textContent = t('demo.dropzone.hint');
 
 	const sub = document.createElement('p');
 	sub.className = 'demo-sub';
-	sub.textContent = 'Files are processed entirely in your browser';
+	sub.textContent = t('demo.dropzone.processed');
 
 	const sampleButton = document.createElement('button');
 	sampleButton.type = 'button';
-	sampleButton.textContent = 'Load sample deck';
+	sampleButton.textContent = t('demo.dropzone.loadSample');
 
 	const input = document.createElement('input');
 	input.type = 'file';
 	input.accept = '.pptx';
-	input.setAttribute('aria-label', 'Upload a PowerPoint file');
+	input.setAttribute('aria-label', t('demo.dropzone.uploadAriaLabel'));
 	input.style.display = 'none';
 
 	zone.append(hint, sub, sampleButton, input);
