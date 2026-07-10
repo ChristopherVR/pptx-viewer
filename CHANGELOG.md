@@ -6,6 +6,65 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-10
 
+_Releases: pptx-vanilla-viewer@0.1.2, pptx-svelte-viewer@0.1.2_
+
+### Features
+
+- **vanilla:** Add pptx-vanilla-viewer zero-framework binding (viewer core) (by @ChristopherVR) ([e5374a6](https://github.com/ChristopherVR/pptx-viewer/commit/e5374a66522daf27606c7f0d3d93a50d9da43146))
+- **svelte:** Add pptx-svelte-viewer Svelte 5 binding (viewer) (by @ChristopherVR) ([d5c9164](https://github.com/ChristopherVR/pptx-viewer/commit/d5c916428ffa4c469ec9c79150d60f7aa6c9f560))
+- **vanilla:** Add Vite demo app for pptx-vanilla-viewer (by @ChristopherVR) ([7a8980f](https://github.com/ChristopherVR/pptx-viewer/commit/7a8980f8c38bec442383c84b5bd3a98338f6db30))
+- **svelte:** Add Vite demo app for pptx-svelte-viewer (by @ChristopherVR) ([16a52b3](https://github.com/ChristopherVR/pptx-viewer/commit/16a52b3ac609121610ebde377827733ad852c3b3))
+- **vanilla:** Render table, chart, smartArt, media, ink, and ole elements (by @ChristopherVR) ([c5845df](https://github.com/ChristopherVR/pptx-viewer/commit/c5845dfc3043571c2041bbc66b3dc5703a1d2eba))
+- **vanilla:** Re-export shared i18n helpers and TranslationKey type (by @ChristopherVR) ([60760c2](https://github.com/ChristopherVR/pptx-viewer/commit/60760c2692437f7b51f060d2c52996887a9006fb))
+- **vanilla:** Demo UI parity with the Vue demo shell (by @ChristopherVR) ([0792f93](https://github.com/ChristopherVR/pptx-viewer/commit/0792f9330305b35b54a6a2b8d255b9b458ee8894))
+- **svelte:** Demo UI parity with the Vue demo shell (by @ChristopherVR) ([a0fa493](https://github.com/ChristopherVR/pptx-viewer/commit/a0fa49368cf0780b6e1ce38c18762e6d5c803e43))
+- **svelte:** Render table, chart, smartArt, media, ink, and ole elements (by @ChristopherVR) ([5077d82](https://github.com/ChristopherVR/pptx-viewer/commit/5077d827002f8dbbfd92f66ecebb13cafcf86537))
+- **vanilla:** Editor infrastructure -- select, drag, resize, inline-text, undo/redo (by @ChristopherVR) ([ce093f6](https://github.com/ChristopherVR/pptx-viewer/commit/ce093f6faa6b31a7fae283c62b0470fb7a270ec9))
+- **demo:** Replace Load sample deck with Create New Presentation; enable editing (by @ChristopherVR) ([86410ce](https://github.com/ChristopherVR/pptx-viewer/commit/86410ced92b4d184489f36c32c47732f20c3b0ea))
+- **svelte:** Render contentPart, zoom, and model3d elements (by @ChristopherVR) ([872ad53](https://github.com/ChristopherVR/pptx-viewer/commit/872ad53157d4543ada58dc493eae5764810c5705))
+- **vanilla,svelte:** Opt-in 3D SmartArt renderer (by @ChristopherVR) ([15337c9](https://github.com/ChristopherVR/pptx-viewer/commit/15337c9bc1a31ad614a4aca88be3e71ba848413f))
+- **vanilla,svelte:** Presentation-mode media autoplay (by @ChristopherVR) ([fa52b6a](https://github.com/ChristopherVR/pptx-viewer/commit/fa52b6a6a40fef097140ffeae669146e53742014))
+- **vanilla,svelte:** Plain-text speaker-notes panel (by @ChristopherVR) ([db7cf5d](https://github.com/ChristopherVR/pptx-viewer/commit/db7cf5da1ab065f503b097056e923c0f186491ce))
+- **vanilla:** PNG and PDF export (by @ChristopherVR) ([a314688](https://github.com/ChristopherVR/pptx-viewer/commit/a3146882c706e6591b30176fbd06f62c001fd31f))
+- **svelte:** Editing infrastructure (selection, move/resize/rotate, inline text, undo/redo, save) (by @ChristopherVR) ([bd5050c](https://github.com/ChristopherVR/pptx-viewer/commit/bd5050c4f37ce995df818af616fa52c01761b41d))
+- **svelte:** PNG and PDF export (by @ChristopherVR) ([b1c273e](https://github.com/ChristopherVR/pptx-viewer/commit/b1c273e634904f66c91ec7c035c879423fd39372))
+
+### Bug Fixes
+
+- **vanilla:** Serve demo sample deck from committed e2e fixtures (by @ChristopherVR) ([ee32bb2](https://github.com/ChristopherVR/pptx-viewer/commit/ee32bb21ee1159202242eea6e85b1b8b4307a38b))
+- **vanilla:** Stop file-input click bubbling back into the dropzone (by @ChristopherVR) ([6a69431](https://github.com/ChristopherVR/pptx-viewer/commit/6a694311cf86b4c31c264f02cde0ae44641790ec))
+- **vanilla:** Wire EditorController into PptxViewer (by @ChristopherVR) ([bdcb63d](https://github.com/ChristopherVR/pptx-viewer/commit/bdcb63dee9303ec2bebd584893adef566368dbc7))
+- **demo-vanilla:** Clear the notes panel from floating demo chrome (by @ChristopherVR) ([5306a3c](https://github.com/ChristopherVR/pptx-viewer/commit/5306a3c5b20b1b62b1f3079d1acf957cd383468a))
+
+### Other
+
+- Reconcile with origin/main before push (by @ChristopherVR) ([0ecd3d9](https://github.com/ChristopherVR/pptx-viewer/commit/0ecd3d935f97c78e8b0a62bebc8bf610c42414ab))
+
+### Documentation
+
+- Add Code of Conduct, refresh stale test-count claims in README (by @ChristopherVR) ([34e05fb](https://github.com/ChristopherVR/pptx-viewer/commit/34e05fbc4f892c900aa513c7299e3e93a15def35))
+- Add PORTING.md tracking vanilla/svelte binding parity gaps (by @ChristopherVR) ([c246fad](https://github.com/ChristopherVR/pptx-viewer/commit/c246fad08d6da3cd3128b2952a63ecde282c1d68))
+- Document vanilla and svelte bindings across site, landing, and README (by @ChristopherVR) ([ba283dd](https://github.com/ChristopherVR/pptx-viewer/commit/ba283ddb6eb63606c47ea49c644b1d085b9db7d0))
+- Add npm badges for pptx-vanilla-viewer and pptx-svelte-viewer (by @ChristopherVR) ([551bd4e](https://github.com/ChristopherVR/pptx-viewer/commit/551bd4ef495afa7a1095efd138e25a7bc442d809))
+- Correct stale vanilla/svelte docs and add both bindings to core guide (by @ChristopherVR) ([6815740](https://github.com/ChristopherVR/pptx-viewer/commit/6815740f71f85d3876e548d177bb2e709f1b91d1))
+- Document Vanilla and Svelte i18n wiring, refresh PORTING.md (by @ChristopherVR) ([e29f96b](https://github.com/ChristopherVR/pptx-viewer/commit/e29f96bbae6fc00172e25950678725a89aea7e6a))
+- Refresh PORTING.md for this session's parity work (by @ChristopherVR) ([0283d34](https://github.com/ChristopherVR/pptx-viewer/commit/0283d347a8590c1bf92a12f6f63d3d4fb9d92127))
+
+### Testing
+
+- **e2e:** Add vanilla/svelte basics spec, fix vanilla resize-handle CSS bug (by @ChristopherVR) ([e6dcd30](https://github.com/ChristopherVR/pptx-viewer/commit/e6dcd303c147a327461721ae710fed83aa974160))
+
+### Build & CI
+
+- Wire vanilla and svelte bindings into workspace tooling (by @ChristopherVR) ([d99f5c0](https://github.com/ChristopherVR/pptx-viewer/commit/d99f5c08193730f766c3abb116578c9ca6f8663e))
+- Publish pptx-vanilla-viewer and pptx-svelte-viewer from the release pipeline (by @ChristopherVR) ([50dd90a](https://github.com/ChristopherVR/pptx-viewer/commit/50dd90aa3a7a707d9c56d3755098b431c37457b5))
+
+### Chores
+
+- Bump vanilla + svelte to 0.1.1; clarify view-only in READMEs (by @ChristopherVR) ([0bc44ab](https://github.com/ChristopherVR/pptx-viewer/commit/0bc44ab3b083c7d8aeed51197584f8eee04fc9ee))
+
+## 2026-07-10
+
 _Releases: pptx-viewer-core@1.2.8, pptx-react-viewer@1.13.1, pptx-vue-viewer@1.13.1, pptx-angular-viewer@1.13.2_
 
 ### Bug Fixes
