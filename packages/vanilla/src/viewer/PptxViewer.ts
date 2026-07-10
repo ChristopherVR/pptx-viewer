@@ -1,15 +1,17 @@
 import type { PptxHandler } from 'pptx-viewer-core';
-import { EncryptedFileError } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
 
 import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
 import { buildMountChromeDeps, mountChrome, unmountChrome } from './chrome-lifecycle';
 import type { EditorController } from './editor';
 import { createEditorController } from './editor';
+import type { ExportPdfOptions } from './export';
+import type { ExportLifecycle } from './export-lifecycle';
+import { createExportLifecycle } from './export-lifecycle';
 import type { Translator } from './i18n';
 import { createTranslator } from './i18n';
-import type { PptxViewerSource } from './load';
-import { loadPresentation, resolveSourceToBuffer, revokeBlobUrls } from './load';
+import type { LoadingController } from './loading-controller';
+import { createLoadingController } from './loading-controller';
 import type { ElementRendererRegistry } from './render';
 import { createDefaultRegistry } from './render';
 import type { RenderController } from './render-controller';
@@ -44,10 +46,9 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 	t: Translator;
 	lifecycle!: ChromeLifecycle;
 	editor!: EditorController;
+	private readonly loading: LoadingController;
+	private readonly exportLifecycle: ExportLifecycle;
 	private readonly registry: ElementRendererRegistry;
-	private handler: PptxHandler | null = null;
-	private blobUrls: string[] = [];
-	private loadToken = 0;
 	private destroyed = false;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
@@ -57,6 +58,12 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 		this.t = createTranslator(options.locale ?? 'en', options.messages);
 		this.registry = options.registry ?? createDefaultRegistry();
 		this.store = createStore(createInitialViewerState());
+		this.loading = createLoadingController({
+			options,
+			store: this.store,
+			getTranslator: () => this.t,
+			getEditor: () => this.editor,
+		});
 		this.renderer = createRenderController({
 			doc: this.doc,
 			store: this.store,
@@ -75,10 +82,18 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 			getChrome: () => this.lifecycle.chrome,
 			getTranslator: () => this.t,
 			getScale: () => this.renderer.effectiveScale(),
-			getHandler: () => this.handler,
+			getHandler: () => this.loading.getHandler(),
 			onChange: options.onChange,
 		});
 		this.editor.attachChrome();
+		this.exportLifecycle = createExportLifecycle({
+			doc: this.doc,
+			container: this.container,
+			store: this.store,
+			registry: this.registry,
+			getTranslator: () => this.t,
+			smartArt3D: options.smartArt3D ?? false,
+		});
 		if (options.editable) {
 			this.store.set({ editable: true });
 			this.editor.setEditable(true);
@@ -93,65 +108,18 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 		this.renderer.renderAll();
 
 		if (options.source !== undefined) {
-			void this.load(options.source);
+			void this.loading.load(options.source);
 		}
 	}
 
 	// ── Loading ────────────────────────────────────────────────────────────
 
 	async loadFile(file: Blob | ArrayBuffer | Uint8Array): Promise<void> {
-		await this.load(file);
+		await this.loading.load(file);
 	}
 
 	async loadUrl(url: string): Promise<void> {
-		await this.load(url);
-	}
-
-	private async load(source: PptxViewerSource): Promise<void> {
-		const token = ++this.loadToken;
-		this.editor?.reset();
-		this.store.set({ loading: true, error: null });
-		try {
-			const buffer = await resolveSourceToBuffer(source);
-			const loaded = await loadPresentation(buffer);
-			if (token !== this.loadToken) {
-				revokeBlobUrls(loaded.blobUrls);
-				loaded.handler.dispose();
-				return;
-			}
-			this.releaseLoaded();
-			this.handler = loaded.handler;
-			this.blobUrls = loaded.blobUrls;
-			this.store.set({
-				slides: loaded.slides,
-				canvasSize: loaded.canvasSize,
-				mediaDataUrls: loaded.mediaDataUrls,
-				currentSlide: clampSlideIndex(this.options.initialSlide ?? 0, loaded.slides.length),
-				loading: false,
-			});
-			this.options.onLoad?.({ slideCount: loaded.slides.length, canvasSize: loaded.canvasSize });
-		} catch (error) {
-			if (token !== this.loadToken) {
-				return;
-			}
-			const message =
-				error instanceof EncryptedFileError
-					? this.t('pptx.security.currentlyProtected')
-					: error instanceof Error
-						? error.message
-						: String(error);
-			this.store.set({ loading: false, error: message });
-			this.options.onError?.(message, error);
-		}
-	}
-
-	/** Dispose the previous handler + Blob URLs (before replacing or on destroy). */
-	private releaseLoaded(): void {
-		revokeBlobUrls(this.blobUrls);
-		revokeBlobUrls(this.store.get().mediaDataUrls.values());
-		this.blobUrls = [];
-		this.handler?.dispose();
-		this.handler = null;
+		await this.loading.load(url);
 	}
 
 	// ── Navigation / zoom ──────────────────────────────────────────────────
@@ -258,6 +226,16 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 		this.editor.deleteSelected();
 	}
 
+	// ── Export ────────────────────────────────────────────────────────────
+
+	async exportSlidePng(index?: number): Promise<void> {
+		return this.exportLifecycle.exportSlidePng(index);
+	}
+
+	async exportPdf(options?: ExportPdfOptions): Promise<void> {
+		return this.exportLifecycle.exportPdf(options);
+	}
+
 	getSelectedElementId(): string | null {
 		return this.editor.getSelectedElementId();
 	}
@@ -279,7 +257,7 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 	}
 
 	getHandler(): PptxHandler | null {
-		return this.handler;
+		return this.loading.getHandler();
 	}
 
 	destroy(): void {
@@ -287,10 +265,11 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 			return;
 		}
 		this.destroyed = true;
-		this.loadToken++;
+		this.loading.invalidate();
 		this.editor.destroy();
+		this.exportLifecycle.destroy();
 		unmountChrome(this.lifecycle, () => this.editor?.detachChrome());
-		this.releaseLoaded();
+		this.loading.releaseLoaded();
 	}
 
 	// ── Chrome lifecycle ───────────────────────────────────────────────────

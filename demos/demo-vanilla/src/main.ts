@@ -4,6 +4,8 @@ import { PptxHandler } from 'pptx-viewer-core';
 
 import { getLanguage, onLanguageChange, setLanguage, t, viewerMessages } from './demo-i18n';
 import { createDropzone } from './dropzone';
+import type { ExportBar } from './export-bar';
+import { createExportBar } from './export-bar';
 import { createLanguagePicker } from './language-picker';
 import { createThemePicker } from './theme-picker';
 import { readStoredTheme, storeTheme, themes } from './themes';
@@ -25,6 +27,7 @@ const app: HTMLElement = appRoot;
 
 let themeKey = readStoredTheme();
 let viewer: PptxViewerInstance | null = null;
+let exportBar: ExportBar | null = null;
 let appliedVarKeys: string[] = [];
 
 // Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`,
@@ -71,6 +74,7 @@ onLanguageChange((code) => {
 	viewer?.setLocale(code);
 	themePicker.refresh();
 	languagePicker.refresh();
+	exportBar?.refresh();
 	if (!viewer) {
 		showLanding();
 	}
@@ -91,6 +95,8 @@ function showError(message: string): void {
 function openViewer(source: PptxViewerSource, name: string): void {
 	viewer?.destroy();
 	viewer = null;
+	exportBar?.destroy();
+	exportBar = null;
 	app.replaceChildren();
 
 	const shell = document.createElement('div');
@@ -111,11 +117,18 @@ function openViewer(source: PptxViewerSource, name: string): void {
 			showError(message || t('demo.viewer.loadError'));
 		},
 	});
+	exportBar = createExportBar({
+		exportPng: () => viewer?.exportSlidePng() ?? Promise.resolve(),
+		exportPdf: () => viewer?.exportPdf() ?? Promise.resolve(),
+	});
+	shell.append(exportBar.el);
 }
 
 function showLanding(): void {
 	viewer?.destroy();
 	viewer = null;
+	exportBar?.destroy();
+	exportBar = null;
 	document.title = 'pptx-vanilla-viewer demo';
 	app.replaceChildren();
 	app.append(

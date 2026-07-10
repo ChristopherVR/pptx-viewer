@@ -1,6 +1,7 @@
 import type { PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize, ViewerTheme } from 'pptx-viewer-shared';
 
+import type { ExportPdfOptions } from './export';
 import type { TranslationMessages } from './i18n';
 import type { PptxViewerSource } from './load';
 import type { ElementRendererRegistry } from './render';
@@ -131,6 +132,17 @@ export interface PptxViewerInstance {
 	deleteSelected(): void;
 	/** Id of the selected element, or `null`. */
 	getSelectedElementId(): string | null;
+	/**
+	 * Export a slide as a PNG download (defaults to the current slide). Renders
+	 * the slide off-screen at scale 1 and rasterises it with `html2canvas-pro`
+	 * (dynamically imported), so the first call pays a one-time load cost.
+	 */
+	exportSlidePng(index?: number): Promise<void>;
+	/**
+	 * Export every slide as a multi-page PDF download (one slide per page).
+	 * `jspdf` is dynamically imported on first use.
+	 */
+	exportPdf(options?: ExportPdfOptions): Promise<void>;
 	/** The element-renderer registry in effect (extension point). */
 	getRegistry(): ElementRendererRegistry;
 	/**

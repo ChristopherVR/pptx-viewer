@@ -21,6 +21,12 @@ export default defineConfig((options) => ({
 		// it external so no accidental re-export drags it into the bundle.
 		'three',
 		/^three\//u,
+		// PNG/PDF export libraries: both are dynamically `import()`-ed only when
+		// export is actually used (see viewer/export/render-to-canvas.ts and
+		// export-controller.ts). Kept external so `splitting: false` doesn't
+		// collapse the dynamic import into an eager one.
+		'html2canvas-pro',
+		'jspdf',
 	],
 	// Bundle the internal workspace packages so consumers can install just
 	// `pptx-vanilla-viewer` without also pulling `pptx-viewer-core` from npm.

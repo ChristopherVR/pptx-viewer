@@ -38,6 +38,9 @@ export {
 	renderSlideStage,
 } from './viewer';
 
+// ── Export (PNG / PDF) ──────────────────────────────────────────────────
+export type { ExportPdfOptions, ExportProgress } from './viewer';
+
 // ── i18n / styles ──────────────────────────────────────────────────────
 export type { TranslationMessages, Translator } from './viewer';
 export { createTranslator, getViewerCss } from './viewer';
