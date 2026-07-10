@@ -1,5 +1,16 @@
 # pptx-vanilla-viewer
 
+> ### ⚠️ Viewing capability only
+>
+> This release provides **read-only / viewing** of `.pptx` files.
+> Editing, saving, and authoring features are **not available** in this
+> version and will be added in a future release.
+>
+> The package is under active development and the API may change.
+> For the latest source, roadmap, and issue tracker visit:
+>
+> **https://github.com/ChristopherVR/pptx-viewer**
+
 Zero-framework PowerPoint viewer: render `.pptx` slides in the browser with
 plain DOM. No React, Vue, or Angular required; the parsing engine
 (`pptx-viewer-core`) and the shared render logic (`pptx-viewer-shared`) are
