@@ -8,6 +8,8 @@
 [![pptx-react-viewer](https://img.shields.io/npm/v/pptx-react-viewer?label=pptx-react-viewer)](https://www.npmjs.com/package/pptx-react-viewer)
 [![pptx-vue-viewer](https://img.shields.io/npm/v/pptx-vue-viewer?label=pptx-vue-viewer)](https://www.npmjs.com/package/pptx-vue-viewer)
 [![pptx-angular-viewer](https://img.shields.io/npm/v/pptx-angular-viewer?label=pptx-angular-viewer)](https://www.npmjs.com/package/pptx-angular-viewer)
+[![pptx-vanilla-viewer](https://img.shields.io/npm/v/pptx-vanilla-viewer?label=pptx-vanilla-viewer)](https://www.npmjs.com/package/pptx-vanilla-viewer)
+[![pptx-svelte-viewer](https://img.shields.io/npm/v/pptx-svelte-viewer?label=pptx-svelte-viewer)](https://www.npmjs.com/package/pptx-svelte-viewer)
 [![pptx-viewer-mcp](https://img.shields.io/npm/v/pptx-viewer-mcp?label=pptx-viewer-mcp)](https://www.npmjs.com/package/pptx-viewer-mcp)
 [![@christophervr/pptx-viewer](https://img.shields.io/npm/v/%40christophervr%2Fpptx-viewer?label=npx%20installer)](https://www.npmjs.com/package/@christophervr/pptx-viewer)
 
