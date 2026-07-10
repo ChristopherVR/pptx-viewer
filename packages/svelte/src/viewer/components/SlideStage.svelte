@@ -12,7 +12,8 @@
 	import ElementRenderer from './ElementRenderer.svelte';
 	import type { SlideStageProps } from './props';
 
-	const { slide, canvasSize, mediaDataUrls, scale = 1 }: SlideStageProps = $props();
+	const { slide, canvasSize, mediaDataUrls, scale = 1, presenting = false }: SlideStageProps =
+		$props();
 
 	const stageStyle = $derived(
 		styleToString({
@@ -30,6 +31,6 @@
 
 <div class="pptx-svelte-stage" style={stageStyle}>
 	{#each slide?.elements ?? [] as element, index (element.id)}
-		<ElementRenderer {element} {mediaDataUrls} zIndex={index} />
+		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} />
 	{/each}
 </div>

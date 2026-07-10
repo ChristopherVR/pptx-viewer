@@ -17,6 +17,8 @@ export interface SlideStageOptions {
 	scale?: number;
 	/** Opt-in WebGL SmartArt renderer flag; see `PptxViewerOptions.smartArt3D`. */
 	smartArt3D?: boolean;
+	/** True only for the live presentation stage; see `ElementRenderContext.presenting`. */
+	presenting?: boolean;
 }
 
 /**
@@ -50,6 +52,7 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		mediaDataUrls,
 		t,
 		smartArt3D: options.smartArt3D ?? false,
+		presenting: options.presenting ?? false,
 		registry,
 		renderElement(element: PptxElement, zIndex: number) {
 			return registry.resolve(element.type)(element, zIndex, context);

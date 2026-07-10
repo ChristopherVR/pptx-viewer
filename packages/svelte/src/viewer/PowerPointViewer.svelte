@@ -190,6 +190,7 @@
 						canvasSize={loader.canvasSize}
 						mediaDataUrls={loader.mediaDataUrls}
 						{scale}
+						presenting={viewer.isFullscreen}
 					/>
 				</div>
 			{:else}

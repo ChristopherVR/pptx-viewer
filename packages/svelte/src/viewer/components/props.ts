@@ -12,6 +12,14 @@ export interface ElementRendererProps {
 	element: PptxElement;
 	mediaDataUrls: Map<string, string>;
 	zIndex: number;
+	/**
+	 * True only on the live presentation stage (the viewer's fullscreen
+	 * surface): media elements should then autoplay, as PowerPoint does when a
+	 * slide with media becomes active, rather than waiting for a manual click.
+	 * Defaults to `false` (the main windowed canvas and thumbnail rail never
+	 * autoplay).
+	 */
+	presenting?: boolean;
 }
 
 export interface TextBlockProps {
@@ -25,6 +33,8 @@ export interface SlideStageProps {
 	canvasSize: CanvasSize;
 	mediaDataUrls: Map<string, string>;
 	scale?: number;
+	/** Forwarded to each `ElementRenderer`; see `ElementRendererProps.presenting`. */
+	presenting?: boolean;
 }
 
 export interface ViewerToolbarProps {

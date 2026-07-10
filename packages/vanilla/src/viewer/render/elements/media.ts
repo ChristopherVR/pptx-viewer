@@ -1,4 +1,4 @@
-import { getContainerStyle, getImageSrc } from 'pptx-viewer-shared';
+import { getContainerStyle, getImageSrc, startMediaAutoplay } from 'pptx-viewer-shared';
 
 import { createEl } from '../dom';
 import type { ElementRenderer } from '../types';
@@ -15,11 +15,32 @@ import type { ElementRenderer } from '../types';
  * - No playable source: the poster / thumbnail image alone (shared
  *   `getImageSrc` resolves `posterFrameData` / `posterFramePath`).
  * - Nothing at all: a graceful typed fallback box labelled "Media".
- *
- * Not ported (host-state dependent in Vue): presentation-mode autoplay
- * (`startMediaAutoplay`) and the edit-canvas controls suppression; the vanilla
- * binding is a plain viewer, so controls are always enabled.
+ * - Presentation-mode autoplay: when `context.presenting` is true the element
+ *   starts playing right after it is appended to the DOM (matching Vue's
+ *   mounted-watcher via the shared `startMediaAutoplay`); the edit-canvas
+ *   controls suppression Vue does is not applicable here, the vanilla binding
+ *   is a plain viewer, so controls are always enabled.
  */
+
+/**
+ * Apply the presentation-mode play/pause state to a mounted `<video>`/`<audio>`
+ * element. Since the vanilla renderer rebuilds the whole stage on every state
+ * change (no persistent element to `watch`), this runs once right after the
+ * element is appended: start autoplay when presenting, otherwise make sure a
+ * (rare, already-playing) element is paused. Exported for direct testing.
+ */
+export function applyMediaPresentingState(
+	el: HTMLMediaElement,
+	presenting: boolean,
+	trimStartMs: number | undefined,
+): void {
+	if (presenting) {
+		startMediaAutoplay(el, { trimStartMs });
+	} else if (!el.paused) {
+		el.pause();
+	}
+}
+
 export const renderMediaElement: ElementRenderer = (element, zIndex, context) => {
 	if (element.type !== 'media') {
 		return null;
@@ -48,6 +69,7 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 			video.setAttribute('poster', posterSrc);
 		}
 		el.appendChild(video);
+		applyMediaPresentingState(video, context.presenting, element.trimStartMs);
 		return el;
 	}
 
@@ -56,6 +78,7 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 		audio.src = mediaSrc;
 		audio.controls = true;
 		el.appendChild(audio);
+		applyMediaPresentingState(audio, context.presenting, element.trimStartMs);
 		return el;
 	}
 

@@ -1,17 +1,20 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../../i18n';
 import { createElementRendererRegistry } from '../registry';
 import type { ElementRenderContext } from '../types';
-import { renderMediaElement } from './media';
+import { applyMediaPresentingState, renderMediaElement } from './media';
 
 const PNG_DATA_URL =
 	'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 const MP4_DATA_URL = 'data:video/mp4;base64,AAAA';
 const MP3_DATA_URL = 'data:audio/mpeg;base64,AAAA';
 
-function makeContext(mediaDataUrls = new Map<string, string>()): ElementRenderContext {
+function makeContext(
+	mediaDataUrls = new Map<string, string>(),
+	presenting = false,
+): ElementRenderContext {
 	const registry = createElementRendererRegistry();
 	const context: ElementRenderContext = {
 		document,
@@ -21,6 +24,7 @@ function makeContext(mediaDataUrls = new Map<string, string>()): ElementRenderCo
 		mediaDataUrls,
 		t: createTranslator(),
 		smartArt3D: false,
+		presenting,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),
 	};
@@ -105,5 +109,79 @@ describe('renderMediaElement', () => {
 		expect(node.querySelector('img')).toBeNull();
 		expect(node.classList.contains('pptxv-placeholder')).toBeTruthy();
 		expect(node.textContent).toContain('Media');
+	});
+
+	describe('presentation-mode autoplay', () => {
+		it('autoplays the mounted <video> when context.presenting is true', () => {
+			const node = renderMediaElement(
+				mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL }),
+				0,
+				makeContext(new Map(), true),
+			) as HTMLElement;
+			const video = node.querySelector<HTMLVideoElement>('video');
+			expect(video).toBeTruthy();
+			// happy-dom's play() flips `paused` synchronously, mirroring real
+			// browsers closely enough to assert autoplay actually started.
+			expect(video?.paused).toBeFalsy();
+		});
+
+		it('autoplays the mounted <audio> when context.presenting is true', () => {
+			const node = renderMediaElement(
+				mediaElement({ mediaType: 'audio', mediaData: MP3_DATA_URL }),
+				0,
+				makeContext(new Map(), true),
+			) as HTMLElement;
+			const audio = node.querySelector<HTMLAudioElement>('audio');
+			expect(audio).toBeTruthy();
+			expect(audio?.paused).toBeFalsy();
+		});
+
+		it('does not autoplay when context.presenting is false', () => {
+			const node = renderMediaElement(
+				mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL }),
+				0,
+				makeContext(new Map(), false),
+			) as HTMLElement;
+			const video = node.querySelector<HTMLVideoElement>('video');
+			expect(video?.paused).toBeTruthy();
+		});
+
+		it('seeks to the trim-start point before autoplaying', () => {
+			const node = renderMediaElement(
+				mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL, trimStartMs: 2500 }),
+				0,
+				makeContext(new Map(), true),
+			) as HTMLElement;
+			const video = node.querySelector<HTMLVideoElement>('video');
+			expect(video?.currentTime).toBe(2.5);
+		});
+
+		it('applyMediaPresentingState pauses an element that is already playing when presenting flips to false', () => {
+			const video = document.createElement('video');
+			video.play();
+			expect(video.paused).toBeFalsy();
+
+			applyMediaPresentingState(video, false, undefined);
+
+			expect(video.paused).toBeTruthy();
+		});
+
+		it('applyMediaPresentingState is a no-op pause-wise for an element already paused', () => {
+			const video = document.createElement('video');
+			const pauseSpy = vi.spyOn(video, 'pause');
+
+			applyMediaPresentingState(video, false, undefined);
+
+			expect(pauseSpy).not.toHaveBeenCalled();
+		});
+
+		it('applyMediaPresentingState starts playback (with trim seek) when presenting is true', () => {
+			const video = document.createElement('video');
+
+			applyMediaPresentingState(video, true, 1000);
+
+			expect(video.currentTime).toBe(1);
+			expect(video.paused).toBeFalsy();
+		});
 	});
 });

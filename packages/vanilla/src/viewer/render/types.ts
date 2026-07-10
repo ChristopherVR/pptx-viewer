@@ -36,6 +36,12 @@ export interface ElementRenderContext {
 	 * `false` when the option is unset.
 	 */
 	readonly smartArt3D: boolean;
+	/**
+	 * True only for the live presentation stage (real Fullscreen API active):
+	 * media renderers use this to autoplay once mounted, matching PowerPoint's
+	 * slideshow behaviour. `false` for the editor canvas and thumbnail rail.
+	 */
+	readonly presenting: boolean;
 	/** The registry in effect, for renderers that need to inspect it. */
 	readonly registry: ElementRendererRegistry;
 	/**

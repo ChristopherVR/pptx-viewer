@@ -29,7 +29,7 @@
 	import ZoomView from './ZoomView.svelte';
 	import type { ElementRendererProps } from './props';
 
-	const { element, mediaDataUrls, zIndex }: ElementRendererProps = $props();
+	const { element, mediaDataUrls, zIndex, presenting = false }: ElementRendererProps = $props();
 
 	/** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
 	const smartArt3D = useSmartArt3D();
@@ -52,7 +52,7 @@
 		data-element-id={element.id}
 	>
 		{#each element.children ?? [] as child, i (child.id)}
-			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} />
+			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} />
 		{/each}
 	</div>
 {:else if isImageLike}
@@ -68,7 +68,7 @@
 {:else if element.type === 'smartArt'}
 	<SmartArtView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'media'}
-	<MediaBox {element} {mediaDataUrls} {zIndex} />
+	<MediaBox {element} {mediaDataUrls} {zIndex} {presenting} />
 {:else if element.type === 'ink'}
 	<InkView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'ole'}

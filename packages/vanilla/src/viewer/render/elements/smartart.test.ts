@@ -31,6 +31,7 @@ function makeContext(smartArt3D = false): ElementRenderContext {
 		mediaDataUrls: new Map<string, string>(),
 		t: createTranslator(),
 		smartArt3D,
+		presenting: false,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),
 	};

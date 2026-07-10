@@ -9,19 +9,49 @@
 	 *   one exists); audio renders a native `<audio controls>`.
 	 * - No playable source: the poster / thumbnail image alone.
 	 * - Nothing at all: a graceful typed fallback box labelled "Media".
+	 *
+	 * Presentation-mode autoplay: once the `<video>`/`<audio>` element is
+	 * mounted and `presenting` is on (the live fullscreen stage), playback
+	 * starts on its own via the shared `startMediaAutoplay` (matches Vue's
+	 * `ElementMediaBox.vue`, so all bindings behave identically); it pauses
+	 * again when `presenting` turns off.
 	 */
+	import { startMediaAutoplay } from 'pptx-viewer-shared';
+
 	import { useTranslator } from '../../i18n/context';
 	import { resolveMediaView } from '../render';
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, mediaDataUrls, zIndex }: ElementRendererProps = $props();
+	const { element, mediaDataUrls, zIndex, presenting = false }: ElementRendererProps = $props();
 	const t = useTranslator();
 
 	const media = $derived(element.type === 'media' ? element : undefined);
 	const view = $derived(media ? resolveMediaView(media, mediaDataUrls) : undefined);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 	const isFallback = $derived(view !== undefined && !view.mediaSrc && !view.posterSrc);
+	const trimStartMs = $derived(media?.trimStartMs);
+
+	// The conditionally-rendered `<video>`/`<audio>` template's `bind:this`
+	// writes this (invisible to the linter); it must be `$state` so Svelte
+	// re-binds it as the element enters/leaves the DOM across template
+	// branches (same pattern as Model3dView's `sceneHost`).
+	// eslint-disable-next-line prefer-const, no-unassigned-vars
+	let mediaEl: HTMLVideoElement | HTMLAudioElement | undefined = $state();
+
+	$effect(() => {
+		const el = mediaEl;
+		// Track trimStartMs so a change while already presenting re-seeks.
+		const trim = trimStartMs;
+		if (!el) {
+			return;
+		}
+		if (presenting) {
+			startMediaAutoplay(el, { trimStartMs: trim });
+		} else if (!el.paused) {
+			el.pause();
+		}
+	});
 </script>
 
 {#if media && view}
@@ -34,6 +64,7 @@
 		{#if view.mediaSrc && media.mediaType === 'video'}
 			<!-- svelte-ignore a11y_media_has_caption -- source PPTX media carries no caption track -->
 			<video
+				bind:this={mediaEl}
 				class="pptx-svelte-media-video"
 				src={view.mediaSrc}
 				poster={view.posterSrc}
@@ -42,7 +73,8 @@
 				playsinline
 			></video>
 		{:else if view.mediaSrc && media.mediaType === 'audio'}
-			<audio class="pptx-svelte-media-audio" src={view.mediaSrc} controls></audio>
+			<audio bind:this={mediaEl} class="pptx-svelte-media-audio" src={view.mediaSrc} controls
+			></audio>
 		{:else if view.posterSrc}
 			<img class="pptx-svelte-media-poster" src={view.posterSrc} alt="" />
 		{:else}
