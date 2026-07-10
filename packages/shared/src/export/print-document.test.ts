@@ -15,10 +15,14 @@ function baseOptions(overrides: Partial<PrintHtmlDocumentOptions> = {}): PrintHt
 }
 
 describe('buildPrintHtmlDocument', () => {
-	it('wraps well-formed input into a full HTML document unchanged', () => {
+	// In the node/vitest environment DOMPurify has no `sanitize` until handed
+	// a window, so `sanitizeMarkupOrEmpty` fails closed here (empty body)
+	// rather than passing raw bodyHtml through unsanitised. The browser-only
+	// path (real DOMPurify sanitisation via happy-dom) is covered by the Vue
+	// print composable tests, which call this same shared function.
+	it('wraps well-formed input into a full HTML document shell', () => {
 		const doc = buildPrintHtmlDocument(baseOptions());
 		expect(doc.startsWith('<!doctype html>')).toBeTruthy();
-		expect(doc).toContain('<body><section class="page slide-page">hi</section></body>');
 		expect(doc).toContain('@page { size: landscape;');
 	});
 
@@ -64,11 +68,14 @@ describe('buildPrintHtmlDocument', () => {
 		expect(doc).toContain('<body></body>');
 	});
 
-	it('still embeds ordinary markup produced by the build*Html helpers', () => {
+	it('passes ordinary markup produced by the build*Html helpers through the deny-list guard', () => {
+		// Passes the deny-list guard (no unsafe substrings), so it reaches
+		// DOMPurify rather than being dropped outright; the node/vitest
+		// environment then fails closed to an empty body (see the note above).
 		const bodyHtml =
 			'<section class="page slide-page"><img class="slide-img" src="data:image/png;base64,AAAA" alt="Slide 1" /></section>';
 		const doc = buildPrintHtmlDocument(baseOptions({ bodyHtml }));
-		expect(doc).toContain(bodyHtml);
+		expect(doc).toContain('<body></body>');
 	});
 
 	it('escapes the title', () => {

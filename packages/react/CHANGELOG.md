@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.13.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.13.1) - 2026-07-10
+
+### Bug Fixes
+
+- **react:** Fix Turbopack minification collision, cut bundle size (by @al3xius) ([2d15c45](https://github.com/ChristopherVR/pptx-viewer/commit/2d15c45c9415e3024fc5205346d3eeb86e161a96))
+- **shared:** Sanitize print-document/SVG assembly with DOMPurify (by @ChristopherVR) ([84527b6](https://github.com/ChristopherVR/pptx-viewer/commit/84527b63350643d0a78b37d7ea55238fe4a8fa72))
+
+### Reverts
+
+- Exclude unrelated tsup.config.ts change from the CodeQL print-sanitization commit (by @ChristopherVR) ([bdc44d3](https://github.com/ChristopherVR/pptx-viewer/commit/bdc44d32330f3a9769f300c5be1676bba789d12b))
+
 ## [1.13.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.13.0) - 2026-07-09
 
 ## [1.12.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.12.0) - 2026-07-09

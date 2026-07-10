@@ -1,3 +1,11 @@
+// @vitest-environment jsdom
+//
+// buildPrintDocument's body is sanitised through DOMPurify, which walks/
+// rewrites the parsed DOM tree. happy-dom (this package's default test
+// environment) has a tree-walking bug that drops/unwraps container elements
+// during that rewrite; jsdom does not, and is what actually approximates the
+// real browsers this code runs in (`window.open` print windows), so this
+// file opts into jsdom specifically to get a faithful sanitisation result.
 import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 

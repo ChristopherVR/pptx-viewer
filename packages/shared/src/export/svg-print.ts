@@ -1,12 +1,13 @@
 /**
- * Pure SVG-print string helpers — shared by bindings that offer a vector print
+ * Pure SVG-print string helpers, shared by bindings that offer a vector print
  * path (currently React). These build self-contained SVG / print-HTML strings
  * and escape text; they touch no DOM.
  *
  * The DOM-bound driver pieces (cloning the live element tree, reading
  * `getComputedStyle`, fetching images to base64, `Blob` wrapping) stay in the
- * binding — only the string assembly and escaping live here.
+ * binding; only the string assembly and escaping live here.
  */
+import { sanitizeMarkupOrEmpty } from '../render/dompurify-safe';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -197,7 +198,14 @@ export function buildPrintDocument(
 
 	const slidePages = svgs
 		.map((svg, i) => {
-			const safeSvg = isSafeSvgMarkup(svg) ? svg : '';
+			// Belt-and-suspenders: the structural allow/deny-list guard runs
+			// first, then DOMPurify's SVG profile actually transforms the
+			// markup (stripping `<script>`/`<foreignObject>`/event handlers/
+			// `javascript:` URIs) before it is spliced in, rather than merely
+			// gating the raw, untransformed string behind a boolean check.
+			const safeSvg = isSafeSvgMarkup(svg)
+				? sanitizeMarkupOrEmpty(svg, { USE_PROFILES: { svg: true } })
+				: '';
 			return `<section class="print-slide-page" aria-label="Slide ${i + 1}">
   ${safeSvg}
 </section>`;

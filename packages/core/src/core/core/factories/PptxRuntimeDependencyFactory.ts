@@ -71,6 +71,19 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			// More generally, OOXML element text is always an untyped string;
 			// downstream callers coerce where needed.
 			parseTagValue: false,
+			// `<a:t>` run text must survive verbatim. PowerPoint frequently
+			// splits a sentence across many runs (spell-check, autocorrect),
+			// and a word boundary often ends up as its own run whose `<a:t>`
+			// is a single space, e.g. `<a:r><a:t> </a:t></a:r>`.
+			// fast-xml-parser's default `trimValues: true` trims that
+			// whitespace-only text node down to `""`, silently dropping the
+			// space and gluing the surrounding words together
+			// ("so we immediately start" -> "soweimmediatelystart"). Turn
+			// trimming off globally and re-apply it ourselves in
+			// tagValueProcessor for every tag except `a:t`, so non-text
+			// values (docProps, counters, etc.) keep their old trimmed
+			// behaviour and no whitespace-only text node is lost.
+			trimValues: false,
 			// Security hardening (Load M3): explicitly disable XML entity
 			// processing. PPTX XML never uses DOCTYPE / DTDs, so allowing
 			// entity expansion serves only as an attack surface
@@ -85,7 +98,10 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			// they cannot trigger entity expansion, so the security guarantee
 			// above is preserved - so text nodes hold their real characters and
 			// the builder re-encodes them symmetrically on save.
-			tagValueProcessor: (_tagName: string, tagValue: string) => decodeXmlEntities(tagValue),
+			tagValueProcessor: (tagName: string, tagValue: string) => {
+				const decoded = decodeXmlEntities(tagValue);
+				return tagName === 'a:t' ? decoded : decoded.trim();
+			},
 		});
 	}
 
