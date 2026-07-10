@@ -107,16 +107,13 @@ describe('elementRenderer dispatch', () => {
 		expect(target.querySelector('[data-element-id="c2"]')).not.toBeNull();
 	});
 
-	it.each(['contentPart', 'zoom', 'model3d'] as const)(
-		'renders a typed placeholder for %s elements',
-		(type) => {
-			const target = mountEl({ ...base, type } as PptxElement);
-			const placeholder = target.querySelector<HTMLElement>('.pptx-svelte-placeholder');
-			expect(placeholder).not.toBeNull();
-			expect(placeholder?.dataset.elementType).toBe(type);
-			expect(placeholder?.getAttribute('style')).toContain('width: 120px');
-		},
-	);
+	it('renders a typed placeholder for unknown elements', () => {
+		const target = mountEl({ ...base, type: 'unknown' } as PptxElement);
+		const placeholder = target.querySelector<HTMLElement>('.pptx-svelte-placeholder');
+		expect(placeholder).not.toBeNull();
+		expect(placeholder?.dataset.elementType).toBe('unknown');
+		expect(placeholder?.getAttribute('style')).toContain('width: 120px');
+	});
 
 	it.each([
 		['table', '.pptx-svelte-table'],
@@ -125,6 +122,9 @@ describe('elementRenderer dispatch', () => {
 		['media', '.pptx-svelte-media'],
 		['ink', '.pptx-svelte-ink'],
 		['ole', '.pptx-svelte-ole'],
+		['contentPart', '.pptx-svelte-contentpart'],
+		['zoom', '.pptx-svelte-zoom'],
+		['model3d', '.pptx-svelte-model3d'],
 	] as const)(
 		'dispatches %s elements to their real renderer, not the placeholder',
 		(type, selector) => {
@@ -146,6 +146,7 @@ describe('elementRenderer dispatch', () => {
 						}
 					: {}),
 				...(type === 'ink' ? { inkPaths: ['M 0 0 L 5 5'] } : {}),
+				...(type === 'zoom' ? { zoomType: 'slide', targetSlideIndex: 0 } : {}),
 			} as PptxElement;
 			const target = mountEl(element);
 			expect(target.querySelector('.pptx-svelte-placeholder')).toBeNull();

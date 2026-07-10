@@ -2,10 +2,12 @@
 
 Tracks what the two newest bindings still need to reach parity with the
 established React / Vue / Angular bindings. Scope note: both shipped as a
-**viewer-only first milestone**; the mature bindings are full viewer+editor
-components. This file is the working checklist for closing that gap. Remove
-it once both bindings reach parity (the Vue port's tracker was removed the
-same way).
+**viewer-only first milestone**; Vanilla has since gained a first editing
+pass (selection, move/resize/rotate, inline text, undo/redo, save/download -
+see the Snapshot table below), Svelte remains viewer-only. The mature
+bindings are full viewer+editor components; this file is the working
+checklist for closing the remaining gap. Remove it once both bindings reach
+parity (the Vue port's tracker was removed the same way).
 
 ## Snapshot
 
@@ -15,35 +17,36 @@ same way).
 | Thumbnails / toolbar / fullscreen   | yes               | yes                 | yes                |
 | Theme system (ViewerTheme, presets) | yes               | yes                 | yes                |
 | text/shape/image/group/connector    | yes               | yes                 | yes                |
-| table                               | yes               | yes                 | placeholder        |
-| chart                               | yes               | yes                 | placeholder        |
-| smartArt (2D)                       | yes               | yes                 | placeholder        |
-| media (video/audio)                 | yes               | yes                 | placeholder        |
-| ink                                 | yes               | yes                 | placeholder        |
-| ole                                 | yes               | yes                 | placeholder        |
-| contentPart / zoom / model3d        | yes               | placeholder         | placeholder        |
+| table                               | yes               | yes                 | yes                |
+| chart                               | yes               | yes                 | yes                |
+| smartArt (2D)                       | yes               | yes                 | yes                |
+| media (video/audio)                 | yes               | yes                 | yes                |
+| ink                                 | yes               | yes                 | yes                |
+| ole                                 | yes               | yes                 | yes                |
+| contentPart / zoom / model3d        | yes               | yes                 | yes                |
 | 3D SmartArt (opt-in smartArt3D)     | yes               | no                  | no                 |
 | Animations / transitions playback   | yes               | no                  | no                 |
 | Presentation-mode media autoplay    | yes               | no                  | no                 |
 | Notes panel                         | yes               | no                  | no                 |
 | Export (PNG/PDF/GIF/video/print)    | yes               | no                  | no                 |
-| Editing (full editor)               | yes               | no                  | no                 |
+| Editing (full editor)               | yes               | partial (see below) | no                 |
 | Collaboration                       | yes               | no                  | no                 |
 | i18n locale registration            | yes               | partial (overrides) | partial (register) |
 | e2e specs in the Playwright harness | yes               | no                  | no                 |
 
-## Svelte: next up (port from vanilla, logic already in shared)
+Vanilla's "partial" editing: click-to-select, drag-to-move (with snap
+guides), resize (8 handles, Shift = aspect-lock), rotate, double-click
+inline text editing, undo/redo (100-entry history), delete, duplicate
+(`Ctrl/Cmd+D`), and save/download round-trip are all implemented (see
+`packages/vanilla/src/viewer/editor/`). Missing: a property/inspector
+panel, add-new-element, z-order/group operations, template (master/layout)
+editing, autosave, and collaboration.
 
-The vanilla binding already consumes every shared helper these need; the
-Svelte port is mostly thin SFCs over the same calls (see
-`packages/vanilla/src/viewer/render/elements/` for the reference wiring).
+## Svelte element renderers: done (port from vanilla is complete)
 
-- [ ] `table` renderer (shared: `getTableCellBandStyle`, `cellStyleToCss`, `getDiagonalBorders`, ...)
-- [ ] `chart` renderer (shared: `buildChartViewModel`, `resolveChartKind`, `getChartStylePalette`)
-- [ ] `smartArt` 2D renderer (shared: `projectDrawingShapes`, `computeSmartArtLayout`, `buildSmartArtA11y`)
-- [ ] `media` renderer (native `<video>`/`<audio>` + poster + fallback)
-- [ ] `ink` renderer (shared: `extractPathPoints`, pressure helpers)
-- [ ] `ole` renderer (shared: `resolveOleType`, `formatBytes`, download/open affordances)
+The Svelte port now has dedicated renderers for every element type the
+other bindings support, including `contentPart` / `zoom` / `model3d` - see
+`packages/svelte/src/viewer/components/ElementRenderer.svelte`.
 
 ## Both bindings
 
@@ -53,8 +56,6 @@ Rendering fidelity (gaps also noted in renderer JSDoc):
 - [ ] 3D extrusion side panels; connector labels; line shadow/glow effects
 - [ ] Theme colour scheme / `tableStyleMap` threading into the render context
       (table banding currently uses the shared hardcoded fallbacks)
-- [ ] `contentPart`, `zoom`, `model3d` renderers (model3d: shared `mountModel3D`
-      in `render/model3d-scene.ts` is framework-free and ready to mount)
 - [ ] 3D SmartArt via `pptx-viewer-shared/smartart-3d` behind an opt-in flag
 - [ ] Ink replay animation and highlighter/eraser blend modes
 - [ ] Per-node SmartArt a11y labels (needs Vue's node-order helpers promoted
@@ -80,13 +81,21 @@ i18n:
 
 Editing (the big one, sequence like the Vue/Angular ports):
 
-- [ ] Selection / move / resize / rotate interactions
-- [ ] Text inline editing
-- [ ] Ribbon / toolbar editing chrome, inspectors, dialogs
-- [ ] History (undo/redo), autosave (shared: `autosave-store`)
-- [ ] Save / download round-trip via `PptxHandler.save`
+Vanilla (`packages/vanilla/src/viewer/editor/`):
+
+- [x] Selection / move / resize / rotate interactions
+- [x] Text inline editing
+- [x] History (undo/redo)
+- [x] Save / download round-trip via `PptxHandler.save` (toolbar Save button
+      calls `downloadPptx()`)
+- [ ] Ribbon / toolbar editing chrome, inspectors, dialogs (still just
+      Save/Undo/Redo buttons - no property panel)
+- [ ] Autosave (shared: `autosave-store`)
+- [ ] Add-new-element and z-order/group operations
 - [ ] Template (master/layout) editing via `editTemplateMode`
 - [ ] Collaboration (shared CRDT reconcile + transports)
+
+Svelte: none of the above yet - not started.
 
 Tooling / QA:
 
