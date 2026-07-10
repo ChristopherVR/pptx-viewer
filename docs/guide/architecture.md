@@ -5,7 +5,7 @@ description: How pptx-viewer is structured - the relationship between framework 
 
 # Architecture
 
-`pptx-viewer` is a layered system. Framework bindings (React, Vue 3, Angular) handle the UI; a shared rendering layer provides framework-agnostic logic; and the core engine handles everything related to parsing, editing, and saving PowerPoint files. Each layer depends only on the one below it.
+`pptx-viewer` is a layered system. Framework bindings (React, Vue 3, Angular, Svelte, and a plain-DOM vanilla JS binding) handle the UI; a shared rendering layer provides framework-agnostic logic; and the core engine handles everything related to parsing, editing, and saving PowerPoint files. Each layer depends only on the one below it.
 
 ## Overview
 
@@ -15,6 +15,8 @@ graph TD
         React["React<br/><small>pptx-react-viewer</small>"]
         Vue["Vue 3<br/><small>pptx-vue-viewer</small>"]
         Angular["Angular<br/><small>pptx-angular-viewer</small>"]
+        Svelte["Svelte 5<br/><small>pptx-svelte-viewer</small>"]
+        Vanilla["Vanilla JS<br/><small>pptx-vanilla-viewer</small>"]
     end
 
     Shared["Shared Rendering Layer<br/><small>pptx-viewer-shared</small><br/><small>Geometry, styles, gradients, charts, connectors</small>"]
@@ -28,6 +30,8 @@ graph TD
     React --> Shared
     Vue --> Shared
     Angular --> Shared
+    Svelte --> Shared
+    Vanilla --> Shared
     Shared --> Handler
     Handler --> Runtime
     Runtime --> Subsystems
@@ -35,13 +39,13 @@ graph TD
 
 ## Framework bindings
 
-The binding packages are thin presentation layers. They consume pre-computed rendering data from `pptx-viewer-shared` and translate it into framework-specific templates (JSX, Vue SFCs, Angular components). Slides render as scaled HTML/SVG with CSS transforms, giving sharp text at any zoom, native accessibility, and full DOM interactivity.
+The binding packages are thin presentation layers. They consume pre-computed rendering data from `pptx-viewer-shared` and translate it into framework-specific templates (JSX, Vue SFCs, Angular components, Svelte 5 runes, or plain DOM calls for the vanilla binding). Slides render as scaled HTML/SVG with CSS transforms, giving sharp text at any zoom, native accessibility, and full DOM interactivity.
 
-Each binding exposes a top-level viewer/editor component that orchestrates state, editing, loading, export, collaboration, and presentation mode through composable hooks or services.
+React, Vue, and Angular each expose a top-level viewer/editor component that orchestrates state, editing, loading, export, collaboration, and presentation mode through composable hooks or services. Svelte and vanilla JS are newer, viewer-first bindings: both cover loading, rendering, navigation, and presentation; vanilla additionally has a first editing pass (select, drag, resize, rotate, inline text, undo/redo, save) but neither yet has export, collaboration, or full editor parity - see [PORTING.md](https://github.com/ChristopherVR/pptx-viewer/blob/main/PORTING.md) for the tracked gap.
 
 ## Shared rendering layer
 
-Most of the rendering logic is not framework-specific: geometry calculations, style/colour/gradient resolution, text and paragraph building, chart axis maths, connector routing, and export data preparation. All of this lives in `pptx-viewer-shared` and is imported identically by every binding. This ensures feature parity across React, Vue, and Angular without duplicating code.
+Most of the rendering logic is not framework-specific: geometry calculations, style/colour/gradient resolution, text and paragraph building, chart axis maths, connector routing, and export data preparation. All of this lives in `pptx-viewer-shared` and is imported identically by every binding. This ensures feature parity across React, Vue, Angular, Svelte, and vanilla JS without duplicating code.
 
 ## Core engine (`pptx-viewer-core`)
 

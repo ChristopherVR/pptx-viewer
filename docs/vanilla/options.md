@@ -32,12 +32,13 @@ type PptxViewerSource = ArrayBuffer | Uint8Array | Blob | string;
 
 ## Chrome & initial state
 
-| Option           | Type      | Default | Description                                                                                             |
-| ---------------- | --------- | ------- | ------------------------------------------------------------------------------------------------------- |
-| `initialSlide`   | `number`  | `0`     | Zero-based slide to show after load (clamped).                                                          |
-| `showToolbar`    | `boolean` | `true`  | Show the navigation/zoom/fullscreen toolbar.                                                            |
-| `showThumbnails` | `boolean` | `true`  | Show the thumbnail sidebar.                                                                             |
-| `readOnly`       | `boolean` | `true`  | Reserved for a future editing mode. The vanilla binding is currently view-only regardless of this flag. |
+| Option           | Type      | Default | Description                                                                                                                                                                                   |
+| ---------------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `initialSlide`   | `number`  | `0`     | Zero-based slide to show after load (clamped).                                                                                                                                                |
+| `showToolbar`    | `boolean` | `true`  | Show the navigation/zoom/fullscreen toolbar.                                                                                                                                                  |
+| `showThumbnails` | `boolean` | `true`  | Show the thumbnail sidebar.                                                                                                                                                                   |
+| `editable`       | `boolean` | `false` | Enable editing: click to select, drag/resize/rotate, inline text editing, keyboard shortcuts, undo/redo, and the toolbar Save button. Toggle later via [`setEditable`](/vanilla/api#editing). |
+| `readOnly`       | `boolean` | -       | Legacy flag superseded by `editable`; kept so existing option objects stay type-valid. It has no effect.                                                                                      |
 
 ## Theming & localization
 
@@ -69,6 +70,9 @@ are plain callback options:
 | `onSlideChange`        | `(index: number) => void`                                        | Fired when the active slide changes (zero-based index).             |
 | `onZoomChange`         | `(scale: number) => void`                                        | Fired when the effective zoom scale changes (1 = 100%).             |
 | `onPresentationChange` | `(presenting: boolean) => void`                                  | Fired when presentation (fullscreen) mode is entered or exited.     |
+| `onChange`             | `() => void`                                                     | Fired after any document mutation (move, resize, edit, undo, ...).  |
+| `onDirtyChange`        | `(dirty: boolean) => void`                                       | Fired when the unsaved-edits flag flips (a save resets it).         |
+| `onSelectionChange`    | `(elementId: string \| null) => void`                            | Fired when the selected element changes (`null` = no selection).    |
 
 ## Full interface
 
@@ -79,6 +83,9 @@ interface PptxViewerCallbacks {
 	onSlideChange?: (index: number) => void;
 	onZoomChange?: (scale: number) => void;
 	onPresentationChange?: (presenting: boolean) => void;
+	onChange?: () => void;
+	onDirtyChange?: (dirty: boolean) => void;
+	onSelectionChange?: (elementId: string | null) => void;
 }
 
 interface PptxViewerOptions extends PptxViewerCallbacks {
@@ -87,6 +94,7 @@ interface PptxViewerOptions extends PptxViewerCallbacks {
 	locale?: string;
 	messages?: TranslationMessages;
 	initialSlide?: number;
+	editable?: boolean;
 	readOnly?: boolean;
 	showToolbar?: boolean;
 	showThumbnails?: boolean;
@@ -104,12 +112,15 @@ const viewer = createPptxViewer(document.getElementById('host')!, {
 	theme: vermilionLightTheme,
 	locale: 'en',
 	initialSlide: 0,
+	editable: true,
 	showToolbar: true,
 	showThumbnails: true,
 	onLoad: ({ slideCount }) => console.log(`${slideCount} slides`),
 	onSlideChange: (index) => console.log('slide', index + 1),
 	onZoomChange: (scale) => console.log(`${Math.round(scale * 100)}%`),
 	onPresentationChange: (presenting) => console.log(presenting ? 'presenting' : 'back'),
+	onDirtyChange: (dirty) => console.log('unsaved edits:', dirty),
+	onSelectionChange: (elementId) => console.log('selected', elementId),
 	onError: (message) => console.error(message),
 });
 ```

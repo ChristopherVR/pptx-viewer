@@ -1,12 +1,13 @@
 # pptx-vanilla-viewer
 
-> ### ⚠️ Viewing capability only
+> ### ⚠️ Under active development
 >
-> This release provides **read-only / viewing** of `.pptx` files.
-> Editing, saving, and authoring features are **not available** in this
-> version and will be added in a future release.
+> Viewing, presenting, and a first editing pass (select, drag, resize,
+> rotate, inline text, undo/redo, save/download) are all available. There is
+> no property inspector, template (master/layout) editing, export, or
+> collaboration yet - see [PORTING.md](https://github.com/ChristopherVR/pptx-viewer/blob/main/PORTING.md)
+> for the full parity checklist. The API may change.
 >
-> The package is under active development and the API may change.
 > For the latest source, roadmap, and issue tracker visit:
 >
 > **https://github.com/ChristopherVR/pptx-viewer**
@@ -30,11 +31,13 @@ const viewer = createPptxViewer(document.getElementById('host')!, {
 	theme: { colors: { primary: '#e34f26' } },
 	locale: 'en',
 	initialSlide: 0,
+	editable: true, // select, drag, resize, rotate, inline text, undo/redo, save
 	showToolbar: true,
 	showThumbnails: true,
 	onLoad: ({ slideCount }) => console.log(`${slideCount} slides`),
 	onSlideChange: (index) => console.log('slide', index + 1),
 	onError: (message) => console.error(message),
+	onDirtyChange: (dirty) => console.log('unsaved edits:', dirty),
 });
 
 // Navigation / zoom
@@ -46,6 +49,14 @@ viewer.zoomToFit();
 
 // Presentation mode (real Fullscreen API; Esc exits)
 await viewer.enterPresentation();
+
+// Editing (click/drag/resize/rotate/double-click-to-edit-text happen via the
+// DOM; these are the programmatic entry points)
+viewer.undo();
+viewer.redo();
+viewer.deleteSelected();
+const bytes = await viewer.save(); // serialise the edited deck to .pptx bytes
+await viewer.downloadPptx('quarterly-edited.pptx'); // save() + trigger a download
 
 // Load a different file later
 await viewer.loadFile(fileInput.files![0]);
@@ -62,9 +73,15 @@ The container should have a size (the viewer fills it: `width/height: 100%`).
 
 ## Keyboard
 
-Arrow keys / PageUp / PageDown / Space navigate, Home/End jump to the first or
-last slide, Esc exits presentation mode. The viewer root is focusable
-(`tabindex="0"`).
+Navigation: arrow keys / PageUp / PageDown / Space, Home/End jump to the
+first or last slide, Esc exits presentation mode. The viewer root is
+focusable (`tabindex="0"`).
+
+When `editable` is on and an element is selected: Ctrl/Cmd+Z undoes,
+Ctrl/Cmd+Shift+Z (or Ctrl+Y) redoes, Delete/Backspace deletes the selection,
+Ctrl/Cmd+D duplicates it, arrow keys nudge it by 1px (Shift+arrow for 10px),
+and Escape deselects. Double-click a text-capable element to edit its text
+inline.
 
 ## Styling and theming
 
@@ -77,6 +94,25 @@ All chrome colors come from the shared `--pptx-*` CSS custom properties. Pass
 a `ViewerTheme` (`theme` option or `setTheme`) to override them; the
 `vermilionLightTheme` / `vermilionDarkTheme` presets are re-exported.
 
+## Editing
+
+Pass `editable: true` (or call `setEditable(true)` at runtime) to turn on:
+
+- Click to select an element, click empty space to deselect.
+- Drag to move, with snap-to-sibling-edge guides.
+- Resize via 8 handles (Shift locks aspect ratio on the corner handles) and
+  rotate via a rotate handle (Shift snaps to angle increments).
+- Double-click a text-capable element for inline text editing.
+- Undo/redo (100-entry history), delete, and duplicate (`Ctrl/Cmd+D`).
+- The toolbar's Save button (shown only when `editable`), which calls
+  `downloadPptx()` to serialise and download the edited `.pptx`.
+
+There is no property/inspector panel, no template (master/layout) editing,
+and no add-new-element or z-order/group operations yet - see
+`viewer.getSelectedElementId()` and the `onSelectionChange` /
+`onDirtyChange` callbacks to build your own chrome around the selection
+state in the meantime.
+
 ## i18n
 
 All UI strings go through the shared `pptx.*` dictionary (English built in).
@@ -86,9 +122,10 @@ fall back to English, then to a humanised label.
 
 ## Element coverage
 
-Dedicated renderers: text, shape, image/picture, group, connector. All other
-element types (table, chart, SmartArt, media, ink, OLE, ...) currently render
-a typed placeholder box. Renderers are dispatched through an open registry, so
+Dedicated renderers: text, shape, image/picture, group, connector, table,
+chart, SmartArt (2D), media (video/audio), ink, and OLE. The remaining niche
+types (content parts, zoom links, 3D models) currently render a typed
+placeholder box. Renderers are dispatched through an open registry, so
 coverage can be extended without forking:
 
 ```ts

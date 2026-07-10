@@ -65,6 +65,45 @@ type ZoomLevel = number | 'fit';
 
 Entering and leaving fires the `onPresentationChange` callback.
 
+## Editing {#editing}
+
+Pass `editable: true` in the options (or call `setEditable(true)`) to turn on click-to-select,
+drag-to-move, resize/rotate handles, and double-click inline text editing directly in the DOM.
+These methods are the programmatic entry points around that interaction:
+
+| Method                 | Signature                              | Description                                                                    |
+| ---------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
+| `setEditable`          | `(editable: boolean) => void`          | Enable or disable editing at runtime (disabling clears the selection).         |
+| `undo`                 | `() => void`                           | Undo the last edit (no-op when the undo stack is empty).                       |
+| `redo`                 | `() => void`                           | Redo the last undone edit (no-op when the redo stack is empty).                |
+| `canUndo`              | `() => boolean`                        | Whether `undo()` would do anything.                                            |
+| `canRedo`              | `() => boolean`                        | Whether `redo()` would do anything.                                            |
+| `deleteSelected`       | `() => void`                           | Delete the selected element (no-op without a selection).                       |
+| `getSelectedElementId` | `() => string \| null`                 | Id of the selected element, or `null`.                                         |
+| `save`                 | `() => Promise<Uint8Array>`            | Serialise the (edited) presentation to `.pptx` bytes and clear the dirty flag. |
+| `downloadPptx`         | `(fileName?: string) => Promise<void>` | `save()` plus trigger a browser download (default `presentation.pptx`).        |
+
+`onChange` fires after any mutation (move, resize, rotate, text edit, delete, undo, redo);
+`onDirtyChange` fires when the unsaved-edits flag flips; `onSelectionChange` fires when the
+selected element id changes.
+
+Keyboard shortcuts, active whenever an element is selected and editing is enabled: `Ctrl`/`Cmd+Z`
+undo, `Ctrl`/`Cmd+Shift+Z` (or `Ctrl+Y`) redo, `Delete`/`Backspace` delete, `Ctrl`/`Cmd+D`
+duplicate, arrow keys nudge 1px (`Shift`+arrow for 10px), `Escape` deselect.
+
+```ts
+const viewer = createPptxViewer(host, { source, editable: true });
+
+undoButton.addEventListener('click', () => viewer.undo());
+redoButton.addEventListener('click', () => viewer.redo());
+saveButton.addEventListener('click', () => void viewer.downloadPptx('edited.pptx'));
+```
+
+There is currently no property/inspector panel, add-new-element affordance, z-order/group
+operation, template (master/layout) editing, or collaboration - see
+[PORTING.md](https://github.com/ChristopherVR/pptx-viewer/blob/main/PORTING.md) for the tracked
+gap.
+
 ## Extension & escape hatches
 
 | Method        | Signature                       | Description                                                                                             |

@@ -98,17 +98,17 @@ packages/
   cli/               @christophervr/pptx-viewer - Interactive npx installer/scaffolder for all of the above
 ```
 
-| Package                                         | npm                                                                                                                                 | Description                                                                                                    | README                                      |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| **[pptx-viewer-core](packages/core/)**          | [![npm](https://img.shields.io/npm/v/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)                         | Core PPTX engine - parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.           | [Documentation](packages/core/README.md)    |
-| **[pptx-viewer-shared](packages/shared/)**      | _(internal - not published)_                                                                                                        | Framework-agnostic viewer logic (theme, load helpers, types) shared by all UI bindings.                        | [Documentation](packages/shared/README.md)  |
-| **[pptx-react-viewer](packages/react/)**        | [![npm](https://img.shields.io/npm/v/pptx-react-viewer.svg)](https://www.npmjs.com/package/pptx-react-viewer)                       | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export.       | [Documentation](packages/react/README.md)   |
-| **[pptx-vue-viewer](packages/vue/)**            | [![npm](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)                           | Vue 3 PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.                 | [Documentation](packages/vue/README.md)     |
-| **[pptx-angular-viewer](packages/angular/)**    | [![npm](https://img.shields.io/npm/v/pptx-angular-viewer.svg)](https://www.npmjs.com/package/pptx-angular-viewer)                   | Angular PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.               | [Documentation](packages/angular/README.md) |
-| **[pptx-vanilla-viewer](packages/vanilla/)**    | [![npm](https://img.shields.io/npm/v/pptx-vanilla-viewer.svg)](https://www.npmjs.com/package/pptx-vanilla-viewer)                   | Zero-framework PowerPoint viewer: plain DOM, one factory function. Viewer-only (see [PORTING.md](PORTING.md)). | [Documentation](packages/vanilla/README.md) |
-| **[pptx-svelte-viewer](packages/svelte/)**      | [![npm](https://img.shields.io/npm/v/pptx-svelte-viewer.svg)](https://www.npmjs.com/package/pptx-svelte-viewer)                     | Svelte 5 PowerPoint viewer component. Viewer-only (see [PORTING.md](PORTING.md)).                              | [Documentation](packages/svelte/README.md)  |
-| **[pptx-viewer-mcp](packages/tools/)**          | [![npm](https://img.shields.io/npm/v/pptx-viewer-mcp.svg)](https://www.npmjs.com/package/pptx-viewer-mcp)                           | CLI / MCP server and pure tool functions for AI agents to parse, edit, and convert PPTX files.                 | [Documentation](packages/tools/README.md)   |
-| **[@christophervr/pptx-viewer](packages/cli/)** | [![npm](https://img.shields.io/npm/v/%40christophervr%2Fpptx-viewer.svg)](https://www.npmjs.com/package/@christophervr/pptx-viewer) | Interactive `npx` installer: picks and installs the right package(s) above, or scaffolds a new app.            | [Documentation](packages/cli/README.md)     |
+| Package                                         | npm                                                                                                                                 | Description                                                                                                                          | README                                      |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| **[pptx-viewer-core](packages/core/)**          | [![npm](https://img.shields.io/npm/v/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)                         | Core PPTX engine - parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.                                 | [Documentation](packages/core/README.md)    |
+| **[pptx-viewer-shared](packages/shared/)**      | _(internal - not published)_                                                                                                        | Framework-agnostic viewer logic (theme, load helpers, types) shared by all UI bindings.                                              | [Documentation](packages/shared/README.md)  |
+| **[pptx-react-viewer](packages/react/)**        | [![npm](https://img.shields.io/npm/v/pptx-react-viewer.svg)](https://www.npmjs.com/package/pptx-react-viewer)                       | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export.                             | [Documentation](packages/react/README.md)   |
+| **[pptx-vue-viewer](packages/vue/)**            | [![npm](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)                           | Vue 3 PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.                                       | [Documentation](packages/vue/README.md)     |
+| **[pptx-angular-viewer](packages/angular/)**    | [![npm](https://img.shields.io/npm/v/pptx-angular-viewer.svg)](https://www.npmjs.com/package/pptx-angular-viewer)                   | Angular PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.                                     | [Documentation](packages/angular/README.md) |
+| **[pptx-vanilla-viewer](packages/vanilla/)**    | [![npm](https://img.shields.io/npm/v/pptx-vanilla-viewer.svg)](https://www.npmjs.com/package/pptx-vanilla-viewer)                   | Zero-framework PowerPoint viewer: plain DOM, one factory function. Viewing plus a first editing pass (see [PORTING.md](PORTING.md)). | [Documentation](packages/vanilla/README.md) |
+| **[pptx-svelte-viewer](packages/svelte/)**      | [![npm](https://img.shields.io/npm/v/pptx-svelte-viewer.svg)](https://www.npmjs.com/package/pptx-svelte-viewer)                     | Svelte 5 PowerPoint viewer component. Viewer-only (see [PORTING.md](PORTING.md)).                                                    | [Documentation](packages/svelte/README.md)  |
+| **[pptx-viewer-mcp](packages/tools/)**          | [![npm](https://img.shields.io/npm/v/pptx-viewer-mcp.svg)](https://www.npmjs.com/package/pptx-viewer-mcp)                           | CLI / MCP server and pure tool functions for AI agents to parse, edit, and convert PPTX files.                                       | [Documentation](packages/tools/README.md)   |
+| **[@christophervr/pptx-viewer](packages/cli/)** | [![npm](https://img.shields.io/npm/v/%40christophervr%2Fpptx-viewer.svg)](https://www.npmjs.com/package/@christophervr/pptx-viewer) | Interactive `npx` installer: picks and installs the right package(s) above, or scaffolds a new app.                                  | [Documentation](packages/cli/README.md)     |
 
 ### Dependency Graph
 
@@ -138,7 +138,7 @@ pptx-svelte-viewer  ┘                        │
 
 ### UI Viewers (React / Vue / Angular / Vanilla JS / Svelte)
 
-- **Vanilla JS and Svelte are viewer-only for now** - `pptx-vanilla-viewer` and `pptx-svelte-viewer` load, render, navigate, and present, but do not yet include the WYSIWYG editor, export, or collaboration. [PORTING.md](PORTING.md) tracks the remaining parity work.
+- **Vanilla JS and Svelte are not yet at editor parity** - `pptx-vanilla-viewer` and `pptx-svelte-viewer` load, render, navigate, and present. `pptx-vanilla-viewer` also has a first editing pass behind the `editable` option (select, drag, resize, rotate, inline text editing, undo/redo, save/download) but no property inspector, template (master/layout) editing, export, or collaboration; `pptx-svelte-viewer` remains viewer-only with no editing at all yet. [PORTING.md](PORTING.md) tracks the remaining parity work for both.
 - **CSS-based rendering** - Slides are rendered as HTML/CSS rather than Canvas, which gives sharp text at any zoom, native accessibility, and DOM interactivity. `mix-blend-mode` and CSS 3D transforms (shape extrusion side faces, `rotateX/Y`) render natively in the live viewer. A couple of effects are approximated even on screen: `backdrop-filter` is replaced with semi-transparent backgrounds, and path gradients are approximated as elliptical radials. Raster export flattens more of these (see Print and export fidelity below).
 - **Font availability** - Text renders using fonts available in the browser. Missing fonts fall back to system defaults, which may affect text metrics and layout fidelity. Embedded fonts in the PPTX are deobfuscated and injected into the DOM when available.
 - **Embedded media** - Audio/video playback depends on browser codec support (e.g. browsers may not support WMV or legacy codecs). DRM-protected media will not play.
@@ -333,14 +333,17 @@ export class AppModule {}
 
 ### Vanilla JS Viewer (no framework)
 
-> Installs from npm as **`pptx-vanilla-viewer`** (see [packages/vanilla](packages/vanilla/README.md)). Viewer-only.
+> Installs from npm as **`pptx-vanilla-viewer`** (see [packages/vanilla](packages/vanilla/README.md)). Viewing plus a first editing pass.
 
 ```ts
 import { createPptxViewer } from 'pptx-vanilla-viewer';
 
 const viewer = createPptxViewer(document.getElementById('host')!, {
 	source: '/decks/quarterly.pptx', // URL, ArrayBuffer, Uint8Array, Blob, or File
+	editable: true, // select, drag, resize, rotate, inline text, undo/redo, save
 });
+
+await viewer.downloadPptx(); // serialise edits back to .pptx and trigger a download
 ```
 
 ### Svelte 5 Viewer Component

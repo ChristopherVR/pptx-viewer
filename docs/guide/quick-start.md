@@ -123,6 +123,8 @@ function App() {
 See [Component Props](/react/props) for the full, source-verified prop reference - the viewer takes `Uint8Array` content (not `ArrayBuffer`), and `onContentChange` delivers serialized bytes rather than a dirty flag.
 :::
 
+Using Vue, Angular, Svelte, or no framework at all? See the [Vue](/vue/getting-started), [Angular](/angular/getting-started), [Svelte](/svelte/getting-started), or [Vanilla JS](/vanilla/getting-started) getting-started guides for the equivalent walkthrough in each binding.
+
 ## Next steps
 
 - [Core package overview](/core/) - the full handler, builder, and converter APIs.

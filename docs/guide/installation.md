@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Install the pptx-viewer packages from npm, set up peer dependencies for React, Vue 3, or Angular, and run the monorepo locally for development.
+description: Install the pptx-viewer packages from npm, set up peer dependencies for React, Vue 3, Angular, Svelte, or vanilla JS, and run the monorepo locally for development.
 ---
 
 # Installation
@@ -13,13 +13,15 @@ Node.js **18 or newer** is required for TypeScript compilation and for running t
 
 ## Choose your framework
 
-| Framework                 | Package               | Notes                                                           |
-| ------------------------- | --------------------- | --------------------------------------------------------------- |
-| React                     | `pptx-react-viewer`   | Full-featured: viewer, editor, presenter, export, collaboration |
-| Vue 3                     | `pptx-vue-viewer`     | Same engine and feature set as the React binding                |
-| Angular                   | `pptx-angular-viewer` | Same engine and feature set as the React binding                |
-| Headless (Node / browser) | `pptx-viewer-core`    | No UI, no framework dependency                                  |
-| AI / MCP tooling          | `pptx-viewer-mcp`     | 51 MCP tools + CLI + Y.Doc codec                                |
+| Framework                 | Package               | Notes                                                            |
+| ------------------------- | --------------------- | ---------------------------------------------------------------- |
+| React                     | `pptx-react-viewer`   | Full-featured: viewer, editor, presenter, export, collaboration  |
+| Vue 3                     | `pptx-vue-viewer`     | Same engine and feature set as the React binding                 |
+| Angular                   | `pptx-angular-viewer` | Same engine and feature set as the React binding                 |
+| Svelte 5 (viewer)         | `pptx-svelte-viewer`  | Viewer-only: load, render, navigate, present; no editing yet     |
+| No framework (viewer)     | `pptx-vanilla-viewer` | Plain DOM; viewing plus a first editing pass (`editable` option) |
+| Headless (Node / browser) | `pptx-viewer-core`    | No UI, no framework dependency                                   |
+| AI / MCP tooling          | `pptx-viewer-mcp`     | 51 MCP tools + CLI + Y.Doc codec                                 |
 
 ## Installing from npm
 
@@ -127,6 +129,79 @@ export class AppModule {}
 <pptx-viewer [content]="content"></pptx-viewer>
 ```
 
+### Svelte 5 viewer
+
+The Svelte 5 viewer component, published as **`pptx-svelte-viewer`**. The core engine is bundled
+in. Viewer-only for now (load, render, navigate, present) - see [Svelte docs](/svelte/) for the
+current scope.
+
+::: code-group
+
+```bash [npm]
+npm install pptx-svelte-viewer svelte
+```
+
+```bash [pnpm]
+pnpm add pptx-svelte-viewer svelte
+```
+
+```bash [yarn]
+yarn add pptx-svelte-viewer svelte
+```
+
+```bash [bun]
+bun add pptx-svelte-viewer svelte
+```
+
+:::
+
+```svelte
+<script lang="ts">
+	import { PowerPointViewer } from 'pptx-svelte-viewer';
+
+	let bytes = $state<Uint8Array | null>(null);
+</script>
+
+{#if bytes}
+	<PowerPointViewer source={bytes} />
+{/if}
+```
+
+### Vanilla JS viewer (no framework)
+
+The zero-framework viewer, published as **`pptx-vanilla-viewer`**. The core engine is bundled in;
+there are no framework peer dependencies. Viewing, presenting, and a first editing pass (behind
+the `editable` option) are available - see [Vanilla JS docs](/vanilla/) for the current scope.
+
+::: code-group
+
+```bash [npm]
+npm install pptx-vanilla-viewer
+```
+
+```bash [pnpm]
+pnpm add pptx-vanilla-viewer
+```
+
+```bash [yarn]
+yarn add pptx-vanilla-viewer
+```
+
+```bash [bun]
+bun add pptx-vanilla-viewer
+```
+
+:::
+
+```ts
+import { createPptxViewer } from 'pptx-vanilla-viewer';
+
+const viewer = createPptxViewer(document.getElementById('host')!, {
+	source: '/decks/quarterly.pptx',
+	editable: true,
+});
+```
+
 ### Core engine
 
 The framework-agnostic engine for parsing, editing, serializing, and converting PPTX files. Use this when you need headless automation, build scripts, or Node.js pipelines with no UI dependency. The UI packages above bundle the core engine, so you don't need to install it separately if you're already using one of them.
@@ -228,7 +303,7 @@ bun run typecheck
 Packages must be built in dependency order:
 
 ```
-core -> shared -> react / vue / angular
+core -> shared -> react / vue / angular / vanilla / svelte
 ```
 
 `bun run build` from the repo root handles this for you. When building a single package manually (`cd packages/<pkg> && bun run build`), make sure its dependencies are built first.
@@ -237,14 +312,16 @@ core -> shared -> react / vue / angular
 ### Common workspace commands
 
 ```bash
-bun run build        # Build all packages in dependency order
-bun run test         # Run vitest across all packages
-bun run typecheck    # Type-check all packages
-bun run fmt          # Format with oxfmt
-bun run lint         # Lint with oxlint
-bun run demo         # Start the React demo dev server (port 4173)
-bun run demo:vue     # Start the Vue demo dev server (port 4175)
-bun run demo:angular # Start the Angular demo dev server (port 4174)
+bun run build         # Build all packages in dependency order
+bun run test          # Run vitest across all packages
+bun run typecheck     # Type-check all packages
+bun run fmt           # Format with oxfmt
+bun run lint          # Lint with oxlint
+bun run demo          # Start the React demo dev server (port 4173)
+bun run demo:vue      # Start the Vue demo dev server (port 4175)
+bun run demo:angular  # Start the Angular demo dev server (port 4174)
+bun run demo:vanilla  # Start the Vanilla JS demo dev server (port 4176)
+bun run demo:svelte   # Start the Svelte demo dev server (port 4177)
 ```
 
 ## Next steps
