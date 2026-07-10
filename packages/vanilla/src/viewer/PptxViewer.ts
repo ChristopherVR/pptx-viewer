@@ -2,6 +2,8 @@ import type { PptxHandler } from 'pptx-viewer-core';
 import { EncryptedFileError } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
 
+import type { EditorController } from './editor';
+import { createEditorController } from './editor';
 import type { Translator } from './i18n';
 import { createTranslator } from './i18n';
 import type { PptxViewerSource } from './load';
@@ -47,6 +49,7 @@ export class PptxViewer implements PptxViewerInstance {
 	private appliedThemeVars: string[] = [];
 	private loadToken = 0;
 	private destroyed = false;
+	private editor!: EditorController;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
 		this.container = container;
@@ -61,10 +64,25 @@ export class PptxViewer implements PptxViewerInstance {
 			registry: this.registry,
 			getChrome: () => this.chrome,
 			getTranslator: () => this.t,
+			onStageRendered: () => this.editor?.onStageRendered(),
 		});
 
 		ensureViewerStyles(this.doc);
 		this.mountChrome();
+		this.editor = createEditorController({
+			doc: this.doc,
+			store: this.store,
+			getChrome: () => this.chrome,
+			getTranslator: () => this.t,
+			getScale: () => this.renderer.effectiveScale(),
+			getHandler: () => this.handler,
+			onChange: options.onChange,
+		});
+		this.editor.attachChrome();
+		if (options.editable) {
+			this.store.set({ editable: true });
+			this.editor.setEditable(true);
+		}
 		this.store.subscribe(
 			createStateSync({
 				getChrome: () => this.chrome,
@@ -91,6 +109,7 @@ export class PptxViewer implements PptxViewerInstance {
 
 	private async load(source: PptxViewerSource): Promise<void> {
 		const token = ++this.loadToken;
+		this.editor?.reset();
 		this.store.set({ loading: true, error: null });
 		try {
 			const buffer = await resolveSourceToBuffer(source);
@@ -190,7 +209,47 @@ export class PptxViewer implements PptxViewerInstance {
 		// Chrome labels are baked at build time; rebuild it under the new locale.
 		this.unmountChrome();
 		this.mountChrome();
+		this.editor.attachChrome();
 		this.renderer.renderAll();
+	}
+
+	// ── Editor ────────────────────────────────────────────────────────────
+
+	setEditable(editable: boolean): void {
+		this.store.set({ editable });
+		this.editor.setEditable(editable);
+	}
+
+	undo(): void {
+		this.editor.undo();
+	}
+
+	redo(): void {
+		this.editor.redo();
+	}
+
+	canUndo(): boolean {
+		return this.editor.canUndo();
+	}
+
+	canRedo(): boolean {
+		return this.editor.canRedo();
+	}
+
+	async save(): Promise<Uint8Array> {
+		return this.editor.save();
+	}
+
+	async downloadPptx(fileName?: string): Promise<void> {
+		return this.editor.downloadPptx(fileName);
+	}
+
+	deleteSelected(): void {
+		this.editor.deleteSelected();
+	}
+
+	getSelectedElementId(): string | null {
+		return this.editor.getSelectedElementId();
 	}
 
 	// ── Presentation mode ──────────────────────────────────────────────────
@@ -219,6 +278,7 @@ export class PptxViewer implements PptxViewerInstance {
 		}
 		this.destroyed = true;
 		this.loadToken++;
+		this.editor.destroy();
 		this.unmountChrome();
 		this.releaseLoaded();
 	}
@@ -238,6 +298,9 @@ export class PptxViewer implements PptxViewerInstance {
 				togglePresentation: () => {
 					void (this.presentation.isActive() ? this.exitPresentation() : this.enterPresentation());
 				},
+				undo: () => this.undo(),
+				redo: () => this.redo(),
+				save: () => void this.downloadPptx(),
 			},
 			onSelectSlide: (index) => this.goToSlide(index),
 		});
@@ -265,6 +328,7 @@ export class PptxViewer implements PptxViewerInstance {
 	}
 
 	private unmountChrome(): void {
+		this.editor?.detachChrome();
 		this.detachKeyboard();
 		this.resizeObserver?.disconnect();
 		this.resizeObserver = null;
