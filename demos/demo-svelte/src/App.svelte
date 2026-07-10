@@ -126,12 +126,15 @@
 			{#if errorMessage}
 				<p class="demo-error">{errorMessage}</p>
 			{/if}
+			<!-- stopPropagation: the programmatic click() would bubble back to the
+			     zone's onclick and re-open the file chooser in a loop -->
 			<input
 				bind:this={fileInput}
 				type="file"
 				accept=".pptx"
 				aria-label="Upload a PowerPoint file"
 				style="display: none"
+				onclick={(e) => e.stopPropagation()}
 				onchange={onInputChange}
 			/>
 		</div>

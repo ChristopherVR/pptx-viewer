@@ -58,6 +58,11 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 			handlers.onFile(file);
 		}
 	});
+	// The programmatic input.click() bubbles back up to the zone's click
+	// handler; without this stop the browse loop re-opens the file chooser.
+	input.addEventListener('click', (e) => {
+		e.stopPropagation();
+	});
 	input.addEventListener('change', () => {
 		const file = input.files?.[0];
 		if (file) {
