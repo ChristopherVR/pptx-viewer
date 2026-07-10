@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.13.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.13.1) - 2026-07-10
+
+### Bug Fixes
+
+- **shared:** Sanitize print-document/SVG assembly with DOMPurify (by @ChristopherVR) ([84527b6](https://github.com/ChristopherVR/pptx-viewer/commit/84527b63350643d0a78b37d7ea55238fe4a8fa72))
+
 ## [1.13.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.13.0) - 2026-07-09
 
 ## [1.12.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.12.0) - 2026-07-09

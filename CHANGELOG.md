@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-10
+
+_Releases: pptx-viewer-core@1.2.8, pptx-react-viewer@1.13.1, pptx-vue-viewer@1.13.1, pptx-angular-viewer@1.13.2_
+
+### Bug Fixes
+
+- **react:** Fix Turbopack minification collision, cut bundle size (by @al3xius) ([2d15c45](https://github.com/ChristopherVR/pptx-viewer/commit/2d15c45c9415e3024fc5205346d3eeb86e161a96))
+- **core:** Preserve whitespace-only run text on load (by @ChristopherVR) ([b83bdbc](https://github.com/ChristopherVR/pptx-viewer/commit/b83bdbc76be729f65af42f271402bffe95505cb0))
+- **shared:** Sanitize print-document/SVG assembly with DOMPurify (by @ChristopherVR) ([84527b6](https://github.com/ChristopherVR/pptx-viewer/commit/84527b63350643d0a78b37d7ea55238fe4a8fa72))
+- **angular:** Match ribbon content row height to React/Vue (by @ChristopherVR) ([18433c4](https://github.com/ChristopherVR/pptx-viewer/commit/18433c4560b0c08246f1aa9672fb5bc19dbd81a5))
+
+### Reverts
+
+- Exclude unrelated tsup.config.ts change from the CodeQL print-sanitization commit (by @ChristopherVR) ([bdc44d3](https://github.com/ChristopherVR/pptx-viewer/commit/bdc44d32330f3a9769f300c5be1676bba789d12b))
+
+### Chores
+
+- Doc updates (by @ChristopherVR) ([d520c23](https://github.com/ChristopherVR/pptx-viewer/commit/d520c236bc11e7bcf2364df11e63b9e21de2b8ea))
+
 ## 2026-07-09
 
 _Releases: pptx-viewer-core@1.2.7, pptx-react-viewer@1.13.0, pptx-vue-viewer@1.13.0, pptx-angular-viewer@1.13.1_

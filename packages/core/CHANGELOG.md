@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.2.8](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.2.8) - 2026-07-10
+
 ## [1.2.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.2.7) - 2026-07-09
 
 ## [1.2.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.2.6) - 2026-07-09
