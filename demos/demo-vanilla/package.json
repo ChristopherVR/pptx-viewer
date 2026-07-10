@@ -1,0 +1,23 @@
+{
+	"name": "pptx-vanilla-demo",
+	"private": true,
+	"description": "Vite vanilla-TS demo for pptx-vanilla-viewer (mirrors the Vue demo shell).",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"fast-xml-parser": "^5.9.2",
+		"jszip": "^3.10.1",
+		"pptx-vanilla-viewer": "workspace:*",
+		"pptx-viewer-core": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/node": "^26.0.0",
+		"typescript": "^6.0.3",
+		"vite": "^8.0.16"
+	}
+}
