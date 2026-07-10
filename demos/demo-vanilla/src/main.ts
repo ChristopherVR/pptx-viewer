@@ -1,5 +1,6 @@
 import type { PptxViewerInstance, PptxViewerSource } from 'pptx-vanilla-viewer';
 import { createPptxViewer, themeToCssVars } from 'pptx-vanilla-viewer';
+import { PptxHandler } from 'pptx-viewer-core';
 
 import { getLanguage, onLanguageChange, setLanguage, t, viewerMessages } from './demo-i18n';
 import { createDropzone } from './dropzone';
@@ -98,6 +99,7 @@ function openViewer(source: PptxViewerSource, name: string): void {
 		theme: themes[themeKey].theme,
 		locale: getLanguage(),
 		messages: viewerMessages,
+		editable: true,
 		onError: (message, error) => {
 			console.error('pptx-vanilla-viewer failed to load', message, error);
 			showLanding();
@@ -116,8 +118,16 @@ function showLanding(): void {
 			onFile: (file) => {
 				openViewer(file, file.name);
 			},
-			onSample: () => {
-				openViewer(`${import.meta.env.BASE_URL}sample-deck.pptx`, 'Sample Deck');
+			onNewPresentation: () => {
+				void (async () => {
+					const { handler, data } = await PptxHandler.createBlank({
+						title: 'Untitled Presentation',
+						initialSlideCount: 1,
+					});
+					const bytes = await handler.save(data.slides);
+					handler.dispose();
+					openViewer(bytes, 'Untitled Presentation');
+				})();
 			},
 		}),
 	);

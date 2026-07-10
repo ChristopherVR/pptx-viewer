@@ -11,8 +11,8 @@
 export const demoStringsEn = {
 	'demo.dropzone.hint': 'Drop a .pptx file here or click to browse',
 	'demo.dropzone.processed': 'The file is processed entirely in the browser',
-	'demo.dropzone.loadSample': 'Load sample deck',
-	'demo.dropzone.sampleError': 'Failed to load the sample deck',
+	'demo.dropzone.newPresentation': 'or create a New Presentation',
+	'demo.dropzone.creating': 'Creating...',
 	'demo.dropzone.uploadAriaLabel': 'Upload PPTX file',
 	'demo.viewer.loadError': 'Failed to load the presentation',
 	'demo.pickers.switchTheme': 'Switch theme',
@@ -22,8 +22,8 @@ export const demoStringsEn = {
 export const demoStringsFr = {
 	'demo.dropzone.hint': 'Deposez un fichier .pptx ici ou cliquez pour parcourir',
 	'demo.dropzone.processed': 'Le fichier est traite entierement dans le navigateur',
-	'demo.dropzone.loadSample': "Charger la presentation d'exemple",
-	'demo.dropzone.sampleError': "Echec du chargement de la presentation d'exemple",
+	'demo.dropzone.newPresentation': 'ou creer une nouvelle presentation',
+	'demo.dropzone.creating': 'Creation en cours...',
 	'demo.dropzone.uploadAriaLabel': 'Telecharger un fichier PPTX',
 	'demo.viewer.loadError': 'Echec du chargement de la presentation',
 	'demo.pickers.switchTheme': 'Changer de theme',
@@ -33,8 +33,8 @@ export const demoStringsFr = {
 export const demoStringsEs = {
 	'demo.dropzone.hint': 'Suelte un archivo .pptx aqui o haga clic para explorar',
 	'demo.dropzone.processed': 'El archivo se procesa completamente en el navegador',
-	'demo.dropzone.loadSample': 'Cargar la presentacion de ejemplo',
-	'demo.dropzone.sampleError': 'No se pudo cargar la presentacion de ejemplo',
+	'demo.dropzone.newPresentation': 'o crear una nueva presentacion',
+	'demo.dropzone.creating': 'Creando...',
 	'demo.dropzone.uploadAriaLabel': 'Subir archivo PPTX',
 	'demo.viewer.loadError': 'No se pudo cargar la presentacion',
 	'demo.pickers.switchTheme': 'Cambiar tema',
@@ -44,8 +44,8 @@ export const demoStringsEs = {
 export const demoStringsDe = {
 	'demo.dropzone.hint': 'PPTX-Datei hier ablegen oder zum Durchsuchen klicken',
 	'demo.dropzone.processed': 'Die Datei wird vollstandig im Browser verarbeitet',
-	'demo.dropzone.loadSample': 'Beispielprasentation laden',
-	'demo.dropzone.sampleError': 'Beispielprasentation konnte nicht geladen werden',
+	'demo.dropzone.newPresentation': 'oder eine neue Prasentation erstellen',
+	'demo.dropzone.creating': 'Wird erstellt...',
 	'demo.dropzone.uploadAriaLabel': 'PPTX-Datei hochladen',
 	'demo.viewer.loadError': 'Prasentation konnte nicht geladen werden',
 	'demo.pickers.switchTheme': 'Design wechseln',

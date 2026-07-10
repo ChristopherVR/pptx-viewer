@@ -6,6 +6,7 @@
 	 * and a landing dropzone handles file open / sample deck loading.
 	 */
 	import { PowerPointViewer, themeToCssVars } from 'pptx-svelte-viewer';
+	import { PptxHandler } from 'pptx-viewer-core';
 
 	import { language, setLanguage, t } from './demo-i18n.svelte';
 	import LanguagePicker from './LanguagePicker.svelte';
@@ -49,24 +50,23 @@
 		});
 	}
 
-	function openSample(): void {
-		errorMessage = '';
-		void fetch(`${import.meta.env.BASE_URL}sample-deck.pptx`)
-			.then((res) => {
-				if (!res.ok) {
-					throw new Error(`sample deck fetch failed (${res.status})`);
-				}
-				return res.arrayBuffer();
-			})
-			.then((buf) => {
-				bytes = new Uint8Array(buf);
-				fileName = 'Sample Deck';
-				document.title = 'Sample Deck - PPTX Viewer';
-				return undefined;
-			})
-			.catch(() => {
-				errorMessage = t('demo.dropzone.sampleError');
+	let creating = $state(false);
+
+	async function newPresentation(): Promise<void> {
+		creating = true;
+		try {
+			const { handler, data } = await PptxHandler.createBlank({
+				title: 'Untitled Presentation',
+				initialSlideCount: 1,
 			});
+			const saved = await handler.save(data.slides);
+			handler.dispose();
+			bytes = saved;
+			fileName = 'Untitled Presentation';
+			document.title = 'Untitled Presentation - PPTX Viewer';
+		} finally {
+			creating = false;
+		}
 	}
 
 	function onDrop(e: DragEvent): void {
@@ -120,8 +120,8 @@
 		>
 			<p class="demo-hint">{t('demo.dropzone.hint')}</p>
 			<p class="demo-sub">{t('demo.dropzone.processed')}</p>
-			<button type="button" onclick={(e) => (e.stopPropagation(), openSample())}>
-				{t('demo.dropzone.loadSample')}
+			<button type="button" onclick={(e) => (e.stopPropagation(), newPresentation())} disabled={creating}>
+				{creating ? t('demo.dropzone.creating') : t('demo.dropzone.newPresentation')}
 			</button>
 			{#if errorMessage}
 				<p class="demo-error">{errorMessage}</p>

@@ -3,13 +3,13 @@ import { t } from './demo-i18n';
 /** Callbacks the dropzone reports back to the demo shell. */
 export interface DropzoneHandlers {
 	onFile: (file: File) => void;
-	onSample: () => void;
+	onNewPresentation: () => void;
 }
 
 /**
  * Landing dropzone mirroring the Vue demo: drag-and-drop or click to browse
- * for a `.pptx` file, plus a one-click sample deck loader. All strings come
- * from the demo dictionary, so the shell re-renders it on language change.
+ * for a `.pptx` file, plus a one-click New Presentation creator. All strings
+ * come from the demo dictionary, so the shell re-renders it on language change.
  */
 export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 	const stage = document.createElement('div');
@@ -30,7 +30,7 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 
 	const sampleButton = document.createElement('button');
 	sampleButton.type = 'button';
-	sampleButton.textContent = t('demo.dropzone.loadSample');
+	sampleButton.textContent = t('demo.dropzone.newPresentation');
 
 	const input = document.createElement('input');
 	input.type = 'file';
@@ -74,7 +74,9 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 	});
 	sampleButton.addEventListener('click', (e) => {
 		e.stopPropagation();
-		handlers.onSample();
+		sampleButton.textContent = t('demo.dropzone.creating');
+		sampleButton.disabled = true;
+		handlers.onNewPresentation();
 	});
 
 	return stage;
