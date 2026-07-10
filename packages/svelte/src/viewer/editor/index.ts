@@ -18,16 +18,40 @@ export {
 } from './editor-geometry';
 export type { EditorKeyboardDeps } from './editor-keyboard';
 export { createEditorKeydownHandler } from './editor-keyboard';
+export {
+	appendElement,
+	newElementId,
+	newImageElement,
+	newShapeElement,
+	newTableElement,
+	newTextElement,
+} from './editor-insert';
+export type { TextFlag } from './editor-format-mutations';
+export {
+	adjustFontSizePatch,
+	highlightColorOf,
+	setFillColorPatch,
+	setFontSizePatch,
+	setHighlightColorPatch,
+	setStrokeColorPatch,
+	setStrokeWidthPatch,
+	setTextColorPatch,
+	strokeWidthOf,
+	toggleTextFlagPatch,
+} from './editor-format-mutations';
 export type { ElementBoxPatch } from './editor-mutations';
 export {
 	cloneSlides,
 	duplicateElementOnSlide,
 	findSlideElement,
+	mapSlideElements,
 	patchElementGeometry,
 	removeElement,
 	updateElement,
 	updateSlideNotes,
 } from './editor-mutations';
+export type { ZOrderDirection } from './editor-zorder';
+export { reorderElement } from './editor-zorder';
 export { resolveTopLevelElementId } from './element-hit';
 export type { InlineTextSurface } from './inline-text';
 export {

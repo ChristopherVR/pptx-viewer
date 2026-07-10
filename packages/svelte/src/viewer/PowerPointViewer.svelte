@@ -11,6 +11,7 @@
 
 	import { createTranslator } from '../i18n/translator';
 	import { provideTranslator } from '../i18n/context';
+	import EditToolbar from './components/EditToolbar.svelte';
 	import ViewerBody from './components/ViewerBody.svelte';
 	import ViewerToolbar from './components/ViewerToolbar.svelte';
 	import { createEditingApi } from './editor/editing-api';
@@ -220,8 +221,12 @@
 			ondownload={() => void downloadPptx()}
 		/>
 	{/if}
+	{#if editingActive}
+		<EditToolbar {editor} />
+	{/if}
 	<ViewerBody
 		{t}
+		{editor}
 		{chromeVisible}
 		{showThumbnails}
 		{showNotes}

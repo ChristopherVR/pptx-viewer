@@ -9,14 +9,17 @@
 	import type { CanvasSize } from 'pptx-viewer-shared';
 
 	import type { EditorController } from '../editor/editor-controller.svelte';
+	import type { EditorState } from '../editor/editor-state.svelte';
 	import type { Translator } from '../../i18n/translator';
 	import EditorLayer from './EditorLayer.svelte';
+	import InspectorPanel from './InspectorPanel.svelte';
 	import NotesPanel from './NotesPanel.svelte';
 	import SlideStage from './SlideStage.svelte';
 	import ThumbnailRail from './ThumbnailRail.svelte';
 
 	const {
 		t,
+		editor,
 		chromeVisible,
 		showThumbnails,
 		showNotes,
@@ -40,6 +43,7 @@
 		onNotesToggle,
 	}: {
 		t: Translator;
+		editor: EditorState;
 		chromeVisible: boolean;
 		showThumbnails: boolean;
 		showNotes: boolean;
@@ -133,6 +137,9 @@
 			/>
 		{/if}
 	</div>
+	{#if editingActive && chromeVisible && displaySlides.length > 0}
+		<InspectorPanel {editor} />
+	{/if}
 </div>
 
 <style>
