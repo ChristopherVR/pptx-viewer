@@ -1,5 +1,21 @@
 export type { EditorController, EditorControllerDeps } from './editor-controller';
 export { createEditorController } from './editor-controller';
+export type { EditActions, EditActionsDeps, GeometryPatch } from './editor-edit-ops';
+export { createEditActions } from './editor-edit-ops';
+export type { TextFormatState, TextToggleKey } from './editor-format-mutations';
+export {
+	adjustFontSize,
+	canFormatShape,
+	canFormatText,
+	patchShapeStyle,
+	readTextFormatState,
+	setFontSize,
+	setHighlightColor,
+	setTextColor,
+	toggleTextProp,
+} from './editor-format-mutations';
+export type { InsertKind } from './editor-insert';
+export { buildInsertElement, centerOnCanvas, pickImageElement } from './editor-insert';
 export type {
 	GestureController,
 	GestureDeps,
@@ -18,11 +34,13 @@ export type { EditorKeyboardDeps } from './editor-keyboard';
 export { createEditorKeydownHandler } from './editor-keyboard';
 export type { ElementBoxPatch } from './editor-mutations';
 export {
+	appendElementOnSlide,
 	cloneSlides,
 	duplicateElementOnSlide,
 	findSlideElement,
 	patchElementGeometry,
 	removeElement,
+	reorderElementOnSlide,
 	updateElement,
 	updateSlideNotes,
 } from './editor-mutations';

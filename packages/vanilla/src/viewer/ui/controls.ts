@@ -1,0 +1,172 @@
+import { createEl } from '../render';
+import type { IconName } from './icons';
+import { createIcon } from './icons';
+
+/**
+ * Small reusable DOM control builders for the editing chrome (format toolbar +
+ * inspector). Each returns the element plus an imperative handle so the editor
+ * can enable/disable and reflect the selected element's values without a
+ * framework. Pure DOM assembly; all behaviour is the caller's `on*` handlers.
+ */
+
+export interface ButtonOptions {
+	label: string;
+	icon?: IconName;
+	/** Short text glyph when no icon (e.g. "B" for bold). */
+	text?: string;
+	/** Extra class on the button (e.g. for a bold/italic glyph style). */
+	className?: string;
+	onClick(): void;
+}
+
+export interface ButtonHandle {
+	btn: HTMLButtonElement;
+	setActive(active: boolean): void;
+	setDisabled(disabled: boolean): void;
+}
+
+/** Build an icon/glyph button labelled (title + aria-label) via `label`. */
+export function makeButton(doc: Document, options: ButtonOptions): ButtonHandle {
+	const btn = createEl(
+		doc,
+		'button',
+		`pptxv-btn${options.className ? ` ${options.className}` : ''}`,
+	);
+	btn.type = 'button';
+	btn.title = options.label;
+	btn.setAttribute('aria-label', options.label);
+	if (options.icon) {
+		btn.appendChild(createIcon(doc, options.icon));
+	} else if (options.text !== undefined) {
+		btn.textContent = options.text;
+	}
+	btn.addEventListener('click', options.onClick);
+	return {
+		btn,
+		setActive(active) {
+			btn.classList.toggle('is-active', active);
+			btn.setAttribute('aria-pressed', String(active));
+		},
+		setDisabled(disabled) {
+			btn.disabled = disabled;
+		},
+	};
+}
+
+export interface ColorControlOptions {
+	label: string;
+	/** Fired on every colour change (native `<input type=color>` input event). */
+	onInput(hex: string): void;
+}
+
+export interface ColorControlHandle {
+	el: HTMLElement;
+	setValue(hex: string | undefined): void;
+	setDisabled(disabled: boolean): void;
+}
+
+/** Normalise an arbitrary colour string to a 7-char `#rrggbb` for `<input>`. */
+function toHexInputValue(hex: string | undefined, fallback: string): string {
+	if (typeof hex === 'string' && /^#[0-9a-fA-F]{6}$/u.test(hex)) {
+		return hex.toLowerCase();
+	}
+	return fallback;
+}
+
+/**
+ * A labelled colour swatch backed by a native `<input type="color">`. The
+ * visible swatch shows the current colour; clicking it opens the OS picker.
+ */
+export function makeColorControl(
+	doc: Document,
+	options: ColorControlOptions,
+	fallback = '#000000',
+): ColorControlHandle {
+	const el = createEl(doc, 'label', 'pptxv-color');
+	el.title = options.label;
+	el.setAttribute('aria-label', options.label);
+	const input = doc.createElement('input');
+	input.type = 'color';
+	input.className = 'pptxv-color-input';
+	input.value = fallback;
+	input.setAttribute('aria-label', options.label);
+	input.addEventListener('input', () => options.onInput(input.value));
+	el.appendChild(input);
+	return {
+		el,
+		setValue(hex) {
+			input.value = toHexInputValue(hex, fallback);
+		},
+		setDisabled(disabled) {
+			input.disabled = disabled;
+			el.classList.toggle('is-disabled', disabled);
+		},
+	};
+}
+
+export interface NumberFieldOptions {
+	label: string;
+	min?: number;
+	max?: number;
+	step?: number;
+	/** Fired on commit (Enter / change / blur) with the parsed number. */
+	onCommit(value: number): void;
+}
+
+export interface NumberFieldHandle {
+	el: HTMLElement;
+	input: HTMLInputElement;
+	setValue(value: number): void;
+	setDisabled(disabled: boolean): void;
+}
+
+/**
+ * A compact labelled numeric field. Commits on change/blur/Enter (never per
+ * keystroke), so typing "-12" isn't committed digit-by-digit. The label text is
+ * shown before the input (e.g. "X", "W").
+ */
+export function makeNumberField(doc: Document, options: NumberFieldOptions): NumberFieldHandle {
+	const el = createEl(doc, 'label', 'pptxv-field');
+	const caption = createEl(doc, 'span', 'pptxv-field-label');
+	caption.textContent = options.label;
+	el.appendChild(caption);
+	const input = doc.createElement('input');
+	input.type = 'number';
+	input.className = 'pptxv-field-input';
+	input.setAttribute('aria-label', options.label);
+	if (options.min !== undefined) {
+		input.min = String(options.min);
+	}
+	if (options.max !== undefined) {
+		input.max = String(options.max);
+	}
+	input.step = String(options.step ?? 1);
+	el.appendChild(input);
+
+	const commit = (): void => {
+		const value = Number.parseFloat(input.value);
+		if (Number.isFinite(value)) {
+			options.onCommit(value);
+		}
+	};
+	input.addEventListener('change', commit);
+	input.addEventListener('keydown', (event) => {
+		event.stopPropagation();
+		if (event.key === 'Enter') {
+			commit();
+		}
+	});
+	return {
+		el,
+		input,
+		setValue(value) {
+			// Never clobber the field while the user is editing it.
+			if (doc.activeElement !== input) {
+				input.value = String(Math.round(value * 100) / 100);
+			}
+		},
+		setDisabled(disabled) {
+			input.disabled = disabled;
+		},
+	};
+}

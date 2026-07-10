@@ -1,5 +1,9 @@
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import type { FormatToolbar, FormatToolbarHandlers } from './format-toolbar';
+import { createFormatToolbar } from './format-toolbar';
+import type { Inspector, InspectorHandlers } from './inspector';
+import { createInspector } from './inspector';
 import type { NotesPanel } from './notes-panel';
 import { createNotesPanel } from './notes-panel';
 import type { ThumbnailRail } from './thumbnails';
@@ -10,7 +14,17 @@ import { createToolbar } from './toolbar';
 export interface ChromeOptions {
 	showToolbar: boolean;
 	showThumbnails: boolean;
+	/** Build the editing format toolbar row (default true; shown only when editable). */
+	showFormatToolbar: boolean;
+	/** Build the property inspector panel (default true; shown only when editable). */
+	showInspector: boolean;
+	/** Whether editing is initially enabled (gates format-toolbar/inspector visibility). */
+	editable: boolean;
 	toolbarHandlers: ToolbarHandlers;
+	/** Editing format-toolbar actions (bold/fill/insert/z-order/...). */
+	formatHandlers: FormatToolbarHandlers;
+	/** Inspector actions (geometry + shape fill/stroke). */
+	inspectorHandlers: InspectorHandlers;
 	onSelectSlide(index: number): void;
 	/** Header click on the notes panel; shares the toolbar Notes button's handler. */
 	onToggleNotes(): void;
@@ -23,6 +37,10 @@ export interface ViewerChrome {
 	/** `.pptxv` root (focusable; keyboard navigation attaches here). */
 	root: HTMLElement;
 	toolbar: Toolbar | null;
+	/** Editing format toolbar (bold/fill/insert/z-order); null when disabled. */
+	formatToolbar: FormatToolbar | null;
+	/** Property inspector panel; null when disabled. */
+	inspector: Inspector | null;
 	thumbnails: ThumbnailRail | null;
 	/** Scrollable centring viewport around the stage. */
 	viewport: HTMLElement;
@@ -56,6 +74,13 @@ export function buildViewerChrome(
 		root.appendChild(toolbar.el);
 	}
 
+	let formatToolbar: FormatToolbar | null = null;
+	if (options.showFormatToolbar) {
+		formatToolbar = createFormatToolbar(doc, t, options.formatHandlers);
+		formatToolbar.setEditable(options.editable);
+		root.appendChild(formatToolbar.el);
+	}
+
 	const body = createEl(doc, 'div', 'pptxv-body');
 	root.appendChild(body);
 
@@ -68,6 +93,13 @@ export function buildViewerChrome(
 	const viewport = createEl(doc, 'div', 'pptxv-viewport');
 	viewport.setAttribute('data-pptx-viewport', '');
 	body.appendChild(viewport);
+
+	let inspector: Inspector | null = null;
+	if (options.showInspector) {
+		inspector = createInspector(doc, t, options.inspectorHandlers);
+		inspector.setEditable(options.editable);
+		body.appendChild(inspector.el);
+	}
 
 	const stageWrap = createEl(doc, 'div', 'pptxv-stage-wrap');
 	viewport.appendChild(stageWrap);
@@ -97,6 +129,8 @@ export function buildViewerChrome(
 	return {
 		root,
 		toolbar,
+		formatToolbar,
+		inspector,
 		thumbnails,
 		viewport,
 		stageWrap,

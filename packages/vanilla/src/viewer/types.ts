@@ -69,6 +69,16 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	/** Show the thumbnail sidebar (default `true`). */
 	showThumbnails?: boolean;
 	/**
+	 * Build the editing format toolbar row (bold/fill/insert/z-order); default
+	 * `true`. The row is only *visible* while editing is enabled.
+	 */
+	showFormatToolbar?: boolean;
+	/**
+	 * Build the property inspector panel (position/size/fill/line); default
+	 * `true`. Only *visible* while editing is enabled.
+	 */
+	showInspector?: boolean;
+	/**
 	 * Custom element-renderer registry. Defaults to `createDefaultRegistry()`;
 	 * pass your own (or mutate the default via `getRegistry()`) to add or
 	 * override element renderers.

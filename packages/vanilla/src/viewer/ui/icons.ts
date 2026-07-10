@@ -14,7 +14,14 @@ export type IconName =
 	| 'undo'
 	| 'redo'
 	| 'save'
-	| 'notes';
+	| 'notes'
+	| 'plus'
+	| 'minus'
+	| 'shapes'
+	| 'bring-front'
+	| 'send-back'
+	| 'bring-forward'
+	| 'send-backward';
 
 const ICON_PATHS: Record<IconName, string[]> = {
 	'chevron-left': ['M15 18l-6-6 6-6'],
@@ -33,6 +40,13 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	redo: ['M21 7v6h-6', 'M3 17a9 9 0 0 1 15-6.7L21 13'],
 	save: ['M12 3v12', 'M7 10l5 5 5-5', 'M5 21h14'],
 	notes: ['M5 4h14v16H5z', 'M8 9h8', 'M8 13h8', 'M8 17h4'],
+	plus: ['M12 5v14', 'M5 12h14'],
+	minus: ['M5 12h14'],
+	shapes: ['M4 4h9v9H4z', 'M17.5 14a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'],
+	'bring-front': ['M9 3h12v12H9z', 'M3 9h6v12h12v-6', 'M3 9h6V3'],
+	'send-back': ['M3 9h12v12H3z', 'M9 3h12v12h-6', 'M15 15h6V9'],
+	'bring-forward': ['M8 8h13v13H8z', 'M3 3h10v5', 'M3 3v10h5'],
+	'send-backward': ['M3 3h13v13H3z', 'M16 16h5V8', 'M16 21h5v-5'],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

@@ -1,5 +1,7 @@
 import { defaultCssVars } from 'pptx-viewer-shared';
 
+import { EDITOR_CSS } from './editor-css';
+
 /**
  * The viewer stylesheet, scoped under the `.pptxv` root class.
  *
@@ -275,7 +277,7 @@ const CHROME_CSS = `
 .pptxv.pptxv-presenting .pptxv-stage-wrap { box-shadow: none; }
 `;
 
-/** The full stylesheet text (theme-var defaults + chrome rules). */
+/** The full stylesheet text (theme-var defaults + chrome rules + editor chrome). */
 export function buildViewerCss(): string {
-	return `${defaultVarsBlock()}\n${CHROME_CSS}`;
+	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}`;
 }
