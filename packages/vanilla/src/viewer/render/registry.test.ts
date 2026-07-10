@@ -49,18 +49,24 @@ describe('createDefaultRegistry', () => {
 	it('registers dedicated renderers for the implemented types', () => {
 		const registry = createDefaultRegistry();
 		expect(registry.registeredTypes()).toStrictEqual([
+			'chart',
 			'connector',
 			'group',
 			'image',
+			'ink',
+			'media',
+			'ole',
 			'picture',
 			'shape',
+			'smartArt',
+			'table',
 			'text',
 		]);
 	});
 
 	it('leaves the remaining types on the placeholder fallback', () => {
 		const registry = createDefaultRegistry();
-		for (const type of ['table', 'chart', 'smartArt', 'media', 'ink', 'ole'] as const) {
+		for (const type of ['contentPart', 'zoom', 'model3d', 'unknown'] as const) {
 			expect(registry.has(type)).toBeFalsy();
 			expect(registry.resolve(type)).toBeDefined();
 		}

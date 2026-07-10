@@ -1,4 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { keyToLabel } from 'pptx-viewer-shared/i18n';
 import { describe, expect, it } from 'vitest';
 
 import { createTranslator } from '../i18n';
@@ -74,6 +75,7 @@ function buildSlide(): PptxSlide {
 				shapeStyle: { strokeColor: '#333333', strokeWidth: 2, connectorEndArrow: 'triangle' },
 			},
 			{ type: 'table', id: 'el-table', x: 20, y: 500, width: 300, height: 150 },
+			{ type: 'model3d', id: 'el-model3d', x: 340, y: 500, width: 200, height: 150 },
 		],
 	};
 }
@@ -149,11 +151,11 @@ describe('renderSlideStage', () => {
 
 	it('renders a typed placeholder for element types without a renderer', () => {
 		const stage = renderStage();
-		const placeholder = stage.querySelector<HTMLElement>('[data-element-id="el-table"]');
+		const placeholder = stage.querySelector<HTMLElement>('[data-element-id="el-model3d"]');
 		expect(placeholder).toBeTruthy();
-		expect(placeholder?.dataset.elementType).toBe('table');
+		expect(placeholder?.dataset.elementType).toBe('model3d');
 		expect(placeholder?.classList.contains('pptxv-placeholder')).toBeTruthy();
-		expect(placeholder?.textContent).toContain('Table');
+		expect(placeholder?.textContent).toBe(keyToLabel('model3d'));
 	});
 
 	it('dispatches to a custom renderer registered by the host', () => {
