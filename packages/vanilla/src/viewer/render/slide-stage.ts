@@ -19,6 +19,14 @@ export interface SlideStageOptions {
 	smartArt3D?: boolean;
 	/** True only for the live presentation stage; see `ElementRenderContext.presenting`. */
 	presenting?: boolean;
+	/**
+	 * True only for the main (interactive) canvas, never the thumbnail rail.
+	 * Marks every rendered element (recursively, including group children) with
+	 * `data-pptx-element="true"` and the stage itself with
+	 * `role="region" aria-roledescription="slide"` - the framework-neutral e2e
+	 * test hooks the React/Vue/Angular bindings also emit. Defaults to `false`.
+	 */
+	interactive?: boolean;
 }
 
 /**
@@ -33,6 +41,7 @@ export interface SlideStageOptions {
 export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 	const { document: doc, slide, canvasSize, mediaDataUrls, registry, t } = options;
 	const scale = options.scale ?? 1;
+	const interactive = options.interactive ?? false;
 
 	const stage = createEl(doc, 'div', 'pptxv-stage', {
 		width: `${canvasSize.width}px`,
@@ -43,6 +52,11 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		overflow: 'hidden',
 		...getSlideBackgroundStyle(slide),
 	});
+	if (interactive) {
+		stage.setAttribute('role', 'region');
+		stage.setAttribute('aria-roledescription', 'slide');
+		stage.setAttribute('aria-label', t('pptx.canvas.slide'));
+	}
 
 	const context: ElementRenderContext = {
 		document: doc,
@@ -55,7 +69,11 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		presenting: options.presenting ?? false,
 		registry,
 		renderElement(element: PptxElement, zIndex: number) {
-			return registry.resolve(element.type)(element, zIndex, context);
+			const node = registry.resolve(element.type)(element, zIndex, context);
+			if (node && interactive && 'setAttribute' in node) {
+				node.setAttribute('data-pptx-element', 'true');
+			}
+			return node;
 		},
 	};
 

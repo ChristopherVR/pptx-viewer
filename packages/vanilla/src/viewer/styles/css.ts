@@ -132,6 +132,63 @@ const CHROME_CSS = `
 .pptxv-stage { background: #fff; }
 .pptxv-para { margin: 0; }
 
+/* ── Selection overlay (editing) ─────────────────────────────────────── */
+.pptxv-editor-overlay {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 5;
+}
+.pptxv-sel-box {
+	position: absolute;
+	box-sizing: border-box;
+	border: 1px solid var(--pptx-ring);
+	pointer-events: none;
+	transform-origin: center;
+}
+.pptxv-sel-handle {
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	margin: -5px 0 0 -5px;
+	padding: 0;
+	border: 1px solid var(--pptx-ring);
+	border-radius: 2px;
+	background: #fff;
+	pointer-events: auto;
+	box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+}
+.pptxv-rotate-stem {
+	position: absolute;
+	left: 50%;
+	width: 1px;
+	margin-left: -0.5px;
+	background: var(--pptx-ring);
+	pointer-events: none;
+}
+.pptxv-rotate-knob {
+	position: absolute;
+	left: 50%;
+	width: 12px;
+	height: 12px;
+	margin: -6px 0 0 -6px;
+	padding: 0;
+	border: 1px solid var(--pptx-ring);
+	border-radius: 50%;
+	background: #fff;
+	cursor: grab;
+	pointer-events: auto;
+	box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+}
+.pptxv-snap-layer {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+.pptxv-snap-line { position: absolute; background: var(--pptx-destructive); }
+.pptxv-snap-v { top: 0; bottom: 0; width: 1px; }
+.pptxv-snap-h { left: 0; right: 0; height: 1px; }
+
 /* ── Speaker notes panel ─────────────────────────────────────────────── */
 .pptxv-notes {
 	display: flex;

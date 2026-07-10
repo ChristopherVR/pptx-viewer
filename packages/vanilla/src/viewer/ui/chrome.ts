@@ -66,6 +66,7 @@ export function buildViewerChrome(
 	}
 
 	const viewport = createEl(doc, 'div', 'pptxv-viewport');
+	viewport.setAttribute('data-pptx-viewport', '');
 	body.appendChild(viewport);
 
 	const stageWrap = createEl(doc, 'div', 'pptxv-stage-wrap');

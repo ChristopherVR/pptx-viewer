@@ -44,7 +44,12 @@ export interface RenderController {
 export function createRenderController(deps: RenderControllerDeps): RenderController {
 	const { doc, store, registry } = deps;
 
-	const renderStageFor = (slide: PptxSlide, scale: number, presenting = false): HTMLElement => {
+	const renderStageFor = (
+		slide: PptxSlide,
+		scale: number,
+		presenting = false,
+		interactive = false,
+	): HTMLElement => {
 		const state = store.get();
 		return renderSlideStage({
 			document: doc,
@@ -56,6 +61,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			scale,
 			smartArt3D: deps.smartArt3D,
 			presenting,
+			interactive,
 		});
 	};
 
@@ -83,7 +89,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		chrome.stageWrap.style.height = `${state.canvasSize.height * scale}px`;
 		chrome.stageWrap.replaceChildren();
 		if (slide) {
-			chrome.stageWrap.appendChild(renderStageFor(slide, scale, state.presenting));
+			chrome.stageWrap.appendChild(renderStageFor(slide, scale, state.presenting, true));
 		}
 		chrome.toolbar?.update({
 			current: state.currentSlide,

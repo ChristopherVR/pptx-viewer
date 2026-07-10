@@ -44,7 +44,10 @@ export function createNotesPanel(
 	const header = createEl(doc, 'button', 'pptxv-notes-header');
 	header.type = 'button';
 	header.setAttribute('aria-expanded', 'false');
-	header.setAttribute('aria-controls', 'pptxv-notes-body');
+	// `slide-notes-content` matches the id/aria-controls pair the React/Vue
+	// notes panels emit (see e.g. `SlideNotesPanel.tsx`), part of the
+	// framework-neutral e2e DOM contract documented in `playwright.config.ts`.
+	header.setAttribute('aria-controls', 'slide-notes-content');
 	header.addEventListener('click', onToggle);
 	el.appendChild(header);
 
@@ -57,7 +60,7 @@ export function createNotesPanel(
 	header.appendChild(chevron);
 
 	const body = createEl(doc, 'div', 'pptxv-notes-body');
-	body.id = 'pptxv-notes-body';
+	body.id = 'slide-notes-content';
 	el.appendChild(body);
 
 	const textarea = doc.createElement('textarea');
