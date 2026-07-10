@@ -74,6 +74,18 @@ const PACKAGES = {
 		packDir: 'packages/angular/dist',
 		triggers: [SHARED_DIR, 'packages/core'],
 	},
+	vanilla: {
+		dir: 'packages/vanilla',
+		npm: 'pptx-vanilla-viewer',
+		packDir: 'packages/vanilla',
+		triggers: [SHARED_DIR, 'packages/core'],
+	},
+	svelte: {
+		dir: 'packages/svelte',
+		npm: 'pptx-svelte-viewer',
+		packDir: 'packages/svelte',
+		triggers: [SHARED_DIR, 'packages/core'],
+	},
 	tools: {
 		dir: 'packages/tools',
 		npm: 'pptx-viewer-mcp',
