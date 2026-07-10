@@ -18,6 +18,9 @@ export default defineConfig({
 	root: __dirname,
 	// Served from a subpath (e.g. /pptx-viewer/demo-vanilla/) on GitHub Pages.
 	base: process.env.DEMO_BASE ?? '/',
+	// The repo-wide .gitignore excludes public/ dirs, so the sample deck is
+	// served straight from the committed e2e fixtures instead.
+	publicDir: resolve(__dirname, '..', '..', 'e2e', 'fixtures'),
 	plugins: [buildStamp(pkg('vanilla', 'package.json'))],
 	server: {
 		port: 4176,
