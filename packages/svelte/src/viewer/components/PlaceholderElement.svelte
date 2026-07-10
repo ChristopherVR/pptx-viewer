@@ -1,8 +1,8 @@
 <script lang="ts">
 	/**
 	 * PlaceholderElement: a clean, typed stand-in for element types whose real
-	 * Svelte renderer has not been ported yet (table, chart, smartArt, media,
-	 * ink, ole, ...). Occupies the element's exact bounds so slide layout stays
+	 * Svelte renderer has not been ported yet (contentPart, zoom, model3d,
+	 * unknown). Occupies the element's exact bounds so slide layout stays
 	 * faithful; renders the element type as a muted badge.
 	 *
 	 * To port a type for real: add a dedicated component and branch to it from

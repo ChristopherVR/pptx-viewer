@@ -54,9 +54,11 @@ Requires Svelte 5 (runes).
 
 ## Status
 
-This package is the viewer milestone: text, shapes, images, groups, and
-connectors render with full fidelity; tables, charts, SmartArt, media, ink,
-and OLE currently render typed placeholders. Editing is not included yet.
+This package is the viewer milestone: text, shapes, images, groups,
+connectors, tables, charts, SmartArt, media (video/audio), ink, and OLE
+embedded objects all render for real, powered by the same shared engine as
+the other bindings. The remaining niche types (content parts, zoom links,
+3D models) render typed placeholders. Editing is not included yet.
 
 ## License
 

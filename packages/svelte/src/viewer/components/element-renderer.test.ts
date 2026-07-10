@@ -107,7 +107,7 @@ describe('elementRenderer dispatch', () => {
 		expect(target.querySelector('[data-element-id="c2"]')).not.toBeNull();
 	});
 
-	it.each(['table', 'chart', 'smartArt', 'media', 'ink', 'ole'] as const)(
+	it.each(['contentPart', 'zoom', 'model3d'] as const)(
 		'renders a typed placeholder for %s elements',
 		(type) => {
 			const target = mountEl({ ...base, type } as PptxElement);
@@ -115,6 +115,41 @@ describe('elementRenderer dispatch', () => {
 			expect(placeholder).not.toBeNull();
 			expect(placeholder?.dataset.elementType).toBe(type);
 			expect(placeholder?.getAttribute('style')).toContain('width: 120px');
+		},
+	);
+
+	it.each([
+		['table', '.pptx-svelte-table'],
+		['chart', '.pptx-svelte-chart'],
+		['smartArt', '.pptx-svelte-smartart'],
+		['media', '.pptx-svelte-media'],
+		['ink', '.pptx-svelte-ink'],
+		['ole', '.pptx-svelte-ole'],
+	] as const)(
+		'dispatches %s elements to their real renderer, not the placeholder',
+		(type, selector) => {
+			const element = {
+				...base,
+				type,
+				// Minimal per-type payloads so each renderer takes its real branch.
+				...(type === 'table'
+					? { tableData: { columnWidths: [1], rows: [{ cells: [{ text: 'x' }] }] } }
+					: {}),
+				...(type === 'chart'
+					? {
+							chartData: {
+								chartType: 'bar',
+								categories: ['A'],
+								series: [{ name: 'S', values: [1] }],
+								style: {},
+							},
+						}
+					: {}),
+				...(type === 'ink' ? { inkPaths: ['M 0 0 L 5 5'] } : {}),
+			} as PptxElement;
+			const target = mountEl(element);
+			expect(target.querySelector('.pptx-svelte-placeholder')).toBeNull();
+			expect(target.querySelector(selector)).not.toBeNull();
 		},
 	);
 });
