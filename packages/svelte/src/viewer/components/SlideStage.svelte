@@ -8,12 +8,21 @@
 	 */
 	import { getSlideBackgroundStyle } from 'pptx-viewer-shared';
 
+	import { useTranslator } from '../../i18n/context';
 	import { styleToString } from '../style';
 	import ElementRenderer from './ElementRenderer.svelte';
 	import type { SlideStageProps } from './props';
 
-	const { slide, canvasSize, mediaDataUrls, scale = 1, presenting = false }: SlideStageProps =
-		$props();
+	const {
+		slide,
+		canvasSize,
+		mediaDataUrls,
+		scale = 1,
+		presenting = false,
+		interactive = false,
+	}: SlideStageProps = $props();
+
+	const t = useTranslator();
 
 	const stageStyle = $derived(
 		styleToString({
@@ -29,8 +38,14 @@
 	);
 </script>
 
-<div class="pptx-svelte-stage" style={stageStyle}>
+<div
+	class="pptx-svelte-stage"
+	style={stageStyle}
+	role={interactive ? 'region' : undefined}
+	aria-roledescription={interactive ? 'slide' : undefined}
+	aria-label={interactive ? t('pptx.canvas.slide') : undefined}
+>
 	{#each slide?.elements ?? [] as element, index (element.id)}
-		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} />
+		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} {interactive} />
 	{/each}
 </div>

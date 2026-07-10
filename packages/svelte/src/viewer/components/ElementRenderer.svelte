@@ -29,7 +29,8 @@
 	import ZoomView from './ZoomView.svelte';
 	import type { ElementRendererProps } from './props';
 
-	const { element, mediaDataUrls, zIndex, presenting = false }: ElementRendererProps = $props();
+	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false }: ElementRendererProps =
+		$props();
 
 	/** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
 	const smartArt3D = useSmartArt3D();
@@ -50,9 +51,10 @@
 		class="pptx-svelte-element pptx-svelte-group"
 		style={styleToString(getContainerStyle(element, zIndex))}
 		data-element-id={element.id}
+		data-pptx-element={interactive ? 'true' : undefined}
 	>
 		{#each element.children ?? [] as child, i (child.id)}
-			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} />
+			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} />
 		{/each}
 	</div>
 {:else if isImageLike}
@@ -85,6 +87,7 @@
 		class="pptx-svelte-element pptx-svelte-shape"
 		style={styleToString(getShapeBoxStyle(element, zIndex))}
 		data-element-id={element.id}
+		data-pptx-element={interactive ? 'true' : undefined}
 	>
 		{#if hasText}
 			<TextBlock {paragraphs} textStyle={styleToString(getTextBlockStyle(element))} />

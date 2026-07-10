@@ -5,10 +5,12 @@
 	 * viewer fills the screen, floating theme + language pickers hover above it,
 	 * and a landing dropzone handles file open / sample deck loading.
 	 */
+	import type { PowerPointViewerApi } from 'pptx-svelte-viewer';
 	import { PowerPointViewer, themeToCssVars } from 'pptx-svelte-viewer';
 	import { PptxHandler } from 'pptx-viewer-core';
 
 	import { language, setLanguage, t } from './demo-i18n.svelte';
+	import ExportBar from './ExportBar.svelte';
 	import LanguagePicker from './LanguagePicker.svelte';
 	import ThemePicker from './ThemePicker.svelte';
 	import { readStoredTheme, storeTheme, themes } from './themes';
@@ -22,6 +24,9 @@
 	let errorMessage = $state('');
 	// eslint-disable-next-line prefer-const
 	let fileInput = $state<HTMLInputElement | null>(null);
+	// Assigned by the viewer's bind:this (invisible to the linter).
+	// eslint-disable-next-line no-unassigned-vars, prefer-const
+	let viewerRef = $state<PowerPointViewerApi>();
 
 	// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`
 	// (mirrors demo-vue/src/App.vue).
@@ -127,18 +132,29 @@
 <LanguagePicker current={language.current} theme={themeKey} onchange={setLanguage} />
 
 {#if bytes}
-	<div class="demo-shell">
+	<!-- data-pptx-viewer: mirrors the marker attribute the React binding puts on
+	     its own viewer root (packages/react/src/viewer/PowerPointViewer.tsx),
+	     which the demos/build-stamp.ts badge watches for to auto-hide itself
+	     once a viewer mounts. pptx-svelte-viewer's own root doesn't set this
+	     marker yet, so without it here the badge stays pinned bottom-right and
+	     visually collides with ExportBar's buttons in the same corner. -->
+	<div class="demo-shell" data-pptx-viewer>
 		<label class="demo-editable-toggle">
 			<input type="checkbox" bind:checked={editable} />
-			Edit
+			{t('demo.editToggle.label')}
 		</label>
 		<PowerPointViewer
+			bind:this={viewerRef}
 			source={bytes}
 			theme={currentTheme}
 			locale={language.current}
 			{smartArt3D}
 			{editable}
 			onerror={onViewerError}
+		/>
+		<ExportBar
+			exportPng={() => viewerRef?.exportSlidePng() ?? Promise.resolve()}
+			exportPdf={() => viewerRef?.exportPdf() ?? Promise.resolve()}
 		/>
 	</div>
 {:else}
@@ -163,6 +179,7 @@
 			<!-- stopPropagation: the programmatic click() would bubble back to the
 			     zone's onclick and re-open the file chooser in a loop -->
 			<input
+				id="file-input"
 				bind:this={fileInput}
 				type="file"
 				accept=".pptx"

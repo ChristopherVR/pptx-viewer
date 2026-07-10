@@ -94,6 +94,7 @@
 			class="pptx-svelte-viewport"
 			bind:clientWidth={viewportWidth}
 			bind:clientHeight={viewportHeight}
+			data-pptx-viewport
 		>
 			{#if loading}
 				<div class="pptx-svelte-message" role="status">{t('common.loading')}</div>
@@ -114,7 +115,7 @@
 					onpointerdown={editingActive ? controller.onStagePointerDown : undefined}
 					ondblclick={editingActive ? controller.onStageDblClick : undefined}
 				>
-					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} />
+					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive />
 					{#if editingActive}
 						<EditorLayer {controller} {scale} />
 					{/if}

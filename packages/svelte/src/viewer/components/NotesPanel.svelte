@@ -57,14 +57,17 @@
 		type="button"
 		class="pptx-svelte-notes-header"
 		aria-expanded={!collapsed}
-		aria-controls="pptx-svelte-notes-body"
+		aria-controls="slide-notes-content"
 		onclick={() => ontoggle?.()}
 	>
 		<span class="pptx-svelte-notes-title">{t('pptx.presenter.speakerNotes')}</span>
 		<span class="pptx-svelte-notes-chevron" aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
 	</button>
 
-	<div id="pptx-svelte-notes-body" class="pptx-svelte-notes-body" hidden={collapsed}>
+	<!-- `slide-notes-content` matches the id/aria-controls pair the React/Vue
+	     notes panels emit (see e.g. `SlideNotesPanel.tsx`), part of the
+	     framework-neutral e2e DOM contract documented in `playwright.config.ts`. -->
+	<div id="slide-notes-content" class="pptx-svelte-notes-body" hidden={collapsed}>
 		<textarea
 			class="pptx-svelte-notes-textarea"
 			name="slide-notes"

@@ -53,7 +53,18 @@ export default defineConfig({
 		emptyOutDir: true,
 		minify: 'esbuild',
 		rollupOptions: {
-			external: ['svelte', /^svelte\//u, 'jszip', 'fast-xml-parser'],
+			external: [
+				'svelte',
+				/^svelte\//u,
+				'jszip',
+				'fast-xml-parser',
+				// PNG/PDF export libraries: both are dynamically `import()`-ed only
+				// when export is actually used (see viewer/export/render-to-canvas.ts
+				// and export-controller.svelte.ts). Kept external so they stay real
+				// dynamic imports instead of being inlined into the main chunk.
+				'html2canvas-pro',
+				'jspdf',
+			],
 		},
 	},
 });

@@ -16,6 +16,8 @@
 	import { createEditingApi } from './editor/editing-api';
 	import { EditorController } from './editor/editor-controller.svelte';
 	import { EditorState } from './editor/editor-state.svelte';
+	import { createExportWiring } from './export/export-wiring.svelte';
+	import { createExportingApi } from './export/exporting-api';
 	import { PresentationLoader } from './state/presentation-loader.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
 	import { ViewerState } from './state/viewer-state.svelte';
@@ -86,6 +88,7 @@
 
 	onDestroy(() => {
 		controller.destroy();
+		exportWiring.destroy();
 		loader.dispose();
 	});
 
@@ -131,6 +134,19 @@
 		getEditingActive: () => editingActive,
 	});
 
+	// ── Export (PNG / PDF) ───────────────────────────────────────────────
+	// The off-screen capture stage mounts into the viewer root once export is
+	// first used; see `export/export-wiring.svelte.ts`.
+	const exportWiring = createExportWiring({
+		getContainer: () => rootEl,
+		getSlides: () => editor.slides,
+		getCanvasSize: () => loader.canvasSize,
+		getMediaDataUrls: () => loader.mediaDataUrls,
+		getCurrent: () => viewer.current,
+		getTranslator: () => t,
+		getSmartArt3D: () => smartArt3D,
+	});
+
 	// ── Speaker notes ────────────────────────────────────────────────────
 	let notesExpanded = $state(false);
 
@@ -158,6 +174,11 @@
 	export const getSelectedElementId = editingApi.getSelectedElementId;
 	export const save = editingApi.save;
 	export const downloadPptx = editingApi.downloadPptx;
+
+	// ── Imperative export API (exposed on the component instance) ─────────
+	const exportingApi = createExportingApi(exportWiring.controller);
+	export const exportSlidePng = exportingApi.exportSlidePng;
+	export const exportPdf = exportingApi.exportPdf;
 </script>
 
 <svelte:document onfullscreenchange={onFullscreenChange} />

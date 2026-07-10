@@ -23,6 +23,14 @@ export interface ElementRendererProps {
 	 * autoplay).
 	 */
 	presenting?: boolean;
+	/**
+	 * True only on the main (interactive) canvas, never the thumbnail rail.
+	 * Marks the rendered root node with `data-pptx-element="true"` (the
+	 * framework-neutral e2e test hook React/Vue/Angular also emit) for the
+	 * element types that render their own wrapper directly (group, text/shape).
+	 * Defaults to `false`.
+	 */
+	interactive?: boolean;
 }
 
 export interface TextBlockProps {
@@ -38,6 +46,13 @@ export interface SlideStageProps {
 	scale?: number;
 	/** Forwarded to each `ElementRenderer`; see `ElementRendererProps.presenting`. */
 	presenting?: boolean;
+	/**
+	 * True only for the main (interactive) canvas, never the thumbnail rail.
+	 * Adds `role="region" aria-roledescription="slide"` to the stage itself
+	 * (the framework-neutral e2e hook React/Vue/Angular also emit) and is
+	 * forwarded to each `ElementRenderer`; see `ElementRendererProps.interactive`.
+	 */
+	interactive?: boolean;
 }
 
 export interface ViewerToolbarProps {

@@ -17,6 +17,9 @@ export const demoStringsEn = {
 	'demo.viewer.loadError': 'Failed to load the presentation',
 	'demo.pickers.switchTheme': 'Switch theme',
 	'demo.pickers.switchLanguage': 'Switch language',
+	'demo.export.png': 'Export PNG',
+	'demo.export.pdf': 'Export PDF',
+	'demo.editToggle.label': 'Edit',
 };
 
 export const demoStringsFr = {
@@ -28,6 +31,9 @@ export const demoStringsFr = {
 	'demo.viewer.loadError': 'Echec du chargement de la presentation',
 	'demo.pickers.switchTheme': 'Changer de theme',
 	'demo.pickers.switchLanguage': 'Changer de langue',
+	'demo.export.png': 'Exporter en PNG',
+	'demo.export.pdf': 'Exporter en PDF',
+	'demo.editToggle.label': 'Modifier',
 };
 
 export const demoStringsEs = {
@@ -39,6 +45,9 @@ export const demoStringsEs = {
 	'demo.viewer.loadError': 'No se pudo cargar la presentacion',
 	'demo.pickers.switchTheme': 'Cambiar tema',
 	'demo.pickers.switchLanguage': 'Cambiar idioma',
+	'demo.export.png': 'Exportar a PNG',
+	'demo.export.pdf': 'Exportar a PDF',
+	'demo.editToggle.label': 'Editar',
 };
 
 export const demoStringsDe = {
@@ -50,4 +59,7 @@ export const demoStringsDe = {
 	'demo.viewer.loadError': 'Prasentation konnte nicht geladen werden',
 	'demo.pickers.switchTheme': 'Design wechseln',
 	'demo.pickers.switchLanguage': 'Sprache wechseln',
+	'demo.export.png': 'Als PNG exportieren',
+	'demo.export.pdf': 'Als PDF exportieren',
+	'demo.editToggle.label': 'Bearbeiten',
 };

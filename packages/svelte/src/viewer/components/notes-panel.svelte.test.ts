@@ -148,7 +148,7 @@ describe('notesPanel', () => {
 	it('collapses and expands via the header toggle', () => {
 		const ontoggle = vi.fn();
 		const { target } = mountPanel({ slide: slide(), expanded: false, ontoggle });
-		const body = target.querySelector<HTMLElement>('#pptx-svelte-notes-body');
+		const body = target.querySelector<HTMLElement>('#slide-notes-content');
 		expect(body?.hidden).toBeTruthy();
 
 		const header = target.querySelector<HTMLButtonElement>('.pptx-svelte-notes-header');
@@ -159,7 +159,7 @@ describe('notesPanel', () => {
 
 	it('shows the body when expanded is true', () => {
 		const { target } = mountPanel({ slide: slide(), expanded: true });
-		const body = target.querySelector<HTMLElement>('#pptx-svelte-notes-body');
+		const body = target.querySelector<HTMLElement>('#slide-notes-content');
 		expect(body?.hidden).toBeFalsy();
 		expect(target.querySelector('.pptx-svelte-notes-header')?.getAttribute('aria-expanded')).toBe(
 			'true',

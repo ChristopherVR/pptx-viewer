@@ -1,5 +1,7 @@
 import type { CanvasSize, ViewerTheme } from 'pptx-viewer-shared';
 
+import type { ExportPdfOptions } from './export';
+
 /**
  * Public component types for the Svelte PowerPoint viewer.
  *
@@ -106,4 +108,15 @@ export interface PowerPointViewerApi {
 	save(): Promise<Uint8Array>;
 	/** Save + trigger a browser download of the `.pptx` (default name). */
 	downloadPptx(fileName?: string): Promise<void>;
+	/**
+	 * Export a slide as a PNG download (defaults to the current slide). Renders
+	 * the slide off-screen at scale 1 and rasterises it with `html2canvas-pro`
+	 * (dynamically imported), so the first call pays a one-time load cost.
+	 */
+	exportSlidePng(index?: number): Promise<void>;
+	/**
+	 * Export every slide as a multi-page PDF download (one slide per page).
+	 * `jspdf` is dynamically imported on first use.
+	 */
+	exportPdf(options?: ExportPdfOptions): Promise<void>;
 }
