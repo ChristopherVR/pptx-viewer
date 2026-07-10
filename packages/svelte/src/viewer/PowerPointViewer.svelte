@@ -21,6 +21,7 @@
 	import { AutosaveController } from './state/autosave.svelte';
 	import { createExportWiring } from './export/export-wiring.svelte';
 	import { createExportingApi } from './export/exporting-api';
+	import { PresentationController, usePresentationEffects } from './presentation';
 	import { PresentationLoader } from './state/presentation-loader.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
 	import { ViewerState } from './state/viewer-state.svelte';
@@ -167,6 +168,24 @@
 		styleToString(mergeStyles(defaultCssVars(), themeToCssVars(theme))),
 	);
 
+	// ── Presentation mode (animations + slide transitions) ───────────────
+	// Owns the click-stepped element-animation playback and the transient
+	// slide-transition overlay state; driven by `usePresentationEffects` off the
+	// fullscreen flag + current slide. All the preset/transition CSS maths lives
+	// in `pptx-viewer-shared`.
+	const presentation = new PresentationController({
+		getSlides: () => editor.slides,
+		getCurrentIndex: () => viewer.current,
+		navigate: (index) => viewer.goTo(index),
+	});
+	usePresentationEffects({
+		controller: presentation,
+		getPresenting: () => viewer.isFullscreen,
+		getCurrentIndex: () => viewer.current,
+		getActiveSlide: () => activeSlide,
+		getStageRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
+	});
+
 	// ── Fullscreen / keyboard ────────────────────────────────────────────
 	// Assigned by the template's bind:this (invisible to the linter).
 	// eslint-disable-next-line no-unassigned-vars
@@ -177,6 +196,7 @@
 		viewer,
 		controller,
 		getEditingActive: () => editingActive,
+		presentation,
 	});
 
 	// ── Export (PNG / PDF) ───────────────────────────────────────────────
@@ -287,6 +307,9 @@
 		{activeSlide}
 		{scale}
 		presenting={viewer.isFullscreen}
+		presentationTransition={presentation.transition}
+		onTransitionDone={() => presentation.endTransition()}
+		onAdvance={() => presentation.advance()}
 		{editingActive}
 		{controller}
 		onstageresize={(width, height) => {
