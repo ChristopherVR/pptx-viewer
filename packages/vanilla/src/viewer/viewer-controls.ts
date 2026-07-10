@@ -37,7 +37,15 @@ export function createViewerControls(
 		});
 	};
 	return {
-		next: () => goToSlide(store.get().currentSlide + 1),
+		// While presenting, a "next" first reveals the current slide's next
+		// on-click animation build; only once the timeline is exhausted does the
+		// slide advance. Backward navigation just jumps slides (matches Vue).
+		next: () => {
+			if (store.get().presenting && renderer.presentationPlayback.advance()) {
+				return;
+			}
+			goToSlide(store.get().currentSlide + 1);
+		},
 		prev: () => goToSlide(store.get().currentSlide - 1),
 		goToSlide,
 		slideCount: () => store.get().slides.length,

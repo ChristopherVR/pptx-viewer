@@ -1,5 +1,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 
+import type { PresentationPlayback } from './animation';
+import { createPresentationPlayback } from './animation';
 import type { Translator } from './i18n';
 import type { ElementRendererRegistry } from './render';
 import { renderSlideStage } from './render';
@@ -34,6 +36,12 @@ export interface RenderController {
 	renderThumbnails(): void;
 	/** Resolve the requested zoom into a concrete scale factor. */
 	effectiveScale(): number;
+	/**
+	 * Presentation-mode animation/transition playback, driven by the stage
+	 * rebuild flow. Navigation (`viewer-controls`) consults `advance()` so a
+	 * "next" first steps the on-click animation timeline before advancing slides.
+	 */
+	readonly presentationPlayback: PresentationPlayback;
 }
 
 /**
@@ -43,6 +51,7 @@ export interface RenderController {
  */
 export function createRenderController(deps: RenderControllerDeps): RenderController {
 	const { doc, store, registry } = deps;
+	const presentationPlayback = createPresentationPlayback();
 
 	const renderStageFor = (
 		slide: PptxSlide,
@@ -88,8 +97,10 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		chrome.stageWrap.style.width = `${state.canvasSize.width * scale}px`;
 		chrome.stageWrap.style.height = `${state.canvasSize.height * scale}px`;
 		chrome.stageWrap.replaceChildren();
+		let stageNode: HTMLElement | null = null;
 		if (slide) {
-			chrome.stageWrap.appendChild(renderStageFor(slide, scale, state.presenting, true));
+			stageNode = renderStageFor(slide, scale, state.presenting, true);
+			chrome.stageWrap.appendChild(stageNode);
 		}
 		chrome.toolbar?.update({
 			current: state.currentSlide,
@@ -98,6 +109,20 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		});
 		chrome.notes.update({ slide, editable: state.editable });
 		deps.onStageRendered?.();
+		// Drive presentation-mode entrance state + slide transitions off the fresh
+		// stage. Guarded on `presenting` inside `syncStage`; a no-op otherwise.
+		if (stageNode) {
+			presentationPlayback.syncStage({
+				doc,
+				stageWrap: chrome.stageWrap,
+				stage: stageNode,
+				slide,
+				slideIndex: state.currentSlide,
+				presenting: state.presenting,
+			});
+		} else {
+			presentationPlayback.reset();
+		}
 	};
 
 	const renderThumbnails = (): void => {
@@ -121,5 +146,6 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		renderStage,
 		renderThumbnails,
 		effectiveScale,
+		presentationPlayback,
 	};
 }
