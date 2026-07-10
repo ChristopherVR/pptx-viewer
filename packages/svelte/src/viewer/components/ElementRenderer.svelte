@@ -9,6 +9,7 @@
 	import { buildParagraphs } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, styleToString } from '../style';
+	import { useSmartArt3D } from '../state/smart-art-3d-context';
 	// Self-import: groups recurse into this same component (Svelte 5 pattern).
 	// eslint-disable-next-line import/no-self-import
 	import ElementRenderer from './ElementRenderer.svelte';
@@ -21,6 +22,7 @@
 	import Model3dView from './Model3dView.svelte';
 	import OleView from './OleView.svelte';
 	import PlaceholderElement from './PlaceholderElement.svelte';
+	import SmartArt3DView from './SmartArt3DView.svelte';
 	import SmartArtView from './SmartArtView.svelte';
 	import TableView from './TableView.svelte';
 	import TextBlock from './TextBlock.svelte';
@@ -28,6 +30,9 @@
 	import type { ElementRendererProps } from './props';
 
 	const { element, mediaDataUrls, zIndex }: ElementRendererProps = $props();
+
+	/** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
+	const smartArt3D = useSmartArt3D();
 
 	const isShapeLike = $derived(element.type === 'text' || element.type === 'shape');
 	const isImageLike = $derived(element.type === 'picture' || element.type === 'image');
@@ -58,6 +63,8 @@
 	<TableView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'chart'}
 	<ChartView {element} {mediaDataUrls} {zIndex} />
+{:else if element.type === 'smartArt' && smartArt3D}
+	<SmartArt3DView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'smartArt'}
 	<SmartArtView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'media'}

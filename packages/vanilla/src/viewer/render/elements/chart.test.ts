@@ -17,6 +17,7 @@ function buildContext(): ElementRenderContext {
 		scale: 1,
 		mediaDataUrls: new Map<string, string>(),
 		t: createTranslator(),
+		smartArt3D: false,
 		registry,
 		renderElement(element, zIndex) {
 			return registry.resolve(element.type)(element, zIndex, context);

@@ -30,6 +30,12 @@ export interface ElementRenderContext {
 	readonly mediaDataUrls: ReadonlyMap<string, string>;
 	/** Shared-dictionary translator (`pptx.*` keys). */
 	readonly t: Translator;
+	/**
+	 * Opt-in flag: render `smartArt` elements as an extruded Three.js scene
+	 * instead of flat SVG (see `PptxViewerOptions.smartArt3D`). Defaults to
+	 * `false` when the option is unset.
+	 */
+	readonly smartArt3D: boolean;
 	/** The registry in effect, for renderers that need to inspect it. */
 	readonly registry: ElementRendererRegistry;
 	/**

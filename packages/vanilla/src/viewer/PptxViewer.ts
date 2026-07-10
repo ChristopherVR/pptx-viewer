@@ -64,6 +64,7 @@ export class PptxViewer implements PptxViewerInstance {
 			registry: this.registry,
 			getChrome: () => this.chrome,
 			getTranslator: () => this.t,
+			smartArt3D: options.smartArt3D ?? false,
 			onStageRendered: () => this.editor?.onStageRendered(),
 		});
 

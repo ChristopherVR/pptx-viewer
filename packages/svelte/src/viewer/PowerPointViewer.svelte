@@ -15,6 +15,7 @@
 	import ThumbnailRail from './components/ThumbnailRail.svelte';
 	import ViewerToolbar from './components/ViewerToolbar.svelte';
 	import { PresentationLoader } from './state/presentation-loader.svelte';
+	import { provideSmartArt3D } from './state/smart-art-3d-context';
 	import { ViewerState } from './state/viewer-state.svelte';
 	import { fitScale } from './state/navigation';
 	import { isFullscreenActive, toggleFullscreen } from './state/fullscreen';
@@ -28,6 +29,7 @@
 		initialSlide = 0,
 		showThumbnails = true,
 		showToolbar = true,
+		smartArt3D = false,
 		class: className = '',
 		onload,
 		onerror,
@@ -36,6 +38,7 @@
 
 	const t = createTranslator(() => locale);
 	provideTranslator(t);
+	provideSmartArt3D(() => smartArt3D);
 
 	const loader = new PresentationLoader();
 	const viewer = new ViewerState();

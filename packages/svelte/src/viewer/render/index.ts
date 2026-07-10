@@ -28,3 +28,4 @@ export type { ContentPartStrokeView } from './contentpart-view';
 export { resolveZoomView } from './zoom-view';
 export type { ZoomView } from './zoom-view';
 export { DEFAULT_MODEL_MIME, modelDataToBlobUrl } from './model3d-view';
+export { buildSmartArt3DViewModel } from './smart-art-3d-view';

@@ -7,22 +7,22 @@ existing renderer files.
 
 ## Current status
 
-| Type               | Renderer                                            |
-| ------------------ | --------------------------------------------------- |
-| `text`, `shape`    | `text-shape.ts`                                     |
-| `image`, `picture` | `image.ts`                                          |
-| `group`            | `group.ts`                                          |
-| `connector`        | `connector.ts`                                      |
-| `table`            | `table.ts` (\*)                                     |
-| `chart`            | `chart.ts` + `chart-svg.ts` (\*)                    |
-| `smartArt`         | `smartart.ts` + `smartart-{svg,fallback}.ts` (\*\*) |
-| `media`            | `media.ts` (\*\*)                                   |
-| `ink`              | `ink.ts` (\*\*)                                     |
-| `ole`              | `ole.ts` + `ole-icons.ts` (\*\*)                    |
-| `model3d`          | `model3d.ts` (\*\*\*)                               |
-| `zoom`             | `zoom.ts` (\*\*\*)                                  |
-| `contentPart`      | `contentpart.ts` (\*\*\*)                           |
-| `unknown`          | `placeholder.ts` (fallback)                         |
+| Type               | Renderer                                               |
+| ------------------ | ------------------------------------------------------ |
+| `text`, `shape`    | `text-shape.ts`                                        |
+| `image`, `picture` | `image.ts`                                             |
+| `group`            | `group.ts`                                             |
+| `connector`        | `connector.ts`                                         |
+| `table`            | `table.ts` (\*)                                        |
+| `chart`            | `chart.ts` + `chart-svg.ts` (\*)                       |
+| `smartArt`         | `smartart.ts` + `smartart-{svg,fallback,3d}.ts` (\*\*) |
+| `media`            | `media.ts` (\*\*)                                      |
+| `ink`              | `ink.ts` (\*\*)                                        |
+| `ole`              | `ole.ts` + `ole-icons.ts` (\*\*)                       |
+| `model3d`          | `model3d.ts` (\*\*\*)                                  |
+| `zoom`             | `zoom.ts` (\*\*\*)                                     |
+| `contentPart`      | `contentpart.ts` (\*\*\*)                              |
+| `unknown`          | `placeholder.ts` (fallback)                            |
 
 (\*) Registered via `registerTableChartRenderers` in `register-table-chart.ts`.
 (\*\*) Registered via `registerRichMediaRenderers` in `register-rich-media.ts`.

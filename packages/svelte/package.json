@@ -79,5 +79,8 @@
 		"fast-xml-parser": "^5.8.0",
 		"jszip": "^3.10.1",
 		"svelte": "^5.0.0"
+	},
+	"optionalDependencies": {
+		"three": "^0.185.1"
 	}
 }

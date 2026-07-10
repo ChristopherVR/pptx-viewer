@@ -19,6 +19,10 @@
 	let errorMessage = $state('');
 	let fileInput = $state<HTMLInputElement | null>(null);
 
+	// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`
+	// (mirrors demo-vue/src/App.vue).
+	const smartArt3D = new URLSearchParams(window.location.search).get('smartArt3D') === '1';
+
 	const currentTheme = $derived((themes[themeKey] ?? themes.vermilionDark).theme);
 
 	function setTheme(key: string): void {
@@ -104,6 +108,7 @@
 			source={bytes}
 			theme={currentTheme}
 			locale={language.current}
+			{smartArt3D}
 			onerror={onViewerError}
 		/>
 	</div>

@@ -12,6 +12,10 @@ export default defineConfig({
 				find: 'pptx-viewer-shared/i18n',
 				replacement: resolve(__dirname, '../shared/src/i18n/index.ts'),
 			},
+			{
+				find: 'pptx-viewer-shared/smartart-3d',
+				replacement: resolve(__dirname, '../shared/src/smartart-3d/index.ts'),
+			},
 			{ find: 'pptx-viewer-shared', replacement: resolve(__dirname, '../shared/src/index.ts') },
 			{ find: 'pptx-viewer-core', replacement: resolve(__dirname, '../core/src/index.ts') },
 		],

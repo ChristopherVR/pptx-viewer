@@ -38,6 +38,14 @@ export interface PowerPointViewerProps {
 	showThumbnails?: boolean;
 	/** Show the navigation/zoom toolbar. Default true. */
 	showToolbar?: boolean;
+	/**
+	 * Opt in to the experimental Three.js (WebGL) SmartArt renderer for
+	 * `smartArt` elements, in place of the default SVG renderer. Requires the
+	 * optional `three` peer dependency; when it is unavailable, or a diagram
+	 * has no renderable nodes, or the WebGL mount fails, the SVG renderer is
+	 * used automatically. Default false.
+	 */
+	smartArt3D?: boolean;
 	/** Optional class name applied to the root element. */
 	class?: string;
 	/** Fired after a presentation finishes loading. */

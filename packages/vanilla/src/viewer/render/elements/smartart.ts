@@ -12,11 +12,27 @@ import {
 
 import { createEl, createSvgEl } from '../dom';
 import type { ElementRenderer } from '../types';
+import { renderSmartArt3DElement } from './smartart-3d';
 import { buildSmartArtFallbackSvg } from './smartart-fallback';
 import { appendCenteredSvgText, SMARTART_SVG_STYLE } from './smartart-svg';
 
 /**
- * Renderer for `smartArt` elements, viewer-only vanilla port of Vue's
+ * Renderer for `smartArt` elements. Dispatches to the opt-in Three.js
+ * renderer (`smartart-3d.ts`) when `context.smartArt3D` is set (see
+ * `PptxViewerOptions.smartArt3D`), otherwise renders the flat SVG below.
+ */
+export const renderSmartArtElement: ElementRenderer = (element, zIndex, context) => {
+	if (element.type !== 'smartArt') {
+		return null;
+	}
+	if (context.smartArt3D) {
+		return renderSmartArt3DElement(element, zIndex, context);
+	}
+	return renderSmartArtSvg(element, zIndex, context);
+};
+
+/**
+ * The flat SVG renderer, viewer-only vanilla port of Vue's
  * `SmartArtRenderer.vue`:
  *
  * - **Drawing-shapes path (preferred)**: renders the pre-computed
@@ -32,11 +48,11 @@ import { appendCenteredSvgText, SMARTART_SVG_STYLE } from './smartart-svg';
  * `buildChromeStyle`) and described to assistive tech through the shared
  * `buildSmartArtA11y` diagram label (`role="img"` + `aria-label`).
  *
- * Not ported (editor-only in Vue): inline node text editing, the hover fill
- * swatch bar, and per-node `data-node-id` editing hooks. The opt-in 3D
- * renderer (`pptx-viewer-shared/smartart-3d`) is a separate follow-up.
+ * Not ported (editor-only in Vue): inline node text editing and the hover
+ * fill swatch bar. Also used as the fallback content (and initial paint) for
+ * the opt-in 3D renderer in `smartart-3d.ts`.
  */
-export const renderSmartArtElement: ElementRenderer = (element, zIndex, context) => {
+export const renderSmartArtSvg: ElementRenderer = (element, zIndex, context) => {
 	if (element.type !== 'smartArt') {
 		return null;
 	}

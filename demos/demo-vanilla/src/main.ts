@@ -27,6 +27,10 @@ let themeKey = readStoredTheme();
 let viewer: PptxViewerInstance | null = null;
 let appliedVarKeys: string[] = [];
 
+// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`,
+// mirroring demo-vue's `App.vue`.
+const smartArt3D = new URLSearchParams(window.location.search).get('smartArt3D') === '1';
+
 const themePicker = createThemePicker(
 	() => themeKey,
 	(key) => {
@@ -100,6 +104,7 @@ function openViewer(source: PptxViewerSource, name: string): void {
 		locale: getLanguage(),
 		messages: viewerMessages,
 		editable: true,
+		smartArt3D,
 		onError: (message, error) => {
 			console.error('pptx-vanilla-viewer failed to load', message, error);
 			showLanding();

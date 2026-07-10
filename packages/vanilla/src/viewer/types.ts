@@ -73,6 +73,15 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	 * override element renderers.
 	 */
 	registry?: ElementRendererRegistry;
+	/**
+	 * Opt-in WebGL SmartArt renderer (default `false`): renders `smartArt`
+	 * elements as an extruded Three.js scene instead of the flat SVG layout.
+	 * `three` is an optional peer dependency, lazily imported only when this is
+	 * `true`; when it is unavailable or the scene fails to mount, the SVG
+	 * renderer is used instead. Set once at construction (no runtime setter,
+	 * mirroring the Vue/React/Angular bindings).
+	 */
+	smartArt3D?: boolean;
 }
 
 /** The viewer handle returned by `createPptxViewer`. */

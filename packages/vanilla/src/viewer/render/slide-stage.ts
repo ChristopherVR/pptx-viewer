@@ -15,6 +15,8 @@ export interface SlideStageOptions {
 	t: Translator;
 	/** Scale applied via CSS transform (default 1). */
 	scale?: number;
+	/** Opt-in WebGL SmartArt renderer flag; see `PptxViewerOptions.smartArt3D`. */
+	smartArt3D?: boolean;
 }
 
 /**
@@ -47,6 +49,7 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		scale,
 		mediaDataUrls,
 		t,
+		smartArt3D: options.smartArt3D ?? false,
 		registry,
 		renderElement(element: PptxElement, zIndex: number) {
 			return registry.resolve(element.type)(element, zIndex, context);

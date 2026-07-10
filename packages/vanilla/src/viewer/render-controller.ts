@@ -16,6 +16,8 @@ export interface RenderControllerDeps {
 	/** Getters so chrome/translator swaps (setLocale) are picked up live. */
 	getChrome(): ViewerChrome;
 	getTranslator(): Translator;
+	/** Opt-in WebGL SmartArt renderer flag; see `PptxViewerOptions.smartArt3D`. */
+	smartArt3D: boolean;
 	/**
 	 * Invoked after every stage render (the stage host is rebuilt with
 	 * `replaceChildren`); the editor re-mounts its overlay layer here.
@@ -52,6 +54,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			registry,
 			t: deps.getTranslator(),
 			scale,
+			smartArt3D: deps.smartArt3D,
 		});
 	};
 

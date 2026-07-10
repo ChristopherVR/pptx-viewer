@@ -1,12 +1,27 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../../i18n';
 import { createElementRendererRegistry } from '../registry';
 import type { ElementRenderContext } from '../types';
 import { renderSmartArtElement } from './smartart';
 
-function makeContext(): ElementRenderContext {
+// Mock the lazily-imported vanilla Three.js SmartArt scene runtime so the
+// optional `three` peer dependency's WebGL renderer never touches happy-dom's
+// canvas stub (same pattern as `model3d.test.ts`'s `mountModel3D` mock, but
+// for the `pptx-viewer-shared/smartart-3d` subpath the 3D renderer imports).
+const { mountSmartArt3D } = vi.hoisted(() => ({ mountSmartArt3D: vi.fn() }));
+
+vi.mock(import('pptx-viewer-shared/smartart-3d'), async (importOriginal) => {
+	const actual = await importOriginal();
+	return {
+		...actual,
+		mountSmartArt3D: (...args: Parameters<typeof actual.mountSmartArt3D>) =>
+			mountSmartArt3D(...args),
+	};
+});
+
+function makeContext(smartArt3D = false): ElementRenderContext {
 	const registry = createElementRendererRegistry();
 	const context: ElementRenderContext = {
 		document,
@@ -15,6 +30,7 @@ function makeContext(): ElementRenderContext {
 		scale: 1,
 		mediaDataUrls: new Map<string, string>(),
 		t: createTranslator(),
+		smartArt3D,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),
 	};
@@ -48,6 +64,40 @@ function drawingShapesElement(): PptxElement {
 			],
 		},
 	};
+}
+
+/** SmartArt element with only the node layout (no pre-computed drawing shapes). */
+function nodesOnlyElement(): PptxElement {
+	return {
+		type: 'smartArt',
+		id: 'sa-2',
+		x: 0,
+		y: 0,
+		width: 400,
+		height: 240,
+		smartArtData: {
+			nodes: [
+				{ id: 'n1', text: 'One' },
+				{ id: 'n2', text: 'Two' },
+				{ id: 'n3', text: 'Three' },
+			],
+		},
+	};
+}
+
+/**
+ * Flush the mount promise chain: the dynamic `import('pptx-viewer-shared/
+ * smartart-3d')` resolves asynchronously (real module graph load, even though
+ * `mountSmartArt3D` itself is mocked), so a couple of microtask-only
+ * `Promise.resolve()` turns is not always enough; fall back to a macrotask
+ * tick too.
+ */
+async function flushMount(): Promise<void> {
+	for (let i = 0; i < 20; i += 1) {
+		await new Promise((resolve) => {
+			setTimeout(resolve, 5);
+		});
+	}
 }
 
 describe('renderSmartArtElement', () => {
@@ -102,22 +152,7 @@ describe('renderSmartArtElement', () => {
 	});
 
 	it('falls back to the shared layout engine when no drawing shapes exist', () => {
-		const element: PptxElement = {
-			type: 'smartArt',
-			id: 'sa-2',
-			x: 0,
-			y: 0,
-			width: 400,
-			height: 240,
-			smartArtData: {
-				nodes: [
-					{ id: 'n1', text: 'One' },
-					{ id: 'n2', text: 'Two' },
-					{ id: 'n3', text: 'Three' },
-				],
-			},
-		};
-		const node = renderSmartArtElement(element, 0, makeContext()) as HTMLElement;
+		const node = renderSmartArtElement(nodesOnlyElement(), 0, makeContext()) as HTMLElement;
 		const svg = node.querySelector('svg.pptxv-smartart-svg');
 		expect(svg).toBeTruthy();
 		expect(svg?.getAttribute('data-layout-family')).toBeTruthy();
@@ -140,5 +175,72 @@ describe('renderSmartArtElement', () => {
 		const node = renderSmartArtElement(element, 0, makeContext()) as HTMLElement;
 		const placeholder = node.querySelector('.pptxv-smartart-placeholder');
 		expect(placeholder?.textContent).toBe('SmartArt');
+	});
+});
+
+describe('renderSmartArtElement (opt-in 3D)', () => {
+	beforeEach(() => {
+		mountSmartArt3D.mockReset();
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it('renders the SVG synchronously and does not touch the 3D mount when the flag is off', async () => {
+		const node = renderSmartArtElement(nodesOnlyElement(), 0, makeContext(false)) as HTMLElement;
+		await flushMount();
+		expect(node.querySelector('svg.pptxv-smartart-svg')).toBeTruthy();
+		expect(node.querySelector('canvas')).toBeNull();
+		expect(mountSmartArt3D).not.toHaveBeenCalled();
+	});
+
+	it('paints the SVG immediately, then upgrades to a mounted canvas once the scene loads', async () => {
+		const node = renderSmartArtElement(nodesOnlyElement(), 2, makeContext(true)) as HTMLElement;
+		expect(node.dataset.elementId).toBe('sa-2');
+		expect(node.style.zIndex).toBe('2');
+		// Synchronous return still paints the SVG fallback (matches Vue's
+		// useFallback=true initial render before the async mount resolves).
+		expect(node.querySelector('svg.pptxv-smartart-svg')).toBeTruthy();
+
+		await flushMount();
+
+		expect(mountSmartArt3D).toHaveBeenCalledExactlyOnceWith(
+			expect.anything(),
+			expect.objectContaining({ meshes: expect.any(Array) }),
+			400,
+			240,
+			{},
+		);
+		const canvas = node.querySelector('canvas.pptxv-smartart-3d-canvas');
+		expect(canvas).toBeTruthy();
+		expect(node.querySelector('svg.pptxv-smartart-svg')).toBeNull();
+		// Node reference stays the same across the upgrade (in-place swap).
+		expect(node.dataset.elementId).toBe('sa-2');
+	});
+
+	it('renders a labelled placeholder without attempting a 3D mount when there is no SmartArt data', async () => {
+		const element: PptxElement = {
+			type: 'smartArt',
+			id: 'sa-3',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+		};
+		const node = renderSmartArtElement(element, 0, makeContext(true)) as HTMLElement;
+		await flushMount();
+		expect(node.querySelector('.pptxv-smartart-placeholder')?.textContent).toBe('SmartArt');
+		expect(mountSmartArt3D).not.toHaveBeenCalled();
+	});
+
+	it('reverts to the SVG fallback when the scene fails to mount', async () => {
+		mountSmartArt3D.mockImplementation(() => {
+			throw new Error('webgl unavailable');
+		});
+		const node = renderSmartArtElement(nodesOnlyElement(), 0, makeContext(true)) as HTMLElement;
+		await flushMount();
+		expect(node.querySelector('canvas.pptxv-smartart-3d-canvas')).toBeNull();
+		expect(node.querySelector('svg.pptxv-smartart-svg')).toBeTruthy();
 	});
 });

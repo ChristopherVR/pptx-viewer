@@ -20,6 +20,7 @@ function makeContext(mediaDataUrls = new Map<string, string>()): ElementRenderCo
 		scale: 1,
 		mediaDataUrls,
 		t: createTranslator(),
+		smartArt3D: false,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),
 	};
