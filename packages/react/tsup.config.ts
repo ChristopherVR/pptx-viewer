@@ -3,13 +3,13 @@ import { defineConfig } from 'tsup';
 export default defineConfig((options) => ({
 	entry: ['src/index.ts', 'src/viewer/index.ts', 'src/i18n.ts', 'src/hooks-unstable.ts'],
 	format: ['esm', 'cjs'],
-	minify: true,
+	minify: false,
 	// Inline the .d.ts of the bundled internal workspace packages so the
 	// published types resolve standalone: consumers don't need (and for
 	// `pptx-viewer-shared`, can't get) those packages from npm. Mirrors the
 	// runtime `noExternal` below and the Vue package's dts `bundledPackages`.
 	dts: { resolve: ['pptx-viewer-core', 'pptx-viewer-shared'] },
-	splitting: false,
+	splitting: true,
 	sourcemap: false,
 	clean: !options.watch,
 	external: [
