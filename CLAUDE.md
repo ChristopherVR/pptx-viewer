@@ -16,6 +16,8 @@ bun run lint:fix             # Auto-fix lint issues
 bun run demo                 # Start the React demo dev server (Vite, port 4173)
 bun run demo:vue             # Start the Vue demo dev server (Vite, port 4175)
 bun run demo:angular         # Start the Angular demo dev server (Vite, port 4174)
+bun run demo:vanilla         # Start the VanillaJS demo dev server (Vite, port 4176)
+bun run demo:svelte          # Start the Svelte demo dev server (Vite, port 4177)
 bun run changelog:unreleased # Preview changelog notes for commits since the last release run
 bun run release:plan         # Dry-run the release planner (per-package versions + bump levels)
 
@@ -37,6 +39,8 @@ packages/
   react/            pptx-viewer          – React viewer/editor component
   vue/              pptx-vue-viewer      – Vue 3 viewer/editor component
   angular/          pptx-angular-viewer  – Angular viewer/editor component
+  vanilla/          pptx-vanilla-viewer  – Zero-framework (VanillaJS) viewer
+  svelte/           pptx-svelte-viewer   – Svelte 5 viewer component
   emf-converter/    emf-converter        – EMF/WMF metafile → PNG converter
   mtx-decompressor/ mtx-decompressor     – MicroType Express font decompressor
   tools/            pptx-viewer-mcp      – MCP server / tooling
@@ -44,6 +48,8 @@ demos/
   demo-react/       Vite + React demo app  (port 4173)
   demo-vue/         Vite + Vue 3 demo app  (port 4175)
   demo-angular/     Vite + Angular demo app (port 4174)
+  demo-vanilla/     Vite + VanillaJS demo app (port 4176)
+  demo-svelte/      Vite + Svelte 5 demo app (port 4177)
 ```
 
 Dependency graph: `react → core → emf-converter`. Packages use `workspace:*` protocol. Bun workspaces defined at root.

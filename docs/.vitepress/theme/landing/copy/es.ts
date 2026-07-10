@@ -5,7 +5,7 @@ export const es: LandingCopy = {
 		kicker: 'Open source · Apache-2.0 · TypeScript',
 		titleTop: 'El motor de PowerPoint',
 		titleAccent: 'para la web.',
-		sub: 'Carga, renderiza, edita y guarda archivos .pptx en el navegador o en Node.js. Disponible como nucleo TypeScript headless y como componentes de visor/editor para React, Vue 3 y Angular.',
+		sub: 'Carga, renderiza, edita y guarda archivos .pptx en el navegador o en Node.js. Disponible como nucleo TypeScript headless, componentes de visor/editor para React, Vue 3 y Angular, y visores para Svelte y JavaScript vanilla.',
 		start: { text: 'Empezar', href: '/es/guide/introduction' },
 		demo: 'Abrir la demo',
 		scroll: 'Desplazar',
@@ -35,8 +35,8 @@ export const es: LandingCopy = {
 		},
 		{
 			kicker: 'Frameworks',
-			title: 'Un motor. React, Vue y Angular.',
-			copy: 'El visor y el editor WYSIWYG se integran como componentes listos para usar en React, Vue 3 y Angular. Cada paquete incluye el motor: una sola dependencia ofrece las mismas funciones en todos los frameworks, incluidos el modo presentador, la exportacion y la colaboracion en tiempo real.',
+			title: 'Un motor. Todos los frameworks, o ninguno.',
+			copy: 'El visor y el editor WYSIWYG se integran como componentes listos para usar en React, Vue 3 y Angular, con visores para Svelte 5 y JavaScript vanilla sin framework. Cada paquete incluye el motor: una sola dependencia ofrece el mismo renderizado en todas partes, incluidos el modo presentador, la exportacion y la colaboracion en tiempo real en las ediciones React, Vue y Angular.',
 			link: { text: 'Elige un framework', href: '/es/guide/installation' },
 		},
 		{
@@ -112,6 +112,18 @@ export const es: LandingCopy = {
 				desc: 'Las mismas funciones para Angular',
 				href: 'https://www.npmjs.com/package/pptx-angular-viewer',
 				external: true,
+			},
+			{
+				name: 'pptx-vanilla-viewer',
+				desc: 'Visor sin framework, DOM puro',
+				href: '/vanilla/',
+				external: false,
+			},
+			{
+				name: 'pptx-svelte-viewer',
+				desc: 'Componente de visor para Svelte 5',
+				href: '/svelte/',
+				external: false,
 			},
 			{
 				name: 'pptx-viewer-core',

@@ -1,0 +1,12 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": false,
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"allowImportingTsExtensions": false,
+		"outDir": "dist"
+	},
+	"include": ["src/**/*.ts", "src/shims-svelte.d.ts"],
+	"exclude": ["node_modules", "dist", "**/*.test.ts", "src/test-setup.ts"]
+}

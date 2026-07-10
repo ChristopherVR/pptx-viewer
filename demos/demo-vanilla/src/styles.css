@@ -1,0 +1,217 @@
+@import 'tailwindcss';
+
+body {
+	font-family:
+		system-ui,
+		-apple-system,
+		'Segoe UI',
+		Roboto,
+		sans-serif;
+	/* Never let demo chrome overflow horizontally; on mobile a wider-than-viewport
+	   page expands the layout viewport and mis-anchors fixed chrome. */
+	overflow-x: hidden;
+}
+
+.demo-shell {
+	height: 100dvh;
+	width: 100vw;
+}
+
+.demo-stage {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100dvh;
+	width: 100vw;
+	padding: 2rem;
+	box-sizing: border-box;
+	color: var(--pptx-foreground, #f3f4f6);
+	background: var(--pptx-background, #030712);
+}
+
+.demo-dropzone {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.75rem;
+	max-width: 900px;
+	width: 100%;
+	padding: 3rem;
+	text-align: center;
+	border: 2px dashed var(--pptx-border, #374151);
+	border-radius: 0.75rem;
+	cursor: pointer;
+	transition:
+		border-color 0.15s,
+		background 0.15s;
+}
+
+.demo-dropzone:hover {
+	border-color: var(--pptx-primary, #6366f1);
+	background: var(--pptx-accent, #1f2937);
+}
+
+.demo-hint {
+	margin: 0;
+	font-size: 1rem;
+	color: var(--pptx-muted-foreground, #9ca3af);
+}
+
+.demo-sub {
+	margin: 0;
+	font-size: 0.8rem;
+	color: var(--pptx-muted-foreground, #9ca3af);
+	opacity: 0.6;
+}
+
+.demo-dropzone button {
+	margin-top: 0.5rem;
+	padding: 0.5rem 1rem;
+	border-radius: 0.5rem;
+	border: 1px solid var(--pptx-border, #374151);
+	background: var(--pptx-muted, #1f2937);
+	color: var(--pptx-foreground, #f3f4f6);
+	font-size: 0.85rem;
+	cursor: pointer;
+	transition: background 0.15s;
+}
+
+.demo-dropzone button:hover {
+	background: var(--pptx-accent, #1f2937);
+}
+
+.demo-error {
+	margin: 0;
+	font-size: 0.9rem;
+	color: var(--pptx-destructive, #ef4444);
+}
+
+/* ── Export bar (minimal PNG/PDF export affordance) ── */
+
+.demo-export-bar {
+	position: fixed;
+	left: 12px;
+	/* Clears the viewer's own bottom-docked speaker-notes panel, which spans
+	   the full chrome width and grows from its ~32px collapsed header up to
+	   ~230px when expanded for editing. `--demo-notes-h` mirrors the panel's
+	   live height (see notes-offset.ts); the 32px fallback covers the
+	   collapsed height before the observer's first measurement lands. */
+	bottom: calc(var(--demo-notes-h, 32px) + 16px);
+	z-index: 99999;
+	display: flex;
+	gap: 8px;
+	font-family: system-ui, sans-serif;
+}
+
+.demo-export-bar button {
+	padding: 6px 12px;
+	border-radius: 9999px;
+	border: 1px solid var(--pptx-border, #374151);
+	background: var(--pptx-muted, #1f2937);
+	color: var(--pptx-foreground, #f3f4f6);
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+	transition: background 0.15s;
+}
+
+.demo-export-bar button:hover:not(:disabled) {
+	background: var(--pptx-accent, #1f2937);
+}
+
+.demo-export-bar button:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+/* ── Floating pickers (ported from demo-vue's ThemePicker/LanguagePicker) ── */
+
+.theme-picker,
+.language-picker {
+	position: fixed;
+	right: 12px;
+	z-index: 99999;
+	font-family: system-ui, sans-serif;
+}
+
+.theme-picker {
+	/* See .demo-export-bar above: stays clear of the notes panel's live height. */
+	bottom: calc(var(--demo-notes-h, 32px) + 16px);
+}
+
+.language-picker {
+	bottom: calc(var(--demo-notes-h, 32px) + 60px);
+}
+
+.theme-picker--small,
+.language-picker--small {
+	bottom: auto;
+	right: 8px;
+}
+
+.theme-picker--small {
+	top: calc(env(safe-area-inset-top, 0px) + 60px);
+}
+
+.language-picker--small {
+	top: calc(env(safe-area-inset-top, 0px) + 104px);
+}
+
+.theme-picker__btn,
+.language-picker__btn {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	border-radius: 9999px;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 500;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.theme-picker__menu,
+.language-picker__menu {
+	position: absolute;
+	bottom: 100%;
+	margin-bottom: 4px;
+	right: 0;
+	border-radius: 8px;
+	overflow-y: auto;
+	max-height: 60dvh;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+	min-width: 150px;
+}
+
+/* On mobile the button is anchored near the top, so an upward menu was
+   clipped off-screen. Open downward there; keep the bottom-anchored
+   placement on desktop. */
+.theme-picker--small .theme-picker__menu,
+.language-picker--small .language-picker__menu {
+	bottom: auto;
+	margin-bottom: 0;
+	top: 100%;
+	margin-top: 4px;
+}
+
+.theme-picker__item,
+.language-picker__item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 8px 14px;
+	border: none;
+	cursor: pointer;
+	font-size: 13px;
+	text-align: left;
+}
+
+.theme-picker__swatch {
+	width: 14px;
+	height: 14px;
+	border-radius: 9999px;
+	flex-shrink: 0;
+}

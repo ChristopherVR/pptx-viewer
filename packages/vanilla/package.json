@@ -1,0 +1,74 @@
+{
+	"name": "pptx-vanilla-viewer",
+	"version": "0.1.1",
+	"description": "Zero-framework PowerPoint viewer: render PPTX slides in the browser with plain DOM, no React/Vue/Angular required.",
+	"keywords": [
+		"javascript",
+		"office",
+		"openxml",
+		"powerpoint",
+		"ppt",
+		"pptx",
+		"presentation",
+		"slides",
+		"slideshow",
+		"vanilla",
+		"vanilla-js",
+		"viewer"
+	],
+	"homepage": "https://github.com/ChristopherVR/pptx-viewer",
+	"bugs": {
+		"url": "https://github.com/ChristopherVR/pptx-viewer/issues"
+	},
+	"license": "Apache-2.0",
+	"author": "ChristopherVR",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ChristopherVR/pptx-viewer.git",
+		"directory": "packages/vanilla"
+	},
+	"files": [
+		"dist/",
+		"CHANGELOG.md",
+		"LICENSE",
+		"NOTICE",
+		"README.md"
+	],
+	"type": "module",
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"typecheck": "tsc --noEmit --pretty",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"pack": "bun run build && bun pm pack"
+	},
+	"dependencies": {
+		"dompurify": "^3.4.11",
+		"html2canvas-pro": "^2.0.4",
+		"jspdf": "^4.2.1"
+	},
+	"devDependencies": {
+		"@types/dompurify": "^3.2.0",
+		"happy-dom": "^20.10.6",
+		"pptx-viewer-core": "workspace:*",
+		"pptx-viewer-shared": "workspace:*",
+		"tsup": "^8.5.1",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.9"
+	},
+	"peerDependencies": {
+		"fast-xml-parser": "^5.8.0",
+		"jszip": "^3.10.1"
+	}
+}

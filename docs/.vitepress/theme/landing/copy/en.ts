@@ -5,7 +5,7 @@ export const en: LandingCopy = {
 		kicker: 'Open source · Apache-2.0 · TypeScript',
 		titleTop: 'The PowerPoint engine',
 		titleAccent: 'for the web.',
-		sub: 'Load, render, edit, and save .pptx files in the browser or Node.js. Comes as a headless TypeScript core and as viewer/editor components for React, Vue 3, and Angular.',
+		sub: 'Load, render, edit, and save .pptx files in the browser or Node.js. Comes as a headless TypeScript core, viewer/editor components for React, Vue 3, and Angular, and viewers for Svelte and vanilla JavaScript.',
 		start: { text: 'Get started', href: '/guide/introduction' },
 		demo: 'Open the live demo',
 		scroll: 'Scroll',
@@ -35,8 +35,8 @@ export const en: LandingCopy = {
 		},
 		{
 			kicker: 'Frameworks',
-			title: 'One engine. React, Vue, and Angular.',
-			copy: 'The viewer and WYSIWYG editor ship as drop-in components for React, Vue 3, and Angular. Each package bundles the core engine, so one dependency gets you the same feature set in every framework: presenter mode, export, and real-time collaboration included.',
+			title: 'One engine. Every framework, or none.',
+			copy: 'The viewer and WYSIWYG editor ship as drop-in components for React, Vue 3, and Angular, with viewer bindings for Svelte 5 and zero-framework vanilla JavaScript. Each package bundles the core engine, so one dependency gets you the same rendering everywhere: presenter mode, export, and real-time collaboration included in the editor bindings.',
 			link: { text: 'Choose a framework', href: '/guide/installation' },
 		},
 		{
@@ -112,6 +112,18 @@ export const en: LandingCopy = {
 				desc: 'The same feature set for Angular',
 				href: 'https://www.npmjs.com/package/pptx-angular-viewer',
 				external: true,
+			},
+			{
+				name: 'pptx-vanilla-viewer',
+				desc: 'Zero-framework viewer, plain DOM',
+				href: '/vanilla/',
+				external: false,
+			},
+			{
+				name: 'pptx-svelte-viewer',
+				desc: 'Viewer component for Svelte 5',
+				href: '/svelte/',
+				external: false,
 			},
 			{
 				name: 'pptx-viewer-core',

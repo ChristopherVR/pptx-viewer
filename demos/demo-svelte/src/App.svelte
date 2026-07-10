@@ -1,0 +1,193 @@
+<script lang="ts">
+	/**
+	 * Demo shell for `pptx-svelte-viewer`, mirroring demos/demo-vue/src/App.vue
+	 * (minus collaboration, which the Svelte binding does not support yet): the
+	 * viewer fills the screen, floating theme + language pickers hover above it,
+	 * and a landing dropzone handles file open / sample deck loading.
+	 */
+	import type { PowerPointViewerApi } from 'pptx-svelte-viewer';
+	import { PowerPointViewer, themeToCssVars } from 'pptx-svelte-viewer';
+	import { PptxHandler } from 'pptx-viewer-core';
+
+	import { language, setLanguage, t } from './demo-i18n.svelte';
+	import ExportBar from './ExportBar.svelte';
+	import LanguagePicker from './LanguagePicker.svelte';
+	import ThemePicker from './ThemePicker.svelte';
+	import { readStoredTheme, storeTheme, themes } from './themes';
+
+	let bytes = $state<Uint8Array | null>(null);
+	let fileName = $state('');
+	// In-place editing is on by default (mirrors the vanilla demo's editable:true).
+	// eslint-disable-next-line prefer-const
+	let editable = $state(true);
+	let themeKey = $state(readStoredTheme());
+	let errorMessage = $state('');
+	// eslint-disable-next-line prefer-const
+	let fileInput = $state<HTMLInputElement | null>(null);
+	// Assigned by the viewer's bind:this (invisible to the linter).
+	// eslint-disable-next-line no-unassigned-vars, prefer-const
+	let viewerRef = $state<PowerPointViewerApi>();
+
+	// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`
+	// (mirrors demo-vue/src/App.vue).
+	const smartArt3D = new URLSearchParams(window.location.search).get('smartArt3D') === '1';
+
+	const currentTheme = $derived((themes[themeKey] ?? themes.vermilionDark).theme);
+
+	function setTheme(key: string): void {
+		themeKey = key;
+		storeTheme(key);
+	}
+
+	// Apply theme vars to :root so the dropzone chrome tracks the theme.
+	let appliedVarKeys: string[] = [];
+	$effect(() => {
+		const vars = themeToCssVars(currentTheme);
+		const root = document.documentElement;
+		for (const key of appliedVarKeys) {
+			root.style.removeProperty(key);
+		}
+		appliedVarKeys = Object.keys(vars);
+		for (const key of appliedVarKeys) {
+			root.style.setProperty(key, vars[key]);
+		}
+	});
+
+	function openFile(file: File): void {
+		errorMessage = '';
+		fileName = file.name;
+		void file.arrayBuffer().then((buf) => {
+			bytes = new Uint8Array(buf);
+			document.title = `${file.name} - PPTX Viewer`;
+			return undefined;
+		});
+	}
+
+	let creating = $state(false);
+
+	async function newPresentation(): Promise<void> {
+		creating = true;
+		try {
+			const { handler, data } = await PptxHandler.createBlank({
+				title: 'Untitled Presentation',
+				initialSlideCount: 1,
+			});
+			const saved = await handler.save(data.slides);
+			handler.dispose();
+			bytes = saved;
+			fileName = 'Untitled Presentation';
+			document.title = 'Untitled Presentation - PPTX Viewer';
+		} finally {
+			creating = false;
+		}
+	}
+
+	function onDrop(e: DragEvent): void {
+		e.preventDefault();
+		const file = e.dataTransfer?.files?.[0];
+		if (file?.name.endsWith('.pptx')) {
+			openFile(file);
+		}
+	}
+
+	function onInputChange(e: Event): void {
+		const file = (e.target as HTMLInputElement).files?.[0];
+		if (file) {
+			openFile(file);
+		}
+	}
+
+	function browse(): void {
+		fileInput?.click();
+	}
+
+	function onViewerError(message: string): void {
+		errorMessage = message || t('demo.viewer.loadError');
+		bytes = null;
+		document.title = 'pptx-svelte-viewer demo';
+	}
+</script>
+
+<style>
+	.demo-editable-toggle {
+		position: fixed;
+		bottom: 12px;
+		left: 12px;
+		z-index: 50;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 10px;
+		border-radius: 8px;
+		background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 85%, transparent);
+		color: var(--pptx-card-foreground, #e2e8f0);
+		font: 500 13px/1 system-ui, sans-serif;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+		cursor: pointer;
+		user-select: none;
+	}
+</style>
+
+<ThemePicker current={themeKey} onchange={setTheme} />
+<LanguagePicker current={language.current} theme={themeKey} onchange={setLanguage} />
+
+{#if bytes}
+	<!-- data-pptx-viewer: mirrors the marker attribute the React binding puts on
+	     its own viewer root (packages/react/src/viewer/PowerPointViewer.tsx),
+	     which the demos/build-stamp.ts badge watches for to auto-hide itself
+	     once a viewer mounts. pptx-svelte-viewer's own root doesn't set this
+	     marker yet, so without it here the badge stays pinned bottom-right and
+	     visually collides with ExportBar's buttons in the same corner. -->
+	<div class="demo-shell" data-pptx-viewer>
+		<label class="demo-editable-toggle">
+			<input type="checkbox" bind:checked={editable} />
+			{t('demo.editToggle.label')}
+		</label>
+		<PowerPointViewer
+			bind:this={viewerRef}
+			source={bytes}
+			theme={currentTheme}
+			locale={language.current}
+			{smartArt3D}
+			{editable}
+			onerror={onViewerError}
+		/>
+		<ExportBar
+			exportPng={() => viewerRef?.exportSlidePng() ?? Promise.resolve()}
+			exportPdf={() => viewerRef?.exportPdf() ?? Promise.resolve()}
+		/>
+	</div>
+{:else}
+	<div class="demo-stage">
+		<div
+			class="demo-dropzone"
+			role="button"
+			tabindex="0"
+			ondrop={onDrop}
+			ondragover={(e) => e.preventDefault()}
+			onclick={browse}
+			onkeydown={(e) => e.key === 'Enter' && browse()}
+		>
+			<p class="demo-hint">{t('demo.dropzone.hint')}</p>
+			<p class="demo-sub">{t('demo.dropzone.processed')}</p>
+			<button type="button" onclick={(e) => (e.stopPropagation(), newPresentation())} disabled={creating}>
+				{creating ? t('demo.dropzone.creating') : t('demo.dropzone.newPresentation')}
+			</button>
+			{#if errorMessage}
+				<p class="demo-error">{errorMessage}</p>
+			{/if}
+			<!-- stopPropagation: the programmatic click() would bubble back to the
+			     zone's onclick and re-open the file chooser in a loop -->
+			<input
+				id="file-input"
+				bind:this={fileInput}
+				type="file"
+				accept=".pptx"
+				aria-label={t('demo.dropzone.uploadAriaLabel')}
+				style="display: none"
+				onclick={(e) => e.stopPropagation()}
+				onchange={onInputChange}
+			/>
+		</div>
+	</div>
+{/if}

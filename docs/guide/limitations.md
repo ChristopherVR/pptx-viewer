@@ -30,6 +30,20 @@ Slides render as HTML/CSS rather than Canvas, giving sharp text at any zoom, nat
 - **Maximum export resolution** - canvas exports are capped by the browser's maximum canvas size (typically 16384 or 32768 pixels per side).
 - **Small screens** - the UI adapts down to ~360px phones, but the most data-dense panels (for example the full chart editor) are best used on a tablet or larger.
 
+## Vanilla JS and Svelte viewers
+
+Both bindings share the same CSS-based rendering (and its tradeoffs, above) but are newer and not
+yet at parity with React/Vue/Angular. See [PORTING.md](https://github.com/ChristopherVR/pptx-viewer/blob/main/PORTING.md)
+for the full tracked gap.
+
+- **`pptx-vanilla-viewer`** - viewing, presenting, and a first editing pass (behind `editable`:
+  select, drag/resize/rotate, inline text editing, undo/redo, delete/duplicate, save/download).
+  No property/inspector panel, add-new-element, z-order/group operations, template
+  (master/layout) editing, export, animation/transition playback, notes panel, or collaboration.
+- **`pptx-svelte-viewer`** - viewing and presenting only, no editing of any kind yet. Element
+  rendering is otherwise at parity with vanilla (table/chart/SmartArt/media/ink/OLE all render
+  for real); only `contentPart`, `zoom`, and `model3d` fall back to a placeholder in both.
+
 ## EMF/WMF metafiles (`emf-converter` dependency)
 
 ::: warning Canvas API required

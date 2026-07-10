@@ -68,6 +68,16 @@ jobs:
         run: bun run --filter 'pptx-angular-viewer' build
         continue-on-error: true
 
+      - name: Build Vanilla
+        id: build-vanilla
+        run: bun run --filter 'pptx-vanilla-viewer' build
+        continue-on-error: true
+
+      - name: Build Svelte
+        id: build-svelte
+        run: bun run --filter 'pptx-svelte-viewer' build
+        continue-on-error: true
+
       # Build each demo; skip silently if its library did not build.
       # VITE_COLLAB_SERVER_URL (optional repo variable COLLAB_SERVER_URL) points
       # the deployed demos at a hosted wss:// y-websocket relay. Without it the
@@ -97,11 +107,25 @@ jobs:
           DEMO_BASE: /pptx-viewer/demo-angular/
           VITE_COLLAB_SERVER_URL: ${{ vars.COLLAB_SERVER_URL }}
 
+      - name: Build Vanilla demo
+        if: steps.build-vanilla.outcome == 'success'
+        run: bun run --filter 'pptx-vanilla-demo' build
+        continue-on-error: true
+        env:
+          DEMO_BASE: /pptx-viewer/demo-vanilla/
+
+      - name: Build Svelte demo
+        if: steps.build-svelte.outcome == 'success'
+        run: bun run --filter 'pptx-svelte-demo' build
+        continue-on-error: true
+        env:
+          DEMO_BASE: /pptx-viewer/demo-svelte/
+
       # Fold whichever demos succeeded into the docs artifact. Missing dists are
       # skipped gracefully so the page still deploys with whatever is available.
       - name: Bundle demos into docs site
         run: |
-          for demo in react:demo vue:demo-vue angular:demo-angular; do
+          for demo in react:demo vue:demo-vue angular:demo-angular vanilla:demo-vanilla svelte:demo-svelte; do
             framework="${demo%%:*}"
             src="demos/demo-${framework}/dist"
             dest="docs/.vitepress/dist/${demo##*:}"

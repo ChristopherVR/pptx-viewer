@@ -88,6 +88,18 @@ jobs:
         run: bun run --filter 'pptx-angular-viewer' build
         continue-on-error: true
 
+      - name: Build Vanilla
+        id: build-vanilla
+        if: steps.plan.outputs.any_changed == 'true'
+        run: bun run --filter 'pptx-vanilla-viewer' build
+        continue-on-error: true
+
+      - name: Build Svelte
+        id: build-svelte
+        if: steps.plan.outputs.any_changed == 'true'
+        run: bun run --filter 'pptx-svelte-viewer' build
+        continue-on-error: true
+
       # Prepend the new release section to each released package's CHANGELOG.md.
       # Prepend (rather than full regeneration) means shipped sections are never
       # rewritten, so old tags can be culled by prune-releases without corrupting
@@ -95,7 +107,7 @@ jobs:
       - name: Generate per-package changelogs
         if: steps.plan.outputs.any_changed == 'true'
         run: |
-          for key in core react vue angular tools cli; do
+          for key in core react vue angular vanilla svelte tools cli; do
             release=$(node -p "require('./release-plan.json').packages.$key.release")
             [ "$release" = "true" ] || continue
             dir=$(node -p "require('./release-plan.json').packages.$key.dir")
@@ -163,10 +175,12 @@ jobs:
           REACT_BUILT: ${{ steps.build-react.outcome == 'success' }}
           VUE_BUILT: ${{ steps.build-vue.outcome == 'success' }}
           ANGULAR_BUILT: ${{ steps.build-angular.outcome == 'success' }}
+          VANILLA_BUILT: ${{ steps.build-vanilla.outcome == 'success' }}
+          SVELTE_BUILT: ${{ steps.build-svelte.outcome == 'success' }}
         run: |
           COMMIT=$(git rev-parse HEAD)
           RELEASED_KEYS=""
-          for key in core react vue angular tools cli; do
+          for key in core react vue angular vanilla svelte tools cli; do
             release=$(node -p "require('./release-plan.json').packages.$key.release")
             [ "$release" = "true" ] || continue
 
@@ -175,6 +189,8 @@ jobs:
               react)   [ "$REACT_BUILT"   = "true" ] || { echo "Skipping react: build failed"; continue; } ;;
               vue)     [ "$VUE_BUILT"     = "true" ] || { echo "Skipping vue: build failed";   continue; } ;;
               angular) [ "$ANGULAR_BUILT" = "true" ] || { echo "Skipping angular: build failed"; continue; } ;;
+              vanilla) [ "$VANILLA_BUILT" = "true" ] || { echo "Skipping vanilla: build failed"; continue; } ;;
+              svelte)  [ "$SVELTE_BUILT"  = "true" ] || { echo "Skipping svelte: build failed"; continue; } ;;
             esac
 
             dir=$(node -p "require('./release-plan.json').packages.$key.dir")
@@ -322,6 +338,8 @@ jobs:
               pptx-react-viewer)   bun run --filter 'pptx-react-viewer' build ;;
               pptx-vue-viewer)     bun run --filter 'pptx-vue-viewer' build ;;
               pptx-angular-viewer) bun run --filter 'pptx-angular-viewer' build ;;
+              pptx-vanilla-viewer) bun run --filter 'pptx-vanilla-viewer' build ;;
+              pptx-svelte-viewer)  bun run --filter 'pptx-svelte-viewer' build ;;
             esac
           else
             for key in $RELEASED_KEYS; do
@@ -329,6 +347,8 @@ jobs:
                 react)   bun run --filter 'pptx-react-viewer' build ;;
                 vue)     bun run --filter 'pptx-vue-viewer' build ;;
                 angular) bun run --filter 'pptx-angular-viewer' build ;;
+                vanilla) bun run --filter 'pptx-vanilla-viewer' build ;;
+                svelte)  bun run --filter 'pptx-svelte-viewer' build ;;
               esac
             done
           fi
@@ -371,6 +391,8 @@ jobs:
               pptx-react-viewer)   KEY="react"   ;;
               pptx-vue-viewer)     KEY="vue"     ;;
               pptx-angular-viewer) KEY="angular" ;;
+              pptx-vanilla-viewer) KEY="vanilla" ;;
+              pptx-svelte-viewer)  KEY="svelte"  ;;
               pptx-viewer-mcp)     KEY="tools"   ;;
               @christophervr/pptx-viewer) KEY="cli"  ;;
               *)
@@ -449,6 +471,52 @@ jobs:
                   echo "pptx-vue-viewer@$VERSION already published, skipping"
                 else
                   (cd packages/vue && npm publish --provenance --access public)
+                fi
+                ;;
+
+              # https://www.npmjs.com/package/pptx-vanilla-viewer
+              # pptx-viewer-core / pptx-viewer-shared are bundled into dist, so the
+              # published manifest must drop those internal workspace devDeps.
+              vanilla)
+                node -e "
+                  const fs = require('fs');
+                  const data = JSON.parse(fs.readFileSync('packages/vanilla/package.json', 'utf8'));
+                  data.version = '${VERSION}';
+                  if (data.devDependencies) {
+                    for (const [k, v] of Object.entries(data.devDependencies)) {
+                      if (typeof v === 'string' && v.startsWith('workspace:')) delete data.devDependencies[k];
+                    }
+                  }
+                  fs.writeFileSync('packages/vanilla/package.json', JSON.stringify(data, null, '\t') + '\n');
+                "
+                EXISTING=$(npm view pptx-vanilla-viewer@"$VERSION" version 2>/dev/null || echo "")
+                if [ "$EXISTING" = "$VERSION" ]; then
+                  echo "pptx-vanilla-viewer@$VERSION already published, skipping"
+                else
+                  (cd packages/vanilla && npm publish --provenance --access public)
+                fi
+                ;;
+
+              # https://www.npmjs.com/package/pptx-svelte-viewer
+              # pptx-viewer-core / pptx-viewer-shared are bundled into dist, so the
+              # published manifest must drop those internal workspace devDeps.
+              svelte)
+                node -e "
+                  const fs = require('fs');
+                  const data = JSON.parse(fs.readFileSync('packages/svelte/package.json', 'utf8'));
+                  data.version = '${VERSION}';
+                  if (data.devDependencies) {
+                    for (const [k, v] of Object.entries(data.devDependencies)) {
+                      if (typeof v === 'string' && v.startsWith('workspace:')) delete data.devDependencies[k];
+                    }
+                  }
+                  fs.writeFileSync('packages/svelte/package.json', JSON.stringify(data, null, '\t') + '\n');
+                "
+                EXISTING=$(npm view pptx-svelte-viewer@"$VERSION" version 2>/dev/null || echo "")
+                if [ "$EXISTING" = "$VERSION" ]; then
+                  echo "pptx-svelte-viewer@$VERSION already published, skipping"
+                else
+                  (cd packages/svelte && npm publish --provenance --access public)
                 fi
                 ;;
 

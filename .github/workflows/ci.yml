@@ -18,6 +18,8 @@ jobs:
       react-built: ${{ steps.build-react.outcome == 'success' }}
       vue-built: ${{ steps.build-vue.outcome == 'success' }}
       angular-built: ${{ steps.build-angular.outcome == 'success' }}
+      vanilla-built: ${{ steps.build-vanilla.outcome == 'success' }}
+      svelte-built: ${{ steps.build-svelte.outcome == 'success' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -59,6 +61,16 @@ jobs:
       - name: Build Angular
         id: build-angular
         run: bun run --filter 'pptx-angular-viewer' build
+        continue-on-error: true
+
+      - name: Build Vanilla
+        id: build-vanilla
+        run: bun run --filter 'pptx-vanilla-viewer' build
+        continue-on-error: true
+
+      - name: Build Svelte
+        id: build-svelte
+        run: bun run --filter 'pptx-svelte-viewer' build
         continue-on-error: true
 
       # Abort the job only when ALL framework builds failed at once.
@@ -171,6 +183,14 @@ jobs:
             # inline-shared vendors the shared source the Angular lib compiles against
             cmd: bun run inline-shared && bun vitest run --reporter=verbose --reporter=github-actions
             enabled: ${{ needs.build.outputs.angular-built }}
+          - key: vanilla
+            dir: packages/vanilla
+            cmd: bun vitest run --reporter=verbose --reporter=github-actions
+            enabled: ${{ needs.build.outputs.vanilla-built }}
+          - key: svelte
+            dir: packages/svelte
+            cmd: bun vitest run --reporter=verbose --reporter=github-actions
+            enabled: ${{ needs.build.outputs.svelte-built }}
           - key: tools
             dir: packages/tools
             cmd: bun vitest run --reporter=verbose --reporter=github-actions
@@ -229,6 +249,16 @@ jobs:
   # `--workers=2` avoids saturating the single dev server per leg (observed
   # spurious timeouts/HMR contention with the default higher worker count
   # against one Vite dev server).
+  #
+  # vanilla/svelte legs: these two bindings are viewer-only (no ribbon,
+  # inspectors, format painter, equation editing, collaboration, or OLE
+  # dialogs yet), so the full shared spec set above does not apply to them -
+  # most of it exercises features they don't have. They instead run only the
+  # dedicated `e2e/vanilla-svelte-basics.spec.ts`, which covers what both
+  # bindings actually ship today (load, navigate, zoom, notes, select/move,
+  # undo/redo, save-as-download); see that file's header for the exact DOM/
+  # i18n contract differences between the two, and `playwright.config.ts` for
+  # why the vanilla/svelte projects are scoped to just this one file.
   e2e:
     needs: build
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -248,6 +278,12 @@ jobs:
           - key: angular
             project: angular
             enabled: ${{ needs.build.outputs.angular-built }}
+          - key: vanilla
+            project: vanilla
+            enabled: ${{ needs.build.outputs.vanilla-built }}
+          - key: svelte
+            project: svelte
+            enabled: ${{ needs.build.outputs.svelte-built }}
     steps:
       - uses: actions/checkout@v7
         if: matrix.enabled == 'true'
@@ -274,7 +310,10 @@ jobs:
       # at all - but React does NOT alias the bare `pptx-viewer-shared`
       # specifier, and the e2e fixture generator (e2e/global-setup.ts) imports
       # `pptx-viewer-core` directly under plain Node, so core + shared's dist
-      # are required regardless of which framework leg is running. Angular's
+      # are required regardless of which framework leg is running (vanilla and
+      # svelte alias straight to source too, per
+      # demos/demo-{vanilla,svelte}/vite.config.ts, same as React/Vue).
+      # Angular's
       # demo aliases straight to its own built dist (ng-packagr output), so it
       # needs its dist too. All of this already sits in the `build` job's
       # artifact.
@@ -296,7 +335,11 @@ jobs:
       - name: Run e2e (${{ matrix.project }})
         if: matrix.enabled == 'true'
         run: |
-          files=$(ls e2e/*.spec.ts | grep -v capture-user-guide)
+          if [ "${{ matrix.key }}" = "vanilla" ] || [ "${{ matrix.key }}" = "svelte" ]; then
+            files="e2e/vanilla-svelte-basics.spec.ts"
+          else
+            files=$(ls e2e/*.spec.ts | grep -v capture-user-guide)
+          fi
           bun run e2e -- $files --project=${{ matrix.project }} --workers=2
 
       - name: Upload Playwright report
