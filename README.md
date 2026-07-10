@@ -2,7 +2,8 @@
 
 [![docs](https://img.shields.io/badge/docs-christophervr.github.io-6366f1.svg)](https://christophervr.github.io/pptx-viewer/)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-11%2C900%2B%20passing-brightgreen.svg)](#)
+[![tests](https://img.shields.io/badge/tests-18%2C800%2B%20passing-brightgreen.svg)](#)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 [![pptx-viewer-core](https://img.shields.io/npm/v/pptx-viewer-core?label=pptx-viewer-core)](https://www.npmjs.com/package/pptx-viewer-core)
 [![pptx-react-viewer](https://img.shields.io/npm/v/pptx-react-viewer?label=pptx-react-viewer)](https://www.npmjs.com/package/pptx-react-viewer)
@@ -75,7 +76,7 @@ The UI packages **bundle the core engine**, so for an app you install exactly on
 8. **Collaborate** in real-time via Yjs CRDT with presence tracking
 9. **Encrypt/Decrypt** password-protected PPTX files (AES-128/256)
 
-The engine handles the full OpenXML specification: 16 element types, 187+ preset shapes, 23 chart types, SmartArt (14 layouts), 3D models, animations (40+ presets), transitions (42 types including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink with pressure sensitivity, digital signatures, PPTX encryption, VBA macro preservation, OOXML Strict conformance, and more - backed by **11,900+ passing tests** across 419 files.
+The engine handles the full OpenXML specification: 16 element types, 187+ preset shapes, 23 chart types, SmartArt (14 layouts), 3D models, animations (40+ presets), transitions (42 types including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink with pressure sensitivity, digital signatures, PPTX encryption, VBA macro preservation, OOXML Strict conformance, and more - backed by **18,800+ passing tests** across 840+ files.
 
 > _Developed with [Claude Code](https://claude.com/claude-code) (Opus 4.x)._
 
@@ -178,6 +179,10 @@ bun run test
 # Type-check
 bun run typecheck
 ```
+
+This project follows a [Code of Conduct](CODE_OF_CONDUCT.md) - please read it before opening an
+issue or PR. Found a security vulnerability instead of a bug? See [SECURITY.md](SECURITY.md) for
+how to report it privately.
 
 ---
 
@@ -465,7 +470,7 @@ bun run pack:angular # packages/angular
 | **3D**            | Three.js (optional)                                                  |
 | **Collaboration** | Yjs (CRDT), y-websocket (optional)                                   |
 | **Crypto**        | Web Crypto API (AES-128/256 for PPTX encryption)                     |
-| **Testing**       | Vitest (11,900+ tests across 419 files)                              |
+| **Testing**       | Vitest (18,800+ tests across 840+ files)                             |
 | **Formatting**    | oxfmt (from the [oxc](https://oxc.rs) toolchain)                     |
 | **Linting**       | oxlint (from the [oxc](https://oxc.rs) toolchain)                    |
 | **Bundler**       | tsup (ESM + CJS with .d.ts declarations)                             |
