@@ -18,6 +18,8 @@ jobs:
       react-built: ${{ steps.build-react.outcome == 'success' }}
       vue-built: ${{ steps.build-vue.outcome == 'success' }}
       angular-built: ${{ steps.build-angular.outcome == 'success' }}
+      vanilla-built: ${{ steps.build-vanilla.outcome == 'success' }}
+      svelte-built: ${{ steps.build-svelte.outcome == 'success' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -59,6 +61,16 @@ jobs:
       - name: Build Angular
         id: build-angular
         run: bun run --filter 'pptx-angular-viewer' build
+        continue-on-error: true
+
+      - name: Build Vanilla
+        id: build-vanilla
+        run: bun run --filter 'pptx-vanilla-viewer' build
+        continue-on-error: true
+
+      - name: Build Svelte
+        id: build-svelte
+        run: bun run --filter 'pptx-svelte-viewer' build
         continue-on-error: true
 
       # Abort the job only when ALL framework builds failed at once.
@@ -171,6 +183,14 @@ jobs:
             # inline-shared vendors the shared source the Angular lib compiles against
             cmd: bun run inline-shared && bun vitest run --reporter=verbose --reporter=github-actions
             enabled: ${{ needs.build.outputs.angular-built }}
+          - key: vanilla
+            dir: packages/vanilla
+            cmd: bun vitest run --reporter=verbose --reporter=github-actions
+            enabled: ${{ needs.build.outputs.vanilla-built }}
+          - key: svelte
+            dir: packages/svelte
+            cmd: bun vitest run --reporter=verbose --reporter=github-actions
+            enabled: ${{ needs.build.outputs.svelte-built }}
           - key: tools
             dir: packages/tools
             cmd: bun vitest run --reporter=verbose --reporter=github-actions
