@@ -18,6 +18,9 @@
 		onzoomout,
 		onzoomfit,
 		onfullscreen,
+		showNotes = false,
+		notesExpanded = false,
+		onnotestoggle,
 	}: ViewerToolbarProps = $props();
 
 	const t = useTranslator();
@@ -85,6 +88,20 @@
 		>
 			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6v-3.5h3.5M13.5 6v-3.5h-3.5M2.5 10v3.5h3.5M13.5 10v3.5h-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
 		</button>
+		{#if showNotes}
+			<button
+				type="button"
+				class="pptx-svelte-toolbar-notes"
+				class:pptx-svelte-toolbar-notes-active={notesExpanded}
+				aria-label={t('pptx.statusBar.toggleNotes')}
+				title={t('pptx.statusBar.toggleNotes')}
+				aria-pressed={notesExpanded}
+				onclick={() => onnotestoggle?.()}
+			>
+				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h9v11h-9zM5 5.5h6M5 8h6M5 10.5h4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+				<span class="pptx-svelte-toolbar-notes-label">{t('pptx.notes.title')}</span>
+			</button>
+		{/if}
 	</div>
 </div>
 
@@ -147,5 +164,19 @@
 
 	.pptx-svelte-toolbar-zoom {
 		min-width: 48px;
+	}
+
+	.pptx-svelte-toolbar-notes {
+		width: auto;
+		gap: 4px;
+		padding: 0 8px;
+	}
+
+	.pptx-svelte-toolbar-notes-active {
+		color: var(--pptx-primary, #6366f1);
+	}
+
+	.pptx-svelte-toolbar-notes-label {
+		font-size: 12px;
 	}
 </style>

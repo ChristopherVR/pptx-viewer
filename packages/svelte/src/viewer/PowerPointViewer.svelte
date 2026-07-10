@@ -11,6 +11,7 @@
 
 	import { createTranslator } from '../i18n/translator';
 	import { provideTranslator } from '../i18n/context';
+	import NotesPanel from './components/NotesPanel.svelte';
 	import SlideStage from './components/SlideStage.svelte';
 	import ThumbnailRail from './components/ThumbnailRail.svelte';
 	import ViewerToolbar from './components/ViewerToolbar.svelte';
@@ -29,11 +30,13 @@
 		initialSlide = 0,
 		showThumbnails = true,
 		showToolbar = true,
+		showNotes = true,
 		smartArt3D = false,
 		class: className = '',
 		onload,
 		onerror,
 		onslidechange,
+		onnotesupdate,
 	}: PowerPointViewerProps = $props();
 
 	const t = createTranslator(() => locale);
@@ -129,6 +132,13 @@
 			event.preventDefault();
 		}
 	}
+
+	// ── Speaker notes ────────────────────────────────────────────────────
+	let notesExpanded = $state(false);
+
+	function onNotesToggle(): void {
+		notesExpanded = !notesExpanded;
+	}
 </script>
 
 <svelte:document onfullscreenchange={onFullscreenChange} />
@@ -157,6 +167,9 @@
 			onzoomout={() => viewer.zoomOut(effectivePercent)}
 			onzoomfit={() => viewer.zoomToFit()}
 			onfullscreen={onFullscreenToggle}
+			showNotes={showNotes && loader.slides.length > 0}
+			{notesExpanded}
+			onnotestoggle={onNotesToggle}
 		/>
 	{/if}
 	<div class="pptx-svelte-body">
@@ -169,32 +182,42 @@
 				onselect={(index) => viewer.goTo(index)}
 			/>
 		{/if}
-		<div
-			class="pptx-svelte-viewport"
-			bind:clientWidth={viewportWidth}
-			bind:clientHeight={viewportHeight}
-		>
-			{#if loader.loading}
-				<div class="pptx-svelte-message" role="status">{t('common.loading')}</div>
-			{:else if loader.isEncrypted}
-				<div class="pptx-svelte-message" role="alert">{t('pptx.encryptedFile.message')}</div>
-			{:else if loader.error}
-				<div class="pptx-svelte-message" role="alert">{loader.error}</div>
-			{:else if activeSlide}
-				<div
-					class="pptx-svelte-stage-holder"
-					style={`width: ${loader.canvasSize.width * scale}px; height: ${loader.canvasSize.height * scale}px`}
-				>
-					<SlideStage
-						slide={activeSlide}
-						canvasSize={loader.canvasSize}
-						mediaDataUrls={loader.mediaDataUrls}
-						{scale}
-						presenting={viewer.isFullscreen}
-					/>
-				</div>
-			{:else}
-				<div class="pptx-svelte-message" role="status">{t('pptx.statusBar.noSlides')}</div>
+		<div class="pptx-svelte-main">
+			<div
+				class="pptx-svelte-viewport"
+				bind:clientWidth={viewportWidth}
+				bind:clientHeight={viewportHeight}
+			>
+				{#if loader.loading}
+					<div class="pptx-svelte-message" role="status">{t('common.loading')}</div>
+				{:else if loader.isEncrypted}
+					<div class="pptx-svelte-message" role="alert">{t('pptx.encryptedFile.message')}</div>
+				{:else if loader.error}
+					<div class="pptx-svelte-message" role="alert">{loader.error}</div>
+				{:else if activeSlide}
+					<div
+						class="pptx-svelte-stage-holder"
+						style={`width: ${loader.canvasSize.width * scale}px; height: ${loader.canvasSize.height * scale}px`}
+					>
+						<SlideStage
+							slide={activeSlide}
+							canvasSize={loader.canvasSize}
+							mediaDataUrls={loader.mediaDataUrls}
+							{scale}
+							presenting={viewer.isFullscreen}
+						/>
+					</div>
+				{:else}
+					<div class="pptx-svelte-message" role="status">{t('pptx.statusBar.noSlides')}</div>
+				{/if}
+			</div>
+			{#if showNotes && chromeVisible && loader.slides.length > 0}
+				<NotesPanel
+					slide={activeSlide}
+					expanded={notesExpanded}
+					onupdate={onnotesupdate}
+					ontoggle={onNotesToggle}
+				/>
 			{/if}
 		</div>
 	</div>
@@ -223,11 +246,20 @@
 		min-height: 0;
 	}
 
+	.pptx-svelte-main {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-width: 0;
+		min-height: 0;
+	}
+
 	.pptx-svelte-viewport {
 		flex: 1;
 		display: flex;
 		overflow: auto;
 		min-width: 0;
+		min-height: 0;
 	}
 
 	.pptx-svelte-stage-holder {

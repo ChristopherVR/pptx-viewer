@@ -57,5 +57,12 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		if (state.dirty !== previous.dirty) {
 			callbacks.onDirtyChange?.(state.dirty);
 		}
+		if (state.editable !== previous.editable) {
+			chrome.notes.update({ slide: state.slides[state.currentSlide], editable: state.editable });
+		}
+		if (state.notesExpanded !== previous.notesExpanded) {
+			chrome.notes.setExpanded(state.notesExpanded);
+			chrome.toolbar?.setNotesExpanded(state.notesExpanded);
+		}
 	};
 }

@@ -112,3 +112,17 @@ export function duplicateElementOnSlide(
 export function cloneSlides(slides: readonly PptxSlide[]): PptxSlide[] {
 	return slides.map(cloneSlide);
 }
+
+/**
+ * Replace the plain-text speaker notes on one slide. Mirrors the Vue binding's
+ * `onNotesUpdate`: only `notes` is written, `notesSegments` (rich runs loaded
+ * from a .pptx) is intentionally left untouched, matching the plain-text
+ * commit contract shared by every binding's notes panel.
+ */
+export function updateSlideNotes(
+	slides: readonly PptxSlide[],
+	slideIndex: number,
+	notes: string,
+): PptxSlide[] {
+	return slides.map((slide, i) => (i === slideIndex ? { ...cloneSlide(slide), notes } : slide));
+}

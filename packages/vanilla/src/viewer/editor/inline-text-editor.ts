@@ -99,13 +99,14 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 	const initialText = withText?.text ?? '';
 	const fontSize = withText?.textStyle?.fontSize;
 
+	const fontFamily = withText?.textStyle?.fontFamily;
 	const surface = createEl(doc, 'div', 'pptxv-inline-editor', {
 		left: `${box.x * scale}px`,
 		top: `${box.y * scale}px`,
 		width: `${box.width * scale}px`,
 		minHeight: `${box.height * scale}px`,
-		fontSize: typeof fontSize === 'number' ? `${fontSize * scale}px` : undefined,
-		fontFamily: withText?.textStyle?.fontFamily,
+		...(typeof fontSize === 'number' ? { fontSize: `${fontSize * scale}px` } : {}),
+		...(fontFamily !== undefined ? { fontFamily } : {}),
 	});
 	surface.contentEditable = 'true';
 	surface.setAttribute('role', 'textbox');

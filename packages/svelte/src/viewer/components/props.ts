@@ -50,6 +50,11 @@ export interface ViewerToolbarProps {
 	onzoomout: () => void;
 	onzoomfit: () => void;
 	onfullscreen: () => void;
+	/** Whether the Notes toggle button is shown (host has a notes panel). */
+	showNotes?: boolean;
+	/** Whether the notes panel is currently expanded (drives the pressed state). */
+	notesExpanded?: boolean;
+	onnotestoggle?: () => void;
 }
 
 export interface ThumbnailRailProps {
@@ -58,4 +63,24 @@ export interface ThumbnailRailProps {
 	mediaDataUrls: Map<string, string>;
 	current: number;
 	onselect: (index: number) => void;
+}
+
+export interface NotesPanelProps {
+	/** Active slide; the panel reads/edits its plain-text speaker notes. */
+	slide: PptxSlide | undefined;
+	/**
+	 * Whether the panel body is expanded. Controlled by the host so the
+	 * toolbar's Notes toggle and the panel's own header stay in sync.
+	 */
+	expanded?: boolean;
+	/**
+	 * Called with the committed plain-text notes (on `change` / `blur`) when
+	 * the user edits the textarea. This binding has no built-in slide-mutation
+	 * channel, so omit this to render a read-only panel; when provided, the
+	 * host is responsible for writing the text back onto the slide. Mirrors
+	 * the Vue notes panel's plain-text `update` emit contract.
+	 */
+	onupdate?: (notes: string) => void;
+	/** Called when the header is clicked to expand/collapse the panel. */
+	ontoggle?: () => void;
 }

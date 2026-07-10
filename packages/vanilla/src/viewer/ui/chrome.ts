@@ -1,5 +1,7 @@
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import type { NotesPanel } from './notes-panel';
+import { createNotesPanel } from './notes-panel';
 import type { ThumbnailRail } from './thumbnails';
 import { createThumbnailRail } from './thumbnails';
 import type { Toolbar, ToolbarHandlers } from './toolbar';
@@ -10,6 +12,10 @@ export interface ChromeOptions {
 	showThumbnails: boolean;
 	toolbarHandlers: ToolbarHandlers;
 	onSelectSlide(index: number): void;
+	/** Header click on the notes panel; shares the toolbar Notes button's handler. */
+	onToggleNotes(): void;
+	/** Fired when the notes textarea commits (change/blur) in editable mode. */
+	onCommitNotes(notes: string): void;
 }
 
 /** The viewer's static DOM skeleton plus the mutable overlay controls. */
@@ -22,6 +28,8 @@ export interface ViewerChrome {
 	viewport: HTMLElement;
 	/** Box sized to `canvasSize * scale`; the rendered stage goes inside. */
 	stageWrap: HTMLElement;
+	/** Collapsible speaker-notes panel docked below the slide area. */
+	notes: NotesPanel;
 	setLoading(loading: boolean): void;
 	setError(message: string | null): void;
 	setEmpty(empty: boolean): void;
@@ -68,6 +76,11 @@ export function buildViewerChrome(
 	emptyMessage.hidden = true;
 	viewport.appendChild(emptyMessage);
 
+	// Docked below the slide area (thumbnails + viewport), spanning the full
+	// chrome width, so it stays visible regardless of the thumbnail rail.
+	const notes = createNotesPanel(doc, t, options.onToggleNotes, options.onCommitNotes);
+	root.appendChild(notes.el);
+
 	const loadingOverlay = createEl(doc, 'div', 'pptxv-overlay pptxv-loading');
 	loadingOverlay.textContent = t('common.loading');
 	loadingOverlay.hidden = true;
@@ -86,6 +99,7 @@ export function buildViewerChrome(
 		thumbnails,
 		viewport,
 		stageWrap,
+		notes,
 		setLoading(loading) {
 			loadingOverlay.hidden = !loading;
 		},

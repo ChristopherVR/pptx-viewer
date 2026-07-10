@@ -10,6 +10,7 @@ import {
 	patchElementGeometry,
 	removeElement,
 	updateElement,
+	updateSlideNotes,
 } from './editor-mutations';
 import { remapInlineText } from './inline-text-editor';
 
@@ -45,6 +46,8 @@ export interface EditorOps {
 	duplicateSelected(): string | null;
 	nudgeSelected(dx: number, dy: number): void;
 	commitInlineText(id: string, text: string): void;
+	/** Commit the speaker-notes textarea's plain text onto the current slide. */
+	commitNotes(notes: string): void;
 	undo(): void;
 	redo(): void;
 	canUndo(): boolean;
@@ -165,6 +168,17 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			store.set({
 				slides: updateElement(state.slides, state.currentSlide, id, remapInlineText(target, text)),
 			});
+			commitChange();
+		},
+
+		commitNotes(notes) {
+			const state = store.get();
+			const slide = state.slides[state.currentSlide];
+			if (!state.editable || !slide || slide.notes === notes) {
+				return;
+			}
+			pushHistory();
+			store.set({ slides: updateSlideNotes(state.slides, state.currentSlide, notes) });
 			commitChange();
 		},
 

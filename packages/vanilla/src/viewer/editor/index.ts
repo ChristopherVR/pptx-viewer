@@ -24,6 +24,7 @@ export {
 	patchElementGeometry,
 	removeElement,
 	updateElement,
+	updateSlideNotes,
 } from './editor-mutations';
 export type { EditorOps, EditorOpsDeps } from './editor-operations';
 export { createEditorOps } from './editor-operations';

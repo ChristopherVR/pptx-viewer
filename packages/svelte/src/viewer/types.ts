@@ -39,6 +39,12 @@ export interface PowerPointViewerProps {
 	/** Show the navigation/zoom toolbar. Default true. */
 	showToolbar?: boolean;
 	/**
+	 * Show the speaker-notes panel and its toolbar toggle. Default true. The
+	 * panel is plain-text only and reads the active slide's notes; pass
+	 * `onnotesupdate` to make it editable (omitting it renders read-only).
+	 */
+	showNotes?: boolean;
+	/**
 	 * Opt in to the experimental Three.js (WebGL) SmartArt renderer for
 	 * `smartArt` elements, in place of the default SVG renderer. Requires the
 	 * optional `three` peer dependency; when it is unavailable, or a diagram
@@ -54,4 +60,12 @@ export interface PowerPointViewerProps {
 	onerror?: (message: string) => void;
 	/** Fired when the active slide changes (0-based index). */
 	onslidechange?: (index: number) => void;
+	/**
+	 * Fired with the committed plain-text speaker notes when the user edits
+	 * the notes panel (on `change` / `blur`). This binding has no built-in
+	 * slide-mutation channel, so the host is responsible for writing the text
+	 * back onto its own copy of the slide; omit this to render the notes
+	 * panel read-only.
+	 */
+	onnotesupdate?: (notes: string) => void;
 }

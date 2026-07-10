@@ -122,4 +122,32 @@ describe('createPptxViewer', () => {
 		expect(container.querySelector('.pptxv')).toBeNull();
 		viewer.destroy();
 	});
+
+	it('wires the toolbar Notes button to expand/collapse the notes panel', () => {
+		const { container } = mount();
+		const notesBody = container.querySelector<HTMLElement>('.pptxv-notes-body');
+		const notesBtn = container.querySelector<HTMLButtonElement>(
+			'.pptxv-toolbar [aria-label="Toggle notes"]',
+		);
+		expect(notesBody?.hidden).toBeTruthy();
+		expect(notesBtn?.getAttribute('aria-pressed')).toBe('false');
+
+		notesBtn?.click();
+		expect(notesBody?.hidden).toBeFalsy();
+		expect(notesBtn?.getAttribute('aria-pressed')).toBe('true');
+
+		// The panel's own header toggle also flips the same, shared state.
+		container.querySelector<HTMLButtonElement>('.pptxv-notes-header')?.click();
+		expect(notesBody?.hidden).toBeTruthy();
+	});
+
+	it('renders view-only notes as readonly and editable notes as writable', () => {
+		const { container: viewOnly } = mount();
+		const viewOnlyTextarea = viewOnly.querySelector<HTMLTextAreaElement>('.pptxv-notes-textarea');
+		expect(viewOnlyTextarea?.readOnly).toBeTruthy();
+
+		const { container: editable } = mount({ editable: true });
+		const editableTextarea = editable.querySelector<HTMLTextAreaElement>('.pptxv-notes-textarea');
+		expect(editableTextarea?.readOnly).toBeFalsy();
+	});
 });

@@ -2,6 +2,8 @@ import type { PptxHandler } from 'pptx-viewer-core';
 import { EncryptedFileError } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
 
+import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
+import { buildMountChromeDeps, mountChrome, unmountChrome } from './chrome-lifecycle';
 import type { EditorController } from './editor';
 import { createEditorController } from './editor';
 import type { Translator } from './i18n';
@@ -18,8 +20,6 @@ import { createStateSync } from './state-sync';
 import { ensureViewerStyles } from './styles';
 import { applyThemeVars } from './theme-apply';
 import type { PptxViewerInstance, PptxViewerOptions } from './types';
-import type { PresentationController, ViewerChrome } from './ui';
-import { attachKeyboardNavigation, buildViewerChrome, createPresentationController } from './ui';
 
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 8;
@@ -32,24 +32,23 @@ const ZOOM_STEP = 1.25;
  * tiny reactive store. All parsing lives in `pptx-viewer-core`; all pure
  * render logic in `pptx-viewer-shared`.
  */
-export class PptxViewer implements PptxViewerInstance {
-	private readonly container: HTMLElement;
-	private readonly doc: Document;
-	private readonly options: PptxViewerOptions;
-	private readonly store: Store<ViewerState>;
+export class PptxViewer implements PptxViewerInstance, ChromeHost {
+	// Not `private`: `ChromeHost` (structurally implemented by this class, see
+	// `buildMountChromeDeps(this)` below) needs these readable from outside the
+	// class body's own methods.
+	readonly container: HTMLElement;
+	readonly doc: Document;
+	readonly options: PptxViewerOptions;
+	readonly store: Store<ViewerState>;
+	readonly renderer: RenderController;
+	t: Translator;
+	lifecycle!: ChromeLifecycle;
+	editor!: EditorController;
 	private readonly registry: ElementRendererRegistry;
-	private readonly renderer: RenderController;
-	private t: Translator;
-	private chrome!: ViewerChrome;
-	private presentation!: PresentationController;
-	private detachKeyboard: () => void = () => {};
-	private resizeObserver: ResizeObserver | null = null;
 	private handler: PptxHandler | null = null;
 	private blobUrls: string[] = [];
-	private appliedThemeVars: string[] = [];
 	private loadToken = 0;
 	private destroyed = false;
-	private editor!: EditorController;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
 		this.container = container;
@@ -62,18 +61,18 @@ export class PptxViewer implements PptxViewerInstance {
 			doc: this.doc,
 			store: this.store,
 			registry: this.registry,
-			getChrome: () => this.chrome,
+			getChrome: () => this.lifecycle.chrome,
 			getTranslator: () => this.t,
 			smartArt3D: options.smartArt3D ?? false,
 			onStageRendered: () => this.editor?.onStageRendered(),
 		});
 
 		ensureViewerStyles(this.doc);
-		this.mountChrome();
+		this.lifecycle = mountChrome(buildMountChromeDeps(this));
 		this.editor = createEditorController({
 			doc: this.doc,
 			store: this.store,
-			getChrome: () => this.chrome,
+			getChrome: () => this.lifecycle.chrome,
 			getTranslator: () => this.t,
 			getScale: () => this.renderer.effectiveScale(),
 			getHandler: () => this.handler,
@@ -86,7 +85,7 @@ export class PptxViewer implements PptxViewerInstance {
 		}
 		this.store.subscribe(
 			createStateSync({
-				getChrome: () => this.chrome,
+				getChrome: () => this.lifecycle.chrome,
 				renderer: this.renderer,
 				callbacks: options,
 			}),
@@ -199,17 +198,27 @@ export class PptxViewer implements PptxViewerInstance {
 		this.setZoom('fit');
 	}
 
+	// ── Notes panel ────────────────────────────────────────────────────────
+
+	/** Expand/collapse the speaker-notes panel; persists for the instance's life. */
+	toggleNotes(): void {
+		this.store.set({ notesExpanded: !this.store.get().notesExpanded });
+	}
+
 	// ── Theme / locale ─────────────────────────────────────────────────────
 
 	setTheme(theme: ViewerTheme | undefined): void {
-		this.appliedThemeVars = applyThemeVars(this.chrome.root, theme, this.appliedThemeVars);
+		this.lifecycle.appliedThemeVars = applyThemeVars(
+			this.lifecycle.chrome.root,
+			theme,
+			this.lifecycle.appliedThemeVars,
+		);
 	}
 
 	setLocale(locale: string): void {
 		this.t = createTranslator(locale, this.options.messages);
 		// Chrome labels are baked at build time; rebuild it under the new locale.
-		this.unmountChrome();
-		this.mountChrome();
+		this.remountChrome();
 		this.editor.attachChrome();
 		this.renderer.renderAll();
 	}
@@ -256,11 +265,11 @@ export class PptxViewer implements PptxViewerInstance {
 	// ── Presentation mode ──────────────────────────────────────────────────
 
 	async enterPresentation(): Promise<void> {
-		await this.presentation.enter();
+		await this.lifecycle.presentation.enter();
 	}
 
 	async exitPresentation(): Promise<void> {
-		await this.presentation.exit();
+		await this.lifecycle.presentation.exit();
 	}
 
 	// ── Escape hatches / teardown ──────────────────────────────────────────
@@ -280,61 +289,15 @@ export class PptxViewer implements PptxViewerInstance {
 		this.destroyed = true;
 		this.loadToken++;
 		this.editor.destroy();
-		this.unmountChrome();
+		unmountChrome(this.lifecycle, () => this.editor?.detachChrome());
 		this.releaseLoaded();
 	}
 
 	// ── Chrome lifecycle ───────────────────────────────────────────────────
 
-	private mountChrome(): void {
-		this.chrome = buildViewerChrome(this.doc, this.t, {
-			showToolbar: this.options.showToolbar ?? true,
-			showThumbnails: this.options.showThumbnails ?? true,
-			toolbarHandlers: {
-				prev: () => this.prev(),
-				next: () => this.next(),
-				zoomIn: () => this.zoomIn(),
-				zoomOut: () => this.zoomOut(),
-				zoomToFit: () => this.zoomToFit(),
-				togglePresentation: () => {
-					void (this.presentation.isActive() ? this.exitPresentation() : this.enterPresentation());
-				},
-				undo: () => this.undo(),
-				redo: () => this.redo(),
-				save: () => void this.downloadPptx(),
-			},
-			onSelectSlide: (index) => this.goToSlide(index),
-		});
-		this.appliedThemeVars = applyThemeVars(this.chrome.root, this.options.theme, []);
-		this.container.appendChild(this.chrome.root);
-
-		this.detachKeyboard = attachKeyboardNavigation(this.chrome.root, {
-			next: () => this.next(),
-			prev: () => this.prev(),
-			first: () => this.goToSlide(0),
-			last: () => this.goToSlide(this.getSlideCount() - 1),
-			escape: () => void this.exitPresentation(),
-		});
-		this.presentation = createPresentationController(this.chrome.root, (presenting) => {
-			this.store.set({ presenting });
-		});
-		if (typeof ResizeObserver !== 'undefined') {
-			this.resizeObserver = new ResizeObserver(() => {
-				if (this.store.get().zoom === 'fit') {
-					this.renderer.renderStage();
-				}
-			});
-			this.resizeObserver.observe(this.chrome.viewport);
-		}
-	}
-
-	private unmountChrome(): void {
-		this.editor?.detachChrome();
-		this.detachKeyboard();
-		this.resizeObserver?.disconnect();
-		this.resizeObserver = null;
-		this.presentation.dispose();
-		this.chrome.root.remove();
+	private remountChrome(): void {
+		unmountChrome(this.lifecycle, () => this.editor?.detachChrome());
+		this.lifecycle = mountChrome(buildMountChromeDeps(this));
 	}
 }
 

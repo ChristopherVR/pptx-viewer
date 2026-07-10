@@ -13,6 +13,7 @@ export interface ToolbarHandlers {
 	undo(): void;
 	redo(): void;
 	save(): void;
+	toggleNotes(): void;
 }
 
 export interface ToolbarUpdate {
@@ -36,6 +37,8 @@ export interface Toolbar {
 	el: HTMLElement;
 	update(state: ToolbarUpdate): void;
 	setEditState(state: ToolbarEditState): void;
+	/** Reflect the notes panel's expanded/collapsed state on the Notes button. */
+	setNotesExpanded(expanded: boolean): void;
 }
 
 /**
@@ -88,6 +91,8 @@ export function createToolbar(doc: Document, t: Translator, handlers: ToolbarHan
 	button(el, 'zoom-in', t('pptx.statusBar.zoomIn'), handlers.zoomIn);
 	button(el, 'fit', t('pptx.statusBar.zoomToFit'), handlers.zoomToFit);
 	button(el, 'play', t('pptx.statusBar.slideShow'), handlers.togglePresentation);
+	const notesBtn = button(el, 'notes', t('pptx.statusBar.toggleNotes'), handlers.toggleNotes);
+	notesBtn.setAttribute('aria-pressed', 'false');
 
 	return {
 		el,
@@ -104,6 +109,10 @@ export function createToolbar(doc: Document, t: Translator, handlers: ToolbarHan
 			editGroup.hidden = !editable;
 			undoBtn.disabled = !canUndo;
 			redoBtn.disabled = !canRedo;
+		},
+		setNotesExpanded(expanded) {
+			notesBtn.setAttribute('aria-pressed', String(expanded));
+			notesBtn.classList.toggle('is-active', expanded);
 		},
 	};
 }

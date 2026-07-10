@@ -61,6 +61,7 @@ const CHROME_CSS = `
 }
 .pptxv-btn:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
 .pptxv-btn:disabled { opacity: 0.4; cursor: default; }
+.pptxv-btn.is-active { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
 .pptxv-btn:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: 1px; }
 .pptxv-btn svg { width: 16px; height: 16px; display: block; }
 .pptxv-counter, .pptxv-zoom-label {
@@ -130,6 +131,54 @@ const CHROME_CSS = `
 }
 .pptxv-stage { background: #fff; }
 .pptxv-para { margin: 0; }
+
+/* ── Speaker notes panel ─────────────────────────────────────────────── */
+.pptxv-notes {
+	display: flex;
+	flex-direction: column;
+	flex: none;
+	border-top: 1px solid var(--pptx-border);
+	background: var(--pptx-card);
+	color: var(--pptx-card-foreground);
+}
+.pptxv-notes-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	padding: 6px 10px;
+	border: none;
+	background: transparent;
+	color: var(--pptx-muted-foreground);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	text-align: left;
+	cursor: pointer;
+}
+.pptxv-notes-header:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-notes-header:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -2px; }
+.pptxv-notes-chevron { font-size: 0.75rem; }
+.pptxv-notes-body { padding: 0 10px 10px; }
+.pptxv-notes-body[hidden] { display: none; }
+.pptxv-notes-textarea {
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 80px;
+	max-height: 200px;
+	padding: 8px;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: var(--pptx-muted);
+	color: var(--pptx-foreground);
+	font: inherit;
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	resize: vertical;
+}
+.pptxv-notes-textarea:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -1px; }
+.pptxv-notes-textarea:disabled,
+.pptxv-notes-textarea:read-only { cursor: default; opacity: 0.85; }
+.pptxv.pptxv-presenting .pptxv-notes { display: none; }
 
 /* ── Placeholder (element types without a renderer yet) ──────────────── */
 .pptxv-placeholder {

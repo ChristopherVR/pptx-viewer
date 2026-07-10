@@ -90,6 +90,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			total: state.slides.length,
 			zoomPercent: scale * 100,
 		});
+		chrome.notes.update({ slide, editable: state.editable });
 		deps.onStageRendered?.();
 	};
 
@@ -108,6 +109,8 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			renderThumbnails();
 			renderStage();
 			chrome.thumbnails?.setActive(state.currentSlide);
+			chrome.notes.setExpanded(state.notesExpanded);
+			chrome.toolbar?.setNotesExpanded(state.notesExpanded);
 		},
 		renderStage,
 		renderThumbnails,

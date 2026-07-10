@@ -49,6 +49,8 @@ export interface EditorController {
 	deleteSelected(): void;
 	duplicateSelected(): string | null;
 	getSelectedElementId(): string | null;
+	/** Commit the speaker-notes textarea's plain text onto the current slide. */
+	commitNotes(notes: string): void;
 	save(): Promise<Uint8Array>;
 	downloadPptx(fileName?: string): Promise<void>;
 	destroy(): void;
@@ -311,6 +313,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		deleteSelected: () => ops.deleteSelected(),
 		duplicateSelected: () => ops.duplicateSelected(),
 		getSelectedElementId: () => store.get().selectedElementId,
+		commitNotes: (notes) => ops.commitNotes(notes),
 		save: () => ops.save(),
 		async downloadPptx(fileName = 'presentation.pptx') {
 			const bytes = await ops.save();

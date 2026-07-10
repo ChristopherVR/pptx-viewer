@@ -37,6 +37,11 @@ export interface ViewerState {
 	 * re-renders are deferred until the gesture ends.
 	 */
 	interactionActive: boolean;
+	/**
+	 * True when the speaker-notes panel body is expanded. Persists across slide
+	 * navigation for the life of the viewer instance (in-memory only).
+	 */
+	notesExpanded: boolean;
 }
 
 export function createInitialViewerState(): ViewerState {
@@ -53,6 +58,7 @@ export function createInitialViewerState(): ViewerState {
 		selectedElementId: null,
 		dirty: false,
 		interactionActive: false,
+		notesExpanded: false,
 	};
 }
 

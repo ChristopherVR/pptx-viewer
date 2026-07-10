@@ -13,7 +13,8 @@ export type IconName =
 	| 'sidebar'
 	| 'undo'
 	| 'redo'
-	| 'save';
+	| 'save'
+	| 'notes';
 
 const ICON_PATHS: Record<IconName, string[]> = {
 	'chevron-left': ['M15 18l-6-6 6-6'],
@@ -31,6 +32,7 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	undo: ['M3 7v6h6', 'M21 17a9 9 0 0 0-15-6.7L3 13'],
 	redo: ['M21 7v6h-6', 'M3 17a9 9 0 0 1 15-6.7L21 13'],
 	save: ['M12 3v12', 'M7 10l5 5 5-5', 'M5 21h14'],
+	notes: ['M5 4h14v16H5z', 'M8 9h8', 'M8 13h8', 'M8 17h4'],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
