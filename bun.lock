@@ -300,7 +300,7 @@
     },
     "packages/svelte": {
       "name": "pptx-svelte-viewer",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "html2canvas-pro": "^2.0.4",
         "jspdf": "^4.2.1",
@@ -355,7 +355,7 @@
     },
     "packages/vanilla": {
       "name": "pptx-vanilla-viewer",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "dompurify": "^3.4.11",
         "html2canvas-pro": "^2.0.4",
