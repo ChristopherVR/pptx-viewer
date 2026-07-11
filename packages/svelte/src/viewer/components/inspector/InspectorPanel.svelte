@@ -7,17 +7,20 @@
 	 * - {@link PositionSection}: X/Y/W/H/rotation, shown for every selection.
 	 * - {@link FillStrokeSection} (+ {@link GradientPanel}): fill/stroke colour,
 	 *   opacity, and gradient, for elements with `shapeStyle`.
+	 * - {@link TextSection}: vertical anchor, wrap, autofit, for elements with
+	 *   `textStyle`.
 	 *
 	 * Every control routes edits through `EditorState.applyElementPatch` /
 	 * `patchSelected`, so every change is undo/redo-integrated. Vanilla
 	 * counterpart: `packages/vanilla/src/viewer/ui/inspector/`.
 	 */
-	import { hasShapeProperties } from 'pptx-viewer-core';
+	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
 	import FillStrokeSection from './FillStrokeSection.svelte';
 	import PositionSection from './PositionSection.svelte';
+	import TextSection from './TextSection.svelte';
 
 	const { editor }: { editor: EditorState } = $props();
 	const t = useTranslator();
@@ -27,6 +30,7 @@
 
 	const el = $derived(editor.selectedElement);
 	const canShape = $derived(el !== undefined && hasShapeProperties(el));
+	const canText = $derived(el !== undefined && hasTextProperties(el));
 </script>
 
 <aside class="pptx-svelte-inspector" class:pptx-svelte-inspector-collapsed={collapsed}>
@@ -57,6 +61,13 @@
 					<div class="pptx-svelte-inspector-section">
 						<h4>{t('pptx.inspector.fillStroke')}</h4>
 						<FillStrokeSection {editor} {el} />
+					</div>
+				{/if}
+
+				{#if canText}
+					<div class="pptx-svelte-inspector-section">
+						<h4>{t('pptx.inspector.text')}</h4>
+						<TextSection {editor} {el} />
 					</div>
 				{/if}
 			{:else}

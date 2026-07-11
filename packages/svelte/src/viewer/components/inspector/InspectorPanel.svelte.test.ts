@@ -36,6 +36,19 @@ function shapeEl(): PptxElement {
 	} as PptxElement;
 }
 
+function textEl(): PptxElement {
+	return {
+		type: 'text',
+		id: 't1',
+		x: 0,
+		y: 0,
+		width: 100,
+		height: 50,
+		text: 'hi',
+		textStyle: {},
+	} as PptxElement;
+}
+
 function makeEditor(elements: PptxElement[]): EditorState {
 	const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
 	editor.editable = true;
@@ -70,15 +83,24 @@ describe('inspectorPanel', () => {
 		expect(target.querySelector('.pptx-svelte-inspector-grid')).toBeNull();
 	});
 
-	it('shows Position + Fill & Stroke for a shape element', () => {
+	it('shows Position + Fill & Stroke + Text for a shape element (shapes carry text properties too)', () => {
 		const el = shapeEl();
 		const editor = makeEditor([el]);
 		editor.select(el.id);
 		const { target } = mountInspector(editor);
 
 		expect(target.querySelector('.pptx-svelte-inspector-grid')).not.toBeNull();
-		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke']);
+		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Text']);
 		expect(target.querySelector('.pptx-svelte-inspector-empty')).toBeNull();
+	});
+
+	it('shows Position + Fill & Stroke + Text for a text element (text has shapeStyle too)', () => {
+		const el = textEl();
+		const editor = makeEditor([el]);
+		editor.select(el.id);
+		const { target } = mountInspector(editor);
+
+		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Text']);
 	});
 
 	it('collapses and expands via the header toggle', () => {
