@@ -14,6 +14,7 @@ import {
 } from 'react-icons/lu';
 
 import type { TableCellEditorState } from '../../types';
+import type { ChangeCaseMode } from '../../utils/text-case-transform';
 import { ColumnsDropdown, LineSpacingDropdown, TextDirectionDropdown } from './ParagraphDropdowns';
 import { gB, gL, grp, FMT, ATXT, pill, ic, sep } from './toolbar-constants';
 
@@ -77,6 +78,8 @@ export interface TextSectionProps {
 	selectedElement: PptxElement | null;
 	tableEditorState?: TableCellEditorState | null;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
+	/** Rewrite the selected text's characters (PowerPoint's Aa "Change Case" dropdown). */
+	onTransformTextCase: (mode: ChangeCaseMode) => void;
 }
 
 export function TextSection(p: TextSectionProps): React.ReactElement {
@@ -390,19 +393,15 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 											if (!canFormat) {
 												return;
 											}
-											switch (opt.value) {
-												case 'upper':
-													p.onUpdateTextStyle({ textCaps: 'all' });
-													break;
-												case 'lower':
-													p.onUpdateTextStyle({ textCaps: 'none' });
-													break;
-												case 'sentence':
-												case 'capitalize':
-												case 'toggle':
-													p.onUpdateTextStyle({ textCaps: 'none' });
-													break;
+											if (isTable) {
+												// Table-cell text is plain (no textSegments to rewrite);
+												// fall back to the visual all-caps render hint.
+												p.onUpdateTextStyle({
+													textCaps: opt.value === 'upper' ? 'all' : 'none',
+												});
+												return;
 											}
+											p.onTransformTextCase(opt.value as ChangeCaseMode);
 										}}
 									>
 										{opt.label}

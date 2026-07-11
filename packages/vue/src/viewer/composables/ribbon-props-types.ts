@@ -128,6 +128,7 @@ export interface UseRibbonPropsActionsInput {
 	onCopySlideAsImage: () => Promise<void>;
 	openPrintDialog: () => void;
 	ribbonUpdateTextStyle: RibbonProps['onUpdateTextStyle'];
+	ribbonUpdateTextCase: RibbonProps['onTransformTextCase'];
 	insertSlideFromLayout: (layoutPath: string, layoutName?: string) => Promise<void>;
 	onRenameActiveCustomShow: () => void;
 	onDeleteActiveCustomShow: () => void;

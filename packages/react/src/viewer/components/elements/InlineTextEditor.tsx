@@ -88,6 +88,36 @@ export function InlineTextEditor({
 		onEditChange(extractText());
 	}, [extractText, onEditChange]);
 
+	// When the caret sits at a soft word-wrap boundary (no explicit line break,
+	// just CSS wrapping), the space that separates the two words is still part
+	// of the text and lands right before the caret. Pressing Enter there splits
+	// the DOM at that exact position, leaving the new paragraph break preceded
+	// by a stray space: e.g. "fox jumps" wrapped as "fox " / "jumps" becomes
+	// paragraphs "fox " and "jumps" instead of "fox" and "jumps". That extra,
+	// invisible trailing character then counts toward the paragraph's measured
+	// width, occasionally forcing an unwanted extra wrapped line. Since a space
+	// immediately before a paragraph break is never visually meaningful, drop it
+	// before the browser performs its native Enter/paragraph-split.
+	const trimTrailingSpaceBeforeCaret = useCallback(() => {
+		const selection = window.getSelection();
+		if (!selection || !selection.isCollapsed || selection.rangeCount === 0) {
+			return;
+		}
+		const range = selection.getRangeAt(0);
+		const { startContainer, startOffset } = range;
+		if (startContainer.nodeType !== Node.TEXT_NODE || startOffset === 0) {
+			return;
+		}
+		const text = startContainer.textContent ?? '';
+		if (text.charAt(startOffset - 1) !== ' ') {
+			return;
+		}
+		const trimRange = document.createRange();
+		trimRange.setStart(startContainer, startOffset - 1);
+		trimRange.setEnd(startContainer, startOffset);
+		trimRange.deleteContents();
+	}, []);
+
 	// Auto-focus on mount and place cursor at end
 	useEffect(() => {
 		const el = editorRef.current;
@@ -208,6 +238,10 @@ export function InlineTextEditor({
 					e.preventDefault();
 					onEditChange(extractText());
 					onCommit();
+					return;
+				}
+				if (e.key === 'Enter') {
+					trimTrailingSpaceBeforeCaret();
 				}
 			}}
 			// Prevent paste from inserting HTML: paste as plain text only

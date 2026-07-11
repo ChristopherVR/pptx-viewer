@@ -114,6 +114,35 @@ function currentTextStyle(): TextStyle | undefined {
 	return el.textSegments?.[0]?.style ?? el.textStyle;
 }
 
+/**
+ * When the caret sits at a soft word-wrap boundary (no explicit line break,
+ * just CSS wrapping), the space separating the two words is still part of the
+ * text and lands right before the caret. Pressing Enter there splits the DOM
+ * at that exact position, leaving the new paragraph break preceded by a stray
+ * space (mirrors the React inline editor's fix). Since a space immediately
+ * before a paragraph break is never visually meaningful, drop it before the
+ * browser performs its native Enter/paragraph-split.
+ */
+function trimTrailingSpaceBeforeCaret(): void {
+	const selection = window.getSelection();
+	if (!selection || !selection.isCollapsed || selection.rangeCount === 0) {
+		return;
+	}
+	const range = selection.getRangeAt(0);
+	const { startContainer, startOffset } = range;
+	if (startContainer.nodeType !== Node.TEXT_NODE || startOffset === 0) {
+		return;
+	}
+	const text = startContainer.textContent ?? '';
+	if (text.charAt(startOffset - 1) !== ' ') {
+		return;
+	}
+	const trimRange = document.createRange();
+	trimRange.setStart(startContainer, startOffset - 1);
+	trimRange.setEnd(startContainer, startOffset);
+	trimRange.deleteContents();
+}
+
 function onKeydown(event: KeyboardEvent): void {
 	// Inline formatting shortcuts (Ctrl/Cmd + B/I/U), matching the React editor.
 	if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
@@ -135,6 +164,10 @@ function onKeydown(event: KeyboardEvent): void {
 	if (event.key === 'Escape') {
 		event.preventDefault();
 		emit('cancel');
+		return;
+	}
+	if (event.key === 'Enter') {
+		trimTrailingSpaceBeforeCaret();
 	}
 }
 </script>

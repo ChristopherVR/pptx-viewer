@@ -384,6 +384,7 @@ function createMockToolbarProps(overrides: Partial<ToolbarProps> = {}): ToolbarP
 		onRunAccessibilityCheck: vi.fn<() => void>(),
 		onToggleSlideSorter: vi.fn<() => void>(),
 		onUpdateTextStyle: vi.fn<() => void>(),
+		onTransformTextCase: vi.fn<() => void>(),
 		isOverflowMenuOpen: false,
 		onSetOverflowMenuOpen: vi.fn<() => void>(),
 		layoutOptions: [{ path: 'layout1', name: 'Title Slide' }],

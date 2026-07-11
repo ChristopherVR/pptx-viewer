@@ -6,6 +6,31 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-11
 
+_Releases: pptx-react-viewer@1.14.0, pptx-vue-viewer@1.14.0, pptx-angular-viewer@1.14.0, pptx-vanilla-viewer@0.2.0, pptx-svelte-viewer@0.2.0_
+
+### Features
+
+- **svelte:** Editing chrome - format toolbar, inspector, insert, z-order (by @ChristopherVR) ([a674804](https://github.com/ChristopherVR/pptx-viewer/commit/a6748040c630363e1b159ec300692f8a53d0a6c5))
+- **vanilla:** Editing chrome - format toolbar, inspector, insert, z-order (by @ChristopherVR) ([bb7ea83](https://github.com/ChristopherVR/pptx-viewer/commit/bb7ea839d033a77192fe81c8519d34dde3b8b1f4))
+- **svelte:** Collaboration and autosave (by @ChristopherVR) ([240bc2c](https://github.com/ChristopherVR/pptx-viewer/commit/240bc2cb5f1547fcc3a25eeb71b8bf23a5eb73ec))
+- **vanilla:** Collaboration and autosave (by @ChristopherVR) ([2c507e2](https://github.com/ChristopherVR/pptx-viewer/commit/2c507e2ea9297d2dd7f6b13131c99e2039947a8b))
+- **vanilla:** Animation and slide-transition playback in presentation mode (by @ChristopherVR) ([110834f](https://github.com/ChristopherVR/pptx-viewer/commit/110834f0987b6d6c2d0df52faac593edbd34f58f))
+- **svelte:** Animation and slide-transition playback in presentation mode (by @ChristopherVR) ([9cbcbfa](https://github.com/ChristopherVR/pptx-viewer/commit/9cbcbfae923f18c23ab285dc57c7093c7cbb389d))
+- **shared:** Per-frame delay overrides in the gif encoder (by @ChristopherVR) ([2d21100](https://github.com/ChristopherVR/pptx-viewer/commit/2d2110090f9f83ce1a124cd772fcd00faf53368d))
+- **vanilla:** Gif, video, and print export (by @ChristopherVR) ([6a30ea3](https://github.com/ChristopherVR/pptx-viewer/commit/6a30ea3a53d9a358eebe87cb4469dedaa2328d74))
+- **svelte:** Gif, video, and print export with export menu UI (by @ChristopherVR) ([d0b80ad](https://github.com/ChristopherVR/pptx-viewer/commit/d0b80ada4770497bcb5c78c8095839740d7d8e2f))
+
+### Bug Fixes
+
+- **vue:** Export toVueI18nSyntax; convert demo fr/es/de dictionaries (by @ChristopherVR) ([b3c974a](https://github.com/ChristopherVR/pptx-viewer/commit/b3c974a6733eaf2255aab1a9604a6200b56f3cc3))
+
+### Chores
+
+- Sync bun.lock with released package versions (by @ChristopherVR) ([6d31448](https://github.com/ChristopherVR/pptx-viewer/commit/6d31448ac60f4812e0625f21e0732b4e2c4236c6))
+- Sync bun.lock with 0.1.3 release versions (by @ChristopherVR) ([909019e](https://github.com/ChristopherVR/pptx-viewer/commit/909019e3cc1e805757a974ebd95aee519b74af33))
+
+## 2026-07-11
+
 _Releases: pptx-vanilla-viewer@0.1.3, pptx-svelte-viewer@0.1.3, @christophervr/pptx-viewer@1.5.0_
 
 ### Features

@@ -143,6 +143,7 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 			input.showSorter.value = true;
 		},
 		onUpdateTextStyle: input.ribbonUpdateTextStyle,
+		onTransformTextCase: input.ribbonUpdateTextCase,
 		onSetOverflowMenuOpen: (o: boolean) => {
 			input.overflowOpen.value = o;
 		},

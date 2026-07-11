@@ -15,6 +15,7 @@ import type {
 	ToolbarSection,
 	ViewerMode,
 } from '../../types';
+import type { ChangeCaseMode } from '../../utils/text-case-transform';
 
 export interface ToolbarProps {
 	mode: ViewerMode;
@@ -111,6 +112,8 @@ export interface ToolbarProps {
 	onRunAccessibilityCheck: () => void;
 	onToggleSlideSorter: () => void;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
+	/** Rewrite the selected text's characters (PowerPoint's Aa "Change Case" dropdown). */
+	onTransformTextCase: (mode: ChangeCaseMode) => void;
 	isOverflowMenuOpen: boolean;
 	onSetOverflowMenuOpen: (open: boolean) => void;
 	layoutOptions: Array<{ path: string; name: string }>;

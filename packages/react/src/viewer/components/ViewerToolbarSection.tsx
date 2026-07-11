@@ -477,6 +477,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onRunAccessibilityCheck={dialogs.handleRunAccessibilityCheck}
 				onToggleSlideSorter={() => s.setShowSlideSorter((p) => !p)}
 				onUpdateTextStyle={ops.updateSelectedTextStyle}
+				onTransformTextCase={ops.updateSelectedTextCase}
 				isOverflowMenuOpen={s.isOverflowMenuOpen}
 				onSetOverflowMenuOpen={s.setIsOverflowMenuOpen}
 				layoutOptions={scopedLayoutOptions}

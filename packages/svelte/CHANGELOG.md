@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [0.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.2.0) - 2026-07-11
+
+### Features
+
+- **svelte:** Collaboration and autosave (by @ChristopherVR) ([240bc2c](https://github.com/ChristopherVR/pptx-viewer/commit/240bc2cb5f1547fcc3a25eeb71b8bf23a5eb73ec))
+
 ## [0.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.1.3) - 2026-07-11
 
 ### Documentation

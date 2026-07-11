@@ -178,6 +178,7 @@ function MobileSectionBody({
 						selectedElement={p.selectedElement}
 						tableEditorState={p.tableEditorState}
 						onUpdateTextStyle={p.onUpdateTextStyle}
+						onTransformTextCase={p.onTransformTextCase}
 					/>
 				</div>
 			);
