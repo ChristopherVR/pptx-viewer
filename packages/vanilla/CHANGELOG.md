@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [0.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.2.0) - 2026-07-11
+
+### Features
+
+- **vanilla:** Collaboration and autosave (by @ChristopherVR) ([2c507e2](https://github.com/ChristopherVR/pptx-viewer/commit/2c507e2ea9297d2dd7f6b13131c99e2039947a8b))
+
 ## [0.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.1.3) - 2026-07-11
 
 ### Documentation
