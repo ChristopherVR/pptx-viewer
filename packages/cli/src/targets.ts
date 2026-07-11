@@ -1,3 +1,15 @@
+import {
+	ANGULAR_APP_TS,
+	ANGULAR_MAIN_TS,
+	MINIMAL_APP_CSS,
+	REACT_APP_TSX,
+	REACT_I18N_TS,
+	SVELTE_APP_SVELTE,
+	VANILLA_MAIN_TS,
+	VUE_APP_VUE,
+	VUE_MAIN_TS,
+} from './templates';
+
 /** Framework version this target's peer dependency requires, for a compatibility check against an existing project. */
 export interface FrameworkCompat {
 	/** npm package name to look for in the user's project, e.g. `react`, `vue`, `@angular/core`. */
@@ -35,244 +47,9 @@ export interface Target {
 	compat?: FrameworkCompat;
 	/** Present for UI framework targets: enables "scaffold a new project" mode. */
 	scaffold?: ScaffoldRecipe;
-	/** Targets sharing a `group` are mutually exclusive: React, Vue, and Angular bindings aren't meant to be picked together. */
+	/** Targets sharing a `group` are mutually exclusive: the UI bindings aren't meant to be picked together. */
 	group?: string;
 }
-
-// Mirrors the demo apps (demos/demo-react, demo-vue, demo-angular): a picker
-// to open an existing .pptx, or a "New Presentation" button that hands the
-// viewer a freshly built blank deck via PptxHandler.createBlank, so the
-// scaffolded app actually shows a working PowerPoint presentation right away
-// instead of a bare, empty file input.
-//
-// The style import uses the `/styles.css` subpath, not the extension-less
-// `/styles` alias: Vite's ambient `declare module '*.css'` (from its
-// `vite/client` types) only matches specifiers that literally end in
-// `.css`, so the extension-less form fails `vue-tsc -b`/`tsc -b` in a fresh
-// scaffold with "Cannot find module ... for side-effect import".
-const REACT_APP_TSX = `import { useCallback, useState } from 'react';
-import { PptxHandler } from 'pptx-viewer-core';
-import { PowerPointViewer } from 'pptx-react-viewer';
-import 'pptx-react-viewer/styles.css';
-import './i18n';
-
-export default function App() {
-	const [content, setContent] = useState<Uint8Array | null>(null);
-
-	const loadFile = useCallback((file: File) => {
-		const reader = new FileReader();
-		reader.onload = () => setContent(new Uint8Array(reader.result as ArrayBuffer));
-		reader.readAsArrayBuffer(file);
-	}, []);
-
-	const newPresentation = useCallback(async () => {
-		const { handler, data } = await PptxHandler.createBlank({
-			title: 'Untitled Presentation',
-			initialSlideCount: 1,
-		});
-		setContent(await handler.save(data.slides));
-	}, []);
-
-	if (content) {
-		return (
-			<div style={{ height: '100vh' }}>
-				<PowerPointViewer content={content} canEdit />
-			</div>
-		);
-	}
-
-	return (
-		<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, height: '100vh', fontFamily: 'system-ui, sans-serif' }}>
-			<h1 style={{ margin: 0, fontSize: 24, fontWeight: 500, color: '#e5e7eb' }}>Open a Presentation</h1>
-			<label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 8, border: '1px solid #4b5563', background: '#1f2937', color: '#f3f4f6', cursor: 'pointer', fontSize: 14, transition: 'background 0.15s' }}>
-				Choose .pptx file
-				<input
-					type="file"
-					accept=".pptx"
-					style={{ display: 'none' }}
-					onChange={(e) => {
-						const file = e.target.files?.[0];
-						if (file) loadFile(file);
-					}}
-				/>
-			</label>
-			<span style={{ color: '#6b7280', fontSize: 13 }}>or</span>
-			<button
-				onClick={() => void newPresentation()}
-				style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 500 }}
-			>
-				New Presentation
-			</button>
-		</div>
-	);
-}
-`;
-
-const REACT_I18N_TS = `import { createInstance } from 'i18next';
-import { translationsEn, keyToLabel } from 'pptx-react-viewer/i18n';
-import { initReactI18next } from 'react-i18next';
-
-const i18n = createInstance();
-
-i18n.use(initReactI18next).init({
-	resources: {
-		en: { translation: translationsEn },
-	},
-	lng: 'en',
-	fallbackLng: 'en',
-	interpolation: { escapeValue: false },
-	parseMissingKeyHandler: (key: string) => keyToLabel(key),
-	missingKeyHandler: false,
-});
-
-export default i18n;
-`;
-const REACT_INDEX_CSS = `:root {
-  color-scheme: light dark;
-}
-
-body {
-  margin: 0;
-}
-`;
-const VUE_APP_VUE = `<script setup lang="ts">
-import { ref } from 'vue';
-import { PptxHandler } from 'pptx-viewer-core';
-import { PowerPointViewer } from 'pptx-vue-viewer';
-import 'pptx-vue-viewer/styles.css';
-
-const content = ref<Uint8Array>();
-
-function loadFile(file: File) {
-	const reader = new FileReader();
-	reader.onload = () => (content.value = new Uint8Array(reader.result as ArrayBuffer));
-	reader.readAsArrayBuffer(file);
-}
-
-function onPick(e: Event) {
-	const file = (e.target as HTMLInputElement).files?.[0];
-	if (file) loadFile(file);
-}
-
-async function newPresentation() {
-	const { handler, data } = await PptxHandler.createBlank({
-		title: 'Untitled Presentation',
-		initialSlideCount: 1,
-	});
-	content.value = await handler.save(data.slides);
-}
-</script>
-
-<template>
-	<div v-if="content" style="height: 100vh">
-		<PowerPointViewer :content="content" can-edit style="height: 100%" />
-	</div>
-	<div v-else style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; height: 100vh; font-family: system-ui, sans-serif">
-		<h1 style="margin: 0; font-size: 24px; font-weight: 500; color: #e5e7eb">Open a Presentation</h1>
-		<label style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; border: 1px solid #4b5563; background: #1f2937; color: #f3f4f6; cursor: pointer; font-size: 14px">
-			Choose .pptx file
-			<input type="file" accept=".pptx" style="display: none" @change="onPick" />
-		</label>
-		<span style="color: #6b7280; font-size: 13px">or</span>
-		<button style="padding: 10px 20px; border-radius: 8px; border: none; background: #2563eb; color: #fff; cursor: pointer; font-size: 14px; font-weight: 500" @click="newPresentation">New Presentation</button>
-	</div>
-</template>
-`;
-
-const VUE_MAIN_TS = `import { createApp } from 'vue';
-import { createI18n } from 'vue-i18n';
-import { translationsEn, keyToLabel } from 'pptx-vue-viewer/i18n';
-import App from './App.vue';
-
-const i18n = createI18n({
-	legacy: false,
-	locale: 'en',
-	fallbackLocale: 'en',
-	messages: { en: translationsEn },
-	missing: (_locale, key) => keyToLabel(key),
-	missingWarn: false,
-	fallbackWarn: false,
-});
-
-createApp(App).use(i18n).mount('#app');
-`;
-
-const ANGULAR_APP_TS = `import { Component, signal } from '@angular/core';
-import { PptxHandler } from 'pptx-viewer-core';
-import { PowerPointViewerComponent } from 'pptx-angular-viewer';
-
-@Component({
-	selector: 'app-root',
-	standalone: true,
-	imports: [PowerPointViewerComponent],
-	template: \`
-		@if (content(); as c) {
-			<div style="height: 100vh">
-				<pptx-power-point-viewer [content]="c" [canEdit]="true" style="height: 100%" />
-			</div>
-		} @else {
-			<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; height: 100vh; font-family: system-ui, sans-serif">
-				<h1 style="margin: 0; font-size: 24px; font-weight: 500; color: #e5e7eb">Open a Presentation</h1>
-				<label style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; border: 1px solid #4b5563; background: #1f2937; color: #f3f4f6; cursor: pointer; font-size: 14px">
-					Choose .pptx file
-					<input type="file" accept=".pptx" style="display: none" (change)="onPick($event)" />
-				</label>
-				<span style="color: #6b7280; font-size: 13px">or</span>
-				<button style="padding: 10px 20px; border-radius: 8px; border: none; background: #2563eb; color: #fff; cursor: pointer; font-size: 14px; font-weight: 500" (click)="newPresentation()">New Presentation</button>
-			</div>
-		}
-	\`,
-})
-export class App {
-	content = signal<ArrayBuffer | Uint8Array | null>(null);
-
-	async onPick(e: Event) {
-		const file = (e.target as HTMLInputElement).files?.[0];
-		if (file) {
-			this.content.set(await file.arrayBuffer());
-		}
-	}
-
-	async newPresentation() {
-		const { handler, data } = await PptxHandler.createBlank({
-			title: 'Untitled Presentation',
-			initialSlideCount: 1,
-		});
-		this.content.set(await handler.save(data.slides));
-	}
-}
-`;
-
-const ANGULAR_MAIN_TS = `import 'zone.js';
-import '@angular/compiler';
-import { bootstrapApplication } from '@angular/platform-browser';
-import { Injectable } from '@angular/core';
-import type { MissingTranslationHandlerParams } from '@ngx-translate/core';
-import { MissingTranslationHandler, provideTranslateService } from '@ngx-translate/core';
-import { keyToLabel } from 'pptx-angular-viewer';
-
-import { App } from './app/app.ts';
-
-@Injectable()
-class LabelFallbackHandler implements MissingTranslationHandler {
-	handle(params: MissingTranslationHandlerParams): string {
-		return keyToLabel(params.key);
-	}
-}
-
-bootstrapApplication(App, {
-	providers: [
-		provideTranslateService({
-			lang: 'en',
-			fallbackLang: 'en',
-			missingTranslationHandler: {
-				provide: MissingTranslationHandler,
-				useClass: LabelFallbackHandler,
-			},
-		}),
-	],
-}).catch((err) => console.error(err));
-`;
 
 export const TARGETS: Target[] = [
 	{
@@ -324,7 +101,7 @@ Docs: https://www.npmjs.com/package/pptx-react-viewer`,
 			entryContent: REACT_APP_TSX,
 			extraFiles: {
 				'src/i18n.ts': REACT_I18N_TS,
-				'src/index.css': REACT_INDEX_CSS,
+				'src/index.css': MINIMAL_APP_CSS,
 			},
 		},
 	},
@@ -395,6 +172,63 @@ Docs: https://www.npmjs.com/package/pptx-angular-viewer`,
 			entryCandidates: ['src/app/app.ts', 'src/app/app.component.ts'],
 			entryContent: ANGULAR_APP_TS,
 			extraFiles: { 'src/main.ts': ANGULAR_MAIN_TS },
+		},
+	},
+	{
+		id: 'svelte',
+		label: 'Svelte',
+		description: 'pptx-svelte-viewer - viewer/editor component for a Svelte 5 app',
+		mode: 'install',
+		group: 'framework',
+		packages: ['pptx-svelte-viewer', 'svelte', 'jszip', 'fast-xml-parser'],
+		// The Svelte binding compiles its styles into the components, so there
+		// is no `/styles.css` subpath to import.
+		nextSteps: `<script lang="ts">
+	import { PowerPointViewer } from 'pptx-svelte-viewer';
+</script>
+
+<PowerPointViewer source={bytes} editable />
+
+Docs: https://www.npmjs.com/package/pptx-svelte-viewer`,
+		compat: { peerPackage: 'svelte', requiredMajor: 5 },
+		scaffold: {
+			command: 'create-vite@latest',
+			args: (dir) => [dir, '--template', 'svelte-ts', '--no-interactive', '--no-immediate'],
+			extraPackages: ['pptx-svelte-viewer', 'pptx-viewer-core', 'jszip', 'fast-xml-parser'],
+			entryCandidates: ['src/App.svelte'],
+			entryContent: SVELTE_APP_SVELTE,
+			// The starter's main.ts imports ./app.css; replace the Vite demo
+			// styles (centred #app with padding) with a full-viewport reset.
+			extraFiles: { 'src/app.css': MINIMAL_APP_CSS },
+		},
+	},
+	{
+		id: 'vanilla',
+		label: 'Vanilla JS',
+		description:
+			'pptx-vanilla-viewer - zero-framework viewer/editor, plain DOM, no framework at all',
+		mode: 'install',
+		group: 'framework',
+		// The vanilla binding injects its own stylesheet at runtime; jszip and
+		// fast-xml-parser are its only peers.
+		packages: ['pptx-vanilla-viewer', 'jszip', 'fast-xml-parser'],
+		nextSteps: `import { createPptxViewer } from 'pptx-vanilla-viewer';
+
+const viewer = createPptxViewer(document.getElementById('host')!, {
+  source: '/deck.pptx', // URL, ArrayBuffer, Uint8Array, Blob, or File
+  editable: true,
+});
+
+Docs: https://www.npmjs.com/package/pptx-vanilla-viewer`,
+		scaffold: {
+			command: 'create-vite@latest',
+			args: (dir) => [dir, '--template', 'vanilla-ts', '--no-interactive', '--no-immediate'],
+			extraPackages: ['pptx-vanilla-viewer', 'pptx-viewer-core', 'jszip', 'fast-xml-parser'],
+			entryCandidates: ['src/main.ts'],
+			entryContent: VANILLA_MAIN_TS,
+			// main.ts imports ./style.css; replace the Vite demo styles with a
+			// full-viewport reset.
+			extraFiles: { 'src/style.css': MINIMAL_APP_CSS },
 		},
 	},
 	{

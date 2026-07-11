@@ -20,7 +20,12 @@ describe('findTargetsByIds', () => {
 	});
 
 	it('throws naming the unknown id', () => {
-		expect(() => findTargetsByIds(['react', 'svelte'])).toThrow('Unknown target "svelte"');
+		expect(() => findTargetsByIds(['react', 'solid'])).toThrow('Unknown target "solid"');
+	});
+
+	it('resolves the svelte and vanilla binding ids', () => {
+		const targets = findTargetsByIds(['svelte', 'vanilla']);
+		expect(targets.map((t) => t.id)).toStrictEqual(['svelte', 'vanilla']);
 	});
 });
 
@@ -33,6 +38,11 @@ describe('assertSingleFramework', () => {
 	it('throws when more than one UI framework is picked together', () => {
 		const targets = findTargetsByIds(['react', 'vue', 'angular']);
 		expect(() => assertSingleFramework(targets)).toThrow(/React, Vue, Angular/u);
+	});
+
+	it('treats svelte and vanilla as UI frameworks for exclusivity', () => {
+		const targets = findTargetsByIds(['svelte', 'vanilla']);
+		expect(() => assertSingleFramework(targets)).toThrow(/Svelte, Vanilla JS/u);
 	});
 
 	it('allows targets with no group at all', () => {

@@ -27,9 +27,10 @@ export function findTargetsByIds(ids: string[]): Target[] {
 }
 
 /**
- * React, Vue, and Angular bindings are separate, framework-specific packages,
- * not meant to be installed into the same project together. Throws naming the
- * conflicting targets if more than one `group`-sharing target was picked.
+ * The UI bindings (React, Vue, Angular, Svelte, Vanilla JS) are separate,
+ * framework-specific packages, not meant to be installed into the same
+ * project together. Throws naming the conflicting targets if more than one
+ * `group`-sharing target was picked.
  */
 export function assertSingleFramework(targets: Target[]): void {
 	const grouped = new Map<string, Target[]>();

@@ -28,12 +28,19 @@ describe('targets', () => {
 	});
 
 	it('every UI framework target has a compat check and a scaffold recipe', () => {
-		for (const id of ['react', 'vue', 'angular']) {
+		for (const id of ['react', 'vue', 'angular', 'svelte']) {
 			const target = TARGETS.find((t) => t.id === id);
 			expect(target?.compat).toBeDefined();
 			expect(target?.scaffold).toBeDefined();
 			expect(target?.scaffold?.entryCandidates.length).toBeGreaterThan(0);
 		}
+	});
+
+	it('the vanilla target scaffolds but has no framework compat check', () => {
+		const vanilla = TARGETS.find((t) => t.id === 'vanilla');
+		expect(vanilla?.compat).toBeUndefined();
+		expect(vanilla?.scaffold).toBeDefined();
+		expect(vanilla?.scaffold?.entryCandidates.length).toBeGreaterThan(0);
 	});
 
 	it('core and mcp have no compat check or scaffold recipe', () => {
@@ -44,8 +51,10 @@ describe('targets', () => {
 		}
 	});
 
-	it('react, vue, and angular share the same exclusive group', () => {
-		const groups = ['react', 'vue', 'angular'].map((id) => TARGETS.find((t) => t.id === id)?.group);
+	it('all five UI bindings share the same exclusive group', () => {
+		const groups = ['react', 'vue', 'angular', 'svelte', 'vanilla'].map(
+			(id) => TARGETS.find((t) => t.id === id)?.group,
+		);
 		expect(groups.every((g) => g !== undefined)).toBeTruthy();
 		expect(new Set(groups).size).toBe(1);
 	});
@@ -56,8 +65,8 @@ describe('targets', () => {
 		}
 	});
 
-	it('the react and vue vite scaffolds opt out of create-vite prompting and auto-starting a dev server', () => {
-		for (const id of ['react', 'vue']) {
+	it('the vite scaffolds opt out of create-vite prompting and auto-starting a dev server', () => {
+		for (const id of ['react', 'vue', 'svelte', 'vanilla']) {
 			const target = TARGETS.find((t) => t.id === id);
 			const args = target?.scaffold?.args('my-app') ?? [];
 			expect(args).toContain('--no-interactive');
@@ -66,7 +75,7 @@ describe('targets', () => {
 	});
 
 	it('every scaffold recipe passes the project directory as its first arg', () => {
-		for (const id of ['react', 'vue', 'angular']) {
+		for (const id of ['react', 'vue', 'angular', 'svelte', 'vanilla']) {
 			const target = TARGETS.find((t) => t.id === id);
 			const args = target?.scaffold?.args('my-app') ?? [];
 			const dirArgIndex = id === 'angular' ? 1 : 0;
