@@ -42,7 +42,7 @@ Works with **React 19**, **Vue 3**, **Angular**, **Svelte 5**, and **vanilla Jav
 npx @christophervr/pptx-viewer@latest
 ```
 
-Asks what you're building (React, Vue, Angular, the headless core engine, and/or the MCP server - pick more than one if you like), then either installs the right package(s) plus their required companions into the current project, or scaffolds a brand-new starter app for you using the framework's own official tooling (`create-vite` / `@angular/cli`). It also detects your package manager (`bun`, `pnpm`, `yarn`, `npm`) and checks framework-version compatibility before touching anything.
+Asks what you're building (React, Vue, Angular, Svelte, vanilla JS, the headless core engine, and/or the MCP server - pick more than one if you like), then either installs the right package(s) plus their required companions into the current project, or scaffolds a brand-new starter app for you using the framework's own official tooling (`create-vite` / `@angular/cli`). It also detects your package manager (`bun`, `pnpm`, `yarn`, `npm`) and checks framework-version compatibility before touching anything.
 
 Non-interactive form for scripts/CI:
 
@@ -158,7 +158,7 @@ pptx-vanilla-viewer ┘  (each UI binding) ────┘
 npx @christophervr/pptx-viewer@latest
 ```
 
-This is the fastest way in: pick React, Vue, Angular, the core engine, and/or the MCP server, and it installs into your current project or scaffolds a new one. See [Which package do I install?](#which-package-do-i-install) above for details, or install a package directly with `npm i pptx-react-viewer` / `pptx-vue-viewer` / `pptx-angular-viewer` / `pptx-svelte-viewer` / `pptx-vanilla-viewer` / `pptx-viewer-core` / `pptx-viewer-mcp`.
+This is the fastest way in: pick React, Vue, Angular, Svelte, vanilla JS, the core engine, and/or the MCP server, and it installs into your current project or scaffolds a new one. See [Which package do I install?](#which-package-do-i-install) above for details, or install a package directly with `npm i pptx-react-viewer` / `pptx-vue-viewer` / `pptx-angular-viewer` / `pptx-svelte-viewer` / `pptx-vanilla-viewer` / `pptx-viewer-core` / `pptx-viewer-mcp`.
 
 ### Contributing to this repo
 

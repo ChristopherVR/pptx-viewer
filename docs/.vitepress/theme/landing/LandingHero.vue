@@ -25,7 +25,7 @@ const copy = useLandingCopy();
 						<span>{{ copy.hero.demo }}</span>
 					</a>
 				</div>
-				<code class="pv-hero__install pv-enter pv-enter--4">npm install pptx-react-viewer</code>
+				<code class="pv-hero__install pv-enter pv-enter--4">npx @christophervr/pptx-viewer</code>
 			</div>
 			<div class="pv-hero__stage pv-enter pv-enter--3">
 				<a class="pv-hero__frame" :href="DEMO_URL" target="_blank" rel="noreferrer">
