@@ -1,16 +1,16 @@
 /**
- * text-format-presets.ts: Home-tab text formatting preset catalogues + the
- * change-case transform, shared by every binding's toolbar.
+ * text-format-presets.ts: Home-tab text formatting preset catalogues shared
+ * by every binding's toolbar.
  *
- * Pure data/logic: the font family and font size dropdown lists, the
- * character-spacing and line-spacing preset lists, the change-case option
- * list, and two change-case helpers ({@link changeCaseStyleUpdate} for the
- * `textCaps` style patch, {@link transformTextCase} for transforming run text
- * directly). Each binding renders its own dropdowns from these.
+ * Pure data: the font family and font size dropdown lists, the
+ * character-spacing and line-spacing preset lists, and the change-case
+ * option list (the actual case-rewrite logic lives in
+ * {@link "./text-case-transform"}; this module only supplies the dropdown's
+ * i18n-keyed option list). Each binding renders its own dropdowns from these.
  *
  * @module render/text-format-presets
  */
-import type { TextStyle } from 'pptx-viewer-core';
+import type { ChangeCaseMode } from './text-case-transform';
 
 /** Font families offered by the Home-tab font dropdown. */
 export const COMMON_FONT_FAMILIES: readonly string[] = [
@@ -69,9 +69,6 @@ export const LINE_SPACING_OPTIONS: readonly LineSpacingOption[] = [
 	{ label: '3.0', value: 3.0 },
 ];
 
-/** The five change-case transforms offered by the "Aa" toolbar dropdown. */
-export type ChangeCaseMode = 'sentence' | 'lower' | 'upper' | 'capitalize' | 'toggle';
-
 /** One change-case dropdown option. */
 export interface ChangeCaseOption {
 	value: ChangeCaseMode;
@@ -87,66 +84,3 @@ export const CHANGE_CASE_OPTIONS: readonly ChangeCaseOption[] = [
 	{ value: 'capitalize', i18nKey: 'pptx.text.changeCaseCapitalize' },
 	{ value: 'toggle', i18nKey: 'pptx.text.changeCaseToggle' },
 ];
-
-/**
- * The `TextStyle` patch a change-case pick applies: `upper` maps to OOXML
- * all-caps rendering (`textCaps: 'all'`), every other mode clears the caps
- * override. Bindings that additionally rewrite run text pair this with
- * {@link transformTextCase}.
- */
-export function changeCaseStyleUpdate(mode: ChangeCaseMode): Partial<TextStyle> {
-	if (mode === 'upper') {
-		return { textCaps: 'all' };
-	}
-	return { textCaps: 'none' };
-}
-
-/** Toggle the case of a single character (non-letters pass through). */
-function toggleChar(char: string): string {
-	const upper = char.toUpperCase();
-	return char === upper ? char.toLowerCase() : upper;
-}
-
-/**
- * Apply a change-case transform to a plain text string (for bindings that
- * rewrite run text directly rather than only toggling `textCaps`):
- *
- * - `upper` / `lower`: whole-string case change.
- * - `capitalize`: first letter of each word uppercased, rest lowercased.
- * - `sentence`: first letter of each sentence uppercased, rest lowercased.
- * - `toggle`: per-character case swap.
- */
-export function transformTextCase(text: string, mode: ChangeCaseMode): string {
-	switch (mode) {
-		case 'upper':
-			return text.toUpperCase();
-		case 'lower':
-			return text.toLowerCase();
-		case 'capitalize':
-			return text
-				.toLowerCase()
-				.replace(/\p{L}+/gu, (word) => word.charAt(0).toUpperCase() + word.slice(1));
-		case 'sentence': {
-			let capitalizeNext = true;
-			let result = '';
-			for (const char of text.toLowerCase()) {
-				if (capitalizeNext && /\p{L}/u.test(char)) {
-					result += char.toUpperCase();
-					capitalizeNext = false;
-				} else {
-					result += char;
-					if (char === '.' || char === '!' || char === '?') {
-						capitalizeNext = true;
-					}
-				}
-			}
-			return result;
-		}
-		case 'toggle':
-			return Array.from(text, toggleChar).join('');
-		default: {
-			const _exhaustive: never = mode;
-			return _exhaustive;
-		}
-	}
-}

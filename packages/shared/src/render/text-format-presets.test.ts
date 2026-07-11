@@ -2,12 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	CHANGE_CASE_OPTIONS,
-	changeCaseStyleUpdate,
 	CHARACTER_SPACING_OPTIONS,
 	COMMON_FONT_FAMILIES,
 	COMMON_FONT_SIZES,
 	LINE_SPACING_OPTIONS,
-	transformTextCase,
 } from './text-format-presets';
 
 describe('font preset lists', () => {
@@ -35,18 +33,7 @@ describe('spacing preset lists', () => {
 	});
 });
 
-describe('changeCaseStyleUpdate', () => {
-	it('maps upper to textCaps all', () => {
-		expect(changeCaseStyleUpdate('upper')).toStrictEqual({ textCaps: 'all' });
-	});
-
-	it('clears the caps override for every other mode', () => {
-		expect(changeCaseStyleUpdate('lower')).toStrictEqual({ textCaps: 'none' });
-		expect(changeCaseStyleUpdate('sentence')).toStrictEqual({ textCaps: 'none' });
-		expect(changeCaseStyleUpdate('capitalize')).toStrictEqual({ textCaps: 'none' });
-		expect(changeCaseStyleUpdate('toggle')).toStrictEqual({ textCaps: 'none' });
-	});
-
+describe('change case options', () => {
 	it('lists all five modes in menu order', () => {
 		expect(CHANGE_CASE_OPTIONS.map((o) => o.value)).toStrictEqual([
 			'sentence',
@@ -56,30 +43,10 @@ describe('changeCaseStyleUpdate', () => {
 			'toggle',
 		]);
 	});
-});
 
-describe('transformTextCase', () => {
-	it('uppercases and lowercases the whole string', () => {
-		expect(transformTextCase('Hello World', 'upper')).toBe('HELLO WORLD');
-		expect(transformTextCase('Hello World', 'lower')).toBe('hello world');
-	});
-
-	it('capitalizes each word', () => {
-		expect(transformTextCase('hello WORLD again', 'capitalize')).toBe('Hello World Again');
-	});
-
-	it('applies sentence case across sentence boundaries', () => {
-		expect(transformTextCase('hello world. GOODBYE moon! ok? yes', 'sentence')).toBe(
-			'Hello world. Goodbye moon! Ok? Yes',
-		);
-	});
-
-	it('toggles case per character, passing non-letters through', () => {
-		expect(transformTextCase('Hello, World 42!', 'toggle')).toBe('hELLO, wORLD 42!');
-	});
-
-	it('handles empty strings', () => {
-		expect(transformTextCase('', 'sentence')).toBe('');
-		expect(transformTextCase('', 'toggle')).toBe('');
+	it('gives every option a shared-i18n key', () => {
+		for (const option of CHANGE_CASE_OPTIONS) {
+			expect(option.i18nKey).toMatch(/^pptx\.text\.changeCase/);
+		}
 	});
 });
