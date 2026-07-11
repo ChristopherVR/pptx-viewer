@@ -35,3 +35,4 @@ export * from './theme-presets';
 export * from './masters';
 export * from './presentation';
 export * from './view-properties';
+export * from './collaboration-field-schema';
