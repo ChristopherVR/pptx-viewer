@@ -127,3 +127,6 @@ e2e/__screenshots__/
 
 # Raw screen recordings captured by e2e/capture-*.spec.ts (converted to GIF manually)
 docs/public/_video-tmp/
+
+# Y.Doc snapshots persisted by demos/collab-server.example.mjs (local dev relay)
+/collab-data/
