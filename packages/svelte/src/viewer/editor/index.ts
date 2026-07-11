@@ -56,6 +56,7 @@ export {
 	newTextElement,
 } from './editor-insert';
 export { buildChartInsertElement } from './editor-insert-chart';
+export { buildEquationInsertElement } from './editor-insert-equation';
 export type { TextFlag } from './editor-format-mutations';
 export {
 	adjustFontSizePatch,
