@@ -2,12 +2,19 @@
  * The ribbon's tab registry. Mirrors React's `TOOLBAR_SECTIONS`
  * (`packages/react/src/viewer/constants/toolbar.ts`) tab order and i18n keys,
  * but only lists the tabs this binding currently renders content for
- * (File / Home / Insert / View). Add a tab by appending one entry here plus
- * one `<Tab>.svelte` component wired into `Ribbon.svelte`'s pane switch;
- * later waves add Draw/Design/Transitions/Animations/Slide Show/Record/
- * Review/Help the same way.
+ * (File / Home / Insert / Design / Transitions / Animations / View). Add a
+ * tab by appending one entry here plus one `<Tab>.svelte` component wired
+ * into `Ribbon.svelte`'s pane switch; later waves add Draw/Slide Show/
+ * Record/Review/Help the same way.
  */
-export type RibbonTabId = 'file' | 'home' | 'insert' | 'view';
+export type RibbonTabId =
+	| 'file'
+	| 'home'
+	| 'insert'
+	| 'design'
+	| 'transitions'
+	| 'animations'
+	| 'view';
 
 export interface RibbonTabDef {
 	id: RibbonTabId;
@@ -19,6 +26,9 @@ export const RIBBON_TABS: readonly RibbonTabDef[] = [
 	{ id: 'file', labelKey: 'pptx.ribbon.tab.file' },
 	{ id: 'home', labelKey: 'pptx.ribbon.tab.home' },
 	{ id: 'insert', labelKey: 'pptx.ribbon.tab.insert' },
+	{ id: 'design', labelKey: 'pptx.ribbon.tab.design' },
+	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
+	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
 	{ id: 'view', labelKey: 'pptx.ribbon.tab.view' },
 ];
 

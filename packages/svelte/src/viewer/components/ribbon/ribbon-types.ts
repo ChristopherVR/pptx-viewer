@@ -1,4 +1,4 @@
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, ViewerTheme } from 'pptx-viewer-shared';
 
 import type { FindReplaceState } from '../../editor/editor-find-replace.svelte';
 import type { EditorState } from '../../editor/editor-state.svelte';
@@ -51,4 +51,11 @@ export interface RibbonProps {
 
 	/** File tab: export menu (PNG / PDF / GIF / video / print). */
 	exportUi?: ExportUiState;
+
+	/**
+	 * Design tab: the current effective viewer-chrome theme (for highlighting
+	 * the active swatch) and the setter its gallery calls to switch presets.
+	 */
+	theme: ViewerTheme | undefined;
+	onsettheme: (theme: ViewerTheme | undefined) => void;
 }

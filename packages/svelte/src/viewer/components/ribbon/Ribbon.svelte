@@ -9,6 +9,8 @@
 	 * "core viewing features a read-only viewer still needs" rationale.
 	 */
 	import { useTranslator } from '../../../i18n/context';
+	import AnimationsTab from './animations/AnimationsTab.svelte';
+	import DesignTab from './design/DesignTab.svelte';
 	import FileTab from './file/FileTab.svelte';
 	import FindReplacePanel from './FindReplacePanel.svelte';
 	import HomeTab from './home/HomeTab.svelte';
@@ -18,6 +20,7 @@
 	import RibbonTabBar from './RibbonTabBar.svelte';
 	import { DEFAULT_RIBBON_TAB } from './ribbon-tabs';
 	import type { RibbonProps } from './ribbon-types';
+	import TransitionsTab from './transitions/TransitionsTab.svelte';
 	import ViewTab from './view/ViewTab.svelte';
 
 	const props: RibbonProps = $props();
@@ -52,6 +55,12 @@
 			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />
 		{:else if activeTab === 'insert'}
 			<InsertTab editor={props.editor} canvasSize={props.canvasSize} />
+		{:else if activeTab === 'design'}
+			<DesignTab editor={props.editor} theme={props.theme} onsettheme={props.onsettheme} />
+		{:else if activeTab === 'transitions'}
+			<TransitionsTab editor={props.editor} />
+		{:else if activeTab === 'animations'}
+			<AnimationsTab editor={props.editor} />
 		{:else if activeTab === 'view'}
 			<ViewTab
 				zoomPercent={props.zoomPercent}

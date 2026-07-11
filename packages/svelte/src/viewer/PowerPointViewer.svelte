@@ -180,8 +180,14 @@
 	// presentation yet) keeps the compact viewer chrome unchanged.
 	const showRibbon = $derived(editable && !collab.readOnly && loader.slides.length > 0);
 
+	// The Design tab's theme-preset gallery overrides the host `theme` prop
+	// locally (React/vanilla's `setTheme` public API pattern); clearing it
+	// (`undefined`) falls back to whatever the host passed in.
+	let themeOverride = $state<PowerPointViewerProps['theme']>(undefined);
+	const effectiveTheme = $derived(themeOverride ?? theme);
+
 	const rootStyle = $derived(
-		styleToString(mergeStyles(defaultCssVars(), themeToCssVars(theme))),
+		styleToString(mergeStyles(defaultCssVars(), themeToCssVars(effectiveTheme))),
 	);
 
 	// ── Presentation mode (animations + slide transitions) ───────────────
@@ -238,6 +244,11 @@
 
 	function onNotesToggle(): void {
 		notesExpanded = !notesExpanded;
+	}
+
+	// ── Design tab theme switching ──────────────────────────────────────
+	function onSetTheme(next: PowerPointViewerProps['theme']): void {
+		themeOverride = next;
 	}
 
 	// Route notes edits through the history-tracked editor when editable (so
@@ -314,6 +325,8 @@
 				{notesExpanded}
 				onnotestoggle={onNotesToggle}
 				{exportUi}
+				theme={effectiveTheme}
+				onsettheme={onSetTheme}
 			/>
 		{:else}
 			<ViewerToolbar

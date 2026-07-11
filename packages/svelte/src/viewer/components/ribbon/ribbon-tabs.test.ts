@@ -3,8 +3,16 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_RIBBON_TAB, isRibbonTab, RIBBON_TABS } from './ribbon-tabs';
 
 describe('ribbon-tabs', () => {
-	it('lists File / Home / Insert / View in that order', () => {
-		expect(RIBBON_TABS.map((tab) => tab.id)).toStrictEqual(['file', 'home', 'insert', 'view']);
+	it('lists File / Home / Insert / Design / Transitions / Animations / View in that order', () => {
+		expect(RIBBON_TABS.map((tab) => tab.id)).toStrictEqual([
+			'file',
+			'home',
+			'insert',
+			'design',
+			'transitions',
+			'animations',
+			'view',
+		]);
 	});
 
 	it('every tab has a pptx.ribbon.tab.* label key', () => {
@@ -19,6 +27,9 @@ describe('ribbon-tabs', () => {
 
 	it('isRibbonTab recognizes registered ids only', () => {
 		expect(isRibbonTab('home')).toBeTruthy();
-		expect(isRibbonTab('design')).toBeFalsy();
+		expect(isRibbonTab('design')).toBeTruthy();
+		expect(isRibbonTab('transitions')).toBeTruthy();
+		expect(isRibbonTab('animations')).toBeTruthy();
+		expect(isRibbonTab('review')).toBeFalsy();
 	});
 });
