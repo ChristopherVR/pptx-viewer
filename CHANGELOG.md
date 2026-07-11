@@ -6,6 +6,40 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-11
 
+_Releases: pptx-viewer-core@1.3.0, pptx-react-viewer@1.16.0, pptx-vue-viewer@1.16.0, pptx-angular-viewer@1.16.0, pptx-vanilla-viewer@0.5.0, pptx-svelte-viewer@0.5.0, pptx-viewer-mcp@1.2.1_
+
+### Features
+
+- **core:** Add canonical collaboration field-schema (by @ChristopherVR) ([cc78c1e](https://github.com/ChristopherVR/pptx-viewer/commit/cc78c1ed352fac3f69180ec2846d1df3e1dbd377))
+- **vanilla:** Full collaboration presence + UI (Share/Broadcast/cursors) (by @ChristopherVR) ([5cc6c89](https://github.com/ChristopherVR/pptx-viewer/commit/5cc6c898c53aa6b4d8e111c9ad25e6b963e3a797))
+- **svelte:** Full collaboration presence + UI (Share/Broadcast/cursors) (by @ChristopherVR) ([b5dda6e](https://github.com/ChristopherVR/pptx-viewer/commit/b5dda6ef8319ec9059e2730bc578f9f347c89cf4))
+- **svelte:** Add ink-stroke editing state (EditorInkController) (by @ChristopherVR) ([9f8d2ec](https://github.com/ChristopherVR/pptx-viewer/commit/9f8d2ec0d1d705ff4ccf23d2eb30e9668b79b134))
+- **svelte:** Wire pen/highlighter/eraser pointer gestures on the stage (by @ChristopherVR) ([25540a6](https://github.com/ChristopherVR/pptx-viewer/commit/25540a6d4c5b1da751c3f379c4f747cc5178cad9))
+- **svelte:** Add the Draw ribbon tab (by @ChristopherVR) ([90bb39b](https://github.com/ChristopherVR/pptx-viewer/commit/90bb39b44c134062ffa46d0fd69a3cb6b075a6e2))
+- **vanilla:** Add Draw ribbon tab shell with tool/colour/width controls (by @ChristopherVR) ([353191b](https://github.com/ChristopherVR/pptx-viewer/commit/353191b1f206bc06808e5d93b48f87ac032d9c2a))
+- **vanilla:** Add history-integrated ink stroke commit/erase actions (by @ChristopherVR) ([29aaab5](https://github.com/ChristopherVR/pptx-viewer/commit/29aaab53d323ccfb9bb35c640ebfb7c5bb9793f9))
+- **vanilla:** Wire pen/highlighter/eraser pointer gestures on the stage (by @ChristopherVR) ([360596a](https://github.com/ChristopherVR/pptx-viewer/commit/360596a34bc262db1893e424a20d2e5a34186c69))
+- **shared:** Add the office colour swatch catalogue (by @ChristopherVR) ([41135a0](https://github.com/ChristopherVR/pptx-viewer/commit/41135a0f8687550cb17ded1451fa8f361fc975b1))
+
+### Bug Fixes
+
+- **shared:** Close CRDT allowlist data-loss gaps, add binary asset map (by @ChristopherVR) ([60ad222](https://github.com/ChristopherVR/pptx-viewer/commit/60ad2226bc4f3450c2992362e9fcceaac77f2ccf))
+- **tools:** Derive codec field lists from the canonical core schema (by @ChristopherVR) ([d594bd1](https://github.com/ChristopherVR/pptx-viewer/commit/d594bd14f46a61257e7d73cb707c7b540225e3ff))
+- **react:** Adopt the shared sync gate, re-arm on reconnect (by @ChristopherVR) ([9c6e15c](https://github.com/ChristopherVR/pptx-viewer/commit/9c6e15cbbd48188c913438760576f8fd1a5ec377))
+- **angular:** Fix dev-mode collaboration import failure, re-arm gate (by @ChristopherVR) ([6ede10f](https://github.com/ChristopherVR/pptx-viewer/commit/6ede10f936ed97f9bbe123ce45de15a9793bab32))
+- **svelte:** Keep zoom/fullscreen/notes controls always visible in the ribbon (by @ChristopherVR) ([00fd396](https://github.com/ChristopherVR/pptx-viewer/commit/00fd396057c9c992b6b54272d2a2b4072faa5c93))
+
+### Refactor
+
+- **vue:** Re-arm sync gate on reconnect, dedupe onto shared modules (by @ChristopherVR) ([b11ace7](https://github.com/ChristopherVR/pptx-viewer/commit/b11ace7a876f5be46f7171f0bc8d669c0b5f4565))
+
+### Chores
+
+- **demos:** Wire the new Share/Broadcast dialog UI into vanilla+svelte (by @ChristopherVR) ([03973cc](https://github.com/ChristopherVR/pptx-viewer/commit/03973cc49b681cbd434d40041ba2edc13d4475b7))
+- Ignore collab-server.example.mjs's local Y.Doc snapshot dir (by @ChristopherVR) ([0e27b58](https://github.com/ChristopherVR/pptx-viewer/commit/0e27b5800e5ce9bdf90440c51f941cce7214a594))
+
+## 2026-07-11
+
 _Releases: pptx-react-viewer@1.15.0, pptx-vue-viewer@1.15.0, pptx-angular-viewer@1.15.0, pptx-vanilla-viewer@0.4.0, pptx-svelte-viewer@0.4.0_
 
 ### Features
