@@ -21,6 +21,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import type {
 	CollaborationConfig,
 	CollaborationRole,
+	CollaborationTransport,
 	ConnectionStatus,
 	YjsFactories,
 	YTransactionLike,
@@ -36,6 +37,7 @@ import {
 	presenceToCursors,
 	readSlidesFromYDoc,
 	reconcileSlidesInYDoc,
+	resolveTransportForServerUrl,
 	validateRoomId,
 } from '../internal/shared';
 import { DEFAULT_CURSOR_COLOR } from './collaboration-helpers';
@@ -151,9 +153,15 @@ export class CollaborationService {
 			return;
 		}
 
+		// Falls back from a blank serverUrl the same way Vue's session layer
+		// already does, so a bare CollaborationConfig behaves identically
+		// regardless of which binding's session layer receives it directly (not
+		// just via the Share/Broadcast dialogs, which already pre-resolve it).
+		const transport = config.transport ?? resolveTransportForServerUrl(config.serverUrl);
+
 		// Fail fast on mixed content (websocket only): an https page cannot open a
 		// ws:// socket, so surface the error rather than hanging until the timeout.
-		if (config.transport !== 'webrtc' && isMixedContentBlocked(config.serverUrl)) {
+		if (transport !== 'webrtc' && isMixedContentBlocked(config.serverUrl)) {
 			this.status.set('error');
 			return;
 		}
@@ -169,7 +177,7 @@ export class CollaborationService {
 		this.status.set('connecting');
 		try {
 			const bundle =
-				config.transport === 'webrtc'
+				transport === 'webrtc'
 					? await createWebrtcBundle(config)
 					: await createWebsocketBundle(config);
 			this.ydoc = bundle.doc;
@@ -188,7 +196,7 @@ export class CollaborationService {
 			this.awareness.on('change', this.refreshPresence);
 			this.awareness.on('update', this.refreshPresence);
 
-			this.wireStatus(config);
+			this.wireStatus(transport);
 			this.syncGate.reset();
 			this.wireSynced();
 
@@ -212,18 +220,23 @@ export class CollaborationService {
 	}
 
 	/** Wire the provider status events + (websocket-only) connection timeout. */
-	private wireStatus(config: CollaborationConfig): void {
+	private wireStatus(transport: CollaborationTransport): void {
 		const provider = this.provider;
 		if (!provider) {
 			return;
 		}
-		if (config.transport === 'webrtc') {
+		if (transport === 'webrtc') {
 			// P2P: no server round-trip to wait on. Treat "created" as connected,
 			// and reflect explicit disconnect events.
 			this.status.set('connected');
 			provider.on('status', (payload) => {
 				if (payload.connected === false && this.active()) {
 					this.status.set('disconnected');
+					// Re-arm on (re)connect: without this, a peer that drops and
+					// rejoins keeps the gate permanently open from the first
+					// connection and can clobber the room with a stale local doc.
+					this.syncGate.reset();
+					this.syncGate.arm();
 				} else if (payload.connected === true) {
 					this.status.set('connected');
 				}
@@ -236,6 +249,8 @@ export class CollaborationService {
 				this.status.set('connected');
 			} else if (payload.status === 'disconnected' && this.active()) {
 				this.status.set('disconnected');
+				this.syncGate.reset();
+				this.syncGate.arm();
 			}
 		});
 		if (provider.wsconnected) {

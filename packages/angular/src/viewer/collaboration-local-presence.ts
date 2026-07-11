@@ -45,8 +45,6 @@ export class LocalPresencePublisher {
 	setCursor(x: number, y: number, activeSlideIndex = this.activeSlide): void {
 		this.cursor = { x, y };
 		this.activeSlide = activeSlideIndex;
-		// A bare `cursor` field mirrors the flat awareness shape some peers read.
-		this.awareness.setLocalStateField('cursor', { x, y });
 		this.publish();
 	}
 

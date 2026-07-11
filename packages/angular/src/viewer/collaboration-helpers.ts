@@ -7,20 +7,14 @@
  * surface so `collaboration.service.ts`, `collaboration-cursors.component.ts`,
  * the viewer barrel, and the colocated tests are unchanged.
  *
- * Two pieces stay Angular-local because they diverge from the shared copy:
- *  - `RemotePresence` is the Angular name for shared's `SanitizedPresence`
- *    (re-aliased here).
- *  - `formatCursorLabel` keeps the historical single-character ellipsis (`…`)
- *    truncation, which differs from shared's three-dot (`...`) variant that the
- *    React binding expects. Kept local so the rendered label and the colocated
- *    test are unchanged.
- *
- * `mapAwarenessCursors` (the foundational bare-`{ cursor, user }` mapping) now
- * lives in shared and is re-exported here so existing Angular imports are
- * unchanged.
+ * `RemotePresence` is the Angular name for shared's `SanitizedPresence`
+ * (re-aliased here). `formatCursorLabel` and `mapAwarenessCursors` are now
+ * re-exported as-is from shared: Angular's `formatCursorLabel` used to keep
+ * its own single-character ellipsis (`…`) truncation that differed from
+ * shared's three-dot (`...`) variant, so two peers viewing the same presence
+ * record saw differently-truncated names depending on which binding hosted
+ * the session - a real cross-binding consistency bug, not a style choice.
  */
-
-import { MAX_LABEL_CHARS } from '../internal/shared';
 
 export type {
 	RemoteCursor,
@@ -45,12 +39,5 @@ export {
 	derivePresenceList,
 	presenceToCursors,
 	mapAwarenessCursors,
+	formatCursorLabel,
 } from '../internal/shared';
-
-/**
- * Clamp/format a cursor label so long names don't overflow the chip. Uses a
- * single-character ellipsis (`…`); the total length is exactly `maxChars`.
- */
-export function formatCursorLabel(userName: string, maxChars: number = MAX_LABEL_CHARS): string {
-	return userName.length > maxChars ? `${userName.slice(0, maxChars - 1)}…` : userName;
-}

@@ -4,10 +4,11 @@
  *
  * Isolates the dynamic `yjs` / `y-websocket` / `y-webrtc` imports and provider
  * construction so the service focuses on lifecycle + reactive state. The Yjs
- * packages are dynamically imported so they are fully tree-shaken when
- * collaboration is unused; each specifier is read from a variable so bundlers
- * do not eagerly follow it (mirrors the historical `/* @vite-ignore *\/`
- * pattern).
+ * packages are dynamically imported (plain string-literal specifiers, matching
+ * React/Vue) so they are fully tree-shaken when collaboration is unused, while
+ * still resolving correctly under a consuming app's Vite dev server: an
+ * `@vite-ignore`d or variable specifier skips Vite's dev-time bare-specifier
+ * rewrite, which then fails to resolve natively in the browser.
  */
 
 import type {
@@ -78,8 +79,7 @@ interface WebrtcProviderModule {
 }
 
 async function createDoc(): Promise<{ doc: DestroyableYDoc; factories: YjsFactories; Y: YModule }> {
-	const yModule = 'yjs';
-	const Y = (await import(/* @vite-ignore */ yModule)) as unknown as YModule;
+	const Y = (await import('yjs')) as unknown as YModule;
 	const doc = new Y.Doc();
 	const factories: YjsFactories = {
 		createMap: () => new Y.Map(),
@@ -91,10 +91,9 @@ async function createDoc(): Promise<{ doc: DestroyableYDoc; factories: YjsFactor
 
 /** Create a y-websocket transport bundle for `config`. */
 export async function createWebsocketBundle(config: CollaborationConfig): Promise<ProviderBundle> {
-	const wsSpecifier = 'y-websocket';
 	const [{ doc, factories }, yws] = await Promise.all([
 		createDoc(),
-		import(/* @vite-ignore */ wsSpecifier) as Promise<WebsocketProviderModule>,
+		import('y-websocket') as Promise<WebsocketProviderModule>,
 	]);
 	const provider = new yws.WebsocketProvider(
 		config.serverUrl,
@@ -112,10 +111,9 @@ export async function createWebsocketBundle(config: CollaborationConfig): Promis
  * `authToken` is passed as the room `password`.
  */
 export async function createWebrtcBundle(config: CollaborationConfig): Promise<ProviderBundle> {
-	const rtcSpecifier = 'y-webrtc';
 	const [{ doc, factories }, yrtc] = await Promise.all([
 		createDoc(),
-		import(/* @vite-ignore */ rtcSpecifier) as Promise<WebrtcProviderModule>,
+		import('y-webrtc') as Promise<WebrtcProviderModule>,
 	]);
 	const provider = new yrtc.WebrtcProvider(config.roomId, doc, {
 		signaling: config.signaling?.length ? config.signaling : undefined,

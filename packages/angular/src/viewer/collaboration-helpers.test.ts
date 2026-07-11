@@ -190,7 +190,9 @@ describe('formatCursorLabel', () => {
 
 	it('truncates long names to maxChars total with an ellipsis', () => {
 		const out = formatCursorLabel('A really really long collaborator name');
-		expect(out.endsWith('…')).toBeTruthy();
+		// Shared's three-dot ellipsis - all bindings must render an identically
+		// truncated label for the same presence data.
+		expect(out.endsWith('...')).toBeTruthy();
 		expect([...out]).toHaveLength(20);
 	});
 });
@@ -306,6 +308,7 @@ const { hoisted } = vi.hoisted(() => ({
 		awarenessChange: null as null | (() => void),
 		statusCb: null as null | ((p: { status?: string }) => void),
 		syncCb: null as null | ((p: unknown) => void),
+		createdProviders: [] as ('websocket' | 'webrtc')[],
 	},
 }));
 
@@ -317,6 +320,9 @@ vi.mock(import('yjs'), () => {
 		}
 		get(k: string) {
 			return this._data.get(k);
+		}
+		delete(k: string) {
+			this._data.delete(k);
 		}
 		forEach(cb: (v: unknown, k: string) => void) {
 			this._data.forEach((v, k) => cb(v, k));
@@ -368,6 +374,7 @@ vi.mock(import('yjs'), () => {
 	return {
 		Doc: class {
 			private _arrays = new Map<string, YArray>();
+			private _maps = new Map<string, YMap>();
 			getArray(name: string): YArray {
 				if (!this._arrays.has(name)) {
 					const arr = new YArray();
@@ -377,6 +384,14 @@ vi.mock(import('yjs'), () => {
 					this._arrays.set(name, arr);
 				}
 				return this._arrays.get(name)!;
+			}
+			// The reconcile/read helpers route binary element fields through a
+			// top-level `pptx:assets` Y.Map (see collaboration-assets.ts).
+			getMap(name: string): YMap {
+				if (!this._maps.has(name)) {
+					this._maps.set(name, new YMap());
+				}
+				return this._maps.get(name)!;
 			}
 			transact(fn: () => void) {
 				fn();
@@ -416,6 +431,9 @@ function makeMockAwareness(): {
 vi.mock(import('y-websocket'), () => ({
 	WebsocketProvider: class {
 		awareness = makeMockAwareness();
+		constructor() {
+			hoisted.createdProviders.push('websocket');
+		}
 		on(e: string, cb: (p: never) => void) {
 			if (e === 'status') {
 				hoisted.statusCb = cb as (p: { status?: string }) => void;
@@ -431,6 +449,9 @@ vi.mock(import('y-websocket'), () => ({
 vi.mock(import('y-webrtc'), () => ({
 	WebrtcProvider: class {
 		awareness = makeMockAwareness();
+		constructor() {
+			hoisted.createdProviders.push('webrtc');
+		}
 		on() {}
 		disconnect() {}
 		destroy() {}
@@ -470,6 +491,7 @@ describe('collaborationService', () => {
 		hoisted.awarenessChange = null;
 		hoisted.statusCb = null;
 		hoisted.syncCb = null;
+		hoisted.createdProviders = [];
 	}
 
 	it('connects, reflects status, and maps remote presence to cursors', async () => {
@@ -504,6 +526,22 @@ describe('collaborationService', () => {
 		destroy();
 	});
 
+	it('falls back to webrtc when transport is unset and serverUrl is blank', async () => {
+		reset();
+		const { svc, destroy } = makeService();
+		await svc.connect({ roomId: 'room-1', serverUrl: '', userName: 'Ada' });
+		expect(hoisted.createdProviders).toStrictEqual(['webrtc']);
+		destroy();
+	});
+
+	it('uses websocket when transport is unset but serverUrl is provided', async () => {
+		reset();
+		const { svc, destroy } = makeService();
+		await svc.connect(config);
+		expect(hoisted.createdProviders).toStrictEqual(['websocket']);
+		destroy();
+	});
+
 	it('rejects an invalid room id without connecting', async () => {
 		reset();
 		const { svc, destroy } = makeService();
@@ -527,6 +565,33 @@ describe('collaborationService', () => {
 		// pending deck into the Y.Array.
 		hoisted.syncCb?.(true);
 		expect(hoisted.slidesArray?.length).toBeGreaterThan(0);
+
+		destroy();
+	});
+
+	it('re-arms the sync gate on reconnect instead of leaving it permanently open', async () => {
+		reset();
+		const { svc, destroy } = makeService();
+		await svc.connect(config);
+
+		hoisted.statusCb?.({ status: 'connected' });
+		hoisted.syncCb?.(true);
+		// Gate is open: a broadcast right after initial sync flushes immediately.
+		svc.broadcastSlides([slide('1')]);
+		const arrayLengthAfterFirstSync = hoisted.slidesArray?.length ?? 0;
+		expect(arrayLengthAfterFirstSync).toBeGreaterThan(0);
+
+		// Drop and reconnect: without a re-arm, the gate would stay open and a
+		// broadcast issued before a fresh sync confirmation could clobber the
+		// room with a stale local doc.
+		hoisted.statusCb?.({ status: 'disconnected' });
+		hoisted.statusCb?.({ status: 'connected' });
+		svc.broadcastSlides([slide('1'), slide('2')]);
+		expect(hoisted.slidesArray?.length ?? 0).toBe(arrayLengthAfterFirstSync);
+
+		// A fresh sync confirmation re-opens the gate and flushes the pending deck.
+		hoisted.syncCb?.(true);
+		expect(hoisted.slidesArray?.length ?? 0).toBeGreaterThan(arrayLengthAfterFirstSync);
 
 		destroy();
 	});
@@ -593,8 +658,6 @@ describe('collaborationService', () => {
 
 		svc.setCursor(33, 44, 1);
 		const self = hoisted.awarenessStates.get(1);
-		// Angular service sets `cursor` and `presence` fields on awareness.
-		expect(self?.cursor).toStrictEqual({ x: 33, y: 44 });
 		expect(self?.presence).toMatchObject({ cursorX: 33, cursorY: 44, activeSlideIndex: 1 });
 
 		svc.setSelection('el-7', 2);

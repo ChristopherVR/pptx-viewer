@@ -65,7 +65,6 @@ describe('localPresencePublisher', () => {
 		const pub = new LocalPresencePublisher(awareness, { userName: 'Ada', userColor: '#123456' });
 
 		pub.setCursor(33, 44, 1);
-		expect(fields.get('cursor')).toStrictEqual({ x: 33, y: 44 });
 		expect(presence(fields)).toMatchObject({ cursorX: 33, cursorY: 44, activeSlideIndex: 1 });
 
 		// Selecting must preserve the previously-published cursor coordinates.
