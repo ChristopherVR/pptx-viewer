@@ -3,6 +3,8 @@ import type { InteractionBox, ResizeHandleId, SnapLine, SnapSibling } from 'pptx
 
 import { createGestureController } from './editor-gestures';
 import type { GestureController } from './editor-gestures';
+import { createInkGestureController } from './editor-ink-gesture';
+import type { InkGestureController } from './editor-ink-gesture';
 import { createEditorKeydownHandler } from './editor-keyboard';
 import type { EditorState } from './editor-state.svelte';
 import { resolveTopLevelElementId } from './element-hit';
@@ -41,6 +43,7 @@ export class EditorController {
 	readonly #editor: EditorState;
 	readonly #deps: EditorControllerDeps;
 	readonly #gestures: GestureController;
+	readonly #ink: InkGestureController;
 	readonly #keydown: (event: KeyboardEvent) => void;
 
 	/** Transient snap-alignment lines shown during a snap-to-shape drag. */
@@ -77,6 +80,28 @@ export class EditorController {
 				if (moved) {
 					this.#editor.commitChange();
 				}
+			},
+		});
+
+		this.#ink = createInkGestureController({
+			getScale: () => this.#deps.getScale(),
+			getStageOrigin: () => {
+				const rect = this.#deps.getHolderEl()?.getBoundingClientRect();
+				return { left: rect?.left ?? 0, top: rect?.top ?? 0 };
+			},
+			getTool: () => this.#editor.inkOps.tool,
+			onStrokeStart: () => {
+				this.#editor.interactionActive = true;
+			},
+			onStrokePreview: (points) => {
+				this.#editor.inkOps.previewStroke(points);
+			},
+			onStrokeEnd: (points) => {
+				this.#editor.interactionActive = false;
+				this.#editor.inkOps.commitStroke(points);
+			},
+			onErase: (point) => {
+				this.#editor.inkOps.eraseElementAt(point);
 			},
 		});
 
@@ -154,6 +179,14 @@ export class EditorController {
 		) {
 			return;
 		}
+		// Draw tools (pen/highlighter/eraser) take over the gesture entirely,
+		// mutually exclusive with normal selection/drag: EditorInkController
+		// clears the selection when a draw tool is chosen, so the selection
+		// overlay's own-pointerdown resize/rotate handles never race a stroke.
+		if (this.#editor.inkOps.isDrawing) {
+			this.#ink.handlePointerDown(event);
+			return;
+		}
 		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
 		if (!id) {
 			if (this.#editor.selectedElementId) {
@@ -183,7 +216,7 @@ export class EditorController {
 	};
 
 	onStageDblClick = (event: MouseEvent): void => {
-		if (!this.#editor.editable || this.#deps.getPresenting()) {
+		if (!this.#editor.editable || this.#deps.getPresenting() || this.#editor.inkOps.isDrawing) {
 			return;
 		}
 		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
@@ -236,5 +269,6 @@ export class EditorController {
 	/** Tear down window listeners (component destroy). */
 	destroy(): void {
 		this.#gestures.dispose();
+		this.#ink.dispose();
 	}
 }

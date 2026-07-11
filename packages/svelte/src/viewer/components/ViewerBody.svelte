@@ -15,6 +15,7 @@
 	import type { TransitionState } from '../presentation';
 	import { PresentationTransitionOverlay } from '../presentation';
 	import EditorLayer from './EditorLayer.svelte';
+	import InkDrawingOverlay from './InkDrawingOverlay.svelte';
 	import InspectorPanel from './inspector/InspectorPanel.svelte';
 	import NotesPanel from './NotesPanel.svelte';
 	import SlideStage from './SlideStage.svelte';
@@ -140,6 +141,7 @@
 					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive />
 					{#if editingActive}
 						<EditorLayer {controller} {scale} />
+						<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />
 					{/if}
 					{#if collabCursors.length > 0}
 						<CollaborationCursors cursors={collabCursors} zoom={scale} />
