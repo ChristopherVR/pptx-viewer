@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [0.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.1.3) - 2026-07-11
+
+### Documentation
+
+- **svelte:** Restyle readme to match the established binding readmes (by @ChristopherVR) ([5328bc8](https://github.com/ChristopherVR/pptx-viewer/commit/5328bc808b20b782c8234b9c859d3932fb41cfe4))
+
 ## [0.1.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.1.2) - 2026-07-10
 
 ### Features
