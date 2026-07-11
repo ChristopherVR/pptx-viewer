@@ -5,10 +5,22 @@ import type {
 	RemoteCursor,
 	SanitizedPresence,
 } from 'pptx-viewer-shared';
-import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from 'pptx-viewer-shared';
+import {
+	DEFAULT_CANVAS_HEIGHT,
+	DEFAULT_CANVAS_WIDTH,
+	DEFAULT_STROKE_COLOR,
+} from 'pptx-viewer-shared';
 
 /** `zoom` is either an explicit scale factor (1 = 100%) or fit-to-viewport. */
 export type ZoomLevel = number | 'fit';
+
+/**
+ * The Draw ribbon tab's active tool. `'select'` means normal editing gestures
+ * (move/resize/rotate/inline-edit) apply on the stage; every other value
+ * routes stage pointer events to the ink-drawing gesture controller instead
+ * (see `editor-draw-gestures.ts`).
+ */
+export type DrawTool = 'select' | 'pen' | 'highlighter' | 'eraser';
 
 /**
  * The vanilla viewer's reactive view state. Kept intentionally flat and small;
@@ -55,6 +67,12 @@ export interface ViewerState {
 	followedClientId: number | null;
 	/** In-memory clipboard payload from the last copy/cut, or null. */
 	clipboardPayload: ElementClipboardPayload | null;
+	/** Active Draw ribbon tool; `'select'` disables the ink-drawing gesture controller. */
+	drawTool: DrawTool;
+	/** Stroke colour for the pen/highlighter tools. */
+	drawColor: string;
+	/** Stroke width (px) for the pen/highlighter tools. */
+	drawWidth: number;
 }
 
 export function createInitialViewerState(): ViewerState {
@@ -76,6 +94,9 @@ export function createInitialViewerState(): ViewerState {
 		cursors: [],
 		followedClientId: null,
 		clipboardPayload: null,
+		drawTool: 'select',
+		drawColor: DEFAULT_STROKE_COLOR,
+		drawWidth: 3,
 	};
 }
 

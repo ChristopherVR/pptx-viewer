@@ -1,4 +1,4 @@
 export type { Store, StoreListener } from './store';
 export { createStore } from './store';
-export type { ViewerState, ZoomLevel } from './viewer-state';
+export type { DrawTool, ViewerState, ZoomLevel } from './viewer-state';
 export { clampSlideIndex, createInitialViewerState } from './viewer-state';

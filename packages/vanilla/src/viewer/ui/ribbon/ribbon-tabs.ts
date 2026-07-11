@@ -5,7 +5,7 @@ import type { RibbonTabId } from './ribbon-types';
  *
  * Mirrors React's `TOOLBAR_SECTIONS` (see `packages/react/src/viewer/constants/toolbar.ts`)
  * tab order/labels, but this wave only implements content for `file` / `home`
- * / `insert` / `design` / `transitions` / `animations` / `view`. The
+ * / `insert` / `draw` / `design` / `transitions` / `animations` / `view`. The
  * remaining entries are commented out rather than omitted so a later wave
  * adds one registry line + one tab-content module per tab, matching this
  * file's shape.
@@ -19,8 +19,7 @@ export const RIBBON_TABS: readonly RibbonTabDef[] = [
 	{ id: 'file', labelKey: 'pptx.ribbon.tab.file' },
 	{ id: 'home', labelKey: 'pptx.ribbon.tab.home' },
 	{ id: 'insert', labelKey: 'pptx.ribbon.tab.insert' },
-	// Future waves (registry entries only, content module not yet written):
-	// { id: 'draw', labelKey: 'pptx.ribbon.tab.draw' },
+	{ id: 'draw', labelKey: 'pptx.ribbon.tab.draw' },
 	{ id: 'design', labelKey: 'pptx.ribbon.tab.design' },
 	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
 	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },

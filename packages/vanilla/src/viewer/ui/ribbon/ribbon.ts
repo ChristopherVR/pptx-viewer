@@ -12,6 +12,7 @@ import { createRibbonPrimaryRow } from './ribbon-primary-row';
 import { createRibbonTabBar } from './ribbon-tab-bar';
 import { DEFAULT_RIBBON_TAB, RIBBON_TABS } from './ribbon-tabs';
 import type {
+	RibbonDrawState,
 	RibbonEditState,
 	RibbonHandlers,
 	RibbonNavState,
@@ -22,6 +23,8 @@ import type { AnimationsTab } from './tabs/animations-tab';
 import { createAnimationsTab } from './tabs/animations-tab';
 import type { DesignTab } from './tabs/design-tab';
 import { createDesignTab } from './tabs/design-tab';
+import type { DrawTab } from './tabs/draw-tab';
+import { createDrawTab } from './tabs/draw-tab';
 import { createFileTab } from './tabs/file-tab';
 import type { InsertTab } from './tabs/insert-tab';
 import { createInsertTab } from './tabs/insert-tab';
@@ -39,6 +42,8 @@ export interface Ribbon {
 	setEditable(editable: boolean): void;
 	/** Reflect the current selection across the Home tab's Font/Paragraph/Arrange groups. */
 	updateSelection(selectedElement: PptxElement | undefined, extra: RibbonSelectionState): void;
+	/** Reflect the current Draw tab tool/colour/width (store-driven). */
+	setDrawState(state: RibbonDrawState): void;
 }
 
 /**
@@ -77,6 +82,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	const insertTab: InsertTab = createInsertTab(doc, t, handlers.insert, () =>
 		equationPanel.toggle(),
 	);
+	const drawTab: DrawTab = createDrawTab(doc, t, handlers.draw);
 	const designTab: DesignTab = createDesignTab(doc, t, handlers.design, () =>
 		formatBackgroundPanel.toggle(),
 	);
@@ -88,6 +94,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 		file: fileTab.el,
 		home: homeTab.el,
 		insert: insertTab.el,
+		draw: drawTab.el,
 		design: designTab.el,
 		transitions: transitionsTab.el,
 		animations: animationsTab.el,
@@ -137,6 +144,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 		setEditable(editable) {
 			lastEditable = editable;
 			insertTab.setEditable(editable);
+			drawTab.setEditable(editable);
 			findReplace.setEditable(editable);
 			equationPanel.setEditable(editable);
 			formatBackgroundPanel.setEditable(editable);
@@ -145,6 +153,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 			syncHome();
 			syncAnimations();
 		},
+		setDrawState: (state) => drawTab.update(state),
 		updateSelection(selectedElement, extra) {
 			latestSelected = selectedElement;
 			latestExtra = extra;
