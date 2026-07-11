@@ -6,7 +6,12 @@ import type {
 	ViewerTheme,
 } from 'pptx-viewer-shared';
 
-import type { ExportPdfOptions } from './export';
+import type {
+	ExportGifOptions,
+	ExportPdfOptions,
+	ExportVideoOptions,
+	PrintOptions,
+} from './export';
 
 /**
  * Public component types for the Svelte PowerPoint viewer.
@@ -163,4 +168,28 @@ export interface PowerPointViewerApi {
 	 * `jspdf` is dynamically imported on first use.
 	 */
 	exportPdf(options?: ExportPdfOptions): Promise<void>;
+	/**
+	 * Export every slide as an animated GIF download. Per-slide frame delays
+	 * come from the shared frame plan: a default `slideDurationMs` (2000) with
+	 * optional per-slide `slideTimingsMs` overrides. Supports `onProgress` and
+	 * an `AbortSignal`, like {@link exportPdf}.
+	 */
+	exportGif(options?: ExportGifOptions): Promise<void>;
+	/**
+	 * Export every slide as a WebM video download (canvas capture stream +
+	 * `MediaRecorder`; codec picked from the shared WebM candidates). Timing
+	 * follows the shared video plan (`slideDurationMs` default 3000, per-slide
+	 * `slideTimingsMs`, `fps` default 30). Supports capture/recording progress
+	 * callbacks and an `AbortSignal`.
+	 */
+	exportVideo(options?: ExportVideoOptions): Promise<void>;
+	/**
+	 * Assemble the shared print document (slides / handouts / notes / outline,
+	 * slide range + colour mode) and open the browser print dialog. The default
+	 * print surface is a hidden same-origin iframe, so no popup window is
+	 * involved; a custom `window.open`-based opener (injectable at the
+	 * controller level) is subject to popup blockers, in which case the promise
+	 * resolves `false`. Resolves `true` once the print surface opened.
+	 */
+	print(options?: PrintOptions): Promise<boolean>;
 }

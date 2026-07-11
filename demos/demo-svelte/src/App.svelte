@@ -258,6 +258,11 @@
 		<ExportBar
 			exportPng={() => viewerRef?.exportSlidePng() ?? Promise.resolve()}
 			exportPdf={() => viewerRef?.exportPdf() ?? Promise.resolve()}
+			exportGif={() => viewerRef?.exportGif() ?? Promise.resolve()}
+			exportVideo={() => viewerRef?.exportVideo({ slideDurationMs: 300 }) ?? Promise.resolve()}
+			print={async () => {
+				await viewerRef?.print();
+			}}
 		/>
 	</div>
 {:else}

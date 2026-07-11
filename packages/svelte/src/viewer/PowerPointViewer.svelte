@@ -13,6 +13,7 @@
 	import { provideTranslator } from '../i18n/context';
 	import { CollaborationController } from './collab';
 	import EditToolbar from './components/EditToolbar.svelte';
+	import ExportProgressModal from './components/ExportProgressModal.svelte';
 	import ViewerBody from './components/ViewerBody.svelte';
 	import ViewerToolbar from './components/ViewerToolbar.svelte';
 	import { createEditingApi } from './editor/editing-api';
@@ -21,6 +22,7 @@
 	import { AutosaveController } from './state/autosave.svelte';
 	import { createExportWiring } from './export/export-wiring.svelte';
 	import { createExportingApi } from './export/exporting-api';
+	import { ExportUiState } from './export/export-ui.svelte';
 	import { PresentationController, usePresentationEffects } from './presentation';
 	import { PresentationLoader } from './state/presentation-loader.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
@@ -211,6 +213,11 @@
 		getTranslator: () => t,
 		getSmartArt3D: () => smartArt3D,
 	});
+	// Toolbar export menu + progress modal state (Vue `useExportProgress` port).
+	const exportUi = new ExportUiState({
+		controller: exportWiring.controller,
+		getTranslator: () => t,
+	});
 
 	// ── Speaker notes ────────────────────────────────────────────────────
 	let notesExpanded = $state(false);
@@ -244,6 +251,9 @@
 	const exportingApi = createExportingApi(exportWiring.controller);
 	export const exportSlidePng = exportingApi.exportSlidePng;
 	export const exportPdf = exportingApi.exportPdf;
+	export const exportGif = exportingApi.exportGif;
+	export const exportVideo = exportingApi.exportVideo;
+	export const print = exportingApi.print;
 </script>
 
 <svelte:document onfullscreenchange={onFullscreenChange} />
@@ -285,8 +295,16 @@
 			ondownload={() => void downloadPptx()}
 			autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
 			autosaveDirty={autosaveCtl.isDirty}
+			exportUi={loader.slides.length > 0 ? exportUi : undefined}
 		/>
 	{/if}
+	<ExportProgressModal
+		open={exportUi.open}
+		title={exportUi.title}
+		progress={exportUi.progress}
+		statusMessage={exportUi.status}
+		oncancel={() => exportUi.cancel()}
+	/>
 	{#if editingActive}
 		<EditToolbar {editor} />
 	{/if}

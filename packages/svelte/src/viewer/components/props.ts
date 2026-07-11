@@ -3,6 +3,7 @@ import type { CanvasSize, RenderParagraph, ResizeHandleId, SnapLine } from 'pptx
 
 import type { EditorController } from '../editor/editor-controller.svelte';
 import type { OverlayBox } from '../editor/types';
+import type { ExportUiState } from '../export/export-ui.svelte';
 import type { AutosaveStatus } from '../state/autosave.svelte';
 
 /**
@@ -93,6 +94,13 @@ export interface ViewerToolbarProps {
 	autosaveStatus?: AutosaveStatus;
 	/** Whether there are unsaved autosave edits (drives the pill's "dirty" tone). */
 	autosaveDirty?: boolean;
+	/**
+	 * Export menu state (PNG / PDF / GIF / video / print). When set, the
+	 * toolbar renders the `ExportMenu` dropdown in its right-hand group,
+	 * matching the export affordance the React/Vue/Angular chrome exposes.
+	 * Omit to hide the menu (e.g. while no presentation is loaded).
+	 */
+	exportUi?: ExportUiState;
 }
 
 /** Props for the selection overlay (box + 8 resize handles + rotate handle). */

@@ -1,5 +1,13 @@
+import type { PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
-import { downloadDataUrl, exportAbortError } from 'pptx-viewer-shared';
+import { downloadBlob, downloadDataUrl, exportAbortError } from 'pptx-viewer-shared';
+
+import type { ExportGifOptions } from './export-gif';
+import { exportSlidesToGifBlob } from './export-gif';
+import type { OpenPrintWindow, PrintOptions } from './export-print';
+import { printSlides } from './export-print';
+import type { ExportVideoOptions } from './export-video';
+import { exportSlidesToWebmBlob } from './export-video';
 
 /** Rasterise the slide at `index` to an `HTMLCanvasElement`. Injected so the
  * controller stays DOM-capture-free and unit-testable. */
@@ -23,7 +31,11 @@ export interface ExportControllerDeps {
 	getCurrent(): number;
 	/** Live slide canvas size (px), for the PDF page size. */
 	getCanvasSize(): CanvasSize;
+	/** Live slide list (print needs slide notes/titles, not just the count). */
+	getSlides(): PptxSlide[];
 	rasterizeSlide: RasterizeSlide;
+	/** Print-surface opener override; see `export-print.ts` for the default. */
+	openPrintWindow?: OpenPrintWindow;
 	/** Base file name (without extension) for downloads. Defaults to `presentation`. */
 	fileName?: string;
 }
@@ -32,16 +44,18 @@ function resolveBaseName(fileName: string | undefined): string {
 	if (fileName === undefined) {
 		return 'presentation';
 	}
-	const trimmed = fileName.trim().replace(/\.(?:pptx|pdf|png)$/iu, '');
+	const trimmed = fileName.trim().replace(/\.(?:pptx|pdf|png|gif|webm)$/iu, '');
 	return trimmed === '' ? 'presentation' : trimmed;
 }
 
 /**
- * Export controller (runes class): render slides to PNG / PDF. Svelte port of
- * Vue's `useExport` composable (`packages/vue/src/viewer/composables/
- * useExport.ts`, itself the "viewer-first subset: PNG + PDF; GIF/video
- * deferred" of React's `useExportHandlers`), reshaped as a `$state`-backed
- * class to match this package's runes-class convention (see `EditorState` in
+ * Export controller (runes class): render slides to PNG / PDF / animated GIF /
+ * WebM video, plus the print flow. Started as a Svelte port of Vue's
+ * `useExport` composable (`packages/vue/src/viewer/composables/useExport.ts`)
+ * and now also covers React's `useExportHandlers` GIF/video surface (via
+ * `export-gif.ts` / `export-video.ts`) and Vue's `usePrint`
+ * (`export-print.ts`), reshaped as a `$state`-backed class to match this
+ * package's runes-class convention (see `EditorState` in
  * `../editor/editor-state.svelte.ts`) rather than Vue `Ref`s.
  *
  * Rasterisation is delegated to the injected `rasterizeSlide` (the host owns
@@ -102,6 +116,80 @@ export class ExportController {
 				pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, height);
 			}
 			pdf.save(`${resolveBaseName(this.#deps.fileName)}.pdf`);
+		} finally {
+			this.exporting = false;
+		}
+	}
+
+	/**
+	 * Export every slide as an animated GIF download. Frame delays come from
+	 * the shared `planGifFrames` plan (default duration + per-slide overrides);
+	 * see `export-gif.ts`. Supports progress + AbortSignal like `exportPdf`.
+	 */
+	async exportGif(options: ExportGifOptions = {}): Promise<void> {
+		if (this.exporting || this.#deps.getSlideCount() === 0) {
+			return;
+		}
+		this.exporting = true;
+		try {
+			const blob = await exportSlidesToGifBlob(
+				{
+					getSlideCount: () => this.#deps.getSlideCount(),
+					rasterizeSlide: (index) => this.#deps.rasterizeSlide(index),
+				},
+				options,
+			);
+			downloadBlob(blob, `${resolveBaseName(this.#deps.fileName)}.gif`);
+		} finally {
+			this.exporting = false;
+		}
+	}
+
+	/**
+	 * Export every slide as a WebM video download (MediaRecorder over a canvas
+	 * capture stream, timing from the shared `planVideoSegments` plan); see
+	 * `export-video.ts`. Supports progress + AbortSignal like `exportPdf`.
+	 */
+	async exportVideo(options: ExportVideoOptions = {}): Promise<void> {
+		if (this.exporting || this.#deps.getSlideCount() === 0) {
+			return;
+		}
+		this.exporting = true;
+		try {
+			const blob = await exportSlidesToWebmBlob(
+				{
+					getSlideCount: () => this.#deps.getSlideCount(),
+					rasterizeSlide: (index) => this.#deps.rasterizeSlide(index),
+				},
+				options,
+			);
+			downloadBlob(blob, `${resolveBaseName(this.#deps.fileName)}.webm`);
+		} finally {
+			this.exporting = false;
+		}
+	}
+
+	/**
+	 * Assemble the shared print document for the given (partial) settings and
+	 * open it in the print surface (hidden iframe by default; see
+	 * `export-print.ts` for the popup-blocker caveats of custom openers).
+	 * Resolves `true` when the print surface opened.
+	 */
+	async print(options: PrintOptions = {}): Promise<boolean> {
+		if (this.exporting || this.#deps.getSlides().length === 0) {
+			return false;
+		}
+		this.exporting = true;
+		try {
+			return await printSlides(
+				{
+					getSlides: () => this.#deps.getSlides(),
+					getCurrent: () => this.#deps.getCurrent(),
+					rasterizeSlide: (index) => this.#deps.rasterizeSlide(index),
+					openPrintWindow: this.#deps.openPrintWindow,
+				},
+				options,
+			);
 		} finally {
 			this.exporting = false;
 		}

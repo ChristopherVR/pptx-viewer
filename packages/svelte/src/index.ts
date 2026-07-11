@@ -7,6 +7,12 @@
  */
 export { PowerPointViewer } from './viewer/component';
 export type {
+	ExportGifOptions,
+	ExportPdfOptions,
+	ExportVideoOptions,
+	PrintOptions,
+} from './viewer/export';
+export type {
 	CanvasSize,
 	CollaborationConfig,
 	CollaborationRole,

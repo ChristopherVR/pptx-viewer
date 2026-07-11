@@ -1,18 +1,22 @@
 <script lang="ts">
 	/**
-	 * Minimal PNG (current slide) / PDF (all slides) export affordance for the
-	 * demo shell: two plain buttons anchored bottom-right, stacked below the
-	 * theme/language pickers. This deliberately stays a "couple of buttons"
-	 * (per the pptx-svelte-viewer PNG+PDF export pass) rather than porting
-	 * Vue's full ExportMenu/ExportProgressModal UI, mirroring
-	 * demos/demo-vanilla/src/export-bar.ts.
+	 * Compact export affordance for the demo shell: one row of plain buttons
+	 * anchored bottom-right (PNG of the current slide, PDF / GIF / WebM video
+	 * of the whole deck, and the print flow). Deliberately stays a button row
+	 * rather than porting Vue's full ExportMenu/ExportProgressModal UI,
+	 * mirroring demos/demo-vanilla/src/export-bar.ts.
 	 */
 	import { t } from './demo-i18n.svelte';
 
-	const {
-		exportPng,
-		exportPdf,
-	}: { exportPng: () => Promise<void>; exportPdf: () => Promise<void> } = $props();
+	interface ExportBarProps {
+		exportPng: () => Promise<void>;
+		exportPdf: () => Promise<void>;
+		exportGif: () => Promise<void>;
+		exportVideo: () => Promise<void>;
+		print: () => Promise<void>;
+	}
+
+	const { exportPng, exportPdf, exportGif, exportVideo, print }: ExportBarProps = $props();
 
 	let busy = $state(false);
 
@@ -29,15 +33,22 @@
 			busy = false;
 		}
 	}
+
+	const actions = $derived([
+		{ key: 'demo.export.png', action: exportPng },
+		{ key: 'demo.export.pdf', action: exportPdf },
+		{ key: 'demo.export.gif', action: exportGif },
+		{ key: 'demo.export.video', action: exportVideo },
+		{ key: 'demo.export.print', action: print },
+	]);
 </script>
 
 <div class="export-bar">
-	<button type="button" disabled={busy} onclick={() => void run(exportPng)}>
-		{t('demo.export.png')}
-	</button>
-	<button type="button" disabled={busy} onclick={() => void run(exportPdf)}>
-		{t('demo.export.pdf')}
-	</button>
+	{#each actions as { key, action } (key)}
+		<button type="button" disabled={busy} onclick={() => void run(action)}>
+			{t(key)}
+		</button>
+	{/each}
 </div>
 
 <style>

@@ -38,11 +38,21 @@ export interface RasterizeSlideController {
  * mounted stage (images, fonts, backgrounds) before html2canvas-pro captures
  * it, matching Vue's `nextTick()` + `requestAnimationFrame` in
  * `useExportWiring.rasterizeSlide`.
+ *
+ * Raced against a timeout because browsers pause `requestAnimationFrame` in
+ * hidden/occluded tabs: without the fallback, switching tabs mid-export (very
+ * likely during a long GIF/video run) would stall the capture loop forever.
+ * html2canvas reads the laid-out DOM directly, so capturing without a fresh
+ * paint is safe.
  */
 function nextFrame(): Promise<void> {
-	return new Promise((resolve) => {
+	const fallback = new Promise<void>((resolve) => {
+		setTimeout(resolve, 250);
+	});
+	const painted = new Promise<void>((resolve) => {
 		requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
 	});
+	return Promise.race([fallback, painted]);
 }
 
 /**

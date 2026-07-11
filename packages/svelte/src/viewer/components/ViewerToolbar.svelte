@@ -6,6 +6,7 @@
 	 */
 	import { useTranslator } from '../../i18n/context';
 	import AutosaveIndicator from './AutosaveIndicator.svelte';
+	import ExportMenu from './ExportMenu.svelte';
 	import type { ViewerToolbarProps } from './props';
 
 	const {
@@ -32,6 +33,7 @@
 		ondownload,
 		autosaveStatus,
 		autosaveDirty = false,
+		exportUi,
 	}: ViewerToolbarProps = $props();
 
 	const t = useTranslator();
@@ -155,6 +157,9 @@
 				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h9v11h-9zM5 5.5h6M5 8h6M5 10.5h4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
 				<span class="pptx-svelte-toolbar-notes-label">{t('pptx.notes.title')}</span>
 			</button>
+		{/if}
+		{#if exportUi}
+			<ExportMenu {exportUi} />
 		{/if}
 	</div>
 </div>
