@@ -6,6 +6,35 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-11
 
+_Releases: pptx-react-viewer@1.14.1, pptx-vue-viewer@1.14.1, pptx-angular-viewer@1.14.1, pptx-vanilla-viewer@0.3.0, pptx-svelte-viewer@0.3.0_
+
+### Features
+
+- **vanilla:** Add tabbed ribbon shell with File/Home/Insert/View tabs (by @ChristopherVR) ([43594c6](https://github.com/ChristopherVR/pptx-viewer/commit/43594c6b675a067748714a4b0ce3f30a2e57e909))
+- **vanilla:** Wire Ctrl+C/X/V clipboard shortcuts into the editor keyboard (by @ChristopherVR) ([423b3e3](https://github.com/ChristopherVR/pptx-viewer/commit/423b3e32d7877ebc9d8a465f07b2af992ce65ca0))
+- **svelte:** Add ribbon editor logic (clipboard, slides, arrange, text/paragraph, find-replace) (by @ChristopherVR) ([12d53da](https://github.com/ChristopherVR/pptx-viewer/commit/12d53da5984957d473c7ee47327b5957747c6c5d))
+- **svelte:** Add tabbed ribbon shell with File/Home/Insert/View tabs (by @ChristopherVR) ([4f391ab](https://github.com/ChristopherVR/pptx-viewer/commit/4f391ab80092b5562d0bd584664bd3acca3ce1f9))
+
+### Bug Fixes
+
+- **shared,react,vue,angular:** Make the Aa Change Case dropdown actually rewrite text (by @ChristopherVR) ([d84fd78](https://github.com/ChristopherVR/pptx-viewer/commit/d84fd788097253cf8b9281eca35af35caad20dce))
+- **react,vue,angular:** Drop stray space when splitting a wrapped line (by @ChristopherVR) ([1a43c81](https://github.com/ChristopherVR/pptx-viewer/commit/1a43c810fd43cf57d3691c124568e73f31fd7b0a))
+- **angular:** Resolve change-case helpers via the vendored shared source (by @ChristopherVR) ([6cfe41e](https://github.com/ChristopherVR/pptx-viewer/commit/6cfe41e0d348e3e9dff3a1ecc7bbb57902547683))
+- **svelte:** Prune the selection on undo/redo so ribbon buttons re-disable (by @ChristopherVR) ([7539b70](https://github.com/ChristopherVR/pptx-viewer/commit/7539b70ad5ac18be028bd1fa39c1438469038002))
+
+### Refactor
+
+- **shared:** Extract clipboard, shape-preset, and text-format catalogs from react (by @ChristopherVR) ([b9d7cc9](https://github.com/ChristopherVR/pptx-viewer/commit/b9d7cc9b061b8c9dcaad91038136349c9360080d))
+- **shared:** Dedupe change-case logic against text-case-transform (by @ChristopherVR) ([d007c07](https://github.com/ChristopherVR/pptx-viewer/commit/d007c070fb5bf8573bd8ac6dbeae160b46fc2dde))
+- **svelte:** Multi-element selection state (by @ChristopherVR) ([a259d5d](https://github.com/ChristopherVR/pptx-viewer/commit/a259d5df7a37f90c3baf3952b280b48c3d739dae))
+- **vanilla:** Move ribbon primary/nav row CSS out of css.ts (by @ChristopherVR) ([477ddd8](https://github.com/ChristopherVR/pptx-viewer/commit/477ddd8c2c49d1754058914f4fb46d63afe8d728))
+
+### Testing
+
+- **vanilla:** Cover the ribbon tab registry, insert grid, and clipboard group (by @ChristopherVR) ([cee383f](https://github.com/ChristopherVR/pptx-viewer/commit/cee383fc4bc8c55832c2fb9a6ad56db24bf3cf7b))
+
+## 2026-07-11
+
 _Releases: pptx-react-viewer@1.14.0, pptx-vue-viewer@1.14.0, pptx-angular-viewer@1.14.0, pptx-vanilla-viewer@0.2.0, pptx-svelte-viewer@0.2.0_
 
 ### Features
