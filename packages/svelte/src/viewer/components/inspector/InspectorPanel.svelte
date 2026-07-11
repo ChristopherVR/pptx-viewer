@@ -9,16 +9,19 @@
 	 *   opacity, and gradient, for elements with `shapeStyle`.
 	 * - {@link TextSection}: vertical anchor, wrap, autofit, for elements with
 	 *   `textStyle`.
+	 * - {@link ImageSection}: brightness/contrast/saturation + crop, for
+	 *   image-like elements.
 	 *
 	 * Every control routes edits through `EditorState.applyElementPatch` /
 	 * `patchSelected`, so every change is undo/redo-integrated. Vanilla
 	 * counterpart: `packages/vanilla/src/viewer/ui/inspector/`.
 	 */
-	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+	import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-viewer-core';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
 	import FillStrokeSection from './FillStrokeSection.svelte';
+	import ImageSection from './ImageSection.svelte';
 	import PositionSection from './PositionSection.svelte';
 	import TextSection from './TextSection.svelte';
 
@@ -31,6 +34,7 @@
 	const el = $derived(editor.selectedElement);
 	const canShape = $derived(el !== undefined && hasShapeProperties(el));
 	const canText = $derived(el !== undefined && hasTextProperties(el));
+	const isImage = $derived(el !== undefined && isImageLikeElement(el));
 </script>
 
 <aside class="pptx-svelte-inspector" class:pptx-svelte-inspector-collapsed={collapsed}>
@@ -68,6 +72,13 @@
 					<div class="pptx-svelte-inspector-section">
 						<h4>{t('pptx.inspector.text')}</h4>
 						<TextSection {editor} {el} />
+					</div>
+				{/if}
+
+				{#if isImage}
+					<div class="pptx-svelte-inspector-section">
+						<h4>{t('pptx.inspector.image')}</h4>
+						<ImageSection {editor} {el} />
 					</div>
 				{/if}
 			{:else}

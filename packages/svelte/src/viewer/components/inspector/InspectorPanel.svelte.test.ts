@@ -49,6 +49,18 @@ function textEl(): PptxElement {
 	} as PptxElement;
 }
 
+function imageEl(): PptxElement {
+	return {
+		type: 'image',
+		id: 'img1',
+		x: 0,
+		y: 0,
+		width: 100,
+		height: 100,
+		imagePath: 'ppt/media/image1.png',
+	} as PptxElement;
+}
+
 function makeEditor(elements: PptxElement[]): EditorState {
 	const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
 	editor.editable = true;
@@ -101,6 +113,15 @@ describe('inspectorPanel', () => {
 		const { target } = mountInspector(editor);
 
 		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Text']);
+	});
+
+	it('shows Position + Fill & Stroke + Image for an image element (no Text section)', () => {
+		const el = imageEl();
+		const editor = makeEditor([el]);
+		editor.select(el.id);
+		const { target } = mountInspector(editor);
+
+		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Image']);
 	});
 
 	it('collapses and expands via the header toggle', () => {
