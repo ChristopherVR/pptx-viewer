@@ -61,6 +61,18 @@ function imageEl(): PptxElement {
 	} as PptxElement;
 }
 
+function tableEl(): PptxElement {
+	return {
+		type: 'table',
+		id: 'tbl1',
+		x: 0,
+		y: 0,
+		width: 200,
+		height: 100,
+		tableData: { rows: [{ cells: [{ text: 'A' }] }], columnWidths: [1] },
+	} as PptxElement;
+}
+
 function makeEditor(elements: PptxElement[]): EditorState {
 	const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
 	editor.editable = true;
@@ -122,6 +134,15 @@ describe('inspectorPanel', () => {
 		const { target } = mountInspector(editor);
 
 		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Image']);
+	});
+
+	it('shows only Position + Table for a table element (no Fill & Stroke or Text)', () => {
+		const el = tableEl();
+		const editor = makeEditor([el]);
+		editor.select(el.id);
+		const { target } = mountInspector(editor);
+
+		expect(sectionTitles(target)).toStrictEqual(['Table']);
 	});
 
 	it('collapses and expands via the header toggle', () => {

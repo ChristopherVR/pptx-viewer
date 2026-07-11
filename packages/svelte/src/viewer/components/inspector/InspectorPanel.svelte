@@ -11,6 +11,8 @@
 	 *   `textStyle`.
 	 * - {@link ImageSection}: brightness/contrast/saturation + crop, for
 	 *   image-like elements.
+	 * - {@link TableSection}: header row / banded rows / cell padding, for
+	 *   table elements.
 	 *
 	 * Every control routes edits through `EditorState.applyElementPatch` /
 	 * `patchSelected`, so every change is undo/redo-integrated. Vanilla
@@ -23,6 +25,7 @@
 	import FillStrokeSection from './FillStrokeSection.svelte';
 	import ImageSection from './ImageSection.svelte';
 	import PositionSection from './PositionSection.svelte';
+	import TableSection from './TableSection.svelte';
 	import TextSection from './TextSection.svelte';
 
 	const { editor }: { editor: EditorState } = $props();
@@ -35,6 +38,7 @@
 	const canShape = $derived(el !== undefined && hasShapeProperties(el));
 	const canText = $derived(el !== undefined && hasTextProperties(el));
 	const isImage = $derived(el !== undefined && isImageLikeElement(el));
+	const isTable = $derived(el?.type === 'table');
 </script>
 
 <aside class="pptx-svelte-inspector" class:pptx-svelte-inspector-collapsed={collapsed}>
@@ -79,6 +83,13 @@
 					<div class="pptx-svelte-inspector-section">
 						<h4>{t('pptx.inspector.image')}</h4>
 						<ImageSection {editor} {el} />
+					</div>
+				{/if}
+
+				{#if isTable}
+					<div class="pptx-svelte-inspector-section">
+						<h4>{t('pptx.inspector.table')}</h4>
+						<TableSection {editor} {el} />
 					</div>
 				{/if}
 			{:else}
