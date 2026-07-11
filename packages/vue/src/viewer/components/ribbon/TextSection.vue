@@ -22,6 +22,7 @@ import {
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import type { ChangeCaseMode } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -35,6 +36,7 @@ interface Props {
 	selectedElement: PptxElement | null;
 	tableEditorState?: TableCellEditorState | null;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
+	onTransformTextCase: (mode: ChangeCaseMode) => void;
 }
 
 const props = defineProps<Props>();
@@ -286,16 +288,12 @@ function handleChangeCase(value: string): void {
 	if (!canFormat.value) {
 		return;
 	}
-	switch (value) {
-		case 'upper':
-			props.onUpdateTextStyle({ textCaps: 'all' });
-			break;
-		case 'lower':
-		case 'sentence':
-		case 'capitalize':
-		case 'toggle':
-			props.onUpdateTextStyle({ textCaps: 'none' });
-			break;
+	if (isTable.value) {
+		// Table-cell text is plain (no textSegments to rewrite); fall back to
+		// the visual all-caps render hint.
+		props.onUpdateTextStyle({ textCaps: value === 'upper' ? 'all' : 'none' });
+	} else {
+		props.onTransformTextCase(value as ChangeCaseMode);
 	}
 	changeCaseMenu.close();
 }

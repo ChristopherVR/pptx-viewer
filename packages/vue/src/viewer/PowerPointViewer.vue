@@ -1269,20 +1269,26 @@ const { applyTheme, applyThemePreset, applyThemeEdit } = useThemeEditing({
 	themeEditorOpen,
 });
 
-const { ribbonMode, activeTableSelection, ribbonUpdateTextStyle, ribbonFlip, ribbonMoveToEdge } =
-	useRibbonActions({
-		canEdit: () => props.canEdit,
-		presenting,
-		showMasterView,
-		tableSelection,
-		selectedElements,
-		selectedElementIds,
-		activeSlide,
-		activeSlideIndex,
-		slides,
-		pushHistory: history.pushHistory,
-		ops,
-	});
+const {
+	ribbonMode,
+	activeTableSelection,
+	ribbonUpdateTextStyle,
+	ribbonUpdateTextCase,
+	ribbonFlip,
+	ribbonMoveToEdge,
+} = useRibbonActions({
+	canEdit: () => props.canEdit,
+	presenting,
+	showMasterView,
+	tableSelection,
+	selectedElements,
+	selectedElementIds,
+	activeSlide,
+	activeSlideIndex,
+	slides,
+	pushHistory: history.pushHistory,
+	ops,
+});
 
 watch(ribbonMode, (mode) => {
 	emit('mode-change', mode);
@@ -1382,6 +1388,7 @@ const ribbonProps = useRibbonProps({
 	onCopySlideAsImage,
 	openPrintDialog: printer.openPrintDialog,
 	ribbonUpdateTextStyle,
+	ribbonUpdateTextCase,
 	insertSlideFromLayout,
 	onRenameActiveCustomShow,
 	onDeleteActiveCustomShow,

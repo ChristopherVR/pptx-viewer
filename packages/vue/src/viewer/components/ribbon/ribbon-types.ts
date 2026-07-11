@@ -17,6 +17,7 @@ import type {
 	PptxSlideTransition,
 	TextStyle,
 } from 'pptx-viewer-core';
+import type { ChangeCaseMode } from 'pptx-viewer-shared';
 
 /** Viewer interaction mode. Mirrors React `ViewerMode`. */
 export type ViewerMode = 'preview' | 'edit' | 'present' | 'master';
@@ -208,6 +209,8 @@ export interface RibbonProps {
 	onRunAccessibilityCheck: () => void;
 	onToggleSlideSorter: () => void;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
+	/** Rewrite the selected text's characters (PowerPoint's Aa "Change Case" dropdown). */
+	onTransformTextCase: (mode: ChangeCaseMode) => void;
 	onSetOverflowMenuOpen: (open: boolean) => void;
 	onInsertSlideFromLayout: (path: string, name?: string) => void;
 	onApplyLayout?: (path: string) => void;

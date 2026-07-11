@@ -155,6 +155,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:selected-element="props.selectedElement"
 						:table-editor-state="props.tableEditorState"
 						:on-update-text-style="props.onUpdateTextStyle"
+						:on-transform-text-case="props.onTransformTextCase"
 					/>
 				</div>
 

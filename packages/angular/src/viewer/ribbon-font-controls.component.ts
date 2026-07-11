@@ -15,10 +15,16 @@ import {
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
+import type { ChangeCaseMode } from 'pptx-viewer-shared';
 
 import { EditorStateService } from './editor-state.service';
 import { RibbonColorPopoverComponent } from './ribbon-color-popover.component';
-import { isTextElement, patchTextStyle, textStyleOf } from './ribbon-text-helpers';
+import {
+	isTextElement,
+	patchTextStyle,
+	textStyleOf,
+	transformSelectedTextCase,
+} from './ribbon-text-helpers';
 
 /** Font families offered in the Home tab (mirrors React). */
 const FONT_FAMILIES = [
@@ -319,18 +325,8 @@ export class RibbonFontControlsComponent {
 	}
 
 	protected setChangeCase(event: Event): void {
-		const value = (event.target as HTMLSelectElement).value;
-		switch (value) {
-			case 'upper':
-				this.patch({ textCaps: 'all' });
-				break;
-			case 'lower':
-			case 'sentence':
-			case 'capitalize':
-			case 'toggle':
-				this.patch({ textCaps: 'none' });
-				break;
-		}
+		const value = (event.target as HTMLSelectElement).value as ChangeCaseMode;
+		transformSelectedTextCase(this.editor, this.slideIndex(), this.selectedElement(), value);
 		(event.target as HTMLSelectElement).selectedIndex = 0;
 	}
 

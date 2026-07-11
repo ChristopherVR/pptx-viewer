@@ -303,6 +303,7 @@ export * from './text-theme';
 export * from './kinsoku-styles';
 export * from './tab-leader';
 export * from './inline-selection-utils';
+export * from './text-case-transform';
 export * from './linked-text-box-overflow';
 export * from './connector-router';
 export * from './connector-reroute';

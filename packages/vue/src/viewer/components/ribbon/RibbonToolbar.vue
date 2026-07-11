@@ -175,6 +175,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:selected-element="props.selectedElement"
 				:table-editor-state="props.tableEditorState"
 				:on-update-text-style="props.onUpdateTextStyle"
+				:on-transform-text-case="props.onTransformTextCase"
 			/>
 
 			<EditingSection

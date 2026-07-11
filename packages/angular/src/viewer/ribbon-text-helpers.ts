@@ -6,6 +6,8 @@
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import type { ChangeCaseMode } from 'pptx-viewer-shared';
+import { transformTextCase } from 'pptx-viewer-shared';
 
 import type { EditorStateService } from './editor-state.service';
 
@@ -32,4 +34,29 @@ export function patchTextStyle(
 	editor.updateElement(slideIndex, el.id, {
 		textStyle: { ...el.textStyle, ...patch } as TextStyle,
 	} as Partial<PptxElement>);
+}
+
+/**
+ * Rewrite the selection's text characters (ribbon Aa "Change Case" dropdown).
+ * Unlike {@link patchTextStyle}, this mutates content, not style.
+ */
+export function transformSelectedTextCase(
+	editor: EditorStateService,
+	slideIndex: number,
+	el: PptxElement | null,
+	mode: ChangeCaseMode,
+): void {
+	if (!el || !hasTextProperties(el)) {
+		return;
+	}
+	const updates: Partial<PptxElement> = {};
+	if (el.textSegments && el.textSegments.length > 0) {
+		(updates as { textSegments?: unknown }).textSegments = el.textSegments.map((s) =>
+			s.isParagraphBreak || s.text === '\n' ? s : { ...s, text: transformTextCase(s.text, mode) },
+		);
+	}
+	if (typeof el.text === 'string') {
+		(updates as { text?: string }).text = transformTextCase(el.text, mode);
+	}
+	editor.updateElement(slideIndex, el.id, updates);
 }

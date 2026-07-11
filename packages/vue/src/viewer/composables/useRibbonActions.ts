@@ -6,7 +6,8 @@ import type {
 	TablePptxElement,
 	TextStyle,
 } from 'pptx-viewer-core';
-import type { AlignEdge } from 'pptx-viewer-shared';
+import type { AlignEdge, ChangeCaseMode } from 'pptx-viewer-shared';
+import { transformTextCase } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -136,6 +137,33 @@ export function useRibbonActions(input: UseRibbonActionsInput) {
 		);
 	}
 
+	/**
+	 * Rewrite the selected element's text characters (ribbon Aa "Change Case"
+	 * dropdown). Unlike `ribbonUpdateTextStyle`, this mutates content, not style,
+	 * so table cells (plain-text only) are left alone rather than getting a
+	 * misleading `textCaps` style hint.
+	 */
+	function ribbonUpdateTextCase(mode: ChangeCaseMode): void {
+		const id = selectedElementIds.value[0];
+		if (!id) {
+			return;
+		}
+		const el = activeSlide.value?.elements.find((e) => e.id === id);
+		if (!el || !hasTextProperties(el)) {
+			return;
+		}
+		const updates: Partial<PptxElement> = {};
+		if (el.textSegments && el.textSegments.length > 0) {
+			(updates as { textSegments?: unknown }).textSegments = el.textSegments.map((s) =>
+				s.isParagraphBreak || s.text === '\n' ? s : { ...s, text: transformTextCase(s.text, mode) },
+			);
+		}
+		if (typeof el.text === 'string') {
+			(updates as { text?: string }).text = transformTextCase(el.text, mode);
+		}
+		ops.updateElement(id, updates);
+	}
+
 	/** Flip the selected elements horizontally / vertically as one history entry. */
 	function ribbonFlip(direction: 'horizontal' | 'vertical'): void {
 		const ids = new Set(selectedElementIds.value);
@@ -173,6 +201,7 @@ export function useRibbonActions(input: UseRibbonActionsInput) {
 		ribbonMode,
 		activeTableSelection,
 		ribbonUpdateTextStyle,
+		ribbonUpdateTextCase,
 		ribbonFlip,
 		ribbonMoveToEdge,
 	};

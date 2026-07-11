@@ -14,6 +14,8 @@ import {
 	applyStyleToSelectedSegments,
 	setPendingSelectionRestore,
 } from '../utils/inline-selection-utils';
+import { applyCaseTransformToSegments, transformTextCase } from '../utils/text-case-transform';
+import type { ChangeCaseMode } from '../utils/text-case-transform';
 import type { EditorHistoryResult } from './useEditorHistory';
 
 /* ------------------------------------------------------------------ */
@@ -48,6 +50,8 @@ export interface ElementOperations {
 	updateSelectedElement: (updates: Partial<PptxElement>) => void;
 	updateSelectedShapeStyle: (updates: Partial<ShapeStyle>) => void;
 	updateSelectedTextStyle: (updates: Partial<TextStyle>) => void;
+	/** Rewrite the selected text's characters (PowerPoint's Aa "Change Case" dropdown). */
+	updateSelectedTextCase: (mode: ChangeCaseMode) => void;
 	updateSlides: (updater: (s: PptxSlide[]) => PptxSlide[]) => void;
 	/**
 	 * The element list currently being edited: the template store for the active
@@ -199,6 +203,40 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 		[selectedElement, updateSelectedElement],
 	);
 
+	const updateSelectedTextCase = useCallback(
+		(mode: ChangeCaseMode) => {
+			if (!selectedElement || !hasTextProperties(selectedElement)) {
+				return;
+			}
+
+			const inlineSel = getInlineEditorSelection(selectedElement.textSegments);
+			if (inlineSel && selectedElement.textSegments) {
+				const newSegments = applyCaseTransformToSegments(
+					selectedElement.textSegments,
+					inlineSel,
+					mode,
+				);
+				updateSelectedElement({ textSegments: newSegments } as Partial<PptxElement>);
+				return;
+			}
+
+			// No inline selection: transform the entire element's text.
+			const updates: Partial<PptxElement> = {};
+			if (selectedElement.textSegments && selectedElement.textSegments.length > 0) {
+				(updates as { textSegments?: unknown }).textSegments = applyCaseTransformToSegments(
+					selectedElement.textSegments,
+					null,
+					mode,
+				);
+			}
+			if (typeof selectedElement.text === 'string') {
+				(updates as { text?: string }).text = transformTextCase(selectedElement.text, mode);
+			}
+			updateSelectedElement(updates);
+		},
+		[selectedElement, updateSelectedElement],
+	);
+
 	// ── Slide-level helpers ───────────────────────────────────────────
 	const updateSlides = useCallback(
 		(updater: (s: PptxSlide[]) => PptxSlide[]) => {
@@ -251,6 +289,7 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 		updateSelectedElement,
 		updateSelectedShapeStyle,
 		updateSelectedTextStyle,
+		updateSelectedTextCase,
 		updateSlides,
 		activeElements,
 		updateActiveElements,
