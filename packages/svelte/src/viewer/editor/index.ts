@@ -57,6 +57,7 @@ export {
 } from './editor-insert';
 export { buildChartInsertElement } from './editor-insert-chart';
 export { buildEquationInsertElement } from './editor-insert-equation';
+export { buildActionButtonInsertElement } from './editor-insert-action-button';
 export { buildMediaInsertElement, mediaTypeOfFile } from './editor-insert-media';
 export { buildSmartArtInsertElement } from './editor-insert-smart-art';
 export type { TextFlag } from './editor-format-mutations';
