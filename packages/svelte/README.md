@@ -1,27 +1,49 @@
 # pptx-svelte-viewer
 
-> ### ⚠️ Viewing capability only
->
-> This release provides **read-only / viewing** of `.pptx` files.
-> Editing, saving, and authoring features are **not available** in this
-> version and will be added in a future release.
->
-> The package is under active development and the API may change.
-> For the latest source, roadmap, and issue tracker visit:
->
-> **https://github.com/ChristopherVR/pptx-viewer**
+[![npm version](https://img.shields.io/npm/v/pptx-svelte-viewer.svg)](https://www.npmjs.com/package/pptx-svelte-viewer)
+[![license](https://img.shields.io/npm/l/pptx-svelte-viewer.svg)](https://github.com/ChristopherVR/pptx-viewer/blob/main/LICENSE)
 
-Svelte 5 PowerPoint viewer component. Renders `.pptx` slides in the browser
-using the same framework-agnostic engine (`pptx-viewer-core` +
-`pptx-viewer-shared`) as the React, Vue, and Angular bindings.
+Show, edit, and present Microsoft PowerPoint (`.pptx`) files directly in a
+Svelte 5 app: no server, no conversion step, no PowerPoint install required.
+Drop in a `<PowerPointViewer>` component (built with runes), hand it the
+file's bytes, and it renders slides as real HTML and CSS.
+
+![PowerPoint editor UI rendered in the browser](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
+
+The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core) engine, which turns a `.pptx` file into a structured slide model. This package is the Svelte layer that draws that model on screen, and the engine is **bundled in**, so you install just one package.
+
+<samp>**[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-svelte/)** · **[📦 npm](https://www.npmjs.com/package/pptx-svelte-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/svelte/)** · **[🧩 Core SDK](https://www.npmjs.com/package/pptx-viewer-core)**</samp>
+
+## Features
+
+- **A single component**: `<PowerPointViewer>`, written with Svelte 5 runes.
+- **Real HTML rendering**: slides are drawn as ordinary HTML and SVG, not as a
+  picture, so text stays sharp at any zoom and is selectable and accessible.
+- **Full element coverage**: text, shapes, images, groups, connectors, tables,
+  charts, SmartArt (2D and opt-in 3D), media (video/audio), ink, OLE embedded
+  objects, and 3D models - all powered by the same shared engine as the other
+  bindings.
+- **Editing**: select, drag, resize, rotate; inline text editing; undo/redo;
+  save the edited deck back to `.pptx`.
+- **Presentation mode**: fullscreen presenting via the real Fullscreen API,
+  with media autoplay.
+- **Export**: rasterise slides to PNG or PDF straight from the browser.
+- **Slide navigation**: thumbnail sidebar, toolbar, keyboard navigation, and
+  a speaker-notes panel.
+- **Themeable**: the shared `ViewerTheme` system (`--pptx-*` CSS custom
+  properties), including the vermilion presets.
+- **i18n**: English built in; register more locales via
+  `pptx-svelte-viewer/i18n`.
 
 ## Install
 
 ```bash
-npm install pptx-svelte-viewer
+npm install pptx-svelte-viewer jszip fast-xml-parser
 ```
 
-Requires Svelte 5 (runes).
+Requires Svelte 5 (runes) as a peer. The `pptx-viewer-core` engine is
+**bundled in**, so you don't install it separately unless you want to call
+the SDK directly.
 
 ## Usage
 
@@ -51,25 +73,25 @@ Requires Svelte 5 (runes).
 
 ## Props
 
-| Prop             | Type                            | Default | Description                                |
-| ---------------- | ------------------------------- | ------- | ------------------------------------------ |
-| `source`         | `Uint8Array \| ArrayBuffer`     | -       | Raw `.pptx` bytes.                         |
-| `theme`          | `ViewerTheme`                   | -       | Color/radius/CSS-var overrides.            |
-| `locale`         | `string`                        | `'en'`  | UI locale (see `pptx-svelte-viewer/i18n`). |
-| `initialSlide`   | `number`                        | `0`     | Slide shown after load (0-based).          |
-| `showThumbnails` | `boolean`                       | `true`  | Thumbnail sidebar.                         |
-| `showToolbar`    | `boolean`                       | `true`  | Navigation/zoom/fullscreen toolbar.        |
-| `onload`         | `(d: ViewerLoadDetail) => void` | -       | Fired after a presentation loads.          |
-| `onerror`        | `(message: string) => void`     | -       | Fired when loading fails.                  |
-| `onslidechange`  | `(index: number) => void`       | -       | Fired when the active slide changes.       |
+| Prop             | Type                            | Default | Description                                       |
+| ---------------- | ------------------------------- | ------- | ------------------------------------------------- |
+| `source`         | `Uint8Array \| ArrayBuffer`     | -       | Raw `.pptx` bytes.                                |
+| `theme`          | `ViewerTheme`                   | -       | Color/radius/CSS-var overrides.                   |
+| `locale`         | `string`                        | `'en'`  | UI locale (see `pptx-svelte-viewer/i18n`).        |
+| `initialSlide`   | `number`                        | `0`     | Slide shown after load (0-based).                 |
+| `showThumbnails` | `boolean`                       | `true`  | Thumbnail sidebar.                                |
+| `showToolbar`    | `boolean`                       | `true`  | Navigation/zoom/fullscreen toolbar.               |
+| `showNotes`      | `boolean`                       | `true`  | Speaker-notes panel and its toolbar toggle.       |
+| `editable`       | `boolean`                       | `false` | In-place editing (select/drag/resize/text/undo).  |
+| `smartArt3D`     | `boolean`                       | `false` | Opt-in Three.js 3D SmartArt renderer.             |
+| `onload`         | `(d: ViewerLoadDetail) => void` | -       | Fired after a presentation loads.                 |
+| `onerror`        | `(message: string) => void`     | -       | Fired when loading fails.                         |
+| `onslidechange`  | `(index: number) => void`       | -       | Fired when the active slide changes.              |
+| `onnotesupdate`  | `(notes: string) => void`       | -       | Fired when the user edits the speaker notes.      |
+| `onchange`       | `() => void`                    | -       | Fired after every committed edit when `editable`. |
 
-## Status
-
-This package is the viewer milestone: text, shapes, images, groups,
-connectors, tables, charts, SmartArt, media (video/audio), ink, and OLE
-embedded objects all render for real, powered by the same shared engine as
-the other bindings. The remaining niche types (content parts, zoom links,
-3D models) render typed placeholders. Editing is not included yet.
+See the [full docs](https://christophervr.github.io/pptx-viewer/svelte/) for
+the complete props/events contract, theming, and localization guides.
 
 ## License
 
