@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.5.0) - 2026-07-11
+
+### Features
+
+- **cli:** Add svelte and vanilla js install/scaffold targets (by @ChristopherVR) ([768aafe](https://github.com/ChristopherVR/pptx-viewer/commit/768aafe14f57b75cc3d91a00c62be261c4044789))
+
 ## [1.4.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.4.2) - 2026-07-07
 
 ## [1.4.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.4.1) - 2026-07-05

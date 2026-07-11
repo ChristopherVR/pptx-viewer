@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [0.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.1.3) - 2026-07-11
+
+### Documentation
+
+- **vanilla:** Restyle readme to match the established binding readmes (by @ChristopherVR) ([275dc2d](https://github.com/ChristopherVR/pptx-viewer/commit/275dc2df23b081d3a7f93f718ffd09f8cb61c85c))
+
 ## [0.1.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.1.2) - 2026-07-10
 
 ### Features

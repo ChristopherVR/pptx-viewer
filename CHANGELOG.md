@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-11
+
+_Releases: pptx-vanilla-viewer@0.1.3, pptx-svelte-viewer@0.1.3, @christophervr/pptx-viewer@1.5.0_
+
+### Features
+
+- **cli:** Add svelte and vanilla js install/scaffold targets (by @ChristopherVR) ([768aafe](https://github.com/ChristopherVR/pptx-viewer/commit/768aafe14f57b75cc3d91a00c62be261c4044789))
+
+### Documentation
+
+- Present svelte and vanilla bindings at parity, slow hero gif (by @ChristopherVR) ([34d07d7](https://github.com/ChristopherVR/pptx-viewer/commit/34d07d7bf133601393d90f5b8890f20544443c48))
+- **svelte:** Restyle readme to match the established binding readmes (by @ChristopherVR) ([5328bc8](https://github.com/ChristopherVR/pptx-viewer/commit/5328bc808b20b782c8234b9c859d3932fb41cfe4))
+- **vanilla:** Restyle readme to match the established binding readmes (by @ChristopherVR) ([275dc2d](https://github.com/ChristopherVR/pptx-viewer/commit/275dc2df23b081d3a7f93f718ffd09f8cb61c85c))
+- Point the landing hero at the interactive installer (by @ChristopherVR) ([614a574](https://github.com/ChristopherVR/pptx-viewer/commit/614a5741644f489f53f4685a0661c6c37e8b9ac9))
+
+### Chores
+
+- Removed incorrect pptx screenshots (by @ChristopherVR) ([f6937ca](https://github.com/ChristopherVR/pptx-viewer/commit/f6937cad46507f12c721d25f006c92f88b459869))
+
 ## 2026-07-10
 
 _Releases: pptx-vanilla-viewer@0.1.2, pptx-svelte-viewer@0.1.2_
