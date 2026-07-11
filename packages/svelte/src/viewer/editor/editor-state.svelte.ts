@@ -12,6 +12,7 @@ import {
 	updateElement,
 	updateSlideNotes,
 } from './editor-mutations';
+import { EditorSelection } from './editor-selection.svelte';
 import type { ZOrderDirection } from './editor-zorder';
 import { reorderElement } from './editor-zorder';
 import { remapInlineText } from './inline-text';
@@ -45,8 +46,8 @@ export interface EditorStateDeps {
 export class EditorState {
 	/** The editable slide array (single source of truth for the stage). */
 	slides = $state.raw<PptxSlide[]>([]);
-	/** Currently-selected top-level element id, or null. */
-	selectedElementId = $state<string | null>(null);
+	/** Reactive multi-element selection (primary = last selected). */
+	readonly selection = new EditorSelection();
 	/** Whether editing is enabled (host `editable` prop). */
 	editable = $state(false);
 	/** True once any mutation has been committed since the last load/save. */
@@ -74,11 +75,24 @@ export class EditorState {
 		return this.#canRedo;
 	}
 
-	/** The selected element resolved against the current slide (or undefined). */
+	/** The primary selected element id, or null (delegates to `selection`). */
+	get selectedElementId(): string | null {
+		return this.selection.primary;
+	}
+
+	/** The primary selected element on the current slide (or undefined). */
 	get selectedElement(): PptxElement | undefined {
 		return this.selectedElementId
 			? findSlideElement(this.slides, this.#deps.getCurrent(), this.selectedElementId)
 			: undefined;
+	}
+
+	/** Every selected element resolved against the current slide. */
+	get selectedElements(): PptxElement[] {
+		const current = this.#deps.getCurrent();
+		return this.selection.ids
+			.map((id) => findSlideElement(this.slides, current, id))
+			.filter((el): el is PptxElement => el !== undefined);
 	}
 
 	#syncHistoryFlags(): void {
@@ -89,7 +103,7 @@ export class EditorState {
 	/** Seed the editable slides from a freshly-loaded presentation. */
 	setSlides(slides: PptxSlide[]): void {
 		this.slides = slides;
-		this.selectedElementId = null;
+		this.selection.clear();
 		this.dirty = false;
 		this.interactionActive = false;
 		this.#history.clear();
@@ -111,17 +125,13 @@ export class EditorState {
 	 */
 	applyRemoteSlides(slides: PptxSlide[]): void {
 		this.slides = slides;
-		if (
-			this.selectedElementId &&
-			!findSlideElement(slides, this.#deps.getCurrent(), this.selectedElementId)
-		) {
-			this.selectedElementId = null;
-		}
+		const current = this.#deps.getCurrent();
+		this.selection.prune((id) => Boolean(findSlideElement(slides, current, id)));
 	}
 
 	/** Drop selection/dirty/interaction + history (new content or teardown). */
 	reset(): void {
-		this.selectedElementId = null;
+		this.selection.clear();
 		this.dirty = false;
 		this.interactionActive = false;
 		this.#history.clear();
@@ -130,7 +140,7 @@ export class EditorState {
 	}
 
 	select(id: string | null): void {
-		this.selectedElementId = id;
+		this.selection.set(id);
 	}
 
 	/** Snapshot the current slides onto the undo stack (before a mutation). */
@@ -161,14 +171,20 @@ export class EditorState {
 		this.commitChange();
 	}
 
+	/** Delete every selected element on the current slide (with history). */
 	deleteSelected(): void {
-		const id = this.selectedElementId;
-		if (!this.editable || !id || !this.selectedElement) {
+		const ids = this.selection.ids;
+		if (!this.editable || ids.length === 0 || this.selectedElements.length === 0) {
 			return;
 		}
 		this.pushHistory();
-		this.slides = removeElement(this.slides, this.#deps.getCurrent(), id);
-		this.selectedElementId = null;
+		const current = this.#deps.getCurrent();
+		let next = this.slides;
+		for (const id of ids) {
+			next = removeElement(next, current, id);
+		}
+		this.slides = next;
+		this.selection.clear();
 		this.commitChange();
 	}
 
@@ -183,7 +199,7 @@ export class EditorState {
 		}
 		this.pushHistory();
 		this.slides = result.slides;
-		this.selectedElementId = result.newId;
+		this.selection.set(result.newId);
 		this.commitChange();
 		return result.newId;
 	}
@@ -222,7 +238,7 @@ export class EditorState {
 		const withId = { ...element, id: element.id || newElementId() } as PptxElement;
 		this.pushHistory();
 		this.slides = appendElement(this.slides, current, withId);
-		this.selectedElementId = withId.id;
+		this.selection.set(withId.id);
 		this.commitChange();
 		return withId.id;
 	}
