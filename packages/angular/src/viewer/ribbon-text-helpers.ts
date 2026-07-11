@@ -6,9 +6,9 @@
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
-import type { ChangeCaseMode } from 'pptx-viewer-shared';
-import { transformTextCase } from 'pptx-viewer-shared';
 
+import type { ChangeCaseMode } from '../internal/shared-src/render/text-case-transform';
+import { transformTextCase } from '../internal/shared-src/render/text-case-transform';
 import type { EditorStateService } from './editor-state.service';
 
 /** The selection's text style, or null when the element carries no text props. */
