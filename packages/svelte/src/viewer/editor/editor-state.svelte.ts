@@ -6,6 +6,7 @@ import { EditorAnimationController } from './editor-animation-controller';
 import { EditorArrangeController } from './editor-arrange-controller';
 import { EditorBackgroundController } from './editor-background-controller';
 import { EditorClipboardController } from './editor-clipboard-controller';
+import { EditorInkController } from './editor-ink-controller.svelte';
 import { appendElement, newElementId } from './editor-insert';
 import type { ElementBoxPatch } from './editor-mutations';
 import {
@@ -82,6 +83,8 @@ export class EditorState {
 	readonly transitionOps: EditorTransitionController;
 	/** The Animations tab: add/remove an entrance/emphasis/exit preset on the selection. */
 	readonly animationOps: EditorAnimationController;
+	/** The Draw tab: tool/colour/width state + the ink-stroke commit/erase mutations. */
+	readonly inkOps: EditorInkController;
 
 	constructor(deps: EditorStateDeps) {
 		this.#deps = deps;
@@ -91,6 +94,7 @@ export class EditorState {
 		this.backgroundOps = new EditorBackgroundController(this);
 		this.transitionOps = new EditorTransitionController(this);
 		this.animationOps = new EditorAnimationController(this);
+		this.inkOps = new EditorInkController(this);
 	}
 
 	/** Whether at least one undo step is available (reactive). */
@@ -146,6 +150,7 @@ export class EditorState {
 		this.interactionActive = false;
 		this.#history.clear();
 		this.#lastNudgeAt = 0;
+		this.inkOps.setTool('select');
 		this.#syncHistoryFlags();
 	}
 
@@ -174,6 +179,7 @@ export class EditorState {
 		this.interactionActive = false;
 		this.#history.clear();
 		this.#lastNudgeAt = 0;
+		this.inkOps.setTool('select');
 		this.#syncHistoryFlags();
 	}
 

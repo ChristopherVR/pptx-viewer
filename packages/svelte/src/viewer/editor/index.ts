@@ -14,6 +14,10 @@ export {
 export { EditorBackgroundController } from './editor-background-controller';
 export { copyElementToClipboard, pasteClipboardElement } from './editor-clipboard';
 export { EditorClipboardController } from './editor-clipboard-controller';
+export type { InkDrawTool } from './editor-ink-controller.svelte';
+export { EditorInkController } from './editor-ink-controller.svelte';
+export type { InkGestureController, InkGestureDeps } from './editor-ink-gesture';
+export { createInkGestureController } from './editor-ink-gesture';
 export { EditorSlidesController } from './editor-slides-controller';
 export { EditorTransitionController } from './editor-transition-controller';
 export { deleteSlideAt, duplicateSlideAt, insertBlankSlideAfter } from './editor-slide-ops';
