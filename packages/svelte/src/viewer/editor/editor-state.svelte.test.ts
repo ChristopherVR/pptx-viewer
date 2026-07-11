@@ -43,7 +43,7 @@ function make(current = 0, save = vi.fn(async () => new Uint8Array([1, 2, 3]))) 
 describe('editorState selection + geometry', () => {
 	it('setSlides seeds the working slides and resets selection/history/dirty', () => {
 		const { editor } = make();
-		editor.selectedElementId = 'x';
+		editor.select('x');
 		editor.dirty = true;
 		editor.setSlides([slide('a', [shape('e1')])]);
 		expect(editor.slides).toHaveLength(1);
