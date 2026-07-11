@@ -1,5 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import type { ShapePresetType } from 'pptx-viewer-shared';
+import type { CanvasSize, ShapePresetType } from 'pptx-viewer-shared';
 
 import { mapSlideElements } from './editor-mutations';
 
@@ -79,6 +79,18 @@ export function newPresetShapeElement(
 			strokeWidth: 1,
 		},
 	} as PptxElement;
+}
+
+/**
+ * Centre an element's box on the slide canvas (top-left clamped to >= 0).
+ * Used by the "structured" Insert actions (chart / equation / SmartArt /
+ * media / action button / field) so a freshly-inserted diagram or media
+ * clip lands in the middle of the slide rather than stacking at a fixed
+ * corner offset.
+ */
+export function centerOnCanvas(el: PptxElement, canvasSize: CanvasSize): void {
+	el.x = Math.max(0, Math.round((canvasSize.width - el.width) / 2));
+	el.y = Math.max(0, Math.round((canvasSize.height - el.height) / 2));
 }
 
 /** Append `element` to the given slide's element list (immutable). */

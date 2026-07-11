@@ -47,6 +47,7 @@ export type { EditorKeyboardDeps } from './editor-keyboard';
 export { createEditorKeydownHandler } from './editor-keyboard';
 export {
 	appendElement,
+	centerOnCanvas,
 	newElementId,
 	newImageElement,
 	newPresetShapeElement,
@@ -54,6 +55,7 @@ export {
 	newTableElement,
 	newTextElement,
 } from './editor-insert';
+export { buildChartInsertElement } from './editor-insert-chart';
 export type { TextFlag } from './editor-format-mutations';
 export {
 	adjustFontSizePatch,
