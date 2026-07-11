@@ -1,5 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, RemoteCursor, SanitizedPresence } from 'pptx-viewer-shared';
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from 'pptx-viewer-shared';
 
 /** `zoom` is either an explicit scale factor (1 = 100%) or fit-to-viewport. */
@@ -42,6 +42,12 @@ export interface ViewerState {
 	 * navigation for the life of the viewer instance (in-memory only).
 	 */
 	notesExpanded: boolean;
+	/** Remote collaborators currently in the session (empty when not collaborating). */
+	remotePresences: SanitizedPresence[];
+	/** Remote cursors visible on the current slide, projected from `remotePresences`. */
+	cursors: RemoteCursor[];
+	/** Client id of the peer the local user is following, or null when free. */
+	followedClientId: number | null;
 }
 
 export function createInitialViewerState(): ViewerState {
@@ -59,6 +65,9 @@ export function createInitialViewerState(): ViewerState {
 		dirty: false,
 		interactionActive: false,
 		notesExpanded: false,
+		remotePresences: [],
+		cursors: [],
+		followedClientId: null,
 	};
 }
 

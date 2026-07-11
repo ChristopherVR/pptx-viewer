@@ -10,6 +10,7 @@ import type {
 } from 'pptx-viewer-shared';
 
 import type { AutosaveStatus } from './autosave';
+import type { ShareDefaults } from './collab/share-helpers';
 import type {
 	ExportGifOptions,
 	ExportPdfOptions,
@@ -152,6 +153,13 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	 * slide array, so a joiner's host-provided media can degrade.
 	 */
 	collaboration?: CollaborationConfig;
+	/**
+	 * Prefilled values for the built-in Share/Broadcast dialogs' form fields
+	 * (e.g. a host-generated display name), mirroring the Vue binding's
+	 * `shareDefaults` prop. The broadcast dialog uses `userName` as the
+	 * presenter's display name.
+	 */
+	shareDefaults?: ShareDefaults;
 }
 
 /** The viewer handle returned by `createPptxViewer`. */

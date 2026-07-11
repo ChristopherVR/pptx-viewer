@@ -90,6 +90,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getScale: () => this.renderer.effectiveScale(),
 			getHandler: () => this.loading.getHandler(),
 			onChange: options.onChange,
+			onCursorMove: (x, y) => this.sessions.setCollaborationCursor(x, y),
 		});
 		this.editor.attachChrome();
 		this.exporter = createExportLifecycle({
@@ -112,12 +113,15 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			}),
 		);
 		this.sessions = createSessionControllers({
+			doc: this.doc,
 			store: this.store,
 			options,
 			getHandler: () => this.loading.getHandler(),
 			getChrome: () => this.lifecycle.chrome,
 			getTranslator: () => this.t,
+			getScale: () => this.renderer.effectiveScale(),
 			setEditable: (editable) => this.setEditable(editable),
+			goToSlide: (index) => this.controls.goToSlide(index),
 		});
 		this.renderer.renderAll();
 

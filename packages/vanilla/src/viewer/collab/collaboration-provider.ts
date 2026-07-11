@@ -16,16 +16,13 @@
  * `yjs` / `y-webrtc` / `y-websocket` are optional peer dependencies, imported
  * lazily here so a host that never collaborates never loads them.
  */
-import type { CollaborationConfig, CollaborationTransport } from 'pptx-viewer-shared';
+import type {
+	AwarenessLike,
+	CollaborationConfig,
+	CollaborationTransport,
+} from 'pptx-viewer-shared';
 
-/** The minimal Yjs awareness surface used by the collaboration controller. */
-export interface AwarenessLike {
-	clientID?: number;
-	setLocalStateField: (field: string, value: unknown) => void;
-	getStates: () => Map<number, Record<string, unknown>>;
-	on: (event: string, cb: () => void) => void;
-	off?: (event: string, cb: () => void) => void;
-}
+export type { AwarenessLike };
 
 /** A transport-agnostic view of a live Yjs provider. */
 export interface CollabProviderHandle {

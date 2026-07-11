@@ -29,6 +29,8 @@ export interface EditorControllerDeps {
 	getHandler(): PptxHandler | null;
 	/** Host `onChange` callback: fired after every committed mutation. */
 	onChange?: () => void;
+	/** Notified with slide-space coordinates on stage pointer move (collaboration cursor broadcast). */
+	onCursorMove?: (x: number, y: number) => void;
 }
 
 export interface EditorController {
@@ -96,6 +98,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		getScale: deps.getScale,
 		getOverlay: () => overlay,
 		getStageRoot: () => attachedWrap?.querySelector('.pptxv-stage') ?? null,
+		onCursorMove: deps.onCursorMove,
 	});
 
 	const syncOverlay = (): void => {
@@ -132,6 +135,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	const detachChrome = (): void => {
 		interactions.closeInline(true);
 		attachedWrap?.removeEventListener('pointerdown', interactions.onStagePointerDown);
+		attachedWrap?.removeEventListener('pointermove', interactions.onStagePointerMove);
 		attachedWrap?.removeEventListener('dblclick', interactions.onStageDblClick);
 		attachedRoot?.removeEventListener('keydown', onKeyDown);
 		attachedWrap = null;
@@ -185,6 +189,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			attachedWrap = chrome.stageWrap;
 			attachedRoot = chrome.root;
 			attachedWrap.addEventListener('pointerdown', interactions.onStagePointerDown);
+			attachedWrap.addEventListener('pointermove', interactions.onStagePointerMove);
 			attachedWrap.addEventListener('dblclick', interactions.onStageDblClick);
 			attachedRoot.addEventListener('keydown', onKeyDown);
 			overlay.mount(attachedWrap);

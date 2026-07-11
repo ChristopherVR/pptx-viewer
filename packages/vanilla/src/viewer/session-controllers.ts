@@ -3,6 +3,8 @@ import type { CollaborationConfig, ConnectionStatus } from 'pptx-viewer-shared';
 
 import type { AutosaveController, AutosaveStatus } from './autosave/autosave-controller';
 import { createAutosaveController } from './autosave/autosave-controller';
+import type { CollabUiController } from './collab/collab-ui';
+import { createCollabUi } from './collab/collab-ui';
 import type { CollaborationController } from './collab/collaboration-controller';
 import { createCollaborationController } from './collab/collaboration-controller';
 import type { Translator } from './i18n';
@@ -16,12 +18,16 @@ const DEFAULT_AUTOSAVE_INTERVAL_MS = 2_000;
 const DEFAULT_AUTOSAVE_FILE_PATH = 'presentation.pptx';
 
 export interface SessionControllersDeps {
+	doc: Document;
 	store: Store<ViewerState>;
 	options: PptxViewerOptions;
 	getHandler: () => PptxHandler | null;
 	getChrome: () => ViewerChrome;
 	getTranslator: () => Translator;
+	getScale: () => number;
 	setEditable: (editable: boolean) => void;
+	/** Navigate to a slide (follow-mode target). */
+	goToSlide: (index: number) => void;
 }
 
 /**
@@ -34,6 +40,10 @@ export interface SessionControllers {
 	startCollaboration(config: CollaborationConfig): Promise<void>;
 	stopCollaboration(): void;
 	getCollaborationStatus(): ConnectionStatus;
+	/** Publish a cursor move (slide-space px); no-op when no session is active. */
+	setCollaborationCursor(x: number, y: number): void;
+	/** Follow the given peer's active slide, or `null` to stop following. */
+	followCollaborationUser(clientId: number | null): void;
 	/** Force an immediate autosave (no-op when autosave is disabled). */
 	autosaveNow(): Promise<void>;
 	destroy(): void;
@@ -73,11 +83,19 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		});
 	}
 
+	// Set once `collabUi` is constructed below (it needs the controller's
+	// start/stop functions, which must exist first); forwards every status
+	// transition into the collab UI (dialogs + toolbar status pill).
+	let notifyCollabUi: ((status: ConnectionStatus) => void) | null = null;
+
 	const collaboration: CollaborationController = createCollaborationController({
 		store: deps.store,
 		getHandler: deps.getHandler,
 		setEditable: deps.setEditable,
-		onStatusChange: (status) => options.onCollaborationStatus?.(status),
+		onStatusChange: (status) => {
+			options.onCollaborationStatus?.(status);
+			notifyCollabUi?.(status);
+		},
 	});
 
 	// URL-driven / host-configured join: auto-start when a config is supplied.
@@ -85,12 +103,54 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		void collaboration.start(options.collaboration);
 	}
 
+	// Publish local active-slide/selection changes and drive follow-mode
+	// navigation off the store, so no other module needs to know about
+	// collaboration to stay presence-aware.
+	const unsubscribePresence = deps.store.subscribe((state, previous) => {
+		if (!collaboration.isActive()) {
+			return;
+		}
+		if (state.currentSlide !== previous.currentSlide) {
+			collaboration.setActiveSlide(state.currentSlide);
+		}
+		if (state.selectedElementId !== previous.selectedElementId) {
+			collaboration.setSelection(state.selectedElementId ?? undefined, state.currentSlide);
+		}
+		if (state.followedClientId !== null && state.remotePresences !== previous.remotePresences) {
+			const followed = state.remotePresences.find((p) => p.clientId === state.followedClientId);
+			if (followed && followed.activeSlideIndex !== state.currentSlide) {
+				deps.goToSlide(followed.activeSlideIndex);
+			}
+		}
+	});
+
+	// Owns the Share/Broadcast dialogs, the cursor overlay, the toolbar status
+	// pill, and the follow-mode bar; delegates start/stop back into `collaboration`.
+	const collabUi: CollabUiController = createCollabUi({
+		doc: deps.doc,
+		store: deps.store,
+		getChrome: deps.getChrome,
+		getTranslator: deps.getTranslator,
+		getScale: deps.getScale,
+		startCollaboration: (config) => collaboration.start(config),
+		stopCollaboration: () => collaboration.stop(),
+		getStatus: () => collaboration.getStatus(),
+		getConfig: () => collaboration.getConfig(),
+		followUser: (clientId) => collaboration.followUser(clientId),
+		shareDefaults: options.shareDefaults,
+	});
+	notifyCollabUi = (status) => collabUi.onStatusChange(status);
+
 	return {
 		startCollaboration: (config) => collaboration.start(config),
 		stopCollaboration: () => collaboration.stop(),
 		getCollaborationStatus: () => collaboration.getStatus(),
+		setCollaborationCursor: (x, y) => collaboration.setCursor(x, y, deps.store.get().currentSlide),
+		followCollaborationUser: (clientId) => collaboration.followUser(clientId),
 		autosaveNow: () => autosave?.saveNow() ?? Promise.resolve(),
 		destroy() {
+			unsubscribePresence();
+			collabUi.destroy();
 			collaboration.destroy();
 			autosave?.destroy();
 		},

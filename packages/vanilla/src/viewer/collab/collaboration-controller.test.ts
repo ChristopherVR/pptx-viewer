@@ -25,6 +25,7 @@ vi.mock(import('pptx-viewer-shared'), async (importOriginal) => ({
 
 // ── Yjs + the transport provider: no real network / CRDT in unit tests ──
 let capturedSynced: (() => void) | null = null;
+let capturedStatus: ((connected: boolean) => void) | null = null;
 const providerDestroy = vi.fn();
 
 vi.mock(
@@ -52,7 +53,9 @@ vi.mock(import('./collaboration-provider'), () => ({
 					getStates: () => new Map(),
 					on: () => {},
 				},
-				onStatus: () => {},
+				onStatus: (cb: (connected: boolean) => void) => {
+					capturedStatus = cb;
+				},
 				connectedNow: true,
 				onSynced: (cb: () => void) => {
 					capturedSynced = cb;
@@ -96,6 +99,7 @@ describe('createCollaborationController', () => {
 		readSlidesFromYDoc.mockReset().mockReturnValue([]);
 		capturedObserve = null;
 		capturedSynced = null;
+		capturedStatus = null;
 		providerDestroy.mockReset();
 		store = createStore(createInitialViewerState());
 	});
@@ -126,6 +130,26 @@ describe('createCollaborationController', () => {
 		store.set({ slides: [slide('a')] });
 		expect(reconcileSlidesInYDoc).toHaveBeenCalledOnce();
 		expect(reconcileSlidesInYDoc.mock.calls[0][0]).toStrictEqual([slide('a')]);
+		collab.stop();
+	});
+
+	it('re-arms the sync gate on reconnect instead of leaving it permanently open', async () => {
+		const collab = build();
+		await collab.start({ ...webrtcConfig, role: 'collaborator' });
+		capturedSynced?.(); // initial sync -> gate opens
+		reconcileSlidesInYDoc.mockClear();
+
+		// Drop and reconnect: without a re-arm, the gate stays open and a local
+		// edit issued right after reconnecting could clobber the room before a
+		// fresh sync confirmation arrives.
+		capturedStatus?.(false);
+		capturedStatus?.(true);
+
+		store.set({ slides: [slide('a')] });
+		expect(reconcileSlidesInYDoc).not.toHaveBeenCalled();
+
+		capturedSynced?.(); // fresh sync confirmation re-opens the gate
+		expect(reconcileSlidesInYDoc).toHaveBeenCalledOnce();
 		collab.stop();
 	});
 

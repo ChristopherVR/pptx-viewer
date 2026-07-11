@@ -8,40 +8,38 @@ import type {
 import {
 	CONNECTION_TIMEOUT_MS,
 	createSyncGate,
+	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
 	LOCAL_SYNC_ORIGIN,
 	observeYDocSlides,
-	readSlidesFromYDoc,
-	reconcileSlidesInYDoc,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
 
-import { clampSlideIndex } from '../state';
 import type { Store, ViewerState } from '../state';
+import type { PresenceController } from './collaboration-presence';
+import { createPresenceController } from './collaboration-presence';
 import type { CollabProviderHandle } from './collaboration-provider';
 import { createCollabProvider } from './collaboration-provider';
+import { createSlidesSync } from './collaboration-slides-sync';
+import type { SlidesSync } from './collaboration-slides-sync';
+import { createWriteBackScheduler } from './collaboration-writeback';
 
 /**
  * Real-time collaboration for the vanilla viewer over Yjs (y-websocket or
- * serverless y-webrtc), ported from the Vue `useCollaboration` composable minus
- * its reactive presence layer (see the module JSDoc caveats).
+ * serverless y-webrtc), ported from the Vue `useCollaboration` composable.
  *
  * Slide sync is granular via the shared `reconcileSlidesInYDoc` (tagged
- * `LOCAL_SYNC_ORIGIN` so the observer skips our own writes), matching the
- * React/Vue/Angular apply path exactly rather than a naive whole-array replace
- * on the wire. Local edits publish by subscribing to the viewer store; remote
- * edits apply by writing the reconstructed slides back into the store.
+ * `LOCAL_SYNC_ORIGIN` so the observer skips our own writes; see
+ * `collaboration-slides-sync.ts`), matching the React/Vue/Angular apply path.
+ * Presence (cursors/selection/follow-mode) publishes via the shared
+ * `createPresencePublisher`/`derivePresenceList` (`collaboration-presence.ts`)
+ * into `store.get().remotePresences`/`.cursors` so the cursors overlay and
+ * status UI re-render off the same store as the rest of the viewer.
  *
- * KNOWN LIMITATIONS (they live in `pptx-viewer-shared`; fixing them is out of
- * scope here):
- *  - the codec allowlists drop binary media/OLE/3D/ink fields, so those
- *    elements travel structurally but without their embedded bytes;
- *  - a remote update replaces the whole local slides array, which can degrade
- *    host-provided media elements whose blob URLs are keyed in the separate
- *    `mediaDataUrls` map a late joiner never received;
- *  - collaboration undo semantics are undefined: the local `EditorHistory`
- *    stack keeps working but does not coordinate with peers.
+ * KNOWN LIMITATION: collaboration undo semantics are undefined - the local
+ * `EditorHistory` stack keeps working but does not coordinate with peers
+ * (matches React/Vue/Angular).
  */
 export interface CollaborationControllerDeps {
 	store: Store<ViewerState>;
@@ -62,11 +60,19 @@ export interface CollaborationController {
 	isActive(): boolean;
 	/** Current connection status. */
 	getStatus(): ConnectionStatus;
+	/** Publish a cursor move (slide-space px); no-op when no session is active. */
+	setCursor(x: number, y: number, activeSlideIndex?: number): void;
+	/** Publish the local selection; no-op when no session is active. */
+	setSelection(selectedElementId: string | undefined, activeSlideIndex?: number): void;
+	/** Publish the local active-slide index (drives peer follow-along). */
+	setActiveSlide(index: number): void;
+	/** Follow the given peer's active slide, or `null` to stop following. */
+	followUser(clientId: number | null): void;
+	/** The last config used to start a session (persists after `stop()`, for retry). */
+	getConfig(): CollaborationConfig | null;
 	/** Stop and release everything (viewer destroy). */
 	destroy(): void;
 }
-
-const WRITE_BACK_DEBOUNCE_MS = 5_000;
 
 export function createCollaborationController(
 	deps: CollaborationControllerDeps,
@@ -79,15 +85,13 @@ export function createCollaborationController(
 	let currentYDoc: YDocLike | null = null;
 	let provider: CollabProviderHandle | null = null;
 	let yFactories: YjsFactories | null = null;
-	let applyingRemote = false;
+	let presence: PresenceController | null = null;
 	let publishSuppressed = false;
 	let editableBeforeViewer: boolean | null = null;
-	let lastSynced = '';
 	let lastConfig: CollaborationConfig | null = null;
 	let unobserveSlides: (() => void) | null = null;
 	let unsubscribeStore: (() => void) | null = null;
 	let connectTimer: ReturnType<typeof setTimeout> | null = null;
-	let writeBackTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function setStatus(next: ConnectionStatus): void {
 		if (next === status) {
@@ -97,82 +101,29 @@ export function createCollaborationController(
 		deps.onStatusChange?.(next);
 	}
 
-	function clearTimers(): void {
+	function clearConnectTimer(): void {
 		if (connectTimer !== null) {
 			clearTimeout(connectTimer);
 			connectTimer = null;
 		}
-		if (writeBackTimer !== null) {
-			clearTimeout(writeBackTimer);
-			writeBackTimer = null;
-		}
 	}
 
-	/** Elected-writer (role `owner`) persistence: re-serialize the doc to bytes. */
-	function scheduleWriteBack(config: CollaborationConfig): void {
-		if (!config.onWriteBack || config.role !== 'owner') {
-			return;
-		}
-		if (writeBackTimer !== null) {
-			clearTimeout(writeBackTimer);
-		}
-		const debounceMs = config.writeBackDebounceMs ?? WRITE_BACK_DEBOUNCE_MS;
-		writeBackTimer = setTimeout(() => {
-			writeBackTimer = null;
-			const handler = deps.getHandler();
-			if (!currentYDoc || !handler || !config.onWriteBack) {
-				return;
-			}
-			void handler
-				.save(readSlidesFromYDoc(currentYDoc))
-				.then((bytes) => config.onWriteBack?.(bytes))
-				.catch(() => {
-					/* non-fatal: host can retry on the next change */
-				});
-		}, debounceMs);
-	}
+	const writeBack = createWriteBackScheduler({
+		getYDoc: () => currentYDoc,
+		getHandler: deps.getHandler,
+	});
 
-	/** Publish the current local slides into the doc (granular, echo-deduped). */
-	function flushLocalSlides(): void {
-		if (!currentYDoc || !yFactories || applyingRemote || publishSuppressed) {
-			return;
-		}
-		const slides = store.get().slides;
-		const serialized = JSON.stringify(slides);
-		if (serialized === lastSynced) {
-			return;
-		}
-		lastSynced = serialized;
-		reconcileSlidesInYDoc(slides, currentYDoc, yFactories);
-		if (lastConfig) {
-			scheduleWriteBack(lastConfig);
-		}
+	const slidesSync: SlidesSync = createSlidesSync(store, (config) => writeBack.schedule(config));
+
+	function flushLocal(): void {
+		slidesSync.flushLocalSlides(currentYDoc, yFactories, lastConfig, publishSuppressed);
 	}
 
 	// First-write gate: until the provider confirms its initial sync (or the
 	// grace period elapses for a lone webrtc peer), local slides must not seed
 	// the doc, or a late joiner's bootstrap deck would merge into the room's real
 	// content. Opening the gate performs the deferred first write.
-	const syncGate = createSyncGate(flushLocalSlides);
-
-	function applyRemoteSlides(config: CollaborationConfig): void {
-		if (!currentYDoc) {
-			return;
-		}
-		const remote = readSlidesFromYDoc(currentYDoc);
-		if (remote.length === 0) {
-			return;
-		}
-		applyingRemote = true;
-		store.set({
-			slides: remote,
-			currentSlide: clampSlideIndex(store.get().currentSlide, remote.length),
-		});
-		applyingRemote = false;
-		// Dedupe the echo: the store change this triggers is a no-op for us.
-		lastSynced = JSON.stringify(remote);
-		scheduleWriteBack(config);
-	}
+	const syncGate = createSyncGate(flushLocal);
 
 	async function start(config: CollaborationConfig): Promise<void> {
 		stop();
@@ -203,6 +154,18 @@ export function createCollaborationController(
 
 			provider = await createCollabProvider(transport, config, doc);
 
+			presence = createPresenceController(
+				store,
+				provider.awareness,
+				{
+					userName: config.userName,
+					userColor: config.userColor ?? DEFAULT_CURSOR_COLOR,
+					userAvatar: config.userAvatar,
+					role: config.role,
+				},
+				() => ({ width: store.get().canvasSize.width, height: store.get().canvasSize.height }),
+			);
+
 			// Read-only viewer role: disable editing and never publish local edits.
 			publishSuppressed = config.role === 'viewer';
 			if (publishSuppressed) {
@@ -223,16 +186,30 @@ export function createCollaborationController(
 			if (transport === 'webrtc') {
 				// Same-browser tabs meet over BroadcastChannel at once (no server wait).
 				setStatus('connected');
-			} else {
+				// y-webrtc reports peer connectivity via the same onStatus surface;
+				// re-arm the gate on a drop so a reconnect re-gates writes instead
+				// of leaving it permanently open from the first connection.
 				provider.onStatus((isConnected) => {
 					if (isConnected) {
-						if (connectTimer !== null) {
-							clearTimeout(connectTimer);
-							connectTimer = null;
-						}
 						setStatus('connected');
 					} else if (active) {
 						setStatus('disconnected');
+						syncGate.reset();
+						syncGate.arm();
+					}
+				});
+			} else {
+				provider.onStatus((isConnected) => {
+					if (isConnected) {
+						clearConnectTimer();
+						setStatus('connected');
+					} else if (active) {
+						setStatus('disconnected');
+						// Re-arm on (re)connect: without this, a peer that drops and
+						// rejoins keeps the gate permanently open from the first
+						// connection and can clobber the room with a stale local doc.
+						syncGate.reset();
+						syncGate.arm();
 					}
 				});
 				if (provider.connectedNow) {
@@ -250,17 +227,17 @@ export function createCollaborationController(
 
 			// Observe remote slide changes, skipping our own reconcile transactions.
 			unobserveSlides = observeYDocSlides(currentYDoc, (_events, transaction) => {
-				if (transaction?.origin === LOCAL_SYNC_ORIGIN || applyingRemote) {
+				if (transaction?.origin === LOCAL_SYNC_ORIGIN || slidesSync.isApplyingRemote()) {
 					return;
 				}
-				applyRemoteSlides(config);
+				slidesSync.applyRemoteSlides(currentYDoc, config);
 			});
 
 			// Broadcast local slide edits granularly (diff by id, one transaction).
 			// Suppressed until the sync gate opens; the gate flushes on open.
 			unsubscribeStore = store.subscribe((state, previous) => {
 				if (state.slides !== previous.slides && syncGate.isOpen()) {
-					flushLocalSlides();
+					flushLocal();
 				}
 			});
 
@@ -272,20 +249,22 @@ export function createCollaborationController(
 	}
 
 	function stop(): void {
-		clearTimers();
+		clearConnectTimer();
+		writeBack.cancel();
 		syncGate.reset();
+		slidesSync.reset();
 		unobserveSlides?.();
 		unobserveSlides = null;
 		unsubscribeStore?.();
 		unsubscribeStore = null;
+		presence?.destroy();
+		presence = null;
 		provider?.destroy();
 		ydoc?.destroy();
 		provider = null;
 		ydoc = null;
 		currentYDoc = null;
 		yFactories = null;
-		applyingRemote = false;
-		lastSynced = '';
 		// Restore the editing state a viewer-role session forced off.
 		if (publishSuppressed && editableBeforeViewer !== null) {
 			deps.setEditable(editableBeforeViewer);
@@ -301,6 +280,12 @@ export function createCollaborationController(
 		stop,
 		isActive: () => active,
 		getStatus: () => status,
+		setCursor: (x, y, activeSlideIndex) => presence?.setCursor(x, y, activeSlideIndex),
+		setSelection: (selectedElementId, activeSlideIndex) =>
+			presence?.setSelection(selectedElementId, activeSlideIndex),
+		setActiveSlide: (index) => presence?.setActiveSlide(index),
+		followUser: (clientId) => presence?.followUser(clientId ?? null),
+		getConfig: () => lastConfig,
 		destroy: stop,
 	};
 }

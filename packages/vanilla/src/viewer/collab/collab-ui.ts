@@ -1,0 +1,188 @@
+import type { CollaborationConfig, ConnectionStatus } from 'pptx-viewer-shared';
+import { buildBroadcastViewerUrl } from 'pptx-viewer-shared';
+
+import type { Translator } from '../i18n';
+import { createEl } from '../render';
+import type { Store, ViewerState } from '../state';
+import type { ViewerChrome } from '../ui';
+import { createIcon } from '../ui';
+import type { BroadcastConfig } from './broadcast-helpers';
+import { buildBroadcastSessionConfig } from './broadcast-helpers';
+import type { ShareDefaults } from './share-helpers';
+import { createBroadcastDialog } from './ui/broadcast-dialog';
+import { createCollaborationCursors } from './ui/collaboration-cursors';
+import { createCollaborationStatus } from './ui/collaboration-status';
+import { createFollowModeBar } from './ui/follow-mode-bar';
+import { createShareDialog } from './ui/share-dialog';
+
+/**
+ * collab-ui.ts: owns the Share/Broadcast dialogs, the toolbar status pill +
+ * trigger buttons, the remote-cursor overlay, and the follow-mode bar; wires
+ * them all to the store and the session controllers' collaboration
+ * functions. Vanilla port of the Vue `useCollaborationWiring` composable plus
+ * its four presentational components, mounted imperatively. Constructed by
+ * `session-controllers.ts` (the integration point that already owns the
+ * collaboration controller this delegates to).
+ */
+
+export interface CollabUiDeps {
+	doc: Document;
+	store: Store<ViewerState>;
+	getChrome: () => ViewerChrome;
+	getTranslator: () => Translator;
+	getScale: () => number;
+	startCollaboration: (config: CollaborationConfig) => Promise<void>;
+	stopCollaboration: () => void;
+	getStatus: () => ConnectionStatus;
+	getConfig: () => CollaborationConfig | null;
+	followUser: (clientId: number | null) => void;
+	shareDefaults?: ShareDefaults;
+}
+
+export interface CollabUiController {
+	/** Reflect a connection-status transition (dialogs + status pill). */
+	onStatusChange(status: ConnectionStatus): void;
+	destroy(): void;
+}
+
+export function createCollabUi(deps: CollabUiDeps): CollabUiController {
+	const { doc } = deps;
+	const t = deps.getTranslator();
+	const chrome = deps.getChrome();
+
+	let broadcastRoomId = '';
+	let broadcastServerUrl = '';
+
+	function viewerUrl(): string {
+		if (!broadcastRoomId) {
+			return '';
+		}
+		const location = doc.defaultView?.location;
+		return buildBroadcastViewerUrl(
+			broadcastRoomId,
+			broadcastServerUrl,
+			location ? { origin: location.origin, pathname: location.pathname } : undefined,
+		);
+	}
+
+	const shareDialog = createShareDialog(doc, t, {
+		onStart: (config) =>
+			void deps.startCollaboration(config).then(() => shareDialog.setActive(true)),
+		onStop: () => {
+			deps.stopCollaboration();
+			shareDialog.setActive(false);
+			shareDialog.close();
+		},
+	});
+
+	const broadcastDialog = createBroadcastDialog(doc, t, {
+		onStart: (config: BroadcastConfig) => {
+			broadcastRoomId = config.roomId;
+			broadcastServerUrl = config.serverUrl;
+			const session = buildBroadcastSessionConfig(config, deps.shareDefaults?.userName);
+			void deps
+				.startCollaboration(session)
+				.then(() => broadcastDialog.setActive(true, viewerUrl()));
+		},
+		onStop: () => {
+			deps.stopCollaboration();
+			broadcastRoomId = '';
+			broadcastServerUrl = '';
+			broadcastDialog.setActive(false, '');
+			broadcastDialog.close();
+		},
+	});
+
+	const statusPill = createCollaborationStatus(doc, t, () => {
+		const config = deps.getConfig();
+		if (config) {
+			void deps.startCollaboration(config);
+		}
+	});
+
+	let shareBtn: HTMLButtonElement | null = null;
+	let broadcastBtn: HTMLButtonElement | null = null;
+	if (chrome.toolbar) {
+		const toolbarEl = chrome.toolbar.el;
+		shareBtn = createEl(doc, 'button', 'pptxv-btn');
+		shareBtn.type = 'button';
+		shareBtn.title = t('pptx.toolbar.share');
+		shareBtn.setAttribute('aria-label', t('pptx.toolbar.share'));
+		shareBtn.appendChild(createIcon(doc, 'share'));
+		shareBtn.addEventListener('click', () => {
+			shareDialog.open(deps.shareDefaults, deps.getStatus() !== 'disconnected');
+		});
+
+		broadcastBtn = createEl(doc, 'button', 'pptxv-btn');
+		broadcastBtn.type = 'button';
+		broadcastBtn.title = t('pptx.broadcast.startTitle');
+		broadcastBtn.setAttribute('aria-label', t('pptx.broadcast.startTitle'));
+		broadcastBtn.appendChild(createIcon(doc, 'broadcast'));
+		broadcastBtn.addEventListener('click', () => {
+			broadcastDialog.open(
+				{ roomId: broadcastRoomId, serverUrl: broadcastServerUrl },
+				deps.getStatus() !== 'disconnected',
+				viewerUrl(),
+			);
+		});
+
+		toolbarEl.append(shareBtn, broadcastBtn, statusPill.el);
+	}
+
+	const cursors = createCollaborationCursors(doc);
+	const followBar = createFollowModeBar(doc, t, {
+		onFollow: (clientId) => deps.followUser(clientId),
+	});
+
+	function mountOverlay(): void {
+		const host = deps.getChrome().stageWrap;
+		if (cursors.el.parentElement !== host) {
+			host.appendChild(cursors.el);
+		}
+		if (followBar.el.parentElement !== host) {
+			host.appendChild(followBar.el);
+		}
+	}
+
+	function connectedCount(state: ViewerState): number {
+		return deps.getStatus() === 'disconnected' ? 0 : state.remotePresences.length + 1;
+	}
+
+	function render(state: ViewerState): void {
+		mountOverlay();
+		cursors.update(state.cursors, deps.getScale());
+		followBar.update(state.remotePresences, state.followedClientId);
+		statusPill.update(deps.getStatus(), connectedCount(state));
+	}
+	render(deps.store.get());
+
+	const unsubscribe = deps.store.subscribe((state, previous) => {
+		if (
+			state.cursors !== previous.cursors ||
+			state.remotePresences !== previous.remotePresences ||
+			state.followedClientId !== previous.followedClientId
+		) {
+			render(state);
+		}
+	});
+
+	return {
+		onStatusChange(status) {
+			render(deps.store.get());
+			if (status === 'disconnected') {
+				shareDialog.setActive(false);
+				broadcastDialog.setActive(false, '');
+			}
+		},
+		destroy() {
+			unsubscribe();
+			shareBtn?.remove();
+			broadcastBtn?.remove();
+			statusPill.destroy();
+			cursors.destroy();
+			followBar.destroy();
+			shareDialog.destroy();
+			broadcastDialog.destroy();
+		},
+	};
+}

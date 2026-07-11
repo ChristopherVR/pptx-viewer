@@ -16,11 +16,15 @@ export interface StageInteractionsDeps {
 	getOverlay(): SelectionOverlay | null;
 	/** The rendered stage element inside the currently-attached wrap. */
 	getStageRoot(): Element | null;
+	/** Notified with slide-space (unscaled) coordinates on every stage pointer move (collaboration cursor broadcast). */
+	onCursorMove?: (x: number, y: number) => void;
 }
 
 export interface StageInteractions {
 	/** Pointer-down on the stage: select and begin a move gesture. */
 	onStagePointerDown(event: PointerEvent): void;
+	/** Pointer-move on the stage: reports slide-space coordinates to `deps.onCursorMove`. */
+	onStagePointerMove(event: PointerEvent): void;
 	/** Double-click on the stage: open the inline text editor. */
 	onStageDblClick(event: MouseEvent): void;
 	/** Begin a resize/rotate gesture from an overlay handle. */
@@ -133,6 +137,17 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 				ops.select(id);
 			}
 			gestures.begin('move', id, event);
+		},
+		onStagePointerMove(event) {
+			if (!deps.onCursorMove) {
+				return;
+			}
+			const rect = deps.getOverlay()?.root.getBoundingClientRect();
+			const scale = deps.getScale();
+			if (!rect || !(scale > 0)) {
+				return;
+			}
+			deps.onCursorMove((event.clientX - rect.left) / scale, (event.clientY - rect.top) / scale);
 		},
 		onStageDblClick(event) {
 			const state = store.get();

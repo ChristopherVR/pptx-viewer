@@ -1,5 +1,6 @@
 import { defaultCssVars } from 'pptx-viewer-shared';
 
+import { COLLAB_CSS } from './collab-css';
 import { EDITOR_CSS } from './editor-css';
 
 /**
@@ -285,7 +286,7 @@ const CHROME_CSS = `
 .pptxv.pptxv-presenting .pptxv-stage-wrap { box-shadow: none; }
 `;
 
-/** The full stylesheet text (theme-var defaults + chrome rules + editor chrome). */
+/** The full stylesheet text (theme-var defaults + chrome rules + editor + collab chrome). */
 export function buildViewerCss(): string {
-	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}`;
+	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${COLLAB_CSS}`;
 }

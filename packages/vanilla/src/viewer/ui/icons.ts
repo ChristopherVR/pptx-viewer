@@ -21,7 +21,9 @@ export type IconName =
 	| 'bring-front'
 	| 'send-back'
 	| 'bring-forward'
-	| 'send-backward';
+	| 'send-backward'
+	| 'share'
+	| 'broadcast';
 
 const ICON_PATHS: Record<IconName, string[]> = {
 	'chevron-left': ['M15 18l-6-6 6-6'],
@@ -47,6 +49,20 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	'send-back': ['M3 9h12v12H3z', 'M9 3h12v12h-6', 'M15 15h6V9'],
 	'bring-forward': ['M8 8h13v13H8z', 'M3 3h10v5', 'M3 3v10h5'],
 	'send-backward': ['M3 3h13v13H3z', 'M16 16h5V8', 'M16 21h5v-5'],
+	share: [
+		'M15 5a3 3 0 1 0 6 0 3 3 0 1 0 -6 0',
+		'M3 12a3 3 0 1 0 6 0 3 3 0 1 0 -6 0',
+		'M15 19a3 3 0 1 0 6 0 3 3 0 1 0 -6 0',
+		'M8.6 13.5l6.8 3.9',
+		'M15.4 6.6l-6.8 3.9',
+	],
+	broadcast: [
+		'M10 12a2 2 0 1 0 4 0 2 2 0 1 0 -4 0',
+		'M7.8 7.8a6 6 0 0 0 0 8.4',
+		'M16.2 7.8a6 6 0 0 1 0 8.4',
+		'M4.9 4.9a10 10 0 0 0 0 14.2',
+		'M19.1 4.9a10 10 0 0 1 0 14.2',
+	],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
