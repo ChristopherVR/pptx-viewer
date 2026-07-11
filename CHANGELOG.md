@@ -6,6 +6,34 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-11
 
+_Releases: pptx-react-viewer@1.15.0, pptx-vue-viewer@1.15.0, pptx-angular-viewer@1.15.0, pptx-vanilla-viewer@0.4.0, pptx-svelte-viewer@0.4.0_
+
+### Features
+
+- **vanilla:** Insert media, chart, equation, smartart, action button, field (by @ChristopherVR) ([7e70a21](https://github.com/ChristopherVR/pptx-viewer/commit/7e70a21fbc489e915c83c13528ac492ba5bd83ff))
+- **svelte:** Add chart insert to the Insert tab (by @ChristopherVR) ([b4dbbc3](https://github.com/ChristopherVR/pptx-viewer/commit/b4dbbc3c3fffb455d1853d3e05fac9c4b2e92600))
+- **svelte:** Add equation insert to the Insert tab (by @ChristopherVR) ([5d8a5fd](https://github.com/ChristopherVR/pptx-viewer/commit/5d8a5fdc5422642c50c072dcf441e221a0392b64))
+- **svelte:** Add SmartArt insert to the Insert tab (by @ChristopherVR) ([6a5a12e](https://github.com/ChristopherVR/pptx-viewer/commit/6a5a12e2dd47c030eb60f59c75534e0f2be13f24))
+- **svelte:** Add media insert factory for the Insert tab (by @ChristopherVR) ([3fe31b7](https://github.com/ChristopherVR/pptx-viewer/commit/3fe31b7570091644f03be2ffe1efaae18b997588))
+- **svelte:** Add action button insert to the Insert tab (by @ChristopherVR) ([22136ca](https://github.com/ChristopherVR/pptx-viewer/commit/22136ca4499a383b98d6dd147a812d6a42e07086))
+- **svelte:** Add field insert to the Insert tab (by @ChristopherVR) ([e8c4f7f](https://github.com/ChristopherVR/pptx-viewer/commit/e8c4f7fe7c3fe908f705e6a29eee31c3431353af))
+- **svelte:** Wire the new Insert actions into the ribbon (by @ChristopherVR) ([105a338](https://github.com/ChristopherVR/pptx-viewer/commit/105a338b600f8ad265a2f4f513c37f75c8ea228d))
+- **vanilla:** Add Design, Transitions, and Animations ribbon tabs (by @ChristopherVR) ([5c2058e](https://github.com/ChristopherVR/pptx-viewer/commit/5c2058ea6e5281c122019ff174fd2b98065d9cf0))
+- **svelte:** Add slide-background/transition/animation editor actions (by @ChristopherVR) ([f032a47](https://github.com/ChristopherVR/pptx-viewer/commit/f032a4773e2b7d43a66121c12bfadffdbeccb687))
+- **svelte:** Add Design, Transitions, and Animations ribbon tabs (by @ChristopherVR) ([86caaec](https://github.com/ChristopherVR/pptx-viewer/commit/86caaec25cdb9753fc76ca205f806daf903c6075))
+- **shared:** Add text wrap/autofit, image adjustments, and table inspector helpers (by @ChristopherVR) ([54b2eda](https://github.com/ChristopherVR/pptx-viewer/commit/54b2eda35254bc75257932568442396a5f343708))
+- **vanilla:** Element-type-aware property inspector panels (by @ChristopherVR) ([5bd1fb4](https://github.com/ChristopherVR/pptx-viewer/commit/5bd1fb4837a17d7125e05e111328220ab0eb3659))
+- **svelte:** Add fill/stroke opacity and gradient to the inspector (by @ChristopherVR) ([34cb1ab](https://github.com/ChristopherVR/pptx-viewer/commit/34cb1ab62c4cef0739a1da9fc5e156b64f0b288b))
+- **svelte:** Add text properties to the inspector panel (by @ChristopherVR) ([7d8819b](https://github.com/ChristopherVR/pptx-viewer/commit/7d8819b57b9adadf094c4225f71551c0a05e975e))
+- **svelte:** Add image adjustment and crop controls to the inspector (by @ChristopherVR) ([fbe0f85](https://github.com/ChristopherVR/pptx-viewer/commit/fbe0f8531b8701592f6d9083c3e4cb2efbecb5f2))
+- **svelte:** Add table properties to the inspector panel (by @ChristopherVR) ([d87360f](https://github.com/ChristopherVR/pptx-viewer/commit/d87360f15a58561e180a24a99c509078a76d2abf))
+
+### Documentation
+
+- **shared:** Add i18n keys for the vanilla Design tab theme gallery (by @ChristopherVR) ([593ea23](https://github.com/ChristopherVR/pptx-viewer/commit/593ea230e61f606056ffc013e2fdb82bea70738b))
+
+## 2026-07-11
+
 _Releases: pptx-react-viewer@1.14.1, pptx-vue-viewer@1.14.1, pptx-angular-viewer@1.14.1, pptx-vanilla-viewer@0.3.0, pptx-svelte-viewer@0.3.0_
 
 ### Features
