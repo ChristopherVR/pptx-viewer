@@ -1,8 +1,15 @@
-import { PptxHandler } from 'pptx-viewer-core';
+import { ELEMENT_FIELD_KIND, PptxHandler, SLIDE_FIELD_KIND } from 'pptx-viewer-core';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 import { Doc as YDoc } from 'yjs';
 
-import { PptxCodec, ORIGIN_FILE_LOAD } from '../../codec/index.js';
+import {
+	COMPLEX_FIELD_MAP,
+	COMPLEX_SLIDE_FIELD_MAP,
+	ORIGIN_FILE_LOAD,
+	PptxCodec,
+	SCALAR_ELEMENT_KEYS,
+	SCALAR_SLIDE_KEYS,
+} from '../../codec/index.js';
 import { createTestPptxBytes } from '../helpers/create-test-pptx.js';
 
 describe('pptxCodec', () => {
@@ -323,5 +330,65 @@ describe('pptxCodec round-trip', () => {
 
 		expect(callCount).toBeGreaterThan(0);
 		unsub();
+	});
+});
+
+describe('pptxCodec field-schema coverage', () => {
+	it('scalar + complex element keys + textSegments cover every PptxElement field', () => {
+		const coveredKind: Record<string, string> = { textSegments: 'text' };
+		for (const key of SCALAR_ELEMENT_KEYS) {
+			const kind = ELEMENT_FIELD_KIND[key as keyof typeof ELEMENT_FIELD_KIND];
+			coveredKind[key] = kind === 'asset' ? 'asset' : 'scalar';
+		}
+		for (const key of Object.keys(COMPLEX_FIELD_MAP)) {
+			coveredKind[key] = 'complex';
+		}
+
+		for (const [field, kind] of Object.entries(ELEMENT_FIELD_KIND)) {
+			expect(
+				coveredKind[field],
+				`field "${field}" is declared on PptxElement but not handled`,
+			).toBe(kind);
+		}
+		expect(Object.keys(coveredKind).sort()).toStrictEqual(Object.keys(ELEMENT_FIELD_KIND).sort());
+	});
+
+	it('scalar + complex slide keys + elements cover every PptxSlide field', () => {
+		const coveredKind: Record<string, string> = { elements: 'nested' };
+		for (const key of SCALAR_SLIDE_KEYS) {
+			coveredKind[key] = 'scalar';
+		}
+		for (const key of Object.keys(COMPLEX_SLIDE_FIELD_MAP)) {
+			coveredKind[key] = 'complex';
+		}
+
+		for (const [field, kind] of Object.entries(SLIDE_FIELD_KIND)) {
+			expect(coveredKind[field], `field "${field}" is declared on PptxSlide but not handled`).toBe(
+				kind,
+			);
+		}
+		expect(Object.keys(coveredKind).sort()).toStrictEqual(Object.keys(SLIDE_FIELD_KIND).sort());
+	});
+
+	it('no longer includes the removed phantom keys', () => {
+		expect(SCALAR_ELEMENT_KEYS.has('placeholder')).toBeFalsy();
+		expect(SCALAR_ELEMENT_KEYS.has('svgContent')).toBeFalsy();
+		expect(SCALAR_ELEMENT_KEYS.has('inkSvg')).toBeFalsy();
+		expect(SCALAR_ELEMENT_KEYS.has('sourceSlideId')).toBeFalsy();
+		expect(COMPLEX_FIELD_MAP.connectionStart).toBeUndefined();
+		expect(COMPLEX_FIELD_MAP.connectionEnd).toBeUndefined();
+		expect(COMPLEX_FIELD_MAP.mediaBookmarks).toBeUndefined();
+		expect(COMPLEX_FIELD_MAP.bookmarks).toBe('_bookmarks');
+	});
+
+	it('covers newly-added binary/OLE/ink/3D fields', () => {
+		expect(SCALAR_ELEMENT_KEYS.has('oleEmbeddedData')).toBeTruthy();
+		expect(SCALAR_ELEMENT_KEYS.has('mediaData')).toBeTruthy();
+		expect(SCALAR_ELEMENT_KEYS.has('modelData')).toBeTruthy();
+		expect(SCALAR_ELEMENT_KEYS.has('inkPaths')).toBeTruthy();
+		expect(COMPLEX_FIELD_MAP.extensionXml).toBe('_extensionXml');
+		expect(COMPLEX_FIELD_MAP.groupFill).toBe('_groupFill');
+		expect(COMPLEX_SLIDE_FIELD_MAP.notesShapes).toBe('_notesShapes');
+		expect(COMPLEX_SLIDE_FIELD_MAP.headerFooterFlags).toBe('_headerFooterFlags');
 	});
 });

@@ -1,4 +1,4 @@
-import { PptxHandler } from 'pptx-viewer-core';
+import { ELEMENT_FIELD_KIND, PptxHandler, SLIDE_FIELD_KIND } from 'pptx-viewer-core';
 import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
 import { Doc as YDoc, Array as YArray, Map as YMap, Text as YText } from 'yjs';
 
@@ -29,98 +29,54 @@ export interface FormatCodec {
 	observe: (ydoc: YDoc, onChange: () => void) => () => void;
 }
 
-const SCALAR_ELEMENT_KEYS = new Set([
-	'id',
-	'type',
-	'x',
-	'y',
-	'width',
-	'height',
-	'rotation',
-	'flipHorizontal',
-	'flipVertical',
-	'hidden',
-	'opacity',
-	'text',
-	'name',
-	'altText',
-	'shapeType',
-	'placeholder',
-	'imagePath',
-	'imageData',
-	'svgContent',
-	'inkSvg',
-	'sourceSlideId',
-	'mediaType',
-	'mediaPath',
-	'linkedTxbxId',
-	'linkedTxbxSeq',
-	'promptText',
-]);
+/**
+ * Field coverage is derived from `pptx-viewer-core`'s
+ * `ELEMENT_FIELD_KIND`/`SLIDE_FIELD_KIND` (the same canonical inventory the
+ * viewer's `collaboration-sync.ts` allowlists derive from), so this codec
+ * automatically tracks every field `PptxElement`/`PptxSlide` declares
+ * instead of drifting out of sync with a hand-maintained list. Wire-format
+ * prefixes stay long-form (`_textStyle`) here versus the viewer schema's
+ * short-form (`_ts`) - the two Y.Doc layouts are intentionally NOT
+ * interchangeable, only the field *coverage* is required to match.
+ *
+ * `asset`-kind fields (large binary payloads like `mediaData`) are simply
+ * embedded as scalars here rather than routed through a separate asset map:
+ * this codec does one-shot bidirectional file<->Y.Doc conversion, not a
+ * live P2P transport, so there's no repeated-write cost to avoid.
+ */
+// Exported (not just module-private) so tests can assert coverage without
+// needing binary round-trip fixtures for every element kind.
+export const SCALAR_ELEMENT_KEYS = new Set(
+	Object.entries(ELEMENT_FIELD_KIND)
+		.filter(([, kind]) => kind === 'scalar' || kind === 'asset')
+		.map(([field]) => field),
+);
 
-// textSegments is handled as Y.Text (textBody key); all others remain JSON blobs.
-const COMPLEX_FIELD_MAP: Record<string, string> = {
-	textStyle: '_textStyle',
-	shapeStyle: '_shapeStyle',
-	shapeAdjustments: '_shapeAdjustments',
-	adjustmentHandles: '_adjustmentHandles',
-	tableData: '_tableData',
-	chartData: '_chartData',
-	smartArtData: '_smartArtData',
-	connectionStart: '_connectionStart',
-	connectionEnd: '_connectionEnd',
-	animations: '_animations',
-	nativeAnimations: '_nativeAnimations',
-	children: '_children',
-	paragraphIndents: '_paragraphIndents',
-	rawXml: '_rawXml',
-	actionClick: '_actionClick',
-	actionHover: '_actionHover',
-	locks: '_locks',
-	imageEffects: '_imageEffects',
-	cropShape: '_cropShape',
-	mediaBookmarks: '_mediaBookmarks',
-	captionTracks: '_captionTracks',
-};
+// textSegments (kind 'text') is handled as Y.Text (textBody key); all
+// 'complex' fields remain JSON blobs under a long-form `_<field>` prefix.
+export const COMPLEX_FIELD_MAP: Record<string, string> = Object.fromEntries(
+	Object.entries(ELEMENT_FIELD_KIND)
+		.filter(([, kind]) => kind === 'complex')
+		.map(([field]) => [field, `_${field}`]),
+);
 
 const REVERSE_COMPLEX_MAP: Record<string, string> = {};
 for (const [original, prefixed] of Object.entries(COMPLEX_FIELD_MAP)) {
 	REVERSE_COMPLEX_MAP[prefixed] = original;
 }
 
-const SCALAR_SLIDE_KEYS = new Set([
-	'id',
-	'rId',
-	'sourceSlideId',
-	'layoutPath',
-	'layoutName',
-	'slideNumber',
-	'hidden',
-	'sectionName',
-	'sectionId',
-	'backgroundColor',
-	'backgroundImage',
-	'backgroundGradient',
-	'notes',
-	'backgroundShowAnimation',
-	'showMasterShapes',
-	'isDirty',
-]);
+export const SCALAR_SLIDE_KEYS = new Set(
+	Object.entries(SLIDE_FIELD_KIND)
+		.filter(([, kind]) => kind === 'scalar')
+		.map(([field]) => field),
+);
 
-const COMPLEX_SLIDE_FIELD_MAP: Record<string, string> = {
-	transition: '_transition',
-	animations: '_animations',
-	nativeAnimations: '_nativeAnimations',
-	rawTiming: '_rawTiming',
-	notesSegments: '_notesSegments',
-	comments: '_comments',
-	warnings: '_warnings',
-	rawXml: '_rawXml',
-	clrMapOverride: '_clrMapOverride',
-	guides: '_guides',
-	customerData: '_customerData',
-	activeXControls: '_activeXControls',
-};
+// 'elements' (kind 'nested') is handled as its own Y.Array of Y.Maps below.
+export const COMPLEX_SLIDE_FIELD_MAP: Record<string, string> = Object.fromEntries(
+	Object.entries(SLIDE_FIELD_KIND)
+		.filter(([, kind]) => kind === 'complex')
+		.map(([field]) => [field, `_${field}`]),
+);
 
 const REVERSE_COMPLEX_SLIDE_MAP: Record<string, string> = {};
 for (const [original, prefixed] of Object.entries(COMPLEX_SLIDE_FIELD_MAP)) {
