@@ -48,8 +48,15 @@ export {
 	renderSlideStage,
 } from './viewer';
 
-// ── Export (PNG / PDF) ──────────────────────────────────────────────────
-export type { ExportPdfOptions, ExportProgress } from './viewer';
+// ── Export (PNG / PDF / GIF / WebM video / print) ───────────────────────
+export type {
+	ExportGifOptions,
+	ExportPdfOptions,
+	ExportProgress,
+	ExportVideoOptions,
+	OpenPrintWindow,
+	PrintOptions,
+} from './viewer';
 
 // ── i18n / styles ──────────────────────────────────────────────────────
 export type { TranslationMessages, Translator } from './viewer';

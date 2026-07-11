@@ -191,6 +191,15 @@ function openViewer(
 	exportBar = createExportBar({
 		exportPng: () => viewer?.exportSlidePng() ?? Promise.resolve(),
 		exportPdf: () => viewer?.exportPdf() ?? Promise.resolve(),
+		exportGif: () => viewer?.exportGif() ?? Promise.resolve(),
+		exportVideo: () => viewer?.exportVideo() ?? Promise.resolve(),
+		print: async () => {
+			// `false` = popup blocked; the click handler context normally allows it.
+			const opened = (await viewer?.print()) ?? false;
+			if (!opened) {
+				console.warn('[pptx-vanilla-viewer demo] print window blocked by the browser');
+			}
+		},
 	});
 	shell.append(exportBar.el);
 

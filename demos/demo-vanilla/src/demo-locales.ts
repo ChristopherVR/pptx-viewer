@@ -19,6 +19,9 @@ export const demoStringsEn = {
 	'demo.pickers.switchLanguage': 'Switch language',
 	'demo.export.png': 'Export PNG',
 	'demo.export.pdf': 'Export PDF',
+	'demo.export.gif': 'Export animated GIF',
+	'demo.export.video': 'Export WebM video',
+	'demo.export.print': 'Print',
 };
 
 export const demoStringsFr = {
@@ -32,6 +35,9 @@ export const demoStringsFr = {
 	'demo.pickers.switchLanguage': 'Changer de langue',
 	'demo.export.png': 'Exporter en PNG',
 	'demo.export.pdf': 'Exporter en PDF',
+	'demo.export.gif': 'Exporter en GIF anime',
+	'demo.export.video': 'Exporter en video WebM',
+	'demo.export.print': 'Imprimer',
 };
 
 export const demoStringsEs = {
@@ -45,6 +51,9 @@ export const demoStringsEs = {
 	'demo.pickers.switchLanguage': 'Cambiar idioma',
 	'demo.export.png': 'Exportar a PNG',
 	'demo.export.pdf': 'Exportar a PDF',
+	'demo.export.gif': 'Exportar GIF animado',
+	'demo.export.video': 'Exportar video WebM',
+	'demo.export.print': 'Imprimir',
 };
 
 export const demoStringsDe = {
@@ -58,4 +67,7 @@ export const demoStringsDe = {
 	'demo.pickers.switchLanguage': 'Sprache wechseln',
 	'demo.export.png': 'Als PNG exportieren',
 	'demo.export.pdf': 'Als PDF exportieren',
+	'demo.export.gif': 'Als animiertes GIF exportieren',
+	'demo.export.video': 'Als WebM-Video exportieren',
+	'demo.export.print': 'Drucken',
 };

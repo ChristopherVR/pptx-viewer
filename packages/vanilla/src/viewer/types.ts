@@ -10,7 +10,12 @@ import type {
 } from 'pptx-viewer-shared';
 
 import type { AutosaveStatus } from './autosave';
-import type { ExportPdfOptions } from './export';
+import type {
+	ExportGifOptions,
+	ExportPdfOptions,
+	ExportVideoOptions,
+	PrintOptions,
+} from './export';
 import type { TranslationMessages } from './i18n';
 import type { PptxViewerSource } from './load';
 import type { ElementRendererRegistry } from './render';
@@ -207,6 +212,26 @@ export interface PptxViewerInstance {
 	 * `jspdf` is dynamically imported on first use.
 	 */
 	exportPdf(options?: ExportPdfOptions): Promise<void>;
+	/**
+	 * Export every slide as an animated GIF download (one frame per slide,
+	 * `slideDurationMs` per frame). Slides are captured off-screen like
+	 * `exportSlidePng` and encoded with the shared pure-JS GIF89a encoder.
+	 */
+	exportGif(options?: ExportGifOptions): Promise<void>;
+	/**
+	 * Export every slide as a WebM video download: each captured slide is held
+	 * for its configured duration on a canvas stream recorded by
+	 * `MediaRecorder` (codec picked from the shared WebM candidates).
+	 */
+	exportVideo(options?: ExportVideoOptions): Promise<void>;
+	/**
+	 * Assemble the printable document (slides / notes / handouts / outline)
+	 * and open it in a new print window. Resolves `false` when the popup was
+	 * blocked: browsers typically only allow `window.open` inside a user
+	 * gesture, so call this from a click handler (or pass a custom
+	 * `openPrintWindow` that writes into an iframe you own).
+	 */
+	print(options?: PrintOptions): Promise<boolean>;
 	/** The element-renderer registry in effect (extension point). */
 	getRegistry(): ElementRendererRegistry;
 	/**

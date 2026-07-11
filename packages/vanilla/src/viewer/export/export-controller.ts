@@ -1,13 +1,17 @@
 import { downloadDataUrl, exportAbortError } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
+import type { ExportGifOptions } from './export-gif';
+import { runGifExport } from './export-gif';
+import type { PrintOptions } from './export-print';
+import { runPrint } from './export-print';
+import type { ExportCaptureDeps, ExportProgress, RasterizeSlide } from './export-types';
+import type { ExportVideoOptions } from './export-video';
+import { runVideoExport } from './export-video';
 
-/** Rasterise the slide at `index` to an `HTMLCanvasElement`. Injected so the
- * controller stays DOM-capture-free and unit-testable. */
-export type RasterizeSlide = (index: number) => Promise<HTMLCanvasElement>;
-
-/** Per-slide progress callback: `(currentSlideIndex, totalSlides)`. */
-export type ExportProgress = (current: number, total: number) => void;
+// Re-exported so existing `./export-controller` importers keep working after
+// the type moved to `./export-types` (shared with the per-format runners).
+export type { ExportProgress, RasterizeSlide } from './export-types';
 
 /** Options for the multi-slide PDF export (progress + cooperative cancel). */
 export interface ExportPdfOptions {
@@ -29,23 +33,31 @@ export interface ExportController {
 	exportSlidePng(index?: number): Promise<void>;
 	/** Export every slide as a multi-page PDF download (one slide per page). */
 	exportPdf(options?: ExportPdfOptions): Promise<void>;
+	/** Export every slide as an animated GIF download (one frame per slide). */
+	exportGif(options?: ExportGifOptions): Promise<void>;
+	/** Export every slide as a WebM video download (MediaRecorder). */
+	exportVideo(options?: ExportVideoOptions): Promise<void>;
+	/** Assemble the printable document and open it in a print window. */
+	print(options?: PrintOptions): Promise<boolean>;
 }
 
 function resolveBaseName(fileName: string | undefined): string {
 	if (fileName === undefined) {
 		return 'presentation';
 	}
-	const trimmed = fileName.trim().replace(/\.(?:pptx|pdf|png)$/iu, '');
+	const trimmed = fileName.trim().replace(/\.(?:pptx|pdf|png|gif|webm)$/iu, '');
 	return trimmed === '' ? 'presentation' : trimmed;
 }
 
 /**
- * Export controller: render slides to PNG / PDF. Vanilla port of Vue's
- * `useExport` composable (`packages/vue/src/viewer/composables/useExport.ts`,
- * itself the "viewer-first subset: PNG + PDF; GIF/video deferred" of React's
- * `useExportHandlers`) minus the Vue `Ref`s: a plain closure with an internal
- * `exporting` guard instead of a reactive flag, since nothing in the vanilla
- * binding currently needs to reactively observe export-in-progress state.
+ * Export controller: render slides to PNG / PDF / GIF / WebM video, plus the
+ * print flow. Vanilla port of Vue's `useExport` composable extended with the
+ * GIF/video/print surface from React's `useExportHandlers` (the per-format
+ * capture drivers live in `export-gif.ts` / `export-video.ts` /
+ * `export-print.ts`; all pure planning/encoding/assembly is shared). A plain
+ * closure with an internal `exporting` guard replaces the reactive flag, since
+ * nothing in the vanilla binding currently needs to reactively observe
+ * export-in-progress state.
  *
  * Rasterisation is delegated to the injected `rasterizeSlide` (the host owns
  * the DOM + `html2canvas-pro`, see `rasterize-slide.ts`). `jspdf` is loaded
@@ -54,32 +66,47 @@ function resolveBaseName(fileName: string | undefined): string {
 export function createExportController(deps: ExportControllerDeps): ExportController {
 	let exporting = false;
 
-	async function exportSlidePng(index?: number): Promise<void> {
-		const state = deps.store.get();
-		const targetIndex = index ?? state.currentSlide;
-		if (exporting || targetIndex < 0 || targetIndex >= state.slides.length) {
-			return;
+	const capture: ExportCaptureDeps = {
+		store: deps.store,
+		rasterizeSlide: deps.rasterizeSlide,
+		baseName: resolveBaseName(deps.fileName),
+	};
+
+	/** Run one export at a time; a call while one is in flight gets `fallback`. */
+	async function guarded<T>(fallback: T, run: () => Promise<T>): Promise<T> {
+		if (exporting) {
+			return fallback;
 		}
 		exporting = true;
 		try {
-			const canvas = await deps.rasterizeSlide(targetIndex);
-			downloadDataUrl(
-				canvas.toDataURL('image/png'),
-				`${resolveBaseName(deps.fileName)}-slide-${targetIndex + 1}.png`,
-			);
+			return await run();
 		} finally {
 			exporting = false;
 		}
 	}
 
+	async function exportSlidePng(index?: number): Promise<void> {
+		const state = deps.store.get();
+		const targetIndex = index ?? state.currentSlide;
+		if (targetIndex < 0 || targetIndex >= state.slides.length) {
+			return;
+		}
+		return guarded(undefined, async () => {
+			const canvas = await deps.rasterizeSlide(targetIndex);
+			downloadDataUrl(
+				canvas.toDataURL('image/png'),
+				`${capture.baseName}-slide-${targetIndex + 1}.png`,
+			);
+		});
+	}
+
 	async function exportPdf(options: ExportPdfOptions = {}): Promise<void> {
 		const state = deps.store.get();
-		if (exporting || state.slides.length === 0) {
+		if (state.slides.length === 0) {
 			return;
 		}
 		const { onProgress, signal } = options;
-		exporting = true;
-		try {
+		return guarded(undefined, async () => {
 			const { jsPDF } = await import('jspdf');
 			const { width, height } = state.canvasSize;
 			const orientation = width >= height ? 'landscape' : 'portrait';
@@ -96,11 +123,15 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 				}
 				pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, height);
 			}
-			pdf.save(`${resolveBaseName(deps.fileName)}.pdf`);
-		} finally {
-			exporting = false;
-		}
+			pdf.save(`${capture.baseName}.pdf`);
+		});
 	}
 
-	return { exportSlidePng, exportPdf };
+	return {
+		exportSlidePng,
+		exportPdf,
+		exportGif: (options) => guarded(undefined, () => runGifExport(capture, options)),
+		exportVideo: (options) => guarded(undefined, () => runVideoExport(capture, options)),
+		print: (options) => guarded(false, () => runPrint(capture, options)),
+	};
 }

@@ -5,9 +5,8 @@ import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
 import { buildMountChromeDeps, mountChrome, unmountChrome } from './chrome-lifecycle';
 import type { EditorController } from './editor';
 import { createEditorController } from './editor';
-import type { ExportPdfOptions } from './export';
 import type { ExportLifecycle } from './export-lifecycle';
-import { createExportLifecycle } from './export-lifecycle';
+import { createExportLifecycle, ViewerExportHost } from './export-lifecycle';
 import type { Translator } from './i18n';
 import { createTranslator } from './i18n';
 import type { LoadingController } from './loading-controller';
@@ -37,7 +36,7 @@ import { createViewerControls } from './viewer-controls';
  * builds chrome inside `container`, loads `options.source` when given, and
  * re-renders through a tiny reactive store.
  */
-export class PptxViewer implements PptxViewerInstance, ChromeHost {
+export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, ChromeHost {
 	// Not `private`: `ChromeHost` (structurally implemented by this class, see
 	// `buildMountChromeDeps(this)` below) needs these readable from outside the
 	// class body's own methods.
@@ -49,14 +48,15 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 	t: Translator;
 	lifecycle!: ChromeLifecycle;
 	editor!: EditorController;
+	protected readonly exporter: ExportLifecycle;
 	private readonly loading: LoadingController;
-	private readonly exportLifecycle: ExportLifecycle;
 	private readonly registry: ElementRendererRegistry;
 	private readonly sessions: SessionControllers;
 	private readonly controls: ViewerControls;
 	private destroyed = false;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
+		super();
 		this.container = container;
 		this.doc = container.ownerDocument;
 		this.options = options;
@@ -92,7 +92,7 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 			onChange: options.onChange,
 		});
 		this.editor.attachChrome();
-		this.exportLifecycle = createExportLifecycle({
+		this.exporter = createExportLifecycle({
 			doc: this.doc,
 			container: this.container,
 			store: this.store,
@@ -228,13 +228,8 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 		this.editor.deleteSelected();
 	}
 
-	async exportSlidePng(index?: number): Promise<void> {
-		return this.exportLifecycle.exportSlidePng(index);
-	}
-
-	async exportPdf(options?: ExportPdfOptions): Promise<void> {
-		return this.exportLifecycle.exportPdf(options);
-	}
+	// exportSlidePng / exportPdf / exportGif / exportVideo / print are
+	// inherited from ViewerExportHost (see export-lifecycle.ts).
 
 	getSelectedElementId(): string | null {
 		return this.editor.getSelectedElementId();
@@ -280,7 +275,7 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 		this.sessions.destroy();
 		this.loading.invalidate();
 		this.editor.destroy();
-		this.exportLifecycle.destroy();
+		this.exporter.destroy();
 		unmountChrome(this.lifecycle, () => this.editor?.detachChrome());
 		this.loading.releaseLoaded();
 	}
