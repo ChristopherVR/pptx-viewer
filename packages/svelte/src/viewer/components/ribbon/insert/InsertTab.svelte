@@ -1,43 +1,47 @@
 <script lang="ts">
 	/**
 	 * InsertTab: the ribbon's Insert tab. Text box / image / table stay the
-	 * same one-click inserts as the pre-ribbon `InsertMenu`; the shape picker
-	 * is upgraded from 3 hardcoded shapes (rect/ellipse/line) to the full
-	 * shared `SHAPE_PRESET_DEFS` catalogue (30 presets) via a dropdown grid.
+	 * same one-click inserts as the pre-ribbon `InsertMenu`; the shape gallery
+	 * lives in `ShapePicker.svelte`. This wave adds the "structured" Insert
+	 * actions React's `InsertSection` offers: media (audio/video file picker),
+	 * a chart-type dropdown, a docked equation panel, a SmartArt gallery
+	 * picker, an action-button dropdown, and a field dropdown. Every insertion
+	 * routes through `EditorState.insertElement` (undoable, selects the new
+	 * element), except Equation, which stages LaTeX -> OMML in a docked panel
+	 * before inserting (there's no single-click default for free-form maths).
 	 */
-	import { SHAPE_PRESET_DEFS } from 'pptx-viewer-shared';
+	import type { CanvasSize } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
-	import { newImageElement, newPresetShapeElement, newTableElement, newTextElement } from '../../../editor';
-	import { glyphClassToTransform, isStrokeGlyph, shapeGlyphPath } from './shape-glyphs';
+	import { buildMediaInsertElement, newImageElement, newTableElement, newTextElement } from '../../../editor';
+	import ActionButtonMenu from './ActionButtonMenu.svelte';
+	import ChartMenu from './ChartMenu.svelte';
+	import EquationPanel from './EquationPanel.svelte';
+	import FieldMenu from './FieldMenu.svelte';
+	import ShapePicker from './ShapePicker.svelte';
+	import SmartArtMenu from './SmartArtMenu.svelte';
 
-	const { editor }: { editor: EditorState } = $props();
+	const { editor, canvasSize }: { editor: EditorState; canvasSize: CanvasSize } = $props();
 	const t = useTranslator();
 
-	let shapesOpen = $state(false);
 	// eslint-disable-next-line prefer-const
-	let fileInput = $state<HTMLInputElement | null>(null);
+	let imageInput = $state<HTMLInputElement | null>(null);
+	// eslint-disable-next-line prefer-const
+	let mediaInput = $state<HTMLInputElement | null>(null);
+	let equationOpen = $state(false);
 
 	const MAX_IMAGE_EDGE = 400;
 
-	function onFocusOut(event: FocusEvent): void {
-		const root = event.currentTarget as HTMLElement;
-		if (!(event.relatedTarget instanceof Node) || !root.contains(event.relatedTarget)) {
-			shapesOpen = false;
-		}
+	function toggleEquationPanel(): void {
+		equationOpen = !equationOpen;
 	}
 
-	function insertShape(type: (typeof SHAPE_PRESET_DEFS)[number]['type']): void {
-		shapesOpen = false;
-		editor.insertElement(newPresetShapeElement(type));
+	function closeEquationPanel(): void {
+		equationOpen = false;
 	}
 
-	function pickImage(): void {
-		fileInput?.click();
-	}
-
-	function onFileChange(event: Event): void {
+	function onImageFileChange(event: Event): void {
 		const input = event.currentTarget as HTMLInputElement;
 		const file = input.files?.[0];
 		input.value = '';
@@ -67,6 +71,19 @@
 		};
 		reader.readAsDataURL(file);
 	}
+
+	async function onMediaFileChange(event: Event): Promise<void> {
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
+		if (!file) {
+			return;
+		}
+		const el = await buildMediaInsertElement(file, canvasSize);
+		if (el) {
+			editor.insertElement(el);
+		}
+	}
 </script>
 
 <div class="pptx-svelte-inserttab" role="group" aria-label={t('pptx.ribbon.insert')}>
@@ -81,52 +98,30 @@
 		<span>{t('pptx.ribbon.textBox')}</span>
 	</button>
 
-	<div class="pptx-svelte-inserttab-shapes" onfocusout={onFocusOut}>
-		<button
-			type="button"
-			disabled={!editor.editable}
-			aria-haspopup="menu"
-			aria-expanded={shapesOpen}
-			aria-label={t('pptx.drawing.shapes')}
-			title={t('pptx.drawing.shapes')}
-			onclick={() => (shapesOpen = !shapesOpen)}
-		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.1" /><circle cx="11.5" cy="4.5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.1" /><path d="M2 14 6 8l4 6z" fill="none" stroke="currentColor" stroke-width="1.1" /></svg>
-			<span>{t('pptx.drawing.shapes')}</span>
-		</button>
-		{#if shapesOpen}
-			<div class="pptx-svelte-inserttab-grid" role="menu">
-				{#each SHAPE_PRESET_DEFS as preset (preset.type)}
-					<button
-						type="button"
-						role="menuitem"
-						aria-label={t(preset.i18nKey)}
-						title={t(preset.i18nKey)}
-						onclick={() => insertShape(preset.type)}
-					>
-						<svg viewBox="0 0 16 16" aria-hidden="true" style={`transform:${glyphClassToTransform(preset.glyphClass)}`}>
-							{#if isStrokeGlyph(preset.glyph)}
-								<path d={shapeGlyphPath(preset.glyph)} fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
-							{:else}
-								<path d={shapeGlyphPath(preset.glyph)} fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" />
-							{/if}
-						</svg>
-					</button>
-				{/each}
-			</div>
-		{/if}
-	</div>
+	<ShapePicker {editor} />
 
 	<button
 		type="button"
 		disabled={!editor.editable}
 		aria-label={t('pptx.ribbon.insertImage')}
 		title={t('pptx.ribbon.insertImage')}
-		onclick={pickImage}
+		onclick={() => imageInput?.click()}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v9h-11zM4 11l3-3 2 2 2.5-3 1.5 2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /><circle cx="5.5" cy="6" r="1" fill="currentColor" /></svg>
 		<span>{t('pptx.ribbon.image')}</span>
 	</button>
+
+	<button
+		type="button"
+		disabled={!editor.editable}
+		aria-label={t('pptx.ribbon.insertMedia')}
+		title={t('pptx.ribbon.insertMedia')}
+		onclick={() => mediaInput?.click()}
+	>
+		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11v8h-11z" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M6.5 6.2 10 8l-3.5 1.8Z" fill="currentColor" /></svg>
+		<span>{t('pptx.ribbon.insertMedia')}</span>
+	</button>
+
 	<button
 		type="button"
 		disabled={!editor.editable}
@@ -137,17 +132,45 @@
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v9h-11zM2.5 6.5h11M2.5 9.5h11M6 3.5v9M10 3.5v9" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
 		<span>{t('pptx.ribbon.table')}</span>
 	</button>
-	<input bind:this={fileInput} type="file" accept="image/*" class="pptx-svelte-inserttab-file" onchange={onFileChange} />
+
+	<ChartMenu {editor} {canvasSize} />
+
+	<button
+		type="button"
+		disabled={!editor.editable}
+		aria-haspopup="dialog"
+		aria-expanded={equationOpen}
+		aria-label={t('pptx.ribbon.insertEquation')}
+		title={t('pptx.ribbon.insertEquation')}
+		onclick={toggleEquationPanel}
+	>
+		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h6l-3 5 3 5H4M9 8h3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+		<span>{t('pptx.equation.insertTitle')}</span>
+	</button>
+
+	<SmartArtMenu {editor} {canvasSize} />
+	<ActionButtonMenu {editor} {canvasSize} />
+	<FieldMenu {editor} {canvasSize} />
+
+	<input bind:this={imageInput} type="file" accept="image/*" class="pptx-svelte-inserttab-file" onchange={onImageFileChange} />
+	<input bind:this={mediaInput} type="file" accept="video/*,audio/*" class="pptx-svelte-inserttab-file" onchange={onMediaFileChange} />
+
+	{#if equationOpen}
+		<div class="pptx-svelte-inserttab-equation">
+			<EquationPanel {editor} {canvasSize} open={equationOpen} onclose={closeEquationPanel} />
+		</div>
+	{/if}
 </div>
 
 <style>
 	.pptx-svelte-inserttab {
 		display: flex;
 		align-items: center;
+		flex-wrap: wrap;
 		gap: 4px;
 	}
 
-	.pptx-svelte-inserttab button {
+	.pptx-svelte-inserttab > button {
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;
@@ -162,12 +185,12 @@
 		font-size: 12px;
 	}
 
-	.pptx-svelte-inserttab button:hover:not(:disabled) {
+	.pptx-svelte-inserttab > button:hover:not(:disabled) {
 		background: var(--pptx-accent, #33334d);
 		color: var(--pptx-accent-foreground, #f8fafc);
 	}
 
-	.pptx-svelte-inserttab button:disabled {
+	.pptx-svelte-inserttab > button:disabled {
 		opacity: 0.35;
 		cursor: default;
 	}
@@ -177,37 +200,11 @@
 		height: 15px;
 	}
 
-	.pptx-svelte-inserttab-shapes {
-		position: relative;
-	}
-
-	.pptx-svelte-inserttab-grid {
-		position: absolute;
-		top: 100%;
-		left: 0;
-		z-index: 50;
-		margin-top: 4px;
-		display: grid;
-		grid-template-columns: repeat(6, 1fr);
-		gap: 3px;
-		width: 220px;
-		border: 1px solid var(--pptx-border, #33334d);
-		border-radius: calc(var(--pptx-radius, 6px) + 2px);
-		background: var(--pptx-popover, #111827);
-		color: var(--pptx-popover-foreground, #f3f4f6);
-		padding: 6px;
-		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -4px rgba(0, 0, 0, 0.35);
-	}
-
-	.pptx-svelte-inserttab-grid button {
-		width: 30px;
-		height: 30px;
-		padding: 0;
-		justify-content: center;
-		background: transparent;
-	}
-
 	.pptx-svelte-inserttab-file {
 		display: none;
+	}
+
+	.pptx-svelte-inserttab-equation {
+		flex-basis: 100%;
 	}
 </style>

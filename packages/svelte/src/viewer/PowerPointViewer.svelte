@@ -289,6 +289,7 @@
 			<Ribbon
 				{editor}
 				{findReplace}
+				canvasSize={loader.canvasSize}
 				current={viewer.current}
 				total={viewer.slideCount}
 				onprev={() => viewer.prev()}

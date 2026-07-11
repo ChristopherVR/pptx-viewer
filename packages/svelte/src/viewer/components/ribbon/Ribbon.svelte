@@ -51,7 +51,7 @@
 		{:else if activeTab === 'home'}
 			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />
 		{:else if activeTab === 'insert'}
-			<InsertTab editor={props.editor} />
+			<InsertTab editor={props.editor} canvasSize={props.canvasSize} />
 		{:else if activeTab === 'view'}
 			<ViewTab
 				zoomPercent={props.zoomPercent}

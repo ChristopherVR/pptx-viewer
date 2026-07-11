@@ -1,3 +1,5 @@
+import type { CanvasSize } from 'pptx-viewer-shared';
+
 import type { FindReplaceState } from '../../editor/editor-find-replace.svelte';
 import type { EditorState } from '../../editor/editor-state.svelte';
 import type { ExportUiState } from '../../export/export-ui.svelte';
@@ -14,6 +16,8 @@ export interface RibbonProps {
 	editor: EditorState;
 	/** Reactive Find & Replace panel state, owned by the host so it can navigate the viewer. */
 	findReplace: FindReplaceState;
+	/** Slide canvas size (px); the Insert tab centres new charts/media/SmartArt/etc. on it. */
+	canvasSize: CanvasSize;
 
 	/** Compact nav row (always visible): active slide (0-based) / total. */
 	current: number;
