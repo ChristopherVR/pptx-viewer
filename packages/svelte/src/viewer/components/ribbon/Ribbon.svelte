@@ -34,7 +34,21 @@
 </script>
 
 <div class="pptx-svelte-ribbon" role="region" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
-	<RibbonNavRow current={props.current} total={props.total} onprev={props.onprev} onnext={props.onnext} />
+	<RibbonNavRow
+		current={props.current}
+		total={props.total}
+		onprev={props.onprev}
+		onnext={props.onnext}
+		zoomPercent={props.zoomPercent}
+		onzoomin={props.onzoomin}
+		onzoomout={props.onzoomout}
+		onzoomfit={props.onzoomfit}
+		isFullscreen={props.isFullscreen}
+		onfullscreen={props.onfullscreen}
+		showNotes={props.showNotes}
+		notesExpanded={props.notesExpanded}
+		onnotestoggle={props.onnotestoggle}
+	/>
 	<RibbonPrimaryRow
 		canUndo={props.canUndo}
 		canRedo={props.canRedo}
