@@ -3,6 +3,7 @@ import type { ViewerTheme } from 'pptx-viewer-shared';
 import type { EditActions } from './editor/editor-edit-ops';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
 import { createLazyActions } from './editor/editor-lazy-actions';
+import type { DrawTool } from './state';
 import type { ChromeOptions } from './ui';
 
 /**
@@ -34,6 +35,12 @@ export interface ChromeCallbackDeps {
 	getFindReplaceActions(): FindReplaceActions;
 	/** Swap the viewer chrome's `ViewerTheme` (Design tab theme gallery). */
 	setTheme(theme: ViewerTheme | undefined): void;
+	/** Switch the Draw ribbon tab's active tool. */
+	setDrawTool(tool: DrawTool): void;
+	/** Set the pen/highlighter stroke colour (Draw tab). */
+	setDrawColor(color: string): void;
+	/** Set the pen/highlighter stroke width (Draw tab). */
+	setDrawWidth(width: number): void;
 }
 
 /**
@@ -87,6 +94,11 @@ export function buildChromeCallbacks(
 		findReplace: createLazyActions(() => deps.getFindReplaceActions()),
 		design: {
 			setTheme: (theme) => deps.setTheme(theme),
+		},
+		draw: {
+			setTool: (tool) => deps.setDrawTool(tool),
+			setColor: (color) => deps.setDrawColor(color),
+			setWidth: (width) => deps.setDrawWidth(width),
 		},
 	};
 	const inspectorHandlers: ChromeOptions['inspectorHandlers'] = {

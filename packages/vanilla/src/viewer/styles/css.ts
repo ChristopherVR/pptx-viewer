@@ -133,6 +133,9 @@ const CHROME_CSS = `
 	box-shadow: 0 2px 12px rgb(0 0 0 / 0.25);
 }
 .pptxv-stage { background: #fff; }
+.pptxv-stage-wrap[data-draw-tool="pen"],
+.pptxv-stage-wrap[data-draw-tool="highlighter"] { cursor: crosshair; }
+.pptxv-stage-wrap[data-draw-tool="eraser"] { cursor: cell; }
 .pptxv-para { margin: 0; }
 
 /* ── Selection overlay (editing) ─────────────────────────────────────── */

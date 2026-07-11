@@ -82,7 +82,11 @@ export type IconName =
 	| 'equation'
 	| 'smart-art'
 	| 'action-button'
-	| 'field';
+	| 'field'
+	| 'cursor'
+	| 'pen'
+	| 'highlighter'
+	| 'eraser';
 
 const ICON_PATHS: Record<IconName, string[]> = {
 	'chevron-left': ['M15 18l-6-6 6-6'],
@@ -226,6 +230,14 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	'smart-art': ['M3 3h8v8H3z', 'M13 13h8v8h-8z', 'M11 7h2', 'M17 11v2'],
 	'action-button': ['M3 3h18v18H3z', 'M13 7l4 5-4 5'],
 	field: ['M4 7h16', 'M4 12h10', 'M4 17h12', 'M19 12a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'],
+	cursor: ['M4 4l7.07 17 2.51-7.39L21 11.07 4 4z'],
+	pen: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z'],
+	highlighter: ['M9 11l-6 6v3h3l9.5-9.5', 'M14.5 4l5.5 5.5-2.5 2.5-5.5-5.5z'],
+	eraser: [
+		'M7 21l-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21',
+		'M22 21H7',
+		'M5 11l9 9',
+	],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

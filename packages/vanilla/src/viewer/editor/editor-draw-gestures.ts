@@ -1,0 +1,135 @@
+import type { InkPoint, StrokeToInkElementOpts } from 'pptx-viewer-shared';
+
+import type { DrawTool } from '../state';
+import { resolveTopLevelElementId } from './element-hit';
+
+/**
+ * Pointer gesture driver for the Draw ribbon tab's pen/highlighter/eraser
+ * tools, the drawing counterpart of `editor-gestures.ts`'s move/resize/rotate
+ * driver: it only owns the pointer-event lifecycle (capture the active
+ * pointer, accumulate points, dead-zone-free since every sample counts for a
+ * stroke), never slide/history mutation (that's `editor-ink-actions.ts`, via
+ * the `onCommitStroke` / `onEraseAt` callbacks).
+ *
+ * `select` is not handled here at all: `editor-controller.ts` only routes a
+ * `pointerdown` to this controller when the active `DrawTool` isn't
+ * `'select'`, so drawing and the normal move/resize/rotate/inline-edit
+ * gestures in `editor-stage-interactions.ts` stay mutually exclusive.
+ */
+
+/** Map a client-space pointer coordinate into unscaled stage-local px. */
+export function clientPointToStagePoint(
+	clientX: number,
+	clientY: number,
+	origin: { left: number; top: number },
+	scale: number,
+): InkPoint {
+	const s = scale || 1;
+	return { x: (clientX - origin.left) / s, y: (clientY - origin.top) / s };
+}
+
+export interface DrawGesturesDeps {
+	/** Current stage scale (screen px per element px). */
+	getScale(): number;
+	/** Stage overlay origin in client coordinates, for pointer->stage mapping. */
+	getStageOrigin(): { left: number; top: number };
+	/** The rendered stage element, for the eraser's hit-test. */
+	getStageRoot(): Element | null;
+	getTool(): DrawTool;
+	getColor(): string;
+	getWidth(): number;
+	/** A pen/highlighter stroke was released; commit it as a new ink element. */
+	onCommitStroke(stroke: StrokeToInkElementOpts): void;
+	/** The eraser tool was clicked on an existing element with this id. */
+	onEraseAt(id: string): void;
+}
+
+export interface DrawGestures {
+	/** Pointer-down on the stage while a drawing tool (not `'select'`) is active. */
+	onStagePointerDown(event: PointerEvent): void;
+	isActive(): boolean;
+	/** Abort listeners without committing a stroke (teardown / tool switch). */
+	dispose(): void;
+}
+
+interface ActiveStroke {
+	tool: 'pen' | 'highlighter';
+	pointerId: number;
+	points: InkPoint[];
+}
+
+export function createDrawGestures(deps: DrawGesturesDeps): DrawGestures {
+	let active: ActiveStroke | null = null;
+
+	const mapPoint = (event: PointerEvent): InkPoint =>
+		clientPointToStagePoint(event.clientX, event.clientY, deps.getStageOrigin(), deps.getScale());
+
+	function detach(): void {
+		window.removeEventListener('pointermove', onPointerMove);
+		window.removeEventListener('pointerup', onPointerUp);
+		window.removeEventListener('pointercancel', onPointerCancel);
+	}
+
+	function onPointerMove(event: PointerEvent): void {
+		if (!active || event.pointerId !== active.pointerId) {
+			return;
+		}
+		active.points.push(mapPoint(event));
+	}
+
+	function onPointerUp(event: PointerEvent): void {
+		if (!active || event.pointerId !== active.pointerId) {
+			return;
+		}
+		active.points.push(mapPoint(event));
+		const stroke = active;
+		detach();
+		active = null;
+		deps.onCommitStroke({
+			points: stroke.points,
+			color: deps.getColor(),
+			width: deps.getWidth(),
+			tool: stroke.tool,
+		});
+	}
+
+	function onPointerCancel(event: PointerEvent): void {
+		if (!active || event.pointerId !== active.pointerId) {
+			return;
+		}
+		detach();
+		active = null;
+	}
+
+	return {
+		onStagePointerDown(event) {
+			if (event.button !== 0) {
+				return;
+			}
+			const tool = deps.getTool();
+			if (tool === 'select') {
+				return;
+			}
+			if (tool === 'eraser') {
+				const id = resolveTopLevelElementId(event.target, deps.getStageRoot());
+				if (id) {
+					event.preventDefault();
+					event.stopPropagation();
+					deps.onEraseAt(id);
+				}
+				return;
+			}
+			event.preventDefault();
+			event.stopPropagation();
+			active = { tool, pointerId: event.pointerId, points: [mapPoint(event)] };
+			window.addEventListener('pointermove', onPointerMove);
+			window.addEventListener('pointerup', onPointerUp);
+			window.addEventListener('pointercancel', onPointerCancel);
+		},
+		isActive: () => active !== null,
+		dispose() {
+			detach();
+			active = null;
+		},
+	};
+}

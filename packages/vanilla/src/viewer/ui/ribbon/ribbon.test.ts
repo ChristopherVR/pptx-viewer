@@ -48,6 +48,7 @@ function buildHandlers(): RibbonHandlers {
 		edit: fakeActions<EditActions>(),
 		findReplace: fakeActions<FindReplaceActions>(),
 		design: { setTheme: vi.fn() },
+		draw: { setTool: vi.fn(), setColor: vi.fn(), setWidth: vi.fn() },
 	};
 }
 
@@ -64,7 +65,7 @@ describe('createRibbon', () => {
 		const t = createTranslator();
 		const ribbon = createRibbon(document, t, buildHandlers());
 		const tabs = ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab');
-		// [file, home, insert, design, transitions, animations, view]
+		// [file, home, insert, draw, design, transitions, animations, view]
 		tabs[2].click();
 		const panes = ribbon.el.querySelectorAll<HTMLElement>('.pptxv-ribbon-tab-content');
 		const visible = Array.from(panes).filter((p) => !p.hidden);

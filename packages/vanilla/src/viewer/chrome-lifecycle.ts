@@ -6,7 +6,7 @@ import type { EditActions } from './editor';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
 import type { Translator } from './i18n';
 import type { RenderController } from './render-controller';
-import type { Store, ViewerState } from './state';
+import type { DrawTool, Store, ViewerState } from './state';
 import { applyThemeVars } from './theme-apply';
 import type { PptxViewerOptions } from './types';
 import type { PresentationController, ViewerChrome } from './ui';
@@ -98,6 +98,9 @@ export interface ChromeHost {
 		commitNotes(notes: string): void;
 		getEditActions(): EditActions;
 		getFindReplaceActions(): FindReplaceActions;
+		setDrawTool(tool: DrawTool): void;
+		setDrawColor(color: string): void;
+		setDrawWidth(width: number): void;
 	};
 	prev(): void;
 	next(): void;
@@ -155,5 +158,8 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		getEditActions: () => host.editor.getEditActions(),
 		getFindReplaceActions: () => host.editor.getFindReplaceActions(),
 		setTheme: (theme) => host.setTheme(theme),
+		setDrawTool: (tool) => host.editor.setDrawTool(tool),
+		setDrawColor: (color) => host.editor.setDrawColor(color),
+		setDrawWidth: (width) => host.editor.setDrawWidth(width),
 	};
 }

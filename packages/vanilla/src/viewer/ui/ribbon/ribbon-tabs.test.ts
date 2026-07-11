@@ -3,11 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_RIBBON_TAB, isRibbonTab, RIBBON_TABS } from './ribbon-tabs';
 
 describe('ribbon-tabs registry', () => {
-	it('implements exactly File, Home, Insert, Design, Transitions, Animations, View this wave', () => {
+	it('implements exactly File, Home, Insert, Draw, Design, Transitions, Animations, View this wave', () => {
 		expect(RIBBON_TABS.map((tab) => tab.id)).toStrictEqual([
 			'file',
 			'home',
 			'insert',
+			'draw',
 			'design',
 			'transitions',
 			'animations',
@@ -29,7 +30,7 @@ describe('ribbon-tabs registry', () => {
 
 	it('rejects ids that are not in the registry', () => {
 		expect(isRibbonTab('file')).toBeTruthy();
-		expect(isRibbonTab('draw')).toBeFalsy();
+		expect(isRibbonTab('draw')).toBeTruthy();
 		expect(isRibbonTab('bogus')).toBeFalsy();
 	});
 });
