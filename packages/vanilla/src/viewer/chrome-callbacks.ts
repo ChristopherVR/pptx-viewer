@@ -94,6 +94,27 @@ export function buildChromeCallbacks(
 		setShapeFill: (color) => deps.getEditActions().setShapeFill(color),
 		setShapeStroke: (color) => deps.getEditActions().setShapeStroke(color),
 		setShapeStrokeWidth: (width) => deps.getEditActions().setShapeStrokeWidth(width),
+
+		setTextVerticalAlign: (vAlign) => deps.getEditActions().setTextVerticalAlign(vAlign),
+		setTextWrap: (wrap) => deps.getEditActions().setTextWrap(wrap),
+		setAutoFitMode: (mode) => deps.getEditActions().setAutoFitMode(mode),
+
+		setFillOpacity: (opacity) => deps.getEditActions().setFillOpacity(opacity),
+		setStrokeOpacity: (opacity) => deps.getEditActions().setStrokeOpacity(opacity),
+		setGradientFill: (state) => deps.getEditActions().setGradientFill(state),
+		addGradientStop: (color, position) => deps.getEditActions().addGradientStop(color, position),
+		removeGradientStop: (index) => deps.getEditActions().removeGradientStop(index),
+		updateGradientStop: (index, changes) =>
+			deps.getEditActions().updateGradientStop(index, changes),
+
+		setImageBrightness: (value) => deps.getEditActions().setImageBrightness(value),
+		setImageContrast: (value) => deps.getEditActions().setImageContrast(value),
+		setImageSaturation: (value) => deps.getEditActions().setImageSaturation(value),
+		setImageCrop: (edge, value) => deps.getEditActions().setImageCrop(edge, value),
+
+		setTableHeaderRow: (enabled) => deps.getEditActions().setTableHeaderRow(enabled),
+		setTableBandedRows: (enabled) => deps.getEditActions().setTableBandedRows(enabled),
+		setTableCellPadding: (padding) => deps.getEditActions().setTableCellPadding(padding),
 	};
 	return {
 		ribbonHandlers,

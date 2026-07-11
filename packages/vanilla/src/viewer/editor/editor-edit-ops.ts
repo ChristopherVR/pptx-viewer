@@ -24,6 +24,8 @@ import {
 	buildSmartArtInsertElement,
 	resolveFieldDisplayText,
 } from './editor-insert-structured';
+import type { InspectorActions } from './editor-inspector-actions';
+import { createInspectorActions } from './editor-inspector-actions';
 import { appendElementOnSlide } from './editor-mutations';
 import type { EditorOps } from './editor-operations';
 import type { SlideActions } from './editor-slide-actions';
@@ -59,7 +61,8 @@ export interface EditActions
 		SlideActions,
 		SlideBackgroundActions,
 		TransitionActions,
-		AnimationActions {
+		AnimationActions,
+		InspectorActions {
 	setShapeFill(color: string): void;
 	setShapeStroke(color: string): void;
 	setShapeStrokeWidth(width: number): void;
@@ -117,8 +120,12 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		...createSlideBackgroundActions({ store, ops }),
 		...createTransitionActions({ store, ops }),
 		...createAnimationActions({ store, ops }),
+		...createInspectorActions(applyToSelected),
 
-		setShapeFill: (color) => applyToSelected((el) => patchShapeStyle(el, { fillColor: color })),
+		// Picking a flat colour swatch implies solid fill, so it also clears any
+		// active gradient/pattern mode (mirrors the React/Vue "Fill & Stroke" panel).
+		setShapeFill: (color) =>
+			applyToSelected((el) => patchShapeStyle(el, { fillColor: color, fillMode: 'solid' })),
 		setShapeStroke: (color) => applyToSelected((el) => patchShapeStyle(el, { strokeColor: color })),
 		setShapeStrokeWidth: (width) =>
 			applyToSelected((el) => patchShapeStyle(el, { strokeWidth: Math.max(0, width) })),

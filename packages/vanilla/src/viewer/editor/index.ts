@@ -45,6 +45,8 @@ export {
 export type { InsertKind } from './editor-insert';
 export { buildInsertElement, centerOnCanvas, pickImageElement } from './editor-insert';
 export { pickMediaElement } from './editor-insert-media';
+export type { InspectorActions } from './editor-inspector-actions';
+export { createInspectorActions } from './editor-inspector-actions';
 export type { FieldInsertContext } from './editor-insert-structured';
 export {
 	buildActionButtonInsertElement,
@@ -109,3 +111,4 @@ export {
 } from './inline-text-editor';
 export type { OverlayBox, SelectionOverlay, SelectionOverlayHooks } from './selection-overlay';
 export { createSelectionOverlay } from './selection-overlay';
+export { buildInspectorState } from './inspector-state-builder';

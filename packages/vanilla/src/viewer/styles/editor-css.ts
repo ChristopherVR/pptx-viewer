@@ -109,6 +109,44 @@ export const EDITOR_CSS = `
 }
 .pptxv-inspector-row-label { color: var(--pptx-muted-foreground); }
 
+/* Select / checkbox / range fields (text/image/table inspector sections). */
+.pptxv-field-select,
+.pptxv-field-checkbox,
+.pptxv-field-range {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+.pptxv-field-checkbox { justify-content: flex-start; }
+.pptxv-field-checkbox .pptxv-field-label { order: 2; }
+.pptxv-field-select-input {
+	height: 26px;
+	padding: 2px 6px;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: var(--pptx-background);
+	color: var(--pptx-foreground);
+	font: inherit;
+	font-size: 12px;
+}
+.pptxv-field-select-input:disabled { opacity: 0.5; }
+.pptxv-field-range { flex-direction: column; align-items: stretch; }
+.pptxv-field-range-row { display: flex; align-items: center; gap: 8px; }
+.pptxv-field-range-row input[type='range'] { flex: 1; }
+.pptxv-field-range-readout {
+	min-width: 34px;
+	text-align: right;
+	color: var(--pptx-muted-foreground);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Gradient fill sub-panel (Fill & Stroke section). */
+.pptxv-inspector-gradient { margin: 4px 0 8px; padding-left: 4px; border-left: 2px solid var(--pptx-border); }
+.pptxv-inspector-gradient[hidden] { display: none; }
+.pptxv-inspector-gradient-stops { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+
 /* Presentation mode hides all editing chrome (the ribbon is covered by
  * \`.pptxv.pptxv-presenting .pptxv-ribbon\` in css.ts). */
 .pptxv.pptxv-presenting .pptxv-inspector { display: none; }
