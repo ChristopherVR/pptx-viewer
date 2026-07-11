@@ -982,7 +982,32 @@ export class SlideCanvasComponent implements SlideContext {
 		} else if (event.key === 'Enter' && !event.shiftKey) {
 			event.preventDefault();
 			editor.blur();
+		} else if (event.key === 'Enter' && event.shiftKey) {
+			this.trimTrailingSpaceBeforeCaret(editor);
 		}
+	}
+
+	/**
+	 * When the caret sits at a soft word-wrap boundary (no explicit line break,
+	 * just CSS wrapping), the space separating the two words is still part of
+	 * the text and lands right before the caret. Inserting a line break there
+	 * leaves the new line preceded by a stray space: e.g. "fox jumps" wrapped as
+	 * "fox " / "jumps" becomes lines "fox " and "jumps" instead of "fox" and
+	 * "jumps". That extra, invisible trailing character then counts toward the
+	 * line's measured width, occasionally forcing an unwanted extra wrapped
+	 * line. Since a space immediately before a line break is never visually
+	 * meaningful, drop it before the browser inserts the native line break.
+	 */
+	private trimTrailingSpaceBeforeCaret(editor: HTMLTextAreaElement): void {
+		const { selectionStart, selectionEnd, value } = editor;
+		if (selectionStart === null || selectionStart !== selectionEnd || selectionStart === 0) {
+			return;
+		}
+		if (value.charAt(selectionStart - 1) !== ' ') {
+			return;
+		}
+		editor.value = value.slice(0, selectionStart - 1) + value.slice(selectionStart);
+		editor.setSelectionRange(selectionStart - 1, selectionStart - 1);
 	}
 
 	/** Toggle bold/italic/underline for the element under inline edit. */
