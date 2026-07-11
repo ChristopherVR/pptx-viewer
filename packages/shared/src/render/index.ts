@@ -550,6 +550,18 @@ export * from './text-warp-presets';
 export * from './shape-quick-styles';
 export * from './text-3d-presets';
 
+// Element clipboard: in-memory copy/cut payload builders + paste cloning
+// (fresh template-aware ids + cascade offset) and the marked, versioned JSON
+// string codec (binary-safe) for round-tripping elements through the system
+// clipboard. Each binding's cut/copy/paste handlers are thin wrappers on this.
+export * from './element-clipboard';
+// Insert > Shape picker catalogue: preset geometry types + labels/i18n keys +
+// framework-neutral glyph descriptors; each binding maps glyphs to its icons.
+export * from './shape-preset-catalog';
+// Home-tab text formatting presets: font family/size dropdown lists,
+// character/line-spacing presets, and the change-case options + transforms.
+export * from './text-format-presets';
+
 // PowerPoint-style title bar (AutoSave toggle + quick access + file name +
 // search) and the shared IndexedDB autosave recovery store behind it. Pure
 // logic + class tokens; each binding renders its own thin view from these.

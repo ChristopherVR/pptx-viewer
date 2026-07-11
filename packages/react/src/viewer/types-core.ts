@@ -187,11 +187,13 @@ export interface ShapeAdjustmentDragState {
 // Clipboard / history
 // ---------------------------------------------------------------------------
 
-/** Payload stored when an element is copied/cut to the internal clipboard. */
-export interface ElementClipboardPayload {
-	element: PptxElement;
-	isTemplate: boolean;
-}
+/**
+ * Payload stored when an element is copied/cut to the internal clipboard.
+ *
+ * Re-exported from `pptx-viewer-shared` (render/element-clipboard.ts), which
+ * owns the shared clipboard payload/codec logic.
+ */
+export type { ElementClipboardPayload } from 'pptx-viewer-shared';
 
 /**
  * A snapshot of editor state captured for undo/redo history.

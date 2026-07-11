@@ -19,7 +19,10 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { isTemplateElement } from 'pptx-viewer-shared';
 
-import { generateElementId } from './generate-id';
+// The clone-id builder (template-prefix aware paste/duplicate ids) moved to
+// `pptx-viewer-shared` (render/element-clipboard.ts); re-exported here for the
+// existing React import sites.
+export { makeCloneId } from 'pptx-viewer-shared';
 
 /** Result of {@link partitionTemplateElements}. */
 export interface TemplatePartition {
@@ -73,23 +76,4 @@ export function buildSaveSlides(
 		}
 		return { ...slide, elements: [...template, ...slide.elements] };
 	});
-}
-
-/**
- * Build the id for a pasted / duplicated clone so that it routes to the same
- * store it is inserted into.
- *
- * In edit-template mode the clone lands in the template store, so it must keep
- * a template (`master-` / `layout-`) prefix; otherwise later edits (which route
- * by id prefix) would target the wrong store and be lost. Outside template mode
- * a normal id is generated.
- */
-export function makeCloneId(intoTemplate: boolean, sourceId: string): string {
-	if (!intoTemplate) {
-		return generateElementId();
-	}
-	if (sourceId.startsWith('master-')) {
-		return `master-${generateElementId()}`;
-	}
-	return `layout-${generateElementId()}`;
 }
