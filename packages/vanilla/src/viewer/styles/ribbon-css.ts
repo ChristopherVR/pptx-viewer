@@ -6,6 +6,31 @@
  * custom properties so the vermilion light/dark presets keep working.
  */
 export const RIBBON_CSS = `
+/* ── Ribbon shell (primary row + nav row) ───────────────────────────────── */
+.pptxv-ribbon {
+	display: flex;
+	flex-direction: column;
+	border-bottom: 1px solid var(--pptx-border);
+	background: var(--pptx-card);
+	color: var(--pptx-card-foreground);
+	flex: none;
+}
+.pptxv-ribbon-primary {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--pptx-border);
+}
+.pptxv-ribbon-primary[hidden] { display: none; }
+.pptxv-ribbon-nav {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 8px;
+}
+.pptxv-ribbon-nav-spacer { flex: 1; }
+
 /* ── Tab bar ─────────────────────────────────────────────────────────── */
 .pptxv-ribbon-tabs {
 	display: flex;

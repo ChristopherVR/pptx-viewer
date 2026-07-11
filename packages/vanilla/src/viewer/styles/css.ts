@@ -37,31 +37,9 @@ const CHROME_CSS = `
 .pptxv:focus { outline: none; }
 .pptxv:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -2px; }
 
-/* ── Ribbon shell (primary row + nav row) ───────────────────────────────
- * Tab bar / tab content / group styling lives in ribbon-css.ts. */
-.pptxv-ribbon {
-	display: flex;
-	flex-direction: column;
-	border-bottom: 1px solid var(--pptx-border);
-	background: var(--pptx-card);
-	color: var(--pptx-card-foreground);
-	flex: none;
-}
-.pptxv-ribbon-primary {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 4px 8px;
-	border-bottom: 1px solid var(--pptx-border);
-}
-.pptxv-ribbon-primary[hidden] { display: none; }
-.pptxv-ribbon-nav {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 6px 8px;
-}
-.pptxv-ribbon-nav-spacer { flex: 1; }
+/* Ribbon shell layout (primary row + nav row + tab bar + groups) lives in
+ * ribbon-css.ts; .pptxv-btn below is the shared icon-button primitive used by
+ * both the ribbon and the inspector. */
 .pptxv-btn {
 	display: inline-flex;
 	align-items: center;
