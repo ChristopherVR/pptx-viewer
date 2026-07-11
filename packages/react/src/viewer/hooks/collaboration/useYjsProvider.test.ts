@@ -15,6 +15,7 @@
  *
  * @module collaboration/useYjsProvider.test
  */
+import { createSyncGate } from 'pptx-viewer-shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ConnectionStatus } from './types';
@@ -287,6 +288,117 @@ describe('useYjsProvider - connection lifecycle', () => {
 // ---------------------------------------------------------------------------
 // Server / room URL handling
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Sync-gate re-arm on reconnect: the hook now delegates to the shared
+// `createSyncGate` (see useYjsProvider.ts's `handleStatus`), reproduced here
+// against the same MockWebsocketProvider to verify a reconnect re-gates
+// writes instead of leaving `synced` permanently true from the first connect.
+// ---------------------------------------------------------------------------
+
+function createConnectionMachineWithGate(provider: MockWebsocketProvider, timeoutMs: number) {
+	let status: ConnectionStatus = 'disconnected';
+	let connected = false;
+	let timeout: ReturnType<typeof setTimeout> | null = null;
+	let synced = false;
+	const gate = createSyncGate(() => {
+		synced = true;
+	});
+
+	const handleStatus = (event: StatusEvent) => {
+		if (event.status === 'connected') {
+			connected = true;
+			if (timeout) {
+				clearTimeout(timeout);
+				timeout = null;
+			}
+			status = 'connected';
+			gate.arm();
+		} else if (event.status === 'disconnected') {
+			status = 'disconnected';
+			gate.reset();
+			synced = false;
+			gate.arm();
+		}
+	};
+
+	const start = () => {
+		status = 'connecting';
+		provider.on('status', handleStatus);
+		if (provider.wsconnected) {
+			connected = true;
+			status = 'connected';
+			gate.arm();
+		}
+		if (!connected) {
+			timeout = setTimeout(() => {
+				timeout = null;
+				if (!connected) {
+					provider.off('status', handleStatus);
+					provider.destroy();
+					status = 'error';
+				}
+			}, timeoutMs);
+		}
+	};
+
+	return {
+		start,
+		getStatus: () => status,
+		isSynced: () => synced,
+		openGate: () => gate.open(),
+	};
+}
+
+describe('useYjsProvider - sync-gate reconnect re-arm', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('re-arms the gate on reconnect instead of leaving `synced` permanently true', () => {
+		const provider = new MockWebsocketProvider('wss://collab.test', 'room-1');
+		const machine = createConnectionMachineWithGate(provider, 30_000);
+
+		machine.start();
+		provider.emitConnected();
+		expect(machine.isSynced()).toBeFalsy();
+
+		// The provider's 'sync' event confirms the initial document sync.
+		machine.openGate();
+		expect(machine.isSynced()).toBeTruthy();
+
+		// Drop and reconnect: a write issued right after must not flush until a
+		// fresh sync confirmation, i.e. the gate must have reset.
+		provider.emitDisconnected();
+		provider.emitConnected();
+		expect(machine.isSynced()).toBeFalsy();
+
+		machine.openGate();
+		expect(machine.isSynced()).toBeTruthy();
+	});
+
+	it('falls back to the grace timer on reconnect when no fresh sync event arrives', () => {
+		const provider = new MockWebsocketProvider('wss://collab.test', 'room-1');
+		const machine = createConnectionMachineWithGate(provider, 30_000);
+
+		machine.start();
+		provider.emitConnected();
+		machine.openGate();
+		expect(machine.isSynced()).toBeTruthy();
+
+		provider.emitDisconnected();
+		provider.emitConnected();
+		expect(machine.isSynced()).toBeFalsy();
+
+		// No 'sync' event this time; the re-armed grace timer should still open it.
+		vi.advanceTimersByTime(3000);
+		expect(machine.isSynced()).toBeTruthy();
+	});
+});
 
 describe('useYjsProvider - server/room URL handling', () => {
 	it('passes the configured server URL and room ID through to the provider', () => {

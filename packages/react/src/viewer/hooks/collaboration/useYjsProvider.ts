@@ -15,10 +15,12 @@
  */
 import {
 	CONNECTION_TIMEOUT_MS,
-	INITIAL_SYNC_GRACE_MS,
+	createSyncGate,
 	isMixedContentBlocked,
+	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
+import type { SyncGate } from 'pptx-viewer-shared';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 import type { WebrtcProvider } from 'y-webrtc';
@@ -100,40 +102,27 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 	// Keep a ref to cleanup functions so we can teardown on unmount or config change
 	const cleanupRef = useRef<(() => void) | null>(null);
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const syncGraceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	const clearSyncGrace = useCallback(() => {
-		if (syncGraceRef.current) {
-			clearTimeout(syncGraceRef.current);
-			syncGraceRef.current = null;
-		}
-	}, []);
-
-	/** Mark initial sync complete (idempotent) and stop the grace timer. */
-	const markSynced = useCallback(() => {
-		clearSyncGrace();
-		setSynced(true);
-	}, [clearSyncGrace]);
-
-	/** Lift the write gate after the grace period even without a sync event. */
-	const armSyncGrace = useCallback(() => {
-		clearSyncGrace();
-		syncGraceRef.current = setTimeout(() => {
-			syncGraceRef.current = null;
-			setSynced(true);
-		}, INITIAL_SYNC_GRACE_MS);
-	}, [clearSyncGrace]);
+	// First-write gate: created once per hook instance (its `onOpen` closes
+	// over the stable `setSynced` setter, so it never needs to be rebuilt).
+	// `arm()` on (re)connect, `open()` on the provider's sync confirmation,
+	// `reset()` on disconnect/teardown so a later reconnect re-gates writes
+	// instead of leaving `synced` permanently true from the first connection.
+	const gateRef = useRef<SyncGate | null>(null);
+	if (!gateRef.current) {
+		gateRef.current = createSyncGate(() => setSynced(true));
+	}
 
 	const teardown = useCallback(() => {
 		if (timeoutRef.current) {
 			clearTimeout(timeoutRef.current);
 			timeoutRef.current = null;
 		}
-		clearSyncGrace();
+		gateRef.current?.reset();
 		setSynced(false);
 		cleanupRef.current?.();
 		cleanupRef.current = null;
-	}, [clearSyncGrace]);
+	}, []);
 
 	// Build the teardown closure shared by both transports: destroy the
 	// provider + doc and reset all published state.
@@ -183,15 +172,31 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			// first-write gate for that case.
 			const handleSynced = (event: { synced?: boolean }) => {
 				if (event?.synced !== false) {
-					markSynced();
+					gateRef.current?.open();
 				}
 			};
 			provider.on('synced', handleSynced);
-			armSyncGrace();
+			gateRef.current?.arm();
+
+			// y-webrtc reports peer connectivity via `status`; re-arm the gate on a
+			// disconnect so a later reconnect re-gates writes instead of leaving
+			// `synced` permanently true from the first connection.
+			const handleStatus = (event: { connected?: boolean }) => {
+				if (event.connected === false) {
+					setStatus('disconnected');
+					gateRef.current?.reset();
+					setSynced(false);
+					gateRef.current?.arm();
+				} else if (event.connected) {
+					setStatus('connected');
+				}
+			};
+			provider.on('status', handleStatus);
 
 			const baseCleanup = buildCleanup(provider, yDoc);
 			cleanupRef.current = () => {
 				provider.off('synced', handleSynced);
+				provider.off('status', handleStatus);
 				baseCleanup();
 			};
 		} catch (err) {
@@ -205,14 +210,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 		// reconnection is intentionally keyed on the transport-affecting fields
 		// only, so identity-only changes (e.g. userName) never drop the peer link.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [
-		config?.roomId,
-		config?.authToken,
-		config?.signaling,
-		buildCleanup,
-		armSyncGrace,
-		markSynced,
-	]);
+	}, [config?.roomId, config?.authToken, config?.signaling, buildCleanup]);
 
 	const init = useCallback(async () => {
 		// Clean up any previous connection before starting a new one.
@@ -231,8 +229,13 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 		const roomId = validateRoomId(config.roomId);
 
 		// Serverless peer-to-peer transport: no server URL, no mixed-content
-		// concern (WebRTC signaling is wss://), no connection timeout.
-		if (config.transport === 'webrtc') {
+		// concern (WebRTC signaling is wss://), no connection timeout. Falls
+		// back from a blank serverUrl the same way Vue's session layer already
+		// does, so a bare CollaborationConfig behaves identically regardless of
+		// which binding's session layer receives it directly (not just via the
+		// Share/Broadcast dialogs, which already pre-resolve `transport`).
+		const transport = config.transport ?? resolveTransportForServerUrl(config.serverUrl);
+		if (transport === 'webrtc') {
 			await initWebrtc();
 			return;
 		}
@@ -271,16 +274,22 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 					setStatus('connected');
 					// Defensive: if the server never sends the initial sync
 					// confirmation, lift the first-write gate after the grace period.
-					armSyncGrace();
+					gateRef.current?.arm();
 				} else if (event.status === 'disconnected') {
 					setStatus('disconnected');
+					// Re-arm on (re)connect: without this, a peer that drops and
+					// rejoins keeps `synced` permanently true from the first
+					// connection and can clobber the room with a stale local doc.
+					gateRef.current?.reset();
+					setSynced(false);
+					gateRef.current?.arm();
 				}
 			};
 
 			// y-websocket confirms the initial server sync via its 'sync' event.
 			const handleSynced = (isSynced: boolean) => {
 				if (isSynced) {
-					markSynced();
+					gateRef.current?.open();
 				}
 			};
 
@@ -290,10 +299,10 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			if (provider.wsconnected) {
 				connected = true;
 				setStatus('connected');
-				armSyncGrace();
+				gateRef.current?.arm();
 			}
 			if (provider.synced) {
-				markSynced();
+				gateRef.current?.open();
 			}
 
 			// Start connection timeout: if we don't connect within the limit,
@@ -348,8 +357,6 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 		config?.transport,
 		initWebrtc,
 		teardown,
-		armSyncGrace,
-		markSynced,
 	]);
 
 	useEffect(() => {
