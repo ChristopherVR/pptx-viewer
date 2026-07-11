@@ -11,6 +11,7 @@
 	import { useTranslator } from '../../../i18n/context';
 	import AnimationsTab from './animations/AnimationsTab.svelte';
 	import DesignTab from './design/DesignTab.svelte';
+	import DrawTab from './draw/DrawTab.svelte';
 	import FileTab from './file/FileTab.svelte';
 	import FindReplacePanel from './FindReplacePanel.svelte';
 	import HomeTab from './home/HomeTab.svelte';
@@ -55,6 +56,8 @@
 			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />
 		{:else if activeTab === 'insert'}
 			<InsertTab editor={props.editor} canvasSize={props.canvasSize} />
+		{:else if activeTab === 'draw'}
+			<DrawTab editor={props.editor} />
 		{:else if activeTab === 'design'}
 			<DesignTab editor={props.editor} theme={props.theme} onsettheme={props.onsettheme} />
 		{:else if activeTab === 'transitions'}
