@@ -13,6 +13,9 @@ function makeDeps(over: Partial<EditorKeyboardDeps> = {}): EditorKeyboardDeps {
 		nudgeSelected: vi.fn(),
 		undo: vi.fn(),
 		redo: vi.fn(),
+		copySelected: vi.fn(),
+		cutSelected: vi.fn(),
+		paste: vi.fn(),
 		...over,
 	};
 }
@@ -78,5 +81,30 @@ describe('createEditorKeydownHandler', () => {
 		expect(deps.deleteSelected).not.toHaveBeenCalled();
 		expect(deps.nudgeSelected).not.toHaveBeenCalled();
 		expect(deps.undo).toHaveBeenCalledOnce();
+	});
+
+	it('routes Ctrl+C / Ctrl+X to copy/cut when something is selected', () => {
+		const deps = makeDeps();
+		const handler = createEditorKeydownHandler(deps);
+		handler(key({ key: 'c', ctrlKey: true }));
+		handler(key({ key: 'x', ctrlKey: true }));
+		expect(deps.copySelected).toHaveBeenCalledOnce();
+		expect(deps.cutSelected).toHaveBeenCalledOnce();
+	});
+
+	it('ignores Ctrl+C / Ctrl+X when nothing is selected', () => {
+		const deps = makeDeps({ getSelectedId: () => null });
+		const handler = createEditorKeydownHandler(deps);
+		handler(key({ key: 'c', ctrlKey: true }));
+		handler(key({ key: 'x', ctrlKey: true }));
+		expect(deps.copySelected).not.toHaveBeenCalled();
+		expect(deps.cutSelected).not.toHaveBeenCalled();
+	});
+
+	it('routes Ctrl+V to paste even without a selection', () => {
+		const deps = makeDeps({ getSelectedId: () => null });
+		const handler = createEditorKeydownHandler(deps);
+		handler(key({ key: 'v', ctrlKey: true }));
+		expect(deps.paste).toHaveBeenCalledOnce();
 	});
 });

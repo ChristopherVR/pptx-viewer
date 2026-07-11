@@ -1,6 +1,9 @@
 import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { ElementClipboardPayload } from 'pptx-viewer-shared';
 import { EditorHistory } from 'pptx-viewer-shared';
 
+import { EditorArrangeController } from './editor-arrange-controller';
+import { EditorClipboardController } from './editor-clipboard-controller';
 import { appendElement, newElementId } from './editor-insert';
 import type { ElementBoxPatch } from './editor-mutations';
 import {
@@ -13,6 +16,7 @@ import {
 	updateSlideNotes,
 } from './editor-mutations';
 import { EditorSelection } from './editor-selection.svelte';
+import { EditorSlidesController } from './editor-slides-controller';
 import type { ZOrderDirection } from './editor-zorder';
 import { reorderElement } from './editor-zorder';
 import { remapInlineText } from './inline-text';
@@ -54,6 +58,8 @@ export class EditorState {
 	dirty = $state(false);
 	/** True while a pointer gesture (drag/resize/rotate) is in progress. */
 	interactionActive = $state(false);
+	/** Current clipboard payload (Ctrl+C/X or the Clipboard group), or null. */
+	clipboard = $state.raw<ElementClipboardPayload | null>(null);
 
 	#history = new EditorHistory<PptxSlide[]>({ maxDepth: MAX_HISTORY_ENTRIES });
 	#canUndo = $state(false);
@@ -61,8 +67,18 @@ export class EditorState {
 	#lastNudgeAt = 0;
 	readonly #deps: EditorStateDeps;
 
+	/** Ctrl+C/X/V + the Home tab's Clipboard group (split out for file-size budget). */
+	readonly clipboardOps: EditorClipboardController;
+	/** The Home tab's Slides group: new / duplicate / delete slide. */
+	readonly slidesOps: EditorSlidesController;
+	/** The Home tab's Arrange group: align / distribute / flip / group / ungroup. */
+	readonly arrangeOps: EditorArrangeController;
+
 	constructor(deps: EditorStateDeps) {
 		this.#deps = deps;
+		this.clipboardOps = new EditorClipboardController(this);
+		this.slidesOps = new EditorSlidesController(this);
+		this.arrangeOps = new EditorArrangeController(this);
 	}
 
 	/** Whether at least one undo step is available (reactive). */
@@ -93,6 +109,16 @@ export class EditorState {
 		return this.selection.ids
 			.map((id) => findSlideElement(this.slides, current, id))
 			.filter((el): el is PptxElement => el !== undefined);
+	}
+
+	/** Whether a paste is currently possible (Clipboard group's Paste button). */
+	get hasClipboard(): boolean {
+		return this.clipboard !== null;
+	}
+
+	/** The active slide index (0-based); read live so it always reflects the viewer. */
+	get currentSlideIndex(): number {
+		return this.#deps.getCurrent();
 	}
 
 	#syncHistoryFlags(): void {
@@ -160,6 +186,21 @@ export class EditorState {
 	/** Patch geometry WITHOUT history (live gesture preview frames). */
 	patchGeometry(id: string, box: ElementBoxPatch): void {
 		this.slides = patchElementGeometry(this.slides, this.#deps.getCurrent(), id, box);
+	}
+
+	/**
+	 * Replace the whole slide array with history (the generic multi-slide
+	 * mutation entry point: slide add/duplicate/delete, arrange group ops,
+	 * and find/replace all route through this so every change is a single
+	 * undoable step). No-op when not editable.
+	 */
+	commitSlides(next: PptxSlide[]): void {
+		if (!this.editable) {
+			return;
+		}
+		this.pushHistory();
+		this.slides = next;
+		this.commitChange();
 	}
 
 	#restore(snapshot: PptxSlide[] | undefined): void {

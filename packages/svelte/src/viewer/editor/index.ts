@@ -2,6 +2,33 @@ export type { EditorControllerDeps } from './editor-controller.svelte';
 export { EditorController } from './editor-controller.svelte';
 export type { EditorStateDeps } from './editor-state.svelte';
 export { EditorState } from './editor-state.svelte';
+export { EditorArrangeController } from './editor-arrange-controller';
+export {
+	alignSelectedOnSlide,
+	distributeSelectedOnSlide,
+	flipSelectedOnSlide,
+	groupSelectedOnSlide,
+	ungroupOnSlide,
+} from './editor-arrange-ops';
+export { copyElementToClipboard, pasteClipboardElement } from './editor-clipboard';
+export { EditorClipboardController } from './editor-clipboard-controller';
+export { EditorSlidesController } from './editor-slides-controller';
+export { deleteSlideAt, duplicateSlideAt, insertBlankSlideAfter } from './editor-slide-ops';
+export type { FindReplaceDeps } from './editor-find-replace.svelte';
+export { FindReplaceState } from './editor-find-replace.svelte';
+export {
+	adjustIndentPatch,
+	setAlignPatch,
+	setLineSpacingPatch,
+	toggleListTypePatch,
+} from './editor-paragraph-mutations';
+export {
+	changeCasePatch,
+	clearFormattingPatch,
+	setCharacterSpacingPatch,
+	setFontFamilyPatch,
+	toggleStrikethroughPatch,
+} from './editor-text-extra-mutations';
 export type {
 	GestureController,
 	GestureDeps,
