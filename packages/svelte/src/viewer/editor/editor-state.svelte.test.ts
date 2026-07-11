@@ -189,6 +189,16 @@ describe('editorState format / insert / z-order operations', () => {
 		expect(editor.slides[0].elements).toHaveLength(1);
 	});
 
+	it('undo drops a selected id the restored snapshot no longer has (e.g. after insert)', () => {
+		const { editor } = make();
+		editor.setSlides([slide('a', [shape('e1')])]);
+		const newId = editor.insertElement(shape('', { id: '' }));
+		expect(editor.selectedElementId).toBe(newId);
+		editor.undo();
+		// The inserted element is gone; the ribbon should not keep it "selected".
+		expect(editor.selectedElementId).toBeNull();
+	});
+
 	it('reorderSelected moves the selection through the paint order (undoable)', () => {
 		const { editor } = make();
 		editor.setSlides([slide('a', [shape('e1'), shape('e2'), shape('e3')])]);

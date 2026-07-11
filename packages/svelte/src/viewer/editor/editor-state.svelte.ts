@@ -209,6 +209,11 @@ export class EditorState {
 		}
 		this.slides = cloneSlides(snapshot);
 		this.interactionActive = false;
+		// Drop selected ids the undo/redo step removed (or that were never on
+		// this snapshot), so ribbon controls gated on `selectedElementId` don't
+		// stay enabled for an element that no longer exists.
+		const current = this.#deps.getCurrent();
+		this.selection.prune((id) => Boolean(findSlideElement(this.slides, current, id)));
 		this.commitChange();
 	}
 
