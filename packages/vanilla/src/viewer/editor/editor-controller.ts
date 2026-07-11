@@ -7,6 +7,8 @@ import type { ViewerChrome } from '../ui';
 import { createEditingChromeSync } from './editing-chrome-sync';
 import type { EditActions } from './editor-edit-ops';
 import { createEditActions } from './editor-edit-ops';
+import type { FindReplaceActions } from './editor-find-replace-actions';
+import { createFindReplaceActions } from './editor-find-replace-actions';
 import { createEditorKeydownHandler } from './editor-keyboard';
 import { createEditorOps } from './editor-operations';
 import { createStageInteractions } from './editor-stage-interactions';
@@ -51,6 +53,8 @@ export interface EditorController {
 	getSelectedElementId(): string | null;
 	/** The formatting / insert / arrange actions for the editing chrome. */
 	getEditActions(): EditActions;
+	/** The Find & Replace actions for the ribbon's docked panel. */
+	getFindReplaceActions(): FindReplaceActions;
 	/** Commit the speaker-notes textarea's plain text onto the current slide. */
 	commitNotes(notes: string): void;
 	save(): Promise<Uint8Array>;
@@ -67,7 +71,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	let attachedRoot: HTMLElement | null = null;
 
 	const updateToolbar = (): void => {
-		deps.getChrome().toolbar?.setEditState({
+		deps.getChrome().ribbon?.setEditState({
 			editable: store.get().editable,
 			canUndo: ops.canUndo(),
 			canRedo: ops.canRedo(),
@@ -82,6 +86,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	});
 
 	const editActions = createEditActions({ doc, store, ops });
+	const findReplaceActions = createFindReplaceActions({ store, ops });
 
 	const syncEditingChrome = createEditingChromeSync({
 		store,
@@ -219,6 +224,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		duplicateSelected: () => ops.duplicateSelected(),
 		getSelectedElementId: () => store.get().selectedElementId,
 		getEditActions: () => editActions,
+		getFindReplaceActions: () => findReplaceActions,
 		commitNotes: (notes) => ops.commitNotes(notes),
 		save: () => ops.save(),
 		async downloadPptx(fileName = 'presentation.pptx') {

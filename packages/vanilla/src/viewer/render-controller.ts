@@ -102,7 +102,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			stageNode = renderStageFor(slide, scale, state.presenting, true);
 			chrome.stageWrap.appendChild(stageNode);
 		}
-		chrome.toolbar?.update({
+		chrome.ribbon?.update({
 			current: state.currentSlide,
 			total: state.slides.length,
 			zoomPercent: scale * 100,
@@ -141,7 +141,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			renderStage();
 			chrome.thumbnails?.setActive(state.currentSlide);
 			chrome.notes.setExpanded(state.notesExpanded);
-			chrome.toolbar?.setNotesExpanded(state.notesExpanded);
+			chrome.ribbon?.setNotesExpanded(state.notesExpanded);
 		},
 		renderStage,
 		renderThumbnails,

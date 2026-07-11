@@ -1,32 +1,30 @@
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
-import type { FormatToolbar, FormatToolbarHandlers } from './format-toolbar';
-import { createFormatToolbar } from './format-toolbar';
 import type { Inspector, InspectorHandlers } from './inspector';
 import { createInspector } from './inspector';
 import type { NotesPanel } from './notes-panel';
 import { createNotesPanel } from './notes-panel';
+import type { Ribbon } from './ribbon/ribbon';
+import { createRibbon } from './ribbon/ribbon';
+import type { RibbonHandlers } from './ribbon/ribbon-types';
 import type { ThumbnailRail } from './thumbnails';
 import { createThumbnailRail } from './thumbnails';
-import type { Toolbar, ToolbarHandlers } from './toolbar';
-import { createToolbar } from './toolbar';
 
 export interface ChromeOptions {
 	showToolbar: boolean;
 	showThumbnails: boolean;
-	/** Build the editing format toolbar row (default true; shown only when editable). */
+	/** Show the ribbon's editing surface (tab bar + Home/Insert/View content); default true. */
 	showFormatToolbar: boolean;
 	/** Build the property inspector panel (default true; shown only when editable). */
 	showInspector: boolean;
-	/** Whether editing is initially enabled (gates format-toolbar/inspector visibility). */
+	/** Whether editing is initially enabled (gates ribbon tab content/inspector visibility). */
 	editable: boolean;
-	toolbarHandlers: ToolbarHandlers;
-	/** Editing format-toolbar actions (bold/fill/insert/z-order/...). */
-	formatHandlers: FormatToolbarHandlers;
+	/** Every ribbon handler (nav/primary/file/insert/edit/findReplace). */
+	ribbonHandlers: RibbonHandlers;
 	/** Inspector actions (geometry + shape fill/stroke). */
 	inspectorHandlers: InspectorHandlers;
 	onSelectSlide(index: number): void;
-	/** Header click on the notes panel; shares the toolbar Notes button's handler. */
+	/** Header click on the notes panel; shares the ribbon Notes button's handler. */
 	onToggleNotes(): void;
 	/** Fired when the notes textarea commits (change/blur) in editable mode. */
 	onCommitNotes(notes: string): void;
@@ -36,9 +34,8 @@ export interface ChromeOptions {
 export interface ViewerChrome {
 	/** `.pptxv` root (focusable; keyboard navigation attaches here). */
 	root: HTMLElement;
-	toolbar: Toolbar | null;
-	/** Editing format toolbar (bold/fill/insert/z-order); null when disabled. */
-	formatToolbar: FormatToolbar | null;
+	/** The tabbed ribbon (primary row, nav row, tab bar + File/Home/Insert/View content); null when disabled. */
+	ribbon: Ribbon | null;
 	/** Property inspector panel; null when disabled. */
 	inspector: Inspector | null;
 	thumbnails: ThumbnailRail | null;
@@ -55,7 +52,7 @@ export interface ViewerChrome {
 }
 
 /**
- * Build the viewer chrome: toolbar (optional), thumbnail rail (optional),
+ * Build the viewer chrome: ribbon (optional), thumbnail rail (optional),
  * viewport + stage host, and the loading/error/empty overlays. Pure DOM
  * assembly; all behaviour is wired by the caller through the handlers.
  */
@@ -68,17 +65,13 @@ export function buildViewerChrome(
 	root.tabIndex = 0;
 	root.setAttribute('role', 'application');
 
-	let toolbar: Toolbar | null = null;
+	let ribbon: Ribbon | null = null;
 	if (options.showToolbar) {
-		toolbar = createToolbar(doc, t, options.toolbarHandlers);
-		root.appendChild(toolbar.el);
-	}
-
-	let formatToolbar: FormatToolbar | null = null;
-	if (options.showFormatToolbar) {
-		formatToolbar = createFormatToolbar(doc, t, options.formatHandlers);
-		formatToolbar.setEditable(options.editable);
-		root.appendChild(formatToolbar.el);
+		ribbon = createRibbon(doc, t, options.ribbonHandlers);
+		if (!options.showFormatToolbar) {
+			ribbon.setEditable(false);
+		}
+		root.appendChild(ribbon.el);
 	}
 
 	const body = createEl(doc, 'div', 'pptxv-body');
@@ -128,8 +121,7 @@ export function buildViewerChrome(
 
 	return {
 		root,
-		toolbar,
-		formatToolbar,
+		ribbon,
 		inspector,
 		thumbnails,
 		viewport,

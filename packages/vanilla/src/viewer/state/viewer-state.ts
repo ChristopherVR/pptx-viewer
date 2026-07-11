@@ -1,5 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, ElementClipboardPayload } from 'pptx-viewer-shared';
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from 'pptx-viewer-shared';
 
 /** `zoom` is either an explicit scale factor (1 = 100%) or fit-to-viewport. */
@@ -42,6 +42,8 @@ export interface ViewerState {
 	 * navigation for the life of the viewer instance (in-memory only).
 	 */
 	notesExpanded: boolean;
+	/** In-memory clipboard payload from the last copy/cut, or null. */
+	clipboardPayload: ElementClipboardPayload | null;
 }
 
 export function createInitialViewerState(): ViewerState {
@@ -59,6 +61,7 @@ export function createInitialViewerState(): ViewerState {
 		dirty: false,
 		interactionActive: false,
 		notesExpanded: false,
+		clipboardPayload: null,
 	};
 }
 

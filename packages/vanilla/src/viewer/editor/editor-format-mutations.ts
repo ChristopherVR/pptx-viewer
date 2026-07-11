@@ -7,6 +7,8 @@ import type {
 	TextStyle,
 } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+import type { ChangeCaseMode } from 'pptx-viewer-shared';
+import { applyCaseTransformToSegments } from 'pptx-viewer-shared';
 
 /**
  * Pure formatting-patch builders for the vanilla editor.
@@ -25,20 +27,35 @@ import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
  * no sub-range is selected.
  */
 
-/** The three character toggles the format toolbar exposes. */
-export type TextToggleKey = 'bold' | 'italic' | 'underline';
+/** The character toggles the ribbon Font group exposes. */
+export type TextToggleKey = 'bold' | 'italic' | 'underline' | 'strikethrough';
 
 /** On/off state of the character toggles, read from the element style. */
 export interface TextFormatState {
 	bold: boolean;
 	italic: boolean;
 	underline: boolean;
+	strikethrough: boolean;
+	/** True when the element carries an explicit text-shadow. */
+	hasTextShadow: boolean;
 	/** Effective font size in points (element style, else first run, else default). */
 	fontSize: number;
+	/** Effective font family, or undefined when unset. */
+	fontFamily: string | undefined;
 	/** Effective text colour (hex), or undefined when unset. */
 	color: string | undefined;
 	/** Effective highlight colour (hex), or undefined when unset. */
 	highlightColor: string | undefined;
+	/** Effective character spacing (1/100 pt), defaulting to 0 (normal). */
+	characterSpacing: number;
+	/** Effective paragraph list type. */
+	listType: TextStyle['listType'];
+	/** Effective paragraph alignment. */
+	align: TextStyle['align'];
+	/** Effective paragraph left margin in px. */
+	paragraphMarginLeft: number;
+	/** Effective line-spacing multiplier. */
+	lineSpacing: number | undefined;
 }
 
 /** Default font size (pt) assumed when neither the element nor a run sets one. */
@@ -65,9 +82,17 @@ export function readTextFormatState(el: PptxElement | undefined): TextFormatStat
 		bold: Boolean(ts?.bold ?? firstRun?.bold),
 		italic: Boolean(ts?.italic ?? firstRun?.italic),
 		underline: Boolean(ts?.underline ?? firstRun?.underline),
+		strikethrough: Boolean(ts?.strikethrough ?? firstRun?.strikethrough),
+		hasTextShadow: Boolean(ts?.textShadowColor ?? firstRun?.textShadowColor),
 		fontSize: ts?.fontSize ?? firstRun?.fontSize ?? DEFAULT_FONT_SIZE,
+		fontFamily: ts?.fontFamily ?? firstRun?.fontFamily,
 		color: ts?.color ?? firstRun?.color,
 		highlightColor: ts?.highlightColor ?? firstRun?.highlightColor,
+		characterSpacing: ts?.characterSpacing ?? firstRun?.characterSpacing ?? 0,
+		listType: ts?.listType ?? firstRun?.listType,
+		align: ts?.align ?? firstRun?.align,
+		paragraphMarginLeft: ts?.paragraphMarginLeft ?? firstRun?.paragraphMarginLeft ?? 0,
+		lineSpacing: ts?.lineSpacing ?? firstRun?.lineSpacing,
 	};
 }
 
@@ -118,4 +143,70 @@ export function patchShapeStyle(el: PptxElement, patch: Partial<ShapeStyle>): Pa
 	}
 	const shapeStyle: ShapeStyle = { ...el.shapeStyle, ...patch };
 	return { shapeStyle } as Partial<PptxElement>;
+}
+
+/** Set the font family element-wide. */
+export function setFontFamily(el: PptxElement, fontFamily: string): Partial<PptxElement> {
+	return patchTextStyle(el, { fontFamily });
+}
+
+/** Set the character spacing (1/100 pt) element-wide. */
+export function setCharacterSpacing(el: PptxElement, spacing: number): Partial<PptxElement> {
+	return patchTextStyle(el, { characterSpacing: spacing });
+}
+
+/** Default outer-shadow parameters applied when the text-shadow toggle is turned on. */
+const DEFAULT_TEXT_SHADOW: Partial<TextStyle> = {
+	textShadowColor: '#000000',
+	textShadowBlur: 2,
+	textShadowOffsetX: 1,
+	textShadowOffsetY: 1,
+	textShadowOpacity: 0.5,
+};
+
+/** Toggle a default text-drop-shadow element-wide (on when absent, cleared when present). */
+export function toggleTextShadow(el: PptxElement): Partial<PptxElement> {
+	const hasShadow = readTextFormatState(el).hasTextShadow;
+	return patchTextStyle(
+		el,
+		hasShadow
+			? {
+					textShadowColor: undefined,
+					textShadowBlur: undefined,
+					textShadowOffsetX: undefined,
+					textShadowOffsetY: undefined,
+					textShadowOpacity: undefined,
+				}
+			: DEFAULT_TEXT_SHADOW,
+	);
+}
+
+/**
+ * Rewrite every run's characters per a PowerPoint "Change Case" mode (see
+ * shared `transformTextCase`), across the whole element (no sub-range
+ * selection model in this binding, see module docs).
+ */
+export function changeTextCase(el: PptxElement, mode: ChangeCaseMode): Partial<PptxElement> {
+	if (!canFormatText(el) || !el.textSegments) {
+		return {};
+	}
+	const textSegments = applyCaseTransformToSegments(el.textSegments, null, mode);
+	return { textSegments, text: textSegments.map((s) => s.text).join('') } as Partial<PptxElement>;
+}
+
+/** Reset every character toggle/colour to the default (unformatted) state. */
+export function clearFormatting(el: PptxElement): Partial<PptxElement> {
+	return patchTextStyle(el, {
+		bold: false,
+		italic: false,
+		underline: false,
+		strikethrough: false,
+		highlightColor: undefined,
+		textShadowColor: undefined,
+		textShadowBlur: undefined,
+		textShadowOffsetX: undefined,
+		textShadowOffsetY: undefined,
+		textShadowOpacity: undefined,
+		characterSpacing: undefined,
+	});
 }
