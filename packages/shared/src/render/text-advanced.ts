@@ -220,3 +220,61 @@ function defaultTextAdvancedState(): TextAdvancedState {
 		rtl: false,
 	};
 }
+
+// ==========================================================================
+// Text wrap + autofit mode (standalone; not part of TextAdvancedState so
+// existing consumers of that interface are unaffected by this addition).
+// ==========================================================================
+
+/** Available text-wrap options (`a:bodyPr/@wrap`). */
+export const TEXT_WRAP_OPTIONS: Array<[NonNullable<TextStyle['textWrap']>, string]> = [
+	['square', 'Wrap text in shape'],
+	['none', "Don't wrap text"],
+];
+
+/**
+ * Available autofit-mode options. Per this codebase's {@link TextStyle.autoFitMode}
+ * mapping: `'shrink'` is `a:spAutoFit` (resize the shape to fit the text) and
+ * `'normal'` is `a:normAutofit` (shrink the text on overflow).
+ */
+export const AUTOFIT_MODE_OPTIONS: Array<[NonNullable<TextStyle['autoFitMode']>, string]> = [
+	['none', 'Do not autofit'],
+	['normal', 'Shrink text on overflow'],
+	['shrink', 'Resize shape to fit text'],
+];
+
+/** Read the effective text-wrap mode, defaulting to `'square'` (wrap on). */
+export function textWrapOf(el: PptxElement): NonNullable<TextStyle['textWrap']> {
+	if (!hasTextProperties(el)) {
+		return 'square';
+	}
+	return el.textStyle?.textWrap ?? 'square';
+}
+
+/** Read the effective autofit mode, defaulting to `'none'`. */
+export function autoFitModeOf(el: PptxElement): NonNullable<TextStyle['autoFitMode']> {
+	if (!hasTextProperties(el)) {
+		return 'none';
+	}
+	return el.textStyle?.autoFitMode ?? 'none';
+}
+
+/** Patch to update the text-wrap mode, preserving the rest of `textStyle`. */
+export function textWrapPatch(
+	el: PptxElement,
+	wrap: NonNullable<TextStyle['textWrap']>,
+): Partial<PptxElement> {
+	const base: TextStyle = hasTextProperties(el) ? (el.textStyle ?? {}) : {};
+	return { textStyle: { ...base, textWrap: wrap } } as Partial<PptxElement>;
+}
+
+/** Patch to update the autofit mode, preserving the rest of `textStyle`. */
+export function autoFitModePatch(
+	el: PptxElement,
+	mode: NonNullable<TextStyle['autoFitMode']>,
+): Partial<PptxElement> {
+	const base: TextStyle = hasTextProperties(el) ? (el.textStyle ?? {}) : {};
+	return {
+		textStyle: { ...base, autoFitMode: mode, autoFit: mode !== 'none' },
+	} as Partial<PptxElement>;
+}

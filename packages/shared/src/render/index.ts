@@ -519,6 +519,14 @@ export * from './mobile-chrome';
 // Gradient-picker editor model: read `GradientState` off an element + build
 // fillMode='gradient' shapeStyle merge patches (add/remove/update stops).
 export * from './gradient-picker';
+// Image-adjustments editor model: brightness/contrast/saturation state +
+// merge patches, plus the four crop-inset (left/top/right/bottom) reader +
+// clamped patch builder. Used by the image inspector panel.
+export * from './image-adjustments';
+// Table-level inspector model: header-row / banded-rows / banded-columns
+// toggle state + merge patches, plus a uniform default-cell-padding patch
+// builder (this binding has no per-cell selection model; see module docs).
+export * from './table-inspector';
 // Active-slide comment-array transforms (add/remove/toggle-resolved).
 export * from './comments-list';
 // Touch-gesture state machine: pinch-to-zoom (two-finger distance ratio),
