@@ -74,9 +74,12 @@ function smartArtElement(overrides: Record<string, unknown> = {}): PptxElement {
  * Vitest's SSR module loader even when the target module is mocked, which
  * needs real event-loop turns (macrotasks) to settle, not just drained
  * microtasks (a plain `Promise.resolve()` loop never observes it resolving).
+ * 100 ticks (not 20): under a loaded CI runner (many test files/workers
+ * sharing the same event loop) 20 ticks was occasionally too few, flaking
+ * `mountSmartArt3D` as "never called" even though it settles a beat later.
  */
 async function flushMount(): Promise<void> {
-	for (let i = 0; i < 20; i++) {
+	for (let i = 0; i < 100; i++) {
 		flushSync();
 		// eslint-disable-next-line no-await-in-loop -- polling real macrotask
 		// ticks until the dynamic import + `tick()` both settle.
