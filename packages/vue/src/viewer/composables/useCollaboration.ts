@@ -5,10 +5,17 @@
  * `reconcileSlidesInYDoc` (tagged `LOCAL_SYNC_ORIGIN`; the observer skips its
  * own writes). Role 'owner' debounces write-back.
  */
-import type { CollaborationConfig, YjsFactories, YDocLike } from 'pptx-viewer-shared';
+import type {
+	CollaborationConfig,
+	PresencePublisher,
+	YjsFactories,
+	YDocLike,
+} from 'pptx-viewer-shared';
 import {
 	CONNECTION_TIMEOUT_MS,
+	createPresencePublisher,
 	createSyncGate,
+	createWriteBackScheduler,
 	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
 	LOCAL_SYNC_ORIGIN,
@@ -22,8 +29,6 @@ import {
 import { computed, onScopeDispose, ref, watch } from 'vue';
 
 import type { RemoteCursor } from '../components/CollaborationCursors.vue';
-import { createPresencePublisher } from './collaboration-presence-publisher';
-import type { PresencePublisher } from './collaboration-presence-publisher';
 import { projectPresence, readBound } from './collaboration-presence-view';
 import { createCollabProvider } from './collaboration-provider';
 import type { CollabProviderHandle } from './collaboration-provider';
@@ -33,7 +38,7 @@ import type {
 	AwarenessLike,
 	RemotePresence,
 } from './collaboration-types';
-import { createWriteBackScheduler } from './collaboration-writeback';
+import { buildSaveSlides } from './template-editing';
 
 export type { RemotePresence, UseCollaborationOptions, UseCollaborationResult };
 
@@ -78,6 +83,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		getYDoc: () => currentYDoc,
 		getSourceBytes: options.getSourceBytes,
 		getTemplateElements: options.getTemplateElements,
+		mergeTemplateElements: buildSaveSlides,
 	});
 
 	/** Write the current local slides into the doc (granular, echo-deduped). */
@@ -190,6 +196,18 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 			if (transport === 'webrtc') {
 				// Same-browser tabs meet over BroadcastChannel at once (no server wait).
 				status.value = 'connected';
+				// y-webrtc reports peer connectivity via the same onStatus surface;
+				// re-arm the gate on a drop so a reconnect re-gates writes instead
+				// of leaving it permanently open from the first connection.
+				provider.onStatus((isConnected) => {
+					if (isConnected) {
+						status.value = 'connected';
+					} else if (active.value) {
+						status.value = 'disconnected';
+						syncGate.reset();
+						syncGate.arm();
+					}
+				});
 			} else {
 				provider.onStatus((isConnected) => {
 					if (isConnected) {
@@ -200,6 +218,11 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 						status.value = 'connected';
 					} else if (active.value) {
 						status.value = 'disconnected';
+						// Re-arm on (re)connect: without this, a peer that drops and
+						// rejoins keeps the gate permanently open from the first
+						// connection and can clobber the room with a stale local doc.
+						syncGate.reset();
+						syncGate.arm();
 					}
 				});
 				if (provider.connectedNow) {

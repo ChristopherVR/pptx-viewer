@@ -1,4 +1,4 @@
-import type { CollaborationConfig, CollaborationRole } from 'pptx-viewer-shared';
+import type { AwarenessLike, CollaborationConfig, CollaborationRole } from 'pptx-viewer-shared';
 /**
  * Types for the `useCollaboration` composable.
  * Extracted here to keep useCollaboration.ts under the 300-line limit.
@@ -7,7 +7,7 @@ import type { Ref, ComputedRef } from 'vue';
 
 import type { RemoteCursor } from '../components/CollaborationCursors.vue';
 
-export type { CollaborationConfig, CollaborationRole };
+export type { AwarenessLike, CollaborationConfig, CollaborationRole };
 
 export interface UseCollaborationOptions {
 	/** The editor's reactive slides ref (broadcast on local change). */
@@ -65,13 +65,4 @@ export interface UseCollaborationResult {
 	setSelection: (ids: string[]) => void;
 	setActiveSlide: (index: number) => void;
 	followUser: (clientId: number | null) => void;
-}
-
-// Internal structural type for the lazily-imported Yjs awareness surface.
-export interface AwarenessLike {
-	clientID?: number;
-	setLocalStateField: (field: string, value: unknown) => void;
-	getStates: () => Map<number, Record<string, unknown>>;
-	on: (event: string, cb: () => void) => void;
-	off?: (event: string, cb: () => void) => void;
 }

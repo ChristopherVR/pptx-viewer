@@ -90,6 +90,13 @@ vi.mock(import('yjs'), () => {
 	return {
 		Doc: class {
 			private _arrays = new Map<string, YArray>();
+			private _maps = new Map<string, YMap>();
+			getMap(name: string): YMap {
+				if (!this._maps.has(name)) {
+					this._maps.set(name, new YMap());
+				}
+				return this._maps.get(name)!;
+			}
 			getArray(name: string): YArray {
 				if (!this._arrays.has(name)) {
 					const arr = new YArray();
