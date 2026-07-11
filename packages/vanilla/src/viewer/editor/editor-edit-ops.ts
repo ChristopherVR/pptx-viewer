@@ -13,6 +13,8 @@ import { createSlideBackgroundActions } from './editor-background-actions';
 import type { ClipboardActions } from './editor-clipboard-actions';
 import { createClipboardActions } from './editor-clipboard-actions';
 import { patchShapeStyle } from './editor-format-mutations';
+import type { InkActions } from './editor-ink-actions';
+import { createInkActions } from './editor-ink-actions';
 import type { InsertKind } from './editor-insert';
 import { buildInsertElement, pickImageElement } from './editor-insert';
 import { pickMediaElement } from './editor-insert-media';
@@ -62,7 +64,8 @@ export interface EditActions
 		SlideBackgroundActions,
 		TransitionActions,
 		AnimationActions,
-		InspectorActions {
+		InspectorActions,
+		InkActions {
 	setShapeFill(color: string): void;
 	setShapeStroke(color: string): void;
 	setShapeStrokeWidth(width: number): void;
@@ -121,6 +124,7 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		...createTransitionActions({ store, ops }),
 		...createAnimationActions({ store, ops }),
 		...createInspectorActions(applyToSelected),
+		...createInkActions({ store, ops }),
 
 		// Picking a flat colour swatch implies solid fill, so it also clears any
 		// active gradient/pattern mode (mirrors the React/Vue "Fill & Stroke" panel).
