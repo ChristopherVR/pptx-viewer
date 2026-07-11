@@ -1,5 +1,7 @@
 import type { EditorController } from '../editor/editor-controller.svelte';
+import type { PresentationController } from '../presentation/presentation-controller.svelte';
 import { isFullscreenActive, toggleFullscreen } from './fullscreen';
+import { resolveNavigationKey } from './navigation';
 import type { ViewerState } from './viewer-state.svelte';
 
 export interface ViewportHandlersDeps {
@@ -7,6 +9,8 @@ export interface ViewportHandlersDeps {
 	viewer: ViewerState;
 	controller: EditorController;
 	getEditingActive(): boolean;
+	/** Presentation-mode playback controller (drives on-click animation steps). */
+	presentation: PresentationController;
 }
 
 export interface ViewportHandlers {
@@ -40,6 +44,15 @@ export function createViewportHandlers(deps: ViewportHandlersDeps): ViewportHand
 				if (event.defaultPrevented || deps.controller.capturesKeyboard()) {
 					return;
 				}
+			}
+			// While presenting, an advance key first steps through the current
+			// slide's element-animation builds; only once they are exhausted does
+			// the controller advance the slide. Backwards / first / last keys fall
+			// through to plain slide navigation (playback resets on slide change).
+			if (deps.viewer.isFullscreen && resolveNavigationKey(event.key) === 'next') {
+				event.preventDefault();
+				deps.presentation.advance();
+				return;
 			}
 			if (deps.viewer.handleNavigationKey(event.key)) {
 				event.preventDefault();

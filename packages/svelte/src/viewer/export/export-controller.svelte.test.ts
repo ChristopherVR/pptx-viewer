@@ -1,3 +1,4 @@
+import type { PptxSlide } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ExportController } from './export-controller.svelte';
@@ -28,6 +29,27 @@ vi.mock(import('jspdf'), () => {
 	return { jsPDF: MockJsPDF } as unknown as typeof import('jspdf');
 });
 
+// The GIF/video/print pipelines have their own dedicated suites
+// (`export-gif.test.ts` etc.); here they are mocked so the controller tests
+// only cover the delegation, download naming, and the `exporting` guard.
+const { gifBlobMock, webmBlobMock, printSlidesMock } = vi.hoisted(() => ({
+	gifBlobMock: vi.fn(),
+	webmBlobMock: vi.fn(),
+	printSlidesMock: vi.fn(),
+}));
+vi.mock(import('./export-gif'), async (importOriginal) => ({
+	...(await importOriginal()),
+	exportSlidesToGifBlob: gifBlobMock,
+}));
+vi.mock(import('./export-video'), async (importOriginal) => ({
+	...(await importOriginal()),
+	exportSlidesToWebmBlob: webmBlobMock,
+}));
+vi.mock(import('./export-print'), async (importOriginal) => ({
+	...(await importOriginal()),
+	printSlides: printSlidesMock,
+}));
+
 function fakeCanvas(): HTMLCanvasElement {
 	return { toDataURL: () => 'data:image/png;base64,AAAA' } as unknown as HTMLCanvasElement;
 }
@@ -41,8 +63,26 @@ function make(
 		getSlideCount: () => 3,
 		getCurrent: () => 0,
 		getCanvasSize: () => ({ width: 960, height: 540 }),
+		getSlides: () => [{}, {}, {}] as unknown as PptxSlide[],
 		...overrides,
 	});
+}
+
+/** Intercept `<a download>` clicks; returns the captured download names. */
+function interceptDownloads(): { names: string[]; restore: () => void } {
+	const names: string[] = [];
+	const orig = document.createElement.bind(document);
+	const spy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+		const el = orig(tag) as HTMLElement;
+		if (tag === 'a') {
+			const anchor = el as HTMLAnchorElement;
+			anchor.click = () => {
+				names.push(anchor.download);
+			};
+		}
+		return el;
+	});
+	return { names, restore: () => spy.mockRestore() };
 }
 
 describe('exportController', () => {
@@ -205,5 +245,91 @@ describe('exportController', () => {
 
 		expect(downloadName).toBe('My Deck-slide-1.png');
 		spy.mockRestore();
+	});
+
+	it('exports a GIF: delegates to the pipeline and downloads the blob', async () => {
+		gifBlobMock.mockResolvedValue(new Blob(['gif'], { type: 'image/gif' }));
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
+		const { names, restore } = interceptDownloads();
+
+		const controller = make({ rasterizeSlide, fileName: 'My Deck.pptx' });
+		const options = { slideDurationMs: 500 };
+		await controller.exportGif(options);
+
+		expect(gifBlobMock).toHaveBeenCalledExactlyOnceWith(
+			expect.objectContaining({ getSlideCount: expect.any(Function) }),
+			options,
+		);
+		expect(names).toStrictEqual(['My Deck.gif']);
+		expect(controller.exporting).toBeFalsy();
+		restore();
+	});
+
+	it('skips the GIF export when there are no slides', async () => {
+		const controller = make({
+			rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
+			getSlideCount: () => 0,
+		});
+		await controller.exportGif();
+		expect(gifBlobMock).not.toHaveBeenCalled();
+	});
+
+	it('exports a video: delegates to the pipeline and downloads the blob', async () => {
+		webmBlobMock.mockResolvedValue(new Blob(['webm'], { type: 'video/webm' }));
+		const { names, restore } = interceptDownloads();
+
+		const controller = make({ rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()) });
+		await controller.exportVideo({ fps: 10 });
+
+		expect(webmBlobMock).toHaveBeenCalledExactlyOnceWith(expect.anything(), { fps: 10 });
+		expect(names).toStrictEqual(['presentation.webm']);
+		expect(controller.exporting).toBeFalsy();
+		restore();
+	});
+
+	it('clears `exporting` when the video pipeline rejects', async () => {
+		webmBlobMock.mockRejectedValue(new Error('boom'));
+		const controller = make({ rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()) });
+		await expect(controller.exportVideo()).rejects.toThrow('boom');
+		expect(controller.exporting).toBeFalsy();
+	});
+
+	it('print: delegates settings + deps and resolves the opener result', async () => {
+		printSlidesMock.mockResolvedValue(true);
+		const controller = make({ rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()) });
+		await expect(controller.print({ printWhat: 'notes' })).resolves.toBeTruthy();
+		expect(printSlidesMock).toHaveBeenCalledExactlyOnceWith(
+			expect.objectContaining({ getSlides: expect.any(Function) }),
+			{ printWhat: 'notes' },
+		);
+	});
+
+	it('print resolves false when there are no slides', async () => {
+		const controller = make({
+			rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
+			getSlides: () => [],
+		});
+		await expect(controller.print()).resolves.toBeFalsy();
+		expect(printSlidesMock).not.toHaveBeenCalled();
+	});
+
+	it('refuses to start a GIF export while another export is running', async () => {
+		let resolveGif: ((blob: Blob) => void) | undefined;
+		gifBlobMock.mockImplementation(
+			() =>
+				new Promise<Blob>((resolve) => {
+					resolveGif = resolve;
+				}),
+		);
+		const { restore } = interceptDownloads();
+		const controller = make({ rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()) });
+
+		const first = controller.exportGif();
+		await expect(controller.print()).resolves.toBeFalsy();
+		expect(printSlidesMock).not.toHaveBeenCalled();
+		resolveGif?.(new Blob(['gif'], { type: 'image/gif' }));
+		await first;
+		expect(controller.exporting).toBeFalsy();
+		restore();
 	});
 });

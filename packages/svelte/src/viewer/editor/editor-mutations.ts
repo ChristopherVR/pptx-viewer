@@ -34,7 +34,7 @@ export function findSlideElement(
 }
 
 /** Rebuild one slide's `elements` via `mapElements`; other slides are reused. */
-function mapSlideElements(
+export function mapSlideElements(
 	slides: readonly PptxSlide[],
 	slideIndex: number,
 	mapElements: (elements: PptxElement[]) => PptxElement[],

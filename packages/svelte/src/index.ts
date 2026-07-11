@@ -7,12 +7,31 @@
  */
 export { PowerPointViewer } from './viewer/component';
 export type {
+	ExportGifOptions,
+	ExportPdfOptions,
+	ExportVideoOptions,
+	PrintOptions,
+} from './viewer/export';
+export type {
 	CanvasSize,
+	CollaborationConfig,
+	CollaborationRole,
+	CollaborationTransport,
 	PowerPointViewerApi,
 	PowerPointViewerProps,
 	ViewerLoadDetail,
 	ViewerTheme,
 } from './viewer/types';
+export type { AutosaveStatus } from './viewer/state/autosave.svelte';
+// Autosave recovery helpers (shared IndexedDB store), re-exported so a host can
+// offer restore-on-load. The viewer itself never auto-restores (see the
+// `autosave` prop docs); matching React/Vue, recovery is a host concern.
+export {
+	deleteAutosaveSnapshot,
+	getAutosaveSnapshot,
+	listAutosaveSnapshots,
+} from 'pptx-viewer-shared';
+export type { AutosaveRecord } from 'pptx-viewer-shared';
 export {
 	defaultCssVars,
 	defaultRadius,

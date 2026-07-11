@@ -7,6 +7,12 @@ export type {
 export { ExportController } from './export-controller.svelte';
 export type { ExportWiring, ExportWiringDeps } from './export-wiring.svelte';
 export { createExportWiring } from './export-wiring.svelte';
+export type { ExportGifOptions, GifCaptureDeps } from './export-gif';
+export { exportSlidesToGifBlob } from './export-gif';
+export type { OpenPrintWindow, PrintDeps, PrintOptions } from './export-print';
+export { defaultOpenPrintWindow, printSlides } from './export-print';
+export type { ExportVideoOptions, RecorderLike, VideoCaptureDeps } from './export-video';
+export { exportSlidesToWebmBlob } from './export-video';
 export type { ExportingApi } from './exporting-api';
 export { createExportingApi } from './exporting-api';
 export type { RasterizeSlideController, RasterizeSlideDeps } from './rasterize-slide';

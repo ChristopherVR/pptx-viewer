@@ -1,6 +1,7 @@
 import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
 import { EditorHistory } from 'pptx-viewer-shared';
 
+import { appendElement, newElementId } from './editor-insert';
 import type { ElementBoxPatch } from './editor-mutations';
 import {
 	cloneSlides,
@@ -11,6 +12,8 @@ import {
 	updateElement,
 	updateSlideNotes,
 } from './editor-mutations';
+import type { ZOrderDirection } from './editor-zorder';
+import { reorderElement } from './editor-zorder';
 import { remapInlineText } from './inline-text';
 
 /**
@@ -94,6 +97,28 @@ export class EditorState {
 		this.#syncHistoryFlags();
 	}
 
+	/**
+	 * Replace the working slides with a remote (collaboration) snapshot without
+	 * recording an undo step or touching the dirty flag: the granular reconcile
+	 * already merged the peer's change, and treating an incoming remote edit as
+	 * a local mutation would both pollute the undo stack and re-broadcast it.
+	 *
+	 * Selection is preserved when the selected element still exists so a remote
+	 * edit does not yank the local user's selection out from under them. Local
+	 * undo history is intentionally kept (see the collaboration module JSDoc):
+	 * shared defines no collaborative-undo semantics, so, matching React/Vue,
+	 * local undo may fight a concurrent remote edit.
+	 */
+	applyRemoteSlides(slides: PptxSlide[]): void {
+		this.slides = slides;
+		if (
+			this.selectedElementId &&
+			!findSlideElement(slides, this.#deps.getCurrent(), this.selectedElementId)
+		) {
+			this.selectedElementId = null;
+		}
+	}
+
 	/** Drop selection/dirty/interaction + history (new content or teardown). */
 	reset(): void {
 		this.selectedElementId = null;
@@ -161,6 +186,56 @@ export class EditorState {
 		this.selectedElementId = result.newId;
 		this.commitChange();
 		return result.newId;
+	}
+
+	/**
+	 * Shallow-merge `patch` onto the element with `id` on the current slide,
+	 * with history. Used by the formatting toolbar and inspector (text/shape
+	 * style, geometry, rotation). No-op when not editable or the id is missing.
+	 */
+	applyElementPatch(id: string, patch: Partial<PptxElement>): void {
+		const current = this.#deps.getCurrent();
+		if (!this.editable || !findSlideElement(this.slides, current, id)) {
+			return;
+		}
+		this.pushHistory();
+		this.slides = updateElement(this.slides, current, id, patch);
+		this.commitChange();
+	}
+
+	/** Convenience: apply a patch to the currently-selected element (if any). */
+	patchSelected(patch: Partial<PptxElement>): void {
+		if (this.selectedElementId) {
+			this.applyElementPatch(this.selectedElementId, patch);
+		}
+	}
+
+	/**
+	 * Insert a new element onto the current slide (assigning a fresh id when the
+	 * factory left it blank), select it, and record history. Returns the new id.
+	 */
+	insertElement(element: PptxElement): string | null {
+		const current = this.#deps.getCurrent();
+		if (!this.editable || !this.slides[current]) {
+			return null;
+		}
+		const withId = { ...element, id: element.id || newElementId() } as PptxElement;
+		this.pushHistory();
+		this.slides = appendElement(this.slides, current, withId);
+		this.selectedElementId = withId.id;
+		this.commitChange();
+		return withId.id;
+	}
+
+	/** Move the selected element through the paint-order stack (with history). */
+	reorderSelected(direction: ZOrderDirection): void {
+		const id = this.selectedElementId;
+		if (!this.editable || !id) {
+			return;
+		}
+		this.pushHistory();
+		this.slides = reorderElement(this.slides, this.#deps.getCurrent(), id, direction);
+		this.commitChange();
 	}
 
 	nudgeSelected(dx: number, dy: number): void {

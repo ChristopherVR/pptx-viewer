@@ -95,13 +95,20 @@ export interface GifFrame {
 	imageData: ImageData;
 	width: number;
 	height: number;
+	/**
+	 * Optional per-frame delay in **centiseconds** (1 cs = 10 ms). When set it
+	 * overrides the encoder-level delay for this frame only, which is how
+	 * per-slide durations from {@link planGifFrames} flow into the encoder.
+	 */
+	delayCs?: number;
 }
 
 /** Options for {@link encodeGif}. */
 export interface EncodeGifOptions {
 	/**
-	 * Frame delay in **centiseconds** (1 cs = 10 ms). All frames share the same
-	 * delay. Default: 200 cs (2 s).
+	 * Frame delay in **centiseconds** (1 cs = 10 ms). Applies to every frame
+	 * that does not carry its own {@link GifFrame.delayCs} override.
+	 * Default: 200 cs (2 s).
 	 */
 	delayCs?: number;
 	/** Number of times the animation loops (0 = loop forever, default). */
@@ -153,7 +160,7 @@ export function encodeGif(frames: GifFrame[], delay: number | EncodeGifOptions =
 		// Graphic Control Extension
 		out.push(0x21, 0xf9, 0x04);
 		out.push(0x00); // disposal=none, no transparency
-		writeU16(out, delayCs);
+		writeU16(out, frame.delayCs ?? delayCs);
 		out.push(0x00); // transparent colour index (unused)
 		out.push(0x00); // block terminator
 

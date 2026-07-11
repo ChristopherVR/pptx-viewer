@@ -86,6 +86,9 @@
         "pptx-svelte-viewer": "workspace:*",
         "pptx-viewer-core": "workspace:*",
         "svelte": "^5.46.4",
+        "y-webrtc": "^10.3.0",
+        "y-websocket": "^3.0.0",
+        "yjs": "^13.6.31",
       },
       "devDependencies": {
         "@sveltejs/vite-plugin-svelte": "^7.2.0",
@@ -103,6 +106,9 @@
         "jszip": "^3.10.1",
         "pptx-vanilla-viewer": "workspace:*",
         "pptx-viewer-core": "workspace:*",
+        "y-webrtc": "^10.3.0",
+        "y-websocket": "^3.0.0",
+        "yjs": "^13.6.31",
       },
       "devDependencies": {
         "@tailwindcss/vite": "^4.3.2",
@@ -317,9 +323,15 @@
         "vite": "^8.0.16",
         "vite-plugin-dts": "^5.0.3",
         "vitest": "^4.1.9",
+        "y-webrtc": "^10.3.0",
+        "y-websocket": "^3.0.0",
+        "yjs": "^13.6.31",
       },
       "optionalDependencies": {
         "three": "^0.185.1",
+        "y-webrtc": "^10.3.0",
+        "y-websocket": "^3.0.0",
+        "yjs": "^13.6.31",
       },
       "peerDependencies": {
         "fast-xml-parser": "^5.8.0",
@@ -369,6 +381,14 @@
         "tsup": "^8.5.1",
         "typescript": "^6.0.3",
         "vitest": "^4.1.9",
+        "y-webrtc": "^10.3.0",
+        "y-websocket": "^3.0.0",
+        "yjs": "^13.6.31",
+      },
+      "optionalDependencies": {
+        "y-webrtc": "^10.3.0",
+        "y-websocket": "^3.0.0",
+        "yjs": "^13.6.31",
       },
       "peerDependencies": {
         "fast-xml-parser": "^5.8.0",

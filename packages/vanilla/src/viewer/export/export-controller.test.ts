@@ -166,6 +166,42 @@ describe('createExportController', () => {
 		expect(rasterizeSlide).toHaveBeenCalledExactlyOnceWith(0);
 	});
 
+	it('prints via the injected print-window opener', async () => {
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
+		const openPrintWindow = vi.fn((_html: string) => true);
+		const { print } = createExportController({ store: makeStore(2), rasterizeSlide });
+
+		await expect(print({ openPrintWindow })).resolves.toBeTruthy();
+
+		expect(rasterizeSlide).toHaveBeenCalledTimes(2);
+		expect(openPrintWindow).toHaveBeenCalledOnce();
+		expect(openPrintWindow.mock.calls[0][0]).toContain('<title>Slides</title>');
+	});
+
+	it('routes GIF/video/print through the single-export guard', async () => {
+		let resolveFirst: (() => void) | undefined;
+		const rasterizeSlide = vi.fn().mockImplementation(
+			() =>
+				new Promise<HTMLCanvasElement>((resolve) => {
+					resolveFirst = () => resolve(fakeCanvas());
+				}),
+		);
+		const openPrintWindow = vi.fn((_html: string) => true);
+		const controller = createExportController({ store: makeStore(1), rasterizeSlide });
+
+		const first = controller.exportSlidePng(0);
+		const gif = controller.exportGif();
+		const video = controller.exportVideo();
+		const print = controller.print({ openPrintWindow });
+		resolveFirst?.();
+
+		await Promise.all([first, gif, video]);
+		// A print attempt while another export runs resolves false (blocked).
+		await expect(print).resolves.toBeFalsy();
+		expect(openPrintWindow).not.toHaveBeenCalled();
+		expect(rasterizeSlide).toHaveBeenCalledExactlyOnceWith(0);
+	});
+
 	it('uses the given base file name (extension stripped) for downloads', async () => {
 		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
 		let downloadName = '';

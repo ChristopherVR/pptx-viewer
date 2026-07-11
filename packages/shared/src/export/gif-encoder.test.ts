@@ -239,6 +239,22 @@ describe('encodeGif', () => {
 		expect(delay).toBe(100);
 	});
 
+	it('honours per-frame delayCs overrides over the encoder-level delay', () => {
+		const frames = [
+			{ imageData: makeImageData(2, 2, 0, 0, 0), width: 2, height: 2, delayCs: 50 },
+			{ imageData: makeImageData(2, 2, 255, 255, 255), width: 2, height: 2 },
+			{ imageData: makeImageData(2, 2, 0, 0, 255), width: 2, height: 2, delayCs: 300 },
+		];
+		const result = encodeGif(frames, { delayCs: 200 });
+		const delays: number[] = [];
+		for (let i = 0; i < result.length - 6; i++) {
+			if (result[i] === 0x21 && result[i + 1] === 0xf9 && result[i + 2] === 0x04) {
+				delays.push(result[i + 4] | (result[i + 5] << 8));
+			}
+		}
+		expect(delays).toStrictEqual([50, 200, 300]);
+	});
+
 	it('sets the local colour table flag in each image descriptor', () => {
 		const frame = { imageData: makeImageData(2, 2, 200, 100, 50), width: 2, height: 2 };
 		const result = encodeGif([frame], 200);

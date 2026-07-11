@@ -1,5 +1,7 @@
 import { defaultCssVars } from 'pptx-viewer-shared';
 
+import { EDITOR_CSS } from './editor-css';
+
 /**
  * The viewer stylesheet, scoped under the `.pptxv` root class.
  *
@@ -70,6 +72,14 @@ const CHROME_CSS = `
 	white-space: nowrap;
 	font-variant-numeric: tabular-nums;
 }
+.pptxv-autosave-status {
+	padding: 0 6px;
+	font-size: 12px;
+	white-space: nowrap;
+	color: var(--pptx-muted-foreground);
+}
+.pptxv-autosave-status.is-saving { color: var(--pptx-accent-foreground); opacity: 0.8; }
+.pptxv-autosave-status.is-error { color: #dc2626; }
 
 /* ── Body: thumbnail rail + viewport ─────────────────────────────────── */
 .pptxv-body { display: flex; flex: 1; min-height: 0; }
@@ -275,7 +285,7 @@ const CHROME_CSS = `
 .pptxv.pptxv-presenting .pptxv-stage-wrap { box-shadow: none; }
 `;
 
-/** The full stylesheet text (theme-var defaults + chrome rules). */
+/** The full stylesheet text (theme-var defaults + chrome rules + editor chrome). */
 export function buildViewerCss(): string {
-	return `${defaultVarsBlock()}\n${CHROME_CSS}`;
+	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}`;
 }

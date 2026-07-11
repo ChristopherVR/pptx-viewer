@@ -13,7 +13,10 @@
 		"fast-xml-parser": "^5.9.2",
 		"jszip": "^3.10.1",
 		"pptx-vanilla-viewer": "workspace:*",
-		"pptx-viewer-core": "workspace:*"
+		"pptx-viewer-core": "workspace:*",
+		"y-webrtc": "^10.3.0",
+		"y-websocket": "^3.0.0",
+		"yjs": "^13.6.31"
 	},
 	"devDependencies": {
 		"@tailwindcss/vite": "^4.3.2",

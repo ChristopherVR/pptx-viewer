@@ -1,5 +1,6 @@
 import { buildChromeCallbacks } from './chrome-callbacks';
 import type { ChromeCallbackDeps } from './chrome-callbacks';
+import type { EditActions } from './editor';
 import type { Translator } from './i18n';
 import type { RenderController } from './render-controller';
 import type { Store, ViewerState } from './state';
@@ -40,6 +41,9 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	const chrome = buildViewerChrome(doc, t, {
 		showToolbar: options.showToolbar ?? true,
 		showThumbnails: options.showThumbnails ?? true,
+		showFormatToolbar: options.showFormatToolbar ?? true,
+		showInspector: options.showInspector ?? true,
+		editable: options.editable ?? false,
 		...buildChromeCallbacks(deps),
 	});
 	const appliedThemeVars = applyThemeVars(chrome.root, options.theme, []);
@@ -87,7 +91,7 @@ export interface ChromeHost {
 	store: Store<ViewerState>;
 	renderer: RenderController;
 	lifecycle: ChromeLifecycle;
-	editor: { commitNotes(notes: string): void };
+	editor: { commitNotes(notes: string): void; getEditActions(): EditActions };
 	prev(): void;
 	next(): void;
 	zoomIn(): void;
@@ -130,5 +134,6 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		goToLastSlide: () => host.goToSlide(host.getSlideCount() - 1),
 		exitPresentation: () => void host.exitPresentation(),
 		commitNotes: (notes) => host.editor.commitNotes(notes),
+		getEditActions: () => host.editor.getEditActions(),
 	};
 }

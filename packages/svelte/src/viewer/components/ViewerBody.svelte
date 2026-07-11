@@ -9,14 +9,19 @@
 	import type { CanvasSize } from 'pptx-viewer-shared';
 
 	import type { EditorController } from '../editor/editor-controller.svelte';
+	import type { EditorState } from '../editor/editor-state.svelte';
 	import type { Translator } from '../../i18n/translator';
+	import type { TransitionState } from '../presentation';
+	import { PresentationTransitionOverlay } from '../presentation';
 	import EditorLayer from './EditorLayer.svelte';
+	import InspectorPanel from './InspectorPanel.svelte';
 	import NotesPanel from './NotesPanel.svelte';
 	import SlideStage from './SlideStage.svelte';
 	import ThumbnailRail from './ThumbnailRail.svelte';
 
 	const {
 		t,
+		editor,
 		chromeVisible,
 		showThumbnails,
 		showNotes,
@@ -31,6 +36,9 @@
 		activeSlide,
 		scale,
 		presenting,
+		presentationTransition,
+		onTransitionDone,
+		onAdvance,
 		editingActive,
 		controller,
 		onstageresize,
@@ -40,6 +48,7 @@
 		onNotesToggle,
 	}: {
 		t: Translator;
+		editor: EditorState;
 		chromeVisible: boolean;
 		showThumbnails: boolean;
 		showNotes: boolean;
@@ -54,6 +63,12 @@
 		activeSlide: PptxSlide | undefined;
 		scale: number;
 		presenting: boolean;
+		/** Active slide-transition overlay state (presentation mode), or null. */
+		presentationTransition: TransitionState | null;
+		/** Called when the transition overlay finishes (host drops the overlay). */
+		onTransitionDone: () => void;
+		/** Advance the presentation (step animation build, else next slide). */
+		onAdvance: () => void;
 		editingActive: boolean;
 		controller: EditorController;
 		/** Reports the viewport's measured client size on every resize. */
@@ -103,10 +118,11 @@
 			{:else if error}
 				<div class="pptx-svelte-message" role="alert">{error}</div>
 			{:else if activeSlide}
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
 				<!-- The stage holder is the editing hit-surface; the overlay above
 				     it (pointer-events:none except handles) lets clicks reach the
-				     rendered elements underneath. -->
+				     rendered elements underneath. While presenting, a tap advances
+				     the show (keyboard advance is handled on the viewer root). -->
 				<div
 					use:attachStageHolder={onstageholder}
 					class="pptx-svelte-stage-holder"
@@ -114,10 +130,22 @@
 					style={`width: ${canvasSize.width * scale}px; height: ${canvasSize.height * scale}px`}
 					onpointerdown={editingActive ? controller.onStagePointerDown : undefined}
 					ondblclick={editingActive ? controller.onStageDblClick : undefined}
+					onclick={presenting ? onAdvance : undefined}
 				>
 					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive />
 					{#if editingActive}
 						<EditorLayer {controller} {scale} />
+					{/if}
+					{#if presenting && presentationTransition}
+						<PresentationTransitionOverlay
+							outgoingSlide={presentationTransition.outgoing}
+							incomingSlide={presentationTransition.incoming}
+							{canvasSize}
+							{mediaDataUrls}
+							{scale}
+							transition={presentationTransition.transition}
+							ondone={onTransitionDone}
+						/>
 					{/if}
 				</div>
 			{:else}
@@ -133,6 +161,9 @@
 			/>
 		{/if}
 	</div>
+	{#if editingActive && chromeVisible && displaySlides.length > 0}
+		<InspectorPanel {editor} />
+	{/if}
 </div>
 
 <style>

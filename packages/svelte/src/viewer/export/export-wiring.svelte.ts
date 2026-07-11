@@ -59,6 +59,7 @@ export function createExportWiring(deps: ExportWiringDeps): ExportWiring {
 		getSlideCount: () => deps.getSlides().length,
 		getCurrent: deps.getCurrent,
 		getCanvasSize: deps.getCanvasSize,
+		getSlides: deps.getSlides,
 		rasterizeSlide: (index) => getRasterizer().rasterizeSlide(index),
 	});
 

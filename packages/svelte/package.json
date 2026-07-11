@@ -77,7 +77,10 @@
 		"typescript": "^6.0.3",
 		"vite": "^8.0.16",
 		"vite-plugin-dts": "^5.0.3",
-		"vitest": "^4.1.9"
+		"vitest": "^4.1.9",
+		"y-webrtc": "^10.3.0",
+		"y-websocket": "^3.0.0",
+		"yjs": "^13.6.31"
 	},
 	"peerDependencies": {
 		"fast-xml-parser": "^5.8.0",
@@ -85,6 +88,9 @@
 		"svelte": "^5.0.0"
 	},
 	"optionalDependencies": {
-		"three": "^0.185.1"
+		"three": "^0.185.1",
+		"y-webrtc": "^10.3.0",
+		"y-websocket": "^3.0.0",
+		"yjs": "^13.6.31"
 	}
 }

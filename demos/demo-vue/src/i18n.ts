@@ -1,4 +1,4 @@
-import { keyToLabel, translationsEn } from 'pptx-vue-viewer/i18n';
+import { keyToLabel, toVueI18nSyntax, translationsEn } from 'pptx-vue-viewer/i18n';
 /**
  * vue-i18n configuration for the pptx-viewer Vue demo.
  *
@@ -19,10 +19,13 @@ const i18n = createI18n({
 	locale: 'en',
 	fallbackLocale: 'en',
 	messages: {
+		// translationsEn is pre-converted by the package; the demo's own fr/es/de
+		// dictionaries follow the shared {{var}} convention and must be converted
+		// too, or vue-i18n fatally throws at first render of any such message.
 		en: { ...translationsEn, ...demoStringsEn },
-		fr: { ...translationsFr, ...demoStringsFr },
-		es: { ...translationsEs, ...demoStringsEs },
-		de: { ...translationsDe, ...demoStringsDe },
+		fr: { ...toVueI18nSyntax(translationsFr), ...demoStringsFr },
+		es: { ...toVueI18nSyntax(translationsEs), ...demoStringsEs },
+		de: { ...toVueI18nSyntax(translationsDe), ...demoStringsDe },
 	},
 	missing: (_locale, key) => keyToLabel(key),
 	missingWarn: false,

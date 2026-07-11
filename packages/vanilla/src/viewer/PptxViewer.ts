@@ -5,9 +5,8 @@ import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
 import { buildMountChromeDeps, mountChrome, unmountChrome } from './chrome-lifecycle';
 import type { EditorController } from './editor';
 import { createEditorController } from './editor';
-import type { ExportPdfOptions } from './export';
 import type { ExportLifecycle } from './export-lifecycle';
-import { createExportLifecycle } from './export-lifecycle';
+import { createExportLifecycle, ViewerExportHost } from './export-lifecycle';
 import type { Translator } from './i18n';
 import { createTranslator } from './i18n';
 import type { LoadingController } from './loading-controller';
@@ -16,25 +15,28 @@ import type { ElementRendererRegistry } from './render';
 import { createDefaultRegistry } from './render';
 import type { RenderController } from './render-controller';
 import { createRenderController } from './render-controller';
+import type { SessionControllers } from './session-controllers';
+import { createSessionControllers } from './session-controllers';
 import type { Store, ViewerState, ZoomLevel } from './state';
-import { clampSlideIndex, createInitialViewerState, createStore } from './state';
+import { createInitialViewerState, createStore } from './state';
 import { createStateSync } from './state-sync';
 import { ensureViewerStyles } from './styles';
 import { applyThemeVars } from './theme-apply';
-import type { PptxViewerInstance, PptxViewerOptions } from './types';
-
-const MIN_ZOOM = 0.1;
-const MAX_ZOOM = 8;
-const ZOOM_STEP = 1.25;
+import type {
+	CollaborationConfig,
+	ConnectionStatus,
+	PptxViewerInstance,
+	PptxViewerOptions,
+} from './types';
+import type { ViewerControls } from './viewer-controls';
+import { createViewerControls } from './viewer-controls';
 
 /**
- * The zero-framework PowerPoint viewer. Construct via {@link createPptxViewer}
- * (or `new PptxViewer(container, options)`): builds its chrome inside
- * `container`, loads `options.source` when given, and re-renders through a
- * tiny reactive store. All parsing lives in `pptx-viewer-core`; all pure
- * render logic in `pptx-viewer-shared`.
+ * The zero-framework PowerPoint viewer. Construct via {@link createPptxViewer}:
+ * builds chrome inside `container`, loads `options.source` when given, and
+ * re-renders through a tiny reactive store.
  */
-export class PptxViewer implements PptxViewerInstance, ChromeHost {
+export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, ChromeHost {
 	// Not `private`: `ChromeHost` (structurally implemented by this class, see
 	// `buildMountChromeDeps(this)` below) needs these readable from outside the
 	// class body's own methods.
@@ -46,12 +48,15 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 	t: Translator;
 	lifecycle!: ChromeLifecycle;
 	editor!: EditorController;
+	protected readonly exporter: ExportLifecycle;
 	private readonly loading: LoadingController;
-	private readonly exportLifecycle: ExportLifecycle;
 	private readonly registry: ElementRendererRegistry;
+	private readonly sessions: SessionControllers;
+	private readonly controls: ViewerControls;
 	private destroyed = false;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
+		super();
 		this.container = container;
 		this.doc = container.ownerDocument;
 		this.options = options;
@@ -73,6 +78,7 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 			smartArt3D: options.smartArt3D ?? false,
 			onStageRendered: () => this.editor?.onStageRendered(),
 		});
+		this.controls = createViewerControls(this.store, this.renderer);
 
 		ensureViewerStyles(this.doc);
 		this.lifecycle = mountChrome(buildMountChromeDeps(this));
@@ -86,7 +92,7 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 			onChange: options.onChange,
 		});
 		this.editor.attachChrome();
-		this.exportLifecycle = createExportLifecycle({
+		this.exporter = createExportLifecycle({
 			doc: this.doc,
 			container: this.container,
 			store: this.store,
@@ -105,14 +111,20 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 				callbacks: options,
 			}),
 		);
+		this.sessions = createSessionControllers({
+			store: this.store,
+			options,
+			getHandler: () => this.loading.getHandler(),
+			getChrome: () => this.lifecycle.chrome,
+			getTranslator: () => this.t,
+			setEditable: (editable) => this.setEditable(editable),
+		});
 		this.renderer.renderAll();
 
 		if (options.source !== undefined) {
 			void this.loading.load(options.source);
 		}
 	}
-
-	// ── Loading ────────────────────────────────────────────────────────────
 
 	async loadFile(file: Blob | ArrayBuffer | Uint8Array): Promise<void> {
 		await this.loading.load(file);
@@ -122,58 +134,50 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 		await this.loading.load(url);
 	}
 
-	// ── Navigation / zoom ──────────────────────────────────────────────────
-
 	next(): void {
-		this.goToSlide(this.store.get().currentSlide + 1);
+		this.controls.next();
 	}
 
 	prev(): void {
-		this.goToSlide(this.store.get().currentSlide - 1);
+		this.controls.prev();
 	}
 
 	goToSlide(index: number): void {
-		this.store.set({ currentSlide: clampSlideIndex(index, this.store.get().slides.length) });
+		this.controls.goToSlide(index);
 	}
 
 	getSlideCount(): number {
-		return this.store.get().slides.length;
+		return this.controls.slideCount();
 	}
 
 	getCurrentSlide(): number {
-		return this.store.get().currentSlide;
+		return this.controls.currentSlide();
 	}
 
 	getZoom(): number {
-		return this.renderer.effectiveScale();
+		return this.controls.zoom();
 	}
 
 	setZoom(zoom: ZoomLevel): void {
-		this.store.set({
-			zoom: zoom === 'fit' ? 'fit' : Math.min(Math.max(zoom, MIN_ZOOM), MAX_ZOOM),
-		});
+		this.controls.setZoom(zoom);
 	}
 
 	zoomIn(): void {
-		this.setZoom(this.renderer.effectiveScale() * ZOOM_STEP);
+		this.controls.zoomIn();
 	}
 
 	zoomOut(): void {
-		this.setZoom(this.renderer.effectiveScale() / ZOOM_STEP);
+		this.controls.zoomOut();
 	}
 
 	zoomToFit(): void {
-		this.setZoom('fit');
+		this.controls.zoomToFit();
 	}
-
-	// ── Notes panel ────────────────────────────────────────────────────────
 
 	/** Expand/collapse the speaker-notes panel; persists for the instance's life. */
 	toggleNotes(): void {
 		this.store.set({ notesExpanded: !this.store.get().notesExpanded });
 	}
-
-	// ── Theme / locale ─────────────────────────────────────────────────────
 
 	setTheme(theme: ViewerTheme | undefined): void {
 		this.lifecycle.appliedThemeVars = applyThemeVars(
@@ -190,8 +194,6 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 		this.editor.attachChrome();
 		this.renderer.renderAll();
 	}
-
-	// ── Editor ────────────────────────────────────────────────────────────
 
 	setEditable(editable: boolean): void {
 		this.store.set({ editable });
@@ -226,21 +228,12 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 		this.editor.deleteSelected();
 	}
 
-	// ── Export ────────────────────────────────────────────────────────────
-
-	async exportSlidePng(index?: number): Promise<void> {
-		return this.exportLifecycle.exportSlidePng(index);
-	}
-
-	async exportPdf(options?: ExportPdfOptions): Promise<void> {
-		return this.exportLifecycle.exportPdf(options);
-	}
+	// exportSlidePng / exportPdf / exportGif / exportVideo / print are
+	// inherited from ViewerExportHost (see export-lifecycle.ts).
 
 	getSelectedElementId(): string | null {
 		return this.editor.getSelectedElementId();
 	}
-
-	// ── Presentation mode ──────────────────────────────────────────────────
 
 	async enterPresentation(): Promise<void> {
 		await this.lifecycle.presentation.enter();
@@ -250,8 +243,6 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 		await this.lifecycle.presentation.exit();
 	}
 
-	// ── Escape hatches / teardown ──────────────────────────────────────────
-
 	getRegistry(): ElementRendererRegistry {
 		return this.registry;
 	}
@@ -260,19 +251,34 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 		return this.loading.getHandler();
 	}
 
+	startCollaboration(config: CollaborationConfig): Promise<void> {
+		return this.sessions.startCollaboration(config);
+	}
+
+	stopCollaboration(): void {
+		this.sessions.stopCollaboration();
+	}
+
+	getCollaborationStatus(): ConnectionStatus {
+		return this.sessions.getCollaborationStatus();
+	}
+
+	autosaveNow(): Promise<void> {
+		return this.sessions.autosaveNow();
+	}
+
 	destroy(): void {
 		if (this.destroyed) {
 			return;
 		}
 		this.destroyed = true;
+		this.sessions.destroy();
 		this.loading.invalidate();
 		this.editor.destroy();
-		this.exportLifecycle.destroy();
+		this.exporter.destroy();
 		unmountChrome(this.lifecycle, () => this.editor?.detachChrome());
 		this.loading.releaseLoaded();
 	}
-
-	// ── Chrome lifecycle ───────────────────────────────────────────────────
 
 	private remountChrome(): void {
 		unmountChrome(this.lifecycle, () => this.editor?.detachChrome());
@@ -280,17 +286,7 @@ export class PptxViewer implements PptxViewerInstance, ChromeHost {
 	}
 }
 
-/**
- * Create a PowerPoint viewer inside `container`.
- *
- * ```ts
- * import { createPptxViewer } from 'pptx-vanilla-viewer';
- * const viewer = createPptxViewer(document.querySelector('#host')!, {
- * 	source: '/deck.pptx',
- * 	onSlideChange: (i) => console.log('slide', i + 1),
- * });
- * ```
- */
+/** Create a PowerPoint viewer inside `container` (see {@link PptxViewerOptions}). */
 export function createPptxViewer(
 	container: HTMLElement,
 	options: PptxViewerOptions = {},

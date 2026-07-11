@@ -114,6 +114,29 @@ export function cloneSlides(slides: readonly PptxSlide[]): PptxSlide[] {
 }
 
 /**
+ * Reorder one slide's elements via a pure z-order transform (the shared
+ * `bringToFront` / `sendToBack` / `bringForward` / `sendBackward` family, whose
+ * signature is `(elements, id) => PptxElement[]`). The slide is cloned; other
+ * slides are reused by reference.
+ */
+export function reorderElementOnSlide(
+	slides: readonly PptxSlide[],
+	slideIndex: number,
+	transform: (elements: readonly PptxElement[]) => PptxElement[],
+): PptxSlide[] {
+	return mapSlideElements(slides, slideIndex, (elements) => transform(elements));
+}
+
+/** Append a freshly-built element to the end (top of paint order) of a slide. */
+export function appendElementOnSlide(
+	slides: readonly PptxSlide[],
+	slideIndex: number,
+	element: PptxElement,
+): PptxSlide[] {
+	return mapSlideElements(slides, slideIndex, (elements) => [...elements, element]);
+}
+
+/**
  * Replace the plain-text speaker notes on one slide. Mirrors the Vue binding's
  * `onNotesUpdate`: only `notes` is written, `notesSegments` (rich runs loaded
  * from a .pptx) is intentionally left untouched, matching the plain-text

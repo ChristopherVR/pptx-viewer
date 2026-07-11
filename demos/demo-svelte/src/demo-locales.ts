@@ -19,6 +19,9 @@ export const demoStringsEn = {
 	'demo.pickers.switchLanguage': 'Switch language',
 	'demo.export.png': 'Export PNG',
 	'demo.export.pdf': 'Export PDF',
+	'demo.export.gif': 'Export GIF',
+	'demo.export.video': 'Export video',
+	'demo.export.print': 'Print',
 	'demo.editToggle.label': 'Edit',
 };
 
@@ -33,6 +36,9 @@ export const demoStringsFr = {
 	'demo.pickers.switchLanguage': 'Changer de langue',
 	'demo.export.png': 'Exporter en PNG',
 	'demo.export.pdf': 'Exporter en PDF',
+	'demo.export.gif': 'Exporter en GIF',
+	'demo.export.video': 'Exporter la video',
+	'demo.export.print': 'Imprimer',
 	'demo.editToggle.label': 'Modifier',
 };
 
@@ -47,6 +53,9 @@ export const demoStringsEs = {
 	'demo.pickers.switchLanguage': 'Cambiar idioma',
 	'demo.export.png': 'Exportar a PNG',
 	'demo.export.pdf': 'Exportar a PDF',
+	'demo.export.gif': 'Exportar a GIF',
+	'demo.export.video': 'Exportar video',
+	'demo.export.print': 'Imprimir',
 	'demo.editToggle.label': 'Editar',
 };
 
@@ -61,5 +70,8 @@ export const demoStringsDe = {
 	'demo.pickers.switchLanguage': 'Sprache wechseln',
 	'demo.export.png': 'Als PNG exportieren',
 	'demo.export.pdf': 'Als PDF exportieren',
+	'demo.export.gif': 'Als GIF exportieren',
+	'demo.export.video': 'Video exportieren',
+	'demo.export.print': 'Drucken',
 	'demo.editToggle.label': 'Bearbeiten',
 };

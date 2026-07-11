@@ -144,6 +144,69 @@ describe('editorState history-tracked mutations', () => {
 	});
 });
 
+describe('editorState format / insert / z-order operations', () => {
+	it('applyElementPatch merges a style patch with history', () => {
+		const { editor, onChange } = make();
+		editor.setSlides([slide('a', [shape('e1', { textStyle: { fontSize: 18 } })])]);
+		editor.applyElementPatch('e1', { textStyle: { fontSize: 18, bold: true } });
+		expect(
+			(editor.slides[0].elements[0] as { textStyle?: { bold?: boolean } }).textStyle?.bold,
+		).toBeTruthy();
+		expect(editor.canUndo).toBeTruthy();
+		expect(onChange).toHaveBeenCalledWith();
+		editor.undo();
+		expect(
+			(editor.slides[0].elements[0] as { textStyle?: { bold?: boolean } }).textStyle?.bold,
+		).toBeUndefined();
+	});
+
+	it('applyElementPatch is a no-op when not editable or id missing', () => {
+		const { editor } = make();
+		editor.setSlides([slide('a', [shape('e1')])]);
+		editor.applyElementPatch('missing', { x: 999 });
+		expect(editor.canUndo).toBeFalsy();
+		editor.editable = false;
+		editor.applyElementPatch('e1', { x: 999 });
+		expect(editor.slides[0].elements[0].x).toBe(10);
+	});
+
+	it('patchSelected applies to the current selection', () => {
+		const { editor } = make();
+		editor.setSlides([slide('a', [shape('e1')])]);
+		editor.select('e1');
+		editor.patchSelected({ x: 42 });
+		expect(editor.slides[0].elements[0].x).toBe(42);
+	});
+
+	it('insertElement assigns a fresh id, appends, selects, and is undoable', () => {
+		const { editor } = make();
+		editor.setSlides([slide('a', [shape('e1')])]);
+		const newId = editor.insertElement(shape('', { id: '' }));
+		expect(newId).toBeTruthy();
+		expect(editor.slides[0].elements).toHaveLength(2);
+		expect(editor.selectedElementId).toBe(newId);
+		editor.undo();
+		expect(editor.slides[0].elements).toHaveLength(1);
+	});
+
+	it('reorderSelected moves the selection through the paint order (undoable)', () => {
+		const { editor } = make();
+		editor.setSlides([slide('a', [shape('e1'), shape('e2'), shape('e3')])]);
+		editor.select('e1');
+		editor.reorderSelected('front');
+		expect(editor.slides[0].elements.map((e) => e.id)).toStrictEqual(['e2', 'e3', 'e1']);
+		editor.undo();
+		expect(editor.slides[0].elements.map((e) => e.id)).toStrictEqual(['e1', 'e2', 'e3']);
+	});
+
+	it('reorderSelected is a no-op with no selection', () => {
+		const { editor } = make();
+		editor.setSlides([slide('a', [shape('e1'), shape('e2')])]);
+		editor.reorderSelected('back');
+		expect(editor.canUndo).toBeFalsy();
+	});
+});
+
 describe('editorState save', () => {
 	it('serializes the current slides via the handler and clears dirty', async () => {
 		const { editor, save } = make();

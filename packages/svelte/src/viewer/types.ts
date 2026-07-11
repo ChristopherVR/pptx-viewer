@@ -1,6 +1,17 @@
-import type { CanvasSize, ViewerTheme } from 'pptx-viewer-shared';
+import type {
+	CanvasSize,
+	CollaborationConfig,
+	CollaborationRole,
+	CollaborationTransport,
+	ViewerTheme,
+} from 'pptx-viewer-shared';
 
-import type { ExportPdfOptions } from './export';
+import type {
+	ExportGifOptions,
+	ExportPdfOptions,
+	ExportVideoOptions,
+	PrintOptions,
+} from './export';
 
 /**
  * Public component types for the Svelte PowerPoint viewer.
@@ -12,7 +23,13 @@ import type { ExportPdfOptions } from './export';
  *    callbacks as regular props (`onload`, `onerror`, `onslidechange`).
  *  - **`content` is named `source`.** The viewer accepts raw `.pptx` bytes.
  */
-export type { CanvasSize, ViewerTheme };
+export type {
+	CanvasSize,
+	CollaborationConfig,
+	CollaborationRole,
+	CollaborationTransport,
+	ViewerTheme,
+};
 
 /** Payload for the `onload` callback. */
 export interface ViewerLoadDetail {
@@ -84,6 +101,38 @@ export interface PowerPointViewerProps {
 	 * to track the dirty state or mirror edits into host state.
 	 */
 	onchange?: () => void;
+	/**
+	 * Enable debounced crash-recovery autosave. On each edit (when `editable`)
+	 * the current slides are serialized to `.pptx` bytes and written to the
+	 * shared IndexedDB recovery store (keyed by {@link filePath}), and
+	 * `onautosave` is fired with the bytes. Requires `filePath`; without one the
+	 * autosave indicator reads "disabled". This binding does not auto-restore on
+	 * load; recovery is a host concern (see the re-exported `getAutosaveSnapshot`
+	 * / `listAutosaveSnapshots` helpers). Default false.
+	 */
+	autosave?: boolean;
+	/**
+	 * IndexedDB record key for autosave (typically the open file's name/path).
+	 * Autosave is inert until this is set.
+	 */
+	filePath?: string;
+	/** Autosave debounce window in milliseconds. Default 2000. */
+	autosaveIntervalMs?: number;
+	/** Fired with the serialized `.pptx` bytes after each successful autosave. */
+	onautosave?: (bytes: Uint8Array) => void;
+	/**
+	 * Real-time collaboration configuration. When provided, the viewer connects
+	 * to the room (y-websocket or serverless y-webrtc), publishes local edits
+	 * granularly, and applies remote peers' edits into the editable slides.
+	 * Clearing it (undefined) tears the session down. A `viewer` role makes the
+	 * local user read-only. Remote presence/cursors are not rendered by this
+	 * binding (descoped); see `collab/collaboration.svelte.ts`.
+	 */
+	collaboration?: CollaborationConfig;
+	/** Fired when a collaboration session starts (with the resolved config). */
+	onstartcollaboration?: (config: CollaborationConfig) => void;
+	/** Fired when a collaboration session stops. */
+	onstopcollaboration?: () => void;
 }
 
 /**
@@ -119,4 +168,28 @@ export interface PowerPointViewerApi {
 	 * `jspdf` is dynamically imported on first use.
 	 */
 	exportPdf(options?: ExportPdfOptions): Promise<void>;
+	/**
+	 * Export every slide as an animated GIF download. Per-slide frame delays
+	 * come from the shared frame plan: a default `slideDurationMs` (2000) with
+	 * optional per-slide `slideTimingsMs` overrides. Supports `onProgress` and
+	 * an `AbortSignal`, like {@link exportPdf}.
+	 */
+	exportGif(options?: ExportGifOptions): Promise<void>;
+	/**
+	 * Export every slide as a WebM video download (canvas capture stream +
+	 * `MediaRecorder`; codec picked from the shared WebM candidates). Timing
+	 * follows the shared video plan (`slideDurationMs` default 3000, per-slide
+	 * `slideTimingsMs`, `fps` default 30). Supports capture/recording progress
+	 * callbacks and an `AbortSignal`.
+	 */
+	exportVideo(options?: ExportVideoOptions): Promise<void>;
+	/**
+	 * Assemble the shared print document (slides / handouts / notes / outline,
+	 * slide range + colour mode) and open the browser print dialog. The default
+	 * print surface is a hidden same-origin iframe, so no popup window is
+	 * involved; a custom `window.open`-based opener (injectable at the
+	 * controller level) is subject to popup blockers, in which case the promise
+	 * resolves `false`. Resolves `true` once the print surface opened.
+	 */
+	print(options?: PrintOptions): Promise<boolean>;
 }

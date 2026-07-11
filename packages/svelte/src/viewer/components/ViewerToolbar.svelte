@@ -5,6 +5,8 @@
 	 * i18n dictionary via the context translator; theming via `--pptx-*` vars.
 	 */
 	import { useTranslator } from '../../i18n/context';
+	import AutosaveIndicator from './AutosaveIndicator.svelte';
+	import ExportMenu from './ExportMenu.svelte';
 	import type { ViewerToolbarProps } from './props';
 
 	const {
@@ -29,6 +31,9 @@
 		onredo,
 		onsave,
 		ondownload,
+		autosaveStatus,
+		autosaveDirty = false,
+		exportUi,
 	}: ViewerToolbarProps = $props();
 
 	const t = useTranslator();
@@ -73,6 +78,9 @@
 			>
 				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0 3-3m-3 3-3-3M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
 			</button>
+			{#if autosaveStatus}
+				<AutosaveIndicator status={autosaveStatus} isDirty={autosaveDirty} />
+			{/if}
 		</div>
 	{/if}
 	<div class="pptx-svelte-toolbar-group">
@@ -149,6 +157,9 @@
 				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h9v11h-9zM5 5.5h6M5 8h6M5 10.5h4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
 				<span class="pptx-svelte-toolbar-notes-label">{t('pptx.notes.title')}</span>
 			</button>
+		{/if}
+		{#if exportUi}
+			<ExportMenu {exportUi} />
 		{/if}
 	</div>
 </div>

@@ -11,13 +11,19 @@
 
 	import { createTranslator } from '../i18n/translator';
 	import { provideTranslator } from '../i18n/context';
+	import { CollaborationController } from './collab';
+	import EditToolbar from './components/EditToolbar.svelte';
+	import ExportProgressModal from './components/ExportProgressModal.svelte';
 	import ViewerBody from './components/ViewerBody.svelte';
 	import ViewerToolbar from './components/ViewerToolbar.svelte';
 	import { createEditingApi } from './editor/editing-api';
 	import { EditorController } from './editor/editor-controller.svelte';
 	import { EditorState } from './editor/editor-state.svelte';
+	import { AutosaveController } from './state/autosave.svelte';
 	import { createExportWiring } from './export/export-wiring.svelte';
 	import { createExportingApi } from './export/exporting-api';
+	import { ExportUiState } from './export/export-ui.svelte';
+	import { PresentationController, usePresentationEffects } from './presentation';
 	import { PresentationLoader } from './state/presentation-loader.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
 	import { ViewerState } from './state/viewer-state.svelte';
@@ -38,11 +44,18 @@
 		smartArt3D = false,
 		editable = false,
 		class: className = '',
+		autosave = false,
+		filePath,
+		autosaveIntervalMs = 2000,
+		collaboration,
 		onload,
 		onerror,
 		onslidechange,
 		onnotesupdate,
 		onchange,
+		onautosave,
+		onstartcollaboration,
+		onstopcollaboration,
 	}: PowerPointViewerProps = $props();
 
 	const t = createTranslator(() => locale);
@@ -72,9 +85,43 @@
 		getHolderEl: () => stageHolderEl ?? null,
 	});
 
+	// ── Collaboration ────────────────────────────────────────────────────
+	// Auto start/stop from the `collaboration` prop; local edits publish
+	// granularly and remote peers' edits apply into `editor.slides`. A `viewer`
+	// role folds into `getEditable` below so the local user stays read-only.
+	function sourceBytes(): Uint8Array | null {
+		if (!source) {
+			return null;
+		}
+		return source instanceof Uint8Array ? source : new Uint8Array(source);
+	}
+	const collab = new CollaborationController({
+		getSlides: () => editor.slides,
+		applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
+		getConfig: () => collaboration,
+		getSourceBytes: sourceBytes,
+		onStart: (config) => onstartcollaboration?.(config),
+		onStop: () => onstopcollaboration?.(),
+	});
+
+	// ── Autosave ─────────────────────────────────────────────────────────
+	// Debounced crash-recovery autosave: enabled only when the host opts in,
+	// editing is allowed, and a `filePath` key is supplied. Persists to the
+	// shared IndexedDB store and fires `onautosave` with the bytes.
+	const autosaveActive = $derived(editable && autosave && Boolean(filePath) && !collab.readOnly);
+	const autosaveCtl = new AutosaveController({
+		getEnabled: () => autosaveActive,
+		getIntervalMs: () => autosaveIntervalMs,
+		getFilePath: () => filePath,
+		getSlides: () => editor.slides,
+		getHandler: () => loader.handler,
+		getLoadCount: () => loader.loadCount,
+		onSaved: (bytes) => onautosave?.(bytes),
+	});
+
 	useViewerEffects({
 		getSource: () => source,
-		getEditable: () => editable,
+		getEditable: () => editable && !collab.readOnly,
 		getInitialSlide: () => initialSlide,
 		getTranslator: () => t,
 		loader,
@@ -88,6 +135,7 @@
 
 	onDestroy(() => {
 		controller.destroy();
+		collab.stop();
 		exportWiring.destroy();
 		loader.dispose();
 	});
@@ -116,11 +164,29 @@
 	const displaySlides = $derived(editor.slides);
 	const activeSlide = $derived(displaySlides[viewer.current]);
 	const chromeVisible = $derived(!viewer.isFullscreen);
-	const editingActive = $derived(editable && !viewer.isFullscreen);
+	const editingActive = $derived(editable && !viewer.isFullscreen && !collab.readOnly);
 
 	const rootStyle = $derived(
 		styleToString(mergeStyles(defaultCssVars(), themeToCssVars(theme))),
 	);
+
+	// ── Presentation mode (animations + slide transitions) ───────────────
+	// Owns the click-stepped element-animation playback and the transient
+	// slide-transition overlay state; driven by `usePresentationEffects` off the
+	// fullscreen flag + current slide. All the preset/transition CSS maths lives
+	// in `pptx-viewer-shared`.
+	const presentation = new PresentationController({
+		getSlides: () => editor.slides,
+		getCurrentIndex: () => viewer.current,
+		navigate: (index) => viewer.goTo(index),
+	});
+	usePresentationEffects({
+		controller: presentation,
+		getPresenting: () => viewer.isFullscreen,
+		getCurrentIndex: () => viewer.current,
+		getActiveSlide: () => activeSlide,
+		getStageRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
+	});
 
 	// ── Fullscreen / keyboard ────────────────────────────────────────────
 	// Assigned by the template's bind:this (invisible to the linter).
@@ -132,6 +198,7 @@
 		viewer,
 		controller,
 		getEditingActive: () => editingActive,
+		presentation,
 	});
 
 	// ── Export (PNG / PDF) ───────────────────────────────────────────────
@@ -145,6 +212,11 @@
 		getCurrent: () => viewer.current,
 		getTranslator: () => t,
 		getSmartArt3D: () => smartArt3D,
+	});
+	// Toolbar export menu + progress modal state (Vue `useExportProgress` port).
+	const exportUi = new ExportUiState({
+		controller: exportWiring.controller,
+		getTranslator: () => t,
 	});
 
 	// ── Speaker notes ────────────────────────────────────────────────────
@@ -179,6 +251,9 @@
 	const exportingApi = createExportingApi(exportWiring.controller);
 	export const exportSlidePng = exportingApi.exportSlidePng;
 	export const exportPdf = exportingApi.exportPdf;
+	export const exportGif = exportingApi.exportGif;
+	export const exportVideo = exportingApi.exportVideo;
+	export const print = exportingApi.print;
 </script>
 
 <svelte:document onfullscreenchange={onFullscreenChange} />
@@ -210,7 +285,7 @@
 			showNotes={showNotes && loader.slides.length > 0}
 			{notesExpanded}
 			onnotestoggle={onNotesToggle}
-			editable={editable && loader.slides.length > 0}
+			editable={editable && !collab.readOnly && loader.slides.length > 0}
 			canUndo={editor.canUndo}
 			canRedo={editor.canRedo}
 			dirty={editor.dirty}
@@ -218,10 +293,24 @@
 			onredo={() => editor.redo()}
 			onsave={() => void editor.save()}
 			ondownload={() => void downloadPptx()}
+			autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
+			autosaveDirty={autosaveCtl.isDirty}
+			exportUi={loader.slides.length > 0 ? exportUi : undefined}
 		/>
+	{/if}
+	<ExportProgressModal
+		open={exportUi.open}
+		title={exportUi.title}
+		progress={exportUi.progress}
+		statusMessage={exportUi.status}
+		oncancel={() => exportUi.cancel()}
+	/>
+	{#if editingActive}
+		<EditToolbar {editor} />
 	{/if}
 	<ViewerBody
 		{t}
+		{editor}
 		{chromeVisible}
 		{showThumbnails}
 		{showNotes}
@@ -236,6 +325,9 @@
 		{activeSlide}
 		{scale}
 		presenting={viewer.isFullscreen}
+		presentationTransition={presentation.transition}
+		onTransitionDone={() => presentation.endTransition()}
+		onAdvance={() => presentation.advance()}
 		{editingActive}
 		{controller}
 		onstageresize={(width, height) => {

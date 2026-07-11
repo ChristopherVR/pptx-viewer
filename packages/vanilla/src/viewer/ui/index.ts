@@ -1,7 +1,15 @@
 export type { ChromeOptions, ViewerChrome } from './chrome';
 export { buildViewerChrome } from './chrome';
+export type { ButtonHandle, ColorControlHandle, NumberFieldHandle } from './controls';
+export { makeButton, makeColorControl, makeNumberField } from './controls';
+export type { FormatSelectionState, FormatToolbar, FormatToolbarHandlers } from './format-toolbar';
+export { createFormatToolbar } from './format-toolbar';
 export type { IconName } from './icons';
 export { createIcon } from './icons';
+export type { InsertMenu, InsertMenuHandlers } from './insert-menu';
+export { createInsertMenu } from './insert-menu';
+export type { Inspector, InspectorHandlers, InspectorState } from './inspector';
+export { createInspector } from './inspector';
 export type { KeyboardHandlers } from './keyboard';
 export { attachKeyboardNavigation } from './keyboard';
 export type { NotesPanel, NotesPanelUpdate } from './notes-panel';

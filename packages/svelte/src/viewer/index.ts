@@ -1,5 +1,11 @@
 export { PowerPointViewer } from './component';
 export type {
+	ExportGifOptions,
+	ExportPdfOptions,
+	ExportVideoOptions,
+	PrintOptions,
+} from './export';
+export type {
 	CanvasSize,
 	PowerPointViewerApi,
 	PowerPointViewerProps,

@@ -1,10 +1,24 @@
 export { createPptxViewer, PptxViewer } from './PptxViewer';
 export type { PptxViewerCallbacks, PptxViewerInstance, PptxViewerOptions } from './types';
+export type {
+	AutosaveRecord,
+	AutosaveStatus,
+	CollaborationConfig,
+	CollaborationRole,
+	CollaborationTransport,
+	ConnectionStatus,
+} from './types';
+export type { AutosaveController } from './autosave';
+export { createAutosaveController } from './autosave';
+export type { CollaborationController } from './collab';
+export { createCollaborationController } from './collab';
 export type { RenderController, RenderControllerDeps } from './render-controller';
 export { createRenderController } from './render-controller';
 export type { StateSyncDeps } from './state-sync';
 export { createStateSync } from './state-sync';
 export { applyThemeVars } from './theme-apply';
+export type { ExportLifecycle, ExportLifecycleDeps, ViewerExportApi } from './export-lifecycle';
+export { createExportLifecycle, ViewerExportHost } from './export-lifecycle';
 export * from './export';
 export * from './i18n';
 export * from './load';
