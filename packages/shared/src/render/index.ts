@@ -576,6 +576,10 @@ export * from './shape-preset-catalog';
 // Home-tab text formatting presets: font family/size dropdown lists,
 // character/line-spacing presets, and the change-case options + transforms.
 export * from './text-format-presets';
+// Canonical "Office Standard Colors" 10-swatch catalogue for font-colour /
+// highlight-colour (and future fill/line-colour) pickers, shared by every
+// binding instead of each hardcoding its own copy.
+export * from './color-swatches';
 
 // PowerPoint-style title bar (AutoSave toggle + quick access + file name +
 // search) and the shared IndexedDB autosave recovery store behind it. Pure
