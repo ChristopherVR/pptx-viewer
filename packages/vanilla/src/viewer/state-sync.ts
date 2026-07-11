@@ -62,7 +62,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		}
 		if (state.notesExpanded !== previous.notesExpanded) {
 			chrome.notes.setExpanded(state.notesExpanded);
-			chrome.toolbar?.setNotesExpanded(state.notesExpanded);
+			chrome.ribbon?.setNotesExpanded(state.notesExpanded);
 		}
 	};
 }

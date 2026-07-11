@@ -1,39 +1,13 @@
 /**
- * Editing-chrome stylesheet fragment: the format toolbar row, its reusable
- * controls (glyph toggles, colour swatches, numeric fields), the Insert
- * popover, and the property inspector panel. Concatenated after the base
- * chrome CSS by {@link buildViewerCss}. All colours come from the shared
- * `--pptx-*` theme custom properties.
+ * Editing-chrome stylesheet fragment: the reusable inspector controls
+ * (colour swatches, numeric fields) and the property inspector panel. The
+ * ribbon's own styling (tab bar, groups, dropdowns, swatch picker, find &
+ * replace) lives in `ribbon-css.ts`. Concatenated after the base chrome CSS
+ * by {@link buildViewerCss}. All colours come from the shared `--pptx-*`
+ * theme custom properties.
  */
 export const EDITOR_CSS = `
-/* ── Format toolbar (editing) ────────────────────────────────────────── */
-.pptxv-format-toolbar {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 4px 6px;
-	padding: 5px 8px;
-	border-bottom: 1px solid var(--pptx-border);
-	background: var(--pptx-card);
-	color: var(--pptx-card-foreground);
-	flex: none;
-}
-.pptxv-format-toolbar[hidden] { display: none; }
-.pptxv-format-group {
-	display: inline-flex;
-	align-items: center;
-	gap: 2px;
-	padding-right: 6px;
-	margin-right: 2px;
-	border-right: 1px solid var(--pptx-border);
-}
-.pptxv-format-group:last-child { border-right: none; }
-.pptxv-glyph { font-size: 14px; line-height: 1; }
-.pptxv-glyph-bold { font-weight: 700; }
-.pptxv-glyph-italic { font-style: italic; font-family: Georgia, 'Times New Roman', serif; }
-.pptxv-glyph-underline { text-decoration: underline; }
-
-/* Colour swatch control */
+/* Colour swatch control (native <input type=color>, used by the inspector). */
 .pptxv-color {
 	display: inline-flex;
 	align-items: center;
@@ -79,36 +53,6 @@ export const EDITOR_CSS = `
 .pptxv-field-compact .pptxv-field-input { width: 48px; }
 .pptxv-field-input:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -1px; }
 .pptxv-field-input:disabled { opacity: 0.5; }
-
-/* Insert dropdown */
-.pptxv-insert { position: relative; display: inline-flex; }
-.pptxv-insert-menu {
-	position: absolute;
-	top: calc(100% + 4px);
-	left: 0;
-	z-index: 20;
-	min-width: 160px;
-	padding: 4px;
-	border: 1px solid var(--pptx-border);
-	border-radius: var(--pptx-radius);
-	background: var(--pptx-card);
-	color: var(--pptx-card-foreground);
-	box-shadow: 0 6px 20px rgb(0 0 0 / 0.2);
-}
-.pptxv-insert-menu[hidden] { display: none; }
-.pptxv-insert-item {
-	display: block;
-	width: 100%;
-	padding: 6px 10px;
-	border: none;
-	border-radius: 4px;
-	background: transparent;
-	color: inherit;
-	font: inherit;
-	text-align: left;
-	cursor: pointer;
-}
-.pptxv-insert-item:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
 
 /* ── Property inspector ──────────────────────────────────────────────── */
 .pptxv-inspector {
@@ -165,7 +109,45 @@ export const EDITOR_CSS = `
 }
 .pptxv-inspector-row-label { color: var(--pptx-muted-foreground); }
 
-/* Presentation mode hides all editing chrome. */
-.pptxv.pptxv-presenting .pptxv-format-toolbar,
+/* Select / checkbox / range fields (text/image/table inspector sections). */
+.pptxv-field-select,
+.pptxv-field-checkbox,
+.pptxv-field-range {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+.pptxv-field-checkbox { justify-content: flex-start; }
+.pptxv-field-checkbox .pptxv-field-label { order: 2; }
+.pptxv-field-select-input {
+	height: 26px;
+	padding: 2px 6px;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: var(--pptx-background);
+	color: var(--pptx-foreground);
+	font: inherit;
+	font-size: 12px;
+}
+.pptxv-field-select-input:disabled { opacity: 0.5; }
+.pptxv-field-range { flex-direction: column; align-items: stretch; }
+.pptxv-field-range-row { display: flex; align-items: center; gap: 8px; }
+.pptxv-field-range-row input[type='range'] { flex: 1; }
+.pptxv-field-range-readout {
+	min-width: 34px;
+	text-align: right;
+	color: var(--pptx-muted-foreground);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Gradient fill sub-panel (Fill & Stroke section). */
+.pptxv-inspector-gradient { margin: 4px 0 8px; padding-left: 4px; border-left: 2px solid var(--pptx-border); }
+.pptxv-inspector-gradient[hidden] { display: none; }
+.pptxv-inspector-gradient-stops { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+
+/* Presentation mode hides all editing chrome (the ribbon is covered by
+ * \`.pptxv.pptxv-presenting .pptxv-ribbon\` in css.ts). */
 .pptxv.pptxv-presenting .pptxv-inspector { display: none; }
 `;

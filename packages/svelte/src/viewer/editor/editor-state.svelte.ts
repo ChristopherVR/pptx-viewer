@@ -1,6 +1,11 @@
 import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { ElementClipboardPayload } from 'pptx-viewer-shared';
 import { EditorHistory } from 'pptx-viewer-shared';
 
+import { EditorAnimationController } from './editor-animation-controller';
+import { EditorArrangeController } from './editor-arrange-controller';
+import { EditorBackgroundController } from './editor-background-controller';
+import { EditorClipboardController } from './editor-clipboard-controller';
 import { appendElement, newElementId } from './editor-insert';
 import type { ElementBoxPatch } from './editor-mutations';
 import {
@@ -12,6 +17,9 @@ import {
 	updateElement,
 	updateSlideNotes,
 } from './editor-mutations';
+import { EditorSelection } from './editor-selection.svelte';
+import { EditorSlidesController } from './editor-slides-controller';
+import { EditorTransitionController } from './editor-transition-controller';
 import type { ZOrderDirection } from './editor-zorder';
 import { reorderElement } from './editor-zorder';
 import { remapInlineText } from './inline-text';
@@ -45,14 +53,16 @@ export interface EditorStateDeps {
 export class EditorState {
 	/** The editable slide array (single source of truth for the stage). */
 	slides = $state.raw<PptxSlide[]>([]);
-	/** Currently-selected top-level element id, or null. */
-	selectedElementId = $state<string | null>(null);
+	/** Reactive multi-element selection (primary = last selected). */
+	readonly selection = new EditorSelection();
 	/** Whether editing is enabled (host `editable` prop). */
 	editable = $state(false);
 	/** True once any mutation has been committed since the last load/save. */
 	dirty = $state(false);
 	/** True while a pointer gesture (drag/resize/rotate) is in progress. */
 	interactionActive = $state(false);
+	/** Current clipboard payload (Ctrl+C/X or the Clipboard group), or null. */
+	clipboard = $state.raw<ElementClipboardPayload | null>(null);
 
 	#history = new EditorHistory<PptxSlide[]>({ maxDepth: MAX_HISTORY_ENTRIES });
 	#canUndo = $state(false);
@@ -60,8 +70,27 @@ export class EditorState {
 	#lastNudgeAt = 0;
 	readonly #deps: EditorStateDeps;
 
+	/** Ctrl+C/X/V + the Home tab's Clipboard group (split out for file-size budget). */
+	readonly clipboardOps: EditorClipboardController;
+	/** The Home tab's Slides group: new / duplicate / delete slide. */
+	readonly slidesOps: EditorSlidesController;
+	/** The Home tab's Arrange group: align / distribute / flip / group / ungroup. */
+	readonly arrangeOps: EditorArrangeController;
+	/** The Design tab's Format Background panel: solid slide background colour. */
+	readonly backgroundOps: EditorBackgroundController;
+	/** The Transitions tab: assign a slide transition (single slide or all slides). */
+	readonly transitionOps: EditorTransitionController;
+	/** The Animations tab: add/remove an entrance/emphasis/exit preset on the selection. */
+	readonly animationOps: EditorAnimationController;
+
 	constructor(deps: EditorStateDeps) {
 		this.#deps = deps;
+		this.clipboardOps = new EditorClipboardController(this);
+		this.slidesOps = new EditorSlidesController(this);
+		this.arrangeOps = new EditorArrangeController(this);
+		this.backgroundOps = new EditorBackgroundController(this);
+		this.transitionOps = new EditorTransitionController(this);
+		this.animationOps = new EditorAnimationController(this);
 	}
 
 	/** Whether at least one undo step is available (reactive). */
@@ -74,11 +103,34 @@ export class EditorState {
 		return this.#canRedo;
 	}
 
-	/** The selected element resolved against the current slide (or undefined). */
+	/** The primary selected element id, or null (delegates to `selection`). */
+	get selectedElementId(): string | null {
+		return this.selection.primary;
+	}
+
+	/** The primary selected element on the current slide (or undefined). */
 	get selectedElement(): PptxElement | undefined {
 		return this.selectedElementId
 			? findSlideElement(this.slides, this.#deps.getCurrent(), this.selectedElementId)
 			: undefined;
+	}
+
+	/** Every selected element resolved against the current slide. */
+	get selectedElements(): PptxElement[] {
+		const current = this.#deps.getCurrent();
+		return this.selection.ids
+			.map((id) => findSlideElement(this.slides, current, id))
+			.filter((el): el is PptxElement => el !== undefined);
+	}
+
+	/** Whether a paste is currently possible (Clipboard group's Paste button). */
+	get hasClipboard(): boolean {
+		return this.clipboard !== null;
+	}
+
+	/** The active slide index (0-based); read live so it always reflects the viewer. */
+	get currentSlideIndex(): number {
+		return this.#deps.getCurrent();
 	}
 
 	#syncHistoryFlags(): void {
@@ -89,7 +141,7 @@ export class EditorState {
 	/** Seed the editable slides from a freshly-loaded presentation. */
 	setSlides(slides: PptxSlide[]): void {
 		this.slides = slides;
-		this.selectedElementId = null;
+		this.selection.clear();
 		this.dirty = false;
 		this.interactionActive = false;
 		this.#history.clear();
@@ -111,17 +163,13 @@ export class EditorState {
 	 */
 	applyRemoteSlides(slides: PptxSlide[]): void {
 		this.slides = slides;
-		if (
-			this.selectedElementId &&
-			!findSlideElement(slides, this.#deps.getCurrent(), this.selectedElementId)
-		) {
-			this.selectedElementId = null;
-		}
+		const current = this.#deps.getCurrent();
+		this.selection.prune((id) => Boolean(findSlideElement(slides, current, id)));
 	}
 
 	/** Drop selection/dirty/interaction + history (new content or teardown). */
 	reset(): void {
-		this.selectedElementId = null;
+		this.selection.clear();
 		this.dirty = false;
 		this.interactionActive = false;
 		this.#history.clear();
@@ -130,7 +178,7 @@ export class EditorState {
 	}
 
 	select(id: string | null): void {
-		this.selectedElementId = id;
+		this.selection.set(id);
 	}
 
 	/** Snapshot the current slides onto the undo stack (before a mutation). */
@@ -152,23 +200,49 @@ export class EditorState {
 		this.slides = patchElementGeometry(this.slides, this.#deps.getCurrent(), id, box);
 	}
 
+	/**
+	 * Replace the whole slide array with history (the generic multi-slide
+	 * mutation entry point: slide add/duplicate/delete, arrange group ops,
+	 * and find/replace all route through this so every change is a single
+	 * undoable step). No-op when not editable.
+	 */
+	commitSlides(next: PptxSlide[]): void {
+		if (!this.editable) {
+			return;
+		}
+		this.pushHistory();
+		this.slides = next;
+		this.commitChange();
+	}
+
 	#restore(snapshot: PptxSlide[] | undefined): void {
 		if (!snapshot) {
 			return;
 		}
 		this.slides = cloneSlides(snapshot);
 		this.interactionActive = false;
+		// Drop selected ids the undo/redo step removed (or that were never on
+		// this snapshot), so ribbon controls gated on `selectedElementId` don't
+		// stay enabled for an element that no longer exists.
+		const current = this.#deps.getCurrent();
+		this.selection.prune((id) => Boolean(findSlideElement(this.slides, current, id)));
 		this.commitChange();
 	}
 
+	/** Delete every selected element on the current slide (with history). */
 	deleteSelected(): void {
-		const id = this.selectedElementId;
-		if (!this.editable || !id || !this.selectedElement) {
+		const ids = this.selection.ids;
+		if (!this.editable || ids.length === 0 || this.selectedElements.length === 0) {
 			return;
 		}
 		this.pushHistory();
-		this.slides = removeElement(this.slides, this.#deps.getCurrent(), id);
-		this.selectedElementId = null;
+		const current = this.#deps.getCurrent();
+		let next = this.slides;
+		for (const id of ids) {
+			next = removeElement(next, current, id);
+		}
+		this.slides = next;
+		this.selection.clear();
 		this.commitChange();
 	}
 
@@ -183,7 +257,7 @@ export class EditorState {
 		}
 		this.pushHistory();
 		this.slides = result.slides;
-		this.selectedElementId = result.newId;
+		this.selection.set(result.newId);
 		this.commitChange();
 		return result.newId;
 	}
@@ -222,7 +296,7 @@ export class EditorState {
 		const withId = { ...element, id: element.id || newElementId() } as PptxElement;
 		this.pushHistory();
 		this.slides = appendElement(this.slides, current, withId);
-		this.selectedElementId = withId.id;
+		this.selection.set(withId.id);
 		this.commitChange();
 		return withId.id;
 	}

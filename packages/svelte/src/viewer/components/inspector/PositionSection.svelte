@@ -1,0 +1,93 @@
+<script lang="ts">
+	/**
+	 * PositionSection: the universal X / Y / W / H / rotation numeric grid,
+	 * shown for every selected element regardless of type. Extracted from the
+	 * original monolithic InspectorPanel so the panel can grow element-type-aware
+	 * sections without blowing the file-size budget.
+	 */
+	import type { PptxElement } from 'pptx-viewer-core';
+
+	import { useTranslator } from '../../../i18n/context';
+	import type { EditorState } from '../../editor/editor-state.svelte';
+
+	const { editor, el }: { editor: EditorState; el: PptxElement } = $props();
+	const t = useTranslator();
+
+	type GeomField = 'x' | 'y' | 'width' | 'height' | 'rotation';
+
+	function commit(field: GeomField, value: string): void {
+		const n = Number(value);
+		if (!Number.isFinite(n)) {
+			return;
+		}
+		const v = field === 'width' || field === 'height' ? Math.max(1, n) : n;
+		editor.applyElementPatch(el.id, { [field]: v } as Partial<PptxElement>);
+	}
+</script>
+
+<div class="pptx-svelte-inspector-grid">
+	<label>
+		<span>{t('pptx.inspector.x')}</span>
+		<input type="number" value={Math.round(el.x)} onchange={(e) => commit('x', e.currentTarget.value)} />
+	</label>
+	<label>
+		<span>{t('pptx.inspector.y')}</span>
+		<input type="number" value={Math.round(el.y)} onchange={(e) => commit('y', e.currentTarget.value)} />
+	</label>
+	<label>
+		<span>{t('pptx.inspector.w')}</span>
+		<input
+			type="number"
+			min="1"
+			value={Math.round(el.width)}
+			onchange={(e) => commit('width', e.currentTarget.value)}
+		/>
+	</label>
+	<label>
+		<span>{t('pptx.inspector.h')}</span>
+		<input
+			type="number"
+			min="1"
+			value={Math.round(el.height)}
+			onchange={(e) => commit('height', e.currentTarget.value)}
+		/>
+	</label>
+	<label>
+		<span>{t('pptx.inspector.rotation')}</span>
+		<input
+			type="number"
+			value={Math.round(el.rotation ?? 0)}
+			onchange={(e) => commit('rotation', e.currentTarget.value)}
+		/>
+	</label>
+</div>
+
+<style>
+	.pptx-svelte-inspector-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 8px;
+	}
+
+	.pptx-svelte-inspector-grid label {
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+
+	.pptx-svelte-inspector-grid span {
+		color: var(--pptx-muted-foreground, #94a3b8);
+	}
+
+	.pptx-svelte-inspector-grid input {
+		width: 100%;
+		height: 26px;
+		box-sizing: border-box;
+		padding: 0 6px;
+		border: 1px solid var(--pptx-border, #33334d);
+		border-radius: var(--pptx-radius, 6px);
+		background: var(--pptx-background, #11111b);
+		color: inherit;
+		font: inherit;
+	}
+</style>

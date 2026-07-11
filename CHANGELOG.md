@@ -6,6 +6,63 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-11
 
+_Releases: pptx-react-viewer@1.15.0, pptx-vue-viewer@1.15.0, pptx-angular-viewer@1.15.0, pptx-vanilla-viewer@0.4.0, pptx-svelte-viewer@0.4.0_
+
+### Features
+
+- **vanilla:** Insert media, chart, equation, smartart, action button, field (by @ChristopherVR) ([7e70a21](https://github.com/ChristopherVR/pptx-viewer/commit/7e70a21fbc489e915c83c13528ac492ba5bd83ff))
+- **svelte:** Add chart insert to the Insert tab (by @ChristopherVR) ([b4dbbc3](https://github.com/ChristopherVR/pptx-viewer/commit/b4dbbc3c3fffb455d1853d3e05fac9c4b2e92600))
+- **svelte:** Add equation insert to the Insert tab (by @ChristopherVR) ([5d8a5fd](https://github.com/ChristopherVR/pptx-viewer/commit/5d8a5fdc5422642c50c072dcf441e221a0392b64))
+- **svelte:** Add SmartArt insert to the Insert tab (by @ChristopherVR) ([6a5a12e](https://github.com/ChristopherVR/pptx-viewer/commit/6a5a12e2dd47c030eb60f59c75534e0f2be13f24))
+- **svelte:** Add media insert factory for the Insert tab (by @ChristopherVR) ([3fe31b7](https://github.com/ChristopherVR/pptx-viewer/commit/3fe31b7570091644f03be2ffe1efaae18b997588))
+- **svelte:** Add action button insert to the Insert tab (by @ChristopherVR) ([22136ca](https://github.com/ChristopherVR/pptx-viewer/commit/22136ca4499a383b98d6dd147a812d6a42e07086))
+- **svelte:** Add field insert to the Insert tab (by @ChristopherVR) ([e8c4f7f](https://github.com/ChristopherVR/pptx-viewer/commit/e8c4f7fe7c3fe908f705e6a29eee31c3431353af))
+- **svelte:** Wire the new Insert actions into the ribbon (by @ChristopherVR) ([105a338](https://github.com/ChristopherVR/pptx-viewer/commit/105a338b600f8ad265a2f4f513c37f75c8ea228d))
+- **vanilla:** Add Design, Transitions, and Animations ribbon tabs (by @ChristopherVR) ([5c2058e](https://github.com/ChristopherVR/pptx-viewer/commit/5c2058ea6e5281c122019ff174fd2b98065d9cf0))
+- **svelte:** Add slide-background/transition/animation editor actions (by @ChristopherVR) ([f032a47](https://github.com/ChristopherVR/pptx-viewer/commit/f032a4773e2b7d43a66121c12bfadffdbeccb687))
+- **svelte:** Add Design, Transitions, and Animations ribbon tabs (by @ChristopherVR) ([86caaec](https://github.com/ChristopherVR/pptx-viewer/commit/86caaec25cdb9753fc76ca205f806daf903c6075))
+- **shared:** Add text wrap/autofit, image adjustments, and table inspector helpers (by @ChristopherVR) ([54b2eda](https://github.com/ChristopherVR/pptx-viewer/commit/54b2eda35254bc75257932568442396a5f343708))
+- **vanilla:** Element-type-aware property inspector panels (by @ChristopherVR) ([5bd1fb4](https://github.com/ChristopherVR/pptx-viewer/commit/5bd1fb4837a17d7125e05e111328220ab0eb3659))
+- **svelte:** Add fill/stroke opacity and gradient to the inspector (by @ChristopherVR) ([34cb1ab](https://github.com/ChristopherVR/pptx-viewer/commit/34cb1ab62c4cef0739a1da9fc5e156b64f0b288b))
+- **svelte:** Add text properties to the inspector panel (by @ChristopherVR) ([7d8819b](https://github.com/ChristopherVR/pptx-viewer/commit/7d8819b57b9adadf094c4225f71551c0a05e975e))
+- **svelte:** Add image adjustment and crop controls to the inspector (by @ChristopherVR) ([fbe0f85](https://github.com/ChristopherVR/pptx-viewer/commit/fbe0f8531b8701592f6d9083c3e4cb2efbecb5f2))
+- **svelte:** Add table properties to the inspector panel (by @ChristopherVR) ([d87360f](https://github.com/ChristopherVR/pptx-viewer/commit/d87360f15a58561e180a24a99c509078a76d2abf))
+
+### Documentation
+
+- **shared:** Add i18n keys for the vanilla Design tab theme gallery (by @ChristopherVR) ([593ea23](https://github.com/ChristopherVR/pptx-viewer/commit/593ea230e61f606056ffc013e2fdb82bea70738b))
+
+## 2026-07-11
+
+_Releases: pptx-react-viewer@1.14.1, pptx-vue-viewer@1.14.1, pptx-angular-viewer@1.14.1, pptx-vanilla-viewer@0.3.0, pptx-svelte-viewer@0.3.0_
+
+### Features
+
+- **vanilla:** Add tabbed ribbon shell with File/Home/Insert/View tabs (by @ChristopherVR) ([43594c6](https://github.com/ChristopherVR/pptx-viewer/commit/43594c6b675a067748714a4b0ce3f30a2e57e909))
+- **vanilla:** Wire Ctrl+C/X/V clipboard shortcuts into the editor keyboard (by @ChristopherVR) ([423b3e3](https://github.com/ChristopherVR/pptx-viewer/commit/423b3e32d7877ebc9d8a465f07b2af992ce65ca0))
+- **svelte:** Add ribbon editor logic (clipboard, slides, arrange, text/paragraph, find-replace) (by @ChristopherVR) ([12d53da](https://github.com/ChristopherVR/pptx-viewer/commit/12d53da5984957d473c7ee47327b5957747c6c5d))
+- **svelte:** Add tabbed ribbon shell with File/Home/Insert/View tabs (by @ChristopherVR) ([4f391ab](https://github.com/ChristopherVR/pptx-viewer/commit/4f391ab80092b5562d0bd584664bd3acca3ce1f9))
+
+### Bug Fixes
+
+- **shared,react,vue,angular:** Make the Aa Change Case dropdown actually rewrite text (by @ChristopherVR) ([d84fd78](https://github.com/ChristopherVR/pptx-viewer/commit/d84fd788097253cf8b9281eca35af35caad20dce))
+- **react,vue,angular:** Drop stray space when splitting a wrapped line (by @ChristopherVR) ([1a43c81](https://github.com/ChristopherVR/pptx-viewer/commit/1a43c810fd43cf57d3691c124568e73f31fd7b0a))
+- **angular:** Resolve change-case helpers via the vendored shared source (by @ChristopherVR) ([6cfe41e](https://github.com/ChristopherVR/pptx-viewer/commit/6cfe41e0d348e3e9dff3a1ecc7bbb57902547683))
+- **svelte:** Prune the selection on undo/redo so ribbon buttons re-disable (by @ChristopherVR) ([7539b70](https://github.com/ChristopherVR/pptx-viewer/commit/7539b70ad5ac18be028bd1fa39c1438469038002))
+
+### Refactor
+
+- **shared:** Extract clipboard, shape-preset, and text-format catalogs from react (by @ChristopherVR) ([b9d7cc9](https://github.com/ChristopherVR/pptx-viewer/commit/b9d7cc9b061b8c9dcaad91038136349c9360080d))
+- **shared:** Dedupe change-case logic against text-case-transform (by @ChristopherVR) ([d007c07](https://github.com/ChristopherVR/pptx-viewer/commit/d007c070fb5bf8573bd8ac6dbeae160b46fc2dde))
+- **svelte:** Multi-element selection state (by @ChristopherVR) ([a259d5d](https://github.com/ChristopherVR/pptx-viewer/commit/a259d5df7a37f90c3baf3952b280b48c3d739dae))
+- **vanilla:** Move ribbon primary/nav row CSS out of css.ts (by @ChristopherVR) ([477ddd8](https://github.com/ChristopherVR/pptx-viewer/commit/477ddd8c2c49d1754058914f4fb46d63afe8d728))
+
+### Testing
+
+- **vanilla:** Cover the ribbon tab registry, insert grid, and clipboard group (by @ChristopherVR) ([cee383f](https://github.com/ChristopherVR/pptx-viewer/commit/cee383fc4bc8c55832c2fb9a6ad56db24bf3cf7b))
+
+## 2026-07-11
+
 _Releases: pptx-react-viewer@1.14.0, pptx-vue-viewer@1.14.0, pptx-angular-viewer@1.14.0, pptx-vanilla-viewer@0.2.0, pptx-svelte-viewer@0.2.0_
 
 ### Features

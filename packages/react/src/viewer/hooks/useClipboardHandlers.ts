@@ -1,10 +1,14 @@
 /**
  * useClipboardHandlers: Copy, cut, paste, duplicate, and delete handlers
  * extracted from useElementManipulation.
+ *
+ * Thin wrapper over the shared element-clipboard module
+ * (`pptx-viewer-shared`, render/element-clipboard.ts), which owns the pure
+ * payload building + paste cloning (fresh template-aware ids, cascade offset).
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { buildElementClipboardPayload, cloneElementForPaste } from 'pptx-viewer-shared';
 
-import { makeCloneId } from '../utils/template-editing';
 import type { ClipboardHandlers } from './element-manipulation-types';
 import type { EditorHistoryResult } from './useEditorHistory';
 import type { ElementOperations } from './useElementOperations';
@@ -39,10 +43,7 @@ export function useClipboardHandlers(input: ClipboardInput): ClipboardHandlers {
 		if (!selectedElement) {
 			return;
 		}
-		setClipboardPayload({
-			element: structuredClone(selectedElement),
-			isTemplate: editTemplateMode,
-		});
+		setClipboardPayload(buildElementClipboardPayload(selectedElement, editTemplateMode));
 	};
 
 	const handleDelete = () => {
@@ -64,32 +65,27 @@ export function useClipboardHandlers(input: ClipboardInput): ClipboardHandlers {
 		handleDelete();
 	};
 
+	const insertClone = (source: PptxElement) => {
+		// In edit-template mode the clone is inserted into the template store, so
+		// it keeps a template-prefixed id so later edits route to the same store.
+		const clone = cloneElementForPaste(source, { intoTemplate: editTemplateMode });
+		ops.updateActiveElements((els) => [...els, clone]);
+		ops.applySelection(clone.id);
+		history.markDirty();
+	};
+
 	const handlePaste = () => {
 		if (!clipboardPayload || !activeSlide) {
 			return;
 		}
-		const clone = structuredClone(clipboardPayload.element);
-		// In edit-template mode the clone is inserted into the template store, so
-		// keep a template-prefixed id so later edits route to the same store.
-		clone.id = makeCloneId(editTemplateMode, clipboardPayload.element.id);
-		clone.x += 20;
-		clone.y += 20;
-		ops.updateActiveElements((els) => [...els, clone]);
-		ops.applySelection(clone.id);
-		history.markDirty();
+		insertClone(clipboardPayload.element);
 	};
 
 	const handleDuplicate = () => {
 		if (!selectedElement || !activeSlide) {
 			return;
 		}
-		const clone = structuredClone(selectedElement);
-		clone.id = makeCloneId(editTemplateMode, selectedElement.id);
-		clone.x += 20;
-		clone.y += 20;
-		ops.updateActiveElements((els) => [...els, clone]);
-		ops.applySelection(clone.id);
-		history.markDirty();
+		insertClone(selectedElement);
 	};
 
 	return {

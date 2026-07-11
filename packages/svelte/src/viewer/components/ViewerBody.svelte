@@ -15,7 +15,7 @@
 	import type { TransitionState } from '../presentation';
 	import { PresentationTransitionOverlay } from '../presentation';
 	import EditorLayer from './EditorLayer.svelte';
-	import InspectorPanel from './InspectorPanel.svelte';
+	import InspectorPanel from './inspector/InspectorPanel.svelte';
 	import NotesPanel from './NotesPanel.svelte';
 	import SlideStage from './SlideStage.svelte';
 	import ThumbnailRail from './ThumbnailRail.svelte';

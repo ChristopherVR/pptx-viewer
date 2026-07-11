@@ -15,8 +15,8 @@ import {
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
-import type { ChangeCaseMode } from 'pptx-viewer-shared';
 
+import type { ChangeCaseMode } from '../internal/shared-src/render/text-case-transform';
 import { EditorStateService } from './editor-state.service';
 import { RibbonColorPopoverComponent } from './ribbon-color-popover.component';
 import {

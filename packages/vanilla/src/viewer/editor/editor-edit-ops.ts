@@ -1,20 +1,39 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxChartType, PptxElement, SmartArtLayout } from 'pptx-viewer-core';
 import { MIN_ELEMENT_SIZE } from 'pptx-viewer-core';
-import { bringForward, bringToFront, sendBackward, sendToBack } from 'pptx-viewer-shared';
+import type { ShapePresetType } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
-import {
-	adjustFontSize,
-	patchShapeStyle,
-	setFontSize,
-	setHighlightColor,
-	setTextColor,
-	toggleTextProp,
-} from './editor-format-mutations';
+import type { AnimationActions } from './editor-animation-actions';
+import { createAnimationActions } from './editor-animation-actions';
+import { createApplyToSelected } from './editor-apply-to-selected';
+import type { ArrangeActions } from './editor-arrange-actions';
+import { createArrangeActions } from './editor-arrange-actions';
+import type { SlideBackgroundActions } from './editor-background-actions';
+import { createSlideBackgroundActions } from './editor-background-actions';
+import type { ClipboardActions } from './editor-clipboard-actions';
+import { createClipboardActions } from './editor-clipboard-actions';
+import { patchShapeStyle } from './editor-format-mutations';
 import type { InsertKind } from './editor-insert';
 import { buildInsertElement, pickImageElement } from './editor-insert';
-import { appendElementOnSlide, reorderElementOnSlide, updateElement } from './editor-mutations';
+import { pickMediaElement } from './editor-insert-media';
+import {
+	buildActionButtonInsertElement,
+	buildChartInsertElement,
+	buildEquationInsertElement,
+	buildFieldInsertElement,
+	buildSmartArtInsertElement,
+	resolveFieldDisplayText,
+} from './editor-insert-structured';
+import type { InspectorActions } from './editor-inspector-actions';
+import { createInspectorActions } from './editor-inspector-actions';
+import { appendElementOnSlide } from './editor-mutations';
 import type { EditorOps } from './editor-operations';
+import type { SlideActions } from './editor-slide-actions';
+import { createSlideActions } from './editor-slide-actions';
+import type { TextActions } from './editor-text-actions';
+import { createTextActions } from './editor-text-actions';
+import type { TransitionActions } from './editor-transition-actions';
+import { createTransitionActions } from './editor-transition-actions';
 
 /** A geometry patch from the inspector (all fields optional). */
 export interface GeometryPatch {
@@ -26,29 +45,39 @@ export interface GeometryPatch {
 }
 
 /**
- * The formatting / insert / arrange actions exposed to the editing chrome
- * (format toolbar, inspector, insert menu). Every mutating action is
- * history-integrated (push -> mutate -> commit) via the shared {@link EditorOps}.
+ * The full set of formatting / insert / arrange / clipboard / slide actions
+ * exposed to the editing chrome (ribbon, inspector). Composed from the
+ * focused per-concern action files (`editor-text-actions.ts`,
+ * `editor-arrange-actions.ts`, `editor-clipboard-actions.ts`,
+ * `editor-slide-actions.ts`) plus the shape/geometry/insert actions owned
+ * directly here. Every mutating action is history-integrated (push -> mutate
+ * -> commit) via the shared {@link EditorOps}.
  */
-export interface EditActions {
-	toggleBold(): void;
-	toggleItalic(): void;
-	toggleUnderline(): void;
-	changeFontSize(delta: number): void;
-	setFontSize(size: number): void;
-	setTextColor(color: string): void;
-	setHighlightColor(color: string): void;
+export interface EditActions
+	extends
+		TextActions,
+		ArrangeActions,
+		ClipboardActions,
+		SlideActions,
+		SlideBackgroundActions,
+		TransitionActions,
+		AnimationActions,
+		InspectorActions {
 	setShapeFill(color: string): void;
 	setShapeStroke(color: string): void;
 	setShapeStrokeWidth(width: number): void;
 	/** Commit an inspector geometry edit (X/Y/W/H/rotation). */
 	setGeometry(patch: GeometryPatch): void;
-	insert(kind: InsertKind): void;
+	insert(kind: InsertKind, shapeType?: ShapePresetType): void;
 	insertImage(): Promise<void>;
-	bringForward(): void;
-	sendBackward(): void;
-	bringToFront(): void;
-	sendToBack(): void;
+	insertMedia(): Promise<void>;
+	insertChart(chartType: PptxChartType): void;
+	insertSmartArt(layout: SmartArtLayout, defaultItems: string[]): void;
+	insertEquation(omml: Record<string, unknown>): void;
+	insertActionButton(shapeType: string): void;
+	insertField(fieldType: string, value?: string): void;
+	duplicateSelected(): void;
+	deleteSelected(): void;
 }
 
 export interface EditActionsDeps {
@@ -64,43 +93,7 @@ export interface EditActionsDeps {
  */
 export function createEditActions(deps: EditActionsDeps): EditActions {
 	const { doc, store, ops } = deps;
-
-	/** Apply a formatting patch to the selected element, history-integrated. */
-	const applyToSelected = (build: (el: PptxElement) => Partial<PptxElement>): void => {
-		const state = store.get();
-		const id = state.selectedElementId;
-		const el = ops.selectedElement(state);
-		if (!state.editable || !id || !el) {
-			return;
-		}
-		const patch = build(el);
-		if (Object.keys(patch).length === 0) {
-			return;
-		}
-		ops.pushHistory();
-		store.set({ slides: updateElement(state.slides, state.currentSlide, id, patch) });
-		ops.commitChange();
-	};
-
-	/** Reorder the selected element via a shared z-order transform. */
-	const reorder = (transform: (els: readonly PptxElement[], id: string) => PptxElement[]): void => {
-		const state = store.get();
-		const id = state.selectedElementId;
-		const elements = state.slides[state.currentSlide]?.elements;
-		if (!state.editable || !id || !elements) {
-			return;
-		}
-		// The shared transforms return the same array reference when it is a
-		// no-op (already front/back); skip the history entry in that case.
-		if (transform(elements, id) === elements) {
-			return;
-		}
-		ops.pushHistory();
-		store.set({
-			slides: reorderElementOnSlide(state.slides, state.currentSlide, (els) => transform(els, id)),
-		});
-		ops.commitChange();
-	};
+	const applyToSelected = createApplyToSelected(store, ops);
 
 	/** Append a freshly-built element to the current slide, selected. */
 	const insertElement = (element: PptxElement | null): void => {
@@ -120,14 +113,19 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 	};
 
 	return {
-		toggleBold: () => applyToSelected((el) => toggleTextProp(el, 'bold')),
-		toggleItalic: () => applyToSelected((el) => toggleTextProp(el, 'italic')),
-		toggleUnderline: () => applyToSelected((el) => toggleTextProp(el, 'underline')),
-		changeFontSize: (delta) => applyToSelected((el) => adjustFontSize(el, delta)),
-		setFontSize: (size) => applyToSelected((el) => setFontSize(el, size)),
-		setTextColor: (color) => applyToSelected((el) => setTextColor(el, color)),
-		setHighlightColor: (color) => applyToSelected((el) => setHighlightColor(el, color)),
-		setShapeFill: (color) => applyToSelected((el) => patchShapeStyle(el, { fillColor: color })),
+		...createTextActions(applyToSelected),
+		...createArrangeActions({ store, ops, applyToSelected }),
+		...createClipboardActions({ store, ops }),
+		...createSlideActions({ store, ops }),
+		...createSlideBackgroundActions({ store, ops }),
+		...createTransitionActions({ store, ops }),
+		...createAnimationActions({ store, ops }),
+		...createInspectorActions(applyToSelected),
+
+		// Picking a flat colour swatch implies solid fill, so it also clears any
+		// active gradient/pattern mode (mirrors the React/Vue "Fill & Stroke" panel).
+		setShapeFill: (color) =>
+			applyToSelected((el) => patchShapeStyle(el, { fillColor: color, fillMode: 'solid' })),
 		setShapeStroke: (color) => applyToSelected((el) => patchShapeStyle(el, { strokeColor: color })),
 		setShapeStrokeWidth: (width) =>
 			applyToSelected((el) => patchShapeStyle(el, { strokeWidth: Math.max(0, width) })),
@@ -154,12 +152,12 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 			});
 		},
 
-		insert(kind) {
+		insert(kind, shapeType) {
 			const state = store.get();
 			if (!state.slides[state.currentSlide]) {
 				return;
 			}
-			insertElement(buildInsertElement(kind, state.canvasSize));
+			insertElement(buildInsertElement(kind, state.canvasSize, shapeType));
 		},
 		async insertImage() {
 			const state = store.get();
@@ -168,10 +166,53 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 			}
 			insertElement(await pickImageElement(doc, state.canvasSize));
 		},
+		async insertMedia() {
+			const state = store.get();
+			if (!state.editable || !state.slides[state.currentSlide]) {
+				return;
+			}
+			insertElement(await pickMediaElement(doc, state.canvasSize));
+		},
 
-		bringForward: () => reorder(bringForward),
-		sendBackward: () => reorder(sendBackward),
-		bringToFront: () => reorder(bringToFront),
-		sendToBack: () => reorder(sendToBack),
+		insertChart(chartType) {
+			const state = store.get();
+			if (!state.slides[state.currentSlide]) {
+				return;
+			}
+			insertElement(buildChartInsertElement(chartType, state.canvasSize));
+		},
+		insertSmartArt(layout, defaultItems) {
+			const state = store.get();
+			if (!state.slides[state.currentSlide]) {
+				return;
+			}
+			insertElement(buildSmartArtInsertElement(layout, defaultItems, state.canvasSize));
+		},
+		insertEquation(omml) {
+			const state = store.get();
+			if (!state.slides[state.currentSlide]) {
+				return;
+			}
+			insertElement(buildEquationInsertElement(omml, state.canvasSize));
+		},
+		insertActionButton(shapeType) {
+			const state = store.get();
+			if (!state.slides[state.currentSlide]) {
+				return;
+			}
+			insertElement(buildActionButtonInsertElement(shapeType, state.canvasSize));
+		},
+		insertField(fieldType, value) {
+			const state = store.get();
+			if (!state.slides[state.currentSlide]) {
+				return;
+			}
+			const displayText =
+				value ?? resolveFieldDisplayText(fieldType, { slideNumber: state.currentSlide + 1 });
+			insertElement(buildFieldInsertElement(fieldType, displayText, state.canvasSize));
+		},
+
+		duplicateSelected: () => void ops.duplicateSelected(),
+		deleteSelected: () => ops.deleteSelected(),
 	};
 }

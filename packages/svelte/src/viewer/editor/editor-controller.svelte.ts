@@ -90,6 +90,9 @@ export class EditorController {
 			nudgeSelected: (dx, dy) => this.#editor.nudgeSelected(dx, dy),
 			undo: () => this.#editor.undo(),
 			redo: () => this.#editor.redo(),
+			copySelected: () => this.#editor.clipboardOps.copySelected(),
+			cutSelected: () => this.#editor.clipboardOps.cutSelected(),
+			paste: () => void this.#editor.clipboardOps.pasteClipboard(),
 		});
 	}
 

@@ -2,6 +2,7 @@ import { defaultCssVars } from 'pptx-viewer-shared';
 
 import { COLLAB_CSS } from './collab-css';
 import { EDITOR_CSS } from './editor-css';
+import { RIBBON_CSS } from './ribbon-css';
 
 /**
  * The viewer stylesheet, scoped under the `.pptxv` root class.
@@ -37,18 +38,9 @@ const CHROME_CSS = `
 .pptxv:focus { outline: none; }
 .pptxv:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -2px; }
 
-/* ── Toolbar ─────────────────────────────────────────────────────────── */
-.pptxv-toolbar {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 6px 8px;
-	border-bottom: 1px solid var(--pptx-border);
-	background: var(--pptx-card);
-	color: var(--pptx-card-foreground);
-	flex: none;
-}
-.pptxv-toolbar-spacer { flex: 1; }
+/* Ribbon shell layout (primary row + nav row + tab bar + groups) lives in
+ * ribbon-css.ts; .pptxv-btn below is the shared icon-button primitive used by
+ * both the ribbon and the inspector. */
 .pptxv-btn {
 	display: inline-flex;
 	align-items: center;
@@ -280,7 +272,7 @@ const CHROME_CSS = `
 .pptxv-empty { color: var(--pptx-muted-foreground); }
 
 /* ── Presentation (fullscreen) mode ──────────────────────────────────── */
-.pptxv.pptxv-presenting .pptxv-toolbar,
+.pptxv.pptxv-presenting .pptxv-ribbon,
 .pptxv.pptxv-presenting .pptxv-thumbs { display: none; }
 .pptxv.pptxv-presenting .pptxv-viewport { background: #000; padding: 0; }
 .pptxv.pptxv-presenting .pptxv-stage-wrap { box-shadow: none; }
@@ -288,5 +280,5 @@ const CHROME_CSS = `
 
 /** The full stylesheet text (theme-var defaults + chrome rules + editor + collab chrome). */
 export function buildViewerCss(): string {
-	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${COLLAB_CSS}`;
+	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${COLLAB_CSS}`;
 }

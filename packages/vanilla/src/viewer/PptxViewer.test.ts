@@ -28,7 +28,7 @@ describe('createPptxViewer', () => {
 	it('builds the chrome (toolbar, thumbnails, viewport) and injects styles once', () => {
 		const { container } = mount();
 		expect(container.querySelector('.pptxv')).toBeTruthy();
-		expect(container.querySelector('.pptxv-toolbar')).toBeTruthy();
+		expect(container.querySelector('.pptxv-ribbon')).toBeTruthy();
 		expect(container.querySelector('.pptxv-thumbs')).toBeTruthy();
 		expect(container.querySelector('.pptxv-viewport')).toBeTruthy();
 
@@ -39,7 +39,7 @@ describe('createPptxViewer', () => {
 
 	it('honours showToolbar / showThumbnails options', () => {
 		const { container } = mount({ showToolbar: false, showThumbnails: false });
-		expect(container.querySelector('.pptxv-toolbar')).toBeNull();
+		expect(container.querySelector('.pptxv-ribbon')).toBeNull();
 		expect(container.querySelector('.pptxv-thumbs')).toBeNull();
 		expect(container.querySelector('.pptxv-viewport')).toBeTruthy();
 	});
@@ -127,7 +127,7 @@ describe('createPptxViewer', () => {
 		const { container } = mount();
 		const notesBody = container.querySelector<HTMLElement>('.pptxv-notes-body');
 		const notesBtn = container.querySelector<HTMLButtonElement>(
-			'.pptxv-toolbar [aria-label="Toggle notes"]',
+			'.pptxv-ribbon [aria-label="Toggle notes"]',
 		);
 		expect(notesBody?.hidden).toBeTruthy();
 		expect(notesBtn?.getAttribute('aria-pressed')).toBe('false');

@@ -5,11 +5,16 @@ import {
 	adjustFontSize,
 	canFormatShape,
 	canFormatText,
+	changeTextCase,
+	clearFormatting,
 	patchShapeStyle,
 	readTextFormatState,
+	setCharacterSpacing,
+	setFontFamily,
 	setFontSize,
 	setTextColor,
 	toggleTextProp,
+	toggleTextShadow,
 } from './editor-format-mutations';
 
 function textElement(): PptxElement {
@@ -99,6 +104,57 @@ describe('editor-format-mutations text', () => {
 		};
 		expect(patch.textStyle.color).toBe('#ff0000');
 		expect(patch.textSegments[0].style.color).toBe('#ff0000');
+	});
+});
+
+describe('editor-format-mutations extras', () => {
+	it('toggles strikethrough alongside bold/italic/underline', () => {
+		const patch = toggleTextProp(textElement(), 'strikethrough') as {
+			textStyle: { strikethrough?: boolean };
+		};
+		expect(patch.textStyle.strikethrough).toBeTruthy();
+	});
+
+	it('sets font family element-wide', () => {
+		const patch = setFontFamily(textElement(), 'Georgia') as { textStyle: { fontFamily?: string } };
+		expect(patch.textStyle.fontFamily).toBe('Georgia');
+	});
+
+	it('sets character spacing', () => {
+		const patch = setCharacterSpacing(textElement(), -75) as {
+			textStyle: { characterSpacing?: number };
+		};
+		expect(patch.textStyle.characterSpacing).toBe(-75);
+	});
+
+	it('toggles a default text shadow on then off', () => {
+		const on = toggleTextShadow(textElement()) as { textStyle: { textShadowColor?: string } };
+		expect(on.textStyle.textShadowColor).toBe('#000000');
+
+		const el = textElement() as PptxElement & { textStyle: { textShadowColor?: string } };
+		el.textStyle.textShadowColor = '#000000';
+		const off = toggleTextShadow(el) as { textStyle: { textShadowColor?: string } };
+		expect(off.textStyle.textShadowColor).toBeUndefined();
+	});
+
+	it('rewrites run text per a change-case mode', () => {
+		const el = textElement() as PptxElement & { textSegments: Array<{ text: string }> };
+		el.textSegments[0].text = 'hello world';
+		const patch = changeTextCase(el, 'upper') as { textSegments: Array<{ text: string }> };
+		expect(patch.textSegments[0].text).toBe('HELLO WORLD');
+	});
+
+	it('clears character formatting back to defaults', () => {
+		const el = textElement() as PptxElement & {
+			textStyle: { bold?: boolean; highlightColor?: string };
+		};
+		el.textStyle.bold = true;
+		el.textStyle.highlightColor = '#ffff00';
+		const patch = clearFormatting(el) as {
+			textStyle: { bold?: boolean; highlightColor?: string };
+		};
+		expect(patch.textStyle.bold).toBeFalsy();
+		expect(patch.textStyle.highlightColor).toBeUndefined();
 	});
 });
 

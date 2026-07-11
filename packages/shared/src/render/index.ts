@@ -525,6 +525,14 @@ export * from './mobile-chrome';
 // Gradient-picker editor model: read `GradientState` off an element + build
 // fillMode='gradient' shapeStyle merge patches (add/remove/update stops).
 export * from './gradient-picker';
+// Image-adjustments editor model: brightness/contrast/saturation state +
+// merge patches, plus the four crop-inset (left/top/right/bottom) reader +
+// clamped patch builder. Used by the image inspector panel.
+export * from './image-adjustments';
+// Table-level inspector model: header-row / banded-rows / banded-columns
+// toggle state + merge patches, plus a uniform default-cell-padding patch
+// builder (this binding has no per-cell selection model; see module docs).
+export * from './table-inspector';
 // Active-slide comment-array transforms (add/remove/toggle-resolved).
 export * from './comments-list';
 // Touch-gesture state machine: pinch-to-zoom (two-finger distance ratio),
@@ -556,6 +564,18 @@ export * from './image-artistic-presets';
 export * from './text-warp-presets';
 export * from './shape-quick-styles';
 export * from './text-3d-presets';
+
+// Element clipboard: in-memory copy/cut payload builders + paste cloning
+// (fresh template-aware ids + cascade offset) and the marked, versioned JSON
+// string codec (binary-safe) for round-tripping elements through the system
+// clipboard. Each binding's cut/copy/paste handlers are thin wrappers on this.
+export * from './element-clipboard';
+// Insert > Shape picker catalogue: preset geometry types + labels/i18n keys +
+// framework-neutral glyph descriptors; each binding maps glyphs to its icons.
+export * from './shape-preset-catalog';
+// Home-tab text formatting presets: font family/size dropdown lists,
+// character/line-spacing presets, and the change-case options + transforms.
+export * from './text-format-presets';
 
 // PowerPoint-style title bar (AutoSave toggle + quick access + file name +
 // search) and the shared IndexedDB autosave recovery store behind it. Pure

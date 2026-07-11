@@ -14,13 +14,14 @@
 	import { CollaborationController, CollaborationDialogsState } from './collab';
 	import CollaborationChrome from './collab/components/CollaborationChrome.svelte';
 	import { useCollaborationPresenceEffects } from './collab/collaboration-presence-effects.svelte';
-	import EditToolbar from './components/EditToolbar.svelte';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
+	import Ribbon from './components/ribbon/Ribbon.svelte';
 	import ViewerBody from './components/ViewerBody.svelte';
 	import ViewerToolbar from './components/ViewerToolbar.svelte';
 	import { createEditingApi } from './editor/editing-api';
 	import { EditorController } from './editor/editor-controller.svelte';
 	import { EditorState } from './editor/editor-state.svelte';
+	import { FindReplaceState } from './editor/editor-find-replace.svelte';
 	import { AutosaveController } from './state/autosave.svelte';
 	import { createExportWiring } from './export/export-wiring.svelte';
 	import { createExportingApi } from './export/exporting-api';
@@ -87,6 +88,15 @@
 		getStageRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
 		getHolderEl: () => stageHolderEl ?? null,
 		onCursorMove: (x, y) => collab.setCursor(x, y, viewer.current),
+	});
+	// The ribbon's Home tab Editing group / Ctrl+F Find & Replace panel.
+	const findReplace = new FindReplaceState({
+		getSlides: () => editor.slides,
+		commitSlides: (next) => editor.commitSlides(next),
+		onNavigate: (slideIndex, elementId) => {
+			viewer.goTo(slideIndex);
+			editor.select(elementId);
+		},
 	});
 
 	// ── Collaboration ────────────────────────────────────────────────────
@@ -184,9 +194,19 @@
 	const activeSlide = $derived(displaySlides[viewer.current]);
 	const chromeVisible = $derived(!viewer.isFullscreen);
 	const editingActive = $derived(editable && !viewer.isFullscreen && !collab.readOnly);
+	// The ribbon replaces the lean `ViewerToolbar` once a presentation is
+	// loaded and editing is actually available; read-only mode (or no
+	// presentation yet) keeps the compact viewer chrome unchanged.
+	const showRibbon = $derived(editable && !collab.readOnly && loader.slides.length > 0);
+
+	// The Design tab's theme-preset gallery overrides the host `theme` prop
+	// locally (React/vanilla's `setTheme` public API pattern); clearing it
+	// (`undefined`) falls back to whatever the host passed in.
+	let themeOverride = $state<PowerPointViewerProps['theme']>(undefined);
+	const effectiveTheme = $derived(themeOverride ?? theme);
 
 	const rootStyle = $derived(
-		styleToString(mergeStyles(defaultCssVars(), themeToCssVars(theme))),
+		styleToString(mergeStyles(defaultCssVars(), themeToCssVars(effectiveTheme))),
 	);
 
 	// ── Presentation mode (animations + slide transitions) ───────────────
@@ -245,6 +265,11 @@
 		notesExpanded = !notesExpanded;
 	}
 
+	// ── Design tab theme switching ──────────────────────────────────────
+	function onSetTheme(next: PowerPointViewerProps['theme']): void {
+		themeOverride = next;
+	}
+
 	// Route notes edits through the history-tracked editor when editable (so
 	// they participate in undo/redo and persist to `save()`), then always
 	// forward to the host `onnotesupdate` callback.
@@ -290,35 +315,62 @@
 	onkeydown={onKeydown}
 >
 	{#if showToolbar && chromeVisible}
-		<ViewerToolbar
-			current={viewer.current}
-			total={viewer.slideCount}
-			zoomPercent={effectivePercent}
-			isFullscreen={viewer.isFullscreen}
-			onprev={() => viewer.prev()}
-			onnext={() => viewer.next()}
-			onzoomin={() => viewer.zoomIn(effectivePercent)}
-			onzoomout={() => viewer.zoomOut(effectivePercent)}
-			onzoomfit={() => viewer.zoomToFit()}
-			onfullscreen={onFullscreenToggle}
-			showNotes={showNotes && loader.slides.length > 0}
-			{notesExpanded}
-			onnotestoggle={onNotesToggle}
-			editable={editable && !collab.readOnly && loader.slides.length > 0}
-			canUndo={editor.canUndo}
-			canRedo={editor.canRedo}
-			dirty={editor.dirty}
-			onundo={() => editor.undo()}
-			onredo={() => editor.redo()}
-			onsave={() => void editor.save()}
-			ondownload={() => void downloadPptx()}
-			autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
-			autosaveDirty={autosaveCtl.isDirty}
-			exportUi={loader.slides.length > 0 ? exportUi : undefined}
-			onshare={() => dialogs.openShare()}
-			onbroadcast={() => dialogs.openBroadcast()}
-			collabActive={collab.active}
-		/>
+		{#if showRibbon}
+			<!-- TODO(collab): Ribbon has no Share/Broadcast entry point yet (only
+			     the read-only-mode ViewerToolbar below does); wire onshare/
+			     onbroadcast/collabActive into Ribbon's primary row in a follow-up. -->
+			<Ribbon
+				{editor}
+				{findReplace}
+				canvasSize={loader.canvasSize}
+				current={viewer.current}
+				total={viewer.slideCount}
+				onprev={() => viewer.prev()}
+				onnext={() => viewer.next()}
+				onnavigateslide={(index) => viewer.goTo(index)}
+				canUndo={editor.canUndo}
+				canRedo={editor.canRedo}
+				dirty={editor.dirty}
+				onundo={() => editor.undo()}
+				onredo={() => editor.redo()}
+				onsave={() => void editor.save()}
+				ondownload={() => void downloadPptx()}
+				autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
+				autosaveDirty={autosaveCtl.isDirty}
+				zoomPercent={effectivePercent}
+				onzoomin={() => viewer.zoomIn(effectivePercent)}
+				onzoomout={() => viewer.zoomOut(effectivePercent)}
+				onzoomfit={() => viewer.zoomToFit()}
+				isFullscreen={viewer.isFullscreen}
+				onfullscreen={onFullscreenToggle}
+				showNotes={showNotes && loader.slides.length > 0}
+				{notesExpanded}
+				onnotestoggle={onNotesToggle}
+				{exportUi}
+				theme={effectiveTheme}
+				onsettheme={onSetTheme}
+			/>
+		{:else}
+			<ViewerToolbar
+				current={viewer.current}
+				total={viewer.slideCount}
+				zoomPercent={effectivePercent}
+				isFullscreen={viewer.isFullscreen}
+				onprev={() => viewer.prev()}
+				onnext={() => viewer.next()}
+				onzoomin={() => viewer.zoomIn(effectivePercent)}
+				onzoomout={() => viewer.zoomOut(effectivePercent)}
+				onzoomfit={() => viewer.zoomToFit()}
+				onfullscreen={onFullscreenToggle}
+				showNotes={showNotes && loader.slides.length > 0}
+				{notesExpanded}
+				onnotestoggle={onNotesToggle}
+				exportUi={loader.slides.length > 0 ? exportUi : undefined}
+				onshare={() => dialogs.openShare()}
+				onbroadcast={() => dialogs.openBroadcast()}
+				collabActive={collab.active}
+			/>
+		{/if}
 	{/if}
 	<ExportProgressModal
 		open={exportUi.open}
@@ -327,9 +379,6 @@
 		statusMessage={exportUi.status}
 		oncancel={() => exportUi.cancel()}
 	/>
-	{#if editingActive}
-		<EditToolbar {editor} />
-	{/if}
 	<ViewerBody
 		{t}
 		{editor}

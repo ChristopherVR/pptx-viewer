@@ -1,6 +1,9 @@
+import type { ViewerTheme } from 'pptx-viewer-shared';
+
 import { buildChromeCallbacks } from './chrome-callbacks';
 import type { ChromeCallbackDeps } from './chrome-callbacks';
 import type { EditActions } from './editor';
+import type { FindReplaceActions } from './editor/editor-find-replace-actions';
 import type { Translator } from './i18n';
 import type { RenderController } from './render-controller';
 import type { Store, ViewerState } from './state';
@@ -91,7 +94,11 @@ export interface ChromeHost {
 	store: Store<ViewerState>;
 	renderer: RenderController;
 	lifecycle: ChromeLifecycle;
-	editor: { commitNotes(notes: string): void; getEditActions(): EditActions };
+	editor: {
+		commitNotes(notes: string): void;
+		getEditActions(): EditActions;
+		getFindReplaceActions(): FindReplaceActions;
+	};
 	prev(): void;
 	next(): void;
 	zoomIn(): void;
@@ -105,6 +112,12 @@ export interface ChromeHost {
 	getSlideCount(): number;
 	enterPresentation(): Promise<void>;
 	exitPresentation(): Promise<void>;
+	exportSlidePng(): Promise<void>;
+	exportPdf(): Promise<void>;
+	exportGif(): Promise<void>;
+	exportVideo(): Promise<void>;
+	print(): Promise<boolean>;
+	setTheme(theme: ViewerTheme | undefined): void;
 }
 
 /** Build `mountChrome`'s deps from the live viewer instance. */
@@ -134,6 +147,13 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		goToLastSlide: () => host.goToSlide(host.getSlideCount() - 1),
 		exitPresentation: () => void host.exitPresentation(),
 		commitNotes: (notes) => host.editor.commitNotes(notes),
+		exportSlidePng: () => host.exportSlidePng(),
+		exportPdf: () => host.exportPdf(),
+		exportGif: () => host.exportGif(),
+		exportVideo: () => host.exportVideo(),
+		print: () => host.print(),
 		getEditActions: () => host.editor.getEditActions(),
+		getFindReplaceActions: () => host.editor.getFindReplaceActions(),
+		setTheme: (theme) => host.setTheme(theme),
 	};
 }

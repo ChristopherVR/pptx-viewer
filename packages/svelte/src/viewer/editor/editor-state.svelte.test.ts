@@ -43,7 +43,7 @@ function make(current = 0, save = vi.fn(async () => new Uint8Array([1, 2, 3]))) 
 describe('editorState selection + geometry', () => {
 	it('setSlides seeds the working slides and resets selection/history/dirty', () => {
 		const { editor } = make();
-		editor.selectedElementId = 'x';
+		editor.select('x');
 		editor.dirty = true;
 		editor.setSlides([slide('a', [shape('e1')])]);
 		expect(editor.slides).toHaveLength(1);
@@ -187,6 +187,16 @@ describe('editorState format / insert / z-order operations', () => {
 		expect(editor.selectedElementId).toBe(newId);
 		editor.undo();
 		expect(editor.slides[0].elements).toHaveLength(1);
+	});
+
+	it('undo drops a selected id the restored snapshot no longer has (e.g. after insert)', () => {
+		const { editor } = make();
+		editor.setSlides([slide('a', [shape('e1')])]);
+		const newId = editor.insertElement(shape('', { id: '' }));
+		expect(editor.selectedElementId).toBe(newId);
+		editor.undo();
+		// The inserted element is gone; the ribbon should not keep it "selected".
+		expect(editor.selectedElementId).toBeNull();
 	});
 
 	it('reorderSelected moves the selection through the paint order (undoable)', () => {

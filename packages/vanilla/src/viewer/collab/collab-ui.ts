@@ -102,8 +102,10 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 
 	let shareBtn: HTMLButtonElement | null = null;
 	let broadcastBtn: HTMLButtonElement | null = null;
-	if (chrome.toolbar) {
-		const toolbarEl = chrome.toolbar.el;
+	// The ribbon replaced the old flat toolbar.ts; its primary row (undo/redo/
+	// save + autosave pill) is the closest equivalent anchor for these buttons.
+	const toolbarEl = chrome.ribbon?.el.querySelector<HTMLElement>('.pptxv-ribbon-primary') ?? null;
+	if (toolbarEl) {
 		shareBtn = createEl(doc, 'button', 'pptxv-btn');
 		shareBtn.type = 'button';
 		shareBtn.title = t('pptx.toolbar.share');

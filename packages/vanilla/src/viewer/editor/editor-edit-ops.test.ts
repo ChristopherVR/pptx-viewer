@@ -104,7 +104,7 @@ describe('createEditActions insert', () => {
 	it('appends a new rectangle, selects it, and records history', () => {
 		const { store, ops, actions } = setup();
 		const before = store.get().slides[0].elements.length;
-		actions.insert('rect');
+		actions.insert('shape', 'rect');
 		const elements = store.get().slides[0].elements;
 		expect(elements).toHaveLength(before + 1);
 		const inserted = elements[elements.length - 1];

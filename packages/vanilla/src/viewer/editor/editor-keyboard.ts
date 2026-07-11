@@ -7,7 +7,8 @@ import { nudgeDelta } from './editor-geometry';
  * changing slides.
  *
  * Keys: Escape deselect; Delete/Backspace delete; Ctrl+D duplicate;
- * Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y undo/redo; arrows nudge (Shift = 10px).
+ * Ctrl+C / Ctrl+X / Ctrl+V copy/cut/paste; Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y
+ * undo/redo; arrows nudge (Shift = 10px).
  */
 export interface EditorKeyboardDeps {
 	/** False disables everything (not editable, presenting, inline editing). */
@@ -16,6 +17,10 @@ export interface EditorKeyboardDeps {
 	deselect(): void;
 	deleteSelected(): void;
 	duplicateSelected(): void;
+	copySelected(): void;
+	cutSelected(): void;
+	/** Paste isn't selection-gated: it targets the current slide regardless of selection. */
+	paste(): void;
 	nudgeSelected(dx: number, dy: number): void;
 	undo(): void;
 	redo(): void;
@@ -51,6 +56,11 @@ export function createEditorKeydownHandler(
 			deps.redo();
 			return;
 		}
+		if (ctrl && (key === 'v' || key === 'V')) {
+			event.preventDefault();
+			deps.paste();
+			return;
+		}
 
 		if (deps.getSelectedId() === null) {
 			return;
@@ -68,6 +78,16 @@ export function createEditorKeydownHandler(
 		if (ctrl && (key === 'd' || key === 'D')) {
 			event.preventDefault();
 			deps.duplicateSelected();
+			return;
+		}
+		if (ctrl && (key === 'c' || key === 'C')) {
+			event.preventDefault();
+			deps.copySelected();
+			return;
+		}
+		if (ctrl && (key === 'x' || key === 'X')) {
+			event.preventDefault();
+			deps.cutSelected();
 			return;
 		}
 		const delta = nudgeDelta(key, event.shiftKey);

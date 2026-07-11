@@ -5,7 +5,7 @@ import {
 	createShapeElement,
 	createTextElement,
 } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, ShapePresetType } from 'pptx-viewer-shared';
 import { newTableElement } from 'pptx-viewer-shared';
 
 /**
@@ -19,17 +19,17 @@ import { newTableElement } from 'pptx-viewer-shared';
  * element; it too returns a centred, ready-to-insert element.
  */
 
-/** The shape/text/table element kinds the insert menu can create directly. */
-export type InsertKind = 'text' | 'rect' | 'ellipse' | 'line' | 'table';
+/** The element kinds the Insert ribbon tab can create directly. */
+export type InsertKind = 'text' | 'table' | 'shape';
 
-/** Default box sizes (px) per insert kind, mirroring the Vue insert defaults. */
-const SIZES: Record<InsertKind, { width: number; height: number }> = {
-	text: { width: 320, height: 80 },
-	rect: { width: 240, height: 160 },
-	ellipse: { width: 240, height: 160 },
-	line: { width: 240, height: 0 },
-	table: { width: 600, height: 250 },
-};
+/** Default box size (px) for a freshly-inserted text box. */
+const TEXT_SIZE = { width: 320, height: 80 };
+/** Default box size (px) for a freshly-inserted table. */
+const TABLE_SIZE = { width: 600, height: 250 };
+/** Default box size (px) for most inserted shapes (see {@link SHAPE_PRESET_DEFS}). */
+const SHAPE_SIZE = { width: 200, height: 150 };
+/** Default box size (px) for the zero-height line/connector presets. */
+const LINE_SIZE = { width: 240, height: 0 };
 
 /** Centre an element's box on the slide canvas (top-left clamped to >= 0). */
 export function centerOnCanvas(el: PptxElement, canvasSize: CanvasSize): void {
@@ -37,25 +37,37 @@ export function centerOnCanvas(el: PptxElement, canvasSize: CanvasSize): void {
 	el.y = Math.max(0, Math.round((canvasSize.height - el.height) / 2));
 }
 
-/** Build a new (centred, freshly-identified) element for the given kind. */
-export function buildInsertElement(kind: InsertKind, canvasSize: CanvasSize): PptxElement {
-	const size = SIZES[kind];
+/**
+ * Build a new (centred, freshly-identified) element for the given kind. For
+ * `'shape'`, `shapeType` selects the preset from the shared
+ * `SHAPE_PRESET_DEFS` catalogue (`'connector'` maps to a real connector
+ * element; every other preset, including `'line'`, maps to a shape with that
+ * `a:prstGeom` type). Defaults to `'rect'` when omitted.
+ */
+export function buildInsertElement(
+	kind: InsertKind,
+	canvasSize: CanvasSize,
+	shapeType: ShapePresetType = 'rect',
+): PptxElement {
 	let el: PptxElement;
+	let size: { width: number; height: number };
 	switch (kind) {
 		case 'text':
 			el = createTextElement('Text', { fontSize: 18, color: '#000000' });
-			break;
-		case 'rect':
-			el = createShapeElement('rect');
-			break;
-		case 'ellipse':
-			el = createShapeElement('ellipse');
-			break;
-		case 'line':
-			el = createConnectorElement({ type: 'straight', stroke: { color: '#000000', width: 2 } });
+			size = TEXT_SIZE;
 			break;
 		case 'table':
 			el = { ...newTableElement(3, 3), id: createEditorId('table') } as PptxElement;
+			size = TABLE_SIZE;
+			break;
+		case 'shape':
+			if (shapeType === 'connector') {
+				el = createConnectorElement({ type: 'straight', stroke: { color: '#000000', width: 2 } });
+				size = LINE_SIZE;
+			} else {
+				el = createShapeElement(shapeType);
+				size = shapeType === 'line' ? LINE_SIZE : SHAPE_SIZE;
+			}
 			break;
 	}
 	el.width = size.width;
