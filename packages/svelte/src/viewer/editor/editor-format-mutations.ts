@@ -68,6 +68,17 @@ export function setFillColorPatch(el: PptxElement, color: string): Partial<PptxE
 	return shapeStylePatch(el, { fillColor: color });
 }
 
+/**
+ * Set the shape fill colour AND force `fillMode` back to `'solid'`. Picking a
+ * flat colour swatch implies solid fill, so it also clears any active
+ * gradient (the renderer prefers `fillMode === 'gradient'` over `fillColor`
+ * when both are present); mirrors the vanilla binding's `setShapeFill`.
+ */
+export function setSolidFillPatch(el: PptxElement, color: string): Partial<PptxElement> {
+	const base = hasShapeProperties(el) ? (el.shapeStyle ?? {}) : {};
+	return { shapeStyle: { ...base, fillColor: color, fillMode: 'solid' } } as Partial<PptxElement>;
+}
+
 /** Set the shape stroke (outline) colour. */
 export function setStrokeColorPatch(el: PptxElement, color: string): Partial<PptxElement> {
 	return shapeStylePatch(el, { strokeColor: color });
@@ -82,4 +93,30 @@ export function strokeWidthOf(el: PptxElement): number {
 export function setStrokeWidthPatch(el: PptxElement, width: number): Partial<PptxElement> {
 	const base = hasShapeProperties(el) ? (el.shapeStyle ?? {}) : {};
 	return { shapeStyle: { ...base, strokeWidth: Math.max(0, width) } } as Partial<PptxElement>;
+}
+
+/** Read the shape fill opacity (0..1, defaults to fully opaque when unset). */
+export function fillOpacityOf(el: PptxElement): number {
+	return hasShapeProperties(el) ? (el.shapeStyle?.fillOpacity ?? 1) : 1;
+}
+
+/** Set the shape fill opacity (0..1), preserving other shape-style fields. */
+export function setFillOpacityPatch(el: PptxElement, opacity: number): Partial<PptxElement> {
+	const base = hasShapeProperties(el) ? (el.shapeStyle ?? {}) : {};
+	return {
+		shapeStyle: { ...base, fillOpacity: Math.min(1, Math.max(0, opacity)) },
+	} as Partial<PptxElement>;
+}
+
+/** Read the shape stroke opacity (0..1, defaults to fully opaque when unset). */
+export function strokeOpacityOf(el: PptxElement): number {
+	return hasShapeProperties(el) ? (el.shapeStyle?.strokeOpacity ?? 1) : 1;
+}
+
+/** Set the shape stroke opacity (0..1), preserving other shape-style fields. */
+export function setStrokeOpacityPatch(el: PptxElement, opacity: number): Partial<PptxElement> {
+	const base = hasShapeProperties(el) ? (el.shapeStyle ?? {}) : {};
+	return {
+		shapeStyle: { ...base, strokeOpacity: Math.min(1, Math.max(0, opacity)) },
+	} as Partial<PptxElement>;
 }

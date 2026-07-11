@@ -68,13 +68,18 @@ export { buildSmartArtInsertElement } from './editor-insert-smart-art';
 export type { TextFlag } from './editor-format-mutations';
 export {
 	adjustFontSizePatch,
+	fillOpacityOf,
 	highlightColorOf,
 	setFillColorPatch,
+	setFillOpacityPatch,
 	setFontSizePatch,
 	setHighlightColorPatch,
+	setSolidFillPatch,
 	setStrokeColorPatch,
+	setStrokeOpacityPatch,
 	setStrokeWidthPatch,
 	setTextColorPatch,
+	strokeOpacityOf,
 	strokeWidthOf,
 	toggleTextFlagPatch,
 } from './editor-format-mutations';

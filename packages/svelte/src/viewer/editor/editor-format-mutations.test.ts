@@ -3,13 +3,18 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	adjustFontSizePatch,
+	fillOpacityOf,
 	highlightColorOf,
 	setFillColorPatch,
+	setFillOpacityPatch,
 	setFontSizePatch,
 	setHighlightColorPatch,
+	setSolidFillPatch,
 	setStrokeColorPatch,
+	setStrokeOpacityPatch,
 	setStrokeWidthPatch,
 	setTextColorPatch,
+	strokeOpacityOf,
 	strokeWidthOf,
 	toggleTextFlagPatch,
 } from './editor-format-mutations';
@@ -93,5 +98,37 @@ describe('shape format patches', () => {
 		expect(setStrokeWidthPatch(shapeEl(), -3).shapeStyle).toMatchObject({ strokeWidth: 0 });
 		expect(strokeWidthOf(shapeEl({ shapeStyle: { strokeWidth: 7 } }))).toBe(7);
 		expect(strokeWidthOf(shapeEl({ shapeStyle: {} }))).toBe(1);
+	});
+
+	it('sets fill/stroke opacity (clamped 0..1) preserving other shape-style fields and reads them back', () => {
+		expect(setFillOpacityPatch(shapeEl(), 0.5).shapeStyle).toMatchObject({
+			fillOpacity: 0.5,
+			fillColor: '#ffffff',
+		});
+		expect(setFillOpacityPatch(shapeEl(), 4).shapeStyle).toMatchObject({ fillOpacity: 1 });
+		expect(setFillOpacityPatch(shapeEl(), -1).shapeStyle).toMatchObject({ fillOpacity: 0 });
+		expect(fillOpacityOf(shapeEl({ shapeStyle: { fillOpacity: 0.25 } }))).toBe(0.25);
+		expect(fillOpacityOf(shapeEl({ shapeStyle: {} }))).toBe(1);
+
+		expect(setStrokeOpacityPatch(shapeEl(), 0.75).shapeStyle).toMatchObject({
+			strokeOpacity: 0.75,
+			strokeColor: '#000000',
+		});
+		expect(setStrokeOpacityPatch(shapeEl(), 4).shapeStyle).toMatchObject({ strokeOpacity: 1 });
+		expect(setStrokeOpacityPatch(shapeEl(), -1).shapeStyle).toMatchObject({ strokeOpacity: 0 });
+		expect(strokeOpacityOf(shapeEl({ shapeStyle: { strokeOpacity: 0.6 } }))).toBe(0.6);
+		expect(strokeOpacityOf(shapeEl({ shapeStyle: {} }))).toBe(1);
+	});
+
+	it('setSolidFillPatch sets fillColor and forces fillMode back to solid', () => {
+		const gradientShape = shapeEl({
+			shapeStyle: { fillMode: 'gradient', fillGradientAngle: 45, strokeColor: '#000000' },
+		});
+		const patch = setSolidFillPatch(gradientShape, '#ff00ff');
+		expect(patch.shapeStyle).toMatchObject({
+			fillColor: '#ff00ff',
+			fillMode: 'solid',
+			strokeColor: '#000000',
+		});
 	});
 });
