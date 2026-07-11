@@ -72,6 +72,13 @@ export function buildChromeCallbacks(
 		insert: {
 			insert: (kind, shapeType) => deps.getEditActions().insert(kind, shapeType),
 			insertImage: () => deps.getEditActions().insertImage(),
+			insertMedia: () => deps.getEditActions().insertMedia(),
+			insertChart: (chartType) => deps.getEditActions().insertChart(chartType),
+			insertSmartArt: (layout, defaultItems) =>
+				deps.getEditActions().insertSmartArt(layout, defaultItems),
+			insertEquation: (omml) => deps.getEditActions().insertEquation(omml),
+			insertActionButton: (shapeType) => deps.getEditActions().insertActionButton(shapeType),
+			insertField: (fieldType, value) => deps.getEditActions().insertField(fieldType, value),
 		},
 		findReplace: createLazyActions(() => deps.getFindReplaceActions()),
 	};

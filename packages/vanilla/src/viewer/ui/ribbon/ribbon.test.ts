@@ -4,7 +4,7 @@ import type { EditActions } from '../../editor/editor-edit-ops';
 import type { FindReplaceActions } from '../../editor/editor-find-replace-actions';
 import { createTranslator } from '../../i18n';
 import { createRibbon } from './ribbon';
-import type { RibbonHandlers } from './ribbon-types';
+import type { RibbonHandlers, RibbonInsertHandlers } from './ribbon-types';
 
 /** A fake action bag: every method access returns a fresh `vi.fn()`, memoised. */
 function fakeActions<T extends object>(): T {
@@ -44,7 +44,7 @@ function buildHandlers(): RibbonHandlers {
 			exportVideo: vi.fn(),
 			print: vi.fn(),
 		},
-		insert: { insert: vi.fn(), insertImage: vi.fn() },
+		insert: fakeActions<RibbonInsertHandlers>(),
 		edit: fakeActions<EditActions>(),
 		findReplace: fakeActions<FindReplaceActions>(),
 	};

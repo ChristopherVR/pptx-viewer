@@ -37,6 +37,16 @@ export {
 } from './editor-format-mutations';
 export type { InsertKind } from './editor-insert';
 export { buildInsertElement, centerOnCanvas, pickImageElement } from './editor-insert';
+export { pickMediaElement } from './editor-insert-media';
+export type { FieldInsertContext } from './editor-insert-structured';
+export {
+	buildActionButtonInsertElement,
+	buildChartInsertElement,
+	buildEquationInsertElement,
+	buildFieldInsertElement,
+	buildSmartArtInsertElement,
+	resolveFieldDisplayText,
+} from './editor-insert-structured';
 export { createLazyActions } from './editor-lazy-actions';
 export {
 	adjustIndent,

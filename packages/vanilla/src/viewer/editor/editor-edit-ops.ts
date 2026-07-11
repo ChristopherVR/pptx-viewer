@@ -1,4 +1,4 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxChartType, PptxElement, SmartArtLayout } from 'pptx-viewer-core';
 import { MIN_ELEMENT_SIZE } from 'pptx-viewer-core';
 import type { ShapePresetType } from 'pptx-viewer-shared';
 
@@ -11,6 +11,15 @@ import { createClipboardActions } from './editor-clipboard-actions';
 import { patchShapeStyle } from './editor-format-mutations';
 import type { InsertKind } from './editor-insert';
 import { buildInsertElement, pickImageElement } from './editor-insert';
+import { pickMediaElement } from './editor-insert-media';
+import {
+	buildActionButtonInsertElement,
+	buildChartInsertElement,
+	buildEquationInsertElement,
+	buildFieldInsertElement,
+	buildSmartArtInsertElement,
+	resolveFieldDisplayText,
+} from './editor-insert-structured';
 import { appendElementOnSlide } from './editor-mutations';
 import type { EditorOps } from './editor-operations';
 import type { SlideActions } from './editor-slide-actions';
@@ -44,6 +53,12 @@ export interface EditActions extends TextActions, ArrangeActions, ClipboardActio
 	setGeometry(patch: GeometryPatch): void;
 	insert(kind: InsertKind, shapeType?: ShapePresetType): void;
 	insertImage(): Promise<void>;
+	insertMedia(): Promise<void>;
+	insertChart(chartType: PptxChartType): void;
+	insertSmartArt(layout: SmartArtLayout, defaultItems: string[]): void;
+	insertEquation(omml: Record<string, unknown>): void;
+	insertActionButton(shapeType: string): void;
+	insertField(fieldType: string, value?: string): void;
 	duplicateSelected(): void;
 	deleteSelected(): void;
 }
@@ -126,6 +141,51 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 				return;
 			}
 			insertElement(await pickImageElement(doc, state.canvasSize));
+		},
+		async insertMedia() {
+			const state = store.get();
+			if (!state.editable || !state.slides[state.currentSlide]) {
+				return;
+			}
+			insertElement(await pickMediaElement(doc, state.canvasSize));
+		},
+
+		insertChart(chartType) {
+			const state = store.get();
+			if (!state.slides[state.currentSlide]) {
+				return;
+			}
+			insertElement(buildChartInsertElement(chartType, state.canvasSize));
+		},
+		insertSmartArt(layout, defaultItems) {
+			const state = store.get();
+			if (!state.slides[state.currentSlide]) {
+				return;
+			}
+			insertElement(buildSmartArtInsertElement(layout, defaultItems, state.canvasSize));
+		},
+		insertEquation(omml) {
+			const state = store.get();
+			if (!state.slides[state.currentSlide]) {
+				return;
+			}
+			insertElement(buildEquationInsertElement(omml, state.canvasSize));
+		},
+		insertActionButton(shapeType) {
+			const state = store.get();
+			if (!state.slides[state.currentSlide]) {
+				return;
+			}
+			insertElement(buildActionButtonInsertElement(shapeType, state.canvasSize));
+		},
+		insertField(fieldType, value) {
+			const state = store.get();
+			if (!state.slides[state.currentSlide]) {
+				return;
+			}
+			const displayText =
+				value ?? resolveFieldDisplayText(fieldType, { slideNumber: state.currentSlide + 1 });
+			insertElement(buildFieldInsertElement(fieldType, displayText, state.canvasSize));
 		},
 
 		duplicateSelected: () => void ops.duplicateSelected(),

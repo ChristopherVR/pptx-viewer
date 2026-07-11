@@ -2,6 +2,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { createEquationPanel } from './equation-panel';
 import { createFindReplacePanel } from './find-replace-panel';
 import type { HomeTab } from './home/home-tab';
 import { createHomeTab } from './home/home-tab';
@@ -55,12 +56,17 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	const findReplace = createFindReplacePanel(doc, t, handlers.findReplace);
 	el.appendChild(findReplace.el);
 
+	const equationPanel = createEquationPanel(doc, t, (omml) => handlers.insert.insertEquation(omml));
+	el.appendChild(equationPanel.el);
+
 	const fileTab = createFileTab(doc, t, handlers.file);
 	const homeTab: HomeTab = createHomeTab(doc, t, {
 		edit: handlers.edit,
 		onToggleFindReplace: () => findReplace.toggle(),
 	});
-	const insertTab: InsertTab = createInsertTab(doc, t, handlers.insert);
+	const insertTab: InsertTab = createInsertTab(doc, t, handlers.insert, () =>
+		equationPanel.toggle(),
+	);
 	const viewTab = createViewTab(doc, t, handlers.nav);
 
 	const panes: Record<RibbonTabId, HTMLElement> = {
@@ -111,6 +117,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 			lastEditable = editable;
 			insertTab.setEditable(editable);
 			findReplace.setEditable(editable);
+			equationPanel.setEditable(editable);
 			syncHome();
 		},
 		updateSelection(selectedElement, extra) {

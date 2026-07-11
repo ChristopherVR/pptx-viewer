@@ -5,6 +5,10 @@ import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
 import type { IconName } from '../../icons';
 import type { RibbonInsertHandlers } from '../ribbon-types';
+import { createActionButtonDropdown } from './insert/action-button-group';
+import { createChartDropdown } from './insert/chart-group';
+import { createFieldDropdown } from './insert/field-group';
+import { createSmartArtGrid } from './insert/smartart-group';
 
 /** Map a shape-preset-catalog glyph name onto this binding's icon set. */
 const GLYPH_TO_ICON: Record<string, IconName> = {
@@ -48,14 +52,18 @@ export interface InsertTab {
 }
 
 /**
- * The Insert ribbon tab: text box, table, and the full shape picker grid
- * driven by the shared `shape-preset-catalog.ts` (30 presets, up from the
- * previous rect/ellipse/line trio).
+ * The Insert ribbon tab: text box, table, image, media, chart, equation,
+ * SmartArt, action button, field, and the full shape picker grid. Every
+ * insertion routes through `RibbonInsertHandlers` (backed by `EditActions`,
+ * so it's undoable and selects the new element), except Equation, which opens
+ * the docked `equation-panel.ts` (LaTeX has no single-click default, unlike
+ * every other insert kind here).
  */
 export function createInsertTab(
 	doc: Document,
 	t: Translator,
 	handlers: RibbonInsertHandlers,
+	onToggleEquationPanel: () => void,
 ): InsertTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 
@@ -76,8 +84,42 @@ export function createInsertTab(
 		icon: 'image',
 		onClick: () => void handlers.insertImage(),
 	});
-	el.append(textBox.btn, table.btn, image.btn);
-	buttons.push(textBox, table, image);
+	const media = makeButton(doc, {
+		label: t('pptx.ribbon.insertMedia'),
+		icon: 'video',
+		onClick: () => void handlers.insertMedia(),
+	});
+	const chartDropdown = createChartDropdown(doc, t, (chartType) => handlers.insertChart(chartType));
+	const equation = makeButton(doc, {
+		label: t('pptx.insert.insertEquation'),
+		icon: 'equation',
+		onClick: onToggleEquationPanel,
+	});
+	const actionButtonDropdown = createActionButtonDropdown(doc, t, (shapeType) =>
+		handlers.insertActionButton(shapeType),
+	);
+	const fieldDropdown = createFieldDropdown(doc, t, (fieldType) => handlers.insertField(fieldType));
+
+	el.append(
+		textBox.btn,
+		table.btn,
+		image.btn,
+		media.btn,
+		chartDropdown.el,
+		equation.btn,
+		actionButtonDropdown.el,
+		fieldDropdown.el,
+	);
+	buttons.push(
+		textBox,
+		table,
+		image,
+		media,
+		chartDropdown,
+		equation,
+		actionButtonDropdown,
+		fieldDropdown,
+	);
 
 	const shapeGrid = createEl(doc, 'div', 'pptxv-shape-grid');
 	el.appendChild(shapeGrid);
@@ -97,6 +139,12 @@ export function createInsertTab(
 		shapeGrid.appendChild(btn.btn);
 		buttons.push(btn);
 	}
+
+	const smartArtGrid = createSmartArtGrid(doc, t, (layout, defaultItems) =>
+		handlers.insertSmartArt(layout, defaultItems),
+	);
+	el.appendChild(smartArtGrid.el);
+	buttons.push(...smartArtGrid.buttons);
 
 	return {
 		el,

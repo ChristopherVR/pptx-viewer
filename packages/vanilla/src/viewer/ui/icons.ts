@@ -76,7 +76,11 @@ export type IconName =
 	| 'triangle'
 	| 'diamond'
 	| 'database'
-	| 'move-right';
+	| 'move-right'
+	| 'equation'
+	| 'smart-art'
+	| 'action-button'
+	| 'field';
 
 const ICON_PATHS: Record<IconName, string[]> = {
 	'chevron-left': ['M15 18l-6-6 6-6'],
@@ -202,6 +206,10 @@ const ICON_PATHS: Record<IconName, string[]> = {
 		'M4 9c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5',
 	],
 	'move-right': ['M5 12h14', 'M13 6l6 6-6 6'],
+	equation: ['M4 17h6', 'M7 14v6', 'M14 7l4.5 10', 'M15.5 14h5'],
+	'smart-art': ['M3 3h8v8H3z', 'M13 13h8v8h-8z', 'M11 7h2', 'M17 11v2'],
+	'action-button': ['M3 3h18v18H3z', 'M13 7l4 5-4 5'],
+	field: ['M4 7h16', 'M4 12h10', 'M4 17h12', 'M19 12a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

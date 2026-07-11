@@ -36,6 +36,12 @@ export interface RibbonFileHandlers {
 export interface RibbonInsertHandlers {
 	insert: EditActions['insert'];
 	insertImage: EditActions['insertImage'];
+	insertMedia: EditActions['insertMedia'];
+	insertChart: EditActions['insertChart'];
+	insertSmartArt: EditActions['insertSmartArt'];
+	insertEquation: EditActions['insertEquation'];
+	insertActionButton: EditActions['insertActionButton'];
+	insertField: EditActions['insertField'];
 }
 
 /** Every handler the ribbon dispatches, grouped by concern. */
