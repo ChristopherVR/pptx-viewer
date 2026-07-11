@@ -12,13 +12,14 @@
 	import { createTranslator } from '../i18n/translator';
 	import { provideTranslator } from '../i18n/context';
 	import { CollaborationController } from './collab';
-	import EditToolbar from './components/EditToolbar.svelte';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
+	import Ribbon from './components/ribbon/Ribbon.svelte';
 	import ViewerBody from './components/ViewerBody.svelte';
 	import ViewerToolbar from './components/ViewerToolbar.svelte';
 	import { createEditingApi } from './editor/editing-api';
 	import { EditorController } from './editor/editor-controller.svelte';
 	import { EditorState } from './editor/editor-state.svelte';
+	import { FindReplaceState } from './editor/editor-find-replace.svelte';
 	import { AutosaveController } from './state/autosave.svelte';
 	import { createExportWiring } from './export/export-wiring.svelte';
 	import { createExportingApi } from './export/exporting-api';
@@ -83,6 +84,15 @@
 		getPresenting: () => viewer.isFullscreen,
 		getStageRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
 		getHolderEl: () => stageHolderEl ?? null,
+	});
+	// The ribbon's Home tab Editing group / Ctrl+F Find & Replace panel.
+	const findReplace = new FindReplaceState({
+		getSlides: () => editor.slides,
+		commitSlides: (next) => editor.commitSlides(next),
+		onNavigate: (slideIndex, elementId) => {
+			viewer.goTo(slideIndex);
+			editor.select(elementId);
+		},
 	});
 
 	// ── Collaboration ────────────────────────────────────────────────────
@@ -165,6 +175,10 @@
 	const activeSlide = $derived(displaySlides[viewer.current]);
 	const chromeVisible = $derived(!viewer.isFullscreen);
 	const editingActive = $derived(editable && !viewer.isFullscreen && !collab.readOnly);
+	// The ribbon replaces the lean `ViewerToolbar` once a presentation is
+	// loaded and editing is actually available; read-only mode (or no
+	// presentation yet) keeps the compact viewer chrome unchanged.
+	const showRibbon = $derived(editable && !collab.readOnly && loader.slides.length > 0);
 
 	const rootStyle = $derived(
 		styleToString(mergeStyles(defaultCssVars(), themeToCssVars(theme))),
@@ -271,32 +285,53 @@
 	onkeydown={onKeydown}
 >
 	{#if showToolbar && chromeVisible}
-		<ViewerToolbar
-			current={viewer.current}
-			total={viewer.slideCount}
-			zoomPercent={effectivePercent}
-			isFullscreen={viewer.isFullscreen}
-			onprev={() => viewer.prev()}
-			onnext={() => viewer.next()}
-			onzoomin={() => viewer.zoomIn(effectivePercent)}
-			onzoomout={() => viewer.zoomOut(effectivePercent)}
-			onzoomfit={() => viewer.zoomToFit()}
-			onfullscreen={onFullscreenToggle}
-			showNotes={showNotes && loader.slides.length > 0}
-			{notesExpanded}
-			onnotestoggle={onNotesToggle}
-			editable={editable && !collab.readOnly && loader.slides.length > 0}
-			canUndo={editor.canUndo}
-			canRedo={editor.canRedo}
-			dirty={editor.dirty}
-			onundo={() => editor.undo()}
-			onredo={() => editor.redo()}
-			onsave={() => void editor.save()}
-			ondownload={() => void downloadPptx()}
-			autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
-			autosaveDirty={autosaveCtl.isDirty}
-			exportUi={loader.slides.length > 0 ? exportUi : undefined}
-		/>
+		{#if showRibbon}
+			<Ribbon
+				{editor}
+				{findReplace}
+				current={viewer.current}
+				total={viewer.slideCount}
+				onprev={() => viewer.prev()}
+				onnext={() => viewer.next()}
+				onnavigateslide={(index) => viewer.goTo(index)}
+				canUndo={editor.canUndo}
+				canRedo={editor.canRedo}
+				dirty={editor.dirty}
+				onundo={() => editor.undo()}
+				onredo={() => editor.redo()}
+				onsave={() => void editor.save()}
+				ondownload={() => void downloadPptx()}
+				autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
+				autosaveDirty={autosaveCtl.isDirty}
+				zoomPercent={effectivePercent}
+				onzoomin={() => viewer.zoomIn(effectivePercent)}
+				onzoomout={() => viewer.zoomOut(effectivePercent)}
+				onzoomfit={() => viewer.zoomToFit()}
+				isFullscreen={viewer.isFullscreen}
+				onfullscreen={onFullscreenToggle}
+				showNotes={showNotes && loader.slides.length > 0}
+				{notesExpanded}
+				onnotestoggle={onNotesToggle}
+				{exportUi}
+			/>
+		{:else}
+			<ViewerToolbar
+				current={viewer.current}
+				total={viewer.slideCount}
+				zoomPercent={effectivePercent}
+				isFullscreen={viewer.isFullscreen}
+				onprev={() => viewer.prev()}
+				onnext={() => viewer.next()}
+				onzoomin={() => viewer.zoomIn(effectivePercent)}
+				onzoomout={() => viewer.zoomOut(effectivePercent)}
+				onzoomfit={() => viewer.zoomToFit()}
+				onfullscreen={onFullscreenToggle}
+				showNotes={showNotes && loader.slides.length > 0}
+				{notesExpanded}
+				onnotestoggle={onNotesToggle}
+				exportUi={loader.slides.length > 0 ? exportUi : undefined}
+			/>
+		{/if}
 	{/if}
 	<ExportProgressModal
 		open={exportUi.open}
@@ -305,9 +340,6 @@
 		statusMessage={exportUi.status}
 		oncancel={() => exportUi.cancel()}
 	/>
-	{#if editingActive}
-		<EditToolbar {editor} />
-	{/if}
 	<ViewerBody
 		{t}
 		{editor}

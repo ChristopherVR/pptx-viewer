@@ -1,36 +1,30 @@
 <script lang="ts">
 	/**
-	 * TextFormatGroup: bold / italic / underline toggles, font-size stepper +
-	 * numeric input, and text-colour + highlight-colour pickers for the selected
-	 * element. All reads use the shared inspector helpers; all writes go through
-	 * `EditorState.patchSelected` so every change is history-integrated. Disabled
-	 * (greyed) whenever the selection has no text properties.
+	 * TextFormatGroup: bold / italic / underline toggles and a font-size
+	 * stepper + numeric input for the selected element. Font family,
+	 * strikethrough, clear formatting, change case, character spacing, and
+	 * the font-colour / highlight-colour swatch pickers live in the Home
+	 * tab's `FontExtrasGroup` (ribbon/home/) to keep this file focused; both
+	 * read/write the same element via the shared inspector helpers and
+	 * `EditorState.patchSelected` so every change is history-integrated.
+	 * Disabled (greyed) whenever the selection has no text properties.
 	 */
 	import { hasTextProperties } from 'pptx-viewer-core';
-	import { fontSizeOf, isBold, isItalic, isUnderline, textColorOf } from 'pptx-viewer-shared';
+	import { fontSizeOf, isBold, isItalic, isUnderline } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import type { EditorState } from '../editor/editor-state.svelte';
-	import {
-		adjustFontSizePatch,
-		highlightColorOf,
-		setFontSizePatch,
-		setHighlightColorPatch,
-		setTextColorPatch,
-		toggleTextFlagPatch,
-	} from '../editor';
+	import { adjustFontSizePatch, setFontSizePatch, toggleTextFlagPatch } from '../editor';
 
 	const { editor }: { editor: EditorState } = $props();
 	const t = useTranslator();
 
 	const el = $derived(editor.selectedElement);
-	const active = $derived(!!el && hasTextProperties(el));
+	const active = $derived(el !== undefined && hasTextProperties(el));
 	const bold = $derived(el ? isBold(el) : false);
 	const italic = $derived(el ? isItalic(el) : false);
 	const underline = $derived(el ? isUnderline(el) : false);
 	const fontSize = $derived(el ? fontSizeOf(el) : 18);
-	const textColor = $derived(el ? textColorOf(el) : '#000000');
-	const highlight = $derived(el ? highlightColorOf(el) || '#ffff00' : '#ffff00');
 
 	function toggle(flag: 'bold' | 'italic' | 'underline'): void {
 		if (el) {
@@ -46,16 +40,6 @@
 		const n = Number(value);
 		if (el && Number.isFinite(n)) {
 			editor.patchSelected(setFontSizePatch(el, n));
-		}
-	}
-	function setColor(value: string): void {
-		if (el) {
-			editor.patchSelected(setTextColorPatch(el, value));
-		}
-	}
-	function setHighlight(value: string): void {
-		if (el) {
-			editor.patchSelected(setHighlightColorPatch(el, value));
 		}
 	}
 </script>
@@ -131,29 +115,6 @@
 	>
 		<span aria-hidden="true">A+</span>
 	</button>
-
-	<span class="pptx-svelte-fmt-sep" aria-hidden="true"></span>
-
-	<label class="pptx-svelte-fmt-color" title={t('pptx.textProperties.textColor')}>
-		<span class="pptx-svelte-fmt-color-glyph">A</span>
-		<input
-			type="color"
-			disabled={!active}
-			aria-label={t('pptx.textProperties.textColor')}
-			value={textColor}
-			onchange={(e) => setColor(e.currentTarget.value)}
-		/>
-	</label>
-	<label class="pptx-svelte-fmt-color" title={t('pptx.text.highlightColor')}>
-		<span class="pptx-svelte-fmt-color-glyph pptx-svelte-fmt-hl">H</span>
-		<input
-			type="color"
-			disabled={!active}
-			aria-label={t('pptx.text.highlightColor')}
-			value={highlight}
-			onchange={(e) => setHighlight(e.currentTarget.value)}
-		/>
-	</label>
 </div>
 
 <style>
@@ -215,39 +176,5 @@
 		height: 20px;
 		margin: 0 3px;
 		background: var(--pptx-border, #33334d);
-	}
-
-	.pptx-svelte-fmt-color {
-		display: inline-flex;
-		align-items: center;
-		gap: 2px;
-		cursor: pointer;
-	}
-
-	.pptx-svelte-fmt-color-glyph {
-		font-weight: 700;
-		font-size: 12px;
-	}
-
-	.pptx-svelte-fmt-hl {
-		background: #ffe066;
-		color: #1e1e2e;
-		padding: 0 2px;
-		border-radius: 2px;
-	}
-
-	.pptx-svelte-fmt-color input[type='color'] {
-		width: 22px;
-		height: 22px;
-		padding: 0;
-		border: 1px solid var(--pptx-border, #33334d);
-		border-radius: 4px;
-		background: transparent;
-		cursor: pointer;
-	}
-
-	.pptx-svelte-fmt-color input[type='color']:disabled {
-		opacity: 0.35;
-		cursor: default;
 	}
 </style>

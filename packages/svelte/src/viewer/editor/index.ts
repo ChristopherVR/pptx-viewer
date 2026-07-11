@@ -49,6 +49,7 @@ export {
 	appendElement,
 	newElementId,
 	newImageElement,
+	newPresetShapeElement,
 	newShapeElement,
 	newTableElement,
 	newTextElement,

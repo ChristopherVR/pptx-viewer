@@ -1,4 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { ShapePresetType } from 'pptx-viewer-shared';
 
 import { mapSlideElements } from './editor-mutations';
 
@@ -48,6 +49,35 @@ export function newImageElement(
 		width,
 		height,
 		imageData,
+	} as PptxElement;
+}
+
+/**
+ * Build a `shape` element for any preset in the shared shape catalogue
+ * (`SHAPE_PRESET_DEFS`, 30 presets). The shared `newShapeElement` factory
+ * only covers `'rect' | 'ellipse' | 'line'`; core's `shapeType` field is a
+ * plain string with no such restriction, so this widens it for the Insert
+ * tab's shape gallery without touching the shared factory's narrow contract.
+ */
+export function newPresetShapeElement(
+	shapeType: ShapePresetType,
+	x: number = 100,
+	y: number = 100,
+): PptxElement {
+	return {
+		type: 'shape',
+		id: '',
+		name: shapeType.charAt(0).toUpperCase() + shapeType.slice(1),
+		x,
+		y,
+		width: 200,
+		height: 120,
+		shapeType,
+		shapeStyle: {
+			fillColor: '#4f86ff',
+			strokeColor: '#1e3a8a',
+			strokeWidth: 1,
+		},
 	} as PptxElement;
 }
 
