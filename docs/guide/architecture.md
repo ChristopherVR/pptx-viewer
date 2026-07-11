@@ -41,7 +41,7 @@ graph TD
 
 The binding packages are thin presentation layers. They consume pre-computed rendering data from `pptx-viewer-shared` and translate it into framework-specific templates (JSX, Vue SFCs, Angular components, Svelte 5 runes, or plain DOM calls for the vanilla binding). Slides render as scaled HTML/SVG with CSS transforms, giving sharp text at any zoom, native accessibility, and full DOM interactivity.
 
-React, Vue, and Angular each expose a top-level viewer/editor component that orchestrates state, editing, loading, export, collaboration, and presentation mode through composable hooks or services. Svelte and vanilla JS are newer, viewer-first bindings: both cover loading, rendering, navigation, and presentation; vanilla additionally has a first editing pass (select, drag, resize, rotate, inline text, undo/redo, save) but neither yet has export, collaboration, or full editor parity - see [PORTING.md](https://github.com/ChristopherVR/pptx-viewer/blob/main/PORTING.md) for the tracked gap.
+Each binding exposes a top-level viewer/editor entry point that orchestrates state, editing, loading, export, and presentation mode through the idiom native to its framework: composable hooks in React, composables in Vue, services in Angular, runes in Svelte, and a plain factory function plus imperative instance API in vanilla JS. Because they all consume the same shared layer, the rendering output is identical across all five.
 
 ## Shared rendering layer
 

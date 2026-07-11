@@ -16,7 +16,7 @@ description: What is not supported across the core engine and the viewer binding
 
 Everything else round-trips: SmartArt text and structural edits, chart data and formatting, and Strict OOXML files (normalised to Transitional on load, converted back on save) all survive load, edit, and save.
 
-## Framework viewers (React, Vue 3, Angular)
+## Framework viewers (React, Vue 3, Angular, Svelte 5, Vanilla JS)
 
 ::: warning CSS-based rendering trades some visual effects for fidelity elsewhere
 Slides render as HTML/CSS rather than Canvas, giving sharp text at any zoom, native accessibility, and DOM interactivity. The tradeoff: `backdrop-filter` becomes a semi-transparent background, `mix-blend-mode` maps to opacity fallbacks, CSS 3D transforms (`rotateX`/`rotateY`) flatten to 2D, and path gradients approximate as elliptical radials.
@@ -29,20 +29,6 @@ Slides render as HTML/CSS rather than Canvas, giving sharp text at any zoom, nat
 - **Raster export fidelity** - PNG/JPEG/PDF export goes through `html2canvas`, which cannot reproduce `backdrop-filter`, CSS custom properties, or CSS 3D transforms; approximations are applied and some fidelity is lost. Use the SVG export for a vector alternative.
 - **Maximum export resolution** - canvas exports are capped by the browser's maximum canvas size (typically 16384 or 32768 pixels per side).
 - **Small screens** - the UI adapts down to ~360px phones, but the most data-dense panels (for example the full chart editor) are best used on a tablet or larger.
-
-## Vanilla JS and Svelte viewers
-
-Both bindings share the same CSS-based rendering (and its tradeoffs, above) but are newer and not
-yet at parity with React/Vue/Angular. See [PORTING.md](https://github.com/ChristopherVR/pptx-viewer/blob/main/PORTING.md)
-for the full tracked gap.
-
-- **`pptx-vanilla-viewer`** - viewing, presenting, and a first editing pass (behind `editable`:
-  select, drag/resize/rotate, inline text editing, undo/redo, delete/duplicate, save/download).
-  No property/inspector panel, add-new-element, z-order/group operations, template
-  (master/layout) editing, export, animation/transition playback, notes panel, or collaboration.
-- **`pptx-svelte-viewer`** - viewing and presenting only, no editing of any kind yet. Element
-  rendering is otherwise at parity with vanilla (table/chart/SmartArt/media/ink/OLE all render
-  for real); only `contentPart`, `zoom`, and `model3d` fall back to a placeholder in both.
 
 ## EMF/WMF metafiles (`emf-converter` dependency)
 

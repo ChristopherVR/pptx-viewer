@@ -13,15 +13,15 @@ Node.js **18 or newer** is required for TypeScript compilation and for running t
 
 ## Choose your framework
 
-| Framework                 | Package               | Notes                                                            |
-| ------------------------- | --------------------- | ---------------------------------------------------------------- |
-| React                     | `pptx-react-viewer`   | Full-featured: viewer, editor, presenter, export, collaboration  |
-| Vue 3                     | `pptx-vue-viewer`     | Same engine and feature set as the React binding                 |
-| Angular                   | `pptx-angular-viewer` | Same engine and feature set as the React binding                 |
-| Svelte 5 (viewer)         | `pptx-svelte-viewer`  | Viewer-only: load, render, navigate, present; no editing yet     |
-| No framework (viewer)     | `pptx-vanilla-viewer` | Plain DOM; viewing plus a first editing pass (`editable` option) |
-| Headless (Node / browser) | `pptx-viewer-core`    | No UI, no framework dependency                                   |
-| AI / MCP tooling          | `pptx-viewer-mcp`     | 51 MCP tools + CLI + Y.Doc codec                                 |
+| Framework                 | Package               | Notes                                                           |
+| ------------------------- | --------------------- | --------------------------------------------------------------- |
+| React                     | `pptx-react-viewer`   | Full-featured: viewer, editor, presenter, export, collaboration |
+| Vue 3                     | `pptx-vue-viewer`     | Same engine and feature set as the React binding                |
+| Angular                   | `pptx-angular-viewer` | Same engine and feature set as the React binding                |
+| Svelte 5                  | `pptx-svelte-viewer`  | Same engine and feature set as the React binding                |
+| No framework              | `pptx-vanilla-viewer` | Same engine, plain DOM: no framework dependency at all          |
+| Headless (Node / browser) | `pptx-viewer-core`    | No UI, no framework dependency                                  |
+| AI / MCP tooling          | `pptx-viewer-mcp`     | 51 MCP tools + CLI + Y.Doc codec                                |
 
 ## Installing from npm
 
@@ -132,8 +132,7 @@ export class AppModule {}
 ### Svelte 5 viewer
 
 The Svelte 5 viewer component, published as **`pptx-svelte-viewer`**. The core engine is bundled
-in. Viewer-only for now (load, render, navigate, present) - see [Svelte docs](/svelte/) for the
-current scope.
+in - see the [Svelte docs](/svelte/) for the full component reference.
 
 ::: code-group
 
@@ -170,8 +169,9 @@ bun add pptx-svelte-viewer svelte
 ### Vanilla JS viewer (no framework)
 
 The zero-framework viewer, published as **`pptx-vanilla-viewer`**. The core engine is bundled in;
-there are no framework peer dependencies. Viewing, presenting, and a first editing pass (behind
-the `editable` option) are available - see [Vanilla JS docs](/vanilla/) for the current scope.
+there are no framework peer dependencies. Viewing, presenting, and editing (behind the
+`editable` option) all work from a single factory function - see the
+[Vanilla JS docs](/vanilla/) for the full API reference.
 
 ::: code-group
 

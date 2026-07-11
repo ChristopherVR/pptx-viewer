@@ -5,7 +5,7 @@ export const es: LandingCopy = {
 		kicker: 'Open source · Apache-2.0 · TypeScript',
 		titleTop: 'El motor de PowerPoint',
 		titleAccent: 'para la web.',
-		sub: 'Carga, renderiza, edita y guarda archivos .pptx en el navegador o en Node.js. Disponible como nucleo TypeScript headless, componentes de visor/editor para React, Vue 3 y Angular, y visores para Svelte y JavaScript vanilla.',
+		sub: 'Carga, renderiza, edita y guarda archivos .pptx en el navegador o en Node.js. Disponible como nucleo TypeScript headless y componentes listos para usar en React, Vue 3, Angular, Svelte 5 y JavaScript vanilla.',
 		start: { text: 'Empezar', href: '/es/guide/introduction' },
 		demo: 'Abrir la demo',
 		scroll: 'Desplazar',
@@ -36,7 +36,7 @@ export const es: LandingCopy = {
 		{
 			kicker: 'Frameworks',
 			title: 'Un motor. Todos los frameworks, o ninguno.',
-			copy: 'El visor y el editor WYSIWYG se integran como componentes listos para usar en React, Vue 3 y Angular, con visores para Svelte 5 y JavaScript vanilla sin framework. Cada paquete incluye el motor: una sola dependencia ofrece el mismo renderizado en todas partes, incluidos el modo presentador, la exportacion y la colaboracion en tiempo real en las ediciones React, Vue y Angular.',
+			copy: 'El visor se integra como componente listo para usar en React, Vue 3, Angular y Svelte 5, mas una version JavaScript vanilla sin framework. Cada paquete incluye el motor: una sola dependencia ofrece el mismo renderizado en todas partes, incluidos el modo presentador, la edicion y la exportacion.',
 			link: { text: 'Elige un framework', href: '/es/guide/installation' },
 		},
 		{
@@ -115,13 +115,13 @@ export const es: LandingCopy = {
 			},
 			{
 				name: 'pptx-vanilla-viewer',
-				desc: 'Visor sin framework, DOM puro',
+				desc: 'El mismo motor, sin framework, DOM puro',
 				href: '/vanilla/',
 				external: false,
 			},
 			{
 				name: 'pptx-svelte-viewer',
-				desc: 'Componente de visor para Svelte 5',
+				desc: 'Las mismas funciones para Svelte 5',
 				href: '/svelte/',
 				external: false,
 			},

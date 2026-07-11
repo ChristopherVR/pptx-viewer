@@ -12,10 +12,10 @@ not render yet, without forking the package.
 
 ## Built-in coverage
 
-Dedicated renderers ship for `text`, `shape`, `image`, `picture`, `group`, `connector`,
-`table`, `chart`, `smartArt` (2D), `media`, `ink`, and `ole`. The remaining types
-(`contentPart`, `zoom`, `model3d`, `unknown`) fall through to a typed placeholder box that
-carries `data-element-id` and `data-element-type` attributes.
+Dedicated renderers ship for every element type: `text`, `shape`, `image`, `picture`, `group`,
+`connector`, `table`, `chart`, `smartArt`, `media`, `ink`, `ole`, `contentPart`, `zoom`, and
+`model3d`. Unrecognised types fall through to a typed placeholder box that carries
+`data-element-id` and `data-element-type` attributes.
 
 ## The renderer contract
 

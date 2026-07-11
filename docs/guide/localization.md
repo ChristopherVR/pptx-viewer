@@ -235,7 +235,7 @@ Machine-translated first drafts are a reasonable starting point, but flag them a
 
 ## Try it in the demos
 
-The [React](https://christophervr.github.io/pptx-viewer/demo/), [Vue](https://christophervr.github.io/pptx-viewer/demo-vue/), [Angular](https://christophervr.github.io/pptx-viewer/demo-angular/), Vanilla, and Svelte demos each include a language picker (the globe icon next to the theme picker) that switches between English, French, Spanish, and German. The non-English dictionaries cover the high-visibility UI and fall back to English elsewhere - a realistic partial-coverage rollout, exactly as described above. The Vanilla/Svelte dictionaries currently cover a smaller slice of keys than React/Vue/Angular's (the high-traffic toolbar, status bar, and dialog strings); anything beyond that falls back to English until someone extends them - a good first contribution if you want one.
+The [React](https://christophervr.github.io/pptx-viewer/demo/), [Vue](https://christophervr.github.io/pptx-viewer/demo-vue/), [Angular](https://christophervr.github.io/pptx-viewer/demo-angular/), Vanilla, and Svelte demos each include a language picker (the globe icon next to the theme picker) that switches between English, French, Spanish, and German. The non-English dictionaries cover the high-visibility UI and fall back to English elsewhere - a realistic partial-coverage rollout, exactly as described above.
 
 The picker and dictionaries are demo-only code (not part of the published packages), but they're a complete working reference for wiring up multi-language support:
 

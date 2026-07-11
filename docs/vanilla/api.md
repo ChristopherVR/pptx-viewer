@@ -99,11 +99,6 @@ redoButton.addEventListener('click', () => viewer.redo());
 saveButton.addEventListener('click', () => void viewer.downloadPptx('edited.pptx'));
 ```
 
-There is currently no property/inspector panel, add-new-element affordance, z-order/group
-operation, template (master/layout) editing, or collaboration - see
-[PORTING.md](https://github.com/ChristopherVR/pptx-viewer/blob/main/PORTING.md) for the tracked
-gap.
-
 ## Extension & escape hatches
 
 | Method        | Signature                       | Description                                                                                             |

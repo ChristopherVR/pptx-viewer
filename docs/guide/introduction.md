@@ -1,13 +1,13 @@
 ---
 title: What is pptx-viewer?
-description: A high-level overview of the pptx-viewer TypeScript monorepo for parsing, editing, rendering, and converting PowerPoint files across React, Vue 3, and Angular.
+description: A high-level overview of the pptx-viewer TypeScript monorepo for parsing, editing, rendering, and converting PowerPoint files across React, Vue 3, Angular, Svelte 5, and vanilla JavaScript.
 ---
 
 # What is pptx-viewer?
 
 `pptx-viewer` is a comprehensive TypeScript monorepo for **parsing, editing, rendering, and converting** Microsoft PowerPoint (`.pptx`) files - in the browser and in Node.js. It works entirely in-memory on the OpenXML ZIP archive with no native dependencies.
 
-Where most PowerPoint libraries do one thing - generate slides _or_ render them _or_ extract text - `pptx-viewer` covers the full round-trip: load an existing deck, mutate its structured data model, render it with full visual fidelity, and save it back to a valid `.pptx` file. The same core engine powers full viewer/editor components for **React**, **Vue 3**, and **Angular**, plus viewer bindings for **Svelte 5** and **vanilla JavaScript** (no framework at all).
+Where most PowerPoint libraries do one thing - generate slides _or_ render them _or_ extract text - `pptx-viewer` covers the full round-trip: load an existing deck, mutate its structured data model, render it with full visual fidelity, and save it back to a valid `.pptx` file. The same core engine powers drop-in components for **React**, **Vue 3**, **Angular**, and **Svelte 5**, plus a **vanilla JavaScript** build for projects with no framework at all.
 
 ## What it does
 
@@ -29,16 +29,16 @@ The engine handles the full OpenXML specification including 16 element types, 18
 
 The monorepo ships eight published packages.
 
-| Package                          | npm name                     | Purpose                                                                                                                                                                               |
-| -------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [**Core**](/core/)               | `pptx-viewer-core`           | Parse, create, edit, serialize, and convert PPTX files. Framework-agnostic.                                                                                                           |
-| [**React**](/react/)             | `pptx-react-viewer`          | React viewer, editor, and presenter with toolbar, inspector, collaboration, and export.                                                                                               |
-| [**Vue 3**](/vue/)               | `pptx-vue-viewer`            | Vue 3 viewer/editor built on the same engine, with the same feature set.                                                                                                              |
-| [**Angular**](/angular/)         | `pptx-angular-viewer`        | Angular viewer/editor built on the same engine, with the same feature set.                                                                                                            |
-| [**Vanilla JS**](/vanilla/)      | `pptx-vanilla-viewer`        | Zero-framework viewer, plain DOM, one factory function; a first editing pass (select/drag/resize/rotate/inline-text/undo-redo/save) is in place, full editor parity is not yet there. |
-| [**Svelte**](/svelte/)           | `pptx-svelte-viewer`         | Svelte 5 viewer component built on the same engine. Viewer-only for now, no editing.                                                                                                  |
-| [**Tools / MCP**](/packages/mcp) | `pptx-viewer-mcp`            | 25 PPTX tool functions, an MCP server for AI agents, and the Y.Doc collaboration codec.                                                                                               |
-| **Installer**                    | `@christophervr/pptx-viewer` | Interactive CLI that scaffolds the right viewer package into your project.                                                                                                            |
+| Package                          | npm name                     | Purpose                                                                                                    |
+| -------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| [**Core**](/core/)               | `pptx-viewer-core`           | Parse, create, edit, serialize, and convert PPTX files. Framework-agnostic.                                |
+| [**React**](/react/)             | `pptx-react-viewer`          | React viewer, editor, and presenter with toolbar, inspector, collaboration, and export.                    |
+| [**Vue 3**](/vue/)               | `pptx-vue-viewer`            | Vue 3 viewer/editor built on the same engine, with the same feature set.                                   |
+| [**Angular**](/angular/)         | `pptx-angular-viewer`        | Angular viewer/editor built on the same engine, with the same feature set.                                 |
+| [**Vanilla JS**](/vanilla/)      | `pptx-vanilla-viewer`        | Zero-framework binding built on the same engine: plain DOM, one factory function, no framework dependency. |
+| [**Svelte**](/svelte/)           | `pptx-svelte-viewer`         | Svelte 5 component built on the same engine, with the same feature set.                                    |
+| [**Tools / MCP**](/packages/mcp) | `pptx-viewer-mcp`            | 25 PPTX tool functions, an MCP server for AI agents, and the Y.Doc collaboration codec.                    |
+| **Installer**                    | `@christophervr/pptx-viewer` | Interactive CLI that scaffolds the right viewer package into your project.                                 |
 
 ### Dependency graph
 

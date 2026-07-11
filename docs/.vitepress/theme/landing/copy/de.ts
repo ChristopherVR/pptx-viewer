@@ -5,7 +5,7 @@ export const de: LandingCopy = {
 		kicker: 'Open Source · Apache-2.0 · TypeScript',
 		titleTop: 'Die PowerPoint-Engine',
 		titleAccent: 'fur das Web.',
-		sub: 'Laden, rendern, bearbeiten und speichern Sie .pptx-Dateien im Browser oder in Node.js. Erhaltlich als headless TypeScript-Kern, als Viewer-/Editor-Komponenten fur React, Vue 3 und Angular sowie als Viewer fur Svelte und Vanilla JavaScript.',
+		sub: 'Laden, rendern, bearbeiten und speichern Sie .pptx-Dateien im Browser oder in Node.js. Erhaltlich als headless TypeScript-Kern und als fertige Komponenten fur React, Vue 3, Angular, Svelte 5 und Vanilla JavaScript.',
 		start: { text: 'Loslegen', href: '/de/guide/introduction' },
 		demo: 'Live-Demo offnen',
 		scroll: 'Scrollen',
@@ -36,7 +36,7 @@ export const de: LandingCopy = {
 		{
 			kicker: 'Frameworks',
 			title: 'Eine Engine. Jedes Framework, oder keines.',
-			copy: 'Viewer und WYSIWYG-Editor stehen als fertige Komponenten fur React, Vue 3 und Angular bereit, dazu Viewer fur Svelte 5 und frameworkfreies Vanilla JavaScript. Jedes Paket bundelt die Engine: Eine einzige Abhangigkeit liefert uberall dasselbe Rendering, inklusive Prasentationsmodus, Export und Echtzeit-Kollaboration in den React-, Vue- und Angular-Paketen.',
+			copy: 'Der Viewer steht als fertige Komponente fur React, Vue 3, Angular und Svelte 5 bereit, dazu eine frameworkfreie Vanilla-JavaScript-Variante. Jedes Paket bundelt die Engine: Eine einzige Abhangigkeit liefert uberall dasselbe Rendering, inklusive Prasentationsmodus, Bearbeitung und Export.',
 			link: { text: 'Framework wahlen', href: '/de/guide/installation' },
 		},
 		{
@@ -115,13 +115,13 @@ export const de: LandingCopy = {
 			},
 			{
 				name: 'pptx-vanilla-viewer',
-				desc: 'Frameworkfreier Viewer, reines DOM',
+				desc: 'Dieselbe Engine, frameworkfrei, reines DOM',
 				href: '/vanilla/',
 				external: false,
 			},
 			{
 				name: 'pptx-svelte-viewer',
-				desc: 'Viewer-Komponente fur Svelte 5',
+				desc: 'Derselbe Funktionsumfang fur Svelte 5',
 				href: '/svelte/',
 				external: false,
 			},

@@ -5,7 +5,7 @@ description: Theme the zero-framework PowerPoint viewer with the shared ViewerTh
 
 # Theming
 
-The vanilla viewer uses the same `ViewerTheme` system as the React, Vue, and Angular bindings:
+The vanilla viewer uses the same `ViewerTheme` system as the React, Vue, Angular, and Svelte bindings:
 a palette of named colors, an optional border radius, and optional raw CSS custom properties,
 all applied as `--pptx-*` variables on the viewer root.
 

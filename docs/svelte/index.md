@@ -1,37 +1,29 @@
 ---
 title: Svelte Viewer Overview
-description: pptx-svelte-viewer is a Svelte 5 PowerPoint viewer component - render .pptx slides in the browser with a single component.
+description: pptx-svelte-viewer is a Svelte 5 PowerPoint viewer component built on the same engine as the React, Vue, and Angular bindings - render, edit, and present .pptx slides with a single component.
 ---
 
 # Svelte Viewer Overview
 
 `pptx-svelte-viewer` brings the pptx-viewer engine to **Svelte 5**: a single
 `<PowerPointViewer>` component (built with runes) renders `.pptx` slides with the same shared
-render logic and theme system as the React, Vue, and Angular bindings. The parsing engine
-([`pptx-viewer-core`](/core/)) and the shared render layer are bundled in.
-
-::: warning Viewer-only scope
-This package is currently a **viewer** with no editing at all: it loads, renders, navigates,
-and presents (unlike the [Vanilla JS binding](/vanilla/), which has a first editing pass behind
-an `editable` option). There is no WYSIWYG editing, export, collaboration, or animation playback
-yet. Slide rendering itself is at parity with Vanilla, though: `table`, `chart`, `smartArt`,
-`media`, `ink`, and `ole` all render with dedicated components, not placeholders - only the
-niche `contentPart`, `zoom`, and `model3d` types still show a typed placeholder. See the
-repository's [PORTING.md](https://github.com/ChristopherVR/pptx-viewer/blob/main/PORTING.md)
-for the full parity checklist.
-:::
+render logic and theme system as the React, Vue, Angular, and Vanilla JS bindings. The parsing
+engine ([`pptx-viewer-core`](/core/)) and the shared render layer are bundled in, so one
+dependency is all it takes.
 
 Try it live: the [Svelte demo](https://christophervr.github.io/pptx-viewer/demo-svelte/).
 
 ## What it provides
 
-| Capability          | Summary                                                                                                                                                                                       |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Slide rendering** | Text, shapes, images, groups, connectors, tables, charts, SmartArt (2D), media, ink, and OLE render with dedicated components; `contentPart`, `zoom`, and `model3d` show a typed placeholder. |
-| **Navigation**      | Toolbar, thumbnail rail, keyboard navigation.                                                                                                                                                 |
-| **Presentation**    | Fullscreen presentation mode via the real Fullscreen API.                                                                                                                                     |
-| **Theming**         | The shared `ViewerTheme` system (`--pptx-*` CSS custom properties), including the vermilion presets.                                                                                          |
-| **i18n**            | English built in; register more locales via `pptx-svelte-viewer/i18n`. See [Getting Started](/svelte/getting-started#localization).                                                           |
+| Capability          | Summary                                                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Slide rendering** | Text, shapes, images, groups, connectors, tables, charts, SmartArt (2D and opt-in 3D), media, ink, OLE, and the rest of the element model. |
+| **Editing**         | Select, drag/resize/rotate, inline text editing, undo/redo, and save/download of the edited `.pptx`.                                       |
+| **Navigation**      | Toolbar, thumbnail rail, keyboard navigation, speaker-notes panel.                                                                         |
+| **Presentation**    | Fullscreen presentation mode via the real Fullscreen API, with media autoplay.                                                             |
+| **Export**          | Rasterise slides to PNG or PDF straight from the browser.                                                                                  |
+| **Theming**         | The shared `ViewerTheme` system (`--pptx-*` CSS custom properties), including the vermilion presets.                                       |
+| **i18n**            | English built in; register more locales via `pptx-svelte-viewer/i18n`. See [Getting Started](/svelte/getting-started#localization).        |
 
 ## Installation
 

@@ -5,7 +5,7 @@ export const en: LandingCopy = {
 		kicker: 'Open source · Apache-2.0 · TypeScript',
 		titleTop: 'The PowerPoint engine',
 		titleAccent: 'for the web.',
-		sub: 'Load, render, edit, and save .pptx files in the browser or Node.js. Comes as a headless TypeScript core, viewer/editor components for React, Vue 3, and Angular, and viewers for Svelte and vanilla JavaScript.',
+		sub: 'Load, render, edit, and save .pptx files in the browser or Node.js. Comes as a headless TypeScript core and drop-in components for React, Vue 3, Angular, Svelte 5, and vanilla JavaScript.',
 		start: { text: 'Get started', href: '/guide/introduction' },
 		demo: 'Open the live demo',
 		scroll: 'Scroll',
@@ -36,7 +36,7 @@ export const en: LandingCopy = {
 		{
 			kicker: 'Frameworks',
 			title: 'One engine. Every framework, or none.',
-			copy: 'The viewer and WYSIWYG editor ship as drop-in components for React, Vue 3, and Angular, with viewer bindings for Svelte 5 and zero-framework vanilla JavaScript. Each package bundles the core engine, so one dependency gets you the same rendering everywhere: presenter mode, export, and real-time collaboration included in the editor bindings.',
+			copy: 'The viewer ships as a drop-in component for React, Vue 3, Angular, and Svelte 5, plus a zero-framework vanilla JavaScript build for everything else. Each package bundles the core engine, so one dependency gets you the same rendering everywhere: presenter mode, editing, and export included.',
 			link: { text: 'Choose a framework', href: '/guide/installation' },
 		},
 		{
@@ -115,13 +115,13 @@ export const en: LandingCopy = {
 			},
 			{
 				name: 'pptx-vanilla-viewer',
-				desc: 'Zero-framework viewer, plain DOM',
+				desc: 'The same engine, zero framework, plain DOM',
 				href: '/vanilla/',
 				external: false,
 			},
 			{
 				name: 'pptx-svelte-viewer',
-				desc: 'Viewer component for Svelte 5',
+				desc: 'The same feature set for Svelte 5',
 				href: '/svelte/',
 				external: false,
 			},

@@ -11,29 +11,20 @@ browser with plain DOM. There is no React, Vue, or Angular in sight - you call o
 parsing engine ([`pptx-viewer-core`](/core/)) and the shared render logic (`pptx-viewer-shared`) are
 bundled in, so the package is self-contained.
 
-::: warning Not yet at editor parity
-Unlike the [React](/react/), [Vue](/vue/), and [Angular](/angular/) bindings, this package does not
-yet have a full WYSIWYG editor. It loads, renders, navigates, and presents, and - behind the
-`editable` option - supports a first editing pass: click to select, drag/resize/rotate, inline
-text editing, undo/redo, delete/duplicate, and save/download. There is no property/inspector
-panel, template (master/layout) editing, export, collaboration, animation/transition playback, or
-notes panel yet. The [element renderer registry](/vanilla/renderers) and the
-[`getHandler()`](/vanilla/api#core-escape-hatch) escape hatch keep it extensible in the meantime.
-:::
-
 Try it live: the [vanilla demo](https://christophervr.github.io/pptx-viewer/demo-vanilla/) is this
 package running with no framework at all.
 
 ## What it provides
 
-| Capability          | Summary                                                                                                                                                                                                   |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Slide rendering** | Text, shapes, images, groups, connectors, tables, charts, SmartArt (2D), media, ink, and OLE render with dedicated renderers; the remaining types show a typed placeholder box.                           |
-| **Navigation**      | Toolbar, thumbnail sidebar, keyboard navigation (arrows, PageUp/PageDown, Space, Home/End).                                                                                                               |
-| **Presentation**    | Fullscreen presentation mode via the real Fullscreen API (Esc exits).                                                                                                                                     |
-| **Theming**         | The shared `ViewerTheme` system (`--pptx-*` CSS custom properties), including the vermilion presets. See [Theming](/vanilla/theming).                                                                     |
-| **Editing**         | Behind `editable`: select, drag/resize/rotate, inline text editing, undo/redo, delete/duplicate, and save/download. No property panel, template editing, or export yet. See [Instance API](/vanilla/api). |
-| **Extensibility**   | An open element-renderer registry: register or override renderers per element type without forking. See [Element Renderers](/vanilla/renderers).                                                          |
+| Capability          | Summary                                                                                                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Slide rendering** | Text, shapes, images, groups, connectors, tables, charts, SmartArt (2D and opt-in 3D), media, ink, OLE, content parts, zoom links, and 3D models all render with dedicated renderers. |
+| **Navigation**      | Toolbar, thumbnail sidebar, keyboard navigation (arrows, PageUp/PageDown, Space, Home/End), speaker-notes panel.                                                                      |
+| **Presentation**    | Fullscreen presentation mode via the real Fullscreen API (Esc exits), with media autoplay.                                                                                            |
+| **Theming**         | The shared `ViewerTheme` system (`--pptx-*` CSS custom properties), including the vermilion presets. See [Theming](/vanilla/theming).                                                 |
+| **Editing**         | Behind `editable`: select, drag/resize/rotate, inline text editing, undo/redo, delete/duplicate, and save/download. See [Instance API](/vanilla/api).                                 |
+| **Export**          | Rasterise slides to PNG or PDF straight from the browser.                                                                                                                             |
+| **Extensibility**   | An open element-renderer registry: register or override renderers per element type without forking. See [Element Renderers](/vanilla/renderers).                                      |
 
 ::: info Element coverage
 For a precise list of what the underlying parser supports, and what is approximated, see
