@@ -1,21 +1,21 @@
 # pptx-vanilla-viewer
 
-> ### ⚠️ Under active development
->
-> Viewing, presenting, and a first editing pass (select, drag, resize,
-> rotate, inline text, undo/redo, save/download) are all available. There is
-> no property inspector, template (master/layout) editing, export, or
-> collaboration yet - see [PORTING.md](https://github.com/ChristopherVR/pptx-viewer/blob/main/PORTING.md)
-> for the full parity checklist. The API may change.
->
-> For the latest source, roadmap, and issue tracker visit:
->
-> **https://github.com/ChristopherVR/pptx-viewer**
+[![npm version](https://img.shields.io/npm/v/pptx-vanilla-viewer.svg)](https://www.npmjs.com/package/pptx-vanilla-viewer)
+[![license](https://img.shields.io/npm/l/pptx-vanilla-viewer.svg)](https://github.com/ChristopherVR/pptx-viewer/blob/main/LICENSE)
 
-Zero-framework PowerPoint viewer: render `.pptx` slides in the browser with
-plain DOM. No React, Vue, or Angular required; the parsing engine
-(`pptx-viewer-core`) and the shared render logic (`pptx-viewer-shared`) are
-bundled in.
+Show, edit, and present Microsoft PowerPoint (`.pptx`) files directly in the
+browser with **zero framework**: no React, Vue, or Angular required, no
+server, no conversion step, no PowerPoint install. Call one factory function,
+`createPptxViewer(container, options)`, and slides render as real HTML and
+CSS.
+
+![PowerPoint editor UI rendered in the browser](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
+
+The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core) engine, which turns a `.pptx` file into a structured slide model. This package is the plain-DOM layer that draws that model on screen, and the engine is **bundled in**, so you install just one package.
+
+<samp>**[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-vanilla/)** · **[📦 npm](https://www.npmjs.com/package/pptx-vanilla-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/vanilla/)** · **[🧩 Core SDK](https://www.npmjs.com/package/pptx-viewer-core)**</samp>
+
+## Install
 
 ```bash
 npm install pptx-vanilla-viewer jszip fast-xml-parser
@@ -107,11 +107,9 @@ Pass `editable: true` (or call `setEditable(true)` at runtime) to turn on:
 - The toolbar's Save button (shown only when `editable`), which calls
   `downloadPptx()` to serialise and download the edited `.pptx`.
 
-There is no property/inspector panel, no template (master/layout) editing,
-and no add-new-element or z-order/group operations yet - see
-`viewer.getSelectedElementId()` and the `onSelectionChange` /
+Use `viewer.getSelectedElementId()` and the `onSelectionChange` /
 `onDirtyChange` callbacks to build your own chrome around the selection
-state in the meantime.
+state.
 
 ## i18n
 
@@ -122,11 +120,11 @@ fall back to English, then to a humanised label.
 
 ## Element coverage
 
-Dedicated renderers: text, shape, image/picture, group, connector, table,
-chart, SmartArt (2D), media (video/audio), ink, and OLE. The remaining niche
-types (content parts, zoom links, 3D models) currently render a typed
-placeholder box. Renderers are dispatched through an open registry, so
-coverage can be extended without forking:
+Dedicated renderers ship for every element type: text, shape, image/picture,
+group, connector, table, chart, SmartArt (2D and opt-in 3D), media
+(video/audio), ink, OLE, content parts, zoom links, and 3D models. Renderers
+are dispatched through an open registry, so any of them can be overridden
+without forking:
 
 ```ts
 import { createPptxViewer, type ElementRenderer } from 'pptx-vanilla-viewer';
