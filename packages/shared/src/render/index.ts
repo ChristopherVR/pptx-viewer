@@ -323,6 +323,9 @@ export * from './hyperlink-security';
 // detection, and the `RemoteCursor` projection. The stateful Yjs provider /
 // awareness lifecycle stays in each binding.
 export * from './collaboration-presence';
+// Throttled local-presence publisher, shared by every binding's collaboration
+// layer (writes the same nested `presence` awareness field they all read).
+export * from './collaboration-presence-publisher';
 export * from './collaboration-sync';
 // Granular local -> Y.Doc reconciliation (per-slide/element/field diffing,
 // origin-tagged transactions). Prefer over writeSlidesToYDoc for live editing.
@@ -333,6 +336,9 @@ export * from './collaboration-text-merge';
 // First-write gate: block local doc writes until the provider's initial sync
 // (or a grace period) so late joiners never seed placeholder content.
 export * from './collaboration-sync-gate';
+// Elected-writer (role 'owner') debounced PPTX write-back, shared by
+// Vue/Svelte/Vanilla (Angular keeps its own DI-style class).
+export * from './collaboration-writeback';
 export * from './slide-compare';
 // Morph (PowerPoint Morph transition) — pure element-matching, SVG-path /
 // colour interpolation, text tokenisation, and CSS keyframe generation. The

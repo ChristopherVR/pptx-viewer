@@ -22,6 +22,7 @@
 
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
+import { getAssetsMap, reconcileAssetFields } from './collaboration-assets';
 import type { YArrayLike, YDocLike, YjsFactories, YMapLike } from './collaboration-sync';
 import {
 	COMPLEX_ELEMENT_FIELDS,
@@ -116,11 +117,13 @@ export function reconcileElementYMap(
 	ymap: YMapLike,
 	element: PptxElement,
 	factories: YjsFactories,
+	assets: YMapLike,
 ): void {
 	const rec = element as unknown as Record<string, unknown>;
 	reconcileScalars(ymap, rec, SCALAR_ELEMENT_KEYS);
 	reconcileComplexFields(ymap, rec, COMPLEX_ELEMENT_FIELDS);
 	reconcileTextBody(ymap, rec, factories);
+	reconcileAssetFields(rec.id as string, rec, ymap, assets);
 }
 
 interface ReconcileAdapter<T> {
@@ -220,6 +223,7 @@ export function reconcileSlideYMap(
 	ymap: YMapLike,
 	slide: PptxSlide,
 	factories: YjsFactories,
+	assets: YMapLike,
 ): void {
 	const rec = slide as unknown as Record<string, unknown>;
 	reconcileScalars(ymap, rec, SCALAR_SLIDE_KEYS);
@@ -234,10 +238,10 @@ export function reconcileSlideYMap(
 		idOf: (el) => (typeof el.id === 'string' ? el.id : undefined),
 		create: (el) => {
 			const map = factories.createMap();
-			writeElementToYMap(el, map, factories);
+			writeElementToYMap(el, map, factories, assets);
 			return map;
 		},
-		update: (map, el) => reconcileElementYMap(map, el, factories),
+		update: (map, el) => reconcileElementYMap(map, el, factories, assets),
 	});
 }
 
@@ -252,16 +256,17 @@ export function reconcileSlidesInYDoc(
 	factories: YjsFactories,
 	origin: unknown = LOCAL_SYNC_ORIGIN,
 ): void {
+	const assets = getAssetsMap(ydoc);
 	ydoc.transact(() => {
 		const arr = ydoc.getArray(YDOC_SLIDES_KEY);
 		reconcileYArrayById<PptxSlide>(arr, slides, {
 			idOf: (slide) => (typeof slide.id === 'string' ? slide.id : undefined),
 			create: (slide) => {
 				const map = factories.createMap();
-				writeSlideToYMap(slide, map, factories);
+				writeSlideToYMap(slide, map, factories, assets);
 				return map;
 			},
-			update: (map, slide) => reconcileSlideYMap(map, slide, factories),
+			update: (map, slide) => reconcileSlideYMap(map, slide, factories, assets),
 		});
 	}, origin);
 }

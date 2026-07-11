@@ -29,9 +29,17 @@
 
 import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
 
+import {
+	ASSET_ELEMENT_FIELDS,
+	getAssetsMap,
+	isAssetRefKey,
+	readAssetFields,
+	writeAssetFields,
+} from './collaboration-assets';
 import type { YTextLike } from './collaboration-text-codec';
 import { encodeTextBody, decodeTextBody, isYTextLike } from './collaboration-text-codec';
 
+export * from './collaboration-assets';
 export * from './collaboration-text-codec';
 
 // ---------------------------------------------------------------------------
@@ -92,6 +100,9 @@ export const SCALAR_ELEMENT_KEYS: ReadonlySet<string> = new Set([
 	'width',
 	'height',
 	'rotation',
+	'shapeId',
+	'skewX',
+	'skewY',
 	'flipHorizontal',
 	'flipVertical',
 	'hidden',
@@ -100,14 +111,66 @@ export const SCALAR_ELEMENT_KEYS: ReadonlySet<string> = new Set([
 	'name',
 	'altText',
 	'shapeType',
-	'placeholder',
 	'imagePath',
 	'imageData',
-	'svgContent',
-	'inkSvg',
-	'sourceSlideId',
+	'svgData',
+	'svgPath',
+	'cropLeft',
+	'cropTop',
+	'cropRight',
+	'cropBottom',
+	'tileOffsetX',
+	'tileOffsetY',
+	'tileScaleX',
+	'tileScaleY',
+	'tileFlip',
+	'tileAlignment',
+	'pathData',
+	'pathWidth',
+	'pathHeight',
 	'mediaType',
 	'mediaPath',
+	'mediaMimeType',
+	'trimStartMs',
+	'trimEndMs',
+	'posterFramePath',
+	'fullScreen',
+	'loop',
+	'fadeInDuration',
+	'fadeOutDuration',
+	'volume',
+	'autoPlay',
+	'playAcrossSlides',
+	'hideWhenNotPlaying',
+	'playbackSpeed',
+	'mediaMissing',
+	'isLinked',
+	'oleTarget',
+	'oleProgId',
+	'oleName',
+	'oleClsId',
+	'oleObjectType',
+	'oleFileExtension',
+	'fileName',
+	'externalPath',
+	'previewImage',
+	'oleShowAsIcon',
+	'oleImgW',
+	'oleImgH',
+	'oleEmbeddedFileName',
+	'oleEmbeddedMimeType',
+	'oleEmbeddedByteSize',
+	'inkPaths',
+	'inkColors',
+	'inkWidths',
+	'inkOpacities',
+	'inkTool',
+	'zoomType',
+	'targetSlideIndex',
+	'targetSectionId',
+	'modelPath',
+	'modelMimeType',
+	'posterImage',
 	'linkedTxbxId',
 	'linkedTxbxSeq',
 	'promptText',
@@ -121,20 +184,28 @@ export const COMPLEX_ELEMENT_FIELDS: Readonly<Record<string, string>> = {
 	tableData: '_td',
 	chartData: '_cd',
 	smartArtData: '_smad',
-	connectionStart: '_cs',
-	connectionEnd: '_ce',
-	animations: '_an',
-	nativeAnimations: '_na',
 	children: '_ch',
 	paragraphIndents: '_pi',
 	rawXml: '_rx',
+	extLstXml: '_elx',
 	actionClick: '_ac',
 	actionHover: '_av',
 	locks: '_lk',
 	imageEffects: '_ie',
 	cropShape: '_cr',
-	mediaBookmarks: '_mb',
+	bookmarks: '_mb',
 	captionTracks: '_ct',
+	metadata: '_md',
+	groupFill: '_gf',
+	inkPointPressures: '_ipp',
+	inkStrokes: '_cis',
+	extensionXml: '_ext',
+	customGeometryPaths: '_cgp',
+	customGeometryRawData: '_cgr',
+	customGeometryAdjustHandlesXY: '_cgx',
+	customGeometryAdjustHandlesPolar: '_cgo',
+	customGeometryConnectionSites: '_cgc',
+	customGeometryTextRect: '_cgt',
 };
 const REV_COMPLEX_ELEMENT: Record<string, string> = Object.fromEntries(
 	Object.entries(COMPLEX_ELEMENT_FIELDS).map(([k, v]) => [v, k]),
@@ -144,6 +215,7 @@ export const SCALAR_SLIDE_KEYS: ReadonlySet<string> = new Set([
 	'id',
 	'rId',
 	'sourceSlideId',
+	'name',
 	'layoutPath',
 	'layoutName',
 	'slideNumber',
@@ -153,7 +225,9 @@ export const SCALAR_SLIDE_KEYS: ReadonlySet<string> = new Set([
 	'backgroundColor',
 	'backgroundImage',
 	'backgroundGradient',
+	'backgroundShadeToTitle',
 	'notes',
+	'notesCSldName',
 	'backgroundShowAnimation',
 	'showMasterShapes',
 	'isDirty',
@@ -165,6 +239,8 @@ export const COMPLEX_SLIDE_FIELDS: Readonly<Record<string, string>> = {
 	nativeAnimations: '_na',
 	rawTiming: '_rt',
 	notesSegments: '_ns',
+	notesShapes: '_nsh',
+	notesClrMapOverride: '_ncm',
 	comments: '_cm',
 	warnings: '_wa',
 	rawXml: '_rx',
@@ -172,6 +248,8 @@ export const COMPLEX_SLIDE_FIELDS: Readonly<Record<string, string>> = {
 	guides: '_gu',
 	customerData: '_cu',
 	activeXControls: '_ax',
+	backgroundPattern: '_bp',
+	headerFooterFlags: '_hff',
 };
 const REV_COMPLEX_SLIDE: Record<string, string> = Object.fromEntries(
 	Object.entries(COMPLEX_SLIDE_FIELDS).map(([k, v]) => [v, k]),
@@ -185,10 +263,11 @@ export function writeElementToYMap(
 	element: PptxElement,
 	ymap: YMapLike,
 	factories: YjsFactories,
+	assets: YMapLike,
 ): void {
 	const rec = element as unknown as Record<string, unknown>;
 	for (const [key, value] of Object.entries(rec)) {
-		if (value === undefined) {
+		if (value === undefined || ASSET_ELEMENT_FIELDS.has(key)) {
 			continue;
 		}
 		if (SCALAR_ELEMENT_KEYS.has(key)) {
@@ -203,15 +282,18 @@ export function writeElementToYMap(
 			ymap.set(COMPLEX_ELEMENT_FIELDS[key], JSON.stringify(value));
 		}
 	}
+	writeAssetFields(rec.id as string, rec, ymap, assets);
 }
 
-export function readElementFromYMap(ymap: YMapLike): PptxElement {
+export function readElementFromYMap(ymap: YMapLike, assets: YMapLike): PptxElement {
 	const element: Record<string, unknown> = {};
 	ymap.forEach((value: unknown, key: string) => {
 		if (key === 'textBody') {
 			if (isYTextLike(value)) {
 				element.textSegments = decodeTextBody(value);
 			}
+		} else if (isAssetRefKey(key)) {
+			// handled by readAssetFields below; not a literal PptxElement field
 		} else if (REV_COMPLEX_ELEMENT[key]) {
 			try {
 				element[REV_COMPLEX_ELEMENT[key]] = JSON.parse(value as string);
@@ -222,6 +304,7 @@ export function readElementFromYMap(ymap: YMapLike): PptxElement {
 			element[key] = value;
 		}
 	});
+	readAssetFields(ymap, assets, element);
 	return element as unknown as PptxElement;
 }
 
@@ -229,7 +312,12 @@ export function readElementFromYMap(ymap: YMapLike): PptxElement {
 // Slide serialization
 // ---------------------------------------------------------------------------
 
-export function writeSlideToYMap(slide: PptxSlide, ymap: YMapLike, factories: YjsFactories): void {
+export function writeSlideToYMap(
+	slide: PptxSlide,
+	ymap: YMapLike,
+	factories: YjsFactories,
+	assets: YMapLike,
+): void {
 	const rec = slide as unknown as Record<string, unknown>;
 	for (const key of SCALAR_SLIDE_KEYS) {
 		if (rec[key] !== undefined) {
@@ -244,13 +332,13 @@ export function writeSlideToYMap(slide: PptxSlide, ymap: YMapLike, factories: Yj
 	const elemArr = factories.createArray();
 	for (const el of slide.elements) {
 		const elemMap = factories.createMap();
-		writeElementToYMap(el, elemMap, factories);
+		writeElementToYMap(el, elemMap, factories, assets);
 		elemArr.push([elemMap]);
 	}
 	ymap.set('elements', elemArr);
 }
 
-export function readSlideFromYMap(ymap: YMapLike): PptxSlide {
+export function readSlideFromYMap(ymap: YMapLike, assets: YMapLike): PptxSlide {
 	const slide: Record<string, unknown> = {};
 	for (const key of SCALAR_SLIDE_KEYS) {
 		const v = ymap.get(key);
@@ -272,7 +360,7 @@ export function readSlideFromYMap(ymap: YMapLike): PptxSlide {
 	const elements: PptxElement[] = [];
 	if (elemArr) {
 		for (let i = 0; i < elemArr.length; i++) {
-			elements.push(readElementFromYMap(elemArr.get(i) as YMapLike));
+			elements.push(readElementFromYMap(elemArr.get(i) as YMapLike, assets));
 		}
 	}
 	slide.elements = elements;
@@ -294,6 +382,7 @@ export function writeSlidesToYDoc(
 	factories: YjsFactories,
 	origin?: unknown,
 ): void {
+	const assets = getAssetsMap(ydoc);
 	ydoc.transact(() => {
 		const arr = ydoc.getArray(YDOC_SLIDES_KEY);
 		if (arr.length > 0) {
@@ -301,17 +390,18 @@ export function writeSlidesToYDoc(
 		}
 		for (const slide of slides) {
 			const ymap = factories.createMap();
-			writeSlideToYMap(slide, ymap, factories);
+			writeSlideToYMap(slide, ymap, factories, assets);
 			arr.push([ymap]);
 		}
 	}, origin);
 }
 
 export function readSlidesFromYDoc(ydoc: YDocLike): PptxSlide[] {
+	const assets = getAssetsMap(ydoc);
 	const arr = ydoc.getArray(YDOC_SLIDES_KEY);
 	const slides: PptxSlide[] = [];
 	for (let i = 0; i < arr.length; i++) {
-		slides.push(readSlideFromYMap(arr.get(i) as YMapLike));
+		slides.push(readSlideFromYMap(arr.get(i) as YMapLike, assets));
 	}
 	return slides;
 }

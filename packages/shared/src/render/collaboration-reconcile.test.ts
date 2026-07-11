@@ -2,6 +2,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, test } from 'vitest';
 import * as Y from 'yjs';
 
+import { getAssetsMap } from './collaboration-assets';
 import { LOCAL_SYNC_ORIGIN, reconcileSlidesInYDoc } from './collaboration-reconcile';
 import type { YDocLike, YjsFactories, YMapLike } from './collaboration-sync';
 import {
@@ -285,6 +286,37 @@ describe('observeYDocSlides origin filtering', () => {
 
 		expect(seenOrigins[0]).toBe(LOCAL_SYNC_ORIGIN);
 		expect(seenOrigins[1]).toBe('remote');
+	});
+});
+
+describe('reconcileSlidesInYDoc: asset map', () => {
+	it('does not rewrite pptx:assets when reconciling an unrelated field change', () => {
+		const doc = new Y.Doc();
+		const media = makeElement('vid_1', 'ignored', {
+			type: 'media',
+			mediaType: 'video',
+			mediaData: 'data:video/mp4;base64,AAA',
+		});
+		const slides = [makeSlide('s1', [media])];
+		reconcileSlidesInYDoc(slides, asDoc(doc), factories);
+
+		const assets = getAssetsMap(asDoc(doc));
+		let setCalls = 0;
+		const originalSet = assets.set.bind(assets);
+		assets.set = (key: string, value: unknown) => {
+			setCalls++;
+			return originalSet(key, value);
+		};
+
+		// Move the element (unrelated to the binary field) and reconcile again.
+		const moved = [makeSlide('s1', [{ ...media, x: 500 } as unknown as PptxElement])];
+		reconcileSlidesInYDoc(moved, asDoc(doc), factories);
+
+		expect(setCalls).toBe(0);
+		expect((assets as unknown as { get: (k: string) => unknown }).get('vid_1:mediaData')).toBe(
+			'data:video/mp4;base64,AAA',
+		);
+		expect((readSlidesFromYDoc(asDoc(doc))[0].elements[0] as unknown as { x: number }).x).toBe(500);
 	});
 });
 
