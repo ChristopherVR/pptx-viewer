@@ -2,6 +2,7 @@ export type { EditorControllerDeps } from './editor-controller.svelte';
 export { EditorController } from './editor-controller.svelte';
 export type { EditorStateDeps } from './editor-state.svelte';
 export { EditorState } from './editor-state.svelte';
+export { EditorAnimationController } from './editor-animation-controller';
 export { EditorArrangeController } from './editor-arrange-controller';
 export {
 	alignSelectedOnSlide,
@@ -10,9 +11,11 @@ export {
 	groupSelectedOnSlide,
 	ungroupOnSlide,
 } from './editor-arrange-ops';
+export { EditorBackgroundController } from './editor-background-controller';
 export { copyElementToClipboard, pasteClipboardElement } from './editor-clipboard';
 export { EditorClipboardController } from './editor-clipboard-controller';
 export { EditorSlidesController } from './editor-slides-controller';
+export { EditorTransitionController } from './editor-transition-controller';
 export { deleteSlideAt, duplicateSlideAt, insertBlankSlideAfter } from './editor-slide-ops';
 export type { FindReplaceDeps } from './editor-find-replace.svelte';
 export { FindReplaceState } from './editor-find-replace.svelte';
@@ -83,7 +86,9 @@ export {
 	mapSlideElements,
 	patchElementGeometry,
 	removeElement,
+	updateAllSlides,
 	updateElement,
+	updateSlide,
 	updateSlideNotes,
 } from './editor-mutations';
 export type { ZOrderDirection } from './editor-zorder';

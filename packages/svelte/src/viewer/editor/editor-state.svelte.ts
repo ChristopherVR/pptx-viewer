@@ -2,7 +2,9 @@ import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
 import type { ElementClipboardPayload } from 'pptx-viewer-shared';
 import { EditorHistory } from 'pptx-viewer-shared';
 
+import { EditorAnimationController } from './editor-animation-controller';
 import { EditorArrangeController } from './editor-arrange-controller';
+import { EditorBackgroundController } from './editor-background-controller';
 import { EditorClipboardController } from './editor-clipboard-controller';
 import { appendElement, newElementId } from './editor-insert';
 import type { ElementBoxPatch } from './editor-mutations';
@@ -17,6 +19,7 @@ import {
 } from './editor-mutations';
 import { EditorSelection } from './editor-selection.svelte';
 import { EditorSlidesController } from './editor-slides-controller';
+import { EditorTransitionController } from './editor-transition-controller';
 import type { ZOrderDirection } from './editor-zorder';
 import { reorderElement } from './editor-zorder';
 import { remapInlineText } from './inline-text';
@@ -73,12 +76,21 @@ export class EditorState {
 	readonly slidesOps: EditorSlidesController;
 	/** The Home tab's Arrange group: align / distribute / flip / group / ungroup. */
 	readonly arrangeOps: EditorArrangeController;
+	/** The Design tab's Format Background panel: solid slide background colour. */
+	readonly backgroundOps: EditorBackgroundController;
+	/** The Transitions tab: assign a slide transition (single slide or all slides). */
+	readonly transitionOps: EditorTransitionController;
+	/** The Animations tab: add/remove an entrance/emphasis/exit preset on the selection. */
+	readonly animationOps: EditorAnimationController;
 
 	constructor(deps: EditorStateDeps) {
 		this.#deps = deps;
 		this.clipboardOps = new EditorClipboardController(this);
 		this.slidesOps = new EditorSlidesController(this);
 		this.arrangeOps = new EditorArrangeController(this);
+		this.backgroundOps = new EditorBackgroundController(this);
+		this.transitionOps = new EditorTransitionController(this);
+		this.animationOps = new EditorAnimationController(this);
 	}
 
 	/** Whether at least one undo step is available (reactive). */

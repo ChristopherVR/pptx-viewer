@@ -7,7 +7,9 @@ import {
 	findSlideElement,
 	patchElementGeometry,
 	removeElement,
+	updateAllSlides,
 	updateElement,
+	updateSlide,
 	updateSlideNotes,
 } from './editor-mutations';
 
@@ -91,5 +93,21 @@ describe('editor-mutations', () => {
 		expect(next[0].notes).toBe('a-notes');
 		expect(next[1].notes).toBe('updated');
 		expect(next[0]).toBe(slides[0]);
+	});
+
+	it('updateSlide shallow-merges a patch into one slide and preserves others', () => {
+		const slides = [slide('a', []), slide('b', [])];
+		const next = updateSlide(slides, 1, { backgroundColor: '#ff0000' });
+		expect(next[0]).toBe(slides[0]);
+		expect(next[1].backgroundColor).toBe('#ff0000');
+		expect(slides[1].backgroundColor).toBeUndefined();
+	});
+
+	it('updateAllSlides shallow-merges a patch into every slide', () => {
+		const slides = [slide('a', []), slide('b', [])];
+		const next = updateAllSlides(slides, { transition: { type: 'fade', durationMs: 500 } });
+		expect(next[0].transition).toStrictEqual({ type: 'fade', durationMs: 500 });
+		expect(next[1].transition).toStrictEqual({ type: 'fade', durationMs: 500 });
+		expect(next).not.toBe(slides);
 	});
 });
