@@ -58,6 +58,8 @@ export {
 export { buildChartInsertElement } from './editor-insert-chart';
 export { buildEquationInsertElement } from './editor-insert-equation';
 export { buildActionButtonInsertElement } from './editor-insert-action-button';
+export type { FieldInsertContext } from './editor-insert-field';
+export { buildFieldInsertElement, resolveFieldDisplayText } from './editor-insert-field';
 export { buildMediaInsertElement, mediaTypeOfFile } from './editor-insert-media';
 export { buildSmartArtInsertElement } from './editor-insert-smart-art';
 export type { TextFlag } from './editor-format-mutations';
