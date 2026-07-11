@@ -6,13 +6,7 @@ import type {
 import { createPptxViewer, themeToCssVars } from 'pptx-vanilla-viewer';
 import { PptxHandler } from 'pptx-viewer-core';
 
-import {
-	buildRoomConfig,
-	buildShareUrl,
-	readRoomFromUrl,
-	resolveAutoName,
-	resolveAutoRoomId,
-} from './collab';
+import { buildRoomConfig, readRoomFromUrl, resolveAutoName } from './collab';
 import { getLanguage, onLanguageChange, setLanguage, t, viewerMessages } from './demo-i18n';
 import { createDropzone } from './dropzone';
 import type { ExportBar } from './export-bar';
@@ -28,8 +22,11 @@ import './styles.css';
  * Demo app for `pptx-vanilla-viewer`, mirroring demos/demo-vue/src/App.vue: the
  * viewer fills the screen, floating theme + language pickers hover above it, and
  * a landing dropzone handles file open / sample deck loading. A `?room=<id>` URL
- * param auto-joins a serverless (WebRTC) collaboration session, and a floating
- * Collaborate button starts one and copies the share link.
+ * param auto-joins a serverless (WebRTC) collaboration session. Starting a new
+ * session is dialog-driven: the viewer's own toolbar Share/Broadcast buttons
+ * open the built-in modal dialogs (see `pptx-vanilla-viewer`'s
+ * `viewer/collab/ui`), prefilled with a demo-generated display name via
+ * `shareDefaults`.
  */
 
 const appRoot = document.getElementById('app');
@@ -44,41 +41,9 @@ let exportBar: ExportBar | null = null;
 let appliedVarKeys: string[] = [];
 let stopNotesObserver: (() => void) | null = null;
 
-// ── Collaboration ──────────────────────────────────────────────────────────
+// A demo-generated display name, offered to the viewer's built-in Share and
+// Broadcast dialogs as a prefilled default (see `shareDefaults` below).
 const userName = resolveAutoName();
-let activeRoomId: string | null = null;
-
-const shareBtn = document.createElement('button');
-shareBtn.type = 'button';
-shareBtn.className = 'demo-share-btn';
-shareBtn.textContent = 'Collaborate';
-shareBtn.hidden = true;
-shareBtn.setAttribute(
-	'style',
-	'position:fixed;bottom:16px;left:16px;z-index:50;padding:8px 14px;border-radius:8px;' +
-		'border:1px solid var(--pptx-border,#3336);background:var(--pptx-card,#1e1e1e);' +
-		'color:var(--pptx-foreground,#eee);font:500 13px system-ui,sans-serif;cursor:pointer;',
-);
-shareBtn.addEventListener('click', () => void startSharing());
-document.body.append(shareBtn);
-
-/** Start a session (or copy the link if one is already running). */
-async function startSharing(): Promise<void> {
-	if (!viewer) {
-		return;
-	}
-	if (!activeRoomId) {
-		activeRoomId = resolveAutoRoomId();
-		await viewer.startCollaboration(buildRoomConfig(activeRoomId, userName));
-		window.history.replaceState({}, '', buildShareUrl(activeRoomId));
-	}
-	try {
-		await navigator.clipboard.writeText(buildShareUrl(activeRoomId));
-		shareBtn.textContent = 'Link copied';
-	} catch {
-		shareBtn.textContent = 'Collaborating';
-	}
-}
 
 // Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`,
 // mirroring demo-vue's `App.vue`.
@@ -169,23 +134,13 @@ function openViewer(
 		autosave: true,
 		collaboration,
 		smartArt3D,
-		onCollaborationStatus: (status) => {
-			shareBtn.textContent =
-				status === 'connected'
-					? 'Collaborating'
-					: status === 'error'
-						? 'Collab error'
-						: 'Collaborate';
-		},
+		shareDefaults: { userName },
 		onError: (message, error) => {
 			console.error('pptx-vanilla-viewer failed to load', message, error);
 			showLanding();
 			showError(message || t('demo.viewer.loadError'));
 		},
 	});
-	activeRoomId = collaboration?.roomId ?? null;
-	shareBtn.hidden = false;
-	shareBtn.textContent = collaboration ? 'Copy link' : 'Collaborate';
 	// e2e/debug seam: expose the live viewer handle for scripted verification.
 	(window as unknown as { __pptxViewer?: PptxViewerInstance }).__pptxViewer = viewer;
 	exportBar = createExportBar({
@@ -219,8 +174,6 @@ function showLanding(): void {
 	exportBar = null;
 	stopNotesObserver?.();
 	stopNotesObserver = null;
-	activeRoomId = null;
-	shareBtn.hidden = true;
 	document.title = 'pptx-vanilla-viewer demo';
 	app.replaceChildren();
 	app.append(

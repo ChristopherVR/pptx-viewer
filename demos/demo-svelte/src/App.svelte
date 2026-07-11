@@ -36,12 +36,15 @@
 	const smartArt3D = params.get('smartArt3D') === '1';
 
 	// ── Collaboration (serverless WebRTC P2P) ────────────────────────────
-	// A `?room=<id>` param auto-joins that room; otherwise a "Share" button
-	// starts a fresh session and stamps the id into the URL so it can be copied.
+	// A `?room=<id>` param auto-joins that room on load (a peer with no local
+	// deck yet still needs the viewer mounted to receive one). Once a deck is
+	// open, the viewer's own toolbar Share/Broadcast buttons (built into
+	// `pptx-svelte-viewer`) start a fresh session directly; `onCollabStart`
+	// below stamps the resulting room id into the URL so the session survives
+	// a refresh and can be copied from the address bar, mirroring `joinRoom`.
 	const autoName = resolveAutoName();
 	const autoColor = randomUserColor();
 	let collaborationConfig = $state<CollaborationConfig | null>(null);
-	let shareCopied = $state(false);
 
 	function joinRoom(roomId: string): void {
 		collaborationConfig = {
@@ -52,33 +55,38 @@
 			userColor: autoColor,
 			role: 'collaborator',
 		};
+		setRoomUrlParam(roomId);
+	}
+
+	function setRoomUrlParam(roomId: string): void {
 		const url = new URL(window.location.href);
 		url.searchParams.set('room', roomId);
 		window.history.replaceState(null, '', url.toString());
 		document.title = `Collaborating: ${roomId} - PPTX Viewer`;
 	}
 
-	function startShare(): void {
-		joinRoom(resolveAutoRoomId());
-	}
-
-	function stopShare(): void {
-		collaborationConfig = null;
+	function clearRoomUrlParam(): void {
 		const url = new URL(window.location.href);
 		url.searchParams.delete('room');
 		window.history.replaceState(null, '', url.toString());
 	}
 
-	async function copyShareLink(): Promise<void> {
-		await navigator.clipboard.writeText(window.location.href);
-		shareCopied = true;
-		setTimeout(() => (shareCopied = false), 1500);
+	function onCollabStart(config: CollaborationConfig): void {
+		setRoomUrlParam(config.roomId);
+	}
+
+	function onCollabStop(): void {
+		collaborationConfig = null;
+		clearRoomUrlParam();
 	}
 
 	const urlRoom = params.get('room');
 	if (urlRoom) {
 		joinRoom(urlRoom);
 	}
+
+	// Prefilled values for the viewer's built-in Share dialog form.
+	const shareDefaults = { roomId: resolveAutoRoomId(), userName: autoName };
 
 	// Mount the viewer whenever we have a deck OR an active room (a joiner with
 	// no local deck still needs the viewer mounted to receive the peer's slides).
@@ -179,40 +187,6 @@
 		user-select: none;
 	}
 
-	.demo-collab-bar {
-		position: fixed;
-		top: 12px;
-		left: 50%;
-		transform: translateX(-50%);
-		z-index: 50;
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		padding: 6px 10px;
-		border-radius: 8px;
-		background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 90%, transparent);
-		color: var(--pptx-card-foreground, #e2e8f0);
-		font: 500 12px/1 system-ui, sans-serif;
-		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-	}
-
-	.demo-collab-bar button {
-		padding: 4px 10px;
-		border: 1px solid var(--pptx-border, #33334d);
-		border-radius: 6px;
-		background: transparent;
-		color: inherit;
-		font: inherit;
-		cursor: pointer;
-	}
-
-	.demo-collab-bar button:hover {
-		background: var(--pptx-accent, #33334d);
-	}
-
-	.demo-collab-room {
-		opacity: 0.85;
-	}
 </style>
 
 <ThemePicker current={themeKey} onchange={setTheme} />
@@ -230,17 +204,6 @@
 			<input type="checkbox" bind:checked={editable} />
 			{t('demo.editToggle.label')}
 		</label>
-		<div class="demo-collab-bar">
-			{#if collaborationConfig}
-				<span class="demo-collab-room" data-testid="collab-room">Room: {collaborationConfig.roomId}</span>
-				<button type="button" onclick={() => void copyShareLink()}>
-					{shareCopied ? 'Copied!' : 'Copy link'}
-				</button>
-				<button type="button" onclick={stopShare}>Leave</button>
-			{:else}
-				<button type="button" onclick={startShare}>Share (collaborate)</button>
-			{/if}
-		</div>
 		<PowerPointViewer
 			bind:this={viewerRef}
 			source={bytes}
@@ -251,8 +214,9 @@
 			autosave
 			filePath={fileName || (collaborationConfig ? `room-${collaborationConfig.roomId}.pptx` : undefined)}
 			collaboration={collaborationConfig ?? undefined}
-			onstartcollaboration={(config) => console.info('collaboration started', config.roomId)}
-			onstopcollaboration={() => console.info('collaboration stopped')}
+			{shareDefaults}
+			onstartcollaboration={onCollabStart}
+			onstopcollaboration={onCollabStop}
 			onerror={onViewerError}
 		/>
 		<ExportBar
