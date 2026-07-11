@@ -2,9 +2,10 @@ import type { PptxHandler } from 'pptx-viewer-core';
 import { downloadBlob } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
-import type { Store, ViewerState } from '../state';
+import type { DrawTool, Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
 import { createEditingChromeSync } from './editing-chrome-sync';
+import { createDrawModeController } from './editor-draw-mode';
 import type { EditActions } from './editor-edit-ops';
 import { createEditActions } from './editor-edit-ops';
 import type { FindReplaceActions } from './editor-find-replace-actions';
@@ -53,6 +54,12 @@ export interface EditorController {
 	deleteSelected(): void;
 	duplicateSelected(): string | null;
 	getSelectedElementId(): string | null;
+	/** Switch the Draw ribbon tab's active tool (also clears selection when leaving `'select'`). */
+	setDrawTool(tool: DrawTool): void;
+	/** Set the pen/highlighter stroke colour used by the next committed stroke. */
+	setDrawColor(color: string): void;
+	/** Set the pen/highlighter stroke width used by the next committed stroke. */
+	setDrawWidth(width: number): void;
 	/** The formatting / insert / arrange actions for the editing chrome. */
 	getEditActions(): EditActions;
 	/** The Find & Replace actions for the ribbon's docked panel. */
@@ -106,6 +113,23 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		onCursorMove: deps.onCursorMove,
 	});
 
+	// The Draw ribbon tab's pen/highlighter/eraser mode: routes each stage
+	// `pointerdown` / `dblclick` to its own gesture controller or to
+	// `interactions`, never both, based on `drawTool`, so freehand drawing and
+	// the normal move/resize/rotate/inline-edit gestures never fight over the
+	// same pointer (see `editor-draw-mode.ts`).
+	const drawMode = createDrawModeController({
+		store,
+		editActions,
+		interactions,
+		getScale: deps.getScale,
+		getStageOrigin() {
+			const rect = overlay?.root.getBoundingClientRect();
+			return { left: rect?.left ?? 0, top: rect?.top ?? 0 };
+		},
+		getStageRoot: () => attachedWrap?.querySelector('.pptxv-stage') ?? null,
+	});
+
 	const syncOverlay = (): void => {
 		// The format toolbar + inspector track selection even before the overlay
 		// layer is mounted, so refresh them regardless of the overlay guard.
@@ -142,9 +166,9 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 
 	const detachChrome = (): void => {
 		interactions.closeInline(true);
-		attachedWrap?.removeEventListener('pointerdown', interactions.onStagePointerDown);
+		attachedWrap?.removeEventListener('pointerdown', drawMode.onStagePointerDown);
 		attachedWrap?.removeEventListener('pointermove', interactions.onStagePointerMove);
-		attachedWrap?.removeEventListener('dblclick', interactions.onStageDblClick);
+		attachedWrap?.removeEventListener('dblclick', drawMode.onStageDblClick);
 		attachedRoot?.removeEventListener('keydown', onKeyDown);
 		attachedWrap = null;
 		attachedRoot = null;
@@ -179,6 +203,9 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			}
 			updateToolbar();
 		}
+		if (state.drawTool !== previous.drawTool || state.editable !== previous.editable) {
+			drawMode.syncCursor(attachedWrap);
+		}
 		syncOverlay();
 	});
 
@@ -196,12 +223,13 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			});
 			attachedWrap = chrome.stageWrap;
 			attachedRoot = chrome.root;
-			attachedWrap.addEventListener('pointerdown', interactions.onStagePointerDown);
+			attachedWrap.addEventListener('pointerdown', drawMode.onStagePointerDown);
 			attachedWrap.addEventListener('pointermove', interactions.onStagePointerMove);
-			attachedWrap.addEventListener('dblclick', interactions.onStageDblClick);
+			attachedWrap.addEventListener('dblclick', drawMode.onStageDblClick);
 			attachedRoot.addEventListener('keydown', onKeyDown);
 			overlay.mount(attachedWrap);
 			updateToolbar();
+			drawMode.syncCursor(attachedWrap);
 			syncOverlay();
 		},
 		detachChrome,
@@ -217,8 +245,14 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		},
 		reset() {
 			interactions.closeInline(false);
+			drawMode.dispose();
 			ops.clearHistory();
-			store.set({ selectedElementId: null, dirty: false, interactionActive: false });
+			store.set({
+				selectedElementId: null,
+				dirty: false,
+				interactionActive: false,
+				drawTool: 'select',
+			});
 			updateToolbar();
 		},
 		setEditable(editable) {
@@ -231,6 +265,9 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		deleteSelected: () => ops.deleteSelected(),
 		duplicateSelected: () => ops.duplicateSelected(),
 		getSelectedElementId: () => store.get().selectedElementId,
+		setDrawTool: (tool) => drawMode.setTool(tool),
+		setDrawColor: (color) => drawMode.setColor(color),
+		setDrawWidth: (width) => drawMode.setWidth(width),
 		getEditActions: () => editActions,
 		getFindReplaceActions: () => findReplaceActions,
 		commitNotes: (notes) => ops.commitNotes(notes),
@@ -242,6 +279,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		destroy() {
 			unsubscribe();
 			interactions.dispose();
+			drawMode.dispose();
 			detachChrome();
 		},
 	};

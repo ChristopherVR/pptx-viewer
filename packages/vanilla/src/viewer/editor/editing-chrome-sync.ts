@@ -35,6 +35,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			hasClipboard: state.clipboardPayload !== null,
 			slideCount: state.slides.length,
 		});
+		ribbon?.setDrawState({ tool: state.drawTool, color: state.drawColor, width: state.drawWidth });
 
 		inspector?.update(buildInspectorState(el));
 	};

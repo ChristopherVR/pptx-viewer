@@ -21,8 +21,18 @@ export type { ClipboardActions, ClipboardActionsDeps } from './editor-clipboard-
 export { createClipboardActions } from './editor-clipboard-actions';
 export type { EditorController, EditorControllerDeps } from './editor-controller';
 export { createEditorController } from './editor-controller';
+export type { DrawGestures, DrawGesturesDeps } from './editor-draw-gestures';
+export { clientPointToStagePoint, createDrawGestures } from './editor-draw-gestures';
+export type {
+	DrawModeController,
+	DrawModeDeps,
+	DrawModeStageInteractions,
+} from './editor-draw-mode';
+export { createDrawModeController } from './editor-draw-mode';
 export type { EditActions, EditActionsDeps, GeometryPatch } from './editor-edit-ops';
 export { createEditActions } from './editor-edit-ops';
+export type { InkActions, InkActionsDeps } from './editor-ink-actions';
+export { createInkActions } from './editor-ink-actions';
 export type { FindReplaceActions, FindReplaceActionsDeps } from './editor-find-replace-actions';
 export { createFindReplaceActions } from './editor-find-replace-actions';
 export type { TextFormatState, TextToggleKey } from './editor-format-mutations';
