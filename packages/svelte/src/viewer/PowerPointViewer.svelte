@@ -11,7 +11,9 @@
 
 	import { createTranslator } from '../i18n/translator';
 	import { provideTranslator } from '../i18n/context';
-	import { CollaborationController } from './collab';
+	import { CollaborationController, CollaborationDialogsState } from './collab';
+	import CollaborationChrome from './collab/components/CollaborationChrome.svelte';
+	import { useCollaborationPresenceEffects } from './collab/collaboration-presence-effects.svelte';
 	import EditToolbar from './components/EditToolbar.svelte';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
 	import ViewerBody from './components/ViewerBody.svelte';
@@ -48,6 +50,7 @@
 		filePath,
 		autosaveIntervalMs = 2000,
 		collaboration,
+		shareDefaults,
 		onload,
 		onerror,
 		onslidechange,
@@ -83,6 +86,7 @@
 		getPresenting: () => viewer.isFullscreen,
 		getStageRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
 		getHolderEl: () => stageHolderEl ?? null,
+		onCursorMove: (x, y) => collab.setCursor(x, y, viewer.current),
 	});
 
 	// ── Collaboration ────────────────────────────────────────────────────
@@ -100,9 +104,24 @@
 		applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
 		getConfig: () => collaboration,
 		getSourceBytes: sourceBytes,
+		getCanvasWidth: () => loader.canvasSize.width,
+		getCanvasHeight: () => loader.canvasSize.height,
 		onStart: (config) => onstartcollaboration?.(config),
 		onStop: () => onstopcollaboration?.(),
 	});
+
+	// Publish local active-slide/selection changes; drive follow-mode navigation.
+	useCollaborationPresenceEffects({
+		collab,
+		getCurrentSlide: () => viewer.current,
+		getSelectedElementId: () => editor.selectedElementId,
+		goTo: (index) => viewer.goTo(index),
+	});
+
+	// Share / Broadcast dialogs (open state + start/stop handlers) live in
+	// `CollaborationDialogsState`, both driving the same `collab` controller
+	// the `collaboration` prop auto-starts.
+	const dialogs = new CollaborationDialogsState(collab, () => shareDefaults);
 
 	// ── Autosave ─────────────────────────────────────────────────────────
 	// Debounced crash-recovery autosave: enabled only when the host opts in,
@@ -296,6 +315,9 @@
 			autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
 			autosaveDirty={autosaveCtl.isDirty}
 			exportUi={loader.slides.length > 0 ? exportUi : undefined}
+			onshare={() => dialogs.openShare()}
+			onbroadcast={() => dialogs.openBroadcast()}
+			collabActive={collab.active}
 		/>
 	{/if}
 	<ExportProgressModal
@@ -340,11 +362,20 @@
 		{notesExpanded}
 		onNotesCommit={editable || onnotesupdate ? onNotesCommit : undefined}
 		{onNotesToggle}
+		collabCursors={collab.cursors}
+	/>
+	<CollaborationChrome
+		{collab}
+		{dialogs}
+		{shareDefaults}
+		showOverlay={collab.active && chromeVisible}
+		{collaboration}
 	/>
 </div>
 
 <style>
 	.pptx-svelte-viewer {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		width: 100%;

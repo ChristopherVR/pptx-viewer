@@ -2,11 +2,9 @@
  * collaboration-provider.ts: create the Yjs transport provider (y-websocket or
  * y-webrtc) for a collaboration session and normalise it into a small handle.
  *
- * Ported from the Vue binding's `collaboration-provider.ts`, minus the
- * awareness surface (this binding descopes remote presence/cursors, see
- * `collaboration.svelte.ts`). The two providers differ in their constructor,
- * status events and teardown, so this helper hides those differences behind
- * {@link CollabProviderHandle}:
+ * Ported from the Vue binding's `collaboration-provider.ts`. The two
+ * providers differ in their constructor, status events and teardown, so this
+ * helper hides those differences behind {@link CollabProviderHandle}:
  *
  *  - `websocket`: `new WebsocketProvider(serverUrl, roomId, doc, { params })`;
  *    status events carry `{ status }`; `wsconnected` reports the live state.
@@ -14,10 +12,16 @@
  *    no document server. Same-browser tabs meet over BroadcastChannel
  *    immediately, so the handle reports `connectedNow: true`.
  */
-import type { CollaborationConfig, CollaborationTransport } from 'pptx-viewer-shared';
+import type {
+	AwarenessLike,
+	CollaborationConfig,
+	CollaborationTransport,
+} from 'pptx-viewer-shared';
 
 /** A transport-agnostic view of a live Yjs provider. */
 export interface CollabProviderHandle {
+	/** The provider's awareness instance (local/remote presence). */
+	awareness: AwarenessLike;
 	/**
 	 * Subscribe to connection-status changes. The callback receives whether the
 	 * transport currently reports a connection. Only meaningful for websocket;
@@ -59,6 +63,7 @@ export async function createCollabProvider(
 			password: config.authToken || undefined,
 		});
 		return {
+			awareness: provider.awareness as unknown as AwarenessLike,
 			onStatus: (cb) => provider.on('status', (event) => cb(Boolean(event.connected))),
 			connectedNow: true,
 			onSynced: (cb) =>
@@ -77,6 +82,7 @@ export async function createCollabProvider(
 		params: config.authToken ? { token: config.authToken } : undefined,
 	});
 	return {
+		awareness: provider.awareness as unknown as AwarenessLike,
 		onStatus: (cb) =>
 			provider.on('status', (event: { status?: string }) => {
 				if (event.status === 'connected') {

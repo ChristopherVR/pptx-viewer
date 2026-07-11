@@ -29,6 +29,8 @@ export interface EditorControllerDeps {
 	getStageRoot(): Element | null;
 	/** The stage holder element, for mapping rotation pointer to slide origin. */
 	getHolderEl(): HTMLElement | null;
+	/** Notified with slide-space coordinates on stage pointer move (collaboration cursor broadcast). */
+	onCursorMove?(x: number, y: number): void;
 }
 
 function toOverlayBox(el: PptxElement): OverlayBox {
@@ -160,6 +162,21 @@ export class EditorController {
 			this.#editor.select(id);
 		}
 		this.#gestures.begin('move', id, event);
+	};
+
+	onStagePointerMove = (event: PointerEvent): void => {
+		if (!this.#deps.onCursorMove) {
+			return;
+		}
+		const rect = this.#deps.getHolderEl()?.getBoundingClientRect();
+		const scale = this.#deps.getScale();
+		if (!rect || !(scale > 0)) {
+			return;
+		}
+		this.#deps.onCursorMove(
+			(event.clientX - rect.left) / scale,
+			(event.clientY - rect.top) / scale,
+		);
 	};
 
 	onStageDblClick = (event: MouseEvent): void => {

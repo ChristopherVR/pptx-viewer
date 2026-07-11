@@ -125,14 +125,21 @@ export interface PowerPointViewerProps {
 	 * to the room (y-websocket or serverless y-webrtc), publishes local edits
 	 * granularly, and applies remote peers' edits into the editable slides.
 	 * Clearing it (undefined) tears the session down. A `viewer` role makes the
-	 * local user read-only. Remote presence/cursors are not rendered by this
-	 * binding (descoped); see `collab/collaboration.svelte.ts`.
+	 * local user read-only. Remote cursors/presence render via the built-in
+	 * Share/Broadcast toolbar buttons; see `collab/collaboration.svelte.ts` and
+	 * `collab/components/`.
 	 */
 	collaboration?: CollaborationConfig;
 	/** Fired when a collaboration session starts (with the resolved config). */
 	onstartcollaboration?: (config: CollaborationConfig) => void;
 	/** Fired when a collaboration session stops. */
 	onstopcollaboration?: () => void;
+	/**
+	 * Prefilled values for the built-in Share dialog's form (room id, display
+	 * name, server URL). The Broadcast dialog reuses `serverUrl` from this same
+	 * object. Purely a starting point; the user can still edit every field.
+	 */
+	shareDefaults?: { roomId?: string; userName?: string; serverUrl?: string };
 }
 
 /**

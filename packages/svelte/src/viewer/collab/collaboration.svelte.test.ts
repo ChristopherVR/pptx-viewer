@@ -1,5 +1,10 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import type { CollaborationConfig, YDocLike, YjsFactories } from 'pptx-viewer-shared';
+import type {
+	AwarenessLike,
+	CollaborationConfig,
+	YDocLike,
+	YjsFactories,
+} from 'pptx-viewer-shared';
 import { readSlidesFromYDoc, reconcileSlidesInYDoc } from 'pptx-viewer-shared';
 import { flushSync } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
@@ -38,12 +43,25 @@ function realFactories(): YjsFactories {
 	};
 }
 
+/** A minimal awareness fake satisfying the shared `AwarenessLike` structural interface. */
+function fakeAwareness(clientID = 1): AwarenessLike {
+	const states = new Map<number, Record<string, unknown>>();
+	return {
+		clientID,
+		setLocalStateField: (field, value) => states.set(clientID, { [field]: value }),
+		getStates: () => states,
+		on: () => {},
+		off: () => {},
+	};
+}
+
 /** A fake session backed by a real Y.Doc; `syncedNow` controls the sync gate. */
 function fakeSessionFactory(doc: Y.Doc, syncedNow = true): CollabSessionFactory {
 	return async (): Promise<CollabSession> => ({
 		ydoc: doc as unknown as YDocLike,
 		factories: realFactories(),
 		provider: {
+			awareness: fakeAwareness(),
 			onStatus: () => {},
 			connectedNow: true,
 			onSynced: () => {},
@@ -52,6 +70,40 @@ function fakeSessionFactory(doc: Y.Doc, syncedNow = true): CollabSessionFactory 
 		},
 		destroy: vi.fn(),
 	});
+}
+
+/** A fake session whose `onStatus`/`onSynced` callbacks can be driven manually (reconnect tests). */
+function statusDrivenSessionFactory(
+	doc: Y.Doc,
+	syncedNow: boolean,
+): {
+	factory: CollabSessionFactory;
+	emitStatus: (connected: boolean) => void;
+	emitSynced: () => void;
+} {
+	let statusCb: ((connected: boolean) => void) | null = null;
+	let syncedCb: (() => void) | null = null;
+	return {
+		factory: async (): Promise<CollabSession> => ({
+			ydoc: doc as unknown as YDocLike,
+			factories: realFactories(),
+			provider: {
+				awareness: fakeAwareness(),
+				onStatus: (cb) => {
+					statusCb = cb;
+				},
+				connectedNow: true,
+				onSynced: (cb) => {
+					syncedCb = cb;
+				},
+				syncedNow,
+				destroy: vi.fn(),
+			},
+			destroy: vi.fn(),
+		}),
+		emitStatus: (connected: boolean) => statusCb?.(connected),
+		emitSynced: () => syncedCb?.(),
+	};
 }
 
 function makeEditor(initial: PptxSlide[]): EditorState {
@@ -107,6 +159,41 @@ describe('collaborationController', () => {
 			flushSync();
 			const after = readSlidesFromYDoc(doc as unknown as YDocLike);
 			expect(after[0].elements.map((e) => e.id)).toStrictEqual(['e1', 'e2']);
+			collab.stop();
+		});
+	});
+
+	it('re-arms the sync gate on reconnect instead of leaving it permanently open', async () => {
+		const doc = new Y.Doc();
+		const { factory, emitStatus, emitSynced } = statusDrivenSessionFactory(doc, true);
+		await inRoot(async () => {
+			const editor = makeEditor([slide('s1', [shape('e1')])]);
+			const collab = new CollaborationController({
+				getSlides: () => editor.slides,
+				applyRemoteSlides: (s) => editor.applyRemoteSlides(s),
+				getConfig: () => CONFIG,
+				createSession: factory,
+			});
+			await collab.start(CONFIG);
+			expect(readSlidesFromYDoc(doc as unknown as YDocLike).map((s) => s.id)).toStrictEqual(['s1']);
+
+			// Drop and reconnect: without a re-arm, the gate stays open and a local
+			// edit issued right after reconnecting could clobber the room before a
+			// fresh sync confirmation arrives.
+			emitStatus(false);
+			emitStatus(true);
+
+			editor.setSlides([slide('s1', [shape('e1'), shape('e2')])]);
+			flushSync();
+			expect(
+				readSlidesFromYDoc(doc as unknown as YDocLike)[0].elements.map((e) => e.id),
+			).toStrictEqual(['e1']);
+
+			// A fresh sync confirmation re-opens the gate and flushes the pending edit.
+			emitSynced();
+			expect(
+				readSlidesFromYDoc(doc as unknown as YDocLike)[0].elements.map((e) => e.id),
+			).toStrictEqual(['e1', 'e2']);
 			collab.stop();
 		});
 	});

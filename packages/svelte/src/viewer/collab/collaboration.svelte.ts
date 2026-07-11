@@ -1,47 +1,36 @@
 /**
  * Real-time collaboration for the Svelte viewer (Yjs: y-websocket or serverless
- * y-webrtc), a runes port of the Vue binding's `useCollaboration` core.
- *
- * Slide sync is granular via the shared `reconcileSlidesInYDoc` (tagged
- * `LOCAL_SYNC_ORIGIN`; the observer skips its own writes), so concurrent edits
- * merge per slide/element/field rather than colliding at document granularity.
- * Remote updates are read back with `readSlidesFromYDoc` and handed to
- * `applyRemoteSlides`, which replaces the working slides without an undo step.
- *
- * SCOPE / CAVEATS (intentional, documented for hosts):
- *  - Remote presence (cursors/selections/follow-mode) and the one-way broadcast
- *    role are DESCOPED in this binding; only two-way slide sync + owner
- *    write-back are wired. Presence is a modest follow-up (shared awareness
- *    helpers exist) but is not required for editing collaboration.
- *  - The shared codec allowlists drop media/OLE/3D/ink binary fields, and a
- *    full-array remote apply can degrade a host's media elements. These limits
- *    live in `pptx-viewer-shared` and are out of scope here.
- *  - Collaborative-undo semantics are undefined in shared: local undo is kept
- *    as-is and may fight a concurrent remote edit (matching React/Vue).
+ * y-webrtc), a runes port of the Vue binding's `useCollaboration` core. Provider
+ * status and the remote-slide observer are extracted to `collaboration-status.ts`
+ * / `collaboration-remote-sync.ts`, and presence to `collaboration-presence.svelte.ts`.
+ * KNOWN LIMITATION: collaborative-undo semantics are undefined in shared - local
+ * undo is kept as-is and may fight a concurrent remote edit (matching the others).
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 import type {
 	CollaborationConfig,
 	ConnectionStatus,
+	RemoteCursor,
+	SanitizedPresence,
 	YDocLike,
 	YjsFactories,
 } from 'pptx-viewer-shared';
 import {
-	CONNECTION_TIMEOUT_MS,
 	createSyncGate,
+	createWriteBackScheduler,
+	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
-	LOCAL_SYNC_ORIGIN,
-	observeYDocSlides,
-	readSlidesFromYDoc,
 	reconcileSlidesInYDoc,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
 
+import { CollaborationPresence } from './collaboration-presence.svelte';
 import type { CollabProviderHandle } from './collaboration-provider';
+import { observeRemoteSlides } from './collaboration-remote-sync';
 import type { CollabSession, CollabSessionFactory } from './collaboration-session';
 import { createDefaultSession } from './collaboration-session';
-import { createWriteBackScheduler } from './collaboration-writeback';
+import { wireProviderStatus } from './collaboration-status';
 
 export interface CollaborationDeps {
 	/** Read the current local slides (broadcast granularly on change). */
@@ -52,6 +41,9 @@ export interface CollaborationDeps {
 	getConfig: () => CollaborationConfig | undefined;
 	/** Return the loaded source bytes for elected-writer (role 'owner') write-back. */
 	getSourceBytes?: () => Uint8Array | null;
+	/** Slide canvas width/height (unscaled px), used to clamp incoming cursor coordinates. */
+	getCanvasWidth?: () => number | undefined;
+	getCanvasHeight?: () => number | undefined;
 	/** Fired when a session starts (host observability). */
 	onStart?: (config: CollaborationConfig) => void;
 	/** Fired when a session stops (host observability). */
@@ -79,6 +71,7 @@ export class CollaborationController {
 	#provider: CollabProviderHandle | null = null;
 	#config: CollaborationConfig | null = null;
 	#lastStarted: CollaborationConfig | null = null;
+	#startedByEffect = false;
 
 	#applyingRemote = false;
 	#lastSynced = '';
@@ -90,10 +83,15 @@ export class CollaborationController {
 		getYDoc: () => this.#ydoc,
 		getSourceBytes: () => this.#deps.getSourceBytes?.() ?? null,
 	});
+	readonly #presence: CollaborationPresence;
 
 	constructor(deps: CollaborationDeps) {
 		this.#deps = deps;
 		this.#makeSession = deps.createSession ?? createDefaultSession;
+		this.#presence = new CollaborationPresence(() => ({
+			width: this.#deps.getCanvasWidth?.(),
+			height: this.#deps.getCanvasHeight?.(),
+		}));
 
 		// Auto start/stop when the host supplies (or clears) a config. Compared by
 		// reference so re-emitting the same object does not restart the session.
@@ -116,22 +114,51 @@ export class CollaborationController {
 	get active(): boolean {
 		return this.#active;
 	}
-
-	/**
-	 * Whether the local user is a read-only participant (session live with the
-	 * `viewer` role). The viewer folds this into its effective editability so a
-	 * viewer cannot select, drag, or mutate elements.
-	 */
+	/** Read-only participant (session live with the `viewer` role) - cannot select/drag/mutate. */
 	get readOnly(): boolean {
 		return this.#active && this.#config?.role === 'viewer';
+	}
+	/** Remote cursors on the current slide (reactive). */
+	get cursors(): RemoteCursor[] {
+		return this.#presence.cursors;
+	}
+	/** Remote collaborators in the session (reactive). */
+	get remotePresences(): SanitizedPresence[] {
+		return this.#presence.remotePresences;
+	}
+	/** Followed peer's client id, or null when free (reactive). */
+	get followedClientId(): number | null {
+		return this.#presence.followedClientId;
+	}
+
+	/** Publish a cursor move (slide-space px); no-op when no session is active. */
+	setCursor(x: number, y: number, activeSlideIndex?: number): void {
+		this.#presence.setCursor(x, y, activeSlideIndex);
+	}
+	/** Publish the local selection; no-op when no session is active. */
+	setSelection(selectedElementId: string | undefined, activeSlideIndex?: number): void {
+		this.#presence.setSelection(selectedElementId, activeSlideIndex);
+	}
+	/** Publish the local active-slide index (drives peer follow-along). */
+	setActiveSlide(index: number): void {
+		this.#presence.setActiveSlide(index);
+	}
+	/** Follow the given peer's active slide, or `null` to stop following. */
+	followUser(clientId: number | null): void {
+		this.#presence.followUser(clientId);
 	}
 
 	#syncConfig(config: CollaborationConfig | undefined): void {
 		if (config && config !== this.#lastStarted) {
 			this.#lastStarted = config;
-			void this.start(config);
-		} else if (!config && this.#active) {
+			this.#startedByEffect = true;
+			void this.#run(config);
+		} else if (!config && this.#active && this.#startedByEffect) {
+			// Only auto-stop a session THIS effect started; a direct `start()`
+			// call (e.g. from a dialog) always clears the flag below, so it
+			// is immune to this branch on the effect's next run.
 			this.#lastStarted = null;
+			this.#startedByEffect = false;
 			this.stop();
 		}
 	}
@@ -155,7 +182,6 @@ export class CollaborationController {
 			this.#writeBack.schedule(this.#config);
 		}
 	}
-
 	#clearTimers(): void {
 		if (this.#connectTimer !== null) {
 			clearTimeout(this.#connectTimer);
@@ -163,11 +189,19 @@ export class CollaborationController {
 		}
 		this.#writeBack.cancel();
 	}
-
+	/** Start (or restart) a session with the given config (dialog-driven). */
 	async start(config: CollaborationConfig): Promise<void> {
+		// Set synchronously, before any `await` below, so a same-tick effect
+		// flush (see `#syncConfig`) sees this config as already current and
+		// does not redundantly start a second, concurrent session.
+		this.#lastStarted = config;
+		this.#startedByEffect = false;
+		await this.#run(config);
+	}
+
+	async #run(config: CollaborationConfig): Promise<void> {
 		this.stop();
 		this.#config = config;
-		this.#lastStarted = config;
 		try {
 			validateRoomId(config.roomId);
 		} catch {
@@ -198,6 +232,13 @@ export class CollaborationController {
 				this.#gate.arm();
 			}
 
+			this.#presence.start(this.#provider.awareness, {
+				userName: config.userName,
+				userColor: config.userColor ?? DEFAULT_CURSOR_COLOR,
+				userAvatar: config.userAvatar,
+				role: config.role,
+			});
+
 			this.#wireStatus(transport);
 			this.#observeRemote(config);
 
@@ -213,59 +254,34 @@ export class CollaborationController {
 		if (!this.#provider) {
 			return;
 		}
-		if (transport === 'webrtc') {
-			// Same-browser tabs meet over BroadcastChannel at once (no server wait).
-			this.status = 'connected';
-			return;
-		}
-		this.#provider.onStatus((isConnected) => {
-			if (isConnected) {
-				if (this.#connectTimer !== null) {
-					clearTimeout(this.#connectTimer);
-					this.#connectTimer = null;
-				}
-				this.status = 'connected';
-			} else if (this.#active) {
-				this.status = 'disconnected';
-			}
+		wireProviderStatus(this.#provider, transport, {
+			setStatus: (status) => (this.status = status),
+			getStatus: () => this.status,
+			isActive: () => this.#active,
+			stop: () => this.stop(),
+			gate: this.#gate,
+			setConnectTimer: (timer) => (this.#connectTimer = timer),
+			getConnectTimer: () => this.#connectTimer,
 		});
-		if (this.#provider.connectedNow) {
-			this.status = 'connected';
-		} else {
-			this.#connectTimer = setTimeout(() => {
-				this.#connectTimer = null;
-				if (this.status !== 'connected') {
-					this.stop();
-					this.status = 'error';
-				}
-			}, CONNECTION_TIMEOUT_MS);
-		}
 	}
 
 	#observeRemote(config: CollaborationConfig): void {
 		if (!this.#ydoc) {
 			return;
 		}
-		this.#unobserve = observeYDocSlides(this.#ydoc, (_events, transaction) => {
-			if (transaction?.origin === LOCAL_SYNC_ORIGIN || this.#applyingRemote || !this.#ydoc) {
-				return;
-			}
-			const remote = readSlidesFromYDoc(this.#ydoc);
-			if (remote.length === 0) {
-				return;
-			}
-			this.#applyingRemote = true;
-			this.#deps.applyRemoteSlides(remote);
-			this.#applyingRemote = false;
-			// Dedupe the echo: the publish effect this apply schedules is a no-op.
-			this.#lastSynced = JSON.stringify(remote);
-			this.#writeBack.schedule(config);
+		this.#unobserve = observeRemoteSlides(this.#ydoc, config, {
+			isApplyingRemote: () => this.#applyingRemote,
+			setApplyingRemote: (value) => (this.#applyingRemote = value),
+			setLastSynced: (value) => (this.#lastSynced = value),
+			applyRemoteSlides: (slides) => this.#deps.applyRemoteSlides(slides),
+			scheduleWriteBack: (cfg) => this.#writeBack.schedule(cfg),
 		});
 	}
 
 	stop(): void {
 		this.#clearTimers();
 		this.#gate.reset();
+		this.#presence.stop();
 		this.#unobserve?.();
 		this.#unobserve = null;
 		this.#session?.destroy();

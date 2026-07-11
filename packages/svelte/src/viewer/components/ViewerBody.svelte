@@ -6,8 +6,9 @@
 	 * presentational, all state/logic stays owned by the parent.
 	 */
 	import type { PptxSlide } from 'pptx-viewer-core';
-	import type { CanvasSize } from 'pptx-viewer-shared';
+	import type { CanvasSize, RemoteCursor } from 'pptx-viewer-shared';
 
+	import CollaborationCursors from '../collab/components/CollaborationCursors.svelte';
 	import type { EditorController } from '../editor/editor-controller.svelte';
 	import type { EditorState } from '../editor/editor-state.svelte';
 	import type { Translator } from '../../i18n/translator';
@@ -46,6 +47,7 @@
 		notesExpanded,
 		onNotesCommit,
 		onNotesToggle,
+		collabCursors = [],
 	}: {
 		t: Translator;
 		editor: EditorState;
@@ -78,6 +80,8 @@
 		notesExpanded: boolean;
 		onNotesCommit?: (notes: string) => void;
 		onNotesToggle: () => void;
+		/** Remote collaborators' cursors on the active slide (unscaled slide px). */
+		collabCursors?: RemoteCursor[];
 	} = $props();
 
 	// The template's bind:clientWidth/Height write these (invisible to the linter).
@@ -129,12 +133,16 @@
 					class:pptx-svelte-editing={editingActive}
 					style={`width: ${canvasSize.width * scale}px; height: ${canvasSize.height * scale}px`}
 					onpointerdown={editingActive ? controller.onStagePointerDown : undefined}
+					onpointermove={editingActive ? controller.onStagePointerMove : undefined}
 					ondblclick={editingActive ? controller.onStageDblClick : undefined}
 					onclick={presenting ? onAdvance : undefined}
 				>
 					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive />
 					{#if editingActive}
 						<EditorLayer {controller} {scale} />
+					{/if}
+					{#if collabCursors.length > 0}
+						<CollaborationCursors cursors={collabCursors} zoom={scale} />
 					{/if}
 					{#if presenting && presentationTransition}
 						<PresentationTransitionOverlay

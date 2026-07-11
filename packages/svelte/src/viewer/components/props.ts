@@ -101,6 +101,12 @@ export interface ViewerToolbarProps {
 	 * Omit to hide the menu (e.g. while no presentation is loaded).
 	 */
 	exportUi?: ExportUiState;
+	/** Opens the Share (collaboration) dialog. Omit to hide the button. */
+	onshare?: () => void;
+	/** Opens the Broadcast dialog. Omit to hide the button. */
+	onbroadcast?: () => void;
+	/** Whether a collaboration session is currently active (highlights the Share button). */
+	collabActive?: boolean;
 }
 
 /** Props for the selection overlay (box + 8 resize handles + rotate handle). */
