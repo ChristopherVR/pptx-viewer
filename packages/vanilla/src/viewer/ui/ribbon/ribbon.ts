@@ -4,6 +4,7 @@ import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import { createEquationPanel } from './equation-panel';
 import { createFindReplacePanel } from './find-replace-panel';
+import { createFormatBackgroundPanel } from './format-background-panel';
 import type { HomeTab } from './home/home-tab';
 import { createHomeTab } from './home/home-tab';
 import { createRibbonNavRow } from './ribbon-nav-row';
@@ -17,9 +18,15 @@ import type {
 	RibbonSelectionState,
 	RibbonTabId,
 } from './ribbon-types';
+import type { AnimationsTab } from './tabs/animations-tab';
+import { createAnimationsTab } from './tabs/animations-tab';
+import type { DesignTab } from './tabs/design-tab';
+import { createDesignTab } from './tabs/design-tab';
 import { createFileTab } from './tabs/file-tab';
 import type { InsertTab } from './tabs/insert-tab';
 import { createInsertTab } from './tabs/insert-tab';
+import type { TransitionsTab } from './tabs/transitions-tab';
+import { createTransitionsTab } from './tabs/transitions-tab';
 import { createViewTab } from './tabs/view-tab';
 
 export interface Ribbon {
@@ -59,6 +66,9 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	const equationPanel = createEquationPanel(doc, t, (omml) => handlers.insert.insertEquation(omml));
 	el.appendChild(equationPanel.el);
 
+	const formatBackgroundPanel = createFormatBackgroundPanel(doc, t, handlers.edit);
+	el.appendChild(formatBackgroundPanel.el);
+
 	const fileTab = createFileTab(doc, t, handlers.file);
 	const homeTab: HomeTab = createHomeTab(doc, t, {
 		edit: handlers.edit,
@@ -67,12 +77,20 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	const insertTab: InsertTab = createInsertTab(doc, t, handlers.insert, () =>
 		equationPanel.toggle(),
 	);
+	const designTab: DesignTab = createDesignTab(doc, t, handlers.design, () =>
+		formatBackgroundPanel.toggle(),
+	);
+	const transitionsTab: TransitionsTab = createTransitionsTab(doc, t, handlers.edit);
+	const animationsTab: AnimationsTab = createAnimationsTab(doc, t, handlers.edit);
 	const viewTab = createViewTab(doc, t, handlers.nav);
 
 	const panes: Record<RibbonTabId, HTMLElement> = {
 		file: fileTab.el,
 		home: homeTab.el,
 		insert: insertTab.el,
+		design: designTab.el,
+		transitions: transitionsTab.el,
+		animations: animationsTab.el,
 		view: viewTab.el,
 	};
 	for (const tab of RIBBON_TABS) {
@@ -101,6 +119,9 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 			slideCount: latestExtra.slideCount,
 		});
 	};
+	const syncAnimations = (): void => {
+		animationsTab.update({ editable: lastEditable, hasSelection: latestSelected !== undefined });
+	};
 
 	let lastEditable = false;
 
@@ -118,12 +139,17 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 			insertTab.setEditable(editable);
 			findReplace.setEditable(editable);
 			equationPanel.setEditable(editable);
+			formatBackgroundPanel.setEditable(editable);
+			designTab.setEditable(editable);
+			transitionsTab.setEditable(editable);
 			syncHome();
+			syncAnimations();
 		},
 		updateSelection(selectedElement, extra) {
 			latestSelected = selectedElement;
 			latestExtra = extra;
 			syncHome();
+			syncAnimations();
 		},
 	};
 }

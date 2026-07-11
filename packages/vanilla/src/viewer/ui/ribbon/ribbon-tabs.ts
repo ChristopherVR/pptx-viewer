@@ -5,9 +5,10 @@ import type { RibbonTabId } from './ribbon-types';
  *
  * Mirrors React's `TOOLBAR_SECTIONS` (see `packages/react/src/viewer/constants/toolbar.ts`)
  * tab order/labels, but this wave only implements content for `file` / `home`
- * / `insert` / `view` (see {@link IMPLEMENTED_TABS}). The remaining entries
- * are commented out rather than omitted so a later wave adds one registry
- * line + one tab-content module per tab, matching this file's shape.
+ * / `insert` / `design` / `transitions` / `animations` / `view`. The
+ * remaining entries are commented out rather than omitted so a later wave
+ * adds one registry line + one tab-content module per tab, matching this
+ * file's shape.
  */
 export interface RibbonTabDef {
 	id: RibbonTabId;
@@ -20,9 +21,9 @@ export const RIBBON_TABS: readonly RibbonTabDef[] = [
 	{ id: 'insert', labelKey: 'pptx.ribbon.tab.insert' },
 	// Future waves (registry entries only, content module not yet written):
 	// { id: 'draw', labelKey: 'pptx.ribbon.tab.draw' },
-	// { id: 'design', labelKey: 'pptx.ribbon.tab.design' },
-	// { id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
-	// { id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
+	{ id: 'design', labelKey: 'pptx.ribbon.tab.design' },
+	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
+	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
 	// { id: 'slideShow', labelKey: 'pptx.ribbon.tab.slideShow' },
 	// { id: 'record', labelKey: 'pptx.ribbon.tab.record' },
 	// { id: 'review', labelKey: 'pptx.ribbon.tab.review' },

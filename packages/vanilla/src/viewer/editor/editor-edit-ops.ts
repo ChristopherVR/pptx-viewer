@@ -3,9 +3,13 @@ import { MIN_ELEMENT_SIZE } from 'pptx-viewer-core';
 import type { ShapePresetType } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
+import type { AnimationActions } from './editor-animation-actions';
+import { createAnimationActions } from './editor-animation-actions';
 import { createApplyToSelected } from './editor-apply-to-selected';
 import type { ArrangeActions } from './editor-arrange-actions';
 import { createArrangeActions } from './editor-arrange-actions';
+import type { SlideBackgroundActions } from './editor-background-actions';
+import { createSlideBackgroundActions } from './editor-background-actions';
 import type { ClipboardActions } from './editor-clipboard-actions';
 import { createClipboardActions } from './editor-clipboard-actions';
 import { patchShapeStyle } from './editor-format-mutations';
@@ -26,6 +30,8 @@ import type { SlideActions } from './editor-slide-actions';
 import { createSlideActions } from './editor-slide-actions';
 import type { TextActions } from './editor-text-actions';
 import { createTextActions } from './editor-text-actions';
+import type { TransitionActions } from './editor-transition-actions';
+import { createTransitionActions } from './editor-transition-actions';
 
 /** A geometry patch from the inspector (all fields optional). */
 export interface GeometryPatch {
@@ -45,7 +51,15 @@ export interface GeometryPatch {
  * directly here. Every mutating action is history-integrated (push -> mutate
  * -> commit) via the shared {@link EditorOps}.
  */
-export interface EditActions extends TextActions, ArrangeActions, ClipboardActions, SlideActions {
+export interface EditActions
+	extends
+		TextActions,
+		ArrangeActions,
+		ClipboardActions,
+		SlideActions,
+		SlideBackgroundActions,
+		TransitionActions,
+		AnimationActions {
 	setShapeFill(color: string): void;
 	setShapeStroke(color: string): void;
 	setShapeStrokeWidth(width: number): void;
@@ -100,6 +114,9 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		...createArrangeActions({ store, ops, applyToSelected }),
 		...createClipboardActions({ store, ops }),
 		...createSlideActions({ store, ops }),
+		...createSlideBackgroundActions({ store, ops }),
+		...createTransitionActions({ store, ops }),
+		...createAnimationActions({ store, ops }),
 
 		setShapeFill: (color) => applyToSelected((el) => patchShapeStyle(el, { fillColor: color })),
 		setShapeStroke: (color) => applyToSelected((el) => patchShapeStyle(el, { strokeColor: color })),

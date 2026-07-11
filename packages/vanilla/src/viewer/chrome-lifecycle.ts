@@ -1,3 +1,5 @@
+import type { ViewerTheme } from 'pptx-viewer-shared';
+
 import { buildChromeCallbacks } from './chrome-callbacks';
 import type { ChromeCallbackDeps } from './chrome-callbacks';
 import type { EditActions } from './editor';
@@ -115,6 +117,7 @@ export interface ChromeHost {
 	exportGif(): Promise<void>;
 	exportVideo(): Promise<void>;
 	print(): Promise<boolean>;
+	setTheme(theme: ViewerTheme | undefined): void;
 }
 
 /** Build `mountChrome`'s deps from the live viewer instance. */
@@ -151,5 +154,6 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		print: () => host.print(),
 		getEditActions: () => host.editor.getEditActions(),
 		getFindReplaceActions: () => host.editor.getFindReplaceActions(),
+		setTheme: (theme) => host.setTheme(theme),
 	};
 }

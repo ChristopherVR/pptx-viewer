@@ -1,3 +1,5 @@
+import type { ViewerTheme } from 'pptx-viewer-shared';
+
 import type { EditActions } from './editor/editor-edit-ops';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
 import { createLazyActions } from './editor/editor-lazy-actions';
@@ -30,6 +32,8 @@ export interface ChromeCallbackDeps {
 	getEditActions(): EditActions;
 	/** Lazily resolve the editor's find/replace actions (same timing as edit actions). */
 	getFindReplaceActions(): FindReplaceActions;
+	/** Swap the viewer chrome's `ViewerTheme` (Design tab theme gallery). */
+	setTheme(theme: ViewerTheme | undefined): void;
 }
 
 /**
@@ -81,6 +85,9 @@ export function buildChromeCallbacks(
 			insertField: (fieldType, value) => deps.getEditActions().insertField(fieldType, value),
 		},
 		findReplace: createLazyActions(() => deps.getFindReplaceActions()),
+		design: {
+			setTheme: (theme) => deps.setTheme(theme),
+		},
 	};
 	const inspectorHandlers: ChromeOptions['inspectorHandlers'] = {
 		setGeometry: (patch) => deps.getEditActions().setGeometry(patch),

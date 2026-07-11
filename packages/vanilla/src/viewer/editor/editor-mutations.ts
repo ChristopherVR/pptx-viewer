@@ -149,3 +149,27 @@ export function updateSlideNotes(
 ): PptxSlide[] {
 	return slides.map((slide, i) => (i === slideIndex ? { ...cloneSlide(slide), notes } : slide));
 }
+
+/**
+ * Shallow-merge `patch` into the slide at `slideIndex` (cloned first). Other
+ * slides are reused by reference. Backs the Design tab's Format Background
+ * panel and the Transitions tab's single-slide apply.
+ */
+export function updateSlide(
+	slides: readonly PptxSlide[],
+	slideIndex: number,
+	patch: Partial<PptxSlide>,
+): PptxSlide[] {
+	return slides.map((slide, i) => (i === slideIndex ? { ...cloneSlide(slide), ...patch } : slide));
+}
+
+/**
+ * Shallow-merge `patch` into every slide. Backs the Transitions tab's
+ * "Apply to All Slides" option.
+ */
+export function updateAllSlides(
+	slides: readonly PptxSlide[],
+	patch: Partial<PptxSlide>,
+): PptxSlide[] {
+	return slides.map((slide) => ({ ...cloneSlide(slide), ...patch }));
+}

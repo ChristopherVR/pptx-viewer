@@ -3,8 +3,16 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_RIBBON_TAB, isRibbonTab, RIBBON_TABS } from './ribbon-tabs';
 
 describe('ribbon-tabs registry', () => {
-	it('implements exactly File, Home, Insert, View this wave', () => {
-		expect(RIBBON_TABS.map((tab) => tab.id)).toStrictEqual(['file', 'home', 'insert', 'view']);
+	it('implements exactly File, Home, Insert, Design, Transitions, Animations, View this wave', () => {
+		expect(RIBBON_TABS.map((tab) => tab.id)).toStrictEqual([
+			'file',
+			'home',
+			'insert',
+			'design',
+			'transitions',
+			'animations',
+			'view',
+		]);
 	});
 
 	it('every entry has a non-empty i18n label key', () => {

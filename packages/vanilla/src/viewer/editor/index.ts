@@ -1,5 +1,7 @@
 export type { ApplyToSelected } from './editor-apply-to-selected';
 export { createApplyToSelected } from './editor-apply-to-selected';
+export type { AnimationActions, AnimationActionsDeps } from './editor-animation-actions';
+export { createAnimationActions } from './editor-animation-actions';
 export type { ArrangeActions, ArrangeActionsDeps } from './editor-arrange-actions';
 export { createArrangeActions } from './editor-arrange-actions';
 export {
@@ -10,6 +12,11 @@ export {
 	groupSelection,
 	ungroupSelection,
 } from './editor-arrange-mutations';
+export type {
+	SlideBackgroundActions,
+	SlideBackgroundActionsDeps,
+} from './editor-background-actions';
+export { createSlideBackgroundActions } from './editor-background-actions';
 export type { ClipboardActions, ClipboardActionsDeps } from './editor-clipboard-actions';
 export { createClipboardActions } from './editor-clipboard-actions';
 export type { EditorController, EditorControllerDeps } from './editor-controller';
@@ -58,6 +65,8 @@ export type { SlideActions, SlideActionsDeps } from './editor-slide-actions';
 export { createSlideActions } from './editor-slide-actions';
 export type { TextActions } from './editor-text-actions';
 export { createTextActions } from './editor-text-actions';
+export type { TransitionActions, TransitionActionsDeps } from './editor-transition-actions';
+export { createTransitionActions } from './editor-transition-actions';
 export type {
 	GestureController,
 	GestureDeps,
@@ -83,7 +92,9 @@ export {
 	patchElementGeometry,
 	removeElement,
 	reorderElementOnSlide,
+	updateAllSlides,
 	updateElement,
+	updateSlide,
 	updateSlideNotes,
 } from './editor-mutations';
 export type { EditorOps, EditorOpsDeps } from './editor-operations';
