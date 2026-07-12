@@ -4,6 +4,21 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-12
+
+_Releases: pptx-react-viewer@1.16.1, @christophervr/pptx-viewer@1.5.1_
+
+### Bug Fixes
+
+- **svelte:** Raise smart-art-3d-view's flushMount tick budget to de-flake CI (by @ChristopherVR) ([cefb575](https://github.com/ChristopherVR/pptx-viewer/commit/cefb57565eba8c3465d2d331179c11ae364affce))
+- **react:** Stop unmounting measured container on mid-session reload (by @ChristopherVR) ([052f182](https://github.com/ChristopherVR/pptx-viewer/commit/052f18207148f01cadd5e82bb07ea1b182790368))
+- **e2e:** Tighten addGifImage locator to avoid inspector background input (by @ChristopherVR) ([561feb2](https://github.com/ChristopherVR/pptx-viewer/commit/561feb27d6c5e8008ad98c83d6f5bc706217811e))
+- **cli:** Fix Angular Node.js preflight, vanilla three dep, collab packages prompt (by @ChristopherVR) ([8e41cea](https://github.com/ChristopherVR/pptx-viewer/commit/8e41cea107925c61a6ec94480a71fc91df31e4d9))
+
+### Chores
+
+- Bun.lock bumped (by @ChristopherVR) ([c017dbb](https://github.com/ChristopherVR/pptx-viewer/commit/c017dbb3fdae734299875b813ea6abe1d28a91db))
+
 ## 2026-07-11
 
 _Releases: pptx-viewer-core@1.3.0, pptx-react-viewer@1.16.0, pptx-vue-viewer@1.16.0, pptx-angular-viewer@1.16.0, pptx-vanilla-viewer@0.5.0, pptx-svelte-viewer@0.5.0, pptx-viewer-mcp@1.2.1_

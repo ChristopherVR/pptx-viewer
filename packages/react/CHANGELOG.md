@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.16.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.16.1) - 2026-07-12
+
 ## [1.16.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.16.0) - 2026-07-11
 
 ## [1.15.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.15.0) - 2026-07-11
