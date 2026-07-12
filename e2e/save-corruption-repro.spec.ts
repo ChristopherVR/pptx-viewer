@@ -77,10 +77,12 @@ async function addSmartArt(page: Page): Promise<void> {
 /** Insert an image by setting the hidden file input. */
 async function addGifImage(page: Page): Promise<void> {
 	await switchToInsertTab(page);
-	// Set the file on the hidden image input
-	const imageInput = page.locator(
-		'input[name="image-upload"], input[type="file"][accept*="image"]',
-	);
+	// Use the toolbar's dedicated image-upload input. The fallback
+	// `input[type="file"][accept*="image"]` was too broad -- the slide
+	// background panel in the inspector panel also contains a hidden image
+	// file input with a matching accept list, causing a strict-mode violation
+	// when the inspector is open and no element is selected.
+	const imageInput = page.locator('input[name="image-upload"]');
 	await imageInput.setInputFiles(gifFixturePath);
 	await page.waitForTimeout(500);
 }
