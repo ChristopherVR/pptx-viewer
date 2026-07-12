@@ -408,14 +408,6 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onSlideCountChange,
 		});
 
-		// ── Early returns ─────────────────────────────────────────────
-		if (loading) {
-			return <LoadingState />;
-		}
-		if (error) {
-			return <ErrorState error={error} />;
-		}
-
 		// On mobile, the slides pane is hidden by default (shown as overlay via
 		// separate mobile UI). On tablet+, it follows the existing isNarrowViewport logic.
 		const showSlidesPane =
@@ -440,113 +432,129 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					tabIndex={0}
 					className='h-full w-full flex flex-col overflow-hidden outline-none'
 				>
-					{mode !== 'present' && (
-						<ViewerToolbarSection
-							mode={mode}
-							canEdit={canEdit}
-							state={state}
-							selectedElement={selectedElement}
-							activeSlide={activeSlide}
-							zoom={zoom}
-							history={history}
-							findReplace={editorOps.findReplace}
-							manipulation={editorOps.manipulation}
-							insertHandlers={editorOps.insertHandlers}
-							exportHandlers={exportHandlers}
-							printHandlers={printHandlers}
-							propertyHandlers={propertyHandlers}
-							dialogs={dialogs}
-							slideOps={editorOps.slideOps}
-							ops={editorOps.ops}
-							onSetMode={handleSetMode}
-							onEnterPresenterView={handleEnterPresenterView}
-							onEnterRehearsalMode={handleEnterRehearsalMode}
-							onOpenSettings={() => setIsSettingsOpen(true)}
-							onOpenShareDialog={() => setIsShareDialogOpen(true)}
-							onOpenFile={handleOpenFile}
-							fileName={fileName}
-							autosaveStatus={autosaveStatus}
-							autosaveEnabled={autosaveEnabled}
-							onToggleAutosave={() => setAutosaveEnabled((p) => !p)}
-						/>
-					)}
+					{/* Loading/error render AS CHILDREN of this measured container
+					    rather than replacing the component's whole return value. A
+					    content reload (restoring a version, opening a new file) flips
+					    `loading` back to true after the initial mount; early-returning
+					    out of the container here would unmount `containerRef` itself,
+					    which permanently disconnects the ResizeObserver-driven
+					    mobile/desktop breakpoint (same class of bug as the
+					    CollaborationProvider case documented below). */}
+					{loading ? (
+						<LoadingState />
+					) : error ? (
+						<ErrorState error={error} />
+					) : (
+						<>
+							{mode !== 'present' && (
+								<ViewerToolbarSection
+									mode={mode}
+									canEdit={canEdit}
+									state={state}
+									selectedElement={selectedElement}
+									activeSlide={activeSlide}
+									zoom={zoom}
+									history={history}
+									findReplace={editorOps.findReplace}
+									manipulation={editorOps.manipulation}
+									insertHandlers={editorOps.insertHandlers}
+									exportHandlers={exportHandlers}
+									printHandlers={printHandlers}
+									propertyHandlers={propertyHandlers}
+									dialogs={dialogs}
+									slideOps={editorOps.slideOps}
+									ops={editorOps.ops}
+									onSetMode={handleSetMode}
+									onEnterPresenterView={handleEnterPresenterView}
+									onEnterRehearsalMode={handleEnterRehearsalMode}
+									onOpenSettings={() => setIsSettingsOpen(true)}
+									onOpenShareDialog={() => setIsShareDialogOpen(true)}
+									onOpenFile={handleOpenFile}
+									fileName={fileName}
+									autosaveStatus={autosaveStatus}
+									autosaveEnabled={autosaveEnabled}
+									onToggleAutosave={() => setAutosaveEnabled((p) => !p)}
+								/>
+							)}
 
-					<ViewerMainContent
-						mode={mode}
-						canEdit={canEdit}
-						slides={slides}
-						activeSlide={activeSlide}
-						masterPseudoSlide={masterPseudoSlide}
-						activeSlideIndex={activeSlideIndex}
-						canvasSize={canvasSize}
-						gridSpacingPx={gridSpacingPx}
-						slideSectionGroups={slideSectionGroups}
-						showSlidesPane={showSlidesPane}
-						showMasterPane={showMasterPane}
-						selectedElement={selectedElement}
-						state={state}
-						editorOps={editorOps}
-						dialogs={dialogs}
-						presentation={presentation}
-						annotations={annotations}
-						propertyHandlers={propertyHandlers}
-						themeHandlers={themeHandlers}
-						history={history}
-						comments={editorOps.comments}
-						zoom={zoom}
-						isMobile={isMobile}
-						isTouchDevice={isTouchDevice}
-						onEndPresentation={() => handleSetMode('edit')}
-						leftPanelWidth={isMobile ? undefined : resizablePanels.leftWidth}
-						onResizeLeft={isMobile ? undefined : resizablePanels.onResizeLeft}
-						rightPanelWidth={isMobile ? undefined : resizablePanels.rightWidth}
-						onResizeRight={isMobile ? undefined : resizablePanels.onResizeRight}
-					/>
+							<ViewerMainContent
+								mode={mode}
+								canEdit={canEdit}
+								slides={slides}
+								activeSlide={activeSlide}
+								masterPseudoSlide={masterPseudoSlide}
+								activeSlideIndex={activeSlideIndex}
+								canvasSize={canvasSize}
+								gridSpacingPx={gridSpacingPx}
+								slideSectionGroups={slideSectionGroups}
+								showSlidesPane={showSlidesPane}
+								showMasterPane={showMasterPane}
+								selectedElement={selectedElement}
+								state={state}
+								editorOps={editorOps}
+								dialogs={dialogs}
+								presentation={presentation}
+								annotations={annotations}
+								propertyHandlers={propertyHandlers}
+								themeHandlers={themeHandlers}
+								history={history}
+								comments={editorOps.comments}
+								zoom={zoom}
+								isMobile={isMobile}
+								isTouchDevice={isTouchDevice}
+								onEndPresentation={() => handleSetMode('edit')}
+								leftPanelWidth={isMobile ? undefined : resizablePanels.leftWidth}
+								onResizeLeft={isMobile ? undefined : resizablePanels.onResizeLeft}
+								rightPanelWidth={isMobile ? undefined : resizablePanels.rightWidth}
+								onResizeRight={isMobile ? undefined : resizablePanels.onResizeRight}
+							/>
 
-					{/* Keep the bottom panels mounted while the notes panel is expanded:
+							{/* Keep the bottom panels mounted while the notes panel is expanded:
 				    focusing the notes textbox opens the virtual keyboard, and
 				    unmounting on `isVirtualKeyboardOpen` would yank the textbox the
 				    user just tapped out from under them. When notes is collapsed we
 				    still hide the strip on keyboard-open to free room for canvas
 				    inline editing. */}
-					{mode !== 'present' && (!isVirtualKeyboardOpen || !state.isSlideNotesCollapsed) && (
-						<ViewerBottomPanels
-							activeSlide={activeSlide}
-							allSlides={slides}
-							isSlideNotesCollapsed={state.isSlideNotesCollapsed}
-							canEdit={canEdit}
-							slideCount={slides.length}
-							activeSlideIndex={activeSlideIndex}
-							isDirty={state.isDirty}
-							autosaveStatus={autosaveStatus}
-							onToggleNotes={() => state.setIsSlideNotesCollapsed((p) => !p)}
-							onUpdateNotes={propertyHandlers.handleUpdateNotes}
-							collaborationSlot={collaboration ? <CollaborationStatusStrip /> : undefined}
-							notesPanelHeight={isMobile ? undefined : resizablePanels.bottomHeight}
-							onResizeBottom={isMobile ? undefined : resizablePanels.onResizeBottom}
-							scale={zoom.scale}
-							onZoomIn={zoom.handleZoomIn}
-							onZoomOut={zoom.handleZoomOut}
-							onZoomToFit={zoom.handleZoomToFit}
-							mode={mode}
-							onSetMode={handleSetMode}
-							onToggleSlideSorter={() => state.setShowSlideSorter((p) => !p)}
-							hideStatusBar={isMobile}
-						/>
-					)}
+							{mode !== 'present' && (!isVirtualKeyboardOpen || !state.isSlideNotesCollapsed) && (
+								<ViewerBottomPanels
+									activeSlide={activeSlide}
+									allSlides={slides}
+									isSlideNotesCollapsed={state.isSlideNotesCollapsed}
+									canEdit={canEdit}
+									slideCount={slides.length}
+									activeSlideIndex={activeSlideIndex}
+									isDirty={state.isDirty}
+									autosaveStatus={autosaveStatus}
+									onToggleNotes={() => state.setIsSlideNotesCollapsed((p) => !p)}
+									onUpdateNotes={propertyHandlers.handleUpdateNotes}
+									collaborationSlot={collaboration ? <CollaborationStatusStrip /> : undefined}
+									notesPanelHeight={isMobile ? undefined : resizablePanels.bottomHeight}
+									onResizeBottom={isMobile ? undefined : resizablePanels.onResizeBottom}
+									scale={zoom.scale}
+									onZoomIn={zoom.handleZoomIn}
+									onZoomOut={zoom.handleZoomOut}
+									onZoomToFit={zoom.handleZoomToFit}
+									mode={mode}
+									onSetMode={handleSetMode}
+									onToggleSlideSorter={() => state.setShowSlideSorter((p) => !p)}
+									hideStatusBar={isMobile}
+								/>
+							)}
 
-					{mode !== 'present' && isMobile && (
-						<MobileChromeOverlay
-							state={state}
-							editorOps={editorOps}
-							presentation={presentation}
-							slides={slides}
-							activeSlideIndex={activeSlideIndex}
-							canvasSize={canvasSize}
-							slideSectionGroups={slideSectionGroups}
-							canEdit={canEdit}
-							commentCount={activeSlide?.comments?.length ?? 0}
-						/>
+							{mode !== 'present' && isMobile && (
+								<MobileChromeOverlay
+									state={state}
+									editorOps={editorOps}
+									presentation={presentation}
+									slides={slides}
+									activeSlideIndex={activeSlideIndex}
+									canvasSize={canvasSize}
+									slideSectionGroups={slideSectionGroups}
+									canEdit={canEdit}
+									commentCount={activeSlide?.comments?.length ?? 0}
+								/>
+							)}
+						</>
 					)}
 				</div>
 
