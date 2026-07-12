@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 
 export interface RunCommandOptions {
-	/** Suppress stdout/stderr (pipe to /dev/null). Useful for scaffolders that print their own "next steps". */
+	/** Suppress stdout (not stderr) so scaffolders' "Done. Now run: ..." messages are hidden while real errors remain visible. */
 	silent?: boolean;
 }
 
@@ -23,7 +23,13 @@ export function runCommand(
 ): Promise<number> {
 	return new Promise((resolve, reject) => {
 		const isWindows = process.platform === 'win32';
-		const stdio = options?.silent ? ('ignore' as const) : ('inherit' as const);
+		// When silent, suppress stdout only (to hide the scaffolder's "Done. Now run: ..."
+		// messages) but keep stderr so that real errors (e.g. Node.js version mismatch,
+		// unknown CLI flags) are visible to the user rather than being swallowed and
+		// replaced by a cryptic "exited with code N" message.
+		const stdio: 'inherit' | ['inherit', 'ignore', 'inherit'] = options?.silent
+			? ['inherit', 'ignore', 'inherit']
+			: 'inherit';
 		const child = isWindows
 			? spawn([command, ...args].join(' '), { cwd, stdio, shell: true })
 			: spawn(command, args, { cwd, stdio });

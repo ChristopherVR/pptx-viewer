@@ -1,38 +1,78 @@
 // See react.ts for why the picker/new-presentation pattern is what it is.
+// The component's `styles` array carries the landing-screen layout so no extra
+// CSS file is needed beyond the global `src/styles.css` (ANGULAR_GLOBAL_CSS).
 export const ANGULAR_APP_TS = `import { Component, signal } from '@angular/core';
 import { PptxHandler } from 'pptx-viewer-core';
+import type { CollaborationConfig } from 'pptx-angular-viewer';
 import { PowerPointViewerComponent } from 'pptx-angular-viewer';
 
 @Component({
 	selector: 'app-root',
 	standalone: true,
 	imports: [PowerPointViewerComponent],
+	styles: [\`
+		:host { display: block; height: 100dvh; }
+		.stage { display: flex; align-items: center; justify-content: center; height: 100dvh; padding: 2rem; cursor: default; }
+		.dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; max-width: 520px; width: 100%; padding: 3rem; text-align: center; border: 2px dashed var(--pptx-border, #374151); border-radius: 0.75rem; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+		.dropzone.over, .dropzone:hover { border-color: var(--pptx-primary, #6366f1); background: var(--pptx-muted, rgba(255,255,255,0.04)); }
+		h1 { margin: 0; font-size: 1.5rem; font-weight: 500; }
+		p { margin: 0; font-size: 0.875rem; color: var(--pptx-muted-foreground, #9ca3af); }
+		.pick-label { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1.25rem; border-radius: 0.5rem; border: 1px solid var(--pptx-border, #374151); background: var(--pptx-muted, #1f2937); color: var(--pptx-foreground, #f3f4f6); cursor: pointer; font-size: 0.875rem; transition: background 0.15s; }
+		.pick-label:hover { background: var(--pptx-accent, #374151); }
+		.or-sep { font-size: 0.8rem; color: var(--pptx-muted-foreground, #6b7280); }
+		.new-btn { padding: 0.5rem 1.25rem; border-radius: 0.5rem; border: none; background: var(--pptx-primary, #6366f1); color: #fff; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: opacity 0.15s; }
+		.new-btn:hover { opacity: 0.9; }
+	\`],
 	template: \`
 		@if (content(); as c) {
-			<div style="height: 100vh">
-				<pptx-power-point-viewer [content]="c" [canEdit]="true" style="height: 100%" />
+			<div style="height: 100dvh">
+				<pptx-power-point-viewer
+					[content]="c"
+					[canEdit]="true"
+					style="height: 100%"
+					[collaboration]="collab()"
+					(startCollaboration)="collab.set($event)"
+					(stopCollaboration)="collab.set(undefined)"
+				/>
 			</div>
 		} @else {
-			<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; height: 100vh; font-family: system-ui, sans-serif">
-				<h1 style="margin: 0; font-size: 24px; font-weight: 500; color: #e5e7eb">Open a Presentation</h1>
-				<label style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; border: 1px solid #4b5563; background: #1f2937; color: #f3f4f6; cursor: pointer; font-size: 14px">
-					Choose .pptx file
-					<input type="file" accept=".pptx" style="display: none" (change)="onPick($event)" />
-				</label>
-				<span style="color: #6b7280; font-size: 13px">or</span>
-				<button style="padding: 10px 20px; border-radius: 8px; border: none; background: #2563eb; color: #fff; cursor: pointer; font-size: 14px; font-weight: 500" (click)="newPresentation()">New Presentation</button>
+			<div
+				class="stage"
+				[class.over]="over()"
+				(dragover)="$event.preventDefault(); over.set(true)"
+				(dragleave)="over.set(false)"
+				(drop)="onDrop($event)"
+				(click)="fileInput.click()"
+			>
+				<div class="dropzone">
+					<h1>Open a Presentation</h1>
+					<p>Drag &amp; drop a .pptx file here, or</p>
+					<label class="pick-label" (click)="$event.stopPropagation()">
+						Choose .pptx file
+						<input #fileInput type="file" accept=".pptx" style="display: none" (change)="onPick($event)" />
+					</label>
+					<span class="or-sep">or</span>
+					<button class="new-btn" (click)="$event.stopPropagation(); newPresentation()">New Presentation</button>
+				</div>
 			</div>
 		}
 	\`,
 })
 export class App {
 	content = signal<ArrayBuffer | Uint8Array | null>(null);
+	collab = signal<CollaborationConfig | undefined>(undefined);
+	over = signal(false);
+
+	async onDrop(e: DragEvent) {
+		e.preventDefault();
+		this.over.set(false);
+		const file = e.dataTransfer?.files?.[0];
+		if (file?.name.endsWith('.pptx')) this.content.set(await file.arrayBuffer());
+	}
 
 	async onPick(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];
-		if (file) {
-			this.content.set(await file.arrayBuffer());
-		}
+		if (file) this.content.set(await file.arrayBuffer());
 	}
 
 	async newPresentation() {

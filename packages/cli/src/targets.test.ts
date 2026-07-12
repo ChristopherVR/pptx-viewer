@@ -90,6 +90,23 @@ describe('targets', () => {
 		expect(args).toContain('--no-interactive');
 	});
 
+	it('the angular scaffold has a preflight check that validates Node.js version', () => {
+		const angular = TARGETS.find((t) => t.id === 'angular');
+		expect(angular?.scaffold?.preflight).toBeDefined();
+
+		// Passing a compatible version should not throw.
+		const origNode = process.versions.node;
+		Object.defineProperty(process.versions, 'node', { value: '24.13.1', configurable: true });
+		expect(() => angular?.scaffold?.preflight?.()).not.toThrow();
+
+		// Versions below the minimum should throw a descriptive error.
+		Object.defineProperty(process.versions, 'node', { value: '20.19.0', configurable: true });
+		expect(() => angular?.scaffold?.preflight?.()).toThrow(/Node\.js/);
+
+		// Restore.
+		Object.defineProperty(process.versions, 'node', { value: origNode, configurable: true });
+	});
+
 	it('every scaffold entryContent and nextSteps import styles via the .css-suffixed subpath', () => {
 		// The extension-less `/styles` alias isn't matched by Vite's ambient
 		// `declare module '*.css'`, so `vue-tsc -b`/`tsc -b` fails on a fresh

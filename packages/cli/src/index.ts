@@ -123,6 +123,30 @@ async function runScaffoldMode(
 		throw new Error(`${target.label} has no scaffold recipe.`);
 	}
 
+	// Run the pre-flight check (e.g. Node.js version) before showing any prompts
+	// so the user sees the real reason for failure immediately, without first
+	// having to enter a project name and confirm.
+	recipe.preflight?.();
+
+	// Prompt for optional feature groups (e.g. real-time collaboration).
+	// In non-interactive mode (--yes or piped stdin) each group is included
+	// according to its defaultInclude setting (default: true).
+	const optionalPkgs: string[] = [];
+	if (recipe.optionalExtras) {
+		for (const extra of recipe.optionalExtras) {
+			const defaultChoice = extra.defaultInclude !== false;
+			const include =
+				args.yes || !process.stdin.isTTY ? defaultChoice : await confirm(extra.prompt);
+			if (include) {
+				optionalPkgs.push(...extra.packages);
+			}
+		}
+	}
+	const effectiveRecipe =
+		optionalPkgs.length > 0
+			? { ...recipe, extraPackages: [...recipe.extraPackages, ...optionalPkgs] }
+			: recipe;
+
 	const defaultName = `pptx-${target.id}-app`;
 	const rawName =
 		args.dir ??
@@ -141,7 +165,7 @@ async function runScaffoldMode(
 		}
 	}
 
-	const result = await scaffoldProject(recipe, projectName, pm, cwd);
+	const result = await scaffoldProject(effectiveRecipe, projectName, pm, cwd);
 	if (!result.patchedFile) {
 		console.log(
 			`\n${yellow('Scaffolded the project, but could not find an entry file to wire up automatically.')} ` +

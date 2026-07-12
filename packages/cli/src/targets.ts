@@ -1,5 +1,6 @@
 import {
 	ANGULAR_APP_TS,
+	ANGULAR_GLOBAL_CSS,
 	ANGULAR_MAIN_TS,
 	MINIMAL_APP_CSS,
 	REACT_APP_TSX,
@@ -30,6 +31,27 @@ export interface ScaffoldRecipe {
 	entryContent: string;
 	/** Additional files to write after scaffolding (relative path -> content). Used for i18n setup, main.ts overrides, etc. */
 	extraFiles?: Record<string, string>;
+	/**
+	 * Optional feature groups the user is prompted about during `--scaffold`.
+	 * Each entry shows a confirmation question; the packages are appended to
+	 * `extraPackages` when the user accepts (default: yes). In non-interactive
+	 * mode (`--yes` or piped stdin) the group is included when `defaultInclude`
+	 * is `true` (the default).
+	 */
+	optionalExtras?: Array<{
+		/** Confirmation question shown to the user. */
+		prompt: string;
+		/** Packages to install when the user opts in. */
+		packages: string[];
+		/** Whether to auto-include in non-interactive / --yes mode. Defaults to `true`. */
+		defaultInclude?: boolean;
+	}>;
+	/**
+	 * Optional pre-flight check invoked before the project-name prompt and the
+	 * "Continue?" confirmation. Throw an `Error` with a human-readable message
+	 * to abort scaffolding before any interactive prompts are shown.
+	 */
+	preflight?: () => void;
 }
 
 /** One thing a user can scaffold: a UI binding, the bare engine, or the MCP server. */
@@ -50,6 +72,15 @@ export interface Target {
 	/** Targets sharing a `group` are mutually exclusive: the UI bindings aren't meant to be picked together. */
 	group?: string;
 }
+
+/** Collaboration optional extra shared by all UI-binding scaffolds. */
+const COLLAB_EXTRAS: NonNullable<ScaffoldRecipe['optionalExtras']> = [
+	{
+		prompt: 'Include real-time collaboration? (adds yjs, y-websocket, y-webrtc)',
+		packages: ['yjs', 'y-websocket', 'y-webrtc'],
+		// defaultInclude is true (the default) - demo apps ship with collab packages.
+	},
+];
 
 export const TARGETS: Target[] = [
 	{
@@ -103,6 +134,7 @@ Docs: https://www.npmjs.com/package/pptx-react-viewer`,
 				'src/i18n.ts': REACT_I18N_TS,
 				'src/index.css': MINIMAL_APP_CSS,
 			},
+			optionalExtras: COLLAB_EXTRAS,
 		},
 	},
 	{
@@ -136,6 +168,7 @@ Docs: https://www.npmjs.com/package/pptx-vue-viewer`,
 			entryCandidates: ['src/App.vue'],
 			entryContent: VUE_APP_VUE,
 			extraFiles: { 'src/main.ts': VUE_MAIN_TS },
+			optionalExtras: COLLAB_EXTRAS,
 		},
 	},
 	{
@@ -171,7 +204,25 @@ Docs: https://www.npmjs.com/package/pptx-angular-viewer`,
 			// Angular v20+ generates `app.ts`; older schematics generate `app.component.ts`.
 			entryCandidates: ['src/app/app.ts', 'src/app/app.component.ts'],
 			entryContent: ANGULAR_APP_TS,
-			extraFiles: { 'src/main.ts': ANGULAR_MAIN_TS },
+			extraFiles: { 'src/main.ts': ANGULAR_MAIN_TS, 'src/styles.css': ANGULAR_GLOBAL_CSS },
+			// @angular/cli@22 requires Node.js >=22.22.0, >=24.13.1, or >=26.0.0. Check
+			// BEFORE the project-name prompt so the user sees the real reason immediately.
+			preflight: () => {
+				const node = process.versions.node;
+				const [maj, min, pat] = node.split('.').map(Number);
+				const ok =
+					(maj === 22 && min >= 22) ||
+					(maj === 24 && (min > 13 || (min === 13 && pat >= 1))) ||
+					maj >= 26;
+				if (!ok) {
+					throw new Error(
+						`@angular/cli@latest requires Node.js v22.22.0+, v24.13.1+, or v26.0.0+.\n` +
+							`  You are running Node.js v${node}.\n` +
+							`  Update Node.js at: https://nodejs.org`,
+					);
+				}
+			},
+			optionalExtras: COLLAB_EXTRAS,
 		},
 	},
 	{
@@ -200,6 +251,7 @@ Docs: https://www.npmjs.com/package/pptx-svelte-viewer`,
 			// The starter's main.ts imports ./app.css; replace the Vite demo
 			// styles (centred #app with padding) with a full-viewport reset.
 			extraFiles: { 'src/app.css': MINIMAL_APP_CSS },
+			optionalExtras: COLLAB_EXTRAS,
 		},
 	},
 	{
@@ -223,12 +275,19 @@ Docs: https://www.npmjs.com/package/pptx-vanilla-viewer`,
 		scaffold: {
 			command: 'create-vite@latest',
 			args: (dir) => [dir, '--template', 'vanilla-ts', '--no-interactive', '--no-immediate'],
-			extraPackages: ['pptx-vanilla-viewer', 'pptx-viewer-core', 'jszip', 'fast-xml-parser'],
+			extraPackages: [
+				'pptx-vanilla-viewer',
+				'pptx-viewer-core',
+				'three',
+				'jszip',
+				'fast-xml-parser',
+			],
 			entryCandidates: ['src/main.ts'],
 			entryContent: VANILLA_MAIN_TS,
 			// main.ts imports ./style.css; replace the Vite demo styles with a
 			// full-viewport reset.
 			extraFiles: { 'src/style.css': MINIMAL_APP_CSS },
+			optionalExtras: COLLAB_EXTRAS,
 		},
 	},
 	{
