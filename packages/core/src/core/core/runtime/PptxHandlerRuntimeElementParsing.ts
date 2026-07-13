@@ -280,6 +280,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return true;
 		}
 
+		const typesMatch =
+			source.type === target.type ||
+			(source.type === 'ctrtitle' && target.type === 'title') ||
+			(source.type === 'subtitle' && target.type === 'body');
+
 		// Per OOXML spec, idx is the primary key for multi-instance
 		// placeholder matching (e.g. content areas 1, 2, 3).
 		if (source.idx !== undefined && target.idx !== undefined) {
@@ -287,7 +292,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return false;
 			}
 			// idx matches — if both have types, they must also match
-			if (source.type && target.type && source.type !== target.type) {
+			if (source.type && target.type && !typesMatch) {
 				return false;
 			}
 			return true;
@@ -300,13 +305,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (source.idx !== undefined && target.idx === undefined) {
 			const singletonTypes = new Set(['title', 'ctrtitle', 'subtitle', 'dt', 'ftr', 'sldnum']);
 			if (source.type && singletonTypes.has(source.type)) {
-				return target.type === source.type;
+				return typesMatch;
 			}
 			return false;
 		}
 
 		// Neither has idx — match by type
-		if (source.type && target.type && source.type !== target.type) {
+		if (source.type && target.type && !typesMatch) {
 			return false;
 		}
 		if (source.type && !target.type) {

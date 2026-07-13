@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+
 import JSZip from 'jszip';
 import { describe, it, expect, beforeEach } from 'vitest';
 
@@ -648,6 +650,26 @@ describe('document Parts', () => {
 // ===========================================================================
 
 describe('error Handling', () => {
+	it('inherits title-slide placeholder geometry from the layout', async () => {
+		const bytes = await readFile(
+			new URL(
+				'../../../../../e2e/fixtures/Mathematical_Equations_11_Slides_46_KB_3c22e70f4d.pptx',
+				import.meta.url,
+			),
+		);
+		const handler = new PptxHandler();
+		const data = await handler.load(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+		);
+
+		expect(data.slides[0]!.elements).toHaveLength(2);
+		expect(data.slides[0]!.elements.map((element) => element.type)).toStrictEqual(['text', 'text']);
+		expect(data.slides[0]!.elements.map((element) => element.text)).toStrictEqual([
+			'Calculus',
+			'Basic Equations',
+		]);
+	});
+
 	it('rejects non-ZIP data (random bytes)', async () => {
 		const handler = new PptxHandler();
 		const garbage = new Uint8Array(256);

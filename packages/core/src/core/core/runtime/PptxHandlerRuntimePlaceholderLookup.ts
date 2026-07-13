@@ -138,10 +138,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * otherwise falls back to `type`.
 	 */
 	protected buildPlaceholderDefaultsKey(phInfo: PlaceholderInfo): string {
+		const normalizedType =
+			phInfo.type === 'ctrtitle' ? 'title' : phInfo.type === 'subtitle' ? 'body' : phInfo.type;
 		if (phInfo.idx !== undefined) {
-			return phInfo.type ? `${phInfo.type}_${phInfo.idx}` : `_${phInfo.idx}`;
+			return normalizedType ? `${normalizedType}_${phInfo.idx}` : `_${phInfo.idx}`;
 		}
-		return phInfo.type ?? 'body';
+		return normalizedType ?? 'body';
 	}
 
 	/**
