@@ -115,7 +115,7 @@
 		aria-controls="slide-notes-content"
 		onclick={() => ontoggle?.()}
 	>
-		<span class="pptx-svelte-notes-title">{t('pptx.presenter.speakerNotes')}</span>
+		<span class="pptx-svelte-notes-title">{t('pptx.notes.title')}</span>
 		<span class="pptx-svelte-notes-chevron" aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
 	</button>
 

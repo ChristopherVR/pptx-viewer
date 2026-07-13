@@ -9,8 +9,6 @@ import { PptxHandler } from 'pptx-viewer-core';
 import { buildRoomConfig, readRoomFromUrl, resolveAutoName } from './collab';
 import { getLanguage, onLanguageChange, setLanguage, t, viewerMessages } from './demo-i18n';
 import { createDropzone } from './dropzone';
-import type { ExportBar } from './export-bar';
-import { createExportBar } from './export-bar';
 import { createLanguagePicker } from './language-picker';
 import { observeNotesHeight } from './notes-offset';
 import { createThemePicker } from './theme-picker';
@@ -37,7 +35,6 @@ const app: HTMLElement = appRoot;
 
 let themeKey = readStoredTheme();
 let viewer: PptxViewerInstance | null = null;
-let exportBar: ExportBar | null = null;
 let appliedVarKeys: string[] = [];
 let stopNotesObserver: (() => void) | null = null;
 
@@ -89,7 +86,6 @@ onLanguageChange((code) => {
 	viewer?.setLocale(code);
 	themePicker.refresh();
 	languagePicker.refresh();
-	exportBar?.refresh();
 	if (!viewer) {
 		showLanding();
 	}
@@ -114,14 +110,13 @@ function openViewer(
 ): void {
 	viewer?.destroy();
 	viewer = null;
-	exportBar?.destroy();
-	exportBar = null;
 	stopNotesObserver?.();
 	stopNotesObserver = null;
 	app.replaceChildren();
 
 	const shell = document.createElement('div');
 	shell.className = 'demo-shell';
+	shell.dataset.pptxViewer = '';
 	app.append(shell);
 
 	document.title = `${name} - PPTX Viewer`;
@@ -143,22 +138,7 @@ function openViewer(
 	});
 	// e2e/debug seam: expose the live viewer handle for scripted verification.
 	(window as unknown as { __pptxViewer?: PptxViewerInstance }).__pptxViewer = viewer;
-	exportBar = createExportBar({
-		exportPng: () => viewer?.exportSlidePng() ?? Promise.resolve(),
-		exportPdf: () => viewer?.exportPdf() ?? Promise.resolve(),
-		exportGif: () => viewer?.exportGif() ?? Promise.resolve(),
-		exportVideo: () => viewer?.exportVideo() ?? Promise.resolve(),
-		print: async () => {
-			// `false` = popup blocked; the click handler context normally allows it.
-			const opened = (await viewer?.print()) ?? false;
-			if (!opened) {
-				console.warn('[pptx-vanilla-viewer demo] print window blocked by the browser');
-			}
-		},
-	});
-	shell.append(exportBar.el);
-
-	// Keep the pickers/export bar clear of the notes panel as it expands
+	// Keep the floating theme and language pickers clear of the notes panel as it expands
 	// (see notes-offset.ts): the viewer chrome mounts synchronously above, so
 	// `.pptxv-notes` is already in the DOM here.
 	const notesEl = shell.querySelector('.pptxv-notes');
@@ -170,8 +150,6 @@ function openViewer(
 function showLanding(): void {
 	viewer?.destroy();
 	viewer = null;
-	exportBar?.destroy();
-	exportBar = null;
 	stopNotesObserver?.();
 	stopNotesObserver = null;
 	document.title = 'pptx-vanilla-viewer demo';

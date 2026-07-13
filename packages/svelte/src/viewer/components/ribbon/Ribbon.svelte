@@ -1,12 +1,9 @@
 <script lang="ts">
 	/**
 	 * Ribbon: the tabbed editing chrome shown in place of `ViewerToolbar` while
-	 * `editable` is on (React parity: quick-access primary row + tab bar +
-	 * per-tab content). Mirrors React's tab order/labels, but only renders the
-	 * tabs this binding currently has content for (File / Home / Insert /
-	 * View); the compact nav row (prev/next/counter) stays visible regardless
-	 * of the active tab, matching React's layout and the vanilla binding's
-	 * "core viewing features a read-only viewer still needs" rationale.
+	 * `editable` is on. Slide navigation, slide position, and zoom live in the
+	 * bottom status bar, matching React instead of adding a duplicate row above
+	 * the ribbon tabs.
 	 */
 	import { useTranslator } from '../../../i18n/context';
 	import AnimationsTab from './animations/AnimationsTab.svelte';
@@ -16,7 +13,6 @@
 	import FindReplacePanel from './FindReplacePanel.svelte';
 	import HomeTab from './home/HomeTab.svelte';
 	import InsertTab from './insert/InsertTab.svelte';
-	import RibbonNavRow from './RibbonNavRow.svelte';
 	import RibbonPrimaryRow from './RibbonPrimaryRow.svelte';
 	import RibbonTabBar from './RibbonTabBar.svelte';
 	import SlideShowTab from './slideshow/SlideShowTab.svelte';
@@ -42,31 +38,7 @@
 </script>
 
 <div class="pptx-svelte-ribbon" role="toolbar" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
-	<RibbonNavRow
-		current={props.current}
-		total={props.total}
-		onprev={props.onprev}
-		onnext={props.onnext}
-		zoomPercent={props.zoomPercent}
-		onzoomin={props.onzoomin}
-		onzoomout={props.onzoomout}
-		onzoomfit={props.onzoomfit}
-		isFullscreen={props.isFullscreen}
-		onfullscreen={props.onfullscreen}
-		showNotes={props.showNotes}
-		notesExpanded={props.notesExpanded}
-		onnotestoggle={props.onnotestoggle}
-	/>
 	<RibbonPrimaryRow
-		canUndo={props.canUndo}
-		canRedo={props.canRedo}
-		dirty={props.dirty}
-		onundo={props.onundo}
-		onredo={props.onredo}
-		onsave={props.onsave}
-		ondownload={props.ondownload}
-		autosaveStatus={props.autosaveStatus}
-		autosaveDirty={props.autosaveDirty}
 		onshare={props.onshare}
 		onbroadcast={props.onbroadcast}
 		collabActive={props.collabActive}

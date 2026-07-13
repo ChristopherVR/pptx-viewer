@@ -33,6 +33,12 @@
 		border-top: 1px solid var(--pptx-border, #33334d);
 		border-bottom: 1px solid var(--pptx-border, #33334d);
 		overflow-x: auto;
+		overflow-y: hidden;
+		scrollbar-width: none;
+	}
+
+	.pptx-svelte-ribbon-tabs::-webkit-scrollbar {
+		display: none;
 	}
 
 	.pptx-svelte-ribbon-tab {

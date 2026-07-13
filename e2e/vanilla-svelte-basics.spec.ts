@@ -40,14 +40,9 @@
  *    panel"`, so `[aria-label="Toggle slides panel"] button` finds the
  *    thumbnails in either binding without branching on the project name.
  *
- * Deliberately NOT covered (features that do not exist in these bindings
- * yet): format painter, equation editing, collaboration, OLE dialogs,
- * mobile-specific chrome, ribbon/inspector UI, presentation
- * (real-Fullscreen) mode (headless-CI fullscreen flakiness isn't worth
- * chasing for a smoke spec), and PNG/PDF export (vanilla has a demo-only
- * export bar exercised implicitly by unit tests; Svelte's export UI was
- * still being built by a concurrent change while this spec was written, so
- * asserting on it here would couple this spec to a moving target).
+ * Fullscreen presentation remains outside this smoke spec because headless CI
+ * fullscreen behavior is browser-dependent. Editing, collaboration, mobile
+ * chrome, OLE/ink, Format Painter, and exports have focused shared specs.
  *
  * Run: bunx playwright test vanilla-svelte-basics --project=vanilla
  *      bunx playwright test vanilla-svelte-basics --project=svelte
@@ -104,6 +99,21 @@ test.describe('vanilla / svelte basics', () => {
 		await expect(page.locator('[data-pptx-viewport]')).toBeVisible();
 		const count = await page.locator('[data-pptx-element="true"]').count();
 		expect(count).toBeGreaterThan(0);
+	});
+
+	test('keeps demo actions out of the viewer chrome and uses one status counter', async ({
+		page,
+	}) => {
+		await loadDeck(page, sampleDeckPath);
+		await expect(page.locator('.demo-export-bar, .export-bar, .demo-editable-toggle')).toHaveCount(
+			0,
+		);
+		await expect(page.locator('.pptxv-ribbon-nav, .pptx-svelte-ribbon-nav')).toHaveCount(0);
+		const statusCounter = page.locator(
+			'.pptxv-statusbar-counter, .pptx-svelte-statusbar-left > span[aria-live="polite"]',
+		);
+		await expect(statusCounter).toHaveCount(1);
+		await expect(statusCounter).toContainText('Slide 1 of 7');
 	});
 
 	test('navigates slides with next/prev controls and a thumbnail click', async ({ page }) => {

@@ -9,10 +9,9 @@ export interface ViewTab {
 }
 
 /**
- * The View ribbon tab: zoom in/out/fit, present, and notes-toggle, mirroring
- * the always-visible nav row (see `ribbon-nav-row.ts` docs for why those stay
- * outside the tab system too: read-only mode needs them regardless of the
- * ribbon). This tab exists for ribbon-parity/discoverability while editing.
+ * The View ribbon tab: zoom in/out/fit, present, and notes-toggle. The status
+ * bar keeps these actions available outside the tab while avoiding a duplicate
+ * navigation row above the ribbon.
  */
 export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavHandlers): ViewTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');

@@ -7,7 +7,6 @@ import { createFindReplacePanel } from './find-replace-panel';
 import { createFormatBackgroundPanel } from './format-background-panel';
 import type { HomeTab } from './home/home-tab';
 import { createHomeTab } from './home/home-tab';
-import { createRibbonNavRow } from './ribbon-nav-row';
 import { createRibbonPrimaryRow } from './ribbon-primary-row';
 import { createRibbonTabBar } from './ribbon-tab-bar';
 import { DEFAULT_RIBBON_TAB, RIBBON_TABS } from './ribbon-tabs';
@@ -50,11 +49,9 @@ export interface Ribbon {
 }
 
 /**
- * The tabbed editing ribbon: quick-access primary row (undo/redo/save +
- * autosave pill), the always-visible nav row (prev/next/counter/zoom/present/
- * notes, see `ribbon-nav-row.ts`), the tab bar, and the swappable tab content
- * (File/Home/Insert/View this wave, see `ribbon-tabs.ts`). Replaces the old
- * `toolbar.ts` + `format-toolbar.ts` pair.
+ * The tabbed editing ribbon: a React-aligned command row, tab bar, and
+ * swappable tab content. Slide navigation and zoom live in the status bar,
+ * avoiding the duplicate counter row that used to sit above the tabs.
  */
 export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandlers): Ribbon {
 	const el = createEl(doc, 'div', 'pptxv-ribbon');
@@ -62,8 +59,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	el.setAttribute('aria-label', t('pptx.toolbar.presentationToolbarAria'));
 
 	const primary = createRibbonPrimaryRow(doc, t, handlers.primary);
-	const nav = createRibbonNavRow(doc, t, handlers.nav);
-	el.append(primary.el, nav.el);
+	el.append(primary.el);
 
 	const tabBar = createRibbonTabBar(doc, t, (tab) => setActiveTab(tab));
 	tabBar.el.hidden = true;
@@ -144,12 +140,12 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 
 	return {
 		el,
-		update: (state) => nav.update(state),
+		update() {},
 		setEditState(state) {
 			primary.setEditState(state);
 			tabBar.el.hidden = !state.editable;
 		},
-		setNotesExpanded: (expanded) => nav.setNotesExpanded(expanded),
+		setNotesExpanded() {},
 		setAutosaveStatus: (label, kind) => primary.setAutosaveStatus(label, kind),
 		setEditable(editable) {
 			lastEditable = editable;

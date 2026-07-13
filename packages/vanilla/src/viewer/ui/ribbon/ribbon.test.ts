@@ -113,23 +113,11 @@ describe('createRibbon', () => {
 		expect(ribbon.el.querySelector<HTMLElement>('.pptxv-ribbon-tabs')?.hidden).toBeFalsy();
 	});
 
-	it('update() reflects the nav counter and zoom label', () => {
+	it('does not duplicate status-bar navigation above the ribbon tabs', () => {
 		const t = createTranslator();
 		const ribbon = createRibbon(document, t, buildHandlers());
 		ribbon.update({ current: 1, total: 5, zoomPercent: 150 });
-		expect(ribbon.el.querySelector('.pptxv-counter')?.textContent).toBe(
-			t('pptx.statusBar.slideOf', { current: 2, total: 5 }),
-		);
-		expect(ribbon.el.querySelector('.pptxv-zoom-label')?.textContent).toBe('150%');
-	});
-
-	it('nav prev/next buttons dispatch the nav handlers', () => {
-		const t = createTranslator();
-		const handlers = buildHandlers();
-		const ribbon = createRibbon(document, t, handlers);
-		ribbon.el
-			.querySelector<HTMLButtonElement>(`[aria-label="${t('pptx.presenter.nextSlide')}"]`)
-			?.click();
-		expect(handlers.nav.next).toHaveBeenCalledOnce();
+		expect(ribbon.el.querySelector('.pptxv-ribbon-nav')).toBeNull();
+		expect(ribbon.el.querySelector('.pptxv-counter')).toBeNull();
 	});
 });

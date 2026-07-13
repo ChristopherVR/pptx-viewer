@@ -69,6 +69,15 @@ describe('powerPointViewer', () => {
 		expect(target.textContent).toContain(`Slide 1 of ${detail.slideCount}`);
 	});
 
+	it('keeps the slide counter in the status bar when editing', async () => {
+		const { target, onload } = await mountViewer({ editable: true });
+		const detail = onload.mock.calls[0][0] as { slideCount: number };
+		expect(target.querySelector('.pptx-svelte-ribbon-nav')).toBeNull();
+		expect(target.querySelector('.pptx-svelte-statusbar')?.textContent).toContain(
+			`Slide 1 of ${detail.slideCount}`,
+		);
+	});
+
 	it('navigates with the toolbar buttons and fires slidechange', async () => {
 		const { target, onslidechange } = await mountViewer();
 		onslidechange.mockClear();

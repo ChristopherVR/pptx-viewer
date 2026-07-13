@@ -124,11 +124,11 @@ describe('createPptxViewer', () => {
 		viewer.destroy();
 	});
 
-	it('wires the toolbar Notes button to expand/collapse the notes panel', () => {
+	it('wires the status-bar Notes button to expand/collapse the notes panel', () => {
 		const { container } = mount();
 		const notesBody = container.querySelector<HTMLElement>('.pptxv-notes-body');
 		const notesBtn = container.querySelector<HTMLButtonElement>(
-			'.pptxv-ribbon [aria-label="Toggle notes"]',
+			'.pptxv-statusbar [aria-label="Toggle notes"]',
 		);
 		expect(notesBody?.hidden).toBeTruthy();
 		expect(notesBtn?.getAttribute('aria-pressed')).toBe('false');

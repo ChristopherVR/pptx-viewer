@@ -32,7 +32,7 @@ parity (the Vue port's tracker was removed the same way).
 | Editing (selection/move/resize/etc.)   | yes (full ribbon)   | yes (see depth note)             | yes (see depth note)             |
 | Export                                 | PNG/PDF/GIF/video   | yes                              | yes                              |
 | i18n locale registration               | yes                 | yes (see below)                  | yes (see below)                  |
-| e2e coverage in the Playwright harness | full ~20-file suite | 10 shared specs / 60 total tests | 10 shared specs / 60 total tests |
+| e2e coverage in the Playwright harness | full ~20-file suite | 10 shared specs / 62 total tests | 10 shared specs / 62 total tests |
 | Animations / transitions playback      | yes                 | yes                              | yes                              |
 | Ribbon / inspector / dialogs chrome    | yes                 | yes                              | yes                              |
 | Autosave                               | yes                 | yes                              | yes                              |
@@ -121,7 +121,7 @@ Vanilla (`packages/vanilla/src/viewer/editor/`) and Svelte
 Tooling / QA:
 
 - [x] e2e: both demos wired into `playwright.config.ts` as `vanilla`/`svelte`
-      projects and the CI `e2e` job matrix. Ten shared specs now run 60 tests
+      projects and the CI `e2e` job matrix. Ten shared specs now run 62 tests
       across the two bindings, covering load/navigation/zoom/notes, selection
       and transforms, inline and table-cell editing, mobile manipulation and
       notes, Format Painter, text/relationship rendering, OLE preview, and ink

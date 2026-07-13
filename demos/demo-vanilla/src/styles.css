@@ -87,45 +87,6 @@ body {
 	color: var(--pptx-destructive, #ef4444);
 }
 
-/* ── Export bar (minimal PNG/PDF export affordance) ── */
-
-.demo-export-bar {
-	position: fixed;
-	left: 12px;
-	/* Clears the viewer's own bottom-docked speaker-notes panel, which spans
-	   the full chrome width and grows from its ~32px collapsed header up to
-	   ~230px when expanded for editing. `--demo-notes-h` mirrors the panel's
-	   live height (see notes-offset.ts); the 32px fallback covers the
-	   collapsed height before the observer's first measurement lands. */
-	bottom: calc(var(--demo-notes-h, 32px) + 16px);
-	z-index: 99999;
-	display: flex;
-	gap: 8px;
-	font-family: system-ui, sans-serif;
-}
-
-.demo-export-bar button {
-	padding: 6px 12px;
-	border-radius: 9999px;
-	border: 1px solid var(--pptx-border, #374151);
-	background: var(--pptx-muted, #1f2937);
-	color: var(--pptx-foreground, #f3f4f6);
-	font-size: 13px;
-	font-weight: 500;
-	cursor: pointer;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-	transition: background 0.15s;
-}
-
-.demo-export-bar button:hover:not(:disabled) {
-	background: var(--pptx-accent, #1f2937);
-}
-
-.demo-export-bar button:disabled {
-	opacity: 0.6;
-	cursor: default;
-}
-
 /* ── Floating pickers (ported from demo-vue's ThemePicker/LanguagePicker) ── */
 
 .theme-picker,
@@ -137,7 +98,7 @@ body {
 }
 
 .theme-picker {
-	/* See .demo-export-bar above: stays clear of the notes panel's live height. */
+	/* Keep clear of the notes panel's live height. */
 	bottom: calc(var(--demo-notes-h, 32px) + 16px);
 }
 
