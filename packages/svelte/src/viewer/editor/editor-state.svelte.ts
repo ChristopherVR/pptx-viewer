@@ -1,4 +1,4 @@
-import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import type { ElementClipboardPayload } from 'pptx-viewer-shared';
 import { EditorHistory } from 'pptx-viewer-shared';
 
@@ -350,14 +350,14 @@ export class EditorState {
 		this.commitChange();
 	}
 
-	commitNotes(notes: string): void {
+	commitNotes(notes: string, notesSegments?: TextSegment[]): void {
 		const current = this.#deps.getCurrent();
 		const slide = this.slides[current];
-		if (!this.editable || !slide || slide.notes === notes) {
+		if (!this.editable || !slide || (slide.notes === notes && notesSegments === undefined)) {
 			return;
 		}
 		this.pushHistory();
-		this.slides = updateSlideNotes(this.slides, current, notes);
+		this.slides = updateSlideNotes(this.slides, current, notes, notesSegments);
 		this.commitChange();
 	}
 

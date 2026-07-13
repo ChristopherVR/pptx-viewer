@@ -7,6 +7,7 @@
 	 * modules; this SFC is thin composition.
 	 */
 	import { onDestroy } from 'svelte';
+	import type { TextSegment } from 'pptx-viewer-core';
 	import { defaultCssVars, themeToCssVars } from 'pptx-viewer-shared';
 
 	import { createTranslator } from '../i18n/translator';
@@ -286,9 +287,9 @@
 	// Route notes edits through the history-tracked editor when editable (so
 	// they participate in undo/redo and persist to `save()`), then always
 	// forward to the host `onnotesupdate` callback.
-	function onNotesCommit(notes: string): void {
+	function onNotesCommit(notes: string, segments?: TextSegment[]): void {
 		if (editable) {
-			editor.commitNotes(notes);
+			editor.commitNotes(notes, segments);
 		}
 		onnotesupdate?.(notes);
 	}
@@ -374,6 +375,11 @@
 				onshare={() => dialogs.openShare()}
 				onbroadcast={() => dialogs.openBroadcast()}
 				collabActive={collab.active}
+				slides={displaySlides}
+				onnavigatetoissue={(slideIndex, elementId) => {
+					viewer.goTo(slideIndex);
+					if (elementId) editor.select(elementId);
+				}}
 				onfrombeginning={() => {
 					viewer.goTo(0);
 					onFullscreenToggle();

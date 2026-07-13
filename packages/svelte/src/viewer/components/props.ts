@@ -1,4 +1,4 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import type { CanvasSize, RenderParagraph, ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
 
 import type { EditorController } from '../editor/editor-controller.svelte';
@@ -177,7 +177,7 @@ export interface NotesPanelProps {
 	 * host is responsible for writing the text back onto the slide. Mirrors
 	 * the Vue notes panel's plain-text `update` emit contract.
 	 */
-	onupdate?: (notes: string) => void;
+	onupdate?: (notes: string, segments?: TextSegment[]) => void;
 	/** Called when the header is clicked to expand/collapse the panel. */
 	ontoggle?: () => void;
 }

@@ -5,7 +5,7 @@
 	 * to keep that file under the repo's file-size budget; purely
 	 * presentational, all state/logic stays owned by the parent.
 	 */
-	import type { PptxSlide } from 'pptx-viewer-core';
+	import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 	import type { CanvasSize, RemoteCursor } from 'pptx-viewer-shared';
 
 	import CollaborationCursors from '../collab/components/CollaborationCursors.svelte';
@@ -82,7 +82,7 @@
 		/** Reports the stage-holder DOM node once mounted (null on teardown). */
 		onstageholder: (el: HTMLDivElement | null) => void;
 		notesExpanded: boolean;
-		onNotesCommit?: (notes: string) => void;
+		onNotesCommit?: (notes: string, segments?: TextSegment[]) => void;
 		onNotesToggle: () => void;
 		/** Remote collaborators' cursors on the active slide (unscaled slide px). */
 		collabCursors?: RemoteCursor[];
