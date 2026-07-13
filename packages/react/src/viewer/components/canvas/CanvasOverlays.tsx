@@ -65,36 +65,6 @@ export function CanvasGuides({ guides, onDeleteGuide, onStartGuideDrag }: Canvas
 }
 
 /* ------------------------------------------------------------------ */
-/*  Slide background (image + gradient)                                */
-/* ------------------------------------------------------------------ */
-
-interface SlideBackgroundProps {
-	backgroundImage?: string;
-	backgroundGradient?: string;
-}
-
-export function SlideBackground({ backgroundImage, backgroundGradient }: SlideBackgroundProps) {
-	return (
-		<>
-			{backgroundImage && (
-				<img
-					src={backgroundImage}
-					alt=''
-					className='absolute inset-0 w-full h-full object-cover pointer-events-none'
-					draggable={false}
-				/>
-			)}
-			{backgroundGradient && (
-				<div
-					className='absolute inset-0 pointer-events-none'
-					style={{ background: backgroundGradient }}
-				/>
-			)}
-		</>
-	);
-}
-
-/* ------------------------------------------------------------------ */
 /*  Marquee selection rectangle                                        */
 /* ------------------------------------------------------------------ */
 

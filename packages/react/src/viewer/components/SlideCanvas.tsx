@@ -1,12 +1,9 @@
+import { getSlideBackgroundStyle } from 'pptx-viewer-shared';
+
 import { getShapeAdjustmentHandleDescriptor } from '../utils';
 /** SlideCanvas: Central canvas area for the PowerPoint editor. */
 import type { SlideCanvasProps } from './canvas/canvas-types';
-import {
-	CanvasGuides,
-	SlideBackground,
-	MarqueeOverlay,
-	SnapLinesOverlay,
-} from './canvas/CanvasOverlays';
+import { CanvasGuides, MarqueeOverlay, SnapLinesOverlay } from './canvas/CanvasOverlays';
 import { CommentMarkersOverlay } from './canvas/CommentMarkersOverlay';
 import { ConnectorOverlay } from './canvas/ConnectorOverlay';
 import { DrawingOverlaySvg } from './canvas/DrawingOverlaySvg';
@@ -226,10 +223,7 @@ export function SlideCanvas({
 						// pinch-zoom. View/present mode keeps the default so the slide can
 						// still be scrolled and swipe-navigated.
 						touchAction: isEditableCanvas ? 'none' : undefined,
-						backgroundColor:
-							activeSlide?.backgroundColor && activeSlide.backgroundColor !== 'transparent'
-								? activeSlide.backgroundColor
-								: '#ffffff',
+						...getSlideBackgroundStyle(activeSlide),
 					}}
 					onClick={handleStageClick}
 					onDoubleClick={handleStageDblClick}
@@ -246,11 +240,6 @@ export function SlideCanvas({
 						onDeleteGuide={onDeleteGuide}
 						onStartGuideDrag={setDraggingGuide}
 					/>
-					<SlideBackground
-						backgroundImage={activeSlide?.backgroundImage}
-						backgroundGradient={activeSlide?.backgroundGradient}
-					/>
-
 					{/* Template elements */}
 					{templateElements.map((element, index) => (
 						<ElementRenderer
