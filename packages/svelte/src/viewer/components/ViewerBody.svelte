@@ -7,6 +7,7 @@
 	 */
 	import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 	import type { CanvasSize, RemoteCursor } from 'pptx-viewer-shared';
+	import { setCellText } from 'pptx-viewer-shared';
 
 	import CollaborationCursors from '../collab/components/CollaborationCursors.svelte';
 	import type { EditorController } from '../editor/editor-controller.svelte';
@@ -111,6 +112,15 @@
 			},
 		};
 	}
+
+	function commitTableCell(id: string, rowIndex: number, cellIndex: number, text: string): void {
+		const table = editor.activeElements.find((element) => element.id === id);
+		if (table?.type !== 'table') {
+			return;
+		}
+		const updated = setCellText(table, rowIndex, cellIndex, text);
+		editor.applyElementPatch(id, { tableData: updated.tableData });
+	}
 </script>
 
 <div class="pptx-svelte-body">
@@ -155,7 +165,7 @@
 					oncontextmenu={editingActive ? controller.onStageContextMenu : undefined}
 					onclick={presenting ? onAdvance : undefined}
 				>
-					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive />
+					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive editTemplateMode={editor.editTemplateMode} ontablecellcommit={editingActive ? commitTableCell : undefined} />
 					{#if editingActive}
 						<EditorLayer {controller} {scale} />
 						<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />

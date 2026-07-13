@@ -77,6 +77,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			smartArt3D: deps.smartArt3D,
 			presenting,
 			interactive,
+			templateEditing: state.editTemplateMode || state.masterViewTarget !== null,
 		});
 	};
 
@@ -140,11 +141,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			zoomPercent: scale * 100,
 		});
 		chrome.presentationTouchControls.update(state.currentSlide, state.slides.length);
-		chrome.mobileActionSheets?.update(
-			state.currentSlide,
-			state.slides.length,
-			slide?.comments ?? [],
-		);
+		chrome.mobileActionSheets?.update(state.currentSlide, state.slides, slide?.comments ?? []);
 		chrome.notes.update({ slide, editable: state.editable });
 		deps.onStageRendered?.();
 		// Drive presentation-mode entrance state + slide transitions off the fresh
@@ -198,6 +195,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			chrome.notes.setExpanded(state.notesExpanded);
 			chrome.ribbon?.setNotesExpanded(state.notesExpanded);
 			chrome.mobileNavigation?.setNotesExpanded(state.notesExpanded);
+			chrome.ribbon?.setTemplateEditing(state.editTemplateMode);
 		},
 		renderStage,
 		renderThumbnails,

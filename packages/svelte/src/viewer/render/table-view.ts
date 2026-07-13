@@ -49,6 +49,8 @@ export interface TableRunView {
 /** One rendered `<td>`. */
 export interface TableCellView {
 	key: string;
+	rowIndex: number;
+	cellIndex: number;
 	/** `undefined` when the cell spans a single column/row (attr omitted). */
 	colSpan: number | undefined;
 	rowSpan: number | undefined;
@@ -139,6 +141,8 @@ function buildCellView(
 
 	return {
 		key: `c${rowIndex}-${cellIndex}`,
+		rowIndex,
+		cellIndex,
 		colSpan: cell.gridSpan && cell.gridSpan > 1 ? cell.gridSpan : undefined,
 		rowSpan: cell.rowSpan && cell.rowSpan > 1 ? cell.rowSpan : undefined,
 		style: styleToString({ ...CELL_BASE_STYLE, ...style }),

@@ -35,6 +35,14 @@ export interface ElementRendererProps {
 	 * Defaults to `false`.
 	 */
 	interactive?: boolean;
+	/** Whether inherited layout/master nodes participate in pointer editing. */
+	editTemplateMode?: boolean;
+	ontablecellcommit?: (
+		elementId: string,
+		rowIndex: number,
+		cellIndex: number,
+		text: string,
+	) => void;
 }
 
 export interface TextBlockProps {
@@ -57,6 +65,13 @@ export interface SlideStageProps {
 	 * forwarded to each `ElementRenderer`; see `ElementRendererProps.interactive`.
 	 */
 	interactive?: boolean;
+	editTemplateMode?: boolean;
+	ontablecellcommit?: (
+		elementId: string,
+		rowIndex: number,
+		cellIndex: number,
+		text: string,
+	) => void;
 }
 
 export interface ViewerToolbarProps {

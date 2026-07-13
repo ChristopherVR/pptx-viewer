@@ -54,7 +54,7 @@
 	<main class="pptx-svelte-master-canvas" bind:clientWidth={viewportWidth} bind:clientHeight={viewportHeight} aria-label={t('pptx.mode.masterView')}>
 		{#if active}
 			<div use:attach class="stage" role="application" aria-label={t('pptx.mode.masterView')} style={`width:${canvasSize.width * scale}px;height:${canvasSize.height * scale}px`} onpointerdown={controller.onStagePointerDown} onpointermove={controller.onStagePointerMove} ondblclick={controller.onStageDblClick} oncontextmenu={controller.onStageContextMenu}>
-				<SlideStage slide={active} {canvasSize} {mediaDataUrls} {scale} interactive />
+				<SlideStage slide={active} {canvasSize} {mediaDataUrls} {scale} interactive editTemplateMode />
 				<EditorLayer {controller} {scale} />
 				<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />
 			</div>

@@ -82,6 +82,7 @@ export interface EditActions
 	insertChart(chartType: PptxChartType): void;
 	insertSmartArt(layout: SmartArtLayout, defaultItems: string[]): void;
 	insertEquation(omml: Record<string, unknown>): void;
+	updateEquation(id: string, omml: Record<string, unknown>): void;
 	insertActionButton(shapeType: string): void;
 	insertField(fieldType: string, value?: string): void;
 	duplicateSelected(): void;
@@ -212,6 +213,7 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 			}
 			insertElement(buildEquationInsertElement(omml, state.canvasSize));
 		},
+		updateEquation: (id, omml) => ops.updateEquation(id, omml),
 		insertActionButton(shapeType) {
 			const state = store.get();
 			if (!state.slides[state.currentSlide]) {

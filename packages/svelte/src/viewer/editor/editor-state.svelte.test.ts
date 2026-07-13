@@ -91,6 +91,24 @@ describe('editorState selection + geometry', () => {
 });
 
 describe('editorState history-tracked mutations', () => {
+	it('reopens an existing equation and updates its OMML in place', () => {
+		const { editor } = make();
+		const original = { 'm:oMath': { 'm:r': { 'm:t': 'x' } } };
+		const updated = { 'm:oMath': { 'm:r': { 'm:t': '42' } } };
+		editor.setSlides([
+			slide('a', [
+				shape('equation', { textSegments: [{ text: '[Equation]', equationXml: original }] }),
+			]),
+		]);
+		expect(editor.equationOps.open('equation')).toBeTruthy();
+		expect(editor.equationOps.omml).toStrictEqual(original);
+		editor.equationOps.apply(updated);
+		expect(editor.activeElements).toHaveLength(1);
+		expect(editor.activeElements[0].textSegments?.[0].equationXml).toStrictEqual(updated);
+		editor.undo();
+		expect(editor.activeElements[0].textSegments?.[0].equationXml).toStrictEqual(original);
+	});
+
 	it('applies Format Painter once and records the target style in history', () => {
 		const { editor } = make();
 		editor.setSlides([

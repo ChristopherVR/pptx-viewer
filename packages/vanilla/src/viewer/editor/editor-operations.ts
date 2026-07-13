@@ -22,6 +22,7 @@ import {
 } from './editor-active-elements';
 import type { ElementBoxPatch } from './editor-mutations';
 import { cloneSlides, updateSlideNotes } from './editor-mutations';
+import { createStructuredEditorOperations } from './editor-structured-operations';
 import { remapInlineText } from './inline-text-editor';
 
 /**
@@ -59,6 +60,8 @@ export interface EditorOps {
 	/** Commit speaker notes and optional rich segments onto the current slide. */
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	applyFormatPainter(sourceId: string, targetId: string): boolean;
+	commitTableCell(id: string, row: number, column: number, text: string): void;
+	updateEquation(id: string, omml: Record<string, unknown>): void;
 	undo(): void;
 	redo(): void;
 	canUndo(): boolean;
@@ -127,6 +130,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		});
 		commitChange();
 	};
+	const structured = createStructuredEditorOperations({ store, pushHistory, commitChange });
 
 	return {
 		selectedElement,
@@ -257,6 +261,8 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			commitChange();
 			return true;
 		},
+
+		...structured,
 
 		undo() {
 			restore(history.undo(snapshot())?.snapshot);

@@ -73,7 +73,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			chrome.presentationTouchControls.update(state.currentSlide, state.slides.length);
 			chrome.mobileActionSheets?.update(
 				state.currentSlide,
-				state.slides.length,
+				state.slides,
 				state.slides[state.currentSlide]?.comments ?? [],
 			);
 		}
@@ -96,6 +96,9 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			chrome.ribbon?.setNotesExpanded(state.notesExpanded);
 			chrome.statusBar?.setNotesExpanded(state.notesExpanded);
 			chrome.mobileNavigation?.setNotesExpanded(state.notesExpanded);
+		}
+		if (state.editTemplateMode !== previous.editTemplateMode) {
+			chrome.ribbon?.setTemplateEditing(state.editTemplateMode);
 		}
 	};
 }

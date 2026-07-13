@@ -85,10 +85,10 @@
 		.pptx-svelte-mobile-actions nav small { font-size: 10px; }
 		.pptx-svelte-mobile-menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 		.pptx-svelte-mobile-menu-grid button { min-height: 44px; border: 1px solid var(--pptx-border, #33334d); border-radius: 8px; background: var(--pptx-muted, #2a2a3d); color: inherit; }
-		:global(.pptx-svelte-mobile-sheet .pptx-svelte-thumbs) { max-height: 55dvh; border: 0; }
+		:global(.pptx-svelte-mobile-sheet .pptx-svelte-thumbs) { display:flex !important; max-height:55dvh; border:0; }
 		:global(.pptx-svelte-mobile-sheet .pptx-svelte-insert) { display: flex; flex-wrap: wrap; gap: 8px; }
 		:global(.pptx-svelte-mobile-sheet .pptx-svelte-insert-btn) { min-width: 44px; min-height: 44px; }
-		:global(.pptx-svelte-mobile-sheet .pptx-svelte-inspector) { width: 100%; max-height: 55dvh; border: 0; }
+		:global(.pptx-svelte-mobile-sheet .pptx-svelte-inspector) { display:flex !important; width:100%; max-height:55dvh; border:0; }
 		:global(.pptx-svelte-mobile-sheet .pptx-svelte-comments) { box-sizing: border-box; width: 100%; padding: 0; border: 0; }
 	}
 </style>

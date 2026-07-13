@@ -199,6 +199,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	}
 
 	toggleTemplateEditing(): void {
+		this.setEditTemplateMode(!this.store.get().editTemplateMode);
+	}
+
+	toggleMasterNavigation(): void {
 		const patch = toggleMasterView(this.store.get());
 		if (patch) {
 			this.store.set(patch);

@@ -13,7 +13,7 @@
 	import { useTableStyleContext } from '../state/render-context';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex }: ElementRendererProps = $props();
+	const { element, zIndex, interactive = false, ontablecellcommit }: ElementRendererProps = $props();
 
 	const tableData = $derived(element.type === 'table' ? element.tableData : undefined);
 	const tableStyleContext = $derived(useTableStyleContext());
@@ -22,6 +22,53 @@
 	const containerStyle = $derived(
 		styleToString({ ...getContainerStyle(element, zIndex), overflow: 'hidden' }),
 	);
+	let editingKey = $state<string | null>(null);
+	let draft = $state('');
+
+	function begin(cell: (typeof rows)[number]['cells'][number], event: MouseEvent): void {
+		if (!interactive || !ontablecellcommit) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		editingKey = cell.key;
+		draft = cell.text.trim();
+	}
+
+	function commit(cell: (typeof rows)[number]['cells'][number]): void {
+		if (editingKey !== cell.key) {
+			return;
+		}
+		ontablecellcommit?.(element.id, cell.rowIndex, cell.cellIndex, draft);
+		editingKey = null;
+	}
+
+	function focusInput(node: HTMLInputElement): void {
+		queueMicrotask(() => {
+			node.focus();
+			node.select();
+		});
+	}
+
+	$effect(() => {
+		if (!editingKey) {
+			return;
+		}
+		const onOutsidePointerDown = (event: PointerEvent): void => {
+			const clickedEditor = event
+				.composedPath()
+				.some((target) => target instanceof Element && target.hasAttribute('data-inline-editor'));
+			if (clickedEditor) {
+				return;
+			}
+			const cell = rows.flatMap((row) => row.cells).find((candidate) => candidate.key === editingKey);
+			if (cell) {
+				commit(cell);
+			}
+		};
+		document.addEventListener('pointerdown', onOutsidePointerDown, true);
+		return () => document.removeEventListener('pointerdown', onOutsidePointerDown, true);
+	});
 </script>
 
 {#if tableData && rows.length > 0}
@@ -38,7 +85,7 @@
 				{#each rows as row (row.key)}
 					<tr style={row.style}>
 						{#each row.cells as cell (cell.key)}
-							<td class="pptx-svelte-table-cell" colspan={cell.colSpan} rowspan={cell.rowSpan} style={cell.style}>
+							<td class="pptx-svelte-table-cell" colspan={cell.colSpan} rowspan={cell.rowSpan} style={cell.style} ondblclick={(event) => begin(cell, event)}>
 								{#if cell.diagonals}
 									<!-- Diagonal cell borders as an absolutely positioned SVG overlay. -->
 									<svg
@@ -69,7 +116,9 @@
 										{/if}
 									</svg>
 								{/if}
-								{#if cell.runs}
+								{#if editingKey === cell.key}
+									<input use:focusInput data-inline-editor type="text" bind:value={draft} onpointerdown={(event) => event.stopPropagation()} onclick={(event) => event.stopPropagation()} onblur={() => commit(cell)} onkeydown={(event) => { if (event.key === 'Enter') commit(cell); else if (event.key === 'Escape') editingKey = null; }} />
+								{:else if cell.runs}
 									{#each cell.runs as run (run.key)}
 										{#if run.isParagraphBreak}
 											<div class="pptx-svelte-table-para-break" style="display: block; height: 0"></div>
@@ -98,4 +147,5 @@
 		border-collapse: collapse;
 		table-layout: fixed;
 	}
+	.pptx-svelte-table-cell input { box-sizing:border-box; width:100%; min-width:0; border:1px solid var(--pptx-primary,#6366f1); background:white; color:#111827; font:inherit; }
 </style>

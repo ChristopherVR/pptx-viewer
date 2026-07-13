@@ -10,6 +10,7 @@ import {
 	getAriaRole,
 	getAriaRoleDescription,
 	getSlideBackgroundStyle,
+	isTemplateElementId,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -41,6 +42,8 @@ export interface SlideStageOptions {
 	 * test hooks the React/Vue/Angular bindings also emit. Defaults to `false`.
 	 */
 	interactive?: boolean;
+	/** Whether inherited layout/master nodes participate in editing. */
+	templateEditing?: boolean;
 }
 
 /**
@@ -87,7 +90,13 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		renderElement(element: PptxElement, zIndex: number) {
 			const node = registry.resolve(element.type)(element, zIndex, context);
 			if (node && interactive && 'setAttribute' in node) {
-				node.setAttribute('data-pptx-element', 'true');
+				const templateLocked = isTemplateElementId(element.id) && !options.templateEditing;
+				if (templateLocked) {
+					node.style.pointerEvents = 'none';
+					node.removeAttribute('data-pptx-element');
+				} else {
+					node.setAttribute('data-pptx-element', 'true');
+				}
 				applyElementAccessibility(node, element);
 			}
 			return node;

@@ -45,6 +45,8 @@ export interface Ribbon {
 	updateSelection(selectedElement: PptxElement | undefined, extra: RibbonSelectionState): void;
 	/** Reflect the current Draw tab tool/colour/width (store-driven). */
 	setDrawState(state: RibbonDrawState): void;
+	setTemplateEditing(active: boolean): void;
+	openEquationEditor(id: string, omml: Record<string, unknown>): void;
 }
 
 /**
@@ -70,7 +72,9 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	const findReplace = createFindReplacePanel(doc, t, handlers.findReplace);
 	el.appendChild(findReplace.el);
 
-	const equationPanel = createEquationPanel(doc, t, (omml) => handlers.insert.insertEquation(omml));
+	const equationPanel = createEquationPanel(doc, t, (omml, id) =>
+		id ? handlers.edit.updateEquation(id, omml) : handlers.insert.insertEquation(omml),
+	);
 	el.appendChild(equationPanel.el);
 
 	const formatBackgroundPanel = createFormatBackgroundPanel(doc, t, handlers.edit);
@@ -160,6 +164,8 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 			syncAnimations();
 		},
 		setDrawState: (state) => drawTab.update(state),
+		setTemplateEditing: (active) => viewTab.setTemplateEditing(active),
+		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),
 		updateSelection(selectedElement, extra) {
 			latestSelected = selectedElement;
 			latestExtra = extra;

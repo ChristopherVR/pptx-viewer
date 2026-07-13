@@ -27,6 +27,7 @@ export interface RibbonNavHandlers {
 	toggleNotes(): void;
 	openAccessibility(): void;
 	toggleTemplateEditing?(): void;
+	toggleMasterView?(): void;
 }
 
 /** Primary-row handlers: quick-access undo/redo/save (editing only). */

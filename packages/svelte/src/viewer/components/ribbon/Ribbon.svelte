@@ -30,6 +30,11 @@
 	const t = useTranslator();
 
 	let activeTab = $state(DEFAULT_RIBBON_TAB);
+	$effect(() => {
+		if (props.editor.equationOps.editingId) {
+			activeTab = 'insert';
+		}
+	});
 
 	function selectTab(id: typeof activeTab): void {
 		activeTab = id;
@@ -127,5 +132,11 @@
 		flex-wrap: wrap;
 		gap: 6px;
 		padding: 6px 10px;
+	}
+
+	@media (max-width: 720px) {
+		.pptx-svelte-ribbon {
+			display: none;
+		}
 	}
 </style>

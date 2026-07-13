@@ -167,6 +167,7 @@ export interface ChromeHost {
 	openBroadcast(): void;
 	openAccessibility(): void;
 	toggleTemplateEditing(): void;
+	toggleMasterNavigation(): void;
 	exportSlidePng(): Promise<void>;
 	exportPdf(): Promise<void>;
 	exportGif(): Promise<void>;
@@ -204,6 +205,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		openBroadcast: () => host.openBroadcast(),
 		openAccessibility: () => host.openAccessibility(),
 		toggleTemplateEditing: () => host.toggleTemplateEditing(),
+		toggleMasterNavigation: () => host.toggleMasterNavigation(),
 		save: () => void host.downloadPptx(),
 		toggleNotes: () => host.toggleNotes(),
 		goToSlide: (index) => host.goToSlide(index),

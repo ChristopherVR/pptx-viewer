@@ -59,7 +59,6 @@ export interface EditorController {
 	getEditActions(): EditActions;
 	/** The Find & Replace actions for the ribbon's docked panel. */
 	getFindReplaceActions(): FindReplaceActions;
-	/** Commit speaker notes, optionally retaining rich inline formatting. */
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	save(): Promise<Uint8Array>;
 	downloadPptx(fileName?: string): Promise<void>;
@@ -108,6 +107,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		getOverlay: () => overlay,
 		getStageRoot: () => attachedWrap?.querySelector('.pptxv-stage') ?? null,
 		onCursorMove: deps.onCursorMove,
+		onEditEquation: (id, omml) => deps.getChrome().ribbon?.openEquationEditor(id, omml),
 	});
 
 	// The Draw ribbon tab's pen/highlighter/eraser mode: routes each stage

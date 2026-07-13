@@ -119,3 +119,46 @@ describe('createEditorOps Format Painter', () => {
 		});
 	});
 });
+
+describe('createEditorOps structured content', () => {
+	it('updates table cells and equations with undo support', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			editable: true,
+			slides: [
+				{
+					...buildSlide('a'),
+					elements: [
+						{
+							id: 'table',
+							type: 'table',
+							x: 0,
+							y: 0,
+							width: 100,
+							height: 50,
+							tableData: { rows: [{ cells: [{ text: 'old' }] }], columnWidths: [1] },
+						},
+						{
+							id: 'eq',
+							type: 'text',
+							x: 0,
+							y: 60,
+							width: 100,
+							height: 30,
+							textSegments: [{ text: '', equationXml: { 'm:oMath': { 'm:r': { 'm:t': 'x' } } } }],
+						},
+					],
+				} as PptxSlide,
+			],
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		ops.commitTableCell('table', 0, 0, 'new');
+		expect(store.get().slides[0].elements[0]).toMatchObject({
+			tableData: { rows: [{ cells: [{ text: 'new' }] }] },
+		});
+		ops.updateEquation('eq', { 'm:oMath': { 'm:r': { 'm:t': '42' } } });
+		expect(JSON.stringify(store.get().slides[0].elements[1])).toContain('42');
+		ops.undo();
+		expect(JSON.stringify(store.get().slides[0].elements[1])).toContain('x');
+	});
+});

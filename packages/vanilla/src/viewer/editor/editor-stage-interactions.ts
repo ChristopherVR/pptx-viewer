@@ -1,9 +1,4 @@
-import type {
-	InteractionBox,
-	ResizeHandleId,
-	SelectionTransformBox,
-	SnapSibling,
-} from 'pptx-viewer-shared';
+import type { InteractionBox, SelectionTransformBox, SnapSibling } from 'pptx-viewer-shared';
 import {
 	computeMarqueeHitIds,
 	isElementIdInteractive,
@@ -13,49 +8,30 @@ import {
 	selectionBounds,
 } from 'pptx-viewer-shared';
 
-import type { Store, ViewerState } from '../state';
 import { findActiveElement, getActiveElements } from './editor-active-elements';
 import { createGestureController } from './editor-gestures';
-import type { EditorOps } from './editor-operations';
+import type { StageInteractions, StageInteractionsDeps } from './editor-stage-interaction-types';
+import { resolveStagePoint } from './editor-stage-point';
 import { resolveTopLevelElementId } from './element-hit';
 import type { InlineEditorSession } from './inline-text-editor';
 import { canInlineEditElement, openInlineEditor } from './inline-text-editor';
-import type { SelectionOverlay } from './selection-overlay';
+import { handleStructuredDblClick } from './structured-dblclick';
+import type { TableCellEditorSession } from './table-cell-editor';
+import { bindTableTouchEditor } from './table-touch-editor';
 
-export interface StageInteractionsDeps {
-	doc: Document;
-	store: Store<ViewerState>;
-	ops: EditorOps;
-	getScale(): number;
-	getOverlay(): SelectionOverlay | null;
-	/** The rendered stage element inside the currently-attached wrap. */
-	getStageRoot(): Element | null;
-	/** Notified with slide-space (unscaled) coordinates on every stage pointer move (collaboration cursor broadcast). */
-	onCursorMove?: (x: number, y: number) => void;
-}
-
-export interface StageInteractions {
-	onStagePointerDown(event: PointerEvent): void;
-	onStagePointerMove(event: PointerEvent): void;
-	onStageDblClick(event: MouseEvent): void;
-	/** Begin a resize/rotate gesture from an overlay handle. */
-	beginHandleGesture(kind: 'resize' | 'rotate', event: PointerEvent, handle?: ResizeHandleId): void;
-	/** Close the inline editor, committing or cancelling its text. */
-	closeInline(commit: boolean): void;
-	/** True while an inline text-editing session is open. */
-	inlineActive(): boolean;
-	dispose(): void;
-}
-
-/**
- * The pointer-driven stage interactions (move/resize/rotate gestures and
- * double-click inline text editing), extracted from `editor-controller` so
- * the orchestrator stays within the file-size budget. All state transitions
- * still flow through the history-tracked `EditorOps`.
- */
 export function createStageInteractions(deps: StageInteractionsDeps): StageInteractions {
 	const { doc, store, ops } = deps;
 	let inline: InlineEditorSession | null = null;
+	let tableInline: TableCellEditorSession | null = null;
+	const disposeTableTouch = bindTableTouchEditor({
+		doc,
+		getState: store.get,
+		getStage: deps.getStageRoot,
+		getOverlay: () => deps.getOverlay()?.root ?? null,
+		ops,
+		onOpen: (session) => (tableInline = session),
+		onEditEquation: deps.onEditEquation,
+	});
 	let gestureBoxes: SelectionTransformBox[] = [];
 	let gestureBounds: InteractionBox | null = null;
 	let gestureKind: 'move' | 'resize' | 'rotate' = 'move';
@@ -138,13 +114,8 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		},
 	});
 
-	const stagePoint = (event: PointerEvent): { x: number; y: number } | null => {
-		const rect = deps.getOverlay()?.root.getBoundingClientRect();
-		const scale = deps.getScale();
-		return rect && scale > 0
-			? { x: (event.clientX - rect.left) / scale, y: (event.clientY - rect.top) / scale }
-			: null;
-	};
+	const stagePoint = (event: PointerEvent) =>
+		resolveStagePoint(deps.getOverlay()?.root, deps.getScale(), event);
 	const finishMarquee = (event: PointerEvent): void => {
 		if (!marquee || event.pointerId !== marquee.pointerId) {
 			return;
@@ -180,6 +151,8 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 	};
 
 	const closeInline = (commit: boolean): void => {
+		tableInline?.close(commit);
+		tableInline = null;
 		const session = inline;
 		inline = null;
 		if (commit) {
@@ -272,10 +245,23 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		},
 		onStageDblClick(event) {
 			const state = store.get();
-			if (!state.editable || state.presenting) {
+			if (!state.editable || state.presenting || inline || tableInline) {
 				return;
 			}
 			const id = resolveTopLevelElementId(event.target, deps.getStageRoot());
+			const structured = handleStructuredDblClick({
+				event,
+				state,
+				doc,
+				ops,
+				stage: deps.getStageRoot(),
+				overlay: deps.getOverlay()?.root ?? null,
+				onEditEquation: deps.onEditEquation,
+			});
+			if (structured.handled) {
+				tableInline = structured.tableSession;
+				return;
+			}
 			if (id && isElementIdInteractive(id, state.editTemplateMode)) {
 				enterInlineEdit(id);
 			}
@@ -287,8 +273,10 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			}
 		},
 		closeInline,
-		inlineActive: () => inline !== null,
+		inlineActive: () => inline !== null || tableInline !== null,
 		dispose() {
+			closeInline(false);
+			disposeTableTouch();
 			gestures.dispose();
 			marquee?.el.remove();
 			window.removeEventListener('pointermove', updateMarquee);

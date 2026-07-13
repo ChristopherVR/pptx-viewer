@@ -1,6 +1,7 @@
 export const MOBILE_SHEET_CSS = `
 .pptxv-mobile-actions { display: none; }
 @media (max-width: 720px) {
+	.pptxv-ribbon { display: none; }
 	.pptxv-mobile-actions { display: contents; }
 	.pptxv-mobile-actions > nav { position: absolute; z-index: 50; right: 0; bottom: 0; left: 0; display: flex; min-height: 64px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--pptx-border); background: var(--pptx-card); }
 	.pptxv-mobile-actions > nav button { flex: 1; min-width: 44px; border: 0; background: transparent; color: var(--pptx-muted-foreground); font-size: 10px; touch-action: manipulation; }

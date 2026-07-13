@@ -17,7 +17,6 @@ import type { EditorState } from './editor-state.svelte';
 import { resolveTopLevelElementId } from './element-hit';
 import { canInlineEditElement } from './inline-text';
 
-/** Reactive DOM wiring for selection, gestures, inline text, and keyboard editing. */
 export interface EditorControllerDeps {
 	getScale(): number;
 	getCurrent(): number;
@@ -167,8 +166,6 @@ export class EditorController {
 		);
 	}
 
-	// -- Event handlers (wired by PowerPointViewer / EditorLayer) --------------
-
 	onStagePointerDown = (event: PointerEvent): void => {
 		if (
 			!this.#editor.editable ||
@@ -229,6 +226,9 @@ export class EditorController {
 		}
 		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
 		if (id && this.#editor.isElementInteractive(id)) {
+			if (this.#editor.equationOps.open(id)) {
+				return;
+			}
 			this.enterInlineEdit(id);
 		}
 	};

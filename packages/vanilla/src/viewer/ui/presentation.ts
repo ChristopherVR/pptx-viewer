@@ -42,6 +42,7 @@ export function createPresentationController(
 			if (supported) {
 				try {
 					await target.requestFullscreen();
+					target.focus();
 					return;
 				} catch {
 					// Fall through to the non-fullscreen fallback below.
@@ -49,6 +50,7 @@ export function createPresentationController(
 			}
 			fallbackActive = true;
 			onChange(true);
+			target.focus();
 		},
 		async exit() {
 			if (supported && doc.fullscreenElement === target) {

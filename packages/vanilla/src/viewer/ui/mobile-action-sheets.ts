@@ -1,6 +1,6 @@
-import type { PptxComment } from 'pptx-viewer-core';
+import type { PptxComment, PptxSlide } from 'pptx-viewer-core';
 import type { MobileSheetKey } from 'pptx-viewer-shared';
-import { createSheetDismissGesture, toggleSheet } from 'pptx-viewer-shared';
+import { createSheetDismissGesture, slideTitle, toggleSheet } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -8,7 +8,7 @@ import type { RibbonHandlers } from './ribbon/ribbon-types';
 
 export interface MobileActionSheets {
 	el: HTMLElement;
-	update(current: number, total: number, comments: readonly PptxComment[]): void;
+	update(current: number, slides: readonly PptxSlide[], comments: readonly PptxComment[]): void;
 }
 
 export function createMobileActionSheets(
@@ -20,6 +20,8 @@ export function createMobileActionSheets(
 ): MobileActionSheets {
 	const el = createEl(doc, 'div', 'pptxv-mobile-actions');
 	const sheetHost = createEl(doc, 'div', 'pptxv-mobile-sheet-host');
+	sheetHost.setAttribute('role', 'dialog');
+	sheetHost.setAttribute('aria-modal', 'true');
 	const backdrop = doc.createElement('button');
 	backdrop.type = 'button';
 	backdrop.className = 'pptxv-mobile-sheet-backdrop';
@@ -37,7 +39,7 @@ export function createMobileActionSheets(
 
 	let active: MobileSheetKey = null;
 	let current = 0;
-	let total = 0;
+	let slides: readonly PptxSlide[] = [];
 	let comments: readonly PptxComment[] = [];
 	const inspectorHome = inspector ? doc.createComment('inspector-home') : null;
 	inspector?.parentNode?.insertBefore(inspectorHome!, inspector);
@@ -79,12 +81,13 @@ export function createMobileActionSheets(
 				: t(
 						`pptx.${key === 'slides' ? 'sections.slides' : key === 'comments' ? 'toolbar.comments' : key === 'insert' ? 'mobileBar.insert' : 'mobileToolbar.menu'}`,
 					);
+		sheetHost.setAttribute('aria-label', title.textContent);
 		if (key === 'slides') {
 			const list = createEl(doc, 'div', 'pptxv-mobile-slide-list');
-			for (let index = 0; index < total; index += 1) {
+			for (let index = 0; index < slides.length; index += 1) {
 				const button = doc.createElement('button');
 				button.type = 'button';
-				button.textContent = `${index + 1}`;
+				button.textContent = slideTitle(slides[index], index);
 				button.classList.toggle('is-active', index === current);
 				button.addEventListener('click', () => {
 					onSelectSlide(index);
@@ -208,9 +211,9 @@ export function createMobileActionSheets(
 	el.appendChild(bar);
 	return {
 		el,
-		update(nextCurrent, nextTotal, nextComments) {
+		update(nextCurrent, nextSlides, nextComments) {
 			current = nextCurrent;
-			total = nextTotal;
+			slides = nextSlides;
 			comments = nextComments;
 			if (active) {
 				render(active);

@@ -38,9 +38,11 @@ const VANILLA_SVELTE_FILES = [
 	'absolute-path-rels.spec.ts',
 	'text-descender-clip.spec.ts',
 	'mobile-inline-edit.spec.ts',
+	'mobile-table.spec.ts',
 	'mobile-manipulation.spec.ts',
 	'ole-and-ink.spec.ts',
 	'format-painter.spec.ts',
+	'mobile-notes.spec.ts',
 ];
 
 export default defineConfig({

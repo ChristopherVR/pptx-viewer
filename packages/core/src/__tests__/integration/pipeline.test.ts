@@ -675,7 +675,7 @@ describe('error Handling', () => {
 		});
 		expect(subtitle).toMatchObject({
 			type: 'text',
-			textStyle: { align: 'center', fontSize: 72 },
+			textStyle: { align: 'center', color: '#FFFFFF', fontSize: 72 },
 		});
 	});
 

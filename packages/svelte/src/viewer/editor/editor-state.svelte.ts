@@ -18,6 +18,7 @@ import { EditorArrangeController } from './editor-arrange-controller';
 import { EditorBackgroundController } from './editor-background-controller';
 import { EditorClipboardController } from './editor-clipboard-controller';
 import { EditorElementController } from './editor-element-controller';
+import { EditorEquationController } from './editor-equation-controller.svelte';
 import { EditorFormatPainterController } from './editor-format-painter-controller.svelte';
 import { EditorInkController } from './editor-ink-controller.svelte';
 import { EditorMasterController } from './editor-master-controller';
@@ -29,8 +30,6 @@ import { EditorSlidesController } from './editor-slides-controller';
 import { EditorTemplateController } from './editor-template-controller';
 import { EditorTransitionController } from './editor-transition-controller';
 import type { ZOrderDirection } from './editor-zorder';
-
-/** Reactive history, selection, and active-layer state for the Svelte editor. */
 
 const MAX_HISTORY_ENTRIES = 100;
 
@@ -74,6 +73,7 @@ export class EditorState {
 	readonly inkOps: EditorInkController;
 	readonly masterOps: EditorMasterController;
 	readonly formatPainter: EditorFormatPainterController;
+	readonly equationOps: EditorEquationController;
 
 	constructor(deps: EditorStateDeps) {
 		this.#deps = deps;
@@ -88,6 +88,7 @@ export class EditorState {
 		this.inkOps = new EditorInkController(this);
 		this.masterOps = new EditorMasterController(this);
 		this.formatPainter = new EditorFormatPainterController(this);
+		this.equationOps = new EditorEquationController(this);
 	}
 
 	get canUndo(): boolean {
@@ -204,7 +205,6 @@ export class EditorState {
 		this.#syncHistoryFlags();
 	}
 
-	/** Mark dirty + notify host after a committed mutation. */
 	commitChange(): void {
 		this.dirty = true;
 		this.#syncHistoryFlags();

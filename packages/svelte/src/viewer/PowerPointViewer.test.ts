@@ -133,7 +133,7 @@ describe('powerPointViewer', () => {
 
 	it('opens the dedicated master and layout navigation workspace', async () => {
 		const { target } = await mountViewer({ editable: true });
-		const viewTab = [...target.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(
+		const viewTab = [...target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-ribbon-tab')].find(
 			(button) => button.textContent?.trim() === 'View',
 		);
 		viewTab?.click();

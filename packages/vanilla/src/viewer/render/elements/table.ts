@@ -127,6 +127,8 @@ function renderCell(
 ): HTMLTableCellElement {
 	const td = doc.createElement('td');
 	td.className = 'pptxv-table-cell';
+	td.dataset.rowIndex = String(rowIndex);
+	td.dataset.cellIndex = String(cellIndex);
 	if (cell.gridSpan && cell.gridSpan > 1) {
 		td.colSpan = cell.gridSpan;
 	}

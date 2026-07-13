@@ -5,6 +5,7 @@ import type { RibbonNavHandlers } from '../ribbon-types';
 
 export interface ViewTab {
 	el: HTMLElement;
+	setTemplateEditing(active: boolean): void;
 }
 
 /**
@@ -47,18 +48,16 @@ export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavH
 		onClick: handlers.openAccessibility,
 	});
 	const templates = makeButton(doc, {
-		label: t('pptx.ribbon.editTemplateTitle'),
-		icon: 'sidebar',
+		label: t('pptx.ribbon.templatesOff'),
+		text: t('pptx.ribbon.templatesOff'),
 		onClick: () => handlers.toggleTemplateEditing?.(),
 	});
-	templates.btn.dataset.testid = 'template-edit-toggle';
-	templates.btn.setAttribute('aria-pressed', 'false');
-	templates.btn.addEventListener('click', () => {
-		templates.btn.setAttribute(
-			'aria-pressed',
-			String(templates.btn.getAttribute('aria-pressed') !== 'true'),
-		);
+	const masterView = makeButton(doc, {
+		label: t('pptx.mode.masterView'),
+		text: t('pptx.mode.masterView'),
+		onClick: () => handlers.toggleMasterView?.(),
 	});
+	templates.btn.dataset.testid = 'template-edit-toggle';
 
 	el.append(
 		zoomOut.btn,
@@ -68,7 +67,17 @@ export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavH
 		notes.btn,
 		accessibility.btn,
 		templates.btn,
+		masterView.btn,
 	);
 
-	return { el };
+	return {
+		el,
+		setTemplateEditing(active) {
+			const label = t(active ? 'pptx.ribbon.templatesOn' : 'pptx.ribbon.templatesOff');
+			templates.btn.textContent = label;
+			templates.btn.title = label;
+			templates.btn.setAttribute('aria-label', label);
+			templates.setActive(active);
+		},
+	};
 }

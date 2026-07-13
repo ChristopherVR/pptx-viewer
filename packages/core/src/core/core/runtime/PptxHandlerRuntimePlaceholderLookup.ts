@@ -188,7 +188,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const masterTextStyleType =
 			phInfo.type === 'title' || phInfo.type === 'ctrtitle'
 				? 'title'
-				: phInfo.type === 'body' || phInfo.type === 'obj'
+				: phInfo.type === 'body' || phInfo.type === 'obj' || phInfo.type === 'subtitle'
 					? 'body'
 					: 'other';
 		const masterTextStyles = masterPath ? this.masterTxStylesCache.get(masterPath) : undefined;

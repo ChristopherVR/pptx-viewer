@@ -7,7 +7,7 @@
 	 * `unknown` still falls through to the typed placeholder.
 	 */
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-	import { build3DExtrusionData, buildParagraphs, hasTextWarp } from 'pptx-viewer-shared';
+	import { build3DExtrusionData, buildParagraphs, hasTextWarp, isTemplateElement } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, styleToString } from '../style';
 	import { useSmartArt3D } from '../state/smart-art-3d-context';
@@ -34,8 +34,9 @@
 	import WordArtText from './WordArtText.svelte';
 	import type { ElementRendererProps } from './props';
 
-	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false }: ElementRendererProps =
+	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false, editTemplateMode = false, ontablecellcommit }: ElementRendererProps =
 		$props();
+	const elementInteractive = $derived(interactive && (!isTemplateElement(element) || editTemplateMode));
 
 	/** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
 	const smartArt3D = useSmartArt3D();
@@ -68,12 +69,12 @@
 	<!-- Group: recurse into children. -->
 	<div
 		class="pptx-svelte-element pptx-svelte-group"
-		style={styleToString(getContainerStyle(element, zIndex))}
+		style={styleToString({ ...getContainerStyle(element, zIndex), pointerEvents: elementInteractive ? 'auto' : 'none' })}
 		data-element-id={element.id}
-		data-pptx-element={interactive ? 'true' : undefined}
+		data-pptx-element={elementInteractive ? 'true' : undefined}
 	>
 		{#each element.children ?? [] as child, i (child.id)}
-			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} />
+			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {editTemplateMode} {ontablecellcommit} />
 		{/each}
 	</div>
 {:else if isImageLike}
@@ -81,7 +82,7 @@
 {:else if element.type === 'connector'}
 	<ConnectorView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'table'}
-	<TableView {element} {mediaDataUrls} {zIndex} />
+	<TableView {element} {mediaDataUrls} {zIndex} {interactive} {ontablecellcommit} />
 {:else if element.type === 'chart'}
 	<ChartView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'smartArt' && smartArt3D}
@@ -106,9 +107,9 @@
 	<!-- Text / shape: shared fill/stroke/effects/geometry + rich text block. -->
 	<div
 		class="pptx-svelte-element pptx-svelte-shape"
-		style={styleToString(getShapeBoxStyle(element, zIndex))}
+		style={styleToString({ ...getShapeBoxStyle(element, zIndex), pointerEvents: elementInteractive ? 'auto' : 'none' })}
 		data-element-id={element.id}
-		data-pptx-element={interactive ? 'true' : undefined}
+		data-pptx-element={elementInteractive ? 'true' : undefined}
 	>
 		<DuotoneFilterDefs {element} {mediaDataUrls} {zIndex} />
 		{#if extrusion.hasExtrusion}<Extrusion3D data={extrusion} />{/if}
