@@ -7,7 +7,7 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-		"fast-xml-parser": "^5.9.2",
+		"fast-xml-parser": "^5.10.0",
 		"framer-motion": "^12.42.2",
 		"html2canvas-pro": "^2.2.3",
 		"i18next": "^26.3.4",
