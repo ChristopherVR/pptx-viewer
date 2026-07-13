@@ -51,6 +51,13 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	});
 	const appliedThemeVars = applyThemeVars(chrome.root, options.theme, []);
 	container.appendChild(chrome.root);
+	chrome.statusBar?.update({
+		current: store.get().currentSlide,
+		total: store.get().slides.length,
+		zoomPercent: renderer.effectiveScale() * 100,
+	});
+	chrome.statusBar?.setNotesExpanded(store.get().notesExpanded);
+	chrome.statusBar?.setDirty(store.get().dirty);
 
 	const detachKeyboard = attachKeyboardNavigation(chrome.root, {
 		next: deps.next,

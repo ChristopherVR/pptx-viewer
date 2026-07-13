@@ -48,6 +48,17 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			chrome.thumbnails?.setActive(state.currentSlide);
 			callbacks.onSlideChange?.(state.currentSlide);
 		}
+		if (
+			state.slides !== previous.slides ||
+			state.currentSlide !== previous.currentSlide ||
+			state.zoom !== previous.zoom
+		) {
+			chrome.statusBar?.update({
+				current: state.currentSlide,
+				total: state.slides.length,
+				zoomPercent: renderer.effectiveScale() * 100,
+			});
+		}
 		if (state.zoom !== previous.zoom) {
 			callbacks.onZoomChange?.(renderer.effectiveScale());
 		}
@@ -55,6 +66,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			callbacks.onSelectionChange?.(state.selectedElementId);
 		}
 		if (state.dirty !== previous.dirty) {
+			chrome.statusBar?.setDirty(state.dirty);
 			callbacks.onDirtyChange?.(state.dirty);
 		}
 		if (state.editable !== previous.editable) {
@@ -63,6 +75,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		if (state.notesExpanded !== previous.notesExpanded) {
 			chrome.notes.setExpanded(state.notesExpanded);
 			chrome.ribbon?.setNotesExpanded(state.notesExpanded);
+			chrome.statusBar?.setNotesExpanded(state.notesExpanded);
 		}
 	};
 }

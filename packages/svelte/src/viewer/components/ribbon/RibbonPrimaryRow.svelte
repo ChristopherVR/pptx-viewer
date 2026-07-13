@@ -19,6 +19,9 @@
 		ondownload,
 		autosaveStatus,
 		autosaveDirty = false,
+		onshare,
+		onbroadcast,
+		collabActive = false,
 	}: {
 		canUndo: boolean;
 		canRedo: boolean;
@@ -29,6 +32,9 @@
 		ondownload: () => void;
 		autosaveStatus?: AutosaveStatus;
 		autosaveDirty?: boolean;
+		onshare?: () => void;
+		onbroadcast?: () => void;
+		collabActive?: boolean;
 	} = $props();
 
 	const t = useTranslator();
@@ -74,6 +80,23 @@
 	{#if autosaveStatus}
 		<AutosaveIndicator status={autosaveStatus} isDirty={autosaveDirty} />
 	{/if}
+	{#if onshare}
+		<button
+			type="button"
+			class:pptx-svelte-ribbon-primary-active={collabActive}
+			aria-label={t('pptx.toolbar.share')}
+			title={t('pptx.toolbar.share')}
+			aria-pressed={collabActive}
+			onclick={onshare}
+		>
+			<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="8" r="1.6" fill="none" stroke="currentColor" stroke-width="1.3" /><circle cx="12" cy="3.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.3" /><circle cx="12" cy="12.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M5.4 7.2 10.6 4.3M5.4 8.8 10.6 11.7" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
+		</button>
+	{/if}
+	{#if onbroadcast}
+		<button type="button" aria-label={t('pptx.broadcast.title')} title={t('pptx.broadcast.title')} onclick={onbroadcast}>
+			<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="1.4" fill="currentColor" /><path d="M5.5 5.5a3.5 3.5 0 0 0 0 5M10.5 5.5a3.5 3.5 0 0 1 0 5M3.3 3.3a6.5 6.5 0 0 0 0 9.4M12.7 3.3a6.5 6.5 0 0 1 0 9.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
+		</button>
+	{/if}
 </div>
 
 <style>
@@ -114,6 +137,10 @@
 	}
 
 	.pptx-svelte-ribbon-primary-dirty {
+		color: var(--pptx-primary, #6366f1);
+	}
+
+	.pptx-svelte-ribbon-primary-active {
 		color: var(--pptx-primary, #6366f1);
 	}
 </style>

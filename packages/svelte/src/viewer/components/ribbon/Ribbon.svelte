@@ -60,6 +60,9 @@
 		ondownload={props.ondownload}
 		autosaveStatus={props.autosaveStatus}
 		autosaveDirty={props.autosaveDirty}
+		onshare={props.onshare}
+		onbroadcast={props.onbroadcast}
+		collabActive={props.collabActive}
 	/>
 	<RibbonTabBar active={activeTab} onselect={selectTab} />
 	<FindReplacePanel findReplace={props.findReplace} editable={props.editor.editable} />

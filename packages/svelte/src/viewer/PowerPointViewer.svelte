@@ -316,9 +316,6 @@
 >
 	{#if showToolbar && chromeVisible}
 		{#if showRibbon}
-			<!-- TODO(collab): Ribbon has no Share/Broadcast entry point yet (only
-			     the read-only-mode ViewerToolbar below does); wire onshare/
-			     onbroadcast/collabActive into Ribbon's primary row in a follow-up. -->
 			<Ribbon
 				{editor}
 				{findReplace}
@@ -346,6 +343,9 @@
 				showNotes={showNotes && loader.slides.length > 0}
 				{notesExpanded}
 				onnotestoggle={onNotesToggle}
+				onshare={() => dialogs.openShare()}
+				onbroadcast={() => dialogs.openBroadcast()}
+				collabActive={collab.active}
 				{exportUi}
 				theme={effectiveTheme}
 				onsettheme={onSetTheme}

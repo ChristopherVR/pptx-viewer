@@ -243,6 +243,59 @@ const CHROME_CSS = `
 .pptxv-notes-textarea:read-only { cursor: default; opacity: 0.85; }
 .pptxv.pptxv-presenting .pptxv-notes { display: none; }
 
+/* ── Bottom status bar ──────────────────────────────────────────────── */
+.pptxv-statusbar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-height: 28px;
+	padding: 2px 8px;
+	border-top: 1px solid var(--pptx-border);
+	background: color-mix(in srgb, var(--pptx-muted) 55%, var(--pptx-card));
+	color: var(--pptx-muted-foreground);
+	font-size: 10px;
+}
+.pptxv-statusbar-spacer { flex: 1; }
+.pptxv-statusbar-sep { width: 1px; height: 12px; margin: 0 4px; background: var(--pptx-border); opacity: 0.6; }
+.pptxv-statusbar-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	min-width: 24px;
+	height: 22px;
+	padding: 2px 4px;
+	border: none;
+	border-radius: 3px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+.pptxv-statusbar-btn:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-statusbar-btn:disabled { opacity: 0.4; cursor: default; }
+.pptxv-statusbar-btn.is-active { color: var(--pptx-primary); }
+.pptxv-statusbar-btn:focus-visible,
+.pptxv-statusbar-zoom:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: 1px; }
+.pptxv-statusbar-btn svg, .pptxv-statusbar-icon svg { width: 12px; height: 12px; display: block; }
+.pptxv-statusbar-counter, .pptxv-statusbar-text { white-space: nowrap; }
+.pptxv-statusbar-save.is-saving { color: #ca8a04; }
+.pptxv-statusbar-save.is-error { color: #dc2626; }
+.pptxv-statusbar-zoom {
+	min-width: 48px;
+	height: 22px;
+	padding: 2px 6px;
+	border: none;
+	border-radius: 3px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-variant-numeric: tabular-nums;
+	cursor: pointer;
+}
+.pptxv-statusbar-zoom:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv.pptxv-presenting .pptxv-statusbar { display: none; }
+
 /* ── Placeholder (element types without a renderer yet) ──────────────── */
 .pptxv-placeholder {
 	display: flex;

@@ -7,6 +7,8 @@ import { createNotesPanel } from './notes-panel';
 import type { Ribbon } from './ribbon/ribbon';
 import { createRibbon } from './ribbon/ribbon';
 import type { RibbonHandlers } from './ribbon/ribbon-types';
+import type { StatusBar } from './status-bar';
+import { createStatusBar } from './status-bar';
 import type { ThumbnailRail } from './thumbnails';
 import { createThumbnailRail } from './thumbnails';
 
@@ -45,6 +47,8 @@ export interface ViewerChrome {
 	stageWrap: HTMLElement;
 	/** Collapsible speaker-notes panel docked below the slide area. */
 	notes: NotesPanel;
+	/** Bottom navigation and zoom bar, matching React's status-bar placement. */
+	statusBar: StatusBar | null;
 	setLoading(loading: boolean): void;
 	setError(message: string | null): void;
 	setEmpty(empty: boolean): void;
@@ -107,6 +111,21 @@ export function buildViewerChrome(
 	const notes = createNotesPanel(doc, t, options.onToggleNotes, options.onCommitNotes);
 	root.appendChild(notes.el);
 
+	const statusBar = options.showToolbar
+		? createStatusBar(doc, t, {
+				prev: options.ribbonHandlers.nav.prev,
+				next: options.ribbonHandlers.nav.next,
+				toggleNotes: options.ribbonHandlers.nav.toggleNotes,
+				togglePresentation: options.ribbonHandlers.nav.togglePresentation,
+				zoomIn: options.ribbonHandlers.nav.zoomIn,
+				zoomOut: options.ribbonHandlers.nav.zoomOut,
+				zoomToFit: options.ribbonHandlers.nav.zoomToFit,
+			})
+		: null;
+	if (statusBar) {
+		root.appendChild(statusBar.el);
+	}
+
 	const loadingOverlay = createEl(doc, 'div', 'pptxv-overlay pptxv-loading');
 	loadingOverlay.textContent = t('common.loading');
 	loadingOverlay.hidden = true;
@@ -127,6 +146,7 @@ export function buildViewerChrome(
 		viewport,
 		stageWrap,
 		notes,
+		statusBar,
 		setLoading(loading) {
 			loadingOverlay.hidden = !loading;
 		},

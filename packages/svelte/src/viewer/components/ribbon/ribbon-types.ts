@@ -38,6 +38,11 @@ export interface RibbonProps {
 	autosaveStatus?: AutosaveStatus;
 	autosaveDirty?: boolean;
 
+	/** Collaboration entry points, kept in the primary row like React's chrome. */
+	onshare?: () => void;
+	onbroadcast?: () => void;
+	collabActive?: boolean;
+
 	/** View tab: zoom / fullscreen / notes toggle. */
 	zoomPercent: number;
 	onzoomin: () => void;
