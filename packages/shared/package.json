@@ -71,7 +71,7 @@
 	},
 	"devDependencies": {
 		"@types/dompurify": "^3.2.0",
-		"@types/three": "^0.185.0",
+		"@types/three": "^0.185.1",
 		"pptx-viewer-core": "workspace:*",
 		"three": "^0.185.1",
 		"tsup": "^8.5.1",
