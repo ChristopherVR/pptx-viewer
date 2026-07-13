@@ -55,6 +55,7 @@
 	"devDependencies": {
 		"@playwright/test": "^1.61.1",
 		"@types/three": "^0.185.1",
+		"@typescript/typescript6": "^6.0.2",
 		"husky": "^9.1.7",
 		"jszip": "^3.10.1",
 		"lib0": "^0.2.117",
@@ -63,7 +64,10 @@
 		"oxlint": "^1.70.0",
 		"pptx-react-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
-		"typescript": "^7.0.2",
+		"rollup": "^4.53.2",
+		"rollup-plugin-dts": "^6.4.1",
+		"typescript": "^6.0.3",
+		"unrun": "^0.3.1",
 		"y-protocols": "^1.0.7",
 		"yjs": "^13.6.31"
 	},

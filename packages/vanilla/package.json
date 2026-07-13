@@ -47,7 +47,7 @@
 		"./styles.css": "./dist/styles.css"
 	},
 	"scripts": {
-		"build": "tsup && bun scripts/build-styles.ts",
+		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs && bun scripts/build-styles.ts",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",
 		"test": "vitest run",
@@ -64,6 +64,7 @@
 		"happy-dom": "^20.10.6",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-shared": "workspace:*",
+		"tsdown": "^0.22.7",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.9",

@@ -8,7 +8,7 @@ export default defineConfig((options) => ({
 	// published types resolve standalone: consumers don't need (and for
 	// `pptx-viewer-shared`, can't get) those packages from npm. Mirrors the
 	// React package's tsup config and the Vue package's dts `bundledPackages`.
-	dts: { resolve: ['pptx-viewer-core', 'pptx-viewer-shared'] },
+	dts: false,
 	splitting: false,
 	sourcemap: false,
 	clean: !options.watch,

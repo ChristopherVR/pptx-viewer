@@ -1,9 +1,18 @@
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import terser from '@rollup/plugin-terser';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+
+function readSourceFile(path: string): string | undefined {
+	try {
+		return readFileSync(path, 'utf8');
+	} catch {
+		return undefined;
+	}
+}
 
 /**
  * Library build for `pptx-vue-viewer`.
@@ -25,7 +34,15 @@ const INTERNAL_BUNDLED = ['pptx-viewer-core', 'pptx-viewer-shared'];
 
 export default defineConfig({
 	plugins: [
-		vue(),
+		vue({
+			script: {
+				fs: {
+					fileExists: existsSync,
+					readFile: readSourceFile,
+					realpath: realpathSync,
+				},
+			},
+		}),
 		dts({
 			tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
 			rollupTypes: true,

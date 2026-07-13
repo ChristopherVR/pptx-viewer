@@ -64,7 +64,7 @@
 		"./theme.css": "./src/styles/theme.css"
 	},
 	"scripts": {
-		"build": "tsup && npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify && node ../../scripts/compress-dist.mjs dist",
+		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs && node ../../scripts/bundle-declarations.mjs index viewer/index i18n hooks-unstable && node ../../scripts/merge-declarations.mjs .types-bundle && npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify && node ../../scripts/compress-dist.mjs dist",
 		"build:css": "npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",
@@ -86,6 +86,7 @@
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-shared": "workspace:*",
 		"tailwindcss": "^4.3.2",
+		"tsdown": "^0.22.7",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.9",

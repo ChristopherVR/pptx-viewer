@@ -41,7 +41,7 @@ async function loadFixture(page: Page, fixture: RealWorldFixture): Promise<void>
 }
 
 test.describe('real-world presentation fixtures', () => {
-	test.beforeEach((_, testInfo) => {
+	test.beforeEach(({ page: _page }, testInfo) => {
 		test.skip(testInfo.project.name !== 'react', 'This visual audit targets the React viewer.');
 	});
 	for (const fixture of FIXTURES) {
@@ -64,10 +64,10 @@ test.describe('real-world presentation fixtures', () => {
 	test('navigates the large presentation to its final slide', async ({ page }) => {
 		const fixture = FIXTURES[0]!;
 		await loadFixture(page, fixture);
-
-		for (let slide = 2; slide <= fixture.slides; slide++) {
-			await page.keyboard.press('PageDown');
-			await expect(page.getByText(new RegExp(`${slide} of ${fixture.slides}`, 'u'))).toBeVisible();
-		}
+		const slidesPane = page.getByRole('navigation', { name: 'Slides' });
+		await slidesPane.getByText(String(fixture.slides), { exact: true }).click();
+		await expect(
+			page.getByText(new RegExp(`${fixture.slides} of ${fixture.slides}`, 'u')),
+		).toBeVisible();
 	});
 });

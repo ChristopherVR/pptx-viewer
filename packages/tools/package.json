@@ -61,7 +61,7 @@
 		}
 	},
 	"scripts": {
-		"build": "tsup",
+		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",
 		"test": "vitest run",
@@ -76,6 +76,7 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
+		"tsdown": "^0.22.7",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.9",

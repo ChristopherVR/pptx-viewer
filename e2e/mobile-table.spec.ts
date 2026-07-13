@@ -63,19 +63,11 @@ function cellPoint(page: Page, label: string) {
 }
 
 async function navigateToPlans(page: Page): Promise<void> {
-	await page.evaluate(() => {
-		const button = [...document.querySelectorAll('nav[aria-label="Editor actions"] button')].find(
-			(candidate) =>
-				candidate.textContent?.trim().endsWith('Slides') && candidate.checkVisibility(),
-		);
-		(button as HTMLButtonElement | undefined)?.click();
-	});
-	const sheet = page.getByRole('dialog', { name: /slides/iu });
+	const navigation = page.getByRole('navigation', { name: /Editor actions|Slide controls/iu });
+	await navigation.getByRole('button', { name: /^Slides$/u }).tap();
+	const sheet = page.getByRole('dialog').filter({ hasText: 'Slides' });
 	await expect(sheet).toBeVisible();
-	await sheet
-		.getByRole('button', { name: /Plans|5.*7/iu })
-		.first()
-		.tap();
+	await sheet.getByText('Plans', { exact: true }).tap();
 }
 
 test('double-tapping a table cell opens an editor and accepts input', async ({ page }) => {

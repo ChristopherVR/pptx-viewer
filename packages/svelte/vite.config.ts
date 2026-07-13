@@ -15,7 +15,7 @@ import dts from 'vite-plugin-dts';
  * The internal workspace packages (`pptx-viewer-core`, `pptx-viewer-shared`)
  * are intentionally NOT external; they are bundled in so consumers can
  * install just `pptx-svelte-viewer` without pulling them from npm. Their
- * `.d.ts` types are inlined via vite-plugin-dts `bundledPackages`.
+ * `.d.ts` types are inlined by the post-build Rollup declaration pass.
  *
  * Unlike the Vue/React packages, only an ESM bundle is emitted: Svelte 5's
  * client runtime (`svelte/internal/client`) is ESM-only, so a CJS artifact
@@ -24,8 +24,6 @@ import dts from 'vite-plugin-dts';
  * Component CSS is compiled with `css: 'injected'`, so consumers do not need
  * a separate stylesheet import.
  */
-const INTERNAL_BUNDLED = ['pptx-viewer-core', 'pptx-viewer-shared'];
-
 export default defineConfig({
 	plugins: [
 		svelte({
@@ -33,9 +31,6 @@ export default defineConfig({
 		}),
 		dts({
 			tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
-			// Bundle each entry's declarations into one .d.ts per entry, inlining
-			// the internal (never-published) workspace packages' types.
-			bundleTypes: { bundledPackages: INTERNAL_BUNDLED },
 			exclude: ['**/*.test.ts', 'vite.config.ts', 'vitest.config.ts'],
 		}),
 	],

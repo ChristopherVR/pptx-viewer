@@ -45,7 +45,7 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "tsup && node -e \"require('fs').chmodSync('dist/index.mjs', 0o755)\"",
+		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs && node -e \"require('fs').chmodSync('dist/index.mjs', 0o755)\"",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",
 		"test": "vitest run",
@@ -54,6 +54,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^26.0.0",
+		"tsdown": "^0.22.7",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.9"
