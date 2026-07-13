@@ -11,6 +11,7 @@ import { applyThemeVars } from './theme-apply';
 import type { PptxViewerOptions } from './types';
 import type { PresentationController, ViewerChrome } from './ui';
 import { attachKeyboardNavigation, buildViewerChrome, createPresentationController } from './ui';
+import type { CommandSearchCommand } from './ui/command-search';
 
 /** The mutable pieces `PptxViewer` owns for one chrome mount lifecycle. */
 export interface ChromeLifecycle {
@@ -47,17 +48,21 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		showFormatToolbar: options.showFormatToolbar ?? true,
 		showInspector: options.showInspector ?? true,
 		editable: options.editable ?? false,
+		titleBar: {
+			autosaveEnabled: options.autosave ?? false,
+			onToggleAutosave: () => options.autosave ?? false,
+			save: () => deps.save(),
+			undo: () => deps.undo(),
+			redo: () => deps.redo(),
+			commands: buildTitleBarCommands(deps),
+		},
 		...buildChromeCallbacks(deps),
 	});
 	const appliedThemeVars = applyThemeVars(chrome.root, options.theme, []);
 	container.appendChild(chrome.root);
-	chrome.statusBar?.update({
-		current: store.get().currentSlide,
-		total: store.get().slides.length,
-		zoomPercent: renderer.effectiveScale() * 100,
-	});
 	chrome.statusBar?.setNotesExpanded(store.get().notesExpanded);
 	chrome.statusBar?.setDirty(store.get().dirty);
+	chrome.titleBar?.setDirty(store.get().dirty);
 
 	const detachKeyboard = attachKeyboardNavigation(chrome.root, {
 		next: deps.next,
@@ -81,6 +86,15 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	}
 
 	return { chrome, presentation, detachKeyboard, resizeObserver, appliedThemeVars };
+}
+
+/** The local command palette mirrors React's most useful quick actions. */
+function buildTitleBarCommands(deps: MountChromeDeps): readonly CommandSearchCommand[] {
+	return [
+		{ labelKey: 'pptx.titleBar.save', run: () => deps.save() },
+		{ labelKey: 'pptx.toolbar.undo', run: () => deps.undo() },
+		{ labelKey: 'pptx.toolbar.redo', run: () => deps.redo() },
+	];
 }
 
 /** Tear down everything `mountChrome` set up, in reverse order. */

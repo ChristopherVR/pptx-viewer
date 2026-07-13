@@ -74,6 +74,67 @@ const CHROME_CSS = `
 .pptxv-autosave-status.is-saving { color: var(--pptx-accent-foreground); opacity: 0.8; }
 .pptxv-autosave-status.is-error { color: #dc2626; }
 
+/* ── PowerPoint-style title bar ─────────────────────────────────────── */
+.pptxv-titlebar {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 34px;
+	padding: 4px 10px;
+	border-bottom: 1px solid var(--pptx-border);
+	background: var(--pptx-card);
+	color: var(--pptx-card-foreground);
+	font-size: 11px;
+	user-select: none;
+}
+.pptxv-titlebar-logo {
+	display: inline-grid;
+	width: 20px;
+	height: 20px;
+	place-items: center;
+	border-radius: 3px;
+	background: #d24726;
+	color: #fff;
+	font-size: 13px;
+	font-weight: 700;
+}
+.pptxv-titlebar-autosave, .pptxv-titlebar-file { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+.pptxv-titlebar-autosave-label, .pptxv-titlebar-status { color: var(--pptx-muted-foreground); white-space: nowrap; }
+.pptxv-titlebar-switch {
+	position: relative;
+	width: 27px;
+	height: 14px;
+	padding: 0;
+	border: 0;
+	border-radius: 999px;
+	background: var(--pptx-muted-foreground);
+	cursor: pointer;
+}
+.pptxv-titlebar-switch.is-on { background: var(--pptx-primary); }
+.pptxv-titlebar-switch-knob { position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: #fff; transition: transform 120ms ease; }
+.pptxv-titlebar-switch.is-on .pptxv-titlebar-switch-knob { transform: translateX(13px); }
+.pptxv-titlebar-switch:focus-visible, .pptxv-titlebar-btn:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: 1px; }
+.pptxv-titlebar-btn { width: 24px; height: 24px; }
+.pptxv-titlebar-btn:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-titlebar-sep { width: 1px; height: 16px; background: var(--pptx-border); }
+.pptxv-titlebar-filename { overflow: hidden; max-width: 180px; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.pptxv-titlebar-dot { color: var(--pptx-muted-foreground); }
+.pptxv-titlebar-status.is-error { color: #dc2626; }
+.pptxv-titlebar-status.is-saving { color: #ca8a04; }
+.pptxv-titlebar-search { position: absolute; left: 50%; width: min(320px, 30vw); transform: translateX(-50%); }
+.pptxv-titlebar-spacer { flex: 1; min-width: 20px; }
+.pptxv-cmdsearch { position: relative; width: 100%; }
+.pptxv-cmdsearch-box { display: flex; align-items: center; gap: 5px; height: 24px; padding: 0 8px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: var(--pptx-muted-foreground); }
+.pptxv-cmdsearch-box svg { width: 13px; height: 13px; flex: none; }
+.pptxv-cmdsearch-input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--pptx-foreground); font: inherit; }
+.pptxv-cmdsearch-menu { position: absolute; z-index: 20; top: calc(100% + 4px); right: 0; left: 0; overflow: hidden; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-card); box-shadow: 0 8px 20px rgb(0 0 0 / 0.16); }
+.pptxv-cmdsearch-item, .pptxv-cmdsearch-empty { display: block; width: 100%; padding: 7px 9px; border: 0; background: transparent; color: var(--pptx-foreground); font: inherit; text-align: left; }
+.pptxv-cmdsearch-item { cursor: pointer; }
+.pptxv-cmdsearch-item:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-cmdsearch-empty { color: var(--pptx-muted-foreground); }
+@media (max-width: 767px) { .pptxv-titlebar { display: none; } }
+
 /* ── Body: thumbnail rail + viewport ─────────────────────────────────── */
 .pptxv-body { display: flex; flex: 1; min-height: 0; }
 .pptxv-thumbs {
@@ -329,7 +390,8 @@ const CHROME_CSS = `
 
 /* ── Presentation (fullscreen) mode ──────────────────────────────────── */
 .pptxv.pptxv-presenting .pptxv-ribbon,
-.pptxv.pptxv-presenting .pptxv-thumbs { display: none; }
+.pptxv.pptxv-presenting .pptxv-thumbs,
+.pptxv.pptxv-presenting .pptxv-titlebar { display: none; }
 .pptxv.pptxv-presenting .pptxv-viewport { background: #000; padding: 0; }
 .pptxv.pptxv-presenting .pptxv-stage-wrap { box-shadow: none; }
 `;

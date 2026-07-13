@@ -11,6 +11,8 @@ import type { StatusBar } from './status-bar';
 import { createStatusBar } from './status-bar';
 import type { ThumbnailRail } from './thumbnails';
 import { createThumbnailRail } from './thumbnails';
+import type { TitleBar, TitleBarDeps } from './title-bar';
+import { createTitleBar } from './title-bar';
 
 export interface ChromeOptions {
 	showToolbar: boolean;
@@ -25,6 +27,8 @@ export interface ChromeOptions {
 	ribbonHandlers: RibbonHandlers;
 	/** Inspector actions (geometry + shape fill/stroke). */
 	inspectorHandlers: InspectorHandlers;
+	/** PowerPoint-style top chrome, built when the toolbar is visible. */
+	titleBar: TitleBarDeps;
 	onSelectSlide(index: number): void;
 	/** Header click on the notes panel; shares the ribbon Notes button's handler. */
 	onToggleNotes(): void;
@@ -38,6 +42,8 @@ export interface ViewerChrome {
 	root: HTMLElement;
 	/** The tabbed ribbon (primary row, nav row, tab bar + File/Home/Insert/View content); null when disabled. */
 	ribbon: Ribbon | null;
+	/** Top document title and quick-access row; null when the toolbar is hidden. */
+	titleBar: TitleBar | null;
 	/** Property inspector panel; null when disabled. */
 	inspector: Inspector | null;
 	thumbnails: ThumbnailRail | null;
@@ -69,8 +75,11 @@ export function buildViewerChrome(
 	root.tabIndex = 0;
 	root.setAttribute('role', 'application');
 
+	let titleBar: TitleBar | null = null;
 	let ribbon: Ribbon | null = null;
 	if (options.showToolbar) {
+		titleBar = createTitleBar(doc, t, options.titleBar);
+		root.appendChild(titleBar.el);
 		ribbon = createRibbon(doc, t, options.ribbonHandlers);
 		if (!options.showFormatToolbar) {
 			ribbon.setEditable(false);
@@ -141,6 +150,7 @@ export function buildViewerChrome(
 	return {
 		root,
 		ribbon,
+		titleBar,
 		inspector,
 		thumbnails,
 		viewport,

@@ -107,6 +107,11 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			total: state.slides.length,
 			zoomPercent: scale * 100,
 		});
+		chrome.statusBar?.update({
+			current: state.currentSlide,
+			total: state.slides.length,
+			zoomPercent: scale * 100,
+		});
 		chrome.notes.update({ slide, editable: state.editable });
 		deps.onStageRendered?.();
 		// Drive presentation-mode entrance state + slide transitions off the fresh

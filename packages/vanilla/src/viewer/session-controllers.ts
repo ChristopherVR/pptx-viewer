@@ -77,6 +77,7 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 				deps
 					.getChrome()
 					.ribbon?.setAutosaveStatus(autosaveLabel(status, deps.getTranslator()), status);
+				deps.getChrome().titleBar?.setAutosaveState(status);
 				options.onAutosaveStatus?.(status);
 			},
 			onRecovery: (record) => options.onAutosaveRecovery?.(record),

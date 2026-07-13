@@ -67,6 +67,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		}
 		if (state.dirty !== previous.dirty) {
 			chrome.statusBar?.setDirty(state.dirty);
+			chrome.titleBar?.setDirty(state.dirty);
 			callbacks.onDirtyChange?.(state.dirty);
 		}
 		if (state.editable !== previous.editable) {

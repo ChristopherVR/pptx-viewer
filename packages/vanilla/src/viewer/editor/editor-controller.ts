@@ -80,11 +80,13 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	let attachedRoot: HTMLElement | null = null;
 
 	const updateToolbar = (): void => {
-		deps.getChrome().ribbon?.setEditState({
+		const state = {
 			editable: store.get().editable,
 			canUndo: ops.canUndo(),
 			canRedo: ops.canRedo(),
-		});
+		};
+		deps.getChrome().ribbon?.setEditState(state);
+		deps.getChrome().titleBar?.setEditState(state);
 	};
 
 	const ops = createEditorOps({
