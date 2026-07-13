@@ -22,6 +22,9 @@ export interface ChromeCallbackDeps {
 	redo(): void;
 	save(): void;
 	toggleAutosave(): boolean;
+	startPresentationFromBeginning(): void;
+	startPresentationFromCurrent(): void;
+	openBroadcast(): void;
 	toggleNotes(): void;
 	goToSlide(index: number): void;
 	commitNotes(notes: string): void;
@@ -77,6 +80,11 @@ export function buildChromeCallbacks(
 			exportGif: () => void deps.exportGif(),
 			exportVideo: () => void deps.exportVideo(),
 			print: () => void deps.print(),
+		},
+		slideShow: {
+			startFromBeginning: () => deps.startPresentationFromBeginning(),
+			startFromCurrent: () => deps.startPresentationFromCurrent(),
+			openBroadcast: () => deps.openBroadcast(),
 		},
 		// Every editing action delegates to the (lazily-resolved) editor edit
 		// actions, so a click after mount always hits the live editor instance.

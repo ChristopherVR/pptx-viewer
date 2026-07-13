@@ -138,6 +138,7 @@ export interface ChromeHost {
 	getSlideCount(): number;
 	enterPresentation(): Promise<void>;
 	exitPresentation(): Promise<void>;
+	openBroadcast(): void;
 	exportSlidePng(): Promise<void>;
 	exportPdf(): Promise<void>;
 	exportGif(): Promise<void>;
@@ -167,6 +168,12 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		undo: () => host.undo(),
 		redo: () => host.redo(),
 		toggleAutosave: () => host.toggleAutosave(),
+		startPresentationFromBeginning: () => {
+			host.goToSlide(0);
+			void host.enterPresentation();
+		},
+		startPresentationFromCurrent: () => void host.enterPresentation(),
+		openBroadcast: () => host.openBroadcast(),
 		save: () => void host.downloadPptx(),
 		toggleNotes: () => host.toggleNotes(),
 		goToSlide: (index) => host.goToSlide(index),

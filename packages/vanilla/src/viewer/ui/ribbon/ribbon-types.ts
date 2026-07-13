@@ -13,6 +13,7 @@ export type RibbonTabId =
 	| 'design'
 	| 'transitions'
 	| 'animations'
+	| 'slideShow'
 	| 'view';
 
 /** Nav-row handlers: always-visible (both edit and read-only chrome). */
@@ -41,6 +42,13 @@ export interface RibbonFileHandlers {
 	exportGif(): void;
 	exportVideo(): void;
 	print(): void;
+}
+
+/** Slide Show actions already supported by the viewer and collaboration UI. */
+export interface RibbonSlideShowHandlers {
+	startFromBeginning(): void;
+	startFromCurrent(): void;
+	openBroadcast(): void;
 }
 
 /**
@@ -92,6 +100,7 @@ export interface RibbonHandlers {
 	nav: RibbonNavHandlers;
 	primary: RibbonPrimaryHandlers;
 	file: RibbonFileHandlers;
+	slideShow: RibbonSlideShowHandlers;
 	insert: RibbonInsertHandlers;
 	/** Home tab (clipboard/slides/font/paragraph/arrange/editing) + shape actions. */
 	edit: EditActions;

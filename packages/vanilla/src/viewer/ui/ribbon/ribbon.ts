@@ -28,6 +28,7 @@ import { createDrawTab } from './tabs/draw-tab';
 import { createFileTab } from './tabs/file-tab';
 import type { InsertTab } from './tabs/insert-tab';
 import { createInsertTab } from './tabs/insert-tab';
+import { createSlideShowTab } from './tabs/slide-show-tab';
 import type { TransitionsTab } from './tabs/transitions-tab';
 import { createTransitionsTab } from './tabs/transitions-tab';
 import { createViewTab } from './tabs/view-tab';
@@ -88,6 +89,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	);
 	const transitionsTab: TransitionsTab = createTransitionsTab(doc, t, handlers.edit);
 	const animationsTab: AnimationsTab = createAnimationsTab(doc, t, handlers.edit);
+	const slideShowTab = createSlideShowTab(doc, t, handlers.slideShow);
 	const viewTab = createViewTab(doc, t, handlers.nav);
 
 	const panes: Record<RibbonTabId, HTMLElement> = {
@@ -98,6 +100,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 		design: designTab.el,
 		transitions: transitionsTab.el,
 		animations: animationsTab.el,
+		slideShow: slideShowTab.el,
 		view: viewTab.el,
 	};
 	for (const tab of RIBBON_TABS) {

@@ -49,6 +49,8 @@ export interface SessionControllers {
 	/** Enable/disable recovery autosave for the active viewer session. */
 	setAutosaveEnabled(enabled: boolean): void;
 	isAutosaveEnabled(): boolean;
+	/** Open the viewer's built-in broadcast dialog. */
+	openBroadcast(): void;
 	destroy(): void;
 }
 
@@ -155,6 +157,7 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 			options.onToggleAutosave?.(enabled);
 		},
 		isAutosaveEnabled: () => autosave.isEnabled(),
+		openBroadcast: () => collabUi.openBroadcast(),
 		destroy() {
 			unsubscribePresence();
 			collabUi.destroy();

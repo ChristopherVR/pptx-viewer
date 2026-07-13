@@ -286,6 +286,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		return this.sessions.isAutosaveEnabled();
 	}
 
+	openBroadcast(): void {
+		this.sessions.openBroadcast();
+	}
+
 	destroy(): void {
 		if (this.destroyed) {
 			return;
