@@ -15,6 +15,7 @@
 	import CollaborationChrome from './collab/components/CollaborationChrome.svelte';
 	import { useCollaborationPresenceEffects } from './collab/collaboration-presence-effects.svelte';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
+	import StatusBar from './components/StatusBar.svelte';
 	import TitleBar from './components/TitleBar.svelte';
 	import Ribbon from './components/ribbon/Ribbon.svelte';
 	import ViewerBody from './components/ViewerBody.svelte';
@@ -435,6 +436,28 @@
 		{onNotesToggle}
 		collabCursors={collab.cursors}
 	/>
+	{#if showToolbar && chromeVisible}
+		<StatusBar
+			current={viewer.current}
+			total={viewer.slideCount}
+			zoomPercent={effectivePercent}
+			isDirty={editor.dirty}
+			autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
+			showNotes={showNotes && loader.slides.length > 0}
+			{notesExpanded}
+			isFullscreen={viewer.isFullscreen}
+			onprev={() => viewer.prev()}
+			onnext={() => viewer.next()}
+			onzoomin={() => viewer.zoomIn(effectivePercent)}
+			onzoomout={() => viewer.zoomOut(effectivePercent)}
+			onzoomfit={() => viewer.zoomToFit()}
+			onfullscreen={onFullscreenToggle}
+			onnotestoggle={onNotesToggle}
+			onshare={() => dialogs.openShare()}
+			onbroadcast={() => dialogs.openBroadcast()}
+			collabActive={collab.active}
+		/>
+	{/if}
 	<CollaborationChrome
 		{collab}
 		{dialogs}
