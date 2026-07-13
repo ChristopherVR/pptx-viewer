@@ -1,3 +1,5 @@
+import type { TextSegment } from 'pptx-viewer-core';
+
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import type { Inspector, InspectorHandlers } from './inspector';
@@ -35,7 +37,7 @@ export interface ChromeOptions {
 	/** Header click on the notes panel; shares the ribbon Notes button's handler. */
 	onToggleNotes(): void;
 	/** Fired when the notes textarea commits (change/blur) in editable mode. */
-	onCommitNotes(notes: string): void;
+	onCommitNotes(notes: string, notesSegments?: TextSegment[]): void;
 }
 
 /** The viewer's static DOM skeleton plus the mutable overlay controls. */

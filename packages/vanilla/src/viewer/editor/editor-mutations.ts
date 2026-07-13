@@ -1,4 +1,4 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import { cloneElement, cloneSlide, duplicateElement } from 'pptx-viewer-core';
 
 /**
@@ -138,16 +138,27 @@ export function appendElementOnSlide(
 
 /**
  * Replace the plain-text speaker notes on one slide. Mirrors the Vue binding's
- * `onNotesUpdate`: only `notes` is written, `notesSegments` (rich runs loaded
- * from a .pptx) is intentionally left untouched, matching the plain-text
- * commit contract shared by every binding's notes panel.
+ * Both the backwards-compatible plain string and optional rich segment model
+ * are persisted. Supplying no segments clears stale formatting after a plain edit.
  */
 export function updateSlideNotes(
 	slides: readonly PptxSlide[],
 	slideIndex: number,
 	notes: string,
+	notesSegments?: TextSegment[],
 ): PptxSlide[] {
-	return slides.map((slide, i) => (i === slideIndex ? { ...cloneSlide(slide), notes } : slide));
+	return slides.map((slide, i) =>
+		i === slideIndex
+			? {
+					...cloneSlide(slide),
+					notes,
+					notesSegments: notesSegments?.map((segment) => ({
+						...segment,
+						style: { ...segment.style },
+					})),
+				}
+			: slide,
+	);
 }
 
 /**

@@ -1,3 +1,4 @@
+import type { TextSegment } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
 
 import type { EditActions } from './editor/editor-edit-ops';
@@ -27,7 +28,7 @@ export interface ChromeCallbackDeps {
 	openBroadcast(): void;
 	toggleNotes(): void;
 	goToSlide(index: number): void;
-	commitNotes(notes: string): void;
+	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	exportSlidePng(): Promise<void>;
 	exportPdf(): Promise<void>;
 	exportGif(): Promise<void>;
@@ -142,6 +143,6 @@ export function buildChromeCallbacks(
 		inspectorHandlers,
 		onSelectSlide: (index) => deps.goToSlide(index),
 		onToggleNotes: () => deps.toggleNotes(),
-		onCommitNotes: (notes) => deps.commitNotes(notes),
+		onCommitNotes: (notes, notesSegments) => deps.commitNotes(notes, notesSegments),
 	};
 }

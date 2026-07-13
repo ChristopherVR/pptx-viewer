@@ -284,6 +284,22 @@ const CHROME_CSS = `
 .pptxv-notes-chevron { font-size: 0.75rem; }
 .pptxv-notes-body { padding: 0 10px 10px; }
 .pptxv-notes-body[hidden] { display: none; }
+.pptxv-notes-toolbar { display: flex; align-items: center; gap: 2px; margin: 0 0 6px; }
+.pptxv-notes-tool, .pptxv-notes-mode {
+  min-width: 26px; height: 24px; padding: 0 6px; border: 1px solid var(--pptx-border);
+  border-radius: 3px; background: var(--pptx-muted); color: var(--pptx-foreground); cursor: pointer;
+  font-size: 0.75rem; line-height: 1;
+}
+.pptxv-notes-mode { margin-left: auto; font-size: 0.6875rem; }
+.pptxv-notes-tool:hover, .pptxv-notes-mode:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-notes-tool:focus-visible, .pptxv-notes-mode:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: 1px; }
+.pptxv-notes-rich-editor {
+  box-sizing: border-box; width: 100%; min-height: 76px; max-height: 192px; overflow-y: auto;
+  border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted);
+  color: var(--pptx-foreground); padding: 7px 9px; font-size: 0.75rem; line-height: 1.4; white-space: pre-wrap;
+}
+.pptxv-notes-rich-editor:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -1px; }
+.pptxv-notes-rich-editor[contenteditable='false'] { cursor: default; opacity: 0.85; }
 .pptxv-notes-textarea {
 	box-sizing: border-box;
 	width: 100%;

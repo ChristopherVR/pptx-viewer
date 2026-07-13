@@ -1,4 +1,4 @@
-import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import { EditorHistory } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
@@ -46,8 +46,8 @@ export interface EditorOps {
 	duplicateSelected(): string | null;
 	nudgeSelected(dx: number, dy: number): void;
 	commitInlineText(id: string, text: string): void;
-	/** Commit the speaker-notes textarea's plain text onto the current slide. */
-	commitNotes(notes: string): void;
+	/** Commit speaker notes and optional rich segments onto the current slide. */
+	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	undo(): void;
 	redo(): void;
 	canUndo(): boolean;
@@ -171,14 +171,16 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			commitChange();
 		},
 
-		commitNotes(notes) {
+		commitNotes(notes, notesSegments) {
 			const state = store.get();
 			const slide = state.slides[state.currentSlide];
-			if (!state.editable || !slide || slide.notes === notes) {
+			if (!state.editable || !slide || (slide.notes === notes && notesSegments === undefined)) {
 				return;
 			}
 			pushHistory();
-			store.set({ slides: updateSlideNotes(state.slides, state.currentSlide, notes) });
+			store.set({
+				slides: updateSlideNotes(state.slides, state.currentSlide, notes, notesSegments),
+			});
 			commitChange();
 		},
 

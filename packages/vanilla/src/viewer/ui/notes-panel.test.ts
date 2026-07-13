@@ -22,6 +22,14 @@ function textarea(el: HTMLElement): HTMLTextAreaElement {
 	return found as HTMLTextAreaElement;
 }
 
+function richEditor(el: HTMLElement): HTMLElement {
+	const found = el.querySelector<HTMLElement>('.pptxv-notes-rich-editor');
+	if (!found) {
+		throw new Error('rich editor not found');
+	}
+	return found;
+}
+
 describe('createNotesPanel', () => {
 	it('renders the current slide notes text', () => {
 		const t = createTranslator();
@@ -92,6 +100,32 @@ describe('createNotesPanel', () => {
 		ta.value = 'edited again';
 		ta.dispatchEvent(new Event('blur'));
 		expect(onCommit).toHaveBeenLastCalledWith('edited again');
+	});
+
+	it('commits rich content as plain text and segments on blur', () => {
+		const onCommit = vi.fn();
+		const panel = createNotesPanel(document, createTranslator(), vi.fn(), onCommit);
+		panel.update({ slide: buildSlide({ notes: 'original' }), editable: true });
+
+		const editor = richEditor(panel.el);
+		editor.innerHTML = '<strong>Bold</strong> note';
+		editor.dispatchEvent(new Event('blur'));
+
+		expect(onCommit).toHaveBeenLastCalledWith(
+			'Bold note',
+			expect.arrayContaining([expect.objectContaining({ text: 'Bold', style: { bold: true } })]),
+		);
+	});
+
+	it('offers a rich/plain mode toggle while editing', () => {
+		const panel = createNotesPanel(document, createTranslator(), vi.fn(), vi.fn());
+		panel.update({ slide: buildSlide({ notes: 'original' }), editable: true });
+		const toggle = panel.el.querySelector<HTMLButtonElement>('.pptxv-notes-mode');
+		expect(toggle).not.toBeNull();
+		expect(richEditor(panel.el).hidden).toBeFalsy();
+
+		toggle?.click();
+		expect(textarea(panel.el).hidden).toBeFalsy();
 	});
 
 	it('toggles expanded/collapsed state and fires onToggle from the header', () => {

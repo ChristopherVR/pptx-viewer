@@ -1,4 +1,4 @@
-import type { PptxHandler } from 'pptx-viewer-core';
+import type { PptxHandler, TextSegment } from 'pptx-viewer-core';
 import { downloadBlob } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -64,8 +64,8 @@ export interface EditorController {
 	getEditActions(): EditActions;
 	/** The Find & Replace actions for the ribbon's docked panel. */
 	getFindReplaceActions(): FindReplaceActions;
-	/** Commit the speaker-notes textarea's plain text onto the current slide. */
-	commitNotes(notes: string): void;
+	/** Commit speaker notes, optionally retaining rich inline formatting. */
+	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	save(): Promise<Uint8Array>;
 	downloadPptx(fileName?: string): Promise<void>;
 	destroy(): void;
@@ -272,7 +272,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		setDrawWidth: (width) => drawMode.setWidth(width),
 		getEditActions: () => editActions,
 		getFindReplaceActions: () => findReplaceActions,
-		commitNotes: (notes) => ops.commitNotes(notes),
+		commitNotes: (notes, notesSegments) => ops.commitNotes(notes, notesSegments),
 		save: () => ops.save(),
 		async downloadPptx(fileName = 'presentation.pptx') {
 			const bytes = await ops.save();

@@ -1,3 +1,4 @@
+import type { TextSegment } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
 
 import { buildChromeCallbacks } from './chrome-callbacks';
@@ -142,7 +143,7 @@ export interface ChromeHost {
 	renderer: RenderController;
 	lifecycle: ChromeLifecycle;
 	editor: {
-		commitNotes(notes: string): void;
+		commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 		getEditActions(): EditActions;
 		getFindReplaceActions(): FindReplaceActions;
 		setDrawTool(tool: DrawTool): void;
@@ -205,7 +206,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		goToFirstSlide: () => host.goToSlide(0),
 		goToLastSlide: () => host.goToSlide(host.getSlideCount() - 1),
 		exitPresentation: () => void host.exitPresentation(),
-		commitNotes: (notes) => host.editor.commitNotes(notes),
+		commitNotes: (notes, notesSegments) => host.editor.commitNotes(notes, notesSegments),
 		exportSlidePng: () => host.exportSlidePng(),
 		exportPdf: () => host.exportPdf(),
 		exportGif: () => host.exportGif(),
