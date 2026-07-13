@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.4.0) - 2026-07-13
+
+### Bug Fixes
+
+- **build:** Restore compatibility after dependency updates (by @ChristopherVR) ([ddbfae6](https://github.com/ChristopherVR/pptx-viewer/commit/ddbfae687669b9e6c64fd3c3b16a592623b79c10))
+
+### Dependencies
+
+- **deps:** Update fast-xml-parser to 5.10.0 (by @dependabot[bot]) ([6080273](https://github.com/ChristopherVR/pptx-viewer/commit/6080273f6a6f603d10d69a71d54faad1e6d9bf05))
+- **deps:** Update typescript to 7.0.2 (by @dependabot[bot]) ([0a7c1f1](https://github.com/ChristopherVR/pptx-viewer/commit/0a7c1f1f7f0ccdee9537f1e11177b6a39839d221))
+
 ## [1.3.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.3.1) - 2026-07-13
 
 ## [1.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.3.0) - 2026-07-11

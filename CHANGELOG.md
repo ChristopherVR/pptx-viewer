@@ -6,6 +6,73 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-13
 
+_Releases: pptx-viewer-core@1.4.0, pptx-react-viewer@1.17.0, pptx-vue-viewer@1.17.0, pptx-angular-viewer@1.17.0, pptx-vanilla-viewer@0.6.0, pptx-svelte-viewer@0.6.0, pptx-viewer-mcp@1.2.2, @christophervr/pptx-viewer@1.5.2_
+
+### Features
+
+- **vanilla:** Add editor status bar (by @ChristopherVR) ([1332c48](https://github.com/ChristopherVR/pptx-viewer/commit/1332c48a6eae2a77bd4d626c305407041149a13b))
+- **vanilla:** Add title bar (by @ChristopherVR) ([f5f3db6](https://github.com/ChristopherVR/pptx-viewer/commit/f5f3db6dd4437c51b440d55658f2ee2cb7e6a07d))
+- **svelte:** Add desktop title bar (by @ChristopherVR) ([d150f49](https://github.com/ChristopherVR/pptx-viewer/commit/d150f49e38194524bc2cecfbc294febbaca0c215))
+- **svelte:** Add desktop status bar (by @ChristopherVR) ([d02ec0e](https://github.com/ChristopherVR/pptx-viewer/commit/d02ec0e386c8db732b89e3f85076eaa0248d66f8))
+- **vanilla:** Toggle autosave at runtime (by @ChristopherVR) ([734b280](https://github.com/ChristopherVR/pptx-viewer/commit/734b280427685726aae0d282441f9797f65b6bcd))
+- **svelte:** Add slide show ribbon tab (by @ChristopherVR) ([6c12617](https://github.com/ChristopherVR/pptx-viewer/commit/6c1261746efad713b5739bb93f3277f7bbeb2f46))
+- **vanilla:** Add slide show ribbon tab (by @ChristopherVR) ([c47a75f](https://github.com/ChristopherVR/pptx-viewer/commit/c47a75f6dcd566251eac294c71f8f321c9e696e2))
+- **vanilla:** Add responsive mobile chrome (by @ChristopherVR) ([8d385e5](https://github.com/ChristopherVR/pptx-viewer/commit/8d385e536aba2fee1baacfdeddd606220b5282ff))
+- **svelte:** Add responsive mobile chrome (by @ChristopherVR) ([eb826f1](https://github.com/ChristopherVR/pptx-viewer/commit/eb826f1efe9867254ac84e0993213dd2a585abfa))
+- **vanilla:** Add touch navigation gestures (by @ChristopherVR) ([3bf3886](https://github.com/ChristopherVR/pptx-viewer/commit/3bf3886769fe7beafe238cca2a4298c0552da968))
+- **svelte:** Add element context menu (by @ChristopherVR) ([d49bfe6](https://github.com/ChristopherVR/pptx-viewer/commit/d49bfe692970a65659ffff0d2d8032b8696217b9))
+- **vanilla:** Add rich speaker notes (by @ChristopherVR) ([df91ab5](https://github.com/ChristopherVR/pptx-viewer/commit/df91ab58f963441abc506f7a937294b44824caea))
+- **svelte:** Add rich speaker notes (by @ChristopherVR) ([02dbbcf](https://github.com/ChristopherVR/pptx-viewer/commit/02dbbcff7459dfe3b552333c5ceea090115ffdcc))
+- **vanilla:** Add accessibility checker (by @ChristopherVR) ([1d60a42](https://github.com/ChristopherVR/pptx-viewer/commit/1d60a42d879e231ca112d02a5af76dc63cd67888))
+- **svelte:** Reorder slides from thumbnails (by @ChristopherVR) ([3b14756](https://github.com/ChristopherVR/pptx-viewer/commit/3b14756f5b6f3b3b27001de1fe8b0c58792b6466))
+- **vanilla:** Expand rich notes commands (by @ChristopherVR) ([1f1a92d](https://github.com/ChristopherVR/pptx-viewer/commit/1f1a92deee5d3b393834cf8cf6ea865869059d43))
+- **svelte:** Add review comments panel (by @ChristopherVR) ([2ccba69](https://github.com/ChristopherVR/pptx-viewer/commit/2ccba691c08d4ee1e6e59cc056063e1a20759b06))
+- **shared:** Add host-provided font sources (by @ChristopherVR) ([542e2d9](https://github.com/ChristopherVR/pptx-viewer/commit/542e2d9e7f77e390b1b20cde325d3dd9241c85a2))
+- **bindings:** Close svelte and vanilla parity gaps (by @ChristopherVR) ([9cb9d7e](https://github.com/ChristopherVR/pptx-viewer/commit/9cb9d7e53bf1dcda3b051b0ba5737e17115be4c4))
+- **react:** Accept host-provided fonts (by @ChristopherVR) ([fa2d325](https://github.com/ChristopherVR/pptx-viewer/commit/fa2d3252c45e94d502f5deb1c2d03c7c156d8f43))
+- **bindings:** Deepen editing and qa parity (by @ChristopherVR) ([58eb87a](https://github.com/ChristopherVR/pptx-viewer/commit/58eb87ae2dc32ba699ee2d01e2dc9bc21f1d925b))
+- **bindings:** Close structured editing gaps (by @ChristopherVR) ([7f61b91](https://github.com/ChristopherVR/pptx-viewer/commit/7f61b91749ad3e5832c930e11c9d4407c4a4758e))
+- **bindings:** Further gap improvements for VanillaJS and Svelte (by @ChristopherVR) ([3a5d7a1](https://github.com/ChristopherVR/pptx-viewer/commit/3a5d7a1c9df614451d205d1db3be61a1e2b5c588))
+
+### Bug Fixes
+
+- **core:** Preserve real-world presentation text (by @ChristopherVR) ([a721ff0](https://github.com/ChristopherVR/pptx-viewer/commit/a721ff0eb44025f17989ae1b83518d748a7c0602))
+- **core:** Preserve default paragraph colors (by @ChristopherVR) ([49c442b](https://github.com/ChristopherVR/pptx-viewer/commit/49c442bcbf1219170267326b8d6e353ae00ca6c6))
+- **core:** Inherit placeholder transforms without borders (by @ChristopherVR) ([e1fa611](https://github.com/ChristopherVR/pptx-viewer/commit/e1fa6118a518cc0bb44699f2a89bc1c588cb6151))
+- **core:** Inherit presentation placeholder styles (by @ChristopherVR) ([96ac79e](https://github.com/ChristopherVR/pptx-viewer/commit/96ac79edef9c8e7ee9605d4f6913c5ad56e12fc9))
+- **shared:** Unify slide background rendering (by @ChristopherVR) ([0dfb067](https://github.com/ChristopherVR/pptx-viewer/commit/0dfb067740e4ca814c4d192b51237dbab47d634b))
+- **shared:** Preserve equation display formatting (by @ChristopherVR) ([115e6d9](https://github.com/ChristopherVR/pptx-viewer/commit/115e6d90955c42979eb1eb1c223414cdc226e88f))
+- **core:** Use condensed fallback for Oswald (by @ChristopherVR) ([5e01dbc](https://github.com/ChristopherVR/pptx-viewer/commit/5e01dbcd35857b72757caba5332bf3a5c9548172))
+- **build:** Restore compatibility after dependency updates (by @ChristopherVR) ([ddbfae6](https://github.com/ChristopherVR/pptx-viewer/commit/ddbfae687669b9e6c64fd3c3b16a592623b79c10))
+
+### Documentation
+
+- Refresh vanilla and svelte parity tracker (by @ChristopherVR) ([c3106e2](https://github.com/ChristopherVR/pptx-viewer/commit/c3106e235915e7be6705921aba7af7c5c1fa47d7))
+
+### Testing
+
+- **vanilla:** Cover slide show ribbon tab (by @ChristopherVR) ([11d1181](https://github.com/ChristopherVR/pptx-viewer/commit/11d11812e52574f9d3fb34a719b6613d413bbedf))
+- **svelte:** Cover slide show ribbon tab (by @ChristopherVR) ([83e44eb](https://github.com/ChristopherVR/pptx-viewer/commit/83e44ebf2966f0f6ac0595bbe878516416dbeb6b))
+
+### Styling
+
+- Format files after dependency merges (by @ChristopherVR) ([08cbcb2](https://github.com/ChristopherVR/pptx-viewer/commit/08cbcb2305034bc132a3152849e1e4d4e0d21e13))
+
+### Dependencies
+
+- **deps:** Update framer-motion to 12.42.2 (by @dependabot[bot]) ([cbc2a6b](https://github.com/ChristopherVR/pptx-viewer/commit/cbc2a6b43a5286e7ea8e994b2d22ec3bcdcbf74d))
+- **deps:** Update html2canvas-pro to 2.2.3 (by @dependabot[bot]) ([0fe015b](https://github.com/ChristopherVR/pptx-viewer/commit/0fe015b83722534f14864b2054ce6561b09386ca))
+- **deps:** Update angular compiler to 22.0.6 (by @dependabot[bot]) ([3990f82](https://github.com/ChristopherVR/pptx-viewer/commit/3990f821128012438f9e72337b293fce7110d0fc))
+- **deps:** Update fast-xml-parser to 5.10.0 (by @dependabot[bot]) ([6080273](https://github.com/ChristopherVR/pptx-viewer/commit/6080273f6a6f603d10d69a71d54faad1e6d9bf05))
+- **deps:** Update angular vite plugin to 2.6.3 (by @dependabot[bot]) ([f3c664e](https://github.com/ChristopherVR/pptx-viewer/commit/f3c664e28425ff0059073b3119f215e981f56d00))
+- **deps:** Update terser to 5.49.0 (by @dependabot[bot]) ([0d8b25e](https://github.com/ChristopherVR/pptx-viewer/commit/0d8b25e304e7528614ab048d07cd011eb742c2c9))
+- **deps:** Update dompurify to 3.4.12 (by @dependabot[bot]) ([00a6ca4](https://github.com/ChristopherVR/pptx-viewer/commit/00a6ca49609d5a0e922a9e20447460b11ec690ba))
+- **deps:** Update api-extractor to 7.58.9 (by @dependabot[bot]) ([0225e1f](https://github.com/ChristopherVR/pptx-viewer/commit/0225e1f2281358643a6325018a9750676990c604))
+- **deps:** Update minor and patch dependencies (by @dependabot[bot]) ([5cd81fb](https://github.com/ChristopherVR/pptx-viewer/commit/5cd81fb0c8708e53990ac4858660d0b6a4b17a7a))
+- **deps:** Update typescript to 7.0.2 (by @dependabot[bot]) ([0a7c1f1](https://github.com/ChristopherVR/pptx-viewer/commit/0a7c1f1f7f0ccdee9537f1e11177b6a39839d221))
+
+## 2026-07-13
+
 _Releases: pptx-viewer-core@1.3.1, pptx-react-viewer@1.16.2, pptx-vue-viewer@1.16.1, pptx-angular-viewer@1.16.1, pptx-vanilla-viewer@0.5.1, pptx-svelte-viewer@0.5.1_
 
 ### Bug Fixes
