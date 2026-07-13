@@ -217,6 +217,11 @@ describe('getSubstituteFontFamily', () => {
 		expect(result).toBe('"Consolas", "Liberation Mono", "Courier New", monospace');
 	});
 
+	it('uses a condensed display fallback for Oswald', () => {
+		const result = getSubstituteFontFamily('Oswald');
+		expect(result).toBe('"Oswald", "Agency FB", "Arial Narrow", sans-serif');
+	});
+
 	it('uses PANOSE classification when no direct substitution exists', () => {
 		// PANOSE for a sans-serif font: bFamilyType=2, bSerifStyle=11 (Normal Sans)
 		const panose = [2, 11, 5, 2, 2, 2, 2, 2, 2, 4];

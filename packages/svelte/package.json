@@ -1,6 +1,6 @@
 {
 	"name": "pptx-svelte-viewer",
-	"version": "0.5.0",
+	"version": "0.5.1",
 	"description": "Svelte 5 PowerPoint viewer component: render PPTX slides in the browser.",
 	"keywords": [
 		"office",
@@ -63,7 +63,7 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"html2canvas-pro": "^2.0.4",
+		"html2canvas-pro": "^2.2.3",
 		"jspdf": "^4.2.1"
 	},
 	"devDependencies": {

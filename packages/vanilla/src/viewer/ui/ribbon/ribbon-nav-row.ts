@@ -25,6 +25,7 @@ export function createRibbonNavRow(
 ): RibbonNavRow {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-nav');
 	el.setAttribute('role', 'toolbar');
+	el.setAttribute('aria-label', t('pptx.editorToolbar.ariaLabel'));
 
 	const prevBtn = makeButton(doc, {
 		label: t('pptx.presenter.previousSlide'),
@@ -58,7 +59,7 @@ export function createRibbonNavRow(
 		onClick: handlers.zoomToFit,
 	});
 	const present = makeButton(doc, {
-		label: t('pptx.statusBar.slideShow'),
+		label: t('pptx.toolbar.present'),
 		icon: 'play',
 		onClick: handlers.togglePresentation,
 	});

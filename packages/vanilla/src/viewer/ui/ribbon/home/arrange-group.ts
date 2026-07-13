@@ -11,6 +11,7 @@ export interface ArrangeGroupHandlers {
 	bringToFront(): void;
 	sendToBack(): void;
 	alignElements(edge: AlignEdge): void;
+	distributeElements(axis: 'horizontal' | 'vertical'): void;
 	flipHorizontal(): void;
 	flipVertical(): void;
 	groupSelected(): void;
@@ -23,6 +24,7 @@ export interface ArrangeGroupState {
 	editable: boolean;
 	hasSelection: boolean;
 	isGroup: boolean;
+	selectedCount: number;
 }
 
 export interface ArrangeGroup {
@@ -87,16 +89,12 @@ export function createArrangeGroup(
 	const distributeH = makeButton(doc, {
 		label: t('pptx.arrange.distributeHorizontal'),
 		icon: 'distribute-h',
-		onClick: () => {
-			/* needs multi-select; disabled, see module docs. */
-		},
+		onClick: () => handlers.distributeElements('horizontal'),
 	});
 	const distributeV = makeButton(doc, {
 		label: t('pptx.arrange.distributeVertical'),
 		icon: 'distribute-v',
-		onClick: () => {
-			/* needs multi-select; disabled, see module docs. */
-		},
+		onClick: () => handlers.distributeElements('vertical'),
 	});
 
 	const flipH = makeButton(doc, {
@@ -148,7 +146,7 @@ export function createArrangeGroup(
 
 	return {
 		el,
-		update({ editable, hasSelection, isGroup }) {
+		update({ editable, hasSelection, isGroup, selectedCount }) {
 			const canMut = editable && hasSelection;
 			for (const b of [
 				front,
@@ -163,10 +161,9 @@ export function createArrangeGroup(
 			]) {
 				b.setDisabled(!canMut);
 			}
-			// Multi-selection only; unreachable under the single-selection model.
-			distributeH.setDisabled(true);
-			distributeV.setDisabled(true);
-			group.setDisabled(true);
+			distributeH.setDisabled(!editable || selectedCount < 3);
+			distributeV.setDisabled(!editable || selectedCount < 3);
+			group.setDisabled(!editable || selectedCount < 2);
 			ungroup.setDisabled(!canMut || !isGroup);
 		},
 	};

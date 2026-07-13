@@ -15,10 +15,7 @@
 	const t = useTranslator();
 
 	function selectAll(): void {
-		const slide = editor.slides[editor.currentSlideIndex];
-		if (slide) {
-			editor.selection.setAll(slide.elements.map((el) => el.id));
-		}
+		editor.selection.setAll(editor.activeElements.map((element) => element.id));
 	}
 </script>
 

@@ -92,6 +92,41 @@ describe('elementRenderer dispatch', () => {
 		expect(line?.getAttribute('stroke')).toBe('#ff0000');
 	});
 
+	it('renders OMML equation segments as MathML', () => {
+		const target = mountEl({
+			...base,
+			type: 'shape',
+			textSegments: [{ text: '', equationXml: { 'm:oMath': { 'm:r': { 'm:t': 'x' } } } }],
+		} as PptxElement);
+		expect(target.innerHTML).toContain('<math');
+		expect(target.querySelector('.pptx-svelte-shape')).toBeNull();
+	});
+
+	it('renders WordArt warp paths instead of flat text', () => {
+		const target = mountEl({
+			...base,
+			type: 'shape',
+			textSegments: [{ text: 'Warped' }],
+			textStyle: { textWarpPreset: 'textArchUp' },
+		} as PptxElement);
+		expect(target.querySelector('.pptx-svelte-wordart textPath')).not.toBeNull();
+		expect(target.querySelector('.pptx-svelte-text')).toBeNull();
+	});
+
+	it('renders extrusion panels and shape-level duotone defs', () => {
+		const target = mountEl({
+			...base,
+			type: 'shape',
+			shapeStyle: {
+				fillColor: '#336699',
+				shape3d: { extrusionHeight: 95250, extrusionColor: '#224466' },
+				dagDuotone: { color1: '#000000', color2: '#ffffff' },
+			},
+		} as PptxElement);
+		expect(target.querySelectorAll('.pptx-svelte-extrusion-panel')).toHaveLength(4);
+		expect(target.querySelector('filter[id^="dag-duotone-"]')).not.toBeNull();
+	});
+
 	it('recurses into groups', () => {
 		const target = mountEl({
 			...base,

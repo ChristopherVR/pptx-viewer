@@ -5,6 +5,7 @@ import type { RibbonNavHandlers } from '../ribbon-types';
 
 export interface ViewTab {
 	el: HTMLElement;
+	setTemplateEditing(active: boolean): void;
 }
 
 /**
@@ -41,8 +42,42 @@ export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavH
 		icon: 'notes',
 		onClick: handlers.toggleNotes,
 	});
+	const accessibility = makeButton(doc, {
+		label: t('pptx.ribbon.accessibilityCheck'),
+		icon: 'sidebar',
+		onClick: handlers.openAccessibility,
+	});
+	const templates = makeButton(doc, {
+		label: t('pptx.ribbon.templatesOff'),
+		text: t('pptx.ribbon.templatesOff'),
+		onClick: () => handlers.toggleTemplateEditing?.(),
+	});
+	const masterView = makeButton(doc, {
+		label: t('pptx.mode.masterView'),
+		text: t('pptx.mode.masterView'),
+		onClick: () => handlers.toggleMasterView?.(),
+	});
+	templates.btn.dataset.testid = 'template-edit-toggle';
 
-	el.append(zoomOut.btn, zoomIn.btn, fit.btn, present.btn, notes.btn);
+	el.append(
+		zoomOut.btn,
+		zoomIn.btn,
+		fit.btn,
+		present.btn,
+		notes.btn,
+		accessibility.btn,
+		templates.btn,
+		masterView.btn,
+	);
 
-	return { el };
+	return {
+		el,
+		setTemplateEditing(active) {
+			const label = t(active ? 'pptx.ribbon.templatesOn' : 'pptx.ribbon.templatesOff');
+			templates.btn.textContent = label;
+			templates.btn.title = label;
+			templates.btn.setAttribute('aria-label', label);
+			templates.setActive(active);
+		},
+	};
 }

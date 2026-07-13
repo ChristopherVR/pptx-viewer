@@ -80,6 +80,8 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	source?: PptxViewerSource;
 	/** Viewer chrome theme (shared `ViewerTheme`: colors, radius, CSS vars). */
 	theme?: ViewerTheme;
+	/** Display name shown in the PowerPoint-style title bar. */
+	fileName?: string;
 	/** UI locale (default `'en'`). Dictionaries come from `messages`. */
 	locale?: string;
 	/**
@@ -137,6 +139,8 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	 * {@link PptxViewerCallbacks.onAutosaveRecovery}.
 	 */
 	autosave?: boolean;
+	/** Fired when the title-bar AutoSave control enables or disables recovery autosave. */
+	onToggleAutosave?: (enabled: boolean) => void;
 	/** Debounce window (ms) between an edit and the persisted snapshot (default 2000). */
 	autosaveIntervalMs?: number;
 	/** IndexedDB recovery key for autosave (default `'presentation.pptx'`). */
@@ -195,6 +199,8 @@ export interface PptxViewerInstance {
 	exitPresentation(): Promise<void>;
 	/** Enable or disable editing at runtime (disabling clears the selection). */
 	setEditable(editable: boolean): void;
+	/** Enable or disable editing inherited layout/master elements. */
+	setEditTemplateMode(enabled: boolean): void;
 	/** Undo the last edit (no-op when the undo stack is empty). */
 	undo(): void;
 	/** Redo the last undone edit (no-op when the redo stack is empty). */
@@ -260,6 +266,10 @@ export interface PptxViewerInstance {
 	getCollaborationStatus(): ConnectionStatus;
 	/** Force an immediate autosave snapshot (no-op when autosave is disabled). */
 	autosaveNow(): Promise<void>;
+	/** Enable or disable recovery autosave without rebuilding the viewer. */
+	setAutosaveEnabled(enabled: boolean): void;
+	/** Whether recovery autosave is currently enabled. */
+	isAutosaveEnabled(): boolean;
 	/** Tear down DOM, listeners, Blob URLs, and the core handler. */
 	destroy(): void;
 }

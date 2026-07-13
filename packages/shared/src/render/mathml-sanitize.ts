@@ -26,5 +26,12 @@ import { sanitizeMarkupOrRaw } from './dompurify-safe';
  * @returns The sanitised markup, or the raw input when no DOM is available.
  */
 export function sanitizeMathMl(markup: string): string {
-	return sanitizeMarkupOrRaw(markup, { USE_PROFILES: { mathMl: true, svg: true } });
+	const sanitized = sanitizeMarkupOrRaw(markup, { USE_PROFILES: { mathMl: true, svg: true } });
+	// DOMPurify's HTML parser can retain MathML descendants while dropping the
+	// outer namespace-bearing <math> node. Restore that generated, constant
+	// wrapper so browsers keep the fragment in the MathML rendering context.
+	if (/<math(?:\s|>)/iu.test(markup) && !/<math(?:\s|>)/iu.test(sanitized) && sanitized) {
+		return `<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline">${sanitized}</math>`;
+	}
+	return sanitized;
 }

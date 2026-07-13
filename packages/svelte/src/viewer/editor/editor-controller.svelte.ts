@@ -1,42 +1,30 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { InteractionBox, ResizeHandleId, SnapLine, SnapSibling } from 'pptx-viewer-shared';
+import type { ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
 
+import {
+	elementInteractionBox,
+	selectionOverlayBox,
+	siblingBoxes,
+} from './editor-controller-geometry';
 import { createGestureController } from './editor-gestures';
 import type { GestureController } from './editor-gestures';
 import { createInkGestureController } from './editor-ink-gesture';
 import type { InkGestureController } from './editor-ink-gesture';
 import { createEditorKeydownHandler } from './editor-keyboard';
+import { createSelectionGestureController } from './editor-selection-gestures';
+import type { EditorMarqueeRect } from './editor-selection-gestures';
 import type { EditorState } from './editor-state.svelte';
 import { resolveTopLevelElementId } from './element-hit';
 import { canInlineEditElement } from './inline-text';
-import type { OverlayBox } from './types';
 
-/**
- * The editing orchestrator for the Svelte viewer: wires the selection overlay,
- * pointer gestures, inline text editing, and the editing keyboard to the
- * history-tracked {@link EditorState}. The Svelte counterpart of the vanilla
- * binding's `editor-controller`, but reactive: `overlayBox`, `snapLines`, and
- * `editingElement` are runes-backed so the overlay/inline components rerender
- * automatically. All pure editing math lives in `pptx-viewer-shared`; this
- * class owns only the DOM/event plumbing.
- */
 export interface EditorControllerDeps {
-	/** Current stage scale (screen px per element px). */
 	getScale(): number;
-	/** Active slide index (0-based). */
 	getCurrent(): number;
-	/** True while the viewer is presenting (fullscreen); editing is suppressed. */
 	getPresenting(): boolean;
-	/** The `.pptx-svelte-stage` element for hit-testing (or null before mount). */
 	getStageRoot(): Element | null;
-	/** The stage holder element, for mapping rotation pointer to slide origin. */
 	getHolderEl(): HTMLElement | null;
-	/** Notified with slide-space coordinates on stage pointer move (collaboration cursor broadcast). */
 	onCursorMove?(x: number, y: number): void;
-}
-
-function toOverlayBox(el: PptxElement): OverlayBox {
-	return { x: el.x, y: el.y, width: el.width, height: el.height, rotation: el.rotation ?? 0 };
+	onContextMenu?(x: number, y: number): void;
 }
 
 export class EditorController {
@@ -45,11 +33,11 @@ export class EditorController {
 	readonly #gestures: GestureController;
 	readonly #ink: InkGestureController;
 	readonly #keydown: (event: KeyboardEvent) => void;
+	readonly #selectionGestures;
 
-	/** Transient snap-alignment lines shown during a snap-to-shape drag. */
 	snapLines = $state<readonly SnapLine[]>([]);
-	/** The element id currently open in the inline text editor, or null. */
 	editingId = $state<string | null>(null);
+	marquee = $state<EditorMarqueeRect | null>(null);
 
 	constructor(editor: EditorState, deps: EditorControllerDeps) {
 		this.#editor = editor;
@@ -57,8 +45,8 @@ export class EditorController {
 
 		this.#gestures = createGestureController({
 			getScale: () => this.#deps.getScale(),
-			getElementBox: (id) => this.#elementBox(id),
-			getSiblings: () => this.#siblings(),
+			getElementBox: (id) => elementInteractionBox(this.#currentElements(), id),
+			getSiblings: () => siblingBoxes(this.#currentElements()),
 			getStageOrigin: () => {
 				const rect = this.#deps.getHolderEl()?.getBoundingClientRect();
 				return { left: rect?.left ?? 0, top: rect?.top ?? 0 };
@@ -118,43 +106,53 @@ export class EditorController {
 			copySelected: () => this.#editor.clipboardOps.copySelected(),
 			cutSelected: () => this.#editor.clipboardOps.cutSelected(),
 			paste: () => void this.#editor.clipboardOps.pasteClipboard(),
+			cancelFormatPainter: () => {
+				const active = this.#editor.formatPainter.active;
+				this.#editor.formatPainter.cancel();
+				return active;
+			},
+		});
+
+		this.#selectionGestures = createSelectionGestureController({
+			getScale: () => this.#deps.getScale(),
+			getStageRect: () => this.#deps.getHolderEl()?.getBoundingClientRect(),
+			getElements: () => this.#currentElements(),
+			getSelectedIds: () => this.#editor.selection.ids,
+			onStart: () => {
+				this.#editor.pushHistory();
+				this.#editor.interactionActive = true;
+			},
+			onPatch: (id, patch) => this.#editor.patchGeometry(id, patch),
+			onCommit: () => {
+				this.#editor.interactionActive = false;
+				this.#editor.commitChange();
+			},
+			onSelect: (ids) => this.#editor.selection.setAll(ids),
+			onMarquee: (rect) => {
+				this.marquee = rect;
+			},
 		});
 	}
 
 	#currentElements(): PptxElement[] {
-		return this.#editor.slides[this.#deps.getCurrent()]?.elements ?? [];
+		return this.#editor.activeElements;
 	}
 
-	#elementBox(id: string): InteractionBox | undefined {
-		const el = this.#currentElements().find((e) => e.id === id);
-		return el ? toOverlayBox(el) : undefined;
-	}
-
-	#siblings(): SnapSibling[] {
-		return this.#currentElements().map(({ id, x, y, width, height }) => ({
-			id,
-			x,
-			y,
-			width,
-			height,
-		}));
-	}
-
-	/** The selection box in element px, or null when nothing is shown. */
-	get overlayBox(): OverlayBox | null {
+	get overlayBox() {
 		if (!this.#editor.editable || this.#deps.getPresenting()) {
 			return null;
 		}
-		const el = this.#editor.selectedElement;
-		return el ? toOverlayBox(el) : null;
+		return selectionOverlayBox(this.#editor.selectedElements);
 	}
 
-	/** True while the inline text editor is open (selection chrome hides). */
 	get editing(): boolean {
 		return this.editingId !== null;
 	}
 
-	/** The element currently being inline-edited (for the inline surface). */
+	get selectionCount(): number {
+		return this.#editor.selection.size;
+	}
+
 	get editingElement(): PptxElement | undefined {
 		return this.editingId
 			? this.#currentElements().find((e) => e.id === this.editingId)
@@ -167,8 +165,6 @@ export class EditorController {
 			this.#editor.editable && (this.#editor.selectedElementId !== null || this.editingId !== null)
 		);
 	}
-
-	// -- Event handlers (wired by PowerPointViewer / EditorLayer) --------------
 
 	onStagePointerDown = (event: PointerEvent): void => {
 		if (
@@ -188,14 +184,23 @@ export class EditorController {
 			return;
 		}
 		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
-		if (!id) {
-			if (this.#editor.selectedElementId) {
-				this.#editor.select(null);
-			}
+		if (!id || !this.#editor.isElementInteractive(id)) {
+			this.#editor.formatPainter.cancel();
+			this.#selectionGestures.beginMarquee(event);
 			return;
 		}
-		if (this.#editor.selectedElementId !== id) {
+		if (event.shiftKey || event.ctrlKey || event.metaKey) {
+			this.#editor.selection.toggle(id);
+			return;
+		}
+		if (this.#editor.formatPainter.applyTo(id)) {
+			return;
+		}
+		if (!this.#editor.selection.has(id)) {
 			this.#editor.select(id);
+		}
+		if (this.#selectionGestures.beginTransform('move', event)) {
+			return;
 		}
 		this.#gestures.begin('move', id, event);
 	};
@@ -220,14 +225,34 @@ export class EditorController {
 			return;
 		}
 		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
-		if (id) {
+		if (id && this.#editor.isElementInteractive(id)) {
+			if (this.#editor.equationOps.open(id)) {
+				return;
+			}
 			this.enterInlineEdit(id);
 		}
+	};
+
+	/** Select the right-clicked element and expose the edit context menu. */
+	onStageContextMenu = (event: MouseEvent): void => {
+		if (!this.#editor.editable || this.#deps.getPresenting() || this.#editor.inkOps.isDrawing) {
+			return;
+		}
+		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
+		if (!id || !this.#editor.isElementInteractive(id)) {
+			return;
+		}
+		event.preventDefault();
+		this.#editor.select(id);
+		this.#deps.onContextMenu?.(event.clientX, event.clientY);
 	};
 
 	onHandlePointerDown = (handle: ResizeHandleId, event: PointerEvent): void => {
 		const id = this.#editor.selectedElementId;
 		if (id) {
+			if (this.#selectionGestures.beginTransform('resize', event, handle)) {
+				return;
+			}
 			this.#gestures.begin('resize', id, event, handle);
 		}
 	};
@@ -269,6 +294,7 @@ export class EditorController {
 	/** Tear down window listeners (component destroy). */
 	destroy(): void {
 		this.#gestures.dispose();
+		this.#selectionGestures.dispose();
 		this.#ink.dispose();
 	}
 }

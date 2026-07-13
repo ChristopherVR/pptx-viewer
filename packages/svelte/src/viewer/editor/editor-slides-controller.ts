@@ -1,4 +1,11 @@
-import { deleteSlideAt, duplicateSlideAt, insertBlankSlideAfter } from './editor-slide-ops';
+import { cloneElement } from 'pptx-viewer-core';
+
+import {
+	deleteSlideAt,
+	duplicateSlideAt,
+	insertBlankSlideAfter,
+	moveSlide,
+} from './editor-slide-ops';
 import type { EditorState } from './editor-state.svelte';
 
 /**
@@ -38,7 +45,13 @@ export class EditorSlidesController {
 		if (!result) {
 			return null;
 		}
+		const source = this.#editor.slides[this.#editor.currentSlideIndex];
+		const copy = result.slides[result.newIndex];
 		this.#editor.commitSlides(result.slides);
+		this.#editor.templateElementsBySlideId = {
+			...this.#editor.templateElementsBySlideId,
+			[copy.id]: (this.#editor.templateElementsBySlideId[source.id] ?? []).map(cloneElement),
+		};
 		return result.newIndex;
 	}
 
@@ -51,8 +64,26 @@ export class EditorSlidesController {
 		if (!result) {
 			return null;
 		}
+		const removedId = this.#editor.slides[this.#editor.currentSlideIndex].id;
 		this.#editor.commitSlides(result.slides);
+		const templateElementsBySlideId = { ...this.#editor.templateElementsBySlideId };
+		delete templateElementsBySlideId[removedId];
+		this.#editor.templateElementsBySlideId = templateElementsBySlideId;
 		this.#editor.selection.clear();
 		return result.newIndex;
+	}
+
+	/** Move an arbitrary thumbnail slide. Returns the selected target index on success. */
+	moveSlide(fromIndex: number, toIndex: number): number | null {
+		if (!this.#editor.editable) {
+			return null;
+		}
+		const slides = moveSlide(this.#editor.slides, fromIndex, toIndex);
+		if (!slides) {
+			return null;
+		}
+		this.#editor.commitSlides(slides);
+		this.#editor.selection.clear();
+		return toIndex;
 	}
 }

@@ -116,4 +116,24 @@ describe('createAutosaveController', () => {
 		expect(onRecovery).toHaveBeenCalledWith(record);
 		controller.destroy();
 	});
+
+	it('defers snapshots until autosave is enabled at runtime', async () => {
+		const { handler, save } = makeHandler();
+		const controller = createAutosaveController({
+			store,
+			getHandler: () => handler,
+			filePath: 'deck.pptx',
+			intervalMs: 1000,
+			enabled: false,
+		});
+
+		store.set({ slides: [makeSlide('a')], dirty: true });
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(save).not.toHaveBeenCalled();
+
+		controller.setEnabled(true);
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(save).toHaveBeenCalledOnce();
+		controller.destroy();
+	});
 });

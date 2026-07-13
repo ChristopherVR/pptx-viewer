@@ -5,6 +5,7 @@ import type {
 	SmartArtPptxElement,
 } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+import { getSlideBackgroundStyle } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -62,30 +63,8 @@ function SlideThumbnailImpl({
 	return (
 		<div
 			className='relative w-full overflow-hidden rounded border border-border bg-white'
-			style={{ height: previewHeight }}
+			style={{ height: previewHeight, ...getSlideBackgroundStyle(slide) }}
 		>
-			{slide.backgroundColor && slide.backgroundColor !== 'transparent' && (
-				<div
-					className='absolute inset-0'
-					style={{
-						backgroundColor: normalizeHexColor(slide.backgroundColor, '#ffffff'),
-					}}
-				/>
-			)}
-			{slide.backgroundGradient && (
-				<div
-					className='absolute inset-0 pointer-events-none'
-					style={{ background: slide.backgroundGradient }}
-				/>
-			)}
-			{slide.backgroundImage && (
-				<img
-					src={slide.backgroundImage}
-					alt=''
-					className='absolute inset-0 w-full h-full object-cover pointer-events-none'
-					draggable={false}
-				/>
-			)}
 			<div
 				className='absolute top-0 left-0 origin-top-left'
 				style={{
@@ -236,6 +215,9 @@ function arePropsEqual(prev: SlideThumbnailProps, next: SlideThumbnailProps): bo
 		return false;
 	}
 	if (prev.slide.backgroundGradient !== next.slide.backgroundGradient) {
+		return false;
+	}
+	if (prev.slide.backgroundPattern !== next.slide.backgroundPattern) {
 		return false;
 	}
 	if (prev.templateElements !== next.templateElements) {

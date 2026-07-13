@@ -36,7 +36,20 @@ const shotDir = fileURLToPath(new URL('../test-results/mobile-table/', import.me
 /** On-screen tap point over the cell whose trimmed text equals `label`. */
 function cellPoint(page: Page, label: string) {
 	return page.evaluate((text) => {
-		const td = [...document.querySelectorAll('td')].find((t) => t.textContent?.trim() === text);
+		const td = [...document.querySelectorAll('td')].find((candidate) => {
+			if (candidate.textContent?.trim() !== text || !candidate.checkVisibility()) {
+				return false;
+			}
+			const box = candidate.getBoundingClientRect();
+			return (
+				box.width > 0 &&
+				box.height > 0 &&
+				box.bottom > 0 &&
+				box.top < window.innerHeight &&
+				box.right > 0 &&
+				box.left < window.innerWidth
+			);
+		});
 		if (!td) {
 			return null;
 		}
@@ -49,6 +62,22 @@ function cellPoint(page: Page, label: string) {
 	}, label);
 }
 
+async function navigateToPlans(page: Page): Promise<void> {
+	await page.evaluate(() => {
+		const button = [...document.querySelectorAll('nav[aria-label="Editor actions"] button')].find(
+			(candidate) =>
+				candidate.textContent?.trim().endsWith('Slides') && candidate.checkVisibility(),
+		);
+		(button as HTMLButtonElement | undefined)?.click();
+	});
+	const sheet = page.getByRole('dialog', { name: /slides/iu });
+	await expect(sheet).toBeVisible();
+	await sheet
+		.getByRole('button', { name: /Plans|5.*7/iu })
+		.first()
+		.tap();
+}
+
 test('double-tapping a table cell opens an editor and accepts input', async ({ page }) => {
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(deck);
@@ -56,9 +85,7 @@ test('double-tapping a table cell opens an editor and accepts input', async ({ p
 	await page.waitForTimeout(500);
 
 	// Navigate to the "Plans" slide (has a table) via the mobile slides sheet.
-	await page.getByRole('button', { name: 'Slides' }).tap();
-	await page.waitForTimeout(300);
-	await page.getByText('Plans', { exact: true }).first().tap();
+	await navigateToPlans(page);
 	await page.waitForTimeout(600);
 
 	const pt = await cellPoint(page, 'Starter');
@@ -94,9 +121,7 @@ test('committing a cell edit by tapping away keeps the typed value', async ({ pa
 	await page.locator('[data-pptx-element="true"]').first().waitFor();
 	await page.waitForTimeout(500);
 
-	await page.getByRole('button', { name: 'Slides' }).tap();
-	await page.waitForTimeout(300);
-	await page.getByText('Plans', { exact: true }).first().tap();
+	await navigateToPlans(page);
 	await page.waitForTimeout(600);
 
 	const starter = await cellPoint(page, 'Starter');

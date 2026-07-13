@@ -73,8 +73,9 @@ for pkg in "${packages[@]}"; do
     if (clean ~ /\.(test|spec)\./ && clean ~ / > / && clean !~ /^[[:space:]]*stderr/) {
       test_count++
 
-      # Detect pass/fail via ANSI color in original line (green=pass, red=fail)
-      if ($0 ~ /\033\[32m/) {
+      # Prefer the result symbol because Vitest may use different ANSI green
+      # variants (for example 32m or 92m) across versions and terminals.
+      if (clean ~ /^[[:space:]]*(✓|√)/ || $0 ~ /\033\[(32|92)m/) {
         passed++
         icon = "\033[32m\342\234\223\033[0m"
       } else {

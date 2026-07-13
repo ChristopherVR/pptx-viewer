@@ -185,11 +185,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			const items = this.ensureArray(p[key]);
-			for (const item of items) {
+			const rawBreaks = p['a:br'];
+			const breakCount = Array.isArray(rawBreaks)
+				? rawBreaks.length
+				: rawBreaks === undefined
+					? 0
+					: 1;
+			const insertCollapsedBreaks = key === 'a:r' && items.length > 1 && breakCount > 0;
+			for (const [itemIndex, item] of items.entries()) {
 				switch (key) {
-					case 'a:r':
+					case 'a:r': {
 						processRun(item);
+						if (insertCollapsedBreaks && itemIndex < Math.min(items.length - 1, breakCount)) {
+							parts.push('\n');
+							segments.push({
+								text: '\n',
+								style: { ...mergedDefaultRunStyle },
+								isLineBreak: true,
+							});
+						}
 						break;
+					}
 					case 'a:fld':
 						processField(item as XmlObject);
 						break;
@@ -208,6 +224,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						processAlternateContent(item);
 						break;
 					case 'a:br': {
+						if (insertCollapsedBreaks) {
+							break;
+						}
 						const brNode = (item ?? {}) as XmlObject;
 						const brRunProps = brNode['a:rPr'] as XmlObject | undefined;
 						const brStyle = {

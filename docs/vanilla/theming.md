@@ -73,5 +73,5 @@ its landing screen and floating pickers.
 ## Viewer CSS
 
 The viewer injects its stylesheet automatically (a single `<style>` tag, deduplicated across
-instances). For CSP-strict hosts that disallow injected styles, ship the CSS yourself via
-[`getViewerCss()`](/vanilla/getting-started#csp-strict-hosts-getviewercss).
+instances). For CSP-strict hosts, import `pptx-vanilla-viewer/styles.css`, or manage the CSS
+text via [`getViewerCss()`](/vanilla/getting-started#csp-strict-hosts-getviewercss).

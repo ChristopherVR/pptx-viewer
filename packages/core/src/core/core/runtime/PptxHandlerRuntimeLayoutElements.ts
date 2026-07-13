@@ -169,8 +169,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						element.id = `layout-${element.id}`;
 						elements.push(element);
 					}
+				} else if (entry.tag === 'p:cxnSp') {
+					// Layouts commonly use connectors for divider lines. They are
+					// renderable layout artwork, not placeholder content.
+					const connectors = this.ensureArray(spTree['p:cxnSp']);
+					const connector = connectors[entry.indexInType] as XmlObject | undefined;
+					if (!connector) {
+						continue;
+					}
+					const element = this.parseConnector(
+						connector,
+						`layout-conn-${layoutToken}-${entry.indexInType}`,
+						layoutPath,
+					);
+					if (element) {
+						element.id = `layout-${element.id}`;
+						elements.push(element);
+					}
 				}
-				// Other element types (p:grpSp, p:cxnSp, p:contentPart) are
+				// Other element types (p:grpSp, p:contentPart) are
 				// uncommon in layouts but could be added here if needed.
 			}
 

@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+
 import JSZip from 'jszip';
 import { describe, it, expect, beforeEach } from 'vitest';
 
@@ -648,6 +650,77 @@ describe('document Parts', () => {
 // ===========================================================================
 
 describe('error Handling', () => {
+	it('inherits title-slide placeholder geometry from the layout', async () => {
+		const bytes = await readFile(
+			new URL(
+				'../../../../../e2e/fixtures/Mathematical_Equations_11_Slides_46_KB_3c22e70f4d.pptx',
+				import.meta.url,
+			),
+		);
+		const handler = new PptxHandler();
+		const data = await handler.load(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+		);
+
+		expect(data.slides[0]!.elements).toHaveLength(2);
+		expect(data.slides[0]!.elements.map((element) => element.type)).toStrictEqual(['text', 'text']);
+		expect(data.slides[0]!.elements.map((element) => element.text)).toStrictEqual([
+			'Calculus',
+			'Basic Equations',
+		]);
+		const [title, subtitle] = data.slides[0]!.elements;
+		expect(title).toMatchObject({
+			type: 'text',
+			textStyle: { align: 'center', color: '#FFFFFF', fontSize: 149.33333333333331 },
+		});
+		expect(subtitle).toMatchObject({
+			type: 'text',
+			textStyle: { align: 'center', color: '#FFFFFF', fontSize: 72 },
+		});
+	});
+
+	it('renders layout connector artwork in localized title slides', async () => {
+		for (const fixture of [
+			'Japanese_10_Slides_1_8_MB_bbd4090b55.pptx',
+			'Simplified_Chinese_10_Slides_1_8_MB_792c2c1166.pptx',
+		]) {
+			const bytes = await readFile(
+				new URL(`../../../../../e2e/fixtures/${fixture}`, import.meta.url),
+			);
+			const handler = new PptxHandler();
+			const data = await handler.load(
+				bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+			);
+
+			const divider = data.slides[0]!.elements.find(
+				(element): element is ConnectorPptxElement => element.type === 'connector',
+			);
+			expect(divider).toMatchObject({
+				x: 67,
+				width: 41,
+				shapeStyle: { strokeColor: '#FFFBF0' },
+			});
+		}
+	});
+
+	it('uses the default paragraph style when a paragraph omits its level', async () => {
+		const bytes = await readFile(
+			new URL(
+				'../../../../../e2e/fixtures/Image_JPG_PNG_Audio_M4_A_Video_MP_4_12_Slides_36_8_MB_ff1095731b.pptx',
+				import.meta.url,
+			),
+		);
+		const handler = new PptxHandler();
+		const data = await handler.load(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+		);
+		const subtitle = data.slides[0]!.elements.find(
+			(element) => 'text' in element && element.text === 'Your Name • Sept 20XX',
+		);
+
+		expect(subtitle).toMatchObject({ type: 'text', textStyle: { color: '#000000' } });
+	});
+
 	it('rejects non-ZIP data (random bytes)', async () => {
 		const handler = new PptxHandler();
 		const garbage = new Uint8Array(256);

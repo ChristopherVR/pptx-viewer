@@ -1,7 +1,14 @@
 import type JSZip from 'jszip';
 
 import { PptxXmlBuilder } from '../../builders/fluent';
-import { PptxData, PptxSlide, PptxCompatibilityWarning, PptxElement, XmlObject } from '../../types';
+import {
+	PptxData,
+	PptxSlide,
+	PptxSlideMaster,
+	PptxCompatibilityWarning,
+	PptxElement,
+	XmlObject,
+} from '../../types';
 import type { PptxSection, PptxLayoutOption } from '../../types';
 import { parsePresentationDrawingGuides } from '../../utils/guide-utils';
 import { resolveLayoutDisplayName } from '../../utils/layout-display-name';
@@ -20,6 +27,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			orderedSections: PptxSection[];
 		},
 		slidesWithWarnings: PptxSlide[],
+		slideMasters: PptxSlideMaster[],
 	): Promise<PptxData> {
 		const headerFooter = this.extractHeaderFooter();
 		const presentationProperties = await this.parsePresentationProperties();
@@ -31,8 +39,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const themeOptions = await this.parseThemeOptions();
 		const notesMaster = await this.parseNotesMaster();
 		const handoutMaster = await this.parseHandoutMaster();
-		const slideMasters = await this.parseSlideMasters();
-		await this.enrichSlideMastersWithTxStyles(slideMasters);
 		const tags = await this.parseTags();
 		const customProperties = await this.parseCustomProperties();
 		const coreProperties = await this.parseCoreProperties();
@@ -202,6 +208,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.masterCache.clear();
 		this.layoutXmlMap.clear();
 		this.masterXmlMap.clear();
+		this.masterTxStylesCache.clear();
 		this.layoutPlaceholderDefaultsCache.clear();
 		this.masterPlaceholderDefaultsCache.clear();
 		this.themeOverrideCache.clear();
@@ -226,10 +233,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.detectDigitalSignatureParts();
 		await this.parseCustomXmlParts();
 		const presentationState = await this.loadPresentationState();
+		const slideMasters = await this.parseSlideMasters();
+		await this.enrichSlideMastersWithTxStyles(slideMasters);
 		const slides = await this.loadSlidesForPresentation(presentationState.sectionBySlideId);
 		const slidesWithWarnings = this.attachSlideWarnings(slides);
 		this.resetElementIdCounter(slides);
-		return this.buildLoadData(presentationState, slidesWithWarnings);
+		return this.buildLoadData(presentationState, slidesWithWarnings, slideMasters);
 	}
 
 	/**

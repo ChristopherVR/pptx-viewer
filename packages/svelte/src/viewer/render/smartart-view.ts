@@ -1,11 +1,17 @@
 import type { SmartArtPptxElement, SmartArtStyle } from 'pptx-viewer-core';
-import type { RenderedShape, SmartArtLayoutResult } from 'pptx-viewer-shared';
+import type {
+	RenderedNode,
+	RenderedShape,
+	SmartArtLayoutResult,
+	SmartArtNodeA11y,
+} from 'pptx-viewer-shared';
 import {
 	buildChromeStyle,
 	buildSmartArtA11y,
 	computeDrawingViewBox,
 	computeSmartArtLayout,
 	projectDrawingShapes,
+	resolveDrawingShapeNodeId,
 	resolvePalette,
 	styleShadowFilter,
 } from 'pptx-viewer-shared';
@@ -27,9 +33,23 @@ export const SMARTART_CONNECTOR_STROKE = '#94a3b8';
 
 /** Resolved SmartArt view: drawing shapes, engine layout, or a placeholder. */
 export type SmartArtView =
-	| { kind: 'drawing'; viewBox: string; shapes: RenderedShape[]; shadow: string | undefined }
-	| { kind: 'layout'; layout: SmartArtLayoutResult }
+	| {
+			kind: 'drawing';
+			viewBox: string;
+			shapes: AccessibleDrawingShape[];
+			shadow: string | undefined;
+	  }
+	| { kind: 'layout'; layout: AccessibleLayout }
 	| { kind: 'placeholder' };
+
+export type AccessibleDrawingShape = RenderedShape & { ariaLabel?: string };
+export type AccessibleLayout = Omit<SmartArtLayoutResult, 'nodes'> & {
+	nodes: Array<RenderedNode & { ariaLabel?: string }>;
+};
+
+function labelMap(nodes: SmartArtNodeA11y[]): Map<string, string> {
+	return new Map(nodes.map((node) => [node.id, node.label]));
+}
 
 /** Chrome (background / outline) style string for the graphic wrapper. */
 export function smartArtChromeStyle(element: SmartArtPptxElement): string {
@@ -53,26 +73,47 @@ export function buildSmartArtView(element: SmartArtPptxElement): SmartArtView {
 	if (data && drawingShapes.length > 0) {
 		const style: SmartArtStyle = data.style ?? 'flat';
 		const viewBox = computeDrawingViewBox(drawingShapes);
+		const labels = labelMap(buildSmartArtA11y(data).nodes);
+		const shapes = projectDrawingShapes(
+			element.id,
+			drawingShapes,
+			viewBox,
+			resolvePalette(data),
+			style,
+		);
 		return {
 			kind: 'drawing',
 			viewBox: `0 0 ${viewBox.width} ${viewBox.height}`,
-			shapes: projectDrawingShapes(element.id, drawingShapes, viewBox, resolvePalette(data), style),
+			shapes: shapes.map((shape, index) => {
+				const nodeId = resolveDrawingShapeNodeId(
+					drawingShapes[index]!,
+					index,
+					drawingShapes,
+					nodes,
+				);
+				return { ...shape, ariaLabel: nodeId ? labels.get(nodeId) : undefined };
+			}),
 			shadow: styleShadowFilter(style),
 		};
 	}
 
 	if (data && nodes.length > 0) {
+		const layout = computeSmartArtLayout(
+			nodes,
+			{ width: element.width, height: element.height },
+			resolvePalette(data),
+			data.style ?? 'flat',
+			element.id,
+			data.resolvedLayoutType,
+			data.layout,
+		);
+		const labels = buildSmartArtA11y(data).nodes;
 		return {
 			kind: 'layout',
-			layout: computeSmartArtLayout(
-				nodes,
-				{ width: element.width, height: element.height },
-				resolvePalette(data),
-				data.style ?? 'flat',
-				element.id,
-				data.resolvedLayoutType,
-				data.layout,
-			),
+			layout: {
+				...layout,
+				nodes: layout.nodes.map((node, index) => ({ ...node, ariaLabel: labels[index]?.label })),
+			},
 		};
 	}
 

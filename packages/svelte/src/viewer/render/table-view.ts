@@ -4,6 +4,7 @@ import type {
 	CssStyleMap,
 	DiagonalBorderInfo,
 	TableCellCss,
+	TableStyleContext,
 } from 'pptx-viewer-shared';
 import {
 	cellPatternFillCss,
@@ -48,6 +49,8 @@ export interface TableRunView {
 /** One rendered `<td>`. */
 export interface TableCellView {
 	key: string;
+	rowIndex: number;
+	cellIndex: number;
 	/** `undefined` when the cell spans a single column/row (attr omitted). */
 	colSpan: number | undefined;
 	rowSpan: number | undefined;
@@ -74,7 +77,10 @@ export function columnWidthStyles(tableData: PptxTableData): string[] {
 }
 
 /** Project `PptxTableData` into renderable row/cell view models. */
-export function buildTableRows(tableData: PptxTableData): TableRowView[] {
+export function buildTableRows(
+	tableData: PptxTableData,
+	context?: TableStyleContext,
+): TableRowView[] {
 	const rowCount = tableData.rows.length;
 	const columnCount = tableData.columnWidths.length;
 	return tableData.rows.map((row, rowIndex) => ({
@@ -86,7 +92,7 @@ export function buildTableRows(tableData: PptxTableData): TableRowView[] {
 			// the originating cell carries the span.
 			.filter(({ cell }) => !cell.hMerge && !cell.vMerge)
 			.map(({ cell, cellIndex }) =>
-				buildCellView(tableData, cell, rowIndex, cellIndex, rowCount, columnCount),
+				buildCellView(tableData, cell, rowIndex, cellIndex, rowCount, columnCount, context),
 			),
 	}));
 }
@@ -99,10 +105,18 @@ function buildCellView(
 	cellIndex: number,
 	rowCount: number,
 	columnCount: number,
+	context?: TableStyleContext,
 ): TableCellView {
 	// Band/header emphasis is the lower-priority layer beneath the explicit
 	// cell style (mirrors the React/Vue/vanilla layering).
-	const bandStyle = getTableCellBandStyle(tableData, rowIndex, cellIndex, rowCount, columnCount);
+	const bandStyle = getTableCellBandStyle(
+		tableData,
+		rowIndex,
+		cellIndex,
+		rowCount,
+		columnCount,
+		context,
+	);
 	const style: TableCellCss = { ...bandStyle, ...cellStyleToCss(cell.style) };
 	// Default body-cell text to the dark slide-text colour when nothing (cell
 	// style, band/header emphasis, or per-run colour) sets one, so cells stay
@@ -127,6 +141,8 @@ function buildCellView(
 
 	return {
 		key: `c${rowIndex}-${cellIndex}`,
+		rowIndex,
+		cellIndex,
 		colSpan: cell.gridSpan && cell.gridSpan > 1 ? cell.gridSpan : undefined,
 		rowSpan: cell.rowSpan && cell.rowSpan > 1 ? cell.rowSpan : undefined,
 		style: styleToString({ ...CELL_BASE_STYLE, ...style }),

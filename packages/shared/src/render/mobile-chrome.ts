@@ -12,7 +12,14 @@
 // ---------------------------------------------------------------------------
 
 /** All mobile sheets that can be open at one time. */
-export type MobileSheetKey = 'slides' | 'menu' | null;
+export type MobileSheetKey =
+	| 'slides'
+	| 'menu'
+	| 'insert'
+	| 'inspector'
+	| 'comments'
+	| 'notes'
+	| null;
 
 // ---------------------------------------------------------------------------
 // Active-sheet toggle

@@ -194,26 +194,26 @@ test.describe('ink annotations', () => {
 		// render an extra, hidden duplicate control tree for responsive
 		// breakpoints, so an unscoped text filter can resolve `.first()` to a
 		// non-visible copy. Mirrors `ribbon-tab-parity.spec.ts`'s selector.
-		const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-		await toolbar.getByRole('button', { name: 'File', exact: true }).click();
+		const fileTab = page
+			.getByRole('tab', { name: 'File', exact: true })
+			.or(
+				page
+					.getByRole('toolbar', { name: 'Presentation toolbar' })
+					.getByRole('button', { name: 'File', exact: true }),
+			)
+			.first();
+		await fileTab.click();
 		await page.waitForTimeout(300);
 
-		// The File-tab "Save" control's exact wording differs per binding (React:
-		// "Save .pptx"; Angular: plain "Save"). Clicked via a direct DOM dispatch
-		// (not a Playwright locator poll): one binding's File-tab panel is
-		// transient enough that by the time a locator round-trip resolves and
-		// re-validates the element, it has already been replaced, so the
-		// element handle is grabbed and clicked in one synchronous JS pass.
+		// The File-tab save control is labelled "Save", "Save .pptx", or
+		// "Save as .pptx" depending on the binding.
 		const downloadPromise = page.waitForEvent('download');
-		await page.evaluate(() => {
-			const button = [...document.querySelectorAll('button')].find((b) =>
-				/^Save\b/iu.test(b.textContent?.trim() ?? ''),
-			);
-			if (!button) {
-				throw new Error('Save button not found');
-			}
-			(button as HTMLButtonElement).click();
-		});
+		await page
+			.getByRole('button', {
+				name: /^Save(?: as)?(?: Presentation)?(?: \(\.pptx\)| \.pptx)?$/iu,
+			})
+			.last()
+			.click();
 		const download = await downloadPromise;
 
 		const outDir = fileURLToPath(new URL('../test-results/ole-and-ink/', import.meta.url));

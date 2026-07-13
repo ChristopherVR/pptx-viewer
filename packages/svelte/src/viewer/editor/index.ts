@@ -20,7 +20,12 @@ export type { InkGestureController, InkGestureDeps } from './editor-ink-gesture'
 export { createInkGestureController } from './editor-ink-gesture';
 export { EditorSlidesController } from './editor-slides-controller';
 export { EditorTransitionController } from './editor-transition-controller';
-export { deleteSlideAt, duplicateSlideAt, insertBlankSlideAfter } from './editor-slide-ops';
+export {
+	deleteSlideAt,
+	duplicateSlideAt,
+	insertBlankSlideAfter,
+	moveSlide,
+} from './editor-slide-ops';
 export type { FindReplaceDeps } from './editor-find-replace.svelte';
 export { FindReplaceState } from './editor-find-replace.svelte';
 export {

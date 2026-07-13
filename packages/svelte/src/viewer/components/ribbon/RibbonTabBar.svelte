@@ -10,14 +10,13 @@
 	const t = useTranslator();
 </script>
 
-<div class="pptx-svelte-ribbon-tabs" role="tablist" aria-label={t('pptx.ribbon.tab.home')}>
+<div class="pptx-svelte-ribbon-tabs" role="group" aria-label={t('pptx.ribbon.tab.home')}>
 	{#each RIBBON_TABS as tab (tab.id)}
 		<button
 			type="button"
 			class="pptx-svelte-ribbon-tab"
 			class:pptx-svelte-ribbon-tab-active={active === tab.id}
-			role="tab"
-			aria-selected={active === tab.id}
+			aria-pressed={active === tab.id}
 			onclick={() => onselect(tab.id)}
 		>
 			{t(tab.labelKey)}

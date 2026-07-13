@@ -432,3 +432,28 @@ describe('ommlToMathml convenience wrapper', () => {
 		expect(ommlToMathml('<m:oMath/>')).toBe('');
 	});
 });
+
+describe('omml DrawingML colour', () => {
+	it('preserves a nested DrawingML run colour on the MathML root', () => {
+		const result = convertOmmlToMathMl({
+			'm:oMath': {
+				'm:r': {
+					'a:rPr': { 'a:solidFill': { 'a:srgbClr': { '@_val': 'fefefe' } } },
+					'm:t': 'x',
+				},
+			},
+		});
+
+		expect(result).toContain('mathcolor="#FEFEFE"');
+	});
+
+	it('preserves a nested DrawingML run size on the MathML root', () => {
+		const result = convertOmmlToMathMl({
+			'm:oMath': {
+				'm:r': { 'a:rPr': { '@_sz': '16200' }, 'm:t': 'x' },
+			},
+		});
+
+		expect(result).toContain('mathsize="162pt"');
+	});
+});
