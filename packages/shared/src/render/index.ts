@@ -541,6 +541,10 @@ export * from './comments-list';
 // lifecycle; the recogniser and its pure helpers (getTouchDistance/clampScale)
 // are shared here.
 export * from './touch-gestures';
+// Always-available presentation controls on coarse-pointer devices: shared
+// previous/next boundary state and counter text for every binding.
+export * from './presentation-touch-controls';
+export * from './sheet-dismiss';
 // Insert-chart factory: a sensible DEFAULT new `ChartPptxElement` (three sample
 // categories, one "Series 1", legend on, default position) plus the chart-type
 // list shown in the insert dropdown. The single source of truth every binding's
@@ -570,6 +574,7 @@ export * from './text-3d-presets';
 // string codec (binary-safe) for round-tripping elements through the system
 // clipboard. Each binding's cut/copy/paste handlers are thin wrappers on this.
 export * from './element-clipboard';
+export * from './template-editing';
 // Insert > Shape picker catalogue: preset geometry types + labels/i18n keys +
 // framework-neutral glyph descriptors; each binding maps glyphs to its icons.
 export * from './shape-preset-catalog';
