@@ -10,7 +10,12 @@ import type { DrawTool, Store, ViewerState } from './state';
 import { applyThemeVars } from './theme-apply';
 import type { PptxViewerOptions } from './types';
 import type { PresentationController, ViewerChrome } from './ui';
-import { attachKeyboardNavigation, buildViewerChrome, createPresentationController } from './ui';
+import {
+	attachKeyboardNavigation,
+	attachTouchGestures,
+	buildViewerChrome,
+	createPresentationController,
+} from './ui';
 import type { CommandSearchCommand } from './ui/command-search';
 
 /** The mutable pieces `PptxViewer` owns for one chrome mount lifecycle. */
@@ -18,6 +23,7 @@ export interface ChromeLifecycle {
 	chrome: ViewerChrome;
 	presentation: PresentationController;
 	detachKeyboard: () => void;
+	detachTouchGestures: () => void;
 	resizeObserver: ResizeObserver | null;
 	appliedThemeVars: string[];
 }
@@ -73,6 +79,16 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		last: deps.goToLastSlide,
 		escape: deps.exitPresentation,
 	});
+	const detachTouchGestures = attachTouchGestures(chrome.viewport, {
+		getScale: () => renderer.effectiveScale(),
+		onPinchZoom: (zoom) => store.set({ zoom }),
+		isSwipeEnabled: () => {
+			const state = store.get();
+			return state.presenting || !state.editable;
+		},
+		onNext: () => deps.next(),
+		onPrevious: () => deps.prev(),
+	});
 	const presentation = createPresentationController(chrome.root, (presenting) => {
 		store.set({ presenting });
 	});
@@ -87,7 +103,14 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		resizeObserver.observe(chrome.viewport);
 	}
 
-	return { chrome, presentation, detachKeyboard, resizeObserver, appliedThemeVars };
+	return {
+		chrome,
+		presentation,
+		detachKeyboard,
+		detachTouchGestures,
+		resizeObserver,
+		appliedThemeVars,
+	};
 }
 
 /** The local command palette mirrors React's most useful quick actions. */
@@ -103,6 +126,7 @@ function buildTitleBarCommands(deps: MountChromeDeps): readonly CommandSearchCom
 export function unmountChrome(lifecycle: ChromeLifecycle, detachEditorChrome: () => void): void {
 	detachEditorChrome();
 	lifecycle.detachKeyboard();
+	lifecycle.detachTouchGestures();
 	lifecycle.resizeObserver?.disconnect();
 	lifecycle.presentation.dispose();
 	lifecycle.chrome.root.remove();

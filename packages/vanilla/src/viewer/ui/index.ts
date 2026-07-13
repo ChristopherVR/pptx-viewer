@@ -10,6 +10,8 @@ export type { Inspector, InspectorHandlers, InspectorState } from './inspector';
 export { createInspector } from './inspector';
 export type { KeyboardHandlers } from './keyboard';
 export { attachKeyboardNavigation } from './keyboard';
+export type { TouchGestureHandlers } from './touch-gestures';
+export { attachTouchGestures } from './touch-gestures';
 export type { NotesPanel, NotesPanelUpdate } from './notes-panel';
 export { createNotesPanel } from './notes-panel';
 export type { MobileNavigation, MobileNavigationHandlers } from './mobile-navigation';
