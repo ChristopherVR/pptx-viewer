@@ -87,7 +87,7 @@
 		"pptx-viewer-shared": "workspace:*",
 		"tailwindcss": "^4.3.2",
 		"tsup": "^8.5.1",
-		"typescript": "^6.0.3",
+		"typescript": "^7.0.2",
 		"vitest": "^4.1.9",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",

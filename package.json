@@ -63,7 +63,7 @@
 		"oxlint": "^1.70.0",
 		"pptx-react-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
-		"typescript": "^6.0.3",
+		"typescript": "^7.0.2",
 		"y-protocols": "^1.0.7",
 		"yjs": "^13.6.31"
 	},
