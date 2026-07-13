@@ -12,6 +12,8 @@ export type { KeyboardHandlers } from './keyboard';
 export { attachKeyboardNavigation } from './keyboard';
 export type { NotesPanel, NotesPanelUpdate } from './notes-panel';
 export { createNotesPanel } from './notes-panel';
+export type { MobileNavigation, MobileNavigationHandlers } from './mobile-navigation';
+export { createMobileNavigation } from './mobile-navigation';
 export type { PresentationController } from './presentation';
 export { createPresentationController } from './presentation';
 export * from './ribbon';

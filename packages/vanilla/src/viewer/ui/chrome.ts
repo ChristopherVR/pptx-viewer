@@ -2,6 +2,8 @@ import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import type { Inspector, InspectorHandlers } from './inspector';
 import { createInspector } from './inspector';
+import type { MobileNavigation } from './mobile-navigation';
+import { createMobileNavigation } from './mobile-navigation';
 import type { NotesPanel } from './notes-panel';
 import { createNotesPanel } from './notes-panel';
 import type { Ribbon } from './ribbon/ribbon';
@@ -55,6 +57,8 @@ export interface ViewerChrome {
 	notes: NotesPanel;
 	/** Bottom navigation and zoom bar, matching React's status-bar placement. */
 	statusBar: StatusBar | null;
+	/** Compact navigation dock, visible only below the mobile breakpoint. */
+	mobileNavigation: MobileNavigation | null;
 	setLoading(loading: boolean): void;
 	setError(message: string | null): void;
 	setEmpty(empty: boolean): void;
@@ -134,6 +138,19 @@ export function buildViewerChrome(
 	if (statusBar) {
 		root.appendChild(statusBar.el);
 	}
+	const mobileNavigation = options.showToolbar
+		? createMobileNavigation(doc, t, {
+				prev: options.ribbonHandlers.nav.prev,
+				next: options.ribbonHandlers.nav.next,
+				toggleNotes: options.ribbonHandlers.nav.toggleNotes,
+				togglePresentation: options.ribbonHandlers.nav.togglePresentation,
+				zoomIn: options.ribbonHandlers.nav.zoomIn,
+				zoomOut: options.ribbonHandlers.nav.zoomOut,
+			})
+		: null;
+	if (mobileNavigation) {
+		root.appendChild(mobileNavigation.el);
+	}
 
 	const loadingOverlay = createEl(doc, 'div', 'pptxv-overlay pptxv-loading');
 	loadingOverlay.textContent = t('common.loading');
@@ -157,6 +174,7 @@ export function buildViewerChrome(
 		stageWrap,
 		notes,
 		statusBar,
+		mobileNavigation,
 		setLoading(loading) {
 			loadingOverlay.hidden = !loading;
 		},

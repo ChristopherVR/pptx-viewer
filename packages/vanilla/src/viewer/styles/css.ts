@@ -357,6 +357,42 @@ const CHROME_CSS = `
 .pptxv-statusbar-zoom:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
 .pptxv.pptxv-presenting .pptxv-statusbar { display: none; }
 
+/* ── Compact mobile navigation ───────────────────────────────────────── */
+.pptxv-mobile-nav { display: none; }
+@media (max-width: 767px) {
+	.pptxv-ribbon,
+	.pptxv-thumbs,
+	.pptxv-inspector,
+	.pptxv-statusbar { display: none; }
+	.pptxv-viewport { padding: 10px; }
+	.pptxv-mobile-nav {
+		display: grid;
+		grid-template-columns: auto minmax(48px, 1fr) auto auto auto minmax(42px, auto) auto auto;
+		align-items: center;
+		gap: 2px;
+		min-height: 52px;
+		padding: 6px max(10px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-bottom));
+		border-top: 1px solid var(--pptx-border);
+		background: var(--pptx-card);
+		color: var(--pptx-card-foreground);
+	}
+	.pptxv-mobile-nav-btn {
+		width: 36px;
+		height: 36px;
+		border-radius: 8px;
+	}
+	.pptxv-mobile-nav-btn svg { width: 18px; height: 18px; }
+	.pptxv-mobile-nav-counter,
+	.pptxv-mobile-nav-zoom {
+		justify-self: center;
+		font-size: 11px;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+	.pptxv-mobile-nav-counter { color: var(--pptx-muted-foreground); }
+}
+.pptxv.pptxv-presenting .pptxv-mobile-nav { display: none; }
+
 /* ── Placeholder (element types without a renderer yet) ──────────────── */
 .pptxv-placeholder {
 	display: flex;

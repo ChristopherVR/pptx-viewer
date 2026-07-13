@@ -58,6 +58,11 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 				total: state.slides.length,
 				zoomPercent: renderer.effectiveScale() * 100,
 			});
+			chrome.mobileNavigation?.update({
+				current: state.currentSlide,
+				total: state.slides.length,
+				zoomPercent: renderer.effectiveScale() * 100,
+			});
 		}
 		if (state.zoom !== previous.zoom) {
 			callbacks.onZoomChange?.(renderer.effectiveScale());
@@ -77,6 +82,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			chrome.notes.setExpanded(state.notesExpanded);
 			chrome.ribbon?.setNotesExpanded(state.notesExpanded);
 			chrome.statusBar?.setNotesExpanded(state.notesExpanded);
+			chrome.mobileNavigation?.setNotesExpanded(state.notesExpanded);
 		}
 	};
 }
