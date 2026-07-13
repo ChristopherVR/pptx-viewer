@@ -1,6 +1,18 @@
-import type { PptxElement, PptxHandler, PptxSlide, TextSegment } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxHandler,
+	PptxSlide,
+	PptxSlideMaster,
+	TextSegment,
+} from 'pptx-viewer-core';
 import { duplicateElement } from 'pptx-viewer-core';
-import { buildSaveSlides, cloneTemplateElementsBySlideId, EditorHistory } from 'pptx-viewer-shared';
+import {
+	applyFormatToElement,
+	buildSaveSlides,
+	cloneTemplateElementsBySlideId,
+	copyFormatFromElement,
+	EditorHistory,
+} from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import {
@@ -46,6 +58,7 @@ export interface EditorOps {
 	commitInlineText(id: string, text: string): void;
 	/** Commit speaker notes and optional rich segments onto the current slide. */
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
+	applyFormatPainter(sourceId: string, targetId: string): boolean;
 	undo(): void;
 	redo(): void;
 	canUndo(): boolean;
@@ -57,6 +70,7 @@ export interface EditorOps {
 interface EditorSnapshot {
 	slides: PptxSlide[];
 	templateElementsBySlideId: Record<string, PptxElement[]>;
+	slideMasters: PptxSlideMaster[];
 }
 
 const MAX_HISTORY_ENTRIES = 100;
@@ -78,6 +92,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		templateElementsBySlideId: cloneTemplateElementsBySlideId(
 			store.get().templateElementsBySlideId,
 		),
+		slideMasters: structuredClone(store.get().slideMasters),
 	});
 
 	const pushHistory = (): void => {
@@ -107,6 +122,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		store.set({
 			slides: cloneSlides(next.slides),
 			templateElementsBySlideId: cloneTemplateElementsBySlideId(next.templateElementsBySlideId),
+			slideMasters: structuredClone(next.slideMasters),
 			interactionActive: false,
 		});
 		commitChange();
@@ -220,6 +236,28 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			commitChange();
 		},
 
+		applyFormatPainter(sourceId, targetId) {
+			const state = store.get();
+			const source = findActiveElement(state, sourceId);
+			const target = findActiveElement(state, targetId);
+			if (!state.editable || !source || !target || sourceId === targetId) {
+				return false;
+			}
+			pushHistory();
+			store.set(
+				replaceActiveElements(
+					state,
+					getActiveElements(state).map((element) =>
+						element.id === targetId
+							? applyFormatToElement(element, copyFormatFromElement(source))
+							: element,
+					),
+				),
+			);
+			commitChange();
+			return true;
+		},
+
 		undo() {
 			restore(history.undo(snapshot())?.snapshot);
 		},
@@ -242,6 +280,9 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			const state = store.get();
 			const bytes = await handler.save(
 				buildSaveSlides(state.slides, state.templateElementsBySlideId),
+				{
+					slideMasters: state.slideMasters,
+				},
 			);
 			store.set({ dirty: false });
 			return bytes;

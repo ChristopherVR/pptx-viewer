@@ -1,6 +1,7 @@
 import type {
 	ParsedTableStyleMap,
 	PptxElement,
+	PptxSlideMaster,
 	PptxSlide,
 	PptxThemeColorScheme,
 } from 'pptx-viewer-core';
@@ -36,6 +37,10 @@ export interface ViewerState {
 	slides: PptxSlide[];
 	/** Inherited layout/master elements, separated so interaction can be gated. */
 	templateElementsBySlideId: Record<string, PptxElement[]>;
+	/** Parsed slide masters and layouts used by the dedicated master canvas. */
+	slideMasters: PptxSlideMaster[];
+	/** Active master/layout canvas, or null for normal slide view. */
+	masterViewTarget: { masterIndex: number; layoutIndex: number | null } | null;
 	/** Slide canvas size in CSS pixels. */
 	canvasSize: CanvasSize;
 	/** Archive-path to displayable URL map for media + poster frames. */
@@ -60,6 +65,8 @@ export interface ViewerState {
 	selectedElementId: string | null;
 	/** All selected top-level element ids; the primary selection is listed last. */
 	selectedElementIds: string[];
+	/** Source element id while the one-shot Format Painter is armed. */
+	formatPainterSourceId: string | null;
 	/** When true, selection and element mutations target inherited template elements. */
 	editTemplateMode: boolean;
 	/** True when the document has unsaved edits (cleared by a save). */
@@ -94,6 +101,8 @@ export function createInitialViewerState(): ViewerState {
 	return {
 		slides: [],
 		templateElementsBySlideId: {},
+		slideMasters: [],
+		masterViewTarget: null,
 		canvasSize: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
 		mediaDataUrls: new Map(),
 		colorScheme: undefined,
@@ -106,6 +115,7 @@ export function createInitialViewerState(): ViewerState {
 		editable: false,
 		selectedElementId: null,
 		selectedElementIds: [],
+		formatPainterSourceId: null,
 		editTemplateMode: false,
 		dirty: false,
 		interactionActive: false,

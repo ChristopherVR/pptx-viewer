@@ -7,6 +7,7 @@
  * theme custom properties.
  */
 export const EDITOR_CSS = `
+.pptxv-marquee { position: absolute; z-index: 4; border: 1px solid var(--pptx-primary); background: color-mix(in srgb, var(--pptx-primary) 14%, transparent); pointer-events: none; }
 /* Colour swatch control (native <input type=color>, used by the inspector). */
 .pptxv-color {
 	display: inline-flex;

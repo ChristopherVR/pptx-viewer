@@ -24,6 +24,7 @@ export interface EditorKeyboardDeps {
 	nudgeSelected(dx: number, dy: number): void;
 	undo(): void;
 	redo(): void;
+	cancelFormatPainter(): boolean;
 }
 
 const FORM_FIELD_TAGS = /^(?:INPUT|TEXTAREA|SELECT)$/u;
@@ -41,6 +42,10 @@ export function createEditorKeydownHandler(
 		}
 		const ctrl = event.ctrlKey || event.metaKey;
 		const key = event.key;
+		if (key === 'Escape' && deps.cancelFormatPainter()) {
+			event.preventDefault();
+			return;
+		}
 
 		if (ctrl && (key === 'z' || key === 'Z')) {
 			event.preventDefault();

@@ -66,4 +66,41 @@ describe('vanilla template editing', () => {
 		expect(store.get().slides[0].elements[0].type).toBe('group');
 		expect(store.get().selectedElementIds).toStrictEqual([store.get().selectedElementId]);
 	});
+
+	it('edits a dedicated master canvas and saves master data', async () => {
+		const save = vi.fn(async (_slides: PptxSlide[], _options?: unknown) => new Uint8Array([1]));
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [slide()],
+			slideMasters: [
+				{
+					path: 'ppt/slideMasters/slideMaster1.xml',
+					elements: [shape('master-title', 4)],
+					layouts: [
+						{ path: 'ppt/slideLayouts/slideLayout1.xml', elements: [shape('layout-body', 8)] },
+					],
+				},
+			],
+			masterViewTarget: { masterIndex: 0, layoutIndex: 0 },
+			editable: true,
+			editTemplateMode: true,
+			selectedElementId: 'layout-body',
+			selectedElementIds: ['layout-body'],
+		});
+		const ops = createEditorOps({
+			store,
+			getHandler: () => ({ save }) as unknown as PptxHandler,
+			onHistoryChange: vi.fn(),
+		});
+
+		ops.pushHistory();
+		ops.patchGeometry('layout-body', { x: 88, y: 0, width: 10, height: 10, rotation: 0 });
+		ops.commitChange();
+		expect(store.get().slideMasters[0].layouts?.[0].elements?.[0].x).toBe(88);
+
+		await ops.save();
+		expect(save.mock.calls[0][1]).toMatchObject({ slideMasters: store.get().slideMasters });
+		ops.undo();
+		expect(store.get().slideMasters[0].layouts?.[0].elements?.[0].x).toBe(8);
+	});
 });

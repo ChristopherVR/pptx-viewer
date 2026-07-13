@@ -8,21 +8,17 @@ import { defineConfig, devices } from '@playwright/test';
  * `[data-inline-editor]`, `[data-testid="format-painter-toggle"]` + `data-active`,
  * `#slide-notes-content` / `textarea[name="slide-notes"]`, `aria-label="Adjust shape"`,
  * `[data-pptx-viewport]`, and accessible button names), which the React, Vue, and
- * Angular viewers all emit. Each project boots its own demo dev server and points
+ * Angular viewers emit, with binding-neutral fallbacks where accessible control
+ * names or ribbon semantics differ. Each project boots its own demo dev server and points
  * its `baseURL` at it, so `playwright test --project=react` / `--project=vue` /
  * `--project=angular` exercise the identical spec bodies.
  *
- * `vanilla` and `svelte` are newer, viewer-only bindings without full editing
- * parity yet (no ribbon/inspectors/dialogs, no format painter, no equation
- * editing, no collaboration, no OLE dialogs). Most of the ~20-file shared spec
- * set above exercises features these bindings don't have yet and is NOT run
- * against them. `VANILLA_SVELTE_FILES` below is the subset that IS run: the
- * dedicated `vanilla-svelte-basics.spec.ts` (see its file header for the exact
- * DOM/i18n contract differences discovered between the two) plus a handful of
- * existing generic specs individually verified (by actually running them, not
- * assumed) to pass unmodified against both - each depends only on the neutral
- * `#file-input` / `[data-pptx-element="true"]` / `[aria-roledescription="slide"]`
- * contract, with no ribbon/inspector/mobile-chrome assumptions.
+ * `vanilla` and `svelte` now include editing ribbons, inspectors, dialogs,
+ * mobile chrome, inline editing, save/export, and presentation behavior. Some
+ * shared specs still encode binding-specific DOM details or cover capabilities
+ * that are being completed independently, so those projects use the explicitly
+ * verified list below. A spec is added only after the same semantic assertions
+ * pass against both demos.
  */
 const REACT_PORT = 4173;
 const VUE_PORT = 4175;
@@ -32,8 +28,8 @@ const SVELTE_PORT = 4177;
 const isCI = Boolean(process.env.CI);
 
 /**
- * Spec files verified to pass, unmodified, against both the vanilla and
- * Svelte demos (see this file's doc comment). Shared with `.github/workflows/
+ * Spec files verified to pass against both the vanilla and Svelte demos (see
+ * this file's doc comment). Shared with `.github/workflows/
  * ci.yml`'s vanilla/svelte e2e matrix legs, which run this same file list.
  */
 const VANILLA_SVELTE_FILES = [
@@ -41,6 +37,10 @@ const VANILLA_SVELTE_FILES = [
 	'text-rendering.spec.ts',
 	'absolute-path-rels.spec.ts',
 	'text-descender-clip.spec.ts',
+	'mobile-inline-edit.spec.ts',
+	'mobile-manipulation.spec.ts',
+	'ole-and-ink.spec.ts',
+	'format-painter.spec.ts',
 ];
 
 export default defineConfig({

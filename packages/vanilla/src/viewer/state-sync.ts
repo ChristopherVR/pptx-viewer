@@ -32,7 +32,9 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		// patches; one refresh happens when the gesture ends.
 		if (
 			((state.slides !== previous.slides ||
-				state.templateElementsBySlideId !== previous.templateElementsBySlideId) &&
+				state.templateElementsBySlideId !== previous.templateElementsBySlideId ||
+				state.slideMasters !== previous.slideMasters ||
+				state.masterViewTarget !== previous.masterViewTarget) &&
 				!state.interactionActive) ||
 			(previous.interactionActive && !state.interactionActive)
 		) {
@@ -43,7 +45,9 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			state.templateElementsBySlideId !== previous.templateElementsBySlideId ||
 			state.currentSlide !== previous.currentSlide ||
 			state.zoom !== previous.zoom ||
-			state.presenting !== previous.presenting
+			state.presenting !== previous.presenting ||
+			state.slideMasters !== previous.slideMasters ||
+			state.masterViewTarget !== previous.masterViewTarget
 		) {
 			renderer.renderStage();
 		}

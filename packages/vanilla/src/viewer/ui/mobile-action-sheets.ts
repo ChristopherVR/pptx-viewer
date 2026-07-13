@@ -1,3 +1,4 @@
+import type { PptxComment } from 'pptx-viewer-core';
 import type { MobileSheetKey } from 'pptx-viewer-shared';
 import { createSheetDismissGesture, toggleSheet } from 'pptx-viewer-shared';
 
@@ -7,7 +8,7 @@ import type { RibbonHandlers } from './ribbon/ribbon-types';
 
 export interface MobileActionSheets {
 	el: HTMLElement;
-	update(current: number, total: number, comments: readonly { text: string }[]): void;
+	update(current: number, total: number, comments: readonly PptxComment[]): void;
 }
 
 export function createMobileActionSheets(
@@ -37,7 +38,7 @@ export function createMobileActionSheets(
 	let active: MobileSheetKey = null;
 	let current = 0;
 	let total = 0;
-	let comments: readonly { text: string }[] = [];
+	let comments: readonly PptxComment[] = [];
 	const inspectorHome = inspector ? doc.createComment('inspector-home') : null;
 	inspector?.parentNode?.insertBefore(inspectorHome!, inspector);
 
@@ -112,10 +113,46 @@ export function createMobileActionSheets(
 				body.textContent = t('pptx.comments.noneOnSlide');
 			}
 			for (const comment of comments) {
-				const p = doc.createElement('p');
-				p.textContent = comment.text;
-				body.appendChild(p);
+				const row = createEl(doc, 'article', 'pptxv-mobile-comment');
+				const input = doc.createElement('textarea');
+				input.value = comment.text;
+				input.setAttribute('aria-label', t('pptx.comments.edit'));
+				const actions = createEl(doc, 'div', 'pptxv-mobile-comment-actions');
+				const save = doc.createElement('button');
+				save.type = 'button';
+				save.textContent = t('pptx.comments.save');
+				save.addEventListener('click', () =>
+					handlers.edit.comments.editComment(comment.id, input.value),
+				);
+				const resolve = doc.createElement('button');
+				resolve.type = 'button';
+				resolve.textContent = comment.resolved
+					? t('pptx.comments.unresolve')
+					: t('pptx.comments.resolve');
+				resolve.addEventListener('click', () =>
+					handlers.edit.comments.toggleCommentResolved(comment.id),
+				);
+				const remove = doc.createElement('button');
+				remove.type = 'button';
+				remove.textContent = t('pptx.comments.delete');
+				remove.addEventListener('click', () => handlers.edit.comments.deleteComment(comment.id));
+				actions.append(save, resolve, remove);
+				row.append(input, actions);
+				body.appendChild(row);
 			}
+			const add = createEl(doc, 'div', 'pptxv-mobile-comment-add');
+			const draft = doc.createElement('textarea');
+			draft.placeholder = t('pptx.comments.addPlaceholder');
+			const submit = doc.createElement('button');
+			submit.type = 'button';
+			submit.textContent = t('pptx.comments.addComment');
+			submit.addEventListener('click', () => {
+				if (handlers.edit.comments.addComment(draft.value)) {
+					draft.value = '';
+				}
+			});
+			add.append(draft, submit);
+			body.appendChild(add);
 		} else {
 			const buttons = [
 				[t('pptx.presenter.previousSlide'), handlers.nav.prev],
@@ -163,6 +200,11 @@ export function createMobileActionSheets(
 		bindSheetButton(button, key);
 		bar.appendChild(button);
 	}
+	const notesButton = doc.createElement('button');
+	notesButton.type = 'button';
+	notesButton.textContent = t('pptx.notes.title');
+	notesButton.addEventListener('click', handlers.nav.toggleNotes);
+	bar.appendChild(notesButton);
 	el.appendChild(bar);
 	return {
 		el,

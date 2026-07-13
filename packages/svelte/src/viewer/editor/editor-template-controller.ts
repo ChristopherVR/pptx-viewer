@@ -12,6 +12,10 @@ export class EditorTemplateController {
 	}
 
 	activeElements(): PptxElement[] {
+		const masterElements = this.#editor.masterOps.activeElements();
+		if (masterElements) {
+			return masterElements;
+		}
 		const slide = this.#editor.slides[this.#editor.currentSlideIndex];
 		if (!slide) {
 			return [];
@@ -26,6 +30,9 @@ export class EditorTemplateController {
 	}
 
 	replace(elements: PptxElement[]): void {
+		if (this.#editor.masterOps.replace(elements)) {
+			return;
+		}
 		const slide = this.#editor.slides[this.#editor.currentSlideIndex];
 		if (!slide) {
 			return;

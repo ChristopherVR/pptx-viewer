@@ -131,6 +131,19 @@ describe('powerPointViewer', () => {
 		expect(style).toContain('--pptx-radius: 3px');
 	});
 
+	it('opens the dedicated master and layout navigation workspace', async () => {
+		const { target } = await mountViewer({ editable: true });
+		const viewTab = [...target.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(
+			(button) => button.textContent?.trim() === 'View',
+		);
+		viewTab?.click();
+		flushSync();
+		toolbarButton(target, 'Edit slide masters and layouts').click();
+		flushSync();
+		expect(target.querySelector('.pptx-svelte-master-workspace')).not.toBeNull();
+		expect(target.querySelector('.pptx-svelte-master-canvas .pptx-svelte-stage')).not.toBeNull();
+	});
+
 	it('reports load errors through onerror', async () => {
 		const target = document.createElement('div');
 		document.body.appendChild(target);

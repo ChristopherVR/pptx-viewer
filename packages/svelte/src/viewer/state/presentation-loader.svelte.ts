@@ -1,4 +1,9 @@
-import type { ParsedTableStyleMap, PptxSlide, PptxThemeColorScheme } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleMap,
+	PptxSlide,
+	PptxSlideMaster,
+	PptxThemeColorScheme,
+} from 'pptx-viewer-core';
 import { EncryptedFileError, PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from 'pptx-viewer-shared';
@@ -17,6 +22,8 @@ import { resolveLazyImages, resolveMediaUrls, revokeBlobUrls } from './loader-he
 export class PresentationLoader {
 	/** Parsed slides with lazily-loaded image URLs patched in. */
 	slides = $state.raw<PptxSlide[]>([]);
+	/** Parsed slide-master hierarchy for the dedicated master workspace. */
+	slideMasters = $state.raw<PptxSlideMaster[]>([]);
 	/** Slide canvas size in pixels. */
 	canvasSize = $state.raw<CanvasSize>({
 		width: DEFAULT_CANVAS_WIDTH,
@@ -80,6 +87,7 @@ export class PresentationLoader {
 			this.#activeBlobUrls = loadBlobUrls;
 			this.handler = newHandler;
 			this.slides = nextSlides;
+			this.slideMasters = parsed.slideMasters ?? [];
 			this.mediaDataUrls = media.urls;
 			this.colorScheme = parsed.theme?.colorScheme;
 			this.tableStyleMap = parsed.tableStyleMap;

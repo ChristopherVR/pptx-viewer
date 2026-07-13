@@ -18,6 +18,7 @@
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
 	import MobileActionSheets from './components/MobileActionSheets.svelte';
 	import MobileChrome from './components/MobileChrome.svelte';
+	import MasterViewBody from './components/MasterViewBody.svelte';
 	import PresentationTouchControls from './components/PresentationTouchControls.svelte';
 	import StatusBar from './components/StatusBar.svelte';
 	import TitleBar from './components/TitleBar.svelte';
@@ -164,6 +165,7 @@
 		getIntervalMs: () => autosaveIntervalMs,
 		getFilePath: () => filePath,
 		getSlides: () => editor.renderedSlides,
+		getSlideMasters: () => editor.slideMasters,
 		getHandler: () => loader.handler,
 		getLoadCount: () => loader.loadCount,
 		onSaved: (bytes) => onautosave?.(bytes),
@@ -395,6 +397,7 @@
 				{exportUi}
 				theme={effectiveTheme}
 				onsettheme={onSetTheme}
+				onentermasterview={() => editor.masterOps.enter()}
 			/>
 		{:else}
 			<ViewerToolbar
@@ -425,7 +428,15 @@
 		statusMessage={exportUi.status}
 		oncancel={() => exportUi.cancel()}
 	/>
-	<ViewerBody
+	{#if editor.masterViewTarget}
+		<MasterViewBody
+			{editor}
+			{controller}
+			canvasSize={loader.canvasSize}
+			mediaDataUrls={loader.mediaDataUrls}
+			onstageholder={(el) => { stageHolderEl = el ?? undefined; }}
+		/>
+	{:else}<ViewerBody
 		{t}
 		{editor}
 		{chromeVisible}
@@ -464,7 +475,7 @@
 			const target = editor.slidesOps.moveSlide(fromIndex, toIndex);
 			if (target !== null) viewer.goTo(target);
 		}}
-	/>
+	/>{/if}
 	{#if viewer.isFullscreen}
 		<PresentationTouchControls
 			current={viewer.current}

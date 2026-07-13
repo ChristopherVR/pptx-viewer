@@ -1,5 +1,17 @@
-import type { InteractionBox, ResizeHandleId, SnapSibling } from 'pptx-viewer-shared';
-import { isElementIdInteractive } from 'pptx-viewer-shared';
+import type {
+	InteractionBox,
+	ResizeHandleId,
+	SelectionTransformBox,
+	SnapSibling,
+} from 'pptx-viewer-shared';
+import {
+	computeMarqueeHitIds,
+	isElementIdInteractive,
+	mergeAdditiveSelection,
+	moveSelection,
+	resizeSelection,
+	selectionBounds,
+} from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import { findActiveElement, getActiveElements } from './editor-active-elements';
@@ -23,11 +35,8 @@ export interface StageInteractionsDeps {
 }
 
 export interface StageInteractions {
-	/** Pointer-down on the stage: select and begin a move gesture. */
 	onStagePointerDown(event: PointerEvent): void;
-	/** Pointer-move on the stage: reports slide-space coordinates to `deps.onCursorMove`. */
 	onStagePointerMove(event: PointerEvent): void;
-	/** Double-click on the stage: open the inline text editor. */
 	onStageDblClick(event: MouseEvent): void;
 	/** Begin a resize/rotate gesture from an overlay handle. */
 	beginHandleGesture(kind: 'resize' | 'rotate', event: PointerEvent, handle?: ResizeHandleId): void;
@@ -47,9 +56,25 @@ export interface StageInteractions {
 export function createStageInteractions(deps: StageInteractionsDeps): StageInteractions {
 	const { doc, store, ops } = deps;
 	let inline: InlineEditorSession | null = null;
+	let gestureBoxes: SelectionTransformBox[] = [];
+	let gestureBounds: InteractionBox | null = null;
+	let gestureKind: 'move' | 'resize' | 'rotate' = 'move';
+	let marquee: {
+		pointerId: number;
+		startX: number;
+		startY: number;
+		additive: boolean;
+		el: HTMLElement;
+	} | null = null;
 
 	const elementBox = (id: string): InteractionBox | undefined => {
 		const state = store.get();
+		const selected = getActiveElements(state).filter((el) =>
+			state.selectedElementIds.includes(el.id),
+		);
+		if (selected.length > 1 && state.selectedElementIds.includes(id)) {
+			return selectionBounds(selected) ?? undefined;
+		}
 		const el = findActiveElement(state, id);
 		return el
 			? { x: el.x, y: el.y, width: el.width, height: el.height, rotation: el.rotation ?? 0 }
@@ -73,17 +98,37 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			const rect = deps.getOverlay()?.root.getBoundingClientRect();
 			return { left: rect?.left ?? 0, top: rect?.top ?? 0 };
 		},
-		onStart() {
+		onStart(_id, kind) {
+			const state = store.get();
+			gestureKind = kind;
+			gestureBoxes = getActiveElements(state)
+				.filter((el) => state.selectedElementIds.includes(el.id))
+				.map(({ id, x, y, width, height, rotation }) => ({ id, x, y, width, height, rotation }));
+			gestureBounds = selectionBounds(gestureBoxes);
 			ops.pushHistory();
 			store.set({ interactionActive: true });
 		},
 		onPreview(transform, lines) {
-			ops.patchGeometry(transform.id, transform);
+			if (gestureBoxes.length > 1 && gestureBounds && gestureKind !== 'rotate') {
+				const next =
+					gestureKind === 'move'
+						? moveSelection(
+								gestureBoxes,
+								transform.x - gestureBounds.x,
+								transform.y - gestureBounds.y,
+							)
+						: resizeSelection(gestureBoxes, gestureBounds, transform);
+				for (const box of next) {
+					ops.patchGeometry(box.id, { ...box, rotation: box.rotation ?? 0 });
+				}
+			} else {
+				ops.patchGeometry(transform.id, transform);
+			}
 			deps.getOverlay()?.setSnapLines(lines, deps.getScale());
 		},
 		onEnd(transform, moved, id) {
 			deps.getOverlay()?.setSnapLines([], 1);
-			if (transform) {
+			if (transform && gestureBoxes.length <= 1) {
 				ops.patchGeometry(id, transform);
 			}
 			store.set({ interactionActive: false });
@@ -92,6 +137,47 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			}
 		},
 	});
+
+	const stagePoint = (event: PointerEvent): { x: number; y: number } | null => {
+		const rect = deps.getOverlay()?.root.getBoundingClientRect();
+		const scale = deps.getScale();
+		return rect && scale > 0
+			? { x: (event.clientX - rect.left) / scale, y: (event.clientY - rect.top) / scale }
+			: null;
+	};
+	const finishMarquee = (event: PointerEvent): void => {
+		if (!marquee || event.pointerId !== marquee.pointerId) {
+			return;
+		}
+		const point = stagePoint(event);
+		const state = store.get();
+		const hits = point
+			? computeMarqueeHitIds(
+					{ startX: marquee.startX, startY: marquee.startY, currentX: point.x, currentY: point.y },
+					getActiveElements(state),
+				)
+			: [];
+		const ids = marquee.additive ? mergeAdditiveSelection(state.selectedElementIds, hits) : hits;
+		marquee.el.remove();
+		marquee = null;
+		window.removeEventListener('pointermove', updateMarquee);
+		window.removeEventListener('pointerup', finishMarquee);
+		window.removeEventListener('pointercancel', finishMarquee);
+		ops.select(ids.at(-1) ?? null, ids);
+	};
+	const updateMarquee = (event: PointerEvent): void => {
+		if (!marquee || event.pointerId !== marquee.pointerId) {
+			return;
+		}
+		const point = stagePoint(event);
+		if (!point) {
+			return;
+		}
+		marquee.el.style.left = `${Math.min(marquee.startX, point.x) * deps.getScale()}px`;
+		marquee.el.style.top = `${Math.min(marquee.startY, point.y) * deps.getScale()}px`;
+		marquee.el.style.width = `${Math.abs(point.x - marquee.startX) * deps.getScale()}px`;
+		marquee.el.style.height = `${Math.abs(point.y - marquee.startY) * deps.getScale()}px`;
+	};
 
 	const closeInline = (commit: boolean): void => {
 		const session = inline;
@@ -133,10 +219,32 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 				return;
 			}
 			const id = resolveTopLevelElementId(event.target, deps.getStageRoot());
-			if (!id || !isElementIdInteractive(id, state.editTemplateMode)) {
-				if (state.selectedElementId) {
-					ops.select(null);
+			if (state.formatPainterSourceId) {
+				if (id && isElementIdInteractive(id, state.editTemplateMode)) {
+					ops.applyFormatPainter(state.formatPainterSourceId, id);
 				}
+				store.set({ formatPainterSourceId: null });
+				return;
+			}
+			if (!id || !isElementIdInteractive(id, state.editTemplateMode)) {
+				const point = stagePoint(event);
+				const overlay = deps.getOverlay();
+				if (!point || !overlay) {
+					return;
+				}
+				const el = doc.createElement('div');
+				el.className = 'pptxv-marquee';
+				overlay.root.appendChild(el);
+				marquee = {
+					pointerId: event.pointerId,
+					startX: point.x,
+					startY: point.y,
+					additive: event.shiftKey,
+					el,
+				};
+				window.addEventListener('pointermove', updateMarquee);
+				window.addEventListener('pointerup', finishMarquee);
+				window.addEventListener('pointercancel', finishMarquee);
 				return;
 			}
 			if (event.shiftKey) {
@@ -182,6 +290,10 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		inlineActive: () => inline !== null,
 		dispose() {
 			gestures.dispose();
+			marquee?.el.remove();
+			window.removeEventListener('pointermove', updateMarquee);
+			window.removeEventListener('pointerup', finishMarquee);
+			window.removeEventListener('pointercancel', finishMarquee);
 		},
 	};
 }

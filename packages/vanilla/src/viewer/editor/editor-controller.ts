@@ -5,6 +5,8 @@ import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
 import { createEditingChromeSync } from './editing-chrome-sync';
+import { getActiveElements } from './editor-active-elements';
+import { selectionOverlayBox } from './editor-controller-overlay';
 import { createDrawModeController } from './editor-draw-mode';
 import type { EditActions } from './editor-edit-ops';
 import { createEditActions } from './editor-edit-ops';
@@ -16,13 +18,6 @@ import { createStageInteractions } from './editor-stage-interactions';
 import type { SelectionOverlay } from './selection-overlay';
 import { createSelectionOverlay } from './selection-overlay';
 
-/**
- * The editing orchestrator for the vanilla viewer: wires the selection
- * overlay, pointer gestures (see `editor-stage-interactions`), inline text
- * editing, and the editing keyboard to the history-tracked operations in
- * `editor-operations`. All pure editing math lives in `pptx-viewer-shared`;
- * this module is DOM/event plumbing only.
- */
 export interface EditorControllerDeps {
 	doc: Document;
 	store: Store<ViewerState>;
@@ -140,13 +135,13 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			return;
 		}
 		const state = store.get();
-		const el = state.editable && !state.presenting ? ops.selectedElement(state) : undefined;
-		overlay.setBox(
-			el
-				? { x: el.x, y: el.y, width: el.width, height: el.height, rotation: el.rotation ?? 0 }
-				: null,
-			deps.getScale(),
-		);
+		const selected =
+			state.editable && !state.presenting
+				? getActiveElements(state).filter((element) =>
+						state.selectedElementIds.includes(element.id),
+					)
+				: [];
+		overlay.setBox(selectionOverlayBox(selected), deps.getScale());
 	};
 
 	const onKeyDown = createEditorKeydownHandler({
@@ -164,6 +159,13 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		nudgeSelected: (dx, dy) => ops.nudgeSelected(dx, dy),
 		undo: () => ops.undo(),
 		redo: () => ops.redo(),
+		cancelFormatPainter: () => {
+			if (!store.get().formatPainterSourceId) {
+				return false;
+			}
+			store.set({ formatPainterSourceId: null });
+			return true;
+		},
 	});
 
 	const detachChrome = (): void => {
@@ -256,7 +258,9 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 				dirty: false,
 				interactionActive: false,
 				drawTool: 'select',
+				formatPainterSourceId: null,
 				editTemplateMode: false,
+				masterViewTarget: null,
 			});
 			updateToolbar();
 		},

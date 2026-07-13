@@ -13,39 +13,41 @@ parity (the Vue port's tracker was removed the same way).
 
 ## Snapshot
 
-| Capability                             | React/Vue/Angular   | Vanilla                 | Svelte                  |
-| -------------------------------------- | ------------------- | ----------------------- | ----------------------- |
-| Load + slide stage + navigation        | yes                 | yes                     | yes                     |
-| Thumbnails / toolbar / fullscreen      | yes                 | yes                     | yes                     |
-| Theme system (ViewerTheme, presets)    | yes                 | yes                     | yes                     |
-| text/shape/image/group/connector       | yes                 | yes                     | yes                     |
-| table                                  | yes                 | yes                     | yes                     |
-| chart                                  | yes                 | yes                     | yes                     |
-| smartArt (2D)                          | yes                 | yes                     | yes                     |
-| media (video/audio)                    | yes                 | yes                     | yes                     |
-| ink                                    | yes                 | yes                     | yes                     |
-| ole                                    | yes                 | yes                     | yes                     |
-| contentPart / zoom / model3d           | yes                 | yes                     | yes                     |
-| 3D SmartArt (opt-in smartArt3D)        | yes                 | yes                     | yes                     |
-| Presentation-mode media autoplay       | yes                 | yes                     | yes                     |
-| Notes panel                            | yes (rich editor)   | yes                     | yes                     |
-| Editing (selection/move/resize/etc.)   | yes (full ribbon)   | yes (see depth note)    | yes (see depth note)    |
-| Export                                 | PNG/PDF/GIF/video   | yes                     | yes                     |
-| i18n locale registration               | yes                 | yes (see below)         | yes (see below)         |
-| e2e coverage in the Playwright harness | full ~20-file suite | dedicated smoke spec    | dedicated smoke spec    |
-| Animations / transitions playback      | yes                 | yes                     | yes                     |
-| Ribbon / inspector / dialogs chrome    | yes                 | yes                     | yes                     |
-| Autosave                               | yes                 | yes                     | yes                     |
-| Template (master/layout) editing       | yes                 | partial (current slide) | partial (current slide) |
-| Collaboration                          | yes                 | yes                     | yes                     |
+| Capability                             | React/Vue/Angular   | Vanilla                         | Svelte                          |
+| -------------------------------------- | ------------------- | ------------------------------- | ------------------------------- |
+| Load + slide stage + navigation        | yes                 | yes                             | yes                             |
+| Thumbnails / toolbar / fullscreen      | yes                 | yes                             | yes                             |
+| Theme system (ViewerTheme, presets)    | yes                 | yes                             | yes                             |
+| text/shape/image/group/connector       | yes                 | yes                             | yes                             |
+| table                                  | yes                 | yes                             | yes                             |
+| chart                                  | yes                 | yes                             | yes                             |
+| smartArt (2D)                          | yes                 | yes                             | yes                             |
+| media (video/audio)                    | yes                 | yes                             | yes                             |
+| ink                                    | yes                 | yes                             | yes                             |
+| ole                                    | yes                 | yes                             | yes                             |
+| contentPart / zoom / model3d           | yes                 | yes                             | yes                             |
+| 3D SmartArt (opt-in smartArt3D)        | yes                 | yes                             | yes                             |
+| Presentation-mode media autoplay       | yes                 | yes                             | yes                             |
+| Notes panel                            | yes (rich editor)   | yes                             | yes                             |
+| Editing (selection/move/resize/etc.)   | yes (full ribbon)   | yes (see depth note)            | yes (see depth note)            |
+| Export                                 | PNG/PDF/GIF/video   | yes                             | yes                             |
+| i18n locale registration               | yes                 | yes (see below)                 | yes (see below)                 |
+| e2e coverage in the Playwright harness | full ~20-file suite | 8 shared specs / 54 total tests | 8 shared specs / 54 total tests |
+| Animations / transitions playback      | yes                 | yes                             | yes                             |
+| Ribbon / inspector / dialogs chrome    | yes                 | yes                             | yes                             |
+| Autosave                               | yes                 | yes                             | yes                             |
+| Template (master/layout) editing       | yes                 | yes                             | yes                             |
+| Collaboration                          | yes                 | yes                             | yes                             |
 
 Both bindings now provide selection, multi-selection, move/resize/rotate,
 inline text and rich notes editing, insertion, z-order, group/ungroup,
 undo/redo, save/download, accessibility review, autosave, and collaboration.
 Inherited layout/master elements are partitioned from slide-owned content,
 gated behind template-editing mode, history tracked, and merged back on save.
-The remaining template depth gap is a dedicated master/layout navigation
-canvas; current-slide inherited elements are editable today.
+Both bindings also expose dedicated slide-master/layout thumbnail navigation
+and editable canvases. Master/layout mutations participate in undo/redo,
+autosave, and `PptxHandler.save(..., { slideMasters })` persistence. Notes and
+handout master canvases are not yet exposed.
 
 ## Both bindings
 
@@ -87,10 +89,11 @@ alongside React/Vue/Angular (with dedicated Vanilla/Svelte sections), and
 both demos ship working French/Spanish/German pickers. What remains is real
 but lower priority:
 
-- [ ] Key coverage: the demo dictionaries cover ~325 `pptx.*` keys vs Vue's
-      ~969; uncovered keys fall back to English gracefully, but full parity
-      needs translating the remaining ~644 keys per language (mechanical
-      translation work, good first-timer contribution)
+- [ ] Key coverage: every established binding currently shares the same 335
+      French, 332 Spanish, and 332 German translated overrides. The canonical
+      English dictionary contains 2,362 keys, so roughly 2,030 translations per
+      language still need new translation content; there is no fuller in-repo
+      locale source to synchronize. Uncovered keys fall back to English.
 
 Editing (the big one, sequence like the Vue/Angular ports):
 
@@ -105,32 +108,35 @@ Vanilla (`packages/vanilla/src/viewer/editor/`) and Svelte
 - [x] Ribbon / toolbar editing chrome, inspectors, and core dialogs
 - [x] Autosave (shared: `autosave-store`)
 - [x] Add-new-element and z-order/group operations
-- [x] Current-slide inherited template editing via `editTemplateMode`, with
-      history and save merge-back
+- [x] Current-slide inherited template editing plus dedicated slide-master and
+      layout workspaces, with history, autosave, and save persistence
+- [x] Marquee/additive selection, collective multi-element move/resize/nudge,
+      and align/distribute controls
+- [x] Format Painter with one-shot application, cancellation, and undo
+- [x] Comment add/edit/delete/resolve/reopen in both bindings
 - [x] Collaboration (shared CRDT reconcile + transports)
 
 Tooling / QA:
 
 - [x] e2e: both demos wired into `playwright.config.ts` as `vanilla`/`svelte`
-      projects and the CI `e2e` job matrix, running a dedicated
-      `e2e/vanilla-svelte-basics.spec.ts` (load, navigate, zoom, notes,
-      select/move/resize, undo/redo, save-as-download, smartArt3D opt-in).
-      The full ~20-file shared spec set is deliberately NOT run against them:
-      most of it still needs incremental enablement against the newer bindings
-      as DOM contracts are normalized.
+      projects and the CI `e2e` job matrix. Eight shared specs now run 54 tests
+      across the two bindings, covering load/navigation/zoom/notes, selection
+      and transforms, inline editing and undo, mobile manipulation, Format
+      Painter, text/relationship rendering, OLE preview, and ink save/reload.
 - [x] Docs-site and package guides kept in sync with the completed surfaces
 - [x] Vanilla emits `dist/styles.css` and exports `pptx-vanilla-viewer/styles.css`
       for CSP-strict hosts, while retaining injection and `getViewerCss()`
 
 ## Remaining depth and QA work
 
-- [ ] Dedicated master/layout navigation canvases (current-slide inherited
-      template editing is implemented in both bindings).
-- [ ] Marquee selection plus collective multi-element move/resize and fully
-      enabled align/distribute controls.
-- [ ] Vanilla comment mutation actions (the mobile comments sheet is
-      review-only; Svelte supports editing).
-- [ ] Normalize enough DOM contracts to run the full shared Playwright suite,
-      beyond the dedicated Vanilla/Svelte smoke project.
+- [ ] Expose notes-master and handout-master navigation/editing canvases; slide
+      masters and layouts are complete.
+- [ ] Finish full shared Playwright-suite parity. Verified exclusions currently
+      cover PageDown presentation navigation, Svelte template-layer DOM
+      interactivity semantics, mobile inspector/notes/table/breakpoint flows,
+      equation reopen/update, SmartArt and media insertion/editor workflows,
+      and explicitly binding-specific capture/collaboration fixture suites.
+- [ ] Add table-cell editing and existing-equation reopen/update workflows to
+      both bindings.
 - [ ] Expand the French/Spanish/German demo dictionaries beyond their current
       high-visibility-key coverage; English fallback is complete.

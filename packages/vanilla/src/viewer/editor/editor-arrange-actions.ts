@@ -13,7 +13,9 @@ import type { Store, ViewerState } from '../state';
 import { getActiveElements, replaceActiveElements } from './editor-active-elements';
 import type { ApplyToSelected } from './editor-apply-to-selected';
 import {
+	alignSelection,
 	alignToCanvas,
+	distributeSelection,
 	flipElement,
 	groupSelection,
 	ungroupSelection,
@@ -45,6 +47,7 @@ export interface ArrangeActions {
 	bringToFront(): void;
 	sendToBack(): void;
 	alignElements(edge: AlignEdge): void;
+	distributeElements(axis: 'horizontal' | 'vertical'): void;
 	flipHorizontal(): void;
 	flipVertical(): void;
 	groupSelected(): void;
@@ -82,7 +85,34 @@ export function createArrangeActions(deps: ArrangeActionsDeps): ArrangeActions {
 		sendToBack: () => reorder(sendToBack),
 
 		alignElements(edge) {
-			applyToSelected((el) => alignToCanvas(el, edge, store.get().canvasSize));
+			const state = store.get();
+			if (state.selectedElementIds.length < 2) {
+				applyToSelected((el) => alignToCanvas(el, edge, state.canvasSize));
+				return;
+			}
+			ops.pushHistory();
+			store.set(
+				replaceActiveElements(
+					state,
+					alignSelection(getActiveElements(state), state.selectedElementIds, edge),
+				),
+			);
+			ops.commitChange();
+		},
+
+		distributeElements(axis) {
+			const state = store.get();
+			if (!state.editable || state.selectedElementIds.length < 3) {
+				return;
+			}
+			ops.pushHistory();
+			store.set(
+				replaceActiveElements(
+					state,
+					distributeSelection(getActiveElements(state), state.selectedElementIds, axis),
+				),
+			);
+			ops.commitChange();
 		},
 
 		flipHorizontal: () => applyToSelected((el) => flipElement(el, 'horizontal')),

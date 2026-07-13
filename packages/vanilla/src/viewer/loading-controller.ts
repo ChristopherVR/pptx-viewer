@@ -65,6 +65,8 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 			store.set({
 				slides: partition.slides,
 				templateElementsBySlideId: partition.templateElementsBySlideId,
+				slideMasters: loaded.slideMasters,
+				masterViewTarget: null,
 				canvasSize: loaded.canvasSize,
 				mediaDataUrls: loaded.mediaDataUrls,
 				colorScheme: loaded.colorScheme,

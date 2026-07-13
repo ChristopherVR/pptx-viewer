@@ -22,6 +22,7 @@ import type { Store, ViewerState, ZoomLevel } from './state';
 import { createInitialViewerState, createStore } from './state';
 import { createStateSync } from './state-sync';
 import { ensureViewerStyles } from './styles';
+import { toggleMasterView } from './template-view-control';
 import { applyThemeVars } from './theme-apply';
 import type {
 	CollaborationConfig,
@@ -198,7 +199,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	}
 
 	toggleTemplateEditing(): void {
-		this.setEditTemplateMode(!this.store.get().editTemplateMode);
+		const patch = toggleMasterView(this.store.get());
+		if (patch) {
+			this.store.set(patch);
+		}
 	}
 
 	undo = (): void => this.editor.undo();

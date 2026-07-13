@@ -74,3 +74,48 @@ describe('createEditorOps commitNotes', () => {
 		expect(store.get().slides[1].notes).toBe('updated b');
 	});
 });
+
+describe('createEditorOps Format Painter', () => {
+	it('copies source formatting to the target as one undoable change', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			editable: true,
+			slides: [
+				{
+					...buildSlide('a'),
+					elements: [
+						{
+							id: 'source',
+							type: 'shape',
+							shapeType: 'rect',
+							x: 0,
+							y: 0,
+							width: 10,
+							height: 10,
+							shapeStyle: { fillColor: '#ff0000' },
+						},
+						{
+							id: 'target',
+							type: 'shape',
+							shapeType: 'rect',
+							x: 20,
+							y: 0,
+							width: 10,
+							height: 10,
+							shapeStyle: { fillColor: '#0000ff' },
+						},
+					],
+				} as PptxSlide,
+			],
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		expect(ops.applyFormatPainter('source', 'target')).toBeTruthy();
+		expect(store.get().slides[0].elements[1]).toMatchObject({
+			shapeStyle: { fillColor: '#ff0000' },
+		});
+		ops.undo();
+		expect(store.get().slides[0].elements[1]).toMatchObject({
+			shapeStyle: { fillColor: '#0000ff' },
+		});
+	});
+});

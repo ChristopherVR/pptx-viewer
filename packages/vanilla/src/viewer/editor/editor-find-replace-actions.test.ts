@@ -37,6 +37,7 @@ function fakeOps(): EditorOps {
 		nudgeSelected: vi.fn(),
 		commitInlineText: vi.fn(),
 		commitNotes: vi.fn(),
+		applyFormatPainter: vi.fn(() => false),
 		undo: vi.fn(),
 		redo: vi.fn(),
 		canUndo: () => false,

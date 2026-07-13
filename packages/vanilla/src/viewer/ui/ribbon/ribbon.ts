@@ -57,6 +57,7 @@ export interface Ribbon {
 export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandlers): Ribbon {
 	const el = createEl(doc, 'div', 'pptxv-ribbon');
 	el.setAttribute('role', 'toolbar');
+	el.setAttribute('aria-label', t('pptx.toolbar.presentationToolbarAria'));
 
 	const primary = createRibbonPrimaryRow(doc, t, handlers.primary);
 	const nav = createRibbonNavRow(doc, t, handlers.nav);
@@ -126,6 +127,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 			editable: lastEditable,
 			selectedElement: latestSelected,
 			hasClipboard: latestExtra.hasClipboard,
+			formatPainterActive: latestExtra.formatPainterActive ?? false,
 			slideCount: latestExtra.slideCount,
 			selectedCount: latestExtra.selectedCount ?? 0,
 		});

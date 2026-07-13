@@ -95,4 +95,19 @@ describe('selectionOverlay', () => {
 		expect(vertical?.style.left).toBe('60px'); // 30 * scale(2)
 		expect(horizontal?.style.top).toBe('80px'); // 40 * scale(2)
 	});
+
+	it('uses one collective box without a rotate handle for multi-selection', () => {
+		const { target } = mountOverlay({ selectionCount: 3 } as Partial<Props>);
+		expect(target.querySelectorAll('.pptx-svelte-sel-handle')).toHaveLength(8);
+		expect(target.querySelector('.pptx-svelte-rotate-knob')).toBeNull();
+	});
+
+	it('renders an in-progress marquee in screen coordinates', () => {
+		const { target } = mountOverlay({
+			marquee: { startX: 40, startY: 30, currentX: 10, currentY: 5, additive: false },
+		} as Partial<Props>);
+		const marquee = target.querySelector<HTMLElement>('.pptx-svelte-marquee');
+		expect(marquee?.style.left).toBe('20px');
+		expect(marquee?.style.width).toBe('60px');
+	});
 });

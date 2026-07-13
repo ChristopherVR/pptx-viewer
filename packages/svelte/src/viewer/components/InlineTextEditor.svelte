@@ -73,6 +73,7 @@
 <div
 	bind:this={el}
 	class="pptx-svelte-inline-editor"
+	data-inline-editor
 	style={style}
 	contenteditable="true"
 	role="textbox"

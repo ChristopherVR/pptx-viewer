@@ -51,6 +51,14 @@ export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavH
 		icon: 'sidebar',
 		onClick: () => handlers.toggleTemplateEditing?.(),
 	});
+	templates.btn.dataset.testid = 'template-edit-toggle';
+	templates.btn.setAttribute('aria-pressed', 'false');
+	templates.btn.addEventListener('click', () => {
+		templates.btn.setAttribute(
+			'aria-pressed',
+			String(templates.btn.getAttribute('aria-pressed') !== 'true'),
+		);
+	});
 
 	el.append(
 		zoomOut.btn,

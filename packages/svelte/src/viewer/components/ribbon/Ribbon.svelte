@@ -36,7 +36,7 @@
 	}
 </script>
 
-<div class="pptx-svelte-ribbon" role="region" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
+<div class="pptx-svelte-ribbon" role="toolbar" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
 	<RibbonNavRow
 		current={props.current}
 		total={props.total}
@@ -104,6 +104,7 @@
 				onnotestoggle={props.onnotestoggle}
 				editTemplateMode={props.editor.editTemplateMode}
 				onsettemplateediting={(enabled) => props.editor.setTemplateEditing(enabled)}
+				onentermasterview={props.onentermasterview}
 			/>
 		{/if}
 	</div>

@@ -97,7 +97,23 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 	const renderStage = (): void => {
 		const chrome = deps.getChrome();
 		const state = store.get();
-		const slide = state.slides[state.currentSlide];
+		const target = state.masterViewTarget;
+		const master = target ? state.slideMasters[target.masterIndex] : undefined;
+		const layout =
+			target?.layoutIndex === null ? undefined : master?.layouts?.[target?.layoutIndex ?? -1];
+		const slide: PptxSlide | undefined =
+			target && master
+				? {
+						id: layout?.path ?? master.path,
+						rId: '',
+						slideNumber: 0,
+						elements: layout
+							? [...(master.elements ?? []), ...(layout.elements ?? [])]
+							: (master.elements ?? []),
+						backgroundColor: layout?.backgroundColor ?? master.backgroundColor,
+						backgroundImage: layout?.backgroundImage ?? master.backgroundImage,
+					}
+				: state.slides[state.currentSlide];
 		chrome.setEmpty(!slide);
 		const scale = effectiveScale();
 		chrome.stageWrap.style.width = `${state.canvasSize.width * scale}px`;
@@ -148,8 +164,25 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 	};
 
 	const renderThumbnails = (): void => {
-		const { slides, canvasSize } = store.get();
-		deps.getChrome().thumbnails?.render(slides, canvasSize, renderStageFor);
+		const state = store.get();
+		const rail = deps.getChrome().thumbnails;
+		if (rail && state.masterViewTarget) {
+			rail.renderMasters(
+				state.slideMasters,
+				state.canvasSize,
+				renderStageFor,
+				(masterIndex, layoutIndex) => {
+					store.set({
+						masterViewTarget: { masterIndex, layoutIndex },
+						selectedElementId: null,
+						selectedElementIds: [],
+					});
+				},
+				state.masterViewTarget,
+			);
+		} else {
+			rail?.render(state.slides, state.canvasSize, renderStageFor);
+		}
 	};
 
 	return {

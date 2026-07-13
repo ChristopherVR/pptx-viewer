@@ -14,6 +14,11 @@ export const MOBILE_SHEET_CSS = `
 	.pptxv-mobile-sheet-body { display: flex; flex-wrap: wrap; gap: 8px; overflow: auto; padding: 12px; overscroll-behavior: contain; }
 	.pptxv-mobile-sheet-body > button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--pptx-border); border-radius: 8px; background: var(--pptx-muted); color: inherit; }
 	.pptxv-mobile-slide-list { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; }
+	.pptxv-mobile-comment { display: grid; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--pptx-border); }
+	.pptxv-mobile-comment textarea, .pptxv-mobile-comment-add textarea { box-sizing: border-box; width: 100%; min-height: 58px; padding: 8px; border: 1px solid var(--pptx-border); border-radius: var(--pptx-radius); background: var(--pptx-background); color: var(--pptx-foreground); font: inherit; }
+	.pptxv-mobile-comment-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+	.pptxv-mobile-comment-actions button, .pptxv-mobile-comment-add button { min-height: 36px; padding: 6px 10px; border: 1px solid var(--pptx-border); border-radius: var(--pptx-radius); background: var(--pptx-muted); color: var(--pptx-foreground); }
+	.pptxv-mobile-comment-add { display: grid; gap: 6px; padding-top: 10px; }
 	.pptxv-mobile-slide-list button { min-height: 44px; border: 1px solid var(--pptx-border); border-radius: 8px; background: var(--pptx-muted); color: inherit; }
 	.pptxv-mobile-slide-list button.is-active { border-color: var(--pptx-primary); color: var(--pptx-primary); }
 	.pptxv-mobile-sheet .pptxv-inspector { display: flex; width: 100%; max-height: 55dvh; border: 0; }

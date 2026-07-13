@@ -132,4 +132,5 @@ export interface RibbonSelectionState {
 	hasClipboard: boolean;
 	slideCount: number;
 	selectedCount?: number;
+	formatPainterActive?: boolean;
 }

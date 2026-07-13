@@ -227,6 +227,7 @@ export * from './clone';
 export * from './element';
 export * from './element-align';
 export * from './element-interaction';
+export * from './selection-transform';
 // Element CSS-style builders: absolute container style (position/transform/
 // opacity/z-index) + displayable image-source resolution, shared by every
 // binding's element renderer. Each binding casts the neutral CSS map to its

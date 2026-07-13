@@ -61,6 +61,8 @@ export interface RibbonProps {
 	showNotes?: boolean;
 	notesExpanded?: boolean;
 	onnotestoggle?: () => void;
+	/** Opens the dedicated slide-master and layout navigation workspace. */
+	onentermasterview?: () => void;
 
 	/** File tab: export menu (PNG / PDF / GIF / video / print). */
 	exportUi?: ExportUiState;

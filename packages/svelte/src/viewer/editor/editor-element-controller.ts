@@ -107,8 +107,8 @@ export class EditorElementController {
 	}
 
 	nudgeSelected(dx: number, dy: number): void {
-		const element = this.#editor.selectedElement;
-		if (!element || !this.#editor.selectedElementId) {
+		const elements = this.#editor.selectedElements;
+		if (elements.length === 0) {
 			return;
 		}
 		const now = Date.now();
@@ -116,13 +116,15 @@ export class EditorElementController {
 			this.#editor.pushHistory();
 		}
 		this.#lastNudgeAt = now;
-		this.patchGeometry(this.#editor.selectedElementId, {
-			x: element.x + dx,
-			y: element.y + dy,
-			width: element.width,
-			height: element.height,
-			rotation: element.rotation ?? 0,
-		});
+		for (const element of elements) {
+			this.patchGeometry(element.id, {
+				x: element.x + dx,
+				y: element.y + dy,
+				width: element.width,
+				height: element.height,
+				rotation: element.rotation ?? 0,
+			});
+		}
 		this.#editor.commitChange();
 	}
 

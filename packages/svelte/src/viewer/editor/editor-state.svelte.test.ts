@@ -1,4 +1,4 @@
-import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from './editor-state.svelte';
@@ -91,6 +91,46 @@ describe('editorState selection + geometry', () => {
 });
 
 describe('editorState history-tracked mutations', () => {
+	it('applies Format Painter once and records the target style in history', () => {
+		const { editor } = make();
+		editor.setSlides([
+			slide('a', [
+				shape('source', { shapeStyle: { fillColor: '#ff0000' } }),
+				shape('target', { shapeStyle: { fillColor: '#0000ff' } }),
+			]),
+		]);
+		editor.select('source');
+		editor.formatPainter.toggle();
+		expect(editor.formatPainter.active).toBeTruthy();
+		expect(editor.formatPainter.applyTo('target')).toBeTruthy();
+		expect(editor.formatPainter.active).toBeFalsy();
+		expect(editor.selectedElement?.shapeStyle?.fillColor).toBe('#ff0000');
+		editor.undo();
+		expect(
+			editor.activeElements.find((element) => element.id === 'target')?.shapeStyle?.fillColor,
+		).toBe('#0000ff');
+	});
+
+	it('edits master layouts with history and includes masters when saving', async () => {
+		const { editor, save } = make();
+		const masters = [
+			{
+				path: 'ppt/slideMasters/slideMaster1.xml',
+				elements: [shape('master-title')],
+				layouts: [{ path: 'ppt/slideLayouts/slideLayout1.xml', elements: [shape('layout-title')] }],
+			},
+		] as unknown as PptxSlideMaster[];
+		editor.setSlides([slide('a', [])], masters);
+		editor.masterOps.enter(0, 0);
+		editor.select('layout-title');
+		editor.applyElementPatch('layout-title', { x: 88 });
+		expect(editor.slideMasters[0].layouts?.[0].elements?.[0].x).toBe(88);
+		editor.undo();
+		expect(editor.slideMasters[0].layouts?.[0].elements?.[0].x).toBe(10);
+		await editor.save();
+		expect(save.mock.calls[0]?.[1]).toMatchObject({ slideMasters: editor.slideMasters });
+	});
+
 	it('deleteSelected removes, marks dirty, fires onChange, and is undoable', () => {
 		const { editor, onChange } = make();
 		editor.setSlides([slide('a', [shape('e1'), shape('e2')])]);

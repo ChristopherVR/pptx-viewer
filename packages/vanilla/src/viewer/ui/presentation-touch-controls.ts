@@ -22,7 +22,8 @@ export function createPresentationTouchControls(
 	handlers: PresentationTouchControlHandlers,
 ): PresentationTouchControls {
 	const el = createEl(doc, 'div', 'pptxv-presentation-touch-controls');
-	el.setAttribute('aria-label', t('pptx.statusBar.slideShow'));
+	el.setAttribute('role', 'toolbar');
+	el.setAttribute('aria-label', t('pptx.toolbar.presentationToolbarAria'));
 
 	const exit = makeButton(doc, {
 		label: t('pptx.presenter.endPresentation'),

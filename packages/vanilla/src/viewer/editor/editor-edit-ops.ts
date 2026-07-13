@@ -12,6 +12,8 @@ import type { SlideBackgroundActions } from './editor-background-actions';
 import { createSlideBackgroundActions } from './editor-background-actions';
 import type { ClipboardActions } from './editor-clipboard-actions';
 import { createClipboardActions } from './editor-clipboard-actions';
+import type { CommentActions } from './editor-comment-actions';
+import { createCommentActions } from './editor-comment-actions';
 import { patchShapeStyle } from './editor-format-mutations';
 import type { InkActions } from './editor-ink-actions';
 import { createInkActions } from './editor-ink-actions';
@@ -66,6 +68,9 @@ export interface EditActions
 		AnimationActions,
 		InspectorActions,
 		InkActions {
+	// Slide-level review comments, shared by desktop and mobile chrome.
+	comments: CommentActions;
+	toggleFormatPainter(): void;
 	setShapeFill(color: string): void;
 	setShapeStroke(color: string): void;
 	setShapeStrokeWidth(width: number): void;
@@ -126,6 +131,13 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		...createAnimationActions({ store, ops }),
 		...createInspectorActions(applyToSelected),
 		...createInkActions({ store, ops }),
+		comments: createCommentActions({ store, ops }),
+		toggleFormatPainter() {
+			const state = store.get();
+			store.set({
+				formatPainterSourceId: state.formatPainterSourceId ? null : state.selectedElementId,
+			});
+		},
 
 		// Picking a flat colour swatch implies solid fill, so it also clears any
 		// active gradient/pattern mode (mirrors the React/Vue "Fill & Stroke" panel).

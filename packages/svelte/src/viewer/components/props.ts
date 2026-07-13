@@ -2,6 +2,7 @@ import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import type { CanvasSize, RenderParagraph, ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
 
 import type { EditorController } from '../editor/editor-controller.svelte';
+import type { EditorMarqueeRect } from '../editor/editor-selection-gestures';
 import type { EditorState } from '../editor/editor-state.svelte';
 import type { OverlayBox } from '../editor/types';
 import type { ExportUiState } from '../export/export-ui.svelte';
@@ -120,6 +121,10 @@ export interface SelectionOverlayProps {
 	snapLines: readonly SnapLine[];
 	/** Hide the box/handles while the inline text editor is open. */
 	editing?: boolean;
+	/** Number of selected elements; collective boxes do not expose rotation. */
+	selectionCount?: number;
+	/** In-progress empty-canvas marquee rectangle. */
+	marquee?: EditorMarqueeRect | null;
 	onhandlepointerdown: (handle: ResizeHandleId, event: PointerEvent) => void;
 	onrotatepointerdown: (event: PointerEvent) => void;
 }
