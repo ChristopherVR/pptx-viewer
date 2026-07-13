@@ -172,7 +172,6 @@ export async function encryptPptx(
 		keyBits,
 		hashSize,
 	);
-	const iv1 = await generateIV(hashAlgorithm, pkeSalt, BLOCK_KEYS.verifierHashInput, blockSize);
 
 	// Pad verifierHashInput to block size
 	const paddedVerifierInput = new Uint8Array(
@@ -181,7 +180,7 @@ export async function encryptPptx(
 	paddedVerifierInput.set(verifierHashInput);
 	const encryptedVerifierHashInput = await aesCbcEncryptNoPad(
 		verifierInputKey,
-		iv1,
+		pkeSalt,
 		paddedVerifierInput,
 	);
 
@@ -195,13 +194,12 @@ export async function encryptPptx(
 		keyBits,
 		hashSize,
 	);
-	const iv2 = await generateIV(hashAlgorithm, pkeSalt, BLOCK_KEYS.verifierHashValue, blockSize);
 
 	const paddedVerifierHash = new Uint8Array(Math.ceil(verifierHash.length / blockSize) * blockSize);
 	paddedVerifierHash.set(verifierHash);
 	const encryptedVerifierHashValue = await aesCbcEncryptNoPad(
 		verifierHashKey,
-		iv2,
+		pkeSalt,
 		paddedVerifierHash,
 	);
 
@@ -215,11 +213,10 @@ export async function encryptPptx(
 		keyBits,
 		hashSize,
 	);
-	const iv3 = await generateIV(hashAlgorithm, pkeSalt, BLOCK_KEYS.encryptedKeyValue, blockSize);
 
 	const paddedDocumentKey = new Uint8Array(Math.ceil(documentKey.length / blockSize) * blockSize);
 	paddedDocumentKey.set(documentKey);
-	const encryptedKeyValue = await aesCbcEncryptNoPad(encKeyKey, iv3, paddedDocumentKey);
+	const encryptedKeyValue = await aesCbcEncryptNoPad(encKeyKey, pkeSalt, paddedDocumentKey);
 
 	// Build encryption info
 	const encInfo: EncryptionInfo = {
@@ -264,8 +261,8 @@ export async function encryptPptx(
 	const hmacKeyRandom = new Uint8Array(hashSize);
 	crypto.getRandomValues(hmacKeyRandom);
 
-	// Compute HMAC of the encrypted content (excluding the 8-byte size prefix)
-	const hmacValue = await hmac(hashAlgorithm, hmacKeyRandom, encryptedPackage.subarray(8));
+	// Compute HMAC of the complete EncryptedPackage stream, including its size prefix.
+	const hmacValue = await hmac(hashAlgorithm, hmacKeyRandom, encryptedPackage);
 
 	// Encrypt HMAC key
 	const hmacKeyIV = await generateIV(

@@ -47,7 +47,7 @@ function buildOle10Native(path: string, data: Uint8Array, label = 'Doc'): Uint8A
 
 describe('isOle2CompoundFile', () => {
 	it('detects the OLE2 magic signature', () => {
-		const magic = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0x1b, 0x1a, 0xe1, 0, 0]);
+		const magic = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0]);
 		expect(isOle2CompoundFile(magic)).toBeTruthy();
 	});
 
@@ -128,7 +128,7 @@ describe('unwrapOleEmbedding', () => {
 	it('does not throw on garbage compound-file bytes', () => {
 		// Valid magic but truncated / invalid structure.
 		const garbage = new Uint8Array(64);
-		garbage.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0x1b, 0x1a, 0xe1]);
+		garbage.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
 		const result = unwrapOleEmbedding(garbage);
 		expect(result.data).toBe(garbage);
 	});

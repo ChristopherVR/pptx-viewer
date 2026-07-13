@@ -35,8 +35,8 @@ describe('detectFileFormat', () => {
 	it('detects OLE format (encrypted PPTX)', () => {
 		const data = new ArrayBuffer(8);
 		const view = new Uint8Array(data);
-		// OLE magic: D0 CF 11 E0 A1 1B 1A E1
-		const oleMagic = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0x1b, 0x1a, 0xe1];
+		// OLE magic: D0 CF 11 E0 A1 B1 1A E1
+		const oleMagic = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
 		oleMagic.forEach((byte, i) => {
 			view[i] = byte;
 		});

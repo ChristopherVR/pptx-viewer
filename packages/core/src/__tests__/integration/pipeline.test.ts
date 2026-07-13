@@ -671,8 +671,8 @@ describe('error Handling', () => {
 	it('rejects an OLE/encrypted file (CFB magic bytes)', async () => {
 		const handler = new PptxHandler();
 		const ole = new Uint8Array(512);
-		// OLE magic: D0 CF 11 E0 A1 1B 1A E1
-		ole.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0x1b, 0x1a, 0xe1]);
+		// OLE magic: D0 CF 11 E0 A1 B1 1A E1
+		ole.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
 		await expect(handler.load(ole.buffer as ArrayBuffer)).rejects.toThrow(/encrypted/iu);
 	});
 

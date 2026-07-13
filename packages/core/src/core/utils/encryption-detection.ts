@@ -3,12 +3,12 @@
  * (which indicates an encrypted OOXML package) rather than a normal ZIP.
  *
  * Encrypted OOXML files are wrapped in OLE structured storage format.
- * The OLE magic bytes are: D0 CF 11 E0 A1 1B 1A E1
+ * The OLE magic bytes are: D0 CF 11 E0 A1 B1 1A E1
  * Normal PPTX files start with ZIP magic: 50 4B (PK)
  */
 
 /** OLE Compound Binary File magic signature. */
-const OLE_MAGIC = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0x1b, 0x1a, 0xe1]);
+const OLE_MAGIC = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
 
 /** ZIP file magic signature (first 2 bytes). */
 const ZIP_MAGIC = new Uint8Array([0x50, 0x4b]);

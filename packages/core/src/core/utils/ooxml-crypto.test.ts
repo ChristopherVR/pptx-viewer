@@ -13,6 +13,8 @@
  * @module ooxml-crypto.test
  */
 
+import { readFile } from 'node:fs/promises';
+
 import { describe, it, expect } from 'vitest';
 
 import { parseOle2, buildOle2, Ole2ParseError } from './ole2-parser';
@@ -393,6 +395,24 @@ describe('incorrectPasswordError', () => {
 // ---------------------------------------------------------------------------
 
 describe('encryptPptx / decryptPptx round-trip', () => {
+	it('decrypts the password-protected PowerPoint fixture', async () => {
+		const fixture = await readFile(
+			new URL(
+				'../../../../../e2e/fixtures/Password_Protected_123_8_Slides_2_3_MB_927e34cd0c.pptx',
+				import.meta.url,
+			),
+		);
+		const encrypted = fixture.buffer.slice(
+			fixture.byteOffset,
+			fixture.byteOffset + fixture.byteLength,
+		) as ArrayBuffer;
+
+		const decrypted = await decryptPptx(encrypted, '123');
+
+		expect(new Uint8Array(decrypted).subarray(0, 4)).toStrictEqual(
+			new Uint8Array([0x50, 0x4b, 0x03, 0x04]),
+		);
+	}, 30_000);
 	it('encrypts and decrypts a buffer with the correct password', async () => {
 		const originalData = createMinimalZipBuffer();
 		const password = 'test-password-123';

@@ -47,15 +47,9 @@ export async function verifyAgilePassword(
 	);
 
 	// Decrypt the verifier hash input
-	const iv1 = generateIV(
-		pke.hashAlgorithm,
-		pke.saltValue,
-		BLOCK_KEYS.verifierHashInput,
-		pke.blockSize,
-	);
 	const verifierHashInput = await aesCbcDecryptRaw(
 		verifierInputKey,
-		await iv1,
+		pke.saltValue,
 		pke.encryptedVerifierHashInput,
 	);
 
@@ -71,15 +65,9 @@ export async function verifyAgilePassword(
 	);
 
 	// Decrypt the verifier hash value
-	const iv2 = generateIV(
-		pke.hashAlgorithm,
-		pke.saltValue,
-		BLOCK_KEYS.verifierHashValue,
-		pke.blockSize,
-	);
 	const verifierHashValue = await aesCbcDecryptRaw(
 		verifierHashKey,
-		await iv2,
+		pke.saltValue,
 		pke.encryptedVerifierHashValue,
 	);
 
@@ -113,14 +101,7 @@ export async function verifyAgilePassword(
 		pke.hashSize,
 	);
 
-	const iv3 = await generateIV(
-		pke.hashAlgorithm,
-		pke.saltValue,
-		BLOCK_KEYS.encryptedKeyValue,
-		pke.blockSize,
-	);
-
-	const decryptedKey = await aesCbcDecryptRaw(encKeyKey, iv3, pke.encryptedKeyValue);
+	const decryptedKey = await aesCbcDecryptRaw(encKeyKey, pke.saltValue, pke.encryptedKeyValue);
 
 	return decryptedKey.subarray(0, info.keyData.keyBits / 8);
 }
@@ -230,9 +211,8 @@ export async function verifyAgileDataIntegrity(
 	);
 	const expectedHmac = decryptedHmacValue.subarray(0, keyData.hashSize);
 
-	// Compute HMAC of the encrypted content (excluding the 8-byte size prefix)
-	const encryptedContent = encryptedPackage.subarray(8);
-	const computedHmac = await hmac(keyData.hashAlgorithm, hmacKey, encryptedContent);
+	// The HMAC covers the complete EncryptedPackage stream, including its size prefix.
+	const computedHmac = await hmac(keyData.hashAlgorithm, hmacKey, encryptedPackage);
 
 	// Compare HMACs
 	let match = true;

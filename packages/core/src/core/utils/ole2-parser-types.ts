@@ -12,7 +12,7 @@
 /* ------------------------------------------------------------------ */
 
 /** OLE2 Compound Binary File magic signature. */
-export const OLE_MAGIC = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0x1b, 0x1a, 0xe1]);
+export const OLE_MAGIC = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
 
 /** Special sector index: end of chain. */
 export const ENDOFCHAIN = 0xfffffffe;
