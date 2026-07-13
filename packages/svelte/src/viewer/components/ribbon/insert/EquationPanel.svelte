@@ -7,7 +7,7 @@
 	 * preview goes through `omml-to-mathml` + `mathml-sanitize` so the injected
 	 * markup is safe before the `{@html ...}` binding.
 	 */
-	import { convertLatexToOmml, convertOmmlToMathMl, sanitizeMathMl } from 'pptx-viewer-shared';
+	import { convertLatexToOmml, convertOmmlToLatex, convertOmmlToMathMl, sanitizeMathMl } from 'pptx-viewer-shared';
 	import type { CanvasSize, OmmlNode } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
@@ -31,6 +31,7 @@
 	const LATEX_PLACEHOLDER = '\\frac{a}{b} + \\sqrt{c}';
 
 	let latex = $state('');
+	let seededEditId: string | null = null;
 	// eslint-disable-next-line prefer-const
 	let textareaEl = $state<HTMLTextAreaElement | null>(null);
 
@@ -50,6 +51,11 @@
 
 	$effect(() => {
 		if (open) {
+			const editId = editor.equationOps.editingId;
+			if (editId && editId !== seededEditId) {
+				seededEditId = editId;
+				latex = editor.equationOps.omml ? convertOmmlToLatex(editor.equationOps.omml) : '';
+			}
 			textareaEl?.focus();
 		}
 	});
@@ -63,7 +69,11 @@
 		if (Object.keys(omml).length === 0) {
 			return;
 		}
-		editor.insertElement(buildEquationInsertElement(omml, canvasSize));
+		if (editor.equationOps.editingId) {
+			editor.equationOps.apply(omml);
+		} else {
+			editor.insertElement(buildEquationInsertElement(omml, canvasSize));
+		}
 		latex = '';
 		onclose();
 	}
@@ -80,7 +90,7 @@
 </script>
 
 {#if open}
-	<div class="pptx-svelte-equation" role="dialog" aria-label={t('pptx.equation.insertTitle')}>
+	<div class="pptx-svelte-equation" role="dialog" aria-label={t(editor.equationOps.editingId ? 'pptx.equation.editTitle' : 'pptx.equation.insertTitle')}>
 		<div class="pptx-svelte-equation-row">
 			<textarea
 				bind:this={textareaEl}
@@ -96,10 +106,10 @@
 			<button
 				type="button"
 				disabled={!editor.editable || !latex.trim()}
-				aria-label={t('pptx.equation.insert')}
+				aria-label={t(editor.equationOps.editingId ? 'pptx.equation.update' : 'pptx.equation.insert')}
 				onclick={insert}
 			>
-				{t('pptx.equation.insert')}
+				{t(editor.equationOps.editingId ? 'pptx.equation.update' : 'pptx.equation.insert')}
 			</button>
 			<button type="button" aria-label={t('pptx.equation.cancel')} onclick={onclose}>
 				{t('pptx.equation.cancel')}

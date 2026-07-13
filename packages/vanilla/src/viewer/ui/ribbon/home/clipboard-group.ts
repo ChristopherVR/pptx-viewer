@@ -8,12 +8,14 @@ export interface ClipboardGroupHandlers {
 	paste(): void;
 	duplicate(): void;
 	delete(): void;
+	toggleFormatPainter(): void;
 }
 
 export interface ClipboardGroupState {
 	hasSelection: boolean;
 	hasClipboard: boolean;
 	editable: boolean;
+	formatPainterActive: boolean;
 }
 
 export interface ClipboardGroup {
@@ -55,16 +57,24 @@ export function createClipboardGroup(
 		icon: 'trash',
 		onClick: handlers.delete,
 	});
-	row.append(paste.btn, cut.btn, copy.btn, duplicate.btn, del.btn);
+	const painter = makeButton(doc, {
+		label: t('pptx.arrange.formatPainter'),
+		icon: 'copy',
+		onClick: handlers.toggleFormatPainter,
+	});
+	painter.btn.dataset.testid = 'format-painter-toggle';
+	row.append(paste.btn, cut.btn, copy.btn, painter.btn, duplicate.btn, del.btn);
 
 	return {
 		el,
-		update({ hasSelection, hasClipboard, editable }) {
+		update({ hasSelection, hasClipboard, editable, formatPainterActive }) {
 			paste.setDisabled(!editable || !hasClipboard);
 			cut.setDisabled(!editable || !hasSelection);
 			copy.setDisabled(!hasSelection);
 			duplicate.setDisabled(!editable || !hasSelection);
 			del.setDisabled(!editable || !hasSelection);
+			painter.setDisabled(!editable || (!hasSelection && !formatPainterActive));
+			painter.btn.dataset.active = String(formatPainterActive);
 		},
 	};
 }

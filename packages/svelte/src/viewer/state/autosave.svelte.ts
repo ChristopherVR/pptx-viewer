@@ -1,4 +1,4 @@
-import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandler, PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
 import { saveAutosaveSnapshot } from 'pptx-viewer-shared';
 
 /**
@@ -39,6 +39,7 @@ export interface AutosaveDeps {
 	getFilePath: () => string | undefined;
 	/** The current editable slides (watched for edits). */
 	getSlides: () => PptxSlide[];
+	getSlideMasters?: () => PptxSlideMaster[];
 	/** The live core handler used to serialize slides to `.pptx` bytes. */
 	getHandler: () => PptxHandler | null;
 	/**
@@ -76,6 +77,7 @@ export class AutosaveController {
 			const loadCount = this.#deps.getLoadCount();
 			// Track the slides so edits (array reassignment) re-run the effect.
 			this.#deps.getSlides();
+			this.#deps.getSlideMasters?.();
 
 			if (!this.#started) {
 				this.#started = true;
@@ -123,7 +125,10 @@ export class AutosaveController {
 		if (!handler) {
 			return null;
 		}
-		return handler.save(this.#deps.getSlides());
+		const masters = this.#deps.getSlideMasters?.();
+		return masters?.length
+			? handler.save(this.#deps.getSlides(), { slideMasters: masters })
+			: handler.save(this.#deps.getSlides());
 	}
 
 	/** Force an immediate save, bypassing the debounce window. */

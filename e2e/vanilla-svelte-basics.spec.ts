@@ -80,16 +80,20 @@ function slideRegion(page: Page): Locator {
 	return page.locator('[aria-roledescription="slide"]');
 }
 
-const prevButton = (page: Page): Locator => page.getByRole('button', { name: /previous slide/iu });
-const nextButton = (page: Page): Locator => page.getByRole('button', { name: /next slide/iu });
-const zoomInButton = (page: Page): Locator => page.getByRole('button', { name: /^zoom in$/iu });
-const zoomOutButton = (page: Page): Locator => page.getByRole('button', { name: /^zoom out$/iu });
+const prevButton = (page: Page): Locator =>
+	page.getByRole('button', { name: /previous slide/iu }).first();
+const nextButton = (page: Page): Locator =>
+	page.getByRole('button', { name: /next slide/iu }).first();
+const zoomInButton = (page: Page): Locator =>
+	page.getByRole('button', { name: /^zoom in$/iu }).first();
+const zoomOutButton = (page: Page): Locator =>
+	page.getByRole('button', { name: /^zoom out$/iu }).first();
 const zoomFitButton = (page: Page): Locator =>
-	page.getByRole('button', { name: /^zoom to fit$/iu });
+	page.getByRole('button', { name: /^zoom to fit$/iu }).first();
 const notesToggleButton = (page: Page): Locator =>
-	page.getByRole('button', { name: /^toggle notes$/iu });
-const undoButton = (page: Page): Locator => page.getByRole('button', { name: /^undo$/iu });
-const redoButton = (page: Page): Locator => page.getByRole('button', { name: /^redo$/iu });
+	page.getByRole('button', { name: /^toggle notes$/iu }).first();
+const undoButton = (page: Page): Locator => page.getByRole('button', { name: /^undo$/iu }).first();
+const redoButton = (page: Page): Locator => page.getByRole('button', { name: /^redo$/iu }).first();
 /** Both bindings' real download-triggering button; see file header. */
 const downloadButton = (page: Page): Locator => page.getByRole('button', { name: /save/iu }).last();
 
@@ -108,17 +112,17 @@ test.describe('vanilla / svelte basics', () => {
 		// Previous is disabled on slide 1; Next advances the counter.
 		await expect(prevButton(page)).toBeDisabled();
 		await nextButton(page).click();
-		await expect(page.getByText(/2 of 7/u)).toBeVisible();
+		await expect(page.getByText(/2 of 7/u).first()).toBeVisible();
 		await nextButton(page).click();
-		await expect(page.getByText(/3 of 7/u)).toBeVisible();
+		await expect(page.getByText(/3 of 7/u).first()).toBeVisible();
 		await prevButton(page).click();
-		await expect(page.getByText(/2 of 7/u)).toBeVisible();
+		await expect(page.getByText(/2 of 7/u).first()).toBeVisible();
 
 		// Jump via a thumbnail (see file header for the shared aria-label hook).
 		const thumbnails = page.locator('[aria-label="Toggle slides panel"] button');
 		await expect(thumbnails.first()).toBeVisible();
 		await thumbnails.nth(4).click();
-		await expect(page.getByText(/5 of 7/u)).toBeVisible();
+		await expect(page.getByText(/5 of 7/u).first()).toBeVisible();
 	});
 
 	test('zoom in/out/fit change the rendered slide size', async ({ page }) => {
@@ -152,7 +156,9 @@ test.describe('vanilla / svelte basics', () => {
 		await loadDeck(page, sampleDeckPath);
 
 		const panel = page.locator('#slide-notes-content');
-		const editor = panel.locator('textarea[name="slide-notes"]');
+		const editor = panel
+			.locator('textarea[name="slide-notes"]:not([hidden]), [contenteditable="true"]')
+			.first();
 		await expect(panel).toBeHidden();
 
 		await notesToggleButton(page).click();
@@ -161,14 +167,26 @@ test.describe('vanilla / svelte basics', () => {
 
 		await editor.fill('Speaker notes from the e2e run.');
 		await editor.blur();
-		await expect(editor).toHaveValue('Speaker notes from the e2e run.');
+		await expect
+			.poll(() =>
+				editor.evaluate((node) =>
+					node instanceof HTMLTextAreaElement ? node.value : (node.textContent ?? ''),
+				),
+			)
+			.toBe('Speaker notes from the e2e run.');
 
 		// Reload the panel state by collapsing and re-expanding; the committed
 		// text must have actually landed on the slide, not just the textarea.
 		await notesToggleButton(page).click();
 		await expect(panel).toBeHidden();
 		await notesToggleButton(page).click();
-		await expect(editor).toHaveValue('Speaker notes from the e2e run.');
+		await expect
+			.poll(() =>
+				editor.evaluate((node) =>
+					node instanceof HTMLTextAreaElement ? node.value : (node.textContent ?? ''),
+				),
+			)
+			.toBe('Speaker notes from the e2e run.');
 	});
 
 	test('selects and moves an element, then undo/redo it', async ({ page }) => {
@@ -244,6 +262,23 @@ test.describe('vanilla / svelte basics', () => {
 		await redoButton(page).click();
 		const afterRedo = (await source.boundingBox())!;
 		expect(Math.abs(afterRedo.width - resizedBox.width)).toBeLessThan(4);
+	});
+
+	test('edits shape text inline and restores it with undo', async ({ page }) => {
+		await loadDeck(page, formatPainterPath);
+		const source = page.locator('[data-pptx-element="true"]').filter({ hasText: 'SOURCE' });
+		await source.dblclick();
+
+		const editor = page.locator('[data-inline-editor]');
+		await expect(editor).toBeVisible();
+		await editor.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
+		await editor.pressSequentially('EDITED SOURCE');
+		await editor.press('Escape');
+
+		await expect(source).toContainText('EDITED SOURCE');
+		await expect(undoButton(page)).toBeEnabled();
+		await undoButton(page).click();
+		await expect(source).toContainText('SOURCE');
 	});
 
 	test('saves and downloads the deck as a .pptx file', async ({ page }) => {

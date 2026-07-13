@@ -13,6 +13,7 @@ export type RibbonTabId =
 	| 'design'
 	| 'transitions'
 	| 'animations'
+	| 'slideShow'
 	| 'view';
 
 /** Nav-row handlers: always-visible (both edit and read-only chrome). */
@@ -24,6 +25,9 @@ export interface RibbonNavHandlers {
 	zoomToFit(): void;
 	togglePresentation(): void;
 	toggleNotes(): void;
+	openAccessibility(): void;
+	toggleTemplateEditing?(): void;
+	toggleMasterView?(): void;
 }
 
 /** Primary-row handlers: quick-access undo/redo/save (editing only). */
@@ -41,6 +45,13 @@ export interface RibbonFileHandlers {
 	exportGif(): void;
 	exportVideo(): void;
 	print(): void;
+}
+
+/** Slide Show actions already supported by the viewer and collaboration UI. */
+export interface RibbonSlideShowHandlers {
+	startFromBeginning(): void;
+	startFromCurrent(): void;
+	openBroadcast(): void;
 }
 
 /**
@@ -92,6 +103,7 @@ export interface RibbonHandlers {
 	nav: RibbonNavHandlers;
 	primary: RibbonPrimaryHandlers;
 	file: RibbonFileHandlers;
+	slideShow: RibbonSlideShowHandlers;
 	insert: RibbonInsertHandlers;
 	/** Home tab (clipboard/slides/font/paragraph/arrange/editing) + shape actions. */
 	edit: EditActions;
@@ -120,4 +132,6 @@ export interface RibbonEditState {
 export interface RibbonSelectionState {
 	hasClipboard: boolean;
 	slideCount: number;
+	selectedCount?: number;
+	formatPainterActive?: boolean;
 }

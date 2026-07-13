@@ -20,7 +20,11 @@ export class EditorClipboardController {
 		if (!id) {
 			return;
 		}
-		const payload = copyElementToClipboard(this.#editor.slides, this.#editor.currentSlideIndex, id);
+		const payload = copyElementToClipboard(
+			[{ id: 'active', elements: this.#editor.activeElements } as EditorState['slides'][number]],
+			0,
+			id,
+		);
 		if (payload) {
 			this.#editor.clipboard = payload;
 		}
@@ -42,14 +46,15 @@ export class EditorClipboardController {
 			return null;
 		}
 		const result = pasteClipboardElement(
-			this.#editor.slides,
-			this.#editor.currentSlideIndex,
+			[{ id: 'active', elements: this.#editor.activeElements } as EditorState['slides'][number]],
+			0,
 			clipboard,
+			this.#editor.editTemplateMode,
 		);
 		if (!result) {
 			return null;
 		}
-		this.#editor.commitSlides(result.slides);
+		this.#editor.commitActiveElements(result.slides[0].elements);
 		this.#editor.selection.set(result.newId);
 		return result.newId;
 	}

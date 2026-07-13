@@ -109,6 +109,7 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 		...(fontFamily !== undefined ? { fontFamily } : {}),
 	});
 	surface.contentEditable = 'true';
+	surface.dataset.inlineEditor = '';
 	surface.setAttribute('role', 'textbox');
 	surface.setAttribute('aria-multiline', 'true');
 	surface.textContent = initialText;

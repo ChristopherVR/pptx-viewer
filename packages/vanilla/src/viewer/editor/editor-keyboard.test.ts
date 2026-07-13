@@ -16,6 +16,7 @@ function makeDeps(overrides: Partial<EditorKeyboardDeps> = {}): EditorKeyboardDe
 		nudgeSelected: vi.fn(),
 		undo: vi.fn(),
 		redo: vi.fn(),
+		cancelFormatPainter: () => false,
 		...overrides,
 	};
 }
@@ -103,5 +104,13 @@ describe('createEditorKeydownHandler existing shortcuts (regression)', () => {
 
 		handler(keydown('Escape'));
 		expect(deps.deselect).toHaveBeenCalledOnce();
+	});
+
+	it('uses Escape to cancel an armed format painter before deselecting', () => {
+		const cancelFormatPainter = vi.fn(() => true);
+		const deps = makeDeps({ cancelFormatPainter });
+		createEditorKeydownHandler(deps)(keydown('Escape'));
+		expect(cancelFormatPainter).toHaveBeenCalledOnce();
+		expect(deps.deselect).not.toHaveBeenCalled();
 	});
 });

@@ -19,6 +19,8 @@
 	import RibbonNavRow from './RibbonNavRow.svelte';
 	import RibbonPrimaryRow from './RibbonPrimaryRow.svelte';
 	import RibbonTabBar from './RibbonTabBar.svelte';
+	import SlideShowTab from './slideshow/SlideShowTab.svelte';
+	import ReviewTab from './review/ReviewTab.svelte';
 	import { DEFAULT_RIBBON_TAB } from './ribbon-tabs';
 	import type { RibbonProps } from './ribbon-types';
 	import TransitionsTab from './transitions/TransitionsTab.svelte';
@@ -28,13 +30,18 @@
 	const t = useTranslator();
 
 	let activeTab = $state(DEFAULT_RIBBON_TAB);
+	$effect(() => {
+		if (props.editor.equationOps.editingId) {
+			activeTab = 'insert';
+		}
+	});
 
 	function selectTab(id: typeof activeTab): void {
 		activeTab = id;
 	}
 </script>
 
-<div class="pptx-svelte-ribbon" role="region" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
+<div class="pptx-svelte-ribbon" role="toolbar" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
 	<RibbonNavRow
 		current={props.current}
 		total={props.total}
@@ -60,6 +67,9 @@
 		ondownload={props.ondownload}
 		autosaveStatus={props.autosaveStatus}
 		autosaveDirty={props.autosaveDirty}
+		onshare={props.onshare}
+		onbroadcast={props.onbroadcast}
+		collabActive={props.collabActive}
 	/>
 	<RibbonTabBar active={activeTab} onselect={selectTab} />
 	<FindReplacePanel findReplace={props.findReplace} editable={props.editor.editable} />
@@ -78,6 +88,14 @@
 			<TransitionsTab editor={props.editor} />
 		{:else if activeTab === 'animations'}
 			<AnimationsTab editor={props.editor} />
+		{:else if activeTab === 'slideShow'}
+			<SlideShowTab
+				onfrombeginning={props.onfrombeginning}
+				onfromcurrent={props.onfromcurrent}
+				onbroadcast={props.onbroadcast}
+			/>
+		{:else if activeTab === 'review'}
+			<ReviewTab slides={props.slides} onnavigate={props.onnavigatetoissue} editor={props.editor} />
 		{:else if activeTab === 'view'}
 			<ViewTab
 				zoomPercent={props.zoomPercent}
@@ -89,6 +107,9 @@
 				showNotes={props.showNotes}
 				notesExpanded={props.notesExpanded}
 				onnotestoggle={props.onnotestoggle}
+				editTemplateMode={props.editor.editTemplateMode}
+				onsettemplateediting={(enabled) => props.editor.setTemplateEditing(enabled)}
+				onentermasterview={props.onentermasterview}
 			/>
 		{/if}
 	</div>
@@ -111,5 +132,11 @@
 		flex-wrap: wrap;
 		gap: 6px;
 		padding: 6px 10px;
+	}
+
+	@media (max-width: 720px) {
+		.pptx-svelte-ribbon {
+			display: none;
+		}
 	}
 </style>

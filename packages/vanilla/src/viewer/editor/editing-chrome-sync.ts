@@ -34,6 +34,8 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 		ribbon?.updateSelection(el, {
 			hasClipboard: state.clipboardPayload !== null,
 			slideCount: state.slides.length,
+			selectedCount: state.selectedElementIds.length,
+			formatPainterActive: state.formatPainterSourceId !== null,
 		});
 		ribbon?.setDrawState({ tool: state.drawTool, color: state.drawColor, width: state.drawWidth });
 

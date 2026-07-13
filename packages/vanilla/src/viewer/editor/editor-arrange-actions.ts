@@ -4,14 +4,22 @@ import {
 	bringForward,
 	bringToFront,
 	generateElementId,
+	makeCloneId,
 	sendBackward,
 	sendToBack,
 } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
+import { getActiveElements, replaceActiveElements } from './editor-active-elements';
 import type { ApplyToSelected } from './editor-apply-to-selected';
-import { alignToCanvas, flipElement, ungroupSelection } from './editor-arrange-mutations';
-import { reorderElementOnSlide } from './editor-mutations';
+import {
+	alignSelection,
+	alignToCanvas,
+	distributeSelection,
+	flipElement,
+	groupSelection,
+	ungroupSelection,
+} from './editor-arrange-mutations';
 import type { EditorOps } from './editor-operations';
 
 /**
@@ -39,6 +47,7 @@ export interface ArrangeActions {
 	bringToFront(): void;
 	sendToBack(): void;
 	alignElements(edge: AlignEdge): void;
+	distributeElements(axis: 'horizontal' | 'vertical'): void;
 	flipHorizontal(): void;
 	flipVertical(): void;
 	groupSelected(): void;
@@ -57,7 +66,7 @@ export function createArrangeActions(deps: ArrangeActionsDeps): ArrangeActions {
 	const reorder = (transform: (els: readonly PptxElement[], id: string) => PptxElement[]): void => {
 		const state = store.get();
 		const id = state.selectedElementId;
-		const elements = state.slides[state.currentSlide]?.elements;
+		const elements = getActiveElements(state);
 		if (!state.editable || !id || !elements) {
 			return;
 		}
@@ -65,9 +74,7 @@ export function createArrangeActions(deps: ArrangeActionsDeps): ArrangeActions {
 			return;
 		}
 		ops.pushHistory();
-		store.set({
-			slides: reorderElementOnSlide(state.slides, state.currentSlide, (els) => transform(els, id)),
-		});
+		store.set(replaceActiveElements(state, transform(elements, id)));
 		ops.commitChange();
 	};
 
@@ -78,34 +85,83 @@ export function createArrangeActions(deps: ArrangeActionsDeps): ArrangeActions {
 		sendToBack: () => reorder(sendToBack),
 
 		alignElements(edge) {
-			applyToSelected((el) => alignToCanvas(el, edge, store.get().canvasSize));
+			const state = store.get();
+			if (state.selectedElementIds.length < 2) {
+				applyToSelected((el) => alignToCanvas(el, edge, state.canvasSize));
+				return;
+			}
+			ops.pushHistory();
+			store.set(
+				replaceActiveElements(
+					state,
+					alignSelection(getActiveElements(state), state.selectedElementIds, edge),
+				),
+			);
+			ops.commitChange();
+		},
+
+		distributeElements(axis) {
+			const state = store.get();
+			if (!state.editable || state.selectedElementIds.length < 3) {
+				return;
+			}
+			ops.pushHistory();
+			store.set(
+				replaceActiveElements(
+					state,
+					distributeSelection(getActiveElements(state), state.selectedElementIds, axis),
+				),
+			);
+			ops.commitChange();
 		},
 
 		flipHorizontal: () => applyToSelected((el) => flipElement(el, 'horizontal')),
 		flipVertical: () => applyToSelected((el) => flipElement(el, 'vertical')),
 
-		// Always a no-op under the current single-selection model; see module docs.
 		groupSelected() {
-			/* no-op: needs >= 2 selected elements (not yet supported). */
+			const state = store.get();
+			if (!state.editable || state.selectedElementIds.length < 2) {
+				return;
+			}
+			const result = groupSelection(
+				getActiveElements(state),
+				state.selectedElementIds,
+				state.editTemplateMode
+					? makeCloneId(true, state.selectedElementIds[0])
+					: generateElementId(),
+			);
+			if (!result.groupId) {
+				return;
+			}
+			ops.pushHistory();
+			store.set({
+				...replaceActiveElements(state, result.elements),
+				selectedElementId: result.groupId,
+				selectedElementIds: [result.groupId],
+			});
+			ops.commitChange();
 		},
 
 		ungroupSelected() {
 			const state = store.get();
 			const id = state.selectedElementId;
-			const elements = state.slides[state.currentSlide]?.elements;
+			const elements = getActiveElements(state);
 			const el = ops.selectedElement(state);
 			if (!state.editable || !id || !elements || !el || el.type !== 'group') {
 				return;
 			}
-			const childIds = el.children.map(() => generateElementId());
+			const childIds = el.children.map((child) =>
+				state.editTemplateMode ? makeCloneId(true, child.id || el.id) : generateElementId(),
+			);
 			const result = ungroupSelection(elements, id, childIds);
 			if (result.childIds.length === 0) {
 				return;
 			}
 			ops.pushHistory();
 			store.set({
-				slides: reorderElementOnSlide(state.slides, state.currentSlide, () => result.elements),
-				selectedElementId: null,
+				...replaceActiveElements(state, result.elements),
+				selectedElementId: result.childIds.at(-1) ?? null,
+				selectedElementIds: result.childIds,
 			});
 			ops.commitChange();
 		},

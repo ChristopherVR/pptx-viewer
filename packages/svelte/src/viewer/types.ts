@@ -81,6 +81,8 @@ export interface PowerPointViewerProps {
 	editable?: boolean;
 	/** Optional class name applied to the root element. */
 	class?: string;
+	/** Optional display name shown in the desktop title bar. */
+	fileName?: string;
 	/** Fired after a presentation finishes loading. */
 	onload?: (detail: ViewerLoadDetail) => void;
 	/** Fired when a load fails (message is human-readable). */
@@ -111,6 +113,8 @@ export interface PowerPointViewerProps {
 	 * / `listAutosaveSnapshots` helpers). Default false.
 	 */
 	autosave?: boolean;
+	/** Fired when the desktop title bar toggles AutoSave for this viewer instance. */
+	onautosavetoggle?: (enabled: boolean) => void;
 	/**
 	 * IndexedDB record key for autosave (typically the open file's name/path).
 	 * Autosave is inert until this is set.

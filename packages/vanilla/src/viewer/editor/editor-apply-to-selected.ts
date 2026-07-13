@@ -1,7 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 
 import type { Store, ViewerState } from '../state';
-import { updateElement } from './editor-mutations';
+import { getActiveElements, replaceActiveElements } from './editor-active-elements';
 import type { EditorOps } from './editor-operations';
 
 /**
@@ -26,7 +26,14 @@ export function createApplyToSelected(store: Store<ViewerState>, ops: EditorOps)
 			return;
 		}
 		ops.pushHistory();
-		store.set({ slides: updateElement(state.slides, state.currentSlide, id, patch) });
+		store.set(
+			replaceActiveElements(
+				state,
+				getActiveElements(state).map((element) =>
+					element.id === id ? ({ ...element, ...patch } as PptxElement) : element,
+				),
+			),
+		);
 		ops.commitChange();
 	};
 }

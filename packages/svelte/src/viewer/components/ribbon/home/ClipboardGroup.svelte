@@ -21,6 +21,18 @@
 	<div class="pptx-svelte-rgroup-row">
 		<button
 			type="button"
+			data-testid="format-painter-toggle"
+			data-active={editor.formatPainter.active}
+			aria-pressed={editor.formatPainter.active}
+			disabled={!editor.formatPainter.enabled}
+			aria-label={t('pptx.arrange.formatPainter')}
+			title={t('pptx.arrange.formatPainter')}
+			onclick={() => editor.formatPainter.toggle()}
+		>
+			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h8v4H3zM11 4h2v5H8v4H6V8h5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg>
+		</button>
+		<button
+			type="button"
 			disabled={!editor.hasClipboard || !editor.editable}
 			aria-label={t('pptx.arrange.paste')}
 			title={t('pptx.arrange.paste')}

@@ -34,6 +34,7 @@ function buildHandlers(): RibbonHandlers {
 			zoomToFit: vi.fn(),
 			togglePresentation: vi.fn(),
 			toggleNotes: vi.fn(),
+			openAccessibility: vi.fn(),
 		},
 		primary: { undo: vi.fn(), redo: vi.fn(), save: vi.fn() },
 		file: {
@@ -43,6 +44,11 @@ function buildHandlers(): RibbonHandlers {
 			exportGif: vi.fn(),
 			exportVideo: vi.fn(),
 			print: vi.fn(),
+		},
+		slideShow: {
+			startFromBeginning: vi.fn(),
+			startFromCurrent: vi.fn(),
+			openBroadcast: vi.fn(),
 		},
 		insert: fakeActions<RibbonInsertHandlers>(),
 		edit: fakeActions<EditActions>(),
@@ -65,12 +71,34 @@ describe('createRibbon', () => {
 		const t = createTranslator();
 		const ribbon = createRibbon(document, t, buildHandlers());
 		const tabs = ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab');
-		// [file, home, insert, draw, design, transitions, animations, view]
+		// [file, home, insert, draw, design, transitions, animations, slide show, view]
 		tabs[2].click();
 		const panes = ribbon.el.querySelectorAll<HTMLElement>('.pptxv-ribbon-tab-content');
 		const visible = Array.from(panes).filter((p) => !p.hidden);
 		expect(visible).toHaveLength(1);
 		expect(visible[0].querySelector('.pptxv-shape-grid')).toBeTruthy();
+	});
+
+	it('dispatches the supported Slide Show actions', () => {
+		const t = createTranslator();
+		const handlers = buildHandlers();
+		const ribbon = createRibbon(document, t, handlers);
+		const tabs = ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab');
+		tabs[7].click();
+		ribbon.el
+			.querySelector<HTMLButtonElement>(
+				`[aria-label="${t('pptx.slideShow.fromBeginningTooltip')}"]`,
+			)
+			?.click();
+		ribbon.el
+			.querySelector<HTMLButtonElement>(`[aria-label="${t('pptx.slideShow.fromCurrentTooltip')}"]`)
+			?.click();
+		ribbon.el
+			.querySelector<HTMLButtonElement>(`[aria-label="${t('pptx.slideShow.broadcastTooltip')}"]`)
+			?.click();
+		expect(handlers.slideShow.startFromBeginning).toHaveBeenCalledOnce();
+		expect(handlers.slideShow.startFromCurrent).toHaveBeenCalledOnce();
+		expect(handlers.slideShow.openBroadcast).toHaveBeenCalledOnce();
 	});
 
 	it('setEditState hides the primary row and tab bar when not editable', () => {

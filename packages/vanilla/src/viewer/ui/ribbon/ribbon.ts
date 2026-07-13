@@ -28,6 +28,7 @@ import { createDrawTab } from './tabs/draw-tab';
 import { createFileTab } from './tabs/file-tab';
 import type { InsertTab } from './tabs/insert-tab';
 import { createInsertTab } from './tabs/insert-tab';
+import { createSlideShowTab } from './tabs/slide-show-tab';
 import type { TransitionsTab } from './tabs/transitions-tab';
 import { createTransitionsTab } from './tabs/transitions-tab';
 import { createViewTab } from './tabs/view-tab';
@@ -44,6 +45,8 @@ export interface Ribbon {
 	updateSelection(selectedElement: PptxElement | undefined, extra: RibbonSelectionState): void;
 	/** Reflect the current Draw tab tool/colour/width (store-driven). */
 	setDrawState(state: RibbonDrawState): void;
+	setTemplateEditing(active: boolean): void;
+	openEquationEditor(id: string, omml: Record<string, unknown>): void;
 }
 
 /**
@@ -56,6 +59,7 @@ export interface Ribbon {
 export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandlers): Ribbon {
 	const el = createEl(doc, 'div', 'pptxv-ribbon');
 	el.setAttribute('role', 'toolbar');
+	el.setAttribute('aria-label', t('pptx.toolbar.presentationToolbarAria'));
 
 	const primary = createRibbonPrimaryRow(doc, t, handlers.primary);
 	const nav = createRibbonNavRow(doc, t, handlers.nav);
@@ -68,7 +72,9 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	const findReplace = createFindReplacePanel(doc, t, handlers.findReplace);
 	el.appendChild(findReplace.el);
 
-	const equationPanel = createEquationPanel(doc, t, (omml) => handlers.insert.insertEquation(omml));
+	const equationPanel = createEquationPanel(doc, t, (omml, id) =>
+		id ? handlers.edit.updateEquation(id, omml) : handlers.insert.insertEquation(omml),
+	);
 	el.appendChild(equationPanel.el);
 
 	const formatBackgroundPanel = createFormatBackgroundPanel(doc, t, handlers.edit);
@@ -88,6 +94,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	);
 	const transitionsTab: TransitionsTab = createTransitionsTab(doc, t, handlers.edit);
 	const animationsTab: AnimationsTab = createAnimationsTab(doc, t, handlers.edit);
+	const slideShowTab = createSlideShowTab(doc, t, handlers.slideShow);
 	const viewTab = createViewTab(doc, t, handlers.nav);
 
 	const panes: Record<RibbonTabId, HTMLElement> = {
@@ -98,6 +105,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 		design: designTab.el,
 		transitions: transitionsTab.el,
 		animations: animationsTab.el,
+		slideShow: slideShowTab.el,
 		view: viewTab.el,
 	};
 	for (const tab of RIBBON_TABS) {
@@ -116,14 +124,16 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	setActiveTab(activeTab);
 
 	let latestSelected: PptxElement | undefined;
-	let latestExtra: RibbonSelectionState = { hasClipboard: false, slideCount: 0 };
+	let latestExtra: RibbonSelectionState = { hasClipboard: false, slideCount: 0, selectedCount: 0 };
 
 	const syncHome = (): void => {
 		homeTab.update({
 			editable: lastEditable,
 			selectedElement: latestSelected,
 			hasClipboard: latestExtra.hasClipboard,
+			formatPainterActive: latestExtra.formatPainterActive ?? false,
 			slideCount: latestExtra.slideCount,
+			selectedCount: latestExtra.selectedCount ?? 0,
 		});
 	};
 	const syncAnimations = (): void => {
@@ -154,6 +164,8 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 			syncAnimations();
 		},
 		setDrawState: (state) => drawTab.update(state),
+		setTemplateEditing: (active) => viewTab.setTemplateEditing(active),
+		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),
 		updateSelection(selectedElement, extra) {
 			latestSelected = selectedElement;
 			latestExtra = extra;

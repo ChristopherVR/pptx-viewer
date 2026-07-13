@@ -1,4 +1,4 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import { cloneElement, cloneSlide, duplicateElement } from 'pptx-viewer-core';
 
 /**
@@ -123,8 +123,13 @@ export function updateSlideNotes(
 	slides: readonly PptxSlide[],
 	slideIndex: number,
 	notes: string,
+	notesSegments?: TextSegment[],
 ): PptxSlide[] {
-	return slides.map((slide, i) => (i === slideIndex ? { ...cloneSlide(slide), notes } : slide));
+	return slides.map((slide, i) =>
+		i === slideIndex
+			? { ...cloneSlide(slide), notes, ...(notesSegments ? { notesSegments } : {}) }
+			: slide,
+	);
 }
 
 /**

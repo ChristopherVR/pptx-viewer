@@ -86,9 +86,9 @@ inline.
 ## Styling and theming
 
 Styles are injected once per document as a `<style id="pptx-vanilla-viewer-styles">`
-tag, scoped under the `.pptxv` root class. Hosts with a strict CSP can render
-the stylesheet themselves via `getViewerCss()` (the injection is a no-op once
-a node with that id exists).
+tag, scoped under the `.pptxv` root class. CSP-strict hosts can import the
+packaged static stylesheet with `import 'pptx-vanilla-viewer/styles.css'`.
+`getViewerCss()` remains available when the host needs the stylesheet text.
 
 All chrome colors come from the shared `--pptx-*` CSS custom properties. Pass
 a `ViewerTheme` (`theme` option or `setTheme`) to override them; the
@@ -104,8 +104,15 @@ Pass `editable: true` (or call `setEditable(true)` at runtime) to turn on:
   rotate via a rotate handle (Shift snaps to angle increments).
 - Double-click a text-capable element for inline text editing.
 - Undo/redo (100-entry history), delete, and duplicate (`Ctrl/Cmd+D`).
+- Insert, format, z-order, group, and ungroup elements from the ribbon.
+- Edit inherited master/layout elements by enabling template editing in the
+  View ribbon or calling `setEditTemplateMode(true)`.
+- Rich speaker notes, accessibility checks, autosave, and collaboration.
 - The toolbar's Save button (shown only when `editable`), which calls
   `downloadPptx()` to serialise and download the edited `.pptx`.
+
+For CSP-strict hosts, import `pptx-vanilla-viewer/styles.css` instead of using
+automatic style injection.
 
 Use `viewer.getSelectedElementId()` and the `onSelectionChange` /
 `onDirtyChange` callbacks to build your own chrome around the selection

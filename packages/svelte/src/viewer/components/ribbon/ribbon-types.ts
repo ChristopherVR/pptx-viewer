@@ -1,3 +1,4 @@
+import type { PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize, ViewerTheme } from 'pptx-viewer-shared';
 
 import type { FindReplaceState } from '../../editor/editor-find-replace.svelte';
@@ -38,6 +39,18 @@ export interface RibbonProps {
 	autosaveStatus?: AutosaveStatus;
 	autosaveDirty?: boolean;
 
+	/** Collaboration entry points, kept in the primary row like React's chrome. */
+	onshare?: () => void;
+	onbroadcast?: () => void;
+	collabActive?: boolean;
+	/** Slide Show tab actions: enter presentation from slide 0 or the current slide. */
+	onfrombeginning: () => void;
+	onfromcurrent: () => void;
+
+	/** Review tab: presentation-wide accessibility audit and issue navigation. */
+	slides: readonly PptxSlide[];
+	onnavigatetoissue: (slideIndex: number, elementId?: string) => void;
+
 	/** View tab: zoom / fullscreen / notes toggle. */
 	zoomPercent: number;
 	onzoomin: () => void;
@@ -48,6 +61,8 @@ export interface RibbonProps {
 	showNotes?: boolean;
 	notesExpanded?: boolean;
 	onnotestoggle?: () => void;
+	/** Opens the dedicated slide-master and layout navigation workspace. */
+	onentermasterview?: () => void;
 
 	/** File tab: export menu (PNG / PDF / GIF / video / print). */
 	exportUi?: ExportUiState;

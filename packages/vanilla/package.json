@@ -1,6 +1,6 @@
 {
 	"name": "pptx-vanilla-viewer",
-	"version": "0.5.0",
+	"version": "0.5.1",
 	"description": "Zero-framework PowerPoint viewer: render PPTX slides in the browser with plain DOM, no React/Vue/Angular required.",
 	"keywords": [
 		"javascript",
@@ -43,10 +43,11 @@
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
-		}
+		},
+		"./styles.css": "./dist/styles.css"
 	},
 	"scripts": {
-		"build": "tsup",
+		"build": "tsup && bun scripts/build-styles.ts",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",
 		"test": "vitest run",

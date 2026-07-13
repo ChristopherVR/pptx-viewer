@@ -18,10 +18,11 @@ Try it live: the [Svelte demo](https://christophervr.github.io/pptx-viewer/demo-
 | Capability          | Summary                                                                                                                                    |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Slide rendering** | Text, shapes, images, groups, connectors, tables, charts, SmartArt (2D and opt-in 3D), media, ink, OLE, and the rest of the element model. |
-| **Editing**         | Select, drag/resize/rotate, inline text editing, undo/redo, and save/download of the edited `.pptx`.                                       |
-| **Navigation**      | Toolbar, thumbnail rail, keyboard navigation, speaker-notes panel.                                                                         |
+| **Editing**         | Insert, format, group, arrange, drag/resize/rotate, rich text/notes, inherited template elements, undo/redo, and save/download.            |
+| **Navigation**      | Responsive desktop/mobile chrome, thumbnail rail, keyboard navigation, and rich speaker notes.                                             |
 | **Presentation**    | Fullscreen presentation mode via the real Fullscreen API, with media autoplay.                                                             |
-| **Export**          | Rasterise slides to PNG or PDF straight from the browser.                                                                                  |
+| **Export**          | PNG, PDF, GIF, video, print, notes-page, and handout output.                                                                               |
+| **Review**          | Comments plus presentation-wide accessibility checks and issue navigation.                                                                 |
 | **Theming**         | The shared `ViewerTheme` system (`--pptx-*` CSS custom properties), including the vermilion presets.                                       |
 | **i18n**            | English built in; register more locales via `pptx-svelte-viewer/i18n`. See [Getting Started](/svelte/getting-started#localization).        |
 

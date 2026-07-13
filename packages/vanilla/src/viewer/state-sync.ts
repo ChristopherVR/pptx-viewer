@@ -31,22 +31,51 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		// Thumbnails are skipped while a drag/resize gesture streams slide
 		// patches; one refresh happens when the gesture ends.
 		if (
-			(state.slides !== previous.slides && !state.interactionActive) ||
+			((state.slides !== previous.slides ||
+				state.templateElementsBySlideId !== previous.templateElementsBySlideId ||
+				state.slideMasters !== previous.slideMasters ||
+				state.masterViewTarget !== previous.masterViewTarget) &&
+				!state.interactionActive) ||
 			(previous.interactionActive && !state.interactionActive)
 		) {
 			renderer.renderThumbnails();
 		}
 		if (
 			state.slides !== previous.slides ||
+			state.templateElementsBySlideId !== previous.templateElementsBySlideId ||
 			state.currentSlide !== previous.currentSlide ||
 			state.zoom !== previous.zoom ||
-			state.presenting !== previous.presenting
+			state.presenting !== previous.presenting ||
+			state.slideMasters !== previous.slideMasters ||
+			state.masterViewTarget !== previous.masterViewTarget
 		) {
 			renderer.renderStage();
 		}
 		if (state.currentSlide !== previous.currentSlide) {
 			chrome.thumbnails?.setActive(state.currentSlide);
 			callbacks.onSlideChange?.(state.currentSlide);
+		}
+		if (
+			state.slides !== previous.slides ||
+			state.currentSlide !== previous.currentSlide ||
+			state.zoom !== previous.zoom
+		) {
+			chrome.statusBar?.update({
+				current: state.currentSlide,
+				total: state.slides.length,
+				zoomPercent: renderer.effectiveScale() * 100,
+			});
+			chrome.mobileNavigation?.update({
+				current: state.currentSlide,
+				total: state.slides.length,
+				zoomPercent: renderer.effectiveScale() * 100,
+			});
+			chrome.presentationTouchControls.update(state.currentSlide, state.slides.length);
+			chrome.mobileActionSheets?.update(
+				state.currentSlide,
+				state.slides,
+				state.slides[state.currentSlide]?.comments ?? [],
+			);
 		}
 		if (state.zoom !== previous.zoom) {
 			callbacks.onZoomChange?.(renderer.effectiveScale());
@@ -55,6 +84,8 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			callbacks.onSelectionChange?.(state.selectedElementId);
 		}
 		if (state.dirty !== previous.dirty) {
+			chrome.statusBar?.setDirty(state.dirty);
+			chrome.titleBar?.setDirty(state.dirty);
 			callbacks.onDirtyChange?.(state.dirty);
 		}
 		if (state.editable !== previous.editable) {
@@ -63,6 +94,11 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		if (state.notesExpanded !== previous.notesExpanded) {
 			chrome.notes.setExpanded(state.notesExpanded);
 			chrome.ribbon?.setNotesExpanded(state.notesExpanded);
+			chrome.statusBar?.setNotesExpanded(state.notesExpanded);
+			chrome.mobileNavigation?.setNotesExpanded(state.notesExpanded);
+		}
+		if (state.editTemplateMode !== previous.editTemplateMode) {
+			chrome.ribbon?.setTemplateEditing(state.editTemplateMode);
 		}
 	};
 }

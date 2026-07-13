@@ -6,7 +6,7 @@ import type {
 	StrokeDashType,
 	XmlObject,
 } from 'pptx-viewer-core';
-import type { PowerPointViewerAPI } from 'pptx-viewer-shared';
+import type { PowerPointViewerAPI, ViewerFontSource } from 'pptx-viewer-shared';
 /**
  * UI-related and interaction types for the PowerPoint viewer/editor plugin.
  *
@@ -239,6 +239,8 @@ export interface AnimationPresetOption {
 export interface PowerPointViewerProps {
 	/** PowerPoint content as Uint8Array */
 	content: Uint8Array;
+	/** Licensed fonts supplied by the host application. No fonts are bundled. */
+	fonts?: ViewerFontSource[];
 	/** Original file path, used for autosave recovery */
 	filePath?: string;
 	/**

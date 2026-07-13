@@ -81,7 +81,7 @@ export const renderSmartArtSvg: ElementRenderer = (element, zIndex, context) => 
 	const drawingShapes = data?.drawingShapes ?? [];
 
 	if (data && drawingShapes.length > 0) {
-		chrome.appendChild(buildDrawingShapesSvg(doc, element.id, data));
+		chrome.appendChild(buildDrawingShapesSvg(doc, element.id, data, buildSmartArtA11y(data).nodes));
 		return wrapper;
 	}
 
@@ -95,7 +95,7 @@ export const renderSmartArtSvg: ElementRenderer = (element, zIndex, context) => 
 			data.resolvedLayoutType,
 			data.layout,
 		);
-		chrome.appendChild(buildSmartArtFallbackSvg(doc, layout));
+		chrome.appendChild(buildSmartArtFallbackSvg(doc, layout, buildSmartArtA11y(data).nodes));
 		return wrapper;
 	}
 
@@ -119,6 +119,7 @@ function buildDrawingShapesSvg(
 	doc: Document,
 	elementId: string,
 	data: PptxSmartArtData,
+	a11yNodes: ReturnType<typeof buildSmartArtA11y>['nodes'],
 ): SVGSVGElement {
 	const shapes = data.drawingShapes ?? [];
 	const style: SmartArtStyle = data.style ?? 'flat';
@@ -133,8 +134,16 @@ function buildDrawingShapesSvg(
 	svg.setAttribute('class', 'pptxv-smartart-svg');
 	svg.setAttribute('style', SMARTART_SVG_STYLE);
 
-	for (const shape of rendered) {
+	for (const [index, shape] of rendered.entries()) {
 		const g = createSvgEl(doc, 'g');
+		const nodeA11y = a11yNodes[index];
+		if (nodeA11y) {
+			g.setAttribute('role', 'img');
+			g.setAttribute('aria-label', nodeA11y.label);
+			const title = createSvgEl(doc, 'title');
+			title.textContent = nodeA11y.label;
+			g.appendChild(title);
+		}
 		if (shadow) {
 			g.style.filter = shadow;
 		}

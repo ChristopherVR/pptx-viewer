@@ -5,7 +5,9 @@ import {
 	extractPathPoints,
 	generatePressureCircles,
 	getContainerStyle,
+	getInkReplayStyles,
 	hasPressureVariation,
+	INK_REPLAY_KEYFRAMES,
 	pressuresToWidths,
 } from 'pptx-viewer-shared';
 
@@ -27,8 +29,9 @@ import type { ElementRenderer } from '../types';
  * `generatePressureCircles` maths). Strokes without pressure data degrade to
  * plain constant-width paths.
  *
- * Not ported (same gaps as Vue): ink replay animation and the
- * highlighter / eraser tool blend modes.
+ * Presentation mode progressively replays constant-width paths using the
+ * shared dash-offset timing model. Highlighter strokes use multiply blending.
+ * Pressure circles remain static because SVG dash replay only applies to paths.
  */
 export const renderInkElement: ElementRenderer = (element, zIndex, context) => {
 	if (element.type !== 'ink') {
@@ -56,6 +59,15 @@ export const renderInkElement: ElementRenderer = (element, zIndex, context) => {
 	});
 	svg.setAttribute('class', 'pptxv-ink-svg');
 	svg.setAttribute('style', 'width:100%;height:100%;pointer-events:none;display:block');
+	if (element.inkTool === 'highlighter') {
+		svg.style.mixBlendMode = 'multiply';
+	}
+	const replayStyles = context.presenting ? getInkReplayStyles(element) : [];
+	if (context.presenting) {
+		const keyframes = createSvgEl(doc, 'style');
+		keyframes.textContent = INK_REPLAY_KEYFRAMES;
+		svg.appendChild(keyframes);
+	}
 
 	paths.forEach((d, i) => {
 		const color = element.inkColors?.[i] ?? DEFAULT_STROKE_COLOR;
@@ -72,18 +84,24 @@ export const renderInkElement: ElementRenderer = (element, zIndex, context) => {
 			return;
 		}
 
-		svg.appendChild(
-			createSvgEl(doc, 'path', {
-				d,
-				fill: 'none',
-				stroke: color,
-				'stroke-width': width,
-				'stroke-opacity': opacity,
-				'stroke-linecap': 'round',
-				'stroke-linejoin': 'round',
-				'vector-effect': 'non-scaling-stroke',
-			}),
-		);
+		const replay = replayStyles[i];
+		const path = createSvgEl(doc, 'path', {
+			d,
+			fill: 'none',
+			stroke: color,
+			'stroke-width': width,
+			'stroke-opacity': opacity,
+			'stroke-linecap': 'round',
+			'stroke-linejoin': 'round',
+			'vector-effect': 'non-scaling-stroke',
+			'stroke-dasharray': replay?.strokeDasharray,
+			'stroke-dashoffset': replay?.strokeDashoffset,
+		});
+		if (replay) {
+			path.style.animation = replay.animation;
+			path.style.setProperty('--ink-path-length', String(replay.pathLength));
+		}
+		svg.appendChild(path);
 	});
 
 	wrapper.appendChild(svg);

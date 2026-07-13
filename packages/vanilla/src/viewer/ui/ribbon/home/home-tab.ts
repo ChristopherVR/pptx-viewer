@@ -27,6 +27,8 @@ export interface HomeTabSyncState {
 	selectedElement: PptxElement | undefined;
 	hasClipboard: boolean;
 	slideCount: number;
+	selectedCount: number;
+	formatPainterActive: boolean;
 }
 
 export interface HomeTab {
@@ -45,6 +47,7 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 		paste: edit.paste,
 		duplicate: edit.duplicateSelected,
 		delete: edit.deleteSelected,
+		toggleFormatPainter: edit.toggleFormatPainter,
 	});
 	const slides: SlidesGroup = createSlidesGroup(doc, t, {
 		addSlide: edit.addSlide,
@@ -80,6 +83,7 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 		bringToFront: edit.bringToFront,
 		sendToBack: edit.sendToBack,
 		alignElements: edit.alignElements,
+		distributeElements: edit.distributeElements,
 		flipHorizontal: edit.flipHorizontal,
 		flipVertical: edit.flipVertical,
 		groupSelected: edit.groupSelected,
@@ -95,10 +99,22 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 
 	return {
 		el,
-		update({ editable, selectedElement, hasClipboard, slideCount }) {
+		update({
+			editable,
+			selectedElement,
+			hasClipboard,
+			slideCount,
+			selectedCount,
+			formatPainterActive,
+		}) {
 			const canFormat = canFormatText(selectedElement);
 			const text = readTextFormatState(selectedElement);
-			clipboard.update({ hasSelection: selectedElement !== undefined, hasClipboard, editable });
+			clipboard.update({
+				hasSelection: selectedElement !== undefined,
+				hasClipboard,
+				editable,
+				formatPainterActive,
+			});
 			slides.update({ editable, slideCount });
 			font.update({ canFormat, editable, text });
 			paragraph.update({ canFormat, editable, text });
@@ -106,6 +122,7 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 				editable,
 				hasSelection: selectedElement !== undefined,
 				isGroup: selectedElement?.type === 'group',
+				selectedCount,
 			});
 		},
 	};

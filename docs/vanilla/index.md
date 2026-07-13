@@ -22,8 +22,9 @@ package running with no framework at all.
 | **Navigation**      | Toolbar, thumbnail sidebar, keyboard navigation (arrows, PageUp/PageDown, Space, Home/End), speaker-notes panel.                                                                      |
 | **Presentation**    | Fullscreen presentation mode via the real Fullscreen API (Esc exits), with media autoplay.                                                                                            |
 | **Theming**         | The shared `ViewerTheme` system (`--pptx-*` CSS custom properties), including the vermilion presets. See [Theming](/vanilla/theming).                                                 |
-| **Editing**         | Behind `editable`: select, drag/resize/rotate, inline text editing, undo/redo, delete/duplicate, and save/download. See [Instance API](/vanilla/api).                                 |
-| **Export**          | Rasterise slides to PNG or PDF straight from the browser.                                                                                                                             |
+| **Editing**         | Behind `editable`: insert, format, multi-select/group, arrange, inherited template editing, rich notes, undo/redo, and save/download. See [Instance API](/vanilla/api).               |
+| **Export**          | PNG, PDF, GIF, video, print, notes-page, and handout output.                                                                                                                          |
+| **Accessibility**   | Element semantics plus a presentation-wide accessibility checker with issue navigation.                                                                                               |
 | **Extensibility**   | An open element-renderer registry: register or override renderers per element type without forking. See [Element Renderers](/vanilla/renderers).                                      |
 
 ::: info Element coverage
