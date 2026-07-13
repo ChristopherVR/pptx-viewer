@@ -23,7 +23,7 @@ export const RIBBON_TABS: readonly RibbonTabDef[] = [
 	{ id: 'design', labelKey: 'pptx.ribbon.tab.design' },
 	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
 	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
-	// { id: 'slideShow', labelKey: 'pptx.ribbon.tab.slideShow' },
+	{ id: 'slideShow', labelKey: 'pptx.ribbon.tab.slideShow' },
 	// { id: 'record', labelKey: 'pptx.ribbon.tab.record' },
 	// { id: 'review', labelKey: 'pptx.ribbon.tab.review' },
 	{ id: 'view', labelKey: 'pptx.ribbon.tab.view' },

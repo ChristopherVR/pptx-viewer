@@ -35,6 +35,9 @@ export function createViewportHandlers(deps: ViewportHandlersDeps): ViewportHand
 		},
 		onFullscreenChange(): void {
 			deps.viewer.isFullscreen = isFullscreenActive();
+			if (deps.viewer.isFullscreen) {
+				deps.getRootEl()?.focus();
+			}
 		},
 		onKeydown(event: KeyboardEvent): void {
 			if (deps.getEditingActive()) {

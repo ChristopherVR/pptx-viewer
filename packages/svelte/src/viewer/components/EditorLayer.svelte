@@ -32,6 +32,8 @@
 	{scale}
 	snapLines={controller.snapLines}
 	editing={controller.editing}
+	selectionCount={controller.selectionCount}
+	marquee={controller.marquee}
 	onhandlepointerdown={controller.onHandlePointerDown}
 	onrotatepointerdown={controller.onRotatePointerDown}
 />

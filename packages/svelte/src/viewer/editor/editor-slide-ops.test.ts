@@ -1,7 +1,12 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { deleteSlideAt, duplicateSlideAt, insertBlankSlideAfter } from './editor-slide-ops';
+import {
+	deleteSlideAt,
+	duplicateSlideAt,
+	insertBlankSlideAfter,
+	moveSlide,
+} from './editor-slide-ops';
 
 function el(id: string): PptxElement {
 	return { type: 'shape', id, x: 0, y: 0, width: 10, height: 10, shapeType: 'rect' } as PptxElement;
@@ -61,5 +66,20 @@ describe('editor-slide-ops deleteSlideAt', () => {
 
 	it('refuses to delete the only remaining slide', () => {
 		expect(deleteSlideAt([slide('a', 1)], 0)).toBeNull();
+	});
+});
+
+describe('editor-slide-ops moveSlide', () => {
+	it('moves a slide to the drop target and renumbers every slide', () => {
+		const result = moveSlide([slide('a', 1), slide('b', 2), slide('c', 3)], 0, 2)!;
+		expect(result.map((item) => item.id)).toStrictEqual(['b', 'c', 'a']);
+		expect(result.map((item) => item.slideNumber)).toStrictEqual([1, 2, 3]);
+	});
+
+	it('rejects a no-op and indexes outside the deck', () => {
+		const slides = [slide('a', 1), slide('b', 2)];
+		expect(moveSlide(slides, 0, 0)).toBeNull();
+		expect(moveSlide(slides, -1, 1)).toBeNull();
+		expect(moveSlide(slides, 0, 2)).toBeNull();
 	});
 });

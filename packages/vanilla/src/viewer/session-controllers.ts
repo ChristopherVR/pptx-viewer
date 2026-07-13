@@ -1,7 +1,7 @@
 import type { PptxHandler } from 'pptx-viewer-core';
 import type { CollaborationConfig, ConnectionStatus } from 'pptx-viewer-shared';
 
-import type { AutosaveController, AutosaveStatus } from './autosave/autosave-controller';
+import type { AutosaveStatus } from './autosave/autosave-controller';
 import { createAutosaveController } from './autosave/autosave-controller';
 import type { CollabUiController } from './collab/collab-ui';
 import { createCollabUi } from './collab/collab-ui';
@@ -46,6 +46,11 @@ export interface SessionControllers {
 	followCollaborationUser(clientId: number | null): void;
 	/** Force an immediate autosave (no-op when autosave is disabled). */
 	autosaveNow(): Promise<void>;
+	/** Enable/disable recovery autosave for the active viewer session. */
+	setAutosaveEnabled(enabled: boolean): void;
+	isAutosaveEnabled(): boolean;
+	/** Open the viewer's built-in broadcast dialog. */
+	openBroadcast(): void;
 	destroy(): void;
 }
 
@@ -66,22 +71,21 @@ function autosaveLabel(status: AutosaveStatus, t: Translator): string {
 export function createSessionControllers(deps: SessionControllersDeps): SessionControllers {
 	const { options } = deps;
 
-	let autosave: AutosaveController | null = null;
-	if (options.autosave) {
-		autosave = createAutosaveController({
-			store: deps.store,
-			getHandler: deps.getHandler,
-			filePath: options.autosaveFilePath ?? DEFAULT_AUTOSAVE_FILE_PATH,
-			intervalMs: options.autosaveIntervalMs ?? DEFAULT_AUTOSAVE_INTERVAL_MS,
-			onStatus: (status) => {
-				deps
-					.getChrome()
-					.ribbon?.setAutosaveStatus(autosaveLabel(status, deps.getTranslator()), status);
-				options.onAutosaveStatus?.(status);
-			},
-			onRecovery: (record) => options.onAutosaveRecovery?.(record),
-		});
-	}
+	const autosave = createAutosaveController({
+		store: deps.store,
+		getHandler: deps.getHandler,
+		filePath: options.autosaveFilePath ?? DEFAULT_AUTOSAVE_FILE_PATH,
+		intervalMs: options.autosaveIntervalMs ?? DEFAULT_AUTOSAVE_INTERVAL_MS,
+		onStatus: (status) => {
+			deps
+				.getChrome()
+				.ribbon?.setAutosaveStatus(autosaveLabel(status, deps.getTranslator()), status);
+			deps.getChrome().titleBar?.setAutosaveState(status);
+			options.onAutosaveStatus?.(status);
+		},
+		onRecovery: (record) => options.onAutosaveRecovery?.(record),
+		enabled: options.autosave ?? false,
+	});
 
 	// Set once `collabUi` is constructed below (it needs the controller's
 	// start/stop functions, which must exist first); forwards every status
@@ -147,12 +151,18 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		getCollaborationStatus: () => collaboration.getStatus(),
 		setCollaborationCursor: (x, y) => collaboration.setCursor(x, y, deps.store.get().currentSlide),
 		followCollaborationUser: (clientId) => collaboration.followUser(clientId),
-		autosaveNow: () => autosave?.saveNow() ?? Promise.resolve(),
+		autosaveNow: () => autosave.saveNow(),
+		setAutosaveEnabled(enabled) {
+			autosave.setEnabled(enabled);
+			options.onToggleAutosave?.(enabled);
+		},
+		isAutosaveEnabled: () => autosave.isEnabled(),
+		openBroadcast: () => collabUi.openBroadcast(),
 		destroy() {
 			unsubscribePresence();
 			collabUi.destroy();
 			collaboration.destroy();
-			autosave?.destroy();
+			autosave.destroy();
 		},
 	};
 }

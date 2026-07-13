@@ -30,6 +30,11 @@
 	// eslint-disable-next-line prefer-const
 	let mediaInput = $state<HTMLInputElement | null>(null);
 	let equationOpen = $state(false);
+	$effect(() => {
+		if (editor.equationOps.editingId) {
+			equationOpen = true;
+		}
+	});
 
 	const MAX_IMAGE_EDGE = 400;
 
@@ -39,6 +44,7 @@
 
 	function closeEquationPanel(): void {
 		equationOpen = false;
+		editor.equationOps.close();
 	}
 
 	function onImageFileChange(event: Event): void {

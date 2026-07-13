@@ -1,4 +1,9 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleMap,
+	PptxSlide,
+	PptxSlideMaster,
+	PptxThemeColorScheme,
+} from 'pptx-viewer-core';
 import { EncryptedFileError, PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from 'pptx-viewer-shared';
@@ -17,6 +22,8 @@ import { resolveLazyImages, resolveMediaUrls, revokeBlobUrls } from './loader-he
 export class PresentationLoader {
 	/** Parsed slides with lazily-loaded image URLs patched in. */
 	slides = $state.raw<PptxSlide[]>([]);
+	/** Parsed slide-master hierarchy for the dedicated master workspace. */
+	slideMasters = $state.raw<PptxSlideMaster[]>([]);
 	/** Slide canvas size in pixels. */
 	canvasSize = $state.raw<CanvasSize>({
 		width: DEFAULT_CANVAS_WIDTH,
@@ -24,6 +31,10 @@ export class PresentationLoader {
 	});
 	/** Archive-path -> displayable URL map for media + poster frames. */
 	mediaDataUrls = $state.raw<Map<string, string>>(new Map());
+	/** Presentation theme colours used to resolve scheme-based table styles. */
+	colorScheme = $state.raw<PptxThemeColorScheme | undefined>(undefined);
+	/** Parsed presentation table-style definitions keyed by style id. */
+	tableStyleMap = $state.raw<ParsedTableStyleMap | undefined>(undefined);
 	/** True while a load is in flight. */
 	loading = $state(false);
 	/** Error message from the last failed load, or null. */
@@ -76,7 +87,10 @@ export class PresentationLoader {
 			this.#activeBlobUrls = loadBlobUrls;
 			this.handler = newHandler;
 			this.slides = nextSlides;
+			this.slideMasters = parsed.slideMasters ?? [];
 			this.mediaDataUrls = media.urls;
+			this.colorScheme = parsed.theme?.colorScheme;
+			this.tableStyleMap = parsed.tableStyleMap;
 			this.canvasSize = {
 				width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
 				height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,

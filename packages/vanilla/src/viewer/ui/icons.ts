@@ -86,7 +86,12 @@ export type IconName =
 	| 'cursor'
 	| 'pen'
 	| 'highlighter'
-	| 'eraser';
+	| 'eraser'
+	| 'panel-left'
+	| 'panel-right'
+	| 'sticky-note'
+	| 'monitor'
+	| 'presentation';
 
 const ICON_PATHS: Record<IconName, string[]> = {
 	'chevron-left': ['M15 18l-6-6 6-6'],
@@ -238,6 +243,11 @@ const ICON_PATHS: Record<IconName, string[]> = {
 		'M22 21H7',
 		'M5 11l9 9',
 	],
+	'panel-left': ['M4 4h16v16H4z', 'M9 4v16'],
+	'panel-right': ['M4 4h16v16H4z', 'M15 4v16'],
+	'sticky-note': ['M5 4h14v10l-6 6H5z', 'M13 20v-6h6'],
+	monitor: ['M3 5h18v12H3z', 'M8 21h8', 'M12 17v4'],
+	presentation: ['M3 4h18', 'M5 4h14v11H5z', 'M12 15v3', 'M9 21l3-3 3 3'],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

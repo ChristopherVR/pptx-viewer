@@ -54,3 +54,28 @@ export function deleteSlideAt(
 	const next = slides.filter((_, i) => i !== index);
 	return { slides: renumbered(next), newIndex: Math.min(index, next.length - 1) };
 }
+
+/**
+ * Move a slide to a new order index and renumber the resulting deck. The
+ * target index is evaluated against the original list, as native drag/drop
+ * targets are: dropping slide 1 onto slide 3 produces [2, 3, 1].
+ */
+export function moveSlide(
+	slides: readonly PptxSlide[],
+	fromIndex: number,
+	toIndex: number,
+): PptxSlide[] | null {
+	if (
+		fromIndex < 0 ||
+		fromIndex >= slides.length ||
+		toIndex < 0 ||
+		toIndex >= slides.length ||
+		fromIndex === toIndex
+	) {
+		return null;
+	}
+	const next = [...slides];
+	const [moved] = next.splice(fromIndex, 1);
+	next.splice(toIndex, 0, moved);
+	return next.map((slide, index) => ({ ...slide, slideNumber: index + 1 }));
+}

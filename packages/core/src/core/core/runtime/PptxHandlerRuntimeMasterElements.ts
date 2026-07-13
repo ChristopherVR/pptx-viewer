@@ -319,8 +319,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						element.id = `master-${element.id}`;
 						elements.push(element);
 					}
+				} else if (entry.tag === 'p:cxnSp') {
+					const connectors = this.ensureArray(spTree['p:cxnSp']);
+					const connector = connectors[entry.indexInType] as XmlObject | undefined;
+					if (!connector) {
+						continue;
+					}
+					const element = this.parseConnector(
+						connector,
+						`master-conn-${masterToken}-${entry.indexInType}`,
+						masterPath,
+					);
+					if (element) {
+						element.id = `master-${element.id}`;
+						elements.push(element);
+					}
 				}
-				// Other element types (p:grpSp, p:cxnSp, p:contentPart) are
+				// Other element types (p:grpSp, p:contentPart) are
 				// uncommon in masters but could be added here if needed.
 			}
 

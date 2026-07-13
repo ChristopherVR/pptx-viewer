@@ -1,6 +1,17 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleMap,
+	PptxElement,
+	PptxSlide,
+	PptxThemeColorScheme,
+} from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
-import { getSlideBackgroundStyle } from 'pptx-viewer-shared';
+import {
+	getAriaLabel,
+	getAriaRole,
+	getAriaRoleDescription,
+	getSlideBackgroundStyle,
+	isTemplateElementId,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from './dom';
@@ -11,6 +22,10 @@ export interface SlideStageOptions {
 	slide: PptxSlide;
 	canvasSize: CanvasSize;
 	mediaDataUrls: ReadonlyMap<string, string>;
+	/** Optional presentation theme colour scheme for element renderers. */
+	colorScheme?: PptxThemeColorScheme;
+	/** Optional parsed table-style definitions for theme-aware table rendering. */
+	tableStyleMap?: ParsedTableStyleMap;
 	registry: ElementRendererRegistry;
 	t: Translator;
 	/** Scale applied via CSS transform (default 1). */
@@ -27,6 +42,8 @@ export interface SlideStageOptions {
 	 * test hooks the React/Vue/Angular bindings also emit. Defaults to `false`.
 	 */
 	interactive?: boolean;
+	/** Whether inherited layout/master nodes participate in editing. */
+	templateEditing?: boolean;
 }
 
 /**
@@ -64,6 +81,8 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		canvasSize,
 		scale,
 		mediaDataUrls,
+		colorScheme: options.colorScheme,
+		tableStyleMap: options.tableStyleMap,
 		t,
 		smartArt3D: options.smartArt3D ?? false,
 		presenting: options.presenting ?? false,
@@ -71,7 +90,14 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		renderElement(element: PptxElement, zIndex: number) {
 			const node = registry.resolve(element.type)(element, zIndex, context);
 			if (node && interactive && 'setAttribute' in node) {
-				node.setAttribute('data-pptx-element', 'true');
+				const templateLocked = isTemplateElementId(element.id) && !options.templateEditing;
+				if (templateLocked) {
+					node.style.pointerEvents = 'none';
+					node.removeAttribute('data-pptx-element');
+				} else {
+					node.setAttribute('data-pptx-element', 'true');
+				}
+				applyElementAccessibility(node, element);
 			}
 			return node;
 		},
@@ -85,4 +111,22 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 	});
 
 	return stage;
+}
+
+/**
+ * Give every interactive rendered element the same shared accessibility
+ * metadata used by React. This stays at the stage boundary so custom host
+ * renderers receive it too, and thumbnails do not duplicate the slide's
+ * screen-reader tree.
+ */
+function applyElementAccessibility(node: HTMLElement | SVGElement, element: PptxElement): void {
+	const role = getAriaRole(element);
+	if (role !== undefined) {
+		node.setAttribute('role', role);
+	}
+	node.setAttribute('aria-label', getAriaLabel(element));
+	const roleDescription = getAriaRoleDescription(element);
+	if (roleDescription !== undefined) {
+		node.setAttribute('aria-roledescription', roleDescription);
+	}
 }

@@ -15,6 +15,8 @@
 
 import type { XmlObject } from 'pptx-viewer-core';
 
+import { getOmmlMathColor, getOmmlMathFontSize } from './omml-color';
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 /**
@@ -592,7 +594,11 @@ export function convertOmmlToMathMl(ommlNode: OmmlNode): string {
 		return '';
 	}
 
-	return `<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline">${inner}</math>`;
+	const color = getOmmlMathColor(ommlNode);
+	const colorAttribute = color ? ` mathcolor="${color}"` : '';
+	const fontSize = getOmmlMathFontSize(ommlNode);
+	const sizeAttribute = fontSize ? ` mathsize="${fontSize}pt"` : '';
+	return `<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"${colorAttribute}${sizeAttribute}>${inner}</math>`;
 }
 
 /**

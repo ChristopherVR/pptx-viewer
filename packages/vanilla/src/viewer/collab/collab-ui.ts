@@ -42,6 +42,8 @@ export interface CollabUiDeps {
 export interface CollabUiController {
 	/** Reflect a connection-status transition (dialogs + status pill). */
 	onStatusChange(status: ConnectionStatus): void;
+	/** Open the existing broadcast dialog from another chrome surface. */
+	openBroadcast(): void;
 	destroy(): void;
 }
 
@@ -102,6 +104,13 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 
 	let shareBtn: HTMLButtonElement | null = null;
 	let broadcastBtn: HTMLButtonElement | null = null;
+	const openBroadcast = (): void => {
+		broadcastDialog.open(
+			{ roomId: broadcastRoomId, serverUrl: broadcastServerUrl },
+			deps.getStatus() !== 'disconnected',
+			viewerUrl(),
+		);
+	};
 	// The ribbon replaced the old flat toolbar.ts; its primary row (undo/redo/
 	// save + autosave pill) is the closest equivalent anchor for these buttons.
 	const toolbarEl = chrome.ribbon?.el.querySelector<HTMLElement>('.pptxv-ribbon-primary') ?? null;
@@ -120,13 +129,7 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 		broadcastBtn.title = t('pptx.broadcast.startTitle');
 		broadcastBtn.setAttribute('aria-label', t('pptx.broadcast.startTitle'));
 		broadcastBtn.appendChild(createIcon(doc, 'broadcast'));
-		broadcastBtn.addEventListener('click', () => {
-			broadcastDialog.open(
-				{ roomId: broadcastRoomId, serverUrl: broadcastServerUrl },
-				deps.getStatus() !== 'disconnected',
-				viewerUrl(),
-			);
-		});
+		broadcastBtn.addEventListener('click', openBroadcast);
 
 		toolbarEl.append(shareBtn, broadcastBtn, statusPill.el);
 	}
@@ -176,6 +179,7 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 				broadcastDialog.setActive(false, '');
 			}
 		},
+		openBroadcast,
 		destroy() {
 			unsubscribe();
 			shareBtn?.remove();

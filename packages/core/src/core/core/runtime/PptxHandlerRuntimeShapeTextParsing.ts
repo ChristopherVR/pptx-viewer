@@ -13,7 +13,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		textStyle: TextStyle,
 		ctx: ShapeTextParsingContext,
 	): ParagraphStyleResult {
-		const pPr = p['a:pPr'] as XmlObject | undefined;
+		// Slide placeholders often contain only text. Their paragraph properties
+		// (notably alignment and RTL direction) remain on the matching layout or
+		// master placeholder, so merge them before resolving the paragraph style.
+		const inheritedParagraph = this.ensureArray(ctx.inheritedTxBody?.['a:p'])[0] as
+			| XmlObject
+			| undefined;
+		const pPr = this.mergeXmlObjects(
+			inheritedParagraph?.['a:pPr'] as XmlObject | undefined,
+			p['a:pPr'] as XmlObject | undefined,
+		);
 		const paragraphRtl = this.parseOptionalBooleanAttr(pPr?.['@_rtl']);
 		if (paragraphRtl !== undefined && textStyle.rtl === undefined) {
 			textStyle.rtl = paragraphRtl;
@@ -146,9 +155,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			pPr?.['a:defRPr'] as XmlObject | undefined,
 			paraAlign,
 			ctx.slideRelationshipMap,
+			false,
 		);
-		const level = Number.parseInt(String(pPr?.['@_lvl'] || '0'), 10);
-		const levelKey = `a:lvl${Number.isFinite(level) ? Math.min(Math.max(level + 1, 1), 9) : 1}pPr`;
+		// An omitted level inherits a:defPPr. It is distinct from an explicit
+		// lvl="0", which inherits a:lvl1pPr.
+		const level = pPr?.['@_lvl'] === undefined ? -1 : Number.parseInt(String(pPr['@_lvl']), 10);
+		const levelKey =
+			level === -1
+				? 'a:defPPr'
+				: `a:lvl${Number.isFinite(level) ? Math.min(Math.max(level + 1, 1), 9) : 1}pPr`;
 		const inheritedLevelStyle = this.extractTextRunStyle(
 			(
 				(ctx.inheritedTxBody?.['a:lstStyle'] as XmlObject | undefined)?.[levelKey] as
@@ -157,6 +172,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			)?.['a:defRPr'] as XmlObject | undefined,
 			paraAlign,
 			ctx.slideRelationshipMap,
+			false,
 		);
 		const bodyLevelStyle = this.extractTextRunStyle(
 			(
@@ -164,11 +180,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			)?.['a:defRPr'] as XmlObject | undefined,
 			paraAlign,
 			ctx.slideRelationshipMap,
+			false,
 		);
 		const endParagraphStyle = this.extractTextRunStyle(
 			p?.['a:endParaRPr'] as XmlObject | undefined,
 			paraAlign,
 			ctx.slideRelationshipMap,
+			false,
 		);
 		const mergedDefaultRunStyle = {
 			...ctx.bodyDefaultRunStyle,
@@ -180,12 +198,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Apply placeholder level-specific defaults as fallback
 		if (ctx.effectiveLevelStyles) {
-			const normalizedLevel = Number.isFinite(level) ? Math.min(Math.max(level, 0), 8) : 0;
-			const phLevel = ctx.effectiveLevelStyles[normalizedLevel] ?? ctx.effectiveLevelStyles[-1];
+			const normalizedLevel =
+				level === -1 ? -1 : Number.isFinite(level) ? Math.min(Math.max(level, 0), 8) : 0;
+			const phLevel =
+				ctx.effectiveLevelStyles[normalizedLevel] ??
+				ctx.effectiveLevelStyles[-1] ??
+				(normalizedLevel === -1 ? ctx.effectiveLevelStyles[0] : undefined);
 			if (phLevel) {
 				this.applyPlaceholderLevelDefaults(mergedDefaultRunStyle, phLevel);
 				this.applyPlaceholderLevelDefaults(textStyle, phLevel);
 			}
+		}
+		if (pPr?.['@_algn'] === undefined && textStyle.align !== undefined) {
+			paraAlign = textStyle.align;
 		}
 
 		// Per-paragraph indentation (also checking placeholder level defaults)
@@ -200,8 +225,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		let effectiveMarginLeft = parMarginLeft;
 		let effectiveIndent = parIndent;
 		if (ctx.effectiveLevelStyles) {
-			const normalizedLevel = Number.isFinite(level) ? Math.min(Math.max(level, 0), 8) : 0;
-			const phLevel = ctx.effectiveLevelStyles[normalizedLevel] ?? ctx.effectiveLevelStyles[-1];
+			const normalizedLevel =
+				level === -1 ? -1 : Number.isFinite(level) ? Math.min(Math.max(level, 0), 8) : 0;
+			const phLevel =
+				ctx.effectiveLevelStyles[normalizedLevel] ??
+				ctx.effectiveLevelStyles[-1] ??
+				(normalizedLevel === -1 ? ctx.effectiveLevelStyles[0] : undefined);
 			if (phLevel) {
 				if (effectiveMarginLeft === undefined && phLevel.marginLeft !== undefined) {
 					effectiveMarginLeft = phLevel.marginLeft;

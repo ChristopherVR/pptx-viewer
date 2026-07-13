@@ -1,3 +1,4 @@
+import type { TextSegment } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
 
 import type { EditActions } from './editor/editor-edit-ops';
@@ -21,9 +22,16 @@ export interface ChromeCallbackDeps {
 	undo(): void;
 	redo(): void;
 	save(): void;
+	toggleAutosave(): boolean;
+	startPresentationFromBeginning(): void;
+	startPresentationFromCurrent(): void;
+	openBroadcast(): void;
 	toggleNotes(): void;
+	openAccessibility(): void;
+	toggleTemplateEditing(): void;
+	toggleMasterNavigation(): void;
 	goToSlide(index: number): void;
-	commitNotes(notes: string): void;
+	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	exportSlidePng(): Promise<void>;
 	exportPdf(): Promise<void>;
 	exportGif(): Promise<void>;
@@ -63,6 +71,9 @@ export function buildChromeCallbacks(
 			zoomToFit: () => deps.zoomToFit(),
 			togglePresentation: () => deps.togglePresentation(),
 			toggleNotes: () => deps.toggleNotes(),
+			openAccessibility: () => deps.openAccessibility(),
+			toggleTemplateEditing: () => deps.toggleTemplateEditing(),
+			toggleMasterView: () => deps.toggleMasterNavigation(),
 		},
 		primary: {
 			undo: () => deps.undo(),
@@ -76,6 +87,11 @@ export function buildChromeCallbacks(
 			exportGif: () => void deps.exportGif(),
 			exportVideo: () => void deps.exportVideo(),
 			print: () => void deps.print(),
+		},
+		slideShow: {
+			startFromBeginning: () => deps.startPresentationFromBeginning(),
+			startFromCurrent: () => deps.startPresentationFromCurrent(),
+			openBroadcast: () => deps.openBroadcast(),
 		},
 		// Every editing action delegates to the (lazily-resolved) editor edit
 		// actions, so a click after mount always hits the live editor instance.
@@ -133,6 +149,6 @@ export function buildChromeCallbacks(
 		inspectorHandlers,
 		onSelectSlide: (index) => deps.goToSlide(index),
 		onToggleNotes: () => deps.toggleNotes(),
-		onCommitNotes: (notes) => deps.commitNotes(notes),
+		onCommitNotes: (notes, notesSegments) => deps.commitNotes(notes, notesSegments),
 	};
 }

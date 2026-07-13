@@ -1,4 +1,9 @@
-import { convertLatexToOmml, convertOmmlToMathMl, sanitizeMathMl } from 'pptx-viewer-shared';
+import {
+	convertLatexToOmml,
+	convertOmmlToLatex,
+	convertOmmlToMathMl,
+	sanitizeMathMl,
+} from 'pptx-viewer-shared';
 import type { OmmlNode } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
@@ -11,6 +16,7 @@ export interface EquationPanel {
 	setOpen(open: boolean): void;
 	isOpen(): boolean;
 	setEditable(editable: boolean): void;
+	openEdit(id: string, omml: Record<string, unknown>): void;
 }
 
 /**
@@ -23,7 +29,7 @@ export interface EquationPanel {
 export function createEquationPanel(
 	doc: Document,
 	t: Translator,
-	onInsert: (omml: Record<string, unknown>) => void,
+	onSubmit: (omml: Record<string, unknown>, id?: string) => void,
 ): EquationPanel {
 	const el = createEl(doc, 'div', 'pptxv-equation-panel');
 	el.hidden = true;
@@ -58,6 +64,7 @@ export function createEquationPanel(
 		}
 	};
 
+	let editingId: string | undefined;
 	const insertBtn = makeButton(doc, {
 		label: t('pptx.equation.insert'),
 		text: t('pptx.equation.insert'),
@@ -70,7 +77,7 @@ export function createEquationPanel(
 			if (Object.keys(omml).length === 0) {
 				return;
 			}
-			onInsert(omml);
+			onSubmit(omml, editingId);
 			textarea.value = '';
 			updatePreview();
 			setOpen(false);
@@ -103,17 +110,41 @@ export function createEquationPanel(
 		el.hidden = !open;
 		if (open) {
 			textarea.focus();
+		} else {
+			editingId = undefined;
 		}
+	};
+	const syncMode = (): void => {
+		const editing = editingId !== undefined;
+		const title = t(editing ? 'pptx.equation.editTitle' : 'pptx.equation.insertTitle');
+		const action = t(editing ? 'pptx.equation.update' : 'pptx.equation.insert');
+		el.setAttribute('aria-label', title);
+		insertBtn.btn.textContent = action;
+		insertBtn.btn.title = action;
+		insertBtn.btn.setAttribute('aria-label', action);
 	};
 
 	return {
 		el,
-		toggle: () => setOpen(!open),
+		toggle: () => {
+			if (!open) {
+				editingId = undefined;
+				syncMode();
+			}
+			setOpen(!open);
+		},
 		setOpen,
 		isOpen: () => open,
 		setEditable(editable) {
 			textarea.disabled = !editable;
 			insertBtn.setDisabled(!editable);
+		},
+		openEdit(id, omml) {
+			editingId = id;
+			textarea.value = convertOmmlToLatex(omml);
+			syncMode();
+			updatePreview();
+			setOpen(true);
 		},
 	};
 }

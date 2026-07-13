@@ -7,6 +7,7 @@
 	 * modules; this SFC is thin composition.
 	 */
 	import { onDestroy } from 'svelte';
+	import type { TextSegment } from 'pptx-viewer-core';
 	import { defaultCssVars, themeToCssVars } from 'pptx-viewer-shared';
 
 	import { createTranslator } from '../i18n/translator';
@@ -15,6 +16,12 @@
 	import CollaborationChrome from './collab/components/CollaborationChrome.svelte';
 	import { useCollaborationPresenceEffects } from './collab/collaboration-presence-effects.svelte';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
+	import MobileActionSheets from './components/MobileActionSheets.svelte';
+	import MobileChrome from './components/MobileChrome.svelte';
+	import MasterViewBody from './components/MasterViewBody.svelte';
+	import PresentationTouchControls from './components/PresentationTouchControls.svelte';
+	import StatusBar from './components/StatusBar.svelte';
+	import TitleBar from './components/TitleBar.svelte';
 	import Ribbon from './components/ribbon/Ribbon.svelte';
 	import ViewerBody from './components/ViewerBody.svelte';
 	import ViewerToolbar from './components/ViewerToolbar.svelte';
@@ -29,6 +36,7 @@
 	import { PresentationController, usePresentationEffects } from './presentation';
 	import { PresentationLoader } from './state/presentation-loader.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
+	import { provideRenderContext } from './state/render-context';
 	import { ViewerState } from './state/viewer-state.svelte';
 	import { fitScale } from './state/navigation';
 	import { useViewerEffects } from './state/viewer-effects.svelte';
@@ -48,6 +56,8 @@
 		editable = false,
 		class: className = '',
 		autosave = false,
+		onautosavetoggle,
+		fileName,
 		filePath,
 		autosaveIntervalMs = 2000,
 		collaboration,
@@ -67,6 +77,10 @@
 	provideSmartArt3D(() => smartArt3D);
 
 	const loader = new PresentationLoader();
+	provideRenderContext({
+		getColorScheme: () => loader.colorScheme,
+		getTableStyleMap: () => loader.tableStyleMap,
+	});
 	const viewer = new ViewerState();
 
 	// ── Editing ──────────────────────────────────────────────────────────
@@ -76,6 +90,7 @@
 	// to the history-tracked editor. Assigned by ViewerBody's onstageholder.
 	// eslint-disable-next-line prefer-const
 	let stageHolderEl = $state<HTMLDivElement>();
+	let stageContextMenu = $state<{ x: number; y: number } | null>(null);
 	const editor = new EditorState({
 		getCurrent: () => viewer.current,
 		getHandler: () => loader.handler,
@@ -88,6 +103,9 @@
 		getStageRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
 		getHolderEl: () => stageHolderEl ?? null,
 		onCursorMove: (x, y) => collab.setCursor(x, y, viewer.current),
+		onContextMenu: (x, y) => {
+			stageContextMenu = { x, y };
+		},
 	});
 	// The ribbon's Home tab Editing group / Ctrl+F Find & Replace panel.
 	const findReplace = new FindReplaceState({
@@ -110,7 +128,7 @@
 		return source instanceof Uint8Array ? source : new Uint8Array(source);
 	}
 	const collab = new CollaborationController({
-		getSlides: () => editor.slides,
+		getSlides: () => editor.renderedSlides,
 		applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
 		getConfig: () => collaboration,
 		getSourceBytes: sourceBytes,
@@ -137,12 +155,17 @@
 	// Debounced crash-recovery autosave: enabled only when the host opts in,
 	// editing is allowed, and a `filePath` key is supplied. Persists to the
 	// shared IndexedDB store and fires `onautosave` with the bytes.
-	const autosaveActive = $derived(editable && autosave && Boolean(filePath) && !collab.readOnly);
+	let autosaveEnabled = $state(false);
+	$effect(() => {
+		autosaveEnabled = autosave;
+	});
+	const autosaveActive = $derived(editable && autosaveEnabled && Boolean(filePath) && !collab.readOnly);
 	const autosaveCtl = new AutosaveController({
 		getEnabled: () => autosaveActive,
 		getIntervalMs: () => autosaveIntervalMs,
 		getFilePath: () => filePath,
-		getSlides: () => editor.slides,
+		getSlides: () => editor.renderedSlides,
+		getSlideMasters: () => editor.slideMasters,
 		getHandler: () => loader.handler,
 		getLoadCount: () => loader.loadCount,
 		onSaved: (bytes) => onautosave?.(bytes),
@@ -190,7 +213,7 @@
 	const effectivePercent = $derived(Math.max(1, Math.round(scale * 100)));
 	// Render the editable slide array (single source of truth), so committed
 	// edits flow to the stage, thumbnails, and notes panel.
-	const displaySlides = $derived(editor.slides);
+	const displaySlides = $derived(editor.renderedSlides);
 	const activeSlide = $derived(displaySlides[viewer.current]);
 	const chromeVisible = $derived(!viewer.isFullscreen);
 	const editingActive = $derived(editable && !viewer.isFullscreen && !collab.readOnly);
@@ -215,7 +238,7 @@
 	// fullscreen flag + current slide. All the preset/transition CSS maths lives
 	// in `pptx-viewer-shared`.
 	const presentation = new PresentationController({
-		getSlides: () => editor.slides,
+		getSlides: () => editor.renderedSlides,
 		getCurrentIndex: () => viewer.current,
 		navigate: (index) => viewer.goTo(index),
 	});
@@ -245,7 +268,7 @@
 	// first used; see `export/export-wiring.svelte.ts`.
 	const exportWiring = createExportWiring({
 		getContainer: () => rootEl,
-		getSlides: () => editor.slides,
+		getSlides: () => editor.renderedSlides,
 		getCanvasSize: () => loader.canvasSize,
 		getMediaDataUrls: () => loader.mediaDataUrls,
 		getCurrent: () => viewer.current,
@@ -273,9 +296,9 @@
 	// Route notes edits through the history-tracked editor when editable (so
 	// they participate in undo/redo and persist to `save()`), then always
 	// forward to the host `onnotesupdate` callback.
-	function onNotesCommit(notes: string): void {
+	function onNotesCommit(notes: string, segments?: TextSegment[]): void {
 		if (editable) {
-			editor.commitNotes(notes);
+			editor.commitNotes(notes, segments);
 		}
 		onnotesupdate?.(notes);
 	}
@@ -315,10 +338,22 @@
 	onkeydown={onKeydown}
 >
 	{#if showToolbar && chromeVisible}
+		<TitleBar
+			{fileName}
+			editable={editingActive}
+			isDirty={editor.dirty}
+			{autosaveEnabled}
+			autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
+			canUndo={editor.canUndo}
+			canRedo={editor.canRedo}
+			findReplaceOpen={findReplace.open}
+			onautosavetoggle={() => { autosaveEnabled = !autosaveEnabled; onautosavetoggle?.(autosaveEnabled); }}
+			onsave={() => void downloadPptx()}
+			onundo={() => editor.undo()}
+			onredo={() => editor.redo()}
+			onfindreplace={() => findReplace.toggle()}
+		/>
 		{#if showRibbon}
-			<!-- TODO(collab): Ribbon has no Share/Broadcast entry point yet (only
-			     the read-only-mode ViewerToolbar below does); wire onshare/
-			     onbroadcast/collabActive into Ribbon's primary row in a follow-up. -->
 			<Ribbon
 				{editor}
 				{findReplace}
@@ -346,9 +381,23 @@
 				showNotes={showNotes && loader.slides.length > 0}
 				{notesExpanded}
 				onnotestoggle={onNotesToggle}
+				onshare={() => dialogs.openShare()}
+				onbroadcast={() => dialogs.openBroadcast()}
+				collabActive={collab.active}
+				slides={displaySlides}
+				onnavigatetoissue={(slideIndex, elementId) => {
+					viewer.goTo(slideIndex);
+					if (elementId) editor.select(elementId);
+				}}
+				onfrombeginning={() => {
+					viewer.goTo(0);
+					onFullscreenToggle();
+				}}
+				onfromcurrent={onFullscreenToggle}
 				{exportUi}
 				theme={effectiveTheme}
 				onsettheme={onSetTheme}
+				onentermasterview={() => editor.masterOps.enter()}
 			/>
 		{:else}
 			<ViewerToolbar
@@ -379,7 +428,15 @@
 		statusMessage={exportUi.status}
 		oncancel={() => exportUi.cancel()}
 	/>
-	<ViewerBody
+	{#if editor.masterViewTarget}
+		<MasterViewBody
+			{editor}
+			{controller}
+			canvasSize={loader.canvasSize}
+			mediaDataUrls={loader.mediaDataUrls}
+			onstageholder={(el) => { stageHolderEl = el ?? undefined; }}
+		/>
+	{:else}<ViewerBody
 		{t}
 		{editor}
 		{chromeVisible}
@@ -412,7 +469,75 @@
 		onNotesCommit={editable || onnotesupdate ? onNotesCommit : undefined}
 		{onNotesToggle}
 		collabCursors={collab.cursors}
-	/>
+		contextMenu={stageContextMenu}
+		onContextMenuClose={() => { stageContextMenu = null; }}
+		onmoveSlide={(fromIndex, toIndex) => {
+			const target = editor.slidesOps.moveSlide(fromIndex, toIndex);
+			if (target !== null) viewer.goTo(target);
+		}}
+	/>{/if}
+	{#if viewer.isFullscreen}
+		<PresentationTouchControls
+			current={viewer.current}
+			total={viewer.slideCount}
+			onprev={() => viewer.prev()}
+			onnext={() => presentation.advance()}
+			onexit={onFullscreenToggle}
+		/>
+	{/if}
+	{#if editingActive && displaySlides.length > 0}
+		<MobileActionSheets
+			{editor}
+			slides={displaySlides}
+			canvasSize={loader.canvasSize}
+			mediaDataUrls={loader.mediaDataUrls}
+			current={viewer.current}
+			onselect={(index) => viewer.goTo(index)}
+			onprev={() => viewer.prev()}
+			onnext={() => viewer.next()}
+			onnotes={onNotesToggle}
+			onpresent={onFullscreenToggle}
+			onzoomin={() => viewer.zoomIn(effectivePercent)}
+			onzoomout={() => viewer.zoomOut(effectivePercent)}
+		/>
+	{/if}
+	{#if showToolbar && chromeVisible}
+		<StatusBar
+			current={viewer.current}
+			total={viewer.slideCount}
+			zoomPercent={effectivePercent}
+			isDirty={editor.dirty}
+			autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
+			showNotes={showNotes && loader.slides.length > 0}
+			{notesExpanded}
+			isFullscreen={viewer.isFullscreen}
+			onprev={() => viewer.prev()}
+			onnext={() => viewer.next()}
+			onzoomin={() => viewer.zoomIn(effectivePercent)}
+			onzoomout={() => viewer.zoomOut(effectivePercent)}
+			onzoomfit={() => viewer.zoomToFit()}
+			onfullscreen={onFullscreenToggle}
+			onnotestoggle={onNotesToggle}
+			onshare={() => dialogs.openShare()}
+			onbroadcast={() => dialogs.openBroadcast()}
+			collabActive={collab.active}
+		/>
+		<MobileChrome
+			current={viewer.current}
+			total={viewer.slideCount}
+			zoomPercent={effectivePercent}
+			showNotes={showNotes && loader.slides.length > 0}
+			{notesExpanded}
+			isFullscreen={viewer.isFullscreen}
+			onprev={() => viewer.prev()}
+			onnext={() => viewer.next()}
+			onzoomin={() => viewer.zoomIn(effectivePercent)}
+			onzoomout={() => viewer.zoomOut(effectivePercent)}
+			onzoomfit={() => viewer.zoomToFit()}
+			onfullscreen={onFullscreenToggle}
+			onnotestoggle={onNotesToggle}
+		/>
+	{/if}
 	<CollaborationChrome
 		{collab}
 		{dialogs}
@@ -438,5 +563,20 @@
 
 	.pptx-svelte-fullscreen {
 		background: #000;
+	}
+
+	@media (max-width: 720px) {
+		:global(.pptx-svelte-titlebar),
+		:global(.pptx-svelte-ribbon),
+		:global(.pptx-svelte-toolbar),
+		:global(.pptx-svelte-statusbar),
+		:global(.pptx-svelte-thumbs),
+		:global(.pptx-svelte-inspector) {
+			display: none !important;
+		}
+
+		:global(.pptx-svelte-viewport) {
+			padding-bottom: 64px;
+		}
 	}
 </style>

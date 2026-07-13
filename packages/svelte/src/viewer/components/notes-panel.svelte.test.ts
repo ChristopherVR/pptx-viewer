@@ -40,7 +40,16 @@ function mountPanel(initial: NotesPanelProps): MountResult {
 		target.remove();
 	};
 	const getTextarea = (): HTMLTextAreaElement => {
-		const el = target.querySelector<HTMLTextAreaElement>('.pptx-svelte-notes-textarea');
+		let el = target.querySelector<HTMLTextAreaElement>('.pptx-svelte-notes-textarea');
+		// The editable desktop surface starts in rich mode. These legacy plain
+		// commit tests deliberately exercise the Plain toggle path.
+		if (!el) {
+			target
+				.querySelector<HTMLButtonElement>('.pptx-svelte-notes-toolbar button:last-child')
+				?.click();
+			flushSync();
+			el = target.querySelector<HTMLTextAreaElement>('.pptx-svelte-notes-textarea');
+		}
 		if (!el) {
 			throw new Error('textarea not found');
 		}

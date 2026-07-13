@@ -1,4 +1,4 @@
-import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from './editor-state.svelte';
@@ -28,7 +28,10 @@ function slide(id: string, elements: PptxElement[], notes = ''): PptxSlide {
 	return { id, rId: `rId-${id}`, slideNumber: 1, elements, notes };
 }
 
-function make(current = 0, save = vi.fn(async () => new Uint8Array([1, 2, 3]))) {
+function make(
+	current = 0,
+	save = vi.fn(async (_slides: PptxSlide[]) => new Uint8Array([1, 2, 3])),
+) {
 	const onChange = vi.fn();
 	const handler = { save } as unknown as PptxHandler;
 	const editor = new EditorState({
@@ -59,6 +62,25 @@ describe('editorState selection + geometry', () => {
 		expect(editor.selectedElement?.id).toBe('e2');
 	});
 
+	it('gates inherited template elements behind template editing mode', () => {
+		const { editor } = make();
+		editor.setSlides([slide('a', [shape('layout-title'), shape('e1')])]);
+
+		editor.select('layout-title');
+		expect(editor.selectedElementId).toBeNull();
+		expect(editor.slides[0].elements.map((element) => element.id)).toStrictEqual(['e1']);
+		expect(editor.templateElementsBySlideId.a.map((element) => element.id)).toStrictEqual([
+			'layout-title',
+		]);
+
+		editor.setTemplateEditing(true);
+		editor.select('layout-title');
+		expect(editor.selectedElementId).toBe('layout-title');
+
+		editor.setTemplateEditing(false);
+		expect(editor.selectedElementId).toBeNull();
+	});
+
 	it('patchGeometry updates position without recording history', () => {
 		const { editor } = make();
 		editor.setSlides([slide('a', [shape('e1')])]);
@@ -69,6 +91,64 @@ describe('editorState selection + geometry', () => {
 });
 
 describe('editorState history-tracked mutations', () => {
+	it('reopens an existing equation and updates its OMML in place', () => {
+		const { editor } = make();
+		const original = { 'm:oMath': { 'm:r': { 'm:t': 'x' } } };
+		const updated = { 'm:oMath': { 'm:r': { 'm:t': '42' } } };
+		editor.setSlides([
+			slide('a', [
+				shape('equation', { textSegments: [{ text: '[Equation]', equationXml: original }] }),
+			]),
+		]);
+		expect(editor.equationOps.open('equation')).toBeTruthy();
+		expect(editor.equationOps.omml).toStrictEqual(original);
+		editor.equationOps.apply(updated);
+		expect(editor.activeElements).toHaveLength(1);
+		expect(editor.activeElements[0].textSegments?.[0].equationXml).toStrictEqual(updated);
+		editor.undo();
+		expect(editor.activeElements[0].textSegments?.[0].equationXml).toStrictEqual(original);
+	});
+
+	it('applies Format Painter once and records the target style in history', () => {
+		const { editor } = make();
+		editor.setSlides([
+			slide('a', [
+				shape('source', { shapeStyle: { fillColor: '#ff0000' } }),
+				shape('target', { shapeStyle: { fillColor: '#0000ff' } }),
+			]),
+		]);
+		editor.select('source');
+		editor.formatPainter.toggle();
+		expect(editor.formatPainter.active).toBeTruthy();
+		expect(editor.formatPainter.applyTo('target')).toBeTruthy();
+		expect(editor.formatPainter.active).toBeFalsy();
+		expect(editor.selectedElement?.shapeStyle?.fillColor).toBe('#ff0000');
+		editor.undo();
+		expect(
+			editor.activeElements.find((element) => element.id === 'target')?.shapeStyle?.fillColor,
+		).toBe('#0000ff');
+	});
+
+	it('edits master layouts with history and includes masters when saving', async () => {
+		const { editor, save } = make();
+		const masters = [
+			{
+				path: 'ppt/slideMasters/slideMaster1.xml',
+				elements: [shape('master-title')],
+				layouts: [{ path: 'ppt/slideLayouts/slideLayout1.xml', elements: [shape('layout-title')] }],
+			},
+		] as unknown as PptxSlideMaster[];
+		editor.setSlides([slide('a', [])], masters);
+		editor.masterOps.enter(0, 0);
+		editor.select('layout-title');
+		editor.applyElementPatch('layout-title', { x: 88 });
+		expect(editor.slideMasters[0].layouts?.[0].elements?.[0].x).toBe(88);
+		editor.undo();
+		expect(editor.slideMasters[0].layouts?.[0].elements?.[0].x).toBe(10);
+		await editor.save();
+		expect(save.mock.calls[0]?.[1]).toMatchObject({ slideMasters: editor.slideMasters });
+	});
+
 	it('deleteSelected removes, marks dirty, fires onChange, and is undoable', () => {
 		const { editor, onChange } = make();
 		editor.setSlides([slide('a', [shape('e1'), shape('e2')])]);
@@ -237,5 +317,41 @@ describe('editorState save', () => {
 			getHandler: () => null,
 		});
 		await expect(editor.save()).rejects.toThrow('No presentation is loaded.');
+	});
+
+	it('persists inherited edits and restores them through history', async () => {
+		const { editor, save } = make();
+		editor.setSlides([slide('a', [shape('layout-title'), shape('e1')])]);
+		editor.setTemplateEditing(true);
+		editor.select('layout-title');
+		editor.patchSelected({ x: 42 });
+		expect(editor.templateElementsBySlideId.a[0].x).toBe(42);
+		expect(editor.slides[0].elements[0].id).toBe('e1');
+
+		await editor.save();
+		const saved = save.mock.calls.at(-1)?.[0] as PptxSlide[];
+		expect(saved[0].elements.map((element) => element.id)).toStrictEqual(['layout-title', 'e1']);
+		expect(saved[0].elements[0].x).toBe(42);
+
+		editor.undo();
+		expect(editor.templateElementsBySlideId.a[0].x).toBe(10);
+	});
+
+	it('routes template grouping and clipboard operations to the inherited layer', () => {
+		const { editor } = make();
+		editor.setSlides([
+			slide('a', [shape('layout-one'), shape('master-two', { x: 30 }), shape('e1')]),
+		]);
+		editor.setTemplateEditing(true);
+		editor.selection.setAll(['layout-one', 'master-two']);
+		editor.arrangeOps.groupSelected();
+		expect(editor.templateElementsBySlideId.a).toHaveLength(1);
+		expect(editor.templateElementsBySlideId.a[0].type).toBe('group');
+		expect(editor.slides[0].elements.map((element) => element.id)).toStrictEqual(['e1']);
+
+		editor.clipboardOps.copySelected();
+		const pastedId = editor.clipboardOps.pasteClipboard();
+		expect(pastedId).toMatch(/^(layout|master)-/);
+		expect(editor.templateElementsBySlideId.a).toHaveLength(2);
 	});
 });

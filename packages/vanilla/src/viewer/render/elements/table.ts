@@ -31,9 +31,8 @@ import type { ElementRenderer } from '../types';
  * `cellPatternFillCss`, diagonal cell borders as an SVG overlay, and rich
  * per-run cell text (`CellTextRun[]`) via `cellRunStyle`.
  *
- * Known simplification: the theme colour scheme / parsed table style map are
- * not threaded through `ElementRenderContext` yet, so band and header colours
- * use the shared hardcoded fallbacks (same as an unthemed Vue/React table).
+ * Theme colour scheme and parsed table style map values are consumed from the
+ * element render context, with shared hardcoded fallbacks when absent.
  */
 export const renderTableElement: ElementRenderer = (element, zIndex, context) => {
 	if (element.type !== 'table') {
@@ -75,7 +74,12 @@ export const renderTableElement: ElementRenderer = (element, zIndex, context) =>
 			if (cell.hMerge || cell.vMerge) {
 				return;
 			}
-			tr.appendChild(renderCell(doc, tableData, cell, rowIndex, cellIndex, rowCount, columnCount));
+			tr.appendChild(
+				renderCell(doc, tableData, cell, rowIndex, cellIndex, rowCount, columnCount, {
+					colorScheme: context.colorScheme,
+					tableStyleMap: context.tableStyleMap,
+				}),
+			);
 		});
 		tbody.appendChild(tr);
 	});
@@ -119,9 +123,12 @@ function renderCell(
 	cellIndex: number,
 	rowCount: number,
 	columnCount: number,
+	styleContext: Parameters<typeof getTableCellBandStyle>[5],
 ): HTMLTableCellElement {
 	const td = doc.createElement('td');
 	td.className = 'pptxv-table-cell';
+	td.dataset.rowIndex = String(rowIndex);
+	td.dataset.cellIndex = String(cellIndex);
 	if (cell.gridSpan && cell.gridSpan > 1) {
 		td.colSpan = cell.gridSpan;
 	}
@@ -130,9 +137,15 @@ function renderCell(
 	}
 
 	// Band/header emphasis is the lower-priority layer beneath the explicit
-	// cell style (mirrors the React/Vue layering). No theme context is wired
-	// into the vanilla render context yet, so the shared fallbacks apply.
-	const bandStyle = getTableCellBandStyle(tableData, rowIndex, cellIndex, rowCount, columnCount);
+	// cell style (mirrors the React/Vue layering).
+	const bandStyle = getTableCellBandStyle(
+		tableData,
+		rowIndex,
+		cellIndex,
+		rowCount,
+		columnCount,
+		styleContext,
+	);
 	const style: TableCellCss = { ...bandStyle, ...cellStyleToCss(cell.style) };
 	// Default body-cell text to the dark slide-text colour when nothing (cell
 	// style, band/header emphasis, or per-run colour) sets one, so cells stay

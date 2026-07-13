@@ -6,7 +6,7 @@ import { createElementRendererRegistry } from '../registry';
 import type { ElementRenderContext } from '../types';
 import { renderInkElement } from './ink';
 
-function makeContext(): ElementRenderContext {
+function makeContext(presenting = false): ElementRenderContext {
 	const registry = createElementRendererRegistry();
 	const context: ElementRenderContext = {
 		document,
@@ -16,7 +16,7 @@ function makeContext(): ElementRenderContext {
 		mediaDataUrls: new Map<string, string>(),
 		t: createTranslator(),
 		smartArt3D: false,
-		presenting: false,
+		presenting,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),
 	};
@@ -102,6 +102,56 @@ describe('renderInkElement', () => {
 		// One circle per extracted path point: (0,0), (10,10), (20,20).
 		expect(circles?.length).toBe(3);
 		expect(circles?.[0].getAttribute('fill')).toBe('#123456');
+	});
+
+	it('replays constant-width strokes sequentially while presenting', () => {
+		const node = renderInkElement(
+			inkElement({ inkPaths: ['M 0 0 L 30 40', 'M 5 5 L 15 5'] }),
+			0,
+			makeContext(true),
+		) as HTMLElement;
+		const svg = node.querySelector('svg');
+		expect(svg?.querySelector('style')?.textContent).toContain('@keyframes pptx-ink-replay');
+		const paths = node.querySelectorAll<SVGPathElement>('path');
+		expect(paths).toHaveLength(2);
+		expect(paths[0].getAttribute('stroke-dasharray')).toBe('50');
+		expect(paths[0].getAttribute('stroke-dashoffset')).toBe('50');
+		expect(paths[0].style.animation).toContain('0ms forwards');
+		expect(paths[1].style.animation).toContain('800ms forwards');
+		expect(paths[0].style.getPropertyValue('--ink-path-length')).toBe('50');
+	});
+
+	it('does not replay strokes outside presentation mode', () => {
+		const node = renderInkElement(
+			inkElement({ inkPaths: ['M 0 0 L 30 40'] }),
+			0,
+			makeContext(),
+		) as HTMLElement;
+		expect(node.querySelector('style')).toBeNull();
+		expect(node.querySelector('path')?.getAttribute('stroke-dasharray')).toBeNull();
+	});
+
+	it('uses multiply blending for highlighter ink', () => {
+		const node = renderInkElement(
+			inkElement({ inkPaths: ['M 0 0 L 10 10'], inkTool: 'highlighter' }),
+			0,
+			makeContext(),
+		) as HTMLElement;
+		expect((node.querySelector('svg') as SVGSVGElement).style.mixBlendMode).toBe('multiply');
+	});
+
+	it('keeps pressure-circle strokes static during presentation replay', () => {
+		const node = renderInkElement(
+			inkElement({
+				inkPaths: ['M 0 0 L 10 10 L 20 20'],
+				inkWidths: [3],
+				inkPointPressures: [[0.1, 0.9, 0.4]],
+			}),
+			0,
+			makeContext(true),
+		) as HTMLElement;
+		expect(node.querySelectorAll('circle')).toHaveLength(3);
+		expect(node.querySelector('path')).toBeNull();
 	});
 
 	it('treats a varying oversized inkWidths array as legacy per-point pressure data', () => {

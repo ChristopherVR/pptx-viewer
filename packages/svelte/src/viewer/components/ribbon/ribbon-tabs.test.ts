@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_RIBBON_TAB, isRibbonTab, RIBBON_TABS } from './ribbon-tabs';
 
 describe('ribbon-tabs', () => {
-	it('lists File / Home / Insert / Draw / Design / Transitions / Animations / View in that order', () => {
+	it('lists the supported File through View tabs in display order', () => {
 		expect(RIBBON_TABS.map((tab) => tab.id)).toStrictEqual([
 			'file',
 			'home',
@@ -12,6 +12,8 @@ describe('ribbon-tabs', () => {
 			'design',
 			'transitions',
 			'animations',
+			'slideShow',
+			'review',
 			'view',
 		]);
 	});
@@ -32,6 +34,7 @@ describe('ribbon-tabs', () => {
 		expect(isRibbonTab('design')).toBeTruthy();
 		expect(isRibbonTab('transitions')).toBeTruthy();
 		expect(isRibbonTab('animations')).toBeTruthy();
-		expect(isRibbonTab('review')).toBeFalsy();
+		expect(isRibbonTab('review')).toBeTruthy();
+		expect(isRibbonTab('developer')).toBeFalsy();
 	});
 });

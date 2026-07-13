@@ -19,7 +19,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
  * The component exposes a `PowerPointViewerHandle` via `forwardRef` so host
  * applications can call `getContent()` to retrieve the current file bytes.
  */
-import { openPptxFile } from 'pptx-viewer-shared';
+import { buildUserFontFaceStyles, openPptxFile } from 'pptx-viewer-shared';
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 
 import { ViewerThemeProvider, useThemeStyle } from '../theme';
@@ -84,6 +84,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 	function PowerPointViewer(props, ref) {
 		const {
 			content: incomingContent,
+			fonts = [],
 			filePath,
 			fileName,
 			canEdit = false,
@@ -103,6 +104,18 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			shareDefaults,
 			smartArt3D = false,
 		} = props;
+
+		useEffect(() => {
+			const css = buildUserFontFaceStyles(fonts);
+			if (!css) {
+				return;
+			}
+			const style = document.createElement('style');
+			style.dataset.pptxUserFonts = 'true';
+			style.textContent = css;
+			document.head.appendChild(style);
+			return () => style.remove();
+		}, [fonts]);
 
 		const themeStyle = useThemeStyle(theme);
 

@@ -43,10 +43,11 @@
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
-		}
+		},
+		"./styles.css": "./dist/styles.css"
 	},
 	"scripts": {
-		"build": "tsup",
+		"build": "tsup && bun scripts/build-styles.ts",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",
 		"test": "vitest run",
@@ -54,8 +55,8 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"dompurify": "^3.4.11",
-		"html2canvas-pro": "^2.0.4",
+		"dompurify": "^3.4.12",
+		"html2canvas-pro": "^2.2.3",
 		"jspdf": "^4.2.1"
 	},
 	"devDependencies": {

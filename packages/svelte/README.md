@@ -23,13 +23,16 @@ The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www
   charts, SmartArt (2D and opt-in 3D), media (video/audio), ink, OLE embedded
   objects, and 3D models - all powered by the same shared engine as the other
   bindings.
-- **Editing**: select, drag, resize, rotate; inline text editing; undo/redo;
-  save the edited deck back to `.pptx`.
+- **Editing**: insert and format elements; multi-select, group, arrange, drag,
+  resize, and rotate; rich inline text and notes editing; inherited template
+  element editing; undo/redo; save the edited deck back to `.pptx`.
 - **Presentation mode**: fullscreen presenting via the real Fullscreen API,
   with media autoplay.
-- **Export**: rasterise slides to PNG or PDF straight from the browser.
-- **Slide navigation**: thumbnail sidebar, toolbar, keyboard navigation, and
-  a speaker-notes panel.
+- **Export**: PNG, PDF, GIF, video, print, notes pages, and handouts.
+- **Slide navigation**: responsive desktop/mobile chrome, thumbnail sidebar,
+  toolbar, keyboard navigation, and a rich speaker-notes panel.
+- **Review and accessibility**: comments and presentation-wide accessibility
+  checks from the Review ribbon.
 - **Themeable**: the shared `ViewerTheme` system (`--pptx-*` CSS custom
   properties), including the vermilion presets.
 - **i18n**: English built in; register more locales via
@@ -82,7 +85,7 @@ the SDK directly.
 | `showThumbnails` | `boolean`                       | `true`  | Thumbnail sidebar.                                |
 | `showToolbar`    | `boolean`                       | `true`  | Navigation/zoom/fullscreen toolbar.               |
 | `showNotes`      | `boolean`                       | `true`  | Speaker-notes panel and its toolbar toggle.       |
-| `editable`       | `boolean`                       | `false` | In-place editing (select/drag/resize/text/undo).  |
+| `editable`       | `boolean`                       | `false` | Ribbon editing, insertion, arrange, and save.     |
 | `smartArt3D`     | `boolean`                       | `false` | Opt-in Three.js 3D SmartArt renderer.             |
 | `onload`         | `(d: ViewerLoadDetail) => void` | -       | Fired after a presentation loads.                 |
 | `onerror`        | `(message: string) => void`     | -       | Fired when loading fails.                         |

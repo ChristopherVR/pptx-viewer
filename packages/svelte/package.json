@@ -63,11 +63,11 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"html2canvas-pro": "^2.0.4",
+		"html2canvas-pro": "^2.2.3",
 		"jspdf": "^4.2.1"
 	},
 	"devDependencies": {
-		"@microsoft/api-extractor": "^7.53.1",
+		"@microsoft/api-extractor": "^7.58.9",
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
 		"happy-dom": "^20.10.6",
 		"pptx-viewer-core": "workspace:*",

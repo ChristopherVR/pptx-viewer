@@ -88,10 +88,15 @@ export function groupSelectedOnSlide(
 	slides: readonly PptxSlide[],
 	slideIndex: number,
 	ids: readonly string[],
+	intoTemplate = false,
 ): { slides: PptxSlide[]; groupId: string } | null {
 	let groupId: string | null = null;
 	const next = mapSlideElements(slides, slideIndex, (elements) => {
-		const result = groupElements(elements, ids, generateElementId());
+		const result = groupElements(
+			elements,
+			ids,
+			intoTemplate ? makeCloneId(true, ids[0] ?? 'group') : generateElementId(),
+		);
 		groupId = result.groupId;
 		return result.elements;
 	});
@@ -103,12 +108,13 @@ export function ungroupOnSlide(
 	slides: readonly PptxSlide[],
 	slideIndex: number,
 	groupId: string,
+	fromTemplate = false,
 ): { slides: PptxSlide[]; childIds: string[] } | null {
 	const group = slides[slideIndex]?.elements.find((el) => el.id === groupId);
 	if (!group || group.type !== 'group') {
 		return null;
 	}
-	const childIds = group.children.map((child: PptxElement) => makeCloneId(false, child.id));
+	const childIds = group.children.map((child: PptxElement) => makeCloneId(fromTemplate, child.id));
 	let resultIds: string[] = [];
 	const next = mapSlideElements(slides, slideIndex, (elements) => {
 		const result = ungroupElements(elements, groupId, childIds);
