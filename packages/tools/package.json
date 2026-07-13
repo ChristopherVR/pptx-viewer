@@ -70,7 +70,7 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.29.0",
-		"fast-xml-parser": "^5.9.2",
+		"fast-xml-parser": "^5.10.0",
 		"jszip": "^3.10.1",
 		"pptx-viewer-core": "^1.1.0",
 		"zod": "^4.4.3"
