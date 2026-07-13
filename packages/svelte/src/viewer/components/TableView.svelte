@@ -10,12 +10,14 @@
 	 */
 	import { buildTableRows, columnWidthStyles } from '../render';
 	import { getContainerStyle, styleToString } from '../style';
+	import { useTableStyleContext } from '../state/render-context';
 	import type { ElementRendererProps } from './props';
 
 	const { element, zIndex }: ElementRendererProps = $props();
 
 	const tableData = $derived(element.type === 'table' ? element.tableData : undefined);
-	const rows = $derived(tableData ? buildTableRows(tableData) : []);
+	const tableStyleContext = $derived(useTableStyleContext());
+	const rows = $derived(tableData ? buildTableRows(tableData, tableStyleContext) : []);
 	const colWidths = $derived(tableData ? columnWidthStyles(tableData) : []);
 	const containerStyle = $derived(
 		styleToString({ ...getContainerStyle(element, zIndex), overflow: 'hidden' }),

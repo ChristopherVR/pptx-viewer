@@ -119,7 +119,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	setActiveTab(activeTab);
 
 	let latestSelected: PptxElement | undefined;
-	let latestExtra: RibbonSelectionState = { hasClipboard: false, slideCount: 0 };
+	let latestExtra: RibbonSelectionState = { hasClipboard: false, slideCount: 0, selectedCount: 0 };
 
 	const syncHome = (): void => {
 		homeTab.update({
@@ -127,6 +127,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 			selectedElement: latestSelected,
 			hasClipboard: latestExtra.hasClipboard,
 			slideCount: latestExtra.slideCount,
+			selectedCount: latestExtra.selectedCount ?? 0,
 		});
 	};
 	const syncAnimations = (): void => {

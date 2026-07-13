@@ -27,6 +27,7 @@ export interface HomeTabSyncState {
 	selectedElement: PptxElement | undefined;
 	hasClipboard: boolean;
 	slideCount: number;
+	selectedCount: number;
 }
 
 export interface HomeTab {
@@ -95,7 +96,7 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 
 	return {
 		el,
-		update({ editable, selectedElement, hasClipboard, slideCount }) {
+		update({ editable, selectedElement, hasClipboard, slideCount, selectedCount }) {
 			const canFormat = canFormatText(selectedElement);
 			const text = readTextFormatState(selectedElement);
 			clipboard.update({ hasSelection: selectedElement !== undefined, hasClipboard, editable });
@@ -106,6 +107,7 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 				editable,
 				hasSelection: selectedElement !== undefined,
 				isGroup: selectedElement?.type === 'group',
+				selectedCount,
 			});
 		},
 	};

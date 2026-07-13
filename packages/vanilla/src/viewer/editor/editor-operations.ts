@@ -1,17 +1,15 @@
 import type { PptxElement, PptxHandler, PptxSlide, TextSegment } from 'pptx-viewer-core';
-import { EditorHistory } from 'pptx-viewer-shared';
+import { duplicateElement } from 'pptx-viewer-core';
+import { buildSaveSlides, cloneTemplateElementsBySlideId, EditorHistory } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
-import type { ElementBoxPatch } from './editor-mutations';
 import {
-	cloneSlides,
-	duplicateElementOnSlide,
-	findSlideElement,
-	patchElementGeometry,
-	removeElement,
-	updateElement,
-	updateSlideNotes,
-} from './editor-mutations';
+	findActiveElement,
+	getActiveElements,
+	replaceActiveElements,
+} from './editor-active-elements';
+import type { ElementBoxPatch } from './editor-mutations';
+import { cloneSlides, updateSlideNotes } from './editor-mutations';
 import { remapInlineText } from './inline-text-editor';
 
 /**
@@ -35,7 +33,7 @@ export interface EditorOpsDeps {
 export interface EditorOps {
 	/** The selected element resolved against (optionally provided) state. */
 	selectedElement(state?: ViewerState): PptxElement | undefined;
-	select(id: string | null): void;
+	select(id: string | null, ids?: string[]): void;
 	/** Snapshot the current slides onto the undo stack (before a mutation). */
 	pushHistory(): void;
 	/** Mark dirty + notify host after a committed mutation. */
@@ -56,24 +54,34 @@ export interface EditorOps {
 	save(): Promise<Uint8Array>;
 }
 
+interface EditorSnapshot {
+	slides: PptxSlide[];
+	templateElementsBySlideId: Record<string, PptxElement[]>;
+}
+
 const MAX_HISTORY_ENTRIES = 100;
 /** Consecutive arrow-key nudges within this window share one history entry. */
 const NUDGE_COALESCE_MS = 800;
 
 export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 	const { store } = deps;
-	const history = new EditorHistory<PptxSlide[]>({ maxDepth: MAX_HISTORY_ENTRIES });
+	const history = new EditorHistory<EditorSnapshot>({ maxDepth: MAX_HISTORY_ENTRIES });
 	let lastNudgeAt = 0;
 
 	const selectedElement = (state: ViewerState = store.get()): PptxElement | undefined =>
-		state.selectedElementId
-			? findSlideElement(state.slides, state.currentSlide, state.selectedElementId)
-			: undefined;
+		state.selectedElementId ? findActiveElement(state, state.selectedElementId) : undefined;
 
-	const select = (id: string | null): void => store.set({ selectedElementId: id });
+	const select = (id: string | null, ids = id ? [id] : []): void =>
+		store.set({ selectedElementId: id, selectedElementIds: ids });
+	const snapshot = (): EditorSnapshot => ({
+		slides: cloneSlides(store.get().slides),
+		templateElementsBySlideId: cloneTemplateElementsBySlideId(
+			store.get().templateElementsBySlideId,
+		),
+	});
 
 	const pushHistory = (): void => {
-		history.record(cloneSlides(store.get().slides), '');
+		history.record(snapshot(), '');
 		lastNudgeAt = 0;
 		deps.onHistoryChange();
 	};
@@ -86,14 +94,21 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 
 	const patchGeometry = (id: string, box: ElementBoxPatch): void => {
 		const state = store.get();
-		store.set({ slides: patchElementGeometry(state.slides, state.currentSlide, id, box) });
+		const elements = getActiveElements(state).map((element) =>
+			element.id === id ? ({ ...element, ...box } as PptxElement) : element,
+		);
+		store.set(replaceActiveElements(state, elements));
 	};
 
-	const restore = (snapshot: PptxSlide[] | undefined): void => {
-		if (!snapshot) {
+	const restore = (next: EditorSnapshot | undefined): void => {
+		if (!next) {
 			return;
 		}
-		store.set({ slides: cloneSlides(snapshot), interactionActive: false });
+		store.set({
+			slides: cloneSlides(next.slides),
+			templateElementsBySlideId: cloneTemplateElementsBySlideId(next.templateElementsBySlideId),
+			interactionActive: false,
+		});
 		commitChange();
 	};
 
@@ -112,8 +127,14 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			}
 			pushHistory();
 			store.set({
-				slides: removeElement(state.slides, state.currentSlide, id),
+				...replaceActiveElements(
+					state,
+					getActiveElements(state).filter(
+						(element) => !state.selectedElementIds.includes(element.id),
+					),
+				),
 				selectedElementId: null,
+				selectedElementIds: [],
 			});
 			commitChange();
 		},
@@ -124,14 +145,21 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			if (!state.editable || !id) {
 				return null;
 			}
-			const result = duplicateElementOnSlide(state.slides, state.currentSlide, id);
-			if (!result) {
+			const source = selectedElement(state);
+			if (!source) {
 				return null;
 			}
+			const copy = duplicateElement(source);
+			copy.x += 20;
+			copy.y += 20;
 			pushHistory();
-			store.set({ slides: result.slides, selectedElementId: result.newId });
+			store.set({
+				...replaceActiveElements(state, [...getActiveElements(state), copy]),
+				selectedElementId: copy.id,
+				selectedElementIds: [copy.id],
+			});
 			commitChange();
-			return result.newId;
+			return copy.id;
 		},
 
 		nudgeSelected(dx, dy) {
@@ -146,28 +174,36 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 				pushHistory();
 			}
 			lastNudgeAt = now;
-			store.set({
-				slides: patchElementGeometry(state.slides, state.currentSlide, id, {
-					x: el.x + dx,
-					y: el.y + dy,
-					width: el.width,
-					height: el.height,
-					rotation: el.rotation ?? 0,
-				}),
-			});
+			store.set(
+				replaceActiveElements(
+					state,
+					getActiveElements(state).map((element) =>
+						element.id === id
+							? ({ ...element, x: el.x + dx, y: el.y + dy } as PptxElement)
+							: element,
+					),
+				),
+			);
 			commitChange();
 		},
 
 		commitInlineText(id, text) {
 			const state = store.get();
-			const target = findSlideElement(state.slides, state.currentSlide, id);
+			const target = findActiveElement(state, id);
 			if (!target) {
 				return;
 			}
 			pushHistory();
-			store.set({
-				slides: updateElement(state.slides, state.currentSlide, id, remapInlineText(target, text)),
-			});
+			store.set(
+				replaceActiveElements(
+					state,
+					getActiveElements(state).map((element) =>
+						element.id === id
+							? ({ ...element, ...remapInlineText(target, text) } as PptxElement)
+							: element,
+					),
+				),
+			);
 			commitChange();
 		},
 
@@ -185,10 +221,10 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		},
 
 		undo() {
-			restore(history.undo(cloneSlides(store.get().slides))?.snapshot);
+			restore(history.undo(snapshot())?.snapshot);
 		},
 		redo() {
-			restore(history.redo(cloneSlides(store.get().slides))?.snapshot);
+			restore(history.redo(snapshot())?.snapshot);
 		},
 		canUndo: () => history.canUndo,
 		canRedo: () => history.canRedo,
@@ -203,7 +239,10 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			if (!handler) {
 				throw new Error('No presentation is loaded.');
 			}
-			const bytes = await handler.save(store.get().slides);
+			const state = store.get();
+			const bytes = await handler.save(
+				buildSaveSlides(state.slides, state.templateElementsBySlideId),
+			);
 			store.set({ dirty: false });
 			return bytes;
 		},

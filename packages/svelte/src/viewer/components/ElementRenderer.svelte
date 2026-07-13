@@ -6,7 +6,8 @@
 	 * smartArt, media, ink, ole, contentPart, zoom, and model3d. Only
 	 * `unknown` still falls through to the typed placeholder.
 	 */
-	import { buildParagraphs } from 'pptx-viewer-shared';
+	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+	import { build3DExtrusionData, buildParagraphs, hasTextWarp } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, styleToString } from '../style';
 	import { useSmartArt3D } from '../state/smart-art-3d-context';
@@ -15,6 +16,9 @@
 	import ElementRenderer from './ElementRenderer.svelte';
 	import ChartView from './ChartView.svelte';
 	import ConnectorView from './ConnectorView.svelte';
+	import DuotoneFilterDefs from './DuotoneFilterDefs.svelte';
+	import EquationView from './EquationView.svelte';
+	import Extrusion3D from './Extrusion3D.svelte';
 	import ContentPartView from './ContentPartView.svelte';
 	import ImageBox from './ImageBox.svelte';
 	import InkView from './InkView.svelte';
@@ -27,6 +31,7 @@
 	import TableView from './TableView.svelte';
 	import TextBlock from './TextBlock.svelte';
 	import ZoomView from './ZoomView.svelte';
+	import WordArtText from './WordArtText.svelte';
 	import type { ElementRendererProps } from './props';
 
 	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false }: ElementRendererProps =
@@ -43,6 +48,20 @@
 	const hasText = $derived(
 		paragraphs.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),
 	);
+	const hasEquation = $derived(
+		hasTextProperties(element) && (element.textSegments ?? []).some((segment) => segment.equationXml),
+	);
+	const warpedText = $derived(hasTextWarp(element));
+	const extrusion = $derived.by(() => {
+		const style = hasShapeProperties(element) ? element.shapeStyle : undefined;
+		return build3DExtrusionData(
+			style?.shape3d,
+			style?.scene3d,
+			style?.fillColor,
+			element.width,
+			element.height,
+		);
+	});
 </script>
 
 {#if element.type === 'group'}
@@ -72,7 +91,7 @@
 {:else if element.type === 'media'}
 	<MediaBox {element} {mediaDataUrls} {zIndex} {presenting} />
 {:else if element.type === 'ink'}
-	<InkView {element} {mediaDataUrls} {zIndex} />
+	<InkView {element} {mediaDataUrls} {zIndex} {presenting} />
 {:else if element.type === 'ole'}
 	<OleView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'contentPart'}
@@ -81,6 +100,8 @@
 	<ZoomView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'model3d'}
 	<Model3dView {element} {mediaDataUrls} {zIndex} />
+{:else if hasEquation}
+	<EquationView {element} {mediaDataUrls} {zIndex} />
 {:else if isShapeLike}
 	<!-- Text / shape: shared fill/stroke/effects/geometry + rich text block. -->
 	<div
@@ -89,7 +110,11 @@
 		data-element-id={element.id}
 		data-pptx-element={interactive ? 'true' : undefined}
 	>
-		{#if hasText}
+		<DuotoneFilterDefs {element} {mediaDataUrls} {zIndex} />
+		{#if extrusion.hasExtrusion}<Extrusion3D data={extrusion} />{/if}
+		{#if warpedText}
+			<WordArtText {element} {mediaDataUrls} {zIndex} />
+		{:else if hasText}
 			<TextBlock {paragraphs} textStyle={styleToString(getTextBlockStyle(element))} />
 		{/if}
 	</div>

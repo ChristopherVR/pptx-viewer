@@ -63,7 +63,7 @@
 <style>
 	.pptx-svelte-mobile-chrome { display: none; }
 	@media (max-width: 720px) {
-		.pptx-svelte-mobile-chrome { position: absolute; z-index: 30; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); left: 8px; display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 4px 6px; border: 1px solid var(--pptx-border, #33334d); border-radius: 12px; background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 92%, #000); box-shadow: 0 8px 24px rgb(0 0 0 / 35%); color: var(--pptx-card-foreground, #e2e8f0); font: 12px system-ui, sans-serif; }
+		.pptx-svelte-mobile-chrome { position: absolute; z-index: 30; right: 8px; bottom: calc(72px + env(safe-area-inset-bottom)); left: 8px; display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 4px 6px; border: 1px solid var(--pptx-border, #33334d); border-radius: 12px; background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 92%, #000); box-shadow: 0 8px 24px rgb(0 0 0 / 35%); color: var(--pptx-card-foreground, #e2e8f0); font: 12px system-ui, sans-serif; }
 		.pptx-svelte-mobile-chrome-group { display: flex; align-items: center; gap: 2px; }
 		.pptx-svelte-mobile-chrome button { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; padding: 0 7px; border: 0; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; }
 		.pptx-svelte-mobile-chrome button:hover:not(:disabled), .pptx-svelte-mobile-chrome button:focus-visible { background: var(--pptx-accent, #33334d); outline: none; }

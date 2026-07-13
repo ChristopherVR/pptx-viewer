@@ -16,7 +16,9 @@
 	import CollaborationChrome from './collab/components/CollaborationChrome.svelte';
 	import { useCollaborationPresenceEffects } from './collab/collaboration-presence-effects.svelte';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
+	import MobileActionSheets from './components/MobileActionSheets.svelte';
 	import MobileChrome from './components/MobileChrome.svelte';
+	import PresentationTouchControls from './components/PresentationTouchControls.svelte';
 	import StatusBar from './components/StatusBar.svelte';
 	import TitleBar from './components/TitleBar.svelte';
 	import Ribbon from './components/ribbon/Ribbon.svelte';
@@ -33,6 +35,7 @@
 	import { PresentationController, usePresentationEffects } from './presentation';
 	import { PresentationLoader } from './state/presentation-loader.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
+	import { provideRenderContext } from './state/render-context';
 	import { ViewerState } from './state/viewer-state.svelte';
 	import { fitScale } from './state/navigation';
 	import { useViewerEffects } from './state/viewer-effects.svelte';
@@ -73,6 +76,10 @@
 	provideSmartArt3D(() => smartArt3D);
 
 	const loader = new PresentationLoader();
+	provideRenderContext({
+		getColorScheme: () => loader.colorScheme,
+		getTableStyleMap: () => loader.tableStyleMap,
+	});
 	const viewer = new ViewerState();
 
 	// ── Editing ──────────────────────────────────────────────────────────
@@ -120,7 +127,7 @@
 		return source instanceof Uint8Array ? source : new Uint8Array(source);
 	}
 	const collab = new CollaborationController({
-		getSlides: () => editor.slides,
+		getSlides: () => editor.renderedSlides,
 		applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
 		getConfig: () => collaboration,
 		getSourceBytes: sourceBytes,
@@ -156,7 +163,7 @@
 		getEnabled: () => autosaveActive,
 		getIntervalMs: () => autosaveIntervalMs,
 		getFilePath: () => filePath,
-		getSlides: () => editor.slides,
+		getSlides: () => editor.renderedSlides,
 		getHandler: () => loader.handler,
 		getLoadCount: () => loader.loadCount,
 		onSaved: (bytes) => onautosave?.(bytes),
@@ -204,7 +211,7 @@
 	const effectivePercent = $derived(Math.max(1, Math.round(scale * 100)));
 	// Render the editable slide array (single source of truth), so committed
 	// edits flow to the stage, thumbnails, and notes panel.
-	const displaySlides = $derived(editor.slides);
+	const displaySlides = $derived(editor.renderedSlides);
 	const activeSlide = $derived(displaySlides[viewer.current]);
 	const chromeVisible = $derived(!viewer.isFullscreen);
 	const editingActive = $derived(editable && !viewer.isFullscreen && !collab.readOnly);
@@ -229,7 +236,7 @@
 	// fullscreen flag + current slide. All the preset/transition CSS maths lives
 	// in `pptx-viewer-shared`.
 	const presentation = new PresentationController({
-		getSlides: () => editor.slides,
+		getSlides: () => editor.renderedSlides,
 		getCurrentIndex: () => viewer.current,
 		navigate: (index) => viewer.goTo(index),
 	});
@@ -259,7 +266,7 @@
 	// first used; see `export/export-wiring.svelte.ts`.
 	const exportWiring = createExportWiring({
 		getContainer: () => rootEl,
-		getSlides: () => editor.slides,
+		getSlides: () => editor.renderedSlides,
 		getCanvasSize: () => loader.canvasSize,
 		getMediaDataUrls: () => loader.mediaDataUrls,
 		getCurrent: () => viewer.current,
@@ -458,6 +465,31 @@
 			if (target !== null) viewer.goTo(target);
 		}}
 	/>
+	{#if viewer.isFullscreen}
+		<PresentationTouchControls
+			current={viewer.current}
+			total={viewer.slideCount}
+			onprev={() => viewer.prev()}
+			onnext={() => presentation.advance()}
+			onexit={onFullscreenToggle}
+		/>
+	{/if}
+	{#if editingActive && displaySlides.length > 0}
+		<MobileActionSheets
+			{editor}
+			slides={displaySlides}
+			canvasSize={loader.canvasSize}
+			mediaDataUrls={loader.mediaDataUrls}
+			current={viewer.current}
+			onselect={(index) => viewer.goTo(index)}
+			onprev={() => viewer.prev()}
+			onnext={() => viewer.next()}
+			onnotes={onNotesToggle}
+			onpresent={onFullscreenToggle}
+			onzoomin={() => viewer.zoomIn(effectivePercent)}
+			onzoomout={() => viewer.zoomOut(effectivePercent)}
+		/>
+	{/if}
 	{#if showToolbar && chromeVisible}
 		<StatusBar
 			current={viewer.current}

@@ -1,3 +1,4 @@
+import type { PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize, ViewerTheme } from 'pptx-viewer-shared';
 
 import type { FindReplaceState } from '../../editor/editor-find-replace.svelte';
@@ -45,6 +46,10 @@ export interface RibbonProps {
 	/** Slide Show tab actions: enter presentation from slide 0 or the current slide. */
 	onfrombeginning: () => void;
 	onfromcurrent: () => void;
+
+	/** Review tab: presentation-wide accessibility audit and issue navigation. */
+	slides: readonly PptxSlide[];
+	onnavigatetoissue: (slideIndex: number, elementId?: string) => void;
 
 	/** View tab: zoom / fullscreen / notes toggle. */
 	zoomPercent: number;

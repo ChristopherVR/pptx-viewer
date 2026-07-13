@@ -6,10 +6,14 @@ import type { AccessibilityPanel } from './accessibility-panel';
 import { createAccessibilityPanel } from './accessibility-panel';
 import type { Inspector, InspectorHandlers } from './inspector';
 import { createInspector } from './inspector';
+import type { MobileActionSheets } from './mobile-action-sheets';
+import { createMobileActionSheets } from './mobile-action-sheets';
 import type { MobileNavigation } from './mobile-navigation';
 import { createMobileNavigation } from './mobile-navigation';
 import type { NotesPanel } from './notes-panel';
 import { createNotesPanel } from './notes-panel';
+import type { PresentationTouchControls } from './presentation-touch-controls';
+import { createPresentationTouchControls } from './presentation-touch-controls';
 import type { Ribbon } from './ribbon/ribbon';
 import { createRibbon } from './ribbon/ribbon';
 import type { RibbonHandlers } from './ribbon/ribbon-types';
@@ -65,6 +69,9 @@ export interface ViewerChrome {
 	statusBar: StatusBar | null;
 	/** Compact navigation dock, visible only below the mobile breakpoint. */
 	mobileNavigation: MobileNavigation | null;
+	mobileActionSheets: MobileActionSheets | null;
+	/** Persistent exit and navigation affordances for touch slide shows. */
+	presentationTouchControls: PresentationTouchControls;
 	setLoading(loading: boolean): void;
 	setError(message: string | null): void;
 	setEmpty(empty: boolean): void;
@@ -159,6 +166,26 @@ export function buildViewerChrome(
 	if (mobileNavigation) {
 		root.appendChild(mobileNavigation.el);
 	}
+	const mobileActionSheets =
+		options.showToolbar && options.editable
+			? createMobileActionSheets(
+					doc,
+					t,
+					options.ribbonHandlers,
+					options.onSelectSlide,
+					inspector?.el ?? null,
+				)
+			: null;
+	if (mobileActionSheets) {
+		root.appendChild(mobileActionSheets.el);
+	}
+	const presentationTouchControls = createPresentationTouchControls(doc, t, {
+		previous: options.ribbonHandlers.nav.prev,
+		next: options.ribbonHandlers.nav.next,
+		exit: options.ribbonHandlers.nav.togglePresentation,
+	});
+	presentationTouchControls.update(0, 0);
+	root.appendChild(presentationTouchControls.el);
 
 	const loadingOverlay = createEl(doc, 'div', 'pptxv-overlay pptxv-loading');
 	loadingOverlay.textContent = t('common.loading');
@@ -184,6 +211,8 @@ export function buildViewerChrome(
 		notes,
 		statusBar,
 		mobileNavigation,
+		mobileActionSheets,
+		presentationTouchControls,
 		setLoading(loading) {
 			loadingOverlay.hidden = !loading;
 		},

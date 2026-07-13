@@ -2,6 +2,8 @@ import { defaultCssVars } from 'pptx-viewer-shared';
 
 import { COLLAB_CSS } from './collab-css';
 import { EDITOR_CSS } from './editor-css';
+import { MOBILE_SHEET_CSS } from './mobile-sheet-css';
+import { PRESENTATION_TOUCH_CSS } from './presentation-touch-css';
 import { RIBBON_CSS } from './ribbon-css';
 
 /**
@@ -450,5 +452,5 @@ const CHROME_CSS = `
 
 /** The full stylesheet text (theme-var defaults + chrome rules + editor + collab chrome). */
 export function buildViewerCss(): string {
-	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${COLLAB_CSS}`;
+	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${COLLAB_CSS}\n${PRESENTATION_TOUCH_CSS}\n${MOBILE_SHEET_CSS}`;
 }

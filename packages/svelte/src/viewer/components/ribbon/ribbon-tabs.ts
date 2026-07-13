@@ -14,6 +14,7 @@ export type RibbonTabId =
 	| 'transitions'
 	| 'animations'
 	| 'slideShow'
+	| 'review'
 	| 'view';
 
 export interface RibbonTabDef {
@@ -31,6 +32,7 @@ export const RIBBON_TABS: readonly RibbonTabDef[] = [
 	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
 	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
 	{ id: 'slideShow', labelKey: 'pptx.ribbon.tab.slideShow' },
+	{ id: 'review', labelKey: 'pptx.ribbon.tab.review' },
 	{ id: 'view', labelKey: 'pptx.ribbon.tab.view' },
 ];
 

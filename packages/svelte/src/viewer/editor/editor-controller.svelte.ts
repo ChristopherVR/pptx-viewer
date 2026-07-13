@@ -124,7 +124,7 @@ export class EditorController {
 	}
 
 	#currentElements(): PptxElement[] {
-		return this.#editor.slides[this.#deps.getCurrent()]?.elements ?? [];
+		return this.#editor.activeElements;
 	}
 
 	#elementBox(id: string): InteractionBox | undefined {
@@ -190,10 +190,14 @@ export class EditorController {
 			return;
 		}
 		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
-		if (!id) {
+		if (!id || !this.#editor.isElementInteractive(id)) {
 			if (this.#editor.selectedElementId) {
 				this.#editor.select(null);
 			}
+			return;
+		}
+		if (event.shiftKey || event.ctrlKey || event.metaKey) {
+			this.#editor.selection.toggle(id);
 			return;
 		}
 		if (this.#editor.selectedElementId !== id) {
@@ -222,7 +226,7 @@ export class EditorController {
 			return;
 		}
 		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
-		if (id) {
+		if (id && this.#editor.isElementInteractive(id)) {
 			this.enterInlineEdit(id);
 		}
 	};
@@ -233,7 +237,7 @@ export class EditorController {
 			return;
 		}
 		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
-		if (!id) {
+		if (!id || !this.#editor.isElementInteractive(id)) {
 			return;
 		}
 		event.preventDefault();

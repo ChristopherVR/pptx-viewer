@@ -1,4 +1,9 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleMap,
+	PptxElement,
+	PptxSlide,
+	PptxThemeColorScheme,
+} from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
 import {
 	getAriaLabel,
@@ -16,6 +21,10 @@ export interface SlideStageOptions {
 	slide: PptxSlide;
 	canvasSize: CanvasSize;
 	mediaDataUrls: ReadonlyMap<string, string>;
+	/** Optional presentation theme colour scheme for element renderers. */
+	colorScheme?: PptxThemeColorScheme;
+	/** Optional parsed table-style definitions for theme-aware table rendering. */
+	tableStyleMap?: ParsedTableStyleMap;
 	registry: ElementRendererRegistry;
 	t: Translator;
 	/** Scale applied via CSS transform (default 1). */
@@ -69,6 +78,8 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		canvasSize,
 		scale,
 		mediaDataUrls,
+		colorScheme: options.colorScheme,
+		tableStyleMap: options.tableStyleMap,
 		t,
 		smartArt3D: options.smartArt3D ?? false,
 		presenting: options.presenting ?? false,

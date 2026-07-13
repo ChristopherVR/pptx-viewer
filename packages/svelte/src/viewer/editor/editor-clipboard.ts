@@ -30,11 +30,12 @@ export function pasteClipboardElement(
 	slides: readonly PptxSlide[],
 	slideIndex: number,
 	payload: ElementClipboardPayload,
+	intoTemplate = false,
 ): { slides: PptxSlide[]; newId: string } | null {
 	if (!slides[slideIndex]) {
 		return null;
 	}
-	const copy = cloneElementForPaste(payload.element);
+	const copy = cloneElementForPaste(payload.element, { intoTemplate });
 	return {
 		slides: mapSlideElements(slides, slideIndex, (elements) => [...elements, copy]),
 		newId: copy.id,

@@ -1,3 +1,5 @@
+import { cloneElement } from 'pptx-viewer-core';
+
 import {
 	deleteSlideAt,
 	duplicateSlideAt,
@@ -43,7 +45,13 @@ export class EditorSlidesController {
 		if (!result) {
 			return null;
 		}
+		const source = this.#editor.slides[this.#editor.currentSlideIndex];
+		const copy = result.slides[result.newIndex];
 		this.#editor.commitSlides(result.slides);
+		this.#editor.templateElementsBySlideId = {
+			...this.#editor.templateElementsBySlideId,
+			[copy.id]: (this.#editor.templateElementsBySlideId[source.id] ?? []).map(cloneElement),
+		};
 		return result.newIndex;
 	}
 
@@ -56,7 +64,11 @@ export class EditorSlidesController {
 		if (!result) {
 			return null;
 		}
+		const removedId = this.#editor.slides[this.#editor.currentSlideIndex].id;
 		this.#editor.commitSlides(result.slides);
+		const templateElementsBySlideId = { ...this.#editor.templateElementsBySlideId };
+		delete templateElementsBySlideId[removedId];
+		this.#editor.templateElementsBySlideId = templateElementsBySlideId;
 		this.#editor.selection.clear();
 		return result.newIndex;
 	}

@@ -1,7 +1,7 @@
 import { buildElementClipboardPayload, cloneElementForPaste } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
-import { appendElementOnSlide } from './editor-mutations';
+import { getActiveElements, replaceActiveElements } from './editor-active-elements';
 import type { EditorOps } from './editor-operations';
 
 /**
@@ -52,8 +52,9 @@ export function createClipboardActions(deps: ClipboardActionsDeps): ClipboardAct
 			const clone = cloneElementForPaste(payload.element);
 			ops.pushHistory();
 			store.set({
-				slides: appendElementOnSlide(state.slides, state.currentSlide, clone),
+				...replaceActiveElements(state, [...getActiveElements(state), clone]),
 				selectedElementId: clone.id,
+				selectedElementIds: [clone.id],
 			});
 			ops.commitChange();
 		},

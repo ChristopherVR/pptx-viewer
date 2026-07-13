@@ -28,7 +28,10 @@ function slide(id: string, elements: PptxElement[], notes = ''): PptxSlide {
 	return { id, rId: `rId-${id}`, slideNumber: 1, elements, notes };
 }
 
-function make(current = 0, save = vi.fn(async () => new Uint8Array([1, 2, 3]))) {
+function make(
+	current = 0,
+	save = vi.fn(async (_slides: PptxSlide[]) => new Uint8Array([1, 2, 3])),
+) {
 	const onChange = vi.fn();
 	const handler = { save } as unknown as PptxHandler;
 	const editor = new EditorState({
@@ -57,6 +60,25 @@ describe('editorState selection + geometry', () => {
 		editor.setSlides([slide('a', [shape('e1'), shape('e2')])]);
 		editor.select('e2');
 		expect(editor.selectedElement?.id).toBe('e2');
+	});
+
+	it('gates inherited template elements behind template editing mode', () => {
+		const { editor } = make();
+		editor.setSlides([slide('a', [shape('layout-title'), shape('e1')])]);
+
+		editor.select('layout-title');
+		expect(editor.selectedElementId).toBeNull();
+		expect(editor.slides[0].elements.map((element) => element.id)).toStrictEqual(['e1']);
+		expect(editor.templateElementsBySlideId.a.map((element) => element.id)).toStrictEqual([
+			'layout-title',
+		]);
+
+		editor.setTemplateEditing(true);
+		editor.select('layout-title');
+		expect(editor.selectedElementId).toBe('layout-title');
+
+		editor.setTemplateEditing(false);
+		expect(editor.selectedElementId).toBeNull();
 	});
 
 	it('patchGeometry updates position without recording history', () => {
@@ -237,5 +259,41 @@ describe('editorState save', () => {
 			getHandler: () => null,
 		});
 		await expect(editor.save()).rejects.toThrow('No presentation is loaded.');
+	});
+
+	it('persists inherited edits and restores them through history', async () => {
+		const { editor, save } = make();
+		editor.setSlides([slide('a', [shape('layout-title'), shape('e1')])]);
+		editor.setTemplateEditing(true);
+		editor.select('layout-title');
+		editor.patchSelected({ x: 42 });
+		expect(editor.templateElementsBySlideId.a[0].x).toBe(42);
+		expect(editor.slides[0].elements[0].id).toBe('e1');
+
+		await editor.save();
+		const saved = save.mock.calls.at(-1)?.[0] as PptxSlide[];
+		expect(saved[0].elements.map((element) => element.id)).toStrictEqual(['layout-title', 'e1']);
+		expect(saved[0].elements[0].x).toBe(42);
+
+		editor.undo();
+		expect(editor.templateElementsBySlideId.a[0].x).toBe(10);
+	});
+
+	it('routes template grouping and clipboard operations to the inherited layer', () => {
+		const { editor } = make();
+		editor.setSlides([
+			slide('a', [shape('layout-one'), shape('master-two', { x: 30 }), shape('e1')]),
+		]);
+		editor.setTemplateEditing(true);
+		editor.selection.setAll(['layout-one', 'master-two']);
+		editor.arrangeOps.groupSelected();
+		expect(editor.templateElementsBySlideId.a).toHaveLength(1);
+		expect(editor.templateElementsBySlideId.a[0].type).toBe('group');
+		expect(editor.slides[0].elements.map((element) => element.id)).toStrictEqual(['e1']);
+
+		editor.clipboardOps.copySelected();
+		const pastedId = editor.clipboardOps.pasteClipboard();
+		expect(pastedId).toMatch(/^(layout|master)-/);
+		expect(editor.templateElementsBySlideId.a).toHaveLength(2);
 	});
 });

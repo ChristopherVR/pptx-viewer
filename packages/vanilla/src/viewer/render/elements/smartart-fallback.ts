@@ -1,4 +1,4 @@
-import type { RenderedNode, SmartArtLayoutResult } from 'pptx-viewer-shared';
+import type { RenderedNode, SmartArtLayoutResult, SmartArtNodeA11y } from 'pptx-viewer-shared';
 
 import { createSvgEl } from '../dom';
 import { appendCenteredSvgText, SMARTART_SVG_STYLE } from './smartart-svg';
@@ -17,6 +17,7 @@ const CONNECTOR_STROKE = '#94a3b8';
 export function buildSmartArtFallbackSvg(
 	doc: Document,
 	layout: SmartArtLayoutResult,
+	a11yNodes: readonly SmartArtNodeA11y[] = [],
 ): SVGSVGElement {
 	const svg = createSvgEl(doc, 'svg', {
 		viewBox: layout.viewBox,
@@ -38,8 +39,8 @@ export function buildSmartArtFallbackSvg(
 			}),
 		);
 	}
-	for (const node of layout.nodes) {
-		svg.appendChild(buildFallbackNode(doc, node, layout.shadowFilter));
+	for (const [index, node] of layout.nodes.entries()) {
+		svg.appendChild(buildFallbackNode(doc, node, layout.shadowFilter, a11yNodes[index]?.label));
 	}
 	return svg;
 }
@@ -48,8 +49,16 @@ function buildFallbackNode(
 	doc: Document,
 	node: RenderedNode,
 	shadowFilter: string | undefined,
+	a11yLabel: string | undefined,
 ): SVGGElement {
 	const g = createSvgEl(doc, 'g');
+	if (a11yLabel) {
+		g.setAttribute('role', 'img');
+		g.setAttribute('aria-label', a11yLabel);
+		const title = createSvgEl(doc, 'title');
+		title.textContent = a11yLabel;
+		g.appendChild(title);
+	}
 	if (shadowFilter) {
 		g.style.filter = shadowFilter;
 	}

@@ -1,6 +1,8 @@
 import type { InteractionBox, ResizeHandleId, SnapSibling } from 'pptx-viewer-shared';
+import { isElementIdInteractive } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
+import { findActiveElement, getActiveElements } from './editor-active-elements';
 import { createGestureController } from './editor-gestures';
 import type { EditorOps } from './editor-operations';
 import { resolveTopLevelElementId } from './element-hit';
@@ -48,7 +50,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 
 	const elementBox = (id: string): InteractionBox | undefined => {
 		const state = store.get();
-		const el = state.slides[state.currentSlide]?.elements.find((e) => e.id === id);
+		const el = findActiveElement(state, id);
 		return el
 			? { x: el.x, y: el.y, width: el.width, height: el.height, rotation: el.rotation ?? 0 }
 			: undefined;
@@ -59,9 +61,13 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		getElementBox: elementBox,
 		getSiblings(): SnapSibling[] {
 			const state = store.get();
-			return (state.slides[state.currentSlide]?.elements ?? []).map(
-				({ id, x, y, width, height }) => ({ id, x, y, width, height }),
-			);
+			return getActiveElements(state).map(({ id, x, y, width, height }) => ({
+				id,
+				x,
+				y,
+				width,
+				height,
+			}));
 		},
 		getStageOrigin() {
 			const rect = deps.getOverlay()?.root.getBoundingClientRect();
@@ -99,7 +105,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 
 	const enterInlineEdit = (id: string): void => {
 		const state = store.get();
-		const el = state.slides[state.currentSlide]?.elements.find((e) => e.id === id);
+		const el = findActiveElement(state, id);
 		const overlay = deps.getOverlay();
 		if (!el || !canInlineEditElement(el) || !overlay || inline) {
 			return;
@@ -127,14 +133,21 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 				return;
 			}
 			const id = resolveTopLevelElementId(event.target, deps.getStageRoot());
-			if (!id) {
+			if (!id || !isElementIdInteractive(id, state.editTemplateMode)) {
 				if (state.selectedElementId) {
 					ops.select(null);
 				}
 				return;
 			}
-			if (state.selectedElementId !== id) {
-				ops.select(id);
+			if (event.shiftKey) {
+				const ids = state.selectedElementIds.includes(id)
+					? state.selectedElementIds.filter((selectedId) => selectedId !== id)
+					: [...state.selectedElementIds, id];
+				ops.select(ids.at(-1) ?? null, ids);
+				return;
+			}
+			if (state.selectedElementId !== id || state.selectedElementIds.length !== 1) {
+				ops.select(id, [id]);
 			}
 			gestures.begin('move', id, event);
 		},
@@ -155,7 +168,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 				return;
 			}
 			const id = resolveTopLevelElementId(event.target, deps.getStageRoot());
-			if (id) {
+			if (id && isElementIdInteractive(id, state.editTemplateMode)) {
 				enterInlineEdit(id);
 			}
 		},

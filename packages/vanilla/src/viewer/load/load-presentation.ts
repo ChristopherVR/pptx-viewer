@@ -1,4 +1,10 @@
-import type { MediaPptxElement, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type {
+	MediaPptxElement,
+	ParsedTableStyleMap,
+	PptxElement,
+	PptxSlide,
+	PptxThemeColorScheme,
+} from 'pptx-viewer-core';
 import { PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
 import {
@@ -25,6 +31,10 @@ export interface LoadedPresentation {
 	canvasSize: CanvasSize;
 	/** Archive-path to displayable URL map for media + poster frames. */
 	mediaDataUrls: Map<string, string>;
+	/** Presentation theme colours used by scheme-based rendering. */
+	colorScheme?: PptxThemeColorScheme;
+	/** Parsed presentation table styles keyed by style id. */
+	tableStyleMap?: ParsedTableStyleMap;
 	/** Blob URLs created during the load; revoke them when replacing/destroying. */
 	blobUrls: string[];
 }
@@ -46,6 +56,8 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 				height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,
 			},
 			mediaDataUrls,
+			colorScheme: parsed.theme?.colorScheme,
+			tableStyleMap: parsed.tableStyleMap,
 			blobUrls,
 		};
 	} catch (error) {

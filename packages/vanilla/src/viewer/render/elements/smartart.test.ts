@@ -107,6 +107,13 @@ describe('renderSmartArtElement', () => {
 		expect(renderSmartArtElement(el, 0, makeContext())).toBeNull();
 	});
 
+	it('labels individual drawing nodes for assistive technology', () => {
+		const rendered = renderSmartArtElement(drawingShapesElement(), 0, makeContext()) as HTMLElement;
+		const node = rendered.querySelector('.pptxv-smartart-svg g');
+		expect(node?.getAttribute('aria-label')).toBe('Node 1 of 1: Alpha');
+		expect(node?.querySelector('title')?.textContent).toBe('Node 1 of 1: Alpha');
+	});
+
 	it('renders pre-computed drawing shapes as SVG rect/ellipse with labels', () => {
 		const node = renderSmartArtElement(drawingShapesElement(), 3, makeContext()) as HTMLElement;
 		expect(node.dataset.elementId).toBe('sa-1');

@@ -60,11 +60,17 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		interactive = false,
 	): HTMLElement => {
 		const state = store.get();
+		const template = state.templateElementsBySlideId[slide.id] ?? [];
+		const renderSlide = template.length
+			? { ...slide, elements: [...template, ...slide.elements] }
+			: slide;
 		return renderSlideStage({
 			document: doc,
-			slide,
+			slide: renderSlide,
 			canvasSize: state.canvasSize,
 			mediaDataUrls: state.mediaDataUrls,
+			colorScheme: state.colorScheme,
+			tableStyleMap: state.tableStyleMap,
 			registry,
 			t: deps.getTranslator(),
 			scale,
@@ -117,6 +123,12 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			total: state.slides.length,
 			zoomPercent: scale * 100,
 		});
+		chrome.presentationTouchControls.update(state.currentSlide, state.slides.length);
+		chrome.mobileActionSheets?.update(
+			state.currentSlide,
+			state.slides.length,
+			slide?.comments ?? [],
+		);
 		chrome.notes.update({ slide, editable: state.editable });
 		deps.onStageRendered?.();
 		// Drive presentation-mode entrance state + slide transitions off the fresh

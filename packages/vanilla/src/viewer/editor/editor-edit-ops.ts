@@ -111,6 +111,7 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		store.set({
 			slides: appendElementOnSlide(state.slides, state.currentSlide, element),
 			selectedElementId: element.id,
+			selectedElementIds: [element.id],
 		});
 		ops.commitChange();
 	};

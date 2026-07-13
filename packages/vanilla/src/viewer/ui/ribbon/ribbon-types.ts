@@ -26,6 +26,7 @@ export interface RibbonNavHandlers {
 	togglePresentation(): void;
 	toggleNotes(): void;
 	openAccessibility(): void;
+	toggleTemplateEditing?(): void;
 }
 
 /** Primary-row handlers: quick-access undo/redo/save (editing only). */
@@ -130,4 +131,5 @@ export interface RibbonEditState {
 export interface RibbonSelectionState {
 	hasClipboard: boolean;
 	slideCount: number;
+	selectedCount?: number;
 }

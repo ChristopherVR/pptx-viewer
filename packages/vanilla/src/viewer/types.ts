@@ -199,6 +199,8 @@ export interface PptxViewerInstance {
 	exitPresentation(): Promise<void>;
 	/** Enable or disable editing at runtime (disabling clears the selection). */
 	setEditable(editable: boolean): void;
+	/** Enable or disable editing inherited layout/master elements. */
+	setEditTemplateMode(enabled: boolean): void;
 	/** Undo the last edit (no-op when the undo stack is empty). */
 	undo(): void;
 	/** Redo the last undone edit (no-op when the redo stack is empty). */

@@ -95,6 +95,9 @@ describe('smartArtView', () => {
 		const chrome = target.querySelector('.pptx-svelte-smartart-chrome');
 		expect(chrome?.getAttribute('role')).toBe('img');
 		expect(chrome?.getAttribute('aria-label')).toBeTruthy();
+		const node = target.querySelector('svg g[role="img"]');
+		expect(node?.getAttribute('aria-label')).toBe('Node 1 of 1: Alpha');
+		expect(node?.querySelector('title')?.textContent).toBe('Node 1 of 1: Alpha');
 	});
 
 	it('applies chrome background and outline', () => {

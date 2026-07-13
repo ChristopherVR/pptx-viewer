@@ -13,6 +13,8 @@
 		onzoomfit,
 		isFullscreen,
 		onfullscreen,
+		editTemplateMode = false,
+		onsettemplateediting,
 		showNotes = false,
 		notesExpanded = false,
 		onnotestoggle,
@@ -23,6 +25,8 @@
 		onzoomfit: () => void;
 		isFullscreen: boolean;
 		onfullscreen: () => void;
+		editTemplateMode?: boolean;
+		onsettemplateediting?: (enabled: boolean) => void;
 		showNotes?: boolean;
 		notesExpanded?: boolean;
 		onnotestoggle?: () => void;
@@ -49,6 +53,18 @@
 	</button>
 
 	<span class="pptx-svelte-viewtab-sep" aria-hidden="true"></span>
+
+	<button
+		type="button"
+		class:pptx-svelte-viewtab-active={editTemplateMode}
+		aria-label={t('pptx.view.templateEditingTooltip')}
+		title={t('pptx.view.templateEditingTooltip')}
+		aria-pressed={editTemplateMode}
+		onclick={() => onsettemplateediting?.(!editTemplateMode)}
+	>
+		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v9h-11zM5 1.8v3.4M11 1.8v3.4M5 10.2h6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+		<span>{editTemplateMode ? t('pptx.ribbon.templatesOn') : t('pptx.ribbon.templatesOff')}</span>
+	</button>
 
 	<button
 		type="button"

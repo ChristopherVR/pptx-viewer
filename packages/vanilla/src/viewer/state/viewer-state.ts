@@ -1,4 +1,9 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleMap,
+	PptxElement,
+	PptxSlide,
+	PptxThemeColorScheme,
+} from 'pptx-viewer-core';
 import type {
 	CanvasSize,
 	ElementClipboardPayload,
@@ -29,10 +34,16 @@ export type DrawTool = 'select' | 'pen' | 'highlighter' | 'eraser';
 export interface ViewerState {
 	/** Parsed slides (image/media URLs already patched in by the load pipeline). */
 	slides: PptxSlide[];
+	/** Inherited layout/master elements, separated so interaction can be gated. */
+	templateElementsBySlideId: Record<string, PptxElement[]>;
 	/** Slide canvas size in CSS pixels. */
 	canvasSize: CanvasSize;
 	/** Archive-path to displayable URL map for media + poster frames. */
 	mediaDataUrls: Map<string, string>;
+	/** Presentation theme colours used by scheme-based rendering. */
+	colorScheme?: PptxThemeColorScheme;
+	/** Parsed presentation table styles keyed by style id. */
+	tableStyleMap?: ParsedTableStyleMap;
 	/** Zero-based index of the visible slide. */
 	currentSlide: number;
 	/** Requested zoom (explicit factor or fit-to-viewport). */
@@ -47,6 +58,10 @@ export interface ViewerState {
 	editable: boolean;
 	/** Id of the selected element on the current slide, or null. */
 	selectedElementId: string | null;
+	/** All selected top-level element ids; the primary selection is listed last. */
+	selectedElementIds: string[];
+	/** When true, selection and element mutations target inherited template elements. */
+	editTemplateMode: boolean;
 	/** True when the document has unsaved edits (cleared by a save). */
 	dirty: boolean;
 	/**
@@ -78,8 +93,11 @@ export interface ViewerState {
 export function createInitialViewerState(): ViewerState {
 	return {
 		slides: [],
+		templateElementsBySlideId: {},
 		canvasSize: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
 		mediaDataUrls: new Map(),
+		colorScheme: undefined,
+		tableStyleMap: undefined,
 		currentSlide: 0,
 		zoom: 'fit',
 		loading: false,
@@ -87,6 +105,8 @@ export function createInitialViewerState(): ViewerState {
 		presenting: false,
 		editable: false,
 		selectedElementId: null,
+		selectedElementIds: [],
+		editTemplateMode: false,
 		dirty: false,
 		interactionActive: false,
 		notesExpanded: false,

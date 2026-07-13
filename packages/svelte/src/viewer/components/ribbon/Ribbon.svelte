@@ -102,6 +102,8 @@
 				showNotes={props.showNotes}
 				notesExpanded={props.notesExpanded}
 				onnotestoggle={props.onnotestoggle}
+				editTemplateMode={props.editor.editTemplateMode}
+				onsettemplateediting={(enabled) => props.editor.setTemplateEditing(enabled)}
 			/>
 		{/if}
 	</div>

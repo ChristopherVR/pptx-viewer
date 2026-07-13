@@ -31,19 +31,25 @@
 
 	function addComment(): void {
 		const next = addCommentToList(comments, draft, t('pptx.comments.defaultAuthorName'));
-		if (!next) return;
+		if (!next) {
+			return;
+		}
 		replaceComments(next);
 		draft = '';
 	}
 
 	function toggleResolved(id: string): void {
 		const next = toggleCommentResolvedInList(comments, id);
-		if (next) replaceComments(next);
+		if (next) {
+			replaceComments(next);
+		}
 	}
 
 	function removeComment(id: string): void {
 		const next = removeCommentFromList(comments, id);
-		if (next) replaceComments(next);
+		if (next) {
+			replaceComments(next);
+		}
 	}
 </script>
 

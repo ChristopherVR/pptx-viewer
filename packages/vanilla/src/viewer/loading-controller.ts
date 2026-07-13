@@ -1,5 +1,6 @@
 import type { PptxHandler } from 'pptx-viewer-core';
 import { EncryptedFileError } from 'pptx-viewer-core';
+import { partitionTemplateElements } from 'pptx-viewer-shared';
 
 import type { EditorController } from './editor';
 import type { Translator } from './i18n';
@@ -60,11 +61,15 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 			releaseLoaded();
 			handler = loaded.handler;
 			blobUrls = loaded.blobUrls;
+			const partition = partitionTemplateElements(loaded.slides);
 			store.set({
-				slides: loaded.slides,
+				slides: partition.slides,
+				templateElementsBySlideId: partition.templateElementsBySlideId,
 				canvasSize: loaded.canvasSize,
 				mediaDataUrls: loaded.mediaDataUrls,
-				currentSlide: clampSlideIndex(options.initialSlide ?? 0, loaded.slides.length),
+				colorScheme: loaded.colorScheme,
+				tableStyleMap: loaded.tableStyleMap,
+				currentSlide: clampSlideIndex(options.initialSlide ?? 0, partition.slides.length),
 				loading: false,
 			});
 			options.onLoad?.({ slideCount: loaded.slides.length, canvasSize: loaded.canvasSize });

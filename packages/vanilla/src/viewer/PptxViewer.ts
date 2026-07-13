@@ -139,45 +139,20 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		await this.loading.load(url);
 	}
 
-	next(): void {
-		this.controls.next();
-	}
-
-	prev(): void {
-		this.controls.prev();
-	}
-
-	goToSlide(index: number): void {
-		this.controls.goToSlide(index);
-	}
-
-	getSlideCount(): number {
-		return this.controls.slideCount();
-	}
-
-	getCurrentSlide(): number {
-		return this.controls.currentSlide();
-	}
-
-	getZoom(): number {
-		return this.controls.zoom();
-	}
+	next = (): void => this.controls.next();
+	prev = (): void => this.controls.prev();
+	goToSlide = (index: number): void => this.controls.goToSlide(index);
+	getSlideCount = (): number => this.controls.slideCount();
+	getCurrentSlide = (): number => this.controls.currentSlide();
+	getZoom = (): number => this.controls.zoom();
 
 	setZoom(zoom: ZoomLevel): void {
 		this.controls.setZoom(zoom);
 	}
 
-	zoomIn(): void {
-		this.controls.zoomIn();
-	}
-
-	zoomOut(): void {
-		this.controls.zoomOut();
-	}
-
-	zoomToFit(): void {
-		this.controls.zoomToFit();
-	}
+	zoomIn = (): void => this.controls.zoomIn();
+	zoomOut = (): void => this.controls.zoomOut();
+	zoomToFit = (): void => this.controls.zoomToFit();
 
 	/** Expand/collapse the speaker-notes panel; persists for the instance's life. */
 	toggleNotes(): void {
@@ -210,13 +185,24 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.editor.setEditable(editable);
 	}
 
-	undo(): void {
-		this.editor.undo();
+	setEditTemplateMode(enabled: boolean): void {
+		const state = this.store.get();
+		if (!state.editable || state.editTemplateMode === enabled) {
+			return;
+		}
+		this.store.set({
+			editTemplateMode: enabled,
+			selectedElementId: null,
+			selectedElementIds: [],
+		});
 	}
 
-	redo(): void {
-		this.editor.redo();
+	toggleTemplateEditing(): void {
+		this.setEditTemplateMode(!this.store.get().editTemplateMode);
 	}
+
+	undo = (): void => this.editor.undo();
+	redo = (): void => this.editor.redo();
 
 	toggleAutosave(): boolean {
 		const enabled = !this.sessions.isAutosaveEnabled();
@@ -224,13 +210,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		return enabled;
 	}
 
-	canUndo(): boolean {
-		return this.editor.canUndo();
-	}
-
-	canRedo(): boolean {
-		return this.editor.canRedo();
-	}
+	canUndo = (): boolean => this.editor.canUndo();
+	canRedo = (): boolean => this.editor.canRedo();
 
 	async save(): Promise<Uint8Array> {
 		return this.editor.save();
@@ -240,16 +221,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		return this.editor.downloadPptx(fileName);
 	}
 
-	deleteSelected(): void {
-		this.editor.deleteSelected();
-	}
+	deleteSelected = (): void => this.editor.deleteSelected();
 
 	// exportSlidePng / exportPdf / exportGif / exportVideo / print are
 	// inherited from ViewerExportHost (see export-lifecycle.ts).
 
-	getSelectedElementId(): string | null {
-		return this.editor.getSelectedElementId();
-	}
+	getSelectedElementId = (): string | null => this.editor.getSelectedElementId();
 
 	async enterPresentation(): Promise<void> {
 		await this.lifecycle.presentation.enter();
@@ -259,25 +236,15 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		await this.lifecycle.presentation.exit();
 	}
 
-	getRegistry(): ElementRendererRegistry {
-		return this.registry;
-	}
-
-	getHandler(): PptxHandler | null {
-		return this.loading.getHandler();
-	}
+	getRegistry = (): ElementRendererRegistry => this.registry;
+	getHandler = (): PptxHandler | null => this.loading.getHandler();
 
 	startCollaboration(config: CollaborationConfig): Promise<void> {
 		return this.sessions.startCollaboration(config);
 	}
 
-	stopCollaboration(): void {
-		this.sessions.stopCollaboration();
-	}
-
-	getCollaborationStatus(): ConnectionStatus {
-		return this.sessions.getCollaborationStatus();
-	}
+	stopCollaboration = (): void => this.sessions.stopCollaboration();
+	getCollaborationStatus = (): ConnectionStatus => this.sessions.getCollaborationStatus();
 
 	autosaveNow(): Promise<void> {
 		return this.sessions.autosaveNow();
@@ -288,9 +255,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.lifecycle.chrome.titleBar?.setAutosaveEnabled(enabled);
 	}
 
-	isAutosaveEnabled(): boolean {
-		return this.sessions.isAutosaveEnabled();
-	}
+	isAutosaveEnabled = (): boolean => this.sessions.isAutosaveEnabled();
 
 	openBroadcast(): void {
 		this.sessions.openBroadcast();

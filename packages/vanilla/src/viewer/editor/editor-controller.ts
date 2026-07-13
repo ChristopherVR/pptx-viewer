@@ -189,7 +189,8 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			}
 		}
 		if (
-			state.slides !== previous.slides &&
+			(state.slides !== previous.slides ||
+				state.templateElementsBySlideId !== previous.templateElementsBySlideId) &&
 			state.selectedElementId &&
 			!ops.selectedElement(state)
 		) {
@@ -251,14 +252,21 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			ops.clearHistory();
 			store.set({
 				selectedElementId: null,
+				selectedElementIds: [],
 				dirty: false,
 				interactionActive: false,
 				drawTool: 'select',
+				editTemplateMode: false,
 			});
 			updateToolbar();
 		},
 		setEditable(editable) {
-			store.set({ editable });
+			store.set({
+				editable,
+				...(!editable
+					? { editTemplateMode: false, selectedElementId: null, selectedElementIds: [] }
+					: {}),
+			});
 		},
 		undo: () => ops.undo(),
 		redo: () => ops.redo(),

@@ -1,4 +1,9 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleMap,
+	PptxElement,
+	PptxSlide,
+	PptxThemeColorScheme,
+} from 'pptx-viewer-core';
 import type { CanvasSize, CssStyleMap } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -28,6 +33,10 @@ export interface ElementRenderContext {
 	readonly scale: number;
 	/** Archive-path to displayable URL map for media + poster frames. */
 	readonly mediaDataUrls: ReadonlyMap<string, string>;
+	/** Presentation theme colour scheme used by theme-aware render helpers. */
+	readonly colorScheme?: PptxThemeColorScheme;
+	/** Parsed `ppt/tableStyles.xml` definitions used by table band/header styling. */
+	readonly tableStyleMap?: ParsedTableStyleMap;
 	/** Shared-dictionary translator (`pptx.*` keys). */
 	readonly t: Translator;
 	/**

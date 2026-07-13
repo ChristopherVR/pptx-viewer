@@ -23,6 +23,7 @@ export interface ArrangeGroupState {
 	editable: boolean;
 	hasSelection: boolean;
 	isGroup: boolean;
+	selectedCount: number;
 }
 
 export interface ArrangeGroup {
@@ -148,7 +149,7 @@ export function createArrangeGroup(
 
 	return {
 		el,
-		update({ editable, hasSelection, isGroup }) {
+		update({ editable, hasSelection, isGroup, selectedCount }) {
 			const canMut = editable && hasSelection;
 			for (const b of [
 				front,
@@ -163,10 +164,9 @@ export function createArrangeGroup(
 			]) {
 				b.setDisabled(!canMut);
 			}
-			// Multi-selection only; unreachable under the single-selection model.
 			distributeH.setDisabled(true);
 			distributeV.setDisabled(true);
-			group.setDisabled(true);
+			group.setDisabled(!editable || selectedCount < 2);
 			ungroup.setDisabled(!canMut || !isGroup);
 		},
 	};

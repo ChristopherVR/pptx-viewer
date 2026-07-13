@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { ParsedTableStyleMap, PptxSlide, PptxThemeColorScheme } from 'pptx-viewer-core';
 import { EncryptedFileError, PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from 'pptx-viewer-shared';
@@ -24,6 +24,10 @@ export class PresentationLoader {
 	});
 	/** Archive-path -> displayable URL map for media + poster frames. */
 	mediaDataUrls = $state.raw<Map<string, string>>(new Map());
+	/** Presentation theme colours used to resolve scheme-based table styles. */
+	colorScheme = $state.raw<PptxThemeColorScheme | undefined>(undefined);
+	/** Parsed presentation table-style definitions keyed by style id. */
+	tableStyleMap = $state.raw<ParsedTableStyleMap | undefined>(undefined);
 	/** True while a load is in flight. */
 	loading = $state(false);
 	/** Error message from the last failed load, or null. */
@@ -77,6 +81,8 @@ export class PresentationLoader {
 			this.handler = newHandler;
 			this.slides = nextSlides;
 			this.mediaDataUrls = media.urls;
+			this.colorScheme = parsed.theme?.colorScheme;
+			this.tableStyleMap = parsed.tableStyleMap;
 			this.canvasSize = {
 				width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
 				height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,

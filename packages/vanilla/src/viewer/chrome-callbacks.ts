@@ -28,6 +28,7 @@ export interface ChromeCallbackDeps {
 	openBroadcast(): void;
 	toggleNotes(): void;
 	openAccessibility(): void;
+	toggleTemplateEditing(): void;
 	goToSlide(index: number): void;
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	exportSlidePng(): Promise<void>;
@@ -70,6 +71,7 @@ export function buildChromeCallbacks(
 			togglePresentation: () => deps.togglePresentation(),
 			toggleNotes: () => deps.toggleNotes(),
 			openAccessibility: () => deps.openAccessibility(),
+			toggleTemplateEditing: () => deps.toggleTemplateEditing(),
 		},
 		primary: {
 			undo: () => deps.undo(),

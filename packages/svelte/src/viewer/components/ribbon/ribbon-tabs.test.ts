@@ -13,6 +13,7 @@ describe('ribbon-tabs', () => {
 			'transitions',
 			'animations',
 			'slideShow',
+			'review',
 			'view',
 		]);
 	});
@@ -33,6 +34,7 @@ describe('ribbon-tabs', () => {
 		expect(isRibbonTab('design')).toBeTruthy();
 		expect(isRibbonTab('transitions')).toBeTruthy();
 		expect(isRibbonTab('animations')).toBeTruthy();
-		expect(isRibbonTab('review')).toBeFalsy();
+		expect(isRibbonTab('review')).toBeTruthy();
+		expect(isRibbonTab('developer')).toBeFalsy();
 	});
 });
