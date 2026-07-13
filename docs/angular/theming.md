@@ -162,9 +162,7 @@ Read the provided theme anywhere below with the `VIEWER_THEME` injection token:
 import { inject } from '@angular/core';
 import { VIEWER_THEME } from 'pptx-angular-viewer';
 
-@Component({
-	/* ... */
-})
+@Component({/* ... */})
 export class SomeChild {
 	private readonly theme = inject(VIEWER_THEME, { optional: true }); // ViewerTheme | undefined
 }

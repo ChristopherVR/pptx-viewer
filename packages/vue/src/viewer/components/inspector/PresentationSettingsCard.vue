@@ -39,9 +39,7 @@ function onNumber(e: Event): number {
 				@change="
 					emit('update', {
 						showType: ($event.target as HTMLSelectElement).value as
-							| 'presented'
-							| 'browsed'
-							| 'kiosk',
+							'presented' | 'browsed' | 'kiosk',
 					})
 				"
 			>
