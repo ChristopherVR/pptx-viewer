@@ -32,6 +32,8 @@ export interface TitleBar {
 	setAutosaveState(state: TitleBarAutosaveKind): void;
 	/** Reflect the unsaved-changes flag in the status text. */
 	setDirty(dirty: boolean): void;
+	/** Synchronize the AutoSave switch with a host-driven runtime change. */
+	setAutosaveEnabled(enabled: boolean): void;
 }
 
 /**
@@ -150,6 +152,11 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 		},
 		setDirty(next) {
 			dirty = next;
+			applyStatus();
+		},
+		setAutosaveEnabled(enabled) {
+			autosaveEnabled = enabled;
+			applyAutosaveSwitch();
 			applyStatus();
 		},
 	};

@@ -212,6 +212,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.editor.redo();
 	}
 
+	toggleAutosave(): boolean {
+		const enabled = !this.sessions.isAutosaveEnabled();
+		this.setAutosaveEnabled(enabled);
+		return enabled;
+	}
+
 	canUndo(): boolean {
 		return this.editor.canUndo();
 	}
@@ -269,6 +275,15 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 
 	autosaveNow(): Promise<void> {
 		return this.sessions.autosaveNow();
+	}
+
+	setAutosaveEnabled(enabled: boolean): void {
+		this.sessions.setAutosaveEnabled(enabled);
+		this.lifecycle.chrome.titleBar?.setAutosaveEnabled(enabled);
+	}
+
+	isAutosaveEnabled(): boolean {
+		return this.sessions.isAutosaveEnabled();
 	}
 
 	destroy(): void {

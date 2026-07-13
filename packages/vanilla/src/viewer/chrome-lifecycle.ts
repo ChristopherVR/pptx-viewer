@@ -49,8 +49,9 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		showInspector: options.showInspector ?? true,
 		editable: options.editable ?? false,
 		titleBar: {
+			fileName: options.fileName,
 			autosaveEnabled: options.autosave ?? false,
-			onToggleAutosave: () => options.autosave ?? false,
+			onToggleAutosave: () => deps.toggleAutosave(),
 			save: () => deps.save(),
 			undo: () => deps.undo(),
 			redo: () => deps.redo(),
@@ -130,6 +131,7 @@ export interface ChromeHost {
 	zoomToFit(): void;
 	undo(): void;
 	redo(): void;
+	toggleAutosave(): boolean;
 	downloadPptx(): Promise<void>;
 	toggleNotes(): void;
 	goToSlide(index: number): void;
@@ -164,6 +166,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 				: host.enterPresentation()),
 		undo: () => host.undo(),
 		redo: () => host.redo(),
+		toggleAutosave: () => host.toggleAutosave(),
 		save: () => void host.downloadPptx(),
 		toggleNotes: () => host.toggleNotes(),
 		goToSlide: (index) => host.goToSlide(index),

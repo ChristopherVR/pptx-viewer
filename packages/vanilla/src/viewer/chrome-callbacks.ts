@@ -21,6 +21,7 @@ export interface ChromeCallbackDeps {
 	undo(): void;
 	redo(): void;
 	save(): void;
+	toggleAutosave(): boolean;
 	toggleNotes(): void;
 	goToSlide(index: number): void;
 	commitNotes(notes: string): void;
