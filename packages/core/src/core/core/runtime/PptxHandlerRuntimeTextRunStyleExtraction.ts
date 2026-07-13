@@ -8,8 +8,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		runProperties: XmlObject | undefined,
 		align: TextStyle['align'],
 		relationshipMap?: Map<string, string>,
+		includeDefaultAlignment: boolean = true,
 	): TextStyle {
-		const style: TextStyle = { align };
+		const style: TextStyle = includeDefaultAlignment ? { align } : {};
 		if (!runProperties) {
 			return style;
 		}

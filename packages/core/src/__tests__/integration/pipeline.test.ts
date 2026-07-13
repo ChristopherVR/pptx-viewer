@@ -668,6 +668,39 @@ describe('error Handling', () => {
 			'Calculus',
 			'Basic Equations',
 		]);
+		const [title, subtitle] = data.slides[0]!.elements;
+		expect(title).toMatchObject({
+			type: 'text',
+			textStyle: { align: 'center', color: '#FFFFFF', fontSize: 149.33333333333331 },
+		});
+		expect(subtitle).toMatchObject({
+			type: 'text',
+			textStyle: { align: 'center', fontSize: 72 },
+		});
+	});
+
+	it('renders layout connector artwork in localized title slides', async () => {
+		for (const fixture of [
+			'Japanese_10_Slides_1_8_MB_bbd4090b55.pptx',
+			'Simplified_Chinese_10_Slides_1_8_MB_792c2c1166.pptx',
+		]) {
+			const bytes = await readFile(
+				new URL(`../../../../../e2e/fixtures/${fixture}`, import.meta.url),
+			);
+			const handler = new PptxHandler();
+			const data = await handler.load(
+				bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+			);
+
+			const divider = data.slides[0]!.elements.find(
+				(element): element is ConnectorPptxElement => element.type === 'connector',
+			);
+			expect(divider).toMatchObject({
+				x: 67,
+				width: 41,
+				shapeStyle: { strokeColor: '#FFFBF0' },
+			});
+		}
 	});
 
 	it('uses the default paragraph style when a paragraph omits its level', async () => {

@@ -185,11 +185,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const masterMap = masterPath ? this.masterPlaceholderDefaultsCache.get(masterPath) : undefined;
 		const masterDefaults = masterMap?.get(phKey);
 		const normalizedType = this.buildPlaceholderDefaultsKey(phInfo).split('_')[0];
+		const masterTextStyleType =
+			phInfo.type === 'title' || phInfo.type === 'ctrtitle'
+				? 'title'
+				: phInfo.type === 'body' || phInfo.type === 'obj'
+					? 'body'
+					: 'other';
 		const masterTextStyles = masterPath ? this.masterTxStylesCache.get(masterPath) : undefined;
 		const masterTextLevels =
-			normalizedType === 'title'
+			masterTextStyleType === 'title'
 				? masterTextStyles?.titleStyle
-				: normalizedType === 'body'
+				: masterTextStyleType === 'body'
 					? masterTextStyles?.bodyStyle
 					: masterTextStyles?.otherStyle;
 		const resolvedMasterDefaults = masterTextLevels

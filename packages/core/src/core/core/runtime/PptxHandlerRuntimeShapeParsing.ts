@@ -129,6 +129,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				xmlPath(inheritedTxBody, 'a:lstStyle', 'a:defPPr', 'a:defRPr'),
 				'left',
 				slideRelationshipMap,
+				false,
 			);
 			const bodyDefaultRunStyle = {
 				...inheritedBodyDefaultRunStyle,
@@ -136,6 +137,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					xmlPath(txBody as XmlObject | undefined, 'a:lstStyle', 'a:defPPr', 'a:defRPr'),
 					'left',
 					slideRelationshipMap,
+					false,
 				),
 			} as TextStyle;
 			Object.assign(textStyle, bodyDefaultRunStyle);
