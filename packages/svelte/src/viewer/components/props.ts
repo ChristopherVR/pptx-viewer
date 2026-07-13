@@ -2,6 +2,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize, RenderParagraph, ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
 
 import type { EditorController } from '../editor/editor-controller.svelte';
+import type { EditorState } from '../editor/editor-state.svelte';
 import type { OverlayBox } from '../editor/types';
 import type { ExportUiState } from '../export/export-ui.svelte';
 import type { AutosaveStatus } from '../state/autosave.svelte';
@@ -143,6 +144,14 @@ export interface EditorLayerProps {
 	controller: EditorController;
 	/** Stage scale (screen px per element px). */
 	scale: number;
+}
+
+/** Position and callbacks for the editable element context menu. */
+export interface ElementContextMenuProps {
+	x: number;
+	y: number;
+	editor: EditorState;
+	onclose: () => void;
 }
 
 export interface ThumbnailRailProps {

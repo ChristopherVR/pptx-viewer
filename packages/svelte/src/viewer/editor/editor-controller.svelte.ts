@@ -33,6 +33,8 @@ export interface EditorControllerDeps {
 	getHolderEl(): HTMLElement | null;
 	/** Notified with slide-space coordinates on stage pointer move (collaboration cursor broadcast). */
 	onCursorMove?(x: number, y: number): void;
+	/** Opens the selected element's edit context menu at the pointer position. */
+	onContextMenu?(x: number, y: number): void;
 }
 
 function toOverlayBox(el: PptxElement): OverlayBox {
@@ -223,6 +225,20 @@ export class EditorController {
 		if (id) {
 			this.enterInlineEdit(id);
 		}
+	};
+
+	/** Select the right-clicked element and expose the edit context menu. */
+	onStageContextMenu = (event: MouseEvent): void => {
+		if (!this.#editor.editable || this.#deps.getPresenting() || this.#editor.inkOps.isDrawing) {
+			return;
+		}
+		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
+		if (!id) {
+			return;
+		}
+		event.preventDefault();
+		this.#editor.select(id);
+		this.#deps.onContextMenu?.(event.clientX, event.clientY);
 	};
 
 	onHandlePointerDown = (handle: ResizeHandleId, event: PointerEvent): void => {

@@ -81,6 +81,7 @@
 	// to the history-tracked editor. Assigned by ViewerBody's onstageholder.
 	// eslint-disable-next-line prefer-const
 	let stageHolderEl = $state<HTMLDivElement>();
+	let stageContextMenu = $state<{ x: number; y: number } | null>(null);
 	const editor = new EditorState({
 		getCurrent: () => viewer.current,
 		getHandler: () => loader.handler,
@@ -93,6 +94,9 @@
 		getStageRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
 		getHolderEl: () => stageHolderEl ?? null,
 		onCursorMove: (x, y) => collab.setCursor(x, y, viewer.current),
+		onContextMenu: (x, y) => {
+			stageContextMenu = { x, y };
+		},
 	});
 	// The ribbon's Home tab Editing group / Ctrl+F Find & Replace panel.
 	const findReplace = new FindReplaceState({
@@ -441,6 +445,8 @@
 		onNotesCommit={editable || onnotesupdate ? onNotesCommit : undefined}
 		{onNotesToggle}
 		collabCursors={collab.cursors}
+		contextMenu={stageContextMenu}
+		onContextMenuClose={() => { stageContextMenu = null; }}
 	/>
 	{#if showToolbar && chromeVisible}
 		<StatusBar

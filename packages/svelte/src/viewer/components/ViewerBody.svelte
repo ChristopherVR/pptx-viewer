@@ -15,6 +15,7 @@
 	import type { TransitionState } from '../presentation';
 	import { PresentationTransitionOverlay } from '../presentation';
 	import EditorLayer from './EditorLayer.svelte';
+	import ElementContextMenu from './ElementContextMenu.svelte';
 	import InkDrawingOverlay from './InkDrawingOverlay.svelte';
 	import InspectorPanel from './inspector/InspectorPanel.svelte';
 	import NotesPanel from './NotesPanel.svelte';
@@ -49,6 +50,8 @@
 		onNotesCommit,
 		onNotesToggle,
 		collabCursors = [],
+		contextMenu,
+		onContextMenuClose,
 	}: {
 		t: Translator;
 		editor: EditorState;
@@ -83,6 +86,9 @@
 		onNotesToggle: () => void;
 		/** Remote collaborators' cursors on the active slide (unscaled slide px). */
 		collabCursors?: RemoteCursor[];
+		/** Open element menu position, supplied by the editing controller. */
+		contextMenu: { x: number; y: number } | null;
+		onContextMenuClose: () => void;
 	} = $props();
 
 	// The template's bind:clientWidth/Height write these (invisible to the linter).
@@ -136,6 +142,7 @@
 					onpointerdown={editingActive ? controller.onStagePointerDown : undefined}
 					onpointermove={editingActive ? controller.onStagePointerMove : undefined}
 					ondblclick={editingActive ? controller.onStageDblClick : undefined}
+					oncontextmenu={editingActive ? controller.onStageContextMenu : undefined}
 					onclick={presenting ? onAdvance : undefined}
 				>
 					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive />
@@ -158,6 +165,9 @@
 						/>
 					{/if}
 				</div>
+				{#if contextMenu}
+					<ElementContextMenu x={contextMenu.x} y={contextMenu.y} {editor} onclose={onContextMenuClose} />
+				{/if}
 			{:else}
 				<div class="pptx-svelte-message" role="status">{t('pptx.statusBar.noSlides')}</div>
 			{/if}
