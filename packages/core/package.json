@@ -86,7 +86,7 @@
 		"@xmldom/xmldom": "^0.9.10",
 		"node-forge": "^1.4.0",
 		"tsup": "^8.5.1",
-		"typescript": "^6.0.3",
+		"typescript": "^7.0.2",
 		"vitest": "^4.1.9",
 		"xml-crypto": "^6.1.2"
 	},

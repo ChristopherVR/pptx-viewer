@@ -69,7 +69,7 @@
 		"rxjs": "^7.8.2",
 		"tailwindcss": "^4.3.2",
 		"three": "^0.185.1",
-		"typescript": "^6.0.3",
+		"typescript": "^7.0.2",
 		"vitest": "^4.1.9",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
