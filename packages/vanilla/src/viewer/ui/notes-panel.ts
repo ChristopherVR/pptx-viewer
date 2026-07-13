@@ -4,6 +4,8 @@ import {
 	applyParagraphCommand,
 	createPlainNotesSegments,
 	defaultRichEnabled,
+	insertHyperlinkAtSelection,
+	normalizeNotesLinkUrl,
 	readEditorSegments,
 	resolveNotesSegments,
 	segmentsToEditorHtml,
@@ -134,6 +136,7 @@ export function createNotesPanel(
 	addCommand('B', t('pptx.notes.bold'), () => applyInlineCommand('bold'));
 	addCommand('I', t('pptx.notes.italic'), () => applyInlineCommand('italic'));
 	addCommand('U', t('pptx.notes.underline'), () => applyInlineCommand('underline'));
+	addCommand('S', t('pptx.notes.strikethrough'), () => applyInlineCommand('strikeThrough'));
 	addCommand('•', t('pptx.notes.bulletList'), () => {
 		const result = applyParagraphCommand(richEditor, segments, 'bullet');
 		segments = result.segments;
@@ -143,6 +146,25 @@ export function createNotesPanel(
 		const result = applyParagraphCommand(richEditor, segments, 'numbered');
 		segments = result.segments;
 		richEditor.innerHTML = segmentsToEditorHtml(segments);
+	});
+	addCommand('→', t('pptx.notes.indent'), () => {
+		const result = applyParagraphCommand(richEditor, segments, 'indent');
+		segments = result.segments;
+		richEditor.innerHTML = segmentsToEditorHtml(segments);
+	});
+	addCommand('←', t('pptx.notes.outdent'), () => {
+		const result = applyParagraphCommand(richEditor, segments, 'outdent');
+		segments = result.segments;
+		richEditor.innerHTML = segmentsToEditorHtml(segments);
+	});
+	addCommand('↗', t('pptx.notes.insertLink'), () => {
+		const selected = doc.getSelection()?.toString() ?? '';
+		const url = window.prompt(t('pptx.notes.linkUrl'), 'https://');
+		if (!url) {
+			return;
+		}
+		const displayText = window.prompt(t('pptx.notes.linkDisplayText'), selected) ?? selected;
+		insertHyperlinkAtSelection(normalizeNotesLinkUrl(url), displayText);
 	});
 	editorMode.addEventListener('click', () => {
 		if (richEnabled) {

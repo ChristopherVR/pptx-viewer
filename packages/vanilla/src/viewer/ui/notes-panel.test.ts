@@ -128,6 +128,26 @@ describe('createNotesPanel', () => {
 		expect(textarea(panel.el).hidden).toBeFalsy();
 	});
 
+	it('exposes the full rich-text command set while editing', () => {
+		const t = createTranslator();
+		const panel = createNotesPanel(document, t, vi.fn(), vi.fn());
+		panel.update({ slide: buildSlide({ notes: 'original' }), editable: true });
+
+		for (const key of [
+			'pptx.notes.bold',
+			'pptx.notes.italic',
+			'pptx.notes.underline',
+			'pptx.notes.strikethrough',
+			'pptx.notes.bulletList',
+			'pptx.notes.numberedList',
+			'pptx.notes.indent',
+			'pptx.notes.outdent',
+			'pptx.notes.insertLink',
+		] as const) {
+			expect(panel.el.querySelector(`[aria-label="${t(key)}"]`)).not.toBeNull();
+		}
+	});
+
 	it('toggles expanded/collapsed state and fires onToggle from the header', () => {
 		const onToggle = vi.fn();
 		const t = createTranslator();
