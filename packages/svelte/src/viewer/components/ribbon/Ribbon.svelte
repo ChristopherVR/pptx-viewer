@@ -20,6 +20,7 @@
 	import RibbonPrimaryRow from './RibbonPrimaryRow.svelte';
 	import RibbonTabBar from './RibbonTabBar.svelte';
 	import SlideShowTab from './slideshow/SlideShowTab.svelte';
+	import ReviewTab from './review/ReviewTab.svelte';
 	import { DEFAULT_RIBBON_TAB } from './ribbon-tabs';
 	import type { RibbonProps } from './ribbon-types';
 	import TransitionsTab from './transitions/TransitionsTab.svelte';
@@ -88,6 +89,8 @@
 				onfromcurrent={props.onfromcurrent}
 				onbroadcast={props.onbroadcast}
 			/>
+		{:else if activeTab === 'review'}
+			<ReviewTab slides={props.slides} onnavigate={props.onnavigatetoissue} editor={props.editor} />
 		{:else if activeTab === 'view'}
 			<ViewTab
 				zoomPercent={props.zoomPercent}
