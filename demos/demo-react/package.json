@@ -9,7 +9,7 @@
 	"dependencies": {
 		"fast-xml-parser": "^5.9.2",
 		"framer-motion": "^12.42.2",
-		"html2canvas-pro": "^2.0.4",
+		"html2canvas-pro": "^2.2.3",
 		"i18next": "^26.3.4",
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
