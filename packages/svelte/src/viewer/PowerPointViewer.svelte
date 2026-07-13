@@ -15,6 +15,7 @@
 	import CollaborationChrome from './collab/components/CollaborationChrome.svelte';
 	import { useCollaborationPresenceEffects } from './collab/collaboration-presence-effects.svelte';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
+	import TitleBar from './components/TitleBar.svelte';
 	import Ribbon from './components/ribbon/Ribbon.svelte';
 	import ViewerBody from './components/ViewerBody.svelte';
 	import ViewerToolbar from './components/ViewerToolbar.svelte';
@@ -48,6 +49,8 @@
 		editable = false,
 		class: className = '',
 		autosave = false,
+		onautosavetoggle,
+		fileName,
 		filePath,
 		autosaveIntervalMs = 2000,
 		collaboration,
@@ -137,7 +140,11 @@
 	// Debounced crash-recovery autosave: enabled only when the host opts in,
 	// editing is allowed, and a `filePath` key is supplied. Persists to the
 	// shared IndexedDB store and fires `onautosave` with the bytes.
-	const autosaveActive = $derived(editable && autosave && Boolean(filePath) && !collab.readOnly);
+	let autosaveEnabled = $state(false);
+	$effect(() => {
+		autosaveEnabled = autosave;
+	});
+	const autosaveActive = $derived(editable && autosaveEnabled && Boolean(filePath) && !collab.readOnly);
 	const autosaveCtl = new AutosaveController({
 		getEnabled: () => autosaveActive,
 		getIntervalMs: () => autosaveIntervalMs,
@@ -315,6 +322,21 @@
 	onkeydown={onKeydown}
 >
 	{#if showToolbar && chromeVisible}
+		<TitleBar
+			{fileName}
+			editable={editingActive}
+			isDirty={editor.dirty}
+			{autosaveEnabled}
+			autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
+			canUndo={editor.canUndo}
+			canRedo={editor.canRedo}
+			findReplaceOpen={findReplace.open}
+			onautosavetoggle={() => { autosaveEnabled = !autosaveEnabled; onautosavetoggle?.(autosaveEnabled); }}
+			onsave={() => void downloadPptx()}
+			onundo={() => editor.undo()}
+			onredo={() => editor.redo()}
+			onfindreplace={() => findReplace.toggle()}
+		/>
 		{#if showRibbon}
 			<Ribbon
 				{editor}
