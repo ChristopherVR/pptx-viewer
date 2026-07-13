@@ -90,6 +90,18 @@ export interface ResolvedFontVariant {
 }
 
 /**
+ * A font supplied by the host application. The package never ships fonts:
+ * applications provide a licensed URL, data URL, or blob URL for their users.
+ */
+export interface ViewerFontSource {
+	family: string;
+	src: string;
+	format?: 'truetype' | 'opentype' | 'woff' | 'woff2';
+	weight?: string | number;
+	style?: 'normal' | 'italic';
+}
+
+/**
  * Factory the (impure) object-URL minting is delegated to, so the resolution
  * logic stays pure and testable. The binding supplies a real implementation
  * backed by `Blob` + `URL.createObjectURL`; tests can stub it. Returning
@@ -161,6 +173,27 @@ export function buildFontFaceRule(variant: ResolvedFontVariant): string {
 		'\tfont-display: swap;',
 		'}',
 	].join('\n');
+}
+
+/** Build a safe `@font-face` stylesheet for host-provided font sources. */
+export function buildUserFontFaceStyles(fonts: readonly ViewerFontSource[] | undefined): string {
+	const rules: string[] = [];
+	for (const font of fonts ?? []) {
+		const family = typeof font.family === 'string' ? font.family.trim() : '';
+		const src = typeof font.src === 'string' ? font.src.trim() : '';
+		const isRemoteUrl = /^https?:\/\/[^"\\\n\r{};]+$/iu.test(src);
+		if (!family || FONT_NAME_UNSAFE_CHARS.test(family) || !(isInjectableUrl(src) || isRemoteUrl)) {
+			continue;
+		}
+		const format = normalizeFontFormat(font.format);
+		const weight =
+			typeof font.weight === 'number' || typeof font.weight === 'string' ? font.weight : '400';
+		const style = font.style === 'italic' ? 'italic' : 'normal';
+		rules.push(
+			buildFontFaceRule({ name: family, url: src, format, weight: String(weight), style }),
+		);
+	}
+	return rules.join('\n\n');
 }
 
 /** The product of resolving an embedded-font list: CSS, families, live URLs. */

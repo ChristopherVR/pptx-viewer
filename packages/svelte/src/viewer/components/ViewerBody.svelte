@@ -5,8 +5,9 @@
 	 * to keep that file under the repo's file-size budget; purely
 	 * presentational, all state/logic stays owned by the parent.
 	 */
-	import type { PptxSlide } from 'pptx-viewer-core';
+	import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 	import type { CanvasSize, RemoteCursor } from 'pptx-viewer-shared';
+	import { setCellText } from 'pptx-viewer-shared';
 
 	import CollaborationCursors from '../collab/components/CollaborationCursors.svelte';
 	import type { EditorController } from '../editor/editor-controller.svelte';
@@ -15,6 +16,7 @@
 	import type { TransitionState } from '../presentation';
 	import { PresentationTransitionOverlay } from '../presentation';
 	import EditorLayer from './EditorLayer.svelte';
+	import ElementContextMenu from './ElementContextMenu.svelte';
 	import InkDrawingOverlay from './InkDrawingOverlay.svelte';
 	import InspectorPanel from './inspector/InspectorPanel.svelte';
 	import NotesPanel from './NotesPanel.svelte';
@@ -49,6 +51,9 @@
 		onNotesCommit,
 		onNotesToggle,
 		collabCursors = [],
+		contextMenu,
+		onContextMenuClose,
+		onmoveSlide,
 	}: {
 		t: Translator;
 		editor: EditorState;
@@ -79,10 +84,14 @@
 		/** Reports the stage-holder DOM node once mounted (null on teardown). */
 		onstageholder: (el: HTMLDivElement | null) => void;
 		notesExpanded: boolean;
-		onNotesCommit?: (notes: string) => void;
+		onNotesCommit?: (notes: string, segments?: TextSegment[]) => void;
 		onNotesToggle: () => void;
 		/** Remote collaborators' cursors on the active slide (unscaled slide px). */
 		collabCursors?: RemoteCursor[];
+		/** Open element menu position, supplied by the editing controller. */
+		contextMenu: { x: number; y: number } | null;
+		onContextMenuClose: () => void;
+		onmoveSlide?: (fromIndex: number, toIndex: number) => void;
 	} = $props();
 
 	// The template's bind:clientWidth/Height write these (invisible to the linter).
@@ -103,11 +112,28 @@
 			},
 		};
 	}
+
+	function commitTableCell(id: string, rowIndex: number, cellIndex: number, text: string): void {
+		const table = editor.activeElements.find((element) => element.id === id);
+		if (table?.type !== 'table') {
+			return;
+		}
+		const updated = setCellText(table, rowIndex, cellIndex, text);
+		editor.applyElementPatch(id, { tableData: updated.tableData });
+	}
 </script>
 
 <div class="pptx-svelte-body">
 	{#if showThumbnails && chromeVisible && displaySlides.length > 0}
-		<ThumbnailRail slides={displaySlides} {canvasSize} {mediaDataUrls} {current} {onselect} />
+		<ThumbnailRail
+			slides={displaySlides}
+			{canvasSize}
+			{mediaDataUrls}
+			{current}
+			{onselect}
+			editable={editingActive}
+			onmove={onmoveSlide}
+		/>
 	{/if}
 	<div class="pptx-svelte-main">
 		<div
@@ -136,9 +162,10 @@
 					onpointerdown={editingActive ? controller.onStagePointerDown : undefined}
 					onpointermove={editingActive ? controller.onStagePointerMove : undefined}
 					ondblclick={editingActive ? controller.onStageDblClick : undefined}
+					oncontextmenu={editingActive ? controller.onStageContextMenu : undefined}
 					onclick={presenting ? onAdvance : undefined}
 				>
-					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive />
+					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive editTemplateMode={editor.editTemplateMode} ontablecellcommit={editingActive ? commitTableCell : undefined} />
 					{#if editingActive}
 						<EditorLayer {controller} {scale} />
 						<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />
@@ -158,6 +185,9 @@
 						/>
 					{/if}
 				</div>
+				{#if contextMenu}
+					<ElementContextMenu x={contextMenu.x} y={contextMenu.y} {editor} onclose={onContextMenuClose} />
+				{/if}
 			{:else}
 				<div class="pptx-svelte-message" role="status">{t('pptx.statusBar.noSlides')}</div>
 			{/if}

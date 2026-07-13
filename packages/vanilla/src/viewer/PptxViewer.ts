@@ -1,5 +1,6 @@
 import type { PptxHandler } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
+import { collectAccessibilityIssues } from 'pptx-viewer-shared';
 
 import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
 import { buildMountChromeDeps, mountChrome, unmountChrome } from './chrome-lifecycle';
@@ -21,6 +22,7 @@ import type { Store, ViewerState, ZoomLevel } from './state';
 import { createInitialViewerState, createStore } from './state';
 import { createStateSync } from './state-sync';
 import { ensureViewerStyles } from './styles';
+import { toggleMasterView } from './template-view-control';
 import { applyThemeVars } from './theme-apply';
 import type {
 	CollaborationConfig,
@@ -138,45 +140,20 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		await this.loading.load(url);
 	}
 
-	next(): void {
-		this.controls.next();
-	}
-
-	prev(): void {
-		this.controls.prev();
-	}
-
-	goToSlide(index: number): void {
-		this.controls.goToSlide(index);
-	}
-
-	getSlideCount(): number {
-		return this.controls.slideCount();
-	}
-
-	getCurrentSlide(): number {
-		return this.controls.currentSlide();
-	}
-
-	getZoom(): number {
-		return this.controls.zoom();
-	}
+	next = (): void => this.controls.next();
+	prev = (): void => this.controls.prev();
+	goToSlide = (index: number): void => this.controls.goToSlide(index);
+	getSlideCount = (): number => this.controls.slideCount();
+	getCurrentSlide = (): number => this.controls.currentSlide();
+	getZoom = (): number => this.controls.zoom();
 
 	setZoom(zoom: ZoomLevel): void {
 		this.controls.setZoom(zoom);
 	}
 
-	zoomIn(): void {
-		this.controls.zoomIn();
-	}
-
-	zoomOut(): void {
-		this.controls.zoomOut();
-	}
-
-	zoomToFit(): void {
-		this.controls.zoomToFit();
-	}
+	zoomIn = (): void => this.controls.zoomIn();
+	zoomOut = (): void => this.controls.zoomOut();
+	zoomToFit = (): void => this.controls.zoomToFit();
 
 	/** Expand/collapse the speaker-notes panel; persists for the instance's life. */
 	toggleNotes(): void {
@@ -189,6 +166,11 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			theme,
 			this.lifecycle.appliedThemeVars,
 		);
+	}
+
+	/** Run the shared WCAG checks against the live deck and show the results. */
+	openAccessibility(): void {
+		this.lifecycle.chrome.accessibility.open(collectAccessibilityIssues(this.store.get().slides));
 	}
 
 	setLocale(locale: string): void {
@@ -204,21 +186,40 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.editor.setEditable(editable);
 	}
 
-	undo(): void {
-		this.editor.undo();
+	setEditTemplateMode(enabled: boolean): void {
+		const state = this.store.get();
+		if (!state.editable || state.editTemplateMode === enabled) {
+			return;
+		}
+		this.store.set({
+			editTemplateMode: enabled,
+			selectedElementId: null,
+			selectedElementIds: [],
+		});
 	}
 
-	redo(): void {
-		this.editor.redo();
+	toggleTemplateEditing(): void {
+		this.setEditTemplateMode(!this.store.get().editTemplateMode);
 	}
 
-	canUndo(): boolean {
-		return this.editor.canUndo();
+	toggleMasterNavigation(): void {
+		const patch = toggleMasterView(this.store.get());
+		if (patch) {
+			this.store.set(patch);
+		}
 	}
 
-	canRedo(): boolean {
-		return this.editor.canRedo();
+	undo = (): void => this.editor.undo();
+	redo = (): void => this.editor.redo();
+
+	toggleAutosave(): boolean {
+		const enabled = !this.sessions.isAutosaveEnabled();
+		this.setAutosaveEnabled(enabled);
+		return enabled;
 	}
+
+	canUndo = (): boolean => this.editor.canUndo();
+	canRedo = (): boolean => this.editor.canRedo();
 
 	async save(): Promise<Uint8Array> {
 		return this.editor.save();
@@ -228,16 +229,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		return this.editor.downloadPptx(fileName);
 	}
 
-	deleteSelected(): void {
-		this.editor.deleteSelected();
-	}
+	deleteSelected = (): void => this.editor.deleteSelected();
 
 	// exportSlidePng / exportPdf / exportGif / exportVideo / print are
 	// inherited from ViewerExportHost (see export-lifecycle.ts).
 
-	getSelectedElementId(): string | null {
-		return this.editor.getSelectedElementId();
-	}
+	getSelectedElementId = (): string | null => this.editor.getSelectedElementId();
 
 	async enterPresentation(): Promise<void> {
 		await this.lifecycle.presentation.enter();
@@ -247,28 +244,29 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		await this.lifecycle.presentation.exit();
 	}
 
-	getRegistry(): ElementRendererRegistry {
-		return this.registry;
-	}
-
-	getHandler(): PptxHandler | null {
-		return this.loading.getHandler();
-	}
+	getRegistry = (): ElementRendererRegistry => this.registry;
+	getHandler = (): PptxHandler | null => this.loading.getHandler();
 
 	startCollaboration(config: CollaborationConfig): Promise<void> {
 		return this.sessions.startCollaboration(config);
 	}
 
-	stopCollaboration(): void {
-		this.sessions.stopCollaboration();
-	}
-
-	getCollaborationStatus(): ConnectionStatus {
-		return this.sessions.getCollaborationStatus();
-	}
+	stopCollaboration = (): void => this.sessions.stopCollaboration();
+	getCollaborationStatus = (): ConnectionStatus => this.sessions.getCollaborationStatus();
 
 	autosaveNow(): Promise<void> {
 		return this.sessions.autosaveNow();
+	}
+
+	setAutosaveEnabled(enabled: boolean): void {
+		this.sessions.setAutosaveEnabled(enabled);
+		this.lifecycle.chrome.titleBar?.setAutosaveEnabled(enabled);
+	}
+
+	isAutosaveEnabled = (): boolean => this.sessions.isAutosaveEnabled();
+
+	openBroadcast(): void {
+		this.sessions.openBroadcast();
 	}
 
 	destroy(): void {

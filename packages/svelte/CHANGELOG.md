@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [0.5.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.5.1) - 2026-07-13
+
 ## [0.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.5.0) - 2026-07-11
 
 ## [0.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.4.0) - 2026-07-11

@@ -33,6 +33,8 @@ export interface AutosaveControllerDeps {
 	onStatus?: (status: AutosaveStatus) => void;
 	/** Offered any recovery snapshot found for `filePath` on construction. */
 	onRecovery?: (record: AutosaveRecord) => void;
+	/** Whether recovery autosave starts enabled. */
+	enabled?: boolean;
 }
 
 export interface AutosaveController {
@@ -40,6 +42,10 @@ export interface AutosaveController {
 	saveNow(): Promise<void>;
 	/** Current status. */
 	getStatus(): AutosaveStatus;
+	/** Enable or disable future debounced snapshots. */
+	setEnabled(enabled: boolean): void;
+	/** Whether new edits currently schedule recovery snapshots. */
+	isEnabled(): boolean;
 	/** Tear down the timer + store subscription. */
 	destroy(): void;
 }
@@ -50,6 +56,8 @@ export function createAutosaveController(deps: AutosaveControllerDeps): Autosave
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let saving = false;
 	let disposed = false;
+	let enabled = deps.enabled ?? true;
+	let recoveryChecked = false;
 
 	const setStatus = (next: AutosaveStatus): void => {
 		status = next;
@@ -65,7 +73,7 @@ export function createAutosaveController(deps: AutosaveControllerDeps): Autosave
 
 	async function runSave(): Promise<void> {
 		const handler = deps.getHandler();
-		if (disposed || saving || !handler || !store.get().dirty) {
+		if (disposed || !enabled || saving || !handler || !store.get().dirty) {
 			return;
 		}
 		saving = true;
@@ -73,11 +81,11 @@ export function createAutosaveController(deps: AutosaveControllerDeps): Autosave
 		try {
 			const bytes = await handler.save(store.get().slides);
 			await saveAutosaveSnapshot(deps.filePath, bytes);
-			if (!disposed) {
+			if (!disposed && enabled) {
 				setStatus('saved');
 			}
 		} catch {
-			if (!disposed) {
+			if (!disposed && enabled) {
 				setStatus('error');
 			}
 		} finally {
@@ -86,6 +94,9 @@ export function createAutosaveController(deps: AutosaveControllerDeps): Autosave
 	}
 
 	const schedule = (): void => {
+		if (!enabled) {
+			return;
+		}
 		clearTimer();
 		timer = setTimeout(() => {
 			timer = null;
@@ -105,17 +116,38 @@ export function createAutosaveController(deps: AutosaveControllerDeps): Autosave
 		}
 	});
 
-	// Offer recovery of any snapshot persisted in a previous session.
-	void getAutosaveSnapshot(deps.filePath).then((record) => {
-		if (record && !disposed) {
-			deps.onRecovery?.(record);
+	const offerRecovery = (): void => {
+		if (recoveryChecked || !enabled) {
+			return;
 		}
-		return record;
-	});
+		recoveryChecked = true;
+		void getAutosaveSnapshot(deps.filePath).then((record) => {
+			if (record && !disposed && enabled) {
+				deps.onRecovery?.(record);
+			}
+			return record;
+		});
+	};
+	offerRecovery();
 
 	return {
 		saveNow: runSave,
 		getStatus: () => status,
+		setEnabled(next) {
+			if (enabled === next || disposed) {
+				return;
+			}
+			enabled = next;
+			clearTimer();
+			setStatus('idle');
+			if (enabled) {
+				offerRecovery();
+				if (store.get().dirty) {
+					schedule();
+				}
+			}
+		},
+		isEnabled: () => enabled,
 		destroy() {
 			disposed = true;
 			clearTimer();

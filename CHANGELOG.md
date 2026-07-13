@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-13
+
+_Releases: pptx-viewer-core@1.3.1, pptx-react-viewer@1.16.2, pptx-vue-viewer@1.16.1, pptx-angular-viewer@1.16.1, pptx-vanilla-viewer@0.5.1, pptx-svelte-viewer@0.5.1_
+
+### Bug Fixes
+
+- **core:** Open Office-encrypted pptx files (by @ChristopherVR) ([51aa670](https://github.com/ChristopherVR/pptx-viewer/commit/51aa670e8ca78d78323f55766b1a4c0e8b366c00))
+
 ## 2026-07-12
 
 _Releases: pptx-react-viewer@1.16.1, @christophervr/pptx-viewer@1.5.1_

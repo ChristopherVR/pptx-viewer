@@ -74,6 +74,7 @@ These methods are the programmatic entry points around that interaction:
 | Method                 | Signature                              | Description                                                                    |
 | ---------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
 | `setEditable`          | `(editable: boolean) => void`          | Enable or disable editing at runtime (disabling clears the selection).         |
+| `setEditTemplateMode`  | `(enabled: boolean) => void`           | Target inherited master/layout elements on the current slide.                  |
 | `undo`                 | `() => void`                           | Undo the last edit (no-op when the undo stack is empty).                       |
 | `redo`                 | `() => void`                           | Redo the last undone edit (no-op when the redo stack is empty).                |
 | `canUndo`              | `() => boolean`                        | Whether `undo()` would do anything.                                            |

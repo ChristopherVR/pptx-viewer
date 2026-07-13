@@ -109,6 +109,7 @@ export const FONT_SUBSTITUTION_MAP: Record<string, readonly string[]> = {
 
 	// Decorative / Display
 	'Century Gothic': ['URW Gothic', 'Futura', 'sans-serif'],
+	Oswald: ['Agency FB', 'Arial Narrow', 'sans-serif'],
 	'Franklin Gothic': ['Liberation Sans', 'Helvetica Neue', 'sans-serif'],
 	'Franklin Gothic Medium': ['Liberation Sans', 'Helvetica Neue', 'sans-serif'],
 	Garamond: ['EB Garamond', 'Cormorant Garamond', 'serif'],

@@ -60,7 +60,12 @@
 					style={SMARTART_SVG_STYLE}
 				>
 					{#each view.shapes as shape (shape.key)}
-						<g style={view.shadow ? `filter: ${view.shadow}` : undefined}>
+						<g
+							style={view.shadow ? `filter: ${view.shadow}` : undefined}
+							role={shape.ariaLabel ? 'img' : undefined}
+							aria-label={shape.ariaLabel}
+						>
+							{#if shape.ariaLabel}<title>{shape.ariaLabel}</title>{/if}
 							{#if shape.isEllipse}
 								<ellipse
 									cx={shape.cx}
@@ -104,7 +109,12 @@
 						<path d={conn.d} fill="none" stroke={SMARTART_CONNECTOR_STROKE} stroke-width="1.5" opacity="0.5" />
 					{/each}
 					{#each view.layout.nodes as node (node.key)}
-						<g style={view.layout.shadowFilter ? `filter: ${view.layout.shadowFilter}` : undefined}>
+						<g
+							style={view.layout.shadowFilter ? `filter: ${view.layout.shadowFilter}` : undefined}
+							role={node.ariaLabel ? 'img' : undefined}
+							aria-label={node.ariaLabel}
+						>
+							{#if node.ariaLabel}<title>{node.ariaLabel}</title>{/if}
 							{#if node.kind === 'circle'}
 								<circle cx={node.cx} cy={node.cy} r={node.r} fill={node.fill} stroke={node.stroke} stroke-width={node.strokeWidth} opacity={node.opacity} />
 								{@render centeredText(node.text, node.cx, node.cy, 'white', node.fontSize)}

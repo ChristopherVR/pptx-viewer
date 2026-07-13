@@ -1,10 +1,12 @@
-import type { PptxHandler } from 'pptx-viewer-core';
+import type { PptxHandler, TextSegment } from 'pptx-viewer-core';
 import { downloadBlob } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
 import { createEditingChromeSync } from './editing-chrome-sync';
+import { getActiveElements } from './editor-active-elements';
+import { selectionOverlayBox } from './editor-controller-overlay';
 import { createDrawModeController } from './editor-draw-mode';
 import type { EditActions } from './editor-edit-ops';
 import { createEditActions } from './editor-edit-ops';
@@ -16,13 +18,6 @@ import { createStageInteractions } from './editor-stage-interactions';
 import type { SelectionOverlay } from './selection-overlay';
 import { createSelectionOverlay } from './selection-overlay';
 
-/**
- * The editing orchestrator for the vanilla viewer: wires the selection
- * overlay, pointer gestures (see `editor-stage-interactions`), inline text
- * editing, and the editing keyboard to the history-tracked operations in
- * `editor-operations`. All pure editing math lives in `pptx-viewer-shared`;
- * this module is DOM/event plumbing only.
- */
 export interface EditorControllerDeps {
 	doc: Document;
 	store: Store<ViewerState>;
@@ -64,8 +59,7 @@ export interface EditorController {
 	getEditActions(): EditActions;
 	/** The Find & Replace actions for the ribbon's docked panel. */
 	getFindReplaceActions(): FindReplaceActions;
-	/** Commit the speaker-notes textarea's plain text onto the current slide. */
-	commitNotes(notes: string): void;
+	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	save(): Promise<Uint8Array>;
 	downloadPptx(fileName?: string): Promise<void>;
 	destroy(): void;
@@ -80,11 +74,13 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	let attachedRoot: HTMLElement | null = null;
 
 	const updateToolbar = (): void => {
-		deps.getChrome().ribbon?.setEditState({
+		const state = {
 			editable: store.get().editable,
 			canUndo: ops.canUndo(),
 			canRedo: ops.canRedo(),
-		});
+		};
+		deps.getChrome().ribbon?.setEditState(state);
+		deps.getChrome().titleBar?.setEditState(state);
 	};
 
 	const ops = createEditorOps({
@@ -111,6 +107,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		getOverlay: () => overlay,
 		getStageRoot: () => attachedWrap?.querySelector('.pptxv-stage') ?? null,
 		onCursorMove: deps.onCursorMove,
+		onEditEquation: (id, omml) => deps.getChrome().ribbon?.openEquationEditor(id, omml),
 	});
 
 	// The Draw ribbon tab's pen/highlighter/eraser mode: routes each stage
@@ -138,13 +135,13 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			return;
 		}
 		const state = store.get();
-		const el = state.editable && !state.presenting ? ops.selectedElement(state) : undefined;
-		overlay.setBox(
-			el
-				? { x: el.x, y: el.y, width: el.width, height: el.height, rotation: el.rotation ?? 0 }
-				: null,
-			deps.getScale(),
-		);
+		const selected =
+			state.editable && !state.presenting
+				? getActiveElements(state).filter((element) =>
+						state.selectedElementIds.includes(element.id),
+					)
+				: [];
+		overlay.setBox(selectionOverlayBox(selected), deps.getScale());
 	};
 
 	const onKeyDown = createEditorKeydownHandler({
@@ -162,6 +159,13 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		nudgeSelected: (dx, dy) => ops.nudgeSelected(dx, dy),
 		undo: () => ops.undo(),
 		redo: () => ops.redo(),
+		cancelFormatPainter: () => {
+			if (!store.get().formatPainterSourceId) {
+				return false;
+			}
+			store.set({ formatPainterSourceId: null });
+			return true;
+		},
 	});
 
 	const detachChrome = (): void => {
@@ -187,7 +191,8 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			}
 		}
 		if (
-			state.slides !== previous.slides &&
+			(state.slides !== previous.slides ||
+				state.templateElementsBySlideId !== previous.templateElementsBySlideId) &&
 			state.selectedElementId &&
 			!ops.selectedElement(state)
 		) {
@@ -249,14 +254,23 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			ops.clearHistory();
 			store.set({
 				selectedElementId: null,
+				selectedElementIds: [],
 				dirty: false,
 				interactionActive: false,
 				drawTool: 'select',
+				formatPainterSourceId: null,
+				editTemplateMode: false,
+				masterViewTarget: null,
 			});
 			updateToolbar();
 		},
 		setEditable(editable) {
-			store.set({ editable });
+			store.set({
+				editable,
+				...(!editable
+					? { editTemplateMode: false, selectedElementId: null, selectedElementIds: [] }
+					: {}),
+			});
 		},
 		undo: () => ops.undo(),
 		redo: () => ops.redo(),
@@ -270,7 +284,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		setDrawWidth: (width) => drawMode.setWidth(width),
 		getEditActions: () => editActions,
 		getFindReplaceActions: () => findReplaceActions,
-		commitNotes: (notes) => ops.commitNotes(notes),
+		commitNotes: (notes, notesSegments) => ops.commitNotes(notes, notesSegments),
 		save: () => ops.save(),
 		async downloadPptx(fileName = 'presentation.pptx') {
 			const bytes = await ops.save();

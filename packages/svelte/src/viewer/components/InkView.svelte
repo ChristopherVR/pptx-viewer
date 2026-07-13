@@ -8,21 +8,25 @@
 	 * array) render as `<circle>`s whose radius follows the interpolated width
 	 * (shared `generatePressureCircles` maths).
 	 */
+	import { INK_REPLAY_KEYFRAMES } from 'pptx-viewer-shared';
+
 	import { buildInkStrokes, inkViewBox } from '../render';
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex }: ElementRendererProps = $props();
+	const { element, zIndex, presenting = false }: ElementRendererProps = $props();
 
 	const ink = $derived(element.type === 'ink' ? element : undefined);
-	const strokes = $derived(ink ? buildInkStrokes(ink) : []);
+	const strokes = $derived(ink ? buildInkStrokes(ink, presenting) : []);
+	const toolStyle = $derived(ink?.inkTool === 'highlighter' ? 'mix-blend-mode:multiply' : undefined);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 </script>
 
 {#if ink}
 	<div class="pptx-svelte-element pptx-svelte-ink" style={containerStyle} data-element-id={element.id}>
 		{#if strokes.length > 0}
-			<svg class="pptx-svelte-ink-svg" viewBox={inkViewBox(ink)} preserveAspectRatio="none">
+			<svg class="pptx-svelte-ink-svg" viewBox={inkViewBox(ink)} preserveAspectRatio="none" style={toolStyle}>
+				{#if presenting}<style>{INK_REPLAY_KEYFRAMES}</style>{/if}
 				{#each strokes as stroke (stroke.key)}
 					{#if stroke.circles}
 						<g opacity={stroke.opacity}>
@@ -40,6 +44,11 @@
 							stroke-linecap="round"
 							stroke-linejoin="round"
 							vector-effect="non-scaling-stroke"
+							stroke-dasharray={stroke.replay?.strokeDasharray}
+							stroke-dashoffset={stroke.replay?.strokeDashoffset}
+							style={stroke.replay
+								? `animation:${stroke.replay.animation};--ink-path-length:${stroke.replay.pathLength}`
+								: undefined}
 						/>
 					{/if}
 				{/each}

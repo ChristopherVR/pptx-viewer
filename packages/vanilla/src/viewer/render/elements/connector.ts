@@ -1,22 +1,27 @@
 import type { ConnectorArrowType } from 'pptx-viewer-core';
-import { getConnectorPathGeometry, hasShapeProperties } from 'pptx-viewer-core';
+import { getConnectorPathGeometry, hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import {
+	buildParagraphs,
 	connectorNeedsPath,
 	DEFAULT_STROKE_COLOR,
 	getCompoundLineOffsets,
 	getCompoundLineWidths,
+	getLineGlowFilterCss,
+	getLineShadowParams,
 	markerPath,
 } from 'pptx-viewer-shared';
 
 import { createEl, createSvgEl } from '../dom';
+import { getTextBlockStyle } from '../element-styles';
 import type { ElementRenderContext, ElementRenderer } from '../types';
+import { renderTextBlock } from './text-block';
 
 /**
  * Renderer for `connector` elements: straight, bent, and curved connectors as
  * an inline SVG spanning the element's bounding box, with stroke
  * colour/width/dash, start/end arrowheads, and compound (double/triple) line
- * support. Vanilla port of Vue's `ConnectorRenderer.vue` (connector text
- * labels and line shadow/glow effects are follow-up candidates).
+ * support, text labels, and line-level shadow/glow effects. Vanilla port of
+ * Vue's `ConnectorRenderer.vue` and React's connector effects path.
  *
  * Flip is baked into the geometry (not a CSS transform) so arrowheads point
  * the right way; only rotation goes on the wrapper transform.
@@ -53,6 +58,10 @@ export const renderConnectorElement: ElementRenderer = (element, zIndex, context
 	if (element.hidden) {
 		wrapper.style.display = 'none';
 	}
+	const lineGlow = getLineGlowFilterCss(ss);
+	if (lineGlow) {
+		wrapper.style.filter = lineGlow;
+	}
 
 	const svg = createSvgEl(doc, 'svg', { width: w, height: h, viewBox: `0 0 ${w} ${h}` });
 	svg.setAttribute('style', 'overflow:visible;display:block');
@@ -60,6 +69,27 @@ export const renderConnectorElement: ElementRenderer = (element, zIndex, context
 	// Arrow markers (distinct, DOM-id-safe ids per element + side).
 	const seed = element.id.replace(/[^a-zA-Z0-9_-]/gu, '_');
 	const defs = createSvgEl(doc, 'defs');
+	const lineShadow = getLineShadowParams(ss);
+	const shadowId = lineShadow ? `${seed}-line-shadow` : undefined;
+	if (lineShadow && shadowId) {
+		const filter = createSvgEl(doc, 'filter', {
+			id: shadowId,
+			x: '-50%',
+			y: '-50%',
+			width: '200%',
+			height: '200%',
+		});
+		filter.appendChild(
+			createSvgEl(doc, 'feDropShadow', {
+				dx: lineShadow.offsetX,
+				dy: lineShadow.offsetY,
+				stdDeviation: lineShadow.blur / 2,
+				'flood-color': lineShadow.color,
+				'flood-opacity': lineShadow.opacity,
+			}),
+		);
+		defs.appendChild(filter);
+	}
 	const startArrow = normalizeArrow(ss?.connectorStartArrow);
 	const endArrow = normalizeArrow(ss?.connectorEndArrow);
 	const startMarkerId = startArrow ? `${seed}-start` : undefined;
@@ -92,6 +122,7 @@ export const renderConnectorElement: ElementRenderer = (element, zIndex, context
 			'stroke-linecap': 'round',
 			'marker-start': idx === 0 && startMarkerId ? `url(#${startMarkerId})` : undefined,
 			'marker-end': idx === offsets.length - 1 && endMarkerId ? `url(#${endMarkerId})` : undefined,
+			filter: shadowId ? `url(#${shadowId})` : undefined,
 		};
 		let node: SVGElement;
 		if (pathData !== undefined) {
@@ -118,8 +149,36 @@ export const renderConnectorElement: ElementRenderer = (element, zIndex, context
 	});
 
 	wrapper.appendChild(svg);
+	appendConnectorLabel(wrapper, element, context);
 	return wrapper;
 };
+
+function appendConnectorLabel(
+	wrapper: HTMLElement,
+	element: Parameters<ElementRenderer>[0],
+	context: ElementRenderContext,
+): void {
+	if (!hasTextProperties(element)) {
+		return;
+	}
+	const paragraphs = buildParagraphs(element);
+	if (!paragraphs.some((paragraph) => paragraph.runs.length > 0)) {
+		return;
+	}
+	const label = renderTextBlock(context.document, paragraphs, {
+		...getTextBlockStyle(element),
+		position: 'absolute',
+		left: '10%',
+		top: '50%',
+		width: '80%',
+		height: 'auto',
+		transform: 'translateY(-50%)',
+		textAlign: element.textStyle?.align ?? 'center',
+		pointerEvents: 'none',
+	});
+	label.classList.add('pptxv-connector-label');
+	wrapper.appendChild(label);
+}
 
 function normalizeArrow(a: ConnectorArrowType | undefined): ConnectorArrowType | undefined {
 	return a && a !== 'none' ? a : undefined;

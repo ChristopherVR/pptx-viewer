@@ -97,14 +97,21 @@ The viewer root is focusable (`tabindex="0"`). With focus on the viewer:
 
 ## Styling / required CSS
 
-There is **no CSS import**: the stylesheet is injected once per document as a
+No CSS import is required: the stylesheet is injected once per document as a
 `<style id="pptx-vanilla-viewer-styles">` tag when the first viewer is created, scoped under the
 `.pptxv` root class. Creating more viewers reuses the same tag.
 
 ### CSP-strict hosts: `getViewerCss` {#csp-strict-hosts-getviewercss}
 
-If your Content Security Policy forbids injected style tags, render the stylesheet yourself; the
-automatic injection is a no-op once a node with that id exists:
+If your Content Security Policy forbids injected style tags, import the packaged
+static stylesheet:
+
+```ts
+import 'pptx-vanilla-viewer/styles.css';
+```
+
+Alternatively, render the stylesheet text yourself. Automatic injection is a
+no-op once a node with the viewer style id exists:
 
 ```ts
 import { getViewerCss } from 'pptx-vanilla-viewer';

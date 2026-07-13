@@ -1,4 +1,4 @@
-import { cloneSlide } from 'pptx-viewer-core';
+import { cloneElement, cloneSlide } from 'pptx-viewer-core';
 import { createBlankSlide, makeSlideId } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
@@ -39,7 +39,12 @@ export function createSlideActions(deps: SlideActionsDeps): SlideActions {
 				slide,
 				...state.slides.slice(insertAt),
 			].map((s, i) => ({ ...s, slideNumber: i + 1 }));
-			store.set({ slides, currentSlide: insertAt, selectedElementId: null });
+			store.set({
+				slides,
+				currentSlide: insertAt,
+				selectedElementId: null,
+				selectedElementIds: [],
+			});
 			ops.commitChange();
 		},
 
@@ -52,12 +57,22 @@ export function createSlideActions(deps: SlideActionsDeps): SlideActions {
 			ops.pushHistory();
 			const insertAt = state.currentSlide + 1;
 			const copy = { ...cloneSlide(source), id: makeSlideId() };
+			const sourceTemplate = state.templateElementsBySlideId[source.id] ?? [];
 			const slides = [
 				...state.slides.slice(0, insertAt),
 				copy,
 				...state.slides.slice(insertAt),
 			].map((s, i) => ({ ...s, slideNumber: i + 1 }));
-			store.set({ slides, currentSlide: insertAt, selectedElementId: null });
+			store.set({
+				slides,
+				templateElementsBySlideId: {
+					...state.templateElementsBySlideId,
+					[copy.id]: sourceTemplate.map(cloneElement),
+				},
+				currentSlide: insertAt,
+				selectedElementId: null,
+				selectedElementIds: [],
+			});
 			ops.commitChange();
 		},
 
@@ -71,7 +86,15 @@ export function createSlideActions(deps: SlideActionsDeps): SlideActions {
 				.filter((_, i) => i !== state.currentSlide)
 				.map((s, i) => ({ ...s, slideNumber: i + 1 }));
 			const currentSlide = Math.min(state.currentSlide, slides.length - 1);
-			store.set({ slides, currentSlide, selectedElementId: null });
+			const templateElementsBySlideId = { ...state.templateElementsBySlideId };
+			delete templateElementsBySlideId[state.slides[state.currentSlide].id];
+			store.set({
+				slides,
+				templateElementsBySlideId,
+				currentSlide,
+				selectedElementId: null,
+				selectedElementIds: [],
+			});
 			ops.commitChange();
 		},
 	};

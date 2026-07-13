@@ -1,5 +1,16 @@
-import type { PptxSlide } from 'pptx-viewer-core';
-import { resolveNotesSegments, segmentsToPlainText } from 'pptx-viewer-shared';
+import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
+import {
+	applyInlineCommand,
+	applyParagraphCommand,
+	createPlainNotesSegments,
+	defaultRichEnabled,
+	insertHyperlinkAtSelection,
+	normalizeNotesLinkUrl,
+	readEditorSegments,
+	resolveNotesSegments,
+	segmentsToEditorHtml,
+	segmentsToPlainText,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -37,7 +48,7 @@ export function createNotesPanel(
 	doc: Document,
 	t: Translator,
 	onToggle: () => void,
-	onCommit: (notes: string) => void,
+	onCommit: (notes: string, notesSegments?: TextSegment[]) => void,
 ): NotesPanel {
 	const el = createEl(doc, 'div', 'pptxv-notes');
 
@@ -63,6 +74,20 @@ export function createNotesPanel(
 	body.id = 'slide-notes-content';
 	el.appendChild(body);
 
+	const toolbar = createEl(doc, 'div', 'pptxv-notes-toolbar');
+	body.appendChild(toolbar);
+	const editorMode = doc.createElement('button');
+	editorMode.type = 'button';
+	editorMode.className = 'pptxv-notes-mode';
+	toolbar.appendChild(editorMode);
+
+	const richEditor = createEl(doc, 'div', 'pptxv-notes-rich-editor');
+	richEditor.contentEditable = 'true';
+	richEditor.setAttribute('role', 'textbox');
+	richEditor.setAttribute('aria-multiline', 'true');
+	richEditor.setAttribute('aria-label', t('pptx.presenter.speakerNotes'));
+	body.appendChild(richEditor);
+
 	const textarea = doc.createElement('textarea');
 	textarea.className = 'pptxv-notes-textarea';
 	textarea.name = 'slide-notes';
@@ -73,6 +98,84 @@ export function createNotesPanel(
 	let expanded = false;
 	let seededSlideId: string | null = null;
 	let editable = false;
+	let richEnabled = defaultRichEnabled();
+	let segments: TextSegment[] = [];
+
+	const setMode = (nextRichEnabled: boolean): void => {
+		richEnabled = nextRichEnabled;
+		richEditor.hidden = !richEnabled;
+		textarea.hidden = richEnabled;
+		toolbar.hidden = !editable;
+		editorMode.textContent = richEnabled ? t('pptx.notes.plainEditor') : t('pptx.notes.richEditor');
+		editorMode.setAttribute('aria-pressed', String(richEnabled));
+	};
+
+	const commitRich = (): void => {
+		if (!editable) {
+			return;
+		}
+		const result = readEditorSegments(richEditor);
+		segments = result.segments;
+		onCommit(result.text, result.segments);
+	};
+	const addCommand = (label: string, commandTitle: string, action: () => void): void => {
+		const button = doc.createElement('button');
+		button.type = 'button';
+		button.className = 'pptxv-notes-tool';
+		button.textContent = label;
+		button.title = commandTitle;
+		button.setAttribute('aria-label', commandTitle);
+		button.addEventListener('mousedown', (event) => event.preventDefault());
+		button.addEventListener('click', () => {
+			richEditor.focus();
+			action();
+			commitRich();
+		});
+		toolbar.insertBefore(button, editorMode);
+	};
+	addCommand('B', t('pptx.notes.bold'), () => applyInlineCommand('bold'));
+	addCommand('I', t('pptx.notes.italic'), () => applyInlineCommand('italic'));
+	addCommand('U', t('pptx.notes.underline'), () => applyInlineCommand('underline'));
+	addCommand('S', t('pptx.notes.strikethrough'), () => applyInlineCommand('strikeThrough'));
+	addCommand('•', t('pptx.notes.bulletList'), () => {
+		const result = applyParagraphCommand(richEditor, segments, 'bullet');
+		segments = result.segments;
+		richEditor.innerHTML = segmentsToEditorHtml(segments);
+	});
+	addCommand('1.', t('pptx.notes.numberedList'), () => {
+		const result = applyParagraphCommand(richEditor, segments, 'numbered');
+		segments = result.segments;
+		richEditor.innerHTML = segmentsToEditorHtml(segments);
+	});
+	addCommand('→', t('pptx.notes.indent'), () => {
+		const result = applyParagraphCommand(richEditor, segments, 'indent');
+		segments = result.segments;
+		richEditor.innerHTML = segmentsToEditorHtml(segments);
+	});
+	addCommand('←', t('pptx.notes.outdent'), () => {
+		const result = applyParagraphCommand(richEditor, segments, 'outdent');
+		segments = result.segments;
+		richEditor.innerHTML = segmentsToEditorHtml(segments);
+	});
+	addCommand('↗', t('pptx.notes.insertLink'), () => {
+		const selected = doc.getSelection()?.toString() ?? '';
+		const url = window.prompt(t('pptx.notes.linkUrl'), 'https://');
+		if (!url) {
+			return;
+		}
+		const displayText = window.prompt(t('pptx.notes.linkDisplayText'), selected) ?? selected;
+		insertHyperlinkAtSelection(normalizeNotesLinkUrl(url), displayText);
+	});
+	editorMode.addEventListener('click', () => {
+		if (richEnabled) {
+			commitRich();
+			textarea.value = segmentsToPlainText(segments);
+		} else {
+			segments = createPlainNotesSegments(textarea.value);
+			richEditor.innerHTML = segmentsToEditorHtml(segments);
+		}
+		setMode(!richEnabled);
+	});
 
 	const commit = (): void => {
 		if (!editable) {
@@ -82,6 +185,7 @@ export function createNotesPanel(
 	};
 	textarea.addEventListener('change', commit);
 	textarea.addEventListener('blur', commit);
+	richEditor.addEventListener('blur', commitRich);
 
 	const applyExpanded = (): void => {
 		el.dataset.collapsed = expanded ? 'false' : 'true';
@@ -90,6 +194,7 @@ export function createNotesPanel(
 		chevron.textContent = expanded ? '▾' : '▸';
 	};
 	applyExpanded();
+	setMode(richEnabled);
 
 	return {
 		el,
@@ -98,6 +203,8 @@ export function createNotesPanel(
 			const hasSlide = slide !== undefined;
 			textarea.disabled = !hasSlide;
 			textarea.readOnly = !editable;
+			richEditor.contentEditable = String(editable && hasSlide);
+			toolbar.hidden = !editable;
 			textarea.placeholder = hasSlide ? t('pptx.notes.addSpeakerNotes') : t('pptx.notes.noSlide');
 
 			const slideId = slide?.id ?? null;
@@ -105,7 +212,9 @@ export function createNotesPanel(
 				return;
 			}
 			seededSlideId = slideId;
-			textarea.value = segmentsToPlainText(resolveNotesSegments(slide));
+			segments = resolveNotesSegments(slide);
+			textarea.value = segmentsToPlainText(segments);
+			richEditor.innerHTML = segmentsToEditorHtml(segments);
 		},
 		setExpanded(next) {
 			expanded = next;

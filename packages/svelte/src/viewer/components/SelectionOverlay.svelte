@@ -18,7 +18,7 @@
 	import { useTranslator } from '../../i18n/context';
 	import type { SelectionOverlayProps } from './props';
 
-	const { box, scale, snapLines, editing = false, onhandlepointerdown, onrotatepointerdown }:
+	const { box, scale, snapLines, editing = false, selectionCount = 1, marquee = null, onhandlepointerdown, onrotatepointerdown }:
 		SelectionOverlayProps = $props();
 
 	const t = useTranslator();
@@ -59,7 +59,7 @@
 <div class="pptx-svelte-editor-overlay" class:is-editing={editing}>
 	{#if box && !editing}
 		<div class="pptx-svelte-sel-box" style={boxStyle}>
-			<div
+			{#if selectionCount === 1}<div
 				class="pptx-svelte-rotate-stem"
 				style={`height:${ROTATE_STEM_PX}px;top:${-ROTATE_STEM_PX}px`}
 			></div>
@@ -69,7 +69,7 @@
 				style={`top:${-ROTATE_STEM_PX}px`}
 				aria-label={t('pptx.selectionOverlay.rotate')}
 				onpointerdown={onrotatepointerdown}
-			></button>
+			></button>{/if}
 			{#each RESIZE_HANDLES as handle (handle)}
 				<button
 					type="button"
@@ -81,6 +81,9 @@
 				></button>
 			{/each}
 		</div>
+	{/if}
+	{#if marquee}
+		<div class="pptx-svelte-marquee" style={`left:${Math.min(marquee.startX, marquee.currentX) * scale}px;top:${Math.min(marquee.startY, marquee.currentY) * scale}px;width:${Math.abs(marquee.currentX - marquee.startX) * scale}px;height:${Math.abs(marquee.currentY - marquee.startY) * scale}px`}></div>
 	{/if}
 	<div class="pptx-svelte-snap-layer">
 		{#each snapLines as line, i (i)}
@@ -150,6 +153,13 @@
 		position: absolute;
 		inset: 0;
 		pointer-events: none;
+	}
+
+	.pptx-svelte-marquee {
+		position: absolute;
+		box-sizing: border-box;
+		border: 1px solid var(--pptx-primary, #6366f1);
+		background: color-mix(in srgb, var(--pptx-primary, #6366f1) 14%, transparent);
 	}
 
 	.pptx-svelte-snap-line {

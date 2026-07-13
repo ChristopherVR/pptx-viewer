@@ -31,6 +31,7 @@ describe('createPptxViewer', () => {
 		expect(container.querySelector('.pptxv-ribbon')).toBeTruthy();
 		expect(container.querySelector('.pptxv-thumbs')).toBeTruthy();
 		expect(container.querySelector('.pptxv-viewport')).toBeTruthy();
+		expect(container.querySelector('.pptxv-mobile-nav')).toBeTruthy();
 
 		mount();
 		const styleTags = document.querySelectorAll('#pptx-vanilla-viewer-styles');

@@ -1,7 +1,9 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import type { CanvasSize, RenderParagraph, ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
 
 import type { EditorController } from '../editor/editor-controller.svelte';
+import type { EditorMarqueeRect } from '../editor/editor-selection-gestures';
+import type { EditorState } from '../editor/editor-state.svelte';
 import type { OverlayBox } from '../editor/types';
 import type { ExportUiState } from '../export/export-ui.svelte';
 import type { AutosaveStatus } from '../state/autosave.svelte';
@@ -33,6 +35,14 @@ export interface ElementRendererProps {
 	 * Defaults to `false`.
 	 */
 	interactive?: boolean;
+	/** Whether inherited layout/master nodes participate in pointer editing. */
+	editTemplateMode?: boolean;
+	ontablecellcommit?: (
+		elementId: string,
+		rowIndex: number,
+		cellIndex: number,
+		text: string,
+	) => void;
 }
 
 export interface TextBlockProps {
@@ -55,6 +65,13 @@ export interface SlideStageProps {
 	 * forwarded to each `ElementRenderer`; see `ElementRendererProps.interactive`.
 	 */
 	interactive?: boolean;
+	editTemplateMode?: boolean;
+	ontablecellcommit?: (
+		elementId: string,
+		rowIndex: number,
+		cellIndex: number,
+		text: string,
+	) => void;
 }
 
 export interface ViewerToolbarProps {
@@ -119,6 +136,10 @@ export interface SelectionOverlayProps {
 	snapLines: readonly SnapLine[];
 	/** Hide the box/handles while the inline text editor is open. */
 	editing?: boolean;
+	/** Number of selected elements; collective boxes do not expose rotation. */
+	selectionCount?: number;
+	/** In-progress empty-canvas marquee rectangle. */
+	marquee?: EditorMarqueeRect | null;
 	onhandlepointerdown: (handle: ResizeHandleId, event: PointerEvent) => void;
 	onrotatepointerdown: (event: PointerEvent) => void;
 }
@@ -145,12 +166,23 @@ export interface EditorLayerProps {
 	scale: number;
 }
 
+/** Position and callbacks for the editable element context menu. */
+export interface ElementContextMenuProps {
+	x: number;
+	y: number;
+	editor: EditorState;
+	onclose: () => void;
+}
+
 export interface ThumbnailRailProps {
 	slides: PptxSlide[];
 	canvasSize: CanvasSize;
 	mediaDataUrls: Map<string, string>;
 	current: number;
 	onselect: (index: number) => void;
+	/** Enables native thumbnail drag-and-drop slide reordering. */
+	editable?: boolean;
+	onmove?: (fromIndex: number, toIndex: number) => void;
 }
 
 export interface NotesPanelProps {
@@ -168,7 +200,7 @@ export interface NotesPanelProps {
 	 * host is responsible for writing the text back onto the slide. Mirrors
 	 * the Vue notes panel's plain-text `update` emit contract.
 	 */
-	onupdate?: (notes: string) => void;
+	onupdate?: (notes: string, segments?: TextSegment[]) => void;
 	/** Called when the header is clicked to expand/collapse the panel. */
 	ontoggle?: () => void;
 }

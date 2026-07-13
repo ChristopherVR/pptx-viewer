@@ -1,9 +1,10 @@
 import type { InkPptxElement } from 'pptx-viewer-core';
-import type { PressureCircle } from 'pptx-viewer-shared';
+import type { InkStrokeAnimationStyle, PressureCircle } from 'pptx-viewer-shared';
 import {
 	DEFAULT_STROKE_COLOR,
 	extractPathPoints,
 	generatePressureCircles,
+	getInkReplayStyles,
 	hasPressureVariation,
 	pressuresToWidths,
 } from 'pptx-viewer-shared';
@@ -24,6 +25,8 @@ export interface InkStrokeView {
 	opacity: number;
 	/** Per-point pressure circles; `null` renders the plain `<path>`. */
 	circles: PressureCircle[] | null;
+	/** Sequential reveal style, enabled only while presenting. */
+	replay: InkStrokeAnimationStyle | null;
 }
 
 /** SVG `viewBox` for the ink element's bounding box (min 1x1). */
@@ -32,7 +35,9 @@ export function inkViewBox(element: InkPptxElement): string {
 }
 
 /** Project the element's parallel ink arrays into per-stroke view models. */
-export function buildInkStrokes(element: InkPptxElement): InkStrokeView[] {
+
+export function buildInkStrokes(element: InkPptxElement, replay = false): InkStrokeView[] {
+	const replayStyles = replay ? getInkReplayStyles(element) : [];
 	return element.inkPaths.map((d, i) => {
 		const width = element.inkWidths?.[i] ?? 1;
 		return {
@@ -42,6 +47,7 @@ export function buildInkStrokes(element: InkPptxElement): InkStrokeView[] {
 			width,
 			opacity: element.inkOpacities?.[i] ?? 1,
 			circles: pressureCirclesFor(element, d, i, width),
+			replay: replayStyles[i] ?? null,
 		};
 	});
 }
