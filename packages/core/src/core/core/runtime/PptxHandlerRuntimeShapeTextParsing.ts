@@ -147,8 +147,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			paraAlign,
 			ctx.slideRelationshipMap,
 		);
-		const level = Number.parseInt(String(pPr?.['@_lvl'] || '0'), 10);
-		const levelKey = `a:lvl${Number.isFinite(level) ? Math.min(Math.max(level + 1, 1), 9) : 1}pPr`;
+		// An omitted level inherits a:defPPr. It is distinct from an explicit
+		// lvl="0", which inherits a:lvl1pPr.
+		const level = pPr?.['@_lvl'] === undefined ? -1 : Number.parseInt(String(pPr['@_lvl']), 10);
+		const levelKey =
+			level === -1
+				? 'a:defPPr'
+				: `a:lvl${Number.isFinite(level) ? Math.min(Math.max(level + 1, 1), 9) : 1}pPr`;
 		const inheritedLevelStyle = this.extractTextRunStyle(
 			(
 				(ctx.inheritedTxBody?.['a:lstStyle'] as XmlObject | undefined)?.[levelKey] as
@@ -180,7 +185,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Apply placeholder level-specific defaults as fallback
 		if (ctx.effectiveLevelStyles) {
-			const normalizedLevel = Number.isFinite(level) ? Math.min(Math.max(level, 0), 8) : 0;
+			const normalizedLevel =
+				level === -1 ? -1 : Number.isFinite(level) ? Math.min(Math.max(level, 0), 8) : 0;
 			const phLevel = ctx.effectiveLevelStyles[normalizedLevel] ?? ctx.effectiveLevelStyles[-1];
 			if (phLevel) {
 				this.applyPlaceholderLevelDefaults(mergedDefaultRunStyle, phLevel);
@@ -200,7 +206,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		let effectiveMarginLeft = parMarginLeft;
 		let effectiveIndent = parIndent;
 		if (ctx.effectiveLevelStyles) {
-			const normalizedLevel = Number.isFinite(level) ? Math.min(Math.max(level, 0), 8) : 0;
+			const normalizedLevel =
+				level === -1 ? -1 : Number.isFinite(level) ? Math.min(Math.max(level, 0), 8) : 0;
 			const phLevel = ctx.effectiveLevelStyles[normalizedLevel] ?? ctx.effectiveLevelStyles[-1];
 			if (phLevel) {
 				if (effectiveMarginLeft === undefined && phLevel.marginLeft !== undefined) {

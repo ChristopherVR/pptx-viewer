@@ -670,6 +670,24 @@ describe('error Handling', () => {
 		]);
 	});
 
+	it('uses the default paragraph style when a paragraph omits its level', async () => {
+		const bytes = await readFile(
+			new URL(
+				'../../../../../e2e/fixtures/Image_JPG_PNG_Audio_M4_A_Video_MP_4_12_Slides_36_8_MB_ff1095731b.pptx',
+				import.meta.url,
+			),
+		);
+		const handler = new PptxHandler();
+		const data = await handler.load(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+		);
+		const subtitle = data.slides[0]!.elements.find(
+			(element) => 'text' in element && element.text === 'Your Name • Sept 20XX',
+		);
+
+		expect(subtitle).toMatchObject({ type: 'text', textStyle: { color: '#000000' } });
+	});
+
 	it('rejects non-ZIP data (random bytes)', async () => {
 		const handler = new PptxHandler();
 		const garbage = new Uint8Array(256);
