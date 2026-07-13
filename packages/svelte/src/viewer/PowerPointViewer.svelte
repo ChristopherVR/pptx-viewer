@@ -453,6 +453,10 @@
 		collabCursors={collab.cursors}
 		contextMenu={stageContextMenu}
 		onContextMenuClose={() => { stageContextMenu = null; }}
+		onmoveSlide={(fromIndex, toIndex) => {
+			const target = editor.slidesOps.moveSlide(fromIndex, toIndex);
+			if (target !== null) viewer.goTo(target);
+		}}
 	/>
 	{#if showToolbar && chromeVisible}
 		<StatusBar

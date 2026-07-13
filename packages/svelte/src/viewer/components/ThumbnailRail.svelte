@@ -8,13 +8,26 @@
 	import SlideStage from './SlideStage.svelte';
 	import type { ThumbnailRailProps } from './props';
 
-	const { slides, canvasSize, mediaDataUrls, current, onselect }: ThumbnailRailProps = $props();
+	const { slides, canvasSize, mediaDataUrls, current, onselect, editable = false, onmove }: ThumbnailRailProps = $props();
 
 	const t = useTranslator();
 
 	const THUMB_WIDTH = 148;
 	const thumbScale = $derived(canvasSize.width > 0 ? THUMB_WIDTH / canvasSize.width : 0.1);
 	const thumbHeight = $derived(Math.round(canvasSize.height * thumbScale));
+	let draggedIndex = $state<number | null>(null);
+
+	function onDragStart(index: number, event: DragEvent): void {
+		draggedIndex = index;
+		event.dataTransfer?.setData('text/plain', String(index));
+		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+	}
+
+	function onDrop(index: number, event: DragEvent): void {
+		event.preventDefault();
+		if (draggedIndex !== null) onmove?.(draggedIndex, index);
+		draggedIndex = null;
+	}
 </script>
 
 <nav class="pptx-svelte-thumbs" aria-label={t('pptx.toolbar.toggleSlidesPanel')}>
@@ -25,7 +38,14 @@
 			class:pptx-svelte-thumb-active={index === current}
 			aria-label={t('pptx.statusBar.slideOf', { current: index + 1, total: slides.length })}
 			aria-current={index === current ? 'true' : undefined}
+			draggable={editable}
+			class:pptx-svelte-thumb-dragging={draggedIndex === index}
+			class:pptx-svelte-thumb-drop-target={draggedIndex !== null && draggedIndex !== index}
 			onclick={() => onselect(index)}
+			ondragstart={(event) => onDragStart(index, event)}
+			ondragend={() => { draggedIndex = null; }}
+			ondragover={editable ? (event) => event.preventDefault() : undefined}
+			ondrop={editable ? (event) => onDrop(index, event) : undefined}
 		>
 			<span class="pptx-svelte-thumb-number">{index + 1}</span>
 			<span class="pptx-svelte-thumb-frame" style={`width: ${THUMB_WIDTH}px; height: ${thumbHeight}px`}>
@@ -83,4 +103,8 @@
 	.pptx-svelte-thumb:hover .pptx-svelte-thumb-frame {
 		outline-color: var(--pptx-ring, #6366f1);
 	}
+
+	.pptx-svelte-thumb[draggable='true'] { cursor: grab; }
+	.pptx-svelte-thumb-dragging { opacity: .45; }
+	.pptx-svelte-thumb-drop-target { border-top: 2px solid var(--pptx-primary, #6366f1); }
 </style>

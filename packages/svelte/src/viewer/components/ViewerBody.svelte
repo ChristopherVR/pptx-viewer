@@ -52,6 +52,7 @@
 		collabCursors = [],
 		contextMenu,
 		onContextMenuClose,
+		onmoveSlide,
 	}: {
 		t: Translator;
 		editor: EditorState;
@@ -89,6 +90,7 @@
 		/** Open element menu position, supplied by the editing controller. */
 		contextMenu: { x: number; y: number } | null;
 		onContextMenuClose: () => void;
+		onmoveSlide?: (fromIndex: number, toIndex: number) => void;
 	} = $props();
 
 	// The template's bind:clientWidth/Height write these (invisible to the linter).
@@ -113,7 +115,15 @@
 
 <div class="pptx-svelte-body">
 	{#if showThumbnails && chromeVisible && displaySlides.length > 0}
-		<ThumbnailRail slides={displaySlides} {canvasSize} {mediaDataUrls} {current} {onselect} />
+		<ThumbnailRail
+			slides={displaySlides}
+			{canvasSize}
+			{mediaDataUrls}
+			{current}
+			{onselect}
+			editable={editingActive}
+			onmove={onmoveSlide}
+		/>
 	{/if}
 	<div class="pptx-svelte-main">
 		<div

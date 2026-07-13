@@ -160,6 +160,9 @@ export interface ThumbnailRailProps {
 	mediaDataUrls: Map<string, string>;
 	current: number;
 	onselect: (index: number) => void;
+	/** Enables native thumbnail drag-and-drop slide reordering. */
+	editable?: boolean;
+	onmove?: (fromIndex: number, toIndex: number) => void;
 }
 
 export interface NotesPanelProps {

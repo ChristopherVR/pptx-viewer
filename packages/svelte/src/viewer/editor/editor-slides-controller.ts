@@ -1,4 +1,9 @@
-import { deleteSlideAt, duplicateSlideAt, insertBlankSlideAfter } from './editor-slide-ops';
+import {
+	deleteSlideAt,
+	duplicateSlideAt,
+	insertBlankSlideAfter,
+	moveSlide,
+} from './editor-slide-ops';
 import type { EditorState } from './editor-state.svelte';
 
 /**
@@ -54,5 +59,19 @@ export class EditorSlidesController {
 		this.#editor.commitSlides(result.slides);
 		this.#editor.selection.clear();
 		return result.newIndex;
+	}
+
+	/** Move an arbitrary thumbnail slide. Returns the selected target index on success. */
+	moveSlide(fromIndex: number, toIndex: number): number | null {
+		if (!this.#editor.editable) {
+			return null;
+		}
+		const slides = moveSlide(this.#editor.slides, fromIndex, toIndex);
+		if (!slides) {
+			return null;
+		}
+		this.#editor.commitSlides(slides);
+		this.#editor.selection.clear();
+		return toIndex;
 	}
 }
