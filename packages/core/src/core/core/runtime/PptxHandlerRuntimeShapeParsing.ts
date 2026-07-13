@@ -17,7 +17,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					: undefined;
 			const inheritedSpPr = (inheritedPlaceholder?.shape?.['p:spPr'] ||
 				inheritedPlaceholder?.picture?.['p:spPr']) as XmlObject | undefined;
-			const effectiveSpPr = this.mergeXmlObjects(inheritedSpPr, spPr);
+			// A slide placeholder inherits its transform from the layout/master,
+			// but does not automatically render the ancestor's fill or line. Those
+			// visual properties belong to the layout/master placeholder itself.
+			const effectiveSpPr = spPr
+				? {
+						...spPr,
+						'a:xfrm': this.mergeXmlObjects(
+							inheritedSpPr?.['a:xfrm'] as XmlObject | undefined,
+							spPr['a:xfrm'] as XmlObject | undefined,
+						),
+					}
+				: inheritedSpPr;
 			const xfrm = (effectiveSpPr?.['a:xfrm'] || spPr?.['a:xfrm'] || inheritedSpPr?.['a:xfrm']) as
 				| XmlObject
 				| undefined;

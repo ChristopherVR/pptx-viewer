@@ -13,7 +13,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		textStyle: TextStyle,
 		ctx: ShapeTextParsingContext,
 	): ParagraphStyleResult {
-		const pPr = p['a:pPr'] as XmlObject | undefined;
+		// Slide placeholders often contain only text. Their paragraph properties
+		// (notably alignment and RTL direction) remain on the matching layout or
+		// master placeholder, so merge them before resolving the paragraph style.
+		const inheritedParagraph = this.ensureArray(ctx.inheritedTxBody?.['a:p'])[0] as
+			| XmlObject
+			| undefined;
+		const pPr = this.mergeXmlObjects(
+			inheritedParagraph?.['a:pPr'] as XmlObject | undefined,
+			p['a:pPr'] as XmlObject | undefined,
+		);
 		const paragraphRtl = this.parseOptionalBooleanAttr(pPr?.['@_rtl']);
 		if (paragraphRtl !== undefined && textStyle.rtl === undefined) {
 			textStyle.rtl = paragraphRtl;
@@ -192,6 +201,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.applyPlaceholderLevelDefaults(mergedDefaultRunStyle, phLevel);
 				this.applyPlaceholderLevelDefaults(textStyle, phLevel);
 			}
+		}
+		if (pPr?.['@_algn'] === undefined && textStyle.align !== undefined) {
+			paraAlign = textStyle.align;
 		}
 
 		// Per-paragraph indentation (also checking placeholder level defaults)

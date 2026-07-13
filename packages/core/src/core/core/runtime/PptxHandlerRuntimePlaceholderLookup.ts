@@ -47,19 +47,35 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			xmlPath(layoutXmlObj, 'p:sldLayout', 'p:cSld', 'p:spTree'),
 			expected,
 		);
-		if (layoutContext) {
+
+		const masterPath = this.resolveMasterPathForLayout(layoutPath);
+		const masterContext = masterPath
+			? this.findPlaceholderInShapeTree(
+					xmlPath(this.masterXmlMap.get(masterPath), 'p:sldMaster', 'p:cSld', 'p:spTree'),
+					expected,
+				)
+			: undefined;
+
+		if (!layoutContext) {
+			return masterContext;
+		}
+		if (!masterContext) {
 			return layoutContext;
 		}
 
-		const masterPath = this.resolveMasterPathForLayout(layoutPath);
-		if (!masterPath) {
-			return undefined;
-		}
-		const masterXmlObj = this.masterXmlMap.get(masterPath);
-		return this.findPlaceholderInShapeTree(
-			xmlPath(masterXmlObj, 'p:sldMaster', 'p:cSld', 'p:spTree'),
-			expected,
-		);
+		// A layout placeholder can override only its text properties and inherit
+		// its transform and style from the matching master placeholder. Return a
+		// merged node so slide shapes resolve the complete inheritance chain.
+		return {
+			shape:
+				layoutContext.shape || masterContext.shape
+					? this.mergeXmlObjects(masterContext.shape, layoutContext.shape)
+					: undefined,
+			picture:
+				layoutContext.picture || masterContext.picture
+					? this.mergeXmlObjects(masterContext.picture, layoutContext.picture)
+					: undefined,
+		};
 	}
 
 	protected mergeXmlObjects(
@@ -168,51 +184,69 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const masterPath = this.resolveMasterPathForLayout(layoutPath);
 		const masterMap = masterPath ? this.masterPlaceholderDefaultsCache.get(masterPath) : undefined;
 		const masterDefaults = masterMap?.get(phKey);
+		const normalizedType = this.buildPlaceholderDefaultsKey(phInfo).split('_')[0];
+		const masterTextStyles = masterPath ? this.masterTxStylesCache.get(masterPath) : undefined;
+		const masterTextLevels =
+			normalizedType === 'title'
+				? masterTextStyles?.titleStyle
+				: normalizedType === 'body'
+					? masterTextStyles?.bodyStyle
+					: masterTextStyles?.otherStyle;
+		const resolvedMasterDefaults = masterTextLevels
+			? {
+					type: masterDefaults?.type ?? normalizedType,
+					...masterDefaults,
+					levelStyles: this.mergePlaceholderLevelStyles(
+						masterTextLevels,
+						masterDefaults?.levelStyles,
+					),
+				}
+			: masterDefaults;
 
-		if (!layoutDefaults && !masterDefaults) {
+		if (!layoutDefaults && !resolvedMasterDefaults) {
 			return undefined;
 		}
-		if (!masterDefaults) {
+		if (!resolvedMasterDefaults) {
 			return layoutDefaults;
 		}
 		if (!layoutDefaults) {
-			return masterDefaults;
+			return resolvedMasterDefaults;
 		}
 
 		// Merge: layout wins over master
 		const merged: PlaceholderDefaults = {
 			type: layoutDefaults.type,
-			idx: layoutDefaults.idx ?? masterDefaults.idx,
-			bodyInsetLeft: layoutDefaults.bodyInsetLeft ?? masterDefaults.bodyInsetLeft,
-			bodyInsetTop: layoutDefaults.bodyInsetTop ?? masterDefaults.bodyInsetTop,
-			bodyInsetRight: layoutDefaults.bodyInsetRight ?? masterDefaults.bodyInsetRight,
-			bodyInsetBottom: layoutDefaults.bodyInsetBottom ?? masterDefaults.bodyInsetBottom,
-			textAnchor: layoutDefaults.textAnchor ?? masterDefaults.textAnchor,
-			autoFit: layoutDefaults.autoFit ?? masterDefaults.autoFit,
-			textWrap: layoutDefaults.textWrap ?? masterDefaults.textWrap,
-			promptText: layoutDefaults.promptText ?? masterDefaults.promptText,
+			idx: layoutDefaults.idx ?? resolvedMasterDefaults.idx,
+			bodyInsetLeft: layoutDefaults.bodyInsetLeft ?? resolvedMasterDefaults.bodyInsetLeft,
+			bodyInsetTop: layoutDefaults.bodyInsetTop ?? resolvedMasterDefaults.bodyInsetTop,
+			bodyInsetRight: layoutDefaults.bodyInsetRight ?? resolvedMasterDefaults.bodyInsetRight,
+			bodyInsetBottom: layoutDefaults.bodyInsetBottom ?? resolvedMasterDefaults.bodyInsetBottom,
+			textAnchor: layoutDefaults.textAnchor ?? resolvedMasterDefaults.textAnchor,
+			autoFit: layoutDefaults.autoFit ?? resolvedMasterDefaults.autoFit,
+			textWrap: layoutDefaults.textWrap ?? resolvedMasterDefaults.textWrap,
+			promptText: layoutDefaults.promptText ?? resolvedMasterDefaults.promptText,
 		};
 
 		// Merge level styles (layout levels override master levels, per-field)
-		if (layoutDefaults.levelStyles || masterDefaults.levelStyles) {
-			const mergedLevels: Record<number, PlaceholderTextLevelStyle> = {};
-			const allLevelKeys = new Set([
-				...Object.keys(layoutDefaults.levelStyles ?? {}),
-				...Object.keys(masterDefaults.levelStyles ?? {}),
-			]);
-			for (const keyStr of allLevelKeys) {
-				const key = Number.parseInt(keyStr, 10);
-				const layoutLevel = layoutDefaults.levelStyles?.[key];
-				const masterLevel = masterDefaults.levelStyles?.[key];
-				if (layoutLevel && masterLevel) {
-					mergedLevels[key] = { ...masterLevel, ...layoutLevel };
-				} else {
-					mergedLevels[key] = (layoutLevel ?? masterLevel)!;
-				}
-			}
-			merged.levelStyles = mergedLevels;
+		if (layoutDefaults.levelStyles || resolvedMasterDefaults.levelStyles) {
+			merged.levelStyles = this.mergePlaceholderLevelStyles(
+				resolvedMasterDefaults.levelStyles,
+				layoutDefaults.levelStyles,
+			);
 		}
 
+		return merged;
+	}
+
+	private mergePlaceholderLevelStyles(
+		base: Record<number, PlaceholderTextLevelStyle> | undefined,
+		override: Record<number, PlaceholderTextLevelStyle> | undefined,
+	): Record<number, PlaceholderTextLevelStyle> {
+		const merged: Record<number, PlaceholderTextLevelStyle> = {};
+		for (const key of new Set([...Object.keys(base ?? {}), ...Object.keys(override ?? {})])) {
+			const level = Number.parseInt(key, 10);
+			merged[level] = { ...base?.[level], ...override?.[level] };
+		}
 		return merged;
 	}
 }
