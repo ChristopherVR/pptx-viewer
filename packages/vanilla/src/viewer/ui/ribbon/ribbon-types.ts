@@ -25,6 +25,7 @@ export interface RibbonNavHandlers {
 	zoomToFit(): void;
 	togglePresentation(): void;
 	toggleNotes(): void;
+	openAccessibility(): void;
 }
 
 /** Primary-row handlers: quick-access undo/redo/save (editing only). */

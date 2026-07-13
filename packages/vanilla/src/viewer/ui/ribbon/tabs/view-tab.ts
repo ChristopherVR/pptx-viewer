@@ -41,8 +41,13 @@ export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavH
 		icon: 'notes',
 		onClick: handlers.toggleNotes,
 	});
+	const accessibility = makeButton(doc, {
+		label: t('pptx.ribbon.accessibilityCheck'),
+		icon: 'sidebar',
+		onClick: handlers.openAccessibility,
+	});
 
-	el.append(zoomOut.btn, zoomIn.btn, fit.btn, present.btn, notes.btn);
+	el.append(zoomOut.btn, zoomIn.btn, fit.btn, present.btn, notes.btn, accessibility.btn);
 
 	return { el };
 }

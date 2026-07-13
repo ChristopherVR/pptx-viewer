@@ -2,6 +2,8 @@ import type { TextSegment } from 'pptx-viewer-core';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import type { AccessibilityPanel } from './accessibility-panel';
+import { createAccessibilityPanel } from './accessibility-panel';
 import type { Inspector, InspectorHandlers } from './inspector';
 import { createInspector } from './inspector';
 import type { MobileNavigation } from './mobile-navigation';
@@ -50,6 +52,8 @@ export interface ViewerChrome {
 	titleBar: TitleBar | null;
 	/** Property inspector panel; null when disabled. */
 	inspector: Inspector | null;
+	/** Cross-slide accessibility checker results, opened from the View ribbon. */
+	accessibility: AccessibilityPanel;
 	thumbnails: ThumbnailRail | null;
 	/** Scrollable centring viewport around the stage. */
 	viewport: HTMLElement;
@@ -95,6 +99,8 @@ export function buildViewerChrome(
 
 	const body = createEl(doc, 'div', 'pptxv-body');
 	root.appendChild(body);
+	const accessibility = createAccessibilityPanel(doc, t, options.onSelectSlide);
+	root.appendChild(accessibility.el);
 
 	let thumbnails: ThumbnailRail | null = null;
 	if (options.showThumbnails) {
@@ -171,6 +177,7 @@ export function buildViewerChrome(
 		ribbon,
 		titleBar,
 		inspector,
+		accessibility,
 		thumbnails,
 		viewport,
 		stageWrap,

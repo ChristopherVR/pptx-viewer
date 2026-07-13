@@ -150,4 +150,40 @@ export const EDITOR_CSS = `
 /* Presentation mode hides all editing chrome (the ribbon is covered by
  * \`.pptxv.pptxv-presenting .pptxv-ribbon\` in css.ts). */
 .pptxv.pptxv-presenting .pptxv-inspector { display: none; }
+
+/* ── Accessibility checker ───────────────────────────────────────────── */
+.pptxv-accessibility-panel {
+	position: absolute;
+	top: 56px;
+	right: 12px;
+	z-index: 20;
+	width: min(360px, calc(100% - 24px));
+	max-height: min(560px, calc(100% - 72px));
+	overflow: auto;
+	border: 1px solid var(--pptx-border);
+	border-radius: calc(var(--pptx-radius) + 2px);
+	background: var(--pptx-card);
+	color: var(--pptx-card-foreground);
+	box-shadow: 0 16px 36px rgb(0 0 0 / 20%);
+}
+.pptxv-accessibility-panel[hidden] { display: none; }
+.pptxv-accessibility-header { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--pptx-border); }
+.pptxv-accessibility-title { margin: 0; font-size: 13px; }
+.pptxv-accessibility-close { border: 0; border-radius: var(--pptx-radius); background: transparent; color: var(--pptx-foreground); cursor: pointer; font: inherit; font-size: 12px; padding: 4px 7px; }
+.pptxv-accessibility-close:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-accessibility-summary { margin: 0; padding: 8px 12px; color: var(--pptx-muted-foreground); font-size: 11px; }
+.pptxv-accessibility-list { padding: 0 8px 8px; }
+.pptxv-accessibility-group { margin-top: 8px; }
+.pptxv-accessibility-group-title { margin: 0 4px 5px; color: var(--pptx-muted-foreground); font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
+.pptxv-accessibility-issue { display: grid; width: 100%; grid-template-columns: 1fr auto; gap: 3px 10px; margin: 3px 0; padding: 8px; border: 0; border-left: 3px solid var(--pptx-border); border-radius: var(--pptx-radius); background: var(--pptx-muted); color: inherit; cursor: pointer; font: inherit; text-align: left; }
+.pptxv-accessibility-group.is-error .pptxv-accessibility-issue { border-left-color: #d64545; }
+.pptxv-accessibility-group.is-warning .pptxv-accessibility-issue { border-left-color: #d9911b; }
+.pptxv-accessibility-group.is-tip .pptxv-accessibility-issue { border-left-color: #4b8bc5; }
+.pptxv-accessibility-issue:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-accessibility-issue-type { font-size: 11px; }
+.pptxv-accessibility-issue-message { grid-column: 1 / -1; color: var(--pptx-muted-foreground); font-size: 11px; line-height: 1.35; }
+.pptxv-accessibility-issue:hover .pptxv-accessibility-issue-message { color: inherit; }
+.pptxv-accessibility-issue-slide { color: var(--pptx-muted-foreground); font-size: 10px; }
+.pptxv-accessibility-empty { margin: 12px 4px; color: var(--pptx-muted-foreground); font-size: 12px; text-align: center; }
+.pptxv.pptxv-presenting .pptxv-accessibility-panel { display: none; }
 `;

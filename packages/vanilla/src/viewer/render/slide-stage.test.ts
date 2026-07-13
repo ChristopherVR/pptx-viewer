@@ -178,4 +178,26 @@ describe('renderSlideStage', () => {
 		const custom = stage.querySelector<HTMLElement>('[data-element-id="el-table"]');
 		expect(custom?.dataset.custom).toBe('yes');
 	});
+
+	it('adds shared ARIA metadata to the interactive stage only', () => {
+		const interactive = renderSlideStage({
+			document,
+			slide: buildSlide(),
+			canvasSize: { width: 1280, height: 720 },
+			mediaDataUrls: new Map<string, string>(),
+			registry: createDefaultRegistry(),
+			t: createTranslator(),
+			interactive: true,
+		});
+		const image = interactive.querySelector<HTMLElement>('[data-element-id="el-image"]');
+		const text = interactive.querySelector<HTMLElement>('[data-element-id="el-text"]');
+		expect(image?.getAttribute('role')).toBe('img');
+		expect(image?.getAttribute('aria-label')).toBe('Image');
+		expect(text?.getAttribute('aria-label')).toBe('Hello world');
+
+		const thumbnail = renderStage();
+		expect(
+			thumbnail.querySelector('[data-element-id="el-image"]')?.getAttribute('role'),
+		).toBeNull();
+	});
 });

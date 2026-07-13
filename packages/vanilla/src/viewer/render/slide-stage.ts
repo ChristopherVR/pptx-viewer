@@ -1,6 +1,11 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
-import { getSlideBackgroundStyle } from 'pptx-viewer-shared';
+import {
+	getAriaLabel,
+	getAriaRole,
+	getAriaRoleDescription,
+	getSlideBackgroundStyle,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from './dom';
@@ -72,6 +77,7 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 			const node = registry.resolve(element.type)(element, zIndex, context);
 			if (node && interactive && 'setAttribute' in node) {
 				node.setAttribute('data-pptx-element', 'true');
+				applyElementAccessibility(node, element);
 			}
 			return node;
 		},
@@ -85,4 +91,22 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 	});
 
 	return stage;
+}
+
+/**
+ * Give every interactive rendered element the same shared accessibility
+ * metadata used by React. This stays at the stage boundary so custom host
+ * renderers receive it too, and thumbnails do not duplicate the slide's
+ * screen-reader tree.
+ */
+function applyElementAccessibility(node: HTMLElement | SVGElement, element: PptxElement): void {
+	const role = getAriaRole(element);
+	if (role !== undefined) {
+		node.setAttribute('role', role);
+	}
+	node.setAttribute('aria-label', getAriaLabel(element));
+	const roleDescription = getAriaRoleDescription(element);
+	if (roleDescription !== undefined) {
+		node.setAttribute('aria-roledescription', roleDescription);
+	}
 }

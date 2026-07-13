@@ -1,5 +1,7 @@
 export type { ChromeOptions, ViewerChrome } from './chrome';
 export { buildViewerChrome } from './chrome';
+export type { AccessibilityPanel } from './accessibility-panel';
+export { createAccessibilityPanel } from './accessibility-panel';
 export type { ButtonHandle, ColorControlHandle, NumberFieldHandle } from './controls';
 export { makeButton, makeColorControl, makeNumberField } from './controls';
 export type { DropdownHandle, DropdownItem, DropdownOptions } from './dropdown';

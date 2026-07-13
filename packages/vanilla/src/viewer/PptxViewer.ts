@@ -1,5 +1,6 @@
 import type { PptxHandler } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
+import { collectAccessibilityIssues } from 'pptx-viewer-shared';
 
 import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
 import { buildMountChromeDeps, mountChrome, unmountChrome } from './chrome-lifecycle';
@@ -189,6 +190,11 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			theme,
 			this.lifecycle.appliedThemeVars,
 		);
+	}
+
+	/** Run the shared WCAG checks against the live deck and show the results. */
+	openAccessibility(): void {
+		this.lifecycle.chrome.accessibility.open(collectAccessibilityIssues(this.store.get().slides));
 	}
 
 	setLocale(locale: string): void {

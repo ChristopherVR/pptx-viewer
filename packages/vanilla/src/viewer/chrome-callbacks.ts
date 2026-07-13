@@ -27,6 +27,7 @@ export interface ChromeCallbackDeps {
 	startPresentationFromCurrent(): void;
 	openBroadcast(): void;
 	toggleNotes(): void;
+	openAccessibility(): void;
 	goToSlide(index: number): void;
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	exportSlidePng(): Promise<void>;
@@ -68,6 +69,7 @@ export function buildChromeCallbacks(
 			zoomToFit: () => deps.zoomToFit(),
 			togglePresentation: () => deps.togglePresentation(),
 			toggleNotes: () => deps.toggleNotes(),
+			openAccessibility: () => deps.openAccessibility(),
 		},
 		primary: {
 			undo: () => deps.undo(),
