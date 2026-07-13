@@ -369,6 +369,11 @@
 				onshare={() => dialogs.openShare()}
 				onbroadcast={() => dialogs.openBroadcast()}
 				collabActive={collab.active}
+				onfrombeginning={() => {
+					viewer.goTo(0);
+					onFullscreenToggle();
+				}}
+				onfromcurrent={onFullscreenToggle}
 				{exportUi}
 				theme={effectiveTheme}
 				onsettheme={onSetTheme}

@@ -42,6 +42,9 @@ export interface RibbonProps {
 	onshare?: () => void;
 	onbroadcast?: () => void;
 	collabActive?: boolean;
+	/** Slide Show tab actions: enter presentation from slide 0 or the current slide. */
+	onfrombeginning: () => void;
+	onfromcurrent: () => void;
 
 	/** View tab: zoom / fullscreen / notes toggle. */
 	zoomPercent: number;

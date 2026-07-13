@@ -19,6 +19,7 @@
 	import RibbonNavRow from './RibbonNavRow.svelte';
 	import RibbonPrimaryRow from './RibbonPrimaryRow.svelte';
 	import RibbonTabBar from './RibbonTabBar.svelte';
+	import SlideShowTab from './slideshow/SlideShowTab.svelte';
 	import { DEFAULT_RIBBON_TAB } from './ribbon-tabs';
 	import type { RibbonProps } from './ribbon-types';
 	import TransitionsTab from './transitions/TransitionsTab.svelte';
@@ -81,6 +82,12 @@
 			<TransitionsTab editor={props.editor} />
 		{:else if activeTab === 'animations'}
 			<AnimationsTab editor={props.editor} />
+		{:else if activeTab === 'slideShow'}
+			<SlideShowTab
+				onfrombeginning={props.onfrombeginning}
+				onfromcurrent={props.onfromcurrent}
+				onbroadcast={props.onbroadcast}
+			/>
 		{:else if activeTab === 'view'}
 			<ViewTab
 				zoomPercent={props.zoomPercent}
