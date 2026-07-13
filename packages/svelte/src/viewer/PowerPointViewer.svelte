@@ -15,6 +15,7 @@
 	import CollaborationChrome from './collab/components/CollaborationChrome.svelte';
 	import { useCollaborationPresenceEffects } from './collab/collaboration-presence-effects.svelte';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
+	import MobileChrome from './components/MobileChrome.svelte';
 	import StatusBar from './components/StatusBar.svelte';
 	import TitleBar from './components/TitleBar.svelte';
 	import Ribbon from './components/ribbon/Ribbon.svelte';
@@ -462,6 +463,21 @@
 			onbroadcast={() => dialogs.openBroadcast()}
 			collabActive={collab.active}
 		/>
+		<MobileChrome
+			current={viewer.current}
+			total={viewer.slideCount}
+			zoomPercent={effectivePercent}
+			showNotes={showNotes && loader.slides.length > 0}
+			{notesExpanded}
+			isFullscreen={viewer.isFullscreen}
+			onprev={() => viewer.prev()}
+			onnext={() => viewer.next()}
+			onzoomin={() => viewer.zoomIn(effectivePercent)}
+			onzoomout={() => viewer.zoomOut(effectivePercent)}
+			onzoomfit={() => viewer.zoomToFit()}
+			onfullscreen={onFullscreenToggle}
+			onnotestoggle={onNotesToggle}
+		/>
 	{/if}
 	<CollaborationChrome
 		{collab}
@@ -488,5 +504,20 @@
 
 	.pptx-svelte-fullscreen {
 		background: #000;
+	}
+
+	@media (max-width: 720px) {
+		:global(.pptx-svelte-titlebar),
+		:global(.pptx-svelte-ribbon),
+		:global(.pptx-svelte-toolbar),
+		:global(.pptx-svelte-statusbar),
+		:global(.pptx-svelte-thumbs),
+		:global(.pptx-svelte-inspector) {
+			display: none !important;
+		}
+
+		:global(.pptx-svelte-viewport) {
+			padding-bottom: 64px;
+		}
 	}
 </style>
