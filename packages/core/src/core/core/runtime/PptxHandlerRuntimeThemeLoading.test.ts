@@ -1,5 +1,7 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
+import { isPresentationThemePartPath } from './PptxHandlerRuntimeThemeLoading';
+
 // ---------------------------------------------------------------------------
 // Extracted logic from PptxHandlerRuntimeThemeLoading
 // ---------------------------------------------------------------------------
@@ -29,6 +31,18 @@ interface PptxTheme {
 	fontScheme?: PptxThemeFontScheme;
 	formatScheme?: unknown;
 }
+
+describe('isPresentationThemePartPath', () => {
+	it('accepts standard and custom presentation theme part names', () => {
+		expect(isPresentationThemePartPath('ppt/theme/theme1.xml')).toBeTruthy();
+		expect(isPresentationThemePartPath('ppt/theme/corporate-brand.xml')).toBeTruthy();
+	});
+
+	it('rejects theme overrides and unrelated parts', () => {
+		expect(isPresentationThemePartPath('ppt/theme/themeOverride1.xml')).toBeFalsy();
+		expect(isPresentationThemePartPath('ppt/slideMasters/slideMaster1.xml')).toBeFalsy();
+	});
+});
 
 /**
  * Extracted from buildThemeObject — builds a structured theme from maps.

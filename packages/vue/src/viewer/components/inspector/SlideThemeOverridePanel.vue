@@ -10,10 +10,10 @@
  */
 import type { ColorMapAliasKey, PptxSlide, PptxTheme } from 'pptx-viewer-core';
 import {
+	applyThemeOverrideToSlide,
 	COLOR_MAP_ALIAS_KEYS,
 	DEFAULT_COLOR_MAP,
 	THEME_COLOR_SCHEME_KEYS,
-	hasNonTrivialOverride,
 } from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -44,7 +44,7 @@ const ALIAS_LABELS: Record<ColorMapAliasKey, string> = {
 };
 
 const override = computed<Record<string, string> | undefined>(() => props.slide?.clrMapOverride);
-const isActive = computed(() => hasNonTrivialOverride(override.value));
+const isActive = computed(() => override.value !== undefined);
 const aliasKeys = COLOR_MAP_ALIAS_KEYS;
 const slotOptions = [...THEME_COLOR_SCHEME_KEYS];
 
@@ -59,15 +59,29 @@ function slotColor(slot: string): string | undefined {
 	return hex ? `#${hex.replace(/^#/u, '')}` : undefined;
 }
 
+function emitOverride(nextOverride: Record<string, string> | undefined): void {
+	if (!props.slide || !props.theme?.colorScheme) {
+		emit('update', { clrMapOverride: nextOverride });
+		return;
+	}
+
+	const nextSlide = applyThemeOverrideToSlide(props.slide, props.theme.colorScheme, nextOverride);
+	emit('update', {
+		clrMapOverride: nextSlide.clrMapOverride,
+		backgroundColor: nextSlide.backgroundColor,
+		elements: nextSlide.elements,
+	});
+}
+
 function onToggle(event: Event): void {
 	if ((event.target as HTMLInputElement).checked) {
 		const identity: Record<string, string> = {};
 		for (const key of COLOR_MAP_ALIAS_KEYS) {
 			identity[key] = DEFAULT_COLOR_MAP[key];
 		}
-		emit('update', { clrMapOverride: identity });
+		emitOverride(identity);
 	} else {
-		emit('update', { clrMapOverride: undefined });
+		emitOverride(undefined);
 	}
 }
 
@@ -79,7 +93,7 @@ function onAliasChange(alias: ColorMapAliasKey, event: Event): void {
 			next[key] = DEFAULT_COLOR_MAP[key];
 		}
 	}
-	emit('update', { clrMapOverride: next });
+	emitOverride(next);
 }
 </script>
 

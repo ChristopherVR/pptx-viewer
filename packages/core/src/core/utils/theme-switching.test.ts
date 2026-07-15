@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import type { PptxSlide, PptxElement, PptxThemeColorScheme, PptxData, TextSegment } from '../types';
+import { applyThemeOverrideToSlide } from './slide-theme-override';
 import { reResolveSlideColors, applyThemeToData, buildThemeColorMap } from './theme-switching';
 
 // ---------------------------------------------------------------------------
@@ -215,6 +216,55 @@ describe('reResolveSlideColors', () => {
 		};
 		expect(resultEl.shapeStyle?.shadowColor).toBe('#1B1D2C'); // ION dk2
 		expect(resultEl.shapeStyle?.glowColor).toBe('#58C1BA'); // ION hlink
+	});
+});
+
+describe('applyThemeOverrideToSlide', () => {
+	it('stores an identity override without changing resolved colours', () => {
+		const slide = makeSlide([makeShapeElement()]);
+		const identity = {
+			bg1: 'lt1',
+			tx1: 'dk1',
+			bg2: 'lt2',
+			tx2: 'dk2',
+			accent1: 'accent1',
+			accent2: 'accent2',
+			accent3: 'accent3',
+			accent4: 'accent4',
+			accent5: 'accent5',
+			accent6: 'accent6',
+			hlink: 'hlink',
+			folHlink: 'folHlink',
+		};
+
+		const result = applyThemeOverrideToSlide(slide, OFFICE_COLORS, identity);
+
+		expect(result.clrMapOverride).toStrictEqual(identity);
+		expect(result.elements).toBe(slide.elements);
+	});
+
+	it('recolours the slide when an alias is remapped', () => {
+		const slide = makeSlide([makeShapeElement()]);
+		const result = applyThemeOverrideToSlide(slide, OFFICE_COLORS, {
+			accent1: 'accent2',
+		});
+		const shape = result.elements![0] as {
+			shapeStyle?: { fillColor?: string; strokeColor?: string };
+		};
+
+		expect(shape.shapeStyle?.fillColor).toBe('#ED7D31');
+		expect(shape.shapeStyle?.strokeColor).toBe('#ED7D31');
+	});
+
+	it('restores base colours when an override is disabled', () => {
+		const overridden = applyThemeOverrideToSlide(makeSlide([makeShapeElement()]), OFFICE_COLORS, {
+			accent1: 'accent2',
+		});
+		const restored = applyThemeOverrideToSlide(overridden, OFFICE_COLORS, undefined);
+		const shape = restored.elements![0] as { shapeStyle?: { fillColor?: string } };
+
+		expect(restored.clrMapOverride).toBeUndefined();
+		expect(shape.shapeStyle?.fillColor).toBe('#4472C4');
 	});
 });
 

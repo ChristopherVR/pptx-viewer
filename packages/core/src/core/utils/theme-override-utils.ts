@@ -167,3 +167,15 @@ export function hasNonTrivialOverride(
 	}
 	return false;
 }
+
+/** Compare two complete theme colour schemes using normalised hex values. */
+export function themeColorSchemesEqual(
+	left: PptxThemeColorScheme | null | undefined,
+	right: PptxThemeColorScheme | null | undefined,
+): boolean {
+	if (!left || !right) {
+		return false;
+	}
+	const normalize = (value: string) => value.replace(/^#/u, '').toUpperCase();
+	return THEME_COLOR_SCHEME_KEYS.every((key) => normalize(left[key]) === normalize(right[key]));
+}

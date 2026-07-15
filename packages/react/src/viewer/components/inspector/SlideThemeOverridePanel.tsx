@@ -1,8 +1,8 @@
 import type { PptxSlide, PptxTheme, ColorMapAliasKey } from 'pptx-viewer-core';
 import {
+	applyThemeOverrideToSlide,
 	COLOR_MAP_ALIAS_KEYS,
 	DEFAULT_COLOR_MAP,
-	hasNonTrivialOverride,
 	THEME_COLOR_SCHEME_KEYS,
 } from 'pptx-viewer-core';
 import React, { useCallback, useMemo } from 'react';
@@ -55,10 +55,27 @@ export function SlideThemeOverridePanel({
 	const { t } = useTranslation();
 
 	const override = activeSlide?.clrMapOverride;
-	const isOverrideActive = hasNonTrivialOverride(override);
+	const isOverrideActive = override !== undefined;
 
 	/** All possible target slots a logical alias can point to. */
 	const targetSlotOptions = useMemo(() => [...THEME_COLOR_SCHEME_KEYS], []);
+
+	const commitOverride = useCallback(
+		(nextOverride: Record<string, string> | undefined) => {
+			if (!activeSlide || !theme?.colorScheme) {
+				onUpdateSlide({ clrMapOverride: nextOverride });
+				return;
+			}
+
+			const nextSlide = applyThemeOverrideToSlide(activeSlide, theme.colorScheme, nextOverride);
+			onUpdateSlide({
+				clrMapOverride: nextSlide.clrMapOverride,
+				backgroundColor: nextSlide.backgroundColor,
+				elements: nextSlide.elements,
+			});
+		},
+		[activeSlide, onUpdateSlide, theme?.colorScheme],
+	);
 
 	const handleToggle = useCallback(
 		(enabled: boolean) => {
@@ -68,12 +85,12 @@ export function SlideThemeOverridePanel({
 				for (const key of COLOR_MAP_ALIAS_KEYS) {
 					defaultMap[key] = DEFAULT_COLOR_MAP[key];
 				}
-				onUpdateSlide({ clrMapOverride: defaultMap });
+				commitOverride(defaultMap);
 			} else {
-				onUpdateSlide({ clrMapOverride: undefined });
+				commitOverride(undefined);
 			}
 		},
-		[onUpdateSlide],
+		[commitOverride],
 	);
 
 	const handleAliasChange = useCallback(
@@ -86,9 +103,9 @@ export function SlideThemeOverridePanel({
 					next[key] = DEFAULT_COLOR_MAP[key];
 				}
 			}
-			onUpdateSlide({ clrMapOverride: next });
+			commitOverride(next);
 		},
-		[override, onUpdateSlide],
+		[commitOverride, override],
 	);
 
 	/**

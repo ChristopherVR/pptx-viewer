@@ -1,18 +1,19 @@
 import { hasTextProperties } from 'pptx-viewer-core';
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuX } from 'react-icons/lu';
 
 import { useSheetDismissDrag } from '../hooks/useSheetDismissDrag';
 import { cn } from '../utils';
 import { AnimationPanel } from './inspector/AnimationPanel';
 import { ElementInspectorBody } from './inspector/ElementInspectorBody';
 // Extracted inspector modules
-import { INSPECTOR_TABS as TABS, HEADING } from './inspector/inspector-pane-constants';
+import { HEADING } from './inspector/inspector-pane-constants';
 import type { InspectorPaneProps } from './inspector/inspector-pane-types';
 import { InspectorCommentsSection } from './inspector/InspectorCommentsSection';
+import { InspectorPaneHeader } from './inspector/InspectorPaneHeader';
 import { PresentationPropertiesPanel } from './inspector/PresentationPropertiesPanel';
 import { SlideBackgroundPanel } from './inspector/SlideBackgroundPanel';
+import { useInspectorPaneState } from './inspector/useInspectorPaneState';
 import { ResizeHandle } from './ResizeHandle';
 
 // ---------------------------------------------------------------------------
@@ -88,27 +89,13 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 	// transform below is therefore a no-op on desktop where this is a side panel.
 	const { dragY, handlers: dragHandlers } = useSheetDismissDrag(onClose);
 
-	const [selectedThemePath, setSelectedThemePath] = useState<string>('');
-
-	// Animation panel resizable height
-	const ANIM_MIN = 80;
-	const ANIM_MAX = 500;
-	const ANIM_DEFAULT = 220;
-	const [animPanelHeight, setAnimPanelHeight] = useState(ANIM_DEFAULT);
-	const onResizeAnim = useCallback((delta: number) => {
-		// Dragging up → negative delta → panel grows
-		setAnimPanelHeight((h) => Math.min(ANIM_MAX, Math.max(ANIM_MIN, h - delta)));
-	}, []);
-
-	useEffect(() => {
-		const activeThemePath = slideMasters?.[0]?.themePath;
-		if (activeThemePath && activeThemePath.length > 0) {
-			setSelectedThemePath(activeThemePath);
-			return;
-		}
-		const fallback = themeOptions[0]?.path ?? '';
-		setSelectedThemePath((previous) => previous || fallback);
-	}, [slideMasters, themeOptions]);
+	const {
+		animationPanelHeight,
+		effectiveThemeOptions,
+		onResizeAnimationPanel,
+		selectedThemePath,
+		setSelectedThemePath,
+	} = useInspectorPaneState(themeOptions, slideMasters, theme);
 
 	return (
 		<>
@@ -150,36 +137,11 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 					<div className='h-1 w-10 rounded-full bg-muted-foreground/40' />
 				</div>
 
-				{/* Header */}
-				<div className='flex items-center justify-between gap-2 px-3 py-2 border-b border-border'>
-					<div className='flex items-center gap-1 rounded bg-muted p-0.5'>
-						{TABS.map(({ key, label, icon: Icon }) => (
-							<button
-								key={key}
-								type='button'
-								title={label}
-								className={cn(
-									'flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors',
-									activeTab === key
-										? 'bg-primary text-white'
-										: 'text-muted-foreground hover:text-foreground hover:bg-accent',
-								)}
-								onClick={() => onSetActiveTab(key)}
-							>
-								<Icon className='w-3.5 h-3.5' />
-								<span className='hidden sm:inline'>{label}</span>
-							</button>
-						))}
-					</div>
-					<button
-						type='button'
-						onClick={onClose}
-						title={t('common.close')}
-						className='p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors'
-					>
-						<LuX className='w-4 h-4' />
-					</button>
-				</div>
+				<InspectorPaneHeader
+					activeTab={activeTab}
+					onSetActiveTab={onSetActiveTab}
+					onClose={onClose}
+				/>
 
 				{/* Tab content */}
 				<div className='flex-1 overflow-y-auto p-3 space-y-3'>
@@ -244,7 +206,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 										coreProperties={coreProperties}
 										appProperties={appProperties}
 										customProperties={customProperties}
-										themeOptions={themeOptions}
+										themeOptions={effectiveThemeOptions}
 										selectedThemePath={selectedThemePath}
 										setSelectedThemePath={setSelectedThemePath}
 										onApplyTheme={onApplyTheme}
@@ -307,10 +269,10 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 				{/* Animation panel: always visible at bottom when element selected */}
 				{hasSelection && selectedElement && activeSlide && (
 					<>
-						<ResizeHandle direction='vertical' onResize={onResizeAnim} />
+						<ResizeHandle direction='vertical' onResize={onResizeAnimationPanel} />
 						<div
 							className='border-t border-border p-3 overflow-y-auto flex-shrink-0'
-							style={{ height: animPanelHeight }}
+							style={{ height: animationPanelHeight }}
 						>
 							<AnimationPanel
 								selectedElement={selectedElement}

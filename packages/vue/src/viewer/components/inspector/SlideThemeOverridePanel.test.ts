@@ -1,13 +1,44 @@
 import { mount } from '@vue/test-utils';
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTheme } from 'pptx-viewer-core';
 import { COLOR_MAP_ALIAS_KEYS, DEFAULT_COLOR_MAP } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import SlideThemeOverridePanel from './SlideThemeOverridePanel.vue';
 
 function slide(over: Partial<PptxSlide> = {}): PptxSlide {
-	return { id: 's1', elements: [], ...over } as PptxSlide;
+	return {
+		id: 's1',
+		elements: [
+			{
+				id: 'shape-1',
+				type: 'shape',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 100,
+				shapeStyle: { fillColor: '#4472C4' },
+			},
+		],
+		...over,
+	} as PptxSlide;
 }
+
+const theme: PptxTheme = {
+	colorScheme: {
+		dk1: '#000000',
+		lt1: '#FFFFFF',
+		dk2: '#44546A',
+		lt2: '#E7E6E6',
+		accent1: '#4472C4',
+		accent2: '#ED7D31',
+		accent3: '#A5A5A5',
+		accent4: '#FFC000',
+		accent5: '#5B9BD5',
+		accent6: '#70AD47',
+		hlink: '#0563C1',
+		folHlink: '#954F72',
+	},
+};
 
 describe('slideThemeOverridePanel', () => {
 	it('shows only the toggle (off) when no override is set', () => {
@@ -27,6 +58,16 @@ describe('slideThemeOverridePanel', () => {
 		}
 	});
 
+	it('keeps an identity override enabled and visible', () => {
+		const wrapper = mount(SlideThemeOverridePanel, {
+			props: { slide: slide({ clrMapOverride: { ...DEFAULT_COLOR_MAP } }) },
+		});
+		expect(
+			(wrapper.get('input[type="checkbox"]').element as HTMLInputElement).checked,
+		).toBeTruthy();
+		expect(wrapper.findAll('select')).toHaveLength(COLOR_MAP_ALIAS_KEYS.length);
+	});
+
 	it('clears the override when toggled off', async () => {
 		const active: Record<string, string> = { ...DEFAULT_COLOR_MAP, bg1: 'dk1' };
 		const wrapper = mount(SlideThemeOverridePanel, {
@@ -39,19 +80,19 @@ describe('slideThemeOverridePanel', () => {
 	});
 
 	it('renders an alias row per colour-map key when active and remaps on select', async () => {
-		// A non-trivial override (one alias differs from default) keeps the rows
-		// visible: hasNonTrivialOverride treats an identity map as inactive.
 		const active: Record<string, string> = { ...DEFAULT_COLOR_MAP, tx1: 'dk2' };
 		const wrapper = mount(SlideThemeOverridePanel, {
-			props: { slide: slide({ clrMapOverride: active }) },
+			props: { slide: slide({ clrMapOverride: active }), theme },
 		});
 		const selects = wrapper.findAll('select');
 		expect(selects).toHaveLength(COLOR_MAP_ALIAS_KEYS.length);
 
-		await selects[0].setValue('dk2');
+		await selects[4].setValue('accent2');
 		const patch = wrapper.emitted('update')?.at(-1)?.[0] as Partial<PptxSlide>;
-		expect(patch.clrMapOverride?.[COLOR_MAP_ALIAS_KEYS[0]]).toBe('dk2');
+		expect(patch.clrMapOverride?.accent1).toBe('accent2');
 		// Other aliases keep their existing values (defaults filled where missing).
 		expect(patch.clrMapOverride?.[COLOR_MAP_ALIAS_KEYS[1]]).toBeDefined();
+		const shape = patch.elements?.[0] as { shapeStyle?: { fillColor?: string } };
+		expect(shape.shapeStyle?.fillColor).toBe('#ED7D31');
 	});
 });

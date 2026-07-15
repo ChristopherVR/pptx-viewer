@@ -96,6 +96,7 @@ export {
 	buildClrMapOverrideXml,
 	mergeThemeColorOverride,
 	hasNonTrivialOverride,
+	themeColorSchemesEqual,
 	type ColorMapAliasKey,
 } from './theme-override-utils';
 
@@ -318,6 +319,7 @@ export {
 } from './pptx-validator';
 
 export { reResolveSlideColors, applyThemeToData, buildThemeColorMap } from './theme-switching';
+export { applyThemeOverrideToSlide } from './slide-theme-override';
 
 export {
 	computeSmartArtLayout,

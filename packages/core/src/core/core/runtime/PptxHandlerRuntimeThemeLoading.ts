@@ -8,6 +8,10 @@ import type {
 } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeThemeRefResolution';
 
+export function isPresentationThemePartPath(path: string): boolean {
+	return /^ppt\/theme\/(?!themeOverride)[^/]+\.xml$/iu.test(path);
+}
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected async resolvePrimaryThemePath(): Promise<string | undefined> {
 		const masterFiles = this.zip.file(/^ppt\/slideMasters\/slideMaster\d+\.xml$/);
@@ -48,7 +52,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	protected async parseThemeOptions(): Promise<PptxThemeOption[]> {
-		const themeFiles = this.zip.file(/^ppt\/theme\/theme\d+\.xml$/);
+		const themeFiles = Object.values(this.zip.files).filter(
+			(file) => !file.dir && isPresentationThemePartPath(file.name),
+		);
 		if (!themeFiles || themeFiles.length === 0) {
 			return [];
 		}

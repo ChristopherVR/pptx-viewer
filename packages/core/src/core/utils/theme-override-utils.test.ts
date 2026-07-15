@@ -5,6 +5,7 @@ import {
 	buildClrMapOverrideXml,
 	mergeThemeColorOverride,
 	hasNonTrivialOverride,
+	themeColorSchemesEqual,
 	DEFAULT_COLOR_MAP,
 	COLOR_MAP_ALIAS_KEYS,
 } from './theme-override-utils';
@@ -64,22 +65,22 @@ describe('buildClrMapOverrideXml', () => {
 // mergeThemeColorOverride
 // ---------------------------------------------------------------------------
 
-describe('mergeThemeColorOverride', () => {
-	const baseScheme: PptxThemeColorScheme = {
-		dk1: '#000000',
-		lt1: '#FFFFFF',
-		dk2: '#1F497D',
-		lt2: '#EEECE1',
-		accent1: '#4472C4',
-		accent2: '#ED7D31',
-		accent3: '#A5A5A5',
-		accent4: '#FFC000',
-		accent5: '#5B9BD5',
-		accent6: '#70AD47',
-		hlink: '#0563C1',
-		folHlink: '#954F72',
-	};
+const baseScheme: PptxThemeColorScheme = {
+	dk1: '#000000',
+	lt1: '#FFFFFF',
+	dk2: '#1F497D',
+	lt2: '#EEECE1',
+	accent1: '#4472C4',
+	accent2: '#ED7D31',
+	accent3: '#A5A5A5',
+	accent4: '#FFC000',
+	accent5: '#5B9BD5',
+	accent6: '#70AD47',
+	hlink: '#0563C1',
+	folHlink: '#954F72',
+};
 
+describe('mergeThemeColorOverride', () => {
 	it('returns a copy of base when override is null', () => {
 		const result = mergeThemeColorOverride(baseScheme, null);
 		expect(result).toStrictEqual(baseScheme);
@@ -173,5 +174,19 @@ describe('hasNonTrivialOverride', () => {
 
 	it('returns true when hlink is remapped', () => {
 		expect(hasNonTrivialOverride({ hlink: 'accent1' })).toBeTruthy();
+	});
+});
+
+describe('themeColorSchemesEqual', () => {
+	it('compares hex colours without regard to hashes or casing', () => {
+		const equivalent = Object.fromEntries(
+			Object.entries(baseScheme).map(([key, value]) => [key, value.replace('#', '').toLowerCase()]),
+		) as unknown as PptxThemeColorScheme;
+		expect(themeColorSchemesEqual(baseScheme, equivalent)).toBeTruthy();
+	});
+
+	it('returns false for missing or different schemes', () => {
+		expect(themeColorSchemesEqual(undefined, baseScheme)).toBeFalsy();
+		expect(themeColorSchemesEqual(baseScheme, { ...baseScheme, accent1: '#123456' })).toBeFalsy();
 	});
 });

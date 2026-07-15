@@ -2,6 +2,7 @@
  * ViewerSidePanels: Inspector pane, selection pane, theme editor panel,
  * and theme gallery that appear alongside the slide canvas.
  */
+import { themeColorSchemesEqual } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import { ViewerInspector, SelectionPane } from '.';
@@ -18,7 +19,7 @@ import { ThemeEditorPanel } from './inspector/ThemeEditorPanel';
 import { MobileDismissSheet } from './mobile/MobileDismissSheet';
 import { ResizeHandle } from './ResizeHandle';
 import type { ThemeDefinition } from './toolbar/ThemeGallery';
-import { ThemeGallery } from './toolbar/ThemeGallery';
+import { BUILT_IN_THEMES, ThemeGallery } from './toolbar/ThemeGallery';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -72,6 +73,10 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 	} = props;
 
 	const effectiveSlide = mode === 'master' ? masterPseudoSlide : activeSlide;
+	const currentBuiltInTheme =
+		BUILT_IN_THEMES.find((candidate) =>
+			themeColorSchemesEqual(s.theme?.colorScheme, candidate.colorScheme),
+		) ?? null;
 
 	return (
 		<>
@@ -165,7 +170,7 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 
 			<ThemeGallery
 				open={s.isThemeGalleryOpen}
-				currentTheme={null}
+				currentTheme={currentBuiltInTheme}
 				canEdit={canEdit}
 				onClose={() => s.setIsThemeGalleryOpen(false)}
 				onApplyTheme={(theme: ThemeDefinition) => {

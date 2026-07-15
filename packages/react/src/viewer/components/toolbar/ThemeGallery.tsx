@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuX, LuUpload } from 'react-icons/lu';
 
@@ -21,6 +21,12 @@ export function ThemeGallery({
 	const { t } = useTranslation();
 	const [selectedTheme, setSelectedTheme] = useState<ThemeDefinition | null>(currentTheme ?? null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		if (open) {
+			setSelectedTheme(currentTheme ?? null);
+		}
+	}, [currentTheme, open]);
 
 	if (!open) {
 		return null;

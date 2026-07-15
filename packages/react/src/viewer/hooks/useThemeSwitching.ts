@@ -1,4 +1,4 @@
-import { THEME_PRESETS, applyThemeToData } from 'pptx-viewer-core';
+import { THEME_PRESETS, applyThemeToData, themeColorSchemesEqual } from 'pptx-viewer-core';
 import type {
 	PptxHandler,
 	PptxData,
@@ -55,34 +55,6 @@ export interface ThemeSwitchingResult {
 	 * Returns undefined if the current theme does not match a built-in preset.
 	 */
 	currentPreset: PptxThemePreset | undefined;
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Compare two colour schemes for equality (case-insensitive hex comparison).
- */
-function colorSchemesMatch(a: PptxThemeColorScheme | undefined, b: PptxThemeColorScheme): boolean {
-	if (!a) {
-		return false;
-	}
-	const normalize = (hex: string) => hex.replace(/^#/u, '').toUpperCase().slice(0, 6);
-	return (
-		normalize(a.dk1) === normalize(b.dk1) &&
-		normalize(a.lt1) === normalize(b.lt1) &&
-		normalize(a.dk2) === normalize(b.dk2) &&
-		normalize(a.lt2) === normalize(b.lt2) &&
-		normalize(a.accent1) === normalize(b.accent1) &&
-		normalize(a.accent2) === normalize(b.accent2) &&
-		normalize(a.accent3) === normalize(b.accent3) &&
-		normalize(a.accent4) === normalize(b.accent4) &&
-		normalize(a.accent5) === normalize(b.accent5) &&
-		normalize(a.accent6) === normalize(b.accent6) &&
-		normalize(a.hlink) === normalize(b.hlink) &&
-		normalize(a.folHlink) === normalize(b.folHlink)
-	);
 }
 
 // ---------------------------------------------------------------------------
@@ -169,7 +141,9 @@ export function useThemeSwitching(input: UseThemeSwitchingInput): ThemeSwitching
 		if (!data?.theme?.colorScheme) {
 			return undefined;
 		}
-		return THEME_PRESETS.find((p) => colorSchemesMatch(data.theme?.colorScheme, p.colorScheme));
+		return THEME_PRESETS.find((p) =>
+			themeColorSchemesEqual(data.theme?.colorScheme, p.colorScheme),
+		);
 	}, [data?.theme?.colorScheme]);
 
 	return {
