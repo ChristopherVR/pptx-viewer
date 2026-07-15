@@ -17,7 +17,10 @@
 			"pptx-vanilla-viewer": ["../../packages/vanilla/src/index.ts"],
 			"pptx-viewer-core/converter": ["../../packages/core/src/converter/index.ts"],
 			"pptx-viewer-core": ["../../packages/core/src/index.ts"],
-			"pptx-viewer-shared": ["../../packages/shared/src/index.ts"]
+			"pptx-viewer-shared": ["../../packages/shared/src/index.ts"],
+			"pptx-viewer-shared/*": ["../../packages/shared/src/*"],
+			"pptx-viewer-locales": ["../../packages/locales/src/index.ts"],
+			"pptx-viewer-locales/*": ["../../packages/locales/src/*"]
 		}
 	},
 	"include": ["src"]
