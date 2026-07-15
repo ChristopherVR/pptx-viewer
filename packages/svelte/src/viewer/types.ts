@@ -3,6 +3,8 @@ import type {
 	CollaborationConfig,
 	CollaborationRole,
 	CollaborationTransport,
+	PowerPointViewerAPI,
+	ViewerFontSource,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
 
@@ -43,6 +45,8 @@ export interface ViewerLoadDetail {
 export interface PowerPointViewerProps {
 	/** PowerPoint content as `Uint8Array` (or `ArrayBuffer`). */
 	source: Uint8Array | ArrayBuffer | null | undefined;
+	/** Licensed font sources supplied by the host application. */
+	fonts?: ViewerFontSource[];
 	/**
 	 * Theme configuration for customising the viewer's appearance. Accepts
 	 * partial color overrides, a custom border-radius, and arbitrary CSS
@@ -103,6 +107,15 @@ export interface PowerPointViewerProps {
 	 * to track the dirty state or mirror edits into host state.
 	 */
 	onchange?: () => void;
+	/** Canonical viewer contract callbacks. */
+	ondirtychange?: (dirty: boolean) => void;
+	oncontentchange?: (content: Uint8Array) => void;
+	onmodechange?: (mode: string) => void;
+	onzoomchange?: (zoom: number) => void;
+	onselectionchange?: (elementIds: string[]) => void;
+	onslidecountchange?: (count: number) => void;
+	/** Host override for the File > Open action. */
+	onopenfile?: () => void;
 	/**
 	 * Enable debounced crash-recovery autosave. On each edit (when `editable`)
 	 * the current slides are serialized to `.pptx` bytes and written to the
@@ -151,7 +164,7 @@ export interface PowerPointViewerProps {
  * instance (via `bind:this`). Mirrors the vanilla binding's `EditorController`
  * surface subset the host drives directly.
  */
-export interface PowerPointViewerApi {
+export interface PowerPointViewerApi extends PowerPointViewerAPI {
 	/** Undo the last committed edit. */
 	undo(): void;
 	/** Redo the last undone edit. */

@@ -17,30 +17,13 @@ import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-	LuChevronLeft,
-	LuChevronRight,
-	LuX,
-	LuMonitor,
-	LuMonitorOff,
-	LuMinus,
-	LuPlus,
-} from 'react-icons/lu';
 
 import type { CanvasSize } from '../types';
 import { PresentationAudienceEffects } from './PresentationAudienceEffects';
 import { PresentationSubtitleBar } from './PresentationSubtitleBar';
-import {
-	formatTime,
-	formatElapsed,
-	renderNotesSegments,
-	NOTES_FONT_SIZE_MIN,
-	NOTES_FONT_SIZE_MAX,
-	NOTES_FONT_SIZE_STEP,
-	NOTES_FONT_SIZE_DEFAULT,
-	clampNotesFontSize,
-} from './presenter-view-utils';
+import { formatElapsed } from './presenter-view-utils';
 import { PresenterConsoleToolbar } from './PresenterConsoleToolbar';
+import { PresenterNotesRail } from './PresenterNotesRail';
 import { PresenterSlideNavigator } from './PresenterSlideNavigator';
 import { ScaledSlidePreview } from './ScaledSlidePreview';
 import { usePresenterInk } from './usePresenterInk';
@@ -105,15 +88,6 @@ export function PresenterView({
 }: PresenterViewProps): React.ReactElement {
 	const { t } = useTranslation();
 
-	// -- Mount guard: prevent accidental clicks on header buttons when the
-	// PresenterView first renders (the dropdown menu item and the monitor
-	// button can overlap positionally, causing an immediate audience window open).
-	const [mounted, setMounted] = useState(false);
-	useEffect(() => {
-		const timer = window.setTimeout(() => setMounted(true), 300);
-		return () => window.clearTimeout(timer);
-	}, []);
-
 	// -- Clock + elapsed timer -----------------------------------------------
 	const [now, setNow] = useState(Date.now());
 
@@ -124,8 +98,6 @@ export function PresenterView({
 
 	const elapsed = snapshot.elapsedMs ?? (presentationStartTime ? now - presentationStartTime : 0);
 
-	// -- Notes font size -----------------------------------------------------
-	const [notesFontSize, setNotesFontSize] = useState(NOTES_FONT_SIZE_DEFAULT);
 	const [showSlides, setShowSlides] = useState(false);
 	const ink = usePresenterInk(snapshot, onUpdateSnapshot);
 	const handleCaptionChange = useCallback(
@@ -133,23 +105,8 @@ export function PresenterView({
 		[onUpdateSnapshot],
 	);
 
-	const increaseNotesFontSize = useCallback(() => {
-		setNotesFontSize((prev) => clampNotesFontSize(prev + NOTES_FONT_SIZE_STEP));
-	}, []);
-
-	const decreaseNotesFontSize = useCallback(() => {
-		setNotesFontSize((prev) => clampNotesFontSize(prev - NOTES_FONT_SIZE_STEP));
-	}, []);
-
 	// -- Slide data ----------------------------------------------------------
 	const currentSlide = slides[currentSlideIndex];
-	const nextSlide = slides.slice(currentSlideIndex + 1).find((slide) => !slide.hidden);
-
-	const notesText = currentSlide?.notes ?? '';
-	const notesSegments = currentSlide?.notesSegments;
-	const hasRichNotes = notesSegments && notesSegments.length > 0;
-	const [notesDraft, setNotesDraft] = useState(notesText);
-	useEffect(() => setNotesDraft(notesText), [currentSlideIndex, notesText]);
 
 	if (!currentSlide) {
 		return (
@@ -216,173 +173,16 @@ export function PresenterView({
 					</div>
 				</div>
 
-				{/* Right panel -- controls (30%) */}
-				<div className='flex-[3] flex flex-col bg-background border-l border-border min-w-[260px] max-w-[440px]'>
-					{/* Header: clock + elapsed + close */}
-					<div className='flex items-center justify-between px-4 py-3 border-b border-border/60'>
-						<div className='flex flex-col'>
-							<span className='text-[10px] text-muted-foreground uppercase tracking-wider'>
-								{t('pptx.presenter.currentTime')}
-							</span>
-							<span className='text-lg font-mono tabular-nums text-foreground'>
-								{formatTime(new Date(now))}
-							</span>
-						</div>
-						<div className='flex flex-col items-end'>
-							<span className='text-[10px] text-muted-foreground uppercase tracking-wider'>
-								{t('pptx.presenter.elapsed')}
-							</span>
-							<span className='text-lg font-mono tabular-nums text-primary'>
-								{formatElapsed(elapsed)}
-							</span>
-						</div>
-						<div className='flex items-center gap-1'>
-							{onOpenAudienceWindow && mounted && (
-								<button
-									type='button'
-									onClick={() => {
-										if (isAudienceWindowOpen) {
-											onCloseAudienceWindow?.();
-										} else {
-											onOpenAudienceWindow();
-										}
-									}}
-									className='p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors'
-									title={
-										isAudienceWindowOpen
-											? t('pptx.presenter.closeAudienceWindow')
-											: t('pptx.presenter.openAudienceWindow')
-									}
-									aria-label={
-										isAudienceWindowOpen
-											? t('pptx.presenter.closeAudienceWindow')
-											: t('pptx.presenter.openAudienceWindow')
-									}
-								>
-									{isAudienceWindowOpen ? (
-										<LuMonitorOff className='w-5 h-5' />
-									) : (
-										<LuMonitor className='w-5 h-5' />
-									)}
-								</button>
-							)}
-							<button
-								type='button'
-								onClick={onExit}
-								className='p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors'
-								title={t('pptx.presenter.endPresentation')}
-								aria-label={t('pptx.presenter.endPresentation')}
-							>
-								<LuX className='w-5 h-5' />
-							</button>
-						</div>
-					</div>
-
-					{/* Navigation controls */}
-					<div className='flex items-center justify-between px-4 py-2 border-b border-border/60'>
-						<button
-							type='button'
-							onClick={() => onMovePresentationSlide(-1)}
-							disabled={currentSlideIndex === 0}
-							className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed text-xs transition-colors'
-							title={t('pptx.presenter.previousSlide')}
-						>
-							<LuChevronLeft className='w-4 h-4' />
-							{t('pptx.presenter.prev')}
-						</button>
-						<span className='text-sm font-mono tabular-nums text-foreground'>
-							{currentSlideIndex + 1} / {slides.length}
-						</span>
-						<button
-							type='button'
-							onClick={() => onMovePresentationSlide(1)}
-							disabled={currentSlideIndex >= slides.length - 1}
-							className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed text-xs transition-colors'
-							title={t('pptx.presenter.nextSlide')}
-						>
-							{t('pptx.presenter.next')}
-							<LuChevronRight className='w-4 h-4' />
-						</button>
-					</div>
-
-					{/* Next slide preview */}
-					<div className='px-4 py-3 border-b border-border/60'>
-						<div className='text-[10px] text-muted-foreground uppercase tracking-wider mb-2'>
-							{t('pptx.presenter.nextSlidePreview')}
-						</div>
-						{nextSlide ? (
-							<ScaledSlidePreview
-								slide={nextSlide}
-								templateElements={templateElements}
-								canvasSize={canvasSize}
-							/>
-						) : (
-							<div className='flex items-center justify-center h-16 rounded border border-border/30 bg-muted/40 text-xs text-muted-foreground italic'>
-								{t('pptx.presenter.endOfPresentation')}
-							</div>
-						)}
-					</div>
-
-					{/* Speaker notes */}
-					<div className='flex-1 flex flex-col min-h-0 px-4 py-3'>
-						<div className='flex items-center justify-between mb-2'>
-							<div className='text-[10px] text-muted-foreground uppercase tracking-wider'>
-								{t('pptx.presenter.speakerNotes')}
-							</div>
-							{/* Font size controls */}
-							<div className='flex items-center gap-1'>
-								<button
-									type='button'
-									onClick={decreaseNotesFontSize}
-									disabled={notesFontSize <= NOTES_FONT_SIZE_MIN}
-									className='p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
-									title={t('pptx.presenter.decreaseFontSize')}
-									aria-label={t('pptx.presenter.decreaseFontSize')}
-								>
-									<LuMinus className='w-3.5 h-3.5' />
-								</button>
-								<span className='text-[10px] font-mono tabular-nums text-muted-foreground min-w-[28px] text-center select-none'>
-									{notesFontSize}px
-								</span>
-								<button
-									type='button'
-									onClick={increaseNotesFontSize}
-									disabled={notesFontSize >= NOTES_FONT_SIZE_MAX}
-									className='p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
-									title={t('pptx.presenter.increaseFontSize')}
-									aria-label={t('pptx.presenter.increaseFontSize')}
-								>
-									<LuPlus className='w-3.5 h-3.5' />
-								</button>
-							</div>
-						</div>
-						{onUpdateNotes ? (
-							<textarea
-								className='flex-1 resize-none overflow-y-auto rounded border border-border/30 bg-muted/40 px-3 py-2 text-foreground leading-relaxed'
-								style={{ fontSize: `${notesFontSize}px` }}
-								value={notesDraft}
-								onChange={(event) => setNotesDraft(event.target.value)}
-								onBlur={() => onUpdateNotes(notesDraft)}
-								aria-label={t('pptx.presenter.speakerNotes')}
-							/>
-						) : (
-							<div
-								className='flex-1 overflow-y-auto rounded border border-border/30 bg-muted/40 px-3 py-2 text-foreground whitespace-pre-wrap leading-relaxed'
-								style={{ fontSize: `${notesFontSize}px` }}
-							>
-								{hasRichNotes ? (
-									renderNotesSegments(notesSegments)
-								) : notesText.trim().length > 0 ? (
-									notesText
-								) : (
-									<span className='italic text-muted-foreground'>
-										{t('pptx.presenter.noNotes')}
-									</span>
-								)}
-							</div>
-						)}
-					</div>
-				</div>
+				<PresenterNotesRail
+					slides={slides}
+					current={currentSlideIndex}
+					canvasSize={canvasSize}
+					templateElements={templateElements}
+					now={now}
+					elapsed={elapsed}
+					onMove={onMovePresentationSlide}
+					onUpdateNotes={onUpdateNotes}
+				/>
 			</div>
 			<PresentationSubtitleBar
 				visible={Boolean(snapshot.subtitlesVisible)}

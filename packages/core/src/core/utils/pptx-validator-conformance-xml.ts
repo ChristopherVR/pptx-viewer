@@ -9,7 +9,7 @@ export const ECMA_NAMESPACES = {
 } as const;
 
 export function rootTag(xml: string): string | undefined {
-	return xml.match(/<(?!\?|!)([\w.-]+:[\w.-]+|[\w.-]+)(?:\s|>)/)?.[1];
+	return xml.match(/<(?!\?|!)([\w.-]+:[\w.-]+|[\w.-]+)(?:\s|\/?>)/)?.[1];
 }
 
 export function rootAttributes(xml: string): string {
@@ -25,6 +25,14 @@ export function namespaces(xml: string): Map<string, string> {
 	for (const match of rootAttributes(xml).matchAll(
 		/xmlns(?::([\w.-]+))?\s*=\s*["']([^"']+)["']/g,
 	)) {
+		result.set(match[1] ?? '', match[2]);
+	}
+	return result;
+}
+
+export function allNamespaceDeclarations(xml: string): Map<string, string> {
+	const result = new Map<string, string>();
+	for (const match of xml.matchAll(/xmlns(?::([\w.-]+))?\s*=\s*["']([^"']+)["']/g)) {
 		result.set(match[1] ?? '', match[2]);
 	}
 	return result;

@@ -419,3 +419,11 @@ export {
 	applyChartManualLayout,
 	applyChartLayouts,
 } from './chart-layout';
+
+export { parseBubbleChartOptions, applyBubbleChartOptions } from './chart-bubble-options';
+
+export {
+	parseDrawingMediaReference,
+	applyDrawingMediaReference,
+	type ParsedDrawingMediaReference,
+} from './drawing-media-reference';

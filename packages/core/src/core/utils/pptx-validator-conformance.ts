@@ -5,10 +5,10 @@ import {
 	ECMA_NAMESPACES as NS,
 	elementXml,
 	namespaces,
-	rootAttributes,
 	rootTag,
 } from './pptx-validator-conformance-xml';
 import { readZipText } from './pptx-validator-helpers';
+import { validateMce } from './pptx-validator-mce';
 import type { ValidationConformance, ValidationIssue } from './pptx-validator-types';
 
 type Dialect = ValidationConformance['dialect'];
@@ -161,82 +161,6 @@ function validateDrawingDatatypes(xml: string, path: string, issues: ValidationI
 					`DrawingML extent ${attr}="${value}" must be a non-negative coordinate`,
 				);
 			}
-		}
-	}
-}
-
-function validateMce(xml: string, path: string, issues: ValidationIssue[]): void {
-	const ns = namespaces(xml);
-	const mcPrefixes = [...ns].filter(([, uri]) => uri === NS.mce).map(([prefix]) => prefix);
-	const hasMceMarkup = /\bmc:|<mc:/.test(xml);
-	if (hasMceMarkup && !mcPrefixes.length) {
-		issue(
-			issues,
-			path,
-			'UNDECLARED_MCE_NAMESPACE',
-			'Markup Compatibility markup uses mc without declaring the MCE namespace',
-		);
-	}
-	for (const match of rootAttributes(xml).matchAll(
-		/\bmc:(Ignorable|ProcessContent|PreserveElements|PreserveAttributes)\s*=\s*["']([^"']*)["']/g,
-	)) {
-		for (const token of match[2].trim().split(/\s+/).filter(Boolean)) {
-			const prefix = token.includes(':') ? token.split(':')[0] : token;
-			if (!ns.has(prefix)) {
-				issue(
-					issues,
-					path,
-					'MCE_UNDECLARED_PREFIX',
-					`mc:${match[1]} references undeclared prefix "${prefix}"`,
-				);
-			}
-		}
-	}
-	for (const match of xml.matchAll(/<mc:Choice\b([^>]*)>/g)) {
-		const requires = match[1].match(/\bRequires\s*=\s*["']([^"']*)["']/)?.[1].trim();
-		if (!requires) {
-			issue(
-				issues,
-				path,
-				'MCE_MISSING_REQUIRES',
-				'<mc:Choice> must have a non-empty Requires attribute',
-			);
-		} else {
-			for (const prefix of requires.split(/\s+/)) {
-				if (!ns.has(prefix)) {
-					issue(
-						issues,
-						path,
-						'MCE_UNDECLARED_PREFIX',
-						`mc:Choice Requires references undeclared prefix "${prefix}"`,
-					);
-				}
-			}
-		}
-	}
-	for (const block of xml.matchAll(
-		/<mc:AlternateContent\b[^>]*>([\s\S]*?)<\/mc:AlternateContent>/g,
-	)) {
-		const children = directChildren(`<root>${block[1]}</root>`);
-		const fallback = children.indexOf('Fallback');
-		if (!children.includes('Choice')) {
-			issue(
-				issues,
-				path,
-				'MCE_INVALID_ALTERNATE_CONTENT',
-				'<mc:AlternateContent> must contain at least one <mc:Choice>',
-			);
-		}
-		if (
-			children.filter((name) => name === 'Fallback').length > 1 ||
-			(fallback >= 0 && fallback !== children.length - 1)
-		) {
-			issue(
-				issues,
-				path,
-				'MCE_INVALID_ALTERNATE_CONTENT',
-				'<mc:Fallback> must occur at most once and after all <mc:Choice> elements',
-			);
 		}
 	}
 }

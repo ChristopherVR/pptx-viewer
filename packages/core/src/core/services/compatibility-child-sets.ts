@@ -62,3 +62,16 @@ export const BLIP_CHILDREN = new Set([
 	'a:tint',
 	'a:extLst',
 ]);
+
+export const GRAPHIC_FRAME_LIMITATIONS = {
+	unknown: ['UNSUPPORTED_GRAPHIC_FRAME', 'The graphic-frame payload is preserved but unsupported.'],
+	smartArt: [
+		'PARTIAL_SMARTART_SUPPORT',
+		'SmartArt is parsed and preserved, but some DiagramML behavior is not editable.',
+	],
+	ole: ['PARTIAL_OLE_SUPPORT', 'The OLE payload is preserved but cannot be rendered or edited.'],
+	ink: [
+		'PARTIAL_INK_SUPPORT',
+		'Ink is rendered from decoded traces; unsupported ink properties remain raw XML.',
+	],
+} as const;

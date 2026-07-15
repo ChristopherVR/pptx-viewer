@@ -10,12 +10,14 @@
 
 	const {
 		ondownload,
+		onopenfile,
 		exportUi,
-	}: { ondownload: () => void; exportUi?: ExportUiState } = $props();
+	}: { ondownload: () => void; onopenfile?: () => void; exportUi?: ExportUiState } = $props();
 	const t = useTranslator();
 </script>
 
 <div class="pptx-svelte-filetab" role="group" aria-label={t('pptx.ribbon.tab.file')}>
+	{#if onopenfile}<button type="button" onclick={onopenfile}>{t('pptx.file.open')}</button>{/if}
 	<button
 		type="button"
 		aria-label={t('pptx.file.saveAsPptx')}

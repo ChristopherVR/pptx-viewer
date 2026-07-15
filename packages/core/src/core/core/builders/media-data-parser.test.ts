@@ -73,6 +73,48 @@ describe('pptxMediaDataParser — media type detection', () => {
 		expect(result.mediaType).toBe('audio');
 	});
 
+	it('parses embedded WAV, QuickTime, and Audio CD choices', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = makeSlideRelsMap(slidePath, {
+			rIdWav: '../media/sound.wav',
+			rIdMov: '../media/movie.mov',
+		});
+		const parser = new PptxMediaDataParser(makeContext({ slideRelsMap }));
+		const wav = parser.parseMediaData(
+			{ 'a:wavAudioFile': { '@_r:embed': 'rIdWav', '@_name': 'Sound' } },
+			slidePath,
+		);
+		expect(wav).toMatchObject({
+			mediaType: 'audio',
+			mediaReferenceKind: 'wavAudioFile',
+			mediaReferenceName: 'Sound',
+			mediaMimeType: 'audio/wav',
+			isLinked: false,
+		});
+		const quickTime = parser.parseMediaData(
+			{ 'a:quickTimeFile': { '@_r:link': 'rIdMov' } },
+			slidePath,
+		);
+		expect(quickTime).toMatchObject({
+			mediaType: 'video',
+			mediaReferenceKind: 'quickTimeFile',
+			mediaMimeType: 'video/quicktime',
+			isLinked: true,
+		});
+		const audioCd = parser.parseMediaData(
+			{
+				'a:audioCd': { 'a:st': { '@_track': '1' }, 'a:end': { '@_track': '3' } },
+			},
+			slidePath,
+		);
+		expect(audioCd).toMatchObject({
+			mediaType: 'audio',
+			mediaReferenceKind: 'audioCd',
+			audioCdStart: { track: 1, time: 0 },
+			audioCdEnd: { track: 3, time: 0 },
+		});
+	});
+
 	it('returns unknown when neither video nor audio is present', () => {
 		const parser = new PptxMediaDataParser(makeContext());
 

@@ -17,10 +17,18 @@
 // ==========================================================================
 
 import type { PptxChartData } from './chart';
+import type { XmlObject } from './common';
 import type { PptxElementBase, PptxTextProperties, PptxShapeProperties } from './element-base';
 import type { PptxCustomPathProperties } from './geometry';
 import type { PptxImageProperties } from './image';
-import type { PptxMediaType, MediaBookmark, MediaMetadata, MediaCaptionTrack } from './media';
+import type {
+	PptxMediaType,
+	PptxMediaReferenceKind,
+	PptxAudioCdPosition,
+	MediaBookmark,
+	MediaMetadata,
+	MediaCaptionTrack,
+} from './media';
 import type { ShapeStyle } from './shape-style';
 import type { PptxSmartArtData } from './smart-art';
 import type { PptxTableData } from './table';
@@ -289,6 +297,11 @@ export interface MediaPptxElement extends PptxElementBase {
 	mediaPath?: string;
 	mediaData?: string;
 	mediaMimeType?: string;
+	mediaReferenceKind?: PptxMediaReferenceKind;
+	mediaReferenceName?: string;
+	audioCdStart?: PptxAudioCdPosition;
+	audioCdEnd?: PptxAudioCdPosition;
+	rawMediaReferenceXml?: XmlObject;
 	/** Trim start in milliseconds (from p:cMediaNode p:cTn @st). */
 	trimStartMs?: number;
 	/** Trim end in milliseconds (from p:cMediaNode p:cTn @end). */

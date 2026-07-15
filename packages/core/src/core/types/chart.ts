@@ -434,6 +434,15 @@ export interface PptxChartOfPieOptions {
 	gapWidth?: number;
 }
 
+/** Classic `c:bubbleChart` options from CT_BubbleChart. */
+export interface PptxBubbleChartOptions {
+	bubble3D?: boolean;
+	/** Bubble diameter scale in percent, constrained to 0 through 300. */
+	bubbleScale?: number;
+	showNegativeBubbles?: boolean;
+	sizeRepresents?: 'area' | 'w';
+}
+
 /**
  * 3D viewing parameters for a chart (`c:view3D`, ECMA-376 §21.2.2.228 /
  * CT_View3D).
@@ -603,6 +612,8 @@ export interface PptxChartData {
 	 * `ofPieChart` element can be re-emitted on save with full fidelity.
 	 */
 	ofPieOptions?: PptxChartOfPieOptions;
+	/** Classic bubble-chart display options (`c:bubbleChart`). */
+	bubbleOptions?: PptxBubbleChartOptions;
 
 	/**
 	 * 3D viewing parameters (`c:view3D`, CT_View3D).

@@ -23,6 +23,7 @@ import {
 	parseLineStyle,
 } from '../../utils/chart-advanced-parser';
 import { parseChartAxes, parseChart3DSurfaces } from '../../utils/chart-axis-parser';
+import { parseBubbleChartOptions } from '../../utils/chart-bubble-options';
 import { chartContainerLocalNameToType } from '../../utils/chart-container-type-map';
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
 import { parseChartLayouts } from '../../utils/chart-layout';
@@ -202,6 +203,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Parse ofPie options when this is an ofPieChart container.
 		const ofPieOptions =
 			chartType === 'ofPie' ? this.parseOfPieOptions(seriesContainer) : undefined;
+		const bubbleOptions =
+			chartType === 'bubble'
+				? parseBubbleChartOptions(seriesContainer, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					)
+				: undefined;
 
 		// Parse view3D, top-level chrome flags, and raw preservation blobs.
 		const view3D = this.parseView3D(chartRoot);
@@ -236,6 +243,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(chartColorStyle?.palette ? { colorPalette: chartColorStyle.palette } : {}),
 			...(chartColorStyle?.method ? { colorMethod: chartColorStyle.method } : {}),
 			...(ofPieOptions ? { ofPieOptions } : {}),
+			...(bubbleOptions ? { bubbleOptions } : {}),
 			...(view3D ? { view3D } : {}),
 			...(chartChrome ? { chartChrome } : {}),
 			...(layouts ? { layouts } : {}),

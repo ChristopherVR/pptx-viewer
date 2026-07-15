@@ -67,6 +67,7 @@ export interface RibbonProps {
 
 	/** File tab: export menu (PNG / PDF / GIF / video / print). */
 	exportUi?: ExportUiState;
+	onopenfile?: () => void;
 
 	/**
 	 * Design tab: the current effective viewer-chrome theme (for highlighting

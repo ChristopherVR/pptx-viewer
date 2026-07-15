@@ -14,6 +14,7 @@ import {
 	applyChartAxisTitleToXml,
 	applyChartAxisTitleStyleToXml,
 } from '../../utils/chart-axis-title-serializer';
+import { applyBubbleChartOptions } from '../../utils/chart-bubble-options';
 import {
 	applyComboSeriesTypesToXml,
 	consolidateComboContainersInXml,
@@ -502,6 +503,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// ── ofPieChart options round-trip (CT_OfPieChart) ─────────
 				if (chartData.ofPieOptions) {
 					this.applyOfPieOptions(chartTypeContainer, chartData.ofPieOptions);
+				}
+				if (chartData.bubbleOptions && chartData.chartType === 'bubble') {
+					applyBubbleChartOptions(chartTypeContainer, chartData.bubbleOptions, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
 				}
 
 				// ── view3D round-trip (CT_View3D) ─────────────────────────

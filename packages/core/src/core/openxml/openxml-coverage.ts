@@ -1,4 +1,8 @@
-import { OPENXML_SCHEMA_CONSTRUCT_IDS } from './schema-constructs.generated';
+import {
+	OPENXML_SCHEMA_CONSTRUCT_IDS,
+	OPENXML_STRICT_SCHEMA_CONSTRUCT_IDS,
+	OPENXML_TRANSITIONAL_SCHEMA_CONSTRUCT_IDS,
+} from './schema-constructs.generated';
 
 export type OpenXmlCoverageLevel =
 	| 'native'
@@ -10,8 +14,9 @@ export type OpenXmlCoverageLevel =
 export interface OpenXmlConstructCoverage {
 	id: string;
 	vocabulary: 'presentation' | 'drawing' | 'chart' | 'diagram';
-	kind: 'element' | 'complexType';
+	kind: 'element' | 'complexType' | 'simpleType' | 'attribute' | 'group' | 'attributeGroup';
 	name: string;
+	conformance: 'strict' | 'transitional' | 'both';
 	parse: OpenXmlCoverageLevel;
 	preserve: OpenXmlCoverageLevel;
 	edit: OpenXmlCoverageLevel;
@@ -31,7 +36,7 @@ const UNASSESSED: Facets = {
 };
 
 /** Curated, test-backed overrides. Everything else remains explicitly unassessed. */
-const COVERAGE_OVERRIDES: Readonly<Record<string, Facets>> = {
+const COVERAGE_OVERRIDES: Record<string, Facets> = {
 	'chart:complexType:CT_ManualLayout': {
 		parse: 'native',
 		preserve: 'native',
@@ -46,7 +51,38 @@ const COVERAGE_OVERRIDES: Readonly<Record<string, Facets>> = {
 		serialize: 'partial',
 		note: 'Manual layout is typed; extension-list content is passthrough only.',
 	},
+	'chart:complexType:CT_BubbleChart': {
+		parse: 'partial',
+		preserve: 'passthrough',
+		edit: 'partial',
+		serialize: 'partial',
+		note: 'Display options are typed; series and extensions have separate capability entries.',
+	},
 };
+
+for (const id of [
+	'chart:complexType:CT_BubbleScale',
+	'chart:complexType:CT_SizeRepresents',
+	'chart:simpleType:ST_BubbleScale',
+	'chart:simpleType:ST_BubbleScalePercent',
+	'chart:simpleType:ST_BubbleScaleUInt',
+	'chart:simpleType:ST_SizeRepresents',
+	'chart:element:bubble3D',
+	'chart:element:bubbleScale',
+	'chart:element:showNegBubbles',
+	'chart:element:sizeRepresents',
+]) {
+	COVERAGE_OVERRIDES[id] = {
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: 'Typed classic bubble-chart option support.',
+	};
+}
+
+const STRICT_IDS = new Set<string>(OPENXML_STRICT_SCHEMA_CONSTRUCT_IDS);
+const TRANSITIONAL_IDS = new Set<string>(OPENXML_TRANSITIONAL_SCHEMA_CONSTRUCT_IDS);
 
 /**
  * Strict-schema inventory for PPTX-relevant PresentationML and DrawingML.
@@ -59,7 +95,10 @@ export const OPENXML_COVERAGE: readonly OpenXmlConstructCoverage[] =
 			OpenXmlConstructCoverage['kind'],
 			string,
 		];
-		return { id, vocabulary, kind, name, ...(COVERAGE_OVERRIDES[id] ?? UNASSESSED) };
+		const strict = STRICT_IDS.has(id);
+		const transitional = TRANSITIONAL_IDS.has(id);
+		const conformance = strict && transitional ? 'both' : strict ? 'strict' : 'transitional';
+		return { id, vocabulary, kind, name, conformance, ...(COVERAGE_OVERRIDES[id] ?? UNASSESSED) };
 	});
 
 export function findOpenXmlCoverage(id: string): OpenXmlConstructCoverage | undefined {

@@ -1,5 +1,6 @@
 import { XmlObject, PptxElement } from '../../types';
 import type { MediaPptxElement } from '../../types';
+import { parseDrawingMediaReference } from '../../utils/drawing-media-reference';
 import { xmlAttr, xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeParsing';
 
@@ -68,15 +69,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const nvPr = (pic?.['p:nvPicPr'] as XmlObject | undefined)?.['p:nvPr'] as
 				| XmlObject
 				| undefined;
-			const videoFileNode = nvPr?.['a:videoFile'] as XmlObject | undefined;
-			const audioFileNode = nvPr?.['a:audioFile'] as XmlObject | undefined;
+			const mediaReference = parseDrawingMediaReference(nvPr);
 
-			if (videoFileNode || audioFileNode) {
-				const isVideo = Boolean(videoFileNode);
-				const mediaFileNode = (videoFileNode ?? audioFileNode)!;
-				const mediaRelId = String(
-					mediaFileNode['@_r:link'] ?? mediaFileNode['@_r:embed'] ?? '',
-				).trim();
+			if (mediaReference) {
+				this.compatibilityService.inspectMediaReferenceCompatibility(
+					mediaReference.kind,
+					slidePath,
+					id,
+				);
+				const mediaRelId = mediaReference.relationshipId;
 
 				let mediaPath: string | undefined;
 				let mediaMimeType: string | undefined;
@@ -129,9 +130,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					skewY,
 					flipHorizontal,
 					flipVertical,
-					mediaType: isVideo ? 'video' : 'audio',
+					mediaType: mediaReference.mediaType,
 					mediaPath,
 					mediaMimeType,
+					mediaReferenceKind: mediaReference.kind,
+					mediaReferenceName: mediaReference.name,
+					audioCdStart: mediaReference.audioCdStart,
+					audioCdEnd: mediaReference.audioCdEnd,
+					rawMediaReferenceXml: mediaReference.rawXml,
+					isLinked: mediaReference.isLinked,
 					posterFramePath,
 					posterFrameData,
 					rawXml: pic,

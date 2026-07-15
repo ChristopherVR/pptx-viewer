@@ -1,4 +1,5 @@
-import type { MediaPptxElement } from '../../types';
+import type { MediaPptxElement, XmlObject } from '../../types';
+import { parseDrawingMediaReference } from '../../utils/drawing-media-reference';
 
 export interface PptxMediaDataParserContext {
 	slideRelsMap: Map<string, Map<string, string>>;
@@ -29,29 +30,17 @@ export class PptxMediaDataParser implements IPptxMediaDataParser {
 		const result: Partial<MediaPptxElement> = {};
 
 		try {
-			const videoFile = graphicData['a:videoFile'] as Record<string, unknown> | undefined;
-			const audioFile = graphicData['a:audioFile'] as Record<string, unknown> | undefined;
-
-			if (videoFile) {
-				result.mediaType = 'video';
-				// Prefer r:link (external/linked media), fall back to r:embed (embedded media)
-				const linkRid = videoFile['@_r:link'];
-				const embedRid = videoFile['@_r:embed'];
-				const relationshipId = linkRid ?? embedRid;
-				result.isLinked = typeof linkRid === 'string' && linkRid.length > 0;
-				if (typeof relationshipId === 'string' && relationshipId.length > 0) {
-					result.mediaPath = this.resolveRelationshipTarget(slidePath, relationshipId);
-					result.mediaMimeType = this.getMediaMimeType(result.mediaPath);
-				}
-			} else if (audioFile) {
-				result.mediaType = 'audio';
-				// Prefer r:link (external/linked media), fall back to r:embed (embedded media)
-				const linkRid = audioFile['@_r:link'];
-				const embedRid = audioFile['@_r:embed'];
-				const relationshipId = linkRid ?? embedRid;
-				result.isLinked = typeof linkRid === 'string' && linkRid.length > 0;
-				if (typeof relationshipId === 'string' && relationshipId.length > 0) {
-					result.mediaPath = this.resolveRelationshipTarget(slidePath, relationshipId);
+			const reference = parseDrawingMediaReference(graphicData as XmlObject);
+			if (reference) {
+				result.mediaType = reference.mediaType;
+				result.mediaReferenceKind = reference.kind;
+				result.mediaReferenceName = reference.name;
+				result.audioCdStart = reference.audioCdStart;
+				result.audioCdEnd = reference.audioCdEnd;
+				result.rawMediaReferenceXml = reference.rawXml;
+				result.isLinked = reference.isLinked;
+				if (reference.relationshipId) {
+					result.mediaPath = this.resolveRelationshipTarget(slidePath, reference.relationshipId);
 					result.mediaMimeType = this.getMediaMimeType(result.mediaPath);
 				}
 			} else {

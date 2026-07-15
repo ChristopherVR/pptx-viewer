@@ -13,6 +13,7 @@
  */
 
 import type { PptxChartData, PptxChartSeries, PptxChartType, XmlObject } from '../types';
+import { applyBubbleChartOptions } from './chart-bubble-options';
 import { applyChartLayouts } from './chart-layout';
 
 const NS_C = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
@@ -157,6 +158,9 @@ function buildChartTypeContainer(chartData: PptxChartData, family: string): XmlO
 	container['c:ser'] = chartData.series.map((s, i) =>
 		buildSeries(family, s, i, chartData.categories),
 	);
+	if (family === 'bubble' && chartData.bubbleOptions) {
+		applyBubbleChartOptions(container, chartData.bubbleOptions, (key) => key.replace(/^.*:/u, ''));
+	}
 
 	if (family === 'bar') {
 		container['c:gapWidth'] = { '@_val': '150' };

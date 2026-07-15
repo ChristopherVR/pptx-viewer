@@ -133,4 +133,14 @@ describe('eCMA-376 rule validation', () => {
 
 		expect(codes(result)).toContain('MCE_MISSING_REQUIRES');
 	});
+
+	it('recognises MCE markup through a non-standard namespace prefix', async () => {
+		const xml = presentationXml(
+			'<compat:AlternateContent><compat:Choice Requires="p14"/><compat:Fallback/></compat:AlternateContent>',
+			TRANSITIONAL,
+			'xmlns:compat="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:p14="urn:p14" compat:Ignorable="p14"',
+		);
+		const result = await validatePptx(await packageWith(xml));
+		expect(codes(result).filter((code) => code.startsWith('MCE_'))).toHaveLength(0);
+	});
 });

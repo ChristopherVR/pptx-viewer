@@ -75,6 +75,8 @@ const SLIDE_MASTER_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?
     <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
     <p:grpSpPr/>
   </p:spTree></p:cSld>
+	<p:clrMap accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" bg1="lt1" bg2="lt2" folHlink="folHlink" hlink="hlink" tx1="dk1" tx2="dk2"/>
+	<p:sldLayoutIdLst/>
 </p:sldMaster>`;
 
 const SLIDE_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>

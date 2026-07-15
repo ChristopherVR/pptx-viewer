@@ -493,6 +493,9 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 		if (
 			graphicData['a:videoFile'] ||
 			graphicData['a:audioFile'] ||
+			graphicData['a:wavAudioFile'] ||
+			graphicData['a:quickTimeFile'] ||
+			graphicData['a:audioCd'] ||
 			uri.includes('/drawingml/2006/media')
 		) {
 			return 'media';

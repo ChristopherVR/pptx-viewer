@@ -14,16 +14,16 @@ describe('areNamespacesSupported', () => {
 		expect(areNamespacesSupported('  ')).toBeTruthy();
 	});
 
-	it('returns true for known namespaces', () => {
+	it('returns true only for namespaces with declared capabilities', () => {
 		expect(areNamespacesSupported('p14')).toBeTruthy();
-		expect(areNamespacesSupported('p15')).toBeTruthy();
+		expect(areNamespacesSupported('p15')).toBeFalsy();
 		expect(areNamespacesSupported('a14')).toBeTruthy();
 		expect(areNamespacesSupported('asvg')).toBeTruthy();
 	});
 
 	it('returns true for multiple known namespaces', () => {
 		expect(areNamespacesSupported('p14 a14')).toBeTruthy();
-		expect(areNamespacesSupported('p15 a16 asvg')).toBeTruthy();
+		expect(areNamespacesSupported('aink a16 asvg')).toBeTruthy();
 	});
 
 	it('returns false when any namespace is unknown', () => {
@@ -35,7 +35,7 @@ describe('areNamespacesSupported', () => {
 describe('isNamespaceSupported', () => {
 	it('returns true for supported namespaces', () => {
 		expect(isNamespaceSupported('p14')).toBeTruthy();
-		expect(isNamespaceSupported('p16r3')).toBeTruthy();
+		expect(isNamespaceSupported('aink')).toBeTruthy();
 	});
 
 	it('returns false for unsupported namespaces', () => {
@@ -48,7 +48,8 @@ describe('getSupportedNamespaces', () => {
 		const ns = getSupportedNamespaces();
 		expect(ns.has('p14')).toBeTruthy();
 		expect(ns.has('a14')).toBeTruthy();
-		expect(ns.has('p16r3')).toBeTruthy();
+		expect(ns.has('aink')).toBeTruthy();
+		expect(ns.has('p16r3')).toBeFalsy();
 	});
 });
 
@@ -83,6 +84,22 @@ describe('selectAlternateContentBranch', () => {
 		const result = selectAlternateContentBranch(ac);
 		expect(result).toBeDefined();
 		expect((result?.['p:sp'] as { id: string })?.id).toBe('fallbackShape');
+	});
+
+	it('returns Fallback for an unimplemented element in a known namespace', () => {
+		const result = selectAlternateContentBranch({
+			'mc:Choice': { '@_Requires': 'p14', 'p14:futureFeature': {}, 'p:sp': { id: 'choice' } },
+			'mc:Fallback': { 'p:sp': { id: 'fallback' } },
+		});
+		expect((result?.['p:sp'] as { id: string } | undefined)?.id).toBe('fallback');
+	});
+
+	it('returns Choice for a specifically implemented extension element', () => {
+		const result = selectAlternateContentBranch({
+			'mc:Choice': { '@_Requires': 'aink', 'aink:ink': { 'aink:trace': '0,0 1,1' } },
+			'mc:Fallback': { 'p:sp': {} },
+		});
+		expect(result?.['aink:ink']).toBeDefined();
 	});
 
 	it('returns Choice with empty Requires', () => {

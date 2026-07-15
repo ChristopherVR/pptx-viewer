@@ -7,9 +7,10 @@
 	 * modules; this SFC is thin composition.
 	 */
 	import { onDestroy, onMount } from 'svelte';
-	import type { TextSegment } from 'pptx-viewer-core';
-	import { defaultCssVars, themeToCssVars, toggleSheet } from 'pptx-viewer-shared';
-	import type { MobileSheetKey } from 'pptx-viewer-shared';
+	import { cloneSlide } from 'pptx-viewer-core';
+	import type { PptxElement, TextSegment } from 'pptx-viewer-core';
+	import { buildUserFontFaceStyles, createBlankSlide, defaultCssVars, makeSlideId, themeToCssVars, toggleSheet } from 'pptx-viewer-shared';
+	import type { MobileSheetKey, ViewerMode } from 'pptx-viewer-shared';
 
 	import { createTranslator } from '../i18n/translator';
 	import { provideTranslator } from '../i18n/context';
@@ -49,6 +50,7 @@
 
 	const {
 		source,
+		fonts = [],
 		theme,
 		locale = 'en',
 		initialSlide = 0,
@@ -56,7 +58,7 @@
 		showToolbar = true,
 		showNotes = true,
 		smartArt3D = false,
-		editable = false,
+		editable: editableProp = false,
 		class: className = '',
 		autosave = false,
 		onautosavetoggle,
@@ -70,10 +72,28 @@
 		onslidechange,
 		onnotesupdate,
 		onchange,
+		ondirtychange,
+		oncontentchange,
+		onmodechange,
+		onzoomchange,
+		onselectionchange,
+		onslidecountchange,
+		onopenfile,
 		onautosave,
 		onstartcollaboration,
 		onstopcollaboration,
 	}: PowerPointViewerProps = $props();
+	let editable = $state(editableProp);
+	$effect(() => { editable = editableProp; });
+	$effect(() => {
+		const css = buildUserFontFaceStyles(fonts);
+		if (!css || typeof document === 'undefined') return;
+		const style = document.createElement('style');
+		style.dataset.pptxUserFonts = 'svelte';
+		style.textContent = css;
+		document.head.appendChild(style);
+		return () => style.remove();
+	});
 
 	const t = createTranslator(() => locale);
 	provideTranslator(t);
@@ -120,7 +140,10 @@
 	const editor = new EditorState({
 		getCurrent: () => viewer.current,
 		getHandler: () => loader.handler,
-		onChange: () => onchange?.(),
+		onChange: () => {
+			onchange?.();
+			void editor.save().then((bytes) => oncontentchange?.(bytes));
+		},
 	});
 	const controller = new EditorController(editor, {
 		getScale: () => (editor.masterViewTarget ? masterScale : scale),
@@ -249,6 +272,12 @@
 	// loaded and editing is actually available; read-only mode (or no
 	// presentation yet) keeps the compact viewer chrome unchanged.
 	const showRibbon = $derived(editable && !collab.readOnly && loader.slides.length > 0);
+	const viewerMode = $derived<ViewerMode>(editor.masterViewTarget ? 'master' : viewer.isFullscreen ? 'present' : editable ? 'edit' : 'preview');
+	$effect(() => ondirtychange?.(editor.dirty));
+	$effect(() => onmodechange?.(viewerMode));
+	$effect(() => onzoomchange?.(effectivePercent / 100));
+	$effect(() => onselectionchange?.([...editor.selection.ids]));
+	$effect(() => onslidecountchange?.(displaySlides.length));
 
 	// The Design tab's theme-preset gallery overrides the host `theme` prop
 	// locally (React/vanilla's `setTheme` public API pattern); clearing it
@@ -351,6 +380,68 @@
 	export const getSelectedElementId = editingApi.getSelectedElementId;
 	export const save = editingApi.save;
 	export const downloadPptx = editingApi.downloadPptx;
+	export const getContent = editingApi.save;
+	export const goTo = (index: number): void => viewer.goTo(index);
+	export const goPrev = (): void => viewer.prev();
+	export const goNext = (): void => viewer.next();
+	export const getZoom = (): number => effectivePercent / 100;
+	export const setZoom = (level: number): void => { viewer.zoomPercent = Math.max(10, Math.min(400, level * 100)); };
+	export const zoomIn = (): void => viewer.zoomIn(effectivePercent);
+	export const zoomOut = (): void => viewer.zoomOut(effectivePercent);
+	export const zoomReset = (): void => { viewer.zoomPercent = 100; };
+	export const getMode = (): ViewerMode => viewerMode;
+	export const setMode = (mode: ViewerMode): void => {
+		if (mode === 'present') { if (!viewer.isFullscreen) onFullscreenToggle(); return; }
+		if (viewer.isFullscreen) onFullscreenToggle();
+		editable = mode === 'edit' || mode === 'master';
+		if (mode === 'master') editor.masterOps.enter();
+		else if (editor.masterViewTarget) editor.masterOps.exit();
+	};
+	export const getActiveSlideIndex = (): number => viewer.current;
+	export const setActiveSlideIndex = goTo;
+	export const getSlideCount = (): number => displaySlides.length;
+	export const isDirty = (): boolean => editor.dirty;
+	export const getSlides = () => editor.renderedSlides;
+	export const getSlide = (index: number) => editor.renderedSlides[index];
+	export const getActiveSlide = () => editor.renderedSlides[viewer.current];
+	export const getElements = (slideIndex = viewer.current) => editor.renderedSlides[slideIndex]?.elements ?? [];
+	export const getElementById = (id: string, slideIndex = viewer.current) => getElements(slideIndex).find((element) => element.id === id);
+	export const updateElement = (id: string, updates: Partial<PptxElement>): void => editor.applyElementPatch(id, updates);
+	export const deleteElements = (ids: string[]): void => { editor.selection.setAll(ids); editor.deleteSelected(); };
+	export const duplicateElement = (id: string): string | undefined => { editor.selection.set(id); return editor.duplicateSelected() ?? undefined; };
+	export const getSelectedElementIds = (): string[] => [...editor.selection.ids];
+	export const selectElements = (ids: string[]): void => editor.selection.setAll(ids);
+	export const clearSelection = (): void => editor.selection.clear();
+	export const addSlide = (afterIndex = editor.slides.length - 1): void => {
+		const next = [...editor.slides];
+		const index = Math.min(Math.max(afterIndex + 1, 0), next.length);
+		next.splice(index, 0, createBlankSlide(index + 1, makeSlideId));
+		editor.commitSlides(next.map((slide, i) => ({ ...slide, slideNumber: i + 1 })));
+		viewer.goTo(index);
+	};
+	export const deleteSlides = (indexes: number[]): void => {
+		if (editor.slides.length <= 1) return;
+		const remove = new Set(indexes);
+		const next = editor.slides.filter((_, i) => !remove.has(i));
+		if (next.length === 0) return;
+		editor.commitSlides(next.map((slide, i) => ({ ...slide, slideNumber: i + 1 })));
+		viewer.goTo(Math.min(viewer.current, next.length - 1));
+	};
+	export const duplicateSlides = (indexes: number[]): void => {
+		const selected = new Set(indexes);
+		const next = editor.slides.flatMap((slide, index) => selected.has(index) ? [slide, { ...cloneSlide(slide), id: makeSlideId() }] : [slide]);
+		editor.commitSlides(next.map((slide, i) => ({ ...slide, slideNumber: i + 1 })));
+	};
+	export const moveSlide = (fromIndex: number, toIndex: number): void => {
+		const next = [...editor.slides];
+		if (!next[fromIndex] || toIndex < 0 || toIndex >= next.length || fromIndex === toIndex) return;
+		const [slide] = next.splice(fromIndex, 1); next.splice(toIndex, 0, slide);
+		editor.commitSlides(next.map((item, i) => ({ ...item, slideNumber: i + 1 }))); viewer.goTo(toIndex);
+	};
+	export const toggleHideSlides = (indexes: number[]): void => {
+		const selected = new Set(indexes);
+		editor.commitSlides(editor.slides.map((slide, index) => selected.has(index) ? { ...slide, hidden: !slide.hidden } : slide));
+	};
 
 	// ── Imperative export API (exposed on the component instance) ─────────
 	const exportingApi = createExportingApi(exportWiring.controller);
@@ -456,6 +547,7 @@
 				onfromcurrent={onFullscreenToggle}
 				onpresenter={enterPresenterView}
 				{exportUi}
+				{onopenfile}
 				theme={effectiveTheme}
 				onsettheme={onSetTheme}
 				onentermasterview={() => editor.masterOps.enter()}

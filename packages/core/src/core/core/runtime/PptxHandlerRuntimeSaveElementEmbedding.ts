@@ -12,6 +12,10 @@ import type {
 	ImagePptxElement,
 	PicturePptxElement,
 } from '../../types';
+import {
+	applyDrawingMediaReference,
+	parseDrawingMediaReference,
+} from '../../utils/drawing-media-reference';
 import type { PptxSaveState, IPptxSlideRelationshipRegistry } from '../builders';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTextWriter';
 
@@ -28,6 +32,17 @@ export interface SaveSlideContext {
 	readonly slideMediaRelationshipType: string;
 	readonly slideVideoRelationshipType: string;
 	readonly slideAudioRelationshipType: string;
+}
+
+function getMediaReferenceContainer(shape: XmlObject | undefined): XmlObject | undefined {
+	if (!shape) {
+		return undefined;
+	}
+	const nvPr = (shape['p:nvPicPr'] as XmlObject | undefined)?.['p:nvPr'] as XmlObject | undefined;
+	if (nvPr) {
+		return nvPr;
+	}
+	return (shape['a:graphic'] as XmlObject | undefined)?.['a:graphicData'] as XmlObject | undefined;
 }
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -178,7 +193,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		ctx: SaveSlideContext,
 	): XmlObject | undefined {
 		const mediaType = mediaElement.mediaType === 'audio' ? 'audio' : 'video';
+		const originalReference = parseDrawingMediaReference(getMediaReferenceContainer(shape));
 		let mediaRelationshipId =
+			originalReference?.relationshipId ??
 			this.slideMediaRelationshipBuilder.getMediaRelationshipIdFromShape(shape);
 		const relTypes = {
 			media: ctx.slideMediaRelationshipType,
@@ -213,6 +230,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				);
 				if (!shape) {
 					shape = this.createMediaGraphicFrameXml(mediaElement, mediaRelationshipId);
+				} else if (getMediaReferenceContainer(shape)) {
+					applyDrawingMediaReference(
+						getMediaReferenceContainer(shape)!,
+						mediaElement,
+						mediaRelationshipId,
+					);
 				} else {
 					this.slideMediaRelationshipBuilder.ensureGraphicFrameMediaReference(
 						shape,
@@ -251,6 +274,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				relationshipTarget,
 			);
 			shape = this.createMediaGraphicFrameXml(mediaElement, mediaRelationshipId);
+		}
+		const referenceContainer = getMediaReferenceContainer(shape);
+		if (referenceContainer) {
+			applyDrawingMediaReference(referenceContainer, mediaElement, mediaRelationshipId);
 		}
 		return shape;
 	}

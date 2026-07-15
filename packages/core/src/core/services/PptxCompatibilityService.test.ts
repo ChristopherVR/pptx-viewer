@@ -181,7 +181,7 @@ describe('pptxCompatibilityService', () => {
 		});
 	});
 
-	describe('inspect methods (no-op)', () => {
+	describe('compatibility inspection', () => {
 		it('inspectPresentationCompatibility runs without error', () => {
 			const svc = new PptxCompatibilityService();
 			expect(() => svc.inspectPresentationCompatibility()).not.toThrow();
@@ -205,6 +205,61 @@ describe('pptxCompatibilityService', () => {
 		it('inspectGraphicFrameCompatibility runs without error', () => {
 			const svc = new PptxCompatibilityService();
 			expect(() => svc.inspectGraphicFrameCompatibility('table', 's1', 'e1')).not.toThrow();
+		});
+
+		it('reports unmodelled presentation, slide, and element markup', () => {
+			const svc = new PptxCompatibilityService();
+			vi.spyOn(console, 'warn').mockImplementation(() => {});
+			svc.inspectPresentationCompatibility({ 'p:presentation': { 'p:futureList': {} } });
+			svc.inspectSlideCompatibility({ 'p:sld': { 'p:futureFeature': {} } }, 's1');
+			svc.inspectShapeCompatibility({ 'a:future3d': {} }, undefined, 's1', 'e1');
+			expect(svc.getWarnings().map((warning) => warning.code)).toStrictEqual([
+				'UNMODELLED_PRESENTATION_MARKUP',
+				'UNMODELLED_SLIDE_MARKUP',
+				'UNMODELLED_SHAPE_PROPERTY',
+			]);
+			vi.restoreAllMocks();
+		});
+
+		it('reports unsupported AlternateContent choices with fallback severity', () => {
+			const svc = new PptxCompatibilityService();
+			vi.spyOn(console, 'info').mockImplementation(() => {});
+			svc.inspectSlideCompatibility(
+				{
+					'p:sld': {
+						'p:cSld': {
+							'mc:AlternateContent': {
+								'mc:Choice': { '@_Requires': 'p14', 'p14:futureFeature': {} },
+								'mc:Fallback': { 'p:sp': {} },
+							},
+						},
+					},
+				},
+				's1',
+			);
+			expect(svc.getWarnings()[0]).toMatchObject({
+				code: 'UNSUPPORTED_ALTERNATE_CONTENT_CHOICE',
+				severity: 'info',
+			});
+			vi.restoreAllMocks();
+		});
+
+		it('classifies partial graphic frames and legacy media references', () => {
+			const svc = new PptxCompatibilityService();
+			vi.spyOn(console, 'info').mockImplementation(() => {});
+			vi.spyOn(console, 'warn').mockImplementation(() => {});
+			svc.inspectGraphicFrameCompatibility('smartArt', 's1', 'e1');
+			svc.inspectGraphicFrameCompatibility('unknown', 's1', 'e2');
+			svc.inspectMediaReferenceCompatibility('wavAudioFile', 's1', 'e3');
+			svc.inspectMediaReferenceCompatibility('audioCd', 's1', 'e4');
+			svc.inspectMediaReferenceCompatibility('quickTimeFile', 's1', 'e5');
+			expect(svc.getWarnings().map((warning) => warning.code)).toStrictEqual([
+				'PARTIAL_SMARTART_SUPPORT',
+				'UNSUPPORTED_GRAPHIC_FRAME',
+				'LEGACY_AUDIO_CD_REFERENCE',
+				'LEGACY_QUICKTIME_REFERENCE',
+			]);
+			vi.restoreAllMocks();
 		});
 	});
 });

@@ -20,6 +20,18 @@
  */
 export type PptxMediaType = 'video' | 'audio' | 'unknown';
 
+export type PptxMediaReferenceKind =
+	| 'audioCd'
+	| 'wavAudioFile'
+	| 'audioFile'
+	| 'videoFile'
+	| 'quickTimeFile';
+
+export interface PptxAudioCdPosition {
+	track: number;
+	time?: number;
+}
+
 /**
  * A named bookmark within a media clip timeline.
  *

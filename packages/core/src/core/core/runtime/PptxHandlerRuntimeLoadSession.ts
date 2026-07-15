@@ -283,7 +283,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		await this.loadCommentAuthors();
 
 		const { sectionBySlideId, orderedSections } = this.extractSectionMap();
-		this.compatibilityService.inspectPresentationCompatibility(this.presentationData);
+		this.compatibilityService.inspectPresentationCompatibility(this.presentationData ?? undefined);
 
 		const presentationNode = this.presentationData?.['p:presentation'] as XmlObject | undefined;
 		const sldSz = (presentationNode?.['p:sldSz'] || {}) as XmlObject;

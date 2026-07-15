@@ -1,64 +1,19 @@
-import type { PptxCompatibilityWarning, PptxElement, XmlObject } from '../types';
-import { isAlternateContentChoiceSupported } from '../utils/alternate-content';
-
-const PRESENTATION_CHILDREN = new Set([
-	'p:sldMasterIdLst',
-	'p:notesMasterIdLst',
-	'p:handoutMasterIdLst',
-	'p:sldIdLst',
-	'p:sldSz',
-	'p:notesSz',
-	'p:smartTags',
-	'p:embeddedFontLst',
-	'p:custShowLst',
-	'p:photoAlbum',
-	'p:custDataLst',
-	'p:kinsoku',
-	'p:defaultTextStyle',
-	'p:modifyVerifier',
-	'p:extLst',
-]);
-
-const SLIDE_CHILDREN = new Set(['p:cSld', 'p:clrMapOvr', 'p:transition', 'p:timing', 'p:extLst']);
-const SHAPE_PROPERTY_CHILDREN = new Set([
-	'a:xfrm',
-	'a:prstGeom',
-	'a:custGeom',
-	'a:noFill',
-	'a:solidFill',
-	'a:gradFill',
-	'a:blipFill',
-	'a:pattFill',
-	'a:grpFill',
-	'a:ln',
-	'a:effectLst',
-	'a:effectDag',
-	'a:scene3d',
-	'a:sp3d',
-	'a:extLst',
-]);
-const TEXT_BODY_CHILDREN = new Set(['a:bodyPr', 'a:lstStyle', 'a:p']);
-const BLIP_FILL_CHILDREN = new Set(['a:blip', 'a:srcRect', 'a:tile', 'a:stretch']);
-const BLIP_CHILDREN = new Set([
-	'a:alphaBiLevel',
-	'a:alphaCeiling',
-	'a:alphaFloor',
-	'a:alphaInv',
-	'a:alphaMod',
-	'a:alphaModFix',
-	'a:alphaRepl',
-	'a:biLevel',
-	'a:blur',
-	'a:clrChange',
-	'a:clrRepl',
-	'a:duotone',
-	'a:fillOverlay',
-	'a:grayscl',
-	'a:hsl',
-	'a:lum',
-	'a:tint',
-	'a:extLst',
-]);
+import type {
+	PptxCompatibilityWarning,
+	PptxElement,
+	PptxMediaReferenceKind,
+	XmlObject,
+} from '../types';
+import { inspectAlternateContentWarnings } from './compatibility-alternate-content';
+import {
+	BLIP_CHILDREN,
+	BLIP_FILL_CHILDREN,
+	GRAPHIC_FRAME_LIMITATIONS,
+	PRESENTATION_CHILDREN,
+	SHAPE_PROPERTY_CHILDREN,
+	SLIDE_CHILDREN,
+	TEXT_BODY_CHILDREN,
+} from './compatibility-child-sets';
 
 export interface CompatibilityWarningInput {
 	code: string;
@@ -91,6 +46,11 @@ export interface IPptxCompatibilityService {
 	): void;
 	inspectGraphicFrameCompatibility(
 		type: PptxElement['type'],
+		slideId: string,
+		elementId: string,
+	): void;
+	inspectMediaReferenceCompatibility(
+		kind: PptxMediaReferenceKind,
 		slideId: string,
 		elementId: string,
 	): void;
@@ -161,7 +121,13 @@ export class PptxCompatibilityService implements IPptxCompatibilityService {
 			scope: 'presentation',
 			xmlPath: '/p:presentation',
 		});
-		this.inspectAlternateContent(presentationXmlObj, 'presentation', undefined, '/p:presentation');
+		inspectAlternateContentWarnings(
+			presentationXmlObj,
+			'presentation',
+			undefined,
+			'/p:presentation',
+			(warning) => this.reportWarning(warning),
+		);
 	}
 
 	public inspectSlideCompatibility(slideXmlObj: XmlObject, slidePath: string): void {
@@ -173,7 +139,9 @@ export class PptxCompatibilityService implements IPptxCompatibilityService {
 			slideId: slidePath,
 			xmlPath: '/p:sld',
 		});
-		this.inspectAlternateContent(slideXmlObj, 'slide', slidePath, '/p:sld');
+		inspectAlternateContentWarnings(slideXmlObj, 'slide', slidePath, '/p:sld', (warning) =>
+			this.reportWarning(warning),
+		);
 	}
 
 	public inspectShapeCompatibility(
@@ -240,25 +208,7 @@ export class PptxCompatibilityService implements IPptxCompatibilityService {
 		slideId: string,
 		elementId: string,
 	): void {
-		const limitations: Partial<Record<PptxElement['type'], [string, string]>> = {
-			unknown: [
-				'UNSUPPORTED_GRAPHIC_FRAME',
-				'The graphic-frame payload is preserved but unsupported.',
-			],
-			smartArt: [
-				'PARTIAL_SMARTART_SUPPORT',
-				'SmartArt is parsed and preserved, but some DiagramML behavior is not editable.',
-			],
-			ole: [
-				'PARTIAL_OLE_SUPPORT',
-				'The OLE payload is preserved but cannot be rendered or edited.',
-			],
-			ink: [
-				'PARTIAL_INK_SUPPORT',
-				'Ink is rendered from decoded traces; unsupported ink properties remain raw XML.',
-			],
-		};
-		const limitation = limitations[type];
+		const limitation = GRAPHIC_FRAME_LIMITATIONS[type as keyof typeof GRAPHIC_FRAME_LIMITATIONS];
 		if (limitation) {
 			this.reportWarning({
 				code: limitation[0],
@@ -270,6 +220,28 @@ export class PptxCompatibilityService implements IPptxCompatibilityService {
 				xmlPath: '/p:graphicFrame/a:graphic/a:graphicData',
 			});
 		}
+	}
+
+	public inspectMediaReferenceCompatibility(
+		kind: PptxMediaReferenceKind,
+		slideId: string,
+		elementId: string,
+	): void {
+		if (kind !== 'audioCd' && kind !== 'quickTimeFile') {
+			return;
+		}
+		this.reportWarning({
+			code: kind === 'audioCd' ? 'LEGACY_AUDIO_CD_REFERENCE' : 'LEGACY_QUICKTIME_REFERENCE',
+			message:
+				kind === 'audioCd'
+					? 'Audio CD track metadata is editable and preserved, but playback requires the source disc.'
+					: 'QuickTime media is preserved, but browser playback depends on codec support and link availability.',
+			severity: 'info',
+			scope: 'element',
+			slideId,
+			elementId,
+			xmlPath: `/p:pic/p:nvPicPr/p:nvPr/a:${kind}`,
+		});
 	}
 
 	private inspectUnexpectedChildren(
@@ -289,49 +261,6 @@ export class PptxCompatibilityService implements IPptxCompatibilityService {
 				message: `${context.messagePrefix} ${key}`,
 				xmlPath: `${context.xmlPath}/${key}`,
 			});
-		}
-	}
-
-	private inspectAlternateContent(
-		node: unknown,
-		scope: 'presentation' | 'slide',
-		slideId: string | undefined,
-		path: string,
-	): void {
-		if (!node || typeof node !== 'object') {
-			return;
-		}
-		if (Array.isArray(node)) {
-			node.forEach((item, index) =>
-				this.inspectAlternateContent(item, scope, slideId, `${path}[${index}]`),
-			);
-			return;
-		}
-		for (const [key, value] of Object.entries(node as XmlObject)) {
-			if (key === 'mc:AlternateContent') {
-				const blocks = Array.isArray(value) ? value : [value];
-				for (const block of blocks as XmlObject[]) {
-					const choices = Array.isArray(block?.['mc:Choice'])
-						? (block['mc:Choice'] as XmlObject[])
-						: block?.['mc:Choice']
-							? [block['mc:Choice'] as XmlObject]
-							: [];
-					for (const choice of choices) {
-						if (!isAlternateContentChoiceSupported(choice)) {
-							const requires = String(choice['@_Requires'] || '(missing)');
-							this.reportWarning({
-								code: 'UNSUPPORTED_ALTERNATE_CONTENT_CHOICE',
-								message: `An mc:Choice requiring "${requires}" is not implemented; its fallback is used when available.`,
-								severity: block?.['mc:Fallback'] ? 'info' : 'warning',
-								scope,
-								slideId,
-								xmlPath: `${path}/mc:AlternateContent/mc:Choice`,
-							});
-						}
-					}
-				}
-			}
-			this.inspectAlternateContent(value, scope, slideId, `${path}/${key}`);
 		}
 	}
 
