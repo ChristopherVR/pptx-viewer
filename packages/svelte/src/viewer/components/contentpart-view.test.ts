@@ -12,12 +12,12 @@ import ElementRenderer from './ElementRenderer.svelte';
 
 let cleanup: (() => void) | undefined;
 
-function mountEl(element: PptxElement): HTMLElement {
+function mountEl(element: PptxElement, presenting = false): HTMLElement {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(ElementRenderer, {
 		target,
-		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 3 },
+		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 3, presenting },
 	});
 	flushSync();
 	cleanup = () => {
@@ -115,5 +115,23 @@ describe('contentPartView', () => {
 		expect(target.querySelector('svg')).toBeNull();
 		expect(target.querySelector('.pptx-svelte-contentpart-fallback')).toBeTruthy();
 		expect(target.textContent).toContain('Content Part');
+	});
+
+	it('replays constant-width strokes sequentially while presenting', () => {
+		const target = mountEl(
+			contentPartElement({
+				inkStrokes: [
+					{ path: 'M 0 0 L 10 10', color: '#ff0000', width: 2, opacity: 1 },
+					{ path: 'M 10 10 L 20 20', color: '#0000ff', width: 2, opacity: 1 },
+				],
+			}),
+			true,
+		);
+		const paths = target.querySelectorAll<SVGPathElement>('path');
+
+		expect(target.querySelector('style')?.textContent).toContain('@keyframes pptx-ink-replay');
+		expect(paths[0].style.animation).toContain('pptx-ink-replay');
+		expect(paths[0].getAttribute('stroke-dasharray')).toBeTruthy();
+		expect(paths[1].style.animation).toContain('800ms');
 	});
 });

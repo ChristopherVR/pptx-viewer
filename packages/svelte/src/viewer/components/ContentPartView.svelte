@@ -12,17 +12,23 @@
 	 *   `generatePressureCircles` maths, same config as vanilla/React).
 	 * - No strokes: a typed fallback box labelled "Content Part", matching the
 	 *   other bindings' fallback.
+	 * - Presentation mode progressively replays constant-width paths.
 	 */
+	import { getContentPartReplayStyles, INK_REPLAY_KEYFRAMES } from 'pptx-viewer-shared';
+
 	import { useTranslator } from '../../i18n/context';
 	import { buildContentPartStrokes, contentPartViewBox } from '../render';
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex }: ElementRendererProps = $props();
+	const { element, zIndex, presenting = false }: ElementRendererProps = $props();
 	const t = useTranslator();
 
 	const contentPart = $derived(element.type === 'contentPart' ? element : undefined);
 	const strokes = $derived(contentPart ? buildContentPartStrokes(contentPart) : []);
+	const replayStyles = $derived(
+		contentPart && presenting ? getContentPartReplayStyles(contentPart.inkStrokes ?? []) : [],
+	);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 </script>
 
@@ -38,7 +44,8 @@
 				viewBox={contentPartViewBox(contentPart)}
 				preserveAspectRatio="none"
 			>
-				{#each strokes as stroke (stroke.key)}
+				{#if presenting}<svelte:element this={'style'}>{INK_REPLAY_KEYFRAMES}</svelte:element>{/if}
+				{#each strokes as stroke, index (stroke.key)}
 					{#if stroke.circles}
 						<g opacity={stroke.opacity}>
 							{#each stroke.circles as circle, i (i)}
@@ -55,6 +62,11 @@
 							stroke-linecap="round"
 							stroke-linejoin="round"
 							vector-effect="non-scaling-stroke"
+							stroke-dasharray={replayStyles[index]?.strokeDasharray}
+							stroke-dashoffset={replayStyles[index]?.strokeDashoffset}
+							style={replayStyles[index]
+								? `animation: ${replayStyles[index].animation}; --ink-path-length: ${replayStyles[index].pathLength}`
+								: undefined}
 						/>
 					{/if}
 				{/each}
