@@ -1,5 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { strokeToInkElement } from 'pptx-viewer-shared';
+import { isPresentationAudience, strokeToInkElement } from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 
@@ -29,7 +29,9 @@ export function usePresentationModeWiring(
 ): UsePresentationModeWiringResult {
 	const { slides, activeSlideIndex, pushHistory } = input;
 
-	const presenting = ref(false);
+	const presenting = ref(
+		typeof window !== 'undefined' && isPresentationAudience(window.location.hash),
+	);
 	function startPresenting(): void {
 		presenting.value = true;
 	}

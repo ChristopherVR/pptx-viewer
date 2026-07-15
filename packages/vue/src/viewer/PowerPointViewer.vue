@@ -2413,6 +2413,7 @@ function handleCommandSearch(command: string): void {
 			:slides="mergedSlides"
 			:canvas-size="canvasSize"
 			:media-data-urls="mediaDataUrls"
+			:content="props.content"
 			:active-index="activeSlideIndex"
 			:can-edit="props.canEdit"
 			@select="onSorterSelect"

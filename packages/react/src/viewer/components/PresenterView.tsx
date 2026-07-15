@@ -109,8 +109,7 @@ export function PresenterView({
 
 	// -- Slide data ----------------------------------------------------------
 	const currentSlide = slides[currentSlideIndex];
-	const nextSlide =
-		currentSlideIndex + 1 < slides.length ? slides[currentSlideIndex + 1] : undefined;
+	const nextSlide = slides.slice(currentSlideIndex + 1).find((slide) => !slide.hidden);
 
 	const notesText = currentSlide?.notes ?? '';
 	const notesSegments = currentSlide?.notesSegments;

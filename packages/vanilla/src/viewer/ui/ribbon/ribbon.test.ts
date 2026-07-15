@@ -48,6 +48,7 @@ function buildHandlers(): RibbonHandlers {
 		slideShow: {
 			startFromBeginning: vi.fn(),
 			startFromCurrent: vi.fn(),
+			openPresenterView: vi.fn(),
 			openBroadcast: vi.fn(),
 		},
 		insert: fakeActions<RibbonInsertHandlers>(),

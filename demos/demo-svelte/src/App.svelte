@@ -7,7 +7,12 @@
 	 * session so two tabs on the same URL edit the same deck live.
 	 */
 	import type { CollaborationConfig } from 'pptx-svelte-viewer';
-	import { PowerPointViewer, themeToCssVars } from 'pptx-svelte-viewer';
+	import {
+		loadPresentationDeck,
+		parsePresentationSessionId,
+		PowerPointViewer,
+		themeToCssVars,
+	} from 'pptx-svelte-viewer';
 	import { PptxHandler } from 'pptx-viewer-core';
 
 	import { resolveAutoName, resolveAutoRoomId, randomUserColor } from './collab';
@@ -27,6 +32,16 @@
 	// (mirrors demo-vue/src/App.vue).
 	const params = new URLSearchParams(window.location.search);
 	const smartArt3D = params.get('smartArt3D') === '1';
+	const audienceSession = parsePresentationSessionId(window.location.hash);
+	if (audienceSession) {
+		void loadPresentationDeck(audienceSession).then((content) => {
+			if (content) {
+				bytes = content;
+				fileName = 'Audience View';
+			}
+			return undefined;
+		});
+	}
 
 	// ── Collaboration (serverless WebRTC P2P) ────────────────────────────
 	// A `?room=<id>` param auto-joins that room on load (a peer with no local

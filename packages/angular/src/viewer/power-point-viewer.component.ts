@@ -3,6 +3,7 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	computed,
+	DestroyRef,
 	effect,
 	ElementRef,
 	HostListener,
@@ -67,7 +68,7 @@ import { MobileToolbarComponent } from './mobile-toolbar.component';
 import { NotesPanelComponent } from './notes-panel.component';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { PresenterViewComponent } from './presenter-view.component';
-import { PresenterWindowService } from './presenter-window.service';
+import { parseAudienceNonce, PresenterWindowService } from './presenter-window.service';
 import { PrintDialogComponent } from './print-dialog.component';
 import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
@@ -926,6 +927,7 @@ export class PowerPointViewerComponent {
 	private readonly smartArt3DSvc = inject(SmartArt3DService);
 	private readonly zoomTarget = inject(ZoomTargetService);
 	protected readonly presenterWindow = inject(PresenterWindowService);
+	private readonly destroyRef = inject(DestroyRef);
 	protected readonly dialogs = inject(ViewerDialogsService);
 	private readonly compareSvc = inject(ViewerCompareService);
 	protected readonly xport = inject(ViewerExportService);
@@ -1301,6 +1303,14 @@ export class PowerPointViewerComponent {
 			canEdit: () => this.canEdit(),
 			promptKeepAnnotations: (map) => this.extraDialogs()?.promptKeepAnnotations(map),
 		});
+		if (parseAudienceNonce()) {
+			const disconnectAudience = this.presenterWindow.connectAudience(
+				(index) => this.activeSlideIndex.set(index),
+				() => this.presentationMode.presenting.set(false),
+			);
+			this.presentationMode.presenting.set(true);
+			this.destroyRef.onDestroy(disconnectAudience);
+		}
 
 		// Hand the mobile-sheet controller the accessors its quick-insert action
 		// needs from the component.

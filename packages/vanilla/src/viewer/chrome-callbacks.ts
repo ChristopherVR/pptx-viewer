@@ -25,6 +25,7 @@ export interface ChromeCallbackDeps {
 	toggleAutosave(): boolean;
 	startPresentationFromBeginning(): void;
 	startPresentationFromCurrent(): void;
+	openPresenterView(): void;
 	openBroadcast(): void;
 	toggleNotes(): void;
 	openAccessibility(): void;
@@ -91,6 +92,7 @@ export function buildChromeCallbacks(
 		slideShow: {
 			startFromBeginning: () => deps.startPresentationFromBeginning(),
 			startFromCurrent: () => deps.startPresentationFromCurrent(),
+			openPresenterView: () => deps.openPresenterView(),
 			openBroadcast: () => deps.openBroadcast(),
 		},
 		// Every editing action delegates to the (lazily-resolved) editor edit

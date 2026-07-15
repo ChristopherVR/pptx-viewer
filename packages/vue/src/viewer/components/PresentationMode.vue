@@ -8,6 +8,7 @@ import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import { useIsMobile } from '../composables/useIsMobile';
 import { usePresentationAnnotations } from '../composables/usePresentationAnnotations';
 import type { SlideAnnotationMap } from '../composables/usePresentationAnnotations';
+import { usePresenterSession } from '../composables/usePresenterSession';
 import { useToolbarAutoHide } from '../composables/useToolbarAutoHide';
 import { useTouchGestures } from '../composables/useTouchGestures';
 import { provideZoomNavigation } from '../composables/zoom-navigation';
@@ -44,6 +45,7 @@ const props = withDefaults(
 		slides: PptxSlide[];
 		canvasSize: CanvasSize;
 		mediaDataUrls: Map<string, string>;
+		content?: ArrayBuffer | Uint8Array | null;
 		startIndex?: number;
 	}>(),
 	{ startIndex: 0 },
@@ -193,6 +195,18 @@ const presentationStartTime = ref<number | null>(null);
 const presenterMode = ref(false);
 /** On a phone, the presenter view uses a single-column mobile layout. */
 const { isMobile, isTouchDevice } = useIsMobile();
+
+const presenterSession = usePresenterSession({
+	currentSlideIndex: currentIndex,
+	content: () => props.content ?? null,
+	onAudienceSlide: (index) => {
+		if (index >= 0 && index < props.slides.length) {
+			currentIndex.value = index;
+			emit('slide-change', index);
+		}
+	},
+	onAudienceExit: () => emit('close'),
+});
 /** Whether the live-caption (subtitle) bar is shown. */
 const subtitlesOn = ref(false);
 
@@ -387,6 +401,11 @@ onMounted(() => {
 	window.addEventListener('resize', handleResize);
 	handleResize();
 	requestFullscreen();
+	if (presenterSession.isAudience) {
+		const requestOnInteraction = (): void => requestFullscreen();
+		document.addEventListener('pointerdown', requestOnInteraction, { once: true });
+		document.addEventListener('keydown', requestOnInteraction, { once: true });
+	}
 });
 
 onBeforeUnmount(() => {
@@ -458,8 +477,11 @@ onBeforeUnmount(() => {
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
 				:presentation-start-time="presentationStartTime"
+				:audience-open="presenterSession.audienceOpen.value"
 				@click.stop
 				@move="onToolbarMove"
+				@open-audience="presenterSession.openAudience"
+				@close-audience="presenterSession.closeAudience"
 				@exit="presenterMode = false"
 			/>
 

@@ -3,6 +3,7 @@
  * (opened by the presenter via the audience window button) and auto-enters
  * fullscreen presentation mode, syncing slides via BroadcastChannel.
  */
+import { isPresentationSessionMessage, PRESENTATION_MESSAGE_ORIGIN } from 'pptx-viewer-shared';
 import { useEffect, useRef } from 'react';
 
 import type { ViewerMode } from '../../types-core';
@@ -41,23 +42,24 @@ export function useAudienceMode(input: UseAudienceModeInput): void {
 		}
 		initialised.current = true;
 
-		// Wait for content to load, then enter present mode
-		const timer = window.setTimeout(() => {
-			// Enter fullscreen presentation
-			try {
-				const wrapper = containerRef.current;
-				if (wrapper && typeof wrapper.requestFullscreen === 'function') {
-					void wrapper.requestFullscreen().catch(() => {
-						/* ignore fullscreen errors */
-					});
-				}
-			} catch {
-				/* fullscreen not supported */
-			}
-			onSetMode('present');
-		}, 800);
+		onSetMode('present');
 
-		return () => window.clearTimeout(timer);
+		// A newly navigated audience tab has no transient user activation, so an
+		// automatic fullscreen request is rejected by browsers. Use the first
+		// audience interaction as the activation and keep presentation mode active
+		// meanwhile as a full-viewport fallback.
+		const requestAudienceFullscreen = (): void => {
+			const wrapper = containerRef.current;
+			if (!document.fullscreenElement && wrapper?.requestFullscreen) {
+				void wrapper.requestFullscreen().catch(() => undefined);
+			}
+		};
+		document.addEventListener('pointerdown', requestAudienceFullscreen, { once: true });
+		document.addEventListener('keydown', requestAudienceFullscreen, { once: true });
+		return () => {
+			document.removeEventListener('pointerdown', requestAudienceFullscreen);
+			document.removeEventListener('keydown', requestAudienceFullscreen);
+		};
 	}, [containerRef, onSetMode]);
 
 	// Listen for slide changes from the presenter tab
@@ -80,7 +82,7 @@ export function useAudienceMode(input: UseAudienceModeInput): void {
 
 		channel.onmessage = (event: MessageEvent) => {
 			const data = event.data;
-			if (!data || data.origin !== PRESENTER_MSG_ORIGIN) {
+			if (!isPresentationSessionMessage(data) || data.origin !== PRESENTER_MSG_ORIGIN) {
 				return;
 			}
 			// If we have a session nonce, require an exact match.
@@ -91,9 +93,14 @@ export function useAudienceMode(input: UseAudienceModeInput): void {
 			if (data.type === 'presenter-slide-change') {
 				onSetActiveSlideIndex(data.slideIndex);
 			}
+			if (data.type === 'presenter-state') {
+				onSetActiveSlideIndex(data.snapshot.slideIndex);
+			}
 
 			if (data.type === 'presenter-exit') {
-				void clearAudienceContent();
+				if (expectedSessionId) {
+					void clearAudienceContent(expectedSessionId);
+				}
 				onSetMode('edit');
 				try {
 					window.close();
@@ -102,6 +109,14 @@ export function useAudienceMode(input: UseAudienceModeInput): void {
 				}
 			}
 		};
+
+		if (expectedSessionId) {
+			channel.postMessage({
+				origin: PRESENTATION_MESSAGE_ORIGIN,
+				type: 'audience-ready',
+				sessionId: expectedSessionId,
+			});
+		}
 
 		return () => {
 			try {

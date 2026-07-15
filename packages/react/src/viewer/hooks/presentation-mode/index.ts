@@ -35,6 +35,7 @@ export {
 	AUDIENCE_HASH,
 	isPresenterMessage,
 	isAudienceTab,
+	parseAudienceNonce,
 } from './usePresenterWindow';
 export { useAudienceMode } from './useAudienceMode';
 export {

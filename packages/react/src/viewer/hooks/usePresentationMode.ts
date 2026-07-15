@@ -137,7 +137,10 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	useAudienceMode({
 		mode,
 		onSetMode,
-		onSetActiveSlideIndex,
+		onSetActiveSlideIndex: (index) => {
+			onSetActiveSlideIndex(index);
+			setPresentationSlideIndex(index);
+		},
 		containerRef,
 	});
 

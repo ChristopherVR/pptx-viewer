@@ -122,15 +122,10 @@ export function currentSlideAt(slides: readonly PptxSlide[], index: number): Ppt
 
 /**
  * Return the next slide (index + 1), or undefined when `index` is the last
- * slide. Note: presenter "next" preview is linear (does not skip hidden
- * slides), matching the React PresenterView.
+ * slide, skipping hidden slides just as the live show does.
  */
 export function nextSlideAfter(slides: readonly PptxSlide[], index: number): PptxSlide | undefined {
-	const nextIndex = index + 1;
-	if (nextIndex < 0 || nextIndex >= slides.length) {
-		return undefined;
-	}
-	return slides[nextIndex];
+	return slides.slice(index + 1).find((slide) => !slide.hidden);
 }
 
 /** "Slide 3 of 12" style label for the current position. */

@@ -14,7 +14,17 @@
  * hash. The audience tab parses the nonce and rejects any message with a
  * different `sessionId`, preventing cross-talk between concurrent sessions.
  */
-import { secureRandomUuid } from 'pptx-viewer-shared';
+import {
+	buildPresentationAudienceUrl,
+	createPresentationSessionId,
+	isPresentationSessionMessage,
+	placeAudienceWindow,
+	PRESENTATION_CHANNEL_NAME,
+	PRESENTATION_HASH,
+	PRESENTATION_MESSAGE_ORIGIN,
+	PRESENTATION_NONCE_KEY,
+	resolveAudienceScreenPlacement,
+} from 'pptx-viewer-shared';
 import { useRef, useCallback, useEffect } from 'react';
 
 import { storeAudienceContent, clearAudienceContent } from './audience-content-store';
@@ -24,16 +34,16 @@ import { storeAudienceContent, clearAudienceContent } from './audience-content-s
 // ---------------------------------------------------------------------------
 
 /** BroadcastChannel name shared between presenter and audience tabs. */
-export const PRESENTER_CHANNEL_NAME = 'pptx-viewer-presenter';
+export const PRESENTER_CHANNEL_NAME = PRESENTATION_CHANNEL_NAME;
 
 /** Hash fragment used to identify the audience tab. */
-export const AUDIENCE_HASH = '#pptx-audience';
+export const AUDIENCE_HASH = PRESENTATION_HASH;
 
 /** Unique origin identifier so we only react to our own messages. */
-export const PRESENTER_MSG_ORIGIN = 'pptx-viewer-presenter';
+export const PRESENTER_MSG_ORIGIN = PRESENTATION_MESSAGE_ORIGIN;
 
 /** Hash key used to pass the session nonce to the audience tab. */
-export const AUDIENCE_NONCE_KEY = 'nonce';
+export const AUDIENCE_NONCE_KEY = PRESENTATION_NONCE_KEY;
 
 /**
  * Generate a per-presenter session UUID. Delegates to the shared
@@ -41,7 +51,7 @@ export const AUDIENCE_NONCE_KEY = 'nonce';
  * back to a `crypto.getRandomValues`-backed UUID (never `Math.random()`).
  */
 function generateSessionId(): string {
-	return secureRandomUuid();
+	return createPresentationSessionId();
 }
 
 /**
@@ -166,6 +176,7 @@ export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenter
 	);
 
 	const closeAudienceWindow = useCallback(() => {
+		const closingSessionId = sessionIdRef.current;
 		// Send exit signal via BroadcastChannel
 		if (sessionIdRef.current) {
 			try {
@@ -196,7 +207,9 @@ export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenter
 		}
 
 		// Clean up shared content from IndexedDB
-		void clearAudienceContent();
+		if (closingSessionId) {
+			void clearAudienceContent(closingSessionId);
+		}
 	}, [getChannel]);
 
 	const openAudienceWindow = useCallback((): boolean => {
@@ -207,7 +220,11 @@ export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenter
 		// Step 1: open about:blank synchronously inside the user gesture so
 		// popup blockers don't fire. The blank tab acts as a placeholder while
 		// we asynchronously persist the PPTX bytes.
-		const blankWin = window.open('about:blank', '_blank');
+		const blankWin = window.open(
+			'about:blank',
+			'pptx-viewer-audience',
+			'popup=yes,width=1280,height=720',
+		);
 		if (!blankWin) {
 			return false;
 		}
@@ -218,10 +235,13 @@ export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenter
 		const sessionId = generateSessionId();
 		sessionIdRef.current = sessionId;
 
-		const audienceUrl = new URL(window.location.href);
-		const params = new URLSearchParams();
-		params.set(AUDIENCE_NONCE_KEY, sessionId);
-		audienceUrl.hash = `${AUDIENCE_HASH}&${params.toString()}`;
+		const audienceUrl = buildPresentationAudienceUrl(window.location.href, sessionId);
+		void resolveAudienceScreenPlacement(window).then((placement) => {
+			if (placement && audienceWindowRef.current === blankWin && !blankWin.closed) {
+				placeAudienceWindow(blankWin, placement);
+			}
+			return undefined;
+		});
 
 		// Step 2: persist content (if any), then navigate the placeholder tab.
 		// If persistence fails, close the placeholder so we don't leave the user
@@ -242,7 +262,7 @@ export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenter
 				return;
 			}
 			try {
-				win.location.replace(audienceUrl.toString());
+				win.location.replace(audienceUrl);
 			} catch {
 				// If navigation fails (cross-origin etc.), close to clean up.
 				try {
@@ -256,16 +276,12 @@ export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenter
 		};
 
 		if (content) {
-			void storeAudienceContent(content)
+			void storeAudienceContent(content, sessionId)
 				.then(() => navigateOrClose(true))
 				.catch(() => navigateOrClose(false));
 		} else {
 			navigateOrClose(true);
 		}
-
-		// Send the current slide index after a short delay so the audience
-		// tab has time to initialise.
-		window.setTimeout(() => syncSlideToAudience(currentSlideIndex), 1500);
 
 		// Poll for tab close to clean up refs
 		pollTimerRef.current = setInterval(() => {
@@ -281,7 +297,30 @@ export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenter
 		}, 1000);
 
 		return true;
-	}, [isAudienceWindowOpen, closeAudienceWindow, syncSlideToAudience, currentSlideIndex, content]);
+	}, [isAudienceWindowOpen, closeAudienceWindow, content]);
+
+	// The audience announces that its deck and channel are ready. Respond with
+	// the current slide instead of relying on an arbitrary startup timeout.
+	useEffect(() => {
+		let channel: BroadcastChannel;
+		try {
+			channel = getChannel();
+		} catch {
+			return;
+		}
+		const handleMessage = (event: MessageEvent): void => {
+			const message = event.data;
+			if (
+				isPresentationSessionMessage(message) &&
+				message.type === 'audience-ready' &&
+				message.sessionId === sessionIdRef.current
+			) {
+				syncSlideToAudience(currentSlideIndex);
+			}
+		};
+		channel.addEventListener('message', handleMessage);
+		return () => channel.removeEventListener('message', handleMessage);
+	}, [currentSlideIndex, getChannel, syncSlideToAudience]);
 
 	// -- Sync slide changes to audience tab ------------------------------------
 
@@ -313,7 +352,9 @@ export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenter
 	// Ensure stored audience bytes do not persist across presenter tab unloads.
 	useEffect(() => {
 		const handleBeforeUnload = (): void => {
-			void clearAudienceContent();
+			if (sessionIdRef.current) {
+				void clearAudienceContent(sessionIdRef.current);
+			}
 		};
 		window.addEventListener('beforeunload', handleBeforeUnload);
 		return () => window.removeEventListener('beforeunload', handleBeforeUnload);

@@ -64,6 +64,7 @@
 			<SlideShowTab
 				onfrombeginning={props.onfrombeginning}
 				onfromcurrent={props.onfromcurrent}
+				onpresenter={props.onpresenter}
 				onbroadcast={props.onbroadcast}
 			/>
 		{:else if activeTab === 'review'}

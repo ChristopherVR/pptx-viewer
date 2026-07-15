@@ -18,7 +18,16 @@
 
 import { Injectable } from '@angular/core';
 
-import { secureRandomUuid } from '../internal/shared';
+import {
+	buildPresentationAudienceUrl,
+	isPresentationSessionMessage,
+	placeAudienceWindow,
+	PRESENTATION_CHANNEL_NAME,
+	PRESENTATION_MESSAGE_ORIGIN,
+	PRESENTATION_NONCE_KEY,
+	resolveAudienceScreenPlacement,
+	secureRandomUuid,
+} from '../internal/shared';
 import {
 	AUDIENCE_HASH,
 	clearAudienceContent,
@@ -26,13 +35,13 @@ import {
 } from './audience-content-store';
 
 /** BroadcastChannel name shared between presenter and audience tabs. */
-export const PRESENTER_CHANNEL_NAME = 'pptx-viewer-presenter';
+export const PRESENTER_CHANNEL_NAME = PRESENTATION_CHANNEL_NAME;
 
 /** Unique origin identifier so we only react to our own messages. */
-export const PRESENTER_MSG_ORIGIN = 'pptx-viewer-presenter';
+export const PRESENTER_MSG_ORIGIN = PRESENTATION_MESSAGE_ORIGIN;
 
 /** Hash key used to pass the session nonce to the audience tab. */
-export const AUDIENCE_NONCE_KEY = 'nonce';
+export const AUDIENCE_NONCE_KEY = PRESENTATION_NONCE_KEY;
 
 export interface PresenterSlideChangeMessage {
 	origin: typeof PRESENTER_MSG_ORIGIN;
@@ -96,6 +105,7 @@ export class PresenterWindowService {
 	private audienceWindow: Window | null = null;
 	private channel: BroadcastChannel | null = null;
 	private pollTimer: ReturnType<typeof setInterval> | null = null;
+	private readyListener: ((event: MessageEvent) => void) | null = null;
 	/** Per-session UUID. Regenerated each time openAudienceWindow is invoked. */
 	private sessionId = '';
 
@@ -128,6 +138,7 @@ export class PresenterWindowService {
 	}
 
 	closeAudienceWindow(): void {
+		const closingSession = this.sessionId;
 		if (this.sessionId) {
 			try {
 				const exitMsg: PresenterExitMessage = {
@@ -154,7 +165,13 @@ export class PresenterWindowService {
 			clearInterval(this.pollTimer);
 			this.pollTimer = null;
 		}
-		void clearAudienceContent();
+		if (this.readyListener && this.channel) {
+			this.channel.removeEventListener('message', this.readyListener);
+			this.readyListener = null;
+		}
+		if (closingSession) {
+			void clearAudienceContent(closingSession);
+		}
 	}
 
 	/**
@@ -172,17 +189,36 @@ export class PresenterWindowService {
 
 		// Open about:blank synchronously inside the user gesture so popup blockers
 		// do not fire while we asynchronously persist the bytes.
-		const blankWin = window.open('about:blank', '_blank');
+		const blankWin = window.open(
+			'about:blank',
+			'pptx-viewer-audience',
+			'popup=yes,width=1280,height=720',
+		);
 		if (!blankWin) {
 			return false;
 		}
 		this.audienceWindow = blankWin;
 		this.sessionId = generateSessionId();
+		const activeSession = this.sessionId;
+		this.readyListener = (event: MessageEvent): void => {
+			const message = event.data;
+			if (
+				isPresentationSessionMessage(message) &&
+				message.type === 'audience-ready' &&
+				message.sessionId === activeSession
+			) {
+				this.syncSlideToAudience(currentSlideIndex);
+			}
+		};
+		this.getChannel().addEventListener('message', this.readyListener);
 
-		const audienceUrl = new URL(window.location.href);
-		const params = new URLSearchParams();
-		params.set(AUDIENCE_NONCE_KEY, this.sessionId);
-		audienceUrl.hash = `${AUDIENCE_HASH}&${params.toString()}`;
+		const audienceUrl = buildPresentationAudienceUrl(window.location.href, this.sessionId);
+		void resolveAudienceScreenPlacement(window).then((placement) => {
+			if (placement && this.audienceWindow === blankWin && !blankWin.closed) {
+				placeAudienceWindow(blankWin, placement);
+			}
+			return undefined;
+		});
 
 		const navigateOrClose = (ok: boolean): void => {
 			const win = this.audienceWindow;
@@ -194,21 +230,19 @@ export class PresenterWindowService {
 				return;
 			}
 			try {
-				win.location.replace(audienceUrl.toString());
+				win.location.replace(audienceUrl);
 			} catch {
 				this.disposeWindow(win);
 			}
 		};
 
 		if (content) {
-			void storeAudienceContent(content)
+			void storeAudienceContent(content, this.sessionId)
 				.then(() => navigateOrClose(true))
 				.catch(() => navigateOrClose(false));
 		} else {
 			navigateOrClose(true);
 		}
-
-		window.setTimeout(() => this.syncSlideToAudience(currentSlideIndex), 1500);
 
 		this.pollTimer = setInterval(() => {
 			const win = this.audienceWindow;
@@ -223,6 +257,36 @@ export class PresenterWindowService {
 		}, 1000);
 
 		return true;
+	}
+
+	/** Connect an audience tab to the presenter channel and announce readiness. */
+	connectAudience(onSlide: (index: number) => void, onExit: () => void): () => void {
+		const audienceSession = parseAudienceNonce();
+		if (!audienceSession) {
+			return () => undefined;
+		}
+		const channel = this.getChannel();
+		const onMessage = (event: MessageEvent): void => {
+			const message = event.data;
+			if (!isPresentationSessionMessage(message) || message.sessionId !== audienceSession) {
+				return;
+			}
+			if (message.type === 'presenter-state') {
+				onSlide(message.snapshot.slideIndex);
+			} else if (message.type === 'presenter-slide-change') {
+				onSlide(message.slideIndex);
+			} else if (message.type === 'presenter-exit') {
+				onExit();
+				window.close();
+			}
+		};
+		channel.addEventListener('message', onMessage);
+		channel.postMessage({
+			origin: PRESENTATION_MESSAGE_ORIGIN,
+			type: 'audience-ready',
+			sessionId: audienceSession,
+		});
+		return () => channel.removeEventListener('message', onMessage);
 	}
 
 	private disposeWindow(win: Window): void {

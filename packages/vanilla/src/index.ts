@@ -73,6 +73,8 @@ export {
 	themeToCssVars,
 	vermilionDarkTheme,
 	vermilionLightTheme,
+	loadPresentationDeck,
+	parsePresentationSessionId,
 } from 'pptx-viewer-shared';
 
 // ── Core escape-hatch types ────────────────────────────────────────────

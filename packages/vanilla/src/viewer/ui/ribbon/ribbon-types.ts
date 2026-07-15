@@ -51,6 +51,7 @@ export interface RibbonFileHandlers {
 export interface RibbonSlideShowHandlers {
 	startFromBeginning(): void;
 	startFromCurrent(): void;
+	openPresenterView(): void;
 	openBroadcast(): void;
 }
 

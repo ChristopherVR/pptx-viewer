@@ -10,6 +10,7 @@ import { TranslateService } from '@ngx-translate/core';
 import {
 	isAudienceTab,
 	loadAudienceContent,
+	parseAudienceNonce,
 	PowerPointViewerComponent,
 	translationsEn,
 } from 'pptx-angular-viewer';
@@ -382,7 +383,7 @@ export class AppComponent {
 		if (!isAudienceTab()) {
 			return;
 		}
-		const bytes = await loadAudienceContent();
+		const bytes = await loadAudienceContent(parseAudienceNonce() ?? undefined);
 		if (!bytes || this.content()) {
 			return;
 		}

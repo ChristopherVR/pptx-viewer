@@ -333,6 +333,17 @@ export class PresentationOverlayComponent implements OnInit {
 
 	/** Zero-based index into `slides()`. */
 	protected readonly currentIndex = signal(0);
+	private readonly syncExternalIndex = effect(() => {
+		const count = this.slides().length;
+		if (count === 0) {
+			return;
+		}
+		const requested = clampIndex(this.startIndex(), count);
+		if (requested !== this.currentIndex()) {
+			this.currentIndex.set(requested);
+			this.annotations.setActiveSlide(requested);
+		}
+	});
 
 	/**
 	 * Active slide-transition animation: the outgoing slide + the incoming
@@ -697,6 +708,9 @@ export class PresentationOverlayComponent implements OnInit {
 
 	/** Left-click on the slide area advances to the next visible slide. */
 	protected onBodyClick(event: MouseEvent): void {
+		if (typeof document !== 'undefined' && !document.fullscreenElement) {
+			requestPresentationFullscreen(this.rootRef()?.nativeElement);
+		}
 		// button 0 = primary (left); right-click / middle-click are ignored.
 		if (event.button !== 0) {
 			return;

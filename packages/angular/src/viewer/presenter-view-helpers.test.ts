@@ -234,9 +234,14 @@ describe('currentSlideAt', () => {
 describe('nextSlideAfter', () => {
 	const deck = [slide({ id: 'a' }), slide({ id: 'b' }), slide({ id: 'c' })];
 
-	it('returns the following slide (linear, no hidden skipping)', () => {
+	it('returns the following visible slide', () => {
 		expect(nextSlideAfter(deck, 0)?.id).toBe('b');
 		expect(nextSlideAfter(deck, 1)?.id).toBe('c');
+	});
+
+	it('skips hidden slides', () => {
+		const hiddenDeck = [slide({ id: 'a' }), slide({ id: 'b', hidden: true }), slide({ id: 'c' })];
+		expect(nextSlideAfter(hiddenDeck, 0)?.id).toBe('c');
 	});
 
 	it('returns undefined past the last slide', () => {

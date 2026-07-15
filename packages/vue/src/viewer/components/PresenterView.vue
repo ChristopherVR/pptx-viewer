@@ -33,11 +33,12 @@ const props = defineProps<{
 	mediaDataUrls: Map<string, string>;
 	/** Timestamp (ms) the presentation started, or `null`. */
 	presentationStartTime: number | null;
+	audienceOpen?: boolean;
 }>();
 
 const emit = defineEmits<{
 	(e: 'move', direction: 1 | -1): void;
-	(e: 'exit'): void;
+	(e: 'exit' | 'open-audience' | 'close-audience'): void;
 }>();
 
 const { t } = useI18n();
@@ -84,12 +85,18 @@ function decreaseNotesFontSize(): void {
 	notesFontSize.value = clampNotesFontSize(notesFontSize.value - NOTES_FONT_SIZE_STEP);
 }
 
+function toggleAudience(): void {
+	if (props.audienceOpen) {
+		emit('close-audience');
+	} else {
+		emit('open-audience');
+	}
+}
+
 // -- Slide data -------------------------------------------------------------
 const currentSlide = computed<PptxSlide | undefined>(() => props.slides[props.currentSlideIndex]);
 const nextSlide = computed<PptxSlide | undefined>(() =>
-	props.currentSlideIndex + 1 < props.slides.length
-		? props.slides[props.currentSlideIndex + 1]
-		: undefined,
+	props.slides.slice(props.currentSlideIndex + 1).find((slide) => !slide.hidden),
 );
 
 const notesText = computed(() => currentSlide.value?.notes ?? '');
@@ -193,15 +200,29 @@ const previewMainFrameStyle = computed(() => ({
 							elapsedText
 						}}</span>
 					</div>
-					<button
-						type="button"
-						class="pptx-vue-presenter-icon-btn flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-						:title="t('pptx.presenter.endPresentation')"
-						:aria-label="t('pptx.presenter.endPresentation')"
-						@click="emit('exit')"
-					>
-						&times;
-					</button>
+					<div class="flex items-center gap-1">
+						<button
+							type="button"
+							class="pptx-vue-presenter-audience-btn flex h-7 items-center justify-center rounded px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							:title="
+								audienceOpen
+									? t('pptx.presenter.closeAudienceWindow')
+									: t('pptx.presenter.openAudienceWindow')
+							"
+							@click="toggleAudience"
+						>
+							{{ audienceOpen ? 'Disconnect display' : 'Audience display' }}
+						</button>
+						<button
+							type="button"
+							class="pptx-vue-presenter-icon-btn flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							:title="t('pptx.presenter.endPresentation')"
+							:aria-label="t('pptx.presenter.endPresentation')"
+							@click="emit('exit')"
+						>
+							&times;
+						</button>
+					</div>
 				</div>
 
 				<!-- Navigation -->

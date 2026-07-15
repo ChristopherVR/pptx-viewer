@@ -32,6 +32,12 @@ export function createSlideShowTab(
 		icon: 'broadcast',
 		onClick: handlers.openBroadcast,
 	});
-	el.append(fromBeginning.btn, fromCurrent.btn, broadcast.btn);
+	const presenter = makeButton(doc, {
+		label: t('pptx.slideShow.presenterViewTooltip'),
+		text: t('pptx.slideShow.presenterView'),
+		icon: 'presentation',
+		onClick: handlers.openPresenterView,
+	});
+	el.append(fromBeginning.btn, fromCurrent.btn, presenter.btn, broadcast.btn);
 	return { el };
 }

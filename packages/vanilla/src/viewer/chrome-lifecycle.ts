@@ -163,6 +163,7 @@ export interface ChromeHost {
 	goToSlide(index: number): void;
 	getSlideCount(): number;
 	enterPresentation(): Promise<void>;
+	openPresenterView(): void;
 	exitPresentation(): Promise<void>;
 	openBroadcast(): void;
 	openAccessibility(): void;
@@ -202,6 +203,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 			void host.enterPresentation();
 		},
 		startPresentationFromCurrent: () => void host.enterPresentation(),
+		openPresenterView: () => host.openPresenterView(),
 		openBroadcast: () => host.openBroadcast(),
 		openAccessibility: () => host.openAccessibility(),
 		toggleTemplateEditing: () => host.toggleTemplateEditing(),

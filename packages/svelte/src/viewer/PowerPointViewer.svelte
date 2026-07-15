@@ -6,7 +6,7 @@
 	 * `pptx-viewer-core` / `pptx-viewer-shared` and this package's `.ts`
 	 * modules; this SFC is thin composition.
 	 */
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import type { TextSegment } from 'pptx-viewer-core';
 	import { defaultCssVars, themeToCssVars, toggleSheet } from 'pptx-viewer-shared';
 	import type { MobileSheetKey } from 'pptx-viewer-shared';
@@ -21,6 +21,7 @@
 	import MobileChrome from './components/MobileChrome.svelte';
 	import MasterViewBody from './components/MasterViewBody.svelte';
 	import PresentationTouchControls from './components/PresentationTouchControls.svelte';
+	import PresenterView from './components/PresenterView.svelte';
 	import StatusBar from './components/StatusBar.svelte';
 	import TitleBar from './components/TitleBar.svelte';
 	import Ribbon from './components/ribbon/Ribbon.svelte';
@@ -35,7 +36,7 @@
 	import { createExportWiring } from './export/export-wiring.svelte';
 	import { createExportingApi } from './export/exporting-api';
 	import { ExportUiState } from './export/export-ui.svelte';
-	import { PresentationController, usePresentationEffects } from './presentation';
+	import { PresentationController, PresenterSession, usePresentationEffects } from './presentation';
 	import { PresentationLoader } from './state/presentation-loader.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
 	import { provideRenderContext } from './state/render-context';
@@ -84,6 +85,26 @@
 		getTableStyleMap: () => loader.tableStyleMap,
 	});
 	const viewer = new ViewerState();
+	let presenterMode = $state(false);
+	let presenterStartedAt = $state(Date.now());
+	const presenterSession = new PresenterSession({
+		getSource: () => source,
+		getSlideIndex: () => viewer.current,
+		onAudienceSlide: (index) => viewer.goTo(index),
+		onAudienceExit: () => (viewer.isFullscreen = false),
+	});
+	onMount(() => {
+		presenterSession.connect();
+		if (presenterSession.isAudience) {viewer.isFullscreen = true;}
+	});
+	onDestroy(() => presenterSession.dispose());
+	$effect(() => {
+		presenterSession.sync(viewer.current);
+	});
+	function enterPresenterView(): void {
+		presenterStartedAt = Date.now();
+		presenterMode = true;
+	}
 
 	// ── Editing ──────────────────────────────────────────────────────────
 	// `editor.slides` is the single editable source of truth for the stage,
@@ -427,6 +448,7 @@
 					onFullscreenToggle();
 				}}
 				onfromcurrent={onFullscreenToggle}
+				onpresenter={enterPresenterView}
 				{exportUi}
 				theme={effectiveTheme}
 				onsettheme={onSetTheme}
@@ -518,6 +540,19 @@
 			onprev={() => viewer.prev()}
 			onnext={() => presentation.advance()}
 			onexit={onFullscreenToggle}
+		/>
+	{/if}
+	{#if presenterMode}
+		<PresenterView
+			slides={editor.renderedSlides}
+			current={viewer.current}
+			canvasSize={loader.canvasSize}
+			mediaDataUrls={loader.mediaDataUrls}
+			startedAt={presenterStartedAt}
+			audienceOpen={presenterSession.audienceOpen}
+			onmove={(direction) => viewer.goTo(viewer.current + direction)}
+			onaudience={() => presenterSession.audienceOpen ? presenterSession.closeAudience() : presenterSession.openAudience()}
+			onexit={() => { presenterSession.closeAudience(); presenterMode = false; }}
 		/>
 	{/if}
 	{#if editingActive && displaySlides.length > 0}

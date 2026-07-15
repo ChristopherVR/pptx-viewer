@@ -14,6 +14,7 @@ import {
 	PowerPointViewer,
 	isAudienceTab,
 	loadAudienceContent,
+	parseAudienceNonce,
 	storeAudienceContent,
 } from '../../packages/react/src/viewer';
 import type { CollaborationConfig } from '../../packages/react/src/viewer';
@@ -738,7 +739,7 @@ function App() {
 			return;
 		}
 		let cancelled = false;
-		void loadAudienceContent().then((bytes) => {
+		void loadAudienceContent(parseAudienceNonce() ?? undefined).then((bytes) => {
 			if (cancelled || !bytes) {
 				return undefined;
 			}

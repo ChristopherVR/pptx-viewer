@@ -46,6 +46,7 @@ export interface RibbonProps {
 	/** Slide Show tab actions: enter presentation from slide 0 or the current slide. */
 	onfrombeginning: () => void;
 	onfromcurrent: () => void;
+	onpresenter: () => void;
 
 	/** Review tab: presentation-wide accessibility audit and issue navigation. */
 	slides: readonly PptxSlide[];

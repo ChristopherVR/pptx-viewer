@@ -20,6 +20,7 @@ export {
 	loadAudienceContent,
 	clearAudienceContent,
 } from './viewer';
+export { parsePresentationSessionId } from 'pptx-viewer-shared';
 
 // ── Shared utilities ──
 export { cn } from './utils';

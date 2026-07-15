@@ -1,6 +1,19 @@
 import type { PptxHandler } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
-import { collectAccessibilityIssues } from 'pptx-viewer-shared';
+import {
+	buildPresentationAudienceUrl,
+	clearPresentationDeck,
+	collectAccessibilityIssues,
+	createPresentationSessionId,
+	isPresentationSessionMessage,
+	loadPresentationDeck,
+	parsePresentationSessionId,
+	placeAudienceWindow,
+	PRESENTATION_CHANNEL_NAME,
+	PRESENTATION_MESSAGE_ORIGIN,
+	resolveAudienceScreenPlacement,
+	storePresentationDeck,
+} from 'pptx-viewer-shared';
 
 import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
 import { buildMountChromeDeps, mountChrome, unmountChrome } from './chrome-lifecycle';
@@ -56,6 +69,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private readonly sessions: SessionControllers;
 	private readonly controls: ViewerControls;
 	private destroyed = false;
+	private presenterChannel: BroadcastChannel | null = null;
+	private audienceWindow: Window | null = null;
+	private presenterSessionId = '';
+	private presenterSequence = 0;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
 		super();
@@ -117,6 +134,11 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				callbacks: options,
 			}),
 		);
+		this.store.subscribe((state) => {
+			if (this.presenterSessionId) {
+				this.syncAudience(state.currentSlide);
+			}
+		});
 		this.sessions = createSessionControllers({
 			doc: this.doc,
 			store: this.store,
@@ -133,6 +155,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		if (options.source !== undefined) {
 			void this.loading.load(options.source);
 		}
+		this.connectAudienceRole();
 	}
 
 	async loadFile(file: Blob | ArrayBuffer | Uint8Array): Promise<void> {
@@ -174,6 +197,135 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	/** Run the shared WCAG checks against the live deck and show the results. */
 	openAccessibility(): void {
 		this.lifecycle.chrome.accessibility.open(collectAccessibilityIssues(this.store.get().slides));
+	}
+
+	/** Open a clean audience display while retaining this editor as the presenter surface. */
+	openPresenterView(): void {
+		this.closeAudienceWindow();
+		const popup = window.open(
+			'about:blank',
+			'pptx-viewer-audience',
+			'popup=yes,width=1280,height=720',
+		);
+		if (!popup) {
+			return;
+		}
+		this.audienceWindow = popup;
+		this.presenterSessionId = createPresentationSessionId();
+		this.store.set({ notesExpanded: true });
+		const sessionId = this.presenterSessionId;
+		const url = buildPresentationAudienceUrl(window.location.href, sessionId);
+		void resolveAudienceScreenPlacement(window).then((placement) => {
+			if (placement && this.audienceWindow === popup && !popup.closed) {
+				placeAudienceWindow(popup, placement);
+			}
+			return undefined;
+		});
+		const handler = this.loading.getHandler();
+		if (!handler) {
+			this.closeAudienceWindow();
+			return;
+		}
+		void handler
+			.save(this.store.get().slides)
+			.then((bytes) => storePresentationDeck(sessionId, bytes))
+			.then(() => popup.location.replace(url))
+			.catch(() => this.closeAudienceWindow());
+	}
+
+	private getPresenterChannel(): BroadcastChannel | null {
+		try {
+			this.presenterChannel ??= new BroadcastChannel(PRESENTATION_CHANNEL_NAME);
+			return this.presenterChannel;
+		} catch {
+			return null;
+		}
+	}
+
+	private syncAudience(slideIndex = this.getCurrentSlide()): void {
+		if (!this.presenterSessionId) {
+			return;
+		}
+		this.getPresenterChannel()?.postMessage({
+			origin: PRESENTATION_MESSAGE_ORIGIN,
+			type: 'presenter-state',
+			sessionId: this.presenterSessionId,
+			snapshot: {
+				slideIndex,
+				buildStep: 0,
+				sequence: ++this.presenterSequence,
+				blackout: 'none',
+				paused: false,
+				elapsedMs: 0,
+			},
+		});
+	}
+
+	private connectAudienceRole(): void {
+		const audienceSession = parsePresentationSessionId(window.location.hash);
+		const channel = this.getPresenterChannel();
+		if (!channel) {
+			return;
+		}
+		channel.addEventListener('message', (event: MessageEvent) => {
+			const message = event.data;
+			if (!isPresentationSessionMessage(message)) {
+				return;
+			}
+			if (audienceSession && message.sessionId === audienceSession) {
+				if (message.type === 'presenter-state') {
+					this.goToSlide(message.snapshot.slideIndex);
+				}
+				if (message.type === 'presenter-slide-change') {
+					this.goToSlide(message.slideIndex);
+				}
+				if (message.type === 'presenter-exit') {
+					void this.exitPresentation();
+				}
+			} else if (
+				message.type === 'audience-ready' &&
+				message.sessionId === this.presenterSessionId
+			) {
+				this.syncAudience();
+			}
+		});
+		if (!audienceSession) {
+			return;
+		}
+		channel.postMessage({
+			origin: PRESENTATION_MESSAGE_ORIGIN,
+			type: 'audience-ready',
+			sessionId: audienceSession,
+		});
+		if (this.options.source === undefined) {
+			void loadPresentationDeck(audienceSession).then(async (bytes) => {
+				if (!bytes) {
+					return undefined;
+				}
+				await this.loading.load(bytes);
+				await this.enterPresentation();
+				return undefined;
+			});
+		}
+	}
+
+	private closeAudienceWindow(): void {
+		const sessionId = this.presenterSessionId;
+		if (sessionId) {
+			this.getPresenterChannel()?.postMessage({
+				origin: PRESENTATION_MESSAGE_ORIGIN,
+				type: 'presenter-exit',
+				sessionId,
+			});
+			void clearPresentationDeck(sessionId);
+		}
+		try {
+			this.audienceWindow?.close();
+		} catch {
+			/* ignore */
+		}
+		this.audienceWindow = null;
+		this.presenterSessionId = '';
 	}
 
 	setLocale(locale: string): void {
@@ -277,6 +429,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			return;
 		}
 		this.destroyed = true;
+		this.closeAudienceWindow();
+		this.presenterChannel?.close();
 		this.sessions.destroy();
 		this.loading.invalidate();
 		this.editor.destroy();

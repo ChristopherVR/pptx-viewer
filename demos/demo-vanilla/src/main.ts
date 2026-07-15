@@ -3,7 +3,12 @@ import type {
 	PptxViewerInstance,
 	PptxViewerSource,
 } from 'pptx-vanilla-viewer';
-import { createPptxViewer, themeToCssVars } from 'pptx-vanilla-viewer';
+import {
+	createPptxViewer,
+	loadPresentationDeck,
+	parsePresentationSessionId,
+	themeToCssVars,
+} from 'pptx-vanilla-viewer';
 import { PptxHandler } from 'pptx-viewer-core';
 
 import { buildRoomConfig, readRoomFromUrl, resolveAutoName } from './collab';
@@ -178,8 +183,16 @@ applyRootVars();
 
 // A `?room=<id>` link auto-joins a collaboration session: open a blank deck
 // wired to the room so the host's slides arrive through late-joiner sync.
+const audienceSession = parsePresentationSessionId(window.location.hash);
 const joinRoom = readRoomFromUrl();
-if (joinRoom) {
+if (audienceSession) {
+	void loadPresentationDeck(audienceSession).then((content) => {
+		if (content) {
+			openViewer(content, 'Audience View');
+		}
+		return undefined;
+	});
+} else if (joinRoom) {
 	void (async () => {
 		const { handler, data } = await PptxHandler.createBlank({
 			title: 'Shared Session',

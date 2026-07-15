@@ -13,6 +13,12 @@
  */
 
 /** IndexedDB database name. Must match the React/Vue bindings exactly. */
+import {
+	clearPresentationDeck,
+	loadPresentationDeck,
+	storePresentationDeck,
+} from '../internal/shared';
+
 const DB_NAME = 'pptx-viewer-audience';
 const DB_VERSION = 1;
 const STORE_NAME = 'content';
@@ -63,7 +69,13 @@ export function isAudienceTab(): boolean {
  * Store PPTX content bytes so the audience tab can retrieve them.
  * Called by the presenter before opening the audience window.
  */
-export async function storeAudienceContent(content: ArrayBuffer | Uint8Array): Promise<void> {
+export async function storeAudienceContent(
+	content: ArrayBuffer | Uint8Array,
+	sessionId?: string,
+): Promise<void> {
+	if (sessionId) {
+		return storePresentationDeck(sessionId, content);
+	}
 	const db = await openDb();
 	return new Promise((resolve, reject) => {
 		const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -87,7 +99,10 @@ export async function storeAudienceContent(content: ArrayBuffer | Uint8Array): P
  * Load PPTX content bytes stored by the presenter tab.
  * Returns `null` if nothing is stored.
  */
-export async function loadAudienceContent(): Promise<Uint8Array | null> {
+export async function loadAudienceContent(sessionId?: string): Promise<Uint8Array | null> {
+	if (sessionId) {
+		return loadPresentationDeck(sessionId);
+	}
 	try {
 		const db = await openDb();
 		return new Promise((resolve, reject) => {
@@ -131,7 +146,10 @@ export async function loadAudienceContent(): Promise<Uint8Array | null> {
 /**
  * Remove stored audience content (cleanup).
  */
-export async function clearAudienceContent(): Promise<void> {
+export async function clearAudienceContent(sessionId?: string): Promise<void> {
+	if (sessionId) {
+		return clearPresentationDeck(sessionId);
+	}
 	try {
 		const db = await openDb();
 		return new Promise((resolve) => {

@@ -4,6 +4,7 @@ import {
 	PowerPointViewer,
 	isAudienceTab,
 	loadAudienceContent,
+	parsePresentationSessionId,
 	themeToCssVars,
 } from 'pptx-vue-viewer';
 import type { CollaborationConfig } from 'pptx-vue-viewer';
@@ -323,14 +324,16 @@ onMounted(() => {
 	if (!isAudienceTab()) {
 		return;
 	}
-	void loadAudienceContent().then((bytes) => {
-		if (!bytes) {
+	void loadAudienceContent(parsePresentationSessionId(window.location.hash) ?? undefined).then(
+		(bytes) => {
+			if (!bytes) {
+				return undefined;
+			}
+			content.value = bytes;
+			fileName.value = 'Audience View';
 			return undefined;
-		}
-		content.value = bytes;
-		fileName.value = 'Audience View';
-		return undefined;
-	});
+		},
+	);
 });
 
 // Update document title when in collaboration/broadcast mode.

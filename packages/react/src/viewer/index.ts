@@ -8,6 +8,7 @@ export {
 	loadAudienceContent,
 	storeAudienceContent,
 	clearAudienceContent,
+	parseAudienceNonce,
 } from './hooks/presentation-mode';
 
 // Theme switching (opt-in, tree-shakeable)

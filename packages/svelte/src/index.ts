@@ -32,6 +32,7 @@ export {
 	listAutosaveSnapshots,
 } from 'pptx-viewer-shared';
 export type { AutosaveRecord } from 'pptx-viewer-shared';
+export { loadPresentationDeck, parsePresentationSessionId } from 'pptx-viewer-shared';
 export {
 	defaultCssVars,
 	defaultRadius,

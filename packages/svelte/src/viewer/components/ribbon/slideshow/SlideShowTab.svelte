@@ -6,10 +6,12 @@
 		onfrombeginning,
 		onfromcurrent,
 		onbroadcast,
+		onpresenter,
 	}: {
 		onfrombeginning: () => void;
 		onfromcurrent: () => void;
 		onbroadcast?: () => void;
+		onpresenter: () => void;
 	} = $props();
 	const t = useTranslator();
 </script>
@@ -22,6 +24,10 @@
 	<button type="button" onclick={onfromcurrent} title={t('pptx.slideShow.fromCurrentTooltip')}>
 		<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 3 11 7-11 7z" /></svg>
 		<span>{t('pptx.slideShow.fromCurrent')}</span>
+	</button>
+	<button type="button" onclick={onpresenter} title={t('pptx.slideShow.presenterViewTooltip')}>
+		<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="3" width="16" height="11" rx="1" /><path d="M7 18h6M10 14v4" /></svg>
+		<span>{t('pptx.slideShow.presenterView')}</span>
 	</button>
 	{#if onbroadcast}
 		<button type="button" onclick={onbroadcast} title={t('pptx.slideShow.broadcastTooltip')}>
