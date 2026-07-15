@@ -93,6 +93,7 @@ export interface UseRibbonPropsStateInput {
 /** Action callbacks the ribbon adapter dispatches. */
 export interface UseRibbonPropsActionsInput {
 	startPresenting: () => void;
+	startPresenterView: () => void;
 	onAddAnimation: RibbonProps['onAddAnimation'];
 	onRemoveAnimation: RibbonProps['onRemoveAnimation'];
 	zoomIn: () => void;

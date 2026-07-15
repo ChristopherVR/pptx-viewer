@@ -15,13 +15,14 @@ function makeSlide(id: string): PptxSlide {
 	} as unknown as PptxSlide;
 }
 
-function mountMode(slides: PptxSlide[], startIndex = 0) {
+function mountMode(slides: PptxSlide[], startIndex = 0, startInPresenterView = false) {
 	return mount(PresentationMode, {
 		props: {
 			slides,
 			canvasSize,
 			mediaDataUrls: new Map<string, string>(),
 			startIndex,
+			startInPresenterView,
 		},
 		attachTo: document.body,
 	});
@@ -42,6 +43,12 @@ describe('presentationMode', () => {
 		expect(document.querySelector('.pptx-vue-presentation-counter')?.textContent).toContain(
 			'1 / 2',
 		);
+		wrapper.unmount();
+	});
+
+	it('opens directly in presenter view when requested by the ribbon', () => {
+		const wrapper = mountMode([makeSlide('s1'), makeSlide('s2')], 0, true);
+		expect(document.querySelector('.pptx-vue-presenter')).not.toBeNull();
 		wrapper.unmount();
 	});
 

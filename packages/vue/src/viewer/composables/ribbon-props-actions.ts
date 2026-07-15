@@ -179,7 +179,7 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onCloseMasterView: () => {
 			input.showMasterView.value = false;
 		},
-		onEnterPresenterView: undefined,
+		onEnterPresenterView: input.startPresenterView,
 		onEnterRehearsalMode: undefined,
 		onToggleThemeEditor: () => {
 			input.themeEditorOpen.value = !input.themeEditorOpen.value;

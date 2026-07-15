@@ -47,8 +47,9 @@ const props = withDefaults(
 		mediaDataUrls: Map<string, string>;
 		content?: ArrayBuffer | Uint8Array | null;
 		startIndex?: number;
+		startInPresenterView?: boolean;
 	}>(),
-	{ startIndex: 0 },
+	{ startIndex: 0, startInPresenterView: false },
 );
 
 const emit = defineEmits<{
@@ -192,7 +193,7 @@ function onDiscardAnnotations(): void {
 /** Timestamp (ms) the show started: drives the toolbar/presenter timers. */
 const presentationStartTime = ref<number | null>(null);
 /** Whether the presenter view (notes + next-slide preview) is shown. */
-const presenterMode = ref(false);
+const presenterMode = ref(props.startInPresenterView);
 /** On a phone, the presenter view uses a single-column mobile layout. */
 const { isMobile, isTouchDevice } = useIsMobile();
 

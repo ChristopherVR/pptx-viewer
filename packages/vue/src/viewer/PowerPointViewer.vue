@@ -846,6 +846,15 @@ const { presenting, startPresenting, onPresentClose, onPresentSlideChange } =
 		activeSlideIndex,
 		pushHistory: history.pushHistory,
 	});
+const startInPresenterView = ref(false);
+function startPresenterView(): void {
+	startInPresenterView.value = true;
+	startPresenting();
+}
+function closePresentation(payload?: Parameters<typeof onPresentClose>[0]): void {
+	onPresentClose(payload);
+	startInPresenterView.value = false;
+}
 
 // Direct on-canvas chart editing context (mirrors the SmartArt node-edit
 // context above): gates mark interactivity to the selected chart in edit
@@ -1426,6 +1435,7 @@ const ribbonProps = useRibbonProps({
 	showEquationEditor,
 	collab,
 	startPresenting,
+	startPresenterView,
 	onAddAnimation,
 	onRemoveAnimation,
 	zoomIn,
@@ -2446,7 +2456,8 @@ function handleCommandSearch(command: string): void {
 			:canvas-size="canvasSize"
 			:media-data-urls="mediaDataUrls"
 			:start-index="activeSlideIndex"
-			@close="onPresentClose"
+			:start-in-presenter-view="startInPresenterView"
+			@close="closePresentation"
 			@slide-change="onPresentSlideChange"
 		/>
 	</div>
