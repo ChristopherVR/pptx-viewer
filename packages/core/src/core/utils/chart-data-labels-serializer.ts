@@ -24,9 +24,54 @@ export interface ChartDataLabelStyle {
 		showSeriesName?: boolean;
 		showPercent?: boolean;
 		showLegendKey?: boolean;
+		showBubbleSize?: boolean;
+		separator?: string;
+		showLeaderLines?: boolean;
 		position?: string;
 	};
 }
+
+const POSITION_VALUES = new Set([
+	'bestFit',
+	'b',
+	'ctr',
+	'inBase',
+	'inEnd',
+	'l',
+	'outEnd',
+	'r',
+	't',
+]);
+const CHILD_ORDER = [
+	'dLbl',
+	'delete',
+	'numFmt',
+	'spPr',
+	'txPr',
+	'dLblPos',
+	'showLegendKey',
+	'showVal',
+	'showCatName',
+	'showSerName',
+	'showPercent',
+	'showBubbleSize',
+	'separator',
+	'showLeaderLines',
+	'leaderLines',
+	'extLst',
+] as const;
+const MODELED = new Set([
+	'delete',
+	'dLblPos',
+	'showLegendKey',
+	'showVal',
+	'showCatName',
+	'showSerName',
+	'showPercent',
+	'showBubbleSize',
+	'separator',
+	'showLeaderLines',
+]);
 
 function findKey(obj: XmlObject, local: string, getLocalName: GetLocalName): string | undefined {
 	return Object.keys(obj).find((k) => getLocalName(k) === local);
@@ -34,6 +79,23 @@ function findKey(obj: XmlObject, local: string, getLocalName: GetLocalName): str
 
 function boolVal(on: boolean | undefined): XmlObject {
 	return { '@_val': on ? '1' : '0' };
+}
+
+function ordered(
+	existing: XmlObject | undefined,
+	modeled: XmlObject,
+	getLocalName: GetLocalName,
+): XmlObject {
+	const entries = Object.entries(existing ?? {}).filter(([key]) => !MODELED.has(getLocalName(key)));
+	entries.push(...Object.entries(modeled));
+	entries.sort(([a], [b]) => {
+		const rank = (key: string) => {
+			const index = CHILD_ORDER.indexOf(getLocalName(key) as (typeof CHILD_ORDER)[number]);
+			return index < 0 ? CHILD_ORDER.length - 1 : index;
+		};
+		return rank(a) - rank(b);
+	});
+	return Object.fromEntries(entries) as XmlObject;
 }
 
 /** Insert `c:dLbls` after the last `c:ser` child (schema order), preserving key order. */
@@ -71,15 +133,10 @@ function buildDLbls(
 	getLocalName: GetLocalName,
 ): XmlObject {
 	const built: XmlObject = {};
-	if (existing) {
-		for (const local of ['numFmt', 'spPr', 'txPr']) {
-			const k = findKey(existing, local, getLocalName);
-			if (k) {
-				built[k] = existing[k];
-			}
-		}
-	}
 	if (opts.position) {
+		if (!POSITION_VALUES.has(opts.position)) {
+			throw new RangeError(`Invalid data label position: ${opts.position}`);
+		}
 		built['c:dLblPos'] = { '@_val': opts.position };
 	}
 	built['c:showLegendKey'] = boolVal(opts.showLegendKey);
@@ -87,8 +144,14 @@ function buildDLbls(
 	built['c:showCatName'] = boolVal(opts.showCategory);
 	built['c:showSerName'] = boolVal(opts.showSeriesName);
 	built['c:showPercent'] = boolVal(opts.showPercent);
-	built['c:showBubbleSize'] = boolVal(false);
-	return built;
+	built['c:showBubbleSize'] = boolVal(opts.showBubbleSize);
+	if (opts.separator !== undefined) {
+		built['c:separator'] = opts.separator;
+	}
+	if (opts.showLeaderLines !== undefined) {
+		built['c:showLeaderLines'] = boolVal(opts.showLeaderLines);
+	}
+	return ordered(existing, built, getLocalName);
 }
 
 /**
@@ -122,7 +185,8 @@ export function applyChartDataLabelsToXml(
 		const existingKey = findKey(container, 'dLbls', getLocalName);
 
 		if (style.hasDataLabels === false) {
-			const off: XmlObject = { 'c:delete': { '@_val': '1' } };
+			const existing = existingKey ? (container[existingKey] as XmlObject) : undefined;
+			const off = ordered(existing, { 'c:delete': { '@_val': '1' } }, getLocalName);
 			if (existingKey) {
 				container[existingKey] = off;
 			} else {
@@ -137,13 +201,12 @@ export function applyChartDataLabelsToXml(
 			opts.showCategory ||
 			opts.showSeriesName ||
 			opts.showPercent ||
-			opts.showLegendKey;
+			opts.showLegendKey ||
+			opts.showBubbleSize;
 		const effective = anyFlag ? opts : { ...opts, showValue: true };
 
 		const existing = existingKey ? (container[existingKey] as XmlObject) : undefined;
-		// A previously-disabled dLbls (<c:delete/>) carries no styling to keep.
-		const base = existing && !findKey(existing, 'delete', getLocalName) ? existing : undefined;
-		const built = buildDLbls(base, effective, getLocalName);
+		const built = buildDLbls(existing, effective, getLocalName);
 
 		if (existingKey) {
 			container[existingKey] = built;

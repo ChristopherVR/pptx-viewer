@@ -1,5 +1,6 @@
 import { XmlObject } from '../../types';
 import type { PptxPresentationProperties, PptxChartStyle, PptxViewProperties } from '../../types';
+import { parseChartDataLabelOptions } from '../../utils/chart-data-label-parser';
 import { parseChartLegendEntries } from '../../utils/chart-legend-serializer';
 import { parseShowProperties } from './pptx-presentation-props-helpers';
 import { parseViewProperties } from './pptx-view-props-helpers';
@@ -192,33 +193,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					// Check chart-level dLbls (applies to all series)
 					const chartDLbls = this.xmlLookupService.getChildByLocalName(ctNode, 'dLbls');
 					if (chartDLbls && !style.dataLabels) {
-						const flag = (name: string): boolean =>
-							this.xmlLookupService.getChildByLocalName(chartDLbls, name)?.['@_val'] === '1';
-						const showValue = flag('showVal');
-						const showCategory = flag('showCatName');
-						const showSeriesName = flag('showSerName');
-						const showPercent = flag('showPercent');
-						const showLegendKey = flag('showLegendKey');
-						if (showValue || showCategory || showSeriesName || showPercent || showLegendKey) {
-							style.hasDataLabels = true;
-							hasStyle = true;
-							const dataLabels: NonNullable<PptxChartStyle['dataLabels']> = {
-								showValue,
-								showCategory,
-								showSeriesName,
-								showPercent,
-								showLegendKey,
-							};
-							const pos = this.xmlLookupService.getChildByLocalName(chartDLbls, 'dLblPos')?.[
-								'@_val'
-							];
-							if (pos !== undefined) {
-								dataLabels.position = String(pos) as NonNullable<
-									PptxChartStyle['dataLabels']
-								>['position'];
-							}
-							style.dataLabels = dataLabels;
-						}
+						const deleted = this.xmlLookupService.getChildByLocalName(chartDLbls, 'delete');
+						style.hasDataLabels = !(deleted?.['@_val'] === '1' || deleted?.['@_val'] === 'true');
+						style.dataLabels = parseChartDataLabelOptions(chartDLbls, this.xmlLookupService);
+						hasStyle = true;
 					}
 
 					// Also check per-series dLbls

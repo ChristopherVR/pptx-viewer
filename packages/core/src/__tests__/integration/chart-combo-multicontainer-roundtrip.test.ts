@@ -154,7 +154,15 @@ describe('multi-container combo chart round-trip', () => {
 		const data = await handler.load(await buildComboDeck());
 		const chart = comboChart(data);
 		// Add a per-point label override on the line series, point index 1.
-		chart.chartData!.series[1].dataLabels = [{ idx: 1, showVal: true, position: 'outEnd' }];
+		chart.chartData!.series[1].dataLabels = [
+			{
+				idx: 1,
+				showVal: true,
+				position: 'outEnd',
+				separator: '/',
+				showLeaderLines: true,
+			},
+		];
 		data.slides[0].isDirty = true;
 
 		const savedBytes = await handler.save(data.slides);
@@ -168,5 +176,7 @@ describe('multi-container combo chart round-trip', () => {
 		expect(override).toBeDefined();
 		expect(override!.showVal).toBeTruthy();
 		expect(override!.position).toBe('outEnd');
+		expect(override!.separator).toBe('/');
+		expect(override!.showLeaderLines).toBeTruthy();
 	});
 });

@@ -6,6 +6,7 @@ import type {
 	PptxHandoutMaster,
 	PptxNotesMaster,
 } from '../../types';
+import { parseCustomShows } from '../../utils/presentation-collections';
 import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
 import { parseMasterColorMap } from './master-color-map';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeDocProperties';
@@ -429,27 +430,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 */
 	protected parseCustomShows(): PptxCustomShow[] | undefined {
 		try {
-			const custShowLst = xmlPath(this.presentationData, 'p:presentation', 'p:custShowLst');
-			if (!custShowLst) {
-				return undefined;
-			}
-
-			const custShows = this.ensureArray(custShowLst['p:custShow']);
-			if (custShows.length === 0) {
-				return undefined;
-			}
-
-			return custShows.map((show: XmlObject) => {
-				const name = String(show['@_name'] || '');
-				const id = String(show['@_id'] || '');
-				const sldLst = show['p:sldLst'] as XmlObject | undefined;
-				const sldEntries = sldLst ? this.ensureArray(sldLst['p:sld']) : [];
-				const slideRIds = sldEntries
-					.map((sld: XmlObject) => String(sld['@_r:id'] || ''))
-					.filter((rId: string) => rId.length > 0);
-
-				return { name, id, slideRIds };
-			});
+			return parseCustomShows(this.presentationData, this.xmlLookupService);
 		} catch (e) {
 			console.warn('Failed to parse custom slide shows:', e);
 			return undefined;

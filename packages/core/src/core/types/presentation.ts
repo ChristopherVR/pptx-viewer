@@ -335,6 +335,8 @@ export interface PptxCustomShow {
 	id: string;
 	/** Ordered list of slide relationship IDs included in this custom show. */
 	slideRIds: string[];
+	/** Original `p:custShow` subtree used to preserve unmodelled attributes and extensions. */
+	rawXml?: XmlObject;
 }
 
 /**
@@ -364,6 +366,8 @@ export interface PptxSection {
 	collapsed?: boolean;
 	/** Section highlight color hex (from p15:sectionPr/@clr). */
 	color?: string;
+	/** Original section subtree used to preserve unmodelled attributes and extensions. */
+	rawXml?: XmlObject;
 }
 
 /**

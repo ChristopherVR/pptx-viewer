@@ -28,6 +28,36 @@ function plotArea(tree: XmlObject): XmlObject {
 // ---------------------------------------------------------------------------
 
 describe('buildChartSpaceXml', () => {
+	it('generates chart-level and per-point data labels in schema order', () => {
+		const tree = buildChartSpaceXml(
+			makeData({
+				style: {
+					hasDataLabels: true,
+					dataLabels: { showValue: true, separator: ' / ', showLeaderLines: true },
+				},
+				series: [
+					{
+						name: 'Revenue',
+						values: [100, 200, 300],
+						dataLabels: [{ idx: 1, showVal: true, position: 'outEnd' }],
+					},
+				],
+			}),
+		);
+		const container = plotArea(tree)['c:barChart'] as XmlObject;
+		const series = (container['c:ser'] as XmlObject[])[0];
+		const seriesLabels = series['c:dLbls'] as XmlObject;
+		const point = seriesLabels['c:dLbl'] as XmlObject;
+		expect((point['c:idx'] as XmlObject)['@_val']).toBe('1');
+		expect((point['c:dLblPos'] as XmlObject)['@_val']).toBe('outEnd');
+		const group = container['c:dLbls'] as XmlObject;
+		expect(group['c:separator']).toBe(' / ');
+		expect(group['c:showLeaderLines']).toStrictEqual({ '@_val': '1' });
+		const containerKeys = Object.keys(container);
+		expect(containerKeys.indexOf('c:dLbls')).toBeGreaterThan(containerKeys.indexOf('c:ser'));
+		expect(containerKeys.indexOf('c:dLbls')).toBeLessThan(containerKeys.indexOf('c:axId'));
+	});
+
 	it('declares the chart/main/relationship namespaces on chartSpace', () => {
 		const cs = buildChartSpaceXml(makeData())['c:chartSpace'] as XmlObject;
 		expect(cs['@_xmlns:c']).toContain('drawingml/2006/chart');

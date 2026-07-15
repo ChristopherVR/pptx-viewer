@@ -113,4 +113,49 @@ describe('applySeriesDataLabelsToXml', () => {
 		applySeriesDataLabelsToXml(ser, [], getLocalName);
 		expect(ser['c:dLbls']).toBeUndefined();
 	});
+
+	it('writes separator and leader-line settings in schema order', () => {
+		const ser = seriesNode();
+		applySeriesDataLabelsToXml(
+			ser,
+			[{ idx: 0, showVal: true, separator: ' / ', showLeaderLines: true }],
+			getLocalName,
+		);
+		const node = (ser['c:dLbls'] as XmlObject)['c:dLbl'] as XmlObject;
+		expect(node['c:separator']).toBe(' / ');
+		expect(node['c:showLeaderLines']).toStrictEqual({ '@_val': '1' });
+		const keys = Object.keys(node).map(getLocalName);
+		expect(keys.indexOf('separator')).toBeLessThan(keys.indexOf('showLeaderLines'));
+	});
+
+	it('preserves unknown children and extLst while editing a label', () => {
+		const ser = seriesNode();
+		ser['c:dLbls'] = {
+			'c:dLbl': {
+				'c:idx': { '@_val': '0' },
+				'c:showVal': { '@_val': '0' },
+				'cx:futureLabel': { '@_mode': 'keep' },
+				'c:extLst': { 'c:ext': { '@_uri': 'labels' } },
+			},
+		};
+		applySeriesDataLabelsToXml(ser, [{ idx: 0, showVal: true }], getLocalName);
+		const node = (ser['c:dLbls'] as XmlObject)['c:dLbl'] as XmlObject;
+		expect(node['cx:futureLabel']).toStrictEqual({ '@_mode': 'keep' });
+		expect(node['c:extLst']).toStrictEqual({ 'c:ext': { '@_uri': 'labels' } });
+		expect((node['c:showVal'] as XmlObject)['@_val']).toBe('1');
+		expect(Object.keys(node).at(-1)).toBe('c:extLst');
+	});
+
+	it('validates idx and dLblPos before serialization', () => {
+		expect(() => applySeriesDataLabelsToXml(seriesNode(), [{ idx: -1 }], getLocalName)).toThrow(
+			RangeError,
+		);
+		expect(() =>
+			applySeriesDataLabelsToXml(
+				seriesNode(),
+				[{ idx: 0, position: 'sideways' as never }],
+				getLocalName,
+			),
+		).toThrow(/Invalid data label position/u);
+	});
 });

@@ -1,8 +1,78 @@
 import { XmlObject } from '../../types';
-import type { PptxSmartArtDrawingShape, PptxSmartArtQuickStyle } from '../../types';
+import type {
+	PptxSmartArtConnection,
+	PptxSmartArtDrawingShape,
+	PptxSmartArtQuickStyle,
+} from '../../types';
+import type { DiagramRelationshipIds } from '../../utils/diagram-relationship-ids';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtXmlUtils';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	protected reportIncompleteSmartArtRelationships(
+		graphicFrame: XmlObject | undefined,
+		relationshipIds: DiagramRelationshipIds | undefined,
+		slidePath: string,
+	): void {
+		const missing = (
+			[
+				['dm', relationshipIds?.dataRelId],
+				['lo', relationshipIds?.layoutRelId],
+				['qs', relationshipIds?.styleRelId],
+				['cs', relationshipIds?.colorsRelId],
+			] as const
+		)
+			.filter(([, value]) => !value)
+			.map(([name]) => name);
+		if (missing.length === 0) {
+			return;
+		}
+		const cNvPr = this.xmlLookupService.getChildByLocalName(
+			this.xmlLookupService.getChildByLocalName(graphicFrame, 'nvGraphicFramePr'),
+			'cNvPr',
+		);
+		this.compatibilityService.reportWarning({
+			code: 'DIAGRAM_RELATIONSHIP_IDS_INCOMPLETE',
+			message: `SmartArt relIds is missing required relationship attributes: ${missing.join(', ')}.`,
+			scope: 'element',
+			slideId: slidePath,
+			elementId: String(cNvPr?.['@_id'] ?? '') || undefined,
+			xmlPath: 'p:graphicFrame/a:graphic/a:graphicData/dgm:relIds',
+		});
+	}
+
+	protected parseSmartArtConnections(dataModel: XmlObject | undefined): {
+		parsedConnections: PptxSmartArtConnection[];
+		parentByNodeId: Map<string, string>;
+	} {
+		const connectionList = this.xmlLookupService.getChildByLocalName(dataModel, 'cxnLst');
+		const rawConnections = this.xmlLookupService.getChildrenArrayByLocalName(connectionList, 'cxn');
+		const parentByNodeId = new Map<string, string>();
+		const parsedConnections: PptxSmartArtConnection[] = [];
+
+		rawConnections.forEach((connection) => {
+			const sourceId = String(connection?.['@_srcId'] || '').trim();
+			const destinationId = String(connection?.['@_destId'] || '').trim();
+			if (sourceId.length === 0 || destinationId.length === 0) {
+				return;
+			}
+			const connType = String(connection?.['@_type'] || '').trim() || undefined;
+			const srcOrdRaw = parseInt(String(connection?.['@_srcOrd'] || ''), 10);
+			const destOrdRaw = parseInt(String(connection?.['@_destOrd'] || ''), 10);
+			parsedConnections.push({
+				sourceId,
+				destId: destinationId,
+				type: connType,
+				srcOrd: Number.isFinite(srcOrdRaw) ? srcOrdRaw : undefined,
+				destOrd: Number.isFinite(destOrdRaw) ? destOrdRaw : undefined,
+			});
+			if (!parentByNodeId.has(destinationId)) {
+				parentByNodeId.set(destinationId, sourceId);
+			}
+		});
+
+		return { parsedConnections, parentByNodeId };
+	}
+
 	/**
 	 * Parse quick style from `ppt/diagrams/quickStyles*.xml`.
 	 */

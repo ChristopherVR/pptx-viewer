@@ -124,4 +124,55 @@ describe('applyChartDataLabelsToXml', () => {
 		applyChartDataLabelsToXml(pa, { hasDataLabels: true }, getLocalName);
 		expect((pa.barChart as XmlObject)['c:dLbls']).toBeDefined();
 	});
+
+	it('writes bubble, separator, and leader-line options', () => {
+		const pa = plotAreaWithBar();
+		applyChartDataLabelsToXml(
+			pa,
+			{
+				hasDataLabels: true,
+				dataLabels: {
+					showBubbleSize: true,
+					separator: ' | ',
+					showLeaderLines: true,
+				},
+			},
+			getLocalName,
+		);
+		const node = dLblsOf(pa);
+		expect(node['c:showBubbleSize']).toStrictEqual({ '@_val': '1' });
+		expect(node['c:separator']).toBe(' | ');
+		expect(node['c:showLeaderLines']).toStrictEqual({ '@_val': '1' });
+	});
+
+	it('preserves dLbl overrides, unknown children, leader lines, and extLst', () => {
+		const pa = plotAreaWithBar();
+		bar(pa)['c:dLbls'] = {
+			'c:dLbl': { 'c:idx': { '@_val': '0' } },
+			'cx:future': { '@_val': 'keep' },
+			'c:leaderLines': { 'c:spPr': {} },
+			'c:extLst': { 'c:ext': { '@_uri': 'keep' } },
+		};
+		applyChartDataLabelsToXml(
+			pa,
+			{ hasDataLabels: true, dataLabels: { showValue: true } },
+			getLocalName,
+		);
+		const node = dLblsOf(pa);
+		expect(node['c:dLbl']).toBeDefined();
+		expect(node['cx:future']).toStrictEqual({ '@_val': 'keep' });
+		expect(node['c:leaderLines']).toStrictEqual({ 'c:spPr': {} });
+		expect(node['c:extLst']).toStrictEqual({ 'c:ext': { '@_uri': 'keep' } });
+		expect(Object.keys(node).at(-1)).toBe('c:extLst');
+	});
+
+	it('validates dLblPos before serialization', () => {
+		expect(() =>
+			applyChartDataLabelsToXml(
+				plotAreaWithBar(),
+				{ hasDataLabels: true, dataLabels: { position: 'sideways' } },
+				getLocalName,
+			),
+		).toThrow(/Invalid data label position/u);
+	});
 });

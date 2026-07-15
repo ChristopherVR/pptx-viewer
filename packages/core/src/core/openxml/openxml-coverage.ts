@@ -1,3 +1,4 @@
+import { OPENXML_WAVE5_COVERAGE_OVERRIDES } from './openxml-coverage-wave5';
 import {
 	OPENXML_SCHEMA_CONSTRUCT_IDS,
 	OPENXML_STRICT_SCHEMA_CONSTRUCT_IDS,
@@ -24,11 +25,21 @@ export interface OpenXmlConstructCoverage {
 	note?: string;
 }
 
-type Facets = Pick<OpenXmlConstructCoverage, 'parse' | 'preserve' | 'edit' | 'serialize'> & {
+export type OpenXmlVocabulary = OpenXmlConstructCoverage['vocabulary'];
+
+export interface OpenXmlCoverageSummary {
+	constructs: number;
+	facets: Record<OpenXmlCoverageLevel, number>;
+}
+
+export type OpenXmlCoverageFacets = Pick<
+	OpenXmlConstructCoverage,
+	'parse' | 'preserve' | 'edit' | 'serialize'
+> & {
 	note?: string;
 };
 
-const UNASSESSED: Facets = {
+const UNASSESSED: OpenXmlCoverageFacets = {
 	parse: 'unassessed',
 	preserve: 'unassessed',
 	edit: 'unassessed',
@@ -36,7 +47,8 @@ const UNASSESSED: Facets = {
 };
 
 /** Curated, test-backed overrides. Everything else remains explicitly unassessed. */
-const COVERAGE_OVERRIDES: Record<string, Facets> = {
+const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
+	...OPENXML_WAVE5_COVERAGE_OVERRIDES,
 	'chart:complexType:CT_ManualLayout': {
 		parse: 'native',
 		preserve: 'native',
@@ -147,4 +159,41 @@ export function summarizeOpenXmlCoverage(): Record<OpenXmlCoverageLevel, number>
 		}
 	}
 	return result;
+}
+
+export function summarizeOpenXmlCoverageByVocabulary(): Record<
+	OpenXmlVocabulary,
+	OpenXmlCoverageSummary
+> {
+	const vocabularies: OpenXmlVocabulary[] = ['presentation', 'drawing', 'chart', 'diagram'];
+	return Object.fromEntries(
+		vocabularies.map((vocabulary) => {
+			const entries = OPENXML_COVERAGE.filter((entry) => entry.vocabulary === vocabulary);
+			const facets: Record<OpenXmlCoverageLevel, number> = {
+				native: 0,
+				partial: 0,
+				passthrough: 0,
+				unsupported: 0,
+				unassessed: 0,
+			};
+			for (const entry of entries) {
+				for (const facet of ['parse', 'preserve', 'edit', 'serialize'] as const) {
+					facets[entry[facet]] += 1;
+				}
+			}
+			return [vocabulary, { constructs: entries.length, facets }];
+		}),
+	) as Record<OpenXmlVocabulary, OpenXmlCoverageSummary>;
+}
+
+export function listUnassessedOpenXmlCoverage(
+	vocabulary?: OpenXmlVocabulary,
+): OpenXmlConstructCoverage[] {
+	return OPENXML_COVERAGE.filter(
+		(entry) =>
+			(vocabulary === undefined || entry.vocabulary === vocabulary) &&
+			(['parse', 'preserve', 'edit', 'serialize'] as const).some(
+				(facet) => entry[facet] === 'unassessed',
+			),
+	);
 }

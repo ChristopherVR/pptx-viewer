@@ -2,7 +2,6 @@ import type {
 	PptxChartDataPoint,
 	PptxChartMarker,
 	PptxChartMarkerSymbol,
-	PptxChartDataLabel,
 	PptxChartShapeProps,
 	XmlObject,
 } from '../types';
@@ -171,82 +170,6 @@ export function parseSeriesDataPoints(
 		.filter((dp): dp is PptxChartDataPoint => dp !== undefined);
 }
 
-/**
- * Parse individual data label overrides (`c:dLbl`).
- *
- * Per the schema these live inside the series' `c:dLbls` container (ahead of the
- * series-level group settings), so we look there first; a few producers emit
- * `c:dLbl` directly under `c:ser`, which is also handled.
- */
-export function parseSeriesDataLabels(
-	seriesNode: XmlObject,
-	xmlLookup: XmlLookupLike,
-): PptxChartDataLabel[] {
-	const dLblsNode = xmlLookup.getChildByLocalName(seriesNode, 'dLbls');
-	const dLblNodes = dLblsNode
-		? xmlLookup.getChildrenArrayByLocalName(dLblsNode, 'dLbl')
-		: xmlLookup.getChildrenArrayByLocalName(seriesNode, 'dLbl');
-	if (dLblNodes.length === 0) {
-		return [];
-	}
-
-	return dLblNodes
-		.map((node): PptxChartDataLabel | undefined => {
-			const idxNode = xmlLookup.getChildByLocalName(node, 'idx');
-			const idx = safeInt(idxNode?.['@_val']);
-			if (idx === undefined) {
-				return undefined;
-			}
-
-			// A `<c:dLbl><c:idx/><c:delete val="1"/></c:dLbl>` suppresses the auto
-			// label for that point; model it as an override with no content flags.
-			const deleteNode = xmlLookup.getChildByLocalName(node, 'delete');
-			if (deleteNode?.['@_val'] === '1' || deleteNode?.['@_val'] === 'true') {
-				return { idx };
-			}
-
-			const result: PptxChartDataLabel = { idx };
-
-			const boolFields = [
-				['showVal', 'showVal'],
-				['showCatName', 'showCatName'],
-				['showSerName', 'showSerName'],
-				['showPercent', 'showPercent'],
-				['showLegendKey', 'showLegendKey'],
-				['showBubbleSize', 'showBubbleSize'],
-			] as const;
-
-			for (const [xmlName, propName] of boolFields) {
-				const child = xmlLookup.getChildByLocalName(node, xmlName);
-				if (child?.['@_val'] === '1') {
-					result[propName] = true;
-				} else if (child?.['@_val'] === '0') {
-					result[propName] = false;
-				}
-			}
-
-			const layoutNode = xmlLookup.getChildByLocalName(node, 'dLblPos');
-			if (layoutNode?.['@_val']) {
-				result.position = String(layoutNode['@_val']);
-			}
-
-			const txNode = xmlLookup.getChildByLocalName(node, 'tx');
-			if (txNode) {
-				const richNode = xmlLookup.getChildByLocalName(txNode, 'rich');
-				if (richNode) {
-					const texts: string[] = [];
-					collectTextValues(richNode, texts);
-					if (texts.length > 0) {
-						result.text = texts.join('');
-					}
-				}
-			}
-
-			return result;
-		})
-		.filter((dl): dl is PptxChartDataLabel => dl !== undefined);
-}
-
 /** Parse series-level explosion attribute (c:explosion). */
 export function parseSeriesExplosion(
 	seriesNode: XmlObject,
@@ -256,24 +179,4 @@ export function parseSeriesExplosion(
 	return safeInt(explosionNode?.['@_val']);
 }
 
-/** Recursively collect text values from rich-text XML nodes. */
-function collectTextValues(node: XmlObject, results: string[]): void {
-	if (node['a:t'] !== undefined) {
-		results.push(String(node['a:t']));
-	}
-	for (const key of Object.keys(node)) {
-		if (key.startsWith('@_')) {
-			continue;
-		}
-		const child = node[key];
-		if (Array.isArray(child)) {
-			for (const item of child) {
-				if (item && typeof item === 'object') {
-					collectTextValues(item as XmlObject, results);
-				}
-			}
-		} else if (child && typeof child === 'object') {
-			collectTextValues(child as XmlObject, results);
-		}
-	}
-}
+export { parseSeriesDataLabels } from './chart-data-label-parser';

@@ -6,6 +6,7 @@ export {
 	cloneTemplateElementsBySlideId,
 	cloneXmlObject,
 } from './clone-utils';
+export { applyCustomShows, applySections, parseCustomShows } from './presentation-collections';
 
 export {
 	isTemplateElement,
@@ -63,6 +64,12 @@ export {
 } from './ole-embedded-extract';
 
 export { decomposeSmartArt } from './smartart-decompose';
+
+export {
+	parseDiagramRelationshipIds,
+	applyDiagramRelationshipIds,
+	type DiagramRelationshipIds,
+} from './diagram-relationship-ids';
 
 export { resetDecomposeCounter, type ContainerBounds } from './smartart-helpers';
 

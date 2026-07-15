@@ -8,6 +8,7 @@ import type {
 	PptxKinsoku,
 } from '../../types';
 import { parseKinsoku as parseKinsokuUtil } from '../../utils/kinsoku-parser';
+import { extractSectionMap as parseSectionMap } from '../../utils/presentation-section-parser';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeChartParsing';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -49,85 +50,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		sectionBySlideId: Map<string, { sectionId: string; sectionName: string }>;
 		orderedSections: PptxSection[];
 	} {
-		const sectionBySlideId = new Map<string, { sectionId: string; sectionName: string }>();
-		const orderedSections: PptxSection[] = [];
-		const presentation = this.presentationData?.['p:presentation'] as XmlObject | undefined;
-		// Look for p:sectionLst as direct child first, then inside p:extLst (p14 namespace)
-		let sectionList = this.xmlLookupService.getChildByLocalName(presentation, 'sectionLst') as
-			| XmlObject
-			| undefined;
-
-		if (!sectionList) {
-			// In standard OOXML, sections may be inside p:extLst as a p14:sectionLst extension
-			const presExtLst = this.xmlLookupService.getChildByLocalName(presentation, 'extLst');
-			if (presExtLst) {
-				const extEntries = this.xmlLookupService.getChildrenArrayByLocalName(presExtLst, 'ext');
-				for (const ext of extEntries) {
-					if (!ext) {
-						continue;
-					}
-					const candidate = this.xmlLookupService.getChildByLocalName(ext, 'sectionLst');
-					if (candidate) {
-						sectionList = candidate;
-						break;
-					}
-				}
-			}
-		}
-
-		const sections = this.ensureArray(
-			sectionList ? this.xmlLookupService.getChildrenArrayByLocalName(sectionList, 'section') : [],
-		) as XmlObject[];
-
-		sections.forEach((section, index) => {
-			const sectionId = String(section?.['@_id'] || `section-${index + 1}`);
-			const sectionNameRaw = String(section?.['@_name'] || '').trim();
-			const sectionName = sectionNameRaw.length > 0 ? sectionNameRaw : `Section ${index + 1}`;
-			const sldIdLst = this.xmlLookupService.getChildByLocalName(section, 'sldIdLst');
-			const sectionSlideEntries = sldIdLst
-				? this.xmlLookupService.getChildrenArrayByLocalName(sldIdLst, 'sldId')
-				: [];
-
-			const slideIds: string[] = [];
-			sectionSlideEntries.forEach((slideEntry: XmlObject | undefined) => {
-				const slideId = String(slideEntry?.['@_id'] || '').trim();
-				if (slideId.length === 0) {
-					return;
-				}
-				slideIds.push(slideId);
-				sectionBySlideId.set(slideId, {
-					sectionId,
-					sectionName,
-				});
-			});
-
-			// Parse p15:sectionPr — per-section properties (collapsed, color)
-			const sectionPr = this.xmlLookupService.getChildByLocalName(section, 'sectionPr');
-			let sectionCollapsed: boolean | undefined;
-			let sectionColor: string | undefined;
-			if (sectionPr) {
-				const collapsedRaw = String(sectionPr['@_collapsed'] ?? '')
-					.trim()
-					.toLowerCase();
-				if (collapsedRaw === '1' || collapsedRaw === 'true') {
-					sectionCollapsed = true;
-				}
-				const clrRaw = String(sectionPr['@_clr'] ?? '').trim();
-				if (clrRaw.length > 0) {
-					sectionColor = clrRaw.startsWith('#') ? clrRaw : `#${clrRaw}`;
-				}
-			}
-
-			orderedSections.push({
-				id: sectionId,
-				name: sectionName,
-				slideIds,
-				collapsed: sectionCollapsed,
-				color: sectionColor,
-			});
-		});
-
-		return { sectionBySlideId, orderedSections };
+		return parseSectionMap(this.presentationData, this.xmlLookupService);
 	}
 
 	/**

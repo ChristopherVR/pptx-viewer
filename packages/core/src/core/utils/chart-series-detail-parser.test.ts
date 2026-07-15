@@ -258,7 +258,7 @@ describe('parseSeriesDataLabels', () => {
 			},
 		};
 		const result = parseSeriesDataLabels(series, xmlLookup);
-		expect(result).toStrictEqual([{ idx: 2 }]);
+		expect(result).toStrictEqual([{ idx: 2, deleted: true }]);
 	});
 
 	it('should return empty array when no dLbl', () => {

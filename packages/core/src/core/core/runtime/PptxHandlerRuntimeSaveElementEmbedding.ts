@@ -12,6 +12,7 @@ import type {
 	ImagePptxElement,
 	PicturePptxElement,
 } from '../../types';
+import { applyDiagramRelationshipIds } from '../../utils/diagram-relationship-ids';
 import {
 	applyDrawingMediaReference,
 	parseDrawingMediaReference,
@@ -57,6 +58,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (el.type === 'smartArt' && 'smartArtData' in el) {
 			const saEl = el as SmartArtPptxElement;
 			if (saEl.smartArtData?.dataRelId) {
+				applyDiagramRelationshipIds(shape, saEl.smartArtData);
 				this.serializeSmartArtDataToXml(saEl, slideId);
 			}
 		}

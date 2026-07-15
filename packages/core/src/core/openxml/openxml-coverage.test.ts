@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	findOpenXmlCoverage,
+	listUnassessedOpenXmlCoverage,
 	OPENXML_COVERAGE,
 	OPENXML_SCHEMA_CONSTRUCT_IDS,
 	OPENXML_STRICT_SCHEMA_CONSTRUCT_IDS,
 	OPENXML_TRANSITIONAL_SCHEMA_CONSTRUCT_IDS,
 	summarizeOpenXmlCoverage,
+	summarizeOpenXmlCoverageByVocabulary,
 } from './index';
 
 describe('open XML schema coverage inventory', () => {
@@ -75,6 +77,42 @@ describe('open XML schema coverage inventory', () => {
 			edit: 'partial',
 			serialize: 'partial',
 		});
+		expect(findOpenXmlCoverage('drawing:complexType:CT_SRgbColor')).toMatchObject({
+			parse: 'native',
+			preserve: 'native',
+			edit: 'native',
+			serialize: 'native',
+		});
+		expect(findOpenXmlCoverage('drawing:group:EG_ColorChoice')).toMatchObject({
+			parse: 'partial',
+			preserve: 'passthrough',
+			edit: 'partial',
+			serialize: 'partial',
+		});
+		expect(findOpenXmlCoverage('presentation:complexType:CT_CustomShow')).toMatchObject({
+			parse: 'native',
+			preserve: 'native',
+			edit: 'native',
+			serialize: 'native',
+		});
+		expect(findOpenXmlCoverage('diagram:complexType:CT_RelIds')).toMatchObject({
+			parse: 'native',
+			preserve: 'native',
+			edit: 'native',
+			serialize: 'native',
+		});
+		expect(findOpenXmlCoverage('chart:complexType:CT_DLbls')).toMatchObject({
+			parse: 'partial',
+			preserve: 'native',
+			edit: 'partial',
+			serialize: 'partial',
+		});
+		expect(findOpenXmlCoverage('chart:element:dLblPos')).toMatchObject({
+			parse: 'native',
+			preserve: 'native',
+			edit: 'native',
+			serialize: 'native',
+		});
 	});
 
 	it('summarizes every facet', () => {
@@ -82,5 +120,32 @@ describe('open XML schema coverage inventory', () => {
 		expect(Object.values(summary).reduce((sum, count) => sum + count, 0)).toBe(
 			OPENXML_COVERAGE.length * 4,
 		);
+	});
+
+	it('reports the remaining gaps by vocabulary without losing assessed work', () => {
+		const summary = summarizeOpenXmlCoverageByVocabulary();
+		expect(summary.presentation).toMatchObject({ constructs: 619 });
+		expect(summary.drawing).toMatchObject({ constructs: 889 });
+		expect(summary.chart).toMatchObject({ constructs: 461 });
+		expect(summary.diagram).toMatchObject({ constructs: 269 });
+		expect(
+			Object.values(summary).reduce(
+				(total, entry) =>
+					total + Object.values(entry.facets).reduce((sum, count) => sum + count, 0),
+				0,
+			),
+		).toBe(OPENXML_COVERAGE.length * 4);
+		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(428);
+		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(614);
+	});
+
+	it('keeps assessed capabilities documented and monotonic', () => {
+		const assessed = OPENXML_COVERAGE.filter((entry) =>
+			(['parse', 'preserve', 'edit', 'serialize'] as const).some(
+				(facet) => entry[facet] !== 'unassessed',
+			),
+		);
+		expect(assessed.length).toBeGreaterThanOrEqual(17);
+		expect(assessed.every((entry) => Boolean(entry.note))).toBeTruthy();
 	});
 });

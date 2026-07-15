@@ -14,7 +14,9 @@
 
 import type { PptxChartData, PptxChartSeries, PptxChartType, XmlObject } from '../types';
 import { applyBubbleChartOptions } from './chart-bubble-options';
+import { applyChartDataLabelsToXml } from './chart-data-labels-serializer';
 import { applyChartLayouts } from './chart-layout';
+import { applySeriesDataLabelsToXml } from './chart-series-datalabel-serializer';
 import { applyChartUpDownBars } from './chart-up-down-bars';
 
 const NS_C = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
@@ -122,6 +124,9 @@ function buildSeries(
 		ser['c:cat'] = strLit(categories);
 		ser['c:val'] = numLit(s.values);
 	}
+	if (s.dataLabels !== undefined) {
+		applySeriesDataLabelsToXml(ser, s.dataLabels, (key) => key.replace(/^.*:/u, ''));
+	}
 	return ser;
 }
 
@@ -182,6 +187,9 @@ function buildChartTypeContainer(chartData: PptxChartData, family: string): XmlO
 function buildPlotArea(chartData: PptxChartData, tag: string, family: string): XmlObject {
 	const plotArea: XmlObject = { 'c:layout': {} };
 	plotArea[tag] = buildChartTypeContainer(chartData, family);
+	if (chartData.style) {
+		applyChartDataLabelsToXml(plotArea, chartData.style, (key) => key.replace(/^.*:/u, ''));
+	}
 
 	if (family === 'pie' || family === 'doughnut') {
 		return plotArea;

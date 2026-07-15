@@ -43,7 +43,50 @@ const DLBLS_GROUP_ORDER = [
 	'separator',
 	'showLeaderLines',
 	'leaderLines',
+	'extLst',
 ];
+
+const DLBL_ORDER = [
+	'idx',
+	'delete',
+	'layout',
+	'tx',
+	'numFmt',
+	'spPr',
+	'txPr',
+	'dLblPos',
+	'showLegendKey',
+	'showVal',
+	'showCatName',
+	'showSerName',
+	'showPercent',
+	'showBubbleSize',
+	'separator',
+	'showLeaderLines',
+	'leaderLines',
+	'extLst',
+] as const;
+const POSITIONS = new Set(['bestFit', 'b', 'ctr', 'inBase', 'inEnd', 'l', 'outEnd', 'r', 't']);
+
+function mergeOrdered(
+	existing: XmlObject | undefined,
+	built: XmlObject,
+	replaced: Set<string>,
+	getLocalName: GetLocalName,
+): XmlObject {
+	const entries = Object.entries(existing ?? {}).filter(
+		([key]) => !replaced.has(getLocalName(key)),
+	);
+	entries.push(...Object.entries(built));
+	entries.sort(([a], [b]) => {
+		const rank = (key: string) => {
+			const index = DLBL_ORDER.indexOf(getLocalName(key) as (typeof DLBL_ORDER)[number]);
+			return index < 0 ? DLBL_ORDER.length - 1 : index;
+		};
+		return rank(a) - rank(b);
+	});
+	return Object.fromEntries(entries) as XmlObject;
+}
 
 /** Build a single `c:dLbl` node (a per-data-point label override) in schema order. */
 function buildDLbl(
@@ -51,7 +94,23 @@ function buildDLbl(
 	label: PptxChartDataLabel,
 	getLocalName: GetLocalName,
 ): XmlObject {
+	if (!Number.isInteger(label.idx) || label.idx < 0 || label.idx > 0xffffffff) {
+		throw new RangeError('data label idx must be an unsigned 32-bit integer');
+	}
 	const node: XmlObject = {};
+	const replaced = new Set([
+		'idx',
+		'delete',
+		'dLblPos',
+		'showLegendKey',
+		'showVal',
+		'showCatName',
+		'showSerName',
+		'showPercent',
+		'showBubbleSize',
+		'separator',
+		'showLeaderLines',
+	]);
 	node['c:idx'] = { '@_val': String(label.idx) };
 
 	// A modeled label with no content flags and no text is treated as a delete
@@ -63,10 +122,18 @@ function buildDLbl(
 		label.showPercent !== undefined ||
 		label.showLegendKey !== undefined ||
 		label.showBubbleSize !== undefined;
-	const hasContent = hasShow || label.position !== undefined || label.text !== undefined;
-	if (!hasContent) {
+	const hasContent =
+		hasShow ||
+		label.position !== undefined ||
+		label.text !== undefined ||
+		label.separator !== undefined ||
+		label.showLeaderLines !== undefined;
+	if (label.deleted === true || (!hasContent && label.deleted === undefined)) {
 		node['c:delete'] = { '@_val': '1' };
-		return node;
+		return mergeOrdered(existing, node, replaced, getLocalName);
+	}
+	if (label.deleted === false) {
+		node['c:delete'] = { '@_val': '0' };
 	}
 
 	// Preserve existing layout/tx/numFmt/spPr/txPr styling when present, unless
@@ -78,6 +145,7 @@ function buildDLbl(
 		}
 	}
 	if (label.text !== undefined) {
+		replaced.add('tx');
 		node['c:tx'] = {
 			'c:rich': {
 				'a:bodyPr': {},
@@ -101,6 +169,9 @@ function buildDLbl(
 	}
 
 	if (label.position !== undefined) {
+		if (!POSITIONS.has(label.position)) {
+			throw new RangeError(`Invalid data label position: ${label.position}`);
+		}
 		node['c:dLblPos'] = { '@_val': label.position };
 	}
 	if (label.showLegendKey !== undefined) {
@@ -121,7 +192,13 @@ function buildDLbl(
 	if (label.showBubbleSize !== undefined) {
 		node['c:showBubbleSize'] = boolVal(label.showBubbleSize);
 	}
-	return node;
+	if (label.separator !== undefined) {
+		node['c:separator'] = label.separator;
+	}
+	if (label.showLeaderLines !== undefined) {
+		node['c:showLeaderLines'] = boolVal(label.showLeaderLines);
+	}
+	return mergeOrdered(existing, node, replaced, getLocalName);
 }
 
 /**

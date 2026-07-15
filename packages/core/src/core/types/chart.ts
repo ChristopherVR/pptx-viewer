@@ -213,17 +213,33 @@ export interface PptxChartDataPoint {
 	marker?: PptxChartMarker;
 }
 
+/** Schema values accepted by `c:dLblPos`. */
+export type PptxChartDataLabelPosition =
+	| 'bestFit'
+	| 'b'
+	| 'ctr'
+	| 'inBase'
+	| 'inEnd'
+	| 'l'
+	| 'outEnd'
+	| 'r'
+	| 't';
+
 /** Individual data label override (c:dLbl). */
 export interface PptxChartDataLabel {
 	idx: number;
+	/** Suppress this data point's automatically generated label. */
+	deleted?: boolean;
 	showVal?: boolean;
 	showCatName?: boolean;
 	showSerName?: boolean;
 	showPercent?: boolean;
 	showLegendKey?: boolean;
 	showBubbleSize?: boolean;
-	position?: string;
+	position?: PptxChartDataLabelPosition;
 	text?: string;
+	separator?: string;
+	showLeaderLines?: boolean;
 }
 
 /** Axis number format. */
@@ -350,12 +366,18 @@ export interface PptxChartDataLabelOptions {
 	showPercent?: boolean;
 	/** Show the legend key swatch (`c:showLegendKey`). */
 	showLegendKey?: boolean;
+	/** Show bubble size (`c:showBubbleSize`). */
+	showBubbleSize?: boolean;
+	/** Text placed between combined label components (`c:separator`). */
+	separator?: string;
+	/** Show leader lines where supported (`c:showLeaderLines`). */
+	showLeaderLines?: boolean;
 	/**
 	 * Label position (`c:dLblPos`). Valid values depend on the chart type
 	 * (`ctr`, `inEnd`, `inBase`, `outEnd`, `bestFit`, `l`, `r`, `t`, `b`).
 	 * Omit to let PowerPoint use the type default.
 	 */
-	position?: 'ctr' | 'inEnd' | 'inBase' | 'outEnd' | 'bestFit' | 'l' | 'r' | 't' | 'b';
+	position?: PptxChartDataLabelPosition;
 }
 
 /** Typed text defaults for a single chart legend entry. */

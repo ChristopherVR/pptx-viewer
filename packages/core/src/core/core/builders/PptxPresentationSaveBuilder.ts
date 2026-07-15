@@ -10,6 +10,7 @@ import type {
 	XmlObject,
 } from '../../types';
 import { applyKinsokuToXml } from '../../utils/kinsoku-parser';
+import { applyCustomShows, applySections } from '../../utils/presentation-collections';
 
 export interface PptxPresentationSaveBuilderOptions {
 	headerFooter?: PptxHeaderFooter;
@@ -48,8 +49,8 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 			init.rawSlideHeightEmu,
 			init.rawSlideSizeType,
 		);
-		this.applyCustomShows(presentation, init.options?.customShows);
-		this.applySections(presentation, init.options?.sections, init.xmlLookupService);
+		applyCustomShows(presentation, init.options?.customShows, init.xmlLookupService);
+		applySections(presentation, init.options?.sections, init.xmlLookupService);
 		this.applyPhotoAlbum(presentation, init.options?.photoAlbum);
 		this.applyKinsoku(presentation, init.options?.kinsoku);
 		this.applyModifyVerifier(presentation, init.options?.modifyVerifier);
@@ -103,96 +104,6 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 
 		// Preserve p:notesSz (already present in presentation XML from load)
 		// No modification needed — we just ensure it stays in the tree.
-	}
-
-	private applyCustomShows(
-		presentation: XmlObject,
-		customShows: PptxCustomShow[] | undefined,
-	): void {
-		if (!customShows || customShows.length === 0) {
-			return;
-		}
-		presentation['p:custShowLst'] = {
-			'p:custShow': customShows.map((customShow) => ({
-				'@_name': customShow.name,
-				'@_id': String(customShow.id),
-				'p:sldLst': {
-					'p:sld': customShow.slideRIds.map((rId) => ({
-						'@_r:id': rId,
-					})),
-				},
-			})),
-		};
-	}
-
-	private applySections(
-		presentation: XmlObject,
-		sections: PptxSection[] | undefined,
-		xmlLookupService: IPptxXmlLookupService,
-	): void {
-		if (!sections || sections.length === 0) {
-			return;
-		}
-		const sectionListXml = {
-			'p14:section': sections.map((section) => {
-				const sectionEntry: XmlObject = {
-					'@_name': section.name,
-					'@_id': section.id,
-					'p14:sldIdLst': {
-						'p14:sldId': section.slideIds.map((slideId) => ({
-							'@_id': slideId,
-						})),
-					},
-				};
-				// Write back p15:sectionPr when collapsed or color is set
-				if (section.collapsed || section.color) {
-					const sectionPrAttrs: XmlObject = {};
-					if (section.collapsed) {
-						sectionPrAttrs['@_collapsed'] = '1';
-					}
-					if (section.color) {
-						sectionPrAttrs['@_clr'] = section.color.replace('#', '');
-					}
-					sectionEntry['p15:sectionPr'] = sectionPrAttrs;
-				}
-				return sectionEntry;
-			}),
-		};
-
-		let isSectionListPlaced = false;
-		const extList = xmlLookupService.getChildByLocalName(presentation, 'extLst');
-		if (extList) {
-			const extEntries = xmlLookupService.getChildrenArrayByLocalName(extList, 'ext');
-			for (const extEntry of extEntries) {
-				if (!xmlLookupService.getChildByLocalName(extEntry, 'sectionLst')) {
-					continue;
-				}
-				for (const xmlKey of Object.keys(extEntry)) {
-					if (xmlKey.split(':').pop() !== 'sectionLst') {
-						continue;
-					}
-					(extEntry as Record<string, unknown>)[xmlKey] = sectionListXml;
-					isSectionListPlaced = true;
-					break;
-				}
-				if (isSectionListPlaced) {
-					break;
-				}
-			}
-		}
-
-		if (isSectionListPlaced) {
-			return;
-		}
-
-		const directSectionKey = Object.keys(presentation).find(
-			(xmlKey) => xmlKey.split(':').pop() === 'sectionLst',
-		);
-		if (!directSectionKey) {
-			return;
-		}
-
-		(presentation as Record<string, unknown>)[directSectionKey] = sectionListXml;
 	}
 
 	private applyPhotoAlbum(presentation: XmlObject, photoAlbum: PptxPhotoAlbum | undefined): void {

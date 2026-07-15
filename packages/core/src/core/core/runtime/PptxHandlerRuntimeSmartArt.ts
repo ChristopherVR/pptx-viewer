@@ -1,9 +1,6 @@
 import { XmlObject } from '../../types';
-import type {
-	PptxSmartArtData,
-	PptxSmartArtConnection,
-	PptxSmartArtDrawingShape,
-} from '../../types';
+import type { PptxSmartArtData, PptxSmartArtDrawingShape } from '../../types';
+import { parseDiagramRelationshipIds } from '../../utils';
 import { MAX_SMARTART_NODES } from '../builders/smart-art-text-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtParsing';
 import { resolveSmartArtLayoutCategory } from './smartart-layout-category';
@@ -23,7 +20,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return undefined;
 		}
 
-		const diagramDataRelationshipId = String(relationshipIds['@_r:dm'] || '').trim();
+		const parsedRelationshipIds = parseDiagramRelationshipIds(graphicData);
+		this.reportIncompleteSmartArtRelationships(graphicFrame, parsedRelationshipIds, slidePath);
+		const diagramDataRelationshipId = parsedRelationshipIds?.dataRelId ?? '';
 		if (diagramDataRelationshipId.length === 0) {
 			return undefined;
 		}
@@ -91,7 +90,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		// ── Resolve layout type ──────────────────────────────────────────
-		const layoutRelationshipId = String(relationshipIds['@_r:lo'] || '').trim();
+		const layoutRelationshipId = parsedRelationshipIds?.layoutRelId ?? '';
 		const layoutPart =
 			layoutRelationshipId.length > 0
 				? await this.readXmlPartByRelationshipId(slidePath, layoutRelationshipId)
@@ -127,7 +126,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// file via a `dsp:dataModelExt` extension. The legacy code reused
 		// `@r:cs` for both, which silently used the colour part as the
 		// drawing source. Now resolved separately.
-		const colorsRelationshipId = String(relationshipIds['@_r:cs'] || '').trim();
+		const colorsRelationshipId = parsedRelationshipIds?.colorsRelId ?? '';
 		const colorTransform = await this.parseSmartArtColorTransform(slidePath, colorsRelationshipId);
 
 		// ── Parse drawing shapes from ppt/diagrams/drawing*.xml ──────────
@@ -148,7 +147,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const drawingRelationshipId = drawingResolution?.relId;
 
 		// ── Parse quick style from ppt/diagrams/quickStyles*.xml ─────────
-		const styleRelationshipId = String(relationshipIds['@_r:qs'] || '').trim();
+		const styleRelationshipId = parsedRelationshipIds?.styleRelId ?? '';
 		const quickStyle = await this.parseSmartArtQuickStyle(slidePath, styleRelationshipId);
 
 		return {
@@ -283,38 +282,5 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		} catch {
 			return [];
 		}
-	}
-
-	private parseSmartArtConnections(dataModel: XmlObject | undefined): {
-		parsedConnections: PptxSmartArtConnection[];
-		parentByNodeId: Map<string, string>;
-	} {
-		const connectionList = this.xmlLookupService.getChildByLocalName(dataModel, 'cxnLst');
-		const rawConnections = this.xmlLookupService.getChildrenArrayByLocalName(connectionList, 'cxn');
-		const parentByNodeId = new Map<string, string>();
-		const parsedConnections: PptxSmartArtConnection[] = [];
-
-		rawConnections.forEach((connection) => {
-			const sourceId = String(connection?.['@_srcId'] || '').trim();
-			const destinationId = String(connection?.['@_destId'] || '').trim();
-			if (sourceId.length === 0 || destinationId.length === 0) {
-				return;
-			}
-			const connType = String(connection?.['@_type'] || '').trim() || undefined;
-			const srcOrdRaw = parseInt(String(connection?.['@_srcOrd'] || ''), 10);
-			const destOrdRaw = parseInt(String(connection?.['@_destOrd'] || ''), 10);
-			parsedConnections.push({
-				sourceId,
-				destId: destinationId,
-				type: connType,
-				srcOrd: Number.isFinite(srcOrdRaw) ? srcOrdRaw : undefined,
-				destOrd: Number.isFinite(destOrdRaw) ? destOrdRaw : undefined,
-			});
-			if (!parentByNodeId.has(destinationId)) {
-				parentByNodeId.set(destinationId, sourceId);
-			}
-		});
-
-		return { parsedConnections, parentByNodeId };
 	}
 }
