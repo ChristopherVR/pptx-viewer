@@ -431,6 +431,8 @@ export interface TextStyle {
 	text3d?: Text3DStyle;
 	/** 3D scene (camera + light rig) settings on the text body (`a:bodyPr/a:scene3d`). */
 	textBodyScene3d?: Pptx3DScene;
+	/** Raw `a:scene3d` subtree used to preserve extensions and unmodelled children. */
+	textBodyScene3dXml?: XmlObject;
 
 	// ── Opaque XML preservation (extLst extension lists) ──
 

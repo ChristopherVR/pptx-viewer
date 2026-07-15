@@ -1,6 +1,7 @@
 import { XmlObject } from '../../types';
 import type { PptxElementWithText } from '../../types';
 import { writeBodyPrBooleanAttrs } from '../../utils/body-properties-parser';
+import { applyTextBodyScene3d } from '../../utils/text-body-scene3d';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveEffectsWriter';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -118,6 +119,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			delete bodyPr['a:prstTxWarp'];
 		}
 
+		applyTextBodyScene3d(bodyPr, el.textStyle);
 		// 3D text body
 		this.applyText3d(bodyPr, el);
 

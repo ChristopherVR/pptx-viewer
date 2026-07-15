@@ -111,6 +111,10 @@ export interface Text3DStyle {
 export interface Pptx3DScene {
 	/** Camera preset type, e.g. "orthographicFront", "perspectiveFront". */
 	cameraPreset?: string;
+	/** Camera field of view in 1/60000 degrees (`a:camera/@fov`). */
+	cameraFieldOfView?: number;
+	/** Camera zoom as an OOXML percentage fraction (`a:camera/@zoom`, 1 = 100%). */
+	cameraZoom?: number;
 	/** Camera rotation around X axis in 1/60000 degrees. */
 	cameraRotX?: number;
 	/** Camera rotation around Y axis in 1/60000 degrees. */
@@ -121,6 +125,12 @@ export interface Pptx3DScene {
 	lightRigType?: string;
 	/** Light rig direction, e.g. "t", "b", "l", "r", "tl". */
 	lightRigDirection?: string;
+	/** Light-rig rotation latitude in 1/60000 degrees. */
+	lightRigRotX?: number;
+	/** Light-rig rotation longitude in 1/60000 degrees. */
+	lightRigRotY?: number;
+	/** Light-rig rotation revolution in 1/60000 degrees. */
+	lightRigRotZ?: number;
 	/** Whether a 3D backdrop plane is present (`a:backdrop`). */
 	hasBackdrop?: boolean;
 	/** Backdrop plane anchor X in EMU. */
@@ -129,6 +139,18 @@ export interface Pptx3DScene {
 	backdropAnchorY?: number;
 	/** Backdrop plane anchor Z in EMU. */
 	backdropAnchorZ?: number;
+	/** Backdrop normal vector X component. */
+	backdropNormalX?: number;
+	/** Backdrop normal vector Y component. */
+	backdropNormalY?: number;
+	/** Backdrop normal vector Z component. */
+	backdropNormalZ?: number;
+	/** Backdrop up vector X component. */
+	backdropUpX?: number;
+	/** Backdrop up vector Y component. */
+	backdropUpY?: number;
+	/** Backdrop up vector Z component. */
+	backdropUpZ?: number;
 }
 
 /**

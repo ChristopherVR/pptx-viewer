@@ -3,12 +3,12 @@ import type {
 	PptxShapeLocks,
 	PptxTextWarpPreset,
 	Text3DStyle,
-	Pptx3DScene,
 	BevelPresetType,
 	MaterialPresetType,
 } from '../../types';
 import { selectAlternateContentBranch as selectACBranch } from '../../utils/alternate-content';
 import { parseBodyPrBooleanAttrs } from '../../utils/body-properties-parser';
+import { parseTextBodyScene3d } from '../../utils/text-body-scene3d';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeBulletParsing';
 import type { BodyPropertiesResult } from './PptxHandlerRuntimeTypes';
 
@@ -212,45 +212,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
-		// 3D scene/camera on text body (a:bodyPr/a:scene3d)
-		const bodyScene3d = bodyPr['a:scene3d'] as XmlObject | undefined;
-		if (bodyScene3d) {
-			const camera = bodyScene3d['a:camera'] as XmlObject | undefined;
-			const lightRig = bodyScene3d['a:lightRig'] as XmlObject | undefined;
-			const scene: Pptx3DScene = {};
-			const camPreset = String(camera?.['@_prst'] || '').trim();
-			if (camPreset) {
-				scene.cameraPreset = camPreset;
-			}
-			if (camera) {
-				const rot = camera['a:rot'] as XmlObject | undefined;
-				if (rot) {
-					const lat = parseInt(String(rot['@_lat'] || ''), 10);
-					if (Number.isFinite(lat)) {
-						scene.cameraRotX = lat;
-					}
-					const lon = parseInt(String(rot['@_lon'] || ''), 10);
-					if (Number.isFinite(lon)) {
-						scene.cameraRotY = lon;
-					}
-					const rev = parseInt(String(rot['@_rev'] || ''), 10);
-					if (Number.isFinite(rev)) {
-						scene.cameraRotZ = rev;
-					}
-				}
-			}
-			const rigType = String(lightRig?.['@_rig'] || '').trim();
-			if (rigType) {
-				scene.lightRigType = rigType;
-			}
-			const rigDir = String(lightRig?.['@_dir'] || '').trim();
-			if (rigDir) {
-				scene.lightRigDirection = rigDir;
-			}
-			if (Object.keys(scene).length > 0) {
-				textStyle.textBodyScene3d = scene;
-			}
-		}
+		parseTextBodyScene3d(bodyPr, textStyle);
 
 		// Auto-fit
 		if (bodyPr['a:spAutoFit'] !== undefined) {
