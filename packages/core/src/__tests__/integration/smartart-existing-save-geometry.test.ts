@@ -92,4 +92,41 @@ describe('existing PowerPoint SmartArt geometry save', () => {
 		expect(data).toContain('loTypeId="urn:pptx-viewer/layout/cycle"');
 		expect(drawing.match(/prst="ellipse"/gu)?.length).toBeGreaterThan(0);
 	});
+
+	it('round-trips edited DiagramML layout metadata without replacing layout behavior', async () => {
+		const { handler, slides, element } = await loadPyramid();
+		const definition = element.smartArtData!.layoutDefinition!;
+		expect(definition.rootNode).toBeDefined();
+		definition.uniqueId = 'urn:test/edited-layout';
+		definition.minimumVersion = '16.0';
+		definition.titles = [{ language: 'en-AU', value: 'Edited pyramid layout' }];
+		definition.rootNode.name = 'editedRoot';
+		definition.rootNode.childOrder = 't';
+		element.smartArtData!.layoutDefinitionDirty = true;
+
+		const saved = await handler.save(slides);
+		const zip = await JSZip.loadAsync(saved);
+		const layout = await zip.file('ppt/diagrams/layout4.xml')!.async('string');
+		expect(layout).toContain('uniqueId="urn:test/edited-layout"');
+		expect(layout).toContain('minVer="16.0"');
+		expect(layout).toContain('val="Edited pyramid layout"');
+		expect(layout).toContain('name="editedRoot"');
+		expect(layout).toContain('chOrder="t"');
+		expect(layout).toContain('<dgm:alg');
+
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		const roundTripped = reloaded.slides
+			.flatMap((slide) => slide.elements)
+			.find(
+				(candidate): candidate is SmartArtPptxElement =>
+					candidate.type === 'smartArt' &&
+					candidate.smartArtData?.layoutDefinition?.uniqueId === 'urn:test/edited-layout',
+			);
+		expect(roundTripped?.smartArtData?.layoutDefinition).toMatchObject({
+			uniqueId: 'urn:test/edited-layout',
+			minimumVersion: '16.0',
+			titles: [{ language: 'en-AU', value: 'Edited pyramid layout' }],
+			rootNode: { name: 'editedRoot', childOrder: 't' },
+		});
+	});
 });

@@ -348,6 +348,12 @@ export {
 } from './smartart-layout-engine';
 
 export {
+	applySmartArtLayoutDefinition,
+	parseSmartArtLayoutDefinition,
+	validateSmartArtLayoutDefinition,
+} from './smartart-layout-definition';
+
+export {
 	checkPresentation,
 	checkMissingAltText,
 	checkMissingSlideTitle,

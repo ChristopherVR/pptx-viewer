@@ -6,6 +6,7 @@
  * @module pptx-types/smart-art
  */
 
+import type { PptxSmartArtLayoutDefinition } from './smart-art-layout-definition';
 import type { PptxSmartArtNode } from './smart-art-node';
 
 // Node-related types (PptxSmartArtTextRun, PptxSmartArtNodeStyle,
@@ -17,6 +18,12 @@ export type {
 	PptxSmartArtNodeStyle,
 	PptxSmartArtNode,
 } from './smart-art-node';
+export type {
+	PptxSmartArtLayoutCategory,
+	PptxSmartArtLayoutDefinition,
+	PptxSmartArtLayoutNode,
+	PptxSmartArtLocalizedText,
+} from './smart-art-layout-definition';
 
 // ==========================================================================
 // SmartArt types
@@ -302,6 +309,8 @@ export interface PptxSmartArtData {
 	colorTransform?: PptxSmartArtColorTransform;
 	/** Quick style from `ppt/diagrams/quickStyles*.xml`. */
 	quickStyle?: PptxSmartArtQuickStyle;
+	/** Editable metadata from the related DiagramML layout definition. */
+	layoutDefinition?: PptxSmartArtLayoutDefinition;
 	/** Relationship ID for the diagram data part (for round-trip save). */
 	dataRelId?: string;
 	/** Relationship ID for the diagram layout part. */
@@ -314,6 +323,8 @@ export interface PptxSmartArtData {
 	styleRelId?: string;
 	/** Internal save hint: the layout definition changed in the editor. */
 	layoutDirty?: boolean;
+	/** Internal save hint: typed layout-definition metadata changed. */
+	layoutDefinitionDirty?: boolean;
 	/** Internal save hint: cached drawing geometry or text changed in the editor. */
 	drawingDirty?: boolean;
 }

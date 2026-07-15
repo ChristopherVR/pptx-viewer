@@ -1,6 +1,6 @@
 import { XmlObject } from '../../types';
 import type { PptxSmartArtData, PptxSmartArtDrawingShape } from '../../types';
-import { parseDiagramRelationshipIds } from '../../utils';
+import { parseDiagramRelationshipIds, parseSmartArtLayoutDefinition } from '../../utils';
 import { MAX_SMARTART_NODES } from '../builders/smart-art-text-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtParsing';
 import { resolveSmartArtLayoutCategory } from './smartart-layout-category';
@@ -106,6 +106,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// definition's categories / uniqueId do. Without this, any diagram with
 		// no cached drawing part renders as a plain list after reload.
 		const layoutDefXml = this.xmlLookupService.getChildByLocalName(layoutPart?.xml, 'layoutDef');
+		const layoutDefinition = parseSmartArtLayoutDefinition(layoutDefXml, (key) =>
+			this.compatibilityService.getXmlLocalName(key),
+		);
 		const layoutCategories = this.xmlLookupService
 			.getChildrenArrayByLocalName(
 				this.xmlLookupService.getChildByLocalName(layoutDefXml, 'catLst'),
@@ -154,6 +157,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return {
 			layoutType,
 			resolvedLayoutType,
+			layoutDefinition,
 			nodes,
 			connections: parsedConnections.length > 0 ? parsedConnections : undefined,
 			drawingShapes: drawingShapes.length > 0 ? drawingShapes : undefined,

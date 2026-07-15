@@ -6,7 +6,7 @@ import type {
 	PptxHandoutMaster,
 	PptxTagCollection,
 } from '../../types';
-import { convertXmlToStrict } from '../../utils';
+import { applySmartArtLayoutDefinition, convertXmlToStrict } from '../../utils';
 import { obfuscateFont, generateFontGuid } from '../../utils/font-deobfuscation';
 import type { PptxSaveFormat } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDataSerialization';
@@ -200,9 +200,31 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// persists across a round-trip instead of PowerPoint re-deriving
 			// the old values on open.
 			await this.regenerateSmartArtColorPart(slidePath, smartArtData);
+			await this.regenerateSmartArtLayoutDefinition(slidePath, smartArtData);
 		}
 
 		this.pendingSmartArtUpdates = undefined;
+	}
+
+	/** Merge edited CT_DiagramDefinition metadata into the existing layout part. */
+	protected async regenerateSmartArtLayoutDefinition(
+		slidePath: string,
+		smartArtData: SmartArtPptxElement['smartArtData'],
+	): Promise<void> {
+		const definition = smartArtData?.layoutDefinition;
+		if (!smartArtData?.layoutDefinitionDirty || !smartArtData.layoutRelId || !definition) {
+			return;
+		}
+		await this.mergeSmartArtDiagramPart(
+			slidePath,
+			smartArtData.layoutRelId,
+			'layoutDef',
+			'layout definition',
+			(layoutDef) =>
+				applySmartArtLayoutDefinition(layoutDef, definition, (key) =>
+					this.compatibilityService.getXmlLocalName(key),
+				),
+		);
 	}
 
 	/**
