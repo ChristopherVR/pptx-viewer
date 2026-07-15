@@ -8,7 +8,8 @@
 	 */
 	import { onDestroy } from 'svelte';
 	import type { TextSegment } from 'pptx-viewer-core';
-	import { defaultCssVars, themeToCssVars } from 'pptx-viewer-shared';
+	import { defaultCssVars, themeToCssVars, toggleSheet } from 'pptx-viewer-shared';
+	import type { MobileSheetKey } from 'pptx-viewer-shared';
 
 	import { createTranslator } from '../i18n/translator';
 	import { provideTranslator } from '../i18n/context';
@@ -91,6 +92,7 @@
 	// eslint-disable-next-line prefer-const
 	let stageHolderEl = $state<HTMLDivElement>();
 	let stageContextMenu = $state<{ x: number; y: number } | null>(null);
+	let activeMobileSheet = $state<MobileSheetKey>(null);
 	const editor = new EditorState({
 		getCurrent: () => viewer.current,
 		getHandler: () => loader.handler,
@@ -286,6 +288,16 @@
 
 	function onNotesToggle(): void {
 		notesExpanded = !notesExpanded;
+		activeMobileSheet = notesExpanded ? 'notes' : null;
+	}
+
+	function setActiveMobileSheet(next: MobileSheetKey): void {
+		if (next === 'notes') {
+			notesExpanded = true;
+		} else if (activeMobileSheet === 'notes') {
+			notesExpanded = false;
+		}
+		activeMobileSheet = next;
 	}
 
 	// ── Design tab theme switching ──────────────────────────────────────
@@ -338,6 +350,17 @@
 	onkeydown={onKeydown}
 >
 	{#if showToolbar && chromeVisible}
+		<MobileChrome
+			editable={editingActive}
+			canUndo={editor.canUndo}
+			canRedo={editor.canRedo}
+			onmenu={() => setActiveMobileSheet(toggleSheet(activeMobileSheet, 'menu'))}
+			onundo={() => editor.undo()}
+			onredo={() => editor.redo()}
+			onsave={() => void downloadPptx()}
+			onpresent={onFullscreenToggle}
+			onshare={() => dialogs.openShare()}
+		/>
 		<TitleBar
 			{fileName}
 			editable={editingActive}
@@ -487,18 +510,17 @@
 	{/if}
 	{#if editingActive && displaySlides.length > 0}
 		<MobileActionSheets
+			active={activeMobileSheet}
+			onactivechange={setActiveMobileSheet}
 			{editor}
 			slides={displaySlides}
 			canvasSize={loader.canvasSize}
 			mediaDataUrls={loader.mediaDataUrls}
 			current={viewer.current}
 			onselect={(index) => viewer.goTo(index)}
-			onprev={() => viewer.prev()}
-			onnext={() => viewer.next()}
-			onnotes={onNotesToggle}
-			onpresent={onFullscreenToggle}
 			onzoomin={() => viewer.zoomIn(effectivePercent)}
 			onzoomout={() => viewer.zoomOut(effectivePercent)}
+			onzoomfit={() => viewer.zoomToFit()}
 		/>
 	{/if}
 	{#if showToolbar && chromeVisible}
@@ -511,21 +533,6 @@
 			showNotes={showNotes && loader.slides.length > 0}
 			{notesExpanded}
 			isFullscreen={viewer.isFullscreen}
-			onzoomin={() => viewer.zoomIn(effectivePercent)}
-			onzoomout={() => viewer.zoomOut(effectivePercent)}
-			onzoomfit={() => viewer.zoomToFit()}
-			onfullscreen={onFullscreenToggle}
-			onnotestoggle={onNotesToggle}
-		/>
-		<MobileChrome
-			current={viewer.current}
-			total={viewer.slideCount}
-			zoomPercent={effectivePercent}
-			showNotes={showNotes && loader.slides.length > 0}
-			{notesExpanded}
-			isFullscreen={viewer.isFullscreen}
-			onprev={() => viewer.prev()}
-			onnext={() => viewer.next()}
 			onzoomin={() => viewer.zoomIn(effectivePercent)}
 			onzoomout={() => viewer.zoomOut(effectivePercent)}
 			onzoomfit={() => viewer.zoomToFit()}
@@ -560,7 +567,7 @@
 		background: #000;
 	}
 
-	@media (max-width: 720px) {
+	@media (max-width: 767px) {
 		:global(.pptx-svelte-titlebar),
 		:global(.pptx-svelte-ribbon),
 		:global(.pptx-svelte-toolbar),

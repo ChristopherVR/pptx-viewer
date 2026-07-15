@@ -70,7 +70,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	container.appendChild(chrome.root);
 	chrome.statusBar?.setNotesExpanded(store.get().notesExpanded);
 	chrome.statusBar?.setDirty(store.get().dirty);
-	chrome.mobileNavigation?.setNotesExpanded(store.get().notesExpanded);
+	chrome.mobileActionSheets?.setNotesExpanded(store.get().notesExpanded);
 	chrome.titleBar?.setDirty(store.get().dirty);
 
 	const detachKeyboard = attachKeyboardNavigation(chrome.root, {

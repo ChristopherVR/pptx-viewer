@@ -78,6 +78,16 @@ describe('powerPointViewer', () => {
 		);
 		expect(target.querySelector('.pptx-svelte-statusbar [aria-label="Previous slide"]')).toBeNull();
 		expect(target.querySelector('.pptx-svelte-statusbar [aria-label="Share"]')).toBeNull();
+		const mobileToolbar = target.querySelector('.pptx-svelte-mobile-toolbar');
+		expect(
+			Array.from(mobileToolbar?.querySelectorAll('button') ?? []).map((button) =>
+				button.getAttribute('aria-label'),
+			),
+		).toStrictEqual(['Menu', 'Undo', 'Redo', 'Save', 'Present', 'Share']);
+		const mobileActions = target.querySelector('.pptx-svelte-mobile-actions nav');
+		expect(
+			Array.from(mobileActions?.querySelectorAll('small') ?? []).map((item) => item.textContent),
+		).toStrictEqual(['Slides', 'Insert', 'Format', 'Comments', 'Notes']);
 	});
 
 	it('navigates with the toolbar buttons and fires slidechange', async () => {

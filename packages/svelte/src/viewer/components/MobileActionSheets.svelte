@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PptxSlide } from 'pptx-viewer-core';
 	import type { CanvasSize, MobileSheetKey } from 'pptx-viewer-shared';
-	import { toggleSheet } from 'pptx-viewer-shared';
+	import { buildBarActions, toggleSheet } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import type { EditorState } from '../editor/editor-state.svelte';
@@ -11,35 +11,41 @@
 	import ReviewCommentsPanel from './ribbon/review/ReviewCommentsPanel.svelte';
 	import ThumbnailRail from './ThumbnailRail.svelte';
 
-	const { editor, slides, canvasSize, mediaDataUrls, current, onselect, onprev, onnext, onnotes, onpresent, onzoomin, onzoomout }: {
+	const { active, onactivechange, editor, slides, canvasSize, mediaDataUrls, current, onselect, onzoomin, onzoomout, onzoomfit }: {
+		active: MobileSheetKey;
+		onactivechange: (active: MobileSheetKey) => void;
 		editor: EditorState;
 		slides: PptxSlide[];
 		canvasSize: CanvasSize;
 		mediaDataUrls: Map<string, string>;
 		current: number;
 		onselect: (index: number) => void;
-		onprev: () => void;
-		onnext: () => void;
-		onnotes: () => void;
-		onpresent: () => void;
 		onzoomin: () => void;
 		onzoomout: () => void;
+		onzoomfit: () => void;
 	} = $props();
 	const t = useTranslator();
-	let active = $state<MobileSheetKey>(null);
-
 	const open = (key: Exclude<MobileSheetKey, null>) => {
-		active = toggleSheet(active, key);
+		onactivechange(toggleSheet(active, key));
 	};
-	const close = () => { active = null; };
+	const close = () => { onactivechange(null); };
 	const selectSlide = (index: number) => { onselect(index); close(); };
-	const actions = [
-		['slides', t('pptx.sections.slides'), '▣'],
-		['insert', t('pptx.mobileBar.insert'), '+'],
-		['inspector', t('pptx.field.format'), '◇'],
-		['comments', t('pptx.toolbar.comments'), '▢'],
-		['menu', t('pptx.mobileToolbar.menu'), '⋯'],
-	] as const;
+	const actionLabels = {
+		slides: t('pptx.sections.slides'),
+		insert: t('pptx.mobileBar.insert'),
+		inspector: t('pptx.field.format'),
+		comments: t('pptx.toolbar.comments'),
+		notes: t('pptx.notes.title'),
+	} as const;
+	const actionIcons = { slides: '▣', insert: '+', inspector: '◇', comments: '▢', notes: '▤' } as const;
+	const actions = $derived.by(() =>
+		buildBarActions({ slideCount: slides.length }).map((action) => ({
+			...action,
+			key: action.key as Exclude<MobileSheetKey, null>,
+			label: actionLabels[action.key as keyof typeof actionLabels],
+			icon: actionIcons[action.key as keyof typeof actionIcons],
+		})),
+	);
 </script>
 
 <div class="pptx-svelte-mobile-actions">
@@ -56,19 +62,16 @@
 	{:else if active === 'menu'}
 		<MobileSheet title={t('pptx.mobileToolbar.menu')} onclose={close}>
 			<div class="pptx-svelte-mobile-menu-grid">
-				<button type="button" onclick={onprev} disabled={current <= 0}>{t('pptx.presenter.previousSlide')}</button>
-				<button type="button" onclick={onnext} disabled={current >= slides.length - 1}>{t('pptx.presenter.nextSlide')}</button>
 				<button type="button" onclick={onzoomout}>{t('pptx.statusBar.zoomOut')}</button>
+				<button type="button" onclick={onzoomfit}>{t('pptx.statusBar.zoomToFit')}</button>
 				<button type="button" onclick={onzoomin}>{t('pptx.statusBar.zoomIn')}</button>
-				<button type="button" onclick={onnotes}>{t('pptx.notes.title')}</button>
-				<button type="button" onclick={onpresent}>{t('pptx.statusBar.slideShow')}</button>
 			</div>
 		</MobileSheet>
 	{/if}
 	<nav aria-label={t('pptx.mobileBar.ariaLabel')}>
 		{#each actions as action}
-			<button type="button" class:active={active === action[0]} aria-pressed={active === action[0]} onclick={() => open(action[0])}>
-				<span aria-hidden="true">{action[2]}</span><small>{action[1]}</small>
+			<button type="button" class:active={active === action.key} aria-pressed={active === action.key} disabled={action.disabled} onclick={() => open(action.key)}>
+				<span aria-hidden="true">{action.icon}</span><small>{action.label}</small>
 			</button>
 		{/each}
 	</nav>
@@ -76,7 +79,7 @@
 
 <style>
 	.pptx-svelte-mobile-actions { display: none; }
-	@media (max-width: 720px) {
+	@media (max-width: 767px) {
 		.pptx-svelte-mobile-actions { display: contents; }
 		.pptx-svelte-mobile-actions nav { position: absolute; z-index: 50; right: 0; bottom: 0; left: 0; display: flex; min-height: 64px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--pptx-border, #33334d); background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 94%, transparent); }
 		.pptx-svelte-mobile-actions nav button { display: grid; flex: 1; place-items: center; align-content: center; gap: 1px; min-width: 44px; border: 0; background: transparent; color: var(--pptx-muted-foreground, #94a3b8); touch-action: manipulation; }

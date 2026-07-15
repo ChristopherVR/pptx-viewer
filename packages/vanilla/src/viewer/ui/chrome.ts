@@ -8,8 +8,8 @@ import type { Inspector, InspectorHandlers } from './inspector';
 import { createInspector } from './inspector';
 import type { MobileActionSheets } from './mobile-action-sheets';
 import { createMobileActionSheets } from './mobile-action-sheets';
-import type { MobileNavigation } from './mobile-navigation';
-import { createMobileNavigation } from './mobile-navigation';
+import type { MobileToolbar } from './mobile-toolbar';
+import { createMobileToolbar } from './mobile-toolbar';
 import type { NotesPanel } from './notes-panel';
 import { createNotesPanel } from './notes-panel';
 import type { PresentationTouchControls } from './presentation-touch-controls';
@@ -67,8 +67,8 @@ export interface ViewerChrome {
 	notes: NotesPanel;
 	/** Bottom navigation and zoom bar, matching React's status-bar placement. */
 	statusBar: StatusBar | null;
-	/** Compact navigation dock, visible only below the mobile breakpoint. */
-	mobileNavigation: MobileNavigation | null;
+	/** Compact menu/edit/save/present toolbar, visible only on phones. */
+	mobileToolbar: MobileToolbar | null;
 	mobileActionSheets: MobileActionSheets | null;
 	/** Persistent exit and navigation affordances for touch slide shows. */
 	presentationTouchControls: PresentationTouchControls;
@@ -102,6 +102,20 @@ export function buildViewerChrome(
 			ribbon.setEditable(false);
 		}
 		root.appendChild(ribbon.el);
+	}
+	let mobileActionSheets: MobileActionSheets | null = null;
+	const mobileToolbar = options.showToolbar
+		? createMobileToolbar(doc, t, {
+				openMenu: () => mobileActionSheets?.toggle('menu'),
+				undo: options.ribbonHandlers.primary.undo,
+				redo: options.ribbonHandlers.primary.redo,
+				save: options.ribbonHandlers.file.save,
+				present: options.ribbonHandlers.slideShow.startFromCurrent,
+			})
+		: null;
+	if (mobileToolbar) {
+		mobileToolbar.setEditState({ editable: options.editable, canUndo: false, canRedo: false });
+		root.appendChild(mobileToolbar.el);
 	}
 
 	const body = createEl(doc, 'div', 'pptxv-body');
@@ -151,30 +165,17 @@ export function buildViewerChrome(
 	if (statusBar) {
 		root.appendChild(statusBar.el);
 	}
-	const mobileNavigation = options.showToolbar
-		? createMobileNavigation(doc, t, {
-				prev: options.ribbonHandlers.nav.prev,
-				next: options.ribbonHandlers.nav.next,
-				toggleNotes: options.ribbonHandlers.nav.toggleNotes,
-				togglePresentation: options.ribbonHandlers.nav.togglePresentation,
-				zoomIn: options.ribbonHandlers.nav.zoomIn,
-				zoomOut: options.ribbonHandlers.nav.zoomOut,
-			})
+	mobileActionSheets = options.showToolbar
+		? createMobileActionSheets(
+				doc,
+				t,
+				options.ribbonHandlers,
+				options.onSelectSlide,
+				inspector?.el ?? null,
+			)
 		: null;
-	if (mobileNavigation) {
-		root.appendChild(mobileNavigation.el);
-	}
-	const mobileActionSheets =
-		options.showToolbar && options.editable
-			? createMobileActionSheets(
-					doc,
-					t,
-					options.ribbonHandlers,
-					options.onSelectSlide,
-					inspector?.el ?? null,
-				)
-			: null;
 	if (mobileActionSheets) {
+		mobileActionSheets.setEditable(options.editable);
 		root.appendChild(mobileActionSheets.el);
 	}
 	const presentationTouchControls = createPresentationTouchControls(doc, t, {
@@ -208,7 +209,7 @@ export function buildViewerChrome(
 		stageWrap,
 		notes,
 		statusBar,
-		mobileNavigation,
+		mobileToolbar,
 		mobileActionSheets,
 		presentationTouchControls,
 		setLoading(loading) {

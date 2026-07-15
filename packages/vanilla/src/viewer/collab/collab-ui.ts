@@ -103,6 +103,7 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 	});
 
 	let shareBtn: HTMLButtonElement | null = null;
+	let mobileShareBtn: HTMLButtonElement | null = null;
 	let broadcastBtn: HTMLButtonElement | null = null;
 	const openBroadcast = (): void => {
 		broadcastDialog.open(
@@ -132,6 +133,18 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 		broadcastBtn.addEventListener('click', openBroadcast);
 
 		toolbarEl.append(shareBtn, broadcastBtn, statusPill.el);
+	}
+	const mobileCollaborationHost = chrome.mobileToolbar?.collaborationHost ?? null;
+	if (mobileCollaborationHost) {
+		mobileShareBtn = createEl(doc, 'button', 'pptxv-mobile-toolbar-btn pptxv-mobile-share');
+		mobileShareBtn.type = 'button';
+		mobileShareBtn.title = t('pptx.toolbar.share');
+		mobileShareBtn.setAttribute('aria-label', t('pptx.toolbar.share'));
+		mobileShareBtn.appendChild(createIcon(doc, 'share'));
+		mobileShareBtn.addEventListener('click', () => {
+			shareDialog.open(deps.shareDefaults, deps.getStatus() !== 'disconnected');
+		});
+		mobileCollaborationHost.appendChild(mobileShareBtn);
 	}
 
 	const cursors = createCollaborationCursors(doc);
@@ -183,6 +196,7 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 		destroy() {
 			unsubscribe();
 			shareBtn?.remove();
+			mobileShareBtn?.remove();
 			broadcastBtn?.remove();
 			statusPill.destroy();
 			cursors.destroy();

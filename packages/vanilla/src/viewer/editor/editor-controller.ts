@@ -81,6 +81,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		};
 		deps.getChrome().ribbon?.setEditState(state);
 		deps.getChrome().titleBar?.setEditState(state);
+		deps.getChrome().mobileToolbar?.setEditState(state);
 	};
 
 	const ops = createEditorOps({

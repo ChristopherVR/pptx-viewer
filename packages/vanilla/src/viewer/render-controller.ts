@@ -135,11 +135,6 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			total: state.slides.length,
 			zoomPercent: scale * 100,
 		});
-		chrome.mobileNavigation?.update({
-			current: state.currentSlide,
-			total: state.slides.length,
-			zoomPercent: scale * 100,
-		});
 		chrome.presentationTouchControls.update(state.currentSlide, state.slides.length);
 		chrome.mobileActionSheets?.update(state.currentSlide, state.slides, slide?.comments ?? []);
 		chrome.notes.update({ slide, editable: state.editable });
@@ -194,7 +189,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			chrome.thumbnails?.setActive(state.currentSlide);
 			chrome.notes.setExpanded(state.notesExpanded);
 			chrome.ribbon?.setNotesExpanded(state.notesExpanded);
-			chrome.mobileNavigation?.setNotesExpanded(state.notesExpanded);
+			chrome.mobileActionSheets?.setNotesExpanded(state.notesExpanded);
 			chrome.ribbon?.setTemplateEditing(state.editTemplateMode);
 		},
 		renderStage,

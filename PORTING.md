@@ -32,7 +32,7 @@ parity (the Vue port's tracker was removed the same way).
 | Editing (selection/move/resize/etc.)   | yes (full ribbon)   | yes (see depth note)             | yes (see depth note)             |
 | Export                                 | PNG/PDF/GIF/video   | yes                              | yes                              |
 | i18n locale registration               | yes                 | yes (see below)                  | yes (see below)                  |
-| e2e coverage in the Playwright harness | full ~20-file suite | 11 shared specs / 74 total tests | 11 shared specs / 74 total tests |
+| e2e coverage in the Playwright harness | full ~20-file suite | 12 shared specs / 84 total tests | 12 shared specs / 84 total tests |
 | Animations / transitions playback      | yes                 | yes                              | yes                              |
 | Ribbon / inspector / dialogs chrome    | yes                 | yes                              | yes                              |
 | Autosave                               | yes                 | yes                              | yes                              |
@@ -121,11 +121,11 @@ Vanilla (`packages/vanilla/src/viewer/editor/`) and Svelte
 Tooling / QA:
 
 - [x] e2e: both demos wired into `playwright.config.ts` as `vanilla`/`svelte`
-      projects and the CI `e2e` job matrix. Ten shared specs now run 62 tests
+      projects and the CI `e2e` job matrix. Twelve shared specs now run 84 tests
       across the two bindings, covering load/navigation/zoom/notes, selection
-      and transforms, inline and table-cell editing, mobile manipulation and
-      notes, Format Painter, text/relationship rendering, OLE preview, and ink
-      save/reload.
+      and transforms, inline and table-cell editing, responsive toolbar and
+      inspector behavior, mobile manipulation and notes, Format Painter,
+      text/relationship rendering, OLE preview, and ink save/reload.
 - [x] Docs-site and package guides kept in sync with the completed surfaces
 - [x] Vanilla emits `dist/styles.css` and exports `pptx-vanilla-viewer/styles.css`
       for CSP-strict hosts, while retaining injection and `getViewerCss()`
@@ -138,7 +138,7 @@ Tooling / QA:
       populate or serialize their element collections. Editable canvases need
       that core parse/save support first.
 - [ ] Finish full shared Playwright-suite parity. Verified exclusions currently
-      cover remaining layout contracts, template-spec normalization, animation
+      cover ribbon-tab layout contracts, template-spec normalization, animation
       and chart interaction specs, SmartArt and media insertion/editor
       workflows, and explicitly binding-specific capture/collaboration fixture
       suites. Page-key navigation, template-layer interactivity, mobile notes,

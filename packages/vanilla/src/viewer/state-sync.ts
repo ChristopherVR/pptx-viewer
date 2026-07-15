@@ -65,11 +65,6 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 				total: state.slides.length,
 				zoomPercent: renderer.effectiveScale() * 100,
 			});
-			chrome.mobileNavigation?.update({
-				current: state.currentSlide,
-				total: state.slides.length,
-				zoomPercent: renderer.effectiveScale() * 100,
-			});
 			chrome.presentationTouchControls.update(state.currentSlide, state.slides.length);
 			chrome.mobileActionSheets?.update(
 				state.currentSlide,
@@ -90,12 +85,13 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		}
 		if (state.editable !== previous.editable) {
 			chrome.notes.update({ slide: state.slides[state.currentSlide], editable: state.editable });
+			chrome.mobileActionSheets?.setEditable(state.editable);
 		}
 		if (state.notesExpanded !== previous.notesExpanded) {
 			chrome.notes.setExpanded(state.notesExpanded);
 			chrome.ribbon?.setNotesExpanded(state.notesExpanded);
 			chrome.statusBar?.setNotesExpanded(state.notesExpanded);
-			chrome.mobileNavigation?.setNotesExpanded(state.notesExpanded);
+			chrome.mobileActionSheets?.setNotesExpanded(state.notesExpanded);
 		}
 		if (state.editTemplateMode !== previous.editTemplateMode) {
 			chrome.ribbon?.setTemplateEditing(state.editTemplateMode);

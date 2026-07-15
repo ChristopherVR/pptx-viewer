@@ -1,14 +1,24 @@
 import type { PptxComment, PptxSlide } from 'pptx-viewer-core';
 import type { MobileSheetKey } from 'pptx-viewer-shared';
-import { createSheetDismissGesture, slideTitle, toggleSheet } from 'pptx-viewer-shared';
+import {
+	buildBarActions,
+	createSheetDismissGesture,
+	slideTitle,
+	toggleSheet,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { createIcon } from './icons';
 import type { RibbonHandlers } from './ribbon/ribbon-types';
 
 export interface MobileActionSheets {
 	el: HTMLElement;
 	update(current: number, slides: readonly PptxSlide[], comments: readonly PptxComment[]): void;
+	toggle(key: Exclude<MobileSheetKey, null>): void;
+	close(): void;
+	setEditable(editable: boolean): void;
+	setNotesExpanded(expanded: boolean): void;
 }
 
 export function createMobileActionSheets(
@@ -41,6 +51,8 @@ export function createMobileActionSheets(
 	let current = 0;
 	let slides: readonly PptxSlide[] = [];
 	let comments: readonly PptxComment[] = [];
+	let editable = true;
+	let notesExpanded = false;
 	const inspectorHome = inspector ? doc.createComment('inspector-home') : null;
 	inspector?.parentNode?.insertBefore(inspectorHome!, inspector);
 
@@ -177,38 +189,68 @@ export function createMobileActionSheets(
 
 	const bar = doc.createElement('nav');
 	bar.setAttribute('aria-label', t('pptx.mobileBar.ariaLabel'));
-	const bindSheetButton = (button: HTMLButtonElement, key: Exclude<MobileSheetKey, null>): void => {
-		button.addEventListener('click', () => {
-			active = toggleSheet(active, key);
-			if (!active) {
-				close();
-				return;
-			}
-			render(active);
-			sheetHost.hidden = false;
-			for (const item of bar.querySelectorAll('button')) {
-				item.setAttribute('aria-pressed', String(item === button));
-			}
-		});
+	const openSheet = (key: Exclude<MobileSheetKey, null>): void => {
+		active = toggleSheet(active, key);
+		if (!active) {
+			close();
+			return;
+		}
+		render(active);
+		sheetHost.hidden = false;
+		for (const item of bar.querySelectorAll<HTMLButtonElement>('button')) {
+			item.setAttribute('aria-pressed', String(item.dataset.mobileAction === active));
+		}
 	};
-	for (const key of ['slides', 'insert', 'inspector', 'comments', 'menu'] as const) {
+	const actionIcons = {
+		slides: 'panel-left',
+		insert: 'plus',
+		inspector: 'shapes',
+		comments: 'notes',
+		notes: 'sticky-note',
+	} as const;
+	for (const descriptor of buildBarActions({ slideCount: 0 })) {
+		const key = descriptor.key as 'slides' | 'insert' | 'inspector' | 'comments' | 'notes';
 		const button = doc.createElement('button');
 		button.type = 'button';
-		button.textContent =
+		button.dataset.mobileAction = key;
+		button.appendChild(createIcon(doc, actionIcons[key]));
+		const label = createEl(doc, 'span');
+		label.textContent =
 			key === 'inspector'
 				? t('pptx.field.format')
 				: t(
-						`pptx.${key === 'slides' ? 'sections.slides' : key === 'comments' ? 'toolbar.comments' : key === 'insert' ? 'mobileBar.insert' : 'mobileToolbar.menu'}`,
+						`pptx.${key === 'slides' ? 'sections.slides' : key === 'comments' ? 'toolbar.comments' : key === 'insert' ? 'mobileBar.insert' : 'notes.title'}`,
 					);
-		bindSheetButton(button, key);
+		button.appendChild(label);
+		button.addEventListener('click', () => {
+			if (key === 'notes') {
+				handlers.nav.toggleNotes();
+				return;
+			}
+			openSheet(key);
+		});
 		bar.appendChild(button);
 	}
-	const notesButton = doc.createElement('button');
-	notesButton.type = 'button';
-	notesButton.textContent = t('pptx.notes.title');
-	notesButton.addEventListener('click', handlers.nav.toggleNotes);
-	bar.appendChild(notesButton);
 	el.appendChild(bar);
+	const syncBar = (): void => {
+		const actions = buildBarActions({ slideCount: slides.length });
+		for (const action of actions) {
+			const button = bar.querySelector<HTMLButtonElement>(
+				`button[data-mobile-action='${action.key}']`,
+			);
+			if (!button) {
+				continue;
+			}
+			const editOnly =
+				action.key === 'insert' || action.key === 'inspector' || action.key === 'comments';
+			button.disabled =
+				action.disabled || (editOnly && !editable) || (action.key === 'inspector' && !inspector);
+			button.setAttribute(
+				'aria-pressed',
+				String(action.key === 'notes' ? notesExpanded : action.key === active),
+			);
+		}
+	};
 	return {
 		el,
 		update(nextCurrent, nextSlides, nextComments) {
@@ -218,6 +260,20 @@ export function createMobileActionSheets(
 			if (active) {
 				render(active);
 			}
+			syncBar();
+		},
+		toggle: openSheet,
+		close,
+		setEditable(nextEditable) {
+			editable = nextEditable;
+			if (!editable && active && ['insert', 'inspector', 'comments'].includes(active)) {
+				close();
+			}
+			syncBar();
+		},
+		setNotesExpanded(expanded) {
+			notesExpanded = expanded;
+			syncBar();
 		},
 	};
 }

@@ -230,6 +230,8 @@ test.describe('tablet inspector (820x1180, touch)', () => {
 		// At tablet width, mobile bottom bar is absent.
 		if (testInfo.project.name === 'vue') {
 			await expect(page.getByRole('navigation', { name: 'Slide controls' })).toHaveCount(0);
+		} else if (testInfo.project.name === 'vanilla' || testInfo.project.name === 'svelte') {
+			await expect(page.getByRole('navigation', { name: 'Editor actions' })).not.toBeVisible();
 		} else {
 			await expect(page.getByRole('navigation', { name: 'Editor actions' })).toHaveCount(0);
 		}
