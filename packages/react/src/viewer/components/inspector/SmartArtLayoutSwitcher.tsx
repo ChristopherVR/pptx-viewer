@@ -65,6 +65,8 @@ export function SmartArtLayoutSwitcher({
 			layoutType: updated.layoutType,
 			resolvedLayoutType: updated.resolvedLayoutType,
 			layout: updated.layout,
+			layoutDirty: updated.layoutDirty,
+			drawingDirty: updated.drawingDirty,
 			drawingShapes: updated.drawingShapes,
 		});
 	};

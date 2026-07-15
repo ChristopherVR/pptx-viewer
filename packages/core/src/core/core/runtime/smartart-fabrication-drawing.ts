@@ -9,9 +9,9 @@
  * their own `a:prstGeom` preserves the per-node geometry (pyramid trapezoids,
  * cycle ellipses, chevrons, ...) the viewer computed.
  *
- * Shape model ids reuse the `nodeId -> {GUID}` map from the data part so
- * PowerPoint correlates each drawn shape with its data point and honours the
- * cache instead of discarding it.
+ * Shape model ids reference `type="pres"` presentation points. Each point's
+ * `presAssocID` links back to its semantic content node, matching the
+ * association model used by PowerPoint-authored diagrams.
  */
 import { EMU_PER_PX } from '../../constants';
 import type {
@@ -21,7 +21,6 @@ import type {
 	ShapePptxElement,
 } from '../../types';
 import { XML_PROLOG, xmlEscape } from './smartart-fabrication-data';
-import { newSmartArtGuid } from './smartart-xml-builders';
 
 /** Content type for the cached diagram drawing part. */
 export const DIAGRAM_DRAWING_CONTENT_TYPE =
@@ -54,7 +53,7 @@ function normalizeHex(color: string | undefined): string | undefined {
 }
 
 /**
- * Resolve the data-point GUID for a drawing shape.
+ * Resolve the presentation-point GUID for a drawing shape.
  *
  * Layout-engine shapes embed the node id in their `id` (`engine-<nodeId>`,
  * `reflow-<...>-<nodeId>`); parsed shapes may match a node id directly. Falls
@@ -64,9 +63,14 @@ function resolveShapeModelId(
 	shape: PptxSmartArtDrawingShape,
 	index: number,
 	nodes: PptxSmartArtNode[],
-	guidByNodeId: Map<string, string>,
+	presentationGuidByNodeId: Map<string, string>,
 ): string {
-	const direct = guidByNodeId.get(shape.id);
+	for (const presentationId of presentationGuidByNodeId.values()) {
+		if (shape.id === presentationId) {
+			return presentationId;
+		}
+	}
+	const direct = presentationGuidByNodeId.get(shape.id);
 	if (direct) {
 		return direct;
 	}
@@ -74,19 +78,19 @@ function resolveShapeModelId(
 		(node) => node.id && (shape.id === node.id || shape.id.endsWith(`-${node.id}`)),
 	);
 	if (matched?.id) {
-		const guid = guidByNodeId.get(matched.id);
+		const guid = presentationGuidByNodeId.get(matched.id);
 		if (guid) {
 			return guid;
 		}
 	}
 	const positional = nodes[index]?.id;
 	if (positional) {
-		const guid = guidByNodeId.get(positional);
+		const guid = presentationGuidByNodeId.get(positional);
 		if (guid) {
 			return guid;
 		}
 	}
-	return newSmartArtGuid();
+	return '';
 }
 
 function textBodyXml(shape: PptxSmartArtDrawingShape): string {
@@ -99,7 +103,16 @@ function textBodyXml(shape: PptxSmartArtDrawingShape): string {
 	const run = text
 		? `<a:r>${rPr}<a:t>${xmlEscape(text)}</a:t></a:r>`
 		: `<a:endParaRPr lang="en-US"/>`;
-	return `<dsp:txBody><a:bodyPr/><a:lstStyle/><a:p><a:pPr algn="ctr"/>${run}</a:p></dsp:txBody>`;
+	return `<dsp:txBody><a:bodyPr anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/>${run}</a:p></dsp:txBody>`;
+}
+
+function textTransformXml(shape: PptxSmartArtDrawingShape): string {
+	return (
+		`<dsp:txXfrm>` +
+		`<a:off x="${toEmu(shape.x)}" y="${toEmu(shape.y)}"/>` +
+		`<a:ext cx="${toEmu(Math.max(shape.width, 1))}" cy="${toEmu(Math.max(shape.height, 1))}"/>` +
+		`</dsp:txXfrm>`
+	);
 }
 
 function styleXml(index: number): string {
@@ -140,13 +153,16 @@ function shapeXml(
 	shape: PptxSmartArtDrawingShape,
 	index: number,
 	nodes: PptxSmartArtNode[],
-	guidByNodeId: Map<string, string>,
+	presentationGuidByNodeId: Map<string, string>,
 ): string {
-	const modelId = resolveShapeModelId(shape, index, nodes, guidByNodeId);
+	const modelId = resolveShapeModelId(shape, index, nodes, presentationGuidByNodeId);
+	if (!modelId) {
+		return '';
+	}
 	return (
 		`<dsp:sp modelId="${modelId}">` +
 		`<dsp:nvSpPr><dsp:cNvPr id="0" name=""/><dsp:cNvSpPr/></dsp:nvSpPr>` +
-		`${shapePropsXml(shape)}${styleXml(index)}${textBodyXml(shape)}</dsp:sp>`
+		`${shapePropsXml(shape)}${styleXml(index)}${textBodyXml(shape)}${textTransformXml(shape)}</dsp:sp>`
 	);
 }
 
@@ -159,25 +175,20 @@ function shapeXml(
 export function buildFabricatedDrawingXml(
 	shapes: PptxSmartArtDrawingShape[] | undefined,
 	nodes: PptxSmartArtNode[],
-	guidByNodeId: Map<string, string>,
+	presentationGuidByNodeId: Map<string, string>,
 ): string | undefined {
 	if (!shapes || shapes.length === 0) {
 		return undefined;
 	}
-	const body = shapes.map((shape, index) => shapeXml(shape, index, nodes, guidByNodeId)).join('');
+	const body = shapes
+		.map((shape, index) => shapeXml(shape, index, nodes, presentationGuidByNodeId))
+		.join('');
+	if (!body) {
+		return undefined;
+	}
 	return (
 		`${XML_PROLOG}\r\n<dsp:drawing ${DSP_XMLNS}>` +
 		`<dsp:spTree><dsp:nvGrpSpPr><dsp:cNvPr id="0" name=""/><dsp:cNvGrpSpPr/></dsp:nvGrpSpPr><dsp:grpSpPr/>${body}</dsp:spTree></dsp:drawing>`
-	);
-}
-
-/** Build the `dataN.xml.rels` payload linking the data part to its drawing. */
-export function buildDiagramDataRelsXml(drawingRelId: string, drawingFileName: string): string {
-	return (
-		`${XML_PROLOG}\r\n` +
-		`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
-		`<Relationship Id="${xmlEscape(drawingRelId)}" Type="${DIAGRAM_DRAWING_REL_TYPE}" Target="${xmlEscape(drawingFileName)}"/>` +
-		`</Relationships>`
 	);
 }
 

@@ -1,20 +1,34 @@
 /**
  * Fabricated diagram LAYOUT definitions (`ppt/diagrams/layoutN.xml`) for
- * SDK-created SmartArt. Each insertable layout preset maps to one of four
- * hand-authored `dgm:layoutDef` algorithms (list / process / cycle /
- * hierarchy); PowerPoint runs the algorithm itself on open, so no cached
- * drawing part is needed. The definitions are intentionally simple: they
- * favour schema-safe, COM-verified structure over visual parity with the
- * corresponding built-in PowerPoint layout.
+ * SDK-created SmartArt. Named presets retain their own layout identity while
+ * sharing a compact set of schema-safe algorithm families. The cached drawing
+ * part supplies the precise node geometry PowerPoint displays.
  */
 import type { PptxSmartArtData, SmartArtLayout } from '../../types';
 import { XML_PROLOG, DGM_XMLNS } from './smartart-fabrication-data';
 import { HIERARCHY_LAYOUT_DEF_BODY } from './smartart-fabrication-hierarchy';
 
-export type FabricatedLayoutFamily = 'list' | 'process' | 'cycle' | 'hierarchy';
+export type FabricatedLayoutFamily =
+	| 'list'
+	| 'process'
+	| 'cycle'
+	| 'hierarchy'
+	| 'matrix'
+	| 'pyramid'
+	| 'funnel'
+	| 'target'
+	| 'gear'
+	| 'venn'
+	| 'timeline'
+	| 'relationship'
+	| 'chevron'
+	| 'bending';
 
-export function fabricatedLayoutUniqueId(family: FabricatedLayoutFamily): string {
-	return `urn:pptx-viewer/layout/${family}`;
+export function fabricatedLayoutUniqueId(
+	family: FabricatedLayoutFamily,
+	layoutIdentity?: string,
+): string {
+	return `urn:pptx-viewer/layout/${layoutIdentity || family}`;
 }
 
 const PRESET_FAMILY: Partial<Record<SmartArtLayout, FabricatedLayoutFamily>> = {
@@ -27,31 +41,31 @@ const PRESET_FAMILY: Partial<Record<SmartArtLayout, FabricatedLayoutFamily>> = {
 	pictureAccentList: 'list',
 	verticalBlockList: 'list',
 	groupedList: 'list',
-	pyramidList: 'list',
+	pyramidList: 'pyramid',
 	horizontalPictureList: 'list',
-	basicPyramid: 'list',
-	invertedPyramid: 'list',
-	basicMatrix: 'list',
-	basicChevronProcess: 'process',
+	basicPyramid: 'pyramid',
+	invertedPyramid: 'pyramid',
+	basicMatrix: 'matrix',
+	basicChevronProcess: 'chevron',
 	continuousBlockProcess: 'process',
 	segmentedProcess: 'process',
 	upwardArrow: 'process',
-	basicTimeline: 'process',
-	bendingProcess: 'process',
+	basicTimeline: 'timeline',
+	bendingProcess: 'bending',
 	stepDownProcess: 'process',
 	alternatingFlow: 'process',
 	descendingProcess: 'process',
 	accentProcess: 'process',
-	verticalChevronList: 'process',
-	basicFunnel: 'process',
+	verticalChevronList: 'chevron',
+	basicFunnel: 'funnel',
 	basicCycle: 'cycle',
 	basicPie: 'cycle',
 	basicRadial: 'cycle',
-	basicVenn: 'cycle',
+	basicVenn: 'venn',
 	convergingRadial: 'cycle',
-	linearVenn: 'cycle',
-	basicTarget: 'cycle',
-	interlockingGears: 'cycle',
+	linearVenn: 'venn',
+	basicTarget: 'target',
+	interlockingGears: 'gear',
 	hierarchy: 'hierarchy',
 };
 
@@ -68,7 +82,16 @@ export function resolveFabricatedLayoutFamily(data: PptxSmartArtData): Fabricate
 		return 'cycle';
 	}
 	if (resolved === 'hierarchy' || resolved === 'pyramid') {
-		return 'hierarchy';
+		return resolved;
+	}
+	if (
+		resolved === 'matrix' ||
+		resolved === 'funnel' ||
+		resolved === 'gear' ||
+		resolved === 'relationship' ||
+		resolved === 'bending'
+	) {
+		return resolved;
 	}
 	return 'list';
 }
@@ -76,20 +99,20 @@ export function resolveFabricatedLayoutFamily(data: PptxSmartArtData): Fabricate
 const SHAPE_NONE =
 	'<dgm:shape xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:blip=""><dgm:adjLst/></dgm:shape>';
 
-const SHAPE_ROUND_RECT =
-	'<dgm:shape type="roundRect" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:blip=""><dgm:adjLst/></dgm:shape>';
-
-/** The text layout node every family shares: a rounded rect running `tx`. */
-const TEXT_NODE_BODY =
-	`<dgm:varLst><dgm:bulletEnabled val="1"/></dgm:varLst>` +
-	`<dgm:alg type="tx"/>${SHAPE_ROUND_RECT}<dgm:presOf axis="desOrSelf" ptType="node"/>` +
-	`<dgm:constrLst>` +
-	`<dgm:constr type="lMarg" refType="primFontSz" fact="0.3"/>` +
-	`<dgm:constr type="rMarg" refType="primFontSz" fact="0.3"/>` +
-	`<dgm:constr type="tMarg" refType="primFontSz" fact="0.3"/>` +
-	`<dgm:constr type="bMarg" refType="primFontSz" fact="0.3"/>` +
-	`</dgm:constrLst>` +
-	`<dgm:ruleLst><dgm:rule type="primFontSz" val="5" fact="NaN" max="NaN"/></dgm:ruleLst>`;
+/** Build the text layout node shared by the compact algorithm families. */
+function textNodeBody(shapeType: string): string {
+	return (
+		`<dgm:varLst><dgm:bulletEnabled val="1"/></dgm:varLst>` +
+		`<dgm:alg type="tx"/><dgm:shape type="${shapeType}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:blip=""><dgm:adjLst/></dgm:shape><dgm:presOf axis="desOrSelf" ptType="node"/>` +
+		`<dgm:constrLst>` +
+		`<dgm:constr type="lMarg" refType="primFontSz" fact="0.3"/>` +
+		`<dgm:constr type="rMarg" refType="primFontSz" fact="0.3"/>` +
+		`<dgm:constr type="tMarg" refType="primFontSz" fact="0.3"/>` +
+		`<dgm:constr type="bMarg" refType="primFontSz" fact="0.3"/>` +
+		`</dgm:constrLst>` +
+		`<dgm:ruleLst><dgm:rule type="primFontSz" val="5" fact="NaN" max="NaN"/></dgm:ruleLst>`
+	);
+}
 
 /** Invisible spacer occupying each `sibTrans` slot between nodes. */
 const SPACER_FOR_EACH =
@@ -101,8 +124,7 @@ const SPACER_FOR_EACH =
 	`</dgm:layoutNode>` +
 	`</dgm:forEach>`;
 
-function linearLayoutBody(family: 'list' | 'process'): string {
-	const vertical = family === 'list';
+function linearLayoutBody(vertical: boolean, shapeType: string): string {
 	const constraints = vertical
 		? '<dgm:constr type="w" for="ch" forName="node" refType="w"/>' +
 			'<dgm:constr type="h" for="ch" forName="node" refType="w" refFor="ch" refForName="node" fact="0.3"/>' +
@@ -122,36 +144,49 @@ function linearLayoutBody(family: 'list' | 'process'): string {
 		`</dgm:constrLst>` +
 		`<dgm:ruleLst/>` +
 		`<dgm:forEach name="nodesForEach" axis="ch" ptType="node">` +
-		`<dgm:layoutNode name="node" styleLbl="node1">${TEXT_NODE_BODY}</dgm:layoutNode>${
+		`<dgm:layoutNode name="node" styleLbl="node1">${textNodeBody(shapeType)}</dgm:layoutNode>${
 			SPACER_FOR_EACH
 		}</dgm:forEach>` +
 		`</dgm:layoutNode>`
 	);
 }
 
-const CYCLE_LAYOUT_BODY =
-	`<dgm:layoutNode name="diagram">` +
-	`<dgm:varLst><dgm:dir/><dgm:resizeHandles val="exact"/></dgm:varLst>` +
-	`<dgm:alg type="cycle"><dgm:param type="stAng" val="0"/><dgm:param type="spanAng" val="360"/></dgm:alg>${
-		SHAPE_NONE
-	}<dgm:presOf/>` +
-	`<dgm:constrLst>` +
-	`<dgm:constr type="w" for="ch" forName="node" refType="w" fact="0.32"/>` +
-	`<dgm:constr type="h" for="ch" forName="node" refType="w" refFor="ch" refForName="node" fact="0.5"/>` +
-	`<dgm:constr type="sibSp" refType="w" refFor="ch" refForName="node" fact="0.15"/>` +
-	`<dgm:constr type="primFontSz" for="ch" forName="node" op="equ" val="65"/>` +
-	`</dgm:constrLst>` +
-	`<dgm:ruleLst/>` +
-	`<dgm:forEach name="nodesForEach" axis="ch" ptType="node">` +
-	`<dgm:layoutNode name="node" styleLbl="node1">${TEXT_NODE_BODY}</dgm:layoutNode>` +
-	`</dgm:forEach>` +
-	`</dgm:layoutNode>`;
+function cycleLayoutBody(shapeType: string): string {
+	return (
+		`<dgm:layoutNode name="diagram">` +
+		`<dgm:varLst><dgm:dir/><dgm:resizeHandles val="exact"/></dgm:varLst>` +
+		`<dgm:alg type="cycle"><dgm:param type="stAng" val="0"/><dgm:param type="spanAng" val="360"/></dgm:alg>${
+			SHAPE_NONE
+		}<dgm:presOf/>` +
+		`<dgm:constrLst>` +
+		`<dgm:constr type="w" for="ch" forName="node" refType="w" fact="0.32"/>` +
+		`<dgm:constr type="h" for="ch" forName="node" refType="w" refFor="ch" refForName="node" fact="0.5"/>` +
+		`<dgm:constr type="sibSp" refType="w" refFor="ch" refForName="node" fact="0.15"/>` +
+		`<dgm:constr type="primFontSz" for="ch" forName="node" op="equ" val="65"/>` +
+		`</dgm:constrLst>` +
+		`<dgm:ruleLst/>` +
+		`<dgm:forEach name="nodesForEach" axis="ch" ptType="node">` +
+		`<dgm:layoutNode name="node" styleLbl="node1">${textNodeBody(shapeType)}</dgm:layoutNode>` +
+		`</dgm:forEach>` +
+		`</dgm:layoutNode>`
+	);
+}
 
 const FAMILY_TITLE: Record<FabricatedLayoutFamily, string> = {
 	list: 'Vertical List',
 	process: 'Process',
 	cycle: 'Cycle',
 	hierarchy: 'Hierarchy',
+	matrix: 'Matrix',
+	pyramid: 'Pyramid',
+	funnel: 'Funnel',
+	target: 'Target',
+	gear: 'Gears',
+	venn: 'Venn',
+	timeline: 'Timeline',
+	relationship: 'Relationship',
+	chevron: 'Chevron',
+	bending: 'Bending Process',
 };
 
 const FAMILY_CATEGORY: Record<FabricatedLayoutFamily, string> = {
@@ -159,6 +194,16 @@ const FAMILY_CATEGORY: Record<FabricatedLayoutFamily, string> = {
 	process: 'process',
 	cycle: 'cycle',
 	hierarchy: 'hierarchy',
+	matrix: 'matrix',
+	pyramid: 'pyramid',
+	funnel: 'pyramid',
+	target: 'target',
+	gear: 'relationship',
+	venn: 'relationship',
+	timeline: 'process',
+	relationship: 'relationship',
+	chevron: 'process',
+	bending: 'process',
 };
 
 export function fabricatedLayoutCategory(family: FabricatedLayoutFamily): string {
@@ -166,16 +211,48 @@ export function fabricatedLayoutCategory(family: FabricatedLayoutFamily): string
 }
 
 /** Build the complete `layoutN.xml` payload for a fabricated layout family. */
-export function buildFabricatedLayoutDefXml(family: FabricatedLayoutFamily): string {
+function layoutShapeType(family: FabricatedLayoutFamily): string {
+	if (family === 'cycle' || family === 'venn' || family === 'target' || family === 'timeline') {
+		return 'ellipse';
+	}
+	if (family === 'pyramid' || family === 'funnel') {
+		return 'trapezoid';
+	}
+	if (family === 'chevron') {
+		return 'chevron';
+	}
+	if (family === 'gear') {
+		return 'gear6';
+	}
+	return 'roundRect';
+}
+
+function layoutTitle(layoutIdentity: string | undefined, family: FabricatedLayoutFamily): string {
+	if (!layoutIdentity) {
+		return FAMILY_TITLE[family];
+	}
+	return layoutIdentity
+		.replace(/([a-z0-9])([A-Z])/gu, '$1 $2')
+		.replace(/^./u, (value) => value.toUpperCase());
+}
+
+export function buildFabricatedLayoutDefXml(
+	family: FabricatedLayoutFamily,
+	layoutIdentity?: string,
+): string {
+	const shapeType = layoutShapeType(family);
 	const body =
-		family === 'cycle'
-			? CYCLE_LAYOUT_BODY
+		family === 'cycle' || family === 'venn' || family === 'target' || family === 'gear'
+			? cycleLayoutBody(shapeType)
 			: family === 'hierarchy'
 				? HIERARCHY_LAYOUT_DEF_BODY
-				: linearLayoutBody(family);
+				: linearLayoutBody(
+						family === 'list' || family === 'pyramid' || family === 'funnel',
+						shapeType,
+					);
 	return (
-		`${XML_PROLOG}\r\n<dgm:layoutDef ${DGM_XMLNS} uniqueId="${fabricatedLayoutUniqueId(family)}">` +
-		`<dgm:title val="${FAMILY_TITLE[family]}"/><dgm:desc val=""/>` +
+		`${XML_PROLOG}\r\n<dgm:layoutDef ${DGM_XMLNS} uniqueId="${fabricatedLayoutUniqueId(family, layoutIdentity)}">` +
+		`<dgm:title val="${layoutTitle(layoutIdentity, family)}"/><dgm:desc val=""/>` +
 		`<dgm:catLst><dgm:cat type="${FAMILY_CATEGORY[family]}" pri="1000"/></dgm:catLst>${
 			body
 		}</dgm:layoutDef>`

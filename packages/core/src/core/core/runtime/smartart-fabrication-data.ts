@@ -89,10 +89,21 @@ export function buildNodeGuidMap(nodes: PptxSmartArtData['nodes']): Map<string, 
 	return guidByNodeId;
 }
 
+/** Build stable presentation-point ids for cached drawing shapes. */
+export function buildPresentationGuidMap(nodes: PptxSmartArtData['nodes']): Map<string, string> {
+	const guidByNodeId = new Map<string, string>();
+	for (const node of nodes) {
+		if (node.id && !guidByNodeId.has(node.id)) {
+			guidByNodeId.set(node.id, newSmartArtGuid());
+		}
+	}
+	return guidByNodeId;
+}
+
 /** Options controlling optional data-model extensions. */
 export interface FabricatedDiagramDataOptions {
 	/**
-	 * Relationship id (local to the data part's own rels file) of the cached
+	 * Relationship id in the owning slide's rels file for the cached
 	 * `drawingN.xml`. When set, a `dsp:dataModelExt` extension is emitted so
 	 * PowerPoint loads the cached drawing instead of recomputing the layout.
 	 */
@@ -103,6 +114,8 @@ export interface FabricatedDiagramDataOptions {
 	 * omitted.
 	 */
 	guidByNodeId?: Map<string, string>;
+	/** Presentation-point ids used by cached `dsp:sp` shapes. */
+	presentationGuidByNodeId?: Map<string, string>;
 }
 
 const DSP_DATA_MODEL_EXT_URI = 'http://schemas.microsoft.com/office/drawing/2008/diagram';
@@ -122,6 +135,8 @@ export function buildFabricatedDiagramDataXml(
 ): string {
 	const docGuid = newSmartArtGuid();
 	const guidByNodeId = options.guidByNodeId ?? buildNodeGuidMap(data.nodes);
+	const presentationGuidByNodeId =
+		options.presentationGuidByNodeId ?? buildPresentationGuidMap(data.nodes);
 
 	const points: string[] = [docPointXml(docGuid, ids)];
 	const connections: string[] = [];
@@ -146,6 +161,21 @@ export function buildFabricatedDiagramDataXml(
 		connections.push(
 			`<dgm:cxn modelId="${cxnGuid}" srcId="${parentGuid}" destId="${guid}" srcOrd="${srcOrd}" destOrd="0" parTransId="${parTransGuid}" sibTransId="${sibTransGuid}"/>`,
 		);
+
+		const presentationGuid = node.id ? presentationGuidByNodeId.get(node.id) : undefined;
+		if (presentationGuid) {
+			points.push(
+				`<dgm:pt modelId="${presentationGuid}" type="pres">` +
+					`<dgm:prSet presAssocID="${guid}" presName="node" presStyleLbl="node1"` +
+					` presStyleIdx="${srcOrd}" presStyleCnt="${data.nodes.length}"/>` +
+					`<dgm:spPr/></dgm:pt>`,
+			);
+			connections.push(
+				`<dgm:cxn modelId="${newSmartArtGuid()}" type="presOf" srcId="${guid}"` +
+					` destId="${presentationGuid}" srcOrd="0" destOrd="0"` +
+					` presId="${xmlEscape(ids.layoutUniqueId)}"/>`,
+			);
+		}
 	}
 
 	return (

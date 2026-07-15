@@ -346,6 +346,8 @@ describe('switchSmartArtLayout', () => {
 		const result = switchSmartArtLayout(baseData, 'cycle');
 		expect(result.resolvedLayoutType).toBe('cycle');
 		expect(result.layoutType).toBe('cycle');
+		expect(result.layoutDirty).toBeTruthy();
+		expect(result.drawingDirty).toBeTruthy();
 	});
 
 	it('clears the named layout preset', () => {

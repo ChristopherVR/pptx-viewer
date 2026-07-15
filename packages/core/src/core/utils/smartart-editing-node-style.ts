@@ -81,6 +81,7 @@ export function setSmartArtNodeStyle(
 	return {
 		...data,
 		nodes,
+		drawingDirty: true,
 		drawingShapes: patchDrawingShapeStyle(data.drawingShapes, data.nodes, nodeId, style),
 	};
 }

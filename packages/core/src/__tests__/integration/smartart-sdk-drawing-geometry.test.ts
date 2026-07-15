@@ -20,7 +20,7 @@ import { decomposeSmartArt } from '../../core/utils';
  *
  * After the fix, the viewer-computed `drawingShapes` are serialized into a
  * cached `dsp:drawing` whose `dsp:sp` shapes each carry their own
- * `a:prstGeom`, linked from the data part's rels + a `dsp:dataModelExt`.
+ * `a:prstGeom`, linked from the slide rels + a `dsp:dataModelExt`.
  */
 
 const PYRAMID_SHAPES: PptxSmartArtDrawingShape[] = [
@@ -92,20 +92,22 @@ describe('sDK-created SmartArt preserves per-node shape geometry on save', () =>
 		expect(drawing!.match(/<dsp:sp\b/gu) || []).toHaveLength(3);
 	});
 
-	it('registers the drawing content type and links it from the data part rels', async () => {
+	it('registers the drawing content type and links it from the owning slide', async () => {
 		const zip = await saveWithSmartArt(makePyramid('basicPyramid', PYRAMID_SHAPES));
 
 		const contentTypes = await zip.file('[Content_Types].xml')!.async('string');
 		expect(contentTypes).toContain('drawingml.diagramDrawing+xml');
 
-		const dataRels = await zip.file('ppt/diagrams/_rels/data1.xml.rels')?.async('string');
-		expect(dataRels, 'data1.xml.rels was not written').toBeTruthy();
-		expect(dataRels).toContain('relationships/diagramDrawing');
-		expect(dataRels).toContain('Target="drawing1.xml"');
-
 		const dataXml = await zip.file('ppt/diagrams/data1.xml')!.async('string');
 		expect(dataXml).toContain('dataModelExt');
-		expect(dataXml).toMatch(/dsp:dataModelExt[^>]*relId="rId1"/u);
+		const drawingRelId = /dsp:dataModelExt[^>]*relId="([^"]+)"/u.exec(dataXml)?.[1];
+		expect(drawingRelId).toBeTruthy();
+
+		const slideRels = await zip.file('ppt/slides/_rels/slide1.xml.rels')!.async('string');
+		expect(slideRels).toContain(`Id="${drawingRelId}"`);
+		expect(slideRels).toContain('relationships/diagramDrawing');
+		expect(slideRels).toContain('Target="../diagrams/drawing1.xml"');
+		expect(zip.file('ppt/diagrams/_rels/data1.xml.rels')).toBeNull();
 	});
 
 	it('correlates cached shape model ids with the data-model point ids', async () => {
@@ -115,10 +117,14 @@ describe('sDK-created SmartArt preserves per-node shape geometry on save', () =>
 
 		const shapeModelIds = [...drawing.matchAll(/<dsp:sp modelId="(\{[^"]+\})"/gu)].map((m) => m[1]);
 		expect(shapeModelIds).toHaveLength(3);
-		// Every cached shape's model id must exist as a data-model point.
+		// Every cached shape targets a presentation point, not a semantic node.
 		for (const id of shapeModelIds) {
-			expect(dataXml, `data model missing point ${id}`).toContain(`modelId="${id}"`);
+			expect(dataXml, `data model missing presentation point ${id}`).toMatch(
+				new RegExp(`<dgm:pt modelId="${id.replace(/[{}]/gu, '\\$&')}" type="pres">`, 'u'),
+			);
 		}
+		expect(dataXml.match(/presAssocID="\{/gu) ?? []).toHaveLength(3);
+		expect(dataXml.match(/type="presOf"/gu) ?? []).toHaveLength(3);
 	});
 
 	it('round-trips through the loader with distinct geometries intact', async () => {

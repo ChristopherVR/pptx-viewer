@@ -11,8 +11,14 @@ import { obfuscateFont, generateFontGuid } from '../../utils/font-deobfuscation'
 import type { PptxSaveFormat } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDataSerialization';
 import { applySmartArtColorTransform } from './smartart-colors-builder';
+import { buildFabricatedDrawingXml } from './smartart-fabrication-drawing';
 import { synthesizeNewSmartArtStructuralPoints } from './smartart-node-synthesis';
 import { applySmartArtChrome } from './smartart-save-chrome';
+import {
+	applySmartArtLayoutIdentity,
+	presentationIdsFromPoints,
+	resolveSmartArtSaveLayout,
+} from './smartart-save-geometry';
 import { mergeSmartArtPointXml, mergeSmartArtConnectionXml } from './smartart-xml-builders';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -142,6 +148,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					cxnList[cxnKey] = mergeSmartArtConnectionXml(existingCxns, desiredConnections);
 				}
 
+				const saveLayout = smartArtData.layoutDirty
+					? resolveSmartArtSaveLayout(smartArtData)
+					: undefined;
+				if (saveLayout) {
+					applySmartArtLayoutIdentity(dataModel, saveLayout, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
+				}
+
 				// Persist chrome (background / outline) onto dgm:bg and
 				// dgm:whole/a:ln when present on the in-memory data.
 				applySmartArtChrome(dataModel, smartArtData.chrome, (k) =>
@@ -149,6 +164,34 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				);
 
 				this.zip.file(dataPartPath, this.builder.build(parsed));
+
+				if (saveLayout && smartArtData.layoutRelId) {
+					const layoutTarget = relationships?.get(smartArtData.layoutRelId);
+					if (layoutTarget) {
+						this.zip.file(this.resolveImagePath(slidePath, layoutTarget), saveLayout.xml);
+					}
+				}
+
+				if (
+					smartArtData.drawingDirty &&
+					smartArtData.drawingRelId &&
+					smartArtData.drawingShapes?.length
+				) {
+					const drawingTarget = relationships?.get(smartArtData.drawingRelId);
+					const mergedPoints =
+						ptKey && ptList ? (this.ensureArray(ptList[ptKey]) as XmlObject[]) : [];
+					const presentationIds = presentationIdsFromPoints(mergedPoints, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
+					const drawingXml = buildFabricatedDrawingXml(
+						smartArtData.drawingShapes,
+						smartArtData.nodes,
+						presentationIds,
+					);
+					if (drawingTarget && drawingXml) {
+						this.zip.file(this.resolveImagePath(slidePath, drawingTarget), drawingXml);
+					}
+				}
 			} catch (e) {
 				console.warn(`Failed to save SmartArt data at ${dataPartPath}:`, e);
 			}

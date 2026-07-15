@@ -132,6 +132,7 @@ export function addSmartArtNode(
 		...data,
 		nodes,
 		connections: connections.length > 0 ? connections : undefined,
+		drawingDirty: true,
 		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }
@@ -183,6 +184,7 @@ export function removeSmartArtNode(data: PptxSmartArtData, nodeId: string): Pptx
 		...data,
 		nodes,
 		connections: connections.length > 0 ? connections : undefined,
+		drawingDirty: true,
 		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }
@@ -205,6 +207,7 @@ export function updateSmartArtNodeText(
 	return {
 		...data,
 		nodes,
+		drawingDirty: true,
 		drawingShapes: patchDrawingShapeText(data.drawingShapes, data.nodes, nodeId, newText),
 	};
 }
@@ -310,6 +313,7 @@ export function reorderSmartArtNode(
 	return {
 		...data,
 		nodes,
+		drawingDirty: true,
 		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }
@@ -349,6 +353,7 @@ export function promoteSmartArtNode(data: PptxSmartArtData, nodeId: string): Ppt
 		...data,
 		nodes,
 		connections: connections.length > 0 ? connections : undefined,
+		drawingDirty: true,
 		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }
@@ -390,6 +395,7 @@ export function demoteSmartArtNode(data: PptxSmartArtData, nodeId: string): Pptx
 		...data,
 		nodes,
 		connections: connections.length > 0 ? connections : undefined,
+		drawingDirty: true,
 		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }
@@ -445,6 +451,7 @@ export function addSmartArtNodeAsChild(
 		...data,
 		nodes,
 		connections: connections.length > 0 ? connections : undefined,
+		drawingDirty: true,
 		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }
@@ -499,6 +506,7 @@ export function reorderSmartArtNodeToIndex(
 	return {
 		...data,
 		nodes,
+		drawingDirty: true,
 		drawingShapes: markShapesStale(data.drawingShapes),
 	};
 }

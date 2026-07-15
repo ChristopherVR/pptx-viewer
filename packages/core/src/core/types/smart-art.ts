@@ -296,10 +296,16 @@ export interface PptxSmartArtData {
 	quickStyle?: PptxSmartArtQuickStyle;
 	/** Relationship ID for the diagram data part (for round-trip save). */
 	dataRelId?: string;
+	/** Relationship ID for the diagram layout part. */
+	layoutRelId?: string;
 	/** Relationship ID for the drawing part. */
 	drawingRelId?: string;
 	/** Relationship ID for the colours part. */
 	colorsRelId?: string;
 	/** Relationship ID for the quick-styles part. */
 	styleRelId?: string;
+	/** Internal save hint: the layout definition changed in the editor. */
+	layoutDirty?: boolean;
+	/** Internal save hint: cached drawing geometry or text changed in the editor. */
+	drawingDirty?: boolean;
 }

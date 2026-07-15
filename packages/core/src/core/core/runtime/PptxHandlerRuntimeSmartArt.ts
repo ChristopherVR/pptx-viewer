@@ -131,9 +131,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const colorTransform = await this.parseSmartArtColorTransform(slidePath, colorsRelationshipId);
 
 		// ── Parse drawing shapes from ppt/diagrams/drawing*.xml ──────────
+		const dataModelExtList = this.xmlLookupService.getChildByLocalName(dataModel, 'extLst');
+		const drawingExtension = this.xmlLookupService
+			.getChildrenArrayByLocalName(dataModelExtList, 'ext')
+			.map((ext) => this.xmlLookupService.getChildByLocalName(ext, 'dataModelExt'))
+			.find(Boolean);
+		const drawingExtensionRelId = String(drawingExtension?.['@_relId'] || '').trim();
 		const drawingResolution = await this.resolveSmartArtDrawingPart(
 			slidePath,
 			diagramDataRelationshipId,
+			drawingExtensionRelId,
 		);
 		const drawingShapes = drawingResolution
 			? await this.parseSmartArtDrawingShapesFromPath(drawingResolution.path)
@@ -154,6 +161,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			colorTransform,
 			quickStyle,
 			dataRelId: diagramDataRelationshipId,
+			layoutRelId: layoutRelationshipId.length > 0 ? layoutRelationshipId : undefined,
 			drawingRelId:
 				drawingRelationshipId && drawingRelationshipId.length > 0
 					? drawingRelationshipId
@@ -167,22 +175,44 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Resolve the SmartArt drawing-shapes part path + relationship id.
 	 *
 	 * Strategy:
-	 *  1. Locate the data-model part's rels file
-	 *     (`ppt/diagrams/_rels/data*.xml.rels`) via `slideRelsMap`.
-	 *  2. Find a relationship whose `Type` matches the `…/diagramDrawing`
-	 *     URI. PowerPoint emits this for any deck that has had its
-	 *     SmartArt rendered to drawing shapes.
+	 *  1. Resolve `dsp:dataModelExt/@relId` in the owning slide's relationship
+	 *     scope, which is where PowerPoint writes diagramDrawing relationships.
+	 *  2. Fall back to the data part's rels file for compatibility with files
+	 *     emitted by older pptx-viewer versions.
 	 *  3. Return the matched part path (so the caller can load it
 	 *     directly) and the relationship id (for round-trip preservation).
 	 */
 	private async resolveSmartArtDrawingPart(
 		slidePath: string,
 		diagramDataRelationshipId: string,
+		drawingExtensionRelId: string,
 	): Promise<{ relId: string; path: string } | undefined> {
 		if (diagramDataRelationshipId.length === 0) {
 			return undefined;
 		}
 		const slideRels = this.slideRelsMap.get(slidePath);
+		const slideDrawingTarget = drawingExtensionRelId
+			? slideRels?.get(drawingExtensionRelId)
+			: undefined;
+		if (slideDrawingTarget) {
+			return {
+				relId: drawingExtensionRelId,
+				path: this.resolveImagePath(slidePath, slideDrawingTarget),
+			};
+		}
+
+		// Some producers omit dataModelExt but still leave a single drawing part
+		// relationship on the slide. Recover it by its target path.
+		const inferredSlideDrawing = [...(slideRels?.entries() ?? [])].find(([, target]) =>
+			/(?:^|\/)diagrams\/drawing\d+\.xml$/u.test(target.replaceAll('\\', '/')),
+		);
+		if (inferredSlideDrawing) {
+			return {
+				relId: inferredSlideDrawing[0],
+				path: this.resolveImagePath(slidePath, inferredSlideDrawing[1]),
+			};
+		}
+
 		const dataTarget = slideRels?.get(diagramDataRelationshipId);
 		if (!dataTarget) {
 			return undefined;
@@ -205,9 +235,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return undefined;
 			}
 			const rels = this.ensureArray(relsRoot['Relationship']) as XmlObject[];
-			const drawingRel = rels.find((rel) =>
-				String(rel?.['@_Type'] || '').endsWith('/diagramDrawing'),
-			);
+			const drawingRel = rels.find((rel) => {
+				const id = String(rel?.['@_Id'] || '').trim();
+				return (
+					(!drawingExtensionRelId || id === drawingExtensionRelId) &&
+					String(rel?.['@_Type'] || '').endsWith('/diagramDrawing')
+				);
+			});
 			const id = String(drawingRel?.['@_Id'] || '').trim();
 			const target = String(drawingRel?.['@_Target'] || '').trim();
 			if (id.length === 0 || target.length === 0) {

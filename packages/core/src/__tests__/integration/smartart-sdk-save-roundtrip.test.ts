@@ -91,7 +91,8 @@ describe('sDK-created SmartArt survives save round-trip', () => {
 		expect(dataXml).toContain('type="sibTrans"');
 		expect(dataXml).toContain('<a:t>Alpha</a:t>');
 		expect(dataXml).toContain('<a:t>Gamma &amp; &lt;Delta&gt;</a:t>');
-		expect(dataXml.match(/<dgm:cxn /gu) ?? []).toHaveLength(3);
+		expect(dataXml.match(/<dgm:cxn /gu) ?? []).toHaveLength(6);
+		expect(dataXml.match(/type="pres"/gu) ?? []).toHaveLength(3);
 		expect(dataXml).toMatch(/parTransId="\{/u);
 		expect(dataXml).toMatch(/sibTransId="\{/u);
 	});
@@ -105,12 +106,13 @@ describe('sDK-created SmartArt survives save round-trip', () => {
 
 		const cycle = await saveWithInsertedSmartArt('basicCycle');
 		const cycleLayout = await cycle.zip.file('ppt/diagrams/layout1.xml')!.async('string');
-		expect(cycleLayout).toContain('urn:pptx-viewer/layout/cycle');
+		expect(cycleLayout).toContain('urn:pptx-viewer/layout/basicCycle');
+		expect(cycleLayout).toContain('<dgm:title val="Basic Cycle"/>');
 		expect(cycleLayout).toContain('<dgm:alg type="cycle">');
 
 		const process = await saveWithInsertedSmartArt('continuousBlockProcess');
 		const processLayout = await process.zip.file('ppt/diagrams/layout1.xml')!.async('string');
-		expect(processLayout).toContain('urn:pptx-viewer/layout/process');
+		expect(processLayout).toContain('urn:pptx-viewer/layout/continuousBlockProcess');
 		expect(processLayout).toContain('val="fromL"');
 	});
 

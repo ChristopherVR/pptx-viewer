@@ -97,6 +97,15 @@ describe('real-world corpus round-trip', () => {
 			expect(smartArtsB).toHaveLength(smartArtsA.length);
 			expect(smartArtsA.length).toBeGreaterThanOrEqual(4); // process, cycle, hierarchy, pyramid
 			for (let i = 0; i < smartArtsA.length; i++) {
+				const drawingShapesA =
+					'smartArtData' in smartArtsA[i] ? smartArtsA[i].smartArtData?.drawingShapes : undefined;
+				const drawingShapesB =
+					'smartArtData' in smartArtsB[i] ? smartArtsB[i].smartArtData?.drawingShapes : undefined;
+				expect(drawingShapesA?.length, `smartArt #${i} original cached shapes`).toBeGreaterThan(0);
+				expect(
+					drawingShapesB?.map((shape) => shape.shapeType),
+					`smartArt #${i} cached geometry`,
+				).toStrictEqual(drawingShapesA?.map((shape) => shape.shapeType));
 				const nodesA =
 					'smartArtData' in smartArtsA[i]
 						? smartArtsA[i].smartArtData?.nodes.map((n) => n.text)

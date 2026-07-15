@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 
 import type { PptxElement, PptxSmartArtDrawingShape, PptxSmartArtNode } from '../../types';
 import {
-	buildDiagramDataRelsXml,
 	buildFabricatedDrawingXml,
 	smartArtElementsToDrawingShapes,
 } from './smartart-fabrication-drawing';
@@ -39,7 +38,7 @@ describe('buildFabricatedDrawingXml', () => {
 		expect(xml.match(/<dsp:sp\b/gu) || []).toHaveLength(3);
 	});
 
-	it('reuses the node GUID map so shape model ids match data points', () => {
+	it('uses presentation-point GUIDs for cached shape model ids', () => {
 		const xml = buildFabricatedDrawingXml(SHAPES, NODES, GUIDS)!;
 		// `engine-<nodeId>` ids resolve to the matching node GUID.
 		expect(xml).toContain('modelId="{11111111-1111-1111-1111-111111111111}"');
@@ -52,6 +51,7 @@ describe('buildFabricatedDrawingXml', () => {
 		// 250px * 9525 = 2381250, 40px * 9525 = 381000
 		expect(xml).toContain('<a:off x="2381250" y="381000"/>');
 		expect(xml).toContain('<a:ext cx="952500" cy="857250"/>');
+		expect(xml).toContain('<dsp:txXfrm>');
 	});
 
 	it('escapes shape text', () => {
@@ -112,14 +112,5 @@ describe('smartArtElementsToDrawingShapes', () => {
 	it('returns an empty array for missing or empty input', () => {
 		expect(smartArtElementsToDrawingShapes(undefined)).toStrictEqual([]);
 		expect(smartArtElementsToDrawingShapes([])).toStrictEqual([]);
-	});
-});
-
-describe('buildDiagramDataRelsXml', () => {
-	it('emits a diagramDrawing relationship to the drawing part', () => {
-		const xml = buildDiagramDataRelsXml('rId1', 'drawing3.xml');
-		expect(xml).toContain('Id="rId1"');
-		expect(xml).toContain('relationships/diagramDrawing');
-		expect(xml).toContain('Target="drawing3.xml"');
 	});
 });

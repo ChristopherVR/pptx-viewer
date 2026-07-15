@@ -145,7 +145,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const nvSpPr = this.xmlLookupService.getChildByLocalName(sp, 'nvSpPr');
 		const cNvPr = this.xmlLookupService.getChildByLocalName(nvSpPr, 'cNvPr');
-		const id = String(cNvPr?.['@_id'] || `dsp-${index}`);
+		// `dsp:sp/@modelId` identifies the presentation point represented by this
+		// cached shape. Keep it as the stable id so edited drawings can reuse the
+		// original presentation association, including connector-like shapes that
+		// do not map one-to-one to semantic content nodes.
+		const id = String(sp['@_modelId'] || cNvPr?.['@_id'] || `dsp-${index}`);
 
 		return {
 			id,

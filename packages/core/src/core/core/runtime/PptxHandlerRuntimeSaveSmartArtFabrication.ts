@@ -10,10 +10,14 @@ import type { XmlObject, SmartArtPptxElement } from '../../types';
 import { decomposeSmartArt } from '../../utils';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElementEmbedding';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
-import { buildFabricatedDiagramDataXml, buildNodeGuidMap } from './smartart-fabrication-data';
+import {
+	buildFabricatedDiagramDataXml,
+	buildNodeGuidMap,
+	buildPresentationGuidMap,
+} from './smartart-fabrication-data';
 import {
 	DIAGRAM_DRAWING_CONTENT_TYPE,
-	buildDiagramDataRelsXml,
+	DIAGRAM_DRAWING_REL_TYPE,
 	buildFabricatedDrawingXml,
 	smartArtElementsToDrawingShapes,
 } from './smartart-fabrication-drawing';
@@ -101,6 +105,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected createSmartArtElementXml(el: SmartArtPptxElement, ctx: SaveSlideContext): XmlObject {
 		const data = el.smartArtData!;
 		const family = resolveFabricatedLayoutFamily(data);
+		const layoutIdentity = data.layout ?? data.resolvedLayoutType;
 		const index = this.nextDiagramPartIndex();
 
 		// Cache the viewer-computed shape geometry so PowerPoint renders each node
@@ -109,6 +114,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// SDK-inserted diagrams carry no `drawingShapes`, so fall back to running
 		// the same decompose/layout algorithms the viewer renders with.
 		const guidByNodeId = buildNodeGuidMap(data.nodes);
+		const presentationGuidByNodeId = buildPresentationGuidMap(data.nodes);
 		const drawingShapes =
 			data.drawingShapes && data.drawingShapes.length > 0
 				? data.drawingShapes
@@ -120,22 +126,28 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 							height: Math.max(el.height, 1),
 						}),
 					);
-		const drawingRelId = 'rId1';
-		const drawingXml = buildFabricatedDrawingXml(drawingShapes, data.nodes, guidByNodeId);
+		const drawingXml = buildFabricatedDrawingXml(
+			drawingShapes,
+			data.nodes,
+			presentationGuidByNodeId,
+		);
+		const drawingRelId = drawingXml
+			? ctx.slideRelationshipRegistry.nextRelationshipId()
+			: undefined;
 
 		const payloads: Record<(typeof DIAGRAM_PART_KINDS)[number]['prefix'], string> = {
 			data: buildFabricatedDiagramDataXml(
 				data,
 				{
-					layoutUniqueId: fabricatedLayoutUniqueId(family),
+					layoutUniqueId: fabricatedLayoutUniqueId(family, layoutIdentity),
 					layoutCategory: fabricatedLayoutCategory(family),
 					quickStyleUniqueId: FABRICATED_QUICKSTYLE_UNIQUE_ID,
 					colorsUniqueId: fabricatedColorsUniqueId(data.colorScheme),
 					colorsCategory: fabricatedColorsCategory(data.colorScheme),
 				},
-				{ guidByNodeId, drawingRelId: drawingXml ? drawingRelId : undefined },
+				{ guidByNodeId, presentationGuidByNodeId, drawingRelId },
 			),
-			layout: buildFabricatedLayoutDefXml(family),
+			layout: buildFabricatedLayoutDefXml(family, layoutIdentity),
 			quickStyle: buildFabricatedQuickStyleXml(),
 			colors: buildFabricatedColorsXml(data.colorScheme),
 		};
@@ -160,10 +172,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			relIds[kind.relAttr] = relId;
 		}
 
-		// Emit the cached drawing part and link it from the data part's own rels
-		// file (`ppt/diagrams/_rels/dataN.xml.rels`); the `dsp:dataModelExt`
-		// written into the data model above references `drawingRelId` there.
-		if (drawingXml) {
+		// Emit the cached drawing part and link it from the owning slide. PowerPoint
+		// resolves the unqualified `dsp:dataModelExt/@relId` in the slide scope.
+		if (drawingXml && drawingRelId) {
 			const drawingFile = `drawing${index}.xml`;
 			const drawingPath = `ppt/diagrams/${drawingFile}`;
 			this.zip.file(drawingPath, drawingXml);
@@ -171,10 +182,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				partName: `/${drawingPath}`,
 				contentType: DIAGRAM_DRAWING_CONTENT_TYPE,
 			});
-			this.zip.file(
-				`ppt/diagrams/_rels/data${index}.xml.rels`,
-				buildDiagramDataRelsXml(drawingRelId, drawingFile),
-			);
+			ctx.slideRelationships.push({
+				'@_Id': drawingRelId,
+				'@_Type': DIAGRAM_DRAWING_REL_TYPE,
+				'@_Target': `../diagrams/${drawingFile}`,
+			});
 		}
 
 		const EMU = PptxHandlerRuntime.EMU_PER_PX;
