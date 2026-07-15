@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 
 export interface PresentationSubtitleBarProps {
 	visible: boolean;
+	onCaptionChange?: (caption: string) => void;
 }
 
 interface SpeechRecognitionAlternativeLite {
@@ -63,6 +64,7 @@ interface WindowWithSpeechRecognition {
 
 export function PresentationSubtitleBar({
 	visible,
+	onCaptionChange,
 }: PresentationSubtitleBarProps): React.ReactElement | null {
 	const { t } = useTranslation();
 	const [captionText, setCaptionText] = useState<string>('');
@@ -110,6 +112,7 @@ export function PresentationSubtitleBar({
 			const merged = `${finalText} ${interimText}`.trim();
 			if (merged.length > 0) {
 				setCaptionText(merged);
+				onCaptionChange?.(merged);
 			}
 		};
 
@@ -139,7 +142,7 @@ export function PresentationSubtitleBar({
 			recognition.stop();
 			recognitionRef.current = null;
 		};
-	}, [visible]);
+	}, [visible, onCaptionChange]);
 
 	if (!visible) {
 		return null;

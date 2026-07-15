@@ -482,6 +482,7 @@ export * from './share-session';
 // formatting, and rich-text notes -> framework-agnostic `NotesSpan[]` render
 // spec. Each binding renders the spec into its own nodes.
 export * from './presenter-view';
+export * from './presenter-console';
 export * from './presentation-session';
 // Presentation toolbar: bottom-trigger-zone visibility math, auto-hide timing,
 // pen/highlighter colour swatches, and slide-counter formatting.

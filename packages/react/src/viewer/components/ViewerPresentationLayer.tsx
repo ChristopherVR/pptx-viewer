@@ -9,6 +9,7 @@ import type { UsePresentationModeResult } from '../hooks/usePresentationMode';
 import type { CanvasSize } from '../types';
 import type { ViewerMode } from '../types-core';
 import { MobilePresenterView } from './MobilePresenterView';
+import { PresentationAudienceEffects } from './PresentationAudienceEffects';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -23,6 +24,7 @@ export interface ViewerPresentationLayerProps {
 	onExitPresentation: () => void;
 	/** Use the single-column mobile presenter layout instead of the desktop one. */
 	isMobile?: boolean;
+	onUpdateNotes?: (notes: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -30,13 +32,24 @@ export interface ViewerPresentationLayerProps {
 // ---------------------------------------------------------------------------
 
 export function ViewerPresentationLayer(props: ViewerPresentationLayerProps) {
-	const { mode, slides, canvasSize, templateElements, presentation, onExitPresentation, isMobile } =
-		props;
+	const {
+		mode,
+		slides,
+		canvasSize,
+		templateElements,
+		presentation,
+		onExitPresentation,
+		isMobile,
+		onUpdateNotes,
+	} = props;
 
 	const presenterActive = mode === 'present' && presentation.presenterMode;
 
 	return (
 		<>
+			{mode === 'present' && !presentation.presenterMode && (
+				<PresentationAudienceEffects snapshot={presentation.presenterSnapshot} />
+			)}
 			{presenterActive &&
 				(isMobile ? (
 					<MobilePresenterView
@@ -60,6 +73,21 @@ export function ViewerPresentationLayer(props: ViewerPresentationLayerProps) {
 						onOpenAudienceWindow={presentation.openAudienceWindow}
 						onCloseAudienceWindow={presentation.closeAudienceWindow}
 						isAudienceWindowOpen={presentation.isAudienceWindowOpen()}
+						snapshot={presentation.presenterSnapshot}
+						onNavigateToSlide={presentation.navigateToSlide}
+						onToggleTimer={presentation.togglePresenterTimer}
+						onResetTimer={presentation.resetPresenterTimer}
+						onStepZoom={presentation.stepPresenterZoom}
+						onResetZoom={presentation.resetPresenterZoom}
+						onSetBlackout={presentation.setPresenterBlackout}
+						onUpdateSnapshot={presentation.updatePresenterSnapshot}
+						onToggleSubtitles={() =>
+							presentation.setPresenterSubtitlesVisible(
+								!presentation.presenterSnapshot.subtitlesVisible,
+							)
+						}
+						onSwapDisplays={() => void presentation.swapPresenterDisplays()}
+						onUpdateNotes={onUpdateNotes}
 					/>
 				))}
 

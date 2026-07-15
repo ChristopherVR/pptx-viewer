@@ -1,4 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
 /**
  * PresenterView: Split-screen presenter layout with current slide,
  * next slide preview, speaker notes, timer, and navigation controls.
@@ -27,6 +28,8 @@ import {
 } from 'react-icons/lu';
 
 import type { CanvasSize } from '../types';
+import { PresentationAudienceEffects } from './PresentationAudienceEffects';
+import { PresentationSubtitleBar } from './PresentationSubtitleBar';
 import {
 	formatTime,
 	formatElapsed,
@@ -37,7 +40,10 @@ import {
 	NOTES_FONT_SIZE_DEFAULT,
 	clampNotesFontSize,
 } from './presenter-view-utils';
+import { PresenterConsoleToolbar } from './PresenterConsoleToolbar';
+import { PresenterSlideNavigator } from './PresenterSlideNavigator';
 import { ScaledSlidePreview } from './ScaledSlidePreview';
+import { usePresenterInk } from './usePresenterInk';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -57,6 +63,17 @@ export interface PresenterViewProps {
 	onCloseAudienceWindow?: () => void;
 	/** Whether the audience window is currently open. */
 	isAudienceWindowOpen?: boolean;
+	snapshot: PresentationSnapshot;
+	onNavigateToSlide: (index: number) => void;
+	onToggleTimer: () => void;
+	onResetTimer: () => void;
+	onStepZoom: (direction: 1 | -1) => void;
+	onResetZoom: () => void;
+	onSetBlackout: (value: PresentationSnapshot['blackout']) => void;
+	onUpdateSnapshot: (patch: Partial<PresentationSnapshot>) => void;
+	onToggleSubtitles: () => void;
+	onSwapDisplays: () => void;
+	onUpdateNotes?: (notes: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -74,6 +91,17 @@ export function PresenterView({
 	onOpenAudienceWindow,
 	onCloseAudienceWindow,
 	isAudienceWindowOpen,
+	snapshot,
+	onNavigateToSlide,
+	onToggleTimer,
+	onResetTimer,
+	onStepZoom,
+	onResetZoom,
+	onSetBlackout,
+	onUpdateSnapshot,
+	onToggleSubtitles,
+	onSwapDisplays,
+	onUpdateNotes,
 }: PresenterViewProps): React.ReactElement {
 	const { t } = useTranslation();
 
@@ -94,10 +122,16 @@ export function PresenterView({
 		return () => window.clearInterval(interval);
 	}, []);
 
-	const elapsed = presentationStartTime ? now - presentationStartTime : 0;
+	const elapsed = snapshot.elapsedMs ?? (presentationStartTime ? now - presentationStartTime : 0);
 
 	// -- Notes font size -----------------------------------------------------
 	const [notesFontSize, setNotesFontSize] = useState(NOTES_FONT_SIZE_DEFAULT);
+	const [showSlides, setShowSlides] = useState(false);
+	const ink = usePresenterInk(snapshot, onUpdateSnapshot);
+	const handleCaptionChange = useCallback(
+		(caption: string) => onUpdateSnapshot({ caption }),
+		[onUpdateSnapshot],
+	);
 
 	const increaseNotesFontSize = useCallback(() => {
 		setNotesFontSize((prev) => clampNotesFontSize(prev + NOTES_FONT_SIZE_STEP));
@@ -114,6 +148,8 @@ export function PresenterView({
 	const notesText = currentSlide?.notes ?? '';
 	const notesSegments = currentSlide?.notesSegments;
 	const hasRichNotes = notesSegments && notesSegments.length > 0;
+	const [notesDraft, setNotesDraft] = useState(notesText);
+	useEffect(() => setNotesDraft(notesText), [currentSlideIndex, notesText]);
 
 	if (!currentSlide) {
 		return (
@@ -129,15 +165,47 @@ export function PresenterView({
 	const timerSegment = Math.floor(elapsed / TIMER_SEGMENT_MS);
 
 	return (
-		<div className='absolute inset-0 z-50 flex flex-col bg-card text-foreground'>
+		<div className='absolute inset-0 z-50 flex flex-col bg-slate-950 text-slate-100'>
+			<PresenterConsoleToolbar
+				snapshot={snapshot}
+				audienceOpen={Boolean(isAudienceWindowOpen)}
+				onToggleAudience={() =>
+					isAudienceWindowOpen ? onCloseAudienceWindow?.() : onOpenAudienceWindow?.()
+				}
+				onSwapDisplays={onSwapDisplays}
+				onToggleTimer={onToggleTimer}
+				onResetTimer={onResetTimer}
+				onShowSlides={() => setShowSlides(true)}
+				onStepZoom={onStepZoom}
+				onResetZoom={onResetZoom}
+				onBlackout={onSetBlackout}
+				onPointerTool={(tool: PresentationPointerTool) =>
+					onUpdateSnapshot({
+						pointer: { ...(snapshot.pointer ?? { x: 0.5, y: 0.5, color: '#ef4444' }), tool },
+					})
+				}
+				onToggleSubtitles={onToggleSubtitles}
+				onExit={onExit}
+			/>
 			<div className='flex flex-1 min-h-0'>
 				{/* Left panel -- current slide (70%) */}
-				<div className='flex-[7] flex flex-col items-center justify-center bg-black p-6 min-w-0'>
-					<ScaledSlidePreview
-						slide={currentSlide}
-						templateElements={templateElements}
-						canvasSize={canvasSize}
-					/>
+				<div className='flex-[7] flex flex-col items-center justify-center bg-black p-6 min-w-0 overflow-hidden'>
+					<div
+						className='relative transition-transform duration-200'
+						style={{
+							transform: `scale(${snapshot.zoom?.scale ?? 1})`,
+							transformOrigin: `${(snapshot.zoom?.originX ?? 0.5) * 100}% ${(snapshot.zoom?.originY ?? 0.5) * 100}%`,
+							touchAction: 'none',
+						}}
+						{...ink}
+					>
+						<ScaledSlidePreview
+							slide={currentSlide}
+							templateElements={templateElements}
+							canvasSize={canvasSize}
+						/>
+						<PresentationAudienceEffects snapshot={snapshot} />
+					</div>
 					{/* Slide number badge */}
 					<div className='mt-3 text-xs font-mono tabular-nums text-white/50 select-none'>
 						{t('pptx.presenter.slideLabel', {
@@ -288,21 +356,51 @@ export function PresenterView({
 								</button>
 							</div>
 						</div>
-						<div
-							className='flex-1 overflow-y-auto rounded border border-border/30 bg-muted/40 px-3 py-2 text-foreground whitespace-pre-wrap leading-relaxed'
-							style={{ fontSize: `${notesFontSize}px` }}
-						>
-							{hasRichNotes ? (
-								renderNotesSegments(notesSegments)
-							) : notesText.trim().length > 0 ? (
-								notesText
-							) : (
-								<span className='italic text-muted-foreground'>{t('pptx.presenter.noNotes')}</span>
-							)}
-						</div>
+						{onUpdateNotes ? (
+							<textarea
+								className='flex-1 resize-none overflow-y-auto rounded border border-border/30 bg-muted/40 px-3 py-2 text-foreground leading-relaxed'
+								style={{ fontSize: `${notesFontSize}px` }}
+								value={notesDraft}
+								onChange={(event) => setNotesDraft(event.target.value)}
+								onBlur={() => onUpdateNotes(notesDraft)}
+								aria-label={t('pptx.presenter.speakerNotes')}
+							/>
+						) : (
+							<div
+								className='flex-1 overflow-y-auto rounded border border-border/30 bg-muted/40 px-3 py-2 text-foreground whitespace-pre-wrap leading-relaxed'
+								style={{ fontSize: `${notesFontSize}px` }}
+							>
+								{hasRichNotes ? (
+									renderNotesSegments(notesSegments)
+								) : notesText.trim().length > 0 ? (
+									notesText
+								) : (
+									<span className='italic text-muted-foreground'>
+										{t('pptx.presenter.noNotes')}
+									</span>
+								)}
+							</div>
+						)}
 					</div>
 				</div>
 			</div>
+			<PresentationSubtitleBar
+				visible={Boolean(snapshot.subtitlesVisible)}
+				onCaptionChange={handleCaptionChange}
+			/>
+			{showSlides && (
+				<PresenterSlideNavigator
+					slides={slides}
+					current={currentSlideIndex}
+					canvasSize={canvasSize}
+					templateElements={templateElements}
+					onSelect={(index) => {
+						onNavigateToSlide(index);
+						setShowSlides(false);
+					}}
+					onClose={() => setShowSlides(false)}
+				/>
+			)}
 
 			{/* Timer progress bar */}
 			<div

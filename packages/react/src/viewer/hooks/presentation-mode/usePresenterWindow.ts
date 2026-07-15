@@ -24,7 +24,9 @@ import {
 	PRESENTATION_MESSAGE_ORIGIN,
 	PRESENTATION_NONCE_KEY,
 	resolveAudienceScreenPlacement,
+	swapPresentationWindows,
 } from 'pptx-viewer-shared';
+import type { PresentationSnapshot } from 'pptx-viewer-shared';
 import { useRef, useCallback, useEffect } from 'react';
 
 import { storeAudienceContent, clearAudienceContent } from './audience-content-store';
@@ -121,6 +123,7 @@ export interface UsePresenterWindowInput {
 	isPresenterMode: boolean;
 	/** Raw PPTX bytes to share with the audience tab via IndexedDB. */
 	content?: ArrayBuffer | Uint8Array | null;
+	snapshot: PresentationSnapshot;
 }
 
 export interface UsePresenterWindowResult {
@@ -128,6 +131,8 @@ export interface UsePresenterWindowResult {
 	closeAudienceWindow: () => void;
 	isAudienceWindowOpen: () => boolean;
 	syncSlideToAudience: (slideIndex: number) => void;
+	syncStateToAudience: (snapshot: PresentationSnapshot) => void;
+	swapDisplays: () => Promise<boolean>;
 }
 
 // ---------------------------------------------------------------------------
@@ -135,12 +140,14 @@ export interface UsePresenterWindowResult {
 // ---------------------------------------------------------------------------
 
 export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenterWindowResult {
-	const { currentSlideIndex, isPresenterMode, content } = input;
+	const { isPresenterMode, content, snapshot } = input;
 	const audienceWindowRef = useRef<Window | null>(null);
 	const channelRef = useRef<BroadcastChannel | null>(null);
 	const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 	/** Per-session UUID. Regenerated each time openAudienceWindow is invoked. */
 	const sessionIdRef = useRef<string>('');
+	const snapshotRef = useRef(snapshot);
+	snapshotRef.current = snapshot;
 
 	// -- Helpers ---------------------------------------------------------------
 
@@ -153,6 +160,10 @@ export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenter
 
 	const isAudienceWindowOpen = useCallback((): boolean => {
 		return audienceWindowRef.current !== null && !audienceWindowRef.current.closed;
+	}, []);
+	const swapDisplays = useCallback(async (): Promise<boolean> => {
+		const audience = audienceWindowRef.current;
+		return audience && !audience.closed ? swapPresentationWindows(window, audience) : false;
 	}, []);
 
 	const syncSlideToAudience = useCallback(
@@ -170,6 +181,25 @@ export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenter
 				getChannel().postMessage(msg);
 			} catch {
 				// BroadcastChannel may be closed
+			}
+		},
+		[getChannel],
+	);
+
+	const syncStateToAudience = useCallback(
+		(nextSnapshot: PresentationSnapshot) => {
+			if (!sessionIdRef.current) {
+				return;
+			}
+			try {
+				getChannel().postMessage({
+					origin: PRESENTER_MSG_ORIGIN,
+					type: 'presenter-state',
+					sessionId: sessionIdRef.current,
+					snapshot: nextSnapshot,
+				});
+			} catch {
+				// BroadcastChannel may be closed.
 			}
 		},
 		[getChannel],
@@ -315,20 +345,20 @@ export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenter
 				message.type === 'audience-ready' &&
 				message.sessionId === sessionIdRef.current
 			) {
-				syncSlideToAudience(currentSlideIndex);
+				syncStateToAudience(snapshotRef.current);
 			}
 		};
 		channel.addEventListener('message', handleMessage);
 		return () => channel.removeEventListener('message', handleMessage);
-	}, [currentSlideIndex, getChannel, syncSlideToAudience]);
+	}, [getChannel, syncStateToAudience]);
 
 	// -- Sync slide changes to audience tab ------------------------------------
 
 	useEffect(() => {
 		if (isPresenterMode && isAudienceWindowOpen()) {
-			syncSlideToAudience(currentSlideIndex);
+			syncStateToAudience(snapshot);
 		}
-	}, [currentSlideIndex, isPresenterMode, isAudienceWindowOpen, syncSlideToAudience]);
+	}, [snapshot, isPresenterMode, isAudienceWindowOpen, syncStateToAudience]);
 
 	// -- Cleanup on unmount or when leaving presenter mode ----------------------
 
@@ -365,5 +395,7 @@ export function usePresenterWindow(input: UsePresenterWindowInput): UsePresenter
 		closeAudienceWindow,
 		isAudienceWindowOpen,
 		syncSlideToAudience,
+		syncStateToAudience,
+		swapDisplays,
 	};
 }

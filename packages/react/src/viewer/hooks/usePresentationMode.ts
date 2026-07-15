@@ -8,6 +8,7 @@ import type {
 import { useAnimationPlayback } from './presentation-mode/useAnimationPlayback';
 import { useAudienceMode } from './presentation-mode/useAudienceMode';
 import { usePresentationKeyboard } from './presentation-mode/usePresentationKeyboard';
+import { usePresenterConsole } from './presentation-mode/usePresenterConsole';
 import { usePresenterWindow } from './presentation-mode/usePresenterWindow';
 import { useRehearsalTimings } from './presentation-mode/useRehearsalTimings';
 import { useSlideNavigation } from './presentation-mode/useSlideNavigation';
@@ -125,13 +126,21 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 
 	const { handleZoomClick, zoomReturnSlideIndex, returnToZoomSlide, clearZoomReturn } =
 		useZoomNavigation({ navigateToSlide });
+	const presenterConsole = usePresenterConsole(presentationSlideIndex);
 
-	const { openAudienceWindow, closeAudienceWindow, isAudienceWindowOpen, syncSlideToAudience } =
-		usePresenterWindow({
-			currentSlideIndex: presentationSlideIndex,
-			isPresenterMode: presenterMode,
-			content,
-		});
+	const {
+		openAudienceWindow,
+		closeAudienceWindow,
+		isAudienceWindowOpen,
+		syncSlideToAudience,
+		syncStateToAudience,
+		swapDisplays,
+	} = usePresenterWindow({
+		currentSlideIndex: presentationSlideIndex,
+		isPresenterMode: presenterMode,
+		content,
+		snapshot: presenterConsole.snapshot,
+	});
 
 	// Audience tab auto-enters present mode and syncs slides via BroadcastChannel
 	useAudienceMode({
@@ -142,6 +151,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 			setPresentationSlideIndex(index);
 		},
 		containerRef,
+		onSnapshot: presenterConsole.applyAudienceSnapshot,
 	});
 
 	// -----------------------------------------------------------------------
@@ -225,6 +235,14 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		onToggleEraser,
 		onToggleToolbar,
 		onTogglePresenterView: togglePresenterView,
+		onToggleBlackScreen: () =>
+			presenterConsole.setBlackout(
+				presenterConsole.snapshot.blackout === 'black' ? 'none' : 'black',
+			),
+		onToggleWhiteScreen: () =>
+			presenterConsole.setBlackout(
+				presenterConsole.snapshot.blackout === 'white' ? 'none' : 'white',
+			),
 		rehearsing,
 		recordCurrentSlideTime,
 		presentationSlideIndex,
@@ -389,5 +407,16 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		closeAudienceWindow,
 		isAudienceWindowOpen,
 		syncSlideToAudience,
+		syncStateToAudience,
+		swapPresenterDisplays: swapDisplays,
+		presenterSnapshot: presenterConsole.snapshot,
+		setPresenterBlackout: presenterConsole.setBlackout,
+		togglePresenterTimer: presenterConsole.toggleTimer,
+		resetPresenterTimer: presenterConsole.resetTimer,
+		stepPresenterZoom: presenterConsole.stepZoom,
+		resetPresenterZoom: presenterConsole.resetZoom,
+		setPresenterCaption: presenterConsole.setCaption,
+		setPresenterSubtitlesVisible: presenterConsole.setSubtitlesVisible,
+		updatePresenterSnapshot: presenterConsole.updateSnapshot,
 	};
 }

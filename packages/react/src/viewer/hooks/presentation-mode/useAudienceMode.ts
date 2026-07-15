@@ -4,6 +4,7 @@
  * fullscreen presentation mode, syncing slides via BroadcastChannel.
  */
 import { isPresentationSessionMessage, PRESENTATION_MESSAGE_ORIGIN } from 'pptx-viewer-shared';
+import type { PresentationSnapshot } from 'pptx-viewer-shared';
 import { useEffect, useRef } from 'react';
 
 import type { ViewerMode } from '../../types-core';
@@ -20,6 +21,7 @@ export interface UseAudienceModeInput {
 	onSetMode: (mode: ViewerMode) => void;
 	onSetActiveSlideIndex: (index: number) => void;
 	containerRef: React.RefObject<HTMLElement | null>;
+	onSnapshot?: (snapshot: PresentationSnapshot) => void;
 }
 
 /**
@@ -29,7 +31,7 @@ export interface UseAudienceModeInput {
  * 3. Exits presentation mode when the presenter sends an exit signal
  */
 export function useAudienceMode(input: UseAudienceModeInput): void {
-	const { mode: _mode, onSetMode, onSetActiveSlideIndex, containerRef } = input;
+	const { mode: _mode, onSetMode, onSetActiveSlideIndex, containerRef, onSnapshot } = input;
 	const initialised = useRef(false);
 
 	// Auto-enter presentation mode when this is an audience tab
@@ -95,6 +97,7 @@ export function useAudienceMode(input: UseAudienceModeInput): void {
 			}
 			if (data.type === 'presenter-state') {
 				onSetActiveSlideIndex(data.snapshot.slideIndex);
+				onSnapshot?.(data.snapshot);
 			}
 
 			if (data.type === 'presenter-exit') {
@@ -125,5 +128,5 @@ export function useAudienceMode(input: UseAudienceModeInput): void {
 				// Ignore
 			}
 		};
-	}, [onSetMode, onSetActiveSlideIndex]);
+	}, [onSetMode, onSetActiveSlideIndex, onSnapshot]);
 }

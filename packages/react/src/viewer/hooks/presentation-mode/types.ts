@@ -1,4 +1,5 @@
 import type { PptxAction, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import type { PresentationSnapshot } from 'pptx-viewer-shared';
 
 import type { ViewerMode, PresentationAnimationRuntime } from '../../types';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
@@ -133,4 +134,15 @@ export interface UsePresentationModeResult {
 	isAudienceWindowOpen: () => boolean;
 	/** Send a slide index to the audience window explicitly. */
 	syncSlideToAudience: (slideIndex: number) => void;
+	syncStateToAudience: (snapshot: PresentationSnapshot) => void;
+	presenterSnapshot: PresentationSnapshot;
+	setPresenterBlackout: (blackout: PresentationSnapshot['blackout']) => void;
+	togglePresenterTimer: () => void;
+	resetPresenterTimer: () => void;
+	stepPresenterZoom: (direction: 1 | -1) => void;
+	resetPresenterZoom: () => void;
+	setPresenterCaption: (caption: string) => void;
+	setPresenterSubtitlesVisible: (visible: boolean) => void;
+	updatePresenterSnapshot: (patch: Partial<PresentationSnapshot>) => void;
+	swapPresenterDisplays: () => Promise<boolean>;
 }

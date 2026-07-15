@@ -1,4 +1,10 @@
+import type {
+	PresentationSessionMessage,
+	PresentationSnapshot,
+} from './presentation-session-types';
 import { secureRandomUuid } from './secure-random';
+
+export type * from './presentation-session-types';
 
 export const PRESENTATION_CHANNEL_NAME = 'pptx-viewer-presenter';
 export const PRESENTATION_HASH = '#pptx-audience';
@@ -9,47 +15,6 @@ const DB_NAME = 'pptx-viewer-presentation';
 const DB_VERSION = 1;
 const STORE_NAME = 'decks';
 const MAX_DECK_AGE_MS = 5 * 60 * 1000;
-
-export interface PresentationSnapshot {
-	slideIndex: number;
-	buildStep: number;
-	sequence: number;
-	blackout: 'none' | 'black' | 'white';
-	paused: boolean;
-	elapsedMs: number;
-}
-
-export interface PresentationAudienceReadyMessage {
-	origin: typeof PRESENTATION_MESSAGE_ORIGIN;
-	type: 'audience-ready';
-	sessionId: string;
-}
-
-export interface PresentationStateMessage {
-	origin: typeof PRESENTATION_MESSAGE_ORIGIN;
-	type: 'presenter-state';
-	sessionId: string;
-	snapshot: PresentationSnapshot;
-}
-
-export interface PresentationSlideChangeMessage {
-	origin: typeof PRESENTATION_MESSAGE_ORIGIN;
-	type: 'presenter-slide-change';
-	sessionId: string;
-	slideIndex: number;
-}
-
-export interface PresentationExitMessage {
-	origin: typeof PRESENTATION_MESSAGE_ORIGIN;
-	type: 'presenter-exit';
-	sessionId: string;
-}
-
-export type PresentationSessionMessage =
-	| PresentationAudienceReadyMessage
-	| PresentationStateMessage
-	| PresentationSlideChangeMessage
-	| PresentationExitMessage;
 
 export interface AudienceScreenPlacement {
 	left: number;
@@ -92,6 +57,11 @@ export function createInitialPresentationSnapshot(slideIndex = 0): PresentationS
 		blackout: 'none',
 		paused: false,
 		elapsedMs: 0,
+		zoom: { scale: 1, originX: 0.5, originY: 0.5 },
+		pointer: { tool: 'none', x: 0.5, y: 0.5, color: '#ef4444' },
+		inkStrokes: [],
+		caption: '',
+		subtitlesVisible: false,
 	};
 }
 
@@ -140,6 +110,9 @@ export function isPresentationSessionMessage(value: unknown): value is Presentat
 		return false;
 	}
 	const snapshot = message.snapshot as Record<string, unknown>;
+	const zoom = snapshot.zoom as Record<string, unknown> | undefined;
+	const pointer = snapshot.pointer as Record<string, unknown> | undefined;
+	const inkStrokes = snapshot.inkStrokes;
 	return (
 		typeof snapshot.slideIndex === 'number' &&
 		typeof snapshot.buildStep === 'number' &&
@@ -148,7 +121,19 @@ export function isPresentationSessionMessage(value: unknown): value is Presentat
 			snapshot.blackout === 'black' ||
 			snapshot.blackout === 'white') &&
 		typeof snapshot.paused === 'boolean' &&
-		typeof snapshot.elapsedMs === 'number'
+		typeof snapshot.elapsedMs === 'number' &&
+		(!zoom ||
+			(typeof zoom.scale === 'number' &&
+				typeof zoom.originX === 'number' &&
+				typeof zoom.originY === 'number')) &&
+		(!pointer ||
+			(typeof pointer.tool === 'string' &&
+				typeof pointer.x === 'number' &&
+				typeof pointer.y === 'number' &&
+				typeof pointer.color === 'string')) &&
+		(inkStrokes === undefined || Array.isArray(inkStrokes)) &&
+		(snapshot.caption === undefined || typeof snapshot.caption === 'string') &&
+		(snapshot.subtitlesVisible === undefined || typeof snapshot.subtitlesVisible === 'boolean')
 	);
 }
 
@@ -186,6 +171,44 @@ export function placeAudienceWindow(target: Window, placement: AudienceScreenPla
 		target.focus();
 	} catch {
 		// Window placement is a progressive enhancement.
+	}
+}
+
+export async function swapPresentationWindows(
+	presenter: Window,
+	audience: Window,
+): Promise<boolean> {
+	const managedWindow = presenter as WindowWithScreenDetails;
+	if (typeof managedWindow.getScreenDetails !== 'function') {
+		return false;
+	}
+	try {
+		const details = await managedWindow.getScreenDetails();
+		const contains = (screen: ScreenDetailedLike, target: Window): boolean =>
+			target.screenX >= screen.availLeft &&
+			target.screenX < screen.availLeft + screen.availWidth &&
+			target.screenY >= screen.availTop &&
+			target.screenY < screen.availTop + screen.availHeight;
+		const presenterScreen = details.screens.find((screen) => contains(screen, presenter));
+		const audienceScreen = details.screens.find((screen) => contains(screen, audience));
+		if (!presenterScreen || !audienceScreen || presenterScreen === audienceScreen) {
+			return false;
+		}
+		placeAudienceWindow(audience, {
+			left: presenterScreen.availLeft,
+			top: presenterScreen.availTop,
+			width: presenterScreen.availWidth,
+			height: presenterScreen.availHeight,
+		});
+		placeAudienceWindow(presenter, {
+			left: audienceScreen.availLeft,
+			top: audienceScreen.availTop,
+			width: audienceScreen.availWidth,
+			height: audienceScreen.availHeight,
+		});
+		return true;
+	} catch {
+		return false;
 	}
 }
 
