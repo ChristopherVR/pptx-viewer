@@ -14,11 +14,8 @@ import type { ElementRenderer } from '../types';
  *   id for section zooms), like Vue without a zoom-target lookup provider.
  * - A small "Slide Zoom" / "Section Zoom" badge is drawn in the corner.
  * - `data-zoom-type` / `data-zoom-target` are exposed for hosts and tests.
- *
- * Not ported (host-state dependent in Vue/React): presentation-mode
- * click-to-navigate (both bindings inject a zoom-navigation context from the
- * presentation controller; the vanilla render context has no navigation
- * surface) and the target-slide background/section-name lookup.
+ * - During presentation, click or keyboard activation navigates to the target.
+ * - Fallback thumbnails use target slide metadata when the deck is available.
  */
 export const renderZoomElement: ElementRenderer = (element, zIndex, context) => {
 	if (element.type !== 'zoom') {
@@ -27,11 +24,34 @@ export const renderZoomElement: ElementRenderer = (element, zIndex, context) => 
 	const doc = context.document;
 	const zoomType = element.zoomType ?? 'slide';
 	const target = element.targetSlideIndex ?? 0;
+	const targetSlide = context.slides?.[target];
+	const interactive = context.presenting && context.onZoomClick !== undefined;
 
 	const el = createEl(doc, 'div', 'pptxv-element pptxv-zoom', getContainerStyle(element, zIndex));
 	el.dataset.elementId = element.id;
 	el.dataset.zoomType = zoomType;
 	el.dataset.zoomTarget = String(target);
+	if (interactive) {
+		el.classList.add('pptxv-zoom-interactive');
+		el.setAttribute('role', 'button');
+		el.tabIndex = 0;
+		el.style.cursor = 'pointer';
+		const activate = (): void => {
+			context.onZoomClick?.(target, context.currentSlideIndex ?? 0);
+		};
+		el.addEventListener('click', (event) => {
+			event.stopPropagation();
+			activate();
+		});
+		el.addEventListener('keydown', (event) => {
+			if (event.key !== 'Enter' && event.key !== ' ') {
+				return;
+			}
+			event.preventDefault();
+			event.stopPropagation();
+			activate();
+		});
+	}
 	el.setAttribute(
 		'aria-label',
 		zoomType === 'section' && element.targetSectionId
@@ -65,7 +85,15 @@ export const renderZoomElement: ElementRenderer = (element, zIndex, context) => 
 		img.draggable = false;
 		tile.appendChild(img);
 	} else {
-		tile.appendChild(buildThumbnail(doc, target, element.targetSectionId, context.t));
+		tile.appendChild(
+			buildThumbnail(
+				doc,
+				targetSlide?.slideNumber ?? target + 1,
+				targetSlide?.sectionName ?? targetSlide?.sectionId ?? element.targetSectionId,
+				targetSlide?.backgroundColor,
+				context.t,
+			),
+		);
 	}
 
 	const badge = createEl(doc, 'div', 'pptxv-zoom-badge', {
@@ -91,8 +119,9 @@ export const renderZoomElement: ElementRenderer = (element, zIndex, context) => 
 /** Fallback tile: target slide number + optional section id, like Vue. */
 function buildThumbnail(
 	doc: Document,
-	targetSlideIndex: number,
-	targetSectionId: string | undefined,
+	slideNumber: number,
+	sectionText: string | undefined,
+	backgroundColor: string | undefined,
 	t: Translator,
 ): HTMLElement {
 	const box = createEl(doc, 'div', 'pptxv-zoom-thumbnail', {
@@ -102,7 +131,7 @@ function buildThumbnail(
 		flexDirection: 'column',
 		alignItems: 'center',
 		justifyContent: 'center',
-		backgroundColor: '#f0f0f0',
+		backgroundColor: backgroundColor ?? '#f0f0f0',
 		border: '1px solid rgba(0, 0, 0, 0.1)',
 		boxSizing: 'border-box',
 	});
@@ -113,15 +142,15 @@ function buildThumbnail(
 		color: 'rgba(0, 0, 0, 0.5)',
 		marginBottom: '4px',
 	});
-	slideLabel.textContent = t('pptx.notes.slideN', { n: targetSlideIndex + 1 });
+	slideLabel.textContent = t('pptx.notes.slideN', { n: slideNumber });
 	box.appendChild(slideLabel);
 
-	if (targetSectionId) {
+	if (sectionText) {
 		const sectionLabel = createEl(doc, 'div', 'pptxv-zoom-section-label', {
 			fontSize: '10px',
 			color: 'rgba(0, 0, 0, 0.4)',
 		});
-		sectionLabel.textContent = targetSectionId;
+		sectionLabel.textContent = sectionText;
 		box.appendChild(sectionLabel);
 	}
 	return box;

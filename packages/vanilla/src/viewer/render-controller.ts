@@ -25,6 +25,8 @@ export interface RenderControllerDeps {
 	/** History-integrated handout master layout mutation. */
 	onHandoutSlidesPerPageChange(count: number): void;
 	onMasterBackgroundColorChange(color: string): void;
+	/** Navigate from a presentation Zoom tile. */
+	onZoomClick(targetSlideIndex: number, returnSlideIndex: number): void;
 	/**
 	 * Invoked after every stage render (the stage host is rebuilt with
 	 * `replaceChildren`); the editor re-mounts its overlay layer here.
@@ -82,6 +84,9 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			scale,
 			smartArt3D: deps.smartArt3D,
 			presenting,
+			slides: state.slides,
+			currentSlideIndex: state.currentSlide,
+			onZoomClick: deps.onZoomClick,
 			interactive,
 			templateEditing: state.editTemplateMode || state.masterViewTarget !== null,
 		});

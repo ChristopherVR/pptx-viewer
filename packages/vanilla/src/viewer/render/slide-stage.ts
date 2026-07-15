@@ -34,6 +34,10 @@ export interface SlideStageOptions {
 	smartArt3D?: boolean;
 	/** True only for the live presentation stage; see `ElementRenderContext.presenting`. */
 	presenting?: boolean;
+	/** Full deck and active index used by presentation Zoom elements. */
+	slides?: readonly PptxSlide[];
+	currentSlideIndex?: number;
+	onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
 	/**
 	 * True only for the main (interactive) canvas, never the thumbnail rail.
 	 * Marks every rendered element (recursively, including group children) with
@@ -78,6 +82,9 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 	const context: ElementRenderContext = {
 		document: doc,
 		slide,
+		slides: options.slides,
+		currentSlideIndex: options.currentSlideIndex,
+		onZoomClick: options.onZoomClick,
 		canvasSize,
 		scale,
 		mediaDataUrls,

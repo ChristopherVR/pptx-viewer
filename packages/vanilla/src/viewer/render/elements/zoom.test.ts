@@ -9,7 +9,7 @@ import { renderZoomElement } from './zoom';
 const PNG_DATA_URL =
 	'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
-function makeContext(): ElementRenderContext {
+function makeContext(overrides: Partial<ElementRenderContext> = {}): ElementRenderContext {
 	const registry = createElementRendererRegistry();
 	const context: ElementRenderContext = {
 		document,
@@ -22,6 +22,7 @@ function makeContext(): ElementRenderContext {
 		presenting: false,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),
+		...overrides,
 	};
 	return context;
 }
@@ -85,5 +86,51 @@ describe('renderZoomElement', () => {
 		expect(node.getAttribute('aria-label')).toBe('Zoom to slide 6 (section: {ABC-123})');
 		expect(node.querySelector('.pptxv-zoom-section-label')?.textContent).toBe('{ABC-123}');
 		expect(node.querySelector('.pptxv-zoom-badge')?.textContent).toBe('Section Zoom');
+	});
+
+	it('navigates on click and keyboard activation while presenting', () => {
+		const calls: Array<[number, number]> = [];
+		const node = renderZoomElement(
+			zoomElement(),
+			0,
+			makeContext({
+				presenting: true,
+				currentSlideIndex: 2,
+				onZoomClick: (target, returnIndex) => calls.push([target, returnIndex]),
+			}),
+		) as HTMLElement;
+
+		expect(node.getAttribute('role')).toBe('button');
+		expect(node.tabIndex).toBe(0);
+		node.click();
+		node.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		node.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+		expect(calls).toStrictEqual([
+			[5, 2],
+			[5, 2],
+			[5, 2],
+		]);
+	});
+
+	it('uses target slide metadata in fallback thumbnails', () => {
+		const targetSlide = {
+			id: 's6',
+			rId: 'rId6',
+			slideNumber: 12,
+			sectionName: 'Forecast',
+			backgroundColor: '#123456',
+			elements: [],
+		};
+		const slides = Array.from({ length: 6 }, (_, index) =>
+			index === 5
+				? targetSlide
+				: { id: `s${index + 1}`, rId: `rId${index + 1}`, slideNumber: index + 1, elements: [] },
+		);
+		const node = renderZoomElement(zoomElement(), 0, makeContext({ slides })) as HTMLElement;
+		const tile = node.querySelector<HTMLElement>('.pptxv-zoom-thumbnail');
+
+		expect(tile?.style.backgroundColor).toBe('#123456');
+		expect(tile?.querySelector('.pptxv-zoom-slide-label')?.textContent).toBe('Slide 12');
+		expect(tile?.querySelector('.pptxv-zoom-section-label')?.textContent).toBe('Forecast');
 	});
 });

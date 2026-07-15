@@ -23,6 +23,12 @@ export interface ElementRenderContext {
 	readonly document: Document;
 	/** The slide being rendered. */
 	readonly slide: PptxSlide;
+	/** Full deck, used by Zoom elements to resolve their target preview. */
+	readonly slides?: readonly PptxSlide[];
+	/** Zero-based active slide index for Zoom return navigation. */
+	readonly currentSlideIndex?: number;
+	/** Presentation-only Zoom tile activation callback. */
+	readonly onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
 	/** Full slide canvas size in CSS px (elements are positioned in this space). */
 	readonly canvasSize: CanvasSize;
 	/**
