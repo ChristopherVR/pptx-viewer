@@ -4,6 +4,23 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-15
+
+_Releases: pptx-react-viewer@1.17.1, pptx-vue-viewer@1.17.1, pptx-angular-viewer@1.17.1, pptx-vanilla-viewer@0.7.0, pptx-svelte-viewer@0.7.0_
+
+### Features
+
+- **viewer:** Complete shared e2e parity (by @ChristopherVR) ([170bc74](https://github.com/ChristopherVR/pptx-viewer/commit/170bc74f21dc1c4c5a1d7c5583cf5c8656a312d3))
+
+### Bug Fixes
+
+- **viewer:** Align inspector and status chrome (by @ChristopherVR) ([0a4b38a](https://github.com/ChristopherVR/pptx-viewer/commit/0a4b38a851f42ec7dbc18b097904bfaa4e95a67c))
+- **viewer:** Align responsive mobile chrome (by @ChristopherVR) ([547f98c](https://github.com/ChristopherVR/pptx-viewer/commit/547f98cb37705aff9c36a6098f7cb6986101992f))
+
+### Testing
+
+- **viewer:** Enforce framework-neutral e2e parity (by @ChristopherVR) ([7389c7e](https://github.com/ChristopherVR/pptx-viewer/commit/7389c7e7586e7ce926400a096945b7e51448f709))
+
 ## 2026-07-13
 
 _Releases: pptx-viewer-core@1.4.0, pptx-react-viewer@1.17.0, pptx-vue-viewer@1.17.0, pptx-angular-viewer@1.17.0, pptx-vanilla-viewer@0.6.0, pptx-svelte-viewer@0.6.0, pptx-viewer-mcp@1.2.2, @christophervr/pptx-viewer@1.5.2_
