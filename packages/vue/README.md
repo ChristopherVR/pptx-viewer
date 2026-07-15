@@ -8,7 +8,7 @@ Vue 3 app: no server, no conversion step, no PowerPoint install required. Drop
 in a `<PowerPointViewer>` component, hand it the file's bytes, and it renders
 slides as real HTML and CSS with full editing and export support.
 
-![PowerPoint editor UI rendered in the browser](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
+![Navigating between slides in the Vue 3 demo](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/packages/vue-demo.gif)
 
 The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core) engine, which turns a `.pptx` file into a structured slide model. This package is the Vue layer that draws that model on screen, and the engine is **bundled in**, so you install just one package.
 
@@ -233,7 +233,7 @@ const i18n = createI18n({
 });
 ```
 
-Switch languages with `i18n.global.locale.value = 'fr'`. `pptx-vue-viewer/i18n` also exports a `TranslationKey` type for type-checking a new locale dictionary (`Record<TranslationKey, string>`) at compile time. See the [Localization guide](https://christophervr.github.io/pptx-viewer/guide/localization) for the full picture across all three bindings and how to contribute a translation upstream; the live demo's language picker is a working reference.
+Switch languages with `i18n.global.locale.value = 'fr'`. `pptx-vue-viewer/i18n` also exports a `TranslationKey` type for type-checking a new locale dictionary (`Record<TranslationKey, string>`) at compile time. See the [Localization guide](https://christophervr.github.io/pptx-viewer/guide/localization) for the full picture across all five viewer bindings and how to contribute a translation upstream; the live demo's language picker is a working reference.
 
 ## Limitations
 

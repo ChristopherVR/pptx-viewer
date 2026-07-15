@@ -8,7 +8,7 @@ Svelte 5 app: no server, no conversion step, no PowerPoint install required.
 Drop in a `<PowerPointViewer>` component (built with runes), hand it the
 file's bytes, and it renders slides as real HTML and CSS.
 
-![PowerPoint editor UI rendered in the browser](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
+![A PowerPoint deck rendered by the Svelte 5 viewer demo](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/packages/svelte-demo.gif)
 
 The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core) engine, which turns a `.pptx` file into a structured slide model. This package is the Svelte layer that draws that model on screen, and the engine is **bundled in**, so you install just one package.
 

@@ -4,12 +4,12 @@
 [![license](https://img.shields.io/npm/l/pptx-vanilla-viewer.svg)](https://github.com/ChristopherVR/pptx-viewer/blob/main/LICENSE)
 
 Show, edit, and present Microsoft PowerPoint (`.pptx`) files directly in the
-browser with **zero framework**: no React, Vue, or Angular required, no
+browser with **zero framework**: no React, Vue, Angular, or Svelte required, no
 server, no conversion step, no PowerPoint install. Call one factory function,
 `createPptxViewer(container, options)`, and slides render as real HTML and
 CSS.
 
-![PowerPoint editor UI rendered in the browser](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
+![Editing, undoing, and rendering a deck with the zero-framework Vanilla JavaScript demo](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/packages/vanilla-demo.gif)
 
 The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core) engine, which turns a `.pptx` file into a structured slide model. This package is the plain-DOM layer that draws that model on screen, and the engine is **bundled in**, so you install just one package.
 

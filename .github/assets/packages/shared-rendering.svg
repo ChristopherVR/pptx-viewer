@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
+  <title id="title">One shared rendering layer feeding five UI bindings</title>
+  <desc id="desc">Framework-neutral rendering, themes, export, collaboration, and localization flow into React, Vue, Angular, Svelte, and Vanilla JavaScript viewers.</desc>
+  <rect width="1200" height="430" rx="28" fill="#f8fafc"/>
+  <text x="54" y="58" fill="#64748b" font-family="ui-monospace,monospace" font-size="15" letter-spacing="2">PPTX-VIEWER-SHARED / ONE CANONICAL IMPLEMENTATION</text>
+  <g font-family="system-ui,sans-serif">
+    <rect x="70" y="105" width="430" height="250" rx="22" fill="#111827"/>
+    <text x="105" y="154" fill="#fff" font-size="27" font-weight="700">Pure TypeScript</text>
+    <g font-size="17" fill="#cbd5e1"><text x="105" y="202">geometry + colour + text</text><text x="105" y="237">charts + tables + animation</text><text x="105" y="272">export + collaboration + i18n</text></g>
+    <rect x="105" y="302" width="254" height="30" rx="15" fill="#f04438"/><text x="126" y="323" fill="#fff" font-size="14" font-weight="650">zero framework imports</text>
+    <g font-size="18" font-weight="700">
+      <g transform="translate(665 78)"><rect width="250" height="48" rx="12" fill="#e0f2fe" stroke="#38bdf8"/><text x="20" y="31" fill="#0c4a6e">React 19</text></g>
+      <g transform="translate(825 143)"><rect width="250" height="48" rx="12" fill="#dcfce7" stroke="#22c55e"/><text x="20" y="31" fill="#14532d">Vue 3</text></g>
+      <g transform="translate(875 208)"><rect width="250" height="48" rx="12" fill="#fee2e2" stroke="#ef4444"/><text x="20" y="31" fill="#7f1d1d">Angular</text></g>
+      <g transform="translate(825 273)"><rect width="250" height="48" rx="12" fill="#ffedd5" stroke="#f97316"/><text x="20" y="31" fill="#7c2d12">Svelte 5</text></g>
+      <g transform="translate(665 338)"><rect width="250" height="48" rx="12" fill="#ede9fe" stroke="#8b5cf6"/><text x="20" y="31" fill="#4c1d95">Vanilla JS</text></g>
+    </g>
+  </g>
+  <g fill="none" stroke="#94a3b8" stroke-width="3"><path d="M500 230C580 230 580 102 650 102"/><path d="M500 230C600 230 690 167 810 167"/><path d="M500 230h360"/><path d="M500 230C600 230 690 297 810 297"/><path d="M500 230C580 230 580 362 650 362"/></g>
+</svg>

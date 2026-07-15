@@ -8,9 +8,11 @@
 
 Hand it the bytes of a `.pptx` file and it gives you back a structured, fully typed object that describes every slide: text, shapes, images, charts, tables, and more. Change anything in that object and write it back to a valid `.pptx`. You can also build new presentations from scratch with a simple chainable API, or turn a deck into Markdown.
 
-There is no UI here: this is the engine on its own. Use it directly when you need to process `.pptx` files without a screen, for example on a server, in a script, or in a build step. The same engine powers the [`pptx-react-viewer`](https://www.npmjs.com/package/pptx-react-viewer), [`pptx-vue-viewer`](https://www.npmjs.com/package/pptx-vue-viewer), and [`pptx-angular-viewer`](https://www.npmjs.com/package/pptx-angular-viewer) UI components.
+There is no UI here: this is the engine on its own. Use it directly when you need to process `.pptx` files without a screen, for example on a server, in a script, or in a build step. The same engine powers the [React](https://www.npmjs.com/package/pptx-react-viewer), [Vue](https://www.npmjs.com/package/pptx-vue-viewer), [Angular](https://www.npmjs.com/package/pptx-angular-viewer), [Svelte](https://www.npmjs.com/package/pptx-svelte-viewer), and [Vanilla JavaScript](https://www.npmjs.com/package/pptx-vanilla-viewer) viewers.
 
-<samp>**[📦 npm](https://www.npmjs.com/package/pptx-viewer-core)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[▶️ Live demo](https://christophervr.github.io/pptx-viewer/demo/)** · **[⚛️ React UI](https://www.npmjs.com/package/pptx-react-viewer)** · **[🖖 Vue UI](https://www.npmjs.com/package/pptx-vue-viewer)** · **[🅰️ Angular UI](https://www.npmjs.com/package/pptx-angular-viewer)**</samp>
+![The core engine loading a PPTX into a typed slide model, then saving or converting it](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/packages/core-engine.svg)
+
+<samp>**[📦 npm](https://www.npmjs.com/package/pptx-viewer-core)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[▶️ Live demo](https://christophervr.github.io/pptx-viewer/demo/)** · **[Choose a viewer](https://christophervr.github.io/pptx-viewer/guide/installation)**</samp>
 
 ---
 

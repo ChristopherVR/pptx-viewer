@@ -8,7 +8,7 @@ Angular app: no server, no conversion step, no PowerPoint install required. Drop
 in a `<pptx-viewer>` component, hand it the file's bytes, and it renders slides
 as real HTML and CSS with full editing and export support.
 
-![PowerPoint editor UI rendered in the browser](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
+![Exploring the Insert and View ribbon tabs in the Angular demo](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/packages/angular-demo.gif)
 
 The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core) engine, which turns a `.pptx` file into a structured slide model. This package is the Angular layer that draws that model on screen, and the engine is **bundled in**, so you install just one package.
 
@@ -212,7 +212,7 @@ inject(TranslateService).setTranslation('en', translationsEn);
 inject(TranslateService).use('fr');
 ```
 
-Unlike React/Vue, `translationsEn`, `keyToLabel`, and the `TranslationKey` type (for type-checking a new locale dictionary as `Record<TranslationKey, string>`) are exported from the package **root**, not an `/i18n` subpath. See the [Localization guide](https://christophervr.github.io/pptx-viewer/guide/localization) for the full picture across all three bindings and how to contribute a translation upstream; the live demo's language picker is a working reference.
+Unlike React/Vue, `translationsEn`, `keyToLabel`, and the `TranslationKey` type (for type-checking a new locale dictionary as `Record<TranslationKey, string>`) are exported from the package **root**, not an `/i18n` subpath. See the [Localization guide](https://christophervr.github.io/pptx-viewer/guide/localization) for the full picture across all five viewer bindings and how to contribute a translation upstream; the live demo's language picker is a working reference.
 
 ## Limitations
 

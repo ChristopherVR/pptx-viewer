@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
+  <title id="title">Tree-shakeable French, Spanish, and German viewer dictionaries</title>
+  <desc id="desc">A canonical translation key maps to complete French, Spanish, and German dictionaries that applications can import independently.</desc>
+  <rect width="1200" height="430" rx="28" fill="#fffaf4"/>
+  <g font-family="system-ui,sans-serif">
+    <text x="55" y="58" fill="#8b6f5c" font-family="ui-monospace,monospace" font-size="15" letter-spacing="2">PPTX-VIEWER-LOCALES / IMPORT ONLY WHAT YOU SHIP</text>
+    <g transform="translate(55 118)"><rect width="380" height="200" rx="20" fill="#1f2937"/><text x="30" y="48" fill="#9ca3af" font-family="ui-monospace,monospace" font-size="14">canonical key</text><text x="30" y="92" fill="#fff" font-family="ui-monospace,monospace" font-size="20">pptx.ribbon.home</text><text x="30" y="140" fill="#fbbf24" font-size="17">1,600+ typed UI strings</text><text x="30" y="170" fill="#9ca3af" font-size="14">placeholder coverage tested</text></g>
+    <g font-size="20" font-weight="750">
+      <g transform="translate(600 82)"><rect width="480" height="78" rx="16" fill="#dbeafe"/><text x="28" y="34" fill="#1e3a8a">Français</text><text x="28" y="61" fill="#475569" font-size="15" font-weight="400">pptx-viewer-locales/fr</text><text x="370" y="49" fill="#1e3a8a">Accueil</text></g>
+      <g transform="translate(600 176)"><rect width="480" height="78" rx="16" fill="#fef3c7"/><text x="28" y="34" fill="#78350f">Español</text><text x="28" y="61" fill="#475569" font-size="15" font-weight="400">pptx-viewer-locales/es</text><text x="385" y="49" fill="#78350f">Inicio</text></g>
+      <g transform="translate(600 270)"><rect width="480" height="78" rx="16" fill="#fee2e2"/><text x="28" y="34" fill="#7f1d1d">Deutsch</text><text x="28" y="61" fill="#475569" font-size="15" font-weight="400">pptx-viewer-locales/de</text><text x="365" y="49" fill="#7f1d1d">Startseite</text></g>
+    </g>
+  </g>
+  <g fill="none" stroke="#f04438" stroke-width="4" stroke-linecap="round"><path d="M456 218h82"/><path d="M538 218c30 0 25-97 45-97"/><path d="M538 218h45"/><path d="M538 218c30 0 25 91 45 91"/></g>
+</svg>

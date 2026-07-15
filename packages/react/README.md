@@ -6,7 +6,7 @@
 
 > A drop-in **React** component that turns a `.pptx` file into a fully interactive PowerPoint: **view, edit, present, collaborate, and export**, entirely in the browser.
 
-![The pptx-react-viewer editor: ribbon toolbar, slide thumbnails, and a slide rendered on the canvas](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
+![Selecting, dragging, and resizing a slide element in the React demo](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/packages/react-demo.gif)
 
 Slides render with real **HTML/CSS** (not `<canvas>`), so text stays crisp at any zoom, is selectable and screen-reader accessible, and every element is directly editable. The parsing/editing engine ([`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core)) is **bundled in**, so you install just one package.
 

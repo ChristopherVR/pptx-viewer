@@ -3,6 +3,8 @@ const frameworks = [
 	{ name: 'React', pkg: 'pptx-react-viewer', tag: '<PowerPointViewer />' },
 	{ name: 'Vue 3', pkg: 'pptx-vue-viewer', tag: '<PowerPointViewer />' },
 	{ name: 'Angular', pkg: 'pptx-angular-viewer', tag: '<pptx-viewer />' },
+	{ name: 'Svelte 5', pkg: 'pptx-svelte-viewer', tag: '<PowerPointViewer />' },
+	{ name: 'Vanilla JS', pkg: 'pptx-vanilla-viewer', tag: 'createPptxViewer()' },
 ];
 </script>
 
@@ -31,12 +33,13 @@ const frameworks = [
 <style scoped>
 .pv-vfw {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(6, 1fr);
 	gap: clamp(0.8rem, 1.8vw, 1.4rem);
 	align-items: stretch;
 }
 
 .pv-vfw__card {
+	grid-column: span 2;
 	background: var(--pv-surface);
 	border: 1px solid var(--pv-line);
 	border-radius: 8px;
@@ -50,10 +53,46 @@ const frameworks = [
 		border-color 0.35s ease;
 }
 
+.pv-vfw__card:nth-child(4) {
+	grid-column: 2 / span 2;
+}
+
+.pv-vfw__card:nth-child(5) {
+	grid-column: 4 / span 2;
+}
+
 .pv-vfw__card:hover {
 	transform: translateY(-6px);
 	box-shadow: var(--pv-shadow);
 	border-color: var(--pv-accent);
+}
+
+.pv-vfw__card--3 .pv-vfw__slide {
+	background: color-mix(in srgb, #ff3e00 12%, var(--pv-surface));
+}
+
+.pv-vfw__card--3 .pv-vfw__slide i,
+.pv-vfw__card--3 .pv-vfw__tag {
+	color: #d73502;
+	background-color: #ff3e00;
+}
+
+.pv-vfw__card--3 .pv-vfw__tag {
+	background: none;
+}
+
+.pv-vfw__card--4 .pv-vfw__slide {
+	background: color-mix(in srgb, #f7df1e 18%, var(--pv-surface));
+}
+
+.pv-vfw__card--4 .pv-vfw__slide i,
+.pv-vfw__card--4 .pv-vfw__tag {
+	color: #795f00;
+	background-color: #d6b900;
+}
+
+.pv-vfw__card--4 .pv-vfw__tag {
+	background: none;
 }
 
 .pv-vfw__head {
@@ -118,9 +157,30 @@ const frameworks = [
 	background: none;
 }
 
+@media (max-width: 900px) {
+	.pv-vfw {
+		grid-template-columns: repeat(2, 1fr);
+	}
+
+	.pv-vfw__card,
+	.pv-vfw__card:nth-child(4) {
+		grid-column: auto;
+	}
+
+	.pv-vfw__card:nth-child(5) {
+		grid-column: 1 / -1;
+	}
+}
+
 @media (max-width: 560px) {
 	.pv-vfw {
 		grid-template-columns: 1fr;
+	}
+
+	.pv-vfw__card,
+	.pv-vfw__card:nth-child(4),
+	.pv-vfw__card:nth-child(5) {
+		grid-column: 1;
 	}
 }
 </style>

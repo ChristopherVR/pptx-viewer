@@ -5,7 +5,7 @@
 
 > The interactive installer for the [pptx-viewer](https://github.com/ChristopherVR/pptx-viewer) family: pick what you're building, and it installs the right package(s) plus their required companions, or bootstraps a brand-new starter app for you.
 
-![The pptx-viewer editor: ribbon toolbar, slide thumbnails, and a slide rendered on the canvas](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
+![The interactive installer selecting React and MCP, then scaffolding a starter app](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/packages/cli-installer.gif)
 
 This is what you get one `npx` away: a working `.pptx` viewer/editor, wired up in a React, Vue, Angular, Svelte, or vanilla JavaScript app, or just the framework-agnostic engine on its own.
 

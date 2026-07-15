@@ -1,13 +1,17 @@
 # pptx-viewer-shared
 
-Framework-agnostic viewer logic shared by the three `pptx-viewer` UI bindings:
+Framework-agnostic viewer logic shared by all five `pptx-viewer` UI bindings:
 
-- **`pptx-viewer`** (React)
+- **`pptx-react-viewer`** (React)
 - **`pptx-vue-viewer`** (Vue 3)
 - **`pptx-angular-viewer`** (Angular)
+- **`pptx-svelte-viewer`** (Svelte 5)
+- **`pptx-vanilla-viewer`** (Vanilla JavaScript)
 
 Everything here is **pure TypeScript with no framework imports**. The goal is one
-canonical copy of cross-framework logic instead of three drifting duplicates.
+canonical copy of cross-framework logic instead of five drifting duplicates.
+
+![One framework-neutral rendering layer feeding React, Vue, Angular, Svelte, and Vanilla JavaScript](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/packages/shared-rendering.svg)
 
 ## What lives here
 
