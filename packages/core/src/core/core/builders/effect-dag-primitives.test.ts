@@ -72,7 +72,7 @@ describe('typed effectDag blur and preset shadow primitives', () => {
 	it('does not expose invalid simple-type values as editable typed fields', () => {
 		const tree = parseEffectDagContainer({
 			'a:blur': { '@_rad': '-1', '@_grow': 'sometimes' },
-			'a:prstShdw': { '@_prst': 'shdw21', '@_dist': '-20', '@_dir': '1.5' },
+			'a:prstShdw': { '@_prst': 'shdw21', '@_dist': '-20', '@_dir': '21600000' },
 		})!;
 
 		expect(tree.children[0]).toStrictEqual({
@@ -81,7 +81,7 @@ describe('typed effectDag blur and preset shadow primitives', () => {
 		});
 		expect(tree.children[1]).toStrictEqual({
 			kind: 'prstShdw',
-			xml: { '@_prst': 'shdw21', '@_dist': '-20', '@_dir': '1.5' },
+			xml: { '@_prst': 'shdw21', '@_dist': '-20', '@_dir': '21600000' },
 		});
 	});
 
