@@ -6,6 +6,8 @@ import type {
 	CollaborationRole,
 	CollaborationTransport,
 	ConnectionStatus,
+	PowerPointViewerAPI,
+	ViewerFontSource,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
 
@@ -20,7 +22,6 @@ import type {
 import type { TranslationMessages } from './i18n';
 import type { PptxViewerSource } from './load';
 import type { ElementRendererRegistry } from './render';
-import type { ZoomLevel } from './state';
 
 /**
  * Public API types for the vanilla (zero-framework) PowerPoint viewer.
@@ -78,6 +79,8 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	 * `loadFile` / `loadUrl` later.
 	 */
 	source?: PptxViewerSource;
+	/** Licensed font sources supplied by the host application. */
+	fonts?: ViewerFontSource[];
 	/** Viewer chrome theme (shared `ViewerTheme`: colors, radius, CSS vars). */
 	theme?: ViewerTheme;
 	/** Display name shown in the PowerPoint-style title bar. */
@@ -167,7 +170,7 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 }
 
 /** The viewer handle returned by `createPptxViewer`. */
-export interface PptxViewerInstance {
+export interface PptxViewerInstance extends PowerPointViewerAPI {
 	/** Load a presentation from bytes or a Blob/File (replaces the current one). */
 	loadFile(file: Blob | ArrayBuffer | Uint8Array): Promise<void>;
 	/** Fetch and load a presentation from a URL. */
@@ -185,7 +188,7 @@ export interface PptxViewerInstance {
 	/** Effective zoom scale (1 = 100%), after fit resolution. */
 	getZoom(): number;
 	/** Set an explicit zoom scale, or `'fit'` for fit-to-viewport. */
-	setZoom(zoom: ZoomLevel): void;
+	setZoom(zoom: number): void;
 	zoomIn(): void;
 	zoomOut(): void;
 	zoomToFit(): void;

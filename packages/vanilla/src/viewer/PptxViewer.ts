@@ -1,7 +1,9 @@
-import type { PptxHandler } from 'pptx-viewer-core';
-import type { PresentationSnapshot, ViewerTheme } from 'pptx-viewer-shared';
+import { cloneSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { PresentationSnapshot, ViewerMode, ViewerTheme } from 'pptx-viewer-shared';
 import {
 	buildPresentationAudienceUrl,
+	buildUserFontFaceStyles,
 	clearPresentationDeck,
 	collectAccessibilityIssues,
 	createPresentationSessionId,
@@ -14,6 +16,8 @@ import {
 	resolveAudienceScreenPlacement,
 	storePresentationDeck,
 	createInitialPresentationSnapshot,
+	createBlankSlide,
+	makeSlideId,
 	mergePresentationSnapshot,
 } from 'pptx-viewer-shared';
 
@@ -34,7 +38,7 @@ import type { RenderController } from './render-controller';
 import { createRenderController } from './render-controller';
 import type { SessionControllers } from './session-controllers';
 import { createSessionControllers } from './session-controllers';
-import type { Store, ViewerState, ZoomLevel } from './state';
+import type { Store, ViewerState } from './state';
 import { createInitialViewerState, createStore } from './state';
 import { createStateSync } from './state-sync';
 import { ensureViewerStyles } from './styles';
@@ -78,6 +82,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private presenterSequence = 0;
 	private presenterSnapshot = createInitialPresentationSnapshot();
 	private disposePresenterConsole: (() => void) | null = null;
+	private userFontsStyle: HTMLStyleElement | null = null;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
 		super();
@@ -108,6 +113,13 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.controls = createViewerControls(this.store, this.renderer);
 
 		ensureViewerStyles(this.doc);
+		const userFontCss = buildUserFontFaceStyles(options.fonts ?? []);
+		if (userFontCss) {
+			this.userFontsStyle = this.doc.createElement('style');
+			this.userFontsStyle.dataset.pptxUserFonts = 'vanilla';
+			this.userFontsStyle.textContent = userFontCss;
+			this.doc.head.appendChild(this.userFontsStyle);
+		}
 		this.lifecycle = mountChrome(buildMountChromeDeps(this));
 		this.editor = createEditorController({
 			doc: this.doc,
@@ -178,13 +190,111 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	getCurrentSlide = (): number => this.controls.currentSlide();
 	getZoom = (): number => this.controls.zoom();
 
-	setZoom(zoom: ZoomLevel): void {
+	setZoom(zoom: number): void {
 		this.controls.setZoom(zoom);
 	}
 
 	zoomIn = (): void => this.controls.zoomIn();
 	zoomOut = (): void => this.controls.zoomOut();
 	zoomToFit = (): void => this.controls.zoomToFit();
+	zoomReset = (): void => this.controls.setZoom(1);
+	goTo = (index: number): void => this.goToSlide(index);
+	goPrev = (): void => this.prev();
+	goNext = (): void => this.next();
+	getContent = (): Promise<Uint8Array> => this.save();
+	getMode = (): ViewerMode => {
+		const state = this.store.get();
+		return state.masterViewTarget
+			? 'master'
+			: state.presenting
+				? 'present'
+				: state.editable
+					? 'edit'
+					: 'preview';
+	};
+	setMode = (mode: ViewerMode): void => {
+		if (mode === 'present') {
+			void this.enterPresentation();
+			return;
+		}
+		if (this.store.get().presenting) {
+			void this.exitPresentation();
+		}
+		this.setEditable(mode === 'edit' || mode === 'master');
+		if (mode === 'master' && !this.store.get().masterViewTarget) {
+			this.toggleMasterNavigation();
+		}
+		if (mode !== 'master' && this.store.get().masterViewTarget) {
+			this.toggleMasterNavigation();
+		}
+	};
+	getActiveSlideIndex = (): number => this.getCurrentSlide();
+	setActiveSlideIndex = (index: number): void => this.goToSlide(index);
+	isDirty = (): boolean => this.store.get().dirty;
+	getSlides = (): readonly PptxSlide[] => this.store.get().slides;
+	getSlide = (index: number): PptxSlide | undefined => this.store.get().slides[index];
+	getActiveSlide = (): PptxSlide | undefined => this.getSlide(this.getCurrentSlide());
+	getElements = (index = this.getCurrentSlide()): readonly PptxElement[] =>
+		this.getSlide(index)?.elements ?? [];
+	getElementById = (id: string, index = this.getCurrentSlide()): PptxElement | undefined =>
+		this.getElements(index).find((element) => element.id === id);
+	updateElement = (id: string, updates: Partial<PptxElement>): void =>
+		this.editor.applyElementPatch(id, updates);
+	deleteElements = (ids: string[]): void => {
+		this.editor.selectElements(ids);
+		this.editor.deleteSelected();
+	};
+	duplicateElement = (id: string): string | undefined => {
+		this.editor.selectElements([id]);
+		return this.editor.duplicateSelected() ?? undefined;
+	};
+	getSelectedElementIds = (): string[] => [...this.store.get().selectedElementIds];
+	selectElements = (ids: string[]): void => this.editor.selectElements(ids);
+	clearSelection = (): void => this.editor.selectElements([]);
+	addSlide = (afterIndex = this.store.get().slides.length - 1): void => {
+		const next = [...this.store.get().slides];
+		const index = Math.min(Math.max(afterIndex + 1, 0), next.length);
+		next.splice(index, 0, createBlankSlide(index + 1, makeSlideId));
+		this.editor.commitSlides(this.renumber(next), index);
+	};
+	deleteSlides = (indexes: number[]): void => {
+		const remove = new Set(indexes);
+		const next = this.store.get().slides.filter((_, index) => !remove.has(index));
+		if (next.length > 0) {
+			this.editor.commitSlides(this.renumber(next));
+		}
+	};
+	duplicateSlides = (indexes: number[]): void => {
+		const selected = new Set(indexes);
+		const next = this.store
+			.get()
+			.slides.flatMap((slide, index) =>
+				selected.has(index) ? [slide, { ...cloneSlide(slide), id: makeSlideId() }] : [slide],
+			);
+		this.editor.commitSlides(this.renumber(next));
+	};
+	moveSlide = (fromIndex: number, toIndex: number): void => {
+		const next = [...this.store.get().slides];
+		if (!next[fromIndex] || toIndex < 0 || toIndex >= next.length || fromIndex === toIndex) {
+			return;
+		}
+		const [slide] = next.splice(fromIndex, 1);
+		next.splice(toIndex, 0, slide);
+		this.editor.commitSlides(this.renumber(next), toIndex);
+	};
+	toggleHideSlides = (indexes: number[]): void => {
+		const selected = new Set(indexes);
+		this.editor.commitSlides(
+			this.store
+				.get()
+				.slides.map((slide, index) =>
+					selected.has(index) ? { ...slide, hidden: !slide.hidden } : slide,
+				),
+		);
+	};
+	private renumber(slides: PptxSlide[]): PptxSlide[] {
+		return slides.map((slide, index) => ({ ...slide, slideNumber: index + 1 }));
+	}
 
 	/** Expand/collapse the speaker-notes panel; persists for the instance's life. */
 	toggleNotes(): void {
@@ -462,6 +572,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.loading.invalidate();
 		this.editor.destroy();
 		this.exporter.destroy();
+		this.userFontsStyle?.remove();
 		unmountChrome(this.lifecycle, () => this.editor?.detachChrome());
 		this.loading.releaseLoaded();
 	}

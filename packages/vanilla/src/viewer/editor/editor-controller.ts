@@ -1,11 +1,11 @@
-import type { PptxHandler, TextSegment } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import { downloadBlob } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
 import { createEditingChromeSync } from './editing-chrome-sync';
-import { getActiveElements } from './editor-active-elements';
+import { getActiveElements, replaceActiveElements } from './editor-active-elements';
 import { selectionOverlayBox } from './editor-controller-overlay';
 import { createDrawModeController } from './editor-draw-mode';
 import type { EditActions } from './editor-edit-ops';
@@ -49,6 +49,9 @@ export interface EditorController {
 	deleteSelected(): void;
 	duplicateSelected(): string | null;
 	getSelectedElementId(): string | null;
+	selectElements(ids: string[]): void;
+	applyElementPatch(id: string, patch: Partial<PptxElement>): void;
+	commitSlides(slides: PptxSlide[], currentSlide?: number): void;
 	/** Switch the Draw ribbon tab's active tool (also clears selection when leaving `'select'`). */
 	setDrawTool(tool: DrawTool): void;
 	/** Set the pen/highlighter stroke colour used by the next committed stroke. */
@@ -285,6 +288,36 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		deleteSelected: () => ops.deleteSelected(),
 		duplicateSelected: () => ops.duplicateSelected(),
 		getSelectedElementId: () => store.get().selectedElementId,
+		selectElements: (ids) => ops.select(ids.at(-1) ?? null, ids),
+		applyElementPatch(id, patch) {
+			const state = store.get();
+			if (!state.editable || !getActiveElements(state).some((element) => element.id === id)) {
+				return;
+			}
+			ops.pushHistory();
+			store.set(
+				replaceActiveElements(
+					state,
+					getActiveElements(state).map((element) =>
+						element.id === id ? ({ ...element, ...patch } as PptxElement) : element,
+					),
+				),
+			);
+			ops.commitChange();
+		},
+		commitSlides(slides, currentSlide = store.get().currentSlide) {
+			if (!store.get().editable) {
+				return;
+			}
+			ops.pushHistory();
+			store.set({
+				slides,
+				currentSlide: Math.max(0, Math.min(currentSlide, slides.length - 1)),
+				selectedElementId: null,
+				selectedElementIds: [],
+			});
+			ops.commitChange();
+		},
 		setDrawTool: (tool) => drawMode.setTool(tool),
 		setDrawColor: (color) => drawMode.setColor(color),
 		setDrawWidth: (width) => drawMode.setWidth(width),
