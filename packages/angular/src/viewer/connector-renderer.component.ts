@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { hasShapeProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 
+import { getLineGlowFilterCss, getLineShadowParams } from '../internal/shared';
 import { buildConnectorGeometry } from './connector-path';
 import type { MarkerShape } from './connector-path';
 import type { Rect } from './connector-routing';
@@ -26,7 +28,8 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
  * Compound (double/triple) lines render as parallel strands and line caps map
  * from `a:ln/@cap`; both derive from the shared connector geometry.
  *
- * Not yet ported (TODO): line shadows/glow.
+ * Line shadows use an SVG drop-shadow filter and line glow uses the shared
+ * CSS filter builder, matching the other framework bindings.
  */
 @Component({
 	selector: 'pptx-connector-renderer',
@@ -36,7 +39,7 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 	template: `
 		<div
 			class="pptx-ng-element pptx-ng-connector"
-			[style]="geo().wrapperStyle"
+			[style]="wrapperStyle()"
 			[attr.data-element-id]="element().id"
 			[attr.data-pptx-element]="interactive() ? 'true' : null"
 		>
@@ -83,6 +86,17 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 							}
 						</marker>
 					}
+					@if (lineShadow(); as shadow) {
+						<filter [attr.id]="shadowFilterId()" x="-50%" y="-50%" width="200%" height="200%">
+							<feDropShadow
+								[attr.dx]="shadow.offsetX"
+								[attr.dy]="shadow.offsetY"
+								[attr.stdDeviation]="shadow.blur / 2"
+								[attr.flood-color]="shadow.color"
+								[attr.flood-opacity]="shadow.opacity"
+							/>
+						</filter>
+					}
 				</defs>
 				@for (strand of strands(); track strand.key) {
 					@if (geo().pathD) {
@@ -96,6 +110,7 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 							[attr.stroke-linecap]="geo().strokeLinecap"
 							stroke-linejoin="round"
 							[attr.transform]="strand.transform"
+							[attr.filter]="strand.shadowFilter"
 							[attr.marker-start]="strand.markerStart"
 							[attr.marker-end]="strand.markerEnd"
 						/>
@@ -111,6 +126,7 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 							[attr.stroke-dasharray]="geo().dashArray ?? null"
 							[attr.stroke-linecap]="geo().strokeLinecap"
 							[attr.transform]="strand.transform"
+							[attr.filter]="strand.shadowFilter"
 							[attr.marker-start]="strand.markerStart"
 							[attr.marker-end]="strand.markerEnd"
 						/>
@@ -146,6 +162,19 @@ export class ConnectorRendererComponent {
 	});
 
 	readonly viewBox = computed(() => `0 0 ${this.geo().svgW} ${this.geo().svgH}`);
+	private readonly shapeStyle = computed(() => {
+		const element = this.element();
+		return hasShapeProperties(element) ? element.shapeStyle : undefined;
+	});
+	readonly lineShadow = computed(() => getLineShadowParams(this.shapeStyle()));
+	readonly lineGlow = computed(() => getLineGlowFilterCss(this.shapeStyle()));
+	readonly shadowFilterId = computed(
+		() => `${this.geo().startMarkerId.replace(/-start$/u, '')}-line-shadow`,
+	);
+	readonly wrapperStyle = computed(() => {
+		const glow = this.lineGlow();
+		return glow ? `${this.geo().wrapperStyle};filter:${glow}` : this.geo().wrapperStyle;
+	});
 
 	/**
 	 * Parallel strokes for compound (double/triple) line styles. A single line
@@ -161,6 +190,7 @@ export class ConnectorRendererComponent {
 			key: idx,
 			width: Math.max(g.compoundWidths[idx] ?? g.strokeWidth, 1),
 			transform: offset !== 0 ? `translate(0 ${offset})` : null,
+			shadowFilter: idx === 0 && this.lineShadow() ? `url(#${this.shadowFilterId()})` : null,
 			markerStart: idx === 0 ? g.startMarkerRef : null,
 			markerEnd: idx === last ? g.endMarkerRef : null,
 		}));
@@ -181,6 +211,7 @@ interface ConnectorStrand {
 	key: number;
 	width: number;
 	transform: string | null;
+	shadowFilter: string | null;
 	markerStart: string | null;
 	markerEnd: string | null;
 }

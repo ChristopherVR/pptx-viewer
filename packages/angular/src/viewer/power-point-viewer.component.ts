@@ -72,6 +72,7 @@ import { parseAudienceNonce, PresenterWindowService } from './presenter-window.s
 import { PrintDialogComponent } from './print-dialog.component';
 import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
+import { RehearseTimingsComponent } from './rehearse-timings.component';
 import { RemoteSelectionOverlayComponent } from './remote-selection-overlay.component';
 import { patchTextStyle } from './ribbon-text-helpers';
 import { RibbonComponent } from './ribbon.component';
@@ -205,6 +206,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		CustomShowsComponent,
 		InsertSmartArtDialogComponent,
 		ViewerExtraDialogsComponent,
+		RehearseTimingsComponent,
 		TranslatePipe,
 	],
 	template: `
@@ -273,7 +275,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(find)="findReplace.showFind.set(true)"
 					(present)="presentationMode.present()"
 					(presenter)="presentationMode.presentPresenter()"
-					(record)="presentationMode.present()"
+					(record)="presentationMode.startRehearsal()"
 					(share)="session.showShare.set(true)"
 					(broadcast)="session.showBroadcast.set(true)"
 					(openFile)="fileIO.openFile()"
@@ -597,7 +599,24 @@ import { ZoomTargetService } from './zoom-target.service';
 					[startIndex]="customShowsCtl.presentationStartIndex()"
 					(indexChange)="presentationMode.onPresentationIndexChange($event)"
 					(annotationsExit)="presentationMode.onPresentationAnnotationsExit($event)"
-					(closed)="presentationMode.presenting.set(false)"
+					(closed)="presentationMode.closePresentation()"
+				/>
+			}
+			@if (presentationMode.rehearsing()) {
+				<pptx-rehearse-timings
+					[slideStartedAt]="presentationMode.slideStartedAt()"
+					[presentationStartedAt]="presentationMode.rehearsalStartedAt()"
+					[paused]="presentationMode.rehearsalPaused()"
+					[timings]="presentationMode.recordedTimings()"
+					(togglePause)="presentationMode.toggleRehearsalPause()"
+				/>
+			}
+			@if (presentationMode.showRehearsalSummary()) {
+				<pptx-rehearse-timings
+					[summary]="true"
+					[timings]="presentationMode.recordedTimings()"
+					(save)="presentationMode.saveRehearsalTimings()"
+					(discard)="presentationMode.dismissRehearsalSummary()"
 				/>
 			}
 
@@ -1315,6 +1334,22 @@ export class PowerPointViewerComponent {
 			sourceContent: () => this.fileIO.activeContent(),
 			canEdit: () => this.canEdit(),
 			promptKeepAnnotations: (map) => this.extraDialogs()?.promptKeepAnnotations(map),
+			applyRehearsalTimings: (timings) => {
+				const slides = this.editor.snapshot().map((slide, index) => {
+					const advanceAfterMs = timings[index];
+					return typeof advanceAfterMs !== 'number'
+						? slide
+						: {
+								...slide,
+								transition: {
+									...slide.transition,
+									type: slide.transition?.type ?? 'none',
+									advanceAfterMs,
+								},
+							};
+				});
+				this.editor.applyReplacement(slides, 'Rehearse timings');
+			},
 		});
 		if (parseAudienceNonce()) {
 			const disconnectAudience = this.presenterWindow.connectAudience(

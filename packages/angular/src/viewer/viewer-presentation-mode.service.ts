@@ -37,6 +37,7 @@ interface PresentationModeHost {
 	readonly sourceContent: () => Uint8Array | ArrayBuffer | null;
 	readonly canEdit: () => boolean;
 	readonly promptKeepAnnotations: (map: SlideAnnotationMap) => void;
+	readonly applyRehearsalTimings: (timings: Record<number, number>) => void;
 }
 
 @Injectable()
@@ -51,6 +52,14 @@ export class ViewerPresentationModeService {
 	readonly presentingPresenter = signal(false);
 	/** Epoch ms when presenter view started (drives the elapsed timer). */
 	readonly presenterStartTime = signal<number | null>(null);
+	readonly rehearsing = signal(false);
+	readonly rehearsalPaused = signal(false);
+	readonly showRehearsalSummary = signal(false);
+	readonly rehearsalStartedAt = signal<number | null>(null);
+	readonly slideStartedAt = signal<number | null>(null);
+	readonly recordedTimings = signal<Record<number, number>>({});
+	private pauseStartedAt: number | null = null;
+	private pausedOnSlideMs = 0;
 
 	private host: PresentationModeHost | null = null;
 
@@ -82,6 +91,19 @@ export class ViewerPresentationModeService {
 		}
 	}
 
+	startRehearsal(): void {
+		this.recordedTimings.set({});
+		this.showRehearsalSummary.set(false);
+		this.rehearsalPaused.set(false);
+		this.rehearsing.set(true);
+		this.pauseStartedAt = null;
+		this.pausedOnSlideMs = 0;
+		const now = Date.now();
+		this.rehearsalStartedAt.set(now);
+		this.slideStartedAt.set(now);
+		this.present();
+	}
+
 	/**
 	 * Map a presentation-overlay index back to the full-deck `activeSlideIndex`.
 	 * The overlay's index is relative to the (possibly custom-show-filtered)
@@ -95,7 +117,54 @@ export class ViewerPresentationModeService {
 			return;
 		}
 		const fullIndex = this.loader.slides().findIndex((s) => s.id === target.id);
+		if (this.rehearsing() && fullIndex !== host.activeSlideIndex()) {
+			this.recordCurrentSlide();
+			this.slideStartedAt.set(Date.now());
+			this.pausedOnSlideMs = 0;
+		}
 		host.setActiveSlideIndex(fullIndex >= 0 ? fullIndex : index);
+	}
+
+	toggleRehearsalPause(): void {
+		const now = Date.now();
+		if (this.rehearsalPaused()) {
+			this.pausedOnSlideMs += this.pauseStartedAt ? now - this.pauseStartedAt : 0;
+			this.pauseStartedAt = null;
+			this.rehearsalPaused.set(false);
+		} else {
+			this.pauseStartedAt = now;
+			this.rehearsalPaused.set(true);
+		}
+	}
+
+	closePresentation(): void {
+		this.presenting.set(false);
+		if (this.rehearsing()) {
+			this.recordCurrentSlide();
+			this.rehearsing.set(false);
+			this.showRehearsalSummary.set(true);
+		}
+	}
+
+	saveRehearsalTimings(): void {
+		this.requireHost().applyRehearsalTimings(this.recordedTimings());
+		this.dismissRehearsalSummary();
+	}
+
+	dismissRehearsalSummary(): void {
+		this.showRehearsalSummary.set(false);
+		this.rehearsing.set(false);
+	}
+
+	private recordCurrentSlide(): void {
+		const host = this.requireHost();
+		const started = this.slideStartedAt();
+		if (started === null) {
+			return;
+		}
+		const pausedNow = this.pauseStartedAt ? Date.now() - this.pauseStartedAt : 0;
+		const elapsed = Math.max(0, Date.now() - started - this.pausedOnSlideMs - pausedNow);
+		this.recordedTimings.update((current) => ({ ...current, [host.activeSlideIndex()]: elapsed }));
 	}
 
 	/**

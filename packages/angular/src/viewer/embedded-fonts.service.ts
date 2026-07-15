@@ -21,8 +21,12 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import type { PptxEmbeddedFont } from 'pptx-viewer-core';
 
-import { EMBEDDED_FONTS_STYLE_ID, buildEmbeddedFontStyles } from './embedded-fonts-helpers';
-import type { ObjectUrlFactory } from './embedded-fonts-helpers';
+import {
+	EMBEDDED_FONTS_STYLE_ID,
+	buildEmbeddedFontStyles,
+	buildUserFontFaceStyles,
+} from './embedded-fonts-helpers';
+import type { ObjectUrlFactory, ViewerFontSource } from './embedded-fonts-helpers';
 
 /** True when the runtime exposes the DOM APIs we need to inject a `<style>`. */
 function hasDomSupport(): boolean {
@@ -54,6 +58,8 @@ export class EmbeddedFontsService {
 	readonly fontFamilies = signal<string[]>([]);
 
 	private styleEl: HTMLStyleElement | null = null;
+	private embeddedCss = '';
+	private userCss = '';
 	/** Object URLs minted on the most recent `setFonts`; revoked when superseded. */
 	private liveObjectUrls: string[] = [];
 
@@ -93,9 +99,16 @@ export class EmbeddedFontsService {
 		this.liveObjectUrls = objectUrls;
 		this.revokeObjectUrls(previousUrls);
 
+		this.embeddedCss = fontFaceCss;
 		this.fontFaceCss.set(fontFaceCss);
 		this.fontFamilies.set(fontFamilies);
-		this.syncStyleElement(fontFaceCss);
+		this.syncStyleElement();
+	}
+
+	/** Replace the licensed font sources supplied by the host application. */
+	setHostFonts(fonts: readonly ViewerFontSource[] | null | undefined): void {
+		this.userCss = buildUserFontFaceStyles(fonts ?? []);
+		this.syncStyleElement();
 	}
 
 	/**
@@ -108,13 +121,16 @@ export class EmbeddedFontsService {
 		this.liveObjectUrls = [];
 		this.fontFaceCss.set('');
 		this.fontFamilies.set([]);
+		this.embeddedCss = '';
+		this.userCss = '';
 	}
 
 	/** Create / update / remove the managed `<style>` element to match `css`. */
-	private syncStyleElement(css: string): void {
+	private syncStyleElement(): void {
 		if (!hasDomSupport()) {
 			return;
 		}
+		const css = [this.embeddedCss, this.userCss].filter(Boolean).join('\n');
 		if (css.length === 0) {
 			this.removeStyleElement();
 			return;

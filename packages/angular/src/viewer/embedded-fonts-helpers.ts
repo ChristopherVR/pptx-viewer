@@ -11,7 +11,12 @@
  * React binding's id.
  */
 
-export type { ResolvedFontVariant, ObjectUrlFactory, EmbeddedFontStyles } from '../internal/shared';
+export type {
+	ResolvedFontVariant,
+	ObjectUrlFactory,
+	EmbeddedFontStyles,
+	ViewerFontSource,
+} from '../internal/shared';
 
 export {
 	isInjectableUrl,
@@ -20,6 +25,7 @@ export {
 	resolveFontVariant,
 	buildFontFaceRule,
 	buildEmbeddedFontStyles,
+	buildUserFontFaceStyles,
 } from '../internal/shared';
 
 /** DOM id of the managed `<style>` element the service injects into `<head>`. */
