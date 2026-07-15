@@ -51,22 +51,25 @@ describe('createDefaultRegistry', () => {
 		expect(registry.registeredTypes()).toStrictEqual([
 			'chart',
 			'connector',
+			'contentPart',
 			'group',
 			'image',
 			'ink',
 			'media',
+			'model3d',
 			'ole',
 			'picture',
 			'shape',
 			'smartArt',
 			'table',
 			'text',
+			'zoom',
 		]);
 	});
 
-	it('leaves the remaining types on the placeholder fallback', () => {
+	it('leaves only unknown elements on the placeholder fallback', () => {
 		const registry = createDefaultRegistry();
-		for (const type of ['contentPart', 'zoom', 'model3d', 'unknown'] as const) {
+		for (const type of ['unknown'] as const) {
 			expect(registry.has(type)).toBeFalsy();
 			expect(registry.resolve(type)).toBeDefined();
 		}

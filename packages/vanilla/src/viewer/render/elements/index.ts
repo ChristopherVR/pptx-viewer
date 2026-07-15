@@ -4,6 +4,7 @@ import { renderConnectorElement } from './connector';
 import { renderGroupElement } from './group';
 import { renderImageElement } from './image';
 import { renderPlaceholderElement } from './placeholder';
+import { registerExtraRenderers } from './register-extras';
 import { registerRichMediaRenderers } from './register-rich-media';
 import { registerTableChartRenderers } from './register-table-chart';
 import { renderTextShapeElement } from './text-shape';
@@ -17,6 +18,7 @@ export { renderMediaElement } from './media';
 export { renderOleElement } from './ole';
 export { renderPlaceholderElement } from './placeholder';
 export { registerRichMediaRenderers } from './register-rich-media';
+export { registerExtraRenderers } from './register-extras';
 export { registerTableChartRenderers } from './register-table-chart';
 export { renderSmartArtElement, renderSmartArtSvg } from './smartart';
 export { renderSmartArt3DElement } from './smartart-3d';
@@ -28,10 +30,9 @@ export { renderTextShapeElement } from './text-shape';
  * The registry the viewer uses by default.
  *
  * Dedicated renderers: `text`, `shape`, `image`, `picture`, `group`,
- * `connector`, `table`, `chart`, `smartArt`, `media`, `ink`, `ole`. The
- * remaining types (`contentPart`, `zoom`, `model3d`, `unknown`) fall through
- * to the typed placeholder fallback until their renderers land; see
- * `./README.md` for the contract to add one.
+ * `connector`, `table`, `chart`, `smartArt`, `media`, `ink`, `ole`,
+ * `contentPart`, `zoom`, and `model3d`. Only unknown extension elements fall
+ * through to the typed placeholder fallback.
  */
 export function createDefaultRegistry(): ElementRendererRegistry {
 	const registry = createElementRendererRegistry();
@@ -43,6 +44,7 @@ export function createDefaultRegistry(): ElementRendererRegistry {
 	registry.register('connector', renderConnectorElement);
 	registerTableChartRenderers(registry);
 	registerRichMediaRenderers(registry);
+	registerExtraRenderers(registry);
 	registry.setFallback(renderPlaceholderElement);
 	return registry;
 }
