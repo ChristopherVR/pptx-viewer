@@ -58,6 +58,8 @@ describe('buildShareConfig', () => {
 			userName: 'Ada',
 			serverUrl: 'wss://x',
 			transport: 'websocket',
+			role: 'collaborator',
+			sessionIntent: 'create',
 		});
 	});
 
@@ -67,6 +69,8 @@ describe('buildShareConfig', () => {
 			userName: 'Ada',
 			serverUrl: '',
 			transport: 'webrtc',
+			role: 'collaborator',
+			sessionIntent: 'create',
 		});
 	});
 });

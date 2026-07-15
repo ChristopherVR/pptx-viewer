@@ -43,6 +43,8 @@ describe('shareDialog', () => {
 			userName: 'Grace',
 			serverUrl: 'wss://collab.example.com',
 			transport: 'websocket',
+			role: 'collaborator',
+			sessionIntent: 'create',
 		});
 	});
 
@@ -60,6 +62,8 @@ describe('shareDialog', () => {
 			userName: 'Grace',
 			serverUrl: '',
 			transport: 'webrtc',
+			role: 'collaborator',
+			sessionIntent: 'create',
 		});
 	});
 
@@ -72,6 +76,26 @@ describe('shareDialog', () => {
 
 		await wrapper.get('.pptx-vue-share-btn-primary').trigger('click');
 		expect(wrapper.emitted('start')).toBeUndefined();
+	});
+
+	it('joins an invitation emitted by another framework', async () => {
+		const wrapper = mount(ShareDialog, {
+			...mountOptions,
+			props: { open: true, defaults: { userName: 'Grace' } },
+		});
+		const joinTab = wrapper.findAll('[role="tab"]').find((tab) => tab.text().includes('Join'));
+		await joinTab?.trigger('click');
+		await wrapper
+			.get('#pptx-vue-share-invitation')
+			.setValue('https://react.example/viewer?room=cross-ui&server=wss%3A%2F%2Frelay.example');
+		await wrapper.get('.pptx-vue-share-btn-primary').trigger('click');
+
+		expect(wrapper.emitted('start')?.[0][0]).toMatchObject({
+			roomId: 'cross-ui',
+			serverUrl: 'wss://relay.example',
+			transport: 'websocket',
+			sessionIntent: 'join',
+		});
 	});
 
 	it('shows a stop button (and the P2P server value) and emits stop when active', async () => {

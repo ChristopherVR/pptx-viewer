@@ -4,8 +4,13 @@
  * of the Vue `ShareDialog.vue` inline logic. Kept out of the SFC per the repo's
  * "thin SFC" convention and so it can be unit-tested directly.
  */
-import type { CollaborationConfig } from 'pptx-viewer-shared';
-import { resolveTransportForServerUrl } from 'pptx-viewer-shared';
+import type { CollaborationConfig, JoinSessionFields } from 'pptx-viewer-shared';
+import {
+	buildCreateCollaborationConfig,
+	buildJoinCollaborationConfig,
+	canJoinCollaborationSession,
+	resolveTransportForServerUrl,
+} from 'pptx-viewer-shared';
 
 /** The share form's editable fields. */
 export interface ShareFormFields {
@@ -49,14 +54,11 @@ export function isPeerToPeerShare(serverUrl: string): boolean {
  * `null` when the form is incomplete.
  */
 export function buildShareConfig(fields: ShareFormFields): CollaborationConfig | null {
-	if (!canStartShare(fields)) {
-		return null;
-	}
-	const serverUrl = fields.serverUrl.trim();
-	return {
-		roomId: fields.roomId.trim(),
-		userName: fields.userName.trim(),
-		serverUrl,
-		transport: resolveTransportForServerUrl(serverUrl),
-	};
+	return buildCreateCollaborationConfig(fields);
 }
+
+export {
+	buildJoinCollaborationConfig as buildJoinConfig,
+	canJoinCollaborationSession as canJoinShare,
+};
+export type { JoinSessionFields };

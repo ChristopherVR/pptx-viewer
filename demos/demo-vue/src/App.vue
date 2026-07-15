@@ -204,7 +204,7 @@ function handleStartCollaboration(config: CollaborationConfig): void {
 	// exfiltrating user content. Serverless webrtc has no file server: joiners
 	// receive the deck through Y.Doc late-joiner sync instead.
 	const bytes = content.value;
-	if (!webrtc && bytes && isTrustedServerUrl(config.serverUrl)) {
+	if (config.sessionIntent !== 'join' && !webrtc && bytes && isTrustedServerUrl(config.serverUrl)) {
 		const httpUrl = config.serverUrl.replace(/^ws/u, 'http');
 		void fetch(`${httpUrl}/file/${encodeURIComponent(config.roomId)}`, {
 			method: 'POST',

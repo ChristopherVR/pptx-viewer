@@ -28,6 +28,7 @@ export const COLLAB_CSS = `
 	background: var(--pptx-card);
 	color: var(--pptx-card-foreground);
 	box-shadow: 0 12px 36px rgb(0 0 0 / 0.35);
+	overscroll-behavior: contain;
 }
 .pptxv-modal-panel:focus { outline: none; }
 .pptxv-modal-header {
@@ -64,6 +65,9 @@ export const COLLAB_CSS = `
 }
 .pptxv-modal-section { display: flex; flex-direction: column; gap: 12px; }
 .pptxv-modal-section[hidden] { display: none; }
+.pptxv-share-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 8px; background: var(--pptx-muted); }
+.pptxv-share-tabs button { border: 0; border-radius: 6px; background: transparent; color: var(--pptx-muted-foreground); padding: 6px 10px; font: 500 12px/1.2 inherit; cursor: pointer; }
+.pptxv-share-tabs button[aria-selected='true'] { background: var(--pptx-background); color: var(--pptx-foreground); box-shadow: 0 1px 2px rgb(0 0 0 / 0.18); }
 .pptxv-modal-desc { margin: 0; font-size: 13px; line-height: 1.5; color: var(--pptx-muted-foreground); }
 .pptxv-modal-hint { margin: 4px 0 0; font-size: 11px; color: var(--pptx-muted-foreground); }
 .pptxv-modal-hint[hidden] { display: none; }

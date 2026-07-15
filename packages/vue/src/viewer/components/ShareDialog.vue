@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { CollaborationConfig } from 'pptx-viewer-shared';
-import { resolveTransportForServerUrl } from 'pptx-viewer-shared';
+import {
+	buildCreateCollaborationConfig,
+	buildJoinCollaborationConfig,
+	resolveTransportForServerUrl,
+} from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -37,6 +41,8 @@ const { t } = useI18n();
 const roomId = ref('');
 const userName = ref('');
 const serverUrl = ref('');
+const mode = ref<'create' | 'join'>('create');
+const invitation = ref('');
 
 function resetFromDefaults(): void {
 	roomId.value = props.defaults?.roomId ?? '';
@@ -56,22 +62,26 @@ watch(
 );
 
 // A blank server URL is valid: it selects serverless peer-to-peer (webrtc).
-const canStart = computed(() => roomId.value.trim().length > 0 && userName.value.trim().length > 0);
+const pendingConfig = computed(() =>
+	mode.value === 'join'
+		? buildJoinCollaborationConfig({
+				invitation: invitation.value,
+				userName: userName.value,
+				serverUrl: serverUrl.value,
+			})
+		: buildCreateCollaborationConfig({
+				roomId: roomId.value,
+				userName: userName.value,
+				serverUrl: serverUrl.value,
+			}),
+);
+const canStart = computed(() => pendingConfig.value !== null);
 
 // True when the current server field selects serverless peer-to-peer mode.
 const isPeerToPeer = computed(() => resolveTransportForServerUrl(serverUrl.value) === 'webrtc');
 
 function handleStart(): void {
-	if (!canStart.value) {
-		return;
-	}
-	const trimmedServer = serverUrl.value.trim();
-	emit('start', {
-		roomId: roomId.value.trim(),
-		userName: userName.value.trim(),
-		serverUrl: trimmedServer,
-		transport: resolveTransportForServerUrl(trimmedServer),
-	});
+	if (pendingConfig.value) emit('start', pendingConfig.value);
 }
 
 function handleStop(): void {
@@ -102,11 +112,41 @@ function handleStop(): void {
 		</div>
 
 		<div v-else class="pptx-vue-share-form flex flex-col gap-4">
+			<div class="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist">
+				<button
+					v-for="candidate in ['create', 'join'] as const"
+					:key="candidate"
+					type="button"
+					role="tab"
+					:aria-selected="mode === candidate"
+					class="rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors"
+					:class="
+						mode === candidate ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+					"
+					@click="mode = candidate"
+				>
+					{{ t(candidate === 'create' ? 'pptx.share.createSession' : 'pptx.share.joinSession') }}
+				</button>
+			</div>
 			<p class="pptx-vue-share-desc text-[13px] leading-relaxed text-muted-foreground">
-				{{ t('pptx.share.formDescription') }}
+				{{ t(mode === 'join' ? 'pptx.share.joinDescription' : 'pptx.share.formDescription') }}
 			</p>
 
-			<div class="pptx-vue-share-field flex flex-col gap-1.5">
+			<div v-if="mode === 'join'" class="pptx-vue-share-field flex flex-col gap-1.5">
+				<label for="pptx-vue-share-invitation" class="text-[12px] font-medium text-foreground">
+					{{ t('pptx.share.invitationLabel') }}
+				</label>
+				<input
+					id="pptx-vue-share-invitation"
+					v-model="invitation"
+					type="text"
+					class="pptx-vue-share-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+					:placeholder="t('pptx.share.invitationPlaceholder')"
+				/>
+				<p class="text-[11px] text-muted-foreground">{{ t('pptx.share.invitationHint') }}</p>
+			</div>
+
+			<div v-else class="pptx-vue-share-field flex flex-col gap-1.5">
 				<label
 					for="pptx-vue-share-room"
 					class="pptx-vue-share-label text-[12px] font-medium text-foreground"
@@ -173,7 +213,7 @@ function handleStop(): void {
 				:disabled="!canStart"
 				@click="handleStart"
 			>
-				{{ t('pptx.share.startSharing') }}
+				{{ t(mode === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing') }}
 			</button>
 		</template>
 	</ModalDialog>

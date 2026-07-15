@@ -199,6 +199,15 @@ export const translationsEn: Record<string, string> = {
 	'pptx.share.cancel': 'Cancel',
 	'pptx.share.startSharing': 'Start Sharing',
 	'pptx.share.stopSharing': 'Stop Sharing',
+	'pptx.share.createSession': 'Create session',
+	'pptx.share.joinSession': 'Join session',
+	'pptx.share.joinDescription':
+		'Paste an invitation link from any pptx-viewer app, or enter its room ID and collaboration server.',
+	'pptx.share.invitationLabel': 'Invitation link or room ID',
+	'pptx.share.invitationPlaceholder': 'Paste a share link or enter a room ID',
+	'pptx.share.invitationHint':
+		'Links include the room and transport automatically. A room ID uses the server below.',
+	'pptx.share.invalidInvitation': 'Enter a valid collaboration link or room ID.',
 	'pptx.share.description':
 		'Share this presentation for real-time collaboration. Other users can join using the session name to edit together with live cursors and synchronized changes.',
 	'pptx.share.preconfiguredDescription':

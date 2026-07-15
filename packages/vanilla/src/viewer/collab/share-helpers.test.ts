@@ -41,6 +41,7 @@ describe('buildShareConfig', () => {
 			serverUrl: 'ws://x',
 			transport: 'websocket',
 			role: 'collaborator',
+			sessionIntent: 'create',
 		});
 	});
 

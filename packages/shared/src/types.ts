@@ -197,10 +197,13 @@ export type CollaborationRole = 'owner' | 'collaborator' | 'viewer';
  */
 export type CollaborationTransport = 'websocket' | 'webrtc';
 
+/** How the local user entered a collaboration session. */
+export type CollaborationSessionIntent = 'create' | 'join';
+
 /**
  * Real-time collaboration configuration.
  *
- * The same shape is accepted by the React, Vue, and Angular bindings.
+ * The same shape is accepted by every framework binding.
  */
 export interface CollaborationConfig {
 	/** Unique identifier for the collaboration room (alphanumeric, hyphens, underscores). */
@@ -228,6 +231,13 @@ export interface CollaborationConfig {
 	authToken?: string;
 	/** Role in the session; defaults to `'collaborator'`. */
 	role?: CollaborationRole;
+	/**
+	 * Whether this client created the room or joined an existing room. Providers
+	 * do not use this value, but hosts can use it to avoid publishing local file
+	 * bytes when handling a join request. Omitted values retain the legacy
+	 * create-session behaviour.
+	 */
+	sessionIntent?: CollaborationSessionIntent;
 	/**
 	 * Elected-writer write-back callback (Area 3 of the C3 hardening plan).
 	 *

@@ -214,7 +214,12 @@ export class AppComponent {
 		window.history.replaceState({}, '', url.toString());
 		const bytes = this.content();
 		// P2P has no file server; joiners receive the deck via Y.Doc sync instead.
-		if (bytes && config.transport !== 'webrtc' && isTrustedServerUrl(config.serverUrl)) {
+		if (
+			config.sessionIntent !== 'join' &&
+			bytes &&
+			config.transport !== 'webrtc' &&
+			isTrustedServerUrl(config.serverUrl)
+		) {
 			const httpUrl = config.serverUrl.replace(/^ws/u, 'http');
 			void fetch(`${httpUrl}/file/${encodeURIComponent(config.roomId)}`, {
 				method: 'POST',

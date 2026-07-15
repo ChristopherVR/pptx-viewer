@@ -7,7 +7,14 @@
 	import { useTranslator } from '../../../i18n/context';
 	import ModalDialog from './ModalDialog.svelte';
 	import type { ShareDialogProps } from './props';
-	import { buildShareConfig, canStartShare, isPeerToPeerShare, seedShareFields } from './share-helpers';
+	import {
+		buildJoinConfig,
+		buildShareConfig,
+		canJoinShare,
+		canStartShare,
+		isPeerToPeerShare,
+		seedShareFields,
+	} from './share-helpers';
 
 	const { open, defaults, active, onstart, onstop, onclose }: ShareDialogProps = $props();
 
@@ -16,6 +23,8 @@
 	let roomId = $state('');
 	let userName = $state('');
 	let serverUrl = $state('');
+	let mode = $state<'create' | 'join'>('create');
+	let invitation = $state('');
 
 	// Re-seed the form from defaults whenever the dialog (re)opens.
 	$effect(() => {
@@ -28,10 +37,14 @@
 	});
 
 	const canStart = $derived(canStartShare({ roomId, userName, serverUrl }));
+	const canJoin = $derived(canJoinShare({ invitation, userName, serverUrl }));
 	const isPeerToPeer = $derived(isPeerToPeerShare(serverUrl));
 
 	function handleStart(): void {
-		const config = buildShareConfig({ roomId, userName, serverUrl });
+		const config =
+			mode === 'join'
+				? buildJoinConfig({ invitation, userName, serverUrl })
+				: buildShareConfig({ roomId, userName, serverUrl });
 		if (config) {
 			onstart(config);
 		}
@@ -55,7 +68,29 @@
 		</div>
 	{:else}
 		<div class="pptx-svelte-share-form">
-			<p class="pptx-svelte-share-desc">{t('pptx.share.formDescription')}</p>
+			<div class="pptx-svelte-share-tabs" role="tablist">
+				<button type="button" role="tab" aria-selected={mode === 'create'} onclick={() => (mode = 'create')}>
+					{t('pptx.share.createSession')}
+				</button>
+				<button type="button" role="tab" aria-selected={mode === 'join'} onclick={() => (mode = 'join')}>
+					{t('pptx.share.joinSession')}
+				</button>
+			</div>
+			<p class="pptx-svelte-share-desc">
+				{t(mode === 'join' ? 'pptx.share.joinDescription' : 'pptx.share.formDescription')}
+			</p>
+			{#if mode === 'join'}
+			<div class="pptx-svelte-share-field">
+				<label for="pptx-svelte-share-invitation">{t('pptx.share.invitationLabel')}</label>
+				<input
+					id="pptx-svelte-share-invitation"
+					type="text"
+					bind:value={invitation}
+					placeholder={t('pptx.share.invitationPlaceholder')}
+				/>
+				<p class="pptx-svelte-share-p2p-hint">{t('pptx.share.invitationHint')}</p>
+			</div>
+			{:else}
 			<div class="pptx-svelte-share-field">
 				<label for="pptx-svelte-share-room">{t('pptx.share.roomId')}</label>
 				<input
@@ -65,6 +100,7 @@
 					placeholder={t('pptx.share.roomIdPlaceholder')}
 				/>
 			</div>
+			{/if}
 			<div class="pptx-svelte-share-field">
 				<label for="pptx-svelte-share-name">{t('pptx.share.yourName')}</label>
 				<input
@@ -96,10 +132,10 @@
 			<button
 				type="button"
 				class="pptx-svelte-share-btn pptx-svelte-share-btn-primary"
-				disabled={!canStart}
+				disabled={mode === 'join' ? !canJoin : !canStart}
 				onclick={handleStart}
 			>
-				{t('pptx.share.startSharing')}
+				{t(mode === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing')}
 			</button>
 		{/if}
 	{/snippet}
@@ -131,6 +167,30 @@
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
+	}
+
+	.pptx-svelte-share-tabs {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 4px;
+		padding: 4px;
+		border-radius: 8px;
+		background: var(--pptx-muted, #1f2937);
+	}
+
+	.pptx-svelte-share-tabs button {
+		border: 0;
+		border-radius: 6px;
+		background: transparent;
+		color: var(--pptx-muted-foreground, #94a3b8);
+		padding: 6px 10px;
+		font: 500 12px/1.2 inherit;
+		cursor: pointer;
+	}
+
+	.pptx-svelte-share-tabs button[aria-selected='true'] {
+		background: var(--pptx-background, #11111b);
+		color: var(--pptx-foreground, #e2e8f0);
 	}
 
 	.pptx-svelte-share-field label {

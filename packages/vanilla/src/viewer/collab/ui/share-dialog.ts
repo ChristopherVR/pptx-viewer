@@ -4,7 +4,13 @@ import { resolveTransportForServerUrl } from 'pptx-viewer-shared';
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import type { ShareDefaults, ShareFormFields } from '../share-helpers';
-import { buildShareConfig, canStartShare, seedShareFields } from '../share-helpers';
+import {
+	buildJoinConfig,
+	buildShareConfig,
+	canJoinShare,
+	canStartShare,
+	seedShareFields,
+} from '../share-helpers';
 import { createTextField } from './dialog-fields';
 import type { ModalDialog } from './modal-dialog';
 import { createModalDialog } from './modal-dialog';
@@ -41,6 +47,8 @@ export function createShareDialog(
 ): ShareDialog {
 	let fields: ShareFormFields = seedShareFields();
 	let active = false;
+	let mode: 'create' | 'join' = 'create';
+	let invitation = '';
 
 	const modal: ModalDialog = createModalDialog(doc, t, {
 		title: t('pptx.toolbar.share'),
@@ -51,7 +59,27 @@ export function createShareDialog(
 	const form = createEl(doc, 'div', 'pptxv-modal-section');
 	const desc = createEl(doc, 'p', 'pptxv-modal-desc');
 	desc.textContent = t('pptx.share.formDescription');
-	form.appendChild(desc);
+	const tabs = createEl(doc, 'div', 'pptxv-share-tabs');
+	tabs.setAttribute('role', 'tablist');
+	const createTab = createEl(doc, 'button');
+	createTab.type = 'button';
+	createTab.textContent = t('pptx.share.createSession');
+	const joinTab = createEl(doc, 'button');
+	joinTab.type = 'button';
+	joinTab.textContent = t('pptx.share.joinSession');
+	tabs.append(createTab, joinTab);
+	form.append(tabs, desc);
+
+	const invitationField = createTextField(
+		doc,
+		t('pptx.share.invitationLabel'),
+		t('pptx.share.invitationPlaceholder'),
+		(value) => {
+			invitation = value;
+			refresh();
+		},
+	);
+	form.appendChild(invitationField.el);
 
 	const roomField = createTextField(
 		doc,
@@ -113,7 +141,10 @@ export function createShareDialog(
 	startBtn.type = 'button';
 	startBtn.textContent = t('pptx.share.startSharing');
 	startBtn.addEventListener('click', () => {
-		const config = buildShareConfig(fields);
+		const config =
+			mode === 'join'
+				? buildJoinConfig({ invitation, userName: fields.userName, serverUrl: fields.serverUrl })
+				: buildShareConfig(fields);
 		if (config) {
 			handlers.onStart(config);
 		}
@@ -126,13 +157,35 @@ export function createShareDialog(
 		activeView.hidden = !active;
 		startBtn.hidden = active;
 		cancelBtn.textContent = active ? t('pptx.share.close') : t('pptx.share.cancel');
-		startBtn.disabled = !canStartShare(fields);
+		createTab.setAttribute('aria-selected', String(mode === 'create'));
+		joinTab.setAttribute('aria-selected', String(mode === 'join'));
+		desc.textContent = t(
+			mode === 'join' ? 'pptx.share.joinDescription' : 'pptx.share.formDescription',
+		);
+		invitationField.el.hidden = mode !== 'join';
+		roomField.el.hidden = mode === 'join';
+		startBtn.textContent = t(
+			mode === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing',
+		);
+		startBtn.disabled =
+			mode === 'join'
+				? !canJoinShare({ invitation, userName: fields.userName, serverUrl: fields.serverUrl })
+				: !canStartShare(fields);
 		p2pHint.hidden = resolveTransportForServerUrl(fields.serverUrl) !== 'webrtc';
 		p2pActiveHint.hidden = resolveTransportForServerUrl(fields.serverUrl) !== 'webrtc';
 		roomField.input.value = fields.roomId;
 		nameField.input.value = fields.userName;
 		serverField.input.value = fields.serverUrl;
+		invitationField.input.value = invitation;
 	}
+	createTab.addEventListener('click', () => {
+		mode = 'create';
+		refresh();
+	});
+	joinTab.addEventListener('click', () => {
+		mode = 'join';
+		refresh();
+	});
 	refresh();
 
 	return {
@@ -141,6 +194,7 @@ export function createShareDialog(
 			active = isActive;
 			if (!active) {
 				fields = seedShareFields(defaults);
+				invitation = '';
 			}
 			refresh();
 			modal.setOpen(true);

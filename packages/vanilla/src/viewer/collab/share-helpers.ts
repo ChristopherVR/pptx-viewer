@@ -1,5 +1,9 @@
-import type { CollaborationConfig } from 'pptx-viewer-shared';
-import { resolveTransportForServerUrl } from 'pptx-viewer-shared';
+import type { CollaborationConfig, JoinSessionFields } from 'pptx-viewer-shared';
+import {
+	buildCreateCollaborationConfig,
+	buildJoinCollaborationConfig,
+	canJoinCollaborationSession,
+} from 'pptx-viewer-shared';
 
 /**
  * share-helpers.ts: pure (framework-free) helpers for the Share dialog.
@@ -49,15 +53,11 @@ export function canStartShare(fields: ShareFormFields): boolean {
  * together under the default role).
  */
 export function buildShareConfig(fields: ShareFormFields): CollaborationConfig | null {
-	if (!canStartShare(fields)) {
-		return null;
-	}
-	const serverUrl = fields.serverUrl.trim();
-	return {
-		roomId: fields.roomId.trim(),
-		userName: fields.userName.trim(),
-		serverUrl,
-		transport: resolveTransportForServerUrl(serverUrl),
-		role: 'collaborator',
-	};
+	return buildCreateCollaborationConfig(fields);
 }
+
+export {
+	buildJoinCollaborationConfig as buildJoinConfig,
+	canJoinCollaborationSession as canJoinShare,
+};
+export type { JoinSessionFields };

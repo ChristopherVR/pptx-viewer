@@ -9,50 +9,35 @@
  *
  * @module ShareDialog
  */
-import { resolveTransportForServerUrl } from 'pptx-viewer-shared';
+import {
+	buildCollaborationShareUrl,
+	buildCreateCollaborationConfig,
+	buildJoinCollaborationConfig,
+} from 'pptx-viewer-shared';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuCopy, LuCheck, LuUsers, LuWifi, LuWifiOff } from 'react-icons/lu';
 
 import { useModalDismissDrag } from '../hooks';
 import type { CollaborationConfig } from '../hooks/collaboration/types';
 import { useCollaboration } from './collaboration';
+import { ActiveSessionView } from './ShareDialogActiveView';
+import { StartSessionForm } from './ShareDialogViews';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getInitials(name: string): string {
-	const parts = name.trim().split(/\s+/u);
-	if (parts.length >= 2) {
-		return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-	}
-	return name.slice(0, 2).toUpperCase();
-}
-
-/** Whether a session config uses the serverless peer-to-peer transport. */
-function isP2P(config: { transport?: string; serverUrl?: string }): boolean {
-	return config.transport === 'webrtc' || !config.serverUrl?.trim();
-}
-
 /**
  * Build the shareable join link. A peer-to-peer (webrtc) session carries
  * `transport=webrtc` instead of a `server=` parameter.
  */
-function buildCollabShareUrl(config: {
-	roomId: string;
-	serverUrl?: string;
-	transport?: string;
-}): string {
-	if (typeof window === 'undefined') {
-		return config.roomId;
-	}
-	const base = `${window.location.origin}${window.location.pathname}`;
-	const room = encodeURIComponent(config.roomId);
-	if (isP2P(config)) {
-		return `${base}?room=${room}&transport=webrtc`;
-	}
-	return `${base}?room=${room}&server=${encodeURIComponent(config.serverUrl ?? '')}`;
+function shareUrl(config: CollaborationConfig): string {
+	return buildCollaborationShareUrl(
+		config,
+		typeof window === 'undefined'
+			? undefined
+			: { origin: window.location.origin, pathname: window.location.pathname },
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -108,6 +93,8 @@ export function ShareDialog({
 	const [roomId, setRoomId] = useState(defaultRoomId ?? '');
 	const [userName, setUserName] = useState(defaultUserName ?? '');
 	const [serverUrl, setServerUrl] = useState(defaultServerUrl ?? '');
+	const [mode, setMode] = useState<'create' | 'join'>('create');
+	const [invitation, setInvitation] = useState('');
 	const [copied, setCopied] = useState(false);
 	const dialogRef = useRef<HTMLDivElement>(null);
 	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
@@ -135,7 +122,7 @@ export function ShareDialog({
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	}, [open, onClose]);
 
-	// Focus trap: focus dialog on open
+	// Focus dialog on open
 	useEffect(() => {
 		if (open && dialogRef.current) {
 			dialogRef.current.focus();
@@ -144,7 +131,7 @@ export function ShareDialog({
 
 	const handleCopyRoomId = useCallback(() => {
 		const config = activeCollaboration ?? { roomId, serverUrl };
-		void navigator.clipboard.writeText(buildCollabShareUrl(config)).then(() => {
+		void navigator.clipboard.writeText(shareUrl(config as CollaborationConfig)).then(() => {
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
 			return undefined;
@@ -152,21 +139,20 @@ export function ShareDialog({
 	}, [activeCollaboration, roomId, serverUrl]);
 
 	const handleStartSharing = useCallback(() => {
-		if (!roomId.trim() || !userName.trim()) {
-			return;
+		const config =
+			mode === 'join'
+				? buildJoinCollaborationConfig({ invitation, userName, serverUrl })
+				: buildCreateCollaborationConfig({ roomId, userName, serverUrl });
+		if (config) {
+			onStartCollaboration?.(config);
 		}
-		const trimmedServer = serverUrl.trim();
-		onStartCollaboration?.({
-			roomId: roomId.trim(),
-			serverUrl: trimmedServer,
-			userName: userName.trim(),
-			// A blank server selects the serverless peer-to-peer transport.
-			transport: resolveTransportForServerUrl(trimmedServer),
-		});
-	}, [roomId, userName, serverUrl, onStartCollaboration]);
+	}, [invitation, mode, roomId, userName, serverUrl, onStartCollaboration]);
 
 	// The server URL is optional: leaving it blank starts a peer-to-peer session.
-	const canStart = roomId.trim().length > 0 && userName.trim().length > 0;
+	const canStart =
+		(mode === 'join'
+			? buildJoinCollaborationConfig({ invitation, userName, serverUrl })
+			: buildCreateCollaborationConfig({ roomId, userName, serverUrl })) !== null;
 
 	if (!open) {
 		return null;
@@ -197,7 +183,7 @@ export function ShareDialog({
 					style={panelStyle}
 					className='pointer-events-auto w-full max-w-md rounded-xl border border-border bg-popover text-foreground shadow-2xl outline-none max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:max-w-none max-md:max-h-[88dvh] max-md:overflow-y-auto max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'
 				>
-					{/* Header — also a swipe-down-to-dismiss grab region on touch. */}
+					{/* Header: also a swipe-down-to-dismiss grab region on touch. */}
 					<div
 						{...dragHandlers}
 						className='flex items-center justify-between px-5 py-3 border-b border-border touch-none'
@@ -227,12 +213,16 @@ export function ShareDialog({
 							/>
 						) : (
 							<StartSessionForm
+								mode={mode}
+								invitation={invitation}
 								roomId={roomId}
 								userName={userName}
 								serverUrl={serverUrl}
 								onRoomIdChange={setRoomId}
 								onUserNameChange={setUserName}
 								onServerUrlChange={setServerUrl}
+								onModeChange={setMode}
+								onInvitationChange={setInvitation}
 								preconfigured={preconfigured}
 								connectionFailed={collab?.status === 'error'}
 								onRetry={collab?.retry}
@@ -256,282 +246,12 @@ export function ShareDialog({
 								onClick={handleStartSharing}
 								className='px-3 py-1.5 rounded bg-primary hover:bg-primary/90 text-[12px] text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
 							>
-								{t('pptx.share.startSharing')}
+								{t(mode === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing')}
 							</button>
 						)}
 					</div>
 				</div>
 			</div>
 		</>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-/** Form for configuring a new collaboration session. */
-function StartSessionForm({
-	roomId,
-	userName,
-	serverUrl,
-	onRoomIdChange,
-	onUserNameChange,
-	onServerUrlChange,
-	preconfigured,
-	connectionFailed,
-	onRetry,
-}: {
-	roomId: string;
-	userName: string;
-	serverUrl: string;
-	onRoomIdChange: (v: string) => void;
-	onUserNameChange: (v: string) => void;
-	onServerUrlChange: (v: string) => void;
-	preconfigured?: boolean;
-	/** True when the last connection attempt ended in an error. */
-	connectionFailed?: boolean;
-	/** Retry the failed connection (provided by the collaboration context). */
-	onRetry?: () => void;
-}) {
-	const { t } = useTranslation();
-	const inputReadOnlyClass = preconfigured ? ' opacity-70 cursor-not-allowed' : '';
-
-	return (
-		<div className='space-y-4'>
-			<p className='text-[13px] text-muted-foreground leading-relaxed'>
-				{preconfigured ? t('pptx.share.preconfiguredDescription') : t('pptx.share.description')}
-			</p>
-
-			{/* Connection error banner: surfaced when a previous attempt failed
-			    (e.g. unreachable server, or a blocked ws:// socket on an https
-			    page). Keeps the failure visible instead of silently resetting. */}
-			{connectionFailed && (
-				<div
-					role='alert'
-					className='flex items-start gap-2 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12px] text-red-400'
-				>
-					<LuWifiOff className='w-4 h-4 mt-0.5 shrink-0' />
-					<div className='flex-1 space-y-1'>
-						<p className='font-medium'>{t('pptx.share.connectionError')}</p>
-						{onRetry && (
-							<button
-								type='button'
-								onClick={onRetry}
-								className='underline underline-offset-2 hover:no-underline'
-							>
-								{t('pptx.collaboration.retry')}
-							</button>
-						)}
-					</div>
-				</div>
-			)}
-
-			{/* Room / Session Name */}
-			<div className='space-y-1.5'>
-				<label htmlFor='share-room-id' className='block text-[12px] font-medium text-foreground'>
-					{t('pptx.share.sessionName')}
-				</label>
-				<input
-					id='share-room-id'
-					type='text'
-					aria-label={t('pptx.share.sessionName')}
-					value={roomId}
-					onChange={(e) => onRoomIdChange(e.target.value)}
-					readOnly={preconfigured}
-					placeholder={t('pptx.share.sessionPlaceholder')}
-					className={`w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary${inputReadOnlyClass}`}
-				/>
-				<p className='text-[11px] text-muted-foreground'>{t('pptx.share.sessionHint')}</p>
-			</div>
-
-			{/* User Display Name */}
-			<div className='space-y-1.5'>
-				<label htmlFor='share-user-name' className='block text-[12px] font-medium text-foreground'>
-					{t('pptx.share.displayName')}
-				</label>
-				<input
-					id='share-user-name'
-					type='text'
-					aria-label={t('pptx.share.displayName')}
-					value={userName}
-					onChange={(e) => onUserNameChange(e.target.value)}
-					readOnly={preconfigured}
-					placeholder={t('pptx.share.namePlaceholder')}
-					className={`w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary${inputReadOnlyClass}`}
-				/>
-			</div>
-
-			{/* Server URL */}
-			<div className='space-y-1.5'>
-				<label htmlFor='share-server-url' className='block text-[12px] font-medium text-foreground'>
-					{t('pptx.share.serverLabel')}
-				</label>
-				<input
-					id='share-server-url'
-					type='text'
-					aria-label={t('pptx.share.serverLabel')}
-					value={serverUrl}
-					onChange={(e) => onServerUrlChange(e.target.value)}
-					readOnly={preconfigured}
-					placeholder={t('pptx.share.serverPlaceholder')}
-					className={`w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary${inputReadOnlyClass}`}
-				/>
-			</div>
-
-			{/* Server hint: blank server switches to serverless peer-to-peer mode. */}
-			<p className='text-[11px] text-muted-foreground'>
-				{serverUrl.trim().length === 0 ? t('pptx.share.p2pHint') : t('pptx.share.serverHint')}
-			</p>
-		</div>
-	);
-}
-
-/** View shown when a collaboration session is active. */
-function ActiveSessionView({
-	collab,
-	activeCollaboration,
-	copied,
-	onCopyRoomId,
-	onStopCollaboration,
-}: {
-	collab: NonNullable<ReturnType<typeof useCollaboration>>;
-	activeCollaboration?: CollaborationConfig;
-	copied: boolean;
-	onCopyRoomId: () => void;
-	onStopCollaboration?: () => void;
-}) {
-	const { t } = useTranslation();
-	const statusColor =
-		collab.status === 'connected'
-			? 'text-green-400'
-			: collab.status === 'connecting'
-				? 'text-yellow-400'
-				: 'text-red-400';
-
-	const statusIcon =
-		collab.status === 'connected' || collab.status === 'connecting' ? (
-			<LuWifi className='w-4 h-4' />
-		) : (
-			<LuWifiOff className='w-4 h-4' />
-		);
-
-	return (
-		<div className='space-y-4'>
-			{/* Status */}
-			<div className='flex items-center gap-2'>
-				<span className={statusColor}>{statusIcon}</span>
-				<span className='text-[13px] font-medium text-foreground capitalize'>{collab.status}</span>
-				<span className='text-[12px] text-muted-foreground ml-auto flex items-center gap-1'>
-					<LuUsers className='w-3.5 h-3.5' />
-					{t('pptx.collaboration.userCount', { count: collab.connectedCount })}
-				</span>
-			</div>
-
-			{/* Share URL */}
-			<div className='space-y-1.5'>
-				<label className='block text-[12px] font-medium text-foreground'>
-					{t('pptx.share.shareLink')}
-				</label>
-				<div className='flex items-center gap-2'>
-					<div className='flex-1 px-3 py-1.5 rounded border border-border bg-background text-[11px] text-foreground select-all font-mono truncate'>
-						{buildCollabShareUrl(collab.config)}
-					</div>
-					<button
-						type='button'
-						onClick={onCopyRoomId}
-						className='flex items-center gap-1 px-2.5 py-1.5 rounded border border-border bg-muted hover:bg-accent text-[12px] text-foreground transition-colors shrink-0'
-						title={t('pptx.share.copyLink')}
-					>
-						{copied ? (
-							<>
-								<LuCheck className='w-3.5 h-3.5 text-green-400' />
-								<span>{t('pptx.share.copied')}</span>
-							</>
-						) : (
-							<>
-								<LuCopy className='w-3.5 h-3.5' />
-								<span>{t('pptx.share.copyUrl')}</span>
-							</>
-						)}
-					</button>
-				</div>
-				<p className='text-[11px] text-muted-foreground'>{t('pptx.share.shareHint')}</p>
-			</div>
-
-			{/* Session details */}
-			<div className='flex items-center gap-3 text-[11px] text-muted-foreground'>
-				<span>
-					{t('pptx.share.room')}{' '}
-					<code className='font-mono text-foreground'>{collab.config.roomId}</code>
-				</span>
-				<span>
-					{t('pptx.share.server')}{' '}
-					<code className='font-mono text-foreground'>
-						{isP2P(collab.config) ? t('pptx.share.p2pServerValue') : collab.config.serverUrl}
-					</code>
-				</span>
-			</div>
-
-			{/* Connected users list */}
-			{collab.remoteUsers.length > 0 && (
-				<div className='space-y-1.5'>
-					<label className='block text-[12px] font-medium text-foreground'>
-						{t('pptx.share.connectedUsers')}
-					</label>
-					<div className='rounded border border-border bg-background divide-y divide-border max-h-[140px] overflow-y-auto'>
-						{/* Local user */}
-						<div className='flex items-center gap-2 px-3 py-2'>
-							<div
-								className='w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0'
-								style={{ backgroundColor: collab.config.userColor ?? '#6366f1' }}
-							>
-								{getInitials(activeCollaboration?.userName ?? collab.config.userName)}
-							</div>
-							<span className='text-[12px] text-foreground truncate'>
-								{activeCollaboration?.userName ?? collab.config.userName}
-							</span>
-							<span className='text-[10px] text-muted-foreground ml-auto'>
-								{t('pptx.share.you')}
-							</span>
-						</div>
-						{/* Remote users */}
-						{collab.remoteUsers.map((user) => (
-							<div key={user.clientId} className='flex items-center gap-2 px-3 py-2'>
-								<div
-									className='w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0'
-									style={{ backgroundColor: user.userColor }}
-								>
-									{user.userAvatar ? (
-										<img
-											src={user.userAvatar}
-											alt=''
-											className='w-full h-full rounded-full object-cover'
-										/>
-									) : (
-										getInitials(user.userName)
-									)}
-								</div>
-								<span className='text-[12px] text-foreground truncate'>{user.userName}</span>
-								<span className='text-[10px] text-muted-foreground ml-auto'>
-									Slide {user.activeSlideIndex + 1}
-								</span>
-							</div>
-						))}
-					</div>
-				</div>
-			)}
-
-			{/* Stop sharing */}
-			{onStopCollaboration && (
-				<button
-					type='button'
-					onClick={onStopCollaboration}
-					className='w-full px-3 py-2 rounded border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-[12px] text-red-400 font-medium transition-colors'
-				>
-					{t('pptx.share.stopSharing')}
-				</button>
-			)}
-		</div>
 	);
 }

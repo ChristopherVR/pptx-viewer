@@ -1,0 +1,167 @@
+<pptx-modal-dialog
+	[open]="open()"
+	[title]="(active() ? 'pptx.share.activeTitle' : 'pptx.toolbar.share') | translate"
+	(close)="close.emit()"
+>
+	@if (active()) {
+		<div class="pptx-ng-share-active">
+			<div class="pptx-ng-share-status-row">
+				<span class="pptx-ng-share-status-dot" [class.is-on]="connected()"></span>
+				<span class="pptx-ng-share-status-text">
+					{{
+						(connected() ? 'pptx.collaboration.status.connected' : 'pptx.share.connecting')
+							| translate
+					}}
+				</span>
+				<span class="pptx-ng-share-count">
+					{{ userCount() }}
+					{{
+						(userCount() === 1 ? 'pptx.share.participantSingular' : 'pptx.share.participantPlural')
+							| translate
+					}}
+				</span>
+			</div>
+
+			@if (p2p()) {
+				<div class="pptx-ng-share-status-row">
+					<span class="pptx-ng-share-count" style="margin-left: 0">
+						{{ 'pptx.share.p2pServerValue' | translate }}
+					</span>
+				</div>
+			}
+
+			@if (shareUrl()) {
+				<div class="pptx-ng-share-field">
+					<label class="pptx-ng-share-label">{{ 'pptx.share.shareLink' | translate }}</label>
+					<div class="pptx-ng-share-link-row">
+						<input
+							class="pptx-ng-share-input"
+							type="text"
+							readonly
+							[value]="shareUrl()"
+							(focus)="selectAll($event)"
+						/>
+						<button
+							type="button"
+							class="pptx-ng-share-btn"
+							[disabled]="!canCopy()"
+							(click)="onCopyLink()"
+						>
+							{{ (copied() ? 'pptx.share.copied' : 'pptx.share.copyLinkButton') | translate }}
+						</button>
+					</div>
+					<p class="pptx-ng-share-hint">{{ 'pptx.share.shareHint' | translate }}</p>
+				</div>
+			}
+
+			<button type="button" class="pptx-ng-share-stop" (click)="handleStop()">
+				{{ 'pptx.share.stopSharing' | translate }}
+			</button>
+		</div>
+	} @else {
+		<div class="pptx-ng-share-form">
+			<div class="pptx-ng-share-tabs" role="tablist">
+				<button
+					type="button"
+					role="tab"
+					[attr.aria-selected]="mode() === 'create'"
+					(click)="mode.set('create')"
+				>
+					{{ 'pptx.share.createSession' | translate }}
+				</button>
+				<button
+					type="button"
+					role="tab"
+					[attr.aria-selected]="mode() === 'join'"
+					(click)="mode.set('join')"
+				>
+					{{ 'pptx.share.joinSession' | translate }}
+				</button>
+			</div>
+			<p class="pptx-ng-share-desc">
+				{{
+					(mode() === 'join' ? 'pptx.share.joinDescription' : 'pptx.share.formDescription')
+						| translate
+				}}
+			</p>
+
+			@if (mode() === 'join') {
+				<div class="pptx-ng-share-field">
+					<label for="pptx-ng-share-invitation" class="pptx-ng-share-label">{{
+						'pptx.share.invitationLabel' | translate
+					}}</label>
+					<input
+						id="pptx-ng-share-invitation"
+						type="text"
+						class="pptx-ng-share-input"
+						[attr.placeholder]="'pptx.share.invitationPlaceholder' | translate"
+						[value]="invitation()"
+						(input)="invitation.set(asValue($event))"
+					/>
+					<p class="pptx-ng-share-hint">{{ 'pptx.share.invitationHint' | translate }}</p>
+				</div>
+			} @else {
+				<div class="pptx-ng-share-field">
+					<label for="pptx-ng-share-room" class="pptx-ng-share-label">{{
+						'pptx.share.roomId' | translate
+					}}</label>
+					<input
+						id="pptx-ng-share-room"
+						type="text"
+						class="pptx-ng-share-input"
+						[attr.placeholder]="'pptx.share.roomIdPlaceholder' | translate"
+						[value]="roomId()"
+						(input)="roomId.set(asValue($event))"
+					/>
+				</div>
+			}
+
+			<div class="pptx-ng-share-field">
+				<label for="pptx-ng-share-name" class="pptx-ng-share-label">{{
+					'pptx.share.yourName' | translate
+				}}</label>
+				<input
+					id="pptx-ng-share-name"
+					type="text"
+					class="pptx-ng-share-input"
+					[attr.placeholder]="'pptx.share.yourNamePlaceholder' | translate"
+					[value]="userName()"
+					(input)="userName.set(asValue($event))"
+				/>
+			</div>
+
+			<div class="pptx-ng-share-field">
+				<label for="pptx-ng-share-server" class="pptx-ng-share-label">{{
+					'pptx.share.serverUrl' | translate
+				}}</label>
+				<input
+					id="pptx-ng-share-server"
+					type="text"
+					class="pptx-ng-share-input"
+					[attr.placeholder]="'pptx.share.serverPlaceholder' | translate"
+					[value]="serverUrl()"
+					(input)="serverUrl.set(asValue($event))"
+				/>
+				@if (isP2p()) {
+					<p class="pptx-ng-share-hint">{{ 'pptx.share.p2pHint' | translate }}</p>
+				}
+			</div>
+		</div>
+	}
+
+	<div footer>
+		<button type="button" class="pptx-ng-share-btn" (click)="close.emit()">
+			{{ (active() ? 'pptx.common.close' : 'pptx.common.cancel') | translate }}
+		</button>
+		@if (!active()) {
+			<button
+				type="button"
+				class="pptx-ng-share-btn pptx-ng-share-btn-primary"
+				[disabled]="!canStart()"
+				(click)="handleStart()"
+			>
+				{{ (mode() === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing') | translate }}
+			</button>
+		}
+	</div>
+</pptx-modal-dialog>

@@ -477,6 +477,7 @@ export * from './secure-random';
 // Broadcast helpers: room-id generation, start-form validation, and the
 // viewer-link builder for the one-way broadcast (presenter -> viewers) session.
 export * from './broadcast-helpers';
+export * from './share-session';
 // Presenter view: notes font-size clamp + step constants, clock/elapsed-time
 // formatting, and rich-text notes -> framework-agnostic `NotesSpan[]` render
 // spec. Each binding renders the spec into its own nodes.
@@ -593,3 +594,4 @@ export * from './color-swatches';
 export * from './title-bar';
 export * from './command-search';
 export * from './autosave-store';
+export * from './master-page-layout';

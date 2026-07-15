@@ -610,7 +610,7 @@ function App() {
 			}
 			window.history.replaceState({}, '', url.toString());
 
-			if (content) {
+			if (content && config.sessionIntent !== 'join') {
 				// P2P has no file server, so stash the deck in IndexedDB for
 				// same-browser joiner tabs to pick up (the Y.Doc still syncs edits).
 				void storeAudienceContent(content).catch(() => {
