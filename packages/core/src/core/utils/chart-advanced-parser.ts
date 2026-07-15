@@ -216,40 +216,21 @@ export function parseDataTable(
 	}
 
 	const result: PptxChartDataTable = {};
-	let hasProps = false;
-
-	const hBorder = xmlLookup.getChildByLocalName(dTable, 'showHorzBorder');
-	if (hBorder?.['@_val'] === '1') {
-		result.showHorzBorder = true;
-		hasProps = true;
+	const flags = ['showHorzBorder', 'showVertBorder', 'showOutline', 'showKeys'] as const;
+	for (const flag of flags) {
+		const node = xmlLookup.getChildByLocalName(dTable, flag);
+		if (!node) {
+			continue;
+		}
+		const value = node['@_val'];
+		// CT_Boolean defaults val to true when the attribute is omitted.
+		if (value === undefined || value === 'true' || value === '1') {
+			result[flag] = true;
+		} else if (value === 'false' || value === '0') {
+			result[flag] = false;
+		}
 	}
-
-	const vBorder = xmlLookup.getChildByLocalName(dTable, 'showVertBorder');
-	if (vBorder?.['@_val'] === '1') {
-		result.showVertBorder = true;
-		hasProps = true;
-	}
-
-	const outline = xmlLookup.getChildByLocalName(dTable, 'showOutline');
-	if (outline?.['@_val'] === '1') {
-		result.showOutline = true;
-		hasProps = true;
-	}
-
-	const keys = xmlLookup.getChildByLocalName(dTable, 'showKeys');
-	if (keys?.['@_val'] === '1') {
-		result.showKeys = true;
-		hasProps = true;
-	}
-
-	return hasProps
-		? result
-		: {
-				showHorzBorder: true,
-				showVertBorder: true,
-				showOutline: true,
-				showKeys: true,
-			};
+	return result;
 }
 
 export function parseLineStyle(

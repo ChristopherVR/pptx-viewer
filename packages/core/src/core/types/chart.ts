@@ -606,7 +606,8 @@ export interface PptxChartData {
 	chartPartPath?: string;
 	/** Internal: relationship ID linking the graphic frame to the chart part. */
 	chartRelationshipId?: string;
-	dataTable?: PptxChartDataTable;
+	/** `null` explicitly removes an existing ChartML data table. */
+	dataTable?: PptxChartDataTable | null;
 	dropLines?: PptxChartLineStyle;
 	hiLowLines?: PptxChartLineStyle;
 	/** `null` explicitly removes an existing up/down-bars container. */

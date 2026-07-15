@@ -71,6 +71,25 @@ describe('buildChartSpaceXml', () => {
 		expect(pa['c:valAx']).toBeDefined();
 	});
 
+	it('generates a typed data table after axes in CT_PlotArea schema order', () => {
+		const pa = plotArea(
+			buildChartSpaceXml(
+				makeData({
+					dataTable: {
+						showHorzBorder: true,
+						showVertBorder: false,
+						showOutline: true,
+						showKeys: true,
+					},
+				}),
+			),
+		);
+		const table = pa['c:dTable'] as XmlObject;
+		expect(table['c:showVertBorder']).toStrictEqual({ '@_val': '0' });
+		const names = Object.keys(pa).map((key) => key.replace(/^.*:/u, ''));
+		expect(names.indexOf('dTable')).toBeGreaterThan(names.indexOf('valAx'));
+	});
+
 	it('writes series values as numLit and categories as strLit', () => {
 		const pa = plotArea(buildChartSpaceXml(makeData()));
 		const ser = (pa['c:barChart'] as XmlObject)['c:ser'] as XmlObject[];

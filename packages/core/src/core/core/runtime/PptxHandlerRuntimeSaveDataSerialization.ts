@@ -20,6 +20,7 @@ import {
 	consolidateComboContainersInXml,
 } from '../../utils/chart-combo-serializer';
 import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
+import { applyChartDataTable } from '../../utils/chart-data-table';
 import { applySeriesDataPointsToXml } from '../../utils/chart-datapoint-serializer';
 import { applySeriesErrBarsToXml } from '../../utils/chart-errbars-serializer';
 import { applyChartLayouts } from '../../utils/chart-layout';
@@ -550,6 +551,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						this.compatibilityService.getXmlLocalName(key),
 					);
 				}
+
+				applyChartDataTable(plotArea, chartData.dataTable, (key) =>
+					this.compatibilityService.getXmlLocalName(key),
+				);
 
 				// Update axis fields (Phase 5 Stream A item 4).
 				// Currently writes back: scaling.min/max, scaling.logBase,

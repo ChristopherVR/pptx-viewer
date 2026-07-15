@@ -350,17 +350,12 @@ describe('parseDataTable', () => {
 		});
 	});
 
-	it('returns defaults when dTable exists but has no properties', () => {
+	it('returns an empty model when dTable exists but has no properties', () => {
 		const plotArea: XmlObject = {
 			'c:dTable': {},
 		};
 		const result = parseDataTable(plotArea, xmlLookup);
-		expect(result).toStrictEqual({
-			showHorzBorder: true,
-			showVertBorder: true,
-			showOutline: true,
-			showKeys: true,
-		});
+		expect(result).toStrictEqual({});
 	});
 
 	it('parses partial data table properties', () => {
@@ -373,6 +368,30 @@ describe('parseDataTable', () => {
 		const result = parseDataTable(plotArea, xmlLookup);
 		expect(result!.showHorzBorder).toBeTruthy();
 		expect(result!.showKeys).toBeTruthy();
+	});
+
+	it('accepts all xsd:boolean lexical forms and the default true attribute value', () => {
+		const plotArea: XmlObject = {
+			'c:dTable': {
+				'c:showHorzBorder': { '@_val': 'false' },
+				'c:showVertBorder': { '@_val': '0' },
+				'c:showOutline': { '@_val': 'true' },
+				'c:showKeys': {},
+			},
+		};
+		expect(parseDataTable(plotArea, xmlLookup)).toStrictEqual({
+			showHorzBorder: false,
+			showVertBorder: false,
+			showOutline: true,
+			showKeys: true,
+		});
+	});
+
+	it('does not coerce an invalid CT_Boolean lexical value', () => {
+		const plotArea: XmlObject = {
+			'c:dTable': { 'c:showKeys': { '@_val': 'yes' } },
+		};
+		expect(parseDataTable(plotArea, xmlLookup)).toStrictEqual({});
 	});
 });
 

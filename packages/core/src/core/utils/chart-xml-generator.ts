@@ -15,6 +15,7 @@
 import type { PptxChartData, PptxChartSeries, PptxChartType, XmlObject } from '../types';
 import { applyBubbleChartOptions } from './chart-bubble-options';
 import { applyChartDataLabelsToXml } from './chart-data-labels-serializer';
+import { applyChartDataTable } from './chart-data-table';
 import { applySeriesErrBarsToXml } from './chart-errbars-serializer';
 import { applyChartLayouts } from './chart-layout';
 import { applySeriesDataLabelsToXml } from './chart-series-datalabel-serializer';
@@ -199,21 +200,18 @@ function buildPlotArea(chartData: PptxChartData, tag: string, family: string): X
 		applyChartDataLabelsToXml(plotArea, chartData.style, (key) => key.replace(/^.*:/u, ''));
 	}
 
-	if (family === 'pie' || family === 'doughnut') {
-		return plotArea;
-	}
-
-	if (SCATTER_LIKE.has(chartData.chartType)) {
+	if (family !== 'pie' && family !== 'doughnut' && SCATTER_LIKE.has(chartData.chartType)) {
 		// Scatter/bubble use two value axes (emitted as a `c:valAx` array).
 		plotArea['c:valAx'] = [
 			buildAxis(CAT_AX_ID, VAL_AX_ID, 'b'),
 			buildAxis(VAL_AX_ID, CAT_AX_ID, 'l'),
 		];
-	} else {
+	} else if (family !== 'pie' && family !== 'doughnut') {
 		// Cartesian charts use a category axis crossed by a value axis.
 		plotArea['c:catAx'] = buildAxis(CAT_AX_ID, VAL_AX_ID, 'b');
 		plotArea['c:valAx'] = buildAxis(VAL_AX_ID, CAT_AX_ID, 'l');
 	}
+	applyChartDataTable(plotArea, chartData.dataTable, (key) => key.replace(/^.*:/u, ''));
 	return plotArea;
 }
 
