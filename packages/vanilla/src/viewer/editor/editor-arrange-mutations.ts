@@ -10,11 +10,8 @@ import {
 /**
  * Pure slide-element-array transforms backing the ribbon's Arrange group
  * (align / distribute / flip / group / ungroup). Layered on the shared
- * `element-align.ts` / `group-ops.ts` primitives; the vanilla editor has no
- * multi-element selection model yet (see {@link groupSelection} docs), so
- * `alignSelection` / `distributeSelection` degrade gracefully (a selection of
- * one has nothing to align against and is a no-op, matching the shared
- * helpers' own "fewer than 2/3 elements" no-op behaviour).
+ * `element-align.ts` / `group-ops.ts` primitives. Shift-click and marquee
+ * selection feed these transforms the current top-level selection ids.
  */
 
 /** Apply an align/distribute position map onto matching elements, immutably. */
@@ -61,9 +58,8 @@ export function distributeSelection(
  * single-selection align behaviour: with nothing else selected, "Align Left"
  * etc. aligns to the slide, not to other objects). This is the alignment mode
  * the vanilla editor actually reaches today given its single-element
- * selection model; {@link alignSelection} (multi-element, relative to the
- * selection's own bounding box) is the PowerPoint multi-selection mode and is
- * kept for when a future multi-select model lands.
+ * selection model; {@link alignSelection} is the PowerPoint multi-selection
+ * mode relative to the selection's own bounding box.
  */
 export function alignToCanvas(
 	el: PptxElement,
@@ -99,13 +95,8 @@ export function flipElement(
 /**
  * Group the elements whose id is in `ids` into a single `group` element.
  *
- * The vanilla editor's selection model is currently single-element
- * (`selectedElementId: string | null`, see `state/viewer-state.ts`), so `ids`
- * will almost always have fewer than the 2 members {@link groupElements}
- * requires; this is a documented limitation (no marquee/shift-click
- * multi-select yet), not a bug in this helper. The function is still exposed
- * (and exercised by tests) so a future multi-select selection model can wire
- * straight into it.
+ * Shift-click and marquee selections provide the two or more ids required by
+ * {@link groupElements}.
  */
 export function groupSelection(
 	elements: readonly PptxElement[],

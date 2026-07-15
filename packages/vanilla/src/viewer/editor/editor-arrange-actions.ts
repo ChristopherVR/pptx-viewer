@@ -26,20 +26,9 @@ import type { EditorOps } from './editor-operations';
  * Z-order, align, flip, and group/ungroup actions for the ribbon's
  * Home > Arrange group.
  *
- * Align/distribute: the vanilla editor's selection model is single-element
- * only (see `state/viewer-state.ts`), so `alignElements` reaches the
- * single-selection "align to slide" mode ({@link alignToCanvas}), matching
- * PowerPoint's own behaviour when nothing else is selected. Multi-selection
- * "align to selection bounding box" / distribute (needing >= 2 / >= 3
- * elements, see `editor-arrange-mutations.ts`) is unreachable until a
- * multi-select model lands; `canDistribute` is therefore always `false` today
- * (see `editing-chrome-sync.ts`), a documented limitation rather than a bug.
- *
- * Group: needs >= 2 selected elements to be meaningful, so it too is
- * unreachable under single selection; `groupSelected` is a deliberate no-op
- * kept only so the ribbon button (permanently disabled, with an explanatory
- * title) has something to call. Ungroup works today: it applies to whichever
- * single `group` element is selected.
+ * A single selection aligns against the slide canvas. Shift-click or marquee
+ * multi-selection aligns against the collective bounds, enables distribution
+ * for three or more elements, and enables grouping for two or more elements.
  */
 export interface ArrangeActions {
 	bringForward(): void;

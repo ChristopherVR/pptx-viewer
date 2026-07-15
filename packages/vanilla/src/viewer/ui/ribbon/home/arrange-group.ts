@@ -42,9 +42,9 @@ const ALIGN_BUTTONS: ReadonlyArray<{ edge: AlignEdge; icon: IconName }> = [
 ];
 
 /**
- * The ribbon Home tab's Arrange group: z-order, align (to slide; see
- * `editor-arrange-mutations.alignToCanvas` docs), distribute (permanently
- * disabled today, needs multi-select), flip, group/ungroup, duplicate/delete.
+ * The ribbon Home tab's Arrange group: z-order, align, distribute, flip,
+ * group/ungroup, duplicate/delete. Multi-selection enables distribute and
+ * group using the same selection-count thresholds as React.
  */
 export function createArrangeGroup(
 	doc: Document,
