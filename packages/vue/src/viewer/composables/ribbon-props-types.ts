@@ -104,6 +104,7 @@ export interface UseRibbonPropsActionsInput {
 	addShape: (preset: ShapePreset) => void;
 	addTable: () => void;
 	addChart: (chartType: PptxChartType) => void;
+	addField: (fieldType: string, value?: string) => void;
 	addActionButton: (shapeType: string) => void;
 	openImagePicker: () => void;
 	openMediaPicker: () => void;

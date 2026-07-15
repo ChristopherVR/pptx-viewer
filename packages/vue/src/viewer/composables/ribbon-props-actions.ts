@@ -57,7 +57,7 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 			input.showEquationEditor.value = true;
 		},
 		onAddActionButton: input.addActionButton,
-		onInsertField: undefined,
+		onInsertField: input.addField,
 		onOpenImagePicker: input.openImagePicker,
 		onOpenMediaPicker: input.openMediaPicker,
 		onSetActiveTool: (t: typeof input.activeTool.value) => {

@@ -1,6 +1,11 @@
 import { createEditorId, createShapeElement, createTextElement } from 'pptx-viewer-core';
 import type { PptxChartType, PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
-import { createDefaultChartElement, newTableElement } from 'pptx-viewer-shared';
+import {
+	createDefaultChartElement,
+	newFieldElement,
+	newTableElement,
+	resolveInsertedFieldText,
+} from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import type { Ref, ShallowRef } from 'vue';
 
@@ -25,6 +30,7 @@ export interface UseElementInsertionResult {
 	addShape: (preset: ShapePreset) => void;
 	addTable: () => void;
 	addChart: (chartType: PptxChartType) => void;
+	addField: (fieldType: string, value?: string) => void;
 	openImagePicker: () => void;
 	onImageFileSelected: (e: Event) => void;
 	openMediaPicker: () => void;
@@ -81,6 +87,16 @@ export function useElementInsertion(input: UseElementInsertionInput): UseElement
 	/** Insert a default chart of the given type, centred on the slide. */
 	function addChart(chartType: PptxChartType): void {
 		const el = createDefaultChartElement(chartType) as PptxElement;
+		centreNewElement(el, el.width, el.height);
+		ops.addElement(el);
+		selectedElementIds.value = [el.id];
+	}
+
+	/** Insert a dynamic slide/date/header/footer field, centred and selected. */
+	function addField(fieldType: string, value?: string): void {
+		const displayText = resolveInsertedFieldText(fieldType, activeSlideIndex.value + 1, value);
+		const el = newFieldElement(fieldType, displayText);
+		el.id = createEditorId('field');
 		centreNewElement(el, el.width, el.height);
 		ops.addElement(el);
 		selectedElementIds.value = [el.id];
@@ -250,6 +266,7 @@ export function useElementInsertion(input: UseElementInsertionInput): UseElement
 		addShape,
 		addTable,
 		addChart,
+		addField,
 		openImagePicker,
 		onImageFileSelected,
 		openMediaPicker,

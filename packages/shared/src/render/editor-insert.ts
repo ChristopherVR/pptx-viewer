@@ -11,6 +11,8 @@
 
 import type { PptxElement, PptxSmartArtNode, PptxTableCell, PptxTableRow } from 'pptx-viewer-core';
 
+import { substituteFieldText } from './text-field-substitution';
+
 /** Default x position for newly inserted elements (px). */
 const DEFAULT_X = 100;
 /** Default y position for newly inserted elements (px). */
@@ -41,6 +43,64 @@ const EQUATION_WIDTH = 400;
 const EQUATION_HEIGHT = 80;
 /** Default equation y offset (px). */
 const EQUATION_DEFAULT_Y = 200;
+/** Default field placeholder width (px). */
+const FIELD_WIDTH = 200;
+/** Default field placeholder height (px). */
+const FIELD_HEIGHT = 40;
+/** Default field placeholder y offset (px). */
+const FIELD_DEFAULT_Y = 200;
+
+function newFieldGuid(): string {
+	const cryptoApi = globalThis.crypto;
+	if (cryptoApi && typeof cryptoApi.randomUUID === 'function') {
+		return `{${cryptoApi.randomUUID().toUpperCase()}}`;
+	}
+	return `{${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 10).toUpperCase()}}`;
+}
+
+/** Resolve the initial visible text for an inserted PowerPoint field. */
+export function resolveInsertedFieldText(
+	fieldType: string,
+	slideNumber: number,
+	value?: string,
+): string {
+	if (value) {
+		return value;
+	}
+	return substituteFieldText(fieldType, fieldType, {
+		slideNumber,
+		headerText: 'Header',
+		footerText: 'Footer',
+	});
+}
+
+/** Create a text-bearing shape containing one OOXML field segment. */
+export function newFieldElement(
+	fieldType: string,
+	displayText: string,
+	x: number = DEFAULT_X,
+	y: number = FIELD_DEFAULT_Y,
+): PptxElement {
+	return {
+		type: 'shape',
+		id: '',
+		name: 'Field',
+		x,
+		y,
+		width: FIELD_WIDTH,
+		height: FIELD_HEIGHT,
+		text: displayText,
+		textStyle: { fontSize: 14 },
+		textSegments: [
+			{
+				text: displayText,
+				style: { fontSize: 14 },
+				fieldType,
+				fieldGuid: newFieldGuid(),
+			},
+		],
+	} as PptxElement;
+}
 
 /**
  * Create a new text box element with sensible defaults.
