@@ -50,7 +50,7 @@ export function buildRibbonPropsState(input: UseRibbonPropsInput) {
 		formatPainterActive: input.formatPainterActive.value,
 		canActivateFormatPainter: input.canActivateFormatPainter.value,
 		isSelectionPaneOpen: input.showSelectionPane.value,
-		eyedropperActive: false,
+		eyedropperActive: input.eyedropperActive.value,
 		showSubtitles: input.showSubtitles.value,
 		activeSlide: input.activeSlide.value,
 		isCollaborating: input.collab.status.value === 'connected',

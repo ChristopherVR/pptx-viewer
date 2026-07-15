@@ -1380,6 +1380,7 @@ const {
 	spellCheckEnabled,
 	themeGalleryOpen,
 	themeEditorOpen,
+	eyedropperActive,
 } = useRibbonUiState();
 
 const { drawingActive, addInkStroke, eraseInkAt } = useInkDrawing({
@@ -1457,6 +1458,7 @@ const ribbonProps = useRibbonProps({
 	isCurrentSlideInActiveShow,
 	themeEditorOpen,
 	themeGalleryOpen,
+	eyedropperActive,
 	showComments,
 	activeComments,
 	formatPainterActive,

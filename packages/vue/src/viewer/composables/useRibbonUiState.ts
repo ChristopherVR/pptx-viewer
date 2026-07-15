@@ -32,6 +32,8 @@ export interface UseRibbonUiStateResult {
 	themeGalleryOpen: Ref<boolean>;
 	/** Design ▸ Theme editor overlay. */
 	themeEditorOpen: Ref<boolean>;
+	/** View ▸ Eyedropper: active ribbon tool state. */
+	eyedropperActive: Ref<boolean>;
 }
 
 /**
@@ -58,5 +60,6 @@ export function useRibbonUiState(): UseRibbonUiStateResult {
 		spellCheckEnabled: ref(true),
 		themeGalleryOpen: ref(false),
 		themeEditorOpen: ref(false),
+		eyedropperActive: ref(false),
 	};
 }

@@ -14,10 +14,9 @@ export type {
 
 /**
  * useRibbonProps: adapts the editor's state and handlers into the `RibbonProps`
- * contract consumed by `RibbonToolbar` / `MobileToolbar`. Capabilities the host
- * does not yet expose (drawing tools, grid/ruler/snap, theme gallery, flip,
- * action buttons, layout gallery) are wired as no-ops for now; the ribbon
- * renders faithfully and the core actions are live.
+ * contract consumed by `RibbonToolbar` / `MobileToolbar`. State and actions
+ * remain in the editor composables while this adapter keeps the ribbon views
+ * presentation-only.
  *
  * The state fields and the callback fields are built by
  * `buildRibbonPropsState` / `buildRibbonPropsActions` respectively (split out

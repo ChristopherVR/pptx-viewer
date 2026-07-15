@@ -195,7 +195,9 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onToggleSelectionPane: () => {
 			input.showSelectionPane.value = !input.showSelectionPane.value;
 		},
-		onToggleEyedropper: undefined,
+		onToggleEyedropper: () => {
+			input.eyedropperActive.value = !input.eyedropperActive.value;
+		},
 		onOpenSetUpSlideShow: () => {
 			input.showSetUpSlideShow.value = true;
 		},

@@ -61,6 +61,7 @@ export interface UseRibbonPropsStateInput {
 	isCurrentSlideInActiveShow: ComputedRef<boolean>;
 	themeEditorOpen: Ref<boolean>;
 	themeGalleryOpen: Ref<boolean>;
+	eyedropperActive: Ref<boolean>;
 	showComments: Ref<boolean>;
 	activeComments: ComputedRef<PptxComment[]>;
 	formatPainterActive: Ref<boolean>;
