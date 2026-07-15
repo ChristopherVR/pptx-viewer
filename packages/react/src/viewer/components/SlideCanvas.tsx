@@ -1,6 +1,5 @@
-import { getSlideBackgroundStyle } from 'pptx-viewer-shared';
-
 import { getShapeAdjustmentHandleDescriptor } from '../utils';
+import { getReactSlideBackgroundStyle } from '../utils/slide-background-style';
 /** SlideCanvas: Central canvas area for the PowerPoint editor. */
 import type { SlideCanvasProps } from './canvas/canvas-types';
 import { CanvasGuides, MarqueeOverlay, SnapLinesOverlay } from './canvas/CanvasOverlays';
@@ -223,7 +222,7 @@ export function SlideCanvas({
 						// pinch-zoom. View/present mode keeps the default so the slide can
 						// still be scrolled and swipe-navigated.
 						touchAction: isEditableCanvas ? 'none' : undefined,
-						...getSlideBackgroundStyle(activeSlide),
+						...getReactSlideBackgroundStyle(activeSlide),
 					}}
 					onClick={handleStageClick}
 					onDoubleClick={handleStageDblClick}

@@ -5,7 +5,6 @@ import type {
 	SmartArtPptxElement,
 } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-import { getSlideBackgroundStyle } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -34,6 +33,7 @@ import {
 	isImageTiled,
 	getImageTilingStyle,
 } from '../utils';
+import { getReactSlideBackgroundStyle } from '../utils/slide-background-style';
 import { ThumbnailChart, ThumbnailSmartArt, ThumbnailTable } from './thumbnail-element-renderers';
 
 interface SlideThumbnailProps {
@@ -63,7 +63,7 @@ function SlideThumbnailImpl({
 	return (
 		<div
 			className='relative w-full overflow-hidden rounded border border-border bg-white'
-			style={{ height: previewHeight, ...getSlideBackgroundStyle(slide) }}
+			style={{ height: previewHeight, ...getReactSlideBackgroundStyle(slide) }}
 		>
 			<div
 				className='absolute top-0 left-0 origin-top-left'
