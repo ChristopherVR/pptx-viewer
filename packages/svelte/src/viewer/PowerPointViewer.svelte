@@ -25,6 +25,7 @@
 	import TitleBar from './components/TitleBar.svelte';
 	import Ribbon from './components/ribbon/Ribbon.svelte';
 	import ViewerBody from './components/ViewerBody.svelte';
+	import { presentationSwipe } from './presentation-swipe';
 	import ViewerToolbar from './components/ViewerToolbar.svelte';
 	import { createEditingApi } from './editor/editing-api';
 	import { EditorController } from './editor/editor-controller.svelte';
@@ -340,6 +341,11 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 <!-- The viewer root is a keyboard-navigable application region (slide navigation). -->
 <div
+	use:presentationSwipe={{
+		isEnabled: () => viewer.isFullscreen,
+		onNext: () => presentation.advance(),
+		onPrevious: () => viewer.prev(),
+	}}
 	bind:this={rootEl}
 	class={`pptx-svelte-viewer ${className}`}
 	class:pptx-svelte-fullscreen={viewer.isFullscreen}
@@ -567,7 +573,7 @@
 		background: #000;
 	}
 
-	@media (max-width: 767px) {
+	@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {
 		:global(.pptx-svelte-titlebar),
 		:global(.pptx-svelte-ribbon),
 		:global(.pptx-svelte-toolbar),

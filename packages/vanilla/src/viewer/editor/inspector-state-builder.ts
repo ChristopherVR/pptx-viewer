@@ -68,6 +68,8 @@ export function buildInspectorState(el: PptxElement | undefined): InspectorState
 		canText: canFormatText(el),
 		isImage: el !== undefined && isImageLikeElement(el),
 		isTable: el?.type === 'table',
+		isSmartArt: el?.type === 'smartArt',
+		smartArtData: el?.type === 'smartArt' ? el.smartArtData : undefined,
 		x: el?.x ?? 0,
 		y: el?.y ?? 0,
 		width: el?.width ?? 0,

@@ -8,14 +8,13 @@
  * `ribbon-tab-parity.spec.ts`, which checks the ribbon tabs switch, not that
  * anything animates). Both features are genuinely implemented in core - a
  * typed `PptxSlideTransition` model (parsed/serialized as real `p:transition`
- * XML) and native `p:timing` animation timelines - and all three bindings now
+ * XML) and native `p:timing` animation timelines - and all five bindings now
  * play transitions via the same mechanism (mount a transient overlay whose
  * outgoing-slide layer carries a real CSS `animation`, then tear it down once
  * the duration elapses):
  *
- *  - VUE (`PresentationTransitionOverlay.vue`) mounts an overlay with two
- *    layers (outgoing + a redundant incoming), each with a real CSS
- *    `animation`.
+ *  - VUE, VANILLA, and SVELTE mount an overlay with two layers (outgoing plus
+ *    incoming), each with a real CSS `animation`.
  *  - ANGULAR (`presentation-transition-overlay.component.ts`) and REACT
  *    (`PresentationTransitionOverlay.tsx`) mount an overlay whose single layer
  *    snapshots the OUTGOING slide with a real CSS `animation`, over the
@@ -25,18 +24,19 @@
  *    swaps the incoming slide in immediately and mounts
  *    `.pptx-react-transition-overlay` for the transition's duration.
  *
- * Element animations, by contrast, are observable in *all three* bindings, but
+ * Element animations, by contrast, are observable in all five bindings, but
  * via different signals:
  *  - REACT drives playback off `slide.nativeAnimations` (parsed from real
  *    `p:timing` XML) through a `TimelineEngine`; an animated element's
  *    container div gets inline `visibility: hidden|visible` (+ `animation`
  *    once revealed).
- *  - VUE and ANGULAR drive playback off the simpler `slide.animations` array
+ *  - VUE, ANGULAR, VANILLA, and SVELTE drive playback off the simpler
+ *    `slide.animations` array
  *    (also parsed from the same `p:timing` XML) via shared click-group
  *    helpers, applying inline `opacity: 0` (pending) then a real
  *    `animation-name` (e.g. `pptx-vue-fadeIn`) directly onto the
  *    `[data-element-id]` node.
- *  - All three share the same click semantics: advancing the presentation
+ *  - All five share the same click semantics: advancing the presentation
  *    (`PageDown`/`ArrowRight`/Space) first reveals a slide's next pending
  *    animation click-group *without changing slide*; only once every
  *    click-group is revealed does the same keypress advance to the next
@@ -47,7 +47,7 @@
  * independently from the *same* real `p:timing` XML at load time (see
  * `PptxSlideLoaderService`), a fixture authored via the SDK
  * (`SlideBuilder.setTransition` / `.addAnimation`) and loaded fresh through
- * `#file-input` plays back correctly in all three bindings. Authoring the
+ * `#file-input` plays back correctly in all five bindings. Authoring the
  * effect live via the ribbon/inspector in the same editing session would NOT
  * be portable: React's Present-mode playback only ever reads
  * `nativeAnimations`, which isn't regenerated from a live `slide.animations`
@@ -88,7 +88,7 @@ const SETTLE_BUFFER_MS = 50;
  * letting a genuine regression (e.g. an overlay that never tears down) hang
  * for long before failing. */
 const POLL_SLACK_MS = 2000;
-/** How long the transition overlay (Vue/Angular) or the react timing-gap swap
+/** How long the transition overlay or the React timing-gap swap
  * should take to fully settle, derived from the fixture's own transition
  * duration rather than a hard-coded guess. */
 const TRANSITION_SETTLE_TIMEOUT_MS = TRANSITION_DURATION_MS + SETTLE_BUFFER_MS + POLL_SLACK_MS;
@@ -150,15 +150,21 @@ async function openInPresentMode(page: Page): Promise<void> {
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[data-element-id]').filter({ hasText: SLIDES.first }).first().waitFor();
-	// Not anchored (`/present/iu`, not `/^present$/iu`): Angular's button label
-	// is "▶ Present" (glyph prefix included in the accessible name), while
-	// React/Vue's is a bare "Present" - both match, and no other control in the
-	// toolbar contains the substring "present".
+	await enterPresentation(page);
+	await page.waitForTimeout(700);
+}
+
+/** Enter presentation mode through either the status bar or legacy Present button. */
+async function enterPresentation(page: Page): Promise<void> {
+	const slideShowButtons = page.getByRole('button', { name: /^slide show$/iu });
+	if ((await slideShowButtons.count()) > 0) {
+		await slideShowButtons.last().click();
+		return;
+	}
 	await page
 		.getByRole('button', { name: /present/iu })
 		.first()
 		.click();
-	await page.waitForTimeout(700);
 }
 
 /** Advance the presentation by one step (slide or animation click-group). */
@@ -186,15 +192,17 @@ test.describe('slide transition playback', () => {
 
 		const framework = testInfo.project.name;
 
-		if (framework === 'vue') {
-			const overlay = page.locator('.pptx-vue-transition-overlay');
+		if (framework === 'vue' || framework === 'vanilla' || framework === 'svelte') {
+			const prefix =
+				framework === 'vanilla' ? 'pptxv' : framework === 'svelte' ? 'pptx-svelte' : 'pptx-vue';
+			const overlay = page.locator(`.${prefix}-transition-overlay`);
 			await advance(page);
 
 			// Both the outgoing and incoming slide are genuinely mounted at once,
 			// inside the overlay's two layers - not just "adjacent slide
 			// preloading" elsewhere on the page (this locator is scoped to the
 			// overlay itself).
-			const layers = overlay.locator('.pptx-vue-transition-layer');
+			const layers = overlay.locator(`.${prefix}-transition-layer`);
 			await expect(layers).toHaveCount(2);
 			await expect(layers.filter({ hasText: SLIDES.first })).toHaveCount(1);
 			await expect(layers.filter({ hasText: SLIDES.transitionTarget })).toHaveCount(1);
@@ -241,7 +249,7 @@ test.describe('slide transition playback', () => {
 			await expect(overlay).toHaveCount(0, { timeout: TRANSITION_SETTLE_TIMEOUT_MS });
 		}
 
-		// Steady state is identical across all three once the transition settles:
+		// Steady state is identical across all five once the transition settles:
 		// the incoming slide is the live render, the outgoing one no longer is
 		// (`primaryMatch` resolves to no element once nothing full-size remains,
 		// so this is a real check, not a false pass from a thumbnail-rail
@@ -278,7 +286,7 @@ test.describe('element animation playback', () => {
 		const shape = await animatedShape(page);
 
 		// Before the first click on this slide, the entrance hasn't played: the
-		// element is hidden (React: `visibility: hidden`; Vue/Angular: `opacity: 0`
+		// element is hidden (React: `visibility: hidden`; other bindings: `opacity: 0`
 		// pre-seeded so it never flashes visible).
 		if (framework === 'react') {
 			await expect

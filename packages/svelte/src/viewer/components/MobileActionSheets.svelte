@@ -4,6 +4,7 @@
 	import { buildBarActions, toggleSheet } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
+	import { newTextElement } from '../editor';
 	import type { EditorState } from '../editor/editor-state.svelte';
 	import InsertMenu from './InsertMenu.svelte';
 	import InspectorPanel from './inspector/InspectorPanel.svelte';
@@ -62,6 +63,7 @@
 	{:else if active === 'menu'}
 		<MobileSheet title={t('pptx.mobileToolbar.menu')} onclose={close}>
 			<div class="pptx-svelte-mobile-menu-grid">
+				<button type="button" onclick={() => open('insert')}>{t('pptx.ribbon.insert')}</button>
 				<button type="button" onclick={onzoomout}>{t('pptx.statusBar.zoomOut')}</button>
 				<button type="button" onclick={onzoomfit}>{t('pptx.statusBar.zoomToFit')}</button>
 				<button type="button" onclick={onzoomin}>{t('pptx.statusBar.zoomIn')}</button>
@@ -70,7 +72,20 @@
 	{/if}
 	<nav aria-label={t('pptx.mobileBar.ariaLabel')}>
 		{#each actions as action}
-			<button type="button" class:active={active === action.key} aria-pressed={active === action.key} disabled={action.disabled} onclick={() => open(action.key)}>
+			<button
+				type="button"
+				class:active={active === action.key}
+				aria-pressed={active === action.key}
+				disabled={action.disabled}
+				onclick={() => {
+					if (action.key === 'insert') {
+						editor.insertElement(newTextElement());
+						onactivechange(null);
+					} else {
+						open(action.key);
+					}
+				}}
+			>
 				<span aria-hidden="true">{action.icon}</span><small>{action.label}</small>
 			</button>
 		{/each}
@@ -79,7 +94,7 @@
 
 <style>
 	.pptx-svelte-mobile-actions { display: none; }
-	@media (max-width: 767px) {
+	@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {
 		.pptx-svelte-mobile-actions { display: contents; }
 		.pptx-svelte-mobile-actions nav { position: absolute; z-index: 50; right: 0; bottom: 0; left: 0; display: flex; min-height: 64px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--pptx-border, #33334d); background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 94%, transparent); }
 		.pptx-svelte-mobile-actions nav button { display: grid; flex: 1; place-items: center; align-content: center; gap: 1px; min-width: 44px; border: 0; background: transparent; color: var(--pptx-muted-foreground, #94a3b8); touch-action: manipulation; }

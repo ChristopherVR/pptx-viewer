@@ -110,6 +110,30 @@ export const EDITOR_CSS = `
 }
 .pptxv-inspector-row-label { color: var(--pptx-muted-foreground); }
 
+/* Compact SmartArt layout switcher and editable text pane. */
+.pptxv-smartart-label { display: block; margin-bottom: 6px; color: var(--pptx-muted-foreground); }
+.pptxv-smartart-layout-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-bottom: 10px; }
+.pptxv-smartart-layout-button {
+	min-width: 0;
+	padding: 6px 3px;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: transparent;
+	color: var(--pptx-muted-foreground);
+	font: inherit;
+	font-size: 10px;
+	cursor: pointer;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.pptxv-smartart-layout-button:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-smartart-layout-button.is-active { border-color: var(--pptx-primary); background: color-mix(in srgb, var(--pptx-primary) 16%, transparent); color: var(--pptx-primary); }
+.pptxv-smartart-nodes { display: flex; max-height: 208px; flex-direction: column; gap: 5px; overflow-y: auto; }
+.pptxv-smartart-node { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; gap: 5px; }
+.pptxv-smartart-node-index { color: var(--pptx-muted-foreground); text-align: center; }
+.pptxv-smartart-node-input { min-width: 0; height: 26px; box-sizing: border-box; padding: 2px 6px; border: 1px solid var(--pptx-border); border-radius: var(--pptx-radius); background: var(--pptx-background); color: var(--pptx-foreground); font: inherit; }
+.pptxv-smartart-node-input:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -1px; }
+
 /* Select / checkbox / range fields (text/image/table inspector sections). */
 .pptxv-field-select,
 .pptxv-field-checkbox,

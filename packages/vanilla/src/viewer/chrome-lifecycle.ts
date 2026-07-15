@@ -80,7 +80,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		last: deps.goToLastSlide,
 		escape: deps.exitPresentation,
 	});
-	const detachTouchGestures = attachTouchGestures(chrome.viewport, {
+	const detachTouchGestures = attachTouchGestures(chrome.root, {
 		getScale: () => renderer.effectiveScale(),
 		onPinchZoom: (zoom) => store.set({ zoom }),
 		isSwipeEnabled: () => {

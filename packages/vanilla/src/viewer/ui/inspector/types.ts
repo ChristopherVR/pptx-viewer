@@ -1,3 +1,4 @@
+import type { PptxSmartArtData, SmartArtColorScheme, SmartArtLayoutType } from 'pptx-viewer-core';
 import type { GradientState } from 'pptx-viewer-shared';
 
 import type { GeometryPatch } from '../../editor/editor-edit-ops';
@@ -32,6 +33,10 @@ export interface InspectorHandlers {
 	setTableHeaderRow(enabled: boolean): void;
 	setTableBandedRows(enabled: boolean): void;
 	setTableCellPadding(padding: number): void;
+
+	setSmartArtNodeText(nodeId: string, text: string): void;
+	setSmartArtLayout(layout: SmartArtLayoutType): void;
+	setSmartArtColorScheme(scheme: SmartArtColorScheme): void;
 }
 
 /** Selection-derived state the inspector reflects, computed by `buildInspectorState`. */
@@ -41,6 +46,8 @@ export interface InspectorState {
 	canText: boolean;
 	isImage: boolean;
 	isTable: boolean;
+	isSmartArt: boolean;
+	smartArtData: PptxSmartArtData | undefined;
 	x: number;
 	y: number;
 	width: number;

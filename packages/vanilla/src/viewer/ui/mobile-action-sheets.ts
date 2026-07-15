@@ -170,6 +170,7 @@ export function createMobileActionSheets(
 			body.appendChild(add);
 		} else {
 			const buttons = [
+				[t('pptx.ribbon.insert'), () => handlers.insert.insert('text')],
 				[t('pptx.presenter.previousSlide'), handlers.nav.prev],
 				[t('pptx.presenter.nextSlide'), handlers.nav.next],
 				[t('pptx.statusBar.zoomOut'), handlers.nav.zoomOut],
@@ -225,6 +226,10 @@ export function createMobileActionSheets(
 		button.addEventListener('click', () => {
 			if (key === 'notes') {
 				handlers.nav.toggleNotes();
+				return;
+			}
+			if (key === 'insert') {
+				handlers.insert.insert('text');
 				return;
 			}
 			openSheet(key);

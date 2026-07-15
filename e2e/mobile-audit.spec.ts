@@ -1,12 +1,12 @@
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright spec, `test`/`expect` come from @playwright/test */
 /**
- * Mobile first-class-support audit (React).
+ * Mobile first-class-support audit across every viewer binding.
  *
  * Walks every mobile-specific feature on a real Pixel 7 touch device and
  * captures a screenshot for each so the result can be eyeballed. Tests are
  * independent: a failure in one feature does not mask the others. Run with:
  *
- *   bunx playwright test mobile-audit --project=react
+ *   bunx playwright test mobile-audit
  *
  * Screenshots land in `.mobile-audit/` at the repo root.
  */
@@ -18,9 +18,7 @@ import type { Page } from '@playwright/test';
 
 test.use({ ...devices['Pixel 7'] });
 
-// React, Vue, and Angular all emit the same mobile chrome contract (Toolbar
-// role, Editor actions nav, Slides/Insert/Format/Comments/Notes bar, menu
-// sheet), so this spec runs unmodified against every project.
+// Every binding emits the shared mobile chrome contract used by this spec.
 
 const deck = resolve(fileURLToPath(new URL('../.github/assets/sample-deck.pptx', import.meta.url)));
 // Screenshots are debug artifacts; write them under the gitignored test-results dir.
@@ -37,9 +35,7 @@ function shot(page: Page, name: string) {
 	return page.screenshot({ path: resolve(shotDir, `${name}.png`) });
 }
 
-// Bottom bar label differs between Vue ('Slide controls') and React/Angular
-// ('Editor actions') - see toolbar-breakpoints.spec.ts and
-// packages/vue/src/viewer/components/MobileBottomBar.vue.
+// Vue uses "Slide controls"; the other four bindings use "Editor actions".
 function bottomBarNav(page: Page, projectName: string) {
 	return page.getByRole('navigation', {
 		name: projectName === 'vue' ? 'Slide controls' : 'Editor actions',
@@ -64,7 +60,13 @@ test.describe('mobile audit (Pixel 7 touch)', () => {
 		await page.waitForTimeout(300);
 		await shot(page, '02-menu-sheet');
 		// The sheet should surface section entries (Home/Insert/Design/etc.)
-		await expect(page.getByText(/insert/iu).first()).toBeVisible();
+		const actions = page.getByRole('dialog').first();
+		await expect(
+			actions
+				.getByRole('button', { name: /^Insert/iu })
+				.or(actions.getByRole('menuitem', { name: /^Insert/iu }))
+				.first(),
+		).toBeVisible();
 	});
 
 	test('03 bottom bar: slides sheet opens & selects', async ({ page }) => {
@@ -95,9 +97,9 @@ test.describe('mobile audit (Pixel 7 touch)', () => {
 		await shot(page, '05-comments-sheet');
 	});
 
-	test('06 bottom bar: notes editor opens & is editable', async ({ page }) => {
+	test('06 bottom bar: notes editor opens & is editable', async ({ page }, testInfo) => {
 		await load(page);
-		await page.getByRole('button', { name: 'Notes' }).tap();
+		await bottomBarNav(page, testInfo.project.name).getByRole('button', { name: 'Notes' }).tap();
 		const panel = page.locator('#slide-notes-content');
 		await expect(panel).toBeVisible();
 		await shot(page, '06-notes');
@@ -116,7 +118,7 @@ test.describe('mobile audit (Pixel 7 touch)', () => {
 	test('08 present mode: touch controls appear and navigate', async ({ page }, testInfo) => {
 		await load(page);
 		await page
-			.getByRole('button', { name: /present/iu })
+			.getByRole('button', { name: /present|slide show/iu })
 			.first()
 			.tap();
 		await page.waitForTimeout(800);
@@ -139,12 +141,15 @@ test.describe('mobile audit (Pixel 7 touch)', () => {
 	test('09 present mode: horizontal swipe advances the slide', async ({ page }) => {
 		await load(page);
 		await page
-			.getByRole('button', { name: /present/iu })
+			.getByRole('button', { name: /present|slide show/iu })
 			.first()
 			.tap();
 		await page.waitForTimeout(800);
 
-		const counter = page.locator('text=/^\\s*\\d+\\s*\\/\\s*\\d+\\s*$/').first();
+		const counter = page
+			.locator('text=/^\\s*\\d+\\s*\\/\\s*\\d+\\s*$/')
+			.filter({ visible: true })
+			.first();
 		const before = (await counter.textContent())?.trim() ?? '';
 
 		// Genuine touch swipe (right→left = next) via CDP touch dispatch.

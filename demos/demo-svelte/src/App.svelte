@@ -74,9 +74,6 @@
 	}
 
 	const urlRoom = params.get('room');
-	if (urlRoom) {
-		joinRoom(urlRoom);
-	}
 
 	// Prefilled values for the viewer's built-in Share dialog form.
 	const shareDefaults = { roomId: resolveAutoRoomId(), userName: autoName };
@@ -133,6 +130,11 @@
 		} finally {
 			creating = false;
 		}
+	}
+
+	if (urlRoom) {
+		joinRoom(urlRoom);
+		void newPresentation();
 	}
 
 	function onDrop(e: DragEvent): void {

@@ -66,6 +66,7 @@ export const renderSmartArtSvg: ElementRenderer = (element, zIndex, context) => 
 		getContainerStyle(element, zIndex),
 	);
 	wrapper.dataset.elementId = element.id;
+	wrapper.dataset.testid = `smartart-${data?.layout ?? 'diagram'}`;
 
 	const chrome = createEl(doc, 'div', 'pptxv-smartart-chrome', buildChromeStyle(data?.chrome));
 	chrome.style.position = 'relative';

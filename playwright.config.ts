@@ -1,24 +1,22 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * One e2e spec set, run against every framework demo.
+ * One product e2e spec set, run against every framework demo.
  *
- * The specs in `e2e/*.spec.ts` target a framework-neutral DOM/test contract
+ * The product specs selected from `e2e/*.spec.ts` target a framework-neutral
+ * DOM/test contract
  * (`#file-input`, `[data-pptx-element="true"]`, `[aria-roledescription="slide"]`,
  * `[data-inline-editor]`, `[data-testid="format-painter-toggle"]` + `data-active`,
  * `#slide-notes-content` / `textarea[name="slide-notes"]`, `aria-label="Adjust shape"`,
- * `[data-pptx-viewport]`, and accessible button names), which the React, Vue, and
- * Angular viewers emit, with binding-neutral fallbacks where accessible control
- * names or ribbon semantics differ. Each project boots its own demo dev server and points
+ * `[data-pptx-viewport]`, and accessible button names), which the React, Vue,
+ * Angular, Vanilla, and Svelte viewers emit, with binding-neutral fallbacks
+ * where accessible control names or ribbon semantics differ. Each project
+ * boots its own demo dev server and points
  * its `baseURL` at it, so `playwright test --project=react` / `--project=vue` /
- * `--project=angular` exercise the identical spec bodies.
- *
- * `vanilla` and `svelte` now include editing ribbons, inspectors, dialogs,
- * mobile chrome, inline editing, save/export, and presentation behavior. Some
- * shared specs still encode binding-specific DOM details or cover capabilities
- * that are being completed independently, so those projects use the explicitly
- * verified list below. A spec is added only after the same semantic assertions
- * pass against both demos.
+ * `--project=angular` / `--project=vanilla` / `--project=svelte` exercise the
+ * identical 26-file, 95-test product suite: 475 project executions. Documentation
+ * capture jobs are intentionally excluded and use `playwright.capture.config.ts`
+ * instead.
  */
 const REACT_PORT = 4173;
 const VUE_PORT = 4175;
@@ -27,29 +25,9 @@ const VANILLA_PORT = 4176;
 const SVELTE_PORT = 4177;
 const isCI = Boolean(process.env.CI);
 
-/**
- * Spec files verified to pass against both the vanilla and Svelte demos (see
- * this file's doc comment). Shared with `.github/workflows/
- * ci.yml`'s vanilla/svelte e2e matrix legs, which run this same file list.
- */
-const VANILLA_SVELTE_FILES = [
-	'vanilla-svelte-basics.spec.ts',
-	'text-rendering.spec.ts',
-	'absolute-path-rels.spec.ts',
-	'text-descender-clip.spec.ts',
-	'mobile-inline-edit.spec.ts',
-	'mobile-table.spec.ts',
-	'mobile-manipulation.spec.ts',
-	'ole-and-ink.spec.ts',
-	'format-painter.spec.ts',
-	'mobile-notes.spec.ts',
-	'inspector-responsiveness.spec.ts',
-	'toolbar-breakpoints.spec.ts',
-];
-
 export default defineConfig({
 	testDir: './e2e',
-	testIgnore: ['**/fixtures/**', '**/global-setup.*'],
+	testIgnore: ['**/fixtures/**', '**/global-setup.*', '**/capture-*.spec.ts'],
 	globalSetup: './e2e/global-setup.ts',
 	timeout: 60_000,
 	expect: { timeout: 10_000 },
@@ -64,29 +42,22 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'react',
-			// The vanilla/svelte-only spec targets a narrower DOM contract (no
-			// ribbon/inspectors) and is not written to run against React.
-			testIgnore: ['vanilla-svelte-basics.spec.ts'],
 			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${REACT_PORT}` },
 		},
 		{
 			name: 'vue',
-			testIgnore: ['vanilla-svelte-basics.spec.ts'],
 			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${VUE_PORT}` },
 		},
 		{
 			name: 'angular',
-			testIgnore: ['vanilla-svelte-basics.spec.ts'],
 			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${ANGULAR_PORT}` },
 		},
 		{
 			name: 'vanilla',
-			testMatch: VANILLA_SVELTE_FILES,
 			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${VANILLA_PORT}` },
 		},
 		{
 			name: 'svelte',
-			testMatch: VANILLA_SVELTE_FILES,
 			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${SVELTE_PORT}` },
 		},
 	],

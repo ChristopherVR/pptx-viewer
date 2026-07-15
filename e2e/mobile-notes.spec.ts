@@ -18,13 +18,12 @@ test('notes editor stays mounted when the virtual keyboard opens', async ({ page
 	await page.locator('[data-pptx-element="true"]').first().waitFor();
 
 	// Open the notes panel from the mobile bottom bar.
-	await page.evaluate(() => {
-		const button = [...document.querySelectorAll('nav button')].find((candidate) => {
-			const name = candidate.getAttribute('aria-label') ?? candidate.textContent?.trim();
-			return /^(?:Notes|Toggle notes)$/iu.test(name ?? '') && candidate.checkVisibility();
-		});
-		(button as HTMLButtonElement | undefined)?.click();
-	});
+	await page
+		.locator('nav')
+		.getByRole('button', { name: /^(?:Notes|Toggle notes)$/iu })
+		.filter({ visible: true })
+		.last()
+		.click();
 
 	const panel = page.locator('#slide-notes-content');
 	const editor = panel
@@ -35,7 +34,7 @@ test('notes editor stays mounted when the virtual keyboard opens', async ({ page
 
 	// Focus the notes box, then simulate the on-screen keyboard by shrinking the
 	// viewport height > 30% (what the viewer uses to infer keyboard visibility).
-	await editor.tap({ force: true });
+	await editor.focus();
 	const vp = page.viewportSize()!;
 	await page.setViewportSize({ width: vp.width, height: Math.round(vp.height * 0.4) });
 

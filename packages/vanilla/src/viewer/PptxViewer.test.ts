@@ -35,7 +35,14 @@ describe('createPptxViewer', () => {
 		expect(container.querySelector('.pptxv-mobile-nav')).toBeNull();
 		expect(container.querySelectorAll('.pptxv-mobile-actions > nav > button')).toHaveLength(5);
 		expect(container.querySelector('.pptxv-statusbar [aria-label*="Previous"]')).toBeNull();
-		expect(container.querySelector('.pptxv-ribbon-primary')?.childElementCount).toBe(0);
+		const primary = container.querySelector('.pptxv-ribbon-primary');
+		expect(primary?.getAttribute('role')).toBe('toolbar');
+		expect(primary?.children).toHaveLength(3);
+		expect(primary?.querySelector('button[aria-label="Share"]')).toBeTruthy();
+		expect(
+			primary?.querySelector('button[aria-label="Broadcast to a live audience"]'),
+		).toBeTruthy();
+		expect(primary?.querySelector('.pptxv-collab-status')).toBeTruthy();
 
 		mount();
 		const styleTags = document.querySelectorAll('#pptx-vanilla-viewer-styles');

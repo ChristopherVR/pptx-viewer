@@ -1,6 +1,6 @@
 export const MOBILE_SHEET_CSS = `
 .pptxv-mobile-toolbar, .pptxv-mobile-actions { display: none; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {
 	.pptxv-ribbon { display: none; }
 	.pptxv-mobile-toolbar { position: relative; z-index: 20; display: flex; flex: none; align-items: center; gap: 4px; min-height: 52px; padding: max(env(safe-area-inset-top), 0px) 8px 4px; border-bottom: 1px solid var(--pptx-border); background: color-mix(in srgb, var(--pptx-muted) 55%, var(--pptx-card)); }
 	.pptxv-mobile-toolbar-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--pptx-foreground); touch-action: manipulation; }

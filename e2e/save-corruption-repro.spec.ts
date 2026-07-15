@@ -13,13 +13,12 @@
  * The resulting file triggers a "needs repair" prompt when opened in
  * PowerPoint. This spec captures the exact editing sequence for debugging.
  *
- * React-only: this is a historical one-off corruption repro whose editing
- * helpers are bound to React's ribbon DOM (`select[title]`, `button[title*=
- * "Shape"]`, the `File` tab, the `Save .pptx` button). It is not a parity test
- * and is skipped on Vue/Angular (see the `test.skip` guard below). Cross-
- * framework SmartArt insertion is covered by `smartart-insert-edit.spec.ts`.
+ * This historical corruption sequence now runs across all five bindings. Its
+ * helpers accept each binding's ribbon and insertion semantics while asserting
+ * the same saved-file contract. Focused SmartArt behavior is also covered by
+ * `smartart-insert-edit.spec.ts`.
  *
- * Run: bunx playwright test save-corruption-repro --project=react
+ * Run: bunx playwright test save-corruption-repro
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,18 +29,69 @@ import type { Page } from '@playwright/test';
 const gifFixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/test-image.gif', import.meta.url)),
 );
+const deckFixturePath = resolve(
+	fileURLToPath(new URL('./fixtures/sample-deck.pptx', import.meta.url)),
+);
 const outputDir = fileURLToPath(new URL('../test-results/save-corruption/', import.meta.url));
 
 /** Switch to the Insert ribbon tab. */
 async function switchToInsertTab(page: Page): Promise<void> {
-	const insertTab = page.locator('button').filter({ hasText: /^Insert$/i });
+	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
+	const insertTab = toolbar
+		.getByRole('tab', { name: 'Insert', exact: true })
+		.or(toolbar.getByRole('button', { name: 'Insert', exact: true }))
+		.first();
 	await insertTab.click();
 	await page.waitForTimeout(300);
+}
+
+function projectName(page: Page): string {
+	const url = page.url();
+	if (url.includes('4173')) {
+		return 'react';
+	}
+	if (url.includes('4175')) {
+		return 'vue';
+	}
+	if (url.includes('4174')) {
+		return 'angular';
+	}
+	if (url.includes('4176')) {
+		return 'vanilla';
+	}
+	if (url.includes('4177')) {
+		return 'svelte';
+	}
+	return 'react';
 }
 
 /** Click the shape dropdown, select rect, then click Shape button. */
 async function addRectangleShape(page: Page): Promise<void> {
 	await switchToInsertTab(page);
+	const project = projectName(page);
+	if (project === 'vanilla') {
+		await page
+			.locator('.pptxv-shape-grid')
+			.getByRole('button', { name: /Rectangle/iu })
+			.first()
+			.click();
+		await page.waitForTimeout(500);
+		return;
+	}
+	if (project === 'svelte') {
+		await page.getByRole('button', { name: 'Shapes', exact: true }).click();
+		await page
+			.getByRole('menuitem', { name: /Rectangle/iu })
+			.first()
+			.click();
+		await page.waitForTimeout(500);
+		return;
+	}
+	if (project === 'angular') {
+		await page.getByRole('button', { name: 'Rect', exact: true }).click();
+		await page.waitForTimeout(500);
+		return;
+	}
 	// Select 'rect' from the shape type dropdown
 	await page.locator('select[title]').first().selectOption('rect');
 	// Click the Shape button to insert
@@ -52,24 +102,36 @@ async function addRectangleShape(page: Page): Promise<void> {
 /** Insert a SmartArt via the dialog. Picks the first preset in 'list' category. */
 async function addSmartArt(page: Page): Promise<void> {
 	await switchToInsertTab(page);
+	const project = projectName(page);
+	if (project === 'vanilla') {
+		await page.locator('.pptxv-smartart-grid').getByRole('button').first().click();
+		await page.waitForTimeout(500);
+		return;
+	}
 	// Click the SmartArt button
 	await page.locator('button[title*="SmartArt"], button[title*="smartart"]').first().click();
 	await page.waitForTimeout(500);
+	if (project === 'svelte') {
+		await page.locator('.pptx-svelte-smartart-grid').getByRole('menuitem').first().click();
+		await page.waitForTimeout(500);
+		return;
+	}
 
 	// Wait for the SmartArt dialog
 	const dialog = page.locator('[role="dialog"][aria-modal="true"]');
 	await dialog.waitFor({ timeout: 5000 });
 
 	// Click the first preset thumbnail in the gallery grid
-	const presetButton = dialog.locator('.grid button').first();
+	const presetButton = dialog
+		.locator(
+			'[role="option"], .grid > button, .pptx-vue-smartart-tile, .pptx-angular-smartart-tile',
+		)
+		.first();
 	await presetButton.click();
 	await page.waitForTimeout(200);
 
 	// Click the Insert button in the dialog footer
-	const insertBtn = dialog
-		.locator('button')
-		.filter({ hasText: /^Insert$/i })
-		.last();
+	const insertBtn = dialog.getByRole('button', { name: /^Insert$/iu });
 	await insertBtn.click();
 	await page.waitForTimeout(500);
 }
@@ -77,20 +139,40 @@ async function addSmartArt(page: Page): Promise<void> {
 /** Insert an image by setting the hidden file input. */
 async function addGifImage(page: Page): Promise<void> {
 	await switchToInsertTab(page);
-	// Use the toolbar's dedicated image-upload input. The fallback
-	// `input[type="file"][accept*="image"]` was too broad -- the slide
-	// background panel in the inspector panel also contains a hidden image
-	// file input with a matching accept list, causing a strict-mode violation
-	// when the inspector is open and no element is selected.
-	const imageInput = page.locator('input[name="image-upload"]');
-	await imageInput.setInputFiles(gifFixturePath);
+	const project = projectName(page);
+	if (project === 'vanilla') {
+		const chooserPromise = page.waitForEvent('filechooser');
+		await page
+			.locator('.pptxv-ribbon-tab-content:not([hidden])')
+			.getByRole('button', { name: /Image/iu })
+			.first()
+			.click();
+		const chooser = await chooserPromise;
+		await chooser.setFiles(gifFixturePath);
+		await page.waitForTimeout(500);
+		return;
+	}
+	if (project === 'svelte') {
+		await page
+			.locator('.pptx-svelte-inserttab-file[accept="image/*"]')
+			.setInputFiles(gifFixturePath);
+		await page.waitForTimeout(500);
+		return;
+	}
+	const chooserPromise = page.waitForEvent('filechooser');
+	await page
+		.getByRole('button', { name: /^(?:Insert )?Image$/iu })
+		.first()
+		.click();
+	const chooser = await chooserPromise;
+	await chooser.setFiles(gifFixturePath);
 	await page.waitForTimeout(500);
 }
 
 /** Click the Table button to insert a default 3x3 table. */
 async function addTable(page: Page): Promise<void> {
 	await switchToInsertTab(page);
-	await page.locator('button[title*="Table"], button[title*="table"]').first().click();
+	await page.getByRole('button', { name: /Table/iu }).first().click();
 	await page.waitForTimeout(500);
 }
 
@@ -129,22 +211,8 @@ test.describe('save corruption reproduction', () => {
 	test('rect + 2 smartart + gif + table with cell edit triggers repair in PowerPoint', async ({
 		page,
 	}, testInfo) => {
-		test.skip(
-			testInfo.project.name !== 'react',
-			'React-only historical repro: the editing helpers target React-specific ribbon selectors (select[title], button[title*="Shape"], File tab, Save .pptx). Cross-framework SmartArt insert is covered by smartart-insert-edit.spec.ts.',
-		);
 		await page.goto('/');
-		// Wait for the viewer to be ready (empty state with drop zone)
-		await page.waitForTimeout(1000);
-
-		// We need to start with a blank presentation or create one.
-		// The demo app may show a drop zone. We need to trigger "new" if available,
-		// or load a minimal fixture. Try clicking a "New" action if present.
-		const newBtn = page.locator('button').filter({ hasText: /new/i }).first();
-		if (await newBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-			await newBtn.click();
-			await page.waitForTimeout(1000);
-		}
+		await page.locator('#file-input').setInputFiles(deckFixturePath);
 
 		// Wait for the editing canvas to appear
 		const canvas = page.locator('[aria-roledescription="slide"]');
@@ -170,9 +238,7 @@ test.describe('save corruption reproduction', () => {
 		// 4. Edit first SmartArt (select then double-click to inline-edit)
 		// SmartArt elements stack at the same position, so we use force: true
 		// to bypass pointer-event interception from overlapping siblings.
-		const smartArtElements = page.locator(
-			'[data-pptx-element="true"][aria-roledescription="diagram"]',
-		);
+		const smartArtElements = page.locator('[data-element-id][data-testid^="smartart-"]');
 		const smartArtCount = await smartArtElements.count();
 
 		if (smartArtCount >= 1) {
@@ -227,24 +293,27 @@ test.describe('save corruption reproduction', () => {
 
 		// 9. Save the file
 		// Switch to File tab and click Save
-		const fileTab = page.locator('button').filter({ hasText: /^File$/i });
+		const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
+		const fileTab = toolbar
+			.getByRole('tab', { name: 'File', exact: true })
+			.or(toolbar.getByRole('button', { name: 'File', exact: true }))
+			.first();
 		await fileTab.click();
 		await page.waitForTimeout(300);
 
 		const downloadPromise = page.waitForEvent('download');
-		const saveBtn = page
-			.locator('button')
-			.filter({ hasText: /Save \.pptx/i })
-			.first();
+		const saveBtn = page.getByRole('button', { name: /Save/iu }).last();
 		await saveBtn.click();
 
 		const download = await downloadPromise;
 		const suggestedName = download.suggestedFilename();
-		const savePath = resolve(outputDir, suggestedName || 'corruption-repro.pptx');
+		const projectOutputDir = resolve(outputDir, testInfo.project.name);
+		const fs = await import('node:fs/promises');
+		await fs.mkdir(projectOutputDir, { recursive: true });
+		const savePath = resolve(projectOutputDir, suggestedName || 'corruption-repro.pptx');
 		await download.saveAs(savePath);
 
 		// Verify the file was saved (non-zero size)
-		const fs = await import('node:fs/promises');
 		const stats = await fs.stat(savePath);
 		expect(stats.size).toBeGreaterThan(100);
 	});

@@ -8,7 +8,7 @@
  * DOM/accessibility contract per framework:
  *   Mobile toolbar (all):      role="toolbar"     aria-label="Toolbar"
  *   Desktop ribbon (all):      role="toolbar"     aria-label="Presentation toolbar"
- *   React/Angular bottom bar:  role="navigation"  aria-label="Editor actions"
+ *   Most bindings' bottom bar: role="navigation"  aria-label="Editor actions"
  *   Vue bottom bar:            role="navigation"  aria-label="Slide controls"
  *     (Vue MobileBottomBar.vue uses "Slide controls" -- see packages/vue/src/viewer/components/MobileBottomBar.vue)
  *
@@ -40,6 +40,12 @@ async function assertNoHorizontalOverflow(page: Page): Promise<void> {
 	);
 }
 
+function bottomBarNav(page: Page, projectName: string) {
+	return page.getByRole('navigation', {
+		name: projectName === 'vue' ? 'Slide controls' : 'Editor actions',
+	});
+}
+
 // ── Mobile portrait ──────────────────────────────────────────────────────────
 
 test.describe('mobile portrait (375x812, touch)', () => {
@@ -60,9 +66,7 @@ test.describe('mobile portrait (375x812, touch)', () => {
 		// Menu (hamburger) button is present in the mobile top bar on all frameworks.
 		await expect(page.getByRole('button', { name: 'Menu' })).toBeVisible();
 
-		// Bottom bar label differs between Vue ('Slide controls') and React/Angular ('Editor actions').
-		// Vue MobileBottomBar.vue uses aria-label="Slide controls".
-		// React MobileBottomBar.tsx and Angular mobile-bottom-bar.component.ts use "Editor actions".
+		// Vue uses "Slide controls"; the other four bindings use "Editor actions".
 		if (testInfo.project.name === 'vue') {
 			await expect(page.getByRole('navigation', { name: 'Slide controls' })).toBeVisible();
 		} else {
@@ -198,23 +202,15 @@ test.describe('narrow viewport (640x900, no touch)', () => {
 test.describe('dynamic resize: desktop to mobile', () => {
 	// Start at full desktop width, then shrink to a phone width and verify that
 	// the toolbar switches chrome without a page reload.
-	// React, Vanilla, and Svelte all switch their responsive chrome without a reload.
 	test.use({ viewport: { width: 1280, height: 800 } });
 
-	// oxlint-disable-next-line no-empty-pattern -- Playwright requires the first beforeEach arg to be a destructuring pattern
-	test.beforeEach(({}, testInfo) => {
-		test.skip(
-			!['react', 'vanilla', 'svelte'].includes(testInfo.project.name),
-			'Dynamic resize covered by the CSS-responsive bindings',
-		);
-	});
-
-	test('toolbar switches from desktop to mobile chrome on resize', async ({ page }) => {
+	test('toolbar switches from desktop to mobile chrome on resize', async ({ page }, testInfo) => {
 		await load(page);
+		const bottomBar = bottomBarNav(page, testInfo.project.name);
 
 		// Confirm desktop ribbon at the starting width.
 		await expect(page.getByRole('toolbar', { name: 'Presentation toolbar' })).toBeVisible();
-		await expect(page.getByRole('navigation', { name: 'Editor actions' })).not.toBeVisible();
+		await expect(bottomBar).not.toBeVisible();
 
 		// Shrink the viewport to a phone width.
 		await page.setViewportSize({ width: 360, height: 812 });
@@ -223,7 +219,7 @@ test.describe('dynamic resize: desktop to mobile', () => {
 
 		// Mobile chrome must now be present without a page reload.
 		await expect(page.getByRole('toolbar', { name: 'Toolbar', exact: true })).toBeVisible();
-		await expect(page.getByRole('navigation', { name: 'Editor actions' })).toBeVisible();
+		await expect(bottomBar).toBeVisible();
 		await expect(page.getByRole('toolbar', { name: 'Presentation toolbar' })).not.toBeVisible();
 
 		// The page must still not overflow horizontally after the resize.

@@ -46,6 +46,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			state.currentSlide !== previous.currentSlide ||
 			state.zoom !== previous.zoom ||
 			state.presenting !== previous.presenting ||
+			state.editTemplateMode !== previous.editTemplateMode ||
 			state.slideMasters !== previous.slideMasters ||
 			state.masterViewTarget !== previous.masterViewTarget
 		) {

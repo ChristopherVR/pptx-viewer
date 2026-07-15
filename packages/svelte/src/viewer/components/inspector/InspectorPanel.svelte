@@ -25,6 +25,7 @@
 	import FillStrokeSection from './FillStrokeSection.svelte';
 	import ImageSection from './ImageSection.svelte';
 	import PositionSection from './PositionSection.svelte';
+	import SmartArtSection from './SmartArtSection.svelte';
 	import TableSection from './TableSection.svelte';
 	import TextSection from './TextSection.svelte';
 
@@ -39,6 +40,7 @@
 	const canText = $derived(el !== undefined && hasTextProperties(el));
 	const isImage = $derived(el !== undefined && isImageLikeElement(el));
 	const isTable = $derived(el?.type === 'table');
+	const isSmartArt = $derived(el?.type === 'smartArt');
 </script>
 
 <aside
@@ -94,6 +96,13 @@
 					<div class="pptx-svelte-inspector-section">
 						<h4>{t('pptx.inspector.table')}</h4>
 						<TableSection {editor} {el} />
+					</div>
+				{/if}
+
+				{#if isSmartArt && el?.type === 'smartArt'}
+					<div class="pptx-svelte-inspector-section">
+						<h4>{t('pptx.smartart.title')}</h4>
+						<SmartArtSection {editor} {el} />
 					</div>
 				{/if}
 			{:else}

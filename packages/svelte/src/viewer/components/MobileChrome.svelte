@@ -55,7 +55,7 @@
 
 <style>
 	.pptx-svelte-mobile-toolbar { display: none; }
-	@media (max-width: 767px) {
+	@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {
 		.pptx-svelte-mobile-toolbar { position: relative; z-index: 20; display: flex; align-items: center; gap: 4px; min-height: 52px; padding: max(env(safe-area-inset-top), 0px) 8px 4px; border-bottom: 1px solid var(--pptx-border, #33334d); background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 78%, transparent); color: var(--pptx-card-foreground, #e2e8f0); flex: none; }
 		.pptx-svelte-mobile-toolbar button { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
 		.pptx-svelte-mobile-toolbar button:hover:not(:disabled), .pptx-svelte-mobile-toolbar button:focus-visible { background: var(--pptx-accent, #33334d); outline: none; }

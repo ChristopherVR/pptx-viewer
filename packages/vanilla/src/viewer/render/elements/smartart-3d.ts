@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type { SmartArt3DModel } from 'pptx-viewer-shared';
 import { buildSmartArt3DModel, computeSmartArtLayout, resolvePalette } from 'pptx-viewer-shared';
+import type { SmartArt3DHandle } from 'pptx-viewer-shared/smartart-3d';
 
 import { createEl } from '../dom';
 import type { ElementRenderContext, ElementRenderer } from '../types';
@@ -89,10 +90,37 @@ async function mountScene(
 			display: 'block',
 		});
 		fallback.replaceChildren(canvas);
-		mountSmartArt3D(canvas, model, Math.max(1, element.width), Math.max(1, element.height), {});
+		const handle = mountSmartArt3D(
+			canvas,
+			model,
+			Math.max(1, element.width),
+			Math.max(1, element.height),
+			{},
+		);
+		observeSceneRemoval(context.document, fallback, handle);
 	} catch {
 		// `three` unavailable or the scene failed to mount: restore the SVG
 		// fallback that was already painted synchronously.
 		fallback.replaceChildren(...fallbackChildren);
 	}
+}
+
+/** Dispose GPU resources when a later slide render removes this wrapper. */
+function observeSceneRemoval(
+	doc: Document,
+	wrapper: HTMLElement | SVGElement,
+	handle: SmartArt3DHandle,
+): void {
+	const MutationObserver = doc.defaultView?.MutationObserver;
+	if (!wrapper.isConnected || !MutationObserver) {
+		return;
+	}
+	const observer = new MutationObserver(() => {
+		if (wrapper.isConnected) {
+			return;
+		}
+		observer.disconnect();
+		handle.dispose();
+	});
+	observer.observe(doc, { childList: true, subtree: true });
 }

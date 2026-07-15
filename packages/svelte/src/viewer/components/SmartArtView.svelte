@@ -45,7 +45,7 @@
 {/snippet}
 
 {#if view}
-	<div class="pptx-svelte-element pptx-svelte-smartart" style={containerStyle} data-element-id={element.id}>
+	<div class="pptx-svelte-element pptx-svelte-smartart" style={containerStyle} data-element-id={element.id} data-testid={`smartart-${smartArt?.smartArtData?.layout ?? 'diagram'}`}>
 		<div
 			class="pptx-svelte-smartart-chrome"
 			style={chromeStyle}

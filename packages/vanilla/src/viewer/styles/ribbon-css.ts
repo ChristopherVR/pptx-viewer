@@ -66,6 +66,11 @@ export const RIBBON_CSS = `
 	padding: 6px 8px;
 }
 .pptxv-ribbon-tab-content[hidden] { display: none; }
+.pptxv-ribbon-insert-content {
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	overflow-y: hidden;
+}
 .pptxv-rgroup {
 	display: flex;
 	flex-direction: column;

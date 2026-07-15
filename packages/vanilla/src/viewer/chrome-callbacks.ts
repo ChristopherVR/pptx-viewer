@@ -143,6 +143,10 @@ export function buildChromeCallbacks(
 		setTableHeaderRow: (enabled) => deps.getEditActions().setTableHeaderRow(enabled),
 		setTableBandedRows: (enabled) => deps.getEditActions().setTableBandedRows(enabled),
 		setTableCellPadding: (padding) => deps.getEditActions().setTableCellPadding(padding),
+
+		setSmartArtNodeText: (nodeId, text) => deps.getEditActions().setSmartArtNodeText(nodeId, text),
+		setSmartArtLayout: (layout) => deps.getEditActions().setSmartArtLayout(layout),
+		setSmartArtColorScheme: (scheme) => deps.getEditActions().setSmartArtColorScheme(scheme),
 	};
 	return {
 		ribbonHandlers,

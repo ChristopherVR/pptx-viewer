@@ -64,8 +64,11 @@
 			query = '';
 			focused = false;
 		} else if (event.key === 'Enter' && query.trim()) {
-			if (results[0]) choose(results[0].command);
-			else onfindreplace();
+			if (results[0]) {
+				choose(results[0].command);
+			} else {
+				onfindreplace();
+			}
 		}
 	}
 </script>
@@ -129,5 +132,5 @@
 	.pptx-svelte-titlebar-searchbox { display:flex; align-items:center; gap:7px; width:min(100%,448px); padding:4px 10px; border:1px solid var(--pptx-border,#33334d); border-radius:6px; background:var(--pptx-background,#11111b); color:var(--pptx-muted-foreground,#a5a5b5); }
 	.pptx-svelte-titlebar-searchbox.active { border-color:var(--pptx-primary,#6366f1); color:var(--pptx-card-foreground,#e2e8f0); }.pptx-svelte-titlebar-searchbox input { width:100%; border:0; outline:0; background:transparent; color:inherit; font:inherit; }
 	.pptx-svelte-titlebar-results { position:absolute; top:calc(100% + 4px); z-index:20; width:min(100%,448px); overflow:hidden; border:1px solid var(--pptx-border,#33334d); border-radius:7px; background:var(--pptx-card,#1e1e2e); box-shadow:0 14px 28px #0006; }.pptx-svelte-titlebar-results > span { display:block; padding:7px 10px; color:var(--pptx-muted-foreground,#a5a5b5); font-size:10px; font-weight:700; text-transform:uppercase; }.pptx-svelte-titlebar-results button { display:flex; width:100%; align-items:center; gap:8px; border:0; padding:6px 10px; background:transparent; color:inherit; text-align:left; cursor:pointer; }.pptx-svelte-titlebar-results button:hover { background:var(--pptx-accent,#33334d); }.pptx-svelte-titlebar-results small { margin-left:auto; color:var(--pptx-muted-foreground,#a5a5b5); text-transform:capitalize; }
-	@media (max-width: 767px) { .pptx-svelte-titlebar { display:none; } }
+	@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) { .pptx-svelte-titlebar { display:none; } }
 </style>

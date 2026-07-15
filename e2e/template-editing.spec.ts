@@ -12,9 +12,9 @@
  * Edits made in that mode are merged back into the owning layout/master XML
  * parts on save (`buildSaveSlides`), so they persist across reloads.
  *
- * Despite being a real, working, previously-audited feature (core + React +
- * Vue + Angular), it had zero e2e coverage. This spec exercises the full
- * lifecycle across all three frameworks:
+ * Despite being a real, working, previously-audited feature, it originally
+ * had no e2e coverage. This spec exercises the full lifecycle across every
+ * maintained viewer binding:
  *   1. Toggling editTemplateMode via the View tab's pill.
  *   2. Template elements are inert (not interactive/selectable/editable) with
  *      the mode off, and become interactive only with it on -- while a normal
@@ -33,7 +33,7 @@
  * positioned in non-overlapping bands (on a 1280x720px canvas) so drag/click
  * assertions are unambiguous.
  *
- * Run: bunx playwright test template-editing --project=react
+ * Run: bunx playwright test template-editing
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -55,13 +55,13 @@ const outputDir = fileURLToPath(new URL('../test-results/template-editing/', imp
 /**
  * Locate a canvas element by its visible text using the `[data-element-id]`
  * attribute rather than the interaction-gated `[data-pptx-element="true"]`.
- * `data-element-id` is rendered unconditionally by all three bindings, while
+ * `data-element-id` is rendered unconditionally by all five bindings, while
  * `data-pptx-element` is only added by Vue/Angular while a layer is
  * interactive (React always renders it but disables pointer events instead),
  * so this is the one locator that finds a template element in BOTH modes.
  *
  * Scoped to the main editable stage (`[aria-roledescription="slide"]`,
- * emitted by all three bindings' `SlideCanvas` root only): thumbnails, the
+ * emitted by every binding's main slide-canvas root only): thumbnails, the
  * slide sorter, and the export stage also render the same `data-element-id`
  * without that ancestor, so an unscoped `page.locator('[data-element-id]')`
  * can match the wrong (non-interactive) copy of the element.
@@ -85,10 +85,18 @@ async function openFixture(page: Page): Promise<void> {
 	await elementByText(page, MASTER_SHAPE_TEXT).waitFor();
 }
 
+/** Ribbon navigation is exposed as tabs by Vanilla and buttons elsewhere. */
+function ribbonTab(page: Page, name: string): Locator {
+	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
+	return toolbar
+		.getByRole('tab', { name, exact: true })
+		.or(toolbar.getByRole('button', { name, exact: true }))
+		.first();
+}
+
 /** Switch to the View ribbon tab, where the template-mode toggle lives. */
 async function switchToViewTab(page: Page): Promise<void> {
-	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-	await toolbar.getByRole('button', { name: 'View', exact: true }).click();
+	await ribbonTab(page, 'View').click();
 	await expect(templateModeToggle(page)).toBeVisible();
 }
 
@@ -153,7 +161,7 @@ async function dragElementBy(page: Page, locator: Locator, dx: number, dy: numbe
 /**
  * Double-click a locator to enter inline text editing, type `text`, then
  * commit by clicking an empty part of the canvas (Escape cancels instead).
- * The inline editors across all three bindings put the caret at the END of
+ * The inline editors across all five bindings put the caret at the END of
  * the existing text rather than selecting it (see Angular's
  * `slide-canvas.component.ts` constructor comment: "do NOT select-all:
  * typing appends to the existing text"), so `text` is APPENDED, not a full
@@ -280,7 +288,7 @@ test.describe('template / master element editing', () => {
 
 		// Save via the File tab.
 		const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-		await toolbar.getByRole('button', { name: 'File', exact: true }).click();
+		await ribbonTab(page, 'File').click();
 		await page.waitForTimeout(200);
 
 		const downloadPromise = page.waitForEvent('download');
@@ -290,7 +298,9 @@ test.describe('template / master element editing', () => {
 		// in its title bar (outside the ribbon, same handler) that would
 		// otherwise be an equally-valid but ambiguous second match.
 		await toolbar
-			.getByRole('button', { name: /^Save(\s\.pptx)?$/u })
+			.getByRole('button', {
+				name: /^Save(?: as)?(?: Presentation)?(?: \(\.pptx\)| \.pptx)?$/u,
+			})
 			.first()
 			.click();
 		const download = await downloadPromise;

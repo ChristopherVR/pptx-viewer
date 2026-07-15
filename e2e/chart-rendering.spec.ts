@@ -15,29 +15,23 @@ import type { ChartSlideSpec } from './fixtures/generate-chart-fixture';
  * `chart-gallery.pptx` holds one chart per slide (the {@link CHART_SLIDES}
  * manifest is the contract, in order). The deck is loaded, presentation mode is
  * entered (the shared `NEXT_SLIDE_KEYS` contract - `PageDown` advances), and
- * each chart slide is inspected through the neutral DOM the React, Vue and
- * Angular viewers all emit (`[data-pptx-element="true"]`,
+ * each chart slide is inspected through the neutral DOM every viewer emits
+ * (`[data-pptx-element="true"]`,
  * `[aria-roledescription="slide"]`, inline `<svg>`).
  *
  * Per chart slide the spec:
  *   (a) PARITY - captures the rendered form of the chart element (a real chart
  *       `<svg>` with per-type geometry, or the "Chart" placeholder fallback) and
  *       asserts the SAME contract holds. Because the body is framework-agnostic,
- *       a divergence between React / Vue / Angular fails the run and names the
+ *       a divergence in any of the five bindings fails the run and names the
  *       chart kind. When a chart renders as SVG, the per-type primitive counts
  *       (`<rect>` / `<path>` / `<circle>` / `<polygon>`) are validated too.
  *   (b) VISUAL - screenshots the chart element to
  *       `e2e/__screenshots__/<framework>-<charttype>.png` for eyeballing.
  *
- * NOTE (discovered by this harness): in the current codebase a chart loaded
- * from a `.pptx` renders as the neutral "Chart" placeholder, not an SVG - the
- * load pipeline parses the graphic frame into a chart element but never
- * populates `element.chartData` (no consumer calls
- * `PptxHandler.getChartDataForGraphicFrame`), and every binding's chart renderer
- * short-circuits to the placeholder when `chartData` is absent. The placeholder
- * is itself rendered identically across the three frameworks, so the parity
- * assertions pass; `expectsSvg` is `false` until chart enrichment on load is
- * implemented, at which point flipping it re-enables the SVG geometry checks.
+ * The load pipeline now enriches loaded chart elements with `chartData`, so SVG
+ * rendering and per-type geometry are required in every binding. A fallback to
+ * the former neutral "Chart" placeholder is a product-suite regression.
  */
 
 const fixturePath = resolve(
@@ -46,10 +40,8 @@ const fixturePath = resolve(
 const screenshotDir = resolve(fileURLToPath(new URL('./__screenshots__', import.meta.url)));
 
 /**
- * Whether a loaded chart is expected to render as an SVG. Currently `false`
- * because `load()` does not enrich `chartData` (see the file header). Flip to
- * `true` once chart-on-load enrichment lands to turn on the SVG geometry
- * assertions for every framework.
+ * Loaded charts must render as SVG now that chart-on-load enrichment is part of
+ * the shared load pipeline.
  */
 const EXPECTS_SVG = true;
 
@@ -57,22 +49,25 @@ const EXPECTS_SVG = true;
  * Load the gallery deck and enter presentation mode.
  *
  * Presentation mode (not the editor) is the navigation vehicle because slide
- * stepping via the keyboard is the one contract all three bindings implement
- * identically (`ArrowRight` / `PageDown` advance - `NEXT_SLIDE_KEYS`); the Vue
- * port, for instance, has no editor slide-nav. The neutral per-element hook used
- * throughout is `data-element-id`, which every binding emits on every element in
- * both modes (React/Angular additionally emit `data-pptx-element`, but Vue's
- * chart renderer does not, so `data-pptx-element` is not portable for charts).
+ * stepping via the keyboard is the shared contract all five bindings implement
+ * identically (`ArrowRight` / `PageDown` advance - `NEXT_SLIDE_KEYS`). The
+ * neutral per-element hook used throughout is `data-element-id`, which every
+ * binding emits on every element in both modes.
  */
 async function openGalleryInPresentMode(page: Page): Promise<void> {
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	// First chart slide's title anchor confirms the deck rendered.
 	await titleAnchor(page, CHART_SLIDES[0]).waitFor();
-	await page
-		.getByRole('button', { name: /^present$/iu })
-		.first()
-		.click();
+	const slideShowButtons = page.getByRole('button', { name: /^slide show$/iu });
+	if ((await slideShowButtons.count()) > 0) {
+		await slideShowButtons.last().click();
+	} else {
+		await page
+			.getByRole('button', { name: /present/iu })
+			.first()
+			.click();
+	}
 	await page.waitForTimeout(700);
 }
 
@@ -85,7 +80,7 @@ async function nextSlide(page: Page): Promise<void> {
 /** The title anchor shape for a slide (the `data-element-id` bearing its title). */
 function titleAnchor(page: Page, slide: ChartSlideSpec): Locator {
 	return page
-		.locator('[data-element-id]')
+		.locator('[data-element-id]:visible')
 		.filter({ hasText: new RegExp(escapeRe(slide.title), 'u') })
 		.first();
 }
@@ -93,9 +88,8 @@ function titleAnchor(page: Page, slide: ChartSlideSpec): Locator {
 /**
  * The chart element on the active slide. Each chart slide carries exactly one
  * chart graphic frame plus a tiny title anchor shape. The neutral per-element
- * hook common to all three bindings' chart renderers is `data-element-id`:
- * React/Angular also add `data-pptx-element` but Vue's chart renderer does not,
- * so `data-element-id` is the portable selector. The chart element is the
+ * hook common to every binding's chart renderer is `data-element-id`, so it is
+ * the portable selector. The chart element is the
  * `data-element-id` element that is NOT the title anchor (it renders an inline
  * chart `<svg>` or the "Chart" placeholder, neither carrying the title text).
  */
@@ -111,7 +105,9 @@ async function chartElement(page: Page, slide: ChartSlideSpec): Promise<Locator>
 	//     is the regression signal.
 	// Of the matches we pick the LARGEST by area: the chart canvas, not the 1x1
 	// title-anchor shape (which also carries the title text).
-	const candidates = page.locator('[data-element-id]:has(svg)').filter({ hasText: slide.title });
+	const candidates = page
+		.locator('[data-element-id]:visible:has(svg)')
+		.filter({ hasText: slide.title });
 	await candidates.first().waitFor();
 	const count = await candidates.count();
 	let bestIndex = 0;
@@ -162,7 +158,7 @@ async function primitiveCounts(el: Locator): Promise<{
  * Per-type minimum primitive expectations for a rendered chart `<svg>`.
  * Lower-bound (`>=`) because the shared engine adds chrome (gridlines, ticks,
  * legend swatches) whose exact count is not the parity target - the target is
- * that the *same* engine drives all three bindings, so the same bounds hold.
+ * that the *same* engine drives all five bindings, so the same bounds hold.
  */
 function assertSvgTypeShape(
 	slide: ChartSlideSpec,
@@ -173,7 +169,7 @@ function assertSvgTypeShape(
 	// engine emits (bars `rect`, slices/arcs `path`, area/line bands `polyline`,
 	// rings/trapezoids `polygon`, points `circle`) rather than asserting a
 	// per-type breakdown, because the parity target is that the *same* engine
-	// drives all three bindings (so the same svg renders), not a specific
+	// drives all five bindings (so the same svg renders), not a specific
 	// primitive mix. The screenshots are the per-type visual record.
 	const drawable = counts.rect + counts.path + counts.circle + counts.polygon + counts.polyline;
 	expect(drawable, `${slide.key} (${slide.chartType}): drew geometry`).toBeGreaterThan(0);
@@ -211,7 +207,7 @@ test.describe('chart rendering (cross-framework parity)', () => {
 			// (a) PARITY - the rendered form must match the cross-framework
 			// contract. `EXPECTS_SVG` is the single switch that flips the whole
 			// gallery from "placeholder" to "SVG geometry"; whichever is active,
-			// it must hold identically on React / Vue / Angular.
+			// it must hold identically across all five bindings.
 			expect(counts.hasSvg, `${slide.key}: chart renders as SVG`).toBe(EXPECTS_SVG);
 			if (counts.hasSvg) {
 				assertSvgTypeShape(slide, counts);

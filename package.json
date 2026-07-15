@@ -49,7 +49,7 @@
 		"e2e": "playwright test",
 		"e2e:install": "playwright install --with-deps chromium",
 		"e2e:ui": "playwright test --ui",
-		"docs:screenshots": "playwright test e2e/capture-user-guide-assets.spec.ts e2e/capture-user-guide-gifs.spec.ts --project=react",
+		"docs:screenshots": "playwright test --config=playwright.capture.config.ts e2e/capture-user-guide-assets.spec.ts e2e/capture-user-guide-gifs.spec.ts",
 		"prepare": "husky"
 	},
 	"devDependencies": {

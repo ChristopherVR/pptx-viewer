@@ -64,7 +64,7 @@
 		type="button"
 		data-testid="template-edit-toggle"
 		class:pptx-svelte-viewtab-active={editTemplateMode}
-		aria-label={t('pptx.view.templateEditingTooltip')}
+		aria-label={t(editTemplateMode ? 'pptx.ribbon.templatesOn' : 'pptx.ribbon.templatesOff')}
 		title={t('pptx.view.templateEditingTooltip')}
 		aria-pressed={editTemplateMode}
 		onclick={() => onsettemplateediting?.(!editTemplateMode)}

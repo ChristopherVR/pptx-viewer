@@ -1,7 +1,7 @@
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright spec, `test`/`expect` come from @playwright/test */
 /**
  * OLE embedded-object and ink-annotation coverage, run identically across
- * every framework demo (React / Vue / Angular).
+ * every framework demo (React, Vue, Angular, Vanilla, and Svelte).
  *
  * Before this spec, neither of these two `PptxElement` kinds (of the 11 in
  * `core/types/elements.ts`) had any e2e coverage. No real-world fixture with
@@ -25,22 +25,21 @@
  * (`PptxHandlerRuntimeLoadSession.ts` populated `oleEmbeddedData` for
  * download/open, but nothing resolved the separately-parsed `previewImage`
  * relative path into `previewImageData`). So a real `.pptx`'s OLE preview image
- * never rendered in any of the three bindings - every loaded OLE object fell
+ * never rendered in any binding - every loaded OLE object fell
  * back to the generic type-badge placeholder, identically to how
  * `chart-rendering.spec.ts` documented `chartData` not being enriched on load
  * before that was fixed. `enrichOleElementsWithEmbeddedData` now resolves the
- * preview into `previewImageData`, so all three bindings render it.
+ * preview into `previewImageData`, so every binding renders it.
  *
- * BUG #2 (now FIXED - see `EXPECTS_OPEN_POPUP` below): all three bindings'
- * "Open" action (React `OleRenderer.tsx`, Vue `OleRenderer.vue`'s
- * `openEmbedded()`, Angular `ole-renderer.component.ts`) pointed a
+ * BUG #2 (now FIXED - see `EXPECTS_OPEN_POPUP` below): the original "Open"
+ * implementations pointed a
  * `target="_blank"` anchor / `window.open()` directly at the `oleEmbeddedData`
  * **`data:` URL**. Chromium silently refuses to navigate a new top-level
  * browsing context straight to a `data:` URL - clicking "Open" never opened a
  * tab and never surfaced an error. The fix routes the payload through the
  * shared `openUrlInNewTab` helper, which converts the `data:` URL to a
  * `Blob`/`URL.createObjectURL` object URL (which browsers do allow a new tab to
- * navigate to) and revokes it after a delay. All three "Open" controls are now
+ * navigate to) and revokes it after a delay. Every "Open" control is now
  * normalized to a `<button>` that calls this helper.
  */
 import { resolve } from 'node:path';
@@ -112,7 +111,7 @@ test.describe('OLE embedded objects', () => {
 		// Download action: every binding renders a real `<a download>` whose
 		// href is the recovered embedded-payload data: URL (see
 		// `enrichOleElementsWithEmbeddedData`). Hovering first, since two of
-		// the three bindings only reveal the action footer on hover/focus.
+		// some bindings only reveal the action footer on hover/focus.
 		await ole.hover();
 		const downloadLink = ole.locator('a[download]').first();
 		await expect(downloadLink).toBeAttached();
@@ -124,7 +123,7 @@ test.describe('OLE embedded objects', () => {
 
 		// Open-in-new-tab action: the embedded payload is a real PDF
 		// (`application/pdf`), which `isBrowserOpenableMime` allows, so every
-		// binding also renders an "Open" control alongside "Download". All three
+		// binding also renders an "Open" control alongside "Download". Every binding
 		// now normalize it to a `<button>` that routes the recovered `data:` URL
 		// through the shared `openUrlInNewTab` helper (data URL -> Blob object
 		// URL -> new tab). Select by accessible name/role rather than tag to stay

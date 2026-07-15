@@ -1,6 +1,6 @@
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright spec, `test`/`expect` come from @playwright/test */
 /**
- * Tablet + landscape layout audit (React).
+ * Tablet + landscape layout audit across every viewer binding.
  *
  * The mobile chrome (MobileToolbar / MobileBottomBar) only renders below the
  * 768px breakpoint, so tablet widths fall back to the desktop-style layout.
@@ -8,7 +8,7 @@
  * in landscape phone orientation, so the screenshots can be eyeballed for
  * cramping / cut-off chrome.
  *
- * Run: bunx playwright test mobile-tablet-landscape --project=react
+ * Run: bunx playwright test mobile-tablet-landscape
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,8 +19,7 @@ import type { Page } from '@playwright/test';
 const deck = resolve(fileURLToPath(new URL('../.github/assets/sample-deck.pptx', import.meta.url)));
 const shotDir = fileURLToPath(new URL('../test-results/mobile-tablet-landscape/', import.meta.url));
 
-// React, Vue, and Angular all emit the same mobile chrome (Editor actions
-// bar, Menu button), so this spec runs unmodified against every project.
+// Every binding emits the mobile chrome hooks used by this spec.
 
 async function load(page: Page): Promise<void> {
 	await page.goto('/');
@@ -29,9 +28,20 @@ async function load(page: Page): Promise<void> {
 	await page.waitForTimeout(500);
 }
 
-// Bottom bar label differs between Vue ('Slide controls') and React/Angular
-// ('Editor actions') - see toolbar-breakpoints.spec.ts and
-// packages/vue/src/viewer/components/MobileBottomBar.vue.
+async function enterPresentation(page: Page): Promise<void> {
+	const present = page.getByRole('button', { name: /^present$/iu }).filter({ visible: true });
+	if ((await present.count()) > 0) {
+		await present.first().tap();
+		return;
+	}
+	await page
+		.getByRole('button', { name: /^slide show$/iu })
+		.filter({ visible: true })
+		.last()
+		.tap();
+}
+
+// Vue uses "Slide controls"; the other four bindings use "Editor actions".
 function bottomBarNav(page: Page, projectName: string) {
 	return page.getByRole('navigation', {
 		name: projectName === 'vue' ? 'Slide controls' : 'Editor actions',
@@ -54,15 +64,12 @@ test.describe('tablet portrait (820×1180, touch)', () => {
 
 		// Tablet keeps the desktop chrome (no mobile bottom bar) — it's tall
 		// enough for the ribbon + panels.
-		await expect(bottomBarNav(page, testInfo.project.name)).toHaveCount(0);
+		await expect(bottomBarNav(page, testInfo.project.name)).not.toBeVisible();
 	});
 
 	test('present mode fits and shows touch controls', async ({ page }) => {
 		await load(page);
-		await page
-			.getByRole('button', { name: /present/iu })
-			.first()
-			.tap();
+		await enterPresentation(page);
 		await page.waitForTimeout(700);
 		await page.screenshot({ path: resolve(shotDir, 'tablet-present.png') });
 		await expect(page.getByRole('button', { name: /next slide/iu }).first()).toBeVisible();
@@ -106,10 +113,7 @@ test.describe('landscape phone (915×412, touch)', () => {
 			await page.waitForTimeout(200);
 		}
 
-		await page
-			.getByRole('button', { name: /present/iu })
-			.first()
-			.tap();
+		await enterPresentation(page);
 		await page.waitForTimeout(700);
 		await page.screenshot({ path: resolve(shotDir, 'landscape-present.png') });
 		await expect(page.getByRole('button', { name: /end presentation/iu }).first()).toBeVisible();

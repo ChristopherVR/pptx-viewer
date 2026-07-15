@@ -1,6 +1,6 @@
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright spec, `test`/`expect` come from @playwright/test */
 /**
- * Equation editor E2E tests.
+ * Equation editor E2E tests across every maintained viewer binding.
  *
  * Exercises the LaTeX-based equation editor (`EquationEditorDialog` in every
  * binding) functionally, not just "does a dialog open":
@@ -30,18 +30,14 @@
  * Vue's chart renderer in chart-rendering.spec.ts), while React/Angular do
  * carry it because their equations live inside the ordinary shape wrapper.
  * `[data-element-id]:has(math)` finds the rendered equation identically
- * across all three.
+ * across all five bindings.
  *
- * Re-editing an existing equation now works uniformly across all three
- * bindings: React routes a click on an already-selected equation into the
- * editor, Angular a double-click, and Vue (as of `fix(vue): support
- * re-editing an existing equation`) routes both through a `requestElementEdit`
- * wrapper that opens `EquationEditorDialog` in edit mode (seeded from the
- * element's `equationXml`) and patches the segment in place on apply, instead
- * of the destructive plain-text inline edit its `enterInlineEdit` guard used
- * to only block. Test 2 exercises that shared contract for every framework.
+ * Re-editing an existing equation now works uniformly across all five bindings.
+ * Each opens `EquationEditorDialog` in edit mode, seeds it from `equationXml`,
+ * and patches the segment in place on apply. Test 2 exercises that shared
+ * contract for every framework.
  *
- * Run: bunx playwright test equation-editing --project=react
+ * Run: bunx playwright test equation-editing
  */
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -65,6 +61,15 @@ async function loadDeck(page: Page): Promise<void> {
 	await page.waitForTimeout(500);
 }
 
+/** Ribbon navigation is exposed as tabs by Vanilla and buttons elsewhere. */
+function ribbonTab(page: Page, name: string): Locator {
+	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
+	return toolbar
+		.getByRole('tab', { name, exact: true })
+		.or(toolbar.getByRole('button', { name, exact: true }))
+		.first();
+}
+
 /**
  * Switch to the Insert ribbon tab. Ribbon tabs are plain buttons inside the
  * `role="toolbar"` labelled "Presentation toolbar" (matches
@@ -73,10 +78,7 @@ async function loadDeck(page: Page): Promise<void> {
  * uses) does not match anything in the current markup.
  */
 async function switchToInsertTab(page: Page): Promise<void> {
-	await page
-		.getByRole('toolbar', { name: 'Presentation toolbar' })
-		.getByRole('button', { name: 'Insert', exact: true })
-		.click();
+	await ribbonTab(page, 'Insert').click();
 	await page.waitForTimeout(200);
 }
 
@@ -228,7 +230,7 @@ test.describe('equation editing', () => {
 		await expect(updated).not.toHaveText('[Equation]');
 	});
 
-	test('equation content survives a Save .pptx / reload round-trip', async ({ page }) => {
+	test('equation content survives a Save .pptx / reload round-trip', async ({ page }, testInfo) => {
 		mkdirSync(outputDir, { recursive: true });
 		await loadDeck(page);
 		const before = await equationElements(page).count();
@@ -248,13 +250,9 @@ test.describe('equation editing', () => {
 
 		// Save via File ▸ Save .pptx. Scoped to the ribbon toolbar (matches
 		// `switchToInsertTab`) rather than an unscoped `page.locator('button')`
-		// text filter (the pattern save-corruption-repro.spec.ts uses, but that
-		// spec's own docstring notes it was only ever run `--project=react` -
-		// it does not reliably resolve on Angular).
-		const fileTab = page
-			.getByRole('toolbar', { name: 'Presentation toolbar' })
-			.getByRole('button', { name: 'File', exact: true });
-		await fileTab.click();
+		// text filter. The toolbar scope avoids matching persistent quick-save
+		// controls exposed elsewhere in the viewer.
+		await ribbonTab(page, 'File').click();
 		await page.waitForTimeout(300);
 
 		// React/Vue label this button "Save .pptx"; Angular's File tab only
@@ -268,7 +266,8 @@ test.describe('equation editing', () => {
 		await saveBtn.click();
 
 		const download = await downloadPromise;
-		const savePath = resolve(outputDir, download.suggestedFilename() || 'equation-roundtrip.pptx');
+		const fileName = download.suggestedFilename() || 'equation-roundtrip.pptx';
+		const savePath = resolve(outputDir, `${testInfo.project.name}-${fileName}`);
 		await download.saveAs(savePath);
 
 		// Reload the just-saved file through the app's own file input. None of

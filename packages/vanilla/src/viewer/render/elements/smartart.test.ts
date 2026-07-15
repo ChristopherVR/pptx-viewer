@@ -251,4 +251,23 @@ describe('renderSmartArtElement (opt-in 3D)', () => {
 		expect(node.querySelector('canvas.pptxv-smartart-3d-canvas')).toBeNull();
 		expect(node.querySelector('svg.pptxv-smartart-svg')).toBeTruthy();
 	});
+
+	it('disposes the mounted scene when a later render removes its wrapper', async () => {
+		const dispose = vi.fn();
+		mountSmartArt3D.mockReturnValue({
+			resize: vi.fn(),
+			setInteractive: vi.fn(),
+			dispose,
+		});
+		const node = renderSmartArtElement(nodesOnlyElement(), 0, makeContext(true)) as HTMLElement;
+		document.body.appendChild(node);
+		await flushMount();
+
+		node.remove();
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+
+		expect(dispose).toHaveBeenCalledOnce();
+	});
 });

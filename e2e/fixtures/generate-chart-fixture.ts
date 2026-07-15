@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  * Generates `chart-gallery.pptx` - a multi-slide deck with exactly one chart
  * per slide, covering the breadth of chart kinds the viewers render. Used by
  * `chart-rendering.spec.ts` to visually verify chart parity across the
- * React / Vue / Angular bindings.
+ * every maintained viewer binding.
  *
  * Why this generator post-processes the package zip instead of using the SDK's
  * `addChart`: the core save pipeline only *updates* an existing chart XML part
@@ -19,7 +19,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  *      (authored by `chart-xml.ts`), and the `[Content_Types].xml` override.
  *
  * Every chart is deterministic (fixed values, fixed categories, explicit
- * per-series colours), and all three bindings turn the parsed `PptxChartData`
+ * per-series colours), and all five bindings turn the parsed `PptxChartData`
  * into SVG via the shared `buildChartViewModel` engine - so any divergence the
  * spec catches is a real per-framework rendering bug.
  *

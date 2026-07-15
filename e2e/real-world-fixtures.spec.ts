@@ -37,24 +37,26 @@ async function loadFixture(page: Page, fixture: RealWorldFixture): Promise<void>
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath(fixture));
 	await slideRegion(page).waitFor({ timeout: 120_000 });
-	await page.locator('[data-pptx-element="true"]').first().waitFor({ timeout: 120_000 });
+	await page
+		.locator('[data-pptx-viewport] [data-element-id]')
+		.first()
+		.waitFor({ state: 'attached', timeout: 120_000 });
 }
 
 test.describe('real-world presentation fixtures', () => {
-	test.beforeEach(({ page: _page }, testInfo) => {
-		test.skip(testInfo.project.name !== 'react', 'This visual audit targets the React viewer.');
-	});
 	for (const fixture of FIXTURES) {
 		test(`loads ${fixture.filename}`, async ({ page }) => {
 			await loadFixture(page, fixture);
 
 			await expect(page.locator('[data-pptx-viewport]')).toBeVisible();
 			await expect(page.getByText(new RegExp(`1 of ${fixture.slides}`, 'u'))).toBeVisible();
-			expect(await page.locator('[data-pptx-element="true"]').count()).toBeGreaterThan(0);
+			expect(await page.locator('[data-pptx-viewport] [data-element-id]').count()).toBeGreaterThan(
+				0,
+			);
 
 			// Preserve the rendered result as a Playwright artifact for comparison
 			// with the matching PowerPoint reference export during visual audits.
-			await test.info().attach('react-slide-1', {
+			await test.info().attach(`${test.info().project.name}-slide-1`, {
 				body: await page.locator('[data-pptx-viewport]').screenshot(),
 				contentType: 'image/png',
 			});
@@ -64,8 +66,12 @@ test.describe('real-world presentation fixtures', () => {
 	test('navigates the large presentation to its final slide', async ({ page }) => {
 		const fixture = FIXTURES[0]!;
 		await loadFixture(page, fixture);
-		const slidesPane = page.getByRole('navigation', { name: 'Slides' });
-		await slidesPane.getByText(String(fixture.slides), { exact: true }).click();
+		const lastThumbnail = page
+			.getByRole('button', { name: `Go to slide ${fixture.slides}`, exact: true })
+			.or(page.getByRole('option', { name: `Slide ${fixture.slides}`, exact: true }))
+			.or(page.getByText(String(fixture.slides), { exact: true }).filter({ visible: true }))
+			.first();
+		await lastThumbnail.click();
 		await expect(
 			page.getByText(new RegExp(`${fixture.slides} of ${fixture.slides}`, 'u')),
 		).toBeVisible();

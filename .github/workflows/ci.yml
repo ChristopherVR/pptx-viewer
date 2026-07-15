@@ -235,30 +235,17 @@ jobs:
         run: cd ${{ matrix.dir }} && ${{ matrix.cmd }}
 
   # ── E2E: Playwright suite against each framework demo ───────────────────────
-  # One matrix leg per framework (react/vue/angular), gated on that framework's
-  # own build like the `test` job above. This runs every e2e/*.spec.ts file
-  # EXCEPT capture-user-guide-assets.spec.ts and capture-user-guide-gifs.spec.ts:
-  # those two aren't tests (zero `expect()` calls between them) - they're
-  # docs-asset generators that screenshot/record the app for docs/public/
-  # user-guide, meant to be run deliberately via `bun run docs:screenshots`,
-  # not on every push/PR.
+  # One matrix leg per framework, gated on that framework's own build like the
+  # `test` job above. Every leg runs the identical product suite selected by
+  # playwright.config.ts. Capture specs are documentation asset generators and
+  # use playwright.capture.config.ts via `bun run docs:screenshots` instead.
   #
-  # ribbon-tab-parity.spec.ts opens all three demo servers directly (bypassing
-  # the per-project baseURL) to compare them in one test, so it self-limits to
-  # the react leg only (see its own `test.skip` guard) instead of tripling.
+  # ribbon-tab-parity.spec.ts opens the React reference plus the binding owned
+  # by each project so every framework retains the same no-wrap comparison.
   # `--workers=2` avoids saturating the single dev server per leg (observed
   # spurious timeouts/HMR contention with the default higher worker count
   # against one Vite dev server).
   #
-  # vanilla/svelte legs: these two bindings are viewer-only (no ribbon,
-  # inspectors, format painter, equation editing, collaboration, or OLE
-  # dialogs yet), so the full shared spec set above does not apply to them -
-  # most of it exercises features they don't have. They instead run only the
-  # dedicated `e2e/vanilla-svelte-basics.spec.ts`, which covers what both
-  # bindings actually ship today (load, navigate, zoom, notes, select/move,
-  # undo/redo, save-as-download); see that file's header for the exact DOM/
-  # i18n contract differences between the two, and `playwright.config.ts` for
-  # why the vanilla/svelte projects are scoped to just this one file.
   e2e:
     needs: build
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -334,13 +321,7 @@ jobs:
 
       - name: Run e2e (${{ matrix.project }})
         if: matrix.enabled == 'true'
-        run: |
-          if [ "${{ matrix.key }}" = "vanilla" ] || [ "${{ matrix.key }}" = "svelte" ]; then
-            files="e2e/vanilla-svelte-basics.spec.ts"
-          else
-            files=$(ls e2e/*.spec.ts | grep -v capture-user-guide)
-          fi
-          bun run e2e -- $files --project=${{ matrix.project }} --workers=2
+        run: bun run e2e -- --project=${{ matrix.project }} --workers=2
 
       - name: Upload Playwright report
         if: matrix.enabled == 'true' && failure()

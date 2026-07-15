@@ -4,9 +4,8 @@
  *
  * The opt-in vanilla-Three.js SmartArt renderer (`pptx-viewer-shared/smartart-3d`)
  * has no live UI toggle: every binding reads it once, at mount, from the
- * `?smartArt3D=1` query string (see the demo entry points: `demos/demo-react/main.tsx`,
- * `demos/demo-vue/src/App.vue`, `demos/demo-angular/src/app.component.ts`) and threads
- * it down as a fixed boolean prop for the life of the page. So
+ * `?smartArt3D=1` query string at its demo entry point and threads it down as a
+ * fixed boolean prop for the life of the page. So
  * "toggling 3D on/off" for a user is a page load with (or without) that query
  * param, not a runtime switch; these specs model it that way:
  *
@@ -22,31 +21,27 @@
  *    practical proxy for "no orphaned canvas/WebGL contexts" available at this
  *    architecture: there is no live "flip the flag" control on the same page
  *    to more directly exercise mount/unmount, but every renderer wrapper
- *    (`SmartArt3DScene.tsx` / `SmartArt3DRenderer.vue` / the Angular
- *    `smart-art-3d-renderer.component.ts`) disposes on that same effect, so
+ *    disposes through that same lifecycle, so
  *    this exercises the identical cleanup path a live toggle would.
  *
  * Locator notes (all discovered by running this spec against real dev servers,
  * not assumed):
  *  - `data-element-id` (not `data-pptx-element`) is the cross-framework anchor
  *    for locating the inserted element, matching the precedent set in
- *    `chart-rendering.spec.ts`: React/Angular's 3D SmartArt wrapper additionally
- *    emits `data-pptx-element`, but Vue's does not.
+ *    `chart-rendering.spec.ts`; not every renderer also emits
+ *    `data-pptx-element` on that wrapper.
  *  - Vue (and possibly other bindings) renders the Slides sidebar thumbnails
  *    through the *same* element-renderer tree, so a naive `[data-element-id="x"]`
  *    query can match more than one node (the live slide *and* its thumbnail).
  *    Every query here is therefore scoped inside `[data-pptx-viewport]`, the
  *    neutral hook (see `playwright.config.ts`'s file docstring) for the single
  *    main editing canvas.
- *  - Ribbon tabs ("Insert", "Home", ...) are plain `<button>` elements with no
- *    `role="tab"` in any of the three bindings (verified directly; the
- *    `getByRole('tab', ...)` helper in `smartart-insert-edit.spec.ts` does not
- *    match anything and silently no-ops), so tab switching goes through
- *    `getByRole('button', ...)` here instead.
+ *  - Ribbon entries may expose tab or button semantics, so tab switching
+ *    accepts either role through the shared toolbar contract.
  *  - The 2D fallback SVG renderer only carries a `data-testid="smartart-*"`
  *    hook in React; Vue's `SmartArtRenderer.vue` has no such attribute. The
  *    fallback assertion below checks for a generic `<svg>` (present in all
- *    three) rather than the React-only testid.
+ *    five) rather than the React-only testid.
  *
  * WebGL-in-headless-Chromium note: a probe runs once in `beforeAll` and the
  * canvas-mounting tests are skipped with a clear reason if it comes back
@@ -114,17 +109,19 @@ function viewport(page: Page): Locator {
 async function loadDeck(page: Page, options: { threeD?: boolean } = {}): Promise<void> {
 	await page.goto(options.threeD ? '/?smartArt3D=1' : '/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
-	await page.locator('[data-pptx-element="true"]').first().waitFor();
+	await viewport(page).locator('[data-element-id]').first().waitFor();
 	await page.waitForTimeout(500);
 }
 
 /**
- * Switch to the Insert ribbon tab. All three bindings render ribbon tabs as
- * plain `<button>` elements (no `role="tab"`), so the accessible name is
- * queried via the `button` role.
+ * Switch to the Insert ribbon tab through either supported semantic role.
  */
 async function switchToInsertTab(page: Page): Promise<void> {
-	const insertTab = page.getByRole('button', { name: 'Insert' });
+	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
+	const insertTab = toolbar
+		.getByRole('tab', { name: 'Insert', exact: true })
+		.or(toolbar.getByRole('button', { name: 'Insert', exact: true }))
+		.first();
 	await insertTab.click();
 	await page.waitForTimeout(200);
 }
@@ -132,6 +129,9 @@ async function switchToInsertTab(page: Page): Promise<void> {
 /** Open the Insert SmartArt dialog. */
 async function openSmartArtDialog(page: Page): Promise<void> {
 	await switchToInsertTab(page);
+	if (projectName(page) === 'vanilla') {
+		return;
+	}
 	await page.getByRole('button', { name: 'SmartArt' }).click();
 	await page.waitForTimeout(300);
 }
@@ -143,6 +143,21 @@ async function openSmartArtDialog(page: Page): Promise<void> {
  * gallery grid, mirroring `smartart-insert-edit.spec.ts`.
  */
 async function insertFirstPresetInCategory(page: Page, categoryName: RegExp): Promise<void> {
+	const project = projectName(page);
+	if (project === 'vanilla' || project === 'svelte') {
+		const presetPattern = categoryName.source.includes('Hierarchy') ? /Hierarchy/iu : /Cycle/iu;
+		const scope =
+			project === 'vanilla'
+				? page.locator('.pptxv-smartart-grid')
+				: page.locator('.pptx-svelte-smartart-grid');
+		const target =
+			project === 'svelte'
+				? scope.getByRole('menuitem').filter({ hasText: presetPattern }).first()
+				: scope.getByRole('button', { name: presetPattern }).first();
+		await target.click();
+		await page.waitForTimeout(600);
+		return;
+	}
 	const dialog = page.getByRole('dialog', { name: /Insert SmartArt/iu });
 	await expect(dialog).toBeVisible();
 
@@ -237,6 +252,12 @@ function projectName(page: Page): string {
 	if (url.includes('4174')) {
 		return 'angular';
 	}
+	if (url.includes('4176')) {
+		return 'vanilla';
+	}
+	if (url.includes('4177')) {
+		return 'svelte';
+	}
 	return 'react';
 }
 
@@ -310,7 +331,7 @@ test.describe('3D SmartArt (smartArt3D opt-in)', () => {
 		const id = newElementId(before, after);
 		const el = elementInViewport(page, id);
 
-		// The plain SVG renderer should be present (all three bindings render the
+		// The plain SVG renderer should be present (all five bindings render the
 		// 2D SmartArt diagram as inline SVG)...
 		await expect(el.locator('svg').first()).toBeVisible({ timeout: 5000 });
 

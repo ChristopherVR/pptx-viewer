@@ -55,9 +55,11 @@
 <style>
 	.pptx-svelte-animationstab {
 		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
+		align-items: flex-start;
+		flex-wrap: nowrap;
 		gap: 8px;
+		max-width: 100%;
+		overflow-x: auto;
 	}
 
 	.pptx-svelte-animationstab-group {
@@ -76,7 +78,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 4px;
-		max-width: 320px;
+		max-width: 380px;
 	}
 
 	.pptx-svelte-animationstab button {
@@ -103,6 +105,6 @@
 	}
 
 	.pptx-svelte-animationstab-remove {
-		align-self: flex-end;
+		align-self: center;
 	}
 </style>

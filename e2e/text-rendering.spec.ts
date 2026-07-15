@@ -18,7 +18,7 @@ const fixturePath = resolve(fileURLToPath(new URL('./fixtures/sample-deck.pptx',
  *
  * These assertions read the *computed* font size off the neutral
  * `[data-pptx-element="true"]` DOM contract, so they are framework-agnostic and
- * catch any reintroduction of the pt/px inflation in React, Vue, or Angular.
+ * catch any reintroduction of the pt/px inflation in any maintained binding.
  *
  * Reference sizes are taken from the React renderer (the source of truth) for
  * `sample-deck.pptx` slide 1.

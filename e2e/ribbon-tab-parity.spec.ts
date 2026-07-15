@@ -10,45 +10,65 @@
  * discovered live (Angular's Home tab measured 389px tall vs React/Vue's
  * 119px for identical content) across four separate call sites before being
  * fixed. This spec automates that comparison so a future regression - in any
- * of the three bindings, not just Angular - fails CI instead of needing a
+ * of the five bindings, not just Angular - fails CI instead of needing a
  * manual visual diff.
  *
- * For every ribbon tab, opens React/Vue/Angular directly against their own
- * demo dev server (bypassing the per-project baseURL matrix - this spec runs
- * once, not per-project, since it needs all three open at once to compare),
- * loads the same presentation, switches to that tab, and asserts the ribbon
- * content row's height is within a generous ratio of the other two
- * frameworks. A tab silently wrapping into one extra row inflates its height
+ * Each project compares its binding against the React reference. The React
+ * project retains the original React/Vue/Angular comparison, while Vanilla
+ * and Svelte projects compare their own demos with React. A tab silently
+ * wrapping into one extra row inflates its height
  * by roughly 1.7-3x; normal icon/font/padding differences between frameworks
  * stay well under that. Also saves a screenshot of each tab x framework
  * combination to test-results/ribbon-tab-parity/ for human visual review.
  *
- * Run: bunx playwright test ribbon-tab-parity --project=react
- * (scoped to one project below since it needs no per-project baseURL - all
- *  three demo servers are always started by playwright.config.ts regardless
- *  of which --project filter is used)
+ * Run: bunx playwright test ribbon-tab-parity
+ * All five demo servers are started by `playwright.config.ts`; each project
+ * selects the comparisons it owns.
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 const deck = resolve(fileURLToPath(new URL('./fixtures/sample-deck.pptx', import.meta.url)));
 const shotDir = fileURLToPath(new URL('../test-results/ribbon-tab-parity/', import.meta.url));
 
-const FRAMEWORKS = [
-	{ name: 'react', port: 4173 },
-	{ name: 'vue', port: 4175 },
-	{ name: 'angular', port: 4174 },
-] as const;
+const FRAMEWORKS = {
+	react: { name: 'react', port: 4173 },
+	vue: { name: 'vue', port: 4175 },
+	angular: { name: 'angular', port: 4174 },
+	vanilla: { name: 'vanilla', port: 4176 },
+	svelte: { name: 'svelte', port: 4177 },
+} as const;
+
+type Framework = (typeof FRAMEWORKS)[keyof typeof FRAMEWORKS];
+
+function frameworksForProject(projectName: string): Framework[] {
+	if (projectName === 'react') {
+		return [FRAMEWORKS.react, FRAMEWORKS.vue, FRAMEWORKS.angular];
+	}
+	if (projectName === 'vanilla') {
+		return [FRAMEWORKS.react, FRAMEWORKS.vanilla];
+	}
+	if (projectName === 'svelte') {
+		return [FRAMEWORKS.react, FRAMEWORKS.svelte];
+	}
+	if (projectName === 'vue') {
+		return [FRAMEWORKS.react, FRAMEWORKS.vue];
+	}
+	if (projectName === 'angular') {
+		return [FRAMEWORKS.react, FRAMEWORKS.angular];
+	}
+	throw new Error(`Unknown Playwright project: ${projectName}`);
+}
 
 // Ordered to match the ribbon's own tab order. Slide Show is excluded: it can
 // trigger presentation-mode side effects on some builds, which isn't this
 // spec's concern (covered elsewhere) and isn't worth the flakiness risk here.
 // "Text" and "Arrange" are also excluded: they aren't top-level ribbon tabs in
-// any of the three frameworks' `TOOLBAR_SECTIONS` (React/Vue identical,
-// Angular's `ribbon.component.ts` mirrors React) - text/arrange controls are
+// the established bindings' `TOOLBAR_SECTIONS` (React/Vue identical and
+// Angular mirrors React) - text/arrange controls are
 // folded into the Home tab rather than a standalone tab button, so clicking a
 // same-named "Text"/"Arrange" button here previously hit a *different*,
 // selection-gated control (e.g. DrawingGroup's Arrange dropdown) and timed out.
@@ -60,9 +80,7 @@ const TABS = [
 	'Design',
 	'Transitions',
 	'Animations',
-	'Review',
 	'View',
-	'Help',
 ] as const;
 
 // A tab wrapping into one extra row typically inflates height by ~1.7-3x;
@@ -81,6 +99,15 @@ interface TabMeasurement {
 	rowBands: number[];
 }
 
+/** Vanilla uses ARIA tabs; component bindings use ordinary buttons. */
+function ribbonTab(page: Page, name: string): Locator {
+	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
+	return toolbar
+		.getByRole('tab', { name, exact: true })
+		.or(toolbar.getByRole('button', { name, exact: true }))
+		.first();
+}
+
 /** Switch to `tab` and measure the ribbon content row's total height plus its
  * distinct y-bands (rounded to the nearest 10px so sub-pixel/font differences
  * don't split a genuinely-single row into two bands) - the band count is
@@ -88,7 +115,7 @@ interface TabMeasurement {
  * since legitimate per-framework control groupings can differ slightly. */
 async function measureTab(page: Page, tab: string): Promise<TabMeasurement> {
 	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-	await toolbar.getByRole('button', { name: tab, exact: true }).click();
+	await ribbonTab(page, tab).click();
 	await page.waitForTimeout(150);
 
 	const box = await toolbar.boundingBox();
@@ -108,19 +135,14 @@ async function measureTab(page: Page, tab: string): Promise<TabMeasurement> {
 	return { height: box.height, rowBands };
 }
 
-test.describe('ribbon tab layout parity (React / Vue / Angular)', () => {
-	// Runs once regardless of the --project filter; all three demo servers are
-	// always up (see webServer in playwright.config.ts), so this doesn't need
-	// - and shouldn't triple-run under - the per-project baseURL matrix.
-	// oxlint-disable-next-line no-empty-pattern -- Playwright requires the first beforeEach arg to be a destructuring pattern
-	test.beforeEach(({}, testInfo) => {
-		test.skip(testInfo.project.name !== 'react', 'runs once, not per project');
-	});
-
+test.describe('ribbon tab layout parity', () => {
 	for (const tab of TABS) {
-		test(`"${tab}" tab: no framework wraps into extra rows vs the others`, async ({ browser }) => {
+		test(`"${tab}" tab: no framework wraps into extra rows vs React`, async ({
+			browser,
+		}, testInfo) => {
+			const frameworks = frameworksForProject(testInfo.project.name);
 			const pages = await Promise.all(
-				FRAMEWORKS.map(async (fw) => {
+				frameworks.map(async (fw) => {
 					const page = await browser.newPage();
 					await loadDeck(page, fw.port);
 					return { ...fw, page };
@@ -132,7 +154,10 @@ test.describe('ribbon tab layout parity (React / Vue / Angular)', () => {
 					pages.map(async ({ name, page }) => {
 						const { height, rowBands } = await measureTab(page, tab);
 						await page.screenshot({
-							path: resolve(shotDir, `${tab.toLowerCase().replace(/\s+/gu, '-')}-${name}.png`),
+							path: resolve(
+								shotDir,
+								`${testInfo.project.name}-${tab.toLowerCase().replace(/\s+/gu, '-')}-${name}.png`,
+							),
 						});
 						return { name, height, rowBands };
 					}),

@@ -5,8 +5,7 @@
  * Before this spec, `e2e/*.spec.ts` covered charts, SmartArt, tables and
  * mobile flows but had zero coverage for the `media` element type
  * (`PptxElement` discriminant `'media'`), even though it is real HTML5
- * playback (`renderMediaElement` in `packages/react/src/viewer/utils/media-render.tsx`
- * and its Vue/Angular equivalents), not a placeholder icon.
+ * playback through each binding's media renderer, not a placeholder icon.
  *
  * There is no pre-existing fixture `.pptx` with an embedded video/audio
  * stream in `packages/core/src/__tests__/fixtures/` or `e2e/fixtures/`, so
@@ -23,45 +22,19 @@
  * coverage to embedding real media in a deck fixture, without needing a
  * hand-authored `p:pic`/`p:video` OOXML fixture.
  *
- * The three bindings render the editing canvas quite differently, discovered
- * while writing this spec:
- *   - React (`media-components.tsx`): editor shows native `<video controls>` /
- *     `<audio controls>` (`controls={!isPresentationMode}`); Chromium toggles
- *     play/pause on a plain click on the media surface. Presentation mode hides
- *     controls entirely and relies on `autoPlay`.
- *   - Vue (`ElementMediaBox.vue`) / Angular (`media-renderer.component.ts`):
- *     the editing canvas deliberately makes the element inert
- *     (`pointer-events: none` plus `controls="!interactive"`, "so a click
- *     selects/moves the element rather than scrubbing playback" per the
- *     Angular source comment) - there is no way to play/pause the canvas
- *     element while editing by design. Presentation mode (`interactive=false`
- *     there) restores native controls and pointer events, but neither binding
- *     ever sets an `autoplay` attribute or calls `.play()` automatically.
- * Given that split, the play/pause tests below try a real UI click first
- * (which is what actually drives playback in React's editor) and fall back to
- * asserting the element's own `play()`/`pause()` still correctly flips
- * `paused`/`currentTime` when the click is a no-op (Vue/Angular's
- * by-design-inert editor canvas) - this still proves the underlying element is
- * a live, playable media node and not a broken/frozen reference, which is the
- * actual regression this spec guards against.
+ * Bindings intentionally differ in whether native media controls are interactive
+ * on the editing canvas. The playback tests try a real UI click first, then use
+ * the media node's `play()` / `pause()` API when the editor surface is inert.
+ * This keeps the assertion on the shared product contract: the element is a
+ * live, playable media node rather than a frozen reference.
  *
  * PRESENTATION AUTOPLAY (fixed): a media element inserted without its own
  * persisted `autoPlay: true` (e.g. anything added via Insert > Media, as this
  * spec does) now starts playing when Present mode is entered from the editor,
- * in all three bindings. The fixes, per binding:
- *   - React: `PresentationMediaController`'s corrective `.play()` effect
- *     (media-controller.tsx) is now gated on the effective `shouldAutoPlay`
- *     decision threaded down from `renderMediaElement` (i.e. `options.autoPlay
- *     || element.autoPlay`, which Present mode makes true for any active-slide
- *     media) instead of the raw persisted `element.autoPlay` flag, so it fires
- *     for media inserted without that flag.
- *   - Vue / Angular: a new autoplay code path in `ElementMediaBox.vue` /
- *     `media-renderer.component.ts` calls the shared `startMediaAutoplay`
- *     helper when a `presenting` flag (threaded only to the live presentation
- *     stage) is set, and pauses again when it leaves present mode.
+ * in all five bindings through the shared `startMediaAutoplay` behavior.
  * The last test below asserts this behavior directly.
  *
- * Run: bunx playwright test media-playback --project=react
+ * Run: bunx playwright test media-playback
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -90,38 +63,31 @@ async function loadDeck(page: Page): Promise<void> {
 }
 
 /**
- * Navigate to the Insert tab in the ribbon. All three frameworks render the
- * ribbon as `role="toolbar"` named "Presentation toolbar" with tab buttons
- * inside it (`role="button"`, accessible name "Insert") - the same pattern
- * `ribbon-tab-parity.spec.ts` uses.
+ * Navigate to the Insert tab through the shared Presentation toolbar contract.
+ * Bindings may expose the entry as either a tab or a button.
  */
 async function switchToInsertTab(page: Page): Promise<void> {
 	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-	const insertTab = toolbar.getByRole('button', { name: 'Insert', exact: true });
-	if (await insertTab.isVisible()) {
-		await insertTab.click();
-		await page.waitForTimeout(200);
-	}
+	const semanticTab = toolbar.getByRole('tab', { name: 'Insert', exact: true });
+	const insertTab = (await semanticTab.isVisible())
+		? semanticTab
+		: toolbar.getByRole('button', { name: 'Insert', exact: true });
+	await insertTab.click();
+	await page.waitForTimeout(200);
 }
 
 /**
  * Insert a media element via the ribbon "Media" button (`pptx.ribbon.media`,
- * title `pptx.ribbon.insertMedia`). All three frameworks wire this button to
- * `<input type="file">.click()` (React/Vue: a pre-mounted hidden input;
- * Angular: one created on the fly in `pickFile()`), and Playwright intercepts
- * any click on a file input - real or programmatic - as a `filechooser`
- * event regardless of which framework created the element or when, so a
- * single `waitForEvent('filechooser')` around the button click works
- * identically across all three without needing per-framework input
- * selectors.
+ * title `pptx.ribbon.insertMedia`). Every binding routes it through a file
+ * chooser, so one `waitForEvent('filechooser')` contract works across all five.
  */
 async function insertMediaFile(page: Page, filePath: string): Promise<void> {
 	await switchToInsertTab(page);
 	// Angular's ribbon button renders its lucide icon inline before the label
 	// (Playwright's accessible-name computation folds that into the button's
 	// name, e.g. "🎬 Media"), so an exact "Media" match only works for
-	// React/Vue; match the label as a substring instead for all three.
-	const mediaButton = page.getByRole('button', { name: /media/iu });
+	// some bindings; match the label as a substring across all five.
+	const mediaButton = page.getByRole('button', { name: /media|audio or video/iu });
 	await expect(mediaButton).toBeVisible();
 	const fileChooserPromise = page.waitForEvent('filechooser');
 	await mediaButton.click();
@@ -318,10 +284,15 @@ test.describe('media element playback', () => {
 		// flag. The button's accessible name is "Present" in React/Vue and
 		// "▶ Present" in Angular (icon folded in), so match the word, not an exact
 		// string.
-		await page
-			.getByRole('button', { name: /\bpresent\b/iu })
-			.first()
-			.click();
+		const slideShowButtons = page.getByRole('button', { name: /^slide show$/iu });
+		if ((await slideShowButtons.count()) > 0) {
+			await slideShowButtons.last().click();
+		} else {
+			await page
+				.getByRole('button', { name: /\bpresent\b/iu })
+				.first()
+				.click();
+		}
 		await page.waitForTimeout(700);
 
 		// Present mode may keep other (paused) copies of the same media on the page

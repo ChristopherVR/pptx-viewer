@@ -5,7 +5,7 @@
  * Validates that a SmartArt diagram can be inserted via the Insert tab dialog,
  * then edited through the inspector panel: changing node text, switching the
  * layout type (e.g. pyramid to process), and changing the colour scheme. The
- * spec runs identically across React / Vue / Angular via the neutral DOM
+ * spec runs across React, Vue, Angular, Vanilla, and Svelte via the neutral DOM
  * contract (aria-labels, roles, `data-testid`, `data-pptx-element`).
  *
  * Run: bunx playwright test smartart-insert-edit
@@ -29,31 +29,67 @@ async function loadDeck(page: Page): Promise<void> {
 }
 
 /**
- * Navigate to the Insert tab in the ribbon. All three frameworks render the
- * ribbon tab strip as plain `<button>` elements (no `role="tab"`), matching
- * the neutral DOM contract used elsewhere (e.g. ribbon-tab-parity.spec.ts,
- * save-corruption-repro.spec.ts). A previous `role="tab"` locator here never
- * matched anything, so this helper silently no-opped and every test in this
- * file failed downstream trying to find the SmartArt button on the Home tab.
+ * Navigate to the Insert tab through the shared toolbar contract. Bindings may
+ * expose ribbon entries as tabs or buttons, so the locator accepts either role.
  */
 async function switchToInsertTab(page: Page): Promise<void> {
-	const insertTab = page.getByRole('button', { name: 'Insert', exact: true });
+	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
+	const insertTab = toolbar
+		.getByRole('tab', { name: 'Insert', exact: true })
+		.or(toolbar.getByRole('button', { name: 'Insert', exact: true }))
+		.first();
 	await insertTab.click();
 	await page.waitForTimeout(200);
 }
 
 /**
- * Click the SmartArt button in the Insert section. The button text is "SmartArt"
- * (from `pptx.ribbon.smartArt`) across all three frameworks.
+ * Click the SmartArt button in the Insert section. Its shared accessible name
+ * comes from `pptx.ribbon.smartArt`.
  */
 async function clickSmartArtButton(page: Page): Promise<void> {
+	if (projectName(page) === 'vanilla') {
+		return;
+	}
 	const btn = page.getByRole('button', { name: 'SmartArt' });
 	await btn.click();
 	await page.waitForTimeout(300);
 }
 
+async function insertSmartArtPreset(page: Page, pattern?: RegExp): Promise<void> {
+	await clickSmartArtButton(page);
+	const project = projectName(page);
+	if (project === 'vanilla' || project === 'svelte') {
+		const scope =
+			project === 'vanilla'
+				? page.locator('.pptxv-smartart-grid')
+				: page.locator('.pptx-svelte-smartart-grid');
+		const items = project === 'svelte' ? scope.getByRole('menuitem') : scope.getByRole('button');
+		const matching = items.filter({ hasText: pattern ?? /./u }).first();
+		await ((await matching.count()) > 0 ? matching : items.first()).click();
+		await page.waitForTimeout(600);
+		return;
+	}
+	const dialog = page.getByRole('dialog', { name: /Insert SmartArt/iu });
+	await expect(dialog).toBeVisible();
+	if (pattern) {
+		const category = dialog.getByRole('button').filter({ hasText: pattern }).first();
+		if (await category.isVisible().catch(() => false)) {
+			await category.click();
+			await page.waitForTimeout(200);
+		}
+	}
+	await dialog
+		.locator(
+			'[role="option"], .grid > button, .pptx-vue-smartart-tile, .pptx-angular-smartart-tile',
+		)
+		.first()
+		.click();
+	await dialog.getByRole('button', { name: /^Insert$/iu }).click();
+	await page.waitForTimeout(600);
+}
+
 /**
- * Open the inspector panel. React/Vue use a toggle button; Angular auto-opens.
+ * Open the inspector panel, accounting for bindings that start it open.
  */
 async function openInspector(page: Page, project: string): Promise<void> {
 	if (project === 'angular') {
@@ -84,7 +120,7 @@ async function openInspector(page: Page, project: string): Promise<void> {
 }
 
 /**
- * Return the project name from the test info (react / vue / angular).
+ * Return the project name inferred from the five configured demo ports.
  */
 function projectName(page: Page): string {
 	// testInfo not accessible here; fall back to URL port.
@@ -98,6 +134,12 @@ function projectName(page: Page): string {
 	if (url.includes('4174')) {
 		return 'angular';
 	}
+	if (url.includes('4176')) {
+		return 'vanilla';
+	}
+	if (url.includes('4177')) {
+		return 'svelte';
+	}
 	return 'react';
 }
 
@@ -109,34 +151,7 @@ test.describe('smartart insert and edit', () => {
 	test('inserts SmartArt via dialog and verifies it renders on the slide', async ({ page }) => {
 		await loadDeck(page);
 		await switchToInsertTab(page);
-		await clickSmartArtButton(page);
-
-		// The Insert SmartArt dialog should be open.
-		const dialog = page.getByRole('dialog', { name: /Insert SmartArt/iu });
-		await expect(dialog).toBeVisible();
-
-		// Select the "Hierarchy" category in the sidebar.
-		const hierarchyCat = dialog.getByRole('button', { name: /Hierarchy/iu });
-		if (await hierarchyCat.isVisible()) {
-			await hierarchyCat.click();
-			await page.waitForTimeout(200);
-		}
-
-		// Pick the first available layout in the gallery grid (click to select).
-		// The dialog has no role="option" elements; ".grid button" is the reliable
-		// selector for a preset thumbnail (see save-corruption-repro.spec.ts).
-		// Vue and Angular mark the gallery listbox/options with role="option";
-		// React's gallery is a plain button grid with no ARIA role, so fall back
-		// to the ".grid button" cell selector there. Angular also has no ".grid"
-		// class (its gallery uses BEM classes), so role="option" is required for
-		// Angular specifically - hence trying both rather than picking one.
-		await dialog.getByRole('option').or(dialog.locator('.grid button')).first().click();
-		await page.waitForTimeout(100);
-
-		// Click the Insert button to confirm.
-		const insertBtn = dialog.getByRole('button', { name: /^Insert$/iu });
-		await insertBtn.click();
-		await page.waitForTimeout(500);
+		await insertSmartArtPreset(page, /Hierarchy/iu);
 
 		// Verify the SmartArt element was added to the slide.
 		// SmartArt renderers emit a data-testid like "smartart-hierarchy",
@@ -148,26 +163,7 @@ test.describe('smartart insert and edit', () => {
 	test('edits SmartArt node text via the inspector panel', async ({ page }) => {
 		await loadDeck(page);
 		await switchToInsertTab(page);
-		await clickSmartArtButton(page);
-
-		// Insert a basic block list (first item in the default "List" category).
-		const dialog = page.getByRole('dialog', { name: /Insert SmartArt/iu });
-		await expect(dialog).toBeVisible();
-
-		// Select the first preset thumbnail in the gallery grid (the dialog has no
-		// role="option" elements; the reliable selector is the ".grid button" cells
-		// used elsewhere, e.g. save-corruption-repro.spec.ts).
-		// Vue and Angular mark the gallery listbox/options with role="option";
-		// React's gallery is a plain button grid with no ARIA role, so fall back
-		// to the ".grid button" cell selector there. Angular also has no ".grid"
-		// class (its gallery uses BEM classes), so role="option" is required for
-		// Angular specifically - hence trying both rather than picking one.
-		await dialog.getByRole('option').or(dialog.locator('.grid button')).first().click();
-		await page.waitForTimeout(100);
-
-		const insertBtn = dialog.getByRole('button', { name: /^Insert$/iu });
-		await insertBtn.click();
-		await page.waitForTimeout(600);
+		await insertSmartArtPreset(page);
 
 		// Select the newly inserted SmartArt element on the canvas.
 		const smartArt = page.locator('[data-testid^="smartart-"]').first();
@@ -208,13 +204,16 @@ test.describe('smartart insert and edit', () => {
 
 			// Verify the text was updated on the canvas.
 			const updatedText = page
+				.locator('[data-pptx-viewport]')
 				.locator('[data-testid^="smartart-"]')
-				.filter({ hasText: 'Updated Node' });
+				.filter({ hasText: 'Updated Node' })
+				.first();
 			await expect(updatedText).toBeVisible({ timeout: 3000 });
 
 			// CRITICAL: Verify the layout type did NOT change after text edit.
 			// This was the bug: editing text caused pyramid to become stacked bars.
 			const postEditTestId = await page
+				.locator('[data-pptx-viewport]')
 				.locator('[data-testid^="smartart-"]')
 				.first()
 				.getAttribute('data-testid');
@@ -225,25 +224,7 @@ test.describe('smartart insert and edit', () => {
 	test('switches SmartArt layout type (shape gets updated)', async ({ page }) => {
 		await loadDeck(page);
 		await switchToInsertTab(page);
-		await clickSmartArtButton(page);
-
-		// Insert a list SmartArt (first in the default category).
-		const dialog = page.getByRole('dialog', { name: /Insert SmartArt/iu });
-		await expect(dialog).toBeVisible();
-
-		// Select the first preset thumbnail in the gallery grid (see the ".grid
-		// button" note above; role="option" never matches in this dialog).
-		// Vue and Angular mark the gallery listbox/options with role="option";
-		// React's gallery is a plain button grid with no ARIA role, so fall back
-		// to the ".grid button" cell selector there. Angular also has no ".grid"
-		// class (its gallery uses BEM classes), so role="option" is required for
-		// Angular specifically - hence trying both rather than picking one.
-		await dialog.getByRole('option').or(dialog.locator('.grid button')).first().click();
-		await page.waitForTimeout(100);
-
-		const insertBtn = dialog.getByRole('button', { name: /^Insert$/iu });
-		await insertBtn.click();
-		await page.waitForTimeout(600);
+		await insertSmartArtPreset(page);
 
 		// Select the SmartArt element.
 		const smartArt = page.locator('[data-testid^="smartart-"]').first();
@@ -298,25 +279,7 @@ test.describe('smartart insert and edit', () => {
 	test('changes SmartArt colour scheme via inspector', async ({ page }) => {
 		await loadDeck(page);
 		await switchToInsertTab(page);
-		await clickSmartArtButton(page);
-
-		// Insert SmartArt.
-		const dialog = page.getByRole('dialog', { name: /Insert SmartArt/iu });
-		await expect(dialog).toBeVisible();
-
-		// Select the first preset thumbnail in the gallery grid (see the ".grid
-		// button" note above; role="option" never matches in this dialog).
-		// Vue and Angular mark the gallery listbox/options with role="option";
-		// React's gallery is a plain button grid with no ARIA role, so fall back
-		// to the ".grid button" cell selector there. Angular also has no ".grid"
-		// class (its gallery uses BEM classes), so role="option" is required for
-		// Angular specifically - hence trying both rather than picking one.
-		await dialog.getByRole('option').or(dialog.locator('.grid button')).first().click();
-		await page.waitForTimeout(100);
-
-		const insertBtn = dialog.getByRole('button', { name: /^Insert$/iu });
-		await insertBtn.click();
-		await page.waitForTimeout(600);
+		await insertSmartArtPreset(page);
 
 		// Select the SmartArt element.
 		const smartArt = page.locator('[data-testid^="smartart-"]').first();

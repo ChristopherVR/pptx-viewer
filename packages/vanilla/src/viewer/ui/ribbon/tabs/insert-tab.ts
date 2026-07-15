@@ -66,6 +66,7 @@ export function createInsertTab(
 	onToggleEquationPanel: () => void,
 ): InsertTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
+	el.classList.add('pptxv-ribbon-insert-content');
 
 	const buttons: Array<{ setDisabled(disabled: boolean): void }> = [];
 

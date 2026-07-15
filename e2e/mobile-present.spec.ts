@@ -14,22 +14,25 @@ test('entering presentation mode with a selection does not leak edit chrome', as
 	await page.locator('[data-pptx-element="true"]').first().waitFor();
 	await page.waitForTimeout(400);
 
-	// Select an adjustable shape — in edit mode it shows the "Adjust shape" handle
-	// (the amber diamond) plus resize handles.
+	// Select a shape and verify its shared rotate handle is visible in edit mode.
 	await page.locator('[data-pptx-element="true"]').last().tap();
-	await expect(page.getByLabel('Adjust shape')).toBeVisible();
+	const editHandle = page
+		.getByLabel(/rotate/iu)
+		.filter({ visible: true })
+		.last();
+	await expect(editHandle).toBeVisible();
 
 	// Enter presentation mode.
 	await page
-		.getByRole('button', { name: /present/iu })
+		.getByRole('button', { name: /present|slide show/iu })
 		.first()
 		.tap();
 	await page.waitForTimeout(700);
 
 	// Presentation controls are up...
 	await expect(page.getByRole('button', { name: /next slide/iu }).first()).toBeVisible();
-	// ...and NO edit chrome (resize/rotate/adjust handles) is rendered over the slide.
-	await expect(page.getByLabel('Adjust shape')).toHaveCount(0);
+	// ...and no visible edit handle is rendered over the slide.
+	await expect(page.getByLabel(/rotate/iu).filter({ visible: true })).toHaveCount(0);
 
 	// The presentation also starts at the slide origin rather than wherever the
 	// edit canvas had been scrolled/zoomed.

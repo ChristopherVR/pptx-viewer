@@ -1,6 +1,6 @@
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright spec, `test`/`expect` come from @playwright/test */
 /**
- * Table-cell touch editing (React, Angular, Vue).
+ * Table-cell touch editing across every viewer binding.
  *
  * On touch a cell is edited with a double-tap (which mounts a text <input>).
  * Verified end-to-end on the sample deck's "Plans" table (slide 5), reached
@@ -11,7 +11,7 @@
  * `locator.tap()` (which aims at the box centre) misses. We tap the cell's
  * on-screen left portion via `touchscreen` at a clamped point instead.
  *
- * Run: bunx playwright test mobile-table.spec --project=react
+ * Run: bunx playwright test mobile-table.spec
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,7 +21,7 @@ import type { Page } from '@playwright/test';
 
 test.use({ ...devices['Pixel 7'] });
 
-// React, Angular, and Vue all support table-cell touch editing: a double-tap
+// Every binding supports table-cell touch editing: a double-tap
 // mounts a text input in the slide's `<td>`. (The Angular inspector table
 // editor uses a non-<table> grid so it does not collide with this spec's
 // `td input[type="text"]` selector.) Vue previously masked this because its

@@ -135,7 +135,7 @@ const CHROME_CSS = `
 .pptxv-cmdsearch-item { cursor: pointer; }
 .pptxv-cmdsearch-item:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
 .pptxv-cmdsearch-empty { color: var(--pptx-muted-foreground); }
-@media (max-width: 767px) { .pptxv-titlebar { display: none; } }
+@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) { .pptxv-titlebar { display: none; } }
 
 /* ── Body: thumbnail rail + viewport ─────────────────────────────────── */
 .pptxv-body { display: flex; flex: 1; min-height: 0; }
@@ -375,7 +375,7 @@ const CHROME_CSS = `
 .pptxv-statusbar-zoom:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
 .pptxv.pptxv-presenting .pptxv-statusbar { display: none; }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {
 	.pptxv-ribbon,
 	.pptxv-thumbs,
 	.pptxv-inspector,

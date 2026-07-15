@@ -106,7 +106,7 @@
 		padding: 4px 8px;
 	}
 
-	@media (max-width: 767px) {
+	@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {
 		.pptx-svelte-ribbon {
 			display: none;
 		}

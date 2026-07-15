@@ -47,16 +47,16 @@ export function attachTouchGestures(
 	const onMove = (event: TouchEvent): void => recognizer.onTouchMove(event);
 	const onEnd = (event: TouchEvent): void => recognizer.onTouchEnd(event);
 	const onCancel = (): void => recognizer.onTouchCancel();
-	target.addEventListener('touchstart', onStart, { passive: false });
-	target.addEventListener('touchmove', onMove, { passive: false });
-	target.addEventListener('touchend', onEnd, { passive: true });
-	target.addEventListener('touchcancel', onCancel, { passive: true });
+	target.addEventListener('touchstart', onStart, { passive: false, capture: true });
+	target.addEventListener('touchmove', onMove, { passive: false, capture: true });
+	target.addEventListener('touchend', onEnd, { passive: true, capture: true });
+	target.addEventListener('touchcancel', onCancel, { passive: true, capture: true });
 
 	return () => {
-		target.removeEventListener('touchstart', onStart);
-		target.removeEventListener('touchmove', onMove);
-		target.removeEventListener('touchend', onEnd);
-		target.removeEventListener('touchcancel', onCancel);
+		target.removeEventListener('touchstart', onStart, true);
+		target.removeEventListener('touchmove', onMove, true);
+		target.removeEventListener('touchend', onEnd, true);
+		target.removeEventListener('touchcancel', onCancel, true);
 		recognizer.cancel();
 	};
 }

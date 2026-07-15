@@ -1,6 +1,6 @@
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright spec, `test`/`expect` come from @playwright/test */
 /**
- * Mobile element-manipulation deep dive (React).
+ * Mobile element-manipulation deep dive across every viewer binding.
  *
  * Exercises the three core editing interactions end-to-end on a Pixel 7 mobile
  * viewport:
@@ -26,7 +26,7 @@
  *    pointer-move-handlers.test.ts / pointer-up-handlers.test.ts. Mouse here
  *    exercises that same shared pipeline on the mobile layout.
  *
- * Run: bunx playwright test mobile-manipulation --project=react
+ * Run: bunx playwright test mobile-manipulation
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,9 +36,7 @@ import type { Locator, Page } from '@playwright/test';
 
 test.use({ ...devices['Pixel 7'] });
 
-// React, Vue, and Angular all emit the same selection chrome (Rotate / Adjust
-// shape handles, inline editor), so this spec runs unmodified against every
-// project.
+// Every binding emits the selection and inline-editor hooks used here.
 
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/format-painter.pptx', import.meta.url)),

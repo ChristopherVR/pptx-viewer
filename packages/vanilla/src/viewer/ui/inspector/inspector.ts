@@ -3,6 +3,7 @@ import { createEl } from '../../render';
 import { createFillSection } from './fill-section';
 import { createImageSection } from './image-section';
 import { createPositionSection } from './position-section';
+import { createSmartArtSection } from './smartart-section';
 import { createTableSection } from './table-section';
 import { createTextSection } from './text-section';
 import type { Inspector, InspectorHandlers } from './types';
@@ -58,7 +59,8 @@ export function createInspector(
 	const text = createTextSection(doc, t, section, handlers);
 	const image = createImageSection(doc, t, section, handlers);
 	const table = createTableSection(doc, t, section, handlers);
-	const sections = [position, fill, text, image, table];
+	const smartArt = createSmartArtSection(doc, t, section, handlers);
+	const sections = [position, fill, text, image, table, smartArt];
 
 	let expanded = true;
 	const applyExpanded = (): void => {

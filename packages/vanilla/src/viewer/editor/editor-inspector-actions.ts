@@ -1,4 +1,5 @@
-import type { TextStyle } from 'pptx-viewer-core';
+import type { SmartArtColorScheme, SmartArtLayoutType, TextStyle } from 'pptx-viewer-core';
+import { switchSmartArtLayout, updateSmartArtNodeText } from 'pptx-viewer-core';
 import {
 	addGradientStopPatch,
 	applyUniformCellPaddingPatch,
@@ -48,6 +49,10 @@ export interface InspectorActions {
 	setTableHeaderRow(enabled: boolean): void;
 	setTableBandedRows(enabled: boolean): void;
 	setTableCellPadding(padding: number): void;
+
+	setSmartArtNodeText(nodeId: string, text: string): void;
+	setSmartArtLayout(layout: SmartArtLayoutType): void;
+	setSmartArtColorScheme(scheme: SmartArtColorScheme): void;
 }
 
 const CROP_KEY = {
@@ -90,5 +95,24 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 			applyToSelected((el) => tableInspectorPatch(el, { bandedRows: enabled })),
 		setTableCellPadding: (padding) =>
 			applyToSelected((el) => applyUniformCellPaddingPatch(el, padding)),
+
+		setSmartArtNodeText: (nodeId, text) =>
+			applyToSelected((el) =>
+				el.type === 'smartArt' && el.smartArtData
+					? { smartArtData: updateSmartArtNodeText(el.smartArtData, nodeId, text) }
+					: {},
+			),
+		setSmartArtLayout: (layout) =>
+			applyToSelected((el) =>
+				el.type === 'smartArt' && el.smartArtData
+					? { smartArtData: switchSmartArtLayout(el.smartArtData, layout) }
+					: {},
+			),
+		setSmartArtColorScheme: (scheme) =>
+			applyToSelected((el) =>
+				el.type === 'smartArt' && el.smartArtData
+					? { smartArtData: { ...el.smartArtData, colorScheme: scheme } }
+					: {},
+			),
 	};
 }

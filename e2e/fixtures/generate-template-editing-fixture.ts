@@ -3,7 +3,7 @@
  * slide-authored shape plus a decorative shape injected into the slide's
  * layout and into its master. Used by `../template-editing.spec.ts`, which
  * exercises `editTemplateMode` (edit inherited layout/master shapes directly
- * on the canvas) across React, Vue, and Angular.
+ * on the canvas) across every maintained viewer binding.
  *
  * The core slide loader only surfaces a layout/master shape as an editable
  * "template element" (`layout-` / `master-` prefixed id) when the

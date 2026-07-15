@@ -11,7 +11,7 @@ const fixturePath = resolve(
 
 // The painter button exposes a framework-neutral `data-active` attribute
 // (`"true"` when armed, `"false"` otherwise) so this spec runs unchanged across
-// React / Vue / Angular instead of asserting a framework-specific CSS class.
+// all five bindings instead of asserting a framework-specific CSS class.
 
 /**
  * Uploads the fixture deck and waits for the viewer to render both shapes.
