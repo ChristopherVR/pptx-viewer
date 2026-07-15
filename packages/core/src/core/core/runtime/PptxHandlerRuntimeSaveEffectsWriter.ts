@@ -1,6 +1,7 @@
 import { XmlObject } from '../../types';
 import type { ShapeStyle } from '../../types';
 import { EFFECT_LST_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
+import { serializeEffectDagContainer } from '../builders/effect-dag-containers';
 import { createEffectList, effectChild, setEffectChild } from '../builders/effect-list-roundtrip';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveShapeStyleWriter';
 
@@ -87,9 +88,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
-		// Round-trip preserve effectDag if present
-		if (shapeStyle.effectDagXml) {
-			spPr['a:effectDag'] = shapeStyle.effectDagXml;
+		// Prefer the typed graph so edits are serialized. Its primitive nodes retain
+		// their original XML, including unknown extensions and color transforms.
+		const effectDagXml = shapeStyle.effectDagTree
+			? serializeEffectDagContainer(shapeStyle.effectDagTree)
+			: shapeStyle.effectDagXml;
+		if (effectDagXml) {
+			setEffectChild(spPr, 'effectDag', effectDagXml);
 		}
 
 		// ── 3D Scene (a:scene3d) ──

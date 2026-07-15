@@ -50,7 +50,7 @@ export class PptxEffectDagExtractor implements IPptxEffectDagExtractor {
 	 * Returns an empty object if no DAG is present.
 	 */
 	public extractEffectDagStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
-		const effectDag = shapeProps['a:effectDag'] as XmlObject | undefined;
+		const effectDag = childByLocalName(shapeProps, 'effectDag');
 		if (!effectDag) {
 			return {};
 		}
@@ -216,6 +216,14 @@ export class PptxEffectDagExtractor implements IPptxEffectDagExtractor {
 			style.blurGrow = true;
 		}
 	}
+}
+
+function childByLocalName(xml: XmlObject, name: string): XmlObject | undefined {
+	const entry = Object.entries(xml).find(([key]) => {
+		const local = key.includes(':') ? key.slice(key.indexOf(':') + 1) : key;
+		return !key.startsWith('@_') && local === name;
+	});
+	return entry?.[1] as XmlObject | undefined;
 }
 
 export type { DagSpecificContext } from './effect-dag-specific-helpers';

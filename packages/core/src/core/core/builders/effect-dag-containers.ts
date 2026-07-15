@@ -29,8 +29,10 @@ import type {
 	EffectDagXfrm,
 	XmlObject,
 } from '../../types';
+import { parseEffectDagBlur, parseEffectDagPresetShadow } from './effect-dag-primitives';
+import { serializeEffectDagContainerNode } from './effect-dag-serializer';
 
-const STRUCTURAL_TAGS = new Set<string>(['a:cont', 'a:blend', 'a:xfrmEffect', 'a:relOff']);
+const STRUCTURAL_TAGS = new Set<string>(['cont', 'blend', 'xfrmEffect', 'relOff']);
 const VALID_BLEND_MODES = new Set<EffectDagBlendMode>([
 	'darken',
 	'lighten',
@@ -93,7 +95,7 @@ export function serializeEffectDagContainer(
 	if (!container) {
 		return undefined;
 	}
-	return serializeContainer(container, /*omitTypeIfDefault*/ false);
+	return serializeEffectDagContainerNode(container);
 }
 
 // ---------------------------------------------------------------------------
@@ -124,25 +126,31 @@ function parseChild(tag: string, value: unknown): EffectDagNode | undefined {
 	if (value === null || value === undefined) {
 		return undefined;
 	}
-	if (tag === 'a:cont') {
+	const localTag = localName(tag);
+	if (localTag === 'cont') {
 		return parseEffectDagContainer(value);
 	}
-	if (tag === 'a:blend') {
+	if (localTag === 'blend') {
 		return parseBlend(value);
 	}
-	if (tag === 'a:xfrmEffect') {
+	if (localTag === 'xfrmEffect') {
 		return parseXfrm(value);
 	}
-	if (tag === 'a:relOff') {
+	if (localTag === 'relOff') {
 		return parseRelOff(value);
+	}
+	if (localTag === 'blur') {
+		return parseEffectDagBlur(value);
+	}
+	if (localTag === 'prstShdw') {
+		return parseEffectDagPresetShadow(value);
 	}
 	// Anything else — preserve verbatim. Leaf parsing (outerShdw, glow,
 	// alphaInv, etc.) is delegated to the existing extractors so we don't
 	// duplicate the entire effect taxonomy here.
-	if (STRUCTURAL_TAGS.has(tag)) {
+	if (STRUCTURAL_TAGS.has(localTag)) {
 		return undefined;
 	}
-	const localTag = tag.startsWith('a:') ? tag.slice(2) : tag;
 	const xml =
 		typeof value === 'object' ? (value as Record<string, unknown>) : { '#text': String(value) };
 	const leaf: EffectDagRawLeaf = {
@@ -164,7 +172,7 @@ function parseBlend(value: unknown): EffectDagBlend | undefined {
 	const mode: EffectDagBlendMode = VALID_BLEND_MODES.has(modeAttr as EffectDagBlendMode)
 		? (modeAttr as EffectDagBlendMode)
 		: 'over';
-	const contNode = xml['a:cont'];
+	const contNode = childByLocalName(xml, 'cont');
 	const container = parseEffectDagContainer(Array.isArray(contNode) ? contNode[0] : contNode) ?? {
 		kind: 'cont',
 		type: 'sib',
@@ -242,108 +250,13 @@ function ensureArray<T>(value: T | T[] | undefined | null): T[] {
 	return Array.isArray(value) ? value : [value];
 }
 
-// ---------------------------------------------------------------------------
-// Serialisation
-// ---------------------------------------------------------------------------
-
-function serializeContainer(container: EffectDagContainer, omitTypeIfDefault: boolean): XmlObject {
-	const xml: XmlObject = {};
-	// `@type` is required on CT_EffectContainer per ECMA-376 §20.1.8.20 —
-	// emit it even when "sib" is the schema default so PowerPoint never has
-	// to fall back to its repair dialog.
-	if (!omitTypeIfDefault || container.type !== 'sib') {
-		xml['@_type'] = container.type;
-	}
-	if (container.name) {
-		xml['@_name'] = container.name;
-	}
-	for (const child of container.children) {
-		appendChild(xml, child);
-	}
-	return xml;
+function localName(name: string): string {
+	return name.includes(':') ? name.slice(name.indexOf(':') + 1) : name;
 }
 
-function appendChild(parent: XmlObject, child: EffectDagNode): void {
-	switch (child.kind) {
-		case 'cont': {
-			pushKeyed(parent, 'a:cont', serializeContainer(child, /*omitTypeIfDefault*/ false));
-			return;
-		}
-		case 'blend': {
-			pushKeyed(parent, 'a:blend', serializeBlend(child));
-			return;
-		}
-		case 'xfrmEffect': {
-			pushKeyed(parent, 'a:xfrmEffect', serializeXfrm(child));
-			return;
-		}
-		case 'relOff': {
-			pushKeyed(parent, 'a:relOff', serializeRelOff(child));
-			return;
-		}
-		case 'raw': {
-			const tag = child.tag.startsWith('a:') ? child.tag : `a:${child.tag}`;
-			pushKeyed(parent, tag, child.xml as XmlObject);
-			return;
-		}
-		default: {
-			// Exhaustiveness check.
-			const _exhaustive: never = child;
-			void _exhaustive;
-		}
-	}
-}
-
-function pushKeyed(parent: XmlObject, key: string, value: XmlObject): void {
-	const existing = parent[key];
-	if (existing === undefined) {
-		parent[key] = value;
-		return;
-	}
-	if (Array.isArray(existing)) {
-		(existing as XmlObject[]).push(value);
-		return;
-	}
-	parent[key] = [existing as XmlObject, value];
-}
-
-function serializeBlend(node: EffectDagBlend): XmlObject {
-	return {
-		'@_blend': node.mode,
-		'a:cont': serializeContainer(node.container, /*omitTypeIfDefault*/ false),
-	};
-}
-
-function serializeXfrm(node: EffectDagXfrm): XmlObject {
-	const xml: XmlObject = {};
-	if (node.sx !== undefined) {
-		xml['@_sx'] = String(node.sx);
-	}
-	if (node.sy !== undefined) {
-		xml['@_sy'] = String(node.sy);
-	}
-	if (node.kx !== undefined) {
-		xml['@_kx'] = String(node.kx);
-	}
-	if (node.ky !== undefined) {
-		xml['@_ky'] = String(node.ky);
-	}
-	if (node.tx !== undefined) {
-		xml['@_tx'] = String(node.tx);
-	}
-	if (node.ty !== undefined) {
-		xml['@_ty'] = String(node.ty);
-	}
-	return xml;
-}
-
-function serializeRelOff(node: EffectDagRelOff): XmlObject {
-	const xml: XmlObject = {};
-	if (node.tx !== undefined) {
-		xml['@_tx'] = String(node.tx);
-	}
-	if (node.ty !== undefined) {
-		xml['@_ty'] = String(node.ty);
-	}
-	return xml;
+function childByLocalName(xml: XmlObject, name: string): unknown {
+	const match = Object.entries(xml).find(
+		([key]) => !key.startsWith('@_') && localName(key) === name,
+	);
+	return match?.[1];
 }
