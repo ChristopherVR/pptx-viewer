@@ -143,6 +143,24 @@ describe('open XML schema coverage inventory', () => {
 			edit: 'partial',
 			serialize: 'partial',
 		});
+		expect(findOpenXmlCoverage('presentation:complexType:CT_SlideTransition')).toMatchObject({
+			parse: 'partial',
+			preserve: 'native',
+			edit: 'partial',
+			serialize: 'partial',
+		});
+		expect(findOpenXmlCoverage('drawing:complexType:CT_Scene3D')).toMatchObject({
+			parse: 'native',
+			preserve: 'native',
+			edit: 'native',
+			serialize: 'native',
+		});
+		expect(findOpenXmlCoverage('chart:complexType:CT_DTable')).toMatchObject({
+			parse: 'partial',
+			preserve: 'native',
+			edit: 'partial',
+			serialize: 'partial',
+		});
 	});
 
 	it('summarizes every facet', () => {
@@ -165,9 +183,9 @@ describe('open XML schema coverage inventory', () => {
 				0,
 			),
 		).toBe(OPENXML_COVERAGE.length * 4);
-		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(405);
-		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(606);
-		expect(listUnassessedOpenXmlCoverage('drawing')).toHaveLength(868);
+		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(399);
+		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(598);
+		expect(listUnassessedOpenXmlCoverage('drawing')).toHaveLength(855);
 		expect(listUnassessedOpenXmlCoverage('diagram')).toHaveLength(257);
 	});
 
