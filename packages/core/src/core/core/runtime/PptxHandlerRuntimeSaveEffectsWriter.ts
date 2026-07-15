@@ -1,6 +1,7 @@
 import { XmlObject } from '../../types';
 import type { ShapeStyle } from '../../types';
 import { EFFECT_LST_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
+import { createEffectList, effectChild, setEffectChild } from '../builders/effect-list-roundtrip';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveShapeStyleWriter';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -30,58 +31,58 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			softEdgeXml ||
 			reflectionXml ||
 			blurXml;
-		if (hasAnyEffect) {
-			const effectList = (spPr['a:effectLst'] || {}) as XmlObject;
+		if (hasAnyEffect || shapeStyle.effectListXml) {
+			const effectList = createEffectList(shapeStyle, spPr);
 			if (presetShadowXml) {
-				effectList['a:prstShdw'] = presetShadowXml;
-				delete effectList['a:outerShdw'];
+				setEffectChild(effectList, 'prstShdw', presetShadowXml);
+				setEffectChild(effectList, 'outerShdw', undefined);
 			} else if (outerShadowXml) {
-				effectList['a:outerShdw'] = outerShadowXml;
-				delete effectList['a:prstShdw'];
+				setEffectChild(effectList, 'outerShdw', outerShadowXml);
+				setEffectChild(effectList, 'prstShdw', undefined);
 			}
 			if (innerShadowXml) {
-				effectList['a:innerShdw'] = innerShadowXml;
+				setEffectChild(effectList, 'innerShdw', innerShadowXml);
 			}
 			if (glowXml) {
-				effectList['a:glow'] = glowXml;
+				setEffectChild(effectList, 'glow', glowXml);
 			}
 			if (softEdgeXml) {
-				effectList['a:softEdge'] = softEdgeXml;
+				setEffectChild(effectList, 'softEdge', softEdgeXml);
 			}
 			if (reflectionXml) {
-				effectList['a:reflection'] = reflectionXml;
+				setEffectChild(effectList, 'reflection', reflectionXml);
 			}
 			if (blurXml) {
-				effectList['a:blur'] = blurXml;
+				setEffectChild(effectList, 'blur', blurXml);
 			}
-			spPr['a:effectLst'] = reorderObjectKeys(effectList, EFFECT_LST_ORDER);
+			setEffectChild(spPr, 'effectLst', reorderObjectKeys(effectList, EFFECT_LST_ORDER));
 		} else {
 			// Clean up individual effects that were explicitly removed
-			const effectList = spPr['a:effectLst'] as XmlObject | undefined;
+			const effectList = effectChild(spPr, 'effectLst');
 			if (effectList) {
 				if (shapeStyle.shadowColor !== undefined && !outerShadowXml && !presetShadowXml) {
-					delete effectList['a:outerShdw'];
-					delete effectList['a:prstShdw'];
+					setEffectChild(effectList, 'outerShdw', undefined);
+					setEffectChild(effectList, 'prstShdw', undefined);
 				}
 				if (shapeStyle.innerShadowColor !== undefined && !innerShadowXml) {
-					delete effectList['a:innerShdw'];
+					setEffectChild(effectList, 'innerShdw', undefined);
 				}
 				if (shapeStyle.glowColor !== undefined && !glowXml) {
-					delete effectList['a:glow'];
+					setEffectChild(effectList, 'glow', undefined);
 				}
 				if (shapeStyle.softEdgeRadius !== undefined && !softEdgeXml) {
-					delete effectList['a:softEdge'];
+					setEffectChild(effectList, 'softEdge', undefined);
 				}
 				if (shapeStyle.reflectionBlurRadius !== undefined && !reflectionXml) {
-					delete effectList['a:reflection'];
+					setEffectChild(effectList, 'reflection', undefined);
 				}
 				if (shapeStyle.blurRadius !== undefined && !blurXml) {
-					delete effectList['a:blur'];
+					setEffectChild(effectList, 'blur', undefined);
 				}
 				if (Object.keys(effectList).length === 0) {
-					delete spPr['a:effectLst'];
+					setEffectChild(spPr, 'effectLst', undefined);
 				} else {
-					spPr['a:effectLst'] = reorderObjectKeys(effectList, EFFECT_LST_ORDER);
+					setEffectChild(spPr, 'effectLst', reorderObjectKeys(effectList, EFFECT_LST_ORDER));
 				}
 			}
 		}

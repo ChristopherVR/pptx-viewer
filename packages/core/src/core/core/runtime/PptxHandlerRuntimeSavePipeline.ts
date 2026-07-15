@@ -1,5 +1,6 @@
 import { XmlObject, PptxSlide } from '../../types';
 import type { OoxmlConformanceClass } from '../../utils';
+import { persistModernCommentPackage } from '../../utils/modern-comment-package';
 import { PptxSaveStateBuilder } from '../builders';
 import { createPptxSaveConstants } from '../factories';
 import type { PptxHandlerSaveOptions } from '../types';
@@ -117,6 +118,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			});
 			this.zip.file('[Content_Types].xml', this.builder.build(contentTypesData));
 		}
+		const modernPackage = await persistModernCommentPackage({
+			slides,
+			zip: this.zip,
+			parser: this.parser,
+			xmlBuilder: this.builder,
+			authors: Array.from(this.modernCommentAuthors.values()),
+			authorRoot: this.modernCommentAuthorsRootXml,
+			authorPartPath: this.modernCommentAuthorsPartPath,
+			authorRelationshipId: this.modernCommentAuthorsRelationshipId,
+		});
+		this.modernCommentAuthorsPartPath = modernPackage.authorPartPath;
+		this.modernCommentAuthorsRelationshipId = modernPackage.authorRelationshipId;
 
 		// Apply typed-model mutations to cached master / layout XmlObjects
 		// before the passthrough flush. Masters / layouts not listed in the

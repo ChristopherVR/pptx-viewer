@@ -30,6 +30,7 @@ export interface IPptxSlideCommentPartWriter {
 export class PptxSlideCommentPartWriter implements IPptxSlideCommentPartWriter {
 	public writeComments(init: PptxSlideCommentPartWriterInput): void {
 		const sanitizedComments = (init.slide.comments || [])
+			.filter((comment) => comment.format !== 'modern')
 			.map((comment) => ({
 				...comment,
 				text: String(comment.text || '').trim(),

@@ -88,6 +88,8 @@ export interface PptxSmartArtNodeStyle {
 export interface PptxSmartArtNode {
 	id: string;
 	text: string;
+	/** CT_Pt connection identifier, when the point references a connection. */
+	connectionId?: string | null;
 	parentId?: string;
 	children?: PptxSmartArtNode[];
 	/** Node type from `@_type` attribute (e.g. "doc", "node", "asst", "pres"). */

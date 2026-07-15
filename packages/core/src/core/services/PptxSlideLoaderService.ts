@@ -276,6 +276,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				notes: notesResult.notes,
 				notesSegments: notesResult.notesSegments,
 				comments,
+				modernCommentPart: params.getModernCommentPart?.(path),
 				rawXml: slideXmlObj,
 				clrMapOverride: clrMapOverride ?? undefined,
 				backgroundPattern,

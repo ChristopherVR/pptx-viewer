@@ -1,4 +1,5 @@
 import type { ShapeStyle, XmlObject } from '../../types';
+import { effectChild } from './effect-list-roundtrip';
 import { PRESET_SHADOW_BLUR_MAP, PRESET_SHADOW_OPACITY_MAP } from './effect-style-preset-maps';
 
 const VALID_ALIGNMENTS = new Set(['tl', 't', 'tr', 'l', 'ctr', 'r', 'bl', 'b', 'br']);
@@ -53,8 +54,8 @@ export class PptxShapeEffectStyleExtractor implements IPptxShapeEffectStyleExtra
 	}
 
 	public extractShadowStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
-		const effectList = shapeProps['a:effectLst'] as XmlObject | undefined;
-		const outerShadow = effectList?.['a:outerShdw'] as XmlObject | undefined;
+		const effectList = effectChild(shapeProps, 'effectLst');
+		const outerShadow = effectChild(effectList, 'outerShdw');
 		if (!outerShadow) {
 			return this.extractPresetShadowStyle(shapeProps);
 		}
@@ -192,8 +193,8 @@ export class PptxShapeEffectStyleExtractor implements IPptxShapeEffectStyleExtra
 	}
 
 	public extractGlowStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
-		const effectList = shapeProps['a:effectLst'] as XmlObject | undefined;
-		const glowNode = effectList?.['a:glow'] as XmlObject | undefined;
+		const effectList = effectChild(shapeProps, 'effectLst');
+		const glowNode = effectChild(effectList, 'glow');
 		if (!glowNode) {
 			return {};
 		}

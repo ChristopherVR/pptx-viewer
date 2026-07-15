@@ -21,6 +21,7 @@ import type {
 import type {
 	PptxComment,
 	PptxCommentAuthor,
+	PptxModernCommentAuthor,
 	PptxCompatibilityWarning,
 	PptxTagCollection,
 	PptxCustomProperty,
@@ -176,6 +177,8 @@ export interface PptxSlide {
 	/** Optional `<p:cSld @name>` value of the notes slide, for round-trip. */
 	notesCSldName?: string;
 	comments?: PptxComment[];
+	/** Source package metadata for an Office 2021 p188 comment part. */
+	modernCommentPart?: PptxModernCommentPart;
 	warnings?: PptxCompatibilityWarning[];
 	rawXml?: XmlObject;
 	/** Per-slide colour map override parsed from `p:clrMapOvr`. */
@@ -196,6 +199,13 @@ export interface PptxSlide {
 	headerFooterFlags?: import('./masters').PptxHeaderFooterFlags;
 	/** Server-backed slide synchronization metadata stored in a related OPC part. */
 	slideSynchronization?: PptxSlideSyncProperties;
+}
+
+export interface PptxModernCommentPart {
+	path: string;
+	relationshipId: string;
+	/** Original p188:cmLst root, including unknown attributes and extensions. */
+	rawXml?: XmlObject;
 }
 
 /** Metadata from a `p:sldSyncPr` slide synchronization data part. */
@@ -535,6 +545,8 @@ export interface PptxData {
 	thumbnailData?: Uint8Array;
 	/** Comment authors parsed from `ppt/commentAuthors.xml` for round-trip preservation. */
 	commentAuthors?: PptxCommentAuthor[];
+	/** Office 2021 p188 authors from the modern Author part. */
+	modernCommentAuthors?: PptxModernCommentAuthor[];
 	/**
 	 * OOXML conformance class of the loaded file.
 	 * - `'strict'` -- ISO/IEC 29500 Strict (uses `purl.oclc.org` namespace URIs)

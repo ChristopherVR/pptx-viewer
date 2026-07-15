@@ -54,6 +54,7 @@ export interface IPptxSlideRelationshipRegistry {
 	): void;
 	resolveHyperlinkRelationshipId(target: string): string | undefined;
 	removeCommentRelationships(commentRelationshipType: string): PptxSlideCommentRelationshipInfo;
+	removeRelationshipsByType(relationshipType: string): PptxSlideCommentRelationshipInfo;
 	findFirstByTypeOrTargetIncludes(
 		relationshipType: string,
 		targetIncludes: string,
@@ -180,6 +181,20 @@ export class PptxSlideRelationshipRegistry implements IPptxSlideRelationshipRegi
 		};
 	}
 
+	public removeRelationshipsByType(relationshipType: string): PptxSlideCommentRelationshipInfo {
+		const removed = this.relationships.filter(
+			(relationship) => String(relationship?.['@_Type'] || '') === relationshipType,
+		);
+		const retained = this.relationships.filter(
+			(relationship) => String(relationship?.['@_Type'] || '') !== relationshipType,
+		);
+		this.relationships.splice(0, this.relationships.length, ...retained);
+		return {
+			relationshipId: String(removed[0]?.['@_Id'] || '').trim(),
+			target: String(removed[0]?.['@_Target'] || '').trim(),
+		};
+	}
+
 	public findFirstByTypeOrTargetIncludes(
 		relationshipType: string,
 		targetIncludes: string,
@@ -218,9 +233,7 @@ export class PptxSlideRelationshipRegistry implements IPptxSlideRelationshipRegi
 		if (relationType === commentRelationshipType) {
 			return true;
 		}
-		const relationTarget = String(relationship?.['@_Target'] || '')
-			.toLowerCase()
-			.trim();
-		return relationTarget.includes('comments/comment');
+		const target = String(relationship?.['@_Target'] || '').replace(/\\/g, '/');
+		return /(?:^|\/)comments\/comment\d+\.xml$/i.test(target);
 	}
 }

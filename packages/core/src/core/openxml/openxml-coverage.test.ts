@@ -131,6 +131,18 @@ describe('open XML schema coverage inventory', () => {
 			edit: 'partial',
 			serialize: 'partial',
 		});
+		expect(findOpenXmlCoverage('diagram:complexType:CT_DataModel')).toMatchObject({
+			parse: 'partial',
+			preserve: 'native',
+			edit: 'partial',
+			serialize: 'partial',
+		});
+		expect(findOpenXmlCoverage('drawing:complexType:CT_OuterShadowEffect')).toMatchObject({
+			parse: 'partial',
+			preserve: 'native',
+			edit: 'partial',
+			serialize: 'partial',
+		});
 	});
 
 	it('summarizes every facet', () => {
@@ -155,6 +167,8 @@ describe('open XML schema coverage inventory', () => {
 		).toBe(OPENXML_COVERAGE.length * 4);
 		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(405);
 		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(606);
+		expect(listUnassessedOpenXmlCoverage('drawing')).toHaveLength(868);
+		expect(listUnassessedOpenXmlCoverage('diagram')).toHaveLength(257);
 	});
 
 	it('keeps assessed capabilities documented and monotonic', () => {

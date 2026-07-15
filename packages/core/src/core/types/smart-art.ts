@@ -135,6 +135,8 @@ export type SmartArtStyle = 'flat' | 'moderate' | 'intense';
  * ```
  */
 export interface PptxSmartArtConnection {
+	/** Stable CT_Cxn model identifier. Required when serialized. */
+	modelId?: string | null;
 	/** Model ID of the source node. */
 	sourceId: string;
 	/** Model ID of the destination node. */
@@ -145,6 +147,12 @@ export interface PptxSmartArtConnection {
 	srcOrd?: number;
 	/** Destination index for ordering. */
 	destOrd?: number;
+	/** Model ID of the parent transition point associated with this edge. */
+	parentTransitionId?: string | null;
+	/** Model ID of the sibling transition point associated with this edge. */
+	siblingTransitionId?: string | null;
+	/** Layout presentation identifier used by presentation connections. */
+	presentationId?: string | null;
 }
 
 /**

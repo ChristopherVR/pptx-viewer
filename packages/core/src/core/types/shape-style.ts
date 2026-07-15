@@ -140,6 +140,14 @@ export interface ShapeStyle {
 	/** Pen line alignment (`a:ln/@algn`): `ctr` (centre, default) or `in` (inside). */
 	lineAlignment?: 'ctr' | 'in';
 	shadowColor?: string;
+	/** Preserved source `a:effectLst`, including unknown effects and extensions. */
+	effectListXml?: XmlObject;
+	/** Original outer-shadow node used for lossless surgical updates. */
+	outerShadowXml?: XmlObject;
+	/** Resolved source shadow colour used to detect colour edits. */
+	outerShadowOriginalColor?: string;
+	/** Source shadow opacity used to detect alpha edits. */
+	outerShadowOriginalOpacity?: number;
 	shadowBlur?: number;
 	shadowOffsetX?: number;
 	shadowOffsetY?: number;
@@ -183,6 +191,12 @@ export interface ShapeStyle {
 	/** Multiple shadow layers (for advanced effects). */
 	shadows?: ShadowEffect[];
 	glowColor?: string;
+	/** Original glow node used for lossless surgical updates. */
+	glowXml?: XmlObject;
+	/** Resolved source glow colour used to detect colour edits. */
+	glowOriginalColor?: string;
+	/** Source glow opacity used to detect alpha edits. */
+	glowOriginalOpacity?: number;
 	glowRadius?: number;
 	glowOpacity?: number;
 	softEdgeRadius?: number;

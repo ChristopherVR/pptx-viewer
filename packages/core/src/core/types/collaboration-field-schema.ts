@@ -203,6 +203,7 @@ export const SLIDE_FIELD_KIND: Record<keyof PptxSlide, CollabFieldKind> = {
 	notesClrMapOverride: 'complex',
 	notesCSldName: 'scalar',
 	comments: 'complex',
+	modernCommentPart: 'complex',
 	warnings: 'complex',
 	rawXml: 'complex',
 	clrMapOverride: 'complex',

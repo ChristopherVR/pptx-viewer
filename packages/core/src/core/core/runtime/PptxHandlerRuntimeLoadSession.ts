@@ -134,6 +134,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.presentationDefaultTextStyle = undefined;
 		this.commentAuthorMap.clear();
 		this.commentAuthorDetails.clear();
+		this.modernCommentAuthors.clear();
+		this.modernCommentAuthorsRootXml = undefined;
+		this.modernCommentAuthorsPartPath = undefined;
+		this.modernCommentAuthorsRelationshipId = undefined;
+		this.modernCommentParts.clear();
 		this.thumbnailData = null;
 		this.vbaProjectBin = null;
 		this.vbaRelatedParts.clear();
@@ -281,6 +286,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		await this.loadThemeData();
 		this.parsePresentationDefaultTextStyle();
 		await this.loadCommentAuthors();
+		await this.loadModernCommentAuthors();
 
 		const { sectionBySlideId, orderedSections } = this.extractSectionMap();
 		this.compatibilityService.inspectPresentationCompatibility(this.presentationData ?? undefined);
@@ -438,6 +444,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			extractSlideNotes: (slidePath) => this.extractSlideNotes(slidePath),
 			extractSlideComments: (slidePath) => this.extractSlideComments(slidePath),
 			extractModernSlideComments: (slidePath) => this.extractModernSlideComments(slidePath),
+			getModernCommentPart: (slidePath) => this.modernCommentParts.get(slidePath),
 			extractBackgroundPattern: (slideXml) => this.extractBackgroundPattern(slideXml),
 			extractBackgroundShadeToTitle: (slideXml) => this.extractBackgroundShadeToTitle(slideXml),
 			extractBackgroundShowAnimation: (slideXml) => this.extractBackgroundShowAnimation(slideXml),

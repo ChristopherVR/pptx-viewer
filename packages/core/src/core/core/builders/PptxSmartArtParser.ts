@@ -5,6 +5,7 @@ import type {
 	SmartArtLayoutType,
 	XmlObject,
 } from '../../types';
+import { parseSmartArtConnection } from '../../utils/smartart-data-model-attributes';
 import { extractTextFromPoint, MAX_SMARTART_NODES } from './smart-art-text-helpers';
 
 /**
@@ -69,6 +70,7 @@ export class PptxSmartArtParser {
 			nodes.push({
 				id: pointId,
 				text: text.trim(),
+				connectionId: String(point?.['@_cxnId'] || '').trim() || undefined,
 				nodeType,
 			});
 		}
@@ -107,28 +109,16 @@ export class PptxSmartArtParser {
 		const rawConnections = xmlLookupService.getChildrenArrayByLocalName(connectionList, 'cxn');
 
 		for (const connection of rawConnections) {
-			const sourceId = String(connection?.['@_srcId'] || '').trim();
-			const destinationId = String(connection?.['@_destId'] || '').trim();
-
-			if (sourceId.length === 0 || destinationId.length === 0) {
+			const parsed = parseSmartArtConnection(connection);
+			if (!parsed) {
 				continue;
 			}
 
-			const connType = String(connection?.['@_type'] || '').trim() || undefined;
-			const srcOrdRaw = parseInt(String(connection?.['@_srcOrd'] || ''), 10);
-			const destOrdRaw = parseInt(String(connection?.['@_destOrd'] || ''), 10);
-
-			connections.push({
-				sourceId,
-				destId: destinationId,
-				type: connType,
-				srcOrd: Number.isFinite(srcOrdRaw) ? srcOrdRaw : undefined,
-				destOrd: Number.isFinite(destOrdRaw) ? destOrdRaw : undefined,
-			});
+			connections.push(parsed);
 
 			// Build parent map for hierarchy construction
-			if (!parentMap.has(destinationId)) {
-				parentMap.set(destinationId, sourceId);
+			if (!parentMap.has(parsed.destId)) {
+				parentMap.set(parsed.destId, parsed.sourceId);
 			}
 		}
 

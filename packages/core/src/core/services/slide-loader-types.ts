@@ -140,6 +140,7 @@ export interface PptxSlideLoaderParams {
 	extractSlideComments: (slidePath: string) => Promise<PptxComment[]>;
 	/** Extract modern (Office 2021+) threaded comments from a slide. */
 	extractModernSlideComments: (slidePath: string) => Promise<PptxComment[]>;
+	getModernCommentPart: (slidePath: string) => import('../types').PptxModernCommentPart | undefined;
 	/** Extract a structured pattern fill (`<a:pattFill>`) from slide bg. */
 	extractBackgroundPattern: (slideXml: XmlObject) => PptxSlideBackgroundPattern | undefined;
 	/** Extract the `<p:bgPr/@shadeToTitle>` flag from slide bg. */

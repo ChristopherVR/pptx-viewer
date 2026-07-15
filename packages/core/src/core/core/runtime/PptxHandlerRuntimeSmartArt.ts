@@ -76,6 +76,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return {
 					id: pointId,
 					text: resolvedText ? resolvedText.trim() : '',
+					connectionId: String(point?.['@_cxnId'] || '').trim() || undefined,
 					parentId: parentByNodeId.get(pointId),
 					nodeType,
 					runs,

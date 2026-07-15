@@ -30,6 +30,10 @@ import type { XmlObject } from './common';
 export interface PptxComment {
 	id: string;
 	text: string;
+	/** Storage vocabulary used by this comment. Omitted means legacy PresentationML. */
+	format?: 'legacy' | 'modern';
+	/** Stable GUID author identifier used by Office 2021 modern comments. */
+	authorId?: string;
 	/** Optional parent comment id for reply threading metadata. */
 	parentId?: string;
 	author?: string;
@@ -38,6 +42,18 @@ export interface PptxComment {
 	y?: number;
 	/** Whether this comment has been resolved/marked done. */
 	resolved?: boolean;
+	/** Native p188 status token. */
+	status?: 'active' | 'resolved' | 'closed';
+	/** Modern comment classification tags and author IDs that liked the comment. */
+	tags?: string[];
+	likes?: string[];
+	startDate?: string;
+	dueDate?: string;
+	assignedTo?: string[];
+	/** Task completion in thousandths of a percent, from 0 through 100000. */
+	complete?: number;
+	priority?: number;
+	title?: string;
 	/** Modern threaded comment support (p15:threadingInfo). */
 	threadId?: string;
 	/** Replies to this comment (for modern threaded comments). */
@@ -45,6 +61,16 @@ export interface PptxComment {
 	/** ID of the element this comment is associated with (if any). */
 	elementId?: string;
 	/** Original `p:cm` subtree, retained for unknown child and extension preservation. */
+	rawXml?: XmlObject;
+}
+
+/** Office 2021 comment author from the p188 Author part. */
+export interface PptxModernCommentAuthor {
+	id: string;
+	name: string;
+	initials?: string;
+	userId: string;
+	providerId: string;
 	rawXml?: XmlObject;
 }
 

@@ -1,4 +1,10 @@
 import { PptxComment, PptxCommentAuthor, XmlObject } from '../../types';
+import {
+	MODERN_AUTHOR_RELATIONSHIP,
+	MODERN_COMMENT_RELATIONSHIP,
+	parseModernAuthors,
+	parseModernCommentPart,
+} from '../../utils/modern-comment-xml';
 import { xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeThemeProcessing';
 
@@ -12,10 +18,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * and thread-parent via `@_parentCmId`.
 	 */
 	protected async extractModernSlideComments(slidePath: string): Promise<PptxComment[]> {
-		const modernComments: PptxComment[] = [];
-
 		try {
-			// Look for modern comment relationship types
 			const relsPath = `${slidePath.replace('slides/', 'slides/_rels/')}.rels`;
 			const relsXml = await this.zip.file(relsPath)?.async('string');
 			if (!relsXml) {
@@ -27,20 +30,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				xmlChild(relsData, 'Relationships')?.Relationship,
 			) as XmlObject[];
 
-			// Modern comment relationship types
-			const modernCommentRels = rels.filter((rel) => {
-				const type = String(rel?.['@_Type'] || '').toLowerCase();
-				return (
-					type.includes('comments-extended') ||
-					type.includes('comments/authors') ||
-					type.includes('/p188/') ||
-					type.includes('/p15/')
-				);
-			});
+			const modernCommentRels = rels.filter(
+				(rel) => String(rel?.['@_Type'] || '') === MODERN_COMMENT_RELATIONSHIP,
+			);
 			if (modernCommentRels.length === 0) {
 				return [];
 			}
 
+			const modernComments: PptxComment[] = [];
 			for (const rel of modernCommentRels) {
 				const target = String(rel?.['@_Target'] || '').trim();
 				if (!target) {
@@ -52,86 +49,56 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					continue;
 				}
 
-				const data = this.parser.parse(xml) as XmlObject;
-				// The root may be p188:cmLst, p15:cmLst, or namespace-less
-				const cmLstKey = Object.keys(data).find((k) => k.endsWith('cmLst'));
-				if (!cmLstKey) {
-					continue;
-				}
-				const cmLst = data[cmLstKey] as XmlObject;
-
-				// Find comment nodes
-				const cmKey = Object.keys(cmLst || {}).find((k) => k.endsWith(':cm'));
-				if (!cmKey) {
-					continue;
-				}
-				const commentNodes = this.ensureArray(cmLst[cmKey]);
-
-				for (const cm of commentNodes) {
-					const id = String(cm?.['@_id'] || '');
-					const parentId = String(cm?.['@_parentCmId'] || '');
-					const authorId = String(cm?.['@_authorId'] || '');
-					const created = String(cm?.['@_created'] || cm?.['@_dt'] || '');
-					const status = String(cm?.['@_status'] || '').toLowerCase();
-
-					// Extract text body — can be p188:txBody, p15:txBody, etc.
-					const txBodyKey = Object.keys(cm || {}).find((k) => k.endsWith('txBody'));
-					let text = '';
-					if (txBodyKey) {
-						const paragraphs = this.ensureArray(xmlChild(cm, txBodyKey)?.['a:p']);
-						const lines: string[] = [];
-						for (const p of paragraphs) {
-							const runs = this.ensureArray(p?.['a:r']);
-							let line = '';
-							for (const r of runs) {
-								line += String(r?.['a:t'] ?? '');
-							}
-							lines.push(line);
-						}
-						text = lines.join('\n');
-					}
-
-					const comment: PptxComment = {
-						id,
-						text,
-						author:
-							authorId.length > 0
-								? this.commentAuthorMap.get(authorId) || `Author ${authorId}`
-								: undefined,
-						createdAt: created || undefined,
-						resolved: status === 'resolved' || status === 'done' ? true : undefined,
-						threadId: parentId || undefined,
-					};
-
-					modernComments.push(comment);
-				}
+				const parsed = parseModernCommentPart(
+					this.parser.parse(xml) as XmlObject,
+					{
+						path: filePath,
+						relationshipId: String(rel?.['@_Id'] || '').trim(),
+					},
+					(id) => this.modernCommentAuthors.get(id)?.name,
+					PptxHandlerRuntime.EMU_PER_PX,
+				);
+				modernComments.push(...parsed.comments);
+				this.modernCommentParts.set(slidePath, parsed.part);
 			}
-
-			// Build thread hierarchy — attach reply comments to their parents
-			if (modernComments.length > 0) {
-				const commentMap = new Map<string, PptxComment>();
-				for (const c of modernComments) {
-					commentMap.set(c.id, c);
-				}
-				// Attach replies
-				for (const c of modernComments) {
-					if (c.threadId) {
-						const parent = commentMap.get(c.threadId);
-						if (parent) {
-							if (!parent.replies) {
-								parent.replies = [];
-							}
-							parent.replies.push(c);
-						}
-					}
-				}
-				// Return only top-level comments (no threadId)
-				return modernComments.filter((c) => !c.threadId);
-			}
+			return modernComments;
 		} catch (e) {
 			console.warn('Failed to parse modern comments:', e);
 		}
-		return modernComments;
+		return [];
+	}
+
+	protected async loadModernCommentAuthors(): Promise<void> {
+		const relsXml = await this.zip.file('ppt/_rels/presentation.xml.rels')?.async('string');
+		if (!relsXml) {
+			return;
+		}
+		const relsData = this.parser.parse(relsXml) as XmlObject;
+		const relationships = this.ensureArray(
+			xmlChild(relsData, 'Relationships')?.Relationship,
+		) as XmlObject[];
+		const relationship = relationships.find(
+			(entry) => String(entry?.['@_Type'] || '') === MODERN_AUTHOR_RELATIONSHIP,
+		);
+		const target = String(relationship?.['@_Target'] || '').trim();
+		if (!target) {
+			return;
+		}
+		const partPath = this.resolvePath('ppt/presentation.xml', target);
+		const xml = await this.zip.file(partPath)?.async('string');
+		if (!xml) {
+			return;
+		}
+		const parsed = parseModernAuthors(this.parser.parse(xml) as XmlObject);
+		this.modernCommentAuthors.clear();
+		for (const author of parsed.authors) {
+			if (author.id) {
+				this.modernCommentAuthors.set(author.id, author);
+			}
+		}
+		this.modernCommentAuthorsRootXml = parsed.root;
+		this.modernCommentAuthorsPartPath = partPath;
+		this.modernCommentAuthorsRelationshipId = String(relationship?.['@_Id'] || '').trim();
 	}
 
 	protected async resolveSlideCommentTarget(slidePath: string): Promise<string | undefined> {

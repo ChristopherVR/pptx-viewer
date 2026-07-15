@@ -5,6 +5,10 @@ import type {
 	PptxSmartArtTextRun,
 } from '../../types/smart-art';
 import { generateFontGuid } from '../../utils/font-deobfuscation';
+import {
+	applySmartArtConnectionAttributes,
+	applySmartArtPointAttributes,
+} from '../../utils/smartart-data-model-attributes';
 import { applySmartArtNodeStyleToPoint } from './smartart-style-xml';
 
 /**
@@ -214,6 +218,7 @@ export function buildSmartArtPointXml(nodes: PptxSmartArtNode[]): XmlObject[] {
 		if (node.nodeType) {
 			ptNode['@_type'] = node.nodeType;
 		}
+		applySmartArtPointAttributes(ptNode, node);
 		ptNode['dgm:t'] = buildPointText(node.text);
 		return ptNode;
 	});
@@ -270,6 +275,7 @@ export function mergeSmartArtPointXml(
 		// Update the text in place, keeping prSet / spPr / extLst intact and
 		// preserving per-run formatting when the node was not text-edited.
 		applyTextToExistingPoint(pt, desired);
+		applySmartArtPointAttributes(pt, desired);
 		// Write any per-node colour / emphasis override so it round-trips.
 		applySmartArtNodeStyleToPoint(pt, desired.style);
 		seenContentIds.add(modelId);
@@ -286,6 +292,7 @@ export function mergeSmartArtPointXml(
 		if (node.nodeType && !NON_CONTENT_POINT_TYPES.has(node.nodeType)) {
 			ptNode['@_type'] = node.nodeType;
 		}
+		applySmartArtPointAttributes(ptNode, node);
 		ptNode['dgm:t'] = shouldRebuildFromRuns(node)
 			? buildPointFromRuns(node.runs)
 			: buildPointText(node.text);
@@ -315,11 +322,8 @@ export function newSmartArtGuid(): string {
  */
 export function buildSmartArtConnectionXml(connections: PptxSmartArtConnection[]): XmlObject[] {
 	return connections.map((conn) => {
-		const cxnNode: XmlObject = {
-			'@_modelId': newSmartArtGuid(),
-			'@_srcId': conn.sourceId,
-			'@_destId': conn.destId,
-		};
+		const cxnNode: XmlObject = {};
+		applySmartArtConnectionAttributes(cxnNode, conn, newSmartArtGuid);
 		if (conn.type) {
 			cxnNode['@_type'] = conn.type;
 		}
@@ -388,6 +392,7 @@ export function mergeSmartArtConnectionXml(
 	connections: PptxSmartArtConnection[],
 ): XmlObject[] {
 	const existingByKey = new Map<string, XmlObject[]>();
+	const existingByModelId = new Map<string, XmlObject>();
 	for (const cxn of existingCxns) {
 		if (!cxn || typeof cxn !== 'object') {
 			continue;
@@ -401,6 +406,10 @@ export function mergeSmartArtConnectionXml(
 			srcOrd: Number.isFinite(srcOrdRaw) ? srcOrdRaw : undefined,
 			destOrd: Number.isFinite(destOrdRaw) ? destOrdRaw : undefined,
 		});
+		const modelId = String(cxn['@_modelId'] || '').trim();
+		if (modelId) {
+			existingByModelId.set(modelId, cxn);
+		}
 		const queue = existingByKey.get(key);
 		if (queue) {
 			queue.push(cxn);
@@ -418,16 +427,15 @@ export function mergeSmartArtConnectionXml(
 			destOrd: conn.destOrd,
 		});
 		const queue = existingByKey.get(key);
-		const match = queue?.shift();
+		const matchById = conn.modelId ? existingByModelId.get(conn.modelId) : undefined;
+		const match = matchById ?? queue?.shift();
 		if (match) {
+			applySmartArtConnectionAttributes(match, conn, newSmartArtGuid);
 			return match;
 		}
 
-		const cxnNode: XmlObject = {
-			'@_modelId': newSmartArtGuid(),
-			'@_srcId': conn.sourceId,
-			'@_destId': conn.destId,
-		};
+		const cxnNode: XmlObject = {};
+		applySmartArtConnectionAttributes(cxnNode, conn, newSmartArtGuid);
 		if (conn.type) {
 			cxnNode['@_type'] = conn.type;
 		}

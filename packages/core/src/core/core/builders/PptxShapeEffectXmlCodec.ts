@@ -1,4 +1,5 @@
 import type { ShapeStyle, XmlObject } from '../../types';
+import { effectChild, mergeEffectNode } from './effect-list-roundtrip';
 import { PptxEffectDagExtractor } from './PptxEffectDagExtractor';
 import type { IPptxEffectDagExtractor } from './PptxEffectDagExtractor';
 import { PptxShapeEffectStyleExtractor } from './PptxShapeEffectStyleExtractor';
@@ -58,7 +59,18 @@ export class PptxShapeEffectXmlCodec implements IPptxShapeEffectXmlCodec {
 	}
 
 	public extractShadowStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
-		return this.extractor.extractShadowStyle(shapeProps);
+		const style = this.extractor.extractShadowStyle(shapeProps);
+		const effectList = effectChild(shapeProps, 'effectLst');
+		const outerShadow = effectChild(effectList, 'outerShdw');
+		return outerShadow
+			? {
+					...style,
+					effectListXml: effectList,
+					outerShadowXml: outerShadow,
+					outerShadowOriginalColor: style.shadowColor,
+					outerShadowOriginalOpacity: style.shadowOpacity,
+				}
+			: style;
 	}
 
 	public extractInnerShadowStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
@@ -66,7 +78,18 @@ export class PptxShapeEffectXmlCodec implements IPptxShapeEffectXmlCodec {
 	}
 
 	public extractGlowStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
-		return this.extractor.extractGlowStyle(shapeProps);
+		const style = this.extractor.extractGlowStyle(shapeProps);
+		const effectList = effectChild(shapeProps, 'effectLst');
+		const glow = effectChild(effectList, 'glow');
+		return glow
+			? {
+					...style,
+					effectListXml: effectList,
+					glowXml: glow,
+					glowOriginalColor: style.glowColor,
+					glowOriginalOpacity: style.glowOpacity,
+				}
+			: style;
 	}
 
 	public extractSoftEdgeStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
@@ -86,7 +109,17 @@ export class PptxShapeEffectXmlCodec implements IPptxShapeEffectXmlCodec {
 	}
 
 	public buildOuterShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined {
-		return this.builder.buildOuterShadowXml(shapeStyle);
+		const generated = this.builder.buildOuterShadowXml(shapeStyle);
+		return generated
+			? mergeEffectNode(
+					shapeStyle.outerShadowXml,
+					generated,
+					shapeStyle.outerShadowOriginalColor,
+					shapeStyle.shadowColor,
+					shapeStyle.outerShadowOriginalOpacity,
+					shapeStyle.shadowOpacity,
+				)
+			: undefined;
 	}
 
 	public buildPresetShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined {
@@ -98,7 +131,17 @@ export class PptxShapeEffectXmlCodec implements IPptxShapeEffectXmlCodec {
 	}
 
 	public buildGlowXml(shapeStyle: ShapeStyle): XmlObject | undefined {
-		return this.builder.buildGlowXml(shapeStyle);
+		const generated = this.builder.buildGlowXml(shapeStyle);
+		return generated
+			? mergeEffectNode(
+					shapeStyle.glowXml,
+					generated,
+					shapeStyle.glowOriginalColor,
+					shapeStyle.glowColor,
+					shapeStyle.glowOriginalOpacity,
+					shapeStyle.glowOpacity,
+				)
+			: undefined;
 	}
 
 	public buildSoftEdgeXml(shapeStyle: ShapeStyle): XmlObject | undefined {

@@ -1,8 +1,9 @@
 import { remapEditorAnimationsToShapeIds } from '../../services';
-import { XmlObject, PptxSlide } from '../../types';
+import { XmlObject, PptxComment, PptxSlide } from '../../types';
 import type { MediaPptxElement } from '../../types';
 import type { AlternateContentBlock } from '../../utils';
 import { SHAPE_TREE_ELEMENT_TAGS } from '../../utils';
+import { saveModernSlideComments } from '../../utils/modern-comment-package';
 import { saveSlideSynchronization } from '../../utils/slide-synchronization';
 import { buildClrMapOverrideXml } from '../../utils/theme-override-utils';
 import { PptxSlideRelationshipRegistry, PptxShapeIdValidator } from '../builders';
@@ -20,6 +21,52 @@ import {
 const shapeIdValidator = new PptxShapeIdValidator();
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	protected resolveModernCommentAuthorId(comment: PptxComment): string {
+		const requestedId = String(comment.authorId || '').trim();
+		if (requestedId && this.modernCommentAuthors.has(requestedId)) {
+			return requestedId;
+		}
+		const name = String(comment.author || (requestedId ? `Author ${requestedId}` : 'User')).trim();
+		const existing = Array.from(this.modernCommentAuthors.values()).find(
+			(author) => author.name === name,
+		);
+		const id = requestedId || existing?.id || this.createModernCommentAuthorId();
+		if (!this.modernCommentAuthors.has(id)) {
+			const initials = name
+				.split(/\s+/)
+				.filter(Boolean)
+				.slice(0, 2)
+				.map((token) => token[0].toUpperCase())
+				.join('');
+			this.modernCommentAuthors.set(id, {
+				id,
+				name,
+				initials: initials || 'U',
+				userId: name,
+				providerId: 'None',
+			});
+		}
+		comment.authorId = id;
+		return id;
+	}
+
+	protected nextModernCommentPartPath(): string {
+		let index = 1;
+		while (this.zip.file(`ppt/comments/modernComment${index}.xml`)) {
+			index += 1;
+		}
+		return `ppt/comments/modernComment${index}.xml`;
+	}
+
+	private createModernCommentAuthorId(): string {
+		const uuid = globalThis.crypto?.randomUUID?.();
+		if (uuid) {
+			return `{${uuid.toUpperCase()}}`;
+		}
+		const suffix = String(this.modernCommentAuthors.size + 1).padStart(12, '0');
+		return `{00000000-0000-0000-0000-${suffix}}`;
+	}
+
 	/**
 	 * Process a single slide during save: update slide XML, process elements,
 	 * rebuild shape tree, and persist relationships.
@@ -147,6 +194,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			resolvePartPath: (slidePath, relationshipTarget) =>
 				this.resolveImagePath(slidePath, relationshipTarget),
 			conformance: constants.conformance,
+		});
+		saveModernSlideComments({
+			slide,
+			zip: this.zip,
+			xmlBuilder: this.builder,
+			relationships: slideRelationshipRegistry,
+			resolveAuthorId: (comment) => this.resolveModernCommentAuthorId(comment),
+			emuPerPx: PptxHandlerRuntime.EMU_PER_PX,
+			nextPartPath: () => this.nextModernCommentPartPath(),
 		});
 
 		await this.slideNotesPartUpdater.updateNotesPart({

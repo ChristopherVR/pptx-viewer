@@ -25,13 +25,13 @@ import type { XmlObject } from '../types';
  * The order does not matter for extraction (only one will be present per
  * choice), but matches the most-common-first ordering for ergonomic reads.
  */
-const COLOR_CHOICE_KEYS: readonly string[] = [
-	'a:srgbClr',
-	'a:schemeClr',
-	'a:sysClr',
-	'a:prstClr',
-	'a:scrgbClr',
-	'a:hslClr',
+const COLOR_CHOICE_NAMES: readonly string[] = [
+	'srgbClr',
+	'schemeClr',
+	'sysClr',
+	'prstClr',
+	'scrgbClr',
+	'hslClr',
 ];
 
 /**
@@ -43,9 +43,9 @@ export function extractColorChoiceXml(parent: XmlObject | undefined): XmlObject 
 	if (!parent) {
 		return undefined;
 	}
-	for (const key of COLOR_CHOICE_KEYS) {
-		if (parent[key] !== undefined) {
-			return { [key]: parent[key] } as XmlObject;
+	for (const [key, value] of Object.entries(parent)) {
+		if (COLOR_CHOICE_NAMES.includes(key.split(':').at(-1) ?? key)) {
+			return { [key]: value } as XmlObject;
 		}
 	}
 	return undefined;

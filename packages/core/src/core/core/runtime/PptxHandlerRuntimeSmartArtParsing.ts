@@ -5,6 +5,7 @@ import type {
 	PptxSmartArtQuickStyle,
 } from '../../types';
 import type { DiagramRelationshipIds } from '../../utils/diagram-relationship-ids';
+import { parseSmartArtConnection } from '../../utils/smartart-data-model-attributes';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtXmlUtils';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -50,23 +51,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const parsedConnections: PptxSmartArtConnection[] = [];
 
 		rawConnections.forEach((connection) => {
-			const sourceId = String(connection?.['@_srcId'] || '').trim();
-			const destinationId = String(connection?.['@_destId'] || '').trim();
-			if (sourceId.length === 0 || destinationId.length === 0) {
+			const parsed = parseSmartArtConnection(connection);
+			if (!parsed) {
 				return;
 			}
-			const connType = String(connection?.['@_type'] || '').trim() || undefined;
-			const srcOrdRaw = parseInt(String(connection?.['@_srcOrd'] || ''), 10);
-			const destOrdRaw = parseInt(String(connection?.['@_destOrd'] || ''), 10);
-			parsedConnections.push({
-				sourceId,
-				destId: destinationId,
-				type: connType,
-				srcOrd: Number.isFinite(srcOrdRaw) ? srcOrdRaw : undefined,
-				destOrd: Number.isFinite(destOrdRaw) ? destOrdRaw : undefined,
-			});
-			if (!parentByNodeId.has(destinationId)) {
-				parentByNodeId.set(destinationId, sourceId);
+			parsedConnections.push(parsed);
+			if (!parentByNodeId.has(parsed.destId)) {
+				parentByNodeId.set(parsed.destId, parsed.sourceId);
 			}
 		});
 

@@ -109,6 +109,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? Array.from(this.commentAuthorDetails.values())
 					: undefined,
 			)
+			.withModernCommentAuthors(
+				this.modernCommentAuthors.size > 0
+					? Array.from(this.modernCommentAuthors.values())
+					: undefined,
+			)
 			.withConformance(this.isStrictOoxml ? 'strict' : 'transitional')
 			.build();
 	}

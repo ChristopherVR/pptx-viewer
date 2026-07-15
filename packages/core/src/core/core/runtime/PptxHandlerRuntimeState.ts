@@ -34,6 +34,7 @@ import type {
 import { PlaceholderDefaults, PptxElement, PptxLayoutOption, XmlObject } from '../../types';
 import type {
 	PptxCommentAuthor,
+	PptxModernCommentAuthor,
 	PptxCustomXmlPart,
 	PptxEmbeddedFont,
 	PptxMasterTextStyles,
@@ -360,6 +361,14 @@ export class PptxHandlerRuntime {
 
 	/** Original `p:cmAuthorLst` root, including unmodelled attributes and extensions. */
 	protected commentAuthorsRootXml: XmlObject | undefined;
+
+	/** Office 2021 p188 author metadata keyed by its GUID identifier. */
+	protected modernCommentAuthors: Map<string, PptxModernCommentAuthor> = new Map();
+	protected modernCommentAuthorsRootXml: XmlObject | undefined;
+	protected modernCommentAuthorsPartPath: string | undefined;
+	protected modernCommentAuthorsRelationshipId: string | undefined;
+	protected modernCommentParts: Map<string, import('../../types').PptxModernCommentPart> =
+		new Map();
 
 	/** Available slide layout options collected during load. */
 	protected layoutOptions: PptxLayoutOption[] = [];

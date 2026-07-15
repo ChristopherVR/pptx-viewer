@@ -2,6 +2,7 @@ import type {
 	ParsedTableStyleMap,
 	PptxAppProperties,
 	PptxCommentAuthor,
+	PptxModernCommentAuthor,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxCustomShow,
@@ -102,6 +103,7 @@ export class PptxLoadDataBuilder {
 	private thumbnailData: Uint8Array | undefined;
 
 	private commentAuthors: PptxCommentAuthor[] | undefined;
+	private modernCommentAuthors: PptxModernCommentAuthor[] | undefined;
 
 	private conformance: 'strict' | 'transitional' | undefined;
 
@@ -281,6 +283,11 @@ export class PptxLoadDataBuilder {
 		return this;
 	}
 
+	public withModernCommentAuthors(authors: PptxModernCommentAuthor[] | undefined): this {
+		this.modernCommentAuthors = authors;
+		return this;
+	}
+
 	public withConformance(conformance: 'strict' | 'transitional' | undefined): this {
 		this.conformance = conformance;
 		return this;
@@ -326,6 +333,7 @@ export class PptxLoadDataBuilder {
 			customerData: this.customerData,
 			thumbnailData: this.thumbnailData,
 			commentAuthors: this.commentAuthors,
+			modernCommentAuthors: this.modernCommentAuthors,
 			conformance: this.conformance,
 		};
 	}
