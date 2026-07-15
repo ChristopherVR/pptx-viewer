@@ -32,4 +32,18 @@ describe('powerPointViewer editing wiring', () => {
 		expect(wrapper.findComponent(VersionHistoryPanel).exists()).toBeTruthy();
 		expect(wrapper.findComponent(ComparePanel).exists()).toBeTruthy();
 	});
+
+	it('matches the React 20% to 500% imperative zoom range', async () => {
+		const wrapper = mount(PowerPointViewer);
+		await flushPromises();
+		const viewer = wrapper.vm as unknown as {
+			getZoom(): number;
+			setZoom(level: number): void;
+		};
+
+		viewer.setZoom(10);
+		expect(viewer.getZoom()).toBe(5);
+		viewer.setZoom(0);
+		expect(viewer.getZoom()).toBe(0.2);
+	});
 });

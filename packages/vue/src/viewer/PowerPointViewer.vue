@@ -376,7 +376,7 @@ function onMainTouchEnd(event: TouchEvent): void {
 const zoom = ref(1);
 const ZOOM_STEP = 0.1;
 const ZOOM_MIN = 0.2;
-const ZOOM_MAX = 3;
+const ZOOM_MAX = 5;
 const zoomIn = () => {
 	zoom.value = Math.min(ZOOM_MAX, Number((zoom.value + ZOOM_STEP).toFixed(2)));
 };
@@ -1360,10 +1360,7 @@ const { showShortcuts, shortcuts, onEditorKeydown, copySelected, cutSelected } =
 
 // ── Office-style ribbon wiring (RibbonToolbar ← React Toolbar.tsx) ────────
 // The desktop chrome is the full Office ribbon. This block adapts the host's
-// existing state + handlers to the `RibbonProps` contract. Capabilities the
-// host does not yet expose (drawing tools, grid/ruler/snap, theme gallery,
-// flip, action buttons, layout gallery) are wired as no-ops for now; the
-// ribbon renders faithfully and the core actions are live.
+// existing state and handlers to the presentation-only `RibbonProps` contract.
 const {
 	toolbarSection,
 	newShapeType,
