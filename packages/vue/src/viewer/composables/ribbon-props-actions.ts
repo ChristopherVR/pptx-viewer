@@ -180,7 +180,7 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 			input.showMasterView.value = false;
 		},
 		onEnterPresenterView: input.startPresenterView,
-		onEnterRehearsalMode: undefined,
+		onEnterRehearsalMode: input.startRehearsal,
 		onToggleThemeEditor: () => {
 			input.themeEditorOpen.value = !input.themeEditorOpen.value;
 		},

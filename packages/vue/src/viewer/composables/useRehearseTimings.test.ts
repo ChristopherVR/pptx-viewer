@@ -112,6 +112,14 @@ describe('useRehearseTimings', () => {
 		expect(r.rehearsing.value).toBeFalsy();
 	});
 
+	it('finish ends capture and opens the summary', () => {
+		const r = useRehearseTimings({ now: () => 0 });
+		r.start();
+		r.finish();
+		expect(r.rehearsing.value).toBeFalsy();
+		expect(r.showSummary.value).toBeTruthy();
+	});
+
 	it('dismissSummary discards timings and ends the session', () => {
 		const clock = { t: 0 };
 		const r = useRehearseTimings({ now: fixedClock(clock) });

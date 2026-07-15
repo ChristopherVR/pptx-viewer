@@ -94,6 +94,7 @@ export interface UseRibbonPropsStateInput {
 export interface UseRibbonPropsActionsInput {
 	startPresenting: () => void;
 	startPresenterView: () => void;
+	startRehearsal: () => void;
 	onAddAnimation: RibbonProps['onAddAnimation'];
 	onRemoveAnimation: RibbonProps['onRemoveAnimation'];
 	zoomIn: () => void;

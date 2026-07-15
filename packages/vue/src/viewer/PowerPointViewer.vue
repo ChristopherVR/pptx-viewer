@@ -81,6 +81,8 @@ import NotesPanel from './components/NotesPanel.vue';
 import PasswordProtectionDialog from './components/PasswordProtectionDialog.vue';
 import PresentationMode from './components/PresentationMode.vue';
 import PrintDialog from './components/PrintDialog.vue';
+import RehearseTimingsHud from './components/RehearseTimingsHud.vue';
+import RehearseTimingsSummary from './components/RehearseTimingsSummary.vue';
 import RemoteSelectionOverlay from './components/RemoteSelectionOverlay.vue';
 import RibbonToolbar from './components/ribbon/RibbonToolbar.vue';
 import TitleBar from './components/ribbon/TitleBar.vue';
@@ -138,6 +140,7 @@ import { useMultiSelectOps } from './composables/useMultiSelectOps';
 import { usePasswordProtection } from './composables/usePasswordProtection';
 import { usePresentationModeWiring } from './composables/usePresentationModeWiring';
 import { usePrint } from './composables/usePrint';
+import { useRehearseTimings } from './composables/useRehearseTimings';
 import { useRibbonActions } from './composables/useRibbonActions';
 import { useRibbonProps } from './composables/useRibbonProps';
 import { useRibbonUiState } from './composables/useRibbonUiState';
@@ -847,13 +850,46 @@ const { presenting, startPresenting, onPresentClose, onPresentSlideChange } =
 		pushHistory: history.pushHistory,
 	});
 const startInPresenterView = ref(false);
+const rehearsal = useRehearseTimings({
+	onSave: (timings) => {
+		history.pushHistory();
+		slides.value = slides.value.map((slide, index) => {
+			const advanceAfterMs = timings[index];
+			return typeof advanceAfterMs !== 'number'
+				? slide
+				: {
+						...slide,
+						transition: {
+							...slide.transition,
+							type: slide.transition?.type ?? 'none',
+							advanceAfterMs,
+						},
+					};
+		});
+	},
+});
 function startPresenterView(): void {
 	startInPresenterView.value = true;
 	startPresenting();
 }
+function startRehearsal(): void {
+	startInPresenterView.value = false;
+	rehearsal.start();
+	startPresenting();
+}
 function closePresentation(payload?: Parameters<typeof onPresentClose>[0]): void {
+	if (rehearsal.rehearsing.value) {
+		rehearsal.recordCurrentSlideTime(activeSlideIndex.value);
+		rehearsal.finish();
+	}
 	onPresentClose(payload);
 	startInPresenterView.value = false;
+}
+function handlePresentSlideChange(index: number): void {
+	if (rehearsal.rehearsing.value) {
+		rehearsal.recordCurrentSlideTime(activeSlideIndex.value);
+	}
+	onPresentSlideChange(index);
 }
 
 // Direct on-canvas chart editing context (mirrors the SmartArt node-edit
@@ -1436,6 +1472,7 @@ const ribbonProps = useRibbonProps({
 	collab,
 	startPresenting,
 	startPresenterView,
+	startRehearsal,
 	onAddAnimation,
 	onRemoveAnimation,
 	zoomIn,
@@ -2458,7 +2495,20 @@ function handleCommandSearch(command: string): void {
 			:start-index="activeSlideIndex"
 			:start-in-presenter-view="startInPresenterView"
 			@close="closePresentation"
-			@slide-change="onPresentSlideChange"
+			@slide-change="handlePresentSlideChange"
+		/>
+		<RehearseTimingsHud
+			v-if="rehearsal.rehearsing.value"
+			:slide-elapsed-ms="rehearsal.slideElapsedMs.value"
+			:total-elapsed-ms="rehearsal.totalElapsedMs.value"
+			:paused="rehearsal.paused.value"
+			@toggle-pause="rehearsal.togglePause"
+		/>
+		<RehearseTimingsSummary
+			v-if="rehearsal.showSummary.value"
+			:timings="rehearsal.recordedTimings.value"
+			@save="rehearsal.saveTimings"
+			@discard="rehearsal.dismissSummary"
 		/>
 	</div>
 </template>

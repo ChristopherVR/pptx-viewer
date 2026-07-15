@@ -95,6 +95,8 @@ export interface UseRehearseTimingsResult {
 	recordCurrentSlideTime: (slideIndex: number) => void;
 	/** Toggle the paused state, accumulating paused time on resume. */
 	togglePause: () => void;
+	/** End capture and open the post-rehearsal summary. */
+	finish: () => void;
 	/** Persist the recorded timings (via `onSave`) and end the session. */
 	saveTimings: () => void;
 	/** Discard the recorded timings and end the session. */
@@ -218,6 +220,16 @@ export function useRehearseTimings(
 		stopTicking();
 	}
 
+	function finish(): void {
+		if (!rehearsing.value) {
+			return;
+		}
+		rehearsing.value = false;
+		paused.value = false;
+		showSummary.value = true;
+		stopTicking();
+	}
+
 	function dismissSummary(): void {
 		showSummary.value = false;
 		rehearsing.value = false;
@@ -238,6 +250,7 @@ export function useRehearseTimings(
 		start,
 		recordCurrentSlideTime,
 		togglePause,
+		finish,
 		saveTimings,
 		dismissSummary,
 	};
