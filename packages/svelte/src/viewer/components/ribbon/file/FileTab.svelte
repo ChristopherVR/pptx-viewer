@@ -17,7 +17,7 @@
 </script>
 
 <div class="pptx-svelte-filetab" role="group" aria-label={t('pptx.ribbon.tab.file')}>
-	{#if onopenfile}<button type="button" onclick={onopenfile}>{t('pptx.file.open')}</button>{/if}
+	{#if onopenfile}<button type="button" onclick={onopenfile}>{t('pptx.ribbon.open')}</button>{/if}
 	<button
 		type="button"
 		aria-label={t('pptx.file.saveAsPptx')}

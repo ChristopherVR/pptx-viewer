@@ -83,11 +83,13 @@
 		onstartcollaboration,
 		onstopcollaboration,
 	}: PowerPointViewerProps = $props();
-	let editable = $state(editableProp);
+	let editable = $state(false);
 	$effect(() => { editable = editableProp; });
 	$effect(() => {
 		const css = buildUserFontFaceStyles(fonts);
-		if (!css || typeof document === 'undefined') return;
+		if (!css || typeof document === 'undefined') {
+			return;
+		}
 		const style = document.createElement('style');
 		style.dataset.pptxUserFonts = 'svelte';
 		style.textContent = css;
@@ -405,7 +407,7 @@
 	export const getSlide = (index: number) => editor.renderedSlides[index];
 	export const getActiveSlide = () => editor.renderedSlides[viewer.current];
 	export const getElements = (slideIndex = viewer.current) => editor.renderedSlides[slideIndex]?.elements ?? [];
-	export const getElementById = (id: string, slideIndex = viewer.current) => getElements(slideIndex).find((element) => element.id === id);
+	export const getElementById = (id: string, slideIndex = viewer.current) => getElements(slideIndex).find((element: PptxElement) => element.id === id);
 	export const updateElement = (id: string, updates: Partial<PptxElement>): void => editor.applyElementPatch(id, updates);
 	export const deleteElements = (ids: string[]): void => { editor.selection.setAll(ids); editor.deleteSelected(); };
 	export const duplicateElement = (id: string): string | undefined => { editor.selection.set(id); return editor.duplicateSelected() ?? undefined; };
