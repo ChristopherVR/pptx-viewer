@@ -93,9 +93,10 @@ registerTranslations('fr', {
 ```
 
 Dictionaries are typed as `Partial<Record<TranslationKey, string>>`, so key typos fail the
-type check. The [Svelte demo](https://christophervr.github.io/pptx-viewer/demo-svelte/) ships
-full French, Spanish, and German dictionaries you can copy
-([`demos/demo-svelte/src`](https://github.com/ChristopherVR/pptx-viewer/tree/main/demos/demo-svelte/src)).
+type check. The [Svelte demo](https://christophervr.github.io/pptx-viewer/demo-svelte/) uses
+complete French, Spanish, and German reference dictionaries from this repository's private
+`pptx-viewer-locales` workspace. Applications provide their own dictionaries through the
+same `registerTranslations` API.
 
 ## Next steps
 

@@ -16,6 +16,7 @@ import {
 import type { CollaborationConfig, ViewerTheme } from 'pptx-angular-viewer';
 import { PptxHandler } from 'pptx-viewer-core';
 import 'pptx-angular-viewer/styles';
+import { translationsDe, translationsEs, translationsFr } from 'pptx-viewer-locales';
 
 import {
 	ensureAutoRoomId,
@@ -26,7 +27,6 @@ import {
 } from './collab-utils';
 import { demoStringsDe, demoStringsEn, demoStringsFr, demoStringsEs } from './demo-locales';
 import { DropzoneComponent } from './dropzone.component';
-import { translationsEs, translationsFr, translationsDe } from './i18n-locales';
 import { LanguagePickerComponent } from './language-picker.component';
 import { persistLanguageKey, restoreLanguageKey } from './languages';
 import { ThemePickerComponent } from './theme-picker.component';

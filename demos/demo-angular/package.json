@@ -19,6 +19,7 @@
 		"jszip": "^3.10.1",
 		"pptx-angular-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
+		"pptx-viewer-locales": "workspace:*",
 		"rxjs": "^7.8.2",
 		"zone.js": "^0.16.2"
 	},

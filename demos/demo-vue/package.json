@@ -13,6 +13,7 @@
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
 		"pptx-viewer-core": "workspace:*",
+		"pptx-viewer-locales": "workspace:*",
 		"pptx-vue-viewer": "workspace:*",
 		"vue": "^3.5.39",
 		"vue-i18n": "^11.4.6"

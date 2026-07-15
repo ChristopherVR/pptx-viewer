@@ -1,3 +1,4 @@
+import { translationsDe, translationsEs, translationsFr } from 'pptx-viewer-locales';
 import { keyToLabel, toVueI18nSyntax, translationsEn } from 'pptx-vue-viewer/i18n';
 /**
  * vue-i18n configuration for the pptx-viewer Vue demo.
@@ -12,7 +13,6 @@ import { keyToLabel, toVueI18nSyntax, translationsEn } from 'pptx-vue-viewer/i18
 import { createI18n } from 'vue-i18n';
 
 import { demoStringsDe, demoStringsEn, demoStringsFr, demoStringsEs } from './demo-locales';
-import { translationsDe, translationsEs, translationsFr } from './i18n-locales';
 
 const i18n = createI18n({
 	legacy: false,

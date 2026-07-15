@@ -90,6 +90,7 @@ The engine handles the full OpenXML specification: 16 element types, 187+ preset
 packages/
   core/              pptx-viewer-core     - Parse, create, edit, serialize PPTX files (framework-agnostic)
   shared/            pptx-viewer-shared   - Framework-agnostic viewer logic shared by the UI bindings
+  locales/           pptx-viewer-locales  - Internal French, Spanish, and German demo dictionaries
   react/             pptx-react-viewer    - React-based viewer/editor component
   vue/               pptx-vue-viewer      - Vue 3 viewer/editor component
   angular/           pptx-angular-viewer  - Angular viewer/editor component
@@ -103,6 +104,7 @@ packages/
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
 | **[pptx-viewer-core](packages/core/)**          | [![npm](https://img.shields.io/npm/v/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)                         | Core PPTX engine - parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.     | [Documentation](packages/core/README.md)    |
 | **[pptx-viewer-shared](packages/shared/)**      | _(internal - not published)_                                                                                                        | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.  | [Documentation](packages/shared/README.md)  |
+| **[pptx-viewer-locales](packages/locales/)**    | _(internal - not published)_                                                                                                        | Complete French, Spanish, and German reference dictionaries used by the five demo applications.          | [Contributing](packages/locales/README.md)  |
 | **[pptx-react-viewer](packages/react/)**        | [![npm](https://img.shields.io/npm/v/pptx-react-viewer.svg)](https://www.npmjs.com/package/pptx-react-viewer)                       | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export. | [Documentation](packages/react/README.md)   |
 | **[pptx-vue-viewer](packages/vue/)**            | [![npm](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)                           | Vue 3 PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.           | [Documentation](packages/vue/README.md)     |
 | **[pptx-angular-viewer](packages/angular/)**    | [![npm](https://img.shields.io/npm/v/pptx-angular-viewer.svg)](https://www.npmjs.com/package/pptx-angular-viewer)                   | Angular PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.         | [Documentation](packages/angular/README.md) |

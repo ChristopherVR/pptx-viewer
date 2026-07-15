@@ -13,6 +13,7 @@
 		"jszip": "^3.10.1",
 		"pptx-svelte-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
+		"pptx-viewer-locales": "workspace:*",
 		"svelte": "^5.46.4",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",

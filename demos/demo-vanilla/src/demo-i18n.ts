@@ -1,10 +1,8 @@
 import type { TranslationMessages } from 'pptx-vanilla-viewer';
 import { createTranslator } from 'pptx-vanilla-viewer';
+import { translationsDe, translationsEs, translationsFr } from 'pptx-viewer-locales';
 
 import { demoStringsDe, demoStringsEn, demoStringsEs, demoStringsFr } from './demo-locales';
-import { translationsDe } from './i18n-locales-de';
-import { translationsEs } from './i18n-locales-es';
-import { translationsFr } from './i18n-locales-fr';
 import type { LanguageCode } from './languages';
 import { languageKeys } from './languages';
 

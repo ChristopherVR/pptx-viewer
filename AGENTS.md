@@ -36,6 +36,7 @@ Build order matters: **emf-converter → mtx-decompressor → core → react**
 packages/
   core/             pptx-viewer-core     – Parse, edit, serialize PPTX (framework-agnostic)
   shared/           pptx-viewer-shared   – Framework-agnostic viewer logic (INTERNAL, bundled into each binding, never published)
+  locales/          pptx-viewer-locales  – Internal French, Spanish, and German demo dictionaries
   react/            pptx-viewer          – React viewer/editor component
   vue/              pptx-vue-viewer      – Vue 3 viewer/editor component
   angular/          pptx-angular-viewer  – Angular viewer/editor component

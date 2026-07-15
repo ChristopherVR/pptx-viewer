@@ -10,10 +10,10 @@
  */
 import { createInstance } from 'i18next';
 import { keyToLabel, translationsEn } from 'pptx-react-viewer/i18n';
+import { translationsDe, translationsEs, translationsFr } from 'pptx-viewer-locales';
 import { initReactI18next } from 'react-i18next';
 
 import { demoStringsDe, demoStringsEn, demoStringsFr, demoStringsEs } from './demo-locales';
-import { translationsDe, translationsEs, translationsFr } from './i18n-locales';
 
 const i18nInstance = createInstance();
 
