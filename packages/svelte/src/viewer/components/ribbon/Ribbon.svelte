@@ -17,6 +17,8 @@
 	import RibbonTabBar from './RibbonTabBar.svelte';
 	import SlideShowTab from './slideshow/SlideShowTab.svelte';
 	import ReviewTab from './review/ReviewTab.svelte';
+	import RecordTab from './record/RecordTab.svelte';
+	import HelpTab from './help/HelpTab.svelte';
 	import { DEFAULT_RIBBON_TAB } from './ribbon-tabs';
 	import type { RibbonProps } from './ribbon-types';
 	import TransitionsTab from './transitions/TransitionsTab.svelte';
@@ -69,6 +71,8 @@
 			/>
 		{:else if activeTab === 'review'}
 			<ReviewTab slides={props.slides} onnavigate={props.onnavigatetoissue} editor={props.editor} />
+		{:else if activeTab === 'record'}
+			<RecordTab />
 		{:else if activeTab === 'view'}
 			<ViewTab
 				zoomPercent={props.zoomPercent}
@@ -84,6 +88,8 @@
 				onsettemplateediting={(enabled) => props.editor.setTemplateEditing(enabled)}
 				onentermasterview={props.onentermasterview}
 			/>
+		{:else if activeTab === 'help'}
+			<HelpTab onaccessibility={() => (activeTab = 'review')} />
 		{/if}
 	</div>
 </div>

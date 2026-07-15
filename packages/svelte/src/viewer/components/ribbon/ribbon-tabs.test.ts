@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_RIBBON_TAB, isRibbonTab, RIBBON_TABS } from './ribbon-tabs';
 
 describe('ribbon-tabs', () => {
-	it('lists the supported File through View tabs in display order', () => {
+	it('lists the React ribbon tabs in display order', () => {
 		expect(RIBBON_TABS.map((tab) => tab.id)).toStrictEqual([
 			'file',
 			'home',
@@ -13,8 +13,10 @@ describe('ribbon-tabs', () => {
 			'transitions',
 			'animations',
 			'slideShow',
+			'record',
 			'review',
 			'view',
+			'help',
 		]);
 	});
 
