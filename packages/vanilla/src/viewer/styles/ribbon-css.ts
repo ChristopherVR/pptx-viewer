@@ -66,6 +66,8 @@ export const RIBBON_CSS = `
 	padding: 6px 8px;
 }
 .pptxv-ribbon-tab-content[hidden] { display: none; }
+.pptxv-record-dot { width: 12px; height: 12px; margin: 7px; border-radius: 50%; background: #ef4444; }
+.pptxv-shortcut-help { align-self: center; padding: 5px 8px; color: var(--pptx-muted-foreground); font-size: 11px; }
 .pptxv-ribbon-insert-content {
 	flex-wrap: nowrap;
 	overflow-x: auto;

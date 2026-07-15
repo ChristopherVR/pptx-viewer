@@ -30,6 +30,7 @@ import { createInsertTab } from './tabs/insert-tab';
 import { createSlideShowTab } from './tabs/slide-show-tab';
 import type { TransitionsTab } from './tabs/transitions-tab';
 import { createTransitionsTab } from './tabs/transitions-tab';
+import { createHelpTab, createRecordTab, createReviewTab } from './tabs/utility-tabs';
 import { createViewTab } from './tabs/view-tab';
 
 export interface Ribbon {
@@ -91,7 +92,10 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	const transitionsTab: TransitionsTab = createTransitionsTab(doc, t, handlers.edit);
 	const animationsTab: AnimationsTab = createAnimationsTab(doc, t, handlers.edit);
 	const slideShowTab = createSlideShowTab(doc, t, handlers.slideShow);
+	const recordTab = createRecordTab(doc, t);
+	const reviewTab = createReviewTab(doc, t, handlers.nav);
 	const viewTab = createViewTab(doc, t, handlers.nav);
+	const helpTab = createHelpTab(doc, t, handlers.nav);
 
 	const panes: Record<RibbonTabId, HTMLElement> = {
 		file: fileTab.el,
@@ -102,7 +106,10 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 		transitions: transitionsTab.el,
 		animations: animationsTab.el,
 		slideShow: slideShowTab.el,
+		record: recordTab,
+		review: reviewTab,
 		view: viewTab.el,
+		help: helpTab,
 	};
 	for (const tab of RIBBON_TABS) {
 		panes[tab.id].hidden = true;

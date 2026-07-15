@@ -14,7 +14,10 @@ export type RibbonTabId =
 	| 'transitions'
 	| 'animations'
 	| 'slideShow'
-	| 'view';
+	| 'record'
+	| 'review'
+	| 'view'
+	| 'help';
 
 /** Nav-row handlers: always-visible (both edit and read-only chrome). */
 export interface RibbonNavHandlers {

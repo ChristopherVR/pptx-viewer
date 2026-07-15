@@ -24,10 +24,10 @@ export const RIBBON_TABS: readonly RibbonTabDef[] = [
 	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
 	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
 	{ id: 'slideShow', labelKey: 'pptx.ribbon.tab.slideShow' },
-	// { id: 'record', labelKey: 'pptx.ribbon.tab.record' },
-	// { id: 'review', labelKey: 'pptx.ribbon.tab.review' },
+	{ id: 'record', labelKey: 'pptx.ribbon.tab.record' },
+	{ id: 'review', labelKey: 'pptx.ribbon.tab.review' },
 	{ id: 'view', labelKey: 'pptx.ribbon.tab.view' },
-	// { id: 'help', labelKey: 'pptx.ribbon.tab.help' },
+	{ id: 'help', labelKey: 'pptx.ribbon.tab.help' },
 ];
 
 /** The default active tab on mount. */
