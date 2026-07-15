@@ -14,6 +14,7 @@ import type {
 	PptxTextAnimationTarget,
 	XmlObject,
 } from '../types';
+import { extractAnimationTarget } from './animation-target-build-helpers';
 import {
 	extractColorAnimation,
 	extractTextTarget,
@@ -28,7 +29,6 @@ import {
 	extractChildMotionValues,
 	extractChildKeyframes,
 	extractRepeatInfo,
-	extractAnimationTargetId,
 	applyBuildList,
 	extractTriggerShapeId,
 	ensureArray,
@@ -126,8 +126,10 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 			const graphicBuilds = extractGraphicBuilds(bldLst);
 			for (const entry of graphicBuilds) {
 				for (const anim of animations) {
-					if (anim.targetId === entry.spid) {
-						anim.graphicBuild = entry.bld;
+					if (anim.targetId === entry.shapeId) {
+						anim.graphicBuildProperties = entry.build;
+						anim.graphicBuild = entry.build.mode === 'asOne' ? 'asOne' : entry.build.build;
+						anim.groupId ??= entry.groupId;
 					}
 				}
 			}
@@ -221,8 +223,10 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 			const rawEndCondLst = endCondListXml;
 
 			// Extract the target shape ID from child behavior nodes
-			const targetId = extractAnimationTargetId(cTn);
-			if (presetClass && targetId) {
+			const target = extractAnimationTarget(cTn);
+			const targetId =
+				target?.type === 'shape' || target?.type === 'ink' ? target.shapeId : undefined;
+			if (presetClass && target) {
 				// Validate preset class against known OOXML preset classes
 				const validPresetClass = (
 					['entr', 'exit', 'emph', 'path'].includes(presetClass) ? presetClass : undefined
@@ -242,6 +246,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 
 				animations.push({
 					targetId,
+					target,
 					trigger,
 					presetClass: validPresetClass,
 					presetId,

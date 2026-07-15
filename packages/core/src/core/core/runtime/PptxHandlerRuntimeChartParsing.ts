@@ -33,6 +33,7 @@ import {
 	parseSeriesExplosion,
 	parseMarker,
 } from '../../utils/chart-series-detail-parser';
+import { parseChartUpDownBars } from '../../utils/chart-up-down-bars';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeChartColorStyle';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -150,6 +151,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.xmlLookupService,
 			lineStyleColorAdapter,
 		);
+		const upDownBars = parseChartUpDownBars(
+			seriesContainer,
+			this.xmlLookupService,
+			lineStyleColorAdapter,
+		);
 
 		// Parse axis formatting (c:catAx, c:valAx, c:dateAx, c:serAx)
 		const axes = parseChartAxes(
@@ -232,6 +238,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(dataTable ? { dataTable } : {}),
 			...(dropLines ? { dropLines } : {}),
 			...(hiLowLines ? { hiLowLines } : {}),
+			...(upDownBars ? { upDownBars } : {}),
 			...(axes.length > 0 ? { axes } : {}),
 			...(surfaces.floor ? { floor: surfaces.floor } : {}),
 			...(surfaces.sideWall ? { sideWall: surfaces.sideWall } : {}),

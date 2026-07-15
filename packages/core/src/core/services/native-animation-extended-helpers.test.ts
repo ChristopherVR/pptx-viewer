@@ -139,18 +139,36 @@ describe('extractGraphicBuilds', () => {
 		expect(extractGraphicBuilds(undefined)).toStrictEqual([]);
 	});
 
-	it('parses single entry with spid and bld', () => {
+	it('parses the bldAsOne schema choice', () => {
 		const bldLst = {
-			'p:bldGraphic': { '@_spid': '55', '@_bld': 'el' },
+			'p:bldGraphic': {
+				'@_spid': '55',
+				'@_grpId': '7',
+				'p:bldAsOne': {},
+			},
 		};
-		expect(extractGraphicBuilds(bldLst)).toStrictEqual([{ spid: '55', bld: 'el' }]);
+		const result = extractGraphicBuilds(bldLst);
+		expect(result[0].shapeId).toBe('55');
+		expect(result[0].groupId).toBe('7');
+		expect(result[0].build.mode).toBe('asOne');
 	});
 
-	it("defaults bld to 'whole' when not present", () => {
+	it('parses nested chart build properties', () => {
 		const bldLst = {
-			'p:bldGraphic': { '@_spid': '99' },
+			'p:bldGraphic': {
+				'@_spid': '99',
+				'@_grpId': '3',
+				'p:bldSub': {
+					'a:bldChart': { '@_bld': 'seriesEl', '@_animBg': '0' },
+				},
+			},
 		};
-		expect(extractGraphicBuilds(bldLst)[0].bld).toBe('whole');
+		expect(extractGraphicBuilds(bldLst)[0].build).toMatchObject({
+			mode: 'sub',
+			kind: 'chart',
+			build: 'seriesEl',
+			animateBackground: false,
+		});
 	});
 });
 

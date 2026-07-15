@@ -290,61 +290,8 @@ export function isExclusiveNode(childTnList: XmlObject | undefined): boolean {
 	return ensureArray(childTnList['p:excl']).length > 0;
 }
 
-/**
- * Parse `p:bldDgm` (SmartArt build) entries from `p:bldLst`.
- */
-export function extractSmartArtBuilds(
-	bldLst: XmlObject | undefined,
-): Array<{ spid: string; bld: string }> {
-	if (!bldLst) {
-		return [];
-	}
-
-	const entries = ensureArray(bldLst['p:bldDgm']);
-	return entries
-		.filter((e) => e['@_spid'] !== undefined)
-		.map((e) => ({
-			spid: String(e['@_spid']),
-			bld: String(e['@_bld'] || 'whole'),
-		}));
-}
-
-/**
- * Parse `p:bldGraphic` entries from `p:bldLst`.
- */
-export function extractGraphicBuilds(
-	bldLst: XmlObject | undefined,
-): Array<{ spid: string; bld: string }> {
-	if (!bldLst) {
-		return [];
-	}
-
-	const entries = ensureArray(bldLst['p:bldGraphic']);
-	return entries
-		.filter((e) => e['@_spid'] !== undefined)
-		.map((e) => ({
-			spid: String(e['@_spid']),
-			bld: String(e['@_bld'] || 'whole'),
-		}));
-}
-
-/**
- * Parse `p:bldOleChart` (OLE chart build) entries from `p:bldLst`.
- */
-export function extractOleChartBuilds(
-	bldLst: XmlObject | undefined,
-): Array<{ spid: string; grpId: string; bld: string; animBg?: boolean }> {
-	if (!bldLst) {
-		return [];
-	}
-
-	const entries = ensureArray(bldLst['p:bldOleChart']);
-	return entries
-		.filter((e) => e['@_spid'] !== undefined)
-		.map((e) => ({
-			spid: String(e['@_spid']),
-			grpId: String(e['@_grpId'] || '0'),
-			bld: String(e['@_bld'] || 'allAtOnce'),
-			animBg: e['@_animBg'] === '1' ? true : undefined,
-		}));
-}
+export {
+	extractGraphicBuilds,
+	extractOleChartBuilds,
+	extractSmartArtBuilds,
+} from './animation-target-build-helpers';

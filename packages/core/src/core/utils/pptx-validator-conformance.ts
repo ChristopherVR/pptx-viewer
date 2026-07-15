@@ -7,6 +7,7 @@ import {
 	namespaces,
 	rootTag,
 } from './pptx-validator-conformance-xml';
+import { validateSimpleTypeFacets } from './pptx-validator-facets';
 import { readZipText } from './pptx-validator-helpers';
 import { validateMce } from './pptx-validator-mce';
 import type { ValidationConformance, ValidationIssue } from './pptx-validator-types';
@@ -202,6 +203,7 @@ export async function validateEcmaRules(
 		}
 		validateMce(xml, path, issues);
 		validateDrawingDatatypes(xml, path, issues);
+		validateSimpleTypeFacets(xml, path, issues);
 		if (path === 'ppt/presentation.xml') {
 			validatePresentation(xml, path, issues);
 		}
@@ -223,6 +225,6 @@ export async function validateEcmaRules(
 		level: 'rule-checked',
 		dialect,
 		description:
-			'Package, namespace, MCE, and selected ECMA-376 content-model/datatype rules checked; this is not exhaustive XSD validation.',
+			'Package, namespace, MCE, and selected ECMA-376 content-model/simple-type rules checked; this is not exhaustive XSD validation.',
 	};
 }

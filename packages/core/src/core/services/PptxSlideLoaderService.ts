@@ -9,6 +9,7 @@
  */
 import type { PptxSlide, XmlObject } from '../types';
 import { parseSlideDrawingGuides } from '../utils/guide-utils';
+import { loadSlideSynchronization } from '../utils/slide-synchronization';
 import { reconcileAnimationTargets } from './animation-target-reconcile';
 import type { IPptxSlideLoaderService, PptxSlideLoaderParams } from './slide-loader-types';
 
@@ -158,6 +159,15 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 
 		const slideRelsPath = `${path.replace('slides/', 'slides/_rels/')}.rels`;
 		await params.loadSlideRelationships(path, slideRelsPath);
+		const slideSynchronization = await loadSlideSynchronization({
+			zip: params.zip,
+			parser: params.parser,
+			slidePath: path,
+			relsPath: slideRelsPath,
+		});
+		if (slideSynchronization) {
+			params.compatibilityService.inspectSlideSynchronizationCompatibility(path);
+		}
 
 		const clrMapOverride = params.parseSlideClrMapOverride(slideXmlObj);
 		params.setCurrentSlideClrMapOverride(clrMapOverride);
@@ -275,6 +285,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				guides: drawingGuides.length > 0 ? drawingGuides : undefined,
 				customerData: customerData.length > 0 ? customerData : undefined,
 				activeXControls: activeXControls.length > 0 ? activeXControls : undefined,
+				slideSynchronization,
 			};
 		} finally {
 			if (restoreThemeOverride) {

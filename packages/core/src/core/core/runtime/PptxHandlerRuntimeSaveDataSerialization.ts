@@ -27,6 +27,7 @@ import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
 import { applySeriesMarkerToXml } from '../../utils/chart-marker-serializer';
 import { applySeriesDataLabelsToXml } from '../../utils/chart-series-datalabel-serializer';
 import { applySeriesTrendlinesToXml } from '../../utils/chart-trendline-serializer';
+import { applyChartUpDownBars } from '../../utils/chart-up-down-bars';
 import { xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
 import {
@@ -506,6 +507,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 				if (chartData.bubbleOptions && chartData.chartType === 'bubble') {
 					applyBubbleChartOptions(chartTypeContainer, chartData.bubbleOptions, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
+				}
+				if (
+					chartData.upDownBars !== undefined &&
+					(chartData.chartType === 'line' ||
+						chartData.chartType === 'stock' ||
+						chartData.chartType === 'combo')
+				) {
+					applyChartUpDownBars(chartTypeContainer, chartData.upDownBars, (key) =>
 						this.compatibilityService.getXmlLocalName(key),
 					);
 				}

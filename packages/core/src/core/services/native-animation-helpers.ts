@@ -10,6 +10,10 @@ import type {
 	PptxTextBuildType,
 	XmlObject,
 } from '../types';
+import {
+	parseTimeTargetElement,
+	serializeTimeTargetElement,
+} from './animation-target-build-helpers';
 
 /**
  * Extract sound action (`p:stSnd` or `p:endSnd`) from a `p:cTn` node.
@@ -651,11 +655,10 @@ export function parseCondition(condXml: XmlObject): AnimationCondition {
 	// Target element
 	const tgtEl = condXml['p:tgtEl'] as XmlObject | undefined;
 	if (tgtEl) {
-		const spTgt = tgtEl['p:spTgt'] as XmlObject | undefined;
-		if (spTgt?.['@_spid']) {
-			condition.targetShapeId = String(spTgt['@_spid']);
-		}
-		if (tgtEl['p:sldTgt'] !== undefined) {
+		condition.target = parseTimeTargetElement(tgtEl);
+		if (condition.target?.type === 'shape') {
+			condition.targetShapeId = condition.target.shapeId;
+		} else if (condition.target?.type === 'slide') {
 			condition.targetSlide = true;
 		}
 	}
@@ -709,7 +712,9 @@ export function serializeCondition(condition: AnimationCondition): XmlObject {
 	}
 
 	// Target element
-	if (condition.targetShapeId || condition.targetSlide) {
+	if (condition.target) {
+		condXml['p:tgtEl'] = serializeTimeTargetElement(condition.target);
+	} else if (condition.targetShapeId || condition.targetSlide) {
 		const tgtEl: XmlObject = {};
 		if (condition.targetShapeId) {
 			tgtEl['p:spTgt'] = { '@_spid': condition.targetShapeId };

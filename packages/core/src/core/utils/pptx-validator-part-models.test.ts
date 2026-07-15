@@ -6,6 +6,8 @@ import { validatePptx } from './pptx-validator';
 const P = 'http://schemas.openxmlformats.org/presentationml/2006/main';
 const A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
 const R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+const C = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
+const D = 'http://schemas.openxmlformats.org/drawingml/2006/diagram';
 
 async function pack(
 	presentation = `<p:presentation xmlns:p="${P}" xmlns:a="${A}" xmlns:r="${R}"/>`,
@@ -62,12 +64,12 @@ describe('eCMA part content models', () => {
 			'ppt/slideMasters/slideMaster1.xml': `<x:sldMaster xmlns:x="${P}"/>`,
 			'ppt/notesMasters/notesMaster1.xml': `<x:notesMaster xmlns:x="${P}"/>`,
 			'ppt/theme/theme1.xml': `<x:theme xmlns:x="${A}"><x:themeElements/></x:theme>`,
-			'ppt/charts/chart1.xml': '<x:chartSpace/>',
-			'ppt/diagrams/data1.xml': '<x:dataModel/>',
-			'ppt/diagrams/layout1.xml': '<x:layoutDef/>',
-			'ppt/diagrams/quickStyle1.xml': '<x:styleDef/>',
-			'ppt/diagrams/colors1.xml': '<x:colorsDef/>',
-			'ppt/tableStyles.xml': '<x:tblStyleLst/>',
+			'ppt/charts/chart1.xml': `<x:chartSpace xmlns:x="${C}"/>`,
+			'ppt/diagrams/data1.xml': `<x:dataModel xmlns:x="${D}"/>`,
+			'ppt/diagrams/layout1.xml': `<x:layoutDef xmlns:x="${D}"/>`,
+			'ppt/diagrams/quickStyle1.xml': `<x:styleDef xmlns:x="${D}"/>`,
+			'ppt/diagrams/colors1.xml': `<x:colorsDef xmlns:x="${D}"/>`,
+			'ppt/tableStyles.xml': `<x:tblStyleLst xmlns:x="${A}"/>`,
 		};
 		const result = await issues(await pack(undefined, undefined, parts));
 		expect(
@@ -87,13 +89,12 @@ describe('eCMA part content models', () => {
 	it('accepts minimal required models with arbitrary namespace prefixes', async () => {
 		const parts = {
 			'ppt/theme/theme1.xml': `<draw:theme xmlns:draw="${A}"><draw:themeElements><draw:clrScheme/><draw:fontScheme/><draw:fmtScheme/></draw:themeElements></draw:theme>`,
-			'ppt/charts/chart1.xml':
-				'<chart:chartSpace xmlns:chart="urn:chart"><chart:chart/></chart:chartSpace>',
-			'ppt/diagrams/data1.xml': '<d:dataModel xmlns:d="urn:d"><d:ptLst/><d:cxnLst/></d:dataModel>',
-			'ppt/diagrams/layout1.xml': '<d:layoutDef xmlns:d="urn:d"><d:layoutNode/></d:layoutDef>',
-			'ppt/diagrams/quickStyle1.xml': '<d:styleDef xmlns:d="urn:d"><d:styleLbl/></d:styleDef>',
-			'ppt/diagrams/colors1.xml': '<d:colorsDef xmlns:d="urn:d"><d:styleLbl/></d:colorsDef>',
-			'ppt/tableStyles.xml': '<draw:tblStyleLst xmlns:draw="urn:a" def="default"/>',
+			'ppt/charts/chart1.xml': `<chart:chartSpace xmlns:chart="${C}"><chart:chart/></chart:chartSpace>`,
+			'ppt/diagrams/data1.xml': `<d:dataModel xmlns:d="${D}"><d:ptLst/><d:cxnLst/></d:dataModel>`,
+			'ppt/diagrams/layout1.xml': `<d:layoutDef xmlns:d="${D}"><d:layoutNode/></d:layoutDef>`,
+			'ppt/diagrams/quickStyle1.xml': `<d:styleDef xmlns:d="${D}"><d:styleLbl/></d:styleDef>`,
+			'ppt/diagrams/colors1.xml': `<d:colorsDef xmlns:d="${D}"><d:styleLbl/></d:colorsDef>`,
+			'ppt/tableStyles.xml': `<draw:tblStyleLst xmlns:draw="${A}" def="default"/>`,
 		};
 		const result = await issues(await pack(undefined, undefined, parts));
 		expect(

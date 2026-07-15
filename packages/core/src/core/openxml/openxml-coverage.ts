@@ -58,6 +58,34 @@ const COVERAGE_OVERRIDES: Record<string, Facets> = {
 		serialize: 'partial',
 		note: 'Display options are typed; series and extensions have separate capability entries.',
 	},
+	'chart:complexType:CT_LegendEntry': {
+		parse: 'partial',
+		preserve: 'passthrough',
+		edit: 'partial',
+		serialize: 'partial',
+		note: 'Index, delete, and common txPr defaults are typed; extensions remain passthrough.',
+	},
+	'chart:group:EG_LegendEntryData': {
+		parse: 'partial',
+		preserve: 'passthrough',
+		edit: 'partial',
+		serialize: 'partial',
+		note: 'Common text defaults are typed; the full DrawingML text body remains passthrough.',
+	},
+	'chart:complexType:CT_UpDownBars': {
+		parse: 'partial',
+		preserve: 'passthrough',
+		edit: 'partial',
+		serialize: 'partial',
+		note: 'Gap width and common up/down bar shape properties are typed; extensions are passthrough.',
+	},
+	'chart:complexType:CT_UpDownBar': {
+		parse: 'partial',
+		preserve: 'passthrough',
+		edit: 'partial',
+		serialize: 'partial',
+		note: 'Common fill and line properties are typed; other DrawingML shape properties are passthrough.',
+	},
 };
 
 for (const id of [

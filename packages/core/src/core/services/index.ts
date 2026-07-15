@@ -64,3 +64,10 @@ export {
 	serializeCondition,
 	serializeConditionList,
 } from './native-animation-helpers';
+export {
+	parseTimeTargetElement,
+	serializeTimeTargetElement,
+	extractGraphicBuilds,
+	serializeGraphicBuild,
+	type PptxGraphicBuildEntry,
+} from './animation-target-build-helpers';

@@ -1,5 +1,6 @@
 import { XmlObject } from '../../types';
 import type { PptxPresentationProperties, PptxChartStyle, PptxViewProperties } from '../../types';
+import { parseChartLegendEntries } from '../../utils/chart-legend-serializer';
 import { parseShowProperties } from './pptx-presentation-props-helpers';
 import { parseViewProperties } from './pptx-view-props-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSlideMasters';
@@ -148,6 +149,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const legendPos = this.xmlLookupService.getChildByLocalName(legend, 'legendPos');
 				if (legendPos?.['@_val']) {
 					style.legendPosition = String(legendPos['@_val']);
+				}
+				const entries = parseChartLegendEntries(
+					legend,
+					(key) => this.compatibilityService.getXmlLocalName(key),
+					(node) => this.parseColor(node),
+				);
+				if (entries.length > 0) {
+					style.legendEntries = entries;
 				}
 			}
 

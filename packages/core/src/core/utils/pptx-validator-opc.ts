@@ -8,6 +8,13 @@ import {
 	resolveRelTarget,
 	tryParseXml,
 } from './pptx-validator-helpers';
+import {
+	canonicalPartName,
+	isExternalTarget,
+	relationshipsOwner,
+	targetEscapesRoot,
+	validPartName,
+} from './pptx-validator-opc-helpers';
 import type { ValidationIssue } from './pptx-validator-types';
 
 function add(
@@ -18,36 +25,6 @@ function add(
 	severity: ValidationIssue['severity'] = 'error',
 ): void {
 	issues.push({ severity, code, message, path });
-}
-
-function validPartName(name: string): boolean {
-	if (!name.startsWith('/') || name.startsWith('//') || name.endsWith('/')) {
-		return false;
-	}
-	if (
-		/[\\?#\s]/.test(name) ||
-		Array.from(name).some((character) => character.charCodeAt(0) < 0x20) ||
-		/%(?![0-9A-Fa-f]{2})/.test(name) ||
-		/%(?:2[fF]|5[cC])/.test(name)
-	) {
-		return false;
-	}
-	try {
-		return decodeURIComponent(name)
-			.split('/')
-			.slice(1)
-			.every((part) => part && part !== '.' && part !== '..' && !part.endsWith('.'));
-	} catch {
-		return false;
-	}
-}
-
-function canonical(name: string): string {
-	try {
-		return decodeURIComponent(name);
-	} catch {
-		return name;
-	}
 }
 
 export async function validateOpcContentTypes(
@@ -113,7 +90,7 @@ export async function validateOpcContentTypes(
 			);
 			continue;
 		}
-		const key = canonical(name);
+		const key = canonicalPartName(name);
 		if (overrides.has(key)) {
 			add(
 				issues,
@@ -137,7 +114,7 @@ export async function validateOpcContentTypes(
 	}
 	const packageNames = new Map<string, string>();
 	for (const zipPath of Object.keys(zip.files).filter((entry) => !zip.files[entry].dir)) {
-		const key = canonical(`/${zipPath}`);
+		const key = canonicalPartName(`/${zipPath}`);
 		const previous = packageNames.get(key);
 		if (previous && previous !== zipPath) {
 			add(
@@ -164,36 +141,6 @@ export async function validateOpcContentTypes(
 	}
 }
 
-function ownerOf(path: string): string | undefined {
-	if (path === '_rels/.rels') {
-		return undefined;
-	}
-	const match = path.match(/^(.*\/)?_rels\/([^/]+)\.rels$/);
-	return match ? `${match[1] ?? ''}${match[2]}` : undefined;
-}
-
-function external(target: string): boolean {
-	return /^[A-Za-z][A-Za-z\d+.-]*:/.test(target) || target.startsWith('//');
-}
-
-function escapesRoot(dir: string, target: string): boolean {
-	if (target.startsWith('/')) {
-		return false;
-	}
-	let depth = dir.split('/').filter(Boolean).length;
-	for (const part of target.split('/')) {
-		if (part === '..') {
-			if (!depth) {
-				return true;
-			}
-			depth--;
-		} else if (part !== '.' && part) {
-			depth++;
-		}
-	}
-	return false;
-}
-
 export async function validateOpcRelationships(
 	zip: JSZip,
 	parser: XMLParser,
@@ -214,7 +161,7 @@ export async function validateOpcRelationships(
 			);
 			continue;
 		}
-		const owner = ownerOf(path);
+		const owner = relationshipsOwner(path);
 		if (path !== '_rels/.rels' && (!owner || !zip.file(owner))) {
 			add(
 				issues,
@@ -267,7 +214,7 @@ export async function validateOpcRelationships(
 				);
 				continue;
 			}
-			if (mode !== 'External' && external(target)) {
+			if (mode !== 'External' && isExternalTarget(target)) {
 				add(
 					issues,
 					path,
@@ -281,7 +228,7 @@ export async function validateOpcRelationships(
 			}
 			const targetPath = target.split('#')[0];
 			const dir = relsOwnerDir(path);
-			if (!targetPath || /[\\?]/.test(targetPath) || escapesRoot(dir, targetPath)) {
+			if (!targetPath || /[\\?]/.test(targetPath) || targetEscapesRoot(dir, targetPath)) {
 				add(
 					issues,
 					path,

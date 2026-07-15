@@ -88,6 +88,32 @@ export type PptxAnimationTrigger =
  */
 export type PptxNativeAnimationKind = 'media';
 
+/** A target selected by `p:tgtEl` in the PresentationML timing model. */
+export type PptxAnimationTarget =
+	| { type: 'shape'; shapeId: string; rawXml?: XmlObject }
+	| { type: 'slide'; rawXml?: XmlObject }
+	| { type: 'sound'; relationshipId: string; name?: string; rawXml?: XmlObject }
+	| { type: 'ink'; shapeId: string; rawXml?: XmlObject }
+	| { type: 'unknown'; rawXml: XmlObject };
+
+/** Nested build choice carried by `p:bldGraphic`. */
+export type PptxGraphicBuild =
+	| { mode: 'asOne'; rawXml?: XmlObject }
+	| {
+			mode: 'sub';
+			kind: 'diagram';
+			build: string;
+			reverse: boolean;
+			rawXml?: XmlObject;
+	  }
+	| {
+			mode: 'sub';
+			kind: 'chart';
+			build: string;
+			animateBackground: boolean;
+			rawXml?: XmlObject;
+	  };
+
 /**
  * Parsed native animation record from `p:timing / p:tnLst`.
  *
@@ -109,6 +135,8 @@ export type PptxNativeAnimationKind = 'media';
 export interface PptxNativeAnimation {
 	/** Target element/shape ID. */
 	targetId?: string;
+	/** Full timing target, including sound and ink target variants. */
+	target?: PptxAnimationTarget;
 	/** Trigger type. */
 	trigger?: PptxAnimationTrigger;
 	/** Shape ID that triggers this animation when clicked (interactive sequence). */
@@ -213,6 +241,8 @@ export interface PptxNativeAnimation {
 	 * that aren't OLE charts).
 	 */
 	graphicBuild?: string;
+	/** Schema-accurate `p:bldGraphic/p:bldAsOne|p:bldSub` representation. */
+	graphicBuildProperties?: PptxGraphicBuild;
 	/**
 	 * Opaque map of `p:cTn` attributes that don't have a typed home on this
 	 * interface but must round-trip through parse → save. Keys are stored
@@ -344,6 +374,8 @@ export interface AnimationCondition {
 	targetShapeId?: string;
 	/** Whether the condition targets a slide (from `p:tgtEl/p:sldTgt`). */
 	targetSlide?: boolean;
+	/** Full target choice, including `p:sndTgt` and `p:inkTgt`. */
+	target?: PptxAnimationTarget;
 }
 
 /** Iteration configuration from `p:iterate`. */

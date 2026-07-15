@@ -63,6 +63,18 @@ describe('open XML schema coverage inventory', () => {
 			edit: 'native',
 			serialize: 'native',
 		});
+		expect(findOpenXmlCoverage('chart:complexType:CT_LegendEntry')).toMatchObject({
+			parse: 'partial',
+			preserve: 'passthrough',
+			edit: 'partial',
+			serialize: 'partial',
+		});
+		expect(findOpenXmlCoverage('chart:complexType:CT_UpDownBars')).toMatchObject({
+			parse: 'partial',
+			preserve: 'passthrough',
+			edit: 'partial',
+			serialize: 'partial',
+		});
 	});
 
 	it('summarizes every facet', () => {

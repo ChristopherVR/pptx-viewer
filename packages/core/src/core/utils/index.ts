@@ -421,6 +421,7 @@ export {
 } from './chart-layout';
 
 export { parseBubbleChartOptions, applyBubbleChartOptions } from './chart-bubble-options';
+export { parseChartUpDownBars, applyChartUpDownBars } from './chart-up-down-bars';
 
 export {
 	parseDrawingMediaReference,

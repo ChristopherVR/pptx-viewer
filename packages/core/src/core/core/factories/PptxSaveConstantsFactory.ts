@@ -10,6 +10,8 @@ export interface PptxSaveConstants {
 	slideAudioRelationshipType: string;
 	slideCommentRelationshipType: string;
 	slideNotesRelationshipType: string;
+	slideSyncRelationshipType: string;
+	slideSyncContentType: string;
 	relationshipsNamespace: string;
 	slideContentType: string;
 	commentContentType: string;
@@ -37,6 +39,10 @@ export class PptxSaveConstantsFactory implements IFactory<
 					'http://purl.oclc.org/ooxml/officeDocument/relationships/comments',
 				slideNotesRelationshipType:
 					'http://purl.oclc.org/ooxml/officeDocument/relationships/notesSlide',
+				slideSyncRelationshipType:
+					'http://purl.oclc.org/ooxml/officeDocument/relationships/slideSyncData',
+				slideSyncContentType:
+					'application/vnd.openxmlformats-officedocument.presentationml.slideSyncData+xml',
 				// The OPC relationships namespace (the xmlns of .rels parts) is
 				// conformance-independent: real Strict packages keep the canonical
 				// schemas.openxmlformats.org form. Only the relationship *type*
@@ -71,6 +77,10 @@ export class PptxSaveConstantsFactory implements IFactory<
 				'http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments',
 			slideNotesRelationshipType:
 				'http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide',
+			slideSyncRelationshipType:
+				'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideSyncData',
+			slideSyncContentType:
+				'application/vnd.openxmlformats-officedocument.presentationml.slideSyncData+xml',
 			relationshipsNamespace: 'http://schemas.openxmlformats.org/package/2006/relationships',
 			slideContentType: 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml',
 			commentContentType:

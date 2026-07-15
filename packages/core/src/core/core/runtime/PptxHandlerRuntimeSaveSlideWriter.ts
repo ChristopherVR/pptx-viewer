@@ -3,6 +3,7 @@ import { XmlObject, PptxSlide } from '../../types';
 import type { MediaPptxElement } from '../../types';
 import type { AlternateContentBlock } from '../../utils';
 import { SHAPE_TREE_ELEMENT_TAGS } from '../../utils';
+import { saveSlideSynchronization } from '../../utils/slide-synchronization';
 import { buildClrMapOverrideXml } from '../../utils/theme-override-utils';
 import { PptxSlideRelationshipRegistry, PptxShapeIdValidator } from '../builders';
 import type { PptxSaveState, IPptxSlideRelationshipRegistry } from '../builders';
@@ -113,6 +114,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const existingCommentRelationship = slideRelationshipRegistry.removeCommentRelationships(
 			constants.slideCommentRelationshipType,
 		);
+		await saveSlideSynchronization({
+			zip: this.zip,
+			parser: this.parser,
+			writer: this.builder,
+			slide,
+			relationships: slideRelationships,
+			nextRelationshipId: () => slideRelationshipRegistry.nextRelationshipId(),
+			relationshipType: constants.slideSyncRelationshipType,
+			contentType: constants.slideSyncContentType,
+		});
 
 		this.slideBackgroundBuilder.applyBackground({
 			slideNode,

@@ -194,6 +194,19 @@ export interface PptxSlide {
 	activeXControls?: PptxActiveXControl[];
 	/** Per-slide header/footer flags from `<p:hf>` (P-H3). */
 	headerFooterFlags?: import('./masters').PptxHeaderFooterFlags;
+	/** Server-backed slide synchronization metadata stored in a related OPC part. */
+	slideSynchronization?: PptxSlideSyncProperties;
+}
+
+/** Metadata from a `p:sldSyncPr` slide synchronization data part. */
+export interface PptxSlideSyncProperties {
+	serverSlideId: string;
+	serverSlideModifiedTime: string;
+	clientInsertedTime: string;
+	extensionList?: XmlObject;
+	rawXml?: XmlObject;
+	partPath?: string;
+	relationshipId?: string;
 }
 
 /**

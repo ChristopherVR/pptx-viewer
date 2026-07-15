@@ -213,4 +213,5 @@ export const SLIDE_FIELD_KIND: Record<keyof PptxSlide, CollabFieldKind> = {
 	customerData: 'complex',
 	activeXControls: 'complex',
 	headerFooterFlags: 'complex',
+	slideSynchronization: 'complex',
 };

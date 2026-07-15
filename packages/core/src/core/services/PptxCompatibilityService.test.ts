@@ -253,11 +253,13 @@ describe('pptxCompatibilityService', () => {
 			svc.inspectMediaReferenceCompatibility('wavAudioFile', 's1', 'e3');
 			svc.inspectMediaReferenceCompatibility('audioCd', 's1', 'e4');
 			svc.inspectMediaReferenceCompatibility('quickTimeFile', 's1', 'e5');
+			svc.inspectSlideSynchronizationCompatibility('s1');
 			expect(svc.getWarnings().map((warning) => warning.code)).toStrictEqual([
 				'PARTIAL_SMARTART_SUPPORT',
 				'UNSUPPORTED_GRAPHIC_FRAME',
 				'LEGACY_AUDIO_CD_REFERENCE',
 				'LEGACY_QUICKTIME_REFERENCE',
+				'SLIDE_SYNCHRONIZATION_METADATA',
 			]);
 			vi.restoreAllMocks();
 		});

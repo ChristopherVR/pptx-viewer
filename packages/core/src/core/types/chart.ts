@@ -189,6 +189,14 @@ export interface PptxChartShapeProps {
 	strokeDashStyle?: string;
 }
 
+/** Up/down bar formatting on line and stock charts (`c:upDownBars`). */
+export interface PptxChartUpDownBars {
+	/** Gap between bars as a percentage, constrained to 0 through 500. */
+	gapWidth?: number;
+	upBars?: PptxChartShapeProps;
+	downBars?: PptxChartShapeProps;
+}
+
 /** Marker appearance on a chart series or data point. */
 export interface PptxChartMarker {
 	symbol: PptxChartMarkerSymbol;
@@ -350,6 +358,22 @@ export interface PptxChartDataLabelOptions {
 	position?: 'ctr' | 'inEnd' | 'inBase' | 'outEnd' | 'bestFit' | 'l' | 'r' | 't' | 'b';
 }
 
+/** Typed text defaults for a single chart legend entry. */
+export interface PptxChartLegendTextStyle {
+	fontFamily?: string;
+	fontSize?: number;
+	bold?: boolean;
+	italic?: boolean;
+	color?: string;
+}
+
+/** Per-series legend entry override (`c:legendEntry`). */
+export interface PptxChartLegendEntry {
+	index: number;
+	deleted?: boolean;
+	textStyle?: PptxChartLegendTextStyle;
+}
+
 /**
  * Style / formatting metadata for a chart.
  *
@@ -371,6 +395,8 @@ export interface PptxChartStyle {
 	hasLegend?: boolean;
 	/** Legend position (t, b, l, r, tr). */
 	legendPosition?: string;
+	/** Per-series visibility and text-style overrides. */
+	legendEntries?: PptxChartLegendEntry[];
 	/** Whether the chart has a title. */
 	hasTitle?: boolean;
 	/** Whether gridlines are visible. */
@@ -550,6 +576,8 @@ export interface PptxChartData {
 	dataTable?: PptxChartDataTable;
 	dropLines?: PptxChartLineStyle;
 	hiLowLines?: PptxChartLineStyle;
+	/** `null` explicitly removes an existing up/down-bars container. */
+	upDownBars?: PptxChartUpDownBars | null;
 	axes?: PptxChartAxisFormatting[];
 	floor?: PptxChart3DSurface;
 	sideWall?: PptxChart3DSurface;

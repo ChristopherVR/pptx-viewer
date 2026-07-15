@@ -54,6 +54,7 @@ export interface IPptxCompatibilityService {
 		slideId: string,
 		elementId: string,
 	): void;
+	inspectSlideSynchronizationCompatibility(slideId: string): void;
 }
 
 export class PptxCompatibilityService implements IPptxCompatibilityService {
@@ -241,6 +242,18 @@ export class PptxCompatibilityService implements IPptxCompatibilityService {
 			slideId,
 			elementId,
 			xmlPath: `/p:pic/p:nvPicPr/p:nvPr/a:${kind}`,
+		});
+	}
+
+	public inspectSlideSynchronizationCompatibility(slideId: string): void {
+		this.reportWarning({
+			code: 'SLIDE_SYNCHRONIZATION_METADATA',
+			message:
+				'Server slide synchronization metadata is editable and preserved; live server synchronization is not performed.',
+			severity: 'info',
+			scope: 'slide',
+			slideId,
+			xmlPath: '/p:sldSyncPr',
 		});
 	}
 

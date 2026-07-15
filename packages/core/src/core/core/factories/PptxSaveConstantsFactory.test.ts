@@ -67,6 +67,14 @@ describe('pptxSaveConstantsFactory', () => {
 				'http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide',
 			);
 		});
+
+		it('returns transitional slide synchronization constants', () => {
+			const constants = factory.create('transitional');
+			expect(constants.slideSyncRelationshipType).toBe(
+				'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideSyncData',
+			);
+			expect(constants.slideSyncContentType).toContain('slideSyncData+xml');
+		});
 	});
 
 	describe('create() with strict conformance', () => {
@@ -141,6 +149,12 @@ describe('pptxSaveConstantsFactory', () => {
 			);
 		});
 
+		it('returns strict slide synchronization relationship type', () => {
+			expect(factory.create('strict').slideSyncRelationshipType).toBe(
+				'http://purl.oclc.org/ooxml/officeDocument/relationships/slideSyncData',
+			);
+		});
+
 		it('uses the same content types for both conformance classes', () => {
 			const strict = factory.create('strict');
 			const transitional = factory.create('transitional');
@@ -148,6 +162,7 @@ describe('pptxSaveConstantsFactory', () => {
 			expect(strict.commentContentType).toBe(transitional.commentContentType);
 			expect(strict.commentAuthorContentType).toBe(transitional.commentAuthorContentType);
 			expect(strict.commentAuthorsPartName).toBe(transitional.commentAuthorsPartName);
+			expect(strict.slideSyncContentType).toBe(transitional.slideSyncContentType);
 		});
 	});
 

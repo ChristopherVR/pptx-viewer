@@ -15,6 +15,7 @@
 import type { PptxChartData, PptxChartSeries, PptxChartType, XmlObject } from '../types';
 import { applyBubbleChartOptions } from './chart-bubble-options';
 import { applyChartLayouts } from './chart-layout';
+import { applyChartUpDownBars } from './chart-up-down-bars';
 
 const NS_C = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
 const NS_A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
@@ -160,6 +161,9 @@ function buildChartTypeContainer(chartData: PptxChartData, family: string): XmlO
 	);
 	if (family === 'bubble' && chartData.bubbleOptions) {
 		applyBubbleChartOptions(container, chartData.bubbleOptions, (key) => key.replace(/^.*:/u, ''));
+	}
+	if (family === 'line' && chartData.upDownBars !== undefined) {
+		applyChartUpDownBars(container, chartData.upDownBars, (key) => key.replace(/^.*:/u, ''));
 	}
 
 	if (family === 'bar') {

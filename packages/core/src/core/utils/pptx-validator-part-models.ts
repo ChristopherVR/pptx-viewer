@@ -2,7 +2,9 @@ import type JSZip from 'jszip';
 
 import {
 	directChildren,
+	ECMA_NAMESPACES,
 	elementXml,
+	namespaces,
 	rootAttributes,
 	rootTag,
 } from './pptx-validator-conformance-xml';
@@ -12,42 +14,80 @@ import type { ValidationIssue } from './pptx-validator-types';
 interface PartContract {
 	path: RegExp;
 	root: string;
+	namespace: 'p' | 'a' | 'c' | 'd';
 	required?: string[];
 }
+
+const PART_NAMESPACES = {
+	p: [ECMA_NAMESPACES.transitionalP, ECMA_NAMESPACES.strictP],
+	a: [ECMA_NAMESPACES.transitionalA, ECMA_NAMESPACES.strictA],
+	c: [
+		'http://schemas.openxmlformats.org/drawingml/2006/chart',
+		'http://purl.oclc.org/ooxml/drawingml/chart',
+	],
+	d: [
+		'http://schemas.openxmlformats.org/drawingml/2006/diagram',
+		'http://purl.oclc.org/ooxml/drawingml/diagram',
+	],
+} as const;
 
 const CONTRACTS: PartContract[] = [
 	{
 		path: /^ppt\/slideMasters\/slideMaster\d+\.xml$/,
 		root: 'sldMaster',
+		namespace: 'p',
 		required: ['cSld', 'clrMap'],
 	},
-	{ path: /^ppt\/slideLayouts\/slideLayout\d+\.xml$/, root: 'sldLayout', required: ['cSld'] },
+	{
+		path: /^ppt\/slideLayouts\/slideLayout\d+\.xml$/,
+		root: 'sldLayout',
+		namespace: 'p',
+		required: ['cSld'],
+	},
 	{
 		path: /^ppt\/notesMasters\/notesMaster\d+\.xml$/,
 		root: 'notesMaster',
+		namespace: 'p',
 		required: ['cSld', 'clrMap'],
 	},
 	{
 		path: /^ppt\/notesSlides\/notesSlide\d+\.xml$/,
 		root: 'notes',
+		namespace: 'p',
 		required: ['cSld'],
 	},
 	{
 		path: /^ppt\/handoutMasters\/handoutMaster\d+\.xml$/,
 		root: 'handoutMaster',
+		namespace: 'p',
 		required: ['cSld', 'clrMap'],
 	},
-	{ path: /^ppt\/theme\/theme\d+\.xml$/, root: 'theme', required: ['themeElements'] },
-	{ path: /^ppt\/charts\/chart\d+\.xml$/, root: 'chartSpace', required: ['chart'] },
-	{ path: /^ppt\/diagrams\/data\d+\.xml$/, root: 'dataModel', required: ['ptLst'] },
-	{ path: /^ppt\/diagrams\/layout\d+\.xml$/, root: 'layoutDef', required: ['layoutNode'] },
-	{ path: /^ppt\/diagrams\/quickStyle\d+\.xml$/, root: 'styleDef', required: ['styleLbl'] },
-	{ path: /^ppt\/diagrams\/colors\d+\.xml$/, root: 'colorsDef' },
-	{ path: /^ppt\/comments\/comment\d+\.xml$/, root: 'cmLst' },
-	{ path: /^ppt\/commentAuthors\.xml$/, root: 'cmAuthorLst' },
-	{ path: /^ppt\/presProps\.xml$/, root: 'presentationPr' },
-	{ path: /^ppt\/viewProps\.xml$/, root: 'viewPr' },
-	{ path: /^ppt\/tableStyles\.xml$/, root: 'tblStyleLst' },
+	{
+		path: /^ppt\/theme\/theme\d+\.xml$/,
+		root: 'theme',
+		namespace: 'a',
+		required: ['themeElements'],
+	},
+	{ path: /^ppt\/charts\/chart\d+\.xml$/, root: 'chartSpace', namespace: 'c', required: ['chart'] },
+	{ path: /^ppt\/diagrams\/data\d+\.xml$/, root: 'dataModel', namespace: 'd', required: ['ptLst'] },
+	{
+		path: /^ppt\/diagrams\/layout\d+\.xml$/,
+		root: 'layoutDef',
+		namespace: 'd',
+		required: ['layoutNode'],
+	},
+	{
+		path: /^ppt\/diagrams\/quickStyle\d+\.xml$/,
+		root: 'styleDef',
+		namespace: 'd',
+		required: ['styleLbl'],
+	},
+	{ path: /^ppt\/diagrams\/colors\d+\.xml$/, root: 'colorsDef', namespace: 'd' },
+	{ path: /^ppt\/comments\/comment\d+\.xml$/, root: 'cmLst', namespace: 'p' },
+	{ path: /^ppt\/commentAuthors\.xml$/, root: 'cmAuthorLst', namespace: 'p' },
+	{ path: /^ppt\/presProps\.xml$/, root: 'presentationPr', namespace: 'p' },
+	{ path: /^ppt\/viewProps\.xml$/, root: 'viewPr', namespace: 'p' },
+	{ path: /^ppt\/tableStyles\.xml$/, root: 'tblStyleLst', namespace: 'a' },
 ];
 
 function add(issues: ValidationIssue[], path: string, code: string, message: string): void {
@@ -127,6 +167,17 @@ export async function validatePartModels(zip: JSZip, issues: ValidationIssue[]):
 				path,
 				'INVALID_PART_ROOT',
 				`Part must have <${contract.root}> root, found <${actualRoot ?? 'none'}>`,
+			);
+			continue;
+		}
+		const rootPrefix = rootTag(xml)?.includes(':') ? rootTag(xml)!.split(':')[0] : '';
+		const rootNamespace = namespaces(xml).get(rootPrefix);
+		if (!(PART_NAMESPACES[contract.namespace] as readonly string[]).includes(rootNamespace ?? '')) {
+			add(
+				issues,
+				path,
+				'INVALID_PART_ROOT_NAMESPACE',
+				`<${contract.root}> uses unexpected namespace "${rootNamespace ?? ''}"`,
 			);
 			continue;
 		}
