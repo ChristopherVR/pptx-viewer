@@ -12,7 +12,14 @@
  * @module utils/chart-xml-generator
  */
 
-import type { PptxChartData, PptxChartSeries, PptxChartType, XmlObject } from '../types';
+import type {
+	PptxChartAxisFormatting,
+	PptxChartData,
+	PptxChartSeries,
+	PptxChartType,
+	XmlObject,
+} from '../types';
+import { applyChartAxisDisplayUnitsToXml } from './chart-axis-dispunits-serializer';
 import { applyBubbleChartOptions } from './chart-bubble-options';
 import { applyChartDataLabelsToXml } from './chart-data-labels-serializer';
 import { applyChartDataTable } from './chart-data-table';
@@ -139,14 +146,35 @@ function buildSeries(
 	return ser;
 }
 
-function buildAxis(axId: number, crossId: number, pos: string): XmlObject {
-	return {
+function buildAxis(
+	axId: number,
+	crossId: number,
+	pos: string,
+	formatting?: PptxChartAxisFormatting,
+): XmlObject {
+	const axis: XmlObject = {
 		'c:axId': { '@_val': String(axId) },
 		'c:scaling': { 'c:orientation': { '@_val': 'minMax' } },
 		'c:delete': { '@_val': '0' },
 		'c:axPos': { '@_val': pos },
 		'c:crossAx': { '@_val': String(crossId) },
 	};
+	if (formatting?.displayUnits) {
+		applyChartAxisDisplayUnitsToXml(axis, formatting, (key) => key.replace(/^.*:/u, ''));
+	}
+	return axis;
+}
+
+function axisFormatting(
+	chartData: PptxChartData,
+	type: PptxChartAxisFormatting['axisType'],
+	id: number,
+	index = 0,
+): PptxChartAxisFormatting | undefined {
+	return (
+		chartData.axes?.find((axis) => axis.axisId === id) ??
+		chartData.axes?.filter((axis) => axis.axisType === type)[index]
+	);
 }
 
 /** Build the chart-type container (e.g. `c:barChart`) with its series. */
@@ -203,13 +231,23 @@ function buildPlotArea(chartData: PptxChartData, tag: string, family: string): X
 	if (family !== 'pie' && family !== 'doughnut' && SCATTER_LIKE.has(chartData.chartType)) {
 		// Scatter/bubble use two value axes (emitted as a `c:valAx` array).
 		plotArea['c:valAx'] = [
-			buildAxis(CAT_AX_ID, VAL_AX_ID, 'b'),
-			buildAxis(VAL_AX_ID, CAT_AX_ID, 'l'),
+			buildAxis(CAT_AX_ID, VAL_AX_ID, 'b', axisFormatting(chartData, 'valAx', CAT_AX_ID, 0)),
+			buildAxis(VAL_AX_ID, CAT_AX_ID, 'l', axisFormatting(chartData, 'valAx', VAL_AX_ID, 1)),
 		];
 	} else if (family !== 'pie' && family !== 'doughnut') {
 		// Cartesian charts use a category axis crossed by a value axis.
-		plotArea['c:catAx'] = buildAxis(CAT_AX_ID, VAL_AX_ID, 'b');
-		plotArea['c:valAx'] = buildAxis(VAL_AX_ID, CAT_AX_ID, 'l');
+		plotArea['c:catAx'] = buildAxis(
+			CAT_AX_ID,
+			VAL_AX_ID,
+			'b',
+			axisFormatting(chartData, 'catAx', CAT_AX_ID),
+		);
+		plotArea['c:valAx'] = buildAxis(
+			VAL_AX_ID,
+			CAT_AX_ID,
+			'l',
+			axisFormatting(chartData, 'valAx', VAL_AX_ID),
+		);
 	}
 	applyChartDataTable(plotArea, chartData.dataTable, (key) => key.replace(/^.*:/u, ''));
 	return plotArea;

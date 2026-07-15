@@ -356,6 +356,8 @@ export interface ChartAxisEdit {
 	displayUnits?: PptxChartAxisFormatting['displayUnits'] | null;
 	/** Custom display-unit divisor (used when `displayUnits` is `'custom'`). */
 	displayUnitsValue?: number | null;
+	/** Display-unit label text/layout/shape options. `null` removes the label. */
+	displayUnitsLabel?: PptxChartAxisFormatting['displayUnitsLabel'];
 }
 
 /**
@@ -421,6 +423,9 @@ export function setChartAxis(
 	}
 	if (edit.displayUnitsValue !== undefined) {
 		axis.displayUnitsValue = edit.displayUnitsValue ?? undefined;
+	}
+	if (edit.displayUnitsLabel !== undefined) {
+		axis.displayUnitsLabel = edit.displayUnitsLabel;
 	}
 }
 

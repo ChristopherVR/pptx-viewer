@@ -259,6 +259,16 @@ export interface PptxChartAxisNumFmt {
 	sourceLinked?: boolean;
 }
 
+/** Typed contents of a value-axis display-unit label (`c:dispUnitsLbl`). */
+export interface PptxChartDisplayUnitsLabel {
+	/** Literal label text. Omit to preserve the source text subtree. */
+	text?: string;
+	/** Manual label placement. `null` removes only the manual layout. */
+	layout?: PptxChartManualLayout | null;
+	/** Label shape formatting. `null` removes `c:spPr`. */
+	spPr?: PptxChartShapeProps | null;
+}
+
 /** Axis formatting for category, value, or date axes. */
 export interface PptxChartAxisFormatting {
 	axisType: 'catAx' | 'valAx' | 'dateAx' | 'serAx';
@@ -304,8 +314,12 @@ export interface PptxChartAxisFormatting {
 		| 'custom';
 	/** Custom display unit divisor value (c:dispUnits/c:custUnit/@val). Only used when displayUnits is 'custom'. */
 	displayUnitsValue?: number;
-	/** Display units label text (c:dispUnits/c:dispUnitsLbl). Overrides the built-in default label when present. */
-	displayUnitsLabel?: string;
+	/**
+	 * Display-unit label contents (`c:dispUnits/c:dispUnitsLbl`). A string is
+	 * retained as a compatibility shorthand for `{ text: string }`; `null`
+	 * explicitly removes the label.
+	 */
+	displayUnitsLabel?: string | PptxChartDisplayUnitsLabel | null;
 	/** Whether logarithmic scaling is enabled (presence of c:scaling/c:logBase). */
 	logScale?: boolean;
 	/** Logarithmic base value (c:scaling/c:logBase/@val), typically 10 or e. */

@@ -888,6 +888,21 @@ describe('setChartAxis', () => {
 		expect(el.chartData?.axes?.find((a) => a.axisType === 'valAx')?.displayUnits).toBeUndefined();
 	});
 
+	it('sets typed display-unit label contents', () => {
+		const el = makeTestChart();
+		setChartAxis(el, 'valAx', {
+			displayUnits: 'millions',
+			displayUnitsLabel: { text: 'M', layout: { x: 0.2 }, spPr: { fillColor: '#123456' } },
+		});
+		expect(
+			el.chartData?.axes?.find((a) => a.axisType === 'valAx')?.displayUnitsLabel,
+		).toStrictEqual({
+			text: 'M',
+			layout: { x: 0.2 },
+			spPr: { fillColor: '#123456' },
+		});
+	});
+
 	it('leaves unspecified fields unchanged', () => {
 		const el = makeTestChart();
 		el.chartData!.axes = [{ axisType: 'valAx', min: 1, max: 9, majorUnit: 2 }];

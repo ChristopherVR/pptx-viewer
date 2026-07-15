@@ -71,6 +71,30 @@ describe('buildChartSpaceXml', () => {
 		expect(pa['c:valAx']).toBeDefined();
 	});
 
+	it('generates typed display units and label formatting on the value axis', () => {
+		const pa = plotArea(
+			buildChartSpaceXml(
+				makeData({
+					axes: [
+						{
+							axisType: 'valAx',
+							displayUnits: 'millions',
+							displayUnitsLabel: { text: 'M', layout: { x: 0.15 } },
+						},
+					],
+				}),
+			),
+		);
+		const units = (pa['c:valAx'] as XmlObject)['c:dispUnits'] as XmlObject;
+		expect(units['c:builtInUnit']).toStrictEqual({ '@_val': 'millions' });
+		const label = units['c:dispUnitsLbl'] as XmlObject;
+		expect(
+			(((label['c:layout'] as XmlObject)['c:manualLayout'] as XmlObject)['c:x'] as XmlObject)[
+				'@_val'
+			],
+		).toBe('0.15');
+	});
+
 	it('generates a typed data table after axes in CT_PlotArea schema order', () => {
 		const pa = plotArea(
 			buildChartSpaceXml(

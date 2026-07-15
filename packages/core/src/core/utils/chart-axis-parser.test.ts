@@ -220,6 +220,43 @@ describe('parseChartAxes', () => {
 		expect(valAx.logScale).toBeUndefined();
 		expect(valAx.logBase).toBeUndefined();
 	});
+
+	it('parses display-unit label text, manual layout, and shape properties', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:dispUnits': {
+					'c:custUnit': { '@_val': '2500' },
+					'c:dispUnitsLbl': {
+						'c:layout': { 'c:manualLayout': { 'c:x': { '@_val': '0.25' } } },
+						'c:tx': { 'c:rich': { 'a:p': { 'a:r': { 'a:t': 'K' } } } },
+						'c:spPr': { 'a:solidFill': { 'a:srgbClr': { '@_val': '112233' } } },
+					},
+				},
+			},
+		};
+		const axis = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName)[0];
+		expect(axis.displayUnits).toBe('custom');
+		expect(axis.displayUnitsValue).toBe(2500);
+		expect(axis.displayUnitsLabel).toStrictEqual({
+			text: 'K',
+			layout: { x: 0.25 },
+			spPr: { fillColor: '#112233' },
+		});
+	});
+
+	it('ignores invalid display-unit choices and custom values', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:dispUnits': {
+					'c:builtInUnit': { '@_val': 'quadrillions' },
+					'c:custUnit': { '@_val': 'NaN' },
+				},
+			},
+		};
+		expect(
+			parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName)[0].displayUnits,
+		).toBeUndefined();
+	});
 });
 
 describe('parseChart3DSurfaces', () => {
