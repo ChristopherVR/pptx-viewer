@@ -122,6 +122,17 @@ const strokes = computed<InkStroke[]>(() => {
 const replayStyles = computed(() =>
 	props.replay && ink.value ? getInkReplayStyles(ink.value) : [],
 );
+function replayStyle(index: number): CSSProperties | undefined {
+	const replay = replayStyles.value[index];
+	return replay
+		? {
+				animation: replay.animation,
+				strokeDasharray: replay.strokeDasharray,
+				strokeDashoffset: replay.strokeDashoffset,
+				'--ink-path-length': String(replay.pathLength),
+			}
+		: undefined;
+}
 
 const strokeKey = (i: number): string => `${props.element.id}-ink-${i}`;
 </script>
@@ -158,7 +169,7 @@ const strokeKey = (i: number): string => `${props.element.id}-ink-${i}`;
 					stroke-linecap="round"
 					stroke-linejoin="round"
 					vector-effect="non-scaling-stroke"
-					:style="replayStyles[i]"
+					:style="replayStyle(i)"
 				/>
 			</template>
 		</svg>
