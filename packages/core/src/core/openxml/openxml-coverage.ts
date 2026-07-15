@@ -2,6 +2,7 @@ import { OPENXML_WAVE5_COVERAGE_OVERRIDES } from './openxml-coverage-wave5';
 import { OPENXML_WAVE6_COVERAGE_OVERRIDES } from './openxml-coverage-wave6';
 import { OPENXML_WAVE7_COVERAGE_OVERRIDES } from './openxml-coverage-wave7';
 import { OPENXML_WAVE8_COVERAGE_OVERRIDES } from './openxml-coverage-wave8';
+import { OPENXML_WAVE9_COVERAGE_OVERRIDES } from './openxml-coverage-wave9';
 import {
 	OPENXML_SCHEMA_CONSTRUCT_IDS,
 	OPENXML_STRICT_SCHEMA_CONSTRUCT_IDS,
@@ -55,6 +56,7 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 	...OPENXML_WAVE6_COVERAGE_OVERRIDES,
 	...OPENXML_WAVE7_COVERAGE_OVERRIDES,
 	...OPENXML_WAVE8_COVERAGE_OVERRIDES,
+	...OPENXML_WAVE9_COVERAGE_OVERRIDES,
 	'chart:complexType:CT_ManualLayout': {
 		parse: 'native',
 		preserve: 'native',
