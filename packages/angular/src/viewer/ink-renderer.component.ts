@@ -1,6 +1,8 @@
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
+import { isInkElement } from 'pptx-viewer-core';
+import { getInkReplayStyles, INK_REPLAY_KEYFRAMES } from 'pptx-viewer-shared';
 
 import type { StyleMap } from './element-style';
 import { buildInkContainerStyle, buildInkStrokes, inkViewBox } from './ink-renderer-helpers';
@@ -21,8 +23,9 @@ import type { InkStroke } from './ink-renderer-helpers';
  * radii follow the per-point pressure, matching React's `renderInk`. Strokes
  * without pressure variation degrade to a plain constant-width `<path>`.
  *
- * Not ported (TODO): ink replay animation and the
- * highlighter/eraser tool blend modes.
+ * Presentation mode progressively replays constant-width paths using the
+ * shared dash-offset timing model. Pressure circles remain static because SVG
+ * dash replay only applies to paths.
  *
  * All non-trivial pure computation lives in `ink-renderer-helpers.ts` (no
  * Angular dependency) so it can be unit-tested without TestBed.
@@ -45,6 +48,9 @@ import type { InkStroke } from './ink-renderer-helpers';
 					preserveAspectRatio="none"
 					style="width:100%;height:100%;pointer-events:none;display:block"
 				>
+					@if (replay()) {
+						<style [textContent]="replayKeyframes"></style>
+					}
 					@for (stroke of strokes(); track $index) {
 						@if (stroke.circles && stroke.circles.length > 0) {
 							<g [attr.opacity]="stroke.opacity">
@@ -67,6 +73,10 @@ import type { InkStroke } from './ink-renderer-helpers';
 								stroke-linecap="round"
 								stroke-linejoin="round"
 								vector-effect="non-scaling-stroke"
+								[style.animation]="replayStyles()[$index]?.animation ?? null"
+								[style.stroke-dasharray]="replayStyles()[$index]?.strokeDasharray ?? null"
+								[style.stroke-dashoffset]="replayStyles()[$index]?.strokeDashoffset ?? null"
+								[style.--ink-path-length]="replayStyles()[$index]?.pathLength ?? null"
 							/>
 						}
 					}
@@ -79,12 +89,18 @@ export class InkRendererComponent {
 	readonly element = input.required<PptxElement>();
 	readonly zIndex = input<number>(0);
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
+	readonly replay = input<boolean>(false);
+	readonly replayKeyframes = INK_REPLAY_KEYFRAMES;
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		buildInkContainerStyle(this.element(), this.zIndex()),
 	);
 
 	readonly strokes = computed<InkStroke[]>(() => buildInkStrokes(this.element()));
+	readonly replayStyles = computed(() => {
+		const element = this.element();
+		return this.replay() && isInkElement(element) ? getInkReplayStyles(element) : [];
+	});
 
 	readonly viewBox = computed<string>(() => inkViewBox(this.element()));
 }

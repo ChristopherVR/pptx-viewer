@@ -162,6 +162,7 @@ interface Paragraph {
 					[element]="element()"
 					[zIndex]="zIndex()"
 					[mediaDataUrls]="mediaDataUrls()"
+					[replay]="presenting()"
 				/>
 			}
 			@case (element().type === 'zoom') {
