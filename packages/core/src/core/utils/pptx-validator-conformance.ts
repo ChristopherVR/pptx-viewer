@@ -1,17 +1,15 @@
 import type JSZip from 'jszip';
 
+import {
+	directChildren,
+	ECMA_NAMESPACES as NS,
+	elementXml,
+	namespaces,
+	rootAttributes,
+	rootTag,
+} from './pptx-validator-conformance-xml';
 import { readZipText } from './pptx-validator-helpers';
 import type { ValidationConformance, ValidationIssue } from './pptx-validator-types';
-
-const NS = {
-	strictP: 'http://purl.oclc.org/ooxml/presentationml/main',
-	strictA: 'http://purl.oclc.org/ooxml/drawingml/main',
-	strictR: 'http://purl.oclc.org/ooxml/officeDocument/relationships',
-	transitionalP: 'http://schemas.openxmlformats.org/presentationml/2006/main',
-	transitionalA: 'http://schemas.openxmlformats.org/drawingml/2006/main',
-	transitionalR: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
-	mce: 'http://schemas.openxmlformats.org/markup-compatibility/2006',
-} as const;
 
 type Dialect = ValidationConformance['dialect'];
 
@@ -44,55 +42,6 @@ function issue(
 	severity: ValidationIssue['severity'] = 'error',
 ): void {
 	issues.push({ severity, code, message, path });
-}
-
-function rootTag(xml: string): string | undefined {
-	return xml.match(/<(?!\?|!)([\w.-]+:[\w.-]+|[\w.-]+)(?:\s|>)/)?.[1];
-}
-
-function rootAttributes(xml: string): string {
-	const tag = rootTag(xml);
-	if (!tag) {
-		return '';
-	}
-	return xml.match(new RegExp(`<${tag}\\b([^>]*)>`))?.[1] ?? '';
-}
-
-function namespaces(xml: string): Map<string, string> {
-	const result = new Map<string, string>();
-	for (const match of rootAttributes(xml).matchAll(
-		/xmlns(?::([\w.-]+))?\s*=\s*["']([^"']+)["']/g,
-	)) {
-		result.set(match[1] ?? '', match[2]);
-	}
-	return result;
-}
-
-function directChildren(xml: string): string[] {
-	const children: string[] = [];
-	const tags = [...xml.matchAll(/<\/?([\w.-]+:[\w.-]+|[\w.-]+)\b[^>]*>/g)];
-	let depth = 0;
-	for (const match of tags) {
-		const token = match[0];
-		const closing = token.startsWith('</');
-		const selfClosing = /\/\s*>$/.test(token);
-		if (closing) {
-			depth--;
-		} else {
-			if (depth === 1) {
-				children.push(match[1].split(':').pop()!);
-			}
-			if (!selfClosing) {
-				depth++;
-			}
-		}
-	}
-	return children;
-}
-
-function elementXml(xml: string, localName: string): string | undefined {
-	const match = xml.match(new RegExp(`<([\\w.-]+:)?${localName}\\b[\\s\\S]*?</\\1?${localName}>`));
-	return match?.[0];
 }
 
 function validateOrder(
@@ -151,7 +100,7 @@ function validatePresentation(xml: string, path: string, issues: ValidationIssue
 		return;
 	}
 	validateOrder(xml, PRESENTATION_ORDER, path, '<p:presentation>', issues);
-	for (const match of xml.matchAll(/<p:sldMasterId\b[^>]*\bid\s*=\s*["']([^"']+)["']/g)) {
+	for (const match of xml.matchAll(/<p:sldMasterId\b[^>]*\sid\s*=\s*["']([^"']+)["']/g)) {
 		const value = Number(match[1]);
 		if (!Number.isInteger(value) || value < 2147483648 || value > 4294967295) {
 			issue(
@@ -162,7 +111,7 @@ function validatePresentation(xml: string, path: string, issues: ValidationIssue
 			);
 		}
 	}
-	for (const match of xml.matchAll(/<p:sldId\b[^>]*\bid\s*=\s*["']([^"']+)["']/g)) {
+	for (const match of xml.matchAll(/<p:sldId\b[^>]*\sid\s*=\s*["']([^"']+)["']/g)) {
 		const value = Number(match[1]);
 		if (!Number.isInteger(value) || value < 256 || value > 2147483647) {
 			issue(
@@ -292,7 +241,7 @@ function validateMce(xml: string, path: string, issues: ValidationIssue[]): void
 	}
 }
 
-function dialectFor(xml: string): Exclude<Dialect, 'mixed'> {
+function dialectFor(xml: string): Dialect {
 	const values = new Set(namespaces(xml).values());
 	const strict = [NS.strictP, NS.strictA, NS.strictR].some((uri) => values.has(uri));
 	const transitional = [NS.transitionalP, NS.transitionalA, NS.transitionalR].some((uri) =>
@@ -304,6 +253,9 @@ function dialectFor(xml: string): Exclude<Dialect, 'mixed'> {
 	if (transitional && !strict) {
 		return 'transitional';
 	}
+	if (strict && transitional) {
+		return 'mixed';
+	}
 	return 'unknown';
 }
 
@@ -311,7 +263,7 @@ export async function validateEcmaRules(
 	zip: JSZip,
 	issues: ValidationIssue[],
 ): Promise<ValidationConformance> {
-	const dialects = new Set<Exclude<Dialect, 'mixed'>>();
+	const dialects = new Set<Dialect>();
 	const paths = Object.keys(zip.files).filter(
 		(path) => /^ppt\/.*\.xml$/.test(path) && !zip.files[path].dir,
 	);
@@ -333,7 +285,8 @@ export async function validateEcmaRules(
 			validateSlide(xml, path, issues);
 		}
 	}
-	const dialect: Dialect = dialects.size > 1 ? 'mixed' : ([...dialects][0] ?? 'unknown');
+	const dialect: Dialect =
+		dialects.has('mixed') || dialects.size > 1 ? 'mixed' : ([...dialects][0] ?? 'unknown');
 	if (dialect === 'mixed') {
 		issue(
 			issues,

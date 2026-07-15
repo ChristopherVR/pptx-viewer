@@ -470,7 +470,6 @@ describe('validatePptx', () => {
 	it('passes validation for a minimal valid PPTX', async () => {
 		const buf = await createValidPptx();
 		const result = await validatePptx(buf);
-		console.log('VALIDATOR_DEBUG', result.issues);
 		// Should have no errors (may have warnings/info)
 		const errors = result.issues.filter((i) => i.severity === 'error');
 		expect(errors).toHaveLength(0);

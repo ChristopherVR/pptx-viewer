@@ -21,6 +21,7 @@ import {
 import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
 import { applySeriesDataPointsToXml } from '../../utils/chart-datapoint-serializer';
 import { applySeriesErrBarsToXml } from '../../utils/chart-errbars-serializer';
+import { applyChartLayouts } from '../../utils/chart-layout';
 import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
 import { applySeriesMarkerToXml } from '../../utils/chart-marker-serializer';
 import { applySeriesDataLabelsToXml } from '../../utils/chart-series-datalabel-serializer';
@@ -516,6 +517,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// ── Legend round-trip (c:legend / c:legendPos) ────────────
 				if (chartData.style) {
 					applyChartLegendToXml(chartRoot, chartData.style, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
+				}
+
+				if (chartData.layouts) {
+					applyChartLayouts(chartRoot, chartData.layouts, (key) =>
 						this.compatibilityService.getXmlLocalName(key),
 					);
 				}

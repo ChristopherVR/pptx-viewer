@@ -13,6 +13,7 @@
  */
 
 import type { PptxChartData, PptxChartSeries, PptxChartType, XmlObject } from '../types';
+import { applyChartLayouts } from './chart-layout';
 
 const NS_C = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
 const NS_A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
@@ -226,6 +227,9 @@ export function buildChartSpaceXml(chartData: PptxChartData): XmlObject {
 	}
 	chart['c:plotVisOnly'] = { '@_val': '1' };
 	chart['c:dispBlanksAs'] = { '@_val': 'gap' };
+	if (chartData.layouts) {
+		applyChartLayouts(chart, chartData.layouts, (key) => key.replace(/^.*:/u, ''));
+	}
 
 	return {
 		'c:chartSpace': {

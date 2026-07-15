@@ -25,6 +25,7 @@ import {
 import { parseChartAxes, parseChart3DSurfaces } from '../../utils/chart-axis-parser';
 import { chartContainerLocalNameToType } from '../../utils/chart-container-type-map';
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
+import { parseChartLayouts } from '../../utils/chart-layout';
 import {
 	parseSeriesDataPoints,
 	parseSeriesDataLabels,
@@ -205,6 +206,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Parse view3D, top-level chrome flags, and raw preservation blobs.
 		const view3D = this.parseView3D(chartRoot);
 		const chartChrome = this.parseChartChrome(chartRoot);
+		const layouts = parseChartLayouts(chartRoot, (key) =>
+			this.compatibilityService.getXmlLocalName(key),
+		);
 		const userShapesXml = this.parseUserShapesXml(chartSpace);
 		const pivotFmtsXml = this.parsePivotFmtsXml(chartRoot);
 		const clrMapOvr = this.parseClrMapOvr(chartSpace);
@@ -234,6 +238,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(ofPieOptions ? { ofPieOptions } : {}),
 			...(view3D ? { view3D } : {}),
 			...(chartChrome ? { chartChrome } : {}),
+			...(layouts ? { layouts } : {}),
 			...(userShapesXml ? { userShapesXml } : {}),
 			...(pivotFmtsXml ? { pivotFmtsXml } : {}),
 			...(clrMapOvr ? { clrMapOvr } : {}),
@@ -429,6 +434,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Parse view3D, top-level chrome flags, and raw preservation blobs.
 		const view3D = this.parseView3D(chartRoot);
 		const chartChrome = this.parseChartChrome(chartRoot);
+		const layouts = parseChartLayouts(chartRoot, (key) =>
+			this.compatibilityService.getXmlLocalName(key),
+		);
 		const userShapesXml = this.parseUserShapesXml(chartSpace);
 		const pivotFmtsXml = this.parsePivotFmtsXml(chartRoot);
 		const clrMapOvr = this.parseClrMapOvr(chartSpace);
@@ -449,6 +457,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(chartColorStyle?.method ? { colorMethod: chartColorStyle.method } : {}),
 			...(view3D ? { view3D } : {}),
 			...(chartChrome ? { chartChrome } : {}),
+			...(layouts ? { layouts } : {}),
 			...(userShapesXml ? { userShapesXml } : {}),
 			...(pivotFmtsXml ? { pivotFmtsXml } : {}),
 			...(clrMapOvr ? { clrMapOvr } : {}),

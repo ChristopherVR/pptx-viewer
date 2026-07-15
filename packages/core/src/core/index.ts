@@ -21,3 +21,4 @@ export * from './builders';
 export * from './core';
 export * from './services';
 export * from './utils';
+export * from './openxml';

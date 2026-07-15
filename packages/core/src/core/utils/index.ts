@@ -412,3 +412,10 @@ export {
 	xmlPath,
 	isXmlNode,
 } from './xml-access';
+
+export {
+	parseChartManualLayout,
+	parseChartLayouts,
+	applyChartManualLayout,
+	applyChartLayouts,
+} from './chart-layout';

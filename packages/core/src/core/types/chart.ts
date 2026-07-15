@@ -476,6 +476,29 @@ export interface PptxChartChrome {
 	showDLblsOverMax?: boolean;
 }
 
+/** Manual chart placement from `c:layout/c:manualLayout` (CT_ManualLayout). */
+export interface PptxChartManualLayout {
+	layoutTarget?: 'inner' | 'outer';
+	xMode?: 'edge' | 'factor';
+	yMode?: 'edge' | 'factor';
+	widthMode?: 'edge' | 'factor';
+	heightMode?: 'edge' | 'factor';
+	x?: number;
+	y?: number;
+	width?: number;
+	height?: number;
+}
+
+/**
+ * Typed manual layouts for chart regions that accept `c:layout`.
+ * A `null` region removes its manual layout without removing extensions.
+ */
+export interface PptxChartLayouts {
+	title?: PptxChartManualLayout | null;
+	plotArea?: PptxChartManualLayout | null;
+	legend?: PptxChartManualLayout | null;
+}
+
 /** Parsed data extracted from an embedded xlsx workbook. */
 export interface PptxEmbeddedWorkbookData {
 	/** Category labels from the first column/row. */
@@ -597,6 +620,8 @@ export interface PptxChartData {
 	 * source data, so absence does not produce empty `<c:…/>` placeholders.
 	 */
 	chartChrome?: PptxChartChrome;
+	/** Editable manual placement for the title, plot area, and legend. */
+	layouts?: PptxChartLayouts;
 
 	/**
 	 * Raw `c:userShapes` XML subtree (a drawing tree) preserved verbatim.

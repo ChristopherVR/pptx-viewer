@@ -9,125 +9,22 @@
  */
 
 import type { XmlObject } from '../types';
+import {
+	areNamespacesSupported,
+	getSupportedNamespaces,
+	isAlternateContentChoiceSupported,
+	isAlternateContentChoiceXmlSupported,
+	isNamespaceSupported,
+} from './mc-capabilities';
 import { VML_SHAPE_TAGS } from './vml-parser';
 
-/**
- * Extension elements for which core has an explicit parser or typed
- * preservation path. A namespace is not treated as supported merely because
- * its prefix is known. Part 3 requires a consumer to understand the markup in
- * the selected Choice, so unlisted extension elements select the Fallback.
- */
-const MC_NAMESPACE_CAPABILITIES: Readonly<Record<string, ReadonlySet<string>>> = {
-	p14: new Set([
-		'transition',
-		'conveyor',
-		'pan',
-		'glitter',
-		'prism',
-		'vortex',
-		'switch',
-		'flip',
-		'gallery',
-		'honeycomb',
-		'flash',
-		'shred',
-		'warp',
-		'flythrough',
-		'doors',
-		'window',
-		'ferris',
-		'newsflash',
-		'wheelReverse',
-		'rotate',
-		'orbit',
-		'cube',
-		'media',
-		'trim',
-		'fade',
-		'bmkLst',
-		'bmk',
-		'hiddenFill',
-		'hiddenLine',
-	]),
-	a14: new Set(['m', 'hiddenFill', 'hiddenLine', 'imgEffect', 'imgLayer']),
-	a16: new Set(['svgBlip', 'colId']),
-	asvg: new Set(['svgBlip']),
-	aink: new Set(['ink', 'inkBrush', 'trace']),
-	p16: new Set(['model3D', 'spPr', 'model3Drel', 'posterImage']),
-	cx: new Set(['chart', 'plotArea', 'plotAreaRegion', 'series', 'data', 'numDim', 'strDim']),
+export {
+	areNamespacesSupported,
+	getSupportedNamespaces,
+	isAlternateContentChoiceSupported,
+	isAlternateContentChoiceXmlSupported,
+	isNamespaceSupported,
 };
-
-const SUPPORTED_MC_NAMESPACES = new Set(Object.keys(MC_NAMESPACE_CAPABILITIES));
-
-/**
- * Check whether a set of required namespace prefixes are all supported.
- */
-export function areNamespacesSupported(requires: string): boolean {
-	if (!requires || requires.trim().length === 0) {
-		return true;
-	}
-	const namespaces = requires.trim().split(/\s+/);
-	return namespaces.every((ns) => SUPPORTED_MC_NAMESPACES.has(ns));
-}
-
-/**
- * Check the actual Choice payload against the declared namespace capabilities.
- * Standard PresentationML/DrawingML children are accepted; every element using
- * a required extension prefix must be explicitly implemented above.
- */
-export function isAlternateContentChoiceSupported(choice: XmlObject): boolean {
-	const requires = String(choice?.['@_Requires'] ?? '').trim();
-	if (!areNamespacesSupported(requires)) {
-		return false;
-	}
-	const required = new Set(requires.split(/\s+/).filter(Boolean));
-	return hasOnlySupportedExtensionElements(choice, required);
-}
-
-/** Same capability check for the raw XML scanner used to preserve shape order. */
-export function isAlternateContentChoiceXmlSupported(requires: string, branchXml: string): boolean {
-	if (!areNamespacesSupported(requires)) {
-		return false;
-	}
-	const required = new Set(requires.trim().split(/\s+/).filter(Boolean));
-	const tagPattern = /<(?!\/|\?|!)([A-Za-z_][\w.-]*):([A-Za-z_][\w.-]*)\b/g;
-	let match: RegExpExecArray | null;
-	while ((match = tagPattern.exec(branchXml)) !== null) {
-		if (required.has(match[1]) && !isExtensionElementSupported(match[1], match[2])) {
-			return false;
-		}
-	}
-	return true;
-}
-
-function hasOnlySupportedExtensionElements(node: unknown, required: ReadonlySet<string>): boolean {
-	if (!node || typeof node !== 'object') {
-		return true;
-	}
-	if (Array.isArray(node)) {
-		return node.every((item) => hasOnlySupportedExtensionElements(item, required));
-	}
-	for (const [key, value] of Object.entries(node as XmlObject)) {
-		if (!key.startsWith('@_')) {
-			const separator = key.indexOf(':');
-			if (separator > 0) {
-				const prefix = key.slice(0, separator);
-				const localName = key.slice(separator + 1);
-				if (required.has(prefix) && !isExtensionElementSupported(prefix, localName)) {
-					return false;
-				}
-			}
-		}
-		if (!hasOnlySupportedExtensionElements(value, required)) {
-			return false;
-		}
-	}
-	return true;
-}
-
-function isExtensionElementSupported(prefix: string, localName: string): boolean {
-	return MC_NAMESPACE_CAPABILITIES[prefix]?.has(localName) ?? false;
-}
 
 /**
  * Select the appropriate branch from a parsed mc:AlternateContent element.
@@ -223,9 +120,9 @@ export const SHAPE_TREE_ELEMENT_TAGS = new Set([
  * produced it (containing one or more `mc:Choice` children plus an
  * optional `mc:Fallback`).  `selectedBranch` indicates which branch was
  * merged into the spTree at parse time.  `choiceIndex` (when branch is
- * `choice`) identifies which `mc:Choice` was selected — needed for
+ * `choice`) identifies which `mc:Choice` was selected - needed for
  * AC blocks containing multiple Choices.  `childRefs` holds the actual
- * XmlObject references that were appended to the parent container —
+ * XmlObject references that were appended to the parent container -
  * used by the save layer to associate parsed elements with this block.
  */
 export interface AlternateContentBlock {
@@ -271,8 +168,8 @@ function diagnoseSelection(
  * consumed, and their resolved element children (p:sp, p:pic, etc.) are
  * appended to the corresponding arrays on the container.
  *
- * Returns a list of `AlternateContentBlock` records — one per consumed AC
- * envelope — so callers can preserve the original Choice/Fallback shape
+ * Returns a list of `AlternateContentBlock` records - one per consumed AC
+ * envelope - so callers can preserve the original Choice/Fallback shape
  * on save (CC-4).  The returned `childRefs` reference the same XmlObject
  * instances that were merged into the container, so callers can identify
  * them later via reference equality.
@@ -315,20 +212,6 @@ export function unwrapAlternateContent(
 	// scanning doesn't double-process them.
 	delete container['mc:AlternateContent'];
 	return blocks;
-}
-
-/**
- * Check whether a namespace prefix is in the supported set.
- */
-export function isNamespaceSupported(ns: string): boolean {
-	return SUPPORTED_MC_NAMESPACES.has(ns);
-}
-
-/**
- * Get a copy of the full set of supported namespace prefixes.
- */
-export function getSupportedNamespaces(): ReadonlySet<string> {
-	return SUPPORTED_MC_NAMESPACES;
 }
 
 // ---------------------------------------------------------------------------
