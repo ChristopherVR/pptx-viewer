@@ -2,10 +2,13 @@ import type { ContentPartInkStroke } from 'pptx-viewer-core';
 import {
 	extractPathPoints,
 	generatePressureCircles,
+	getContentPartReplayStyles,
 	getContainerStyle,
 	hasPressureVariation,
+	INK_REPLAY_KEYFRAMES,
 	pressuresToWidths,
 } from 'pptx-viewer-shared';
+import type { InkStrokeAnimationStyle } from 'pptx-viewer-shared';
 
 import { createEl, createSvgEl } from '../dom';
 import type { ElementRenderer } from '../types';
@@ -24,9 +27,8 @@ import type { ElementRenderer } from '../types';
  * - No strokes: a typed fallback box labelled "Content Part", matching the
  *   other bindings' fallback (Vue has no dedicated contentPart renderer and
  *   falls through to its fallback label too).
- *
- * Not ported (same gap as the `ink` renderer): the ink replay animation,
- * which only runs in presentation mode.
+ * - Presentation mode progressively replays constant-width paths using the
+ *   shared dash-offset timing model.
  */
 export const renderContentPartElement: ElementRenderer = (element, zIndex, context) => {
 	if (element.type !== 'contentPart') {
@@ -59,9 +61,15 @@ export const renderContentPartElement: ElementRenderer = (element, zIndex, conte
 	});
 	svg.setAttribute('class', 'pptxv-contentpart-svg');
 	svg.setAttribute('style', 'width:100%;height:100%;pointer-events:none;display:block');
+	const replayStyles = context.presenting ? getContentPartReplayStyles(strokes) : [];
+	if (context.presenting) {
+		const keyframes = createSvgEl(doc, 'style');
+		keyframes.textContent = INK_REPLAY_KEYFRAMES;
+		svg.appendChild(keyframes);
+	}
 
-	for (const stroke of strokes) {
-		svg.appendChild(buildStroke(doc, stroke));
+	for (const [index, stroke] of strokes.entries()) {
+		svg.appendChild(buildStroke(doc, stroke, replayStyles[index]));
 	}
 
 	el.appendChild(svg);
@@ -73,7 +81,11 @@ export const renderContentPartElement: ElementRenderer = (element, zIndex, conte
  * per-point pressure data, a plain constant-width path otherwise. Mirrors
  * React's `renderPressureStroke` config exactly.
  */
-function buildStroke(doc: Document, stroke: ContentPartInkStroke): SVGElement {
+function buildStroke(
+	doc: Document,
+	stroke: ContentPartInkStroke,
+	replay: InkStrokeAnimationStyle | undefined,
+): SVGElement {
 	const pressures = stroke.pressures;
 	if (pressures && pressures.length > 1 && hasPressureVariation(pressures)) {
 		const pointWidths = pressuresToWidths(pressures, stroke.width);
@@ -89,7 +101,7 @@ function buildStroke(doc: Document, stroke: ContentPartInkStroke): SVGElement {
 		return g;
 	}
 
-	return createSvgEl(doc, 'path', {
+	const path = createSvgEl(doc, 'path', {
 		d: stroke.path,
 		fill: 'none',
 		stroke: stroke.color,
@@ -98,5 +110,12 @@ function buildStroke(doc: Document, stroke: ContentPartInkStroke): SVGElement {
 		'stroke-linecap': 'round',
 		'stroke-linejoin': 'round',
 		'vector-effect': 'non-scaling-stroke',
+		'stroke-dasharray': replay?.strokeDasharray,
+		'stroke-dashoffset': replay?.strokeDashoffset,
 	});
+	if (replay) {
+		path.style.animation = replay.animation;
+		path.style.setProperty('--ink-path-length', String(replay.pathLength));
+	}
+	return path;
 }

@@ -6,7 +6,7 @@ import { createElementRendererRegistry } from '../registry';
 import type { ElementRenderContext } from '../types';
 import { renderContentPartElement } from './contentpart';
 
-function makeContext(): ElementRenderContext {
+function makeContext(presenting = false): ElementRenderContext {
 	const registry = createElementRendererRegistry();
 	const context: ElementRenderContext = {
 		document,
@@ -16,7 +16,7 @@ function makeContext(): ElementRenderContext {
 		mediaDataUrls: new Map<string, string>(),
 		t: createTranslator(),
 		smartArt3D: false,
-		presenting: false,
+		presenting,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),
 	};
@@ -121,5 +121,24 @@ describe('renderContentPartElement', () => {
 		expect(node.querySelector('svg')).toBeNull();
 		expect(node.classList.contains('pptxv-placeholder')).toBeTruthy();
 		expect(node.textContent).toContain('Content Part');
+	});
+
+	it('replays constant-width strokes sequentially while presenting', () => {
+		const node = renderContentPartElement(
+			contentPartElement({
+				inkStrokes: [
+					{ path: 'M 0 0 L 10 10', color: '#ff0000', width: 2, opacity: 1 },
+					{ path: 'M 10 10 L 20 20', color: '#0000ff', width: 2, opacity: 1 },
+				],
+			}),
+			0,
+			makeContext(true),
+		) as HTMLElement;
+		const paths = node.querySelectorAll<SVGPathElement>('path');
+
+		expect(node.querySelector('style')?.textContent).toContain('@keyframes pptx-ink-replay');
+		expect(paths[0].style.animation).toContain('pptx-ink-replay');
+		expect(paths[0].getAttribute('stroke-dasharray')).toBeTruthy();
+		expect(paths[1].style.animation).toContain('800ms');
 	});
 });
