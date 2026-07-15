@@ -20,6 +20,7 @@ import type {
 	XmlObject,
 } from '../types';
 import { applyChartAxisDisplayUnitsToXml } from './chart-axis-dispunits-serializer';
+import { applyChartAxisLabelFormatting } from './chart-axis-label-formatting';
 import { applyBubbleChartOptions } from './chart-bubble-options';
 import { applyChartDataLabelsToXml } from './chart-data-labels-serializer';
 import { applyChartDataTable } from './chart-data-table';
@@ -159,6 +160,9 @@ function buildAxis(
 		'c:axPos': { '@_val': pos },
 		'c:crossAx': { '@_val': String(crossId) },
 	};
+	if (formatting) {
+		applyChartAxisLabelFormatting(axis, formatting, (key) => key.replace(/^.*:/u, ''));
+	}
 	if (formatting?.displayUnits) {
 		applyChartAxisDisplayUnitsToXml(axis, formatting, (key) => key.replace(/^.*:/u, ''));
 	}

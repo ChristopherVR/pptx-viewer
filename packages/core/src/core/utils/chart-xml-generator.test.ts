@@ -95,6 +95,34 @@ describe('buildChartSpaceXml', () => {
 		).toBe('0.15');
 	});
 
+	it('generates typed tick marks and category-axis label controls in schema order', () => {
+		const pa = plotArea(
+			buildChartSpaceXml(
+				makeData({
+					axes: [
+						{
+							axisType: 'catAx',
+							majorTickMark: 'out',
+							minorTickMark: 'in',
+							tickLblPos: 'low',
+							auto: false,
+							labelAlignment: 'r',
+							labelOffset: 175,
+							noMultiLevelLabels: true,
+						},
+					],
+				}),
+			),
+		);
+		const axis = pa['c:catAx'] as XmlObject;
+		expect(axis['c:majorTickMark']).toStrictEqual({ '@_val': 'out' });
+		expect(axis['c:lblOffset']).toStrictEqual({ '@_val': '175%' });
+		expect(axis['c:noMultiLvlLbl']).toStrictEqual({ '@_val': '1' });
+		const names = Object.keys(axis).map((key) => key.replace(/^.*:/u, ''));
+		expect(names.indexOf('majorTickMark')).toBeLessThan(names.indexOf('crossAx'));
+		expect(names.indexOf('auto')).toBeGreaterThan(names.indexOf('crossAx'));
+	});
+
 	it('generates a typed data table after axes in CT_PlotArea schema order', () => {
 		const pa = plotArea(
 			buildChartSpaceXml(

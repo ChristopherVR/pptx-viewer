@@ -1,5 +1,6 @@
 import type { PptxChartAxisFormatting, PptxChart3DSurface, XmlObject } from '../types';
 import { parseChartAxisDisplayUnits } from './chart-axis-dispunits-serializer';
+import { parseChartAxisLabelFormatting } from './chart-axis-label-formatting';
 import { parseShapeProps } from './chart-series-detail-parser';
 
 interface XmlLookupLike {
@@ -129,6 +130,7 @@ function parseSingleAxis(
 
 	// Font properties from txPr
 	parseTxPr(xmlLookup.getChildByLocalName(axisNode, 'txPr'), xmlLookup, colorParser, result);
+	Object.assign(result, parseChartAxisLabelFormatting(axisNode, axisType, getLocalName));
 
 	// Axis ID and cross-axis ID
 	const axIdNode = xmlLookup.getChildByLocalName(axisNode, 'axId');
@@ -223,15 +225,6 @@ function parseSingleAxis(
 		const minorVal = parseFloat(String(minorUnitNode['@_val']));
 		if (Number.isFinite(minorVal)) {
 			result.minorUnit = minorVal;
-		}
-	}
-
-	// Tick label position (c:tickLblPos/@val)
-	const tickLblPosNode = xmlLookup.getChildByLocalName(axisNode, 'tickLblPos');
-	if (tickLblPosNode) {
-		const v = String(tickLblPosNode['@_val'] || '').trim();
-		if (v === 'high' || v === 'low' || v === 'nextTo' || v === 'none') {
-			result.tickLblPos = v;
 		}
 	}
 

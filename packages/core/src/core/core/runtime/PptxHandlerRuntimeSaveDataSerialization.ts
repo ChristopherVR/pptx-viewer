@@ -9,6 +9,7 @@ import type {
 } from '../../types';
 import { applyChartAxisDisplayUnitsToXml } from '../../utils/chart-axis-dispunits-serializer';
 import { applyChartAxisGridlinesToXml } from '../../utils/chart-axis-gridlines-serializer';
+import { applyChartAxisLabelFormatting } from '../../utils/chart-axis-label-formatting';
 import { upsertChartAxisChild } from '../../utils/chart-axis-parser';
 import {
 	applyChartAxisTitleToXml,
@@ -648,17 +649,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 								matchingAxis.minorUnit !== undefined ? String(matchingAxis.minorUnit) : undefined,
 							);
 
-							// tickLblPos
-							if (matchingAxis.tickLblPos !== undefined) {
-								const tickLblKey = Object.keys(axisNode).find(
-									(k) => this.compatibilityService.getXmlLocalName(k) === 'tickLblPos',
-								);
-								if (tickLblKey) {
-									(axisNode[tickLblKey] as XmlObject)['@_val'] = matchingAxis.tickLblPos;
-								} else {
-									axisNode['c:tickLblPos'] = { '@_val': matchingAxis.tickLblPos };
-								}
-							}
+							applyChartAxisLabelFormatting(axisNode, matchingAxis, (key) =>
+								this.compatibilityService.getXmlLocalName(key),
+							);
 
 							// Axis title (undefined = no edit, '' = remove)
 							applyChartAxisTitleToXml(axisNode, matchingAxis.titleText, (key) =>

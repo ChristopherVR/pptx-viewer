@@ -5,6 +5,8 @@
  * @module pptx-types/chart
  */
 
+import type { PptxChartAxisLabelFormatting } from './chart-axis';
+
 // ==========================================================================
 // Chart types
 // ==========================================================================
@@ -270,7 +272,7 @@ export interface PptxChartDisplayUnitsLabel {
 }
 
 /** Axis formatting for category, value, or date axes. */
-export interface PptxChartAxisFormatting {
+export interface PptxChartAxisFormatting extends PptxChartAxisLabelFormatting {
 	axisType: 'catAx' | 'valAx' | 'dateAx' | 'serAx';
 	/** Axis position: "b" (bottom), "l" (left), "r" (right), "t" (top). */
 	axPos?: 'b' | 'l' | 'r' | 't';
@@ -328,8 +330,6 @@ export interface PptxChartAxisFormatting {
 	majorUnit?: number;
 	/** Minor-unit interval between secondary tick marks (c:minorUnit/@val). */
 	minorUnit?: number;
-	/** Tick-label position (c:tickLblPos/@val): 'high', 'low', 'nextTo', or 'none'. */
-	tickLblPos?: 'high' | 'low' | 'nextTo' | 'none';
 }
 
 /** 3D wall or floor element formatting. */
