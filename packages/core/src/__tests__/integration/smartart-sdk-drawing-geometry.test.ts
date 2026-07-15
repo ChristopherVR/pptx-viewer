@@ -120,7 +120,10 @@ describe('sDK-created SmartArt preserves per-node shape geometry on save', () =>
 		// Every cached shape targets a presentation point, not a semantic node.
 		for (const id of shapeModelIds) {
 			expect(dataXml, `data model missing presentation point ${id}`).toMatch(
-				new RegExp(`<dgm:pt modelId="${id.replace(/[{}]/gu, '\\$&')}" type="pres">`, 'u'),
+				new RegExp(
+					`<dgm:pt modelId="${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}" type="pres">`,
+					'u',
+				),
 			);
 		}
 		expect(dataXml.match(/presAssocID="\{/gu) ?? []).toHaveLength(3);
