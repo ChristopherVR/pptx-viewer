@@ -150,7 +150,7 @@
     },
     "packages/angular": {
       "name": "pptx-angular-viewer",
-      "version": "1.17.0",
+      "version": "1.17.1",
       "dependencies": {
         "@lucide/angular": "^1.23.0",
         "dompurify": "^3.4.12",
@@ -258,7 +258,7 @@
     },
     "packages/react": {
       "name": "pptx-react-viewer",
-      "version": "1.17.0",
+      "version": "1.17.1",
       "dependencies": {
         "clsx": "^2.1.1",
         "dompurify": "^3.4.12",
@@ -326,7 +326,7 @@
     },
     "packages/svelte": {
       "name": "pptx-svelte-viewer",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "dependencies": {
         "html2canvas-pro": "^2.2.3",
         "jspdf": "^4.2.1",
@@ -390,7 +390,7 @@
     },
     "packages/vanilla": {
       "name": "pptx-vanilla-viewer",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "dependencies": {
         "dompurify": "^3.4.12",
         "html2canvas-pro": "^2.2.3",
@@ -421,7 +421,7 @@
     },
     "packages/vue": {
       "name": "pptx-vue-viewer",
-      "version": "1.17.0",
+      "version": "1.17.1",
       "dependencies": {
         "clsx": "^2.1.1",
         "dompurify": "^3.4.12",

@@ -254,6 +254,7 @@ export const COMPLEX_SLIDE_FIELDS: Readonly<Record<string, string>> = {
 	customerData: '_cu',
 	activeXControls: '_ax',
 	backgroundPattern: '_bp',
+	modernCommentPart: '_mc',
 	headerFooterFlags: '_hff',
 	slideSynchronization: '_sync',
 };

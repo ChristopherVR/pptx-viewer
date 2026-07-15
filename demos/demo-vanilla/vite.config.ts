@@ -39,6 +39,7 @@ export default defineConfig({
 				replacement: pkg('core', 'src', 'converter', 'index.ts'),
 			},
 			{ find: 'pptx-viewer-core', replacement: pkg('core', 'src', 'index.ts') },
+			{ find: 'pptx-viewer-locales', replacement: pkg('locales', 'src', 'index.ts') },
 			{
 				find: 'pptx-viewer-shared/smartart-3d',
 				replacement: pkg('shared', 'src', 'smartart-3d', 'index.ts'),

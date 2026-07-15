@@ -2,8 +2,11 @@ import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { isInkElement } from 'pptx-viewer-core';
-import { getInkReplayStyles, INK_REPLAY_KEYFRAMES } from 'pptx-viewer-shared';
 
+import {
+	getInkReplayStyles,
+	INK_REPLAY_KEYFRAMES,
+} from '../internal/shared-src/render/ink-rendering';
 import type { StyleMap } from './element-style';
 import { buildInkContainerStyle, buildInkStrokes, inkViewBox } from './ink-renderer-helpers';
 import type { InkStroke } from './ink-renderer-helpers';

@@ -49,6 +49,7 @@ jobs:
         run: |
           bun run --filter 'pptx-viewer-core' build
           bun run --filter 'pptx-viewer-shared' build
+          bun run --filter 'pptx-viewer-locales' build
           bun run --filter 'pptx-viewer-mcp' build
 
       # Build each framework binding independently. A binding failure means its

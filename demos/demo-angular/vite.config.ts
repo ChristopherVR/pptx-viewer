@@ -41,6 +41,10 @@ export default defineConfig({
 				replacement: resolve(angularLibDist, 'pptx-angular-viewer.css'),
 			},
 			{ find: 'pptx-angular-viewer', replacement: angularLibDist },
+			{
+				find: 'pptx-viewer-locales',
+				replacement: resolve(__dirname, '../../packages/locales/src/index.ts'),
+			},
 		],
 	},
 	server: {
