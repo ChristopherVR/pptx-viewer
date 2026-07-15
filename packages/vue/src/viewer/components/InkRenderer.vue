@@ -11,7 +11,7 @@ import {
 } from 'pptx-viewer-shared';
 import type { PressureCircle } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
-import { computed } from 'vue';
+import { computed, watchEffect } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
 import { DEFAULT_STROKE_COLOR } from '../constants';
@@ -122,6 +122,16 @@ const strokes = computed<InkStroke[]>(() => {
 const replayStyles = computed(() =>
 	props.replay && ink.value ? getInkReplayStyles(ink.value) : [],
 );
+watchEffect((onCleanup) => {
+	if (!props.replay || typeof document === 'undefined') {
+		return;
+	}
+	const style = document.createElement('style');
+	style.dataset.pptxInkReplay = props.element.id;
+	style.textContent = INK_REPLAY_KEYFRAMES;
+	document.head.appendChild(style);
+	onCleanup(() => style.remove());
+});
 function replayStyle(index: number): CSSProperties | undefined {
 	const replay = replayStyles.value[index];
 	return replay
@@ -139,9 +149,6 @@ const strokeKey = (i: number): string => `${props.element.id}-ink-${i}`;
 
 <template>
 	<div class="pptx-vue-element pptx-vue-ink" :style="containerStyle" :data-element-id="element.id">
-		<style v-if="replay">
-			{{ INK_REPLAY_KEYFRAMES }}
-		</style>
 		<svg
 			v-if="strokes.length > 0"
 			class="pptx-vue-ink-svg"
