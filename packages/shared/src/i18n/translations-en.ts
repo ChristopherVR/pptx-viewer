@@ -173,7 +173,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.collaboration.status.connecting': 'Connecting...',
 	'pptx.collaboration.status.disconnected': 'Disconnected',
 	'pptx.collaboration.status.error': 'Connection error',
-	'pptx.collaboration.statusAriaLabel': 'Collaboration: {{status}}. {{count}} user(s) connected.',
+	'pptx.collaboration.statusAriaLabel': 'Collaboration: {{status}}',
 	'pptx.collaboration.userCount': '{{count}} user(s)',
 	'pptx.collaboration.youLabel': '{{name}} (you)',
 	'pptx.collaboration.usersConnected': '{{count}} user(s) connected',

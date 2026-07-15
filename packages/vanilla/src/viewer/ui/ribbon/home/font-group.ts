@@ -56,7 +56,7 @@ export function createFontGroup(
 	el.appendChild(label);
 
 	const fontFamily = makeDropdown(doc, {
-		triggerLabel: t('pptx.text.fontColor'),
+		triggerLabel: t('pptx.ribbon.fontFamily'),
 		triggerText: 'Segoe UI',
 		items: COMMON_FONT_FAMILIES.map((f) => ({ label: f, value: f, style: { fontFamily: f } })),
 		onSelect: handlers.setFontFamily,

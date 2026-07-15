@@ -37,9 +37,9 @@ export function createThumbnailRail(
 	t: Translator,
 	onSelect: (index: number) => void,
 ): ThumbnailRail {
-	const el = createEl(doc, 'div', 'pptxv-thumbs');
-	el.setAttribute('role', 'listbox');
-	el.setAttribute('aria-label', t('pptx.toolbar.toggleSlidesPanel'));
+	const el = createEl(doc, 'aside', 'pptxv-thumbs');
+	el.setAttribute('role', 'navigation');
+	el.setAttribute('aria-label', t('pptx.sections.slides'));
 	let buttons: HTMLButtonElement[] = [];
 	let activeIndex = 0;
 
@@ -52,8 +52,7 @@ export function createThumbnailRail(
 			slides.forEach((slide, index) => {
 				const btn = createEl(doc, 'button', 'pptxv-thumb');
 				btn.type = 'button';
-				btn.setAttribute('role', 'option');
-				btn.setAttribute('aria-label', `${index + 1}`);
+				btn.setAttribute('aria-label', t('pptx.slidesPanel.goToSlide', { n: index + 1 }));
 
 				const num = createEl(doc, 'span', 'pptxv-thumb-num');
 				num.textContent = String(index + 1);
@@ -77,7 +76,11 @@ export function createThumbnailRail(
 			activeIndex = index;
 			buttons.forEach((btn, i) => {
 				btn.classList.toggle('is-active', i === index);
-				btn.setAttribute('aria-selected', i === index ? 'true' : 'false');
+				if (i === index) {
+					btn.setAttribute('aria-current', 'page');
+				} else {
+					btn.removeAttribute('aria-current');
+				}
 			});
 			const active = buttons[index];
 			if (active && typeof active.scrollIntoView === 'function') {
@@ -103,12 +106,14 @@ export function createThumbnailRail(
 					`pptxv-thumb${layoutIndex === null ? '' : ' pptxv-master-layout'}`,
 				);
 				btn.type = 'button';
-				btn.setAttribute('role', 'option');
 				btn.setAttribute('aria-label', label);
 				btn.classList.toggle(
 					'is-active',
 					active.masterIndex === masterIndex && active.layoutIndex === layoutIndex,
 				);
+				if (active.masterIndex === masterIndex && active.layoutIndex === layoutIndex) {
+					btn.setAttribute('aria-current', 'page');
+				}
 				const name = createEl(doc, 'span', 'pptxv-thumb-num');
 				name.textContent = label;
 				const frame = createEl(doc, 'span', 'pptxv-thumb-frame', {

@@ -85,13 +85,10 @@ async function openFixture(page: Page): Promise<void> {
 	await elementByText(page, MASTER_SHAPE_TEXT).waitFor();
 }
 
-/** Ribbon navigation is exposed as tabs by Vanilla and buttons elsewhere. */
+/** Locate a ribbon tab through the shared tablist contract. */
 function ribbonTab(page: Page, name: string): Locator {
 	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-	return toolbar
-		.getByRole('tab', { name, exact: true })
-		.or(toolbar.getByRole('button', { name, exact: true }))
-		.first();
+	return toolbar.getByRole('tab', { name, exact: true });
 }
 
 /** Switch to the View ribbon tab, where the template-mode toggle lives. */

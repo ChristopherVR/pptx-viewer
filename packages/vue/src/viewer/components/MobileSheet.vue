@@ -19,7 +19,7 @@ import { useSheetDismissDrag } from '../composables/useSheetDismissDrag';
 
 const { t } = useI18n();
 
-const props = defineProps<{ open: boolean; title?: string }>();
+const props = defineProps<{ open: boolean; title?: string; inspector?: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
 const { dragY, dragging, onPointerDown, onPointerMove, onPointerUp } = useSheetDismissDrag(() =>
@@ -54,6 +54,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 		<!-- Panel -->
 		<div
 			class="pptx-vue-msheet-panel relative flex max-h-[85dvh] flex-col rounded-t-2xl border-t border-border bg-card text-foreground shadow-2xl"
+			:data-pptx-inspector="props.inspector ? '' : undefined"
 			:style="{
 				transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
 				transition: dragging ? 'none' : 'transform 150ms ease-out',

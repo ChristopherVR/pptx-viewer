@@ -5,12 +5,10 @@
  * Verifies that the correct chrome (mobile vs desktop) renders at each
  * viewport band and that no chrome causes horizontal page-level overflow.
  *
- * DOM/accessibility contract per framework:
- *   Mobile toolbar (all):      role="toolbar"     aria-label="Toolbar"
- *   Desktop ribbon (all):      role="toolbar"     aria-label="Presentation toolbar"
- *   Most bindings' bottom bar: role="navigation"  aria-label="Editor actions"
- *   Vue bottom bar:            role="navigation"  aria-label="Slide controls"
- *     (Vue MobileBottomBar.vue uses "Slide controls" -- see packages/vue/src/viewer/components/MobileBottomBar.vue)
+ * Shared DOM/accessibility contract:
+ *   Mobile toolbar: role="toolbar" aria-label="Toolbar"
+ *   Desktop ribbon: role="toolbar" aria-label="Presentation toolbar"
+ *   Bottom bar:     role="navigation" aria-label="Editor actions"
  *
  * Run: bunx playwright test toolbar-breakpoints
  */
@@ -40,10 +38,8 @@ async function assertNoHorizontalOverflow(page: Page): Promise<void> {
 	);
 }
 
-function bottomBarNav(page: Page, projectName: string) {
-	return page.getByRole('navigation', {
-		name: projectName === 'vue' ? 'Slide controls' : 'Editor actions',
-	});
+function bottomBarNav(page: Page) {
+	return page.getByRole('navigation', { name: 'Editor actions' });
 }
 
 // ── Mobile portrait ──────────────────────────────────────────────────────────
@@ -66,21 +62,13 @@ test.describe('mobile portrait (375x812, touch)', () => {
 		// Menu (hamburger) button is present in the mobile top bar on all frameworks.
 		await expect(page.getByRole('button', { name: 'Menu' })).toBeVisible();
 
-		// Vue uses "Slide controls"; the other four bindings use "Editor actions".
-		if (testInfo.project.name === 'vue') {
-			await expect(page.getByRole('navigation', { name: 'Slide controls' })).toBeVisible();
-		} else {
-			await expect(page.getByRole('navigation', { name: 'Editor actions' })).toBeVisible();
+		await expect(bottomBarNav(page)).toBeVisible();
+		for (const name of ['Menu', 'Undo', 'Redo', 'Save', 'Present']) {
+			await expect(mobileToolbar.getByRole('button', { name, exact: true })).toBeVisible();
 		}
-		if (testInfo.project.name === 'vanilla' || testInfo.project.name === 'svelte') {
-			for (const name of ['Menu', 'Undo', 'Redo', 'Save', 'Present']) {
-				await expect(mobileToolbar.getByRole('button', { name, exact: true })).toBeVisible();
-			}
-			const bottomBar = page.getByRole('navigation', { name: 'Editor actions' });
-			for (const name of ['Slides', 'Insert', 'Format', 'Comments', 'Notes']) {
-				await expect(bottomBar.getByRole('button', { name, exact: true })).toBeVisible();
-			}
-			await expect(page.locator('.pptxv-mobile-nav, .pptx-svelte-mobile-chrome')).toHaveCount(0);
+		const bottomBar = bottomBarNav(page);
+		for (const name of ['Slides', 'Insert', 'Format', 'Comments', 'Toggle notes']) {
+			await expect(bottomBar.getByRole('button', { name, exact: true })).toBeVisible();
 		}
 
 		// No horizontal page overflow regardless of which mobile chrome is shown.
@@ -106,12 +94,7 @@ test.describe('tablet portrait (820x1180, touch)', () => {
 		await expect(page.getByRole('toolbar', { name: 'Presentation toolbar' })).toBeVisible();
 
 		// The mobile bottom bar must be absent at tablet width.
-		if (testInfo.project.name === 'vue') {
-			// Vue gates MobileBottomBar on v-if="isMobile"; isMobile is false at 820px.
-			await expect(page.getByRole('navigation', { name: 'Slide controls' })).not.toBeVisible();
-		} else {
-			await expect(page.getByRole('navigation', { name: 'Editor actions' })).not.toBeVisible();
-		}
+		await expect(bottomBarNav(page)).not.toBeVisible();
 
 		// Slide canvas/viewport must be visible.
 		await expect(page.locator('[data-pptx-viewport]').first()).toBeVisible();
@@ -137,11 +120,7 @@ test.describe('desktop (1280x800, no touch)', () => {
 		await expect(page.getByRole('toolbar', { name: 'Presentation toolbar' })).toBeVisible();
 
 		// Neither flavour of mobile bottom bar should be present.
-		if (testInfo.project.name === 'vue') {
-			await expect(page.getByRole('navigation', { name: 'Slide controls' })).not.toBeVisible();
-		} else {
-			await expect(page.getByRole('navigation', { name: 'Editor actions' })).not.toBeVisible();
-		}
+		await expect(bottomBarNav(page)).not.toBeVisible();
 
 		// The mobile compact top toolbar must also be absent. `exact` is required:
 		// the desktop ribbon's accessible name is "Presentation toolbar", and a
@@ -204,9 +183,9 @@ test.describe('dynamic resize: desktop to mobile', () => {
 	// the toolbar switches chrome without a page reload.
 	test.use({ viewport: { width: 1280, height: 800 } });
 
-	test('toolbar switches from desktop to mobile chrome on resize', async ({ page }, testInfo) => {
+	test('toolbar switches from desktop to mobile chrome on resize', async ({ page }) => {
 		await load(page);
-		const bottomBar = bottomBarNav(page, testInfo.project.name);
+		const bottomBar = bottomBarNav(page);
 
 		// Confirm desktop ribbon at the starting width.
 		await expect(page.getByRole('toolbar', { name: 'Presentation toolbar' })).toBeVisible();

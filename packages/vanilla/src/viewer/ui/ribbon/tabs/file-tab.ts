@@ -18,10 +18,11 @@ export function createFileTab(doc: Document, t: Translator, handlers: RibbonFile
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 
 	const save = makeButton(doc, {
-		label: t('pptx.file.saveAsPptxTooltip'),
+		label: t('pptx.file.saveAsPptx'),
 		icon: 'download',
 		onClick: handlers.save,
 	});
+	save.btn.title = t('pptx.file.saveAsPptxTooltip');
 	const png = makeButton(doc, {
 		label: t('pptx.file.png'),
 		icon: 'image',

@@ -25,7 +25,7 @@
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex }: ElementRendererProps = $props();
+	const { element, zIndex, interactive }: ElementRendererProps = $props();
 	const t = useTranslator();
 
 	const smartArt = $derived(element.type === 'smartArt' ? element : undefined);
@@ -45,7 +45,14 @@
 {/snippet}
 
 {#if view}
-	<div class="pptx-svelte-element pptx-svelte-smartart" style={containerStyle} data-element-id={element.id} data-testid={`smartart-${smartArt?.smartArtData?.layout ?? 'diagram'}`}>
+	<div
+		class="pptx-svelte-element pptx-svelte-smartart"
+		style={containerStyle}
+		data-element-id={element.id}
+		data-pptx-element={interactive ? 'true' : undefined}
+		data-testid={`smartart-${smartArt?.smartArtData?.layout ?? 'diagram'}`}
+		aria-roledescription="diagram"
+	>
 		<div
 			class="pptx-svelte-smartart-chrome"
 			style={chromeStyle}

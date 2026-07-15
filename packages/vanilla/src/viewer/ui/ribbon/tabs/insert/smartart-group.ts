@@ -1,38 +1,37 @@
 import type { SmartArtLayout } from 'pptx-viewer-core';
-import { PRESETS as SMART_ART_INSERT_PRESETS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../../i18n';
-import { createEl } from '../../../../render';
-import type { ButtonHandle } from '../../../controls';
 import { makeButton } from '../../../controls';
+import { createSmartArtDialog } from './smartart-dialog';
 
-export interface SmartArtGrid {
+export interface SmartArtControl {
 	el: HTMLElement;
-	buttons: ButtonHandle[];
+	setDisabled(disabled: boolean): void;
 }
 
-/**
- * Insert > SmartArt grid: one button per shared gallery preset
- * (`smart-art-presets.ts`, 34 layouts across 5 categories), flattened into a
- * single grid rather than React's category-tabbed dialog. Clicking a preset
- * inserts it immediately via the shared `buildSmartArtPresetData` factory
- * (wired in `editor-insert-structured.ts`).
- */
-export function createSmartArtGrid(
+/** Insert > SmartArt trigger backed by the shared preset gallery dialog. */
+export function createSmartArtControl(
 	doc: Document,
 	t: Translator,
 	onSelect: (layout: SmartArtLayout, defaultItems: string[]) => void,
-): SmartArtGrid {
-	const el = createEl(doc, 'div', 'pptxv-smartart-grid');
-	const buttons: ButtonHandle[] = [];
-	for (const preset of SMART_ART_INSERT_PRESETS) {
-		const btn = makeButton(doc, {
-			label: t(preset.labelKey),
-			icon: 'smart-art',
-			onClick: () => onSelect(preset.layout, preset.defaultItems),
-		});
-		el.appendChild(btn.btn);
-		buttons.push(btn);
-	}
-	return { el, buttons };
+): SmartArtControl {
+	const dialog = createSmartArtDialog(doc, t, onSelect);
+	const trigger = makeButton(doc, {
+		label: t('pptx.ribbon.smartArt'),
+		icon: 'smart-art',
+		onClick: () => {
+			const host = trigger.btn.closest<HTMLElement>('.pptxv') ?? doc.body;
+			dialog.open(host);
+		},
+	});
+	trigger.btn.title = t('pptx.ribbon.insertSmartArt');
+	return {
+		el: trigger.btn,
+		setDisabled(disabled) {
+			trigger.setDisabled(disabled);
+			if (disabled) {
+				dialog.close();
+			}
+		},
+	};
 }

@@ -453,6 +453,8 @@ function onEditorKeydown(event: KeyboardEvent): void {
 		class="pptx-vue-element pptx-vue-smartart"
 		:style="containerStyle"
 		:data-element-id="element.id"
+		:data-pptx-element="props.interactive ? 'true' : undefined"
+		aria-roledescription="diagram"
 	>
 		<div
 			ref="rootEl"

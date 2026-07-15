@@ -58,12 +58,15 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 		<!-- Ribbon Tab Bar -->
 		<div
 			v-if="showRibbon"
+			role="tablist"
 			class="flex items-center border-b border-border/60 px-1 max-md:overflow-x-auto max-md:scrollbar-none"
 		>
 			<button
 				v-for="sec in TOOLBAR_SECTIONS"
 				:key="sec.id"
 				type="button"
+				role="tab"
+				:aria-selected="props.toolbarSection === sec.id"
 				:class="
 					cn(
 						'relative px-3.5 py-2 text-[12px] font-medium whitespace-nowrap transition-colors max-md:min-h-[36px] max-md:px-3',

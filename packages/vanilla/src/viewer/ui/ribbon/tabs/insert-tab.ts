@@ -8,7 +8,7 @@ import type { RibbonInsertHandlers } from '../ribbon-types';
 import { createActionButtonDropdown } from './insert/action-button-group';
 import { createChartDropdown } from './insert/chart-group';
 import { createFieldDropdown } from './insert/field-group';
-import { createSmartArtGrid } from './insert/smartart-group';
+import { createSmartArtControl } from './insert/smartart-group';
 
 /** Map a shape-preset-catalog glyph name onto this binding's icon set. */
 const GLYPH_TO_ICON: Record<string, IconName> = {
@@ -86,16 +86,21 @@ export function createInsertTab(
 		onClick: () => void handlers.insertImage(),
 	});
 	const media = makeButton(doc, {
-		label: t('pptx.ribbon.insertMedia'),
+		label: t('pptx.ribbon.media'),
 		icon: 'video',
 		onClick: () => void handlers.insertMedia(),
 	});
+	media.btn.title = t('pptx.ribbon.insertMedia');
 	const chartDropdown = createChartDropdown(doc, t, (chartType) => handlers.insertChart(chartType));
+	const smartArt = createSmartArtControl(doc, t, (layout, defaultItems) =>
+		handlers.insertSmartArt(layout, defaultItems),
+	);
 	const equation = makeButton(doc, {
-		label: t('pptx.insert.insertEquation'),
+		label: t('pptx.ribbon.equation'),
 		icon: 'equation',
 		onClick: onToggleEquationPanel,
 	});
+	equation.btn.title = t('pptx.insert.insertEquation');
 	const actionButtonDropdown = createActionButtonDropdown(doc, t, (shapeType) =>
 		handlers.insertActionButton(shapeType),
 	);
@@ -107,6 +112,7 @@ export function createInsertTab(
 		image.btn,
 		media.btn,
 		chartDropdown.el,
+		smartArt.el,
 		equation.btn,
 		actionButtonDropdown.el,
 		fieldDropdown.el,
@@ -117,6 +123,7 @@ export function createInsertTab(
 		image,
 		media,
 		chartDropdown,
+		smartArt,
 		equation,
 		actionButtonDropdown,
 		fieldDropdown,
@@ -140,12 +147,6 @@ export function createInsertTab(
 		shapeGrid.appendChild(btn.btn);
 		buttons.push(btn);
 	}
-
-	const smartArtGrid = createSmartArtGrid(doc, t, (layout, defaultItems) =>
-		handlers.insertSmartArt(layout, defaultItems),
-	);
-	el.appendChild(smartArtGrid.el);
-	buttons.push(...smartArtGrid.buttons);
 
 	return {
 		el,

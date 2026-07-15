@@ -81,6 +81,7 @@ export function SmartArtLayoutSwitcher({
 						<button
 							key={type}
 							type='button'
+							data-testid={`smartart-layout-${type}`}
 							disabled={!canEdit}
 							className={cn(
 								'flex flex-col items-center gap-0.5 rounded border p-1.5 transition-colors',

@@ -151,6 +151,7 @@ export function ViewerInspector({
 
 	return (
 		<div
+			data-pptx-inspector
 			role='complementary'
 			aria-label={t('pptx.inspector.properties')}
 			className='h-full flex-shrink-0 max-md:absolute max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:z-30'

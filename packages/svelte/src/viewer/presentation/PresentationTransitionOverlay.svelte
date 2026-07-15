@@ -81,11 +81,19 @@
 	});
 </script>
 
-<div class="pptx-svelte-transition-overlay">
-	<div class="pptx-svelte-transition-layer" style={outgoingStyle}>
+<div class="pptx-svelte-transition-overlay" data-pptx-transition-overlay>
+	<div
+		class="pptx-svelte-transition-layer"
+		data-pptx-transition-layer="outgoing"
+		style={outgoingStyle}
+	>
 		<SlideStage slide={outgoingSlide} {canvasSize} {mediaDataUrls} {scale} />
 	</div>
-	<div class="pptx-svelte-transition-layer" style={incomingStyle}>
+	<div
+		class="pptx-svelte-transition-layer"
+		data-pptx-transition-layer="incoming"
+		style={incomingStyle}
+	>
 		<SlideStage slide={incomingSlide} {canvasSize} {mediaDataUrls} {scale} />
 	</div>
 </div>

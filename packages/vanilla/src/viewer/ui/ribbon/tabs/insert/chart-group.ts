@@ -15,10 +15,15 @@ export function createChartDropdown(
 	t: Translator,
 	onSelect: (chartType: PptxChartType) => void,
 ): DropdownHandle<PptxChartType> {
-	return makeDropdown<PptxChartType>(doc, {
-		triggerLabel: t('pptx.ribbon.insertChart'),
+	const dropdown = makeDropdown<PptxChartType>(doc, {
+		triggerLabel: t('pptx.ribbon.chart'),
 		triggerText: t('pptx.ribbon.chart'),
 		items: INSERT_CHART_TYPES.map((ct) => ({ label: ct.label, value: ct.type })),
 		onSelect,
 	});
+	const trigger = dropdown.el.querySelector<HTMLButtonElement>('.pptxv-dropdown-trigger');
+	if (trigger) {
+		trigger.title = t('pptx.ribbon.insertChart');
+	}
+	return dropdown;
 }

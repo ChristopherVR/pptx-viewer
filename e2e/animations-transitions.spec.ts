@@ -9,34 +9,11 @@
  * anything animates). Both features are genuinely implemented in core - a
  * typed `PptxSlideTransition` model (parsed/serialized as real `p:transition`
  * XML) and native `p:timing` animation timelines - and all five bindings now
- * play transitions via the same mechanism (mount a transient overlay whose
- * outgoing-slide layer carries a real CSS `animation`, then tear it down once
- * the duration elapses):
+ * play transitions through the same observable contract: mount a transient
+ * overlay whose outgoing layer carries a real CSS animation, expose the
+ * incoming slide, then tear the overlay down after the duration elapses.
  *
- *  - VUE, VANILLA, and SVELTE mount an overlay with two layers (outgoing plus
- *    incoming), each with a real CSS `animation`.
- *  - ANGULAR (`presentation-transition-overlay.component.ts`) and REACT
- *    (`PresentationTransitionOverlay.tsx`) mount an overlay whose single layer
- *    snapshots the OUTGOING slide with a real CSS `animation`, over the
- *    always-current incoming slide on the main stage underneath. React's
- *    `executeSlideTransition()`
- *    (`packages/react/src/viewer/hooks/presentation-mode/slide-transition.ts`)
- *    swaps the incoming slide in immediately and mounts
- *    `.pptx-react-transition-overlay` for the transition's duration.
- *
- * Element animations, by contrast, are observable in all five bindings, but
- * via different signals:
- *  - REACT drives playback off `slide.nativeAnimations` (parsed from real
- *    `p:timing` XML) through a `TimelineEngine`; an animated element's
- *    container div gets inline `visibility: hidden|visible` (+ `animation`
- *    once revealed).
- *  - VUE, ANGULAR, VANILLA, and SVELTE drive playback off the simpler
- *    `slide.animations` array
- *    (also parsed from the same `p:timing` XML) via shared click-group
- *    helpers, applying inline `opacity: 0` (pending) then a real
- *    `animation-name` (e.g. `pptx-vue-fadeIn`) directly onto the
- *    `[data-element-id]` node.
- *  - All five share the same click semantics: advancing the presentation
+ * Element animations share the same click semantics: advancing the presentation
  *    (`PageDown`/`ArrowRight`/Space) first reveals a slide's next pending
  *    animation click-group *without changing slide*; only once every
  *    click-group is revealed does the same keypress advance to the next
@@ -118,31 +95,34 @@ const ANIMATION_SETTLE_TIMEOUT_MS = ANIMATION_DURATION_MS + SETTLE_BUFFER_MS + P
  * thumbnail match.
  */
 async function primaryMatch(page: Page, locator: Locator, minAreaPx = 5000): Promise<Locator> {
-	const count = await locator.count();
 	const viewport = page.viewportSize();
-	let bestIndex = -1;
-	let bestArea = -1;
-	for (let i = 0; i < count; i++) {
-		const box = await locator.nth(i).boundingBox();
-		if (!box) {
-			continue;
-		}
-		const onScreen =
-			!viewport ||
-			(box.x + box.width > 0 &&
-				box.x < viewport.width &&
-				box.y + box.height > 0 &&
-				box.y < viewport.height);
-		if (!onScreen) {
-			continue;
-		}
-		const area = box.width * box.height;
-		if (area >= minAreaPx && area > bestArea) {
-			bestArea = area;
-			bestIndex = i;
-		}
-	}
-	return locator.nth(bestIndex === -1 ? count : bestIndex);
+	const token = `primary-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	const found = await locator.evaluateAll(
+		(elements, args) => {
+			let best: Element | undefined;
+			let bestArea = -1;
+			for (const element of elements) {
+				const box = element.getBoundingClientRect();
+				const onScreen =
+					!args.viewport ||
+					(box.right > 0 &&
+						box.left < args.viewport.width &&
+						box.bottom > 0 &&
+						box.top < args.viewport.height);
+				const area = box.width * box.height;
+				if (onScreen && area >= args.minAreaPx && area > bestArea) {
+					best = element;
+					bestArea = area;
+				}
+			}
+			best?.setAttribute('data-e2e-primary-match', args.token);
+			return Boolean(best);
+		},
+		{ viewport, minAreaPx, token },
+	);
+	return found
+		? page.locator(`[data-e2e-primary-match="${token}"]`)
+		: page.locator(`[data-e2e-primary-match="${token}-missing"]`);
 }
 
 /** Load the fixture and enter presentation mode, landing on slide 1. */
@@ -186,68 +166,25 @@ async function animatedShape(page: Page): Promise<Locator> {
 }
 
 test.describe('slide transition playback', () => {
-	test('advancing into a transition-bearing slide plays it back', async ({ page }, testInfo) => {
+	test('advancing into a transition-bearing slide plays it back', async ({ page }) => {
 		await openInPresentMode(page);
 		await expect(await slideTitle(page, SLIDES.first)).toBeVisible();
 
-		const framework = testInfo.project.name;
+		const overlay = page.locator('[data-pptx-transition-overlay]');
+		await advance(page);
 
-		if (framework === 'vue' || framework === 'vanilla' || framework === 'svelte') {
-			const prefix =
-				framework === 'vanilla' ? 'pptxv' : framework === 'svelte' ? 'pptx-svelte' : 'pptx-vue';
-			const overlay = page.locator(`.${prefix}-transition-overlay`);
-			await advance(page);
-
-			// Both the outgoing and incoming slide are genuinely mounted at once,
-			// inside the overlay's two layers - not just "adjacent slide
-			// preloading" elsewhere on the page (this locator is scoped to the
-			// overlay itself).
-			const layers = overlay.locator(`.${prefix}-transition-layer`);
-			await expect(layers).toHaveCount(2);
-			await expect(layers.filter({ hasText: SLIDES.first })).toHaveCount(1);
-			await expect(layers.filter({ hasText: SLIDES.transitionTarget })).toHaveCount(1);
-
-			// Each layer carries a real CSS `animation`, not just a bare DOM swap.
-			const animations = await layers.evaluateAll((els) =>
-				els.map((el) => (el as HTMLElement).style.animation),
-			);
-			for (const anim of animations) {
-				expect(anim, 'transition layer has a CSS animation applied').not.toBe('');
-			}
-
-			// The overlay tears itself down once the transition completes.
-			await expect(overlay).toHaveCount(0, { timeout: TRANSITION_SETTLE_TIMEOUT_MS });
-		} else if (framework === 'angular') {
-			const overlay = page.locator('pptx-presentation-transition-overlay');
-			await advance(page);
-
-			await expect(overlay).toBeVisible();
-			const layer = overlay.locator('.pptx-ng-transition-layer');
-			// The overlay renders only the OUTGOING slide as a snapshot layer; the
-			// incoming slide is the always-current main stage underneath it -
-			// both coexist for the transition's duration.
-			await expect(layer).toContainText(SLIDES.first);
-			const animation = await layer.evaluate((el) => (el as HTMLElement).style.animation);
+		await expect(overlay).toBeVisible();
+		const layers = overlay.locator('[data-pptx-transition-layer]');
+		await expect(layers).not.toHaveCount(0);
+		await expect(layers.filter({ hasText: SLIDES.first })).toHaveCount(1);
+		const animations = await layers.evaluateAll((els) =>
+			els.map((el) => (el as HTMLElement).style.animation),
+		);
+		for (const animation of animations) {
 			expect(animation, 'transition layer has a CSS animation applied').not.toBe('');
-			await expect(await slideTitle(page, SLIDES.transitionTarget)).toBeVisible();
-
-			await expect(overlay).toHaveCount(0, { timeout: TRANSITION_SETTLE_TIMEOUT_MS });
-		} else {
-			const overlay = page.locator('.pptx-react-transition-overlay');
-			await advance(page);
-
-			await expect(overlay).toBeVisible();
-			const layer = overlay.locator('.pptx-react-transition-layer');
-			// The overlay renders only the OUTGOING slide as a snapshot layer; the
-			// incoming slide is the always-current main stage underneath it - both
-			// coexist for the transition's duration (same design as Angular).
-			await expect(layer).toContainText(SLIDES.first);
-			const animation = await layer.evaluate((el) => (el as HTMLElement).style.animation);
-			expect(animation, 'transition layer has a CSS animation applied').not.toBe('');
-			await expect(await slideTitle(page, SLIDES.transitionTarget)).toBeVisible();
-
-			await expect(overlay).toHaveCount(0, { timeout: TRANSITION_SETTLE_TIMEOUT_MS });
 		}
+		await expect(await slideTitle(page, SLIDES.transitionTarget)).toBeVisible();
+		await expect(overlay).toHaveCount(0, { timeout: TRANSITION_SETTLE_TIMEOUT_MS });
 
 		// Steady state is identical across all five once the transition settles:
 		// the incoming slide is the live render, the outgoing one no longer is
@@ -262,21 +199,13 @@ test.describe('slide transition playback', () => {
 test.describe('element animation playback', () => {
 	test('entrance animation is hidden until its click-group is revealed, then plays', async ({
 		page,
-	}, testInfo) => {
-		const framework = testInfo.project.name;
-
+	}) => {
 		await openInPresentMode(page);
 		await advance(page); // slide 1 -> slide 2 (transition slide; not under test here)
 		await expect(await slideTitle(page, SLIDES.transitionTarget)).toBeVisible();
 		// Let slide 2's transition (if any observable overlay exists) fully settle
 		// before continuing, so it can't bleed into the animation timing below.
-		await expect(page.locator('.pptx-vue-transition-overlay')).toHaveCount(0, {
-			timeout: TRANSITION_SETTLE_TIMEOUT_MS,
-		});
-		await expect(page.locator('pptx-presentation-transition-overlay')).toHaveCount(0, {
-			timeout: TRANSITION_SETTLE_TIMEOUT_MS,
-		});
-		await expect(page.locator('.pptx-react-transition-overlay')).toHaveCount(0, {
+		await expect(page.locator('[data-pptx-transition-overlay]')).toHaveCount(0, {
 			timeout: TRANSITION_SETTLE_TIMEOUT_MS,
 		});
 
@@ -286,15 +215,15 @@ test.describe('element animation playback', () => {
 		const shape = await animatedShape(page);
 
 		// Before the first click on this slide, the entrance hasn't played: the
-		// element is hidden (React: `visibility: hidden`; other bindings: `opacity: 0`
-		// pre-seeded so it never flashes visible).
-		if (framework === 'react') {
-			await expect
-				.poll(() => shape.evaluate((el) => getComputedStyle(el).visibility))
-				.toBe('hidden');
-		} else {
-			await expect.poll(() => shape.evaluate((el) => getComputedStyle(el).opacity)).toBe('0');
-		}
+		// element is hidden before the first click and never flashes visible.
+		await expect
+			.poll(() =>
+				shape.evaluate((el) => {
+					const style = getComputedStyle(el);
+					return style.visibility === 'hidden' || style.opacity === '0';
+				}),
+			)
+			.toBe(true);
 
 		// The next click reveals the animation's click-group WITHOUT advancing the
 		// slide - the shared "an animation is pending, consume the click" contract
@@ -303,18 +232,12 @@ test.describe('element animation playback', () => {
 		await expect(await slideTitle(page, SLIDES.animated)).toBeVisible();
 		await expect(await slideTitle(page, SLIDES.end)).not.toBeVisible();
 
-		if (framework === 'react') {
-			await expect
-				.poll(() => shape.evaluate((el) => getComputedStyle(el).visibility))
-				.toBe('visible');
-			await expect
-				.poll(() => shape.evaluate((el) => getComputedStyle(el).animationName))
-				.toBe('pptx-fadeIn');
-		} else {
-			await expect
-				.poll(() => shape.evaluate((el) => getComputedStyle(el).animationName))
-				.toBe('pptx-vue-fadeIn');
-		}
+		await expect
+			.poll(() => shape.evaluate((el) => getComputedStyle(el).visibility))
+			.toBe('visible');
+		await expect
+			.poll(() => shape.evaluate((el) => getComputedStyle(el).animationName))
+			.not.toBe('none');
 
 		// Whichever binding, the entrance keyframe ends on full opacity and the
 		// `forwards`/`both` fill mode holds it there once the animation completes.

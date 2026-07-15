@@ -18,8 +18,8 @@
 <div class="pptx-svelte-filetab" role="group" aria-label={t('pptx.ribbon.tab.file')}>
 	<button
 		type="button"
-		aria-label={t('pptx.ribbon.saveAsPptx')}
-		title={t('pptx.ribbon.saveAsPptx')}
+		aria-label={t('pptx.file.saveAsPptx')}
+		title={t('pptx.file.saveAsPptxTooltip')}
 		onclick={ondownload}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0 3-3m-3 3-3-3M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>

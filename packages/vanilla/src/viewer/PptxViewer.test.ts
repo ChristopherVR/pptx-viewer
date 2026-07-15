@@ -36,13 +36,20 @@ describe('createPptxViewer', () => {
 		expect(container.querySelectorAll('.pptxv-mobile-actions > nav > button')).toHaveLength(5);
 		expect(container.querySelector('.pptxv-statusbar [aria-label*="Previous"]')).toBeNull();
 		const primary = container.querySelector('.pptxv-ribbon-primary');
-		expect(primary?.getAttribute('role')).toBe('toolbar');
+		expect(primary?.getAttribute('role')).toBeNull();
 		expect(primary?.children).toHaveLength(3);
 		expect(primary?.querySelector('button[aria-label="Share"]')).toBeTruthy();
 		expect(
 			primary?.querySelector('button[aria-label="Broadcast to a live audience"]'),
 		).toBeTruthy();
 		expect(primary?.querySelector('.pptxv-collab-status')).toBeTruthy();
+		expect(container.querySelector('[data-pptx-inspector]')?.getAttribute('aria-label')).toBe(
+			'Properties',
+		);
+		expect(container.querySelector('.pptxv-thumbs')?.getAttribute('role')).toBe('navigation');
+		expect(container.querySelector('.pptxv-thumbs')?.getAttribute('aria-label')).toBe('Slides');
+		expect(container.querySelector('.pptxv-statusbar')?.getAttribute('role')).toBeNull();
+		expect(container.querySelector('[aria-label="Save .pptx"]')).toBeTruthy();
 
 		mount();
 		const styleTags = document.querySelectorAll('#pptx-vanilla-viewer-styles');

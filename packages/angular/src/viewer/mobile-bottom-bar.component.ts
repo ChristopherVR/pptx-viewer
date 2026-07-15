@@ -39,6 +39,7 @@ export type MobileBarSheet = 'slides' | 'inspector' | 'comments' | 'notes' | nul
 interface BarAction {
 	key: NonNullable<MobileBarSheet> | 'insert';
 	labelKey: string;
+	ariaLabelKey?: string;
 	/** SVG path data for the icon (24 × 24 view-box). */
 	svgPath: string;
 	disabled: boolean;
@@ -60,7 +61,7 @@ interface BarAction {
 					class="pptx-ng-mbar-btn"
 					[class.is-active]="action.active"
 					[attr.aria-pressed]="action.active ? true : null"
-					[attr.aria-label]="action.labelKey | translate"
+					[attr.aria-label]="action.ariaLabelKey ?? action.labelKey | translate"
 					[disabled]="action.disabled"
 					(click)="action.emit()"
 				>
@@ -273,6 +274,7 @@ export class MobileBottomBarComponent {
 			{
 				key: 'notes',
 				labelKey: 'pptx.notes.title',
+				ariaLabelKey: 'pptx.statusBar.toggleNotes',
 				// Note / document-text icon
 				svgPath:
 					'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h5',

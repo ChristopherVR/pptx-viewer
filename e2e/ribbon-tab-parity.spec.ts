@@ -99,13 +99,10 @@ interface TabMeasurement {
 	rowBands: number[];
 }
 
-/** Vanilla uses ARIA tabs; component bindings use ordinary buttons. */
+/** Locate a ribbon tab through the shared tablist contract. */
 function ribbonTab(page: Page, name: string): Locator {
 	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-	return toolbar
-		.getByRole('tab', { name, exact: true })
-		.or(toolbar.getByRole('button', { name, exact: true }))
-		.first();
+	return toolbar.getByRole('tab', { name, exact: true });
 }
 
 /** Switch to `tab` and measure the ribbon content row's total height plus its

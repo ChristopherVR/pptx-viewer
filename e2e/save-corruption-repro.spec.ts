@@ -24,7 +24,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 const gifFixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/test-image.gif', import.meta.url)),
@@ -37,133 +37,43 @@ const outputDir = fileURLToPath(new URL('../test-results/save-corruption/', impo
 /** Switch to the Insert ribbon tab. */
 async function switchToInsertTab(page: Page): Promise<void> {
 	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-	const insertTab = toolbar
-		.getByRole('tab', { name: 'Insert', exact: true })
-		.or(toolbar.getByRole('button', { name: 'Insert', exact: true }))
-		.first();
+	const insertTab = toolbar.getByRole('tab', { name: 'Insert', exact: true });
 	await insertTab.click();
 	await page.waitForTimeout(300);
 }
 
-function projectName(page: Page): string {
-	const url = page.url();
-	if (url.includes('4173')) {
-		return 'react';
-	}
-	if (url.includes('4175')) {
-		return 'vue';
-	}
-	if (url.includes('4174')) {
-		return 'angular';
-	}
-	if (url.includes('4176')) {
-		return 'vanilla';
-	}
-	if (url.includes('4177')) {
-		return 'svelte';
-	}
-	return 'react';
-}
-
-/** Click the shape dropdown, select rect, then click Shape button. */
+/** Insert the rectangle exposed by the current shape picker state. */
 async function addRectangleShape(page: Page): Promise<void> {
 	await switchToInsertTab(page);
-	const project = projectName(page);
-	if (project === 'vanilla') {
-		await page
-			.locator('.pptxv-shape-grid')
-			.getByRole('button', { name: /Rectangle/iu })
-			.first()
-			.click();
-		await page.waitForTimeout(500);
-		return;
-	}
-	if (project === 'svelte') {
+	let rectangle = page.getByRole('button', { name: /^(?:Shape|Rect|Rectangle)$/iu }).first();
+	if (!(await rectangle.isVisible().catch(() => false))) {
 		await page.getByRole('button', { name: 'Shapes', exact: true }).click();
-		await page
-			.getByRole('menuitem', { name: /Rectangle/iu })
-			.first()
-			.click();
-		await page.waitForTimeout(500);
-		return;
+		rectangle = page.getByRole('menuitem', { name: /Rectangle/iu }).first();
 	}
-	if (project === 'angular') {
-		await page.getByRole('button', { name: 'Rect', exact: true }).click();
-		await page.waitForTimeout(500);
-		return;
-	}
-	// Select 'rect' from the shape type dropdown
-	await page.locator('select[title]').first().selectOption('rect');
-	// Click the Shape button to insert
-	await page.locator('button[title*="Shape"], button[title*="shape"]').first().click();
+	await expect(rectangle).toBeVisible();
+	await rectangle.click();
 	await page.waitForTimeout(500);
 }
 
 /** Insert a SmartArt via the dialog. Picks the first preset in 'list' category. */
 async function addSmartArt(page: Page): Promise<void> {
 	await switchToInsertTab(page);
-	const project = projectName(page);
-	if (project === 'vanilla') {
-		await page.locator('.pptxv-smartart-grid').getByRole('button').first().click();
-		await page.waitForTimeout(500);
-		return;
-	}
-	// Click the SmartArt button
-	await page.locator('button[title*="SmartArt"], button[title*="smartart"]').first().click();
-	await page.waitForTimeout(500);
-	if (project === 'svelte') {
-		await page.locator('.pptx-svelte-smartart-grid').getByRole('menuitem').first().click();
-		await page.waitForTimeout(500);
-		return;
-	}
-
-	// Wait for the SmartArt dialog
-	const dialog = page.locator('[role="dialog"][aria-modal="true"]');
-	await dialog.waitFor({ timeout: 5000 });
-
-	// Click the first preset thumbnail in the gallery grid
-	const presetButton = dialog
-		.locator(
-			'[role="option"], .grid > button, .pptx-vue-smartart-tile, .pptx-angular-smartart-tile',
-		)
-		.first();
+	await page.getByRole('button', { name: 'SmartArt' }).click();
+	const dialog = page.getByRole('dialog', { name: /Insert SmartArt/iu });
+	await expect(dialog).toBeVisible();
+	const presetButton = dialog.getByRole('option').first();
+	await expect(presetButton).toBeVisible();
 	await presetButton.click();
 	await page.waitForTimeout(200);
-
-	// Click the Insert button in the dialog footer
-	const insertBtn = dialog.getByRole('button', { name: /^Insert$/iu });
-	await insertBtn.click();
+	await dialog.getByRole('button', { name: /^Insert$/iu }).click();
 	await page.waitForTimeout(500);
 }
 
 /** Insert an image by setting the hidden file input. */
 async function addGifImage(page: Page): Promise<void> {
 	await switchToInsertTab(page);
-	const project = projectName(page);
-	if (project === 'vanilla') {
-		const chooserPromise = page.waitForEvent('filechooser');
-		await page
-			.locator('.pptxv-ribbon-tab-content:not([hidden])')
-			.getByRole('button', { name: /Image/iu })
-			.first()
-			.click();
-		const chooser = await chooserPromise;
-		await chooser.setFiles(gifFixturePath);
-		await page.waitForTimeout(500);
-		return;
-	}
-	if (project === 'svelte') {
-		await page
-			.locator('.pptx-svelte-inserttab-file[accept="image/*"]')
-			.setInputFiles(gifFixturePath);
-		await page.waitForTimeout(500);
-		return;
-	}
 	const chooserPromise = page.waitForEvent('filechooser');
-	await page
-		.getByRole('button', { name: /^(?:Insert )?Image$/iu })
-		.first()
-		.click();
+	await page.getByRole('button', { name: /image/iu }).first().click();
 	const chooser = await chooserPromise;
 	await chooser.setFiles(gifFixturePath);
 	await page.waitForTimeout(500);
@@ -181,30 +91,45 @@ async function editTableCell(page: Page, text: string): Promise<void> {
 	// The table element may be obscured by overlapping elements.
 	// First, select the table element by clicking on it with force.
 	const tableElement = page
-		.locator('[data-pptx-element="true"]')
+		.locator('[data-pptx-viewport] [data-pptx-element="true"]')
 		.filter({ has: page.locator('table') });
 	if (await tableElement.isVisible({ timeout: 3000 }).catch(() => false)) {
-		await tableElement.first().click({ force: true });
+		await selectElement(tableElement.first());
 		await page.waitForTimeout(300);
 	}
 
-	// Find the first table cell and double-click with force
-	const cell = page.locator('td').first();
+	// Dispatch directly to the main-canvas cell so overlapping inserted elements
+	// cannot redirect the gesture to a thumbnail or a higher z-index sibling.
+	const cell = page.locator('[data-pptx-viewport] td').first();
 	await cell.waitFor({ timeout: 5000 });
-	await cell.dblclick({ force: true });
+	await cell.dispatchEvent('dblclick', { button: 0, clientX: 1, clientY: 1 });
 	await page.waitForTimeout(300);
 
 	// Type into the cell input
-	const input = page.locator('td input[type="text"]');
-	if (await input.isVisible({ timeout: 2000 }).catch(() => false)) {
-		await input.fill(text);
-		await page.keyboard.press('Enter');
-	} else {
-		// Fallback: type directly
-		await page.keyboard.type(text);
-		await page.keyboard.press('Tab');
-	}
+	const input = page.locator('[data-pptx-viewport] td input[type="text"]');
+	await expect(input).toBeVisible({ timeout: 3000 });
+	await input.fill(text);
+	await page.keyboard.press('Enter');
 	await page.waitForTimeout(300);
+}
+
+/** Ensure the shared properties inspector is visible. */
+async function openInspector(page: Page): Promise<Locator> {
+	const inspector = page.locator('[data-pptx-inspector]:visible').first();
+	if (!(await inspector.isVisible().catch(() => false))) {
+		const toggle = page.getByRole('button', { name: 'Toggle inspector panel', exact: true });
+		await expect(toggle).toBeVisible();
+		await toggle.click();
+	}
+	await expect(inspector).toBeVisible();
+	return inspector;
+}
+
+async function selectElement(element: Locator): Promise<void> {
+	const pointer = { button: 0, clientX: 1, clientY: 1, pointerId: 1, pointerType: 'mouse' };
+	await element.dispatchEvent('pointerdown', pointer);
+	await element.dispatchEvent('pointerup', pointer);
+	await element.dispatchEvent('click', { button: 0, clientX: 1, clientY: 1 });
 }
 
 test.describe('save corruption reproduction', () => {
@@ -238,41 +163,34 @@ test.describe('save corruption reproduction', () => {
 		// 4. Edit first SmartArt (select then double-click to inline-edit)
 		// SmartArt elements stack at the same position, so we use force: true
 		// to bypass pointer-event interception from overlapping siblings.
-		const smartArtElements = page.locator('[data-element-id][data-testid^="smartart-"]');
-		const smartArtCount = await smartArtElements.count();
+		const smartArtElements = page
+			.locator('[data-pptx-viewport]')
+			.locator(
+				'[data-pptx-element="true"]:is([data-testid^="smartart-"], :has([data-testid^="smartart-"]))',
+			);
+		await expect(smartArtElements).toHaveCount(2);
 
-		if (smartArtCount >= 1) {
-			await smartArtElements.first().click({ force: true });
-			await page.waitForTimeout(300);
-			await smartArtElements.first().dblclick({ force: true });
-			await page.waitForTimeout(500);
-			const editor = page.locator('[data-inline-editor], [contenteditable="true"]');
-			if (await editor.isVisible({ timeout: 3000 }).catch(() => false)) {
-				await page.keyboard.selectAll();
-				await page.keyboard.type('SmartArt One');
-				await page.keyboard.press('Escape');
-			}
-			await page.waitForTimeout(300);
-		}
+		await selectElement(smartArtElements.first());
+		await page.waitForTimeout(300);
+		const inspector = await openInspector(page);
+		const firstNode = inspector.locator('[data-testid="smartart-node-text"]').first();
+		await expect(firstNode).toBeVisible();
+		await firstNode.fill('SmartArt One');
+		await firstNode.press('Tab');
+		await expect(smartArtElements.first()).toContainText('SmartArt One');
 
 		// Deselect
 		await canvas.click({ position: { x: 10, y: 10 }, force: true });
 		await page.waitForTimeout(200);
 
 		// 5. Edit second SmartArt
-		if (smartArtCount >= 2) {
-			await smartArtElements.nth(1).click({ force: true });
-			await page.waitForTimeout(300);
-			await smartArtElements.nth(1).dblclick({ force: true });
-			await page.waitForTimeout(500);
-			const editor = page.locator('[data-inline-editor], [contenteditable="true"]');
-			if (await editor.isVisible({ timeout: 3000 }).catch(() => false)) {
-				await page.keyboard.selectAll();
-				await page.keyboard.type('SmartArt Two');
-				await page.keyboard.press('Escape');
-			}
-			await page.waitForTimeout(300);
-		}
+		await selectElement(smartArtElements.nth(1));
+		await page.waitForTimeout(300);
+		const secondNode = inspector.locator('[data-testid="smartart-node-text"]').first();
+		await expect(secondNode).toBeVisible();
+		await secondNode.fill('SmartArt Two');
+		await secondNode.press('Tab');
+		await expect(smartArtElements.nth(1)).toContainText('SmartArt Two');
 
 		// Deselect
 		await page.keyboard.press('Escape');
@@ -294,15 +212,12 @@ test.describe('save corruption reproduction', () => {
 		// 9. Save the file
 		// Switch to File tab and click Save
 		const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-		const fileTab = toolbar
-			.getByRole('tab', { name: 'File', exact: true })
-			.or(toolbar.getByRole('button', { name: 'File', exact: true }))
-			.first();
+		const fileTab = toolbar.getByRole('tab', { name: 'File', exact: true });
 		await fileTab.click();
 		await page.waitForTimeout(300);
 
 		const downloadPromise = page.waitForEvent('download');
-		const saveBtn = page.getByRole('button', { name: /Save/iu }).last();
+		const saveBtn = page.getByRole('button', { name: 'Save .pptx', exact: true });
 		await saveBtn.click();
 
 		const download = await downloadPromise;

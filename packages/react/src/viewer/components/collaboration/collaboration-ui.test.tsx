@@ -27,7 +27,7 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 				'pptx.collaboration.userCount': (o: Record<string, unknown>) =>
 					`${o.count} ${Number(o.count) === 1 ? 'user' : 'users'}`,
 				'pptx.collaboration.statusAriaLabel': (o: Record<string, unknown>) =>
-					`${o.status}: ${o.count} ${Number(o.count) === 1 ? 'user' : 'users'} connected`,
+					`Collaboration: ${o.status}`,
 				'pptx.collaboration.status.connected': 'Connected',
 				'pptx.collaboration.status.connecting': 'Connecting...',
 				'pptx.collaboration.status.disconnected': 'Disconnected',
@@ -248,16 +248,16 @@ describe('collaborationStatusIndicator', () => {
 			connectedCount: 3,
 		});
 		expect(result.props['data-testid']).toBe('collaboration-status');
-		expect(result.props['aria-label']).toContain('Connected');
-		expect(result.props['aria-label']).toContain('3 users');
+		expect(result.props.role).toBe('status');
+		expect(result.props['aria-label']).toBe('Collaboration: Connected');
 	});
 
-	it('renders singular form for 1 user', () => {
+	it('keeps the connected runtime label stable across participant counts', () => {
 		const result = CollaborationStatusIndicator({
 			status: 'connected',
 			connectedCount: 1,
 		});
-		expect(result.props['aria-label']).toContain('1 user connected');
+		expect(result.props['aria-label']).toBe('Collaboration: Connected');
 	});
 
 	it('shows connecting label', () => {

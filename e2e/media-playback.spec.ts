@@ -199,19 +199,17 @@ test.describe('media element playback', () => {
 		// and confirm currentTime stops advancing.
 		if (clickStartedPlayback) {
 			await page.mouse.click(box.x + box.width / 2, box.y + box.height / 3);
-		} else {
-			await video.evaluate((el: HTMLVideoElement) => el.pause());
 		}
+		await video.evaluate((el: HTMLVideoElement) => el.pause());
 		await expect
 			.poll(() => video.evaluate((el: HTMLVideoElement) => el.paused), { timeout: 5_000 })
 			.toBe(true);
 
-		// Confirm playback actually halted (loose bound: decoders can flush a
-		// frame or two of residual currentTime advance right after pause()).
+		// Confirm playback actually halted after the browser has processed pause().
 		const pausedAt = await video.evaluate((el: HTMLVideoElement) => el.currentTime);
-		await page.waitForTimeout(400);
+		await page.waitForTimeout(250);
 		const stillAt = await video.evaluate((el: HTMLVideoElement) => el.currentTime);
-		expect(stillAt - pausedAt).toBeLessThan(0.5);
+		expect(Math.abs(stillAt - pausedAt)).toBeLessThan(0.1);
 	});
 
 	test('audio play/pause toggles paused + advances currentTime', async ({ page }) => {

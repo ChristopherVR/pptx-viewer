@@ -116,19 +116,20 @@ function onMenuSelect(id: string): void {
 		:style="{ width: `${thumbWidth + 46}px` }"
 	>
 		<div class="flex-1 space-y-1 overflow-y-auto px-1.5 pb-2 pt-1.5">
-			<div
+			<button
 				v-for="(slide, index) in slides"
 				:key="slide.id ?? index"
+				type="button"
 				:class="
 					cn(
-						'group relative flex items-center gap-1 cursor-pointer py-0.5 px-1 transition-all',
+						'group relative flex w-full items-center gap-1 cursor-pointer border-0 bg-transparent py-0.5 px-1 text-left transition-all',
 						index === activeIndex &&
 							'bg-accent/40 before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[3px] before:bg-primary before:rounded-r',
 						slide.hidden && 'opacity-50',
 					)
 				"
 				:draggable="canEdit"
-				:aria-label="t('pptx.notes.slideN', { n: index + 1 })"
+				:aria-label="t('pptx.slidesPanel.goToSlide', { n: index + 1 })"
 				:aria-current="index === activeIndex ? 'true' : undefined"
 				@click="emit('select', index)"
 				@contextmenu="onContextMenu($event, index)"
@@ -179,7 +180,7 @@ function onMenuSelect(id: string): void {
 						<EyeOff class="w-3 h-3 text-muted-foreground" />
 					</div>
 				</div>
-			</div>
+			</button>
 		</div>
 
 		<!-- Bottom: Add Slide -->

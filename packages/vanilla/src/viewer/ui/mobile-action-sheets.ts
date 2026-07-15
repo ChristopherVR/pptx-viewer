@@ -35,7 +35,7 @@ export function createMobileActionSheets(
 	const backdrop = doc.createElement('button');
 	backdrop.type = 'button';
 	backdrop.className = 'pptxv-mobile-sheet-backdrop';
-	backdrop.setAttribute('aria-label', 'Close');
+	backdrop.setAttribute('aria-label', t('pptx.settings.close'));
 	const sheet = createEl(doc, 'section', 'pptxv-mobile-sheet');
 	const header = createEl(doc, 'header', 'pptxv-mobile-sheet-header');
 	const handle = createEl(doc, 'span', 'pptxv-mobile-sheet-handle');
@@ -158,6 +158,7 @@ export function createMobileActionSheets(
 			const add = createEl(doc, 'div', 'pptxv-mobile-comment-add');
 			const draft = doc.createElement('textarea');
 			draft.placeholder = t('pptx.comments.addPlaceholder');
+			draft.setAttribute('aria-label', t('pptx.comments.addPlaceholder'));
 			const submit = doc.createElement('button');
 			submit.type = 'button';
 			submit.textContent = t('pptx.comments.addComment');
@@ -214,6 +215,9 @@ export function createMobileActionSheets(
 		const button = doc.createElement('button');
 		button.type = 'button';
 		button.dataset.mobileAction = key;
+		if (key === 'notes') {
+			button.setAttribute('aria-label', t('pptx.statusBar.toggleNotes'));
+		}
 		button.appendChild(createIcon(doc, actionIcons[key]));
 		const label = createEl(doc, 'span');
 		label.textContent =

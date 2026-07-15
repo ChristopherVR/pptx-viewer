@@ -19,7 +19,6 @@ export function createRibbonPrimaryRow(
 	_handlers: RibbonPrimaryHandlers,
 ): RibbonPrimaryRow {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-primary');
-	el.setAttribute('role', 'toolbar');
 
 	return {
 		el,

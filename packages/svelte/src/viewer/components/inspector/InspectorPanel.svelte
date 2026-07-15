@@ -46,6 +46,7 @@
 <aside
 	class="pptx-svelte-inspector"
 	class:pptx-svelte-inspector-collapsed={collapsed}
+	data-pptx-inspector
 	aria-label={t('pptx.inspector.properties')}
 >
 	<button

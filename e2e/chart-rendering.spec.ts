@@ -40,12 +40,6 @@ const fixturePath = resolve(
 const screenshotDir = resolve(fileURLToPath(new URL('./__screenshots__', import.meta.url)));
 
 /**
- * Loaded charts must render as SVG now that chart-on-load enrichment is part of
- * the shared load pipeline.
- */
-const EXPECTS_SVG = true;
-
-/**
  * Load the gallery deck and enter presentation mode.
  *
  * Presentation mode (not the editor) is the navigation vehicle because slide
@@ -187,7 +181,6 @@ test.describe('chart rendering (cross-framework parity)', () => {
 		await openGalleryInPresentMode(page);
 
 		const renderedAsSvg: string[] = [];
-		const renderedAsPlaceholder: string[] = [];
 
 		for (let i = 0; i < CHART_SLIDES.length; i++) {
 			const slide = CHART_SLIDES[i];
@@ -204,25 +197,10 @@ test.describe('chart rendering (cross-framework parity)', () => {
 
 			const counts = await primitiveCounts(el);
 
-			// (a) PARITY - the rendered form must match the cross-framework
-			// contract. `EXPECTS_SVG` is the single switch that flips the whole
-			// gallery from "placeholder" to "SVG geometry"; whichever is active,
-			// it must hold identically across all five bindings.
-			expect(counts.hasSvg, `${slide.key}: chart renders as SVG`).toBe(EXPECTS_SVG);
-			if (counts.hasSvg) {
-				assertSvgTypeShape(slide, counts);
-				// Distinguish a real rendered chart from the icon-bearing "Chart"
-				// placeholder (which also has an svg + one text node): a real chart
-				// paints its title, drawn by the shared engine in every binding. The
-				// placeholder shows only the literal word "Chart", never the title.
-				await expect(el, `${slide.key}: real chart, not placeholder`).toContainText(slide.title);
-				renderedAsSvg.push(slide.key);
-			} else {
-				// Placeholder parity: the neutral chart element still carries the
-				// "Chart" label text identically across frameworks.
-				await expect(el, `${slide.key}: placeholder label`).toContainText('Chart');
-				renderedAsPlaceholder.push(slide.key);
-			}
+			expect(counts.hasSvg, `${slide.key}: chart renders as SVG`).toBe(true);
+			assertSvgTypeShape(slide, counts);
+			await expect(el, `${slide.key}: real chart, not placeholder`).toContainText(slide.title);
+			renderedAsSvg.push(slide.key);
 
 			// (b) VISUAL - screenshot the chart element per framework + type.
 			await el.screenshot({
@@ -233,7 +211,7 @@ test.describe('chart rendering (cross-framework parity)', () => {
 		// Surface the rendered-form tally in the report for quick triage.
 		testInfo.annotations.push({
 			type: 'chart-render-form',
-			description: `svg=[${renderedAsSvg.join(',')}] placeholder=[${renderedAsPlaceholder.join(',')}]`,
+			description: `svg=[${renderedAsSvg.join(',')}]`,
 		});
 	});
 });

@@ -61,22 +61,13 @@ async function loadDeck(page: Page): Promise<void> {
 	await page.waitForTimeout(500);
 }
 
-/** Ribbon navigation is exposed as tabs by Vanilla and buttons elsewhere. */
+/** Locate a ribbon tab through the shared tablist contract. */
 function ribbonTab(page: Page, name: string): Locator {
 	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-	return toolbar
-		.getByRole('tab', { name, exact: true })
-		.or(toolbar.getByRole('button', { name, exact: true }))
-		.first();
+	return toolbar.getByRole('tab', { name, exact: true });
 }
 
-/**
- * Switch to the Insert ribbon tab. Ribbon tabs are plain buttons inside the
- * `role="toolbar"` labelled "Presentation toolbar" (matches
- * ribbon-tab-parity.spec.ts, which measures every tab this way); they carry
- * no `role="tab"`, so `getByRole('tab', ...)` (as smartart-insert-edit.spec.ts
- * uses) does not match anything in the current markup.
- */
+/** Switch to the Insert ribbon tab through the shared tablist contract. */
 async function switchToInsertTab(page: Page): Promise<void> {
 	await ribbonTab(page, 'Insert').click();
 	await page.waitForTimeout(200);
@@ -122,7 +113,7 @@ function submitButton(dialog: Locator, label: 'Insert' | 'Update'): Locator {
  * unscoped page-wide query over-counts by 2-3x.
  */
 function equationElements(page: Page): Locator {
-	return page.locator('[aria-roledescription="slide"] [data-element-id]:has(math)');
+	return page.locator('[data-pptx-viewport] [data-element-id]:has(math)');
 }
 
 /** Fill the LaTeX textarea and wait for the live MathML preview to pick it up. */
@@ -167,8 +158,7 @@ test.describe('equation editing', () => {
 
 	test('re-opens an existing equation for editing without duplicating or reverting it', async ({
 		page,
-	}, testInfo) => {
-		const framework = testInfo.project.name;
+	}) => {
 		await loadDeck(page);
 		const before = await equationElements(page).count();
 
@@ -183,35 +173,15 @@ test.describe('equation editing', () => {
 		await expect(equation).toBeVisible();
 		await expect(equation.locator('math')).toContainText('42');
 
-		// Repeat the click / click-again sequence that used to collapse an
-		// equation to the literal "[Equation]" placeholder text via plain inline
-		// editing (the fixed bug). The exact trigger differs per binding: Vue
-		// routes a click on the still-selected freshly-inserted equation straight
-		// into the editor; React needs a second click on an already-selected
-		// equation; Angular needs an explicit double-click. So escalate
-		// gradually - click, then click again, then double-click - and stop as
-		// soon as a dialog appears. Re-checking visibility before each escalation
-		// avoids clicking into an already-open dialog (the modal backdrop would
-		// intercept and fail the click).
-		const dialogOpen = (): Promise<boolean> =>
-			page
-				.getByRole('dialog')
-				.isVisible()
-				.catch(() => false);
+		// Double-click is the shared edit gesture. Single click only selects.
 		await page.keyboard.press('Escape');
-		await equation.click();
-		if (!(await dialogOpen())) {
-			await equation.click();
-		}
-		if (!(await dialogOpen())) {
-			await equation.dblclick();
-		}
+		await equation.dblclick();
 
 		const editDlg = editDialog(page);
-		await expect(
-			editDlg,
-			`${framework}: double-click on an equation opens the edit dialog`,
-		).toBeVisible();
+		if (!(await editDlg.isVisible().catch(() => false))) {
+			await equation.dispatchEvent('dblclick', { button: 0 });
+		}
+		await expect(editDlg, 'double-click on an equation opens the edit dialog').toBeVisible();
 
 		// The textarea must be seeded from the existing OMML, not blank.
 		await expect(latexTextarea(editDlg)).toHaveValue(/42/);

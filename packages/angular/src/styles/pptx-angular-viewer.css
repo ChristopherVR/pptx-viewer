@@ -374,8 +374,8 @@ pptx-element-renderer {
 }
 
 .pptx-ng-inspector-host {
-	flex: 0 0 240px;
-	width: 240px;
+	flex: 0 0 288px;
+	width: 288px;
 	overflow: auto;
 	border-left: 1px solid rgba(0, 0, 0, 0.1);
 	background: rgba(0, 0, 0, 0.02);

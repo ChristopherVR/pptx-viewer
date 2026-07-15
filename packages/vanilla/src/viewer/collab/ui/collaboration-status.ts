@@ -31,6 +31,7 @@ export function createCollaborationStatus(
 ): CollaborationStatus {
 	const el = createEl(doc, 'span', 'pptxv-collab-status');
 	el.hidden = true;
+	el.setAttribute('role', 'status');
 	el.setAttribute('data-testid', 'collaboration-status');
 
 	const dot = createEl(doc, 'span', 'pptxv-collab-status-dot');

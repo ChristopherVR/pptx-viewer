@@ -34,7 +34,7 @@ export interface SlideItemProps {
 	onDragStart: (e: React.DragEvent, slideIndex: number) => void;
 	onDragOver: (e: React.DragEvent) => void;
 	onDrop: (e: React.DragEvent, toIndex: number) => void;
-	slideRef: (el: HTMLDivElement | null) => void;
+	slideRef: (el: HTMLButtonElement | null) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -80,10 +80,13 @@ function SlideItemInner({
 	const previewHeight = Math.max(56, Math.round(safeCanvasHeight * scale));
 
 	return (
-		<div
+		<button
+			type='button'
 			ref={slideRef}
+			aria-label={`Go to slide ${slideIndex + 1}`}
+			aria-current={isActive ? 'true' : undefined}
 			className={cn(
-				'group relative flex items-center gap-1 cursor-pointer py-0.5 px-1 transition-all',
+				'group relative flex w-full items-center gap-1 cursor-pointer border-0 bg-transparent py-0.5 px-1 text-left transition-all',
 				isActive &&
 					'bg-accent/40 before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[3px] before:bg-primary before:rounded-r',
 				isHidden && 'opacity-50',
@@ -150,7 +153,7 @@ function SlideItemInner({
 					</div>
 				)}
 			</div>
-		</div>
+		</button>
 	);
 }
 

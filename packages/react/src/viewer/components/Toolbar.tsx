@@ -66,11 +66,16 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 
 			{/* Ribbon Tab Bar */}
 			{showRibbon && (
-				<div className='flex items-center border-b border-border/60 px-1 max-md:overflow-x-auto max-md:scrollbar-none'>
+				<div
+					role='tablist'
+					className='flex items-center border-b border-border/60 px-1 max-md:overflow-x-auto max-md:scrollbar-none'
+				>
 					{TOOLBAR_SECTIONS.map((s) => (
 						<button
 							key={s.id}
 							type='button'
+							role='tab'
+							aria-selected={toolbarSection === s.id}
 							onClick={() => onSetToolbarSection(s.id)}
 							className={cn(
 								'relative px-3.5 py-2 text-[12px] font-medium whitespace-nowrap transition-colors max-md:min-h-[36px] max-md:px-3',

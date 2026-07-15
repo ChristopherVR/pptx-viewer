@@ -22,10 +22,15 @@ export function createFieldDropdown(
 	t: Translator,
 	onSelect: (fieldType: string) => void,
 ): DropdownHandle<string> {
-	return makeDropdown<string>(doc, {
-		triggerLabel: t('pptx.field.insertField'),
+	const dropdown = makeDropdown<string>(doc, {
+		triggerLabel: t('pptx.field.field'),
 		triggerText: t('pptx.field.field'),
 		items: FIELD_OPTIONS.map((opt) => ({ label: t(opt.i18nKey), value: opt.fieldType })),
 		onSelect,
 	});
+	const trigger = dropdown.el.querySelector<HTMLButtonElement>('.pptxv-dropdown-trigger');
+	if (trigger) {
+		trigger.title = t('pptx.field.insertField');
+	}
+	return dropdown;
 }

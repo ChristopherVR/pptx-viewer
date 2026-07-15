@@ -65,6 +65,7 @@ export function CollaborationStatusIndicator({
 
 	return (
 		<div
+			role='status'
 			data-testid='collaboration-status'
 			className='flex items-center gap-1.5'
 			aria-label={t('pptx.collaboration.statusAriaLabel', {

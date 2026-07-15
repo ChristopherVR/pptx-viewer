@@ -89,6 +89,7 @@ export function SmartArtNodeRow({
 				<input
 					ref={inputRef}
 					type='text'
+					data-testid='smartart-node-text'
 					disabled={!canEdit}
 					aria-label={label}
 					className={cn(INPUT, 'flex-1 text-[11px] py-0.5')}

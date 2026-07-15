@@ -89,7 +89,10 @@ export function InsertSmartArtDialog({
 					{/* Body */}
 					<div className='flex flex-1 overflow-hidden'>
 						{/* Category sidebar */}
-						<div className='w-40 border-r border-border py-2'>
+						<nav
+							className='w-40 border-r border-border py-2'
+							aria-label={t('pptx.insertSmartArt.categories')}
+						>
 							{CATEGORIES.map((cat) => (
 								<button
 									key={cat.id}
@@ -108,15 +111,21 @@ export function InsertSmartArtDialog({
 									{t(cat.label)}
 								</button>
 							))}
-						</div>
+						</nav>
 
 						{/* Gallery grid */}
 						<div className='flex-1 p-3 overflow-y-auto'>
-							<div className='grid grid-cols-3 gap-2'>
+							<div
+								className='grid grid-cols-3 gap-2'
+								role='listbox'
+								aria-label={t('pptx.insertSmartArt.layouts')}
+							>
 								{filteredPresets.map((preset) => (
 									<button
 										key={preset.layout}
 										type='button'
+										role='option'
+										aria-selected={selectedLayout === preset.layout}
 										onClick={() => setSelectedLayout(preset.layout)}
 										onDoubleClick={() => {
 											setSelectedLayout(preset.layout);

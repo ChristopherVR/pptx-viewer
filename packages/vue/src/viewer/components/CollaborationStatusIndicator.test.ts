@@ -12,6 +12,8 @@ describe('collaborationStatusIndicator', () => {
 	it('shows a participant count when connected', () => {
 		const wrapper = mountIndicator('connected', 3);
 		expect(wrapper.text()).toContain('3 people here');
+		expect(wrapper.attributes('role')).toBe('status');
+		expect(wrapper.attributes('aria-label')).toBe('Collaboration: Connected');
 	});
 
 	it('uses singular wording for one participant', () => {

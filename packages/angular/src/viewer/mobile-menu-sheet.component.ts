@@ -68,7 +68,6 @@ interface MenuRow {
 							[class.is-active]="row.active"
 							[class.is-danger]="row.danger"
 							[disabled]="row.disabled"
-							role="menuitem"
 							[attr.aria-label]="row.labelKey | translate"
 							(click)="onRowClick(row)"
 						>

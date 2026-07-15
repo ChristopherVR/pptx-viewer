@@ -23,8 +23,8 @@ describe('inspectorPane responsive layout', () => {
 	it('uses the fixed-width side-panel layout by default (desktop)', () => {
 		const wrapper = mount(InspectorPane, { props: { element: shape() } });
 		const aside = wrapper.get('aside.pptx-vue-inspector');
-		// Desktop: fixed 15rem column with a left divider.
-		expect(aside.classes()).toContain('w-60');
+		// Desktop: fixed 18rem column with a left divider.
+		expect(aside.classes()).toContain('w-72');
 		expect(aside.classes()).toContain('border-l');
 		expect(aside.classes()).not.toContain('w-full');
 	});
@@ -34,7 +34,7 @@ describe('inspectorPane responsive layout', () => {
 		const aside = wrapper.get('aside.pptx-vue-inspector');
 		// Mobile: full width, no side divider (it lives inside MobileSheet).
 		expect(aside.classes()).toContain('w-full');
-		expect(aside.classes()).not.toContain('w-60');
+		expect(aside.classes()).not.toContain('w-72');
 		expect(aside.classes()).not.toContain('border-l');
 	});
 });

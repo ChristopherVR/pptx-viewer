@@ -38,7 +38,6 @@ export function createStatusBar(
 	handlers: StatusBarHandlers,
 ): StatusBar {
 	const el = createEl(doc, 'div', 'pptxv-statusbar');
-	el.setAttribute('role', 'toolbar');
 
 	const divider = (): HTMLElement => {
 		const rule = createEl(doc, 'span', 'pptxv-statusbar-sep');

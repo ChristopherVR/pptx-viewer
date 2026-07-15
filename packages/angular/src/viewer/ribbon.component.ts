@@ -140,7 +140,7 @@ const TABS: readonly TabDef[] = [
 			/>
 
 			<!-- ── Tab bar ───────────────────────────────────────────────────── -->
-			<div class="flex items-center border-b border-border/60 px-1">
+			<div role="tablist" class="flex items-center border-b border-border/60 px-1">
 				<!-- Scrollable tab strip: on narrow widths the tabs scroll instead of
 				     clipping (mirrors React's max-md:overflow-x-auto scrollbar-none),
 				     while the Record/Share actions and collapse toggle stay pinned. -->
@@ -148,6 +148,8 @@ const TABS: readonly TabDef[] = [
 					@for (t of tabs; track t.id) {
 						<button
 							type="button"
+							role="tab"
+							[attr.aria-selected]="activeTab() === t.id"
 							(click)="activeTab.set(t.id)"
 							class="relative whitespace-nowrap px-3.5 py-2 text-[12px] font-medium transition-colors"
 							[ngClass]="
@@ -175,29 +177,39 @@ const TABS: readonly TabDef[] = [
 							<span>{{ 'pptx.titleBar.record' | translate }}</span>
 						</button>
 					}
-					<button
-						type="button"
-						class="relative inline-flex items-center gap-1 whitespace-nowrap rounded-sm px-2.5 py-1 text-[11px] font-medium text-white transition-colors"
-						[ngClass]="
+					<div
+						role="status"
+						[attr.aria-label]="
 							collabConnected()
-								? 'bg-green-600 hover:bg-green-500'
-								: 'bg-primary hover:bg-primary/90'
+								? ('pptx.collaboration.statusAriaLabel'
+									| translate: { status: 'pptx.collaboration.status.connected' | translate })
+								: null
 						"
-						[title]="
-							collabConnected()
-								? ('pptx.toolbar.sharingUsers' | translate: { count: connectedCount() })
-								: ('pptx.toolbar.share' | translate)
-						"
-						[attr.aria-label]="'pptx.toolbar.share' | translate"
-						(click)="share.emit()"
 					>
-						<svg lucideShare2 class="h-3.5 w-3.5"></svg>
-						<span>{{
-							collabConnected()
-								? ('pptx.toolbar.sharingCount' | translate: { count: connectedCount() })
-								: ('pptx.toolbar.share' | translate)
-						}}</span>
-					</button>
+						<button
+							type="button"
+							class="relative inline-flex items-center gap-1 whitespace-nowrap rounded-sm px-2.5 py-1 text-[11px] font-medium text-white transition-colors"
+							[ngClass]="
+								collabConnected()
+									? 'bg-green-600 hover:bg-green-500'
+									: 'bg-primary hover:bg-primary/90'
+							"
+							[title]="
+								collabConnected()
+									? ('pptx.toolbar.sharingUsers' | translate: { count: connectedCount() })
+									: ('pptx.toolbar.share' | translate)
+							"
+							[attr.aria-label]="'pptx.toolbar.share' | translate"
+							(click)="share.emit()"
+						>
+							<svg lucideShare2 class="h-3.5 w-3.5"></svg>
+							<span>{{
+								collabConnected()
+									? ('pptx.toolbar.sharingCount' | translate: { count: connectedCount() })
+									: ('pptx.toolbar.share' | translate)
+							}}</span>
+						</button>
+					</div>
 				</div>
 
 				<button

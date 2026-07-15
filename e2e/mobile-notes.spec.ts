@@ -20,7 +20,7 @@ test('notes editor stays mounted when the virtual keyboard opens', async ({ page
 	// Open the notes panel from the mobile bottom bar.
 	await page
 		.locator('nav')
-		.getByRole('button', { name: /^(?:Notes|Toggle notes)$/iu })
+		.getByRole('button', { name: 'Toggle notes', exact: true })
 		.filter({ visible: true })
 		.last()
 		.click();

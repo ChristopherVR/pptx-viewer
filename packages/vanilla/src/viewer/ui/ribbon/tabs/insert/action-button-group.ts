@@ -15,8 +15,8 @@ export function createActionButtonDropdown(
 	t: Translator,
 	onSelect: (shapeType: string) => void,
 ): DropdownHandle<string> {
-	return makeDropdown<string>(doc, {
-		triggerLabel: t('pptx.ribbon.insertActionButton'),
+	const dropdown = makeDropdown<string>(doc, {
+		triggerLabel: t('pptx.ribbon.action'),
 		triggerText: t('pptx.ribbon.action'),
 		items: ACTION_BUTTON_PRESETS.map((preset) => ({
 			label: preset.label,
@@ -24,4 +24,9 @@ export function createActionButtonDropdown(
 		})),
 		onSelect,
 	});
+	const trigger = dropdown.el.querySelector<HTMLButtonElement>('.pptxv-dropdown-trigger');
+	if (trigger) {
+		trigger.title = t('pptx.ribbon.insertActionButton');
+	}
+	return dropdown;
 }

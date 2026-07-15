@@ -74,6 +74,7 @@ function ensureTransitionKeyframes(): void {
  */
 @Component({
 	selector: 'pptx-presentation-transition-overlay',
+	host: { 'data-pptx-transition-overlay': '' },
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [NgStyle, SlideCanvasComponent],
@@ -95,7 +96,11 @@ function ensureTransitionKeyframes(): void {
 		}
 	`,
 	template: `
-		<div class="pptx-ng-transition-layer" [ngStyle]="layerStyle()">
+		<div
+			class="pptx-ng-transition-layer"
+			data-pptx-transition-layer="outgoing"
+			[ngStyle]="layerStyle()"
+		>
 			<div [ngStyle]="slideBoxStyle()">
 				<pptx-slide-canvas
 					[slide]="layerSlide()"

@@ -532,12 +532,14 @@ export function PresentationTransitionOverlay({
 	return (
 		<div
 			ref={containerRef}
+			data-pptx-transition-overlay
 			className='pptx-react-transition-overlay absolute inset-0 pointer-events-none overflow-hidden'
 			style={{ zIndex: outgoingZIndex }}
 		>
 			{/* Inject the transition @keyframes so the `animation` shorthands resolve. */}
 			<style>{SLIDE_TRANSITION_KEYFRAMES}</style>
 			<div
+				data-pptx-transition-layer='outgoing'
 				className='pptx-react-transition-layer absolute inset-0 flex items-center justify-center'
 				style={{
 					animation: animations.outgoing !== 'none' ? animations.outgoing : undefined,

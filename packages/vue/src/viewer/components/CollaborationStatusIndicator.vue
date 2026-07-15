@@ -72,6 +72,7 @@ const ariaLabel = computed<string>(() =>
 
 <template>
 	<div
+		role="status"
 		class="pptx-vue-collab-status flex items-center gap-1.5"
 		data-testid="collaboration-status"
 		:aria-label="ariaLabel"

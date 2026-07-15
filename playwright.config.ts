@@ -63,7 +63,7 @@ export default defineConfig({
 	],
 	webServer: [
 		{
-			command: `npx vite --port ${REACT_PORT} --strictPort`,
+			command: `npx vite --force --port ${REACT_PORT} --strictPort`,
 			cwd: 'demos/demo-react',
 			url: `http://localhost:${REACT_PORT}`,
 			reuseExistingServer: !isCI,
@@ -72,7 +72,7 @@ export default defineConfig({
 			stderr: 'pipe',
 		},
 		{
-			command: `npx vite --port ${VUE_PORT} --strictPort`,
+			command: `npx vite --force --port ${VUE_PORT} --strictPort`,
 			cwd: 'demos/demo-vue',
 			url: `http://localhost:${VUE_PORT}`,
 			reuseExistingServer: !isCI,
@@ -81,7 +81,7 @@ export default defineConfig({
 			stderr: 'pipe',
 		},
 		{
-			command: `npx vite --port ${ANGULAR_PORT} --strictPort`,
+			command: `npx vite --force --port ${ANGULAR_PORT} --strictPort`,
 			cwd: 'demos/demo-angular',
 			url: `http://localhost:${ANGULAR_PORT}`,
 			reuseExistingServer: !isCI,
@@ -90,7 +90,7 @@ export default defineConfig({
 			stderr: 'pipe',
 		},
 		{
-			command: `npx vite --port ${VANILLA_PORT} --strictPort`,
+			command: `npx vite --force --port ${VANILLA_PORT} --strictPort`,
 			cwd: 'demos/demo-vanilla',
 			url: `http://localhost:${VANILLA_PORT}`,
 			reuseExistingServer: !isCI,
@@ -99,7 +99,7 @@ export default defineConfig({
 			stderr: 'pipe',
 		},
 		{
-			command: `npx vite --port ${SVELTE_PORT} --strictPort`,
+			command: `npx vite --force --port ${SVELTE_PORT} --strictPort`,
 			cwd: 'demos/demo-svelte',
 			url: `http://localhost:${SVELTE_PORT}`,
 			reuseExistingServer: !isCI,

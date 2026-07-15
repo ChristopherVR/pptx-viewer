@@ -16,6 +16,8 @@ describe('makeDropdown', () => {
 		});
 		const trigger = dd.el.querySelector<HTMLButtonElement>('.pptxv-dropdown-trigger')!;
 		const menu = dd.el.querySelector<HTMLElement>('.pptxv-dropdown-menu')!;
+		expect(trigger.getAttribute('aria-haspopup')).toBe('listbox');
+		expect(menu.getAttribute('aria-label')).toBe('Font size');
 		expect(menu.hidden).toBeTruthy();
 
 		trigger.click();
@@ -74,5 +76,7 @@ describe('makeDropdown', () => {
 		const items = dd.el.querySelectorAll<HTMLButtonElement>('.pptxv-dropdown-item');
 		expect(items[0].classList.contains('is-selected')).toBeFalsy();
 		expect(items[1].classList.contains('is-selected')).toBeTruthy();
+		expect(items[0].getAttribute('aria-selected')).toBe('false');
+		expect(items[1].getAttribute('aria-selected')).toBe('true');
 	});
 });

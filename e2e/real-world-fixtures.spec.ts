@@ -66,11 +66,10 @@ test.describe('real-world presentation fixtures', () => {
 	test('navigates the large presentation to its final slide', async ({ page }) => {
 		const fixture = FIXTURES[0]!;
 		await loadFixture(page, fixture);
-		const lastThumbnail = page
-			.getByRole('button', { name: `Go to slide ${fixture.slides}`, exact: true })
-			.or(page.getByRole('option', { name: `Slide ${fixture.slides}`, exact: true }))
-			.or(page.getByText(String(fixture.slides), { exact: true }).filter({ visible: true }))
-			.first();
+		const lastThumbnail = page.getByRole('button', {
+			name: `Go to slide ${fixture.slides}`,
+			exact: true,
+		});
 		await lastThumbnail.click();
 		await expect(
 			page.getByText(new RegExp(`${fixture.slides} of ${fixture.slides}`, 'u')),

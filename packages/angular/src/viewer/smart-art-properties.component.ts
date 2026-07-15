@@ -94,6 +94,7 @@ import {
 					@for (layout of layoutTypes; track layout) {
 						<button
 							type="button"
+							[attr.data-testid]="'smartart-layout-' + layout"
 							class="pptx-sa-props__layout"
 							[class.is-active]="activeLayout() === layout"
 							[disabled]="!canEdit()"
@@ -111,6 +112,8 @@ import {
 				<span class="pptx-sa-props__label">{{ 'pptx.smartart.colorScheme' | translate }}</span>
 				<select
 					class="pptx-sa-props__select"
+					data-testid="smartart-color-scheme"
+					[attr.aria-label]="'pptx.smartart.colorScheme' | translate"
 					[disabled]="!canEdit()"
 					[value]="activeColorScheme()"
 					(change)="onColorScheme($event)"
@@ -174,11 +177,13 @@ import {
 						<span class="pptx-sa-props__bullet">{{ isChild(node) ? '•' : i + 1 }}</span>
 						<input
 							type="text"
+							data-testid="smartart-node-text"
+							[attr.aria-label]="node.text"
 							class="pptx-sa-props__node-input"
 							[disabled]="!canEdit()"
 							[value]="node.text"
 							[attr.placeholder]="'pptx.smartArt.nodePlaceholder' | translate"
-							(change)="onNodeText($event, node.id)"
+							(input)="onNodeText($event, node.id)"
 							(keydown)="onNodeKeydown($event, node.id)"
 						/>
 						<div class="pptx-sa-props__node-actions">

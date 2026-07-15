@@ -43,7 +43,7 @@ export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): Dro
 	trigger.type = 'button';
 	trigger.title = options.triggerLabel;
 	trigger.setAttribute('aria-label', options.triggerLabel);
-	trigger.setAttribute('aria-haspopup', 'true');
+	trigger.setAttribute('aria-haspopup', 'listbox');
 	trigger.setAttribute('aria-expanded', 'false');
 	const textEl = createEl(doc, 'span', 'pptxv-dropdown-text');
 	textEl.textContent = options.triggerText;
@@ -53,6 +53,7 @@ export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): Dro
 
 	const menu = createEl(doc, 'div', 'pptxv-dropdown-menu');
 	menu.setAttribute('role', 'listbox');
+	menu.setAttribute('aria-label', options.triggerLabel);
 	menu.hidden = true;
 	el.appendChild(menu);
 
@@ -69,7 +70,9 @@ export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): Dro
 
 	const applySelected = (): void => {
 		for (const [btn, value] of itemButtons) {
-			btn.classList.toggle('is-selected', selected !== undefined && value === selected);
+			const isSelected = selected !== undefined && value === selected;
+			btn.classList.toggle('is-selected', isSelected);
+			btn.setAttribute('aria-selected', String(isSelected));
 		}
 	};
 
@@ -77,6 +80,7 @@ export function makeDropdown<T>(doc: Document, options: DropdownOptions<T>): Dro
 		const btn = createEl(doc, 'button', 'pptxv-dropdown-item');
 		btn.type = 'button';
 		btn.setAttribute('role', 'option');
+		btn.setAttribute('aria-selected', 'false');
 		btn.textContent = item.label;
 		if (item.style) {
 			Object.assign(btn.style, item.style);

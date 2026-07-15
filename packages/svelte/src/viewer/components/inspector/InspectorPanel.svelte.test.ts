@@ -104,6 +104,7 @@ describe('inspectorPanel', () => {
 		const { target } = mountInspector(editor);
 
 		expect(target.querySelector('aside')?.getAttribute('aria-label')).toBe('Properties');
+		expect(target.querySelector('aside')?.hasAttribute('data-pptx-inspector')).toBe(true);
 		expect(target.querySelector('.pptx-svelte-inspector-empty')).not.toBeNull();
 		expect(target.querySelector('.pptx-svelte-inspector-grid')).toBeNull();
 	});

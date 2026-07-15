@@ -27,6 +27,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 			class="pptx-rb-pill"
 			[disabled]="slideCount() === 0"
 			(click)="save.emit()"
+			[attr.aria-label]="'pptx.file.saveAsPptx' | translate"
 			[title]="'pptx.ribbon.saveAsPptx' | translate"
 		>
 			{{ 'pptx.toolbar.save' | translate }}

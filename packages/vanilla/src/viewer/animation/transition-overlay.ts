@@ -36,14 +36,27 @@ export function playTransitionOverlay(params: TransitionOverlayParams): () => vo
 
 	const overlay = doc.createElement('div');
 	overlay.className = 'pptxv-transition-overlay';
+	overlay.dataset.pptxTransitionOverlay = '';
 	overlay.style.position = 'absolute';
 	overlay.style.inset = '0';
 	overlay.style.overflow = 'hidden';
 	overlay.style.pointerEvents = 'none';
 	overlay.style.zIndex = '30';
 
-	const outLayer = buildLayer(doc, outgoing, resolved.outgoingOnTop ? 2 : 1, resolved.outgoing);
-	const inLayer = buildLayer(doc, incoming, resolved.outgoingOnTop ? 1 : 2, resolved.incoming);
+	const outLayer = buildLayer(
+		doc,
+		outgoing,
+		resolved.outgoingOnTop ? 2 : 1,
+		resolved.outgoing,
+		'outgoing',
+	);
+	const inLayer = buildLayer(
+		doc,
+		incoming,
+		resolved.outgoingOnTop ? 1 : 2,
+		resolved.incoming,
+		'incoming',
+	);
 	overlay.append(outLayer, inLayer);
 	stageWrap.appendChild(overlay);
 
@@ -70,9 +83,11 @@ function buildLayer(
 	stage: HTMLElement,
 	zIndex: number,
 	animation: string,
+	state: 'outgoing' | 'incoming',
 ): HTMLElement {
 	const layer = doc.createElement('div');
 	layer.className = 'pptxv-transition-layer';
+	layer.dataset.pptxTransitionLayer = state;
 	layer.style.position = 'absolute';
 	layer.style.top = '0';
 	layer.style.left = '0';

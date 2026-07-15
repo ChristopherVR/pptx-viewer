@@ -221,6 +221,7 @@ export function SmartArtPropertiesPanel({
 					<span className='text-muted-foreground'>{t('pptx.smartart.colorScheme')}</span>
 					<select
 						disabled={!canEdit}
+						data-testid='smartart-color-scheme'
 						aria-label={t('pptx.smartart.colorScheme')}
 						className={cn(INPUT, 'w-full')}
 						value={smartArtData.colorScheme ?? 'colorful1'}

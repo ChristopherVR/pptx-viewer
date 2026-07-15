@@ -76,6 +76,7 @@
 				type="button"
 				class:active={active === action.key}
 				aria-pressed={active === action.key}
+				aria-label={action.key === 'notes' ? t('pptx.statusBar.toggleNotes') : undefined}
 				disabled={action.disabled}
 				onclick={() => {
 					if (action.key === 'insert') {
@@ -98,6 +99,7 @@
 		.pptx-svelte-mobile-actions { display: contents; }
 		.pptx-svelte-mobile-actions nav { position: absolute; z-index: 50; right: 0; bottom: 0; left: 0; display: flex; min-height: 64px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--pptx-border, #33334d); background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 94%, transparent); }
 		.pptx-svelte-mobile-actions nav button { display: grid; flex: 1; place-items: center; align-content: center; gap: 1px; min-width: 44px; border: 0; background: transparent; color: var(--pptx-muted-foreground, #94a3b8); touch-action: manipulation; }
+		.pptx-svelte-mobile-actions nav button:focus-visible, .pptx-svelte-mobile-menu-grid button:focus-visible { outline: 2px solid var(--pptx-ring, #6366f1); outline-offset: -2px; }
 		.pptx-svelte-mobile-actions nav button.active { color: var(--pptx-primary, #818cf8); }
 		.pptx-svelte-mobile-actions nav span { font-size: 21px; line-height: 1; }
 		.pptx-svelte-mobile-actions nav small { font-size: 10px; }

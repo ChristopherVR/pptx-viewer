@@ -525,6 +525,23 @@ function requestElementEdit(id: string): void {
 	enterInlineEdit(id);
 }
 
+/** Double-clicking a rendered equation always opens its edit dialog. */
+function onCanvasDoubleClick(event: MouseEvent): void {
+	const target = event.target instanceof Element ? event.target : null;
+	const id = target?.closest<HTMLElement>('[data-element-id]')?.dataset.elementId;
+	if (!id) {
+		return;
+	}
+	const element = findActiveElement(id);
+	if (
+		element &&
+		hasTextProperties(element) &&
+		(element.textSegments ?? []).some((segment) => segment.equationXml)
+	) {
+		requestElementEdit(id);
+	}
+}
+
 /** Escape: disarm the painter first, otherwise clear the selection. */
 function onEscape(): void {
 	if (inlineEditingElementId.value) {
@@ -541,8 +558,7 @@ function onEscape(): void {
 /** Click-to-select via event delegation (elements render `data-element-id`). */
 // ── Touch double-tap detection (mirrors React/Angular canvas-level detection) ──
 // On mobile, native `dblclick` is not reliably synthesised from two quick taps.
-// We track the last touch tap by element id + coordinates and, when a second tap
-// lands within DOUBLE_TAP_MS on the same element, treat it as a double-tap.
+// Track the last touch tap by element id and coordinates.
 const DOUBLE_TAP_MS = 400;
 const lastCanvasTap = ref<{ id: string; time: number; x: number; y: number } | null>(null);
 
@@ -565,7 +581,6 @@ function onCanvasPointerDown(event: PointerEvent): void {
 
 	// Touch double-tap detection: two quick taps on the same element (or close
 	// enough coordinates that the element didn't move) trigger inline/cell edit.
-	// Mouse presses are excluded — desktop uses native dblclick.
 	if (event.pointerType !== 'mouse') {
 		const now = event.timeStamp || Date.now();
 		const last = lastCanvasTap.value;
@@ -1751,6 +1766,7 @@ function handleCommandSearch(command: string): void {
 					class="pptx-vue-main"
 					:class="{ 'is-editable': props.canEdit }"
 					@pointerdown="onCanvasPointerDown"
+					@dblclick.capture="onCanvasDoubleClick"
 					@contextmenu="onCanvasContextMenu"
 					@pointermove="onCollabPointerMove"
 					@touchstart="onMainTouchStart"
@@ -2235,6 +2251,7 @@ function handleCommandSearch(command: string): void {
 			<MobileSheet
 				v-if="isMobile && props.canEdit && !presenting"
 				:open="mobileInspectorOpen"
+				inspector
 				:title="t('pptx.arrange.format')"
 				@close="mobileInspectorOpen = false"
 			>

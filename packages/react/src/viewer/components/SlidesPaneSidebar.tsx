@@ -48,7 +48,7 @@ export function SlidesPaneSidebar({
 }: SlidesPaneSidebarProps): React.ReactElement | null {
 	const { t } = useTranslation();
 	const collab = useCollaboration();
-	const slideRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+	const slideRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
 	const renameInputRef = useRef<HTMLInputElement>(null);
 
 	// Build per-slide presence map from remote users
@@ -144,7 +144,7 @@ export function SlidesPaneSidebar({
 	}, [renamingSectionId]);
 
 	const setSlideRef = useCallback(
-		(idx: number) => (el: HTMLDivElement | null) => {
+		(idx: number) => (el: HTMLButtonElement | null) => {
 			if (el) {
 				slideRefs.current.set(idx, el);
 			} else {

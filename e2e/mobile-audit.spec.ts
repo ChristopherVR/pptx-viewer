@@ -35,18 +35,15 @@ function shot(page: Page, name: string) {
 	return page.screenshot({ path: resolve(shotDir, `${name}.png`) });
 }
 
-// Vue uses "Slide controls"; the other four bindings use "Editor actions".
-function bottomBarNav(page: Page, projectName: string) {
-	return page.getByRole('navigation', {
-		name: projectName === 'vue' ? 'Slide controls' : 'Editor actions',
-	});
+function bottomBarNav(page: Page) {
+	return page.getByRole('navigation', { name: 'Editor actions' });
 }
 
 test.describe('mobile audit (Pixel 7 touch)', () => {
-	test('01 layout: mobile toolbar + bottom bar render under 768px', async ({ page }, testInfo) => {
+	test('01 layout: mobile toolbar + bottom bar render under 768px', async ({ page }) => {
 		await load(page);
 		const toolbar = page.getByRole('toolbar', { name: 'Toolbar' });
-		const bottomBar = bottomBarNav(page, testInfo.project.name);
+		const bottomBar = bottomBarNav(page);
 		await expect(toolbar).toBeVisible();
 		await expect(bottomBar).toBeVisible();
 		// The desktop ribbon (multi-row) must NOT be present at this width.
@@ -61,12 +58,7 @@ test.describe('mobile audit (Pixel 7 touch)', () => {
 		await shot(page, '02-menu-sheet');
 		// The sheet should surface section entries (Home/Insert/Design/etc.)
 		const actions = page.getByRole('dialog').first();
-		await expect(
-			actions
-				.getByRole('button', { name: /^Insert/iu })
-				.or(actions.getByRole('menuitem', { name: /^Insert/iu }))
-				.first(),
-		).toBeVisible();
+		await expect(actions.getByRole('button', { name: /^Insert/iu }).first()).toBeVisible();
 	});
 
 	test('03 bottom bar: slides sheet opens & selects', async ({ page }) => {
@@ -97,9 +89,9 @@ test.describe('mobile audit (Pixel 7 touch)', () => {
 		await shot(page, '05-comments-sheet');
 	});
 
-	test('06 bottom bar: notes editor opens & is editable', async ({ page }, testInfo) => {
+	test('06 bottom bar: notes editor opens & is editable', async ({ page }) => {
 		await load(page);
-		await bottomBarNav(page, testInfo.project.name).getByRole('button', { name: 'Notes' }).tap();
+		await bottomBarNav(page).getByRole('button', { name: 'Notes' }).tap();
 		const panel = page.locator('#slide-notes-content');
 		await expect(panel).toBeVisible();
 		await shot(page, '06-notes');
@@ -115,7 +107,7 @@ test.describe('mobile audit (Pixel 7 touch)', () => {
 		expect(after).toBeGreaterThan(before);
 	});
 
-	test('08 present mode: touch controls appear and navigate', async ({ page }, testInfo) => {
+	test('08 present mode: touch controls appear and navigate', async ({ page }) => {
 		await load(page);
 		await page
 			.getByRole('button', { name: /present|slide show/iu })
@@ -135,7 +127,7 @@ test.describe('mobile audit (Pixel 7 touch)', () => {
 		await close.tap();
 		await page.waitForTimeout(500);
 		// back to edit chrome
-		await expect(bottomBarNav(page, testInfo.project.name)).toBeVisible();
+		await expect(bottomBarNav(page)).toBeVisible();
 	});
 
 	test('09 present mode: horizontal swipe advances the slide', async ({ page }) => {

@@ -118,10 +118,7 @@ async function loadDeck(page: Page, options: { threeD?: boolean } = {}): Promise
  */
 async function switchToInsertTab(page: Page): Promise<void> {
 	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-	const insertTab = toolbar
-		.getByRole('tab', { name: 'Insert', exact: true })
-		.or(toolbar.getByRole('button', { name: 'Insert', exact: true }))
-		.first();
+	const insertTab = toolbar.getByRole('tab', { name: 'Insert', exact: true });
 	await insertTab.click();
 	await page.waitForTimeout(200);
 }
@@ -129,9 +126,6 @@ async function switchToInsertTab(page: Page): Promise<void> {
 /** Open the Insert SmartArt dialog. */
 async function openSmartArtDialog(page: Page): Promise<void> {
 	await switchToInsertTab(page);
-	if (projectName(page) === 'vanilla') {
-		return;
-	}
 	await page.getByRole('button', { name: 'SmartArt' }).click();
 	await page.waitForTimeout(300);
 }
@@ -143,21 +137,6 @@ async function openSmartArtDialog(page: Page): Promise<void> {
  * gallery grid, mirroring `smartart-insert-edit.spec.ts`.
  */
 async function insertFirstPresetInCategory(page: Page, categoryName: RegExp): Promise<void> {
-	const project = projectName(page);
-	if (project === 'vanilla' || project === 'svelte') {
-		const presetPattern = categoryName.source.includes('Hierarchy') ? /Hierarchy/iu : /Cycle/iu;
-		const scope =
-			project === 'vanilla'
-				? page.locator('.pptxv-smartart-grid')
-				: page.locator('.pptx-svelte-smartart-grid');
-		const target =
-			project === 'svelte'
-				? scope.getByRole('menuitem').filter({ hasText: presetPattern }).first()
-				: scope.getByRole('button', { name: presetPattern }).first();
-		await target.click();
-		await page.waitForTimeout(600);
-		return;
-	}
 	const dialog = page.getByRole('dialog', { name: /Insert SmartArt/iu });
 	await expect(dialog).toBeVisible();
 
@@ -166,17 +145,8 @@ async function insertFirstPresetInCategory(page: Page, categoryName: RegExp): Pr
 	await page.waitForTimeout(200);
 
 	const galleryItem = dialog.getByRole('option').first();
-	if (await galleryItem.isVisible()) {
-		await galleryItem.click();
-	} else {
-		// React gallery items are unadorned buttons; the sidebar (List, Process,
-		// Cycle, Hierarchy, Relationship, ...) precedes the gallery grid, so the
-		// first preset button is the one right after the now-active category.
-		const galleryButtons = dialog
-			.locator('div.flex-1.overflow-y-auto button')
-			.filter({ hasText: /./u });
-		await galleryButtons.first().click();
-	}
+	await expect(galleryItem).toBeVisible();
+	await galleryItem.click();
 	await page.waitForTimeout(100);
 
 	const insertBtn = dialog.getByRole('button', { name: /^Insert$/iu });
@@ -219,46 +189,15 @@ function elementInViewport(page: Page, id: string): Locator {
  * `aria-label="Properties"` (same contract inspector-responsiveness.spec.ts
  * relies on).
  */
-async function openInspector(page: Page, project: string): Promise<void> {
-	if (project === 'angular') {
-		return;
-	}
-	const alreadyOpen =
-		project === 'vue'
-			? await page
-					.locator('[data-testid="smartart-layouts"], [data-testid="smartart-panel"]')
-					.first()
-					.isVisible()
-			: await page.getByRole('complementary', { name: 'Properties' }).isVisible();
-	if (alreadyOpen) {
-		return;
-	}
-	const label = project === 'react' ? 'Toggle inspector panel' : 'Toggle inspector';
-	const toggleBtn = page.getByRole('button', { name: label });
-	if (await toggleBtn.isVisible()) {
+async function openInspector(page: Page): Promise<void> {
+	const inspector = page.locator('[data-pptx-inspector]:visible').first();
+	if (!(await inspector.isVisible().catch(() => false))) {
+		const toggleBtn = page.getByRole('button', { name: 'Toggle inspector panel', exact: true });
+		await expect(toggleBtn).toBeVisible();
 		await toggleBtn.click();
 		await page.waitForTimeout(200);
 	}
-}
-
-function projectName(page: Page): string {
-	const url = page.url();
-	if (url.includes('4173')) {
-		return 'react';
-	}
-	if (url.includes('4175')) {
-		return 'vue';
-	}
-	if (url.includes('4174')) {
-		return 'angular';
-	}
-	if (url.includes('4176')) {
-		return 'vanilla';
-	}
-	if (url.includes('4177')) {
-		return 'svelte';
-	}
-	return 'react';
+	await expect(inspector).toBeVisible();
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -361,15 +300,11 @@ test.describe('3D SmartArt (smartArt3D opt-in)', () => {
 		// in case selection was lost) and open the inspector's layout switcher.
 		await el.click();
 		await page.waitForTimeout(200);
-		const project = projectName(page);
-		await openInspector(page, project);
+		await openInspector(page);
 		await page.waitForTimeout(300);
 
-		const hierarchyByTestId = page.locator('[data-testid="smartart-layout-hierarchy"]');
-		const hierarchyByTitle = page.getByRole('button', { name: /^Hierarchy$/iu });
-		const switchTarget = (await hierarchyByTestId.isVisible())
-			? hierarchyByTestId
-			: hierarchyByTitle;
+		const switchTarget = page.locator('[data-testid="smartart-layout-hierarchy"]');
+		await expect(switchTarget).toBeVisible();
 		await switchTarget.click();
 		await page.waitForTimeout(600);
 

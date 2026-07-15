@@ -29,6 +29,10 @@ describe('master thumbnail rail', () => {
 		);
 
 		expect(rail.el.querySelectorAll('button')).toHaveLength(2);
+		expect(rail.el.tagName).toBe('ASIDE');
+		expect(rail.el.getAttribute('role')).toBe('navigation');
+		expect(rail.el.getAttribute('aria-label')).toBe('Slides');
+		expect(rail.el.querySelector('button')?.getAttribute('aria-current')).toBe('page');
 		expect(rail.el.textContent).toContain('Corporate');
 		expect(rail.el.textContent).toContain('Title');
 		(rail.el.querySelectorAll('button')[1] as HTMLButtonElement).click();

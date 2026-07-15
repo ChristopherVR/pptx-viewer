@@ -41,17 +41,14 @@ async function enterPresentation(page: Page): Promise<void> {
 		.tap();
 }
 
-// Vue uses "Slide controls"; the other four bindings use "Editor actions".
-function bottomBarNav(page: Page, projectName: string) {
-	return page.getByRole('navigation', {
-		name: projectName === 'vue' ? 'Slide controls' : 'Editor actions',
-	});
+function bottomBarNav(page: Page) {
+	return page.getByRole('navigation', { name: 'Editor actions' });
 }
 
 test.describe('tablet portrait (820×1180, touch)', () => {
 	test.use({ viewport: { width: 820, height: 1180 }, hasTouch: true, isMobile: true });
 
-	test('edit layout adapts without horizontal overflow', async ({ page }, testInfo) => {
+	test('edit layout adapts without horizontal overflow', async ({ page }) => {
 		await load(page);
 		await page.screenshot({ path: resolve(shotDir, 'tablet-edit.png') });
 
@@ -64,7 +61,7 @@ test.describe('tablet portrait (820×1180, touch)', () => {
 
 		// Tablet keeps the desktop chrome (no mobile bottom bar) — it's tall
 		// enough for the ribbon + panels.
-		await expect(bottomBarNav(page, testInfo.project.name)).not.toBeVisible();
+		await expect(bottomBarNav(page)).not.toBeVisible();
 	});
 
 	test('present mode fits and shows touch controls', async ({ page }) => {
@@ -79,7 +76,7 @@ test.describe('tablet portrait (820×1180, touch)', () => {
 test.describe('landscape phone (915×412, touch)', () => {
 	test.use({ viewport: { width: 915, height: 412 }, hasTouch: true, isMobile: true });
 
-	test('edit layout uses mobile chrome in landscape', async ({ page }, testInfo) => {
+	test('edit layout uses mobile chrome in landscape', async ({ page }) => {
 		await load(page);
 		await page.screenshot({ path: resolve(shotDir, 'landscape-edit.png') });
 		const overflow = await page.evaluate(() => {
@@ -90,7 +87,7 @@ test.describe('landscape phone (915×412, touch)', () => {
 
 		// A short landscape phone must get the mobile chrome — both the bottom
 		// action bar and the compact top toolbar (not the desktop ribbon).
-		await expect(bottomBarNav(page, testInfo.project.name)).toBeVisible();
+		await expect(bottomBarNav(page)).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Menu' })).toBeVisible();
 	});
 

@@ -7,17 +7,7 @@
  *   - Tablet:  desktop-style side panel visible without tapping Format
  *   - Desktop: fixed-width side panel always accessible via toggle
  *
- * Inspector selectors per framework:
- *   React:   role="complementary" aria-label="Properties"  (ViewerInspector.tsx)
- *   Vue:     aside[aria-label="Properties"]                (InspectorPane.vue)
- *   Angular: aside[aria-label="Element properties"]        (power-point-viewer.component.ts)
- *   Vanilla/Svelte: aside[aria-label="Properties"]
- *
- * Opening the inspector:
- *   React:   starts closed; opened via "Toggle inspector panel" button (ToolbarPrimaryRow.tsx)
- *   Vue:     inspectorOpen starts as true (ref(true)) but needs an element selected + !isMobile
- *   Angular: auto-opens when an element is selected (inspectorContent() computed)
- *   Vanilla/Svelte: properties surface is available after element selection
+ * Every binding exposes the same `[data-pptx-inspector]` properties surface.
  *
  * Run: bunx playwright test inspector-responsiveness
  */
@@ -43,20 +33,8 @@ async function load(page: Page): Promise<void> {
  * Open the inspector side panel via the toolbar toggle button.
  * Bindings with an already-open or selection-driven inspector need no toggle.
  */
-async function openInspector(page: Page, project: string): Promise<void> {
-	if (project === 'angular') {
-		// Angular inspector auto-opens when selectedElement() is truthy; no toggle needed.
-		return;
-	}
-	// Vue's inspector pane starts OPEN (a slide-level "Slide Properties" panel is
-	// shown until an element is selected, when it becomes the "Properties" panel).
-	// React's starts closed. The toggle button flips the pane, so clicking it while
-	// the pane is already open would CLOSE it. Skip the click when a side panel is
-	// already present so this helper is idempotent across frameworks.
-	const alreadyOpen =
-		project === 'vue'
-			? page.locator('aside[aria-label="Properties"], aside[aria-label="Slide Properties"]')
-			: page.getByRole('complementary', { name: 'Properties' });
+async function openInspector(page: Page): Promise<void> {
+	const alreadyOpen = page.locator('[data-pptx-inspector]:visible');
 	if (
 		await alreadyOpen
 			.first()
@@ -65,14 +43,7 @@ async function openInspector(page: Page, project: string): Promise<void> {
 	) {
 		return;
 	}
-	// React and Vue have a toggle inspector button in the primary toolbar row.
-	// React:  aria-label="Toggle inspector panel"  (uses i18n key pptx.toolbar.toggleInspector)
-	// Vue:    aria-label="Toggle inspector panel"   (ToolbarPrimaryRow.vue, same key)
-	if (project === 'vanilla' || project === 'svelte') {
-		return;
-	}
-	const label = project === 'react' ? 'Toggle inspector panel' : 'Toggle inspector';
-	const toggleBtn = page.getByRole('button', { name: label });
+	const toggleBtn = page.getByRole('button', { name: 'Toggle inspector panel' });
 	// Only click if the inspector is not already open (button may be hidden on mobile).
 	if (await toggleBtn.isVisible()) {
 		await toggleBtn.click();
@@ -81,29 +52,14 @@ async function openInspector(page: Page, project: string): Promise<void> {
 }
 
 /** Return the inspector side panel locator for the given framework. */
-function inspectorLocator(page: Page, project: string) {
-	if (project === 'react') {
-		return page.getByRole('complementary', { name: 'Properties' });
-	}
-	if (project === 'angular') {
-		return page.locator('aside[aria-label="Element properties"]');
-	}
-	// Vue: aside[aria-label="Properties"]
-	return page.locator('aside[aria-label="Properties"]');
+function inspectorLocator(page: Page) {
+	return page.locator('[data-pptx-inspector]:visible');
 }
 
 // ── Mobile (375x812, touch) ──────────────────────────────────────────────────
 
 test.describe('mobile inspector (375x812, touch)', () => {
 	test.use({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
-
-	// Vue's mobile inspector opens as a MobileSheet (role="dialog") which differs from
-	// the complementary-region approach. Vue's Format tap triggers
-	// openMobileSheet('format') rendering a <MobileSheet> with a "Format" title. The
-	// Format button in every binding's bottom bar uses aria-label="Format",
-	// so that part of the test passes -- but the sheet is a role="dialog" container
-	// rather than the inspector complementary region. We include Vue for the Format
-	// button and sheet existence checks below.
 
 	test('Format button visible in bottom bar after selecting an element', async ({
 		page,
@@ -136,24 +92,7 @@ test.describe('mobile inspector (375x812, touch)', () => {
 		await page.getByRole('button', { name: 'Format' }).tap();
 		await page.waitForTimeout(300);
 
-		if (
-			testInfo.project.name === 'vue' ||
-			testInfo.project.name === 'vanilla' ||
-			testInfo.project.name === 'svelte'
-		) {
-			// Vue opens a MobileSheet dialog (role="dialog") for the inspector on mobile.
-			// The sheet has a "Format" title heading rendered inside it.
-			const sheet = page.getByRole('dialog');
-			await expect(sheet).toBeVisible();
-		} else {
-			// React opens InspectorPane as a bottom sheet (max-md:fixed, slides up from bottom).
-			// Angular opens pptx-ng-inspector-host as a bottom drawer (position: fixed, mobile styles).
-			// Both are wired to the Format button in the bottom bar and appear as overlays.
-			// React: the inspector wrapper has role="complementary" aria-label="Properties".
-			// Angular: the inspector aside has aria-label="Element properties" (mobile: bottom drawer).
-			const inspector = inspectorLocator(page, testInfo.project.name);
-			await expect(inspector).toBeVisible();
-		}
+		await expect(inspectorLocator(page)).toBeVisible();
 
 		await page.screenshot({
 			path: resolve(shotDir, `mobile-format-sheet-${testInfo.project.name}.png`),
@@ -163,10 +102,7 @@ test.describe('mobile inspector (375x812, touch)', () => {
 	test('inspector sheet does not cover the full viewport (constrained height)', async ({
 		page,
 	}, testInfo) => {
-		// Vue's mobile inspector is a MobileSheet (role="dialog").
-		// React's is InspectorPane (max-md:max-h-[75dvh]).
-		// Angular's is pptx-ng-inspector-host (mobile: max-height: 40vh).
-		// All use a bottom-sheet pattern with a bounded max-height, so the top portion
+		// Every binding uses a bottom-sheet pattern with a bounded max-height, so the top portion
 		// of the slide canvas remains visible above the sheet.
 		await load(page);
 
@@ -178,21 +114,7 @@ test.describe('mobile inspector (375x812, touch)', () => {
 
 		const vp = page.viewportSize()!;
 
-		// Find the inspector/sheet element.
-		let sheetEl: ReturnType<Page['locator']>;
-		if (testInfo.project.name === 'vue') {
-			// Vue's MobileSheet panel has class "pptx-vue-msheet-panel".
-			sheetEl = page.locator('.pptx-vue-msheet-panel');
-		} else if (testInfo.project.name === 'angular') {
-			sheetEl = page.locator('.pptx-ng-inspector-host');
-		} else if (testInfo.project.name === 'vanilla') {
-			sheetEl = page.locator('.pptxv-mobile-sheet');
-		} else if (testInfo.project.name === 'svelte') {
-			sheetEl = page.locator('.pptx-svelte-mobile-sheet');
-		} else {
-			// React: the InspectorPane div that slides up from the bottom.
-			sheetEl = page.locator('[role="complementary"][aria-label="Properties"]');
-		}
+		const sheetEl = inspectorLocator(page);
 
 		await expect(sheetEl).toBeVisible();
 		const box = await sheetEl.boundingBox();
@@ -227,16 +149,10 @@ test.describe('tablet inspector (820x1180, touch)', () => {
 		await load(page);
 
 		// At tablet width, mobile bottom bar is absent.
-		if (testInfo.project.name === 'vue') {
-			await expect(page.getByRole('navigation', { name: 'Slide controls' })).toHaveCount(0);
-		} else if (testInfo.project.name === 'vanilla' || testInfo.project.name === 'svelte') {
-			await expect(page.getByRole('navigation', { name: 'Editor actions' })).not.toBeVisible();
-		} else {
-			await expect(page.getByRole('navigation', { name: 'Editor actions' })).toHaveCount(0);
-		}
+		await expect(page.getByRole('navigation', { name: 'Editor actions' })).not.toBeVisible();
 
 		// Open the inspector panel when the binding requires an explicit toggle.
-		await openInspector(page, testInfo.project.name);
+		await openInspector(page);
 
 		// Select an element.
 		// force: true - at these viewport widths the first element (a rect) can be
@@ -252,7 +168,7 @@ test.describe('tablet inspector (820x1180, touch)', () => {
 		// For Angular, ensure the inspector content is for the selected element.
 		// For React, the inspector opens after toggle + element select.
 		// For Vue, inspectorOpen=true by default, inspector shows after element select.
-		const inspector = inspectorLocator(page, testInfo.project.name);
+		const inspector = inspectorLocator(page);
 		await expect(inspector).toBeVisible();
 
 		await page.screenshot({
@@ -272,7 +188,7 @@ test.describe('desktop inspector (1280x800, no touch)', () => {
 		await load(page);
 
 		// Open the inspector panel via toolbar toggle.
-		await openInspector(page, testInfo.project.name);
+		await openInspector(page);
 
 		// Select an element so the inspector has content to show.
 		// force: true - at these viewport widths the first element (a rect) can be
@@ -285,7 +201,7 @@ test.describe('desktop inspector (1280x800, no touch)', () => {
 		await page.locator('[data-pptx-element="true"]').first().click({ force: true });
 		await page.waitForTimeout(300);
 
-		const inspector = inspectorLocator(page, testInfo.project.name);
+		const inspector = inspectorLocator(page);
 		await expect(inspector).toBeVisible();
 
 		// On desktop the inspector must render as a side panel, not a bottom sheet.
@@ -308,10 +224,8 @@ test.describe('desktop inspector (1280x800, no touch)', () => {
 			expect(box.height, 'desktop inspector should be tall (side panel)').toBeGreaterThan(
 				vp.height / 2,
 			);
-			if (testInfo.project.name === 'vanilla' || testInfo.project.name === 'svelte') {
-				expect(box.width, 'desktop inspector should match React width').toBeGreaterThanOrEqual(288);
-				expect(box.width, 'desktop inspector should match React width').toBeLessThanOrEqual(289);
-			}
+			expect(box.width, 'desktop inspector should match React width').toBeGreaterThanOrEqual(288);
+			expect(box.width, 'desktop inspector should match React width').toBeLessThanOrEqual(289);
 		}
 
 		await page.screenshot({
@@ -323,7 +237,7 @@ test.describe('desktop inspector (1280x800, no touch)', () => {
 		await load(page);
 
 		// Open the inspector panel via toolbar toggle.
-		await openInspector(page, testInfo.project.name);
+		await openInspector(page);
 
 		// Select an element.
 		// force: true - at these viewport widths the first element (a rect) can be
@@ -336,7 +250,7 @@ test.describe('desktop inspector (1280x800, no touch)', () => {
 		await page.locator('[data-pptx-element="true"]').first().click({ force: true });
 		await page.waitForTimeout(300);
 
-		const inspector = inspectorLocator(page, testInfo.project.name);
+		const inspector = inspectorLocator(page);
 		await expect(inspector).toBeVisible();
 
 		// Confirm no role="dialog" (bottom-sheet overlay) is present, which would

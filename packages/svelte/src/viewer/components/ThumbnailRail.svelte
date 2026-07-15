@@ -30,13 +30,13 @@
 	}
 </script>
 
-<nav class="pptx-svelte-thumbs" aria-label={t('pptx.toolbar.toggleSlidesPanel')}>
+<nav class="pptx-svelte-thumbs" aria-label={t('pptx.sections.slides')}>
 	{#each slides as slide, index (slide.id)}
 		<button
 			type="button"
 			class="pptx-svelte-thumb"
 			class:pptx-svelte-thumb-active={index === current}
-			aria-label={t('pptx.statusBar.slideOf', { current: index + 1, total: slides.length })}
+			aria-label={t('pptx.slidesPanel.goToSlide', { n: index + 1 })}
 			aria-current={index === current ? 'true' : undefined}
 			draggable={editable}
 			class:pptx-svelte-thumb-dragging={draggedIndex === index}

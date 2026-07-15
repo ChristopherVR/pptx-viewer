@@ -99,6 +99,7 @@ export function MobileBottomBar({
 							active ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
 						)}
 						aria-pressed={active}
+						aria-label={key === 'notes' ? t('pptx.statusBar.toggleNotes') : undefined}
 					>
 						<Icon className='w-5 h-5' />
 						<span>{t(label)}</span>

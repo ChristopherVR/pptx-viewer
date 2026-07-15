@@ -57,7 +57,12 @@
 	);
 </script>
 
-<div class="pptx-svelte-collab-status" data-testid="collaboration-status" aria-label={ariaLabel}>
+<div
+	class="pptx-svelte-collab-status"
+	role="status"
+	data-testid="collaboration-status"
+	aria-label={ariaLabel}
+>
 	<span class={`pptx-svelte-collab-status-dot ${style.dotClass}`} aria-hidden="true"></span>
 	<span class={`pptx-svelte-collab-status-text ${style.textClass}`}>{text}</span>
 	{#if status === 'error'}

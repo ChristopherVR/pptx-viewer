@@ -146,9 +146,9 @@ export class ViewerInspectorPanelService {
 			case 'selection':
 				return 'pptx.selectionPane.title';
 			case 'element':
-				return 'pptx.viewer.elementProperties';
+				return 'pptx.inspector.properties';
 			case 'slide':
-				return 'pptx.viewer.slideProperties';
+				return 'pptx.inspector.properties';
 			default:
 				return '';
 		}

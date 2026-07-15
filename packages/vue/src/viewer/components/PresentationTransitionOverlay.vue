@@ -100,12 +100,16 @@ onBeforeUnmount(clearTimer);
 </script>
 
 <template>
-	<div class="pptx-vue-transition-overlay">
+	<div class="pptx-vue-transition-overlay" data-pptx-transition-overlay>
 		<!-- Inject the transition @keyframes once for this overlay. -->
 		<component :is="'style'">{{ SLIDE_TRANSITION_KEYFRAMES_CSS }}</component>
 
 		<!-- Outgoing (old) slide snapshot. -->
-		<div class="pptx-vue-transition-layer" :style="outgoingLayerStyle">
+		<div
+			class="pptx-vue-transition-layer"
+			data-pptx-transition-layer="outgoing"
+			:style="outgoingLayerStyle"
+		>
 			<SlideStage
 				:slide="outgoingSlide"
 				:canvas-size="canvasSize"
@@ -115,7 +119,11 @@ onBeforeUnmount(clearTimer);
 		</div>
 
 		<!-- Incoming (new) slide. -->
-		<div class="pptx-vue-transition-layer" :style="incomingLayerStyle">
+		<div
+			class="pptx-vue-transition-layer"
+			data-pptx-transition-layer="incoming"
+			:style="incomingLayerStyle"
+		>
 			<SlideStage
 				:slide="incomingSlide"
 				:canvas-size="canvasSize"

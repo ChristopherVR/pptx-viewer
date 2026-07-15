@@ -17,15 +17,7 @@ async function openCollaborativeDeck(page: Page, roomId: string, name: string): 
 }
 
 function collaborationReady(page: Page) {
-	return page
-		.locator('[aria-label*="Collaboration:"][aria-label*="Connected"]')
-		.or(
-			page
-				.getByRole('button', { name: 'Share', exact: true })
-				.filter({ hasText: /Sharing\s*\(\d+\)/u }),
-		)
-		.filter({ visible: true })
-		.first();
+	return page.getByRole('status', { name: 'Collaboration: Connected', exact: true });
 }
 
 test.describe('collaboration sync', () => {

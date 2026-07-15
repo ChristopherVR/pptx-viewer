@@ -415,6 +415,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					-->
 					@if (inspectorPanel.visibleInspectorKind(); as kind) {
 						<aside
+							data-pptx-inspector
 							class="pptx-ng-inspector-host"
 							[attr.aria-label]="inspectorPanel.inspectorLabel() | translate"
 							[style.transform]="

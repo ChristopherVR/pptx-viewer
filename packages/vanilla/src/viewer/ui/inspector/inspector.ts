@@ -24,6 +24,7 @@ export function createInspector(
 	handlers: InspectorHandlers,
 ): Inspector {
 	const el = createEl(doc, 'aside', 'pptxv-inspector');
+	el.setAttribute('data-pptx-inspector', '');
 	el.setAttribute('aria-label', t('pptx.inspector.properties'));
 
 	const header = createEl(doc, 'button', 'pptxv-inspector-header');

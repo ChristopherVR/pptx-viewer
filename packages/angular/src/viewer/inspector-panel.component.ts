@@ -82,10 +82,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 			mid-edit: the caret stays put and the on-screen keyboard does not dismiss.
 			All commits happen on (change) (blur), reading event.target.value.
 		-->
-		<aside
-			[class]="inspectorClass()"
-			[attr.aria-label]="'pptx.inspector.elementProperties' | translate"
-		>
+		<aside [class]="inspectorClass()" [attr.aria-label]="'pptx.inspector.properties' | translate">
 			<!-- ── Transform: Position & Size ─────────────────────────────────── -->
 			<section class="pptx-ng-inspector__section">
 				<h3 class="pptx-ng-inspector__heading">{{ 'pptx.inspector.transform' | translate }}</h3>

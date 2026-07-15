@@ -62,17 +62,6 @@ const inkFixturePath = resolve(
  * (`enrichOleElementsWithEmbeddedData`), the same way regular picture elements
  * resolve their media - so every binding renders the real preview `<img>`.
  */
-const EXPECTS_PREVIEW_IMAGE = true;
-
-/**
- * Whether clicking the "Open in a new tab" action is expected to actually open
- * a new tab. `true` now that the action converts the recovered `data:` URL to a
- * Blob object URL (`openUrlInNewTab` in `pptx-viewer-shared`) before opening,
- * which browsers do allow a new top-level document to navigate to (they refuse
- * a raw `data:` URL).
- */
-const EXPECTS_OPEN_POPUP = true;
-
 async function openFixture(page: Page, fixturePath: string): Promise<void> {
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
@@ -89,18 +78,7 @@ test.describe('OLE embedded objects', () => {
 		await expect(ole).toBeVisible();
 
 		const img = ole.locator('img');
-		const hasImg = await img.count();
-		if (EXPECTS_PREVIEW_IMAGE) {
-			expect(hasImg, 'OLE preview <img> renders once previewImageData is wired up').toBeGreaterThan(
-				0,
-			);
-		} else {
-			// Current, documented behaviour: the previewImageData load-pipeline
-			// gap means every binding falls back to the type-badge placeholder
-			// (an SVG icon + label), never the real preview PNG.
-			expect(hasImg, 'OLE element does not yet render its preview <img> (see header note)').toBe(0);
-			await expect(ole.locator('svg').first()).toBeVisible();
-		}
+		await expect(img, 'OLE preview image renders from previewImageData').toBeVisible();
 
 		// The element must still be identifiable as the PDF-typed OLE object:
 		// the type-specific label ("PDF Document") is rendered as visible text
@@ -128,9 +106,7 @@ test.describe('OLE embedded objects', () => {
 		// through the shared `openUrlInNewTab` helper (data URL -> Blob object
 		// URL -> new tab). Select by accessible name/role rather than tag to stay
 		// robust.
-		const openLink = ole
-			.getByRole('link', { name: /open/iu })
-			.or(ole.getByRole('button', { name: /open/iu }));
+		const openLink = ole.getByRole('button', { name: /open/iu });
 		await expect(openLink).toBeAttached();
 
 		const popupWait = page.waitForEvent('popup', { timeout: 3000 }).catch(() => undefined);
@@ -138,31 +114,10 @@ test.describe('OLE embedded objects', () => {
 		await openLink.click();
 		const popup = await popupWait;
 
-		if (EXPECTS_OPEN_POPUP) {
-			// The fix routes the recovered PDF `data:` URL through a Blob object
-			// URL before opening; a new top-level tab WILL open for that (the old
-			// raw `data:` URL path opened nothing at all - see the else branch).
-			// That a popup opens is the portable signal for the fix. The opened
-			// tab's document URL is environment-dependent and so NOT asserted: a
-			// `blob:` PDF renders inline in headed Chromium but is handed to the
-			// download manager in headless (leaving the tab URL empty). We only
-			// assert it is never the raw `data:` URL the browser used to refuse.
-			expect(popup, 'Open action opens a new tab once it uses an object URL').toBeDefined();
-			expect(popup!.url()).not.toMatch(/^data:/u);
-			expect(page.context().pages().length).toBeGreaterThan(pagesBefore);
-			await popup!.close().catch(() => undefined);
-		} else {
-			// Discovered bug #2 (see header): Chromium silently refuses to
-			// navigate a new top-level document straight to a `data:` URL, so
-			// the click currently opens nothing at all - not a real popup, not
-			// an error, and the original page stays in place.
-			expect(
-				popup,
-				'documents discovered bug #2: no popup opens for a data: URL target',
-			).toBeUndefined();
-			expect(page.context().pages().length).toBe(pagesBefore);
-			await expect(page.locator('[data-element-id]').first()).toBeVisible();
-		}
+		expect(popup, 'Open action opens a new tab once it uses an object URL').toBeDefined();
+		expect(popup!.url()).not.toMatch(/^data:/u);
+		expect(page.context().pages().length).toBeGreaterThan(pagesBefore);
+		await popup!.close().catch(() => undefined);
 	});
 });
 
@@ -194,13 +149,8 @@ test.describe('ink annotations', () => {
 		// breakpoints, so an unscoped text filter can resolve `.first()` to a
 		// non-visible copy. Mirrors `ribbon-tab-parity.spec.ts`'s selector.
 		const fileTab = page
-			.getByRole('tab', { name: 'File', exact: true })
-			.or(
-				page
-					.getByRole('toolbar', { name: 'Presentation toolbar' })
-					.getByRole('button', { name: 'File', exact: true }),
-			)
-			.first();
+			.getByRole('toolbar', { name: 'Presentation toolbar' })
+			.getByRole('tab', { name: 'File', exact: true });
 		await fileTab.click();
 		await page.waitForTimeout(300);
 

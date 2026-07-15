@@ -21,6 +21,27 @@ function slides(): PptxSlide[] {
 }
 
 describe('thumbnailRail', () => {
+	it('exposes the canonical Slides navigation name', () => {
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(ThumbnailRail, {
+			target,
+			props: {
+				slides: slides(),
+				canvasSize: { width: 960, height: 540 },
+				mediaDataUrls: new Map(),
+				current: 0,
+				onselect: vi.fn(),
+			},
+		});
+		flushSync();
+		cleanup = () => {
+			unmount(instance);
+			target.remove();
+		};
+		expect(target.querySelector('nav')?.getAttribute('aria-label')).toBe('Slides');
+	});
+
 	it('only marks thumbnails draggable when editing is enabled', () => {
 		const target = document.createElement('div');
 		document.body.appendChild(target);

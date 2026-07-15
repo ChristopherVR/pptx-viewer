@@ -36,7 +36,7 @@ const shotDir = fileURLToPath(new URL('../test-results/mobile-table/', import.me
 /** On-screen tap point over the cell whose trimmed text equals `label`. */
 function cellPoint(page: Page, label: string) {
 	return page.evaluate((text) => {
-		const td = [...document.querySelectorAll('td')].find((candidate) => {
+		const td = [...document.querySelectorAll('[data-pptx-viewport] td')].find((candidate) => {
 			if (candidate.textContent?.trim() !== text || !candidate.checkVisibility()) {
 				return false;
 			}
@@ -63,7 +63,7 @@ function cellPoint(page: Page, label: string) {
 }
 
 async function navigateToPlans(page: Page): Promise<void> {
-	const navigation = page.getByRole('navigation', { name: /Editor actions|Slide controls/iu });
+	const navigation = page.getByRole('navigation', { name: 'Editor actions' });
 	await navigation.getByRole('button', { name: /^Slides$/u }).tap();
 	const sheet = page.getByRole('dialog').filter({ hasText: 'Slides' });
 	await expect(sheet).toBeVisible();
@@ -84,6 +84,7 @@ test('double-tapping a table cell opens an editor and accepts input', async ({ p
 	expect(pt).not.toBeNull();
 	// Double-tap to enter cell edit (select, then edit).
 	await page.touchscreen.tap(pt!.x, pt!.y);
+	await page.waitForTimeout(80);
 	await page.touchscreen.tap(pt!.x, pt!.y);
 
 	const input = page.locator('td input[type="text"]');
@@ -119,6 +120,7 @@ test('committing a cell edit by tapping away keeps the typed value', async ({ pa
 	const starter = await cellPoint(page, 'Starter');
 	expect(starter).not.toBeNull();
 	await page.touchscreen.tap(starter!.x, starter!.y);
+	await page.waitForTimeout(80);
 	await page.touchscreen.tap(starter!.x, starter!.y);
 
 	const input = page.locator('td input[type="text"]');

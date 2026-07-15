@@ -88,7 +88,7 @@
 {:else if element.type === 'smartArt' && smartArt3D}
 	<SmartArt3DView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'smartArt'}
-	<SmartArtView {element} {mediaDataUrls} {zIndex} />
+	<SmartArtView {element} {mediaDataUrls} {zIndex} {interactive} />
 {:else if element.type === 'media'}
 	<MediaBox {element} {mediaDataUrls} {zIndex} {presenting} />
 {:else if element.type === 'ink'}
