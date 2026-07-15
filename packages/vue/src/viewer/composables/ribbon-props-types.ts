@@ -95,6 +95,7 @@ export interface UseRibbonPropsActionsInput {
 	startPresenting: () => void;
 	startPresenterView: () => void;
 	startRehearsal: () => void;
+	compareWithPresentation: () => Promise<void>;
 	onAddAnimation: RibbonProps['onAddAnimation'];
 	onRemoveAnimation: RibbonProps['onRemoveAnimation'];
 	zoomIn: () => void;

@@ -17,6 +17,7 @@ import {
 	cloneElement,
 	createEditorId,
 	hasTextProperties,
+	PptxHandler,
 } from 'pptx-viewer-core';
 import type {
 	MasterViewTab,
@@ -1311,9 +1312,21 @@ const {
 	onVersionRestore,
 	onVersionDelete,
 	onVersionCompare,
+	compareWithSlides,
 	onCompareClose,
 	onCompareAcceptAll,
 } = useVersionHistoryWiring({ slides, pushHistory: history.pushHistory });
+
+async function compareWithPresentation(): Promise<void> {
+	const picked = await openPptxFile();
+	if (!picked) {
+		return;
+	}
+	const incoming = await new PptxHandler().load(picked.buffer);
+	if (incoming) {
+		compareWithSlides(incoming.slides);
+	}
+}
 
 // ── Viewer settings ───────────────────────────────────────────────────
 const { showSettings, viewerSettings, onSettingsUpdate } = useViewerSettingsDialog();
@@ -1473,6 +1486,7 @@ const ribbonProps = useRibbonProps({
 	startPresenting,
 	startPresenterView,
 	startRehearsal,
+	compareWithPresentation,
 	onAddAnimation,
 	onRemoveAnimation,
 	zoomIn,

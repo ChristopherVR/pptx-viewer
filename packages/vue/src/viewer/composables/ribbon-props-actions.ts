@@ -187,7 +187,7 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onToggleThemeGallery: () => {
 			input.themeGalleryOpen.value = !input.themeGalleryOpen.value;
 		},
-		onCompare: undefined,
+		onCompare: () => void input.compareWithPresentation(),
 		onToggleComments: () => {
 			input.showComments.value = !input.showComments.value;
 		},

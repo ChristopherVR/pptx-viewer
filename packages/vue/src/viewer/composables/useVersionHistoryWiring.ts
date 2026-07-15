@@ -21,6 +21,7 @@ export interface UseVersionHistoryWiringResult {
 	onVersionRestore: (id: string) => void;
 	onVersionDelete: (id: string) => void;
 	onVersionCompare: (id: string) => void;
+	compareWithSlides: (incoming: PptxSlide[]) => void;
 	onCompareClose: () => void;
 	onCompareAcceptAll: () => void;
 }
@@ -40,6 +41,7 @@ export function useVersionHistoryWiring(
 	const showVersionHistory = ref(false);
 	const compareResult = ref<CompareResult | null>(null);
 	const compareVersionId = ref<string | null>(null);
+	const externalCompareSlides = ref<PptxSlide[] | null>(null);
 	const showCompare = computed(() => compareResult.value !== null);
 
 	function onVersionRestore(id: string): void {
@@ -60,10 +62,19 @@ export function useVersionHistoryWiring(
 	function onCompareClose(): void {
 		compareResult.value = null;
 		compareVersionId.value = null;
+		externalCompareSlides.value = null;
+	}
+	function compareWithSlides(incoming: PptxSlide[]): void {
+		compareVersionId.value = null;
+		externalCompareSlides.value = incoming;
+		compareResult.value = compareSlides(slides.value, incoming);
 	}
 	function onCompareAcceptAll(): void {
 		if (compareVersionId.value) {
 			versionHistory.restore(compareVersionId.value);
+		} else if (externalCompareSlides.value) {
+			pushHistory();
+			slides.value = externalCompareSlides.value;
 		}
 		onCompareClose();
 		showVersionHistory.value = false;
@@ -78,6 +89,7 @@ export function useVersionHistoryWiring(
 		onVersionRestore,
 		onVersionDelete,
 		onVersionCompare,
+		compareWithSlides,
 		onCompareClose,
 		onCompareAcceptAll,
 	};
