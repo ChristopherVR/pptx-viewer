@@ -202,6 +202,12 @@ export interface ShapeStyle {
 	softEdgeRadius?: number;
 	/** Inner shadow colour (`a:innerShdw`). */
 	innerShadowColor?: string;
+	/** Original inner-shadow node used for lossless surgical updates. */
+	innerShadowXml?: XmlObject;
+	/** Resolved source inner-shadow colour used to detect colour edits. */
+	innerShadowOriginalColor?: string;
+	/** Source inner-shadow opacity used to detect alpha edits. */
+	innerShadowOriginalOpacity?: number;
 	/** Inner shadow opacity (0-1). */
 	innerShadowOpacity?: number;
 	/** Inner shadow blur radius in px. */
@@ -210,8 +216,12 @@ export interface ShapeStyle {
 	innerShadowOffsetX?: number;
 	/** Inner shadow vertical offset in px. */
 	innerShadowOffsetY?: number;
+	/** Original soft-edge node, including vendor attributes and extensions. */
+	softEdgeXml?: XmlObject;
 	/** Reflection effect — distance from shape bottom in px. */
 	reflectionBlurRadius?: number;
+	/** Original reflection node, including vendor attributes and extensions. */
+	reflectionXml?: XmlObject;
 	/** Reflection start opacity (0-1). */
 	reflectionStartOpacity?: number;
 	/** Reflection end opacity (0-1). */

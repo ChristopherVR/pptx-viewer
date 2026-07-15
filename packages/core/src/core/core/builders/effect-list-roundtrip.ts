@@ -50,6 +50,20 @@ export function mergeEffectNode(
 	return merged;
 }
 
+/** Merge generated attributes while retaining unknown attributes and child XML. */
+export function mergeAttributeEffectNode(
+	original: XmlObject | undefined,
+	generated: XmlObject,
+): XmlObject {
+	const merged: XmlObject = { ...(original ?? {}) };
+	for (const [key, value] of Object.entries(generated)) {
+		if (key.startsWith('@_')) {
+			merged[key] = value;
+		}
+	}
+	return merged;
+}
+
 export function createEffectList(style: ShapeStyle, spPr: XmlObject): XmlObject {
 	return { ...(style.effectListXml ?? effectChild(spPr, 'effectLst') ?? {}) };
 }

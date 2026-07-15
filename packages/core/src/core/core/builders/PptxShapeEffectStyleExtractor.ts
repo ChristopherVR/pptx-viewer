@@ -1,5 +1,6 @@
 import type { ShapeStyle, XmlObject } from '../../types';
 import { effectChild } from './effect-list-roundtrip';
+import { extractReflectionAttributes } from './effect-style-extractor-reflection';
 import { PRESET_SHADOW_BLUR_MAP, PRESET_SHADOW_OPACITY_MAP } from './effect-style-preset-maps';
 
 const VALID_ALIGNMENTS = new Set(['tl', 't', 'tr', 'l', 'ctr', 'r', 'bl', 'b', 'br']);
@@ -152,8 +153,8 @@ export class PptxShapeEffectStyleExtractor implements IPptxShapeEffectStyleExtra
 	}
 
 	public extractInnerShadowStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
-		const effectList = shapeProps['a:effectLst'] as XmlObject | undefined;
-		const innerShadow = effectList?.['a:innerShdw'] as XmlObject | undefined;
+		const effectList = effectChild(shapeProps, 'effectLst');
+		const innerShadow = effectChild(effectList, 'innerShdw');
 		if (!innerShadow) {
 			return {};
 		}
@@ -213,8 +214,8 @@ export class PptxShapeEffectStyleExtractor implements IPptxShapeEffectStyleExtra
 	}
 
 	public extractSoftEdgeStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
-		const effectList = shapeProps['a:effectLst'] as XmlObject | undefined;
-		const softEdgeNode = effectList?.['a:softEdge'] as XmlObject | undefined;
+		const effectList = effectChild(shapeProps, 'effectLst');
+		const softEdgeNode = effectChild(effectList, 'softEdge');
 		if (!softEdgeNode) {
 			return {};
 		}
@@ -227,74 +228,13 @@ export class PptxShapeEffectStyleExtractor implements IPptxShapeEffectStyleExtra
 	}
 
 	public extractReflectionStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
-		const effectList = shapeProps['a:effectLst'] as XmlObject | undefined;
-		const reflectionNode = effectList?.['a:reflection'] as XmlObject | undefined;
+		const effectList = effectChild(shapeProps, 'effectLst');
+		const reflectionNode = effectChild(effectList, 'reflection');
 		if (!reflectionNode) {
 			return {};
 		}
 
-		const blurRadiusRaw = Number.parseInt(String(reflectionNode['@_blurRad'] || ''), 10);
-		const reflectionBlurRadius =
-			Number.isFinite(blurRadiusRaw) && blurRadiusRaw >= 0
-				? blurRadiusRaw / this.context.emuPerPx
-				: undefined;
-
-		const startOpacityRaw = Number.parseInt(String(reflectionNode['@_stA'] || ''), 10);
-		const reflectionStartOpacity = Number.isFinite(startOpacityRaw)
-			? startOpacityRaw / 100000
-			: undefined;
-
-		const endOpacityRaw = Number.parseInt(String(reflectionNode['@_endA'] || ''), 10);
-		const reflectionEndOpacity = Number.isFinite(endOpacityRaw)
-			? endOpacityRaw / 100000
-			: undefined;
-
-		const endPositionRaw = Number.parseInt(String(reflectionNode['@_endPos'] || ''), 10);
-		const reflectionEndPosition = Number.isFinite(endPositionRaw)
-			? endPositionRaw / 100000
-			: undefined;
-
-		const directionRaw = Number.parseInt(String(reflectionNode['@_dir'] || ''), 10);
-		const reflectionDirection = Number.isFinite(directionRaw) ? directionRaw / 60000 : undefined;
-
-		const rotationRaw = Number.parseInt(String(reflectionNode['@_rot'] || ''), 10);
-		const reflectionRotation = Number.isFinite(rotationRaw) ? rotationRaw / 60000 : undefined;
-
-		const distanceRaw = Number.parseInt(String(reflectionNode['@_dist'] || ''), 10);
-		const reflectionDistance =
-			Number.isFinite(distanceRaw) && distanceRaw >= 0
-				? distanceRaw / this.context.emuPerPx
-				: undefined;
-
-		// CT_ReflectionEffect §20.1.8.50: fadeDir, sx, sy, kx, ky, algn, rotWithShape, stPos
-		const fadeDirRaw = parseIntAttr(reflectionNode['@_fadeDir']);
-		const reflectionFadeDirection = fadeDirRaw !== undefined ? fadeDirRaw / 60000 : undefined;
-		const reflectionScaleX = parseIntAttr(reflectionNode['@_sx']);
-		const reflectionScaleY = parseIntAttr(reflectionNode['@_sy']);
-		const reflectionSkewX = parseIntAttr(reflectionNode['@_kx']);
-		const reflectionSkewY = parseIntAttr(reflectionNode['@_ky']);
-		const reflectionAlignment = parseAlignmentAttr(reflectionNode['@_algn']);
-		const reflectionRotateWithShape = parseBoolAttr(reflectionNode['@_rotWithShape']);
-		const stPosRaw = parseIntAttr(reflectionNode['@_stPos']);
-		const reflectionStartPosition = stPosRaw !== undefined ? stPosRaw / 100000 : undefined;
-
-		return {
-			reflectionBlurRadius,
-			reflectionStartOpacity,
-			reflectionEndOpacity,
-			reflectionEndPosition,
-			reflectionDirection,
-			reflectionRotation,
-			reflectionDistance,
-			reflectionFadeDirection,
-			reflectionScaleX,
-			reflectionScaleY,
-			reflectionSkewX,
-			reflectionSkewY,
-			reflectionAlignment,
-			reflectionRotateWithShape,
-			reflectionStartPosition,
-		};
+		return extractReflectionAttributes(reflectionNode, this.context.emuPerPx);
 	}
 
 	public extractBlurStyle(shapeProps: XmlObject): Partial<ShapeStyle> {

@@ -151,4 +151,139 @@ describe('drawingML effect list round-trip', () => {
 			glowOriginalOpacity: 0.75,
 		});
 	});
+
+	it('extracts inner shadow, soft edge, and reflection independently of prefix', () => {
+		const child = (node: XmlObject | undefined, name: string) => effectChild(node, name);
+		const color = (node: XmlObject | undefined) => {
+			const value = child(node, 'schemeClr')?.['@_val'];
+			return value === 'accent1' ? '#336699' : undefined;
+		};
+		const opacity = (node: XmlObject | undefined) => {
+			const value = child(child(node, 'schemeClr'), 'alpha')?.['@_val'];
+			return value ? Number(value) / 100000 : undefined;
+		};
+		const codec = new PptxShapeEffectXmlCodec({
+			emuPerPx: 9525,
+			parseColor: color,
+			extractColorOpacity: opacity,
+			clampUnitInterval: (value) => Math.max(0, Math.min(1, value)),
+			ensureArray: (value) => (Array.isArray(value) ? value : [value as XmlObject]),
+		});
+		const list: XmlObject = {
+			'draw:innerShdw': {
+				'@_blurRad': '19050',
+				'@_dist': '9525',
+				'@_dir': '0',
+				'draw:schemeClr': {
+					'@_val': 'accent1',
+					'draw:alpha': { '@_val': '40000' },
+				},
+			},
+			'draw:softEdge': { '@_rad': '28575', 'x:future': { '@_value': 'keep' } },
+			'draw:reflection': {
+				'@_blurRad': '38100',
+				'@_stA': '50000',
+				'@_endA': '0',
+				'@_dist': '19050',
+				'@_algn': 'b',
+				'x:extLst': { 'x:ext': { '@_uri': 'vendor' } },
+			},
+		};
+		const props = { 'draw:effectLst': list };
+
+		expect(codec.extractInnerShadowStyle(props)).toMatchObject({
+			innerShadowColor: '#336699',
+			innerShadowOpacity: 0.4,
+			innerShadowBlur: 2,
+			innerShadowXml: list['draw:innerShdw'],
+		});
+		expect(codec.extractSoftEdgeStyle(props)).toMatchObject({
+			softEdgeRadius: 3,
+			softEdgeXml: list['draw:softEdge'],
+		});
+		expect(codec.extractReflectionStyle(props)).toMatchObject({
+			reflectionBlurRadius: 4,
+			reflectionStartOpacity: 0.5,
+			reflectionDistance: 2,
+			reflectionAlignment: 'b',
+			reflectionXml: list['draw:reflection'],
+		});
+	});
+
+	it('surgically edits modeled effects without dropping transforms or extensions', () => {
+		const codec = new PptxShapeEffectXmlCodec({
+			emuPerPx: 9525,
+			parseColor: () => '#336699',
+			extractColorOpacity: () => 0.4,
+			clampUnitInterval: (value) => Math.max(0, Math.min(1, value)),
+			ensureArray: (value) => (Array.isArray(value) ? value : [value as XmlObject]),
+		});
+		const inner: XmlObject = {
+			'@_vendor': 'keep',
+			'draw:schemeClr': {
+				'@_val': 'accent1',
+				'draw:lumMod': { '@_val': '70000' },
+				'draw:alpha': { '@_val': '40000' },
+			},
+			'x:extLst': { 'x:ext': { '@_uri': 'inner' } },
+		};
+		const soft: XmlObject = { '@_rad': '9525', '@_vendor': 'keep', 'x:extLst': {} };
+		const reflection: XmlObject = {
+			'@_stA': '30000',
+			'@_vendor': 'keep',
+			'x:extLst': { 'x:ext': { '@_uri': 'reflection' } },
+		};
+
+		const innerResult = codec.buildInnerShadowXml({
+			innerShadowColor: '#336699',
+			innerShadowOpacity: 0.4,
+			innerShadowBlur: 3,
+			innerShadowXml: inner,
+			innerShadowOriginalColor: '#336699',
+			innerShadowOriginalOpacity: 0.4,
+		});
+		expect(innerResult?.['draw:schemeClr']).toBe(inner['draw:schemeClr']);
+		expect(innerResult?.['@_vendor']).toBe('keep');
+		expect(innerResult?.['x:extLst']).toBe(inner['x:extLst']);
+		expect(innerResult?.['@_blurRad']).toBe('28575');
+
+		const softResult = codec.buildSoftEdgeXml({ softEdgeRadius: 2, softEdgeXml: soft });
+		expect(softResult).toMatchObject({ '@_rad': '19050', '@_vendor': 'keep' });
+		expect(softResult?.['x:extLst']).toBe(soft['x:extLst']);
+
+		const reflectionResult = codec.buildReflectionXml({
+			reflectionStartOpacity: 0.6,
+			reflectionDistance: 2,
+			reflectionXml: reflection,
+		});
+		expect(reflectionResult).toMatchObject({
+			'@_stA': '60000',
+			'@_dist': '19050',
+			'@_vendor': 'keep',
+		});
+		expect(reflectionResult?.['x:extLst']).toBe(reflection['x:extLst']);
+	});
+
+	it('emits reflection fixed percentages within their schema bounds', () => {
+		const codec = new PptxShapeEffectXmlCodec({
+			emuPerPx: 9525,
+			parseColor: () => undefined,
+			extractColorOpacity: () => undefined,
+			clampUnitInterval: (value) => Math.max(0, Math.min(1, value)),
+			ensureArray: (value) => (Array.isArray(value) ? value : [value as XmlObject]),
+		});
+		const result = codec.buildReflectionXml({
+			reflectionStartOpacity: 2,
+			reflectionEndOpacity: -1,
+			reflectionStartPosition: 1.5,
+			reflectionEndPosition: -0.5,
+		});
+
+		expect(result).toMatchObject({
+			'@_stA': '100000',
+			'@_endA': '0',
+			'@_stPos': '100000',
+			'@_endPos': '0',
+		});
+	});
 });

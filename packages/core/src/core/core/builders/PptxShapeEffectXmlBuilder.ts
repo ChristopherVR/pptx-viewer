@@ -1,4 +1,10 @@
 import type { ShapeStyle, XmlObject } from '../../types';
+import {
+	buildBlurXml,
+	buildLineEffectListXml,
+	buildReflectionXml,
+	buildSoftEdgeXml,
+} from './shape-effect-secondary-xml-builders';
 
 export interface PptxShapeEffectXmlBuilderContext {
 	emuPerPx: number;
@@ -223,105 +229,15 @@ export class PptxShapeEffectXmlBuilder implements IPptxShapeEffectXmlBuilder {
 	}
 
 	public buildSoftEdgeXml(shapeStyle: ShapeStyle): XmlObject | undefined {
-		const softEdgeRadius =
-			typeof shapeStyle.softEdgeRadius === 'number' &&
-			Number.isFinite(shapeStyle.softEdgeRadius) &&
-			shapeStyle.softEdgeRadius > 0
-				? shapeStyle.softEdgeRadius
-				: undefined;
-		if (softEdgeRadius === undefined) {
-			return undefined;
-		}
-
-		return {
-			'@_rad': String(Math.round(softEdgeRadius * this.context.emuPerPx)),
-		};
+		return buildSoftEdgeXml(shapeStyle, this.context.emuPerPx);
 	}
 
 	public buildReflectionXml(shapeStyle: ShapeStyle): XmlObject | undefined {
-		const hasReflection =
-			(typeof shapeStyle.reflectionBlurRadius === 'number' &&
-				shapeStyle.reflectionBlurRadius > 0) ||
-			(typeof shapeStyle.reflectionStartOpacity === 'number' &&
-				shapeStyle.reflectionStartOpacity > 0) ||
-			(typeof shapeStyle.reflectionDistance === 'number' && shapeStyle.reflectionDistance > 0);
-		if (!hasReflection) {
-			return undefined;
-		}
-
-		const reflectionXml: XmlObject = {};
-		if (
-			typeof shapeStyle.reflectionBlurRadius === 'number' &&
-			shapeStyle.reflectionBlurRadius > 0
-		) {
-			reflectionXml['@_blurRad'] = String(
-				Math.round(shapeStyle.reflectionBlurRadius * this.context.emuPerPx),
-			);
-		}
-		if (typeof shapeStyle.reflectionStartOpacity === 'number') {
-			reflectionXml['@_stA'] = String(Math.round(shapeStyle.reflectionStartOpacity * 100000));
-		}
-		if (typeof shapeStyle.reflectionEndOpacity === 'number') {
-			reflectionXml['@_endA'] = String(Math.round(shapeStyle.reflectionEndOpacity * 100000));
-		}
-		if (typeof shapeStyle.reflectionEndPosition === 'number') {
-			reflectionXml['@_endPos'] = String(Math.round(shapeStyle.reflectionEndPosition * 100000));
-		}
-		if (typeof shapeStyle.reflectionDirection === 'number') {
-			reflectionXml['@_dir'] = String(Math.round(shapeStyle.reflectionDirection * 60000));
-		}
-		if (typeof shapeStyle.reflectionRotation === 'number') {
-			reflectionXml['@_rot'] = String(Math.round(shapeStyle.reflectionRotation * 60000));
-		}
-		if (typeof shapeStyle.reflectionDistance === 'number' && shapeStyle.reflectionDistance > 0) {
-			reflectionXml['@_dist'] = String(
-				Math.round(shapeStyle.reflectionDistance * this.context.emuPerPx),
-			);
-		}
-		// CT_ReflectionEffect §20.1.8.50: fadeDir, sx, sy, kx, ky, algn, rotWithShape, stPos
-		if (typeof shapeStyle.reflectionFadeDirection === 'number') {
-			reflectionXml['@_fadeDir'] = String(Math.round(shapeStyle.reflectionFadeDirection * 60000));
-		}
-		if (typeof shapeStyle.reflectionScaleX === 'number') {
-			reflectionXml['@_sx'] = String(Math.round(shapeStyle.reflectionScaleX));
-		}
-		if (typeof shapeStyle.reflectionScaleY === 'number') {
-			reflectionXml['@_sy'] = String(Math.round(shapeStyle.reflectionScaleY));
-		}
-		if (typeof shapeStyle.reflectionSkewX === 'number') {
-			reflectionXml['@_kx'] = String(Math.round(shapeStyle.reflectionSkewX));
-		}
-		if (typeof shapeStyle.reflectionSkewY === 'number') {
-			reflectionXml['@_ky'] = String(Math.round(shapeStyle.reflectionSkewY));
-		}
-		if (shapeStyle.reflectionAlignment) {
-			reflectionXml['@_algn'] = shapeStyle.reflectionAlignment;
-		}
-		if (typeof shapeStyle.reflectionRotateWithShape === 'boolean') {
-			reflectionXml['@_rotWithShape'] = shapeStyle.reflectionRotateWithShape ? '1' : '0';
-		}
-		if (typeof shapeStyle.reflectionStartPosition === 'number') {
-			reflectionXml['@_stPos'] = String(Math.round(shapeStyle.reflectionStartPosition * 100000));
-		}
-
-		return reflectionXml;
+		return buildReflectionXml(shapeStyle, this.context);
 	}
 
 	public buildBlurXml(shapeStyle: ShapeStyle): XmlObject | undefined {
-		const blurRadius =
-			typeof shapeStyle.blurRadius === 'number' &&
-			Number.isFinite(shapeStyle.blurRadius) &&
-			shapeStyle.blurRadius > 0
-				? shapeStyle.blurRadius
-				: undefined;
-		if (blurRadius === undefined) {
-			return undefined;
-		}
-
-		return {
-			'@_rad': String(Math.round(blurRadius * this.context.emuPerPx)),
-			'@_grow': shapeStyle.blurGrow ? '1' : '0',
-		};
+		return buildBlurXml(shapeStyle, this.context.emuPerPx);
 	}
 
 	/**
@@ -329,64 +245,6 @@ export class PptxShapeEffectXmlBuilder implements IPptxShapeEffectXmlBuilder {
 	 * Returns undefined if no line effects are defined.
 	 */
 	public buildLineEffectListXml(shapeStyle: ShapeStyle): XmlObject | undefined {
-		const effectLst: XmlObject = {};
-		let hasEffects = false;
-
-		// Line outer shadow
-		const lineShadowColor = String(shapeStyle.lineShadowColor || '').trim();
-		if (lineShadowColor.length > 0 && lineShadowColor !== 'transparent') {
-			const offsetX =
-				typeof shapeStyle.lineShadowOffsetX === 'number' ? shapeStyle.lineShadowOffsetX : 2;
-			const offsetY =
-				typeof shapeStyle.lineShadowOffsetY === 'number' ? shapeStyle.lineShadowOffsetY : 2;
-			const blur =
-				typeof shapeStyle.lineShadowBlur === 'number' ? Math.max(0, shapeStyle.lineShadowBlur) : 4;
-			const opacity =
-				typeof shapeStyle.lineShadowOpacity === 'number'
-					? this.context.clampUnitInterval(shapeStyle.lineShadowOpacity)
-					: 0.35;
-			const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
-			const dirDeg = ((Math.atan2(offsetY, offsetX) * 180) / Math.PI + 360) % 360;
-
-			effectLst['a:outerShdw'] = {
-				'@_blurRad': String(Math.round(blur * this.context.emuPerPx)),
-				'@_dist': String(Math.round(distance * this.context.emuPerPx)),
-				'@_dir': String(Math.round(dirDeg * 60000)),
-				'a:srgbClr': {
-					'@_val': lineShadowColor.replace('#', ''),
-					'a:alpha': {
-						'@_val': String(Math.round(opacity * 100000)),
-					},
-				},
-			};
-			hasEffects = true;
-		}
-
-		// Line glow
-		const lineGlowColor = String(shapeStyle.lineGlowColor || '').trim();
-		if (lineGlowColor.length > 0 && lineGlowColor !== 'transparent') {
-			const radius =
-				typeof shapeStyle.lineGlowRadius === 'number' && shapeStyle.lineGlowRadius > 0
-					? shapeStyle.lineGlowRadius
-					: undefined;
-			if (radius !== undefined) {
-				const opacity =
-					typeof shapeStyle.lineGlowOpacity === 'number'
-						? this.context.clampUnitInterval(shapeStyle.lineGlowOpacity)
-						: 0.4;
-				effectLst['a:glow'] = {
-					'@_rad': String(Math.round(radius * this.context.emuPerPx)),
-					'a:srgbClr': {
-						'@_val': lineGlowColor.replace('#', ''),
-						'a:alpha': {
-							'@_val': String(Math.round(opacity * 100000)),
-						},
-					},
-				};
-				hasEffects = true;
-			}
-		}
-
-		return hasEffects ? effectLst : undefined;
+		return buildLineEffectListXml(shapeStyle, this.context);
 	}
 }
