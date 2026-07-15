@@ -5,6 +5,10 @@ import type {
 	PptxSmartArtNodeStyle,
 	PptxSmartArtTextRun,
 } from '../../types';
+import {
+	parseSmartArtColorStyleLabels,
+	parseSmartArtDefinitionMetadata,
+} from '../../utils/smartart-definition-metadata';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeComments';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -263,8 +267,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return undefined;
 			}
 
+			const localName = (key: string) => this.compatibilityService.getXmlLocalName(key);
+			const metadata = parseSmartArtDefinitionMetadata(colorsDef, localName);
+			const labels = parseSmartArtColorStyleLabels(colorsDef, localName);
 			const name =
-				String(colorsDef['@_title'] || colorsDef['@_uniqueId'] || '').trim() || undefined;
+				metadata.titles?.[0]?.value ||
+				String(colorsDef['@_title'] || colorsDef['@_uniqueId'] || '').trim() ||
+				undefined;
 			const fillColors: string[] = [];
 			const lineColors: string[] = [];
 
@@ -300,7 +309,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return undefined;
 			}
 
-			return { name, fillColors, lineColors };
+			return { ...metadata, name, fillColors, lineColors, labels };
 		} catch {
 			return undefined;
 		}

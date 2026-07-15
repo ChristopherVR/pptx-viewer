@@ -13,6 +13,7 @@ import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRunti
 import { applySmartArtColorTransform } from './smartart-colors-builder';
 import { buildFabricatedDrawingXml } from './smartart-fabrication-drawing';
 import { synthesizeNewSmartArtStructuralPoints } from './smartart-node-synthesis';
+import { applySmartArtQuickStyle } from './smartart-quick-style-builder';
 import { applySmartArtChrome } from './smartart-save-chrome';
 import {
 	applySmartArtLayoutIdentity,
@@ -200,6 +201,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// persists across a round-trip instead of PowerPoint re-deriving
 			// the old values on open.
 			await this.regenerateSmartArtColorPart(slidePath, smartArtData);
+			await this.regenerateSmartArtQuickStylePart(slidePath, smartArtData);
 			await this.regenerateSmartArtLayoutDefinition(slidePath, smartArtData);
 		}
 
@@ -251,6 +253,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			(colorsDef) =>
 				applySmartArtColorTransform(colorsDef, transform, (k) =>
 					this.compatibilityService.getXmlLocalName(k),
+				),
+		);
+	}
+
+	/** Merge dirty CT_StyleDefinition metadata into the related quick-style part. */
+	protected async regenerateSmartArtQuickStylePart(
+		slidePath: string,
+		smartArtData: SmartArtPptxElement['smartArtData'],
+	): Promise<void> {
+		const quickStyle = smartArtData?.quickStyle;
+		if (!smartArtData?.quickStyleDirty || !smartArtData.styleRelId || !quickStyle) {
+			return;
+		}
+		await this.mergeSmartArtDiagramPart(
+			slidePath,
+			smartArtData.styleRelId,
+			'styleDef',
+			'quick style',
+			(styleDef) =>
+				applySmartArtQuickStyle(styleDef, quickStyle, (key) =>
+					this.compatibilityService.getXmlLocalName(key),
 				),
 		);
 	}

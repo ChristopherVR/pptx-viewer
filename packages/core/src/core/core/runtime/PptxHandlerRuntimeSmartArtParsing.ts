@@ -6,6 +6,10 @@ import type {
 } from '../../types';
 import type { DiagramRelationshipIds } from '../../utils/diagram-relationship-ids';
 import { parseSmartArtConnection } from '../../utils/smartart-data-model-attributes';
+import {
+	parseSmartArtDefinitionMetadata,
+	parseSmartArtQuickStyleLabels,
+} from '../../utils/smartart-definition-metadata';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtXmlUtils';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -86,7 +90,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return undefined;
 			}
 
-			const name = String(styleDef['@_title'] || styleDef['@_uniqueId'] || '').trim() || undefined;
+			const localName = (key: string) => this.compatibilityService.getXmlLocalName(key);
+			const metadata = parseSmartArtDefinitionMetadata(styleDef, localName);
+			const labels = parseSmartArtQuickStyleLabels(styleDef, localName);
+			const name =
+				metadata.titles?.[0]?.value ||
+				String(styleDef['@_title'] || styleDef['@_uniqueId'] || '').trim() ||
+				undefined;
 
 			let effectIntensity: string | undefined;
 			const styleLbls = this.xmlLookupService.getChildrenArrayByLocalName(styleDef, 'styleLbl');
@@ -106,7 +116,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 
-			return { name, effectIntensity };
+			return { ...metadata, name, effectIntensity, labels };
 		} catch {
 			return undefined;
 		}

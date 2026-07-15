@@ -354,6 +354,14 @@ export {
 } from './smartart-layout-definition';
 
 export {
+	parseSmartArtColorStyleLabels,
+	parseSmartArtDefinitionMetadata,
+	parseSmartArtQuickStyleLabels,
+	validateSmartArtColorStyleLabels,
+	validateSmartArtDefinitionMetadata,
+} from './smartart-definition-metadata';
+
+export {
 	checkPresentation,
 	checkMissingAltText,
 	checkMissingSlideTitle,

@@ -8,6 +8,10 @@
 
 import type { PptxSmartArtLayoutDefinition } from './smart-art-layout-definition';
 import type { PptxSmartArtNode } from './smart-art-node';
+import type {
+	PptxSmartArtColorTransform,
+	PptxSmartArtQuickStyle,
+} from './smart-art-style-definition';
 
 // Node-related types (PptxSmartArtTextRun, PptxSmartArtNodeStyle,
 // PptxSmartArtNode) live in `smart-art-node.ts` to keep this file within the
@@ -24,6 +28,7 @@ export type {
 	PptxSmartArtLayoutNode,
 	PptxSmartArtLocalizedText,
 } from './smart-art-layout-definition';
+export type * from './smart-art-style-definition';
 
 // ==========================================================================
 // SmartArt types
@@ -230,47 +235,6 @@ export interface PptxSmartArtChrome {
 }
 
 /**
- * Colour transform entry from `ppt/diagrams/colors*.xml`.
- *
- * @example
- * ```ts
- * const transform: PptxSmartArtColorTransform = {
- *   name: "Colorful - Accent Colors",
- *   fillColors: ["#4F81BD", "#C0504D", "#9BBB59"],
- *   lineColors: ["#385D8A", "#8C3836", "#71893F"],
- * };
- * // => satisfies PptxSmartArtColorTransform
- * ```
- */
-export interface PptxSmartArtColorTransform {
-	/** Colour scheme name / title. */
-	name?: string;
-	/** Ordered list of fill colours (hex) for each node. */
-	fillColors: string[];
-	/** Ordered list of line colours (hex). */
-	lineColors: string[];
-}
-
-/**
- * Style entry from `ppt/diagrams/quickStyles*.xml`.
- *
- * @example
- * ```ts
- * const qs: PptxSmartArtQuickStyle = {
- *   name: "Moderate Effect",
- *   effectIntensity: "moderate",
- * };
- * // => satisfies PptxSmartArtQuickStyle
- * ```
- */
-export interface PptxSmartArtQuickStyle {
-	/** Style name / title. */
-	name?: string;
-	/** Effect intensity identifier (e.g. "subtle", "moderate", "intense"). */
-	effectIntensity?: string;
-}
-
-/**
  * Complete parsed SmartArt data for a {@link SmartArtPptxElement}.
  *
  * @example
@@ -325,6 +289,10 @@ export interface PptxSmartArtData {
 	layoutDirty?: boolean;
 	/** Internal save hint: typed layout-definition metadata changed. */
 	layoutDefinitionDirty?: boolean;
+	/** Internal save hint: quick-style definition metadata changed. */
+	quickStyleDirty?: boolean;
+	/** Internal save hint: color-transform definition metadata changed. */
+	colorTransformDirty?: boolean;
 	/** Internal save hint: cached drawing geometry or text changed in the editor. */
 	drawingDirty?: boolean;
 }

@@ -1,5 +1,9 @@
 import type { XmlObject } from '../../types';
 import type { PptxSmartArtColorTransform } from '../../types/smart-art';
+import {
+	applySmartArtColorStyleLabels,
+	applySmartArtDefinitionMetadata,
+} from './smartart-definition-builder';
 
 /** Resolve the local (prefix-stripped) name of an XML key. */
 type LocalNameResolver = (key: string) => string;
@@ -102,6 +106,8 @@ export function applySmartArtColorTransform(
 	}
 
 	let mutated = false;
+	mutated = applySmartArtDefinitionMetadata(colorsDef, transform, getLocalName) || mutated;
+	mutated = applySmartArtColorStyleLabels(colorsDef, transform.labels, getLocalName) || mutated;
 
 	const styleLblKey = findKey(colorsDef, 'styleLbl', getLocalName);
 	if (!styleLblKey) {
