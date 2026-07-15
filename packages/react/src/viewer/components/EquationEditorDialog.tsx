@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
 import { useModalDismissDrag } from '../hooks';
+import { useModalFocus } from '../hooks/useModalFocus';
 import { cn } from '../utils';
 import { convertLatexToOmml, convertOmmlToLatex } from '../utils/latex-to-omml';
 import { convertOmmlToMathMl } from '../utils/omml-to-mathml';
@@ -196,13 +197,13 @@ export function EquationEditorDialog({
 	// path so rapid keystrokes stay responsive.
 	const deferredLatex = useDeferredValue(latex);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const dialogRef = useRef<HTMLDivElement>(null);
+	useModalFocus(isOpen, dialogRef, onClose, textareaRef);
 
 	// Reset latex when the dialog opens with new OMML
 	useEffect(() => {
 		if (isOpen) {
 			setLatex(initialLatex);
-			// Focus the textarea after a short delay to allow the dialog to mount
-			setTimeout(() => textareaRef.current?.focus(), 50);
 		}
 	}, [isOpen, initialLatex]);
 
@@ -276,11 +277,13 @@ export function EquationEditorDialog({
 		>
 			{/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- stopPropagation only, so a click inside the panel doesn't bubble to the backdrop's close handler or the canvas's click-outside deselect logic; the panel has no interactive semantics of its own */}
 			<div
+				ref={dialogRef}
 				style={panelStyle}
 				className='bg-background border border-border rounded-xl shadow-2xl w-[640px] max-h-[85vh] flex flex-col overflow-hidden max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-h-[88dvh] max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'
 				onClick={(e) => e.stopPropagation()}
 				role='dialog'
 				aria-modal='true'
+				tabIndex={-1}
 				aria-label={
 					isEditing
 						? t('pptx.equation.editTitle', 'Edit Equation')
@@ -301,6 +304,7 @@ export function EquationEditorDialog({
 						type='button'
 						onClick={onClose}
 						className='p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors'
+						aria-label={t('pptx.settings.close')}
 					>
 						<LuX className='w-4 h-4' />
 					</button>

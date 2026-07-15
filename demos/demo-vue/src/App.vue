@@ -36,7 +36,6 @@ import { themes } from './themes';
 
 const content = shallowRef<Uint8Array | null>(null);
 const fileName = ref('');
-const fileInput = ref<HTMLInputElement>();
 
 const themeKey = ref<string>(readStoredTheme());
 
@@ -387,14 +386,10 @@ function onInputChange(e: Event): void {
 		loadFile(file);
 	}
 }
-
-function browse(): void {
-	fileInput.value?.click();
-}
 </script>
 
 <template>
-	<div v-if="content" class="demo-shell">
+	<main v-if="content" class="demo-shell">
 		<ThemePicker :current="themeKey" @change="setTheme" />
 		<LanguagePicker :current="languageKey" :theme="themeKey" @change="setLanguage" />
 		<PowerPointViewer
@@ -411,19 +406,18 @@ function browse(): void {
 			@stop-collaboration="handleStopCollaboration"
 			@dirty-change="onDirtyChange"
 		/>
-	</div>
+	</main>
 
-	<div v-else class="demo-stage">
+	<main v-else class="demo-stage">
+		<h1 class="sr-only">PPTX Viewer</h1>
 		<ThemePicker :current="themeKey" @change="setTheme" />
 		<LanguagePicker :current="languageKey" :theme="themeKey" @change="setLanguage" />
 		<div
 			class="demo-dropzone"
-			role="button"
-			tabindex="0"
+			role="group"
+			:aria-label="t('demo.dropzone.uploadAriaLabel')"
 			@drop="onDrop"
 			@dragover.prevent
-			@click="browse"
-			@keydown.enter="browse"
 		>
 			<template v-if="urlBroadcast">
 				<p class="demo-join">
@@ -435,10 +429,10 @@ function browse(): void {
 				<p class="demo-join">
 					{{ t('demo.dropzone.joiningSession') }} <code>{{ urlRoom }}</code>
 				</p>
-				<p class="demo-hint">{{ t('demo.dropzone.hintCollab') }}</p>
+				<label class="demo-hint" for="file-input">{{ t('demo.dropzone.hintCollab') }}</label>
 			</template>
 			<template v-else>
-				<p class="demo-hint">{{ t('demo.dropzone.hint') }}</p>
+				<label class="demo-hint" for="file-input">{{ t('demo.dropzone.hint') }}</label>
 			</template>
 			<p class="demo-sub">{{ t('demo.dropzone.processed') }}</p>
 			<button type="button" @click.stop="newPresentation">
@@ -446,15 +440,14 @@ function browse(): void {
 			</button>
 			<input
 				id="file-input"
-				ref="fileInput"
 				type="file"
 				accept=".pptx"
 				:aria-label="t('demo.dropzone.uploadAriaLabel')"
-				style="display: none"
+				class="sr-only"
 				@change="onInputChange"
 			/>
 		</div>
-	</div>
+	</main>
 </template>
 
 <style>
@@ -516,6 +509,7 @@ body {
 }
 
 .demo-hint {
+	display: block;
 	margin: 0;
 	font-size: 1rem;
 	color: var(--pptx-muted-foreground, #9ca3af);
@@ -525,7 +519,18 @@ body {
 	margin: 0;
 	font-size: 0.8rem;
 	color: var(--pptx-muted-foreground, #9ca3af);
-	opacity: 0.6;
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
 }
 
 .demo-dropzone code {

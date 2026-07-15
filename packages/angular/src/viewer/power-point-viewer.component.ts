@@ -208,18 +208,23 @@ import { ZoomTargetService } from './zoom-target.service';
 		TranslatePipe,
 	],
 	template: `
-		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
+		<div
+			class="pptx-ng-viewer"
+			[ngClass]="class()"
+			[ngStyle]="rootStyle()"
+			[attr.aria-busy]="loader.loading()"
+		>
 			@if (loader.loading()) {
-				<div class="pptx-ng-state pptx-ng-loading">
+				<div class="pptx-ng-state pptx-ng-loading" role="status" aria-live="polite">
 					<div class="pptx-ng-spinner" aria-hidden="true"></div>
 					<p>{{ 'pptx.viewer.loading' | translate }}</p>
 				</div>
 			} @else if (loader.isEncrypted()) {
-				<div class="pptx-ng-state pptx-ng-error">
+				<div class="pptx-ng-state pptx-ng-error" role="alert">
 					<p>{{ 'pptx.viewer.encrypted' | translate }}</p>
 				</div>
 			} @else if (loader.error()) {
-				<div class="pptx-ng-state pptx-ng-error">
+				<div class="pptx-ng-state pptx-ng-error" role="alert">
 					<p>{{ 'pptx.viewer.loadError' | translate }}</p>
 					<pre class="pptx-ng-error-detail">{{ loader.error() }}</pre>
 				</div>

@@ -905,11 +905,6 @@ function App() {
 		e.preventDefault();
 	}, []);
 
-	const handleClick = useCallback(() => {
-		const input = document.getElementById('file-input') as HTMLInputElement;
-		input?.click();
-	}, []);
-
 	const handleInputChange = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
 			const file = e.target.files?.[0];
@@ -922,7 +917,7 @@ function App() {
 
 	if (content) {
 		return (
-			<div className='h-[100dvh] w-screen'>
+			<main className='h-[100dvh] w-screen'>
 				<ThemePicker current={themeKey} onChange={handleThemeChange} />
 				<LanguagePicker
 					current={languageKey}
@@ -945,15 +940,16 @@ function App() {
 						serverUrl: defaultServerUrl,
 					}}
 					onDirtyChange={(dirty) => {
-						document.title = dirty ? `* ${fileName} — PPTX Viewer` : `${fileName} — PPTX Viewer`;
+						document.title = dirty ? `* ${fileName} - PPTX Viewer` : `${fileName} - PPTX Viewer`;
 					}}
 				/>
-			</div>
+			</main>
 		);
 	}
 
 	return (
-		<div className='flex flex-col items-center justify-center h-[100dvh] w-screen bg-background text-foreground'>
+		<main className='flex flex-col items-center justify-center h-[100dvh] w-screen bg-background text-foreground'>
+			<h1 className='sr-only'>PPTX Viewer</h1>
 			<ThemePicker current={themeKey} onChange={handleThemeChange} />
 			<LanguagePicker current={languageKey} onChange={handleLanguageChange} theme={currentPreset} />
 			{recoveryOffer && (
@@ -981,11 +977,14 @@ function App() {
 					</div>
 				</div>
 			)}
+			{/* Drag and drop supplements the keyboard-accessible native file input. */}
+			{/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
 			<div
 				className='max-w-[900px] w-full border-2 border-dashed border-border rounded-xl p-12 text-center cursor-pointer transition-colors hover:border-primary hover:bg-accent'
+				role='group'
+				aria-label={t('demo.dropzone.uploadAriaLabel')}
 				onDrop={handleDrop}
 				onDragOver={handleDragOver}
-				onClick={handleClick}
 			>
 				{urlBroadcast ? (
 					<>
@@ -1005,12 +1004,16 @@ function App() {
 								{urlRoom}
 							</code>
 						</p>
-						<p className='text-muted-foreground mb-3'>{t('demo.dropzone.hintCollab')}</p>
+						<label className='text-muted-foreground mb-3 cursor-pointer' htmlFor='file-input'>
+							{t('demo.dropzone.hintCollab')}
+						</label>
 					</>
 				) : (
-					<p className='text-muted-foreground mb-3'>{t('demo.dropzone.hint')}</p>
+					<label className='text-muted-foreground mb-3 cursor-pointer' htmlFor='file-input'>
+						{t('demo.dropzone.hint')}
+					</label>
 				)}
-				<p className='text-sm text-muted-foreground/60'>{t('demo.dropzone.processed')}</p>
+				<p className='text-sm text-muted-foreground'>{t('demo.dropzone.processed')}</p>
 				<button
 					onClick={(e) => {
 						e.stopPropagation();
@@ -1025,11 +1028,11 @@ function App() {
 					id='file-input'
 					accept='.pptx'
 					aria-label={t('demo.dropzone.uploadAriaLabel')}
-					style={{ display: 'none' }}
+					className='sr-only'
 					onChange={handleInputChange}
 				/>
 			</div>
-		</div>
+		</main>
 	);
 }
 

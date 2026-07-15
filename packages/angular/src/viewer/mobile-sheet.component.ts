@@ -25,13 +25,19 @@ import { NgStyle } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
+	DestroyRef,
+	ElementRef,
 	computed,
-	HostListener,
+	effect,
+	inject,
 	input,
 	output,
 	signal,
+	viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+
+import { activateModalFocus } from '../internal/shared';
 
 /** Drag-down distance in pixels that triggers dismissal. */
 const DISMISS_THRESHOLD = 120;
@@ -43,12 +49,7 @@ const DISMISS_THRESHOLD = 120;
 	imports: [NgStyle, TranslatePipe],
 	template: `
 		@if (open()) {
-			<div
-				class="pptx-ng-msheet-root"
-				role="dialog"
-				aria-modal="true"
-				[attr.aria-label]="title() || ('pptx.mobileSheet.ariaLabel' | translate)"
-			>
+			<div class="pptx-ng-msheet-root">
 				<!-- Backdrop -->
 				<button
 					type="button"
@@ -58,7 +59,15 @@ const DISMISS_THRESHOLD = 120;
 				></button>
 
 				<!-- Panel -->
-				<div class="pptx-ng-msheet-panel" [ngStyle]="panelStyle()">
+				<div
+					#panel
+					class="pptx-ng-msheet-panel"
+					[ngStyle]="panelStyle()"
+					role="dialog"
+					aria-modal="true"
+					tabindex="-1"
+					[attr.aria-label]="title() || ('pptx.mobileSheet.ariaLabel' | translate)"
+				>
 					<!--
 						Drag handle + header form a single swipe-to-dismiss grab
 						region so the gesture isn't limited to the thin pill.
@@ -80,6 +89,15 @@ const DISMISS_THRESHOLD = 120;
 								<span class="pptx-ng-msheet-title">{{ title() }}</span>
 							</div>
 						}
+						<button
+							type="button"
+							class="pptx-ng-msheet-close"
+							[attr.aria-label]="'pptx.mobileSheet.close' | translate"
+							(pointerdown)="$event.stopPropagation()"
+							(click)="closed.emit()"
+						>
+							&times;
+						</button>
 					</div>
 
 					<!-- Body -->
@@ -157,9 +175,27 @@ const DISMISS_THRESHOLD = 120;
 			/* ── Drag handle row ── */
 
 			.pptx-ng-msheet-grab {
+				position: relative;
 				cursor: grab;
 				touch-action: none;
 				flex-shrink: 0;
+			}
+
+			.pptx-ng-msheet-close {
+				position: absolute;
+				top: 0.5rem;
+				right: 0.75rem;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 2rem;
+				height: 2rem;
+				border: 0;
+				border-radius: 0.25rem;
+				background: transparent;
+				color: inherit;
+				font-size: 1.25rem;
+				cursor: pointer;
 			}
 
 			.pptx-ng-msheet-grab:active {
@@ -211,6 +247,8 @@ const DISMISS_THRESHOLD = 120;
 	],
 })
 export class MobileSheetComponent {
+	private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
+	private releaseFocus: (() => void) | undefined;
 	/** Controls whether the sheet is visible. */
 	readonly open = input<boolean>(false);
 
@@ -259,19 +297,25 @@ export class MobileSheetComponent {
 		return style;
 	});
 
-	// ── Keyboard ─────────────────────────────────────────────────────────────
-
-	@HostListener('document:keydown', ['$event'])
-	onDocumentKeydown(event: KeyboardEvent): void {
-		if (this.open() && event.key === 'Escape') {
-			event.preventDefault();
-			this.closed.emit();
-		}
+	constructor() {
+		effect(() => {
+			const open = this.open();
+			const panel = this.panel()?.nativeElement;
+			this.releaseFocus?.();
+			this.releaseFocus =
+				open && panel
+					? activateModalFocus(panel, { onEscape: () => this.closed.emit() })
+					: undefined;
+		});
+		inject(DestroyRef).onDestroy(() => this.releaseFocus?.());
 	}
 
 	// ── Pointer events (drag-to-dismiss) ─────────────────────────────────────
 
 	onPointerDown(event: PointerEvent): void {
+		if ((event.target as HTMLElement).closest('button')) {
+			return;
+		}
 		this._dragStartY = event.clientY;
 		this._dragPointerId = event.pointerId;
 		this.isDragging.set(true);

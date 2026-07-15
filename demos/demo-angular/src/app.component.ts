@@ -73,15 +73,17 @@ type DemoContent = Uint8Array | ArrayBuffer;
 		`,
 	],
 	template: `
-		<app-theme-picker [current]="themeKey()" (themeChange)="onThemeChange($event)" />
-		<app-language-picker
-			[current]="languageKey()"
-			[theme]="themeKey()"
-			(languageChange)="onLanguageChange($event)"
-		/>
+		<header aria-label="Demo settings">
+			<app-theme-picker [current]="themeKey()" (themeChange)="onThemeChange($event)" />
+			<app-language-picker
+				[current]="languageKey()"
+				[theme]="themeKey()"
+				(languageChange)="onLanguageChange($event)"
+			/>
+		</header>
 
 		@if (content()) {
-			<div class="demo-viewer-host">
+			<main class="demo-viewer-host">
 				<pptx-viewer
 					[content]="content()!"
 					[theme]="activeTheme()"
@@ -96,7 +98,7 @@ type DemoContent = Uint8Array | ArrayBuffer;
 					(stopCollaboration)="handleStopCollaboration()"
 					(dirtyChange)="onDirtyChange($event)"
 				/>
-			</div>
+			</main>
 		} @else {
 			<app-dropzone
 				[theme]="activeTheme()"

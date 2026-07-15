@@ -432,6 +432,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			<div
 				style={themeStyle}
 				data-pptx-viewer=''
+				aria-busy={loading}
 				className='h-full w-full bg-background text-foreground relative'
 			>
 				{/* Inner measured container: only layout content (toolbar, canvas,

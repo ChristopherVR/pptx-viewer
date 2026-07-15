@@ -28,15 +28,19 @@
 import {
 	ChangeDetectionStrategy,
 	Component,
-	HostListener,
+	DestroyRef,
+	ElementRef,
 	computed,
+	effect,
 	inject,
 	input,
 	output,
 	signal,
+	viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { activateModalFocus } from '../internal/shared';
 import { IsMobileService } from './is-mobile';
 
 /**
@@ -64,9 +68,11 @@ export function modalPanelClass(isMobile: boolean): string {
 				(click)="onBackdropClick()"
 			>
 				<div
+					#panel
 					[class]="panelClass()"
 					role="dialog"
 					aria-modal="true"
+					tabindex="-1"
 					[attr.aria-label]="title() || null"
 					[style.transform]="dragY() > 0 ? 'translateY(' + dragY() + 'px)' : null"
 					[style.transition]="dragging() ? 'none' : 'transform 150ms ease-out'"
@@ -129,6 +135,7 @@ export function modalPanelClass(isMobile: boolean): string {
 				border: 1px solid var(--pptx-border, #e5e7eb);
 				border-radius: var(--pptx-radius, 8px);
 				box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+				overscroll-behavior: contain;
 			}
 
 			.pptx-ng-modal-header {
@@ -245,6 +252,9 @@ export function modalPanelClass(isMobile: boolean): string {
 	],
 })
 export class ModalDialogComponent {
+	private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
+	private releaseFocus: (() => void) | undefined;
+
 	/** Whether the dialog is visible. */
 	readonly open = input<boolean>(false);
 
@@ -263,16 +273,17 @@ export class ModalDialogComponent {
 	 */
 	protected readonly panelClass = computed(() => modalPanelClass(this.mobile.isMobile()));
 
-	/** Close on `Escape`, regardless of where focus currently sits. */
-	@HostListener('document:keydown', ['$event'])
-	onDocumentKeydown(event: KeyboardEvent): void {
-		if (!this.open()) {
-			return;
-		}
-		if (event.key === 'Escape') {
-			event.stopPropagation();
-			this.requestClose();
-		}
+	constructor() {
+		effect(() => {
+			const open = this.open();
+			const panel = this.panel()?.nativeElement;
+			this.releaseFocus?.();
+			this.releaseFocus =
+				open && panel
+					? activateModalFocus(panel, { onEscape: () => this.requestClose() })
+					: undefined;
+		});
+		inject(DestroyRef).onDestroy(() => this.releaseFocus?.());
 	}
 
 	requestClose(): void {

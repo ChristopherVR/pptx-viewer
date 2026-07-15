@@ -42,7 +42,7 @@ const BADGE_STYLE = [
 	'color:#e2e8f0',
 	'font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
 	'text-decoration:none',
-	'opacity:0.45',
+	'opacity:1',
 	'transition:opacity 0.15s',
 	'pointer-events:auto',
 ].join(';');
@@ -54,10 +54,11 @@ export function buildStamp(pkgJsonPath: string): Plugin {
 	const label = [`${pkg.name} v${pkg.version}`, sha || 'local', date].join(' · ');
 	const href = sha ? `${REPO_URL}/commit/${sha}` : REPO_URL;
 	const badge =
+		'<footer aria-label="Build information">' +
 		`<a id="demo-build-stamp" href="${href}" target="_blank" rel="noreferrer" ` +
 		`style="${BADGE_STYLE}" ` +
-		`onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.45" ` +
-		`title="Built from ${sha || 'a local checkout'} on ${date}">${label}</a>`;
+		`title="Built from ${sha || 'a local checkout'} on ${date}">${label}</a>` +
+		'</footer>';
 	// Root markers of the mounted viewer, one per binding (React attribute,
 	// Vue root class, Angular element). Badge is visible only while none exist.
 	const viewerRoots = '[data-pptx-viewer],.pptx-vue-viewer,pptx-viewer';

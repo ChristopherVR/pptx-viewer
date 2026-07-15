@@ -516,6 +516,8 @@ export * from './accessibility-issues';
 // role-description mapping, and reduced-motion detection. Each binding's element
 // renderer applies these to its DOM nodes.
 export * from './accessibility';
+export * from './element-accessibility-dom';
+export * from './modal-focus';
 // Freehand ink: points -> SVG path `d`, completed-stroke -> `InkPptxElement`.
 export * from './ink-drawing';
 // Ink rendering maths: SVG-path point extraction, pressure-sensitive circle

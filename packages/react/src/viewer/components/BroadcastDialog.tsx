@@ -19,6 +19,7 @@ import { LuCast, LuCheck, LuCopy, LuUsers, LuWifi, LuWifiOff } from 'react-icons
 
 import { useModalDismissDrag } from '../hooks';
 import type { CollaborationConfig } from '../hooks/collaboration/types';
+import { useModalFocus } from '../hooks/useModalFocus';
 import { useCollaboration } from './collaboration';
 
 // ---------------------------------------------------------------------------
@@ -76,6 +77,7 @@ export function BroadcastDialog({
 	const [copied, setCopied] = useState(false);
 	const dialogRef = useRef<HTMLDivElement>(null);
 	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
+	useModalFocus(open, dialogRef, onClose);
 
 	// Sync defaults on open
 	useEffect(() => {
@@ -89,27 +91,6 @@ export function BroadcastDialog({
 			setServerUrl(defaultServerUrl ?? DEFAULT_BROADCAST_SERVER_URL);
 		}
 	}, [open, isBroadcasting, defaultRoomId, defaultUserName, defaultServerUrl]);
-
-	// Close on Escape
-	useEffect(() => {
-		if (!open) {
-			return;
-		}
-		function handleKeyDown(e: KeyboardEvent) {
-			if (e.key === 'Escape') {
-				onClose();
-			}
-		}
-		document.addEventListener('keydown', handleKeyDown);
-		return () => document.removeEventListener('keydown', handleKeyDown);
-	}, [open, onClose]);
-
-	// Focus dialog on open
-	useEffect(() => {
-		if (open && dialogRef.current) {
-			dialogRef.current.focus();
-		}
-	}, [open]);
 
 	const activeRoomId = isBroadcasting ? collab.config.roomId : roomId;
 	const activeServerUrl = isBroadcasting ? collab.config.serverUrl : serverUrl;

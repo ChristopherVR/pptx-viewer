@@ -203,7 +203,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			el.type === 'media' && Boolean(el.fullScreen) && isPresentationPassive && isMediaPlaying;
 
 		// Accessibility attributes
-		const ariaRole = getAriaRole(el);
+		const ariaRole = isActionable ? 'button' : getAriaRole(el);
 		const ariaLabel = getAriaLabel(el);
 		const ariaRoleDescription = getAriaRoleDescription(el);
 		const isFocusable = effectiveCanInteract || isActionable;
@@ -249,6 +249,10 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 						e.preventDefault();
 						e.stopPropagation();
 						onInlineEditCancel();
+					} else if ((e.key === 'Enter' || e.key === ' ') && isActionable) {
+						e.preventDefault();
+						e.stopPropagation();
+						e.currentTarget.click();
 					}
 				}}
 				onClick={(e) => {

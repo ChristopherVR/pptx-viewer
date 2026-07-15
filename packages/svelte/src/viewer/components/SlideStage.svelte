@@ -6,7 +6,8 @@
 	 * tiny scale by the thumbnail rail; it owns no chrome, the host decides
 	 * layout.
 	 */
-	import { getSlideBackgroundStyle } from 'pptx-viewer-shared';
+	import type { PptxElement } from 'pptx-viewer-core';
+	import { applyRenderedElementAccessibility, getSlideBackgroundStyle } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { styleToString } from '../style';
@@ -38,14 +39,29 @@
 			...getSlideBackgroundStyle(slide),
 		}),
 	);
+
+	function accessibleStage(node: HTMLElement, elements: readonly PptxElement[]) {
+		function apply(): void {
+			queueMicrotask(() => applyRenderedElementAccessibility(node, elements));
+		}
+		apply();
+		return {
+			update(next: readonly PptxElement[]): void {
+				elements = next;
+				apply();
+			},
+		};
+	}
 </script>
 
 <div
 	class="pptx-svelte-stage"
+	use:accessibleStage={slide?.elements ?? []}
 	style={stageStyle}
 	role={interactive ? 'region' : undefined}
 	aria-roledescription={interactive ? 'slide' : undefined}
 	aria-label={interactive ? t('pptx.canvas.slide') : undefined}
+	aria-hidden={interactive ? undefined : 'true'}
 >
 	{#each slide?.elements ?? [] as element, index (element.id)}
 		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} {interactive} {editTemplateMode} {ontablecellcommit} />

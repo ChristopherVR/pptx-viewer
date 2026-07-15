@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { getSlideBackgroundStyle } from 'pptx-viewer-shared';
+import { applyRenderedElementAccessibility, getSlideBackgroundStyle } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
-import { computed } from 'vue';
+import { computed, ref, watchPostEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { CanvasSize } from '../types';
 import ElementRenderer from './ElementRenderer.vue';
@@ -48,12 +49,24 @@ const props = withDefaults(
 	}>(),
 	{ scale: 1 },
 );
+const { t } = useI18n();
+const stageRef = ref<HTMLElement | null>(null);
 
 /** Template elements render behind the slide content; default to none. */
 const templateElements = computed<PptxElement[]>(() => props.templateElements ?? []);
 
 /** Number of template elements, used to offset the main layer's z-index above them. */
 const templateCount = computed(() => templateElements.value.length);
+const accessibleElements = computed(() => [
+	...templateElements.value,
+	...(props.slide?.elements ?? []),
+]);
+
+watchPostEffect(() => {
+	if (stageRef.value && (props.interactive || props.presenting)) {
+		applyRenderedElementAccessibility(stageRef.value, accessibleElements.value);
+	}
+});
 
 /**
  * The template layer is interactive only when the canvas as a whole is
@@ -77,7 +90,15 @@ const stageStyle = computed<CSSProperties>(() => ({
 </script>
 
 <template>
-	<div class="pptx-vue-stage" :style="stageStyle">
+	<div
+		ref="stageRef"
+		class="pptx-vue-stage"
+		:style="stageStyle"
+		:role="interactive || presenting ? 'region' : undefined"
+		:aria-roledescription="interactive || presenting ? 'slide' : undefined"
+		:aria-label="interactive || presenting ? t('pptx.canvas.slide') : undefined"
+		:aria-hidden="!interactive && !presenting ? 'true' : undefined"
+	>
 		<!-- Template (master/layout) layer: behind the slide content (lower z). -->
 		<ElementRenderer
 			v-for="(element, index) in templateElements"

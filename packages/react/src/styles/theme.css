@@ -56,9 +56,9 @@
  * transitions throughout the viewer.
  */
 @media (prefers-reduced-motion: reduce) {
-	*,
-	*::before,
-	*::after {
+	[data-pptx-viewer] *,
+	[data-pptx-viewer] *::before,
+	[data-pptx-viewer] *::after {
 		animation-duration: 0.01ms !important;
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
@@ -124,4 +124,21 @@
 	outline: 2px solid var(--pptx-ring, #6366f1);
 	outline-offset: 2px;
 	z-index: 999;
+}
+
+:where([data-pptx-viewer]) :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+	outline: 2px solid var(--pptx-ring, #818cf8) !important;
+	outline-offset: 2px;
+}
+
+:where([data-pptx-viewer]) :where(button, [role='button']) {
+	min-width: 24px;
+	min-height: 24px;
+	touch-action: manipulation;
+}
+
+@media (forced-colors: active) {
+	:where([data-pptx-viewer]) :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+		outline-color: Highlight;
+	}
 }

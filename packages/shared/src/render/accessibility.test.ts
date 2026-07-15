@@ -139,8 +139,8 @@ describe('getAriaRole', () => {
 		expect(getAriaRole(makeElement({ id: '1', type: 'picture' }))).toBe('img');
 	});
 
-	it('returns "table" for table elements', () => {
-		expect(getAriaRole(makeElement({ id: '1', type: 'table' }))).toBe('table');
+	it('returns "group" for table wrappers', () => {
+		expect(getAriaRole(makeElement({ id: '1', type: 'table' }))).toBe('group');
 	});
 
 	it('returns "group" for group elements', () => {
@@ -155,8 +155,8 @@ describe('getAriaRole', () => {
 		expect(getAriaRole(makeElement({ id: '1', type: 'smartArt' }))).toBe('img');
 	});
 
-	it('returns "application" for media elements', () => {
-		expect(getAriaRole(makeElement({ id: '1', type: 'media' }))).toBe('application');
+	it('returns "group" for media wrappers', () => {
+		expect(getAriaRole(makeElement({ id: '1', type: 'media' }))).toBe('group');
 	});
 
 	it('returns "img" for connector elements', () => {
@@ -171,15 +171,15 @@ describe('getAriaRole', () => {
 		expect(getAriaRole(makeElement({ id: '1', type: 'model3d' }))).toBe('img');
 	});
 
-	it('returns undefined for text elements', () => {
-		expect(getAriaRole(makeElement({ id: '1', type: 'text' }))).toBeUndefined();
+	it('returns "group" for text elements', () => {
+		expect(getAriaRole(makeElement({ id: '1', type: 'text' }))).toBe('group');
 	});
 
 	it('returns "img" for shapes without text', () => {
 		expect(getAriaRole(makeElement({ id: '1', type: 'shape', shapeType: 'rect' }))).toBe('img');
 	});
 
-	it('returns undefined for shapes with text content', () => {
+	it('returns "group" for shapes with text content', () => {
 		expect(
 			getAriaRole(
 				makeElement({
@@ -189,7 +189,7 @@ describe('getAriaRole', () => {
 					shapeType: 'rect',
 				}),
 			),
-		).toBeUndefined();
+		).toBe('group');
 	});
 });
 

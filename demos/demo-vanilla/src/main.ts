@@ -119,7 +119,7 @@ function openViewer(
 	stopNotesObserver = null;
 	app.replaceChildren();
 
-	const shell = document.createElement('div');
+	const shell = document.createElement('main');
 	shell.className = 'demo-shell';
 	shell.dataset.pptxViewer = '';
 	app.append(shell);

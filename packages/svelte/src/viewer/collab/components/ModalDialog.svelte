@@ -11,6 +11,8 @@
 	 * an export is in flight), this shell closes on backdrop click, the close
 	 * button, or Escape, since none of its callers block a critical operation.
 	 */
+	import { activateModalFocus } from 'pptx-viewer-shared';
+
 	import { useTranslator } from '../../../i18n/context';
 	import type { ModalDialogProps } from './props';
 
@@ -22,15 +24,11 @@
 		onclose();
 	}
 
-	function onKeydown(event: KeyboardEvent): void {
-		if (open && event.key === 'Escape') {
-			event.stopPropagation();
-			onclose();
-		}
+	function modalFocus(node: HTMLElement): { destroy(): void } {
+		const release = activateModalFocus(node, { onEscape: onclose });
+		return { destroy: release };
 	}
 </script>
-
-<svelte:window onkeydown={onKeydown} />
 
 {#if open}
 	<div
@@ -40,6 +38,7 @@
 	>
 		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 		<div
+			use:modalFocus
 			class="pptx-svelte-modal-panel"
 			role="dialog"
 			aria-modal="true"
@@ -96,6 +95,7 @@
 		background: var(--pptx-popover, #111827);
 		color: var(--pptx-popover-foreground, #f3f4f6);
 		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+		overscroll-behavior: contain;
 		font-family: system-ui, sans-serif;
 	}
 

@@ -81,7 +81,9 @@ const canStart = computed(() => pendingConfig.value !== null);
 const isPeerToPeer = computed(() => resolveTransportForServerUrl(serverUrl.value) === 'webrtc');
 
 function handleStart(): void {
-	if (pendingConfig.value) emit('start', pendingConfig.value);
+	if (pendingConfig.value) {
+		emit('start', pendingConfig.value);
+	}
 }
 
 function handleStop(): void {

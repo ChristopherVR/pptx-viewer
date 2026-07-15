@@ -1,9 +1,10 @@
 import type { SmartArtLayout } from 'pptx-viewer-core';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
 import { useModalDismissDrag } from '../hooks';
+import { useModalFocus } from '../hooks/useModalFocus';
 import { cn } from '../utils';
 import type { SmartArtCategory } from './smart-art-presets';
 import { PRESETS, CATEGORIES } from './smart-art-presets';
@@ -26,6 +27,8 @@ export function InsertSmartArtDialog({
 	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
 	const [activeCategory, setActiveCategory] = useState<SmartArtCategory>('list');
 	const [selectedLayout, setSelectedLayout] = useState<SmartArtLayout | null>(null);
+	const dialogRef = useRef<HTMLDivElement>(null);
+	useModalFocus(isOpen, dialogRef, onClose);
 
 	const filteredPresets = PRESETS.filter((p) => p.category === activeCategory);
 
@@ -62,11 +65,13 @@ export function InsertSmartArtDialog({
 				className='fixed inset-0 flex items-center justify-center pointer-events-none'
 			>
 				<div
+					ref={dialogRef}
 					style={panelStyle}
 					className='pointer-events-auto w-[600px] max-w-[90vw] max-h-[80vh] rounded-lg border border-border bg-background shadow-2xl flex flex-col max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-w-none max-md:max-h-[88dvh] max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'
 					role='dialog'
 					aria-modal='true'
 					aria-label={t('pptx.smartart.insertTitle')}
+					tabIndex={-1}
 				>
 					{/* Header — also a swipe-down-to-dismiss grab region on touch. */}
 					<div

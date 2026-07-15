@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 
+import { useModalFocus } from '../../hooks/useModalFocus';
 import { useSheetDismissDrag } from '../../hooks/useSheetDismissDrag';
 import { cn } from '../../utils';
 
@@ -41,19 +42,7 @@ export function MobileSheet({
 }: MobileSheetProps): React.ReactElement | null {
 	const sheetRef = useRef<HTMLDivElement>(null);
 	const { dragY, dragging, handlers } = useSheetDismissDrag(onClose);
-
-	useEffect(() => {
-		if (!open) {
-			return;
-		}
-		const handleKey = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') {
-				onClose();
-			}
-		};
-		window.addEventListener('keydown', handleKey);
-		return () => window.removeEventListener('keydown', handleKey);
-	}, [open, onClose]);
+	useModalFocus(open, sheetRef, onClose);
 
 	if (!open) {
 		return null;
@@ -66,7 +55,7 @@ export function MobileSheet({
 			: { height: `${Math.round(heightFraction * 100)}dvh` };
 
 	return (
-		<div className='fixed inset-0 z-50 flex flex-col justify-end' role='dialog' aria-modal='true'>
+		<div className='fixed inset-0 z-50 flex flex-col justify-end'>
 			{/* Backdrop */}
 			<button
 				type='button'
@@ -78,6 +67,10 @@ export function MobileSheet({
 			{/* Sheet */}
 			<div
 				ref={sheetRef}
+				role='dialog'
+				aria-modal='true'
+				aria-label={typeof title === 'string' ? title : 'Mobile panel'}
+				tabIndex={-1}
 				className={cn(
 					'relative bg-background border-t border-border rounded-t-2xl shadow-2xl flex flex-col overflow-hidden',
 					'animate-in slide-in-from-bottom duration-200',
@@ -107,6 +100,15 @@ export function MobileSheet({
 						<div className='flex items-center justify-between gap-2 px-4 pb-2 border-b border-border/60'>
 							<div className='text-sm font-semibold text-foreground truncate'>{title}</div>
 							{headerRight}
+							<button
+								type='button'
+								aria-label='Close'
+								onPointerDown={(event) => event.stopPropagation()}
+								onClick={onClose}
+								className='inline-flex h-8 w-8 items-center justify-center rounded text-xl text-muted-foreground hover:bg-accent hover:text-foreground'
+							>
+								&times;
+							</button>
 						</div>
 					)}
 				</div>

@@ -375,10 +375,16 @@
 	class={`pptx-svelte-viewer ${className}`}
 	class:pptx-svelte-fullscreen={viewer.isFullscreen}
 	style={rootStyle}
-	role="application"
+	role="region"
 	aria-label={t('pptx.titleBar.defaultFileName')}
+	aria-busy={loader.loading}
 	tabindex="0"
 	onkeydown={onKeydown}
+	onpointerdown={() => {
+		if (presenterSession.isAudience && !document.fullscreenElement) {
+			void rootEl?.requestFullscreen?.().catch(() => undefined);
+		}
+	}}
 >
 	{#if showToolbar && chromeVisible}
 		<MobileChrome
@@ -612,6 +618,34 @@
 
 	.pptx-svelte-fullscreen {
 		background: #000;
+	}
+
+	:global(.pptx-svelte-viewer :is(button, a, input, select, textarea, [tabindex]):focus-visible) {
+		outline: 2px solid var(--pptx-ring, #818cf8) !important;
+		outline-offset: 2px;
+	}
+
+	:global(.pptx-svelte-viewer :is(button, [role='button'])) {
+		min-width: 24px;
+		min-height: 24px;
+		touch-action: manipulation;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		:global(.pptx-svelte-viewer *),
+		:global(.pptx-svelte-viewer *::before),
+		:global(.pptx-svelte-viewer *::after) {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
+
+	@media (forced-colors: active) {
+		:global(.pptx-svelte-viewer :is(button, a, input, select, textarea, [tabindex]):focus-visible) {
+			outline-color: Highlight;
+		}
 	}
 
 	@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {

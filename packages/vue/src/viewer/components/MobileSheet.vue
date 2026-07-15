@@ -12,7 +12,8 @@
  * Visibility is owned by the parent (`v-if="isMobile && open"`); the body is
  * scrollable and sized via dvh so it survives the mobile address-bar collapse.
  */
-import { onBeforeUnmount, onMounted } from 'vue';
+import { activateModalFocus } from 'pptx-viewer-shared';
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useSheetDismissDrag } from '../composables/useSheetDismissDrag';
@@ -26,23 +27,27 @@ const { dragY, dragging, onPointerDown, onPointerMove, onPointerUp } = useSheetD
 	emit('close'),
 );
 
-function onKey(e: KeyboardEvent): void {
-	if (props.open && e.key === 'Escape') {
-		emit('close');
-	}
-}
-
-onMounted(() => window.addEventListener('keydown', onKey));
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
+const panelRef = ref<HTMLElement | null>(null);
+let releaseFocus: (() => void) | undefined;
+watch(
+	() => props.open,
+	async (open) => {
+		releaseFocus?.();
+		releaseFocus = undefined;
+		if (open) {
+			await nextTick();
+			if (panelRef.value) {
+				releaseFocus = activateModalFocus(panelRef.value, { onEscape: () => emit('close') });
+			}
+		}
+	},
+	{ immediate: true },
+);
+onBeforeUnmount(() => releaseFocus?.());
 </script>
 
 <template>
-	<div
-		v-if="open"
-		class="pptx-vue-msheet fixed inset-0 z-[60] flex flex-col justify-end"
-		role="dialog"
-		aria-modal="true"
-	>
+	<div v-if="open" class="pptx-vue-msheet fixed inset-0 z-[60] flex flex-col justify-end">
 		<!-- Backdrop -->
 		<button
 			type="button"
@@ -53,7 +58,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 
 		<!-- Panel -->
 		<div
+			ref="panelRef"
 			class="pptx-vue-msheet-panel relative flex max-h-[85dvh] flex-col rounded-t-2xl border-t border-border bg-card text-foreground shadow-2xl"
+			role="dialog"
+			aria-modal="true"
+			:aria-label="title || t('pptx.mobileSheet.ariaLabel')"
+			tabindex="-1"
 			:data-pptx-inspector="props.inspector ? '' : undefined"
 			:style="{
 				transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
@@ -76,6 +86,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 					class="flex items-center justify-between gap-2 border-b border-border/60 px-4 pb-2"
 				>
 					<span class="truncate text-sm font-semibold text-foreground">{{ title }}</span>
+					<button
+						type="button"
+						class="inline-flex h-8 w-8 items-center justify-center rounded text-xl text-muted-foreground hover:bg-accent hover:text-foreground"
+						:aria-label="t('pptx.settings.close')"
+						@pointerdown.stop
+						@click="emit('close')"
+					>
+						&times;
+					</button>
 				</div>
 			</div>
 

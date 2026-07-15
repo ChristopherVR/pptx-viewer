@@ -26,7 +26,6 @@
 	let themeKey = $state(readStoredTheme());
 	let errorMessage = $state('');
 	// eslint-disable-next-line prefer-const
-	let fileInput = $state<HTMLInputElement | null>(null);
 
 	// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`
 	// (mirrors demo-vue/src/App.vue).
@@ -167,10 +166,6 @@
 		}
 	}
 
-	function browse(): void {
-		fileInput?.click();
-	}
-
 	function onViewerError(message: string): void {
 		errorMessage = message || t('demo.viewer.loadError');
 		bytes = null;
@@ -178,13 +173,15 @@
 	}
 </script>
 
-<ThemePicker current={themeKey} onchange={setTheme} />
-<LanguagePicker current={language.current} theme={themeKey} onchange={setLanguage} />
+<header aria-label="Demo settings">
+	<ThemePicker current={themeKey} onchange={setTheme} />
+	<LanguagePicker current={language.current} theme={themeKey} onchange={setLanguage} />
+</header>
 
 {#if viewerMounted}
 	<!-- Match the React demo's full-screen viewer shell and hide the build badge
 	     once the presentation chrome is mounted. -->
-	<div class="demo-shell" data-pptx-viewer>
+	<main class="demo-shell" data-pptx-viewer>
 		<PowerPointViewer
 			source={bytes}
 			theme={currentTheme}
@@ -199,19 +196,18 @@
 			onstopcollaboration={onCollabStop}
 			onerror={onViewerError}
 		/>
-	</div>
+	</main>
 {:else}
-	<div class="demo-stage">
+	<main class="demo-stage">
+		<h1 class="sr-only">PPTX Viewer</h1>
 		<div
 			class="demo-dropzone"
-			role="button"
-			tabindex="0"
+			role="group"
+			aria-label={t('demo.dropzone.uploadAriaLabel')}
 			ondrop={onDrop}
 			ondragover={(e) => e.preventDefault()}
-			onclick={browse}
-			onkeydown={(e) => e.key === 'Enter' && browse()}
 		>
-			<p class="demo-hint">{t('demo.dropzone.hint')}</p>
+			<label class="demo-hint" for="file-input">{t('demo.dropzone.hint')}</label>
 			<p class="demo-sub">{t('demo.dropzone.processed')}</p>
 			<button type="button" onclick={(e) => (e.stopPropagation(), newPresentation())} disabled={creating}>
 				{creating ? t('demo.dropzone.creating') : t('demo.dropzone.newPresentation')}
@@ -223,14 +219,13 @@
 			     zone's onclick and re-open the file chooser in a loop -->
 			<input
 				id="file-input"
-				bind:this={fileInput}
 				type="file"
 				accept=".pptx"
 				aria-label={t('demo.dropzone.uploadAriaLabel')}
-				style="display: none"
+				class="sr-only"
 				onclick={(e) => e.stopPropagation()}
 				onchange={onInputChange}
 			/>
 		</div>
-	</div>
+	</main>
 {/if}

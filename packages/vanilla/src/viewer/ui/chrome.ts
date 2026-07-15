@@ -94,7 +94,9 @@ export function buildViewerChrome(
 ): ViewerChrome {
 	const root = createEl(doc, 'div', 'pptxv');
 	root.tabIndex = 0;
-	root.setAttribute('role', 'application');
+	root.setAttribute('role', 'region');
+	root.setAttribute('aria-label', t('pptx.titleBar.defaultFileName'));
+	root.setAttribute('aria-busy', 'false');
 
 	let titleBar: TitleBar | null = null;
 	let ribbon: Ribbon | null = null;
@@ -194,6 +196,8 @@ export function buildViewerChrome(
 
 	const loadingOverlay = createEl(doc, 'div', 'pptxv-overlay pptxv-loading');
 	loadingOverlay.textContent = t('common.loading');
+	loadingOverlay.setAttribute('role', 'status');
+	loadingOverlay.setAttribute('aria-live', 'polite');
 	loadingOverlay.hidden = true;
 	root.appendChild(loadingOverlay);
 
@@ -221,6 +225,7 @@ export function buildViewerChrome(
 		presentationTouchControls,
 		setLoading(loading) {
 			loadingOverlay.hidden = !loading;
+			root.setAttribute('aria-busy', String(loading));
 		},
 		setError(message) {
 			errorOverlay.hidden = message === null;

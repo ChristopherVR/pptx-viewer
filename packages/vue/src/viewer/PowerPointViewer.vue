@@ -1672,22 +1672,23 @@ function handleCommandSearch(command: string): void {
 		class="pptx-vue-viewer"
 		:class="props.class"
 		:style="themeStyle"
+		:aria-busy="loading ? 'true' : 'false'"
 		:tabindex="props.canEdit ? 0 : undefined"
 		@keydown="onEditorKeydown"
 	>
 		<!-- Loading -->
-		<div v-if="loading" class="pptx-vue-state pptx-vue-loading">
+		<div v-if="loading" class="pptx-vue-state pptx-vue-loading" role="status" aria-live="polite">
 			<div class="pptx-vue-spinner" aria-hidden="true" />
 			<p>{{ t('pptx.viewer.loading') }}</p>
 		</div>
 
 		<!-- Encrypted -->
-		<div v-else-if="isEncrypted" class="pptx-vue-state pptx-vue-error">
+		<div v-else-if="isEncrypted" class="pptx-vue-state pptx-vue-error" role="alert">
 			<p>{{ t('pptx.viewer.encrypted') }}</p>
 		</div>
 
 		<!-- Error -->
-		<div v-else-if="error" class="pptx-vue-state pptx-vue-error">
+		<div v-else-if="error" class="pptx-vue-state pptx-vue-error" role="alert">
 			<p>{{ t('pptx.viewer.loadError') }}</p>
 			<pre class="pptx-vue-error-detail">{{ error }}</pre>
 		</div>

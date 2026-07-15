@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useModalDismissDrag } from '../hooks';
 import type { CollaborationConfig } from '../hooks/collaboration/types';
+import { useModalFocus } from '../hooks/useModalFocus';
 import { useCollaboration } from './collaboration';
 import { ActiveSessionView } from './ShareDialogActiveView';
 import { StartSessionForm } from './ShareDialogViews';
@@ -98,6 +99,7 @@ export function ShareDialog({
 	const [copied, setCopied] = useState(false);
 	const dialogRef = useRef<HTMLDivElement>(null);
 	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
+	useModalFocus(open, dialogRef, onClose);
 
 	// Sync from active config if provided
 	useEffect(() => {
@@ -107,27 +109,6 @@ export function ShareDialog({
 			setServerUrl(activeCollaboration.serverUrl);
 		}
 	}, [activeCollaboration]);
-
-	// Close on Escape
-	useEffect(() => {
-		if (!open) {
-			return;
-		}
-		function handleKeyDown(e: KeyboardEvent) {
-			if (e.key === 'Escape') {
-				onClose();
-			}
-		}
-		document.addEventListener('keydown', handleKeyDown);
-		return () => document.removeEventListener('keydown', handleKeyDown);
-	}, [open, onClose]);
-
-	// Focus dialog on open
-	useEffect(() => {
-		if (open && dialogRef.current) {
-			dialogRef.current.focus();
-		}
-	}, [open]);
 
 	const handleCopyRoomId = useCallback(() => {
 		const config = activeCollaboration ?? { roomId, serverUrl };

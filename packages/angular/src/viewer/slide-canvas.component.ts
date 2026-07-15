@@ -25,6 +25,7 @@ import type {
 } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { applyRenderedElementAccessibility } from '../internal/shared';
 import type { CanvasSize } from '../internal/shared';
 import { CanvasFitService } from './canvas-fit.service';
 import { applyMove, applyResize, marqueeHitIds } from './drag-resize';
@@ -56,9 +57,9 @@ import { isElementInteractive } from './template-mode';
 const DRAG_THRESHOLD = 3;
 
 /** Handle size in screen pixels (fine pointer: mouse/trackpad). */
-const HANDLE_SCREEN_PX_FINE = 9;
+const HANDLE_SCREEN_PX_FINE = 24;
 /** Handle size in screen pixels (coarse pointer: touch); larger hit target. */
-const HANDLE_SCREEN_PX_COARSE = 20;
+const HANDLE_SCREEN_PX_COARSE = 24;
 /** Snap distance (screen pixels) for alignment guides. */
 const SNAP_SCREEN_PX = 6;
 /** Max delay (ms) between two taps to count as a double-tap on touch. */
@@ -207,15 +208,18 @@ function plainText(el: PptxElement): string {
 						></div>
 					}
 					@for (h of handleBoxes(); track h.handle) {
-						<div
+						<button
+							type="button"
 							class="pptx-ng-handle"
+							[attr.aria-label]="'Resize element from ' + h.handle"
 							[style.left.px]="h.left"
 							[style.top.px]="h.top"
 							[style.width.px]="h.size"
 							[style.height.px]="h.size"
 							[style.cursor]="h.cursor"
 							(pointerdown)="onHandlePointerDown($event, h.handle)"
-						></div>
+							(keydown)="onResizeHandleKeydown($event, h.handle)"
+						></button>
 					}
 					@if (marqueeRect(); as mr) {
 						<div
@@ -236,16 +240,17 @@ function plainText(el: PptxElement): string {
 						></div>
 					}
 					@if (rotateHandle(); as rh) {
-						<div
+						<button
+							type="button"
 							class="pptx-ng-rotate-handle"
-							role="button"
 							[attr.aria-label]="'pptx.selectionOverlay.rotate' | translate"
 							[style.left.px]="rh.left"
 							[style.top.px]="rh.top"
 							[style.width.px]="rh.size"
 							[style.height.px]="rh.size"
 							(pointerdown)="onRotatePointerDown($event)"
-						></div>
+							(keydown)="onRotateHandleKeydown($event)"
+						></button>
 					}
 					@if (adjustHandle(); as ah) {
 						<!--
@@ -256,22 +261,24 @@ function plainText(el: PptxElement): string {
 							adjusts the shape via the same resize pipeline (SE corner),
 							keeping it a real, useful affordance rather than a decoy.
 						-->
-						<div
+						<button
+							type="button"
 							class="pptx-ng-adjust-handle"
-							role="button"
 							[attr.aria-label]="'pptx.canvas.adjustShape' | translate"
 							[style.left.px]="ah.left"
 							[style.top.px]="ah.top"
 							[style.width.px]="ah.size"
 							[style.height.px]="ah.size"
 							(pointerdown)="onHandlePointerDown($event, 'se')"
-						></div>
+							(keydown)="onResizeHandleKeydown($event, 'se')"
+						></button>
 					}
 					@if (editingBox(); as eb) {
 						<textarea
 							#textEditor
 							data-inline-editor
 							class="pptx-ng-text-editor"
+							aria-label="Edit slide text"
 							[style.left.px]="eb.x"
 							[style.top.px]="eb.y"
 							[style.width.px]="eb.width"
@@ -712,6 +719,17 @@ export class SlideCanvasComponent implements SlideContext {
 			this.canvasFit.recompute();
 		});
 
+		// Keep every delegated element renderer aligned with the shared role/name
+		// model after Angular has committed the current slide DOM.
+		effect(() => {
+			const stage = this.stageRef()?.nativeElement;
+			const elements = this.allElements();
+			const interactive = this.interactive();
+			if (stage && interactive) {
+				queueMicrotask(() => applyRenderedElementAccessibility(stage, elements));
+			}
+		});
+
 		// Observe the viewport so the slide re-fits on container resize / rotation.
 		const destroyRef = inject(DestroyRef);
 		afterNextRender(() => {
@@ -1093,6 +1111,46 @@ export class SlideCanvasComponent implements SlideContext {
 			startAngle: Math.atan2(py - centerY, px - centerX),
 			startRotation: el?.rotation ?? 0,
 		};
+	}
+
+	onResizeHandleKeydown(event: KeyboardEvent, handle: ResizeHandle): void {
+		if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		const box = this.singleSelected();
+		if (!box) {
+			return;
+		}
+		const step = event.shiftKey ? 10 : 1;
+		const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0;
+		const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0;
+		this.transformStart.emit({
+			id: box.id,
+			label: this.translate.instant('pptx.undoAction.resize'),
+		});
+		this.transformUpdate.emit({ id: box.id, box: applyResize(box, handle, dx, dy) });
+	}
+
+	onRotateHandleKeydown(event: KeyboardEvent): void {
+		if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		const box = this.singleSelected();
+		const element = box ? this.allElements().find((item) => item.id === box.id) : undefined;
+		if (!box || !element) {
+			return;
+		}
+		const step = event.shiftKey ? 15 : 1;
+		const delta = event.key === 'ArrowLeft' ? -step : step;
+		this.transformStart.emit({
+			id: box.id,
+			label: this.translate.instant('pptx.undoAction.rotate'),
+		});
+		this.rotateUpdate.emit({ id: box.id, rotation: (element.rotation ?? 0) + delta });
 	}
 
 	@HostListener('document:pointermove', ['$event'])

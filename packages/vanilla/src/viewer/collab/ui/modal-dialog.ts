@@ -1,3 +1,5 @@
+import { activateModalFocus } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 
@@ -30,16 +32,13 @@ export interface ModalDialog {
 	destroy(): void;
 }
 
-const FOCUSABLE_SELECTOR =
-	'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-
 export function createModalDialog(
 	doc: Document,
 	t: Translator,
 	options: ModalDialogOptions,
 ): ModalDialog {
 	let isOpen = false;
-	let lastFocused: HTMLElement | null = null;
+	let releaseFocus: (() => void) | undefined;
 
 	const backdrop = createEl(doc, 'div', 'pptxv-modal-backdrop');
 	backdrop.hidden = true;
@@ -75,13 +74,6 @@ export function createModalDialog(
 	const footerEl = createEl(doc, 'div', 'pptxv-modal-footer');
 	panel.appendChild(footerEl);
 
-	function onKeydown(event: KeyboardEvent): void {
-		if (event.key === 'Escape') {
-			event.stopPropagation();
-			options.onClose();
-		}
-	}
-
 	function applyTitle(title: string): void {
 		titleEl.textContent = title;
 		panel.setAttribute('aria-label', title);
@@ -102,18 +94,14 @@ export function createModalDialog(
 			isOpen = open;
 			backdrop.hidden = !open;
 			if (open) {
-				lastFocused = doc.activeElement instanceof HTMLElement ? doc.activeElement : null;
-				doc.addEventListener('keydown', onKeydown);
-				const focusable = panel.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-				(focusable ?? panel).focus();
+				releaseFocus = activateModalFocus(panel, { onEscape: options.onClose });
 			} else {
-				doc.removeEventListener('keydown', onKeydown);
-				lastFocused?.focus();
-				lastFocused = null;
+				releaseFocus?.();
+				releaseFocus = undefined;
 			}
 		},
 		destroy() {
-			doc.removeEventListener('keydown', onKeydown);
+			releaseFocus?.();
 			backdrop.remove();
 		},
 	};

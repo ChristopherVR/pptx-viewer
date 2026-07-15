@@ -41,6 +41,14 @@ const CHROME_CSS = `
 .pptxv *, .pptxv *::before, .pptxv *::after { box-sizing: border-box; }
 .pptxv:focus { outline: none; }
 .pptxv:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -2px; }
+.pptxv :is(button, a, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--pptx-ring) !important; outline-offset: 2px; }
+.pptxv :is(button, [role='button']) { min-width: 24px; min-height: 24px; touch-action: manipulation; }
+@media (prefers-reduced-motion: reduce) {
+	.pptxv *, .pptxv *::before, .pptxv *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+@media (forced-colors: active) {
+	.pptxv :is(button, a, input, select, textarea, [tabindex]):focus-visible { outline-color: Highlight; }
+}
 
 /* Ribbon shell layout (primary row + nav row + tab bar + groups) lives in
  * ribbon-css.ts; .pptxv-btn below is the shared icon-button primitive used by

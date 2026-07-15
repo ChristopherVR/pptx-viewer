@@ -1,6 +1,8 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuLock, LuShieldCheck, LuX, LuEye, LuEyeOff } from 'react-icons/lu';
+
+import { useModalFocus } from '../hooks/useModalFocus';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -67,6 +69,8 @@ export function PasswordProtectionDialog({
 	const [confirmPassword, setConfirmPassword] = useState('');
 	const [showPassword, setShowPassword] = useState(false);
 	const [error, setError] = useState('');
+	const dialogRef = useRef<HTMLDivElement>(null);
+	const passwordRef = useRef<HTMLInputElement>(null);
 
 	const strength = useMemo(() => getPasswordStrength(password), [password]);
 
@@ -114,6 +118,7 @@ export function PasswordProtectionDialog({
 		setError('');
 		onClose();
 	}, [onClose]);
+	useModalFocus(isOpen, dialogRef, handleClose, passwordRef);
 
 	if (!isOpen) {
 		return null;
@@ -134,12 +139,19 @@ export function PasswordProtectionDialog({
 				style={{ zIndex: 1201 }}
 				className='fixed inset-0 flex items-center justify-center pointer-events-none'
 			>
-				<div className='pointer-events-auto w-[420px] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-h-[88dvh] max-md:overflow-y-auto max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'>
+				<div
+					ref={dialogRef}
+					role='dialog'
+					aria-modal='true'
+					aria-labelledby='pptx-password-title'
+					tabIndex={-1}
+					className='pointer-events-auto w-[420px] overscroll-contain rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-h-[88dvh] max-md:overflow-y-auto max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'
+				>
 					{/* Header */}
 					<div className='flex items-center justify-between px-5 py-4 border-b border-border/60'>
 						<div className='flex items-center gap-2'>
-							<LuLock className='w-5 h-5 text-primary' />
-							<h2 className='text-sm font-semibold text-foreground'>
+							<LuLock className='w-5 h-5 text-primary' aria-hidden='true' />
+							<h2 id='pptx-password-title' className='text-sm font-semibold text-foreground'>
 								{t('pptx.security.protectPresentation')}
 							</h2>
 						</div>
@@ -149,7 +161,7 @@ export function PasswordProtectionDialog({
 							className='p-1 rounded hover:bg-accent transition-colors'
 							aria-label={t('common.close')}
 						>
-							<LuX className='w-4 h-4 text-muted-foreground' />
+							<LuX className='w-4 h-4 text-muted-foreground' aria-hidden='true' />
 						</button>
 					</div>
 
@@ -157,7 +169,7 @@ export function PasswordProtectionDialog({
 					<div className='px-5 py-4 space-y-4'>
 						{isCurrentlyProtected && (
 							<div className='flex items-center gap-2 rounded-lg bg-green-900/30 border border-green-700/40 px-3 py-2'>
-								<LuShieldCheck className='w-4 h-4 text-green-400 shrink-0' />
+								<LuShieldCheck className='w-4 h-4 text-green-400 shrink-0' aria-hidden='true' />
 								<span className='text-xs text-green-300'>
 									{t('pptx.security.currentlyProtected')}
 								</span>
@@ -168,11 +180,17 @@ export function PasswordProtectionDialog({
 
 						{/* Password field */}
 						<div>
-							<label className='block text-xs text-foreground mb-1'>
+							<label htmlFor='pptx-password' className='block text-xs text-foreground mb-1'>
 								{t('pptx.security.password')}
 							</label>
 							<div className='relative'>
 								<input
+									ref={passwordRef}
+									id='pptx-password'
+									name='presentation-password'
+									autoComplete='new-password'
+									aria-invalid={Boolean(error)}
+									aria-describedby={error ? 'pptx-password-error' : 'pptx-password-strength'}
 									type={showPassword ? 'text' : 'password'}
 									className='w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none'
 									placeholder={t('pptx.security.passwordPlaceholder')}
@@ -190,7 +208,11 @@ export function PasswordProtectionDialog({
 										showPassword ? t('pptx.security.hidePassword') : t('pptx.security.showPassword')
 									}
 								>
-									{showPassword ? <LuEyeOff className='w-4 h-4' /> : <LuEye className='w-4 h-4' />}
+									{showPassword ? (
+										<LuEyeOff className='w-4 h-4' aria-hidden='true' />
+									) : (
+										<LuEye className='w-4 h-4' aria-hidden='true' />
+									)}
 								</button>
 							</div>
 						</div>
@@ -208,16 +230,28 @@ export function PasswordProtectionDialog({
 										/>
 									))}
 								</div>
-								<p className='text-[11px] text-muted-foreground'>{strengthLabel}</p>
+								<p
+									id='pptx-password-strength'
+									className='text-[11px] text-muted-foreground'
+									role='status'
+									aria-live='polite'
+								>
+									{strengthLabel}
+								</p>
 							</div>
 						)}
 
 						{/* Confirm password */}
 						<div>
-							<label className='block text-xs text-foreground mb-1'>
+							<label htmlFor='pptx-password-confirm' className='block text-xs text-foreground mb-1'>
 								{t('pptx.security.confirmPassword')}
 							</label>
 							<input
+								id='pptx-password-confirm'
+								name='presentation-password-confirmation'
+								autoComplete='new-password'
+								aria-invalid={Boolean(error)}
+								aria-describedby={error ? 'pptx-password-error' : undefined}
 								type={showPassword ? 'text' : 'password'}
 								className='w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none'
 								placeholder={t('pptx.security.confirmPasswordPlaceholder')}
@@ -230,7 +264,11 @@ export function PasswordProtectionDialog({
 						</div>
 
 						{/* Error */}
-						{error && <p className='text-xs text-red-400'>{error}</p>}
+						{error && (
+							<p id='pptx-password-error' className='text-xs text-red-400' role='alert'>
+								{error}
+							</p>
+						)}
 					</div>
 
 					{/* Footer */}

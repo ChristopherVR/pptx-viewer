@@ -12,16 +12,20 @@ export interface DropzoneHandlers {
  * come from the demo dictionary, so the shell re-renders it on language change.
  */
 export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
-	const stage = document.createElement('div');
+	const stage = document.createElement('main');
 	stage.className = 'demo-stage';
+	const heading = document.createElement('h1');
+	heading.className = 'sr-only';
+	heading.textContent = 'PPTX Viewer';
 
 	const zone = document.createElement('div');
 	zone.className = 'demo-dropzone';
-	zone.setAttribute('role', 'button');
-	zone.tabIndex = 0;
+	zone.setAttribute('role', 'group');
+	zone.setAttribute('aria-label', t('demo.dropzone.uploadAriaLabel'));
 
-	const hint = document.createElement('p');
+	const hint = document.createElement('label');
 	hint.className = 'demo-hint';
+	hint.htmlFor = 'file-input';
 	hint.textContent = t('demo.dropzone.hint');
 
 	const sub = document.createElement('p');
@@ -37,21 +41,11 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 	input.type = 'file';
 	input.accept = '.pptx';
 	input.setAttribute('aria-label', t('demo.dropzone.uploadAriaLabel'));
-	input.style.display = 'none';
+	input.className = 'sr-only';
 
 	zone.append(hint, sub, sampleButton, input);
-	stage.append(zone);
+	stage.append(heading, zone);
 
-	const browse = (): void => {
-		input.click();
-	};
-
-	zone.addEventListener('click', browse);
-	zone.addEventListener('keydown', (e) => {
-		if (e.key === 'Enter') {
-			browse();
-		}
-	});
 	zone.addEventListener('dragover', (e) => {
 		e.preventDefault();
 	});
@@ -61,11 +55,6 @@ export function createDropzone(handlers: DropzoneHandlers): HTMLElement {
 		if (file?.name.endsWith('.pptx')) {
 			handlers.onFile(file);
 		}
-	});
-	// The programmatic input.click() bubbles back up to the zone's click
-	// handler; without this stop the browse loop re-opens the file chooser.
-	input.addEventListener('click', (e) => {
-		e.stopPropagation();
 	});
 	input.addEventListener('change', () => {
 		const file = input.files?.[0];

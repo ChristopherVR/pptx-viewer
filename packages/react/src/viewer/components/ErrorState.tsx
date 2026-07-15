@@ -10,6 +10,8 @@ interface ErrorStateProps {
 export function ErrorState({ className, error }: ErrorStateProps): React.ReactElement {
 	return (
 		<div
+			role='alert'
+			aria-live='assertive'
 			className={cn(
 				'h-full w-full flex items-center justify-center p-6 text-center text-red-400',
 				className,

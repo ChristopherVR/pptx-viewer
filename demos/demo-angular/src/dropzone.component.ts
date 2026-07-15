@@ -1,13 +1,5 @@
 import { NgStyle } from '@angular/common';
-import {
-	ChangeDetectionStrategy,
-	Component,
-	ElementRef,
-	inject,
-	input,
-	output,
-	viewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import type { ViewerTheme } from 'pptx-angular-viewer';
 
@@ -26,16 +18,13 @@ type ColorKey = keyof NonNullable<ViewerTheme['colors']>;
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [NgStyle],
 	template: `
-		<div
+		<main
 			class="demo-dropzone"
-			role="button"
-			tabindex="0"
 			[ngStyle]="dropzoneStyle()"
 			(drop)="onDrop($event)"
 			(dragover)="$event.preventDefault()"
-			(click)="browse()"
-			(keydown.enter)="browse()"
 		>
+			<h1 class="sr-only">PPTX Viewer</h1>
 			<div class="demo-card" [ngStyle]="cardStyle()">
 				@if (urlBroadcast()) {
 					<p class="demo-hint" [style.color]="color('foreground')">
@@ -50,13 +39,13 @@ type ColorKey = keyof NonNullable<ViewerTheme['colors']>;
 						{{ tr('demo.dropzone.joiningSession') }}
 						<code [ngStyle]="codeStyle()">{{ urlRoom() }}</code>
 					</p>
-					<p class="demo-hint" [style.color]="color('mutedForeground')">
+					<label for="file-input" class="demo-hint" [style.color]="color('mutedForeground')">
 						{{ tr('demo.dropzone.hintCollab') }}
-					</p>
+					</label>
 				} @else {
-					<p class="demo-hint" [style.color]="color('mutedForeground')">
+					<label for="file-input" class="demo-hint" [style.color]="color('mutedForeground')">
 						{{ tr('demo.dropzone.hint') }}
-					</p>
+					</label>
 				}
 				<p class="demo-sub" [style.color]="color('mutedForeground')">
 					{{ tr('demo.dropzone.processed') }}
@@ -71,16 +60,15 @@ type ColorKey = keyof NonNullable<ViewerTheme['colors']>;
 					{{ busy() ? tr('demo.dropzone.creating') : tr('demo.dropzone.newPresentation') }}
 				</button>
 				<input
-					#fileInput
 					id="file-input"
 					type="file"
 					accept=".pptx"
 					[attr.aria-label]="tr('demo.dropzone.uploadAriaLabel')"
-					style="display: none"
+					class="sr-only"
 					(change)="onInputChange($event)"
 				/>
 			</div>
-		</div>
+		</main>
 	`,
 	styles: [
 		`
@@ -112,7 +100,17 @@ type ColorKey = keyof NonNullable<ViewerTheme['colors']>;
 			.demo-sub {
 				margin: 0;
 				font-size: 0.85rem;
-				opacity: 0.6;
+			}
+			.sr-only {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				padding: 0;
+				margin: -1px;
+				overflow: hidden;
+				clip: rect(0, 0, 0, 0);
+				white-space: nowrap;
+				border: 0;
 			}
 			.demo-card code {
 				padding: 0.1rem 0.35rem;
@@ -144,7 +142,6 @@ export class DropzoneComponent {
 	/** Emits when the user asks for a blank presentation. */
 	readonly create = output<void>();
 
-	private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 	private readonly translate = inject(TranslateService);
 
 	/** Translate a key using the active language (instant, no async). */
@@ -174,10 +171,6 @@ export class DropzoneComponent {
 			background: this.color('muted'),
 			color: this.color('foreground'),
 		};
-	}
-
-	protected browse(): void {
-		this.fileInput()?.nativeElement.click();
 	}
 
 	protected onInputChange(e: Event): void {

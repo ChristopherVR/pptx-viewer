@@ -120,9 +120,16 @@ function onRemove(): void {
 			</p>
 
 			<div>
-				<label class="mb-1 block text-xs text-foreground">{{ t('pptx.password.password') }}</label>
+				<label for="pptx-vue-password" class="mb-1 block text-xs text-foreground">{{
+					t('pptx.password.password')
+				}}</label>
 				<div class="relative">
 					<input
+						id="pptx-vue-password"
+						name="presentation-password"
+						autocomplete="new-password"
+						:aria-invalid="error ? 'true' : undefined"
+						:aria-describedby="error ? 'pptx-vue-password-error' : 'pptx-vue-password-strength'"
 						v-model="password"
 						:type="showPassword ? 'text' : 'password'"
 						class="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
@@ -146,16 +153,29 @@ function onRemove(): void {
 						:key="i"
 						class="h-1 flex-1 rounded-full transition-colors"
 						:class="i - 1 <= strength ? strengthColors[strength] : 'bg-accent'"
+						aria-hidden="true"
 					/>
 				</div>
-				<p class="text-[11px] text-muted-foreground">{{ strengthLabel }}</p>
+				<p
+					id="pptx-vue-password-strength"
+					class="text-[11px] text-muted-foreground"
+					role="status"
+					aria-live="polite"
+				>
+					{{ strengthLabel }}
+				</p>
 			</div>
 
 			<div>
-				<label class="mb-1 block text-xs text-foreground">{{
+				<label for="pptx-vue-password-confirm" class="mb-1 block text-xs text-foreground">{{
 					t('pptx.password.confirmPassword')
 				}}</label>
 				<input
+					id="pptx-vue-password-confirm"
+					name="presentation-password-confirmation"
+					autocomplete="new-password"
+					:aria-invalid="error ? 'true' : undefined"
+					:aria-describedby="error ? 'pptx-vue-password-error' : undefined"
 					v-model="confirmPassword"
 					:type="showPassword ? 'text' : 'password'"
 					class="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
@@ -164,7 +184,9 @@ function onRemove(): void {
 				/>
 			</div>
 
-			<p v-if="error" class="text-xs text-red-400">{{ error }}</p>
+			<p v-if="error" id="pptx-vue-password-error" class="text-xs text-red-400" role="alert">
+				{{ error }}
+			</p>
 		</div>
 
 		<template #footer>

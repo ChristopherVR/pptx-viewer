@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onBeforeUnmount, watch } from 'vue';
+import { activateModalFocus } from 'pptx-viewer-shared';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useSheetDismissDrag } from '../composables/useSheetDismissDrag';
@@ -59,10 +60,12 @@ function onHeaderPointerDown(event: PointerEvent): void {
 	onPointerDown(event);
 }
 
-/** Close on `Escape`, regardless of where focus currently sits. */
-function onKeydown(event: KeyboardEvent): void {
-	if (event.key === 'Escape') {
-		event.stopPropagation();
+const panelRef = ref<HTMLElement | null>(null);
+let releaseFocus: (() => void) | undefined;
+
+function onDocumentKeydown(event: KeyboardEvent): void {
+	if (props.open && !releaseFocus && event.key === 'Escape') {
+		event.preventDefault();
 		requestClose();
 	}
 }
@@ -78,24 +81,24 @@ function onBackdropClick(): void {
 
 watch(
 	() => props.open,
-	(isOpen) => {
-		if (typeof document === 'undefined') {
-			return;
-		}
+	async (isOpen) => {
+		releaseFocus?.();
+		releaseFocus = undefined;
 		if (isOpen) {
-			document.addEventListener('keydown', onKeydown);
-		} else {
-			document.removeEventListener('keydown', onKeydown);
+			await nextTick();
+			if (panelRef.value) {
+				releaseFocus = activateModalFocus(panelRef.value, { onEscape: requestClose });
+			}
 		}
 	},
 	{ immediate: true },
 );
 
 onBeforeUnmount(() => {
-	if (typeof document !== 'undefined') {
-		document.removeEventListener('keydown', onKeydown);
-	}
+	releaseFocus?.();
+	document.removeEventListener('keydown', onDocumentKeydown);
 });
+onMounted(() => document.addEventListener('keydown', onDocumentKeydown));
 </script>
 
 <template>
@@ -106,10 +109,12 @@ onBeforeUnmount(() => {
 			@click="onBackdropClick"
 		>
 			<div
-				class="pptx-vue-modal-panel flex max-h-[88vh] min-w-[320px] max-w-[min(92vw,480px)] flex-col overflow-hidden rounded-lg border border-border bg-popover text-foreground shadow-2xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:min-w-0 max-md:max-w-none max-md:max-h-[88dvh] max-md:rounded-b-none max-md:rounded-t-2xl max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]"
+				ref="panelRef"
+				class="pptx-vue-modal-panel flex max-h-[88vh] min-w-[320px] max-w-[min(92vw,480px)] flex-col overflow-hidden overscroll-contain rounded-lg border border-border bg-popover text-foreground shadow-2xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:min-w-0 max-md:max-w-none max-md:max-h-[88dvh] max-md:rounded-b-none max-md:rounded-t-2xl max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]"
 				role="dialog"
 				aria-modal="true"
 				:aria-label="title"
+				tabindex="-1"
 				:style="{
 					transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
 					transition: dragging ? 'none' : 'transform 150ms ease-out',

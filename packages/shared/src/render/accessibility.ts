@@ -78,7 +78,10 @@ export function getAriaRole(element: PptxElement): string | undefined {
 		case 'picture':
 			return 'img';
 		case 'table':
-			return 'table';
+		case 'media':
+		case 'text':
+		case 'ole':
+		case 'contentPart':
 		case 'group':
 			return 'group';
 		case 'chart':
@@ -87,18 +90,14 @@ export function getAriaRole(element: PptxElement): string | undefined {
 			return 'img';
 		case 'connector':
 			return 'img';
-		case 'media':
-			return 'application';
 		case 'ink':
 			return 'img';
 		case 'model3d':
 			return 'img';
-		case 'text':
-			return undefined;
 		case 'shape': {
-			// Shapes with text act as text containers; shapes without text are decorative
+			// Shapes with text are named groups; shapes without text are graphics.
 			if (hasTextProperties(element) && element.text) {
-				return undefined;
+				return 'group';
 			}
 			return 'img';
 		}

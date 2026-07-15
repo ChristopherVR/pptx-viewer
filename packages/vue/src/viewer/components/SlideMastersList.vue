@@ -98,14 +98,13 @@ function isLayoutActive(masterIdx: number, layoutIdx: number): boolean {
 			:key="master.path"
 			class="pptx-vue-masters-list__group"
 		>
-			<div
+			<button
+				type="button"
 				class="pptx-vue-masters-list__master"
 				:class="{ 'pptx-vue-masters-list__master--active': isMasterActive(masterIdx) }"
-				role="button"
-				tabindex="0"
+				:aria-current="isMasterActive(masterIdx) ? 'true' : undefined"
 				:data-testid="`master-${masterIdx}`"
 				@click="emit('select-master', masterIdx)"
-				@keydown.enter="emit('select-master', masterIdx)"
 			>
 				<div class="pptx-vue-masters-list__thumb" :style="masterStageWrapStyle">
 					<SlideStage
@@ -118,19 +117,18 @@ function isLayoutActive(masterIdx: number, layoutIdx: number): boolean {
 				<span class="pptx-vue-masters-list__label">{{
 					master.name || t('pptx.master.title')
 				}}</span>
-			</div>
+			</button>
 
 			<div v-if="(master.layouts?.length ?? 0) > 0" class="pptx-vue-masters-list__layouts">
-				<div
+				<button
+					type="button"
 					v-for="(layout, layoutIdx) in master.layouts ?? []"
 					:key="layout.path"
 					class="pptx-vue-masters-list__layout"
 					:class="{ 'pptx-vue-masters-list__layout--active': isLayoutActive(masterIdx, layoutIdx) }"
-					role="button"
-					tabindex="0"
+					:aria-current="isLayoutActive(masterIdx, layoutIdx) ? 'true' : undefined"
 					:data-testid="`layout-${masterIdx}-${layoutIdx}`"
 					@click="emit('select-layout', masterIdx, layoutIdx)"
-					@keydown.enter="emit('select-layout', masterIdx, layoutIdx)"
 				>
 					<div class="pptx-vue-masters-list__thumb" :style="layoutStageWrapStyle">
 						<SlideStage
@@ -143,7 +141,7 @@ function isLayoutActive(masterIdx: number, layoutIdx: number): boolean {
 					<span class="pptx-vue-masters-list__label pptx-vue-masters-list__label--layout">
 						{{ layout.name || t('pptx.master.layout') }}
 					</span>
-				</div>
+				</button>
 			</div>
 		</div>
 
@@ -168,6 +166,10 @@ function isLayoutActive(masterIdx: number, layoutIdx: number): boolean {
 
 .pptx-vue-masters-list__master,
 .pptx-vue-masters-list__layout {
+	width: 100%;
+	color: inherit;
+	font: inherit;
+	text-align: inherit;
 	cursor: pointer;
 	border: 2px solid var(--pptx-vue-border, #e5e7eb);
 	border-radius: 8px;

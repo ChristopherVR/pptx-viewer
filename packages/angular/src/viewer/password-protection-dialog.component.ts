@@ -50,6 +50,10 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
 					<div class="pptx-ng-pw-input-wrap">
 						<input
 							id="pptx-ng-pw-password"
+							name="presentation-password"
+							autocomplete="new-password"
+							[attr.aria-invalid]="error() ? 'true' : null"
+							[attr.aria-describedby]="error() ? 'pptx-ng-pw-error' : null"
 							class="pptx-ng-pw-input"
 							[type]="showPassword() ? 'text' : 'password'"
 							[attr.placeholder]="'pptx.security.passwordPlaceholder' | translate"
@@ -78,6 +82,10 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
 					}}</label>
 					<input
 						id="pptx-ng-pw-confirm"
+						name="presentation-password-confirmation"
+						autocomplete="new-password"
+						[attr.aria-invalid]="error() ? 'true' : null"
+						[attr.aria-describedby]="error() ? 'pptx-ng-pw-error' : null"
 						class="pptx-ng-pw-input"
 						[type]="showPassword() ? 'text' : 'password'"
 						[attr.placeholder]="'pptx.security.confirmPasswordPlaceholder' | translate"
@@ -87,7 +95,7 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
 				</div>
 
 				@if (error()) {
-					<p class="pptx-ng-pw-error">{{ error() }}</p>
+					<p id="pptx-ng-pw-error" class="pptx-ng-pw-error" role="alert">{{ error() }}</p>
 				}
 			</div>
 
