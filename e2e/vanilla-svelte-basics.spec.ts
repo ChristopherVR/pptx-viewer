@@ -114,6 +114,12 @@ test.describe('vanilla / svelte basics', () => {
 		);
 		await expect(statusCounter).toHaveCount(1);
 		await expect(statusCounter).toContainText('Slide 1 of 7');
+		const statusBar = page.locator('.pptxv-statusbar, .pptx-svelte-statusbar');
+		await expect(
+			statusBar.getByRole('button', { name: /previous slide|next slide/iu }),
+		).toHaveCount(0);
+		await expect(statusBar.getByRole('button', { name: /share|broadcast/iu })).toHaveCount(0);
+		await expect(page.locator('.pptxv-ribbon-primary:empty')).toBeHidden();
 	});
 
 	test('navigates slides with next/prev controls and a thumbnail click', async ({ page }) => {

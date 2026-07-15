@@ -41,7 +41,11 @@
 	const isTable = $derived(el?.type === 'table');
 </script>
 
-<aside class="pptx-svelte-inspector" class:pptx-svelte-inspector-collapsed={collapsed}>
+<aside
+	class="pptx-svelte-inspector"
+	class:pptx-svelte-inspector-collapsed={collapsed}
+	aria-label={t('pptx.inspector.properties')}
+>
 	<button
 		type="button"
 		class="pptx-svelte-inspector-header"
@@ -103,7 +107,7 @@
 	.pptx-svelte-inspector {
 		display: flex;
 		flex-direction: column;
-		width: 220px;
+		width: 288px;
 		flex: none;
 		border-left: 1px solid var(--pptx-border, #33334d);
 		background: var(--pptx-card, #1e1e2e);

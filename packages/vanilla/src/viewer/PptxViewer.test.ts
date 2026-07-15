@@ -32,6 +32,8 @@ describe('createPptxViewer', () => {
 		expect(container.querySelector('.pptxv-thumbs')).toBeTruthy();
 		expect(container.querySelector('.pptxv-viewport')).toBeTruthy();
 		expect(container.querySelector('.pptxv-mobile-nav')).toBeTruthy();
+		expect(container.querySelector('.pptxv-statusbar [aria-label*="Previous"]')).toBeNull();
+		expect(container.querySelector('.pptxv-ribbon-primary')?.childElementCount).toBe(0);
 
 		mount();
 		const styleTags = document.querySelectorAll('#pptx-vanilla-viewer-styles');

@@ -141,8 +141,6 @@ export function buildViewerChrome(
 
 	const statusBar = options.showToolbar
 		? createStatusBar(doc, t, {
-				prev: options.ribbonHandlers.nav.prev,
-				next: options.ribbonHandlers.nav.next,
 				toggleNotes: options.ribbonHandlers.nav.toggleNotes,
 				togglePresentation: options.ribbonHandlers.nav.togglePresentation,
 				zoomIn: options.ribbonHandlers.nav.zoomIn,

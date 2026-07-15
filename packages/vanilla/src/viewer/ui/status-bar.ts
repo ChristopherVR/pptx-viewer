@@ -9,8 +9,6 @@ import type { RibbonNavState } from './ribbon/ribbon-types';
 export type StatusBarSaveKind = 'idle' | 'saving' | 'saved' | 'error';
 
 export interface StatusBarHandlers {
-	prev(): void;
-	next(): void;
 	toggleNotes(): void;
 	togglePresentation(): void;
 	zoomIn(): void;
@@ -20,7 +18,7 @@ export interface StatusBarHandlers {
 
 export interface StatusBar {
 	el: HTMLElement;
-	/** Reflect slide counter, prev/next enablement, and the zoom percent. */
+	/** Reflect the slide counter and zoom percent. */
 	update(state: RibbonNavState): void;
 	setNotesExpanded(expanded: boolean): void;
 	/** Push an autosave status label ('' = idle; falls back to All saved/dirty). */
@@ -31,9 +29,8 @@ export interface StatusBar {
 
 /**
  * PowerPoint-style status bar docked below the notes strip (vanilla
- * counterpart of React's `StatusBar.tsx`): prev/next + slide counter,
- * language + save state on the left; notes toggle, view buttons, and the
- * zoom cluster on the right.
+ * counterpart of React's `StatusBar.tsx`): slide counter, language, and save
+ * state on the left; notes toggle, view buttons, and zoom on the right.
  */
 export function createStatusBar(
 	doc: Document,
@@ -49,25 +46,13 @@ export function createStatusBar(
 		return rule;
 	};
 
-	// -- Left: prev/next + counter + language + save state --------------------
-	const prev = makeButton(doc, {
-		label: t('pptx.presenter.previousSlide'),
-		icon: 'chevron-left',
-		className: 'pptxv-statusbar-btn',
-		onClick: handlers.prev,
-	});
-	const next = makeButton(doc, {
-		label: t('pptx.presenter.nextSlide'),
-		icon: 'chevron-right',
-		className: 'pptxv-statusbar-btn',
-		onClick: handlers.next,
-	});
+	// -- Left: counter + language + save state -------------------------------
 	const counter = createEl(doc, 'span', 'pptxv-statusbar-counter');
 	counter.setAttribute('aria-live', 'polite');
 	const language = createEl(doc, 'span', 'pptxv-statusbar-text');
 	language.textContent = t('pptx.statusBar.language');
 	const saveState = createEl(doc, 'span', 'pptxv-statusbar-text pptxv-statusbar-save');
-	el.append(prev.btn, next.btn, counter, divider(), language, divider(), saveState);
+	el.append(counter, divider(), language, divider(), saveState);
 	el.appendChild(createEl(doc, 'span', 'pptxv-statusbar-spacer'));
 
 	let dirty = false;
@@ -147,8 +132,6 @@ export function createStatusBar(
 					? t('pptx.statusBar.slideOf', { current: current + 1, total })
 					: t('pptx.statusBar.noSlides');
 			zoomPercent.textContent = `${Math.round(percent)}%`;
-			prev.setDisabled(current <= 0);
-			next.setDisabled(current >= total - 1);
 		},
 		setNotesExpanded(expanded) {
 			notes.setAttribute('aria-pressed', String(expanded));

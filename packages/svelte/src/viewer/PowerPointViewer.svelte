@@ -511,16 +511,11 @@
 			showNotes={showNotes && loader.slides.length > 0}
 			{notesExpanded}
 			isFullscreen={viewer.isFullscreen}
-			onprev={() => viewer.prev()}
-			onnext={() => viewer.next()}
 			onzoomin={() => viewer.zoomIn(effectivePercent)}
 			onzoomout={() => viewer.zoomOut(effectivePercent)}
 			onzoomfit={() => viewer.zoomToFit()}
 			onfullscreen={onFullscreenToggle}
 			onnotestoggle={onNotesToggle}
-			onshare={() => dialogs.openShare()}
-			onbroadcast={() => dialogs.openBroadcast()}
-			collabActive={collab.active}
 		/>
 		<MobileChrome
 			current={viewer.current}

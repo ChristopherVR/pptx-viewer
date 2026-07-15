@@ -32,7 +32,7 @@ parity (the Vue port's tracker was removed the same way).
 | Editing (selection/move/resize/etc.)   | yes (full ribbon)   | yes (see depth note)             | yes (see depth note)             |
 | Export                                 | PNG/PDF/GIF/video   | yes                              | yes                              |
 | i18n locale registration               | yes                 | yes (see below)                  | yes (see below)                  |
-| e2e coverage in the Playwright harness | full ~20-file suite | 10 shared specs / 62 total tests | 10 shared specs / 62 total tests |
+| e2e coverage in the Playwright harness | full ~20-file suite | 11 shared specs / 74 total tests | 11 shared specs / 74 total tests |
 | Animations / transitions playback      | yes                 | yes                              | yes                              |
 | Ribbon / inspector / dialogs chrome    | yes                 | yes                              | yes                              |
 | Autosave                               | yes                 | yes                              | yes                              |
@@ -138,7 +138,7 @@ Tooling / QA:
       populate or serialize their element collections. Editable canvases need
       that core parse/save support first.
 - [ ] Finish full shared Playwright-suite parity. Verified exclusions currently
-      cover inspector/layout contracts, template-spec normalization, animation
+      cover remaining layout contracts, template-spec normalization, animation
       and chart interaction specs, SmartArt and media insertion/editor
       workflows, and explicitly binding-specific capture/collaboration fixture
       suites. Page-key navigation, template-layer interactivity, mobile notes,

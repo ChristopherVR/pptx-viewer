@@ -24,6 +24,7 @@ export const RIBBON_CSS = `
 	padding: 4px 8px;
 	border-bottom: 1px solid var(--pptx-border);
 }
+.pptxv-ribbon-primary:empty { display: none; }
 .pptxv-ribbon-primary[hidden] { display: none; }
 /* ── Tab bar ─────────────────────────────────────────────────────────── */
 .pptxv-ribbon-tabs {

@@ -43,6 +43,7 @@ const VANILLA_SVELTE_FILES = [
 	'ole-and-ink.spec.ts',
 	'format-painter.spec.ts',
 	'mobile-notes.spec.ts',
+	'inspector-responsiveness.spec.ts',
 ];
 
 export default defineConfig({

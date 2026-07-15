@@ -103,7 +103,7 @@
 		align-items: center;
 		flex-wrap: wrap;
 		gap: 6px;
-		padding: 6px 10px;
+		padding: 4px 8px;
 	}
 
 	@media (max-width: 720px) {

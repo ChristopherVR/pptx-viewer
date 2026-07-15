@@ -67,6 +67,9 @@ async function openInspector(page: Page, project: string): Promise<void> {
 	// React and Vue both have a toggle inspector button in the primary toolbar row.
 	// React:  aria-label="Toggle inspector panel"  (uses i18n key pptx.toolbar.toggleInspector)
 	// Vue:    aria-label="Toggle inspector panel"   (ToolbarPrimaryRow.vue, same key)
+	if (project === 'vanilla' || project === 'svelte') {
+		return;
+	}
 	const label = project === 'react' ? 'Toggle inspector panel' : 'Toggle inspector';
 	const toggleBtn = page.getByRole('button', { name: label });
 	// Only click if the inspector is not already open (button may be hidden on mobile).
@@ -132,7 +135,11 @@ test.describe('mobile inspector (375x812, touch)', () => {
 		await page.getByRole('button', { name: 'Format' }).tap();
 		await page.waitForTimeout(300);
 
-		if (testInfo.project.name === 'vue') {
+		if (
+			testInfo.project.name === 'vue' ||
+			testInfo.project.name === 'vanilla' ||
+			testInfo.project.name === 'svelte'
+		) {
 			// Vue opens a MobileSheet dialog (role="dialog") for the inspector on mobile.
 			// The sheet has a "Format" title heading rendered inside it.
 			const sheet = page.getByRole('dialog');
@@ -177,6 +184,10 @@ test.describe('mobile inspector (375x812, touch)', () => {
 			sheetEl = page.locator('.pptx-vue-msheet-panel');
 		} else if (testInfo.project.name === 'angular') {
 			sheetEl = page.locator('.pptx-ng-inspector-host');
+		} else if (testInfo.project.name === 'vanilla') {
+			sheetEl = page.locator('.pptxv-mobile-sheet');
+		} else if (testInfo.project.name === 'svelte') {
+			sheetEl = page.locator('.pptx-svelte-mobile-sheet');
 		} else {
 			// React: the InspectorPane div that slides up from the bottom.
 			sheetEl = page.locator('[role="complementary"][aria-label="Properties"]');
@@ -290,6 +301,10 @@ test.describe('desktop inspector (1280x800, no touch)', () => {
 			expect(box.height, 'desktop inspector should be tall (side panel)').toBeGreaterThan(
 				vp.height / 2,
 			);
+			if (testInfo.project.name === 'vanilla' || testInfo.project.name === 'svelte') {
+				expect(box.width, 'desktop inspector should match React width').toBeGreaterThanOrEqual(288);
+				expect(box.width, 'desktop inspector should match React width').toBeLessThanOrEqual(289);
+			}
 		}
 
 		await page.screenshot({

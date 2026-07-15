@@ -58,7 +58,7 @@ export const EDITOR_CSS = `
 /* ── Property inspector ──────────────────────────────────────────────── */
 .pptxv-inspector {
 	flex: none;
-	width: 232px;
+	width: 288px;
 	overflow-y: auto;
 	border-left: 1px solid var(--pptx-border);
 	background: var(--pptx-card);

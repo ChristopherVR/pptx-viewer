@@ -76,6 +76,8 @@ describe('powerPointViewer', () => {
 		expect(target.querySelector('.pptx-svelte-statusbar')?.textContent).toContain(
 			`Slide 1 of ${detail.slideCount}`,
 		);
+		expect(target.querySelector('.pptx-svelte-statusbar [aria-label="Previous slide"]')).toBeNull();
+		expect(target.querySelector('.pptx-svelte-statusbar [aria-label="Share"]')).toBeNull();
 	});
 
 	it('navigates with the toolbar buttons and fires slidechange', async () => {
