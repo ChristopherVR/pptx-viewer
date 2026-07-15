@@ -24,8 +24,10 @@
 import { XmlObject } from '../../types';
 import type { PptxNotesMaster } from '../../types';
 import { COLOR_MAP_ALIAS_KEYS, DEFAULT_COLOR_MAP } from '../../utils/theme-override-utils';
+import type { PptxSaveState } from '../builders';
+import type { PptxSaveConstants } from '../factories';
 import { applyHeaderFooterFlagsToNode } from './master-save-helpers';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveSlideLayout';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveMasterElements';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -37,13 +39,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 */
 	protected async applyNotesMasterStructuralChanges(
 		notesMaster: PptxNotesMaster | undefined,
+		saveSession: PptxSaveState,
+		constants: PptxSaveConstants,
 	): Promise<void> {
 		if (!notesMaster) {
 			return;
 		}
 		// Skip if no structural fields are set; bg-only edits are handled
 		// by applyNotesMasterChanges.
-		if (notesMaster.clrMap === undefined && notesMaster.headerFooter === undefined) {
+		if (
+			notesMaster.clrMap === undefined &&
+			notesMaster.headerFooter === undefined &&
+			notesMaster.elements === undefined
+		) {
 			return;
 		}
 		const file = this.zip.file(notesMaster.path);
@@ -63,6 +71,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			applyHeaderFooterFlagsToNode(root, notesMaster.headerFooter);
+			await this.applyAuxiliaryMasterElementChanges(
+				notesMaster.path,
+				'p:notesMaster',
+				data,
+				notesMaster.elements,
+				saveSession,
+				constants,
+			);
 
 			data['p:notesMaster'] = root;
 			this.zip.file(notesMaster.path, this.builder.build(data));

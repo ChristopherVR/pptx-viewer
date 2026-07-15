@@ -20,6 +20,8 @@
 import { XmlObject } from '../../types';
 import type { PptxHandoutMaster } from '../../types';
 import { COLOR_MAP_ALIAS_KEYS, DEFAULT_COLOR_MAP } from '../../utils/theme-override-utils';
+import type { PptxSaveState } from '../builders';
+import type { PptxSaveConstants } from '../factories';
 import { applyHeaderFooterFlagsToNode } from './master-save-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveNotesMaster';
 
@@ -29,11 +31,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 */
 	protected async applyHandoutMasterStructuralChanges(
 		handoutMaster: PptxHandoutMaster | undefined,
+		saveSession: PptxSaveState,
+		constants: PptxSaveConstants,
 	): Promise<void> {
 		if (!handoutMaster) {
 			return;
 		}
-		if (handoutMaster.clrMap === undefined && handoutMaster.headerFooter === undefined) {
+		if (
+			handoutMaster.clrMap === undefined &&
+			handoutMaster.headerFooter === undefined &&
+			handoutMaster.elements === undefined
+		) {
 			return;
 		}
 		const file = this.zip.file(handoutMaster.path);
@@ -53,6 +61,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			applyHeaderFooterFlagsToNode(root, handoutMaster.headerFooter);
+			await this.applyAuxiliaryMasterElementChanges(
+				handoutMaster.path,
+				'p:handoutMaster',
+				data,
+				handoutMaster.elements,
+				saveSession,
+				constants,
+			);
 
 			data['p:handoutMaster'] = root;
 			this.zip.file(handoutMaster.path, this.builder.build(data));

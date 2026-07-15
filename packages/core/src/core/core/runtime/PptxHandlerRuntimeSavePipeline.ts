@@ -174,7 +174,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const presentationXml = this.builder.build(this.presentationData);
 			this.zip.file('ppt/presentation.xml', presentationXml);
 		}
-		await this.applyPresentationPropertiesPart(options?.presentationProperties);
+		const presentationProperties =
+			options?.handoutMaster?.slidesPerPage !== undefined
+				? {
+						...options?.presentationProperties,
+						printSlidesPerPage: options.handoutMaster.slidesPerPage,
+					}
+				: options?.presentationProperties;
+		await this.applyPresentationPropertiesPart(presentationProperties);
 		await this.applyViewPropertiesPart(options?.viewProperties);
 		await this.applyTableStylesPart(options?.tableStyles);
 
@@ -186,9 +193,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		await this.applyTagCollectionChanges(options?.tags);
 		await this.applyNotesMasterChanges(options?.notesMaster);
-		await this.applyNotesMasterStructuralChanges(options?.notesMaster);
+		await this.applyNotesMasterStructuralChanges(options?.notesMaster, saveSession, saveConstants);
 		await this.applyHandoutMasterChanges(options?.handoutMaster);
-		await this.applyHandoutMasterStructuralChanges(options?.handoutMaster);
+		await this.applyHandoutMasterStructuralChanges(
+			options?.handoutMaster,
+			saveSession,
+			saveConstants,
+		);
 		await this.processPendingChartUpdates();
 		await this.ensureChartPartContentTypes();
 		await this.ensureDiagramPartContentTypes();

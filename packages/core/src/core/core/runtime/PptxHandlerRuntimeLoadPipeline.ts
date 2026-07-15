@@ -39,6 +39,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const themeOptions = await this.parseThemeOptions();
 		const notesMaster = await this.parseNotesMaster();
 		const handoutMaster = await this.parseHandoutMaster();
+		if (handoutMaster && presentationProperties?.printSlidesPerPage !== undefined) {
+			handoutMaster.slidesPerPage = presentationProperties.printSlidesPerPage;
+		}
+		await this.enrichAuxiliaryMasterElements(notesMaster, 'p:notesMaster');
+		await this.enrichAuxiliaryMasterElements(handoutMaster, 'p:handoutMaster');
 		const tags = await this.parseTags();
 		const customProperties = await this.parseCustomProperties();
 		const coreProperties = await this.parseCoreProperties();
@@ -169,9 +174,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	protected attachSlideWarnings(slides: PptxSlide[]): PptxSlide[] {
 		const warnings = this.compatibilityService.getWarnings();
+		const warningsBySlide = new Map<string, PptxCompatibilityWarning[]>();
+		for (const warning of warnings) {
+			if (!warning.slideId) {
+				continue;
+			}
+			const slideWarnings = warningsBySlide.get(warning.slideId);
+			if (slideWarnings) {
+				slideWarnings.push(warning);
+			} else {
+				warningsBySlide.set(warning.slideId, [warning]);
+			}
+		}
 		return slides.map((slide) => ({
 			...slide,
-			warnings: warnings.filter((warning) => warning.slideId === slide.id),
+			warnings: warningsBySlide.get(slide.id) ?? [],
 		}));
 	}
 

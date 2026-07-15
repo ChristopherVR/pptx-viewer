@@ -7,6 +7,7 @@ import type {
 	PptxNotesMaster,
 } from '../../types';
 import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
+import { parseMasterColorMap } from './master-color-map';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeDocProperties';
 import { parseHeaderFooterFlags } from './PptxHandlerRuntimeMasterElements';
 
@@ -255,6 +256,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const placeholders = this.extractPlaceholderList(spTree);
 
 			const result: PptxHandoutMaster = { path, backgroundColor: bgColor, placeholders };
+			result.clrMap = parseMasterColorMap(master['p:clrMap'] as XmlObject | undefined);
 			const hf = parseHeaderFooterFlags(master['p:hf'] as XmlObject | undefined);
 			if (hf) {
 				result.headerFooter = hf;
@@ -291,6 +293,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const placeholders = this.extractPlaceholderList(spTree);
 
 			const result: PptxNotesMaster = { path, backgroundColor: bgColor, placeholders };
+			result.clrMap = parseMasterColorMap(master['p:clrMap'] as XmlObject | undefined);
 			const hf = parseHeaderFooterFlags(master['p:hf'] as XmlObject | undefined);
 			if (hf) {
 				result.headerFooter = hf;

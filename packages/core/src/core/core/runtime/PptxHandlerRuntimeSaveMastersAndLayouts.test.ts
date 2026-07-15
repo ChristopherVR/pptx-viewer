@@ -259,17 +259,37 @@ describe('notes/handout master save writer — direct part round-trip', () => {
 		// Drop in minimal notesMaster and handoutMaster parts.
 		const notesMasterXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:notesMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
-<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld>
+<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>
+<p:sp><p:nvSpPr><p:cNvPr id="2" name="Notes body"/><p:cNvSpPr/><p:nvPr><p:ph type="body" idx="1"/></p:nvPr></p:nvSpPr><p:spPr><a:xfrm><a:off x="914400" y="914400"/><a:ext cx="2743200" cy="914400"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="en-US"/><a:t>Master notes</a:t></a:r><a:endParaRPr lang="en-US"/></a:p></p:txBody></p:sp>
+<p:pic><p:nvPicPr><p:cNvPr id="3" name="Logo"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="4572000" y="914400"/><a:ext cx="914400" cy="914400"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>
+<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="4" name="Unsupported frame"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x="0" y="0"/><a:ext cx="1" cy="1"/></p:xfrm><a:graphic><a:graphicData uri="urn:test:unsupported"><test:payload xmlns:test="urn:test" value="preserved-frame"/></a:graphicData></a:graphic></p:graphicFrame>
+</p:spTree></p:cSld>
 <p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>
 <p:notesStyle><a:lvl1pPr><a:defRPr/></a:lvl1pPr></p:notesStyle>
+<p:extLst><p:ext uri="test-unknown"><test:payload xmlns:test="urn:test" value="kept"/></p:ext></p:extLst>
 </p:notesMaster>`;
 		const handoutMasterXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:handoutMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
-<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld>
+<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>
+<p:sp><p:nvSpPr><p:cNvPr id="2" name="Footer"/><p:cNvSpPr/><p:nvPr><p:ph type="ftr" idx="2"/></p:nvPr></p:nvSpPr><p:spPr><a:xfrm><a:off x="914400" y="5943600"/><a:ext cx="2743200" cy="457200"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>Handout footer</a:t></a:r></a:p></p:txBody></p:sp>
+</p:spTree></p:cSld>
 <p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>
 </p:handoutMaster>`;
 		zip.file('ppt/notesMasters/notesMaster1.xml', notesMasterXml);
 		zip.file('ppt/handoutMasters/handoutMaster1.xml', handoutMasterXml);
+		zip.file(
+			'ppt/notesMasters/_rels/notesMaster1.xml.rels',
+			`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/master-logo.png"/></Relationships>`,
+		);
+		zip.file(
+			'ppt/media/master-logo.png',
+			Uint8Array.from(
+				Buffer.from(
+					'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z4pQAAAAASUVORK5CYII=',
+					'base64',
+				),
+			),
+		);
 		const out = await zip.generateAsync({ type: 'uint8array' });
 		return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength) as ArrayBuffer;
 	}
@@ -297,6 +317,37 @@ describe('notes/handout master save writer — direct part round-trip', () => {
 		const hf = root['p:hf'] as XmlObject;
 		expect(hf['@_dt']).toBe('0');
 		expect(hf['@_sldNum']).toBe('0');
+	});
+
+	it('loads and edits notes master placeholders and relationship-backed pictures', async () => {
+		const buffer = await buildMinimalPackageWithMasters();
+		const { PptxHandler } = await import('../../PptxHandler');
+		const handler = new PptxHandler();
+		const data = await handler.load(buffer);
+		const notes = data.notesMaster!;
+
+		expect(notes.elements).toHaveLength(3);
+		expect(notes.clrMap).toMatchObject({ bg1: 'lt1', tx1: 'dk1', accent1: 'accent1' });
+		expect(notes.elements?.some((element) => element.type === 'picture')).toBeTruthy();
+		const body = notes.elements?.find((element) => element.type === 'text');
+		expect(body).toBeDefined();
+		if (body?.type === 'text') {
+			body.text = 'Edited master notes';
+			body.x = 150;
+		}
+
+		const saved = await handler.save(data.slides, { notesMaster: notes });
+		const savedXml = await loadSavedZipPart(saved, notes.path);
+		expect(savedXml).toContain('Edited master notes');
+		expect(savedXml).toContain('test-unknown');
+		expect(savedXml).toContain('value="kept"');
+		expect(savedXml).toContain('preserved-frame');
+
+		const reloaded = await new PptxHandler().load(
+			saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
+		);
+		expect(reloaded.notesMaster?.elements).toHaveLength(3);
+		expect(reloaded.notesMaster?.elements?.find((element) => element.type === 'text')?.x).toBe(150);
 	});
 
 	it('preserves `<p:notesStyle>` verbatim across mutations', async () => {
@@ -333,6 +384,30 @@ describe('notes/handout master save writer — direct part round-trip', () => {
 		expect(clrMap['@_bg1']).toBe('dk1');
 		const hf = root['p:hf'] as XmlObject;
 		expect(hf['@_hdr']).toBe('0');
+	});
+
+	it('loads and edits handout master placeholder elements', async () => {
+		const buffer = await buildMinimalPackageWithMasters();
+		const { PptxHandler } = await import('../../PptxHandler');
+		const handler = new PptxHandler();
+		const data = await handler.load(buffer);
+		const handout = data.handoutMaster!;
+		expect(handout.elements).toHaveLength(1);
+		const footer = handout.elements?.[0];
+		if (footer?.type === 'text') {
+			footer.text = 'Edited handout footer';
+		}
+
+		const saved = await handler.save(data.slides, { handoutMaster: handout });
+		const savedXml = await loadSavedZipPart(saved, handout.path);
+		expect(savedXml).toContain('Edited handout footer');
+		const reloaded = await new PptxHandler().load(
+			saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
+		);
+		expect(reloaded.handoutMaster?.elements?.[0]).toMatchObject({
+			type: 'text',
+			text: 'Edited handout footer',
+		});
 	});
 
 	it('passes notes/handout masters through verbatim when no typed mutation is supplied', async () => {

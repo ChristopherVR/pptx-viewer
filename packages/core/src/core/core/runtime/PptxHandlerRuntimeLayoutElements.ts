@@ -1,7 +1,7 @@
 import { XmlObject, PptxElement } from '../../types';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeMasterElements';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeAuxiliaryMasterElements';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
