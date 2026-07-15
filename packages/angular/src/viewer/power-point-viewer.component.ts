@@ -847,6 +847,10 @@ import { ZoomTargetService } from './zoom-target.service';
 export class PowerPointViewerComponent {
 	/** PowerPoint content as Uint8Array (or ArrayBuffer). */
 	readonly content = input<Uint8Array | ArrayBuffer | null>(null);
+	/** Licensed fonts supplied by the host application. No fonts are bundled. */
+	readonly fontsInput = input<import('../internal/shared').ViewerFontSource[]>([], {
+		alias: 'fonts',
+	});
 	/** Whether editing actions are enabled. (Editor chrome not yet ported.) */
 	readonly canEdit = input<boolean>(false);
 	/** Optional class applied to the root element. */
@@ -1166,6 +1170,9 @@ export class PowerPointViewerComponent {
 		// Inject the presentation's embedded fonts as managed `@font-face` rules.
 		effect(() => {
 			this.fonts.setFonts(this.loader.embeddedFonts());
+		});
+		effect(() => {
+			this.fonts.setHostFonts(this.fontsInput());
 		});
 
 		// Feed the live deck (templates merged back) to the accessibility checker.
