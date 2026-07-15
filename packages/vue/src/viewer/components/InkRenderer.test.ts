@@ -99,4 +99,18 @@ describe('inkRenderer', () => {
 		expect(wrapper.findAll('path')).toHaveLength(1);
 		expect(wrapper.findAll('circle')).toHaveLength(0);
 	});
+
+	it('applies sequential replay styles when presentation replay is enabled', () => {
+		const wrapper = mount(InkRenderer, {
+			props: { element: ink(), zIndex: 1, replay: true },
+		});
+		const paths = wrapper.findAll('path');
+
+		expect(paths[0].attributes('style')).toContain('animation: pptx-ink-replay');
+		expect(paths[0].attributes('style')).toContain('stroke-dasharray');
+		expect(paths[1].attributes('style')).toContain('animation: pptx-ink-replay');
+		expect(document.head.querySelector('[data-pptx-ink-replay="ink 1"]')).toBeTruthy();
+		wrapper.unmount();
+		expect(document.head.querySelector('[data-pptx-ink-replay="ink 1"]')).toBeNull();
+	});
 });

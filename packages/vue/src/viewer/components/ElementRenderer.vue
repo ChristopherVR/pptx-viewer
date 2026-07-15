@@ -255,6 +255,7 @@ const linkTooltipLabel = computed(
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:replay="presenting"
 	/>
 	<OleRenderer
 		v-else-if="element.type === 'ole'"

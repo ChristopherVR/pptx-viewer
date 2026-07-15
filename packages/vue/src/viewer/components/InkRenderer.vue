@@ -32,8 +32,9 @@ import { DEFAULT_STROKE_COLOR } from '../constants';
  * maths), matching React. Strokes without pressure data degrade to plain
  * constant-width `<path>`s.
  *
- * Not ported (TODO): ink replay animation and the
- * highlighter/eraser tool blend modes.
+ * Presentation mode progressively replays constant-width paths using the
+ * shared dash-offset timing model. Pressure circles remain static because SVG
+ * dash replay only applies to paths.
  */
 const props = defineProps<{
 	element: PptxElement;
