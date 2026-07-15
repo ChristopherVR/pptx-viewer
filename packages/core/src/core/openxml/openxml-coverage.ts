@@ -1,4 +1,5 @@
 import { OPENXML_WAVE5_COVERAGE_OVERRIDES } from './openxml-coverage-wave5';
+import { OPENXML_WAVE6_COVERAGE_OVERRIDES } from './openxml-coverage-wave6';
 import {
 	OPENXML_SCHEMA_CONSTRUCT_IDS,
 	OPENXML_STRICT_SCHEMA_CONSTRUCT_IDS,
@@ -49,6 +50,7 @@ const UNASSESSED: OpenXmlCoverageFacets = {
 /** Curated, test-backed overrides. Everything else remains explicitly unassessed. */
 const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 	...OPENXML_WAVE5_COVERAGE_OVERRIDES,
+	...OPENXML_WAVE6_COVERAGE_OVERRIDES,
 	'chart:complexType:CT_ManualLayout': {
 		parse: 'native',
 		preserve: 'native',
@@ -123,6 +125,13 @@ for (const id of [
 
 const STRICT_IDS = new Set<string>(OPENXML_STRICT_SCHEMA_CONSTRUCT_IDS);
 const TRANSITIONAL_IDS = new Set<string>(OPENXML_TRANSITIONAL_SCHEMA_CONSTRUCT_IDS);
+const SCHEMA_IDS = new Set<string>(OPENXML_SCHEMA_CONSTRUCT_IDS);
+
+for (const id of Object.keys(COVERAGE_OVERRIDES)) {
+	if (!SCHEMA_IDS.has(id)) {
+		throw new Error(`OpenXML coverage override does not match the schema inventory: ${id}`);
+	}
+}
 
 /**
  * Strict-schema inventory for PPTX-relevant PresentationML and DrawingML.

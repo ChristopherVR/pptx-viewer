@@ -125,4 +125,44 @@ describe('applySeriesErrBarsToXml', () => {
 		expect(Array.isArray(node['c:errBars'])).toBeTruthy();
 		expect(node['c:errBars'] as XmlObject[]).toHaveLength(2);
 	});
+
+	it('edits end caps and line color while preserving extensions', () => {
+		const node = seriesNode();
+		node['c:errBars'] = {
+			'c:errBarType': { '@_val': 'both' },
+			'c:errValType': { '@_val': 'fixedVal' },
+			'c:spPr': { 'a:ln': { '@_w': '12700' } },
+			'c:extLst': { marker: true },
+		};
+		applySeriesErrBarsToXml(
+			node,
+			[
+				{
+					direction: 'y',
+					barType: 'both',
+					valType: 'fixedVal',
+					val: 2,
+					noEndCap: false,
+					color: '#123456',
+				},
+			],
+			getLocalName,
+		);
+		const bars = errBarsOf(node);
+		expect(bars['c:noEndCap']).toStrictEqual({ '@_val': '0' });
+		expect(bars['c:extLst']).toStrictEqual({ marker: true });
+		const line = (bars['c:spPr'] as XmlObject)['a:ln'] as XmlObject;
+		expect(line['@_w']).toBe('12700');
+		expect(line['a:solidFill']).toStrictEqual({ 'a:srgbClr': { '@_val': '123456' } });
+	});
+
+	it('rejects non-finite values', () => {
+		expect(() =>
+			applySeriesErrBarsToXml(
+				seriesNode(),
+				[{ direction: 'y', barType: 'both', valType: 'fixedVal', val: Number.NaN }],
+				getLocalName,
+			),
+		).toThrow(RangeError);
+	});
 });

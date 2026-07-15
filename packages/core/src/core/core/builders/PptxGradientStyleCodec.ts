@@ -1,5 +1,5 @@
 import type { ShapeStyle, XmlObject } from '../../types';
-import { xmlChild } from '../../utils/xml-access';
+import { drawingChild, drawingChildren, mergeDrawingFillXml } from './drawing-fill-xml';
 
 export interface PptxGradientStyleCodecContext {
 	ensureArray: (value: unknown) => unknown[];
@@ -42,9 +42,7 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 	}
 
 	public extractGradientOpacity(gradFill: XmlObject): number | undefined {
-		const gradientStops = this.context.ensureArray(
-			xmlChild(gradFill, 'a:gsLst')?.['a:gs'],
-		) as XmlObject[];
+		const gradientStops = drawingChildren(drawingChild(gradFill, 'gsLst'), 'gs');
 		if (gradientStops.length === 0) {
 			return undefined;
 		}
@@ -61,9 +59,7 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 	}
 
 	public extractGradientStops(gradFill: XmlObject): NonNullable<ShapeStyle['fillGradientStops']> {
-		const gradientStops = this.context.ensureArray(
-			xmlChild(gradFill, 'a:gsLst')?.['a:gs'],
-		) as XmlObject[];
+		const gradientStops = drawingChildren(drawingChild(gradFill, 'gsLst'), 'gs');
 		if (gradientStops.length === 0) {
 			return [];
 		}
@@ -110,11 +106,11 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 	}
 
 	public extractGradientType(gradFill: XmlObject): NonNullable<ShapeStyle['fillGradientType']> {
-		return gradFill['a:path'] ? 'radial' : 'linear';
+		return drawingChild(gradFill, 'path') ? 'radial' : 'linear';
 	}
 
 	public extractGradientPathType(gradFill: XmlObject): ShapeStyle['fillGradientPathType'] {
-		const pathNode = gradFill['a:path'] as XmlObject | undefined;
+		const pathNode = drawingChild(gradFill, 'path');
 		if (!pathNode) {
 			return undefined;
 		}
@@ -129,11 +125,11 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 	}
 
 	public extractGradientFocalPoint(gradFill: XmlObject): ShapeStyle['fillGradientFocalPoint'] {
-		const pathNode = gradFill['a:path'] as XmlObject | undefined;
+		const pathNode = drawingChild(gradFill, 'path');
 		if (!pathNode) {
 			return undefined;
 		}
-		const fillToRect = pathNode['a:fillToRect'] as XmlObject | undefined;
+		const fillToRect = drawingChild(pathNode, 'fillToRect');
 		if (!fillToRect) {
 			return undefined;
 		}
@@ -158,11 +154,11 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 	}
 
 	public extractGradientFillToRect(gradFill: XmlObject): ShapeStyle['fillGradientFillToRect'] {
-		const pathNode = gradFill['a:path'] as XmlObject | undefined;
+		const pathNode = drawingChild(gradFill, 'path');
 		if (!pathNode) {
 			return undefined;
 		}
-		const fillToRect = pathNode['a:fillToRect'] as XmlObject | undefined;
+		const fillToRect = drawingChild(pathNode, 'fillToRect');
 		if (!fillToRect) {
 			return undefined;
 		}
@@ -206,7 +202,7 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 	}
 
 	public extractGradientScaled(gradFill: XmlObject): boolean | undefined {
-		const lin = gradFill['a:lin'] as XmlObject | undefined;
+		const lin = drawingChild(gradFill, 'lin');
 		if (!lin) {
 			return undefined;
 		}
@@ -225,10 +221,7 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 	}
 
 	public extractGradientAngle(gradFill: XmlObject): number {
-		const angleRaw = Number.parseInt(
-			String((gradFill['a:lin'] as XmlObject | undefined)?.['@_ang'] || ''),
-			10,
-		);
+		const angleRaw = Number.parseInt(String(drawingChild(gradFill, 'lin')?.['@_ang'] || ''), 10);
 		return Number.isFinite(angleRaw) ? (((angleRaw / 60000) % 360) + 360) % 360 : 90;
 	}
 
@@ -310,7 +303,10 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 				const position = Math.round(this.context.clampUnitInterval(positionRaw / 100) * 100000);
 
 				// Prefer original color XML to preserve scheme colors and transforms
-				if (stop.originalColorXml) {
+				if (
+					stop.originalColorXml &&
+					this.context.parseColor(stop.originalColorXml) === String(stop.color).trim()
+				) {
 					const stopXml: XmlObject = {
 						'@_pos': String(position),
 						...stop.originalColorXml,
@@ -349,6 +345,9 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 		// readability.
 		if (shapeStyle.fillGradientFlip && shapeStyle.fillGradientFlip !== 'none') {
 			gradientXml['@_flip'] = shapeStyle.fillGradientFlip;
+		} else if (shapeStyle.fillGradientFlip === 'none' && shapeStyle.fillGradientXml) {
+			// An explicit edit back to the default must remove a preserved non-default value.
+			gradientXml['@_flip'] = undefined;
 		}
 		if (shapeStyle.fillGradientRotWithShape !== undefined) {
 			gradientXml['@_rotWithShape'] = shapeStyle.fillGradientRotWithShape ? '1' : '0';
@@ -401,7 +400,12 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 			}
 			gradientXml['a:lin'] = linNode;
 		}
-		return gradientXml;
+		return mergeDrawingFillXml(
+			shapeStyle.fillGradientXml,
+			gradientXml,
+			['gsLst', 'lin', 'path'],
+			['gsLst', 'lin', 'path', 'tileRect', 'extLst'],
+		);
 	}
 
 	public extractGradientFillColor(gradFill: XmlObject): string | undefined {
@@ -437,9 +441,7 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 	}
 
 	private extractStopsSorted(gradFill: XmlObject): XmlObject[] {
-		const gradientStops = this.context.ensureArray(
-			xmlChild(gradFill, 'a:gsLst')?.['a:gs'],
-		) as XmlObject[];
+		const gradientStops = drawingChildren(drawingChild(gradFill, 'gsLst'), 'gs');
 		if (gradientStops.length === 0) {
 			return [];
 		}
@@ -465,17 +467,10 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 	 * Returns the color choice node (e.g. a:schemeClr with transforms, a:srgbClr, etc.).
 	 */
 	private extractColorSubNode(stop: XmlObject): XmlObject | undefined {
-		const colorKeys = [
-			'a:srgbClr',
-			'a:schemeClr',
-			'a:sysClr',
-			'a:prstClr',
-			'a:scrgbClr',
-			'a:hslClr',
-		];
-		for (const key of colorKeys) {
-			if (stop[key]) {
-				return { [key]: stop[key] } as XmlObject;
+		const colorNames = new Set(['srgbClr', 'schemeClr', 'sysClr', 'prstClr', 'scrgbClr', 'hslClr']);
+		for (const [key, value] of Object.entries(stop)) {
+			if (colorNames.has(key.split(':').at(-1) ?? key)) {
+				return { [key]: value } as XmlObject;
 			}
 		}
 		return undefined;

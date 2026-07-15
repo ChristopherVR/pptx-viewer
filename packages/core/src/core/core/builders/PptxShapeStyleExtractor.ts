@@ -1,5 +1,6 @@
 import type { ConnectorArrowType, ShapeStyle, StrokeDashType, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
+import { drawingChild } from './drawing-fill-xml';
 import { applyScene3dStyle, applyShape3dStyle } from './shape-style-3d-helpers';
 import { applyLineProperties } from './shape-style-line-helpers';
 
@@ -49,11 +50,11 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 		const style: ShapeStyle = {};
 		const shapeProps = (spPr || {}) as XmlObject;
 
-		const solidFill = shapeProps['a:solidFill'] as XmlObject | undefined;
-		const gradFill = shapeProps['a:gradFill'] as XmlObject | undefined;
-		const pattFill = shapeProps['a:pattFill'] as XmlObject | undefined;
-		const noFill = shapeProps['a:noFill'] as XmlObject | undefined;
-		const blipFill = shapeProps['a:blipFill'] as XmlObject | undefined;
+		const solidFill = drawingChild(shapeProps, 'solidFill');
+		const gradFill = drawingChild(shapeProps, 'gradFill');
+		const pattFill = drawingChild(shapeProps, 'pattFill');
+		const noFill = drawingChild(shapeProps, 'noFill');
+		const blipFill = drawingChild(shapeProps, 'blipFill');
 
 		if (solidFill) {
 			style.fillMode = 'solid';
@@ -65,6 +66,7 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 			}
 		} else if (gradFill) {
 			style.fillMode = 'gradient';
+			style.fillGradientXml = gradFill;
 			style.fillColor = this.context.extractGradientFillColor(gradFill);
 			style.fillOpacity = this.context.extractGradientOpacity(gradFill);
 			style.fillGradient = this.context.extractGradientFillCss(gradFill);
@@ -88,26 +90,27 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 			}
 		} else if (pattFill) {
 			style.fillMode = 'pattern';
+			style.fillPatternXml = pattFill;
 			style.fillColor =
-				this.context.parseColor(pattFill['a:fgClr'] as XmlObject | undefined) ||
-				this.context.parseColor(pattFill['a:bgClr'] as XmlObject | undefined);
+				this.context.parseColor(drawingChild(pattFill, 'fgClr')) ||
+				this.context.parseColor(drawingChild(pattFill, 'bgClr'));
 			style.fillOpacity =
-				this.context.extractColorOpacity(pattFill['a:fgClr'] as XmlObject | undefined) ||
-				this.context.extractColorOpacity(pattFill['a:bgClr'] as XmlObject | undefined);
+				this.context.extractColorOpacity(drawingChild(pattFill, 'fgClr')) ||
+				this.context.extractColorOpacity(drawingChild(pattFill, 'bgClr'));
 			const pattPreset = String(pattFill['@_prst'] || '').trim();
 			if (pattPreset.length > 0) {
 				style.fillPatternPreset = pattPreset;
 			}
-			const pattBgColor = this.context.parseColor(pattFill['a:bgClr'] as XmlObject | undefined);
+			const pattBgColor = this.context.parseColor(drawingChild(pattFill, 'bgClr'));
 			if (pattBgColor) {
 				style.fillPatternBackgroundColor = pattBgColor;
 			}
 			// Preserve raw XML colour nodes for round-trip (retains color transforms)
-			const fgClrNode = pattFill['a:fgClr'] as XmlObject | undefined;
+			const fgClrNode = drawingChild(pattFill, 'fgClr');
 			if (fgClrNode) {
 				style.fillPatternFgClrXml = fgClrNode;
 			}
-			const bgClrNode = pattFill['a:bgClr'] as XmlObject | undefined;
+			const bgClrNode = drawingChild(pattFill, 'bgClr');
 			if (bgClrNode) {
 				style.fillPatternBgClrXml = bgClrNode;
 			}

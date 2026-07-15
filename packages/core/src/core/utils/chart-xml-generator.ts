@@ -15,8 +15,10 @@
 import type { PptxChartData, PptxChartSeries, PptxChartType, XmlObject } from '../types';
 import { applyBubbleChartOptions } from './chart-bubble-options';
 import { applyChartDataLabelsToXml } from './chart-data-labels-serializer';
+import { applySeriesErrBarsToXml } from './chart-errbars-serializer';
 import { applyChartLayouts } from './chart-layout';
 import { applySeriesDataLabelsToXml } from './chart-series-datalabel-serializer';
+import { applySeriesTrendlinesToXml } from './chart-trendline-serializer';
 import { applyChartUpDownBars } from './chart-up-down-bars';
 
 const NS_C = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
@@ -126,6 +128,12 @@ function buildSeries(
 	}
 	if (s.dataLabels !== undefined) {
 		applySeriesDataLabelsToXml(ser, s.dataLabels, (key) => key.replace(/^.*:/u, ''));
+	}
+	if (s.trendlines !== undefined) {
+		applySeriesTrendlinesToXml(ser, s.trendlines, (key) => key.replace(/^.*:/u, ''));
+	}
+	if (s.errBars !== undefined) {
+		applySeriesErrBarsToXml(ser, s.errBars, (key) => key.replace(/^.*:/u, ''));
 	}
 	return ser;
 }

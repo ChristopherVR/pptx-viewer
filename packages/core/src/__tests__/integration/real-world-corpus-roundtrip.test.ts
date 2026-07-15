@@ -9,6 +9,7 @@ import {
 	findAllElements,
 	listCorpusFixtures,
 	loadSaveReload,
+	REQUIRED_CORPUS_FIXTURES,
 } from './real-world-corpus-helpers';
 
 /**
@@ -29,8 +30,8 @@ import {
 describe('real-world corpus round-trip', () => {
 	const fixtures = listCorpusFixtures();
 
-	it('the corpus is present and non-empty', () => {
-		expect(fixtures.length).toBeGreaterThanOrEqual(4);
+	it('contains every required PowerPoint-authored interoperability deck', () => {
+		expect(fixtures).toStrictEqual([...REQUIRED_CORPUS_FIXTURES]);
 	});
 
 	describe.each(fixtures)('%s', (fileName) => {

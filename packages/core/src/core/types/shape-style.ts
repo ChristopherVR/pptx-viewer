@@ -76,9 +76,13 @@ export interface ShapeStyle {
 	 */
 	fillColorXml?: XmlObject;
 	fillGradient?: string;
+	/** Original `gradFill` XML retained for unknown-child and extension round-tripping. */
+	fillGradientXml?: XmlObject;
 	fillMode?: 'solid' | 'gradient' | 'pattern' | 'none' | 'image' | 'theme' | 'group';
 	fillPatternPreset?: string;
 	fillPatternBackgroundColor?: string;
+	/** Original `pattFill` XML retained for unknown-child round-tripping. */
+	fillPatternXml?: XmlObject;
 	/** Raw XML node for pattern fill foreground colour (preserves color transforms). */
 	fillPatternFgClrXml?: XmlObject;
 	/** Raw XML node for pattern fill background colour (preserves color transforms). */

@@ -8,6 +8,14 @@ import type { PptxSlide } from '../../core/types/presentation';
 /** Directory holding the real, PowerPoint-COM-authored corpus fixtures. */
 export const CORPUS_DIR = path.resolve(__dirname, '../fixtures/corpus');
 
+export const REQUIRED_CORPUS_FIXTURES = [
+	'animations-transitions-multislide.pptx',
+	'master-layout-inheritance-fills.pptx',
+	'ole-embedded-media.pptx',
+	'preset-geometry-wordart.pptx',
+	'smartart-chart-table-mix.pptx',
+] as const;
+
 /** List every `.pptx` fixture under {@link CORPUS_DIR}, or `[]` if absent. */
 export function listCorpusFixtures(): string[] {
 	if (!existsSync(CORPUS_DIR)) {

@@ -131,6 +131,82 @@ function validateThemeElements(xml: string, path: string, issues: ValidationIssu
 	}
 }
 
+function attributeValue(attributes: string, name: string): string | undefined {
+	return attributes.match(new RegExp(`(?:^|\\s)${name}\\s*=\\s*["']([^"']*)["']`))?.[1];
+}
+
+function elementStartAttributes(xml: string, localName: string): string[] {
+	return [...xml.matchAll(new RegExp(`<(?:[\\w.-]+:)?${localName}\\b([^>]*)>`, 'g'))].map(
+		(match) => match[1],
+	);
+}
+
+function validateRequiredAttributes(
+	attributes: string,
+	required: string[],
+	element: string,
+	path: string,
+	issues: ValidationIssue[],
+): void {
+	for (const name of required) {
+		if (attributeValue(attributes, name) === undefined) {
+			add(
+				issues,
+				path,
+				'MISSING_REQUIRED_PART_ATTRIBUTE',
+				`<${element}> must have a ${name} attribute`,
+			);
+		}
+	}
+}
+
+function validateComments(xml: string, path: string, issues: ValidationIssue[]): void {
+	const ids = new Set<string>();
+	for (const attributes of elementStartAttributes(xml, 'cm')) {
+		validateRequiredAttributes(attributes, ['authorId', 'dt', 'idx'], 'cm', path, issues);
+		const authorId = attributeValue(attributes, 'authorId');
+		const idx = attributeValue(attributes, 'idx');
+		if (authorId !== undefined && idx !== undefined) {
+			const key = `${authorId}:${idx}`;
+			if (ids.has(key)) {
+				add(
+					issues,
+					path,
+					'DUPLICATE_COMMENT_INDEX',
+					`Comment index ${idx} is duplicated for author ${authorId}`,
+				);
+			}
+			ids.add(key);
+		}
+	}
+	for (const comment of xml.matchAll(/<(?:[\w.-]+:)?cm\b[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?cm>/g)) {
+		const children = directChildren(`<cm>${comment[1]}</cm>`);
+		if (!children.includes('pos') || !children.includes('text')) {
+			add(issues, path, 'MISSING_REQUIRED_PART_ELEMENT', '<cm> must contain <pos> and <text>');
+		}
+	}
+}
+
+function validateCommentAuthors(xml: string, path: string, issues: ValidationIssue[]): void {
+	const ids = new Set<string>();
+	for (const attributes of elementStartAttributes(xml, 'cmAuthor')) {
+		validateRequiredAttributes(
+			attributes,
+			['id', 'name', 'initials', 'lastIdx', 'clrIdx'],
+			'cmAuthor',
+			path,
+			issues,
+		);
+		const id = attributeValue(attributes, 'id');
+		if (id !== undefined && ids.has(id)) {
+			add(issues, path, 'DUPLICATE_COMMENT_AUTHOR_ID', `Comment author id ${id} is duplicated`);
+		}
+		if (id !== undefined) {
+			ids.add(id);
+		}
+	}
+}
+
 function validateSpecialRules(
 	xml: string,
 	contract: PartContract,
@@ -139,6 +215,12 @@ function validateSpecialRules(
 ): void {
 	if (contract.root === 'theme') {
 		validateThemeElements(xml, path, issues);
+	}
+	if (contract.root === 'cmLst') {
+		validateComments(xml, path, issues);
+	}
+	if (contract.root === 'cmAuthorLst') {
+		validateCommentAuthors(xml, path, issues);
 	}
 	if (contract.root === 'tblStyleLst' && !/\bdef\s*=\s*["'][^"']+["']/.test(rootAttributes(xml))) {
 		add(

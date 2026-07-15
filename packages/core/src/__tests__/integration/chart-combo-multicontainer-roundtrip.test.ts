@@ -149,6 +149,37 @@ describe('multi-container combo chart round-trip', () => {
 		expect(chart2.chartData!.series[1].values).toStrictEqual([7, 17]);
 	});
 
+	it('round-trips typed trendlines and error bars after a dirty save', async () => {
+		const handler = new PptxHandler();
+		const data = await handler.load(await buildComboDeck());
+		const chart = comboChart(data);
+		chart.chartData!.series[1].trendlines = [
+			{
+				trendlineType: 'polynomial',
+				order: 3,
+				displayEq: false,
+				label: { numberFormatCode: '0.00', sourceLinked: false },
+			},
+		];
+		chart.chartData!.series[1].errBars = [
+			{
+				direction: 'y',
+				barType: 'both',
+				valType: 'percentage',
+				val: 5,
+				noEndCap: false,
+				color: '#123456',
+			},
+		];
+		data.slides[0].isDirty = true;
+
+		const savedBytes = await handler.save(data.slides);
+		const reloaded = await new PptxHandler().load(savedBytes.buffer as ArrayBuffer);
+		const series = comboChart(reloaded).chartData!.series[1];
+		expect(series.trendlines).toStrictEqual(chart.chartData!.series[1].trendlines);
+		expect(series.errBars).toStrictEqual(chart.chartData!.series[1].errBars);
+	});
+
 	it('round-trips a per-data-point label override on a combo series', async () => {
 		const handler = new PptxHandler();
 		const data = await handler.load(await buildComboDeck());

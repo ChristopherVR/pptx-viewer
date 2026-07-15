@@ -104,6 +104,20 @@ describe('eCMA part content models', () => {
 			),
 		).toHaveLength(0);
 	});
+
+	it('validates legacy comment and author required fields with arbitrary prefixes', async () => {
+		const parts = {
+			'ppt/comments/comment1.xml': `<x:cmLst xmlns:x="${P}"><x:cm authorId="1" idx="2"><x:pos x="0" y="0"/></x:cm><x:cm authorId="1" dt="2024-01-01T00:00:00Z" idx="2"><x:pos x="0" y="0"/><x:text>duplicate</x:text></x:cm></x:cmLst>`,
+			'ppt/commentAuthors.xml': `<x:cmAuthorLst xmlns:x="${P}"><x:cmAuthor id="1" name="Alice"/><x:cmAuthor id="1" name="Again" initials="A" lastIdx="2" clrIdx="0"/></x:cmAuthorLst>`,
+		};
+		const result = await issues(await pack(undefined, undefined, parts));
+		const codes = result.map((issue) => issue.code);
+
+		expect(codes).toContain('MISSING_REQUIRED_PART_ATTRIBUTE');
+		expect(codes).toContain('MISSING_REQUIRED_PART_ELEMENT');
+		expect(codes).toContain('DUPLICATE_COMMENT_INDEX');
+		expect(codes).toContain('DUPLICATE_COMMENT_AUTHOR_ID');
+	});
 });
 
 describe('presentation relationship references', () => {

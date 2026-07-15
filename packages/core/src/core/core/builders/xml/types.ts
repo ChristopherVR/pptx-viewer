@@ -1,4 +1,5 @@
 import type { PptxComment, XmlObject } from '../../../types';
+import type { OoxmlConformanceClass } from '../../../utils';
 import type { PptxSaveState } from '../PptxSaveSessionBuilder';
 
 export interface ICoreXmlElementFactory<TInit, TResult extends XmlObject = XmlObject> {
@@ -8,10 +9,12 @@ export interface ICoreXmlElementFactory<TInit, TResult extends XmlObject = XmlOb
 export interface PptxSlideCommentsXmlFactoryInit {
 	slideComments: PptxComment[];
 	saveState: PptxSaveState;
+	conformance: OoxmlConformanceClass;
 }
 
 export interface PptxCommentAuthorsXmlFactoryInit {
 	saveState: PptxSaveState;
+	conformance: OoxmlConformanceClass;
 }
 
 export interface IPptxSlideCommentsXmlFactory extends ICoreXmlElementFactory<PptxSlideCommentsXmlFactoryInit> {}

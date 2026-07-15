@@ -167,4 +167,44 @@ describe('buildChartSpaceXml', () => {
 		const ser = (pa['c:barChart'] as XmlObject)['c:ser'] as XmlObject[];
 		expect(ser[0]['c:spPr']).toBeUndefined();
 	});
+
+	it('emits typed trendlines and error bars for SDK-created charts', () => {
+		const pa = plotArea(
+			buildChartSpaceXml(
+				makeData({
+					series: [
+						{
+							name: 'Revenue',
+							values: [1],
+							trendlines: [
+								{
+									trendlineType: 'polynomial',
+									order: 3,
+									label: { numberFormatCode: '0.00' },
+								},
+							],
+							errBars: [
+								{
+									direction: 'y',
+									barType: 'both',
+									valType: 'fixedVal',
+									val: 2,
+								},
+							],
+						},
+					],
+				}),
+			),
+		);
+		const series = ((pa['c:barChart'] as XmlObject)['c:ser'] as XmlObject[])[0];
+		const trendline = series['c:trendline'] as XmlObject;
+		expect(trendline['c:order']).toStrictEqual({ '@_val': '3' });
+		expect((trendline['c:trendlineLbl'] as XmlObject)['c:numFmt']).toStrictEqual({
+			'@_formatCode': '0.00',
+		});
+		expect((series['c:errBars'] as XmlObject)['c:val']).toStrictEqual({ '@_val': '2' });
+		const names = Object.keys(series).map((key) => key.replace(/^.*:/u, ''));
+		expect(names.indexOf('trendline')).toBeLessThan(names.indexOf('errBars'));
+		expect(names.indexOf('errBars')).toBeLessThan(names.indexOf('cat'));
+	});
 });

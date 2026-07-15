@@ -2,6 +2,7 @@ import type { XMLBuilder } from 'fast-xml-parser';
 import type JSZip from 'jszip';
 
 import type { PptxSlide } from '../../types';
+import type { OoxmlConformanceClass } from '../../utils';
 import type { PptxSaveState } from './PptxSaveSessionBuilder';
 import type {
 	IPptxSlideRelationshipRegistry,
@@ -19,6 +20,7 @@ export interface PptxSlideCommentPartWriterInput {
 	xmlBuilder: XMLBuilder;
 	slideCommentsXmlFactory: IPptxSlideCommentsXmlFactory;
 	resolvePartPath: (slidePath: string, relationshipTarget: string) => string;
+	conformance: OoxmlConformanceClass;
 }
 
 export interface IPptxSlideCommentPartWriter {
@@ -56,6 +58,7 @@ export class PptxSlideCommentPartWriter implements IPptxSlideCommentPartWriter {
 				init.slideCommentsXmlFactory.createXmlElement({
 					slideComments: sanitizedComments,
 					saveState: init.saveState,
+					conformance: init.conformance,
 				}),
 			),
 		);

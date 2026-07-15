@@ -1,6 +1,6 @@
 import type JSZip from 'jszip';
 
-import type { PptxCommentAuthor } from '../../types';
+import type { PptxCommentAuthor, XmlObject } from '../../types';
 
 export type PptxSaveMediaKind = 'image' | 'audio' | 'video';
 
@@ -9,6 +9,7 @@ export interface PptxSaveStateConfig {
 	commentAuthorMap: Map<string, string>;
 	/** Full author details for round-trip preservation of initials, lastIdx, clrIdx. */
 	commentAuthorDetails?: Map<string, PptxCommentAuthor>;
+	commentAuthorsRootXml?: XmlObject;
 	emuPerPx: number;
 }
 
@@ -18,6 +19,7 @@ export interface PptxCommentAuthorDescriptor {
 	initials: string;
 	lastCommentIndex: number;
 	colorIndex: number;
+	rawXml?: XmlObject;
 }
 
 export class PptxSaveState {
@@ -25,6 +27,7 @@ export class PptxSaveState {
 
 	/** Original author details loaded from the file, for round-trip preservation. */
 	private readonly commentAuthorDetails: Map<string, PptxCommentAuthor>;
+	private readonly commentAuthorsRootXml: XmlObject | undefined;
 
 	private readonly emuPerPx: number;
 
@@ -49,6 +52,7 @@ export class PptxSaveState {
 	public constructor(config: PptxSaveStateConfig) {
 		this.commentAuthorMap = config.commentAuthorMap;
 		this.commentAuthorDetails = config.commentAuthorDetails ?? new Map();
+		this.commentAuthorsRootXml = config.commentAuthorsRootXml;
 		this.emuPerPx = config.emuPerPx;
 
 		this.initializeZipState(config.zip);
@@ -147,6 +151,10 @@ export class PptxSaveState {
 		return this.usedAuthorIdByName.size > 0;
 	}
 
+	public getCommentAuthorsRootXml(): XmlObject | undefined {
+		return this.commentAuthorsRootXml;
+	}
+
 	public getUsedCommentAuthors(): PptxCommentAuthorDescriptor[] {
 		return Array.from(this.usedAuthorIdByName.entries())
 			.map(([authorName, authorId], index) => {
@@ -162,6 +170,7 @@ export class PptxSaveState {
 							this.commentLastIdxByAuthorId.get(authorId) ?? 0,
 						),
 						colorIndex: original.clrIdx,
+						rawXml: original.rawXml,
 					};
 				}
 				// Fallback for newly created authors
@@ -251,6 +260,7 @@ export class PptxSaveStateBuilder {
 	private commentAuthorMap: Map<string, string> | null = null;
 
 	private _commentAuthorDetails: Map<string, PptxCommentAuthor> | null = null;
+	private commentAuthorsRootXml: XmlObject | undefined;
 
 	private emuPerPx = 9525;
 
@@ -266,6 +276,11 @@ export class PptxSaveStateBuilder {
 
 	public withCommentAuthorDetails(details: Map<string, PptxCommentAuthor>): this {
 		this._commentAuthorDetails = details;
+		return this;
+	}
+
+	public withCommentAuthorsRootXml(root: XmlObject | undefined): this {
+		this.commentAuthorsRootXml = root;
 		return this;
 	}
 
@@ -286,6 +301,7 @@ export class PptxSaveStateBuilder {
 			zip: this.zip,
 			commentAuthorMap: this.commentAuthorMap,
 			commentAuthorDetails: this._commentAuthorDetails ?? undefined,
+			commentAuthorsRootXml: this.commentAuthorsRootXml,
 			emuPerPx: this.emuPerPx,
 		});
 	}

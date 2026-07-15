@@ -358,6 +358,9 @@ export class PptxHandlerRuntime {
 	/** Full comment author details keyed by author ID, preserving initials/lastIdx/clrIdx for round-trip. */
 	protected commentAuthorDetails: Map<string, PptxCommentAuthor> = new Map();
 
+	/** Original `p:cmAuthorLst` root, including unmodelled attributes and extensions. */
+	protected commentAuthorsRootXml: XmlObject | undefined;
+
 	/** Available slide layout options collected during load. */
 	protected layoutOptions: PptxLayoutOption[] = [];
 

@@ -1,13 +1,15 @@
 import type { XmlObject } from '../../../types';
+import { getCommentXmlNamespaces, withoutChildrenByLocalName } from './comment-xml-helpers';
 import type { IPptxSlideCommentsXmlFactory, PptxSlideCommentsXmlFactoryInit } from './types';
 
 export class PptxSlideCommentsXmlFactory implements IPptxSlideCommentsXmlFactory {
 	public createXmlElement(init: PptxSlideCommentsXmlFactoryInit): XmlObject {
+		const namespaces = getCommentXmlNamespaces(init.conformance);
 		return {
 			'p:cmLst': {
-				'@_xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
-				'@_xmlns:r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
-				'@_xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main',
+				'@_xmlns:a': namespaces.drawing,
+				'@_xmlns:r': namespaces.relationships,
+				'@_xmlns:p': namespaces.presentation,
 				'p:cm': init.slideComments.map((comment, index) =>
 					this.createCommentNode(init, comment, index),
 				),
@@ -27,6 +29,7 @@ export class PptxSlideCommentsXmlFactory implements IPptxSlideCommentsXmlFactory
 		const y = init.saveState.toEmu(comment.y, 0);
 
 		return {
+			...withoutChildrenByLocalName(comment.rawXml ?? {}, new Set(['pos', 'text'])),
 			'@_authorId': authorId,
 			'@_dt': createdAtIso,
 			'@_idx': String(commentIndex),

@@ -9,6 +9,7 @@ import type {
 	PptxChartLineStyle,
 	XmlObject,
 } from '../types';
+import { parseTrendlineLabel } from './chart-trendline-label';
 
 interface XmlLookupLike {
 	getChildByLocalName(parent: XmlObject | undefined, name: string): XmlObject | undefined;
@@ -52,6 +53,14 @@ function safeFloat(val: unknown): number | undefined {
 	return Number.isFinite(n) ? n : undefined;
 }
 
+function booleanValue(node: XmlObject | undefined): boolean | undefined {
+	if (!node) {
+		return undefined;
+	}
+	const value = node['@_val'];
+	return value === undefined || value === '1' ? true : value === '0' ? false : undefined;
+}
+
 export function parseSeriesTrendlines(
 	seriesNode: XmlObject,
 	xmlLookup: XmlLookupLike,
@@ -72,14 +81,19 @@ export function parseSeriesTrendlines(
 			}
 
 			const result: PptxChartTrendline = { trendlineType };
+			const name = xmlLookup.getChildByLocalName(node, 'name');
+			const nameText = typeof name === 'string' ? name : name?.['#text'];
+			if (typeof nameText === 'string') {
+				result.name = nameText;
+			}
 
 			const orderVal = safeInt(xmlLookup.getChildByLocalName(node, 'order')?.['@_val']);
-			if (orderVal !== undefined) {
+			if (orderVal !== undefined && orderVal >= 2 && orderVal <= 6) {
 				result.order = orderVal;
 			}
 
 			const periodVal = safeInt(xmlLookup.getChildByLocalName(node, 'period')?.['@_val']);
-			if (periodVal !== undefined) {
+			if (periodVal !== undefined && periodVal >= 2) {
 				result.period = periodVal;
 			}
 
@@ -98,20 +112,23 @@ export function parseSeriesTrendlines(
 				result.intercept = interceptVal;
 			}
 
-			const dispRSq = xmlLookup.getChildByLocalName(node, 'dispRSqr');
-			if (dispRSq?.['@_val'] === '1') {
-				result.displayRSq = true;
+			result.displayRSq = booleanValue(xmlLookup.getChildByLocalName(node, 'dispRSqr'));
+			result.displayEq = booleanValue(xmlLookup.getChildByLocalName(node, 'dispEq'));
+			if (result.displayRSq === undefined) {
+				delete result.displayRSq;
 			}
-
-			const dispEq = xmlLookup.getChildByLocalName(node, 'dispEq');
-			if (dispEq?.['@_val'] === '1') {
-				result.displayEq = true;
+			if (result.displayEq === undefined) {
+				delete result.displayEq;
 			}
 
 			const spPr = xmlLookup.getChildByLocalName(node, 'spPr');
 			const lineColor = colorParser.parseColor(xmlLookup.getChildByLocalName(spPr, 'solidFill'));
 			if (lineColor) {
 				result.color = lineColor;
+			}
+			const labelNode = xmlLookup.getChildByLocalName(node, 'trendlineLbl');
+			if (labelNode) {
+				result.label = parseTrendlineLabel(labelNode, (key) => key.replace(/^.*:/u, ''));
 			}
 
 			return result;
@@ -123,6 +140,7 @@ export function parseSeriesErrBars(
 	seriesNode: XmlObject,
 	xmlLookup: XmlLookupLike,
 	extractPointValues: (container: XmlObject | undefined, preferNumeric: boolean) => string[],
+	colorParser?: ColorParserLike,
 ): PptxChartErrBars[] {
 	const errBarsNodes = xmlLookup.getChildrenArrayByLocalName(seriesNode, 'errBars');
 	if (errBarsNodes.length === 0) {
@@ -147,6 +165,10 @@ export function parseSeriesErrBars(
 			}
 
 			const result: PptxChartErrBars = { direction, barType, valType };
+			const noEndCap = booleanValue(xmlLookup.getChildByLocalName(node, 'noEndCap'));
+			if (noEndCap !== undefined) {
+				result.noEndCap = noEndCap;
+			}
 
 			const valNode = xmlLookup.getChildByLocalName(node, 'val');
 			const numVal = safeFloat(valNode?.['@_val']);
@@ -170,6 +192,13 @@ export function parseSeriesErrBars(
 				if (minusValues.length > 0) {
 					result.customMinus = minusValues;
 				}
+			}
+			const spPr = xmlLookup.getChildByLocalName(node, 'spPr');
+			const lineColor = colorParser?.parseColor(
+				xmlLookup.getChildByLocalName(xmlLookup.getChildByLocalName(spPr, 'ln'), 'solidFill'),
+			);
+			if (lineColor) {
+				result.color = lineColor;
 			}
 
 			return result;

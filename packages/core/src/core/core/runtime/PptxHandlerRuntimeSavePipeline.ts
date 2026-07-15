@@ -39,6 +39,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			.withZip(this.zip)
 			.withCommentAuthorMap(this.commentAuthorMap)
 			.withCommentAuthorDetails(this.commentAuthorDetails)
+			.withCommentAuthorsRootXml(this.commentAuthorsRootXml)
 			.withEmuPerPx(PptxHandlerRuntime.EMU_PER_PX)
 			.build();
 		await this.reconcilePresentationSlidesForSave({
@@ -88,6 +89,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.builder.build(
 					this.commentAuthorsXmlFactory.createXmlElement({
 						saveState: saveSession,
+						conformance: effectiveConformance,
 					}),
 				),
 			);

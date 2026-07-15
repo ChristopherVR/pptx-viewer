@@ -5,6 +5,8 @@
  * @module pptx-types/metadata
  */
 
+import type { XmlObject } from './common';
+
 // ==========================================================================
 // Comments, compatibility warnings, tags, and document properties
 // ==========================================================================
@@ -42,6 +44,8 @@ export interface PptxComment {
 	replies?: PptxComment[];
 	/** ID of the element this comment is associated with (if any). */
 	elementId?: string;
+	/** Original `p:cm` subtree, retained for unknown child and extension preservation. */
+	rawXml?: XmlObject;
 }
 
 /**
@@ -75,6 +79,8 @@ export interface PptxCommentAuthor {
 	lastIdx: number;
 	/** Colour index assigned to this author (`@_clrIdx`). */
 	clrIdx: number;
+	/** Original `p:cmAuthor` subtree, retained for unknown attribute preservation. */
+	rawXml?: XmlObject;
 }
 
 /**

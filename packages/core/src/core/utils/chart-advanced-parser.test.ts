@@ -163,6 +163,32 @@ describe('parseSeriesTrendlines', () => {
 		const result = parseSeriesTrendlines(seriesNode, xmlLookup, colorParser);
 		expect(result[0].color).toBe('#FF0000');
 	});
+
+	it('parses name, explicit false booleans, and typed label properties', () => {
+		const seriesNode: XmlObject = {
+			'c:trendline': {
+				'c:name': { '#text': 'Forecast' },
+				'c:trendlineType': { '@_val': 'linear' },
+				'c:dispEq': { '@_val': '0' },
+				'c:trendlineLbl': {
+					'c:layout': { 'c:manualLayout': { 'c:x': { '@_val': '0.2' } } },
+					'c:numFmt': { '@_formatCode': '0.00', '@_sourceLinked': '0' },
+				},
+			},
+		};
+		expect(parseSeriesTrendlines(seriesNode, xmlLookup, colorParser)).toStrictEqual([
+			{
+				trendlineType: 'linear',
+				name: 'Forecast',
+				displayEq: false,
+				label: {
+					layout: { x: 0.2 },
+					numberFormatCode: '0.00',
+					sourceLinked: false,
+				},
+			},
+		]);
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -210,6 +236,19 @@ describe('parseSeriesErrBars', () => {
 		expect(result[0].direction).toBe('x');
 		expect(result[0].barType).toBe('plus');
 		expect(result[0].valType).toBe('percentage');
+	});
+
+	it('parses explicit end-cap false and line color', () => {
+		const seriesNode: XmlObject = {
+			'c:errBars': {
+				'c:errBarType': { '@_val': 'both' },
+				'c:errValType': { '@_val': 'fixedVal' },
+				'c:noEndCap': { '@_val': '0' },
+				'c:spPr': { 'a:ln': { 'a:solidFill': { 'a:srgbClr': { '@_val': '123456' } } } },
+			},
+		};
+		const result = parseSeriesErrBars(seriesNode, xmlLookup, extractPointValues, colorParser);
+		expect(result[0]).toMatchObject({ noEndCap: false, color: '#123456' });
 	});
 
 	it('skips errBars with no valType', () => {

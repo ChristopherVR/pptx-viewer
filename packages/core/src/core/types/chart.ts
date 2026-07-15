@@ -77,6 +77,7 @@ export type PptxChartTrendlineType =
  */
 export interface PptxChartTrendline {
 	trendlineType: PptxChartTrendlineType;
+	name?: string;
 	order?: number;
 	period?: number;
 	forward?: number;
@@ -85,6 +86,14 @@ export interface PptxChartTrendline {
 	displayRSq?: boolean;
 	displayEq?: boolean;
 	color?: string;
+	label?: PptxChartTrendlineLabel | null;
+}
+
+/** Typed, commonly edited properties of `c:trendlineLbl`. */
+export interface PptxChartTrendlineLabel {
+	layout?: PptxChartManualLayout;
+	numberFormatCode?: string;
+	sourceLinked?: boolean;
 }
 
 /** Error-bar direction axis. */
@@ -123,6 +132,8 @@ export interface PptxChartErrBars {
 	val?: number;
 	customPlus?: number[];
 	customMinus?: number[];
+	noEndCap?: boolean;
+	color?: string;
 }
 
 /**

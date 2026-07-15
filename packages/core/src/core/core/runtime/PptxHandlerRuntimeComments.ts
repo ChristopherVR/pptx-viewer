@@ -240,6 +240,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						? Math.round(yValue / PptxHandlerRuntime.EMU_PER_PX)
 						: undefined,
 					resolved,
+					rawXml: commentNode,
 				};
 			});
 		} catch (error) {
@@ -260,6 +261,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				commentAuthorsData,
 				'cmAuthorLst',
 			);
+			this.commentAuthorsRootXml = authorRoot;
 			const authors = this.xmlLookupService.getChildrenArrayByLocalName(authorRoot, 'cmAuthor');
 
 			authors.forEach((author, index) => {
@@ -284,6 +286,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					initials: initialsRaw.length > 0 ? initialsRaw : this.toCommentInitials(authorName),
 					lastIdx: Number.isFinite(lastIdxRaw) ? lastIdxRaw : 0,
 					clrIdx: Number.isFinite(clrIdxRaw) ? clrIdxRaw : 0,
+					rawXml: author,
 				};
 				this.commentAuthorDetails.set(authorId, authorDetail);
 			});

@@ -364,6 +364,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				seriesNode,
 				this.xmlLookupService,
 				this.extractChartPointValues.bind(this),
+				colorAdapter,
 			);
 
 			// Parse data points (c:dPt)

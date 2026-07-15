@@ -122,4 +122,74 @@ describe('applySeriesTrendlinesToXml', () => {
 		expect(Array.isArray(node['c:trendline'])).toBeTruthy();
 		expect(node['c:trendline'] as XmlObject[]).toHaveLength(2);
 	});
+
+	it('writes a typed label in schema order and preserves unmodeled label content', () => {
+		const node = seriesNode();
+		node['c:trendline'] = {
+			'c:trendlineType': { '@_val': 'linear' },
+			'c:trendlineLbl': {
+				'c:tx': { 'c:v': 'y = mx + b' },
+				'c:txPr': { marker: true },
+				'c:extLst': { extension: true },
+			},
+			'c:extLst': { trendlineExtension: true },
+		};
+		applySeriesTrendlinesToXml(
+			node,
+			[
+				{
+					trendlineType: 'linear',
+					name: 'Forecast',
+					displayEq: false,
+					label: {
+						layout: { xMode: 'factor', x: 0.25 },
+						numberFormatCode: '0.00',
+						sourceLinked: false,
+					},
+				},
+			],
+			getLocalName,
+		);
+		const trendline = trendlineOf(node);
+		expect(trendline['c:name']).toBe('Forecast');
+		expect(trendline['c:dispEq']).toStrictEqual({ '@_val': '0' });
+		expect(trendline['c:extLst']).toStrictEqual({ trendlineExtension: true });
+		const label = trendline['c:trendlineLbl'] as XmlObject;
+		expect(Object.keys(label).map(getLocalName)).toStrictEqual([
+			'layout',
+			'tx',
+			'numFmt',
+			'txPr',
+			'extLst',
+		]);
+		expect(label['c:numFmt']).toStrictEqual({ '@_formatCode': '0.00', '@_sourceLinked': '0' });
+		expect(label['c:txPr']).toStrictEqual({ marker: true });
+	});
+
+	it('removes an explicitly cleared trendline label', () => {
+		const node = seriesNode();
+		node['c:trendline'] = {
+			'c:trendlineType': { '@_val': 'linear' },
+			'c:trendlineLbl': { 'c:layout': {} },
+		};
+		applySeriesTrendlinesToXml(node, [{ trendlineType: 'linear', label: null }], getLocalName);
+		expect(trendlineOf(node)['c:trendlineLbl']).toBeUndefined();
+	});
+
+	it('rejects values outside the schema facets', () => {
+		expect(() =>
+			applySeriesTrendlinesToXml(
+				seriesNode(),
+				[{ trendlineType: 'polynomial', order: 7 }],
+				getLocalName,
+			),
+		).toThrow(RangeError);
+		expect(() =>
+			applySeriesTrendlinesToXml(
+				seriesNode(),
+				[{ trendlineType: 'movingAvg', period: 1 }],
+				getLocalName,
+			),
+		).toThrow(RangeError);
+	});
 });

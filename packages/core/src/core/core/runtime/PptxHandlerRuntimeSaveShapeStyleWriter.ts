@@ -2,6 +2,7 @@ import { XmlObject } from '../../types';
 import type { ShapeStyle } from '../../types';
 import { serializeColorChoice } from '../../utils/color-xml-preservation';
 import { reorderObjectKeys, SHAPE_STYLE_ORDER } from '../../utils/xml-reorder';
+import { mergeDrawingFillXml } from '../builders/drawing-fill-xml';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveXmlHelpers';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -38,7 +39,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				pattNode['@_prst'] = preset;
 			}
 			// Prefer preserved raw XML colour nodes (retains color transforms)
-			if (shapeStyle.fillPatternFgClrXml) {
+			if (
+				shapeStyle.fillPatternFgClrXml &&
+				(shapeStyle.fillColor === undefined ||
+					this.parseColor(shapeStyle.fillPatternFgClrXml) === shapeStyle.fillColor)
+			) {
 				pattNode['a:fgClr'] = shapeStyle.fillPatternFgClrXml;
 			} else if (shapeStyle.fillColor) {
 				pattNode['a:fgClr'] = {
@@ -47,7 +52,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					},
 				};
 			}
-			if (shapeStyle.fillPatternBgClrXml) {
+			if (
+				shapeStyle.fillPatternBgClrXml &&
+				(shapeStyle.fillPatternBackgroundColor === undefined ||
+					this.parseColor(shapeStyle.fillPatternBgClrXml) === shapeStyle.fillPatternBackgroundColor)
+			) {
 				pattNode['a:bgClr'] = shapeStyle.fillPatternBgClrXml;
 			} else if (shapeStyle.fillPatternBackgroundColor) {
 				pattNode['a:bgClr'] = {
@@ -56,7 +65,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					},
 				};
 			}
-			spPr['a:pattFill'] = pattNode;
+			spPr['a:pattFill'] = mergeDrawingFillXml(
+				shapeStyle.fillPatternXml,
+				pattNode,
+				['fgClr', 'bgClr'],
+				['fgClr', 'bgClr', 'extLst'],
+			);
 		} else if (requestedFillMode === 'solid' || shapeStyle.fillColor !== undefined) {
 			const fillColor = String(shapeStyle.fillColor || '').trim();
 			if (fillColor.length > 0) {

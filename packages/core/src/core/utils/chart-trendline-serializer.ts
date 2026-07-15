@@ -11,6 +11,7 @@
  */
 
 import type { PptxChartTrendline, XmlObject } from '../types';
+import { buildTrendlineLabel } from './chart-trendline-label';
 
 type GetLocalName = (key: string) => string;
 
@@ -37,6 +38,27 @@ function ensureArray<T>(v: T | T[] | undefined): T[] {
 
 function hex(color: string): string {
 	return color.replace(/^#/u, '').toUpperCase();
+}
+
+function assertFinite(value: number | undefined, name: string): void {
+	if (value !== undefined && !Number.isFinite(value)) {
+		throw new RangeError(`${name} must be finite`);
+	}
+}
+
+function validateTrendline(t: PptxChartTrendline): void {
+	if (t.order !== undefined && (!Number.isInteger(t.order) || t.order < 2 || t.order > 6)) {
+		throw new RangeError('trendline order must be an integer from 2 through 6');
+	}
+	if (
+		t.period !== undefined &&
+		(!Number.isInteger(t.period) || t.period < 2 || t.period > 4294967295)
+	) {
+		throw new RangeError('trendline period must be an integer from 2 through 4294967295');
+	}
+	assertFinite(t.forward, 'trendline forward');
+	assertFinite(t.backward, 'trendline backward');
+	assertFinite(t.intercept, 'trendline intercept');
 }
 
 /** Merge a trendline colour into an existing `c:spPr` (preserving other line props). */
@@ -69,13 +91,14 @@ function buildTrendline(
 	t: PptxChartTrendline,
 	getLocalName: GetLocalName,
 ): XmlObject {
+	validateTrendline(t);
 	const node: XmlObject = {};
 
-	if (existing) {
-		const nameKey = findKey(existing, 'name', getLocalName);
-		if (nameKey) {
-			node['c:name'] = existing[nameKey];
-		}
+	const existingNameKey = existing ? findKey(existing, 'name', getLocalName) : undefined;
+	if (t.name !== undefined) {
+		node['c:name'] = t.name;
+	} else if (existing && existingNameKey) {
+		node['c:name'] = existing[existingNameKey];
 	}
 	const spPr = buildSpPr(
 		existing ? (existing[findKey(existing, 'spPr', getLocalName) ?? ''] as XmlObject) : undefined,
@@ -102,17 +125,27 @@ function buildTrendline(
 	if (t.intercept !== undefined) {
 		node['c:intercept'] = { '@_val': String(t.intercept) };
 	}
-	if (t.displayRSq) {
-		node['c:dispRSqr'] = { '@_val': '1' };
+	if (t.displayRSq !== undefined) {
+		node['c:dispRSqr'] = { '@_val': t.displayRSq ? '1' : '0' };
 	}
-	if (t.displayEq) {
-		node['c:dispEq'] = { '@_val': '1' };
+	if (t.displayEq !== undefined) {
+		node['c:dispEq'] = { '@_val': t.displayEq ? '1' : '0' };
 	}
 
+	const lblKey = existing ? findKey(existing, 'trendlineLbl', getLocalName) : undefined;
+	if (t.label) {
+		node['c:trendlineLbl'] = buildTrendlineLabel(
+			lblKey ? (existing?.[lblKey] as XmlObject) : undefined,
+			t.label,
+			getLocalName,
+		);
+	} else if (t.label === undefined && existing && lblKey) {
+		node['c:trendlineLbl'] = existing[lblKey];
+	}
 	if (existing) {
-		const lblKey = findKey(existing, 'trendlineLbl', getLocalName);
-		if (lblKey) {
-			node['c:trendlineLbl'] = existing[lblKey];
+		const extKey = findKey(existing, 'extLst', getLocalName);
+		if (extKey) {
+			node['c:extLst'] = existing[extKey];
 		}
 	}
 	return node;

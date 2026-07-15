@@ -146,6 +146,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			slideCommentsXmlFactory: this.slideCommentsXmlFactory,
 			resolvePartPath: (slidePath, relationshipTarget) =>
 				this.resolveImagePath(slidePath, relationshipTarget),
+			conformance: constants.conformance,
 		});
 
 		await this.slideNotesPartUpdater.updateNotesPart({
