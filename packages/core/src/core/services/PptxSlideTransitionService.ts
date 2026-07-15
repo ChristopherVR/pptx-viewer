@@ -7,46 +7,24 @@
  *
  * @module PptxSlideTransitionService
  */
-import type {
-	PptxSlideTransition,
-	PptxSplitOrientation,
-	PptxTransitionType,
-	XmlObject,
-} from '../types';
+import type { PptxSlideTransition, XmlObject } from '../types';
 import { parseP14FromExtLst, buildP14ExtLst, P14_TRANSITION_TYPES } from './p14-transition-parser';
 import type { IPptxXmlLookupService } from './PptxXmlLookupService';
+import {
+	applyTransitionAttributes,
+	buildStandardTransitionChild,
+	buildTransitionSound,
+	createPreservedTransitionNode,
+	parseTransitionAttributes,
+	parseTransitionDetails,
+	parseTransitionSound,
+} from './slide-transition-xml';
 
 /**
  * Extension URI for the PowerPoint 2016+ `morph` slide transition.
  * Stored in `p:transition/p:extLst/p:ext[@uri="{C7C9D14B-FE2A-4D35-B620-AB07D5B017F4}"]/p159:morph`.
  */
 const MORPH_EXT_URI = '{C7C9D14B-FE2A-4D35-B620-AB07D5B017F4}';
-
-/** Set of standard OOXML slide transition type names (ISO/IEC 29500-1). */
-const TRANSITION_TYPES: Set<string> = new Set([
-	'fade',
-	'push',
-	'wipe',
-	'split',
-	'randomBar',
-	'cut',
-	'blinds',
-	'checker',
-	'circle',
-	'comb',
-	'cover',
-	'diamond',
-	'dissolve',
-	'plus',
-	'pull',
-	'random',
-	'strips',
-	'uncover',
-	'wedge',
-	'wheel',
-	'zoom',
-	'newsflash',
-]);
 
 /**
  * Configuration options for creating a {@link PptxSlideTransitionService}.
@@ -102,71 +80,10 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 			return undefined;
 		}
 
-		let transitionType: PptxTransitionType = 'cut';
-		let direction: string | undefined;
-		let orient: PptxSplitOrientation | undefined;
-		let spokes: number | undefined;
-		let pattern: string | undefined;
-		let thruBlk: boolean | undefined;
-		let rawSoundAction: XmlObject | undefined;
-		let rawExtLst: XmlObject | undefined;
-
-		for (const [key, value] of Object.entries(transitionNode)) {
-			if (key.startsWith('@_')) {
-				continue;
-			}
-			const localName = this.getXmlLocalName(key);
-			if (localName === 'sndAc') {
-				rawSoundAction = value as XmlObject;
-				continue;
-			}
-			if (localName === 'extLst') {
-				rawExtLst = value as XmlObject;
-				continue;
-			}
-
-			if (TRANSITION_TYPES.has(localName)) {
-				transitionType = localName as PptxTransitionType;
-			}
-
-			if (value && typeof value === 'object' && !Array.isArray(value)) {
-				const detail = value as XmlObject;
-
-				// Direction attribute (@_dir)
-				const rawDir = String(detail['@_dir'] || '').trim();
-				if (rawDir.length > 0) {
-					direction = rawDir;
-				}
-
-				// Orientation attribute (@_orient) for split/blinds/checker/comb/randomBar
-				const rawOrient = String(detail['@_orient'] || '').trim();
-				if (rawOrient === 'horz' || rawOrient === 'vert') {
-					orient = rawOrient;
-				}
-
-				// Spokes count for wheel transition (@_spokes)
-				const rawSpokes = String(detail['@_spokes'] || '').trim();
-				if (rawSpokes.length > 0) {
-					const parsedSpokes = Number.parseInt(rawSpokes, 10);
-					// ST_WheelTransition/@spokes is xsd:unsignedInt (no upper bound in schema).
-					if (Number.isFinite(parsedSpokes) && parsedSpokes >= 1) {
-						spokes = parsedSpokes;
-					}
-				}
-
-				// Pattern for shred transition (@_pattern)
-				const rawPattern = String(detail['@_pattern'] || '').trim();
-				if (rawPattern.length > 0) {
-					pattern = rawPattern;
-				}
-
-				// Through-black flag (@_thruBlk) for blinds/checker
-				const rawThruBlk = String(detail['@_thruBlk'] || '').trim();
-				if (rawThruBlk.length > 0) {
-					thruBlk = !['0', 'false', 'off'].includes(rawThruBlk.toLowerCase());
-				}
-			}
-		}
+		const details = parseTransitionDetails(transitionNode, this.getXmlLocalName);
+		let transitionType = details.type;
+		let { direction, orient, pattern } = details;
+		const { spokes, thruBlk, rawSoundAction, rawExtLst } = details;
 
 		// Parse p14 (Office 2010+) transitions from extLst if no standard
 		// transition type was found or if there is an extLst to parse
@@ -193,68 +110,21 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 		// 2010+ `p14:dur` attribute (only present on the `mc:Choice
 		// Requires="p14"` copy of the transition) carries the same
 		// millisecond precision when the standard attribute is absent.
-		const rawDuration = transitionNode['@_dur'] ?? transitionNode['@_p14:dur'];
-		const parsedDuration = Number.parseInt(String(rawDuration || ''), 10);
-		const durationMs =
-			Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : undefined;
-
-		const advanceOnClickToken = String(transitionNode['@_advClick'] || '').trim();
-		const advanceOnClick =
-			advanceOnClickToken.length > 0
-				? !['0', 'false', 'off'].includes(advanceOnClickToken.toLowerCase())
-				: undefined;
-
-		const parsedAdvanceAfter = Number.parseInt(String(transitionNode['@_advTm'] || ''), 10);
-		const advanceAfterMs =
-			Number.isFinite(parsedAdvanceAfter) && parsedAdvanceAfter >= 0
-				? parsedAdvanceAfter
-				: undefined;
-
-		// Extract sound relationship ID and endSnd flag from rawSoundAction.
-		// CT_TransitionSoundAction is a choice: either p:stSnd (start sound) or p:endSnd (stop sound).
-		let soundRId: string | undefined;
-		let stopSound: boolean | undefined;
-		if (rawSoundAction) {
-			const stSnd = this.xmlLookupService.getChildByLocalName(rawSoundAction, 'stSnd');
-			if (stSnd) {
-				const snd = this.xmlLookupService.getChildByLocalName(stSnd, 'snd');
-				if (snd) {
-					const embed = snd['@_r:embed'] ?? snd['@_embed'];
-					if (embed) {
-						soundRId = String(embed);
-					}
-				}
-			}
-			// `endSnd` is CT_Empty; presence alone signals "stop currently-playing sound".
-			let hasEndSnd = false;
-			for (const key of Object.keys(rawSoundAction)) {
-				if (key.startsWith('@_')) {
-					continue;
-				}
-				if (this.getXmlLocalName(key) === 'endSnd') {
-					hasEndSnd = true;
-					break;
-				}
-			}
-			if (hasEndSnd) {
-				stopSound = true;
-			}
-		}
+		const attributes = parseTransitionAttributes(transitionNode);
+		const sound = parseTransitionSound(rawSoundAction, this.xmlLookupService, this.getXmlLocalName);
 
 		return {
 			type: transitionType,
+			...attributes,
 			direction,
 			orient,
 			spokes,
 			pattern,
 			thruBlk,
-			durationMs,
-			advanceOnClick,
-			advanceAfterMs,
-			soundRId,
-			stopSound,
+			...sound,
 			rawSoundAction,
 			rawExtLst,
+			rawTransition: transitionNode,
 		};
 	}
 
@@ -326,7 +196,7 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 		const transitionType = transition.type || 'cut';
 		const isP14Type = P14_TRANSITION_TYPES.has(transitionType);
 		const isMorphType = transitionType === 'morph';
-		const node: XmlObject = {};
+		const node = createPreservedTransitionNode(transition.rawTransition, this.getXmlLocalName);
 
 		if (isP14Type) {
 			// p14 transitions are stored in the extLst, not as direct children
@@ -344,61 +214,17 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 			// direct child of `p:transition`. Emitting `<p:morph/>` is silently
 			// dropped by PowerPoint.
 			node['p:extLst'] = this.buildMorphExtLst(transition.rawExtLst);
-		} else if (transitionType === 'cut' || transitionType === 'fade') {
-			// Both `cut` and `fade` use CT_OptionalBlackTransition, which carries the
-			// `thruBlk` attribute. Build the child object so `thruBlk` round-trips.
-			const childNode: XmlObject = {};
-			if (typeof transition.thruBlk === 'boolean') {
-				childNode['@_thruBlk'] = transition.thruBlk ? '1' : '0';
-			}
-			node[`p:${transitionType}`] = childNode;
 		} else {
-			const childNode: XmlObject = {};
-			const direction = String(transition.direction || '').trim();
-			if (direction.length > 0) {
-				childNode['@_dir'] = direction;
-			}
-			if (transition.orient) {
-				childNode['@_orient'] = transition.orient;
-			}
-			if (typeof transition.spokes === 'number' && transition.spokes >= 1) {
-				childNode['@_spokes'] = String(transition.spokes);
-			}
-			if (transition.pattern) {
-				childNode['@_pattern'] = transition.pattern;
-			}
-			if (typeof transition.thruBlk === 'boolean') {
-				childNode['@_thruBlk'] = transition.thruBlk ? '1' : '0';
-			}
-			node[`p:${transitionType}`] = childNode;
+			node[`p:${transitionType}`] = buildStandardTransitionChild(transition);
 		}
 
-		if (
-			typeof transition.durationMs === 'number' &&
-			Number.isFinite(transition.durationMs) &&
-			transition.durationMs > 0
-		) {
-			node['@_dur'] = String(Math.round(transition.durationMs));
-		}
-
-		if (typeof transition.advanceOnClick === 'boolean') {
-			node['@_advClick'] = transition.advanceOnClick ? '1' : '0';
-		}
-
-		if (
-			typeof transition.advanceAfterMs === 'number' &&
-			Number.isFinite(transition.advanceAfterMs) &&
-			transition.advanceAfterMs >= 0
-		) {
-			node['@_advTm'] = String(Math.round(transition.advanceAfterMs));
-		}
+		applyTransitionAttributes(node, transition);
 
 		// Sound action: prefer typed `stopSound` (emits `<p:endSnd/>`), otherwise
 		// pass through any preserved rawSoundAction (which may carry `p:stSnd`).
-		if (transition.stopSound) {
-			node['p:sndAc'] = { 'p:endSnd': {} };
-		} else if (transition.rawSoundAction) {
-			node['p:sndAc'] = transition.rawSoundAction;
+		const soundAction = buildTransitionSound(transition, this.getXmlLocalName);
+		if (soundAction) {
+			node['p:sndAc'] = soundAction;
 		}
 		// Only write rawExtLst when we did not already build our own extLst.
 		// p14 and morph types build their own extLst (and merge the rest of rawExtLst).

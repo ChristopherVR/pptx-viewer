@@ -87,6 +87,9 @@ export type PptxSplitOrientation = 'horz' | 'vert';
 /** Split in/out direction from OOXML `@_dir`. */
 export type PptxSplitDirection = 'in' | 'out';
 
+/** Schema-defined `ST_TransitionSpeed` values. */
+export type PptxTransitionSpeed = 'slow' | 'med' | 'fast';
+
 /** Valid direction sets per transition type. */
 export const TRANSITION_VALID_DIRECTIONS: Readonly<
 	Partial<Record<PptxTransitionType, readonly string[]>>
@@ -120,6 +123,8 @@ export const TRANSITION_VALID_DIRECTIONS: Readonly<
  */
 export interface PptxSlideTransition {
 	type: PptxTransitionType;
+	/** Schema-defined transition speed. Defaults to `fast` when omitted. */
+	speed?: PptxTransitionSpeed;
 	durationMs?: number;
 	direction?: string;
 	advanceOnClick?: boolean;
@@ -134,6 +139,10 @@ export interface PptxSlideTransition {
 	orient?: PptxSplitOrientation;
 	/** Relationship ID of transition sound from `p:sndAc/p:stSnd/@r:embed` when present. */
 	soundRId?: string;
+	/** Embedded WAV display name from `p:stSnd/p:snd/@name`. */
+	soundName?: string;
+	/** Whether the transition sound repeats until another sound starts. */
+	soundLoop?: boolean;
 	/** Resolved transition sound media path within the package. */
 	soundPath?: string;
 	/** Human-readable sound file name (extracted from soundPath). */
@@ -147,4 +156,6 @@ export interface PptxSlideTransition {
 	rawSoundAction?: XmlObject;
 	/** Preserved extension-list XML node from `p:extLst` within the transition for lossless round-trip. */
 	rawExtLst?: XmlObject;
+	/** Original transition node, retained to preserve unknown attributes and children. */
+	rawTransition?: XmlObject;
 }

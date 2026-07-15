@@ -10,6 +10,7 @@ import {
 import { validateSimpleTypeFacets } from './pptx-validator-facets';
 import { readZipText } from './pptx-validator-helpers';
 import { validateMce } from './pptx-validator-mce';
+import { validateSlideTransitions } from './pptx-validator-transitions';
 import type { ValidationConformance, ValidationIssue } from './pptx-validator-types';
 
 type Dialect = ValidationConformance['dialect'];
@@ -204,6 +205,7 @@ export async function validateEcmaRules(
 		validateMce(xml, path, issues);
 		validateDrawingDatatypes(xml, path, issues);
 		validateSimpleTypeFacets(xml, path, issues);
+		validateSlideTransitions(xml, path, issues);
 		if (path === 'ppt/presentation.xml') {
 			validatePresentation(xml, path, issues);
 		}
