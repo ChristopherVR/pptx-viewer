@@ -3,6 +3,7 @@ import type {
 	CollaborationConfig,
 	CollaborationRole,
 	PowerPointViewerAPI,
+	ViewerFontSource,
 } from 'pptx-viewer-shared';
 
 import type { ViewerTheme } from '../theme';
@@ -36,6 +37,8 @@ export type { CanvasSize, CollaborationConfig, CollaborationRole };
 export interface PowerPointViewerProps {
 	/** PowerPoint content as Uint8Array (or ArrayBuffer). */
 	content: Uint8Array | ArrayBuffer;
+	/** Licensed font sources supplied by the host application. */
+	fonts?: ViewerFontSource[];
 	/** Original file path, used for autosave recovery. */
 	filePath?: string;
 	/** Display name of the open document, shown in the title bar. */

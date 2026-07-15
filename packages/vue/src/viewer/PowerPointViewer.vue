@@ -32,13 +32,14 @@ import type {
 import type { CollaborationTransport, DistributeAxis } from 'pptx-viewer-shared';
 import {
 	buildBroadcastViewerUrl,
+	buildUserFontFaceStyles,
 	downloadBlob,
 	isTemplateElementId,
 	openPptxFile,
 	setCellText,
 	strokeToInkElement,
 } from 'pptx-viewer-shared';
-import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
+import { computed, nextTick, provide, ref, toRef, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
@@ -288,6 +289,17 @@ useSmartArtNodeEditContext({
 
 // Inject embedded fonts as @font-face (side effect; auto-cleaned on unmount).
 useEmbeddedFonts(embeddedFonts);
+watchEffect((onCleanup) => {
+	const css = buildUserFontFaceStyles(props.fonts ?? []);
+	if (!css || typeof document === 'undefined') {
+		return;
+	}
+	const style = document.createElement('style');
+	style.dataset.pptxUserFonts = 'vue';
+	style.textContent = css;
+	document.head.appendChild(style);
+	onCleanup(() => style.remove());
+});
 
 // ── Navigation ────────────────────────────────────────────────────────
 const activeSlideIndex = ref(0);

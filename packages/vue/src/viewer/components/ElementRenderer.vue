@@ -241,6 +241,7 @@ const linkTooltipLabel = computed(
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:replay="presenting"
 	/>
 	<SmartArtRenderer
 		v-else-if="element.type === 'smartArt'"

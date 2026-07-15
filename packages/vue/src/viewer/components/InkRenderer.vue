@@ -4,7 +4,9 @@ import { isInkElement } from 'pptx-viewer-core';
 import {
 	extractPathPoints,
 	generatePressureCircles,
+	getInkReplayStyles,
 	hasPressureVariation,
+	INK_REPLAY_KEYFRAMES,
 	pressuresToWidths,
 } from 'pptx-viewer-shared';
 import type { PressureCircle } from 'pptx-viewer-shared';
@@ -37,6 +39,7 @@ const props = defineProps<{
 	element: PptxElement;
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
+	replay?: boolean;
 }>();
 
 const containerStyle = computed<CSSProperties>(() =>
@@ -116,12 +119,18 @@ const strokes = computed<InkStroke[]>(() => {
 		return { kind: 'path', d, color, width, opacity };
 	});
 });
+const replayStyles = computed(() =>
+	props.replay && ink.value ? getInkReplayStyles(ink.value) : [],
+);
 
 const strokeKey = (i: number): string => `${props.element.id}-ink-${i}`;
 </script>
 
 <template>
 	<div class="pptx-vue-element pptx-vue-ink" :style="containerStyle" :data-element-id="element.id">
+		<style v-if="replay">
+			{{ INK_REPLAY_KEYFRAMES }}
+		</style>
 		<svg
 			v-if="strokes.length > 0"
 			class="pptx-vue-ink-svg"
@@ -149,6 +158,7 @@ const strokeKey = (i: number): string => `${props.element.id}-ink-${i}`;
 					stroke-linecap="round"
 					stroke-linejoin="round"
 					vector-effect="non-scaling-stroke"
+					:style="replayStyles[i]"
 				/>
 			</template>
 		</svg>
