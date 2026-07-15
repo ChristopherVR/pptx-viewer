@@ -80,7 +80,10 @@ const TABS = [
 	'Design',
 	'Transitions',
 	'Animations',
+	'Review',
 	'View',
+	'Record',
+	'Help',
 ] as const;
 
 // A tab wrapping into one extra row typically inflates height by ~1.7-3x;

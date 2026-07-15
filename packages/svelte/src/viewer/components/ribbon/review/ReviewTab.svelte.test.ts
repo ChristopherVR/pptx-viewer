@@ -40,7 +40,12 @@ describe('reviewTab', () => {
 		});
 		cleanup = () => unmount(instance);
 
-		(target.querySelector('button') as HTMLButtonElement).click();
+		const accessibilityButton = [...target.querySelectorAll('button')].find((button) =>
+			button.textContent?.includes('Check Accessibility'),
+		) as HTMLButtonElement;
+		accessibilityButton.click();
+		flushSync();
+		(target.querySelector('.pptx-svelte-review-heading button') as HTMLButtonElement).click();
 		flushSync();
 
 		expect(target.textContent).toContain('Missing alt text');
@@ -73,7 +78,12 @@ describe('reviewTab', () => {
 		});
 		cleanup = () => unmount(instance);
 
-		(target.querySelector('button') as HTMLButtonElement).click();
+		const accessibilityButton = [...target.querySelectorAll('button')].find((button) =>
+			button.textContent?.includes('Check Accessibility'),
+		) as HTMLButtonElement;
+		accessibilityButton.click();
+		flushSync();
+		(target.querySelector('.pptx-svelte-review-heading button') as HTMLButtonElement).click();
 		flushSync();
 
 		expect(target.textContent).toContain('No issues found');

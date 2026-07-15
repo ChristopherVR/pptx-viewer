@@ -29,6 +29,7 @@
 	const t = useTranslator();
 
 	let hasRun = $state(false);
+	let activePanel = $state<'accessibility' | 'comments' | null>(null);
 	let issues = $state.raw<ReturnType<typeof collectAccessibilityIssues>>([]);
 	const groups = $derived(groupIssuesBySeverity(issues));
 
@@ -42,7 +43,26 @@
 	}
 </script>
 
-<section class="pptx-svelte-review" aria-label={t('pptx.ribbon.tab.review')}>
+<div class="pptx-svelte-review-shell">
+	<section class="pptx-svelte-review-actions" aria-label={t('pptx.ribbon.tab.review')}>
+		<button type="button" onclick={() => (activePanel = 'comments')}>
+			{t('pptx.comments.slideComments')}
+		</button>
+		<button type="button" onclick={() => (activePanel = 'accessibility')}>
+			{t('pptx.review.accessibilityCheck')}
+		</button>
+	</section>
+
+	{#if activePanel}
+		<div class="pptx-svelte-review-panel" role="dialog" aria-label={t('pptx.ribbon.tab.review')}>
+			<button
+				type="button"
+				class="pptx-svelte-review-close"
+				aria-label={t('pptx.common.close')}
+				onclick={() => (activePanel = null)}>x</button
+			>
+			{#if activePanel === 'accessibility'}
+				<section class="pptx-svelte-review" aria-label={t('pptx.ribbon.tab.review')}>
 	<div class="pptx-svelte-review-heading">
 		<div>
 			<span class="pptx-svelte-review-eyebrow">{t('pptx.ribbon.tab.review')}</span>
@@ -84,13 +104,21 @@
 			</div>
 		{/if}
 	{/if}
-</section>
+				</section>
 
-{#if editor}
-	<ReviewCommentsPanel {editor} />
-{/if}
+			{:else if editor}
+				<ReviewCommentsPanel {editor} />
+			{/if}
+		</div>
+	{/if}
+</div>
 
 <style>
+	.pptx-svelte-review-shell { position: relative; display: flex; align-items: center; min-width: 0; }
+	.pptx-svelte-review-actions { display: flex; align-items: center; gap: 6px; }
+	.pptx-svelte-review-actions button { height: 28px; padding: 0 10px; border: 1px solid var(--pptx-border, #33334d); border-radius: var(--pptx-radius, 6px); background: var(--pptx-muted, #2a2a3d); color: inherit; cursor: pointer; font: inherit; font-size: 12px; }
+	.pptx-svelte-review-panel { position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; display: flex; gap: 12px; width: min(920px, calc(100vw - 32px)); max-height: min(520px, calc(100vh - 180px)); padding: 12px; overflow: auto; border: 1px solid var(--pptx-border, #33334d); border-radius: var(--pptx-radius, 6px); background: var(--pptx-card, #1e1e2e); box-shadow: 0 12px 32px rgb(0 0 0 / 35%); }
+	.pptx-svelte-review-close { position: absolute; top: 6px; right: 8px; border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; }
 	.pptx-svelte-review { display: flex; flex-direction: column; gap: 8px; width: min(560px, 100%); }
 	.pptx-svelte-review-heading { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
 	.pptx-svelte-review-eyebrow { display: block; color: var(--pptx-muted-foreground, #94a3b8); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
