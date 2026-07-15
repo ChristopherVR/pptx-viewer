@@ -20,6 +20,8 @@ export type { MobileActionSheets } from './mobile-action-sheets';
 export { createMobileActionSheets } from './mobile-action-sheets';
 export type { MobileToolbar, MobileToolbarHandlers } from './mobile-toolbar';
 export { createMobileToolbar } from './mobile-toolbar';
+export type { MasterViewSidebar, MasterViewSidebarOptions } from './master-view-sidebar';
+export { createMasterViewSidebar } from './master-view-sidebar';
 export type { PresentationController } from './presentation';
 export { createPresentationController } from './presentation';
 export type { PresentationTouchControls } from './presentation-touch-controls';

@@ -5,6 +5,12 @@ import type { ViewerState } from '../state';
 /** Return the element collection currently targeted by editing operations. */
 export function getActiveElements(state: ViewerState): PptxElement[] {
 	if (state.masterViewTarget) {
+		if (state.masterViewTab === 'notes') {
+			return state.notesMaster?.elements ?? [];
+		}
+		if (state.masterViewTab === 'handout') {
+			return state.handoutMaster?.elements ?? [];
+		}
 		const master = state.slideMasters[state.masterViewTarget.masterIndex];
 		return state.masterViewTarget.layoutIndex === null
 			? (master?.elements ?? [])
@@ -26,8 +32,18 @@ export function replaceActiveElements(
 ):
 	| Pick<ViewerState, 'slides'>
 	| Pick<ViewerState, 'templateElementsBySlideId'>
-	| Pick<ViewerState, 'slideMasters'> {
+	| Pick<ViewerState, 'slideMasters'>
+	| Pick<ViewerState, 'notesMaster'>
+	| Pick<ViewerState, 'handoutMaster'> {
 	if (state.masterViewTarget) {
+		if (state.masterViewTab === 'notes') {
+			return { notesMaster: state.notesMaster ? { ...state.notesMaster, elements } : undefined };
+		}
+		if (state.masterViewTab === 'handout') {
+			return {
+				handoutMaster: state.handoutMaster ? { ...state.handoutMaster, elements } : undefined,
+			};
+		}
 		const { masterIndex, layoutIndex } = state.masterViewTarget;
 		return {
 			slideMasters: state.slideMasters.map((master, index) => {

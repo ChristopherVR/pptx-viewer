@@ -1,4 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { DEFAULT_MASTER_PAGE_SIZE } from 'pptx-viewer-shared';
 
 import type { PresentationPlayback } from './animation';
 import { createPresentationPlayback } from './animation';
@@ -7,6 +8,7 @@ import type { ElementRendererRegistry } from './render';
 import { renderSlideStage } from './render';
 import type { Store, ViewerState } from './state';
 import type { ViewerChrome } from './ui';
+import { renderHandoutMasterCanvas, renderNotesMasterCanvas } from './ui/master-canvases';
 
 /** Fit-mode breathing room around the stage (viewport padding), in px. */
 const FIT_PADDING_PX = 32;
@@ -20,6 +22,9 @@ export interface RenderControllerDeps {
 	getTranslator(): Translator;
 	/** Opt-in WebGL SmartArt renderer flag; see `PptxViewerOptions.smartArt3D`. */
 	smartArt3D: boolean;
+	/** History-integrated handout master layout mutation. */
+	onHandoutSlidesPerPageChange(count: number): void;
+	onMasterBackgroundColorChange(color: string): void;
 	/**
 	 * Invoked after every stage render (the stage host is rebuilt with
 	 * `replaceChildren`); the editor re-mounts its overlay layer here.
@@ -58,6 +63,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		scale: number,
 		presenting = false,
 		interactive = false,
+		canvasSize = store.get().canvasSize,
 	): HTMLElement => {
 		const state = store.get();
 		const template = state.templateElementsBySlideId[slide.id] ?? [];
@@ -67,7 +73,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		return renderSlideStage({
 			document: doc,
 			slide: renderSlide,
-			canvasSize: state.canvasSize,
+			canvasSize,
 			mediaDataUrls: state.mediaDataUrls,
 			colorScheme: state.colorScheme,
 			tableStyleMap: state.tableStyleMap,
@@ -80,8 +86,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			templateEditing: state.editTemplateMode || state.masterViewTarget !== null,
 		});
 	};
-
-	const effectiveScale = (): number => {
+	const effectiveScaleFor = (canvasSize: { width: number; height: number }): number => {
 		const state = store.get();
 		if (state.zoom !== 'fit') {
 			return state.zoom;
@@ -89,10 +94,14 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		const viewport = deps.getChrome().viewport;
 		const padding = state.presenting ? 0 : FIT_PADDING_PX;
 		const scale = Math.min(
-			(viewport.clientWidth - padding) / Math.max(state.canvasSize.width, 1),
-			(viewport.clientHeight - padding) / Math.max(state.canvasSize.height, 1),
+			(viewport.clientWidth - padding) / Math.max(canvasSize.width, 1),
+			(viewport.clientHeight - padding) / Math.max(canvasSize.height, 1),
 		);
 		return Number.isFinite(scale) && scale > 0 ? scale : 1;
+	};
+
+	const effectiveScale = (): number => {
+		return effectiveScaleFor(store.get().canvasSize);
 	};
 
 	const renderStage = (): void => {
@@ -102,8 +111,8 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		const master = target ? state.slideMasters[target.masterIndex] : undefined;
 		const layout =
 			target?.layoutIndex === null ? undefined : master?.layouts?.[target?.layoutIndex ?? -1];
-		const slide: PptxSlide | undefined =
-			target && master
+		const slide: PptxSlide | undefined = target
+			? master
 				? {
 						id: layout?.path ?? master.path,
 						rId: '',
@@ -114,15 +123,58 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 						backgroundColor: layout?.backgroundColor ?? master.backgroundColor,
 						backgroundImage: layout?.backgroundImage ?? master.backgroundImage,
 					}
-				: state.slides[state.currentSlide];
-		chrome.setEmpty(!slide);
-		const scale = effectiveScale();
-		chrome.stageWrap.style.width = `${state.canvasSize.width * scale}px`;
-		chrome.stageWrap.style.height = `${state.canvasSize.height * scale}px`;
+				: undefined
+			: state.slides[state.currentSlide];
+		const specialMaster = target && state.masterViewTab !== 'slides';
+		const pageSize = specialMaster
+			? state.masterViewTab === 'notes'
+				? (state.notesCanvasSize ?? DEFAULT_MASTER_PAGE_SIZE)
+				: DEFAULT_MASTER_PAGE_SIZE
+			: state.canvasSize;
+		const hasContent = specialMaster || Boolean(slide);
+		chrome.setEmpty(!hasContent);
+		const scale = effectiveScaleFor(pageSize);
+		chrome.stageWrap.style.width = `${pageSize.width * scale}px`;
+		chrome.stageWrap.style.height = `${pageSize.height * scale}px`;
 		chrome.stageWrap.replaceChildren();
 		let stageNode: HTMLElement | null = null;
-		if (slide) {
-			stageNode = renderStageFor(slide, scale, state.presenting, true);
+		if (specialMaster) {
+			const selectedMaster =
+				state.masterViewTab === 'notes' ? state.notesMaster : state.handoutMaster;
+			if (selectedMaster?.elements?.length) {
+				stageNode = renderStageFor(
+					{
+						id: selectedMaster.path,
+						rId: '',
+						slideNumber: 0,
+						elements: selectedMaster.elements,
+						backgroundColor: selectedMaster.backgroundColor,
+						backgroundImage: selectedMaster.backgroundImage,
+					},
+					scale,
+					false,
+					true,
+					pageSize,
+				);
+				stageNode.dataset.testid =
+					state.masterViewTab === 'notes' ? 'notes-master-page' : 'handout-master-page';
+			} else {
+				const scaledSize = { width: pageSize.width * scale, height: pageSize.height * scale };
+				stageNode =
+					state.masterViewTab === 'notes'
+						? renderNotesMasterCanvas(doc, deps.getTranslator(), state.notesMaster, scaledSize)
+						: renderHandoutMasterCanvas(
+								doc,
+								deps.getTranslator(),
+								state.handoutMaster,
+								scaledSize,
+								state.handoutSlidesPerPage,
+							);
+			}
+		} else if (slide) {
+			stageNode = renderStageFor(slide, scale, state.presenting, true, pageSize);
+		}
+		if (stageNode && slide) {
 			chrome.stageWrap.appendChild(stageNode);
 		}
 		chrome.ribbon?.update({
@@ -137,7 +189,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		});
 		chrome.presentationTouchControls.update(state.currentSlide, state.slides.length);
 		chrome.mobileActionSheets?.update(state.currentSlide, state.slides, slide?.comments ?? []);
-		chrome.notes.update({ slide, editable: state.editable });
+		chrome.notes.update({ slide: specialMaster ? undefined : slide, editable: state.editable });
 		deps.onStageRendered?.();
 		// Drive presentation-mode entrance state + slide transitions off the fresh
 		// stage. Guarded on `presenting` inside `syncStage`; a no-op otherwise.
@@ -158,21 +210,49 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 	const renderThumbnails = (): void => {
 		const state = store.get();
 		const rail = deps.getChrome().thumbnails;
-		if (rail && state.masterViewTarget) {
-			rail.renderMasters(
-				state.slideMasters,
-				state.canvasSize,
-				renderStageFor,
-				(masterIndex, layoutIndex) => {
+		if (state.masterViewTarget) {
+			rail?.setVisible(false);
+			deps.getChrome().masterSidebar.setVisible(true);
+			deps.getChrome().masterSidebar.render({
+				tab: state.masterViewTab,
+				masters: state.slideMasters,
+				active: state.masterViewTarget,
+				canvasSize: state.canvasSize,
+				notesBackground: state.notesMaster?.backgroundColor,
+				notesPlaceholders: state.notesMaster?.placeholders,
+				notesMasterPresent: Boolean(state.notesMaster),
+				handoutBackground: state.handoutMaster?.backgroundColor,
+				handoutPlaceholders: state.handoutMaster?.placeholders,
+				handoutMasterPresent: Boolean(state.handoutMaster),
+				handoutSlidesPerPage: state.handoutSlidesPerPage,
+				renderStage: renderStageFor,
+				onSelect: (masterIndex, layoutIndex) => {
 					store.set({
 						masterViewTarget: { masterIndex, layoutIndex },
 						selectedElementId: null,
 						selectedElementIds: [],
 					});
 				},
-				state.masterViewTarget,
-			);
+				onTabChange: (masterViewTab) => {
+					store.set({ masterViewTab, selectedElementId: null, selectedElementIds: [] });
+				},
+				onCollapse: () => {
+					store.set({
+						masterViewTarget: null,
+						masterViewTab: 'slides',
+						editTemplateMode: false,
+						selectedElementId: null,
+						selectedElementIds: [],
+					});
+				},
+				onHandoutSlidesPerPageChange: (handoutSlidesPerPage) => {
+					deps.onHandoutSlidesPerPageChange(handoutSlidesPerPage);
+				},
+				onMasterBackgroundColorChange: deps.onMasterBackgroundColorChange,
+			});
 		} else {
+			deps.getChrome().masterSidebar.setVisible(false);
+			rail?.setVisible(true);
 			rail?.render(state.slides, state.canvasSize, renderStageFor);
 		}
 	};

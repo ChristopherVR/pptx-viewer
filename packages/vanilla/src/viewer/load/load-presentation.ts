@@ -2,6 +2,8 @@ import type {
 	MediaPptxElement,
 	ParsedTableStyleMap,
 	PptxElement,
+	PptxHandoutMaster,
+	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxThemeColorScheme,
@@ -37,6 +39,9 @@ export interface LoadedPresentation {
 	/** Parsed presentation table styles keyed by style id. */
 	tableStyleMap?: ParsedTableStyleMap;
 	slideMasters: PptxSlideMaster[];
+	notesMaster?: PptxNotesMaster;
+	handoutMaster?: PptxHandoutMaster;
+	notesCanvasSize?: CanvasSize;
 	/** Blob URLs created during the load; revoke them when replacing/destroying. */
 	blobUrls: string[];
 }
@@ -61,6 +66,18 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 			colorScheme: parsed.theme?.colorScheme,
 			tableStyleMap: parsed.tableStyleMap,
 			slideMasters: parsed.slideMasters ?? [],
+			notesMaster: parsed.notesMaster,
+			handoutMaster: parsed.handoutMaster,
+			notesCanvasSize:
+				typeof parsed.notesWidthEmu === 'number' &&
+				typeof parsed.notesHeightEmu === 'number' &&
+				parsed.notesWidthEmu > 0 &&
+				parsed.notesHeightEmu > 0
+					? {
+							width: Math.round(parsed.notesWidthEmu / 9525),
+							height: Math.round(parsed.notesHeightEmu / 9525),
+						}
+					: undefined,
 			blobUrls,
 		};
 	} catch (error) {

@@ -36,6 +36,16 @@ import { EditorStateService } from './editor-state.service';
 			{{ 'pptx.ribbon.shortcuts' | translate }}
 		</button>
 		<span class="pptx-rb-sep"></span>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[disabled]="!canEdit()"
+			[title]="'pptx.view.slideMasterTooltip' | translate"
+			(click)="openMasterView.emit()"
+		>
+			{{ 'pptx.master.title' | translate }}
+		</button>
+		<span class="pptx-rb-sep"></span>
 		<!-- Show / Hide overlays -->
 		<button
 			type="button"
@@ -122,6 +132,7 @@ export class RibbonViewSectionComponent {
 	readonly toggleNotes = output<void>();
 	readonly print = output<void>();
 	readonly openShortcuts = output<void>();
+	readonly openMasterView = output<void>();
 	readonly toggleGrid = output<void>();
 	readonly toggleRulers = output<void>();
 	readonly toggleGuides = output<void>();

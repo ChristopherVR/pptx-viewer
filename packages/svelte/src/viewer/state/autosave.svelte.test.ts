@@ -53,6 +53,9 @@ function setup(opts: { enabled?: boolean; filePath?: string } = {}): Harness {
 			getIntervalMs: () => 1000,
 			getFilePath: () => opts.filePath ?? 'deck.pptx',
 			getSlides: () => editor.slides,
+			getSlideMasters: () => editor.slideMasters,
+			getNotesMaster: () => editor.notesMaster,
+			getHandoutMaster: () => editor.handoutMaster,
 			getHandler: () => handler,
 			getLoadCount: () => loads.value,
 			onSaved,
@@ -92,6 +95,29 @@ describe('autosaveController', () => {
 		expect(h.onSaved).toHaveBeenCalledWith(expect.any(Uint8Array));
 		expect(h.ctl.status).toBe('saved');
 		expect(h.ctl.isDirty).toBeFalsy();
+		h.dispose();
+	});
+
+	it('tracks master edits and serializes notes and handout master options', async () => {
+		const h = setup();
+		h.editor.setSlides(
+			[slide('s1')],
+			[],
+			{ path: 'notes.xml', elements: [] },
+			{ path: 'handout.xml', elements: [], slidesPerPage: 6 },
+		);
+		flushSync();
+		expect(h.ctl.isDirty).toBeTruthy();
+
+		await vi.advanceTimersByTimeAsync(1000);
+
+		expect(h.save).toHaveBeenCalledWith(
+			h.editor.slides,
+			expect.objectContaining({
+				notesMaster: h.editor.notesMaster,
+				handoutMaster: h.editor.handoutMaster,
+			}),
+		);
 		h.dispose();
 	});
 

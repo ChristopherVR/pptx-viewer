@@ -60,6 +60,7 @@ export interface EditorController {
 	/** The Find & Replace actions for the ribbon's docked panel. */
 	getFindReplaceActions(): FindReplaceActions;
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
+	setHandoutSlidesPerPage(count: number): void;
 	save(): Promise<Uint8Array>;
 	downloadPptx(fileName?: string): Promise<void>;
 	destroy(): void;
@@ -193,7 +194,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		}
 		if (
 			(state.slides !== previous.slides ||
-				state.templateElementsBySlideId !== previous.templateElementsBySlideId) &&
+				state.templateElementsBySlideId !== previous.templateElementsBySlideId ||
+				state.slideMasters !== previous.slideMasters ||
+				state.notesMaster !== previous.notesMaster ||
+				state.handoutMaster !== previous.handoutMaster) &&
 			state.selectedElementId &&
 			!ops.selectedElement(state)
 		) {
@@ -262,6 +266,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 				formatPainterSourceId: null,
 				editTemplateMode: false,
 				masterViewTarget: null,
+				masterViewTab: 'slides',
 			});
 			updateToolbar();
 		},
@@ -286,6 +291,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		getEditActions: () => editActions,
 		getFindReplaceActions: () => findReplaceActions,
 		commitNotes: (notes, notesSegments) => ops.commitNotes(notes, notesSegments),
+		setHandoutSlidesPerPage: (count) => ops.setHandoutSlidesPerPage(count),
 		save: () => ops.save(),
 		async downloadPptx(fileName = 'presentation.pptx') {
 			const bytes = await ops.save();

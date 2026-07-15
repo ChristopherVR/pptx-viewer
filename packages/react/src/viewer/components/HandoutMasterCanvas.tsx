@@ -1,4 +1,4 @@
-import type { PptxHandoutMaster } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandoutMaster } from 'pptx-viewer-core';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -28,6 +28,13 @@ const PAGE_HEIGHT = 960;
 
 /** Margin fraction of the page dimensions. */
 const MARGIN = 0.06;
+
+function elementText(element: PptxElement): string {
+	if ('textSegments' in element && element.textSegments?.length) {
+		return element.textSegments.map((segment) => segment.text).join('');
+	}
+	return 'text' in element ? (element.text ?? '') : '';
+}
 
 // ---------------------------------------------------------------------------
 // Layout calculation: positions of slide placeholders per slides-per-page
@@ -215,6 +222,23 @@ export function HandoutMasterCanvas({
 						</div>
 					);
 				})}
+				{handoutMaster.elements?.map((element) => (
+					<div
+						key={element.id}
+						data-pptx-element='true'
+						data-element-id={element.id}
+						className='absolute overflow-hidden'
+						style={{
+							left: element.x * scale,
+							top: element.y * scale,
+							width: element.width * scale,
+							height: element.height * scale,
+							zIndex: 2,
+						}}
+					>
+						{elementText(element)}
+					</div>
+				))}
 
 				{/* Header / Footer / Date / Page number indicators */}
 				<div

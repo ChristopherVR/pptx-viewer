@@ -1,13 +1,14 @@
 import type {
 	PptxElement,
+	PptxHandoutMaster,
 	PptxHandler,
+	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
 	TextSegment,
 } from 'pptx-viewer-core';
 import type { ElementClipboardPayload, TemplateElementMap } from 'pptx-viewer-shared';
 import {
-	cloneTemplateElementsBySlideId,
 	EditorHistory,
 	isElementIdInteractive,
 	partitionTemplateElements,
@@ -17,6 +18,8 @@ import { EditorAnimationController } from './editor-animation-controller';
 import { EditorArrangeController } from './editor-arrange-controller';
 import { EditorBackgroundController } from './editor-background-controller';
 import { EditorClipboardController } from './editor-clipboard-controller';
+import { createEditorSnapshot, saveEditorDocument } from './editor-document-state';
+import type { EditorSnapshot } from './editor-document-state';
 import { EditorElementController } from './editor-element-controller';
 import { EditorEquationController } from './editor-equation-controller.svelte';
 import { EditorFormatPainterController } from './editor-format-painter-controller.svelte';
@@ -24,7 +27,6 @@ import { EditorInkController } from './editor-ink-controller.svelte';
 import { EditorMasterController } from './editor-master-controller';
 import type { MasterViewTarget } from './editor-master-controller';
 import type { ElementBoxPatch } from './editor-mutations';
-import { cloneSlides } from './editor-mutations';
 import { EditorSelection } from './editor-selection.svelte';
 import { EditorSlidesController } from './editor-slides-controller';
 import { EditorTemplateController } from './editor-template-controller';
@@ -32,12 +34,6 @@ import { EditorTransitionController } from './editor-transition-controller';
 import type { ZOrderDirection } from './editor-zorder';
 
 const MAX_HISTORY_ENTRIES = 100;
-
-interface EditorSnapshot {
-	slides: PptxSlide[];
-	templateElementsBySlideId: TemplateElementMap;
-	slideMasters: PptxSlideMaster[];
-}
 
 export interface EditorStateDeps {
 	getCurrent(): number;
@@ -49,6 +45,8 @@ export class EditorState {
 	slides = $state.raw<PptxSlide[]>([]);
 	templateElementsBySlideId = $state.raw<TemplateElementMap>({});
 	slideMasters = $state.raw<PptxSlideMaster[]>([]);
+	notesMaster = $state.raw<PptxNotesMaster | undefined>(undefined);
+	handoutMaster = $state.raw<PptxHandoutMaster | undefined>(undefined);
 	masterViewTarget = $state.raw<MasterViewTarget | null>(null);
 	readonly selection = new EditorSelection();
 	editable = $state(false);
@@ -110,8 +108,18 @@ export class EditorState {
 	}
 
 	get selectedElements(): PptxElement[] {
-		return this.selection.ids
-			.map((id) => this.activeElements.find((element) => element.id === id))
+		const ids = this.selection.ids;
+		if (ids.length === 0) {
+			return [];
+		}
+		const elements = this.activeElements;
+		if (ids.length === 1) {
+			const element = elements.find((candidate) => candidate.id === ids[0]);
+			return element ? [element] : [];
+		}
+		const elementsById = new Map(elements.map((element) => [element.id, element]));
+		return ids
+			.map((id) => elementsById.get(id))
 			.filter((el): el is PptxElement => el !== undefined);
 	}
 
@@ -136,11 +144,18 @@ export class EditorState {
 		this.#canRedo = this.#history.canRedo;
 	}
 
-	setSlides(slides: PptxSlide[], slideMasters: PptxSlideMaster[] = []): void {
+	setSlides(
+		slides: PptxSlide[],
+		slideMasters: PptxSlideMaster[] = [],
+		notesMaster?: PptxNotesMaster,
+		handoutMaster?: PptxHandoutMaster,
+	): void {
 		const partition = partitionTemplateElements(slides);
 		this.slides = partition.slides;
 		this.templateElementsBySlideId = partition.templateElementsBySlideId;
 		this.slideMasters = structuredClone(slideMasters);
+		this.notesMaster = structuredClone(notesMaster);
+		this.handoutMaster = structuredClone(handoutMaster);
 		this.masterViewTarget = null;
 		this.selection.clear();
 		this.editTemplateMode = false;
@@ -240,26 +255,20 @@ export class EditorState {
 	}
 
 	#snapshot(): EditorSnapshot {
-		return {
-			slides: cloneSlides(this.slides),
-			templateElementsBySlideId: cloneTemplateElementsBySlideId(this.templateElementsBySlideId),
-			slideMasters: this.masterOps.cloneMasters(),
-		};
+		return createEditorSnapshot(this);
 	}
 
 	#restore(snapshot: EditorSnapshot | undefined): void {
 		if (!snapshot) {
 			return;
 		}
-		this.slides = cloneSlides(snapshot.slides);
-		this.templateElementsBySlideId = cloneTemplateElementsBySlideId(
-			snapshot.templateElementsBySlideId,
-		);
-		this.slideMasters = structuredClone(snapshot.slideMasters);
+		const restored = createEditorSnapshot(snapshot);
+		this.slides = restored.slides;
+		this.templateElementsBySlideId = restored.templateElementsBySlideId;
+		this.slideMasters = restored.slideMasters;
+		this.notesMaster = restored.notesMaster;
+		this.handoutMaster = restored.handoutMaster;
 		this.interactionActive = false;
-		// Drop selected ids the undo/redo step removed (or that were never on
-		// this snapshot), so ribbon controls gated on `selectedElementId` don't
-		// stay enabled for an element that no longer exists.
 		this.selection.prune((id) => this.activeElements.some((element) => element.id === id));
 		this.commitChange();
 	}
@@ -290,10 +299,10 @@ export class EditorState {
 		if (!handler) {
 			throw new Error('No presentation is loaded.');
 		}
-		const bytes =
-			this.slideMasters.length > 0
-				? await handler.save(this.renderedSlides, { slideMasters: this.slideMasters })
-				: await handler.save(this.renderedSlides);
+		const bytes = await saveEditorDocument(handler, {
+			...this.#snapshot(),
+			slides: this.renderedSlides,
+		});
 		this.dirty = false;
 		return bytes;
 	}

@@ -92,6 +92,8 @@
 	// to the history-tracked editor. Assigned by ViewerBody's onstageholder.
 	// eslint-disable-next-line prefer-const
 	let stageHolderEl = $state<HTMLDivElement>();
+	// eslint-disable-next-line prefer-const
+	let masterScale = $state(1);
 	let stageContextMenu = $state<{ x: number; y: number } | null>(null);
 	let activeMobileSheet = $state<MobileSheetKey>(null);
 	const editor = new EditorState({
@@ -100,7 +102,7 @@
 		onChange: () => onchange?.(),
 	});
 	const controller = new EditorController(editor, {
-		getScale: () => scale,
+		getScale: () => (editor.masterViewTarget ? masterScale : scale),
 		getCurrent: () => viewer.current,
 		getPresenting: () => viewer.isFullscreen,
 		getStageRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
@@ -169,6 +171,8 @@
 		getFilePath: () => filePath,
 		getSlides: () => editor.renderedSlides,
 		getSlideMasters: () => editor.slideMasters,
+		getNotesMaster: () => editor.notesMaster,
+		getHandoutMaster: () => editor.handoutMaster,
 		getHandler: () => loader.handler,
 		getLoadCount: () => loader.loadCount,
 		onSaved: (bytes) => onautosave?.(bytes),
@@ -462,8 +466,10 @@
 			{editor}
 			{controller}
 			canvasSize={loader.canvasSize}
+			notesCanvasSize={loader.notesCanvasSize}
 			mediaDataUrls={loader.mediaDataUrls}
 			onstageholder={(el) => { stageHolderEl = el ?? undefined; }}
+			onscalechange={(next) => { masterScale = next; }}
 		/>
 	{:else}<ViewerBody
 		{t}

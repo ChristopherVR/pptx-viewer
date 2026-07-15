@@ -27,7 +27,24 @@ export function createSlideBackgroundActions(
 	return {
 		setSlideBackgroundColor(color) {
 			const state = store.get();
-			if (!state.editable || !state.slides[state.currentSlide]) {
+			if (!state.editable) {
+				return;
+			}
+			if (state.masterViewTarget) {
+				ops.pushHistory();
+				if (state.masterViewTab === 'notes' && state.notesMaster) {
+					store.set({ notesMaster: { ...state.notesMaster, backgroundColor: color } });
+				} else if (state.masterViewTab === 'handout' && state.handoutMaster) {
+					store.set({ handoutMaster: { ...state.handoutMaster, backgroundColor: color } });
+				} else {
+					store.set({
+						slideMasters: patchSlideMasterBackground(state, { backgroundColor: color }),
+					});
+				}
+				ops.commitChange();
+				return;
+			}
+			if (!state.slides[state.currentSlide]) {
 				return;
 			}
 			ops.pushHistory();
@@ -39,7 +56,39 @@ export function createSlideBackgroundActions(
 
 		clearSlideBackground() {
 			const state = store.get();
-			if (!state.editable || !state.slides[state.currentSlide]) {
+			if (!state.editable) {
+				return;
+			}
+			if (state.masterViewTarget) {
+				ops.pushHistory();
+				if (state.masterViewTab === 'notes' && state.notesMaster) {
+					store.set({
+						notesMaster: {
+							...state.notesMaster,
+							backgroundColor: undefined,
+							backgroundImage: undefined,
+						},
+					});
+				} else if (state.masterViewTab === 'handout' && state.handoutMaster) {
+					store.set({
+						handoutMaster: {
+							...state.handoutMaster,
+							backgroundColor: undefined,
+							backgroundImage: undefined,
+						},
+					});
+				} else {
+					store.set({
+						slideMasters: patchSlideMasterBackground(state, {
+							backgroundColor: undefined,
+							backgroundImage: undefined,
+						}),
+					});
+				}
+				ops.commitChange();
+				return;
+			}
+			if (!state.slides[state.currentSlide]) {
 				return;
 			}
 			ops.pushHistory();
@@ -54,4 +103,28 @@ export function createSlideBackgroundActions(
 			ops.commitChange();
 		},
 	};
+}
+
+function patchSlideMasterBackground(
+	state: ViewerState,
+	patch: { backgroundColor?: string; backgroundImage?: string },
+): ViewerState['slideMasters'] {
+	const target = state.masterViewTarget;
+	if (!target) {
+		return state.slideMasters;
+	}
+	return state.slideMasters.map((master, masterIndex) => {
+		if (masterIndex !== target.masterIndex) {
+			return master;
+		}
+		if (target.layoutIndex === null) {
+			return { ...master, ...patch };
+		}
+		return {
+			...master,
+			layouts: master.layouts?.map((layout, layoutIndex) =>
+				layoutIndex === target.layoutIndex ? { ...layout, ...patch } : layout,
+			),
+		};
+	});
 }

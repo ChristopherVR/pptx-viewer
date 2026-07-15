@@ -392,6 +392,9 @@ export function useLoadContent(
 			customShows: customShows.value,
 			presentationProperties: presentationProperties.value,
 			headerFooter: headerFooter.value,
+			slideMasters: slideMasters.value,
+			notesMaster: notesMaster.value,
+			handoutMaster: handoutMaster.value,
 			outputFormat: format,
 		});
 	};

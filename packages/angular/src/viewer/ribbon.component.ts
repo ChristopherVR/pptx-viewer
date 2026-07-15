@@ -340,6 +340,7 @@ const TABS: readonly TabDef[] = [
 							(toggleNotes)="toggleNotes.emit()"
 							(print)="print.emit()"
 							(openShortcuts)="openShortcuts.emit()"
+							(openMasterView)="openMasterView.emit()"
 							(toggleGrid)="toggleGrid.emit()"
 							(toggleRulers)="toggleRulers.emit()"
 							(toggleGuides)="toggleGuides.emit()"
@@ -461,6 +462,7 @@ export class RibbonComponent {
 	readonly a11y = output<void>();
 	readonly link = output<void>();
 	readonly openSorter = output<void>();
+	readonly openMasterView = output<void>();
 	readonly toggleNotes = output<void>();
 	readonly toggleFormatPainter = output<void>();
 	readonly exportPng = output<void>();

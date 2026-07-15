@@ -69,7 +69,14 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 			announcedLoadCount = count;
 			deps.viewer.reset(deps.loader.slides.length, deps.getInitialSlide());
 			// Seed the editable slide array from the freshly-loaded presentation.
-			untrack(() => deps.editor.setSlides(deps.loader.slides, deps.loader.slideMasters));
+			untrack(() =>
+				deps.editor.setSlides(
+					deps.loader.slides,
+					deps.loader.slideMasters,
+					deps.loader.notesMaster,
+					deps.loader.handoutMaster,
+				),
+			);
 			deps.getOnload()?.({
 				slideCount: deps.loader.slides.length,
 				canvasSize: deps.loader.canvasSize,

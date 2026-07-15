@@ -1,4 +1,11 @@
-import type { PptxElement, PptxHandler, PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxHandoutMaster,
+	PptxHandler,
+	PptxNotesMaster,
+	PptxSlide,
+	PptxSlideMaster,
+} from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from './editor-state.svelte';
@@ -147,6 +154,39 @@ describe('editorState history-tracked mutations', () => {
 		expect(editor.slideMasters[0].layouts?.[0].elements?.[0].x).toBe(10);
 		await editor.save();
 		expect(save.mock.calls[0]?.[1]).toMatchObject({ slideMasters: editor.slideMasters });
+	});
+
+	it('edits notes and handout masters with shared history and save options', async () => {
+		const { editor, save } = make();
+		const notesMaster: PptxNotesMaster = {
+			path: 'ppt/notesMasters/notesMaster1.xml',
+			elements: [shape('notes-body')],
+		};
+		const handoutMaster: PptxHandoutMaster = {
+			path: 'ppt/handoutMasters/handoutMaster1.xml',
+			elements: [shape('handout-footer')],
+			slidesPerPage: 6,
+		};
+		editor.setSlides([slide('a', [])], [], notesMaster, handoutMaster);
+
+		editor.masterOps.enterTab('notes');
+		editor.select('notes-body');
+		editor.applyElementPatch('notes-body', { x: 88 });
+		expect(editor.notesMaster?.elements?.[0].x).toBe(88);
+		editor.undo();
+		expect(editor.notesMaster?.elements?.[0].x).toBe(10);
+
+		editor.masterOps.enterTab('handout');
+		editor.masterOps.setHandoutSlidesPerPage(4);
+		expect(editor.handoutMaster?.slidesPerPage).toBe(4);
+		editor.undo();
+		expect(editor.handoutMaster?.slidesPerPage).toBe(6);
+
+		await editor.save();
+		expect(save.mock.calls[0]?.[1]).toMatchObject({
+			notesMaster: editor.notesMaster,
+			handoutMaster: editor.handoutMaster,
+		});
 	});
 
 	it('deleteSelected removes, marks dirty, fires onChange, and is undoable', () => {

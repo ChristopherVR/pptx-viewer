@@ -52,8 +52,8 @@ export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavH
 		onClick: () => handlers.toggleTemplateEditing?.(),
 	});
 	const masterView = makeButton(doc, {
-		label: t('pptx.mode.masterView'),
-		text: t('pptx.mode.masterView'),
+		label: t('pptx.master.title'),
+		text: t('pptx.master.title'),
 		onClick: () => handlers.toggleMasterView?.(),
 	});
 	templates.btn.dataset.testid = 'template-edit-toggle';

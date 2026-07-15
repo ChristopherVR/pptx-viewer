@@ -49,6 +49,8 @@ const emit = defineEmits<{
 	collapse: [];
 	'tab-change': [tab: MasterViewTab];
 	'handout-slides-per-page-change': [count: number];
+	'notes-background-change': [color: string];
+	'handout-background-change': [color: string];
 }>();
 
 const { t } = useI18n();
@@ -67,7 +69,7 @@ const TITLES = computed<Record<MasterViewTab, string>>(() => ({
 </script>
 
 <template>
-	<aside class="pptx-vue-master-sidebar">
+	<aside class="pptx-vue-master-sidebar" :aria-label="t('pptx.view.masterViews')">
 		<div class="pptx-vue-master-sidebar__header">
 			<span class="pptx-vue-master-sidebar__title">{{ TITLES[masterViewTab] }}</span>
 			<button
@@ -112,13 +114,18 @@ const TITLES = computed<Record<MasterViewTab, string>>(() => ({
 				"
 			/>
 
-			<NotesMasterPanel v-else-if="masterViewTab === 'notes'" :notes-master="notesMaster" />
+			<NotesMasterPanel
+				v-else-if="masterViewTab === 'notes'"
+				:notes-master="notesMaster"
+				@background-change="(color) => emit('notes-background-change', color)"
+			/>
 
 			<HandoutMasterPanel
 				v-else
 				:handout-master="handoutMaster"
 				:slides-per-page="handoutSlidesPerPage"
 				@slides-per-page-change="(count) => emit('handout-slides-per-page-change', count)"
+				@background-change="(color) => emit('handout-background-change', color)"
 			/>
 		</div>
 	</aside>

@@ -15,6 +15,7 @@ import { useI18n } from 'vue-i18n';
 const props = defineProps<{
 	notesMaster: PptxNotesMaster | undefined;
 }>();
+const emit = defineEmits<{ 'background-change': [color: string] }>();
 
 const { t } = useI18n();
 
@@ -58,10 +59,13 @@ const placeholderLabels = computed<PlaceholderLabel[]>(() => {
 	<div v-else class="pptx-vue-notes-master-panel">
 		<section class="pptx-vue-notes-master-panel__card">
 			<div class="pptx-vue-notes-master-panel__heading">{{ t('pptx.notesMaster.background') }}</div>
-			<div
+			<input
+				type="color"
+				aria-label="Master background color"
 				class="pptx-vue-notes-master-panel__swatch"
 				data-testid="notes-master-bg-swatch"
-				:style="{ backgroundColor: notesMaster.backgroundColor ?? '#ffffff' }"
+				:value="notesMaster.backgroundColor ?? '#ffffff'"
+				@input="emit('background-change', ($event.target as HTMLInputElement).value)"
 			/>
 		</section>
 

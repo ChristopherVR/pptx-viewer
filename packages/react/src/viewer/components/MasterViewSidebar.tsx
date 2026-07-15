@@ -42,6 +42,8 @@ interface MasterViewSidebarProps {
 	onCollapse: () => void;
 	onTabChange: (tab: MasterViewTab) => void;
 	onHandoutSlidesPerPageChange: (count: number) => void;
+	onNotesMasterBackgroundChange: (color: string) => void;
+	onHandoutMasterBackgroundChange: (color: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -62,6 +64,8 @@ export function MasterViewSidebar({
 	onCollapse,
 	onTabChange,
 	onHandoutSlidesPerPageChange,
+	onNotesMasterBackgroundChange,
+	onHandoutMasterBackgroundChange,
 }: MasterViewSidebarProps): React.ReactElement {
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const { t } = useTranslation();
@@ -81,7 +85,10 @@ export function MasterViewSidebar({
 	);
 
 	return (
-		<aside className='flex h-full flex-col border-r border-border/80 bg-background/70 backdrop-blur-sm w-56'>
+		<aside
+			aria-label={t('pptx.view.masterViews')}
+			className='flex h-full flex-col border-r border-border/80 bg-background/70 backdrop-blur-sm w-56'
+		>
 			{/* Header */}
 			<div className='flex items-center justify-between px-3 py-2'>
 				<span className='text-xs uppercase tracking-wide text-muted-foreground'>
@@ -102,11 +109,17 @@ export function MasterViewSidebar({
 			</div>
 
 			{/* Tabs */}
-			<div className='flex border-b border-border/60 px-1'>
+			<div
+				role='tablist'
+				aria-label={t('pptx.mode.masterView')}
+				className='flex border-b border-border/60 px-1'
+			>
 				{TABS.map((tab) => (
 					<button
 						key={tab.key}
 						type='button'
+						role='tab'
+						aria-selected={masterViewTab === tab.key}
 						className={cn(
 							'flex-1 px-1 py-1.5 text-[10px] font-medium transition-colors border-b-2',
 							masterViewTab === tab.key
@@ -133,13 +146,19 @@ export function MasterViewSidebar({
 					/>
 				)}
 
-				{masterViewTab === 'notes' && <NotesMasterPanel notesMaster={notesMaster} />}
+				{masterViewTab === 'notes' && (
+					<NotesMasterPanel
+						notesMaster={notesMaster}
+						onBackgroundChange={onNotesMasterBackgroundChange}
+					/>
+				)}
 
 				{masterViewTab === 'handout' && (
 					<HandoutMasterPanel
 						handoutMaster={handoutMaster}
 						slidesPerPage={handoutSlidesPerPage}
 						onSlidesPerPageChange={onHandoutSlidesPerPageChange}
+						onBackgroundChange={onHandoutMasterBackgroundChange}
 					/>
 				)}
 			</div>

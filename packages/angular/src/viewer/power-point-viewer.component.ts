@@ -13,7 +13,15 @@ import {
 	viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxComment, PptxCoreProperties, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type {
+	MasterViewTab,
+	PptxComment,
+	PptxCoreProperties,
+	PptxElement,
+	PptxHandoutMaster,
+	PptxNotesMaster,
+	PptxSlide,
+} from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
@@ -48,6 +56,8 @@ import type { SmartArtInsertEvent } from './insert-smart-art-dialog.component';
 import { InspectorPanelComponent } from './inspector-panel.component';
 import { IsMobileService } from './is-mobile';
 import { LoadContentService } from './load-content.service';
+import { MasterViewCanvasComponent } from './master-view-canvas.component';
+import { MasterViewSidebarComponent } from './master-view-sidebar.component';
 import { MobileBottomBarComponent } from './mobile-bottom-bar.component';
 import type { MobileBarSheet } from './mobile-bottom-bar.component';
 import { MobileMenuSheetComponent } from './mobile-menu-sheet.component';
@@ -184,6 +194,8 @@ import { ZoomTargetService } from './zoom-target.service';
 		MobileMenuSheetComponent,
 		MobileSlidesSheetComponent,
 		MobileToolbarComponent,
+		MasterViewCanvasComponent,
+		MasterViewSidebarComponent,
 		NotesPanelComponent,
 		RibbonComponent,
 		TitleBarComponent,
@@ -292,6 +304,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(openCustomShows)="customShowsCtl.showDialog.set(true)"
 					(openSmartArtDialog)="showSmartArtInsert.set(true)"
 					(openEquationDialog)="dialogs.openEquationInsert()"
+					(openMasterView)="openMasterView()"
 					(openSetUpSlideShow)="dialogs.showSetUpSlideShow.set(true)"
 					(openCompare)="onOpenCompare()"
 					(openPassword)="dialogs.showPassword.set(true)"
@@ -524,6 +537,39 @@ import { ZoomTargetService } from './zoom-target.service';
 						(zoomReset)="zoomSvc.zoomReset()"
 					/>
 				}
+			}
+
+			@if (showMasterView()) {
+				<div class="pptx-ng-master-overlay" role="dialog" [attr.aria-label]="'pptx.view.masterViews' | translate">
+					<pptx-master-view-sidebar
+						[tab]="masterViewTab()"
+						[slideMasters]="loader.slideMasters()"
+						[notesMaster]="loader.notesMaster()"
+						[handoutMaster]="loader.handoutMaster()"
+						[activeMasterIndex]="activeMasterIndex()"
+						[activeLayoutIndex]="activeLayoutIndex()"
+						[handoutSlidesPerPage]="loader.handoutMaster()?.slidesPerPage ?? 4"
+						(tabChange)="selectMasterTab($event)"
+						(selectMaster)="activeMasterIndex.set($event); activeLayoutIndex.set(null)"
+						(selectLayout)="activeMasterIndex.set($event.masterIndex); activeLayoutIndex.set($event.layoutIndex)"
+						(slidesPerPageChange)="setHandoutSlidesPerPage($event)"
+						(backgroundChange)="setMasterBackground($event)"
+						(close)="closeMasterView()"
+					/>
+					<pptx-master-view-canvas
+						[tab]="masterViewTab()"
+						[slideMasters]="loader.slideMasters()"
+						[activeMasterIndex]="activeMasterIndex()"
+						[activeLayoutIndex]="activeLayoutIndex()"
+						[notesMaster]="loader.notesMaster()"
+						[handoutMaster]="loader.handoutMaster()"
+						[canvasSize]="loader.canvasSize()"
+						[mediaDataUrls]="loader.mediaDataUrls()"
+						[editable]="canEdit()"
+						(notesMasterChange)="updateNotesMaster($event)"
+						(handoutMasterChange)="updateHandoutMaster($event)"
+					/>
+				</div>
 			}
 
 			@if (showSorter()) {
@@ -944,6 +990,11 @@ export class PowerPointViewerComponent {
 
 	/** Slide-sorter grid overlay visibility. */
 	protected readonly showSorter = signal(false);
+	/** Full-canvas master editor visibility and active target. */
+	protected readonly showMasterView = signal(false);
+	protected readonly masterViewTab = signal<MasterViewTab>('slides');
+	protected readonly activeMasterIndex = signal(0);
+	protected readonly activeLayoutIndex = signal<number | null>(null);
 	/** Whether the left slides panel is collapsed (top-bar sidebar toggle). */
 	protected readonly slidesPanelCollapsed = signal(false);
 	/** Whether periodic autosave is enabled (title-bar AutoSave toggle; default on). */
@@ -1324,6 +1375,80 @@ export class PowerPointViewerComponent {
 		return this.fileIO.getContent();
 	}
 
+	protected openMasterView(): void {
+		this.showMasterView.set(true);
+		this.masterViewTab.set('slides');
+		this.activeMasterIndex.set(0);
+		this.activeLayoutIndex.set(null);
+		this.modeChange.emit('master');
+	}
+
+	protected closeMasterView(): void {
+		this.showMasterView.set(false);
+		this.masterViewTab.set('slides');
+		this.editor.clearSelection();
+		this.modeChange.emit(this.canEdit() ? 'edit' : 'preview');
+	}
+
+	protected selectMasterTab(tab: MasterViewTab): void {
+		this.masterViewTab.set(tab);
+		this.editor.clearSelection();
+	}
+
+	protected setMasterBackground(backgroundColor: string): void {
+		if (this.masterViewTab() === 'notes') {
+			const current = this.loader.notesMaster();
+			if (current) {
+				this.updateNotesMaster({ ...current, backgroundColor });
+			}
+			return;
+		}
+		if (this.masterViewTab() === 'handout') {
+			const current = this.loader.handoutMaster();
+			if (current) {
+				this.updateHandoutMaster({ ...current, backgroundColor });
+			}
+			return;
+		}
+		const masters = [...this.loader.slideMasters()];
+		const index = this.activeMasterIndex();
+		const current = masters[index];
+		if (!current) {
+			return;
+		}
+		const layoutIndex = this.activeLayoutIndex();
+		if (layoutIndex === null) {
+			masters[index] = { ...current, backgroundColor };
+		} else {
+			const layouts = [...(current.layouts ?? [])];
+			const layout = layouts[layoutIndex];
+			if (!layout) {
+				return;
+			}
+			layouts[layoutIndex] = { ...layout, backgroundColor };
+			masters[index] = { ...current, layouts };
+		}
+		this.loader.slideMasters.set(masters);
+		this.editor.dirty.set(true);
+	}
+
+	protected setHandoutSlidesPerPage(slidesPerPage: number): void {
+		const current = this.loader.handoutMaster();
+		if (current) {
+			this.updateHandoutMaster({ ...current, slidesPerPage });
+		}
+	}
+
+	protected updateNotesMaster(master: PptxNotesMaster): void {
+		this.loader.notesMaster.set(master);
+		this.editor.dirty.set(true);
+	}
+
+	protected updateHandoutMaster(master: PptxHandoutMaster): void {
+		this.loader.handoutMaster.set(master);
+		this.editor.dirty.set(true);
+	}
+
 	goTo(index: number): void {
 		if (index < 0 || index >= this.slideCount()) {
 			return;
@@ -1380,7 +1505,7 @@ export class PowerPointViewerComponent {
 		if (this.presentationMode.presenting()) {
 			return 'present';
 		}
-		if (this.editor.editTemplateMode()) {
+		if (this.showMasterView() || this.editor.editTemplateMode()) {
 			return 'master';
 		}
 		return this.canEdit() ? 'edit' : 'preview';
@@ -1390,9 +1515,10 @@ export class PowerPointViewerComponent {
 		if (mode === 'present') {
 			this.presentationMode.present();
 		} else if (mode === 'master') {
-			this.editor.setEditTemplateMode(true);
+			this.openMasterView();
 		} else {
 			this.presentationMode.presenting.set(false);
+			this.showMasterView.set(false);
 			this.editor.setEditTemplateMode(false);
 		}
 	}

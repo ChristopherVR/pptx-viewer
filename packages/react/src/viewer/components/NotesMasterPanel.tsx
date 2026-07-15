@@ -8,13 +8,17 @@ import { useTranslation } from 'react-i18next';
 
 interface NotesMasterPanelProps {
 	notesMaster: PptxNotesMaster | undefined;
+	onBackgroundChange: (color: string) => void;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function NotesMasterPanel({ notesMaster }: NotesMasterPanelProps): React.ReactElement {
+export function NotesMasterPanel({
+	notesMaster,
+	onBackgroundChange,
+}: NotesMasterPanelProps): React.ReactElement {
 	const { t } = useTranslation();
 
 	const placeholderLabels = useMemo(() => {
@@ -55,9 +59,12 @@ export function NotesMasterPanel({ notesMaster }: NotesMasterPanelProps): React.
 				<div className='text-[10px] text-muted-foreground mb-1'>
 					{t('pptx.master.notesMasterBackground')}
 				</div>
-				<div
+				<input
+					type='color'
+					aria-label='Master background color'
 					className='w-full h-8 rounded border border-border'
-					style={{ backgroundColor: notesMaster.backgroundColor ?? '#ffffff' }}
+					value={notesMaster.backgroundColor ?? '#ffffff'}
+					onChange={(event) => onBackgroundChange(event.target.value)}
 				/>
 			</div>
 

@@ -1,4 +1,10 @@
-import type { PptxHandler, PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
+import type {
+	PptxHandoutMaster,
+	PptxHandler,
+	PptxNotesMaster,
+	PptxSlide,
+	PptxSlideMaster,
+} from 'pptx-viewer-core';
 import { saveAutosaveSnapshot } from 'pptx-viewer-shared';
 
 /**
@@ -40,6 +46,8 @@ export interface AutosaveDeps {
 	/** The current editable slides (watched for edits). */
 	getSlides: () => PptxSlide[];
 	getSlideMasters?: () => PptxSlideMaster[];
+	getNotesMaster?: () => PptxNotesMaster | undefined;
+	getHandoutMaster?: () => PptxHandoutMaster | undefined;
 	/** The live core handler used to serialize slides to `.pptx` bytes. */
 	getHandler: () => PptxHandler | null;
 	/**
@@ -78,6 +86,8 @@ export class AutosaveController {
 			// Track the slides so edits (array reassignment) re-run the effect.
 			this.#deps.getSlides();
 			this.#deps.getSlideMasters?.();
+			this.#deps.getNotesMaster?.();
+			this.#deps.getHandoutMaster?.();
 
 			if (!this.#started) {
 				this.#started = true;
@@ -125,9 +135,12 @@ export class AutosaveController {
 		if (!handler) {
 			return null;
 		}
-		const masters = this.#deps.getSlideMasters?.();
-		return masters?.length
-			? handler.save(this.#deps.getSlides(), { slideMasters: masters })
+		const slideMasters = this.#deps.getSlideMasters?.();
+		const notesMaster = this.#deps.getNotesMaster?.();
+		const handoutMaster = this.#deps.getHandoutMaster?.();
+		const hasMasters = Boolean(slideMasters?.length || notesMaster || handoutMaster);
+		return hasMasters
+			? handler.save(this.#deps.getSlides(), { slideMasters, notesMaster, handoutMaster })
 			: handler.save(this.#deps.getSlides());
 	}
 

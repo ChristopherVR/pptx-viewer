@@ -1,6 +1,9 @@
 import type {
+	MasterViewTab,
 	ParsedTableStyleMap,
 	PptxElement,
+	PptxHandoutMaster,
+	PptxNotesMaster,
 	PptxSlideMaster,
 	PptxSlide,
 	PptxThemeColorScheme,
@@ -39,6 +42,15 @@ export interface ViewerState {
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	/** Parsed slide masters and layouts used by the dedicated master canvas. */
 	slideMasters: PptxSlideMaster[];
+	/** Parsed notes master and its portrait page size. */
+	notesMaster?: PptxNotesMaster;
+	notesCanvasSize?: CanvasSize;
+	/** Parsed handout master. */
+	handoutMaster?: PptxHandoutMaster;
+	/** Active master-workspace tab. */
+	masterViewTab: MasterViewTab;
+	/** Preview layout used by the handout master workspace. */
+	handoutSlidesPerPage: number;
 	/** Active master/layout canvas, or null for normal slide view. */
 	masterViewTarget: { masterIndex: number; layoutIndex: number | null } | null;
 	/** Slide canvas size in CSS pixels. */
@@ -102,6 +114,11 @@ export function createInitialViewerState(): ViewerState {
 		slides: [],
 		templateElementsBySlideId: {},
 		slideMasters: [],
+		notesMaster: undefined,
+		notesCanvasSize: undefined,
+		handoutMaster: undefined,
+		masterViewTab: 'slides',
+		handoutSlidesPerPage: 4,
 		masterViewTarget: null,
 		canvasSize: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
 		mediaDataUrls: new Map(),

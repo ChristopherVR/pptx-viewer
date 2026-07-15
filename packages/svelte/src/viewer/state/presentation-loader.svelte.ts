@@ -1,5 +1,7 @@
 import type {
 	ParsedTableStyleMap,
+	PptxHandoutMaster,
+	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxThemeColorScheme,
@@ -24,6 +26,9 @@ export class PresentationLoader {
 	slides = $state.raw<PptxSlide[]>([]);
 	/** Parsed slide-master hierarchy for the dedicated master workspace. */
 	slideMasters = $state.raw<PptxSlideMaster[]>([]);
+	notesMaster = $state.raw<PptxNotesMaster | undefined>(undefined);
+	handoutMaster = $state.raw<PptxHandoutMaster | undefined>(undefined);
+	notesCanvasSize = $state.raw<CanvasSize | undefined>(undefined);
 	/** Slide canvas size in pixels. */
 	canvasSize = $state.raw<CanvasSize>({
 		width: DEFAULT_CANVAS_WIDTH,
@@ -88,6 +93,12 @@ export class PresentationLoader {
 			this.handler = newHandler;
 			this.slides = nextSlides;
 			this.slideMasters = parsed.slideMasters ?? [];
+			this.notesMaster = parsed.notesMaster;
+			this.handoutMaster = parsed.handoutMaster;
+			this.notesCanvasSize =
+				parsed.notesWidthEmu && parsed.notesHeightEmu
+					? { width: parsed.notesWidthEmu / 9525, height: parsed.notesHeightEmu / 9525 }
+					: undefined;
 			this.mediaDataUrls = media.urls;
 			this.colorScheme = parsed.theme?.colorScheme;
 			this.tableStyleMap = parsed.tableStyleMap;

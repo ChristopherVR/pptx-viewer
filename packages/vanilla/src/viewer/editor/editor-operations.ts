@@ -1,6 +1,8 @@
 import type {
 	PptxElement,
+	PptxHandoutMaster,
 	PptxHandler,
+	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
 	TextSegment,
@@ -20,6 +22,7 @@ import {
 	getActiveElements,
 	replaceActiveElements,
 } from './editor-active-elements';
+import { setHandoutSlidesPerPage } from './editor-master-actions';
 import type { ElementBoxPatch } from './editor-mutations';
 import { cloneSlides, updateSlideNotes } from './editor-mutations';
 import { createStructuredEditorOperations } from './editor-structured-operations';
@@ -59,6 +62,8 @@ export interface EditorOps {
 	commitInlineText(id: string, text: string): void;
 	/** Commit speaker notes and optional rich segments onto the current slide. */
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
+	/** Change the handout master layout with full undo/save integration. */
+	setHandoutSlidesPerPage(count: number): void;
 	applyFormatPainter(sourceId: string, targetId: string): boolean;
 	commitTableCell(id: string, row: number, column: number, text: string): void;
 	updateEquation(id: string, omml: Record<string, unknown>): void;
@@ -74,6 +79,9 @@ interface EditorSnapshot {
 	slides: PptxSlide[];
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	slideMasters: PptxSlideMaster[];
+	notesMaster?: PptxNotesMaster;
+	handoutMaster?: PptxHandoutMaster;
+	handoutSlidesPerPage: number;
 }
 
 const MAX_HISTORY_ENTRIES = 100;
@@ -96,6 +104,9 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			store.get().templateElementsBySlideId,
 		),
 		slideMasters: structuredClone(store.get().slideMasters),
+		notesMaster: structuredClone(store.get().notesMaster),
+		handoutMaster: structuredClone(store.get().handoutMaster),
+		handoutSlidesPerPage: store.get().handoutSlidesPerPage,
 	});
 
 	const pushHistory = (): void => {
@@ -126,6 +137,9 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			slides: cloneSlides(next.slides),
 			templateElementsBySlideId: cloneTemplateElementsBySlideId(next.templateElementsBySlideId),
 			slideMasters: structuredClone(next.slideMasters),
+			notesMaster: structuredClone(next.notesMaster),
+			handoutMaster: structuredClone(next.handoutMaster),
+			handoutSlidesPerPage: next.handoutSlidesPerPage,
 			interactionActive: false,
 		});
 		commitChange();
@@ -240,6 +254,10 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			commitChange();
 		},
 
+		setHandoutSlidesPerPage(count) {
+			setHandoutSlidesPerPage({ store, pushHistory, commitChange }, count);
+		},
+
 		applyFormatPainter(sourceId, targetId) {
 			const state = store.get();
 			const source = findActiveElement(state, sourceId);
@@ -288,6 +306,8 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 				buildSaveSlides(state.slides, state.templateElementsBySlideId),
 				{
 					slideMasters: state.slideMasters,
+					notesMaster: state.notesMaster,
+					handoutMaster: state.handoutMaster,
 				},
 			);
 			store.set({ dirty: false });

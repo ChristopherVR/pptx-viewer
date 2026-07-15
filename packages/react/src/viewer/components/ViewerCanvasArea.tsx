@@ -260,7 +260,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 				<HandoutMasterCanvas
 					handoutMaster={s.handoutMaster}
 					canvasSize={canvasSize}
-					slidesPerPage={s.handoutSlidesPerPage}
+					slidesPerPage={s.handoutMaster?.slidesPerPage ?? s.handoutSlidesPerPage}
 				/>
 			) : (
 				<SlideCanvas

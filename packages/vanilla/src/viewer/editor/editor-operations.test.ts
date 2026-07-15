@@ -162,3 +162,24 @@ describe('createEditorOps structured content', () => {
 		expect(JSON.stringify(store.get().slides[0].elements[1])).toContain('x');
 	});
 });
+
+describe('createEditorOps handout master', () => {
+	it('commits slides-per-page as one undoable master mutation', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			editable: true,
+			handoutMaster: { path: 'ppt/handoutMasters/handoutMaster1.xml', slidesPerPage: 4 },
+			handoutSlidesPerPage: 4,
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+
+		ops.setHandoutSlidesPerPage(6);
+
+		expect(store.get().handoutSlidesPerPage).toBe(6);
+		expect(store.get().handoutMaster?.slidesPerPage).toBe(6);
+		expect(store.get().dirty).toBeTruthy();
+		ops.undo();
+		expect(store.get().handoutSlidesPerPage).toBe(4);
+		expect(store.get().handoutMaster?.slidesPerPage).toBe(4);
+	});
+});

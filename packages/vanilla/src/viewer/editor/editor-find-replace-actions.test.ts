@@ -37,6 +37,7 @@ function fakeOps(): EditorOps {
 		nudgeSelected: vi.fn(),
 		commitInlineText: vi.fn(),
 		commitNotes: vi.fn(),
+		setHandoutSlidesPerPage: vi.fn(),
 		applyFormatPainter: vi.fn(() => false),
 		commitTableCell: vi.fn(),
 		updateEquation: vi.fn(),

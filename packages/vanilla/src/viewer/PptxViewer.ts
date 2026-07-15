@@ -78,6 +78,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getChrome: () => this.lifecycle.chrome,
 			getTranslator: () => this.t,
 			smartArt3D: options.smartArt3D ?? false,
+			onHandoutSlidesPerPageChange: (count) => this.editor?.setHandoutSlidesPerPage(count),
+			onMasterBackgroundColorChange: (color) =>
+				this.editor?.getEditActions().setSlideBackgroundColor(color),
 			onStageRendered: () => this.editor?.onStageRendered(),
 		});
 		this.controls = createViewerControls(this.store, this.renderer);

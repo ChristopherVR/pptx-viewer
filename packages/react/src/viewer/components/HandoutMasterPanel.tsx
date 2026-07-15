@@ -18,6 +18,7 @@ interface HandoutMasterPanelProps {
 	handoutMaster: PptxHandoutMaster | undefined;
 	slidesPerPage: number;
 	onSlidesPerPageChange: (count: number) => void;
+	onBackgroundChange: (color: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -28,6 +29,7 @@ export function HandoutMasterPanel({
 	handoutMaster,
 	slidesPerPage,
 	onSlidesPerPageChange,
+	onBackgroundChange,
 }: HandoutMasterPanelProps): React.ReactElement {
 	const { t } = useTranslation();
 
@@ -51,6 +53,7 @@ export function HandoutMasterPanel({
 						<button
 							key={count}
 							type='button'
+							aria-pressed={slidesPerPage === count}
 							className={cn(
 								'px-2 py-1.5 rounded text-[11px] font-medium transition-colors',
 								slidesPerPage === count
@@ -70,11 +73,12 @@ export function HandoutMasterPanel({
 				<div className='text-[10px] text-muted-foreground mb-1'>
 					{t('pptx.master.handoutBackground')}
 				</div>
-				<div
+				<input
+					type='color'
+					aria-label='Master background color'
 					className='w-full h-8 rounded border border-border'
-					style={{
-						backgroundColor: handoutMaster.backgroundColor ?? '#ffffff',
-					}}
+					value={handoutMaster.backgroundColor ?? '#ffffff'}
+					onChange={(event) => onBackgroundChange(event.target.value)}
 				/>
 			</div>
 

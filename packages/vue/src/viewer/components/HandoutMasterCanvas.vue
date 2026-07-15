@@ -12,7 +12,9 @@
  *
  * Props : `{ handoutMaster, canvasSize, slidesPerPage, slideThumbnails?, pageNumber? }`
  */
-import type { PptxHandoutMaster } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandoutMaster } from 'pptx-viewer-core';
+import { computeHandoutSlotLayout, DEFAULT_MASTER_PAGE_SIZE } from 'pptx-viewer-shared';
+import type { MasterPageRect } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -29,107 +31,19 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-/** US Letter portrait page proportions (7.5 x 10 inches at 96 dpi). */
-const PAGE_WIDTH = 720;
-const PAGE_HEIGHT = 960;
-
-/** Margin fraction of the page dimensions. */
-const MARGIN = 0.06;
-
 /** Standard 4:3 slide aspect for slot placeholders. */
 const SLIDE_ASPECT = 4 / 3;
 
-interface SlotRect {
-	x: number;
-	y: number;
-	w: number;
-	h: number;
-}
-
-function computeSlotLayout(slidesPerPage: number, slideAspect: number): SlotRect[] {
-	const mx = MARGIN;
-	const my = MARGIN;
-	const contentW = 1 - 2 * mx;
-	const contentH = 1 - 2 * my;
-	const GAP = 0.02;
-
-	switch (slidesPerPage) {
-		case 1: {
-			const w = contentW * 0.8;
-			const h = w / slideAspect;
-			return [{ x: mx + (contentW - w) / 2, y: my + (contentH - h) / 2, w, h }];
-		}
-		case 2: {
-			const w = contentW * 0.75;
-			const h = w / slideAspect;
-			const totalH = h * 2 + GAP;
-			const startY = my + (contentH - totalH) / 2;
-			return [0, 1].map((i) => ({ x: mx + (contentW - w) / 2, y: startY + i * (h + GAP), w, h }));
-		}
-		case 3: {
-			const w = contentW * 0.5;
-			const h = w / slideAspect;
-			const totalH = h * 3 + GAP * 2;
-			const startY = my + (contentH - totalH) / 2;
-			return [0, 1, 2].map((i) => ({ x: mx, y: startY + i * (h + GAP), w, h }));
-		}
-		case 4: {
-			const cols = 2;
-			const rows = 2;
-			const w = (contentW - GAP) / cols;
-			const h = w / slideAspect;
-			const totalH = h * rows + GAP * (rows - 1);
-			const startY = my + (contentH - totalH) / 2;
-			return Array.from({ length: 4 }, (_unused, i) => ({
-				x: mx + (i % cols) * (w + GAP),
-				y: startY + Math.floor(i / cols) * (h + GAP),
-				w,
-				h,
-			}));
-		}
-		case 6: {
-			const cols = 2;
-			const rows = 3;
-			const w = (contentW - GAP) / cols;
-			const h = w / slideAspect;
-			const totalH = h * rows + GAP * (rows - 1);
-			const startY = my + (contentH - totalH) / 2;
-			return Array.from({ length: 6 }, (_unused, i) => ({
-				x: mx + (i % cols) * (w + GAP),
-				y: startY + Math.floor(i / cols) * (h + GAP),
-				w,
-				h,
-			}));
-		}
-		case 9: {
-			const cols = 3;
-			const rows = 3;
-			const w = (contentW - GAP * 2) / cols;
-			const h = w / slideAspect;
-			const totalH = h * rows + GAP * (rows - 1);
-			const startY = my + (contentH - totalH) / 2;
-			return Array.from({ length: 9 }, (_unused, i) => ({
-				x: mx + (i % cols) * (w + GAP),
-				y: startY + Math.floor(i / cols) * (h + GAP),
-				w,
-				h,
-			}));
-		}
-		default:
-			return [];
-	}
-}
-
 const scale = computed(() => {
-	const scaleX = props.canvasSize.width / PAGE_WIDTH;
-	const scaleY = props.canvasSize.height / PAGE_HEIGHT;
+	const scaleX = props.canvasSize.width / DEFAULT_MASTER_PAGE_SIZE.width;
+	const scaleY = props.canvasSize.height / DEFAULT_MASTER_PAGE_SIZE.height;
 	return Math.min(scaleX, scaleY, 1) * 0.85;
 });
 
-const scaledWidth = computed(() => PAGE_WIDTH * scale.value);
-const scaledHeight = computed(() => PAGE_HEIGHT * scale.value);
+const scaledWidth = computed(() => DEFAULT_MASTER_PAGE_SIZE.width * scale.value);
+const scaledHeight = computed(() => DEFAULT_MASTER_PAGE_SIZE.height * scale.value);
 
-const slots = computed(() => computeSlotLayout(props.slidesPerPage, SLIDE_ASPECT));
+const slots = computed(() => computeHandoutSlotLayout(props.slidesPerPage, SLIDE_ASPECT));
 
 const pageStyle = computed<CSSProperties>(() => ({
 	width: `${scaledWidth.value}px`,
@@ -138,7 +52,7 @@ const pageStyle = computed<CSSProperties>(() => ({
 
 const cornerFontSize = computed(() => `${Math.max(6, 8 * scale.value)}px`);
 
-function slotStyle(slot: SlotRect): CSSProperties {
+function slotStyle(slot: MasterPageRect): CSSProperties {
 	return {
 		left: `${slot.x * scaledWidth.value}px`,
 		top: `${slot.y * scaledHeight.value}px`,
@@ -153,6 +67,22 @@ function thumbnailFor(index: number): string | undefined {
 
 function slotLabel(index: number): string {
 	return t('pptx.notes.slideN', { n: index + 1 });
+}
+
+function elementText(element: PptxElement): string {
+	if ('textSegments' in element && element.textSegments?.length) {
+		return element.textSegments.map((segment) => segment.text).join('');
+	}
+	return 'text' in element ? (element.text ?? '') : '';
+}
+
+function elementStyle(element: PptxElement): CSSProperties {
+	return {
+		left: `${element.x * scale.value}px`,
+		top: `${element.y * scale.value}px`,
+		width: `${element.width * scale.value}px`,
+		height: `${element.height * scale.value}px`,
+	};
 }
 
 const pageNumberLabel = computed(() =>
@@ -200,6 +130,16 @@ const pageNumberLabel = computed(() =>
 					t('pptx.notes.slideN', { n: i + 1 })
 				}}</span>
 			</div>
+			<div
+				v-for="element in handoutMaster.elements ?? []"
+				:key="element.id"
+				class="pptx-vue-handout-master-canvas__element"
+				data-pptx-element="true"
+				:data-element-id="element.id"
+				:style="elementStyle(element)"
+			>
+				{{ elementText(element) }}
+			</div>
 
 			<div
 				class="pptx-vue-handout-master-canvas__corner pptx-vue-handout-master-canvas__corner--tl"
@@ -241,6 +181,12 @@ const pageNumberLabel = computed(() =>
 .pptx-vue-handout-master-canvas__empty {
 	color: var(--pptx-vue-muted-foreground, #6b7280);
 	font-size: 14px;
+}
+
+.pptx-vue-handout-master-canvas__element {
+	position: absolute;
+	z-index: 2;
+	overflow: hidden;
 }
 
 .pptx-vue-handout-master-canvas__page {

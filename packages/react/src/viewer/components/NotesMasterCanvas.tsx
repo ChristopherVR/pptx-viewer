@@ -1,4 +1,4 @@
-import type { PptxNotesMaster } from 'pptx-viewer-core';
+import type { PptxElement, PptxNotesMaster } from 'pptx-viewer-core';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -47,6 +47,13 @@ const DEFAULT_POSITIONS: Record<string, { x: number; y: number; w: number; h: nu
 	dt: { x: 0.6, y: 0.0, w: 0.4, h: 0.04 },
 	sldNum: { x: 0.6, y: 0.96, w: 0.4, h: 0.04 },
 };
+
+function elementText(element: PptxElement): string {
+	if ('textSegments' in element && element.textSegments?.length) {
+		return element.textSegments.map((segment) => segment.text).join('');
+	}
+	return 'text' in element ? (element.text ?? '') : '';
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -225,6 +232,23 @@ export function NotesMasterCanvas({
 						</div>
 					);
 				})}
+				{notesMaster.elements?.map((element) => (
+					<div
+						key={element.id}
+						data-pptx-element='true'
+						data-element-id={element.id}
+						className='absolute overflow-hidden'
+						style={{
+							left: element.x * scale,
+							top: element.y * scale,
+							width: element.width * scale,
+							height: element.height * scale,
+							zIndex: 2,
+						}}
+					>
+						{elementText(element)}
+					</div>
+				))}
 			</div>
 		</div>
 	);

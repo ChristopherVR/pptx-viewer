@@ -7,6 +7,8 @@ import type {
 	PptxElement,
 	PptxEmbeddedFont,
 	PptxHeaderFooter,
+	PptxHandoutMaster,
+	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxTheme,
@@ -54,6 +56,10 @@ export class LoadContentService {
 	readonly themeColorMap = signal<Record<string, string> | undefined>(undefined);
 	/** Slide masters (for placeholder/background resolution). */
 	readonly slideMasters = signal<PptxSlideMaster[]>([]);
+	/** Notes master, including its editable element tree. */
+	readonly notesMaster = signal<PptxNotesMaster | undefined>(undefined);
+	/** Handout master, including its editable element tree. */
+	readonly handoutMaster = signal<PptxHandoutMaster | undefined>(undefined);
 	/** Archive-path → displayable URL map for media + poster frames. */
 	readonly mediaDataUrls = signal<Map<string, string>>(new Map());
 	/** Embedded font data (name + binary) extracted from the presentation. */
@@ -107,7 +113,11 @@ export class LoadContentService {
 		if (!this.handler) {
 			throw new Error('No presentation is loaded.');
 		}
-		return this.handler.save([...slides]);
+		return this.handler.save([...slides], {
+			slideMasters: this.slideMasters(),
+			notesMaster: this.notesMaster(),
+			handoutMaster: this.handoutMaster(),
+		});
 	}
 
 	/** Parse the supplied `.pptx` bytes into the reactive signals. */
@@ -263,6 +273,8 @@ export class LoadContentService {
 			this.theme.set(parsed.theme);
 			this.themeColorMap.set(parsed.themeColorMap);
 			this.slideMasters.set(parsed.slideMasters ?? []);
+			this.notesMaster.set(parsed.notesMaster);
+			this.handoutMaster.set(parsed.handoutMaster);
 			this.embeddedFonts.set(parsed.embeddedFonts ?? []);
 			this.coreProperties.set(parsed.coreProperties);
 			this.customProperties.set(parsed.customProperties ?? []);

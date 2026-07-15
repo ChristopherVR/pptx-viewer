@@ -34,7 +34,11 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			((state.slides !== previous.slides ||
 				state.templateElementsBySlideId !== previous.templateElementsBySlideId ||
 				state.slideMasters !== previous.slideMasters ||
-				state.masterViewTarget !== previous.masterViewTarget) &&
+				state.notesMaster !== previous.notesMaster ||
+				state.handoutMaster !== previous.handoutMaster ||
+				state.masterViewTarget !== previous.masterViewTarget ||
+				state.masterViewTab !== previous.masterViewTab ||
+				state.handoutSlidesPerPage !== previous.handoutSlidesPerPage) &&
 				!state.interactionActive) ||
 			(previous.interactionActive && !state.interactionActive)
 		) {
@@ -48,7 +52,11 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			state.presenting !== previous.presenting ||
 			state.editTemplateMode !== previous.editTemplateMode ||
 			state.slideMasters !== previous.slideMasters ||
-			state.masterViewTarget !== previous.masterViewTarget
+			state.notesMaster !== previous.notesMaster ||
+			state.handoutMaster !== previous.handoutMaster ||
+			state.masterViewTarget !== previous.masterViewTarget ||
+			state.masterViewTab !== previous.masterViewTab ||
+			state.handoutSlidesPerPage !== previous.handoutSlidesPerPage
 		) {
 			renderer.renderStage();
 		}

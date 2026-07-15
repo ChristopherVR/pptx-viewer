@@ -20,6 +20,7 @@ defineProps<{
 
 const emit = defineEmits<{
 	'slides-per-page-change': [count: number];
+	'background-change': [color: string];
 }>();
 
 const { t } = useI18n();
@@ -48,6 +49,7 @@ const SLIDES_PER_PAGE_OPTIONS: readonly number[] = [1, 2, 3, 4, 6, 9];
 					type="button"
 					class="pptx-vue-handout-master-panel__option"
 					:class="{ 'pptx-vue-handout-master-panel__option--active': slidesPerPage === count }"
+					:aria-pressed="slidesPerPage === count"
 					:data-testid="`slides-per-page-${count}`"
 					@click="emit('slides-per-page-change', count)"
 				>
@@ -60,10 +62,13 @@ const SLIDES_PER_PAGE_OPTIONS: readonly number[] = [1, 2, 3, 4, 6, 9];
 			<div class="pptx-vue-handout-master-panel__heading">
 				{{ t('pptx.master.handoutBackground') }}
 			</div>
-			<div
+			<input
+				type="color"
+				aria-label="Master background color"
 				class="pptx-vue-handout-master-panel__swatch"
 				data-testid="handout-master-bg-swatch"
-				:style="{ backgroundColor: handoutMaster.backgroundColor ?? '#ffffff' }"
+				:value="handoutMaster.backgroundColor ?? '#ffffff'"
+				@input="emit('background-change', ($event.target as HTMLInputElement).value)"
 			/>
 		</section>
 

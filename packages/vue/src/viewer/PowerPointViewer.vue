@@ -61,6 +61,7 @@ import FindReplaceBar from './components/FindReplaceBar.vue';
 import FollowModeBar from './components/FollowModeBar.vue';
 import FontEmbeddingPanel from './components/FontEmbeddingPanel.vue';
 import GridOverlay from './components/GridOverlay.vue';
+import HandoutMasterCanvas from './components/HandoutMasterCanvas.vue';
 import HeaderFooterPanel from './components/HeaderFooterPanel.vue';
 import HyperlinkDialog from './components/HyperlinkDialog.vue';
 import InlineTextEditor from './components/InlineTextEditor.vue';
@@ -74,6 +75,7 @@ import MobileSheet from './components/MobileSheet.vue';
 import MobileSlidesSheet from './components/MobileSlidesSheet.vue';
 import MobileToolbar from './components/MobileToolbar.vue';
 import ModalDialog from './components/ModalDialog.vue';
+import NotesMasterCanvas from './components/NotesMasterCanvas.vue';
 import NotesPanel from './components/NotesPanel.vue';
 import PasswordProtectionDialog from './components/PasswordProtectionDialog.vue';
 import PresentationMode from './components/PresentationMode.vue';
@@ -1158,6 +1160,49 @@ const {
 	onSelectLayout,
 } = useMasterViewState();
 
+function onNotesMasterBackgroundChange(backgroundColor: string): void {
+	if (!notesMaster.value) {
+		return;
+	}
+	notesMaster.value = { ...notesMaster.value, backgroundColor };
+	autosave.isDirty.value = true;
+}
+
+function onHandoutMasterBackgroundChange(backgroundColor: string): void {
+	if (!handoutMaster.value) {
+		return;
+	}
+	handoutMaster.value = { ...handoutMaster.value, backgroundColor };
+	autosave.isDirty.value = true;
+}
+
+function onHandoutSlidesPerPageChange(slidesPerPage: number): void {
+	handoutSlidesPerPage.value = slidesPerPage;
+	if (handoutMaster.value) {
+		handoutMaster.value = { ...handoutMaster.value, slidesPerPage };
+		autosave.isDirty.value = true;
+	}
+}
+
+const activeMasterViewSlide = computed<PptxSlide | undefined>(() => {
+	const master = slideMasters.value[activeMasterIndex.value];
+	if (!master) {
+		return undefined;
+	}
+	const layout =
+		activeLayoutIndex.value === null ? undefined : master.layouts?.[activeLayoutIndex.value];
+	return {
+		id: layout?.path ?? master.path,
+		rId: '',
+		slideNumber: 0,
+		elements: layout
+			? [...(master.elements ?? []), ...(layout.elements ?? [])]
+			: (master.elements ?? []),
+		backgroundColor: layout?.backgroundColor ?? master.backgroundColor,
+		backgroundImage: layout?.backgroundImage ?? master.backgroundImage,
+	};
+});
+
 // ── Header / footer dialog ────────────────────────────────────────────
 const { showHeaderFooter, onHeaderFooterUpdate } = useHeaderFooterDialog({ headerFooter });
 
@@ -2110,13 +2155,54 @@ function handleCommandSearch(command: string): void {
 					:master-view-tab="masterViewTab"
 					:notes-master="notesMaster"
 					:handout-master="handoutMaster"
-					:handout-slides-per-page="handoutSlidesPerPage"
+					:handout-slides-per-page="handoutMaster?.slidesPerPage ?? handoutSlidesPerPage"
 					@select-master="onSelectMaster"
 					@select-layout="onSelectLayout"
 					@tab-change="masterViewTab = $event"
-					@handout-slides-per-page-change="handoutSlidesPerPage = $event"
+					@handout-slides-per-page-change="onHandoutSlidesPerPageChange"
+					@notes-background-change="onNotesMasterBackgroundChange"
+					@handout-background-change="onHandoutMasterBackgroundChange"
 					@collapse="showMasterView = false"
 				/>
+				<main
+					class="pptx-vue-master-canvas"
+					style="
+						display: flex;
+						flex: 1;
+						min-width: 0;
+						align-items: center;
+						justify-content: center;
+						overflow: hidden;
+						background: var(--pptx-vue-background, #111827);
+					"
+					role="application"
+					:aria-label="
+						masterViewTab === 'notes'
+							? t('pptx.master.notesMasterTitle')
+							: masterViewTab === 'handout'
+								? t('pptx.master.handoutMasterTitle')
+								: t('pptx.master.title')
+					"
+				>
+					<NotesMasterCanvas
+						v-if="masterViewTab === 'notes'"
+						:notes-master="notesMaster"
+						:canvas-size="canvasSize"
+					/>
+					<HandoutMasterCanvas
+						v-else-if="masterViewTab === 'handout'"
+						:handout-master="handoutMaster"
+						:canvas-size="canvasSize"
+						:slides-per-page="handoutMaster?.slidesPerPage ?? handoutSlidesPerPage"
+					/>
+					<SlideStage
+						v-else-if="activeMasterViewSlide"
+						:slide="activeMasterViewSlide"
+						:canvas-size="canvasSize"
+						:media-data-urls="mediaDataUrls"
+						:scale="0.75"
+					/>
+				</main>
 			</div>
 
 			<!-- Broadcast -->

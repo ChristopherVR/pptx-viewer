@@ -6,6 +6,8 @@ import type { AccessibilityPanel } from './accessibility-panel';
 import { createAccessibilityPanel } from './accessibility-panel';
 import type { Inspector, InspectorHandlers } from './inspector';
 import { createInspector } from './inspector';
+import type { MasterViewSidebar } from './master-view-sidebar';
+import { createMasterViewSidebar } from './master-view-sidebar';
 import type { MobileActionSheets } from './mobile-action-sheets';
 import { createMobileActionSheets } from './mobile-action-sheets';
 import type { MobileToolbar } from './mobile-toolbar';
@@ -58,6 +60,8 @@ export interface ViewerChrome {
 	inspector: Inspector | null;
 	/** Cross-slide accessibility checker results, opened from the View ribbon. */
 	accessibility: AccessibilityPanel;
+	/** Dedicated Slide/Notes/Handout master workspace navigation. */
+	masterSidebar: MasterViewSidebar;
 	thumbnails: ThumbnailRail | null;
 	/** Scrollable centring viewport around the stage. */
 	viewport: HTMLElement;
@@ -122,6 +126,8 @@ export function buildViewerChrome(
 	root.appendChild(body);
 	const accessibility = createAccessibilityPanel(doc, t, options.onSelectSlide);
 	root.appendChild(accessibility.el);
+	const masterSidebar = createMasterViewSidebar(doc, t);
+	body.appendChild(masterSidebar.el);
 
 	let thumbnails: ThumbnailRail | null = null;
 	if (options.showThumbnails) {
@@ -204,6 +210,7 @@ export function buildViewerChrome(
 		titleBar,
 		inspector,
 		accessibility,
+		masterSidebar,
 		thumbnails,
 		viewport,
 		stageWrap,

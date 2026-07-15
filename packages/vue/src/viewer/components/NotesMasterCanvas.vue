@@ -14,7 +14,7 @@
  *
  * Props : `{ notesMaster, canvasSize, notesCanvasSize?, slideThumbnail?, notesText?, slideNumber? }`
  */
-import type { PptxNotesMaster } from 'pptx-viewer-core';
+import type { PptxElement, PptxNotesMaster } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -122,6 +122,22 @@ function regionKind(type: string): 'slide' | 'body' | 'plain' {
 	}
 	return 'plain';
 }
+
+function elementText(element: PptxElement): string {
+	if ('textSegments' in element && element.textSegments?.length) {
+		return element.textSegments.map((segment) => segment.text).join('');
+	}
+	return 'text' in element ? (element.text ?? '') : '';
+}
+
+function elementStyle(element: PptxElement): CSSProperties {
+	return {
+		left: `${element.x * scale.value}px`,
+		top: `${element.y * scale.value}px`,
+		width: `${element.width * scale.value}px`,
+		height: `${element.height * scale.value}px`,
+	};
+}
 </script>
 
 <template>
@@ -176,6 +192,16 @@ function regionKind(type: string): 'slide' | 'body' | 'plain' {
 					<span v-else class="pptx-vue-notes-master-canvas__label">{{ labelFor(ph.type) }}</span>
 				</div>
 			</template>
+			<div
+				v-for="element in notesMaster.elements ?? []"
+				:key="element.id"
+				class="pptx-vue-notes-master-canvas__element"
+				data-pptx-element="true"
+				:data-element-id="element.id"
+				:style="elementStyle(element)"
+			>
+				{{ elementText(element) }}
+			</div>
 		</div>
 	</div>
 </template>
@@ -192,6 +218,12 @@ function regionKind(type: string): 'slide' | 'body' | 'plain' {
 .pptx-vue-notes-master-canvas__empty {
 	color: var(--pptx-vue-muted-foreground, #6b7280);
 	font-size: 14px;
+}
+
+.pptx-vue-notes-master-canvas__element {
+	position: absolute;
+	z-index: 2;
+	overflow: hidden;
 }
 
 .pptx-vue-notes-master-canvas__page {

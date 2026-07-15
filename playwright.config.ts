@@ -14,7 +14,7 @@ import { defineConfig, devices } from '@playwright/test';
  * boots its own demo dev server and points
  * its `baseURL` at it, so `playwright test --project=react` / `--project=vue` /
  * `--project=angular` / `--project=vanilla` / `--project=svelte` exercise the
- * identical 26-file, 95-test product suite: 475 project executions. Documentation
+ * identical 27-file, 96-test product suite: 480 project executions. Documentation
  * capture jobs are intentionally excluded and use `playwright.capture.config.ts`
  * instead.
  */

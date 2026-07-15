@@ -154,12 +154,28 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 						masterViewTab={state.masterViewTab}
 						notesMaster={state.notesMaster}
 						handoutMaster={state.handoutMaster}
-						handoutSlidesPerPage={state.handoutSlidesPerPage}
+						handoutSlidesPerPage={state.handoutMaster?.slidesPerPage ?? state.handoutSlidesPerPage}
 						onSelectMaster={dialogs.handleSelectMaster}
 						onSelectLayout={dialogs.handleSelectLayout}
-						onCollapse={() => state.setIsSlidesPaneOpen(false)}
+						onCollapse={dialogs.handleCloseMasterView}
 						onTabChange={state.setMasterViewTab}
-						onHandoutSlidesPerPageChange={state.setHandoutSlidesPerPage}
+						onHandoutSlidesPerPageChange={(count) => {
+							state.setHandoutSlidesPerPage(count);
+							state.setHandoutMaster((master) =>
+								master ? { ...master, slidesPerPage: count } : master,
+							);
+							state.setIsDirty(true);
+						}}
+						onNotesMasterBackgroundChange={(backgroundColor) => {
+							state.setNotesMaster((master) => (master ? { ...master, backgroundColor } : master));
+							state.setIsDirty(true);
+						}}
+						onHandoutMasterBackgroundChange={(backgroundColor) => {
+							state.setHandoutMaster((master) =>
+								master ? { ...master, backgroundColor } : master,
+							);
+							state.setIsDirty(true);
+						}}
 					/>
 				)}
 
