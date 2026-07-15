@@ -15,6 +15,8 @@ export type PresentationKeyAction =
 	| { action: 'toggleEraser' }
 	| { action: 'toggleToolbar' }
 	| { action: 'togglePresenterView' }
+	| { action: 'toggleBlackScreen' }
+	| { action: 'toggleWhiteScreen' }
 	| { action: 'none' };
 
 /**
@@ -42,6 +44,12 @@ export function mapKeyToPresentationAction(key: string, ctrlKey: boolean): Prese
 	}
 	if (key === 'e' || key === 'E') {
 		return { action: 'toggleEraser' };
+	}
+	if (key === 'b' || key === 'B') {
+		return { action: 'toggleBlackScreen' };
+	}
+	if (key === 'w' || key === 'W') {
+		return { action: 'toggleWhiteScreen' };
 	}
 
 	if (key === 'm' && ctrlKey) {

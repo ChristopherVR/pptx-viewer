@@ -92,6 +92,15 @@ describe('computeValueRange', () => {
 		const range = computeValueRange([{ name: 'A', values: [0] }]);
 		expect(range.span).toBeGreaterThanOrEqual(1);
 	});
+
+	it('handles datasets larger than the JavaScript argument limit', () => {
+		const values = Array.from({ length: 200_000 }, (_, index) => index - 100_000);
+		expect(computeValueRange([{ name: 'Large', values }])).toStrictEqual({
+			min: -100_000,
+			max: 99_999,
+			span: 199_999,
+		});
+	});
 });
 
 describe('computeStackedValueRange', () => {

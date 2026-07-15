@@ -46,6 +46,7 @@ import {
 } from './presentation-overlay-helpers';
 import { PresentationSubtitleBarComponent } from './presentation-subtitle-bar.component';
 import { PresentationTransitionOverlayComponent } from './presentation-transition-overlay.component';
+import { PresenterWindowService } from './presenter-window.service';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { attachTouchGestures } from './touch-gestures';
 import { ZoomNavigationService } from './zoom-navigation.service';
@@ -167,6 +168,36 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 		.pptx-ng-presentation-tools button.is-active {
 			background: rgba(255, 255, 255, 0.3);
 		}
+		.presenter-blank {
+			position: absolute;
+			inset: 0;
+			z-index: 75;
+		}
+		.presenter-laser {
+			position: absolute;
+			z-index: 76;
+			width: 20px;
+			height: 20px;
+			transform: translate(-50%, -50%);
+			border-radius: 50%;
+			background: #ef4444;
+			box-shadow: 0 0 20px 8px #ef444488;
+			pointer-events: none;
+		}
+		.presenter-caption {
+			position: absolute;
+			z-index: 77;
+			left: 10%;
+			right: 10%;
+			bottom: 2rem;
+			padding: 0.75rem 1.5rem;
+			border-radius: 0.5rem;
+			background: #000c;
+			color: #fff;
+			text-align: center;
+			font-size: 1.25rem;
+			pointer-events: none;
+		}
 	`,
 	template: `
 		<div #root class="pptx-ng-presentation-root">
@@ -210,6 +241,19 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 				<!-- Ink annotation overlay (pen/highlighter/eraser/laser). -->
 				<pptx-presentation-annotation-overlay [canvasSize]="canvasSize()" [zoom]="zoom()" />
 			</div>
+			@if (presenterWindow.snapshot().blackout !== 'none') {
+				<div class="presenter-blank" [style.background]="presenterWindow.snapshot().blackout"></div>
+			}
+			@if (presenterWindow.snapshot().pointer?.tool === 'laser') {
+				<div
+					class="presenter-laser"
+					[style.left.%]="(presenterWindow.snapshot().pointer?.x ?? 0.5) * 100"
+					[style.top.%]="(presenterWindow.snapshot().pointer?.y ?? 0.5) * 100"
+				></div>
+			}
+			@if (presenterWindow.snapshot().subtitlesVisible && presenterWindow.snapshot().caption) {
+				<div class="presenter-caption">{{ presenterWindow.snapshot().caption }}</div>
+			}
 
 			<!-- Live-caption (subtitle) bar. -->
 			<pptx-presentation-subtitle-bar [visible]="subtitlesVisible()" />
@@ -306,6 +350,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 	`,
 })
 export class PresentationOverlayComponent implements OnInit {
+	protected readonly presenterWindow = inject(PresenterWindowService);
 	// ------------------------------------------------------------------
 	// Inputs
 	// ------------------------------------------------------------------

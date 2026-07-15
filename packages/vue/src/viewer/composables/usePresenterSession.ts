@@ -1,13 +1,16 @@
 import {
 	buildPresentationAudienceUrl,
 	createPresentationSessionId,
+	createInitialPresentationSnapshot,
 	isPresentationSessionMessage,
 	parsePresentationSessionId,
 	placeAudienceWindow,
 	PRESENTATION_CHANNEL_NAME,
 	PRESENTATION_MESSAGE_ORIGIN,
 	resolveAudienceScreenPlacement,
+	mergePresentationSnapshot,
 } from 'pptx-viewer-shared';
+import type { PresentationSnapshot } from 'pptx-viewer-shared';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Ref } from 'vue';
 
@@ -23,6 +26,7 @@ export interface PresenterSessionOptions {
 export function usePresenterSession(options: PresenterSessionOptions) {
 	const sessionId = ref('');
 	const audienceOpen = ref(false);
+	const snapshot = ref(createInitialPresentationSnapshot(options.currentSlideIndex.value));
 	const audienceSessionId =
 		typeof window === 'undefined' ? null : parsePresentationSessionId(window.location.hash);
 	const isAudience = audienceSessionId !== null;
@@ -39,7 +43,7 @@ export function usePresenterSession(options: PresenterSessionOptions) {
 		}
 	}
 
-	function sendSlide(index = options.currentSlideIndex.value): void {
+	function sendSnapshot(): void {
 		if (!sessionId.value) {
 			return;
 		}
@@ -47,15 +51,15 @@ export function usePresenterSession(options: PresenterSessionOptions) {
 			origin: PRESENTATION_MESSAGE_ORIGIN,
 			type: 'presenter-state',
 			sessionId: sessionId.value,
-			snapshot: {
-				slideIndex: index,
-				buildStep: 0,
-				sequence: ++sequence,
-				blackout: 'none',
-				paused: false,
-				elapsedMs: 0,
-			},
+			snapshot: { ...snapshot.value, sequence: ++sequence },
 		});
+	}
+
+	function updateSnapshot(patch: Partial<PresentationSnapshot>): void {
+		snapshot.value = mergePresentationSnapshot(snapshot.value, patch);
+		if (audienceOpen.value) {
+			sendSnapshot();
+		}
 	}
 
 	function closeAudience(): void {
@@ -106,9 +110,7 @@ export function usePresenterSession(options: PresenterSessionOptions) {
 	}
 
 	watch(options.currentSlideIndex, (index) => {
-		if (audienceOpen.value) {
-			sendSlide(index);
-		}
+		updateSnapshot({ slideIndex: index });
 	});
 
 	onMounted(() => {
@@ -123,6 +125,7 @@ export function usePresenterSession(options: PresenterSessionOptions) {
 			}
 			if (isAudience && message.sessionId === audienceSessionId) {
 				if (message.type === 'presenter-state') {
+					snapshot.value = message.snapshot;
 					options.onAudienceSlide(message.snapshot.slideIndex);
 				} else if (message.type === 'presenter-slide-change') {
 					options.onAudienceSlide(message.slideIndex);
@@ -131,7 +134,7 @@ export function usePresenterSession(options: PresenterSessionOptions) {
 					window.close();
 				}
 			} else if (message.type === 'audience-ready' && message.sessionId === sessionId.value) {
-				sendSlide();
+				sendSnapshot();
 			}
 		};
 		if (isAudience && audienceSessionId) {
@@ -151,5 +154,5 @@ export function usePresenterSession(options: PresenterSessionOptions) {
 		channel = null;
 	});
 
-	return { isAudience, audienceOpen, openAudience, closeAudience };
+	return { isAudience, audienceOpen, snapshot, updateSnapshot, openAudience, closeAudience };
 }

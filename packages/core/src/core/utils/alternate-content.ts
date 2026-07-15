@@ -12,37 +12,52 @@ import type { XmlObject } from '../types';
 import { VML_SHAPE_TAGS } from './vml-parser';
 
 /**
- * Set of OOXML namespace prefixes understood by this implementation.
- * When an mc:Choice element requires ALL of its listed namespaces to be
- * in this set, the Choice branch is used; otherwise, mc:Fallback is used.
+ * Extension elements for which core has an explicit parser or typed
+ * preservation path. A namespace is not treated as supported merely because
+ * its prefix is known. Part 3 requires a consumer to understand the markup in
+ * the selected Choice, so unlisted extension elements select the Fallback.
  */
-const SUPPORTED_MC_NAMESPACES = new Set([
-	// PowerPoint extensions
-	'p14', // Office 2010
-	'p15', // Office 2013
-	'p16', // Office 2016
-	'p16r3', // Office 2016 revision 3
-	'p228', // Office 2021+
-	'p232', // Office 2024
-	// DrawingML extensions
-	'a14', // Drawing 2010
-	'a15', // Drawing 2013
-	'a16', // Drawing 2016
-	// SVG extension
-	'asvg', // SVG blip
-	// Slide layout / creative-content extensions
-	'aclsl', // creative layout
-	'asl', // slide layout
-	// Word/common extensions that may appear in embedded content
-	'w14', // Word 2010
-	'w15', // Word 2013
-	// Chart extensions
-	'c16', // Chart 2016
-	'c16r3', // Chart 2016 revision 3
-	'cx', // ChartEx
-	// Spreadsheet extensions (embedded charts)
-	'x14', // Excel 2010
-]);
+const MC_NAMESPACE_CAPABILITIES: Readonly<Record<string, ReadonlySet<string>>> = {
+	p14: new Set([
+		'transition',
+		'conveyor',
+		'pan',
+		'glitter',
+		'prism',
+		'vortex',
+		'switch',
+		'flip',
+		'gallery',
+		'honeycomb',
+		'flash',
+		'shred',
+		'warp',
+		'flythrough',
+		'doors',
+		'window',
+		'ferris',
+		'newsflash',
+		'wheelReverse',
+		'rotate',
+		'orbit',
+		'cube',
+		'media',
+		'trim',
+		'fade',
+		'bmkLst',
+		'bmk',
+		'hiddenFill',
+		'hiddenLine',
+	]),
+	a14: new Set(['m', 'hiddenFill', 'hiddenLine', 'imgEffect', 'imgLayer']),
+	a16: new Set(['svgBlip', 'colId']),
+	asvg: new Set(['svgBlip']),
+	aink: new Set(['ink', 'inkBrush', 'trace']),
+	p16: new Set(['model3D', 'spPr', 'model3Drel', 'posterImage']),
+	cx: new Set(['chart', 'plotArea', 'plotAreaRegion', 'series', 'data', 'numDim', 'strDim']),
+};
+
+const SUPPORTED_MC_NAMESPACES = new Set(Object.keys(MC_NAMESPACE_CAPABILITIES));
 
 /**
  * Check whether a set of required namespace prefixes are all supported.
@@ -53,6 +68,65 @@ export function areNamespacesSupported(requires: string): boolean {
 	}
 	const namespaces = requires.trim().split(/\s+/);
 	return namespaces.every((ns) => SUPPORTED_MC_NAMESPACES.has(ns));
+}
+
+/**
+ * Check the actual Choice payload against the declared namespace capabilities.
+ * Standard PresentationML/DrawingML children are accepted; every element using
+ * a required extension prefix must be explicitly implemented above.
+ */
+export function isAlternateContentChoiceSupported(choice: XmlObject): boolean {
+	const requires = String(choice?.['@_Requires'] ?? '').trim();
+	if (!areNamespacesSupported(requires)) {
+		return false;
+	}
+	const required = new Set(requires.split(/\s+/).filter(Boolean));
+	return hasOnlySupportedExtensionElements(choice, required);
+}
+
+/** Same capability check for the raw XML scanner used to preserve shape order. */
+export function isAlternateContentChoiceXmlSupported(requires: string, branchXml: string): boolean {
+	if (!areNamespacesSupported(requires)) {
+		return false;
+	}
+	const required = new Set(requires.trim().split(/\s+/).filter(Boolean));
+	const tagPattern = /<(?!\/|\?|!)([A-Za-z_][\w.-]*):([A-Za-z_][\w.-]*)\b/g;
+	let match: RegExpExecArray | null;
+	while ((match = tagPattern.exec(branchXml)) !== null) {
+		if (required.has(match[1]) && !isExtensionElementSupported(match[1], match[2])) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function hasOnlySupportedExtensionElements(node: unknown, required: ReadonlySet<string>): boolean {
+	if (!node || typeof node !== 'object') {
+		return true;
+	}
+	if (Array.isArray(node)) {
+		return node.every((item) => hasOnlySupportedExtensionElements(item, required));
+	}
+	for (const [key, value] of Object.entries(node as XmlObject)) {
+		if (!key.startsWith('@_')) {
+			const separator = key.indexOf(':');
+			if (separator > 0) {
+				const prefix = key.slice(0, separator);
+				const localName = key.slice(separator + 1);
+				if (required.has(prefix) && !isExtensionElementSupported(prefix, localName)) {
+					return false;
+				}
+			}
+		}
+		if (!hasOnlySupportedExtensionElements(value, required)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function isExtensionElementSupported(prefix: string, localName: string): boolean {
+	return MC_NAMESPACE_CAPABILITIES[prefix]?.has(localName) ?? false;
 }
 
 /**
@@ -72,7 +146,7 @@ export function selectAlternateContentBranch(ac: XmlObject): XmlObject | undefin
 		if (requires.length === 0) {
 			return resolveNestedAlternateContent(choice as XmlObject);
 		}
-		if (areNamespacesSupported(requires)) {
+		if (isAlternateContentChoiceSupported(choice as XmlObject)) {
 			return resolveNestedAlternateContent(choice as XmlObject);
 		}
 	}
@@ -176,7 +250,7 @@ function diagnoseSelection(
 	for (let i = 0; i < choices.length; i++) {
 		const choice = choices[i];
 		const requires = String(choice?.['@_Requires'] ?? '').trim();
-		if (requires.length === 0 || areNamespacesSupported(requires)) {
+		if (requires.length === 0 || isAlternateContentChoiceSupported(choice as XmlObject)) {
 			const resolved = resolveNestedAlternateContent(choice as XmlObject);
 			return { branch: 'choice', choiceIndex: i, resolved };
 		}

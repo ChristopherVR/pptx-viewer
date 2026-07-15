@@ -672,6 +672,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					templateElements={state.templateElements}
 					presentation={presentation}
 					onExitPresentation={() => handleSetMode('edit')}
+					onUpdateNotes={propertyHandlers.handleUpdateNotes}
 					isMobile={isMobile}
 				/>
 			</div>

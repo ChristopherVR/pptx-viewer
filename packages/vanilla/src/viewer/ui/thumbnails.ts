@@ -46,8 +46,8 @@ export function createThumbnailRail(
 	return {
 		el,
 		render(slides, canvasSize, renderStage) {
-			el.replaceChildren();
 			buttons = [];
+			const fragment = doc.createDocumentFragment();
 			const scale = THUMB_STAGE_WIDTH / Math.max(canvasSize.width, 1);
 			slides.forEach((slide, index) => {
 				const btn = createEl(doc, 'button', 'pptxv-thumb');
@@ -67,9 +67,10 @@ export function createThumbnailRail(
 				btn.appendChild(frame);
 
 				btn.addEventListener('click', () => onSelect(index));
-				el.appendChild(btn);
+				fragment.appendChild(btn);
 				buttons.push(btn);
 			});
+			el.replaceChildren(fragment);
 			this.setActive(activeIndex);
 		},
 		setActive(index) {

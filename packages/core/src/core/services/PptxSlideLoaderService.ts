@@ -178,37 +178,51 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				}
 			}
 
+			// Layout parsing seeds placeholder defaults consumed by slide parsing.
+			// Keep this ordering even though both operations read different parts.
 			const layoutElements = await params.getLayoutElements(path);
 			const slideElements = await params.parseSlide(slideXmlObj, path);
 
 			const mediaTimingMap = params.extractMediaTimingMap(slideXmlObj, path);
-			if (mediaTimingMap.size > 0) {
-				await params.enrichMediaElementsWithTiming(slideElements, mediaTimingMap);
-			}
-
-			// Recover embedded OLE binaries so callers can download / open the
-			// real inner file. Operates on slide-authored elements (layout
-			// shapes never carry OLE objects).
-			await params.enrichOleElementsWithEmbeddedData(slideElements, path);
+			await Promise.all([
+				mediaTimingMap.size > 0
+					? params.enrichMediaElementsWithTiming(slideElements, mediaTimingMap)
+					: Promise.resolve(),
+				// Recover embedded OLE binaries so callers can download / open the
+				// real inner file. Media and OLE elements are disjoint, so both
+				// enrichments can safely overlap their archive reads.
+				params.enrichOleElementsWithEmbeddedData(slideElements, path),
+			]);
 
 			// Merge layout elements (behind) with slide elements (on top)
 			const elements = [...layoutElements, ...slideElements];
-			const backgroundColor =
-				params.extractBackgroundColor(slideXmlObj) || (await params.getLayoutBackgroundColor(path));
+			const ownBackgroundColor = params.extractBackgroundColor(slideXmlObj);
+			const ownBackgroundGradient = params.extractBackgroundGradient(slideXmlObj);
+			const [
+				backgroundColor,
+				backgroundGradient,
+				backgroundImage,
+				notesResult,
+				legacyComments,
+				modernComments,
+				customerData,
+			] = await Promise.all([
+				ownBackgroundColor
+					? Promise.resolve(ownBackgroundColor)
+					: params.getLayoutBackgroundColor(path),
+				ownBackgroundGradient
+					? Promise.resolve(ownBackgroundGradient)
+					: params.getLayoutBackgroundGradient(path),
+				(async () => {
+					const ownBackgroundImage = await params.extractBackgroundImage(slideXmlObj, path);
+					return ownBackgroundImage || params.getLayoutBackgroundImage(path);
+				})(),
+				params.extractSlideNotes(path),
+				params.extractSlideComments(path),
+				params.extractModernSlideComments(path),
+				params.parseSlideCustomerData(slideXmlObj, path),
+			]);
 
-			const backgroundGradient =
-				params.extractBackgroundGradient(slideXmlObj) ||
-				(await params.getLayoutBackgroundGradient(path));
-
-			let backgroundImage = await params.extractBackgroundImage(slideXmlObj, path);
-			if (!backgroundImage) {
-				backgroundImage = await params.getLayoutBackgroundImage(path);
-			}
-
-			// Extract notes, comments (both legacy and modern formats)
-			const notesResult = await params.extractSlideNotes(path);
-			const legacyComments = await params.extractSlideComments(path);
-			const modernComments = await params.extractModernSlideComments(path);
 			// Merge modern and legacy comments; prefer separate lists when both exist
 			const comments =
 				modernComments.length > 0 ? [...legacyComments, ...modernComments] : legacyComments;
@@ -231,8 +245,6 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				| undefined;
 
 			const drawingGuides = parseSlideDrawingGuides(slideXmlObj);
-
-			const customerData = await params.parseSlideCustomerData(slideXmlObj, path);
 
 			const activeXControls = params.parseSlideActiveXControls(slideXmlObj);
 

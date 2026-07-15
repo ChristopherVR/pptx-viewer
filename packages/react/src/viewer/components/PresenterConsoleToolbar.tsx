@@ -11,7 +11,7 @@ import {
 	LuPenTool,
 	LuRotateCcw,
 	LuScan,
-	LuSubtitles,
+	LuCaptions,
 	LuX,
 	LuZoomIn,
 	LuZoomOut,
@@ -105,7 +105,7 @@ export function PresenterConsoleToolbar(props: PresenterConsoleToolbarProps) {
 				onClick={props.onToggleSubtitles}
 				title='Toggle subtitles'
 			>
-				<LuSubtitles />
+				<LuCaptions />
 			</button>
 			<div className='flex-1' />
 			<button

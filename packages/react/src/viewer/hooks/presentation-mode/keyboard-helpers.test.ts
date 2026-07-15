@@ -94,6 +94,11 @@ describe('mapKeyToPresentationAction', () => {
 		});
 	});
 
+	it('maps B and W to audience screen blanks', () => {
+		expect(mapKeyToPresentationAction('B', false)).toStrictEqual({ action: 'toggleBlackScreen' });
+		expect(mapKeyToPresentationAction('w', false)).toStrictEqual({ action: 'toggleWhiteScreen' });
+	});
+
 	// Toolbar toggle (Ctrl+M)
 	it('maps Ctrl+m to toggleToolbar', () => {
 		expect(mapKeyToPresentationAction('m', true)).toStrictEqual({

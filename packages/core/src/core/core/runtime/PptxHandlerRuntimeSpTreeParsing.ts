@@ -1,7 +1,7 @@
 import { XmlObject, PptxElement } from '../../types';
 import {
 	unwrapAlternateContent as unwrapAC,
-	areNamespacesSupported,
+	isAlternateContentChoiceXmlSupported,
 } from '../../utils/alternate-content';
 import { VML_SHAPE_TAGS, parseVmlElement } from '../../utils/vml-parser';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePictureParsing';
@@ -227,8 +227,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				continue;
 			}
 
-			if (areNamespacesSupported(requires)) {
-				const branchContent = acInner.slice(choiceBodyStart, choiceEnd);
+			const branchContent = acInner.slice(choiceBodyStart, choiceEnd);
+			if (isAlternateContentChoiceXmlSupported(requires, branchContent)) {
 				return PptxHandlerRuntime.extractElementTagsFromBranch(branchContent);
 			}
 		}

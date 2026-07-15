@@ -16,10 +16,11 @@
  *  - Presenter -> Audience: `{ type: 'presenter-exit', sessionId }`
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 
 import {
 	buildPresentationAudienceUrl,
+	createInitialPresentationSnapshot,
 	isPresentationSessionMessage,
 	placeAudienceWindow,
 	PRESENTATION_CHANNEL_NAME,
@@ -27,7 +28,9 @@ import {
 	PRESENTATION_NONCE_KEY,
 	resolveAudienceScreenPlacement,
 	secureRandomUuid,
+	mergePresentationSnapshot,
 } from '../internal/shared';
+import type { PresentationSnapshot } from '../internal/shared';
 import {
 	AUDIENCE_HASH,
 	clearAudienceContent,
@@ -102,6 +105,7 @@ export function parseAudienceNonce(): string | null {
 
 @Injectable({ providedIn: 'root' })
 export class PresenterWindowService {
+	readonly snapshot = signal(createInitialPresentationSnapshot());
 	private audienceWindow: Window | null = null;
 	private channel: BroadcastChannel | null = null;
 	private pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -121,14 +125,19 @@ export class PresenterWindowService {
 	}
 
 	syncSlideToAudience(slideIndex: number): void {
+		this.updateSnapshot({ slideIndex });
+	}
+
+	updateSnapshot(patch: Partial<PresentationSnapshot>): void {
+		this.snapshot.update((current) => mergePresentationSnapshot(current, patch));
 		if (!this.sessionId) {
 			return;
 		}
-		const msg: PresenterSlideChangeMessage = {
+		const msg = {
 			origin: PRESENTER_MSG_ORIGIN,
-			type: 'presenter-slide-change',
-			slideIndex,
+			type: 'presenter-state',
 			sessionId: this.sessionId,
+			snapshot: this.snapshot(),
 		};
 		try {
 			this.getChannel().postMessage(msg);
@@ -272,6 +281,7 @@ export class PresenterWindowService {
 				return;
 			}
 			if (message.type === 'presenter-state') {
+				this.snapshot.set(message.snapshot);
 				onSlide(message.snapshot.slideIndex);
 			} else if (message.type === 'presenter-slide-change') {
 				onSlide(message.slideIndex);

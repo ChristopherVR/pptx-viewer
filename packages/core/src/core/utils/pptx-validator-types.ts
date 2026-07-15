@@ -23,8 +23,18 @@ export interface ValidationIssue {
 
 /** Aggregate result of a PPTX validation pass. */
 export interface ValidationResult {
+	/** True when no errors were found by the package and rule-based checks. */
 	valid: boolean;
 	issues: ValidationIssue[];
+	/** Scope and dialect detected by the rule-based ECMA-376 checks. */
+	conformance: ValidationConformance;
+}
+
+/** This validator is substantive but does not replace validation against every ECMA XSD. */
+export interface ValidationConformance {
+	level: 'rule-checked' | 'not-checked';
+	dialect: 'strict' | 'transitional' | 'mixed' | 'unknown';
+	description: string;
 }
 
 /** Result of a PPTX repair operation. */

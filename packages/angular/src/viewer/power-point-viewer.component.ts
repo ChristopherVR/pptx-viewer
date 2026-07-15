@@ -624,6 +624,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						(movePresentationSlide)="goTo(activeSlideIndex() + $event)"
 						(openAudienceWindow)="presentationMode.openAudienceWindow()"
 						(closeAudienceWindow)="presenterWindow.closeAudienceWindow()"
+						(navigateToSlide)="goTo($event)"
 						(exit)="presentationMode.exitPresenter()"
 					/>
 				}

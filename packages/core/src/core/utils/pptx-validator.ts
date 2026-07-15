@@ -13,7 +13,12 @@
  * @module utils/pptx-validator
  */
 
-export type { ValidationIssue, ValidationResult, RepairResult } from './pptx-validator-types';
+export type {
+	ValidationConformance,
+	ValidationIssue,
+	ValidationResult,
+	RepairResult,
+} from './pptx-validator-types';
 
 export { validatePptx } from './pptx-validator-checks';
 export { repairPptx } from './pptx-validator-repair';

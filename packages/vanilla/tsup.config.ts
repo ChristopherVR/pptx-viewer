@@ -9,7 +9,10 @@ export default defineConfig((options) => ({
 	// `pptx-viewer-shared`, can't get) those packages from npm. Mirrors the
 	// React package's tsup config and the Vue package's dts `bundledPackages`.
 	dts: false,
-	splitting: false,
+	// Preserve the dynamic boundaries around optional 3D, export, and
+	// collaboration features. Without splitting, esbuild folds the internal
+	// SmartArt 3D subpath into the entry and emits an eager `three` import.
+	splitting: true,
 	sourcemap: false,
 	clean: !options.watch,
 	external: [
@@ -23,8 +26,8 @@ export default defineConfig((options) => ({
 		/^three\//u,
 		// PNG/PDF export libraries: both are dynamically `import()`-ed only when
 		// export is actually used (see viewer/export/render-to-canvas.ts and
-		// export-controller.ts). Kept external so `splitting: false` doesn't
-		// collapse the dynamic import into an eager one.
+		// export-controller.ts). Kept external so bundling cannot collapse the
+		// dynamic import into an eager one.
 		'html2canvas-pro',
 		'jspdf',
 		// Real-time collaboration transports: dynamically `import()`-ed only when

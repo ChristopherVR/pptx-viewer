@@ -14,6 +14,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
 import type { StyleMap } from './element-style';
+import { PresenterControlsComponent } from './presenter-controls.component';
 import {
 	NOTES_FONT_SIZE_DEFAULT,
 	NOTES_FONT_SIZE_MAX,
@@ -30,6 +31,7 @@ import {
 	slideCounter,
 	slideLabel,
 } from './presenter-view-helpers';
+import { PresenterWindowService } from './presenter-window.service';
 import { SlideCanvasComponent } from './slide-canvas.component';
 
 /** Clock tick interval (ms) for the current-time / elapsed display. */
@@ -67,7 +69,7 @@ const CLOCK_TICK_MS = 1000;
 	selector: 'pptx-presenter-view',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, SlideCanvasComponent, TranslatePipe],
+	imports: [NgStyle, SlideCanvasComponent, PresenterControlsComponent, TranslatePipe],
 	styles: `
 		:host {
 			position: absolute;
@@ -296,6 +298,18 @@ const CLOCK_TICK_MS = 1000;
 	`,
 	template: `
 		@if (currentSlide(); as current) {
+			<pptx-presenter-controls
+				[snapshot]="presenterWindow.snapshot()"
+				[audienceOpen]="isAudienceWindowOpen()"
+				[slides]="slides()"
+				[current]="currentSlideIndex()"
+				[canvasSize]="canvasSize()"
+				[mediaDataUrls]="mediaDataUrls()"
+				(patch)="presenterWindow.updateSnapshot($event)"
+				(navigate)="navigateToSlide.emit($event)"
+				(audience)="onToggleAudienceWindow()"
+				(end)="exit.emit()"
+			/>
 			<div class="pptx-ng-presenter-body">
 				<!-- Current slide (≈70%) -->
 				<div class="pptx-ng-presenter-current">
@@ -470,6 +484,7 @@ const CLOCK_TICK_MS = 1000;
 	`,
 })
 export class PresenterViewComponent {
+	protected readonly presenterWindow = inject(PresenterWindowService);
 	// Template-exposed constants.
 	protected readonly NOTES_FONT_SIZE_MIN = NOTES_FONT_SIZE_MIN;
 	protected readonly NOTES_FONT_SIZE_MAX = NOTES_FONT_SIZE_MAX;
@@ -494,6 +509,7 @@ export class PresenterViewComponent {
 	readonly exit = output<void>();
 	readonly openAudienceWindow = output<void>();
 	readonly closeAudienceWindow = output<void>();
+	readonly navigateToSlide = output<number>();
 
 	// ------------------------------------------------------------------
 	// Internal state

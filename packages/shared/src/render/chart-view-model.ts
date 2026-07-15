@@ -111,12 +111,21 @@ export interface ValueRange {
 
 /** Compute a Y-axis range that always includes zero. */
 export function computeValueRange(series: ReadonlyArray<PptxChartSeries>): ValueRange {
-	const all = series.flatMap((s) => s.values);
-	if (all.length === 0) {
+	let dataMin = Number.POSITIVE_INFINITY;
+	let dataMax = Number.NEGATIVE_INFINITY;
+	for (const item of series) {
+		for (const value of item.values) {
+			if (value < dataMin) {
+				dataMin = value;
+			}
+			if (value > dataMax) {
+				dataMax = value;
+			}
+		}
+	}
+	if (dataMin === Number.POSITIVE_INFINITY) {
 		return { min: 0, max: 1, span: 1 };
 	}
-	const dataMin = Math.min(...all);
-	const dataMax = Math.max(...all);
 	const min = Math.min(dataMin, 0);
 	const max = Math.max(dataMax, 0);
 	const span = Math.max(max - min, 1);

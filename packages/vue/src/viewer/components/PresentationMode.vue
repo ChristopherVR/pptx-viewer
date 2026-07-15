@@ -455,6 +455,29 @@ onBeforeUnmount(() => {
 					@done="onTransitionDone"
 				/>
 			</div>
+			<div
+				v-if="presenterSession.snapshot.value.blackout !== 'none'"
+				class="absolute inset-0 z-[75]"
+				:style="{ background: presenterSession.snapshot.value.blackout }"
+			/>
+			<div
+				v-if="presenterSession.snapshot.value.pointer?.tool === 'laser'"
+				class="pointer-events-none absolute z-[76] h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500"
+				:style="{
+					left: `${(presenterSession.snapshot.value.pointer?.x ?? 0.5) * 100}%`,
+					top: `${(presenterSession.snapshot.value.pointer?.y ?? 0.5) * 100}%`,
+					boxShadow: '0 0 20px 8px rgba(239,68,68,.55)',
+				}"
+			/>
+			<div
+				v-if="
+					presenterSession.snapshot.value.subtitlesVisible &&
+					presenterSession.snapshot.value.caption
+				"
+				class="pointer-events-none absolute inset-x-[10%] bottom-8 z-[77] rounded-lg bg-black/80 px-6 py-3 text-center text-xl text-white"
+			>
+				{{ presenterSession.snapshot.value.caption }}
+			</div>
 
 			<!-- Presenter view (notes + next-slide preview): covers the stage.
 			     On a phone, a single-column mobile layout replaces the desktop
@@ -478,10 +501,13 @@ onBeforeUnmount(() => {
 				:media-data-urls="mediaDataUrls"
 				:presentation-start-time="presentationStartTime"
 				:audience-open="presenterSession.audienceOpen.value"
+				:snapshot="presenterSession.snapshot.value"
 				@click.stop
 				@move="onToolbarMove"
 				@open-audience="presenterSession.openAudience"
 				@close-audience="presenterSession.closeAudience"
+				@navigate="goTo"
+				@update-snapshot="presenterSession.updateSnapshot"
 				@exit="presenterMode = false"
 			/>
 

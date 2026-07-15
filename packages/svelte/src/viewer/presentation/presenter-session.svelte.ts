@@ -1,6 +1,7 @@
 import {
 	buildPresentationAudienceUrl,
 	clearPresentationDeck,
+	createInitialPresentationSnapshot,
 	createPresentationSessionId,
 	isPresentationSessionMessage,
 	parsePresentationSessionId,
@@ -9,7 +10,9 @@ import {
 	PRESENTATION_MESSAGE_ORIGIN,
 	resolveAudienceScreenPlacement,
 	storePresentationDeck,
+	mergePresentationSnapshot,
 } from 'pptx-viewer-shared';
+import type { PresentationSnapshot } from 'pptx-viewer-shared';
 
 export interface PresenterSessionOptions {
 	getSource: () => Uint8Array | ArrayBuffer | null | undefined;
@@ -20,6 +23,7 @@ export interface PresenterSessionOptions {
 
 export class PresenterSession {
 	audienceOpen = $state(false);
+	snapshot = $state(createInitialPresentationSnapshot(0));
 	readonly audienceSessionId =
 		typeof window === 'undefined' ? null : parsePresentationSessionId(window.location.hash);
 	readonly isAudience = this.audienceSessionId !== null;
@@ -42,6 +46,7 @@ export class PresenterSession {
 			}
 			if (this.isAudience && message.sessionId === this.audienceSessionId) {
 				if (message.type === 'presenter-state') {
+					this.snapshot = message.snapshot;
 					this.options.onAudienceSlide(message.snapshot.slideIndex);
 				} else if (message.type === 'presenter-slide-change') {
 					this.options.onAudienceSlide(message.slideIndex);
@@ -100,15 +105,13 @@ export class PresenterSession {
 			origin: PRESENTATION_MESSAGE_ORIGIN,
 			type: 'presenter-state',
 			sessionId: this.presenterSessionId,
-			snapshot: {
-				slideIndex,
-				buildStep: 0,
-				sequence: ++this.sequence,
-				blackout: 'none',
-				paused: false,
-				elapsedMs: 0,
-			},
+			snapshot: { ...this.snapshot, slideIndex, sequence: ++this.sequence },
 		});
+	}
+
+	updateSnapshot(patch: Partial<PresentationSnapshot>): void {
+		this.snapshot = mergePresentationSnapshot(this.snapshot, patch);
+		this.sync(this.snapshot.slideIndex);
 	}
 
 	closeAudience(): void {

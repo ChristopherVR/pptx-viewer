@@ -1,5 +1,5 @@
 import type { PptxHandler } from 'pptx-viewer-core';
-import type { ViewerTheme } from 'pptx-viewer-shared';
+import type { PresentationSnapshot, ViewerTheme } from 'pptx-viewer-shared';
 import {
 	buildPresentationAudienceUrl,
 	clearPresentationDeck,
@@ -13,6 +13,8 @@ import {
 	PRESENTATION_MESSAGE_ORIGIN,
 	resolveAudienceScreenPlacement,
 	storePresentationDeck,
+	createInitialPresentationSnapshot,
+	mergePresentationSnapshot,
 } from 'pptx-viewer-shared';
 
 import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
@@ -25,6 +27,7 @@ import type { Translator } from './i18n';
 import { createTranslator } from './i18n';
 import type { LoadingController } from './loading-controller';
 import { createLoadingController } from './loading-controller';
+import { mountPresenterConsole, renderAudienceEffects } from './presenter-console';
 import type { ElementRendererRegistry } from './render';
 import { createDefaultRegistry } from './render';
 import type { RenderController } from './render-controller';
@@ -73,6 +76,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private audienceWindow: Window | null = null;
 	private presenterSessionId = '';
 	private presenterSequence = 0;
+	private presenterSnapshot = createInitialPresentationSnapshot();
+	private disposePresenterConsole: (() => void) | null = null;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
 		super();
@@ -213,6 +218,21 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.audienceWindow = popup;
 		this.presenterSessionId = createPresentationSessionId();
 		this.store.set({ notesExpanded: true });
+		this.disposePresenterConsole?.();
+		this.disposePresenterConsole = mountPresenterConsole({
+			container: this.container,
+			getSnapshot: () => this.presenterSnapshot,
+			getSlides: () => this.store.get().slides,
+			getCurrent: () => this.getCurrentSlide(),
+			update: (patch) => this.updatePresenterSnapshot(patch),
+			navigate: (index) => this.goToSlide(index),
+			toggleAudience: () =>
+				this.isAudienceWindowOpen() ? this.closeAudienceWindow() : this.openPresenterView(),
+			end: () => {
+				this.closeAudienceWindow();
+				void this.exitPresentation();
+			},
+		});
 		const sessionId = this.presenterSessionId;
 		const url = buildPresentationAudienceUrl(window.location.href, sessionId);
 		void resolveAudienceScreenPlacement(window).then((placement) => {
@@ -242,6 +262,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		}
 	}
 
+	private isAudienceWindowOpen(): boolean {
+		return Boolean(this.audienceWindow && !this.audienceWindow.closed);
+	}
+
 	private syncAudience(slideIndex = this.getCurrentSlide()): void {
 		if (!this.presenterSessionId) {
 			return;
@@ -250,15 +274,14 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			origin: PRESENTATION_MESSAGE_ORIGIN,
 			type: 'presenter-state',
 			sessionId: this.presenterSessionId,
-			snapshot: {
-				slideIndex,
-				buildStep: 0,
-				sequence: ++this.presenterSequence,
-				blackout: 'none',
-				paused: false,
-				elapsedMs: 0,
-			},
+			snapshot: { ...this.presenterSnapshot, slideIndex, sequence: ++this.presenterSequence },
 		});
+	}
+
+	private updatePresenterSnapshot(patch: Partial<PresentationSnapshot>): void {
+		this.presenterSnapshot = mergePresentationSnapshot(this.presenterSnapshot, patch);
+		renderAudienceEffects(this.container, this.presenterSnapshot);
+		this.syncAudience(this.presenterSnapshot.slideIndex);
 	}
 
 	private connectAudienceRole(): void {
@@ -274,6 +297,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			}
 			if (audienceSession && message.sessionId === audienceSession) {
 				if (message.type === 'presenter-state') {
+					this.presenterSnapshot = message.snapshot;
+					renderAudienceEffects(this.container, message.snapshot);
 					this.goToSlide(message.snapshot.slideIndex);
 				}
 				if (message.type === 'presenter-slide-change') {
@@ -326,6 +351,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		}
 		this.audienceWindow = null;
 		this.presenterSessionId = '';
+		this.disposePresenterConsole?.();
+		this.disposePresenterConsole = null;
 	}
 
 	setLocale(locale: string): void {

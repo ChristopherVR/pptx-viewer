@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { PptxSlide } from 'pptx-viewer-core';
+import { stepPresenterZoom } from 'pptx-viewer-shared';
+import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -14,6 +16,8 @@ import {
 	NOTES_FONT_SIZE_STEP,
 } from '../composables/presenter-view-utils';
 import type { CanvasSize } from '../types';
+import PresenterControlStrip from './PresenterControlStrip.vue';
+import PresenterSlideGrid from './PresenterSlideGrid.vue';
 import SlideStage from './SlideStage.vue';
 
 /**
@@ -34,14 +38,34 @@ const props = defineProps<{
 	/** Timestamp (ms) the presentation started, or `null`. */
 	presentationStartTime: number | null;
 	audienceOpen?: boolean;
+	snapshot: PresentationSnapshot;
 }>();
 
 const emit = defineEmits<{
 	(e: 'move', direction: 1 | -1): void;
 	(e: 'exit' | 'open-audience' | 'close-audience'): void;
+	(e: 'navigate', index: number): void;
+	(e: 'update-snapshot', patch: Partial<PresentationSnapshot>): void;
 }>();
 
 const { t } = useI18n();
+const showSlides = ref(false);
+function update(patch: Partial<PresentationSnapshot>): void {
+	emit('update-snapshot', patch);
+}
+function setTool(tool: PresentationPointerTool): void {
+	update({
+		pointer: { ...(props.snapshot.pointer ?? { x: 0.5, y: 0.5, color: '#ef4444' }), tool },
+	});
+}
+function zoom(direction: -1 | 1): void {
+	update({
+		zoom: stepPresenterZoom(
+			props.snapshot.zoom ?? { scale: 1, originX: 0.5, originY: 0.5 },
+			direction,
+		),
+	});
+}
 
 // -- Live clock -------------------------------------------------------------
 const now = ref(Date.now());
@@ -133,6 +157,8 @@ const mainScale = computed(() => {
 const previewMainFrameStyle = computed(() => ({
 	width: `${props.canvasSize.width * mainScale.value}px`,
 	height: `${props.canvasSize.height * mainScale.value}px`,
+	transform: `scale(${props.snapshot.zoom?.scale ?? 1})`,
+	transformOrigin: `${(props.snapshot.zoom?.originX ?? 0.5) * 100}% ${(props.snapshot.zoom?.originY ?? 0.5) * 100}%`,
 }));
 </script>
 
@@ -141,6 +167,20 @@ const previewMainFrameStyle = computed(() => ({
 		v-if="!currentSlide"
 		class="pptx-vue-presenter pptx-vue-presenter--empty absolute inset-0 z-50 flex items-center justify-center bg-card text-muted-foreground"
 	>
+		<PresenterControlStrip
+			:snapshot="snapshot"
+			:audience-open="Boolean(audienceOpen)"
+			@timer="update({ paused: !snapshot.paused })"
+			@reset-timer="update({ paused: false, elapsedMs: 0 })"
+			@slides="showSlides = true"
+			@zoom="zoom"
+			@reset-zoom="update({ zoom: { scale: 1, originX: 0.5, originY: 0.5 } })"
+			@blackout="(value) => update({ blackout: value })"
+			@tool="setTool"
+			@subtitles="update({ subtitlesVisible: !snapshot.subtitlesVisible })"
+			@audience="toggleAudience"
+			@exit="emit('exit')"
+		/>
 		{{ t('pptx.mpresenter.noSlides') }}
 	</div>
 	<div
@@ -332,6 +372,20 @@ const previewMainFrameStyle = computed(() => ({
 				</div>
 			</div>
 		</div>
+		<PresenterSlideGrid
+			v-if="showSlides"
+			:slides="slides"
+			:current="currentSlideIndex"
+			:canvas-size="canvasSize"
+			:media-data-urls="mediaDataUrls"
+			@select="
+				(index) => {
+					emit('navigate', index);
+					showSlides = false;
+				}
+			"
+			@close="showSlides = false"
+		/>
 
 		<!-- Timer progress bar -->
 		<div

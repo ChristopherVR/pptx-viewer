@@ -244,6 +244,8 @@ export {
 	selectAlternateContentBranch,
 	unwrapAlternateContent,
 	areNamespacesSupported,
+	isAlternateContentChoiceSupported,
+	isAlternateContentChoiceXmlSupported,
 	isNamespaceSupported,
 	getSupportedNamespaces,
 	SHAPE_TREE_ELEMENT_TAGS,

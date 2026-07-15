@@ -375,7 +375,8 @@ export function deleteElements(
 
 	const slide = ctx.pptxData.slides[params.slideIndex];
 	const idSet = new Set(params.elementIds);
-	const notFound = params.elementIds.filter((id) => !slide.elements.some((e) => e.id === id));
+	const existingIds = new Set(slide.elements.map((element) => element.id));
+	const notFound = params.elementIds.filter((id) => !existingIds.has(id));
 	if (notFound.length > 0) {
 		throw new Error(`Elements not found: ${notFound.join(', ')}`);
 	}
@@ -418,7 +419,8 @@ export function arrangeElements(
 		if (!params.elementIds || params.elementIds.length === 0) {
 			throw new Error('elementIds is required for align action.');
 		}
-		const targets = slide.elements.filter((e) => params.elementIds!.includes(e.id));
+		const targetIds = new Set(params.elementIds);
+		const targets = slide.elements.filter((element) => targetIds.has(element.id));
 		if (targets.length === 0) {
 			throw new Error('No matching elements found for align.');
 		}
@@ -660,7 +662,8 @@ export function groupElements(
 	const idSet = new Set(params.elementIds);
 	const children = slide.elements.filter((e) => idSet.has(e.id));
 	if (children.length !== params.elementIds.length) {
-		const missing = params.elementIds.filter((id) => !slide.elements.some((e) => e.id === id));
+		const childIds = new Set(children.map((element) => element.id));
+		const missing = params.elementIds.filter((id) => !childIds.has(id));
 		throw new Error(`Elements not found: ${missing.join(', ')}`);
 	}
 

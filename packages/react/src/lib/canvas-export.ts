@@ -1,4 +1,3 @@
-import html2canvasPro from 'html2canvas-pro';
 import type { Options as Html2CanvasOptions } from 'html2canvas-pro';
 /**
  * Canvas Export Utilities
@@ -39,6 +38,7 @@ export async function renderToCanvas(
 	options: Partial<Html2CanvasOptions> = {},
 ): Promise<HTMLCanvasElement> {
 	const userOnClone = options.onclone;
+	const { default: html2canvasPro } = await import('html2canvas-pro');
 
 	return html2canvasPro(element, {
 		...options,

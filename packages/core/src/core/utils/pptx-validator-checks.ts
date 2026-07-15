@@ -11,6 +11,7 @@
 import type { XMLParser } from 'fast-xml-parser';
 import type JSZip from 'jszip';
 
+import { validateEcmaRules } from './pptx-validator-conformance';
 import {
 	createParser,
 	ensureArray,
@@ -329,7 +330,7 @@ async function validateTheme(
 // ---------------------------------------------------------------------------
 
 /**
- * Validate a PPTX file structure without fully loading it.
+ * Validate a PPTX package with structural and selected ECMA-376 rules.
  *
  * Runs the following checks:
  * 1. Valid ZIP file (can be opened by JSZip)
@@ -350,7 +351,15 @@ export async function validatePptx(buffer: ArrayBuffer): Promise<ValidationResul
 			code: 'INVALID_ZIP',
 			message: zipResult.error,
 		});
-		return { valid: false, issues };
+		return {
+			valid: false,
+			issues,
+			conformance: {
+				level: 'not-checked',
+				dialect: 'unknown',
+				description: 'ECMA-376 rules were not checked because the package is not a readable ZIP.',
+			},
+		};
 	}
 
 	const { zip } = zipResult;
@@ -362,7 +371,8 @@ export async function validatePptx(buffer: ArrayBuffer): Promise<ValidationResul
 	await validateSlideXml(zip, parser, issues);
 	await validateMediaReferences(zip, parser, issues);
 	await validateTheme(zip, parser, issues);
+	const conformance = await validateEcmaRules(zip, issues);
 
 	const hasErrors = issues.some((i) => i.severity === 'error');
-	return { valid: !hasErrors, issues };
+	return { valid: !hasErrors, issues, conformance };
 }
