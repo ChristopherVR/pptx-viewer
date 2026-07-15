@@ -33,7 +33,7 @@ export function parseEffectDagPresetShadow(value: unknown): EffectDagPresetShado
 	if (distance !== undefined) {
 		effect.distanceEmu = distance;
 	}
-	const direction = integer(xml['@_dir']);
+	const direction = positiveFixedAngle(xml['@_dir']);
 	if (direction !== undefined) {
 		effect.direction = direction;
 	}
@@ -55,7 +55,14 @@ export function serializeEffectDagPresetShadow(effect: EffectDagPresetShadow): X
 		xml['@_prst'] = effect.preset;
 	}
 	writeInteger(xml, 'dist', effect.distanceEmu, true);
-	writeInteger(xml, 'dir', effect.direction, false);
+	if (
+		effect.direction !== undefined &&
+		Number.isSafeInteger(effect.direction) &&
+		effect.direction >= 0 &&
+		effect.direction < 21600000
+	) {
+		xml['@_dir'] = String(effect.direction);
+	}
 	return xml;
 }
 
@@ -74,6 +81,11 @@ function integer(value: unknown): number | undefined {
 	}
 	const parsed = Number(value);
 	return Number.isSafeInteger(parsed) ? parsed : undefined;
+}
+
+function positiveFixedAngle(value: unknown): number | undefined {
+	const parsed = integer(value);
+	return parsed !== undefined && parsed >= 0 && parsed < 21600000 ? parsed : undefined;
 }
 
 function parseBoolean(value: unknown): boolean | undefined {
