@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PptxSlide } from 'pptx-viewer-core';
-import { stepPresenterZoom } from 'pptx-viewer-shared';
+import { createInitialPresentationSnapshot, stepPresenterZoom } from 'pptx-viewer-shared';
 import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -30,16 +30,21 @@ import SlideStage from './SlideStage.vue';
  * navigation is owned by the host; this component only emits navigation /
  * exit intents.
  */
-const props = defineProps<{
-	slides: PptxSlide[];
-	currentSlideIndex: number;
-	canvasSize: CanvasSize;
-	mediaDataUrls: Map<string, string>;
-	/** Timestamp (ms) the presentation started, or `null`. */
-	presentationStartTime: number | null;
-	audienceOpen?: boolean;
-	snapshot: PresentationSnapshot;
-}>();
+const props = withDefaults(
+	defineProps<{
+		slides: PptxSlide[];
+		currentSlideIndex: number;
+		canvasSize: CanvasSize;
+		mediaDataUrls: Map<string, string>;
+		/** Timestamp (ms) the presentation started, or `null`. */
+		presentationStartTime: number | null;
+		audienceOpen?: boolean;
+		snapshot?: PresentationSnapshot;
+	}>(),
+	{
+		snapshot: () => createInitialPresentationSnapshot(),
+	},
+);
 
 const emit = defineEmits<{
 	(e: 'move', direction: 1 | -1): void;
