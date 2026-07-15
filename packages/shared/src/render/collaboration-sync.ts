@@ -131,6 +131,8 @@ export const SCALAR_ELEMENT_KEYS: ReadonlySet<string> = new Set([
 	'mediaType',
 	'mediaPath',
 	'mediaMimeType',
+	'mediaReferenceKind',
+	'mediaReferenceName',
 	'trimStartMs',
 	'trimEndMs',
 	'posterFramePath',
@@ -195,6 +197,9 @@ export const COMPLEX_ELEMENT_FIELDS: Readonly<Record<string, string>> = {
 	cropShape: '_cr',
 	bookmarks: '_mb',
 	captionTracks: '_ct',
+	audioCdStart: '_acd1',
+	audioCdEnd: '_acd2',
+	rawMediaReferenceXml: '_mrx',
 	metadata: '_md',
 	groupFill: '_gf',
 	inkPointPressures: '_ipp',
@@ -250,6 +255,7 @@ export const COMPLEX_SLIDE_FIELDS: Readonly<Record<string, string>> = {
 	activeXControls: '_ax',
 	backgroundPattern: '_bp',
 	headerFooterFlags: '_hff',
+	slideSynchronization: '_sync',
 };
 const REV_COMPLEX_SLIDE: Record<string, string> = Object.fromEntries(
 	Object.entries(COMPLEX_SLIDE_FIELDS).map(([k, v]) => [v, k]),

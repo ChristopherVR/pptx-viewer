@@ -30,6 +30,11 @@ describe('presentation session', () => {
 			blackout: 'none',
 			paused: false,
 			elapsedMs: 0,
+			pointer: { tool: 'none', x: 0.5, y: 0.5, color: '#ef4444' },
+			inkStrokes: [],
+			zoom: { scale: 1, originX: 0.5, originY: 0.5 },
+			subtitlesVisible: false,
+			caption: '',
 		});
 	});
 
