@@ -82,6 +82,22 @@ describe('buildPrimaryAxis display units', () => {
 		const cap = axisLabels.find((l) => l.text === 'Thousands');
 		expect(cap?.transform).toContain('rotate(-90');
 	});
+
+	it('uses text from a typed display-units label', () => {
+		const { axisLabels } = buildPrimaryAxis(range, layout, {
+			...axis,
+			displayUnitsLabel: { text: 'K' },
+		});
+		expect(axisLabels.some((label) => label.text === 'K')).toBeTruthy();
+	});
+
+	it('omits the caption for an explicitly removed label', () => {
+		const { axisLabels } = buildPrimaryAxis(range, layout, {
+			...axis,
+			displayUnitsLabel: null,
+		});
+		expect(axisLabels.some((label) => label.text === 'Thousands')).toBeFalsy();
+	});
 });
 
 describe('buildSecondaryAxis', () => {

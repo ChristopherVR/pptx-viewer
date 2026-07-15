@@ -159,9 +159,18 @@ export function getDisplayUnitDivisor(unit: string | undefined, customValue?: nu
 }
 
 /** Get the human-readable label for a display unit (custom label overrides built-in). */
-export function getDisplayUnitLabel(unit: string | undefined, customLabel?: string): string {
-	if (customLabel) {
+export function getDisplayUnitLabel(
+	unit: string | undefined,
+	customLabel?: string | { text?: string } | null,
+): string {
+	if (typeof customLabel === 'string') {
 		return customLabel;
+	}
+	if (customLabel === null) {
+		return '';
+	}
+	if (customLabel?.text) {
+		return customLabel.text;
 	}
 	if (!unit || unit === 'custom') {
 		return '';
@@ -228,7 +237,7 @@ export function getSecondaryCategoryAxis(
 /** Compute layout options from chart data for use with computeLayout. */
 export function computeLayoutOptions(
 	axes: PptxChartAxisFormatting[] | undefined,
-	dataTable: PptxChartDataTable | undefined,
+	dataTable: PptxChartDataTable | null | undefined,
 	seriesCount: number,
 ): LayoutOptions {
 	return {
