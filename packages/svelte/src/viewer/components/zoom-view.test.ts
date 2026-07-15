@@ -1,7 +1,8 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { ZoomNavigationContextKey } from '../state/zoom-navigation-context';
 import ElementRenderer from './ElementRenderer.svelte';
 
 /**
@@ -15,12 +16,43 @@ const PNG_DATA_URL =
 
 let cleanup: (() => void) | undefined;
 
-function mountEl(element: PptxElement): HTMLElement {
+function mountEl(
+	element: PptxElement,
+	options: { presenting?: boolean; navigation?: (index: number) => void } = {},
+): HTMLElement {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(ElementRenderer, {
 		target,
-		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 4 },
+		props: {
+			element,
+			mediaDataUrls: new Map<string, string>(),
+			zIndex: 4,
+			presenting: options.presenting,
+		},
+		context: options.navigation
+			? new Map([
+					[
+						ZoomNavigationContextKey,
+						{
+							navigateToZoomTarget: options.navigation,
+							getSlides: () => [
+								{},
+								{},
+								{},
+								{},
+								{},
+								{
+									slideNumber: 12,
+									backgroundColor: '#123456',
+									sectionName: 'Quarterly results',
+									elements: [],
+								},
+							],
+						},
+					],
+				])
+			: undefined,
 	});
 	flushSync();
 	cleanup = () => {
@@ -82,5 +114,28 @@ describe('zoomView', () => {
 		expect(node?.getAttribute('aria-label')).toBe('Zoom to slide 6 (section: {ABC-123})');
 		expect(target.querySelector('.pptx-svelte-zoom-section-label')?.textContent).toBe('{ABC-123}');
 		expect(target.querySelector('.pptx-svelte-zoom-badge')?.textContent).toBe('Section Zoom');
+	});
+
+	it('uses target metadata and navigates by click or keyboard while presenting', () => {
+		const navigate = vi.fn<(index: number) => void>();
+		const target = mountEl(zoomElement({ zoomType: 'section', targetSectionId: 'sec-1' }), {
+			presenting: true,
+			navigation: navigate,
+		});
+		const node = target.querySelector<HTMLElement>('[data-element-id="zm-1"]');
+		expect(node?.getAttribute('role')).toBe('button');
+		expect(node?.getAttribute('tabindex')).toBe('0');
+		expect(target.querySelector('.pptx-svelte-zoom-slide-label')?.textContent).toBe('Slide 12');
+		expect(target.querySelector('.pptx-svelte-zoom-section-label')?.textContent).toBe(
+			'Quarterly results',
+		);
+		expect(
+			target.querySelector<HTMLElement>('.pptx-svelte-zoom-thumbnail')?.getAttribute('style'),
+		).toContain('#123456');
+
+		node?.click();
+		node?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		expect(navigate).toHaveBeenNthCalledWith(1, 5);
+		expect(navigate).toHaveBeenNthCalledWith(2, 5);
 	});
 });

@@ -98,7 +98,7 @@
 {:else if element.type === 'contentPart'}
 	<ContentPartView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'zoom'}
-	<ZoomView {element} {mediaDataUrls} {zIndex} />
+	<ZoomView {element} {mediaDataUrls} {zIndex} {presenting} />
 {:else if element.type === 'model3d'}
 	<Model3dView {element} {mediaDataUrls} {zIndex} />
 {:else if hasEquation}

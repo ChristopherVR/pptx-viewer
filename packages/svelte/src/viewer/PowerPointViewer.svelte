@@ -41,6 +41,7 @@
 	import { PresentationLoader } from './state/presentation-loader.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
 	import { provideRenderContext } from './state/render-context';
+	import { provideZoomNavigation } from './state/zoom-navigation-context';
 	import { ViewerState } from './state/viewer-state.svelte';
 	import { fitScale } from './state/navigation';
 	import { useViewerEffects } from './state/viewer-effects.svelte';
@@ -146,6 +147,10 @@
 			onchange?.();
 			void editor.save().then((bytes) => oncontentchange?.(bytes));
 		},
+	});
+	provideZoomNavigation({
+		navigateToZoomTarget: (index) => viewer.goTo(index),
+		getSlides: () => editor.renderedSlides,
 	});
 	const controller = new EditorController(editor, {
 		getScale: () => (editor.masterViewTarget ? masterScale : scale),
