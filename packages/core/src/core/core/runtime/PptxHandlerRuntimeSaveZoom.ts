@@ -86,10 +86,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		let max = 1;
 		for (const element of ctx.slide.elements) {
 			if (element !== el && element.shapeId !== undefined) {
-				max = Math.max(max, element.shapeId);
+				const numericId = Number.parseInt(element.shapeId, 10);
+				if (Number.isFinite(numericId)) {
+					max = Math.max(max, numericId);
+				}
 			}
 		}
-		el.shapeId = max + 1;
+		el.shapeId = String(max + 1);
 	}
 
 	private ensureZoomPreviewRelationship(
