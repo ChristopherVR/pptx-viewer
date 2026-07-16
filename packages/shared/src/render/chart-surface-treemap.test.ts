@@ -294,6 +294,97 @@ describe('buildTreemapViewModel — value→size scaling', () => {
 	});
 });
 
+describe('buildTreemapViewModel - ChartEx hierarchy', () => {
+	function hierarchicalData(
+		parentLabelLayout: 'none' | 'banner' | 'overlapping' = 'banner',
+	): PptxChartData {
+		return {
+			chartType: 'treemap',
+			categories: ['Hardware', 'Software', 'Services', 'Support'],
+			categoryLevels: [
+				['Hardware', 'Software', 'Services', 'Support'],
+				['North', '', 'South', ''],
+			],
+			series: [
+				{
+					name: 'Revenue',
+					values: [65, 40, 25, 10],
+					treemapOptions: { parentLabelLayout },
+				},
+			],
+		};
+	}
+
+	it('renders nested parent labels and preserves leaf source indexes', () => {
+		const data = hierarchicalData();
+		const vm = buildTreemapViewModel(makeElement(600, 400), data, data.categories);
+		const text = vm.primitives.filter((primitive) => primitive.kind === 'text');
+		expect(text.map((primitive) => primitive.text)).toStrictEqual(
+			expect.arrayContaining(['North', 'South', ...data.categories]),
+		);
+
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		expect(rects.map((rect) => rect.part)).toStrictEqual(
+			expect.arrayContaining(
+				data.categories.map((_category, pointIndex) => ({
+					role: 'dataPoint',
+					seriesIndex: 0,
+					pointIndex,
+				})),
+			),
+		);
+	});
+
+	it('honors none and banner parent-label layouts', () => {
+		const banner = hierarchicalData('banner');
+		const withoutParents = hierarchicalData('none');
+		const bannerVm = buildTreemapViewModel(makeElement(), banner, banner.categories);
+		const noneVm = buildTreemapViewModel(makeElement(), withoutParents, withoutParents.categories);
+		expect(
+			bannerVm.primitives.some(
+				(primitive) => primitive.kind === 'text' && primitive.text === 'North',
+			),
+		).toBeTruthy();
+		expect(
+			noneVm.primitives.some(
+				(primitive) => primitive.kind === 'text' && primitive.text === 'North',
+			),
+		).toBeFalsy();
+		const bannerTop = Math.min(
+			...bannerVm.primitives
+				.filter((primitive) => primitive.kind === 'rect')
+				.map((primitive) => primitive.y),
+		);
+		const overlapping = hierarchicalData('overlapping');
+		const overlappingVm = buildTreemapViewModel(makeElement(), overlapping, overlapping.categories);
+		const overlappingTop = Math.min(
+			...overlappingVm.primitives
+				.filter((primitive) => primitive.kind === 'rect')
+				.map((primitive) => primitive.y),
+		);
+		expect(bannerTop).toBeGreaterThan(overlappingTop);
+	});
+
+	it('keeps series and point alignment for multiple series', () => {
+		const data = hierarchicalData();
+		data.series.push({
+			name: 'Profit',
+			values: [20, 15, 8, 4],
+			treemapOptions: { parentLabelLayout: 'banner' },
+		});
+		const vm = buildTreemapViewModel(makeElement(700, 400), data, data.categories);
+		const refs = vm.primitives
+			.filter((primitive) => primitive.kind === 'rect')
+			.map((primitive) => primitive.part);
+		expect(refs).toHaveLength(8);
+		for (let seriesIndex = 0; seriesIndex < 2; seriesIndex++) {
+			for (let pointIndex = 0; pointIndex < 4; pointIndex++) {
+				expect(refs).toContainEqual({ role: 'dataPoint', seriesIndex, pointIndex });
+			}
+		}
+	});
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // buildTreemapViewModel — edge cases
 // ─────────────────────────────────────────────────────────────────────────────

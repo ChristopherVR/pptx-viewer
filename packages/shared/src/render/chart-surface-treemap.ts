@@ -16,7 +16,8 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
-import type { ChartViewModel, LegendEntry, SvgPolygon, SvgRect, SvgText } from './chart-view-model';
+import { buildHierarchicalTreemapPrimitives } from './chart-treemap-hierarchy';
+import type { ChartViewModel, LegendEntry, SvgPolygon, SvgRect } from './chart-view-model';
 import {
 	buildLegend,
 	computePlotLayout,
@@ -311,65 +312,12 @@ export function buildTreemapViewModel(
 	categoryLabels: ReadonlyArray<string>,
 ): ChartViewModel {
 	const layout = computePlotLayout(element.width, element.height, chartData, false);
-	const allValues = chartData.series.flatMap((s) => s.values);
-	const totalAbs = allValues.reduce((sum, v) => sum + Math.abs(v), 0) || 1;
-
-	const primitives: Array<SvgRect | SvgText> = [];
-
-	let curX = layout.plotLeft;
-	let curY = layout.plotTop;
-	let remainW = layout.plotWidth;
-	let remainH = layout.plotHeight;
-	let remainTotal = totalAbs;
-
-	// Sort items largest-first then lay out in slice-and-dice order.
-	const items = allValues
-		.map((v, i) => ({ value: Math.abs(v), index: i }))
-		.sort((a, b) => b.value - a.value);
-
-	for (const item of items) {
-		const fraction = remainTotal > 0 ? item.value / remainTotal : 0;
-		const useWidth = remainW >= remainH;
-		const w = useWidth ? remainW * fraction : remainW;
-		const h = useWidth ? remainH : remainH * fraction;
-		const rw = Math.max(w - 1, 1);
-		const rh = Math.max(h - 1, 1);
-
-		primitives.push({
-			kind: 'rect',
-			x: curX,
-			y: curY,
-			w: rw,
-			h: rh,
-			fill: paletteColor(item.index, chartData.colorPalette),
-			rx: 2,
-			opacity: 0.85,
-		} satisfies SvgRect);
-
-		const label = categoryLabels[item.index] ?? String(item.index + 1);
-		if (rw > 30 && rh > 14) {
-			primitives.push({
-				kind: 'text',
-				x: curX + rw / 2,
-				y: curY + rh / 2,
-				text: label,
-				fontSize: Math.min(10, rh * 0.3),
-				fill: '#ffffff',
-				textAnchor: 'middle',
-				fontWeight: 'bold',
-				dominantBaseline: 'central',
-			} satisfies SvgText);
-		}
-
-		if (useWidth) {
-			curX += w;
-			remainW -= w;
-		} else {
-			curY += h;
-			remainH -= h;
-		}
-		remainTotal -= item.value;
-	}
+	const primitives = buildHierarchicalTreemapPrimitives(chartData, categoryLabels, {
+		x: layout.plotLeft,
+		y: layout.plotTop,
+		w: layout.plotWidth,
+		h: layout.plotHeight,
+	});
 
 	// Legend: one entry per series (matching React: no per-item legend).
 	const legendPos = chartData.style?.legendPosition ?? 'b';
