@@ -43,4 +43,20 @@ describe('editorSectionController', () => {
 		await editor.save();
 		expect(save.mock.calls[0]?.[1]).toMatchObject({ sections: editor.sections });
 	});
+
+	it('moves slides between sections with undo support', () => {
+		const sections: PptxSection[] = [
+			{ id: 'a', name: 'A', slideIds: ['1'] },
+			{ id: 'b', name: 'B', slideIds: ['2', '3'] },
+		];
+		const { editor } = setup(sections);
+		editor.slides = [slide('1', 'a'), slide('2', 'b'), slide('3', 'b')];
+
+		editor.sectionOps.moveSlides([0], 'b');
+		expect(editor.slides[0]).toMatchObject({ sectionId: 'b', sectionName: 'B' });
+		expect(editor.sections[0].slideIds).toStrictEqual([]);
+		expect(editor.sections[1].slideIds).toStrictEqual(['2', '3', '1']);
+		editor.undo();
+		expect(editor.slides[0].sectionId).toBe('a');
+	});
 });

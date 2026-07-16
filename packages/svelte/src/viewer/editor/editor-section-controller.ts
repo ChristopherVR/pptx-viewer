@@ -5,6 +5,7 @@ import {
 	groupSlidesBySection,
 	moveSectionDown,
 	moveSectionUp,
+	moveSlidesToSection,
 	renameSection,
 } from 'pptx-viewer-shared';
 
@@ -65,6 +66,21 @@ export class EditorSectionController {
 			return;
 		}
 		this.commit(next, this.editor.slides);
+	}
+
+	moveSlides(slideIndexes: number[], targetSectionId: string): void {
+		if (!this.editor.editable || slideIndexes.length === 0) {
+			return;
+		}
+		const result = moveSlidesToSection(
+			this.editor.sections,
+			this.editor.slides,
+			slideIndexes,
+			targetSectionId,
+		);
+		if (result.sections !== this.editor.sections) {
+			this.commit(result.sections, result.slides);
+		}
 	}
 
 	toggle(sectionId: string): void {
