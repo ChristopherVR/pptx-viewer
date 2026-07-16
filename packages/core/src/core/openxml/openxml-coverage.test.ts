@@ -54,7 +54,7 @@ describe('open XML schema coverage inventory', () => {
 	});
 
 	it('keeps unreviewed constructs unassessed and records tested overrides', () => {
-		expect(findOpenXmlCoverage('diagram:complexType:CT_Choose')).toMatchObject({
+		expect(findOpenXmlCoverage('diagram:complexType:CT_Adj')).toMatchObject({
 			parse: 'unassessed',
 			preserve: 'unassessed',
 			edit: 'unassessed',
@@ -280,10 +280,10 @@ describe('open XML schema coverage inventory', () => {
 				0,
 			),
 		).toBe(OPENXML_COVERAGE.length * 4);
-		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(350);
-		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(570);
-		expect(listUnassessedOpenXmlCoverage('drawing')).toHaveLength(804);
-		expect(listUnassessedOpenXmlCoverage('diagram')).toHaveLength(167);
+		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(345);
+		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(566);
+		expect(listUnassessedOpenXmlCoverage('drawing')).toHaveLength(798);
+		expect(listUnassessedOpenXmlCoverage('diagram')).toHaveLength(145);
 	});
 
 	it('keeps assessed capabilities documented and monotonic', () => {
