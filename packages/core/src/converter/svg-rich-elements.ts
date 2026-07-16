@@ -10,6 +10,7 @@ import type {
 } from '../core/types/elements';
 import type { PptxSmartArtDrawingShape } from '../core/types/smart-art';
 import { relayoutSmartArt } from '../core/utils';
+import { renderFunnelChartSvg } from './svg-chart-extended';
 
 function esc(value: string): string {
 	return value
@@ -124,11 +125,14 @@ export function renderChartSvg(element: ChartPptxElement): string | null {
 		data.chartType === 'pie' || data.chartType === 'pie3D' || data.chartType === 'doughnut';
 	const line =
 		data.chartType === 'line' || data.chartType === 'line3D' || data.chartType === 'scatter';
-	const marks = pie
-		? renderPie(element, x, y, w, h)
-		: line
-			? renderLines(element, x, y, w, h)
-			: renderBars(element, x, y, w, h);
+	const marks =
+		data.chartType === 'funnel'
+			? renderFunnelChartSvg(element, x, y, w, h)
+			: pie
+				? renderPie(element, x, y, w, h)
+				: line
+					? renderLines(element, x, y, w, h)
+					: renderBars(element, x, y, w, h);
 	const title = data.title
 		? `<text x="${element.width / 2}" y="${Math.max(titleHeight * 0.75, 14)}" text-anchor="middle" font-family="Arial" font-size="14" fill="#222222">${esc(data.title)}</text>`
 		: '';

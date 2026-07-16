@@ -464,6 +464,50 @@ describe('svgExporter', () => {
 		expect(svg).not.toContain('>chart</text>');
 	});
 
+	it('renders ChartEx funnel data as value-scaled trapezoid stages', () => {
+		const slide = makeSlide({
+			elements: [
+				{
+					type: 'chart',
+					id: 'funnel1',
+					x: 0,
+					y: 0,
+					width: 300,
+					height: 200,
+					chartData: {
+						chartType: 'funnel',
+						categories: ['Lead', 'Qualified', 'Won'],
+						series: [
+							{
+								name: 'Opportunities',
+								values: [120, 75, 30],
+								dataPoints: [{ idx: 1, spPr: { fillColor: '#123456' } }],
+							},
+						],
+					},
+				},
+			],
+		});
+		const svg = SvgExporter.exportSlide(slide, 960, 540);
+
+		assertValidSvgStructure(svg);
+		expect(svg.match(/data-chart-mark="funnel"/gu)).toHaveLength(3);
+		expect(svg).toContain('data-chart-point="1"');
+		expect(svg).toContain('fill="#123456"');
+		expect(svg).not.toContain('data-chart-mark="bar"');
+		const stageWidths = [...svg.matchAll(/data-chart-mark="funnel"[^>]+points="([^"]+)"/gu)].map(
+			(match) => {
+				const [left, right] = match[1]
+					.split(' ')
+					.slice(0, 2)
+					.map((point) => Number(point.split(',')[0]));
+				return right - left;
+			},
+		);
+		expect(stageWidths[0]).toBeGreaterThan(stageWidths[1]);
+		expect(stageWidths[1]).toBeGreaterThan(stageWidths[2]);
+	});
+
 	it('renders SmartArt drawing geometry and text', () => {
 		const slide = makeSlide({
 			elements: [
