@@ -15,10 +15,12 @@
 	import type { EditorState } from '../editor/editor-state.svelte';
 	import type { Translator } from '../../i18n/translator';
 	import type { TransitionState } from '../presentation';
+	import type { PresentationAnnotations } from '../presentation/presentation-annotations.svelte';
 	import { PresentationTransitionOverlay } from '../presentation';
 	import EditorLayer from './EditorLayer.svelte';
 	import ElementContextMenu from './ElementContextMenu.svelte';
 	import InkDrawingOverlay from './InkDrawingOverlay.svelte';
+	import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.svelte';
 	import InspectorPanel from './inspector/InspectorPanel.svelte';
 	import NotesPanel from './NotesPanel.svelte';
 	import SlideStage from './SlideStage.svelte';
@@ -55,6 +57,7 @@
 		contextMenu,
 		onContextMenuClose,
 		onmoveSlide,
+		annotations,
 	}: {
 		t: Translator;
 		editor: EditorState;
@@ -93,6 +96,7 @@
 		contextMenu: { x: number; y: number } | null;
 		onContextMenuClose: () => void;
 		onmoveSlide?: (fromIndex: number, toIndex: number) => void;
+		annotations: PresentationAnnotations;
 	} = $props();
 
 	// The template's bind:clientWidth/Height write these (invisible to the linter).
@@ -197,6 +201,7 @@
 						<EditorLayer {controller} {scale} />
 						<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />
 					{/if}
+					{#if presenting}<PresentationAnnotationOverlay {annotations} {current} {canvasSize} />{/if}
 					{#if collabCursors.length > 0}
 						<CollaborationCursors cursors={collabCursors} zoom={scale} />
 					{/if}

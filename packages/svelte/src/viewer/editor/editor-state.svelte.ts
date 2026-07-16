@@ -4,12 +4,15 @@ import type {
 	PptxCustomProperty,
 	PptxElement,
 	PptxHandoutMaster,
+	PptxHeaderFooter,
 	PptxHandler,
 	PptxNotesMaster,
 	PptxSaveFormat,
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
+	PptxPresentationProperties,
+	PptxCustomShow,
 	TextSegment,
 } from 'pptx-viewer-core';
 import type { ElementClipboardPayload, TemplateElementMap } from 'pptx-viewer-shared';
@@ -32,6 +35,7 @@ import { EditorInkController } from './editor-ink-controller.svelte';
 import { EditorMasterController } from './editor-master-controller';
 import type { MasterViewTarget } from './editor-master-controller';
 import type { ElementBoxPatch } from './editor-mutations';
+import { EditorPresentationMetadata } from './editor-presentation-metadata.svelte';
 import { EditorSectionController } from './editor-section-controller';
 import { EditorSelection } from './editor-selection.svelte';
 import { EditorSlidesController } from './editor-slides-controller';
@@ -54,6 +58,7 @@ export class EditorState {
 	notesMaster = $state.raw<PptxNotesMaster | undefined>(undefined);
 	handoutMaster = $state.raw<PptxHandoutMaster | undefined>(undefined);
 	sections = $state.raw<PptxSection[]>([]);
+	readonly presentationMetadata: EditorPresentationMetadata;
 	coreProperties = $state.raw<PptxCoreProperties | undefined>(undefined);
 	appProperties = $state.raw<PptxAppProperties | undefined>(undefined);
 	customProperties = $state.raw<PptxCustomProperty[]>([]);
@@ -86,6 +91,7 @@ export class EditorState {
 
 	constructor(deps: EditorStateDeps) {
 		this.#deps = deps;
+		this.presentationMetadata = new EditorPresentationMetadata(this);
 		this.clipboardOps = new EditorClipboardController(this);
 		this.elementOps = new EditorElementController(this);
 		this.templateOps = new EditorTemplateController(this);
@@ -103,6 +109,18 @@ export class EditorState {
 
 	get canUndo(): boolean {
 		return this.#canUndo;
+	}
+
+	get headerFooter(): PptxHeaderFooter {
+		return this.presentationMetadata.headerFooter;
+	}
+
+	get presentationProperties(): PptxPresentationProperties {
+		return this.presentationMetadata.presentationProperties;
+	}
+
+	get customShows(): PptxCustomShow[] {
+		return this.presentationMetadata.customShows;
 	}
 
 	get canRedo(): boolean {
@@ -165,6 +183,9 @@ export class EditorState {
 		coreProperties?: PptxCoreProperties,
 		appProperties?: PptxAppProperties,
 		customProperties: PptxCustomProperty[] = [],
+		headerFooter: PptxHeaderFooter = {},
+		presentationProperties: PptxPresentationProperties = {},
+		customShows: PptxCustomShow[] = [],
 	): void {
 		const partition = partitionTemplateElements(slides);
 		this.slides = partition.slides;
@@ -176,6 +197,7 @@ export class EditorState {
 		this.coreProperties = structuredClone(coreProperties);
 		this.appProperties = structuredClone(appProperties);
 		this.customProperties = structuredClone(customProperties);
+		this.presentationMetadata.set(headerFooter, presentationProperties, customShows);
 		this.masterViewTarget = null;
 		this.selection.clear();
 		this.editTemplateMode = false;
@@ -292,6 +314,11 @@ export class EditorState {
 		this.coreProperties = restored.coreProperties;
 		this.appProperties = restored.appProperties;
 		this.customProperties = restored.customProperties;
+		this.presentationMetadata.set(
+			restored.headerFooter,
+			restored.presentationProperties,
+			restored.customShows,
+		);
 		this.interactionActive = false;
 		this.selection.prune((id) => this.activeElements.some((element) => element.id === id));
 		this.commitChange();

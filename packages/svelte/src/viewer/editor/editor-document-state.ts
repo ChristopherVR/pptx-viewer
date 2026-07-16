@@ -3,12 +3,15 @@ import type {
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxHandoutMaster,
+	PptxHeaderFooter,
 	PptxHandler,
 	PptxNotesMaster,
 	PptxSaveFormat,
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
+	PptxPresentationProperties,
+	PptxCustomShow,
 } from 'pptx-viewer-core';
 import type { TemplateElementMap } from 'pptx-viewer-shared';
 import { cloneTemplateElementsBySlideId } from 'pptx-viewer-shared';
@@ -22,6 +25,9 @@ export interface EditorSnapshot {
 	notesMaster: PptxNotesMaster | undefined;
 	handoutMaster: PptxHandoutMaster | undefined;
 	sections: PptxSection[];
+	headerFooter: PptxHeaderFooter;
+	presentationProperties: PptxPresentationProperties;
+	customShows: PptxCustomShow[];
 	coreProperties: PptxCoreProperties | undefined;
 	appProperties: PptxAppProperties | undefined;
 	customProperties: PptxCustomProperty[];
@@ -35,6 +41,9 @@ export function createEditorSnapshot(snapshot: EditorSnapshot): EditorSnapshot {
 		notesMaster: structuredClone(snapshot.notesMaster),
 		handoutMaster: structuredClone(snapshot.handoutMaster),
 		sections: structuredClone(snapshot.sections),
+		headerFooter: structuredClone(snapshot.headerFooter),
+		presentationProperties: structuredClone(snapshot.presentationProperties),
+		customShows: structuredClone(snapshot.customShows),
 		coreProperties: structuredClone(snapshot.coreProperties),
 		appProperties: structuredClone(snapshot.appProperties),
 		customProperties: structuredClone(snapshot.customProperties),
@@ -46,6 +55,21 @@ export async function saveEditorDocument(
 	snapshot: EditorSnapshot,
 	format: PptxSaveFormat = 'pptx',
 ): Promise<Uint8Array> {
+	const metadata = {
+		...(snapshot.sections.length > 0 ? { sections: snapshot.sections } : {}),
+		...(Object.keys(snapshot.headerFooter).length > 0
+			? { headerFooter: snapshot.headerFooter }
+			: {}),
+		...(Object.keys(snapshot.presentationProperties).length > 0
+			? { presentationProperties: snapshot.presentationProperties }
+			: {}),
+		...(snapshot.customShows.length > 0 ? { customShows: snapshot.customShows } : {}),
+		...(snapshot.coreProperties ? { coreProperties: snapshot.coreProperties } : {}),
+		...(snapshot.appProperties ? { appProperties: snapshot.appProperties } : {}),
+		...(snapshot.customProperties.length > 0
+			? { customProperties: snapshot.customProperties }
+			: {}),
+	};
 	const hasMasters =
 		snapshot.slideMasters.length > 0 ||
 		snapshot.notesMaster !== undefined ||
@@ -55,19 +79,11 @@ export async function saveEditorDocument(
 				slideMasters: snapshot.slideMasters,
 				notesMaster: snapshot.notesMaster,
 				handoutMaster: snapshot.handoutMaster,
-				sections: snapshot.sections.length > 0 ? snapshot.sections : undefined,
-				coreProperties: snapshot.coreProperties,
-				appProperties: snapshot.appProperties,
-				customProperties:
-					snapshot.customProperties.length > 0 ? snapshot.customProperties : undefined,
+				...metadata,
 				outputFormat: format,
 			})
 		: handler.save(snapshot.slides, {
-				sections: snapshot.sections.length > 0 ? snapshot.sections : undefined,
-				coreProperties: snapshot.coreProperties,
-				appProperties: snapshot.appProperties,
-				customProperties:
-					snapshot.customProperties.length > 0 ? snapshot.customProperties : undefined,
+				...metadata,
 				outputFormat: format,
 			});
 }

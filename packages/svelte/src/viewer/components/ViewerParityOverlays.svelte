@@ -1,0 +1,61 @@
+<script lang="ts">
+	import type { PptxSlide } from 'pptx-viewer-core';
+	import type { CanvasSize } from 'pptx-viewer-shared';
+
+	import type { EditorState } from '../editor/editor-state.svelte';
+	import type { ExportUiState } from '../export/export-ui.svelte';
+	import type { ViewerParityUiState } from '../state/viewer-parity-ui.svelte';
+	import ComparePanel from './ComparePanel.svelte';
+	import CustomShowsDialog from './CustomShowsDialog.svelte';
+	import HeaderFooterPanel from './HeaderFooterPanel.svelte';
+	import KeepAnnotationsDialog from './KeepAnnotationsDialog.svelte';
+	import PresentationSubtitleBar from './PresentationSubtitleBar.svelte';
+	import PrintDialog from './PrintDialog.svelte';
+	import RehearseTimings from './RehearseTimings.svelte';
+	import SelectionPane from './SelectionPane.svelte';
+	import SetUpSlideShowDialog from './SetUpSlideShowDialog.svelte';
+	import SettingsDialog from './SettingsDialog.svelte';
+	import ShortcutPanel from './ShortcutPanel.svelte';
+	import SlideSorterOverlay from './SlideSorterOverlay.svelte';
+
+	const {
+		ui,
+		editor,
+		exportUi,
+		slides,
+		canvasSize,
+		mediaDataUrls,
+		current,
+		fullscreen,
+		locale,
+		onselectslide,
+		onmoveslide,
+		onpreferenceschange,
+	}: {
+		ui: ViewerParityUiState;
+		editor: EditorState;
+		exportUi: ExportUiState;
+		slides: PptxSlide[];
+		canvasSize: CanvasSize;
+		mediaDataUrls: Map<string, string>;
+		current: number;
+		fullscreen: boolean;
+		locale: string;
+		onselectslide: (index: number) => void;
+		onmoveslide: (from: number, to: number) => void;
+		onpreferenceschange: (next: ViewerParityUiState['preferences']) => void;
+	} = $props();
+</script>
+
+{#if ui.setupSlideShowOpen}<SetUpSlideShowDialog properties={editor.presentationProperties} customShows={editor.customShows} slideCount={slides.length} onclose={() => (ui.setupSlideShowOpen = false)} onsave={(next) => editor.presentationMetadata.updatePresentationProperties(next)} />{/if}
+{#if ui.headerFooterOpen}<HeaderFooterPanel value={editor.headerFooter} onclose={() => (ui.headerFooterOpen = false)} onapply={(next) => editor.presentationMetadata.updateHeaderFooter(next)} />{/if}
+{#if ui.settingsOpen}<SettingsDialog preferences={ui.preferences} onclose={() => (ui.settingsOpen = false)} onchange={onpreferenceschange} />{/if}
+{#if ui.shortcutsOpen}<ShortcutPanel onclose={() => (ui.shortcutsOpen = false)} />{/if}
+{#if ui.compare.open}<ComparePanel compare={ui.compare} onclose={() => (ui.compare.open = false)} />{/if}
+{#if ui.printSettingsOpen}<PrintDialog slideCount={slides.length} {current} onclose={() => (ui.printSettingsOpen = false)} onprint={(options) => exportUi.runPrint(options)} />{/if}
+<RehearseTimings rehearse={ui.rehearse} onsave={() => ui.rehearse.save(editor)} ondiscard={() => ui.rehearse.discard()} />
+{#if ui.customShowsOpen}<CustomShowsDialog shows={editor.customShows} slides={editor.slides} onclose={() => (ui.customShowsOpen = false)} onsave={(shows) => editor.presentationMetadata.updateCustomShows(shows)} />{/if}
+{#if ui.selectionPaneOpen}<SelectionPane {editor} onclose={() => (ui.selectionPaneOpen = false)} />{/if}
+{#if ui.slideSorterOpen}<SlideSorterOverlay {slides} {canvasSize} {mediaDataUrls} {current} onselect={onselectslide} onmove={onmoveslide} onclose={() => (ui.slideSorterOpen = false)} />{/if}
+{#if ui.keepAnnotationsOpen}<KeepAnnotationsDialog annotationCount={ui.annotations.count} slideCount={ui.annotations.slideCount} onkeep={() => { ui.annotations.keep(editor); ui.keepAnnotationsOpen = false; }} ondiscard={() => { ui.annotations.clear(); ui.keepAnnotationsOpen = false; }} />{/if}
+<PresentationSubtitleBar enabled={fullscreen && (ui.subtitlesEnabled || editor.presentationProperties.showSubtitles === true)} {locale} />

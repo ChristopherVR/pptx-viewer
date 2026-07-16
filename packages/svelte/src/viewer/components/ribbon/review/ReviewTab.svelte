@@ -21,10 +21,12 @@
 		slides,
 		onnavigate,
 		editor,
+		oncompare,
 	}: {
 		slides: readonly PptxSlide[];
 		onnavigate: (slideIndex: number, elementId?: string) => void;
 		editor?: EditorState;
+		oncompare?: () => void;
 	} = $props();
 	const t = useTranslator();
 
@@ -55,6 +57,7 @@
 		<button type="button" onclick={() => setPanel('accessibility')}>
 			{t('pptx.review.accessibilityCheck')}
 		</button>
+		{#if oncompare}<button type="button" onclick={oncompare}>{t('pptx.compare.title')}</button>{/if}
 	</section>
 
 	{#if activePanel}

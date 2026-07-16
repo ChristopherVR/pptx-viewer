@@ -13,6 +13,7 @@
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import { ANIMATION_CATEGORIES } from './animation-categories';
+	import AnimationTimeline from './AnimationTimeline.svelte';
 
 	const { editor }: { editor: EditorState } = $props();
 	const t = useTranslator();
@@ -50,6 +51,7 @@
 	>
 		{t('pptx.animation.remove')}
 	</button>
+	<AnimationTimeline {editor} />
 </div>
 
 <style>

@@ -79,6 +79,9 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 					deps.loader.coreProperties,
 					deps.loader.appProperties,
 					deps.loader.customProperties,
+					deps.loader.headerFooter,
+					deps.loader.presentationProperties,
+					deps.loader.customShows,
 				),
 			);
 			deps.getOnload()?.({

@@ -23,9 +23,11 @@
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
 	import FillStrokeSection from './FillStrokeSection.svelte';
+	import ChartSection from './ChartSection.svelte';
 	import ImageSection from './ImageSection.svelte';
 	import PositionSection from './PositionSection.svelte';
 	import SmartArtSection from './SmartArtSection.svelte';
+	import MediaSection from './MediaSection.svelte';
 	import TableSection from './TableSection.svelte';
 	import TextSection from './TextSection.svelte';
 
@@ -41,6 +43,8 @@
 	const isImage = $derived(el !== undefined && isImageLikeElement(el));
 	const isTable = $derived(el?.type === 'table');
 	const isSmartArt = $derived(el?.type === 'smartArt');
+	const isChart = $derived(el?.type === 'chart');
+	const isMedia = $derived(el?.type === 'media');
 </script>
 
 <aside
@@ -106,6 +110,8 @@
 						<SmartArtSection {editor} {el} />
 					</div>
 				{/if}
+				{#if isChart}<div class="pptx-svelte-inspector-section"><h4>Chart</h4><ChartSection {editor} /></div>{/if}
+				{#if isMedia}<div class="pptx-svelte-inspector-section"><h4>Media</h4><MediaSection {editor} /></div>{/if}
 			{:else}
 				<p class="pptx-svelte-inspector-empty">{t('pptx.inspector.noSlideSelected')}</p>
 			{/if}

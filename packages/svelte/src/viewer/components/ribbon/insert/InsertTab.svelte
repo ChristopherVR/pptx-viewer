@@ -19,10 +19,11 @@
 	import ChartMenu from './ChartMenu.svelte';
 	import EquationPanel from './EquationPanel.svelte';
 	import FieldMenu from './FieldMenu.svelte';
+	import HyperlinkDialog from './HyperlinkDialog.svelte';
 	import ShapePicker from './ShapePicker.svelte';
 	import SmartArtMenu from './SmartArtMenu.svelte';
 
-	const { editor, canvasSize }: { editor: EditorState; canvasSize: CanvasSize } = $props();
+	const { editor, canvasSize, onheaderfooter }: { editor: EditorState; canvasSize: CanvasSize; onheaderfooter?: () => void } = $props();
 	const t = useTranslator();
 
 	// eslint-disable-next-line prefer-const
@@ -30,6 +31,7 @@
 	// eslint-disable-next-line prefer-const
 	let mediaInput = $state<HTMLInputElement | null>(null);
 	let equationOpen = $state(false);
+	let hyperlinkOpen = $state(false);
 	$effect(() => {
 		if (editor.equationOps.editingId) {
 			equationOpen = true;
@@ -157,6 +159,8 @@
 	<SmartArtMenu {editor} {canvasSize} />
 	<ActionButtonMenu {editor} {canvasSize} />
 	<FieldMenu {editor} {canvasSize} />
+	{#if onheaderfooter}<button type="button" onclick={onheaderfooter}># <span>{t('pptx.headerFooter.title')}</span></button>{/if}
+	<button type="button" disabled={!editor.selectedElementId} onclick={() => (hyperlinkOpen = true)}>↗ <span>{t('pptx.hyperlink.title')}</span></button>
 
 	<input bind:this={imageInput} type="file" accept="image/*" class="pptx-svelte-inserttab-file" onchange={onImageFileChange} />
 	<input bind:this={mediaInput} type="file" accept="video/*,audio/*" class="pptx-svelte-inserttab-file" onchange={onMediaFileChange} />
@@ -166,6 +170,7 @@
 			<EquationPanel {editor} {canvasSize} open={equationOpen} onclose={closeEquationPanel} />
 		</div>
 	{/if}
+	{#if hyperlinkOpen}<HyperlinkDialog {editor} onclose={() => (hyperlinkOpen = false)} />{/if}
 </div>
 
 <style>

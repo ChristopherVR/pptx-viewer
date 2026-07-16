@@ -9,6 +9,7 @@ import {
 
 import type { Translator } from '../../i18n/translator';
 import type { ExportController } from './export-controller.svelte';
+import type { PrintOptions } from './export-print';
 
 /**
  * ExportUiState: reactive state behind the toolbar `ExportMenu` and the
@@ -149,8 +150,8 @@ export class ExportUiState {
 	}
 
 	/** Run the print flow (no modal; the print surface takes over). */
-	runPrint(): void {
-		this.#deps.controller.print().catch((err: unknown) => this.#fail('Print', err));
+	runPrint(options?: PrintOptions): void {
+		this.#deps.controller.print(options).catch((err: unknown) => this.#fail('Print', err));
 	}
 
 	/** Cancel the in-flight export (aborts the loop, closes the modal). */

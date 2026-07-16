@@ -11,6 +11,8 @@
 		imageAdjustmentsStateOf,
 		imageCropPatch,
 		imageCropStateOf,
+		ARTISTIC_EFFECTS,
+		DUOTONE_PRESETS,
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
@@ -21,6 +23,10 @@
 
 	const adjustments = $derived(imageAdjustmentsStateOf(el));
 	const crop = $derived(imageCropStateOf(el));
+	const effects = $derived('imageEffects' in el ? el.imageEffects : undefined);
+	function setEffects(next: Record<string, unknown>): void {
+		editor.patchSelected({ imageEffects: { ...effects, ...next } } as Partial<PptxElement>);
+	}
 
 	function pct(value: number): string {
 		return `${Math.round(value)}%`;
@@ -123,6 +129,9 @@
 	</label>
 </div>
 
+<label class="pptx-svelte-field"><span>{t('pptx.image.artisticEffects')}</span><select value={effects?.artisticEffect ?? 'none'} onchange={(e) => setEffects({ artisticEffect: e.currentTarget.value === 'none' ? undefined : e.currentTarget.value })}>{#each ARTISTIC_EFFECTS as preset}<option value={preset[0]}>{t(preset[1])}</option>{/each}</select></label>
+<div class="pptx-svelte-duotone"><span>{t('pptx.image.duotone')}</span>{#each DUOTONE_PRESETS as preset}<button type="button" title={t(preset.labelKey)} style={`--shadow:${preset.shadow};--highlight:${preset.highlight}`} onclick={() => setEffects({ duotone: { color1: preset.shadow, color2: preset.highlight } })}></button>{/each}<button type="button" title={t('pptx.image.duotoneClear')} onclick={() => setEffects({ duotone: undefined })}>×</button></div>
+
 <style>
 	.pptx-svelte-field {
 		display: flex;
@@ -176,4 +185,5 @@
 		color: inherit;
 		font: inherit;
 	}
+	.pptx-svelte-field select{height:26px;border:1px solid var(--pptx-border);border-radius:6px;background:var(--pptx-background);color:inherit}.pptx-svelte-duotone{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:10px}.pptx-svelte-duotone>span{width:100%;color:var(--pptx-muted-foreground);font-size:10px}.pptx-svelte-duotone button{width:24px;height:24px;border:1px solid var(--pptx-border);border-radius:50%;background:linear-gradient(135deg,var(--shadow) 50%,var(--highlight) 50%);color:inherit}
 </style>
