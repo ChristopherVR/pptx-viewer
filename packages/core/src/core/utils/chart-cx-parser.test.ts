@@ -280,4 +280,35 @@ describe('parseCxChartSeries', () => {
 		expect(result).toBeDefined();
 		expect(result!.series[0].values).toStrictEqual([100, 200]);
 	});
+
+	it('resolves schema-standard chartData references and direct point text', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': {
+					'@_layoutId': 'funnel',
+					'cx:tx': { 'cx:txData': { 'cx:v': 'Pipeline' } },
+					'cx:dataId': { '@_val': '7' },
+				},
+			},
+		};
+		const chartSpace: XmlObject = {
+			'cx:chartData': {
+				'cx:data': {
+					'@_id': '7',
+					'cx:strDim': {
+						'@_type': 'cat',
+						'cx:lvl': { 'cx:pt': [{ '@_idx': '0', '#text': 'Lead' }] },
+					},
+					'cx:numDim': {
+						'@_type': 'val',
+						'cx:lvl': { 'cx:pt': [{ '@_idx': '0', '#text': '42' }] },
+					},
+				},
+			},
+		};
+
+		const result = parseCxChartSeries(plotArea, xmlLookup, chartSpace);
+		expect(result?.categories).toStrictEqual(['Lead']);
+		expect(result?.series[0]).toMatchObject({ name: 'Pipeline', values: [42] });
+	});
 });

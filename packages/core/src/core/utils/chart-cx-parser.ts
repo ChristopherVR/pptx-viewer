@@ -114,7 +114,8 @@ function extractAllNumericDimensions(
 		const numLvl = xmlLookup.getChildByLocalName(numDim, 'lvl');
 		const numPts = xmlLookup.getChildrenArrayByLocalName(numLvl, 'pt');
 		for (const pt of numPts) {
-			const v = Number.parseFloat(String(xmlLookup.getScalarChildByLocalName(pt, 'v') || ''));
+			const raw = xmlLookup.getScalarChildByLocalName(pt, 'v') ?? pt['#text'];
+			const v = Number.parseFloat(String(raw ?? ''));
 			if (Number.isFinite(v)) {
 				values.push(v);
 			}
@@ -145,7 +146,8 @@ function extractAllStringDimensions(
 		const strLvl = xmlLookup.getChildByLocalName(strDim, 'lvl');
 		const strPts = xmlLookup.getChildrenArrayByLocalName(strLvl, 'pt');
 		for (const pt of strPts) {
-			const val = String(xmlLookup.getScalarChildByLocalName(pt, 'v') || '').trim();
+			const raw = xmlLookup.getScalarChildByLocalName(pt, 'v') ?? pt['#text'];
+			const val = String(raw ?? '').trim();
 			values.push(val);
 		}
 		result.set(dimType, values);
@@ -162,6 +164,7 @@ function extractAllStringDimensions(
 export function parseCxChartSeries(
 	plotArea: XmlObject,
 	xmlLookup: XmlLookupLike,
+	chartSpace?: XmlObject,
 ): { categories: string[]; series: PptxChartData['series']; hasDataLabels?: boolean } | undefined {
 	const plotRegion = xmlLookup.getChildByLocalName(plotArea, 'plotAreaRegion');
 	if (!plotRegion) {
@@ -175,9 +178,14 @@ export function parseCxChartSeries(
 
 	const categories: string[] = [];
 	let hasDataLabels = false;
+	const referencedData = indexReferencedChartData(chartSpace, xmlLookup);
 
 	const series: PptxChartData['series'] = cxSeriesList.map((ser, serIndex) => {
-		const dataNode = xmlLookup.getChildByLocalName(ser, 'data');
+		const dataIdNode = xmlLookup.getChildByLocalName(ser, 'dataId');
+		const dataId = String(dataIdNode?.['@_val'] ?? dataIdNode?.['#text'] ?? '').trim();
+		const dataNode =
+			xmlLookup.getChildByLocalName(ser, 'data') ||
+			(dataId.length > 0 ? referencedData.get(dataId) : undefined);
 
 		// Extract all dimensions
 		const strDims = extractAllStringDimensions(dataNode, xmlLookup);
@@ -232,4 +240,20 @@ export function parseCxChartSeries(
 	});
 
 	return { categories, series, hasDataLabels };
+}
+
+/** Index the schema-standard `cx:chartData/cx:data` table by `@id`. */
+function indexReferencedChartData(
+	chartSpace: XmlObject | undefined,
+	xmlLookup: XmlLookupLike,
+): Map<string, XmlObject> {
+	const result = new Map<string, XmlObject>();
+	const chartData = xmlLookup.getChildByLocalName(chartSpace, 'chartData');
+	for (const data of xmlLookup.getChildrenArrayByLocalName(chartData, 'data')) {
+		const id = String(data['@_id'] ?? '').trim();
+		if (id.length > 0) {
+			result.set(id, data);
+		}
+	}
+	return result;
 }

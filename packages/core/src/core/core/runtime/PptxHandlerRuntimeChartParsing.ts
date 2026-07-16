@@ -441,7 +441,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		chartPartPath: string,
 		chartRelationshipId: string,
 	): Promise<PptxChartData | undefined> {
-		const result = parseCxChartSeries(plotArea, this.xmlLookupService);
+		const result = parseCxChartSeries(plotArea, this.xmlLookupService, chartSpace);
 		if (!result) {
 			return undefined;
 		}
