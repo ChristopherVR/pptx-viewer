@@ -599,3 +599,4 @@ export * from './title-bar';
 export * from './command-search';
 export * from './autosave-store';
 export * from './master-page-layout';
+export * from './virtualized-list';
