@@ -375,9 +375,9 @@ describe('mergeSmartArtPointXml', () => {
 		const merged = mergeSmartArtPointXml(existing, [
 			{
 				id: '100',
-				text: 'BoldNormal',
+				text: 'Bold Normal',
 				runs: [
-					{ text: 'Bold', rPr: { '@_b': '1', '@_lang': 'en-US' } },
+					{ text: 'Bold ', rPr: { '@_b': '1', '@_lang': 'en-US' } },
 					{ text: 'Normal', rPr: { '@_lang': 'en-US' } },
 				],
 			},
@@ -390,7 +390,7 @@ describe('mergeSmartArtPointXml', () => {
 		const runs = p['a:r'] as XmlObject[];
 		expect(runs).toHaveLength(2);
 		expect((runs[0]['a:rPr'] as XmlObject)['@_b']).toBe('1');
-		expect(runs[0]['a:t']).toBe('Bold');
+		expect(runs[0]['a:t']).toBe('Bold ');
 		expect(runs[1]['a:t']).toBe('Normal');
 		// prSet preserved through the run rebuild.
 		expect(pt100['dgm:prSet']).toBeDefined();

@@ -123,6 +123,21 @@ describe('collectLocalTextValues', () => {
 		expect(out).toStrictEqual(['Deep text']);
 	});
 
+	it('preserves sibling order and whitespace between runs', () => {
+		const obj: XmlObject = {
+			'dgm:t': {
+				'a:p': {
+					'a:r': [{ 'a:t': 'North ' }, { 'a:t': 'America' }],
+				},
+			},
+		};
+		const out: string[] = [];
+
+		collectLocalTextValues(obj, 't', out);
+
+		expect(out).toStrictEqual(['North ', 'America']);
+	});
+
 	it('does nothing for undefined input', () => {
 		const out: string[] = [];
 		collectLocalTextValues(undefined, 't', out);
@@ -179,7 +194,7 @@ describe('extractTextFromPoint', () => {
 		expect(extractTextFromPoint(point)).toBeUndefined();
 	});
 
-	it('returns the first non-empty text when multiple texts exist', () => {
+	it('joins text from multiple runs', () => {
 		const point: XmlObject = {
 			'dgm:t': {
 				'a:p': [{ 'a:r': { 'a:t': '' } }, { 'a:r': { 'a:t': 'Second' } }],

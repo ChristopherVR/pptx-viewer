@@ -130,6 +130,31 @@ describe('pptxSmartArtParser — node text extraction', () => {
 		expect(nodes[1].id).toBe('2');
 	});
 
+	it('preserves run order and boundary whitespace in node text', () => {
+		const dataModel: XmlObject = {
+			'dgm:ptLst': {
+				'dgm:pt': {
+					'@_modelId': '1',
+					'dgm:t': {
+						'a:p': {
+							'a:r': [
+								{ 'a:rPr': { '@_b': '1' }, 'a:t': 'North ' },
+								{ 'a:rPr': { '@_i': '1' }, 'a:t': 'America' },
+							],
+						},
+					},
+				},
+			},
+		};
+
+		const nodes = parser.parseNodes(dataModel, xmlLookupService);
+
+		expect(nodes[0].text).toBe('North America');
+		expect(extractTextFromPoint((dataModel['dgm:ptLst'] as XmlObject)['dgm:pt'] as XmlObject)).toBe(
+			'North America',
+		);
+	});
+
 	it('skips points without text content', () => {
 		const dataModel: XmlObject = {
 			'dgm:ptLst': {
@@ -401,7 +426,7 @@ describe('smart-art-text-helpers — extractTextFromPoint', () => {
 		};
 
 		const text = extractTextFromPoint(point);
-		expect(text).toBe('Part A');
+		expect(text).toBe('Part A Part B');
 	});
 
 	it('trims whitespace from extracted text', () => {

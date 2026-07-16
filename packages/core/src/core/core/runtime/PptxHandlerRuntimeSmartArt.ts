@@ -62,12 +62,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const nodeType = String(point?.['@_type'] || '').trim() || undefined;
 				const textValues: string[] = [];
 				this.collectLocalTextValues(point, 't', textValues);
-				const resolvedText = textValues.find((entry) => entry.trim().length > 0);
-
 				// Capture per-run formatting so a load -> edit -> save round-trip
 				// keeps a node's individual runs (bold / colour / size) instead of
 				// flattening them to a single unstyled run on save.
 				const runs = this.extractSmartArtNodeRuns(point);
+				const resolvedText = runs?.map((run) => run.text).join('') ?? textValues.join('');
 
 				// Capture any per-node colour / emphasis override so the editing
 				// UI can display current values and the save path round-trips it.
@@ -75,7 +74,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				return {
 					id: pointId,
-					text: resolvedText ? resolvedText.trim() : '',
+					text: resolvedText,
 					connectionId: String(point?.['@_cxnId'] || '').trim() || undefined,
 					parentId: parentByNodeId.get(pointId),
 					nodeType,

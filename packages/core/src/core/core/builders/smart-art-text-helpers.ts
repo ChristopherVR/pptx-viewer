@@ -19,31 +19,35 @@ export const MAX_SMARTART_NODES = 2000;
 export function extractTextFromPoint(point: XmlObject): string | undefined {
 	const textValues: string[] = [];
 	collectLocalTextValues(point, 't', textValues);
-
-	const resolvedText = textValues.find((entry) => entry.trim().length > 0);
-	return resolvedText?.trim();
+	const resolvedText = textValues.join('');
+	return resolvedText.trim().length > 0 ? resolvedText.trim() : undefined;
 }
 
 /**
- * Recursively collect text values from XML objects.
+ * Iteratively collect text values from XML objects in document order.
  * Searches for elements with local name `targetName` and extracts
  * text from nested `a:t` elements.
  */
-export function collectLocalTextValues(
-	obj: XmlObject | undefined,
-	targetName: string,
-	out: string[],
-): void {
-	if (!obj || typeof obj !== 'object') {
-		return;
-	}
-
-	for (const key of Object.keys(obj)) {
-		const localName = getLocalName(key);
-		if (localName === targetName) {
-			extractParagraphText(obj[key] as XmlObject, out);
-		} else if (typeof obj[key] === 'object') {
-			collectLocalTextValues(obj[key] as XmlObject, targetName, out);
+export function collectLocalTextValues(obj: unknown, targetName: string, out: string[]): void {
+	const stack: Array<{ key?: string; value: unknown }> = [{ value: obj }];
+	let visited = 0;
+	while (stack.length > 0 && visited++ < 1_000_000) {
+		const current = stack.pop()!;
+		if (current.key && getLocalName(current.key) === targetName) {
+			if (typeof current.value === 'string' || typeof current.value === 'number') {
+				out.push(String(current.value));
+				continue;
+			}
+		}
+		if (Array.isArray(current.value)) {
+			for (let index = current.value.length - 1; index >= 0; index--) {
+				stack.push({ key: current.key, value: current.value[index] });
+			}
+		} else if (current.value && typeof current.value === 'object') {
+			const entries = Object.entries(current.value as XmlObject);
+			for (let index = entries.length - 1; index >= 0; index--) {
+				stack.push({ key: entries[index][0], value: entries[index][1] });
+			}
 		}
 	}
 }
