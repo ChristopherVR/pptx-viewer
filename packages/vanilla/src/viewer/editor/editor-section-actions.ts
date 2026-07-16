@@ -3,6 +3,7 @@ import {
 	deleteSection,
 	moveSectionDown,
 	moveSectionUp,
+	moveSlidesToSection,
 	renameSection,
 } from 'pptx-viewer-shared';
 
@@ -15,6 +16,7 @@ export interface SectionActions {
 	renameSection(sectionId: string, name: string): void;
 	deleteSection(sectionId: string): void;
 	moveSection(sectionId: string, direction: 'up' | 'down'): void;
+	moveSlidesToSection(slideIndexes: number[], targetSectionId: string): void;
 	toggleSection(sectionId: string): void;
 }
 
@@ -70,6 +72,21 @@ export function createSectionActions(
 				return;
 			}
 			commit(next, state.slides);
+		},
+		moveSlidesToSection(slideIndexes, targetSectionId) {
+			const state = store.get();
+			if (!state.editable || slideIndexes.length === 0) {
+				return;
+			}
+			const result = moveSlidesToSection(
+				state.sections,
+				state.slides,
+				slideIndexes,
+				targetSectionId,
+			);
+			if (result.sections !== state.sections) {
+				commit(result.sections, result.slides);
+			}
 		},
 		toggleSection(sectionId) {
 			const state = store.get();

@@ -62,4 +62,29 @@ describe('section actions', () => {
 		expect(store.get().sections).toStrictEqual([]);
 		expect(store.get().slides.every((slide) => slide.sectionId === undefined)).toBeTruthy();
 	});
+
+	it('moves slides between sections with history', () => {
+		const sectionSlides = slides.map((slide, index) => ({
+			...slide,
+			sectionId: index === 0 ? 'a' : 'b',
+		}));
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: sectionSlides,
+			sections: [
+				{ id: 'a', name: 'A', slideIds: ['1'] },
+				{ id: 'b', name: 'B', slideIds: ['2', '3'] },
+			],
+			editable: true,
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createSectionActions(store, ops);
+
+		actions.moveSlidesToSection([0], 'b');
+		expect(store.get().slides[0]).toMatchObject({ sectionId: 'b', sectionName: 'B' });
+		expect(store.get().sections[0].slideIds).toStrictEqual([]);
+		expect(store.get().sections[1].slideIds).toStrictEqual(['2', '3', '1']);
+		ops.undo();
+		expect(store.get().slides[0].sectionId).toBe('a');
+	});
 });
