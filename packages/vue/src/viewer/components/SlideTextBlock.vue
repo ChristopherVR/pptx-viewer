@@ -25,7 +25,25 @@ defineProps<{ paragraphs: RenderParagraph[]; textStyle: CSSProperties }>();
 				textIndent: para.textIndentPx !== undefined ? `${para.textIndentPx}px` : undefined,
 			}"
 		>
-			<span v-if="para.bulletMarker !== undefined" class="pptx-vue-bullet" :style="para.bulletStyle"
+			<img
+				v-if="para.bulletPicture?.src"
+				class="pptx-vue-bullet-image"
+				:src="para.bulletPicture.src"
+				:alt="para.bulletPicture.accessibleLabel"
+				:style="{
+					width: `${para.bulletPicture.sizePx}px`,
+					height: `${para.bulletPicture.sizePx}px`,
+					display: 'inline-block',
+					verticalAlign: 'middle',
+					marginInlineEnd: '4px',
+					objectFit: 'contain',
+				}"
+			/>
+			<span
+				v-else-if="para.bulletMarker !== undefined"
+				class="pptx-vue-bullet"
+				:style="para.bulletStyle"
+				:aria-label="para.bulletPicture?.accessibleLabel"
 				>{{ para.bulletMarker }}&nbsp;</span
 			>
 			<template v-for="(run, ri) in para.runs" :key="ri">

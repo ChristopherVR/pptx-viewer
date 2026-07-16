@@ -126,4 +126,37 @@ describe('elementRenderer - bulleted lists', () => {
 		expect(style).toContain('color: #ff0000');
 		expect(style).toContain('font-family: Wingdings');
 	});
+
+	it('renders a resolved picture bullet at its DrawingML size', () => {
+		const el = textElement([
+			{
+				text: '',
+				style: { fontSize: 16 },
+				bulletInfo: {
+					imageDataUrl: 'data:image/png;base64,iVBOR',
+					imageRelId: 'rId5',
+					sizePercent: 150,
+				},
+			},
+			{ text: 'Picture item', style: {} },
+		]);
+		const wrapper = mountEl(el);
+		const image = wrapper.find('.pptx-vue-bullet-image');
+		expect(image.attributes('src')).toBe('data:image/png;base64,iVBOR');
+		expect(image.attributes('alt')).toBe('Bullet');
+		expect(image.attributes('style')).toContain('width: 24px');
+		expect(image.attributes('style')).toContain('height: 24px');
+	});
+
+	it('renders an accessible fallback for an unresolved picture relationship', () => {
+		const el = textElement([
+			{ text: '', style: {}, bulletInfo: { imageRelId: 'rId5' } },
+			{ text: 'Fallback item', style: {} },
+		]);
+		const wrapper = mountEl(el);
+		const bullet = wrapper.find('.pptx-vue-bullet');
+		expect(wrapper.find('.pptx-vue-bullet-image').exists()).toBeFalsy();
+		expect(bullet.text()).toBe('•');
+		expect(bullet.attributes('aria-label')).toBe('Bullet');
+	});
 });
