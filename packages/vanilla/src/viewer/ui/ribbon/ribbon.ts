@@ -93,7 +93,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	const transitionsTab: TransitionsTab = createTransitionsTab(doc, t, handlers.edit);
 	const animationsTab: AnimationsTab = createAnimationsTab(doc, t, handlers.edit);
 	const slideShowTab = createSlideShowTab(doc, t, handlers.slideShow);
-	const recordTab = createRecordTab(doc, t);
+	const recordTab = createRecordTab(doc, t, handlers.slideShow);
 	const reviewTab = createReviewTab(doc, t, handlers.nav);
 	const viewTab = createViewTab(doc, t, handlers.nav);
 	const helpTab = createHelpTab(doc, t, handlers.nav);

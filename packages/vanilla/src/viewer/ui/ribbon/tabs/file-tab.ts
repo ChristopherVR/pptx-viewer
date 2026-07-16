@@ -157,6 +157,11 @@ export function createFileTab(
 				? 'Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.'
 				: 'Your presentations and recovery history stay in your browser unless you explicitly share or download them.';
 		card.append(avatar, heading, copy);
+		if (page === 'options') {
+			card.appendChild(
+				button(doc, 'Open Options', () => run(handlers.openSettings), 'pptxv-bs-primary'),
+			);
+		}
 		main.appendChild(card);
 	}
 	function render(): void {

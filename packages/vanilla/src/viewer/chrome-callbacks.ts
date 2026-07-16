@@ -118,6 +118,7 @@ export function buildChromeCallbacks(
 			openFile: () => deps.openFile(),
 			openRecentFile: (key) => deps.openRecentFile(key),
 			createPresentation: (templateId) => deps.createPresentation(templateId),
+			openSettings: () => deps.openSettings('general'),
 			openDocumentProperties: () => deps.openDocumentProperties(),
 			openFontEmbedding: () => deps.openFontEmbedding(),
 			openDigitalSignatures: () => deps.openDigitalSignatures(),
