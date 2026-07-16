@@ -2,6 +2,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import {
 	buildHandoutsHtml,
 	buildNotesHtml,
+	buildPrintDocument as buildSvgPrintDocument,
 	buildPrintHtmlDocument,
 	buildSlidesHtml,
 } from 'pptx-viewer-shared';
@@ -14,10 +15,13 @@ import {
 	computeSlideIndices,
 } from '../components/print-dialog-types';
 import type { PrintSettings } from '../components/print-dialog-types';
+import { exportSlideToSvg } from '../export-svg';
+import type { CanvasSize } from '../types';
 
 /**
  * usePrint: print-dialog state + the print-with-settings flow for the Vue
- * viewer. Vue port of the React `usePrintHandlers` (raster path).
+ * viewer. Direct slide printing uses core SVG output; composed notes and
+ * handouts retain the DOM raster path.
  *
  * The DOM-touching pieces are injected so the composable is unit-testable with
  * mocks, exactly like `useExport` injects `rasterizeSlide`:
@@ -26,9 +30,7 @@ import type { PrintSettings } from '../components/print-dialog-types';
  *  - `openPrintWindow(html)` opens a print window for a full HTML document. A
  *    default implementation (`window.open` → write → print) is supplied.
  *
- * The SVG vector print path from React is intentionally omitted (Vue has no SVG
- * slide serializer yet); the raster path covers slides / notes / handouts /
- * outline. Slide titles for outline mode reuse the shared `buildOutlineHtml`.
+ * Slide titles for outline mode reuse the shared `buildOutlineHtml`.
  */
 
 /** Rasterise the slide at `index` to a canvas. Host-supplied (DOM-coupled). */
@@ -44,6 +46,8 @@ export interface UsePrintOptions {
 	slides: Ref<PptxSlide[]>;
 	activeSlideIndex: Ref<number>;
 	rasterizeSlide: RasterizeSlide;
+	/** Native presentation dimensions used for vector slide printing. */
+	slideSize?: Ref<CanvasSize>;
 	/** Override the print-window opener (defaults to a `window.open` impl). */
 	openPrintWindow?: OpenPrintWindow;
 }
@@ -94,6 +98,7 @@ function buildPrintDocument(
 export function usePrint(options: UsePrintOptions): UsePrintResult {
 	const { slides, activeSlideIndex, rasterizeSlide } = options;
 	const openWindow = options.openPrintWindow ?? defaultOpenPrintWindow;
+	const slideSize = options.slideSize ?? ref<CanvasSize>({ width: 960, height: 540 });
 
 	const isPrintDialogOpen = ref(false);
 
@@ -137,6 +142,23 @@ export function usePrint(options: UsePrintOptions): UsePrintResult {
 			return;
 		}
 
+		if (settings.printWhat === 'slides') {
+			try {
+				const { width, height } = slideSize.value;
+				const svgs = slideIndices.map((index) => exportSlideToSvg(slideList[index], width, height));
+				openWindow(
+					buildSvgPrintDocument(svgs, width, height, {
+						title: 'Slides (Vector)',
+						orientation: settings.orientation,
+						colorFilter,
+					}),
+				);
+				return;
+			} catch (err) {
+				console.warn('[PowerPointViewer] SVG print failed, falling back to raster:', err);
+			}
+		}
+
 		try {
 			// Rasterise each selected slide to a PNG data URL.
 			const images: string[] = [];
@@ -144,7 +166,6 @@ export function usePrint(options: UsePrintOptions): UsePrintResult {
 				const canvas = await rasterizeSlide(idx);
 				images.push(canvas.toDataURL('image/png'));
 			}
-
 			if (settings.printWhat === 'slides') {
 				openWindow(
 					buildPrintDocument(

@@ -954,9 +954,13 @@ const {
 	fileName: () => props.fileName,
 });
 
-// ── Print (dialog + rasterised print window) ──────────────────────────
-// Reuses the same off-screen `rasterizeSlide` the export path drives.
-const printer = usePrint({ slides, activeSlideIndex, rasterizeSlide });
+// ── Print (vector slides; rasterised notes and handouts) ──────────────
+const printer = usePrint({
+	slides: mergedSlides,
+	activeSlideIndex,
+	rasterizeSlide,
+	slideSize: canvasSize,
+});
 
 // ── Slide sorter (grid overview + drag reorder) ───────────────────────
 const showSorter = ref(false);

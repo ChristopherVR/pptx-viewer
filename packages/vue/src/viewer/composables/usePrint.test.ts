@@ -24,7 +24,17 @@ function makeSlides(n: number, notes?: (i: number) => string): PptxSlide[] {
 		(_, i) =>
 			({
 				id: `s${i}`,
-				elements: [{ id: `e${i}`, type: 'text', text: `Title ${i + 1}` }],
+				elements: [
+					{
+						id: `e${i}`,
+						type: 'text',
+						text: `Title ${i + 1}`,
+						x: 20,
+						y: 20,
+						width: 300,
+						height: 50,
+					},
+				],
 				notes: notes?.(i),
 			}) as unknown as PptxSlide,
 	);
@@ -71,7 +81,7 @@ describe('usePrint', () => {
 		expect(result.isPrintDialogOpen.value).toBeFalsy();
 	});
 
-	it('rasterises every selected slide for the slides layout', async () => {
+	it('prints direct slides as SVG without rasterising', async () => {
 		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
 		const openPrintWindow = vi.fn().mockReturnValue(true);
 		const { print } = usePrint({
@@ -81,14 +91,15 @@ describe('usePrint', () => {
 			openPrintWindow,
 		});
 		await print(baseSettings());
-		expect(rasterizeSlide).toHaveBeenCalledTimes(3);
+		expect(rasterizeSlide).not.toHaveBeenCalled();
 		expect(openPrintWindow).toHaveBeenCalledOnce();
 		const html = openPrintWindow.mock.calls[0][0] as string;
-		expect(html).toContain('slide-img');
-		expect(html).toContain('@page { size: landscape;');
+		expect(html).toContain('<svg');
+		expect(html).toContain('Title 1');
+		expect(html).toContain('size: landscape;');
 	});
 
-	it('only rasterises the active slide for the "current" range', async () => {
+	it('only exports the active slide for the "current" range', async () => {
 		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
 		const openPrintWindow = vi.fn().mockReturnValue(true);
 		const { print } = usePrint({
@@ -98,7 +109,10 @@ describe('usePrint', () => {
 			openPrintWindow,
 		});
 		await print(baseSettings({ slideRange: 'current' }));
-		expect(rasterizeSlide).toHaveBeenCalledExactlyOnceWith(2);
+		expect(rasterizeSlide).not.toHaveBeenCalled();
+		const html = openPrintWindow.mock.calls[0][0] as string;
+		expect(html).toContain('Title 3');
+		expect(html).not.toContain('Title 2');
 	});
 
 	it('honours a custom range', async () => {
@@ -111,7 +125,51 @@ describe('usePrint', () => {
 			openPrintWindow,
 		});
 		await print(baseSettings({ slideRange: 'custom', customRangeFrom: 3, customRangeTo: 5 }));
-		expect(rasterizeSlide.mock.calls.map((c) => c[0])).toStrictEqual([2, 3, 4]);
+		expect(rasterizeSlide).not.toHaveBeenCalled();
+		const html = openPrintWindow.mock.calls[0][0] as string;
+		expect(html).toContain('Title 3');
+		expect(html).toContain('Title 5');
+		expect(html).not.toContain('Title 2');
+		expect(html).not.toContain('Title 6');
+	});
+
+	it('prints chart geometry through the core SVG exporter', async () => {
+		const chartSlide: PptxSlide = {
+			id: 'chart-slide',
+			rId: 'rId1',
+			slideNumber: 1,
+			elements: [
+				{
+					type: 'chart',
+					id: 'chart1',
+					x: 20,
+					y: 20,
+					width: 400,
+					height: 240,
+					chartData: {
+						chartType: 'bar',
+						categories: ['A', 'B'],
+						series: [{ name: 'Values', values: [10, 20], color: '#123456' }],
+					},
+				},
+			],
+		};
+		const rasterizeSlide = vi.fn();
+		const openPrintWindow = vi.fn().mockReturnValue(true);
+		const { print } = usePrint({
+			slides: ref([chartSlide]),
+			activeSlideIndex: ref(0),
+			rasterizeSlide,
+			openPrintWindow,
+		});
+
+		await print(baseSettings());
+
+		expect(rasterizeSlide).not.toHaveBeenCalled();
+		const html = openPrintWindow.mock.calls[0][0] as string;
+		expect(html).toContain('data-pptx-element="chart"');
+		expect(html).toContain('data-chart-mark="bar"');
+		expect(html).not.toContain('>chart</text>');
 	});
 
 	it('prints the outline without rasterising', async () => {
@@ -214,7 +272,7 @@ describe('usePrint', () => {
 			rasterizeSlide: vi.fn().mockRejectedValue(new Error('boom')),
 			openPrintWindow,
 		});
-		await expect(print(baseSettings())).resolves.toBeUndefined();
+		await expect(print(baseSettings({ printWhat: 'notes' }))).resolves.toBeUndefined();
 		expect(openPrintWindow).not.toHaveBeenCalled();
 		errSpy.mockRestore();
 	});

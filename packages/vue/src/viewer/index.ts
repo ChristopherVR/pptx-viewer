@@ -29,6 +29,13 @@ export type {
 } from './types';
 
 export * from './composables';
+export {
+	exportSlideToSvg,
+	exportSlideToSvgBlob,
+	exportAllSlidesToSvg,
+	exportAllSlidesToSvgBlobs,
+} from './export-svg';
+export type { SvgExportSingleSlideOptions, SvgExportAllOptions } from './export-svg';
 
 export {
 	DEFAULT_CANVAS_WIDTH,

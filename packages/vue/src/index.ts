@@ -10,6 +10,10 @@ export {
 	FollowModeBar,
 	useCollaboration,
 	useCollaborationWiring,
+	exportSlideToSvg,
+	exportSlideToSvgBlob,
+	exportAllSlidesToSvg,
+	exportAllSlidesToSvgBlobs,
 } from './viewer';
 export type {
 	PowerPointViewerProps,
@@ -25,6 +29,8 @@ export type {
 	UseCollaborationResult,
 	UseCollaborationWiringInput,
 	UseCollaborationWiringResult,
+	SvgExportSingleSlideOptions,
+	SvgExportAllOptions,
 } from './viewer';
 
 // ── Shared API types ──
