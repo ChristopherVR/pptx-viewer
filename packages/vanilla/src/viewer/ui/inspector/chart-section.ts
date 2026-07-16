@@ -1,6 +1,7 @@
 import type { PptxChartData, PptxChartType } from 'pptx-viewer-core';
 
 import type { Translator } from '../../i18n';
+import { createChartAdvancedSection } from './chart-advanced-section';
 import type { InspectorHandlers, InspectorState } from './types';
 
 const CHART_TYPES: readonly PptxChartType[] = [
@@ -39,6 +40,7 @@ export function createChartSection(
 	const series = textarea(doc, t('pptx.chart.series'));
 	const legend = checkbox(doc, t('pptx.chart.legend'));
 	const labels = checkbox(doc, t('pptx.chart.dataLabels'));
+	const advanced = createChartAdvancedSection(doc, t, (data) => handlers.setChartData(data));
 	el.append(
 		title.label,
 		chartType,
@@ -47,6 +49,7 @@ export function createChartSection(
 		series.label,
 		legend.label,
 		labels.label,
+		advanced.el,
 	);
 
 	let current: PptxChartData | undefined;
@@ -98,6 +101,7 @@ export function createChartSection(
 				.join('\n');
 			legend.control.checked = current.style?.hasLegend ?? false;
 			labels.control.checked = current.style?.hasDataLabels ?? false;
+			advanced.update(current);
 		},
 	};
 }
