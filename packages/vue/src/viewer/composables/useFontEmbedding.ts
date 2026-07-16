@@ -1,5 +1,5 @@
-import { hasTextProperties } from 'pptx-viewer-core';
-import type { PptxElement, PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
+import type { PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
+import { collectUsedFonts } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -27,32 +27,7 @@ export function useFontEmbedding(input: UseFontEmbeddingInput): UseFontEmbedding
 
 	const showFontEmbedding = ref(false);
 	const embedFontsEnabled = ref(false);
-	const usedFontFamilies = computed<string[]>(() => {
-		const fonts = new Set<string>();
-		const collect = (el: PptxElement): void => {
-			if (hasTextProperties(el)) {
-				if (el.textStyle?.fontFamily) {
-					fonts.add(el.textStyle.fontFamily);
-				}
-				for (const seg of el.textSegments ?? []) {
-					if (seg.style?.fontFamily) {
-						fonts.add(seg.style.fontFamily);
-					}
-				}
-			}
-			if (el.type === 'group' && el.children) {
-				for (const child of el.children) {
-					collect(child);
-				}
-			}
-		};
-		for (const slide of slides.value) {
-			for (const el of slide.elements ?? []) {
-				collect(el);
-			}
-		}
-		return Array.from(fonts).sort();
-	});
+	const usedFontFamilies = computed<string[]>(() => collectUsedFonts(slides.value));
 	const embeddedFontNames = computed(() => embeddedFonts.value.map((f) => f.name));
 
 	return { showFontEmbedding, embedFontsEnabled, usedFontFamilies, embeddedFontNames };
