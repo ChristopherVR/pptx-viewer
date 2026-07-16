@@ -104,5 +104,6 @@ assign(
 	},
 );
 
-export const OPENXML_WAVE5_COVERAGE_OVERRIDES: Readonly<Record<string, OpenXmlCoverageFacets>> =
-	overrides;
+export const OPENXML_COLORS_SHOWS_AND_LABELS_COVERAGE: Readonly<
+	Record<string, OpenXmlCoverageFacets>
+> = overrides;

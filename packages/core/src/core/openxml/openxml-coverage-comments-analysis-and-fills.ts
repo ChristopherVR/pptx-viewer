@@ -113,5 +113,6 @@ assign(
 	},
 );
 
-export const OPENXML_WAVE6_COVERAGE_OVERRIDES: Readonly<Record<string, OpenXmlCoverageFacets>> =
-	overrides;
+export const OPENXML_COMMENTS_ANALYSIS_AND_FILLS_COVERAGE: Readonly<
+	Record<string, OpenXmlCoverageFacets>
+> = overrides;

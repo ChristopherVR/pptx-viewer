@@ -87,5 +87,6 @@ assign(['diagram:attribute:meth', 'diagram:attribute:hueDir'], {
 	note: 'Typed DiagramML color-list method and hue-direction metadata.',
 });
 
-export const OPENXML_WAVE10_COVERAGE_OVERRIDES: Readonly<Record<string, OpenXmlCoverageFacets>> =
-	overrides;
+export const OPENXML_EFFECT_DAGS_AXIS_LABELS_AND_DIAGRAM_STYLES_COVERAGE: Readonly<
+	Record<string, OpenXmlCoverageFacets>
+> = overrides;

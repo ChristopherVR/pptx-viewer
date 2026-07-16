@@ -1,10 +1,10 @@
-import { OPENXML_WAVE5_COVERAGE_OVERRIDES } from './openxml-coverage-wave5';
-import { OPENXML_WAVE6_COVERAGE_OVERRIDES } from './openxml-coverage-wave6';
-import { OPENXML_WAVE7_COVERAGE_OVERRIDES } from './openxml-coverage-wave7';
-import { OPENXML_WAVE8_COVERAGE_OVERRIDES } from './openxml-coverage-wave8';
-import { OPENXML_WAVE9_COVERAGE_OVERRIDES } from './openxml-coverage-wave9';
-import { OPENXML_WAVE10_COVERAGE_OVERRIDES } from './openxml-coverage-wave10';
-import { OPENXML_WAVE11_COVERAGE_OVERRIDES } from './openxml-coverage-wave11';
+import { OPENXML_CHART_DISPLAY_EFFECTS_AND_DIAGRAM_LAYOUTS_COVERAGE } from './openxml-coverage-chart-display-effects-and-diagram-layouts';
+import { OPENXML_COLORS_SHOWS_AND_LABELS_COVERAGE } from './openxml-coverage-colors-shows-and-labels';
+import { OPENXML_COMMENTS_ANALYSIS_AND_FILLS_COVERAGE } from './openxml-coverage-comments-analysis-and-fills';
+import { OPENXML_DIAGRAM_DATA_AND_EFFECTS_COVERAGE } from './openxml-coverage-diagram-data-and-effects';
+import { OPENXML_EFFECT_DAGS_AXIS_LABELS_AND_DIAGRAM_STYLES_COVERAGE } from './openxml-coverage-effect-dags-axis-labels-and-diagram-styles';
+import { OPENXML_TRANSITIONS_SCENES_AND_CHART_TABLES_COVERAGE } from './openxml-coverage-transitions-scenes-and-chart-tables';
+import { OPENXML_VIEW_IMAGE_AND_CHART_POINT_FORMATTING_COVERAGE } from './openxml-coverage-view-image-and-chart-point-formatting';
 import {
 	OPENXML_SCHEMA_CONSTRUCT_IDS,
 	OPENXML_STRICT_SCHEMA_CONSTRUCT_IDS,
@@ -52,15 +52,18 @@ const UNASSESSED: OpenXmlCoverageFacets = {
 	serialize: 'unassessed',
 };
 
-/** Curated, test-backed overrides. Everything else remains explicitly unassessed. */
+/**
+ * Curated capability declarations. These summarize separately implemented and tested behavior;
+ * they are not generated from test execution. Everything else remains explicitly unassessed.
+ */
 const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
-	...OPENXML_WAVE5_COVERAGE_OVERRIDES,
-	...OPENXML_WAVE6_COVERAGE_OVERRIDES,
-	...OPENXML_WAVE7_COVERAGE_OVERRIDES,
-	...OPENXML_WAVE8_COVERAGE_OVERRIDES,
-	...OPENXML_WAVE9_COVERAGE_OVERRIDES,
-	...OPENXML_WAVE10_COVERAGE_OVERRIDES,
-	...OPENXML_WAVE11_COVERAGE_OVERRIDES,
+	...OPENXML_COLORS_SHOWS_AND_LABELS_COVERAGE,
+	...OPENXML_COMMENTS_ANALYSIS_AND_FILLS_COVERAGE,
+	...OPENXML_DIAGRAM_DATA_AND_EFFECTS_COVERAGE,
+	...OPENXML_TRANSITIONS_SCENES_AND_CHART_TABLES_COVERAGE,
+	...OPENXML_CHART_DISPLAY_EFFECTS_AND_DIAGRAM_LAYOUTS_COVERAGE,
+	...OPENXML_EFFECT_DAGS_AXIS_LABELS_AND_DIAGRAM_STYLES_COVERAGE,
+	...OPENXML_VIEW_IMAGE_AND_CHART_POINT_FORMATTING_COVERAGE,
 	'chart:complexType:CT_ManualLayout': {
 		parse: 'native',
 		preserve: 'native',

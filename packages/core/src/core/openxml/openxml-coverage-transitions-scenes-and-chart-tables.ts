@@ -83,5 +83,6 @@ assign(
 	},
 );
 
-export const OPENXML_WAVE8_COVERAGE_OVERRIDES: Readonly<Record<string, OpenXmlCoverageFacets>> =
-	overrides;
+export const OPENXML_TRANSITIONS_SCENES_AND_CHART_TABLES_COVERAGE: Readonly<
+	Record<string, OpenXmlCoverageFacets>
+> = overrides;
