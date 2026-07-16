@@ -1,4 +1,4 @@
-import { svgToCustomGeometryPaths } from '../../geometry/custom-geometry';
+import { parseStructuredCustomGeometry } from '../../geometry/custom-geometry-parser';
 import {
 	parseGuideDefinitions,
 	parseAdjustmentValues,
@@ -365,14 +365,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Build structured `CustomGeometryPath[]` from a parsed `a:custGeom` node,
 	 * including per-path `@fill`/`@stroke`/`@extrusionOk` attributes so they
-	 * survive a round-trip when the path list is later regenerated.
-	 *
-	 * Falls back to SVG → structured-path conversion when no structured path
-	 * info is otherwise available.
+	 * and formula-resolved arc commands survive path-list regeneration.
 	 */
 	protected buildStructuredCustomGeometryPaths(
 		custGeom: XmlObject | undefined,
-		pathData: string,
 		pathWidth: number,
 		pathHeight: number,
 	): CustomGeometryPath[] | undefined {
@@ -387,51 +383,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (pathNodes.length === 0) {
 			return undefined;
 		}
-		const segments = svgToCustomGeometryPaths(pathData, pathWidth, pathHeight);
-		if (segments.length === 0) {
-			return undefined;
-		}
-
-		const validFillModes = new Set([
-			'norm',
-			'lighten',
-			'lightenLess',
-			'darken',
-			'darkenLess',
-			'none',
-		]);
-		const parseBoolAttr = (value: unknown): boolean | undefined => {
-			if (value === undefined || value === null || value === '') {
-				return undefined;
-			}
-			if (value === '1' || value === 'true' || value === true) {
-				return true;
-			}
-			if (value === '0' || value === 'false' || value === false) {
-				return false;
-			}
-			return undefined;
-		};
-
-		// Apply path-level attributes from the first XML path to the (single)
-		// re-derived structured path. When the original had multiple paths but
-		// re-derivation collapsed them into one, we still preserve the first
-		// path's attributes so single-path documents (the common case) survive.
-		const target = segments[0];
-		const firstNode = pathNodes[0];
-		const fillAttr = String(firstNode['@_fill'] ?? '').trim();
-		if (validFillModes.has(fillAttr)) {
-			target.fillMode = fillAttr as CustomGeometryPath['fillMode'];
-		}
-		const strokeAttr = parseBoolAttr(firstNode['@_stroke']);
-		if (strokeAttr !== undefined) {
-			target.stroke = strokeAttr;
-		}
-		const extrusionAttr = parseBoolAttr(firstNode['@_extrusionOk']);
-		if (extrusionAttr !== undefined) {
-			target.extrusionOk = extrusionAttr;
-		}
-		return segments;
+		const paths = parseStructuredCustomGeometry(custGeom, pathWidth, pathHeight, (value) =>
+			this.ensureArray(value),
+		);
+		return paths.length > 0 ? paths : undefined;
 	}
 
 	protected parseCustomGeometry(

@@ -64,6 +64,7 @@ export {
 	ooxmlArcToSvg,
 } from './guide-formula';
 export type { GeometryGuide, GeometryContext } from './guide-formula';
+export { parseStructuredCustomGeometry } from './custom-geometry-parser';
 
 export {
 	unionShapes,
