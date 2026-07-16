@@ -133,6 +133,7 @@ export const SCALAR_ELEMENT_KEYS: ReadonlySet<string> = new Set([
 	'mediaMimeType',
 	'mediaReferenceKind',
 	'mediaReferenceName',
+	'mediaReferenceContentType',
 	'trimStartMs',
 	'trimEndMs',
 	'posterFramePath',
