@@ -49,7 +49,7 @@ describe('createPptxViewer', () => {
 		expect(container.querySelector('.pptxv-thumbs')?.getAttribute('role')).toBe('navigation');
 		expect(container.querySelector('.pptxv-thumbs')?.getAttribute('aria-label')).toBe('Slides');
 		expect(container.querySelector('.pptxv-statusbar')?.getAttribute('role')).toBeNull();
-		expect(container.querySelector('[aria-label="Save .pptx"]')).toBeTruthy();
+		expect(container.querySelector('[aria-label="Save"]')).toBeTruthy();
 
 		mount();
 		const styleTags = document.querySelectorAll('#pptx-vanilla-viewer-styles');
