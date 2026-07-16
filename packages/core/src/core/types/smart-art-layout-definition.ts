@@ -1,5 +1,6 @@
 /** Typed, editable metadata from a DiagramML layout-definition part. */
 
+import type { XmlObject } from './common';
 import type { PptxSmartArtConstraint, PptxSmartArtNumericRule } from './smart-art-constraint-rules';
 
 export interface PptxSmartArtLocalizedText {
@@ -24,6 +25,36 @@ export interface PptxSmartArtLayoutAlgorithm {
 	parameters?: PptxSmartArtAlgorithmParameter[];
 }
 
+export interface PptxSmartArtIteratorAttributes {
+	name?: string;
+	reference?: string;
+	axis?: string[];
+	pointTypes?: string[];
+	hideLastTransition?: boolean[];
+	start?: number[];
+	count?: number[];
+	step?: number[];
+}
+
+export interface PptxSmartArtForEach extends PptxSmartArtIteratorAttributes {
+	rawXml?: XmlObject;
+}
+
+export interface PptxSmartArtWhen extends PptxSmartArtIteratorAttributes {
+	function: string;
+	argument?: string;
+	operator: string;
+	value: string;
+	rawXml?: XmlObject;
+}
+
+export interface PptxSmartArtChoose {
+	name?: string;
+	when: PptxSmartArtWhen[];
+	otherwise?: { name?: string; rawXml?: XmlObject } | null;
+	rawXml?: XmlObject;
+}
+
 /** Identity and ordering metadata from DiagramML CT_LayoutNode. */
 export interface PptxSmartArtLayoutNode {
 	name?: string;
@@ -31,6 +62,8 @@ export interface PptxSmartArtLayoutNode {
 	childOrder?: 'b' | 't';
 	moveWith?: string;
 	algorithm?: PptxSmartArtLayoutAlgorithm;
+	forEach?: PptxSmartArtForEach[];
+	choose?: PptxSmartArtChoose[];
 	constraints?: PptxSmartArtConstraint[];
 	rules?: PptxSmartArtNumericRule[];
 	children?: PptxSmartArtLayoutNode[];

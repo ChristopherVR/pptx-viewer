@@ -24,11 +24,15 @@ export type {
 } from './smart-art-node';
 export type {
 	PptxSmartArtAlgorithmParameter,
+	PptxSmartArtChoose,
+	PptxSmartArtForEach,
+	PptxSmartArtIteratorAttributes,
 	PptxSmartArtLayoutCategory,
 	PptxSmartArtLayoutAlgorithm,
 	PptxSmartArtLayoutDefinition,
 	PptxSmartArtLayoutNode,
 	PptxSmartArtLocalizedText,
+	PptxSmartArtWhen,
 } from './smart-art-layout-definition';
 export type * from './smart-art-style-definition';
 export type * from './smart-art-definition-header';

@@ -28,6 +28,26 @@ function fixture(): XmlObject {
 				],
 				'x:extLst': { 'a:ext': { '@_uri': '{algorithm-vendor}' } },
 			},
+			'x:forEach': {
+				'@_name': 'items',
+				'@_axis': 'ch des',
+				'@_hideLastTrans': '0 1',
+				'@_st': '-1 0',
+				'@_cnt': '2 3',
+				'@_step': '1 2',
+				'x:shape': { '@_type': 'rect' },
+			},
+			'x:choose': {
+				'@_name': 'branch',
+				'x:if': {
+					'@_func': 'cnt',
+					'@_arg': 'ch',
+					'@_op': 'gte',
+					'@_val': '2',
+					'x:layoutNode': { '@_name': 'chosen' },
+				},
+				'x:else': { '@_name': 'fallback', 'x:shape': { '@_type': 'ellipse' } },
+			},
 			'x:layoutNode': { '@_name': 'child', 'x:shape': { '@_type': 'rect' } },
 			'x:extLst': { 'a:ext': { '@_uri': '{vendor}' } },
 		},
@@ -54,7 +74,24 @@ describe('diagramML layout-definition metadata', () => {
 						{ type: 'pyraAcctPos', value: 'bef' },
 					],
 				},
-				children: [{ name: 'child' }],
+				forEach: [
+					{
+						name: 'items',
+						axis: ['ch', 'des'],
+						hideLastTransition: [false, true],
+						start: [-1, 0],
+						count: [2, 3],
+						step: [1, 2],
+					},
+				],
+				choose: [
+					{
+						name: 'branch',
+						when: [{ function: 'cnt', argument: 'ch', operator: 'gte', value: '2' }],
+						otherwise: { name: 'fallback' },
+					},
+				],
+				children: [{ name: 'chosen' }, { name: 'child' }],
 			},
 		});
 	});
@@ -73,7 +110,10 @@ describe('diagramML layout-definition metadata', () => {
 			revision: 3,
 			parameters: [{ type: 'grDir', value: 'tR' }],
 		};
-		value.rootNode.children![0].moveWith = 'root';
+		value.rootNode.forEach![0].count = [4];
+		value.rootNode.choose![0].when[0].value = '3';
+		value.rootNode.choose![0].otherwise = null;
+		value.rootNode.children![1].moveWith = 'root';
 
 		expect(applySmartArtLayoutDefinition(xml, value, localName)).toBeTruthy();
 		expect(xml).toMatchObject({
@@ -90,6 +130,22 @@ describe('diagramML layout-definition metadata', () => {
 					'x:param': [{ '@_type': 'grDir', '@_val': 'tR', '@_vendor': 'keep' }],
 					'x:extLst': { 'a:ext': { '@_uri': '{algorithm-vendor}' } },
 				},
+				'x:forEach': [
+					{
+						'@_cnt': '4',
+						'x:shape': { '@_type': 'rect' },
+					},
+				],
+				'x:choose': [
+					{
+						'x:if': [
+							{
+								'@_val': '3',
+								'x:layoutNode': { '@_name': 'chosen' },
+							},
+						],
+					},
+				],
 				'x:layoutNode': { '@_moveWith': 'root', 'x:shape': { '@_type': 'rect' } },
 				'x:extLst': { 'a:ext': { '@_uri': '{vendor}' } },
 			},
@@ -122,6 +178,34 @@ describe('diagramML layout-definition metadata', () => {
 		expect(xml['dgm:alg']).toBeUndefined();
 	});
 
+	it('creates and removes typed forEach and choose branches', () => {
+		const definition: XmlObject = { 'x:layoutNode': { '@_name': 'root' } };
+		const value = parseSmartArtLayoutDefinition(definition, localName)!;
+		value.rootNode.forEach = [{ reference: 'parent', pointTypes: ['node'], count: [1] }];
+		value.rootNode.choose = [
+			{
+				when: [{ function: 'var', operator: 'equ', value: 'true' }],
+				otherwise: { name: 'fallback' },
+			},
+		];
+
+		expect(applySmartArtLayoutDefinition(definition, value, localName)).toBeTruthy();
+		expect(definition['x:layoutNode']).toMatchObject({
+			'dgm:forEach': [{ '@_ref': 'parent', '@_ptType': 'node', '@_cnt': '1' }],
+			'dgm:choose': [
+				{
+					'dgm:if': [{ '@_func': 'var', '@_op': 'equ', '@_val': 'true' }],
+					'dgm:else': { '@_name': 'fallback' },
+				},
+			],
+		});
+
+		value.rootNode.forEach = [];
+		value.rootNode.choose = [];
+		expect(applySmartArtLayoutDefinition(definition, value, localName)).toBeTruthy();
+		expect(definition['x:layoutNode']).toStrictEqual({ '@_name': 'root' });
+	});
+
 	it('rejects invalid required values and unsigned integer facets', () => {
 		expect(
 			validateSmartArtLayoutDefinition({
@@ -131,6 +215,7 @@ describe('diagramML layout-definition metadata', () => {
 						revision: -1,
 						parameters: [{ type: '' }],
 					},
+					choose: [{ when: [{ function: '', operator: '', value: '' }] }],
 				},
 				titles: [{ value: ' ' }],
 				categories: [{ type: '', priority: 4294967296 }],
@@ -139,6 +224,9 @@ describe('diagramML layout-definition metadata', () => {
 			'rootNode.algorithm.type is required',
 			'rootNode.algorithm.revision must be an unsigned 32-bit integer',
 			'rootNode.algorithm.parameters[0].type is required',
+			'rootNode.choose[0].when[0].function is required',
+			'rootNode.choose[0].when[0].operator is required',
+			'rootNode.choose[0].when[0].value is required',
 			'categories[0].type is required',
 			'categories[0].priority must be an unsigned 32-bit integer',
 			'titles[0].value is required',

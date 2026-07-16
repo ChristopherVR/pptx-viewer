@@ -15,6 +15,11 @@ import {
 	parseSmartArtLayoutAlgorithm,
 	validateSmartArtLayoutAlgorithm,
 } from './smartart-layout-algorithm';
+import {
+	applySmartArtControlFlow,
+	parseSmartArtControlFlow,
+	validateSmartArtControlFlow,
+} from './smartart-layout-control-flow';
 
 type LocalName = (key: string) => string;
 
@@ -98,6 +103,7 @@ function parseNode(node: XmlObject, localName: LocalName): PptxSmartArtLayoutNod
 		childOrder: childOrder === 'b' || childOrder === 't' ? childOrder : undefined,
 		moveWith: optionalString(node['@_moveWith']),
 		algorithm: parseSmartArtLayoutAlgorithm(node, localName),
+		...parseSmartArtControlFlow(node, localName),
 		...parseSmartArtConstraintRules(node, localName),
 		children: nested.length > 0 ? nested : undefined,
 	};
@@ -140,6 +146,7 @@ export function validateSmartArtLayoutDefinition(value: PptxSmartArtLayoutDefini
 	const visit = (node: PptxSmartArtLayoutNode, path: string): void => {
 		errors.push(...validateSmartArtConstraintRules(node).map((error) => `${path}.${error}`));
 		errors.push(...validateSmartArtLayoutAlgorithm(node).map((error) => `${path}.${error}`));
+		errors.push(...validateSmartArtControlFlow(node).map((error) => `${path}.${error}`));
 		if (node.childOrder !== undefined && node.childOrder !== 'b' && node.childOrder !== 't') {
 			errors.push(`${path}.childOrder must be b or t`);
 		}
@@ -185,6 +192,7 @@ function applyNode(target: XmlObject, value: PptxSmartArtLayoutNode, localName: 
 	setAttribute(target, '@_chOrder', value.childOrder);
 	setAttribute(target, '@_moveWith', value.moveWith);
 	applySmartArtLayoutAlgorithm(target, value.algorithm, localName);
+	applySmartArtControlFlow(target, value, localName);
 	applySmartArtConstraintRules(target, value, localName);
 	const existing = nestedLayoutNodes(target, localName);
 	value.children?.forEach((entry, index) => {
