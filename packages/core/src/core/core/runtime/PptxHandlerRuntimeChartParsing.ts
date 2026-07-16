@@ -28,6 +28,7 @@ import { chartContainerLocalNameToType } from '../../utils/chart-container-type-
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
 import { parseChartLayouts } from '../../utils/chart-layout';
 import { parseChartPrintSettings } from '../../utils/chart-print-settings';
+import { parseChartProtection } from '../../utils/chart-protection';
 import {
 	parseSeriesDataPoints,
 	parseSeriesDataLabels,
@@ -229,6 +230,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const printSettings = parseChartPrintSettings(chartSpace, (key) =>
 			this.compatibilityService.getXmlLocalName(key),
 		);
+		const protection = parseChartProtection(chartSpace, (key) =>
+			this.compatibilityService.getXmlLocalName(key),
+		);
 
 		return {
 			chartType,
@@ -262,6 +266,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(pivotFmtsXml ? { pivotFmtsXml } : {}),
 			...(clrMapOvr ? { clrMapOvr } : {}),
 			...(printSettings ? { printSettings } : {}),
+			...(protection ? { protection } : {}),
 		};
 	}
 
@@ -464,6 +469,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const printSettings = parseChartPrintSettings(chartSpace, (key) =>
 			this.compatibilityService.getXmlLocalName(key),
 		);
+		const protection = parseChartProtection(chartSpace, (key) =>
+			this.compatibilityService.getXmlLocalName(key),
+		);
 
 		return {
 			chartType,
@@ -486,6 +494,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(pivotFmtsXml ? { pivotFmtsXml } : {}),
 			...(clrMapOvr ? { clrMapOvr } : {}),
 			...(printSettings ? { printSettings } : {}),
+			...(protection ? { protection } : {}),
 		};
 	}
 }

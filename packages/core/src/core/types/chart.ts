@@ -7,6 +7,7 @@
 
 import type { PptxChartAxisLabelFormatting } from './chart-axis';
 import type { PptxChartPrintSettings } from './chart-print-settings';
+import type { PptxChartProtection } from './chart-protection';
 
 // ==========================================================================
 // Chart types
@@ -713,6 +714,8 @@ export interface PptxChartData {
 	chartChrome?: PptxChartChrome;
 	/** `c:chartSpace/c:printSettings`; `null` removes the container on save. */
 	printSettings?: PptxChartPrintSettings | null;
+	/** `c:chartSpace/c:protection`; `null` removes the container on save. */
+	protection?: PptxChartProtection | null;
 	/** Editable manual placement for the title, plot area, and legend. */
 	layouts?: PptxChartLayouts;
 

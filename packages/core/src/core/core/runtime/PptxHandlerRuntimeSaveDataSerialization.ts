@@ -28,6 +28,7 @@ import { applyChartLayouts } from '../../utils/chart-layout';
 import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
 import { applySeriesMarkerToXml } from '../../utils/chart-marker-serializer';
 import { applyChartPrintSettings } from '../../utils/chart-print-settings';
+import { applyChartProtection } from '../../utils/chart-protection';
 import { applySeriesDataLabelsToXml } from '../../utils/chart-series-datalabel-serializer';
 import { applySeriesTrendlinesToXml } from '../../utils/chart-trendline-serializer';
 import { applyChartUpDownBars } from '../../utils/chart-up-down-bars';
@@ -549,6 +550,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				if (chartData.printSettings !== undefined) {
 					applyChartPrintSettings(chartSpace, chartData.printSettings, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
+				}
+
+				if (chartData.protection !== undefined) {
+					applyChartProtection(chartSpace, chartData.protection, (key) =>
 						this.compatibilityService.getXmlLocalName(key),
 					);
 				}
