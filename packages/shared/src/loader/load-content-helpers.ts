@@ -7,6 +7,7 @@
  */
 import type {
 	MediaPptxElement,
+	Model3DPptxElement,
 	PicturePptxElement,
 	PptxElement,
 	PptxDrawingGuide,
@@ -23,7 +24,7 @@ export interface GuideEntry {
 /** An element that may carry an image path needing Blob URL resolution. */
 export interface ImagePathElement {
 	element: PptxElement;
-	field: 'imageData' | 'svgData' | 'posterFrameData';
+	field: 'imageData' | 'svgData' | 'posterFrameData' | 'modelData' | 'posterImage';
 	path: string;
 }
 
@@ -87,6 +88,20 @@ export function collectImagePaths(slides: PptxSlide[]): {
 						field: 'posterFrameData',
 						path: media.posterFramePath,
 					});
+				}
+			}
+			if (el.type === 'model3d') {
+				const model = el as Model3DPptxElement;
+				if (model.modelPath && !model.modelData && !isExternalUrl(model.modelPath)) {
+					paths.add(model.modelPath);
+					refs.push({ element: el, field: 'modelData', path: model.modelPath });
+				}
+				const posterNeedsResolution = model.posterImage
+					? !isExternalUrl(model.posterImage)
+					: !model.imageData;
+				if (model.imagePath && posterNeedsResolution && !isExternalUrl(model.imagePath)) {
+					paths.add(model.imagePath);
+					refs.push({ element: el, field: 'posterImage', path: model.imagePath });
 				}
 			}
 			if (el.type === 'group' && el.children?.length) {
