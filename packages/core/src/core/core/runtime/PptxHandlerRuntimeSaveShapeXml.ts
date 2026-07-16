@@ -14,6 +14,7 @@ export const CHART_RELATIONSHIP_TYPE =
 
 /** URI for charts in `<a:graphicData>`. */
 const CHART_GRAPHIC_DATA_URI = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
+const CHART_EX_GRAPHIC_DATA_URI = 'http://schemas.microsoft.com/office/drawing/2014/chartex';
 
 /** Content type for a chart part in `[Content_Types].xml`. */
 export const CHART_CONTENT_TYPE =
@@ -97,7 +98,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * chart part via `relId`. The chart part itself (`ppt/charts/chartN.xml`)
 	 * and the slide relationship are created by the caller.
 	 */
-	protected createChartGraphicFrameXml(el: ChartPptxElement, relId: string): XmlObject {
+	protected createChartGraphicFrameXml(
+		el: ChartPptxElement,
+		relId: string,
+		extended = false,
+	): XmlObject {
 		const EMU = PptxHandlerRuntime.EMU_PER_PX;
 		const offX = String(Math.round(el.x * EMU));
 		const offY = String(Math.round(el.y * EMU));
@@ -116,7 +121,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			},
 			'a:graphic': {
 				'a:graphicData': {
-					'@_uri': CHART_GRAPHIC_DATA_URI,
+					'@_uri': extended ? CHART_EX_GRAPHIC_DATA_URI : CHART_GRAPHIC_DATA_URI,
 					'c:chart': {
 						'@_xmlns:c': CHART_NS_C,
 						'@_xmlns:r': CHART_NS_R,
