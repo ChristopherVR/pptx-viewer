@@ -25,9 +25,17 @@ export interface SectionMutationResult {
 	slides: PptxSlide[];
 }
 
+/** Minimum section metadata needed to build sidebar groups. */
+export interface SectionGroupDescriptor {
+	id: string;
+	name: string;
+	collapsed?: boolean;
+	color?: string;
+}
+
 /** A declared section paired with its slides, or the trailing ungrouped slides. */
-export interface SectionSlideGroup {
-	section: PptxSection | undefined;
+export interface SectionSlideGroup<TSection extends SectionGroupDescriptor = PptxSection> {
+	section: TSection | undefined;
 	slides: PptxSlide[];
 	slideIndexes: number[];
 }
@@ -63,10 +71,10 @@ export function resolveSlideId(slide: PptxSlide | undefined, index: number): str
  * Group slides in declared section order, followed by slides without a known
  * section. Empty declared sections are omitted, matching React's sidebar.
  */
-export function groupSlidesBySection(
-	sections: readonly PptxSection[],
+export function groupSlidesBySection<TSection extends SectionGroupDescriptor>(
+	sections: readonly TSection[],
 	slides: readonly PptxSlide[],
-): SectionSlideGroup[] {
+): SectionSlideGroup<TSection>[] {
 	if (slides.length === 0) {
 		return [];
 	}
@@ -77,8 +85,12 @@ export function groupSlidesBySection(
 	}
 
 	const sectionById = new Map(sections.map((section) => [section.id, section]));
-	const grouped = new Map<string, SectionSlideGroup>();
-	const ungrouped: SectionSlideGroup = { section: undefined, slides: [], slideIndexes: [] };
+	const grouped = new Map<string, SectionSlideGroup<TSection>>();
+	const ungrouped: SectionSlideGroup<TSection> = {
+		section: undefined,
+		slides: [],
+		slideIndexes: [],
+	};
 	for (const section of sections) {
 		grouped.set(section.id, { section, slides: [], slideIndexes: [] });
 	}
