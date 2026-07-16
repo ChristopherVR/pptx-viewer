@@ -1,6 +1,25 @@
 import { XmlObject } from '../../types';
 import type { PptxPresentationProperties } from '../../types';
 
+function parseXmlBoolean(value: unknown, defaultValue: boolean): boolean {
+	if (value === true || value === 1) {
+		return true;
+	}
+	if (value === false || value === 0) {
+		return false;
+	}
+	const lexical = String(value ?? '')
+		.trim()
+		.toLowerCase();
+	if (lexical === 'true' || lexical === '1') {
+		return true;
+	}
+	if (lexical === 'false' || lexical === '0') {
+		return false;
+	}
+	return defaultValue;
+}
+
 /**
  * Parse show properties (p:showPr) from presentation properties XML.
  * Returns partial presentation properties with show-related settings.
@@ -26,12 +45,12 @@ export function parseShowProperties(showPr: XmlObject): Partial<PptxPresentation
 		}
 	}
 
-	props.loopContinuously = showPr['@_loop'] === '1';
-	props.showWithNarration = showPr['@_showNarration'] !== '0';
-	props.showWithAnimation = showPr['@_showAnimation'] !== '0';
+	props.loopContinuously = parseXmlBoolean(showPr['@_loop'], false);
+	props.showWithNarration = parseXmlBoolean(showPr['@_showNarration'], true);
+	props.showWithAnimation = parseXmlBoolean(showPr['@_showAnimation'], true);
 
 	// Advance mode
-	if (showPr['@_useTimings'] === '0') {
+	if (!parseXmlBoolean(showPr['@_useTimings'], true)) {
 		props.advanceMode = 'manual';
 	} else {
 		props.advanceMode = 'useTimings';

@@ -28,6 +28,11 @@ describe('parseShowProperties', () => {
 		expect(result.loopContinuously).toBeTruthy();
 	});
 
+	it.each(['true', true, 1])('should parse loopContinuously from true lexical form %j', (value) => {
+		const result = parseShowProperties({ '@_loop': value });
+		expect(result.loopContinuously).toBeTruthy();
+	});
+
 	it('should parse loopContinuously as false when @_loop is absent', () => {
 		const result = parseShowProperties({});
 		expect(result.loopContinuously).toBeFalsy();
@@ -43,6 +48,11 @@ describe('parseShowProperties', () => {
 		expect(result.showWithNarration).toBeFalsy();
 	});
 
+	it.each(['false', false, 0])('should parse narration false lexical form %j', (value) => {
+		const result = parseShowProperties({ '@_showNarration': value });
+		expect(result.showWithNarration).toBeFalsy();
+	});
+
 	it('should default showWithAnimation to true when @_showAnimation is absent', () => {
 		const result = parseShowProperties({});
 		expect(result.showWithAnimation).toBeTruthy();
@@ -53,8 +63,18 @@ describe('parseShowProperties', () => {
 		expect(result.showWithAnimation).toBeFalsy();
 	});
 
+	it.each(['false', false, 0])('should parse animation false lexical form %j', (value) => {
+		const result = parseShowProperties({ '@_showAnimation': value });
+		expect(result.showWithAnimation).toBeFalsy();
+	});
+
 	it('should parse advanceMode as "manual" when @_useTimings is "0"', () => {
 		const result = parseShowProperties({ '@_useTimings': '0' });
+		expect(result.advanceMode).toBe('manual');
+	});
+
+	it.each(['false', false, 0])('should parse manual timings lexical form %j', (value) => {
+		const result = parseShowProperties({ '@_useTimings': value });
 		expect(result.advanceMode).toBe('manual');
 	});
 
