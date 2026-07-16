@@ -445,6 +445,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 					[element]="el()"
 					[slideIndex]="slideIndex()"
 					[animations]="slideAnimations()"
+					[slideElements]="slideElements()"
 					(animationsChange)="onAnimationsChange($event)"
 				/>
 			</details>
@@ -870,6 +871,9 @@ export class InspectorPanelComponent {
 	/** The active slide's element-animation list (animations live on the slide). */
 	protected readonly slideAnimations = computed<readonly PptxElementAnimation[]>(
 		() => this.editor.slides()[this.slideIndex()]?.animations ?? [],
+	);
+	protected readonly slideElements = computed<readonly PptxElement[]>(
+		() => this.editor.slides()[this.slideIndex()]?.elements ?? [],
 	);
 
 	/** Commit an updated slide-level animation list as one history entry. */

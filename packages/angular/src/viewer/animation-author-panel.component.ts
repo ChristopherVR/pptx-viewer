@@ -67,26 +67,39 @@ import {
 	setTriggerShapeId,
 	showDirectionPicker,
 } from './animation-author-helpers';
+import { getAnimationElementLabel, getAnimationTriggerElements } from './animation-author-view';
+import { previewAngularAnimation } from './animation-preview-player';
+import { AnimationTimelineComponent } from './animation-timeline.component';
 
 @Component({
 	selector: 'pptx-animation-author-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TranslatePipe, LucideX, LucideArrowUp, LucideArrowDown],
+	imports: [TranslatePipe, LucideX, LucideArrowUp, LucideArrowDown, AnimationTimelineComponent],
 	template: `
 		<aside class="pptx-ng-anim" [attr.aria-label]="'pptx.animations.propertiesLabel' | translate">
 			<!-- ── Header ───────────────────────────────────────────────────── -->
 			<div class="pptx-ng-anim__header">
 				<span class="pptx-ng-anim__title">{{ 'pptx.animations.animation' | translate }}</span>
 				@if (currentHasAnimation()) {
-					<button
-						type="button"
-						class="pptx-ng-anim__remove-btn inline-flex items-center gap-1"
-						[title]="'pptx.animations.removeFromElement' | translate"
-						(click)="onRemove()"
-					>
-						<svg lucideX class="h-3.5 w-3.5"></svg> {{ 'pptx.animations.remove' | translate }}
-					</button>
+					<div class="pptx-ng-anim__header-actions">
+						<button
+							type="button"
+							class="pptx-ng-anim__preview-btn"
+							[title]="'pptx.animations.previewTooltip' | translate"
+							(click)="onPreview()"
+						>
+							{{ 'pptx.animations.preview' | translate }}
+						</button>
+						<button
+							type="button"
+							class="pptx-ng-anim__remove-btn inline-flex items-center gap-1"
+							[title]="'pptx.animations.removeFromElement' | translate"
+							(click)="onRemove()"
+						>
+							<svg lucideX class="h-3.5 w-3.5"></svg> {{ 'pptx.animations.remove' | translate }}
+						</button>
+					</div>
 				}
 			</div>
 
@@ -224,7 +237,7 @@ import {
 						>
 							<option value="">{{ 'pptx.animations.selectShapeOption' | translate }}</option>
 							@for (el of otherElements(); track el.id) {
-								<option [value]="el.id">{{ el.id }}</option>
+								<option [value]="el.id">{{ elementLabel(el) }}</option>
 							}
 						</select>
 					</section>
@@ -363,6 +376,14 @@ import {
 						</button>
 					</div>
 				</section>
+
+				<pptx-animation-timeline
+					[animations]="animations()"
+					[elements]="slideElements()"
+					[selectedElementId]="element().id"
+					[canEdit]="canEdit()"
+					(animationsChange)="animationsChange.emit($event)"
+				/>
 			}
 			<!-- end @if (currentHasAnimation()) -->
 		</aside>
@@ -395,6 +416,20 @@ import {
 			text-transform: uppercase;
 			letter-spacing: 0.05em;
 			color: var(--pptx-inspector-muted, #888);
+		}
+		.pptx-ng-anim__header-actions {
+			display: flex;
+			align-items: center;
+			gap: 4px;
+		}
+		.pptx-ng-anim__preview-btn {
+			padding: 2px 6px;
+			border: 1px solid var(--pptx-primary, #4c9ffe);
+			border-radius: 3px;
+			background: transparent;
+			color: var(--pptx-primary, #4c9ffe);
+			cursor: pointer;
+			font-size: 10px;
 		}
 
 		.pptx-ng-anim__subheading {
@@ -556,6 +591,8 @@ export class AnimationAuthorPanelComponent {
 	 * emits the entire array.
 	 */
 	readonly animations = input.required<readonly PptxElementAnimation[]>();
+	/** Every element on the active slide, including elements with no animation. */
+	readonly slideElements = input<readonly PptxElement[]>([]);
 
 	/**
 	 * Whether editing controls are enabled. When `false` all selects/inputs are
@@ -634,30 +671,27 @@ export class AnimationAuthorPanelComponent {
 	});
 
 	/**
-	 * Elements on the slide excluding the selected element, used to populate
-	 * the trigger-shape selector. The slide's elements are not available in this
-	 * component's inputs, so the orchestrator must pass them in via
-	 * `[animations]` indirectly; here we surface only what we have access to.
-	 *
-	 * NOTE: The trigger-shape dropdown is limited to element ids because this
-	 * panel does not receive the full slide element list. The orchestrator can
-	 * replace this with a richer element label by wrapping the component or
-	 * projecting content. This matches the React implementation which used
-	 * `activeSlide.elements`.
+	 * Every other element on the active slide, including elements that do not
+	 * yet have an animation entry. Used by the on-shape-click trigger picker.
 	 */
-	protected readonly otherElements = computed((): Array<{ id: string }> => {
-		// Since we only have `animations`, return the element ids from the
-		// animation list as a fallback. A richer label can be provided by
-		// the orchestrator via a dedicated `[slideElements]` input if needed.
-		return this.animations()
-			.filter((a) => a.elementId !== this.element().id)
-			.map((a) => ({ id: a.elementId }));
-	});
+	protected readonly otherElements = computed(() =>
+		getAnimationTriggerElements(this.slideElements(), this.element().id),
+	);
+	protected elementLabel(element: PptxElement): string {
+		return getAnimationElementLabel(element);
+	}
 
 	// ── Emit helper ──────────────────────────────────────────────────────────
 
 	private emit(updated: PptxElementAnimation[]): void {
 		this.animationsChange.emit(updated);
+	}
+
+	protected onPreview(): void {
+		const animation = this.current();
+		if (animation) {
+			previewAngularAnimation(animation);
+		}
 	}
 
 	// ── Preset handlers ───────────────────────────────────────────────────────
