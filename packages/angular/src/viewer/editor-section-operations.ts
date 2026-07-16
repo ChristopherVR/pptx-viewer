@@ -5,6 +5,7 @@ import {
 	deleteSection,
 	moveSectionDown,
 	moveSectionUp,
+	moveSlidesToSection,
 	renameSection,
 } from '../internal/shared';
 
@@ -13,6 +14,7 @@ export interface EditorSectionOperations {
 	rename(sectionId: string, name: string): void;
 	delete(sectionId: string): void;
 	move(sectionId: string, direction: 'up' | 'down'): void;
+	moveSlides(slideIndexes: number[], targetSectionId: string): void;
 	toggle(sectionId: string): void;
 }
 
@@ -57,6 +59,20 @@ export function createEditorSectionOperations(
 					: moveSectionDown(host.sections(), sectionId);
 			if (next !== host.sections()) {
 				host.commit(next, host.slides());
+			}
+		},
+		moveSlides(slideIndexes, targetSectionId) {
+			if (slideIndexes.length === 0) {
+				return;
+			}
+			const result = moveSlidesToSection(
+				host.sections(),
+				host.slides(),
+				slideIndexes,
+				targetSectionId,
+			);
+			if (result.sections !== host.sections()) {
+				host.commit(result.sections, result.slides);
 			}
 		},
 		toggle(sectionId) {

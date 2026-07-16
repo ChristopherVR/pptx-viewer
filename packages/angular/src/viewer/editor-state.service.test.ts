@@ -41,6 +41,25 @@ describe('editorStateService', () => {
 		expect(svc.sections()[0]?.id).toBe(sectionId);
 	});
 
+	it('moves slides between sections with undo support', () => {
+		const svc = new EditorStateService();
+		const slides = [slide('s1', []), slide('s2', []), slide('s3', [])];
+		slides[0].sectionId = 'a';
+		slides[1].sectionId = 'b';
+		slides[2].sectionId = 'b';
+		svc.setSlides(slides, [
+			{ id: 'a', name: 'A', slideIds: ['1'] },
+			{ id: 'b', name: 'B', slideIds: ['2', '3'] },
+		]);
+
+		svc.sectionOps.moveSlides([0], 'b');
+		expect(svc.slides()[0]).toMatchObject({ sectionId: 'b', sectionName: 'B' });
+		expect(svc.sections()[0].slideIds).toStrictEqual([]);
+		expect(svc.sections()[1].slideIds).toStrictEqual(['2', '3', '1']);
+		svc.undo();
+		expect(svc.slides()[0].sectionId).toBe('a');
+	});
+
 	it('clones slides on load (source mutation does not leak in)', () => {
 		const svc = new EditorStateService();
 		const src = [slide('s1', [element('a')])];
