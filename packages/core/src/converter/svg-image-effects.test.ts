@@ -26,6 +26,27 @@ describe('buildImageEffectsFilter', () => {
 		expect(f!.defsXml).toContain('values="45"');
 	});
 
+	it('renders HSL saturation and luminance transfers', () => {
+		const filter = buildImageEffectsFilter({ hsl: { sat: -20, lum: 40 } }, '1-0');
+		expect(filter!.defsXml).toContain('type="saturate" values="0.8"');
+		expect(filter!.defsXml).toContain('slope="0.6" intercept="0.4"');
+	});
+
+	it('uses the actual biLevel threshold', () => {
+		const low = buildImageEffectsFilter({ biLevel: 25 }, '1-0')!.defsXml;
+		const high = buildImageEffectsFilter({ biLevel: 75 }, '1-0')!.defsXml;
+		expect(low).not.toBe(high);
+		expect(low).toContain(`tableValues="${`${'0 '.repeat(25)}${'1 '.repeat(76)}`.trim()}"`);
+	});
+
+	it('renders positive and negative tint transfers after hue rotation', () => {
+		const lighter = buildImageEffectsFilter({ tint: { hue: 45, amt: 25 } }, '1-0');
+		const darker = buildImageEffectsFilter({ tint: { amt: -30 } }, '1-0');
+		expect(lighter!.defsXml).toContain('type="hueRotate" values="45"');
+		expect(lighter!.defsXml).toContain('slope="0.75" intercept="0.25"');
+		expect(darker!.defsXml).toContain('slope="0.7" intercept="0"');
+	});
+
 	it('translates alphaModFix to a matrix that scales alpha', () => {
 		const f = buildImageEffectsFilter({ alphaModFix: 50 }, '0-0');
 		// last row alpha multiplier 0.5

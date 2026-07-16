@@ -11,6 +11,15 @@
  */
 
 import type { PptxImageEffects } from '../core/types';
+import {
+	biLevelTable,
+	clamp,
+	clamp01to2,
+	fmt,
+	luminanceTransfer,
+	parseHexRgb,
+	stepTable10,
+} from './svg-image-effect-values';
 
 /**
  * Build an SVG `<filter>` element representing the supplied effects.
@@ -52,6 +61,26 @@ export function buildImageEffectsFilter(
 		);
 	}
 
+	if (typeof effects.hsl?.sat === 'number') {
+		const saturation = clamp01to2(1 + effects.hsl.sat / 100);
+		next(
+			'p3s',
+			`<feColorMatrix in="__IN__" type="saturate" values="${fmt(saturation)}" result="__OUT__"/>`,
+		);
+	}
+
+	if (typeof effects.hsl?.lum === 'number') {
+		const { slope, intercept } = luminanceTransfer(effects.hsl.lum);
+		next(
+			'p3l',
+			`<feComponentTransfer in="__IN__" result="__OUT__">` +
+				`<feFuncR type="linear" slope="${fmt(slope)}" intercept="${fmt(intercept)}"/>` +
+				`<feFuncG type="linear" slope="${fmt(slope)}" intercept="${fmt(intercept)}"/>` +
+				`<feFuncB type="linear" slope="${fmt(slope)}" intercept="${fmt(intercept)}"/>` +
+				`</feComponentTransfer>`,
+		);
+	}
+
 	if (typeof effects.brightness === 'number' || typeof effects.contrast === 'number') {
 		const b = (effects.brightness ?? 0) / 100; // -1..1
 		const c = 1 + (effects.contrast ?? 0) / 100; // 0..2
@@ -89,13 +118,13 @@ export function buildImageEffectsFilter(
 	if (typeof effects.biLevel === 'number') {
 		// Convert to grayscale then threshold each channel.
 		next('p6a', `<feColorMatrix in="__IN__" type="saturate" values="0" result="__OUT__"/>`);
-		const t = clamp(effects.biLevel / 100, 0, 1);
+		const table = biLevelTable(effects.biLevel);
 		next(
 			'p6b',
 			`<feComponentTransfer in="__IN__" result="__OUT__">` +
-				`<feFuncR type="discrete" tableValues="${t === 0 ? '1 1' : `0 ${stepTable(t)}`}"/>` +
-				`<feFuncG type="discrete" tableValues="${t === 0 ? '1 1' : `0 ${stepTable(t)}`}"/>` +
-				`<feFuncB type="discrete" tableValues="${t === 0 ? '1 1' : `0 ${stepTable(t)}`}"/>` +
+				`<feFuncR type="discrete" tableValues="${table}"/>` +
+				`<feFuncG type="discrete" tableValues="${table}"/>` +
+				`<feFuncB type="discrete" tableValues="${table}"/>` +
 				`</feComponentTransfer>`,
 		);
 	}
@@ -116,21 +145,21 @@ export function buildImageEffectsFilter(
 	}
 
 	if (effects.tint && typeof effects.tint.amt === 'number') {
-		// Approximate: tint pulls colour toward a specific hue; amt -100..100.
-		// Use saturate down for negative, hueRotate by hue for positive.
-		const amt = clamp(effects.tint.amt / 100, -1, 1);
-		if (amt < 0) {
-			next(
-				'p8',
-				`<feColorMatrix in="__IN__" type="saturate" values="${fmt(1 + amt)}" result="__OUT__"/>`,
-			);
-		}
 		if (typeof effects.tint.hue === 'number') {
 			next(
 				'p8h',
 				`<feColorMatrix in="__IN__" type="hueRotate" values="${fmt(effects.tint.hue)}" result="__OUT__"/>`,
 			);
 		}
+		const { slope, intercept } = luminanceTransfer(effects.tint.amt);
+		next(
+			'p8',
+			`<feComponentTransfer in="__IN__" result="__OUT__">` +
+				`<feFuncR type="linear" slope="${fmt(slope)}" intercept="${fmt(intercept)}"/>` +
+				`<feFuncG type="linear" slope="${fmt(slope)}" intercept="${fmt(intercept)}"/>` +
+				`<feFuncB type="linear" slope="${fmt(slope)}" intercept="${fmt(intercept)}"/>` +
+				`</feComponentTransfer>`,
+		);
 	}
 
 	if (effects.clrRepl) {
@@ -256,43 +285,4 @@ export function buildImageEffectsFilter(
 	const filterId = `imgfx-${idSuffix}`;
 	const defsXml = `<filter id="${filterId}" x="-10%" y="-10%" width="120%" height="120%">${primitives.join('')}</filter>`;
 	return { defsXml, filterId };
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-	return v < lo ? lo : v > hi ? hi : v;
-}
-
-function clamp01to2(v: number): number {
-	return clamp(v, 0, 2);
-}
-
-function fmt(v: number): string {
-	return Number.isFinite(v) ? Number(v.toFixed(4)).toString() : '0';
-}
-
-function stepTable(t: number): string {
-	// Used in single-bit discrete tables to encode "below t → 0, above t → 1".
-	// Two-entry table approximates the threshold.
-	return t < 0.5 ? '1' : '1';
-}
-
-function stepTable10(t: number): string {
-	const out: string[] = [];
-	for (let i = 0; i < 10; i++) {
-		out.push(i / 10 >= t ? '1' : '0');
-	}
-	return out.join(' ');
-}
-
-function parseHexRgb(hex: string): { r: number; g: number; b: number } {
-	const m = /^#?([0-9a-f]{6})/i.exec(hex.trim());
-	if (!m) {
-		return { r: 0, g: 0, b: 0 };
-	}
-	const v = parseInt(m[1] ?? '000000', 16);
-	return {
-		r: ((v >> 16) & 0xff) / 255,
-		g: ((v >> 8) & 0xff) / 255,
-		b: (v & 0xff) / 255,
-	};
 }
