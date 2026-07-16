@@ -237,7 +237,11 @@ export function renderPictureBullet(
 	bulletInfo: BulletInfo,
 	baseFontSize: number,
 ): React.ReactNode {
-	const picture = resolvePictureBullet(bulletInfo, baseFontSize);
+	const picture = resolvePictureBullet(bulletInfo, baseFontSize) ?? {
+		sizePx: baseFontSize,
+		fallbackMarker: '•',
+		accessibleLabel: 'Bullet',
+	};
 
 	// Fallback: when no resolved image data URL is available, render a
 	// default character bullet instead of a broken <img>.
