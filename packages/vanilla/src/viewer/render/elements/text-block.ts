@@ -24,9 +24,25 @@ export function renderTextBlock(
 			p.style.textIndent = `${para.textIndentPx}px`;
 		}
 
-		if (para.bulletMarker !== undefined) {
+		if (para.bulletPicture?.src) {
+			const picture = para.bulletPicture;
+			const image = createEl(doc, 'img', 'pptxv-bullet-image', {
+				width: `${picture.sizePx}px`,
+				height: `${picture.sizePx}px`,
+				display: 'inline-block',
+				verticalAlign: 'middle',
+				marginInlineEnd: '4px',
+				objectFit: 'contain',
+			});
+			image.src = picture.src;
+			image.alt = picture.accessibleLabel;
+			p.appendChild(image);
+		} else if (para.bulletMarker !== undefined) {
 			const bullet = createEl(doc, 'span', 'pptxv-bullet');
 			applyStyleMap(bullet, para.bulletStyle);
+			if (para.bulletPicture) {
+				bullet.setAttribute('aria-label', para.bulletPicture.accessibleLabel);
+			}
 			bullet.textContent = `${para.bulletMarker} `;
 			p.appendChild(bullet);
 		}
