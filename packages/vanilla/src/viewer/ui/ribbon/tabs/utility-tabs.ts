@@ -45,7 +45,19 @@ export function createReviewTab(
 		text: t('pptx.hyperlink.editTitle'),
 		onClick: handlers.openHyperlink,
 	});
-	el.append(accessibility.btn, headerFooter.btn, compare.btn, comments.btn, hyperlink.btn);
+	const spellCheck = makeButton(doc, {
+		label: t('pptx.settings.spellCheck'),
+		text: t('pptx.settings.spellCheck'),
+		onClick: handlers.toggleSpellCheck,
+	});
+	el.append(
+		accessibility.btn,
+		headerFooter.btn,
+		compare.btn,
+		comments.btn,
+		hyperlink.btn,
+		spellCheck.btn,
+	);
 	return el;
 }
 

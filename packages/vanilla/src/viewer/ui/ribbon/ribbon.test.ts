@@ -42,6 +42,10 @@ function buildHandlers(): RibbonHandlers {
 			openSlideSorter: vi.fn(),
 			openComments: vi.fn(),
 			openHyperlink: vi.fn(),
+			toggleViewOption: vi.fn(),
+			addGuide: vi.fn(),
+			activateEyedropper: vi.fn(),
+			toggleSpellCheck: vi.fn(),
 		},
 		primary: { undo: vi.fn(), redo: vi.fn(), save: vi.fn() },
 		file: {

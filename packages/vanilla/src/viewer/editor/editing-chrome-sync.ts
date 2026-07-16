@@ -41,6 +41,14 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 		});
 		ribbon?.setDrawState({ tool: state.drawTool, color: state.drawColor, width: state.drawWidth });
 
-		inspector?.update(buildInspectorState(el, state.selectedTableCell));
+		inspector?.update(
+			buildInspectorState(
+				el,
+				state.selectedTableCell,
+				state.selectedTableCells,
+				state.selectedTextRange,
+				state.mediaDataUrls,
+			),
+		);
 	};
 }

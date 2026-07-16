@@ -3,7 +3,9 @@ import type { NumberFieldHandle } from '../controls';
 import { makeNumberField } from '../controls';
 import type { CheckboxFieldHandle } from './controls-extra';
 import { makeCheckboxField } from './controls-extra';
+import { createTableCellFillControls } from './table-cell-fill-controls';
 import { createTableCellFormatting } from './table-cell-formatting';
+import { createTableStructureControls } from './table-structure-controls';
 import type { InspectorHandlers, InspectorState } from './types';
 
 export interface TableSection {
@@ -84,7 +86,9 @@ export function createTableSection(
 	);
 	el.append(styleId, background, border);
 	const cellFormatting = createTableCellFormatting(doc, t, handlers);
-	el.appendChild(cellFormatting.el);
+	const cellFill = createTableCellFillControls(doc, t, handlers);
+	const structure = createTableStructureControls(doc, t, handlers);
+	el.append(cellFormatting.el, cellFill.el, structure.el);
 
 	const toggles: CheckboxFieldHandle[] = [
 		headerRow,
@@ -113,6 +117,8 @@ export function createTableSection(
 			background.value = state.tableCellBackground;
 			border.value = state.tableCellBorder;
 			cellFormatting.update(state);
+			cellFill.update(state);
+			structure.update(state);
 			for (const c of toggles) {
 				c.setDisabled(!state.isTable);
 			}

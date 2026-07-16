@@ -3,6 +3,7 @@ import type { TextAdvancedChanges } from 'pptx-viewer-shared';
 import type { Translator } from '../../i18n';
 import { makeNumberField } from '../controls';
 import { makeCheckboxField, makeSelectField } from './controls-extra';
+import { createTextEffectsControls } from './text-effects-controls';
 import type { InspectorHandlers, InspectorState } from './types';
 
 export interface TextSection {
@@ -93,6 +94,8 @@ export function createTextSection(
 		margin,
 	];
 	el.append(...advanced.map(({ el: node }) => node), direction.el, rtl.el);
+	const effects = createTextEffectsControls(doc, t, handlers);
+	el.appendChild(effects.el);
 
 	const gated = [vAlign, wrap, autoFit, ...advanced, direction, rtl];
 
@@ -112,6 +115,7 @@ export function createTextSection(
 			margin.setValue(state.paragraphMarginLeft);
 			direction.setValue(state.textDirection);
 			rtl.setValue(state.textRtl);
+			effects.update(state);
 			for (const c of gated) {
 				c.setDisabled(!state.canText);
 			}

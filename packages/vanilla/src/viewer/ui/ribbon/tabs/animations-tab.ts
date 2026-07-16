@@ -18,6 +18,7 @@ import type { AnimationActions } from '../../../editor/editor-animation-actions'
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import { animationRow, optionSelect, timingField } from './animation-timeline-controls';
 
 /** One preset-gallery category: label key, group bucket, and its preset catalogue. */
 const CATEGORIES: readonly {
@@ -60,7 +61,7 @@ export function createAnimationsTab(
 	t: Translator,
 	handlers: Pick<
 		AnimationActions,
-		'addAnimation' | 'removeAnimation' | 'reorderAnimation' | 'setAnimationTiming'
+		'addAnimation' | 'removeAnimation' | 'reorderAnimation' | 'setAnimationTiming' | 'moveAnimation'
 	>,
 ): AnimationsTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
@@ -142,6 +143,29 @@ export function createAnimationsTab(
 		'untilEndOfSlide',
 	]);
 	const repeatCount = timingField(doc, t('pptx.animation.repeatCount'), 1);
+	const triggerShape = timingField(doc, t('pptx.animations.triggerShape'), 0);
+	triggerShape.input.type = 'text';
+	triggerShape.input.min = '';
+	triggerShape.input.max = '';
+	const preview = makeButton(doc, {
+		label: t('pptx.animation.preview'),
+		text: t('pptx.animation.preview'),
+		onClick: () => {
+			if (!selectedAnimation) {
+				return;
+			}
+			const target = doc.querySelector<HTMLElement>(
+				`[data-element-id="${CSS.escape(selectedAnimation.elementId)}"]`,
+			);
+			target?.animate(
+				[
+					{ opacity: 0, transform: 'translateY(12px)' },
+					{ opacity: 1, transform: 'translateY(0)' },
+				],
+				{ duration: selectedAnimation.durationMs ?? 500, easing: 'ease' },
+			);
+		},
+	});
 	timing.append(
 		trigger,
 		duration.label,
@@ -151,6 +175,8 @@ export function createAnimationsTab(
 		easing.label,
 		repeatCount.label,
 		repeatMode.label,
+		triggerShape.label,
+		preview.btn,
 	);
 	timeline.append(timelineLabel, list, timing);
 	el.appendChild(timeline);
@@ -169,6 +195,7 @@ export function createAnimationsTab(
 			timingCurve: easing.select.value as PptxAnimationTimingCurve,
 			repeatCount: repeatCount.input.valueAsNumber,
 			repeatMode: repeatMode.select.value as PptxAnimationRepeatMode | 'none',
+			triggerShapeId: triggerShape.input.value,
 		});
 	};
 	for (const control of [
@@ -183,6 +210,7 @@ export function createAnimationsTab(
 	duration.input.addEventListener('change', commitTiming);
 	delay.input.addEventListener('change', commitTiming);
 	repeatCount.input.addEventListener('change', commitTiming);
+	triggerShape.input.addEventListener('change', commitTiming);
 
 	return {
 		el,
@@ -210,6 +238,8 @@ export function createAnimationsTab(
 			timeline.hidden = ordered.length === 0;
 			timing.hidden = !selectedAnimation;
 			trigger.value = selectedAnimation?.trigger ?? 'onClick';
+			triggerShape.input.value = selectedAnimation?.triggerShapeId ?? '';
+			triggerShape.label.hidden = trigger.value !== 'onShapeClick';
 			duration.input.value = String(selectedAnimation?.durationMs ?? 500);
 			delay.input.value = String(selectedAnimation?.delayMs ?? 0);
 			direction.select.value = selectedAnimation?.direction ?? 'fromTop';
@@ -226,67 +256,10 @@ export function createAnimationsTab(
 				easing.select,
 				repeatMode.select,
 				repeatCount.input,
+				triggerShape.input,
 			]) {
 				control.disabled = !editable;
 			}
 		},
 	};
-}
-
-function timingField(doc: Document, text: string, value: number) {
-	const label = doc.createElement('label');
-	label.textContent = text;
-	const input = doc.createElement('input');
-	input.type = 'number';
-	input.min = '0';
-	input.max = '10000';
-	input.step = '100';
-	input.value = String(value);
-	label.appendChild(input);
-	return { label, input };
-}
-
-function optionSelect(doc: Document, t: Translator, labelText: string, values: readonly string[]) {
-	const label = doc.createElement('label');
-	label.textContent = t(labelText);
-	const select = doc.createElement('select');
-	for (const value of values) {
-		const option = doc.createElement('option');
-		option.value = value;
-		option.textContent = t(`${labelText}.${value}`);
-		select.appendChild(option);
-	}
-	label.appendChild(select);
-	return { label, select };
-}
-
-function animationRow(
-	doc: Document,
-	t: Translator,
-	animation: PptxElementAnimation,
-	index: number,
-	total: number,
-	selectedElementId: string | undefined,
-	editable: boolean,
-	handlers: Pick<AnimationActions, 'reorderAnimation'>,
-): HTMLElement {
-	const row = createEl(doc, 'div', 'pptxv-animation-timeline-row');
-	row.classList.toggle('is-selected', animation.elementId === selectedElementId);
-	const label = createEl(doc, 'span', 'pptxv-animation-timeline-name');
-	const effect = animation.entrance ?? animation.emphasis ?? animation.exit ?? 'custom';
-	label.textContent = `${index + 1}. ${effect}`;
-	const up = makeButton(doc, {
-		label: t('pptx.animation.moveUp'),
-		text: '↑',
-		onClick: () => handlers.reorderAnimation(animation.elementId, 'up'),
-	});
-	const down = makeButton(doc, {
-		label: t('pptx.animation.moveDown'),
-		text: '↓',
-		onClick: () => handlers.reorderAnimation(animation.elementId, 'down'),
-	});
-	up.setDisabled(!editable || index === 0);
-	down.setDisabled(!editable || index === total - 1);
-	row.append(label, up.btn, down.btn);
-	return row;
 }

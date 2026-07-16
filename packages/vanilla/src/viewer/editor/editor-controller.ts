@@ -17,6 +17,7 @@ import { buildSharingPackage } from '../export/package-sharing';
 import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
+import { syncAlignmentGuides } from './alignment-guide-view';
 import { createEditingChromeSync } from './editing-chrome-sync';
 import { getActiveElements, replaceActiveElements } from './editor-active-elements';
 import { selectionOverlayBox } from './editor-controller-overlay';
@@ -140,13 +141,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		getStageRoot: () => attachedWrap?.querySelector('.pptxv-stage') ?? null,
 		onCursorMove: deps.onCursorMove,
 		onEditEquation: (id, omml) => deps.getChrome().ribbon?.openEquationEditor(id, omml),
+		onEyedropper: (color) => editActions.setShapeFill(color),
 	});
 
-	// The Draw ribbon tab's pen/highlighter/eraser mode: routes each stage
-	// `pointerdown` / `dblclick` to its own gesture controller or to
-	// `interactions`, never both, based on `drawTool`, so freehand drawing and
-	// the normal move/resize/rotate/inline-edit gestures never fight over the
-	// same pointer (see `editor-draw-mode.ts`).
+	// Draw mode owns stage gestures while a pen, highlighter, or eraser is active.
 	const drawMode = createDrawModeController({
 		store,
 		editActions,
@@ -174,6 +172,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 					)
 				: [];
 		overlay.setBox(selectionOverlayBox(selected), deps.getScale());
+		syncAlignmentGuides(doc, overlay.root, state.guides, deps.getScale());
 	};
 
 	const onKeyDown = createEditorKeydownHandler({

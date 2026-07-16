@@ -8,15 +8,23 @@ import type {
 	SmartArtColorScheme,
 	SmartArtLayoutType,
 	TextStyle,
+	PptxSmartArtNodeStyle,
 } from 'pptx-viewer-core';
 import {
 	elementActionToPptxAction,
+	addSmartArtNode,
+	addSmartArtNodeAsChild,
+	removeSmartArtNode,
+	promoteSmartArtNode,
+	demoteSmartArtNode,
 	isImageLikeElement,
 	switchSmartArtLayout,
+	setSmartArtNodeStyle,
 	updateSmartArtNodeText,
 } from 'pptx-viewer-core';
 import {
 	addGradientStopPatch,
+	applyStyleToSelectedSegments,
 	applyUniformCellPaddingPatch,
 	autoFitModePatch,
 	gradientStatePatch,
@@ -29,10 +37,19 @@ import {
 	updateGradientStopPatch,
 	vAlignPatch,
 } from 'pptx-viewer-shared';
-import type { GradientState, TextAdvancedChanges } from 'pptx-viewer-shared';
+import type { GradientState, InlineTextSelection, TextAdvancedChanges } from 'pptx-viewer-shared';
 
 import type { ApplyToSelected } from './editor-apply-to-selected';
 import { patchShapeStyle } from './editor-format-mutations';
+import {
+	mergeTableCellRange,
+	mutateTableStructure,
+	patchTableCells,
+	setTableColumnWidth,
+	setTableRowHeight,
+	splitTableCell,
+} from './table-editor-mutations';
+import type { TableCellPosition, TableStructureAction } from './table-editor-mutations';
 
 /**
  * Element-type-aware inspector actions: text vertical-align/wrap/autofit,
@@ -41,15 +58,14 @@ import { patchShapeStyle } from './editor-format-mutations';
  * thin `applyToSelected` wrapper around pure builders from `pptx-viewer-shared`
  * (or the local `patchShapeStyle`), mirroring `editor-text-actions.ts`.
  *
- * These extend the base position/size/rotation + flat fill/stroke inspector
- * that `editor-edit-ops.ts` already exposes; see `ui/inspector/` for the
- * per-element-type panels that call these.
+ * The corresponding panels live under `ui/inspector/`.
  */
 export interface InspectorActions {
 	setTextVerticalAlign(vAlign: NonNullable<TextStyle['vAlign']>): void;
 	setTextWrap(wrap: NonNullable<TextStyle['textWrap']>): void;
 	setAutoFitMode(mode: NonNullable<TextStyle['autoFitMode']>): void;
 	setTextAdvanced(patch: TextAdvancedChanges): void;
+	setTextStyle(patch: Partial<TextStyle>, selection?: InlineTextSelection | null): void;
 
 	setFillOpacity(opacity: number): void;
 	setStrokeOpacity(opacity: number): void;
@@ -72,8 +88,19 @@ export interface InspectorActions {
 	setTableCellPadding(padding: number): void;
 	setTableOptions(patch: Partial<PptxTableData>, cellStyle?: Partial<PptxTableCellStyle>): void;
 	setTableCellStyle(row: number, column: number, patch: Partial<PptxTableCellStyle>): void;
+	setTableCellStyles(cells: TableCellPosition[], patch: Partial<PptxTableCellStyle>): void;
+	mutateTableStructure(cell: TableCellPosition, action: TableStructureAction): void;
+	setTableColumnWidth(column: number, percent: number): void;
+	setTableRowHeight(row: number, height: number): void;
+	mergeTableCells(cells: TableCellPosition[]): void;
+	splitTableCell(cell: TableCellPosition): void;
 
 	setSmartArtNodeText(nodeId: string, text: string): void;
+	setSmartArtNodeStyle(nodeId: string, patch: Partial<PptxSmartArtNodeStyle>): void;
+	mutateSmartArtNode(
+		nodeId: string,
+		action: 'add' | 'addChild' | 'remove' | 'promote' | 'demote',
+	): void;
 	setSmartArtLayout(layout: SmartArtLayoutType): void;
 	setSmartArtColorScheme(scheme: SmartArtColorScheme): void;
 }
@@ -91,6 +118,19 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 		setTextWrap: (wrap) => applyToSelected((el) => textWrapPatch(el, wrap)),
 		setAutoFitMode: (mode) => applyToSelected((el) => autoFitModePatch(el, mode)),
 		setTextAdvanced: (patch) => applyToSelected((el) => textAdvancedPatch(el, patch)),
+		setTextStyle: (patch, selection) =>
+			applyToSelected((el) => {
+				if (!('textStyle' in el)) {
+					return {};
+				}
+				if (selection && el.textSegments?.length) {
+					return {
+						textSegments: applyStyleToSelectedSegments(el.textSegments, selection, patch)
+							.newSegments,
+					};
+				}
+				return { textStyle: { ...el.textStyle, ...patch } };
+			}),
 
 		setFillOpacity: (opacity) =>
 			applyToSelected((el) => patchShapeStyle(el, { fillOpacity: opacity })),
@@ -176,6 +216,42 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 					},
 				};
 			}),
+		setTableCellStyles: (cells, patch) =>
+			applyToSelected((el) =>
+				el.type === 'table' && el.tableData
+					? { tableData: patchTableCells(el.tableData, cells, patch) }
+					: {},
+			),
+		mutateTableStructure: (cell, action) =>
+			applyToSelected((el) =>
+				el.type === 'table' && el.tableData
+					? { tableData: mutateTableStructure(el.tableData, cell, action) }
+					: {},
+			),
+		setTableColumnWidth: (column, percent) =>
+			applyToSelected((el) =>
+				el.type === 'table' && el.tableData
+					? { tableData: setTableColumnWidth(el.tableData, column, percent) }
+					: {},
+			),
+		setTableRowHeight: (row, height) =>
+			applyToSelected((el) =>
+				el.type === 'table' && el.tableData
+					? { tableData: setTableRowHeight(el.tableData, row, height) }
+					: {},
+			),
+		mergeTableCells: (cells) =>
+			applyToSelected((el) =>
+				el.type === 'table' && el.tableData
+					? { tableData: mergeTableCellRange(el.tableData, cells) }
+					: {},
+			),
+		splitTableCell: (cell) =>
+			applyToSelected((el) =>
+				el.type === 'table' && el.tableData
+					? { tableData: splitTableCell(el.tableData, cell) }
+					: {},
+			),
 
 		setSmartArtNodeText: (nodeId, text) =>
 			applyToSelected((el) =>
@@ -183,6 +259,30 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 					? { smartArtData: updateSmartArtNodeText(el.smartArtData, nodeId, text) }
 					: {},
 			),
+		setSmartArtNodeStyle: (nodeId, patch) =>
+			applyToSelected((el) =>
+				el.type === 'smartArt' && el.smartArtData
+					? { smartArtData: setSmartArtNodeStyle(el.smartArtData, nodeId, patch) }
+					: {},
+			),
+		mutateSmartArtNode: (nodeId, action) =>
+			applyToSelected((el) => {
+				if (el.type !== 'smartArt' || !el.smartArtData) {
+					return {};
+				}
+				const data = el.smartArtData;
+				const next =
+					action === 'add'
+						? addSmartArtNode(data, 'New item')
+						: action === 'addChild'
+							? addSmartArtNodeAsChild(data, nodeId, 'New item')
+							: action === 'remove'
+								? removeSmartArtNode(data, nodeId)
+								: action === 'promote'
+									? promoteSmartArtNode(data, nodeId)
+									: demoteSmartArtNode(data, nodeId);
+				return { smartArtData: next };
+			}),
 		setSmartArtLayout: (layout) =>
 			applyToSelected((el) =>
 				el.type === 'smartArt' && el.smartArtData

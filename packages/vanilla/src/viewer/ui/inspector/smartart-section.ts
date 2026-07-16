@@ -59,7 +59,11 @@ export function createSmartArtSection(
 	textLabel.textContent = t('pptx.smartart.textPane');
 	el.appendChild(textLabel);
 	const nodes = createEl(doc, 'div', 'pptxv-smartart-nodes');
-	el.appendChild(nodes);
+	const addNode = doc.createElement('button');
+	addNode.type = 'button';
+	addNode.textContent = t('pptx.smartart.addItem');
+	addNode.addEventListener('click', () => handlers.mutateSmartArtNode('', 'add'));
+	el.append(addNode, nodes);
 
 	let nodeSignature = '';
 	const rebuildNodes = (state: InspectorState): void => {
@@ -88,7 +92,46 @@ export function createSmartArtSection(
 			input.setAttribute('aria-label', `${t('pptx.smartart.item')} ${index + 1}`);
 			input.value = node.text;
 			input.addEventListener('change', () => handlers.setSmartArtNodeText(node.id, input.value));
-			label.append(caption, input);
+			const fill = doc.createElement('input');
+			fill.type = 'color';
+			fill.value = node.style?.fillColor ?? '#3b82f6';
+			fill.title = t('pptx.inspector.fill');
+			fill.addEventListener('input', () =>
+				handlers.setSmartArtNodeStyle(node.id, { fillColor: fill.value }),
+			);
+			const font = doc.createElement('input');
+			font.type = 'color';
+			font.value = node.style?.fontColor ?? '#ffffff';
+			font.title = t('pptx.table.color');
+			font.addEventListener('input', () =>
+				handlers.setSmartArtNodeStyle(node.id, { fontColor: font.value }),
+			);
+			const bold = doc.createElement('button');
+			bold.type = 'button';
+			bold.textContent = 'B';
+			bold.addEventListener('click', () =>
+				handlers.setSmartArtNodeStyle(node.id, { bold: !node.style?.bold }),
+			);
+			const italic = doc.createElement('button');
+			italic.type = 'button';
+			italic.textContent = 'I';
+			italic.addEventListener('click', () =>
+				handlers.setSmartArtNodeStyle(node.id, { italic: !node.style?.italic }),
+			);
+			const hierarchy = createEl(doc, 'span', 'pptxv-smartart-hierarchy');
+			for (const [action, text] of [
+				['addChild', '+Child'],
+				['promote', 'Outdent'],
+				['demote', 'Indent'],
+				['remove', 'Delete'],
+			] as const) {
+				const button = doc.createElement('button');
+				button.type = 'button';
+				button.textContent = text;
+				button.addEventListener('click', () => handlers.mutateSmartArtNode(node.id, action));
+				hierarchy.appendChild(button);
+			}
+			label.append(caption, input, fill, font, bold, italic, hierarchy);
 			nodes.appendChild(label);
 		}
 	};
@@ -105,6 +148,7 @@ export function createSmartArtSection(
 			}
 			colorScheme.setValue(state.smartArtData?.colorScheme ?? 'colorful1');
 			colorScheme.setDisabled(!state.isSmartArt);
+			addNode.disabled = !state.isSmartArt;
 			rebuildNodes(state);
 		},
 	};

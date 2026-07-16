@@ -25,6 +25,15 @@ export function createImageSection(
 	handlers: InspectorHandlers,
 ): ImageSection {
 	const el = section(t('pptx.inspector.image'));
+	const replace = doc.createElement('button');
+	replace.type = 'button';
+	replace.textContent = t('pptx.image.replace');
+	replace.addEventListener('click', handlers.replaceImage);
+	const reset = doc.createElement('button');
+	reset.type = 'button';
+	reset.textContent = t('pptx.image.reset');
+	reset.addEventListener('click', handlers.resetImage);
+	el.append(replace, reset);
 
 	const pct = (value: number): string => `${Math.round(value)}%`;
 
@@ -104,6 +113,32 @@ export function createImageSection(
 	colorInputs.color1 = color1;
 	colorInputs.color2 = color2;
 	el.append(artisticLabel, transparency.el, biLevel.el, duotone);
+	const wash = doc.createElement('input');
+	wash.type = 'checkbox';
+	const washColor = doc.createElement('input');
+	washColor.type = 'color';
+	let washOpacityValue = 40;
+	const washOpacity = makeRangeField(doc, {
+		label: t('pptx.image.washOpacity'),
+		min: 0,
+		max: 100,
+		formatValue: pct,
+		onCommit: (opacity) => {
+			washOpacityValue = opacity;
+			handlers.setImageEffects({ colorWash: { color: washColor.value, opacity } });
+		},
+	});
+	wash.addEventListener('change', () =>
+		handlers.setImageEffects({
+			colorWash: wash.checked ? { color: washColor.value, opacity: washOpacityValue } : undefined,
+		}),
+	);
+	washColor.addEventListener('input', () =>
+		handlers.setImageEffects({
+			colorWash: { color: washColor.value, opacity: washOpacityValue },
+		}),
+	);
+	el.append(wash, washColor, washOpacity.el);
 
 	const cropGrid = createEl(doc, 'div', 'pptxv-inspector-grid');
 	el.appendChild(cropGrid);
@@ -140,6 +175,10 @@ export function createImageSection(
 			biLevel.setValue(state.imageBiLevel);
 			color1.value = state.imageDuotone1;
 			color2.value = state.imageDuotone2;
+			wash.checked = Boolean(state.imageColorWash);
+			washColor.value = state.imageColorWash?.color ?? '#0066cc';
+			washOpacity.setValue(state.imageColorWash?.opacity ?? 40);
+			washOpacityValue = state.imageColorWash?.opacity ?? 40;
 			cropLeft.setValue(state.cropLeft * 100);
 			cropTop.setValue(state.cropTop * 100);
 			cropRight.setValue(state.cropRight * 100);
@@ -150,6 +189,11 @@ export function createImageSection(
 			artistic.disabled = !state.isImage;
 			color1.disabled = !state.isImage;
 			color2.disabled = !state.isImage;
+			replace.disabled = !state.isImage;
+			reset.disabled = !state.isImage;
+			wash.disabled = !state.isImage;
+			washColor.disabled = !state.isImage;
+			washOpacity.setDisabled(!state.isImage);
 			for (const c of cropFields) {
 				c.setDisabled(!state.isImage);
 			}

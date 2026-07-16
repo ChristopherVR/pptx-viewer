@@ -1,6 +1,7 @@
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { remapTextToSegments } from 'pptx-viewer-shared';
+import { getInlineEditorSelection, remapTextToSegments } from 'pptx-viewer-shared';
+import type { InlineTextSelection } from 'pptx-viewer-shared';
 
 import { createEl } from '../render';
 import type { OverlayBox } from './selection-overlay';
@@ -83,8 +84,10 @@ export interface OpenInlineEditorOptions {
 	box: OverlayBox;
 	scale: number;
 	element: PptxElement;
+	spellCheck?: boolean;
 	/** Called with the edited text on commit (only when it changed). */
 	onCommit(text: string): void;
+	onSelectionChange?(selection: InlineTextSelection | null): void;
 	/** Called after the surface closes (commit or cancel). */
 	onClose(): void;
 }
@@ -109,10 +112,20 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 		...(fontFamily !== undefined ? { fontFamily } : {}),
 	});
 	surface.contentEditable = 'true';
+	surface.spellcheck = options.spellCheck ?? false;
 	surface.dataset.inlineEditor = '';
 	surface.setAttribute('role', 'textbox');
 	surface.setAttribute('aria-multiline', 'true');
-	surface.textContent = initialText;
+	if (withText?.textSegments?.length) {
+		withText.textSegments.forEach((segment, index) => {
+			const span = doc.createElement('span');
+			span.dataset.segIdx = String(index);
+			span.textContent = segment.text;
+			surface.appendChild(span);
+		});
+	} else {
+		surface.textContent = initialText;
+	}
 
 	let closed = false;
 	const close = (commitText: string | null): void => {
@@ -138,6 +151,10 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 		}
 	});
 	surface.addEventListener('pointerdown', (event) => event.stopPropagation());
+	const notifySelection = (): void =>
+		options.onSelectionChange?.(getInlineEditorSelection(withText?.textSegments));
+	surface.addEventListener('keyup', notifySelection);
+	surface.addEventListener('pointerup', notifySelection);
 
 	overlayRoot.appendChild(surface);
 	surface.focus();

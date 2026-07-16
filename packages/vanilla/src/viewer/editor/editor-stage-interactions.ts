@@ -1,4 +1,4 @@
-import type { InteractionBox, SelectionTransformBox, SnapSibling } from 'pptx-viewer-shared';
+import type { InteractionBox, SelectionTransformBox } from 'pptx-viewer-shared';
 import {
 	computeMarqueeHitIds,
 	isElementIdInteractive,
@@ -10,6 +10,11 @@ import {
 
 import { findActiveElement, getActiveElements } from './editor-active-elements';
 import { createGestureController } from './editor-gestures';
+import {
+	handleSpecialPointerAction,
+	snapSiblings,
+	snapToGrid,
+} from './editor-pointer-special-actions';
 import type { StageInteractions, StageInteractionsDeps } from './editor-stage-interaction-types';
 import { resolveStagePoint } from './editor-stage-point';
 import { resolveTopLevelElementId } from './element-hit';
@@ -60,16 +65,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 	const gestures = createGestureController({
 		getScale: deps.getScale,
 		getElementBox: elementBox,
-		getSiblings(): SnapSibling[] {
-			const state = store.get();
-			return getActiveElements(state).map(({ id, x, y, width, height }) => ({
-				id,
-				x,
-				y,
-				width,
-				height,
-			}));
-		},
+		getSiblings: () => snapSiblings(store.get()),
 		getStageOrigin() {
 			const rect = deps.getOverlay()?.root.getBoundingClientRect();
 			return { left: rect?.left ?? 0, top: rect?.top ?? 0 };
@@ -85,6 +81,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			store.set({ interactionActive: true });
 		},
 		onPreview(transform, lines) {
+			transform = snapToGrid(transform, store.get().snapToGrid);
 			if (gestureBoxes.length > 1 && gestureBounds && gestureKind !== 'rotate') {
 				const next =
 					gestureKind === 'move'
@@ -177,7 +174,9 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			box: { x: el.x, y: el.y, width: el.width, height: el.height, rotation: el.rotation ?? 0 },
 			scale: deps.getScale(),
 			element: el,
+			spellCheck: state.spellCheckEnabled,
 			onCommit: (text) => ops.commitInlineText(id, text),
+			onSelectionChange: (selection) => store.set({ selectedTextRange: selection }),
 			onClose() {
 				inline = null;
 				deps.getOverlay()?.setEditing(false);
@@ -192,16 +191,16 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 				return;
 			}
 			const id = resolveTopLevelElementId(event.target, deps.getStageRoot());
-			const cell =
-				event.target instanceof Element ? event.target.closest<HTMLTableCellElement>('td') : null;
-			if (id && cell?.dataset.rowIndex !== undefined && cell.dataset.cellIndex !== undefined) {
-				ops.select(id, [id]);
-				store.set({
-					selectedTableCell: {
-						row: Number(cell.dataset.rowIndex),
-						column: Number(cell.dataset.cellIndex),
-					},
-				});
+			if (
+				handleSpecialPointerAction({
+					event,
+					elementId: id,
+					state,
+					store,
+					ops,
+					onEyedropper: deps.onEyedropper,
+				})
+			) {
 				return;
 			}
 			if (state.formatPainterSourceId) {

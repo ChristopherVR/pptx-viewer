@@ -33,6 +33,7 @@ import {
 import { setHandoutSlidesPerPage } from './editor-master-actions';
 import type { ElementBoxPatch } from './editor-mutations';
 import { cloneSlides, updateSlideNotes } from './editor-mutations';
+import { selectionState } from './editor-selection-state';
 import { createStructuredEditorOperations } from './editor-structured-operations';
 import { remapInlineText } from './inline-text-editor';
 
@@ -41,9 +42,7 @@ import { remapInlineText } from './inline-text-editor';
  * counterpart of Vue's `useEditorOperations` + `useEditorHistory`, built on
  * the shared `EditorHistory` stack and the pure `editor-mutations` helpers.
  *
- * Every operation follows the push-before-mutate pattern: snapshot the
- * current (cloned) slides, apply the immutable mutation, commit through the
- * store, mark the document dirty, and fire the host `onChange`.
+ * Operations snapshot, mutate immutably, mark dirty, and notify the host.
  */
 export interface EditorOpsDeps {
 	store: Store<ViewerState>;
@@ -120,7 +119,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		state.selectedElementId ? findActiveElement(state, state.selectedElementId) : undefined;
 
 	const select = (id: string | null, ids = id ? [id] : []): void =>
-		store.set({ selectedElementId: id, selectedElementIds: ids, selectedTableCell: null });
+		store.set(selectionState(id, ids));
 	const snapshot = (): EditorSnapshot => ({
 		slides: cloneSlides(store.get().slides),
 		sections: structuredClone(store.get().sections),

@@ -21,6 +21,7 @@ import {
 	setSequence,
 	setTimingCurve,
 	setTrigger,
+	setTriggerShapeId,
 } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
@@ -54,9 +55,11 @@ export interface AnimationActions {
 			timingCurve?: PptxAnimationTimingCurve;
 			repeatCount?: number;
 			repeatMode?: PptxAnimationRepeatMode | 'none';
+			triggerShapeId?: string;
 		},
 	): void;
 	reorderAnimation(elementId: string, direction: 'up' | 'down'): void;
+	moveAnimation(elementId: string, index: number): void;
 }
 
 export interface AnimationActionsDeps {
@@ -138,6 +141,9 @@ export function createAnimationActions(deps: AnimationActionsDeps): AnimationAct
 				if (patch.repeatMode !== undefined) {
 					animations = setRepeatMode(animations, elementId, patch.repeatMode);
 				}
+				if (patch.triggerShapeId !== undefined) {
+					animations = setTriggerShapeId(animations, elementId, patch.triggerShapeId || undefined);
+				}
 				return animations;
 			});
 		},
@@ -148,6 +154,18 @@ export function createAnimationActions(deps: AnimationActionsDeps): AnimationAct
 					? reorderAnimationUp(animations, elementId)
 					: reorderAnimationDown(animations, elementId),
 			);
+		},
+		moveAnimation(elementId, index) {
+			commitAnimations(elementId, (animations) => {
+				const ordered = [...animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+				const from = ordered.findIndex((item) => item.elementId === elementId);
+				if (from < 0) {
+					return ordered;
+				}
+				const [moved] = ordered.splice(from, 1);
+				ordered.splice(Math.max(0, Math.min(index, ordered.length)), 0, moved);
+				return ordered.map((item, order) => ({ ...item, order }));
+			});
 		},
 	};
 }

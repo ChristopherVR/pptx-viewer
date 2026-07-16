@@ -4,7 +4,7 @@ import {
 	isImageLikeElement,
 	pptxActionToElementAction,
 } from 'pptx-viewer-core';
-import type { GradientState } from 'pptx-viewer-shared';
+import type { GradientState, InlineTextSelection } from 'pptx-viewer-shared';
 import {
 	autoFitModeOf,
 	gradientStateOf,
@@ -62,6 +62,9 @@ function shapeStyleOf(el: PptxElement | undefined): {
 export function buildInspectorState(
 	el: PptxElement | undefined,
 	selectedTableCell: { row: number; column: number } | null = null,
+	selectedTableCells: Array<{ row: number; column: number }> = [],
+	selectedTextRange: InlineTextSelection | null = null,
+	mediaDataUrls: Map<string, string> = new Map(),
 ): InspectorState {
 	const shape = shapeStyleOf(el);
 	const textAdvanced = el ? textAdvancedStateOf(el) : undefined;
@@ -91,6 +94,9 @@ export function buildInspectorState(
 		fillColor: shape.fillColor,
 		strokeColor: shape.strokeColor,
 		strokeWidth: shape.strokeWidth,
+		shapeStyle: el && hasShapeProperties(el) ? el.shapeStyle : undefined,
+		shapeType: el?.type === 'shape' ? el.shapeType : undefined,
+		isConnector: el?.type === 'connector',
 		fillOpacity: shape.fillOpacity,
 		strokeOpacity: shape.strokeOpacity,
 		gradientEnabled: el !== undefined && hasGradientFill(el),
@@ -107,6 +113,8 @@ export function buildInspectorState(
 		paragraphMarginLeft: textAdvanced?.paragraphMarginLeft ?? 0,
 		textDirection: textAdvanced?.textDirection ?? 'horizontal',
 		textRtl: textAdvanced?.rtl ?? false,
+		textStyle: el && 'textStyle' in el ? el.textStyle : undefined,
+		selectedTextRange,
 		imageBrightness: image?.brightness ?? 0,
 		imageContrast: image?.contrast ?? 0,
 		imageSaturation: image?.saturation ?? 0,
@@ -119,10 +127,20 @@ export function buildInspectorState(
 			el && isImageLikeElement(el) ? (el.imageEffects?.duotone?.color1 ?? '#000000') : '#000000',
 		imageDuotone2:
 			el && isImageLikeElement(el) ? (el.imageEffects?.duotone?.color2 ?? '#ffffff') : '#ffffff',
+		imageColorWash: el && isImageLikeElement(el) ? el.imageEffects?.colorWash : undefined,
 		actionClick: el?.actionClick ? pptxActionToElementAction(el.actionClick, 'click') : undefined,
 		actionHover: el?.actionHover ? pptxActionToElementAction(el.actionHover, 'hover') : undefined,
 		chartData: el?.type === 'chart' ? el.chartData : undefined,
 		media: el?.type === 'media' ? el : undefined,
+		mediaPreviewUrl:
+			el?.type === 'media'
+				? (el.mediaData ?? (el.mediaPath ? mediaDataUrls.get(el.mediaPath) : undefined))
+				: undefined,
+		mediaPosterUrl:
+			el?.type === 'media'
+				? (el.posterFrameData ??
+					(el.posterFramePath ? mediaDataUrls.get(el.posterFramePath) : undefined))
+				: undefined,
 		cropLeft: crop?.cropLeft ?? 0,
 		cropTop: crop?.cropTop ?? 0,
 		cropRight: crop?.cropRight ?? 0,
@@ -145,6 +163,10 @@ export function buildInspectorState(
 				: '#000000',
 		tableCellPadding: table?.cellPadding ?? 0,
 		selectedTableCell: tableCell ? selectedTableCell : null,
+		selectedTableCells: tableCell ? selectedTableCells : [],
 		tableCellStyle: tableCell?.style,
+		tableColumnWidths: el?.type === 'table' ? (el.tableData?.columnWidths ?? []) : [],
+		tableRowHeights:
+			el?.type === 'table' ? (el.tableData?.rows.map((row) => row.height ?? 32) ?? []) : [],
 	};
 }

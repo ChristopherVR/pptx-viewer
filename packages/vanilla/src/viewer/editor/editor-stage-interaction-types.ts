@@ -13,6 +13,7 @@ export interface StageInteractionsDeps {
 	getStageRoot(): Element | null;
 	onCursorMove?: (x: number, y: number) => void;
 	onEditEquation?(id: string, omml: Record<string, unknown>): void;
+	onEyedropper?(color: string): void;
 }
 
 export interface StageInteractions {

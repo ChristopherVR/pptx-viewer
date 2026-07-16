@@ -66,6 +66,41 @@ export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavH
 		text: t('pptx.selectionPane.title'),
 		onClick: handlers.openSelectionPane,
 	});
+	const grid = makeButton(doc, {
+		label: t('pptx.view.gridlines'),
+		text: t('pptx.view.gridlines'),
+		onClick: () => handlers.toggleViewOption('showGrid'),
+	});
+	const rulers = makeButton(doc, {
+		label: t('pptx.view.ruler'),
+		text: t('pptx.view.ruler'),
+		onClick: () => handlers.toggleViewOption('showRulers'),
+	});
+	const snapGrid = makeButton(doc, {
+		label: t('pptx.view.snapToGrid'),
+		text: t('pptx.view.snapToGrid'),
+		onClick: () => handlers.toggleViewOption('snapToGrid'),
+	});
+	const snapShape = makeButton(doc, {
+		label: t('pptx.view.snapToShape'),
+		text: t('pptx.view.snapToShape'),
+		onClick: () => handlers.toggleViewOption('snapToShape'),
+	});
+	const horizontalGuide = makeButton(doc, {
+		label: t('pptx.view.addHorizontalGuide'),
+		text: t('pptx.view.addHorizontalGuide'),
+		onClick: () => handlers.addGuide('h'),
+	});
+	const verticalGuide = makeButton(doc, {
+		label: t('pptx.view.addVerticalGuide'),
+		text: t('pptx.view.addVerticalGuide'),
+		onClick: () => handlers.addGuide('v'),
+	});
+	const eyedropper = makeButton(doc, {
+		label: t('pptx.ribbon.eyedropper'),
+		text: t('pptx.ribbon.eyedropper'),
+		onClick: handlers.activateEyedropper,
+	});
 	templates.btn.dataset.testid = 'template-edit-toggle';
 
 	el.append(
@@ -79,6 +114,13 @@ export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavH
 		masterView.btn,
 		sorter.btn,
 		selection.btn,
+		grid.btn,
+		rulers.btn,
+		snapGrid.btn,
+		snapShape.btn,
+		horizontalGuide.btn,
+		verticalGuide.btn,
+		eyedropper.btn,
 	);
 
 	return {

@@ -188,4 +188,37 @@ describe('createAnimationActions', () => {
 		});
 		expect(updated.find(({ elementId }) => elementId === 'el2')?.order).toBe(0);
 	});
+
+	it('sets a trigger shape and supports drag-order placement', () => {
+		const animations: PptxElementAnimation[] = [
+			{ elementId: 'a', entrance: 'fadeIn', order: 0 },
+			{ elementId: 'b', entrance: 'fadeIn', order: 1 },
+			{ elementId: 'c', entrance: 'fadeIn', order: 2 },
+		];
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [
+				{
+					...buildSlide('a', [buildElement('a'), buildElement('b'), buildElement('c')]),
+					animations,
+				},
+			],
+			currentSlide: 0,
+			editable: true,
+			selectedElementId: 'a',
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createAnimationActions({ store, ops });
+
+		actions.setAnimationTiming('a', { trigger: 'onShapeClick', triggerShapeId: 'button-1' });
+		actions.moveAnimation('c', 0);
+
+		const updated = store.get().slides[0].animations!;
+		expect(updated.find(({ elementId }) => elementId === 'a')?.triggerShapeId).toBe('button-1');
+		expect(
+			[...updated]
+				.sort((left, right) => left.order! - right.order!)
+				.map(({ elementId }) => elementId),
+		).toStrictEqual(['c', 'a', 'b']);
+	});
 });

@@ -121,14 +121,14 @@ export function createMediaSection(
 		update(state: InspectorState) {
 			el.hidden = !state.isMedia;
 			const media = state.media;
-			const source = media?.mediaData ?? '';
+			const source = state.mediaPreviewUrl ?? '';
 			if (preview.src !== source) {
 				preview.src = source;
 			}
 			preview.hidden = !source;
-			preview.poster = media?.posterFrameData ?? '';
-			poster.src = media?.posterFrameData ?? '';
-			poster.hidden = !media?.posterFrameData;
+			preview.poster = state.mediaPosterUrl ?? '';
+			poster.src = state.mediaPosterUrl ?? '';
+			poster.hidden = !state.mediaPosterUrl;
 			autoPlay.setValue(media?.autoPlay ?? false);
 			loop.setValue(media?.loop ?? false);
 			across.setValue(media?.playAcrossSlides ?? false);

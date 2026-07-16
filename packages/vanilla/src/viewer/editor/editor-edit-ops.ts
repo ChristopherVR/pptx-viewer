@@ -1,6 +1,7 @@
 import type { PptxChartType, PptxElement, SmartArtLayout } from 'pptx-viewer-core';
 import { MIN_ELEMENT_SIZE } from 'pptx-viewer-core';
-import type { ShapePresetType } from 'pptx-viewer-shared';
+import { createGuide } from 'pptx-viewer-shared';
+import type { Guide, ShapePresetType } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { AnimationActions } from './editor-animation-actions';
@@ -78,6 +79,8 @@ export interface EditActions
 	setShapeFill(color: string): void;
 	setShapeStroke(color: string): void;
 	setShapeStrokeWidth(width: number): void;
+	setShapeStyle(patch: Partial<import('pptx-viewer-core').ShapeStyle>): void;
+	setShapeType(shapeType: string): void;
 	/** Commit an inspector geometry edit (X/Y/W/H/rotation). */
 	setGeometry(patch: GeometryPatch): void;
 	insert(kind: InsertKind, shapeType?: ShapePresetType): void;
@@ -91,6 +94,12 @@ export interface EditActions
 	insertField(fieldType: string, value?: string): void;
 	duplicateSelected(): void;
 	deleteSelected(): void;
+	toggleViewOption(option: 'showGrid' | 'showRulers' | 'snapToGrid' | 'snapToShape'): void;
+	addGuide(axis: Guide['axis']): void;
+	activateEyedropper(): void;
+	toggleSpellCheck(): void;
+	replaceSelectedImage(): Promise<void>;
+	resetSelectedImage(): void;
 }
 
 export interface EditActionsDeps {
@@ -152,6 +161,9 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		setShapeStroke: (color) => applyToSelected((el) => patchShapeStyle(el, { strokeColor: color })),
 		setShapeStrokeWidth: (width) =>
 			applyToSelected((el) => patchShapeStyle(el, { strokeWidth: Math.max(0, width) })),
+		setShapeStyle: (patch) => applyToSelected((el) => patchShapeStyle(el, patch)),
+		setShapeType: (shapeType) =>
+			applyToSelected((el) => (el.type === 'shape' ? { shapeType } : {})),
 
 		setGeometry(patch) {
 			applyToSelected(() => {
@@ -238,5 +250,48 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 
 		duplicateSelected: () => void ops.duplicateSelected(),
 		deleteSelected: () => ops.deleteSelected(),
+		toggleViewOption(option) {
+			const state = store.get();
+			store.set({ [option]: !state[option] });
+			for (const root of doc.querySelectorAll('.pptxv')) {
+				root.classList.toggle(`pptxv-${option}`, !state[option]);
+			}
+		},
+		addGuide(axis) {
+			const state = store.get();
+			store.set({
+				guides: [...state.guides, createGuide(`guide-${Date.now()}`, axis, state.canvasSize)],
+			});
+		},
+		activateEyedropper: () => store.set({ eyedropperActive: true }),
+		toggleSpellCheck: () => store.set({ spellCheckEnabled: !store.get().spellCheckEnabled }),
+		async replaceSelectedImage() {
+			const replacement = await pickImageElement(doc, store.get().canvasSize);
+			if (!replacement || replacement.type !== 'image') {
+				return;
+			}
+			applyToSelected((el) =>
+				el.type === 'image'
+					? {
+							imageData: replacement.imageData,
+							imagePath: replacement.imagePath,
+							svgData: replacement.svgData,
+							svgPath: replacement.svgPath,
+						}
+					: {},
+			);
+		},
+		resetSelectedImage: () =>
+			applyToSelected((el) =>
+				el.type === 'image'
+					? {
+							imageEffects: undefined,
+							cropLeft: undefined,
+							cropTop: undefined,
+							cropRight: undefined,
+							cropBottom: undefined,
+						}
+					: {},
+			),
 	};
 }

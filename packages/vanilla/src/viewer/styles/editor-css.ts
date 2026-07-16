@@ -8,6 +8,11 @@
  */
 export const EDITOR_CSS = `
 .pptxv-marquee { position: absolute; z-index: 4; border: 1px solid var(--pptx-primary); background: color-mix(in srgb, var(--pptx-primary) 14%, transparent); pointer-events: none; }
+.pptxv.pptxv-showGrid .pptxv-stage { background-image: linear-gradient(#cbd5e155 1px, transparent 1px), linear-gradient(90deg, #cbd5e155 1px, transparent 1px); background-size: 10px 10px; }
+.pptxv.pptxv-showRulers .pptxv-stage-wrap { border-top: 18px solid #e5e7eb; border-left: 18px solid #e5e7eb; }
+.pptxv-alignment-guide { position: absolute; z-index: 6; pointer-events: none; background: #00a6ff; }
+.pptxv-alignment-guide.is-h { left: 0; right: 0; height: 1px; }
+.pptxv-alignment-guide.is-v { top: 0; bottom: 0; width: 1px; }
 /* Colour swatch control (native <input type=color>, used by the inspector). */
 .pptxv-color {
 	display: inline-flex;

@@ -118,6 +118,27 @@ describe('createInspectorActions text', () => {
 			rtl: true,
 		});
 	});
+
+	it('applies rich formatting only to the selected text range', () => {
+		const element = {
+			...textElement(),
+			text: 'hello',
+			textSegments: [{ text: 'hello', style: { color: '#000000' } }],
+		} as PptxElement;
+		const { store, actions } = buildActions(element);
+
+		actions.setTextStyle(
+			{ bold: true, textGlowColor: '#ffff00', textWarpPreset: 'textWave1' },
+			{ startSegIdx: 0, startOffset: 1, endSegIdx: 0, endOffset: 4 },
+		);
+
+		const segments = (
+			selectedEl(store) as { textSegments?: Array<{ text: string; style?: unknown }> }
+		).textSegments;
+		expect(segments?.map(({ text }) => text)).toStrictEqual(['h', 'ell', 'o']);
+		expect(segments?.[1].style).toMatchObject({ bold: true, textGlowColor: '#ffff00' });
+		expect(segments?.[0].style).not.toMatchObject({ bold: true });
+	});
 });
 
 describe('createInspectorActions fill/gradient', () => {

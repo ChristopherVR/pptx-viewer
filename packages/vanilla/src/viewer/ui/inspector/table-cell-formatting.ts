@@ -22,9 +22,10 @@ export function createTableCellFormatting(
 	const heading = doc.createElement('strong');
 	el.appendChild(heading);
 	let selected: { row: number; column: number } | null = null;
+	let selectedCells: Array<{ row: number; column: number }> = [];
 	const apply = (patch: Partial<PptxTableCellStyle>): void => {
 		if (selected) {
-			handlers.setTableCellStyle(selected.row, selected.column, patch);
+			handlers.setTableCellStyles(selectedCells.length > 0 ? selectedCells : [selected], patch);
 		}
 	};
 	const field = (labelText: string, input: HTMLInputElement | HTMLSelectElement): HTMLElement => {
@@ -117,6 +118,7 @@ export function createTableCellFormatting(
 		el,
 		update(state) {
 			selected = state.selectedTableCell;
+			selectedCells = state.selectedTableCells;
 			el.hidden = !selected;
 			if (!selected) {
 				return;

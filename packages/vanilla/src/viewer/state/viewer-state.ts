@@ -19,6 +19,8 @@ import type {
 import type {
 	CanvasSize,
 	ElementClipboardPayload,
+	InlineTextSelection,
+	Guide,
 	RemoteCursor,
 	SanitizedPresence,
 } from 'pptx-viewer-shared';
@@ -101,6 +103,10 @@ export interface ViewerState {
 	selectedElementIds: string[];
 	/** Active table cell for cell-scoped inspector formatting. */
 	selectedTableCell: { row: number; column: number } | null;
+	/** Shift-select range of active table cells, including the anchor. */
+	selectedTableCells: Array<{ row: number; column: number }>;
+	/** Active rich-text range captured from the inline editor. */
+	selectedTextRange: InlineTextSelection | null;
 	/** Source element id while the one-shot Format Painter is armed. */
 	formatPainterSourceId: string | null;
 	/** When true, selection and element mutations target inherited template elements. */
@@ -131,6 +137,13 @@ export interface ViewerState {
 	drawColor: string;
 	/** Stroke width (px) for the pen/highlighter tools. */
 	drawWidth: number;
+	showGrid: boolean;
+	showRulers: boolean;
+	snapToGrid: boolean;
+	snapToShape: boolean;
+	guides: Guide[];
+	eyedropperActive: boolean;
+	spellCheckEnabled: boolean;
 }
 
 export function createInitialViewerState(): ViewerState {
@@ -169,6 +182,8 @@ export function createInitialViewerState(): ViewerState {
 		selectedElementId: null,
 		selectedElementIds: [],
 		selectedTableCell: null,
+		selectedTableCells: [],
+		selectedTextRange: null,
 		formatPainterSourceId: null,
 		editTemplateMode: false,
 		dirty: false,
@@ -181,6 +196,13 @@ export function createInitialViewerState(): ViewerState {
 		drawTool: 'select',
 		drawColor: DEFAULT_STROKE_COLOR,
 		drawWidth: 3,
+		showGrid: false,
+		showRulers: false,
+		snapToGrid: false,
+		snapToShape: true,
+		guides: [],
+		eyedropperActive: false,
+		spellCheckEnabled: false,
 	};
 }
 

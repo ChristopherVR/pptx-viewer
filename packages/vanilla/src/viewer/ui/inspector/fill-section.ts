@@ -5,6 +5,7 @@ import { createEl } from '../../render';
 import type { ColorControlHandle, NumberFieldHandle } from '../controls';
 import { makeButton, makeColorControl, makeNumberField } from '../controls';
 import { makeCheckboxField, makeRangeField } from './controls-extra';
+import { createShapeEffectsControls } from './shape-effects-controls';
 import type { InspectorHandlers, InspectorState } from './types';
 
 export interface FillSection {
@@ -168,6 +169,8 @@ export function createFillSection(
 
 	const gated = [fill, stroke, strokeWidth, fillOpacity, strokeOpacity, gradientToggle];
 	const gradientGated = [linearBtn, radialBtn, angleField, addStopBtn];
+	const effects = createShapeEffectsControls(doc, t, handlers);
+	el.appendChild(effects.el);
 
 	return {
 		el,
@@ -183,6 +186,7 @@ export function createFillSection(
 			lastGradient = state.gradient;
 			rebuildStopRows(state.gradient.stops);
 			gradientPanel.hidden = !state.gradientEnabled;
+			effects.update(state);
 
 			for (const c of gated) {
 				c.setDisabled(!state.canShape);
