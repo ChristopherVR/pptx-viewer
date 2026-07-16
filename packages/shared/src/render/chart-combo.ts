@@ -8,8 +8,9 @@ import {
 	splitSeriesByAxis,
 } from './chart-axis';
 import { buildSecondaryAxis } from './chart-axis-render';
-import { buildCategoryAxisPlan } from './chart-category-axis';
+import { buildCategoryAxisPlan, chartDataInCategoryOrder } from './chart-category-axis';
 import { buildDateAxisPlan } from './chart-date-axis';
+import { computeErrorBarPrimitives } from './chart-error-bars';
 import type {
 	ChartViewModel,
 	PlotLayout,
@@ -189,6 +190,16 @@ export function buildComboViewModel(
 		}
 	});
 	primitives.push(...(datePlan?.tickMarks ?? categoryPlan?.tickMarks ?? []));
+	const displayChartData = chartDataInCategoryOrder(chartData, sourceIndices);
+	primitives.push(
+		...computeErrorBarPrimitives(displayChartData, catCount, layout, primaryRange, 'line', {
+			xPositions: datePlan?.xPositions,
+			seriesRanges: chartData.series.map((_series, index) =>
+				rangeForSeries(index, primaryRange, secondaryRange, secondaryIndexes),
+			),
+			seriesModes: chartData.series.map((_series, index) => (index === 0 ? 'bar' : 'line')),
+		}),
+	);
 
 	return {
 		svgWidth: layout.svgWidth,

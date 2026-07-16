@@ -144,6 +144,52 @@ describe('buildComboViewModel', () => {
 		expect(polylines.length).toBeGreaterThan(0);
 	});
 
+	it('renders schema-valid X and Y error bars for mixed combo series', () => {
+		const chartData: PptxChartData = {
+			chartType: 'combo',
+			categories: CATEGORIES,
+			series: [
+				{
+					name: 'Bars',
+					values: [10, 20, 30, 40],
+					seriesChartType: 'bar',
+					errBars: [
+						{
+							direction: 'x',
+							barType: 'plus',
+							valType: 'fixedVal',
+							val: 0.25,
+							noEndCap: true,
+							color: '#aa0000',
+						},
+					],
+				},
+				{
+					name: 'Line',
+					values: [5, 15, 25, 35],
+					seriesChartType: 'line',
+					errBars: [
+						{
+							direction: 'y',
+							barType: 'minus',
+							valType: 'percentage',
+							val: 10,
+							noEndCap: true,
+							color: '#00aa00',
+						},
+					],
+				},
+			],
+		};
+		const vm = buildComboViewModel(makeElement(), chartData, CATEGORIES);
+		expect(vm.primitives.filter((p) => p.kind === 'line' && p.stroke === '#aa0000')).toHaveLength(
+			4,
+		);
+		expect(vm.primitives.filter((p) => p.kind === 'line' && p.stroke === '#00aa00')).toHaveLength(
+			4,
+		);
+	});
+
 	it('reverses category order and retains combo source point indexes', () => {
 		const chartData: PptxChartData = {
 			chartType: 'combo',

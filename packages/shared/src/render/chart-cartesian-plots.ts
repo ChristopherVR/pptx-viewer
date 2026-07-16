@@ -197,11 +197,12 @@ export function buildScatter(
 	const showLabels = chartData.style?.hasDataLabels;
 	const allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i));
 	const maxXIndex = Math.max(1, ...allIndices);
+	const xValues = chartData.categories.map(Number);
 
 	for (let si = 0; si < chartData.series.length; si++) {
 		const series = chartData.series[si];
 		const c = seriesColor(series, si, chartData.colorPalette);
-		const dots = computeScatterDots(series.values, maxXIndex, layout, range);
+		const dots = computeScatterDots(series.values, maxXIndex, layout, range, xValues);
 		dots.forEach((dot, vi) => {
 			primitives.push({
 				kind: 'circle',
@@ -245,6 +246,7 @@ export function buildBubbles(
 	const showLabels = chartData.style?.hasDataLabels;
 	const allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i));
 	const maxXIndex = Math.max(1, ...allIndices);
+	const xValues = chartData.categories.map(Number);
 	const sizeSeries = chartData.series.length >= 3 ? chartData.series[2] : undefined;
 	const maxBubble = sizeSeries ? Math.max(1, ...sizeSeries.values.map((v) => Math.abs(v))) : 1;
 	const medianRadius = Math.min(layout.plotWidth, layout.plotHeight) * 0.04;
@@ -253,7 +255,7 @@ export function buildBubbles(
 	for (let si = 0; si < pointSeries.length; si++) {
 		const series = pointSeries[si];
 		const c = seriesColor(series, si, chartData.colorPalette);
-		const dots = computeScatterDots(series.values, maxXIndex, layout, range);
+		const dots = computeScatterDots(series.values, maxXIndex, layout, range, xValues);
 		dots.forEach((dot, vi) => {
 			const r = computeBubbleRadius(sizeSeries?.values[vi], maxBubble, medianRadius);
 			primitives.push({

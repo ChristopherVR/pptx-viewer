@@ -309,6 +309,25 @@ describe('cartesian overlays', () => {
 		expect(lines.length).toBeGreaterThan(0);
 	});
 
+	it('anchors scatter X error bars to numeric xVal point coordinates', () => {
+		const data: PptxChartData = {
+			chartType: 'scatter',
+			categories: ['10', '20', '40'],
+			series: [
+				{
+					name: 'S',
+					values: [10, 20, 30],
+					errBars: [{ direction: 'x', barType: 'plus', valType: 'fixedVal', val: 5 }],
+				},
+			],
+		};
+		const vm = buildChartViewModel(chartElement(data));
+		const dots = vm.primitives.filter((primitive) => primitive.kind === 'circle');
+		const stems = vm.overlays!.filter((primitive) => primitive.kind === 'line');
+		expect(dots[0].cx).toBeCloseTo(stems[0].x1, 5);
+		expect(dots[1].cx - dots[0].cx).toBeLessThan(dots[2].cx - dots[1].cx);
+	});
+
 	it('emits axis-title primitives from axis titleText', () => {
 		const data: PptxChartData = {
 			chartType: 'bar',

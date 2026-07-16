@@ -835,9 +835,16 @@ export function computeScatterDots(
 	maxXIndex: number,
 	layout: PlotLayout,
 	range: ValueRange,
+	xValues?: ReadonlyArray<number>,
 ): ScatterDot[] {
+	const finiteX = xValues?.slice(0, values.length).filter(Number.isFinite);
+	const minX = finiteX?.length ? Math.min(...finiteX) : 0;
+	const spanX = finiteX?.length ? Math.max(Math.max(...finiteX) - minX, 1) : maxXIndex;
 	return values.map((val, i) => ({
-		cx: layout.plotLeft + (maxXIndex > 0 ? i / maxXIndex : 0) * layout.plotWidth,
+		cx:
+			layout.plotLeft +
+			(spanX > 0 ? (Number.isFinite(xValues?.[i]) ? xValues![i] - minX : i) / spanX : 0) *
+				layout.plotWidth,
 		cy: valueToY(val, range, layout.plotTop, layout.plotBottom),
 	}));
 }

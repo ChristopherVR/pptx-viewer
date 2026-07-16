@@ -348,10 +348,87 @@ describe('computeErrorBarPrimitives', () => {
 		expect(result).toHaveLength(8);
 	});
 
-	it('ignores x-direction error bars', () => {
+	it('renders category X-direction fixed error bars', () => {
 		const eb: PptxChartErrBars = { direction: 'x', barType: 'both', valType: 'fixedVal', val: 3 };
 		const chartData = makeChartData({ series: [makeSeries({ errBars: [eb] })] });
-		expect(computeErrorBarPrimitives(chartData, 4, LAYOUT, RANGE)).toHaveLength(0);
+		const result = computeErrorBarPrimitives(chartData, 4, LAYOUT, RANGE);
+		expect(result).toHaveLength(16);
+		const firstStem = result[0];
+		expect(firstStem).toMatchObject({
+			kind: 'line',
+			y1: firstStem.kind === 'line' ? firstStem.y2 : 0,
+		});
+		if (firstStem.kind === 'line') {
+			expect(firstStem.x2).toBeGreaterThan(firstStem.x1);
+		}
+	});
+
+	it('maps scatter X bars from numeric xVal categories', () => {
+		const eb: PptxChartErrBars = { direction: 'x', barType: 'plus', valType: 'fixedVal', val: 5 };
+		const chartData = makeChartData({
+			chartType: 'scatter',
+			categories: ['10', '20', '40'],
+			series: [makeSeries({ values: [10, 20, 30], errBars: [eb] })],
+		});
+		const [stem] = computeErrorBarPrimitives(chartData, 3, LAYOUT, RANGE);
+		expect(stem).toMatchObject({ kind: 'line' });
+		if (stem.kind === 'line') {
+			expect(stem.x1).toBeCloseTo(LAYOUT.plotLeft, 5);
+			expect(stem.x2).toBeCloseTo(LAYOUT.plotLeft + (5 / 30) * LAYOUT.plotWidth, 5);
+		}
+	});
+
+	it('computes percentage and standard-deviation lengths from X values', () => {
+		for (const errBars of [
+			{ direction: 'x', barType: 'plus', valType: 'percentage', val: 25 },
+			{ direction: 'x', barType: 'minus', valType: 'stdDev', val: 1 },
+		] satisfies PptxChartErrBars[]) {
+			const chartData = makeChartData({
+				chartType: 'scatter',
+				categories: ['10', '20', '40'],
+				series: [makeSeries({ values: [10, 20, 30], errBars: [errBars] })],
+			});
+			const [stem] = computeErrorBarPrimitives(chartData, 3, LAYOUT, RANGE);
+			expect(stem).toMatchObject({ kind: 'line' });
+			if (stem.kind === 'line') {
+				expect(stem.x2).not.toBeCloseTo(stem.x1, 5);
+			}
+		}
+	});
+
+	it('uses source point indexes for custom values after category reordering', () => {
+		const eb: PptxChartErrBars = {
+			direction: 'x',
+			barType: 'plus',
+			valType: 'cust',
+			customPlus: [1, 2, 3],
+		};
+		const chartData = makeChartData({
+			categories: ['A', 'B', 'C'],
+			series: [makeSeries({ values: [10, 20, 30], errBars: [eb] })],
+		});
+		const result = computeErrorBarPrimitives(chartData, 2, LAYOUT, RANGE, 'line', {
+			sourceIndices: [2, 0],
+			xPositions: [100, 200],
+		});
+		expect(result[0]).toMatchObject({ kind: 'line', x1: 100, x2: 400 });
+		expect(result[2]).toMatchObject({ kind: 'line', x1: 200, x2: 300 });
+	});
+
+	it('omits caps and respects the authored line color', () => {
+		const eb: PptxChartErrBars = {
+			direction: 'x',
+			barType: 'both',
+			valType: 'stdErr',
+			noEndCap: true,
+			color: '#123456',
+		};
+		const chartData = makeChartData({ series: [makeSeries({ errBars: [eb] })] });
+		const result = computeErrorBarPrimitives(chartData, 4, LAYOUT, RANGE);
+		expect(result).toHaveLength(8);
+		expect(
+			result.every((primitive) => primitive.kind === 'line' && primitive.stroke === '#123456'),
+		).toBeTruthy();
 	});
 
 	it('handles percentage valType without crashing', () => {

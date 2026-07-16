@@ -16,12 +16,7 @@
  * @module chart-overlays
  */
 
-import type {
-	PptxChartData,
-	PptxChartErrBars,
-	PptxChartSeries,
-	PptxChartTrendline,
-} from 'pptx-viewer-core';
+import type { PptxChartData, PptxChartSeries, PptxChartTrendline } from 'pptx-viewer-core';
 
 import type {
 	PlotLayout,
@@ -32,6 +27,8 @@ import type {
 	ValueRange,
 } from './chart-view-model';
 import { formatAxisValue, seriesColor, valueToY } from './chart-view-model';
+
+export { computeErrorBarPrimitives } from './chart-error-bars';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Internal: coordinate helpers
@@ -413,151 +410,6 @@ export function computeTrendlinePrimitives(
 				};
 				out.push(labelText);
 			}
-		});
-	});
-
-	return out;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Internal: error-value computation
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Resolve the half-width of an error bar for a single data point.
- * Mirrors `computeErrorValue` in chart-overlay-lines.tsx (React).
- */
-function computeErrorValue(
-	errBars: PptxChartErrBars,
-	values: number[],
-	pointIndex: number,
-	direction: 'plus' | 'minus',
-): number {
-	switch (errBars.valType) {
-		case 'fixedVal':
-			return errBars.val ?? 0;
-		case 'percentage':
-			return Math.abs(values[pointIndex]) * ((errBars.val ?? 0) / 100);
-		case 'stdDev': {
-			const n = values.length;
-			if (n === 0) {
-				return 0;
-			}
-			const mean = values.reduce((s, v) => s + v, 0) / n;
-			const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / n;
-			return Math.sqrt(variance) * (errBars.val ?? 1);
-		}
-		case 'stdErr': {
-			const n2 = values.length;
-			if (n2 === 0) {
-				return 0;
-			}
-			const mean2 = values.reduce((s, v) => s + v, 0) / n2;
-			const variance2 = values.reduce((s, v) => s + (v - mean2) ** 2, 0) / n2;
-			return Math.sqrt(variance2 / n2);
-		}
-		case 'cust':
-			return direction === 'plus'
-				? (errBars.customPlus?.[pointIndex] ?? 0)
-				: (errBars.customMinus?.[pointIndex] ?? 0);
-		default:
-			return 0;
-	}
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Public: error-bar primitives
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Stroke colour for error-bar whiskers. */
-const ERROR_BAR_COLOR = '#334155';
-
-/**
- * Build `SvgPrimitive[]` for all Y-direction error bars in `chartData`.
- * Produces stem + cap `SvgLine` pairs for each data point.
- * X-direction error bars are intentionally skipped (not supported in PPTX
- * bar/line charts displayed here).
- *
- * Mirrors `renderErrorBars` in chart-overlay-lines.tsx (React).
- *
- * @param chartData   Full parsed chart data.
- * @param catCount    Number of categories.
- * @param layout      Plot-area bounding box.
- * @param range       Value-axis range.
- * @param mode        `'bar'` or `'line'` — controls x-pixel mapping.
- */
-export function computeErrorBarPrimitives(
-	chartData: PptxChartData,
-	catCount: number,
-	layout: PlotLayout,
-	range: ValueRange,
-	mode: 'line' | 'bar' = 'line',
-): SvgPrimitive[] {
-	const out: SvgPrimitive[] = [];
-	const capW = 4;
-
-	chartData.series.forEach((series: PptxChartSeries) => {
-		if (!series.errBars || series.errBars.length === 0) {
-			return;
-		}
-
-		series.errBars.forEach((eb: PptxChartErrBars) => {
-			if (eb.direction !== 'y') {
-				return;
-			}
-
-			series.values.forEach((val: number, vi: number) => {
-				const cx = xToPixel(vi, catCount, layout, mode);
-				const baseY = valueToY(val, range, layout.plotTop, layout.plotBottom);
-
-				if (eb.barType === 'plus' || eb.barType === 'both') {
-					const plusErr = computeErrorValue(eb, series.values, vi, 'plus');
-					const topY = valueToY(val + plusErr, range, layout.plotTop, layout.plotBottom);
-					const stem: SvgLine = {
-						kind: 'line',
-						x1: cx,
-						y1: baseY,
-						x2: cx,
-						y2: topY,
-						stroke: ERROR_BAR_COLOR,
-						strokeWidth: 1,
-					};
-					const cap: SvgLine = {
-						kind: 'line',
-						x1: cx - capW,
-						y1: topY,
-						x2: cx + capW,
-						y2: topY,
-						stroke: ERROR_BAR_COLOR,
-						strokeWidth: 1,
-					};
-					out.push(stem, cap);
-				}
-
-				if (eb.barType === 'minus' || eb.barType === 'both') {
-					const minusErr = computeErrorValue(eb, series.values, vi, 'minus');
-					const botY = valueToY(val - minusErr, range, layout.plotTop, layout.plotBottom);
-					const stem: SvgLine = {
-						kind: 'line',
-						x1: cx,
-						y1: baseY,
-						x2: cx,
-						y2: botY,
-						stroke: ERROR_BAR_COLOR,
-						strokeWidth: 1,
-					};
-					const cap: SvgLine = {
-						kind: 'line',
-						x1: cx - capW,
-						y1: botY,
-						x2: cx + capW,
-						y2: botY,
-						stroke: ERROR_BAR_COLOR,
-						strokeWidth: 1,
-					};
-					out.push(stem, cap);
-				}
-			});
 		});
 	});
 
