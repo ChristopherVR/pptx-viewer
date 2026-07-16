@@ -603,3 +603,4 @@ export * from './backstage';
 export * from './master-page-layout';
 export * from './virtualized-list';
 export * from './document-statistics';
+export * from './used-fonts';
