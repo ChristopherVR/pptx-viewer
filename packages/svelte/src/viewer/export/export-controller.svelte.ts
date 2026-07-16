@@ -211,6 +211,7 @@ export class ExportController {
 				{
 					getSlides: () => this.#deps.getSlides(),
 					getCurrent: () => this.#deps.getCurrent(),
+					getCanvasSize: () => this.#deps.getCanvasSize(),
 					rasterizeSlide: (index) => this.#deps.rasterizeSlide(index),
 					openPrintWindow: this.#deps.openPrintWindow,
 				},

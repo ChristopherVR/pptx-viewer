@@ -1,17 +1,18 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { PrintSettings } from 'pptx-viewer-shared';
+import type { CanvasSize, PrintSettings } from 'pptx-viewer-shared';
 import {
 	buildHandoutsHtml,
 	buildNotesHtml,
 	buildOutlineHtml,
+	buildPrintDocument,
 	buildPrintHtmlDocument,
-	buildSlidesHtml,
 	computeColorFilter,
 	computeSlideIndices,
 	validatePrintSettings,
 } from 'pptx-viewer-shared';
 
 import type { RasterizeSlide } from './export-controller.svelte';
+import { exportSlideToSvg } from './export-svg';
 
 /**
  * Print flow: assemble the shared print document (slides / notes / handouts /
@@ -20,8 +21,9 @@ import type { RasterizeSlide } from './export-controller.svelte';
  * settings, `computeSlideIndices` / `computeColorFilter` resolve the range and
  * colour mode, the `build*Html` helpers produce the escaped body markup, and
  * `buildPrintHtmlDocument` sanitises + assembles the final document. This
- * module (the Svelte counterpart of Vue's `usePrint`) only rasterises the
- * selected slides and opens the print surface.
+ * module (the Svelte counterpart of Vue's `usePrint`) exports direct slide
+ * pages as vector SVG, rasterises notes/handout thumbnails, and opens the
+ * print surface.
  *
  * **Print surface / popup-blocker caveats:** the default opener renders the
  * document into a hidden same-origin `<iframe srcdoc>` and calls
@@ -50,6 +52,8 @@ export interface PrintDeps {
 	getSlides(): PptxSlide[];
 	/** Active slide index (0-based); target of the `current` slide range. */
 	getCurrent(): number;
+	/** Live slide dimensions used by the core SVG exporter. */
+	getCanvasSize(): CanvasSize;
 	rasterizeSlide: RasterizeSlide;
 	/** Print-surface opener override (test seam / host popup handling). */
 	openPrintWindow?: OpenPrintWindow;
@@ -145,6 +149,22 @@ export async function printSlides(deps: PrintDeps, options: PrintOptions = {}): 
 		return openWindow(assemble(`<div class="outline-page">${outlineHtml}</div>`, true));
 	}
 
+	// Full-page slides use the core data-model SVG exporter. This preserves
+	// rich vector content such as chart marks and avoids DOM raster capture.
+	if (settings.printWhat === 'slides') {
+		const { width, height } = deps.getCanvasSize();
+		const svgs = slideIndices.map((index) =>
+			exportSlideToSvg(slides[index] as PptxSlide, width, height),
+		);
+		return openWindow(
+			buildPrintDocument(svgs, width, height, {
+				title: printTitle(settings),
+				orientation: settings.orientation,
+				colorFilter,
+			}),
+		);
+	}
+
 	const images: string[] = [];
 	for (const index of slideIndices) {
 		const canvas = await deps.rasterizeSlide(index);
@@ -159,5 +179,5 @@ export async function printSlides(deps: PrintDeps, options: PrintOptions = {}): 
 			assemble(buildHandoutsHtml(images, slideIndices, settings.slidesPerPage), true),
 		);
 	}
-	return openWindow(assemble(buildSlidesHtml(images, slideIndices)));
+	return false;
 }

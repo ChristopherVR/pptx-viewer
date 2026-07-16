@@ -20,6 +20,27 @@ function makeSlide(id: string, text: string, notes: string): PptxSlide {
 	} as unknown as PptxSlide;
 }
 
+function makeChartSlide(): PptxSlide {
+	return {
+		id: 'chart-slide',
+		elements: [
+			{
+				type: 'chart',
+				id: 'chart-1',
+				x: 0,
+				y: 0,
+				width: 400,
+				height: 240,
+				chartData: {
+					chartType: 'bar',
+					categories: ['Q1', 'Q2'],
+					series: [{ name: 'Revenue', values: [12, 18], color: '#123456' }],
+				},
+			},
+		],
+	} as PptxSlide;
+}
+
 const SLIDES: PptxSlide[] = [
 	makeSlide('s1', 'First title', 'Speaker notes one'),
 	makeSlide('s2', 'Second title', 'Speaker notes two'),
@@ -44,6 +65,7 @@ function make(overrides: Partial<PrintDeps> = {}): Harness {
 	const deps: PrintDeps = {
 		getSlides: () => SLIDES,
 		getCurrent: () => 1,
+		getCanvasSize: () => ({ width: 960, height: 540 }),
 		rasterizeSlide,
 		openPrintWindow,
 		...overrides,
@@ -57,27 +79,34 @@ function make(overrides: Partial<PrintDeps> = {}): Harness {
 }
 
 describe('printSlides', () => {
-	it('prints all slides full-page by default (landscape, one img per slide)', async () => {
-		const harness = make();
+	it('prints direct slides as rich vector SVG without rasterising', async () => {
+		const harness = make({ getSlides: () => [makeChartSlide()] });
 		await expect(printSlides(harness.deps)).resolves.toBeTruthy();
 
-		expect(harness.rasterizeSlide).toHaveBeenCalledTimes(3);
+		expect(harness.rasterizeSlide).not.toHaveBeenCalled();
 		const html = harness.html();
 		expect(html).toContain('<title>Slides</title>');
 		expect(html).toContain('size: landscape');
-		expect(html.match(/class="slide-img"/gu)).toHaveLength(3);
-		expect(html).toContain('data:image/png;base64,AAAA');
+		expect(html).toContain('class="print-slide-page"');
+		expect(html).toContain('data-pptx-element="chart"');
+		expect(html).toContain('data-chart-mark="bar"');
+		expect(html).not.toContain('data:image/png');
 	});
 
 	it('prints only the active slide for the current range', async () => {
 		const harness = make();
-		await printSlides(harness.deps, { slideRange: 'current' });
+		await printSlides(harness.deps, { printWhat: 'notes', slideRange: 'current' });
 		expect(harness.rasterizeSlide).toHaveBeenCalledExactlyOnceWith(1);
 	});
 
 	it('clamps a custom range to the slide count', async () => {
 		const harness = make();
-		await printSlides(harness.deps, { slideRange: 'custom', customRangeFrom: 2, customRangeTo: 9 });
+		await printSlides(harness.deps, {
+			printWhat: 'notes',
+			slideRange: 'custom',
+			customRangeFrom: 2,
+			customRangeTo: 9,
+		});
 		expect(harness.rasterizeSlide.mock.calls.map((call) => call[0])).toStrictEqual([1, 2]);
 	});
 
@@ -100,6 +129,7 @@ describe('printSlides', () => {
 		expect(html).toContain('<title>Notes Pages</title>');
 		expect(html).toContain('Speaker notes two');
 		expect(html).toContain('size: portrait');
+		expect(harness.rasterizeSlide).toHaveBeenCalledTimes(3);
 	});
 
 	it('assembles a handout grid with the configured slides per page', async () => {
@@ -108,6 +138,7 @@ describe('printSlides', () => {
 		const html = harness.html();
 		expect(html).toContain('<title>Handout 4 per page</title>');
 		expect(html).toContain('handout-grid');
+		expect(harness.rasterizeSlide).toHaveBeenCalledTimes(3);
 	});
 
 	it('applies the grayscale colour filter', async () => {

@@ -4,6 +4,15 @@ export type {
 	ExportPdfOptions,
 	ExportVideoOptions,
 	PrintOptions,
+	SvgExportAllOptions,
+	SvgExportSingleSlideOptions,
+} from './export';
+export {
+	exportAllSlidesToSvg,
+	exportAllSlidesToSvgBlobs,
+	exportSlideAsSvg,
+	exportSlideToSvg,
+	exportSlideToSvgBlob,
 } from './export';
 export type {
 	CanvasSize,
