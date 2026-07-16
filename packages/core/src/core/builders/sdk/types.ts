@@ -15,6 +15,7 @@ import type {
 	PptxChartBoxWhiskerOptions,
 	PptxChartHistogramOptions,
 	PptxChartRegionMapOptions,
+	PptxChartWaterfallOptions,
 } from '../../types/chart';
 import type { StrokeDashType, ConnectorArrowType } from '../../types/common';
 import type { PptxTransitionType } from '../../types/transition';
@@ -174,6 +175,7 @@ export interface ChartSeriesInput {
 	color?: string;
 	boxWhiskerOptions?: PptxChartBoxWhiskerOptions;
 	histogramOptions?: PptxChartHistogramOptions;
+	waterfallOptions?: PptxChartWaterfallOptions;
 	regionMapOptions?: PptxChartRegionMapOptions;
 }
 

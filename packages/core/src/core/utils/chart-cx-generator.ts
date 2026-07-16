@@ -140,6 +140,25 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 			result['cx:layoutPr'] = { 'cx:binning': binning };
 		}
 	}
+	if (chartData.chartType === 'waterfall' && series.waterfallOptions) {
+		const options = series.waterfallOptions;
+		const layoutPr: XmlObject = {};
+		if (options.connectorLines !== undefined) {
+			layoutPr['cx:visibility'] = {
+				'@_connectorLines': options.connectorLines ? '1' : '0',
+			};
+		}
+		if (options.subtotalIndices !== undefined) {
+			layoutPr['cx:subtotals'] = {
+				'cx:idx': options.subtotalIndices
+					.filter((index) => Number.isInteger(index) && index >= 0)
+					.map((index) => ({ '@_val': String(index) })),
+			};
+		}
+		if (Object.keys(layoutPr).length > 0) {
+			result['cx:layoutPr'] = layoutPr;
+		}
+	}
 	if (chartData.chartType === 'regionMap') {
 		const options = series.regionMapOptions;
 		const layoutPr: XmlObject = {};

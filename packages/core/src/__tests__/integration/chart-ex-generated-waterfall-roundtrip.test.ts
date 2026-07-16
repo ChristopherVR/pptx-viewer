@@ -23,7 +23,14 @@ describe('generated chartEx waterfall package', () => {
 					'waterfall',
 					{
 						categories: ['Opening', 'Sales', 'Costs', 'Closing'],
-						series: [{ name: 'Cash flow', values: [100, 45, -30, 115], color: '#70AD47' }],
+						series: [
+							{
+								name: 'Cash flow',
+								values: [100, 45, -30, 115],
+								color: '#70AD47',
+								waterfallOptions: { subtotalIndices: [0, 3], connectorLines: false },
+							},
+						],
 						title: 'Cash Movement',
 					},
 					{ x: 50, y: 50, width: 500, height: 300 },
@@ -40,6 +47,10 @@ describe('generated chartEx waterfall package', () => {
 
 		expect(chartXml).toContain('<cx:series layoutId="waterfall"');
 		expect(chartXml).toContain('<cx:pt idx="2">-30</cx:pt>');
+		expect(chartXml).toContain('<cx:visibility connectorLines="0"></cx:visibility>');
+		expect(chartXml).toContain('<cx:idx val="0"></cx:idx>');
+		expect(chartXml).toContain('<cx:idx val="3"></cx:idx>');
+		expect(chartXml.indexOf('<cx:visibility')).toBeLessThan(chartXml.indexOf('<cx:subtotals'));
 		expect(slideRels).toContain('office/2014/relationships/chartEx');
 		expect(contentTypes).toContain('application/vnd.ms-office.chartex+xml');
 
@@ -51,7 +62,14 @@ describe('generated chartEx waterfall package', () => {
 			chartType: 'waterfall',
 			title: 'Cash Movement',
 			categories: ['Opening', 'Sales', 'Costs', 'Closing'],
-			series: [{ name: 'Cash flow', values: [100, 45, -30, 115], color: '#70AD47' }],
+			series: [
+				{
+					name: 'Cash flow',
+					values: [100, 45, -30, 115],
+					color: '#70AD47',
+					waterfallOptions: { subtotalIndices: [0, 3], connectorLines: false },
+				},
+			],
 		});
 
 		loaded.slides[0].isDirty = true;
@@ -61,6 +79,9 @@ describe('generated chartEx waterfall package', () => {
 		expect(resavedXml).toContain('uri="waterfall-vendor"');
 		expect(resavedXml).toContain('<vendor:payload xmlns:vendor="urn:vendor">keep</vendor:payload>');
 		const reloaded = await new PptxHandler().load(resaved.buffer as ArrayBuffer);
-		expect(chartFrom(reloaded).chartData?.series[0].values).toStrictEqual([100, 45, -30, 115]);
+		expect(chartFrom(reloaded).chartData?.series[0]).toMatchObject({
+			values: [100, 45, -30, 115],
+			waterfallOptions: { subtotalIndices: [0, 3], connectorLines: false },
+		});
 	});
 });

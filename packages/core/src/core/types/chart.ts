@@ -369,6 +369,14 @@ export interface PptxChartHistogramOptions {
 	overflow?: number | 'auto';
 }
 
+/** Office 2016 ChartEx waterfall series layout options. */
+export interface PptxChartWaterfallOptions {
+	/** Zero-based data point indexes rendered as absolute subtotal or total bars. */
+	subtotalIndices?: number[];
+	/** Whether connector lines are visible between adjacent bars. */
+	connectorLines?: boolean;
+}
+
 /** Office 2016 ChartEx geographic series dimensions and layout options. */
 export interface PptxChartRegionMapOptions {
 	/** Optional provider entity identifiers aligned with categories and values. */
@@ -426,6 +434,7 @@ export interface PptxChartSeries {
 	seriesChartType?: PptxChartType;
 	boxWhiskerOptions?: PptxChartBoxWhiskerOptions;
 	histogramOptions?: PptxChartHistogramOptions;
+	waterfallOptions?: PptxChartWaterfallOptions;
 	regionMapOptions?: PptxChartRegionMapOptions;
 }
 

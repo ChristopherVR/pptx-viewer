@@ -105,6 +105,30 @@ describe('parseCxChartSeries', () => {
 		expect(result!.series[0].values).toStrictEqual([100, 150, 200]);
 	});
 
+	it('parses waterfall subtotals and connector visibility', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': {
+					'@_layoutId': 'waterfall',
+					'cx:data': {
+						'cx:strDim': { 'cx:lvl': { 'cx:pt': [{ 'cx:v': 'A' }, { 'cx:v': 'B' }] } },
+						'cx:numDim': { 'cx:lvl': { 'cx:pt': [{ 'cx:v': '10' }, { 'cx:v': '20' }] } },
+					},
+					'cx:layoutPr': {
+						'cx:visibility': { '@_connectorLines': 'false' },
+						'cx:subtotals': {
+							'cx:idx': [{ '@_val': '0' }, { '@_val': '2' }, { '@_val': '-1' }],
+						},
+					},
+				},
+			},
+		};
+		expect(parseCxChartSeries(plotArea, xmlLookup)?.series[0].waterfallOptions).toStrictEqual({
+			connectorLines: false,
+			subtotalIndices: [0, 2],
+		});
+	});
+
 	it('should parse multiple cx: series', () => {
 		const plotArea: XmlObject = {
 			'cx:plotAreaRegion': {

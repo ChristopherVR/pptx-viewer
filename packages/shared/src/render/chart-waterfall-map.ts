@@ -25,10 +25,10 @@ import {
 	buildZeroLine,
 	buildCategoryLabels,
 	computePlotLayout,
-	computeValueRange,
 	formatAxisValue,
 	valueToY,
 } from './chart-view-model';
+import { buildWaterfallSteps, computeWaterfallRange } from './chart-waterfall-layout';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Waterfall colours (mirrors React renderWaterfallChart)
@@ -59,8 +59,10 @@ export function buildWaterfallViewModel(
 	categoryLabels: ReadonlyArray<string>,
 ): ChartViewModel {
 	const layout = computePlotLayout(element.width, element.height, chartData, true);
-	const values = chartData.series[0]?.values ?? [];
-	const range = computeValueRange(chartData.series);
+	const series = chartData.series[0];
+	const values = series?.values ?? [];
+	const steps = buildWaterfallSteps(values, series?.waterfallOptions);
+	const range = computeWaterfallRange(steps);
 	const catCount = Math.max(categoryLabels.length, values.length, 1);
 
 	const barWidth = (layout.plotWidth / catCount) * 0.6;
@@ -69,20 +71,19 @@ export function buildWaterfallViewModel(
 	const primitives: Array<SvgRect | SvgLine> = [];
 	const dataLabels: SvgText[] = [];
 
-	let runningTotal = 0;
-
-	for (let i = 0; i < values.length; i++) {
-		const val = values[i] ?? 0;
-		const isLast = i === values.length - 1;
-		const startVal = isLast ? 0 : runningTotal;
-		const endVal = runningTotal + val;
-
-		const barStartY = valueToY(startVal, range, layout.plotTop, layout.plotBottom);
-		const barEndY = valueToY(endVal, range, layout.plotTop, layout.plotBottom);
+	for (const step of steps) {
+		const { sourceIndex, value, startValue, endValue, isSubtotal } = step;
+		const barStartY = valueToY(startValue, range, layout.plotTop, layout.plotBottom);
+		const barEndY = valueToY(endValue, range, layout.plotTop, layout.plotBottom);
+		const i = sourceIndex;
 		const x = layout.plotLeft + (layout.plotWidth / catCount) * i + gap;
 		const y = Math.min(barStartY, barEndY);
 		const h = Math.max(Math.abs(barEndY - barStartY), 1);
-		const barColor = isLast ? WF_COLOR_TOTAL : val >= 0 ? WF_COLOR_POSITIVE : WF_COLOR_NEGATIVE;
+		const barColor = isSubtotal
+			? WF_COLOR_TOTAL
+			: value >= 0
+				? WF_COLOR_POSITIVE
+				: WF_COLOR_NEGATIVE;
 
 		primitives.push({
 			kind: 'rect',
@@ -92,6 +93,7 @@ export function buildWaterfallViewModel(
 			h,
 			fill: barColor,
 			rx: 1,
+			part: { role: 'dataPoint', seriesIndex: 0, pointIndex: sourceIndex },
 		} satisfies SvgRect);
 
 		if (chartData.style?.hasDataLabels) {
@@ -99,7 +101,7 @@ export function buildWaterfallViewModel(
 				kind: 'text',
 				x: x + barWidth / 2,
 				y: y - 4,
-				text: formatAxisValue(isLast ? endVal : val),
+				text: formatAxisValue(value),
 				fontSize: 7,
 				fill: '#334155',
 				textAnchor: 'middle',
@@ -107,7 +109,7 @@ export function buildWaterfallViewModel(
 		}
 
 		// Connector line to the next bar (not drawn after the last bar).
-		if (!isLast && i < values.length - 1) {
+		if (series?.waterfallOptions?.connectorLines !== false && i < values.length - 1) {
 			const nextX = layout.plotLeft + (layout.plotWidth / catCount) * (i + 1) + gap;
 			primitives.push({
 				kind: 'line',
@@ -119,10 +121,6 @@ export function buildWaterfallViewModel(
 				strokeWidth: 0.8,
 				dashArray: '3 2',
 			} satisfies SvgLine);
-		}
-
-		if (!isLast) {
-			runningTotal += val;
 		}
 	}
 

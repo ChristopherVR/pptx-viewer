@@ -217,6 +217,39 @@ describe('buildWaterfallViewModel — running-total colouring', () => {
 		// value[2] = 20, isLast → indigo total
 		expect(rects[2]).toBe('#6366f1');
 	});
+
+	it('uses typed subtotal colors, preserves source indexes, and can hide connectors', () => {
+		const data: PptxChartData = {
+			chartType: 'waterfall',
+			categories: ['Opening', 'Gain', 'Subtotal', 'Loss', 'Total'],
+			series: [
+				{
+					name: 'S',
+					values: [100, 25, 125, -20, 105],
+					waterfallOptions: { subtotalIndices: [0, 2, 4], connectorLines: false },
+				},
+			],
+			style: { hasDataLabels: true },
+		};
+		const vm = buildWaterfallViewModel(makeElement(), data, data.categories);
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		expect(rects.map((rect) => rect.fill)).toStrictEqual([
+			'#6366f1',
+			'#22c55e',
+			'#6366f1',
+			'#ef4444',
+			'#6366f1',
+		]);
+		expect(rects.map((rect) => rect.part?.pointIndex)).toStrictEqual([0, 1, 2, 3, 4]);
+		expect(vm.primitives.filter((primitive) => primitive.kind === 'line')).toHaveLength(0);
+		expect(vm.dataLabels.map((label) => label.text)).toStrictEqual([
+			'100',
+			'25',
+			'125',
+			'-20',
+			'105',
+		]);
+	});
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

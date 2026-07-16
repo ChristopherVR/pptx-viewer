@@ -506,6 +506,14 @@ export function createChartElement(
 		color: s.color,
 		boxWhiskerOptions: s.boxWhiskerOptions ? { ...s.boxWhiskerOptions } : undefined,
 		histogramOptions: s.histogramOptions ? { ...s.histogramOptions } : undefined,
+		waterfallOptions: s.waterfallOptions
+			? {
+					...s.waterfallOptions,
+					subtotalIndices: s.waterfallOptions.subtotalIndices
+						? [...s.waterfallOptions.subtotalIndices]
+						: undefined,
+				}
+			: undefined,
 		regionMapOptions: s.regionMapOptions
 			? {
 					...s.regionMapOptions,
