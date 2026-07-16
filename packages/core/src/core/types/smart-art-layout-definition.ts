@@ -12,12 +12,25 @@ export interface PptxSmartArtLayoutCategory {
 	priority: number;
 }
 
+export interface PptxSmartArtAlgorithmParameter {
+	type: string;
+	value?: string;
+}
+
+/** Typed DiagramML CT_Algorithm data attached to a layout node. */
+export interface PptxSmartArtLayoutAlgorithm {
+	type: string;
+	revision?: number;
+	parameters?: PptxSmartArtAlgorithmParameter[];
+}
+
 /** Identity and ordering metadata from DiagramML CT_LayoutNode. */
 export interface PptxSmartArtLayoutNode {
 	name?: string;
 	styleLabel?: string;
 	childOrder?: 'b' | 't';
 	moveWith?: string;
+	algorithm?: PptxSmartArtLayoutAlgorithm;
 	constraints?: PptxSmartArtConstraint[];
 	rules?: PptxSmartArtNumericRule[];
 	children?: PptxSmartArtLayoutNode[];

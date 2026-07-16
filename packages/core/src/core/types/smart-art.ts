@@ -23,7 +23,9 @@ export type {
 	PptxSmartArtNode,
 } from './smart-art-node';
 export type {
+	PptxSmartArtAlgorithmParameter,
 	PptxSmartArtLayoutCategory,
+	PptxSmartArtLayoutAlgorithm,
 	PptxSmartArtLayoutDefinition,
 	PptxSmartArtLayoutNode,
 	PptxSmartArtLocalizedText,
