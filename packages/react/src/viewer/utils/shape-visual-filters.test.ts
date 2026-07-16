@@ -464,6 +464,26 @@ describe('renderImageAlphaSvgFilter', () => {
 		expect(html).toMatch(/<feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1"/);
 	});
 
+	it('uses distinct RGB transfer tables for distinct biLevel thresholds', () => {
+		const low = renderToStaticMarkup(renderImageAlphaSvgFilter(makeImg({ biLevel: 25 }))!);
+		const high = renderToStaticMarkup(renderImageAlphaSvgFilter(makeImg({ biLevel: 75 }))!);
+		expect(low).not.toBe(high);
+		expect(low).toContain(`tableValues="${`${'0 '.repeat(25)}${'1 '.repeat(76)}`.trim()}"`);
+	});
+
+	it('renders HSL luminance and positive and negative tint transfers', () => {
+		const lighter = renderToStaticMarkup(
+			renderImageAlphaSvgFilter(makeImg({ hsl: { lum: 40 }, tint: { amt: 25 } }))!,
+		);
+		const darker = renderToStaticMarkup(
+			renderImageAlphaSvgFilter(makeImg({ tint: { hue: 45, amt: -30 } }))!,
+		);
+		expect(lighter).toContain('slope="0.6" intercept="0.4"');
+		expect(lighter).toContain('slope="0.75" intercept="0.25"');
+		expect(darker).toContain('type="hueRotate" values="45"');
+		expect(darker).toContain('slope="0.7" intercept="0"');
+	});
+
 	it('emits an alphaCeiling and alphaFloor pair when both set', () => {
 		const html = renderToStaticMarkup(
 			renderImageAlphaSvgFilter(makeImg({ alphaCeiling: true, alphaFloor: true }))!,

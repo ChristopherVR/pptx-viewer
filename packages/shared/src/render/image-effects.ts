@@ -1,6 +1,8 @@
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 
+import { buildImageBiLevelTable, buildImageLuminanceTransfer } from './image-effect-filter-values';
+
 /**
  * Image-effects composable — Vue port of the React `viewer/utils` image-effect
  * layer (`shape-visual-effects.ts`, `duotone-effects.ts`,
@@ -226,12 +228,6 @@ export function getImageFilterCss(
 		} else {
 			filters.push(buildSimpleArtisticCss(effects.artisticEffect, radius));
 		}
-	}
-
-	// Bi-level: 1-bit black/white threshold via extreme contrast + brightness.
-	if (typeof effects.biLevel === 'number') {
-		const thresh = clamp(effects.biLevel, 0, 100);
-		filters.push(`grayscale(100%) contrast(1000%) brightness(${thresh}%)`);
 	}
 
 	return filters.length > 0 ? filters.join(' ') : undefined;
@@ -462,7 +458,7 @@ function buildImageAlphaFilterMarkup(effects: PptxImageEffects): string | undefi
 	if (typeof effects.biLevel === 'number') {
 		// grayscale, then threshold each channel.
 		next((inp, out) => `<feColorMatrix in="${inp}" result="${out}" type="saturate" values="0"/>`);
-		const tbl = '0 1';
+		const tbl = buildImageBiLevelTable(effects.biLevel);
 		next(
 			(inp, out) =>
 				`<feComponentTransfer in="${inp}" result="${out}">` +
@@ -498,10 +494,34 @@ function buildImageAlphaFilterMarkup(effects: PptxImageEffects): string | undefi
 		);
 	}
 
-	if (effects.tint && typeof effects.tint.amt === 'number' && effects.tint.amt < 0) {
-		const v = clamp(1 + effects.tint.amt / 100, 0, 1);
+	if (effects.hsl && typeof effects.hsl.lum === 'number') {
+		const { slope, intercept } = buildImageLuminanceTransfer(effects.hsl.lum);
 		next(
-			(inp, out) => `<feColorMatrix in="${inp}" result="${out}" type="saturate" values="${v}"/>`,
+			(inp, out) =>
+				`<feComponentTransfer in="${inp}" result="${out}">` +
+				`<feFuncR type="linear" slope="${slope}" intercept="${intercept}"/>` +
+				`<feFuncG type="linear" slope="${slope}" intercept="${intercept}"/>` +
+				`<feFuncB type="linear" slope="${slope}" intercept="${intercept}"/>` +
+				'</feComponentTransfer>',
+		);
+	}
+
+	if (effects.tint && typeof effects.tint.hue === 'number') {
+		next(
+			(inp, out) =>
+				`<feColorMatrix in="${inp}" result="${out}" type="hueRotate" values="${effects.tint!.hue}"/>`,
+		);
+	}
+
+	if (effects.tint && typeof effects.tint.amt === 'number') {
+		const { slope, intercept } = buildImageLuminanceTransfer(effects.tint.amt);
+		next(
+			(inp, out) =>
+				`<feComponentTransfer in="${inp}" result="${out}">` +
+				`<feFuncR type="linear" slope="${slope}" intercept="${intercept}"/>` +
+				`<feFuncG type="linear" slope="${slope}" intercept="${intercept}"/>` +
+				`<feFuncB type="linear" slope="${slope}" intercept="${intercept}"/>` +
+				'</feComponentTransfer>',
 		);
 	}
 

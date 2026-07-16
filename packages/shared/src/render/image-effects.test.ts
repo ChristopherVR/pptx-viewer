@@ -104,8 +104,10 @@ describe('getImageFilterCss', () => {
 		);
 	});
 
-	it('maps biLevel to an extreme-contrast threshold filter', () => {
-		expect(getImageFilterCss(image({ biLevel: 50 }))).toContain('grayscale(100%) contrast(1000%)');
+	it('maps biLevel only through its threshold-aware SVG filter', () => {
+		const css = getImageFilterCss(image({ biLevel: 50 }));
+		expect(css).toContain(`url(#${getImageAlphaFilterId('img1')})`);
+		expect(css).not.toContain('contrast(1000%)');
 	});
 });
 
@@ -152,6 +154,22 @@ describe('getImageAlphaFilter', () => {
 		const f = getImageAlphaFilter(image({ alphaModFix: 50, biLevel: 50 }));
 		expect(f?.filterMarkup).toContain('in="SourceGraphic" result="r0"');
 		expect(f?.filterMarkup).toContain('result="r1"');
+	});
+
+	it('uses the actual bi-level threshold instead of a fixed transfer', () => {
+		const low = getImageAlphaFilter(image({ biLevel: 25 }))?.filterMarkup;
+		const high = getImageAlphaFilter(image({ biLevel: 75 }))?.filterMarkup;
+		expect(low).not.toBe(high);
+		expect(low).toContain(`tableValues="${`${'0 '.repeat(25)}${'1 '.repeat(76)}`.trim()}"`);
+	});
+
+	it('renders HSL luminance and both positive and negative tint amounts', () => {
+		const lighter = getImageAlphaFilter(image({ hsl: { lum: 40 }, tint: { amt: 25 } }));
+		const darker = getImageAlphaFilter(image({ tint: { hue: 45, amt: -30 } }));
+		expect(lighter?.filterMarkup).toContain('slope="0.6" intercept="0.4"');
+		expect(lighter?.filterMarkup).toContain('slope="0.75" intercept="0.25"');
+		expect(darker?.filterMarkup).toContain('type="hueRotate" values="45"');
+		expect(darker?.filterMarkup).toContain('slope="0.7" intercept="0"');
 	});
 
 	it('returns undefined without advanced primitives', () => {

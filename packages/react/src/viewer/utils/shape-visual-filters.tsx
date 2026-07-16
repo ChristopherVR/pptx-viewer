@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
+import { buildImageBiLevelTable, buildImageLuminanceTransfer } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { normalizeHexColor, colorWithOpacity } from './color';
@@ -289,8 +290,7 @@ export function renderImageAlphaSvgFilter(element: PptxElement): React.ReactNode
 		next((inp, out) => (
 			<feColorMatrix key={out} in={inp} result={out} type='saturate' values='0' />
 		));
-		const t = clamp(e.biLevel / 100, 0, 1);
-		const tbl = t < 0.5 ? '0 1' : '0 1';
+		const tbl = buildImageBiLevelTable(e.biLevel);
 		next((inp, out) => (
 			<feComponentTransfer key={out} in={inp} result={out}>
 				<feFuncR type='discrete' tableValues={tbl} />
@@ -321,10 +321,37 @@ export function renderImageAlphaSvgFilter(element: PptxElement): React.ReactNode
 		));
 	}
 
-	if (e.tint && typeof e.tint.amt === 'number' && e.tint.amt < 0) {
-		const v = clamp(1 + e.tint.amt / 100, 0, 1);
+	if (e.hsl && typeof e.hsl.lum === 'number') {
+		const { slope, intercept } = buildImageLuminanceTransfer(e.hsl.lum);
 		next((inp, out) => (
-			<feColorMatrix key={out} in={inp} result={out} type='saturate' values={String(v)} />
+			<feComponentTransfer key={out} in={inp} result={out}>
+				<feFuncR type='linear' slope={slope} intercept={intercept} />
+				<feFuncG type='linear' slope={slope} intercept={intercept} />
+				<feFuncB type='linear' slope={slope} intercept={intercept} />
+			</feComponentTransfer>
+		));
+	}
+
+	if (e.tint && typeof e.tint.hue === 'number') {
+		next((inp, out) => (
+			<feColorMatrix
+				key={out}
+				in={inp}
+				result={out}
+				type='hueRotate'
+				values={String(e.tint!.hue)}
+			/>
+		));
+	}
+
+	if (e.tint && typeof e.tint.amt === 'number') {
+		const { slope, intercept } = buildImageLuminanceTransfer(e.tint.amt);
+		next((inp, out) => (
+			<feComponentTransfer key={out} in={inp} result={out}>
+				<feFuncR type='linear' slope={slope} intercept={intercept} />
+				<feFuncG type='linear' slope={slope} intercept={intercept} />
+				<feFuncB type='linear' slope={slope} intercept={intercept} />
+			</feComponentTransfer>
 		));
 	}
 
