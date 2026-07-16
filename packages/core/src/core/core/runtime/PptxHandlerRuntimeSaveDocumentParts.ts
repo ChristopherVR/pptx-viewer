@@ -11,6 +11,7 @@ import { applySmartArtLayoutDefinition, convertXmlToStrict, decomposeSmartArt } 
 import { serializeEmbeddedFontList, setEmbeddedFontList } from '../../utils/embedded-font-list';
 import { obfuscateFont, generateFontGuid } from '../../utils/font-deobfuscation';
 import { safeResolveZipPath } from '../../utils/safe-path';
+import { writeTagCollections } from '../../utils/tag-package';
 import type { PptxSaveFormat } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDataSerialization';
 import { applySmartArtColorTransform } from './smartart-colors-builder';
@@ -430,29 +431,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!tags || tags.length === 0) {
 			return;
 		}
-
-		for (const collection of tags) {
-			if (!collection.path || collection.tags.length === 0) {
-				continue;
-			}
-			try {
-				const tagElements = collection.tags.map((tag) => ({
-					'@_name': tag.name,
-					'@_val': tag.value,
-				}));
-				const xml: XmlObject = {
-					'p:tagLst': {
-						'@_xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
-						'@_xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main',
-						'@_xmlns:r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
-						'p:tag': tagElements,
-					},
-				};
-				this.zip.file(collection.path, this.builder.build(xml));
-			} catch (e) {
-				console.warn(`Failed to save tag collection at ${collection.path}:`, e);
-			}
-		}
+		await writeTagCollections(this.zip, tags, {
+			parse: (xml) => this.parser.parse(xml) as XmlObject,
+			build: (data) => this.builder.build(data),
+		});
 	}
 
 	/**

@@ -168,9 +168,17 @@ export interface PptxTag {
  */
 export interface PptxTagCollection {
 	/** File path within the PPTX archive. */
-	path: string;
+	path?: string;
+	/** Package owner of the tags relationship. New collections default to presentation. */
+	owner?: 'presentation' | 'slide' | 'part';
+	/** Source OPC part that owns the relationship, e.g. ppt/slides/slide1.xml. */
+	sourcePartPath?: string;
+	/** Durable relationship identifier from the owning part. */
+	relationshipId?: string;
 	/** Tags in this collection. */
 	tags: PptxTag[];
+	/** Parsed tag-list XML retained for unknown-node preservation. */
+	rawXml?: XmlObject;
 }
 
 /**

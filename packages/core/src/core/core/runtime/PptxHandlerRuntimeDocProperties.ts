@@ -5,10 +5,10 @@ import type {
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxCustomerData,
-	PptxTag,
 	PptxTagCollection,
 } from '../../types';
 import { parseActiveXControlsFromSlide } from '../../utils/activex-parser';
+import { discoverTagCollections } from '../../utils/tag-package';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeMediaData';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -393,37 +393,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Parse all tag collections from `ppt/tags/tag*.xml`.
 	 */
 	protected async parseTags(): Promise<PptxTagCollection[]> {
-		const results: PptxTagCollection[] = [];
 		try {
-			const tagFiles = this.zip.file(/^ppt\/tags\/tag\d+\.xml$/);
-			if (!tagFiles || tagFiles.length === 0) {
-				return results;
-			}
-
-			for (const file of tagFiles) {
-				const path = file.name;
-				const xml = await file.async('string');
-				const data = this.parser.parse(xml) as XmlObject;
-				const tagLst = data?.['p:tagLst'] as XmlObject | undefined;
-				if (!tagLst) {
-					continue;
-				}
-
-				const tagEntries = this.ensureArray(tagLst['p:tag']) as XmlObject[];
-				const tags: PptxTag[] = tagEntries
-					.map((tag) => ({
-						name: String(tag['@_name'] || '').trim(),
-						value: String(tag['@_val'] || '').trim(),
-					}))
-					.filter((t) => t.name.length > 0);
-
-				if (tags.length > 0) {
-					results.push({ path, tags });
-				}
-			}
+			return await discoverTagCollections(this.zip, {
+				parse: (xml) => this.parser.parse(xml) as XmlObject,
+			});
 		} catch (e) {
 			console.warn('Failed to parse tags:', e);
+			return [];
 		}
-		return results;
 	}
 }
