@@ -18,6 +18,11 @@ export interface FileTab {
 export function createFileTab(doc: Document, t: Translator, handlers: RibbonFileHandlers): FileTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 
+	const documentProperties = makeButton(doc, {
+		label: t('pptx.ribbon.documentProperties'),
+		icon: 'file',
+		onClick: handlers.openDocumentProperties,
+	});
 	const save = makeButton(doc, {
 		label: t('pptx.file.saveAsPptx'),
 		icon: 'download',
@@ -76,6 +81,7 @@ export function createFileTab(doc: Document, t: Translator, handlers: RibbonFile
 	});
 
 	el.append(
+		documentProperties.btn,
 		save.btn,
 		savePpsx.btn,
 		savePptm.btn,

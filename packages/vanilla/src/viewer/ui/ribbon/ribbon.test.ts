@@ -38,6 +38,7 @@ function buildHandlers(): RibbonHandlers {
 		},
 		primary: { undo: vi.fn(), redo: vi.fn(), save: vi.fn() },
 		file: {
+			openDocumentProperties: vi.fn(),
 			save: vi.fn(),
 			saveAsPpsx: vi.fn(),
 			saveAsPptm: vi.fn(),

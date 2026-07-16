@@ -31,6 +31,7 @@ export interface ChromeCallbackDeps {
 	openBroadcast(): void;
 	toggleNotes(): void;
 	openAccessibility(): void;
+	openDocumentProperties(): void;
 	toggleTemplateEditing(): void;
 	toggleMasterNavigation(): void;
 	goToSlide(index: number): void;
@@ -85,6 +86,7 @@ export function buildChromeCallbacks(
 			save: () => deps.save(),
 		},
 		file: {
+			openDocumentProperties: () => deps.openDocumentProperties(),
 			save: () => deps.save(),
 			saveAsPpsx: () => void deps.downloadAs('ppsx'),
 			saveAsPptm: () => void deps.downloadAs('pptm'),
