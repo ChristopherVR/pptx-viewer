@@ -12,6 +12,7 @@
 		ondownload,
 		ondownloadppsx,
 		ondownloadpptm,
+		onpackage,
 		hasMacros,
 		onopenfile,
 		exportUi,
@@ -19,6 +20,7 @@
 		ondownload: () => void;
 		ondownloadppsx: () => void;
 		ondownloadpptm: () => void;
+		onpackage: () => void;
 		hasMacros: boolean;
 		onopenfile?: () => void;
 		exportUi?: ExportUiState;
@@ -55,6 +57,10 @@
 			<span>{t('pptx.file.saveAsPptm')}</span>
 		</button>
 	{/if}
+	<button type="button" title={t('pptx.file.packageTooltip')} onclick={onpackage}>
+		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M14 5 8 8.5 2 5m0 0 6-3 6 3v6L8 14l-6-3zM8 8.5V14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
+		<span>{t('pptx.file.package')}</span>
+	</button>
 	{#if exportUi}
 		<button
 			type="button"

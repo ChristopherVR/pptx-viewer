@@ -181,6 +181,7 @@ export interface PowerPointViewerApi extends PowerPointViewerAPI {
 	/** Serialize the edited slides to `.pptx` bytes via the core handler. */
 	save(format?: PptxSaveFormat): Promise<Uint8Array>;
 	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
+	packageForSharing(fileName?: string): Promise<void>;
 	/** Save + trigger a browser download of the `.pptx` (default name). */
 	downloadPptx(fileName?: string): Promise<void>;
 	/**

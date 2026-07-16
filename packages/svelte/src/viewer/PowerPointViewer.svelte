@@ -388,6 +388,7 @@
 	export const save = editingApi.save;
 	export const downloadAs = editingApi.downloadAs;
 	export const downloadPptx = editingApi.downloadPptx;
+	export const packageForSharing = editingApi.packageForSharing;
 	export const getContent = editingApi.save;
 	export const goTo = (index: number): void => viewer.goTo(index);
 	export const goPrev = (): void => viewer.prev();
@@ -548,6 +549,7 @@
 				ondownload={() => void downloadPptx()}
 				ondownloadppsx={() => void downloadAs('ppsx')}
 				ondownloadpptm={() => void downloadAs('pptm')}
+				onpackage={() => void packageForSharing()}
 				hasMacros={loader.hasMacros}
 				autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
 				autosaveDirty={autosaveCtl.isDirty}
