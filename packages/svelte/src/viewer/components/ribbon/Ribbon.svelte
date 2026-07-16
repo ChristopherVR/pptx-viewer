@@ -110,11 +110,19 @@
 				onbroadcast={props.onbroadcast}
 			/>
 		{:else if activeTab === 'review'}
-			<ReviewTab slides={props.slides} onnavigate={props.onnavigatetoissue} editor={props.editor} oncompare={props.oncompare} />
+			<ReviewTab slides={props.slides} onnavigate={props.onnavigatetoissue} editor={props.editor} oncompare={props.oncompare} spellCheck={props.preferences.spellCheck} onspellcheckchange={(enabled) => props.onpreferenceschange({ ...props.preferences, spellCheck: enabled })} />
 		{:else if activeTab === 'record'}
 			<RecordTab />
 		{:else if activeTab === 'view'}
 			<ViewTab
+				editor={props.editor}
+				preferences={props.preferences}
+				onpreferenceschange={props.onpreferenceschange}
+				showGuides={props.showGuides}
+				onshowguideschange={props.onshowguideschange}
+				snapToShape={props.snapToShape}
+				onsnapToShapechange={props.onsnapToShapechange}
+				onaddguide={props.onaddguide}
 				zoomPercent={props.zoomPercent}
 				onzoomin={props.onzoomin}
 				onzoomout={props.onzoomout}

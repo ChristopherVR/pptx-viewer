@@ -1,5 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { CanvasSize, ViewerTheme } from 'pptx-viewer-shared';
+import type { CanvasSize, ViewerPreferences, ViewerTheme } from 'pptx-viewer-shared';
 
 import type { FindReplaceState } from '../../editor/editor-find-replace.svelte';
 import type { EditorState } from '../../editor/editor-state.svelte';
@@ -67,6 +67,13 @@ export interface RibbonProps {
 	oncustomshows: () => void;
 	onselectionpane: () => void;
 	onslidesorter: () => void;
+	preferences: ViewerPreferences;
+	onpreferenceschange: (preferences: ViewerPreferences) => void;
+	showGuides: boolean;
+	onshowguideschange: (show: boolean) => void;
+	snapToShape: boolean;
+	onsnapToShapechange: (enabled: boolean) => void;
+	onaddguide: (axis: 'h' | 'v') => void;
 
 	/** Review tab: presentation-wide accessibility audit and issue navigation. */
 	slides: readonly PptxSlide[];
