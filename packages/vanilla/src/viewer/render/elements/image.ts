@@ -1,4 +1,10 @@
-import { getComputedImageStyle, getContainerStyle, getImageSrc } from 'pptx-viewer-shared';
+import {
+	getComputedImageStyle,
+	getContainerStyle,
+	getImageColorWashStyle,
+	getImageSrc,
+	resolveColorChangedImageSource,
+} from 'pptx-viewer-shared';
 
 import { createEl, createSvgEl, setSvgAttrs } from '../dom';
 import type { ElementRenderer } from '../types';
@@ -49,6 +55,29 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 		img.style.opacity = String(fx.opacity);
 	}
 	el.appendChild(img);
+	if (element.type === 'image' || element.type === 'picture') {
+		const clrChange = element.imageEffects?.clrChange;
+		if (clrChange) {
+			void resolveColorChangedImageSource(src, clrChange).then((resolved) => {
+				if (img.src === src || img.getAttribute('src') === src) {
+					img.src = resolved;
+				}
+				return undefined;
+			});
+		}
+		const wash = getImageColorWashStyle(element.imageEffects?.colorWash);
+		if (wash) {
+			el.appendChild(
+				createEl(doc, 'div', 'pptxv-image-color-wash', {
+					position: 'absolute',
+					inset: '0',
+					pointerEvents: 'none',
+					backgroundColor: wash.backgroundColor,
+					opacity: String(wash.opacity),
+				}),
+			);
+		}
+	}
 
 	return el;
 };
