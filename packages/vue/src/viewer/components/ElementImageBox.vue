@@ -5,7 +5,7 @@
  * computed CSS filter + any SVG `<filter>` defs for duotone/artistic effects.
  */
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
-import { getComputedImageStyle } from 'pptx-viewer-shared';
+import { getComputedImageStyle, getImageColorWashStyle } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -25,6 +25,10 @@ const containerStyle = computed<CSSProperties>(() =>
 );
 const imageSrc = computed(() => getImageSrc(props.element, props.mediaDataUrls));
 const imageFx = computed(() => getComputedImageStyle(props.element));
+const colorWash = computed(() => {
+	const effects = (props.element as { imageEffects?: PptxImageEffects }).imageEffects;
+	return getImageColorWashStyle(effects?.colorWash);
+});
 
 // The `<a:clrChange>` chroma-key effect, if present (with a valid `clrFrom`).
 const clrChange = computed<ClrChangeEffect | undefined>(() => {
@@ -69,6 +73,17 @@ const { displaySrc } = useColorChangeImage({ src: imageSrc, clrChange });
 				display: 'block',
 				filter: imageFx.filter,
 				opacity: imageFx.opacity,
+			}"
+		/>
+		<div
+			v-if="colorWash"
+			class="pptx-vue-image-color-wash"
+			:style="{
+				position: 'absolute',
+				inset: '0',
+				pointerEvents: 'none',
+				backgroundColor: colorWash.backgroundColor,
+				opacity: colorWash.opacity,
 			}"
 		/>
 	</div>
