@@ -283,6 +283,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(save)="fileIO.saveAsPptx()"
 					(savePpsx)="fileIO.saveAsPpsx()"
 					(savePptm)="fileIO.saveAsPptm()"
+					(packageForSharing)="fileIO.packageForSharing()"
 					(info)="docProperties.showProperties.set(true)"
 					(print)="print.openDialog()"
 					(comments)="inspectorPanel.togglePanel('comments')"

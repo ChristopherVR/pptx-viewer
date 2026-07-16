@@ -52,6 +52,15 @@ import { TranslatePipe } from '@ngx-translate/core';
 				{{ 'pptx.file.saveAsPptm' | translate }}
 			</button>
 		}
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[disabled]="slideCount() === 0"
+			(click)="packageForSharing.emit()"
+			[title]="'pptx.file.packageTooltip' | translate"
+		>
+			{{ 'pptx.file.package' | translate }}
+		</button>
 		<span class="pptx-rb-sep"></span>
 		<div class="pptx-rb-grp">
 			<button
@@ -149,6 +158,7 @@ export class RibbonFileSectionComponent {
 	readonly save = output<void>();
 	readonly savePpsx = output<void>();
 	readonly savePptm = output<void>();
+	readonly packageForSharing = output<void>();
 	readonly exportPng = output<void>();
 	readonly exportPdf = output<void>();
 	readonly exportGif = output<void>();

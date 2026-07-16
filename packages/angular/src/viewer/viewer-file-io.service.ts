@@ -19,9 +19,10 @@
 import { inject, Injectable, signal } from '@angular/core';
 import type { PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
 
-import { openPptxFile } from '../internal/shared';
+import { downloadBlob, openPptxFile } from '../internal/shared';
 import { ExportService } from './export.service';
 import { LoadContentService } from './load-content.service';
+import { buildSharingPackage } from './package-sharing';
 import { buildSaveSlides } from './template-mode';
 import type { TemplateElementsBySlideId } from './template-mode';
 
@@ -117,6 +118,13 @@ export class ViewerFileIOService {
 
 	async saveAsPptm(): Promise<void> {
 		await this.saveAs('pptm');
+	}
+
+	/** Bundle the presentation and its usage notes in a shareable ZIP archive. */
+	async packageForSharing(): Promise<void> {
+		const presentationFilename = 'presentation.pptx';
+		const blob = await buildSharingPackage(await this.getContent(), presentationFilename);
+		downloadBlob(blob, 'presentation-package.zip');
 	}
 
 	/**

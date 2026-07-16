@@ -245,6 +245,7 @@ const TABS: readonly TabDef[] = [
 							(save)="save.emit()"
 							(savePpsx)="savePpsx.emit()"
 							(savePptm)="savePptm.emit()"
+							(packageForSharing)="packageForSharing.emit()"
 							(exportPng)="exportPng.emit()"
 							(exportPdf)="exportPdf.emit()"
 							(exportGif)="exportGif.emit()"
@@ -459,6 +460,7 @@ export class RibbonComponent {
 	readonly save = output<void>();
 	readonly savePpsx = output<void>();
 	readonly savePptm = output<void>();
+	readonly packageForSharing = output<void>();
 	/** Emitted when the user toggles the slides panel from the top bar. */
 	readonly toggleSidebar = output<void>();
 	/** Emitted when the user opens the Digital Signatures panel from the File tab. */
