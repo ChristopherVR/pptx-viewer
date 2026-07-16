@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { scanAvailableFontFamilies } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -28,28 +29,10 @@ const availableFamilies = ref<Set<string>>(new Set());
 const scanning = ref(false);
 const scanned = ref(false);
 
-function checkFontAvailable(family: string): boolean {
-	if (typeof document === 'undefined') {
-		return false;
-	}
-	try {
-		return document.fonts.check(`12px "${family}"`);
-	} catch {
-		return false;
-	}
-}
-
 async function scanFonts(): Promise<void> {
 	scanning.value = true;
 	try {
-		await document.fonts.ready;
-		const found = new Set<string>();
-		for (const family of props.usedFontFamilies) {
-			if (checkFontAvailable(family)) {
-				found.add(family);
-			}
-		}
-		availableFamilies.value = found;
+		availableFamilies.value = await scanAvailableFontFamilies(props.usedFontFamilies);
 		scanned.value = true;
 	} catch {
 		// silently fail; families stay marked as not found
