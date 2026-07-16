@@ -38,6 +38,29 @@ export function createSlideShowTab(
 		icon: 'presentation',
 		onClick: handlers.openPresenterView,
 	});
-	el.append(fromBeginning.btn, fromCurrent.btn, presenter.btn, broadcast.btn);
+	const setUp = makeButton(doc, {
+		label: t('pptx.slideShow.setUpTooltip'),
+		text: t('pptx.slideShow.setUp'),
+		onClick: handlers.openSetUp,
+	});
+	const rehearse = makeButton(doc, {
+		label: t('pptx.slideShow.rehearseTimingsTooltip'),
+		text: t('pptx.slideShow.rehearseTimings'),
+		onClick: handlers.startRehearsal,
+	});
+	const customShows = makeButton(doc, {
+		label: t('pptx.customShows.title'),
+		text: t('pptx.customShows.title'),
+		onClick: handlers.openCustomShows,
+	});
+	el.append(
+		fromBeginning.btn,
+		fromCurrent.btn,
+		presenter.btn,
+		setUp.btn,
+		rehearse.btn,
+		customShows.btn,
+		broadcast.btn,
+	);
 	return { el };
 }

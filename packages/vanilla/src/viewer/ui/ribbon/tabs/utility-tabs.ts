@@ -25,7 +25,27 @@ export function createReviewTab(
 		icon: 'sidebar',
 		onClick: handlers.openAccessibility,
 	});
-	el.append(accessibility.btn);
+	const headerFooter = makeButton(doc, {
+		label: t('pptx.headerFooter.title'),
+		text: t('pptx.headerFooter.title'),
+		onClick: handlers.openHeaderFooter,
+	});
+	const compare = makeButton(doc, {
+		label: t('pptx.ribbon.compareTitle'),
+		text: t('pptx.ribbon.compare'),
+		onClick: handlers.openCompare,
+	});
+	const comments = makeButton(doc, {
+		label: t('pptx.toolbar.comments'),
+		text: t('pptx.toolbar.comments'),
+		onClick: handlers.openComments,
+	});
+	const hyperlink = makeButton(doc, {
+		label: t('pptx.hyperlink.editTitle'),
+		text: t('pptx.hyperlink.editTitle'),
+		onClick: handlers.openHyperlink,
+	});
+	el.append(accessibility.btn, headerFooter.btn, compare.btn, comments.btn, hyperlink.btn);
 	return el;
 }
 
@@ -35,16 +55,10 @@ export function createHelpTab(
 	handlers: RibbonNavHandlers,
 ): HTMLElement {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
-	const shortcutList = createEl(doc, 'div', 'pptxv-shortcut-help');
-	shortcutList.hidden = true;
-	shortcutList.textContent =
-		'Ctrl+Z Undo | Ctrl+Y Redo | Ctrl+C Copy | Ctrl+V Paste | Delete Remove';
 	const shortcuts = makeButton(doc, {
 		label: t('pptx.settings.keyboardShortcuts'),
 		text: t('pptx.settings.keyboardShortcuts'),
-		onClick: () => {
-			shortcutList.hidden = !shortcutList.hidden;
-		},
+		onClick: () => handlers.openSettings('shortcuts'),
 	});
 	const accessibility = makeButton(doc, {
 		label: t('pptx.ribbon.accessibilityCheck'),
@@ -52,6 +66,11 @@ export function createHelpTab(
 		icon: 'sidebar',
 		onClick: handlers.openAccessibility,
 	});
-	el.append(shortcuts.btn, accessibility.btn, shortcutList);
+	const settings = makeButton(doc, {
+		label: t('pptx.settings.title'),
+		text: t('pptx.settings.title'),
+		onClick: () => handlers.openSettings('general'),
+	});
+	el.append(settings.btn, shortcuts.btn, accessibility.btn);
 	return el;
 }

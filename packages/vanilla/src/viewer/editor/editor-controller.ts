@@ -2,8 +2,11 @@ import type {
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
+	PptxCustomShow,
 	PptxElement,
 	PptxHandler,
+	PptxHeaderFooter,
+	PptxPresentationProperties,
 	PptxSaveFormat,
 	PptxSlide,
 	TextSegment,
@@ -79,6 +82,9 @@ export interface EditorController {
 		app: PptxAppProperties,
 		custom: PptxCustomProperty[],
 	): void;
+	updatePresentationProperties(value: PptxPresentationProperties): void;
+	updateHeaderFooter(value: PptxHeaderFooter): void;
+	updateCustomShows(value: PptxCustomShow[]): void;
 	save(format?: PptxSaveFormat): Promise<Uint8Array>;
 	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
 	packageForSharing(fileName?: string): Promise<void>;
@@ -348,6 +354,9 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		setHandoutSlidesPerPage: (count) => ops.setHandoutSlidesPerPage(count),
 		updateDocumentProperties: (core, app, custom) =>
 			ops.updateDocumentProperties(core, app, custom),
+		updatePresentationProperties: (value) => ops.updatePresentationProperties(value),
+		updateHeaderFooter: (value) => ops.updateHeaderFooter(value),
+		updateCustomShows: (value) => ops.updateCustomShows(value),
 		save: (format) => ops.save(format),
 		async downloadAs(format, fileName = `presentation.${format}`) {
 			const bytes = await ops.save(format);

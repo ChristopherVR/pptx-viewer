@@ -2,10 +2,13 @@ import type {
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
+	PptxCustomShow,
 	PptxElement,
 	PptxHandoutMaster,
+	PptxHeaderFooter,
 	PptxHandler,
 	PptxNotesMaster,
+	PptxPresentationProperties,
 	PptxSaveFormat,
 	PptxSection,
 	PptxSlide,
@@ -77,6 +80,9 @@ export interface EditorOps {
 		app: PptxAppProperties,
 		custom: PptxCustomProperty[],
 	): void;
+	updatePresentationProperties(value: PptxPresentationProperties): void;
+	updateHeaderFooter(value: PptxHeaderFooter): void;
+	updateCustomShows(value: PptxCustomShow[]): void;
 	undo(): void;
 	redo(): void;
 	canUndo(): boolean;
@@ -96,6 +102,9 @@ interface EditorSnapshot {
 	notesMaster?: PptxNotesMaster;
 	handoutMaster?: PptxHandoutMaster;
 	handoutSlidesPerPage: number;
+	presentationProperties: PptxPresentationProperties;
+	headerFooter: PptxHeaderFooter;
+	customShows: PptxCustomShow[];
 }
 
 const MAX_HISTORY_ENTRIES = 100;
@@ -125,6 +134,9 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		notesMaster: structuredClone(store.get().notesMaster),
 		handoutMaster: structuredClone(store.get().handoutMaster),
 		handoutSlidesPerPage: store.get().handoutSlidesPerPage,
+		presentationProperties: structuredClone(store.get().presentationProperties),
+		headerFooter: structuredClone(store.get().headerFooter),
+		customShows: structuredClone(store.get().customShows),
 	});
 
 	const pushHistory = (): void => {
@@ -162,6 +174,9 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			notesMaster: structuredClone(next.notesMaster),
 			handoutMaster: structuredClone(next.handoutMaster),
 			handoutSlidesPerPage: next.handoutSlidesPerPage,
+			presentationProperties: structuredClone(next.presentationProperties),
+			headerFooter: structuredClone(next.headerFooter),
+			customShows: structuredClone(next.customShows),
 			interactionActive: false,
 		});
 		commitChange();
@@ -317,6 +332,27 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			commitChange();
 		},
 
+		updatePresentationProperties(value) {
+			if (!store.get().editable) return;
+			pushHistory();
+			store.set({ presentationProperties: structuredClone(value) });
+			commitChange();
+		},
+
+		updateHeaderFooter(value) {
+			if (!store.get().editable) return;
+			pushHistory();
+			store.set({ headerFooter: structuredClone(value) });
+			commitChange();
+		},
+
+		updateCustomShows(value) {
+			if (!store.get().editable) return;
+			pushHistory();
+			store.set({ customShows: structuredClone(value) });
+			commitChange();
+		},
+
 		undo() {
 			restore(history.undo(snapshot())?.snapshot);
 		},
@@ -344,6 +380,9 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 					coreProperties: state.coreProperties,
 					appProperties: state.appProperties,
 					customProperties: state.customProperties.length > 0 ? state.customProperties : undefined,
+					headerFooter: state.headerFooter,
+					presentationProperties: state.presentationProperties,
+					customShows: state.customShows.length ? state.customShows : undefined,
 					slideMasters: state.slideMasters,
 					notesMaster: state.notesMaster,
 					handoutMaster: state.handoutMaster,

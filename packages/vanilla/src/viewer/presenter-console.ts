@@ -1,5 +1,13 @@
-import { stepPresenterZoom } from 'pptx-viewer-shared';
-import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
+import {
+	getSpeechRecognitionCtor,
+	mergeCaptionResults,
+	stepPresenterZoom,
+} from 'pptx-viewer-shared';
+import type {
+	PresentationPointerTool,
+	PresentationSnapshot,
+	SpeechRecognitionLite,
+} from 'pptx-viewer-shared';
 
 export interface VanillaPresenterConsoleOptions {
 	container: HTMLElement;
@@ -15,6 +23,7 @@ export interface VanillaPresenterConsoleOptions {
 export function mountPresenterConsole(options: VanillaPresenterConsoleOptions): () => void {
 	const doc = options.container.ownerDocument;
 	const root = doc.createElement('div');
+	let recognition: SpeechRecognitionLite | null = null;
 	root.className = 'pptxv-presenter-console';
 	Object.assign(root.style, {
 		position: 'absolute',
@@ -60,15 +69,44 @@ export function mountPresenterConsole(options: VanillaPresenterConsoleOptions): 
 	}
 	button('B', () => blank('black'));
 	button('W', () => blank('white'));
-	button('Captions', () =>
-		options.update({ subtitlesVisible: !options.getSnapshot().subtitlesVisible }),
-	);
+	button('Captions', () => toggleCaptions());
 	const spacer = doc.createElement('span');
 	spacer.style.flex = '1';
 	root.append(spacer);
 	button('Audience', options.toggleAudience);
 	button('End', options.end);
 	options.container.append(root);
+	function toggleCaptions() {
+		const enabled = !options.getSnapshot().subtitlesVisible;
+		options.update({ subtitlesVisible: enabled, caption: enabled ? '' : undefined });
+		if (!enabled) {
+			recognition?.stop();
+			recognition = null;
+			return;
+		}
+		const Ctor = getSpeechRecognitionCtor();
+		if (!Ctor) {
+			options.update({ caption: 'Live captions are not supported in this browser.' });
+			return;
+		}
+		recognition = new Ctor();
+		recognition.continuous = true;
+		recognition.interimResults = true;
+		recognition.lang = doc.documentElement.lang || 'en-US';
+		recognition.onresult = (event) =>
+			options.update({ caption: mergeCaptionResults(event.resultIndex, event.results) });
+		recognition.onerror = () => options.update({ caption: 'Live captions are unavailable.' });
+		recognition.onend = () => {
+			if (options.getSnapshot().subtitlesVisible) {
+				try {
+					recognition?.start();
+				} catch {
+					/* browser controls restart timing */
+				}
+			}
+		};
+		recognition.start();
+	}
 	function zoom(direction: -1 | 1) {
 		options.update({
 			zoom: stepPresenterZoom(
@@ -117,7 +155,10 @@ export function mountPresenterConsole(options: VanillaPresenterConsoleOptions): 
 		});
 		options.container.append(grid);
 	}
-	return () => root.remove();
+	return () => {
+		recognition?.stop();
+		root.remove();
+	};
 }
 
 export function renderAudienceEffects(
@@ -154,6 +195,41 @@ export function renderAudienceEffects(
 			background: '#ef4444',
 			boxShadow: '0 0 20px 8px #ef444488',
 		});
+	}
+	const currentStrokes = snapshot.inkStrokes?.filter(
+		(stroke) => stroke.slideIndex === snapshot.slideIndex,
+	);
+	if (currentStrokes?.length) {
+		const svg = container.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		svg.classList.add('pptxv-presenter-effect', 'ink');
+		svg.setAttribute('viewBox', '0 0 1 1');
+		svg.setAttribute('preserveAspectRatio', 'none');
+		Object.assign(svg.style, {
+			position: 'absolute',
+			zIndex: '76',
+			inset: '0',
+			width: '100%',
+			height: '100%',
+			pointerEvents: 'none',
+		});
+		for (const stroke of currentStrokes) {
+			const path = container.ownerDocument.createElementNS(
+				'http://www.w3.org/2000/svg',
+				'polyline',
+			);
+			path.setAttribute('points', stroke.points.map(({ x, y }) => `${x},${y}`).join(' '));
+			path.setAttribute('fill', 'none');
+			path.setAttribute('stroke', stroke.color);
+			path.setAttribute('stroke-width', String(stroke.width));
+			path.setAttribute('vector-effect', 'non-scaling-stroke');
+			path.setAttribute('stroke-linecap', 'round');
+			path.setAttribute('stroke-linejoin', 'round');
+			if (stroke.tool === 'highlighter') {
+				path.setAttribute('stroke-opacity', '.4');
+			}
+			svg.appendChild(path);
+		}
+		container.appendChild(svg);
 	}
 	if (snapshot.subtitlesVisible && snapshot.caption) {
 		const el = add('caption');

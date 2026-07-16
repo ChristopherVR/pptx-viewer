@@ -161,7 +161,7 @@ function appendConnectorLabel(
 	if (!hasTextProperties(element)) {
 		return;
 	}
-	const paragraphs = buildParagraphs(element);
+	const paragraphs = buildParagraphs(element, context.fieldContext);
 	if (!paragraphs.some((paragraph) => paragraph.runs.length > 0)) {
 		return;
 	}

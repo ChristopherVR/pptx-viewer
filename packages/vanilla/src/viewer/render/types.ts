@@ -4,7 +4,7 @@ import type {
 	PptxSlide,
 	PptxThemeColorScheme,
 } from 'pptx-viewer-core';
-import type { CanvasSize, CssStyleMap } from 'pptx-viewer-shared';
+import type { CanvasSize, CssStyleMap, FieldSubstitutionContext } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 
@@ -43,6 +43,7 @@ export interface ElementRenderContext {
 	readonly colorScheme?: PptxThemeColorScheme;
 	/** Parsed `ppt/tableStyles.xml` definitions used by table band/header styling. */
 	readonly tableStyleMap?: ParsedTableStyleMap;
+	readonly fieldContext?: FieldSubstitutionContext;
 	/** Shared-dictionary translator (`pptx.*` keys). */
 	readonly t: Translator;
 	/**

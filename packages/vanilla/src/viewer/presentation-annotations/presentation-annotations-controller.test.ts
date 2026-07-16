@@ -1,0 +1,107 @@
+import type { PptxSlide } from 'pptx-viewer-core';
+import type { PresentationInkStroke } from 'pptx-viewer-shared';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { createTranslator } from '../i18n';
+import { createPresentationAnnotationsController } from './presentation-annotations-controller';
+
+const stroke: PresentationInkStroke = {
+	id: 'stroke-1',
+	slideIndex: 0,
+	tool: 'pen',
+	color: '#ff0000',
+	width: 2.5,
+	points: [
+		{ x: 0.1, y: 0.2 },
+		{ x: 0.5, y: 0.6 },
+	],
+};
+
+function slide(id: string): PptxSlide {
+	return { id, rId: id, slideNumber: 1, elements: [] };
+}
+
+describe('createPresentationAnnotationsController', () => {
+	beforeEach(() => document.body.replaceChildren());
+
+	it('persists accepted temporary strokes through the shared ink converter', async () => {
+		let slides = [slide('slide-1')];
+		const commitSlides = vi.fn((next: PptxSlide[]) => (slides = next));
+		const controller = createPresentationAnnotationsController({
+			doc: document,
+			t: createTranslator(),
+			getSlides: () => slides,
+			commitSlides,
+		});
+		const stageWrap = document.createElement('div');
+		controller.syncStage({
+			stageWrap,
+			active: false,
+			slideIndex: 0,
+			canvasSize: { width: 1000, height: 500 },
+		});
+		controller.setStrokes([stroke]);
+
+		const result = controller.finishPresentation();
+		document.querySelector<HTMLButtonElement>('.pptxv-keep-annotations .is-primary')?.click();
+
+		await expect(result).resolves.toBe('kept');
+		expect(slides[0].elements).toHaveLength(1);
+		expect(slides[0].elements[0]).toMatchObject({
+			type: 'ink',
+			inkTool: 'pen',
+			inkColors: ['#ff0000'],
+		});
+		expect(commitSlides).toHaveBeenCalledOnce();
+		expect(controller.hasAnnotations()).toBeFalsy();
+	});
+
+	it('discards temporary strokes without changing slides', async () => {
+		const slides = [slide('slide-1')];
+		const commitSlides = vi.fn();
+		const controller = createPresentationAnnotationsController({
+			doc: document,
+			t: createTranslator(),
+			getSlides: () => slides,
+			commitSlides,
+		});
+		controller.setStrokes([stroke]);
+
+		const result = controller.finishPresentation();
+		const buttons = document.querySelectorAll<HTMLButtonElement>('.pptxv-keep-annotations button');
+		buttons[0].click();
+
+		await expect(result).resolves.toBe('discarded');
+		expect(slides[0].elements).toHaveLength(0);
+		expect(commitSlides).not.toHaveBeenCalled();
+	});
+
+	it('remounts the active tool overlay after a stage rebuild', () => {
+		const controller = createPresentationAnnotationsController({
+			doc: document,
+			t: createTranslator(),
+			getSlides: () => [slide('slide-1')],
+			commitSlides: vi.fn(),
+		});
+		const first = document.createElement('div');
+		controller.syncStage({
+			stageWrap: first,
+			active: true,
+			slideIndex: 0,
+			canvasSize: { width: 960, height: 540 },
+			pointer: { tool: 'pen', x: 0.5, y: 0.5, color: '#ef4444' },
+		});
+		expect(first.querySelector('.pptxv-presentation-annotations')).not.toBeNull();
+
+		const rebuilt = document.createElement('div');
+		controller.syncStage({
+			stageWrap: rebuilt,
+			active: true,
+			slideIndex: 0,
+			canvasSize: { width: 960, height: 540 },
+			pointer: { tool: 'eraser', x: 0.5, y: 0.5, color: '#ef4444' },
+		});
+		expect(first.querySelector('.pptxv-presentation-annotations')).toBeNull();
+		expect(rebuilt.querySelector('.pptxv-presentation-annotations')).not.toBeNull();
+	});
+});

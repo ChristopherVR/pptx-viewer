@@ -47,7 +47,7 @@ export const renderTextShapeElement: ElementRenderer = (element, zIndex, context
 	} else if (warped) {
 		el.appendChild(warped);
 	} else {
-		const paragraphs = buildParagraphs(element);
+		const paragraphs = buildParagraphs(element, context.fieldContext);
 		const hasText = paragraphs.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined);
 		if (hasText) {
 			el.appendChild(renderTextBlock(context.document, paragraphs, getTextBlockStyle(element)));

@@ -56,6 +56,16 @@ export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavH
 		text: t('pptx.master.title'),
 		onClick: () => handlers.toggleMasterView?.(),
 	});
+	const sorter = makeButton(doc, {
+		label: t('pptx.view.slideSorterTooltip'),
+		text: t('pptx.slideSorter.title'),
+		onClick: handlers.openSlideSorter,
+	});
+	const selection = makeButton(doc, {
+		label: t('pptx.selectionPane.title'),
+		text: t('pptx.selectionPane.title'),
+		onClick: handlers.openSelectionPane,
+	});
 	templates.btn.dataset.testid = 'template-edit-toggle';
 
 	el.append(
@@ -67,6 +77,8 @@ export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavH
 		accessibility.btn,
 		templates.btn,
 		masterView.btn,
+		sorter.btn,
+		selection.btn,
 	);
 
 	return {
