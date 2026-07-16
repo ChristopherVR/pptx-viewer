@@ -41,4 +41,10 @@ describe('axis-constrained value ranges', () => {
 			generateLogTicks({ min: 2, max: 200, span: 2, logScale: true, logBase: 10 }),
 		).toStrictEqual([10, 100]);
 	});
+
+	it('retains exact power ticks across negative and positive exponents', () => {
+		expect(
+			generateLogTicks({ min: 0.01, max: 100_000, span: 7, logScale: true, logBase: 10 }),
+		).toStrictEqual([0.01, 0.1, 1, 10, 100, 1_000, 10_000, 100_000]);
+	});
 });

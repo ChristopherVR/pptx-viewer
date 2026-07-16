@@ -3,6 +3,8 @@ import type { PptxChartAxisFormatting, PptxChartSeries } from 'pptx-viewer-core'
 import type { ValueRange } from './chart-helpers';
 import { computeValueRange } from './chart-helpers';
 
+const LOG_EXPONENT_TOLERANCE = 1e-12;
+
 /** Compute a logarithmic range snapped to powers of the requested base. */
 export function computeLogValueRange(
 	series: ReadonlyArray<PptxChartSeries>,
@@ -80,8 +82,8 @@ export function generateLogTicks(range: ValueRange): number[] {
 	const base = range.logBase;
 	const logMin = Math.log(range.min) / Math.log(base);
 	const logMax = Math.log(range.max) / Math.log(base);
-	const firstExponent = Math.ceil(logMin - Number.EPSILON);
-	const lastExponent = Math.floor(logMax + Number.EPSILON);
+	const firstExponent = Math.ceil(logMin - LOG_EXPONENT_TOLERANCE);
+	const lastExponent = Math.floor(logMax + LOG_EXPONENT_TOLERANCE);
 	if (lastExponent < firstExponent) {
 		return range.min === range.max ? [range.min] : [range.min, range.max];
 	}

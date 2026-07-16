@@ -375,12 +375,12 @@ describe('computeValueRangeForChart', () => {
 		expect(result.max).toBe(64);
 	});
 
-	it('should not use log range when logScale is true but logBase is missing', () => {
+	it('should default to base 10 when logScale is true but logBase is missing', () => {
 		const series: PptxChartSeries[] = [{ name: 'A', values: [10, 20, 30] }];
 		const axes: PptxChartAxisFormatting[] = [{ axisType: 'valAx', logScale: true }];
 		const result = computeValueRangeForChart(series, axes);
-		// findLogAxis returns the axis, but logBase is undefined so falls through to linear
-		expect(result.logScale).toBeUndefined();
+		expect(result.logScale).toBeTruthy();
+		expect(result.logBase).toBe(10);
 	});
 });
 
