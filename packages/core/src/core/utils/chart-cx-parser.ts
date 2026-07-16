@@ -14,6 +14,7 @@
 import type { XmlObject, PptxChartData, PptxChartSeries, PptxChartDataLabel } from '../types';
 import { parseCxBoxWhiskerOptions } from './chart-cx-box-whisker';
 import { parseCxHistogramOptions } from './chart-cx-histogram';
+import { parseCxRegionMapOptions } from './chart-cx-region-map';
 
 /** Minimal xml-lookup interface needed by the cx: parser. */
 export interface XmlLookupLike {
@@ -245,6 +246,10 @@ export function parseCxChartSeries(
 		const histogramOptions = parseCxHistogramOptions(ser, xmlLookup);
 		if (histogramOptions) {
 			result.histogramOptions = histogramOptions;
+		}
+		const regionMapOptions = parseCxRegionMapOptions(ser, strDims.get('entityId')?.[0], xmlLookup);
+		if (regionMapOptions) {
+			result.regionMapOptions = regionMapOptions;
 		}
 		if (color) {
 			result.color = color;

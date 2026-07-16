@@ -506,6 +506,12 @@ export function createChartElement(
 		color: s.color,
 		boxWhiskerOptions: s.boxWhiskerOptions ? { ...s.boxWhiskerOptions } : undefined,
 		histogramOptions: s.histogramOptions ? { ...s.histogramOptions } : undefined,
+		regionMapOptions: s.regionMapOptions
+			? {
+					...s.regionMapOptions,
+					entityIds: s.regionMapOptions.entityIds ? [...s.regionMapOptions.entityIds] : undefined,
+				}
+			: undefined,
 	}));
 
 	const chartData: PptxChartData = {

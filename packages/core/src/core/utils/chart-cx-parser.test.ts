@@ -416,4 +416,57 @@ describe('parseCxChartSeries', () => {
 		});
 		expect(result?.series[1].histogramOptions).toStrictEqual({ layout: 'pareto' });
 	});
+
+	it('parses region-map entity IDs and geographic layout properties', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': {
+					'@_layoutId': 'regionMap',
+					'cx:data': {
+						'cx:strDim': [
+							{
+								'@_type': 'cat',
+								'cx:lvl': { 'cx:pt': [{ '#text': 'AU' }, { '#text': 'US' }] },
+							},
+							{
+								'@_type': 'entityId',
+								'cx:lvl': {
+									'cx:pt': [{ '#text': 'country:AU' }, { '#text': 'country:US' }],
+								},
+							},
+						],
+						'cx:numDim': {
+							'@_type': 'colorVal',
+							'cx:lvl': { 'cx:pt': [{ '#text': '72' }, { '#text': '95' }] },
+						},
+					},
+					'cx:layoutPr': {
+						'cx:regionLabelLayout': { '@_val': 'bestFitOnly' },
+						'cx:geography': {
+							'@_projectionType': 'albers',
+							'@_viewedRegionType': 'countryRegion',
+							'@_cultureLanguage': 'en-AU',
+							'@_cultureRegion': 'AU',
+							'@_attribution': 'Microsoft',
+						},
+					},
+				},
+			},
+		};
+
+		const result = parseCxChartSeries(plotArea, xmlLookup);
+		expect(result?.categories).toStrictEqual(['AU', 'US']);
+		expect(result?.series[0]).toMatchObject({
+			values: [72, 95],
+			regionMapOptions: {
+				entityIds: ['country:AU', 'country:US'],
+				regionLabelLayout: 'bestFitOnly',
+				projectionType: 'albers',
+				viewedRegionType: 'countryRegion',
+				cultureLanguage: 'en-AU',
+				cultureRegion: 'AU',
+				attribution: 'Microsoft',
+			},
+		});
+	});
 });

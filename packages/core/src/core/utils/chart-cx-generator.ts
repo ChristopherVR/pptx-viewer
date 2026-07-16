@@ -40,18 +40,34 @@ function buildData(chartData: PptxChartData, series: PptxChartSeries, id: number
 		chartData.chartType === 'sunburst' && chartData.categoryLevels?.length
 			? chartData.categoryLevels
 			: [chartData.categories];
-	return {
-		'@_id': String(id),
-		'cx:strDim': {
+	const stringDimensions: XmlObject[] = [
+		{
 			'@_type': 'cat',
 			'cx:lvl': categoryLevels.map((level) => ({
 				'@_ptCount': String(level.length),
 				'cx:pt': points(level),
 			})),
 		},
+	];
+	if (chartData.chartType === 'regionMap' && series.regionMapOptions?.entityIds?.length) {
+		stringDimensions.push({
+			'@_type': 'entityId',
+			'cx:lvl': {
+				'@_ptCount': String(series.regionMapOptions.entityIds.length),
+				'cx:pt': points(series.regionMapOptions.entityIds),
+			},
+		});
+	}
+	return {
+		'@_id': String(id),
+		'cx:strDim': stringDimensions,
 		'cx:numDim': {
 			'@_type':
-				chartData.chartType === 'treemap' || chartData.chartType === 'sunburst' ? 'size' : 'val',
+				chartData.chartType === 'treemap' || chartData.chartType === 'sunburst'
+					? 'size'
+					: chartData.chartType === 'regionMap'
+						? 'colorVal'
+						: 'val',
 			'cx:lvl': {
 				'@_ptCount': String(series.values.length),
 				'@_formatCode': 'General',
@@ -75,7 +91,9 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 							? series.histogramOptions?.layout === 'pareto'
 								? 'paretoLine'
 								: 'clusteredColumn'
-							: 'funnel';
+							: chartData.chartType === 'regionMap'
+								? 'regionMap'
+								: 'funnel';
 	const result: XmlObject = {
 		'@_layoutId': layoutId,
 		'cx:tx': { 'cx:txData': { 'cx:v': series.name } },
@@ -122,6 +140,21 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 			result['cx:layoutPr'] = { 'cx:binning': binning };
 		}
 	}
+	if (chartData.chartType === 'regionMap') {
+		const options = series.regionMapOptions;
+		const layoutPr: XmlObject = {};
+		if (options?.regionLabelLayout) {
+			layoutPr['cx:regionLabelLayout'] = { '@_val': options.regionLabelLayout };
+		}
+		layoutPr['cx:geography'] = {
+			...(options?.projectionType ? { '@_projectionType': options.projectionType } : {}),
+			...(options?.viewedRegionType ? { '@_viewedRegionType': options.viewedRegionType } : {}),
+			'@_cultureLanguage': options?.cultureLanguage ?? 'en-US',
+			'@_cultureRegion': options?.cultureRegion ?? 'US',
+			'@_attribution': options?.attribution ?? 'Microsoft',
+		};
+		result['cx:layoutPr'] = layoutPr;
+	}
 	return result;
 }
 
@@ -133,7 +166,8 @@ export function canGenerateChartEx(chartData: PptxChartData): boolean {
 		chartData.chartType === 'treemap' ||
 		chartData.chartType === 'sunburst' ||
 		chartData.chartType === 'boxWhisker' ||
-		chartData.chartType === 'histogram'
+		chartData.chartType === 'histogram' ||
+		chartData.chartType === 'regionMap'
 	);
 }
 

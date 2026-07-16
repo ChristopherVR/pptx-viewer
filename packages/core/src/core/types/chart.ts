@@ -369,6 +369,26 @@ export interface PptxChartHistogramOptions {
 	overflow?: number | 'auto';
 }
 
+/** Office 2016 ChartEx geographic series dimensions and layout options. */
+export interface PptxChartRegionMapOptions {
+	/** Optional provider entity identifiers aligned with categories and values. */
+	entityIds?: string[];
+	regionLabelLayout?: 'none' | 'bestFitOnly' | 'showAll';
+	projectionType?: 'mercator' | 'miller' | 'robinson' | 'albers';
+	viewedRegionType?:
+		| 'dataOnly'
+		| 'postalCode'
+		| 'county'
+		| 'state'
+		| 'countryRegion'
+		| 'countryRegionList'
+		| 'world';
+	cultureLanguage?: string;
+	/** ISO-3166-1 alpha-2 region code. */
+	cultureRegion?: string;
+	attribution?: string;
+}
+
 /**
  * A single data series within a chart.
  *
@@ -406,6 +426,7 @@ export interface PptxChartSeries {
 	seriesChartType?: PptxChartType;
 	boxWhiskerOptions?: PptxChartBoxWhiskerOptions;
 	histogramOptions?: PptxChartHistogramOptions;
+	regionMapOptions?: PptxChartRegionMapOptions;
 }
 
 /**
