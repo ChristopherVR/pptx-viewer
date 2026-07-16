@@ -172,6 +172,8 @@ export interface ChartSeriesInput {
 export interface ChartInput {
 	series: ChartSeriesInput[];
 	categories: string[];
+	/** ChartEx hierarchy levels in leaf-to-root XML order. */
+	categoryLevels?: string[][];
 	title?: string;
 	hasLegend?: boolean;
 	legendPosition?: 't' | 'b' | 'l' | 'r' | 'tr';

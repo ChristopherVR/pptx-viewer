@@ -16,17 +16,22 @@ function seriesColor(series: PptxChartSeries): XmlObject | undefined {
 }
 
 function buildData(chartData: PptxChartData, series: PptxChartSeries, id: number): XmlObject {
+	const categoryLevels =
+		chartData.chartType === 'sunburst' && chartData.categoryLevels?.length
+			? chartData.categoryLevels
+			: [chartData.categories];
 	return {
 		'@_id': String(id),
 		'cx:strDim': {
 			'@_type': 'cat',
-			'cx:lvl': {
-				'@_ptCount': String(chartData.categories.length),
-				'cx:pt': points(chartData.categories),
-			},
+			'cx:lvl': categoryLevels.map((level) => ({
+				'@_ptCount': String(level.length),
+				'cx:pt': points(level),
+			})),
 		},
 		'cx:numDim': {
-			'@_type': chartData.chartType === 'treemap' ? 'size' : 'val',
+			'@_type':
+				chartData.chartType === 'treemap' || chartData.chartType === 'sunburst' ? 'size' : 'val',
 			'cx:lvl': {
 				'@_ptCount': String(series.values.length),
 				'@_formatCode': 'General',
@@ -42,7 +47,9 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 			? 'waterfall'
 			: chartData.chartType === 'treemap'
 				? 'treemap'
-				: 'funnel';
+				: chartData.chartType === 'sunburst'
+					? 'sunburst'
+					: 'funnel';
 	const result: XmlObject = {
 		'@_layoutId': layoutId,
 		'cx:tx': { 'cx:txData': { 'cx:v': series.name } },
@@ -65,7 +72,8 @@ export function canGenerateChartEx(chartData: PptxChartData): boolean {
 	return (
 		chartData.chartType === 'funnel' ||
 		chartData.chartType === 'waterfall' ||
-		chartData.chartType === 'treemap'
+		chartData.chartType === 'treemap' ||
+		chartData.chartType === 'sunburst'
 	);
 }
 

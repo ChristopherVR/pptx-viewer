@@ -509,6 +509,7 @@ export function createChartElement(
 	const chartData: PptxChartData = {
 		chartType,
 		categories: input.categories,
+		categoryLevels: input.categoryLevels?.map((level) => [...level]),
 		series,
 		title: input.title,
 		grouping: input.grouping,

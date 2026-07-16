@@ -492,6 +492,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return {
 			chartType,
 			categories: result.categories,
+			...(result.categoryLevels ? { categoryLevels: result.categoryLevels } : {}),
 			series: result.series,
 			title: titleTextValues[0],
 			style: chartStyle,

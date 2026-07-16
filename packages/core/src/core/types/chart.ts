@@ -620,6 +620,12 @@ export interface PptxChartData {
 	title?: string;
 	chartType: PptxChartType;
 	categories: string[];
+	/**
+	 * Hierarchical category levels in source XML order for ChartEx hierarchy charts.
+	 * Level 0 contains the leaf labels and remains mirrored by {@link categories}
+	 * for consumers that only understand a flat category axis.
+	 */
+	categoryLevels?: string[][];
 	series: PptxChartSeries[];
 	/** Chart style/formatting metadata. */
 	style?: PptxChartStyle;

@@ -311,4 +311,36 @@ describe('parseCxChartSeries', () => {
 		expect(result?.categories).toStrictEqual(['Lead']);
 		expect(result?.series[0]).toMatchObject({ name: 'Pipeline', values: [42] });
 	});
+
+	it('preserves all hierarchical category levels while exposing leaf categories', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': {
+					'@_layoutId': 'sunburst',
+					'cx:data': {
+						'cx:strDim': {
+							'@_type': 'cat',
+							'cx:lvl': [
+								{ 'cx:pt': [{ '#text': 'Laptop' }, { '#text': 'Cloud' }] },
+								{ 'cx:pt': [{ '#text': 'Hardware' }, { '#text': 'Software' }] },
+								{ 'cx:pt': [{ '#text': 'North' }, { '#text': 'South' }] },
+							],
+						},
+						'cx:numDim': {
+							'@_type': 'size',
+							'cx:lvl': { 'cx:pt': [{ '#text': '65' }, { '#text': '25' }] },
+						},
+					},
+				},
+			},
+		};
+
+		const result = parseCxChartSeries(plotArea, xmlLookup);
+		expect(result?.categories).toStrictEqual(['Laptop', 'Cloud']);
+		expect(result?.categoryLevels).toStrictEqual([
+			['Laptop', 'Cloud'],
+			['Hardware', 'Software'],
+			['North', 'South'],
+		]);
+	});
 });
