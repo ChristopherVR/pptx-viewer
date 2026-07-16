@@ -6,6 +6,14 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-16
 
+_Releases: pptx-svelte-viewer@0.8.1_
+
+### Bug Fixes
+
+- **e2e:** Relax media pause timing check (by @ChristopherVR) ([17e5116](https://github.com/ChristopherVR/pptx-viewer/commit/17e511652f6f5e6594bc6b9b2285ceb81fee47f9))
+
+## 2026-07-16
+
 _Releases: pptx-viewer-core@1.5.0, pptx-react-viewer@1.18.0, pptx-vue-viewer@1.18.0, pptx-angular-viewer@1.18.0, pptx-vanilla-viewer@0.8.0, pptx-svelte-viewer@0.8.0, pptx-viewer-mcp@1.3.0, @christophervr/pptx-viewer@1.5.3_
 
 ### Features
