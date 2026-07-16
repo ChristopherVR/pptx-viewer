@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { buildImageBiLevelTable, getImageAlphaFilter } from 'pptx-viewer-shared';
 import { describe, it, expect } from 'vitest';
 
 import { getImageEffectsFilter, getImageEffectsOpacity } from './shape-visual-effects';
@@ -247,19 +248,20 @@ describe('getImageEffectsFilter', () => {
 
 	// -- Bi-level effect --
 
-	it('applies bi-level threshold effect', () => {
+	it('routes bi-level threshold through the exact SVG filter', () => {
 		const el = makeImageElement({ biLevel: 50 });
 		const result = getImageEffectsFilter(el);
-		expect(result).toBeDefined();
-		expect(result).toContain('grayscale(100%)');
-		expect(result).toContain('contrast(1000%)');
-		expect(result).toContain('brightness(50%)');
+		expect(result).toBe('url(#imgalpha-test-img-1)');
+		expect(getImageAlphaFilter(el)?.filterMarkup).toContain(
+			`tableValues="${buildImageBiLevelTable(50)}"`,
+		);
 	});
 
-	it('clamps bi-level to 0-100 range', () => {
+	it('clamps bi-level inside the SVG transfer table', () => {
 		const el = makeImageElement({ biLevel: 150 });
-		const result = getImageEffectsFilter(el);
-		expect(result).toContain('brightness(100%)');
+		expect(getImageAlphaFilter(el)?.filterMarkup).toContain(
+			`tableValues="${buildImageBiLevelTable(100)}"`,
+		);
 	});
 
 	// -- OOXML-prefixed aliases --
