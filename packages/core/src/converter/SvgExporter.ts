@@ -11,6 +11,15 @@
 import type { PptxElement } from '../core/types/elements';
 import type { PptxSlide, PptxData } from '../core/types/presentation';
 import { buildImageEffectsFilter } from './svg-image-effects';
+import {
+	renderChartSvg,
+	renderContentPartSvg,
+	renderMediaPreviewSvg,
+	renderModel3DPreviewSvg,
+	renderOlePreviewSvg,
+	renderSmartArtSvg,
+	renderZoomPreviewSvg,
+} from './svg-rich-elements';
 
 // ────────────────────────────────────────────────────────────────────
 // Public options
@@ -580,12 +589,33 @@ function renderElement(
 			break;
 
 		case 'chart':
+			inner = renderChartSvg(el) ?? renderPlaceholder(el);
+			break;
+
 		case 'smartArt':
+			inner = renderSmartArtSvg(el) ?? renderPlaceholder(el);
+			break;
+
 		case 'ole':
+			inner = renderOlePreviewSvg(el) ?? renderPlaceholder(el);
+			break;
+
 		case 'media':
-		case 'contentPart':
-		case 'zoom':
+			inner = renderMediaPreviewSvg(el) ?? renderPlaceholder(el);
+			break;
+
 		case 'model3d':
+			inner = renderModel3DPreviewSvg(el) ?? renderPlaceholder(el);
+			break;
+
+		case 'contentPart':
+			inner = renderContentPartSvg(el) ?? renderPlaceholder(el);
+			break;
+
+		case 'zoom':
+			inner = renderZoomPreviewSvg(el) ?? renderPlaceholder(el);
+			break;
+
 		case 'unknown':
 			inner = renderPlaceholder(el);
 			break;

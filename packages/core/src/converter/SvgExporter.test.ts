@@ -433,9 +433,9 @@ describe('svgExporter', () => {
 		expect(svg).toContain('>In group</tspan>');
 	});
 
-	// ── Placeholder for unsupported types ────────────────────────
+	// ── Rich elements ────────────────────────────────────────────
 
-	it('renders a placeholder rectangle for chart elements', () => {
+	it('renders chart data as SVG marks instead of a placeholder', () => {
 		const slide = makeSlide({
 			elements: [
 				{
@@ -445,12 +445,113 @@ describe('svgExporter', () => {
 					y: 0,
 					width: 300,
 					height: 200,
+					chartData: {
+						chartType: 'bar',
+						title: 'Quarterly revenue',
+						categories: ['Q1', 'Q2'],
+						series: [{ name: 'Revenue', values: [12, 18], color: '#123456' }],
+					},
 				},
 			],
 		});
 		const svg = SvgExporter.exportSlide(slide, 960, 540);
 
 		assertValidSvgStructure(svg);
+		expect(svg).toContain('data-pptx-element="chart"');
+		expect(svg).toContain('data-chart-mark="bar"');
+		expect(svg).toContain('fill="#123456"');
+		expect(svg).toContain('Quarterly revenue');
+		expect(svg).not.toContain('>chart</text>');
+	});
+
+	it('renders SmartArt drawing geometry and text', () => {
+		const slide = makeSlide({
+			elements: [
+				{
+					type: 'smartArt',
+					id: 'sa1',
+					x: 10,
+					y: 20,
+					width: 300,
+					height: 160,
+					smartArtData: {
+						nodes: [{ id: 'node1', text: 'Plan' }],
+						drawingShapes: [
+							{
+								id: 'shape1',
+								shapeType: 'roundRect',
+								x: 20,
+								y: 30,
+								width: 120,
+								height: 60,
+								fillColor: '#336699',
+								text: 'Plan',
+							},
+						],
+					},
+				},
+			],
+		});
+		const svg = SvgExporter.exportSlide(slide, 960, 540);
+
+		expect(svg).toContain('data-pptx-element="smartArt"');
+		expect(svg).toContain('data-smartart-shape="shape1"');
+		expect(svg).toContain('fill="#336699"');
+		expect(svg).toContain('>Plan</text>');
+		expect(svg).not.toContain('>smartArt</text>');
+	});
+
+	it.each([
+		['media', { mediaType: 'video', posterFrameData: 'data:image/png;base64,poster' }],
+		['ole', { previewImageData: 'data:image/png;base64,preview' }],
+		['model3d', { posterImage: 'data:image/png;base64,model' }],
+		['zoom', { zoomType: 'slide', targetSlideIndex: 2, imageData: 'data:image/png;base64,zoom' }],
+	] as const)('renders a usable %s preview image', (type, extra) => {
+		const element = {
+			type,
+			id: `${type}1`,
+			x: 0,
+			y: 0,
+			width: 240,
+			height: 120,
+			...extra,
+		} as PptxElement;
+		const svg = SvgExporter.exportSlide(makeSlide({ elements: [element] }), 960, 540);
+
+		expect(svg).toContain(`data-pptx-element="${type}"`);
+		expect(svg).toContain('<image');
+		expect(svg).not.toContain(`>${type}</text>`);
+	});
+
+	it('renders content-part ink strokes as SVG paths', () => {
+		const element: PptxElement = {
+			type: 'contentPart',
+			id: 'content1',
+			x: 0,
+			y: 0,
+			width: 240,
+			height: 120,
+			inkStrokes: [{ path: 'M 1 2 L 20 30', color: '#112233', width: 3, opacity: 0.75 }],
+		};
+		const svg = SvgExporter.exportSlide(makeSlide({ elements: [element] }), 960, 540);
+
+		expect(svg).toContain('data-pptx-element="contentPart"');
+		expect(svg).toContain('data-content-part="ink"');
+		expect(svg).toContain('d="M 1 2 L 20 30"');
+		expect(svg).not.toContain('>contentPart</text>');
+	});
+
+	it('retains a chart fallback when no renderable data exists', () => {
+		const element: PptxElement = {
+			type: 'chart',
+			id: 'empty-chart',
+			x: 0,
+			y: 0,
+			width: 300,
+			height: 200,
+		};
+		const svg = SvgExporter.exportSlide(makeSlide({ elements: [element] }), 960, 540);
+
 		expect(svg).toContain('stroke-dasharray="4 2"');
 		expect(svg).toContain('>chart</text>');
 	});
