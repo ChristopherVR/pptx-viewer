@@ -16,6 +16,8 @@ export interface PptxViewScale {
 	n: number;
 	/** Denominator of the scale percentage (e.g. 100 for 100%). */
 	d: number;
+	/** Optional independent vertical scale. When absent, the X scale is used. */
+	sy?: { n: number; d: number };
 }
 
 /**
@@ -24,6 +26,18 @@ export interface PptxViewScale {
 export interface PptxViewOrigin {
 	x: number;
 	y: number;
+}
+
+/** A horizontal or vertical drawing guide in slide coordinates. */
+export interface PptxViewGuide {
+	orientation?: 'horz' | 'vert';
+	position?: number;
+}
+
+/** Positive grid spacing from `p:gridSpacing`. */
+export interface PptxGridSpacing {
+	cx: number;
+	cy: number;
 }
 
 /**
@@ -69,6 +83,10 @@ export interface PptxCommonSlideViewProperties {
 	snapToObjects?: boolean;
 	/** Whether drawing guides are shown. */
 	showGuides?: boolean;
+	/** Whether the application may vary the scale automatically. */
+	variableScale?: boolean;
+	/** Drawing guides shown in this slide view. */
+	guides?: PptxViewGuide[];
 	/** View origin (scroll position). */
 	origin?: PptxViewOrigin;
 	/** View scale. */
@@ -95,6 +113,8 @@ export interface PptxViewProperties {
 	sorterViewPr?: { scale?: PptxViewScale };
 	/** Notes view properties. */
 	notesViewPr?: PptxCommonSlideViewProperties;
+	/** Grid spacing in positive DrawingML coordinates. */
+	gridSpacing?: PptxGridSpacing;
 	/** Raw XML preserved for lossless round-trip of unparsed attributes. */
 	rawXml?: Record<string, unknown>;
 }

@@ -114,6 +114,39 @@ describe('applyViewPropertiesPart', () => {
 		expect(written).toContain('p:gridSpacing');
 		expect(written).toContain('cx="76200"');
 	});
+
+	it('writes dirty view geometry while preserving nested extensions', async () => {
+		runtime.zip.file('ppt/_rels/presentation.xml.rels', PRESENTATION_RELS_DEFAULT);
+		runtime.zip.file(
+			'ppt/viewProps.xml',
+			`<?xml version="1.0"?><p:viewPr xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"/>`,
+		);
+		const rawXml: XmlObject = {
+			'@_xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main',
+			'@_xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
+			'p:slideViewPr': {
+				'p:cSldViewPr': {
+					'p:cViewPr': { 'p:extLst': { 'p:ext': { '@_uri': 'keep' } } },
+				},
+			},
+		};
+
+		await runtime.applyViewPropertiesPart({
+			rawXml,
+			slideViewPr: {
+				origin: { x: -10, y: 20 },
+				scale: { n: 3, d: 4, sy: { n: 2, d: 3 } },
+			},
+			gridSpacing: { cx: 76200, cy: 38100 },
+		});
+
+		const written = await runtime.zip.file('ppt/viewProps.xml')?.async('string');
+		expect(written).toContain('<p:cViewPr>');
+		expect(written).toContain('<a:sy n="2" d="3"');
+		expect(written).toContain('<p:origin x="-10" y="20"');
+		expect(written).toContain('<p:gridSpacing cx="76200" cy="38100"');
+		expect(written).toContain('uri="keep"');
+	});
 });
 
 describe('applyTableStylesPart', () => {

@@ -499,7 +499,8 @@ describe('buildViewPropertiesXml', () => {
 			string,
 			unknown
 		>;
-		const scale = cSldViewPr['p:scale'] as Record<string, unknown>;
+		const cViewPr = cSldViewPr['p:cViewPr'] as Record<string, unknown>;
+		const scale = cViewPr['p:scale'] as Record<string, unknown>;
 		expect(scale['a:sx']).toStrictEqual({ '@_n': '66', '@_d': '100' });
 		expect(scale['a:sy']).toStrictEqual({ '@_n': '66', '@_d': '100' });
 	});
@@ -513,7 +514,8 @@ describe('buildViewPropertiesXml', () => {
 			string,
 			unknown
 		>;
-		expect(cSldViewPr['p:origin']).toStrictEqual({ '@_x': '-100', '@_y': '200' });
+		const cViewPr = cSldViewPr['p:cViewPr'] as Record<string, unknown>;
+		expect(cViewPr['p:origin']).toStrictEqual({ '@_x': '-100', '@_y': '200' });
 	});
 
 	it('should build outlineViewPr with cSldViewPr', () => {
@@ -524,12 +526,12 @@ describe('buildViewPropertiesXml', () => {
 		expect(root['p:outlineViewPr']).toHaveProperty('p:cSldViewPr');
 	});
 
-	it('should build notesTextViewPr with cSldViewPr', () => {
+	it('should build notesTextViewPr with schema-correct cViewPr', () => {
 		const xml = buildViewPropertiesXml({
 			notesTextViewPr: { showGuides: false },
 		});
 		const root = xml['p:viewPr'] as Record<string, unknown>;
-		expect(root['p:notesTextViewPr']).toHaveProperty('p:cSldViewPr');
+		expect(root['p:notesTextViewPr']).toHaveProperty('p:cViewPr');
 	});
 
 	it('should build sorterViewPr with scale only', () => {
@@ -538,8 +540,8 @@ describe('buildViewPropertiesXml', () => {
 		});
 		const root = xml['p:viewPr'] as Record<string, unknown>;
 		const sorter = root['p:sorterViewPr'] as Record<string, unknown>;
-		const cSldViewPr = sorter['p:cSldViewPr'] as Record<string, unknown>;
-		expect(cSldViewPr['p:scale']).toBeDefined();
+		const cViewPr = sorter['p:cViewPr'] as Record<string, unknown>;
+		expect(cViewPr['p:scale']).toBeDefined();
 	});
 
 	it('should build notesViewPr with cSldViewPr', () => {

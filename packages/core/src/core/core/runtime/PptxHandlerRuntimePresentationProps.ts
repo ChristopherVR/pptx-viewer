@@ -109,7 +109,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			const data = this.parser.parse(viewPropsXml) as XmlObject;
-			const viewPrRoot = data?.['p:viewPr'] as XmlObject | undefined;
+			const rootKey = Object.keys(data ?? {}).find((key) => key.replace(/^.*:/u, '') === 'viewPr');
+			const viewPrRoot = (rootKey ? data[rootKey] : undefined) as XmlObject | undefined;
 			if (!viewPrRoot) {
 				return undefined;
 			}

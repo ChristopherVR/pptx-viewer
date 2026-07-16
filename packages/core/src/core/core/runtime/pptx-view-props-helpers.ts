@@ -2,10 +2,17 @@ import type {
 	XmlObject,
 	PptxViewProperties,
 	PptxNormalViewProperties,
-	PptxCommonSlideViewProperties,
-	PptxViewScale,
 	PptxRestoredRegion,
 } from '../../types';
+import {
+	applyGridSpacing,
+	buildCommonSlideView,
+	findViewKey,
+	parseCommonSlideView,
+	parseCommonView,
+	parseGridSpacing,
+	viewChild,
+} from './pptx-view-props-geometry';
 
 /**
  * Parse view properties from `ppt/viewProps.xml` root node.
@@ -23,49 +30,50 @@ export function parseViewProperties(viewPrRoot: XmlObject): PptxViewProperties {
 		props.showComments = showComments !== '0';
 	}
 
-	const normalViewPr = viewPrRoot['p:normalViewPr'] as XmlObject | undefined;
+	const normalViewPr = viewChild(viewPrRoot, 'normalViewPr');
 	if (normalViewPr) {
 		props.normalViewPr = parseNormalViewPr(normalViewPr);
 	}
 
-	const slideViewPr = viewPrRoot['p:slideViewPr'] as XmlObject | undefined;
+	const slideViewPr = viewChild(viewPrRoot, 'slideViewPr');
 	if (slideViewPr) {
-		const cSldViewPr = slideViewPr['p:cSldViewPr'] as XmlObject | undefined;
+		const cSldViewPr = viewChild(slideViewPr, 'cSldViewPr');
 		if (cSldViewPr) {
-			props.slideViewPr = parseCommonSlideViewPr(cSldViewPr);
+			props.slideViewPr = parseCommonSlideView(cSldViewPr);
 		}
 	}
 
-	const outlineViewPr = viewPrRoot['p:outlineViewPr'] as XmlObject | undefined;
+	const outlineViewPr = viewChild(viewPrRoot, 'outlineViewPr');
 	if (outlineViewPr) {
-		const cSldViewPr = outlineViewPr['p:cSldViewPr'] as XmlObject | undefined;
+		const cSldViewPr = viewChild(outlineViewPr, 'cSldViewPr');
 		if (cSldViewPr) {
-			props.outlineViewPr = parseCommonSlideViewPr(cSldViewPr);
+			props.outlineViewPr = parseCommonSlideView(cSldViewPr);
 		}
 	}
 
-	const notesTextViewPr = viewPrRoot['p:notesTextViewPr'] as XmlObject | undefined;
+	const notesTextViewPr = viewChild(viewPrRoot, 'notesTextViewPr');
 	if (notesTextViewPr) {
-		const cSldViewPr = notesTextViewPr['p:cSldViewPr'] as XmlObject | undefined;
-		if (cSldViewPr) {
-			props.notesTextViewPr = parseCommonSlideViewPr(cSldViewPr);
+		const cViewPr =
+			viewChild(notesTextViewPr, 'cViewPr') ?? viewChild(notesTextViewPr, 'cSldViewPr');
+		if (cViewPr) {
+			props.notesTextViewPr = parseCommonView(cViewPr);
 		}
 	}
 
-	const sorterViewPr = viewPrRoot['p:sorterViewPr'] as XmlObject | undefined;
+	const sorterViewPr = viewChild(viewPrRoot, 'sorterViewPr');
 	if (sorterViewPr) {
-		const cSldViewPr = sorterViewPr['p:cSldViewPr'] as XmlObject | undefined;
-		const scale = cSldViewPr ? parseViewScale(cSldViewPr) : undefined;
-		props.sorterViewPr = { scale };
+		const common = viewChild(sorterViewPr, 'cViewPr') ?? viewChild(sorterViewPr, 'cSldViewPr');
+		props.sorterViewPr = { scale: common ? parseCommonView(common).scale : undefined };
 	}
 
-	const notesViewPr = viewPrRoot['p:notesViewPr'] as XmlObject | undefined;
+	const notesViewPr = viewChild(viewPrRoot, 'notesViewPr');
 	if (notesViewPr) {
-		const cSldViewPr = notesViewPr['p:cSldViewPr'] as XmlObject | undefined;
+		const cSldViewPr = viewChild(notesViewPr, 'cSldViewPr');
 		if (cSldViewPr) {
-			props.notesViewPr = parseCommonSlideViewPr(cSldViewPr);
+			props.notesViewPr = parseCommonSlideView(cSldViewPr);
 		}
 	}
+	props.gridSpacing = parseGridSpacing(viewPrRoot);
 
 	// Store raw XML for lossless round-trip
 	props.rawXml = viewPrRoot;
@@ -101,12 +109,12 @@ function parseNormalViewPr(node: XmlObject): PptxNormalViewProperties {
 		result.preferSingleView = preferSingleView === '1';
 	}
 
-	const restoredLeft = node['p:restoredLeft'] as XmlObject | undefined;
+	const restoredLeft = viewChild(node, 'restoredLeft');
 	if (restoredLeft) {
 		result.restoredLeft = parseRestoredRegion(restoredLeft);
 	}
 
-	const restoredTop = node['p:restoredTop'] as XmlObject | undefined;
+	const restoredTop = viewChild(node, 'restoredTop');
 	if (restoredTop) {
 		result.restoredTop = parseRestoredRegion(restoredTop);
 	}
@@ -123,82 +131,17 @@ function parseRestoredRegion(node: XmlObject): PptxRestoredRegion {
 	};
 }
 
-function parseCommonSlideViewPr(node: XmlObject): PptxCommonSlideViewProperties {
-	const result: PptxCommonSlideViewProperties = {};
-
-	const snapToGrid = node['@_snapToGrid'];
-	if (snapToGrid !== undefined) {
-		result.snapToGrid = snapToGrid !== '0';
-	}
-
-	const snapToObjects = node['@_snapToObjects'];
-	if (snapToObjects !== undefined) {
-		result.snapToObjects = snapToObjects !== '0';
-	}
-
-	const showGuides = node['@_showGuides'];
-	if (showGuides !== undefined) {
-		result.showGuides = showGuides !== '0';
-	}
-
-	const origin = node['p:origin'] as XmlObject | undefined;
-	if (origin) {
-		const x = parseInt(String(origin['@_x'] ?? '0'), 10);
-		const y = parseInt(String(origin['@_y'] ?? '0'), 10);
-		if (Number.isFinite(x) && Number.isFinite(y)) {
-			result.origin = { x, y };
-		}
-	}
-
-	result.scale = parseViewScale(node);
-
-	return result;
-}
-
-function parseViewScale(node: XmlObject): PptxViewScale | undefined {
-	const scale = node['p:scale'] as XmlObject | undefined;
-	if (!scale) {
-		return undefined;
-	}
-
-	const sx = scale['a:sx'] as XmlObject | undefined;
-	if (!sx) {
-		return undefined;
-	}
-
-	const n = parseInt(String(sx['@_n'] ?? '0'), 10);
-	const d = parseInt(String(sx['@_d'] ?? '100'), 10);
-	if (!Number.isFinite(n) || !Number.isFinite(d) || d === 0) {
-		return undefined;
-	}
-
-	return { n, d };
-}
-
 /**
  * Build view properties XML object for saving to `ppt/viewProps.xml`.
  */
 export function buildViewPropertiesXml(props: PptxViewProperties): XmlObject {
-	// If we have raw XML, use it as the base for lossless round-trip
-	if (props.rawXml) {
-		const root = { ...props.rawXml } as XmlObject;
-
-		// Apply any modifications on top of the raw XML
-		if (props.lastView !== undefined) {
-			root['@_lastView'] = props.lastView;
-		}
-		if (props.showComments !== undefined) {
-			root['@_showComments'] = props.showComments ? '1' : '0';
-		}
-
-		return { 'p:viewPr': root };
-	}
-
-	const root: XmlObject = {
-		'@_xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main',
-		'@_xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
-		'@_xmlns:r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
-	};
+	const root: XmlObject = props.rawXml
+		? ({ ...props.rawXml } as XmlObject)
+		: {
+				'@_xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main',
+				'@_xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
+				'@_xmlns:r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+			};
 
 	if (props.lastView) {
 		root['@_lastView'] = props.lastView;
@@ -208,44 +151,36 @@ export function buildViewPropertiesXml(props: PptxViewProperties): XmlObject {
 	}
 
 	if (props.normalViewPr) {
-		root['p:normalViewPr'] = buildNormalViewPrXml(props.normalViewPr);
+		const key = findViewKey(root, 'normalViewPr') ?? 'p:normalViewPr';
+		root[key] = buildNormalViewPrXml(props.normalViewPr, viewChild(root, 'normalViewPr'));
 	}
 
 	if (props.slideViewPr) {
-		root['p:slideViewPr'] = {
-			'p:cSldViewPr': buildCommonSlideViewPrXml(props.slideViewPr),
-		};
+		applyCommonSlideContainer(root, 'slideViewPr', props.slideViewPr);
 	}
 
 	if (props.outlineViewPr) {
-		root['p:outlineViewPr'] = {
-			'p:cSldViewPr': buildCommonSlideViewPrXml(props.outlineViewPr),
-		};
+		applyCommonSlideContainer(root, 'outlineViewPr', props.outlineViewPr);
 	}
 
 	if (props.notesTextViewPr) {
-		root['p:notesTextViewPr'] = {
-			'p:cSldViewPr': buildCommonSlideViewPrXml(props.notesTextViewPr),
-		};
+		applyCommonViewContainer(root, 'notesTextViewPr', props.notesTextViewPr);
 	}
 
 	if (props.sorterViewPr?.scale) {
-		root['p:sorterViewPr'] = {
-			'p:cSldViewPr': buildScaleXml(props.sorterViewPr.scale),
-		};
+		applyCommonViewContainer(root, 'sorterViewPr', props.sorterViewPr);
 	}
 
 	if (props.notesViewPr) {
-		root['p:notesViewPr'] = {
-			'p:cSldViewPr': buildCommonSlideViewPrXml(props.notesViewPr),
-		};
+		applyCommonSlideContainer(root, 'notesViewPr', props.notesViewPr);
 	}
+	applyGridSpacing(root, props.gridSpacing);
 
 	return { 'p:viewPr': root };
 }
 
-function buildNormalViewPrXml(props: PptxNormalViewProperties): XmlObject {
-	const node: XmlObject = {};
+function buildNormalViewPrXml(props: PptxNormalViewProperties, base?: XmlObject): XmlObject {
+	const node: XmlObject = { ...base };
 
 	if (props.showOutlineIcons !== undefined) {
 		node['@_showOutlineIcons'] = props.showOutlineIcons ? '1' : '0';
@@ -281,36 +216,29 @@ function buildRestoredRegionXml(region: PptxRestoredRegion): XmlObject {
 	return node;
 }
 
-function buildCommonSlideViewPrXml(props: PptxCommonSlideViewProperties): XmlObject {
-	const node: XmlObject = {};
-
-	if (props.snapToGrid !== undefined) {
-		node['@_snapToGrid'] = props.snapToGrid ? '1' : '0';
-	}
-	if (props.snapToObjects !== undefined) {
-		node['@_snapToObjects'] = props.snapToObjects ? '1' : '0';
-	}
-	if (props.showGuides !== undefined) {
-		node['@_showGuides'] = props.showGuides ? '1' : '0';
-	}
-	if (props.origin) {
-		node['p:origin'] = {
-			'@_x': String(props.origin.x),
-			'@_y': String(props.origin.y),
-		};
-	}
-	if (props.scale) {
-		Object.assign(node, buildScaleXml(props.scale));
-	}
-
-	return node;
+function applyCommonSlideContainer(
+	root: XmlObject,
+	name: string,
+	props: import('../../types').PptxCommonSlideViewProperties,
+): void {
+	const key = findViewKey(root, name) ?? `p:${name}`;
+	const container = { ...((root[key] as XmlObject | undefined) ?? {}) };
+	const commonKey = findViewKey(container, 'cSldViewPr') ?? 'p:cSldViewPr';
+	container[commonKey] = buildCommonSlideView(props, viewChild(container, 'cSldViewPr'));
+	root[key] = container;
 }
 
-function buildScaleXml(scale: PptxViewScale): XmlObject {
-	return {
-		'p:scale': {
-			'a:sx': { '@_n': String(scale.n), '@_d': String(scale.d) },
-			'a:sy': { '@_n': String(scale.n), '@_d': String(scale.d) },
-		},
-	};
+function applyCommonViewContainer(
+	root: XmlObject,
+	name: string,
+	props: import('../../types').PptxCommonSlideViewProperties,
+): void {
+	const key = findViewKey(root, name) ?? `p:${name}`;
+	const container = { ...((root[key] as XmlObject | undefined) ?? {}) };
+	const commonKey = findViewKey(container, 'cViewPr') ?? 'p:cViewPr';
+	const wrapper = buildCommonSlideView(props, {
+		'p:cViewPr': viewChild(container, 'cViewPr') ?? {},
+	});
+	container[commonKey] = viewChild(wrapper, 'cViewPr');
+	root[key] = container;
 }
