@@ -17,7 +17,7 @@ function mediaElement(patch: Partial<MediaPptxElement> = {}): MediaPptxElement {
 	};
 }
 
-describe('MediaPropertiesPanel', () => {
+describe('media properties panel', () => {
 	it('previews relationship-backed media through the viewer URL map', () => {
 		const wrapper = mount(MediaPropertiesPanel, {
 			props: {
