@@ -43,6 +43,8 @@ export interface ElementRendererProps {
 		cellIndex: number,
 		text: string,
 	) => void;
+	onsmartartnodecommit?: (elementId: string, nodeId: string, text: string) => void;
+	onsmartartnodefill?: (elementId: string, nodeId: string, fill: string) => void;
 }
 
 export interface TextBlockProps {
@@ -72,6 +74,8 @@ export interface SlideStageProps {
 		cellIndex: number,
 		text: string,
 	) => void;
+	onsmartartnodecommit?: (elementId: string, nodeId: string, text: string) => void;
+	onsmartartnodefill?: (elementId: string, nodeId: string, fill: string) => void;
 }
 
 export interface ViewerToolbarProps {

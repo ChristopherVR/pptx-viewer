@@ -23,6 +23,8 @@
 		interactive = false,
 		editTemplateMode = false,
 		ontablecellcommit,
+		onsmartartnodecommit,
+		onsmartartnodefill,
 	}: SlideStageProps = $props();
 
 	const t = useTranslator();
@@ -64,6 +66,6 @@
 	aria-hidden={interactive ? undefined : 'true'}
 >
 	{#each slide?.elements ?? [] as element, index (element.id)}
-		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} {interactive} {editTemplateMode} {ontablecellcommit} />
+		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} {interactive} {editTemplateMode} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} />
 	{/each}
 </div>

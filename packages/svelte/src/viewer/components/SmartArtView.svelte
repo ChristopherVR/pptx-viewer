@@ -22,10 +22,11 @@
 		smartArtChromeStyle,
 		svgTextLines,
 	} from '../render';
+	import { computeInlineEditorRect, findSmartArtNodeText, resolvePalette } from 'pptx-viewer-shared';
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex, interactive }: ElementRendererProps = $props();
+	const { element, zIndex, interactive, onsmartartnodecommit, onsmartartnodefill }: ElementRendererProps = $props();
 	const t = useTranslator();
 
 	const smartArt = $derived(element.type === 'smartArt' ? element : undefined);
@@ -33,6 +34,56 @@
 	const chromeStyle = $derived(smartArt ? smartArtChromeStyle(smartArt) : '');
 	const ariaLabel = $derived(smartArt ? smartArtAriaLabel(smartArt) : undefined);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
+	const palette = $derived(smartArt?.smartArtData ? resolvePalette(smartArt.smartArtData) : []);
+	let chromeEl = $state<HTMLDivElement>();
+	let editing = $state<{ nodeId: string; left: number; top: number; width: number; height: number } | null>(null);
+	let draft = $state('');
+	let hovered = $state<{ nodeId: string; left: number; top: number } | null>(null);
+
+	function nodeRect(target: SVGGElement) {
+		if (!chromeEl) return null;
+		const text = target.querySelector('text');
+		const source = text && text.getBoundingClientRect().width > 0 ? text : target;
+		return computeInlineEditorRect(source.getBoundingClientRect(), chromeEl.getBoundingClientRect());
+	}
+
+	function openEditor(event: MouseEvent, nodeId: string | undefined): void {
+		if (!nodeId || !smartArt?.smartArtData || !onsmartartnodecommit) return;
+		const rect = nodeRect(event.currentTarget as SVGGElement);
+		if (!rect) return;
+		event.stopPropagation();
+		hovered = null;
+		draft = findSmartArtNodeText(smartArt.smartArtData, nodeId) ?? '';
+		editing = {
+			nodeId,
+			left: rect.left - 4,
+			top: rect.top - 4,
+			width: Math.max(48, rect.width + 8),
+			height: Math.max(30, rect.height + 8),
+		};
+	}
+
+	function showStyle(event: MouseEvent, nodeId: string | undefined): void {
+		if (!nodeId || !onsmartartnodefill || editing) return;
+		const rect = nodeRect(event.currentTarget as SVGGElement);
+		if (rect) hovered = { nodeId, left: Math.max(0, rect.left), top: Math.max(0, rect.top - 26) };
+	}
+
+	function commitEdit(): void {
+		if (!editing || !smartArt) return;
+		onsmartartnodecommit?.(smartArt.id, editing.nodeId, draft);
+		editing = null;
+	}
+
+	function editorKeydown(event: KeyboardEvent): void {
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			editing = null;
+		} else if (event.key === 'Enter' && !event.shiftKey) {
+			event.preventDefault();
+			commitEdit();
+		}
+	}
 </script>
 
 {#snippet centeredText(text: string, x: number, y: number, fill: string, fontSize: number)}
@@ -54,6 +105,7 @@
 		aria-roledescription="diagram"
 	>
 		<div
+			bind:this={chromeEl}
 			class="pptx-svelte-smartart-chrome"
 			style={chromeStyle}
 			role={ariaLabel !== undefined ? 'img' : undefined}
@@ -68,9 +120,12 @@
 				>
 					{#each view.shapes as shape (shape.key)}
 						<g
-							style={view.shadow ? `filter: ${view.shadow}` : undefined}
+							style={`${view.shadow ? `filter: ${view.shadow};` : ''}${shape.nodeId && onsmartartnodecommit ? 'pointer-events: auto; cursor: text;' : ''}`}
+							data-smartart-node-id={shape.nodeId}
 							role={shape.ariaLabel ? 'img' : undefined}
 							aria-label={shape.ariaLabel}
+							ondblclick={(event) => openEditor(event, shape.nodeId)}
+							onmouseenter={(event) => showStyle(event, shape.nodeId)}
 						>
 							{#if shape.ariaLabel}<title>{shape.ariaLabel}</title>{/if}
 							{#if shape.isEllipse}
@@ -117,9 +172,12 @@
 					{/each}
 					{#each view.layout.nodes as node (node.key)}
 						<g
-							style={view.layout.shadowFilter ? `filter: ${view.layout.shadowFilter}` : undefined}
+							style={`${view.layout.shadowFilter ? `filter: ${view.layout.shadowFilter};` : ''}${node.nodeId && onsmartartnodecommit ? 'pointer-events: auto; cursor: text;' : ''}`}
+							data-smartart-node-id={node.nodeId}
 							role={node.ariaLabel ? 'img' : undefined}
 							aria-label={node.ariaLabel}
+							ondblclick={(event) => openEditor(event, node.nodeId)}
+							onmouseenter={(event) => showStyle(event, node.nodeId)}
 						>
 							{#if node.ariaLabel}<title>{node.ariaLabel}</title>{/if}
 							{#if node.kind === 'circle'}
@@ -138,6 +196,23 @@
 			{:else}
 				<div class="pptx-svelte-smartart-placeholder">{t('pptx.smartArt.placeholder')}</div>
 			{/if}
+			{#if hovered && !editing}
+				<div class="pptx-svelte-smartart-swatches" role="group" aria-label={t('pptx.smartArt.fillColor')} style={`left:${hovered.left}px;top:${hovered.top}px`} onmouseleave={() => (hovered = null)}>
+					{#each palette.slice(0, 6) as color (color)}
+						<button type="button" aria-label={`${t('pptx.smartArt.fillColor')} ${color}`} style={`background:${color}`} onclick={() => { if (smartArt) onsmartartnodefill?.(smartArt.id, hovered!.nodeId, color); hovered = null; }}></button>
+					{/each}
+				</div>
+			{/if}
+			{#if editing}
+				<textarea
+					class="pptx-svelte-smartart-editor"
+					style={`left:${editing.left}px;top:${editing.top}px;width:${editing.width}px;height:${editing.height}px`}
+					bind:value={draft}
+					onkeydown={editorKeydown}
+					onblur={commitEdit}
+					onclick={(event) => event.stopPropagation()}
+				></textarea>
+			{/if}
 		</div>
 	</div>
 {/if}
@@ -152,5 +227,41 @@
 		font-size: 11px;
 		color: rgba(255, 255, 255, 0.8);
 		pointer-events: none;
+	}
+
+	.pptx-svelte-smartart-swatches {
+		position: absolute;
+		z-index: 12;
+		display: flex;
+		gap: 4px;
+		padding: 4px;
+		border: 1px solid rgba(148, 163, 184, 0.7);
+		border-radius: 6px;
+		background: rgba(15, 23, 42, 0.96);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+	}
+
+	.pptx-svelte-smartart-swatches button {
+		width: 18px;
+		height: 18px;
+		padding: 0;
+		border: 1px solid rgba(255, 255, 255, 0.8);
+		border-radius: 4px;
+		cursor: pointer;
+	}
+
+	.pptx-svelte-smartart-editor {
+		position: absolute;
+		z-index: 11;
+		box-sizing: border-box;
+		padding: 4px;
+		resize: none;
+		border: 2px solid #60a5fa;
+		border-radius: 4px;
+		outline: none;
+		background: rgba(255, 255, 255, 0.96);
+		color: #111827;
+		font: inherit;
+		text-align: center;
 	}
 </style>

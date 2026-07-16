@@ -5,6 +5,7 @@
 	 * to keep that file under the repo's file-size budget; purely
 	 * presentational, all state/logic stays owned by the parent.
 	 */
+	import { setSmartArtNodeStyle, updateSmartArtNodeText } from 'pptx-viewer-core';
 	import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 	import type { CanvasSize, RemoteCursor } from 'pptx-viewer-shared';
 	import { setCellText } from 'pptx-viewer-shared';
@@ -121,6 +122,20 @@
 		const updated = setCellText(table, rowIndex, cellIndex, text);
 		editor.applyElementPatch(id, { tableData: updated.tableData });
 	}
+
+	function commitSmartArtNode(id: string, nodeId: string, text: string): void {
+		const element = editor.activeElements.find((candidate) => candidate.id === id);
+		if (element?.type !== 'smartArt' || !element.smartArtData) return;
+		const next = updateSmartArtNodeText(element.smartArtData, nodeId, text);
+		editor.applyElementPatch(id, { smartArtData: next });
+	}
+
+	function commitSmartArtFill(id: string, nodeId: string, fill: string): void {
+		const element = editor.activeElements.find((candidate) => candidate.id === id);
+		if (element?.type !== 'smartArt' || !element.smartArtData) return;
+		const next = setSmartArtNodeStyle(element.smartArtData, nodeId, { fillColor: fill });
+		if (next !== element.smartArtData) editor.applyElementPatch(id, { smartArtData: next });
+	}
 </script>
 
 <div class="pptx-svelte-body">
@@ -165,7 +180,7 @@
 					oncontextmenu={editingActive ? controller.onStageContextMenu : undefined}
 					onclick={presenting ? onAdvance : undefined}
 				>
-					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive editTemplateMode={editor.editTemplateMode} ontablecellcommit={editingActive ? commitTableCell : undefined} />
+					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive editTemplateMode={editor.editTemplateMode} ontablecellcommit={editingActive ? commitTableCell : undefined} onsmartartnodecommit={editingActive ? commitSmartArtNode : undefined} onsmartartnodefill={editingActive ? commitSmartArtFill : undefined} />
 					{#if editingActive}
 						<EditorLayer {controller} {scale} />
 						<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />

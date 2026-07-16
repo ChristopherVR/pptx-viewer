@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import type { ComponentProps } from 'svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ElementRenderer from './ElementRenderer.svelte';
 
@@ -12,12 +13,16 @@ import ElementRenderer from './ElementRenderer.svelte';
 
 let cleanup: (() => void) | undefined;
 
-function mountEl(element: PptxElement, zIndex = 3): HTMLElement {
+function mountEl(
+	element: PptxElement,
+	zIndex = 3,
+	extra: Partial<ComponentProps<typeof ElementRenderer>> = {},
+): HTMLElement {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(ElementRenderer, {
 		target,
-		props: { element, mediaDataUrls: new Map<string, string>(), zIndex },
+		props: { element, mediaDataUrls: new Map<string, string>(), zIndex, ...extra },
 	});
 	flushSync();
 	cleanup = () => {
@@ -148,5 +153,33 @@ describe('smartArtView', () => {
 		};
 		const placeholder = mountEl(element).querySelector('.pptx-svelte-smartart-placeholder');
 		expect(placeholder?.textContent).toBe('SmartArt');
+	});
+
+	it('edits node text inline and exposes palette fill controls', () => {
+		const onsmartartnodecommit = vi.fn();
+		const onsmartartnodefill = vi.fn();
+		const target = mountEl(drawingShapesElement(), 3, {
+			interactive: true,
+			onsmartartnodecommit,
+			onsmartartnodefill,
+		});
+		const group = target.querySelector<SVGGElement>('[data-smartart-node-id="n1"]')!;
+
+		group.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+		flushSync();
+		const swatch = target.querySelector<HTMLButtonElement>('.pptx-svelte-smartart-swatches button');
+		expect(swatch).toBeTruthy();
+		swatch?.click();
+		expect(onsmartartnodefill).toHaveBeenCalledWith('sa-1', 'n1', expect.any(String));
+
+		group.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		flushSync();
+		const editor = target.querySelector<HTMLTextAreaElement>('.pptx-svelte-smartart-editor')!;
+		expect(editor.value).toBe('Alpha');
+		editor.value = 'Changed';
+		editor.dispatchEvent(new Event('input', { bubbles: true }));
+		editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		flushSync();
+		expect(onsmartartnodecommit).toHaveBeenCalledWith('sa-1', 'n1', 'Changed');
 	});
 });

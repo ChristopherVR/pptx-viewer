@@ -34,7 +34,7 @@
 	import WordArtText from './WordArtText.svelte';
 	import type { ElementRendererProps } from './props';
 
-	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false, editTemplateMode = false, ontablecellcommit }: ElementRendererProps =
+	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false, editTemplateMode = false, ontablecellcommit, onsmartartnodecommit, onsmartartnodefill }: ElementRendererProps =
 		$props();
 	const elementInteractive = $derived(interactive && (!isTemplateElement(element) || editTemplateMode));
 
@@ -74,7 +74,7 @@
 		data-pptx-element={elementInteractive ? 'true' : undefined}
 	>
 		{#each element.children ?? [] as child, i (child.id)}
-			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {editTemplateMode} {ontablecellcommit} />
+			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {editTemplateMode} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} />
 		{/each}
 	</div>
 {:else if isImageLike}
@@ -88,7 +88,7 @@
 {:else if element.type === 'smartArt' && smartArt3D}
 	<SmartArt3DView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'smartArt'}
-	<SmartArtView {element} {mediaDataUrls} {zIndex} {interactive} />
+	<SmartArtView {element} {mediaDataUrls} {zIndex} {interactive} {onsmartartnodecommit} {onsmartartnodefill} />
 {:else if element.type === 'media'}
 	<MediaBox {element} {mediaDataUrls} {zIndex} {presenting} />
 {:else if element.type === 'ink'}

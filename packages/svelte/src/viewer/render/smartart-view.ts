@@ -42,9 +42,9 @@ export type SmartArtView =
 	| { kind: 'layout'; layout: AccessibleLayout }
 	| { kind: 'placeholder' };
 
-export type AccessibleDrawingShape = RenderedShape & { ariaLabel?: string };
+export type AccessibleDrawingShape = RenderedShape & { ariaLabel?: string; nodeId?: string };
 export type AccessibleLayout = Omit<SmartArtLayoutResult, 'nodes'> & {
-	nodes: Array<RenderedNode & { ariaLabel?: string }>;
+	nodes: Array<RenderedNode & { ariaLabel?: string; nodeId?: string }>;
 };
 
 function labelMap(nodes: SmartArtNodeA11y[]): Map<string, string> {
@@ -91,7 +91,7 @@ export function buildSmartArtView(element: SmartArtPptxElement): SmartArtView {
 					drawingShapes,
 					nodes,
 				);
-				return { ...shape, ariaLabel: nodeId ? labels.get(nodeId) : undefined };
+				return { ...shape, nodeId, ariaLabel: nodeId ? labels.get(nodeId) : undefined };
 			}),
 			shadow: styleShadowFilter(style),
 		};
@@ -112,7 +112,11 @@ export function buildSmartArtView(element: SmartArtPptxElement): SmartArtView {
 			kind: 'layout',
 			layout: {
 				...layout,
-				nodes: layout.nodes.map((node, index) => ({ ...node, ariaLabel: labels[index]?.label })),
+				nodes: layout.nodes.map((node, index) => ({
+					...node,
+					nodeId: nodes[index]?.id,
+					ariaLabel: labels[index]?.label,
+				})),
 			},
 		};
 	}
