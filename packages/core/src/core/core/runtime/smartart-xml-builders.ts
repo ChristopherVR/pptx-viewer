@@ -2,6 +2,7 @@ import type { XmlObject } from '../../types';
 import type {
 	PptxSmartArtNode,
 	PptxSmartArtConnection,
+	PptxSmartArtTextParagraph,
 	PptxSmartArtTextRun,
 } from '../../types/smart-art';
 import { generateFontGuid } from '../../utils/font-deobfuscation';
@@ -10,6 +11,7 @@ import {
 	applySmartArtPointAttributes,
 } from '../../utils/smartart-data-model-attributes';
 import { applySmartArtNodeStyleToPoint } from './smartart-style-xml';
+import { buildSmartArtTextParagraph, smartArtParagraphsText } from './smartart-text-paragraphs';
 
 /**
  * Point `@_type` values that are NOT user-editable content nodes.
@@ -104,6 +106,13 @@ export function shouldRebuildFromRuns(node: PptxSmartArtNode): node is PptxSmart
 	return joinRunText(runs) === node.text;
 }
 
+/** True when the complete typed paragraph model still represents node text. */
+export function shouldRebuildFromParagraphs(
+	node: PptxSmartArtNode,
+): node is PptxSmartArtNode & { paragraphs: PptxSmartArtTextParagraph[] } {
+	return Boolean(node.paragraphs?.length && smartArtParagraphsText(node.paragraphs) === node.text);
+}
+
 /**
  * Build a `dgm:t` text body from preserved per-run text + properties.
  */
@@ -112,6 +121,16 @@ export function buildPointFromRuns(runs: PptxSmartArtTextRun[]): XmlObject {
 		'a:bodyPr': {},
 		'a:lstStyle': {},
 		'a:p': buildMultiRunParagraph(runs),
+	};
+}
+
+/** Build a complete `dgm:t` body from typed SmartArt paragraphs. */
+export function buildPointFromParagraphs(paragraphs: PptxSmartArtTextParagraph[]): XmlObject {
+	const built = paragraphs.map(buildSmartArtTextParagraph);
+	return {
+		'a:bodyPr': {},
+		'a:lstStyle': {},
+		'a:p': built.length === 1 ? built[0] : built,
 	};
 }
 
@@ -131,6 +150,22 @@ function applyRunsToExistingBody(pt: XmlObject, tKey: string, runs: PptxSmartArt
 	bodyObj[pKey ?? 'a:p'] = buildMultiRunParagraph(runs);
 }
 
+function applyParagraphsToExistingBody(
+	pt: XmlObject,
+	tKey: string,
+	paragraphs: PptxSmartArtTextParagraph[],
+): void {
+	const body = pt[tKey];
+	if (!body || typeof body !== 'object' || Array.isArray(body)) {
+		pt[tKey] = buildPointFromParagraphs(paragraphs);
+		return;
+	}
+	const bodyObj = body as XmlObject;
+	const pKey = Object.keys(bodyObj).find((key) => stripPrefix(key) === 'p') ?? 'a:p';
+	const built = paragraphs.map(buildSmartArtTextParagraph);
+	bodyObj[pKey] = built.length === 1 ? built[0] : built;
+}
+
 /**
  * Replace the run text of an EXISTING point's `dgm:t` in place while keeping
  * the rest of the point (prSet, spPr, extLst, run properties, etc.) intact.
@@ -146,10 +181,20 @@ function applyRunsToExistingBody(pt: XmlObject, tKey: string, runs: PptxSmartArt
  */
 function applyTextToExistingPoint(pt: XmlObject, node: PptxSmartArtNode): void {
 	const text = node.text;
+	const rebuildFromParagraphs = shouldRebuildFromParagraphs(node);
 	const rebuildFromRuns = shouldRebuildFromRuns(node);
 	const tKey = Object.keys(pt).find((k) => stripPrefix(k) === 't');
 	if (!tKey) {
-		pt['dgm:t'] = rebuildFromRuns ? buildPointFromRuns(node.runs) : buildPointText(text);
+		pt['dgm:t'] = rebuildFromParagraphs
+			? buildPointFromParagraphs(node.paragraphs)
+			: rebuildFromRuns
+				? buildPointFromRuns(node.runs)
+				: buildPointText(text);
+		return;
+	}
+
+	if (rebuildFromParagraphs) {
+		applyParagraphsToExistingBody(pt, tKey, node.paragraphs);
 		return;
 	}
 
@@ -167,6 +212,10 @@ function applyTextToExistingPoint(pt: XmlObject, node: PptxSmartArtNode): void {
 	const bodyObj = body as XmlObject;
 	const pKey = Object.keys(bodyObj).find((k) => stripPrefix(k) === 'p');
 	const paragraph = pKey ? bodyObj[pKey] : undefined;
+	if (node.paragraphs?.length) {
+		bodyObj[pKey ?? 'a:p'] = buildPointText(text)['a:p'];
+		return;
+	}
 	// Multiple paragraphs / runs are uncommon for SmartArt content points; the
 	// simplest faithful behaviour is to rewrite the single-run body, preserving
 	// the surrounding bodyPr / lstStyle keys that already exist on the point.
@@ -219,7 +268,11 @@ export function buildSmartArtPointXml(nodes: PptxSmartArtNode[]): XmlObject[] {
 			ptNode['@_type'] = node.nodeType;
 		}
 		applySmartArtPointAttributes(ptNode, node);
-		ptNode['dgm:t'] = buildPointText(node.text);
+		ptNode['dgm:t'] = shouldRebuildFromParagraphs(node)
+			? buildPointFromParagraphs(node.paragraphs)
+			: shouldRebuildFromRuns(node)
+				? buildPointFromRuns(node.runs)
+				: buildPointText(node.text);
 		return ptNode;
 	});
 }
@@ -293,9 +346,11 @@ export function mergeSmartArtPointXml(
 			ptNode['@_type'] = node.nodeType;
 		}
 		applySmartArtPointAttributes(ptNode, node);
-		ptNode['dgm:t'] = shouldRebuildFromRuns(node)
-			? buildPointFromRuns(node.runs)
-			: buildPointText(node.text);
+		ptNode['dgm:t'] = shouldRebuildFromParagraphs(node)
+			? buildPointFromParagraphs(node.paragraphs)
+			: shouldRebuildFromRuns(node)
+				? buildPointFromRuns(node.runs)
+				: buildPointText(node.text);
 		applySmartArtNodeStyleToPoint(ptNode, node.style);
 		merged.push(ptNode);
 	}

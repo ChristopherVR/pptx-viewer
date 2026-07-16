@@ -3,7 +3,9 @@ import type { PptxSmartArtNode, PptxSmartArtConnection } from '../../types/smart
 import {
 	isContentPoint,
 	buildPointText,
+	buildPointFromParagraphs,
 	buildPointFromRuns,
+	shouldRebuildFromParagraphs,
 	shouldRebuildFromRuns,
 	newSmartArtGuid,
 } from './smartart-xml-builders';
@@ -42,9 +44,11 @@ function buildContentPoint(node: PptxSmartArtNode): XmlObject {
 	const pt: XmlObject = { '@_modelId': node.id };
 	pt['dgm:prSet'] = node.text ? {} : { '@_phldrT': '[Text]' };
 	pt['dgm:spPr'] = {};
-	pt['dgm:t'] = shouldRebuildFromRuns(node)
-		? buildPointFromRuns(node.runs)
-		: buildPointText(node.text ?? '');
+	pt['dgm:t'] = shouldRebuildFromParagraphs(node)
+		? buildPointFromParagraphs(node.paragraphs)
+		: shouldRebuildFromRuns(node)
+			? buildPointFromRuns(node.runs)
+			: buildPointText(node.text ?? '');
 	return pt;
 }
 

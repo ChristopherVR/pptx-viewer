@@ -4,6 +4,11 @@ import { parseDiagramRelationshipIds, parseSmartArtLayoutDefinition } from '../.
 import { MAX_SMARTART_NODES } from '../builders/smart-art-text-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtParsing';
 import { resolveSmartArtLayoutCategory } from './smartart-layout-category';
+import {
+	firstParagraphRuns,
+	parseSmartArtTextParagraphs,
+	smartArtParagraphsText,
+} from './smartart-text-paragraphs';
 import { isContentPoint } from './smartart-xml-builders';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -65,8 +70,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// Capture per-run formatting so a load -> edit -> save round-trip
 				// keeps a node's individual runs (bold / colour / size) instead of
 				// flattening them to a single unstyled run on save.
-				const runs = this.extractSmartArtNodeRuns(point);
-				const resolvedText = runs?.map((run) => run.text).join('') ?? textValues.join('');
+				const paragraphs = parseSmartArtTextParagraphs(point);
+				const runs = firstParagraphRuns(paragraphs);
+				const resolvedText = paragraphs ? smartArtParagraphsText(paragraphs) : textValues.join('');
 
 				// Capture any per-node colour / emphasis override so the editing
 				// UI can display current values and the save path round-trips it.
@@ -79,6 +85,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					parentId: parentByNodeId.get(pointId),
 					nodeType,
 					runs,
+					paragraphs,
 					style,
 				};
 			})

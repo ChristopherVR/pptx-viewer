@@ -11,6 +11,7 @@ import {
 } from '../../utils/smartart-definition-metadata';
 import { collectLocalTextValues as collectSmartArtTextValues } from '../builders/smart-art-text-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeComments';
+import { firstParagraphRuns, parseSmartArtTextParagraphs } from './smartart-text-paragraphs';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected async readXmlPartByRelationshipId(
@@ -57,34 +58,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * formatting like a bold sole run survives).
 	 */
 	protected extractSmartArtNodeRuns(point: XmlObject): PptxSmartArtTextRun[] | undefined {
-		const tBody = this.xmlLookupService.getChildByLocalName(point, 't');
-		if (!tBody) {
-			return undefined;
-		}
-		const paragraph = this.xmlLookupService.getChildrenArrayByLocalName(tBody, 'p')[0];
-		if (!paragraph) {
-			return undefined;
-		}
-		const runNodes = this.xmlLookupService.getChildrenArrayByLocalName(paragraph, 'r');
-		if (runNodes.length === 0) {
-			return undefined;
-		}
-
-		const runs: PptxSmartArtTextRun[] = [];
-		for (const run of runNodes) {
-			const textValues: string[] = [];
-			this.collectLocalTextValues(run, 't', textValues);
-			const text = textValues.join('');
-			const rPrNode = this.xmlLookupService.getChildByLocalName(run, 'rPr');
-			const entry: PptxSmartArtTextRun = { text };
-			if (rPrNode) {
-				// Deep clone so later in-memory edits cannot mutate the parsed tree.
-				entry.rPr = JSON.parse(JSON.stringify(rPrNode)) as Record<string, unknown>;
-			}
-			runs.push(entry);
-		}
-
-		return runs.length > 0 ? runs : undefined;
+		return firstParagraphRuns(parseSmartArtTextParagraphs(point));
 	}
 
 	/**

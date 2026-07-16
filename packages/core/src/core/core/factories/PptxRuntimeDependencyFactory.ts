@@ -27,6 +27,7 @@ import type {
 	IPptxXmlLookupService,
 } from '../../services';
 import { decodeXmlEntities } from '../../utils/xml-entities';
+import { annotateSmartArtTextOrder } from '../runtime/smartart-text-order';
 
 export interface PptxRuntimeDependencyFactoryInput {
 	zip: JSZip;
@@ -112,6 +113,9 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			const parsed = validationOption === undefined ? parse(xml) : parse(xml, validationOption);
 			if (typeof xml === 'string' && xml.includes('custGeom')) {
 				annotateCustomGeometryCommandOrder(xml, parsed);
+			}
+			if (typeof xml === 'string' && xml.includes('dataModel')) {
+				annotateSmartArtTextOrder(xml, parsed);
 			}
 			return parsed;
 		}) as typeof parser.parse;

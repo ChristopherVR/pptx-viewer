@@ -31,6 +31,35 @@ export interface PptxSmartArtTextRun {
 	 * round-trip. Untyped XML, hence the loose record shape.
 	 */
 	rPr?: Record<string, unknown>;
+	/** Raw run XML used to retain unmodelled extension children on save. */
+	rawXml?: Record<string, unknown>;
+}
+
+/** An ordered item within a SmartArt text paragraph. */
+export type PptxSmartArtTextParagraphItem =
+	| { kind: 'run'; run: PptxSmartArtTextRun }
+	| { kind: 'break'; rPr?: Record<string, unknown>; rawXml?: Record<string, unknown> }
+	| {
+			kind: 'field';
+			id?: string;
+			fieldType?: string;
+			text: string;
+			rPr?: Record<string, unknown>;
+			pPr?: Record<string, unknown>;
+			rawXml?: Record<string, unknown>;
+	  }
+	| { kind: 'tab'; rawXml?: Record<string, unknown> };
+
+/** A complete `a:p` paragraph in a SmartArt data-model text body. */
+export interface PptxSmartArtTextParagraph {
+	/** Paragraph properties (`a:pPr`) preserved verbatim. */
+	pPr?: Record<string, unknown>;
+	/** Text children in source order. */
+	items: PptxSmartArtTextParagraphItem[];
+	/** End-paragraph run properties (`a:endParaRPr`) preserved verbatim. */
+	endParaRPr?: Record<string, unknown>;
+	/** Raw paragraph XML used to retain unmodelled extension children on save. */
+	rawXml?: Record<string, unknown>;
 }
 
 /**
@@ -102,6 +131,11 @@ export interface PptxSmartArtNode {
 	 * is not flattened. When {@link text} diverges, the runs are ignored.
 	 */
 	runs?: PptxSmartArtTextRun[];
+	/**
+	 * Complete typed paragraph model. Unlike {@link runs}, this retains every
+	 * paragraph and the ordered run, field, break, and tab children within it.
+	 */
+	paragraphs?: PptxSmartArtTextParagraph[];
 	/**
 	 * Optional per-node visual override (fill / line / font colour, bold /
 	 * italic). Read at parse time from the point's `spPr` / first-run `rPr`, set

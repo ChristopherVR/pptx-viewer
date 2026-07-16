@@ -20,6 +20,8 @@ import type {
 // `smart-art` (and the `types` barrel) keep working unchanged.
 export type {
 	PptxSmartArtTextRun,
+	PptxSmartArtTextParagraphItem,
+	PptxSmartArtTextParagraph,
 	PptxSmartArtNodeStyle,
 	PptxSmartArtNode,
 } from './smart-art-node';
