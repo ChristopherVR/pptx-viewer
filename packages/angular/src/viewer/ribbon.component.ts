@@ -240,8 +240,11 @@ const TABS: readonly TabDef[] = [
 						<pptx-ribbon-file-section
 							[slideCount]="slideCount()"
 							[exporting]="exporting()"
+							[hasMacros]="hasMacros()"
 							(openFile)="openFile.emit()"
 							(save)="save.emit()"
+							(savePpsx)="savePpsx.emit()"
+							(savePptm)="savePptm.emit()"
 							(exportPng)="exportPng.emit()"
 							(exportPdf)="exportPdf.emit()"
 							(exportGif)="exportGif.emit()"
@@ -411,6 +414,7 @@ export class RibbonComponent {
 	readonly formatPainterActive = input<boolean>(false);
 	readonly canActivateFormatPainter = input<boolean>(false);
 	readonly exporting = input<boolean>(false);
+	readonly hasMacros = input<boolean>(false);
 	/** Current visibility state of the grid overlay (for active-state styling). */
 	readonly showGrid = input<boolean>(false);
 	/** Current visibility state of rulers (for active-state styling). */
@@ -453,6 +457,8 @@ export class RibbonComponent {
 	readonly openFile = output<void>();
 	/** Emitted when the user clicks "Save" in the File tab (saves as .pptx). */
 	readonly save = output<void>();
+	readonly savePpsx = output<void>();
+	readonly savePptm = output<void>();
 	/** Emitted when the user toggles the slides panel from the top bar. */
 	readonly toggleSidebar = output<void>();
 	/** Emitted when the user opens the Digital Signatures panel from the File tab. */

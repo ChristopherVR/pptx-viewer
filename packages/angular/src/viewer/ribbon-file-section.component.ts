@@ -32,6 +32,26 @@ import { TranslatePipe } from '@ngx-translate/core';
 		>
 			{{ 'pptx.toolbar.save' | translate }}
 		</button>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[disabled]="slideCount() === 0"
+			(click)="savePpsx.emit()"
+			[title]="'pptx.file.saveAsPpsxTooltip' | translate"
+		>
+			{{ 'pptx.file.saveAsPpsx' | translate }}
+		</button>
+		@if (hasMacros()) {
+			<button
+				type="button"
+				class="pptx-rb-pill"
+				[disabled]="slideCount() === 0"
+				(click)="savePptm.emit()"
+				[title]="'pptx.file.saveAsPptmTooltip' | translate"
+			>
+				{{ 'pptx.file.saveAsPptm' | translate }}
+			</button>
+		}
 		<span class="pptx-rb-sep"></span>
 		<div class="pptx-rb-grp">
 			<button
@@ -123,9 +143,12 @@ import { TranslatePipe } from '@ngx-translate/core';
 export class RibbonFileSectionComponent {
 	readonly slideCount = input<number>(0);
 	readonly exporting = input<boolean>(false);
+	readonly hasMacros = input<boolean>(false);
 
 	readonly openFile = output<void>();
 	readonly save = output<void>();
+	readonly savePpsx = output<void>();
+	readonly savePptm = output<void>();
 	readonly exportPng = output<void>();
 	readonly exportPdf = output<void>();
 	readonly exportGif = output<void>();

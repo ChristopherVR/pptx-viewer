@@ -9,6 +9,7 @@ import type {
 	PptxHeaderFooter,
 	PptxHandoutMaster,
 	PptxNotesMaster,
+	PptxSaveFormat,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxTheme,
@@ -60,6 +61,8 @@ export class LoadContentService {
 	readonly notesMaster = signal<PptxNotesMaster | undefined>(undefined);
 	/** Handout master, including its editable element tree. */
 	readonly handoutMaster = signal<PptxHandoutMaster | undefined>(undefined);
+	/** Whether the loaded package contains a VBA project. */
+	readonly hasMacros = signal(false);
 	/** Archive-path → displayable URL map for media + poster frames. */
 	readonly mediaDataUrls = signal<Map<string, string>>(new Map());
 	/** Embedded font data (name + binary) extracted from the presentation. */
@@ -109,7 +112,10 @@ export class LoadContentService {
 	 * Serialise an explicit set of slides back to `.pptx` bytes (e.g. the
 	 * editor's edited deck) using the loaded presentation's handler.
 	 */
-	async saveSlides(slides: readonly PptxSlide[]): Promise<Uint8Array> {
+	async saveSlides(
+		slides: readonly PptxSlide[],
+		outputFormat: PptxSaveFormat = 'pptx',
+	): Promise<Uint8Array> {
 		if (!this.handler) {
 			throw new Error('No presentation is loaded.');
 		}
@@ -117,6 +123,7 @@ export class LoadContentService {
 			slideMasters: this.slideMasters(),
 			notesMaster: this.notesMaster(),
 			handoutMaster: this.handoutMaster(),
+			outputFormat,
 		});
 	}
 
@@ -275,6 +282,7 @@ export class LoadContentService {
 			this.slideMasters.set(parsed.slideMasters ?? []);
 			this.notesMaster.set(parsed.notesMaster);
 			this.handoutMaster.set(parsed.handoutMaster);
+			this.hasMacros.set(parsed.hasMacros ?? false);
 			this.embeddedFonts.set(parsed.embeddedFonts ?? []);
 			this.coreProperties.set(parsed.coreProperties);
 			this.customProperties.set(parsed.customProperties ?? []);

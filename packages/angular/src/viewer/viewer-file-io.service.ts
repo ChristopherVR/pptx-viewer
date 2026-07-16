@@ -17,7 +17,7 @@
  */
 
 import { inject, Injectable, signal } from '@angular/core';
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
 
 import { openPptxFile } from '../internal/shared';
 import { ExportService } from './export.service';
@@ -97,9 +97,26 @@ export class ViewerFileIOService {
 	 * Surfaced on the mobile toolbar so saving is reachable without the desktop
 	 * ribbon's File tab.
 	 */
+	async saveAs(format: PptxSaveFormat): Promise<void> {
+		const host = this.requireHost();
+		const slides = buildSaveSlides(host.slides(), host.templateElementsBySlideId());
+		const bytes = host.canEdit()
+			? await this.loader.saveSlides(slides, format)
+			: await this.loader.saveSlides(this.loader.slides(), format);
+		host.emitContentChange(bytes);
+		this.exportSvc.savePresentation(bytes, `presentation.${format}`, format);
+	}
+
 	async saveAsPptx(): Promise<void> {
-		const bytes = await this.getContent();
-		this.exportSvc.savePptx(bytes, 'presentation.pptx');
+		await this.saveAs('pptx');
+	}
+
+	async saveAsPpsx(): Promise<void> {
+		await this.saveAs('ppsx');
+	}
+
+	async saveAsPptm(): Promise<void> {
+		await this.saveAs('pptm');
 	}
 
 	/**

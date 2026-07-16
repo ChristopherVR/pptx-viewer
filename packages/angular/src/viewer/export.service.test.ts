@@ -49,3 +49,22 @@ describe('copyElementAsPng', () => {
 		).rejects.toThrow('Image clipboard is unavailable');
 	});
 });
+
+describe('savePresentation', () => {
+	it.each([
+		['pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+		['ppsx', 'application/vnd.openxmlformats-officedocument.presentationml.slideshow'],
+		['pptm', 'application/vnd.ms-powerpoint.presentation.macroenabled.12'],
+	] as const)('uses the %s package MIME type', (format, expectedType) => {
+		const createObjectUrl = vi.fn(() => 'blob:presentation');
+		Object.defineProperty(URL, 'createObjectURL', {
+			configurable: true,
+			value: createObjectUrl,
+		});
+		vi.spyOn(HTMLAnchorElement.prototype, 'click').mockReturnValue(undefined);
+
+		new ExportService().savePresentation(new Uint8Array([1, 2, 3]), `deck.${format}`, format);
+
+		expect(createObjectUrl).toHaveBeenCalledWith(expect.objectContaining({ type: expectedType }));
+	});
+});

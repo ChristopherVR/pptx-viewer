@@ -12,6 +12,7 @@
 
 import { Injectable } from '@angular/core';
 import { jsPDF } from 'jspdf';
+import type { PptxSaveFormat } from 'pptx-viewer-core';
 
 import { canvasToJpegData, downloadBlob } from '../internal/shared';
 import { renderToCanvas } from '../lib/canvas-export';
@@ -42,6 +43,12 @@ function canvasToJpegBytes(canvas: HTMLCanvasElement, quality: number = 0.92): U
 
 @Injectable()
 export class ExportService {
+	private static readonly PRESENTATION_MIME: Record<PptxSaveFormat, string> = {
+		pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		ppsx: 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+		pptm: 'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+	};
+
 	/**
 	 * Trigger a browser download of serialized `.pptx` bytes.
 	 *
@@ -49,8 +56,13 @@ export class ExportService {
 	 * @param fileName - Suggested download file name (unsafe chars are stripped).
 	 */
 	savePptx(bytes: Uint8Array, fileName: string): void {
+		this.savePresentation(bytes, fileName, 'pptx');
+	}
+
+	/** Download serialized presentation bytes using the matching package MIME type. */
+	savePresentation(bytes: Uint8Array, fileName: string, format: PptxSaveFormat): void {
 		const blob = new Blob([bytes as unknown as BlobPart], {
-			type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+			type: ExportService.PRESENTATION_MIME[format],
 		});
 		downloadBlob(blob, sanitizeFileName(fileName));
 	}
