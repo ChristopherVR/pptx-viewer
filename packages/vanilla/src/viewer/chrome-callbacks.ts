@@ -56,6 +56,9 @@ export interface ChromeCallbackDeps {
 	exportGif(): Promise<void>;
 	exportVideo(): Promise<void>;
 	print(): Promise<boolean>;
+	openFile(): void;
+	openRecentFile(key: string): void;
+	createPresentation(templateId: string): void;
 	/** Lazily resolve the editor's edit actions (editor is built after chrome). */
 	getEditActions(): EditActions;
 	/** Lazily resolve the editor's find/replace actions (same timing as edit actions). */
@@ -108,6 +111,9 @@ export function buildChromeCallbacks(
 			save: () => deps.save(),
 		},
 		file: {
+			openFile: () => deps.openFile(),
+			openRecentFile: (key) => deps.openRecentFile(key),
+			createPresentation: (templateId) => deps.createPresentation(templateId),
 			openDocumentProperties: () => deps.openDocumentProperties(),
 			openFontEmbedding: () => deps.openFontEmbedding(),
 			openDigitalSignatures: () => deps.openDigitalSignatures(),
