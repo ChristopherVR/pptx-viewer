@@ -62,6 +62,7 @@ export interface ChromeCallbackDeps {
 	getFindReplaceActions(): FindReplaceActions;
 	/** Swap the viewer chrome's `ViewerTheme` (Design tab theme gallery). */
 	setTheme(theme: ViewerTheme | undefined): void;
+	applyPresentationTheme(presetId: string): void;
 	/** Switch the Draw ribbon tab's active tool. */
 	setDrawTool(tool: DrawTool): void;
 	/** Set the pen/highlighter stroke colour (Draw tab). */
@@ -149,6 +150,7 @@ export function buildChromeCallbacks(
 		findReplace: createLazyActions(() => deps.getFindReplaceActions()),
 		design: {
 			setTheme: (theme) => deps.setTheme(theme),
+			applyPresentationTheme: (presetId) => deps.applyPresentationTheme(presetId),
 		},
 		draw: {
 			setTool: (tool) => deps.setDrawTool(tool),
@@ -178,6 +180,10 @@ export function buildChromeCallbacks(
 		setImageContrast: (value) => deps.getEditActions().setImageContrast(value),
 		setImageSaturation: (value) => deps.getEditActions().setImageSaturation(value),
 		setImageCrop: (edge, value) => deps.getEditActions().setImageCrop(edge, value),
+		setImageEffects: (patch) => deps.getEditActions().setImageEffects(patch),
+		setElementAction: (trigger, action) => deps.getEditActions().setElementAction(trigger, action),
+		setChartData: (data) => deps.getEditActions().setChartData(data),
+		setMediaProperties: (patch) => deps.getEditActions().setMediaProperties(patch),
 
 		setTableHeaderRow: (enabled) => deps.getEditActions().setTableHeaderRow(enabled),
 		setTableBandedRows: (enabled) => deps.getEditActions().setTableBandedRows(enabled),

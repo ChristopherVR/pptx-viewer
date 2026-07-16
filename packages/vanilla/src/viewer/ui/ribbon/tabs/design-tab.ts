@@ -1,3 +1,4 @@
+import { THEME_PRESETS } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
 import { vermilionDarkTheme, vermilionLightTheme } from 'pptx-viewer-shared';
 
@@ -58,6 +59,21 @@ export function createDesignTab(
 	}
 	el.appendChild(themeGallery);
 
+	const deckThemes = createEl(doc, 'div', 'pptxv-theme-gallery pptxv-deck-theme-gallery');
+	const deckThemeButtons = THEME_PRESETS.map((preset) => {
+		const btn = makeButton(doc, {
+			label: preset.name,
+			text: preset.name,
+			onClick: () => handlers.applyPresentationTheme(preset.id),
+		});
+		const preview = createEl(doc, 'span', 'pptxv-theme-swatch-preview');
+		preview.style.background = `linear-gradient(135deg, ${preset.colorScheme.accent1}, ${preset.colorScheme.accent2})`;
+		btn.btn.prepend(preview);
+		deckThemes.appendChild(btn.btn);
+		return btn;
+	});
+	el.appendChild(deckThemes);
+
 	const formatBackground = makeButton(doc, {
 		label: t('pptx.ribbon.formatBackground'),
 		text: t('pptx.ribbon.formatBackground'),
@@ -69,6 +85,9 @@ export function createDesignTab(
 		el,
 		setEditable(editable) {
 			formatBackground.setDisabled(!editable);
+			for (const button of deckThemeButtons) {
+				button.setDisabled(!editable);
+			}
 		},
 	};
 }

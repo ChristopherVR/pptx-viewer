@@ -141,7 +141,12 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 		});
 	};
 	const syncAnimations = (): void => {
-		animationsTab.update({ editable: lastEditable, hasSelection: latestSelected !== undefined });
+		animationsTab.update({
+			editable: lastEditable,
+			hasSelection: latestSelected !== undefined,
+			selectedElementId: latestExtra.selectedElementId,
+			animations: latestExtra.animations ?? [],
+		});
 	};
 
 	let lastEditable = false;

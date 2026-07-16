@@ -37,6 +37,7 @@ import { createParityWorkflows } from './parity-workflows';
 import { mountPresenterConsole, renderAudienceEffects } from './presenter-console';
 import type { PresentationAnnotationsHost } from './presentation-annotations-host';
 import { createPresentationAnnotationsHost } from './presentation-annotations-host';
+import { applyPresentationThemePreset } from './presentation-theme-controller';
 import type { ElementRendererRegistry } from './render';
 import { createDefaultRegistry } from './render';
 import type { RenderController } from './render-controller';
@@ -396,6 +397,15 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			theme,
 			this.lifecycle.appliedThemeVars,
 		);
+	}
+
+	applyPresentationTheme(presetId: string): void {
+		void applyPresentationThemePreset({
+			presetId,
+			loading: this.loading,
+			store: this.store,
+			editor: this.editor,
+		});
 	}
 
 	/** Run the shared WCAG checks against the live deck and show the results. */

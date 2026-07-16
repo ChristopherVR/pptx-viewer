@@ -162,7 +162,16 @@ describe('createAnimationActions', () => {
 		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
 		const actions = createAnimationActions({ store, ops });
 
-		actions.setAnimationTiming('el1', { durationMs: 1200, delayMs: 300, trigger: 'afterPrevious' });
+		actions.setAnimationTiming('el1', {
+			durationMs: 1200,
+			delayMs: 300,
+			trigger: 'afterPrevious',
+			direction: 'fromLeft',
+			sequence: 'byWord',
+			timingCurve: 'ease-in',
+			repeatCount: 3,
+			repeatMode: 'untilEndOfSlide',
+		});
 		actions.reorderAnimation('el2', 'up');
 
 		const updated = store.get().slides[0].animations!;
@@ -170,6 +179,11 @@ describe('createAnimationActions', () => {
 			durationMs: 1200,
 			delayMs: 300,
 			trigger: 'afterPrevious',
+			direction: 'fromLeft',
+			sequence: 'byWord',
+			timingCurve: 'ease-in',
+			repeatCount: 3,
+			repeatMode: 'untilEndOfSlide',
 			order: 1,
 		});
 		expect(updated.find(({ elementId }) => elementId === 'el2')?.order).toBe(0);

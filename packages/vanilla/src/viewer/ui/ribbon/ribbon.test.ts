@@ -73,7 +73,7 @@ function buildHandlers(): RibbonHandlers {
 		insert: fakeActions<RibbonInsertHandlers>(),
 		edit: fakeActions<EditActions>(),
 		findReplace: fakeActions<FindReplaceActions>(),
-		design: { setTheme: vi.fn() },
+		design: { setTheme: vi.fn(), applyPresentationTheme: vi.fn() },
 		draw: { setTool: vi.fn(), setColor: vi.fn(), setWidth: vi.fn() },
 	};
 }

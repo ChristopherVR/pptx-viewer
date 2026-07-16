@@ -194,6 +194,7 @@ export interface ChromeHost {
 	print(): Promise<boolean>;
 	openPrintDialog(): void;
 	setTheme(theme: ViewerTheme | undefined): void;
+	applyPresentationTheme(presetId: string): void;
 }
 
 /** Build `mountChrome`'s deps from the live viewer instance. */
@@ -260,6 +261,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		getEditActions: () => host.editor.getEditActions(),
 		getFindReplaceActions: () => host.editor.getFindReplaceActions(),
 		setTheme: (theme) => host.setTheme(theme),
+		applyPresentationTheme: (presetId) => host.applyPresentationTheme(presetId),
 		setDrawTool: (tool) => host.editor.setDrawTool(tool),
 		setDrawColor: (color) => host.editor.setDrawColor(color),
 		setDrawWidth: (width) => host.editor.setDrawWidth(width),

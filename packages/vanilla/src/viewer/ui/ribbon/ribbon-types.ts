@@ -1,3 +1,4 @@
+import type { PptxElementAnimation } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
 
 import type { EditActions } from '../../editor/editor-edit-ops';
@@ -87,6 +88,7 @@ export interface RibbonSlideShowHandlers {
  */
 export interface RibbonDesignHandlers {
 	setTheme(theme: ViewerTheme | undefined): void;
+	applyPresentationTheme(presetId: string): void;
 }
 
 /**
@@ -157,4 +159,6 @@ export interface RibbonSelectionState {
 	slideCount: number;
 	selectedCount?: number;
 	formatPainterActive?: boolean;
+	selectedElementId?: string;
+	animations?: readonly PptxElementAnimation[];
 }
