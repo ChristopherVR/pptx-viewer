@@ -17,6 +17,7 @@ import { XMLBuilder } from 'fast-xml-parser';
  */
 import { EMU_PER_PX } from '../../constants';
 import { customGeometryPathsToXml } from '../../geometry/custom-geometry';
+import { stripXmlOrderMarkers } from '../../geometry/custom-geometry-command-order';
 import type {
 	PptxElement,
 	PptxSmartArtDrawingShape,
@@ -148,18 +149,20 @@ function shapePropsXml(shape: PptxSmartArtDrawingShape): string {
 	const prst = shape.shapeType && shape.shapeType !== 'custom' ? shape.shapeType : 'rect';
 	const geom =
 		shape.customGeometryPaths && shape.customGeometryPaths.length > 0
-			? geometryBuilder.build({
-					'a:custGeom': customGeometryPathsToXml(
-						shape.customGeometryPaths,
-						shape.customGeometryRawData,
-						{
-							adjustHandlesXY: shape.customGeometryAdjustHandlesXY,
-							adjustHandlesPolar: shape.customGeometryAdjustHandlesPolar,
-							connectionSites: shape.customGeometryConnectionSites,
-							textRect: shape.customGeometryTextRect,
-						},
-					),
-				})
+			? stripXmlOrderMarkers(
+					geometryBuilder.build({
+						'a:custGeom': customGeometryPathsToXml(
+							shape.customGeometryPaths,
+							shape.customGeometryRawData,
+							{
+								adjustHandlesXY: shape.customGeometryAdjustHandlesXY,
+								adjustHandlesPolar: shape.customGeometryAdjustHandlesPolar,
+								connectionSites: shape.customGeometryConnectionSites,
+								textRect: shape.customGeometryTextRect,
+							},
+						),
+					}),
+				)
 			: `<a:prstGeom prst="${xmlEscape(prst)}"><a:avLst/></a:prstGeom>`;
 	const fillHex = normalizeHex(shape.fillColor);
 	const fill = fillHex ? `<a:solidFill><a:srgbClr val="${fillHex}"/></a:solidFill>` : '';

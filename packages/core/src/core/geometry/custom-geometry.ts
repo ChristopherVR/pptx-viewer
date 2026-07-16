@@ -13,6 +13,7 @@ import type {
 	CustomGeometryTextRect,
 	XmlObject,
 } from '../types';
+import { orderedXmlKey } from './custom-geometry-command-order';
 import { ooxmlArcToSvg } from './guide-formula-paths';
 
 // ---------------------------------------------------------------------------
@@ -329,33 +330,41 @@ export function customGeometryPathsToXml(
 			pathXml['@_extrusionOk'] = '0';
 		}
 
-		const moveToList: XmlObject[] = [];
-		const lnToList: XmlObject[] = [];
-		const cubicBezToList: XmlObject[] = [];
-		const quadBezToList: XmlObject[] = [];
-		const arcToList: XmlObject[] = [];
-		let hasClose = false;
+		let previousName: string | undefined;
+		let previousKey: string | undefined;
+		let order = 0;
+		const appendCommand = (name: string, value: XmlObject): void => {
+			if (name === previousName && previousKey) {
+				const existing = pathXml[previousKey] as XmlObject | XmlObject[];
+				pathXml[previousKey] = Array.isArray(existing) ? [...existing, value] : [existing, value];
+				return;
+			}
+			const seen = Object.keys(pathXml).some((key) => key === name || key.startsWith(`${name}#`));
+			previousKey = seen ? orderedXmlKey(name, order++) : name;
+			pathXml[previousKey] = value;
+			previousName = name;
+		};
 
 		for (const seg of path.segments) {
 			switch (seg.type) {
 				case 'moveTo':
-					moveToList.push({ 'a:pt': pointToXml(seg.pt) });
+					appendCommand('a:moveTo', { 'a:pt': pointToXml(seg.pt) });
 					break;
 				case 'lineTo':
-					lnToList.push({ 'a:pt': pointToXml(seg.pt) });
+					appendCommand('a:lnTo', { 'a:pt': pointToXml(seg.pt) });
 					break;
 				case 'cubicBezTo':
-					cubicBezToList.push({
+					appendCommand('a:cubicBezTo', {
 						'a:pt': seg.pts.map(pointToXml),
 					});
 					break;
 				case 'quadBezTo':
-					quadBezToList.push({
+					appendCommand('a:quadBezTo', {
 						'a:pt': seg.pts.map(pointToXml),
 					});
 					break;
 				case 'arcTo':
-					arcToList.push({
+					appendCommand('a:arcTo', {
 						'@_wR': String(Math.round(seg.wR)),
 						'@_hR': String(Math.round(seg.hR)),
 						'@_stAng': String(Math.round(seg.stAng)),
@@ -363,28 +372,9 @@ export function customGeometryPathsToXml(
 					});
 					break;
 				case 'close':
-					hasClose = true;
+					appendCommand('a:close', {});
 					break;
 			}
-		}
-
-		if (moveToList.length > 0) {
-			pathXml['a:moveTo'] = moveToList.length === 1 ? moveToList[0] : moveToList;
-		}
-		if (lnToList.length > 0) {
-			pathXml['a:lnTo'] = lnToList.length === 1 ? lnToList[0] : lnToList;
-		}
-		if (cubicBezToList.length > 0) {
-			pathXml['a:cubicBezTo'] = cubicBezToList.length === 1 ? cubicBezToList[0] : cubicBezToList;
-		}
-		if (quadBezToList.length > 0) {
-			pathXml['a:quadBezTo'] = quadBezToList.length === 1 ? quadBezToList[0] : quadBezToList;
-		}
-		if (arcToList.length > 0) {
-			pathXml['a:arcTo'] = arcToList.length === 1 ? arcToList[0] : arcToList;
-		}
-		if (hasClose) {
-			pathXml['a:close'] = {};
 		}
 
 		return pathXml;

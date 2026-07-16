@@ -59,8 +59,9 @@ const CUSTOM_SHAPE: PptxSmartArtDrawingShape = {
 			height: 100,
 			segments: [
 				{ type: 'moveTo', pt: { x: 100, y: 50 } },
+				{ type: 'lineTo', pt: { x: 100, y: 0 } },
 				{ type: 'arcTo', wR: 50, hR: 50, stAng: 0, swAng: 10800000 },
-				{ type: 'lineTo', pt: { x: 100, y: 50 } },
+				{ type: 'lineTo', pt: { x: 0, y: 50 } },
 				{ type: 'close' },
 			],
 		},
@@ -175,22 +176,27 @@ describe('sDK-created SmartArt preserves per-node shape geometry on save', () =>
 		expect(drawing).toContain('<a:custGeom>');
 		expect(drawing).toContain('<a:arcTo wR="50" hR="50" stAng="0" swAng="10800000"/>');
 		expect(drawing).not.toContain('<a:prstGeom');
+		const sourcePath = /<a:path\b[^>]*>([\s\S]*?)<\/a:path>/u.exec(drawing)?.[1] ?? '';
+		expect(
+			[...sourcePath.matchAll(/<a:(moveTo|lnTo|arcTo|close)\b/gu)].map((match) => match[1]),
+		).toStrictEqual(['moveTo', 'lnTo', 'arcTo', 'lnTo', 'close']);
 
 		const bytes = await zip.generateAsync({ type: 'uint8array' });
-		const reloaded = await new PptxHandler().load(bytes.buffer as ArrayBuffer);
+		const reloadHandler = new PptxHandler();
+		const reloaded = await reloadHandler.load(bytes.buffer as ArrayBuffer);
 		const element = reloaded.slides[0].elements.find(
 			(candidate): candidate is SmartArtPptxElement => candidate.type === 'smartArt',
 		);
 		const cached = element?.smartArtData?.drawingShapes?.[0];
 		expect(cached).toMatchObject({ shapeType: 'custom', pathWidth: 100, pathHeight: 100 });
 		expect(cached?.pathData).toContain('A 50 50');
-		expect(cached?.customGeometryPaths?.[0].segments).toContainEqual({
-			type: 'arcTo',
-			wR: 50,
-			hR: 50,
-			stAng: 0,
-			swAng: 10800000,
-		});
+		expect(cached?.customGeometryPaths?.[0].segments.map((segment) => segment.type)).toStrictEqual([
+			'moveTo',
+			'lineTo',
+			'arcTo',
+			'lineTo',
+			'close',
+		]);
 
 		const decomposed = decomposeSmartArt(element!.smartArtData!, {
 			x: element!.x,
@@ -204,6 +210,15 @@ describe('sDK-created SmartArt preserves per-node shape geometry on save', () =>
 			pathHeight: 100,
 		});
 		expect((decomposed?.[0] as { pathData?: string } | undefined)?.pathData).toContain('A 50 50');
+
+		element!.smartArtData!.drawingDirty = true;
+		const savedAgain = await reloadHandler.save(reloaded.slides);
+		const secondZip = await JSZip.loadAsync(savedAgain);
+		const secondDrawing = await secondZip.file('ppt/diagrams/drawing1.xml')!.async('string');
+		const secondPath = /<a:path\b[^>]*>([\s\S]*?)<\/a:path>/u.exec(secondDrawing)?.[1] ?? '';
+		expect(
+			[...secondPath.matchAll(/<a:(moveTo|lnTo|arcTo|close)\b/gu)].map((match) => match[1]),
+		).toStrictEqual(['moveTo', 'lnTo', 'arcTo', 'lnTo', 'close']);
 	});
 
 	it('caches viewer-computed geometry when the element has no drawingShapes', async () => {

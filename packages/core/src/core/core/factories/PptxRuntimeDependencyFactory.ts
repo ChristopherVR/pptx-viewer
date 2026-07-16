@@ -2,6 +2,10 @@ import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import type JSZip from 'jszip';
 
 import {
+	annotateCustomGeometryCommandOrder,
+	stripXmlOrderMarkers,
+} from '../../geometry/custom-geometry-command-order';
+import {
 	PptxCompatibilityService,
 	PptxDocumentPropertiesUpdater,
 	PptxEditorAnimationService,
@@ -58,7 +62,7 @@ export interface IPptxRuntimeDependencyFactory {
 
 export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFactory {
 	public createParser(): XMLParser {
-		return new XMLParser({
+		const parser = new XMLParser({
 			ignoreAttributes: false,
 			attributeNamePrefix: '@_',
 			parseAttributeValue: false,
@@ -103,10 +107,19 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 				return tagName === 'a:t' ? decoded : decoded.trim();
 			},
 		});
+		const parse = parser.parse.bind(parser);
+		parser.parse = ((xml: string, validationOption?: boolean | object) => {
+			const parsed = validationOption === undefined ? parse(xml) : parse(xml, validationOption);
+			if (typeof xml === 'string' && xml.includes('custGeom')) {
+				annotateCustomGeometryCommandOrder(xml, parsed);
+			}
+			return parsed;
+		}) as typeof parser.parse;
+		return parser;
 	}
 
 	public createBuilder(): XMLBuilder {
-		return new XMLBuilder({
+		const builder = new XMLBuilder({
 			ignoreAttributes: false,
 			attributeNamePrefix: '@_',
 			// Pretty-printing is intentionally disabled. PowerPoint ignores
@@ -117,6 +130,10 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			// smaller with no fidelity loss. See packages/core/scripts/perf-large.ts.
 			format: false,
 		});
+		const build = builder.build.bind(builder);
+		builder.build = ((value: unknown) =>
+			stripXmlOrderMarkers(build(value))) as typeof builder.build;
+		return builder;
 	}
 
 	public createDocumentPropertiesUpdater(

@@ -1,4 +1,5 @@
 import type { CustomGeometryPath, CustomGeometrySegment, XmlObject } from '../types';
+import { orderedPathCommandEntries } from './custom-geometry-command-order';
 import {
 	evaluateGuides,
 	parseAdjustmentValues,
@@ -34,40 +35,35 @@ function parseSegments(
 	ensureArray: EnsureArray,
 ): CustomGeometrySegment[] {
 	const segments: CustomGeometrySegment[] = [];
-	for (const [key, value] of Object.entries(path)) {
-		if (key.startsWith('@_')) {
-			continue;
-		}
-		for (const item of ensureArray(value)) {
-			const command = item as XmlObject | undefined;
-			if (key === 'a:close') {
-				segments.push({ type: 'close' });
-			} else if (key === 'a:moveTo' || key === 'a:lnTo') {
-				const point = parsePoint(command?.['a:pt'], variables);
-				if (point) {
-					segments.push({ type: key === 'a:moveTo' ? 'moveTo' : 'lineTo', pt: point });
-				}
-			} else if (key === 'a:cubicBezTo' || key === 'a:quadBezTo') {
-				const points = ensureArray(command?.['a:pt'])
-					.map((point) => parsePoint(point, variables))
-					.filter((point) => point !== undefined);
-				const expected = key === 'a:cubicBezTo' ? 3 : 2;
-				if (points.length === expected) {
-					segments.push(
-						key === 'a:cubicBezTo'
-							? { type: 'cubicBezTo', pts: [points[0], points[1], points[2]] }
-							: { type: 'quadBezTo', pts: [points[0], points[1]] },
-					);
-				}
-			} else if (key === 'a:arcTo' && command) {
-				segments.push({
-					type: 'arcTo',
-					wR: resolveCoordinate(command['@_wR'] as string | number | undefined, variables),
-					hR: resolveCoordinate(command['@_hR'] as string | number | undefined, variables),
-					stAng: resolveCoordinate(command['@_stAng'] as string | number | undefined, variables),
-					swAng: resolveCoordinate(command['@_swAng'] as string | number | undefined, variables),
-				});
+	for (const [key, item] of orderedPathCommandEntries(path, ensureArray)) {
+		const command = item as XmlObject | undefined;
+		if (key === 'a:close') {
+			segments.push({ type: 'close' });
+		} else if (key === 'a:moveTo' || key === 'a:lnTo') {
+			const point = parsePoint(command?.['a:pt'], variables);
+			if (point) {
+				segments.push({ type: key === 'a:moveTo' ? 'moveTo' : 'lineTo', pt: point });
 			}
+		} else if (key === 'a:cubicBezTo' || key === 'a:quadBezTo') {
+			const points = ensureArray(command?.['a:pt'])
+				.map((point) => parsePoint(point, variables))
+				.filter((point) => point !== undefined);
+			const expected = key === 'a:cubicBezTo' ? 3 : 2;
+			if (points.length === expected) {
+				segments.push(
+					key === 'a:cubicBezTo'
+						? { type: 'cubicBezTo', pts: [points[0], points[1], points[2]] }
+						: { type: 'quadBezTo', pts: [points[0], points[1]] },
+				);
+			}
+		} else if (key === 'a:arcTo' && command) {
+			segments.push({
+				type: 'arcTo',
+				wR: resolveCoordinate(command['@_wR'] as string | number | undefined, variables),
+				hR: resolveCoordinate(command['@_hR'] as string | number | undefined, variables),
+				stAng: resolveCoordinate(command['@_stAng'] as string | number | undefined, variables),
+				swAng: resolveCoordinate(command['@_swAng'] as string | number | undefined, variables),
+			});
 		}
 	}
 	return segments;
