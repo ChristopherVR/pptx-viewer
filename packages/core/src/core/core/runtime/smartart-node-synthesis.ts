@@ -45,7 +45,7 @@ function buildContentPoint(node: PptxSmartArtNode): XmlObject {
 	pt['dgm:prSet'] = node.text ? {} : { '@_phldrT': '[Text]' };
 	pt['dgm:spPr'] = {};
 	pt['dgm:t'] = shouldRebuildFromParagraphs(node)
-		? buildPointFromParagraphs(node.paragraphs)
+		? buildPointFromParagraphs(node.paragraphs, node.text)
 		: shouldRebuildFromRuns(node)
 			? buildPointFromRuns(node.runs)
 			: buildPointText(node.text ?? '');
