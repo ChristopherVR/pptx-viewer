@@ -260,10 +260,10 @@ const TABS: readonly TabDef[] = [
 							(openPassword)="openPassword.emit()"
 							(openFontEmbedding)="openFontEmbedding.emit()"
 							(openVersionHistory)="openVersionHistory.emit()"
+							(options)="requestSettings()"
 						/>
 					}
 					@case ('home') {
-							(options)="requestSettings()"
 						<pptx-ribbon-home-section
 							[slideIndex]="slideIndex()"
 							[selectedElement]="selectedElement()"
@@ -330,14 +330,14 @@ const TABS: readonly TabDef[] = [
 					}
 					@case ('review') {
 						<pptx-ribbon-review-section
+							[spellCheckEnabled]="spellCheckEnabled()"
+							(spellCheckChange)="setSpellCheck($event)"
 							(comments)="comments.emit()"
 							(a11y)="a11y.emit()"
 							(openCompare)="openCompare.emit()"
-							(link)="link.emit()"
-							[spellCheckEnabled]="spellCheckEnabled()"
-							(spellCheckChange)="setSpellCheck($event)"
-						/>
 							(language)="requestSettings()"
+							(link)="link.emit()"
+						/>
 					}
 					@case ('view') {
 						<pptx-ribbon-view-section
@@ -454,12 +454,12 @@ export class RibbonComponent {
 	readonly collabConnected = input<boolean>(false);
 	/** Connected collaborator count (Share button label). */
 	readonly connectedCount = input<number>(0);
+	/** Current live proofing state shown by the Review ribbon command. */
+	readonly spellCheckEnabled = input<boolean>(false);
 
 	readonly prev = output<void>();
 	readonly next = output<void>();
 	readonly zoomIn = output<void>();
-	/** Current live proofing state shown by the Review ribbon command. */
-	readonly spellCheckEnabled = input<boolean>(false);
 	readonly zoomOut = output<void>();
 	readonly zoomReset = output<void>();
 	readonly find = output<void>();
@@ -467,13 +467,13 @@ export class RibbonComponent {
 	readonly presenter = output<void>();
 	/** Emitted by the tab-row Record button (starts a slide-show run-through). */
 	readonly record = output<void>();
+	readonly recordFromBeginning = output<void>();
+	readonly recordFromCurrent = output<void>();
+	readonly spellCheckChange = output<boolean>();
 	readonly share = output<void>();
 	readonly broadcast = output<void>();
 	readonly openFile = output<void>();
 	/** Emitted when the user clicks "Save" in the File tab (saves as .pptx). */
-	readonly recordFromBeginning = output<void>();
-	readonly recordFromCurrent = output<void>();
-	readonly spellCheckChange = output<boolean>();
 	readonly save = output<void>();
 	readonly savePpsx = output<void>();
 	readonly savePptm = output<void>();
