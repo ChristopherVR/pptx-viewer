@@ -299,7 +299,8 @@ export function computeTrendlinePoints(
  */
 function valueToYLocal(val: number, range: ValueRange, topY: number, bottomY: number): number {
 	const usable = bottomY - topY;
-	return bottomY - ((val - range.min) / range.span) * usable;
+	const ratio = (val - range.min) / range.span;
+	return range.reverseOrder ? topY + ratio * usable : bottomY - ratio * usable;
 }
 
 /**

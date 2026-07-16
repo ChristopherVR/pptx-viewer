@@ -26,7 +26,9 @@ export {
 	computeValueRangeForAxis,
 	computeValueRangeForChart,
 	findLogAxis,
+	generateAxisTicks,
 	generateLogTicks,
+	generateMinorAxisTicks,
 	valueToYLog,
 } from './chart-axis-range';
 

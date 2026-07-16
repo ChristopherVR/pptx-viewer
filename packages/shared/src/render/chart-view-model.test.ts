@@ -145,6 +145,10 @@ describe('valueToY', () => {
 	it('maps the midpoint value to the vertical midpoint', () => {
 		expect(valueToY(50, range, topY, bottomY)).toBeCloseTo(60);
 	});
+
+	it('maps the minimum to the top for a reversed range', () => {
+		expect(valueToY(0, { ...range, reverseOrder: true }, topY, bottomY)).toBeCloseTo(topY);
+	});
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

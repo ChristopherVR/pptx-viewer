@@ -12,7 +12,12 @@
  */
 import type { PptxChartAxisFormatting } from 'pptx-viewer-core';
 
-import { formatAxisValueWithUnits, generateLogTicks, getDisplayUnitLabel } from './chart-axis';
+import {
+	formatAxisValueWithUnits,
+	generateAxisTicks,
+	generateMinorAxisTicks,
+	getDisplayUnitLabel,
+} from './chart-axis';
 import type { PlotLayout, SvgLine, SvgText, ValueRange } from './chart-view-model';
 import { formatAxisValue, valueToY } from './chart-view-model';
 
@@ -43,10 +48,23 @@ export function buildPrimaryAxis(
 	const gridlines: SvgLine[] = [];
 	const axisLabels: SvgText[] = [];
 
-	const tickVals =
-		range.logScale && range.logBase
-			? generateLogTicks(range)
-			: Array.from({ length: TICK_COUNT + 1 }, (_, i) => range.min + (range.span / TICK_COUNT) * i);
+	const tickVals = generateAxisTicks(range, axis, TICK_COUNT);
+	if (axis?.minorGridlines) {
+		for (const val of generateMinorAxisTicks(range, axis)) {
+			const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
+			gridlines.push({
+				kind: 'line',
+				x1: layout.plotLeft,
+				y1: y,
+				x2: layout.plotRight,
+				y2: y,
+				stroke: GRIDLINE_COLOR,
+				strokeWidth: 0.5,
+				dashArray: '1 2',
+				opacity: 0.5,
+			});
+		}
+	}
 
 	for (const val of tickVals) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
@@ -109,13 +127,7 @@ export function buildSecondaryAxis(
 	const fontColor = axis?.fontColor ?? AXIS_LABEL_COLOR;
 	const fontWeight: 'normal' | 'bold' = axis?.fontBold ? 'bold' : 'normal';
 
-	const tickValues =
-		range.logScale && range.logBase
-			? generateLogTicks(range)
-			: Array.from(
-					{ length: TICK_COUNT },
-					(_, index) => range.min + (range.span / (TICK_COUNT - 1)) * index,
-				);
+	const tickValues = generateAxisTicks(range, axis, TICK_COUNT - 1);
 	for (const val of tickValues) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
 		gridlines.push({

@@ -128,6 +128,31 @@ describe('cartesian display units', () => {
 	});
 });
 
+describe('cartesian reversed value axis', () => {
+	const reversedChart: PptxChartData = {
+		chartType: 'line',
+		categories: ['Low', 'High'],
+		series: [{ name: 'S', values: [0, 100] }],
+		axes: [
+			{
+				axisType: 'valAx',
+				axPos: 'l',
+				min: 0,
+				max: 100,
+				orientation: 'maxMin',
+				majorUnit: 25,
+			},
+		],
+	};
+
+	it('renders increasing values from top to bottom with explicit major ticks', () => {
+		const vm = buildChartViewModel(chartElement(reversedChart));
+		const circles = vm.primitives.filter((primitive) => primitive.kind === 'circle');
+		expect(circles[0].cy).toBeLessThan(circles[1].cy);
+		expect(vm.axisLabels.map((label) => label.text)).toStrictEqual(['0', '25', '50', '75', '100']);
+	});
+});
+
 // ── Secondary value axis ─────────────────────────────────────────
 
 describe('cartesian secondary value axis', () => {

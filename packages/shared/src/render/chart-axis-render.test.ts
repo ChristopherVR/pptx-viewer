@@ -100,6 +100,36 @@ describe('buildPrimaryAxis display units', () => {
 	});
 });
 
+describe('buildPrimaryAxis explicit tick units and direction', () => {
+	const range: ValueRange = { min: 0, max: 100, span: 100, reverseOrder: true };
+	const axis: PptxChartAxisFormatting = {
+		axisType: 'valAx',
+		orientation: 'maxMin',
+		majorUnit: 20,
+		minorUnit: 10,
+		minorGridlines: true,
+	};
+
+	it('uses majorUnit labels and minorUnit gridlines', () => {
+		const { gridlines, axisLabels } = buildPrimaryAxis(range, layout, axis);
+		expect(axisLabels.map((label) => label.text)).toStrictEqual([
+			'0',
+			'20',
+			'40',
+			'60',
+			'80',
+			'100',
+		]);
+		expect(gridlines).toHaveLength(11);
+	});
+
+	it('places the minimum at the top for maxMin orientation', () => {
+		const { axisLabels } = buildPrimaryAxis(range, layout, axis);
+		expect(axisLabels.find((label) => label.text === '0')?.y).toBe(layout.plotTop);
+		expect(axisLabels.find((label) => label.text === '100')?.y).toBe(layout.plotBottom);
+	});
+});
+
 describe('buildSecondaryAxis', () => {
 	const range: ValueRange = { min: 0, max: 50, span: 50 };
 

@@ -115,6 +115,14 @@ describe('valueFromY', () => {
 		}
 	});
 
+	it('inverts valueToY on a reversed linear range', () => {
+		const range: ValueRange = { min: 0, max: 100, span: 100, reverseOrder: true };
+		for (const value of [0, 25, 100]) {
+			const y = valueToY(value, range, top, bottom);
+			expect(valueFromY(y, range, top, bottom)).toBeCloseTo(value, 8);
+		}
+	});
+
 	it('returns the range minimum for a degenerate zero-height plot', () => {
 		const range: ValueRange = { min: 0, max: 10, span: 10 };
 		expect(valueFromY(42, range, 50, 50)).toBe(0);

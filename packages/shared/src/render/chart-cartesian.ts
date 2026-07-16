@@ -26,6 +26,7 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import {
 	computeLayoutOptions,
+	computeValueRangeForAxis,
 	computeValueRangeForChart,
 	getSecondaryValueAxis,
 	splitSeriesByAxis,
@@ -57,7 +58,6 @@ import {
 	buildZeroLine,
 	computePlotLayout,
 	computeStackedValueRange,
-	computeValueRange,
 } from './chart-view-model';
 
 /** True when the chart declares any feature beyond the linear single-axis default. */
@@ -65,7 +65,16 @@ function hasRicherAxisFeatures(chartData: PptxChartData): boolean {
 	const axes = chartData.axes;
 	if (axes && axes.length > 0) {
 		for (const a of axes) {
-			if (a.axisType === 'valAx' && (a.logScale || a.displayUnits || a.axPos === 'r')) {
+			if (
+				a.axisType === 'valAx' &&
+				(a.logScale ||
+					a.displayUnits ||
+					a.axPos === 'r' ||
+					a.orientation === 'maxMin' ||
+					a.majorUnit !== undefined ||
+					a.minorUnit !== undefined ||
+					a.minorGridlines)
+			) {
 				return true;
 			}
 		}
@@ -164,15 +173,24 @@ export function buildCartesianViewModel(
 		? chartData.series.filter((_s, i) => secondaryIdx.has(i))
 		: [];
 
+	const primaryAxis = chartData.axes?.find(
+		(axis) => axis.axisType === 'valAx' && axis.axPos !== 'r',
+	);
 	const primaryRange = isStacked
-		? stackedRange(chartData, catCount, isPercent)
+		? {
+				...stackedRange(chartData, catCount, isPercent),
+				...(primaryAxis?.orientation === 'maxMin' ? { reverseOrder: true } : {}),
+			}
 		: computeValueRangeForChart(
 				primaryPlotSeries.length > 0 ? primaryPlotSeries : chartData.series,
 				chartData.axes,
 			);
 	const secondaryRange =
 		useSecondary && secondaryPlotSeries.length > 0
-			? computeValueRange(secondaryPlotSeries)
+			? computeValueRangeForAxis(
+					secondaryPlotSeries,
+					chartData.axes?.find((axis) => axis.axisType === 'valAx' && axis.axPos === 'r'),
+				)
 			: undefined;
 
 	const axisRes = buildAxes(chartData, layout, primaryRange, secondaryRange);

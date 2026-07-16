@@ -107,6 +107,8 @@ export interface ValueRange {
 	logScale?: boolean;
 	/** Logarithmic base (e.g. 10, 2, Math.E). Only meaningful when logScale is true. */
 	logBase?: number;
+	/** Whether values increase from top to bottom. */
+	reverseOrder?: boolean;
 }
 
 /** Compute a Y-axis range that always includes zero. */
@@ -167,14 +169,17 @@ export function computeStackedValueRange(
  */
 export function valueToY(val: number, range: ValueRange, topY: number, bottomY: number): number {
 	const usable = bottomY - topY;
+	let ratio: number;
 	if (range.logScale && range.logBase) {
 		const base = range.logBase;
 		const clampedVal = Math.max(val, range.min);
 		const logVal = Math.log(clampedVal) / Math.log(base);
 		const logMin = Math.log(range.min) / Math.log(base);
-		return bottomY - ((logVal - logMin) / range.span) * usable;
+		ratio = (logVal - logMin) / range.span;
+	} else {
+		ratio = (val - range.min) / range.span;
 	}
-	return bottomY - ((val - range.min) / range.span) * usable;
+	return range.reverseOrder ? topY + ratio * usable : bottomY - ratio * usable;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

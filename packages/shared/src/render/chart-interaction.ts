@@ -110,13 +110,14 @@ export function valueFromY(y: number, range: ValueRange, topY: number, bottomY: 
 	if (usable === 0) {
 		return range.min;
 	}
+	const ratio = range.reverseOrder ? (y - topY) / usable : (bottomY - y) / usable;
 	if (range.logScale && range.logBase) {
 		const base = range.logBase;
 		const logMin = Math.log(range.min) / Math.log(base);
-		const logVal = logMin + ((bottomY - y) / usable) * range.span;
+		const logVal = logMin + ratio * range.span;
 		return base ** logVal;
 	}
-	return range.min + ((bottomY - y) / usable) * range.span;
+	return range.min + ratio * range.span;
 }
 
 /**

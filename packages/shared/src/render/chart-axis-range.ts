@@ -63,6 +63,7 @@ export function computeValueRangeForAxis(
 		max,
 		span: Math.max(span, Number.EPSILON),
 		...(logBase ? { logScale: true, logBase } : {}),
+		...(axis?.orientation === 'maxMin' ? { reverseOrder: true } : {}),
 	};
 }
 
@@ -71,7 +72,8 @@ export function valueToYLog(val: number, range: ValueRange, topY: number, bottom
 	const base = range.logBase ?? 10;
 	const logValue = Math.log(Math.max(val, range.min)) / Math.log(base);
 	const logMin = Math.log(range.min) / Math.log(base);
-	return bottomY - ((logValue - logMin) / range.span) * (bottomY - topY);
+	const ratio = (logValue - logMin) / range.span;
+	return range.reverseOrder ? topY + ratio * (bottomY - topY) : bottomY - ratio * (bottomY - topY);
 }
 
 /** Generate one tick for each power of the range's logarithmic base. */
@@ -90,6 +92,55 @@ export function generateLogTicks(range: ValueRange): number[] {
 	return Array.from(
 		{ length: lastExponent - firstExponent + 1 },
 		(_unused, index) => base ** (firstExponent + index),
+	);
+}
+
+function generateIntervalTicks(range: ValueRange, unit: number): number[] {
+	if (!Number.isFinite(unit) || unit <= 0 || range.logScale) {
+		return [];
+	}
+	const tolerance = Math.max(1, Math.abs(range.min), Math.abs(range.max)) * 1e-12;
+	const first = Math.ceil((range.min - tolerance) / unit);
+	const last = Math.floor((range.max + tolerance) / unit);
+	const count = Math.min(Math.max(last - first + 1, 0), 2000);
+	return Array.from({ length: count }, (_, index) => (first + index) * unit);
+}
+
+/** Generate major tick values, honoring an explicit `c:majorUnit`. */
+export function generateAxisTicks(
+	range: ValueRange,
+	axis: PptxChartAxisFormatting | undefined,
+	defaultIntervals: number,
+): number[] {
+	if (range.logScale && range.logBase) {
+		return generateLogTicks(range);
+	}
+	const explicit = generateIntervalTicks(range, axis?.majorUnit ?? 0);
+	if (explicit.length > 0) {
+		return explicit;
+	}
+	return Array.from(
+		{ length: defaultIntervals + 1 },
+		(_, index) => range.min + (range.span / defaultIntervals) * index,
+	);
+}
+
+/** Generate minor gridline values, excluding positions occupied by major ticks. */
+export function generateMinorAxisTicks(
+	range: ValueRange,
+	axis: PptxChartAxisFormatting | undefined,
+): number[] {
+	const minor = generateIntervalTicks(range, axis?.minorUnit ?? 0);
+	if (minor.length === 0) {
+		return [];
+	}
+	const majorUnit = axis?.majorUnit;
+	if (!majorUnit || !Number.isFinite(majorUnit) || majorUnit <= 0) {
+		return minor;
+	}
+	const tolerance = Math.max(1, Math.abs(range.min), Math.abs(range.max)) * 1e-10;
+	return minor.filter(
+		(value) => Math.abs(value / majorUnit - Math.round(value / majorUnit)) > tolerance,
 	);
 }
 

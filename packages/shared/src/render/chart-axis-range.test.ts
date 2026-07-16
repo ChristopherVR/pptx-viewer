@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 import {
 	computeValueRangeForAxis,
 	computeValueRangeForChart,
+	generateAxisTicks,
 	generateLogTicks,
+	generateMinorAxisTicks,
 } from './chart-axis';
 
 const SERIES: PptxChartSeries[] = [{ name: 'Values', values: [20, 40] }];
@@ -46,5 +48,18 @@ describe('axis-constrained value ranges', () => {
 		expect(
 			generateLogTicks({ min: 0.01, max: 100_000, span: 7, logScale: true, logBase: 10 }),
 		).toStrictEqual([0.01, 0.1, 1, 10, 100, 1_000, 10_000, 100_000]);
+	});
+
+	it('retains reversed axis direction on the computed range', () => {
+		expect(
+			computeValueRangeForAxis(SERIES, { axisType: 'valAx', orientation: 'maxMin' }),
+		).toMatchObject({ reverseOrder: true });
+	});
+
+	it('uses explicit major and minor units without duplicating major ticks', () => {
+		const range = { min: 0, max: 100, span: 100 };
+		const axis = { axisType: 'valAx' as const, majorUnit: 20, minorUnit: 10 };
+		expect(generateAxisTicks(range, axis, 5)).toStrictEqual([0, 20, 40, 60, 80, 100]);
+		expect(generateMinorAxisTicks(range, axis)).toStrictEqual([10, 30, 50, 70, 90]);
 	});
 });
