@@ -291,6 +291,62 @@ describe('buildHistogramViewModel', () => {
 		expect(line?.part).toStrictEqual({ role: 'series', seriesIndex: 1 });
 		expect(line?.points.split(' ').at(-1)?.endsWith(`,${layout.plotTop}`)).toBeTruthy();
 		expect(points.map((point) => point.part?.pointIndex)).toStrictEqual([0, 1]);
+		expect(vm.secondaryAxisLabels?.map((label) => label.text)).toContain('100%');
+		expect(vm.secondaryGridlines?.length).toBeGreaterThan(0);
+	});
+
+	it('stably orders Pareto bars and labels by descending frequency', () => {
+		const pareto: PptxChartData = {
+			chartType: 'histogram',
+			categories: ['A', 'B', 'C', 'D'],
+			series: [
+				{ name: 'Frequency', values: [5, 10, 10, 2] },
+				{
+					name: 'Cumulative',
+					values: [5, 10, 10, 2],
+					histogramOptions: { layout: 'pareto' },
+				},
+			],
+		};
+		const vm = buildHistogramViewModel(chartElement(pareto), pareto, pareto.categories);
+		const bars = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		const points = vm.primitives.filter((primitive) => primitive.kind === 'circle');
+		expect(vm.categoryLabels.map((label) => label.text)).toStrictEqual(['B', 'C', 'A', 'D']);
+		expect(bars.map((bar) => bar.part?.pointIndex)).toStrictEqual([1, 2, 0, 3]);
+		expect(points.map((point) => point.part?.pointIndex)).toStrictEqual([1, 2, 0, 3]);
+		expect(points.at(-1)?.cy).toBe(
+			vm.secondaryAxisLabels?.find((label) => label.text === '100%')?.y,
+		);
+		expect(vm.secondaryAxisLabels?.map((label) => label.text)).toStrictEqual([
+			'0%',
+			'20%',
+			'40%',
+			'60%',
+			'80%',
+			'100%',
+		]);
+	});
+
+	it('reserves right-axis space only when a Pareto series is present', () => {
+		const ordinary = buildHistogramViewModel(
+			chartElement(chartData),
+			chartData,
+			chartData.categories,
+		);
+		const paretoData: PptxChartData = {
+			...chartData,
+			series: [
+				...chartData.series,
+				{ name: 'Cumulative', values: [5, 12, 7], histogramOptions: { layout: 'pareto' } },
+			],
+		};
+		const pareto = buildHistogramViewModel(
+			chartElement(paretoData),
+			paretoData,
+			paretoData.categories,
+		);
+		expect(ordinary.secondaryAxisLabels).toBeUndefined();
+		expect(ordinary.gridlines[0].x2 - pareto.gridlines[0].x2).toBe(40);
 	});
 });
 

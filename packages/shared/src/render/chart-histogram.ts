@@ -1,16 +1,11 @@
-import type {
-	PptxChartData,
-	PptxChartHistogramOptions,
-	PptxChartSeries,
-	PptxElement,
-} from 'pptx-viewer-core';
+import type { PptxChartData, PptxChartHistogramOptions, PptxElement } from 'pptx-viewer-core';
 
 import { distributionRange } from './chart-distribution-range';
+import { buildParetoAxis, buildParetoPrimitives, orderParetoEntries } from './chart-pareto';
+import type { ParetoEntry } from './chart-pareto';
 import type {
 	ChartViewModel,
 	PlotLayout,
-	SvgCircle,
-	SvgPolyline,
 	SvgPrimitive,
 	SvgRect,
 	SvgText,
@@ -148,64 +143,37 @@ export function computeHistogramBars(
 	});
 }
 
-function paretoPrimitives(
-	values: ReadonlyArray<number>,
-	layout: PlotLayout,
-	series: PptxChartSeries,
-	seriesIndex: number,
-): SvgPrimitive[] {
-	const total = values.reduce((sum, value) => sum + Math.max(value, 0), 0);
-	if (total <= 0) {
-		return [];
-	}
-	let cumulative = 0;
-	const points = values.map((value, pointIndex) => {
-		cumulative += Math.max(value, 0);
-		return {
-			x: layout.plotLeft + (layout.plotWidth * (pointIndex + 0.5)) / values.length,
-			y: layout.plotBottom - (layout.plotHeight * cumulative) / total,
-			pointIndex,
-		};
-	});
-	const color = series.color ?? '#ED7D31';
-	return [
-		{
-			kind: 'polyline',
-			points: points.map((point) => `${point.x},${point.y}`).join(' '),
-			stroke: color,
-			strokeWidth: 2,
-			fill: 'none',
-			part: { role: 'series', seriesIndex },
-		} satisfies SvgPolyline,
-		...points.map(
-			(point) =>
-				({
-					kind: 'circle',
-					cx: point.x,
-					cy: point.y,
-					r: 2.5,
-					fill: color,
-					part: { role: 'dataPoint', seriesIndex, pointIndex: point.pointIndex },
-				}) satisfies SvgCircle,
-		),
-	];
-}
-
 export function buildHistogramViewModel(
 	element: PptxElement,
 	chartData: PptxChartData,
 	categoryLabels: ReadonlyArray<string>,
 ): ChartViewModel {
-	const layout = computePlotLayout(element.width, element.height, chartData, true);
+	const paretoIndex = chartData.series.findIndex(
+		(item) => item.histogramOptions?.layout === 'pareto',
+	);
+	const layout = computePlotLayout(element.width, element.height, chartData, true, {
+		hasSecondaryValueAxis: paretoIndex >= 0,
+	});
 	const histogramIndex = Math.max(
 		chartData.series.findIndex((series) => series.histogramOptions?.layout !== 'pareto'),
 		0,
 	);
 	const series = chartData.series[histogramIndex];
 	const options = series?.histogramOptions;
-	const bins = options ? computeHistogramBins(series?.values ?? [], options) : undefined;
-	const values = bins?.map((bin) => bin.value) ?? series?.values ?? [];
-	const labels = bins?.map((bin) => bin.label) ?? [...categoryLabels];
+	const bins =
+		options?.layout === 'histogram'
+			? computeHistogramBins(series?.values ?? [], options)
+			: undefined;
+	const baseEntries: ParetoEntry[] = (
+		bins?.map((bin) => ({ value: bin.value, label: bin.label })) ??
+		(series?.values ?? []).map((value, index) => ({
+			value,
+			label: categoryLabels[index] ?? '',
+		}))
+	).map((entry, sourcePointIndex) => ({ ...entry, sourcePointIndex }));
+	const entries = paretoIndex >= 0 ? orderParetoEntries(baseEntries) : baseEntries;
+	const values = entries.map((entry) => entry.value);
+	const labels = entries.map((entry) => entry.label);
 	const range = distributionRange([{ name: series?.name ?? '', values }]);
 	const bars = computeHistogramBars(
 		values,
@@ -216,7 +184,7 @@ export function buildHistogramViewModel(
 		chartData.colorPalette,
 	);
 	const primitives: SvgPrimitive[] = bars.map(
-		(bar, pointIndex) =>
+		(bar, displayIndex) =>
 			({
 				kind: 'rect',
 				x: bar.x,
@@ -225,15 +193,20 @@ export function buildHistogramViewModel(
 				h: bar.h,
 				fill: bar.fill,
 				opacity: 0.85,
-				...(bins ? {} : { part: { role: 'dataPoint', seriesIndex: histogramIndex, pointIndex } }),
+				...(bins
+					? {}
+					: {
+							part: {
+								role: 'dataPoint',
+								seriesIndex: histogramIndex,
+								pointIndex: entries[displayIndex]?.sourcePointIndex ?? displayIndex,
+							},
+						}),
 			}) satisfies SvgRect,
-	);
-	const paretoIndex = chartData.series.findIndex(
-		(item) => item.histogramOptions?.layout === 'pareto',
 	);
 	if (paretoIndex >= 0) {
 		primitives.push(
-			...paretoPrimitives(values, layout, chartData.series[paretoIndex], paretoIndex),
+			...buildParetoPrimitives(entries, layout, chartData.series[paretoIndex], paretoIndex),
 		);
 	}
 	const dataLabels: SvgText[] = chartData.style?.hasDataLabels
@@ -248,6 +221,7 @@ export function buildHistogramViewModel(
 			}))
 		: [];
 	const { gridlines, axisLabels } = buildGridlinesAndLabels(range, layout);
+	const paretoAxis = paretoIndex >= 0 ? buildParetoAxis(layout) : undefined;
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
 		chartData.series,
 		chartData.colorPalette,
@@ -272,5 +246,7 @@ export function buildHistogramViewModel(
 		legendX,
 		legendY,
 		legendAnchor,
+		secondaryGridlines: paretoAxis?.secondaryGridlines,
+		secondaryAxisLabels: paretoAxis?.secondaryAxisLabels,
 	};
 }
