@@ -342,7 +342,7 @@ describe('useSectionOperations', () => {
 			expect(groups[1].slideIndexes).toStrictEqual([2]);
 		});
 
-		it('produces a leading no-section group for unsectioned slides', () => {
+		it('appends a no-section group after declared sections', () => {
 			const { ops } = setup(
 				[makeSection({ id: 'sec1', name: 'A' })],
 				[
@@ -352,9 +352,9 @@ describe('useSectionOperations', () => {
 			);
 			const groups = ops.slidesBySection.value;
 			expect(groups).toHaveLength(2);
-			expect(groups[0].section).toBeUndefined();
-			expect(groups[0].slideIndexes).toStrictEqual([0]);
-			expect(groups[1].section?.id).toBe('sec1');
+			expect(groups[0].section?.id).toBe('sec1');
+			expect(groups[1].section).toBeUndefined();
+			expect(groups[1].slideIndexes).toStrictEqual([0]);
 		});
 
 		it('reacts to slide-list changes', () => {

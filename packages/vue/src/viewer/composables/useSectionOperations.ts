@@ -2,11 +2,13 @@ import type { PptxSection, PptxSlide } from 'pptx-viewer-core';
 import {
 	addSection as addSectionTransform,
 	deleteSection as deleteSectionTransform,
+	groupSlidesBySection,
 	moveSectionDown as moveSectionDownTransform,
 	moveSectionUp as moveSectionUpTransform,
 	moveSlidesToSection as moveSlidesToSectionTransform,
 	renameSection as renameSectionTransform,
 } from 'pptx-viewer-shared';
+import type { SectionSlideGroup } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -50,14 +52,7 @@ export interface UseSectionOperationsInput {
 }
 
 /** A section paired with the ordered slides that belong to it. */
-export interface SectionGroup {
-	/** The owning section, or `undefined` for the leading no-section group. */
-	section: PptxSection | undefined;
-	/** Slides (in deck order) that belong to this group. */
-	slides: PptxSlide[];
-	/** 0-based indices into the slide list for each slide in this group. */
-	slideIndexes: number[];
-}
+export type SectionGroup = SectionSlideGroup<PptxSection>;
 
 export interface UseSectionOperationsResult {
 	/**
@@ -157,32 +152,9 @@ export function useSectionOperations(input: UseSectionOperationsInput): UseSecti
 		);
 	};
 
-	const slidesBySection = computed<SectionGroup[]>(() => {
-		const sectionById = new Map<string, PptxSection>();
-		for (const sec of sections.value) {
-			sectionById.set(sec.id, sec);
-		}
-
-		const groups: SectionGroup[] = [];
-		let currentGroup: SectionGroup | undefined;
-
-		slides.value.forEach((slide, index) => {
-			const section = slide.sectionId !== undefined ? sectionById.get(slide.sectionId) : undefined;
-			const groupSection = currentGroup?.section;
-			const sameGroup =
-				currentGroup !== undefined &&
-				(groupSection?.id ?? undefined) === (section?.id ?? undefined);
-
-			if (!sameGroup) {
-				currentGroup = { section, slides: [], slideIndexes: [] };
-				groups.push(currentGroup);
-			}
-			currentGroup!.slides.push(slide);
-			currentGroup!.slideIndexes.push(index);
-		});
-
-		return groups;
-	});
+	const slidesBySection = computed<SectionGroup[]>(() =>
+		groupSlidesBySection(sections.value, slides.value),
+	);
 
 	return {
 		addSection,
