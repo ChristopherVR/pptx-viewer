@@ -24,6 +24,8 @@ describe('loadPresentation (real .pptx happy path)', () => {
 			expect(loaded.slides.length).toBeGreaterThan(0);
 			expect(loaded.canvasSize.width).toBeGreaterThan(0);
 			expect(loaded.canvasSize.height).toBeGreaterThan(0);
+			expect(Array.isArray(loaded.embeddedFonts)).toBeTruthy();
+			expect(loaded.digitalSignatureCount).toBeGreaterThanOrEqual(0);
 
 			const stage = renderSlideStage({
 				document,

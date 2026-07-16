@@ -4,6 +4,7 @@ import type {
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
+	PptxEmbeddedFont,
 	PptxElement,
 	PptxHandoutMaster,
 	PptxNotesMaster,
@@ -39,6 +40,10 @@ export interface LoadedPresentation {
 	coreProperties?: PptxCoreProperties;
 	appProperties?: PptxAppProperties;
 	customProperties: PptxCustomProperty[];
+	embeddedFonts: PptxEmbeddedFont[];
+	hasDigitalSignatures: boolean;
+	digitalSignatureCount: number;
+	isPasswordProtected: boolean;
 	/** Slide canvas size in CSS px. */
 	canvasSize: CanvasSize;
 	/** Archive-path to displayable URL map for media + poster frames. */
@@ -72,6 +77,10 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 			coreProperties: parsed.coreProperties,
 			appProperties: parsed.appProperties,
 			customProperties: parsed.customProperties ?? [],
+			embeddedFonts: parsed.embeddedFonts ?? [],
+			hasDigitalSignatures: parsed.hasDigitalSignatures ?? false,
+			digitalSignatureCount: parsed.digitalSignatureCount ?? 0,
+			isPasswordProtected: parsed.isPasswordProtected ?? false,
 			canvasSize: {
 				width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
 				height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,

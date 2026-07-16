@@ -4,6 +4,7 @@ import type {
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
+	PptxEmbeddedFont,
 	PptxElement,
 	PptxHandoutMaster,
 	PptxNotesMaster,
@@ -47,6 +48,10 @@ export interface ViewerState {
 	coreProperties?: PptxCoreProperties;
 	appProperties?: PptxAppProperties;
 	customProperties: PptxCustomProperty[];
+	embeddedFonts: PptxEmbeddedFont[];
+	hasDigitalSignatures: boolean;
+	digitalSignatureCount: number;
+	isPasswordProtected: boolean;
 	/** Inherited layout/master elements, separated so interaction can be gated. */
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	/** Parsed slide masters and layouts used by the dedicated master canvas. */
@@ -127,6 +132,10 @@ export function createInitialViewerState(): ViewerState {
 		coreProperties: undefined,
 		appProperties: undefined,
 		customProperties: [],
+		embeddedFonts: [],
+		hasDigitalSignatures: false,
+		digitalSignatureCount: 0,
+		isPasswordProtected: false,
 		templateElementsBySlideId: {},
 		slideMasters: [],
 		notesMaster: undefined,
