@@ -3,7 +3,7 @@
  * Accessibility, Compare, and the selection-gated Link action). Split out of
  * {@link RibbonComponent}; behaviour and markup are unchanged.
  */
-import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { EditorStateService } from './editor-state.service';
@@ -21,8 +21,10 @@ import { EditorStateService } from './editor-state.service';
 		<button
 			type="button"
 			class="pptx-rb-pill"
+			[class.is-active]="spellCheckEnabled()"
+			[attr.aria-pressed]="spellCheckEnabled()"
 			[title]="'pptx.review.toggleSpellCheck' | translate"
-			(click)="spelling.emit()"
+			(click)="spellCheckChange.emit(!spellCheckEnabled())"
 		>
 			{{ 'pptx.review.spelling' | translate }}
 		</button>
@@ -61,8 +63,9 @@ import { EditorStateService } from './editor-state.service';
 export class RibbonReviewSectionComponent {
 	private readonly editor = inject(EditorStateService);
 
+	readonly spellCheckEnabled = input(false);
 	readonly comments = output<void>();
-	readonly spelling = output<void>();
+	readonly spellCheckChange = output<boolean>();
 	readonly a11y = output<void>();
 	readonly openCompare = output<void>();
 	readonly language = output<void>();

@@ -40,6 +40,20 @@ interface PresentationModeHost {
 	readonly applyRehearsalTimings: (timings: Record<number, number>) => void;
 }
 
+export type RehearsalStart = 'beginning' | 'current';
+
+/** Resolve the editor slide that a Record ribbon command should start from. */
+export function resolveRehearsalStartIndex(
+	start: RehearsalStart,
+	currentIndex: number,
+	slideCount: number,
+): number {
+	if (slideCount <= 0) {
+		return 0;
+	}
+	return start === 'beginning' ? 0 : Math.min(Math.max(currentIndex, 0), slideCount - 1);
+}
+
 @Injectable()
 export class ViewerPresentationModeService {
 	private readonly loader = inject(LoadContentService);
@@ -91,7 +105,22 @@ export class ViewerPresentationModeService {
 		}
 	}
 
-	startRehearsal(): void {
+	startRehearsalFromBeginning(): void {
+		this.startRehearsal('beginning');
+	}
+
+	startRehearsalFromCurrent(): void {
+		this.startRehearsal('current');
+	}
+
+	private startRehearsal(start: RehearsalStart): void {
+		const host = this.requireHost();
+		if (host.slideCount() <= 0) {
+			return;
+		}
+		host.setActiveSlideIndex(
+			resolveRehearsalStartIndex(start, host.activeSlideIndex(), host.slideCount()),
+		);
 		this.recordedTimings.set({});
 		this.showRehearsalSummary.set(false);
 		this.rehearsalPaused.set(false);
