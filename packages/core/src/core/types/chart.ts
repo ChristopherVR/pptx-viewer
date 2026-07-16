@@ -6,6 +6,7 @@
  */
 
 import type { PptxChartAxisLabelFormatting } from './chart-axis';
+import type { PptxChartPivotSource } from './chart-pivot-source';
 import type { PptxChartPrintSettings } from './chart-print-settings';
 import type { PptxChartProtection } from './chart-protection';
 
@@ -654,12 +655,7 @@ export interface PptxChartData {
 	 * The chart still renders using its cached series data; this field
 	 * is metadata about the data origin, preserved for round-trip fidelity.
 	 */
-	pivotSource?: {
-		/** Pivot table reference name, e.g. "[workbook.xlsx]Sheet1!PivotTable1". */
-		name: string;
-		/** Format identifier from c:fmtId/@val. */
-		formatId?: number;
-	};
+	pivotSource?: PptxChartPivotSource | null;
 	/**
 	 * Whether only visible cells are plotted (c:plotVisOnly).
 	 * When `true` (the default), hidden cells are excluded from the chart.

@@ -23,6 +23,7 @@ export * from './geometry';
 export * from './chart';
 export * from './chart-print-settings';
 export * from './chart-protection';
+export * from './chart-pivot-source';
 export * from './chart-axis';
 export * from './smart-art';
 export * from './table';

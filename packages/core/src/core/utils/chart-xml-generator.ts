@@ -16,8 +16,8 @@ import { applySeriesDataPointsToXml } from './chart-datapoint-serializer';
 import { applySeriesErrBarsToXml } from './chart-errbars-serializer';
 import { applyChartLayouts } from './chart-layout';
 import { applySeriesMarkerToXml } from './chart-marker-serializer';
-import { applyGeneratedChartProtection } from './chart-protection';
 import { applySeriesDataLabelsToXml } from './chart-series-datalabel-serializer';
+import { applyGeneratedChartSpaceMetadata } from './chart-space-metadata';
 import { applySeriesTrendlinesToXml } from './chart-trendline-serializer';
 import { applyChartUpDownBars } from './chart-up-down-bars';
 
@@ -295,6 +295,6 @@ export function buildChartSpaceXml(chartData: PptxChartData): XmlObject {
 			'c:chart': chart,
 		},
 	};
-	applyGeneratedChartProtection(result, chartData.protection);
+	applyGeneratedChartSpaceMetadata(result, chartData);
 	return result;
 }

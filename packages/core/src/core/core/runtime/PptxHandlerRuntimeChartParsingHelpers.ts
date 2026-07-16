@@ -17,6 +17,7 @@ import type {
 	PptxChartOfPieOptions,
 	PptxChartView3D,
 } from '../../types';
+import { parseChartPivotSource } from '../../utils/chart-pivot-source';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeChartDetection';
 
 /**
@@ -90,39 +91,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * is metadata preserved for round-trip fidelity.
 	 */
 	protected parsePivotSource(chartSpace: XmlObject | undefined): PptxChartData['pivotSource'] {
-		if (!chartSpace) {
-			return undefined;
-		}
-
-		const pivotSourceNode = this.xmlLookupService.getChildByLocalName(chartSpace, 'pivotSource');
-		if (!pivotSourceNode) {
-			return undefined;
-		}
-
-		// Extract pivot table name from c:name text content
-		const nameNode = this.xmlLookupService.getChildByLocalName(pivotSourceNode, 'name');
-		const name =
-			nameNode !== null
-				? String(
-						typeof nameNode === 'object' && nameNode !== null
-							? (nameNode['#text'] ?? nameNode['_'] ?? nameNode['@_val'] ?? '')
-							: nameNode,
-					).trim()
-				: '';
-		if (name.length === 0) {
-			return undefined;
-		}
-
-		// Extract format ID from c:fmtId/@val
-		const fmtIdNode = this.xmlLookupService.getChildByLocalName(pivotSourceNode, 'fmtId');
-		const fmtIdVal = fmtIdNode?.['@_val'];
-		const formatId =
-			fmtIdVal !== undefined && fmtIdVal !== null ? parseInt(String(fmtIdVal), 10) : undefined;
-
-		return {
-			name,
-			...(formatId !== undefined && Number.isFinite(formatId) ? { formatId } : {}),
-		};
+		return parseChartPivotSource(chartSpace, (key) =>
+			this.compatibilityService.getXmlLocalName(key),
+		);
 	}
 
 	/**
