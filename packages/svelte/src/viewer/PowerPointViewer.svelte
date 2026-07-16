@@ -19,6 +19,7 @@
 	import { useCollaborationPresenceEffects } from './collab/collaboration-presence-effects.svelte';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
 	import SignatureStrippedDialog from './components/SignatureStrippedDialog.svelte';
+	import ViewerParityOverlays from './components/ViewerParityOverlays.svelte';
 	import VersionHistoryPanel from './components/VersionHistoryPanel.svelte';
 	import MobileActionSheets from './components/MobileActionSheets.svelte';
 	import MobileChrome from './components/MobileChrome.svelte';
@@ -41,6 +42,7 @@
 	import { ExportUiState } from './export/export-ui.svelte';
 	import { PresentationController, PresenterSession, usePresentationEffects } from './presentation';
 	import { PresentationLoader } from './state/presentation-loader.svelte';
+	import { ViewerParityUiState } from './state/viewer-parity-ui.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
 	import { provideRenderContext } from './state/render-context';
 	import { provideZoomNavigation } from './state/zoom-navigation-context';
@@ -208,11 +210,12 @@
 	// `CollaborationDialogsState`, both driving the same `collab` controller
 	// the `collaboration` prop auto-starts.
 	const dialogs = new CollaborationDialogsState(collab, () => shareDefaults);
+	const parityUi = new ViewerParityUiState(editor);
 	let versionHistoryOpen = $state(false);
 	let signatureWarningOpen = $state(false);
 	let signatureWarningAcknowledged = $state(false);
 	$effect(() => {
-		loader.loadCount;
+		void loader.loadCount;
 		signatureWarningAcknowledged = false;
 		signatureWarningOpen = false;
 	});
@@ -334,6 +337,15 @@
 		getActiveSlide: () => activeSlide,
 		getStageRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
 	});
+	let wasPresenting = false;
+	$effect(() => {
+		const presenting = viewer.isFullscreen;
+		if (wasPresenting && !presenting && parityUi.annotations.count > 0) parityUi.keepAnnotationsOpen = true;
+		wasPresenting = presenting;
+		if (!presenting && parityUi.rehearse.active) parityUi.rehearse.finish();
+	});
+	$effect(() => { parityUi.rehearse.move(viewer.current); });
+	$effect(() => { if (!parityUi.rehearse.active || parityUi.rehearse.paused) return; const timer = window.setInterval(() => parityUi.rehearse.tick(), 250); return () => window.clearInterval(timer); });
 
 	// ── Fullscreen / keyboard ────────────────────────────────────────────
 	// Assigned by the template's bind:this (invisible to the linter).
@@ -512,6 +524,9 @@
 	bind:this={rootEl}
 	class={`pptx-svelte-viewer ${className}`}
 	class:pptx-svelte-fullscreen={viewer.isFullscreen}
+	class:pptx-svelte-show-grid={parityUi.preferences.showGrid}
+	class:pptx-svelte-show-rulers={parityUi.preferences.showRulers}
+	class:pptx-svelte-reduced-motion={parityUi.preferences.reducedMotion}
 	style={rootStyle}
 	role="region"
 	aria-label={t('pptx.titleBar.defaultFileName')}
@@ -602,6 +617,17 @@
 				}}
 				onfromcurrent={onFullscreenToggle}
 				onpresenter={enterPresenterView}
+				onsetupslideshow={() => (parityUi.setupSlideShowOpen = true)}
+				onheaderfooter={() => (parityUi.headerFooterOpen = true)}
+				oncompare={() => void parityUi.compare.chooseFile()}
+				onshortcuts={() => (parityUi.shortcutsOpen = !parityUi.shortcutsOpen)}
+				onsettings={() => { parityUi.syncAutosave(autosaveEnabled); parityUi.settingsOpen = true; }}
+				onprintsettings={() => (parityUi.printSettingsOpen = true)}
+				onrehearse={() => { parityUi.rehearse.start(viewer.current); onFullscreenToggle(); }}
+				onsubtitles={() => (parityUi.subtitlesEnabled = !parityUi.subtitlesEnabled)}
+				oncustomshows={() => (parityUi.customShowsOpen = true)}
+				onselectionpane={() => (parityUi.selectionPaneOpen = !parityUi.selectionPaneOpen)}
+				onslidesorter={() => (parityUi.slideSorterOpen = true)}
 				{exportUi}
 				{onopenfile}
 				theme={effectiveTheme}
@@ -639,6 +665,7 @@
 	/>
 	{#if versionHistoryOpen}<VersionHistoryPanel {filePath} onclose={() => (versionHistoryOpen = false)} onrestore={(bytes) => loader.load(bytes)} />{/if}
 	{#if signatureWarningOpen}<SignatureStrippedDialog signatureCount={loader.digitalSignatureCount} onclose={closeSignatureWarning} />{/if}
+	<ViewerParityOverlays ui={parityUi} {editor} {exportUi} slides={displaySlides} canvasSize={loader.canvasSize} mediaDataUrls={loader.mediaDataUrls} current={viewer.current} fullscreen={viewer.isFullscreen} {locale} onselectslide={(index) => viewer.goTo(index)} onmoveslide={moveSlide} onpreferenceschange={(next) => { parityUi.updatePreferences(next, (enabled) => { autosaveEnabled = enabled; onautosavetoggle?.(enabled); }); }} />
 	{#if editor.masterViewTarget}
 		<MasterViewBody
 			{editor}
@@ -652,6 +679,9 @@
 	{:else}<ViewerBody
 		{t}
 		{editor}
+		handler={loader.handler}
+		presentationTheme={loader.presentationTheme}
+		onthemechange={(next) => { loader.presentationTheme = next; loader.colorScheme = next.colorScheme; }}
 		{chromeVisible}
 		{showThumbnails}
 		{showNotes}
@@ -671,6 +701,7 @@
 		onAdvance={() => presentation.advance()}
 		{editingActive}
 		{controller}
+		annotations={parityUi.annotations}
 		onstageresize={(width, height) => {
 			viewportWidth = width;
 			viewportHeight = height;
@@ -722,6 +753,9 @@
 			active={activeMobileSheet}
 			onactivechange={setActiveMobileSheet}
 			{editor}
+			handler={loader.handler}
+			presentationTheme={loader.presentationTheme}
+			onthemechange={(next) => { loader.presentationTheme = next; loader.colorScheme = next.colorScheme; }}
 			slides={displaySlides}
 			canvasSize={loader.canvasSize}
 			mediaDataUrls={loader.mediaDataUrls}
@@ -798,6 +832,9 @@
 			scroll-behavior: auto !important;
 		}
 	}
+	:global(.pptx-svelte-reduced-motion *) { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+	:global(.pptx-svelte-show-grid .pptx-svelte-stage-holder)::after { position:absolute;inset:0;z-index:4;pointer-events:none;background-image:linear-gradient(#64748b22 1px,transparent 1px),linear-gradient(90deg,#64748b22 1px,transparent 1px);background-size:12px 12px;content:''; }
+	:global(.pptx-svelte-show-rulers .pptx-svelte-stage-holder) { border-top:18px solid #d6d3d1; border-left:18px solid #d6d3d1; }
 
 	@media (forced-colors: active) {
 		:global(.pptx-svelte-viewer :is(button, a, input, select, textarea, [tabindex]):focus-visible) {

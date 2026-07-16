@@ -21,6 +21,7 @@
 		onsignatures,
 		onprotect,
 		onversionhistory,
+		onprint,
 	}: {
 		ondownload: () => void;
 		ondownloadppsx: () => void;
@@ -34,6 +35,7 @@
 		onsignatures?: () => void;
 		onprotect?: () => void;
 		onversionhistory?: () => void;
+		onprint?: () => void;
 	} = $props();
 	const t = useTranslator();
 </script>
@@ -76,6 +78,7 @@
 	{#if onfonts}<button type="button" onclick={onfonts}><span>{t('pptx.ribbon.embedFonts')}</span></button>{/if}
 	{#if onsignatures}<button type="button" onclick={onsignatures}><span>{t('pptx.viewer.digitalSignatures')}</span></button>{/if}
 	{#if onversionhistory}<button type="button" onclick={onversionhistory}><span>{t('pptx.ribbon.versionHistory')}</span></button>{/if}
+	{#if onprint}<button type="button" onclick={onprint}><span>{t('pptx.print.title')}</span></button>{/if}
 	{#if exportUi}
 		<button
 			type="button"

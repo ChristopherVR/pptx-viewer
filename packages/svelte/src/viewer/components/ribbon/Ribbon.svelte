@@ -84,11 +84,12 @@
 				onsignatures={() => (signaturesOpen = true)}
 				onprotect={() => (protectionOpen = true)}
 				onversionhistory={props.onversionhistory}
+				onprint={props.onprintsettings}
 			/>
 		{:else if activeTab === 'home'}
 			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />
 		{:else if activeTab === 'insert'}
-			<InsertTab editor={props.editor} canvasSize={props.canvasSize} />
+			<InsertTab editor={props.editor} canvasSize={props.canvasSize} onheaderfooter={props.onheaderfooter} />
 		{:else if activeTab === 'draw'}
 			<DrawTab editor={props.editor} />
 		{:else if activeTab === 'design'}
@@ -102,10 +103,14 @@
 				onfrombeginning={props.onfrombeginning}
 				onfromcurrent={props.onfromcurrent}
 				onpresenter={props.onpresenter}
+				onsetup={props.onsetupslideshow}
+				onrehearse={props.onrehearse}
+				onsubtitles={props.onsubtitles}
+				oncustomshows={props.oncustomshows}
 				onbroadcast={props.onbroadcast}
 			/>
 		{:else if activeTab === 'review'}
-			<ReviewTab slides={props.slides} onnavigate={props.onnavigatetoissue} editor={props.editor} />
+			<ReviewTab slides={props.slides} onnavigate={props.onnavigatetoissue} editor={props.editor} oncompare={props.oncompare} />
 		{:else if activeTab === 'record'}
 			<RecordTab />
 		{:else if activeTab === 'view'}
@@ -122,9 +127,11 @@
 				editTemplateMode={props.editor.editTemplateMode}
 				onsettemplateediting={(enabled) => props.editor.setTemplateEditing(enabled)}
 				onentermasterview={props.onentermasterview}
+				onselectionpane={props.onselectionpane}
+				onslidesorter={props.onslidesorter}
 			/>
 		{:else if activeTab === 'help'}
-			<HelpTab onaccessibility={() => (activeTab = 'review')} />
+			<HelpTab onaccessibility={() => (activeTab = 'review')} onshortcuts={props.onshortcuts} onsettings={props.onsettings} />
 		{/if}
 	</div>
 </div>

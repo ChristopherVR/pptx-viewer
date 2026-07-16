@@ -56,6 +56,17 @@ export interface RibbonProps {
 	onfrombeginning: () => void;
 	onfromcurrent: () => void;
 	onpresenter: () => void;
+	onsetupslideshow: () => void;
+	onheaderfooter: () => void;
+	oncompare: () => void;
+	onshortcuts: () => void;
+	onsettings: () => void;
+	onprintsettings: () => void;
+	onrehearse: () => void;
+	onsubtitles: () => void;
+	oncustomshows: () => void;
+	onselectionpane: () => void;
+	onslidesorter: () => void;
 
 	/** Review tab: presentation-wide accessibility audit and issue navigation. */
 	slides: readonly PptxSlide[];

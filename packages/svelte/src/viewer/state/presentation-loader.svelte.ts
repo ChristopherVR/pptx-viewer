@@ -5,12 +5,15 @@ import type {
 	PptxCustomProperty,
 	PptxEmbeddedFont,
 	PptxHandoutMaster,
+	PptxHeaderFooter,
 	PptxNotesMaster,
 	PptxPresentationProperties,
+	PptxCustomShow,
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxThemeColorScheme,
+	PptxTheme,
 } from 'pptx-viewer-core';
 import { EncryptedFileError, PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
@@ -35,7 +38,9 @@ export class PresentationLoader {
 	notesMaster = $state.raw<PptxNotesMaster | undefined>(undefined);
 	handoutMaster = $state.raw<PptxHandoutMaster | undefined>(undefined);
 	sections = $state.raw<PptxSection[]>([]);
+	headerFooter = $state.raw<PptxHeaderFooter>({});
 	presentationProperties = $state.raw<PptxPresentationProperties>({});
+	customShows = $state.raw<PptxCustomShow[]>([]);
 	coreProperties = $state.raw<PptxCoreProperties | undefined>(undefined);
 	appProperties = $state.raw<PptxAppProperties | undefined>(undefined);
 	customProperties = $state.raw<PptxCustomProperty[]>([]);
@@ -55,6 +60,7 @@ export class PresentationLoader {
 	mediaDataUrls = $state.raw<Map<string, string>>(new Map());
 	/** Presentation theme colours used to resolve scheme-based table styles. */
 	colorScheme = $state.raw<PptxThemeColorScheme | undefined>(undefined);
+	presentationTheme = $state.raw<PptxTheme | undefined>(undefined);
 	/** Parsed presentation table-style definitions keyed by style id. */
 	tableStyleMap = $state.raw<ParsedTableStyleMap | undefined>(undefined);
 	/** True while a load is in flight. */
@@ -113,7 +119,9 @@ export class PresentationLoader {
 			this.notesMaster = parsed.notesMaster;
 			this.handoutMaster = parsed.handoutMaster;
 			this.sections = parsed.sections ?? [];
+			this.headerFooter = parsed.headerFooter ?? {};
 			this.presentationProperties = parsed.presentationProperties ?? {};
+			this.customShows = parsed.customShows ?? [];
 			this.coreProperties = parsed.coreProperties;
 			this.appProperties = parsed.appProperties;
 			this.customProperties = parsed.customProperties ?? [];
@@ -128,6 +136,7 @@ export class PresentationLoader {
 					: undefined;
 			this.mediaDataUrls = media.urls;
 			this.colorScheme = parsed.theme?.colorScheme;
+			this.presentationTheme = parsed.theme;
 			this.tableStyleMap = parsed.tableStyleMap;
 			this.canvasSize = {
 				width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
