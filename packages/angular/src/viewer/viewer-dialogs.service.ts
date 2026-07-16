@@ -66,6 +66,8 @@ export class ViewerDialogsService {
 	// ── Keyboard shortcut cheat-sheet ──────────────────────────────────────
 	/** Keyboard-shortcuts help overlay visibility. */
 	readonly showShortcuts = signal(false);
+	/** Viewer/editor preferences dialog visibility. */
+	readonly showSettings = signal(false);
 
 	// ── Keep-annotations prompt ────────────────────────────────────────────
 	/** Keep-annotations dialog visibility. */

@@ -57,6 +57,15 @@
 	}
 }
 
+.pptx-ng-viewer.pptx-ng-reduced-motion *,
+.pptx-ng-viewer.pptx-ng-reduced-motion *::before,
+.pptx-ng-viewer.pptx-ng-reduced-motion *::after {
+	animation-duration: 0.01ms !important;
+	animation-iteration-count: 1 !important;
+	transition-duration: 0.01ms !important;
+	scroll-behavior: auto !important;
+}
+
 :where(.pptx-ng-viewer) :where(button, a, input, select, textarea, [tabindex]):focus-visible {
 	outline: 2px solid var(--pptx-ring, #818cf8) !important;
 	outline-offset: 2px;

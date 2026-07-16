@@ -24,7 +24,7 @@ import type {
 	PptxSlide,
 } from 'pptx-viewer-core';
 
-import type { ViewerTheme } from '../internal/shared';
+import type { ViewerSettings, ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
@@ -212,7 +212,7 @@ import { ZoomTargetService } from './zoom-target.service';
 	template: `
 		<div
 			class="pptx-ng-viewer"
-			[ngClass]="class()"
+			[ngClass]="[class(), reducedMotion() ? 'pptx-ng-reduced-motion' : '']"
 			[ngStyle]="rootStyle()"
 			[attr.aria-busy]="loader.loading()"
 		>
@@ -324,6 +324,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(openFontEmbedding)="dialogs.showFontEmbedding.set(true)"
 					(openVersionHistory)="dialogs.showVersionHistory.set(true)"
 					(openShortcuts)="dialogs.showShortcuts.set(true)"
+					(openSettings)="dialogs.showSettings.set(true)"
 					/>
 				}
 
@@ -377,6 +378,7 @@ import { ZoomTargetService } from './zoom-target.service';
 							[showRulers]="showRulers()"
 							[showGuides]="showGuides()"
 							[snapToGrid]="snapToGrid()"
+							[spellCheck]="spellCheck()"
 							[snapToGuides]="showGuides()"
 							[drawTool]="activeDrawTool()"
 							[drawColor]="activeDrawColor()"
@@ -706,7 +708,9 @@ import { ZoomTargetService } from './zoom-target.service';
 				[selectedElementId]="selectedElement()?.id ?? null"
 				[filePath]="filePath()"
 				[customShows]="customShowsCtl.pptxCustomShows()"
+				[settings]="viewerSettings()"
 				(restoreContent)="onRestoreVersion($event)"
+				(settingsChange)="onSettingsChange($event)"
 			/>
 
 			@if (canEdit()) {
@@ -1080,6 +1084,19 @@ export class PowerPointViewerComponent {
 	protected readonly showGuides = signal(false);
 	/** Whether snap-to-grid is active on the editor canvas. */
 	protected readonly snapToGrid = signal(false);
+	/** Whether browser spell-check is active in the inline text editor. */
+	protected readonly spellCheck = signal(false);
+	/** User override that suppresses viewer animations and transitions. */
+	protected readonly reducedMotion = signal(false);
+	/** Snapshot consumed by the settings dialog. */
+	protected readonly viewerSettings = computed<ViewerSettings>(() => ({
+		autoSave: this.autosaveEnabled(),
+		spellCheck: this.spellCheck(),
+		showGrid: this.showGrid(),
+		showRulers: this.showRulers(),
+		snapToGrid: this.snapToGrid(),
+		reducedMotion: this.reducedMotion(),
+	}));
 	/** Whether the Insert SmartArt gallery dialog is open. */
 	protected readonly showSmartArtInsert = signal(false);
 	/**
@@ -1861,6 +1878,16 @@ export class PowerPointViewerComponent {
 	/** Swap the deck for a restored version-history snapshot. */
 	protected onRestoreVersion(bytes: Uint8Array): void {
 		this.fileIO.contentOverride.set(bytes);
+	}
+
+	/** Apply Settings dialog changes to the live editor state. */
+	protected onSettingsChange(settings: ViewerSettings): void {
+		this.autosaveEnabled.set(settings.autoSave);
+		this.spellCheck.set(settings.spellCheck);
+		this.showGrid.set(settings.showGrid);
+		this.showRulers.set(settings.showRulers);
+		this.snapToGrid.set(settings.snapToGrid);
+		this.reducedMotion.set(settings.reducedMotion);
 	}
 
 	/**

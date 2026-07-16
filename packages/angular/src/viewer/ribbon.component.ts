@@ -390,6 +390,12 @@ const TABS: readonly TabDef[] = [
 						/>
 					}
 					@case ('help') {
+						<button type="button" class="pptx-rb-pill" (click)="openSettings.emit()">
+							{{ 'pptx.settings.title' | translate }}
+						</button>
+						<button type="button" class="pptx-rb-pill" (click)="openShortcuts.emit()">
+							{{ 'pptx.settings.keyboardShortcuts' | translate }}
+						</button>
 						<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">
 							{{ 'pptx.ribbon.accessibility' | translate }}
 						</button>
@@ -531,6 +537,8 @@ export class RibbonComponent {
 	readonly openVersionHistory = output<void>();
 	/** Emitted when the user clicks "Shortcuts" in the Help tab. */
 	readonly openShortcuts = output<void>();
+	/** Emitted when the user opens viewer preferences from the Help tab. */
+	readonly openSettings = output<void>();
 	/** Emitted when a shape is inserted from the Drawing group. */
 	readonly shapeInsert = output<string>();
 	/** Emitted when the user reorders an element layer (up/down). */

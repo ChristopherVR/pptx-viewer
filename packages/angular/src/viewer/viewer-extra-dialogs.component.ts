@@ -37,6 +37,8 @@ import { LoadContentService } from './load-content.service';
 import { PasswordProtectionDialogComponent } from './password-protection-dialog.component';
 import type { SlideAnnotationMap } from './presentation-annotations-helpers';
 import { SetUpSlideShowDialogComponent } from './set-up-slide-show-dialog.component';
+import { SettingsDialogComponent } from './settings-dialog.component';
+import type { ViewerSettings } from './settings-dialog.component';
 import { ShortcutPanelComponent } from './shortcut-panel.component';
 import { SignatureStrippedDialogComponent } from './signature-stripped-dialog.component';
 import { VersionHistoryPanelComponent } from './version-history-panel.component';
@@ -64,6 +66,7 @@ import {
 		FontEmbeddingPanelComponent,
 		VersionHistoryPanelComponent,
 		ShortcutPanelComponent,
+		SettingsDialogComponent,
 		KeepAnnotationsDialogComponent,
 		SignatureStrippedDialogComponent,
 	],
@@ -126,6 +129,13 @@ import {
 
 		<pptx-shortcut-panel [open]="svc.showShortcuts()" (close)="svc.showShortcuts.set(false)" />
 
+		<pptx-settings-dialog
+			[open]="svc.showSettings()"
+			[settings]="settings()"
+			(settingsChange)="settingsChange.emit($event)"
+			(close)="svc.showSettings.set(false)"
+		/>
+
 		<pptx-keep-annotations-dialog
 			[open]="svc.showKeepAnnotations()"
 			[annotationCount]="svc.keepAnnotationCount()"
@@ -151,9 +161,13 @@ export class ViewerExtraDialogsComponent {
 	readonly filePath = input<string | undefined>(undefined);
 	/** Custom shows offered in the set-up-slide-show "show slides" fieldset. */
 	readonly customShows = input<PptxCustomShow[]>([]);
+	/** Live viewer preferences surfaced by the settings dialog. */
+	readonly settings = input.required<ViewerSettings>();
 
 	/** Fired with a restored `.pptx` version's bytes; the host swaps the deck. */
 	readonly restoreContent = output<Uint8Array>();
+	/** Fired whenever a settings toggle changes. */
+	readonly settingsChange = output<ViewerSettings>();
 
 	protected readonly svc = inject(ViewerDialogsService);
 	protected readonly compare = inject(ViewerCompareService);

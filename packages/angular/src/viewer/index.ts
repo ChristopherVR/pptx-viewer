@@ -271,6 +271,8 @@ export {
 } from './version-history-helpers';
 export type { RecoveryVersion } from './version-history-helpers';
 export { ShortcutPanelComponent } from './shortcut-panel.component';
+export { SettingsDialogComponent } from './settings-dialog.component';
+export type { ViewerSettings } from './settings-dialog.component';
 export { KeepAnnotationsDialogComponent } from './keep-annotations-dialog.component';
 export { SignatureStrippedDialogComponent } from './signature-stripped-dialog.component';
 export {

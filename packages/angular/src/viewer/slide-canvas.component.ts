@@ -279,6 +279,7 @@ function plainText(el: PptxElement): string {
 							data-inline-editor
 							class="pptx-ng-text-editor"
 							aria-label="Edit slide text"
+							[spellcheck]="spellCheck()"
 							[style.left.px]="eb.x"
 							[style.top.px]="eb.y"
 							[style.width.px]="eb.width"
@@ -551,6 +552,8 @@ export class SlideCanvasComponent implements SlideContext {
 	 * Combines with edge-alignment snapping.
 	 */
 	readonly snapToGrid = input<boolean>(false);
+	/** Whether the inline text editor uses the browser spell checker. */
+	readonly spellCheck = input<boolean>(false);
 	/**
 	 * When true, snap elements to user-created ruler guides during move.
 	 */
