@@ -8,7 +8,7 @@
 	import { setSmartArtNodeStyle, updateSmartArtNodeText } from 'pptx-viewer-core';
 	import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 	import type { CanvasSize, RemoteCursor } from 'pptx-viewer-shared';
-	import { setCellText } from 'pptx-viewer-shared';
+	import { setCellText, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 
 	import CollaborationCursors from '../collab/components/CollaborationCursors.svelte';
 	import type { EditorController } from '../editor/editor-controller.svelte';
@@ -125,7 +125,13 @@
 
 	function commitSmartArtNode(id: string, nodeId: string, text: string): void {
 		const element = editor.activeElements.find((candidate) => candidate.id === id);
-		if (element?.type !== 'smartArt' || !element.smartArtData) return;
+		if (
+			element?.type !== 'smartArt' ||
+			!element.smartArtData ||
+			!shouldCommitSmartArtNodeText(element.smartArtData, nodeId, text)
+		) {
+			return;
+		}
 		const next = updateSmartArtNodeText(element.smartArtData, nodeId, text);
 		editor.applyElementPatch(id, { smartArtData: next });
 	}
