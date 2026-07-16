@@ -183,6 +183,7 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 				'pptx.ribbon.insertEquation': 'Insert equation',
 				'pptx.ribbon.action': 'Action',
 				'pptx.ribbon.insertActionButton': 'Insert action button',
+				'pptx.headerFooter.title': 'Header & Footer',
 				// DesignSection
 				'pptx.ribbon.browseThemes': 'Browse Themes',
 				'pptx.ribbon.browseThemesTitle': 'Browse and apply built-in themes',
@@ -812,6 +813,16 @@ describe('toolbar - Insert tab', () => {
 			React.createElement(InsertSection, createInsertProps({ onInsertField: undefined })),
 		);
 		expect(html).not.toContain('title="Insert Field"');
+	});
+
+	it('renders Header & Footer when a host callback is provided', () => {
+		const html = render(
+			React.createElement(
+				InsertSection,
+				createInsertProps({ onOpenHeaderFooter: vi.fn<() => void>() }),
+			),
+		);
+		expect(html).toContain('Header &amp; Footer');
 	});
 
 	it('buttons are disabled when canEdit is false', () => {

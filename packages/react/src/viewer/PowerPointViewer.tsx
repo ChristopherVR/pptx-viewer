@@ -42,6 +42,7 @@ import {
 import { SmartArt3DContext } from './components/elements/smart-art-3d-context';
 import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
 import { SettingsDialog } from './components/SettingsDialog';
+import { HeaderFooterPanel } from './components/HeaderFooterPanel';
 import { ViewerDialogGroup } from './components/ViewerDialogGroup';
 import { ViewerMainContent } from './components/ViewerMainContent';
 import { ViewerPresentationLayer } from './components/ViewerPresentationLayer';
@@ -143,6 +144,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 
 		// ── Settings dialog ─────────────────────────────────────────
 		const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+		const [isHeaderFooterOpen, setIsHeaderFooterOpen] = useState(false);
 
 		// ── AutoSave toggle (title bar) ─────────────────────────────
 		const [autosaveEnabled, setAutosaveEnabled] = useState(true);
@@ -482,6 +484,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									onEnterPresenterView={handleEnterPresenterView}
 									onEnterRehearsalMode={handleEnterRehearsalMode}
 									onOpenSettings={() => setIsSettingsOpen(true)}
+									onOpenHeaderFooter={() => setIsHeaderFooterOpen(true)}
 									onOpenShareDialog={() => setIsShareDialogOpen(true)}
 									onOpenFile={handleOpenFile}
 									fileName={fileName}
@@ -616,6 +619,36 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					reducedMotion={reducedMotion}
 					onToggleReducedMotion={toggleReducedMotion}
 				/>
+
+				{isHeaderFooterOpen && (
+					<HeaderFooterPanel
+						showDateTime={state.headerFooter.hasDateTime ?? false}
+						showSlideNumber={state.headerFooter.hasSlideNumber ?? false}
+						showFooter={state.headerFooter.hasFooter ?? false}
+						footerText={state.headerFooter.footerText ?? ''}
+						onSetShowDateTime={(hasDateTime) =>
+							state.setHeaderFooter((current) => ({ ...current, hasDateTime }))
+						}
+						onSetShowSlideNumber={(hasSlideNumber) =>
+							state.setHeaderFooter((current) => ({ ...current, hasSlideNumber }))
+						}
+						onSetShowFooter={(hasFooter) =>
+							state.setHeaderFooter((current) => ({ ...current, hasFooter }))
+						}
+						onSetFooterText={(footerText) =>
+							state.setHeaderFooter((current) => ({ ...current, footerText }))
+						}
+						onApplyToAll={() => {
+							history.markDirty();
+							setIsHeaderFooterOpen(false);
+						}}
+						onApplyToCurrent={() => {
+							history.markDirty();
+							setIsHeaderFooterOpen(false);
+						}}
+						onClose={() => setIsHeaderFooterOpen(false)}
+					/>
+				)}
 
 				<ShareDialog
 					open={isShareDialogOpen}

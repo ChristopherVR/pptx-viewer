@@ -122,6 +122,7 @@ export interface ViewerToolbarSectionProps {
 	onEnterPresenterView: () => void;
 	onEnterRehearsalMode: () => void;
 	onOpenSettings?: () => void;
+	onOpenHeaderFooter?: () => void;
 	onOpenShareDialog?: () => void;
 	onOpenFile?: () => void;
 	onToggleFormatPainter?: () => void;
@@ -158,6 +159,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		onEnterPresenterView,
 		onEnterRehearsalMode,
 		onOpenSettings,
+		onOpenHeaderFooter,
 		onOpenShareDialog,
 		onOpenFile,
 		onToggleFormatPainter: onToggleFormatPainterProp,
@@ -431,6 +433,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				}}
 				onAddActionButton={insertHandlers.handleAddActionButton}
 				onInsertField={insertHandlers.handleInsertField}
+				onOpenHeaderFooter={onOpenHeaderFooter}
 				onOpenImagePicker={() => s.imageInputRef.current?.click()}
 				onOpenMediaPicker={() => s.mediaInputRef.current?.click()}
 				onSetActiveTool={s.setActiveTool}

@@ -176,6 +176,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onAddEquation={p.onAddEquation}
 							onAddActionButton={p.onAddActionButton}
 							onInsertField={p.onInsertField}
+							onOpenHeaderFooter={p.onOpenHeaderFooter}
 							onOpenImagePicker={p.onOpenImagePicker}
 							onOpenMediaPicker={p.onOpenMediaPicker}
 						/>

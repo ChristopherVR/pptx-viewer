@@ -28,6 +28,7 @@ export interface InsertSectionProps {
 	onAddEquation: () => void;
 	onAddActionButton: (shapeType: string) => void;
 	onInsertField?: (fieldType: string, value?: string) => void;
+	onOpenHeaderFooter?: () => void;
 	onOpenImagePicker: () => void;
 	onOpenMediaPicker: () => void;
 }
@@ -344,6 +345,16 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 						</div>
 					</div>
 				</div>
+			)}
+			{p.onOpenHeaderFooter && (
+				<button
+					type='button'
+					disabled={!canEdit}
+					className={pill}
+					onClick={p.onOpenHeaderFooter}
+				>
+					{t('pptx.headerFooter.title')}
+				</button>
 			)}
 			{/* Date/Time picker popover */}
 			{datePickerOpen && (
