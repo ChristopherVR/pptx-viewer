@@ -102,11 +102,11 @@ export function computeHierarchicalSunburstArcs(
 	const total = weights.reduce((sum, value) => sum + value, 0);
 	const prefix = [0];
 	for (const weight of weights) {
-		prefix.push((prefix.at(-1) ?? 0) + weight);
+		prefix.push((prefix[prefix.length - 1] ?? 0) + weight);
 	}
 
 	const ringWidth = maxR / (levels.length + 0.5);
-	const rootLabels = levels.at(-1) ?? [];
+	const rootLabels = levels[levels.length - 1] ?? [];
 	const rootColors = new Map<string, number>();
 	const out: SunburstArc[] = [];
 	for (let level = levels.length - 1; level >= 0; level--) {

@@ -233,7 +233,7 @@ export function buildSunburstViewModel(
 	);
 
 	const legendLabels = categoryLevels?.length
-		? [...new Set(categoryLevels.at(-1)?.filter(Boolean) ?? categoryLabels)]
+		? [...new Set(categoryLevels[categoryLevels.length - 1]?.filter(Boolean) ?? categoryLabels)]
 		: categoryLabels;
 	const legend = chartData.style?.hasLegend
 		? legendLabels.map((label, i) => ({ color: paletteColor(i, chartData.colorPalette), label }))
