@@ -73,7 +73,10 @@ function hasRicherAxisFeatures(chartData: PptxChartData): boolean {
 					a.orientation === 'maxMin' ||
 					a.majorUnit !== undefined ||
 					a.minorUnit !== undefined ||
-					a.minorGridlines)
+					a.minorGridlines ||
+					a.majorTickMark !== undefined ||
+					a.minorTickMark !== undefined ||
+					a.tickLblPos !== undefined)
 			) {
 				return true;
 			}

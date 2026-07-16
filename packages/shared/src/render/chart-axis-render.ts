@@ -25,6 +25,47 @@ const GRIDLINE_COLOR = '#e2e8f0';
 const AXIS_LABEL_COLOR = '#64748b';
 const SECONDARY_GRID_COLOR = '#e2e8f0';
 const TICK_COUNT = 5;
+const MAJOR_TICK_LENGTH = 4;
+const MINOR_TICK_LENGTH = 2.5;
+
+type VerticalAxisSide = 'left' | 'right';
+
+/** Build one explicit ChartML tick-mark line on a vertical value axis. */
+function buildTickMark(
+	axisX: number,
+	y: number,
+	placement: PptxChartAxisFormatting['majorTickMark'],
+	side: VerticalAxisSide,
+	length: number,
+): SvgLine | undefined {
+	if (!placement || placement === 'none') {
+		return undefined;
+	}
+	const inward = side === 'left' ? 1 : -1;
+	const startOffset = placement === 'cross' ? -inward * length : 0;
+	const endOffset = placement === 'out' ? -inward * length : inward * length;
+	return {
+		kind: 'line',
+		x1: axisX + startOffset,
+		y1: y,
+		x2: axisX + endOffset,
+		y2: y,
+		stroke: AXIS_LABEL_COLOR,
+		strokeWidth: 1,
+	};
+}
+
+/** Resolve label placement at the low or high side of a vertical chart axis. */
+function valueAxisLabelPlacement(
+	layout: PlotLayout,
+	position: PptxChartAxisFormatting['tickLblPos'],
+	defaultSide: VerticalAxisSide,
+): Pick<SvgText, 'x' | 'textAnchor'> {
+	const side = position === 'high' ? 'right' : position === 'low' ? 'left' : defaultSide;
+	return side === 'left'
+		? { x: layout.plotLeft - 4, textAnchor: 'end' }
+		: { x: layout.plotRight + 4, textAnchor: 'start' };
+}
 
 /** Format a value-axis tick: display-unit scaled when the axis declares units. */
 function formatTick(val: number, axis: PptxChartAxisFormatting | undefined): string {
@@ -49,8 +90,9 @@ export function buildPrimaryAxis(
 	const axisLabels: SvgText[] = [];
 
 	const tickVals = generateAxisTicks(range, axis, TICK_COUNT);
+	const minorTickVals = generateMinorAxisTicks(range, axis);
 	if (axis?.minorGridlines) {
-		for (const val of generateMinorAxisTicks(range, axis)) {
+		for (const val of minorTickVals) {
 			const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
 			gridlines.push({
 				kind: 'line',
@@ -65,6 +107,13 @@ export function buildPrimaryAxis(
 			});
 		}
 	}
+	for (const val of minorTickVals) {
+		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
+		const tick = buildTickMark(layout.plotLeft, y, axis?.minorTickMark, 'left', MINOR_TICK_LENGTH);
+		if (tick) {
+			gridlines.push(tick);
+		}
+	}
 
 	for (const val of tickVals) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
@@ -77,16 +126,21 @@ export function buildPrimaryAxis(
 			stroke: GRIDLINE_COLOR,
 			strokeWidth: 1,
 		});
-		axisLabels.push({
-			kind: 'text',
-			x: layout.plotLeft - 4,
-			y,
-			text: formatTick(val, axis),
-			fontSize: 8,
-			fill: AXIS_LABEL_COLOR,
-			textAnchor: 'end',
-			dominantBaseline: 'central',
-		});
+		const tick = buildTickMark(layout.plotLeft, y, axis?.majorTickMark, 'left', MAJOR_TICK_LENGTH);
+		if (tick) {
+			gridlines.push(tick);
+		}
+		if (axis?.tickLblPos !== 'none') {
+			axisLabels.push({
+				kind: 'text',
+				...valueAxisLabelPlacement(layout, axis?.tickLblPos, 'left'),
+				y,
+				text: formatTick(val, axis),
+				fontSize: 8,
+				fill: AXIS_LABEL_COLOR,
+				dominantBaseline: 'central',
+			});
+		}
 	}
 
 	// Display-units caption (e.g. "Thousands"), rotated alongside the left axis.
@@ -128,6 +182,36 @@ export function buildSecondaryAxis(
 	const fontWeight: 'normal' | 'bold' = axis?.fontBold ? 'bold' : 'normal';
 
 	const tickValues = generateAxisTicks(range, axis, TICK_COUNT - 1);
+	const minorTickValues = generateMinorAxisTicks(range, axis);
+	if (axis?.minorGridlines) {
+		for (const val of minorTickValues) {
+			const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
+			gridlines.push({
+				kind: 'line',
+				x1: layout.plotLeft,
+				y1: y,
+				x2: layout.plotRight,
+				y2: y,
+				stroke: SECONDARY_GRID_COLOR,
+				strokeWidth: 0.5,
+				dashArray: '1 2',
+				opacity: 0.35,
+			});
+		}
+	}
+	for (const val of minorTickValues) {
+		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
+		const tick = buildTickMark(
+			layout.plotRight,
+			y,
+			axis?.minorTickMark,
+			'right',
+			MINOR_TICK_LENGTH,
+		);
+		if (tick) {
+			gridlines.push(tick);
+		}
+	}
 	for (const val of tickValues) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
 		gridlines.push({
@@ -141,17 +225,28 @@ export function buildSecondaryAxis(
 			dashArray: '2 3',
 			opacity: 0.5,
 		});
-		axisLabels.push({
-			kind: 'text',
-			x: layout.plotRight + 4,
+		const tick = buildTickMark(
+			layout.plotRight,
 			y,
-			text: formatTick(val, axis),
-			fontSize,
-			fill: fontColor,
-			textAnchor: 'start',
-			fontWeight,
-			dominantBaseline: 'central',
-		});
+			axis?.majorTickMark,
+			'right',
+			MAJOR_TICK_LENGTH,
+		);
+		if (tick) {
+			gridlines.push(tick);
+		}
+		if (axis?.tickLblPos !== 'none') {
+			axisLabels.push({
+				kind: 'text',
+				...valueAxisLabelPlacement(layout, axis?.tickLblPos, 'right'),
+				y,
+				text: formatTick(val, axis),
+				fontSize,
+				fill: fontColor,
+				fontWeight,
+				dominantBaseline: 'central',
+			});
+		}
 	}
 
 	// Secondary axis title (rotated +90 on the right).

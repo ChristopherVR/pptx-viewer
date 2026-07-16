@@ -128,6 +128,31 @@ describe('buildPrimaryAxis explicit tick units and direction', () => {
 		expect(axisLabels.find((label) => label.text === '0')?.y).toBe(layout.plotTop);
 		expect(axisLabels.find((label) => label.text === '100')?.y).toBe(layout.plotBottom);
 	});
+
+	it('renders explicit major and minor tick marks on the requested side', () => {
+		const { gridlines } = buildPrimaryAxis(range, layout, {
+			...axis,
+			minorGridlines: false,
+			majorTickMark: 'out',
+			minorTickMark: 'in',
+		});
+		const outwardMajorTicks = gridlines.filter(
+			(line) => line.x1 === layout.plotLeft && line.x2 === layout.plotLeft - 4,
+		);
+		const inwardMinorTicks = gridlines.filter(
+			(line) => line.x1 === layout.plotLeft && line.x2 === layout.plotLeft + 2.5,
+		);
+		expect(outwardMajorTicks).toHaveLength(6);
+		expect(inwardMinorTicks).toHaveLength(5);
+	});
+
+	it('honors high and none tick-label positions', () => {
+		const high = buildPrimaryAxis(range, layout, { ...axis, tickLblPos: 'high' });
+		expect(high.axisLabels.every((label) => label.x === layout.plotRight + 4)).toBeTruthy();
+		expect(high.axisLabels.every((label) => label.textAnchor === 'start')).toBeTruthy();
+		const hidden = buildPrimaryAxis(range, layout, { ...axis, tickLblPos: 'none' });
+		expect(hidden.axisLabels).toHaveLength(0);
+	});
 });
 
 describe('buildSecondaryAxis', () => {
@@ -175,5 +200,20 @@ describe('buildSecondaryAxis', () => {
 			logBase: 10,
 		});
 		expect(axisLabels.map((label) => label.text)).toStrictEqual(['1', '10', '100', '1.0K']);
+	});
+
+	it('renders right-axis tick marks and low-side labels', () => {
+		const { gridlines, axisLabels } = buildSecondaryAxis(range, layout, {
+			axisType: 'valAx',
+			axPos: 'r',
+			majorTickMark: 'cross',
+			tickLblPos: 'low',
+		});
+		const ticks = gridlines.filter(
+			(line) => line.x1 === layout.plotRight + 4 && line.x2 === layout.plotRight - 4,
+		);
+		expect(ticks).toHaveLength(5);
+		expect(axisLabels.every((label) => label.x === layout.plotLeft - 4)).toBeTruthy();
+		expect(axisLabels.every((label) => label.textAnchor === 'end')).toBeTruthy();
 	});
 });
