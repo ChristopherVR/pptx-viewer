@@ -60,4 +60,14 @@ describe('slidesPaneSidebar', () => {
 		const wrapper = mount(SlidesPaneSidebar, { props: { ...base, canEdit: false } });
 		expect(wrapper.findAll('button')).toHaveLength(3);
 	});
+
+	it('virtualizes thumbnail rows and scrolls the active item into the window', async () => {
+		const slides = Array.from({ length: 100 }, (_, index) => slide(`s-${index}`));
+		const wrapper = mount(SlidesPaneSidebar, { props: { ...base, slides, activeIndex: 80 } });
+		await wrapper.vm.$nextTick();
+		await wrapper.vm.$nextTick();
+		expect(wrapper.find('[data-virtualized="true"]').exists()).toBeTruthy();
+		expect(wrapper.findAll('[aria-label^="Go to slide "]').length).toBeLessThan(30);
+		expect(wrapper.find('[data-slide-index="80"]').attributes('aria-current')).toBe('true');
+	});
 });
