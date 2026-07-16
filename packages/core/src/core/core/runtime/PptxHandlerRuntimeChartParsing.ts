@@ -27,6 +27,7 @@ import { parseBubbleChartOptions } from '../../utils/chart-bubble-options';
 import { chartContainerLocalNameToType } from '../../utils/chart-container-type-map';
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
 import { parseChartLayouts } from '../../utils/chart-layout';
+import { parseChartPrintSettings } from '../../utils/chart-print-settings';
 import {
 	parseSeriesDataPoints,
 	parseSeriesDataLabels,
@@ -225,6 +226,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const userShapesXml = this.parseUserShapesXml(chartSpace);
 		const pivotFmtsXml = this.parsePivotFmtsXml(chartRoot);
 		const clrMapOvr = this.parseClrMapOvr(chartSpace);
+		const printSettings = parseChartPrintSettings(chartSpace, (key) =>
+			this.compatibilityService.getXmlLocalName(key),
+		);
 
 		return {
 			chartType,
@@ -257,6 +261,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(userShapesXml ? { userShapesXml } : {}),
 			...(pivotFmtsXml ? { pivotFmtsXml } : {}),
 			...(clrMapOvr ? { clrMapOvr } : {}),
+			...(printSettings ? { printSettings } : {}),
 		};
 	}
 
@@ -456,6 +461,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const userShapesXml = this.parseUserShapesXml(chartSpace);
 		const pivotFmtsXml = this.parsePivotFmtsXml(chartRoot);
 		const clrMapOvr = this.parseClrMapOvr(chartSpace);
+		const printSettings = parseChartPrintSettings(chartSpace, (key) =>
+			this.compatibilityService.getXmlLocalName(key),
+		);
 
 		return {
 			chartType,
@@ -477,6 +485,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(userShapesXml ? { userShapesXml } : {}),
 			...(pivotFmtsXml ? { pivotFmtsXml } : {}),
 			...(clrMapOvr ? { clrMapOvr } : {}),
+			...(printSettings ? { printSettings } : {}),
 		};
 	}
 }
