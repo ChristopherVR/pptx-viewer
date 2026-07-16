@@ -41,6 +41,7 @@ import { RibbonHomeSectionComponent } from './ribbon-home-section.component';
 import { RibbonInsertSectionComponent } from './ribbon-insert-section.component';
 import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.component';
 import { RibbonPrimaryRowComponent } from './ribbon-primary-row.component';
+import { RibbonRecordSectionComponent } from './ribbon-record-section.component';
 import { RibbonReviewSectionComponent } from './ribbon-review-section.component';
 import { RibbonSlideshowSectionComponent } from './ribbon-slideshow-section.component';
 import { RibbonTransitionsSectionComponent } from './ribbon-transitions-section.component';
@@ -94,6 +95,7 @@ const TABS: readonly TabDef[] = [
 		LucideChevronUp,
 		LucideChevronDown,
 		RibbonPrimaryRowComponent,
+		RibbonRecordSectionComponent,
 		RibbonFileSectionComponent,
 		RibbonHomeSectionComponent,
 		RibbonInsertSectionComponent,
@@ -332,9 +334,12 @@ const TABS: readonly TabDef[] = [
 							(openCompare)="openCompare.emit()"
 							(link)="link.emit()"
 						/>
+							[spellCheckEnabled]="spellCheckEnabled()"
+							(spellCheckChange)="setSpellCheck($event)"
 					}
 					@case ('view') {
 						<pptx-ribbon-view-section
+							(language)="requestSettings()"
 							[canEdit]="canEdit()"
 							[showGrid]="showGrid()"
 							[showRulers]="showRulers()"
@@ -401,10 +406,10 @@ const TABS: readonly TabDef[] = [
 						</button>
 					}
 					@case ('record') {
-						<div class="flex items-center gap-2 px-2 py-1 text-[12px] text-muted-foreground">
-							<span class="text-red-500">&#x1F534;</span>
-							<span>{{ 'pptx.titleBar.record' | translate }}</span>
-						</div>
+						<pptx-ribbon-record-section
+							(recordFromBeginning)="recordFromBeginning.emit()"
+							(recordFromCurrent)="recordFromCurrent.emit()"
+						/>
 					}
 				}
 			</div>
@@ -453,6 +458,8 @@ export class RibbonComponent {
 	readonly next = output<void>();
 	readonly zoomIn = output<void>();
 	readonly zoomOut = output<void>();
+	/** Current live proofing state shown by the Review ribbon command. */
+	readonly spellCheckEnabled = input<boolean>(false);
 	readonly zoomReset = output<void>();
 	readonly find = output<void>();
 	readonly present = output<void>();
@@ -464,6 +471,9 @@ export class RibbonComponent {
 	readonly openFile = output<void>();
 	/** Emitted when the user clicks "Save" in the File tab (saves as .pptx). */
 	readonly save = output<void>();
+	readonly recordFromBeginning = output<void>();
+	readonly recordFromCurrent = output<void>();
+	readonly spellCheckChange = output<boolean>();
 	readonly savePpsx = output<void>();
 	readonly savePptm = output<void>();
 	readonly packageForSharing = output<void>();
@@ -580,3 +590,13 @@ export class RibbonComponent {
 		this.drawToolChange.emit(state);
 	}
 }
+
+	/** Route both File Options and Review Language to the real Settings dialog. */
+	protected requestSettings(): void {
+		this.openSettings.emit();
+	}
+
+	/** Forward the Review proofing toggle to the viewer-owned live state. */
+	protected setSpellCheck(enabled: boolean): void {
+		this.spellCheckChange.emit(enabled);
+	}
