@@ -249,6 +249,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			groups: [],
 			model3ds: [],
 			contentParts: [],
+			zooms: [],
 		};
 
 		const ctx: SaveSlideContext = {
@@ -293,12 +294,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		} else {
 			delete spTree['p:contentPart'];
 		}
+		if (collectors.zooms.length > 0) {
+			spTree['pslz:sldZm'] = collectors.zooms;
+		} else {
+			delete spTree['pslz:sldZm'];
+		}
 
 		// Re-wrap `<mc:AlternateContent>` envelopes (CC-4).  Parse merged
 		// the selected branch's children into the spTree's flat type-arrays;
 		// here we lift them back out into their original AC envelope so
 		// legacy renderers (older Office, LibreOffice) keep their fallback.
 		this.reapplyAlternateContentEnvelopes(spTree, collectors);
+		this.wrapNewSlideZoomEnvelopes(spTree, collectors.zooms);
 
 		// Validate and deduplicate shape IDs to prevent MS Office corruption
 		const reassigned = shapeIdValidator.validateAndDeduplicateIds(spTree, (v) =>
@@ -404,6 +411,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// AC pathway in OpenXML decks frequently uses Choice = p16:model3D
 			// + Fallback = p:pic, so map it for completeness.
 			'p16:model3D': collectors.model3ds as XmlObject[],
+			'pslz:sldZm': collectors.zooms as XmlObject[],
 		};
 
 		// Walk every collected node and find which ones are AC-backed.  Group
@@ -518,6 +526,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			spTree['p16:model3D'] = collectors.model3ds;
 		} else {
 			delete spTree['p16:model3D'];
+		}
+		if (collectors.zooms.length > 0) {
+			spTree['pslz:sldZm'] = collectors.zooms;
+		} else {
+			delete spTree['pslz:sldZm'];
 		}
 
 		// Append the rebuilt envelopes.

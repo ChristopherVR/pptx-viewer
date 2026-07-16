@@ -100,6 +100,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			groups: [],
 			model3ds: [],
 			contentParts: [],
+			zooms: [],
 		};
 	}
 
@@ -116,6 +117,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			['p:grpSp', collectors.groups],
 			['p16:model3D', collectors.model3ds],
 			['p:contentPart', collectors.contentParts],
+			['pslz:sldZm', collectors.zooms],
 		];
 		const unparsedByTag = getAuxiliaryMasterUnparsedNodes(this, partPath);
 		for (const [key, values] of buckets) {

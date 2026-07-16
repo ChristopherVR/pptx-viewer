@@ -37,6 +37,7 @@ const MC_NAMESPACE_CAPABILITIES: Readonly<Record<string, ReadonlySet<string>>> =
 	asvg: new Set(['svgBlip']),
 	aink: new Set(['ink', 'inkBrush', 'trace']),
 	p16: new Set(['model3D', 'spPr', 'model3Drel', 'posterImage']),
+	pslz: new Set(['sldZm', 'sldZmObj', 'zmPr', 'extLst']),
 	cx: new Set(['chart', 'plotArea', 'plotAreaRegion', 'series', 'data', 'numDim', 'strDim']),
 };
 

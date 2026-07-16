@@ -10,14 +10,15 @@ import type {
 	PptxImageLikeElement,
 	SmartArtPptxElement,
 	TablePptxElement,
+	ZoomPptxElement,
 } from '../../types';
 import { buildChartColorStyleXml } from '../../utils/chart-color-style-writer';
 import { buildChartExSpaceXml, canGenerateChartEx } from '../../utils/chart-cx-generator';
 import { buildChartSpaceXml } from '../../utils/chart-xml-generator';
 import { BLIP_FILL_ORDER, SP_PR_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveInk';
 import { CHART_CONTENT_TYPE, CHART_RELATIONSHIP_TYPE } from './PptxHandlerRuntimeSaveShapeXml';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveZoom';
 
 export type { SaveSlideContext };
 
@@ -30,6 +31,7 @@ export interface SlideShapeCollectors {
 	readonly groups: XmlObject[];
 	readonly model3ds: XmlObject[];
 	readonly contentParts: XmlObject[];
+	readonly zooms: XmlObject[];
 }
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -354,6 +356,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (!shape) {
 				shape = this.createInkGraphicFrameXml(el as InkPptxElement);
 			}
+		}
+		if (el.type === 'zoom') {
+			shape = this.createOrUpdateSlideZoomXml(el as ZoomPptxElement, shape, ctx);
+			if (shape) {
+				collectors.zooms.push(shape);
+			} else {
+				this.compatibilityService.reportWarning({
+					code: 'SAVE_ELEMENT_SKIPPED',
+					message: `Slide Zoom '${el.id}' has no valid target slide and was skipped.`,
+					scope: 'save',
+					slideId: ctx.slide.id,
+					elementId: el.id,
+				});
+			}
+			return;
 		}
 		if (!shape && el.type === 'table') {
 			// SDK-created tables (via `SlideBuilder.addTable`) have no rawXml.
