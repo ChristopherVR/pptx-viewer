@@ -39,6 +39,10 @@ export interface RibbonNavHandlers {
 	openHyperlink(): void;
 	toggleTemplateEditing?(): void;
 	toggleMasterView?(): void;
+	toggleViewOption(option: 'showGrid' | 'showRulers' | 'snapToGrid' | 'snapToShape'): void;
+	addGuide(axis: 'h' | 'v'): void;
+	activateEyedropper(): void;
+	toggleSpellCheck(): void;
 }
 
 /** Primary-row handlers: quick-access undo/redo/save (editing only). */
