@@ -28,6 +28,16 @@
 		<span>{t('pptx.file.saveAsPptx')}</span>
 	</button>
 	{#if exportUi}
+		<button
+			type="button"
+			title={t('pptx.file.copyImageTooltip')}
+			onclick={() => exportUi.runCopyImage()}
+		>
+			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 6h7v7H6zM3 10V3h7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			<span>{t('pptx.file.copyImage')}</span>
+		</button>
+	{/if}
+	{#if exportUi}
 		<ExportMenu {exportUi} />
 	{/if}
 </div>

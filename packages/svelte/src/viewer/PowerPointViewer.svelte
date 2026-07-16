@@ -398,11 +398,21 @@
 	export const zoomReset = (): void => { viewer.zoomPercent = 100; };
 	export const getMode = (): ViewerMode => viewerMode;
 	export const setMode = (mode: ViewerMode): void => {
-		if (mode === 'present') { if (!viewer.isFullscreen) onFullscreenToggle(); return; }
-		if (viewer.isFullscreen) onFullscreenToggle();
+		if (mode === 'present') {
+			if (!viewer.isFullscreen) {
+				onFullscreenToggle();
+			}
+			return;
+		}
+		if (viewer.isFullscreen) {
+			onFullscreenToggle();
+		}
 		editable = mode === 'edit' || mode === 'master';
-		if (mode === 'master') editor.masterOps.enter();
-		else if (editor.masterViewTarget) editor.masterOps.exit();
+		if (mode === 'master') {
+			editor.masterOps.enter();
+		} else if (editor.masterViewTarget) {
+			editor.masterOps.exit();
+		}
 	};
 	export const getActiveSlideIndex = (): number => viewer.current;
 	export const setActiveSlideIndex = goTo;
@@ -427,10 +437,14 @@
 		viewer.goTo(index);
 	};
 	export const deleteSlides = (indexes: number[]): void => {
-		if (editor.slides.length <= 1) return;
+		if (editor.slides.length <= 1) {
+			return;
+		}
 		const remove = new Set(indexes);
 		const next = editor.slides.filter((_, i) => !remove.has(i));
-		if (next.length === 0) return;
+		if (next.length === 0) {
+			return;
+		}
 		editor.commitSlides(next.map((slide, i) => ({ ...slide, slideNumber: i + 1 })));
 		viewer.goTo(Math.min(viewer.current, next.length - 1));
 	};
@@ -441,7 +455,9 @@
 	};
 	export const moveSlide = (fromIndex: number, toIndex: number): void => {
 		const next = [...editor.slides];
-		if (!next[fromIndex] || toIndex < 0 || toIndex >= next.length || fromIndex === toIndex) return;
+		if (!next[fromIndex] || toIndex < 0 || toIndex >= next.length || fromIndex === toIndex) {
+			return;
+		}
 		const [slide] = next.splice(fromIndex, 1); next.splice(toIndex, 0, slide);
 		editor.commitSlides(next.map((item, i) => ({ ...item, slideNumber: i + 1 }))); viewer.goTo(toIndex);
 	};
@@ -453,6 +469,7 @@
 	// ── Imperative export API (exposed on the component instance) ─────────
 	const exportingApi = createExportingApi(exportWiring.controller);
 	export const exportSlidePng = exportingApi.exportSlidePng;
+	export const copySlideAsImage = exportingApi.copySlideAsImage;
 	export const exportPdf = exportingApi.exportPdf;
 	export const exportGif = exportingApi.exportGif;
 	export const exportVideo = exportingApi.exportVideo;

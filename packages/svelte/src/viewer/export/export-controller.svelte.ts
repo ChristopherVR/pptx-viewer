@@ -91,6 +91,32 @@ export class ExportController {
 		}
 	}
 
+	/** Copy a slide to the system clipboard as a PNG image. */
+	async copySlideAsImage(index?: number): Promise<void> {
+		const targetIndex = index ?? this.#deps.getCurrent();
+		if (
+			this.exporting ||
+			targetIndex < 0 ||
+			targetIndex >= this.#deps.getSlideCount() ||
+			typeof ClipboardItem === 'undefined' ||
+			!navigator.clipboard?.write
+		) {
+			return;
+		}
+		this.exporting = true;
+		try {
+			const canvas = await this.#deps.rasterizeSlide(targetIndex);
+			const blob = await new Promise<Blob | null>((resolve) => {
+				canvas.toBlob(resolve, 'image/png');
+			});
+			if (blob) {
+				await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+			}
+		} finally {
+			this.exporting = false;
+		}
+	}
+
 	/** Export every slide as a multi-page PDF download (one slide per page). */
 	async exportPdf(options: ExportPdfOptions = {}): Promise<void> {
 		const total = this.#deps.getSlideCount();

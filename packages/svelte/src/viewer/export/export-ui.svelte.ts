@@ -80,6 +80,11 @@ export class ExportUiState {
 		this.#deps.controller.exportSlidePng().catch((err: unknown) => this.#fail('PNG', err));
 	}
 
+	/** Copy the current slide to the system image clipboard. */
+	runCopyImage(): void {
+		this.#deps.controller.copySlideAsImage().catch((err: unknown) => this.#fail('Copy image', err));
+	}
+
 	/** Run the PDF export with the progress modal wired. */
 	async runPdf(): Promise<void> {
 		const abort = this.#begin(this.#t('pptx.ribbon.exportPdf'));
