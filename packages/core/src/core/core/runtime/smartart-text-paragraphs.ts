@@ -5,7 +5,9 @@ import type {
 	PptxSmartArtTextRun,
 	XmlObject,
 } from '../../types';
-import { orderedSmartArtTextEntries } from './smartart-text-order';
+import { orderedSmartArtTextEntries, smartArtChildOrder } from './smartart-text-order';
+
+type XmlValue = XmlObject | XmlObject[] | string;
 
 function localName(name: string): string {
 	const colon = name.indexOf(':');
@@ -37,10 +39,21 @@ function directText(node: XmlObject): string {
 	return value === undefined || value === null ? '' : String(value);
 }
 
-function parseItem(key: string, raw: XmlObject): PptxSmartArtTextParagraphItem {
+function parseItem(key: string, rawValue: unknown): PptxSmartArtTextParagraphItem {
 	const name = localName(key);
+	if (!['r', 'br', 'fld', 'tab'].includes(name)) {
+		return { kind: 'raw', name: key, value: clone(rawValue) };
+	}
+	const raw =
+		rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)
+			? (rawValue as XmlObject)
+			: {};
 	if (name === 'r') {
-		const run: PptxSmartArtTextRun = { text: directText(raw), rawXml: clone(raw) };
+		const run: PptxSmartArtTextRun = {
+			text: directText(raw),
+			rawXml: clone(raw),
+			childOrder: smartArtChildOrder(raw),
+		};
 		const rPr = child(raw, 'rPr');
 		if (rPr) {
 			run.rPr = clone(rPr);
@@ -49,7 +62,12 @@ function parseItem(key: string, raw: XmlObject): PptxSmartArtTextParagraphItem {
 	}
 	if (name === 'br') {
 		const rPr = child(raw, 'rPr');
-		return { kind: 'break', ...(rPr ? { rPr: clone(rPr) } : {}), rawXml: clone(raw) };
+		return {
+			kind: 'break',
+			...(rPr ? { rPr: clone(rPr) } : {}),
+			rawXml: clone(raw),
+			childOrder: smartArtChildOrder(raw),
+		};
 	}
 	if (name === 'fld') {
 		const rPr = child(raw, 'rPr');
@@ -62,9 +80,13 @@ function parseItem(key: string, raw: XmlObject): PptxSmartArtTextParagraphItem {
 			...(rPr ? { rPr: clone(rPr) } : {}),
 			...(pPr ? { pPr: clone(pPr) } : {}),
 			rawXml: clone(raw),
+			childOrder: smartArtChildOrder(raw),
 		};
 	}
-	return { kind: 'tab', rawXml: clone(raw) };
+	if (name === 'tab') {
+		return { kind: 'tab', rawXml: clone(raw), childOrder: smartArtChildOrder(raw) };
+	}
+	return { kind: 'raw', name: key, value: clone(rawValue) };
 }
 
 /** Parse every paragraph of a SmartArt point into an ordered typed model. */
@@ -86,7 +108,9 @@ export function parseSmartArtTextParagraphs(
 		const endParaRPr = child(paragraph, 'endParaRPr');
 		return {
 			...(pPr ? { pPr: clone(pPr) } : {}),
-			items: orderedSmartArtTextEntries(paragraph).map(([key, item]) => parseItem(key, item)),
+			items: orderedSmartArtTextEntries(paragraph).flatMap(([key, item]) =>
+				['pPr', 'endParaRPr'].includes(localName(key)) ? [] : [parseItem(key, item)],
+			),
 			...(endParaRPr ? { endParaRPr: clone(endParaRPr) } : {}),
 			rawXml: clone(paragraph),
 		};
@@ -108,7 +132,7 @@ export function smartArtParagraphsText(paragraphs: PptxSmartArtTextParagraph[]):
 					if (item.kind === 'break') {
 						return '\n';
 					}
-					return '\t';
+					return item.kind === 'tab' ? '\t' : '';
 				})
 				.join(''),
 		)
@@ -129,56 +153,107 @@ function objectWithAttributes(raw: XmlObject | undefined): XmlObject {
 	) as XmlObject;
 }
 
-function appendUnknownChildren(xml: XmlObject, raw: XmlObject | undefined, known: string[]): void {
-	for (const [key, value] of Object.entries(raw ?? {})) {
-		if (!key.startsWith('@_') && !known.includes(localName(key))) {
-			xml[key] = clone(value) as XmlObject | XmlObject[] | string;
-		}
-	}
-}
-
-function appendChild(target: XmlObject, name: string, value: XmlObject, order: number): void {
+function appendChild(target: XmlObject, name: string, value: XmlValue, order: number): void {
 	const seen = Object.keys(target).some((key) => key === name || key.startsWith(`${name}#`));
 	target[seen ? orderedXmlKey(name, order) : name] = value;
 }
 
-function buildItem(item: PptxSmartArtTextParagraphItem): [string, XmlObject] {
+function buildOrderedContainer(
+	raw: XmlObject | undefined,
+	order: string[] | undefined,
+	replacements: Array<[string, XmlValue]>,
+): XmlObject {
+	const xml = objectWithAttributes(raw);
+	const keys = new Map<string, string>();
+	for (const key of Object.keys(raw ?? {})) {
+		if (!key.startsWith('@_')) {
+			keys.set(localName(key), key);
+		}
+	}
+	const values = (name: string): XmlValue[] => {
+		const key = keys.get(name);
+		const value = key ? raw?.[key] : undefined;
+		return (Array.isArray(value) ? value : value === undefined ? [] : [value]) as XmlValue[];
+	};
+	const derivedOrder = order ?? [...keys.keys()].flatMap((name) => values(name).map(() => name));
+	const replacementMap = new Map(
+		replacements.map(([name, value]) => [localName(name), [name, value]]),
+	);
+	const emittedReplacements = new Set<string>();
+	const consumed = new Map<string, number>();
+	let outputOrder = 0;
+	for (const name of derivedOrder) {
+		const replacement = replacementMap.get(name);
+		if (replacement && !emittedReplacements.has(name)) {
+			appendChild(xml, replacement[0] as string, replacement[1] as XmlValue, outputOrder++);
+			emittedReplacements.add(name);
+			continue;
+		}
+		const index = consumed.get(name) ?? 0;
+		const value = values(name)[index];
+		consumed.set(name, index + 1);
+		const key = keys.get(name);
+		if (key && value !== undefined) {
+			appendChild(xml, key, clone(value), outputOrder++);
+		}
+	}
+	for (const [name, value] of replacements) {
+		if (!emittedReplacements.has(localName(name))) {
+			appendChild(xml, name, value, outputOrder++);
+		}
+	}
+	return xml;
+}
+
+function buildItem(item: PptxSmartArtTextParagraphItem): [string, XmlValue] {
 	if (item.kind === 'run') {
-		const xml = objectWithAttributes(item.run.rawXml as XmlObject | undefined);
-		xml['a:rPr'] = (item.run.rPr as XmlObject | undefined) ?? { '@_lang': 'en-US' };
-		xml['a:t'] = item.run.text;
-		appendUnknownChildren(xml, item.run.rawXml as XmlObject | undefined, ['rPr', 't']);
-		return ['a:r', xml];
+		return [
+			'a:r',
+			buildOrderedContainer(item.run.rawXml as XmlObject | undefined, item.run.childOrder, [
+				['a:rPr', (item.run.rPr as XmlObject | undefined) ?? { '@_lang': 'en-US' }],
+				['a:t', item.run.text],
+			]),
+		];
 	}
 	if (item.kind === 'break') {
-		const xml = objectWithAttributes(item.rawXml as XmlObject | undefined);
-		if (item.rPr) {
-			xml['a:rPr'] = item.rPr as XmlObject;
-		}
-		appendUnknownChildren(xml, item.rawXml as XmlObject | undefined, ['rPr']);
-		return ['a:br', xml];
+		return [
+			'a:br',
+			buildOrderedContainer(
+				item.rawXml as XmlObject | undefined,
+				item.childOrder,
+				item.rPr ? [['a:rPr', item.rPr as XmlObject]] : [],
+			),
+		];
 	}
 	if (item.kind === 'field') {
-		const xml = objectWithAttributes(item.rawXml as XmlObject | undefined);
+		const replacements: Array<[string, XmlValue]> = [];
+		if (item.rPr) {
+			replacements.push(['a:rPr', item.rPr as XmlObject]);
+		}
+		if (item.pPr) {
+			replacements.push(['a:pPr', item.pPr as XmlObject]);
+		}
+		replacements.push(['a:t', item.text]);
+		const xml = buildOrderedContainer(
+			item.rawXml as XmlObject | undefined,
+			item.childOrder,
+			replacements,
+		);
 		if (item.id) {
 			xml['@_id'] = item.id;
 		}
 		if (item.fieldType) {
 			xml['@_type'] = item.fieldType;
 		}
-		if (item.rPr) {
-			xml['a:rPr'] = item.rPr as XmlObject;
-		}
-		if (item.pPr) {
-			xml['a:pPr'] = item.pPr as XmlObject;
-		}
-		xml['a:t'] = item.text;
-		appendUnknownChildren(xml, item.rawXml as XmlObject | undefined, ['rPr', 'pPr', 't']);
 		return ['a:fld', xml];
 	}
-	const xml = objectWithAttributes(item.rawXml as XmlObject | undefined);
-	appendUnknownChildren(xml, item.rawXml as XmlObject | undefined, []);
-	return ['a:tab', xml];
+	if (item.kind === 'tab') {
+		return [
+			'a:tab',
+			buildOrderedContainer(item.rawXml as XmlObject | undefined, item.childOrder, []),
+		];
+	}
+	return [item.name, clone(item.value) as XmlValue];
 }
 
 /** Build ordered `a:p` XML while retaining unmodelled paragraph children. */
@@ -191,14 +266,6 @@ export function buildSmartArtTextParagraph(paragraph: PptxSmartArtTextParagraph)
 	for (const item of paragraph.items) {
 		const [name, value] = buildItem(item);
 		appendChild(xml, name, value, order++);
-	}
-	for (const [key, value] of Object.entries(paragraph.rawXml ?? {})) {
-		if (
-			!key.startsWith('@_') &&
-			!['pPr', 'r', 'br', 'fld', 'tab', 'endParaRPr'].includes(localName(key))
-		) {
-			xml[key] = clone(value) as XmlObject | XmlObject[] | string;
-		}
 	}
 	if (paragraph.endParaRPr) {
 		xml['a:endParaRPr'] = paragraph.endParaRPr as XmlObject;

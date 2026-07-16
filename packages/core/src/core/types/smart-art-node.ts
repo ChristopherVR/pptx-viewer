@@ -33,12 +33,19 @@ export interface PptxSmartArtTextRun {
 	rPr?: Record<string, unknown>;
 	/** Raw run XML used to retain unmodelled extension children on save. */
 	rawXml?: Record<string, unknown>;
+	/** Original direct-child order, including unmodelled extension children. */
+	childOrder?: string[];
 }
 
 /** An ordered item within a SmartArt text paragraph. */
 export type PptxSmartArtTextParagraphItem =
 	| { kind: 'run'; run: PptxSmartArtTextRun }
-	| { kind: 'break'; rPr?: Record<string, unknown>; rawXml?: Record<string, unknown> }
+	| {
+			kind: 'break';
+			rPr?: Record<string, unknown>;
+			rawXml?: Record<string, unknown>;
+			childOrder?: string[];
+	  }
 	| {
 			kind: 'field';
 			id?: string;
@@ -47,8 +54,10 @@ export type PptxSmartArtTextParagraphItem =
 			rPr?: Record<string, unknown>;
 			pPr?: Record<string, unknown>;
 			rawXml?: Record<string, unknown>;
+			childOrder?: string[];
 	  }
-	| { kind: 'tab'; rawXml?: Record<string, unknown> };
+	| { kind: 'tab'; rawXml?: Record<string, unknown>; childOrder?: string[] }
+	| { kind: 'raw'; name: string; value: unknown };
 
 /** A complete `a:p` paragraph in a SmartArt data-model text body. */
 export interface PptxSmartArtTextParagraph {

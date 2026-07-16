@@ -1,7 +1,6 @@
 import type { XmlObject } from '../../types';
 
-const paragraphOrder = new WeakMap<XmlObject, string[]>();
-const TEXT_ITEMS = new Set(['r', 'br', 'fld', 'tab']);
+const childOrder = new WeakMap<XmlObject, string[]>();
 
 function localName(name: string): string {
 	const colon = name.indexOf(':');
@@ -41,50 +40,89 @@ function collectParsedParagraphs(root: unknown): XmlObject[] {
 	return paragraphs;
 }
 
-function extractSourceOrders(xml: string): string[][] {
-	const orders: string[][] = [];
-	const textBodyPattern = /<([A-Za-z_][\w.-]*:)?t\b[^>]*>([\s\S]*?)<\/\1t\s*>/gu;
-	for (const bodyMatch of xml.matchAll(textBodyPattern)) {
-		const paragraphPattern = /<([A-Za-z_][\w.-]*:)?p\b[^>]*>([\s\S]*?)<\/\1p\s*>/gu;
-		for (const paragraphMatch of bodyMatch[2].matchAll(paragraphPattern)) {
-			orders.push(
-				[...paragraphMatch[2].matchAll(/<([A-Za-z_][\w.-]*:)?([A-Za-z][\w.-]*)\b[^>]*>/gu)]
-					.filter((match) => TEXT_ITEMS.has(match[2]))
-					.map((match) => match[2]),
-			);
+function directChildOrder(xml: string): string[] {
+	const order: string[] = [];
+	let depth = 0;
+	for (const match of xml.matchAll(/<(\/)?([A-Za-z_][\w.-]*:)?([A-Za-z][\w.-]*)\b[^>]*>/gu)) {
+		const closing = Boolean(match[1]);
+		const selfClosing = /\/\s*>$/u.test(match[0]);
+		if (closing) {
+			depth = Math.max(0, depth - 1);
+			continue;
 		}
+		if (depth === 0) {
+			order.push(match[3]);
+		}
+		if (!selfClosing) {
+			depth++;
+		}
+	}
+	return order;
+}
+
+function extractElementOrders(xml: string, elementName: string): string[][] {
+	const orders: string[][] = [];
+	const pattern = new RegExp(
+		`<([A-Za-z_][\\w.-]*:)?${elementName}\\b[^>]*>([\\s\\S]*?)<\\/\\1${elementName}\\s*>`,
+		'gu',
+	);
+	for (const match of xml.matchAll(pattern)) {
+		orders.push(directChildOrder(match[2]));
 	}
 	return orders;
 }
 
+function directChildrenByLocalName(paragraphs: XmlObject[], name: string): XmlObject[] {
+	return paragraphs.flatMap((paragraph) =>
+		Object.entries(paragraph).flatMap(([key, value]) => {
+			if (localName(key) !== name) {
+				return [];
+			}
+			const values = Array.isArray(value) ? value : [value];
+			return values.filter((item): item is XmlObject =>
+				Boolean(item && typeof item === 'object' && !Array.isArray(item)),
+			);
+		}),
+	);
+}
+
 /** Attach source item order to parsed SmartArt paragraph objects. */
 export function annotateSmartArtTextOrder(xml: string, parsed: unknown): void {
-	const orders = extractSourceOrders(xml);
 	const paragraphs = collectParsedParagraphs(parsed);
+	const orders = extractElementOrders(xml, 'p');
 	for (let index = 0; index < Math.min(orders.length, paragraphs.length); index++) {
-		paragraphOrder.set(paragraphs[index], orders[index]);
+		childOrder.set(paragraphs[index], orders[index]);
+	}
+	for (const name of ['r', 'fld', 'br']) {
+		const nodes = directChildrenByLocalName(paragraphs, name);
+		const nodeOrders = extractElementOrders(xml, name);
+		for (let index = 0; index < Math.min(nodeOrders.length, nodes.length); index++) {
+			childOrder.set(nodes[index], nodeOrders[index]);
+		}
 	}
 }
 
+/** Return the original direct-child local-name order for a parsed XML node. */
+export function smartArtChildOrder(node: XmlObject): string[] | undefined {
+	return childOrder.get(node)?.slice();
+}
+
 /** Return paragraph text items in source order. */
-export function orderedSmartArtTextEntries(paragraph: XmlObject): Array<[string, XmlObject]> {
+export function orderedSmartArtTextEntries(paragraph: XmlObject): Array<[string, unknown]> {
 	const keysByName = new Map<string, string>();
 	for (const key of Object.keys(paragraph)) {
-		if (TEXT_ITEMS.has(localName(key))) {
+		if (!key.startsWith('@_')) {
 			keysByName.set(localName(key), key);
 		}
 	}
-	const itemsFor = (key: string): XmlObject[] => {
+	const itemsFor = (key: string): unknown[] => {
 		const value = paragraph[key];
-		const items = Array.isArray(value) ? value : value === undefined ? [] : [value];
-		return items.map((item) =>
-			item && typeof item === 'object' && !Array.isArray(item) ? item : {},
-		) as XmlObject[];
+		return Array.isArray(value) ? value : value === undefined ? [] : [value];
 	};
-	const order = paragraphOrder.get(paragraph);
+	const order = childOrder.get(paragraph);
 	if (!order) {
 		return [...keysByName.values()].flatMap((key) =>
-			itemsFor(key).map((item) => [key, item] as [string, XmlObject]),
+			itemsFor(key).map((item) => [key, item] as [string, unknown]),
 		);
 	}
 	const consumed = new Map<string, number>();
