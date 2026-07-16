@@ -81,6 +81,39 @@ describe('createExportController', () => {
 		expect(rasterizeSlide).toHaveBeenCalledWith(2);
 	});
 
+	it('copies the current slide to the image clipboard', async () => {
+		const png = new Blob(['png'], { type: 'image/png' });
+		const canvas = fakeCanvas();
+		Object.defineProperty(canvas, 'toBlob', {
+			configurable: true,
+			value: () => undefined,
+		});
+		vi.spyOn(canvas, 'toBlob').mockImplementation((callback) => callback(png));
+		const rasterizeSlide = vi.fn().mockResolvedValue(canvas);
+		const write = vi.fn();
+		const clipboardItem = vi.fn(function (this: { data: Record<string, Blob> }, data) {
+			this.data = data;
+		});
+		Object.defineProperty(globalThis, 'ClipboardItem', {
+			configurable: true,
+			value: clipboardItem,
+		});
+		Object.defineProperty(navigator, 'clipboard', {
+			configurable: true,
+			value: { write },
+		});
+
+		const { copySlideAsImage } = createExportController({
+			store: makeStore(3, 2),
+			rasterizeSlide,
+		});
+		await copySlideAsImage();
+
+		expect(rasterizeSlide).toHaveBeenCalledWith(2);
+		expect(clipboardItem).toHaveBeenCalledWith({ 'image/png': png });
+		expect(write).toHaveBeenCalledOnce();
+	});
+
 	it('ignores an out-of-range slide index', async () => {
 		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
 		const { exportSlidePng } = createExportController({

@@ -24,6 +24,8 @@ export interface ExportLifecycleDeps {
 export interface ViewerExportApi {
 	/** Export a single slide as a PNG download. Defaults to the current slide. */
 	exportSlidePng(index?: number): Promise<void>;
+	/** Copy a slide to the system clipboard as a PNG image. */
+	copySlideAsImage(index?: number): Promise<void>;
 	/** Export every slide as a multi-page PDF download (one slide per page). */
 	exportPdf(options?: ExportPdfOptions): Promise<void>;
 	/** Export every slide as an animated GIF download (one frame per slide). */
@@ -50,6 +52,10 @@ export abstract class ViewerExportHost implements ViewerExportApi {
 
 	async exportSlidePng(index?: number): Promise<void> {
 		return this.exporter.exportSlidePng(index);
+	}
+
+	async copySlideAsImage(index?: number): Promise<void> {
+		return this.exporter.copySlideAsImage(index);
 	}
 
 	async exportPdf(options?: ExportPdfOptions): Promise<void> {
@@ -86,6 +92,7 @@ export function createExportLifecycle(deps: ExportLifecycleDeps): ExportLifecycl
 
 	return {
 		exportSlidePng: (index) => controller.exportSlidePng(index),
+		copySlideAsImage: (index) => controller.copySlideAsImage(index),
 		exportPdf: (options) => controller.exportPdf(options),
 		exportGif: (options) => controller.exportGif(options),
 		exportVideo: (options) => controller.exportVideo(options),

@@ -28,6 +28,12 @@ export function createFileTab(doc: Document, t: Translator, handlers: RibbonFile
 		icon: 'image',
 		onClick: handlers.exportPng,
 	});
+	const copyImage = makeButton(doc, {
+		label: t('pptx.file.copyImage'),
+		icon: 'copy',
+		onClick: handlers.copySlideAsImage,
+	});
+	copyImage.btn.title = t('pptx.file.copyImageTooltip');
 	const pdf = makeButton(doc, {
 		label: t('pptx.file.pdf'),
 		icon: 'file',
@@ -49,7 +55,7 @@ export function createFileTab(doc: Document, t: Translator, handlers: RibbonFile
 		onClick: handlers.print,
 	});
 
-	el.append(save.btn, png.btn, pdf.btn, gif.btn, video.btn, print.btn);
+	el.append(save.btn, png.btn, pdf.btn, gif.btn, video.btn, copyImage.btn, print.btn);
 
 	return { el };
 }

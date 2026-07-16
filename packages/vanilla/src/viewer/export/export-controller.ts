@@ -31,6 +31,8 @@ export interface ExportControllerDeps {
 export interface ExportController {
 	/** Export a single slide as a PNG download. Defaults to the current slide. */
 	exportSlidePng(index?: number): Promise<void>;
+	/** Copy a slide to the system clipboard as a PNG image. */
+	copySlideAsImage(index?: number): Promise<void>;
 	/** Export every slide as a multi-page PDF download (one slide per page). */
 	exportPdf(options?: ExportPdfOptions): Promise<void>;
 	/** Export every slide as an animated GIF download (one frame per slide). */
@@ -100,6 +102,28 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 		});
 	}
 
+	async function copySlideAsImage(index?: number): Promise<void> {
+		const state = deps.store.get();
+		const targetIndex = index ?? state.currentSlide;
+		if (
+			targetIndex < 0 ||
+			targetIndex >= state.slides.length ||
+			typeof ClipboardItem === 'undefined' ||
+			!navigator.clipboard?.write
+		) {
+			return;
+		}
+		return guarded(undefined, async () => {
+			const canvas = await deps.rasterizeSlide(targetIndex);
+			const blob = await new Promise<Blob | null>((resolve) => {
+				canvas.toBlob(resolve, 'image/png');
+			});
+			if (blob) {
+				await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+			}
+		});
+	}
+
 	async function exportPdf(options: ExportPdfOptions = {}): Promise<void> {
 		const state = deps.store.get();
 		if (state.slides.length === 0) {
@@ -129,6 +153,7 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 
 	return {
 		exportSlidePng,
+		copySlideAsImage,
 		exportPdf,
 		exportGif: (options) => guarded(undefined, () => runGifExport(capture, options)),
 		exportVideo: (options) => guarded(undefined, () => runVideoExport(capture, options)),

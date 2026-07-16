@@ -40,6 +40,7 @@ function buildHandlers(): RibbonHandlers {
 		file: {
 			save: vi.fn(),
 			exportPng: vi.fn(),
+			copySlideAsImage: vi.fn(),
 			exportPdf: vi.fn(),
 			exportGif: vi.fn(),
 			exportVideo: vi.fn(),

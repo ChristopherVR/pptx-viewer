@@ -170,6 +170,7 @@ export interface ChromeHost {
 	toggleTemplateEditing(): void;
 	toggleMasterNavigation(): void;
 	exportSlidePng(): Promise<void>;
+	copySlideAsImage(): Promise<void>;
 	exportPdf(): Promise<void>;
 	exportGif(): Promise<void>;
 	exportVideo(): Promise<void>;
@@ -216,6 +217,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		exitPresentation: () => void host.exitPresentation(),
 		commitNotes: (notes, notesSegments) => host.editor.commitNotes(notes, notesSegments),
 		exportSlidePng: () => host.exportSlidePng(),
+		copySlideAsImage: () => host.copySlideAsImage(),
 		exportPdf: () => host.exportPdf(),
 		exportGif: () => host.exportGif(),
 		exportVideo: () => host.exportVideo(),

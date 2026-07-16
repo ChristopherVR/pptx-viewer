@@ -44,6 +44,7 @@ export interface RibbonPrimaryHandlers {
 export interface RibbonFileHandlers {
 	save(): void;
 	exportPng(): void;
+	copySlideAsImage(): void;
 	exportPdf(): void;
 	exportGif(): void;
 	exportVideo(): void;

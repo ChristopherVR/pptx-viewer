@@ -34,6 +34,7 @@ export interface ChromeCallbackDeps {
 	goToSlide(index: number): void;
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	exportSlidePng(): Promise<void>;
+	copySlideAsImage(): Promise<void>;
 	exportPdf(): Promise<void>;
 	exportGif(): Promise<void>;
 	exportVideo(): Promise<void>;
@@ -84,6 +85,7 @@ export function buildChromeCallbacks(
 		file: {
 			save: () => deps.save(),
 			exportPng: () => void deps.exportSlidePng(),
+			copySlideAsImage: () => void deps.copySlideAsImage(),
 			exportPdf: () => void deps.exportPdf(),
 			exportGif: () => void deps.exportGif(),
 			exportVideo: () => void deps.exportVideo(),

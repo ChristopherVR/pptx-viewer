@@ -224,6 +224,8 @@ export interface PptxViewerInstance extends PowerPointViewerAPI {
 	 * (dynamically imported), so the first call pays a one-time load cost.
 	 */
 	exportSlidePng(index?: number): Promise<void>;
+	/** Copy a slide to the system clipboard as a PNG image. */
+	copySlideAsImage(index?: number): Promise<void>;
 	/**
 	 * Export every slide as a multi-page PDF download (one slide per page).
 	 * `jspdf` is dynamically imported on first use.
