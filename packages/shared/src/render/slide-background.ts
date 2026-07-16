@@ -8,12 +8,11 @@
  * framework's CSS type).
  *
  * Precedence (highest first): image fill -> gradient -> pattern -> solid colour.
- * Pattern fills currently approximate to their background colour (the SVG
- * pattern preset renderer is a separate concern).
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import type { CssStyleMap } from './element-style-transform';
+import { getPatternSvg } from './fill-style';
 
 /** Default slide stage colour when a slide carries no usable background. */
 export const DEFAULT_SLIDE_BACKGROUND = '#ffffff';
@@ -28,7 +27,7 @@ export function getSlideBackgroundStyle(slide: PptxSlide | undefined): CssStyleM
 
 	// Base solid colour. For pattern fills the parser leaves `backgroundColor`
 	// set to the foreground colour, so prefer the pattern's `bgColor` as the
-	// flat base (until the SVG pattern preset is ported).
+	// flat fallback beneath the SVG tile.
 	const pattern = slide?.backgroundPattern;
 	const solid =
 		slide?.backgroundColor && slide.backgroundColor !== 'transparent'
@@ -44,6 +43,16 @@ export function getSlideBackgroundStyle(slide: PptxSlide | undefined): CssStyleM
 		style['background-repeat'] = 'no-repeat';
 	} else if (slide?.backgroundGradient) {
 		style['background-image'] = slide.backgroundGradient;
+	} else if (pattern) {
+		const svg = getPatternSvg(
+			pattern.preset,
+			pattern.fgColor ?? solid ?? '#000000',
+			pattern.bgColor ?? DEFAULT_SLIDE_BACKGROUND,
+		);
+		if (svg) {
+			style['background-image'] = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+			style['background-repeat'] = 'repeat';
+		}
 	}
 
 	return style;
