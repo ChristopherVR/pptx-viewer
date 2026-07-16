@@ -22,6 +22,7 @@
 		onnavigate,
 		editor,
 		oncompare,
+		onlanguage,
 		spellCheck = false,
 		onspellcheckchange,
 	}: {
@@ -29,6 +30,7 @@
 		onnavigate: (slideIndex: number, elementId?: string) => void;
 		editor?: EditorState;
 		oncompare?: () => void;
+		onlanguage?: () => void;
 		spellCheck?: boolean;
 		onspellcheckchange?: (enabled: boolean) => void;
 	} = $props();
@@ -63,6 +65,7 @@
 		</button>
 		{#if oncompare}<button type="button" onclick={oncompare}>{t('pptx.compare.title')}</button>{/if}
 		<button type="button" aria-pressed={spellCheck} class:active={spellCheck} onclick={() => onspellcheckchange?.(!spellCheck)}>{t('pptx.settings.spellCheck')}</button>
+		{#if onlanguage}<button type="button" title={t('pptx.review.languageTooltip')} onclick={onlanguage}>{t('pptx.review.language')}</button>{/if}
 	</section>
 
 	{#if activePanel}
