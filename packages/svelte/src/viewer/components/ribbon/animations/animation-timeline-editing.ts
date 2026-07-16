@@ -1,6 +1,10 @@
 import type { PptxElementAnimation } from 'pptx-viewer-core';
 
-export function reorderAnimationEntries(entries: readonly PptxElementAnimation[], sourceId: string, targetId: string): PptxElementAnimation[] {
+export function reorderAnimationEntries(
+	entries: readonly PptxElementAnimation[],
+	sourceId: string,
+	targetId: string,
+): PptxElementAnimation[] {
 	const next = [...entries];
 	const from = next.findIndex((entry) => entry.elementId === sourceId);
 	const to = next.findIndex((entry) => entry.elementId === targetId);

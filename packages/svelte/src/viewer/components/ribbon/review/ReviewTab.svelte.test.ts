@@ -19,11 +19,32 @@ describe('reviewTab', () => {
 	it('toggles live spell checking from the Review ribbon', () => {
 		const target = document.createElement('div');
 		const onspellcheckchange = vi.fn();
-		const instance = mount(ReviewTab, { target, props: { slides: [], onnavigate: vi.fn(), spellCheck: false, onspellcheckchange } });
+		const instance = mount(ReviewTab, {
+			target,
+			props: { slides: [], onnavigate: vi.fn(), spellCheck: false, onspellcheckchange },
+		});
 		cleanup = () => unmount(instance);
-		const spell = [...target.querySelectorAll('button')].find((button) => button.textContent?.includes('Spell')) as HTMLButtonElement;
+		const spell = [...target.querySelectorAll('button')].find((button) =>
+			button.textContent?.includes('Spell'),
+		) as HTMLButtonElement;
 		spell.click();
 		expect(onspellcheckchange).toHaveBeenCalledWith(true);
+	});
+
+	it('opens the general settings workflow from Language', () => {
+		const target = document.createElement('div');
+		const onlanguage = vi.fn();
+		const instance = mount(ReviewTab, {
+			target,
+			props: { slides: [], onnavigate: vi.fn(), onlanguage },
+		});
+		cleanup = () => unmount(instance);
+
+		const language = [...target.querySelectorAll('button')].find(
+			(button) => button.textContent?.trim() === 'Language',
+		) as HTMLButtonElement;
+		language.click();
+		expect(onlanguage).toHaveBeenCalledOnce();
 	});
 
 	it('runs the shared audit and routes an issue to its slide', () => {

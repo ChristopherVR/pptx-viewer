@@ -7,7 +7,9 @@ function normalizedWidths(count: number): number[] {
 export function insertTableRow(table: PptxTableData, index: number): PptxTableData {
 	const at = Math.max(0, Math.min(index, table.rows.length));
 	const rows = [...table.rows];
-	rows.splice(at, 0, { cells: Array.from({ length: table.columnWidths.length }, () => ({ text: '' })) });
+	rows.splice(at, 0, {
+		cells: Array.from({ length: table.columnWidths.length }, () => ({ text: '' })),
+	});
 	return { ...table, rows };
 }
 
@@ -40,6 +42,9 @@ export function deleteTableColumn(table: PptxTableData, index: number): PptxTabl
 	return {
 		...table,
 		columnWidths: normalizedWidths(count),
-		rows: table.rows.map((row) => ({ ...row, cells: row.cells.filter((_cell, cellIndex) => cellIndex !== index) })),
+		rows: table.rows.map((row) => ({
+			...row,
+			cells: row.cells.filter((_cell, cellIndex) => cellIndex !== index),
+		})),
 	};
 }

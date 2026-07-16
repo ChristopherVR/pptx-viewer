@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type { ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
 
+import type { EditorControllerDeps } from './editor-controller-deps';
 import {
 	elementInteractionBox,
 	selectionOverlayBox,
@@ -16,7 +17,6 @@ import type { EditorMarqueeRect } from './editor-selection-gestures';
 import type { EditorState } from './editor-state.svelte';
 import { resolveTopLevelElementId } from './element-hit';
 import { canInlineEditElement } from './inline-text';
-import type { EditorControllerDeps } from './editor-controller-deps';
 
 export type { EditorControllerDeps } from './editor-controller-deps';
 

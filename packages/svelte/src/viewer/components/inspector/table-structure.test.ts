@@ -1,9 +1,17 @@
-import { describe, expect, it } from 'vitest';
 import type { PptxTableData } from 'pptx-viewer-core';
+import { describe, expect, it } from 'vitest';
 
-import { deleteTableColumn, deleteTableRow, insertTableColumn, insertTableRow } from './table-structure';
+import {
+	deleteTableColumn,
+	deleteTableRow,
+	insertTableColumn,
+	insertTableRow,
+} from './table-structure';
 
-const table = (): PptxTableData => ({ rows: [{ cells: [{ text: 'a' }, { text: 'b' }] }, { cells: [{ text: 'c' }, { text: 'd' }] }], columnWidths: [0.5, 0.5] });
+const table = (): PptxTableData => ({
+	rows: [{ cells: [{ text: 'a' }, { text: 'b' }] }, { cells: [{ text: 'c' }, { text: 'd' }] }],
+	columnWidths: [0.5, 0.5],
+});
 
 describe('table structure editing', () => {
 	it('inserts and deletes rows without mutating the source', () => {
@@ -19,6 +27,9 @@ describe('table structure editing', () => {
 		expect(inserted.rows.map((row) => row.cells.length)).toStrictEqual([3, 3]);
 		expect(inserted.columnWidths.reduce((sum, value) => sum + value, 0)).toBeCloseTo(1);
 		const removed = deleteTableColumn(inserted, 1);
-		expect(removed.rows.map((row) => row.cells.map((cell) => cell.text))).toStrictEqual([['a', 'b'], ['c', 'd']]);
+		expect(removed.rows.map((row) => row.cells.map((cell) => cell.text))).toStrictEqual([
+			['a', 'b'],
+			['c', 'd'],
+		]);
 	});
 });

@@ -6,8 +6,14 @@ export function previewElementAnimation(animation: PptxElementAnimation): boolea
 	if (!preset) {
 		return false;
 	}
-	const descriptor = buildPreviewAnimation(preset, { direction: animation.direction, durationMs: animation.durationMs, timingCurve: animation.timingCurve });
-	const target = document.querySelector<HTMLElement>(`[data-element-id="${CSS.escape(animation.elementId)}"]`);
+	const descriptor = buildPreviewAnimation(preset, {
+		direction: animation.direction,
+		durationMs: animation.durationMs,
+		timingCurve: animation.timingCurve,
+	});
+	const target = document.querySelector<HTMLElement>(
+		`[data-element-id="${CSS.escape(animation.elementId)}"]`,
+	);
 	if (!descriptor || !target) {
 		return false;
 	}
@@ -17,6 +23,13 @@ export function previewElementAnimation(animation: PptxElementAnimation): boolea
 	target.style.animation = 'none';
 	void target.offsetWidth;
 	target.style.animation = descriptor.cssAnimation;
-	target.addEventListener('animationend', () => { target.style.animation = ''; style.remove(); }, { once: true });
+	target.addEventListener(
+		'animationend',
+		() => {
+			target.style.animation = '';
+			style.remove();
+		},
+		{ once: true },
+	);
 	return true;
 }
