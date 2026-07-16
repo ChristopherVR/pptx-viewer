@@ -5,12 +5,12 @@ import type {
 	XmlObject,
 } from '../types';
 
-const MEDIA_REFERENCE_TAGS: ReadonlyArray<[PptxMediaReferenceKind, string]> = [
-	['audioCd', 'a:audioCd'],
-	['wavAudioFile', 'a:wavAudioFile'],
-	['audioFile', 'a:audioFile'],
-	['videoFile', 'a:videoFile'],
-	['quickTimeFile', 'a:quickTimeFile'],
+const MEDIA_REFERENCE_NAMES: readonly PptxMediaReferenceKind[] = [
+	'audioCd',
+	'wavAudioFile',
+	'audioFile',
+	'videoFile',
+	'quickTimeFile',
 ];
 
 export interface ParsedDrawingMediaReference {
@@ -19,6 +19,7 @@ export interface ParsedDrawingMediaReference {
 	relationshipId?: string;
 	isLinked?: boolean;
 	name?: string;
+	contentType?: string;
 	audioCdStart?: PptxAudioCdPosition;
 	audioCdEnd?: PptxAudioCdPosition;
 	rawXml: XmlObject;
@@ -30,19 +31,25 @@ export function parseDrawingMediaReference(
 	if (!container) {
 		return undefined;
 	}
-	for (const [kind, tag] of MEDIA_REFERENCE_TAGS) {
-		const node = container[tag] as XmlObject | undefined;
+	for (const kind of MEDIA_REFERENCE_NAMES) {
+		const node = child(container, kind);
 		if (!node) {
 			continue;
 		}
 		return {
 			kind,
 			mediaType: kind === 'videoFile' || kind === 'quickTimeFile' ? 'video' : 'audio',
-			relationshipId: String(node['@_r:link'] ?? node['@_r:embed'] ?? '').trim() || undefined,
-			isLinked: node['@_r:link'] !== undefined,
-			name: kind === 'wavAudioFile' ? String(node['@_name'] ?? '') || undefined : undefined,
-			audioCdStart: kind === 'audioCd' ? parseAudioCdPosition(node['a:st']) : undefined,
-			audioCdEnd: kind === 'audioCd' ? parseAudioCdPosition(node['a:end']) : undefined,
+			relationshipId:
+				String(attribute(node, 'link') ?? attribute(node, 'embed') ?? '').trim() || undefined,
+			isLinked: attribute(node, 'link') !== undefined,
+			name:
+				kind === 'wavAudioFile' ? String(attribute(node, 'name') ?? '') || undefined : undefined,
+			contentType:
+				kind === 'audioFile'
+					? String(attribute(node, 'contentType') ?? '') || undefined
+					: undefined,
+			audioCdStart: kind === 'audioCd' ? parseAudioCdPosition(child(node, 'st')) : undefined,
+			audioCdEnd: kind === 'audioCd' ? parseAudioCdPosition(child(node, 'end')) : undefined,
 			rawXml: node,
 		};
 	}
@@ -58,33 +65,47 @@ export function applyDrawingMediaReference(
 	if (!kind) {
 		return;
 	}
-	for (const [, tag] of MEDIA_REFERENCE_TAGS) {
-		delete container[tag];
+	const targetKey = Object.keys(container).find((key) => localName(key) === kind);
+	for (const key of Object.keys(container)) {
+		if (MEDIA_REFERENCE_NAMES.includes(localName(key) as PptxMediaReferenceKind)) {
+			delete container[key];
+		}
 	}
 	const original = element.rawMediaReferenceXml ? { ...element.rawMediaReferenceXml } : {};
 	if (kind === 'audioCd') {
-		delete original['@_r:link'];
-		delete original['@_r:embed'];
-		original['a:st'] = buildAudioCdPosition(element.audioCdStart);
-		original['a:end'] = buildAudioCdPosition(element.audioCdEnd);
-		container['a:audioCd'] = original;
+		deleteAttribute(original, 'link');
+		deleteAttribute(original, 'embed');
+		const extKey = Object.keys(original).find((key) => localName(key) === 'extLst');
+		const extension = extKey ? original[extKey] : undefined;
+		if (extKey) {
+			delete original[extKey];
+		}
+		setChild(original, 'st', buildAudioCdPosition(element.audioCdStart));
+		setChild(original, 'end', buildAudioCdPosition(element.audioCdEnd));
+		if (extKey) {
+			original[extKey] = extension;
+		}
+		container[targetKey ?? 'a:audioCd'] = original;
 		return;
 	}
 	if (kind === 'wavAudioFile') {
-		delete original['@_r:link'];
+		deleteAttribute(original, 'link');
 		if (relationshipId) {
-			original['@_r:embed'] = relationshipId;
+			setAttribute(original, 'embed', relationshipId, 'r');
 		}
 		if (element.mediaReferenceName !== undefined) {
-			original['@_name'] = element.mediaReferenceName;
+			setAttribute(original, 'name', element.mediaReferenceName);
 		}
 	} else {
-		delete original['@_r:embed'];
+		deleteAttribute(original, 'embed');
 		if (relationshipId) {
-			original['@_r:link'] = relationshipId;
+			setAttribute(original, 'link', relationshipId, 'r');
+		}
+		if (kind === 'audioFile' && element.mediaReferenceContentType !== undefined) {
+			setAttribute(original, 'contentType', element.mediaReferenceContentType);
 		}
 	}
-	container[`a:${kind}`] = original;
+	container[targetKey ?? `a:${kind}`] = original;
 }
 
 function parseAudioCdPosition(value: unknown): PptxAudioCdPosition | undefined {
@@ -92,14 +113,72 @@ function parseAudioCdPosition(value: unknown): PptxAudioCdPosition | undefined {
 		return undefined;
 	}
 	const node = value as XmlObject;
-	const track = Number.parseInt(String(node['@_track'] ?? ''), 10);
-	if (!Number.isFinite(track)) {
+	const track = unsignedInteger(attribute(node, 'track'), 255);
+	if (track === undefined) {
 		return undefined;
 	}
-	const time = Number.parseInt(String(node['@_time'] ?? '0'), 10);
-	return { track, time: Number.isFinite(time) ? time : 0 };
+	const rawTime = attribute(node, 'time');
+	const time = rawTime === undefined ? 0 : unsignedInteger(rawTime, 4294967295);
+	if (time === undefined) {
+		return undefined;
+	}
+	return { track, time, rawXml: node };
 }
 
 function buildAudioCdPosition(value: PptxAudioCdPosition | undefined): XmlObject {
-	return { '@_track': String(value?.track ?? 1), '@_time': String(value?.time ?? 0) };
+	const node: XmlObject = { ...(value?.rawXml ?? {}) };
+	const track = unsignedInteger(value?.track, 255) ?? 1;
+	const time = unsignedInteger(value?.time ?? 0, 4294967295) ?? 0;
+	if (unsignedInteger(attribute(node, 'track'), 255) !== track) {
+		setAttribute(node, 'track', String(track));
+	}
+	if (attribute(node, 'time') !== undefined || time !== 0) {
+		setAttribute(node, 'time', String(time));
+	}
+	return node;
+}
+
+const localName = (key: string): string => key.replace(/^@_/u, '').split(':').at(-1) ?? key;
+
+function child(parent: XmlObject, name: string): XmlObject | undefined {
+	const key = Object.keys(parent).find((candidate) => localName(candidate) === name);
+	const value = key ? parent[key] : undefined;
+	return value && typeof value === 'object' && !Array.isArray(value)
+		? (value as XmlObject)
+		: undefined;
+}
+
+function setChild(parent: XmlObject, name: string, value: XmlObject): void {
+	const key = Object.keys(parent).find((candidate) => localName(candidate) === name);
+	parent[key ?? `a:${name}`] = value;
+}
+
+function attribute(node: XmlObject, name: string): unknown {
+	const key = Object.keys(node).find(
+		(candidate) => candidate.startsWith('@_') && localName(candidate) === name,
+	);
+	return key ? node[key] : undefined;
+}
+
+function deleteAttribute(node: XmlObject, name: string): void {
+	for (const key of Object.keys(node)) {
+		if (key.startsWith('@_') && localName(key) === name) {
+			delete node[key];
+		}
+	}
+}
+
+function setAttribute(node: XmlObject, name: string, value: string, prefix?: string): void {
+	const key = Object.keys(node).find(
+		(candidate) => candidate.startsWith('@_') && localName(candidate) === name,
+	);
+	node[key ?? `@_${prefix ? `${prefix}:` : ''}${name}`] = value;
+}
+
+function unsignedInteger(value: unknown, max: number): number | undefined {
+	if (!/^\d+$/u.test(String(value ?? ''))) {
+		return undefined;
+	}
+	const parsed = Number(value);
+	return Number.isSafeInteger(parsed) && parsed >= 0 && parsed <= max ? parsed : undefined;
 }

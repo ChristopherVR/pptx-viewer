@@ -135,6 +135,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					mediaMimeType,
 					mediaReferenceKind: mediaReference.kind,
 					mediaReferenceName: mediaReference.name,
+					mediaReferenceContentType: mediaReference.contentType,
 					audioCdStart: mediaReference.audioCdStart,
 					audioCdEnd: mediaReference.audioCdEnd,
 					rawMediaReferenceXml: mediaReference.rawXml,

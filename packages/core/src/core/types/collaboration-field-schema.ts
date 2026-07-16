@@ -133,6 +133,7 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	mediaMimeType: 'scalar',
 	mediaReferenceKind: 'scalar',
 	mediaReferenceName: 'scalar',
+	mediaReferenceContentType: 'scalar',
 	audioCdStart: 'complex',
 	audioCdEnd: 'complex',
 	rawMediaReferenceXml: 'complex',

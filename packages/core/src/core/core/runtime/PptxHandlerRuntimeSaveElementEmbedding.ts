@@ -277,6 +277,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 			shape = this.createMediaGraphicFrameXml(mediaElement, mediaRelationshipId);
 		}
+		if (!shape && mediaElement.mediaReferenceKind === 'audioCd') {
+			shape = this.createMediaGraphicFrameXml(mediaElement, '');
+		}
 		const referenceContainer = getMediaReferenceContainer(shape);
 		if (referenceContainer) {
 			applyDrawingMediaReference(referenceContainer, mediaElement, mediaRelationshipId);

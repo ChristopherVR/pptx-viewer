@@ -34,8 +34,8 @@ describe('drawingML media references', () => {
 				'a:end': { '@_track': '4', '@_time': '2500' },
 			},
 		});
-		expect(result?.audioCdStart).toStrictEqual({ track: 2, time: 1500 });
-		expect(result?.audioCdEnd).toStrictEqual({ track: 4, time: 2500 });
+		expect(result?.audioCdStart).toMatchObject({ track: 2, time: 1500 });
+		expect(result?.audioCdEnd).toMatchObject({ track: 4, time: 2500 });
 	});
 
 	it('serializes dirty Audio CD positions while preserving extensions', () => {
@@ -79,5 +79,90 @@ describe('drawingML media references', () => {
 			'rId2',
 		);
 		expect(quickTime['a:quickTimeFile']).toStrictEqual({ '@_r:link': 'rId2' });
+	});
+
+	it('parses arbitrary element and relationship prefixes', () => {
+		const result = parseDrawingMediaReference({
+			'd:audioFile': {
+				'@_rel:link': 'rId12',
+				'@_contentType': 'audio/flac',
+				'd:extLst': { 'd:ext': { '@_uri': 'keep' } },
+			},
+		});
+		expect(result).toMatchObject({
+			kind: 'audioFile',
+			relationshipId: 'rId12',
+			isLinked: true,
+			contentType: 'audio/flac',
+		});
+	});
+
+	it('validates Audio CD track and time bounds', () => {
+		expect(
+			parseDrawingMediaReference({
+				'a:audioCd': {
+					'a:st': { '@_track': '256' },
+					'a:end': { '@_track': '1', '@_time': '4294967296' },
+				},
+			})?.audioCdStart,
+		).toBeUndefined();
+		expect(
+			parseDrawingMediaReference({
+				'a:audioCd': { 'a:st': { '@_track': '0' }, 'a:end': { '@_track': '255' } },
+			})?.audioCdEnd,
+		).toMatchObject({ track: 255, time: 0 });
+	});
+
+	it('preserves position metadata and keeps extLst after required CD children', () => {
+		const source: XmlObject = {
+			'd:audioCd': {
+				'@_vendor': 'root',
+				'd:st': { '@_track': '2', '@_vendor': 'start' },
+				'd:end': { '@_track': '3', '@_time': '20', '@_vendor': 'end' },
+				'd:extLst': { 'd:ext': { '@_uri': 'keep' } },
+			},
+		};
+		const parsed = parseDrawingMediaReference(source)!;
+		const element = {
+			type: 'media',
+			mediaReferenceKind: 'audioCd',
+			audioCdStart: { ...parsed.audioCdStart, track: 4 },
+			audioCdEnd: parsed.audioCdEnd,
+			rawMediaReferenceXml: parsed.rawXml,
+		} as MediaPptxElement;
+		applyDrawingMediaReference(source, element);
+		const cd = source['d:audioCd'] as XmlObject;
+		expect(cd['d:st']).toStrictEqual({ '@_track': '4', '@_vendor': 'start' });
+		expect(cd['d:end']).toStrictEqual({
+			'@_track': '3',
+			'@_time': '20',
+			'@_vendor': 'end',
+		});
+		expect(Object.keys(cd).slice(-3)).toStrictEqual(['d:st', 'd:end', 'd:extLst']);
+	});
+
+	it('edits audioFile content type without flattening prefixes or extensions', () => {
+		const container: XmlObject = {
+			'd:audioFile': {
+				'@_rel:link': 'old',
+				'@_contentType': 'audio/old',
+				'd:extLst': { 'd:ext': { '@_uri': 'keep' } },
+			},
+		};
+		applyDrawingMediaReference(
+			container,
+			{
+				type: 'media',
+				mediaReferenceKind: 'audioFile',
+				mediaReferenceContentType: 'audio/aac',
+				rawMediaReferenceXml: container['d:audioFile'] as XmlObject,
+			} as MediaPptxElement,
+			'rId8',
+		);
+		expect(container['d:audioFile']).toStrictEqual({
+			'@_rel:link': 'rId8',
+			'@_contentType': 'audio/aac',
+			'd:extLst': { 'd:ext': { '@_uri': 'keep' } },
+		});
 	});
 });

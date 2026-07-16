@@ -299,6 +299,8 @@ export interface MediaPptxElement extends PptxElementBase {
 	mediaMimeType?: string;
 	mediaReferenceKind?: PptxMediaReferenceKind;
 	mediaReferenceName?: string;
+	/** Explicit DrawingML `audioFile/@contentType` value when present. */
+	mediaReferenceContentType?: string;
 	audioCdStart?: PptxAudioCdPosition;
 	audioCdEnd?: PptxAudioCdPosition;
 	rawMediaReferenceXml?: XmlObject;

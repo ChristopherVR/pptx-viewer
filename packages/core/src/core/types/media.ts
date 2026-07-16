@@ -9,6 +9,8 @@
 // Media types (audio/video)
 // ==========================================================================
 
+import type { XmlObject } from './common';
+
 /**
  * Discriminator for embedded media element types.
  *
@@ -30,6 +32,8 @@ export type PptxMediaReferenceKind =
 export interface PptxAudioCdPosition {
 	track: number;
 	time?: number;
+	/** Original `st` or `end` node, retained for lossless edits. */
+	rawXml?: XmlObject;
 }
 
 /**

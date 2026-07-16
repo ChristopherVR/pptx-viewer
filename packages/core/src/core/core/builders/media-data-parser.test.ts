@@ -73,6 +73,15 @@ describe('pptxMediaDataParser — media type detection', () => {
 		expect(result.mediaType).toBe('audio');
 	});
 
+	it('surfaces audioFile content type metadata', () => {
+		const parser = new PptxMediaDataParser(makeContext());
+		const result = parser.parseMediaData(
+			{ 'd:audioFile': { '@_rel:link': 'rId3', '@_contentType': 'audio/flac' } },
+			'ppt/slides/slide1.xml',
+		);
+		expect(result.mediaReferenceContentType).toBe('audio/flac');
+	});
+
 	it('parses embedded WAV, QuickTime, and Audio CD choices', () => {
 		const slidePath = 'ppt/slides/slide1.xml';
 		const slideRelsMap = makeSlideRelsMap(slidePath, {

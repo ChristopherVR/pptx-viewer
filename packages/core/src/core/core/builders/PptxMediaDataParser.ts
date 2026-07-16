@@ -35,6 +35,7 @@ export class PptxMediaDataParser implements IPptxMediaDataParser {
 				result.mediaType = reference.mediaType;
 				result.mediaReferenceKind = reference.kind;
 				result.mediaReferenceName = reference.name;
+				result.mediaReferenceContentType = reference.contentType;
 				result.audioCdStart = reference.audioCdStart;
 				result.audioCdEnd = reference.audioCdEnd;
 				result.rawMediaReferenceXml = reference.rawXml;
