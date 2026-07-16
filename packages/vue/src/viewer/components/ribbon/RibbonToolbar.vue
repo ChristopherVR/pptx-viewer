@@ -313,6 +313,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:eyedropper-active="props.eyedropperActive"
 				:on-toggle-eyedropper="props.onToggleEyedropper"
 			/>
+				:on-zoom-to-fit="props.onZoomToFit"
 
 			<template v-if="s === 'help'">
 				<button
