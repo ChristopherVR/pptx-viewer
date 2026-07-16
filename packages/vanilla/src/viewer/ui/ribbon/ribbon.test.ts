@@ -52,6 +52,7 @@ function buildHandlers(): RibbonHandlers {
 			openFile: vi.fn(),
 			openRecentFile: vi.fn(),
 			createPresentation: vi.fn(),
+			openSettings: vi.fn(),
 			openDocumentProperties: vi.fn(),
 			openFontEmbedding: vi.fn(),
 			openDigitalSignatures: vi.fn(),
@@ -128,6 +129,30 @@ describe('createRibbon', () => {
 		expect(handlers.slideShow.openBroadcast).toHaveBeenCalledOnce();
 	});
 
+	it('opens language settings and starts recording from either record command', () => {
+		const t = createTranslator();
+		const handlers = buildHandlers();
+		const ribbon = createRibbon(document, t, handlers);
+		const tabs = ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab');
+		tabs[8].click();
+		const recordButtons = ribbon.el.querySelectorAll<HTMLButtonElement>(
+			'.pptxv-ribbon-tab-content:not([hidden]) button',
+		);
+		recordButtons[0].click();
+		recordButtons[1].click();
+		expect(handlers.slideShow.startRehearsal).toHaveBeenCalledTimes(2);
+
+		tabs[9].click();
+		Array.from(
+			ribbon.el.querySelectorAll<HTMLButtonElement>(
+				'.pptxv-ribbon-tab-content:not([hidden]) button',
+			),
+		)
+			.find((button) => button.textContent === t('pptx.review.language'))
+			?.click();
+		expect(handlers.nav.openSettings).toHaveBeenCalledWith('general');
+	});
+
 	it('setEditState hides the primary row and tab bar when not editable', () => {
 		const t = createTranslator();
 		const ribbon = createRibbon(document, t, buildHandlers());
@@ -169,5 +194,21 @@ describe('createRibbon', () => {
 		);
 		infoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 		expect(backstage?.querySelectorAll('.pptxv-bs-actions svg')).toHaveLength(5);
+	});
+
+	it('opens viewer settings from the File Options card', () => {
+		const handlers = buildHandlers();
+		const ribbon = createRibbon(document, createTranslator(), handlers);
+		Array.from(ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab'))
+			.find((button) => button.textContent === 'File')
+			?.click();
+		const backstage = ribbon.el.querySelector<HTMLElement>('.pptxv-backstage');
+		Array.from(backstage?.querySelectorAll<HTMLButtonElement>('nav button') ?? [])
+			.find((button) => button.textContent?.trim() === 'Options')
+			?.click();
+		Array.from(backstage?.querySelectorAll<HTMLButtonElement>('main button') ?? [])
+			.find((button) => button.textContent === 'Open Options')
+			?.click();
+		expect(handlers.file.openSettings).toHaveBeenCalledOnce();
 	});
 });

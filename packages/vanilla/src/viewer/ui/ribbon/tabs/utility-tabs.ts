@@ -1,15 +1,27 @@
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
-import type { RibbonNavHandlers } from '../ribbon-types';
+import type { RibbonNavHandlers, RibbonSlideShowHandlers } from '../ribbon-types';
 
-export function createRecordTab(doc: Document, t: Translator): HTMLElement {
+export function createRecordTab(
+	doc: Document,
+	t: Translator,
+	handlers: RibbonSlideShowHandlers,
+): HTMLElement {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 	const dot = createEl(doc, 'span', 'pptxv-record-dot');
 	dot.setAttribute('aria-hidden', 'true');
-	const label = createEl(doc, 'span');
-	label.textContent = t('pptx.titleBar.record');
-	el.append(dot, label);
+	const fromBeginning = makeButton(doc, {
+		label: t('pptx.slideShow.fromBeginning'),
+		text: t('pptx.slideShow.fromBeginning'),
+		onClick: handlers.startRehearsal,
+	});
+	const fromCurrent = makeButton(doc, {
+		label: t('pptx.slideShow.fromCurrent'),
+		text: t('pptx.slideShow.fromCurrent'),
+		onClick: handlers.startRehearsal,
+	});
+	el.append(dot, fromBeginning.btn, fromCurrent.btn);
 	return el;
 }
 
@@ -50,6 +62,11 @@ export function createReviewTab(
 		text: t('pptx.settings.spellCheck'),
 		onClick: handlers.toggleSpellCheck,
 	});
+	const language = makeButton(doc, {
+		label: t('pptx.review.language'),
+		text: t('pptx.review.language'),
+		onClick: () => handlers.openSettings('general'),
+	});
 	el.append(
 		accessibility.btn,
 		headerFooter.btn,
@@ -57,6 +74,7 @@ export function createReviewTab(
 		comments.btn,
 		hyperlink.btn,
 		spellCheck.btn,
+		language.btn,
 	);
 	return el;
 }
