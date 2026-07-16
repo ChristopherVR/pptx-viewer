@@ -18,6 +18,8 @@
 	import CollaborationChrome from './collab/components/CollaborationChrome.svelte';
 	import { useCollaborationPresenceEffects } from './collab/collaboration-presence-effects.svelte';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
+	import SignatureStrippedDialog from './components/SignatureStrippedDialog.svelte';
+	import VersionHistoryPanel from './components/VersionHistoryPanel.svelte';
 	import MobileActionSheets from './components/MobileActionSheets.svelte';
 	import MobileChrome from './components/MobileChrome.svelte';
 	import MasterViewBody from './components/MasterViewBody.svelte';
@@ -206,6 +208,23 @@
 	// `CollaborationDialogsState`, both driving the same `collab` controller
 	// the `collaboration` prop auto-starts.
 	const dialogs = new CollaborationDialogsState(collab, () => shareDefaults);
+	let versionHistoryOpen = $state(false);
+	let signatureWarningOpen = $state(false);
+	let signatureWarningAcknowledged = $state(false);
+	$effect(() => {
+		loader.loadCount;
+		signatureWarningAcknowledged = false;
+		signatureWarningOpen = false;
+	});
+	$effect(() => {
+		if (editor.dirty && loader.hasDigitalSignatures && !signatureWarningAcknowledged) {
+			signatureWarningOpen = true;
+		}
+	});
+	function closeSignatureWarning(): void {
+		signatureWarningAcknowledged = true;
+		signatureWarningOpen = false;
+	}
 
 	// ── Autosave ─────────────────────────────────────────────────────────
 	// Debounced crash-recovery autosave: enabled only when the host opts in,
@@ -551,6 +570,7 @@
 				ondownloadppsx={() => void downloadAs('ppsx')}
 				ondownloadpptm={() => void downloadAs('pptm')}
 				onpackage={() => void packageForSharing()}
+				onversionhistory={() => (versionHistoryOpen = true)}
 				hasMacros={loader.hasMacros}
 				embeddedFontNames={loader.embeddedFonts.map((font) => font.name)}
 				hasDigitalSignatures={loader.hasDigitalSignatures}
@@ -616,6 +636,8 @@
 		statusMessage={exportUi.status}
 		oncancel={() => exportUi.cancel()}
 	/>
+	{#if versionHistoryOpen}<VersionHistoryPanel {filePath} onclose={() => (versionHistoryOpen = false)} onrestore={(bytes) => loader.load(bytes)} />{/if}
+	{#if signatureWarningOpen}<SignatureStrippedDialog signatureCount={loader.digitalSignatureCount} onclose={closeSignatureWarning} />{/if}
 	{#if editor.masterViewTarget}
 		<MasterViewBody
 			{editor}

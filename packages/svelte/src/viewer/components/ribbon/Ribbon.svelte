@@ -83,6 +83,7 @@
 				onfonts={() => (fontsOpen = true)}
 				onsignatures={() => (signaturesOpen = true)}
 				onprotect={() => (protectionOpen = true)}
+				onversionhistory={props.onversionhistory}
 			/>
 		{:else if activeTab === 'home'}
 			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />
