@@ -10,6 +10,7 @@ import type { PptxChartPivotFormats } from './chart-pivot-format';
 import type { PptxChartPivotSource } from './chart-pivot-source';
 import type { PptxChartPrintSettings } from './chart-print-settings';
 import type { PptxChartProtection } from './chart-protection';
+import type { XmlObject } from './common';
 
 // ==========================================================================
 // Chart types
@@ -391,6 +392,12 @@ export interface PptxChartWaterfallOptions {
 export interface PptxChartRegionMapOptions {
 	/** Optional provider entity identifiers aligned with categories and values. */
 	entityIds?: string[];
+	/** Original `cx:pt/@idx` values for category points. */
+	categorySourceIndices?: number[];
+	/** Original `cx:pt/@idx` values for colour-value points. */
+	valueSourceIndices?: number[];
+	/** Original `cx:pt/@idx` values for entity-ID points. */
+	entityIdSourceIndices?: number[];
 	regionLabelLayout?: 'none' | 'bestFitOnly' | 'showAll';
 	projectionType?: 'mercator' | 'miller' | 'robinson' | 'albers';
 	viewedRegionType?:
@@ -405,6 +412,16 @@ export interface PptxChartRegionMapOptions {
 	/** ISO-3166-1 alpha-2 region code. */
 	cultureRegion?: string;
 	attribution?: string;
+	/** Opaque authored provider cache under `cx:geography/cx:geoCache`. */
+	geographyCache?: XmlObject;
+}
+
+/** Layout for parent category labels in a hierarchical ChartEx treemap. */
+export type PptxChartParentLabelLayout = 'none' | 'banner' | 'overlapping';
+
+/** Per-series layout options for an Office 2016+ ChartEx treemap. */
+export interface PptxChartTreemapOptions {
+	parentLabelLayout?: PptxChartParentLabelLayout;
 }
 
 /**
@@ -446,6 +463,7 @@ export interface PptxChartSeries {
 	histogramOptions?: PptxChartHistogramOptions;
 	waterfallOptions?: PptxChartWaterfallOptions;
 	regionMapOptions?: PptxChartRegionMapOptions;
+	treemapOptions?: PptxChartTreemapOptions;
 }
 
 /**

@@ -17,14 +17,23 @@ function chartFrom(data: Awaited<ReturnType<PptxHandler['load']>>): ChartPptxEle
 describe('generated chartEx treemap package', () => {
 	it('authors category and size dimensions and retains unknown extensions', async () => {
 		const { handler, data, createSlide } = await PresentationBuilder.create();
-		const categories = ['North / Hardware', 'North / Software', 'South / Services'];
+		const categories = ['Hardware', 'Software', 'Services'];
+		const categoryLevels = [categories, ['North', 'North', 'South']];
 		data.slides.push(
 			createSlide('Blank')
 				.addChart(
 					'treemap',
 					{
 						categories,
-						series: [{ name: 'Revenue', values: [65, 40, 25], color: '#5B9BD5' }],
+						categoryLevels,
+						series: [
+							{
+								name: 'Revenue',
+								values: [65, 40, 25],
+								color: '#5B9BD5',
+								treemapOptions: { parentLabelLayout: 'banner' },
+							},
+						],
 						title: 'Portfolio Mix',
 					},
 					{ x: 50, y: 50, width: 500, height: 300 },
@@ -40,6 +49,8 @@ describe('generated chartEx treemap package', () => {
 		expect(chartXml).toContain('<cx:series layoutId="treemap"');
 		expect(chartXml).toContain('<cx:strDim type="cat"');
 		expect(chartXml).toContain('<cx:numDim type="size"');
+		expect(chartXml.match(/<cx:lvl /gu)).toHaveLength(3);
+		expect(chartXml).toContain('<cx:parentLabelLayout val="banner"');
 		for (const category of categories) {
 			expect(chartXml).toContain(`>${category}</cx:pt>`);
 		}
@@ -52,7 +63,15 @@ describe('generated chartEx treemap package', () => {
 			chartType: 'treemap',
 			title: 'Portfolio Mix',
 			categories,
-			series: [{ name: 'Revenue', values: [65, 40, 25], color: '#5B9BD5' }],
+			categoryLevels,
+			series: [
+				{
+					name: 'Revenue',
+					values: [65, 40, 25],
+					color: '#5B9BD5',
+					treemapOptions: { parentLabelLayout: 'banner' },
+				},
+			],
 		});
 
 		loaded.slides[0].isDirty = true;
@@ -60,11 +79,16 @@ describe('generated chartEx treemap package', () => {
 		const resavedZip = await JSZip.loadAsync(resaved);
 		const resavedXml = await resavedZip.file(partPath)!.async('string');
 		expect(resavedXml).toContain('uri="treemap-vendor"');
+		expect(resavedXml).toContain('<cx:parentLabelLayout val="banner"');
 		expect(resavedXml).toContain(
 			'<vendor:hierarchy xmlns:vendor="urn:vendor">keep</vendor:hierarchy>',
 		);
 		const reloaded = await new PptxHandler().load(resaved.buffer as ArrayBuffer);
 		expect(chartFrom(reloaded).chartData?.categories).toStrictEqual(categories);
+		expect(chartFrom(reloaded).chartData?.categoryLevels).toStrictEqual(categoryLevels);
 		expect(chartFrom(reloaded).chartData?.series[0].values).toStrictEqual([65, 40, 25]);
+		expect(chartFrom(reloaded).chartData?.series[0].treemapOptions).toStrictEqual({
+			parentLabelLayout: 'banner',
+		});
 	});
 });

@@ -1,4 +1,5 @@
 import type { PptxChartRegionMapOptions, XmlObject } from '../types';
+import { cloneXmlObject } from './clone-utils';
 import type { XmlLookupLike } from './chart-cx-parser';
 
 const PROJECTIONS = new Set(['mercator', 'miller', 'robinson', 'albers']);
@@ -16,7 +17,7 @@ const LABEL_LAYOUTS = new Set(['none', 'bestFitOnly', 'showAll']);
 /** Parse schema-defined ChartEx region-map dimensions and geography properties. */
 export function parseCxRegionMapOptions(
 	series: XmlObject,
-	entityIds: string[] | undefined,
+	dataNode: XmlObject | undefined,
 	xmlLookup: XmlLookupLike,
 ): PptxChartRegionMapOptions | undefined {
 	if (series['@_layoutId'] !== 'regionMap') {
@@ -27,8 +28,15 @@ export function parseCxRegionMapOptions(
 	const geography = xmlLookup.getChildByLocalName(layoutPr, 'geography');
 	const projection = geography?.['@_projectionType'];
 	const viewLevel = geography?.['@_viewedRegionType'];
+	const categories = readIndexedDimension(dataNode, 'strDim', 'cat', xmlLookup);
+	const entityIds = readIndexedDimension(dataNode, 'strDim', 'entityId', xmlLookup);
+	const values = readIndexedDimension(dataNode, 'numDim', 'colorVal', xmlLookup);
+	const geographyCache = xmlLookup.getChildByLocalName(geography, 'geoCache');
 	return {
-		...(entityIds?.length ? { entityIds: [...entityIds] } : {}),
+		...(entityIds.values.length ? { entityIds: entityIds.values } : {}),
+		...(categories.indices.length ? { categorySourceIndices: categories.indices } : {}),
+		...(values.indices.length ? { valueSourceIndices: values.indices } : {}),
+		...(entityIds.indices.length ? { entityIdSourceIndices: entityIds.indices } : {}),
 		...(LABEL_LAYOUTS.has(String(labelLayout))
 			? { regionLabelLayout: labelLayout as PptxChartRegionMapOptions['regionLabelLayout'] }
 			: {}),
@@ -47,5 +55,29 @@ export function parseCxRegionMapOptions(
 		...(geography?.['@_attribution'] !== undefined
 			? { attribution: String(geography['@_attribution']) }
 			: {}),
+		...(geographyCache ? { geographyCache: cloneXmlObject(geographyCache) } : {}),
 	};
+}
+
+function readIndexedDimension(
+	dataNode: XmlObject | undefined,
+	kind: 'strDim' | 'numDim',
+	type: string,
+	xmlLookup: XmlLookupLike,
+): { values: string[]; indices: number[] } {
+	const dimension = xmlLookup
+		.getChildrenArrayByLocalName(dataNode, kind)
+		.find((candidate) => String(candidate['@_type'] ?? '') === type);
+	const level = xmlLookup.getChildByLocalName(dimension, 'lvl');
+	const values: string[] = [];
+	const indices: number[] = [];
+	for (const [position, point] of xmlLookup
+		.getChildrenArrayByLocalName(level, 'pt')
+		.entries()) {
+		const raw = xmlLookup.getScalarChildByLocalName(point, 'v') ?? point['#text'];
+		values.push(String(raw ?? '').trim());
+		const parsed = Number.parseInt(String(point['@_idx'] ?? position), 10);
+		indices.push(Number.isInteger(parsed) && parsed >= 0 ? parsed : position);
+	}
+	return { values, indices };
 }

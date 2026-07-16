@@ -450,18 +450,31 @@ describe('parseCxChartSeries', () => {
 						'cx:strDim': [
 							{
 								'@_type': 'cat',
-								'cx:lvl': { 'cx:pt': [{ '#text': 'AU' }, { '#text': 'US' }] },
+								'cx:lvl': {
+									'cx:pt': [
+										{ '@_idx': '2', '#text': 'AU' },
+										{ '@_idx': '5', '#text': 'US' },
+									],
+								},
 							},
 							{
 								'@_type': 'entityId',
 								'cx:lvl': {
-									'cx:pt': [{ '#text': 'country:AU' }, { '#text': 'country:US' }],
+									'cx:pt': [
+										{ '@_idx': '2', '#text': 'country:AU' },
+										{ '@_idx': '5', '#text': 'country:US' },
+									],
 								},
 							},
 						],
 						'cx:numDim': {
 							'@_type': 'colorVal',
-							'cx:lvl': { 'cx:pt': [{ '#text': '72' }, { '#text': '95' }] },
+							'cx:lvl': {
+								'cx:pt': [
+									{ '@_idx': '2', '#text': '72' },
+									{ '@_idx': '5', '#text': '95' },
+								],
+							},
 						},
 					},
 					'cx:layoutPr': {
@@ -472,6 +485,10 @@ describe('parseCxChartSeries', () => {
 							'@_cultureLanguage': 'en-AU',
 							'@_cultureRegion': 'AU',
 							'@_attribution': 'Microsoft',
+							'cx:geoCache': {
+								'@_provider': 'Bing',
+								'cx:geoData': { '@_entityId': 'country:AU', '@_entityName': 'Australia' },
+							},
 						},
 					},
 				},
@@ -484,12 +501,19 @@ describe('parseCxChartSeries', () => {
 			values: [72, 95],
 			regionMapOptions: {
 				entityIds: ['country:AU', 'country:US'],
+				categorySourceIndices: [2, 5],
+				valueSourceIndices: [2, 5],
+				entityIdSourceIndices: [2, 5],
 				regionLabelLayout: 'bestFitOnly',
 				projectionType: 'albers',
 				viewedRegionType: 'countryRegion',
 				cultureLanguage: 'en-AU',
 				cultureRegion: 'AU',
 				attribution: 'Microsoft',
+				geographyCache: {
+					'@_provider': 'Bing',
+					'cx:geoData': { '@_entityId': 'country:AU', '@_entityName': 'Australia' },
+				},
 			},
 		});
 	});

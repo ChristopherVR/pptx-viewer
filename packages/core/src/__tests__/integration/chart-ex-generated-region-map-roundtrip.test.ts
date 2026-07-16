@@ -18,12 +18,19 @@ describe('generated chartEx region-map package', () => {
 	it('round-trips region dimensions, geography and unknown extensions', async () => {
 		const regionMapOptions = {
 			entityIds: ['country:AU', 'country:US', 'country:DE'],
+			categorySourceIndices: [2, 5, 9],
+			valueSourceIndices: [2, 5, 9],
+			entityIdSourceIndices: [2, 5, 9],
 			regionLabelLayout: 'showAll' as const,
 			projectionType: 'robinson' as const,
 			viewedRegionType: 'world' as const,
 			cultureLanguage: 'en-AU',
 			cultureRegion: 'AU',
 			attribution: 'Microsoft',
+			geographyCache: {
+				'@_provider': 'Bing',
+				'cx:geoData': { '@_entityId': 'country:AU', '@_entityName': 'Australia' },
+			},
 		};
 		const { handler, data, createSlide } = await PresentationBuilder.create();
 		data.slides.push(
@@ -52,12 +59,16 @@ describe('generated chartEx region-map package', () => {
 		const chartXml = await zip.file(partPath)!.async('string');
 		expect(chartXml).toContain('<cx:series layoutId="regionMap"');
 		expect(chartXml).toContain('<cx:strDim type="entityId"');
-		expect(chartXml).toContain('<cx:pt idx="0">country:AU</cx:pt>');
+		expect(chartXml).toContain('<cx:pt idx="2">country:AU</cx:pt>');
+		expect(chartXml).toContain('<cx:pt idx="5">US</cx:pt>');
+		expect(chartXml).toContain('<cx:pt idx="9">61</cx:pt>');
 		expect(chartXml).toContain('<cx:numDim type="colorVal"');
 		expect(chartXml).toContain('<cx:regionLabelLayout val="showAll"');
 		expect(chartXml).toContain(
 			'<cx:geography projectionType="robinson" viewedRegionType="world" cultureLanguage="en-AU" cultureRegion="AU" attribution="Microsoft"',
 		);
+		expect(chartXml).toContain('<cx:geoCache provider="Bing">');
+		expect(chartXml).toContain('<cx:geoData entityId="country:AU" entityName="Australia"');
 		expect(chartXml.indexOf('<cx:regionLabelLayout')).toBeLessThan(
 			chartXml.indexOf('<cx:geography'),
 		);

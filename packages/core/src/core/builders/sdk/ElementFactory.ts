@@ -526,6 +526,7 @@ export function createChartElement(
 					},
 				}
 			: {}),
+		...(s.treemapOptions ? { treemapOptions: { ...s.treemapOptions } } : {}),
 	}));
 
 	const chartData: PptxChartData = {

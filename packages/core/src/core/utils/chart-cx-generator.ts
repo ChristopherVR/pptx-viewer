@@ -10,6 +10,13 @@ function points(values: Array<string | number>): XmlObject[] {
 	return values.map((value, index) => ({ '@_idx': String(index), '#text': String(value) }));
 }
 
+function indexedPoints(values: Array<string | number>, indices: number[] | undefined): XmlObject[] {
+	return values.map((value, index) => ({
+		'@_idx': String(indices?.[index] ?? index),
+		'#text': String(value),
+	}));
+}
+
 function seriesColor(series: PptxChartSeries): XmlObject | undefined {
 	const color = series.color?.replace(/^#/u, '').toUpperCase();
 	return color ? { 'a:solidFill': { 'a:srgbClr': { '@_val': color } } } : undefined;
@@ -36,8 +43,10 @@ function buildHistogramBinning(series: PptxChartSeries): XmlObject {
 }
 
 function buildData(chartData: PptxChartData, series: PptxChartSeries, id: number): XmlObject {
+	const regionOptions = chartData.chartType === 'regionMap' ? series.regionMapOptions : undefined;
 	const categoryLevels =
-		chartData.chartType === 'sunburst' && chartData.categoryLevels?.length
+		(chartData.chartType === 'sunburst' || chartData.chartType === 'treemap') &&
+		chartData.categoryLevels?.length
 			? chartData.categoryLevels
 			: [chartData.categories];
 	const stringDimensions: XmlObject[] = [
@@ -45,7 +54,10 @@ function buildData(chartData: PptxChartData, series: PptxChartSeries, id: number
 			'@_type': 'cat',
 			'cx:lvl': categoryLevels.map((level) => ({
 				'@_ptCount': String(level.length),
-				'cx:pt': points(level),
+				'cx:pt':
+					chartData.chartType === 'regionMap' && level === categoryLevels[0]
+						? indexedPoints(level, regionOptions?.categorySourceIndices)
+						: points(level),
 			})),
 		},
 	];
@@ -54,7 +66,10 @@ function buildData(chartData: PptxChartData, series: PptxChartSeries, id: number
 			'@_type': 'entityId',
 			'cx:lvl': {
 				'@_ptCount': String(series.regionMapOptions.entityIds.length),
-				'cx:pt': points(series.regionMapOptions.entityIds),
+				'cx:pt': indexedPoints(
+					series.regionMapOptions.entityIds,
+					series.regionMapOptions.entityIdSourceIndices,
+				),
 			},
 		});
 	}
@@ -71,7 +86,7 @@ function buildData(chartData: PptxChartData, series: PptxChartSeries, id: number
 			'cx:lvl': {
 				'@_ptCount': String(series.values.length),
 				'@_formatCode': 'General',
-				'cx:pt': points(series.values),
+				'cx:pt': indexedPoints(series.values, regionOptions?.valueSourceIndices),
 			},
 		},
 	};
@@ -159,6 +174,11 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 			result['cx:layoutPr'] = layoutPr;
 		}
 	}
+	if (chartData.chartType === 'treemap' && series.treemapOptions?.parentLabelLayout) {
+		result['cx:layoutPr'] = {
+			'cx:parentLabelLayout': { '@_val': series.treemapOptions.parentLabelLayout },
+		};
+	}
 	if (chartData.chartType === 'regionMap') {
 		const options = series.regionMapOptions;
 		const layoutPr: XmlObject = {};
@@ -171,6 +191,7 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 			'@_cultureLanguage': options?.cultureLanguage ?? 'en-US',
 			'@_cultureRegion': options?.cultureRegion ?? 'US',
 			'@_attribution': options?.attribution ?? 'Microsoft',
+			...(options?.geographyCache ? { 'cx:geoCache': options.geographyCache } : {}),
 		};
 		result['cx:layoutPr'] = layoutPr;
 	}

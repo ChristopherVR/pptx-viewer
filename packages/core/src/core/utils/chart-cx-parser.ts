@@ -15,6 +15,7 @@ import type { XmlObject, PptxChartData, PptxChartSeries, PptxChartDataLabel } fr
 import { parseCxBoxWhiskerOptions } from './chart-cx-box-whisker';
 import { parseCxHistogramOptions } from './chart-cx-histogram';
 import { parseCxRegionMapOptions } from './chart-cx-region-map';
+import { parseCxTreemapOptions } from './chart-cx-treemap';
 import { parseCxWaterfallOptions } from './chart-cx-waterfall';
 
 /** Minimal xml-lookup interface needed by the cx: parser. */
@@ -252,9 +253,13 @@ export function parseCxChartSeries(
 		if (waterfallOptions) {
 			result.waterfallOptions = waterfallOptions;
 		}
-		const regionMapOptions = parseCxRegionMapOptions(ser, strDims.get('entityId')?.[0], xmlLookup);
+		const regionMapOptions = parseCxRegionMapOptions(ser, dataNode, xmlLookup);
 		if (regionMapOptions) {
 			result.regionMapOptions = regionMapOptions;
+		}
+		const treemapOptions = parseCxTreemapOptions(ser, xmlLookup);
+		if (treemapOptions) {
+			result.treemapOptions = treemapOptions;
 		}
 		if (color) {
 			result.color = color;

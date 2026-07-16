@@ -15,6 +15,7 @@ import type {
 	PptxChartBoxWhiskerOptions,
 	PptxChartHistogramOptions,
 	PptxChartRegionMapOptions,
+	PptxChartTreemapOptions,
 	PptxChartWaterfallOptions,
 } from '../../types/chart';
 import type { StrokeDashType, ConnectorArrowType } from '../../types/common';
@@ -177,6 +178,7 @@ export interface ChartSeriesInput {
 	histogramOptions?: PptxChartHistogramOptions;
 	waterfallOptions?: PptxChartWaterfallOptions;
 	regionMapOptions?: PptxChartRegionMapOptions;
+	treemapOptions?: PptxChartTreemapOptions;
 }
 
 export interface ChartInput {
