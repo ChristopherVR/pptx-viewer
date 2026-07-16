@@ -1012,7 +1012,7 @@ describe('saved slide XML conforms to schema order', () => {
 // ===========================================================================
 
 describe('ink element round-trip', () => {
-	it('ink stroke saves as custGeom and reloads with shapeType="custom" (not demoted to rect)', async () => {
+	it('ink stroke reloads as typed ink with its editable trace', async () => {
 		const { handler, data, createSlide } = await createBlank();
 		const ink: InkPptxElement = {
 			id: 'ink-test-1',
@@ -1031,14 +1031,11 @@ describe('ink element round-trip', () => {
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
 		expect(reloaded.slides).toHaveLength(1);
 
-		// Ink serialises as p:sp with custGeom, so it reloads as a shape.
-		// The shape MUST retain shapeType='custom' — if it gets demoted to 'rect',
-		// the renderer draws the bounding rectangle with the ink stroke colour,
-		// which is the bug we are guarding against.
-		const shape = reloaded.slides[0].elements.find((e) => e.type === 'shape') as
-			| ShapePptxElement
-			| undefined;
-		expect(shape).toBeDefined();
-		expect(shape!.shapeType).toBe('custom');
+		const reloadedInk = reloaded.slides[0].elements.find(
+			(element): element is InkPptxElement => element.type === 'ink',
+		);
+		expect(reloadedInk?.inkPaths).toStrictEqual(['M0,0 L60,40 L120,80']);
+		expect(reloadedInk?.inkColors).toStrictEqual(ink.inkColors);
+		expect(reloadedInk?.inkWidths).toStrictEqual(ink.inkWidths);
 	});
 });
