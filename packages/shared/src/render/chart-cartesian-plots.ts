@@ -43,6 +43,7 @@ export function buildLines(
 	primaryRange: ValueRange,
 	secondaryRange: ValueRange | undefined,
 	secondaryIdx: ReadonlySet<number>,
+	sourceIndices: ReadonlyArray<number>,
 ): SeriesPlotResult {
 	const primitives: SvgPrimitive[] = [];
 	const dataLabels: SvgText[] = [];
@@ -54,7 +55,8 @@ export function buildLines(
 			continue;
 		}
 		const activeRange = secondaryIdx.has(si) && secondaryRange ? secondaryRange : primaryRange;
-		const pts = computeLinePoints(series.values, catCount, layout, activeRange);
+		const displayValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0);
+		const pts = computeLinePoints(displayValues, catCount, layout, activeRange);
 		const c = seriesColor(series, si, chartData.colorPalette);
 		primitives.push({
 			kind: 'polyline',
@@ -64,19 +66,20 @@ export function buildLines(
 			fill: 'none',
 			part: { role: 'series', seriesIndex: si },
 		} satisfies SvgPolyline);
-		pts.forEach((pt, vi) => {
+		pts.forEach((pt, displayIndex) => {
+			const sourceIndex = sourceIndices[displayIndex] ?? displayIndex;
 			primitives.push({
 				kind: 'circle',
 				cx: pt.x,
 				cy: pt.y,
 				r: 2.5,
 				fill: c,
-				part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
+				part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
 			} satisfies SvgCircle);
 		});
 		if (showLabels) {
-			series.values.forEach((val, vi) => {
-				const pt = pts[vi];
+			displayValues.forEach((val, displayIndex) => {
+				const pt = pts[displayIndex];
 				if (!pt) {
 					return;
 				}
@@ -101,6 +104,7 @@ export function buildAreas(
 	catCount: number,
 	layout: PlotLayout,
 	range: ValueRange,
+	sourceIndices: ReadonlyArray<number>,
 ): SeriesPlotResult {
 	const primitives: SvgPrimitive[] = [];
 	const dataLabels: SvgText[] = [];
@@ -112,7 +116,8 @@ export function buildAreas(
 		if (series.values.length === 0) {
 			continue;
 		}
-		const pts = computeLinePoints(series.values, catCount, layout, range);
+		const displayValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0);
+		const pts = computeLinePoints(displayValues, catCount, layout, range);
 		const c = seriesColor(series, si, chartData.colorPalette);
 		const lineStr = linePointsToSvgString(pts);
 		const firstPt = pts[0];
@@ -136,9 +141,23 @@ export function buildAreas(
 			fill: 'none',
 			part: { role: 'series', seriesIndex: si },
 		} satisfies SvgPolyline);
+		pts.forEach((pt, displayIndex) => {
+			primitives.push({
+				kind: 'circle',
+				cx: pt.x,
+				cy: pt.y,
+				r: 2,
+				fill: c,
+				part: {
+					role: 'dataPoint',
+					seriesIndex: si,
+					pointIndex: sourceIndices[displayIndex] ?? displayIndex,
+				},
+			} satisfies SvgCircle);
+		});
 		if (showLabels) {
-			series.values.forEach((val, vi) => {
-				const pt = pts[vi];
+			displayValues.forEach((val, displayIndex) => {
+				const pt = pts[displayIndex];
 				if (!pt) {
 					return;
 				}

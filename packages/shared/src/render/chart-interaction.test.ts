@@ -251,6 +251,25 @@ describe('view-model part tagging', () => {
 		expect(vm.valueDrag).toBeDefined();
 	});
 
+	it('keeps reversed category marks wired to their original editable values', () => {
+		const reversed: PptxChartData = {
+			chartType: 'bar',
+			categories: ['A', 'B', 'C'],
+			series: [{ name: 'S', values: [10, 20, 30] }],
+			axes: [{ axisType: 'catAx', orientation: 'maxMin' }],
+		};
+		const vm = buildChartViewModel(chartElement(reversed));
+		const first = vm.primitives.find((primitive) => primitive.kind === 'rect');
+		expect(first?.part).toStrictEqual({ role: 'dataPoint', seriesIndex: 0, pointIndex: 2 });
+		const edited = withChartPointValue(
+			reversed,
+			first?.part?.seriesIndex ?? -1,
+			first?.part?.pointIndex ?? -1,
+			99,
+		);
+		expect(edited.series[0].values).toStrictEqual([10, 20, 99]);
+	});
+
 	it('tags pie slices per category on series 0 without valueDrag', () => {
 		const pieData: PptxChartData = {
 			chartType: 'pie',

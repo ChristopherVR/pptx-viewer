@@ -8,6 +8,7 @@ import {
 	splitSeriesByAxis,
 } from './chart-axis';
 import { buildSecondaryAxis } from './chart-axis-render';
+import { buildCategoryAxisPlan } from './chart-category-axis';
 import type {
 	ChartViewModel,
 	PlotLayout,
@@ -18,7 +19,6 @@ import type {
 	ValueRange,
 } from './chart-view-model';
 import {
-	buildCategoryLabels,
 	buildGridlinesAndLabels,
 	buildLegend,
 	buildZeroLine,
@@ -78,7 +78,9 @@ export function buildComboViewModel(
 		? buildSecondaryAxis(secondaryRange, layout, secondaryAxisFormatting)
 		: undefined;
 	const zeroLine = primaryRange.logScale ? undefined : buildZeroLine(primaryRange, layout);
-	const catLabels = buildCategoryLabels(categoryLabels, layout, 'bar');
+	const categoryPlan = buildCategoryAxisPlan(categoryLabels, layout, 'bar', chartData.axes);
+	const sourceIndices = categoryPlan.sourceIndices;
+	const catLabels = categoryPlan.labels;
 	const legendPos = chartData.style?.legendPosition ?? 'b';
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
 		chartData.series,
@@ -94,9 +96,12 @@ export function buildComboViewModel(
 	const barSeries = chartData.series.slice(0, 1);
 	if (barSeries[0]) {
 		const barRange = rangeForSeries(0, primaryRange, secondaryRange, secondaryIndexes);
+		const displayBarSeries = [
+			{ ...barSeries[0], values: sourceIndices.map((index) => barSeries[0].values[index] ?? 0) },
+		];
 		primitives.push(
-			...computeBarRects(barSeries, catCount, layout, barRange, chartData.colorPalette).map(
-				(rect) => ({
+			...computeBarRects(displayBarSeries, catCount, layout, barRange, chartData.colorPalette).map(
+				(rect, displayIndex) => ({
 					kind: 'rect' as const,
 					x: rect.x,
 					y: rect.y,
@@ -104,10 +109,15 @@ export function buildComboViewModel(
 					h: rect.h,
 					fill: rect.fill,
 					rx: 1,
+					part: {
+						role: 'dataPoint' as const,
+						seriesIndex: 0,
+						pointIndex: sourceIndices[displayIndex] ?? displayIndex,
+					},
 				}),
 			),
 		);
-		appendBarLabels(barSeries[0], chartData, layout, catCount, barRange, dataLabels);
+		appendBarLabels(barSeries[0], chartData, layout, catCount, barRange, sourceIndices, dataLabels);
 	}
 
 	const barGroupWidth = layout.plotWidth / catCount;
@@ -118,10 +128,15 @@ export function buildComboViewModel(
 		}
 		const range = rangeForSeries(seriesIndex, primaryRange, secondaryRange, secondaryIndexes);
 		const fill = seriesColor(series, seriesIndex, chartData.colorPalette);
-		const points = series.values.map((value, valueIndex) => ({
-			x: layout.plotLeft + barGroupWidth * valueIndex + barGroupWidth / 2,
-			y: valueToY(value, range, layout.plotTop, layout.plotBottom),
-		}));
+		const points = sourceIndices.map((sourceIndex, displayIndex) => {
+			const value = series.values[sourceIndex] ?? 0;
+			return {
+				x: layout.plotLeft + barGroupWidth * displayIndex + barGroupWidth / 2,
+				y: valueToY(value, range, layout.plotTop, layout.plotBottom),
+				sourceIndex,
+				value,
+			};
+		});
 		primitives.push({
 			kind: 'polyline',
 			points: points.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(' '),
@@ -131,18 +146,25 @@ export function buildComboViewModel(
 		} satisfies SvgPolyline);
 		primitives.push(
 			...points.map(
-				(point) => ({ kind: 'circle', cx: point.x, cy: point.y, r: 2.5, fill }) satisfies SvgCircle,
+				(point) =>
+					({
+						kind: 'circle',
+						cx: point.x,
+						cy: point.y,
+						r: 2.5,
+						fill,
+						part: { role: 'dataPoint', seriesIndex, pointIndex: point.sourceIndex },
+					}) satisfies SvgCircle,
 			),
 		);
 		if (chartData.style?.hasDataLabels) {
-			series.values.forEach((value, index) => {
-				const point = points[index];
+			points.forEach((point) => {
 				if (point) {
 					dataLabels.push({
 						kind: 'text',
 						x: point.x,
 						y: point.y - 7,
-						text: formatAxisValue(value),
+						text: formatAxisValue(point.value),
 						fontSize: 7,
 						fill: '#334155',
 						textAnchor: 'middle',
@@ -151,6 +173,7 @@ export function buildComboViewModel(
 			});
 		}
 	});
+	primitives.push(...categoryPlan.tickMarks);
 
 	return {
 		svgWidth: layout.svgWidth,
@@ -179,6 +202,7 @@ function appendBarLabels(
 	layout: PlotLayout,
 	catCount: number,
 	range: ValueRange,
+	sourceIndices: ReadonlyArray<number>,
 	labels: SvgText[],
 ): void {
 	if (!chartData.style?.hasDataLabels) {
@@ -187,12 +211,13 @@ function appendBarLabels(
 	const groupWidth = layout.plotWidth / catCount;
 	const barWidth = groupWidth * 0.7;
 	const offset = (groupWidth - barWidth) / 2;
-	series.values.forEach((value, index) => {
+	sourceIndices.forEach((sourceIndex, displayIndex) => {
+		const value = series.values[sourceIndex] ?? 0;
 		const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
 		const valueY = valueToY(value, range, layout.plotTop, layout.plotBottom);
 		labels.push({
 			kind: 'text',
-			x: layout.plotLeft + groupWidth * index + offset + barWidth / 2,
+			x: layout.plotLeft + groupWidth * displayIndex + offset + barWidth / 2,
 			y: value >= 0 ? Math.min(zeroY, valueY) - 4 : Math.max(zeroY, valueY) + 10,
 			text: formatAxisValue(value),
 			fontSize: 7,

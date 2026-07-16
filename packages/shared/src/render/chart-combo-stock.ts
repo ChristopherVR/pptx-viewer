@@ -25,6 +25,7 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { buildCategoryAxisPlan } from './chart-category-axis';
 import type {
 	ChartViewModel,
 	PlotLayout,
@@ -35,7 +36,6 @@ import type {
 	ValueRange,
 } from './chart-view-model';
 import {
-	buildCategoryLabels,
 	buildGridlinesAndLabels,
 	buildLegend,
 	buildZeroLine,
@@ -93,7 +93,9 @@ export function buildStockViewModel(
 
 	const { gridlines, axisLabels } = buildGridlinesAndLabels(range, layout);
 	const zeroLine = buildZeroLine(range, layout);
-	const catLabels = buildCategoryLabels(categoryLabels, layout, 'bar');
+	const categoryPlan = buildCategoryAxisPlan(categoryLabels, layout, 'bar', chartData.axes);
+	const sourceIndices = categoryPlan.sourceIndices;
+	const catLabels = categoryPlan.labels;
 
 	const legendPos = chartData.style?.legendPosition ?? 'b';
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
@@ -119,14 +121,15 @@ export function buildStockViewModel(
 		const barGroupWidth = layout.plotWidth / catCount;
 		const candleWidth = barGroupWidth * 0.5;
 
-		for (let ci = 0; ci < catCount; ci++) {
-			const high = highSeries.values[ci] ?? 0;
-			const low = lowSeries.values[ci] ?? 0;
-			const open = openSeries ? (openSeries.values[ci] ?? low) : low;
-			const close = closeSeries.values[ci] ?? high;
+		for (let displayIndex = 0; displayIndex < catCount; displayIndex++) {
+			const sourceIndex = sourceIndices[displayIndex] ?? displayIndex;
+			const high = highSeries.values[sourceIndex] ?? 0;
+			const low = lowSeries.values[sourceIndex] ?? 0;
+			const open = openSeries ? (openSeries.values[sourceIndex] ?? low) : low;
+			const close = closeSeries.values[sourceIndex] ?? high;
 			const isUp = close >= open;
 
-			const cx = layout.plotLeft + barGroupWidth * ci + barGroupWidth / 2;
+			const cx = layout.plotLeft + barGroupWidth * displayIndex + barGroupWidth / 2;
 			const highY = valueToY(high, range, layout.plotTop, layout.plotBottom);
 			const lowY = valueToY(low, range, layout.plotTop, layout.plotBottom);
 			const openY = valueToY(open, range, layout.plotTop, layout.plotBottom);
@@ -154,6 +157,11 @@ export function buildStockViewModel(
 				h: bodyHeight,
 				fill: isUp ? CANDLE_UP_FILL : CANDLE_DOWN_FILL,
 				rx: 1,
+				part: {
+					role: 'dataPoint',
+					seriesIndex: hasFour ? 3 : 2,
+					pointIndex: sourceIndex,
+				},
 			} satisfies SvgRect);
 
 			if (chartData.style?.hasDataLabels) {
@@ -169,6 +177,7 @@ export function buildStockViewModel(
 			}
 		}
 	}
+	primitives.push(...categoryPlan.tickMarks);
 
 	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
 

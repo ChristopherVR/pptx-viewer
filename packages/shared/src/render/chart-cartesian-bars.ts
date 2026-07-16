@@ -36,6 +36,7 @@ export function buildBars(
 	secondaryRange: ValueRange | undefined,
 	secondaryIdx: ReadonlySet<number>,
 	grouping: 'clustered' | 'stacked' | 'percentStacked',
+	sourceIndices: ReadonlyArray<number>,
 ): SeriesPlotResult {
 	const primitives: SvgPrimitive[] = [];
 	const dataLabels: SvgText[] = [];
@@ -49,10 +50,12 @@ export function buildBars(
 		const singleBarWidth = (barGroupWidth * 0.7) / seriesCount;
 		const groupOffset = (barGroupWidth - singleBarWidth * seriesCount) / 2;
 
-		for (let ci = 0; ci < catCount; ci++) {
+		for (let displayIndex = 0; displayIndex < catCount; displayIndex++) {
+			const sourceIndex = sourceIndices[displayIndex] ?? displayIndex;
 			for (let si = 0; si < series.length; si++) {
-				const val = series[si].values[ci] ?? 0;
-				const x = layout.plotLeft + barGroupWidth * ci + groupOffset + singleBarWidth * si;
+				const val = series[si].values[sourceIndex] ?? 0;
+				const x =
+					layout.plotLeft + barGroupWidth * displayIndex + groupOffset + singleBarWidth * si;
 				const activeRange = secondaryIdx.has(si) && secondaryRange ? secondaryRange : primaryRange;
 				const zeroY = valueToY(0, activeRange, layout.plotTop, layout.plotBottom);
 				const valY = valueToY(val, activeRange, layout.plotTop, layout.plotBottom);
@@ -66,7 +69,7 @@ export function buildBars(
 					h,
 					fill: seriesColor(series[si], si, palette),
 					rx: 1,
-					part: { role: 'dataPoint', seriesIndex: si, pointIndex: ci },
+					part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
 				} satisfies SvgRect);
 
 				if (showLabels) {
@@ -90,7 +93,11 @@ export function buildBars(
 	// abs-value data labels. Only percentStacked uses the normalised running-sum
 	// path below (matching React's `renderStackedBarChart`).
 	if (grouping === 'stacked') {
-		const rects = computeStackedBarRects(series, catCount, layout, primaryRange, palette);
+		const displaySeries = series.map((entry) => ({
+			...entry,
+			values: sourceIndices.map((sourceIndex) => entry.values[sourceIndex] ?? 0),
+		}));
+		const rects = computeStackedBarRects(displaySeries, catCount, layout, primaryRange, palette);
 		for (const r of rects) {
 			primitives.push({
 				kind: 'rect',
@@ -102,12 +109,16 @@ export function buildBars(
 				rx: 1,
 				part:
 					r.seriesIndex !== undefined && r.pointIndex !== undefined
-						? { role: 'dataPoint', seriesIndex: r.seriesIndex, pointIndex: r.pointIndex }
+						? {
+								role: 'dataPoint',
+								seriesIndex: r.seriesIndex,
+								pointIndex: sourceIndices[r.pointIndex] ?? r.pointIndex,
+							}
 						: undefined,
 			});
 		}
 		if (showLabels) {
-			pushClusteredStackedLabels(series, catCount, layout, primaryRange, dataLabels);
+			pushClusteredStackedLabels(series, sourceIndices, catCount, layout, primaryRange, dataLabels);
 		}
 		return { primitives, dataLabels };
 	}
@@ -116,7 +127,11 @@ export function buildBars(
 	const barGroupWidth = layout.plotWidth / Math.max(catCount, 1);
 	const barW = barGroupWidth * 0.6;
 	const barOffset = (barGroupWidth - barW) / 2;
-	const totals = categoryTotals(series, catCount);
+	const displaySeries = series.map((entry) => ({
+		...entry,
+		values: sourceIndices.map((sourceIndex) => entry.values[sourceIndex] ?? 0),
+	}));
+	const totals = categoryTotals(displaySeries, catCount);
 
 	for (let ci = 0; ci < catCount; ci++) {
 		let posRunning = 0;
@@ -124,7 +139,8 @@ export function buildBars(
 		const catTotal = totals[ci] || 1;
 
 		for (let si = 0; si < series.length; si++) {
-			const rawVal = series[si].values[ci] ?? 0;
+			const sourceIndex = sourceIndices[ci] ?? ci;
+			const rawVal = series[si].values[sourceIndex] ?? 0;
 			const val = catTotal > 0 ? (rawVal / catTotal) * 100 : 0;
 			const isNeg = val < 0;
 			const base = isNeg ? negRunning : posRunning;
@@ -142,7 +158,7 @@ export function buildBars(
 				w: barW,
 				h,
 				fill: seriesColor(series[si], si, palette),
-				part: { role: 'dataPoint', seriesIndex: si, pointIndex: ci },
+				part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
 			} satisfies SvgRect);
 
 			if (showLabels && Math.abs(val) > 0) {
@@ -176,6 +192,7 @@ export function buildBars(
  */
 function pushClusteredStackedLabels(
 	series: ReadonlyArray<PptxChartSeries>,
+	sourceIndices: ReadonlyArray<number>,
 	catCount: number,
 	layout: PlotLayout,
 	range: ValueRange,
@@ -187,8 +204,9 @@ function pushClusteredStackedLabels(
 	const groupOffset = (barGroupWidth - singleBarWidth * seriesCount) / 2;
 
 	for (let ci = 0; ci < catCount; ci++) {
+		const sourceIndex = sourceIndices[ci] ?? ci;
 		for (let si = 0; si < series.length; si++) {
-			const val = series[si].values[ci] ?? 0;
+			const val = series[si].values[sourceIndex] ?? 0;
 			const x =
 				layout.plotLeft +
 				barGroupWidth * ci +

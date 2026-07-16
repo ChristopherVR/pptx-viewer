@@ -14,6 +14,10 @@ export interface PptxChartAxisLabelFormatting {
 	labelAlignment?: 'ctr' | 'l' | 'r';
 	/** Category/date label distance, from 0 through 1000 percent. */
 	labelOffset?: number;
+	/** Number of category/date labels between rendered labels. */
+	tickLabelSkip?: number;
+	/** Number of category/date tick positions between major tick marks. */
+	tickMarkSkip?: number;
 	/** Suppress multi-level category labels (`c:noMultiLvlLbl`). */
 	noMultiLevelLabels?: boolean;
 }

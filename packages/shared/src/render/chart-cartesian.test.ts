@@ -153,6 +153,40 @@ describe('cartesian reversed value axis', () => {
 	});
 });
 
+describe('cartesian reversed category axis', () => {
+	for (const chartType of ['bar', 'line', 'area'] as const) {
+		it(`reverses ${chartType} geometry while retaining source point indexes`, () => {
+			const data: PptxChartData = {
+				chartType,
+				categories: ['A', 'B', 'C'],
+				series: [{ name: 'S', values: [10, 20, 30] }],
+				axes: [{ axisType: 'catAx', orientation: 'maxMin' }],
+			};
+			const vm = buildChartViewModel(chartElement(data));
+			expect(vm.categoryLabels.map((label) => label.text)).toStrictEqual(['C', 'B', 'A']);
+			const marks = vm.primitives.filter((primitive) =>
+				chartType === 'bar' ? primitive.kind === 'rect' : primitive.kind === 'circle',
+			);
+			expect(marks[0]?.part?.pointIndex).toBe(2);
+			expect(marks[2]?.part?.pointIndex).toBe(0);
+		});
+	}
+
+	it('does not apply category-axis reversal to scatter X positioning', () => {
+		const data: PptxChartData = {
+			chartType: 'scatter',
+			categories: ['A', 'B', 'C'],
+			series: [{ name: 'S', values: [10, 20, 30] }],
+			axes: [{ axisType: 'catAx', orientation: 'maxMin' }],
+		};
+		const vm = buildChartViewModel(chartElement(data));
+		const dots = vm.primitives.filter((primitive) => primitive.kind === 'circle');
+		expect(vm.categoryLabels.map((label) => label.text)).toStrictEqual(['A', 'B', 'C']);
+		expect(dots.map((dot) => dot.part?.pointIndex)).toStrictEqual([0, 1, 2]);
+		expect(dots[0]?.cx).toBeLessThan(dots[2]?.cx ?? 0);
+	});
+});
+
 // ── Secondary value axis ─────────────────────────────────────────
 
 describe('cartesian secondary value axis', () => {

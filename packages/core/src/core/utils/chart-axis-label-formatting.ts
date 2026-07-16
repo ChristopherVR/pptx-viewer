@@ -11,6 +11,8 @@ type AxisLabels = Pick<
 	| 'auto'
 	| 'labelAlignment'
 	| 'labelOffset'
+	| 'tickLabelSkip'
+	| 'tickMarkSkip'
 	| 'noMultiLevelLabels'
 >;
 
@@ -77,6 +79,11 @@ function parseBoolean(node: XmlObject | undefined): boolean | undefined {
 	return undefined;
 }
 
+function parsePositiveInteger(node: XmlObject | undefined): number | undefined {
+	const value = Number.parseInt(String(node?.['@_val'] ?? ''), 10);
+	return Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
 /** Parse shared tick controls and the category/date axis label controls. */
 export function parseChartAxisLabelFormatting(
 	node: XmlObject,
@@ -106,6 +113,8 @@ export function parseChartAxisLabelFormatting(
 				result.labelOffset = offset;
 			}
 		}
+		result.tickLabelSkip = parsePositiveInteger(child(node, 'tickLblSkip', localName));
+		result.tickMarkSkip = parsePositiveInteger(child(node, 'tickMarkSkip', localName));
 	}
 	if (axisType === 'catAx') {
 		const alignment = String(child(node, 'lblAlgn', localName)?.['@_val'] ?? '');
@@ -177,6 +186,17 @@ export function applyChartAxisLabelFormatting(
 				throw new RangeError('labelOffset must be between 0 and 1000');
 			}
 			upsertOrdered(node, 'lblOffset', { '@_val': `${formatting.labelOffset}%` }, localName);
+		}
+		for (const [name, value] of [
+			['tickLblSkip', formatting.tickLabelSkip],
+			['tickMarkSkip', formatting.tickMarkSkip],
+		] as const) {
+			if (value !== undefined) {
+				if (!Number.isInteger(value) || value <= 0) {
+					throw new RangeError(`${name} must be a positive integer`);
+				}
+				upsertOrdered(node, name, { '@_val': String(value) }, localName);
+			}
 		}
 	}
 	if (formatting.axisType === 'catAx') {

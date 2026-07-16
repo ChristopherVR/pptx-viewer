@@ -30,6 +30,8 @@ describe('chart axis label formatting', () => {
 			'x:auto': { '@_val': '0' },
 			'x:lblAlgn': { '@_val': 'r' },
 			'x:lblOffset': { '@_val': '125' },
+			'x:tickLblSkip': { '@_val': '2' },
+			'x:tickMarkSkip': { '@_val': '3' },
 			'x:noMultiLvlLbl': { '@_val': 'true' },
 		};
 
@@ -40,6 +42,8 @@ describe('chart axis label formatting', () => {
 			auto: false,
 			labelAlignment: 'r',
 			labelOffset: 125,
+			tickLabelSkip: 2,
+			tickMarkSkip: 3,
 			noMultiLevelLabels: true,
 		});
 	});
@@ -50,6 +54,8 @@ describe('chart axis label formatting', () => {
 			'c:auto': { '@_val': 'maybe' },
 			'c:lblAlgn': { '@_val': 'justify' },
 			'c:lblOffset': { '@_val': '1001%' },
+			'c:tickLblSkip': { '@_val': '0' },
+			'c:tickMarkSkip': { '@_val': 'not-a-number' },
 		};
 		expect(parseChartAxisLabelFormatting(node, 'catAx', localName)).toStrictEqual({});
 	});
@@ -72,12 +78,16 @@ describe('chart axis label formatting', () => {
 				auto: true,
 				labelAlignment: 'ctr',
 				labelOffset: 140,
+				tickLabelSkip: 2,
+				tickMarkSkip: 3,
 				noMultiLevelLabels: false,
 			},
 			localName,
 		);
 
 		expect(node['c:lblOffset']).toStrictEqual({ '@_val': '140%' });
+		expect(node['c:tickLblSkip']).toStrictEqual({ '@_val': '2' });
+		expect(node['c:tickMarkSkip']).toStrictEqual({ '@_val': '3' });
 		expect(node['c:spPr']).toStrictEqual({ 'a:noFill': {} });
 		expect(node['c:txPr']).toStrictEqual({ 'a:bodyPr': {} });
 		expect(node['c:extLst']).toStrictEqual({ 'c:ext': { '@_uri': 'keep' } });
@@ -104,6 +114,9 @@ describe('chart axis label formatting', () => {
 		expect(valueAxis).toStrictEqual({ 'c:majorTickMark': { '@_val': 'out' } });
 		expect(() =>
 			applyChartAxisLabelFormatting({}, { axisType: 'dateAx', labelOffset: -1 }, localName),
+		).toThrow(RangeError);
+		expect(() =>
+			applyChartAxisLabelFormatting({}, { axisType: 'catAx', tickLabelSkip: 0 }, localName),
 		).toThrow(RangeError);
 	});
 });

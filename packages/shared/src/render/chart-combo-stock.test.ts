@@ -144,6 +144,24 @@ describe('buildComboViewModel', () => {
 		expect(polylines.length).toBeGreaterThan(0);
 	});
 
+	it('reverses category order and retains combo source point indexes', () => {
+		const chartData: PptxChartData = {
+			chartType: 'combo',
+			categories: ['Q1', 'Q2', 'Q3'],
+			series: [
+				{ name: 'Bars', values: [10, 20, 30] },
+				{ name: 'Line', values: [1, 2, 3] },
+			],
+			axes: [{ axisType: 'dateAx', orientation: 'maxMin' }],
+		};
+		const vm = buildComboViewModel(makeElement(), chartData, chartData.categories);
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		const circles = vm.primitives.filter((primitive) => primitive.kind === 'circle');
+		expect(vm.categoryLabels.map((label) => label.text)).toStrictEqual(['Q3', 'Q2', 'Q1']);
+		expect(rects.map((rect) => rect.part?.pointIndex)).toStrictEqual([2, 1, 0]);
+		expect(circles.map((circle) => circle.part?.pointIndex)).toStrictEqual([2, 1, 0]);
+	});
+
 	it('produces circle dot primitives for line series data points', () => {
 		const chartData: PptxChartData = {
 			chartType: 'combo',
@@ -807,6 +825,24 @@ describe('buildStockViewModel', () => {
 		};
 		const vm = buildStockViewModel(makeElement(), chartData, CATEGORIES);
 		expect(vm.dataLabels).toHaveLength(0);
+	});
+
+	it('reverses stock candles while keeping close-series source indexes', () => {
+		const chartData: PptxChartData = {
+			chartType: 'stock',
+			categories: ['D1', 'D2', 'D3'],
+			series: [
+				{ name: 'High', values: [11, 22, 33] },
+				{ name: 'Low', values: [8, 18, 28] },
+				{ name: 'Close', values: [10, 20, 30] },
+			],
+			axes: [{ axisType: 'dateAx', orientation: 'maxMin' }],
+		};
+		const vm = buildStockViewModel(makeElement(), chartData, chartData.categories);
+		const bodies = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		expect(vm.categoryLabels.map((label) => label.text)).toStrictEqual(['D3', 'D2', 'D1']);
+		expect(bodies.map((body) => body.part?.pointIndex)).toStrictEqual([2, 1, 0]);
+		expect(bodies.every((body) => body.part?.seriesIndex === 2)).toBeTruthy();
 	});
 
 	// ── edge cases ────────────────────────────────────────────────────────────

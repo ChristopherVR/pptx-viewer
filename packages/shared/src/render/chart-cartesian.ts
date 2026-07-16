@@ -2,23 +2,8 @@
  * chart-cartesian.ts: enriched cartesian (bar / line / area / scatter / bubble)
  * chart view-model builder.
  *
- * Extracted from `chart-view-model.ts` to keep both files within the repo's
- * ~300-LOC limit and to host the richer cartesian features that the React/Vue
- * renderers carry but the original shared builder dropped:
- *
- *  - **log value axis**: `computeValueRangeForChart` + log-spaced gridlines via
- *    `buildPrimaryAxis` (reuses `chart-axis.ts` `generateLogTicks`).
- *  - **display units**: axis labels scaled + suffixed via `buildPrimaryAxis`.
- *  - **secondary value axis**: `splitSeriesByAxis` + a second `ValueRange`,
- *    right-side gridlines/labels via `buildSecondaryAxis`, secondary-mapped
- *    series plotted against the secondary range.
- *  - **percentStacked**: stacked bars/areas normalised so each category sums to
- *    100%, with in-bar percent labels.
- *  - **overlays**: trendlines / error bars / axis titles / data table from
- *    `chart-overlays.ts`.
- *
- * When none of these features is present the output is byte-identical to the
- * original linear single-axis builder (same primitives, gridlines, labels).
+ * Shared cartesian rendering covers value axes, category axes, secondary axes,
+ * stacking, interaction metadata, and overlays.
  *
  * @module chart-cartesian
  */
@@ -35,6 +20,7 @@ import { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
 import { buildBars } from './chart-cartesian-bars';
 import { buildAreas, buildBubbles, buildLines, buildScatter } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
+import { buildCategoryAxisPlan, chartDataInCategoryOrder } from './chart-category-axis';
 import {
 	computeAxisTitlePrimitives,
 	computeDataTablePrimitives,
@@ -200,7 +186,16 @@ export function buildCartesianViewModel(
 	const zeroLine = primaryRange.logScale ? undefined : buildZeroLine(primaryRange, layout);
 	const catAxisStyle =
 		kind === 'line' || kind === 'area' || kind === 'scatter' || kind === 'bubble' ? 'line' : 'bar';
-	const catLabels = buildCategoryLabels(categoryLabels, layout, catAxisStyle);
+	const categoryPlan =
+		kind === 'scatter' || kind === 'bubble'
+			? undefined
+			: buildCategoryAxisPlan(categoryLabels, layout, catAxisStyle, chartData.axes);
+	const sourceIndices = categoryPlan?.sourceIndices ?? categoryLabels.map((_label, index) => index);
+	const catLabels =
+		categoryPlan?.labels ?? buildCategoryLabels(categoryLabels, layout, catAxisStyle);
+	const displayChartData = categoryPlan
+		? chartDataInCategoryOrder(chartData, sourceIndices)
+		: chartData;
 
 	const legendPos = chartData.style?.legendPosition ?? 'b';
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
@@ -222,33 +217,46 @@ export function buildCartesianViewModel(
 			secondaryRange,
 			secondaryIdx,
 			isStacked ? (isPercent ? 'percentStacked' : 'stacked') : 'clustered',
+			sourceIndices,
 		);
 	} else if (kind === 'line') {
-		plot = buildLines(chartData, catCount, layout, primaryRange, secondaryRange, secondaryIdx);
+		plot = buildLines(
+			chartData,
+			catCount,
+			layout,
+			primaryRange,
+			secondaryRange,
+			secondaryIdx,
+			sourceIndices,
+		);
 	} else if (kind === 'area') {
-		plot = buildAreas(chartData, catCount, layout, primaryRange);
+		plot = buildAreas(chartData, catCount, layout, primaryRange, sourceIndices);
 	} else if (kind === 'scatter') {
 		plot = buildScatter(chartData, layout, primaryRange);
 	} else {
 		plot = buildBubbles(chartData, layout, primaryRange);
 	}
 
-	const primitives: SvgPrimitive[] = [...plot.primitives];
+	const primitives: SvgPrimitive[] = [...plot.primitives, ...(categoryPlan?.tickMarks ?? [])];
 
 	// Overlays (depth): regression trendlines, error bars, axis titles, data table.
 	const overlays: SvgPrimitive[] = [
 		...computeTrendlinePrimitives(
-			chartData,
+			displayChartData,
 			catCount,
 			layout,
 			primaryRange,
 			catAxisStyle,
 			chartData.colorPalette,
 		),
-		...computeErrorBarPrimitives(chartData, catCount, layout, primaryRange, catAxisStyle),
+		...computeErrorBarPrimitives(displayChartData, catCount, layout, primaryRange, catAxisStyle),
 		...computeAxisTitlePrimitives(chartData, layout),
 	];
-	const dataTablePrims = computeDataTablePrimitives(chartData, layout, chartData.colorPalette);
+	const dataTablePrims = computeDataTablePrimitives(
+		displayChartData,
+		layout,
+		chartData.colorPalette,
+	);
 
 	primitives.push(...overlays, ...dataTablePrims);
 
