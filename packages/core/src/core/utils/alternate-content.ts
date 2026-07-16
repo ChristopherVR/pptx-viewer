@@ -109,6 +109,7 @@ export const SHAPE_TREE_ELEMENT_TAGS = new Set([
 	'p16:model3D',
 	'pslz:sldZm',
 	'psezm:sectionZm',
+	'psuz:summaryZm',
 	...VML_SHAPE_TAGS,
 ]);
 

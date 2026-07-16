@@ -297,9 +297,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (collectors.zooms.length > 0) {
 			spTree['pslz:sldZm'] = collectors.zooms.filter((zoom) => zoom['pslz:sldZmObj']);
 			spTree['psezm:sectionZm'] = collectors.zooms.filter((zoom) => zoom['psezm:sectionZmObj']);
+			spTree['psuz:summaryZm'] = collectors.zooms.filter((zoom) => zoom['psuz:summaryZmObj']);
 		} else {
 			delete spTree['pslz:sldZm'];
 			delete spTree['psezm:sectionZm'];
+			delete spTree['psuz:summaryZm'];
 		}
 
 		// Re-wrap `<mc:AlternateContent>` envelopes (CC-4).  Parse merged
@@ -444,7 +446,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (!block) {
 				continue;
 			}
-			const tag = node['psezm:sectionZmObj'] ? 'psezm:sectionZm' : 'pslz:sldZm';
+			const tag = node['psuz:summaryZmObj']
+				? 'psuz:summaryZm'
+				: node['psezm:sectionZmObj']
+					? 'psezm:sectionZm'
+					: 'pslz:sldZm';
 			let entries = blockGroups.get(block);
 			if (!entries) {
 				entries = [];
@@ -544,9 +550,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (collectors.zooms.length > 0) {
 			spTree['pslz:sldZm'] = collectors.zooms.filter((zoom) => zoom['pslz:sldZmObj']);
 			spTree['psezm:sectionZm'] = collectors.zooms.filter((zoom) => zoom['psezm:sectionZmObj']);
+			spTree['psuz:summaryZm'] = collectors.zooms.filter((zoom) => zoom['psuz:summaryZmObj']);
 		} else {
 			delete spTree['pslz:sldZm'];
 			delete spTree['psezm:sectionZm'];
+			delete spTree['psuz:summaryZm'];
 		}
 
 		// Append the rebuilt envelopes.

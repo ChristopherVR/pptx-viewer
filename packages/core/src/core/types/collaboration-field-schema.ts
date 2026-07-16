@@ -170,6 +170,8 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	zoomType: 'scalar',
 	targetSlideIndex: 'scalar',
 	targetSectionId: 'scalar',
+	summaryTargets: 'complex',
+	summaryLayout: 'scalar',
 	// Model3DPptxElement
 	modelPath: 'scalar',
 	modelData: 'asset',

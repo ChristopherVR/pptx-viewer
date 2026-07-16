@@ -5,6 +5,7 @@ import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRunti
 
 const SLIDE_ZOOM_NAMESPACE = 'http://schemas.microsoft.com/office/powerpoint/2016/slidezoom';
 const SECTION_ZOOM_NAMESPACE = 'http://schemas.microsoft.com/office/powerpoint/2016/sectionzoom';
+const SUMMARY_ZOOM_NAMESPACE = 'http://schemas.microsoft.com/office/powerpoint/2016/summaryzoom';
 const POWERPOINT_2016_NAMESPACE = 'http://schemas.microsoft.com/office/powerpoint/2016/6/main';
 const MC_NAMESPACE = 'http://schemas.openxmlformats.org/markup-compatibility/2006';
 
@@ -53,19 +54,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (!fallback || this.alternateContentBlockByRawXml.has(zoom)) {
 				continue;
 			}
-			const sectionZoom = Boolean(zoom['psezm:sectionZmObj']);
-			const prefix = sectionZoom ? 'psezm' : 'pslz';
-			const tag = sectionZoom ? 'psezm:sectionZm' : 'pslz:sldZm';
+			const summaryZoom = zoom['psuz:summaryZmObj'] !== undefined;
+			const sectionZoom = !summaryZoom && Boolean(zoom['psezm:sectionZmObj']);
+			const prefix = summaryZoom ? 'psuz' : sectionZoom ? 'psezm' : 'pslz';
+			const tag = summaryZoom ? 'psuz:summaryZm' : sectionZoom ? 'psezm:sectionZm' : 'pslz:sldZm';
 			const choice: XmlObject = {
 				'@_Requires': prefix,
 				'@_xmlns:p166': POWERPOINT_2016_NAMESPACE,
 			};
-			choice[`@_xmlns:${prefix}`] = sectionZoom ? SECTION_ZOOM_NAMESPACE : SLIDE_ZOOM_NAMESPACE;
+			choice[`@_xmlns:${prefix}`] = summaryZoom
+				? SUMMARY_ZOOM_NAMESPACE
+				: sectionZoom
+					? SECTION_ZOOM_NAMESPACE
+					: SLIDE_ZOOM_NAMESPACE;
 			choice[tag] = zoom;
+			const fallbackBranch: XmlObject = {};
+			fallbackBranch[summaryZoom ? 'p:grpSp' : 'p:pic'] = fallback;
 			newEnvelopes.push({
 				'@_xmlns:mc': MC_NAMESPACE,
 				'mc:Choice': choice,
-				'mc:Fallback': { 'p:pic': fallback },
+				'mc:Fallback': fallbackBranch,
 			});
 		}
 		if (newEnvelopes.length === 0) {
@@ -73,6 +81,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		delete spTree['pslz:sldZm'];
 		delete spTree['psezm:sectionZm'];
+		delete spTree['psuz:summaryZm'];
 		const existing = this.ensureArray(spTree['mc:AlternateContent']) as XmlObject[];
 		spTree['mc:AlternateContent'] = [...existing, ...newEnvelopes];
 	}

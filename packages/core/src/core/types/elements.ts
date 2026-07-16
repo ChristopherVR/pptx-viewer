@@ -449,12 +449,33 @@ export interface ContentPartPptxElement extends PptxElementBase {
  */
 export interface ZoomPptxElement extends PptxElementBase, PptxImageProperties {
 	type: 'zoom';
-	/** Type of zoom: slide-level or section-level. */
-	zoomType: 'slide' | 'section';
+	/** Type of zoom: slide-level, section-level, or a multi-section summary. */
+	zoomType: 'slide' | 'section' | 'summary';
 	/** Zero-based index of the target slide. */
 	targetSlideIndex: number;
 	/** Section ID for section zoom. */
 	targetSectionId?: string;
+	/** Ordered section tiles in a Summary Zoom container. */
+	summaryTargets?: SummaryZoomTarget[];
+	/** Layout mode authored on the Summary Zoom container. */
+	summaryLayout?: 'grid' | 'fixed';
+}
+
+/** A single section tile within a PowerPoint Summary Zoom container. */
+export interface SummaryZoomTarget extends PptxImageProperties {
+	sectionId: string;
+	targetSlideIndex: number;
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	title?: string;
+	description?: string;
+	offsetFactorX?: number;
+	offsetFactorY?: number;
+	scaleFactorX?: number;
+	scaleFactorY?: number;
+	rawXml?: XmlObject;
 }
 
 /**

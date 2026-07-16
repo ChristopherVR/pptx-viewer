@@ -39,6 +39,7 @@ const MC_NAMESPACE_CAPABILITIES: Readonly<Record<string, ReadonlySet<string>>> =
 	p16: new Set(['model3D', 'spPr', 'model3Drel', 'posterImage']),
 	pslz: new Set(['sldZm', 'sldZmObj', 'zmPr', 'extLst']),
 	psezm: new Set(['sectionZm', 'sectionZmObj', 'zmPr', 'extLst']),
+	psuz: new Set(['summaryZm', 'summaryZmObj', 'zmPr', 'gridLayout', 'fixedLayout', 'extLst']),
 	cx: new Set(['chart', 'plotArea', 'plotAreaRegion', 'series', 'data', 'numDim', 'strDim']),
 };
 
