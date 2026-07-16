@@ -29,6 +29,7 @@ export type {
 	PptxSmartArtLocalizedText,
 } from './smart-art-layout-definition';
 export type * from './smart-art-style-definition';
+export type * from './smart-art-definition-header';
 
 // ==========================================================================
 // SmartArt types

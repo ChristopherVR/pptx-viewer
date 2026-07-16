@@ -7,7 +7,7 @@
  * overrides, and return the `p:graphicFrame` envelope with `dgm:relIds`.
  */
 import type { XmlObject, SmartArtPptxElement } from '../../types';
-import { decomposeSmartArt } from '../../utils';
+import { SMART_ART_DEFINITION_PARTS, decomposeSmartArt } from '../../utils';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElementEmbedding';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
 import {
@@ -53,20 +53,20 @@ const DIAGRAM_PART_KINDS = [
 	{
 		prefix: 'layout',
 		relAttr: '@_r:lo',
-		relType: `${REL_TYPE_BASE}/diagramLayout`,
-		contentType: `${CT_BASE}.diagramLayout+xml`,
+		relType: SMART_ART_DEFINITION_PARTS.layout.relationshipType,
+		contentType: SMART_ART_DEFINITION_PARTS.layout.contentType,
 	},
 	{
 		prefix: 'quickStyle',
 		relAttr: '@_r:qs',
-		relType: `${REL_TYPE_BASE}/diagramQuickStyle`,
-		contentType: `${CT_BASE}.diagramStyle+xml`,
+		relType: SMART_ART_DEFINITION_PARTS.style.relationshipType,
+		contentType: SMART_ART_DEFINITION_PARTS.style.contentType,
 	},
 	{
 		prefix: 'colors',
 		relAttr: '@_r:cs',
-		relType: `${REL_TYPE_BASE}/diagramColors`,
-		contentType: `${CT_BASE}.diagramColors+xml`,
+		relType: SMART_ART_DEFINITION_PARTS.color.relationshipType,
+		contentType: SMART_ART_DEFINITION_PARTS.color.contentType,
 	},
 ] as const;
 

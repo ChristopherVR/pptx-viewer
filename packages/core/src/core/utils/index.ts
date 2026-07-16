@@ -442,6 +442,12 @@ export {
 } from './chart-layout';
 
 export { parseBubbleChartOptions, applyBubbleChartOptions } from './chart-bubble-options';
+export {
+	SMART_ART_DEFINITION_PARTS,
+	parseSmartArtDefinitionHeaderList,
+	serializeSmartArtDefinitionHeaderList,
+	validateSmartArtDefinitionHeaderList,
+} from './smartart-definition-header';
 export { parseChartUpDownBars, applyChartUpDownBars } from './chart-up-down-bars';
 
 export {
