@@ -14,6 +14,7 @@
 	 * thumbnails use the target slide's background, number, and section label.
 	 */
 	import { useTranslator } from '../../i18n/context';
+	import { buildSummaryZoomView } from 'pptx-viewer-shared';
 	import { resolveZoomView } from '../render';
 	import { resolveZoomTargetInfo, useZoomNavigation } from '../state/zoom-navigation-context';
 	import { getContainerStyle, styleToString } from '../style';
@@ -27,6 +28,11 @@
 	const view = $derived(zoom ? resolveZoomView(zoom) : undefined);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 	const targetInfo = $derived(view ? resolveZoomTargetInfo(navigation, view.target) : undefined);
+	const summaryView = $derived(
+		zoom
+			? buildSummaryZoomView(zoom, (index) => resolveZoomTargetInfo(navigation, index))
+			: undefined,
+	);
 	const interactive = $derived(Boolean(presenting && navigation && view));
 	const slideNumber = $derived(targetInfo?.slideNumber ?? (view?.target ?? 0) + 1);
 	const sectionLabel = $derived(targetInfo?.sectionName ?? view?.sectionId);
@@ -50,6 +56,13 @@
 		if (interactive && view) {
 			navigation?.navigateToZoomTarget(view.target);
 		}
+	}
+
+	function activateSummary(event: Event, target: number): void {
+		if (!interactive) return;
+		event.preventDefault();
+		event.stopPropagation();
+		navigation?.navigateToZoomTarget(target);
 	}
 
 	function onClick(event: MouseEvent): void {
@@ -78,13 +91,36 @@
 		data-element-id={element.id}
 		data-zoom-type={view.zoomType}
 		data-zoom-target={view.target}
-		aria-label={ariaLabel}
-		role={interactive ? 'button' : undefined}
-		tabindex={interactive ? 0 : undefined}
+		aria-label={summaryView?.ariaLabel ?? ariaLabel}
+		role={summaryView ? 'group' : interactive ? 'button' : undefined}
+		tabindex={!summaryView && interactive ? 0 : undefined}
 		class:pptx-svelte-zoom-interactive={interactive}
 		onclick={onClick}
 		onkeydown={onKeydown}
 	>
+		{#if summaryView}
+			<div class="pptx-svelte-summary-zoom" style={styleToString(summaryView.containerStyle)}>
+				{#each summaryView.tiles as tile (tile.key)}
+					<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+					<div
+						class="pptx-svelte-summary-zoom-tile"
+						style={styleToString({ ...tile.style, backgroundColor: tile.backgroundColor })}
+						data-zoom-target={tile.targetSlideIndex}
+						data-section-id={tile.sectionId}
+						aria-label={tile.ariaLabel}
+						role={interactive ? 'button' : undefined}
+						tabindex={interactive ? 0 : undefined}
+						onclick={(event) => activateSummary(event, tile.targetSlideIndex)}
+						onkeydown={(event) => {
+							if (event.key === 'Enter' || event.key === ' ') activateSummary(event, tile.targetSlideIndex);
+						}}
+					>
+						{#if tile.imageSrc}<img src={tile.imageSrc} alt={tile.ariaLabel} draggable="false" />{:else}<div>{tile.label}</div><div>{tile.slideLabel}</div>{/if}
+					</div>
+				{/each}
+				<div class="pptx-svelte-zoom-badge">Summary Zoom</div>
+			</div>
+		{:else}
 		<div class="pptx-svelte-zoom-tile">
 			{#if view.imageSrc}
 				<img
@@ -105,6 +141,7 @@
 			{/if}
 			<div class="pptx-svelte-zoom-badge">{badgeLabel}</div>
 		</div>
+		{/if}
 	</div>
 {/if}
 
@@ -116,6 +153,17 @@
 		overflow: hidden;
 		border-radius: 4px;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	}
+
+	.pptx-svelte-summary-zoom-tile {
+		overflow: hidden;
+		border: 1px solid rgba(0, 0, 0, 0.12);
+	}
+
+	.pptx-svelte-summary-zoom-tile img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
 	}
 
 	.pptx-svelte-zoom-interactive {

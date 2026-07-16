@@ -7,7 +7,7 @@ import type { ZoomPptxElement } from 'pptx-viewer-core';
  * translation) are built in the `ZoomView` SFC via the Svelte i18n context.
  */
 export interface ZoomView {
-	zoomType: 'slide' | 'section';
+	zoomType: 'slide' | 'section' | 'summary';
 	/** Zero-based target slide index. */
 	target: number;
 	sectionId: string | undefined;
