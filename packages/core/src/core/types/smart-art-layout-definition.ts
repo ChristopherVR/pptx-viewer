@@ -1,5 +1,7 @@
 /** Typed, editable metadata from a DiagramML layout-definition part. */
 
+import type { PptxSmartArtConstraint, PptxSmartArtNumericRule } from './smart-art-constraint-rules';
+
 export interface PptxSmartArtLocalizedText {
 	value: string;
 	language?: string;
@@ -16,6 +18,8 @@ export interface PptxSmartArtLayoutNode {
 	styleLabel?: string;
 	childOrder?: 'b' | 't';
 	moveWith?: string;
+	constraints?: PptxSmartArtConstraint[];
+	rules?: PptxSmartArtNumericRule[];
 	children?: PptxSmartArtLayoutNode[];
 }
 

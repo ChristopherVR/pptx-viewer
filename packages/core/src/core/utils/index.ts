@@ -448,7 +448,13 @@ export {
 	serializeSmartArtDefinitionHeaderList,
 	validateSmartArtDefinitionHeaderList,
 } from './smartart-definition-header';
+export {
+	applySmartArtConstraintRules,
+	parseSmartArtConstraintRules,
+	validateSmartArtConstraintRules,
+} from './smartart-constraint-rules';
 export { parseChartUpDownBars, applyChartUpDownBars } from './chart-up-down-bars';
+export { parseChartProtection, applyChartProtection } from './chart-protection';
 
 export {
 	parseDrawingMediaReference,

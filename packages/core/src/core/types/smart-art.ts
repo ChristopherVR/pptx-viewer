@@ -30,6 +30,7 @@ export type {
 } from './smart-art-layout-definition';
 export type * from './smart-art-style-definition';
 export type * from './smart-art-definition-header';
+export type * from './smart-art-constraint-rules';
 
 // ==========================================================================
 // SmartArt types
