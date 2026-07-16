@@ -19,6 +19,7 @@
 	 * counterpart: `packages/vanilla/src/viewer/ui/inspector/`.
 	 */
 	import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-viewer-core';
+	import type { PptxHandler, PptxTheme } from 'pptx-viewer-core';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
@@ -30,8 +31,9 @@
 	import MediaSection from './MediaSection.svelte';
 	import TableSection from './TableSection.svelte';
 	import TextSection from './TextSection.svelte';
+	import ThemeSection from './ThemeSection.svelte';
 
-	const { editor }: { editor: EditorState } = $props();
+	const { editor, handler, presentationTheme, onthemechange }: { editor: EditorState; handler?: PptxHandler | null; presentationTheme?: PptxTheme; onthemechange?: (theme: PptxTheme) => void } = $props();
 	const t = useTranslator();
 
 	// eslint-disable-next-line prefer-const
@@ -71,6 +73,7 @@
 
 	{#if !collapsed}
 		<div class="pptx-svelte-inspector-body">
+			{#if handler && onthemechange}<div class="pptx-svelte-inspector-section"><ThemeSection {editor} {handler} theme={presentationTheme} {onthemechange} /></div>{/if}
 			{#if el}
 				<div class="pptx-svelte-inspector-section">
 					<PositionSection {editor} {el} />

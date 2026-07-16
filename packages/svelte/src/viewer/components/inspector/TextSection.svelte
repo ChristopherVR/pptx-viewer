@@ -22,6 +22,7 @@
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
+	import TextEffectsSection from './TextEffectsSection.svelte';
 
 	const { editor, el }: { editor: EditorState; el: PptxElement } = $props();
 	const t = useTranslator();
@@ -63,6 +64,8 @@
 		<option value="shrink">{t('pptx.textAdvanced.autoFitResize')}</option>
 	</select>
 </label>
+
+<TextEffectsSection {editor} {el} />
 
 <style>
 	.pptx-svelte-field {

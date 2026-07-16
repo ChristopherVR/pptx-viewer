@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PptxSlide } from 'pptx-viewer-core';
+	import type { PptxHandler, PptxSlide, PptxTheme } from 'pptx-viewer-core';
 	import type { CanvasSize, MobileSheetKey } from 'pptx-viewer-shared';
 	import { buildBarActions, toggleSheet } from 'pptx-viewer-shared';
 
@@ -12,10 +12,13 @@
 	import ReviewCommentsPanel from './ribbon/review/ReviewCommentsPanel.svelte';
 	import ThumbnailRail from './ThumbnailRail.svelte';
 
-	const { active, onactivechange, editor, slides, canvasSize, mediaDataUrls, current, onselect, onzoomin, onzoomout, onzoomfit }: {
+	const { active, onactivechange, editor, handler, presentationTheme, onthemechange, slides, canvasSize, mediaDataUrls, current, onselect, onzoomin, onzoomout, onzoomfit }: {
 		active: MobileSheetKey;
 		onactivechange: (active: MobileSheetKey) => void;
 		editor: EditorState;
+		handler?: PptxHandler | null;
+		presentationTheme?: PptxTheme;
+		onthemechange?: (theme: PptxTheme) => void;
 		slides: PptxSlide[];
 		canvasSize: CanvasSize;
 		mediaDataUrls: Map<string, string>;
@@ -57,7 +60,7 @@
 	{:else if active === 'insert'}
 		<MobileSheet title={t('pptx.mobileBar.insert')} onclose={close}><InsertMenu {editor} /></MobileSheet>
 	{:else if active === 'inspector'}
-		<MobileSheet title={t('pptx.field.format')} onclose={close}><InspectorPanel {editor} /></MobileSheet>
+		<MobileSheet title={t('pptx.field.format')} onclose={close}><InspectorPanel {editor} {handler} {presentationTheme} {onthemechange} /></MobileSheet>
 	{:else if active === 'comments'}
 		<MobileSheet title={t('pptx.toolbar.comments')} onclose={close}><ReviewCommentsPanel {editor} /></MobileSheet>
 	{:else if active === 'menu'}

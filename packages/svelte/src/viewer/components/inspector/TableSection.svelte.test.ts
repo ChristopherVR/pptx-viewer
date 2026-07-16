@@ -120,4 +120,18 @@ describe('tableSection', () => {
 			}
 		}
 	});
+
+	it('formats an individual selected cell', () => {
+		const editor = makeEditor(tableEl());
+		const { target } = mountSection(editor, currentEl(editor));
+		const color = target.querySelector<HTMLInputElement>('input[type="color"]');
+		if (!color) {
+			throw new Error('cell color input not found');
+		}
+		color.value = '#123456';
+		color.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+		const data = (currentEl(editor) as TableShape).tableData;
+		expect(data?.rows[0]?.cells[0]?.style).toMatchObject({ color: '#123456' });
+	});
 });

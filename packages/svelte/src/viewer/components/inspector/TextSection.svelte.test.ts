@@ -131,4 +131,18 @@ describe('textSection', () => {
 		expect(style?.autoFitMode).toBe('shrink');
 		expect(style?.autoFit).toBeTruthy();
 	});
+
+	it('enables editable text shadow effects', () => {
+		const editor = makeEditor(textEl());
+		const { target } = mountSection(editor, currentEl(editor));
+		const shadow = Array.from(
+			target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+		)[1];
+		shadow?.click();
+		flushSync();
+		expect(
+			(currentEl(editor) as { textStyle?: { textShadowColor?: string } }).textStyle
+				?.textShadowColor,
+		).toBe('#000000');
+	});
 });

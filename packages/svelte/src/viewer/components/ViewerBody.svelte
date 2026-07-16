@@ -6,7 +6,7 @@
 	 * presentational, all state/logic stays owned by the parent.
 	 */
 	import { setSmartArtNodeStyle, updateSmartArtNodeText } from 'pptx-viewer-core';
-	import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
+	import type { PptxHandler, PptxSlide, PptxTheme, TextSegment } from 'pptx-viewer-core';
 	import type { CanvasSize, RemoteCursor } from 'pptx-viewer-shared';
 	import { setCellText, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 
@@ -29,6 +29,9 @@
 	const {
 		t,
 		editor,
+		handler,
+		presentationTheme,
+		onthemechange,
 		chromeVisible,
 		showThumbnails,
 		showNotes,
@@ -61,6 +64,9 @@
 	}: {
 		t: Translator;
 		editor: EditorState;
+		handler?: PptxHandler | null;
+		presentationTheme?: PptxTheme;
+		onthemechange?: (theme: PptxTheme) => void;
 		chromeVisible: boolean;
 		showThumbnails: boolean;
 		showNotes: boolean;
@@ -234,7 +240,7 @@
 		{/if}
 	</div>
 	{#if editingActive && chromeVisible && displaySlides.length > 0}
-		<InspectorPanel {editor} />
+		<InspectorPanel {editor} {handler} {presentationTheme} {onthemechange} />
 	{/if}
 </div>
 

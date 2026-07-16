@@ -1,5 +1,48 @@
 <script lang="ts">
-	import type { EditorState } from '../../editor/editor-state.svelte'; const {editor}:{editor:EditorState}=$props(); const media=$derived(editor.selectedElement?.type==='media'?editor.selectedElement:undefined); function patch(next:Record<string,unknown>):void{if(media)editor.applyElementPatch(media.id,next)}
+	import type { MediaCaptionTrack, MediaPptxElement, PptxElement } from 'pptx-viewer-core';
+
+	import type { EditorState } from '../../editor/editor-state.svelte';
+
+	const { editor }: { editor: EditorState } = $props();
+	const media = $derived(editor.selectedElement?.type === 'media' ? editor.selectedElement : undefined);
+	let bookmarkLabel = $state('');
+	// eslint-disable-next-line prefer-const
+	let bookmarkTime = $state(0);
+
+	function patch(next: Partial<MediaPptxElement>): void {
+		if (media) {
+			editor.applyElementPatch(media.id, next as Partial<PptxElement>);
+		}
+	}
+	function addBookmark(): void {
+		if (!media) {
+			return;
+		}
+		const label = bookmarkLabel.trim() || `Bookmark ${(media.bookmarks?.length ?? 0) + 1}`;
+		patch({ bookmarks: [...(media.bookmarks ?? []), { id: `bookmark-${Date.now()}`, label, time: bookmarkTime }] });
+		bookmarkLabel = '';
+	}
+	function addTrack(): void {
+		if (!media) {
+			return;
+		}
+		const count = media.captionTracks?.length ?? 0;
+		patch({ captionTracks: [...(media.captionTracks ?? []), { id: `caption-${Date.now()}`, label: `Track ${count + 1}`, language: 'en', kind: 'subtitles', isDefault: count === 0 }] });
+	}
+	function trackPatch(index: number, next: Partial<MediaCaptionTrack>): void {
+		if (media) {
+			patch({ captionTracks: (media.captionTracks ?? []).map((track, i) => i === index ? { ...track, ...next } : track) });
+		}
+	}
 </script>
-{#if media}<div class="section"><div class="checks"><label><input type="checkbox" checked={media.autoPlay??false} onchange={(e)=>patch({autoPlay:e.currentTarget.checked})} />Auto play</label><label><input type="checkbox" checked={media.loop??false} onchange={(e)=>patch({loop:e.currentTarget.checked})} />Loop</label><label><input type="checkbox" checked={media.fullScreen??false} onchange={(e)=>patch({fullScreen:e.currentTarget.checked})} />Full screen</label><label><input type="checkbox" checked={media.playAcrossSlides??false} onchange={(e)=>patch({playAcrossSlides:e.currentTarget.checked})} />Across slides</label></div><label>Volume <input type="range" min="0" max="1" step="0.05" value={media.volume??1} oninput={(e)=>patch({volume:Number(e.currentTarget.value)})} /></label><label>Speed <input type="number" min="0.25" max="4" step="0.25" value={media.playbackSpeed??1} onchange={(e)=>patch({playbackSpeed:Number(e.currentTarget.value)})} /></label><div class="times"><label>Trim start ms<input type="number" min="0" value={media.trimStartMs??0} onchange={(e)=>patch({trimStartMs:Number(e.currentTarget.value)})} /></label><label>Trim end ms<input type="number" min="0" value={media.trimEndMs??''} onchange={(e)=>patch({trimEndMs:e.currentTarget.value===''?undefined:Number(e.currentTarget.value)})} /></label></div></div>{/if}
-<style>.section{display:grid;gap:8px}.checks,.times{display:grid;grid-template-columns:1fr 1fr;gap:6px}label{display:grid;gap:3px;color:var(--pptx-muted-foreground);font-size:10px}.checks label{display:flex;align-items:center}input{min-width:0;height:25px;border:1px solid var(--pptx-border);border-radius:5px;background:var(--pptx-background);color:inherit}</style>
+
+{#if media}<div class="section">
+	<div class="checks"><label><input type="checkbox" checked={media.autoPlay ?? false} onchange={(event) => patch({ autoPlay: event.currentTarget.checked })} />Auto play</label><label><input type="checkbox" checked={media.loop ?? false} onchange={(event) => patch({ loop: event.currentTarget.checked })} />Loop</label><label><input type="checkbox" checked={media.fullScreen ?? false} onchange={(event) => patch({ fullScreen: event.currentTarget.checked })} />Full screen</label><label><input type="checkbox" checked={media.playAcrossSlides ?? false} onchange={(event) => patch({ playAcrossSlides: event.currentTarget.checked, ...(event.currentTarget.checked ? { autoPlay: true } : {}) })} />Across slides</label><label><input type="checkbox" checked={media.hideWhenNotPlaying ?? false} onchange={(event) => patch({ hideWhenNotPlaying: event.currentTarget.checked })} />Hide when stopped</label></div>
+	<label>Volume <input type="range" min="0" max="1" step="0.05" value={media.volume ?? 1} oninput={(event) => patch({ volume: Number(event.currentTarget.value) })} /></label>
+	<label>Speed <select value={media.playbackSpeed ?? 1} onchange={(event) => patch({ playbackSpeed: Number(event.currentTarget.value) })}>{#each [0.25,0.5,0.75,1,1.25,1.5,2,3,4] as speed}<option value={speed}>{speed}x</option>{/each}</select></label>
+	<div class="grid"><label>Trim start ms<input type="number" min="0" value={media.trimStartMs ?? 0} onchange={(event) => patch({ trimStartMs: Number(event.currentTarget.value) })} /></label><label>Trim end ms<input type="number" min="0" value={media.trimEndMs ?? ''} onchange={(event) => patch({ trimEndMs: event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value) })} /></label><label>Fade in seconds<input type="number" min="0" step="0.1" value={media.fadeInDuration ?? 0} onchange={(event) => patch({ fadeInDuration: Number(event.currentTarget.value) || undefined })} /></label><label>Fade out seconds<input type="number" min="0" step="0.1" value={media.fadeOutDuration ?? 0} onchange={(event) => patch({ fadeOutDuration: Number(event.currentTarget.value) || undefined })} /></label></div>
+	<details open><summary>Bookmarks</summary>{#each [...(media.bookmarks ?? [])].sort((a,b)=>a.time-b.time) as bookmark}<div class="row"><input value={bookmark.label} onchange={(event) => patch({bookmarks:(media.bookmarks??[]).map((item)=>item.id===bookmark.id?{...item,label:event.currentTarget.value}:item)})} /><input type="number" min="0" step="0.1" value={bookmark.time} onchange={(event) => patch({bookmarks:(media.bookmarks??[]).map((item)=>item.id===bookmark.id?{...item,time:Number(event.currentTarget.value)}:item)})} /><button aria-label="Remove bookmark" onclick={() => patch({bookmarks:(media.bookmarks??[]).filter((item)=>item.id!==bookmark.id)})}>×</button></div>{/each}<div class="row"><input placeholder="Bookmark label" bind:value={bookmarkLabel} /><input type="number" min="0" step="0.1" bind:value={bookmarkTime} /><button aria-label="Add bookmark" onclick={addBookmark}>+</button></div></details>
+	<details open><summary>Caption tracks</summary>{#each media.captionTracks ?? [] as track, index}<fieldset><div class="grid"><label>Label<input value={track.label} onchange={(event)=>trackPatch(index,{label:event.currentTarget.value})} /></label><label>Language<input value={track.language} onchange={(event)=>trackPatch(index,{language:event.currentTarget.value})} /></label><label>Kind<select value={track.kind} onchange={(event)=>trackPatch(index,{kind:event.currentTarget.value as MediaCaptionTrack['kind']})}><option>subtitles</option><option>captions</option><option>descriptions</option></select></label><label class="inline"><input type="checkbox" checked={track.isDefault ?? false} onchange={(event)=>patch({captionTracks:(media.captionTracks??[]).map((item,i)=>({...item,isDefault:event.currentTarget.checked?i===index:(i===index?false:item.isDefault)}))})} />Default</label></div><label>Source<input value={track.src ?? ''} placeholder="captions.vtt or data URL" onchange={(event)=>trackPatch(index,{src:event.currentTarget.value||undefined})} /></label><label>Inline WebVTT<textarea rows="4" value={track.content ?? ''} onchange={(event)=>trackPatch(index,{content:event.currentTarget.value||undefined})}></textarea></label><button onclick={() => patch({captionTracks:(media.captionTracks??[]).filter((_item,i)=>i!==index)})}>Remove track</button></fieldset>{/each}<button onclick={addTrack}>Add caption track</button></details>
+</div>{/if}
+
+<style>.section{display:grid;gap:8px}.checks,.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.checks label,.inline{display:flex;align-items:center}label{display:grid;gap:3px;color:var(--pptx-muted-foreground);font-size:10px}input,select,textarea{min-width:0;border:1px solid var(--pptx-border);border-radius:5px;background:var(--pptx-background);color:inherit}input,select{height:25px}.row{display:grid;grid-template-columns:1fr 70px 28px;gap:4px;margin-top:5px}details{border-top:1px solid var(--pptx-border);padding-top:7px}summary{cursor:pointer;font-weight:600}fieldset{display:grid;gap:6px;margin:6px 0;padding:6px;border:1px solid var(--pptx-border);border-radius:6px}button{border:1px solid var(--pptx-border);border-radius:5px;padding:4px 7px;background:var(--pptx-muted);color:inherit}</style>
