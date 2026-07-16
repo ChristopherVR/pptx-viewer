@@ -15,7 +15,7 @@ import { buildChartColorStyleXml } from '../../utils/chart-color-style-writer';
 import { buildChartSpaceXml } from '../../utils/chart-xml-generator';
 import { BLIP_FILL_ORDER, SP_PR_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveOleEmbedding';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveInk';
 import { CHART_CONTENT_TYPE, CHART_RELATIONSHIP_TYPE } from './PptxHandlerRuntimeSaveShapeXml';
 
 export type { SaveSlideContext };
@@ -314,21 +314,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (el.type === 'ink') {
 			// Ink loaded from real files always carries the original
 			// `<aink:ink>`-bearing graphicFrame on `rawXml`. We preserve it
-			// verbatim — re-encoding to `a:custGeom` (the legacy fallback) loses
+			// verbatim because re-encoding it would lose
 			// pressure, tool metadata, and per-stroke style. Only SDK-created ink
-			// elements (no rawXml) fall through to the custGeom builder; that
-			// path is a deliberate, lossy approximation kept for backward
-			// compatibility (the OOXML aink writer is out of scope here).
+			// elements (no rawXml) use the editable aink writer, which also carries
+			// a custGeom fallback for consumers that do not support Office 2010 ink.
 			if (!shape) {
-				shape = this.createInkShapeXml(el as InkPptxElement);
-				this.compatibilityService.reportWarning({
-					code: 'SAVE_INK_ENCODED_AS_CUSTGEOM',
-					message:
-						'SDK-created ink element serialized as custGeom shape; pressure/tool metadata not represented in OOXML aink format.',
-					scope: 'save',
-					slideId: ctx.slide.id,
-					elementId: el.id,
-				});
+				shape = this.createInkGraphicFrameXml(el as InkPptxElement);
 			}
 		}
 		if (!shape && el.type === 'table') {

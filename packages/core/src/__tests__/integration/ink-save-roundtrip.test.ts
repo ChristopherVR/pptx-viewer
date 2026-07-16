@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 
 import { PresentationBuilder } from '../../core/builders/sdk/PresentationBuilder';
 import { PptxHandler } from '../../core/PptxHandler';
+import type { InkPptxElement } from '../../core/types/elements';
 
 /**
  * Phase 3 Stream A — CH-H2 / CH-H3 regression test.
@@ -19,6 +20,41 @@ import { PptxHandler } from '../../core/PptxHandler';
  * accident; on a dirty save it was rewritten as a plain freeform shape.
  */
 describe('ink graphicFrame round-trip (CH-H2 / CH-H3)', () => {
+	it('authors editable ink as aink with a fallback and reloads its strokes', async () => {
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		const ink: InkPptxElement = {
+			id: 'authored-ink',
+			type: 'ink',
+			x: 10,
+			y: 20,
+			width: 200,
+			height: 100,
+			inkPaths: ['M0,0 L50,25 L100,10', 'M10,90 L80,40'],
+			inkColors: ['#112233', '#AABBCC'],
+			inkWidths: [2.5, 6],
+		};
+		data.slides.push(createSlide('Blank').addElement(ink).build());
+
+		const saved = await handler.save(data.slides);
+		const zip = await JSZip.loadAsync(saved);
+		const slideXml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+		expect(slideXml).toContain('drawing/2010/ink');
+		expect(slideXml).toContain(
+			'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"',
+		);
+		expect(slideXml).toContain('<aink:trace');
+		expect(slideXml).toContain('<mc:Fallback>');
+
+		const reloader = new PptxHandler();
+		const reloaded = await reloader.load(saved.buffer as ArrayBuffer);
+		const reloadedInk = reloaded.slides[0].elements.find(
+			(element): element is InkPptxElement => element.type === 'ink',
+		);
+		expect(reloadedInk?.inkPaths).toStrictEqual(['M0,0 L50,25 L100,10', 'M10,90 L80,40']);
+		expect(reloadedInk?.inkColors).toStrictEqual(ink.inkColors);
+		expect(reloadedInk?.inkWidths).toStrictEqual(ink.inkWidths);
+	});
+
 	it('ink element loaded from rawXml survives a dirty round-trip via passthrough', async () => {
 		const slideXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
