@@ -26,7 +26,7 @@ function buildData(chartData: PptxChartData, series: PptxChartSeries, id: number
 			},
 		},
 		'cx:numDim': {
-			'@_type': 'val',
+			'@_type': chartData.chartType === 'treemap' ? 'size' : 'val',
 			'cx:lvl': {
 				'@_ptCount': String(series.values.length),
 				'@_formatCode': 'General',
@@ -37,8 +37,14 @@ function buildData(chartData: PptxChartData, series: PptxChartSeries, id: number
 }
 
 function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: number): XmlObject {
+	const layoutId =
+		chartData.chartType === 'waterfall'
+			? 'waterfall'
+			: chartData.chartType === 'treemap'
+				? 'treemap'
+				: 'funnel';
 	const result: XmlObject = {
-		'@_layoutId': chartData.chartType === 'waterfall' ? 'waterfall' : 'funnel',
+		'@_layoutId': layoutId,
 		'cx:tx': { 'cx:txData': { 'cx:v': series.name } },
 	};
 	const spPr = seriesColor(series);
@@ -56,7 +62,11 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 
 /** Whether this writer can currently author the requested ChartEx type. */
 export function canGenerateChartEx(chartData: PptxChartData): boolean {
-	return chartData.chartType === 'funnel' || chartData.chartType === 'waterfall';
+	return (
+		chartData.chartType === 'funnel' ||
+		chartData.chartType === 'waterfall' ||
+		chartData.chartType === 'treemap'
+	);
 }
 
 /** Build a schema-shaped `cx:chartSpace` tree for an SDK-created extended chart. */
