@@ -11,7 +11,7 @@ import {
 	segmentStyleToCss,
 	substituteFieldText,
 } from '../internal/shared';
-import type { FieldSubstitutionContext } from '../internal/shared';
+import type { FieldSubstitutionContext, PictureBulletMarker } from '../internal/shared';
 import { ChartElementViewComponent } from './chart-element-view.component';
 import { ConnectorRendererComponent } from './connector-renderer.component';
 import type { Rect } from './connector-routing';
@@ -35,7 +35,7 @@ import { SmartArtRendererComponent } from './smart-art-renderer.component';
 import { TableRendererComponent } from './table-renderer.component';
 import type { TableCellCommit } from './table-renderer.component';
 import { showsTemplateAffordance } from './template-mode';
-import { bulletIndentPx, resolveParagraphBullet } from './text-bullets';
+import { bulletIndentPx, resolveAngularParagraphBullet } from './text-bullets';
 import { getTextWarp } from './text-warp';
 import type { TextWarpPathDef } from './text-warp';
 import { ZoomRendererComponent } from './zoom-renderer.component';
@@ -96,6 +96,8 @@ interface Paragraph {
 	runs: TextRun[];
 	/** Bullet / number marker text, when this paragraph is a list item. */
 	bulletMarker?: string;
+	/** Resolved picture marker, or metadata for its accessible glyph fallback. */
+	bulletPicture?: PictureBulletMarker;
 	/** `[ngStyle]` map for the bullet marker (colour / font). */
 	bulletStyle: StyleMap;
 	/** Left indent in px derived from the paragraph outline level. */
@@ -320,8 +322,18 @@ interface Paragraph {
 						<div class="pptx-ng-text" [ngStyle]="warpedTextStyle()">
 							@for (para of paragraphs(); track $index) {
 								<p class="pptx-ng-para" [style.padding-left.px]="para.indentPx">
-									@if (para.bulletMarker) {
+									@if (para.bulletPicture?.src) {
+										<img
+											class="pptx-ng-bullet-image"
+											[src]="para.bulletPicture.src"
+											[alt]="para.bulletPicture.accessibleLabel"
+											[style.width.px]="para.bulletPicture.sizePx"
+											[style.height.px]="para.bulletPicture.sizePx"
+											style="display: inline-block; vertical-align: middle; margin-inline-end: 4px; object-fit: contain"
+										/>
+									} @else if (para.bulletMarker) {
 										<span class="pptx-ng-bullet" [ngStyle]="para.bulletStyle"
+											[attr.aria-label]="para.bulletPicture?.accessibleLabel ?? null"
 											>{{ para.bulletMarker }}&nbsp;</span
 										>
 									}
@@ -563,15 +575,12 @@ export class ElementRendererComponent {
 			if (!paraStarted) {
 				paraStarted = true;
 				current.indentPx = bulletIndentPx(seg.paragraphLevel);
-				const bullet = resolveParagraphBullet(seg);
+				const baseFontSize = seg.style?.fontSize ?? el.textStyle?.fontSize ?? 16;
+				const bullet = resolveAngularParagraphBullet(seg, baseFontSize);
 				if (bullet) {
 					current.bulletMarker = bullet.marker;
-					if (bullet.color) {
-						current.bulletStyle['color'] = bullet.color;
-					}
-					if (bullet.fontFamily) {
-						current.bulletStyle['font-family'] = bullet.fontFamily;
-					}
+					current.bulletPicture = bullet.picture;
+					Object.assign(current.bulletStyle, bullet.style);
 				}
 			}
 			if (seg.equationXml) {
@@ -600,11 +609,19 @@ export class ElementRendererComponent {
 				});
 			}
 		}
-		return out.filter((p) => p.runs.length > 0 || p.bulletMarker !== undefined || out.length === 1);
+		return out.filter(
+			(p) =>
+				p.runs.length > 0 ||
+				p.bulletMarker !== undefined ||
+				p.bulletPicture !== undefined ||
+				out.length === 1,
+		);
 	});
 
 	readonly hasText = computed(() =>
-		this.paragraphs().some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),
+		this.paragraphs().some(
+			(p) => p.runs.length > 0 || p.bulletMarker !== undefined || p.bulletPicture !== undefined,
+		),
 	);
 
 	readonly placeholderLabel = computed(() => {

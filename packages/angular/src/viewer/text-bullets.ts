@@ -8,11 +8,45 @@
  * consumers already use, re-exporting the shared symbols unchanged.
  */
 
+import type { TextSegment } from 'pptx-viewer-core';
+
+import type { PictureBulletMarker } from '../internal/shared';
+import { resolveParagraphBullet } from '../internal/shared';
+
 export {
 	alphaLabel,
 	bulletIndentPx,
 	formatAutoNumber,
-	resolveParagraphBullet,
 	romanNumeral,
 } from '../internal/shared';
-export type { ParagraphBulletResult } from '../internal/shared';
+export { resolveParagraphBullet };
+export type { ParagraphBulletResult, PictureBulletMarker } from '../internal/shared';
+
+export interface AngularParagraphBullet {
+	marker?: string;
+	picture?: PictureBulletMarker;
+	style: Record<string, string | number>;
+}
+
+/** Project the shared bullet model into Angular's paragraph presentation. */
+export function resolveAngularParagraphBullet(
+	segment: TextSegment,
+	baseFontSize: number,
+): AngularParagraphBullet | undefined {
+	const bullet = resolveParagraphBullet(segment, baseFontSize);
+	if (!bullet) {
+		return undefined;
+	}
+	const style: Record<string, string | number> = {};
+	if (bullet.color) {
+		style['color'] = bullet.color;
+	}
+	if (bullet.fontFamily) {
+		style['font-family'] = bullet.fontFamily;
+	}
+	return {
+		marker: bullet.picture?.src ? undefined : bullet.marker,
+		picture: bullet.picture,
+		style,
+	};
+}
