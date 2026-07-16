@@ -505,6 +505,7 @@ export * from './alignment-guides';
 // duotone descriptor in `image-effects`; this is the canvas pixel path with
 // caches + duotone presets. Each binding draws onto its own `<canvas>`.
 export * from './image-color-change';
+export * from './image-source-effects';
 export * from './image-duotone-canvas';
 // Hyperlink-edit dialog patch-builders: turn a URL+tooltip draft into an
 // `{ actionClick }` element merge patch, reusing `hyperlink-security` guards.
