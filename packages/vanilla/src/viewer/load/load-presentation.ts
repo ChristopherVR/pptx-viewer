@@ -41,6 +41,7 @@ export interface LoadedPresentation {
 	slideMasters: PptxSlideMaster[];
 	notesMaster?: PptxNotesMaster;
 	handoutMaster?: PptxHandoutMaster;
+	hasMacros: boolean;
 	notesCanvasSize?: CanvasSize;
 	/** Blob URLs created during the load; revoke them when replacing/destroying. */
 	blobUrls: string[];
@@ -68,6 +69,7 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 			slideMasters: parsed.slideMasters ?? [],
 			notesMaster: parsed.notesMaster,
 			handoutMaster: parsed.handoutMaster,
+			hasMacros: parsed.hasMacros ?? false,
 			notesCanvasSize:
 				typeof parsed.notesWidthEmu === 'number' &&
 				typeof parsed.notesHeightEmu === 'number' &&

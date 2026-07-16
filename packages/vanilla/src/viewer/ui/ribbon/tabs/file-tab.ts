@@ -5,6 +5,7 @@ import type { RibbonFileHandlers } from '../ribbon-types';
 
 export interface FileTab {
 	el: HTMLElement;
+	setHasMacros(hasMacros: boolean): void;
 }
 
 /**
@@ -23,6 +24,19 @@ export function createFileTab(doc: Document, t: Translator, handlers: RibbonFile
 		onClick: handlers.save,
 	});
 	save.btn.title = t('pptx.file.saveAsPptxTooltip');
+	const savePpsx = makeButton(doc, {
+		label: t('pptx.file.saveAsPpsx'),
+		icon: 'play',
+		onClick: handlers.saveAsPpsx,
+	});
+	savePpsx.btn.title = t('pptx.file.saveAsPpsxTooltip');
+	const savePptm = makeButton(doc, {
+		label: t('pptx.file.saveAsPptm'),
+		icon: 'file',
+		onClick: handlers.saveAsPptm,
+	});
+	savePptm.btn.title = t('pptx.file.saveAsPptmTooltip');
+	savePptm.btn.hidden = true;
 	const png = makeButton(doc, {
 		label: t('pptx.file.png'),
 		icon: 'image',
@@ -55,7 +69,22 @@ export function createFileTab(doc: Document, t: Translator, handlers: RibbonFile
 		onClick: handlers.print,
 	});
 
-	el.append(save.btn, png.btn, pdf.btn, gif.btn, video.btn, copyImage.btn, print.btn);
+	el.append(
+		save.btn,
+		savePpsx.btn,
+		savePptm.btn,
+		png.btn,
+		pdf.btn,
+		gif.btn,
+		video.btn,
+		copyImage.btn,
+		print.btn,
+	);
 
-	return { el };
+	return {
+		el,
+		setHasMacros: (hasMacros) => {
+			savePptm.btn.hidden = !hasMacros;
+		},
+	};
 }

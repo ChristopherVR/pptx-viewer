@@ -43,6 +43,8 @@ export interface RibbonPrimaryHandlers {
 /** File tab handlers: save + export actions already implemented by the viewer's export lifecycle. */
 export interface RibbonFileHandlers {
 	save(): void;
+	saveAsPpsx(): void;
+	saveAsPptm(): void;
 	exportPng(): void;
 	copySlideAsImage(): void;
 	exportPdf(): void;

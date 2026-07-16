@@ -46,6 +46,7 @@ export interface Ribbon {
 	/** Reflect the current Draw tab tool/colour/width (store-driven). */
 	setDrawState(state: RibbonDrawState): void;
 	setTemplateEditing(active: boolean): void;
+	setHasMacros(hasMacros: boolean): void;
 	openEquationEditor(id: string, omml: Record<string, unknown>): void;
 }
 
@@ -168,6 +169,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 		},
 		setDrawState: (state) => drawTab.update(state),
 		setTemplateEditing: (active) => viewTab.setTemplateEditing(active),
+		setHasMacros: (hasMacros) => fileTab.setHasMacros(hasMacros),
 		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),
 		updateSelection(selectedElement, extra) {
 			latestSelected = selectedElement;

@@ -1,4 +1,4 @@
-import type { TextSegment } from 'pptx-viewer-core';
+import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
 
 import type { EditActions } from './editor/editor-edit-ops';
@@ -22,6 +22,7 @@ export interface ChromeCallbackDeps {
 	undo(): void;
 	redo(): void;
 	save(): void;
+	downloadAs(format: PptxSaveFormat): Promise<void>;
 	toggleAutosave(): boolean;
 	startPresentationFromBeginning(): void;
 	startPresentationFromCurrent(): void;
@@ -84,6 +85,8 @@ export function buildChromeCallbacks(
 		},
 		file: {
 			save: () => deps.save(),
+			saveAsPpsx: () => void deps.downloadAs('ppsx'),
+			saveAsPptm: () => void deps.downloadAs('pptm'),
 			exportPng: () => void deps.exportSlidePng(),
 			copySlideAsImage: () => void deps.copySlideAsImage(),
 			exportPdf: () => void deps.exportPdf(),

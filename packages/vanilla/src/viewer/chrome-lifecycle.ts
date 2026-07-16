@@ -1,4 +1,4 @@
-import type { TextSegment } from 'pptx-viewer-core';
+import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
 
 import { buildChromeCallbacks } from './chrome-callbacks';
@@ -159,6 +159,7 @@ export interface ChromeHost {
 	redo(): void;
 	toggleAutosave(): boolean;
 	downloadPptx(): Promise<void>;
+	downloadAs(format: PptxSaveFormat): Promise<void>;
 	toggleNotes(): void;
 	goToSlide(index: number): void;
 	getSlideCount(): number;
@@ -210,6 +211,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		toggleTemplateEditing: () => host.toggleTemplateEditing(),
 		toggleMasterNavigation: () => host.toggleMasterNavigation(),
 		save: () => void host.downloadPptx(),
+		downloadAs: (format) => host.downloadAs(format),
 		toggleNotes: () => host.toggleNotes(),
 		goToSlide: (index) => host.goToSlide(index),
 		goToFirstSlide: () => host.goToSlide(0),

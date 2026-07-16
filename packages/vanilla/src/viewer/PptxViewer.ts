@@ -1,5 +1,5 @@
 import { cloneSlide } from 'pptx-viewer-core';
-import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
 import type { PresentationSnapshot, ViewerMode, ViewerTheme } from 'pptx-viewer-shared';
 import {
 	buildPresentationAudienceUrl,
@@ -514,8 +514,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	canUndo = (): boolean => this.editor.canUndo();
 	canRedo = (): boolean => this.editor.canRedo();
 
-	async save(): Promise<Uint8Array> {
-		return this.editor.save();
+	async save(format: PptxSaveFormat = 'pptx'): Promise<Uint8Array> {
+		return this.editor.save(format);
+	}
+
+	async downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void> {
+		return this.editor.downloadAs(format, fileName);
 	}
 
 	async downloadPptx(fileName?: string): Promise<void> {

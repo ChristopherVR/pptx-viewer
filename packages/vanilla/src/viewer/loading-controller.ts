@@ -69,6 +69,7 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				notesMaster: loaded.notesMaster,
 				notesCanvasSize: loaded.notesCanvasSize,
 				handoutMaster: loaded.handoutMaster,
+				hasMacros: loaded.hasMacros,
 				masterViewTab: 'slides',
 				handoutSlidesPerPage: loaded.handoutMaster?.slidesPerPage ?? 4,
 				masterViewTarget: null,

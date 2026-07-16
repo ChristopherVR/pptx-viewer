@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createInitialViewerState, createStore } from '../state';
@@ -181,5 +181,30 @@ describe('createEditorOps handout master', () => {
 		ops.undo();
 		expect(store.get().handoutSlidesPerPage).toBe(4);
 		expect(store.get().handoutMaster?.slidesPerPage).toBe(4);
+	});
+});
+
+describe('createEditorOps save formats', () => {
+	it('passes the requested OpenXML output format to core', async () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [buildSlide('a')],
+			dirty: true,
+		});
+		const save = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]));
+		const handler = { save } as unknown as PptxHandler;
+		const ops = createEditorOps({
+			store,
+			getHandler: () => handler,
+			onHistoryChange: vi.fn(),
+		});
+
+		await ops.save('ppsx');
+
+		expect(save).toHaveBeenCalledWith(
+			expect.any(Array),
+			expect.objectContaining({ outputFormat: 'ppsx' }),
+		);
+		expect(store.get().dirty).toBeFalsy();
 	});
 });

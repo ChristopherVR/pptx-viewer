@@ -3,6 +3,7 @@ import type {
 	PptxHandoutMaster,
 	PptxHandler,
 	PptxNotesMaster,
+	PptxSaveFormat,
 	PptxSlide,
 	PptxSlideMaster,
 	TextSegment,
@@ -72,7 +73,7 @@ export interface EditorOps {
 	canUndo(): boolean;
 	canRedo(): boolean;
 	clearHistory(): void;
-	save(): Promise<Uint8Array>;
+	save(format?: PptxSaveFormat): Promise<Uint8Array>;
 }
 
 interface EditorSnapshot {
@@ -296,7 +297,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			deps.onHistoryChange();
 		},
 
-		async save() {
+		async save(format: PptxSaveFormat = 'pptx') {
 			const handler = deps.getHandler();
 			if (!handler) {
 				throw new Error('No presentation is loaded.');
@@ -308,6 +309,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 					slideMasters: state.slideMasters,
 					notesMaster: state.notesMaster,
 					handoutMaster: state.handoutMaster,
+					outputFormat: format,
 				},
 			);
 			store.set({ dirty: false });

@@ -39,6 +39,8 @@ function buildHandlers(): RibbonHandlers {
 		primary: { undo: vi.fn(), redo: vi.fn(), save: vi.fn() },
 		file: {
 			save: vi.fn(),
+			saveAsPpsx: vi.fn(),
+			saveAsPptm: vi.fn(),
 			exportPng: vi.fn(),
 			copySlideAsImage: vi.fn(),
 			exportPdf: vi.fn(),
@@ -121,5 +123,23 @@ describe('createRibbon', () => {
 		ribbon.update({ current: 1, total: 5, zoomPercent: 150 });
 		expect(ribbon.el.querySelector('.pptxv-ribbon-nav')).toBeNull();
 		expect(ribbon.el.querySelector('.pptxv-counter')).toBeNull();
+	});
+
+	it('offers slideshow saves and only shows macro saves for macro decks', () => {
+		const t = createTranslator();
+		const handlers = buildHandlers();
+		const ribbon = createRibbon(document, t, handlers);
+		const ppsx = ribbon.el.querySelector<HTMLButtonElement>(
+			`[title="${t('pptx.file.saveAsPpsxTooltip')}"]`,
+		);
+		const pptm = ribbon.el.querySelector<HTMLButtonElement>(
+			`[title="${t('pptx.file.saveAsPptmTooltip')}"]`,
+		);
+
+		ppsx?.click();
+		expect(handlers.file.saveAsPpsx).toHaveBeenCalledOnce();
+		expect(pptm?.hidden).toBeTruthy();
+		ribbon.setHasMacros(true);
+		expect(pptm?.hidden).toBeFalsy();
 	});
 });

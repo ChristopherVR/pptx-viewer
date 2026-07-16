@@ -1,4 +1,10 @@
-import type { PptxElement, PptxHandler, PptxSlide, TextSegment } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxHandler,
+	PptxSaveFormat,
+	PptxSlide,
+	TextSegment,
+} from 'pptx-viewer-core';
 import { downloadBlob } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -64,12 +70,17 @@ export interface EditorController {
 	getFindReplaceActions(): FindReplaceActions;
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	setHandoutSlidesPerPage(count: number): void;
-	save(): Promise<Uint8Array>;
+	save(format?: PptxSaveFormat): Promise<Uint8Array>;
+	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
 	downloadPptx(fileName?: string): Promise<void>;
 	destroy(): void;
 }
 
-const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+const PRESENTATION_MIME: Record<PptxSaveFormat, string> = {
+	pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+	ppsx: 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+	pptm: 'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+};
 
 export function createEditorController(deps: EditorControllerDeps): EditorController {
 	const { doc, store } = deps;
@@ -325,10 +336,16 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		getFindReplaceActions: () => findReplaceActions,
 		commitNotes: (notes, notesSegments) => ops.commitNotes(notes, notesSegments),
 		setHandoutSlidesPerPage: (count) => ops.setHandoutSlidesPerPage(count),
-		save: () => ops.save(),
+		save: (format) => ops.save(format),
+		async downloadAs(format, fileName = `presentation.${format}`) {
+			const bytes = await ops.save(format);
+			downloadBlob(
+				new Blob([bytes as unknown as BlobPart], { type: PRESENTATION_MIME[format] }),
+				fileName,
+			);
+		},
 		async downloadPptx(fileName = 'presentation.pptx') {
-			const bytes = await ops.save();
-			downloadBlob(new Blob([bytes as unknown as BlobPart], { type: PPTX_MIME }), fileName);
+			await this.downloadAs('pptx', fileName);
 		},
 		destroy() {
 			unsubscribe();

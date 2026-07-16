@@ -1,4 +1,4 @@
-import type { PptxHandler } from 'pptx-viewer-core';
+import type { PptxHandler, PptxSaveFormat } from 'pptx-viewer-core';
 import type {
 	AutosaveRecord,
 	CanvasSize,
@@ -211,7 +211,9 @@ export interface PptxViewerInstance extends PowerPointViewerAPI {
 	canUndo(): boolean;
 	canRedo(): boolean;
 	/** Serialise the (edited) presentation to `.pptx` bytes and clear dirty. */
-	save(): Promise<Uint8Array>;
+	save(format?: PptxSaveFormat): Promise<Uint8Array>;
+	/** Save and download a presentation in a supported OpenXML format. */
+	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
 	/** `save()` + trigger a browser download (default `presentation.pptx`). */
 	downloadPptx(fileName?: string): Promise<void>;
 	/** Delete the selected element (no-op without a selection). */

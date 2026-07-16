@@ -47,6 +47,8 @@ export interface ViewerState {
 	notesCanvasSize?: CanvasSize;
 	/** Parsed handout master. */
 	handoutMaster?: PptxHandoutMaster;
+	/** Whether the loaded package contains a VBA project. */
+	hasMacros: boolean;
 	/** Active master-workspace tab. */
 	masterViewTab: MasterViewTab;
 	/** Preview layout used by the handout master workspace. */
@@ -117,6 +119,7 @@ export function createInitialViewerState(): ViewerState {
 		notesMaster: undefined,
 		notesCanvasSize: undefined,
 		handoutMaster: undefined,
+		hasMacros: false,
 		masterViewTab: 'slides',
 		handoutSlidesPerPage: 4,
 		masterViewTarget: null,

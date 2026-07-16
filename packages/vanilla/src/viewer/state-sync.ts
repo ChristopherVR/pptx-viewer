@@ -105,5 +105,8 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		if (state.editTemplateMode !== previous.editTemplateMode) {
 			chrome.ribbon?.setTemplateEditing(state.editTemplateMode);
 		}
+		if (state.hasMacros !== previous.hasMacros) {
+			chrome.ribbon?.setHasMacros(state.hasMacros);
+		}
 	};
 }
