@@ -552,6 +552,10 @@
 				ondownloadpptm={() => void downloadAs('pptm')}
 				onpackage={() => void packageForSharing()}
 				hasMacros={loader.hasMacros}
+				embeddedFontNames={loader.embeddedFonts.map((font) => font.name)}
+				hasDigitalSignatures={loader.hasDigitalSignatures}
+				digitalSignatureCount={loader.digitalSignatureCount}
+				isPasswordProtected={loader.isPasswordProtected}
 				autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
 				autosaveDirty={autosaveCtl.isDirty}
 				zoomPercent={effectivePercent}

@@ -17,6 +17,9 @@
 		onopenfile,
 		exportUi,
 		onproperties,
+		onfonts,
+		onsignatures,
+		onprotect,
 	}: {
 		ondownload: () => void;
 		ondownloadppsx: () => void;
@@ -26,6 +29,9 @@
 		onopenfile?: () => void;
 		exportUi?: ExportUiState;
 		onproperties?: () => void;
+		onfonts?: () => void;
+		onsignatures?: () => void;
+		onprotect?: () => void;
 	} = $props();
 	const t = useTranslator();
 </script>
@@ -64,6 +70,9 @@
 		<span>{t('pptx.file.package')}</span>
 	</button>
 	{#if onproperties}<button type="button" title={t('pptx.ribbon.documentProperties')} onclick={onproperties}><span>{t('pptx.ribbon.documentProperties')}</span></button>{/if}
+	{#if onprotect}<button type="button" onclick={onprotect}><span>{t('pptx.security.protectPresentation')}</span></button>{/if}
+	{#if onfonts}<button type="button" onclick={onfonts}><span>{t('pptx.ribbon.embedFonts')}</span></button>{/if}
+	{#if onsignatures}<button type="button" onclick={onsignatures}><span>{t('pptx.viewer.digitalSignatures')}</span></button>{/if}
 	{#if exportUi}
 		<button
 			type="button"

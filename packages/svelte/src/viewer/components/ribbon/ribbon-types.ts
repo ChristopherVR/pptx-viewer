@@ -40,6 +40,10 @@ export interface RibbonProps {
 	ondownloadpptm: () => void;
 	onpackage: () => void;
 	hasMacros: boolean;
+	embeddedFontNames: string[];
+	hasDigitalSignatures: boolean;
+	digitalSignatureCount: number;
+	isPasswordProtected: boolean;
 	autosaveStatus?: AutosaveStatus;
 	autosaveDirty?: boolean;
 

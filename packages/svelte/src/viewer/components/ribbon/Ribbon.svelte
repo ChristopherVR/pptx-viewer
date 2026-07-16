@@ -6,11 +6,15 @@
 	 * the ribbon tabs.
 	 */
 	import { useTranslator } from '../../../i18n/context';
+	import { collectUsedFonts } from 'pptx-viewer-shared';
 	import AnimationsTab from './animations/AnimationsTab.svelte';
 	import DesignTab from './design/DesignTab.svelte';
 	import DrawTab from './draw/DrawTab.svelte';
 	import FileTab from './file/FileTab.svelte';
 	import DocumentPropertiesDialog from './file/DocumentPropertiesDialog.svelte';
+	import DigitalSignaturesDialog from './file/DigitalSignaturesDialog.svelte';
+	import FontEmbeddingPanel from './file/FontEmbeddingPanel.svelte';
+	import PasswordProtectionDialog from './file/PasswordProtectionDialog.svelte';
 	import FindReplacePanel from './FindReplacePanel.svelte';
 	import HomeTab from './home/HomeTab.svelte';
 	import InsertTab from './insert/InsertTab.svelte';
@@ -30,6 +34,18 @@
 
 	let activeTab = $state(DEFAULT_RIBBON_TAB);
 	let propertiesOpen = $state(false);
+	let fontsOpen = $state(false);
+	let signaturesOpen = $state(false);
+	let protectionOpen = $state(false);
+	let embedFontsEnabled = $state(false);
+	let passwordProtected = $state(false);
+	let presentationPassword = $state<string | null>(null);
+	const usedFontFamilies = $derived(collectUsedFonts(props.editor.slides));
+	$effect(() => {
+		if (props.isPasswordProtected) {
+			passwordProtected = true;
+		}
+	});
 	$effect(() => {
 		if (props.editor.equationOps.editingId) {
 			activeTab = 'insert';
@@ -64,6 +80,9 @@
 				onopenfile={props.onopenfile}
 					exportUi={props.exportUi}
 				onproperties={() => setPropertiesOpen(true)}
+				onfonts={() => (fontsOpen = true)}
+				onsignatures={() => (signaturesOpen = true)}
+				onprotect={() => (protectionOpen = true)}
 			/>
 		{:else if activeTab === 'home'}
 			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />
@@ -108,6 +127,16 @@
 		{/if}
 	</div>
 </div>
+
+{#if fontsOpen}
+	<FontEmbeddingPanel usedFontFamilies={usedFontFamilies} embeddedFonts={props.embeddedFontNames} enabled={embedFontsEnabled} ontoggle={(enabled) => (embedFontsEnabled = enabled)} onclose={() => (fontsOpen = false)} />
+{/if}
+{#if signaturesOpen}
+	<DigitalSignaturesDialog hasSignatures={props.hasDigitalSignatures} signatureCount={props.digitalSignatureCount} onclose={() => (signaturesOpen = false)} />
+{/if}
+{#if protectionOpen}
+	<PasswordProtectionDialog protected={passwordProtected} onset={(password) => { presentationPassword = password; passwordProtected = true; }} onremove={() => { presentationPassword = null; passwordProtected = false; }} onclose={() => (protectionOpen = false)} />
+{/if}
 {#if propertiesOpen}<DocumentPropertiesDialog editor={props.editor} onclose={() => setPropertiesOpen(false)} />{/if}
 
 <style>
