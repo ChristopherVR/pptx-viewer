@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -34,8 +34,13 @@ const props = defineProps<{
 	canEdit?: boolean;
 	slideCount?: number;
 	mediaDataUrls?: Map<string, string>;
+	slideElements?: readonly PptxElement[];
+	slideAnimations?: readonly PptxElementAnimation[];
 }>();
-const emit = defineEmits<{ update: [patch: Partial<PptxElement>] }>();
+const emit = defineEmits<{
+	update: [patch: Partial<PptxElement>];
+	updateSlideAnimations: [animations: PptxElementAnimation[]];
+}>();
 
 const { t } = useI18n();
 
@@ -133,7 +138,13 @@ function relay(patch: Partial<PptxElement>): void {
 			>
 				{{ t('pptx.inspector.animations') }}
 			</h3>
-			<AnimationPanel :element="element" @update="relay" />
+			<AnimationPanel
+				:element="element"
+				:slide-elements="props.slideElements"
+				:slide-animations="props.slideAnimations"
+				@update="relay"
+				@update-slide-animations="emit('updateSlideAnimations', $event)"
+			/>
 		</div>
 
 		<div v-if="isSmartArt" class="pptx-vue-inspector-section py-2 border-b border-border">

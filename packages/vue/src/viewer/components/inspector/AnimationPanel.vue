@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type {
 	AnimationPresetInfo,
-	PptxAnimationPreset,
 	PptxAnimationTrigger,
 	PptxElement,
 	PptxElementAnimation,
@@ -11,260 +10,138 @@ import {
 	ENTRANCE_PRESETS,
 	EXIT_PRESETS,
 	getAnimationPresetInfo,
-	ooxmlToPresetName,
 } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-/**
- * Resolve an editor catalog id (e.g. `entr.10`) to the real `PptxAnimationPreset`
- * string-union value (e.g. `fadeIn`) via core's `ooxmlToPresetName`, so animations
- * added here map to the right keyframe in presentation playback. Falls back to the
- * catalog id when core has no mapping (rare presets).
- */
-function catalogIdToPreset(catalogId: string): PptxAnimationPreset {
-	const dot = catalogId.indexOf('.');
-	const cls = dot > 0 ? catalogId.slice(0, dot) : '';
-	const num = dot > 0 ? Number(catalogId.slice(dot + 1)) : Number.NaN;
-	if ((cls === 'entr' || cls === 'exit' || cls === 'emph') && Number.isFinite(num)) {
-		const name = ooxmlToPresetName({ presetClass: cls, presetId: num });
-		if (name) {
-			return name as PptxAnimationPreset;
-		}
-	}
-	return catalogId as PptxAnimationPreset;
-}
+import type { AnimationCategory } from './animation-panel-model';
+import { createElementAnimation, patchElementAnimation } from './animation-panel-model';
+import { previewVueAnimation } from './animation-preview-player';
+import AnimationEditorControls from './AnimationEditorControls.vue';
+import AnimationTimeline from './AnimationTimeline.vue';
 
-/**
- * AnimationPanel: Vue inspector panel for an element's animation list.
- *
- * Mirrors the uniform inspector-panel contract used by the other
- * `components/inspector/` panels: it receives the selected {@link PptxElement}
- * and emits a shallow `update` patch that the host merges via
- * `ops.updateElement(id, patch)`.
- *
- * The animation model is the core {@link PptxElementAnimation}: a flat record
- * carrying an optional `entrance` / `exit` / `emphasis` preset plus timing and
- * a {@link PptxAnimationTrigger}. The preset selects are populated from the
- * core catalogs ({@link ENTRANCE_PRESETS}, {@link EMPHASIS_PRESETS},
- * {@link EXIT_PRESETS}) and a chosen catalog entry is turned into a
- * {@link PptxElementAnimation} via {@link getAnimationPresetInfo} for its
- * default duration.
- */
-/**
- * Element augmented with the optional animation list. The core
- * {@link PptxElementAnimation} array is stored against the slide in the core
- * model, but the inspector-panel contract is element-scoped: the panel reads
- * the element's animations and emits a shallow `{ animations }` patch that the
- * host merges via `ops.updateElement(id, patch)`. The `animations` field type
- * mirrors the core array exactly.
- */
 type AnimatableElement = PptxElement & { animations?: PptxElementAnimation[] };
-
-const props = defineProps<{
-	element: AnimatableElement;
-}>();
-
+const props = withDefaults(
+	defineProps<{
+		element: AnimatableElement;
+		slideElements?: readonly PptxElement[];
+		slideAnimations?: readonly PptxElementAnimation[];
+	}>(),
+	{ slideElements: () => [], slideAnimations: () => [] },
+);
 const emit = defineEmits<{
 	update: [patch: Partial<AnimatableElement>];
+	updateSlideAnimations: [animations: PptxElementAnimation[]];
 }>();
-
 const { t } = useI18n();
+const currentAnimations = computed(() => props.element.animations ?? []);
+const category = ref<AnimationCategory>('entrance');
+const presetId = ref(ENTRANCE_PRESETS[0]?.presetId ?? '');
+const trigger = ref<PptxAnimationTrigger>('onClick');
 
-// ── Category → core preset catalog ──
-
-type AnimationUiCategory = 'entrance' | 'emphasis' | 'exit';
-
-const CATEGORY_OPTIONS: ReadonlyArray<{ value: AnimationUiCategory; labelKey: string }> = [
+const categories: readonly { value: AnimationCategory; labelKey: string }[] = [
 	{ value: 'entrance', labelKey: 'pptx.animation.entrance' },
 	{ value: 'emphasis', labelKey: 'pptx.animation.emphasis' },
 	{ value: 'exit', labelKey: 'pptx.animation.exit' },
 ];
-
-const PRESETS_BY_CATEGORY: Readonly<Record<AnimationUiCategory, AnimationPresetInfo[]>> = {
+const presets: Readonly<Record<AnimationCategory, AnimationPresetInfo[]>> = {
 	entrance: ENTRANCE_PRESETS,
 	emphasis: EMPHASIS_PRESETS,
 	exit: EXIT_PRESETS,
 };
-
-// Real `PptxAnimationTrigger` values for the supported "Start" options.
-const TRIGGER_OPTIONS: ReadonlyArray<{ value: PptxAnimationTrigger; labelKey: string }> = [
-	{ value: 'onClick', labelKey: 'pptx.animation.trigger.onClick' },
-	{ value: 'withPrevious', labelKey: 'pptx.animation.trigger.withPrevious' },
-	{ value: 'afterPrevious', labelKey: 'pptx.animation.trigger.afterPrevious' },
+const triggerOptions: readonly PptxAnimationTrigger[] = [
+	'onClick',
+	'withPrevious',
+	'afterPrevious',
+	'afterDelay',
+	'onHover',
+	'onShapeClick',
 ];
+const presetChoices = computed(() => presets[category.value]);
+const timelineAnimations = computed(() =>
+	props.slideAnimations.length ? props.slideAnimations : currentAnimations.value,
+);
 
-// ── Current animations ──
-
-const currentAnimations = computed<PptxElementAnimation[]>(() => props.element.animations ?? []);
-
-function presetLabel(anim: PptxElementAnimation): string {
-	const presetId = anim.entrance ?? anim.emphasis ?? anim.exit;
-	if (!presetId) {
-		return t('pptx.animation.animation');
-	}
-	const info = getAnimationPresetInfo(presetId);
-	return info?.label ?? presetId;
-}
-
-function triggerLabel(trigger: PptxAnimationTrigger | undefined): string {
-	const key =
-		TRIGGER_OPTIONS.find((o) => o.value === trigger)?.labelKey ?? 'pptx.animation.trigger.onClick';
-	return t(key);
-}
-
-// ── Add-animation form state ──
-
-const category = ref<AnimationUiCategory>('entrance');
-const presetId = ref<string>(ENTRANCE_PRESETS[0]?.presetId ?? '');
-const trigger = ref<PptxAnimationTrigger>('onClick');
-
-const presetChoices = computed<AnimationPresetInfo[]>(() => PRESETS_BY_CATEGORY[category.value]);
-
-function onCategoryChange(): void {
-	// Reset the preset to the first entry of the newly chosen catalog.
+function changeCategory(): void {
 	presetId.value = presetChoices.value[0]?.presetId ?? '';
 }
-
-/**
- * Build a {@link PptxElementAnimation} from the chosen catalog preset, placing
- * the preset id into the field matching its category and pulling the default
- * duration from the core catalog via {@link getAnimationPresetInfo}.
- */
-function buildAnimation(): PptxElementAnimation | undefined {
+function addAnimation(): void {
 	const info = getAnimationPresetInfo(presetId.value);
 	if (!info) {
-		return undefined;
-	}
-	// Convert the catalog id (e.g. `entr.10`) to the real `PptxAnimationPreset`
-	// string (e.g. `fadeIn`) so the choice maps to the right playback keyframe.
-	const preset = catalogIdToPreset(info.presetId);
-	const base: PptxElementAnimation = {
-		elementId: props.element.id,
-		durationMs: info.defaultDurationMs,
-		order: currentAnimations.value.length,
-		trigger: trigger.value,
-	};
-	switch (category.value) {
-		case 'entrance':
-			return { ...base, entrance: preset };
-		case 'emphasis':
-			return { ...base, emphasis: preset };
-		case 'exit':
-			return { ...base, exit: preset };
-	}
-}
-
-function addAnimation(): void {
-	const next = buildAnimation();
-	if (!next) {
 		return;
 	}
-	emit('update', { animations: [...currentAnimations.value, next] });
+	const next = createElementAnimation(
+		props.element.id,
+		category.value,
+		info,
+		timelineAnimations.value.length,
+	);
+	emit('update', { animations: [...currentAnimations.value, { ...next, trigger: trigger.value }] });
 }
-
+function patchAnimation(index: number, patch: Partial<PptxElementAnimation>): void {
+	emit('update', { animations: patchElementAnimation(currentAnimations.value, index, patch) });
+}
 function removeAnimation(index: number): void {
-	const next = currentAnimations.value.filter((_, i) => i !== index);
-	emit('update', { animations: next });
+	emit('update', { animations: currentAnimations.value.filter((_, current) => current !== index) });
 }
 </script>
 
 <template>
-	<div
-		class="pptx-vue-anim-panel flex flex-col gap-2 rounded-md border border-border bg-card p-2 text-xs"
-	>
-		<div class="pptx-vue-anim-heading text-[11px] uppercase tracking-wide text-muted-foreground">
+	<div class="flex flex-col gap-2 rounded-md border border-border bg-card p-2 text-xs">
+		<div class="text-[11px] uppercase tracking-wide text-muted-foreground">
 			{{ t('pptx.animation.title') }}
 		</div>
+		<div v-if="currentAnimations.length" class="space-y-2">
+			<AnimationEditorControls
+				v-for="(animation, index) in currentAnimations"
+				:key="`${animation.elementId}-${index}`"
+				:animation="animation"
+				:elements="slideElements"
+				@patch="patchAnimation(index, $event)"
+				@remove="removeAnimation(index)"
+				@preview="previewVueAnimation(animation)"
+			/>
+		</div>
+		<p v-else class="text-muted-foreground">{{ t('pptx.animation.noAnimations') }}</p>
 
-		<ul
-			v-if="currentAnimations.length > 0"
-			class="pptx-vue-anim-list flex flex-col gap-1 m-0 p-0 list-none"
-		>
-			<li
-				v-for="(anim, index) in currentAnimations"
-				:key="index"
-				class="pptx-vue-anim-row flex items-center gap-2 rounded border border-border bg-muted px-1.5 py-1"
-			>
-				<span
-					class="pptx-vue-anim-name flex-1 font-medium overflow-hidden text-ellipsis whitespace-nowrap"
-				>
-					{{ presetLabel(anim) }}
-				</span>
-				<span class="pptx-vue-anim-trigger text-muted-foreground">{{
-					triggerLabel(anim.trigger)
-				}}</span>
-				<button
-					type="button"
-					class="pptx-vue-anim-remove inline-flex items-center justify-center w-5 h-5 p-0 rounded border-none bg-transparent text-muted-foreground text-base leading-none cursor-pointer transition-colors hover:bg-destructive/10 hover:text-destructive"
-					:aria-label="t('pptx.animation.removeNamed', { name: presetLabel(anim) })"
-					:title="t('pptx.animation.remove')"
-					@click="removeAnimation(index)"
-				>
-					×
-				</button>
-			</li>
-		</ul>
-		<p v-else class="pptx-vue-anim-empty text-muted-foreground">
-			{{ t('pptx.animation.noAnimations') }}
-		</p>
+		<AnimationTimeline
+			:animations="timelineAnimations"
+			:elements="slideElements"
+			:selected-element-id="element.id"
+			@reorder="emit('updateSlideAnimations', $event)"
+		/>
 
-		<div class="pptx-vue-anim-add flex flex-col gap-1.5 pt-2 border-t border-border">
-			<div
-				class="pptx-vue-anim-add-title text-[11px] uppercase tracking-wide text-muted-foreground"
-			>
+		<div class="flex flex-col gap-1.5 border-t border-border pt-2">
+			<div class="text-[11px] uppercase text-muted-foreground">
 				{{ t('pptx.animation.addAnimation') }}
 			</div>
-
-			<label class="pptx-vue-anim-field flex flex-col gap-1">
-				<span class="pptx-vue-anim-label text-muted-foreground">{{
-					t('pptx.animation.category')
-				}}</span>
-				<select
-					v-model="category"
-					class="pptx-vue-anim-select w-full bg-muted border border-border rounded px-2 py-1"
-					:aria-label="t('pptx.animation.categoryAria')"
-					@change="onCategoryChange"
-				>
-					<option v-for="opt in CATEGORY_OPTIONS" :key="opt.value" :value="opt.value">
-						{{ t(opt.labelKey) }}
+			<label
+				>{{ t('pptx.animation.category') }}
+				<select v-model="category" aria-label="Animation category" @change="changeCategory">
+					<option v-for="option in categories" :key="option.value" :value="option.value">
+						{{ t(option.labelKey) }}
 					</option>
 				</select>
 			</label>
-
-			<label class="pptx-vue-anim-field flex flex-col gap-1">
-				<span class="pptx-vue-anim-label text-muted-foreground">{{
-					t('pptx.animation.effect')
-				}}</span>
-				<select
-					v-model="presetId"
-					class="pptx-vue-anim-select w-full bg-muted border border-border rounded px-2 py-1"
-					:aria-label="t('pptx.animation.presetAria')"
-				>
+			<label
+				>{{ t('pptx.animation.effect') }}
+				<select v-model="presetId" aria-label="Animation preset">
 					<option v-for="preset in presetChoices" :key="preset.presetId" :value="preset.presetId">
 						{{ preset.label }}
 					</option>
 				</select>
 			</label>
-
-			<label class="pptx-vue-anim-field flex flex-col gap-1">
-				<span class="pptx-vue-anim-label text-muted-foreground">{{
-					t('pptx.animation.start')
-				}}</span>
-				<select
-					v-model="trigger"
-					class="pptx-vue-anim-select w-full bg-muted border border-border rounded px-2 py-1"
-					:aria-label="t('pptx.animation.triggerAria')"
-				>
-					<option v-for="opt in TRIGGER_OPTIONS" :key="opt.value" :value="opt.value">
-						{{ t(opt.labelKey) }}
+			<label
+				>{{ t('pptx.animation.start') }}
+				<select v-model="trigger" aria-label="Animation trigger">
+					<option v-for="item in triggerOptions" :key="item" :value="item">
+						{{ t(`pptx.animation.trigger.${item}`) }}
 					</option>
 				</select>
 			</label>
-
 			<button
 				type="button"
-				class="pptx-vue-anim-add-btn rounded bg-primary text-white px-2 py-1.5 transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+				class="pptx-vue-anim-add-btn rounded bg-primary px-2 py-1.5 text-white disabled:opacity-50"
 				:disabled="!presetId"
 				@click="addAnimation"
 			>
@@ -273,3 +150,20 @@ function removeAnimation(index: number): void {
 		</div>
 	</div>
 </template>
+
+<style scoped>
+label {
+	display: grid;
+	gap: 3px;
+	color: var(--muted-foreground);
+}
+select {
+	box-sizing: border-box;
+	width: 100%;
+	border: 1px solid var(--border);
+	border-radius: 3px;
+	background: var(--muted);
+	color: inherit;
+	padding: 4px 6px;
+}
+</style>
