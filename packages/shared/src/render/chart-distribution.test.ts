@@ -13,10 +13,11 @@ import {
 	buildHistogramViewModel,
 	computeBoxStats,
 	computeBoxWhiskerGeometry,
+	computeHistogramBins,
 	computeHistogramBars,
 } from './chart-distribution';
 import type { PlotLayout, ValueRange } from './chart-view-model';
-import { buildChartViewModel } from './chart-view-model';
+import { buildChartViewModel, valueToY } from './chart-view-model';
 
 const layout: PlotLayout = {
 	svgWidth: 400,
@@ -78,6 +79,39 @@ describe('computeHistogramBars', () => {
 	});
 });
 
+describe('computeHistogramBins', () => {
+	it('honours bin size and left-closed interval boundaries', () => {
+		const bins = computeHistogramBins([0, 10, 20], {
+			layout: 'histogram',
+			binSize: 10,
+			intervalClosed: 'l',
+		});
+		expect(bins.map((bin) => bin.value)).toStrictEqual([1, 1, 1]);
+		expect(bins.map((bin) => bin.sourceIndices)).toStrictEqual([[0], [1], [2]]);
+	});
+
+	it('assigns exact boundaries to the preceding right-closed bin', () => {
+		const bins = computeHistogramBins([0, 10, 20], {
+			layout: 'histogram',
+			binSize: 10,
+			intervalClosed: 'r',
+		});
+		expect(bins.map((bin) => bin.value)).toStrictEqual([2, 1]);
+	});
+
+	it('creates custom underflow and overflow bins', () => {
+		const bins = computeHistogramBins([-5, 0, 5, 10, 15], {
+			layout: 'histogram',
+			binCount: 2,
+			underflow: 0,
+			overflow: 10,
+			intervalClosed: 'r',
+		});
+		expect(bins[0]).toMatchObject({ value: 2, label: '≤ 0', sourceIndices: [0, 1] });
+		expect(bins.at(-1)).toMatchObject({ value: 1, label: '> 10', sourceIndices: [4] });
+	});
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // computeBoxStats
 // ─────────────────────────────────────────────────────────────────────────────
@@ -109,6 +143,12 @@ describe('computeBoxStats', () => {
 			expect(stats.median).toBeLessThanOrEqual(stats.q3);
 			expect(stats.q3).toBeLessThanOrEqual(stats.max);
 		}
+	});
+
+	it('distinguishes inclusive and exclusive interpolated quartiles', () => {
+		const values = [1, 2, 3, 4, 5, 6, 7, 8];
+		expect(computeBoxStats(values, 'inclusive')).toMatchObject({ q1: 2.75, q3: 6.25 });
+		expect(computeBoxStats(values, 'exclusive')).toMatchObject({ q1: 2.25, q3: 6.75 });
 	});
 });
 
@@ -162,6 +202,23 @@ describe('computeBoxWhiskerGeometry', () => {
 		expect(geo[0].yMed).toBeGreaterThanOrEqual(hi);
 		expect(geo[0].yMed).toBeLessThanOrEqual(lo);
 	});
+
+	it('uses 1.5 IQR whiskers and identifies source-indexed outliers when typed', () => {
+		const typed: PptxChartData = {
+			chartType: 'boxWhisker',
+			categories: ['Cat'],
+			series: [
+				{ name: 'A', values: [1], boxWhiskerOptions: { quartileMethod: 'inclusive' } },
+				{ name: 'B', values: [2] },
+				{ name: 'C', values: [3] },
+				{ name: 'D', values: [4] },
+				{ name: 'E', values: [100] },
+			],
+		};
+		const [geometry] = computeBoxWhiskerGeometry(typed, 1, layout, range, undefined);
+		expect(geometry.yMax).toBeCloseTo(valueToY(4, range, layout.plotTop, layout.plotBottom));
+		expect(geometry.points.find((point) => point.seriesIndex === 4)?.outlier).toBeTruthy();
+	});
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -197,6 +254,43 @@ describe('buildHistogramViewModel', () => {
 		const vm = buildHistogramViewModel(chartElement(chartData), chartData, chartData.categories);
 		expect(vm.categoryLabels).toHaveLength(3);
 		expect(vm.categoryLabels[0].text).toBe('0-10');
+	});
+
+	it('preserves interactive point indices for legacy unbinned bars', () => {
+		const vm = buildHistogramViewModel(chartElement(chartData), chartData, chartData.categories);
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		expect(rects.map((rect) => rect.part)).toStrictEqual([
+			{ role: 'dataPoint', seriesIndex: 0, pointIndex: 0 },
+			{ role: 'dataPoint', seriesIndex: 0, pointIndex: 1 },
+			{ role: 'dataPoint', seriesIndex: 0, pointIndex: 2 },
+		]);
+	});
+
+	it('bins observations and overlays a cumulative Pareto line', () => {
+		const typed: PptxChartData = {
+			chartType: 'histogram',
+			categories: [],
+			series: [
+				{
+					name: 'Frequency',
+					values: [1, 2, 3, 4],
+					histogramOptions: { layout: 'histogram', binCount: 2 },
+				},
+				{
+					name: 'Cumulative',
+					values: [1, 2, 3, 4],
+					histogramOptions: { layout: 'pareto' },
+				},
+			],
+		};
+		const vm = buildHistogramViewModel(chartElement(typed), typed, []);
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		const line = vm.primitives.find((primitive) => primitive.kind === 'polyline');
+		const points = vm.primitives.filter((primitive) => primitive.kind === 'circle');
+		expect(rects).toHaveLength(2);
+		expect(line?.part).toStrictEqual({ role: 'series', seriesIndex: 1 });
+		expect(line?.points.split(' ').at(-1)?.endsWith(`,${layout.plotTop}`)).toBeTruthy();
+		expect(points.map((point) => point.part?.pointIndex)).toStrictEqual([0, 1]);
 	});
 });
 
@@ -239,6 +333,63 @@ describe('buildBoxWhiskerViewModel', () => {
 		const vm = buildBoxWhiskerViewModel(chartElement(chartData), chartData, chartData.categories);
 		expect(vm.legend).toHaveLength(2);
 		expect(vm.legend[0].label).toBe('Cat1');
+	});
+
+	it('renders typed mean and point visibility with interactive source indices', () => {
+		const typed: PptxChartData = {
+			chartType: 'boxWhisker',
+			categories: ['Cat'],
+			series: [
+				{
+					name: 'A',
+					values: [1],
+					boxWhiskerOptions: {
+						quartileMethod: 'inclusive',
+						showMeanLine: true,
+						showMeanMarker: true,
+						showInnerPoints: true,
+						showOutlierPoints: true,
+					},
+				},
+				{ name: 'B', values: [2] },
+				{ name: 'C', values: [3] },
+				{ name: 'D', values: [4] },
+				{ name: 'E', values: [100] },
+			],
+		};
+		const vm = buildBoxWhiskerViewModel(chartElement(typed), typed, typed.categories);
+		const circles = vm.primitives.filter((primitive) => primitive.kind === 'circle');
+		expect(vm.primitives.filter((primitive) => primitive.kind === 'line')).toHaveLength(6);
+		expect(circles).toHaveLength(6);
+		expect(circles.at(-1)?.part).toStrictEqual({
+			role: 'dataPoint',
+			seriesIndex: 4,
+			pointIndex: 0,
+		});
+	});
+
+	it('hides mean, inner and outlier points when typed visibility flags are false', () => {
+		const typed: PptxChartData = {
+			chartType: 'boxWhisker',
+			categories: ['Cat'],
+			series: [
+				{
+					name: 'A',
+					values: [1],
+					boxWhiskerOptions: {
+						showMeanLine: false,
+						showMeanMarker: false,
+						showInnerPoints: false,
+						showOutlierPoints: false,
+					},
+				},
+				{ name: 'B', values: [2] },
+				{ name: 'C', values: [100] },
+			],
+		};
+		const vm = buildBoxWhiskerViewModel(chartElement(typed), typed, typed.categories);
+		expect(vm.primitives.filter((primitive) => primitive.kind === 'circle')).toHaveLength(0);
+		expect(vm.primitives.filter((primitive) => primitive.kind === 'line')).toHaveLength(5);
 	});
 });
 
