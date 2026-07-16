@@ -167,6 +167,12 @@ export type {
 
 // Animation playback
 export { AnimationPanelComponent } from './animation-panel.component';
+export { ActionSettingsPanelComponent } from './action-settings-panel.component';
+export { ImagePropertiesPanelComponent } from './image-properties-panel.component';
+export { MediaPropertiesPanelComponent } from './media-properties-panel.component';
+export { SlideThemeOverridePanelComponent } from './slide-theme-override-panel.component';
+export { ThemeEditorFieldsComponent } from './theme-editor-fields.component';
+export type { CustomThemeEdit } from './theme-editor-fields.component';
 export { AnimationPlaybackService } from './animation-playback.service';
 export {
 	buildClickGroups,

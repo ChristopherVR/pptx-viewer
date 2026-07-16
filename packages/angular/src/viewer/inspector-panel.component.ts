@@ -20,6 +20,7 @@ import { LucideArrowDown, LucideArrowUp } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
+	MediaPptxElement,
 	PptxElement,
 	PptxElementAnimation,
 	PptxShapeLocks,
@@ -30,11 +31,13 @@ import type {
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
 import { rebuildDrawingShapesIfCleared, resolvePalette } from '../internal/shared';
+import { ActionSettingsPanelComponent } from './action-settings-panel.component';
 import { AnimationAuthorPanelComponent } from './animation-author-panel.component';
 import { ChartDataEditorComponent } from './chart-data-editor.component';
 import { EditorStateService } from './editor-state.service';
 import { EffectsPanelComponent } from './effects-panel.component';
 import { GradientPickerComponent } from './gradient-picker.component';
+import { ImagePropertiesPanelComponent } from './image-properties-panel.component';
 import {
 	fillColorOf,
 	fontSizeOf,
@@ -47,6 +50,7 @@ import {
 	textStylePatch,
 } from './inspector-helpers';
 import { IsMobileService } from './is-mobile';
+import { MediaPropertiesPanelComponent } from './media-properties-panel.component';
 import { SmartArtPropertiesComponent } from './smart-art-properties.component';
 import { TableCellFormattingComponent } from './table-cell-formatting.component';
 import { TableDataEditorComponent } from './table-data-editor.component';
@@ -67,6 +71,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 		ChartDataEditorComponent,
 		SmartArtPropertiesComponent,
 		AnimationAuthorPanelComponent,
+		ActionSettingsPanelComponent,
+		ImagePropertiesPanelComponent,
+		MediaPropertiesPanelComponent,
 		TranslatePipe,
 		LucideArrowUp,
 		LucideArrowDown,
@@ -266,6 +273,24 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 				</section>
 			}
 
+			@if (imageEl(); as image) {
+				<details class="pptx-ng-inspector__details" open>
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.inspector.image' | translate }}
+					</summary>
+					<pptx-image-properties-panel [element]="image" (patch)="onPatch($event)" />
+				</details>
+			}
+
+			@if (mediaEl(); as media) {
+				<details class="pptx-ng-inspector__details" open>
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.inspector.media' | translate }}
+					</summary>
+					<pptx-media-properties-panel [element]="media" (patch)="onPatch($event)" />
+				</details>
+			}
+
 			<!-- ── Arrange ────────────────────────────────────────────────────── -->
 			<section class="pptx-ng-inspector__section">
 				<div
@@ -407,6 +432,17 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 					[slideIndex]="slideIndex()"
 					[animations]="slideAnimations()"
 					(animationsChange)="onAnimationsChange($event)"
+				/>
+			</details>
+
+			<details class="pptx-ng-inspector__details">
+				<summary class="pptx-ng-inspector__summary">
+					{{ 'pptx.action.title' | translate }}
+				</summary>
+				<pptx-action-settings-panel
+					[element]="el()"
+					[slideCount]="editor.slides().length"
+					(patch)="onPatch($event)"
 				/>
 			</details>
 
@@ -754,6 +790,12 @@ export class InspectorPanelComponent {
 	/** The selected element narrowed to a chart, or undefined. */
 	protected readonly chartEl = computed(() =>
 		this.el().type === 'chart' ? (this.el() as ChartPptxElement) : undefined,
+	);
+	protected readonly imageEl = computed(() =>
+		ImagePropertiesPanelComponent.supports(this.el()) ? this.el() : undefined,
+	);
+	protected readonly mediaEl = computed(() =>
+		this.el().type === 'media' ? (this.el() as MediaPptxElement) : undefined,
 	);
 
 	/** The selected element narrowed to SmartArt, or undefined. */

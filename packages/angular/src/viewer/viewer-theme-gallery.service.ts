@@ -15,7 +15,12 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { applyThemeToData } from 'pptx-viewer-core';
-import type { PptxData, PptxThemePreset } from 'pptx-viewer-core';
+import type {
+	PptxData,
+	PptxThemeColorScheme,
+	PptxThemeFontScheme,
+	PptxThemePreset,
+} from 'pptx-viewer-core';
 
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
@@ -41,6 +46,14 @@ export class ViewerThemeGalleryService {
 	 * baseline.
 	 */
 	applyThemePreset(preset: PptxThemePreset): void {
+		this.applyCustomTheme(preset.colorScheme, preset.fontScheme, preset.name);
+	}
+
+	applyCustomTheme(
+		colorScheme: PptxThemeColorScheme,
+		fontScheme: PptxThemeFontScheme,
+		name: string,
+	): void {
 		const currentSlides = this.editor.slides();
 		const result = applyThemeToData(
 			{
@@ -48,14 +61,14 @@ export class ViewerThemeGalleryService {
 				theme: this.loader.theme() ?? {},
 				themeColorMap: this.loader.themeColorMap() ?? {},
 			} as unknown as PptxData,
-			preset.colorScheme,
-			preset.fontScheme,
-			preset.name,
+			colorScheme,
+			fontScheme,
+			name,
 		);
 		// Write slides back through the editor (records undo history).
 		this.editor.applyReplacement(
 			result.slides,
-			this.translate.instant('pptx.undoAction.applyTheme', { name: preset.name }),
+			this.translate.instant('pptx.undoAction.applyTheme', { name }),
 		);
 		// Update the loader's theme signals so the check-mark and future switches are correct.
 		this.loader.theme.set(result.theme);
