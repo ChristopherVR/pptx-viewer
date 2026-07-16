@@ -370,6 +370,7 @@ function createMockToolbarProps(overrides: Partial<ToolbarProps> = {}): ToolbarP
 		onMoveLayerToEdge: vi.fn<() => void>(),
 		onDuplicate: vi.fn<() => void>(),
 		onDelete: vi.fn<() => void>(),
+		onCreatePresentation: vi.fn<(templateId: string) => void>(),
 		onExportPng: vi.fn<() => void>(),
 		onExportPdf: vi.fn<() => void>(),
 		onExportVideo: vi.fn<() => void>(),
@@ -436,8 +437,8 @@ const { HomeSection } = await import('./HomeSection');
 const { FileSection } = await import('./FileSection');
 const { InsertSection } = await import('./InsertSection');
 const { DrawSection } = await import('./DrawSection');
-const { DesignSection, TransitionsSection, ReviewSection } =
-	await import('./DesignTransitionsReviewSection');
+const { DesignSection, TransitionsSection } = await import('./DesignTransitionsReviewSection');
+const { ReviewSection } = await import('./ReviewSection');
 const { AnimationsSection } = await import('./AnimationsSection');
 const { SlideShowSection } = await import('./SlideShowSection');
 const { TextSection } = await import('./TextSection');
@@ -676,6 +677,9 @@ describe('toolbar - Home tab', () => {
 
 describe('toolbar - File tab', () => {
 	const createFileProps = (overrides = {}) => ({
+		onClose: vi.fn<() => void>(),
+		onCreatePresentation: vi.fn<(templateId: string) => void>(),
+		onSaveAsPptx: vi.fn<() => void>(),
 		onExportPng: vi.fn<() => void>(),
 		onExportPdf: vi.fn<() => void>(),
 		onExportVideo: vi.fn<() => void>(),
@@ -693,69 +697,39 @@ describe('toolbar - File tab', () => {
 		...overrides,
 	});
 
-	it('renders export buttons (PNG, PDF, Video, GIF)', () => {
+	it('renders the complete PowerPoint-style backstage navigation', () => {
 		const html = render(React.createElement(FileSection, createFileProps()));
-		expect(html).toContain('title="Export as PNG"');
-		expect(html).toContain('title="Export as PDF"');
-		expect(html).toContain('title="Export as Video"');
-		expect(html).toContain('title="Export as GIF"');
+		for (const label of [
+			'Home',
+			'New',
+			'Open',
+			'Info',
+			'Save',
+			'Save As',
+			'Print',
+			'Share',
+			'Export',
+			'Close',
+			'Account',
+			'Options',
+		]) {
+			expect(html).toContain(label);
+		}
 	});
 
-	it('renders Save .ppsx button', () => {
+	it('renders templates and IndexedDB-backed recent section', () => {
 		const html = render(React.createElement(FileSection, createFileProps()));
-		expect(html).toContain('title="Save as Slide Show (.ppsx)"');
-		expect(html).toContain('Save .ppsx');
+		expect(html).toContain('Blank Presentation');
+		expect(html).toContain('Warm Welcome');
+		expect(html).toContain('Search recent presentations');
+		expect(html).toContain('Date modified');
 	});
 
-	it('renders Save .pptm button when hasMacros is true', () => {
-		const html = render(React.createElement(FileSection, createFileProps({ hasMacros: true })));
-		expect(html).toContain('title="Save as Macro-Enabled (.pptm)"');
-		expect(html).toContain('Save .pptm');
-	});
-
-	it('does not render Save .pptm when hasMacros is false', () => {
-		const html = render(React.createElement(FileSection, createFileProps({ hasMacros: false })));
-		expect(html).not.toContain('Save .pptm');
-	});
-
-	it('renders Print button', () => {
+	it('is a modal surface with a presentation back action', () => {
 		const html = render(React.createElement(FileSection, createFileProps()));
-		expect(html).toContain('title="Print"');
-	});
-
-	it('renders Properties button', () => {
-		const html = render(React.createElement(FileSection, createFileProps()));
-		expect(html).toContain('title="Document Properties"');
-		expect(html).toContain('Properties');
-	});
-
-	it('renders Protect button', () => {
-		const html = render(React.createElement(FileSection, createFileProps()));
-		expect(html).toContain('title="Protect Presentation"');
-		expect(html).toContain('Protect');
-	});
-
-	it('renders Fonts and Signatures buttons', () => {
-		const html = render(React.createElement(FileSection, createFileProps()));
-		expect(html).toContain('title="Embed Fonts"');
-		expect(html).toContain('title="Digital Signatures"');
-	});
-
-	it('does not render Properties when handler is undefined', () => {
-		const html = render(
-			React.createElement(FileSection, createFileProps({ onOpenDocumentProperties: undefined })),
-		);
-		expect(html).not.toContain('title="Document Properties"');
-	});
-
-	it('renders Copy Slide as Image button', () => {
-		const html = render(React.createElement(FileSection, createFileProps()));
-		expect(html).toContain('title="Copy Slide as Image"');
-	});
-
-	it('renders Package for Sharing button', () => {
-		const html = render(React.createElement(FileSection, createFileProps()));
-		expect(html).toContain('title="Package for Sharing"');
+		expect(html).toContain('role="dialog"');
+		expect(html).toContain('aria-modal="true"');
+		expect(html).toContain('aria-label="Back to presentation"');
 	});
 });
 
@@ -1097,7 +1071,7 @@ describe('toolbar - Animations tab', () => {
 			}),
 		);
 		expect(html).toContain('title="Preview animation on selected element"');
-		expect(html).toContain('>Preview</button>');
+		expect(html).toContain('>Preview</span>');
 	});
 
 	it('renders Add Animation dropdown', () => {
@@ -1123,7 +1097,7 @@ describe('toolbar - Animations tab', () => {
 			}),
 		);
 		expect(html).toContain('title="Remove animation from selected element"');
-		expect(html).toContain('>Remove</button>');
+		expect(html).toContain('>Remove</span>');
 	});
 
 	it('renders Animation Panel button', () => {
@@ -1148,9 +1122,9 @@ describe('toolbar - Animations tab', () => {
 				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toMatch(/disabled[^>]*title="Preview animation on selected element"/u);
-		expect(html).toMatch(/disabled[^>]*title="Add animation to selected element"/u);
-		expect(html).toMatch(/disabled[^>]*title="Remove animation from selected element"/u);
+		expect(html).toMatch(/title="Preview animation on selected element"[^>]*disabled/u);
+		expect(html).toContain('title="Add animation to selected element"');
+		expect(html).toMatch(/title="Remove animation from selected element"[^>]*disabled/u);
 	});
 
 	it('animation Panel button shows active state when inspector is open', () => {
@@ -1162,7 +1136,8 @@ describe('toolbar - Animations tab', () => {
 				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Open Animation Panel in Inspector"/u);
+		expect(html).toContain('bg-primary/15');
+		expect(html).toContain('title="Open Animation Panel in Inspector"');
 	});
 
 	it('animation presets list includes Entrance, Emphasis, and Exit groups', () => {
@@ -1242,7 +1217,8 @@ describe('toolbar - Slide Show tab', () => {
 		const props = createSlideShowProps();
 		props.showSubtitles = true;
 		const html = render(React.createElement(SlideShowSection, props));
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Toggle subtitles"/u);
+		expect(html).toContain('bg-primary/15');
+		expect(html).toContain('title="Toggle subtitles"');
 	});
 });
 
@@ -1334,7 +1310,8 @@ describe('toolbar - Review tab', () => {
 				isCommentsPanelOpen: true,
 			}),
 		);
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Toggle comments panel"/u);
+		expect(html).toContain('bg-primary/15');
+		expect(html).toContain('title="Toggle comments panel"');
 	});
 
 	it('spelling button has active styling when enabled', () => {
@@ -1345,7 +1322,8 @@ describe('toolbar - Review tab', () => {
 				onSetSpellCheckEnabled: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Toggle spell check"/u);
+		expect(html).toContain('bg-primary/15');
+		expect(html).toContain('title="Toggle spell check"');
 	});
 
 	it('does not render Comments if onToggleComments is undefined', () => {
@@ -1440,7 +1418,8 @@ describe('toolbar - View tab', () => {
 
 	it('grid button has active styling when showGrid is true', () => {
 		const html = render(React.createElement(ViewSection, createViewProps({ showGrid: true })));
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Toggle grid"/u);
+		expect(html).toContain('bg-primary/15');
+		expect(html).toContain('title="Toggle grid"');
 	});
 
 	it('renders Selection pane button', () => {
@@ -1744,8 +1723,9 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'file' })),
 		);
-		expect(html).toContain('Save .ppsx');
-		expect(html).toContain('>PNG</button>');
+		expect(html).toContain('Good evening');
+		expect(html).toContain('Blank Presentation');
+		expect(html).toContain('Search recent presentations');
 	});
 
 	it('renders InsertSection content when toolbarSection is insert', () => {

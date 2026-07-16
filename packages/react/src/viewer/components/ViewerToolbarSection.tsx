@@ -6,7 +6,7 @@ import type {
 	PptxElementAnimation,
 	PptxAnimationPreset,
 } from 'pptx-viewer-core';
-import { DEFAULT_INSERT_CHART_TYPE } from 'pptx-viewer-shared';
+import { createBackstagePresentation, DEFAULT_INSERT_CHART_TYPE } from 'pptx-viewer-shared';
 /**
  * ViewerToolbarSection: Renders the top toolbar, signature badge,
  * and hidden file-input elements.
@@ -48,6 +48,14 @@ export interface ViewerToolbarSectionProps {
 		setIsCompactToolbarOpen: React.Dispatch<React.SetStateAction<boolean>>;
 		toolbarSection: ToolbarSection;
 		setToolbarSection: React.Dispatch<React.SetStateAction<ToolbarSection>>;
+		setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
+		setActiveSlideIndex: React.Dispatch<React.SetStateAction<number>>;
+		setSelectedElementId: React.Dispatch<React.SetStateAction<string | null>>;
+		setSelectedElementIds: React.Dispatch<React.SetStateAction<string[]>>;
+		setTemplateElementsBySlideId: React.Dispatch<
+			React.SetStateAction<Record<string, PptxElement[]>>
+		>;
+		setIsDirty: React.Dispatch<React.SetStateAction<boolean>>;
 		newShapeType: SupportedShapeType;
 		setNewShapeType: React.Dispatch<React.SetStateAction<SupportedShapeType>>;
 		activeTool: DrawingTool;
@@ -125,6 +133,7 @@ export interface ViewerToolbarSectionProps {
 	onOpenHeaderFooter?: () => void;
 	onOpenShareDialog?: () => void;
 	onOpenFile?: () => void;
+	onOpenRecentFile?: (key: string) => void;
 	onToggleFormatPainter?: () => void;
 	/** Title-bar wiring (PowerPoint-style top chrome row). */
 	fileName?: string;
@@ -162,6 +171,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		onOpenHeaderFooter,
 		onOpenShareDialog,
 		onOpenFile,
+		onOpenRecentFile,
 		onToggleFormatPainter: onToggleFormatPainterProp,
 		fileName,
 		autosaveStatus,
@@ -383,6 +393,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				/>
 			)}
 			<Toolbar
+				fileName={fileName}
 				mode={mode}
 				canEdit={canEdit}
 				isNarrowViewport={dialogs.isNarrowViewport}
@@ -468,6 +479,15 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onExportGif={exportHandlers.handleExportGif}
 				onPackageForSharing={exportHandlers.handlePackageForSharing}
 				onOpenFile={onOpenFile}
+				onOpenRecentFile={onOpenRecentFile}
+				onCreatePresentation={(templateId) => {
+					s.setSlides(createBackstagePresentation(templateId));
+					s.setActiveSlideIndex(0);
+					s.setSelectedElementId(null);
+					s.setSelectedElementIds([]);
+					s.setTemplateElementsBySlideId({});
+					s.setIsDirty(true);
+				}}
 				onOpenShareDialog={onOpenShareDialog}
 				onSaveAsPptx={exportHandlers.handleSaveAsPptx}
 				onSaveAsPpsx={exportHandlers.handleSaveAsPpsx}

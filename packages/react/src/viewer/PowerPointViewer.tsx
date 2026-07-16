@@ -19,7 +19,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
  * The component exposes a `PowerPointViewerHandle` via `forwardRef` so host
  * applications can call `getContent()` to retrieve the current file bytes.
  */
-import { buildUserFontFaceStyles, openPptxFile } from 'pptx-viewer-shared';
+import { buildUserFontFaceStyles, openPptxFile, readBackstageRecentFile } from 'pptx-viewer-shared';
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 
 import { ViewerThemeProvider, useThemeStyle } from '../theme';
@@ -40,9 +40,9 @@ import {
 	FollowModeBar,
 } from './components/collaboration';
 import { SmartArt3DContext } from './components/elements/smart-art-3d-context';
+import { HeaderFooterPanel } from './components/HeaderFooterPanel';
 import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
 import { SettingsDialog } from './components/SettingsDialog';
-import { HeaderFooterPanel } from './components/HeaderFooterPanel';
 import { ViewerDialogGroup } from './components/ViewerDialogGroup';
 import { ViewerMainContent } from './components/ViewerMainContent';
 import { ViewerPresentationLayer } from './components/ViewerPresentationLayer';
@@ -141,6 +141,14 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				}
 			})();
 		}, [hostOpenFile]);
+		const handleOpenRecentFile = useCallback((key: string) => {
+			void (async () => {
+				const bytes = await readBackstageRecentFile(key);
+				if (bytes) {
+					setContent(bytes);
+				}
+			})();
+		}, []);
 
 		// ── Settings dialog ─────────────────────────────────────────
 		const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -487,6 +495,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									onOpenHeaderFooter={() => setIsHeaderFooterOpen(true)}
 									onOpenShareDialog={() => setIsShareDialogOpen(true)}
 									onOpenFile={handleOpenFile}
+									onOpenRecentFile={handleOpenRecentFile}
 									fileName={fileName}
 									autosaveStatus={autosaveStatus}
 									autosaveEnabled={autosaveEnabled}

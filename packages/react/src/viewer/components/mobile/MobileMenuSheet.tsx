@@ -19,15 +19,12 @@ import {
 import { cn } from '../../utils';
 import { AnimationsSection } from '../toolbar/AnimationsSection';
 import { ArrangeSection } from '../toolbar/ArrangeSection';
-import {
-	DesignSection,
-	TransitionsSection,
-	ReviewSection,
-} from '../toolbar/DesignTransitionsReviewSection';
+import { DesignSection, TransitionsSection } from '../toolbar/DesignTransitionsReviewSection';
 import { DrawSection } from '../toolbar/DrawSection';
 import { FileSection } from '../toolbar/FileSection';
 import { HomeSection } from '../toolbar/HomeSection';
 import { InsertSection } from '../toolbar/InsertSection';
+import { ReviewSection } from '../toolbar/ReviewSection';
 import { SlideShowSection } from '../toolbar/SlideShowSection';
 import { TextSection } from '../toolbar/TextSection';
 import type { ToolbarProps } from '../toolbar/toolbar-types';
@@ -316,7 +313,11 @@ function MobileSectionBody({
 			return (
 				<div className={wrap}>
 					<FileSection
+						fileName={p.fileName}
+						onClose={() => p.onSetToolbarSection('home')}
+						onCreatePresentation={p.onCreatePresentation}
 						onOpenFile={p.onOpenFile}
+						onOpenRecentFile={p.onOpenRecentFile}
 						onExportPng={p.onExportPng}
 						onExportPdf={p.onExportPdf}
 						onExportVideo={p.onExportVideo}
@@ -328,6 +329,8 @@ function MobileSectionBody({
 						hasMacros={p.hasMacros}
 						onCopySlideAsImage={p.onCopySlideAsImage}
 						onPrint={p.onPrint}
+						onOpenSettings={p.onOpenSettings}
+						onOpenShareDialog={p.onOpenShareDialog}
 						onOpenDocumentProperties={p.onOpenDocumentProperties}
 						onOpenPasswordProtection={p.onOpenPasswordProtection}
 						onOpenFontEmbedding={p.onOpenFontEmbedding}

@@ -2,17 +2,12 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
 	LuCopy,
-	LuGitCompare,
-	LuGlobe,
-	LuMessageSquare,
 	LuMonitor,
 	LuPaintBucket,
 	LuPalette,
 	LuPanelRight,
 	LuPencil,
 	LuPlay,
-	LuShieldCheck,
-	LuSpellCheck,
 } from 'react-icons/lu';
 
 import { cn } from '../../utils';
@@ -231,85 +226,6 @@ export function TransitionsSection(p: TransitionsSectionProps): React.ReactEleme
 				<LuPanelRight className={ic} />
 				{t('pptx.ribbon.inspector')}
 			</button>
-		</>
-	);
-}
-
-/* ── Review ────────────────────────────────────────────── */
-
-export interface ReviewSectionProps {
-	canEdit: boolean;
-	spellCheckEnabled: boolean;
-	onSetSpellCheckEnabled: (enabled: boolean) => void;
-	onToggleComments?: () => void;
-	isCommentsPanelOpen?: boolean;
-	slideCommentCount?: number;
-	onCompare?: () => void;
-	onOpenAccessibilityCheck?: () => void;
-	onSetLanguage?: () => void;
-}
-
-export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
-	const { t } = useTranslation();
-
-	return (
-		<>
-			{p.onToggleComments && (
-				<button
-					onClick={p.onToggleComments}
-					className={cn(
-						pill,
-						p.isCommentsPanelOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
-					)}
-					title={t('pptx.review.toggleComments')}
-				>
-					<LuMessageSquare className={ic} />
-					{t('pptx.toolbar.comments')}
-					{(p.slideCommentCount ?? 0) > 0 && (
-						<span className='inline-flex items-center justify-center min-w-[16px] h-4 rounded-full bg-amber-500 text-[10px] font-medium text-white px-1'>
-							{p.slideCommentCount}
-						</span>
-					)}
-				</button>
-			)}
-			<button
-				onClick={() => p.onSetSpellCheckEnabled(!p.spellCheckEnabled)}
-				className={cn(pill, p.spellCheckEnabled ? 'bg-primary hover:bg-primary/80 text-white' : '')}
-				title={t('pptx.review.toggleSpellCheck')}
-			>
-				<LuSpellCheck className={ic} />
-				{t('pptx.review.spelling')}
-			</button>
-			{p.onCompare && (
-				<button
-					onClick={p.onCompare}
-					disabled={!p.canEdit}
-					className={pill}
-					title={t('pptx.ribbon.compareTitle')}
-				>
-					<LuGitCompare className={ic} />
-					{t('pptx.ribbon.compare')}
-				</button>
-			)}
-
-			{sep}
-
-			{p.onSetLanguage && (
-				<button onClick={p.onSetLanguage} className={pill} title={t('pptx.review.languageTooltip')}>
-					<LuGlobe className={ic} />
-					{t('pptx.review.language')}
-				</button>
-			)}
-			{p.onOpenAccessibilityCheck && (
-				<button
-					onClick={p.onOpenAccessibilityCheck}
-					className={pill}
-					title={t('pptx.review.accessibilityCheckTooltip')}
-				>
-					<LuShieldCheck className={ic} />
-					{t('pptx.review.accessibilityCheck')}
-				</button>
-			)}
 		</>
 	);
 }

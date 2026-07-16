@@ -1,154 +1,169 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuChevronDown, LuPanelRight, LuPlay, LuSparkles, LuTrash2 } from 'react-icons/lu';
+import {
+	LuClock3,
+	LuMousePointerClick,
+	LuMoveRight,
+	LuPaintbrush,
+	LuPanelRight,
+	LuPlay,
+	LuSparkles,
+	LuStar,
+	LuTrash2,
+} from 'react-icons/lu';
 
-import { cn } from '../../utils';
-import { ic, pill, sep } from './toolbar-constants';
+import { RibbonCommand, RibbonCommandStack, RibbonGroup } from './PowerPointRibbonControls';
 
 export interface AnimationsSectionProps {
 	canEdit: boolean;
 	selectedElement: PptxElement | null;
 	isInspectorPaneOpen: boolean;
 	onToggleInspector: () => void;
-	/** Opens the inspector and switches to properties tab to show the animation panel. */
 	onOpenAnimationPanel?: () => void;
-	/** Adds an animation preset to the selected element. */
 	onAddAnimation?: (preset: string, group: 'entrance' | 'emphasis' | 'exit') => void;
-	/** Removes all animations from the selected element. */
 	onRemoveAnimation?: () => void;
 }
 
-/* Preset categories shown in the "Add Animation" dropdown. */
-const ANIMATION_PRESETS = [
-	{
-		group: 'Entrance',
-		items: [
-			{ value: 'appear', label: 'Appear' },
-			{ value: 'fadeIn', label: 'Fade In' },
-			{ value: 'flyIn', label: 'Fly In' },
-		],
-	},
-	{
-		group: 'Emphasis',
-		items: [
-			{ value: 'pulse', label: 'Pulse' },
-			{ value: 'spin', label: 'Spin' },
-		],
-	},
-	{
-		group: 'Exit',
-		items: [
-			{ value: 'disappear', label: 'Disappear' },
-			{ value: 'fadeOut', label: 'Fade Out' },
-		],
-	},
+const GALLERY = [
+	{ value: 'appear', label: 'Appear', group: 'entrance', tone: 'text-emerald-500' },
+	{ value: 'fadeIn', label: 'Fade In', group: 'entrance', tone: 'text-emerald-500' },
+	{ value: 'flyIn', label: 'Fly In', group: 'entrance', tone: 'text-emerald-500' },
+	{ value: 'pulse', label: 'Pulse', group: 'emphasis', tone: 'text-amber-500' },
+	{ value: 'spin', label: 'Spin', group: 'emphasis', tone: 'text-amber-500' },
+	{ value: 'fadeOut', label: 'Fade Out', group: 'exit', tone: 'text-red-500' },
 ] as const;
 
 export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement {
 	const { t } = useTranslation();
 	const [previewActive, setPreviewActive] = useState(false);
-	const hasElement = p.selectedElement !== null;
-	const disabled = !p.canEdit || !hasElement;
-
-	const handlePreview = () => {
+	const disabled = !p.canEdit || p.selectedElement === null;
+	const preview = () => {
 		if (disabled) {
 			return;
 		}
 		setPreviewActive(true);
-		// Reset after a short delay to re-enable the button
 		setTimeout(() => setPreviewActive(false), 1200);
 	};
-
 	return (
 		<>
-			{/* Preview */}
-			<button
-				type='button'
-				onClick={handlePreview}
-				disabled={disabled}
-				className={cn(pill, previewActive ? 'bg-primary hover:bg-primary/80 text-white' : '')}
-				title={t('pptx.animations.previewTooltip')}
-			>
-				<LuPlay className={ic} />
-				{t('pptx.animations.preview')}
-			</button>
-
-			{sep}
-
-			{/* Add Animation dropdown */}
-			<div className='relative group'>
-				<button
-					type='button'
+			<RibbonGroup label={t('pptx.animations.preview')}>
+				<RibbonCommand
+					label={t('pptx.animations.preview')}
+					icon={<LuPlay />}
+					onClick={preview}
 					disabled={disabled}
-					className={pill}
-					title={t('pptx.animations.addTooltip')}
+					active={previewActive}
+					title='Preview animation on selected element'
+				/>
+			</RibbonGroup>
+			<RibbonGroup
+				label={t('pptx.animations.animation', { defaultValue: 'Animation' })}
+				className='max-w-[430px] overflow-hidden'
+			>
+				<div
+					className='flex h-[58px] items-stretch overflow-hidden rounded-sm border border-border/60 bg-muted/30'
+					title='Add animation to selected element'
+					aria-label='Add Animation: Entrance, Emphasis, and Exit effects'
 				>
-					<LuSparkles className={ic} />
-					{t('pptx.animations.addAnimation')}
-					<LuChevronDown className='w-3 h-3' />
-				</button>
-				<div className='absolute left-0 top-full z-50 hidden group-hover:flex flex-col w-44 pt-1'>
-					<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1'>
-						{ANIMATION_PRESETS.map((group) => (
-							<React.Fragment key={group.group}>
-								<div className='px-3 pt-1.5 pb-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider'>
-									{t(`pptx.animations.group.${group.group.toLowerCase()}`)}
-								</div>
-								{group.items.map((item) => (
-									<button
-										key={item.value}
-										type='button'
-										disabled={disabled}
-										onClick={() =>
-											p.onAddAnimation?.(
-												item.value,
-												group.group.toLowerCase() as 'entrance' | 'emphasis' | 'exit',
-											)
-										}
-										className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
-										title={t('pptx.animations.applyAnimation', {
-											name: t(`pptx.animations.preset.${item.value}`),
-										})}
-									>
-										{t(`pptx.animations.preset.${item.value}`)}
-									</button>
-								))}
-							</React.Fragment>
-						))}
-					</div>
+					<span className='sr-only'>Add Animation Entrance Emphasis Exit</span>
+					{GALLERY.map((item) => (
+						<button
+							key={item.value}
+							type='button'
+							disabled={disabled}
+							onClick={() => p.onAddAnimation?.(item.value, item.group)}
+							className='flex w-[62px] shrink-0 flex-col items-center justify-center gap-0.5 border-r border-border/40 px-1 text-[9px] leading-3 text-foreground hover:bg-accent disabled:opacity-35'
+							title={item.label}
+						>
+							<LuStar className={`h-6 w-6 fill-current ${item.tone}`} aria-hidden='true' />
+							<span>{item.label}</span>
+						</button>
+					))}
 				</div>
-			</div>
-
-			{sep}
-
-			{/* Remove Animation */}
-			<button
-				type='button'
-				disabled={disabled}
-				onClick={p.onRemoveAnimation}
-				className={pill}
-				title={t('pptx.animations.removeTooltip')}
-			>
-				<LuTrash2 className={ic} />
-				{t('pptx.animations.remove')}
-			</button>
-
-			{sep}
-
-			{/* Animation Panel toggle */}
-			<button
-				type='button'
-				onClick={p.onOpenAnimationPanel ?? p.onToggleInspector}
-				className={cn(
-					pill,
-					p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
-				)}
-				title={t('pptx.animations.openPanelTooltip')}
-			>
-				<LuPanelRight className={ic} />
-				{t('pptx.animations.animationPanel')}
-			</button>
+			</RibbonGroup>
+			<RibbonGroup label={t('pptx.animations.advanced', { defaultValue: 'Advanced Animation' })}>
+				<RibbonCommand
+					label={t('pptx.animations.exitEffects', { defaultValue: 'Exit Effects' })}
+					icon={<LuStar className='text-red-500' />}
+					onClick={() => p.onAddAnimation?.('fadeOut', 'exit')}
+					disabled={disabled}
+				/>
+				<RibbonCommand
+					label={t('pptx.animations.pathAnimation', { defaultValue: 'Path Animation' })}
+					icon={<LuMoveRight />}
+					onClick={() => p.onAddAnimation?.('flyIn', 'entrance')}
+					disabled={disabled}
+				/>
+				<RibbonCommandStack>
+					<RibbonCommand
+						compact
+						label={t('pptx.animations.effectOptions', { defaultValue: 'Effect Options' })}
+						icon={<LuSparkles />}
+						onClick={p.onOpenAnimationPanel ?? p.onToggleInspector}
+						disabled={disabled}
+					/>
+					<RibbonCommand
+						compact
+						label={t('pptx.animations.animationPanel')}
+						icon={<LuPanelRight />}
+						onClick={p.onOpenAnimationPanel ?? p.onToggleInspector}
+						active={p.isInspectorPaneOpen}
+						title='Open Animation Panel in Inspector'
+					/>
+				</RibbonCommandStack>
+				<RibbonCommandStack>
+					<RibbonCommand
+						compact
+						label={t('pptx.animations.trigger', { defaultValue: 'Trigger' })}
+						icon={<LuMousePointerClick />}
+						onClick={p.onOpenAnimationPanel ?? p.onToggleInspector}
+						disabled={disabled}
+					/>
+					<RibbonCommand
+						compact
+						label={t('pptx.animations.painter', { defaultValue: 'Animation Painter' })}
+						icon={<LuPaintbrush />}
+						disabled
+					/>
+				</RibbonCommandStack>
+				<RibbonCommand
+					label={t('pptx.animations.remove')}
+					icon={<LuTrash2 />}
+					onClick={p.onRemoveAnimation}
+					disabled={disabled}
+					title='Remove animation from selected element'
+				/>
+			</RibbonGroup>
+			<RibbonGroup label={t('pptx.animations.timing', { defaultValue: 'Timing' })}>
+				<div className='grid grid-cols-[48px_82px] items-center gap-x-1 gap-y-1 text-[10px]'>
+					<label htmlFor='pptx-animation-start'>
+						{t('pptx.animations.start', { defaultValue: 'Start' })}
+					</label>
+					<select
+						id='pptx-animation-start'
+						disabled
+						className='h-6 rounded-sm border border-border bg-muted px-1 text-[10px]'
+					>
+						<option>{t('pptx.animations.onClick', { defaultValue: 'On Click' })}</option>
+						<option>{t('pptx.animations.withPrevious', { defaultValue: 'With Previous' })}</option>
+						<option>
+							{t('pptx.animations.afterPrevious', { defaultValue: 'After Previous' })}
+						</option>
+					</select>
+					<span className='flex items-center gap-1'>
+						<LuClock3 /> {t('pptx.animations.duration', { defaultValue: 'Duration' })}
+					</span>
+					<input
+						type='number'
+						min='0'
+						step='0.1'
+						defaultValue='0.5'
+						disabled
+						className='h-6 rounded-sm border border-border bg-muted px-1 text-[10px]'
+					/>
+				</div>
+			</RibbonGroup>
 		</>
 	);
 }

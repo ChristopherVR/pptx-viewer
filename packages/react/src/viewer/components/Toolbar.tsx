@@ -6,17 +6,15 @@ import { cn } from '../utils';
 import { MobileToolbar } from './mobile/MobileToolbar';
 import { AnimationsSection } from './toolbar/AnimationsSection';
 import { ArrangeSection } from './toolbar/ArrangeSection';
-import {
-	DesignSection,
-	TransitionsSection,
-	ReviewSection,
-} from './toolbar/DesignTransitionsReviewSection';
+import { DesignSection, TransitionsSection } from './toolbar/DesignTransitionsReviewSection';
 import { DrawingGroup } from './toolbar/DrawingGroup';
 import { DrawSection } from './toolbar/DrawSection';
 import { EditingSection } from './toolbar/EditingSection';
 import { FileSection } from './toolbar/FileSection';
 import { HomeSection } from './toolbar/HomeSection';
 import { InsertSection } from './toolbar/InsertSection';
+import { RecordSection } from './toolbar/RecordSection';
+import { ReviewSection } from './toolbar/ReviewSection';
 import { SlideShowSection } from './toolbar/SlideShowSection';
 import { TabRowActions } from './toolbar/TabRowActions';
 import { TextSection } from './toolbar/TextSection';
@@ -121,13 +119,17 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 			{showRibbon && (
 				<div
 					className={cn(
-						'flex items-center gap-1.5 px-2 py-1 max-md:px-1 max-md:py-0.5 overflow-visible flex-nowrap',
+						'flex min-h-[82px] items-stretch gap-0 overflow-visible px-1 py-0.5 max-md:min-h-0 max-md:px-1 max-md:py-0.5 flex-nowrap',
 						isNarrowViewport && !isCompactToolbarOpen && 'hidden',
 					)}
 				>
 					{sFil && (
 						<FileSection
+							fileName={p.fileName}
+							onClose={() => p.onSetToolbarSection('home')}
+							onCreatePresentation={p.onCreatePresentation}
 							onOpenFile={p.onOpenFile}
+							onOpenRecentFile={p.onOpenRecentFile}
 							onExportPng={p.onExportPng}
 							onExportPdf={p.onExportPdf}
 							onExportVideo={p.onExportVideo}
@@ -139,6 +141,8 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							hasMacros={p.hasMacros}
 							onCopySlideAsImage={p.onCopySlideAsImage}
 							onPrint={p.onPrint}
+							onOpenSettings={p.onOpenSettings}
+							onOpenShareDialog={p.onOpenShareDialog}
 							onOpenDocumentProperties={p.onOpenDocumentProperties}
 							onOpenPasswordProtection={p.onOpenPasswordProtection}
 							onOpenFontEmbedding={p.onOpenFontEmbedding}
@@ -285,10 +289,10 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 					)}
 
 					{sRec && (
-						<div className='flex items-center gap-2 px-2'>
-							<span className='inline-block w-3 h-3 rounded-full bg-red-500' />
-							<span className='text-xs text-foreground'>Record</span>
-						</div>
+						<RecordSection
+							onRecordFromBeginning={p.onEnterRehearsalMode ?? (() => {})}
+							onRecordFromCurrent={p.onEnterRehearsalMode ?? (() => {})}
+						/>
 					)}
 
 					{sRev && (
@@ -300,6 +304,8 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							isCommentsPanelOpen={p.isCommentsPanelOpen}
 							slideCommentCount={p.slideCommentCount}
 							onCompare={p.onCompare}
+							onOpenAccessibilityCheck={p.onRunAccessibilityCheck}
+							onSetLanguage={p.onOpenSettings}
 						/>
 					)}
 
@@ -324,6 +330,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onToggleSelectionPane={p.onToggleSelectionPane}
 							eyedropperActive={p.eyedropperActive}
 							onToggleEyedropper={p.onToggleEyedropper}
+							onZoomToFit={p.onZoomToFit}
 						/>
 					)}
 
