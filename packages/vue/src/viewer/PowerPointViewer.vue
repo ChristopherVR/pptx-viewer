@@ -1341,9 +1341,6 @@ async function compareWithPresentation(): Promise<void> {
 	}
 }
 
-// ── Viewer settings ───────────────────────────────────────────────────
-const { showSettings, viewerSettings, onSettingsUpdate } = useViewerSettingsDialog();
-
 // ── Keyboard shortcuts ────────────────────────────────────────────────
 // A config-driven registry (mirrors React `useKeyboardShortcuts`) replaces the
 // old ad-hoc Ctrl+Z/Y/Delete handling. Find (Ctrl+F) and the shortcut-help
@@ -1392,6 +1389,17 @@ const {
 	themeEditorOpen,
 	eyedropperActive,
 } = useRibbonUiState();
+
+// ── Viewer settings ───────────────────────────────────────────────────
+const reducedMotion = ref(false);
+const { showSettings, viewerSettings, onSettingsUpdate } = useViewerSettingsDialog({
+	autoSave: autosaveEnabled,
+	spellCheck: spellCheckEnabled,
+	showGrid,
+	showRulers,
+	snapToGrid,
+	reducedMotion,
+});
 
 const { drawingActive, addInkStroke, eraseInkAt } = useInkDrawing({
 	canEdit: () => props.canEdit,
@@ -1758,7 +1766,7 @@ function handleCommandSearch(command: string): void {
 	<div
 		ref="viewerRootRef"
 		class="pptx-vue-viewer"
-		:class="props.class"
+		:class="[props.class, { 'pptx-vue-reduced-motion': reducedMotion }]"
 		:style="themeStyle"
 		:aria-busy="loading ? 'true' : 'false'"
 		:tabindex="props.canEdit ? 0 : undefined"
@@ -2205,6 +2213,14 @@ function handleCommandSearch(command: string): void {
 
 			<!-- Keyboard shortcut help -->
 			<ShortcutPanel :open="showShortcuts" @close="showShortcuts = false" />
+
+			<!-- File / Help ▸ Settings -->
+			<SettingsDialog
+				:open="showSettings"
+				:settings="viewerSettings"
+				@update="onSettingsUpdate"
+				@close="showSettings = false"
+			/>
 
 			<!-- Header & footer -->
 			<ModalDialog

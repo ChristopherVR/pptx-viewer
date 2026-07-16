@@ -1,4 +1,14 @@
 <script setup lang="ts">
+import {
+	captionDisplayText,
+	getSpeechRecognitionCtor,
+	mergeCaptionResults,
+} from 'pptx-viewer-shared';
+import type {
+	SpeechRecognitionEventLite,
+	SpeechRecognitionLite,
+	SpeechSupportState,
+} from 'pptx-viewer-shared';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -12,47 +22,6 @@ import { useI18n } from 'vue-i18n';
  * the recogniser and clears the caption.
  */
 
-interface SpeechRecognitionAlternativeLite {
-	transcript: string;
-	confidence: number;
-}
-
-interface SpeechRecognitionResultLite {
-	readonly isFinal: boolean;
-	readonly length: number;
-	item: (index: number) => SpeechRecognitionAlternativeLite;
-	[index: number]: SpeechRecognitionAlternativeLite;
-}
-
-interface SpeechRecognitionResultListLite {
-	readonly length: number;
-	item: (index: number) => SpeechRecognitionResultLite;
-	[index: number]: SpeechRecognitionResultLite;
-}
-
-interface SpeechRecognitionEventLite extends Event {
-	readonly resultIndex: number;
-	readonly results: SpeechRecognitionResultListLite;
-}
-
-interface SpeechRecognitionLite extends EventTarget {
-	continuous: boolean;
-	interimResults: boolean;
-	lang: string;
-	onresult: ((event: SpeechRecognitionEventLite) => void) | null;
-	onerror: ((event: Event) => void) | null;
-	onend: (() => void) | null;
-	start: () => void;
-	stop: () => void;
-}
-
-type SpeechRecognitionCtor = new () => SpeechRecognitionLite;
-
-interface WindowWithSpeechRecognition {
-	SpeechRecognition?: SpeechRecognitionCtor;
-	webkitSpeechRecognition?: SpeechRecognitionCtor;
-}
-
 const props = defineProps<{
 	visible: boolean;
 }>();
@@ -60,7 +29,7 @@ const props = defineProps<{
 const { t } = useI18n();
 
 const captionText = ref('');
-const supportState = ref<'unknown' | 'supported' | 'unsupported'>('unknown');
+const supportState = ref<SpeechSupportState>('unknown');
 
 let recognition: SpeechRecognitionLite | null = null;
 let shouldRun = false;
@@ -77,8 +46,7 @@ function startRecognition(): void {
 		return;
 	}
 	shouldRun = true;
-	const speechWindow = window as unknown as WindowWithSpeechRecognition;
-	const RecognitionCtor = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+	const RecognitionCtor = getSpeechRecognitionCtor();
 	if (!RecognitionCtor) {
 		supportState.value = 'unsupported';
 		return;
@@ -91,18 +59,7 @@ function startRecognition(): void {
 	recog.lang = navigator.language || 'en-US';
 
 	recog.onresult = (event: SpeechRecognitionEventLite): void => {
-		let finalText = '';
-		let interimText = '';
-		for (let index = event.resultIndex; index < event.results.length; index += 1) {
-			const result = event.results[index];
-			const fragment = result?.[0]?.transcript ?? '';
-			if (result?.isFinal) {
-				finalText += fragment;
-			} else {
-				interimText += fragment;
-			}
-		}
-		const merged = `${finalText} ${interimText}`.trim();
+		const merged = mergeCaptionResults(event.resultIndex, event.results);
 		if (merged.length > 0) {
 			captionText.value = merged;
 		}
@@ -145,12 +102,14 @@ watch(
 
 onBeforeUnmount(stopRecognition);
 
-const renderedText = computed<string>(() => {
-	if (supportState.value === 'unsupported') {
-		return t('pptx.subtitles.notSupported');
-	}
-	return captionText.value.length > 0 ? captionText.value : t('pptx.subtitles.listening');
-});
+const renderedText = computed<string>(() =>
+	captionDisplayText(
+		supportState.value,
+		captionText.value,
+		t('pptx.subtitles.notSupported'),
+		t('pptx.subtitles.listening'),
+	),
+);
 </script>
 
 <template>

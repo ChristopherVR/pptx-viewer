@@ -57,6 +57,15 @@
 	}
 }
 
+.pptx-vue-viewer.pptx-vue-reduced-motion *,
+.pptx-vue-viewer.pptx-vue-reduced-motion *::before,
+.pptx-vue-viewer.pptx-vue-reduced-motion *::after {
+	animation-duration: 0.01ms !important;
+	animation-iteration-count: 1 !important;
+	scroll-behavior: auto !important;
+	transition-duration: 0.01ms !important;
+}
+
 .pptx-reduced-motion *,
 .pptx-reduced-motion *::before,
 .pptx-reduced-motion *::after {
