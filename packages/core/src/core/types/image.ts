@@ -52,8 +52,10 @@ export interface PptxImageEffects {
 	artisticEffect?: string;
 	/** Artistic effect radius/amount. */
 	artisticRadius?: number;
-	/** Alpha modulation fixed — overall opacity (0-100, where 100 = fully opaque). */
+	/** Alpha modulation fixed: non-negative percentage (100 means unchanged opacity). */
 	alphaModFix?: number;
+	/** Original alpha modulation fixed node, including foreign attributes. */
+	alphaModFixRawXml?: XmlObject;
 	/** Bi-level threshold — converts to 1-bit black/white (0-100). */
 	biLevel?: number;
 	/** Colour change — swap one colour range for another (used for transparency keying). */
@@ -76,11 +78,17 @@ export interface PptxImageEffects {
 	alphaInv?: {
 		/** Optional baseline colour (hex). */
 		color?: string;
+		/** Original effect XML, including colour transforms and foreign attributes. */
+		rawXml?: XmlObject;
 	};
 	/** Alpha ceiling (`a:alphaCeiling`) — clamps any non-zero alpha to fully opaque. Boolean flag. */
 	alphaCeiling?: boolean;
+	/** Original alpha ceiling node, including foreign attributes. */
+	alphaCeilingRawXml?: XmlObject;
 	/** Alpha floor (`a:alphaFloor`) — clamps any non-fully-opaque alpha to fully transparent. Boolean flag. */
 	alphaFloor?: boolean;
+	/** Original alpha floor node, including foreign attributes. */
+	alphaFloorRawXml?: XmlObject;
 	/**
 	 * Alpha modulate (`a:alphaMod`). The schema requires a single `cont` (effect
 	 * container) child; we preserve the inner XML opaquely for round-trip.
@@ -88,11 +96,17 @@ export interface PptxImageEffects {
 	alphaMod?: {
 		/** Raw opaque XML for the `a:cont` child to preserve on save. */
 		contRawXml?: Record<string, unknown>;
+		/** Original effect XML, including foreign attributes. */
+		rawXml?: XmlObject;
 	};
 	/** Alpha replace (`a:alphaRepl`) — replaces alpha with the given fixed-percent value (0..100). */
 	alphaRepl?: number;
+	/** Original alpha replace node, including foreign attributes. */
+	alphaReplRawXml?: XmlObject;
 	/** Alpha bi-level (`a:alphaBiLevel`) — threshold (0..100) above which alpha becomes fully opaque. */
 	alphaBiLevel?: number;
+	/** Original alpha bi-level node, including foreign attributes. */
+	alphaBiLevelRawXml?: XmlObject;
 	/**
 	 * Colour replace (`a:clrRepl`) — replaces all colour information in an image
 	 * with the given solid colour. Stores the raw colour child to preserve scheme

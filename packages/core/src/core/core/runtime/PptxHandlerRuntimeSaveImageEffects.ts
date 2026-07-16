@@ -1,5 +1,6 @@
 import { XmlObject, TextStyle, TextSegment, ShapeStyle } from '../../types';
 import type { PptxImageLikeElement, PptxImageEffects } from '../../types';
+import { applyImageAlphaEffects } from './image-alpha-effects';
 import { applyImageColorEffects } from './image-color-effects';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveShapeXml';
 
@@ -82,68 +83,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			(node) => this.extractColorOpacity(node),
 		);
 
-		if (typeof nextEffects.alphaModFix === 'number' && Number.isFinite(nextEffects.alphaModFix)) {
-			blip['a:alphaModFix'] = {
-				'@_amt': String(Math.round(nextEffects.alphaModFix * 1000)),
-			};
-		} else {
-			delete blip['a:alphaModFix'];
-		}
-
-		// ── Additional ECMA-376 blip alpha/recolour primitives ──
-		// a:alphaInv
-		if (nextEffects.alphaInv) {
-			const node: XmlObject = {};
-			if (nextEffects.alphaInv.color) {
-				node['a:srgbClr'] = {
-					'@_val': nextEffects.alphaInv.color.replace('#', ''),
-				};
-			}
-			blip['a:alphaInv'] = node;
-		} else {
-			delete blip['a:alphaInv'];
-		}
-
-		// a:alphaCeiling / a:alphaFloor
-		if (nextEffects.alphaCeiling) {
-			blip['a:alphaCeiling'] = {};
-		} else {
-			delete blip['a:alphaCeiling'];
-		}
-		if (nextEffects.alphaFloor) {
-			blip['a:alphaFloor'] = {};
-		} else {
-			delete blip['a:alphaFloor'];
-		}
-
-		// a:alphaMod — preserve cont child opaquely
-		if (nextEffects.alphaMod) {
-			const node: XmlObject = {};
-			if (nextEffects.alphaMod.contRawXml) {
-				node['a:cont'] = nextEffects.alphaMod.contRawXml as XmlObject;
-			}
-			blip['a:alphaMod'] = node;
-		} else {
-			delete blip['a:alphaMod'];
-		}
-
-		// a:alphaRepl
-		if (typeof nextEffects.alphaRepl === 'number' && Number.isFinite(nextEffects.alphaRepl)) {
-			blip['a:alphaRepl'] = {
-				'@_a': String(Math.round(nextEffects.alphaRepl * 1000)),
-			};
-		} else {
-			delete blip['a:alphaRepl'];
-		}
-
-		// a:alphaBiLevel
-		if (typeof nextEffects.alphaBiLevel === 'number' && Number.isFinite(nextEffects.alphaBiLevel)) {
-			blip['a:alphaBiLevel'] = {
-				'@_thresh': String(Math.round(nextEffects.alphaBiLevel * 1000)),
-			};
-		} else {
-			delete blip['a:alphaBiLevel'];
-		}
+		applyImageAlphaEffects(blip, nextEffects, (node) => this.parseColor(node));
 
 		// a:lum
 		if (nextEffects.lum) {

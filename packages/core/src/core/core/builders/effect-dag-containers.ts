@@ -29,7 +29,11 @@ import type {
 	EffectDagXfrm,
 	XmlObject,
 } from '../../types';
-import { parseEffectDagBlur, parseEffectDagPresetShadow } from './effect-dag-primitives';
+import {
+	parseEffectDagAlphaOutset,
+	parseEffectDagBlur,
+	parseEffectDagPresetShadow,
+} from './effect-dag-primitives';
 import { serializeEffectDagContainerNode } from './effect-dag-serializer';
 
 const STRUCTURAL_TAGS = new Set<string>(['cont', 'blend', 'xfrmEffect', 'relOff']);
@@ -141,6 +145,9 @@ function parseChild(tag: string, value: unknown): EffectDagNode | undefined {
 	}
 	if (localTag === 'blur') {
 		return parseEffectDagBlur(value);
+	}
+	if (localTag === 'alphaOutset') {
+		return parseEffectDagAlphaOutset(value);
 	}
 	if (localTag === 'prstShdw') {
 		return parseEffectDagPresetShadow(value);

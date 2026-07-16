@@ -1,5 +1,9 @@
 import type { EffectDagContainer, EffectDagNode, XmlObject } from '../../types';
-import { serializeEffectDagBlur, serializeEffectDagPresetShadow } from './effect-dag-primitives';
+import {
+	serializeEffectDagAlphaOutset,
+	serializeEffectDagBlur,
+	serializeEffectDagPresetShadow,
+} from './effect-dag-primitives';
 
 export function serializeEffectDagContainerNode(container: EffectDagContainer): XmlObject {
 	const xml: XmlObject = { '@_type': container.type };
@@ -26,6 +30,8 @@ function appendChild(parent: XmlObject, child: EffectDagNode): void {
 		push(parent, 'a:relOff', numericAttributes(child, ['tx', 'ty']));
 	} else if (child.kind === 'blur') {
 		push(parent, 'a:blur', serializeEffectDagBlur(child));
+	} else if (child.kind === 'alphaOutset') {
+		push(parent, 'a:alphaOutset', serializeEffectDagAlphaOutset(child));
 	} else if (child.kind === 'prstShdw') {
 		push(parent, 'a:prstShdw', serializeEffectDagPresetShadow(child));
 	} else {

@@ -120,3 +120,37 @@ describe('typed effectDag blur and preset shadow primitives', () => {
 		});
 	});
 });
+
+describe('typed effectDag alpha outset primitive', () => {
+	it('parses and edits a signed coordinate while preserving foreign attributes', () => {
+		const tree = parseEffectDagContainer({
+			'd:alphaOutset': { '@_rad': '-12700', '@_vendor': 'kept' },
+		})!;
+		const outset = tree.children[0];
+		expect(outset).toMatchObject({ kind: 'alphaOutset', radiusEmu: -12700 });
+		if (outset?.kind !== 'alphaOutset') {
+			throw new Error('expected alpha outset');
+		}
+		outset.radiusEmu = 25400;
+		expect(serializeEffectDagContainer(tree)?.['a:alphaOutset']).toStrictEqual({
+			'@_rad': '25400',
+			'@_vendor': 'kept',
+		});
+	});
+
+	it('does not expose a coordinate outside the ST_Coordinate bounds', () => {
+		const tree = parseEffectDagContainer({
+			'a:alphaOutset': { '@_rad': '27273042316901' },
+		})!;
+		expect(tree.children[0]).toMatchObject({ kind: 'alphaOutset' });
+		expect(tree.children[0]).not.toHaveProperty('radiusEmu');
+	});
+
+	it('applies and preserves the default zero radius', () => {
+		const tree = parseEffectDagContainer({ 'a:alphaOutset': { '@_vendor': 'kept' } })!;
+		expect(tree.children[0]).toMatchObject({ kind: 'alphaOutset', radiusEmu: 0 });
+		expect(serializeEffectDagContainer(tree)?.['a:alphaOutset']).toStrictEqual({
+			'@_vendor': 'kept',
+		});
+	});
+});

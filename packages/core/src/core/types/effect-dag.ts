@@ -9,6 +9,7 @@ export type EffectDagNode =
 	| EffectDagXfrm
 	| EffectDagRelOff
 	| EffectDagBlur
+	| EffectDagAlphaOutset
 	| EffectDagPresetShadow
 	| EffectDagRawLeaf;
 
@@ -46,6 +47,13 @@ export interface EffectDagBlur {
 	kind: 'blur';
 	radiusEmu?: number;
 	grow?: boolean;
+	xml: XmlObject;
+}
+
+/** Typed CT_AlphaOutsetEffect with original XML retained for lossless edits. */
+export interface EffectDagAlphaOutset {
+	kind: 'alphaOutset';
+	radiusEmu?: number;
 	xml: XmlObject;
 }
 

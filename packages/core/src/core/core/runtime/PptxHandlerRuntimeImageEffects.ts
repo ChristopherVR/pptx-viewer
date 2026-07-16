@@ -1,6 +1,7 @@
 import { XmlObject } from '../../types';
 import type { PptxImageEffects, MediaBookmark } from '../../types';
 import { xmlAttr, xmlChild } from '../../utils/xml-access';
+import { parseImageAlphaEffects } from './image-alpha-effects';
 import { parseImageColorEffects } from './image-color-effects';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTableStylesAndActions';
 
@@ -61,71 +62,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			hasAny = true;
 		}
 
-		// Alpha modulation fixed — overall opacity
-		const alphaModFix = blip['a:alphaModFix'] as XmlObject | undefined;
-		if (alphaModFix) {
-			const amt = alphaModFix['@_amt'];
-			if (amt !== undefined) {
-				// amt is in 1/1000ths of a percent (e.g. 50000 = 50%)
-				const pct = parseInt(String(amt)) / 1000;
-				if (Number.isFinite(pct)) {
-					effects.alphaModFix = pct;
-					hasAny = true;
-				}
-			}
-		}
-
-		// ── Additional ECMA-376 blip alpha/recolour primitives ──
-		// a:alphaInv — invert alpha; optional colour child shifts the inversion baseline
-		const alphaInv = blip['a:alphaInv'] as XmlObject | undefined;
-		if (alphaInv) {
-			const color = this.parseColor(alphaInv);
-			effects.alphaInv = color ? { color } : {};
+		const alphaEffects = parseImageAlphaEffects(blip, (node) => this.parseColor(node));
+		Object.assign(effects, alphaEffects);
+		if (Object.keys(alphaEffects).length > 0) {
 			hasAny = true;
-		}
-
-		// a:alphaCeiling / a:alphaFloor — empty boolean flags
-		if (blip['a:alphaCeiling']) {
-			effects.alphaCeiling = true;
-			hasAny = true;
-		}
-		if (blip['a:alphaFloor']) {
-			effects.alphaFloor = true;
-			hasAny = true;
-		}
-
-		// a:alphaMod — alpha modulation by sub-effect tree (preserve cont child opaquely)
-		const alphaMod = blip['a:alphaMod'] as XmlObject | undefined;
-		if (alphaMod) {
-			const cont = alphaMod['a:cont'] as XmlObject | undefined;
-			effects.alphaMod = cont ? { contRawXml: cont as Record<string, unknown> } : {};
-			hasAny = true;
-		}
-
-		// a:alphaRepl — alpha replace (@_a fixed-percent in 1/1000ths of a percent)
-		const alphaRepl = blip['a:alphaRepl'] as XmlObject | undefined;
-		if (alphaRepl) {
-			const a = alphaRepl['@_a'];
-			if (a !== undefined) {
-				const pct = parseInt(String(a)) / 1000;
-				if (Number.isFinite(pct)) {
-					effects.alphaRepl = pct;
-					hasAny = true;
-				}
-			}
-		}
-
-		// a:alphaBiLevel — alpha bi-level (@_thresh in 1/1000ths of a percent)
-		const alphaBiLevelNode = blip['a:alphaBiLevel'] as XmlObject | undefined;
-		if (alphaBiLevelNode) {
-			const thresh = alphaBiLevelNode['@_thresh'];
-			if (thresh !== undefined) {
-				const pct = parseInt(String(thresh)) / 1000;
-				if (Number.isFinite(pct)) {
-					effects.alphaBiLevel = pct;
-					hasAny = true;
-				}
-			}
 		}
 
 		// a:lum — luminance modulation (@_bright, @_contrast in 1/1000ths of a percent)

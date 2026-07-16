@@ -1,4 +1,9 @@
-import type { EffectDagBlur, EffectDagPresetShadow, XmlObject } from '../../types';
+import type {
+	EffectDagAlphaOutset,
+	EffectDagBlur,
+	EffectDagPresetShadow,
+	XmlObject,
+} from '../../types';
 
 const PRESET_SHADOW = /^shdw(?:[1-9]|1\d|20)$/;
 
@@ -40,6 +45,21 @@ export function parseEffectDagPresetShadow(value: unknown): EffectDagPresetShado
 	return effect;
 }
 
+export function parseEffectDagAlphaOutset(value: unknown): EffectDagAlphaOutset | undefined {
+	const xml = asXml(value);
+	if (!xml) {
+		return undefined;
+	}
+	const effect: EffectDagAlphaOutset = { kind: 'alphaOutset', xml };
+	const radius = coordinate(xml['@_rad']);
+	if (radius !== undefined) {
+		effect.radiusEmu = radius;
+	} else if (xml['@_rad'] === undefined) {
+		effect.radiusEmu = 0;
+	}
+	return effect;
+}
+
 export function serializeEffectDagBlur(effect: EffectDagBlur): XmlObject {
 	const xml = { ...effect.xml };
 	writeInteger(xml, 'rad', effect.radiusEmu, true);
@@ -66,6 +86,17 @@ export function serializeEffectDagPresetShadow(effect: EffectDagPresetShadow): X
 	return xml;
 }
 
+export function serializeEffectDagAlphaOutset(effect: EffectDagAlphaOutset): XmlObject {
+	const xml = { ...effect.xml };
+	if (effect.radiusEmu === 0 && effect.xml['@_rad'] === undefined) {
+		return xml;
+	}
+	if (coordinate(effect.radiusEmu) !== undefined) {
+		xml['@_rad'] = String(effect.radiusEmu);
+	}
+	return xml;
+}
+
 function asXml(value: unknown): XmlObject | undefined {
 	return value !== null && typeof value === 'object' ? (value as XmlObject) : undefined;
 }
@@ -81,6 +112,13 @@ function integer(value: unknown): number | undefined {
 	}
 	const parsed = Number(value);
 	return Number.isSafeInteger(parsed) ? parsed : undefined;
+}
+
+function coordinate(value: unknown): number | undefined {
+	const parsed = integer(value);
+	return parsed !== undefined && parsed >= -27273042329600 && parsed <= 27273042316900
+		? parsed
+		: undefined;
 }
 
 function positiveFixedAngle(value: unknown): number | undefined {
