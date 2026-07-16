@@ -38,7 +38,7 @@ function buildData(chartData: PptxChartData, series: PptxChartSeries, id: number
 
 function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: number): XmlObject {
 	const result: XmlObject = {
-		'@_layoutId': 'funnel',
+		'@_layoutId': chartData.chartType === 'waterfall' ? 'waterfall' : 'funnel',
 		'cx:tx': { 'cx:txData': { 'cx:v': series.name } },
 	};
 	const spPr = seriesColor(series);
@@ -56,10 +56,10 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 
 /** Whether this writer can currently author the requested ChartEx type. */
 export function canGenerateChartEx(chartData: PptxChartData): boolean {
-	return chartData.chartType === 'funnel';
+	return chartData.chartType === 'funnel' || chartData.chartType === 'waterfall';
 }
 
-/** Build a schema-shaped `cx:chartSpace` tree for an SDK-created funnel chart. */
+/** Build a schema-shaped `cx:chartSpace` tree for an SDK-created extended chart. */
 export function buildChartExSpaceXml(chartData: PptxChartData): XmlObject {
 	if (!canGenerateChartEx(chartData)) {
 		throw new Error(`ChartEx generation is not implemented for ${chartData.chartType}`);
