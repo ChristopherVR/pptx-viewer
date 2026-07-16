@@ -461,3 +461,4 @@ export {
 	type ParsedDrawingMediaReference,
 } from './drawing-media-reference';
 export { parseDrawingLineDash, applyDrawingLineDash } from './drawing-line-dash';
+export { extractStyleReferenceColorXml, withThemePlaceholderColor } from './theme-style-reference';

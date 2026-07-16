@@ -1,42 +1,9 @@
 import { XmlObject, ShapeStyle } from '../../types';
 import type { PptxThemeFillStyle } from '../../types';
+import { extractStyleReferenceColorXml, withThemePlaceholderColor } from '../../utils';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeThemeOverrides';
 
-/**
- * Element names that may appear as the colour child of an
- * `a:lnRef`/`a:fillRef`/`a:effectRef`/`a:fontRef` element per
- * EG_ColorChoice (§20.1.2.3). Order matches OOXML preference (most
- * specific first).
- */
-const COLOR_CHOICE_KEYS = [
-	'a:scrgbClr',
-	'a:srgbClr',
-	'a:hslClr',
-	'a:sysClr',
-	'a:schemeClr',
-	'a:prstClr',
-] as const;
-
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
-	/**
-	 * Pull the verbatim colour-choice child out of a style-matrix-reference
-	 * element (`a:lnRef`/`a:fillRef`/`a:effectRef`/`a:fontRef`). Returns the
-	 * full child object so it can be round-tripped at save time, preserving
-	 * any contained colour transforms (`a:lumMod`, `a:tint`, etc.).
-	 */
-	protected extractRefColorXml(refNode: XmlObject | undefined): XmlObject | undefined {
-		if (!refNode) {
-			return undefined;
-		}
-		for (const key of COLOR_CHOICE_KEYS) {
-			const child = refNode[key];
-			if (child !== undefined) {
-				return { [key]: child } as XmlObject;
-			}
-		}
-		return undefined;
-	}
-
 	/**
 	 * Resolve a `a:effectRef` element into concrete effect properties
 	 * by looking up `@_idx` in the theme format scheme's effect style list.
@@ -48,7 +15,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (Number.isFinite(idx) && idx > 0) {
 			style.effectRefIdx = idx;
 		}
-		const overrideColorXml = this.extractRefColorXml(refNode);
+		const overrideColorXml = extractStyleReferenceColorXml(refNode);
 		if (overrideColorXml) {
 			style.effectRefColorXml = overrideColorXml;
 		}
@@ -61,9 +28,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return; // No fallback for effects — they simply don't render
 		}
 
-		const effectDef = this.themeFormatScheme.effectStyles[idx - 1];
+		let effectDef = this.themeFormatScheme.effectStyles[idx - 1];
 		if (!effectDef) {
 			return;
+		}
+		const overrideColor = this.parseColor(refNode);
+		if (overrideColor && effectDef.rawNode) {
+			effectDef = withThemePlaceholderColor(this.themeColorMap, overrideColor, () => {
+				const reparsed = this.parseEffectStyleList({
+					'a:effectStyle': effectDef.rawNode as XmlObject,
+				});
+				return reparsed[0] ?? effectDef;
+			});
 		}
 
 		// Apply shadow (only if no explicit shadow was already set)
@@ -129,7 +105,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (Number.isFinite(idx) && idx > 0) {
 			style.lnRefIdx = idx;
 		}
-		const overrideColorXml = this.extractRefColorXml(refNode);
+		const overrideColorXml = extractStyleReferenceColorXml(refNode);
 		if (overrideColorXml) {
 			style.lnRefColorXml = overrideColorXml;
 		}
@@ -193,23 +169,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		stops: NonNullable<ShapeStyle['fillGradientStops']>;
 		css: string | undefined;
 	} {
-		// Temporarily inject the phClr mapping so that parseColor resolves it
-		const prevPhClr = this.themeColorMap['phclr'];
-		this.themeColorMap['phclr'] = phClrValue;
-
-		const stops = this.extractGradientStops(gradNode);
-		const type = this.extractGradientType(gradNode);
-		const angle = this.extractGradientAngle(gradNode);
-		const css = this.buildGradientCssFromStops(stops, type, angle);
-
-		// Restore
-		if (prevPhClr !== undefined) {
-			this.themeColorMap['phclr'] = prevPhClr;
-		} else {
-			delete this.themeColorMap['phclr'];
-		}
-
-		return { stops, css };
+		return withThemePlaceholderColor(this.themeColorMap, phClrValue, () => {
+			const stops = this.extractGradientStops(gradNode);
+			const type = this.extractGradientType(gradNode);
+			const angle = this.extractGradientAngle(gradNode);
+			return { stops, css: this.buildGradientCssFromStops(stops, type, angle) };
+		});
 	}
 
 	/**
@@ -231,7 +196,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (Number.isFinite(idx) && idx > 0) {
 			style.fillRefIdx = idx;
 		}
-		const overrideColorXml = this.extractRefColorXml(refNode);
+		const overrideColorXml = extractStyleReferenceColorXml(refNode);
 		if (overrideColorXml) {
 			style.fillRefColorXml = overrideColorXml;
 		}
