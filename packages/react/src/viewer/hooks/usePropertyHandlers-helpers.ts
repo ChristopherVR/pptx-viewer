@@ -1,50 +1,11 @@
 /**
  * Pure helper functions extracted from usePropertyHandlers for testability.
  */
-import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
+import type { PptxSlide } from 'pptx-viewer-core';
 
 import type { SlideDiff, CompareResult } from '../utils/compare';
 
-// ---------------------------------------------------------------------------
-// Font collection
-// ---------------------------------------------------------------------------
-
-/**
- * Collect all unique font families used across all slides, sorted alphabetically.
- */
-export function collectUsedFonts(slides: PptxSlide[]): string[] {
-	const fonts = new Set<string>();
-	for (const slide of slides) {
-		for (const el of slide.elements ?? []) {
-			collectFontsFromElement(el, fonts);
-		}
-	}
-	return Array.from(fonts).sort();
-}
-
-/**
- * Recursively collect font families from a single element.
- */
-export function collectFontsFromElement(el: PptxElement, fonts: Set<string>): void {
-	if (hasTextProperties(el)) {
-		if (el.textStyle?.fontFamily) {
-			fonts.add(el.textStyle.fontFamily);
-		}
-		if (el.textSegments) {
-			for (const seg of el.textSegments) {
-				if (seg.style?.fontFamily) {
-					fonts.add(seg.style.fontFamily);
-				}
-			}
-		}
-	}
-	if (el.type === 'group' && el.children) {
-		for (const child of el.children) {
-			collectFontsFromElement(child, fonts);
-		}
-	}
-}
+export { collectFontsFromElement, collectUsedFonts } from 'pptx-viewer-shared';
 
 // ---------------------------------------------------------------------------
 // Slide accept/reject for compare
