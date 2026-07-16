@@ -25,8 +25,10 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
-import { buildCategoryAxisPlan } from './chart-category-axis';
-import { buildDateAxisPlan } from './chart-date-axis';
+import { computeLayoutOptions } from './chart-axis';
+import { verticalAxisX } from './chart-axis-crossing';
+import { buildPrimaryAxis } from './chart-axis-render';
+import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import type {
 	ChartViewModel,
 	PlotLayout,
@@ -87,19 +89,42 @@ export function buildStockViewModel(
 	chartData: PptxChartData,
 	categoryLabels: ReadonlyArray<string>,
 ): ChartViewModel {
-	const layout: PlotLayout = computePlotLayout(element.width, element.height, chartData, true);
+	const layout: PlotLayout = computePlotLayout(
+		element.width,
+		element.height,
+		chartData,
+		true,
+		computeLayoutOptions(chartData.axes, chartData.dataTable, chartData.series.length),
+	);
 	const catCount = Math.max(categoryLabels.length, 1);
 
 	const range: ValueRange = computeValueRange(chartData.series);
 
-	const { gridlines, axisLabels } = buildGridlinesAndLabels(range, layout);
+	const valueAxis = chartData.axes?.find((axis) => axis.axisType === 'valAx' && axis.axPos !== 'r');
+	const categoryAxis = chartData.axes?.find(
+		(axis) =>
+			(axis.axisType === 'catAx' || axis.axisType === 'dateAx') &&
+			axis.axisId === valueAxis?.crossAxisId,
+	);
+	const renderedAxis =
+		categoryAxis?.crosses !== undefined || categoryAxis?.crossesAt !== undefined
+			? buildPrimaryAxis(
+					range,
+					layout,
+					valueAxis,
+					verticalAxisX(categoryAxis, catCount, layout, 'left', chartData.dateCategories?.values),
+				)
+			: buildGridlinesAndLabels(range, layout);
+	const { gridlines, axisLabels } = renderedAxis;
 	const zeroLine = buildZeroLine(range, layout);
-	const datePlan = buildDateAxisPlan(chartData, layout);
-	const categoryPlan = datePlan
-		? undefined
-		: buildCategoryAxisPlan(categoryLabels, layout, 'bar', chartData.axes);
-	const sourceIndices = datePlan?.sourceIndices ?? categoryPlan?.sourceIndices ?? [];
-	const catLabels = datePlan?.labels ?? categoryPlan?.labels ?? [];
+	const horizontalAxis = buildCartesianHorizontalAxis(
+		chartData,
+		categoryLabels,
+		layout,
+		'stock',
+		range,
+	);
+	const sourceIndices = horizontalAxis.sourceIndices;
 
 	const legendPos = chartData.style?.legendPosition ?? 'b';
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
@@ -134,7 +159,7 @@ export function buildStockViewModel(
 			const isUp = close >= open;
 
 			const cx =
-				datePlan?.xPositions[displayIndex] ??
+				horizontalAxis.xPositions?.[displayIndex] ??
 				layout.plotLeft + barGroupWidth * displayIndex + barGroupWidth / 2;
 			const highY = valueToY(high, range, layout.plotTop, layout.plotBottom);
 			const lowY = valueToY(low, range, layout.plotTop, layout.plotBottom);
@@ -183,7 +208,7 @@ export function buildStockViewModel(
 			}
 		}
 	}
-	primitives.push(...(datePlan?.tickMarks ?? categoryPlan?.tickMarks ?? []));
+	primitives.push(...horizontalAxis.tickMarks);
 
 	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
 
@@ -196,7 +221,7 @@ export function buildStockViewModel(
 		gridlines,
 		axisLabels,
 		zeroLine,
-		categoryLabels: catLabels,
+		categoryLabels: horizontalAxis.labels,
 		primitives,
 		dataLabels,
 		legend: chartData.style?.hasLegend ? legend : [],

@@ -107,9 +107,11 @@ function calendarTicks(
 export function buildDateAxisPlan(
 	chartData: PptxChartData,
 	layout: PlotLayout,
+	selectedAxis?: PptxChartAxisFormatting,
+	axisY?: number,
 ): DateAxisPlan | undefined {
 	const dates = chartData.dateCategories;
-	const axis = primaryDateAxis(chartData);
+	const axis = selectedAxis ?? primaryDateAxis(chartData);
 	if (!dates || !axis || dates.values.length === 0) {
 		return undefined;
 	}
@@ -139,10 +141,12 @@ export function buildDateAxisPlan(
 		unit,
 		Math.max(1, axis.majorUnit ?? 1),
 	);
-	const y = axis.axPos === 't' ? layout.plotTop : layout.plotBottom;
+	const y = axisY ?? (axis.axPos === 't' ? layout.plotTop : layout.plotBottom);
 	const offset = 4 + 8 * ((axis.labelOffset ?? 100) / 100);
 	const labelsAbove =
 		axis.tickLblPos === 'high' || (axis.tickLblPos !== 'low' && axis.axPos === 't');
+	const labelY =
+		axis.tickLblPos === 'high' ? layout.plotTop : axis.tickLblPos === 'low' ? layout.plotBottom : y;
 	const labelSkip = Math.max(1, axis.tickLabelSkip ?? 1);
 	const labels =
 		axis.deleted || axis.tickLblPos === 'none'
@@ -159,7 +163,7 @@ export function buildDateAxisPlan(
 						{
 							kind: 'text' as const,
 							x,
-							y: labelsAbove ? layout.plotTop - offset : layout.plotBottom + offset,
+							y: labelsAbove ? labelY - offset : labelY + offset,
 							text: formatDate(
 								excelSerialToDate(serial, dates.date1904),
 								unit,

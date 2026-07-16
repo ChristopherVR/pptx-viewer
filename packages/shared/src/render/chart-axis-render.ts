@@ -60,7 +60,13 @@ function valueAxisLabelPlacement(
 	layout: PlotLayout,
 	position: PptxChartAxisFormatting['tickLblPos'],
 	defaultSide: VerticalAxisSide,
+	axisX: number,
 ): Pick<SvgText, 'x' | 'textAnchor'> {
+	if (!position || position === 'nextTo') {
+		return defaultSide === 'left'
+			? { x: axisX - 4, textAnchor: 'end' }
+			: { x: axisX + 4, textAnchor: 'start' };
+	}
 	const side = position === 'high' ? 'right' : position === 'low' ? 'left' : defaultSide;
 	return side === 'left'
 		? { x: layout.plotLeft - 4, textAnchor: 'end' }
@@ -85,6 +91,7 @@ export function buildPrimaryAxis(
 	range: ValueRange,
 	layout: PlotLayout,
 	axis: PptxChartAxisFormatting | undefined,
+	axisX = layout.plotLeft,
 ): { gridlines: SvgLine[]; axisLabels: SvgText[] } {
 	const gridlines: SvgLine[] = [];
 	const axisLabels: SvgText[] = [];
@@ -109,7 +116,7 @@ export function buildPrimaryAxis(
 	}
 	for (const val of minorTickVals) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
-		const tick = buildTickMark(layout.plotLeft, y, axis?.minorTickMark, 'left', MINOR_TICK_LENGTH);
+		const tick = buildTickMark(axisX, y, axis?.minorTickMark, 'left', MINOR_TICK_LENGTH);
 		if (tick) {
 			gridlines.push(tick);
 		}
@@ -126,14 +133,14 @@ export function buildPrimaryAxis(
 			stroke: GRIDLINE_COLOR,
 			strokeWidth: 1,
 		});
-		const tick = buildTickMark(layout.plotLeft, y, axis?.majorTickMark, 'left', MAJOR_TICK_LENGTH);
+		const tick = buildTickMark(axisX, y, axis?.majorTickMark, 'left', MAJOR_TICK_LENGTH);
 		if (tick) {
 			gridlines.push(tick);
 		}
 		if (axis?.tickLblPos !== 'none') {
 			axisLabels.push({
 				kind: 'text',
-				...valueAxisLabelPlacement(layout, axis?.tickLblPos, 'left'),
+				...valueAxisLabelPlacement(layout, axis?.tickLblPos, 'left', axisX),
 				y,
 				text: formatTick(val, axis),
 				fontSize: 8,
@@ -174,6 +181,7 @@ export function buildSecondaryAxis(
 	range: ValueRange,
 	layout: PlotLayout,
 	axis: PptxChartAxisFormatting | undefined,
+	axisX = layout.plotRight,
 ): { gridlines: SvgLine[]; axisLabels: SvgText[] } {
 	const gridlines: SvgLine[] = [];
 	const axisLabels: SvgText[] = [];
@@ -201,13 +209,7 @@ export function buildSecondaryAxis(
 	}
 	for (const val of minorTickValues) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
-		const tick = buildTickMark(
-			layout.plotRight,
-			y,
-			axis?.minorTickMark,
-			'right',
-			MINOR_TICK_LENGTH,
-		);
+		const tick = buildTickMark(axisX, y, axis?.minorTickMark, 'right', MINOR_TICK_LENGTH);
 		if (tick) {
 			gridlines.push(tick);
 		}
@@ -225,20 +227,14 @@ export function buildSecondaryAxis(
 			dashArray: '2 3',
 			opacity: 0.5,
 		});
-		const tick = buildTickMark(
-			layout.plotRight,
-			y,
-			axis?.majorTickMark,
-			'right',
-			MAJOR_TICK_LENGTH,
-		);
+		const tick = buildTickMark(axisX, y, axis?.majorTickMark, 'right', MAJOR_TICK_LENGTH);
 		if (tick) {
 			gridlines.push(tick);
 		}
 		if (axis?.tickLblPos !== 'none') {
 			axisLabels.push({
 				kind: 'text',
-				...valueAxisLabelPlacement(layout, axis?.tickLblPos, 'right'),
+				...valueAxisLabelPlacement(layout, axis?.tickLblPos, 'right', axisX),
 				y,
 				text: formatTick(val, axis),
 				fontSize,

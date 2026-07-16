@@ -13,10 +13,9 @@ import {
 	computeLayoutOptions,
 	computeValueRangeForAxis,
 	computeValueRangeForChart,
-	getSecondaryValueAxis,
 	splitSeriesByAxis,
 } from './chart-axis';
-import { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
+import { buildCartesianAxes } from './chart-cartesian-axes';
 import { buildBars } from './chart-cartesian-bars';
 import { buildAreas, buildBubbles, buildLines, buildScatter } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
@@ -30,94 +29,16 @@ import {
 import type {
 	ChartValueDrag,
 	ChartViewModel,
-	PlotLayout,
 	SupportedChartKind,
-	SvgLine,
 	SvgPrimitive,
-	SvgText,
 	ValueRange,
 } from './chart-view-model';
 import {
-	buildGridlinesAndLabels,
 	buildLegend,
 	buildZeroLine,
 	computePlotLayout,
 	computeStackedValueRange,
 } from './chart-view-model';
-
-function hasRicherAxisFeatures(chartData: PptxChartData): boolean {
-	const axes = chartData.axes;
-	if (axes && axes.length > 0) {
-		for (const a of axes) {
-			if (
-				a.axisType === 'valAx' &&
-				(a.logScale ||
-					a.displayUnits ||
-					a.axPos === 'r' ||
-					a.orientation === 'maxMin' ||
-					a.majorUnit !== undefined ||
-					a.minorUnit !== undefined ||
-					a.minorGridlines ||
-					a.majorTickMark !== undefined ||
-					a.minorTickMark !== undefined ||
-					a.tickLblPos !== undefined)
-			) {
-				return true;
-			}
-		}
-	}
-	return Boolean(chartData.dataTable);
-}
-
-function findPrimaryValueAxis(chartData: PptxChartData) {
-	const axes = chartData.axes;
-	if (!axes) {
-		return undefined;
-	}
-	return (
-		axes.find((a) => a.axisType === 'valAx' && a.axPos !== 'r') ??
-		axes.find((a) => a.axisType === 'valAx')
-	);
-}
-
-interface AxisResult {
-	gridlines: SvgLine[];
-	axisLabels: SvgText[];
-	secondaryGridlines: SvgLine[] | undefined;
-	secondaryAxisLabels: SvgText[] | undefined;
-}
-
-/**
- * Build the value-axis range(s), gridlines, and labels for the cartesian chart.
- * Falls back to the original linear `buildGridlinesAndLabels` byte-for-byte when
- * the chart has no log/display-unit/secondary-axis features.
- */
-function buildAxes(
-	chartData: PptxChartData,
-	layout: PlotLayout,
-	primaryRange: ValueRange,
-	secondaryRange: ValueRange | undefined,
-): AxisResult {
-	const richer = hasRicherAxisFeatures(chartData);
-	if (!richer) {
-		const { gridlines, axisLabels } = buildGridlinesAndLabels(primaryRange, layout);
-		return { gridlines, axisLabels, secondaryGridlines: undefined, secondaryAxisLabels: undefined };
-	}
-
-	const primaryAxis = findPrimaryValueAxis(chartData);
-	const { gridlines, axisLabels } = buildPrimaryAxis(primaryRange, layout, primaryAxis);
-
-	let secondaryGridlines: SvgLine[] | undefined;
-	let secondaryAxisLabels: SvgText[] | undefined;
-	if (secondaryRange) {
-		const secAxis = getSecondaryValueAxis(chartData.axes);
-		const sec = buildSecondaryAxis(secondaryRange, layout, secAxis);
-		secondaryGridlines = sec.gridlines;
-		secondaryAxisLabels = sec.axisLabels;
-	}
-
-	return { gridlines, axisLabels, secondaryGridlines, secondaryAxisLabels };
-}
 
 function stackedRange(chartData: PptxChartData, catCount: number, isPercent: boolean): ValueRange {
 	if (isPercent) {
@@ -178,9 +99,16 @@ export function buildCartesianViewModel(
 				)
 			: undefined;
 
-	const axisRes = buildAxes(chartData, layout, primaryRange, secondaryRange);
+	const axisRes = buildCartesianAxes(chartData, layout, primaryRange, secondaryRange, catCount);
 	const zeroLine = primaryRange.logScale ? undefined : buildZeroLine(primaryRange, layout);
-	const horizontalAxis = buildCartesianHorizontalAxis(chartData, categoryLabels, layout, kind);
+	const horizontalAxis = buildCartesianHorizontalAxis(
+		chartData,
+		categoryLabels,
+		layout,
+		kind,
+		primaryRange,
+		secondaryRange,
+	);
 	const { catAxisStyle, sourceIndices, displayChartData } = horizontalAxis;
 
 	const legendPos = chartData.style?.legendPosition ?? 'b';

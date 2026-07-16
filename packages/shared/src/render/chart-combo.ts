@@ -7,10 +7,10 @@ import {
 	getSecondaryValueAxis,
 	splitSeriesByAxis,
 } from './chart-axis';
-import { buildSecondaryAxis } from './chart-axis-render';
-import { buildCategoryAxisPlan, chartDataInCategoryOrder } from './chart-category-axis';
-import { buildDateAxisPlan } from './chart-date-axis';
+import { verticalAxisX } from './chart-axis-crossing';
+import { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
 import { computeErrorBarPrimitives } from './chart-error-bars';
+import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import type {
 	ChartViewModel,
 	PlotLayout,
@@ -75,17 +75,52 @@ export function buildComboViewModel(
 				)
 			: undefined;
 
-	const { gridlines, axisLabels } = buildGridlinesAndLabels(primaryRange, layout);
+	const primaryCategoryAxis = chartData.axes?.find(
+		(axis) =>
+			(axis.axisType === 'catAx' || axis.axisType === 'dateAx') &&
+			axis.axisId === primaryAxis?.crossAxisId,
+	);
+	const primaryAxisX = verticalAxisX(
+		primaryCategoryAxis,
+		catCount,
+		layout,
+		'left',
+		chartData.dateCategories?.values,
+	);
+	const primaryRendered =
+		primaryCategoryAxis?.crosses !== undefined || primaryCategoryAxis?.crossesAt !== undefined
+			? buildPrimaryAxis(primaryRange, layout, primaryAxis, primaryAxisX)
+			: buildGridlinesAndLabels(primaryRange, layout);
+	const { gridlines, axisLabels } = primaryRendered;
+	const secondaryCategoryAxis = chartData.axes?.find(
+		(axis) =>
+			(axis.axisType === 'catAx' || axis.axisType === 'dateAx') &&
+			axis.axisId === secondaryAxisFormatting?.crossAxisId,
+	);
 	const secondaryAxis = secondaryRange
-		? buildSecondaryAxis(secondaryRange, layout, secondaryAxisFormatting)
+		? buildSecondaryAxis(
+				secondaryRange,
+				layout,
+				secondaryAxisFormatting,
+				verticalAxisX(
+					secondaryCategoryAxis,
+					catCount,
+					layout,
+					'right',
+					chartData.dateCategories?.values,
+				),
+			)
 		: undefined;
 	const zeroLine = primaryRange.logScale ? undefined : buildZeroLine(primaryRange, layout);
-	const datePlan = buildDateAxisPlan(chartData, layout);
-	const categoryPlan = datePlan
-		? undefined
-		: buildCategoryAxisPlan(categoryLabels, layout, 'bar', chartData.axes);
-	const sourceIndices = datePlan?.sourceIndices ?? categoryPlan?.sourceIndices ?? [];
-	const catLabels = datePlan?.labels ?? categoryPlan?.labels ?? [];
+	const horizontalAxis = buildCartesianHorizontalAxis(
+		chartData,
+		categoryLabels,
+		layout,
+		'combo',
+		primaryRange,
+		secondaryRange,
+	);
+	const sourceIndices = horizontalAxis.sourceIndices;
 	const legendPos = chartData.style?.legendPosition ?? 'b';
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
 		chartData.series,
@@ -108,7 +143,9 @@ export function buildComboViewModel(
 			...computeBarRects(displayBarSeries, catCount, layout, barRange, chartData.colorPalette).map(
 				(rect, displayIndex) => ({
 					kind: 'rect' as const,
-					x: datePlan ? (datePlan.xPositions[displayIndex] ?? rect.x) - rect.w / 2 : rect.x,
+					x: horizontalAxis.xPositions
+						? (horizontalAxis.xPositions[displayIndex] ?? rect.x) - rect.w / 2
+						: rect.x,
 					y: rect.y,
 					w: rect.w,
 					h: rect.h,
@@ -130,7 +167,7 @@ export function buildComboViewModel(
 			barRange,
 			sourceIndices,
 			dataLabels,
-			datePlan?.xPositions,
+			horizontalAxis.xPositions,
 		);
 	}
 
@@ -146,7 +183,7 @@ export function buildComboViewModel(
 			const value = series.values[sourceIndex] ?? 0;
 			return {
 				x:
-					datePlan?.xPositions[displayIndex] ??
+					horizontalAxis.xPositions?.[displayIndex] ??
 					layout.plotLeft + barGroupWidth * displayIndex + barGroupWidth / 2,
 				y: valueToY(value, range, layout.plotTop, layout.plotBottom),
 				sourceIndex,
@@ -189,11 +226,11 @@ export function buildComboViewModel(
 			});
 		}
 	});
-	primitives.push(...(datePlan?.tickMarks ?? categoryPlan?.tickMarks ?? []));
-	const displayChartData = chartDataInCategoryOrder(chartData, sourceIndices);
+	primitives.push(...horizontalAxis.tickMarks);
+	const displayChartData = horizontalAxis.displayChartData;
 	primitives.push(
 		...computeErrorBarPrimitives(displayChartData, catCount, layout, primaryRange, 'line', {
-			xPositions: datePlan?.xPositions,
+			xPositions: horizontalAxis.xPositions,
 			seriesRanges: chartData.series.map((_series, index) =>
 				rangeForSeries(index, primaryRange, secondaryRange, secondaryIndexes),
 			),
@@ -210,7 +247,7 @@ export function buildComboViewModel(
 		gridlines,
 		axisLabels,
 		zeroLine,
-		categoryLabels: catLabels,
+		categoryLabels: horizontalAxis.labels,
 		primitives,
 		dataLabels,
 		legend: chartData.style?.hasLegend ? legend : [],

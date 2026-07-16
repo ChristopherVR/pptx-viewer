@@ -62,13 +62,14 @@ function buildTickMarks(
 	sourceCount: number,
 	layout: PlotLayout,
 	spacing: 'bar' | 'line',
+	axisY?: number,
 ): SvgLine[] {
 	if (!axis || axis.deleted) {
 		return [];
 	}
 	const result: SvgLine[] = [];
 	const topAxis = axis.axPos === 't';
-	const y = topAxis ? layout.plotTop : layout.plotBottom;
+	const y = axisY ?? (topAxis ? layout.plotTop : layout.plotBottom);
 	const majorSkip = Math.max(1, axis.tickMarkSkip ?? 1);
 	for (let displayIndex = 0; displayIndex < sourceCount; displayIndex += majorSkip) {
 		const x = categoryX(displayIndex, sourceCount, layout, spacing);
@@ -93,8 +94,10 @@ export function buildCategoryAxisPlan(
 	layout: PlotLayout,
 	spacing: 'bar' | 'line',
 	axes: ReadonlyArray<PptxChartAxisFormatting> | undefined,
+	selectedAxis?: PptxChartAxisFormatting,
+	axisY?: number,
 ): CategoryAxisPlan {
-	const axis = primaryCategoryAxis(axes);
+	const axis = selectedAxis ?? primaryCategoryAxis(axes);
 	const sourceIndices = categoryLabels.map((_label, index) => index);
 	if (axis?.orientation === 'maxMin') {
 		sourceIndices.reverse();
@@ -104,7 +107,7 @@ export function buildCategoryAxisPlan(
 			axis,
 			sourceIndices,
 			labels: [],
-			tickMarks: buildTickMarks(axis, sourceIndices.length, layout, spacing),
+			tickMarks: buildTickMarks(axis, sourceIndices.length, layout, spacing, axisY),
 		};
 	}
 	const topAxis = axis?.axPos === 't';
@@ -115,6 +118,11 @@ export function buildCategoryAxisPlan(
 	const labelSkip = Math.max(1, axis?.tickLabelSkip ?? 1);
 	const textAnchor: SvgText['textAnchor'] =
 		axis?.labelAlignment === 'l' ? 'start' : axis?.labelAlignment === 'r' ? 'end' : 'middle';
+	const labelY = high
+		? layout.plotTop
+		: low
+			? layout.plotBottom
+			: (axisY ?? (topAxis ? layout.plotTop : layout.plotBottom));
 	const labels = sourceIndices.flatMap((sourceIndex, displayIndex) => {
 		if (displayIndex % labelSkip !== 0) {
 			return [];
@@ -123,7 +131,7 @@ export function buildCategoryAxisPlan(
 			{
 				kind: 'text' as const,
 				x: categoryX(displayIndex, sourceIndices.length, layout, spacing),
-				y: labelsAbove ? layout.plotTop - offset : layout.plotBottom + offset,
+				y: labelsAbove ? labelY - offset : labelY + offset,
 				text: categoryLabels[sourceIndex] ?? '',
 				fontSize: 8,
 				fill: '#64748b',
@@ -135,7 +143,7 @@ export function buildCategoryAxisPlan(
 		axis,
 		sourceIndices,
 		labels,
-		tickMarks: buildTickMarks(axis, sourceIndices.length, layout, spacing),
+		tickMarks: buildTickMarks(axis, sourceIndices.length, layout, spacing, axisY),
 	};
 }
 
