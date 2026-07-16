@@ -133,6 +133,77 @@ assign(
 	},
 );
 
+assign(
+	[
+		'chart:complexType:CT_PrintSettings',
+		'chart:complexType:CT_HeaderFooter',
+		'chart:complexType:CT_PageMargins',
+		'chart:complexType:CT_PageSetup',
+		'chart:simpleType:ST_PageSetupOrientation',
+		'chart:element:printSettings',
+		'chart:element:headerFooter',
+		'chart:element:pageMargins',
+		'chart:element:pageSetup',
+		'chart:element:legacyDrawingHF',
+	],
+	{
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: 'Classic ChartML print settings are typed, validated, schema-ordered, and losslessly editable.',
+		evidence: [
+			testEvidence('src/core/utils/chart-print-settings.test.ts', [
+				'parses all CT_PrintSettings members independently of namespace prefix',
+				'applies edits in schema order while preserving foreign content',
+				'validates schema numeric ranges and enum values on serialization',
+			]),
+			testEvidence('src/__tests__/integration/chart-print-settings-roundtrip.test.ts', [
+				'loads, edits, saves, and reloads print settings without losing extensions',
+			]),
+		],
+	},
+);
+
+assign(
+	[
+		'diagram:complexType:CT_DiagramDefinitionHeader',
+		'diagram:complexType:CT_DiagramDefinitionHeaderLst',
+		'diagram:complexType:CT_StyleDefinitionHeader',
+		'diagram:complexType:CT_StyleDefinitionHeaderLst',
+		'diagram:complexType:CT_ColorTransformHeader',
+		'diagram:complexType:CT_ColorTransformHeaderLst',
+		'diagram:complexType:CT_CTCategories',
+		'diagram:complexType:CT_CTCategory',
+		'diagram:complexType:CT_CTDescription',
+		'diagram:complexType:CT_CTName',
+		'diagram:complexType:CT_SDCategories',
+		'diagram:complexType:CT_SDCategory',
+		'diagram:complexType:CT_SDDescription',
+		'diagram:complexType:CT_SDName',
+		'diagram:element:layoutDefHdr',
+		'diagram:element:layoutDefHdrLst',
+		'diagram:element:styleDefHdr',
+		'diagram:element:styleDefHdrLst',
+		'diagram:element:colorsDefHdr',
+		'diagram:element:colorsDefHdrLst',
+	],
+	{
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: 'Diagram definition header catalogs are typed, validated, prefix-independent, and preserve foreign XML.',
+		evidence: [
+			testEvidence('src/core/utils/smartart-definition-header.test.ts', [
+				'parses and serializes the %s family prefix-independently',
+				'validates required members and XML Schema integer ranges',
+				'creates a namespace-complete standalone header catalog',
+			]),
+		],
+	},
+);
+
 export const OPENXML_CHART_DISPLAY_EFFECTS_AND_DIAGRAM_LAYOUTS_COVERAGE: Readonly<
 	Record<string, OpenXmlCoverageFacets>
 > = overrides;

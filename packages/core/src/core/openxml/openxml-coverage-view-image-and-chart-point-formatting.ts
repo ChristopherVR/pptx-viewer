@@ -133,6 +133,64 @@ assign(
 	},
 );
 
+assign(
+	[
+		'drawing:complexType:CT_AlphaBiLevelEffect',
+		'drawing:complexType:CT_AlphaCeilingEffect',
+		'drawing:complexType:CT_AlphaFloorEffect',
+		'drawing:complexType:CT_AlphaModulateFixedEffect',
+		'drawing:complexType:CT_AlphaOutsetEffect',
+		'drawing:complexType:CT_AlphaReplaceEffect',
+		'drawing:element:alphaBiLevel',
+		'drawing:element:alphaCeiling',
+		'drawing:element:alphaFloor',
+		'drawing:element:alphaModFix',
+		'drawing:element:alphaOutset',
+		'drawing:element:alphaRepl',
+	],
+	{
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: 'Fixed and leaf alpha effects are typed with Strict and Transitional lexical support and schema validation.',
+		evidence: [
+			testEvidence('src/core/core/runtime/image-alpha-effects.test.ts', [
+				'parses strict percentages and the default alphaModFix amount',
+				'edits known values while retaining unknown attributes',
+				'does not serialize out-of-range fixed percentages',
+			]),
+			testEvidence('src/core/core/builders/effect-dag-primitives.test.ts', [
+				'parses and edits a signed coordinate while preserving foreign attributes',
+				'does not expose a coordinate outside the ST_Coordinate bounds',
+			]),
+		],
+	},
+);
+
+assign(
+	[
+		'drawing:complexType:CT_AlphaInverseEffect',
+		'drawing:complexType:CT_AlphaModulateEffect',
+		'drawing:element:alphaInv',
+		'drawing:element:alphaMod',
+	],
+	{
+		parse: 'partial',
+		preserve: 'native',
+		edit: 'partial',
+		serialize: 'partial',
+		note: 'Alpha inverse colors and modulation containers are editable while nested effect payloads remain preserved XML.',
+		evidence: [
+			testEvidence('src/core/core/runtime/image-alpha-effects.test.ts', [
+				'parses arbitrary prefixes and preserves every alpha payload',
+				'edits known values while retaining unknown attributes',
+				'does not create alphaMod without its required cont child',
+			]),
+		],
+	},
+);
+
 export const OPENXML_VIEW_IMAGE_AND_CHART_POINT_FORMATTING_COVERAGE: Readonly<
 	Record<string, OpenXmlCoverageFacets>
 > = overrides;
