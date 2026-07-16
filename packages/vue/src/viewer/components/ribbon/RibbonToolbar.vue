@@ -25,6 +25,7 @@ import EditingSection from './EditingSection.vue';
 import FileSection from './FileSection.vue';
 import HomeSection from './HomeSection.vue';
 import InsertSection from './InsertSection.vue';
+import RecordSection from './RecordSection.vue';
 import ReviewSection from './ReviewSection.vue';
 import { pill, TOOLBAR_SECTIONS } from './ribbon-constants';
 import type { RibbonProps } from './ribbon-types';
@@ -280,15 +281,15 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:is-comments-panel-open="props.isCommentsPanelOpen"
 				:slide-comment-count="props.slideCommentCount"
 				:on-compare="props.onCompare"
+				:on-set-language="props.onOpenSettings"
+				:on-open-accessibility-check="props.onRunAccessibilityCheck"
 			/>
 
-			<!-- Record tab (placeholder) -->
-			<template v-if="s === 'record'">
-				<button type="button" :class="pill" disabled>
-					<span class="w-2.5 h-2.5 rounded-full bg-red-500 mr-1.5" />
-					{{ t('pptx.ribbon.tab.record') }}
-				</button>
-			</template>
+			<RecordSection
+				v-if="s === 'record'"
+				:on-record-from-beginning="props.onEnterRehearsalMode ?? (() => {})"
+				:on-record-from-current="props.onEnterRehearsalMode ?? (() => {})"
+			/>
 
 			<ViewSection
 				v-if="s === 'view'"
