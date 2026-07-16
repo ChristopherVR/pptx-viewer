@@ -609,3 +609,4 @@ export * from './font-availability';
 export * from './password-protection';
 export * from './viewer-preferences';
 export * from './presentation-setup';
+export * from './presentation-subtitles';
