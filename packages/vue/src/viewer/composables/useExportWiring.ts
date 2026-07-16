@@ -4,6 +4,7 @@ import { downloadBlob } from 'pptx-viewer-shared';
 import { computed, nextTick, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
+import { buildSharingPackage } from './package-sharing';
 import { useExport } from './useExport';
 import type { UseExportResult } from './useExport';
 import { useExportProgress } from './useExportProgress';
@@ -19,6 +20,7 @@ export interface UseExportWiringInput {
 	canvasSize: Ref<CanvasSize>;
 	activeSlideIndex: Ref<number>;
 	saveAs: (format: PptxSaveFormat) => Promise<Uint8Array>;
+	fileName?: () => string | undefined;
 }
 
 export interface UseExportWiringResult {
@@ -34,6 +36,7 @@ export interface UseExportWiringResult {
 	onExportGif: () => void;
 	onExportWebm: () => void;
 	downloadAs: (format: PptxSaveFormat) => Promise<void>;
+	packageForSharing: () => Promise<void>;
 	onCopySlideAsImage: () => Promise<void>;
 }
 
@@ -104,6 +107,19 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 		}
 	}
 
+	/** Bundle the current deck with usage notes, matching React's File action. */
+	async function packageForSharing(): Promise<void> {
+		try {
+			const fileName = input.fileName?.() || 'presentation.pptx';
+			const bytes = await saveAs('pptx');
+			const blob = await buildSharingPackage(bytes, fileName);
+			const baseName = fileName.replace(/\.[^.]+$/u, '');
+			downloadBlob(blob, `${baseName}-package.zip`);
+		} catch (err) {
+			console.error('[PowerPointViewer] Package export failed:', err);
+		}
+	}
+
 	/** Copy the active slide to the clipboard as a PNG image (File menu). */
 	async function onCopySlideAsImage(): Promise<void> {
 		try {
@@ -132,6 +148,7 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 		onExportGif,
 		onExportWebm,
 		downloadAs,
+		packageForSharing,
 		onCopySlideAsImage,
 	};
 }

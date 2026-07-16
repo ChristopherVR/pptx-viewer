@@ -942,8 +942,17 @@ const {
 	onExportGif,
 	onExportWebm,
 	downloadAs,
+	packageForSharing,
 	onCopySlideAsImage,
-} = useExportWiring({ mergedSlides, slides, slideCount, canvasSize, activeSlideIndex, saveAs });
+} = useExportWiring({
+	mergedSlides,
+	slides,
+	slideCount,
+	canvasSize,
+	activeSlideIndex,
+	saveAs,
+	fileName: () => props.fileName,
+});
 
 // ── Print (dialog + rasterised print window) ──────────────────────────
 // Reuses the same off-screen `rasterizeSlide` the export path drives.
@@ -1519,6 +1528,7 @@ const ribbonProps = useRibbonProps({
 	onExportWebm,
 	onExportGif,
 	downloadAs,
+	packageForSharing,
 	onCopySlideAsImage,
 	openPrintDialog: printer.openPrintDialog,
 	ribbonUpdateTextStyle,

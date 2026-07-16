@@ -130,6 +130,7 @@ export interface UseRibbonPropsActionsInput {
 	onExportWebm: () => void;
 	onExportGif: () => void;
 	downloadAs: (format: PptxSaveFormat) => Promise<void>;
+	packageForSharing: () => Promise<void>;
 	onCopySlideAsImage: () => Promise<void>;
 	openPrintDialog: () => void;
 	ribbonUpdateTextStyle: RibbonProps['onUpdateTextStyle'];
