@@ -1,4 +1,5 @@
 import type { PptxSlide, PptxSlideMaster, PptxSlideLayout } from 'pptx-viewer-core';
+import { groupSlidesBySection } from 'pptx-viewer-shared';
 /**
  * useDerivedSlideState: Memoised computed values derived from slide and
  * presentation state.  Keeps the orchestrator component slim by hosting
@@ -86,63 +87,15 @@ export function computeSlideSectionGroups(
 		color?: string;
 	}>,
 ): SlideSectionGroup[] {
-	if (slides.length === 0) {
-		return [];
-	}
-
-	if (sections.length > 0) {
-		const sectionSlideMap = new Map<string, number[]>();
-		const ungroupedIndexes: number[] = [];
-		for (let i = 0; i < slides.length; i++) {
-			const sid = slides[i].sectionId;
-			if (sid) {
-				const arr = sectionSlideMap.get(sid);
-				if (arr) {
-					arr.push(i);
-				} else {
-					sectionSlideMap.set(sid, [i]);
-				}
-			} else {
-				ungroupedIndexes.push(i);
-			}
-		}
-
-		const groups: SlideSectionGroup[] = sections
-			.map((sec) => ({
-				id: sec.id,
-				label: sec.name,
-				slideIndexes: sectionSlideMap.get(sec.id) ?? [],
-				color: sec.color,
-				defaultCollapsed: sec.collapsed,
-			}))
-			.filter((g) => g.slideIndexes.length > 0);
-
-		if (ungroupedIndexes.length > 0) {
-			groups.push({
-				id: UNGROUPED_SECTION_ID,
-				label: 'Ungrouped Slides',
-				slideIndexes: ungroupedIndexes,
-			});
-		}
-
-		return groups.length > 0
-			? groups
-			: [
-					{
-						id: 'default',
-						label: 'Slides',
-						slideIndexes: slides.map((_s, i) => i),
-					},
-				];
-	}
-
-	return [
-		{
-			id: 'default',
-			label: 'Slides',
-			slideIndexes: slides.map((_s, i) => i),
-		},
-	];
+	return groupSlidesBySection(sections, slides).map((group) => ({
+		id: group.section?.id ?? (sections.length > 0 ? UNGROUPED_SECTION_ID : 'default'),
+		label: group.section?.name ?? (sections.length > 0 ? 'Ungrouped Slides' : 'Slides'),
+		slideIndexes: group.slideIndexes,
+		...(group.section?.color !== undefined ? { color: group.section.color } : {}),
+		...(group.section?.collapsed !== undefined
+			? { defaultCollapsed: group.section.collapsed }
+			: {}),
+	}));
 }
 
 /** Compute a pseudo-slide for master / layout canvas rendering. */
