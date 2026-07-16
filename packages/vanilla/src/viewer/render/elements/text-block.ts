@@ -24,8 +24,8 @@ export function renderTextBlock(
 			p.style.textIndent = `${para.textIndentPx}px`;
 		}
 
-		if (para.bulletPicture?.src) {
-			const picture = para.bulletPicture;
+		const picture = para.bulletPicture;
+		if (picture?.src) {
 			const image = createEl(doc, 'img', 'pptxv-bullet-image', {
 				width: `${picture.sizePx}px`,
 				height: `${picture.sizePx}px`,
