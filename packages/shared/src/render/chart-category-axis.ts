@@ -1,6 +1,11 @@
 import type { PptxChartAxisFormatting, PptxChartData } from 'pptx-viewer-core';
 
+import { chartLineStyle } from './chart-axis-style';
+import { buildMultiLevelCategoryLabels } from './chart-category-labels';
+import { categoryX } from './chart-category-position';
 import type { PlotLayout, SvgLine, SvgText } from './chart-view-model';
+
+export { categoryX } from './chart-category-position';
 
 export interface CategoryAxisPlan {
 	axis: PptxChartAxisFormatting | undefined;
@@ -18,26 +23,13 @@ function primaryCategoryAxis(
 	return categoryAxes?.find((axis) => axis.axPos !== 't') ?? categoryAxes?.[0];
 }
 
-export function categoryX(
-	displayIndex: number,
-	count: number,
-	layout: PlotLayout,
-	spacing: 'bar' | 'line',
-): number {
-	if (spacing === 'bar') {
-		return layout.plotLeft + (layout.plotWidth / Math.max(count, 1)) * (displayIndex + 0.5);
-	}
-	return count > 1
-		? layout.plotLeft + (layout.plotWidth / (count - 1)) * displayIndex
-		: layout.plotLeft + layout.plotWidth / 2;
-}
-
 function tickLine(
 	x: number,
 	y: number,
 	placement: PptxChartAxisFormatting['majorTickMark'],
 	topAxis: boolean,
 	length: number,
+	axis: PptxChartAxisFormatting,
 ): SvgLine | undefined {
 	if (!placement || placement === 'none') {
 		return undefined;
@@ -52,8 +44,7 @@ function tickLine(
 		y1: y + start,
 		x2: x,
 		y2: y + end,
-		stroke: '#64748b',
-		strokeWidth: 1,
+		...chartLineStyle(axis.spPr),
 	};
 }
 
@@ -70,16 +61,26 @@ function buildTickMarks(
 	const result: SvgLine[] = [];
 	const topAxis = axis.axPos === 't';
 	const y = axisY ?? (topAxis ? layout.plotTop : layout.plotBottom);
+	if (axis.spPr) {
+		result.push({
+			kind: 'line',
+			x1: layout.plotLeft,
+			y1: y,
+			x2: layout.plotRight,
+			y2: y,
+			...chartLineStyle(axis.spPr),
+		});
+	}
 	const majorSkip = Math.max(1, axis.tickMarkSkip ?? 1);
 	for (let displayIndex = 0; displayIndex < sourceCount; displayIndex += majorSkip) {
 		const x = categoryX(displayIndex, sourceCount, layout, spacing);
-		const major = tickLine(x, y, axis.majorTickMark, topAxis, 4);
+		const major = tickLine(x, y, axis.majorTickMark, topAxis, 4, axis);
 		if (major) {
 			result.push(major);
 		}
 		if (axis.minorTickMark !== undefined && displayIndex + majorSkip < sourceCount) {
 			const nextX = categoryX(displayIndex + majorSkip, sourceCount, layout, spacing);
-			const minor = tickLine((x + nextX) / 2, y, axis.minorTickMark, topAxis, 2.5);
+			const minor = tickLine((x + nextX) / 2, y, axis.minorTickMark, topAxis, 2.5, axis);
 			if (minor) {
 				result.push(minor);
 			}
@@ -96,6 +97,7 @@ export function buildCategoryAxisPlan(
 	axes: ReadonlyArray<PptxChartAxisFormatting> | undefined,
 	selectedAxis?: PptxChartAxisFormatting,
 	axisY?: number,
+	categoryLevels?: ReadonlyArray<ReadonlyArray<string>>,
 ): CategoryAxisPlan {
 	const axis = selectedAxis ?? primaryCategoryAxis(axes);
 	const sourceIndices = categoryLabels.map((_label, index) => index);
@@ -115,30 +117,22 @@ export function buildCategoryAxisPlan(
 	const low = axis?.tickLblPos === 'low';
 	const labelsAbove = high || (!low && topAxis);
 	const offset = 4 + 8 * ((axis?.labelOffset ?? 100) / 100);
-	const labelSkip = Math.max(1, axis?.tickLabelSkip ?? 1);
-	const textAnchor: SvgText['textAnchor'] =
-		axis?.labelAlignment === 'l' ? 'start' : axis?.labelAlignment === 'r' ? 'end' : 'middle';
 	const labelY = high
 		? layout.plotTop
 		: low
 			? layout.plotBottom
 			: (axisY ?? (topAxis ? layout.plotTop : layout.plotBottom));
-	const labels = sourceIndices.flatMap((sourceIndex, displayIndex) => {
-		if (displayIndex % labelSkip !== 0) {
-			return [];
-		}
-		return [
-			{
-				kind: 'text' as const,
-				x: categoryX(displayIndex, sourceIndices.length, layout, spacing),
-				y: labelsAbove ? labelY - offset : labelY + offset,
-				text: categoryLabels[sourceIndex] ?? '',
-				fontSize: 8,
-				fill: '#64748b',
-				textAnchor,
-			},
-		];
-	});
+	const labels = buildMultiLevelCategoryLabels(
+		categoryLabels,
+		categoryLevels,
+		sourceIndices,
+		layout,
+		spacing,
+		axis,
+		labelY,
+		labelsAbove,
+		offset,
+	);
 	return {
 		axis,
 		sourceIndices,

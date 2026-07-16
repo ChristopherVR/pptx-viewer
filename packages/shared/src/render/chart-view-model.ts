@@ -396,6 +396,7 @@ export interface SvgText {
 	fill: string;
 	textAnchor: 'start' | 'middle' | 'end';
 	fontWeight?: 'normal' | 'bold';
+	fontFamily?: string;
 	dominantBaseline?: string;
 	opacity?: number;
 	/** Optional SVG transform (e.g. `rotate(-90, x, y)` for a vertical axis title). */

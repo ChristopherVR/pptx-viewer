@@ -18,42 +18,22 @@ import {
 	generateMinorAxisTicks,
 	getDisplayUnitLabel,
 } from './chart-axis';
+import {
+	buildStyledGridline,
+	buildVerticalAxisLine,
+	buildVerticalTickMark,
+} from './chart-axis-primitives';
+import { chartAxisTextStyle } from './chart-axis-style';
 import type { PlotLayout, SvgLine, SvgText, ValueRange } from './chart-view-model';
 import { formatAxisValue, valueToY } from './chart-view-model';
 
 const GRIDLINE_COLOR = '#e2e8f0';
-const AXIS_LABEL_COLOR = '#64748b';
 const SECONDARY_GRID_COLOR = '#e2e8f0';
 const TICK_COUNT = 5;
 const MAJOR_TICK_LENGTH = 4;
 const MINOR_TICK_LENGTH = 2.5;
 
 type VerticalAxisSide = 'left' | 'right';
-
-/** Build one explicit ChartML tick-mark line on a vertical value axis. */
-function buildTickMark(
-	axisX: number,
-	y: number,
-	placement: PptxChartAxisFormatting['majorTickMark'],
-	side: VerticalAxisSide,
-	length: number,
-): SvgLine | undefined {
-	if (!placement || placement === 'none') {
-		return undefined;
-	}
-	const inward = side === 'left' ? 1 : -1;
-	const startOffset = placement === 'cross' ? -inward * length : 0;
-	const endOffset = placement === 'out' ? -inward * length : inward * length;
-	return {
-		kind: 'line',
-		x1: axisX + startOffset,
-		y1: y,
-		x2: axisX + endOffset,
-		y2: y,
-		stroke: AXIS_LABEL_COLOR,
-		strokeWidth: 1,
-	};
-}
 
 /** Resolve label placement at the low or high side of a vertical chart axis. */
 function valueAxisLabelPlacement(
@@ -98,25 +78,28 @@ export function buildPrimaryAxis(
 
 	const tickVals = generateAxisTicks(range, axis, TICK_COUNT);
 	const minorTickVals = generateMinorAxisTicks(range, axis);
+	const axisLine = buildVerticalAxisLine(axis, axisX, layout);
+	if (axisLine) {
+		gridlines.push(axisLine);
+	}
 	if (axis?.minorGridlines) {
 		for (const val of minorTickVals) {
 			const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
-			gridlines.push({
-				kind: 'line',
-				x1: layout.plotLeft,
-				y1: y,
-				x2: layout.plotRight,
-				y2: y,
-				stroke: GRIDLINE_COLOR,
-				strokeWidth: 0.5,
-				dashArray: '1 2',
-				opacity: 0.5,
-			});
+			gridlines.push(
+				buildStyledGridline(y, layout, axis.minorGridlinesSpPr, GRIDLINE_COLOR, 0.5, '1 2', 0.5),
+			);
 		}
 	}
 	for (const val of minorTickVals) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
-		const tick = buildTickMark(axisX, y, axis?.minorTickMark, 'left', MINOR_TICK_LENGTH);
+		const tick = buildVerticalTickMark(
+			axisX,
+			y,
+			axis?.minorTickMark,
+			'left',
+			MINOR_TICK_LENGTH,
+			axis?.spPr,
+		);
 		if (tick) {
 			gridlines.push(tick);
 		}
@@ -124,16 +107,25 @@ export function buildPrimaryAxis(
 
 	for (const val of tickVals) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
-		gridlines.push({
-			kind: 'line',
-			x1: layout.plotLeft,
-			y1: y,
-			x2: layout.plotRight,
-			y2: y,
-			stroke: GRIDLINE_COLOR,
-			strokeWidth: 1,
-		});
-		const tick = buildTickMark(axisX, y, axis?.majorTickMark, 'left', MAJOR_TICK_LENGTH);
+		gridlines.push(
+			buildStyledGridline(
+				y,
+				layout,
+				axis?.majorGridlinesSpPr,
+				GRIDLINE_COLOR,
+				1,
+				undefined,
+				undefined,
+			),
+		);
+		const tick = buildVerticalTickMark(
+			axisX,
+			y,
+			axis?.majorTickMark,
+			'left',
+			MAJOR_TICK_LENGTH,
+			axis?.spPr,
+		);
 		if (tick) {
 			gridlines.push(tick);
 		}
@@ -143,8 +135,7 @@ export function buildPrimaryAxis(
 				...valueAxisLabelPlacement(layout, axis?.tickLblPos, 'left', axisX),
 				y,
 				text: formatTick(val, axis),
-				fontSize: 8,
-				fill: AXIS_LABEL_COLOR,
+				...chartAxisTextStyle(axis),
 				dominantBaseline: 'central',
 			});
 		}
@@ -161,8 +152,7 @@ export function buildPrimaryAxis(
 				x: labelX,
 				y: midY,
 				text: unitLabel,
-				fontSize: 9,
-				fill: AXIS_LABEL_COLOR,
+				...chartAxisTextStyle(axis, 9),
 				textAnchor: 'middle',
 				transform: `rotate(-90, ${labelX}, ${midY})`,
 			});
@@ -185,49 +175,66 @@ export function buildSecondaryAxis(
 ): { gridlines: SvgLine[]; axisLabels: SvgText[] } {
 	const gridlines: SvgLine[] = [];
 	const axisLabels: SvgText[] = [];
-	const fontSize = axis?.fontSize ?? 8;
-	const fontColor = axis?.fontColor ?? AXIS_LABEL_COLOR;
-	const fontWeight: 'normal' | 'bold' = axis?.fontBold ? 'bold' : 'normal';
+	const textStyle = chartAxisTextStyle(axis);
+	const captionStyle = chartAxisTextStyle(axis, 9);
+	const axisLine = buildVerticalAxisLine(axis, axisX, layout);
+	if (axisLine) {
+		gridlines.push(axisLine);
+	}
 
 	const tickValues = generateAxisTicks(range, axis, TICK_COUNT - 1);
 	const minorTickValues = generateMinorAxisTicks(range, axis);
 	if (axis?.minorGridlines) {
 		for (const val of minorTickValues) {
 			const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
-			gridlines.push({
-				kind: 'line',
-				x1: layout.plotLeft,
-				y1: y,
-				x2: layout.plotRight,
-				y2: y,
-				stroke: SECONDARY_GRID_COLOR,
-				strokeWidth: 0.5,
-				dashArray: '1 2',
-				opacity: 0.35,
-			});
+			gridlines.push(
+				buildStyledGridline(
+					y,
+					layout,
+					axis.minorGridlinesSpPr,
+					SECONDARY_GRID_COLOR,
+					0.5,
+					'1 2',
+					0.35,
+				),
+			);
 		}
 	}
 	for (const val of minorTickValues) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
-		const tick = buildTickMark(axisX, y, axis?.minorTickMark, 'right', MINOR_TICK_LENGTH);
+		const tick = buildVerticalTickMark(
+			axisX,
+			y,
+			axis?.minorTickMark,
+			'right',
+			MINOR_TICK_LENGTH,
+			axis?.spPr,
+		);
 		if (tick) {
 			gridlines.push(tick);
 		}
 	}
 	for (const val of tickValues) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
-		gridlines.push({
-			kind: 'line',
-			x1: layout.plotLeft,
-			y1: y,
-			x2: layout.plotRight,
-			y2: y,
-			stroke: SECONDARY_GRID_COLOR,
-			strokeWidth: 0.5,
-			dashArray: '2 3',
-			opacity: 0.5,
-		});
-		const tick = buildTickMark(axisX, y, axis?.majorTickMark, 'right', MAJOR_TICK_LENGTH);
+		gridlines.push(
+			buildStyledGridline(
+				y,
+				layout,
+				axis?.majorGridlinesSpPr,
+				SECONDARY_GRID_COLOR,
+				0.5,
+				'2 3',
+				0.5,
+			),
+		);
+		const tick = buildVerticalTickMark(
+			axisX,
+			y,
+			axis?.majorTickMark,
+			'right',
+			MAJOR_TICK_LENGTH,
+			axis?.spPr,
+		);
 		if (tick) {
 			gridlines.push(tick);
 		}
@@ -237,9 +244,7 @@ export function buildSecondaryAxis(
 				...valueAxisLabelPlacement(layout, axis?.tickLblPos, 'right', axisX),
 				y,
 				text: formatTick(val, axis),
-				fontSize,
-				fill: fontColor,
-				fontWeight,
+				...textStyle,
 				dominantBaseline: 'central',
 			});
 		}
@@ -254,8 +259,7 @@ export function buildSecondaryAxis(
 			x: titleX,
 			y: midY,
 			text: axis.titleText,
-			fontSize: 9,
-			fill: fontColor,
+			...captionStyle,
 			textAnchor: 'middle',
 			transform: `rotate(-90, ${titleX}, ${midY})`,
 		});
@@ -272,8 +276,7 @@ export function buildSecondaryAxis(
 				x: labelX,
 				y: midY,
 				text: unitLabel,
-				fontSize: 9,
-				fill: fontColor,
+				...captionStyle,
 				textAnchor: 'middle',
 				transform: `rotate(-90, ${labelX}, ${midY})`,
 			});

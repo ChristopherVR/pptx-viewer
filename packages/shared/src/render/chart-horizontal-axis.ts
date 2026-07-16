@@ -67,6 +67,7 @@ export function buildCartesianHorizontalAxis(
 					chartData.axes,
 					primaryAxis,
 					rangeAndY(primaryAxis),
+					chartData.categoryLevels,
 				);
 	const secondaryPlan = secondaryAxis
 		? secondaryAxis.axisType === 'dateAx'
@@ -78,6 +79,7 @@ export function buildCartesianHorizontalAxis(
 					chartData.axes,
 					secondaryAxis,
 					rangeAndY(secondaryAxis),
+					chartData.categoryLevels,
 				)
 		: undefined;
 	const sourceIndices =

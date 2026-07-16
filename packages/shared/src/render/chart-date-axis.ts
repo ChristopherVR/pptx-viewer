@@ -1,5 +1,6 @@
 import type { PptxChartAxisFormatting, PptxChartData } from 'pptx-viewer-core';
 
+import { chartAxisTextStyle, chartLineStyle } from './chart-axis-style';
 import type { PlotLayout, SvgLine, SvgText } from './chart-view-model';
 
 const DAY_MS = 86_400_000;
@@ -78,8 +79,7 @@ function tickLine(
 		y1: y + start,
 		x2: x,
 		y2: y + end,
-		stroke: '#64748b',
-		strokeWidth: 1,
+		...chartLineStyle(axis.spPr),
 	};
 }
 
@@ -169,8 +169,7 @@ export function buildDateAxisPlan(
 								unit,
 								axis.numFmt?.formatCode ?? dates.formatCode,
 							),
-							fontSize: 8,
-							fill: '#64748b',
+							...chartAxisTextStyle(axis),
 							textAnchor: 'middle' as const,
 						},
 					];
@@ -188,6 +187,16 @@ export function buildDateAxisPlan(
 				const line = tickLine(x, y, axis, false);
 				return line ? [line] : [];
 			});
+	if (!axis.deleted && axis.spPr) {
+		tickMarks.unshift({
+			kind: 'line',
+			x1: layout.plotLeft,
+			y1: y,
+			x2: layout.plotRight,
+			y2: y,
+			...chartLineStyle(axis.spPr),
+		});
+	}
 	if (!axis.deleted && axis.minorTickMark && axis.minorTickMark !== 'none') {
 		const minorUnit = axis.minorTimeUnit ?? axis.baseTimeUnit ?? unit;
 		for (const serial of calendarTicks(
