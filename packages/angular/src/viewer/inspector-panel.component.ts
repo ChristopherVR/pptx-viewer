@@ -36,6 +36,7 @@ import { AnimationAuthorPanelComponent } from './animation-author-panel.componen
 import { ChartDataEditorComponent } from './chart-data-editor.component';
 import { EditorStateService } from './editor-state.service';
 import { EffectsPanelComponent } from './effects-panel.component';
+import { ElementMiscPropertiesComponent } from './element-misc-properties.component';
 import { GradientPickerComponent } from './gradient-picker.component';
 import { ImagePropertiesPanelComponent } from './image-properties-panel.component';
 import {
@@ -51,11 +52,13 @@ import {
 } from './inspector-helpers';
 import { IsMobileService } from './is-mobile';
 import { MediaPropertiesPanelComponent } from './media-properties-panel.component';
+import { ShapeAuthoringPanelComponent } from './shape-authoring-panel.component';
 import { SmartArtPropertiesComponent } from './smart-art-properties.component';
 import { TableCellFormattingComponent } from './table-cell-formatting.component';
 import { TableDataEditorComponent } from './table-data-editor.component';
 import { TablePropertiesComponent } from './table-properties.component';
 import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
+import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 
 @Component({
 	selector: 'pptx-inspector-panel',
@@ -74,6 +77,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 		ActionSettingsPanelComponent,
 		ImagePropertiesPanelComponent,
 		MediaPropertiesPanelComponent,
+		ElementMiscPropertiesComponent,
+		ShapeAuthoringPanelComponent,
+		TextWarpGalleryComponent,
 		TranslatePipe,
 		LucideArrowUp,
 		LucideArrowDown,
@@ -209,6 +215,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 				</section>
 			}
 
+			<pptx-shape-authoring-panel [element]="el()" (patch)="onPatch($event)" />
+			<pptx-element-misc-properties [element]="el()" (patch)="onPatch($event)" />
+
 			<!-- ── Text style (text-bearing elements only) ─────────────────────── -->
 			@if (hasText()) {
 				<section class="pptx-ng-inspector__section">
@@ -272,6 +281,8 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 					</div>
 				</section>
 			}
+
+			<pptx-text-warp-gallery [element]="el()" (patch)="onPatch($event)" />
 
 			@if (imageEl(); as image) {
 				<details class="pptx-ng-inspector__details" open>

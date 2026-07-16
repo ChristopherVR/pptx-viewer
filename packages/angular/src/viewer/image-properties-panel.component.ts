@@ -4,6 +4,7 @@ import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 
 import { ARTISTIC_EFFECTS } from '../internal/shared';
+import { ImageCropWashPanelComponent } from './image-crop-wash-panel.component';
 
 type ImageElement = PptxElement & { altText?: string; imageEffects?: PptxImageEffects };
 
@@ -17,7 +18,7 @@ export function mergeImageEffects(
 @Component({
 	selector: 'pptx-image-properties-panel',
 	standalone: true,
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, ImageCropWashPanelComponent],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<div class="pptx-ng-image-properties">
@@ -66,6 +67,7 @@ export function mergeImageEffects(
 					{{ 'pptx.common.clear' | translate }}
 				</button>
 			</div>
+			<pptx-image-crop-wash-panel [element]="element()" (patch)="patch.emit($event)" />
 			<button type="button" class="reset" (click)="reset()">
 				{{ 'pptx.image.resetImage' | translate }}
 			</button>
