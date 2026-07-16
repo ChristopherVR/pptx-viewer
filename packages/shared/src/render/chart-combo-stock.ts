@@ -26,6 +26,7 @@
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { buildCategoryAxisPlan } from './chart-category-axis';
+import { buildDateAxisPlan } from './chart-date-axis';
 import type {
 	ChartViewModel,
 	PlotLayout,
@@ -93,9 +94,12 @@ export function buildStockViewModel(
 
 	const { gridlines, axisLabels } = buildGridlinesAndLabels(range, layout);
 	const zeroLine = buildZeroLine(range, layout);
-	const categoryPlan = buildCategoryAxisPlan(categoryLabels, layout, 'bar', chartData.axes);
-	const sourceIndices = categoryPlan.sourceIndices;
-	const catLabels = categoryPlan.labels;
+	const datePlan = buildDateAxisPlan(chartData, layout);
+	const categoryPlan = datePlan
+		? undefined
+		: buildCategoryAxisPlan(categoryLabels, layout, 'bar', chartData.axes);
+	const sourceIndices = datePlan?.sourceIndices ?? categoryPlan?.sourceIndices ?? [];
+	const catLabels = datePlan?.labels ?? categoryPlan?.labels ?? [];
 
 	const legendPos = chartData.style?.legendPosition ?? 'b';
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
@@ -129,7 +133,9 @@ export function buildStockViewModel(
 			const close = closeSeries.values[sourceIndex] ?? high;
 			const isUp = close >= open;
 
-			const cx = layout.plotLeft + barGroupWidth * displayIndex + barGroupWidth / 2;
+			const cx =
+				datePlan?.xPositions[displayIndex] ??
+				layout.plotLeft + barGroupWidth * displayIndex + barGroupWidth / 2;
 			const highY = valueToY(high, range, layout.plotTop, layout.plotBottom);
 			const lowY = valueToY(low, range, layout.plotTop, layout.plotBottom);
 			const openY = valueToY(open, range, layout.plotTop, layout.plotBottom);
@@ -177,7 +183,7 @@ export function buildStockViewModel(
 			}
 		}
 	}
-	primitives.push(...categoryPlan.tickMarks);
+	primitives.push(...(datePlan?.tickMarks ?? categoryPlan?.tickMarks ?? []));
 
 	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
 

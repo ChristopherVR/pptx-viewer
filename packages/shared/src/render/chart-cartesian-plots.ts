@@ -44,6 +44,7 @@ export function buildLines(
 	secondaryRange: ValueRange | undefined,
 	secondaryIdx: ReadonlySet<number>,
 	sourceIndices: ReadonlyArray<number>,
+	xPositions?: ReadonlyArray<number>,
 ): SeriesPlotResult {
 	const primitives: SvgPrimitive[] = [];
 	const dataLabels: SvgText[] = [];
@@ -56,7 +57,12 @@ export function buildLines(
 		}
 		const activeRange = secondaryIdx.has(si) && secondaryRange ? secondaryRange : primaryRange;
 		const displayValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0);
-		const pts = computeLinePoints(displayValues, catCount, layout, activeRange);
+		const pts = computeLinePoints(displayValues, catCount, layout, activeRange).map(
+			(point, index) => ({
+				...point,
+				x: xPositions?.[index] ?? point.x,
+			}),
+		);
 		const c = seriesColor(series, si, chartData.colorPalette);
 		primitives.push({
 			kind: 'polyline',
@@ -105,6 +111,7 @@ export function buildAreas(
 	layout: PlotLayout,
 	range: ValueRange,
 	sourceIndices: ReadonlyArray<number>,
+	xPositions?: ReadonlyArray<number>,
 ): SeriesPlotResult {
 	const primitives: SvgPrimitive[] = [];
 	const dataLabels: SvgText[] = [];
@@ -117,7 +124,10 @@ export function buildAreas(
 			continue;
 		}
 		const displayValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0);
-		const pts = computeLinePoints(displayValues, catCount, layout, range);
+		const pts = computeLinePoints(displayValues, catCount, layout, range).map((point, index) => ({
+			...point,
+			x: xPositions?.[index] ?? point.x,
+		}));
 		const c = seriesColor(series, si, chartData.colorPalette);
 		const lineStr = linePointsToSvgString(pts);
 		const firstPt = pts[0];
@@ -125,7 +135,7 @@ export function buildAreas(
 		if (firstPt && lastPt) {
 			primitives.push({
 				kind: 'polyline',
-				points: `${layout.plotLeft.toFixed(2)},${baselineY.toFixed(2)} ${lineStr} ${lastPt.x.toFixed(2)},${baselineY.toFixed(2)}`,
+				points: `${firstPt.x.toFixed(2)},${baselineY.toFixed(2)} ${lineStr} ${lastPt.x.toFixed(2)},${baselineY.toFixed(2)}`,
 				stroke: 'none',
 				strokeWidth: 0,
 				fill: c,

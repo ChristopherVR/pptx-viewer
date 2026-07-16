@@ -20,7 +20,7 @@ import { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
 import { buildBars } from './chart-cartesian-bars';
 import { buildAreas, buildBubbles, buildLines, buildScatter } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
-import { buildCategoryAxisPlan, chartDataInCategoryOrder } from './chart-category-axis';
+import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import {
 	computeAxisTitlePrimitives,
 	computeDataTablePrimitives,
@@ -38,7 +38,6 @@ import type {
 	ValueRange,
 } from './chart-view-model';
 import {
-	buildCategoryLabels,
 	buildGridlinesAndLabels,
 	buildLegend,
 	buildZeroLine,
@@ -46,7 +45,6 @@ import {
 	computeStackedValueRange,
 } from './chart-view-model';
 
-/** True when the chart declares any feature beyond the linear single-axis default. */
 function hasRicherAxisFeatures(chartData: PptxChartData): boolean {
 	const axes = chartData.axes;
 	if (axes && axes.length > 0) {
@@ -71,7 +69,6 @@ function hasRicherAxisFeatures(chartData: PptxChartData): boolean {
 	return Boolean(chartData.dataTable);
 }
 
-/** Resolve the primary value-axis formatting (non-right valAx, or first valAx). */
 function findPrimaryValueAxis(chartData: PptxChartData) {
 	const axes = chartData.axes;
 	if (!axes) {
@@ -122,7 +119,6 @@ function buildAxes(
 	return { gridlines, axisLabels, secondaryGridlines, secondaryAxisLabels };
 }
 
-/** Range for a stacked bar/area, normalised to 0..100 for percentStacked. */
 function stackedRange(chartData: PptxChartData, catCount: number, isPercent: boolean): ValueRange {
 	if (isPercent) {
 		return { min: 0, max: 100, span: 100 };
@@ -184,18 +180,8 @@ export function buildCartesianViewModel(
 
 	const axisRes = buildAxes(chartData, layout, primaryRange, secondaryRange);
 	const zeroLine = primaryRange.logScale ? undefined : buildZeroLine(primaryRange, layout);
-	const catAxisStyle =
-		kind === 'line' || kind === 'area' || kind === 'scatter' || kind === 'bubble' ? 'line' : 'bar';
-	const categoryPlan =
-		kind === 'scatter' || kind === 'bubble'
-			? undefined
-			: buildCategoryAxisPlan(categoryLabels, layout, catAxisStyle, chartData.axes);
-	const sourceIndices = categoryPlan?.sourceIndices ?? categoryLabels.map((_label, index) => index);
-	const catLabels =
-		categoryPlan?.labels ?? buildCategoryLabels(categoryLabels, layout, catAxisStyle);
-	const displayChartData = categoryPlan
-		? chartDataInCategoryOrder(chartData, sourceIndices)
-		: chartData;
+	const horizontalAxis = buildCartesianHorizontalAxis(chartData, categoryLabels, layout, kind);
+	const { catAxisStyle, sourceIndices, displayChartData } = horizontalAxis;
 
 	const legendPos = chartData.style?.legendPosition ?? 'b';
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
@@ -228,16 +214,24 @@ export function buildCartesianViewModel(
 			secondaryRange,
 			secondaryIdx,
 			sourceIndices,
+			horizontalAxis.xPositions,
 		);
 	} else if (kind === 'area') {
-		plot = buildAreas(chartData, catCount, layout, primaryRange, sourceIndices);
+		plot = buildAreas(
+			chartData,
+			catCount,
+			layout,
+			primaryRange,
+			sourceIndices,
+			horizontalAxis.xPositions,
+		);
 	} else if (kind === 'scatter') {
 		plot = buildScatter(chartData, layout, primaryRange);
 	} else {
 		plot = buildBubbles(chartData, layout, primaryRange);
 	}
 
-	const primitives: SvgPrimitive[] = [...plot.primitives, ...(categoryPlan?.tickMarks ?? [])];
+	const primitives: SvgPrimitive[] = [...plot.primitives, ...horizontalAxis.tickMarks];
 
 	// Overlays (depth): regression trendlines, error bars, axis titles, data table.
 	const overlays: SvgPrimitive[] = [
@@ -284,7 +278,7 @@ export function buildCartesianViewModel(
 		gridlines: axisRes.gridlines,
 		axisLabels: axisRes.axisLabels,
 		zeroLine,
-		categoryLabels: catLabels,
+		categoryLabels: horizontalAxis.labels,
 		primitives,
 		dataLabels: plot.dataLabels,
 		legend: chartData.style?.hasLegend ? legend : [],

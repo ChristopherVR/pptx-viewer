@@ -9,6 +9,7 @@ import {
 } from './chart-axis';
 import { buildSecondaryAxis } from './chart-axis-render';
 import { buildCategoryAxisPlan } from './chart-category-axis';
+import { buildDateAxisPlan } from './chart-date-axis';
 import type {
 	ChartViewModel,
 	PlotLayout,
@@ -78,9 +79,12 @@ export function buildComboViewModel(
 		? buildSecondaryAxis(secondaryRange, layout, secondaryAxisFormatting)
 		: undefined;
 	const zeroLine = primaryRange.logScale ? undefined : buildZeroLine(primaryRange, layout);
-	const categoryPlan = buildCategoryAxisPlan(categoryLabels, layout, 'bar', chartData.axes);
-	const sourceIndices = categoryPlan.sourceIndices;
-	const catLabels = categoryPlan.labels;
+	const datePlan = buildDateAxisPlan(chartData, layout);
+	const categoryPlan = datePlan
+		? undefined
+		: buildCategoryAxisPlan(categoryLabels, layout, 'bar', chartData.axes);
+	const sourceIndices = datePlan?.sourceIndices ?? categoryPlan?.sourceIndices ?? [];
+	const catLabels = datePlan?.labels ?? categoryPlan?.labels ?? [];
 	const legendPos = chartData.style?.legendPosition ?? 'b';
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
 		chartData.series,
@@ -103,7 +107,7 @@ export function buildComboViewModel(
 			...computeBarRects(displayBarSeries, catCount, layout, barRange, chartData.colorPalette).map(
 				(rect, displayIndex) => ({
 					kind: 'rect' as const,
-					x: rect.x,
+					x: datePlan ? (datePlan.xPositions[displayIndex] ?? rect.x) - rect.w / 2 : rect.x,
 					y: rect.y,
 					w: rect.w,
 					h: rect.h,
@@ -117,7 +121,16 @@ export function buildComboViewModel(
 				}),
 			),
 		);
-		appendBarLabels(barSeries[0], chartData, layout, catCount, barRange, sourceIndices, dataLabels);
+		appendBarLabels(
+			barSeries[0],
+			chartData,
+			layout,
+			catCount,
+			barRange,
+			sourceIndices,
+			dataLabels,
+			datePlan?.xPositions,
+		);
 	}
 
 	const barGroupWidth = layout.plotWidth / catCount;
@@ -131,7 +144,9 @@ export function buildComboViewModel(
 		const points = sourceIndices.map((sourceIndex, displayIndex) => {
 			const value = series.values[sourceIndex] ?? 0;
 			return {
-				x: layout.plotLeft + barGroupWidth * displayIndex + barGroupWidth / 2,
+				x:
+					datePlan?.xPositions[displayIndex] ??
+					layout.plotLeft + barGroupWidth * displayIndex + barGroupWidth / 2,
 				y: valueToY(value, range, layout.plotTop, layout.plotBottom),
 				sourceIndex,
 				value,
@@ -173,7 +188,7 @@ export function buildComboViewModel(
 			});
 		}
 	});
-	primitives.push(...categoryPlan.tickMarks);
+	primitives.push(...(datePlan?.tickMarks ?? categoryPlan?.tickMarks ?? []));
 
 	return {
 		svgWidth: layout.svgWidth,
@@ -204,6 +219,7 @@ function appendBarLabels(
 	range: ValueRange,
 	sourceIndices: ReadonlyArray<number>,
 	labels: SvgText[],
+	xPositions?: ReadonlyArray<number>,
 ): void {
 	if (!chartData.style?.hasDataLabels) {
 		return;
@@ -217,7 +233,9 @@ function appendBarLabels(
 		const valueY = valueToY(value, range, layout.plotTop, layout.plotBottom);
 		labels.push({
 			kind: 'text',
-			x: layout.plotLeft + groupWidth * displayIndex + offset + barWidth / 2,
+			x:
+				xPositions?.[displayIndex] ??
+				layout.plotLeft + groupWidth * displayIndex + offset + barWidth / 2,
 			y: value >= 0 ? Math.min(zeroY, valueY) - 4 : Math.max(zeroY, valueY) + 10,
 			text: formatAxisValue(value),
 			fontSize: 7,
