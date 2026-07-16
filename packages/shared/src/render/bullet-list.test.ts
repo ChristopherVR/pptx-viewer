@@ -57,8 +57,36 @@ describe('resolveParagraphBullet', () => {
 		).toBe('IV.');
 	});
 
-	it('returns undefined for picture bullets (no char / autoNumType)', () => {
-		expect(resolveParagraphBullet(seg({ bulletInfo: { imageRelId: 'rId1' } }))).toBeUndefined();
+	it('returns an accessible fallback for unresolved picture bullets', () => {
+		expect(resolveParagraphBullet(seg({ bulletInfo: { imageRelId: 'rId1' } }), 20)).toMatchObject({
+			marker: '•',
+			picture: {
+				sizePx: 20,
+				fallbackMarker: '•',
+				accessibleLabel: 'Bullet',
+				imageRelId: 'rId1',
+			},
+		});
+	});
+
+	it('resolves picture data and canonical percentage sizing', () => {
+		expect(
+			resolveParagraphBullet(
+				seg({
+					bulletInfo: { imageDataUrl: 'data:image/png;base64,abc', sizePercent: 75 },
+				}),
+				24,
+			),
+		).toMatchObject({
+			picture: { src: 'data:image/png;base64,abc', sizePx: 18 },
+		});
+	});
+
+	it('falls back when only raw picture-bullet XML is retained', () => {
+		expect(
+			resolveParagraphBullet(seg({ bulletInfo: { imageBlipFillXml: { 'a:blip': {} } } }), 16)
+				?.picture,
+		).toMatchObject({ fallbackMarker: '•', accessibleLabel: 'Bullet' });
 	});
 });
 

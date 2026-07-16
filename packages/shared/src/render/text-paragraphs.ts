@@ -13,6 +13,7 @@
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import type { PictureBulletMarker } from './bullet-list';
 import { resolveParagraphBullet, resolveParagraphIndent } from './bullet-list';
 import { resolveUnderlineDecorationStyle } from './text-decoration';
 import type { FieldSubstitutionContext } from './text-field-substitution';
@@ -33,6 +34,8 @@ export interface RenderParagraph {
 	runs: ParagraphRun[];
 	/** Bullet glyph / number to render before the runs (or `undefined`). */
 	bulletMarker?: string;
+	/** Picture marker rendered before runs, or fallback metadata when unresolved. */
+	bulletPicture?: PictureBulletMarker;
 	/** Inline style for the bullet marker (font / size / colour). */
 	bulletStyle: RunStyle;
 	/** `margin-left` in px for the whole paragraph (hanging-indent layout). */
@@ -146,7 +149,8 @@ export function buildParagraphs(
 
 	const result: RenderParagraph[] = grouped.map(({ paraSegments }, paraIndex) => {
 		const firstSeg = paraSegments[0];
-		const bulletResult = resolveParagraphBullet(firstSeg);
+		const baseFontSize = firstSeg?.style?.fontSize ?? element.textStyle?.fontSize ?? 16;
+		const bulletResult = resolveParagraphBullet(firstSeg, baseFontSize);
 
 		// The slide-load path inserts a *dedicated* marker segment whose text is the
 		// precomputed glyph/number; we render the marker ourselves, so drop that
@@ -205,7 +209,8 @@ export function buildParagraphs(
 		const indent = resolveParagraphIndent(paragraphIndents?.[paraIndex], firstSeg?.paragraphLevel);
 		return {
 			runs,
-			bulletMarker: bullet?.marker,
+			bulletMarker: bullet?.picture?.src ? undefined : bullet?.marker,
+			bulletPicture: bullet?.picture,
 			bulletStyle,
 			marginLeftPx: indent.marginLeftPx,
 			textIndentPx: indent.textIndentPx,
@@ -213,6 +218,10 @@ export function buildParagraphs(
 	});
 
 	return result.filter(
-		(p) => p.runs.length > 0 || p.bulletMarker !== undefined || result.length === 1,
+		(p) =>
+			p.runs.length > 0 ||
+			p.bulletMarker !== undefined ||
+			p.bulletPicture !== undefined ||
+			result.length === 1,
 	);
 }

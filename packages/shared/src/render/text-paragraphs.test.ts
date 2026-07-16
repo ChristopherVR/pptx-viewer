@@ -42,6 +42,27 @@ describe('segmentStyleToCss', () => {
 });
 
 describe('buildParagraphs', () => {
+	it('projects resolved picture bullets into the binding-neutral paragraph model', () => {
+		const paragraphs = buildParagraphs(
+			textEl([
+				{
+					text: 'Picture item',
+					style: { fontSize: 20 },
+					bulletInfo: { imageDataUrl: 'data:image/png;base64,abc', sizePercent: 80 },
+				},
+			]),
+		);
+
+		expect(paragraphs[0]).toMatchObject({
+			bulletMarker: undefined,
+			bulletPicture: {
+				src: 'data:image/png;base64,abc',
+				sizePx: 16,
+				fallbackMarker: '•',
+				accessibleLabel: 'Bullet',
+			},
+		});
+	});
 	it('groups runs and splits on paragraph-break segments', () => {
 		const paras = buildParagraphs(
 			textEl([

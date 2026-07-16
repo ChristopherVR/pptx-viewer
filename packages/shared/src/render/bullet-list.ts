@@ -24,6 +24,39 @@ export interface ParagraphBulletResult {
 	fontFamily?: string;
 	sizePts?: number;
 	sizePercent?: number;
+	picture?: PictureBulletMarker;
+}
+
+/** Framework-neutral picture-bullet source, sizing, and accessible fallback. */
+export interface PictureBulletMarker {
+	src?: string;
+	sizePx: number;
+	fallbackMarker: string;
+	accessibleLabel: string;
+	imageRelId?: string;
+}
+
+/** Resolve React-compatible picture-bullet sizing and fallback metadata. */
+export function resolvePictureBullet(
+	info: BulletInfo,
+	baseFontSize: number,
+): PictureBulletMarker | undefined {
+	if (!info.imageDataUrl && !info.imageRelId && !info.imageBlipFillXml) {
+		return undefined;
+	}
+	const sizePx =
+		typeof info.sizePts === 'number'
+			? info.sizePts
+			: typeof info.sizePercent === 'number'
+				? baseFontSize * (info.sizePercent / 100)
+				: baseFontSize;
+	return {
+		...(info.imageDataUrl ? { src: info.imageDataUrl } : {}),
+		sizePx,
+		fallbackMarker: '•',
+		accessibleLabel: 'Bullet',
+		...(info.imageRelId ? { imageRelId: info.imageRelId } : {}),
+	};
 }
 
 /**
@@ -37,6 +70,7 @@ export interface ParagraphBulletResult {
  */
 export function resolveParagraphBullet(
 	firstSegment: TextSegment | undefined,
+	baseFontSize: number = firstSegment?.style?.fontSize ?? 16,
 ): ParagraphBulletResult | undefined {
 	if (!firstSegment) {
 		return undefined;
@@ -54,6 +88,18 @@ export function resolveParagraphBullet(
 	const fontFamily = info.fontFamily;
 	const sizePts = typeof info.sizePts === 'number' ? info.sizePts : undefined;
 	const sizePercent = typeof info.sizePercent === 'number' ? info.sizePercent : undefined;
+	const picture = resolvePictureBullet(info, baseFontSize);
+	if (picture) {
+		return {
+			marker: picture.fallbackMarker,
+			isNumbered: false,
+			color,
+			fontFamily,
+			sizePts,
+			sizePercent,
+			picture,
+		};
+	}
 
 	// ── Auto-numbered list ──
 	if (info.autoNumType) {
@@ -75,7 +121,7 @@ export function resolveParagraphBullet(
 		return { marker: info.char, isNumbered: false, color, fontFamily, sizePts, sizePercent };
 	}
 
-	// Picture bullets and unsupported cases — no marker to show as text.
+	// Unsupported cases have no marker to show as text.
 	return undefined;
 }
 
