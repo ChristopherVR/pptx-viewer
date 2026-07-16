@@ -4,6 +4,7 @@ import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import ActionSettingsPanel from './ActionSettingsPanel.vue';
 import AnimationPanel from './AnimationPanel.vue';
 import ArrangePanel from './ArrangePanel.vue';
 import ChartPanel from './ChartPanel.vue';
@@ -27,7 +28,12 @@ import TextPanel from './TextPanel.vue';
  * where `patch` is a shallow `Partial<PptxElement>` (nested style objects are
  * emitted pre-merged by the panel).
  */
-const props = defineProps<{ element: PptxElement; mobile?: boolean; canEdit?: boolean }>();
+const props = defineProps<{
+	element: PptxElement;
+	mobile?: boolean;
+	canEdit?: boolean;
+	slideCount?: number;
+}>();
 const emit = defineEmits<{ update: [patch: Partial<PptxElement>] }>();
 
 const { t } = useI18n();
@@ -59,6 +65,15 @@ function relay(patch: Partial<PptxElement>): void {
 				{{ t('pptx.inspector.arrange') }}
 			</h3>
 			<ArrangePanel :element="element" :can-edit="props.canEdit" @update="relay" />
+		</div>
+
+		<div class="pptx-vue-inspector-section py-2 border-b border-border">
+			<ActionSettingsPanel
+				:element="element"
+				:slide-count="props.slideCount"
+				:can-edit="props.canEdit"
+				@update="relay"
+			/>
 		</div>
 
 		<div v-if="isText" class="pptx-vue-inspector-section py-2 border-b border-border">
