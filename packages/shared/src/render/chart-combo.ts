@@ -1,6 +1,12 @@
 import type { PptxChartData, PptxChartSeries, PptxElement } from 'pptx-viewer-core';
 
-import { computeLayoutOptions, getSecondaryValueAxis, splitSeriesByAxis } from './chart-axis';
+import {
+	computeLayoutOptions,
+	computeValueRangeForAxis,
+	getPrimaryValueAxisId,
+	getSecondaryValueAxis,
+	splitSeriesByAxis,
+} from './chart-axis';
 import { buildSecondaryAxis } from './chart-axis-render';
 import type {
 	ChartViewModel,
@@ -18,7 +24,6 @@ import {
 	buildZeroLine,
 	computeBarRects,
 	computePlotLayout,
-	computeValueRange,
 	formatAxisValue,
 	seriesColor,
 	valueToY,
@@ -56,15 +61,23 @@ export function buildComboViewModel(
 	const secondaryIndexes = new Set(secondary.map((entry) => entry.index));
 	const primarySeries =
 		primary.length > 0 ? primary.map((entry) => entry.series) : chartData.series;
-	const primaryRange = computeValueRange(primarySeries);
+	const primaryAxisId = getPrimaryValueAxisId(chartData.axes);
+	const primaryAxis = chartData.axes?.find((axis) => axis.axisId === primaryAxisId);
+	const secondaryAxisFormatting = getSecondaryValueAxis(chartData.axes);
+	const primaryRange = computeValueRangeForAxis(primarySeries, primaryAxis);
 	const secondaryRange =
-		secondary.length > 0 ? computeValueRange(secondary.map((entry) => entry.series)) : undefined;
+		secondary.length > 0
+			? computeValueRangeForAxis(
+					secondary.map((entry) => entry.series),
+					secondaryAxisFormatting,
+				)
+			: undefined;
 
 	const { gridlines, axisLabels } = buildGridlinesAndLabels(primaryRange, layout);
 	const secondaryAxis = secondaryRange
-		? buildSecondaryAxis(secondaryRange, layout, getSecondaryValueAxis(chartData.axes))
+		? buildSecondaryAxis(secondaryRange, layout, secondaryAxisFormatting)
 		: undefined;
-	const zeroLine = buildZeroLine(primaryRange, layout);
+	const zeroLine = primaryRange.logScale ? undefined : buildZeroLine(primaryRange, layout);
 	const catLabels = buildCategoryLabels(categoryLabels, layout, 'bar');
 	const legendPos = chartData.style?.legendPosition ?? 'b';
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(

@@ -129,4 +129,21 @@ describe('buildSecondaryAxis', () => {
 		const title = axisLabels.find((l) => l.text === 'Growth');
 		expect(title?.transform).toContain('rotate(-90');
 	});
+
+	it('uses power-of-base ticks for a logarithmic secondary range', () => {
+		const logRange: ValueRange = {
+			min: 1,
+			max: 1000,
+			span: 3,
+			logScale: true,
+			logBase: 10,
+		};
+		const { axisLabels } = buildSecondaryAxis(logRange, layout, {
+			axisType: 'valAx',
+			axPos: 'r',
+			logScale: true,
+			logBase: 10,
+		});
+		expect(axisLabels.map((label) => label.text)).toStrictEqual(['1', '10', '100', '1.0K']);
+	});
 });

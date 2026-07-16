@@ -187,6 +187,65 @@ describe('buildComboViewModel', () => {
 		expect(vm.secondaryAxisLabels?.some((label) => label.text === '2')).toBeTruthy();
 	});
 
+	it('honours explicit secondary-axis bounds for combo line placement', () => {
+		const chartData: PptxChartData = {
+			chartType: 'combo',
+			categories: ['Q1', 'Q2'],
+			series: [
+				{ name: 'Revenue', values: [1000, 2000], axisId: 20 },
+				{ name: 'Margin', values: [1, 2], axisId: 40 },
+			],
+			axes: [
+				{ axisType: 'valAx', axisId: 20, axPos: 'l' },
+				{ axisType: 'valAx', axisId: 40, axPos: 'r', min: 0, max: 10 },
+			],
+		};
+		const vm = buildComboViewModel(makeElement(), chartData, chartData.categories);
+		const line = vm.primitives.find((primitive) => primitive.kind === 'polyline');
+		const yCoordinates =
+			line?.kind === 'polyline'
+				? line.points.split(' ').map((point) => Number(point.split(',')[1]))
+				: [];
+
+		expect(Math.abs((yCoordinates[0] ?? 0) - (yCoordinates[1] ?? 0))).toBeLessThan(50);
+		expect(vm.secondaryAxisLabels?.map((label) => label.text)).toContain('10');
+	});
+
+	it('honours a logarithmic secondary axis for combo line placement and ticks', () => {
+		const chartData: PptxChartData = {
+			chartType: 'combo',
+			categories: ['Q1', 'Q2', 'Q3'],
+			series: [
+				{ name: 'Revenue', values: [1000, 2000, 3000], axisId: 20 },
+				{ name: 'Ratio', values: [1, 10, 1000], axisId: 40 },
+			],
+			axes: [
+				{ axisType: 'valAx', axisId: 20, axPos: 'l' },
+				{
+					axisType: 'valAx',
+					axisId: 40,
+					axPos: 'r',
+					min: 1,
+					max: 1000,
+					logScale: true,
+					logBase: 10,
+				},
+			],
+		};
+		const vm = buildComboViewModel(makeElement(), chartData, chartData.categories);
+		const circles = vm.primitives.filter((primitive) => primitive.kind === 'circle');
+
+		expect(circles).toHaveLength(3);
+		expect(circles[0]?.cy).toBeGreaterThan(circles[1]?.cy ?? 0);
+		expect(circles[1]?.cy).toBeGreaterThan(circles[2]?.cy ?? 0);
+		expect(vm.secondaryAxisLabels?.map((label) => label.text)).toStrictEqual([
+			'1',
+			'10',
+			'100',
+			'1.0K',
+		]);
+	});
+
 	it('counts primitives correctly for two line series', () => {
 		const chartData: PptxChartData = {
 			chartType: 'combo',

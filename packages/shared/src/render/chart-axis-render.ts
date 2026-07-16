@@ -94,10 +94,9 @@ export function buildPrimaryAxis(
 }
 
 /**
- * Build secondary (right-side) value-axis gridlines + labels. Always linear
- * (PowerPoint secondary value axes are not log-scaled here). Labels sit just to
- * the right of `plotRight`; gridlines span the plot like the primary ones but in
- * a lighter dashed-style colour so projectors can distinguish them.
+ * Build secondary (right-side) value-axis gridlines + labels. Labels sit just
+ * to the right of `plotRight`; gridlines span the plot like the primary ones
+ * but in a lighter dashed style. Logarithmic ranges emit power-of-base ticks.
  */
 export function buildSecondaryAxis(
 	range: ValueRange,
@@ -110,8 +109,14 @@ export function buildSecondaryAxis(
 	const fontColor = axis?.fontColor ?? AXIS_LABEL_COLOR;
 	const fontWeight: 'normal' | 'bold' = axis?.fontBold ? 'bold' : 'normal';
 
-	for (let i = 0; i <= TICK_COUNT - 1; i++) {
-		const val = range.min + (range.span / (TICK_COUNT - 1)) * i;
+	const tickValues =
+		range.logScale && range.logBase
+			? generateLogTicks(range)
+			: Array.from(
+					{ length: TICK_COUNT },
+					(_, index) => range.min + (range.span / (TICK_COUNT - 1)) * index,
+				);
+	for (const val of tickValues) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
 		gridlines.push({
 			kind: 'line',

@@ -21,105 +21,14 @@ import type {
 	PptxChartSeries,
 } from 'pptx-viewer-core';
 
-import type { ValueRange } from './chart-helpers';
-import { computeValueRange } from './chart-helpers';
-
-// ── Log scale ────────────────────────────────────────────────────
-
-/**
- * Compute a logarithmic value range for axes with logScale enabled.
- * Values <= 0 are clamped to a small positive number since log(0) is undefined.
- * The returned min/max are in data-space (not log-space) so that tick generation
- * can produce clean power-of-base labels.
- */
-export function computeLogValueRange(
-	series: ReadonlyArray<PptxChartSeries>,
-	logBase: number,
-): ValueRange {
-	const allValues = series.flatMap((s) => s.values).filter((v) => v > 0);
-	if (allValues.length === 0) {
-		return { min: 1, max: logBase, span: 1, logScale: true, logBase };
-	}
-
-	const dataMin = Math.min(...allValues);
-	const dataMax = Math.max(...allValues);
-
-	// Snap to nearest power-of-base boundaries for clean ticks
-	const logMin = Math.floor(Math.log(dataMin) / Math.log(logBase));
-	const logMax = Math.ceil(Math.log(dataMax) / Math.log(logBase));
-
-	const min = logBase ** logMin;
-	const max = logBase ** Math.max(logMax, logMin + 1);
-	const logSpan = Math.log(max) / Math.log(logBase) - Math.log(min) / Math.log(logBase);
-
-	return {
-		min,
-		max,
-		span: Math.max(logSpan, 1),
-		logScale: true,
-		logBase,
-	};
-}
-
-/**
- * Map a data value to a Y pixel coordinate using logarithmic scaling.
- * Values <= 0 are clamped to range.min.
- */
-export function valueToYLog(val: number, range: ValueRange, topY: number, bottomY: number): number {
-	const usable = bottomY - topY;
-	const base = range.logBase ?? 10;
-	const clampedVal = Math.max(val, range.min);
-	const logVal = Math.log(clampedVal) / Math.log(base);
-	const logMin = Math.log(range.min) / Math.log(base);
-
-	return bottomY - ((logVal - logMin) / range.span) * usable;
-}
-
-/**
- * Generate logarithmically-spaced tick values for a log-scale axis.
- * Returns tick values at each power of the base within the range.
- */
-export function generateLogTicks(range: ValueRange): number[] {
-	if (!range.logScale || !range.logBase) {
-		return [];
-	}
-
-	const base = range.logBase;
-	const logMin = Math.log(range.min) / Math.log(base);
-	const logMax = Math.log(range.max) / Math.log(base);
-
-	const ticks: number[] = [];
-	for (let exp = Math.round(logMin); exp <= Math.round(logMax); exp++) {
-		ticks.push(base ** exp);
-	}
-
-	return ticks;
-}
-
-/**
- * Find the value axis formatting from the axes array, looking for
- * a valAx with logScale enabled.
- */
-export function findLogAxis(
-	axes: PptxChartAxisFormatting[] | undefined,
-): PptxChartAxisFormatting | undefined {
-	return axes?.find((a) => a.axisType === 'valAx' && a.logScale);
-}
-
-/**
- * Compute the appropriate value range for a chart, automatically using
- * logarithmic scaling when a log-scale value axis is present.
- */
-export function computeValueRangeForChart(
-	series: ReadonlyArray<PptxChartSeries>,
-	axes?: PptxChartAxisFormatting[],
-): ValueRange {
-	const logAxis = findLogAxis(axes);
-	if (logAxis?.logBase) {
-		return computeLogValueRange(series, logAxis.logBase);
-	}
-	return computeValueRange(series);
-}
+export {
+	computeLogValueRange,
+	computeValueRangeForAxis,
+	computeValueRangeForChart,
+	findLogAxis,
+	generateLogTicks,
+	valueToYLog,
+} from './chart-axis-range';
 
 // ── Display units ────────────────────────────────────────────────
 
