@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
+import { getImageColorWashStyle, getImageSvgFilters } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
@@ -8,12 +9,34 @@ import {
 	getImageEffectsFilter,
 	getImageTilingStyle,
 	isImageTiled,
-	renderDuotoneSvgFilter,
 } from '../../utils';
-import { renderArtisticEffectSvgFilter } from '../../utils/artistic-effects';
-import { renderImageAlphaSvgFilter } from '../../utils/shape-visual-filters';
 import { ColorChangedImage } from '../ColorChangedImage';
 import { DuotoneImage } from '../DuotoneImage';
+
+function renderImageEffectDefinitions(
+	element: PptxElement,
+	excludeDuotone = false,
+): React.ReactNode {
+	return getImageSvgFilters(element)
+		.filter((definition) => !excludeDuotone || definition.id !== `duotone-${element.id}`)
+		.map((definition) => (
+			<svg
+				key={definition.id}
+				width={0}
+				height={0}
+				style={{ position: 'absolute', overflow: 'hidden' }}
+				aria-hidden='true'
+			>
+				<defs>
+					<filter
+						id={definition.id}
+						colorInterpolationFilters='sRGB'
+						dangerouslySetInnerHTML={{ __html: definition.markup }}
+					/>
+				</defs>
+			</svg>
+		));
+}
 
 export function imgSrc(el: PptxElement): string | undefined {
 	// Prefer SVG variant over raster fallback when available
@@ -71,10 +94,6 @@ export function renderImg(
 		...(opacity !== undefined ? { opacity } : {}),
 	};
 
-	// Extract artistic effect info for SVG filter rendering
-	const artisticEffectName = isImageLikeElement(el) ? el.imageEffects?.artisticEffect : undefined;
-	const artisticRadius = isImageLikeElement(el) ? (el.imageEffects?.artisticRadius ?? 5) : 5;
-
 	if (isImageTiled(el)) {
 		const tileSrc = imgSrc(el);
 		if (!tileSrc) {
@@ -84,13 +103,9 @@ export function renderImg(
 				</div>
 			);
 		}
-		const tileDuotoneColors = getDuotoneColors(el);
 		return (
 			<>
-				{tileDuotoneColors &&
-					renderDuotoneSvgFilter(el.id, tileDuotoneColors.color1, tileDuotoneColors.color2)}
-				{renderArtisticEffectSvgFilter(el.id, artisticEffectName, artisticRadius)}
-				{renderImageAlphaSvgFilter(el)}
+				{renderImageEffectDefinitions(el)}
 				<div
 					className='pointer-events-none select-none w-full h-full'
 					style={{ ...getImageTilingStyle(el), ...effectStyles }}
@@ -98,16 +113,9 @@ export function renderImg(
 			</>
 		);
 	}
-	const colorWash =
-		'imageEffects' in el
-			? (
-					el as unknown as {
-						imageEffects?: {
-							colorWash?: { color: string; opacity: number };
-						};
-					}
-				).imageEffects?.colorWash
-			: undefined;
+	const colorWash = getImageColorWashStyle(
+		isImageLikeElement(el) ? el.imageEffects?.colorWash : undefined,
+	);
 	// Colour-change effect (chroma-key via canvas pixel replacement)
 	const clrChange =
 		'imageEffects' in el
@@ -137,14 +145,7 @@ export function renderImg(
 	};
 	return (
 		<>
-			{/* SVG duotone filter definition */}
-			{duotoneColors &&
-				!useDuotoneCanvas &&
-				renderDuotoneSvgFilter(el.id, duotoneColors.color1, duotoneColors.color2)}
-			{/* SVG artistic effect filter definition */}
-			{renderArtisticEffectSvgFilter(el.id, artisticEffectName, artisticRadius)}
-			{/* SVG alpha-primitives & advanced colour-effect filter definition */}
-			{renderImageAlphaSvgFilter(el)}
+			{renderImageEffectDefinitions(el, useDuotoneCanvas)}
 			{useDuotoneCanvas && duotoneColors ? (
 				<DuotoneImage
 					src={src}
@@ -177,8 +178,8 @@ export function renderImg(
 				<div
 					className='pointer-events-none absolute inset-0'
 					style={{
-						backgroundColor: colorWash.color,
-						opacity: colorWash.opacity / 100,
+						backgroundColor: colorWash.backgroundColor,
+						opacity: colorWash.opacity,
 					}}
 				/>
 			)}

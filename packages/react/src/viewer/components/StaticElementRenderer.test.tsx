@@ -53,6 +53,7 @@ const effectedImage: PptxElement = {
 	imageEffects: {
 		biLevel: 25,
 		alphaModFix: 50,
+		colorWash: { color: '#112233', opacity: 135 },
 	},
 };
 
@@ -115,6 +116,7 @@ describe('static rich element rendering', () => {
 			expect(html).toContain('data-static-element-type="image"');
 			expect(html).toContain('imgalpha-image-1');
 			expect(html).toContain('opacity:0.5');
+			expect(html).toContain('background-color:#112233;opacity:1');
 		}
 	});
 });
