@@ -231,13 +231,24 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// The colour child of the ref element serves as phClr override.
 		// We resolve it for use when the fill definition contains phClr tokens.
 		const overrideColor = this.parseColor(refNode);
+		const fillTag =
+			fillDef.kind === 'solid'
+				? 'a:solidFill'
+				: fillDef.kind === 'pattern'
+					? 'a:pattFill'
+					: undefined;
+		if (fillTag && overrideColor && fillDef.rawNode) {
+			const rawFillNode = fillDef.rawNode as XmlObject;
+			fillDef = withThemePlaceholderColor(this.themeColorMap, overrideColor, () => {
+				const reparsed = this.parseFillStyleList({ [fillTag]: rawFillNode } as XmlObject);
+				return reparsed[0] ?? fillDef;
+			});
+		}
 
 		switch (fillDef.kind) {
 			case 'solid': {
 				style.fillMode = 'solid';
-				// Use the override colour when the fill definition's colour is
-				// phClr-dependent (stored as undefined) or when the ref supplies one.
-				style.fillColor = overrideColor || fillDef.color;
+				style.fillColor = fillDef.color || overrideColor;
 				style.fillOpacity = fillDef.opacity;
 				break;
 			}
@@ -257,12 +268,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 				style.fillGradientAngle = fillDef.gradientAngle;
 				style.fillGradientType = fillDef.gradientType;
-				style.fillColor = overrideColor || fillDef.color;
+				style.fillColor = fillDef.color || overrideColor;
 				break;
 			}
 			case 'pattern': {
 				style.fillMode = 'pattern';
-				style.fillColor = overrideColor || fillDef.color;
+				style.fillColor = fillDef.color || overrideColor;
 				if (fillDef.patternPreset) {
 					style.fillPatternPreset = fillDef.patternPreset;
 				}
