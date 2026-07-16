@@ -21,6 +21,7 @@
 export * from './download-helpers';
 // Canvas -> JPEG byte extraction for PDF embedding.
 export * from './canvas-jpeg';
+export * from './package-readme';
 export * from './gif-encoder';
 export * from './handout-layout';
 export * from './notes-page-layout';
