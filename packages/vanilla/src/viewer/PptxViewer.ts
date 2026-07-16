@@ -55,6 +55,8 @@ import { openDigitalSignaturesDialog } from './ui/digital-signatures-dialog';
 import { openDocumentPropertiesDialog } from './ui/document-properties-dialog';
 import { openFontEmbeddingDialog } from './ui/font-embedding-dialog';
 import { openPasswordProtectionDialog } from './ui/password-protection-dialog';
+import { openSignatureStrippedDialog } from './ui/signature-stripped-dialog';
+import { openVersionHistoryPanel } from './ui/version-history-panel';
 import type { ViewerControls } from './viewer-controls';
 import { createViewerControls } from './viewer-controls';
 
@@ -89,6 +91,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private disposePresenterConsole: (() => void) | null = null;
 	private userFontsStyle: HTMLStyleElement | null = null;
 	private embedFontsEnabled = false;
+	private signatureWarningAcknowledged = false;
+	private detachSignatureWarning: (() => void) | null = null;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
 		super();
@@ -192,6 +196,17 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				this.syncAudience(state.currentSlide);
 			}
 		});
+		this.detachSignatureWarning = this.store.subscribe((state, previous) => {
+			if (
+				state.dirty &&
+				!previous.dirty &&
+				state.hasDigitalSignatures &&
+				!this.signatureWarningAcknowledged
+			) {
+				this.signatureWarningAcknowledged = true;
+				openSignatureStrippedDialog(this.doc, this.t, state.digitalSignatureCount);
+			}
+		});
 		this.sessions = createSessionControllers({
 			doc: this.doc,
 			store: this.store,
@@ -212,10 +227,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	}
 
 	async loadFile(file: Blob | ArrayBuffer | Uint8Array): Promise<void> {
+		this.signatureWarningAcknowledged = false;
 		await this.loading.load(file);
 	}
 
 	async loadUrl(url: string): Promise<void> {
+		this.signatureWarningAcknowledged = false;
 		await this.loading.load(url);
 	}
 
@@ -392,6 +409,13 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			onRemove: () => {
 				this.store.set({ isPasswordProtected: false });
 			},
+		});
+	}
+
+	openVersionHistory(): void {
+		openVersionHistoryPanel(this.doc, this.lifecycle.chrome.root, this.t, {
+			filePath: this.options.autosaveFilePath ?? 'presentation.pptx',
+			onRestore: (bytes) => this.loadFile(bytes),
 		});
 	}
 
@@ -658,6 +682,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.closeAudienceWindow();
 		this.presenterChannel?.close();
 		this.sessions.destroy();
+		this.detachSignatureWarning?.();
 		this.loading.invalidate();
 		this.editor.destroy();
 		this.exporter.destroy();

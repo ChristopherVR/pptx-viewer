@@ -46,6 +46,7 @@ export interface RibbonFileHandlers {
 	openFontEmbedding(): void;
 	openDigitalSignatures(): void;
 	openPasswordProtection(): void;
+	openVersionHistory(): void;
 	save(): void;
 	saveAsPpsx(): void;
 	saveAsPptm(): void;

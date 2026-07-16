@@ -42,6 +42,7 @@ function buildHandlers(): RibbonHandlers {
 			openFontEmbedding: vi.fn(),
 			openDigitalSignatures: vi.fn(),
 			openPasswordProtection: vi.fn(),
+			openVersionHistory: vi.fn(),
 			save: vi.fn(),
 			saveAsPpsx: vi.fn(),
 			saveAsPptm: vi.fn(),

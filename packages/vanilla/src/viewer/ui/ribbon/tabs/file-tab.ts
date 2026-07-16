@@ -38,6 +38,11 @@ export function createFileTab(doc: Document, t: Translator, handlers: RibbonFile
 		icon: 'file',
 		onClick: handlers.openDigitalSignatures,
 	});
+	const versionHistory = makeButton(doc, {
+		label: t('pptx.ribbon.versionHistory'),
+		icon: 'history',
+		onClick: handlers.openVersionHistory,
+	});
 	const save = makeButton(doc, {
 		label: t('pptx.file.saveAsPptx'),
 		icon: 'download',
@@ -100,6 +105,7 @@ export function createFileTab(doc: Document, t: Translator, handlers: RibbonFile
 		protect.btn,
 		fonts.btn,
 		signatures.btn,
+		versionHistory.btn,
 		save.btn,
 		savePpsx.btn,
 		savePptm.btn,

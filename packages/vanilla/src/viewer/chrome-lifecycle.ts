@@ -173,6 +173,7 @@ export interface ChromeHost {
 	openFontEmbedding(): void;
 	openDigitalSignatures(): void;
 	openPasswordProtection(): void;
+	openVersionHistory(): void;
 	toggleTemplateEditing(): void;
 	toggleMasterNavigation(): void;
 	exportSlidePng(): Promise<void>;
@@ -217,6 +218,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		openFontEmbedding: () => host.openFontEmbedding(),
 		openDigitalSignatures: () => host.openDigitalSignatures(),
 		openPasswordProtection: () => host.openPasswordProtection(),
+		openVersionHistory: () => host.openVersionHistory(),
 		toggleTemplateEditing: () => host.toggleTemplateEditing(),
 		toggleMasterNavigation: () => host.toggleMasterNavigation(),
 		save: () => void host.downloadPptx(),
