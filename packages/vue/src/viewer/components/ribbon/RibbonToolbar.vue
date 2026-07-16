@@ -307,13 +307,13 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:on-set-snap-to-grid="props.onSetSnapToGrid"
 				:on-set-snap-to-shape="props.onSetSnapToShape"
 				:on-add-guide="props.onAddGuide"
+				:on-zoom-to-fit="props.onZoomToFit"
 				:on-enter-master-view="props.onEnterMasterView"
 				:is-selection-pane-open="props.isSelectionPaneOpen"
 				:on-toggle-selection-pane="props.onToggleSelectionPane"
 				:eyedropper-active="props.eyedropperActive"
 				:on-toggle-eyedropper="props.onToggleEyedropper"
 			/>
-				:on-zoom-to-fit="props.onZoomToFit"
 
 			<template v-if="s === 'help'">
 				<button
