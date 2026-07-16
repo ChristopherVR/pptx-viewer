@@ -120,6 +120,17 @@ describe('parseMarker', () => {
 		expect(result?.spPr?.fillColor).toBe('#AABB00');
 	});
 
+	it('should ignore marker sizes outside the ST_MarkerSize range', () => {
+		for (const size of ['1', '73', '2.5']) {
+			const result = parseMarker(
+				{ 'c:symbol': { '@_val': 'circle' }, 'c:size': { '@_val': size } },
+				xmlLookup,
+				colorParser,
+			);
+			expect(result).toStrictEqual({ symbol: 'circle' });
+		}
+	});
+
 	it('should return undefined for unknown symbol', () => {
 		const marker: XmlObject = {
 			'c:symbol': { '@_val': 'unknownType' },
@@ -196,6 +207,34 @@ describe('parseSeriesDataPoints', () => {
 			symbol: 'diamond',
 			size: 10,
 		});
+	});
+
+	it('should parse explicit and default boolean data-point properties', () => {
+		const series: XmlObject = {
+			'c:dPt': [
+				{
+					'c:idx': { '@_val': '0' },
+					'c:invertIfNegative': { '@_val': 'false' },
+					'c:bubble3D': { '@_val': '0' },
+				},
+				{ 'c:idx': { '@_val': '1' }, 'c:bubble3D': {} },
+			],
+		};
+		expect(parseSeriesDataPoints(series, xmlLookup, colorParser)).toStrictEqual([
+			{ idx: 0, invertIfNegative: false, bubble3D: false },
+			{ idx: 1, bubble3D: true },
+		]);
+	});
+
+	it('should reject invalid unsigned data-point values', () => {
+		const series: XmlObject = {
+			'c:dPt': [
+				{ 'c:idx': { '@_val': '-1' } },
+				{ 'c:idx': { '@_val': '1.5' } },
+				{ 'c:idx': { '@_val': '2' }, 'c:explosion': { '@_val': '-1' } },
+			],
+		};
+		expect(parseSeriesDataPoints(series, xmlLookup, colorParser)).toStrictEqual([{ idx: 2 }]);
 	});
 });
 

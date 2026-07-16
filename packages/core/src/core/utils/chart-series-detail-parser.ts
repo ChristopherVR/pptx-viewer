@@ -20,6 +20,29 @@ function safeInt(val: unknown): number | undefined {
 	return Number.isFinite(n) ? n : undefined;
 }
 
+function safeUnsignedInt(val: unknown): number | undefined {
+	const n = Number(val);
+	return Number.isInteger(n) && n >= 0 && n <= 0xffffffff ? n : undefined;
+}
+
+function booleanValue(node: XmlObject | undefined): boolean | undefined {
+	if (!node) {
+		return undefined;
+	}
+	const value = node['@_val'];
+	if (value === undefined) {
+		return true;
+	}
+	const normalized = String(value);
+	if (normalized === 'true' || normalized === '1') {
+		return true;
+	}
+	if (normalized === 'false' || normalized === '0') {
+		return false;
+	}
+	return undefined;
+}
+
 const MARKER_SYMBOL_MAP: Record<string, PptxChartMarkerSymbol> = {
 	circle: 'circle',
 	dash: 'dash',
@@ -98,8 +121,8 @@ export function parseMarker(
 	const result: PptxChartMarker = { symbol };
 
 	const sizeNode = xmlLookup.getChildByLocalName(markerNode, 'size');
-	const size = safeInt(sizeNode?.['@_val']);
-	if (size !== undefined) {
+	const size = Number(sizeNode?.['@_val']);
+	if (Number.isInteger(size) && size >= 2 && size <= 72) {
 		result.size = size;
 	}
 
@@ -129,7 +152,7 @@ export function parseSeriesDataPoints(
 	return dPtNodes
 		.map((node): PptxChartDataPoint | undefined => {
 			const idxNode = xmlLookup.getChildByLocalName(node, 'idx');
-			const idx = safeInt(idxNode?.['@_val']);
+			const idx = safeUnsignedInt(idxNode?.['@_val']);
 			if (idx === undefined) {
 				return undefined;
 			}
@@ -146,14 +169,16 @@ export function parseSeriesDataPoints(
 			}
 
 			const explosionNode = xmlLookup.getChildByLocalName(node, 'explosion');
-			const explosion = safeInt(explosionNode?.['@_val']);
+			const explosion = safeUnsignedInt(explosionNode?.['@_val']);
 			if (explosion !== undefined) {
 				result.explosion = explosion;
 			}
 
-			const invertNode = xmlLookup.getChildByLocalName(node, 'invertIfNegative');
-			if (invertNode?.['@_val'] === '1') {
-				result.invertIfNegative = true;
+			const invertIfNegative = booleanValue(
+				xmlLookup.getChildByLocalName(node, 'invertIfNegative'),
+			);
+			if (invertIfNegative !== undefined) {
+				result.invertIfNegative = invertIfNegative;
 			}
 
 			const markerResult = parseMarker(
@@ -163,6 +188,11 @@ export function parseSeriesDataPoints(
 			);
 			if (markerResult) {
 				result.marker = markerResult;
+			}
+
+			const bubble3D = booleanValue(xmlLookup.getChildByLocalName(node, 'bubble3D'));
+			if (bubble3D !== undefined) {
+				result.bubble3D = bubble3D;
 			}
 
 			return result;

@@ -12,6 +12,7 @@
  */
 
 import type { PptxChartDataPoint, XmlObject } from '../types';
+import { buildChartMarkerXml } from './chart-marker-serializer';
 
 type GetLocalName = (key: string) => string;
 
@@ -66,7 +67,19 @@ function buildDptSpPr(
 }
 
 /** Local names this serializer owns; everything else on the existing node is preserved. */
-const MODELED = new Set(['idx', 'invertIfNegative', 'spPr', 'explosion']);
+const MODELED = new Set(['idx', 'invertIfNegative', 'marker', 'bubble3D', 'explosion', 'spPr']);
+
+function assertDataPoint(dp: PptxChartDataPoint): void {
+	if (!Number.isInteger(dp.idx) || dp.idx < 0 || dp.idx > 0xffffffff) {
+		throw new RangeError('data point idx must be an unsigned 32-bit integer');
+	}
+	if (
+		dp.explosion !== undefined &&
+		(!Number.isInteger(dp.explosion) || dp.explosion < 0 || dp.explosion > 0xffffffff)
+	) {
+		throw new RangeError('data point explosion must be an unsigned 32-bit integer');
+	}
+}
 
 /** Build a single `c:dPt` node in schema order, reusing unmodeled children. */
 function buildDataPoint(
@@ -74,10 +87,30 @@ function buildDataPoint(
 	dp: PptxChartDataPoint,
 	getLocalName: GetLocalName,
 ): XmlObject {
+	assertDataPoint(dp);
 	const node: XmlObject = {};
 	node['c:idx'] = { '@_val': String(dp.idx) };
 	if (dp.invertIfNegative !== undefined) {
 		node['c:invertIfNegative'] = { '@_val': dp.invertIfNegative ? '1' : '0' };
+	}
+	const existingMarker = existing
+		? (existing[findKey(existing, 'marker', getLocalName) ?? ''] as XmlObject | undefined)
+		: undefined;
+	if (dp.marker) {
+		node['c:marker'] = buildChartMarkerXml(existingMarker, dp.marker, getLocalName);
+	} else if (existingMarker) {
+		node['c:marker'] = existingMarker;
+	}
+	if (dp.bubble3D !== undefined) {
+		node['c:bubble3D'] = { '@_val': dp.bubble3D ? '1' : '0' };
+	} else if (existing) {
+		const bubbleKey = findKey(existing, 'bubble3D', getLocalName);
+		if (bubbleKey) {
+			node[bubbleKey] = existing[bubbleKey];
+		}
+	}
+	if (dp.explosion !== undefined) {
+		node['c:explosion'] = { '@_val': String(dp.explosion) };
 	}
 	const existingSpPr = existing
 		? (existing[findKey(existing, 'spPr', getLocalName) ?? ''] as XmlObject | undefined)
@@ -86,10 +119,7 @@ function buildDataPoint(
 	if (spPr) {
 		node['c:spPr'] = spPr;
 	}
-	if (dp.explosion !== undefined) {
-		node['c:explosion'] = { '@_val': String(dp.explosion) };
-	}
-	// Preserve any children the model does not capture (e.g. c:bubble3D, c:marker).
+	// Preserve children the model does not capture (e.g. pictureOptions and extLst).
 	if (existing) {
 		for (const key of Object.keys(existing)) {
 			if (key.startsWith('@_') || key === '#text') {

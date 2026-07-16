@@ -87,11 +87,14 @@ function buildMarkerSpPr(
 }
 
 /** Build a `c:marker` node in schema order, reusing unmodeled children when present. */
-function buildMarker(
+export function buildChartMarkerXml(
 	existing: XmlObject | undefined,
 	marker: PptxChartMarker,
 	getLocalName: GetLocalName,
 ): XmlObject {
+	if (!Number.isInteger(marker.size ?? 5) || (marker.size ?? 5) < 2 || (marker.size ?? 5) > 72) {
+		throw new RangeError('marker size must be an integer from 2 through 72');
+	}
 	const node: XmlObject = {};
 	node['c:symbol'] = { '@_val': marker.symbol };
 	if (marker.size !== undefined) {
@@ -103,6 +106,14 @@ function buildMarker(
 	const spPr = buildMarkerSpPr(existingSpPr, marker, getLocalName);
 	if (spPr) {
 		node['c:spPr'] = spPr;
+	}
+	if (existing) {
+		const modeled = new Set(['symbol', 'size', 'spPr']);
+		for (const key of Object.keys(existing)) {
+			if (!modeled.has(getLocalName(key))) {
+				node[key] = existing[key];
+			}
+		}
 	}
 	return node;
 }
@@ -126,7 +137,7 @@ export function applySeriesMarkerToXml(
 		return;
 	}
 	const existing = existingKey ? (seriesNode[existingKey] as XmlObject) : undefined;
-	const built = buildMarker(existing, marker, getLocalName);
+	const built = buildChartMarkerXml(existing, marker, getLocalName);
 	if (existingKey) {
 		seriesNode[existingKey] = built;
 		return;

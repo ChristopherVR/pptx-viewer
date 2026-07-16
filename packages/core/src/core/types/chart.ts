@@ -213,6 +213,7 @@ export interface PptxChartUpDownBars {
 /** Marker appearance on a chart series or data point. */
 export interface PptxChartMarker {
 	symbol: PptxChartMarkerSymbol;
+	/** Marker size in points, constrained by ST_MarkerSize to 2 through 72. */
 	size?: number;
 	spPr?: PptxChartShapeProps;
 }
@@ -224,6 +225,8 @@ export interface PptxChartDataPoint {
 	explosion?: number;
 	invertIfNegative?: boolean;
 	marker?: PptxChartMarker;
+	/** Render a bubble-chart point with a 3-D appearance. */
+	bubble3D?: boolean;
 }
 
 /** Schema values accepted by `c:dLblPos`. */

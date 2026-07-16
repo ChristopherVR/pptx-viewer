@@ -1,16 +1,4 @@
-/**
- * Generate a complete `c:chartSpace` XML tree from a {@link PptxChartData}
- * model, for SDK-created charts that have no original chart part to patch.
- *
- * Uses literal data caches (`c:numLit` / `c:strLit`, and `c:tx > c:v`) so the
- * generated chart is fully self-contained and needs no embedded workbook. The
- * output object feeds the fast-xml-parser builder. Covers the common chart
- * families (bar/line/area/radar with category + value axes, pie/doughnut with
- * none, scatter/bubble with two value axes); unknown types fall back to a bar
- * chart so a valid chart is always produced.
- *
- * @module utils/chart-xml-generator
- */
+/** Generate self-contained ChartML for SDK-created charts. */
 
 import type {
 	PptxChartAxisFormatting,
@@ -24,8 +12,10 @@ import { applyChartAxisLabelFormatting } from './chart-axis-label-formatting';
 import { applyBubbleChartOptions } from './chart-bubble-options';
 import { applyChartDataLabelsToXml } from './chart-data-labels-serializer';
 import { applyChartDataTable } from './chart-data-table';
+import { applySeriesDataPointsToXml } from './chart-datapoint-serializer';
 import { applySeriesErrBarsToXml } from './chart-errbars-serializer';
 import { applyChartLayouts } from './chart-layout';
+import { applySeriesMarkerToXml } from './chart-marker-serializer';
 import { applySeriesDataLabelsToXml } from './chart-series-datalabel-serializer';
 import { applySeriesTrendlinesToXml } from './chart-trendline-serializer';
 import { applyChartUpDownBars } from './chart-up-down-bars';
@@ -119,9 +109,14 @@ function buildSeries(
 	if (spPr) {
 		ser['c:spPr'] = spPr;
 	}
+	if (s.marker !== undefined) {
+		applySeriesMarkerToXml(ser, s.marker, (key) => key.replace(/^.*:/u, ''));
+	}
+	if (s.dataPoints !== undefined) {
+		applySeriesDataPointsToXml(ser, s.dataPoints, (key) => key.replace(/^.*:/u, ''));
+	}
 
 	if (family === 'scatter' || family === 'bubble') {
-		// Scatter/bubble use the category list as X values when numeric, else 1..n.
 		const xs = categories.map((c, i) => {
 			const n = Number.parseFloat(c);
 			return Number.isFinite(n) ? n : i + 1;
@@ -181,7 +176,6 @@ function axisFormatting(
 	);
 }
 
-/** Build the chart-type container (e.g. `c:barChart`) with its series. */
 function buildChartTypeContainer(chartData: PptxChartData, family: string): XmlObject {
 	const container: XmlObject = {};
 	if (family === 'bar') {
@@ -198,7 +192,6 @@ function buildChartTypeContainer(chartData: PptxChartData, family: string): XmlO
 		container['c:scatterStyle'] = { '@_val': 'lineMarker' };
 		container['c:varyColors'] = { '@_val': '0' };
 	} else {
-		// pie / doughnut / bubble
 		container['c:varyColors'] = { '@_val': family === 'bubble' ? '0' : '1' };
 	}
 
@@ -233,13 +226,11 @@ function buildPlotArea(chartData: PptxChartData, tag: string, family: string): X
 	}
 
 	if (family !== 'pie' && family !== 'doughnut' && SCATTER_LIKE.has(chartData.chartType)) {
-		// Scatter/bubble use two value axes (emitted as a `c:valAx` array).
 		plotArea['c:valAx'] = [
 			buildAxis(CAT_AX_ID, VAL_AX_ID, 'b', axisFormatting(chartData, 'valAx', CAT_AX_ID, 0)),
 			buildAxis(VAL_AX_ID, CAT_AX_ID, 'l', axisFormatting(chartData, 'valAx', VAL_AX_ID, 1)),
 		];
 	} else if (family !== 'pie' && family !== 'doughnut') {
-		// Cartesian charts use a category axis crossed by a value axis.
 		plotArea['c:catAx'] = buildAxis(
 			CAT_AX_ID,
 			VAL_AX_ID,

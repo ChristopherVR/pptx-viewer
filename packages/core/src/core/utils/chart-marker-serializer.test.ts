@@ -45,10 +45,23 @@ describe('applySeriesMarkerToXml', () => {
 
 	it('updates an existing marker in place', () => {
 		const node = seriesNode();
-		node['c:marker'] = { 'c:symbol': { '@_val': 'none' } };
+		node['c:marker'] = {
+			'c:symbol': { '@_val': 'none' },
+			'c:extLst': { extension: true },
+		};
 		applySeriesMarkerToXml(node, { symbol: 'diamond', size: 5 }, getLocalName);
 		const marker = node['c:marker'] as XmlObject;
 		expect((marker['c:symbol'] as XmlObject)['@_val']).toBe('diamond');
+		expect(marker['c:extLst']).toStrictEqual({ extension: true });
+		expect(Object.keys(marker).map(getLocalName)).toStrictEqual(['symbol', 'size', 'extLst']);
+	});
+
+	it('rejects marker sizes outside the ST_MarkerSize range', () => {
+		for (const size of [1, 73, 2.5]) {
+			expect(() =>
+				applySeriesMarkerToXml(seriesNode(), { symbol: 'circle', size }, getLocalName),
+			).toThrow(RangeError);
+		}
 	});
 
 	it('removes the marker on null', () => {

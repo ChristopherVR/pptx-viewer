@@ -53,6 +53,61 @@ describe('applySeriesDataPointsToXml', () => {
 		expect((fill['a:srgbClr'] as XmlObject)['@_val']).toBe('ABCDEF');
 	});
 
+	it('writes marker and bubble3D in CT_DPt schema order while preserving extensions', () => {
+		const node = seriesNode();
+		node['c:dPt'] = {
+			'c:idx': { '@_val': '1' },
+			'c:marker': {
+				'c:symbol': { '@_val': 'none' },
+				'c:extLst': { markerExtension: true },
+			},
+			'c:pictureOptions': { passthrough: true },
+			'c:extLst': { pointExtension: true },
+		};
+		applySeriesDataPointsToXml(
+			node,
+			[
+				{
+					idx: 1,
+					invertIfNegative: false,
+					marker: { symbol: 'star', size: 12 },
+					bubble3D: false,
+					explosion: 9,
+					spPr: { fillColor: '#123456' },
+				},
+			],
+			getLocalName,
+		);
+		const dpt = node['c:dPt'] as XmlObject;
+		expect(Object.keys(dpt).map(getLocalName)).toStrictEqual([
+			'idx',
+			'invertIfNegative',
+			'marker',
+			'bubble3D',
+			'explosion',
+			'spPr',
+			'pictureOptions',
+			'extLst',
+		]);
+		expect((dpt['c:bubble3D'] as XmlObject)['@_val']).toBe('0');
+		expect((dpt['c:marker'] as XmlObject)['c:extLst']).toStrictEqual({ markerExtension: true });
+		expect(dpt['c:pictureOptions']).toStrictEqual({ passthrough: true });
+	});
+
+	it('rejects invalid unsigned values and marker sizes', () => {
+		for (const point of [
+			{ idx: -1 },
+			{ idx: 1.5 },
+			{ idx: 0, explosion: -1 },
+			{ idx: 0, explosion: 2.5 },
+			{ idx: 0, marker: { symbol: 'circle' as const, size: 73 } },
+		]) {
+			expect(() => applySeriesDataPointsToXml(seriesNode(), [point], getLocalName)).toThrow(
+				RangeError,
+			);
+		}
+	});
+
 	it('removes all dPt when given an empty array', () => {
 		const node = seriesNode();
 		node['c:dPt'] = { 'c:idx': { '@_val': '0' } };
