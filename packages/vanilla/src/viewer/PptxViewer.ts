@@ -51,6 +51,7 @@ import type {
 	PptxViewerInstance,
 	PptxViewerOptions,
 } from './types';
+import { openDocumentPropertiesDialog } from './ui/document-properties-dialog';
 import type { ViewerControls } from './viewer-controls';
 import { createViewerControls } from './viewer-controls';
 
@@ -343,6 +344,19 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	/** Run the shared WCAG checks against the live deck and show the results. */
 	openAccessibility(): void {
 		this.lifecycle.chrome.accessibility.open(collectAccessibilityIssues(this.store.get().slides));
+	}
+
+	/** Open the document metadata editor backed by the current loaded deck. */
+	openDocumentProperties(): void {
+		const state = this.store.get();
+		openDocumentPropertiesDialog(this.doc, this.t, {
+			slides: state.slides,
+			core: state.coreProperties,
+			app: state.appProperties,
+			custom: state.customProperties,
+			editable: state.editable,
+			onSave: (core, app, custom) => this.editor.updateDocumentProperties(core, app, custom),
+		});
 	}
 
 	/** Open a clean audience display while retaining this editor as the presenter surface. */
