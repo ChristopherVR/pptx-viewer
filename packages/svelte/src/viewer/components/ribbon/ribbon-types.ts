@@ -64,6 +64,8 @@ export interface RibbonProps {
 	onprintsettings: () => void;
 	onrehearse: () => void;
 	onsubtitles: () => void;
+	onrecordfrombeginning: () => void;
+	onrecordfromcurrent: () => void;
 	oncustomshows: () => void;
 	onselectionpane: () => void;
 	onslidesorter: () => void;

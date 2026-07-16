@@ -85,6 +85,7 @@
 				onprotect={() => (protectionOpen = true)}
 				onversionhistory={props.onversionhistory}
 				onprint={props.onprintsettings}
+				onsettings={props.onsettings}
 			/>
 		{:else if activeTab === 'home'}
 			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />
@@ -110,9 +111,9 @@
 				onbroadcast={props.onbroadcast}
 			/>
 		{:else if activeTab === 'review'}
-			<ReviewTab slides={props.slides} onnavigate={props.onnavigatetoissue} editor={props.editor} oncompare={props.oncompare} spellCheck={props.preferences.spellCheck} onspellcheckchange={(enabled) => props.onpreferenceschange({ ...props.preferences, spellCheck: enabled })} />
+			<ReviewTab slides={props.slides} onnavigate={props.onnavigatetoissue} editor={props.editor} oncompare={props.oncompare} onlanguage={props.onsettings} spellCheck={props.preferences.spellCheck} onspellcheckchange={(enabled) => props.onpreferenceschange({ ...props.preferences, spellCheck: enabled })} />
 		{:else if activeTab === 'record'}
-			<RecordTab />
+			<RecordTab onfrombeginning={props.onrecordfrombeginning} onfromcurrent={props.onrecordfromcurrent} />
 		{:else if activeTab === 'view'}
 			<ViewTab
 				editor={props.editor}

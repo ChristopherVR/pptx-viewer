@@ -633,6 +633,8 @@
 				onprintsettings={() => (parityUi.printSettingsOpen = true)}
 				onrehearse={() => { parityUi.rehearse.start(viewer.current); onFullscreenToggle(); }}
 				onsubtitles={() => (parityUi.subtitlesEnabled = !parityUi.subtitlesEnabled)}
+				onrecordfrombeginning={() => { viewer.goTo(0); parityUi.rehearse.start(0); onFullscreenToggle(); }}
+				onrecordfromcurrent={() => { parityUi.rehearse.start(viewer.current); onFullscreenToggle(); }}
 				oncustomshows={() => (parityUi.customShowsOpen = true)}
 				onselectionpane={() => (parityUi.selectionPaneOpen = !parityUi.selectionPaneOpen)}
 				onslidesorter={() => (parityUi.slideSorterOpen = true)}
