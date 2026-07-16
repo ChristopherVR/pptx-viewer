@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { DEFAULT_MASTER_PAGE_SIZE } from 'pptx-viewer-shared';
 
 import type { PresentationPlayback } from './animation';
@@ -27,6 +27,8 @@ export interface RenderControllerDeps {
 	onMasterBackgroundColorChange(color: string): void;
 	/** Navigate from a presentation Zoom tile. */
 	onZoomClick(targetSlideIndex: number, returnSlideIndex: number): void;
+	onSmartArtNodeTextChange?(element: PptxElement, nodeId: string, text: string): void;
+	onSmartArtNodeFillChange?(element: PptxElement, nodeId: string, fill: string): void;
 	/**
 	 * Invoked after every stage render (the stage host is rebuilt with
 	 * `replaceChildren`); the editor re-mounts its overlay layer here.
@@ -87,6 +89,8 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			slides: state.slides,
 			currentSlideIndex: state.currentSlide,
 			onZoomClick: deps.onZoomClick,
+			onSmartArtNodeTextChange: interactive ? deps.onSmartArtNodeTextChange : undefined,
+			onSmartArtNodeFillChange: interactive ? deps.onSmartArtNodeFillChange : undefined,
 			interactive,
 			templateEditing: state.editTemplateMode || state.masterViewTarget !== null,
 		});

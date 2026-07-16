@@ -57,6 +57,8 @@ export interface ElementRenderContext {
 	 * slideshow behaviour. `false` for the editor canvas and thumbnail rail.
 	 */
 	readonly presenting: boolean;
+	readonly onSmartArtNodeTextChange?: (element: PptxElement, nodeId: string, text: string) => void;
+	readonly onSmartArtNodeFillChange?: (element: PptxElement, nodeId: string, fill: string) => void;
 	/** The registry in effect, for renderers that need to inspect it. */
 	readonly registry: ElementRendererRegistry;
 	/**

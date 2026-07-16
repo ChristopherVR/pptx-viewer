@@ -18,6 +18,7 @@ export function buildSmartArtFallbackSvg(
 	doc: Document,
 	layout: SmartArtLayoutResult,
 	a11yNodes: readonly SmartArtNodeA11y[] = [],
+	nodeIds: readonly string[] = [],
 ): SVGSVGElement {
 	const svg = createSvgEl(doc, 'svg', {
 		viewBox: layout.viewBox,
@@ -40,7 +41,9 @@ export function buildSmartArtFallbackSvg(
 		);
 	}
 	for (const [index, node] of layout.nodes.entries()) {
-		svg.appendChild(buildFallbackNode(doc, node, layout.shadowFilter, a11yNodes[index]?.label));
+		svg.appendChild(
+			buildFallbackNode(doc, node, layout.shadowFilter, a11yNodes[index]?.label, nodeIds[index]),
+		);
 	}
 	return svg;
 }
@@ -50,8 +53,14 @@ function buildFallbackNode(
 	node: RenderedNode,
 	shadowFilter: string | undefined,
 	a11yLabel: string | undefined,
+	nodeId: string | undefined,
 ): SVGGElement {
 	const g = createSvgEl(doc, 'g');
+	if (nodeId) {
+		g.dataset.smartartNodeId = nodeId;
+		g.style.pointerEvents = 'auto';
+		g.style.cursor = 'text';
+	}
 	if (a11yLabel) {
 		g.setAttribute('role', 'img');
 		g.setAttribute('aria-label', a11yLabel);

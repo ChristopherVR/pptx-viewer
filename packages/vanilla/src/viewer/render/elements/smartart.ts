@@ -6,6 +6,7 @@ import {
 	computeSmartArtLayout,
 	getContainerStyle,
 	projectDrawingShapes,
+	resolveDrawingShapeNodeId,
 	resolvePalette,
 	styleShadowFilter,
 } from 'pptx-viewer-shared';
@@ -13,6 +14,7 @@ import {
 import { createEl, createSvgEl } from '../dom';
 import type { ElementRenderer } from '../types';
 import { renderSmartArt3DElement } from './smartart-3d';
+import { enableSmartArtEditing } from './smartart-editable';
 import { buildSmartArtFallbackSvg } from './smartart-fallback';
 import { appendCenteredSvgText, SMARTART_SVG_STYLE } from './smartart-svg';
 
@@ -48,8 +50,8 @@ export const renderSmartArtElement: ElementRenderer = (element, zIndex, context)
  * `buildChromeStyle`) and described to assistive tech through the shared
  * `buildSmartArtA11y` diagram label (`role="img"` + `aria-label`).
  *
- * Not ported (editor-only in Vue): inline node text editing and the hover
- * fill swatch bar. Also used as the fallback content (and initial paint) for
+ * Inline node text editing and the hover fill swatch bar are enabled when the
+ * interactive editor callbacks are present. Also used as fallback content for
  * the opt-in 3D renderer in `smartart-3d.ts`.
  */
 export const renderSmartArtSvg: ElementRenderer = (element, zIndex, context) => {
@@ -83,6 +85,7 @@ export const renderSmartArtSvg: ElementRenderer = (element, zIndex, context) => 
 
 	if (data && drawingShapes.length > 0) {
 		chrome.appendChild(buildDrawingShapesSvg(doc, element.id, data, buildSmartArtA11y(data).nodes));
+		enableSmartArtEditing(chrome, element, context);
 		return wrapper;
 	}
 
@@ -96,7 +99,15 @@ export const renderSmartArtSvg: ElementRenderer = (element, zIndex, context) => 
 			data.resolvedLayoutType,
 			data.layout,
 		);
-		chrome.appendChild(buildSmartArtFallbackSvg(doc, layout, buildSmartArtA11y(data).nodes));
+		chrome.appendChild(
+			buildSmartArtFallbackSvg(
+				doc,
+				layout,
+				buildSmartArtA11y(data).nodes,
+				nodes.map((node) => node.id),
+			),
+		);
+		enableSmartArtEditing(chrome, element, context);
 		return wrapper;
 	}
 
@@ -137,6 +148,12 @@ function buildDrawingShapesSvg(
 
 	for (const [index, shape] of rendered.entries()) {
 		const g = createSvgEl(doc, 'g');
+		const nodeId = resolveDrawingShapeNodeId(shapes[index]!, index, shapes, data.nodes);
+		if (nodeId) {
+			g.dataset.smartartNodeId = nodeId;
+			g.style.pointerEvents = 'auto';
+			g.style.cursor = 'text';
+		}
 		const nodeA11y = a11yNodes[index];
 		if (nodeA11y) {
 			g.setAttribute('role', 'img');

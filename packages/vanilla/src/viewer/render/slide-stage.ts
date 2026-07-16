@@ -38,6 +38,8 @@ export interface SlideStageOptions {
 	slides?: readonly PptxSlide[];
 	currentSlideIndex?: number;
 	onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
+	onSmartArtNodeTextChange?: (element: PptxElement, nodeId: string, text: string) => void;
+	onSmartArtNodeFillChange?: (element: PptxElement, nodeId: string, fill: string) => void;
 	/**
 	 * True only for the main (interactive) canvas, never the thumbnail rail.
 	 * Marks every rendered element (recursively, including group children) with
@@ -93,6 +95,8 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		t,
 		smartArt3D: options.smartArt3D ?? false,
 		presenting: options.presenting ?? false,
+		onSmartArtNodeTextChange: options.onSmartArtNodeTextChange,
+		onSmartArtNodeFillChange: options.onSmartArtNodeFillChange,
 		registry,
 		renderElement(element: PptxElement, zIndex: number) {
 			const node = registry.resolve(element.type)(element, zIndex, context);

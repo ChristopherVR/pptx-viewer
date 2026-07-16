@@ -1,4 +1,4 @@
-import { cloneSlide } from 'pptx-viewer-core';
+import { cloneSlide, setSmartArtNodeStyle, updateSmartArtNodeText } from 'pptx-viewer-core';
 import type { PptxElement, PptxHandler, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
 import type { PresentationSnapshot, ViewerMode, ViewerTheme } from 'pptx-viewer-shared';
 import {
@@ -14,6 +14,7 @@ import {
 	PRESENTATION_CHANNEL_NAME,
 	PRESENTATION_MESSAGE_ORIGIN,
 	resolveAudienceScreenPlacement,
+	shouldCommitSmartArtNodeText,
 	storePresentationDeck,
 	createInitialPresentationSnapshot,
 	createBlankSlide,
@@ -109,6 +110,27 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			onMasterBackgroundColorChange: (color) =>
 				this.editor?.getEditActions().setSlideBackgroundColor(color),
 			onZoomClick: (targetSlideIndex) => this.controls.goToSlide(targetSlideIndex),
+			onSmartArtNodeTextChange: (element, nodeId, text) => {
+				if (
+					element.type !== 'smartArt' ||
+					!element.smartArtData ||
+					!shouldCommitSmartArtNodeText(element.smartArtData, nodeId, text)
+				) {
+					return;
+				}
+				this.editor?.applyElementPatch(element.id, {
+					smartArtData: updateSmartArtNodeText(element.smartArtData, nodeId, text),
+				});
+			},
+			onSmartArtNodeFillChange: (element, nodeId, fill) => {
+				if (element.type !== 'smartArt' || !element.smartArtData) {
+					return;
+				}
+				const next = setSmartArtNodeStyle(element.smartArtData, nodeId, { fillColor: fill });
+				if (next !== element.smartArtData) {
+					this.editor?.applyElementPatch(element.id, { smartArtData: next });
+				}
+			},
 			onStageRendered: () => this.editor?.onStageRendered(),
 		});
 		this.controls = createViewerControls(this.store, this.renderer);

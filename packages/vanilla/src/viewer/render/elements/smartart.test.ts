@@ -21,7 +21,10 @@ vi.mock(import('pptx-viewer-shared/smartart-3d'), async (importOriginal) => {
 	};
 });
 
-function makeContext(smartArt3D = false): ElementRenderContext {
+function makeContext(
+	smartArt3D = false,
+	overrides: Partial<ElementRenderContext> = {},
+): ElementRenderContext {
 	const registry = createElementRendererRegistry();
 	const context: ElementRenderContext = {
 		document,
@@ -34,6 +37,7 @@ function makeContext(smartArt3D = false): ElementRenderContext {
 		presenting: false,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),
+		...overrides,
 	};
 	return context;
 }
@@ -183,6 +187,34 @@ describe('renderSmartArtElement', () => {
 		const node = renderSmartArtElement(element, 0, makeContext()) as HTMLElement;
 		const placeholder = node.querySelector('.pptxv-smartart-placeholder');
 		expect(placeholder?.textContent).toBe('SmartArt');
+	});
+
+	it('edits node text inline and exposes palette fill controls', () => {
+		const onSmartArtNodeTextChange = vi.fn();
+		const onSmartArtNodeFillChange = vi.fn();
+		const element = drawingShapesElement();
+		const node = renderSmartArtElement(
+			element,
+			0,
+			makeContext(false, { onSmartArtNodeTextChange, onSmartArtNodeFillChange }),
+		) as HTMLElement;
+		document.body.appendChild(node);
+		const group = node.querySelector<SVGGElement>('[data-smartart-node-id="n1"]')!;
+
+		group.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+		const swatch = node.querySelector<HTMLButtonElement>('.pptxv-smartart-node-swatches button');
+		expect(swatch).toBeTruthy();
+		swatch?.click();
+		expect(onSmartArtNodeFillChange).toHaveBeenCalledWith(element, 'n1', expect.any(String));
+
+		group.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		const editor = node.querySelector<HTMLTextAreaElement>('.pptxv-smartart-node-editor')!;
+		expect(editor.value).toBe('Alpha');
+		editor.value = 'Changed';
+		editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		expect(onSmartArtNodeTextChange).toHaveBeenCalledWith(element, 'n1', 'Changed');
+		expect(node.querySelector('.pptxv-smartart-node-editor')).toBeNull();
+		node.remove();
 	});
 });
 
