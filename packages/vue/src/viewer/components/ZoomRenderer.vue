@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement, ZoomPptxElement } from 'pptx-viewer-core';
 import { isZoomElement } from 'pptx-viewer-core';
+import { buildSummaryZoomView } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -44,7 +45,7 @@ const zoom = computed<ZoomPptxElement | undefined>(() =>
 const previewSrc = computed<string | undefined>(() => zoom.value?.imageData);
 
 const targetSlideIndex = computed(() => zoom.value?.targetSlideIndex ?? 0);
-const zoomType = computed<'slide' | 'section'>(() => zoom.value?.zoomType ?? 'slide');
+const zoomType = computed<'slide' | 'section' | 'summary'>(() => zoom.value?.zoomType ?? 'slide');
 const targetSectionId = computed<string | undefined>(() => zoom.value?.targetSectionId);
 
 const badgeText = computed(() =>
@@ -56,6 +57,9 @@ const badgeText = computed(() =>
 // background colour, its own slide number and the friendly section name.
 const targetLookup = injectZoomTargetLookup();
 const targetInfo = computed(() => targetLookup?.(targetSlideIndex.value));
+const summaryView = computed(() =>
+	zoom.value ? buildSummaryZoomView(zoom.value, targetLookup) : undefined,
+);
 
 const thumbnailStyle = computed<CSSProperties>(() => ({
 	backgroundColor: targetInfo.value?.backgroundColor ?? '#f0f0f0',
@@ -81,11 +85,18 @@ const ariaLabel = computed(() => {
 const zoomNav = injectZoomNavigation();
 const interactive = computed(() => Boolean(zoomNav && zoom.value));
 
-function activate(): void {
+function activate(target = targetSlideIndex.value): void {
 	if (!zoomNav || !zoom.value) {
 		return;
 	}
-	zoomNav.navigateToZoomTarget(targetSlideIndex.value);
+	zoomNav.navigateToZoomTarget(target);
+}
+
+function activateSummary(event: Event, target: number): void {
+	if (!interactive.value) return;
+	event.preventDefault();
+	event.stopPropagation();
+	activate(target);
 }
 
 function onClick(event: MouseEvent): void {
@@ -115,13 +126,36 @@ function onKeydown(event: KeyboardEvent): void {
 		:data-element-id="element.id"
 		:data-zoom-type="zoomType"
 		:data-zoom-target="targetSlideIndex"
-		:aria-label="ariaLabel"
-		:role="interactive ? 'button' : undefined"
-		:tabindex="interactive ? 0 : undefined"
+		:aria-label="summaryView?.ariaLabel ?? ariaLabel"
+		:role="summaryView ? 'group' : interactive ? 'button' : undefined"
+		:tabindex="!summaryView && interactive ? 0 : undefined"
 		@click="onClick"
 		@keydown="onKeydown"
 	>
-		<div class="pptx-vue-zoom-tile">
+		<div v-if="summaryView" class="pptx-vue-summary-zoom" :style="summaryView.containerStyle">
+			<div
+				v-for="tile in summaryView.tiles"
+				:key="tile.key"
+				class="pptx-vue-summary-zoom-tile"
+				:style="{ ...tile.style, backgroundColor: tile.backgroundColor }"
+				:data-zoom-target="tile.targetSlideIndex"
+				:data-section-id="tile.sectionId"
+				:aria-label="tile.ariaLabel"
+				:role="interactive ? 'button' : undefined"
+				:tabindex="interactive ? 0 : undefined"
+				@click="activateSummary($event, tile.targetSlideIndex)"
+				@keydown.enter="activateSummary($event, tile.targetSlideIndex)"
+				@keydown.space="activateSummary($event, tile.targetSlideIndex)"
+			>
+				<img v-if="tile.imageSrc" :src="tile.imageSrc" :alt="tile.ariaLabel" draggable="false" />
+				<template v-else
+					><div>{{ tile.label }}</div>
+					<div>{{ tile.slideLabel }}</div></template
+				>
+			</div>
+			<div class="pptx-vue-zoom-badge">Summary Zoom</div>
+		</div>
+		<div v-else class="pptx-vue-zoom-tile">
 			<img
 				v-if="previewSrc"
 				:src="previewSrc"
@@ -147,6 +181,17 @@ function onKeydown(event: KeyboardEvent): void {
 	overflow: hidden;
 	border-radius: 4px;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.pptx-vue-summary-zoom-tile {
+	overflow: hidden;
+	border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.pptx-vue-summary-zoom-tile img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
 }
 
 .pptx-vue-zoom-interactive {

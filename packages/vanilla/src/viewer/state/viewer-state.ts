@@ -99,6 +99,8 @@ export interface ViewerState {
 	selectedElementId: string | null;
 	/** All selected top-level element ids; the primary selection is listed last. */
 	selectedElementIds: string[];
+	/** Active table cell for cell-scoped inspector formatting. */
+	selectedTableCell: { row: number; column: number } | null;
 	/** Source element id while the one-shot Format Painter is armed. */
 	formatPainterSourceId: string | null;
 	/** When true, selection and element mutations target inherited template elements. */
@@ -166,6 +168,7 @@ export function createInitialViewerState(): ViewerState {
 		editable: false,
 		selectedElementId: null,
 		selectedElementIds: [],
+		selectedTableCell: null,
 		formatPainterSourceId: null,
 		editTemplateMode: false,
 		dirty: false,

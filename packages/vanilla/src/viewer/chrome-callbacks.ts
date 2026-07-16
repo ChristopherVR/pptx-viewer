@@ -167,6 +167,7 @@ export function buildChromeCallbacks(
 		setTextVerticalAlign: (vAlign) => deps.getEditActions().setTextVerticalAlign(vAlign),
 		setTextWrap: (wrap) => deps.getEditActions().setTextWrap(wrap),
 		setAutoFitMode: (mode) => deps.getEditActions().setAutoFitMode(mode),
+		setTextAdvanced: (patch) => deps.getEditActions().setTextAdvanced(patch),
 
 		setFillOpacity: (opacity) => deps.getEditActions().setFillOpacity(opacity),
 		setStrokeOpacity: (opacity) => deps.getEditActions().setStrokeOpacity(opacity),
@@ -188,6 +189,9 @@ export function buildChromeCallbacks(
 		setTableHeaderRow: (enabled) => deps.getEditActions().setTableHeaderRow(enabled),
 		setTableBandedRows: (enabled) => deps.getEditActions().setTableBandedRows(enabled),
 		setTableCellPadding: (padding) => deps.getEditActions().setTableCellPadding(padding),
+		setTableOptions: (patch, cellStyle) => deps.getEditActions().setTableOptions(patch, cellStyle),
+		setTableCellStyle: (row, column, patch) =>
+			deps.getEditActions().setTableCellStyle(row, column, patch),
 
 		setSmartArtNodeText: (nodeId, text) => deps.getEditActions().setSmartArtNodeText(nodeId, text),
 		setSmartArtLayout: (layout) => deps.getEditActions().setSmartArtLayout(layout),

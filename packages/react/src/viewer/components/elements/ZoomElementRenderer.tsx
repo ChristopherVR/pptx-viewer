@@ -1,4 +1,5 @@
 import type { ZoomPptxElement, PptxSlide } from 'pptx-viewer-core';
+import { buildSummaryZoomView } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -32,6 +33,78 @@ export function ZoomElementRenderer({
 	sourceSlideIndex,
 }: ZoomElementRendererProps): React.ReactElement {
 	const { t } = useTranslation();
+	const summaryView = buildSummaryZoomView(element, (index) => {
+		const slide = slides?.[index];
+		return slide
+			? {
+					slideNumber: slide.slideNumber,
+					sectionName: slide.sectionName,
+					backgroundColor: slide.backgroundColor,
+				}
+			: undefined;
+	});
+	if (summaryView) {
+		return (
+			<div
+				className='zoom-element-container zoom-summary-container'
+				style={summaryView.containerStyle}
+				data-zoom-type='summary'
+				data-testid='zoom-element'
+				role='group'
+				aria-label={summaryView.ariaLabel}
+			>
+				{summaryView.tiles.map((tile) => (
+					<div
+						key={tile.key}
+						className='zoom-summary-tile'
+						style={{
+							...tile.style,
+							backgroundColor: tile.backgroundColor,
+							overflow: 'hidden',
+							border: '1px solid rgba(0, 0, 0, 0.12)',
+							cursor: isPresentationMode ? 'pointer' : 'default',
+						}}
+						data-zoom-target={tile.targetSlideIndex}
+						data-section-id={tile.sectionId}
+						role={isPresentationMode ? 'button' : undefined}
+						tabIndex={isPresentationMode ? 0 : -1}
+						aria-label={tile.ariaLabel}
+						onClick={(event) => {
+							if (isPresentationMode && onZoomClick) {
+								event.stopPropagation();
+								onZoomClick(tile.targetSlideIndex, sourceSlideIndex ?? 0);
+							}
+						}}
+						onKeyDown={(event) => {
+							if (
+								isPresentationMode &&
+								onZoomClick &&
+								(event.key === 'Enter' || event.key === ' ')
+							) {
+								event.preventDefault();
+								event.stopPropagation();
+								onZoomClick(tile.targetSlideIndex, sourceSlideIndex ?? 0);
+							}
+						}}
+					>
+						{tile.imageSrc ? (
+							<img
+								src={tile.imageSrc}
+								alt={tile.ariaLabel}
+								style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+							/>
+						) : (
+							<>
+								<div>{tile.label}</div>
+								<div>{tile.slideLabel}</div>
+							</>
+						)}
+					</div>
+				))}
+				<div style={{ position: 'absolute', right: 4, bottom: 4, fontSize: 9 }}>Summary Zoom</div>
+			</div>
+		);
+	}
 	const targetSlide = slides?.[element.targetSlideIndex];
 
 	const handleClick = (e: React.MouseEvent) => {

@@ -133,4 +133,46 @@ describe('renderZoomElement', () => {
 		expect(tile?.querySelector('.pptxv-zoom-slide-label')?.textContent).toBe('Slide 12');
 		expect(tile?.querySelector('.pptxv-zoom-section-label')?.textContent).toBe('Forecast');
 	});
+
+	it('renders ordered Summary Zoom tiles and navigates the activated tile', () => {
+		const calls: Array<[number, number]> = [];
+		const node = renderZoomElement(
+			zoomElement({
+				zoomType: 'summary',
+				summaryLayout: 'grid',
+				summaryTargets: [
+					{
+						sectionId: 'intro',
+						targetSlideIndex: 1,
+						x: 300,
+						y: 200,
+						width: 90,
+						height: 120,
+						title: 'Intro',
+					},
+					{
+						sectionId: 'details',
+						targetSlideIndex: 4,
+						x: 410,
+						y: 200,
+						width: 90,
+						height: 120,
+						title: 'Details',
+					},
+				],
+			}),
+			0,
+			makeContext({
+				presenting: true,
+				currentSlideIndex: 2,
+				onZoomClick: (target, source) => calls.push([target, source]),
+			}),
+		) as HTMLElement;
+		const tiles = node.querySelectorAll<HTMLElement>('.pptxv-summary-zoom-tile');
+		expect(node.dataset.zoomType).toBe('summary');
+		expect(node.textContent).toContain('Summary Zoom');
+		expect([...tiles].map((tile) => tile.dataset.sectionId)).toStrictEqual(['intro', 'details']);
+		tiles[1].click();
+		expect(calls).toStrictEqual([[4, 2]]);
+	});
 });

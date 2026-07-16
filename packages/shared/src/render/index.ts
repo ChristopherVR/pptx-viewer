@@ -573,6 +573,7 @@ export * from './smartart-reflow-to-shapes';
 // makes a media element's slide the live surface.
 export * from './media-playback';
 export * from './media-trim-timeline';
+export * from './summary-zoom';
 
 export * from './image-artistic-presets';
 export * from './text-warp-presets';

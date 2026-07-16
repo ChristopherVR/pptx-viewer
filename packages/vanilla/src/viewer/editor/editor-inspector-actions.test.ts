@@ -96,6 +96,28 @@ describe('createInspectorActions text', () => {
 			(selectedEl(store) as { textStyle?: { vAlign?: string } }).textStyle?.vAlign,
 		).toBeUndefined();
 	});
+
+	it('sets advanced paragraph and text direction properties', () => {
+		const { store, actions } = buildActions(textElement());
+
+		actions.setTextAdvanced({
+			characterSpacing: 1.5,
+			lineSpacing: 1.25,
+			paragraphSpacingBefore: 8,
+			paragraphIndent: 12,
+			textDirection: 'vertical270',
+			rtl: true,
+		});
+
+		expect((selectedEl(store) as { textStyle?: Record<string, unknown> }).textStyle).toMatchObject({
+			characterSpacing: 1.5,
+			lineSpacing: 1.25,
+			paragraphSpacingBefore: 8,
+			paragraphIndent: 12,
+			textDirection: 'vertical270',
+			rtl: true,
+		});
+	});
 });
 
 describe('createInspectorActions fill/gradient', () => {
@@ -290,5 +312,27 @@ describe('createInspectorActions table', () => {
 				expect(cell.style?.marginLeft).toBe(8);
 			}
 		}
+	});
+
+	it('formats only the selected table cell', () => {
+		const { store, actions } = buildActions(tableElement());
+
+		actions.setTableCellStyle(0, 1, {
+			backgroundColor: '#abcdef',
+			bold: true,
+			align: 'center',
+			marginLeft: 6,
+		});
+
+		const cells =
+			(selectedEl(store) as { tableData?: { rows: Array<{ cells: Array<{ style?: unknown }> }> } })
+				.tableData?.rows[0].cells ?? [];
+		expect(cells[0].style).toBeUndefined();
+		expect(cells[1].style).toMatchObject({
+			backgroundColor: '#abcdef',
+			bold: true,
+			align: 'center',
+			marginLeft: 6,
+		});
 	});
 });

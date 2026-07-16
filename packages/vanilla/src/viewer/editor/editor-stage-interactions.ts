@@ -192,6 +192,18 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 				return;
 			}
 			const id = resolveTopLevelElementId(event.target, deps.getStageRoot());
+			const cell =
+				event.target instanceof Element ? event.target.closest<HTMLTableCellElement>('td') : null;
+			if (id && cell?.dataset.rowIndex !== undefined && cell.dataset.cellIndex !== undefined) {
+				ops.select(id, [id]);
+				store.set({
+					selectedTableCell: {
+						row: Number(cell.dataset.rowIndex),
+						column: Number(cell.dataset.cellIndex),
+					},
+				});
+				return;
+			}
 			if (state.formatPainterSourceId) {
 				if (id && isElementIdInteractive(id, state.editTemplateMode)) {
 					ops.applyFormatPainter(state.formatPainterSourceId, id);

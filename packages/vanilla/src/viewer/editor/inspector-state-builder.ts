@@ -59,12 +59,19 @@ function shapeStyleOf(el: PptxElement | undefined): {
  * the "nothing selected" defaults). Pure; the same element in => the same
  * state out, so it's directly unit-testable without a store/DOM.
  */
-export function buildInspectorState(el: PptxElement | undefined): InspectorState {
+export function buildInspectorState(
+	el: PptxElement | undefined,
+	selectedTableCell: { row: number; column: number } | null = null,
+): InspectorState {
 	const shape = shapeStyleOf(el);
 	const textAdvanced = el ? textAdvancedStateOf(el) : undefined;
 	const image = el ? imageAdjustmentsStateOf(el) : undefined;
 	const crop = el ? imageCropStateOf(el) : undefined;
 	const table = el ? tableInspectorStateOf(el) : undefined;
+	const tableCell =
+		el?.type === 'table' && selectedTableCell
+			? el.tableData?.rows[selectedTableCell.row]?.cells[selectedTableCell.column]
+			: undefined;
 
 	return {
 		hasSelection: el !== undefined,
@@ -91,6 +98,15 @@ export function buildInspectorState(el: PptxElement | undefined): InspectorState
 		vAlign: textAdvanced?.vAlign ?? 'top',
 		textWrap: el ? textWrapOf(el) : 'square',
 		autoFitMode: el ? autoFitModeOf(el) : 'none',
+		characterSpacing: textAdvanced?.characterSpacing ?? 0,
+		lineSpacing: textAdvanced?.lineSpacing ?? 1,
+		lineSpacingExactPt: textAdvanced?.lineSpacingExactPt ?? null,
+		paragraphSpacingBefore: textAdvanced?.paragraphSpacingBefore ?? 0,
+		paragraphSpacingAfter: textAdvanced?.paragraphSpacingAfter ?? 0,
+		paragraphIndent: textAdvanced?.paragraphIndent ?? 0,
+		paragraphMarginLeft: textAdvanced?.paragraphMarginLeft ?? 0,
+		textDirection: textAdvanced?.textDirection ?? 'horizontal',
+		textRtl: textAdvanced?.rtl ?? false,
 		imageBrightness: image?.brightness ?? 0,
 		imageContrast: image?.contrast ?? 0,
 		imageSaturation: image?.saturation ?? 0,
@@ -113,6 +129,22 @@ export function buildInspectorState(el: PptxElement | undefined): InspectorState
 		cropBottom: crop?.cropBottom ?? 0,
 		tableHeaderRow: table?.firstRowHeader ?? false,
 		tableBandedRows: table?.bandedRows ?? false,
+		tableBandedColumns: table?.bandedColumns ?? false,
+		tableLastRow: el?.type === 'table' ? (el.tableData?.lastRow ?? false) : false,
+		tableFirstCol: el?.type === 'table' ? (el.tableData?.firstCol ?? false) : false,
+		tableLastCol: el?.type === 'table' ? (el.tableData?.lastCol ?? false) : false,
+		tableRtl: el?.type === 'table' ? (el.tableData?.rtl ?? false) : false,
+		tableStyleId: el?.type === 'table' ? (el.tableData?.tableStyleId ?? '') : '',
+		tableCellBackground:
+			el?.type === 'table'
+				? (el.tableData?.rows[0]?.cells[0]?.style?.backgroundColor ?? '#ffffff')
+				: '#ffffff',
+		tableCellBorder:
+			el?.type === 'table'
+				? (el.tableData?.rows[0]?.cells[0]?.style?.borderColor ?? '#000000')
+				: '#000000',
 		tableCellPadding: table?.cellPadding ?? 0,
+		selectedTableCell: tableCell ? selectedTableCell : null,
+		tableCellStyle: tableCell?.style,
 	};
 }

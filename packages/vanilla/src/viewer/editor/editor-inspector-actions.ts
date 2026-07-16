@@ -1,5 +1,7 @@
 import type {
 	PptxImageEffects,
+	PptxTableCellStyle,
+	PptxTableData,
 	PptxChartData,
 	MediaPptxElement,
 	ElementAction,
@@ -22,11 +24,12 @@ import {
 	imageCropPatch,
 	removeGradientStopPatch,
 	tableInspectorPatch,
+	textAdvancedPatch,
 	textWrapPatch,
 	updateGradientStopPatch,
 	vAlignPatch,
 } from 'pptx-viewer-shared';
-import type { GradientState } from 'pptx-viewer-shared';
+import type { GradientState, TextAdvancedChanges } from 'pptx-viewer-shared';
 
 import type { ApplyToSelected } from './editor-apply-to-selected';
 import { patchShapeStyle } from './editor-format-mutations';
@@ -46,6 +49,7 @@ export interface InspectorActions {
 	setTextVerticalAlign(vAlign: NonNullable<TextStyle['vAlign']>): void;
 	setTextWrap(wrap: NonNullable<TextStyle['textWrap']>): void;
 	setAutoFitMode(mode: NonNullable<TextStyle['autoFitMode']>): void;
+	setTextAdvanced(patch: TextAdvancedChanges): void;
 
 	setFillOpacity(opacity: number): void;
 	setStrokeOpacity(opacity: number): void;
@@ -66,6 +70,8 @@ export interface InspectorActions {
 	setTableHeaderRow(enabled: boolean): void;
 	setTableBandedRows(enabled: boolean): void;
 	setTableCellPadding(padding: number): void;
+	setTableOptions(patch: Partial<PptxTableData>, cellStyle?: Partial<PptxTableCellStyle>): void;
+	setTableCellStyle(row: number, column: number, patch: Partial<PptxTableCellStyle>): void;
 
 	setSmartArtNodeText(nodeId: string, text: string): void;
 	setSmartArtLayout(layout: SmartArtLayoutType): void;
@@ -84,6 +90,7 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 		setTextVerticalAlign: (vAlign) => applyToSelected((el) => vAlignPatch(el, vAlign)),
 		setTextWrap: (wrap) => applyToSelected((el) => textWrapPatch(el, wrap)),
 		setAutoFitMode: (mode) => applyToSelected((el) => autoFitModePatch(el, mode)),
+		setTextAdvanced: (patch) => applyToSelected((el) => textAdvancedPatch(el, patch)),
 
 		setFillOpacity: (opacity) =>
 			applyToSelected((el) => patchShapeStyle(el, { fillOpacity: opacity })),
@@ -125,6 +132,50 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 			applyToSelected((el) => tableInspectorPatch(el, { bandedRows: enabled })),
 		setTableCellPadding: (padding) =>
 			applyToSelected((el) => applyUniformCellPaddingPatch(el, padding)),
+		setTableOptions: (patch, cellStyle) =>
+			applyToSelected((el) => {
+				if (el.type !== 'table' || !el.tableData) {
+					return {};
+				}
+				return {
+					tableData: {
+						...el.tableData,
+						...patch,
+						rows: cellStyle
+							? el.tableData.rows.map((row) => ({
+									...row,
+									cells: row.cells.map((cell) => ({
+										...cell,
+										style: { ...cell.style, ...cellStyle },
+									})),
+								}))
+							: el.tableData.rows,
+					},
+				} as Partial<typeof el>;
+			}),
+		setTableCellStyle: (rowIndex, columnIndex, patch) =>
+			applyToSelected((el) => {
+				if (el.type !== 'table' || !el.tableData?.rows[rowIndex]?.cells[columnIndex]) {
+					return {};
+				}
+				return {
+					tableData: {
+						...el.tableData,
+						rows: el.tableData.rows.map((row, index) =>
+							index === rowIndex
+								? {
+										...row,
+										cells: row.cells.map((cell, cellIndex) =>
+											cellIndex === columnIndex
+												? { ...cell, style: { ...cell.style, ...patch } }
+												: cell,
+										),
+									}
+								: row,
+						),
+					},
+				};
+			}),
 
 		setSmartArtNodeText: (nodeId, text) =>
 			applyToSelected((el) =>

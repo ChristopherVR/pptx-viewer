@@ -2,6 +2,7 @@ import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
+import { buildSummaryZoomView } from 'pptx-viewer-shared';
 
 import type { StyleMap } from './element-style';
 import { ZoomNavigationService } from './zoom-navigation.service';
@@ -62,16 +63,45 @@ import { ZoomTargetService } from './zoom-target.service';
 			[attr.data-element-id]="element().id"
 			[attr.data-zoom-type]="vm().zoomType"
 			[attr.data-zoom-target]="vm().targetSlideIndex"
-			[attr.aria-label]="vm().ariaLabel"
-			[attr.role]="interactive() ? 'button' : null"
-			[attr.tabindex]="interactive() ? 0 : null"
+			[attr.aria-label]="summaryView()?.ariaLabel ?? vm().ariaLabel"
+			[attr.role]="summaryView() ? 'group' : interactive() ? 'button' : null"
+			[attr.tabindex]="!summaryView() && interactive() ? 0 : null"
 			(click)="onClick($event)"
 			(keydown)="onKeydown($event)"
 		>
 			<div
 				style="position:relative;width:100%;height:100%;overflow:hidden;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.15)"
 			>
-				@if (vm().previewSrc) {
+				@if (summaryView(); as summary) {
+					<div [ngStyle]="summary.containerStyle">
+						@for (tile of summary.tiles; track tile.key) {
+							<div
+								[ngStyle]="tile.style"
+								[style.background-color]="tile.backgroundColor"
+								[attr.data-zoom-target]="tile.targetSlideIndex"
+								[attr.data-section-id]="tile.sectionId"
+								[attr.aria-label]="tile.ariaLabel"
+								[attr.role]="interactive() ? 'button' : null"
+								[attr.tabindex]="interactive() ? 0 : null"
+								(click)="activateSummary($event, tile.targetSlideIndex)"
+								(keydown)="activateSummary($event, tile.targetSlideIndex)"
+								style="overflow:hidden;border:1px solid rgba(0,0,0,0.12)"
+							>
+								@if (tile.imageSrc) {
+									<img
+										[src]="tile.imageSrc"
+										[alt]="tile.ariaLabel"
+										style="width:100%;height:100%;object-fit:contain"
+									/>
+								} @else {
+									<div>{{ tile.label }}</div>
+									<div>{{ tile.slideLabel }}</div>
+								}
+							</div>
+						}
+						<div style="position:absolute;right:4px;bottom:4px;font-size:9px">Summary Zoom</div>
+					</div>
+				} @else if (vm().previewSrc) {
 					<img
 						[src]="vm().previewSrc"
 						[alt]="'pptx.zoom.slidePreviewAlt' | translate: { number: vm().targetSlideIndex + 1 }"
@@ -122,6 +152,10 @@ export class ZoomRendererComponent {
 		const targetSlideIndex = zoomTargetSlideIndex(element);
 		return buildZoomViewModel(element, this.zoomTarget?.lookup(targetSlideIndex));
 	});
+	readonly summaryView = computed(() => {
+		const zoom = this.vm().zoom;
+		return zoom ? buildSummaryZoomView(zoom, (index) => this.zoomTarget?.lookup(index)) : undefined;
+	});
 
 	/**
 	 * Zoom-navigation context, present only inside a running presentation (the
@@ -136,12 +170,24 @@ export class ZoomRendererComponent {
 	);
 
 	/** Navigate to the zoom target; no-op when the tile is not interactive. */
-	private activate(): void {
+	private activate(target = this.vm().targetSlideIndex): void {
 		const vm = this.vm();
 		if (!this.zoomNavigation || !vm.zoom) {
 			return;
 		}
-		this.zoomNavigation.navigateToZoomTarget(vm.targetSlideIndex);
+		this.zoomNavigation.navigateToZoomTarget(target);
+	}
+
+	protected activateSummary(event: Event, target: number): void {
+		if (!this.interactive()) {
+			return;
+		}
+		if (event instanceof KeyboardEvent && !isZoomActivationKey(event.key)) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		this.activate(target);
 	}
 
 	protected onClick(event: MouseEvent): void {

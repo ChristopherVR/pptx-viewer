@@ -124,4 +124,47 @@ describe('zoomRenderer', () => {
 		expect(navigateToZoomTarget).toHaveBeenCalledTimes(2);
 		expect(navigateToZoomTarget).toHaveBeenNthCalledWith(1, 2);
 	});
+
+	it('renders and navigates distinct Summary Zoom section tiles', async () => {
+		const navigateToZoomTarget = vi.fn();
+		const wrapper = mount(ZoomRenderer, {
+			props: {
+				element: zoom({
+					zoomType: 'summary',
+					summaryLayout: 'grid',
+					summaryTargets: [
+						{
+							sectionId: 'intro',
+							targetSlideIndex: 1,
+							x: 10,
+							y: 20,
+							width: 90,
+							height: 120,
+							title: 'Intro',
+						},
+						{
+							sectionId: 'details',
+							targetSlideIndex: 5,
+							x: 120,
+							y: 20,
+							width: 90,
+							height: 120,
+							title: 'Details',
+						},
+					],
+				}),
+				zIndex: 1,
+			},
+			global: { provide: { [ZoomNavigationKey as symbol]: { navigateToZoomTarget } } },
+		});
+		const tiles = wrapper.findAll('.pptx-vue-summary-zoom-tile');
+		expect(wrapper.attributes('data-zoom-type')).toBe('summary');
+		expect(wrapper.text()).toContain('Summary Zoom');
+		expect(tiles.map((tile) => tile.attributes('data-section-id'))).toStrictEqual([
+			'intro',
+			'details',
+		]);
+		await tiles[1].trigger('click');
+		expect(navigateToZoomTarget).toHaveBeenCalledWith(5);
+	});
 });

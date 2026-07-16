@@ -138,4 +138,42 @@ describe('zoomView', () => {
 		expect(navigate).toHaveBeenNthCalledWith(1, 5);
 		expect(navigate).toHaveBeenNthCalledWith(2, 5);
 	});
+
+	it('renders ordered Summary Zoom tiles and navigates the selected section', () => {
+		const navigate = vi.fn<(index: number) => void>();
+		const target = mountEl(
+			zoomElement({
+				zoomType: 'summary',
+				summaryLayout: 'grid',
+				summaryTargets: [
+					{
+						sectionId: 'intro',
+						targetSlideIndex: 1,
+						x: 300,
+						y: 200,
+						width: 90,
+						height: 120,
+						title: 'Intro',
+					},
+					{
+						sectionId: 'details',
+						targetSlideIndex: 5,
+						x: 410,
+						y: 200,
+						width: 90,
+						height: 120,
+						title: 'Details',
+					},
+				],
+			}),
+			{ presenting: true, navigation: navigate },
+		);
+		const node = target.querySelector<HTMLElement>('[data-element-id="zm-1"]');
+		const tiles = target.querySelectorAll<HTMLElement>('.pptx-svelte-summary-zoom-tile');
+		expect(node?.dataset.zoomType).toBe('summary');
+		expect(node?.textContent).toContain('Summary Zoom');
+		expect([...tiles].map((tile) => tile.dataset.sectionId)).toStrictEqual(['intro', 'details']);
+		tiles[1].click();
+		expect(navigate).toHaveBeenCalledWith(5);
+	});
 });

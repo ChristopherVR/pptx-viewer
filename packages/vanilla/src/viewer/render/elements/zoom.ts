@@ -1,4 +1,4 @@
-import { getContainerStyle } from 'pptx-viewer-shared';
+import { buildSummaryZoomView, getContainerStyle } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../dom';
@@ -22,6 +22,76 @@ export const renderZoomElement: ElementRenderer = (element, zIndex, context) => 
 		return null;
 	}
 	const doc = context.document;
+	const summaryView = buildSummaryZoomView(element, (index) => {
+		const slide = context.slides?.[index];
+		return slide
+			? {
+					slideNumber: slide.slideNumber,
+					sectionName: slide.sectionName,
+					backgroundColor: slide.backgroundColor,
+				}
+			: undefined;
+	});
+	if (summaryView) {
+		const root = createEl(
+			doc,
+			'div',
+			'pptxv-element pptxv-zoom pptxv-summary-zoom',
+			getContainerStyle(element, zIndex),
+		);
+		const content = createEl(doc, 'div', 'pptxv-summary-zoom-content', summaryView.containerStyle);
+		root.dataset.elementId = element.id;
+		root.dataset.zoomType = 'summary';
+		root.setAttribute('role', 'group');
+		root.setAttribute('aria-label', summaryView.ariaLabel);
+		for (const tile of summaryView.tiles) {
+			const tileElement = createEl(doc, 'div', 'pptxv-summary-zoom-tile', {
+				...tile.style,
+				backgroundColor: tile.backgroundColor,
+				overflow: 'hidden',
+				border: '1px solid rgba(0, 0, 0, 0.12)',
+			});
+			tileElement.dataset.zoomTarget = String(tile.targetSlideIndex);
+			tileElement.dataset.sectionId = tile.sectionId;
+			tileElement.setAttribute('aria-label', tile.ariaLabel);
+			if (context.presenting && context.onZoomClick) {
+				tileElement.setAttribute('role', 'button');
+				tileElement.tabIndex = 0;
+				const activate = (): void =>
+					context.onZoomClick?.(tile.targetSlideIndex, context.currentSlideIndex ?? 0);
+				tileElement.addEventListener('click', (event) => {
+					event.stopPropagation();
+					activate();
+				});
+				tileElement.addEventListener('keydown', (event) => {
+					if (event.key === 'Enter' || event.key === ' ') {
+						event.preventDefault();
+						event.stopPropagation();
+						activate();
+					}
+				});
+			}
+			if (tile.imageSrc) {
+				const image = createEl(doc, 'img');
+				image.src = tile.imageSrc;
+				image.alt = tile.ariaLabel;
+				image.style.cssText = 'width:100%;height:100%;object-fit:contain';
+				tileElement.appendChild(image);
+			} else {
+				const label = createEl(doc, 'div');
+				label.textContent = tile.label;
+				const slideLabel = createEl(doc, 'div');
+				slideLabel.textContent = tile.slideLabel;
+				tileElement.append(label, slideLabel);
+			}
+			content.appendChild(tileElement);
+		}
+		const badge = createEl(doc, 'div', 'pptxv-zoom-badge');
+		badge.textContent = 'Summary Zoom';
+		content.appendChild(badge);
+		root.appendChild(content);
+		return root;
+	}
 	const zoomType = element.zoomType ?? 'slide';
 	const target = element.targetSlideIndex ?? 0;
 	const targetSlide = context.slides?.[target];

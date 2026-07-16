@@ -3,11 +3,13 @@ import type {
 	PptxChartData,
 	MediaPptxElement,
 	PptxSmartArtData,
+	PptxTableCellStyle,
+	PptxTableData,
 	ElementAction,
 	SmartArtColorScheme,
 	SmartArtLayoutType,
 } from 'pptx-viewer-core';
-import type { GradientState } from 'pptx-viewer-shared';
+import type { GradientState, TextAdvancedChanges } from 'pptx-viewer-shared';
 
 import type { GeometryPatch } from '../../editor/editor-edit-ops';
 
@@ -25,6 +27,7 @@ export interface InspectorHandlers {
 	setTextVerticalAlign(vAlign: InspectorState['vAlign']): void;
 	setTextWrap(wrap: InspectorState['textWrap']): void;
 	setAutoFitMode(mode: InspectorState['autoFitMode']): void;
+	setTextAdvanced(patch: TextAdvancedChanges): void;
 
 	setFillOpacity(opacity: number): void;
 	setStrokeOpacity(opacity: number): void;
@@ -45,6 +48,8 @@ export interface InspectorHandlers {
 	setTableHeaderRow(enabled: boolean): void;
 	setTableBandedRows(enabled: boolean): void;
 	setTableCellPadding(padding: number): void;
+	setTableOptions(patch: Partial<PptxTableData>, cellStyle?: Partial<PptxTableCellStyle>): void;
+	setTableCellStyle(row: number, column: number, patch: Partial<PptxTableCellStyle>): void;
 
 	setSmartArtNodeText(nodeId: string, text: string): void;
 	setSmartArtLayout(layout: SmartArtLayoutType): void;
@@ -77,6 +82,22 @@ export interface InspectorState {
 	vAlign: 'top' | 'middle' | 'bottom';
 	textWrap: 'square' | 'none';
 	autoFitMode: 'shrink' | 'normal' | 'none';
+	characterSpacing: number;
+	lineSpacing: number;
+	lineSpacingExactPt: number | null;
+	paragraphSpacingBefore: number;
+	paragraphSpacingAfter: number;
+	paragraphIndent: number;
+	paragraphMarginLeft: number;
+	textDirection:
+		| 'horizontal'
+		| 'vertical'
+		| 'vertical270'
+		| 'eaVert'
+		| 'wordArtVert'
+		| 'wordArtVertRtl'
+		| 'mongolianVert';
+	textRtl: boolean;
 	imageBrightness: number;
 	imageContrast: number;
 	imageSaturation: number;
@@ -95,7 +116,17 @@ export interface InspectorState {
 	cropBottom: number;
 	tableHeaderRow: boolean;
 	tableBandedRows: boolean;
+	tableBandedColumns: boolean;
+	tableLastRow: boolean;
+	tableFirstCol: boolean;
+	tableLastCol: boolean;
+	tableRtl: boolean;
+	tableStyleId: string;
+	tableCellBackground: string;
+	tableCellBorder: string;
 	tableCellPadding: number;
+	selectedTableCell: { row: number; column: number } | null;
+	tableCellStyle: PptxTableCellStyle | undefined;
 }
 
 export interface Inspector {

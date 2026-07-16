@@ -120,7 +120,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		state.selectedElementId ? findActiveElement(state, state.selectedElementId) : undefined;
 
 	const select = (id: string | null, ids = id ? [id] : []): void =>
-		store.set({ selectedElementId: id, selectedElementIds: ids });
+		store.set({ selectedElementId: id, selectedElementIds: ids, selectedTableCell: null });
 	const snapshot = (): EditorSnapshot => ({
 		slides: cloneSlides(store.get().slides),
 		sections: structuredClone(store.get().sections),
@@ -333,21 +333,27 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		},
 
 		updatePresentationProperties(value) {
-			if (!store.get().editable) return;
+			if (!store.get().editable) {
+				return;
+			}
 			pushHistory();
 			store.set({ presentationProperties: structuredClone(value) });
 			commitChange();
 		},
 
 		updateHeaderFooter(value) {
-			if (!store.get().editable) return;
+			if (!store.get().editable) {
+				return;
+			}
 			pushHistory();
 			store.set({ headerFooter: structuredClone(value) });
 			commitChange();
 		},
 
 		updateCustomShows(value) {
-			if (!store.get().editable) return;
+			if (!store.get().editable) {
+				return;
+			}
 			pushHistory();
 			store.set({ customShows: structuredClone(value) });
 			commitChange();

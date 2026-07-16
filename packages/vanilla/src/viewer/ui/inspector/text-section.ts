@@ -1,4 +1,7 @@
+import type { TextAdvancedChanges } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../i18n';
+import { makeNumberField } from '../controls';
 import { makeCheckboxField, makeSelectField } from './controls-extra';
 import type { InspectorHandlers, InspectorState } from './types';
 
@@ -47,8 +50,51 @@ export function createTextSection(
 		onChange: handlers.setAutoFitMode,
 	});
 	el.appendChild(autoFit.el);
+	const number = (label: string, key: keyof TextAdvancedChanges, min?: number) =>
+		makeNumberField(doc, {
+			label,
+			min,
+			onCommit: (value) => handlers.setTextAdvanced({ [key]: value }),
+		});
+	const characterSpacing = number(t('pptx.textAdvanced.characterSpacing'), 'characterSpacing');
+	const lineSpacing = number(t('pptx.textAdvanced.lineSpacing'), 'lineSpacing', 0);
+	const exactSpacing = number(t('pptx.textAdvanced.lineSpacingExact'), 'lineSpacingExactPt', 0);
+	const spacingBefore = number(t('pptx.textAdvanced.spacingBefore'), 'paragraphSpacingBefore', 0);
+	const spacingAfter = number(t('pptx.textAdvanced.spacingAfter'), 'paragraphSpacingAfter', 0);
+	const indent = number(t('pptx.textAdvanced.indent'), 'paragraphIndent');
+	const margin = number(t('pptx.textAdvanced.marginLeft'), 'paragraphMarginLeft');
+	const direction = makeSelectField(doc, {
+		label: t('pptx.textAdvanced.direction'),
+		options: [
+			'horizontal',
+			'vertical',
+			'vertical270',
+			'eaVert',
+			'wordArtVert',
+			'wordArtVertRtl',
+			'mongolianVert',
+		].map((value) => ({ value, label: t(`pptx.textAdvanced.direction.${value}`) })),
+		onChange: (textDirection) =>
+			handlers.setTextAdvanced({
+				textDirection: textDirection as NonNullable<TextAdvancedChanges['textDirection']>,
+			}),
+	});
+	const rtl = makeCheckboxField(doc, {
+		label: t('pptx.textAdvanced.rtl'),
+		onChange: (enabled) => handlers.setTextAdvanced({ rtl: enabled }),
+	});
+	const advanced = [
+		characterSpacing,
+		lineSpacing,
+		exactSpacing,
+		spacingBefore,
+		spacingAfter,
+		indent,
+		margin,
+	];
+	el.append(...advanced.map(({ el: node }) => node), direction.el, rtl.el);
 
-	const gated = [vAlign, wrap, autoFit];
+	const gated = [vAlign, wrap, autoFit, ...advanced, direction, rtl];
 
 	return {
 		el,
@@ -57,6 +103,15 @@ export function createTextSection(
 			vAlign.setValue(state.vAlign);
 			wrap.setValue(state.textWrap === 'square');
 			autoFit.setValue(state.autoFitMode);
+			characterSpacing.setValue(state.characterSpacing);
+			lineSpacing.setValue(state.lineSpacing);
+			exactSpacing.setValue(state.lineSpacingExactPt ?? 0);
+			spacingBefore.setValue(state.paragraphSpacingBefore);
+			spacingAfter.setValue(state.paragraphSpacingAfter);
+			indent.setValue(state.paragraphIndent);
+			margin.setValue(state.paragraphMarginLeft);
+			direction.setValue(state.textDirection);
+			rtl.setValue(state.textRtl);
 			for (const c of gated) {
 				c.setDisabled(!state.canText);
 			}
