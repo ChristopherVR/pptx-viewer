@@ -13,21 +13,18 @@ import {
 } from '../internal/shared';
 import type { FieldSubstitutionContext } from '../internal/shared';
 import { ChartElementViewComponent } from './chart-element-view.component';
-import { getClrChangeParams } from './color-changed-image-helpers';
-import type { ClrChangeParams } from './color-changed-image-helpers';
-import { ColorChangedImageComponent } from './color-changed-image.component';
 import { ConnectorRendererComponent } from './connector-renderer.component';
 import type { Rect } from './connector-routing';
 import {
 	getContainerStyle,
 	getDuotoneFilterDef,
-	getImageSrc,
 	getShapeFillStrokeStyle,
 	getTextBlockStyle,
 } from './element-style';
 import type { StyleMap } from './element-style';
 import { EquationRendererComponent } from './equation-renderer.component';
 import { resolveHyperlinkHref } from './hyperlink';
+import { ImageRendererComponent } from './image-renderer.component';
 import { InkRendererComponent } from './ink-renderer.component';
 import { MediaRendererComponent } from './media-renderer.component';
 import { Model3DRendererComponent } from './model3d-renderer.component';
@@ -143,7 +140,7 @@ interface Paragraph {
 		Model3DRendererComponent,
 		ZoomRendererComponent,
 		EquationRendererComponent,
-		ColorChangedImageComponent,
+		ImageRendererComponent,
 	],
 	template: `
 		@switch (true) {
@@ -258,25 +255,12 @@ interface Paragraph {
 				</div>
 			}
 			@case (isImageLike()) {
-				<div
-					class="pptx-ng-element pptx-ng-image"
-					[ngStyle]="containerStyle()"
-					[attr.data-element-id]="element().id"
-					[attr.data-pptx-element]="interactive() ? 'true' : null"
-				>
-					@if (imageSrc(); as src) {
-						@if (clrChangeParams(); as cc) {
-							<pptx-color-changed-image
-								[src]="src"
-								[clrChange]="cc"
-								alt=""
-								imgClass="pptx-ng-img"
-							/>
-						} @else {
-							<img [src]="src" alt="" class="pptx-ng-img" />
-						}
-					}
-				</div>
+				<pptx-image-renderer
+					[element]="element()"
+					[mediaDataUrls]="mediaDataUrls()"
+					[zIndex]="zIndex()"
+					[interactive]="interactive()"
+				/>
 			}
 			@case (element().type === 'media') {
 				<pptx-media-renderer
@@ -509,18 +493,6 @@ export class ElementRendererComponent {
 		...this.templateAffordanceStyle(),
 	}));
 	readonly textStyle = computed<StyleMap>(() => getTextBlockStyle(this.element()));
-	readonly imageSrc = computed(() => getImageSrc(this.element(), this.mediaDataUrls()));
-
-	/**
-	 * Parsed `<a:clrChange>` colour-change effect for this element, or
-	 * `undefined` when it carries none. When present the image / media branch
-	 * renders via {@link ColorChangedImageComponent} (offscreen-canvas chroma
-	 * key) instead of a plain `<img>`.
-	 */
-	readonly clrChangeParams = computed<ClrChangeParams | undefined>(() =>
-		getClrChangeParams(this.element()),
-	);
-
 	/** Text-warp (WordArt) descriptor for the element, if any. */
 	readonly textWarp = computed(() => getTextWarp(this.element(), this.fieldContext()));
 	/** Only the SVG-textPath warp variant (for the `<svg>` overlay branch). */
