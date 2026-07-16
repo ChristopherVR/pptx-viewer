@@ -35,6 +35,8 @@ export function parseDataUrlToBytes(
 		'audio/x-wav': 'wav',
 		'audio/ogg': 'ogg',
 		'audio/flac': 'flac',
+		'model/gltf-binary': 'glb',
+		'model/gltf.binary': 'glb',
 	};
 	const extension = extensionByMime[mime] || 'bin';
 

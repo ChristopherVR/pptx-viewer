@@ -59,6 +59,7 @@ export class PptxContentTypesBuilder implements IPptxContentTypesBuilder {
 		oga: 'audio/ogg',
 		wma: 'audio/x-ms-wma',
 		flac: 'audio/flac',
+		glb: 'model/gltf-binary',
 	};
 
 	public applySlideAndMediaUpdates(init: PptxContentTypesSlideMediaBuildInput): XmlObject {

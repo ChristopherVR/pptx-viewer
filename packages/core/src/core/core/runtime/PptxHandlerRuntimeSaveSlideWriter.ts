@@ -309,6 +309,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// here we lift them back out into their original AC envelope so
 		// legacy renderers (older Office, LibreOffice) keep their fallback.
 		this.reapplyAlternateContentEnvelopes(spTree, collectors);
+		this.wrapNewModel3DEnvelopes(spTree, collectors.model3ds);
 		this.wrapNewZoomEnvelopes(spTree, collectors.zooms);
 
 		// Validate and deduplicate shape IDs to prevent MS Office corruption

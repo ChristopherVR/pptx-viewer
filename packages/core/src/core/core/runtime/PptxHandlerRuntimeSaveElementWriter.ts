@@ -6,6 +6,7 @@ import type {
 	GroupPptxElement,
 	InkPptxElement,
 	MediaPptxElement,
+	Model3DPptxElement,
 	OlePptxElement,
 	PptxImageLikeElement,
 	SmartArtPptxElement,
@@ -17,8 +18,8 @@ import { buildChartExSpaceXml, canGenerateChartEx } from '../../utils/chart-cx-g
 import { buildChartSpaceXml } from '../../utils/chart-xml-generator';
 import { BLIP_FILL_ORDER, SP_PR_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveModel3D';
 import { CHART_CONTENT_TYPE, CHART_RELATIONSHIP_TYPE } from './PptxHandlerRuntimeSaveShapeXml';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveSummaryZoom';
 
 export type { SaveSlideContext };
 
@@ -372,6 +373,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			return;
 		}
+		if (el.type === 'model3d') {
+			shape = this.createOrUpdateModel3DXml(el as Model3DPptxElement, shape, ctx);
+			if (shape) {
+				collectors.model3ds.push(shape);
+			} else {
+				this.compatibilityService.reportWarning({
+					code: 'SAVE_ELEMENT_SKIPPED',
+					message: `3D model '${el.id}' has no valid model payload and was skipped.`,
+					scope: 'save',
+					slideId: ctx.slide.id,
+					elementId: el.id,
+				});
+			}
+			return;
+		}
 		if (!shape && el.type === 'table') {
 			// SDK-created tables (via `SlideBuilder.addTable`) have no rawXml.
 			// Fabricate a graphic-frame skeleton so the downstream
@@ -487,8 +503,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			collectors.pics.push(shape);
 		} else if (el.type === 'connector') {
 			collectors.connectors.push(shape);
-		} else if (el.type === 'model3d') {
-			collectors.model3ds.push(shape);
 		} else if (el.type === 'media' && this.isPictureShape(shape)) {
 			collectors.pics.push(shape);
 		} else if (this.isGraphicFrameShape(shape)) {
