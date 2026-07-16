@@ -5,6 +5,7 @@ import {
 	getXmlShapeIdFromXml,
 	getPathExtensionFromPath,
 	getImageMimeTypeFromPath,
+	requiresBase64DataUrl,
 	parseCtnMediaTiming,
 	parseMediaExtensionData,
 } from './PptxHandlerRuntimeMediaParsingUtils';
@@ -186,6 +187,17 @@ describe('getImageMimeTypeFromPath', () => {
 
 	it('should return audio/flac for .flac files', () => {
 		expect(getImageMimeTypeFromPath('lossless.flac')).toBe('audio/flac');
+	});
+
+	it('should return model MIME types for GLB and GLTF files', () => {
+		expect(getImageMimeTypeFromPath('ppt/media/model1.glb')).toBe('model/gltf-binary');
+		expect(getImageMimeTypeFromPath('ppt/media/model2.gltf')).toBe('model/gltf+json');
+	});
+
+	it('keeps model payloads as base64 data URLs for all renderers', () => {
+		expect(requiresBase64DataUrl('model/gltf-binary')).toBeTruthy();
+		expect(requiresBase64DataUrl('model/gltf+json')).toBeTruthy();
+		expect(requiresBase64DataUrl('image/png')).toBeFalsy();
 	});
 
 	it('should default to image/jpeg for unknown extensions', () => {

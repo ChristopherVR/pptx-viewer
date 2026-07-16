@@ -145,6 +145,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const skewY = xfrm?.['@_skewY'] ? parseInt(String(xfrm['@_skewY']), 10) / 60000 : undefined;
 
 			let modelPath: string | undefined;
+			let modelData: string | undefined;
 			let modelMimeType: string | undefined;
 			let posterImage: string | undefined;
 			let imagePath: string | undefined;
@@ -168,6 +169,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 							modelMimeType = 'model/gltf-binary';
 						} else if (modelExt === 'gltf') {
 							modelMimeType = 'model/gltf+json';
+						}
+						if (this.eagerDecodeImages) {
+							modelData = await this.getImageData(modelPath);
 						}
 					}
 				}
@@ -194,6 +198,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 							imagePath = resolvedPoster;
 							if (this.eagerDecodeImages && resolvedPoster) {
 								imageData = await this.getImageData(resolvedPoster);
+								if (imageData) {
+									posterImage = imageData;
+								}
 							}
 						}
 					}
@@ -211,6 +218,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				skewX,
 				skewY,
 				modelPath,
+				modelData,
 				modelMimeType,
 				posterImage,
 				imagePath,

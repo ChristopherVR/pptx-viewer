@@ -126,7 +126,18 @@ export function getImageMimeTypeFromPath(imagePath: string): string {
 	if (ext === 'flac') {
 		return 'audio/flac';
 	}
+	if (ext === 'glb') {
+		return 'model/gltf-binary';
+	}
+	if (ext === 'gltf') {
+		return 'model/gltf+json';
+	}
 	return 'image/jpeg';
+}
+
+/** Model loaders require a durable data URL instead of a revocable image Blob URL. */
+export function requiresBase64DataUrl(mimeType: string): boolean {
+	return mimeType === 'model/gltf-binary' || mimeType === 'model/gltf+json';
 }
 
 /**

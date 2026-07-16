@@ -3,6 +3,7 @@ import { convertEmfToDataUrl, convertWmfToDataUrl } from 'emf-converter';
 import { XmlObject, PptxElement } from '../../types';
 import type { PptxNativeAnimation } from '../../types';
 import type { MediaTimingData } from './PptxHandlerRuntimeImageEffects';
+import { requiresBase64DataUrl } from './PptxHandlerRuntimeMediaParsingUtils';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeMediaTimingParsing';
 
 /**
@@ -19,7 +20,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * falls back to data URIs in Node.js.
 	 */
 	private createImageUrl(bytes: ArrayBuffer, mimeType: string): string {
-		if (CAN_USE_BLOB_URLS) {
+		if (CAN_USE_BLOB_URLS && !requiresBase64DataUrl(mimeType)) {
 			// Wrap in a fresh Uint8Array to satisfy the BlobPart constraint
 			// (ArrayBuffer is always accepted, but TS strict mode can complain
 			// about SharedArrayBuffer in Uint8Array.buffer).
