@@ -11,6 +11,8 @@ export { runGifExport } from './export-gif';
 export type { OpenPrintWindow, PrintOptions } from './export-print';
 export { runPrint } from './export-print';
 export type { ExportCaptureDeps } from './export-types';
+export { exportAllSlidesToSvg, exportSlideToSvg } from './export-svg';
+export type { SvgExportOptions } from './export-svg';
 export type { ExportVideoDeps, ExportVideoOptions } from './export-video';
 export { runVideoExport } from './export-video';
 export { buildSharingPackage } from './package-sharing';

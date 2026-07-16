@@ -28,7 +28,21 @@ function makeSlides(n: number): PptxSlide[] {
 				id: `s${i}`,
 				rId: `rId${i}`,
 				slideNumber: i + 1,
-				elements: [],
+				elements: [
+					{
+						id: `chart-${i}`,
+						type: 'chart',
+						x: 20,
+						y: 20,
+						width: 400,
+						height: 240,
+						chartData: {
+							chartType: 'bar',
+							categories: ['Q1', 'Q2'],
+							series: [{ name: 'Revenue', values: [12, 18] }],
+						},
+					},
+				],
 				notes: `Notes for slide ${i + 1}`,
 			}) as unknown as PptxSlide,
 	);
@@ -59,15 +73,16 @@ describe('runPrint', () => {
 		const opened = await runPrint(deps, { openPrintWindow });
 
 		expect(opened).toBeTruthy();
-		expect(deps.rasterizeSlide.mock.calls.map((c) => c[0])).toStrictEqual([0, 1, 2]);
+		expect(deps.rasterizeSlide).not.toHaveBeenCalled();
 		expect(openPrintWindow).toHaveBeenCalledOnce();
 		const html = openPrintWindow.mock.calls[0][0];
 		expect(html).toContain('<!doctype html>');
-		expect(html).toContain('<title>Slides</title>');
-		expect(html).toContain('@page { size: landscape; margin: 8mm; }');
-		// One <section> per slide, each embedding the rasterised data URL.
-		expect(html.match(/slide-page/gu)?.length).toBeGreaterThanOrEqual(3);
-		expect(html.match(new RegExp(PNG_DATA_URL, 'gu'))).toHaveLength(3);
+		expect(html).toContain('<title>Slides (Vector)</title>');
+		expect(html).toContain('size: landscape');
+		expect(html.match(/print-slide-page/gu)?.length).toBeGreaterThanOrEqual(3);
+		expect(html).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+		expect(html).toContain('data-chart-mark="bar"');
+		expect(html).not.toContain(PNG_DATA_URL);
 	});
 
 	it('prints only the current slide for the current range', async () => {
@@ -76,7 +91,9 @@ describe('runPrint', () => {
 
 		await runPrint(deps, { slideRange: 'current', openPrintWindow });
 
-		expect(deps.rasterizeSlide).toHaveBeenCalledExactlyOnceWith(2);
+		expect(deps.rasterizeSlide).not.toHaveBeenCalled();
+		const html = openPrintWindow.mock.calls[0][0];
+		expect(html.match(/aria-label="Slide/gu)).toHaveLength(1);
 	});
 
 	it('clamps a custom range and applies the grayscale colour filter', async () => {
@@ -91,9 +108,10 @@ describe('runPrint', () => {
 			openPrintWindow,
 		});
 
-		expect(deps.rasterizeSlide.mock.calls.map((c) => c[0])).toStrictEqual([1, 2, 3]);
+		expect(deps.rasterizeSlide).not.toHaveBeenCalled();
 		const html = openPrintWindow.mock.calls[0][0];
 		expect(html).toContain('filter: grayscale(1);');
+		expect(html.match(/aria-label="Slide/gu)).toHaveLength(3);
 	});
 
 	it('builds notes pages in portrait with the slide notes text', async () => {
@@ -154,7 +172,12 @@ describe('runPrint', () => {
 		const openPrintWindow = vi.fn((_html: string) => true);
 
 		await expect(
-			runPrint(deps, { onProgress, signal: controller.signal, openPrintWindow }),
+			runPrint(deps, {
+				printWhat: 'notes',
+				onProgress,
+				signal: controller.signal,
+				openPrintWindow,
+			}),
 		).rejects.toThrow('Export cancelled');
 		expect(deps.rasterizeSlide).toHaveBeenCalledOnce();
 		expect(openPrintWindow).not.toHaveBeenCalled();

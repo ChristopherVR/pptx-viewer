@@ -3,14 +3,15 @@ import {
 	buildHandoutsHtml,
 	buildNotesHtml,
 	buildOutlineHtml,
+	buildPrintDocument,
 	buildPrintHtmlDocument,
-	buildSlidesHtml,
 	computeColorFilter,
 	computeSlideIndices,
 	exportAbortError,
 	validatePrintSettings,
 } from 'pptx-viewer-shared';
 
+import { exportSlideToSvg } from './export-svg';
 import type { ExportCaptureDeps, ExportProgress } from './export-types';
 
 /**
@@ -105,6 +106,26 @@ export async function runPrint(
 		return false;
 	}
 
+	if (settings.printWhat === 'slides') {
+		const { width, height } = state.canvasSize;
+		const svgs: string[] = [];
+		for (let i = 0; i < slideIndices.length; i++) {
+			if (signal?.aborted) {
+				throw exportAbortError();
+			}
+			onProgress?.(i, slideIndices.length);
+			svgs.push(exportSlideToSvg(slides[slideIndices[i]], width, height));
+		}
+		onProgress?.(slideIndices.length, slideIndices.length);
+		return openWindow(
+			buildPrintDocument(svgs, width, height, {
+				title: 'Slides (Vector)',
+				orientation: settings.orientation,
+				colorFilter,
+			}),
+		);
+	}
+
 	const images: string[] = [];
 	for (let i = 0; i < slideIndices.length; i++) {
 		if (signal?.aborted) {
@@ -116,10 +137,6 @@ export async function runPrint(
 	}
 	onProgress?.(slideIndices.length, slideIndices.length);
 
-	if (settings.printWhat === 'slides') {
-		const bodyHtml = buildSlidesHtml(images, slideIndices);
-		return openWindow(buildDocument('Slides', bodyHtml, settings, colorFilter));
-	}
 	if (settings.printWhat === 'notes') {
 		const bodyHtml = buildNotesHtml(images, slideIndices, slides);
 		return openWindow(buildDocument('Notes Pages', bodyHtml, settings, colorFilter));

@@ -53,10 +53,12 @@ export type {
 	ExportGifOptions,
 	ExportPdfOptions,
 	ExportProgress,
+	SvgExportOptions,
 	ExportVideoOptions,
 	OpenPrintWindow,
 	PrintOptions,
 } from './viewer';
+export { exportAllSlidesToSvg, exportSlideToSvg } from './viewer';
 
 // ── i18n / styles ──────────────────────────────────────────────────────
 export type { TranslationMessages, Translator } from './viewer';
