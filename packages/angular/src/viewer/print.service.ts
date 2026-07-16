@@ -1,10 +1,8 @@
 /**
  * PrintService: print orchestration for the Angular viewer.
  *
- * Pure layout/markup maths live in `./print-helpers` and are unit-tested in
- * isolation. This service holds the only DOM side effects: capturing each
- * slide to a PNG data URL, opening a print window, writing the document, and
- * invoking `window.print()`.
+ * Pure layout/markup maths live in `./print-helpers`. Direct slide printing
+ * uses core SVG output; notes and handouts retain the DOM raster path.
  *
  * Slide capture is decoupled from rendering: the host viewer passes a
  * `captureSlide(index)` callback that flips the live stage to `index` and
@@ -24,12 +22,17 @@ import { TranslateService } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import {
+	DEFAULT_CANVAS_HEIGHT,
+	DEFAULT_CANVAS_WIDTH,
+	buildPrintDocument as buildSvgPrintDocument,
+} from '../internal/shared';
+import { addSvgSlideFrame, exportSlideToSvg } from './export-svg';
+import {
 	DEFAULT_PRINT_SETTINGS,
 	buildHandoutsHtml,
 	buildNotesHtml,
 	buildOutlineHtml,
 	buildPrintDocument,
-	buildSlidesHtml,
 	computeColorFilter,
 	computeSlideIndices,
 	validatePrintSettings,
@@ -79,8 +82,8 @@ export class PrintService {
 	 *   2. Build the printable HTML (capturing slides as needed).
 	 *   3. Open a print window and trigger `window.print()`.
 	 *
-	 * The outline path needs no rasterisation. All other modes call
-	 * `captureSlide` once per slide (sequentially) and skip slides that fail.
+	 * Outline and full-page slides need no rasterisation. Notes and handouts
+	 * call `captureSlide` sequentially and skip slides that fail.
 	 *
 	 * @returns `true` if a print window was opened, `false` if blocked (popup
 	 *          blocker) or there was nothing to print.
@@ -90,6 +93,10 @@ export class PrintService {
 		slides: PptxSlide[],
 		activeSlideIndex: number,
 		captureSlide: CaptureSlideFn,
+		slideSize: Readonly<{ width: number; height: number }> = {
+			width: DEFAULT_CANVAS_WIDTH,
+			height: DEFAULT_CANVAS_HEIGHT,
+		},
 	): Promise<boolean> {
 		this.closeDialog();
 
@@ -121,6 +128,29 @@ export class PrintService {
 			);
 		}
 
+		if (settings.printWhat === 'slides') {
+			const svgs = slideIndices.flatMap((index) => {
+				const slide = slides[index];
+				if (!slide) {
+					return [];
+				}
+				const svg = exportSlideToSvg(slide, slideSize.width, slideSize.height);
+				return [
+					settings.frameSlides ? addSvgSlideFrame(svg, slideSize.width, slideSize.height) : svg,
+				];
+			});
+			if (svgs.length === 0) {
+				return false;
+			}
+			return this._open(
+				buildSvgPrintDocument(svgs, slideSize.width, slideSize.height, {
+					title: this.translate.instant('pptx.sections.slides'),
+					orientation: settings.orientation,
+					colorFilter,
+				}),
+			);
+		}
+
 		// ── Capture the requested slides to PNG data URLs ─────────────────
 		const slideImages: string[] = [];
 		const capturedIndices: number[] = [];
@@ -134,18 +164,6 @@ export class PrintService {
 
 		if (slideImages.length === 0) {
 			return false;
-		}
-
-		if (settings.printWhat === 'slides') {
-			return this._open(
-				buildPrintDocument({
-					title: this.translate.instant('pptx.sections.slides'),
-					bodyHtml: buildSlidesHtml(slideImages, capturedIndices),
-					orientation: settings.orientation,
-					colorFilter,
-					frameSlides: settings.frameSlides,
-				}),
-			);
 		}
 
 		if (settings.printWhat === 'notes') {

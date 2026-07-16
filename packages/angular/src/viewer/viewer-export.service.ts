@@ -204,20 +204,22 @@ export class ViewerExportService {
 		}
 	}
 
-	/** Run a print job for the chosen settings, rasterising each slide off the live stage. */
 	async onPrint(settings: PrintSettings): Promise<void> {
 		const host = this.requireHost();
 		const original = host.activeSlideIndex();
 		try {
-			await this.print.print(settings, [...host.mergedSlides()], original, (index) =>
-				this.captureSlideDataUrl(index),
+			await this.print.print(
+				settings,
+				[...host.mergedSlides()],
+				original,
+				(index) => this.captureSlideDataUrl(index),
+				this.loader.canvasSize(),
 			);
 		} finally {
 			host.activeSlideIndex.set(original);
 		}
 	}
 
-	/** User pressed Cancel: abort the loop and close the modal. */
 	onCancelExport(): void {
 		this.abort?.abort();
 		this.abort = null;
@@ -240,7 +242,6 @@ export class ViewerExportService {
 		return controller;
 	}
 
-	/** Tear down the progress modal + export-in-flight state. */
 	private endExport(): void {
 		this.abort = null;
 		this.modalOpen.set(false);

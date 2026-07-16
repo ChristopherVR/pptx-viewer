@@ -12,11 +12,12 @@
 
 import { Injectable } from '@angular/core';
 import { jsPDF } from 'jspdf';
-import type { PptxSaveFormat } from 'pptx-viewer-core';
+import type { PptxData, PptxSaveFormat, PptxSlide, SvgExportOptions } from 'pptx-viewer-core';
 
 import { canvasToJpegData, downloadBlob } from '../internal/shared';
 import { renderToCanvas } from '../lib/canvas-export';
 import { pdfPageSize, sanitizeFileName } from './export-helpers';
+import { exportAllSlidesToSvg, exportSlideToSvg, exportSlideToSvgBlob } from './export-svg';
 import { encodeGif, planGifFrames } from './gif-export-helpers';
 import type { GifFrame } from './gif-export-helpers';
 import { recordWebm } from './video-export-helpers';
@@ -48,6 +49,31 @@ export class ExportService {
 		ppsx: 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
 		pptm: 'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
 	};
+
+	/** Build a resolution-independent SVG string directly from slide data. */
+	exportSlideToSvg(
+		slide: PptxSlide,
+		width: number,
+		height: number,
+		options?: SvgExportOptions,
+	): string {
+		return exportSlideToSvg(slide, width, height, options);
+	}
+
+	/** Build an SVG Blob directly from slide data. */
+	exportSlideToSvgBlob(
+		slide: PptxSlide,
+		width: number,
+		height: number,
+		options?: SvgExportOptions,
+	): Blob {
+		return exportSlideToSvgBlob(slide, width, height, options);
+	}
+
+	/** Build SVG strings for all selected slides in a parsed presentation. */
+	exportAllSlidesToSvg(data: PptxData, options?: SvgExportOptions): string[] {
+		return exportAllSlidesToSvg(data, options);
+	}
 
 	/**
 	 * Trigger a browser download of serialized `.pptx` bytes.
