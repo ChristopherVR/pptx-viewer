@@ -832,9 +832,9 @@ describe('sVG Visual Snapshots', () => {
 		expect(svg).toMatchSnapshot();
 	});
 
-	// ── 13. Chart placeholder ───────────────────────────────────
+	// ── 13. Structural chart SVG ────────────────────────────────
 
-	it('chart element renders as placeholder', () => {
+	it('chart element renders structural bars', () => {
 		const chart = createChartElement(
 			'bar',
 			{
