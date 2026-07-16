@@ -129,8 +129,10 @@ function styleXml(index: number): string {
 
 function shapePropsXml(shape: PptxSmartArtDrawingShape): string {
 	const rot = shape.rotation ? ` rot="${Math.round(shape.rotation * 60000)}"` : '';
+	const skewX = shape.skewX !== undefined ? ` skewX="${Math.round(shape.skewX * 60000)}"` : '';
+	const skewY = shape.skewY !== undefined ? ` skewY="${Math.round(shape.skewY * 60000)}"` : '';
 	const xfrm =
-		`<a:xfrm${rot}>` +
+		`<a:xfrm${rot}${skewX}${skewY}>` +
 		`<a:off x="${toEmu(shape.x)}" y="${toEmu(shape.y)}"/>` +
 		`<a:ext cx="${toEmu(Math.max(shape.width, 1))}" cy="${toEmu(Math.max(shape.height, 1))}"/>` +
 		`</a:xfrm>`;
@@ -222,6 +224,8 @@ export function smartArtElementsToDrawingShapes(
 			width: shape.width,
 			height: shape.height,
 			rotation: shape.rotation,
+			skewX: shape.skewX,
+			skewY: shape.skewY,
 			fillColor: shape.shapeStyle?.fillColor,
 			strokeColor: shape.shapeStyle?.strokeColor,
 			strokeWidth: shape.shapeStyle?.strokeWidth,

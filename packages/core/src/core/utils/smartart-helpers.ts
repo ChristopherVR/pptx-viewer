@@ -85,6 +85,8 @@ export function makeShapeElement(
 	text: string,
 	opts?: {
 		rotation?: number;
+		skewX?: number;
+		skewY?: number;
 		strokeColor?: string;
 		strokeWidth?: number;
 		fontSize?: number;
@@ -117,6 +119,8 @@ export function makeShapeElement(
 		width: Math.max(Math.round(width), 1),
 		height: Math.max(Math.round(height), 1),
 		rotation: opts?.rotation,
+		skewX: opts?.skewX,
+		skewY: opts?.skewY,
 		shapeType,
 		shapeAdjustments:
 			opts !== undefined && opts.cornerRadius !== undefined

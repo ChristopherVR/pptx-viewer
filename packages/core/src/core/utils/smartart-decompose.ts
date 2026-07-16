@@ -137,6 +137,8 @@ function convertDrawingShapes(
 			ds.text ?? '',
 			{
 				rotation: ds.rotation,
+				skewX: ds.skewX,
+				skewY: ds.skewY,
 				strokeColor: ds.strokeColor,
 				strokeWidth: ds.strokeWidth !== undefined ? ds.strokeWidth * strokeScale : undefined,
 				fontSize: ds.fontSize,

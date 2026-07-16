@@ -54,6 +54,22 @@ describe('buildFabricatedDrawingXml', () => {
 		expect(xml).toContain('<dsp:txXfrm>');
 	});
 
+	it('serializes cached shape rotation and skew transforms', () => {
+		const xml = buildFabricatedDrawingXml(
+			[
+				{
+					...SHAPES[0]!,
+					rotation: 15,
+					skewX: 10,
+					skewY: -5,
+				},
+			],
+			NODES,
+			GUIDS,
+		)!;
+		expect(xml).toContain('<a:xfrm rot="900000" skewX="600000" skewY="-300000">');
+	});
+
 	it('escapes shape text', () => {
 		const xml = buildFabricatedDrawingXml(
 			[{ id: 'engine-n1', shapeType: 'rect', x: 0, y: 0, width: 10, height: 10, text: 'A & <B>' }],
@@ -100,6 +116,8 @@ describe('smartArtElementsToDrawingShapes', () => {
 			width: 100,
 			height: 50,
 			rotation: undefined,
+			skewX: undefined,
+			skewY: undefined,
 			fillColor: '#123456',
 			strokeColor: '#654321',
 			strokeWidth: 2,

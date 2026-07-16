@@ -167,6 +167,28 @@ describe('decomposeSmartArt — drawing shapes', () => {
 		);
 	});
 
+	it('preserves cached drawing shape rotation and skew', () => {
+		const data: PptxSmartArtData = {
+			nodes: makeNodes(['A']),
+			drawingShapes: [
+				{
+					id: 'ds1',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 50,
+					rotation: 15,
+					skewX: 10,
+					skewY: -5,
+				},
+			],
+		};
+
+		const result = decomposeSmartArt(data, bounds);
+
+		expect(result?.[0]).toMatchObject({ rotation: 15, skewX: 10, skewY: -5 });
+	});
+
 	it('applies colorTransform fills when drawing shapes lack fillColor', () => {
 		const drawingShapes: PptxSmartArtDrawingShape[] = [
 			{ id: 'ds1', x: 0, y: 0, width: 100, height: 50 },
