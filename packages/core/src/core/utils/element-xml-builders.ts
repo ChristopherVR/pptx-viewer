@@ -6,6 +6,7 @@
 import { normalizeHexColor } from '../color/color-primitives';
 import { EMU_PER_PX, DEFAULT_STROKE_COLOR } from '../constants';
 import type { PptxElementWithText, ConnectorPptxElement, XmlObject } from '../types';
+import { applyDrawingLineDash } from './drawing-line-dash';
 import { normalizeStrokeDashType } from './stroke-utils';
 
 // ---------------------------------------------------------------------------
@@ -96,18 +97,10 @@ export function createTemplateConnectorRawXml(element: ConnectorPptxElement): Xm
 	};
 	const normalizedDash = normalizeStrokeDashType(element.shapeStyle?.strokeDash);
 	if (normalizedDash && normalizedDash !== 'solid') {
-		if (normalizedDash === 'custom') {
-			lineNode['a:custDash'] = {
-				'a:ds': {
-					'@_d': '28222',
-					'@_sp': '10583',
-				},
-			};
-		} else {
-			lineNode['a:prstDash'] = {
-				'@_val': normalizedDash,
-			};
-		}
+		applyDrawingLineDash(lineNode, {
+			...element.shapeStyle,
+			strokeDash: normalizedDash,
+		});
 	}
 	if (
 		element.shapeStyle?.connectorStartArrow &&

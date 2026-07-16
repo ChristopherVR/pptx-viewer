@@ -460,3 +460,4 @@ export {
 	applyDrawingMediaReference,
 	type ParsedDrawingMediaReference,
 } from './drawing-media-reference';
+export { parseDrawingLineDash, applyDrawingLineDash } from './drawing-line-dash';

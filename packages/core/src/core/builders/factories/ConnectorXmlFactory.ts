@@ -1,4 +1,5 @@
 import type { XmlObject } from '../../types';
+import { applyDrawingLineDash } from '../../utils/drawing-line-dash';
 import type {
 	ConnectorXmlFactoryInit,
 	IConnectorXmlFactory,
@@ -51,35 +52,7 @@ export class ConnectorXmlFactory implements IConnectorXmlFactory {
 		}
 
 		if (element.shapeStyle?.strokeDash) {
-			if (element.shapeStyle.strokeDash === 'solid') {
-				delete lineNode['a:prstDash'];
-				delete lineNode['a:custDash'];
-			} else if (element.shapeStyle.strokeDash === 'custom') {
-				delete lineNode['a:prstDash'];
-				if (
-					element.shapeStyle.customDashSegments &&
-					element.shapeStyle.customDashSegments.length > 0
-				) {
-					lineNode['a:custDash'] = {
-						'a:ds': element.shapeStyle.customDashSegments.map((segment) => ({
-							'@_d': String(segment.dash),
-							'@_sp': String(segment.space),
-						})),
-					};
-				} else {
-					lineNode['a:custDash'] = {
-						'a:ds': {
-							'@_d': '200000',
-							'@_sp': '200000',
-						},
-					};
-				}
-			} else {
-				lineNode['a:prstDash'] = {
-					'@_val': element.shapeStyle.strokeDash,
-				};
-				delete lineNode['a:custDash'];
-			}
+			applyDrawingLineDash(lineNode, element.shapeStyle);
 		}
 
 		if (

@@ -28,6 +28,13 @@ import type {
 } from './common';
 import type { Pptx3DScene, Pptx3DShape } from './three-d';
 
+export interface PptxCustomDashSegment {
+	/** Dash length as a non-negative percentage in thousandths of one percent. */
+	dash: number;
+	/** Space length as a non-negative percentage in thousandths of one percent. */
+	space: number;
+}
+
 /**
  * Comprehensive visual style for a shape, connector, or image element.
  *
@@ -252,8 +259,12 @@ export interface ShapeStyle {
 	connectorStartConnection?: ConnectorConnectionPoint;
 	/** Connection point for the end of a connector. */
 	connectorEndConnection?: ConnectorConnectionPoint;
-	/** Custom dash segments array (`a:custDash/a:ds`). Each entry has dash length and space length in EMU. */
-	customDashSegments?: Array<{ dash: number; space: number }>;
+	/** Custom dash pattern, measured relative to line width in thousandths of one percent. */
+	customDashSegments?: PptxCustomDashSegment[];
+	/** Original `a:ds` payloads retained by index for lossless edits. */
+	customDashSegmentXml?: XmlObject[];
+	/** Original `a:custDash` payload retained for lossless edits. */
+	customDashXml?: XmlObject;
 	/** 3D scene/camera settings from `a:scene3d`. */
 	scene3d?: Pptx3DScene;
 	/** 3D shape extrusion/bevel from `a:sp3d`. */

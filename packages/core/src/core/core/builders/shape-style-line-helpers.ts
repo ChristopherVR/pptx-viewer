@@ -1,5 +1,6 @@
 import type { ConnectorArrowType, ShapeStyle, StrokeDashType, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
+import { parseDrawingLineDash } from '../../utils/drawing-line-dash';
 
 export interface ShapeLineStyleContext {
 	emuPerPx: number;
@@ -86,25 +87,7 @@ function applyDashProperties(
 	style: ShapeStyle,
 	context: ShapeLineStyleContext,
 ): void {
-	const dashType = context.normalizeStrokeDashType(
-		(lineNode['a:prstDash'] as XmlObject | undefined)?.['@_val'],
-	);
-	if (dashType) {
-		style.strokeDash = dashType;
-	} else if (lineNode['a:custDash']) {
-		style.strokeDash = 'custom';
-		const customDash = lineNode['a:custDash'] as XmlObject;
-		const dashSegments = context.ensureArray(customDash['a:ds']);
-		if (dashSegments.length > 0) {
-			style.customDashSegments = dashSegments.map((segment) => {
-				const dashNode = segment as XmlObject;
-				return {
-					dash: parseInt(String(dashNode?.['@_d'] || '0'), 10),
-					space: parseInt(String(dashNode?.['@_sp'] || '0'), 10),
-				};
-			});
-		}
-	}
+	Object.assign(style, parseDrawingLineDash(lineNode, context.normalizeStrokeDashType));
 }
 
 function applyArrowProperties(

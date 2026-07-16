@@ -1,6 +1,7 @@
 import { XmlObject } from '../../types';
 import type { ShapeStyle } from '../../types';
 import { serializeColorChoice } from '../../utils/color-xml-preservation';
+import { applyDrawingLineDash } from '../../utils/drawing-line-dash';
 import { reorderObjectKeys, SHAPE_STYLE_ORDER } from '../../utils/xml-reorder';
 import { mergeDrawingFillXml } from '../builders/drawing-fill-xml';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveXmlHelpers';
@@ -121,27 +122,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				spPr['a:ln'] = {};
 			}
 			const lineNode = spPr['a:ln'] as XmlObject;
-			if (shapeStyle.strokeDash === 'solid') {
-				delete lineNode['a:prstDash'];
-				delete lineNode['a:custDash'];
-			} else if (shapeStyle.strokeDash === 'custom') {
-				delete lineNode['a:prstDash'];
-				if (shapeStyle.customDashSegments && shapeStyle.customDashSegments.length > 0) {
-					lineNode['a:custDash'] = {
-						'a:ds': shapeStyle.customDashSegments.map((seg) => ({
-							'@_d': String(seg.dash),
-							'@_sp': String(seg.space),
-						})),
-					};
-				} else {
-					lineNode['a:custDash'] = {
-						'a:ds': { '@_d': '200000', '@_sp': '200000' },
-					};
-				}
-			} else {
-				lineNode['a:prstDash'] = { '@_val': shapeStyle.strokeDash };
-				delete lineNode['a:custDash'];
-			}
+			applyDrawingLineDash(lineNode, shapeStyle);
 		}
 
 		// Connector arrows
