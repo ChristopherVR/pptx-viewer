@@ -26,6 +26,7 @@ import { parseChartAxes, parseChart3DSurfaces } from '../../utils/chart-axis-par
 import { parseBubbleChartOptions } from '../../utils/chart-bubble-options';
 import { chartContainerLocalNameToType } from '../../utils/chart-container-type-map';
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
+import { parseChartDateCategories } from '../../utils/chart-date-categories';
 import { parseChartLayouts } from '../../utils/chart-layout';
 import { parseChartPivotFormats } from '../../utils/chart-pivot-formats';
 import { parseChartPrintSettings } from '../../utils/chart-print-settings';
@@ -119,6 +120,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			chartType,
 			axes,
 		);
+		const firstSeriesNode = chartContainerKeys
+			.flatMap((key) =>
+				this.xmlLookupService.getChildrenArrayByLocalName(
+					plotArea[key] as XmlObject | undefined,
+					'ser',
+				),
+			)
+			.at(0);
+		const rawDateCategories = axes.some((axis) => axis.axisType === 'dateAx')
+			? parseChartDateCategories(firstSeriesNode, this.xmlLookupService)
+			: undefined;
 		if (series.length === 0) {
 			return undefined;
 		}
@@ -181,6 +193,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Parse embedded xlsx workbook if available
 		const embeddedWorkbookData = await this.parseEmbeddedWorkbook(externalData);
+		const dateCategories = rawDateCategories
+			? { ...rawDateCategories, date1904: embeddedWorkbookData?.date1904 ?? false }
+			: undefined;
 
 		// Use embedded workbook data as fallback when chart XML data is insufficient
 		let finalCategories = categories;
@@ -240,6 +255,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return {
 			chartType,
 			categories: finalCategories,
+			...(dateCategories ? { dateCategories } : {}),
 			series: finalSeries,
 			title: titleTextValues[0],
 			style: chartStyle,
@@ -317,16 +333,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			// Use the first series with categories found across all containers.
 			if (categories.length === 0) {
-				const fromCat = this.extractChartPointValues(
-					this.xmlLookupService.getChildByLocalName(seriesList[0], 'cat'),
-					false,
-				);
+				const catNode = this.xmlLookupService.getChildByLocalName(seriesList[0], 'cat');
+				const fromCat = this.extractChartPointValues(catNode, false);
+				const fromNumericCat = fromCat.length ? [] : this.extractChartPointValues(catNode, true);
 				categories = fromCat.length
 					? fromCat
-					: this.extractChartPointValues(
-							this.xmlLookupService.getChildByLocalName(seriesList[0], 'xVal'),
-							false,
-						);
+					: fromNumericCat.length
+						? fromNumericCat
+						: this.extractChartPointValues(
+								this.xmlLookupService.getChildByLocalName(seriesList[0], 'xVal'),
+								false,
+							);
 			}
 
 			const containerType = isCombo

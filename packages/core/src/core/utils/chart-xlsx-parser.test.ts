@@ -13,12 +13,16 @@ import { parseEmbeddedXlsx } from './chart-xlsx-parser';
 async function buildMockXlsx(
 	sharedStringsXml: string | undefined,
 	sheet1Xml: string,
+	workbookXml?: string,
 ): Promise<Uint8Array> {
 	const zip = new JSZip();
 	if (sharedStringsXml) {
 		zip.file('xl/sharedStrings.xml', sharedStringsXml);
 	}
 	zip.file('xl/worksheets/sheet1.xml', sheet1Xml);
+	if (workbookXml) {
+		zip.file('xl/workbook.xml', workbookXml);
+	}
 	return zip.generateAsync({ type: 'uint8array' });
 }
 
@@ -62,6 +66,22 @@ ${rowsXml}
 // ---------------------------------------------------------------------------
 
 describe('parseEmbeddedXlsx', () => {
+	it('preserves the workbook 1904 date-system flag', async () => {
+		const sheet = buildSheet1Xml([
+			[
+				{ ref: 'A1', value: '0' },
+				{ ref: 'B1', value: '1' },
+			],
+			[
+				{ ref: 'A2', value: '0' },
+				{ ref: 'B2', value: '10' },
+			],
+		]);
+		const workbook =
+			'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><workbookPr date1904="1"/></workbook>';
+		const result = await parseEmbeddedXlsx(await buildMockXlsx(undefined, sheet, workbook));
+		expect(result?.date1904).toBeTruthy();
+	});
 	it('should parse a basic xlsx with string categories and numeric series', async () => {
 		const sharedStrings = buildSharedStringsXml(['', 'Revenue', 'Costs', 'Q1', 'Q2', 'Q3']);
 		const sheet1 = buildSheet1Xml([

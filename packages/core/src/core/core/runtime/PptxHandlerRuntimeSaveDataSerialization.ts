@@ -24,6 +24,7 @@ import {
 import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
 import { applyChartDataTable } from '../../utils/chart-data-table';
 import { applySeriesDataPointsToXml } from '../../utils/chart-datapoint-serializer';
+import { applyChartDateAxisUnits } from '../../utils/chart-date-axis';
 import { applySeriesErrBarsToXml } from '../../utils/chart-errbars-serializer';
 import { applyChartLayouts } from '../../utils/chart-layout';
 import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
@@ -311,7 +312,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						this.xmlLookupService.getChildByLocalName(seriesNode, 'cat') ||
 						this.xmlLookupService.getChildByLocalName(seriesNode, 'xVal');
 					if (catNode) {
-						this.updateChartCacheValues(catNode, false, chartData.categories);
+						const dateValues = chartData.dateCategories?.values.map(String);
+						this.updateChartCacheValues(
+							catNode,
+							Boolean(dateValues),
+							dateValues ?? chartData.categories,
+						);
 					}
 
 					// Update values
@@ -398,6 +404,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 							seriesData,
 							chartData.categories,
 							templateSeries,
+							chartData.dateCategories,
 						);
 						newSeriesXmlNodes.push(newNode);
 					}
@@ -627,6 +634,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 							);
 
 							applyChartAxisLabelFormatting(axisNode, matchingAxis, (key) =>
+								this.compatibilityService.getXmlLocalName(key),
+							);
+							applyChartDateAxisUnits(axisNode, matchingAxis, (key) =>
 								this.compatibilityService.getXmlLocalName(key),
 							);
 
@@ -906,6 +916,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		seriesData: PptxChartSeries,
 		categories: string[],
 		templateSeries?: XmlObject,
+		dateCategories?: PptxChartData['dateCategories'],
 	): XmlObject {
 		if (templateSeries) {
 			// Deep-clone the template
@@ -932,7 +943,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.xmlLookupService.getChildByLocalName(clone, 'cat') ||
 				this.xmlLookupService.getChildByLocalName(clone, 'xVal');
 			if (catNode) {
-				this.updateChartCacheValues(catNode, false, categories);
+				const dateValues = dateCategories?.values.map(String);
+				this.updateChartCacheValues(catNode, Boolean(dateValues), dateValues ?? categories);
 			}
 
 			// Update values
@@ -987,14 +999,24 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					'a:srgbClr': { '@_val': colorHex },
 				},
 			},
-			'c:cat': {
-				'c:strRef': {
-					'c:strCache': {
-						'c:ptCount': { '@_val': String(categories.length) },
-						'c:pt': buildChartPoints(categories),
+			'c:cat': dateCategories
+				? {
+						'c:numRef': {
+							'c:numCache': {
+								'c:formatCode': dateCategories.formatCode ?? 'General',
+								'c:ptCount': { '@_val': String(dateCategories.values.length) },
+								'c:pt': buildChartPoints(dateCategories.values.map(String)),
+							},
+						},
+					}
+				: {
+						'c:strRef': {
+							'c:strCache': {
+								'c:ptCount': { '@_val': String(categories.length) },
+								'c:pt': buildChartPoints(categories),
+							},
+						},
 					},
-				},
-			},
 			'c:val': {
 				'c:numRef': {
 					'c:numCache': {

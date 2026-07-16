@@ -119,6 +119,26 @@ describe('parseChartAxes', () => {
 		});
 	});
 
+	it('parses date-axis calendar units and intervals', () => {
+		const plotArea: XmlObject = {
+			'c:dateAx': {
+				'c:baseTimeUnit': { '@_val': 'days' },
+				'c:majorUnit': { '@_val': '2' },
+				'c:majorTimeUnit': { '@_val': 'months' },
+				'c:minorUnit': { '@_val': '7' },
+				'c:minorTimeUnit': { '@_val': 'days' },
+			},
+		};
+		expect(parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName)[0]).toMatchObject({
+			axisType: 'dateAx',
+			baseTimeUnit: 'days',
+			majorUnit: 2,
+			majorTimeUnit: 'months',
+			minorUnit: 7,
+			minorTimeUnit: 'days',
+		});
+	});
+
 	it('should return empty array for plotArea without axes', () => {
 		const plotArea: XmlObject = { 'c:barChart': {} };
 		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);

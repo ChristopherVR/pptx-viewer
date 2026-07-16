@@ -339,6 +339,10 @@ export interface PptxChartAxisFormatting extends PptxChartAxisLabelFormatting {
 	majorUnit?: number;
 	/** Minor-unit interval between secondary tick marks (c:minorUnit/@val). */
 	minorUnit?: number;
+	/** Calendar unit used to interpret date-axis serial values. */
+	baseTimeUnit?: 'days' | 'months' | 'years';
+	majorTimeUnit?: 'days' | 'months' | 'years';
+	minorTimeUnit?: 'days' | 'months' | 'years';
 }
 
 /** 3D wall or floor element formatting. */
@@ -650,6 +654,17 @@ export interface PptxEmbeddedWorkbookData {
 	categories: string[];
 	/** Data series extracted from worksheet cells. */
 	series: Array<{ name: string; values: number[] }>;
+	/** Whether the workbook uses the 1904 date system. */
+	date1904?: boolean;
+}
+
+/** Raw numeric category cache used by a classic ChartML date axis. */
+export interface PptxChartDateCategories {
+	values: number[];
+	/** False/default uses Excel's 1900 date system; true uses the 1904 system. */
+	date1904?: boolean;
+	/** Number format copied from the numeric category cache. */
+	formatCode?: string;
 }
 
 /**
@@ -680,6 +695,7 @@ export interface PptxChartData {
 	 * for consumers that only understand a flat category axis.
 	 */
 	categoryLevels?: string[][];
+	dateCategories?: PptxChartDateCategories;
 	series: PptxChartSeries[];
 	/** Chart style/formatting metadata. */
 	style?: PptxChartStyle;

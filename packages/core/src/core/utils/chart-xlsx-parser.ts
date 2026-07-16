@@ -277,6 +277,20 @@ export async function parseEmbeddedXlsx(
 			removeNSPrefix: false,
 			trimValues: true,
 		});
+		let date1904 = false;
+		const workbookFile = xlsxZip.file('xl/workbook.xml');
+		if (workbookFile) {
+			const workbookXml = await workbookFile.async('string');
+			const parsedWorkbook = xmlParser.parse(workbookXml) as Record<string, unknown>;
+			const workbook = findByLocalName(parsedWorkbook, 'workbook') as
+				| Record<string, unknown>
+				| undefined;
+			const workbookPr = findByLocalName(workbook ?? parsedWorkbook, 'workbookPr') as
+				| Record<string, unknown>
+				| undefined;
+			const rawDate1904 = String(workbookPr?.['@_date1904'] ?? '0').toLowerCase();
+			date1904 = rawDate1904 === '1' || rawDate1904 === 'true';
+		}
 
 		// Parse shared strings table
 		let sharedStrings: string[] = [];
@@ -367,7 +381,7 @@ export async function parseEmbeddedXlsx(
 			return undefined;
 		}
 
-		return { categories, series };
+		return { categories, series, date1904 };
 	} catch {
 		// Failed to parse xlsx — return undefined so chart falls back to cached data
 		return undefined;

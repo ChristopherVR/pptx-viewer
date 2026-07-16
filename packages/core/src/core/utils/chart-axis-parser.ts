@@ -2,6 +2,7 @@ import type { PptxChartAxisFormatting, PptxChart3DSurface, XmlObject } from '../
 import { parseChartAxisDisplayUnits } from './chart-axis-dispunits-serializer';
 import { parseChartAxisLabelFormatting } from './chart-axis-label-formatting';
 import { parseChartAxisScaling } from './chart-axis-scaling';
+import { parseChartDateAxisUnits } from './chart-date-axis';
 import { parseShapeProps } from './chart-series-detail-parser';
 
 export { upsertChartAxisChild } from './chart-axis-scaling';
@@ -183,6 +184,9 @@ function parseSingleAxis(
 			result.minorUnit = minorVal;
 		}
 	}
+	parseChartDateAxisUnits(axisNode, result, (parent, name) =>
+		xmlLookup.getChildByLocalName(parent, name),
+	);
 
 	return result;
 }

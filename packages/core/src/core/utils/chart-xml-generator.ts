@@ -7,8 +7,6 @@ import type {
 	PptxChartType,
 	XmlObject,
 } from '../types';
-import { applyChartAxisDisplayUnitsToXml } from './chart-axis-dispunits-serializer';
-import { applyChartAxisLabelFormatting } from './chart-axis-label-formatting';
 import { applyBubbleChartOptions } from './chart-bubble-options';
 import { applyChartDataLabelsToXml } from './chart-data-labels-serializer';
 import { applyChartDataTable } from './chart-data-table';
@@ -20,6 +18,7 @@ import { applySeriesDataLabelsToXml } from './chart-series-datalabel-serializer'
 import { applyGeneratedChartSpaceMetadata } from './chart-space-metadata';
 import { applySeriesTrendlinesToXml } from './chart-trendline-serializer';
 import { applyChartUpDownBars } from './chart-up-down-bars';
+import { buildGeneratedChartAxis } from './chart-xml-axis-generator';
 
 const NS_C = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
 const NS_A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
@@ -38,10 +37,10 @@ function points(values: string[]): XmlObject[] {
 	return values.map((v, i) => ({ '@_idx': String(i), 'c:v': v }));
 }
 
-function numLit(values: number[]): XmlObject {
+function numLit(values: number[], formatCode = 'General'): XmlObject {
 	return {
 		'c:numLit': {
-			'c:formatCode': 'General',
+			'c:formatCode': formatCode,
 			'c:ptCount': { '@_val': String(values.length) },
 			'c:pt': points(values.map(String)),
 		},
@@ -99,6 +98,7 @@ function buildSeries(
 	s: PptxChartSeries,
 	index: number,
 	categories: string[],
+	dateCategories?: PptxChartData['dateCategories'],
 ): XmlObject {
 	const ser: XmlObject = {
 		'c:idx': { '@_val': String(index) },
@@ -128,7 +128,9 @@ function buildSeries(
 			ser['c:bubbleSize'] = numLit(s.values.map(() => 1));
 		}
 	} else {
-		ser['c:cat'] = strLit(categories);
+		ser['c:cat'] = dateCategories
+			? numLit(dateCategories.values, dateCategories.formatCode)
+			: strLit(categories);
 		ser['c:val'] = numLit(s.values);
 	}
 	if (s.dataLabels !== undefined) {
@@ -141,28 +143,6 @@ function buildSeries(
 		applySeriesErrBarsToXml(ser, s.errBars, (key) => key.replace(/^.*:/u, ''));
 	}
 	return ser;
-}
-
-function buildAxis(
-	axId: number,
-	crossId: number,
-	pos: string,
-	formatting?: PptxChartAxisFormatting,
-): XmlObject {
-	const axis: XmlObject = {
-		'c:axId': { '@_val': String(axId) },
-		'c:scaling': { 'c:orientation': { '@_val': 'minMax' } },
-		'c:delete': { '@_val': '0' },
-		'c:axPos': { '@_val': pos },
-		'c:crossAx': { '@_val': String(crossId) },
-	};
-	if (formatting) {
-		applyChartAxisLabelFormatting(axis, formatting, (key) => key.replace(/^.*:/u, ''));
-	}
-	if (formatting?.displayUnits) {
-		applyChartAxisDisplayUnitsToXml(axis, formatting, (key) => key.replace(/^.*:/u, ''));
-	}
-	return axis;
 }
 
 function axisFormatting(
@@ -197,7 +177,7 @@ function buildChartTypeContainer(chartData: PptxChartData, family: string): XmlO
 	}
 
 	container['c:ser'] = chartData.series.map((s, i) =>
-		buildSeries(family, s, i, chartData.categories),
+		buildSeries(family, s, i, chartData.categories, chartData.dateCategories),
 	);
 	if (family === 'bubble' && chartData.bubbleOptions) {
 		applyBubbleChartOptions(container, chartData.bubbleOptions, (key) => key.replace(/^.*:/u, ''));
@@ -228,17 +208,30 @@ function buildPlotArea(chartData: PptxChartData, tag: string, family: string): X
 
 	if (family !== 'pie' && family !== 'doughnut' && SCATTER_LIKE.has(chartData.chartType)) {
 		plotArea['c:valAx'] = [
-			buildAxis(CAT_AX_ID, VAL_AX_ID, 'b', axisFormatting(chartData, 'valAx', CAT_AX_ID, 0)),
-			buildAxis(VAL_AX_ID, CAT_AX_ID, 'l', axisFormatting(chartData, 'valAx', VAL_AX_ID, 1)),
+			buildGeneratedChartAxis(
+				CAT_AX_ID,
+				VAL_AX_ID,
+				'b',
+				axisFormatting(chartData, 'valAx', CAT_AX_ID, 0),
+			),
+			buildGeneratedChartAxis(
+				VAL_AX_ID,
+				CAT_AX_ID,
+				'l',
+				axisFormatting(chartData, 'valAx', VAL_AX_ID, 1),
+			),
 		];
 	} else if (family !== 'pie' && family !== 'doughnut') {
-		plotArea['c:catAx'] = buildAxis(
+		const dateAxis = chartData.dateCategories
+			? axisFormatting(chartData, 'dateAx', CAT_AX_ID)
+			: undefined;
+		plotArea[dateAxis ? 'c:dateAx' : 'c:catAx'] = buildGeneratedChartAxis(
 			CAT_AX_ID,
 			VAL_AX_ID,
 			'b',
-			axisFormatting(chartData, 'catAx', CAT_AX_ID),
+			dateAxis ?? axisFormatting(chartData, 'catAx', CAT_AX_ID),
 		);
-		plotArea['c:valAx'] = buildAxis(
+		plotArea['c:valAx'] = buildGeneratedChartAxis(
 			VAL_AX_ID,
 			CAT_AX_ID,
 			'l',
