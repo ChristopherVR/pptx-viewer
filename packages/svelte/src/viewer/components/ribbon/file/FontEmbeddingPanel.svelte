@@ -1,4 +1,7 @@
 <script lang="ts">
+	import Check from '@lucide/svelte/icons/check';
+	import Type from '@lucide/svelte/icons/type';
+	import X from '@lucide/svelte/icons/x';
 	import { scanAvailableFontFamilies } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
@@ -41,8 +44,8 @@
 	<button class="scrim" type="button" aria-label={t('pptx.common.close')} onclick={onclose}></button>
 	<div class="panel" role="dialog" aria-modal="true" aria-labelledby="pptx-svelte-fonts-title">
 		<header>
-			<div><span aria-hidden="true">T</span><h2 id="pptx-svelte-fonts-title">{t('pptx.fonts.embedFonts')}</h2></div>
-			<button type="button" aria-label={t('pptx.common.close')} onclick={onclose}>×</button>
+			<div><span><Type size={17} aria-hidden="true" /></span><h2 id="pptx-svelte-fonts-title">{t('pptx.fonts.embedFonts')}</h2></div>
+			<button type="button" aria-label={t('pptx.common.close')} onclick={onclose}><X size={16} aria-hidden="true" /></button>
 		</header>
 		<div class="body">
 			<p>{t('pptx.fonts.embedDescription')}</p>
@@ -55,7 +58,7 @@
 			{:else}
 				<div class="fonts">
 					{#each usedFontFamilies as family}
-						<div class="font"><span>{family}</span><span class="badges">{#if embedded.has(family)}<b>{t('pptx.fonts.embedded')}</b>{/if}{#if available.has(family)}<i>✓</i>{:else}<em>{t('pptx.fonts.notFound')}</em>{/if}</span></div>
+						<div class="font"><span>{family}</span><span class="badges">{#if embedded.has(family)}<b>{t('pptx.fonts.embedded')}</b>{/if}{#if available.has(family)}<i><Check size={14} aria-hidden="true" /></i>{:else}<em>{t('pptx.fonts.notFound')}</em>{/if}</span></div>
 					{/each}
 				</div>
 			{/if}

@@ -45,6 +45,9 @@ function buildHandlers(): RibbonHandlers {
 		},
 		primary: { undo: vi.fn(), redo: vi.fn(), save: vi.fn() },
 		file: {
+			openFile: vi.fn(),
+			openRecentFile: vi.fn(),
+			createPresentation: vi.fn(),
 			openDocumentProperties: vi.fn(),
 			openFontEmbedding: vi.fn(),
 			openDigitalSignatures: vi.fn(),
@@ -141,26 +144,26 @@ describe('createRibbon', () => {
 		expect(ribbon.el.querySelector('.pptxv-counter')).toBeNull();
 	});
 
-	it('offers slideshow saves and only shows macro saves for macro decks', () => {
+	it('opens the PowerPoint-style backstage with save and export pages', () => {
 		const t = createTranslator();
 		const handlers = buildHandlers();
 		const ribbon = createRibbon(document, t, handlers);
-		const ppsx = ribbon.el.querySelector<HTMLButtonElement>(
-			`[title="${t('pptx.file.saveAsPpsxTooltip')}"]`,
+		const fileTab = Array.from(
+			ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab'),
+		).find((button) => button.textContent === 'File');
+		fileTab?.click();
+		const backstage = ribbon.el.querySelector<HTMLElement>('.pptxv-backstage');
+		expect(backstage?.hidden).toBeFalsy();
+		expect(backstage?.textContent).toContain('Blank Presentation');
+		expect(backstage?.textContent).toContain('Recent');
+		expect(backstage?.textContent).toContain('Save As');
+		expect(backstage?.textContent).toContain('Export');
+		const navButtons = backstage?.querySelectorAll('nav button') ?? [];
+		expect(backstage?.querySelectorAll('nav button svg')).toHaveLength(navButtons.length);
+		const infoButton = Array.from(navButtons).find(
+			(button) => button.textContent?.trim() === 'Info',
 		);
-		const pptm = ribbon.el.querySelector<HTMLButtonElement>(
-			`[title="${t('pptx.file.saveAsPptmTooltip')}"]`,
-		);
-		const packageButton = ribbon.el.querySelector<HTMLButtonElement>(
-			`[title="${t('pptx.file.packageTooltip')}"]`,
-		);
-
-		ppsx?.click();
-		packageButton?.click();
-		expect(handlers.file.saveAsPpsx).toHaveBeenCalledOnce();
-		expect(handlers.file.packageForSharing).toHaveBeenCalledOnce();
-		expect(pptm?.hidden).toBeTruthy();
-		ribbon.setHasMacros(true);
-		expect(pptm?.hidden).toBeFalsy();
+		infoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		expect(backstage?.querySelectorAll('.pptxv-bs-actions svg')).toHaveLength(5);
 	});
 });

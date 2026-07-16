@@ -1,4 +1,7 @@
 <script lang="ts">
+	import CheckCircle2 from '@lucide/svelte/icons/check-circle-2';
+	import LockKeyhole from '@lucide/svelte/icons/lock-keyhole';
+	import X from '@lucide/svelte/icons/x';
 	import { getPasswordStrength, validatePasswordPair } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
@@ -27,9 +30,9 @@
 <div class="backdrop">
 	<button class="scrim" type="button" aria-label={t('pptx.common.close')} onclick={onclose}></button>
 	<div class="panel" role="dialog" aria-modal="true" aria-labelledby="pptx-svelte-password-title">
-		<header><div><span>▣</span><h2 id="pptx-svelte-password-title">{t('pptx.security.protectPresentation')}</h2></div><button type="button" aria-label={t('pptx.common.close')} onclick={onclose}>×</button></header>
+		<header><div><span><LockKeyhole size={18} strokeWidth={1.8} aria-hidden="true" /></span><h2 id="pptx-svelte-password-title">{t('pptx.security.protectPresentation')}</h2></div><button type="button" aria-label={t('pptx.common.close')} onclick={onclose}><X size={16} aria-hidden="true" /></button></header>
 		<div class="body">
-			{#if isProtected}<p class="protected">✓ {t('pptx.security.currentlyProtected')}</p>{/if}
+			{#if isProtected}<p class="protected"><CheckCircle2 size={15} aria-hidden="true" /> {t('pptx.security.currentlyProtected')}</p>{/if}
 			<p class="description">{t('pptx.security.description')}</p>
 			<label><span>{t('pptx.security.password')}</span><div class="password"><input type={visible ? 'text' : 'password'} bind:value={password} oninput={() => (error = '')} /><button type="button" onclick={() => (visible = !visible)}>{visible ? t('pptx.security.hidePassword') : t('pptx.security.showPassword')}</button></div></label>
 			{#if password}<div class="strength"><div>{#each Array(5) as _, index}<i style:background={index <= strength ? colors[strength] : 'var(--pptx-accent,#3f3f52)'}></i>{/each}</div><small>{labels[strength]}</small></div>{/if}

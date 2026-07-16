@@ -1,127 +1,197 @@
+import { Settings, UserRound } from 'lucide';
+import {
+	BACKSTAGE_NAV,
+	BACKSTAGE_TEMPLATES,
+	formatBackstageDate,
+	formatBackstageSize,
+	listBackstageRecentFiles,
+} from 'pptx-viewer-shared';
+import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
-import { makeButton } from '../../controls';
 import type { RibbonFileHandlers } from '../ribbon-types';
+import { createFileActionGrid } from './file-tab-actions';
+import { button, iconButton, labeledIconButton } from './file-tab-dom';
+import { createLucideIcon } from './file-tab-icons';
 
 export interface FileTab {
 	el: HTMLElement;
 	setHasMacros(hasMacros: boolean): void;
 }
 
-/**
- * The File ribbon tab: save (download .pptx) + the export formats already
- * implemented by the viewer's export lifecycle (PNG/PDF/GIF/video/print).
- * Unlike the other tabs this one is always enabled (exporting/saving a
- * read-only-loaded document is legitimate; only edit-mutating actions gate on
- * `editable`).
- */
-export function createFileTab(doc: Document, t: Translator, handlers: RibbonFileHandlers): FileTab {
-	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
+export function createFileTab(
+	doc: Document,
+	_t: Translator,
+	handlers: RibbonFileHandlers,
+	onClose: () => void,
+): FileTab {
+	const el = createEl(doc, 'div', 'pptxv-backstage');
+	el.setAttribute('role', 'dialog');
+	el.setAttribute('aria-modal', 'true');
+	el.setAttribute('aria-label', 'File');
+	const aside = doc.createElement('aside');
+	const back = iconButton(doc, 'back', onClose, 'pptxv-bs-back');
+	back.setAttribute('aria-label', 'Back to presentation');
+	const nav = doc.createElement('nav');
+	aside.append(back, nav);
+	const main = doc.createElement('main');
+	el.append(aside, main);
+	let page: BackstagePage = 'home';
+	let hasMacros = false;
+	let query = '';
+	let recent: BackstageRecentFile[] = [];
+	void (async () => {
+		recent = await listBackstageRecentFiles();
+		render();
+	})();
 
-	const documentProperties = makeButton(doc, {
-		label: t('pptx.ribbon.documentProperties'),
-		icon: 'file',
-		onClick: handlers.openDocumentProperties,
-	});
-	const protect = makeButton(doc, {
-		label: t('pptx.security.protectPresentation'),
-		icon: 'file',
-		onClick: handlers.openPasswordProtection,
-	});
-	const fonts = makeButton(doc, {
-		label: t('pptx.ribbon.embedFonts'),
-		icon: 'file',
-		onClick: handlers.openFontEmbedding,
-	});
-	const signatures = makeButton(doc, {
-		label: t('pptx.viewer.digitalSignatures'),
-		icon: 'file',
-		onClick: handlers.openDigitalSignatures,
-	});
-	const versionHistory = makeButton(doc, {
-		label: t('pptx.ribbon.versionHistory'),
-		icon: 'history',
-		onClick: handlers.openVersionHistory,
-	});
-	const save = makeButton(doc, {
-		label: t('pptx.file.saveAsPptx'),
-		icon: 'download',
-		onClick: handlers.save,
-	});
-	save.btn.title = t('pptx.file.saveAsPptxTooltip');
-	const savePpsx = makeButton(doc, {
-		label: t('pptx.file.saveAsPpsx'),
-		icon: 'play',
-		onClick: handlers.saveAsPpsx,
-	});
-	savePpsx.btn.title = t('pptx.file.saveAsPpsxTooltip');
-	const savePptm = makeButton(doc, {
-		label: t('pptx.file.saveAsPptm'),
-		icon: 'file',
-		onClick: handlers.saveAsPptm,
-	});
-	savePptm.btn.title = t('pptx.file.saveAsPptmTooltip');
-	savePptm.btn.hidden = true;
-	const packageForSharing = makeButton(doc, {
-		label: t('pptx.file.package'),
-		icon: 'package',
-		onClick: handlers.packageForSharing,
-	});
-	packageForSharing.btn.title = t('pptx.file.packageTooltip');
-	const png = makeButton(doc, {
-		label: t('pptx.file.png'),
-		icon: 'image',
-		onClick: handlers.exportPng,
-	});
-	const copyImage = makeButton(doc, {
-		label: t('pptx.file.copyImage'),
-		icon: 'copy',
-		onClick: handlers.copySlideAsImage,
-	});
-	copyImage.btn.title = t('pptx.file.copyImageTooltip');
-	const pdf = makeButton(doc, {
-		label: t('pptx.file.pdf'),
-		icon: 'file',
-		onClick: handlers.exportPdf,
-	});
-	const gif = makeButton(doc, {
-		label: t('pptx.file.gif'),
-		icon: 'image',
-		onClick: handlers.exportGif,
-	});
-	const video = makeButton(doc, {
-		label: t('pptx.file.video'),
-		icon: 'video',
-		onClick: handlers.exportVideo,
-	});
-	const print = makeButton(doc, {
-		label: t('pptx.print.printButton'),
-		icon: 'printer',
-		onClick: handlers.print,
-	});
-
-	el.append(
-		documentProperties.btn,
-		protect.btn,
-		fonts.btn,
-		signatures.btn,
-		versionHistory.btn,
-		save.btn,
-		savePpsx.btn,
-		savePptm.btn,
-		packageForSharing.btn,
-		png.btn,
-		pdf.btn,
-		gif.btn,
-		video.btn,
-		copyImage.btn,
-		print.btn,
-	);
-
+	function run(callback: (() => void) | undefined): void {
+		callback?.();
+		if (callback) {
+			onClose();
+		}
+	}
+	function setPage(next: BackstagePage): void {
+		if (next === 'close') {
+			return onClose();
+		}
+		if (next === 'save') {
+			return run(handlers.save);
+		}
+		page = next;
+		render();
+	}
+	function renderNav(): void {
+		nav.replaceChildren();
+		for (const item of BACKSTAGE_NAV) {
+			if (item.group && !nav.querySelector('i')) {
+				nav.appendChild(doc.createElement('i'));
+			}
+			const itemButton = labeledIconButton(doc, item.id, item.label, () => setPage(item.id));
+			itemButton.classList.toggle('active', page === item.id);
+			nav.appendChild(itemButton);
+		}
+	}
+	function renderTemplates(): void {
+		const heading = doc.createElement('h2');
+		heading.textContent = 'New';
+		const grid = createEl(doc, 'div', 'pptxv-bs-templates');
+		for (const template of BACKSTAGE_TEMPLATES) {
+			const item = button(doc, '', () => run(() => handlers.createPresentation(template.id)));
+			const preview = doc.createElement('b');
+			preview.style.background = template.preview;
+			const name = doc.createElement('strong');
+			name.textContent = template.name;
+			const description = doc.createElement('small');
+			description.textContent = template.description;
+			item.append(preview, name, description);
+			grid.appendChild(item);
+		}
+		main.append(heading, grid);
+	}
+	function renderRecent(): void {
+		const search = doc.createElement('input');
+		search.className = 'pptxv-bs-search';
+		search.type = 'search';
+		search.placeholder = 'Search recent presentations';
+		search.value = query;
+		search.addEventListener('input', () => {
+			query = search.value;
+			render();
+		});
+		main.appendChild(search);
+		if (page === 'open') {
+			main.appendChild(
+				button(doc, 'Browse this device', () => run(handlers.openFile), 'pptxv-bs-primary'),
+			);
+		}
+		const heading = doc.createElement('h2');
+		heading.textContent = 'Recent';
+		const list = createEl(doc, 'div', 'pptxv-bs-recent');
+		const header = doc.createElement('header');
+		header.innerHTML = '<span>Name</span><span>Date modified</span><span>Size</span>';
+		list.appendChild(header);
+		const needle = query.trim().toLowerCase();
+		const files = needle
+			? recent.filter((file) => `${file.name} ${file.location}`.toLowerCase().includes(needle))
+			: recent;
+		for (const file of files) {
+			const row = button(doc, '', () => run(() => handlers.openRecentFile(file.key)));
+			const name = createEl(doc, 'span', 'name');
+			const badge = doc.createElement('b');
+			badge.textContent = 'P';
+			const labels = doc.createElement('span');
+			const strong = doc.createElement('strong');
+			strong.textContent = file.name;
+			const small = doc.createElement('small');
+			small.textContent = file.location;
+			labels.append(strong, small);
+			name.append(badge, labels);
+			const date = doc.createElement('span');
+			date.textContent = formatBackstageDate(file.timestamp);
+			const size = doc.createElement('span');
+			size.textContent = formatBackstageSize(file.size);
+			row.append(name, date, size);
+			list.appendChild(row);
+		}
+		if (!files.length) {
+			const empty = doc.createElement('p');
+			empty.textContent = 'No recent presentations yet.';
+			list.appendChild(empty);
+		}
+		main.append(heading, list);
+	}
+	function renderActions(): void {
+		main.appendChild(createFileActionGrid(doc, page, handlers, hasMacros, run));
+	}
+	function renderCard(): void {
+		const card = createEl(doc, 'section', 'pptxv-bs-card');
+		const avatar = doc.createElement('b');
+		avatar.appendChild(createLucideIcon(doc, page === 'options' ? Settings : UserRound, 24));
+		const heading = doc.createElement('h2');
+		heading.textContent = page === 'options' ? 'PowerPoint Options' : 'PowerPoint Viewer';
+		const copy = doc.createElement('p');
+		copy.textContent =
+			page === 'options'
+				? 'Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.'
+				: 'Your presentations and recovery history stay in your browser unless you explicitly share or download them.';
+		card.append(avatar, heading, copy);
+		main.appendChild(card);
+	}
+	function render(): void {
+		renderNav();
+		main.replaceChildren();
+		const heading = doc.createElement('h1');
+		heading.textContent =
+			page === 'home'
+				? 'Good evening'
+				: (BACKSTAGE_NAV.find((item) => item.id === page)?.label ?? 'Home');
+		main.appendChild(heading);
+		if (page === 'home' || page === 'new') {
+			renderTemplates();
+		}
+		if (page === 'home' || page === 'open') {
+			renderRecent();
+		}
+		if (['info', 'saveAs', 'print', 'share', 'export'].includes(page)) {
+			renderActions();
+		}
+		if (page === 'account' || page === 'options') {
+			renderCard();
+		}
+		const footer = doc.createElement('footer');
+		footer.textContent = 'Presentation · Saved to this browser';
+		main.appendChild(footer);
+	}
+	render();
 	return {
 		el,
-		setHasMacros: (hasMacros) => {
-			savePptm.btn.hidden = !hasMacros;
+		setHasMacros(value) {
+			hasMacros = value;
+			if (page === 'saveAs') {
+				render();
+			}
 		},
 	};
 }

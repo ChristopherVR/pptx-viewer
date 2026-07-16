@@ -1,4 +1,9 @@
 <script lang="ts">
+	import BadgeCheck from '@lucide/svelte/icons/badge-check';
+	import CircleAlert from '@lucide/svelte/icons/circle-alert';
+	import Info from '@lucide/svelte/icons/info';
+	import X from '@lucide/svelte/icons/x';
+
 	import { useTranslator } from '../../../../i18n/context';
 
 	const { hasSignatures, signatureCount, onclose }: { hasSignatures: boolean; signatureCount: number; onclose: () => void } = $props();
@@ -8,13 +13,13 @@
 <div class="backdrop">
 	<button class="scrim" type="button" aria-label={t('pptx.common.close')} onclick={onclose}></button>
 	<div class="panel" role="dialog" aria-modal="true" aria-labelledby="pptx-svelte-signatures-title">
-		<header><div><span class:signed={hasSignatures}>{hasSignatures ? '✓' : '!'}</span><h2 id="pptx-svelte-signatures-title">{t('pptx.digitalSignatures.title')}</h2></div><button type="button" aria-label={t('pptx.common.close')} onclick={onclose}>×</button></header>
+		<header><div><span class:signed={hasSignatures}>{#if hasSignatures}<BadgeCheck size={17} aria-hidden="true" />{:else}<CircleAlert size={17} aria-hidden="true" />{/if}</span><h2 id="pptx-svelte-signatures-title">{t('pptx.digitalSignatures.title')}</h2></div><button type="button" aria-label={t('pptx.common.close')} onclick={onclose}><X size={16} aria-hidden="true" /></button></header>
 		<div class="body">
 			{#if hasSignatures}
-				<div class="notice signed"><b>✓</b><p>{t('pptx.digitalSignatures.signed')}<small>{t('pptx.digitalSignatures.signatureCount', { count: signatureCount })}</small></p></div>
-				<div class="notice warning"><b>i</b><p>{t('pptx.digitalSignatures.editWarning')}</p></div>
+				<div class="notice signed"><b><BadgeCheck size={14} aria-hidden="true" /></b><p>{t('pptx.digitalSignatures.signed')}<small>{t('pptx.digitalSignatures.signatureCount', { count: signatureCount })}</small></p></div>
+				<div class="notice warning"><b><Info size={14} aria-hidden="true" /></b><p>{t('pptx.digitalSignatures.editWarning')}</p></div>
 			{:else}
-				<div class="notice"><b>i</b><p>{t('pptx.digitalSignatures.noSignatures')}</p></div>
+				<div class="notice"><b><Info size={14} aria-hidden="true" /></b><p>{t('pptx.digitalSignatures.noSignatures')}</p></div>
 			{/if}
 		</div>
 		<footer><button type="button" onclick={onclose}>{t('pptx.common.close')}</button></footer>

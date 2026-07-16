@@ -1,128 +1,55 @@
 <script lang="ts">
-	/**
-	 * FileTab: the ribbon's File tab. Save as .pptx (download) and the export
-	 * menu (PNG/PDF/GIF/video/print), relocated from the pre-ribbon toolbar's
-	 * always-visible edit group and `ExportMenu`.
-	 */
-	import { useTranslator } from '../../../../i18n/context';
-	import ExportMenu from '../../ExportMenu.svelte';
+	import { onMount } from 'svelte';
+	import BadgeCheck from '@lucide/svelte/icons/badge-check';
+	import Clock3 from '@lucide/svelte/icons/clock-3';
+	import Copy from '@lucide/svelte/icons/copy';
+	import FileCode2 from '@lucide/svelte/icons/file-code-2';
+	import FileText from '@lucide/svelte/icons/file-text';
+	import Image from '@lucide/svelte/icons/image';
+	import Images from '@lucide/svelte/icons/images';
+	import Info from '@lucide/svelte/icons/info';
+	import LockKeyhole from '@lucide/svelte/icons/lock-keyhole';
+	import Package from '@lucide/svelte/icons/package';
+	import Presentation from '@lucide/svelte/icons/presentation';
+	import Printer from '@lucide/svelte/icons/printer';
+	import Settings from '@lucide/svelte/icons/settings';
+	import Share2 from '@lucide/svelte/icons/share-2';
+	import Type from '@lucide/svelte/icons/type';
+	import UserRound from '@lucide/svelte/icons/user-round';
+	import Video from '@lucide/svelte/icons/video';
+	import { BACKSTAGE_NAV, BACKSTAGE_TEMPLATES, formatBackstageDate, formatBackstageSize, listBackstageRecentFiles } from 'pptx-viewer-shared';
+	import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
 	import type { ExportUiState } from '../../../export/export-ui.svelte';
+	import BackstageAction from './BackstageAction.svelte';
+	import BackstageNavIcon from './BackstageNavIcon.svelte';
 
-	const {
-		ondownload,
-		ondownloadppsx,
-		ondownloadpptm,
-		onpackage,
-		hasMacros,
-		onopenfile,
-		exportUi,
-		onproperties,
-		onfonts,
-		onsignatures,
-		onprotect,
-		onversionhistory,
-		onprint,
-	}: {
-		ondownload: () => void;
-		ondownloadppsx: () => void;
-		ondownloadpptm: () => void;
-		onpackage: () => void;
-		hasMacros: boolean;
-		onopenfile?: () => void;
-		exportUi?: ExportUiState;
-		onproperties?: () => void;
-		onfonts?: () => void;
-		onsignatures?: () => void;
-		onprotect?: () => void;
-		onversionhistory?: () => void;
-		onprint?: () => void;
-	} = $props();
-	const t = useTranslator();
+	const { fileName, onclose, oncreatepresentation, ondownload, ondownloadppsx, ondownloadpptm, onpackage, hasMacros, onopenfile, onopenrecent, exportUi, onproperties, onfonts, onsignatures, onprotect, onversionhistory, onshare, onprint }: { fileName?: string; onclose: () => void; oncreatepresentation: (templateId: string) => void; ondownload: () => void; ondownloadppsx: () => void; ondownloadpptm: () => void; onpackage: () => void; hasMacros: boolean; onopenfile?: () => void; onopenrecent?: (key: string) => void; exportUi?: ExportUiState; onproperties?: () => void; onfonts?: () => void; onsignatures?: () => void; onprotect?: () => void; onversionhistory?: () => void; onshare?: () => void; onprint?: () => void } = $props();
+	let page = $state<BackstagePage>('home'); let query = $state(''); let recent = $state<BackstageRecentFile[]>([]);
+	onMount(() => { void listBackstageRecentFiles().then((items) => (recent = items)); });
+	let visibleRecent = $derived.by(() => { const q = query.trim().toLowerCase(); return q ? recent.filter((file) => `${file.name} ${file.location}`.toLowerCase().includes(q)) : recent; });
+	let title = $derived(BACKSTAGE_NAV.find((item) => item.id === page)?.label ?? 'Home');
+	function run(action?: () => void): void { action?.(); if (action) onclose(); }
+	function select(id: BackstagePage): void { if (id === 'close') onclose(); else if (id === 'save') run(ondownload); else page = id; }
 </script>
 
-<div class="pptx-svelte-filetab" role="group" aria-label={t('pptx.ribbon.tab.file')}>
-	{#if onopenfile}<button type="button" onclick={onopenfile}>{t('pptx.ribbon.open')}</button>{/if}
-	<button
-		type="button"
-		aria-label={t('pptx.file.saveAsPptx')}
-		title={t('pptx.file.saveAsPptxTooltip')}
-		onclick={ondownload}
-	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0 3-3m-3 3-3-3M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
-		<span>{t('pptx.file.saveAsPptx')}</span>
-	</button>
-	<button
-		type="button"
-		title={t('pptx.file.saveAsPpsxTooltip')}
-		onclick={ondownloadppsx}
-	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 6 5-6 5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
-		<span>{t('pptx.file.saveAsPpsx')}</span>
-	</button>
-	{#if hasMacros}
-		<button
-			type="button"
-			title={t('pptx.file.saveAsPptmTooltip')}
-			onclick={ondownloadpptm}
-		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h5l3 3v8H4zM9 2.5v3h3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
-			<span>{t('pptx.file.saveAsPptm')}</span>
-		</button>
-	{/if}
-	<button type="button" title={t('pptx.file.packageTooltip')} onclick={onpackage}>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M14 5 8 8.5 2 5m0 0 6-3 6 3v6L8 14l-6-3zM8 8.5V14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
-		<span>{t('pptx.file.package')}</span>
-	</button>
-	{#if onproperties}<button type="button" title={t('pptx.ribbon.documentProperties')} onclick={onproperties}><span>{t('pptx.ribbon.documentProperties')}</span></button>{/if}
-	{#if onprotect}<button type="button" onclick={onprotect}><span>{t('pptx.security.protectPresentation')}</span></button>{/if}
-	{#if onfonts}<button type="button" onclick={onfonts}><span>{t('pptx.ribbon.embedFonts')}</span></button>{/if}
-	{#if onsignatures}<button type="button" onclick={onsignatures}><span>{t('pptx.viewer.digitalSignatures')}</span></button>{/if}
-	{#if onversionhistory}<button type="button" onclick={onversionhistory}><span>{t('pptx.ribbon.versionHistory')}</span></button>{/if}
-	{#if onprint}<button type="button" onclick={onprint}><span>{t('pptx.print.title')}</span></button>{/if}
-	{#if exportUi}
-		<button
-			type="button"
-			title={t('pptx.file.copyImageTooltip')}
-			onclick={() => exportUi.runCopyImage()}
-		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 6h7v7H6zM3 10V3h7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
-			<span>{t('pptx.file.copyImage')}</span>
-		</button>
-	{/if}
-	{#if exportUi}
-		<ExportMenu {exportUi} />
-	{/if}
+<div class="bs" role="dialog" aria-modal="true" aria-label="File">
+	<aside><button class="back" type="button" aria-label="Back to presentation" onclick={onclose}><BackstageNavIcon page="back" /></button><nav>
+		{#each BACKSTAGE_NAV.filter((item) => !item.group) as item}<button type="button" class:active={page === item.id} onclick={() => select(item.id)}><span><BackstageNavIcon page={item.id} /></span>{item.label}</button>{/each}<i></i>
+		{#each BACKSTAGE_NAV.filter((item) => item.group) as item}<button type="button" class:active={page === item.id} onclick={() => select(item.id)}><span><BackstageNavIcon page={item.id} /></span>{item.label}</button>{/each}
+	</nav></aside>
+	<main><h1>{page === 'home' ? 'Good evening' : title}</h1>
+		{#if page === 'home' || page === 'new'}<h2>New</h2><div class="templates">{#each BACKSTAGE_TEMPLATES as template}<button type="button" onclick={() => run(() => oncreatepresentation(template.id))}><b style:background={template.preview}></b><strong>{template.name}</strong><small>{template.description}</small></button>{/each}</div>{/if}
+		{#if page === 'home' || page === 'open'}<input class="search" type="search" placeholder="Search recent presentations" bind:value={query} />{#if page === 'open'}<button class="primary" type="button" onclick={() => run(onopenfile)}>Browse this device</button>{/if}<h2>Recent</h2><div class="recent"><header><span>Name</span><span>Date modified</span><span>Size</span></header>{#each visibleRecent as file}<button type="button" onclick={() => run(() => onopenrecent?.(file.key))}><span class="name"><b>P</b><span><strong>{file.name}</strong><small>{file.location}</small></span></span><span>{formatBackstageDate(file.timestamp)}</span><span>{formatBackstageSize(file.size)}</span></button>{:else}<p>No recent presentations yet.</p>{/each}</div>{/if}
+		{#if page === 'info'}<div class="actions"><BackstageAction icon={Info} title="Inspect Presentation" body="Review document properties and hidden content." onclick={() => run(onproperties)} /><BackstageAction icon={LockKeyhole} title="Protect Presentation" body="Control access and editing preferences." onclick={() => run(onprotect)} /><BackstageAction icon={Type} title="Embed Fonts" body="Keep typography consistent across devices." onclick={() => run(onfonts)} /><BackstageAction icon={BadgeCheck} title="Digital Signatures" body="View signatures attached to this presentation." onclick={() => run(onsignatures)} /><BackstageAction icon={Clock3} title="Version History" body="Restore or remove the latest recovery snapshot." onclick={() => run(onversionhistory)} /></div>{/if}
+		{#if page === 'saveAs'}<div class="actions"><BackstageAction icon={FileText} title="PowerPoint Presentation" body="Save an editable .pptx copy." onclick={() => run(ondownload)} /><BackstageAction icon={Presentation} title="PowerPoint Show" body="Save a .ppsx slide show." onclick={() => run(ondownloadppsx)} />{#if hasMacros}<BackstageAction icon={FileCode2} title="Macro-Enabled Presentation" body="Preserve VBA in a .pptm file." onclick={() => run(ondownloadpptm)} />{/if}<BackstageAction icon={Package} title="Package for Sharing" body="Bundle the deck and linked assets." onclick={() => run(onpackage)} /></div>{/if}
+		{#if page === 'export'}<div class="actions"><BackstageAction icon={FileText} title="Create PDF" body="Publish one page per slide." onclick={() => run(() => void exportUi?.runPdf())} /><BackstageAction icon={Image} title="Export current slide" body="Create a high-quality PNG image." onclick={() => run(() => exportUi?.runPng())} /><BackstageAction icon={Video} title="Create a Video" body="Export timings and animations." onclick={() => run(() => void exportUi?.runVideo())} /><BackstageAction icon={Images} title="Create an Animated GIF" body="Make a compact looping preview." onclick={() => run(() => void exportUi?.runGif())} /><BackstageAction icon={Copy} title="Copy as Image" body="Copy the current slide." onclick={() => run(() => exportUi?.runCopyImage())} /></div>{/if}
+		{#if page === 'print'}<div class="actions"><BackstageAction icon={Printer} title="Print Presentation" body="Choose layout and output settings." onclick={() => run(onprint)} /></div>{/if}
+		{#if page === 'share'}<div class="actions"><BackstageAction icon={Share2} title="Share with People" body="Invite collaborators to work together." onclick={() => run(onshare)} /><BackstageAction icon={Package} title="Package for Sharing" body="Download a self-contained package." onclick={() => run(onpackage)} /></div>{/if}
+		{#if page === 'account' || page === 'options'}<section class="card"><b class="avatar">{#if page === 'options'}<Settings size={24} aria-hidden="true" />{:else}<UserRound size={24} aria-hidden="true" />{/if}</b><h2>{page === 'options' ? 'PowerPoint Options' : 'PowerPoint Viewer'}</h2><p>{page === 'options' ? 'Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.' : 'Your presentations and recovery history stay in your browser unless you explicitly share or download them.'}</p></section>{/if}
+		<footer>{fileName || 'Untitled Presentation.pptx'} · Saved to this browser</footer>
+	</main>
 </div>
 
 <style>
-	.pptx-svelte-filetab {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-	}
-
-	.pptx-svelte-filetab button {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		height: 28px;
-		padding: 0 8px;
-		border: none;
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-muted, #2a2a3d);
-		color: inherit;
-		cursor: pointer;
-		font: inherit;
-		font-size: 12px;
-	}
-
-	.pptx-svelte-filetab button:hover {
-		background: var(--pptx-accent, #33334d);
-		color: var(--pptx-accent-foreground, #f8fafc);
-	}
-
-	.pptx-svelte-filetab svg {
-		width: 15px;
-		height: 15px;
-	}
+	.bs{position:fixed;inset:0;z-index:200;display:flex;background:var(--pptx-background,#fafafa);color:var(--pptx-foreground,#242424);font-family:Aptos,"Segoe UI",sans-serif}.bs aside{width:148px;flex:none;display:flex;flex-direction:column;background:var(--pptx-secondary,#f5eee9);border-right:1px solid var(--pptx-border,#d7d7d7)}.back{height:48px;border:0;border-bottom:1px solid var(--pptx-border,#ddd);background:none;color:inherit;font-size:22px}.back:hover,nav button:hover,.recent>button:hover{background:var(--pptx-accent,#eadfd8)}nav{display:flex;min-height:0;flex:1;flex-direction:column;padding:8px 0;background:var(--pptx-secondary,#f5eee9)}nav i{flex:1}nav button{min-height:40px;display:flex;align-items:center;gap:12px;padding:0 16px;border:0;border-left:2px solid transparent;background:none;text-align:left;font-size:12px;color:inherit}nav button span{width:16px;text-align:center;font-size:16px}nav button.active{border-left-color:var(--pptx-primary,#c43e1c);background:var(--pptx-card,#fff);color:var(--pptx-primary,#c43e1c)}main{flex:1;min-width:0;overflow:auto;padding:20px clamp(32px,4vw,72px);background:var(--pptx-background,#fafafa)}h1{margin:0;font-size:24px;font-weight:600}h2{margin:28px 0 18px;font-size:17px}.templates{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:24px}.templates button{border:0;background:none;text-align:left;color:inherit}.templates button>b{display:block;aspect-ratio:16/9;border:1px solid var(--pptx-border,#ccc);box-shadow:0 1px 2px #0002;transition:.15s}.templates button:hover>b{transform:translateY(-2px);border-color:var(--pptx-primary,#c43e1c);box-shadow:0 7px 18px #0002}.templates strong,.templates small{display:block;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}.templates small{margin-top:2px;color:var(--pptx-muted-foreground,#777);font-size:10px}.search{display:block;width:min(540px,100%);height:40px;margin-top:32px;padding:0 14px;border:1px solid var(--pptx-input,#888);background:var(--pptx-card,#fff);color:var(--pptx-card-foreground,#242424)}.search:focus{border-color:var(--pptx-ring,#c43e1c);outline:none}.primary{margin-top:16px;padding:10px 20px;border:0;background:var(--pptx-primary,#c43e1c);color:var(--pptx-primary-foreground,#fff);font-weight:600}.recent{border-top:1px solid var(--pptx-border,#ddd)}.recent header,.recent>button{display:grid;grid-template-columns:1fr 120px 90px;align-items:center;padding:10px 12px}.recent header{font-size:11px;font-weight:600;color:var(--pptx-muted-foreground,#666)}.recent>button{width:100%;border:0;border-top:1px solid var(--pptx-border,#e5e5e5);background:none;text-align:left;color:inherit;font-size:11px}.name{display:flex;min-width:0;align-items:center;gap:12px}.name>b{display:grid;width:32px;height:32px;place-items:center;background:var(--pptx-primary,#d24726);color:var(--pptx-primary-foreground,#fff)}.name strong,.name small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:400}.name small,.recent p{font-size:11px;color:var(--pptx-muted-foreground,#666)}.recent p{text-align:center}.actions{display:grid;max-width:900px;grid-template-columns:1fr 1fr;gap:20px;margin-top:32px}.card{max-width:760px;margin-top:32px;padding:28px;border:1px solid var(--pptx-border,#ddd);background:var(--pptx-card,#fff);color:var(--pptx-card-foreground,#242424)}.avatar{display:grid;width:56px;height:56px;place-items:center;border-radius:50%;background:var(--pptx-primary,#c43e1c);color:var(--pptx-primary-foreground,#fff);font-size:20px}.card p,footer{color:var(--pptx-muted-foreground,#666)}.card p{line-height:1.6}footer{margin-top:48px;font-size:11px}@media(max-width:700px){.bs aside{width:112px}.actions{grid-template-columns:1fr}.recent header,.recent>button{grid-template-columns:1fr 90px}.recent header span:last-child,.recent>button>span:last-child{display:none}}
 </style>

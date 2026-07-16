@@ -57,7 +57,8 @@
 	"dependencies": {
 		"dompurify": "^3.4.12",
 		"html2canvas-pro": "^2.2.3",
-		"jspdf": "^4.2.1"
+		"jspdf": "^4.2.1",
+		"lucide": "^1.24.0"
 	},
 	"devDependencies": {
 		"@types/dompurify": "^3.2.0",

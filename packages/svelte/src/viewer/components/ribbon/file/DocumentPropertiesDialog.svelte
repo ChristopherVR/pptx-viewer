@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import X from '@lucide/svelte/icons/x';
 	import type { PptxAppProperties, PptxCoreProperties, PptxCustomProperty } from 'pptx-viewer-core';
 	import { computeDocumentStatistics } from 'pptx-viewer-shared';
 	import { untrack } from 'svelte';
@@ -48,7 +50,7 @@
 	<div class="pptx-svelte-props" role="dialog" aria-modal="true" aria-labelledby="pptx-svelte-props-title">
 		<header>
 			<h2 id="pptx-svelte-props-title">{t('pptx.documentProperties.dialogTitle')}</h2>
-			<button type="button" aria-label={t('pptx.common.close')} onclick={onclose}>×</button>
+			<button type="button" aria-label={t('pptx.common.close')} onclick={onclose}><X size={16} aria-hidden="true" /></button>
 		</header>
 		<nav aria-label={t('pptx.documentProperties.dialogTitle')}>
 			<button class:active={tab === 'summary'} onclick={() => selectTab('summary')}>{t('pptx.documentProperties.tabs.general')}</button>
@@ -82,7 +84,7 @@
 							<input aria-label={t('pptx.documentProperties.custom.name')} bind:value={property.name} />
 							<input aria-label={t('pptx.documentProperties.custom.value')} bind:value={property.value} />
 							<select aria-label={t('pptx.documentProperties.custom.type')} bind:value={property.type}><option value="lpwstr">Text</option><option value="i4">Number</option><option value="filetime">Date</option><option value="bool">Yes/No</option></select>
-							<button type="button" aria-label={t('pptx.documentProperties.custom.deleteProperty')} onclick={() => removeCustom(index)}>×</button>
+							<button type="button" aria-label={t('pptx.documentProperties.custom.deleteProperty')} onclick={() => removeCustom(index)}><Trash2 size={15} aria-hidden="true" /></button>
 						</div>
 					{/each}
 					<button type="button" onclick={addCustom}>{t('pptx.documentProperties.custom.addProperty')}</button>
