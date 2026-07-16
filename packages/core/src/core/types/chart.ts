@@ -681,6 +681,12 @@ export interface PptxChartData {
 	 * - `"acrossLinear"` — gradient across series
 	 */
 	colorMethod?: 'cycle' | 'withinLinear' | 'acrossLinear';
+	/** Internal source color-style part path used for lossless dirty saves. */
+	colorStylePartPath?: string;
+	/** Internal parsed palette snapshot used to detect actual edits. */
+	colorStyleOriginalPalette?: string[];
+	/** Internal parsed method snapshot used to detect actual edits. */
+	colorStyleOriginalMethod?: 'cycle' | 'withinLinear' | 'acrossLinear';
 
 	/**
 	 * Pie-of-pie / Bar-of-pie options (`c:ofPieChart`, CT_OfPieChart).

@@ -29,6 +29,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		| {
 				palette: string[];
 				method: PptxChartData['colorMethod'];
+				partPath: string;
 		  }
 		| undefined
 	> {
@@ -74,7 +75,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return undefined;
 			}
 
-			return { palette, method };
+			return { palette, method, partPath: colorStylePath };
 		} catch {
 			return undefined;
 		}

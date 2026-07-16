@@ -9,6 +9,19 @@ import {
 const localName = (key: string) => key.replace(/^.*:/u, '');
 
 describe('chart axis label formatting', () => {
+	it('writes axis position in schema order and validates its token', () => {
+		const node: XmlObject = {
+			'c:axId': { '@_val': '1' },
+			'c:scaling': {},
+			'c:crossAx': { '@_val': '2' },
+		};
+		applyChartAxisLabelFormatting(node, { axisType: 'valAx', axPos: 'r' }, localName);
+		expect(Object.keys(node)).toStrictEqual(['c:axId', 'c:scaling', 'c:axPos', 'c:crossAx']);
+		expect(node['c:axPos']).toStrictEqual({ '@_val': 'r' });
+		expect(() =>
+			applyChartAxisLabelFormatting({}, { axisType: 'valAx', axPos: 'bad' as never }, localName),
+		).toThrow(RangeError);
+	});
 	it('parses tick marks and category label controls with arbitrary prefixes', () => {
 		const node: XmlObject = {
 			'x:majorTickMark': { '@_val': 'out' },

@@ -260,6 +260,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(pivotSource ? { pivotSource } : {}),
 			...(chartColorStyle?.palette ? { colorPalette: chartColorStyle.palette } : {}),
 			...(chartColorStyle?.method ? { colorMethod: chartColorStyle.method } : {}),
+			...(chartColorStyle
+				? {
+						colorStylePartPath: chartColorStyle.partPath,
+						colorStyleOriginalPalette: [...chartColorStyle.palette],
+						colorStyleOriginalMethod: chartColorStyle.method,
+					}
+				: {}),
 			...(ofPieOptions ? { ofPieOptions } : {}),
 			...(bubbleOptions ? { bubbleOptions } : {}),
 			...(view3D ? { view3D } : {}),
@@ -492,6 +499,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(pivotSource ? { pivotSource } : {}),
 			...(chartColorStyle?.palette ? { colorPalette: chartColorStyle.palette } : {}),
 			...(chartColorStyle?.method ? { colorMethod: chartColorStyle.method } : {}),
+			...(chartColorStyle
+				? {
+						colorStylePartPath: chartColorStyle.partPath,
+						colorStyleOriginalPalette: [...chartColorStyle.palette],
+						colorStyleOriginalMethod: chartColorStyle.method,
+					}
+				: {}),
 			...(view3D ? { view3D } : {}),
 			...(chartChrome ? { chartChrome } : {}),
 			...(layouts ? { layouts } : {}),

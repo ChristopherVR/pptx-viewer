@@ -100,3 +100,45 @@ describe('classic ChartML pivot formats integration', () => {
 		});
 	});
 });
+
+describe('chart color style and axis position integration', () => {
+	it('loads, edits, saves, and reloads palette method and axis position', async () => {
+		const sourceZip = await JSZip.loadAsync(await buildDeck());
+		const chartFile = sourceZip.file('ppt/charts/chart1.xml')!;
+		let chartXml = await chartFile.async('string');
+		chartXml = chartXml.replace(
+			'</c:barChart>',
+			'<c:axId val="10"/><c:axId val="20"/></c:barChart><c:catAx><c:axId val="10"/><c:scaling/><c:axPos val="b"/><c:crossAx val="20"/></c:catAx><c:valAx><c:axId val="20"/><c:scaling/><c:axPos val="l"/><c:crossAx val="10"/></c:valAx>',
+		);
+		sourceZip.file('ppt/charts/chart1.xml', chartXml);
+		sourceZip.file(
+			'ppt/charts/_rels/chart1.xml.rels',
+			`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.microsoft.com/office/2011/relationships/chartColorStyle" Target="colors1.xml"/></Relationships>`,
+		);
+		sourceZip.file(
+			'ppt/charts/colors1.xml',
+			`<cs:colorStyle xmlns:cs="http://schemas.microsoft.com/office/drawing/2012/chartStyle" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:v="urn:vendor" meth="cycle" id="10"><a:srgbClr val="4472C4"/><a:srgbClr val="ED7D31"/><cs:extLst><a:ext uri="urn:test"><v:data value="keep"/></a:ext></cs:extLst></cs:colorStyle>`,
+		);
+		const source = await sourceZip.generateAsync({ type: 'uint8array' });
+		const handler = new PptxHandler();
+		const data = await handler.load(source.buffer as ArrayBuffer);
+		const chart = chartElement(data).chartData!;
+		expect(chart.colorPalette).toStrictEqual(['#4472C4', '#ED7D31']);
+		chart.colorPalette = ['#112233', '#AABBCC'];
+		chart.colorMethod = 'acrossLinear';
+		chart.axes!.find((axis) => axis.axisId === 20)!.axPos = 'r';
+		data.slides[0].isDirty = true;
+		const saved = await handler.save(data.slides);
+		const savedZip = await JSZip.loadAsync(saved);
+		const colorXml = await savedZip.file('ppt/charts/colors1.xml')!.async('string');
+		expect(colorXml).toContain('meth="acrossLinear"');
+		expect(colorXml).toContain('val="112233"');
+		expect(colorXml).toContain('<v:data value="keep"');
+
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		const roundTrip = chartElement(reloaded).chartData!;
+		expect(roundTrip.colorPalette).toStrictEqual(['#112233', '#AABBCC']);
+		expect(roundTrip.colorMethod).toBe('acrossLinear');
+		expect(roundTrip.axes!.find((axis) => axis.axisId === 20)!.axPos).toBe('r');
+	});
+});

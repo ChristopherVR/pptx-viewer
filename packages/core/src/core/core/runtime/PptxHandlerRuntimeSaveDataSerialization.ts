@@ -16,6 +16,7 @@ import {
 	applyChartAxisTitleStyleToXml,
 } from '../../utils/chart-axis-title-serializer';
 import { applyBubbleChartOptions } from '../../utils/chart-bubble-options';
+import { applyChartColorStyleXml } from '../../utils/chart-color-style-writer';
 import {
 	applyComboSeriesTypesToXml,
 	consolidateComboContainersInXml,
@@ -180,6 +181,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		for (const { chartData } of this.pendingChartUpdates) {
+			if (chartData.colorPalette && chartData.colorStylePartPath) {
+				const paletteChanged =
+					JSON.stringify(chartData.colorPalette) !==
+					JSON.stringify(chartData.colorStyleOriginalPalette);
+				const method = chartData.colorMethod ?? 'cycle';
+				if (paletteChanged || method !== chartData.colorStyleOriginalMethod) {
+					const colorFile = this.zip.file(chartData.colorStylePartPath);
+					if (colorFile) {
+						const colorTree = this.parser.parse(await colorFile.async('string')) as XmlObject;
+						applyChartColorStyleXml(colorTree, chartData.colorPalette, method);
+						this.zip.file(chartData.colorStylePartPath, this.builder.build(colorTree));
+					}
+				}
+			}
 			const chartPartPath = chartData.chartPartPath;
 			if (!chartPartPath) {
 				continue;

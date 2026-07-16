@@ -4,6 +4,7 @@ type LocalName = (key: string) => string;
 type AxisLabels = Pick<
 	PptxChartAxisFormatting,
 	| 'axisType'
+	| 'axPos'
 	| 'majorTickMark'
 	| 'minorTickMark'
 	| 'tickLblPos'
@@ -48,6 +49,7 @@ const ORDER = [
 const TICK_MARKS = new Set<PptxChartTickMark>(['cross', 'in', 'none', 'out']);
 const TICK_LABEL_POSITIONS = new Set<string>(['high', 'low', 'nextTo', 'none']);
 const LABEL_ALIGNMENTS = new Set<string>(['ctr', 'l', 'r']);
+const AXIS_POSITIONS = new Set(['b', 'l', 'r', 't']);
 
 function findKey(node: XmlObject, name: string, localName: LocalName): string | undefined {
 	return Object.keys(node).find((key) => localName(key) === name);
@@ -147,6 +149,12 @@ export function applyChartAxisLabelFormatting(
 	formatting: AxisLabels,
 	localName: LocalName,
 ): void {
+	if (formatting.axPos !== undefined) {
+		if (!AXIS_POSITIONS.has(formatting.axPos)) {
+			throw new RangeError('axPos must be b, l, r, or t');
+		}
+		upsertOrdered(node, 'axPos', { '@_val': formatting.axPos }, localName);
+	}
 	for (const [name, value] of [
 		['majorTickMark', formatting.majorTickMark],
 		['minorTickMark', formatting.minorTickMark],

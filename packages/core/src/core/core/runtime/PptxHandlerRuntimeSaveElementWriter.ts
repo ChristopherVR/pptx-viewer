@@ -11,6 +11,7 @@ import type {
 	SmartArtPptxElement,
 	TablePptxElement,
 } from '../../types';
+import { buildChartColorStyleXml } from '../../utils/chart-color-style-writer';
 import { buildChartSpaceXml } from '../../utils/chart-xml-generator';
 import { BLIP_FILL_ORDER, SP_PR_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
@@ -31,6 +32,10 @@ export interface SlideShapeCollectors {
 }
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	private static readonly CHART_COLOR_CONTENT_TYPE =
+		'application/vnd.ms-office.chartcolorstyle+xml';
+	private static readonly CHART_COLOR_REL_TYPE =
+		'http://schemas.microsoft.com/office/2011/relationships/chartColorStyle';
 	/**
 	 * Whether a shape XML represents a `<p:pic>` (picture-shaped) node.
 	 *
@@ -55,6 +60,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	/** Part paths of SDK-created charts written this save (need content-type overrides). */
 	protected pendingChartPartPaths?: string[];
+	protected pendingChartColorPartPaths?: string[];
 
 	/** Pick the next free `ppt/charts/chartN.xml` path (reads the zip + pending writes). */
 	protected nextChartPartPath(): string {
@@ -88,6 +94,31 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const partPath = this.nextChartPartPath();
 		this.zip.file(partPath, this.builder.build(buildChartSpaceXml(el.chartData!)));
 		(this.pendingChartPartPaths ??= []).push(partPath);
+		if (el.chartData?.colorPalette?.length) {
+			const fileName = partPath.slice(partPath.lastIndexOf('/') + 1);
+			const index = /\d+/u.exec(fileName)?.[0] ?? '1';
+			const colorPath = `ppt/charts/colors${index}.xml`;
+			this.zip.file(
+				colorPath,
+				this.builder.build(
+					buildChartColorStyleXml(el.chartData.colorPalette, el.chartData.colorMethod ?? 'cycle'),
+				),
+			);
+			(this.pendingChartColorPartPaths ??= []).push(colorPath);
+			this.zip.file(
+				`ppt/charts/_rels/${fileName}.rels`,
+				this.builder.build({
+					Relationships: {
+						'@_xmlns': 'http://schemas.openxmlformats.org/package/2006/relationships',
+						Relationship: {
+							'@_Id': 'rId1',
+							'@_Type': PptxHandlerRuntime.CHART_COLOR_REL_TYPE,
+							'@_Target': `colors${index}.xml`,
+						},
+					},
+				}),
+			);
+		}
 
 		const relId = ctx.slideRelationshipRegistry.nextRelationshipId();
 		ctx.slideRelationships.push({
@@ -105,8 +136,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 */
 	protected async ensureChartPartContentTypes(): Promise<void> {
 		const paths = this.pendingChartPartPaths;
+		const colorPaths = this.pendingChartColorPartPaths;
 		this.pendingChartPartPaths = undefined;
-		if (!paths || paths.length === 0) {
+		this.pendingChartColorPartPaths = undefined;
+		if ((!paths || paths.length === 0) && (!colorPaths || colorPaths.length === 0)) {
 			return;
 		}
 		const ctXml = await this.zip.file('[Content_Types].xml')?.async('string');
@@ -121,10 +154,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				? [typesRoot['Override'] as XmlObject]
 				: [];
 		const have = new Set(overrides.map((o) => String(o?.['@_PartName'] || '')));
-		for (const p of paths) {
+		for (const [p, contentType] of [
+			...(paths ?? []).map((path) => [path, CHART_CONTENT_TYPE] as const),
+			...(colorPaths ?? []).map(
+				(path) => [path, PptxHandlerRuntime.CHART_COLOR_CONTENT_TYPE] as const,
+			),
+		]) {
 			const partName = `/${p}`;
 			if (!have.has(partName)) {
-				overrides.push({ '@_PartName': partName, '@_ContentType': CHART_CONTENT_TYPE });
+				overrides.push({ '@_PartName': partName, '@_ContentType': contentType });
 				have.add(partName);
 			}
 		}
