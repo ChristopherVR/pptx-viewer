@@ -126,6 +126,8 @@ describe('collaboration-sync: element field coverage', () => {
 			width: 100,
 			height: 100,
 			inkStrokes: [{ path: 'M 0 0', color: '#000', width: 1, opacity: 1 }],
+			inkPartPath: 'ppt/ink/ink1.xml',
+			inkPartRawXml: { ink: { '@_documentID': 'ink-doc-1' } },
 		};
 		expect(roundTripElement(contentPart)).toStrictEqual(contentPart);
 	});
@@ -138,9 +140,13 @@ describe('collaboration-sync: element field coverage', () => {
 			y: 0,
 			width: 100,
 			height: 100,
-			zoomType: 'slide',
+			zoomType: 'summary',
 			targetSlideIndex: 3,
 			targetSectionId: 'sec1',
+			summaryTargets: [
+				{ targetSlideIndex: 3, sectionId: 'sec1', x: 0, y: 0, width: 100, height: 100 },
+			],
+			summaryLayout: 'grid',
 		};
 		expect(roundTripElement(zoom)).toStrictEqual(zoom);
 	});

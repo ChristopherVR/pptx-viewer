@@ -163,6 +163,38 @@ describe('reconcileSlidesInYDoc', () => {
 		}
 	});
 
+	it('merges concurrent InkML part identity and raw XML edits independently', () => {
+		const docA = new Y.Doc();
+		const docB = new Y.Doc();
+		const contentPart: PptxElement = {
+			type: 'contentPart',
+			id: 'ink-content-1',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			inkPartPath: 'ppt/ink/ink1.xml',
+			inkPartRawXml: { ink: { '@_documentID': 'initial' } },
+		};
+		reconcileSlidesInYDoc([makeSlide('s1', [contentPart])], asDoc(docA), factories);
+		syncDocs(docA, docB);
+
+		const slidesA = readSlidesFromYDoc(asDoc(docA));
+		slidesA[0].elements[0].inkPartPath = 'ppt/ink/ink2.xml';
+		reconcileSlidesInYDoc(slidesA, asDoc(docA), factories);
+
+		const slidesB = readSlidesFromYDoc(asDoc(docB));
+		slidesB[0].elements[0].inkPartRawXml = { ink: { '@_documentID': 'peer-b' } };
+		reconcileSlidesInYDoc(slidesB, asDoc(docB), factories);
+
+		syncDocs(docA, docB);
+		for (const doc of [docA, docB]) {
+			const merged = readSlidesFromYDoc(asDoc(doc))[0].elements[0];
+			expect(merged.inkPartPath).toBe('ppt/ink/ink2.xml');
+			expect(merged.inkPartRawXml).toStrictEqual({ ink: { '@_documentID': 'peer-b' } });
+		}
+	});
+
 	it('handles element insertion, removal, and reordering', () => {
 		const doc = new Y.Doc();
 		reconcileSlidesInYDoc(
