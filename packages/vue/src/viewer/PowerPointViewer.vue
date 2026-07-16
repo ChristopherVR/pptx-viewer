@@ -2007,6 +2007,7 @@ function handleCommandSearch(command: string): void {
 					:element="inspectorElementForPanels"
 					:can-edit="props.canEdit"
 					:slide-count="slideCount"
+					:media-data-urls="mediaDataUrls"
 					@update="onInspectorUpdate"
 				/>
 
@@ -2027,7 +2028,6 @@ function handleCommandSearch(command: string): void {
 					v-if="props.canEdit && showA11y"
 					:issues="a11y.issues.value"
 					@select-slide="goTo"
-					:media-data-urls="mediaDataUrls"
 				/>
 
 				<!-- Comments (desktop right rail; mobile uses the bottom sheet below) -->
@@ -2455,6 +2455,7 @@ function handleCommandSearch(command: string): void {
 					:element="inspectorElementForPanels"
 					:can-edit="props.canEdit"
 					:slide-count="slideCount"
+					:media-data-urls="mediaDataUrls"
 					@update="onInspectorUpdate"
 				/>
 				<SlideInspector
@@ -2475,7 +2476,6 @@ function handleCommandSearch(command: string): void {
 
 			<!-- Mobile Comments sheet (right-rail panel on desktop) -->
 			<MobileSheet
-					:media-data-urls="mediaDataUrls"
 				v-if="isMobile && props.canEdit && !presenting"
 				:open="mobileCommentsOpen"
 				:title="t('pptx.toolbar.comments')"
