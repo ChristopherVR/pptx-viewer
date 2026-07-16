@@ -38,4 +38,26 @@ describe('master thumbnail rail', () => {
 		(rail.el.querySelectorAll('button')[1] as HTMLButtonElement).click();
 		expect(select).toHaveBeenCalledWith(0, 0);
 	});
+
+	it('virtualizes large slide decks and keeps the active slide rendered', () => {
+		const slides = Array.from({ length: 100 }, (_, index) => ({
+			id: `slide-${index}`,
+			rId: `rId-${index}`,
+			slideNumber: index + 1,
+			elements: [],
+		})) as PptxSlide[];
+		const rail = createThumbnailRail(document, createTranslator(), vi.fn());
+		rail.render(slides, { width: 960, height: 540 }, (slide) => {
+			const el = document.createElement('div');
+			el.dataset.slideId = slide.id;
+			return el;
+		});
+		expect(rail.el.querySelector('[data-virtualized="true"]')).toBeTruthy();
+		expect(rail.el.querySelectorAll('.pptxv-thumb').length).toBeLessThan(30);
+
+		rail.setActive(80);
+		expect(rail.el.querySelector('[data-slide-index="80"]')?.getAttribute('aria-current')).toBe(
+			'page',
+		);
+	});
 });

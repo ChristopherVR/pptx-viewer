@@ -1,4 +1,5 @@
 import type { PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
+import { computeVirtualRange, SLIDE_VIRTUALIZATION_THRESHOLD } from 'pptx-viewer-shared';
 import type { CanvasSize } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -40,50 +41,119 @@ export function createThumbnailRail(
 	const el = createEl(doc, 'aside', 'pptxv-thumbs');
 	el.setAttribute('role', 'navigation');
 	el.setAttribute('aria-label', t('pptx.sections.slides'));
-	let buttons: HTMLButtonElement[] = [];
+	let buttons = new Map<number, HTMLButtonElement>();
 	let activeIndex = 0;
+	let sourceSlides: PptxSlide[] = [];
+	let sourceCanvasSize: CanvasSize = { width: 1, height: 1 };
+	let sourceRenderStage: ((slide: PptxSlide, scale: number) => HTMLElement) | null = null;
+	let itemHeight = 1;
+	let virtualized = false;
+
+	const buildButton = (slide: PptxSlide, index: number, scale: number): HTMLButtonElement => {
+		const btn = createEl(doc, 'button', 'pptxv-thumb');
+		btn.type = 'button';
+		btn.dataset.slideIndex = String(index);
+		btn.setAttribute('aria-label', t('pptx.slidesPanel.goToSlide', { n: index + 1 }));
+		const num = createEl(doc, 'span', 'pptxv-thumb-num');
+		num.textContent = String(index + 1);
+		const frame = createEl(doc, 'span', 'pptxv-thumb-frame', {
+			display: 'block',
+			width: `${THUMB_STAGE_WIDTH}px`,
+			height: `${Math.round(sourceCanvasSize.height * scale)}px`,
+		});
+		frame.appendChild(sourceRenderStage!(slide, scale));
+		btn.append(num, frame);
+		btn.addEventListener('click', () => onSelect(index));
+		buttons.set(index, btn);
+		return btn;
+	};
+
+	const renderWindow = (): void => {
+		if (!sourceRenderStage) {
+			return;
+		}
+		buttons = new Map();
+		const scale = THUMB_STAGE_WIDTH / Math.max(sourceCanvasSize.width, 1);
+		const range = virtualized
+			? computeVirtualRange(sourceSlides.length, itemHeight, el.scrollTop, el.clientHeight || 600)
+			: computeVirtualRange(
+					sourceSlides.length,
+					itemHeight,
+					0,
+					sourceSlides.length * itemHeight,
+					0,
+				);
+		const window = createEl(doc, 'div', 'pptxv-thumbs-window', {
+			display: 'flex',
+			flexDirection: 'column',
+			gap: '8px',
+		});
+		if (virtualized) {
+			window.style.position = 'absolute';
+			window.style.insetInline = '0';
+			window.style.top = `${range.offsetY}px`;
+		}
+		for (let index = range.startIndex; index <= range.endIndex; index += 1) {
+			const slide = sourceSlides[index];
+			if (slide) {
+				window.appendChild(buildButton(slide, index, scale));
+			}
+		}
+		const space = createEl(doc, 'div', 'pptxv-thumbs-space', {
+			position: 'relative',
+			height: virtualized ? `${range.totalHeight}px` : 'auto',
+		});
+		if (virtualized) {
+			space.dataset.virtualized = 'true';
+		}
+		space.appendChild(window);
+		el.replaceChildren(space);
+		const active = buttons.get(activeIndex);
+		active?.classList.add('is-active');
+		active?.setAttribute('aria-current', 'page');
+	};
+
+	el.addEventListener('scroll', () => {
+		if (virtualized) {
+			renderWindow();
+		}
+	});
 
 	return {
 		el,
 		render(slides, canvasSize, renderStage) {
-			buttons = [];
-			const fragment = doc.createDocumentFragment();
+			sourceSlides = slides;
+			sourceCanvasSize = canvasSize;
+			sourceRenderStage = renderStage;
 			const scale = THUMB_STAGE_WIDTH / Math.max(canvasSize.width, 1);
-			slides.forEach((slide, index) => {
-				const btn = createEl(doc, 'button', 'pptxv-thumb');
-				btn.type = 'button';
-				btn.setAttribute('aria-label', t('pptx.slidesPanel.goToSlide', { n: index + 1 }));
-
-				const num = createEl(doc, 'span', 'pptxv-thumb-num');
-				num.textContent = String(index + 1);
-				btn.appendChild(num);
-
-				const frame = createEl(doc, 'span', 'pptxv-thumb-frame', {
-					display: 'block',
-					width: `${THUMB_STAGE_WIDTH}px`,
-					height: `${Math.round(canvasSize.height * scale)}px`,
-				});
-				frame.appendChild(renderStage(slide, scale));
-				btn.appendChild(frame);
-
-				btn.addEventListener('click', () => onSelect(index));
-				fragment.appendChild(btn);
-				buttons.push(btn);
-			});
-			el.replaceChildren(fragment);
+			itemHeight = Math.round(canvasSize.height * scale) + 8;
+			virtualized = slides.length >= SLIDE_VIRTUALIZATION_THRESHOLD;
+			el.style.display = virtualized ? 'block' : 'flex';
+			renderWindow();
 			this.setActive(activeIndex);
 		},
 		setActive(index) {
 			activeIndex = index;
-			buttons.forEach((btn, i) => {
-				btn.classList.toggle('is-active', i === index);
-				if (i === index) {
+			if (virtualized) {
+				const top = index * itemHeight;
+				const bottom = top + itemHeight;
+				const viewport = el.clientHeight || 600;
+				if (top < el.scrollTop) {
+					el.scrollTop = top;
+				} else if (bottom > el.scrollTop + viewport) {
+					el.scrollTop = Math.max(0, bottom - viewport);
+				}
+				renderWindow();
+			}
+			buttons.forEach((btn, buttonIndex) => {
+				btn.classList.toggle('is-active', buttonIndex === index);
+				if (buttonIndex === index) {
 					btn.setAttribute('aria-current', 'page');
 				} else {
 					btn.removeAttribute('aria-current');
 				}
 			});
-			const active = buttons[index];
+			const active = buttons.get(index);
 			if (active && typeof active.scrollIntoView === 'function') {
 				active.scrollIntoView({ block: 'nearest' });
 			}
@@ -93,7 +163,9 @@ export function createThumbnailRail(
 		},
 		renderMasters(masters, canvasSize, renderStage, select, active) {
 			el.replaceChildren();
-			buttons = [];
+			buttons = new Map();
+			virtualized = false;
+			el.style.display = 'flex';
 			const scale = THUMB_STAGE_WIDTH / Math.max(canvasSize.width, 1);
 			const add = (
 				slide: PptxSlide,
