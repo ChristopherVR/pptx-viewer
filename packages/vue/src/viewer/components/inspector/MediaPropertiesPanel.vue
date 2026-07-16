@@ -10,10 +10,8 @@
  *  - Emits `update` with a SHALLOW `Partial<PptxElement>` patch of the exact
  *    core field(s) touched; the host merges it via `ops.updateElement`.
  *
- * Media data URLs resolved from `mediaPath` live on `PowerPointViewer` (owned by
- * another agent); to avoid editing it, the preview degrades gracefully: it only
- * renders when the element already embeds `mediaData`, and the timeline falls
- * back to `metadata.duration` when no live media element is mounted.
+ * Relationship-backed media is resolved through the same `mediaDataUrls` map
+ * used by the slide renderer, so embedded and package media preview identically.
  */
 import type { MediaPptxElement, PptxElement } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
@@ -34,6 +32,7 @@ import MediaTrimTimeline from './MediaTrimTimeline.vue';
 const props = defineProps<{
 	element: PptxElement;
 	canEdit?: boolean;
+	mediaDataUrls?: Map<string, string>;
 }>();
 
 const emit = defineEmits<{
@@ -52,8 +51,11 @@ const currentTime = ref(0);
 const liveDuration = ref(0);
 const isPlaying = ref(false);
 
-/** Playable source: only the element's own embedded data-URL (no path map). */
-const previewSrc = computed(() => media.value?.mediaData);
+/** Playable source: embedded data first, then the package relationship map. */
+const previewSrc = computed(() => {
+	const value = media.value;
+	return value?.mediaData ?? (value?.mediaPath ? props.mediaDataUrls?.get(value.mediaPath) : undefined);
+});
 const isVideo = computed(() => media.value?.mediaType === 'video');
 const bookmarks = computed(() => media.value?.bookmarks ?? []);
 

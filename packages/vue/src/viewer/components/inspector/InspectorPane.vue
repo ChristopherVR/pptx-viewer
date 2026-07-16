@@ -33,6 +33,7 @@ const props = defineProps<{
 	mobile?: boolean;
 	canEdit?: boolean;
 	slideCount?: number;
+	mediaDataUrls?: Map<string, string>;
 }>();
 const emit = defineEmits<{ update: [patch: Partial<PptxElement>] }>();
 
@@ -118,7 +119,12 @@ function relay(patch: Partial<PptxElement>): void {
 			>
 				{{ t('pptx.inspector.media') }}
 			</h3>
-			<MediaPropertiesPanel :element="element" :can-edit="props.canEdit" @update="relay" />
+			<MediaPropertiesPanel
+				:element="element"
+				:can-edit="props.canEdit"
+				:media-data-urls="props.mediaDataUrls"
+				@update="relay"
+			/>
 		</div>
 
 		<div class="pptx-vue-inspector-section py-2 border-b border-border">
