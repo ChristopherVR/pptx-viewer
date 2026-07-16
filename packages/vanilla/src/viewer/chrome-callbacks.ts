@@ -23,6 +23,7 @@ export interface ChromeCallbackDeps {
 	redo(): void;
 	save(): void;
 	downloadAs(format: PptxSaveFormat): Promise<void>;
+	packageForSharing(): Promise<void>;
 	toggleAutosave(): boolean;
 	startPresentationFromBeginning(): void;
 	startPresentationFromCurrent(): void;
@@ -87,6 +88,7 @@ export function buildChromeCallbacks(
 			save: () => deps.save(),
 			saveAsPpsx: () => void deps.downloadAs('ppsx'),
 			saveAsPptm: () => void deps.downloadAs('pptm'),
+			packageForSharing: () => void deps.packageForSharing(),
 			exportPng: () => void deps.exportSlidePng(),
 			copySlideAsImage: () => void deps.copySlideAsImage(),
 			exportPdf: () => void deps.exportPdf(),

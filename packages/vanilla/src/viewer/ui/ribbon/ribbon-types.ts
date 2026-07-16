@@ -45,6 +45,7 @@ export interface RibbonFileHandlers {
 	save(): void;
 	saveAsPpsx(): void;
 	saveAsPptm(): void;
+	packageForSharing(): void;
 	exportPng(): void;
 	copySlideAsImage(): void;
 	exportPdf(): void;

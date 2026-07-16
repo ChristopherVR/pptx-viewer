@@ -7,6 +7,7 @@ import type {
 } from 'pptx-viewer-core';
 import { downloadBlob } from 'pptx-viewer-shared';
 
+import { buildSharingPackage } from '../export/package-sharing';
 import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
@@ -72,6 +73,7 @@ export interface EditorController {
 	setHandoutSlidesPerPage(count: number): void;
 	save(format?: PptxSaveFormat): Promise<Uint8Array>;
 	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
+	packageForSharing(fileName?: string): Promise<void>;
 	downloadPptx(fileName?: string): Promise<void>;
 	destroy(): void;
 }
@@ -346,6 +348,11 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		},
 		async downloadPptx(fileName = 'presentation.pptx') {
 			await this.downloadAs('pptx', fileName);
+		},
+		async packageForSharing(fileName = 'presentation.pptx') {
+			const bytes = await ops.save('pptx');
+			const blob = await buildSharingPackage(bytes, fileName);
+			downloadBlob(blob, `${fileName.replace(/\.pptx$/iu, '')}-package.zip`);
 		},
 		destroy() {
 			unsubscribe();

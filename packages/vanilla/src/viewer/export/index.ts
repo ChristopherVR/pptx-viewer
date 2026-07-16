@@ -13,6 +13,7 @@ export { runPrint } from './export-print';
 export type { ExportCaptureDeps } from './export-types';
 export type { ExportVideoDeps, ExportVideoOptions } from './export-video';
 export { runVideoExport } from './export-video';
+export { buildSharingPackage } from './package-sharing';
 export type { RasterizeSlideController, RasterizeSlideDeps } from './rasterize-slide';
 export { createRasterizeSlide } from './rasterize-slide';
 export { renderToCanvas } from './render-to-canvas';

@@ -526,6 +526,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		return this.editor.downloadPptx(fileName);
 	}
 
+	async packageForSharing(fileName?: string): Promise<void> {
+		return this.editor.packageForSharing(fileName);
+	}
+
 	deleteSelected = (): void => this.editor.deleteSelected();
 
 	// exportSlidePng / exportPdf / exportGif / exportVideo / print are

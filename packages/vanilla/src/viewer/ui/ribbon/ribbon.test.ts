@@ -41,6 +41,7 @@ function buildHandlers(): RibbonHandlers {
 			save: vi.fn(),
 			saveAsPpsx: vi.fn(),
 			saveAsPptm: vi.fn(),
+			packageForSharing: vi.fn(),
 			exportPng: vi.fn(),
 			copySlideAsImage: vi.fn(),
 			exportPdf: vi.fn(),
@@ -135,9 +136,14 @@ describe('createRibbon', () => {
 		const pptm = ribbon.el.querySelector<HTMLButtonElement>(
 			`[title="${t('pptx.file.saveAsPptmTooltip')}"]`,
 		);
+		const packageButton = ribbon.el.querySelector<HTMLButtonElement>(
+			`[title="${t('pptx.file.packageTooltip')}"]`,
+		);
 
 		ppsx?.click();
+		packageButton?.click();
 		expect(handlers.file.saveAsPpsx).toHaveBeenCalledOnce();
+		expect(handlers.file.packageForSharing).toHaveBeenCalledOnce();
 		expect(pptm?.hidden).toBeTruthy();
 		ribbon.setHasMacros(true);
 		expect(pptm?.hidden).toBeFalsy();

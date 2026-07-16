@@ -72,6 +72,7 @@ export type IconName =
 	| 'chart'
 	| 'file'
 	| 'download'
+	| 'package'
 	| 'printer'
 	| 'square'
 	| 'circle'
@@ -216,6 +217,7 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	chart: ['M3 3v18h18', 'M7 11h3v6H7z', 'M12 7h3v10h-3z', 'M17 13h3v4h-3z'],
 	file: ['M6 2h9l5 5v15H6z', 'M15 2v5h5'],
 	download: ['M12 3v12', 'M7 10l5 5 5-5', 'M5 21h14'],
+	package: ['M21 8l-9 5-9-5', 'M3 8l9-5 9 5v8l-9 5-9-5z', 'M12 13v8'],
 	printer: [
 		'M6 9V3h12v6',
 		'M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2',

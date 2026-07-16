@@ -160,6 +160,7 @@ export interface ChromeHost {
 	toggleAutosave(): boolean;
 	downloadPptx(): Promise<void>;
 	downloadAs(format: PptxSaveFormat): Promise<void>;
+	packageForSharing(): Promise<void>;
 	toggleNotes(): void;
 	goToSlide(index: number): void;
 	getSlideCount(): number;
@@ -212,6 +213,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		toggleMasterNavigation: () => host.toggleMasterNavigation(),
 		save: () => void host.downloadPptx(),
 		downloadAs: (format) => host.downloadAs(format),
+		packageForSharing: () => host.packageForSharing(),
 		toggleNotes: () => host.toggleNotes(),
 		goToSlide: (index) => host.goToSlide(index),
 		goToFirstSlide: () => host.goToSlide(0),

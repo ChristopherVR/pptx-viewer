@@ -37,6 +37,12 @@ export function createFileTab(doc: Document, t: Translator, handlers: RibbonFile
 	});
 	savePptm.btn.title = t('pptx.file.saveAsPptmTooltip');
 	savePptm.btn.hidden = true;
+	const packageForSharing = makeButton(doc, {
+		label: t('pptx.file.package'),
+		icon: 'package',
+		onClick: handlers.packageForSharing,
+	});
+	packageForSharing.btn.title = t('pptx.file.packageTooltip');
 	const png = makeButton(doc, {
 		label: t('pptx.file.png'),
 		icon: 'image',
@@ -73,6 +79,7 @@ export function createFileTab(doc: Document, t: Translator, handlers: RibbonFile
 		save.btn,
 		savePpsx.btn,
 		savePptm.btn,
+		packageForSharing.btn,
 		png.btn,
 		pdf.btn,
 		gif.btn,
