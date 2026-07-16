@@ -4,6 +4,7 @@ import { makeButton } from '../../controls';
 
 export interface SlidesGroupHandlers {
 	addSlide(): void;
+	addSection(): void;
 	duplicateSlide(): void;
 	deleteSlide(): void;
 }
@@ -18,7 +19,7 @@ export interface SlidesGroup {
 	update(state: SlidesGroupState): void;
 }
 
-/** The ribbon Home tab's Slides group: new / duplicate / delete slide. */
+/** The ribbon Home tab's Slides group: new, duplicate, delete, and section actions. */
 export function createSlidesGroup(
 	doc: Document,
 	t: Translator,
@@ -41,12 +42,17 @@ export function createSlidesGroup(
 		icon: 'duplicate',
 		onClick: handlers.duplicateSlide,
 	});
+	const section = makeButton(doc, {
+		label: t('pptx.sections.sectionButtonLabel'),
+		text: '§',
+		onClick: handlers.addSection,
+	});
 	const del = makeButton(doc, {
 		label: t('pptx.arrange.delete'),
 		icon: 'trash',
 		onClick: handlers.deleteSlide,
 	});
-	row.append(add.btn, duplicate.btn, del.btn);
+	row.append(add.btn, duplicate.btn, del.btn, section.btn);
 
 	return {
 		el,
@@ -54,6 +60,7 @@ export function createSlidesGroup(
 			add.setDisabled(!editable);
 			duplicate.setDisabled(!editable || slideCount === 0);
 			del.setDisabled(!editable || slideCount <= 1);
+			section.setDisabled(!editable || slideCount === 0);
 		},
 	};
 }

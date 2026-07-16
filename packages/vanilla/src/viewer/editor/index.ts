@@ -31,6 +31,8 @@ export type {
 export { createDrawModeController } from './editor-draw-mode';
 export type { EditActions, EditActionsDeps, GeometryPatch } from './editor-edit-ops';
 export { createEditActions } from './editor-edit-ops';
+export type { SectionActions } from './editor-section-actions';
+export { createSectionActions } from './editor-section-actions';
 export type { InkActions, InkActionsDeps } from './editor-ink-actions';
 export { createInkActions } from './editor-ink-actions';
 export type { FindReplaceActions, FindReplaceActionsDeps } from './editor-find-replace-actions';

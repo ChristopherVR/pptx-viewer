@@ -60,4 +60,35 @@ describe('master thumbnail rail', () => {
 			'page',
 		);
 	});
+
+	it('groups section slides and dispatches section controls', () => {
+		const slides = Array.from({ length: 3 }, (_, index) => ({
+			id: `slide-${index}`,
+			rId: `rId-${index}`,
+			slideNumber: index + 1,
+			sectionId: index < 2 ? 'section-1' : undefined,
+			elements: [],
+		})) as PptxSlide[];
+		const actions = {
+			toggle: vi.fn(),
+			rename: vi.fn(),
+			delete: vi.fn(),
+			move: vi.fn(),
+		};
+		const rail = createThumbnailRail(document, createTranslator(), vi.fn());
+		rail.render(
+			slides,
+			{ width: 960, height: 540 },
+			() => document.createElement('div'),
+			[{ id: 'section-1', name: 'Opening', slideIds: ['1', '2'] }],
+			actions,
+		);
+
+		expect(rail.el.querySelectorAll('.pptxv-thumb-section')).toHaveLength(2);
+		expect(rail.el.textContent).toContain('Opening (2)');
+		expect(rail.el.textContent).toContain('Ungrouped Slides (1)');
+		(rail.el.querySelector('.pptxv-thumb-section-toggle') as HTMLButtonElement).click();
+		expect(actions.toggle).toHaveBeenCalledWith('section-1');
+		expect(rail.el.querySelectorAll('.pptxv-thumb')).toHaveLength(3);
+	});
 });

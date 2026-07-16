@@ -189,6 +189,7 @@ describe('createEditorOps save formats', () => {
 		const store = createStore({
 			...createInitialViewerState(),
 			slides: [buildSlide('a')],
+			sections: [{ id: 'section-1', name: 'Opening', slideIds: ['1'] }],
 			dirty: true,
 		});
 		const save = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]));
@@ -203,7 +204,10 @@ describe('createEditorOps save formats', () => {
 
 		expect(save).toHaveBeenCalledWith(
 			expect.any(Array),
-			expect.objectContaining({ outputFormat: 'ppsx' }),
+			expect.objectContaining({
+				outputFormat: 'ppsx',
+				sections: [{ id: 'section-1', name: 'Opening', slideIds: ['1'] }],
+			}),
 		);
 		expect(store.get().dirty).toBeFalsy();
 	});

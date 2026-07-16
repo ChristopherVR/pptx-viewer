@@ -109,6 +109,14 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			onHandoutSlidesPerPageChange: (count) => this.editor?.setHandoutSlidesPerPage(count),
 			onMasterBackgroundColorChange: (color) =>
 				this.editor?.getEditActions().setSlideBackgroundColor(color),
+			onSectionToggle: (sectionId) =>
+				this.editor?.getEditActions().sections.toggleSection(sectionId),
+			onSectionRename: (sectionId, name) =>
+				this.editor?.getEditActions().sections.renameSection(sectionId, name),
+			onSectionDelete: (sectionId) =>
+				this.editor?.getEditActions().sections.deleteSection(sectionId),
+			onSectionMove: (sectionId, direction) =>
+				this.editor?.getEditActions().sections.moveSection(sectionId, direction),
 			onZoomClick: (targetSlideIndex) => this.controls.goToSlide(targetSlideIndex),
 			onSmartArtNodeTextChange: (element, nodeId, text) => {
 				if (

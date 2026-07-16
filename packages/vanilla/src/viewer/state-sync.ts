@@ -32,6 +32,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		// patches; one refresh happens when the gesture ends.
 		if (
 			((state.slides !== previous.slides ||
+				state.sections !== previous.sections ||
 				state.templateElementsBySlideId !== previous.templateElementsBySlideId ||
 				state.slideMasters !== previous.slideMasters ||
 				state.notesMaster !== previous.notesMaster ||

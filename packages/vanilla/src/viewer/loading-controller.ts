@@ -64,6 +64,7 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 			const partition = partitionTemplateElements(loaded.slides);
 			store.set({
 				slides: partition.slides,
+				sections: loaded.sections,
 				templateElementsBySlideId: partition.templateElementsBySlideId,
 				slideMasters: loaded.slideMasters,
 				notesMaster: loaded.notesMaster,

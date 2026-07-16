@@ -1,9 +1,13 @@
-import type { PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
+import type { PptxSection, PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
 import { computeVirtualRange, SLIDE_VIRTUALIZATION_THRESHOLD } from 'pptx-viewer-shared';
 import type { CanvasSize } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import type { ThumbnailSectionActions } from './thumbnail-sections';
+import { renderThumbnailSections } from './thumbnail-sections';
+
+export type { ThumbnailSectionActions } from './thumbnail-sections';
 
 /** Rendered thumbnail rail width available for each slide preview, in px. */
 const THUMB_STAGE_WIDTH = 128;
@@ -15,6 +19,8 @@ export interface ThumbnailRail {
 		slides: PptxSlide[],
 		canvasSize: CanvasSize,
 		renderStage: (slide: PptxSlide, scale: number) => HTMLElement,
+		sections?: readonly PptxSection[],
+		sectionActions?: ThumbnailSectionActions,
 	): void;
 	/** Highlight the active slide and scroll it into view. */
 	setActive(index: number): void;
@@ -46,6 +52,8 @@ export function createThumbnailRail(
 	let sourceSlides: PptxSlide[] = [];
 	let sourceCanvasSize: CanvasSize = { width: 1, height: 1 };
 	let sourceRenderStage: ((slide: PptxSlide, scale: number) => HTMLElement) | null = null;
+	let sourceSections: readonly PptxSection[] = [];
+	let sourceSectionActions: ThumbnailSectionActions | undefined;
 	let itemHeight = 1;
 	let virtualized = false;
 
@@ -74,6 +82,20 @@ export function createThumbnailRail(
 		}
 		buttons = new Map();
 		const scale = THUMB_STAGE_WIDTH / Math.max(sourceCanvasSize.width, 1);
+		if (sourceSections.length > 0) {
+			el.replaceChildren(
+				...renderThumbnailSections({
+					doc,
+					t,
+					sections: sourceSections,
+					slides: sourceSlides,
+					actions: sourceSectionActions,
+					buildSlide: (slide, index) => buildButton(slide, index, scale),
+				}),
+			);
+			buttons.get(activeIndex)?.classList.add('is-active');
+			return;
+		}
 		const range = virtualized
 			? computeVirtualRange(sourceSlides.length, itemHeight, el.scrollTop, el.clientHeight || 600)
 			: computeVirtualRange(
@@ -121,13 +143,15 @@ export function createThumbnailRail(
 
 	return {
 		el,
-		render(slides, canvasSize, renderStage) {
+		render(slides, canvasSize, renderStage, sections, sectionActions) {
 			sourceSlides = slides;
 			sourceCanvasSize = canvasSize;
 			sourceRenderStage = renderStage;
+			sourceSections = sections ?? [];
+			sourceSectionActions = sectionActions;
 			const scale = THUMB_STAGE_WIDTH / Math.max(canvasSize.width, 1);
 			itemHeight = Math.round(canvasSize.height * scale) + 8;
-			virtualized = slides.length >= SLIDE_VIRTUALIZATION_THRESHOLD;
+			virtualized = !sections?.length && slides.length >= SLIDE_VIRTUALIZATION_THRESHOLD;
 			el.style.display = virtualized ? 'block' : 'flex';
 			renderWindow();
 			this.setActive(activeIndex);

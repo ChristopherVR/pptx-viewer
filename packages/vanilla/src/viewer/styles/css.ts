@@ -188,6 +188,33 @@ const CHROME_CSS = `
 }
 .pptxv-thumb.is-active .pptxv-thumb-frame { border-color: var(--pptx-primary); }
 .pptxv-thumb:focus-visible .pptxv-thumb-frame { outline: 2px solid var(--pptx-ring); }
+.pptxv-thumb-section { display: flex; flex-direction: column; gap: 6px; }
+.pptxv-thumb-section-header { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.pptxv-thumb-section-toggle {
+	min-width: 0;
+	flex: 1;
+	border: 0;
+	background: transparent;
+	color: var(--pptx-foreground);
+	font-size: 11px;
+	font-weight: 600;
+	text-align: left;
+	cursor: pointer;
+}
+.pptxv-thumb-section-actions { display: flex; gap: 1px; }
+.pptxv-thumb-section-actions button {
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: 0;
+	border-radius: 3px;
+	background: transparent;
+	color: var(--pptx-muted-foreground);
+	cursor: pointer;
+}
+.pptxv-thumb-section-actions button:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-thumb-section-actions button:disabled { opacity: .35; cursor: default; }
+.pptxv-thumb-section-slides { display: flex; flex-direction: column; gap: 8px; }
 
 /* ── Viewport / stage ────────────────────────────────────────────────── */
 .pptxv-viewport {

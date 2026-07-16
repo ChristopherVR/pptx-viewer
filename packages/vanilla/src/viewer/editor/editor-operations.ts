@@ -4,6 +4,7 @@ import type {
 	PptxHandler,
 	PptxNotesMaster,
 	PptxSaveFormat,
+	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
 	TextSegment,
@@ -78,6 +79,7 @@ export interface EditorOps {
 
 interface EditorSnapshot {
 	slides: PptxSlide[];
+	sections: PptxSection[];
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	slideMasters: PptxSlideMaster[];
 	notesMaster?: PptxNotesMaster;
@@ -101,6 +103,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		store.set({ selectedElementId: id, selectedElementIds: ids });
 	const snapshot = (): EditorSnapshot => ({
 		slides: cloneSlides(store.get().slides),
+		sections: structuredClone(store.get().sections),
 		templateElementsBySlideId: cloneTemplateElementsBySlideId(
 			store.get().templateElementsBySlideId,
 		),
@@ -136,6 +139,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		}
 		store.set({
 			slides: cloneSlides(next.slides),
+			sections: structuredClone(next.sections),
 			templateElementsBySlideId: cloneTemplateElementsBySlideId(next.templateElementsBySlideId),
 			slideMasters: structuredClone(next.slideMasters),
 			notesMaster: structuredClone(next.notesMaster),
@@ -306,6 +310,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			const bytes = await handler.save(
 				buildSaveSlides(state.slides, state.templateElementsBySlideId),
 				{
+					sections: state.sections.length > 0 ? state.sections : undefined,
 					slideMasters: state.slideMasters,
 					notesMaster: state.notesMaster,
 					handoutMaster: state.handoutMaster,

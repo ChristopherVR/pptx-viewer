@@ -4,6 +4,7 @@ import type {
 	PptxElement,
 	PptxHandoutMaster,
 	PptxNotesMaster,
+	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxThemeColorScheme,
@@ -30,6 +31,8 @@ export interface LoadedPresentation {
 	handler: PptxHandler;
 	/** Parsed slides with image/media URLs patched in. */
 	slides: PptxSlide[];
+	/** Parsed presentation sections. */
+	sections: PptxSection[];
 	/** Slide canvas size in CSS px. */
 	canvasSize: CanvasSize;
 	/** Archive-path to displayable URL map for media + poster frames. */
@@ -59,6 +62,7 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 		return {
 			handler,
 			slides,
+			sections: parsed.sections ?? [],
 			canvasSize: {
 				width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
 				height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,

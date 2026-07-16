@@ -32,6 +32,8 @@ import type { InspectorActions } from './editor-inspector-actions';
 import { createInspectorActions } from './editor-inspector-actions';
 import { appendElementOnSlide } from './editor-mutations';
 import type { EditorOps } from './editor-operations';
+import type { SectionActions } from './editor-section-actions';
+import { createSectionActions } from './editor-section-actions';
 import type { SlideActions } from './editor-slide-actions';
 import { createSlideActions } from './editor-slide-actions';
 import type { TextActions } from './editor-text-actions';
@@ -68,6 +70,8 @@ export interface EditActions
 		AnimationActions,
 		InspectorActions,
 		InkActions {
+	/** Slide section CRUD and ordering actions. */
+	sections: SectionActions;
 	// Slide-level review comments, shared by desktop and mobile chrome.
 	comments: CommentActions;
 	toggleFormatPainter(): void;
@@ -132,6 +136,7 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		...createAnimationActions({ store, ops }),
 		...createInspectorActions(applyToSelected),
 		...createInkActions({ store, ops }),
+		sections: createSectionActions(store, ops),
 		comments: createCommentActions({ store, ops }),
 		toggleFormatPainter() {
 			const state = store.get();

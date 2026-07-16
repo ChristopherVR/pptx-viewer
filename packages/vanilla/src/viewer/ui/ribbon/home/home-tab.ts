@@ -51,6 +51,7 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 	});
 	const slides: SlidesGroup = createSlidesGroup(doc, t, {
 		addSlide: edit.addSlide,
+		addSection: () => edit.sections.addSection(t('pptx.sections.defaultName')),
 		duplicateSlide: edit.duplicateSlide,
 		deleteSlide: edit.deleteSlide,
 	});

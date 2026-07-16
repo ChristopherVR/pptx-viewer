@@ -4,6 +4,7 @@ import type {
 	PptxElement,
 	PptxHandoutMaster,
 	PptxNotesMaster,
+	PptxSection,
 	PptxSlideMaster,
 	PptxSlide,
 	PptxThemeColorScheme,
@@ -38,6 +39,8 @@ export type DrawTool = 'select' | 'pen' | 'highlighter' | 'eraser';
 export interface ViewerState {
 	/** Parsed slides (image/media URLs already patched in by the load pipeline). */
 	slides: PptxSlide[];
+	/** Presentation sections used to group slides in the thumbnail rail. */
+	sections: PptxSection[];
 	/** Inherited layout/master elements, separated so interaction can be gated. */
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	/** Parsed slide masters and layouts used by the dedicated master canvas. */
@@ -114,6 +117,7 @@ export interface ViewerState {
 export function createInitialViewerState(): ViewerState {
 	return {
 		slides: [],
+		sections: [],
 		templateElementsBySlideId: {},
 		slideMasters: [],
 		notesMaster: undefined,

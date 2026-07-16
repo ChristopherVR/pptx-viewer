@@ -25,6 +25,10 @@ export interface RenderControllerDeps {
 	/** History-integrated handout master layout mutation. */
 	onHandoutSlidesPerPageChange(count: number): void;
 	onMasterBackgroundColorChange(color: string): void;
+	onSectionToggle(sectionId: string): void;
+	onSectionRename(sectionId: string, name: string): void;
+	onSectionDelete(sectionId: string): void;
+	onSectionMove(sectionId: string, direction: 'up' | 'down'): void;
 	/** Navigate from a presentation Zoom tile. */
 	onZoomClick(targetSlideIndex: number, returnSlideIndex: number): void;
 	onSmartArtNodeTextChange?(element: PptxElement, nodeId: string, text: string): void;
@@ -262,7 +266,20 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		} else {
 			deps.getChrome().masterSidebar.setVisible(false);
 			rail?.setVisible(true);
-			rail?.render(state.slides, state.canvasSize, renderStageFor);
+			rail?.render(
+				state.slides,
+				state.canvasSize,
+				renderStageFor,
+				state.sections,
+				state.editable
+					? {
+							toggle: deps.onSectionToggle,
+							rename: deps.onSectionRename,
+							delete: deps.onSectionDelete,
+							move: deps.onSectionMove,
+						}
+					: undefined,
+			);
 		}
 	};
 
