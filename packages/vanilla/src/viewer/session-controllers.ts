@@ -51,6 +51,8 @@ export interface SessionControllers {
 	isAutosaveEnabled(): boolean;
 	/** Open the viewer's built-in broadcast dialog. */
 	openBroadcast(): void;
+	/** Open the viewer's built-in collaboration sharing dialog. */
+	openShare(): void;
 	destroy(): void;
 }
 
@@ -158,6 +160,7 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		},
 		isAutosaveEnabled: () => autosave.isEnabled(),
 		openBroadcast: () => collabUi.openBroadcast(),
+		openShare: () => collabUi.openShare(),
 		destroy() {
 			unsubscribePresence();
 			collabUi.destroy();

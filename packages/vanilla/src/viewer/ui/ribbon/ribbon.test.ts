@@ -53,6 +53,7 @@ function buildHandlers(): RibbonHandlers {
 			openRecentFile: vi.fn(),
 			createPresentation: vi.fn(),
 			openSettings: vi.fn(),
+			openShare: vi.fn(),
 			openDocumentProperties: vi.fn(),
 			openFontEmbedding: vi.fn(),
 			openDigitalSignatures: vi.fn(),
@@ -77,6 +78,8 @@ function buildHandlers(): RibbonHandlers {
 			openSetUp: vi.fn(),
 			startRehearsal: vi.fn(),
 			openCustomShows: vi.fn(),
+			toggleSubtitles: vi.fn(),
+			openSubtitleSettings: vi.fn(),
 		},
 		insert: fakeActions<RibbonInsertHandlers>(),
 		edit: fakeActions<EditActions>(),
@@ -118,6 +121,20 @@ describe('createRibbon', () => {
 				`[aria-label="${t('pptx.slideShow.fromBeginningTooltip')}"]`,
 			)
 			?.click();
+		Array.from(
+			ribbon.el.querySelectorAll<HTMLButtonElement>(
+				'.pptxv-ribbon-tab-content:not([hidden]) button',
+			),
+		)
+			.find((button) => button.textContent === t('pptx.slideShow.subtitles'))
+			?.click();
+		Array.from(
+			ribbon.el.querySelectorAll<HTMLButtonElement>(
+				'.pptxv-ribbon-tab-content:not([hidden]) button',
+			),
+		)
+			.find((button) => button.textContent === t('pptx.slideShow.subtitleSettings'))
+			?.click();
 		ribbon.el
 			.querySelector<HTMLButtonElement>(`[aria-label="${t('pptx.slideShow.fromCurrentTooltip')}"]`)
 			?.click();
@@ -127,6 +144,14 @@ describe('createRibbon', () => {
 		expect(handlers.slideShow.startFromBeginning).toHaveBeenCalledOnce();
 		expect(handlers.slideShow.startFromCurrent).toHaveBeenCalledOnce();
 		expect(handlers.slideShow.openBroadcast).toHaveBeenCalledOnce();
+		expect(handlers.slideShow.toggleSubtitles).toHaveBeenCalledOnce();
+		expect(handlers.slideShow.openSubtitleSettings).toHaveBeenCalledOnce();
+		ribbon.setSubtitlesVisible(true);
+		expect(
+			ribbon.el
+				.querySelector(`button[aria-label="${t('pptx.slideShow.subtitles')}"]`)
+				?.getAttribute('aria-pressed'),
+		).toBe('true');
 	});
 
 	it('opens language settings and starts recording from either record command', () => {
@@ -196,7 +221,7 @@ describe('createRibbon', () => {
 		expect(backstage?.querySelectorAll('.pptxv-bs-actions svg')).toHaveLength(5);
 	});
 
-	it('opens viewer settings from the File Options card', () => {
+	it('opens viewer settings immediately from File Options', () => {
 		const handlers = buildHandlers();
 		const ribbon = createRibbon(document, createTranslator(), handlers);
 		Array.from(ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab'))
@@ -206,9 +231,40 @@ describe('createRibbon', () => {
 		Array.from(backstage?.querySelectorAll<HTMLButtonElement>('nav button') ?? [])
 			.find((button) => button.textContent?.trim() === 'Options')
 			?.click();
-		Array.from(backstage?.querySelectorAll<HTMLButtonElement>('main button') ?? [])
-			.find((button) => button.textContent === 'Open Options')
-			?.click();
 		expect(handlers.file.openSettings).toHaveBeenCalledOnce();
+	});
+
+	it('opens the collaboration workflow from Share with People', () => {
+		const handlers = buildHandlers();
+		const ribbon = createRibbon(document, createTranslator(), handlers);
+		Array.from(ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab'))
+			.find((button) => button.textContent === 'File')
+			?.click();
+		const backstage = ribbon.el.querySelector<HTMLElement>('.pptxv-backstage');
+		Array.from(backstage?.querySelectorAll<HTMLButtonElement>('nav button') ?? [])
+			.find((button) => button.textContent?.trim() === 'Share')
+			?.click();
+		Array.from(backstage?.querySelectorAll<HTMLButtonElement>('main button') ?? [])
+			.find((button) => button.textContent?.includes('Share with People'))
+			?.click();
+		expect(handlers.file.openShare).toHaveBeenCalledOnce();
+	});
+
+	it('disables editing-only Review and View commands in read-only mode', () => {
+		const t = createTranslator();
+		const ribbon = createRibbon(document, t, buildHandlers());
+		ribbon.setEditable(false);
+		const button = (label: string) =>
+			ribbon.el.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+		expect(button(t('pptx.ribbon.compareTitle'))?.disabled).toBeTruthy();
+		expect(button(t('pptx.master.title'))?.disabled).toBeTruthy();
+		expect(button(t('pptx.ribbon.templatesOff'))?.disabled).toBeTruthy();
+		expect(button(t('pptx.ribbon.eyedropper'))?.disabled).toBeTruthy();
+
+		ribbon.setEditable(true);
+		expect(button(t('pptx.ribbon.compareTitle'))?.disabled).toBeFalsy();
+		expect(button(t('pptx.master.title'))?.disabled).toBeFalsy();
+		expect(button(t('pptx.ribbon.templatesOff'))?.disabled).toBeFalsy();
+		expect(button(t('pptx.ribbon.eyedropper'))?.disabled).toBeFalsy();
 	});
 });

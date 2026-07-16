@@ -25,11 +25,16 @@ export function createRecordTab(
 	return el;
 }
 
+export interface ReviewTab {
+	el: HTMLElement;
+	setEditable(editable: boolean): void;
+}
+
 export function createReviewTab(
 	doc: Document,
 	t: Translator,
 	handlers: RibbonNavHandlers,
-): HTMLElement {
+): ReviewTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 	const accessibility = makeButton(doc, {
 		label: t('pptx.ribbon.accessibilityCheck'),
@@ -76,7 +81,10 @@ export function createReviewTab(
 		spellCheck.btn,
 		language.btn,
 	);
-	return el;
+	return {
+		el,
+		setEditable: (editable) => compare.setDisabled(!editable),
+	};
 }
 
 export function createHelpTab(

@@ -109,5 +109,10 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		if (state.hasMacros !== previous.hasMacros) {
 			chrome.ribbon?.setHasMacros(state.hasMacros);
 		}
+		if (
+			state.presentationProperties.showSubtitles !== previous.presentationProperties.showSubtitles
+		) {
+			chrome.ribbon?.setSubtitlesVisible(Boolean(state.presentationProperties.showSubtitles));
+		}
 	};
 }

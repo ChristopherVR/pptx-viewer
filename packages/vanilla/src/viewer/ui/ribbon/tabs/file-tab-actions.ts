@@ -12,6 +12,7 @@ import {
 	Presentation,
 	Printer,
 	Type,
+	UserPlus,
 	Video,
 } from 'lucide';
 import type { IconNode } from 'lucide';
@@ -86,6 +87,12 @@ export function createFileActionGrid(
 	}
 	if (page === 'share') {
 		grid.append(
+			action(
+				'Share with People',
+				'Invite others to collaborate on this presentation.',
+				UserPlus,
+				handlers.openShare,
+			),
 			action(
 				'Package for Sharing',
 				'Download a self-contained package.',

@@ -6,6 +6,7 @@ import type { RibbonNavHandlers } from '../ribbon-types';
 export interface ViewTab {
 	el: HTMLElement;
 	setTemplateEditing(active: boolean): void;
+	setEditable(editable: boolean): void;
 }
 
 /**
@@ -125,6 +126,11 @@ export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavH
 
 	return {
 		el,
+		setEditable(editable) {
+			templates.setDisabled(!editable);
+			masterView.setDisabled(!editable);
+			eyedropper.setDisabled(!editable);
+		},
 		setTemplateEditing(active) {
 			const label = t(active ? 'pptx.ribbon.templatesOn' : 'pptx.ribbon.templatesOff');
 			templates.btn.textContent = label;

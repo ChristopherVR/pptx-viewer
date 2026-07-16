@@ -5,6 +5,7 @@ import type { RibbonSlideShowHandlers } from '../ribbon-types';
 
 export interface SlideShowTab {
 	el: HTMLElement;
+	setSubtitlesVisible(visible: boolean): void;
 }
 
 /** Compact Slide Show tab using only established viewer actions. */
@@ -53,6 +54,16 @@ export function createSlideShowTab(
 		text: t('pptx.customShows.title'),
 		onClick: handlers.openCustomShows,
 	});
+	const subtitles = makeButton(doc, {
+		label: t('pptx.slideShow.subtitles'),
+		text: t('pptx.slideShow.subtitles'),
+		onClick: handlers.toggleSubtitles,
+	});
+	const subtitleSettings = makeButton(doc, {
+		label: t('pptx.slideShow.subtitleSettings'),
+		text: t('pptx.slideShow.subtitleSettings'),
+		onClick: handlers.openSubtitleSettings,
+	});
 	el.append(
 		fromBeginning.btn,
 		fromCurrent.btn,
@@ -61,6 +72,11 @@ export function createSlideShowTab(
 		rehearse.btn,
 		customShows.btn,
 		broadcast.btn,
+		subtitles.btn,
+		subtitleSettings.btn,
 	);
-	return { el };
+	return {
+		el,
+		setSubtitlesVisible: (visible) => subtitles.setActive(visible),
+	};
 }

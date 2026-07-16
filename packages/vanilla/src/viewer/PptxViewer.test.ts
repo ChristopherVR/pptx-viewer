@@ -169,4 +169,15 @@ describe('createPptxViewer', () => {
 		const editableTextarea = editable.querySelector<HTMLTextAreaElement>('.pptxv-notes-textarea');
 		expect(editableTextarea?.readOnly).toBeFalsy();
 	});
+
+	it('uses the presentation settings and collaboration dialog for ribbon workflows', () => {
+		const { viewer } = mount({ editable: true });
+		const concrete = viewer as PptxViewer;
+		concrete.toggleSubtitles();
+		expect(concrete.store.get().presentationProperties.showSubtitles).toBeTruthy();
+
+		concrete.openShare();
+		expect(document.querySelector<HTMLElement>('.pptxv-modal-backdrop')?.hidden).toBeFalsy();
+		expect(document.querySelector('.pptxv-modal-panel[aria-label="Share"]')).toBeTruthy();
+	});
 });

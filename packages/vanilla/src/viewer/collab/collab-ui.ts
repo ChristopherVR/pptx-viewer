@@ -42,6 +42,8 @@ export interface CollabUiDeps {
 export interface CollabUiController {
 	/** Reflect a connection-status transition (dialogs + status pill). */
 	onStatusChange(status: ConnectionStatus): void;
+	/** Open the existing collaboration sharing dialog from another chrome surface. */
+	openShare(): void;
 	/** Open the existing broadcast dialog from another chrome surface. */
 	openBroadcast(): void;
 	destroy(): void;
@@ -105,6 +107,9 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 	let shareBtn: HTMLButtonElement | null = null;
 	let mobileShareBtn: HTMLButtonElement | null = null;
 	let broadcastBtn: HTMLButtonElement | null = null;
+	const openShare = (): void => {
+		shareDialog.open(deps.shareDefaults, deps.getStatus() !== 'disconnected');
+	};
 	const openBroadcast = (): void => {
 		broadcastDialog.open(
 			{ roomId: broadcastRoomId, serverUrl: broadcastServerUrl },
@@ -121,9 +126,7 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 		shareBtn.title = t('pptx.toolbar.share');
 		shareBtn.setAttribute('aria-label', t('pptx.toolbar.share'));
 		shareBtn.appendChild(createIcon(doc, 'share'));
-		shareBtn.addEventListener('click', () => {
-			shareDialog.open(deps.shareDefaults, deps.getStatus() !== 'disconnected');
-		});
+		shareBtn.addEventListener('click', openShare);
 
 		broadcastBtn = createEl(doc, 'button', 'pptxv-btn');
 		broadcastBtn.type = 'button';
@@ -141,9 +144,7 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 		mobileShareBtn.title = t('pptx.toolbar.share');
 		mobileShareBtn.setAttribute('aria-label', t('pptx.toolbar.share'));
 		mobileShareBtn.appendChild(createIcon(doc, 'share'));
-		mobileShareBtn.addEventListener('click', () => {
-			shareDialog.open(deps.shareDefaults, deps.getStatus() !== 'disconnected');
-		});
+		mobileShareBtn.addEventListener('click', openShare);
 		mobileCollaborationHost.appendChild(mobileShareBtn);
 	}
 
@@ -192,6 +193,7 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 				broadcastDialog.setActive(false, '');
 			}
 		},
+		openShare,
 		openBroadcast,
 		destroy() {
 			unsubscribe();
