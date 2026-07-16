@@ -295,9 +295,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			delete spTree['p:contentPart'];
 		}
 		if (collectors.zooms.length > 0) {
-			spTree['pslz:sldZm'] = collectors.zooms;
+			spTree['pslz:sldZm'] = collectors.zooms.filter((zoom) => zoom['pslz:sldZmObj']);
+			spTree['psezm:sectionZm'] = collectors.zooms.filter((zoom) => zoom['psezm:sectionZmObj']);
 		} else {
 			delete spTree['pslz:sldZm'];
+			delete spTree['psezm:sectionZm'];
 		}
 
 		// Re-wrap `<mc:AlternateContent>` envelopes (CC-4).  Parse merged
@@ -305,7 +307,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// here we lift them back out into their original AC envelope so
 		// legacy renderers (older Office, LibreOffice) keep their fallback.
 		this.reapplyAlternateContentEnvelopes(spTree, collectors);
-		this.wrapNewSlideZoomEnvelopes(spTree, collectors.zooms);
+		this.wrapNewZoomEnvelopes(spTree, collectors.zooms);
 
 		// Validate and deduplicate shape IDs to prevent MS Office corruption
 		const reassigned = shapeIdValidator.validateAndDeduplicateIds(spTree, (v) =>
@@ -411,7 +413,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// AC pathway in OpenXML decks frequently uses Choice = p16:model3D
 			// + Fallback = p:pic, so map it for completeness.
 			'p16:model3D': collectors.model3ds as XmlObject[],
-			'pslz:sldZm': collectors.zooms as XmlObject[],
 		};
 
 		// Walk every collected node and find which ones are AC-backed.  Group
@@ -437,6 +438,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 				entries.push({ tag, node, collector });
 			}
+		}
+		for (const node of collectors.zooms) {
+			const block = this.alternateContentBlockByRawXml.get(node);
+			if (!block) {
+				continue;
+			}
+			const tag = node['psezm:sectionZmObj'] ? 'psezm:sectionZm' : 'pslz:sldZm';
+			let entries = blockGroups.get(block);
+			if (!entries) {
+				entries = [];
+				blockGroups.set(block, entries);
+			}
+			entries.push({ tag, node, collector: collectors.zooms as XmlObject[] });
 		}
 
 		if (blockGroups.size === 0) {
@@ -528,9 +542,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			delete spTree['p16:model3D'];
 		}
 		if (collectors.zooms.length > 0) {
-			spTree['pslz:sldZm'] = collectors.zooms;
+			spTree['pslz:sldZm'] = collectors.zooms.filter((zoom) => zoom['pslz:sldZmObj']);
+			spTree['psezm:sectionZm'] = collectors.zooms.filter((zoom) => zoom['psezm:sectionZmObj']);
 		} else {
 			delete spTree['pslz:sldZm'];
+			delete spTree['psezm:sectionZm'];
 		}
 
 		// Append the rebuilt envelopes.

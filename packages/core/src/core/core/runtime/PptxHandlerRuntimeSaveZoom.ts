@@ -4,11 +4,12 @@ import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding'
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveInk';
 
 const SLIDE_ZOOM_NAMESPACE = 'http://schemas.microsoft.com/office/powerpoint/2016/slidezoom';
+const SECTION_ZOOM_NAMESPACE = 'http://schemas.microsoft.com/office/powerpoint/2016/sectionzoom';
 const POWERPOINT_2016_NAMESPACE = 'http://schemas.microsoft.com/office/powerpoint/2016/6/main';
 const MC_NAMESPACE = 'http://schemas.openxmlformats.org/markup-compatibility/2006';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
-	private readonly newZoomFallbackByXml = new Map<XmlObject, XmlObject>();
+	protected readonly newZoomFallbackByXml = new Map<XmlObject, XmlObject>();
 
 	/** Update an existing slide Zoom or build a new Office 2016 Zoom node. */
 	protected createOrUpdateSlideZoomXml(
@@ -45,21 +46,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/** Wrap SDK-created Zoom nodes in their required Choice/Fallback envelope. */
-	protected wrapNewSlideZoomEnvelopes(spTree: XmlObject, zooms: readonly XmlObject[]): void {
+	protected wrapNewZoomEnvelopes(spTree: XmlObject, zooms: readonly XmlObject[]): void {
 		const newEnvelopes: XmlObject[] = [];
 		for (const zoom of zooms) {
 			const fallback = this.newZoomFallbackByXml.get(zoom);
 			if (!fallback || this.alternateContentBlockByRawXml.has(zoom)) {
 				continue;
 			}
+			const sectionZoom = Boolean(zoom['psezm:sectionZmObj']);
+			const prefix = sectionZoom ? 'psezm' : 'pslz';
+			const tag = sectionZoom ? 'psezm:sectionZm' : 'pslz:sldZm';
+			const choice: XmlObject = {
+				'@_Requires': prefix,
+				'@_xmlns:p166': POWERPOINT_2016_NAMESPACE,
+			};
+			choice[`@_xmlns:${prefix}`] = sectionZoom ? SECTION_ZOOM_NAMESPACE : SLIDE_ZOOM_NAMESPACE;
+			choice[tag] = zoom;
 			newEnvelopes.push({
 				'@_xmlns:mc': MC_NAMESPACE,
-				'mc:Choice': {
-					'@_Requires': 'pslz',
-					'@_xmlns:pslz': SLIDE_ZOOM_NAMESPACE,
-					'@_xmlns:p166': POWERPOINT_2016_NAMESPACE,
-					'pslz:sldZm': zoom,
-				},
+				'mc:Choice': choice,
 				'mc:Fallback': { 'p:pic': fallback },
 			});
 		}
@@ -67,6 +72,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return;
 		}
 		delete spTree['pslz:sldZm'];
+		delete spTree['psezm:sectionZm'];
 		const existing = this.ensureArray(spTree['mc:AlternateContent']) as XmlObject[];
 		spTree['mc:AlternateContent'] = [...existing, ...newEnvelopes];
 	}
@@ -79,7 +85,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return value === undefined ? undefined : String(value);
 	}
 
-	private ensureZoomShapeId(el: ZoomPptxElement, ctx: SaveSlideContext): void {
+	protected ensureZoomShapeId(el: ZoomPptxElement, ctx: SaveSlideContext): void {
 		if (el.shapeId !== undefined) {
 			return;
 		}
@@ -95,12 +101,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		el.shapeId = String(max + 1);
 	}
 
-	private ensureZoomPreviewRelationship(
+	protected ensureZoomPreviewRelationship(
 		el: ZoomPptxElement,
 		shape: XmlObject | undefined,
 		ctx: SaveSlideContext,
 	): string | undefined {
-		const zoomProperties = (shape?.['pslz:sldZmObj'] as XmlObject | undefined)?.['pslz:zmPr'] as
+		const slideZoomObject = shape?.['pslz:sldZmObj'] as XmlObject | undefined;
+		const sectionZoomObject = shape?.['psezm:sectionZmObj'] as XmlObject | undefined;
+		const zoomProperties = (slideZoomObject?.['pslz:zmPr'] ?? sectionZoomObject?.['psezm:zmPr']) as
 			| XmlObject
 			| undefined;
 		const blip = (zoomProperties?.['p166:blipFill'] as XmlObject | undefined)?.['a:blip'] as
@@ -147,14 +155,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		};
 	}
 
-	private buildZoomBlipFill(relationshipId: string | undefined): XmlObject {
+	protected buildZoomBlipFill(relationshipId: string | undefined): XmlObject {
 		return {
 			'a:blip': relationshipId ? { '@_r:embed': relationshipId } : {},
 			'a:stretch': { 'a:fillRect': {} },
 		};
 	}
 
-	private buildZoomShapeProperties(el: ZoomPptxElement): XmlObject {
+	protected buildZoomShapeProperties(el: ZoomPptxElement): XmlObject {
 		const result: XmlObject = {
 			'a:xfrm': {},
 			'a:prstGeom': { '@_prst': 'rect', 'a:avLst': {} },
@@ -163,7 +171,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return result;
 	}
 
-	private applyZoomTransform(shapeProperties: XmlObject, el: ZoomPptxElement): void {
+	protected applyZoomTransform(shapeProperties: XmlObject, el: ZoomPptxElement): void {
 		const emu = PptxHandlerRuntime.EMU_PER_PX;
 		const transform = (shapeProperties['a:xfrm'] ??= {}) as XmlObject;
 		transform['a:off'] = {
@@ -189,7 +197,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 	}
 
-	private applyZoomBlipRelationship(
+	protected applyZoomBlipRelationship(
 		zoomProperties: XmlObject,
 		relationshipId: string | undefined,
 	): void {
@@ -201,7 +209,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		blip['@_r:embed'] = relationshipId;
 	}
 
-	private updateZoomFallback(
+	protected updateZoomFallback(
 		shape: XmlObject,
 		el: ZoomPptxElement,
 		relationshipId: string | undefined,
@@ -221,7 +229,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 	}
 
-	private buildZoomFallbackPicture(
+	protected buildZoomFallbackPicture(
 		el: ZoomPptxElement,
 		relationshipId: string | undefined,
 	): XmlObject {

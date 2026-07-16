@@ -1,7 +1,7 @@
 import { XmlObject, PlaceholderDefaults, PlaceholderTextLevelStyle } from '../../types';
 import { xmlPath } from '../../utils/xml-access';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSectionZoomParsing';
 import type { PlaceholderInfo, PlaceholderLookupContext } from './PptxHandlerRuntimeTypes';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeZoomParsing';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected findPlaceholderInShapeTree(

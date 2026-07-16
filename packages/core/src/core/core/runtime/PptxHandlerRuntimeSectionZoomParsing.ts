@@ -1,5 +1,6 @@
 import type { PptxElement, XmlObject, ZoomPptxElement } from '../../types';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeElementParsing';
+import { extractSectionMap } from '../../utils/presentation-section-parser';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeZoomParsing';
 
 function readBoolean(value: unknown): boolean | undefined {
 	if (value === undefined) {
@@ -9,21 +10,26 @@ function readBoolean(value: unknown): boolean | undefined {
 }
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
-	/** Parse an Office 2016 `pslz:sldZm` slide Zoom object. */
-	protected async parseSlideZoomElement(
+	/** Parse an Office 2016 `psezm:sectionZm` section Zoom object. */
+	protected async parseSectionZoomElement(
 		zoom: XmlObject,
 		id: string,
 		slidePath: string,
 	): Promise<PptxElement | null> {
 		try {
-			const zoomObject = zoom['pslz:sldZmObj'] as XmlObject | undefined;
-			const zoomProperties = zoomObject?.['pslz:zmPr'] as XmlObject | undefined;
+			const zoomObject = zoom['psezm:sectionZmObj'] as XmlObject | undefined;
+			const sectionId = String(zoomObject?.['@_sectionId'] ?? '').trim();
+			const section = extractSectionMap(
+				this.presentationData,
+				this.xmlLookupService,
+			).orderedSections.find((item) => item.id === sectionId);
+			const targetSlideIndex = this.findSlideIndexByNumericId(section?.slideIds[0]);
+			const zoomProperties = zoomObject?.['psezm:zmPr'] as XmlObject | undefined;
 			const shapeProperties = zoomProperties?.['p166:spPr'] as XmlObject | undefined;
 			const transform = shapeProperties?.['a:xfrm'] as XmlObject | undefined;
 			const offset = transform?.['a:off'] as XmlObject | undefined;
 			const extent = transform?.['a:ext'] as XmlObject | undefined;
-			const targetSlideIndex = this.findSlideIndexByNumericId(zoomObject?.['@_sldId']);
-			if (!zoomObject || !zoomProperties || !offset || !extent || targetSlideIndex < 0) {
+			if (!sectionId || !zoomProperties || !offset || !extent || targetSlideIndex < 0) {
 				return null;
 			}
 
@@ -46,7 +52,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const result: ZoomPptxElement = {
 				id,
 				type: 'zoom',
-				zoomType: 'slide',
+				zoomType: 'section',
+				targetSectionId: sectionId,
 				targetSlideIndex,
 				x: Number(offset['@_x'] ?? 0) / emu,
 				y: Number(offset['@_y'] ?? 0) / emu,
@@ -62,16 +69,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			};
 			return result;
 		} catch (error) {
-			console.warn('Skipping malformed slide Zoom element:', error);
+			console.warn('Skipping malformed section Zoom element:', error);
 			return null;
 		}
-	}
-
-	protected findSlideIndexByNumericId(value: unknown): number {
-		const presentation = this.presentationData?.['p:presentation'] as XmlObject | undefined;
-		const list = presentation?.['p:sldIdLst'] as XmlObject | undefined;
-		const entries = this.ensureArray(list?.['p:sldId']) as XmlObject[];
-		const target = String(value ?? '').trim();
-		return entries.findIndex((entry) => String(entry['@_id'] ?? '').trim() === target);
 	}
 }

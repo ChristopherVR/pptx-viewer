@@ -20,6 +20,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		'p:contentPart',
 		'p16:model3D',
 		'pslz:sldZm',
+		'psezm:sectionZm',
 		...VML_SHAPE_TAGS,
 	]);
 
@@ -325,6 +326,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			'p:contentPart',
 			'p16:model3D',
 			'pslz:sldZm',
+			'psezm:sectionZm',
 			...VML_SHAPE_TAGS,
 		];
 		for (const tag of tags) {
@@ -384,6 +386,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return this.parseModel3DElement(node, `${idPrefix}model3d-${indexInType}`, slidePath);
 			case 'pslz:sldZm':
 				return this.parseSlideZoomElement(node, `${idPrefix}zoom-${indexInType}`, slidePath);
+			case 'psezm:sectionZm':
+				return this.parseSectionZoomElement(node, `${idPrefix}zoom-${indexInType}`, slidePath);
 			default:
 				// Handle VML legacy shape tags
 				if (VML_SHAPE_TAGS.has(tag)) {
