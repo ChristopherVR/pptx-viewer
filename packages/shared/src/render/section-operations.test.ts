@@ -5,12 +5,44 @@ import {
 	addSection,
 	deleteSection,
 	generateSectionId,
+	groupSlidesBySection,
 	moveSectionDown,
 	moveSectionUp,
 	moveSlidesToSection,
 	renameSection,
 	resolveSlideId,
 } from './section-operations';
+
+describe('groupSlidesBySection', () => {
+	it('uses declared section order and appends ungrouped slides', () => {
+		const sections: PptxSection[] = [
+			{ id: '{A}', name: 'A', slideIds: ['1'] },
+			{ id: '{B}', name: 'B', slideIds: ['2'] },
+		];
+		const slides = [slide(1, '{B}'), slide(2), slide(3, '{A}')];
+
+		const groups = groupSlidesBySection(sections, slides);
+
+		expect(groups.map((group) => group.section?.id)).toStrictEqual(['{A}', '{B}', undefined]);
+		expect(groups.map((group) => group.slideIndexes)).toStrictEqual([[2], [0], [1]]);
+	});
+
+	it('omits empty sections and treats unknown section ids as ungrouped', () => {
+		const sections: PptxSection[] = [{ id: '{A}', name: 'A', slideIds: [] }];
+		const slides = [slide(1, '{UNKNOWN}')];
+
+		expect(groupSlidesBySection(sections, slides)).toStrictEqual([
+			{ section: undefined, slides, slideIndexes: [0] },
+		]);
+	});
+
+	it('returns one ungrouped group when no sections are declared', () => {
+		const slides = [slide(1), slide(2)];
+		expect(groupSlidesBySection([], slides)).toStrictEqual([
+			{ section: undefined, slides, slideIndexes: [0, 1] },
+		]);
+	});
+});
 
 function slide(n: number, sectionId?: string, sectionName?: string): PptxSlide {
 	return {

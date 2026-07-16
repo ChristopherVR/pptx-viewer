@@ -25,6 +25,13 @@ export interface SectionMutationResult {
 	slides: PptxSlide[];
 }
 
+/** A declared section paired with its slides, or the trailing ungrouped slides. */
+export interface SectionSlideGroup {
+	section: PptxSection | undefined;
+	slides: PptxSlide[];
+	slideIndexes: number[];
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -50,6 +57,46 @@ export function resolveSlideId(slide: PptxSlide | undefined, index: number): str
 	const rawXml = slide?.rawXml as Record<string, unknown> | undefined;
 	const cSld = rawXml?.['p:sld'] as Record<string, unknown> | undefined;
 	return String(cSld?.['@_id'] || slide?.slideNumber || index + 1);
+}
+
+/**
+ * Group slides in declared section order, followed by slides without a known
+ * section. Empty declared sections are omitted, matching React's sidebar.
+ */
+export function groupSlidesBySection(
+	sections: readonly PptxSection[],
+	slides: readonly PptxSlide[],
+): SectionSlideGroup[] {
+	if (slides.length === 0) {
+		return [];
+	}
+	if (sections.length === 0) {
+		return [
+			{ section: undefined, slides: [...slides], slideIndexes: slides.map((_slide, i) => i) },
+		];
+	}
+
+	const sectionById = new Map(sections.map((section) => [section.id, section]));
+	const grouped = new Map<string, SectionSlideGroup>();
+	const ungrouped: SectionSlideGroup = { section: undefined, slides: [], slideIndexes: [] };
+	for (const section of sections) {
+		grouped.set(section.id, { section, slides: [], slideIndexes: [] });
+	}
+
+	slides.forEach((slide, index) => {
+		const group = slide.sectionId ? grouped.get(slide.sectionId) : undefined;
+		const target = group && sectionById.has(slide.sectionId ?? '') ? group : ungrouped;
+		target.slides.push(slide);
+		target.slideIndexes.push(index);
+	});
+
+	const result = sections
+		.map((section) => grouped.get(section.id)!)
+		.filter((group) => group.slides.length > 0);
+	if (ungrouped.slides.length > 0) {
+		result.push(ungrouped);
+	}
+	return result;
 }
 
 // ---------------------------------------------------------------------------
