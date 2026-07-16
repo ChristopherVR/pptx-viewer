@@ -1,4 +1,5 @@
 import type { OpenXmlCoverageFacets } from './openxml-coverage';
+import { testEvidence } from './openxml-coverage-evidence';
 
 const overrides: Record<string, OpenXmlCoverageFacets> = {};
 
@@ -14,6 +15,12 @@ assign(['presentation:complexType:CT_SlideTransition', 'presentation:element:tra
 	edit: 'partial',
 	serialize: 'partial',
 	note: 'Transition timing, speed, effects, and sound actions are typed; extension effects remain partial.',
+	evidence: [
+		testEvidence('src/__tests__/integration/slide-transition-conformance-roundtrip.test.ts', [
+			'generates and reloads typed speed, timing, and start-sound options',
+			'preserves unknown transition markup through a dirty edit and reload',
+		]),
+	],
 });
 
 assign(
@@ -31,6 +38,11 @@ assign(
 		edit: 'native',
 		serialize: 'native',
 		note: 'Typed and validated transition speed and sound-action support.',
+		evidence: [
+			testEvidence('src/__tests__/integration/slide-transition-conformance-roundtrip.test.ts', [
+				'generates and reloads typed speed, timing, and start-sound options',
+			]),
+		],
 	},
 );
 
@@ -56,6 +68,16 @@ assign(
 		edit: 'native',
 		serialize: 'native',
 		note: 'Typed scene geometry or embedded transition sound with lossless unknown XML preservation.',
+		evidence: [
+			testEvidence('src/core/utils/text-body-scene3d.test.ts', [
+				'parses all typed camera, light-rig, and backdrop fields with alternate prefixes',
+				'applies edits while preserving prefixes, unknown attributes, and extLst',
+				'creates a schema-ordered scene and complete backdrop from typed data',
+			]),
+			testEvidence('src/__tests__/integration/slide-transition-conformance-roundtrip.test.ts', [
+				'generates and reloads typed speed, timing, and start-sound options',
+			]),
+		],
 	},
 );
 
@@ -65,6 +87,11 @@ assign(['chart:complexType:CT_DTable', 'chart:element:dTable'], {
 	edit: 'partial',
 	serialize: 'partial',
 	note: 'Data-table visibility options are typed; shape and text formatting remain preserved XML.',
+	evidence: [
+		testEvidence('src/__tests__/integration/chart-data-table-roundtrip.test.ts', [
+			'generates, parses, edits, and removes c:dTable through save cycles',
+		]),
+	],
 });
 
 assign(
@@ -80,6 +107,11 @@ assign(
 		edit: 'native',
 		serialize: 'native',
 		note: 'Typed ChartML CT_Boolean data-table option support.',
+		evidence: [
+			testEvidence('src/__tests__/integration/chart-data-table-roundtrip.test.ts', [
+				'generates, parses, edits, and removes c:dTable through save cycles',
+			]),
+		],
 	},
 );
 

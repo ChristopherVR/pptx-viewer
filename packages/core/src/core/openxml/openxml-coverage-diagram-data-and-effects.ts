@@ -1,4 +1,5 @@
 import type { OpenXmlCoverageFacets } from './openxml-coverage';
+import { testEvidence } from './openxml-coverage-evidence';
 
 const overrides: Record<string, OpenXmlCoverageFacets> = {};
 
@@ -27,6 +28,13 @@ assign(
 		edit: 'partial',
 		serialize: 'partial',
 		note: 'Core SmartArt point and connection identifiers are typed; unknown data-model XML is preserved.',
+		evidence: [
+			testEvidence('src/core/core/runtime/smartart-data-model-attributes.test.ts', [
+				'parses core identifiers and relationships',
+				'edits typed attributes while preserving unknown XML and extLst',
+				'accepts a valid core point and connection graph',
+			]),
+		],
 	},
 );
 
@@ -45,6 +53,12 @@ assign(
 		edit: 'partial',
 		serialize: 'partial',
 		note: 'Outer shadow and glow are typed with lossless effect-list and color-transform preservation.',
+		evidence: [
+			testEvidence('src/core/core/builders/effect-list-roundtrip.test.ts', [
+				'extracts outer shadow and glow from an alternate DrawingML prefix',
+				'surgically edits modeled effects without dropping transforms or extensions',
+			]),
+		],
 	},
 );
 

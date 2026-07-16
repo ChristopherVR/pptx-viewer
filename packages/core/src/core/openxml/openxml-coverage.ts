@@ -3,6 +3,7 @@ import { OPENXML_COLORS_SHOWS_AND_LABELS_COVERAGE } from './openxml-coverage-col
 import { OPENXML_COMMENTS_ANALYSIS_AND_FILLS_COVERAGE } from './openxml-coverage-comments-analysis-and-fills';
 import { OPENXML_DIAGRAM_DATA_AND_EFFECTS_COVERAGE } from './openxml-coverage-diagram-data-and-effects';
 import { OPENXML_EFFECT_DAGS_AXIS_LABELS_AND_DIAGRAM_STYLES_COVERAGE } from './openxml-coverage-effect-dags-axis-labels-and-diagram-styles';
+import { testEvidence } from './openxml-coverage-evidence';
 import { OPENXML_TRANSITIONS_SCENES_AND_CHART_TABLES_COVERAGE } from './openxml-coverage-transitions-scenes-and-chart-tables';
 import { OPENXML_VIEW_IMAGE_AND_CHART_POINT_FORMATTING_COVERAGE } from './openxml-coverage-view-image-and-chart-point-formatting';
 import {
@@ -18,6 +19,17 @@ export type OpenXmlCoverageLevel =
 	| 'unsupported'
 	| 'unassessed';
 
+export type OpenXmlCoverageFacet = 'parse' | 'preserve' | 'edit' | 'serialize';
+
+export interface OpenXmlCoverageEvidence {
+	/** Test file relative to packages/core. */
+	test: string;
+	/** Exact test-name fragments that must remain present in the referenced file. */
+	anchors: readonly string[];
+	/** Coverage facets exercised by the referenced scenarios. */
+	facets: readonly OpenXmlCoverageFacet[];
+}
+
 export interface OpenXmlConstructCoverage {
 	id: string;
 	vocabulary: 'presentation' | 'drawing' | 'chart' | 'diagram';
@@ -29,6 +41,7 @@ export interface OpenXmlConstructCoverage {
 	edit: OpenXmlCoverageLevel;
 	serialize: OpenXmlCoverageLevel;
 	note?: string;
+	evidence: readonly OpenXmlCoverageEvidence[];
 }
 
 export type OpenXmlVocabulary = OpenXmlConstructCoverage['vocabulary'];
@@ -43,6 +56,7 @@ export type OpenXmlCoverageFacets = Pick<
 	'parse' | 'preserve' | 'edit' | 'serialize'
 > & {
 	note?: string;
+	evidence: readonly OpenXmlCoverageEvidence[];
 };
 
 const UNASSESSED: OpenXmlCoverageFacets = {
@@ -50,6 +64,7 @@ const UNASSESSED: OpenXmlCoverageFacets = {
 	preserve: 'unassessed',
 	edit: 'unassessed',
 	serialize: 'unassessed',
+	evidence: [],
 };
 
 /**
@@ -70,6 +85,18 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		edit: 'native',
 		serialize: 'native',
 		note: 'Typed title, plot-area, and legend manual layout support.',
+		evidence: [
+			testEvidence(
+				'src/core/utils/chart-axis-parser.test.ts',
+				['parses display-unit label text, manual layout, and shape properties'],
+				['parse'],
+			),
+			testEvidence(
+				'src/core/utils/chart-axis-dispunits-serializer.test.ts',
+				['edits label text, layout, and shape properties in schema order'],
+				['preserve', 'edit', 'serialize'],
+			),
+		],
 	},
 	'chart:complexType:CT_Layout': {
 		parse: 'partial',
@@ -77,6 +104,18 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		edit: 'partial',
 		serialize: 'partial',
 		note: 'Manual layout is typed; extension-list content is passthrough only.',
+		evidence: [
+			testEvidence(
+				'src/core/utils/chart-axis-parser.test.ts',
+				['parses display-unit label text, manual layout, and shape properties'],
+				['parse'],
+			),
+			testEvidence(
+				'src/core/utils/chart-axis-dispunits-serializer.test.ts',
+				['retains extension and unmodeled XML during a dirty write'],
+				['preserve', 'edit', 'serialize'],
+			),
+		],
 	},
 	'chart:complexType:CT_BubbleChart': {
 		parse: 'partial',
@@ -84,6 +123,12 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		edit: 'partial',
 		serialize: 'partial',
 		note: 'Display options are typed; series and extensions have separate capability entries.',
+		evidence: [
+			testEvidence('src/core/utils/chart-bubble-options.test.ts', [
+				'parses Strict and Transitional values plus defaults',
+				'preserves unknown attributes and follows CT_BubbleChart order',
+			]),
+		],
 	},
 	'chart:complexType:CT_LegendEntry': {
 		parse: 'partial',
@@ -91,6 +136,12 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		edit: 'partial',
 		serialize: 'partial',
 		note: 'Index, delete, and common txPr defaults are typed; extensions remain passthrough.',
+		evidence: [
+			testEvidence('src/core/utils/chart-legend-entry.test.ts', [
+				'parses delete values and the CT_Boolean default',
+				'edits an entry while preserving its extension list',
+			]),
+		],
 	},
 	'chart:group:EG_LegendEntryData': {
 		parse: 'partial',
@@ -98,6 +149,12 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		edit: 'partial',
 		serialize: 'partial',
 		note: 'Common text defaults are typed; the full DrawingML text body remains passthrough.',
+		evidence: [
+			testEvidence('src/core/utils/chart-legend-entry.test.ts', [
+				'parses common DrawingML text defaults',
+				'adds a hidden entry to a newly created legend',
+			]),
+		],
 	},
 	'chart:complexType:CT_UpDownBars': {
 		parse: 'partial',
@@ -105,6 +162,12 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		edit: 'partial',
 		serialize: 'partial',
 		note: 'Gap width and common up/down bar shape properties are typed; extensions are passthrough.',
+		evidence: [
+			testEvidence('src/core/utils/chart-up-down-bars.test.ts', [
+				'parses gap width and both shape-property branches',
+				'updates formatting while preserving unsupported children',
+			]),
+		],
 	},
 	'chart:complexType:CT_UpDownBar': {
 		parse: 'partial',
@@ -112,6 +175,12 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		edit: 'partial',
 		serialize: 'partial',
 		note: 'Common fill and line properties are typed; other DrawingML shape properties are passthrough.',
+		evidence: [
+			testEvidence('src/core/utils/chart-up-down-bars.test.ts', [
+				'updates formatting while preserving unsupported children',
+				'emits up/down bars for a generated line chart',
+			]),
+		],
 	},
 };
 
@@ -133,6 +202,14 @@ for (const id of [
 		edit: 'native',
 		serialize: 'native',
 		note: 'Typed classic bubble-chart option support.',
+		evidence: [
+			testEvidence('src/core/utils/chart-bubble-options.test.ts', [
+				'parses Strict and Transitional values plus defaults',
+				'preserves unknown attributes and follows CT_BubbleChart order',
+				'rejects an out-of-range scale',
+				'emits options for a generated bubble chart',
+			]),
+		],
 	};
 }
 

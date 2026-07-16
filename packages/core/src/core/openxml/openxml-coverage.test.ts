@@ -1,3 +1,7 @@
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { dirname, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -10,6 +14,9 @@ import {
 	summarizeOpenXmlCoverage,
 	summarizeOpenXmlCoverageByVocabulary,
 } from './index';
+
+const CORE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+const SOURCE_ROOT = realpathSync(resolve(CORE_ROOT, 'src'));
 
 describe('open XML schema coverage inventory', () => {
 	it('contains unique named declarations from both conformance classes', () => {
@@ -251,5 +258,46 @@ describe('open XML schema coverage inventory', () => {
 		);
 		expect(assessed.length).toBeGreaterThanOrEqual(17);
 		expect(assessed.every((entry) => Boolean(entry.note))).toBeTruthy();
+	});
+
+	it('requires anchored test evidence for every assessed facet', () => {
+		const sourceCache = new Map<string, string>();
+		for (const entry of OPENXML_COVERAGE) {
+			const assessedFacets = (['parse', 'preserve', 'edit', 'serialize'] as const).filter(
+				(facet) => entry[facet] !== 'unassessed',
+			);
+			if (assessedFacets.length === 0) {
+				expect(entry.evidence, `${entry.id} is unassessed`).toHaveLength(0);
+				continue;
+			}
+
+			expect(entry.evidence.length, `${entry.id} has no test evidence`).toBeGreaterThan(0);
+			for (const facet of assessedFacets) {
+				expect(
+					entry.evidence.some((item) => item.facets.includes(facet)),
+					`${entry.id} has no evidence for ${facet}`,
+				).toBeTruthy();
+			}
+
+			for (const evidence of entry.evidence) {
+				expect(evidence.test.endsWith('.test.ts'), `${entry.id}: ${evidence.test}`).toBeTruthy();
+				const testPath = resolve(CORE_ROOT, evidence.test);
+				expect(existsSync(testPath), `${entry.id}: missing ${evidence.test}`).toBeTruthy();
+				const realTestPath = realpathSync(testPath);
+				expect(
+					realTestPath.startsWith(`${SOURCE_ROOT}${sep}`),
+					`${entry.id}: evidence escapes the source test tree`,
+				).toBeTruthy();
+				expect(
+					evidence.anchors.length,
+					`${entry.id}: evidence has no test anchors`,
+				).toBeGreaterThan(0);
+				const source = sourceCache.get(realTestPath) ?? readFileSync(realTestPath, 'utf8');
+				sourceCache.set(realTestPath, source);
+				for (const anchor of evidence.anchors) {
+					expect(source, `${entry.id}: stale test anchor "${anchor}"`).toContain(anchor);
+				}
+			}
+		}
 	});
 });

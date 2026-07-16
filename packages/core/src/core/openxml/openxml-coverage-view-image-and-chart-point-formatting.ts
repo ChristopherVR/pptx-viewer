@@ -1,4 +1,5 @@
 import type { OpenXmlCoverageFacets } from './openxml-coverage';
+import { testEvidence } from './openxml-coverage-evidence';
 
 const overrides: Record<string, OpenXmlCoverageFacets> = {};
 
@@ -26,6 +27,13 @@ assign(
 		edit: 'native',
 		serialize: 'native',
 		note: 'Common view geometry, guide lists, and grid spacing are typed, validated, and prefix-independent.',
+		evidence: [
+			testEvidence('src/core/core/runtime/pptx-view-props-geometry.test.ts', [
+				'parses Strict markup by local name with common-view nesting',
+				'applies typed edits over raw custom-prefix XML and preserves extensions',
+				'rejects invalid generated dimensions and ratios',
+			]),
+		],
 	},
 );
 
@@ -46,6 +54,13 @@ assign(
 		edit: 'partial',
 		serialize: 'partial',
 		note: 'Image color choices and transforms round-trip losslessly; edited colors serialize through canonical sRGB choices.',
+		evidence: [
+			testEvidence('src/core/core/runtime/image-color-effects.test.ts', [
+				'parses all five primitives independently of namespace prefix',
+				'round-trips untouched color choices, transforms, extensions, and prefixes',
+				'merges edits while retaining unknown XML and schema-last extLst',
+			]),
+		],
 	},
 );
 
@@ -62,6 +77,13 @@ assign(
 		edit: 'native',
 		serialize: 'native',
 		note: 'Grayscale and validated bi-level image effects are typed with foreign XML preservation.',
+		evidence: [
+			testEvidence('src/core/core/runtime/image-color-effects.test.ts', [
+				'parses all five primitives independently of namespace prefix',
+				'merges edits while retaining unknown XML and schema-last extLst',
+				'inserts newly authored effects before extLst and removes cleared effects',
+			]),
+		],
 	},
 );
 
@@ -78,6 +100,11 @@ assign(
 		edit: 'partial',
 		serialize: 'partial',
 		note: 'Marker and data-point fields are typed while shape, picture, and extension payloads remain losslessly preserved.',
+		evidence: [
+			testEvidence('src/__tests__/integration/chart-marker-datapoint-roundtrip.test.ts', [
+				'generates, parses, edits, and dirty-saves marker and bubble properties',
+			]),
+		],
 	},
 );
 
@@ -94,6 +121,15 @@ assign(
 		edit: 'native',
 		serialize: 'native',
 		note: 'Chart marker styles and sizes are typed and schema-range validated.',
+		evidence: [
+			testEvidence('src/core/utils/chart-marker-serializer.test.ts', [
+				'updates an existing marker in place',
+				'rejects marker sizes outside the ST_MarkerSize range',
+			]),
+			testEvidence('src/core/utils/chart-datapoint-serializer.test.ts', [
+				'writes marker and bubble3D in CT_DPt schema order while preserving extensions',
+			]),
+		],
 	},
 );
 
