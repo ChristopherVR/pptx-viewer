@@ -217,6 +217,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		);
 		await this.processPendingChartUpdates();
 		await this.ensureChartPartContentTypes();
+		await this.ensureOleEmbeddingContentTypes();
 		await this.ensureDiagramPartContentTypes();
 		await this.processPendingSmartArtUpdates();
 		this.applyCustomXmlPartsPreservation();

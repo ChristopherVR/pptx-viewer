@@ -42,6 +42,50 @@ describe('oLE element save round-trip (CH-H1)', () => {
 		expect(slideXml).toContain('Excel.Sheet.12');
 	});
 
+	it('authors the embedded payload, relationship, and content type', async () => {
+		const payload = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x11, 0x22]);
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		const ole: OlePptxElement = {
+			id: 'ole-authored-payload',
+			type: 'ole',
+			x: 20,
+			y: 30,
+			width: 320,
+			height: 200,
+			oleProgId: 'Excel.Sheet.12',
+			oleObjectType: 'excel',
+			oleFileExtension: 'xlsx',
+			oleEmbeddedFileName: 'budget.xlsx',
+			oleEmbeddedMimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			oleEmbeddedData: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(payload).toString('base64')}`,
+		};
+		data.slides.push(createSlide('Blank').addElement(ole).build());
+
+		const saved = await handler.save(data.slides);
+		const zip = await JSZip.loadAsync(saved);
+		const embeddingPath = Object.keys(zip.files).find((path) =>
+			/^ppt\/embeddings\/oleObject\d+\.xlsx$/u.test(path),
+		);
+		expect(embeddingPath).toBeDefined();
+		await expect(zip.file(embeddingPath!)!.async('uint8array')).resolves.toStrictEqual(payload);
+
+		const rels = await zip.file('ppt/slides/_rels/slide1.xml.rels')!.async('string');
+		expect(rels).toContain('relationships/oleObject');
+		expect(rels).toContain(`../embeddings/${embeddingPath!.split('/').pop()}`);
+		const contentTypes = await zip.file('[Content_Types].xml')!.async('string');
+		expect(contentTypes).toContain(`PartName="/${embeddingPath}"`);
+		expect(contentTypes).toContain(ole.oleEmbeddedMimeType!);
+
+		const reloader = new PptxHandler();
+		const reloaded = await reloader.load(saved.buffer as ArrayBuffer);
+		const reloadedOle = reloaded.slides[0].elements.find(
+			(element): element is OlePptxElement => element.type === 'ole',
+		);
+		expect(reloadedOle?.oleTarget).toContain('.xlsx');
+		expect(reloadedOle?.oleEmbeddedByteSize).toBe(payload.length);
+		expect(reloadedOle?.oleEmbeddedData).toBe(ole.oleEmbeddedData);
+	});
+
 	it('oLE element loaded from rawXml round-trips with progId / name preserved', async () => {
 		// 1. Build a minimal package containing a single slide with an OLE
 		//    graphic frame and a stub `oleObject1.bin` so the embed rel

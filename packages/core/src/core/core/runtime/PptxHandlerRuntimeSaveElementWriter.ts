@@ -15,8 +15,8 @@ import { buildChartColorStyleXml } from '../../utils/chart-color-style-writer';
 import { buildChartSpaceXml } from '../../utils/chart-xml-generator';
 import { BLIP_FILL_ORDER, SP_PR_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveOleEmbedding';
 import { CHART_CONTENT_TYPE, CHART_RELATIONSHIP_TYPE } from './PptxHandlerRuntimeSaveShapeXml';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveSmartArtFabrication';
 
 export type { SaveSlideContext };
 
@@ -370,10 +370,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (shape) {
 				this.applyOleTypedFieldUpdates(shape, oleEl);
 			} else {
-				const embedRid =
-					this.resolveOleEmbedRelationshipId(ctx.slideRelationships, oleEl.oleTarget) ||
-					ctx.slideRelationshipRegistry.nextRelationshipId();
-				shape = this.createOleGraphicFrameXml(oleEl, embedRid);
+				shape = this.createOleElementWithPayload(oleEl, ctx);
+				if (!shape) {
+					const embedRid =
+						this.resolveOleEmbedRelationshipId(ctx.slideRelationships, oleEl.oleTarget) ||
+						ctx.slideRelationshipRegistry.nextRelationshipId();
+					shape = this.createOleGraphicFrameXml(oleEl, embedRid);
+				}
 			}
 		}
 
