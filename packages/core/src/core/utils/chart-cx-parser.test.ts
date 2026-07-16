@@ -343,4 +343,38 @@ describe('parseCxChartSeries', () => {
 			['North', 'South'],
 		]);
 	});
+
+	it('parses box-and-whisker visibility and statistics options', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': {
+					'@_layoutId': 'boxWhisker',
+					'cx:data': {
+						'cx:numDim': {
+							'@_type': 'val',
+							'cx:lvl': { 'cx:pt': [{ '#text': '10' }, { '#text': '20' }] },
+						},
+					},
+					'cx:layoutPr': {
+						'cx:visibility': {
+							'@_meanLine': '1',
+							'@_meanMarker': '0',
+							'@_nonoutliers': 'true',
+							'@_outliers': 'false',
+						},
+						'cx:statistics': { '@_quartileMethod': 'exclusive' },
+					},
+				},
+			},
+		};
+
+		const result = parseCxChartSeries(plotArea, xmlLookup);
+		expect(result?.series[0].boxWhiskerOptions).toStrictEqual({
+			quartileMethod: 'exclusive',
+			showMeanLine: true,
+			showMeanMarker: false,
+			showInnerPoints: true,
+			showOutlierPoints: false,
+		});
+	});
 });

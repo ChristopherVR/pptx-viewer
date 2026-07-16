@@ -504,6 +504,7 @@ export function createChartElement(
 		name: s.name,
 		values: s.values,
 		color: s.color,
+		boxWhiskerOptions: s.boxWhiskerOptions ? { ...s.boxWhiskerOptions } : undefined,
 	}));
 
 	const chartData: PptxChartData = {

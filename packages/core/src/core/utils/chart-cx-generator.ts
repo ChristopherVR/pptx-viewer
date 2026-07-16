@@ -49,7 +49,9 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 				? 'treemap'
 				: chartData.chartType === 'sunburst'
 					? 'sunburst'
-					: 'funnel';
+					: chartData.chartType === 'boxWhisker'
+						? 'boxWhisker'
+						: 'funnel';
 	const result: XmlObject = {
 		'@_layoutId': layoutId,
 		'cx:tx': { 'cx:txData': { 'cx:v': series.name } },
@@ -64,6 +66,32 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 		};
 	}
 	result['cx:dataId'] = { '@_val': String(id) };
+	if (chartData.chartType === 'boxWhisker' && series.boxWhiskerOptions) {
+		const options = series.boxWhiskerOptions;
+		const visibility: XmlObject = {};
+		if (options.showMeanLine !== undefined) {
+			visibility['@_meanLine'] = options.showMeanLine ? '1' : '0';
+		}
+		if (options.showMeanMarker !== undefined) {
+			visibility['@_meanMarker'] = options.showMeanMarker ? '1' : '0';
+		}
+		if (options.showInnerPoints !== undefined) {
+			visibility['@_nonoutliers'] = options.showInnerPoints ? '1' : '0';
+		}
+		if (options.showOutlierPoints !== undefined) {
+			visibility['@_outliers'] = options.showOutlierPoints ? '1' : '0';
+		}
+		const layoutPr: XmlObject = {};
+		if (Object.keys(visibility).length > 0) {
+			layoutPr['cx:visibility'] = visibility;
+		}
+		if (options.quartileMethod) {
+			layoutPr['cx:statistics'] = { '@_quartileMethod': options.quartileMethod };
+		}
+		if (Object.keys(layoutPr).length > 0) {
+			result['cx:layoutPr'] = layoutPr;
+		}
+	}
 	return result;
 }
 
@@ -73,7 +101,8 @@ export function canGenerateChartEx(chartData: PptxChartData): boolean {
 		chartData.chartType === 'funnel' ||
 		chartData.chartType === 'waterfall' ||
 		chartData.chartType === 'treemap' ||
-		chartData.chartType === 'sunburst'
+		chartData.chartType === 'sunburst' ||
+		chartData.chartType === 'boxWhisker'
 	);
 }
 

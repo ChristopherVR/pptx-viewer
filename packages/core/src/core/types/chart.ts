@@ -347,6 +347,16 @@ export interface PptxChart3DSurface {
 	spPr?: PptxChartShapeProps;
 }
 
+/** Office 2016 ChartEx box-and-whisker series layout options. */
+export interface PptxChartBoxWhiskerOptions {
+	quartileMethod?: 'inclusive' | 'exclusive';
+	showMeanLine?: boolean;
+	showMeanMarker?: boolean;
+	/** Show non-outlier (inner) data points. */
+	showInnerPoints?: boolean;
+	showOutlierPoints?: boolean;
+}
+
 /**
  * A single data series within a chart.
  *
@@ -382,6 +392,7 @@ export interface PptxChartSeries {
 	 * series.
 	 */
 	seriesChartType?: PptxChartType;
+	boxWhiskerOptions?: PptxChartBoxWhiskerOptions;
 }
 
 /**

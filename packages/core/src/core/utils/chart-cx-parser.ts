@@ -12,6 +12,7 @@
  */
 
 import type { XmlObject, PptxChartData, PptxChartSeries, PptxChartDataLabel } from '../types';
+import { parseCxBoxWhiskerOptions } from './chart-cx-box-whisker';
 
 /** Minimal xml-lookup interface needed by the cx: parser. */
 export interface XmlLookupLike {
@@ -236,6 +237,10 @@ export function parseCxChartSeries(
 			name: serName || `Series ${serIndex + 1}`,
 			values: values.length > 0 ? values : [0],
 		};
+		const boxWhiskerOptions = parseCxBoxWhiskerOptions(ser, xmlLookup);
+		if (boxWhiskerOptions) {
+			result.boxWhiskerOptions = boxWhiskerOptions;
+		}
 		if (color) {
 			result.color = color;
 		}
