@@ -46,11 +46,13 @@ const COMBO_CHART_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 					<c:cat><c:strRef><c:strCache><c:ptCount val="2"/><c:pt idx="0"><c:v>Q1</c:v></c:pt><c:pt idx="1"><c:v>Q2</c:v></c:pt></c:strCache></c:strRef></c:cat>
 					<c:val><c:numRef><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="2"/><c:pt idx="0"><c:v>5</c:v></c:pt><c:pt idx="1"><c:v>15</c:v></c:pt></c:numCache></c:numRef></c:val>
 				</c:ser>
-				<c:axId val="111111111"/>
-				<c:axId val="222222222"/>
+				<c:axId val="333333333"/>
+				<c:axId val="444444444"/>
 			</c:lineChart>
 			<c:catAx><c:axId val="111111111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:crossAx val="222222222"/></c:catAx>
 			<c:valAx><c:axId val="222222222"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:crossAx val="111111111"/></c:valAx>
+			<c:catAx><c:axId val="333333333"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="t"/><c:crossAx val="444444444"/></c:catAx>
+			<c:valAx><c:axId val="444444444"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="r"/><c:crossAx val="333333333"/></c:valAx>
 		</c:plotArea>
 		<c:plotVisOnly val="1"/>
 	</c:chart>
@@ -116,9 +118,11 @@ describe('multi-container combo chart round-trip', () => {
 		// First container (bar) series, then second container (line) series.
 		expect(series[0].name).toBe('Bars');
 		expect(series[0].seriesChartType).toBe('bar');
+		expect(series[0].axisId).toBe(222222222);
 		expect(series[0].values).toStrictEqual([10, 20]);
 		expect(series[1].name).toBe('Line');
 		expect(series[1].seriesChartType).toBe('line');
+		expect(series[1].axisId).toBe(444444444);
 		expect(series[1].values).toStrictEqual([5, 15]);
 	});
 
@@ -137,6 +141,9 @@ describe('multi-container combo chart round-trip', () => {
 		// Both chart-type containers survive the round-trip.
 		expect(savedChartXml).toContain('<c:barChart');
 		expect(savedChartXml).toContain('<c:lineChart');
+		expect(savedChartXml).toMatch(
+			/<c:lineChart[\s\S]*?<c:axId val="333333333"><\/c:axId><c:axId val="444444444"><\/c:axId>[\s\S]*?<\/c:lineChart>/u,
+		);
 		// The edited line value is written back.
 		expect(savedChartXml).toContain('<c:v>17</c:v>');
 
@@ -146,6 +153,7 @@ describe('multi-container combo chart round-trip', () => {
 		const chart2 = comboChart(data2);
 		expect(chart2.chartData?.chartType).toBe('combo');
 		expect(chart2.chartData!.series.map((s) => s.seriesChartType)).toStrictEqual(['bar', 'line']);
+		expect(chart2.chartData!.series.map((s) => s.axisId)).toStrictEqual([222222222, 444444444]);
 		expect(chart2.chartData!.series[1].values).toStrictEqual([7, 17]);
 	});
 

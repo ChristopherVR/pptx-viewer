@@ -159,6 +159,34 @@ describe('buildComboViewModel', () => {
 		expect(circles).toHaveLength(CATEGORIES.length);
 	});
 
+	it('scales an axis-mapped line series against the secondary value axis', () => {
+		const chartData: PptxChartData = {
+			chartType: 'combo',
+			categories: ['Q1', 'Q2'],
+			series: [
+				{ name: 'Revenue', values: [1000, 2000], axisId: 20, seriesChartType: 'bar' },
+				{ name: 'Margin', values: [1, 2], axisId: 40, seriesChartType: 'line' },
+			],
+			axes: [
+				{ axisType: 'catAx', axisId: 10, crossAxisId: 20, axPos: 'b' },
+				{ axisType: 'valAx', axisId: 20, crossAxisId: 10, axPos: 'l' },
+				{ axisType: 'catAx', axisId: 30, crossAxisId: 40, axPos: 't' },
+				{ axisType: 'valAx', axisId: 40, crossAxisId: 30, axPos: 'r' },
+			],
+		};
+		const vm = buildComboViewModel(makeElement(), chartData, chartData.categories);
+		const line = vm.primitives.find((primitive) => primitive.kind === 'polyline');
+
+		expect(line?.kind).toBe('polyline');
+		const yCoordinates =
+			line?.kind === 'polyline'
+				? line.points.split(' ').map((point) => Number(point.split(',')[1]))
+				: [];
+		expect(Math.abs((yCoordinates[0] ?? 0) - (yCoordinates[1] ?? 0))).toBeGreaterThan(100);
+		expect(vm.secondaryGridlines).toBeDefined();
+		expect(vm.secondaryAxisLabels?.some((label) => label.text === '2')).toBeTruthy();
+	});
+
 	it('counts primitives correctly for two line series', () => {
 		const chartData: PptxChartData = {
 			chartType: 'combo',

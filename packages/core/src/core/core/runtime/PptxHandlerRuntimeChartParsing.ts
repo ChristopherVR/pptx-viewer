@@ -30,6 +30,7 @@ import { parseChartLayouts } from '../../utils/chart-layout';
 import { parseChartPivotFormats } from '../../utils/chart-pivot-formats';
 import { parseChartPrintSettings } from '../../utils/chart-print-settings';
 import { parseChartProtection } from '../../utils/chart-protection';
+import { resolveChartContainerValueAxisId } from '../../utils/chart-series-axis';
 import {
 	parseSeriesDataPoints,
 	parseSeriesDataLabels,
@@ -79,6 +80,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		const chartType = this.detectChartType(plotArea);
+		const lineStyleColorAdapter = {
+			parseColor: (n: XmlObject | undefined, p?: string) => this.parseColor(n, p),
+		};
+		const axes = parseChartAxes(
+			plotArea,
+			this.xmlLookupService,
+			lineStyleColorAdapter,
+			(key: string) => this.compatibilityService.getXmlLocalName(key),
+		);
 
 		// A combo chart's plotArea holds several sibling chart-type containers
 		// (e.g. c:barChart + c:lineChart), each with a subset of the series.
@@ -107,6 +117,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			plotArea,
 			chartContainerKeys,
 			chartType,
+			axes,
 		);
 		if (series.length === 0) {
 			return undefined;
@@ -139,9 +150,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Parse data table (c:dTable)
 		const dataTable = parseDataTable(plotArea, this.xmlLookupService);
 		// Parse drop lines (c:dropLines) and hi-low lines (c:hiLowLines)
-		const lineStyleColorAdapter = {
-			parseColor: (n: XmlObject | undefined, p?: string) => this.parseColor(n, p),
-		};
 		const dropLines = parseLineStyle(
 			seriesContainer,
 			'dropLines',
@@ -158,14 +166,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			seriesContainer,
 			this.xmlLookupService,
 			lineStyleColorAdapter,
-		);
-
-		// Parse axis formatting (c:catAx, c:valAx, c:dateAx, c:serAx)
-		const axes = parseChartAxes(
-			plotArea,
-			this.xmlLookupService,
-			lineStyleColorAdapter,
-			(key: string) => this.compatibilityService.getXmlLocalName(key),
 		);
 
 		// Parse 3D surfaces (c:floor, c:sideWall, c:backWall)
@@ -302,6 +302,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		plotArea: XmlObject,
 		containerKeys: string[],
 		chartLevelType: PptxChartType,
+		axes: PptxChartData['axes'],
 	): { categories: string[]; series: PptxChartData['series'] } {
 		const isCombo = chartLevelType === 'combo';
 		let categories: string[] = [];
@@ -331,8 +332,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const containerType = isCombo
 				? chartContainerLocalNameToType(this.compatibilityService.getXmlLocalName(containerKey))
 				: undefined;
+			const axisId = resolveChartContainerValueAxisId(container, axes ?? [], this.xmlLookupService);
 
-			series.push(...this.buildChartSeries(seriesList, categories, containerType));
+			series.push(...this.buildChartSeries(seriesList, categories, containerType, axisId));
 		}
 
 		return { categories, series };
@@ -355,6 +357,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		seriesList: XmlObject[],
 		categories: string[],
 		seriesChartType?: PptxChartType,
+		axisId?: number,
 	): PptxChartData['series'] {
 		return seriesList.map((seriesNode, seriesIndex) => {
 			const seriesName = this.extractChartSeriesName(seriesNode);
@@ -413,6 +416,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(seriesMarker ? { marker: seriesMarker } : {}),
 				...(dataLabels.length > 0 ? { dataLabels } : {}),
 				...(explosion !== undefined ? { explosion } : {}),
+				...(axisId !== undefined ? { axisId } : {}),
 				...(seriesChartType ? { seriesChartType } : {}),
 			};
 		});

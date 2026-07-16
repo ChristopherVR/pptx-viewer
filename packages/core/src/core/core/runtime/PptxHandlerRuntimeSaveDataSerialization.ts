@@ -437,6 +437,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						chartData.series,
 						chartData.chartType,
 						(key) => this.compatibilityService.getXmlLocalName(key),
+						chartData.axes,
 					);
 				}
 

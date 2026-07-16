@@ -15,7 +15,7 @@
  * @module utils/chart-combo-serializer
  */
 
-import type { PptxChartSeries, PptxChartType, XmlObject } from '../types';
+import type { PptxChartAxisFormatting, PptxChartSeries, PptxChartType, XmlObject } from '../types';
 
 type GetLocalName = (key: string) => string;
 
@@ -123,6 +123,7 @@ export function applyComboSeriesTypesToXml(
 	series: PptxChartSeries[],
 	chartLevelType: PptxChartType,
 	getLocalName: GetLocalName,
+	axes?: PptxChartAxisFormatting[],
 ): boolean {
 	const containers = effectiveContainers(series, chartLevelType);
 	const distinct = new Set(containers);
@@ -174,6 +175,12 @@ export function applyComboSeriesTypesToXml(
 		}
 		const grouped = groups.get(local)!;
 		container['c:ser'] = grouped.length === 1 ? grouped[0] : grouped;
+		applyGroupAxisReferences(
+			container,
+			series.filter((_item, index) => containers[index] === local),
+			axes,
+			getLocalName,
+		);
 		newEntries.push([`c:${local}`, container] as const);
 	}
 	entries.splice(at, 1, ...newEntries);
@@ -185,4 +192,25 @@ export function applyComboSeriesTypesToXml(
 		plotArea[k] = v;
 	}
 	return true;
+}
+
+function applyGroupAxisReferences(
+	container: XmlObject,
+	series: PptxChartSeries[],
+	axes: PptxChartAxisFormatting[] | undefined,
+	getLocalName: GetLocalName,
+): void {
+	const axisIds = new Set(series.map((item) => item.axisId).filter((id) => id !== undefined));
+	if (axisIds.size !== 1) {
+		return;
+	}
+	const valueAxisId = [...axisIds][0];
+	const valueAxis = axes?.find((axis) => axis.axisId === valueAxisId);
+	const categoryAxisId =
+		valueAxis?.crossAxisId ?? axes?.find((axis) => axis.crossAxisId === valueAxisId)?.axisId;
+	if (valueAxisId === undefined || categoryAxisId === undefined) {
+		return;
+	}
+	const key = findKey(container, 'axId', getLocalName) ?? 'c:axId';
+	container[key] = [{ '@_val': String(categoryAxisId) }, { '@_val': String(valueAxisId) }];
 }
