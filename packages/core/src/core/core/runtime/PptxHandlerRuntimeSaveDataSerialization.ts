@@ -10,7 +10,7 @@ import type {
 import { applyChartAxisDisplayUnitsToXml } from '../../utils/chart-axis-dispunits-serializer';
 import { applyChartAxisGridlinesToXml } from '../../utils/chart-axis-gridlines-serializer';
 import { applyChartAxisLabelFormatting } from '../../utils/chart-axis-label-formatting';
-import { upsertChartAxisChild } from '../../utils/chart-axis-parser';
+import { applyChartAxisScaling, upsertChartAxisChild } from '../../utils/chart-axis-scaling';
 import {
 	applyChartAxisTitleToXml,
 	applyChartAxisTitleStyleToXml,
@@ -591,38 +591,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 							const scalingNode = this.xmlLookupService.getChildByLocalName(axisNode, 'scaling');
 							if (scalingNode) {
-								if (matchingAxis.logBase !== undefined && matchingAxis.logBase > 0) {
-									// Set or update logBase
-									const logBaseKey = Object.keys(scalingNode).find(
-										(k) => this.compatibilityService.getXmlLocalName(k) === 'logBase',
-									);
-									if (logBaseKey) {
-										(scalingNode[logBaseKey] as XmlObject)['@_val'] = String(matchingAxis.logBase);
-									} else {
-										(scalingNode as XmlObject)['c:logBase'] = {
-											'@_val': String(matchingAxis.logBase),
-										};
-									}
-								} else if (matchingAxis.logScale === false) {
-									// Remove logBase if log scale was explicitly disabled
-									const logBaseKey = Object.keys(scalingNode).find(
-										(k) => this.compatibilityService.getXmlLocalName(k) === 'logBase',
-									);
-									if (logBaseKey) {
-										delete scalingNode[logBaseKey];
-									}
-								}
-
-								// scaling.min / scaling.max
-								this.upsertChartAxisChild(
-									scalingNode,
-									'min',
-									matchingAxis.min !== undefined ? String(matchingAxis.min) : undefined,
-								);
-								this.upsertChartAxisChild(
-									scalingNode,
-									'max',
-									matchingAxis.max !== undefined ? String(matchingAxis.max) : undefined,
+								applyChartAxisScaling(scalingNode, matchingAxis, (key) =>
+									this.compatibilityService.getXmlLocalName(key),
 								);
 							}
 

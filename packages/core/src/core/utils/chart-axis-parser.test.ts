@@ -306,6 +306,7 @@ describe('parseChartAxes — majorUnit / minorUnit / tickLblPos', () => {
 				'c:scaling': {
 					'c:min': { '@_val': '0' },
 					'c:max': { '@_val': '500' },
+					'c:orientation': { '@_val': 'maxMin' },
 				},
 				'c:majorUnit': { '@_val': '100' },
 				'c:minorUnit': { '@_val': '20' },
@@ -317,6 +318,7 @@ describe('parseChartAxes — majorUnit / minorUnit / tickLblPos', () => {
 		expect(axes[0].axisId).toBe(111);
 		expect(axes[0].min).toBe(0);
 		expect(axes[0].max).toBe(500);
+		expect(axes[0].orientation).toBe('maxMin');
 		expect(axes[0].majorUnit).toBe(100);
 		expect(axes[0].minorUnit).toBe(20);
 		expect(axes[0].tickLblPos).toBe('low');

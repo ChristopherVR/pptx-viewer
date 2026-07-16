@@ -829,6 +829,14 @@ describe('setChartAxis', () => {
 		expect(axis?.minorUnit).toBe(4);
 	});
 
+	it('sets and clears the axis orientation', () => {
+		const el = makeTestChart();
+		setChartAxis(el, 'valAx', { orientation: 'maxMin' });
+		expect(el.chartData?.axes?.[0].orientation).toBe('maxMin');
+		setChartAxis(el, 'valAx', { orientation: null });
+		expect(el.chartData?.axes?.[0].orientation).toBeUndefined();
+	});
+
 	it('clears a numeric field when passed null', () => {
 		const el = makeTestChart();
 		el.chartData!.axes = [{ axisType: 'valAx', min: 5, max: 50 }];

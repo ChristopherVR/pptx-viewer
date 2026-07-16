@@ -344,6 +344,7 @@ export interface ChartAxisEdit {
 	max?: number | null;
 	majorUnit?: number | null;
 	minorUnit?: number | null;
+	orientation?: PptxChartAxisFormatting['orientation'] | null;
 	numberFormat?: string;
 	tickLabelPosition?: 'high' | 'low' | 'nextTo' | 'none';
 	/** Axis title text. Pass `null` or `''` to remove the title. */
@@ -399,6 +400,9 @@ export function setChartAxis(
 	}
 	if (edit.minorUnit !== undefined) {
 		axis.minorUnit = edit.minorUnit ?? undefined;
+	}
+	if (edit.orientation !== undefined) {
+		axis.orientation = edit.orientation ?? undefined;
 	}
 	if (edit.numberFormat !== undefined) {
 		axis.numFmt = edit.numberFormat

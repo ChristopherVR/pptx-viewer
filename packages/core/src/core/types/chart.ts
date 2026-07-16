@@ -304,6 +304,8 @@ export interface PptxChartAxisFormatting extends PptxChartAxisLabelFormatting {
 	min?: number;
 	/** Maximum axis value override (c:max/@val). */
 	max?: number;
+	/** Axis value direction (`c:scaling/c:orientation/@val`). */
+	orientation?: 'minMax' | 'maxMin';
 	/** Whether the axis is deleted/hidden (c:delete/@val). */
 	deleted?: boolean;
 	/**

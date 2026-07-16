@@ -1,7 +1,10 @@
 import type { PptxChartAxisFormatting, PptxChart3DSurface, XmlObject } from '../types';
 import { parseChartAxisDisplayUnits } from './chart-axis-dispunits-serializer';
 import { parseChartAxisLabelFormatting } from './chart-axis-label-formatting';
+import { parseChartAxisScaling } from './chart-axis-scaling';
 import { parseShapeProps } from './chart-series-detail-parser';
+
+export { upsertChartAxisChild } from './chart-axis-scaling';
 
 interface XmlLookupLike {
 	getChildByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject | undefined;
@@ -23,32 +26,6 @@ const AXIS_TYPE_MAP: Record<string, PptxChartAxisFormatting['axisType']> = {
 	dateAx: 'dateAx',
 	serAx: 'serAx',
 };
-
-/**
- * Upsert a `c:<localName>` child with `@_val` on an axis or scaling node.
- * When `value` is undefined, removes any existing child of that local name.
- * Used by chart write-back to round-trip min/max/majorUnit/tickLblPos
- * regardless of namespace prefix.
- */
-export function upsertChartAxisChild(
-	parent: XmlObject,
-	localName: string,
-	value: string | undefined,
-	getLocalName: (key: string) => string,
-): void {
-	const existingKey = Object.keys(parent).find((k) => getLocalName(k) === localName);
-	if (value === undefined) {
-		if (existingKey) {
-			delete parent[existingKey];
-		}
-		return;
-	}
-	if (existingKey) {
-		(parent[existingKey] as XmlObject)['@_val'] = value;
-	} else {
-		parent[`c:${localName}`] = { '@_val': value };
-	}
-}
 
 /** Parse all axes (c:catAx, c:valAx, c:dateAx, c:serAx) from plot area. */
 export function parseChartAxes(
@@ -158,32 +135,11 @@ function parseSingleAxis(
 		}
 	}
 
-	// Scaling: min, max, logBase (c:scaling/c:min/@val, c:scaling/c:max/@val, c:scaling/c:logBase/@val)
+	// Scaling: range, logarithm, and direction.
 	const scalingNode = xmlLookup.getChildByLocalName(axisNode, 'scaling');
-	if (scalingNode) {
-		const minNode = xmlLookup.getChildByLocalName(scalingNode, 'min');
-		if (minNode) {
-			const minVal = parseFloat(String(minNode['@_val']));
-			if (Number.isFinite(minVal)) {
-				result.min = minVal;
-			}
-		}
-		const maxNode = xmlLookup.getChildByLocalName(scalingNode, 'max');
-		if (maxNode) {
-			const maxVal = parseFloat(String(maxNode['@_val']));
-			if (Number.isFinite(maxVal)) {
-				result.max = maxVal;
-			}
-		}
-		const logBaseNode = xmlLookup.getChildByLocalName(scalingNode, 'logBase');
-		if (logBaseNode) {
-			const logBaseVal = parseFloat(String(logBaseNode['@_val']));
-			if (Number.isFinite(logBaseVal) && logBaseVal > 0) {
-				result.logScale = true;
-				result.logBase = logBaseVal;
-			}
-		}
-	}
+	parseChartAxisScaling(scalingNode, result, (parent, name) =>
+		xmlLookup.getChildByLocalName(parent, name),
+	);
 
 	// Gridlines
 	const majorGrid = xmlLookup.getChildByLocalName(axisNode, 'majorGridlines');
