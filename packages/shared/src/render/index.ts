@@ -606,3 +606,4 @@ export * from './virtualized-list';
 export * from './document-statistics';
 export * from './used-fonts';
 export * from './font-availability';
+export * from './password-protection';
