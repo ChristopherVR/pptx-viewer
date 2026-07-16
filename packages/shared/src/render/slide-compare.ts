@@ -309,3 +309,47 @@ export function compareSlides(base: PptxSlide[], compare: PptxSlide[]): CompareR
 export function comparePresentation(base: PptxData, compare: PptxData): CompareResult {
 	return compareSlides(base.slides as PptxSlide[], compare.slides as PptxSlide[]);
 }
+
+/** Accept one slide-level comparison result without mutating the current deck. */
+export function applyAcceptSlide(slides: readonly PptxSlide[], diff: SlideDiff): PptxSlide[] {
+	const next = [...slides];
+	if (diff.status === 'added' && diff.compareSlide) {
+		next.splice(Math.min(diff.compareIndex, next.length), 0, { ...diff.compareSlide });
+	} else if (diff.status === 'changed' && diff.compareSlide && diff.baseIndex >= 0) {
+		next[diff.baseIndex] = { ...diff.compareSlide };
+	} else if (diff.status === 'removed' && diff.baseIndex >= 0) {
+		next.splice(diff.baseIndex, 1);
+	}
+	return next;
+}
+
+/** Accept every slide-level comparison result in stable index order. */
+export function applyAcceptAllSlides(
+	slides: readonly PptxSlide[],
+	compareResult: CompareResult,
+): PptxSlide[] {
+	const next = [...slides];
+	const diffs = [...compareResult.diffs];
+	for (const diff of diffs) {
+		if (
+			diff.status === 'changed' &&
+			diff.compareSlide &&
+			diff.baseIndex >= 0 &&
+			diff.baseIndex < next.length
+		) {
+			next[diff.baseIndex] = { ...diff.compareSlide };
+		}
+	}
+	for (let index = diffs.length - 1; index >= 0; index--) {
+		const diff = diffs[index];
+		if (diff.status === 'removed' && diff.baseIndex >= 0 && diff.baseIndex < next.length) {
+			next.splice(diff.baseIndex, 1);
+		}
+	}
+	for (const diff of diffs) {
+		if (diff.status === 'added' && diff.compareSlide) {
+			next.splice(Math.min(diff.compareIndex, next.length), 0, { ...diff.compareSlide });
+		}
+	}
+	return next;
+}

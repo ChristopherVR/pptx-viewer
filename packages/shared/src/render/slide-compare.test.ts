@@ -1,7 +1,13 @@
 import type { PptxData, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
-import { comparePresentation, compareSlides, compareSlide } from './slide-compare';
+import {
+	applyAcceptAllSlides,
+	applyAcceptSlide,
+	comparePresentation,
+	compareSlide,
+	compareSlides,
+} from './slide-compare';
 
 function makeElement(overrides: Partial<PptxElement> & { id: string; type: string }): PptxElement {
 	return {
@@ -183,5 +189,54 @@ describe('compareSlides / compareSlide (slide-array surface)', () => {
 		expect(changes.some((c) => c.kind === 'added' && c.elementId === 'e2')).toBeTruthy();
 		expect(changes.some((c) => c.kind === 'removed' && c.elementId === 'e1')).toBeTruthy();
 		expect(changes.some((c) => c.elementId === '__background__')).toBeTruthy();
+	});
+});
+
+describe('accept comparison changes', () => {
+	it('accepts a single changed slide immutably', () => {
+		const base = makeSlide([], { id: 'base' });
+		const compare = makeSlide([], { id: 'compare' });
+		const slides = [base];
+		const result = applyAcceptSlide(slides, {
+			status: 'changed',
+			baseIndex: 0,
+			compareIndex: 0,
+			compareSlide: compare,
+			changes: [],
+		});
+		expect(result[0].id).toBe('compare');
+		expect(result).not.toBe(slides);
+	});
+
+	it('accepts removals, changes, and additions in stable order', () => {
+		const base = [makeSlide([], { id: 'remove' }), makeSlide([], { id: 'change' })];
+		const changed = makeSlide([], { id: 'changed' });
+		const added = makeSlide([], { id: 'added' });
+		const result = applyAcceptAllSlides(base, {
+			diffs: [
+				{ status: 'removed', baseIndex: 0, compareIndex: -1, changes: [] },
+				{
+					status: 'changed',
+					baseIndex: 1,
+					compareIndex: 0,
+					compareSlide: changed,
+					changes: [],
+				},
+				{
+					status: 'added',
+					baseIndex: -1,
+					compareIndex: 1,
+					compareSlide: added,
+					changes: [],
+				},
+			],
+			baseSlideCount: 2,
+			compareSlideCount: 2,
+			addedCount: 1,
+			removedCount: 1,
+			changedCount: 1,
+			unchangedCount: 0,
+		});
+		expect(result.map(({ id }) => id)).toStrictEqual(['changed', 'added']);
 	});
 });
