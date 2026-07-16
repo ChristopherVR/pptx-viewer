@@ -453,11 +453,13 @@ export interface PptxPhotoAlbum {
  */
 export interface PptxKinsoku {
 	/** Language code (e.g. "ja-JP", "zh-CN"). */
-	lang?: string;
+	lang?: string | null;
 	/** Characters that cannot begin a line. */
 	invalStChars?: string;
 	/** Characters that cannot end a line. */
 	invalEndChars?: string;
+	/** Original leaf retained for unknown attribute preservation. */
+	rawXml?: XmlObject;
 }
 
 /**

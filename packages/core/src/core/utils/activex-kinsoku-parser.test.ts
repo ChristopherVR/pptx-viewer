@@ -168,13 +168,14 @@ describe('parseKinsoku', () => {
 	});
 
 	it('parses all attributes together', () => {
+		const raw = {
+			'@_lang': 'zh-CN',
+			'@_invalStChars': '!%),.:;?]}',
+			'@_invalEndChars': '$([{',
+		};
 		const xml: XmlObject = {
 			'p:presentation': {
-				'p:kinsoku': {
-					'@_lang': 'zh-CN',
-					'@_invalStChars': '!%),.:;?]}',
-					'@_invalEndChars': '$([{',
-				},
+				'p:kinsoku': raw,
 			},
 		};
 		const result = parseKinsoku(xml);
@@ -182,6 +183,7 @@ describe('parseKinsoku', () => {
 			lang: 'zh-CN',
 			invalStChars: '!%),.:;?]}',
 			invalEndChars: '$([{',
+			rawXml: raw,
 		});
 	});
 
@@ -206,7 +208,7 @@ describe('parseKinsoku', () => {
 			},
 		};
 		const result = parseKinsoku(xml);
-		expect(result).toStrictEqual({});
+		expect(result).toStrictEqual({ rawXml: {} });
 	});
 });
 
@@ -220,10 +222,11 @@ describe('applyKinsokuToXml', () => {
 		expect(pres['p:kinsoku']).toBeUndefined();
 	});
 
-	it('creates p:kinsoku element with lang', () => {
+	it('rejects a new p:kinsoku without both required character lists', () => {
 		const pres: XmlObject = {};
-		applyKinsokuToXml(pres, { lang: 'ko-KR' });
-		expect(pres['p:kinsoku']).toStrictEqual({ '@_lang': 'ko-KR' });
+		expect(() => applyKinsokuToXml(pres, { lang: 'ko-KR' })).toThrow(
+			'invalStChars and invalEndChars',
+		);
 	});
 
 	it('creates p:kinsoku with all fields', () => {

@@ -18,7 +18,7 @@ export interface PptxPresentationSaveBuilderOptions {
 	customShows?: PptxCustomShow[];
 	sections?: PptxSection[];
 	photoAlbum?: PptxPhotoAlbum;
-	kinsoku?: PptxKinsoku;
+	kinsoku?: PptxKinsoku | null;
 	modifyVerifier?: PptxModifyVerifier | null;
 }
 
@@ -37,7 +37,12 @@ export interface IPptxPresentationSaveBuilder {
 
 export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder {
 	public applySaveOptions(init: PptxPresentationSaveBuildInput): XmlObject {
-		const presentation = init.presentationData['p:presentation'] as XmlObject | undefined;
+		const rootKey = Object.keys(init.presentationData).find(
+			(key) => key.replace(/^.*:/u, '') === 'presentation',
+		);
+		let presentation = rootKey
+			? (init.presentationData[rootKey] as XmlObject | undefined)
+			: undefined;
 		if (!presentation) {
 			return init.presentationData;
 		}
@@ -52,10 +57,10 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 		applyCustomShows(presentation, init.options?.customShows, init.xmlLookupService);
 		applySections(presentation, init.options?.sections, init.xmlLookupService);
 		this.applyPhotoAlbum(presentation, init.options?.photoAlbum);
-		this.applyKinsoku(presentation, init.options?.kinsoku);
+		presentation = this.applyKinsoku(presentation, init.options?.kinsoku);
 		this.applyModifyVerifier(presentation, init.options?.modifyVerifier);
 
-		init.presentationData['p:presentation'] = presentation;
+		init.presentationData[rootKey ?? 'p:presentation'] = presentation;
 		return init.presentationData;
 	}
 
@@ -128,8 +133,11 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 		presentation['p:photoAlbum'] = pa;
 	}
 
-	private applyKinsoku(presentation: XmlObject, kinsoku: PptxKinsoku | undefined): void {
-		applyKinsokuToXml(presentation, kinsoku);
+	private applyKinsoku(
+		presentation: XmlObject,
+		kinsoku: PptxKinsoku | null | undefined,
+	): XmlObject {
+		return applyKinsokuToXml(presentation, kinsoku);
 	}
 
 	private applyModifyVerifier(

@@ -447,7 +447,7 @@ describe('parseKinsoku', () => {
 			'p:presentation': { 'p:kinsoku': {} },
 		};
 		const result = parseKinsoku(data)!;
-		expect(result).toStrictEqual({});
+		expect(result).toStrictEqual({ rawXml: {} });
 	});
 
 	it('should ignore empty lang string', () => {

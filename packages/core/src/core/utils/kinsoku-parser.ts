@@ -1,66 +1,112 @@
 import type { XmlObject, PptxKinsoku } from '../types';
 
-/**
- * Parse East Asian line-break settings from `p:kinsoku` in presentation XML.
- * Extracted from PptxHandlerRuntimePresentationStructure for testability.
- */
-export function parseKinsoku(presentationXml: XmlObject | undefined): PptxKinsoku | undefined {
-	const pres = presentationXml?.['p:presentation'] as XmlObject | undefined;
-	if (!pres) {
+const BEFORE_KINSOKU = new Set([
+	'sldMasterIdLst',
+	'notesMasterIdLst',
+	'handoutMasterIdLst',
+	'sldIdLst',
+	'sldSz',
+	'notesSz',
+	'smartTags',
+	'embeddedFontLst',
+	'custShowLst',
+	'photoAlbum',
+	'custDataLst',
+]);
+
+const localName = (key: string): string => key.replace(/^@_/u, '').replace(/^.*:/u, '');
+const findKey = (node: XmlObject, name: string): string | undefined =>
+	Object.keys(node).find((key) => localName(key) === name);
+
+/** Parse PresentationML `CT_Kinsoku` independently of namespace prefixes. */
+export function parseKinsoku(
+	presentationXml: XmlObject | null | undefined,
+): PptxKinsoku | undefined {
+	if (!presentationXml) {
+		return undefined;
+	}
+	const rootKey = findKey(presentationXml, 'presentation');
+	const root = rootKey ? (presentationXml[rootKey] as XmlObject | undefined) : undefined;
+	const key = root ? findKey(root, 'kinsoku') : undefined;
+	const node = key && root ? (root[key] as XmlObject | undefined) : undefined;
+	if (!node) {
 		return undefined;
 	}
 
-	const kinsoku = pres['p:kinsoku'] as XmlObject | undefined;
-	if (!kinsoku) {
-		return undefined;
+	const result: PptxKinsoku = { rawXml: node };
+	const lang = node['@_lang']?.trim();
+	if (lang) {
+		result.lang = lang;
 	}
-
-	const result: PptxKinsoku = {};
-	let hasProps = false;
-
-	const lang = kinsoku['@_lang'];
-	if (lang !== undefined) {
-		const langStr = String(lang).trim();
-		if (langStr.length > 0) {
-			result.lang = langStr;
-			hasProps = true;
-		}
+	if (node['@_invalStChars'] !== undefined) {
+		result.invalStChars = node['@_invalStChars'];
 	}
-
-	const invalStChars = kinsoku['@_invalStChars'];
-	if (invalStChars !== undefined) {
-		result.invalStChars = String(invalStChars);
-		hasProps = true;
+	if (node['@_invalEndChars'] !== undefined) {
+		result.invalEndChars = node['@_invalEndChars'];
 	}
-
-	const invalEndChars = kinsoku['@_invalEndChars'];
-	if (invalEndChars !== undefined) {
-		result.invalEndChars = String(invalEndChars);
-		hasProps = true;
-	}
-
-	return hasProps ? result : {};
+	return result;
 }
 
-/**
- * Apply kinsoku settings to a presentation XML object.
- * Extracted from PptxPresentationSaveBuilder for testability.
- */
-export function applyKinsokuToXml(presentation: XmlObject, kinsoku: PptxKinsoku | undefined): void {
-	if (!kinsoku) {
-		return;
+function setAttribute(node: XmlObject, name: string, value: string | null | undefined): void {
+	const key = findKey(node, name);
+	if (value === null) {
+		if (key) {
+			delete node[key];
+		}
+	} else if (value !== undefined) {
+		node[key ?? `@_${name}`] = value;
 	}
-	const k: XmlObject = (presentation['p:kinsoku'] as XmlObject) || {};
+}
 
-	if (kinsoku.lang !== undefined) {
-		k['@_lang'] = kinsoku.lang;
+function insertKinsoku(root: XmlObject, key: string, value: XmlObject): XmlObject {
+	const result: XmlObject = {};
+	let inserted = false;
+	for (const [childKey, childValue] of Object.entries(root)) {
+		const name = localName(childKey);
+		if (name === 'kinsoku') {
+			continue;
+		}
+		if (!inserted && !childKey.startsWith('@_') && !BEFORE_KINSOKU.has(name)) {
+			result[key] = value;
+			inserted = true;
+		}
+		result[childKey] = childValue;
 	}
-	if (kinsoku.invalStChars !== undefined) {
-		k['@_invalStChars'] = kinsoku.invalStChars;
+	if (!inserted) {
+		result[key] = value;
 	}
-	if (kinsoku.invalEndChars !== undefined) {
-		k['@_invalEndChars'] = kinsoku.invalEndChars;
-	}
+	return result;
+}
 
-	presentation['p:kinsoku'] = k;
+/** Apply, preserve, or remove `p:kinsoku` while retaining unknown XML. */
+export function applyKinsokuToXml(
+	presentation: XmlObject,
+	kinsoku: PptxKinsoku | null | undefined,
+): XmlObject {
+	const existingKey = findKey(presentation, 'kinsoku');
+	if (kinsoku === undefined) {
+		return presentation;
+	}
+	if (kinsoku === null) {
+		if (existingKey) {
+			delete presentation[existingKey];
+		}
+		return presentation;
+	}
+	const existing = existingKey ? (presentation[existingKey] as XmlObject | undefined) : undefined;
+	const node = { ...(kinsoku.rawXml ?? existing ?? {}) } as XmlObject;
+	if (!kinsoku.rawXml && !existing) {
+		if (kinsoku.invalStChars === undefined || kinsoku.invalEndChars === undefined) {
+			throw new Error('CT_Kinsoku requires invalStChars and invalEndChars');
+		}
+	}
+	setAttribute(node, 'lang', kinsoku.lang);
+	setAttribute(node, 'invalStChars', kinsoku.invalStChars);
+	setAttribute(node, 'invalEndChars', kinsoku.invalEndChars);
+	const rebuilt = insertKinsoku(presentation, existingKey ?? 'p:kinsoku', node);
+	for (const key of Object.keys(presentation)) {
+		delete presentation[key];
+	}
+	Object.assign(presentation, rebuilt);
+	return presentation;
 }
