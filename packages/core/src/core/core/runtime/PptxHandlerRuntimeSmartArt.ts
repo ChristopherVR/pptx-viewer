@@ -9,6 +9,7 @@ import {
 	parseSmartArtTextParagraphs,
 	smartArtParagraphsText,
 } from './smartart-text-paragraphs';
+import { resolveSmartArtTextStyles } from './smartart-text-style-resolution';
 import { isContentPoint } from './smartart-xml-builders';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -70,7 +71,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// Capture per-run formatting so a load -> edit -> save round-trip
 				// keeps a node's individual runs (bold / colour / size) instead of
 				// flattening them to a single unstyled run on save.
-				const paragraphs = parseSmartArtTextParagraphs(point);
+				const paragraphs = resolveSmartArtTextStyles(parseSmartArtTextParagraphs(point), (rPr) =>
+					this.extractTextRunStyle(rPr, undefined, undefined, false),
+				);
 				const runs = firstParagraphRuns(paragraphs);
 				const resolvedText = paragraphs ? smartArtParagraphsText(paragraphs) : textValues.join('');
 

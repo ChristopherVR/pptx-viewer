@@ -16,9 +16,11 @@ function normalizeHex(color: string | undefined): string | undefined {
 }
 
 function runProperties(style: TextStyle): XmlObject {
-	const rPr: XmlObject = { '@_lang': style.language ?? 'en-US' };
+	const rPr: XmlObject = style.runPropertiesXml
+		? (JSON.parse(JSON.stringify(style.runPropertiesXml)) as XmlObject)
+		: { '@_lang': style.language ?? 'en-US' };
 	if (style.fontSize !== undefined) {
-		rPr['@_sz'] = String(Math.round(style.fontSize * 100));
+		rPr['@_sz'] = String(Math.round(style.fontSize * (72 / 96) * 100));
 	}
 	if (style.bold !== undefined) {
 		rPr['@_b'] = style.bold ? '1' : '0';
@@ -32,10 +34,12 @@ function runProperties(style: TextStyle): XmlObject {
 		rPr['@_u'] = 'sng';
 	}
 	const color = normalizeHex(style.color);
-	if (color) {
+	if (style.colorXml) {
+		rPr['a:solidFill'] = JSON.parse(JSON.stringify(style.colorXml)) as XmlObject;
+	} else if (color) {
 		rPr['a:solidFill'] = { 'a:srgbClr': { '@_val': color } };
 	}
-	if (style.fontFamily) {
+	if (style.fontFamily && !rPr['a:latin']) {
 		rPr['a:latin'] = { '@_typeface': style.fontFamily };
 	}
 	if (style.runPropertiesExtLstXml) {

@@ -28,11 +28,21 @@ async function presentationWithRichSmartArtText(): Promise<Uint8Array> {
 	const dataPath = 'ppt/diagrams/data1.xml';
 	const dataXml = await zip.file(dataPath)!.async('string');
 	const richParagraphs =
-		'<a:p><a:pPr lvl="1"/><a:r><a:rPr b="1"/><a:extLst><a:ext uri="run-keep"/></a:extLst><a:t>Bold</a:t></a:r>' +
+		'<a:p><a:pPr lvl="1"/><a:r><a:rPr b="1" u="dbl" strike="dblStrike" baseline="30000" spc="200" cap="small" lang="fr-FR">' +
+		'<a:ln w="19050"><a:solidFill><a:srgbClr val="112233"/></a:solidFill></a:ln>' +
+		'<a:solidFill><a:schemeClr val="accent2"><a:tint val="20000"/></a:schemeClr></a:solidFill>' +
+		'<a:effectLst><a:glow rad="19050"><a:srgbClr val="00FF00"/></a:glow></a:effectLst>' +
+		'<a:highlight><a:srgbClr val="FFFF00"/></a:highlight>' +
+		'<a:uFill><a:solidFill><a:srgbClr val="445566"/></a:solidFill></a:uFill>' +
+		'<a:latin typeface="+mn-lt"/><a:ea typeface="Yu Gothic"/><a:cs typeface="Arial"/></a:rPr>' +
+		'<a:extLst><a:ext uri="run-keep"/></a:extLst><a:t>Bold</a:t></a:r>' +
 		'<a:tab/><a:extLst><a:ext uri="paragraph-keep"/></a:extLst>' +
 		'<a:fld id="f1" type="slidenum"><a:rPr i="1"/><a:extLst><a:ext uri="field-keep"/></a:extLst><a:pPr/><a:t>Field</a:t></a:fld>' +
 		'<a:br><a:rPr lang="en-US"/></a:br><a:r><a:t>Tail</a:t></a:r>' +
-		'<a:endParaRPr sz="1800"/></a:p>' +
+		'<a:endParaRPr sz="1800" u="sng" strike="sngStrike" baseline="-25000" spc="100" cap="all" lang="de-DE">' +
+		'<a:solidFill><a:schemeClr val="accent3"/></a:solidFill>' +
+		'<a:effectLst><a:glow rad="9525"><a:srgbClr val="FF00FF"/></a:glow></a:effectLst>' +
+		'<a:highlight><a:srgbClr val="00FFFF"/></a:highlight></a:endParaRPr></a:p>' +
 		'<a:p><a:pPr algn="ctr"/><a:r><a:rPr u="sng"/><a:t>Second</a:t></a:r></a:p>';
 	const alphaParagraph = /<a:p>[^<]*(?:<(?!\/a:p>)[^<]*)*<a:t>Alpha<\/a:t>[\s\S]*?<\/a:p>/u;
 	const patched = dataXml.replace(alphaParagraph, richParagraphs);
@@ -58,6 +68,43 @@ describe('smartArt data-model paragraph round-trip', () => {
 		expect(node.text).toBe('Bold\tField\nTail\nSecond');
 		expect(node.runs?.map((run) => run.text)).toStrictEqual(['Bold', 'Tail']);
 		expect(node.paragraphs).toHaveLength(2);
+		const firstRun = node.paragraphs![0].items[0];
+		expect(firstRun).toMatchObject({
+			kind: 'run',
+			run: {
+				style: {
+					underline: true,
+					underlineStyle: 'dbl',
+					underlineColor: '#445566',
+					strikethrough: true,
+					strikeType: 'dblStrike',
+					baseline: 30000,
+					characterSpacing: 200,
+					textCaps: 'small',
+					language: 'fr-FR',
+					highlightColor: '#FFFF00',
+					eastAsiaFont: 'Yu Gothic',
+					complexScriptFont: 'Arial',
+					textGlowColor: '#00FF00',
+					textGlowRadius: 2,
+					textOutlineColor: '#112233',
+					textOutlineWidth: 2,
+					color: '#F1975A',
+					colorXml: { 'a:schemeClr': { '@_val': 'accent2', 'a:tint': { '@_val': '20000' } } },
+				},
+			},
+		});
+		expect(node.paragraphs![0].endParaStyle).toMatchObject({
+			underline: true,
+			strikethrough: true,
+			baseline: -25000,
+			characterSpacing: 100,
+			textCaps: 'all',
+			language: 'de-DE',
+			highlightColor: '#00FFFF',
+			textGlowColor: '#FF00FF',
+			colorXml: { 'a:schemeClr': { '@_val': 'accent3' } },
+		});
 		expect(node.paragraphs![0].items.map((item) => item.kind)).toStrictEqual([
 			'run',
 			'tab',
@@ -86,6 +133,27 @@ describe('smartArt data-model paragraph round-trip', () => {
 			'',
 			'Second edited',
 		]);
+		expect(renderShape?.textSegments?.[0].style).toMatchObject({
+			underlineStyle: 'dbl',
+			strikeType: 'dblStrike',
+			baseline: 30000,
+			characterSpacing: 200,
+			underlineColor: '#445566',
+			highlightColor: '#FFFF00',
+			textGlowColor: '#00FF00',
+			textOutlineColor: '#112233',
+			color: '#F1975A',
+			colorXml: { 'a:schemeClr': { '@_val': 'accent2' } },
+		});
+		expect(renderShape?.textSegments?.[5].style).toMatchObject({
+			strikethrough: true,
+			baseline: -25000,
+			characterSpacing: 100,
+			textCaps: 'all',
+			language: 'de-DE',
+			highlightColor: '#00FFFF',
+			textGlowColor: '#FF00FF',
+		});
 
 		const saved = await handler.save(loaded.slides);
 		const savedZip = await JSZip.loadAsync(saved);
@@ -96,6 +164,14 @@ describe('smartArt data-model paragraph round-trip', () => {
 		expect(drawingXml).toContain('<a:fld id="f1" type="slidenum"');
 		expect(drawingXml).toContain('<a:br>');
 		expect(drawingXml).toContain('b="1"');
+		expect(drawingXml).toContain('strike="dblStrike"');
+		expect(drawingXml).toContain('baseline="30000"');
+		expect(drawingXml).toContain('<a:schemeClr val="accent2"><a:tint val="20000"');
+		expect(drawingXml).toContain('<a:effectLst><a:glow rad="19050"');
+		expect(drawingXml).toContain('<a:highlight><a:srgbClr val="FFFF00"');
+		expect(drawingXml).toContain('<a:uFill><a:solidFill><a:srgbClr val="445566"');
+		expect(drawingXml).toContain('<a:ln w="19050"');
+		expect(drawingXml).toContain('<a:ea typeface="Yu Gothic"');
 		const richPoint = /<dgm:pt\b[^>]*>[\s\S]*?<a:t>Bold!<\/a:t>[\s\S]*?<\/dgm:pt>/u.exec(
 			savedData,
 		)?.[0];
@@ -119,7 +195,15 @@ describe('smartArt data-model paragraph round-trip', () => {
 		const reloadedNode = smartArtElement(reloaded.slides).smartArtData!.nodes[0];
 		expect(reloadedNode.text).toBe('Bold!\tField\nTail\nSecond edited');
 		expect(reloadedNode.paragraphs?.[0].pPr).toStrictEqual({ '@_lvl': '1' });
-		expect(reloadedNode.paragraphs?.[0].endParaRPr).toStrictEqual({ '@_sz': '1800' });
+		expect(reloadedNode.paragraphs?.[0].endParaRPr).toMatchObject({
+			'@_sz': '1800',
+			'@_strike': 'sngStrike',
+			'@_baseline': '-25000',
+			'@_spc': '100',
+			'@_cap': 'all',
+			'@_lang': 'de-DE',
+			'a:solidFill': { 'a:schemeClr': { '@_val': 'accent3' } },
+		});
 		expect(reloadedNode.paragraphs?.[1].items[0]).toMatchObject({
 			kind: 'run',
 			run: { text: 'Second edited', rPr: { '@_u': 'sng' } },
@@ -148,6 +232,18 @@ describe('smartArt data-model paragraph round-trip', () => {
 			'',
 			'Second edited',
 		]);
-		expect(cachedShape?.textSegments?.[0]).toMatchObject({ style: { bold: true } });
+		expect(cachedShape?.textSegments?.[0]).toMatchObject({
+			style: {
+				bold: true,
+				strikeType: 'dblStrike',
+				baseline: 30000,
+				underlineColor: '#445566',
+				highlightColor: '#FFFF00',
+				textGlowColor: '#00FF00',
+				textOutlineColor: '#112233',
+				color: '#F1975A',
+				colorXml: { 'a:schemeClr': { '@_val': 'accent2' } },
+			},
+		});
 	});
 });

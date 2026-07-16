@@ -47,6 +47,19 @@ function runStyle(rPr: Record<string, unknown> | undefined, fallback: TextStyle)
 		...(color ? { color: color.startsWith('#') ? color : `#${color}` } : {}),
 		...(parseRunSolidFillColorXml(xml) ? { colorXml: parseRunSolidFillColorXml(xml) } : {}),
 		...(extLst ? { runPropertiesExtLstXml: extLst } : {}),
+		...(xml ? { runPropertiesXml: xml } : {}),
+	};
+}
+
+function resolvedRunStyle(
+	rPr: Record<string, unknown> | undefined,
+	resolved: TextStyle | undefined,
+	fallback: TextStyle,
+): TextStyle {
+	return {
+		...runStyle(rPr, fallback),
+		...resolved,
+		...(rPr ? { runPropertiesXml: rPr as XmlObject } : {}),
 	};
 }
 
@@ -116,11 +129,14 @@ export function projectSmartArtNodeText(
 		};
 		for (const item of paragraph.items) {
 			if (item.kind === 'run') {
-				push({ text: item.run.text, style: runStyle(item.run.rPr, pStyle) });
+				push({
+					text: item.run.text,
+					style: resolvedRunStyle(item.run.rPr, item.run.style, pStyle),
+				});
 			} else if (item.kind === 'field') {
 				push({
 					text: item.text,
-					style: runStyle(item.rPr, pStyle),
+					style: resolvedRunStyle(item.rPr, item.style, pStyle),
 					fieldType: item.fieldType,
 					fieldGuid: item.id,
 					fieldParagraphPropertiesXml: item.pPr as XmlObject | undefined,
@@ -128,7 +144,7 @@ export function projectSmartArtNodeText(
 			} else if (item.kind === 'break') {
 				push({
 					text: '\n',
-					style: runStyle(item.rPr, pStyle),
+					style: resolvedRunStyle(item.rPr, item.style, pStyle),
 					isLineBreak: true,
 					breakRunProperties: item.rPr,
 				});
@@ -137,10 +153,14 @@ export function projectSmartArtNodeText(
 			}
 		}
 		if (first) {
-			push({ text: '', style: pStyle });
+			push({ text: '', style: { ...pStyle, ...paragraph.endParaStyle } });
 		}
 		if (paragraphIndex < paragraphs.length - 1) {
-			segments.push({ text: '', style: pStyle, isParagraphBreak: true });
+			segments.push({
+				text: '',
+				style: { ...pStyle, ...paragraph.endParaStyle },
+				isParagraphBreak: true,
+			});
 		}
 	}
 	return segments;

@@ -49,6 +49,8 @@ import type { Pptx3DScene, PptxTextWarpPreset, Text3DStyle } from './three-d';
  * ```
  */
 export interface TextStyle {
+	/** Original `a:rPr` XML retained by projections that share the shape-text model. */
+	runPropertiesXml?: XmlObject;
 	fontFamily?: string;
 	fontSize?: number; // in points
 	/** When true, renderer should shrink text to fit the shape bounds. */

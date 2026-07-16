@@ -8,6 +8,8 @@
  * @module pptx-types/smart-art-node
  */
 
+import type { TextStyle } from './text';
+
 /**
  * A single run of text inside a SmartArt node, capturing the run text and the
  * raw `a:rPr` run-properties object verbatim so per-run formatting (bold,
@@ -31,6 +33,8 @@ export interface PptxSmartArtTextRun {
 	 * round-trip. Untyped XML, hence the loose record shape.
 	 */
 	rPr?: Record<string, unknown>;
+	/** Resolved standard shape-text style derived from {@link rPr}. */
+	style?: TextStyle;
 	/** Raw run XML used to retain unmodelled extension children on save. */
 	rawXml?: Record<string, unknown>;
 	/** Original direct-child order, including unmodelled extension children. */
@@ -43,6 +47,7 @@ export type PptxSmartArtTextParagraphItem =
 	| {
 			kind: 'break';
 			rPr?: Record<string, unknown>;
+			style?: TextStyle;
 			rawXml?: Record<string, unknown>;
 			childOrder?: string[];
 	  }
@@ -52,6 +57,7 @@ export type PptxSmartArtTextParagraphItem =
 			fieldType?: string;
 			text: string;
 			rPr?: Record<string, unknown>;
+			style?: TextStyle;
 			pPr?: Record<string, unknown>;
 			rawXml?: Record<string, unknown>;
 			childOrder?: string[];
@@ -67,6 +73,8 @@ export interface PptxSmartArtTextParagraph {
 	items: PptxSmartArtTextParagraphItem[];
 	/** End-paragraph run properties (`a:endParaRPr`) preserved verbatim. */
 	endParaRPr?: Record<string, unknown>;
+	/** Resolved style for the paragraph terminator. */
+	endParaStyle?: TextStyle;
 	/** Raw paragraph XML used to retain unmodelled extension children on save. */
 	rawXml?: Record<string, unknown>;
 }

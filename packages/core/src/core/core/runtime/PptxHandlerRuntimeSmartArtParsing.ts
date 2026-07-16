@@ -14,6 +14,7 @@ import {
 import { projectSmartArtNodeText } from '../../utils/smartart-node-text-projection';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtXmlUtils';
 import { parseSmartArtTextParagraphs, smartArtParagraphsText } from './smartart-text-paragraphs';
+import { resolveSmartArtTextStyles } from './smartart-text-style-resolution';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected reportIncompleteSmartArtRelationships(
@@ -238,7 +239,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const text = textValues.join('').trim() || undefined;
 
 		const { fontSize, fontColor } = this.extractDrawingShapeTextStyle(txBody);
-		const paragraphs = txBody ? parseSmartArtTextParagraphs({ 'dgm:t': txBody }) : undefined;
+		const paragraphs = txBody
+			? resolveSmartArtTextStyles(parseSmartArtTextParagraphs({ 'dgm:t': txBody }), (rPr) =>
+					this.extractTextRunStyle(rPr, undefined, undefined, false),
+				)
+			: undefined;
 		const structuredText = paragraphs ? smartArtParagraphsText(paragraphs) : text;
 		const textSegments = paragraphs
 			? projectSmartArtNodeText(
