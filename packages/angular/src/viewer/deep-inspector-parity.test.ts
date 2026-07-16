@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { mergeImageEffects } from './image-properties-panel.component';
-import { appendMediaBookmark } from './media-properties-panel.component';
+import { appendMediaBookmark } from './media-properties-helpers';
 import { createIdentityColorMapOverride } from './slide-theme-override-panel.component';
 import { createCustomThemeEdit } from './theme-editor-fields.component';
 

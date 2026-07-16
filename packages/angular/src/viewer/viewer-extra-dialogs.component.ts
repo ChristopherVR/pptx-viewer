@@ -32,6 +32,7 @@ import { EmbeddedFontsService } from './embedded-fonts.service';
 import { EncryptedFileDialogComponent } from './encrypted-file-dialog.component';
 import { EquationEditorDialogComponent } from './equation-editor-dialog.component';
 import { FontEmbeddingPanelComponent } from './font-embedding-panel.component';
+import { HeaderFooterDialogComponent } from './header-footer-dialog.component';
 import { KeepAnnotationsDialogComponent } from './keep-annotations-dialog.component';
 import { LoadContentService } from './load-content.service';
 import { PasswordProtectionDialogComponent } from './password-protection-dialog.component';
@@ -69,6 +70,7 @@ import {
 		SettingsDialogComponent,
 		KeepAnnotationsDialogComponent,
 		SignatureStrippedDialogComponent,
+		HeaderFooterDialogComponent,
 	],
 	template: `
 		<pptx-equation-editor-dialog
@@ -134,6 +136,13 @@ import {
 			[settings]="settings()"
 			(settingsChange)="settingsChange.emit($event)"
 			(close)="svc.showSettings.set(false)"
+		/>
+
+		<pptx-header-footer-dialog
+			[open]="svc.showHeaderFooter()"
+			[value]="editor.headerFooter()"
+			(save)="editor.updateHeaderFooter($event)"
+			(close)="svc.showHeaderFooter.set(false)"
 		/>
 
 		<pptx-keep-annotations-dialog

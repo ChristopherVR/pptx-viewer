@@ -15,7 +15,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { cloneElement, cloneSlide, cloneTemplateElementsBySlideId } from 'pptx-viewer-core';
-import type { PptxElement, PptxSection, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHeaderFooter, PptxSection, PptxSlide } from 'pptx-viewer-core';
 
 import { groupSlidesBySection, isTemplateElement, isTemplateElementId } from '../internal/shared';
 import { translationsEn } from '../internal/shared-src/i18n';
@@ -36,6 +36,7 @@ import {
 	updateElementById,
 } from './element-operations';
 import { groupElements, ungroupElements } from './group-ops';
+import { LoadContentService } from './load-content.service';
 import { partitionSlides } from './template-mode';
 import type { TemplateElementsBySlideId } from './template-mode';
 
@@ -53,10 +54,18 @@ interface EditorSnapshot {
 	slides: readonly PptxSlide[];
 	templateElementsBySlideId: TemplateElementsBySlideId;
 	sections: readonly PptxSection[];
+	headerFooter: PptxHeaderFooter;
 }
 
 @Injectable()
 export class EditorStateService {
+	private readonly loader: LoadContentService | null = (() => {
+		try {
+			return inject(LoadContentService);
+		} catch {
+			return null;
+		}
+	})();
 	/**
 	 * Optional: `inject()` requires an active Angular injection context, which
 	 * plain `new EditorStateService()` calls (used throughout this service's
@@ -93,6 +102,7 @@ export class EditorStateService {
 	/** The editable slide deck (a clone of the loaded presentation). */
 	readonly slides = signal<readonly PptxSlide[]>([]);
 	readonly sections = signal<readonly PptxSection[]>([]);
+	readonly headerFooter = signal<PptxHeaderFooter>({});
 	readonly sectionGroups = computed(() => groupSlidesBySection(this.sections(), this.slides()));
 	readonly sectionOps = createEditorSectionOperations({
 		sections: () => this.sections(),
@@ -135,11 +145,16 @@ export class EditorStateService {
 	 * elements move into {@link templateElementsBySlideId}, rendered as a separate
 	 * layer and re-merged on save.
 	 */
-	setSlides(slides: readonly PptxSlide[], sections: readonly PptxSection[] = []): void {
+	setSlides(
+		slides: readonly PptxSlide[],
+		sections: readonly PptxSection[] = [],
+		headerFooter: PptxHeaderFooter = this.loader?.headerFooter() ?? {},
+	): void {
 		const partitioned = partitionSlides(slides.map(cloneSlide));
 		this.slides.set(partitioned.slides);
 		this.templateElementsBySlideId.set(partitioned.templateElementsBySlideId);
 		this.sections.set(structuredClone(sections));
+		this.headerFooter.set(structuredClone(headerFooter));
 		this.selectedIds.set([]);
 		this.history.clear();
 		this.dirty.set(false);
@@ -185,6 +200,7 @@ export class EditorStateService {
 			slides: this.slides().map(cloneSlide),
 			templateElementsBySlideId: cloneTemplateElementsBySlideId(this.templateElementsBySlideId()),
 			sections: structuredClone(this.sections()),
+			headerFooter: structuredClone(this.headerFooter()),
 		};
 	}
 
@@ -193,6 +209,18 @@ export class EditorStateService {
 		this.slides.set(snapshot.slides);
 		this.templateElementsBySlideId.set(snapshot.templateElementsBySlideId);
 		this.sections.set(snapshot.sections);
+		this.headerFooter.set(snapshot.headerFooter);
+		this.loader?.headerFooter.set(structuredClone(snapshot.headerFooter));
+	}
+
+	/** Replace presentation-level header/footer settings as one undoable edit. */
+	updateHeaderFooter(next: PptxHeaderFooter): void {
+		this.history.record(this.captureSnapshot(), this.t('pptx.headerFooter.title'));
+		const value = structuredClone(next);
+		this.headerFooter.set(value);
+		this.loader?.headerFooter.set(structuredClone(value));
+		this.dirty.set(true);
+		this.syncHistory();
 	}
 
 	/** The template (master/layout) elements separated out of a slide, by id. */

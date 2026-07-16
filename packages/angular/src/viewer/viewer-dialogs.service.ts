@@ -68,6 +68,8 @@ export class ViewerDialogsService {
 	readonly showShortcuts = signal(false);
 	/** Viewer/editor preferences dialog visibility. */
 	readonly showSettings = signal(false);
+	/** Presentation header/footer editor visibility. */
+	readonly showHeaderFooter = signal(false);
 
 	// ── Keep-annotations prompt ────────────────────────────────────────────
 	/** Keep-annotations dialog visibility. */

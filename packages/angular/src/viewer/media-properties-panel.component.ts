@@ -1,27 +1,26 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { MediaBookmark, MediaPptxElement, PptxElement } from 'pptx-viewer-core';
 
-const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
+import { LoadContentService } from './load-content.service';
+import { MediaPreviewComponent } from './media-preview.component';
+import { appendMediaBookmark } from './media-properties-helpers';
 
-export function appendMediaBookmark(
-	bookmarks: readonly MediaBookmark[],
-	trimStartMs: number,
-	id: string,
-): MediaBookmark[] {
-	return [
-		...bookmarks,
-		{ id, label: `Bookmark ${bookmarks.length + 1}`, time: trimStartMs / 1000 },
-	];
-}
+const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
 
 @Component({
 	selector: 'pptx-media-properties-panel',
 	standalone: true,
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, MediaPreviewComponent],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<div class="pptx-ng-media-properties">
+			<pptx-media-preview
+				[element]="media()"
+				[mediaDataUrls]="mediaDataUrls()"
+				[canEdit]="canEdit()"
+				(patch)="patch.emit($event)"
+			/>
 			<div class="grid two">
 				<label>
 					<span>{{ 'pptx.media.trimStartTime' | translate }}</span>
@@ -195,9 +194,12 @@ export function appendMediaBookmark(
 })
 export class MediaPropertiesPanelComponent {
 	readonly element = input.required<MediaPptxElement>();
+	readonly canEdit = input<boolean>(true);
 	readonly patch = output<Partial<PptxElement>>();
 
+	private readonly loader = inject(LoadContentService, { optional: true });
 	protected readonly media = computed(() => this.element());
+	protected readonly mediaDataUrls = computed(() => this.loader?.mediaDataUrls() ?? new Map());
 	protected readonly speeds = SPEEDS;
 	protected readonly volumePercent = computed(() => Math.round((this.media().volume ?? 1) * 100));
 	protected readonly toggles = computed(

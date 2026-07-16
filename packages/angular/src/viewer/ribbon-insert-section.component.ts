@@ -25,6 +25,7 @@ import type { PptxChartType, PptxElement } from 'pptx-viewer-core';
 import { INSERT_CHART_TYPES } from '../internal/shared';
 import { newChartElement, newShapeElement, newTableElement, newTextElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
+import { HeaderFooterRibbonButtonComponent } from './header-footer-ribbon-button.component';
 import { RibbonInsertFieldsComponent } from './ribbon-insert-fields.component';
 
 /** Read a File as a base64 data URL, resolving to '' on failure. */
@@ -63,6 +64,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 		LucideVideo,
 		LucideDatabase,
 		LucideLayers,
+		HeaderFooterRibbonButtonComponent,
 	],
 	template: `
 		<!-- Shapes group -->
@@ -190,6 +192,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 		<span class="pptx-rb-sep"></span>
 		<!-- Action button + Field dropdowns -->
 		<pptx-ribbon-insert-fields [slideIndex]="slideIndex()" />
+		<pptx-header-footer-ribbon-button />
 	`,
 })
 export class RibbonInsertSectionComponent {

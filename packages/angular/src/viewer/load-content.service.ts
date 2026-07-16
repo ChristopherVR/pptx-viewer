@@ -125,6 +125,8 @@ export class LoadContentService {
 			throw new Error('No presentation is loaded.');
 		}
 		return this.handler.save([...slides], {
+			headerFooter: this.headerFooter(),
+			presentationProperties: this.presentationProperties(),
 			slideMasters: this.slideMasters(),
 			notesMaster: this.notesMaster(),
 			handoutMaster: this.handoutMaster(),
