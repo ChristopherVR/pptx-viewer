@@ -68,6 +68,18 @@ describe('useAnimationPlayback', () => {
 		expect(advance()).toBeFalsy();
 	});
 
+	it('skips builds when presentation animations are disabled', () => {
+		const slideAnimations = [a('t1', { entrance: 'fadeIn', trigger: 'onClick' })];
+		const playback = useAnimationPlayback({
+			animations: () => slideAnimations,
+			showWithAnimation: () => false,
+		});
+
+		expect(playback.groupCount.value).toBe(0);
+		expect(playback.pendingStyles.value.size).toBe(0);
+		expect(playback.advance()).toBeFalsy();
+	});
+
 	it('chains afterPrevious delay by the previous duration', () => {
 		const { advance, elementStyles } = useAnimationPlayback({ animations: () => animations });
 		advance();

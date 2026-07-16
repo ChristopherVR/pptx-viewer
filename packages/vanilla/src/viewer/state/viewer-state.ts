@@ -8,6 +8,7 @@ import type {
 	PptxElement,
 	PptxHandoutMaster,
 	PptxNotesMaster,
+	PptxPresentationProperties,
 	PptxSection,
 	PptxSlideMaster,
 	PptxSlide,
@@ -45,6 +46,7 @@ export interface ViewerState {
 	slides: PptxSlide[];
 	/** Presentation sections used to group slides in the thumbnail rail. */
 	sections: PptxSection[];
+	presentationProperties: PptxPresentationProperties;
 	coreProperties?: PptxCoreProperties;
 	appProperties?: PptxAppProperties;
 	customProperties: PptxCustomProperty[];
@@ -129,6 +131,7 @@ export function createInitialViewerState(): ViewerState {
 	return {
 		slides: [],
 		sections: [],
+		presentationProperties: {},
 		coreProperties: undefined,
 		appProperties: undefined,
 		customProperties: [],

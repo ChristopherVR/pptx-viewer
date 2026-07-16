@@ -1,5 +1,9 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { buildClickGroups, pendingElementStyles, revealedElementStyles } from 'pptx-viewer-shared';
+import {
+	buildPresentationClickGroups,
+	pendingElementStyles,
+	revealedElementStyles,
+} from 'pptx-viewer-shared';
 import type { AnimationClickGroup } from 'pptx-viewer-shared';
 
 import { applyAnimationStyles, ensurePresentationKeyframes } from './animation-dom';
@@ -18,6 +22,8 @@ export interface SyncStageParams {
 	slideIndex: number;
 	/** True only when the live (fullscreen) presentation stage is active. */
 	presenting: boolean;
+	/** Presentation-level switch parsed from `p:showPr`. */
+	showWithAnimation?: boolean;
 }
 
 /**
@@ -113,7 +119,10 @@ export function createPresentationPlayback(): PresentationPlayback {
 			const slideChanged = params.slideIndex !== lastIndex;
 
 			if (entering || slideChanged) {
-				groups = buildClickGroups(params.slide?.animations ?? []);
+				groups = buildPresentationClickGroups(
+					params.slide?.animations ?? [],
+					params.showWithAnimation,
+				);
 				step = 0;
 			}
 

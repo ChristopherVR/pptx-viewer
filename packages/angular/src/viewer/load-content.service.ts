@@ -9,6 +9,7 @@ import type {
 	PptxHeaderFooter,
 	PptxHandoutMaster,
 	PptxNotesMaster,
+	PptxPresentationProperties,
 	PptxSaveFormat,
 	PptxSection,
 	PptxSlide,
@@ -63,6 +64,7 @@ export class LoadContentService {
 	/** Handout master, including its editable element tree. */
 	readonly handoutMaster = signal<PptxHandoutMaster | undefined>(undefined);
 	readonly sections = signal<PptxSection[]>([]);
+	readonly presentationProperties = signal<PptxPresentationProperties>({});
 	/** Whether the loaded package contains a VBA project. */
 	readonly hasMacros = signal(false);
 	/** Archive-path → displayable URL map for media + poster frames. */
@@ -287,6 +289,7 @@ export class LoadContentService {
 			this.notesMaster.set(parsed.notesMaster);
 			this.handoutMaster.set(parsed.handoutMaster);
 			this.sections.set(parsed.sections ?? []);
+			this.presentationProperties.set(parsed.presentationProperties ?? {});
 			this.hasMacros.set(parsed.hasMacros ?? false);
 			this.embeddedFonts.set(parsed.embeddedFonts ?? []);
 			this.coreProperties.set(parsed.coreProperties);

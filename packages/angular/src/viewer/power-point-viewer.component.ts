@@ -602,6 +602,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					[canvasSize]="loader.canvasSize()"
 					[mediaDataUrls]="loader.mediaDataUrls()"
 					[startIndex]="customShowsCtl.presentationStartIndex()"
+					[showWithAnimation]="loader.presentationProperties().showWithAnimation"
 					(indexChange)="presentationMode.onPresentationIndexChange($event)"
 					(annotationsExit)="presentationMode.onPresentationAnnotationsExit($event)"
 					(closed)="presentationMode.closePresentation()"

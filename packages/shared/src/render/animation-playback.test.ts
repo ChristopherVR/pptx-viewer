@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	advanceStep,
 	buildClickGroups,
+	buildPresentationClickGroups,
 	clampStep,
 	durationOf,
 	pendingElementStyles,
@@ -59,6 +60,20 @@ describe('buildClickGroups', () => {
 
 	it('returns an empty list for no animations', () => {
 		expect(buildClickGroups([])).toStrictEqual([]);
+	});
+});
+
+describe('buildPresentationClickGroups', () => {
+	it('suppresses every slide build when the show disables animations', () => {
+		expect(
+			buildPresentationClickGroups([a('a', { entrance: 'fadeIn', trigger: 'onClick' })], false),
+		).toStrictEqual([]);
+	});
+
+	it('preserves slide builds when the setting is true or omitted', () => {
+		const slideAnimations = [a('a', { entrance: 'fadeIn', trigger: 'onClick' })];
+		expect(buildPresentationClickGroups(slideAnimations, true)).toHaveLength(1);
+		expect(buildPresentationClickGroups(slideAnimations, undefined)).toHaveLength(1);
 	});
 });
 

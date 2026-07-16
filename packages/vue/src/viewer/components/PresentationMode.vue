@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
 import { ANIMATION_KEYFRAMES_CSS } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -48,6 +48,7 @@ const props = withDefaults(
 		content?: ArrayBuffer | Uint8Array | null;
 		startIndex?: number;
 		startInPresenterView?: boolean;
+		presentationProperties?: PptxPresentationProperties;
 	}>(),
 	{ startIndex: 0, startInPresenterView: false },
 );
@@ -126,7 +127,10 @@ provideZoomNavigation({ navigateToZoomTarget: goTo });
 // Animation playback: each "next" first reveals the slide's next click-group of
 // element animations; only when the slide's builds are exhausted do we advance.
 const slideAnimations = computed(() => activeSlide.value?.animations ?? []);
-const playback = useAnimationPlayback({ animations: slideAnimations });
+const playback = useAnimationPlayback({
+	animations: slideAnimations,
+	showWithAnimation: () => props.presentationProperties?.showWithAnimation,
+});
 const frameRef = ref<HTMLDivElement | null>(null);
 
 function applyAnimationStyles(): void {

@@ -8,6 +8,7 @@ import type {
 	PptxElement,
 	PptxHandoutMaster,
 	PptxNotesMaster,
+	PptxPresentationProperties,
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
@@ -37,6 +38,7 @@ export interface LoadedPresentation {
 	slides: PptxSlide[];
 	/** Parsed presentation sections. */
 	sections: PptxSection[];
+	presentationProperties: PptxPresentationProperties;
 	coreProperties?: PptxCoreProperties;
 	appProperties?: PptxAppProperties;
 	customProperties: PptxCustomProperty[];
@@ -74,6 +76,7 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 			handler,
 			slides,
 			sections: parsed.sections ?? [],
+			presentationProperties: parsed.presentationProperties ?? {},
 			coreProperties: parsed.coreProperties,
 			appProperties: parsed.appProperties,
 			customProperties: parsed.customProperties ?? [],

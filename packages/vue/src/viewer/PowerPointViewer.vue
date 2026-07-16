@@ -2521,6 +2521,7 @@ function handleCommandSearch(command: string): void {
 			:media-data-urls="mediaDataUrls"
 			:start-index="activeSlideIndex"
 			:start-in-presenter-view="startInPresenterView"
+			:presentation-properties="presentationProperties"
 			@close="closePresentation"
 			@slide-change="handlePresentSlideChange"
 		/>

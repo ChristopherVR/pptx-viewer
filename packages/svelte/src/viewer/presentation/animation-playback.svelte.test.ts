@@ -19,6 +19,17 @@ function onClick(id: string): PptxElementAnimation {
 }
 
 describe('animationPlayback', () => {
+	it('skips builds when presentation animations are disabled', () => {
+		const pb = new AnimationPlayback({
+			getAnimations: () => [onClick('e1')],
+			getShowWithAnimation: () => false,
+		});
+
+		expect(pb.groupCount).toBe(0);
+		expect(pb.pendingStyles.size).toBe(0);
+		expect(pb.advance()).toBeFalsy();
+	});
+
 	it('starts with every entrance pending and nothing revealed', () => {
 		const holder = new AnimHolder();
 		holder.anims = [onClick('e1'), onClick('e2')];

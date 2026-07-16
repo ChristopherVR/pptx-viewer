@@ -63,6 +63,24 @@ describe('createPresentationPlayback', () => {
 		expect(playback.advance()).toBeFalsy();
 	});
 
+	it('does not hide or step builds when presentation animations are disabled', () => {
+		const playback = createPresentationPlayback();
+		const stage = buildStage(doc, ['a']);
+		stageWrap.appendChild(stage);
+		playback.syncStage({
+			doc,
+			stageWrap,
+			stage,
+			slide: slideWith([entrance('a', 'onClick')]),
+			slideIndex: 0,
+			presenting: true,
+			showWithAnimation: false,
+		});
+
+		expect(stage.querySelector<HTMLElement>('[data-element-id="a"]')?.style.opacity).toBe('');
+		expect(playback.advance()).toBeFalsy();
+	});
+
 	it('hides pending entrances at step 0 and reveals them on advance', () => {
 		const playback = createPresentationPlayback();
 		const stage = buildStage(doc, ['a', 'b']);

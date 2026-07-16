@@ -325,6 +325,7 @@
 		getSlides: () => editor.renderedSlides,
 		getCurrentIndex: () => viewer.current,
 		navigate: (index) => viewer.goTo(index),
+		getShowWithAnimation: () => loader.presentationProperties.showWithAnimation,
 	});
 	usePresentationEffects({
 		controller: presentation,

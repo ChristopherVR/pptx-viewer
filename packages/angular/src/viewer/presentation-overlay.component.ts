@@ -359,6 +359,7 @@ export class PresentationOverlayComponent implements OnInit {
 	readonly canvasSize = input.required<CanvasSize>();
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly startIndex = input<number>(0);
+	readonly showWithAnimation = input<boolean | undefined>(undefined);
 
 	// ------------------------------------------------------------------
 	// Outputs
@@ -443,7 +444,7 @@ export class PresentationOverlayComponent implements OnInit {
 		// Feed the current slide's element animations into playback (resets to the
 		// pre-build state so entrance-animated elements start hidden).
 		effect(() => {
-			this.playback.setAnimations(this.currentSlide()?.animations);
+			this.playback.setAnimations(this.currentSlide()?.animations, this.showWithAnimation());
 		});
 
 		// Apply the reveal / pending styles to the rendered elements whenever the

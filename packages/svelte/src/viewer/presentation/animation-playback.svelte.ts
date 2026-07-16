@@ -1,6 +1,6 @@
 import type { PptxElementAnimation } from 'pptx-viewer-core';
 import {
-	buildClickGroups,
+	buildPresentationClickGroups,
 	clampStep,
 	pendingElementStyles,
 	revealedElementStyles,
@@ -28,6 +28,8 @@ import type { AnimationClickGroup, CSSProperties } from 'pptx-viewer-shared';
 export interface AnimationPlaybackDeps {
 	/** The current slide's animations, in document/timeline order. */
 	getAnimations(): PptxElementAnimation[];
+	/** Presentation-level switch parsed from `p:showPr`. */
+	getShowWithAnimation?(): boolean | undefined;
 }
 
 export class AnimationPlayback {
@@ -41,7 +43,10 @@ export class AnimationPlayback {
 
 	/** The current slide's click groups (recomputed from the live animations). */
 	get groups(): AnimationClickGroup[] {
-		return buildClickGroups(this.#deps.getAnimations());
+		return buildPresentationClickGroups(
+			this.#deps.getAnimations(),
+			this.#deps.getShowWithAnimation?.(),
+		);
 	}
 
 	/** Number of click groups on the current slide (i.e. how many advance steps). */

@@ -42,6 +42,8 @@ export interface PresentationControllerDeps {
 	getCurrentIndex(): number;
 	/** Navigate to a slide index (clamped by the caller's viewer state). */
 	navigate(index: number): void;
+	/** Presentation-level switch parsed from `p:showPr`. */
+	getShowWithAnimation?(): boolean | undefined;
 }
 
 export class PresentationController {
@@ -53,6 +55,7 @@ export class PresentationController {
 		this.#deps = deps;
 		this.playback = new AnimationPlayback({
 			getAnimations: () => this.#currentSlide()?.animations ?? [],
+			getShowWithAnimation: deps.getShowWithAnimation,
 		});
 	}
 

@@ -27,7 +27,7 @@ import type { PptxElementAnimation } from 'pptx-viewer-core';
 import type { AnimationClickGroup, CSSProperties } from './animation-playback-helpers';
 import {
 	advanceStep,
-	buildClickGroups,
+	buildPresentationClickGroups,
 	clampStep,
 	pendingElementStyles,
 	revealedElementStyles,
@@ -43,6 +43,7 @@ export class AnimationPlaybackService {
 
 	/** The current slide's animations, in document/timeline order. */
 	private readonly animations = signal<readonly PptxElementAnimation[]>([]);
+	private readonly showWithAnimation = signal<boolean | undefined>(undefined);
 
 	/**
 	 * Externally-controlled playback step (e.g. derived from a parent click
@@ -62,7 +63,9 @@ export class AnimationPlaybackService {
 	// ------------------------------------------------------------------
 
 	/** Click groups for the current slide's animations. */
-	readonly groups = computed<AnimationClickGroup[]>(() => buildClickGroups(this.animations()));
+	readonly groups = computed<AnimationClickGroup[]>(() =>
+		buildPresentationClickGroups(this.animations(), this.showWithAnimation()),
+	);
 
 	/** Number of click groups on this slide (i.e. how many `advance()` steps). */
 	readonly groupCount = computed<number>(() => this.groups().length);
@@ -114,10 +117,14 @@ export class AnimationPlaybackService {
 	// ------------------------------------------------------------------
 
 	/** Feed the current slide's animation list. Resets manual control. */
-	setAnimations(animations: readonly PptxElementAnimation[] | undefined): void {
+	setAnimations(
+		animations: readonly PptxElementAnimation[] | undefined,
+		showWithAnimation?: boolean,
+	): void {
 		this.cancelAutoPlay();
 		this.manualStep.set(null);
 		this.animations.set(animations ?? []);
+		this.showWithAnimation.set(showWithAnimation);
 	}
 
 	/** Update the external playback index (parent-driven build counter). */

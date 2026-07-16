@@ -66,6 +66,19 @@ export function buildClickGroups(
 	return groups;
 }
 
+/**
+ * Builds the click groups that are effective for a running slide show.
+ * `showWithAnimation=false` is the presentation-level switch from `p:showPr`:
+ * no entrance should be hidden and an advance should move directly to the next
+ * slide, regardless of animation records stored on that slide.
+ */
+export function buildPresentationClickGroups(
+	animations: readonly PptxElementAnimation[],
+	showWithAnimation: boolean | undefined,
+): AnimationClickGroup[] {
+	return showWithAnimation === false ? [] : buildClickGroups(animations);
+}
+
 /** Clamp a step into `[0, count]`. */
 export function clampStep(value: number, count: number): number {
 	if (value < 0) {

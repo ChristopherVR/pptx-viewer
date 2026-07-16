@@ -12,6 +12,7 @@
 export {
 	advanceStep,
 	buildClickGroups,
+	buildPresentationClickGroups,
 	clampStep,
 	durationOf,
 	pendingElementStyles,

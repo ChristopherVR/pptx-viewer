@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	advanceStep,
 	buildClickGroups,
+	buildPresentationClickGroups,
 	clampStep,
 	durationOf,
 	pendingElementStyles,
@@ -59,6 +60,12 @@ describe('buildClickGroups', () => {
 
 	it('returns an empty list for no animations', () => {
 		expect(buildClickGroups([])).toStrictEqual([]);
+	});
+});
+
+describe('buildPresentationClickGroups', () => {
+	it('suppresses builds when the show disables animations', () => {
+		expect(buildPresentationClickGroups(animations, false)).toStrictEqual([]);
 	});
 });
 

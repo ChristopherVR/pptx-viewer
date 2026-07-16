@@ -214,6 +214,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 				slide,
 				slideIndex: state.currentSlide,
 				presenting: state.presenting,
+				showWithAnimation: state.presentationProperties.showWithAnimation,
 			});
 		} else {
 			presentationPlayback.reset();

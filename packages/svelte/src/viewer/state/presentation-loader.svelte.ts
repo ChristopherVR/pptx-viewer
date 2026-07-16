@@ -6,6 +6,7 @@ import type {
 	PptxEmbeddedFont,
 	PptxHandoutMaster,
 	PptxNotesMaster,
+	PptxPresentationProperties,
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
@@ -34,6 +35,7 @@ export class PresentationLoader {
 	notesMaster = $state.raw<PptxNotesMaster | undefined>(undefined);
 	handoutMaster = $state.raw<PptxHandoutMaster | undefined>(undefined);
 	sections = $state.raw<PptxSection[]>([]);
+	presentationProperties = $state.raw<PptxPresentationProperties>({});
 	coreProperties = $state.raw<PptxCoreProperties | undefined>(undefined);
 	appProperties = $state.raw<PptxAppProperties | undefined>(undefined);
 	customProperties = $state.raw<PptxCustomProperty[]>([]);
@@ -111,6 +113,7 @@ export class PresentationLoader {
 			this.notesMaster = parsed.notesMaster;
 			this.handoutMaster = parsed.handoutMaster;
 			this.sections = parsed.sections ?? [];
+			this.presentationProperties = parsed.presentationProperties ?? {};
 			this.coreProperties = parsed.coreProperties;
 			this.appProperties = parsed.appProperties;
 			this.customProperties = parsed.customProperties ?? [];

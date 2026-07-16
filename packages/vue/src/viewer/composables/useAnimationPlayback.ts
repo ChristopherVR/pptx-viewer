@@ -27,7 +27,7 @@
 
 import type { PptxElementAnimation } from 'pptx-viewer-core';
 import {
-	buildClickGroups,
+	buildPresentationClickGroups,
 	clampStep,
 	pendingElementStyles,
 	revealedElementStyles,
@@ -45,6 +45,8 @@ export { buildClickGroups } from 'pptx-viewer-shared';
 export interface UseAnimationPlaybackOptions {
 	/** The current slide's animations, in document/timeline order. */
 	animations: MaybeRefOrGetter<PptxElementAnimation[] | undefined>;
+	/** Presentation-level switch parsed from `p:showPr`. */
+	showWithAnimation?: MaybeRefOrGetter<boolean | undefined>;
 	/**
 	 * The externally-controlled playback step (e.g. derived from a parent
 	 * `clickIndex`). When provided it seeds and keeps the internal step in sync;
@@ -94,7 +96,9 @@ export function useAnimationPlayback(
 ): UseAnimationPlaybackResult {
 	const groups = computed<AnimationClickGroup[]>(() => {
 		const list = toValue(options.animations) ?? [];
-		return buildClickGroups(list);
+		const enabled =
+			options.showWithAnimation === undefined ? undefined : toValue(options.showWithAnimation);
+		return buildPresentationClickGroups(list, enabled);
 	});
 
 	const groupCount = computed(() => groups.value.length);
