@@ -504,22 +504,28 @@ export function createChartElement(
 		name: s.name,
 		values: s.values,
 		color: s.color,
-		boxWhiskerOptions: s.boxWhiskerOptions ? { ...s.boxWhiskerOptions } : undefined,
-		histogramOptions: s.histogramOptions ? { ...s.histogramOptions } : undefined,
-		waterfallOptions: s.waterfallOptions
+		...(s.boxWhiskerOptions ? { boxWhiskerOptions: { ...s.boxWhiskerOptions } } : {}),
+		...(s.histogramOptions ? { histogramOptions: { ...s.histogramOptions } } : {}),
+		...(s.waterfallOptions
 			? {
-					...s.waterfallOptions,
-					subtotalIndices: s.waterfallOptions.subtotalIndices
-						? [...s.waterfallOptions.subtotalIndices]
-						: undefined,
+					waterfallOptions: {
+						...s.waterfallOptions,
+						...(s.waterfallOptions.subtotalIndices
+							? { subtotalIndices: [...s.waterfallOptions.subtotalIndices] }
+							: {}),
+					},
 				}
-			: undefined,
-		regionMapOptions: s.regionMapOptions
+			: {}),
+		...(s.regionMapOptions
 			? {
-					...s.regionMapOptions,
-					entityIds: s.regionMapOptions.entityIds ? [...s.regionMapOptions.entityIds] : undefined,
+					regionMapOptions: {
+						...s.regionMapOptions,
+						...(s.regionMapOptions.entityIds
+							? { entityIds: [...s.regionMapOptions.entityIds] }
+							: {}),
+					},
 				}
-			: undefined,
+			: {}),
 	}));
 
 	const chartData: PptxChartData = {

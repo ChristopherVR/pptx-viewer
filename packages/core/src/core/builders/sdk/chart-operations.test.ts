@@ -94,6 +94,7 @@ describe('setChartType', () => {
 		const seriesBefore = JSON.parse(JSON.stringify(el.chartData?.series));
 		setChartType(el, 'area');
 		expect(el.chartData?.series).toStrictEqual(seriesBefore);
+		expect(Object.keys(el.chartData!.series[0])).toStrictEqual(['name', 'values', 'color']);
 	});
 
 	it('preserves categories after type switch', () => {
@@ -119,6 +120,28 @@ describe('setChartType', () => {
 		const el = makeTestChart();
 		setChartType(el, 'waterfall');
 		expect(el.chartData?.chartType).toBe('waterfall');
+	});
+
+	it('preserves advanced series options across type and category changes', () => {
+		const el = createChartElement('waterfall', {
+			categories: ['A', 'B'],
+			series: [
+				{
+					name: 'Advanced',
+					values: [10, 20],
+					boxWhiskerOptions: { quartileMethod: 'inclusive' },
+					histogramOptions: { binCount: 4 },
+					waterfallOptions: { subtotalIndices: [1], connectorLines: false },
+					regionMapOptions: { entityIds: ['AU', 'NZ'], projectionType: 'mercator' },
+				},
+			],
+		});
+		const before = structuredClone(el.chartData!.series);
+
+		setChartType(el, 'line');
+		setChartCategories(el, ['First', 'Second']);
+
+		expect(el.chartData!.series).toStrictEqual(before);
 	});
 
 	it('can set type to the same value (no-op)', () => {
@@ -283,6 +306,7 @@ describe('setChartCategories', () => {
 		const seriesBefore = JSON.parse(JSON.stringify(el.chartData?.series));
 		setChartCategories(el, ['New1', 'New2']);
 		expect(el.chartData?.series).toStrictEqual(seriesBefore);
+		expect(Object.keys(el.chartData!.series[0])).toStrictEqual(['name', 'values', 'color']);
 	});
 
 	it('throws when chartData is missing', () => {
