@@ -158,19 +158,21 @@ last-updated timestamp) that drives the cursor UI.
 
 ## Building custom collaboration UI
 
-::: warning No public collaboration composables or components yet
-Unlike the React binding (`useYjsProvider`, `usePresenceTracking`, `useCollaborativeState`,
-`CollaborationProvider`, `RemoteUserCursors`, `UserAvatarBar` all exported from
-`pptx-react-viewer/viewer`), the Vue package's `useCollaboration` / `useCollaborationWiring`
-composables and its `CollaborationCursors.vue` / `CollaborationStatusIndicator.vue` components are
-currently **internal only**. If you need to drive sync yourself or render custom presence UI, reach
-them via the unstable entry (no compatibility guarantees, see [Composables](/vue/composables)):
-
 ```ts
-import { useCollaboration, useCollaborationWiring } from 'pptx-vue-viewer/composables-unstable';
+import {
+	CollaborationCursors,
+	CollaborationStatusIndicator,
+	FollowModeBar,
+	RemoteSelectionOverlay,
+	useCollaboration,
+	useCollaborationWiring,
+} from 'pptx-vue-viewer/viewer';
 ```
 
-:::
+These stable exports provide the Vue equivalents of React's collaboration hooks and presence UI.
+Use `useCollaboration` for a custom session composition, or `useCollaborationWiring` when matching
+the full viewer's Share and Broadcast lifecycle. The presentational components accept the reactive
+presence data returned by those composables.
 
 ## Server side
 

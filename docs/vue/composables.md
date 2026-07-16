@@ -52,14 +52,22 @@ The following are exported from `pptx-vue-viewer/viewer` (and the root `pptx-vue
 are safe to import. They are opt-in and tree-shakeable.
 
 ```ts
-import { useLoadContent, useEditorHistory, useEditorOperations } from 'pptx-vue-viewer/viewer';
+import {
+	useCollaboration,
+	useCollaborationWiring,
+	useEditorHistory,
+	useEditorOperations,
+	useLoadContent,
+} from 'pptx-vue-viewer/viewer';
 ```
 
-| Composable            | Exported type(s)       | Purpose                                                             |
-| --------------------- | ---------------------- | ------------------------------------------------------------------- |
-| `useLoadContent`      | `UseLoadContentResult` | Parse a `.pptx` buffer via `PptxHandler` and expose reactive state. |
-| `useEditorHistory`    | -                      | Undo/redo snapshot stack.                                           |
-| `useEditorOperations` | -                      | Element create/update/delete primitives.                            |
+| Composable               | Exported type(s)                                                      | Purpose                                                             |
+| ------------------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `useLoadContent`         | `UseLoadContentResult`                                                | Parse a `.pptx` buffer via `PptxHandler` and expose reactive state. |
+| `useEditorHistory`       | -                                                                     | Undo/redo snapshot stack.                                           |
+| `useEditorOperations`    | -                                                                     | Element create/update/delete primitives.                            |
+| `useCollaboration`       | `UseCollaborationOptions`, `UseCollaborationResult`, `RemotePresence` | Yjs session, presence, cursors, and elected-writer synchronization. |
+| `useCollaborationWiring` | `UseCollaborationWiringInput`, `UseCollaborationWiringResult`         | Full viewer collaboration and broadcast lifecycle wiring.           |
 
 Alongside these, `pptx-vue-viewer/viewer` also exports a handful of **pure helper functions** (not
 composables) used by the renderer components: `getContainerStyle`, `getShapeFillStrokeStyle`,
@@ -68,16 +76,9 @@ composables) used by the renderer components: `getContainerStyle`, `getShapeFill
 content-sharing helpers (`isAudienceTab`, `storeAudienceContent`, `loadAudienceContent`,
 `clearAudienceContent`).
 
-::: warning No public collaboration composables or presence UI yet
-Unlike the React binding (which exports `useYjsProvider`, `usePresenceTracking`,
-`useCollaborativeState`, `CollaborationProvider`, `RemoteUserCursors`, etc. from
-`pptx-react-viewer/viewer`), the Vue package does not yet expose a curated collaboration surface or
-dedicated cursor/avatar components from `/viewer`. The underlying `useCollaboration` and
-`useCollaborationWiring` composables and the `CollaborationCursors.vue` /
-`CollaborationStatusIndicator.vue` components are internal; reach them via
-`pptx-vue-viewer/composables-unstable` if you need to build custom collaboration UI. See
+The stable entry also exports `CollaborationCursors`, `CollaborationStatusIndicator`,
+`RemoteSelectionOverlay`, and `FollowModeBar` for custom presence UI. See
 [Collaboration](/vue/collaboration).
-:::
 
 ## Using an internal composable directly
 
