@@ -39,6 +39,9 @@ function buildHandlers(): RibbonHandlers {
 		primary: { undo: vi.fn(), redo: vi.fn(), save: vi.fn() },
 		file: {
 			openDocumentProperties: vi.fn(),
+			openFontEmbedding: vi.fn(),
+			openDigitalSignatures: vi.fn(),
+			openPasswordProtection: vi.fn(),
 			save: vi.fn(),
 			saveAsPpsx: vi.fn(),
 			saveAsPptm: vi.fn(),

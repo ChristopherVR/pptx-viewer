@@ -23,6 +23,21 @@ export function createFileTab(doc: Document, t: Translator, handlers: RibbonFile
 		icon: 'file',
 		onClick: handlers.openDocumentProperties,
 	});
+	const protect = makeButton(doc, {
+		label: t('pptx.security.protectPresentation'),
+		icon: 'file',
+		onClick: handlers.openPasswordProtection,
+	});
+	const fonts = makeButton(doc, {
+		label: t('pptx.ribbon.embedFonts'),
+		icon: 'file',
+		onClick: handlers.openFontEmbedding,
+	});
+	const signatures = makeButton(doc, {
+		label: t('pptx.viewer.digitalSignatures'),
+		icon: 'file',
+		onClick: handlers.openDigitalSignatures,
+	});
 	const save = makeButton(doc, {
 		label: t('pptx.file.saveAsPptx'),
 		icon: 'download',
@@ -82,6 +97,9 @@ export function createFileTab(doc: Document, t: Translator, handlers: RibbonFile
 
 	el.append(
 		documentProperties.btn,
+		protect.btn,
+		fonts.btn,
+		signatures.btn,
 		save.btn,
 		savePpsx.btn,
 		savePptm.btn,

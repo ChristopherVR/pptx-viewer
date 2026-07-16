@@ -51,7 +51,10 @@ import type {
 	PptxViewerInstance,
 	PptxViewerOptions,
 } from './types';
+import { openDigitalSignaturesDialog } from './ui/digital-signatures-dialog';
 import { openDocumentPropertiesDialog } from './ui/document-properties-dialog';
+import { openFontEmbeddingDialog } from './ui/font-embedding-dialog';
+import { openPasswordProtectionDialog } from './ui/password-protection-dialog';
 import type { ViewerControls } from './viewer-controls';
 import { createViewerControls } from './viewer-controls';
 
@@ -85,6 +88,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private presenterSnapshot = createInitialPresentationSnapshot();
 	private disposePresenterConsole: (() => void) | null = null;
 	private userFontsStyle: HTMLStyleElement | null = null;
+	private embedFontsEnabled = false;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
 		super();
@@ -356,6 +360,38 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			custom: state.customProperties,
 			editable: state.editable,
 			onSave: (core, app, custom) => this.editor.updateDocumentProperties(core, app, custom),
+		});
+	}
+
+	openFontEmbedding(): void {
+		const state = this.store.get();
+		openFontEmbeddingDialog(this.doc, this.t, {
+			slides: state.slides,
+			embeddedFonts: state.embeddedFonts,
+			enabled: this.embedFontsEnabled,
+			onToggle: (enabled) => (this.embedFontsEnabled = enabled),
+		});
+	}
+
+	openDigitalSignatures(): void {
+		const state = this.store.get();
+		openDigitalSignaturesDialog(
+			this.doc,
+			this.t,
+			state.hasDigitalSignatures,
+			state.digitalSignatureCount,
+		);
+	}
+
+	openPasswordProtection(): void {
+		openPasswordProtectionDialog(this.doc, this.t, {
+			protected: this.store.get().isPasswordProtected,
+			onSet: () => {
+				this.store.set({ isPasswordProtected: true });
+			},
+			onRemove: () => {
+				this.store.set({ isPasswordProtected: false });
+			},
 		});
 	}
 

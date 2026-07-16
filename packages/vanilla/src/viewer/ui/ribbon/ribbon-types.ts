@@ -43,6 +43,9 @@ export interface RibbonPrimaryHandlers {
 /** File tab handlers: save + export actions already implemented by the viewer's export lifecycle. */
 export interface RibbonFileHandlers {
 	openDocumentProperties(): void;
+	openFontEmbedding(): void;
+	openDigitalSignatures(): void;
+	openPasswordProtection(): void;
 	save(): void;
 	saveAsPpsx(): void;
 	saveAsPptm(): void;

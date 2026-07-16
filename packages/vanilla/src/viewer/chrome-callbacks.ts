@@ -32,6 +32,9 @@ export interface ChromeCallbackDeps {
 	toggleNotes(): void;
 	openAccessibility(): void;
 	openDocumentProperties(): void;
+	openFontEmbedding(): void;
+	openDigitalSignatures(): void;
+	openPasswordProtection(): void;
 	toggleTemplateEditing(): void;
 	toggleMasterNavigation(): void;
 	goToSlide(index: number): void;
@@ -87,6 +90,9 @@ export function buildChromeCallbacks(
 		},
 		file: {
 			openDocumentProperties: () => deps.openDocumentProperties(),
+			openFontEmbedding: () => deps.openFontEmbedding(),
+			openDigitalSignatures: () => deps.openDigitalSignatures(),
+			openPasswordProtection: () => deps.openPasswordProtection(),
 			save: () => deps.save(),
 			saveAsPpsx: () => void deps.downloadAs('ppsx'),
 			saveAsPptm: () => void deps.downloadAs('pptm'),
