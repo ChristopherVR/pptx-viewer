@@ -5,6 +5,7 @@ export interface PptxContentTypesSlideMediaBuildInput {
 	contentTypesData: XmlObject;
 	slidePaths: string[];
 	usedMediaPaths: Set<string>;
+	usedInkPaths?: Set<string>;
 	slideContentType: string;
 }
 
@@ -105,10 +106,31 @@ export class PptxContentTypesBuilder implements IPptxContentTypesBuilder {
 		}
 
 		this.applyMediaDefaults(defaults, init.usedMediaPaths);
+		this.applyInkOverrides(filteredOverrides, init.usedInkPaths);
 		typesRoot['Default'] = defaults;
 		typesRoot['Override'] = filteredOverrides;
 		init.contentTypesData['Types'] = typesRoot;
 		return init.contentTypesData;
+	}
+
+	private applyInkOverrides(overrides: XmlObject[], paths: Set<string> | undefined): void {
+		if (!paths) {
+			return;
+		}
+		const existing = new Set(
+			overrides
+				.filter((entry) => entry['@_ContentType'] === 'application/inkml+xml')
+				.map((entry) => String(entry['@_PartName'] ?? '')),
+		);
+		for (const path of paths) {
+			const partName = this.normalizePartName(path);
+			if (!existing.has(partName)) {
+				overrides.push({
+					'@_PartName': partName,
+					'@_ContentType': 'application/inkml+xml',
+				});
+			}
+		}
 	}
 
 	public applyCommentUpdates(init: PptxContentTypesCommentBuildInput): XmlObject {

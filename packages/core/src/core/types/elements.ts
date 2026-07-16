@@ -428,6 +428,10 @@ export interface ContentPartPptxElement extends PptxElementBase {
 	type: 'contentPart';
 	/** Ink strokes contained in this content part. */
 	inkStrokes?: ContentPartInkStroke[];
+	/** Package path of the related InkML part. */
+	inkPartPath?: string;
+	/** Parsed InkML root retained for unknown-node preservation on dirty save. */
+	inkPartRawXml?: XmlObject;
 }
 
 /**

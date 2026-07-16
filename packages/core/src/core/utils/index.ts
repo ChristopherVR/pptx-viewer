@@ -45,6 +45,7 @@ export {
 } from './stroke-utils';
 
 export { parseDataUrlToBytes, fetchUrlToBytes } from './data-url-utils';
+export { buildInkMlContent, parseInkMlContent } from './inkml-content-part';
 
 export { stripParentDirSegments } from './strip-parent-dir-segments';
 

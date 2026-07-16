@@ -34,6 +34,8 @@ export class PptxSaveState {
 	private readonly usedSlideNumbers = new Set<number>();
 
 	private readonly usedMediaPaths = new Set<string>();
+	private readonly usedInkPaths = new Set<string>();
+	private maxInkPartIndex = 0;
 
 	private readonly existingCommentPaths = new Set<string>();
 
@@ -82,6 +84,21 @@ export class PptxSaveState {
 
 	public getUsedMediaPaths(): Set<string> {
 		return this.usedMediaPaths;
+	}
+
+	public nextInkPath(): string {
+		this.maxInkPartIndex += 1;
+		const path = `ppt/ink/ink${this.maxInkPartIndex}.xml`;
+		this.usedInkPaths.add(path);
+		return path;
+	}
+
+	public activateInkPath(path: string): void {
+		this.usedInkPaths.add(path);
+	}
+
+	public getUsedInkPaths(): Set<string> {
+		return this.usedInkPaths;
 	}
 
 	public nextCommentPath(): string {
@@ -206,6 +223,11 @@ export class PptxSaveState {
 
 			if (relativePath.startsWith('ppt/media/')) {
 				this.usedMediaPaths.add(relativePath);
+			}
+			const inkMatch = relativePath.match(/^ppt\/ink\/ink(\d+)\.xml$/u);
+			if (inkMatch) {
+				this.usedInkPaths.add(relativePath);
+				this.maxInkPartIndex = Math.max(this.maxInkPartIndex, Number.parseInt(inkMatch[1], 10));
 			}
 
 			const commentMatch = relativePath.match(/^ppt\/comments\/comment(\d+)\.xml$/);

@@ -166,6 +166,8 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	inkPointPressures: 'complex',
 	// ContentPartPptxElement
 	inkStrokes: 'complex',
+	inkPartPath: 'scalar',
+	inkPartRawXml: 'complex',
 	// ZoomPptxElement
 	zoomType: 'scalar',
 	targetSlideIndex: 'scalar',

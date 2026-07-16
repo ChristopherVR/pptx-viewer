@@ -69,6 +69,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				contentTypesData,
 				slidePaths: slides.map((slide) => slide.id),
 				usedMediaPaths: saveSession.getUsedMediaPaths(),
+				usedInkPaths: saveSession.getUsedInkPaths(),
 				slideContentType,
 			});
 			this.zip.file('[Content_Types].xml', this.builder.build(contentTypesData));

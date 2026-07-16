@@ -17,8 +17,8 @@ import { buildChartColorStyleXml } from '../../utils/chart-color-style-writer';
 import { buildChartExSpaceXml, canGenerateChartEx } from '../../utils/chart-cx-generator';
 import { buildChartSpaceXml } from '../../utils/chart-xml-generator';
 import { BLIP_FILL_ORDER, SP_PR_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveContentPartInk';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveModel3D';
 import { CHART_CONTENT_TYPE, CHART_RELATIONSHIP_TYPE } from './PptxHandlerRuntimeSaveShapeXml';
 
 export type { SaveSlideContext };
@@ -325,8 +325,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// through verbatim into the dedicated `contentParts` slot, which
 		// `PptxHandlerRuntimeSaveSlideWriter` lifts onto `spTree['p:contentPart']`.
 		if (el.type === 'contentPart') {
+			shape = this.createOrUpdateContentPartInkXml(el, shape, ctx);
 			if (shape) {
-				this.elementTransformUpdater.applyTransform(shape, el, PptxHandlerRuntime.EMU_PER_PX);
 				collectors.contentParts.push(shape);
 			} else {
 				this.compatibilityService.reportWarning({

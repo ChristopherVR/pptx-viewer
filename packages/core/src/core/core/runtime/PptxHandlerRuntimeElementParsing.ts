@@ -5,6 +5,7 @@ import type {
 	Model3DPptxElement,
 	PptxTableData,
 } from '../../types';
+import { parseInkMlContent } from '../../utils';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSavePipeline';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
 
@@ -43,12 +44,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	): Promise<PptxElement | null> {
 		try {
 			const rId = String(contentPart?.['@_r:id'] || '').trim();
-			const inkStrokes: Array<{
-				path: string;
-				color: string;
-				width: number;
-				opacity: number;
-			}> = [];
+			let inkStrokes: ContentPartPptxElement['inkStrokes'] = [];
+			let inkPartPath: string | undefined;
+			let inkPartRawXml: XmlObject | undefined;
 			const xfrm = contentPart['p:xfrm'] as XmlObject | undefined;
 			const off = xfrm?.['a:off'] as XmlObject | undefined;
 			const ext = xfrm?.['a:ext'] as XmlObject | undefined;
@@ -70,29 +68,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const relsMap = this.slideRelsMap.get(slidePath);
 				const inkTarget = relsMap?.get(rId);
 				if (inkTarget) {
-					const inkPath = this.resolveImagePath(slidePath, inkTarget);
-					const inkXml = await this.zip.file(inkPath)?.async('string');
+					inkPartPath = this.resolveImagePath(slidePath, inkTarget);
+					const inkXml = await this.zip.file(inkPartPath)?.async('string');
 					if (inkXml) {
 						const inkData = this.parser.parse(inkXml) as XmlObject;
-						// Ink XML typically has <ink:ink> root with <ink:trace> children
-						const inkRoot = (inkData['ink:ink'] || inkData['ink']) as XmlObject | undefined;
-						if (inkRoot) {
-							const traces = this.ensureArray(inkRoot['ink:trace'] ?? inkRoot['trace']);
-							for (const trace of traces) {
-								const pathStr =
-									typeof trace === 'string'
-										? trace
-										: String(trace?.['#text'] || trace || '').trim();
-								if (pathStr.length > 0) {
-									inkStrokes.push({
-										path: pathStr,
-										color: '#000000',
-										width: 1,
-										opacity: 1,
-									});
-								}
-							}
-						}
+						const parsed = parseInkMlContent(inkData);
+						inkStrokes = parsed.strokes;
+						inkPartRawXml = parsed.rawXml;
 					}
 				}
 			}
@@ -105,6 +87,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				width,
 				height,
 				inkStrokes: inkStrokes.length > 0 ? inkStrokes : undefined,
+				inkPartPath,
+				inkPartRawXml,
 				rawXml: contentPart,
 			} as ContentPartPptxElement;
 		} catch (e) {
