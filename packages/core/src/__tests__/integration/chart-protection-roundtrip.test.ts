@@ -68,3 +68,35 @@ describe('classic ChartML protection integration', () => {
 		expect(chartElement(reloaded).chartData!.protection!.formatting).toBeUndefined();
 	});
 });
+
+describe('classic ChartML pivot formats integration', () => {
+	it('loads, edits, saves, and reloads pivot formats without losing extensions', async () => {
+		const sourceZip = await JSZip.loadAsync(await buildDeck());
+		const chartPart = sourceZip.file('ppt/charts/chart1.xml')!;
+		const pivotXml = `<c:pivotFmts><c:pivotFmt><c:idx val="2"/><c:marker><c:symbol val="circle"/></c:marker><c:extLst><c:ext uri="urn:pivot"><v:data value="keep"/></c:ext></c:extLst></c:pivotFmt></c:pivotFmts>`;
+		sourceZip.file(
+			'ppt/charts/chart1.xml',
+			(await chartPart.async('string')).replace('<c:chart>', `<c:chart>${pivotXml}`),
+		);
+		const source = await sourceZip.generateAsync({ type: 'uint8array' });
+		const handler = new PptxHandler();
+		const data = await handler.load(source.buffer as ArrayBuffer);
+		const formats = chartElement(data).chartData!.pivotFormats!;
+		expect(formats.formats[0]).toMatchObject({ index: 2 });
+		formats.formats[0].index = 5;
+		formats.formats[0].markerXml = { 'c:symbol': { '@_val': 'diamond' } };
+		data.slides[0].isDirty = true;
+		const saved = await handler.save(data.slides);
+		const savedZip = await JSZip.loadAsync(saved);
+		const savedXml = await savedZip.file('ppt/charts/chart1.xml')!.async('string');
+		expect(savedXml).toContain('uri="urn:pivot"');
+		expect(savedXml).toContain('<v:data value="keep"');
+
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		const roundTrip = chartElement(reloaded).chartData!.pivotFormats!;
+		expect(roundTrip.formats[0]).toMatchObject({ index: 5 });
+		expect(roundTrip.formats[0].markerXml).toStrictEqual({
+			'c:symbol': { '@_val': 'diamond' },
+		});
+	});
+});

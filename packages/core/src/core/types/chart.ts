@@ -6,6 +6,7 @@
  */
 
 import type { PptxChartAxisLabelFormatting } from './chart-axis';
+import type { PptxChartPivotFormats } from './chart-pivot-format';
 import type { PptxChartPivotSource } from './chart-pivot-source';
 import type { PptxChartPrintSettings } from './chart-print-settings';
 import type { PptxChartProtection } from './chart-protection';
@@ -732,7 +733,8 @@ export interface PptxChartData {
 	 * for charts whose data originates from a PivotTable. Preserved
 	 * verbatim for round-trip fidelity.
 	 */
-	pivotFmtsXml?: unknown;
+	/** Typed pivot-chart format persistence; `null` removes `c:pivotFmts`. */
+	pivotFormats?: PptxChartPivotFormats | null;
 
 	/**
 	 * Color-map override (`c:clrMapOvr`) carrying 12 attributes that

@@ -27,6 +27,7 @@ import { applySeriesErrBarsToXml } from '../../utils/chart-errbars-serializer';
 import { applyChartLayouts } from '../../utils/chart-layout';
 import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
 import { applySeriesMarkerToXml } from '../../utils/chart-marker-serializer';
+import { applyChartPivotFormats } from '../../utils/chart-pivot-formats';
 import { applyChartPivotSource } from '../../utils/chart-pivot-source';
 import { applyChartPrintSettings } from '../../utils/chart-print-settings';
 import { applyChartProtection } from '../../utils/chart-protection';
@@ -503,6 +504,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// ── Chart chrome flags round-trip ─────────────────────────
 				if (chartData.chartChrome) {
 					this.applyChartChrome(chartRoot, chartData.chartChrome);
+				}
+
+				if (chartData.pivotFormats !== undefined) {
+					applyChartPivotFormats(chartRoot, chartData.pivotFormats, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
 				}
 
 				// ── Legend round-trip (c:legend / c:legendPos) ────────────

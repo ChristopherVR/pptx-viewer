@@ -27,6 +27,7 @@ import { parseBubbleChartOptions } from '../../utils/chart-bubble-options';
 import { chartContainerLocalNameToType } from '../../utils/chart-container-type-map';
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
 import { parseChartLayouts } from '../../utils/chart-layout';
+import { parseChartPivotFormats } from '../../utils/chart-pivot-formats';
 import { parseChartPrintSettings } from '../../utils/chart-print-settings';
 import { parseChartProtection } from '../../utils/chart-protection';
 import {
@@ -225,7 +226,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.compatibilityService.getXmlLocalName(key),
 		);
 		const userShapesXml = this.parseUserShapesXml(chartSpace);
-		const pivotFmtsXml = this.parsePivotFmtsXml(chartRoot);
+		const pivotFormats = parseChartPivotFormats(chartRoot, (key) =>
+			this.compatibilityService.getXmlLocalName(key),
+		);
 		const clrMapOvr = this.parseClrMapOvr(chartSpace);
 		const printSettings = parseChartPrintSettings(chartSpace, (key) =>
 			this.compatibilityService.getXmlLocalName(key),
@@ -263,7 +266,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(chartChrome ? { chartChrome } : {}),
 			...(layouts ? { layouts } : {}),
 			...(userShapesXml ? { userShapesXml } : {}),
-			...(pivotFmtsXml ? { pivotFmtsXml } : {}),
+			...(pivotFormats ? { pivotFormats } : {}),
 			...(clrMapOvr ? { clrMapOvr } : {}),
 			...(printSettings ? { printSettings } : {}),
 			...(protection ? { protection } : {}),
@@ -464,7 +467,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.compatibilityService.getXmlLocalName(key),
 		);
 		const userShapesXml = this.parseUserShapesXml(chartSpace);
-		const pivotFmtsXml = this.parsePivotFmtsXml(chartRoot);
+		const pivotFormats = parseChartPivotFormats(chartRoot, (key) =>
+			this.compatibilityService.getXmlLocalName(key),
+		);
 		const clrMapOvr = this.parseClrMapOvr(chartSpace);
 		const printSettings = parseChartPrintSettings(chartSpace, (key) =>
 			this.compatibilityService.getXmlLocalName(key),
@@ -491,7 +496,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(chartChrome ? { chartChrome } : {}),
 			...(layouts ? { layouts } : {}),
 			...(userShapesXml ? { userShapesXml } : {}),
-			...(pivotFmtsXml ? { pivotFmtsXml } : {}),
+			...(pivotFormats ? { pivotFormats } : {}),
 			...(clrMapOvr ? { clrMapOvr } : {}),
 			...(printSettings ? { printSettings } : {}),
 			...(protection ? { protection } : {}),
