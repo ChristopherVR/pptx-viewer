@@ -5,7 +5,11 @@
 	 * shared computed CSS filter + any SVG `<filter>` defs for duotone /
 	 * artistic image effects.
 	 */
-	import { getComputedImageStyle } from 'pptx-viewer-shared';
+	import {
+		getComputedImageStyle,
+		getImageColorWashStyle,
+		resolveColorChangedImageSource,
+	} from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getImageSrc, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
@@ -14,7 +18,27 @@
 
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 	const imageSrc = $derived(getImageSrc(element, mediaDataUrls));
+	const imageEffects = $derived(
+		element.type === 'image' || element.type === 'picture' ? element.imageEffects : undefined,
+	);
 	const imageFx = $derived(getComputedImageStyle(element));
+	const colorWash = $derived(getImageColorWashStyle(imageEffects?.colorWash));
+	let processedSrc = $state<string | undefined>();
+	let colorChangeRequest = 0;
+	$effect(() => {
+		const src = imageSrc;
+		const clrChange = imageEffects?.clrChange;
+		const request = ++colorChangeRequest;
+		processedSrc = src;
+		if (src && clrChange) {
+			void resolveColorChangedImageSource(src, clrChange).then((resolved) => {
+				if (request === colorChangeRequest) {
+					processedSrc = resolved;
+				}
+				return undefined;
+			});
+		}
+	});
 	const imgStyle = $derived(
 		styleToString({
 			width: '100%',
@@ -39,7 +63,19 @@
 			</defs>
 		</svg>
 	{/each}
-	{#if imageSrc}
-		<img src={imageSrc} alt="" style={imgStyle} />
+	{#if processedSrc}
+		<img src={processedSrc} alt="" style={imgStyle} />
+		{#if colorWash}
+			<div
+				class="pptx-svelte-image-color-wash"
+				style={styleToString({
+					position: 'absolute',
+					inset: '0',
+					pointerEvents: 'none',
+					backgroundColor: colorWash.backgroundColor,
+					opacity: colorWash.opacity,
+				})}
+			></div>
+		{/if}
 	{/if}
 </div>
