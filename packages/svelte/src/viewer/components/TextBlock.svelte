@@ -19,9 +19,16 @@
 				? ` text-indent: ${para.textIndentPx}px;`
 				: ''}"
 		>
-			{#if para.bulletMarker !== undefined}<span
+			{#if para.bulletPicture?.src}<img
+					class="pptx-svelte-bullet-image"
+					src={para.bulletPicture.src}
+					alt={para.bulletPicture.accessibleLabel}
+					style="width: {para.bulletPicture.sizePx}px; height: {para.bulletPicture
+						.sizePx}px; display: inline-block; vertical-align: middle; margin-inline-end: 4px; object-fit: contain;"
+				/>{:else if para.bulletMarker !== undefined}<span
 					class="pptx-svelte-bullet"
-					style={styleToString(para.bulletStyle)}>{para.bulletMarker}&nbsp;</span
+					style={styleToString(para.bulletStyle)}
+					aria-label={para.bulletPicture?.accessibleLabel}>{para.bulletMarker}&nbsp;</span
 				>{/if}{#each para.runs as run, ri (ri)}{#if run.text === '\n'}<br />{:else}<span
 						style={styleToString(run.style)}>{run.text}</span
 					>{/if}{/each}
