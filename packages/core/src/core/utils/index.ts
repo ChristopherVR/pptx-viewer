@@ -454,7 +454,6 @@ export {
 	validateSmartArtConstraintRules,
 } from './smartart-constraint-rules';
 export { parseChartUpDownBars, applyChartUpDownBars } from './chart-up-down-bars';
-export { parseChartProtection, applyChartProtection } from './chart-protection';
 
 export {
 	parseDrawingMediaReference,
