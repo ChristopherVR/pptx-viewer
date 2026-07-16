@@ -15,6 +15,17 @@ export {
 export { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from 'pptx-viewer-shared';
 export { useEditorHistory } from './useEditorHistory';
 export { useEditorOperations } from './useEditorOperations';
+export { useCollaboration } from './useCollaboration';
+export type {
+	RemotePresence,
+	UseCollaborationOptions,
+	UseCollaborationResult,
+} from './useCollaboration';
+export { useCollaborationWiring } from './useCollaborationWiring';
+export type {
+	UseCollaborationWiringInput,
+	UseCollaborationWiringResult,
+} from './useCollaborationWiring';
 export {
 	AUDIENCE_HASH,
 	isAudienceTab,

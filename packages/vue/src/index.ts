@@ -1,5 +1,16 @@
 // ── Vue 3 PowerPoint viewer/editor ──
-export { PowerPointViewer, SlideCanvas, SlideStage, ElementRenderer } from './viewer';
+export {
+	PowerPointViewer,
+	SlideCanvas,
+	SlideStage,
+	ElementRenderer,
+	CollaborationCursors,
+	CollaborationStatusIndicator,
+	RemoteSelectionOverlay,
+	FollowModeBar,
+	useCollaboration,
+	useCollaborationWiring,
+} from './viewer';
 export type {
 	PowerPointViewerProps,
 	PowerPointViewerEmits,
@@ -7,6 +18,13 @@ export type {
 	CollaborationConfig,
 	CollaborationRole,
 	CanvasSize,
+	RemoteCursor,
+	RemotePresence,
+	RemoteSelectionBox,
+	UseCollaborationOptions,
+	UseCollaborationResult,
+	UseCollaborationWiringInput,
+	UseCollaborationWiringResult,
 } from './viewer';
 
 // ── Shared API types ──
