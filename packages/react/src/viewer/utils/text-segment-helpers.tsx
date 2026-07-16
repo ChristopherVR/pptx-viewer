@@ -1,5 +1,5 @@
 import type { BulletInfo } from 'pptx-viewer-core';
-import { sanitizeMathMl } from 'pptx-viewer-shared';
+import { resolvePictureBullet, sanitizeMathMl } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
@@ -237,32 +237,27 @@ export function renderPictureBullet(
 	bulletInfo: BulletInfo,
 	baseFontSize: number,
 ): React.ReactNode {
-	const bulletSize =
-		typeof bulletInfo.sizePts === 'number'
-			? bulletInfo.sizePts
-			: typeof bulletInfo.sizePercent === 'number'
-				? baseFontSize * (bulletInfo.sizePercent / 100)
-				: baseFontSize;
+	const picture = resolvePictureBullet(bulletInfo, baseFontSize);
 
 	// Fallback: when no resolved image data URL is available, render a
 	// default character bullet instead of a broken <img>.
 	// Uses marginInlineEnd so that the spacing is correct in both LTR
 	// (margin appears on the right) and RTL (margin appears on the left).
-	if (!bulletInfo.imageDataUrl) {
+	if (!picture.src) {
 		return (
 			<span
 				key={`${elementId}-seg-${segmentIndex}-bullet-fallback`}
 				style={{
-					fontSize: bulletSize,
+					fontSize: picture.sizePx,
 					display: 'inline-block',
 					verticalAlign: 'middle',
 					marginInlineEnd: 4,
 					color: bulletInfo.color || undefined,
 					fontFamily: bulletInfo.fontFamily || undefined,
 				}}
-				aria-label={translationsEn['pptx.textSegment.bulletAria']}
+				aria-label={picture.accessibleLabel}
 			>
-				{'\u2022 '}
+				{`${picture.fallbackMarker} `}
 			</span>
 		);
 	}
@@ -270,11 +265,11 @@ export function renderPictureBullet(
 	return (
 		<img
 			key={`${elementId}-seg-${segmentIndex}-bullet-img`}
-			src={bulletInfo.imageDataUrl}
-			alt={translationsEn['pptx.textSegment.bulletAria']}
+			src={picture.src}
+			alt={picture.accessibleLabel}
 			style={{
-				width: bulletSize,
-				height: bulletSize,
+				width: picture.sizePx,
+				height: picture.sizePx,
 				display: 'inline-block',
 				verticalAlign: 'middle',
 				marginInlineEnd: 4,
