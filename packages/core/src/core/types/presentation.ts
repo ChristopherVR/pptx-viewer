@@ -46,12 +46,16 @@ import type { PptxViewProperties } from './view-properties';
  * @see ECMA-376 Part 1, §19.2.1.3 (custDataLst), §19.3.1.6 (custData)
  */
 export interface PptxCustomerData {
-	/** Resolved part path inside the package (e.g. `ppt/customerData/item1.xml`). */
-	id: string;
+	/** Resolved part path inside the package (e.g. `customXml/item1.xml`). */
+	id?: string;
 	/** Relationship ID referencing the custom data part. */
-	relId: string;
+	relId?: string;
 	/** Raw string content of the custom data part (if resolvable). */
 	data?: string;
+	/** OPC content type for the custom data part. */
+	contentType?: string;
+	/** Raw `p:custData` XML retained for unknown-node preservation. */
+	rawXml?: XmlObject;
 }
 
 /**

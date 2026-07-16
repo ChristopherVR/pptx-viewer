@@ -3,6 +3,7 @@ import type {
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
+	PptxCustomerData,
 	PptxChartData,
 	PptxCompatibilityWarning,
 	PptxCustomShow,
@@ -122,6 +123,8 @@ export interface PptxHandlerSaveOptions {
 	slideLayouts?: PptxSlideLayout[];
 	/** Updated tag collections to save back to ppt/tags/tag*.xml. */
 	tags?: PptxTagCollection[];
+	/** Presentation-level customer data references to author or update. */
+	customerData?: PptxCustomerData[];
 	/** Photo album metadata to save back to `p:photoAlbum`. */
 	photoAlbum?: PptxPhotoAlbum;
 	/** East Asian line-break settings to save back to `p:kinsoku`. */

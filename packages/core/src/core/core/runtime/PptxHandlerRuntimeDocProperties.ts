@@ -8,6 +8,8 @@ import type {
 	PptxTagCollection,
 } from '../../types';
 import { parseActiveXControlsFromSlide } from '../../utils/activex-parser';
+import { resolveContentType } from '../../utils/customer-data-package';
+import { safeResolveZipPath } from '../../utils/safe-path';
 import { discoverTagCollections } from '../../utils/tag-package';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeMediaData';
 
@@ -233,17 +235,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
-	 * Resolve a relative target path against the directory of a source part.
-	 */
-	private resolvePartPath(sourcePart: string, relativeTarget: string): string {
-		if (relativeTarget.startsWith('/')) {
-			return relativeTarget.substring(1);
-		}
-		const dir = sourcePart.substring(0, sourcePart.lastIndexOf('/') + 1);
-		return dir + relativeTarget;
-	}
-
-	/**
 	 * Parse `p:custDataLst` entries from a given XML container node and resolve
 	 * their relationship targets + data content from the ZIP.
 	 *
@@ -284,7 +275,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		for (const rel of relationships) {
 			const id = String(rel['@_Id'] || '').trim();
 			const target = String(rel['@_Target'] || '').trim();
-			if (id && target) {
+			const type = String(rel['@_Type'] || '').trim();
+			if (id && target && type.endsWith('/relationships/customXml')) {
 				relMap.set(id, target);
 			}
 		}
@@ -301,7 +293,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				continue;
 			}
 
-			const resolvedPath = this.resolvePartPath(partPath, target);
+			const base = partPath.slice(0, partPath.lastIndexOf('/'));
+			const resolvedPath = safeResolveZipPath(base, target);
+			if (!resolvedPath) {
+				continue;
+			}
 
 			let data: string | undefined;
 			try {
@@ -313,7 +309,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// Non-critical — data may not be resolvable
 			}
 
-			results.push({ id: resolvedPath, relId, data });
+			const contentType = await resolveContentType(
+				this.zip,
+				{ parse: (xml) => this.parser.parse(xml) as XmlObject },
+				resolvedPath,
+			);
+			results.push({ id: resolvedPath, relId, data, contentType, rawXml: entry });
 		}
 
 		return results;

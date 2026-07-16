@@ -6,8 +6,12 @@ import type {
 	PptxNotesMaster,
 	PptxHandoutMaster,
 	PptxTagCollection,
+	PptxCustomerData,
+	PptxSlide,
 } from '../../types';
 import { applySmartArtLayoutDefinition, convertXmlToStrict, decomposeSmartArt } from '../../utils';
+import { writeCustomerDataScopes } from '../../utils/customer-data-package';
+import type { CustomerDataScope } from '../../utils/customer-data-package';
 import { serializeEmbeddedFontList, setEmbeddedFontList } from '../../utils/embedded-font-list';
 import { obfuscateFont, generateFontGuid } from '../../utils/font-deobfuscation';
 import { safeResolveZipPath } from '../../utils/safe-path';
@@ -432,6 +436,31 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return;
 		}
 		await writeTagCollections(this.zip, tags, {
+			parse: (xml) => this.parser.parse(xml) as XmlObject,
+			build: (data) => this.builder.build(data),
+		});
+	}
+
+	/** Author presentation and slide customer-data lists and their CustomXmlPart relationships. */
+	protected async applyCustomerDataChanges(
+		presentationEntries: PptxCustomerData[] | undefined,
+		slides: PptxSlide[],
+	): Promise<void> {
+		const scopes: CustomerDataScope[] = slides
+			.filter((slide) => slide.customerData !== undefined)
+			.map((slide) => ({
+				sourcePartPath: slide.id,
+				location: 'slide' as const,
+				entries: slide.customerData!,
+			}));
+		if (presentationEntries !== undefined) {
+			scopes.unshift({
+				sourcePartPath: 'ppt/presentation.xml',
+				location: 'presentation',
+				entries: presentationEntries,
+			});
+		}
+		await writeCustomerDataScopes(this.zip, scopes, {
 			parse: (xml) => this.parser.parse(xml) as XmlObject,
 			build: (data) => this.builder.build(data),
 		});

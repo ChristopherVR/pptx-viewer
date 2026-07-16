@@ -239,6 +239,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.zip.file('[Content_Types].xml', this.builder.build(contentTypesData));
 			}
 		}
+		await this.applyCustomerDataChanges(options?.customerData, slides);
 
 		this.applyThumbnailPreservation();
 		await this.applyVbaProjectPreservation();
