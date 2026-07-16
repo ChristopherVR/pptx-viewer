@@ -1,5 +1,6 @@
 import { XmlObject, TextStyle, TextSegment, ShapeStyle } from '../../types';
 import type { PptxImageLikeElement, PptxImageEffects } from '../../types';
+import { applyImageColorEffects } from './image-color-effects';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveShapeXml';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -74,11 +75,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			delete blip['@_cont'];
 		}
 
-		if (nextEffects.grayscale) {
-			blip['a:grayscl'] = {};
-		} else {
-			delete blip['a:grayscl'];
-		}
+		applyImageColorEffects(
+			blip,
+			nextEffects,
+			(node) => this.parseColor(node),
+			(node) => this.extractColorOpacity(node),
+		);
 
 		if (typeof nextEffects.alphaModFix === 'number' && Number.isFinite(nextEffects.alphaModFix)) {
 			blip['a:alphaModFix'] = {
@@ -86,60 +88,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			};
 		} else {
 			delete blip['a:alphaModFix'];
-		}
-
-		if (typeof nextEffects.biLevel === 'number' && Number.isFinite(nextEffects.biLevel)) {
-			blip['a:biLevel'] = {
-				'@_thresh': String(Math.round(nextEffects.biLevel * 1000)),
-			};
-		} else {
-			delete blip['a:biLevel'];
-		}
-
-		if (
-			nextEffects.duotone &&
-			typeof nextEffects.duotone.color1 === 'string' &&
-			typeof nextEffects.duotone.color2 === 'string'
-		) {
-			blip['a:duotone'] = {
-				'a:srgbClr': [
-					{
-						'@_val': nextEffects.duotone.color1.replace('#', ''),
-					},
-					{
-						'@_val': nextEffects.duotone.color2.replace('#', ''),
-					},
-				],
-			};
-		} else {
-			delete blip['a:duotone'];
-		}
-
-		if (
-			nextEffects.clrChange &&
-			typeof nextEffects.clrChange.clrFrom === 'string' &&
-			typeof nextEffects.clrChange.clrTo === 'string'
-		) {
-			const clrToNode: XmlObject = {
-				'a:srgbClr': {
-					'@_val': nextEffects.clrChange.clrTo.replace('#', ''),
-				},
-			};
-			if (nextEffects.clrChange.clrToTransparent) {
-				(clrToNode['a:srgbClr'] as XmlObject)['a:alpha'] = {
-					'@_val': '0',
-				};
-			}
-			blip['a:clrChange'] = {
-				'a:clrFrom': {
-					'a:srgbClr': {
-						'@_val': nextEffects.clrChange.clrFrom.replace('#', ''),
-					},
-				},
-				'a:clrTo': clrToNode,
-			};
-		} else {
-			delete blip['a:clrChange'];
 		}
 
 		// ── Additional ECMA-376 blip alpha/recolour primitives ──
@@ -195,21 +143,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			};
 		} else {
 			delete blip['a:alphaBiLevel'];
-		}
-
-		// a:clrRepl — prefer the preserved raw XML so scheme-colour modifiers round-trip
-		if (nextEffects.clrRepl) {
-			if (nextEffects.clrRepl.rawXml) {
-				blip['a:clrRepl'] = nextEffects.clrRepl.rawXml as XmlObject;
-			} else if (typeof nextEffects.clrRepl.color === 'string') {
-				blip['a:clrRepl'] = {
-					'a:srgbClr': {
-						'@_val': nextEffects.clrRepl.color.replace('#', ''),
-					},
-				};
-			}
-		} else {
-			delete blip['a:clrRepl'];
 		}
 
 		// a:lum

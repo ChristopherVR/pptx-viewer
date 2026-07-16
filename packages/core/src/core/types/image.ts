@@ -9,6 +9,7 @@
 // Image types: effects, crop shapes, and image properties
 // ==========================================================================
 
+import type { XmlObject } from './common';
 import type { EffectDagContainer } from './effect-dag';
 
 export * from './effect-dag';
@@ -35,7 +36,12 @@ export interface PptxImageEffects {
 	/** Contrast adjustment (-100 to 100). */
 	contrast?: number;
 	/** Duotone colour pair. */
-	duotone?: { color1: string; color2: string };
+	duotone?: {
+		color1: string;
+		color2: string;
+		/** Original effect XML, retained while the resolved colours are unchanged. */
+		rawXml?: XmlObject;
+	};
 	/** Grayscale flag. */
 	grayscale?: boolean;
 	/** Saturation adjustment (-100 to 100). */
@@ -56,7 +62,13 @@ export interface PptxImageEffects {
 		clrTo: string;
 		/** Whether the target colour is fully transparent (alpha = 0). */
 		clrToTransparent?: boolean;
+		/** Original effect XML, including colour transforms and extensions. */
+		rawXml?: XmlObject;
 	};
+	/** Original grayscale node, including extension or foreign attributes. */
+	grayscaleRawXml?: XmlObject;
+	/** Original bi-level node, including extension or foreign attributes. */
+	biLevelRawXml?: XmlObject;
 	/**
 	 * Alpha inverse effect (`a:alphaInv`). Inverts the alpha channel; an optional
 	 * colour child shifts the inversion baseline.

@@ -1,6 +1,7 @@
 import { XmlObject } from '../../types';
 import type { PptxImageEffects, MediaBookmark } from '../../types';
 import { xmlAttr, xmlChild } from '../../utils/xml-access';
+import { parseImageColorEffects } from './image-color-effects';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTableStylesAndActions';
 
 /** Timing data extracted from the OOXML timing tree for a single media element. */
@@ -50,9 +51,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
-		// Color effects in a:blip child nodes
-		if (blip['a:grayscl']) {
-			effects.grayscale = true;
+		const colorEffects = parseImageColorEffects(
+			blip,
+			(node) => this.parseColor(node),
+			(node) => this.extractColorOpacity(node),
+		);
+		Object.assign(effects, colorEffects);
+		if (Object.keys(colorEffects).length > 0) {
 			hasAny = true;
 		}
 
@@ -67,56 +72,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					effects.alphaModFix = pct;
 					hasAny = true;
 				}
-			}
-		}
-
-		// Bi-level threshold — 1-bit black/white
-		const biLevel = blip['a:biLevel'] as XmlObject | undefined;
-		if (biLevel) {
-			const thresh = biLevel['@_thresh'];
-			if (thresh !== undefined) {
-				// thresh is in 1/1000ths of a percent (e.g. 50000 = 50%)
-				const pct = parseInt(String(thresh)) / 1000;
-				if (Number.isFinite(pct)) {
-					effects.biLevel = pct;
-					hasAny = true;
-				}
-			}
-		}
-
-		// Colour change — swap one colour for another (commonly used for transparency keying)
-		const clrChange = blip['a:clrChange'] as XmlObject | undefined;
-		if (clrChange) {
-			const clrFrom = clrChange['a:clrFrom'] as XmlObject | undefined;
-			const clrTo = clrChange['a:clrTo'] as XmlObject | undefined;
-			if (clrFrom && clrTo) {
-				const fromColor = this.parseColor(clrFrom) || '#000000';
-				const toColor = this.parseColor(clrTo) || '#ffffff';
-				// Check if the target colour is fully transparent
-				const toAlpha = this.extractColorOpacity(clrTo);
-				effects.clrChange = {
-					clrFrom: fromColor,
-					clrTo: toColor,
-					clrToTransparent: toAlpha !== undefined && toAlpha <= 0,
-				};
-				hasAny = true;
-			}
-		}
-
-		// Duotone — collect child colour elements across all colour types
-		const duotone = blip['a:duotone'] as XmlObject | undefined;
-		if (duotone) {
-			const duotoneColorNodes: XmlObject[] = [
-				...this.ensureArray(duotone['a:srgbClr']),
-				...this.ensureArray(duotone['a:schemeClr']),
-				...this.ensureArray(duotone['a:prstClr']),
-			];
-			if (duotoneColorNodes.length >= 2) {
-				effects.duotone = {
-					color1: this.parseColor(duotoneColorNodes[0]) || '#000000',
-					color2: this.parseColor(duotoneColorNodes[1]) || '#ffffff',
-				};
-				hasAny = true;
 			}
 		}
 
@@ -170,19 +125,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					effects.alphaBiLevel = pct;
 					hasAny = true;
 				}
-			}
-		}
-
-		// a:clrRepl — colour replace (full colour child)
-		const clrRepl = blip['a:clrRepl'] as XmlObject | undefined;
-		if (clrRepl) {
-			const color = this.parseColor(clrRepl);
-			if (color) {
-				effects.clrRepl = {
-					color,
-					rawXml: clrRepl as Record<string, unknown>,
-				};
-				hasAny = true;
 			}
 		}
 
