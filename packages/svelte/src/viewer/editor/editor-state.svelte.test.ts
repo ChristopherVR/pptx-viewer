@@ -347,8 +347,17 @@ describe('editorState save', () => {
 
 		const bytes = await editor.save();
 		expect(bytes).toStrictEqual(new Uint8Array([1, 2, 3]));
-		expect(save).toHaveBeenCalledWith(editor.slides);
+		expect(save).toHaveBeenCalledWith(editor.slides, { outputFormat: 'pptx' });
 		expect(editor.dirty).toBeFalsy();
+	});
+
+	it('passes slideshow output formats through to core', async () => {
+		const { editor, save } = make();
+		editor.setSlides([slide('a', [])]);
+
+		await editor.save('ppsx');
+
+		expect(save).toHaveBeenCalledWith(editor.slides, { outputFormat: 'ppsx' });
 	});
 
 	it('rejects when no presentation is loaded', async () => {

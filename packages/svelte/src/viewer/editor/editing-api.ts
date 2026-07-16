@@ -1,8 +1,13 @@
+import type { PptxSaveFormat } from 'pptx-viewer-core';
 import { downloadBlob } from 'pptx-viewer-shared';
 
 import type { EditorState } from './editor-state.svelte';
 
-const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+const PRESENTATION_MIME: Record<PptxSaveFormat, string> = {
+	pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+	ppsx: 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+	pptm: 'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+};
 
 /** The imperative editing API exposed on the `PowerPointViewer` instance. */
 export interface EditingApi {
@@ -12,7 +17,8 @@ export interface EditingApi {
 	canRedo(): boolean;
 	deleteSelected(): void;
 	getSelectedElementId(): string | null;
-	save(): Promise<Uint8Array>;
+	save(format?: PptxSaveFormat): Promise<Uint8Array>;
+	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
 	downloadPptx(fileName?: string): Promise<void>;
 }
 
@@ -30,10 +36,20 @@ export function createEditingApi(editor: EditorState): EditingApi {
 		canRedo: () => editor.canRedo,
 		deleteSelected: () => editor.deleteSelected(),
 		getSelectedElementId: () => editor.selectedElementId,
-		save: () => editor.save(),
+		save: (format) => editor.save(format),
+		downloadAs: async (format, fileName = `presentation.${format}`) => {
+			const bytes = await editor.save(format);
+			downloadBlob(
+				new Blob([bytes as unknown as BlobPart], { type: PRESENTATION_MIME[format] }),
+				fileName,
+			);
+		},
 		downloadPptx: async (fileName = 'presentation.pptx') => {
-			const bytes = await editor.save();
-			downloadBlob(new Blob([bytes as unknown as BlobPart], { type: PPTX_MIME }), fileName);
+			const bytes = await editor.save('pptx');
+			downloadBlob(
+				new Blob([bytes as unknown as BlobPart], { type: PRESENTATION_MIME.pptx }),
+				fileName,
+			);
 		},
 	};
 }

@@ -49,7 +49,14 @@
 	<FindReplacePanel findReplace={props.findReplace} editable={props.editor.editable} />
 	<div class="pptx-svelte-ribbon-content">
 		{#if activeTab === 'file'}
-			<FileTab ondownload={props.ondownload} onopenfile={props.onopenfile} exportUi={props.exportUi} />
+			<FileTab
+				ondownload={props.ondownload}
+				ondownloadppsx={props.ondownloadppsx}
+				ondownloadpptm={props.ondownloadpptm}
+				hasMacros={props.hasMacros}
+				onopenfile={props.onopenfile}
+				exportUi={props.exportUi}
+			/>
 		{:else if activeTab === 'home'}
 			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />
 		{:else if activeTab === 'insert'}

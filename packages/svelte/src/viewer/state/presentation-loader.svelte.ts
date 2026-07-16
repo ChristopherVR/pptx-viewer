@@ -28,6 +28,8 @@ export class PresentationLoader {
 	slideMasters = $state.raw<PptxSlideMaster[]>([]);
 	notesMaster = $state.raw<PptxNotesMaster | undefined>(undefined);
 	handoutMaster = $state.raw<PptxHandoutMaster | undefined>(undefined);
+	/** Whether the loaded package contains a VBA project. */
+	hasMacros = $state(false);
 	notesCanvasSize = $state.raw<CanvasSize | undefined>(undefined);
 	/** Slide canvas size in pixels. */
 	canvasSize = $state.raw<CanvasSize>({
@@ -95,6 +97,7 @@ export class PresentationLoader {
 			this.slideMasters = parsed.slideMasters ?? [];
 			this.notesMaster = parsed.notesMaster;
 			this.handoutMaster = parsed.handoutMaster;
+			this.hasMacros = parsed.hasMacros ?? false;
 			this.notesCanvasSize =
 				parsed.notesWidthEmu && parsed.notesHeightEmu
 					? { width: parsed.notesWidthEmu / 9525, height: parsed.notesHeightEmu / 9525 }

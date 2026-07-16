@@ -1,3 +1,4 @@
+import type { PptxSaveFormat } from 'pptx-viewer-core';
 import type {
 	CanvasSize,
 	CollaborationConfig,
@@ -178,7 +179,8 @@ export interface PowerPointViewerApi extends PowerPointViewerAPI {
 	/** The selected top-level element id, or null. */
 	getSelectedElementId(): string | null;
 	/** Serialize the edited slides to `.pptx` bytes via the core handler. */
-	save(): Promise<Uint8Array>;
+	save(format?: PptxSaveFormat): Promise<Uint8Array>;
+	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
 	/** Save + trigger a browser download of the `.pptx` (default name). */
 	downloadPptx(fileName?: string): Promise<void>;
 	/**

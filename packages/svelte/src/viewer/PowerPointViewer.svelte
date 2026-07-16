@@ -386,6 +386,7 @@
 	export const deleteSelected = editingApi.deleteSelected;
 	export const getSelectedElementId = editingApi.getSelectedElementId;
 	export const save = editingApi.save;
+	export const downloadAs = editingApi.downloadAs;
 	export const downloadPptx = editingApi.downloadPptx;
 	export const getContent = editingApi.save;
 	export const goTo = (index: number): void => viewer.goTo(index);
@@ -545,6 +546,9 @@
 				onredo={() => editor.redo()}
 				onsave={() => void editor.save()}
 				ondownload={() => void downloadPptx()}
+				ondownloadppsx={() => void downloadAs('ppsx')}
+				ondownloadpptm={() => void downloadAs('pptm')}
+				hasMacros={loader.hasMacros}
 				autosaveStatus={autosaveActive ? autosaveCtl.status : undefined}
 				autosaveDirty={autosaveCtl.isDirty}
 				zoomPercent={effectivePercent}

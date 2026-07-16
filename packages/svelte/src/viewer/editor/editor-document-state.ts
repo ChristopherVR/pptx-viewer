@@ -2,6 +2,7 @@ import type {
 	PptxHandoutMaster,
 	PptxHandler,
 	PptxNotesMaster,
+	PptxSaveFormat,
 	PptxSlide,
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
@@ -31,6 +32,7 @@ export function createEditorSnapshot(snapshot: EditorSnapshot): EditorSnapshot {
 export async function saveEditorDocument(
 	handler: PptxHandler,
 	snapshot: EditorSnapshot,
+	format: PptxSaveFormat = 'pptx',
 ): Promise<Uint8Array> {
 	const hasMasters =
 		snapshot.slideMasters.length > 0 ||
@@ -41,6 +43,7 @@ export async function saveEditorDocument(
 				slideMasters: snapshot.slideMasters,
 				notesMaster: snapshot.notesMaster,
 				handoutMaster: snapshot.handoutMaster,
+				outputFormat: format,
 			})
-		: handler.save(snapshot.slides);
+		: handler.save(snapshot.slides, { outputFormat: format });
 }

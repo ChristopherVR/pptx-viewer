@@ -10,9 +10,19 @@
 
 	const {
 		ondownload,
+		ondownloadppsx,
+		ondownloadpptm,
+		hasMacros,
 		onopenfile,
 		exportUi,
-	}: { ondownload: () => void; onopenfile?: () => void; exportUi?: ExportUiState } = $props();
+	}: {
+		ondownload: () => void;
+		ondownloadppsx: () => void;
+		ondownloadpptm: () => void;
+		hasMacros: boolean;
+		onopenfile?: () => void;
+		exportUi?: ExportUiState;
+	} = $props();
 	const t = useTranslator();
 </script>
 
@@ -27,6 +37,24 @@
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7m0 0 3-3m-3 3-3-3M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
 		<span>{t('pptx.file.saveAsPptx')}</span>
 	</button>
+	<button
+		type="button"
+		title={t('pptx.file.saveAsPpsxTooltip')}
+		onclick={ondownloadppsx}
+	>
+		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 6 5-6 5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
+		<span>{t('pptx.file.saveAsPpsx')}</span>
+	</button>
+	{#if hasMacros}
+		<button
+			type="button"
+			title={t('pptx.file.saveAsPptmTooltip')}
+			onclick={ondownloadpptm}
+		>
+			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h5l3 3v8H4zM9 2.5v3h3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
+			<span>{t('pptx.file.saveAsPptm')}</span>
+		</button>
+	{/if}
 	{#if exportUi}
 		<button
 			type="button"

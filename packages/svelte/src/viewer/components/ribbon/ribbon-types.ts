@@ -36,6 +36,9 @@ export interface RibbonProps {
 	onredo: () => void;
 	onsave: () => void;
 	ondownload: () => void;
+	ondownloadppsx: () => void;
+	ondownloadpptm: () => void;
+	hasMacros: boolean;
 	autosaveStatus?: AutosaveStatus;
 	autosaveDirty?: boolean;
 

@@ -3,6 +3,7 @@ import type {
 	PptxHandoutMaster,
 	PptxHandler,
 	PptxNotesMaster,
+	PptxSaveFormat,
 	PptxSlide,
 	PptxSlideMaster,
 	TextSegment,
@@ -294,15 +295,19 @@ export class EditorState {
 		this.#restore(this.#history.redo(this.#snapshot())?.snapshot);
 	}
 
-	async save(): Promise<Uint8Array> {
+	async save(format: PptxSaveFormat = 'pptx'): Promise<Uint8Array> {
 		const handler = this.#deps.getHandler();
 		if (!handler) {
 			throw new Error('No presentation is loaded.');
 		}
-		const bytes = await saveEditorDocument(handler, {
-			...this.#snapshot(),
-			slides: this.renderedSlides,
-		});
+		const bytes = await saveEditorDocument(
+			handler,
+			{
+				...this.#snapshot(),
+				slides: this.renderedSlides,
+			},
+			format,
+		);
 		this.dirty = false;
 		return bytes;
 	}
