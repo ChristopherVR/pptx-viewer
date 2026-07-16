@@ -124,7 +124,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return;
 		}
 
-		const lineDef = this.themeFormatScheme.lineStyles[idx - 1];
+		let lineDef = this.themeFormatScheme.lineStyles[idx - 1];
 		if (!lineDef) {
 			style.strokeColor = overrideColor;
 			if (overrideColor) {
@@ -132,9 +132,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			return;
 		}
+		if (overrideColor && lineDef.rawNode) {
+			lineDef = withThemePlaceholderColor(this.themeColorMap, overrideColor, () => {
+				const reparsed = this.parseLineStyleList({ 'a:ln': lineDef.rawNode as XmlObject });
+				return reparsed[0] ?? lineDef;
+			});
+		}
 
 		// Apply line properties from the format scheme
-		style.strokeColor = overrideColor || lineDef.color;
+		style.strokeColor = lineDef.color || overrideColor;
 		if (lineDef.opacity !== undefined) {
 			style.strokeOpacity = lineDef.opacity;
 		}
