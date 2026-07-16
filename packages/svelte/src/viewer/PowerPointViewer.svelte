@@ -224,6 +224,7 @@
 		getSlideMasters: () => editor.slideMasters,
 		getNotesMaster: () => editor.notesMaster,
 		getHandoutMaster: () => editor.handoutMaster,
+		getSections: () => editor.sections,
 		getHandler: () => loader.handler,
 		getLoadCount: () => loader.loadCount,
 		onSaved: (bytes) => onautosave?.(bytes),

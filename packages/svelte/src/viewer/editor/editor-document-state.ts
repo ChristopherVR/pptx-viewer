@@ -3,6 +3,7 @@ import type {
 	PptxHandler,
 	PptxNotesMaster,
 	PptxSaveFormat,
+	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
@@ -17,6 +18,7 @@ export interface EditorSnapshot {
 	slideMasters: PptxSlideMaster[];
 	notesMaster: PptxNotesMaster | undefined;
 	handoutMaster: PptxHandoutMaster | undefined;
+	sections: PptxSection[];
 }
 
 export function createEditorSnapshot(snapshot: EditorSnapshot): EditorSnapshot {
@@ -26,6 +28,7 @@ export function createEditorSnapshot(snapshot: EditorSnapshot): EditorSnapshot {
 		slideMasters: structuredClone(snapshot.slideMasters),
 		notesMaster: structuredClone(snapshot.notesMaster),
 		handoutMaster: structuredClone(snapshot.handoutMaster),
+		sections: structuredClone(snapshot.sections),
 	};
 }
 
@@ -43,7 +46,11 @@ export async function saveEditorDocument(
 				slideMasters: snapshot.slideMasters,
 				notesMaster: snapshot.notesMaster,
 				handoutMaster: snapshot.handoutMaster,
+				sections: snapshot.sections.length > 0 ? snapshot.sections : undefined,
 				outputFormat: format,
 			})
-		: handler.save(snapshot.slides, { outputFormat: format });
+		: handler.save(snapshot.slides, {
+				sections: snapshot.sections.length > 0 ? snapshot.sections : undefined,
+				outputFormat: format,
+			});
 }

@@ -53,6 +53,16 @@
 		>
 			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 4.5h9M6 4.5V3h4v1.5M5 4.5l.6 8.2c.05.7.6 1.3 1.3 1.3h2.2c.7 0 1.25-.6 1.3-1.3l.6-8.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
 		</button>
+		<button
+			type="button"
+			disabled={!editor.editable || editor.slides.length === 0}
+			aria-label={t('pptx.sections.addSection')}
+			title={t('pptx.sections.addSection')}
+			onclick={() => editor.sectionOps.add(t('pptx.sections.defaultName'))}
+		>
+			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h10M3 8h6M3 13h10M11.5 6v4M9.5 8h4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
+			<span>{t('pptx.sections.sectionButtonLabel')}</span>
+		</button>
 	</div>
 </div>
 

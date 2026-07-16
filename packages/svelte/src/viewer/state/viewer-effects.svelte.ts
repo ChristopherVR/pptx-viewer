@@ -75,6 +75,7 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 					deps.loader.slideMasters,
 					deps.loader.notesMaster,
 					deps.loader.handoutMaster,
+					deps.loader.sections,
 				),
 			);
 			deps.getOnload()?.({

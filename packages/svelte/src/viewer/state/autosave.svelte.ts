@@ -2,6 +2,7 @@ import type {
 	PptxHandoutMaster,
 	PptxHandler,
 	PptxNotesMaster,
+	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
@@ -48,6 +49,7 @@ export interface AutosaveDeps {
 	getSlideMasters?: () => PptxSlideMaster[];
 	getNotesMaster?: () => PptxNotesMaster | undefined;
 	getHandoutMaster?: () => PptxHandoutMaster | undefined;
+	getSections?: () => PptxSection[];
 	/** The live core handler used to serialize slides to `.pptx` bytes. */
 	getHandler: () => PptxHandler | null;
 	/**
@@ -88,6 +90,7 @@ export class AutosaveController {
 			this.#deps.getSlideMasters?.();
 			this.#deps.getNotesMaster?.();
 			this.#deps.getHandoutMaster?.();
+			this.#deps.getSections?.();
 
 			if (!this.#started) {
 				this.#started = true;
@@ -138,10 +141,18 @@ export class AutosaveController {
 		const slideMasters = this.#deps.getSlideMasters?.();
 		const notesMaster = this.#deps.getNotesMaster?.();
 		const handoutMaster = this.#deps.getHandoutMaster?.();
+		const sections = this.#deps.getSections?.();
 		const hasMasters = Boolean(slideMasters?.length || notesMaster || handoutMaster);
 		return hasMasters
-			? handler.save(this.#deps.getSlides(), { slideMasters, notesMaster, handoutMaster })
-			: handler.save(this.#deps.getSlides());
+			? handler.save(this.#deps.getSlides(), {
+					slideMasters,
+					notesMaster,
+					handoutMaster,
+					sections: sections?.length ? sections : undefined,
+				})
+			: handler.save(this.#deps.getSlides(), {
+					sections: sections?.length ? sections : undefined,
+				});
 	}
 
 	/** Force an immediate save, bypassing the debounce window. */

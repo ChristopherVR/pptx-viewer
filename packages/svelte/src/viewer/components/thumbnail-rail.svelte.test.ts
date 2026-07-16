@@ -123,4 +123,40 @@ describe('thumbnailRail', () => {
 		expect(target.querySelector('[data-virtualized="true"]')).toBeTruthy();
 		expect(target.querySelectorAll('.pptx-svelte-thumb').length).toBeLessThan(30);
 	});
+
+	it('renders section headers and forwards section actions', () => {
+		const deck = slides();
+		deck[0] = { ...deck[0], sectionId: 'intro', sectionName: 'Introduction' };
+		deck[1] = { ...deck[1], sectionId: 'body', sectionName: 'Body' };
+		const onsectiontoggle = vi.fn();
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(ThumbnailRail, {
+			target,
+			props: {
+				slides: deck,
+				sections: [
+					{ id: 'intro', name: 'Introduction', slideIds: ['1'] },
+					{ id: 'body', name: 'Body', slideIds: ['2'] },
+				],
+				canvasSize: { width: 960, height: 540 },
+				mediaDataUrls: new Map(),
+				current: 0,
+				onselect: vi.fn(),
+				onsectiontoggle,
+			},
+		});
+		flushSync();
+		cleanup = () => {
+			unmount(instance);
+			target.remove();
+		};
+		expect(
+			Array.from(target.querySelectorAll('.pptx-svelte-section-header strong')).map(
+				(el) => el.textContent,
+			),
+		).toStrictEqual(['Introduction', 'Body', 'Ungrouped Slides']);
+		target.querySelector<HTMLButtonElement>('.pptx-svelte-section-toggle')?.click();
+		expect(onsectiontoggle).toHaveBeenCalledWith('intro');
+	});
 });

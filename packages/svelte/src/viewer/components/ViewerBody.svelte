@@ -148,12 +148,18 @@
 	{#if showThumbnails && chromeVisible && displaySlides.length > 0}
 		<ThumbnailRail
 			slides={displaySlides}
+			sections={editor.sections}
 			{canvasSize}
 			{mediaDataUrls}
 			{current}
 			{onselect}
 			editable={editingActive}
 			onmove={onmoveSlide}
+			onsectiontoggle={(id) => editor.sectionOps.toggle(id)}
+			onsectionrename={(id, name) => editor.sectionOps.rename(id, name)}
+			onsectiondelete={(id) => editor.sectionOps.delete(id)}
+			onsectionmove={(id, direction) =>
+				direction === 'up' ? editor.sectionOps.moveUp(id) : editor.sectionOps.moveDown(id)}
 		/>
 	{/if}
 	<div class="pptx-svelte-main">

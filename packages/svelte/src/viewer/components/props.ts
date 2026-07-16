@@ -1,4 +1,4 @@
-import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
+import type { PptxElement, PptxSection, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import type { CanvasSize, RenderParagraph, ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
 
 import type { EditorController } from '../editor/editor-controller.svelte';
@@ -187,6 +187,11 @@ export interface ThumbnailRailProps {
 	/** Enables native thumbnail drag-and-drop slide reordering. */
 	editable?: boolean;
 	onmove?: (fromIndex: number, toIndex: number) => void;
+	sections?: PptxSection[];
+	onsectiontoggle?: (sectionId: string) => void;
+	onsectionrename?: (sectionId: string, name: string) => void;
+	onsectiondelete?: (sectionId: string) => void;
+	onsectionmove?: (sectionId: string, direction: 'up' | 'down') => void;
 }
 
 export interface NotesPanelProps {

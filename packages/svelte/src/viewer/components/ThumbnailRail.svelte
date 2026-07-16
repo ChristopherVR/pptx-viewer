@@ -4,13 +4,16 @@
 	 * the real `SlideStage` at miniature scale, so thumbnails always match the
 	 * main canvas.
 	 */
-	import { computeVirtualRange, SLIDE_VIRTUALIZATION_THRESHOLD } from 'pptx-viewer-shared';
+	import { computeVirtualRange, groupSlidesBySection, SLIDE_VIRTUALIZATION_THRESHOLD } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import SlideStage from './SlideStage.svelte';
 	import type { ThumbnailRailProps } from './props';
 
-	const { slides, canvasSize, mediaDataUrls, current, onselect, editable = false, onmove }: ThumbnailRailProps = $props();
+	const {
+		slides, canvasSize, mediaDataUrls, current, onselect, editable = false, onmove,
+		sections = [], onsectiontoggle, onsectionrename, onsectiondelete, onsectionmove,
+	}: ThumbnailRailProps = $props();
 
 	const t = useTranslator();
 
@@ -18,7 +21,9 @@
 	const thumbScale = $derived(canvasSize.width > 0 ? THUMB_WIDTH / canvasSize.width : 0.1);
 	const thumbHeight = $derived(Math.round(canvasSize.height * thumbScale));
 	const itemHeight = $derived(thumbHeight + 16);
-	const shouldVirtualize = $derived(slides.length >= SLIDE_VIRTUALIZATION_THRESHOLD);
+	const sectionGroups = $derived(groupSlidesBySection(sections, slides));
+	const hasSections = $derived(sections.length > 0);
+	const shouldVirtualize = $derived(!hasSections && slides.length >= SLIDE_VIRTUALIZATION_THRESHOLD);
 	let draggedIndex = $state<number | null>(null);
 	let railEl = $state<HTMLElement>();
 	let scrollTop = $state(0);
@@ -62,35 +67,73 @@
 		if (draggedIndex !== null) onmove?.(draggedIndex, index);
 		draggedIndex = null;
 	}
+
+	function renameSection(sectionId: string, currentName: string): void {
+		const next = window.prompt(t('pptx.sections.rename'), currentName);
+		if (next !== null) onsectionrename?.(sectionId, next);
+	}
 </script>
 
+{#snippet thumbnail(slide: (typeof slides)[number], index: number)}
+	<button
+		type="button"
+		class="pptx-svelte-thumb"
+		class:pptx-svelte-thumb-active={index === current}
+		aria-label={t('pptx.slidesPanel.goToSlide', { n: index + 1 })}
+		aria-current={index === current ? 'true' : undefined}
+		draggable={editable}
+		class:pptx-svelte-thumb-dragging={draggedIndex === index}
+		class:pptx-svelte-thumb-drop-target={draggedIndex !== null && draggedIndex !== index}
+		onclick={() => onselect(index)}
+		ondragstart={(event) => onDragStart(index, event)}
+		ondragend={() => { draggedIndex = null; }}
+		ondragover={editable ? (event) => event.preventDefault() : undefined}
+		ondrop={editable ? (event) => onDrop(index, event) : undefined}
+	>
+		<span class="pptx-svelte-thumb-number">{index + 1}</span>
+		<span class="pptx-svelte-thumb-frame" style={`width: ${THUMB_WIDTH}px; height: ${thumbHeight}px`}>
+			<SlideStage {slide} {canvasSize} {mediaDataUrls} scale={thumbScale} />
+		</span>
+	</button>
+{/snippet}
+
 <nav bind:this={railEl} bind:clientHeight={viewportHeight} class="pptx-svelte-thumbs" aria-label={t('pptx.sections.slides')} onscroll={onScroll}>
+	{#if hasSections}
+		{#each sectionGroups as group, groupIndex (group.section?.id ?? 'ungrouped')}
+			<section class="pptx-svelte-section" data-section-id={group.section?.id}>
+				<header class="pptx-svelte-section-header">
+					<button type="button" class="pptx-svelte-section-toggle" onclick={() => group.section && onsectiontoggle?.(group.section.id)} aria-expanded={!group.section?.collapsed}>
+						<span>{group.section?.collapsed ? '▸' : '▾'}</span>
+						<strong>{group.section?.name ?? t('pptx.slides.ungroupedSlides')}</strong>
+						<small>{group.slides.length}</small>
+					</button>
+					{#if editable && group.section}
+						<div class="pptx-svelte-section-actions">
+							<button type="button" title={t('pptx.sections.rename')} onclick={() => renameSection(group.section!.id, group.section!.name)}>✎</button>
+							<button type="button" title={t('pptx.sections.moveUp')} disabled={groupIndex === 0} onclick={() => onsectionmove?.(group.section!.id, 'up')}>↑</button>
+							<button type="button" title={t('pptx.sections.moveDown')} disabled={groupIndex === sectionGroups.length - 1} onclick={() => onsectionmove?.(group.section!.id, 'down')}>↓</button>
+							<button type="button" title={t('pptx.sectionList.deleteSection')} onclick={() => onsectiondelete?.(group.section!.id)}>×</button>
+						</div>
+					{/if}
+				</header>
+				{#if !group.section?.collapsed}
+					<div class="pptx-svelte-section-slides">
+						{#each group.slides as slide, offset (slide.id)}
+							{@render thumbnail(slide, group.slideIndexes[offset])}
+						{/each}
+					</div>
+				{/if}
+			</section>
+		{/each}
+	{:else}
 	<div class="pptx-svelte-thumbs-space" data-virtualized={shouldVirtualize ? 'true' : undefined} style={shouldVirtualize ? `height:${virtualRange.totalHeight}px` : undefined}>
 	<div class="pptx-svelte-thumbs-window" style={shouldVirtualize ? `position:absolute;inset-inline:0;top:${virtualRange.offsetY}px` : undefined}>
 	{#each renderedSlides as { slide, index } (slide.id)}
-		<button
-			type="button"
-			class="pptx-svelte-thumb"
-			class:pptx-svelte-thumb-active={index === current}
-			aria-label={t('pptx.slidesPanel.goToSlide', { n: index + 1 })}
-			aria-current={index === current ? 'true' : undefined}
-			draggable={editable}
-			class:pptx-svelte-thumb-dragging={draggedIndex === index}
-			class:pptx-svelte-thumb-drop-target={draggedIndex !== null && draggedIndex !== index}
-			onclick={() => onselect(index)}
-			ondragstart={(event) => onDragStart(index, event)}
-			ondragend={() => { draggedIndex = null; }}
-			ondragover={editable ? (event) => event.preventDefault() : undefined}
-			ondrop={editable ? (event) => onDrop(index, event) : undefined}
-		>
-			<span class="pptx-svelte-thumb-number">{index + 1}</span>
-			<span class="pptx-svelte-thumb-frame" style={`width: ${THUMB_WIDTH}px; height: ${thumbHeight}px`}>
-				<SlideStage {slide} {canvasSize} {mediaDataUrls} scale={thumbScale} />
-			</span>
-		</button>
+		{@render thumbnail(slide, index)}
 	{/each}
 	</div>
 	</div>
+	{/if}
 </nav>
 
 <style>
@@ -111,6 +154,17 @@
 		flex-direction: column;
 		gap: 8px;
 	}
+
+	.pptx-svelte-section + .pptx-svelte-section { margin-top: 8px; }
+	.pptx-svelte-section-header { display:flex; align-items:center; gap:3px; min-height:28px; color:var(--pptx-muted-foreground,#94a3b8); }
+	.pptx-svelte-section-toggle { flex:1; display:flex; align-items:center; gap:5px; min-width:0; border:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
+	.pptx-svelte-section-toggle strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
+	.pptx-svelte-section-toggle small { margin-left:auto; font-size:9px; }
+	.pptx-svelte-section-actions { display:flex; }
+	.pptx-svelte-section-actions button { width:20px; height:20px; padding:0; border:0; border-radius:3px; background:transparent; color:inherit; cursor:pointer; }
+	.pptx-svelte-section-actions button:hover:not(:disabled) { background:var(--pptx-accent,#33334d); color:var(--pptx-accent-foreground,#f8fafc); }
+	.pptx-svelte-section-actions button:disabled { opacity:.3; }
+	.pptx-svelte-section-slides { display:flex; flex-direction:column; gap:8px; }
 
 	.pptx-svelte-thumb {
 		display: flex;

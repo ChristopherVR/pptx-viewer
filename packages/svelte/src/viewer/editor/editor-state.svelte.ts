@@ -4,6 +4,7 @@ import type {
 	PptxHandler,
 	PptxNotesMaster,
 	PptxSaveFormat,
+	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
 	TextSegment,
@@ -28,6 +29,7 @@ import { EditorInkController } from './editor-ink-controller.svelte';
 import { EditorMasterController } from './editor-master-controller';
 import type { MasterViewTarget } from './editor-master-controller';
 import type { ElementBoxPatch } from './editor-mutations';
+import { EditorSectionController } from './editor-section-controller';
 import { EditorSelection } from './editor-selection.svelte';
 import { EditorSlidesController } from './editor-slides-controller';
 import { EditorTemplateController } from './editor-template-controller';
@@ -48,6 +50,7 @@ export class EditorState {
 	slideMasters = $state.raw<PptxSlideMaster[]>([]);
 	notesMaster = $state.raw<PptxNotesMaster | undefined>(undefined);
 	handoutMaster = $state.raw<PptxHandoutMaster | undefined>(undefined);
+	sections = $state.raw<PptxSection[]>([]);
 	masterViewTarget = $state.raw<MasterViewTarget | null>(null);
 	readonly selection = new EditorSelection();
 	editable = $state(false);
@@ -65,6 +68,7 @@ export class EditorState {
 	readonly elementOps: EditorElementController;
 	readonly templateOps: EditorTemplateController;
 	readonly slidesOps: EditorSlidesController;
+	readonly sectionOps: EditorSectionController;
 	readonly arrangeOps: EditorArrangeController;
 	readonly backgroundOps: EditorBackgroundController;
 	readonly transitionOps: EditorTransitionController;
@@ -80,6 +84,7 @@ export class EditorState {
 		this.elementOps = new EditorElementController(this);
 		this.templateOps = new EditorTemplateController(this);
 		this.slidesOps = new EditorSlidesController(this);
+		this.sectionOps = new EditorSectionController(this);
 		this.arrangeOps = new EditorArrangeController(this);
 		this.backgroundOps = new EditorBackgroundController(this);
 		this.transitionOps = new EditorTransitionController(this);
@@ -150,6 +155,7 @@ export class EditorState {
 		slideMasters: PptxSlideMaster[] = [],
 		notesMaster?: PptxNotesMaster,
 		handoutMaster?: PptxHandoutMaster,
+		sections: PptxSection[] = [],
 	): void {
 		const partition = partitionTemplateElements(slides);
 		this.slides = partition.slides;
@@ -157,6 +163,7 @@ export class EditorState {
 		this.slideMasters = structuredClone(slideMasters);
 		this.notesMaster = structuredClone(notesMaster);
 		this.handoutMaster = structuredClone(handoutMaster);
+		this.sections = structuredClone(sections);
 		this.masterViewTarget = null;
 		this.selection.clear();
 		this.editTemplateMode = false;
@@ -269,6 +276,7 @@ export class EditorState {
 		this.slideMasters = restored.slideMasters;
 		this.notesMaster = restored.notesMaster;
 		this.handoutMaster = restored.handoutMaster;
+		this.sections = restored.sections;
 		this.interactionActive = false;
 		this.selection.prune((id) => this.activeElements.some((element) => element.id === id));
 		this.commitChange();

@@ -2,6 +2,7 @@ import type {
 	ParsedTableStyleMap,
 	PptxHandoutMaster,
 	PptxNotesMaster,
+	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxThemeColorScheme,
@@ -28,6 +29,7 @@ export class PresentationLoader {
 	slideMasters = $state.raw<PptxSlideMaster[]>([]);
 	notesMaster = $state.raw<PptxNotesMaster | undefined>(undefined);
 	handoutMaster = $state.raw<PptxHandoutMaster | undefined>(undefined);
+	sections = $state.raw<PptxSection[]>([]);
 	/** Whether the loaded package contains a VBA project. */
 	hasMacros = $state(false);
 	notesCanvasSize = $state.raw<CanvasSize | undefined>(undefined);
@@ -97,6 +99,7 @@ export class PresentationLoader {
 			this.slideMasters = parsed.slideMasters ?? [];
 			this.notesMaster = parsed.notesMaster;
 			this.handoutMaster = parsed.handoutMaster;
+			this.sections = parsed.sections ?? [];
 			this.hasMacros = parsed.hasMacros ?? false;
 			this.notesCanvasSize =
 				parsed.notesWidthEmu && parsed.notesHeightEmu
