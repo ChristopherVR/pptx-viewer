@@ -1,4 +1,4 @@
-import { flushSync, mount, unmount } from 'svelte';
+import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import FileTab from './FileTab.svelte';
@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 describe('fileTab', () => {
-	it('opens Settings from the Options card and closes Backstage', () => {
+	it('opens Settings immediately when Options is selected', () => {
 		const target = document.createElement('div');
 		const onclose = vi.fn();
 		const onsettings = vi.fn();
@@ -35,11 +35,6 @@ describe('fileTab', () => {
 			(button) => button.textContent?.trim() === 'Options',
 		) as HTMLButtonElement;
 		options.click();
-		flushSync();
-		const open = [...target.querySelectorAll('button')].find(
-			(button) => button.textContent?.trim() === 'Open Options',
-		) as HTMLButtonElement;
-		open.click();
 
 		expect(onsettings).toHaveBeenCalledOnce();
 		expect(onclose).toHaveBeenCalledOnce();

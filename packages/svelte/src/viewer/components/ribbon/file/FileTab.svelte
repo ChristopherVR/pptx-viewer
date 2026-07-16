@@ -29,7 +29,7 @@
 	let visibleRecent = $derived.by(() => { const q = query.trim().toLowerCase(); return q ? recent.filter((file) => `${file.name} ${file.location}`.toLowerCase().includes(q)) : recent; });
 	let title = $derived(BACKSTAGE_NAV.find((item) => item.id === page)?.label ?? 'Home');
 	function run(action?: () => void): void { action?.(); if (action) onclose(); }
-	function select(id: BackstagePage): void { if (id === 'close') onclose(); else if (id === 'save') run(ondownload); else page = id; }
+	function select(id: BackstagePage): void { if (id === 'close') onclose(); else if (id === 'save') run(ondownload); else if (id === 'options' && onsettings) run(onsettings); else page = id; }
 </script>
 
 <div class="bs" role="dialog" aria-modal="true" aria-label="File">

@@ -2,6 +2,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { EditorState } from '../../../editor/editor-state.svelte';
 import ReviewTab from './ReviewTab.svelte';
 
 let cleanup: (() => void) | undefined;
@@ -45,6 +46,22 @@ describe('reviewTab', () => {
 		) as HTMLButtonElement;
 		language.click();
 		expect(onlanguage).toHaveBeenCalledOnce();
+	});
+
+	it('disables Compare when the editor is read-only', () => {
+		const target = document.createElement('div');
+		const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
+		editor.editable = false;
+		const instance = mount(ReviewTab, {
+			target,
+			props: { slides: [], onnavigate: vi.fn(), editor, oncompare: vi.fn() },
+		});
+		cleanup = () => unmount(instance);
+
+		const compare = [...target.querySelectorAll('button')].find(
+			(button) => button.textContent?.includes('Compare'),
+		) as HTMLButtonElement;
+		expect(compare.disabled).toBeTruthy();
 	});
 
 	it('runs the shared audit and routes an issue to its slide', () => {

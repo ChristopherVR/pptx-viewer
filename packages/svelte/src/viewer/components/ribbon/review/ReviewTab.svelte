@@ -63,7 +63,7 @@
 		<button type="button" onclick={() => setPanel('accessibility')}>
 			{t('pptx.review.accessibilityCheck')}
 		</button>
-		{#if oncompare}<button type="button" onclick={oncompare}>{t('pptx.compare.title')}</button>{/if}
+		{#if oncompare}<button type="button" disabled={!editor?.editable} onclick={oncompare}>{t('pptx.compare.title')}</button>{/if}
 		<button type="button" aria-pressed={spellCheck} class:active={spellCheck} onclick={() => onspellcheckchange?.(!spellCheck)}>{t('pptx.settings.spellCheck')}</button>
 		{#if onlanguage}<button type="button" title={t('pptx.review.languageTooltip')} onclick={onlanguage}>{t('pptx.review.language')}</button>{/if}
 	</section>

@@ -97,8 +97,8 @@
 	<button type="button" class:pptx-svelte-viewtab-active={preferences.snapToGrid} aria-pressed={preferences.snapToGrid} onclick={() => toggle('snapToGrid')}>Snap to grid</button>
 	<button type="button" class:pptx-svelte-viewtab-active={snapToShape} aria-pressed={snapToShape} onclick={() => onsnapToShapechange(!snapToShape)}>Snap to shape</button>
 	<button type="button" onclick={() => onaddguide('h')}>Add H guide</button><button type="button" onclick={() => onaddguide('v')}>Add V guide</button>
-	<button type="button" disabled={typeof window === 'undefined' || !('EyeDropper' in window) || !editor.selectedElement} onclick={() => void eyedropper()}>Eyedropper</button>
-	<button type="button" aria-label={t('pptx.view.slideMasterTooltip')} title={t('pptx.view.slideMasterTooltip')} onclick={() => onentermasterview?.()}>
+	<button type="button" disabled={!editor.editable || typeof window === 'undefined' || !('EyeDropper' in window) || !editor.selectedElement} onclick={() => void eyedropper()}>Eyedropper</button>
+	<button type="button" disabled={!editor.editable} aria-label={t('pptx.view.slideMasterTooltip')} title={t('pptx.view.slideMasterTooltip')} onclick={() => onentermasterview?.()}>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3h11v9h-11zM5 6h6M5 8.5h4M4 1.5v3M12 1.5v3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
 		<span>{t('pptx.master.title')}</span>
 	</button>
@@ -113,6 +113,7 @@
 		aria-label={t(editTemplateMode ? 'pptx.ribbon.templatesOn' : 'pptx.ribbon.templatesOff')}
 		title={t('pptx.view.templateEditingTooltip')}
 		aria-pressed={editTemplateMode}
+		disabled={!editor.editable}
 		onclick={() => onsettemplateediting?.(!editTemplateMode)}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v9h-11zM5 1.8v3.4M11 1.8v3.4M5 10.2h6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
