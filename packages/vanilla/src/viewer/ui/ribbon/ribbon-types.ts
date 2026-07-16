@@ -29,6 +29,13 @@ export interface RibbonNavHandlers {
 	togglePresentation(): void;
 	toggleNotes(): void;
 	openAccessibility(): void;
+	openSettings(tab?: 'general' | 'shortcuts'): void;
+	openHeaderFooter(): void;
+	openCompare(): void;
+	openSelectionPane(): void;
+	openSlideSorter(): void;
+	openComments(): void;
+	openHyperlink(): void;
 	toggleTemplateEditing?(): void;
 	toggleMasterView?(): void;
 }
@@ -65,6 +72,9 @@ export interface RibbonSlideShowHandlers {
 	startFromCurrent(): void;
 	openPresenterView(): void;
 	openBroadcast(): void;
+	openSetUp(): void;
+	startRehearsal(): void;
+	openCustomShows(): void;
 }
 
 /**

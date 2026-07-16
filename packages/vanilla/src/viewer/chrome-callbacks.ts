@@ -31,6 +31,16 @@ export interface ChromeCallbackDeps {
 	openBroadcast(): void;
 	toggleNotes(): void;
 	openAccessibility(): void;
+	openSettings(tab?: 'general' | 'shortcuts'): void;
+	openHeaderFooter(): void;
+	openCompare(): void;
+	openSetUpSlideShow(): void;
+	startRehearsal(): void;
+	openSelectionPane(): void;
+	openSlideSorter(): void;
+	openComments(): void;
+	openHyperlink(): void;
+	openCustomShows(): void;
 	openDocumentProperties(): void;
 	openFontEmbedding(): void;
 	openDigitalSignatures(): void;
@@ -81,6 +91,13 @@ export function buildChromeCallbacks(
 			togglePresentation: () => deps.togglePresentation(),
 			toggleNotes: () => deps.toggleNotes(),
 			openAccessibility: () => deps.openAccessibility(),
+			openSettings: (tab) => deps.openSettings(tab),
+			openHeaderFooter: () => deps.openHeaderFooter(),
+			openCompare: () => deps.openCompare(),
+			openSelectionPane: () => deps.openSelectionPane(),
+			openSlideSorter: () => deps.openSlideSorter(),
+			openComments: () => deps.openComments(),
+			openHyperlink: () => deps.openHyperlink(),
 			toggleTemplateEditing: () => deps.toggleTemplateEditing(),
 			toggleMasterView: () => deps.toggleMasterNavigation(),
 		},
@@ -111,6 +128,9 @@ export function buildChromeCallbacks(
 			startFromCurrent: () => deps.startPresentationFromCurrent(),
 			openPresenterView: () => deps.openPresenterView(),
 			openBroadcast: () => deps.openBroadcast(),
+			openSetUp: () => deps.openSetUpSlideShow(),
+			startRehearsal: () => deps.startRehearsal(),
+			openCustomShows: () => deps.openCustomShows(),
 		},
 		// Every editing action delegates to the (lazily-resolved) editor edit
 		// actions, so a click after mount always hits the live editor instance.

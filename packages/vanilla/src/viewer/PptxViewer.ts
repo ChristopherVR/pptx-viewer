@@ -32,7 +32,11 @@ import type { Translator } from './i18n';
 import { createTranslator } from './i18n';
 import type { LoadingController } from './loading-controller';
 import { createLoadingController } from './loading-controller';
+import type { ParityWorkflows } from './parity-workflows';
+import { createParityWorkflows } from './parity-workflows';
 import { mountPresenterConsole, renderAudienceEffects } from './presenter-console';
+import type { PresentationAnnotationsHost } from './presentation-annotations-host';
+import { createPresentationAnnotationsHost } from './presentation-annotations-host';
 import type { ElementRendererRegistry } from './render';
 import { createDefaultRegistry } from './render';
 import type { RenderController } from './render-controller';
@@ -93,6 +97,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private embedFontsEnabled = false;
 	private signatureWarningAcknowledged = false;
 	private detachSignatureWarning: (() => void) | null = null;
+	private annotations!: PresentationAnnotationsHost;
+	private parityWorkflows!: ParityWorkflows;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
 		super();
@@ -148,7 +154,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 					this.editor?.applyElementPatch(element.id, { smartArtData: next });
 				}
 			},
-			onStageRendered: () => this.editor?.onStageRendered(),
+			onStageRendered: () => {
+				this.editor?.onStageRendered();
+				this.annotations?.sync(this.presenterSnapshot);
+			},
 		});
 		this.controls = createViewerControls(this.store, this.renderer);
 
@@ -172,6 +181,15 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			onCursorMove: (x, y) => this.sessions.setCollaborationCursor(x, y),
 		});
 		this.editor.attachChrome();
+		this.annotations = createPresentationAnnotationsHost({
+			doc: this.doc,
+			t: this.t,
+			store: this.store,
+			editor: this.editor,
+			getChrome: () => this.lifecycle.chrome,
+			getSnapshot: () => this.presenterSnapshot,
+			updateSnapshot: (patch) => this.updatePresenterSnapshot(patch),
+		});
 		this.exporter = createExportLifecycle({
 			doc: this.doc,
 			container: this.container,
@@ -180,6 +198,20 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getTranslator: () => this.t,
 			smartArt3D: options.smartArt3D ?? false,
 		});
+		this.parityWorkflows = createParityWorkflows(
+			{
+				doc: this.doc,
+				t: this.t,
+				store: this.store,
+				editor: this.editor,
+				root: () => this.lifecycle.chrome.root,
+				setAutosaveEnabled: (enabled) => this.setAutosaveEnabled(enabled),
+				print: (printOptions) => this.print(printOptions),
+				goToSlide: (index) => this.goToSlide(index),
+				enterPresentation: () => this.enterPresentation(),
+			},
+			options.autosave ?? false,
+		);
 		if (options.editable) {
 			this.store.set({ editable: true });
 			this.editor.setEditable(true);
@@ -191,9 +223,13 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				callbacks: options,
 			}),
 		);
-		this.store.subscribe((state) => {
+		this.store.subscribe((state, previous) => {
 			if (this.presenterSessionId) {
 				this.syncAudience(state.currentSlide);
+			}
+			this.annotations.sync(this.presenterSnapshot);
+			if (previous.presenting && !state.presenting) {
+				void this.annotations.finish();
 			}
 		});
 		this.detachSignatureWarning = this.store.subscribe((state, previous) => {
@@ -366,6 +402,39 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	openAccessibility(): void {
 		this.lifecycle.chrome.accessibility.open(collectAccessibilityIssues(this.store.get().slides));
 	}
+	openSettings(tab: 'general' | 'shortcuts' = 'general'): void {
+		this.parityWorkflows.openSettings(tab);
+	}
+	openSetUpSlideShow(): void {
+		this.parityWorkflows.openSetUpSlideShow();
+	}
+	openHeaderFooter(): void {
+		this.parityWorkflows.openHeaderFooter();
+	}
+	openCompare(): void {
+		this.parityWorkflows.openCompare();
+	}
+	openPrintDialog(): void {
+		this.parityWorkflows.openPrintDialog();
+	}
+	startRehearsal(): void {
+		this.parityWorkflows.startRehearsal();
+	}
+	openSelectionPane(): void {
+		this.parityWorkflows.openSelectionPane();
+	}
+	openSlideSorter(): void {
+		this.parityWorkflows.openSlideSorter();
+	}
+	openComments(): void {
+		this.parityWorkflows.openComments();
+	}
+	openHyperlink(): void {
+		this.parityWorkflows.openHyperlink();
+	}
+	openCustomShows(): void {
+		this.parityWorkflows.openCustomShows();
+	}
 
 	/** Open the document metadata editor backed by the current loaded deck. */
 	openDocumentProperties(): void {
@@ -497,6 +566,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.presenterSnapshot = mergePresentationSnapshot(this.presenterSnapshot, patch);
 		renderAudienceEffects(this.container, this.presenterSnapshot);
 		this.syncAudience(this.presenterSnapshot.slideIndex);
+		this.annotations.sync(this.presenterSnapshot);
 	}
 
 	private connectAudienceRole(): void {
@@ -685,6 +755,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.detachSignatureWarning?.();
 		this.loading.invalidate();
 		this.editor.destroy();
+		this.annotations.dispose();
 		this.exporter.destroy();
 		this.userFontsStyle?.remove();
 		unmountChrome(this.lifecycle, () => this.editor?.detachChrome());

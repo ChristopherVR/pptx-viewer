@@ -169,6 +169,16 @@ export interface ChromeHost {
 	exitPresentation(): Promise<void>;
 	openBroadcast(): void;
 	openAccessibility(): void;
+	openSettings(tab?: 'general' | 'shortcuts'): void;
+	openHeaderFooter(): void;
+	openCompare(): void;
+	openSetUpSlideShow(): void;
+	startRehearsal(): void;
+	openSelectionPane(): void;
+	openSlideSorter(): void;
+	openComments(): void;
+	openHyperlink(): void;
+	openCustomShows(): void;
 	openDocumentProperties(): void;
 	openFontEmbedding(): void;
 	openDigitalSignatures(): void;
@@ -182,6 +192,7 @@ export interface ChromeHost {
 	exportGif(): Promise<void>;
 	exportVideo(): Promise<void>;
 	print(): Promise<boolean>;
+	openPrintDialog(): void;
 	setTheme(theme: ViewerTheme | undefined): void;
 }
 
@@ -214,6 +225,16 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		openPresenterView: () => host.openPresenterView(),
 		openBroadcast: () => host.openBroadcast(),
 		openAccessibility: () => host.openAccessibility(),
+		openSettings: (tab) => host.openSettings(tab),
+		openHeaderFooter: () => host.openHeaderFooter(),
+		openCompare: () => host.openCompare(),
+		openSetUpSlideShow: () => host.openSetUpSlideShow(),
+		startRehearsal: () => host.startRehearsal(),
+		openSelectionPane: () => host.openSelectionPane(),
+		openSlideSorter: () => host.openSlideSorter(),
+		openComments: () => host.openComments(),
+		openHyperlink: () => host.openHyperlink(),
+		openCustomShows: () => host.openCustomShows(),
 		openDocumentProperties: () => host.openDocumentProperties(),
 		openFontEmbedding: () => host.openFontEmbedding(),
 		openDigitalSignatures: () => host.openDigitalSignatures(),
@@ -235,7 +256,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		exportPdf: () => host.exportPdf(),
 		exportGif: () => host.exportGif(),
 		exportVideo: () => host.exportVideo(),
-		print: () => host.print(),
+		print: () => Promise.resolve((host.openPrintDialog(), true)),
 		getEditActions: () => host.editor.getEditActions(),
 		getFindReplaceActions: () => host.editor.getFindReplaceActions(),
 		setTheme: (theme) => host.setTheme(theme),

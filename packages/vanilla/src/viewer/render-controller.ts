@@ -6,6 +6,7 @@ import { createPresentationPlayback } from './animation';
 import type { Translator } from './i18n';
 import type { ElementRendererRegistry } from './render';
 import { renderSlideStage } from './render';
+import { buildRenderFieldContext } from './render-field-context';
 import type { Store, ViewerState } from './state';
 import type { ViewerChrome } from './ui';
 import { renderHandoutMasterCanvas, renderNotesMasterCanvas } from './ui/master-canvases';
@@ -85,6 +86,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			mediaDataUrls: state.mediaDataUrls,
 			colorScheme: state.colorScheme,
 			tableStyleMap: state.tableStyleMap,
+			fieldContext: buildRenderFieldContext(state, slide),
 			registry,
 			t: deps.getTranslator(),
 			scale,

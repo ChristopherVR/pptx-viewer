@@ -4,9 +4,11 @@ import type {
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
+	PptxCustomShow,
 	PptxEmbeddedFont,
 	PptxElement,
 	PptxHandoutMaster,
+	PptxHeaderFooter,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSection,
@@ -39,9 +41,11 @@ export interface LoadedPresentation {
 	/** Parsed presentation sections. */
 	sections: PptxSection[];
 	presentationProperties: PptxPresentationProperties;
+	headerFooter: PptxHeaderFooter;
 	coreProperties?: PptxCoreProperties;
 	appProperties?: PptxAppProperties;
 	customProperties: PptxCustomProperty[];
+	customShows: PptxCustomShow[];
 	embeddedFonts: PptxEmbeddedFont[];
 	hasDigitalSignatures: boolean;
 	digitalSignatureCount: number;
@@ -77,9 +81,11 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 			slides,
 			sections: parsed.sections ?? [],
 			presentationProperties: parsed.presentationProperties ?? {},
+			headerFooter: parsed.headerFooter ?? {},
 			coreProperties: parsed.coreProperties,
 			appProperties: parsed.appProperties,
 			customProperties: parsed.customProperties ?? [],
+			customShows: parsed.customShows ?? [],
 			embeddedFonts: parsed.embeddedFonts ?? [],
 			hasDigitalSignatures: parsed.hasDigitalSignatures ?? false,
 			digitalSignatureCount: parsed.digitalSignatureCount ?? 0,

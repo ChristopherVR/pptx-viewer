@@ -1,0 +1,57 @@
+import type { PresentationSnapshot } from 'pptx-viewer-shared';
+
+import type { EditorController } from './editor';
+import type { Translator } from './i18n';
+import type { PresentationAnnotationsController } from './presentation-annotations';
+import { createPresentationAnnotationsController } from './presentation-annotations';
+import type { Store, ViewerState } from './state';
+import type { ViewerChrome } from './ui';
+
+export interface PresentationAnnotationsHost {
+	sync(snapshot: PresentationSnapshot): void;
+	finish(): Promise<'none' | 'kept' | 'discarded'>;
+	dispose(): void;
+}
+
+export function createPresentationAnnotationsHost(options: {
+	doc: Document;
+	t: Translator;
+	store: Store<ViewerState>;
+	editor: EditorController;
+	getChrome(): ViewerChrome;
+	getSnapshot(): PresentationSnapshot;
+	updateSnapshot(patch: Partial<PresentationSnapshot>): void;
+}): PresentationAnnotationsHost {
+	const controller: PresentationAnnotationsController = createPresentationAnnotationsController({
+		doc: options.doc,
+		t: options.t,
+		getSlides: () => options.store.get().slides,
+		commitSlides: (slides) => options.editor.commitSlides(slides),
+		onStrokesChange: (inkStrokes) => options.updateSnapshot({ inkStrokes }),
+		onPointerMove: ({ x, y }) =>
+			options.updateSnapshot({
+				pointer: {
+					...(options.getSnapshot().pointer ?? {
+						tool: 'laser',
+						color: '#ef4444',
+					}),
+					x,
+					y,
+				},
+			}),
+	});
+	return {
+		sync(snapshot) {
+			const state = options.store.get();
+			controller.syncStage({
+				stageWrap: options.getChrome().stageWrap,
+				active: state.presenting,
+				slideIndex: state.currentSlide,
+				canvasSize: state.canvasSize,
+				pointer: snapshot.pointer,
+			});
+		},
+		finish: () => controller.finishPresentation(),
+		dispose: () => controller.dispose(),
+	};
+}

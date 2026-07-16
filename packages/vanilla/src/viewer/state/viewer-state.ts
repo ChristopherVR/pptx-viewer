@@ -4,9 +4,11 @@ import type {
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
+	PptxCustomShow,
 	PptxEmbeddedFont,
 	PptxElement,
 	PptxHandoutMaster,
+	PptxHeaderFooter,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSection,
@@ -47,9 +49,11 @@ export interface ViewerState {
 	/** Presentation sections used to group slides in the thumbnail rail. */
 	sections: PptxSection[];
 	presentationProperties: PptxPresentationProperties;
+	headerFooter: PptxHeaderFooter;
 	coreProperties?: PptxCoreProperties;
 	appProperties?: PptxAppProperties;
 	customProperties: PptxCustomProperty[];
+	customShows: PptxCustomShow[];
 	embeddedFonts: PptxEmbeddedFont[];
 	hasDigitalSignatures: boolean;
 	digitalSignatureCount: number;
@@ -132,9 +136,11 @@ export function createInitialViewerState(): ViewerState {
 		slides: [],
 		sections: [],
 		presentationProperties: {},
+		headerFooter: {},
 		coreProperties: undefined,
 		appProperties: undefined,
 		customProperties: [],
+		customShows: [],
 		embeddedFonts: [],
 		hasDigitalSignatures: false,
 		digitalSignatureCount: 0,
