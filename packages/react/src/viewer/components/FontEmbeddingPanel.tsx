@@ -1,3 +1,4 @@
+import { scanAvailableFontFamilies } from 'pptx-viewer-shared';
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuType, LuX, LuCheck, LuLoader } from 'react-icons/lu';
@@ -13,21 +14,6 @@ export interface FontEmbeddingPanelProps {
 	embeddedFonts: string[];
 	onClose: () => void;
 	onToggleEmbedFonts: (enabled: boolean) => void;
-}
-
-// ---------------------------------------------------------------------------
-// Helpers: browser font detection via document.fonts
-// ---------------------------------------------------------------------------
-
-function checkFontAvailable(family: string): boolean {
-	if (typeof document === 'undefined') {
-		return false;
-	}
-	try {
-		return document.fonts.check(`12px "${family}"`);
-	} catch {
-		return false;
-	}
 }
 
 // ---------------------------------------------------------------------------
@@ -50,15 +36,7 @@ export function FontEmbeddingPanel({
 	const scanFonts = useCallback(async () => {
 		setScanning(true);
 		try {
-			// Ensure fonts are loaded before checking
-			await document.fonts.ready;
-			const found = new Set<string>();
-			for (const family of usedFontFamilies) {
-				if (checkFontAvailable(family)) {
-					found.add(family);
-				}
-			}
-			setAvailableFamilies(found);
+			setAvailableFamilies(await scanAvailableFontFamilies(usedFontFamilies));
 			setScanned(true);
 		} catch {
 			// silently fail
