@@ -31,21 +31,29 @@ export function evaluateGeometryPaths(
 ): { pathData: string; pathWidth: number; pathHeight: number } | null {
 	let fullPathData = '';
 	// Coordinate-space dimensions (from @_w / @_h on the first path that specifies them)
-	let pathWidth = 0;
-	let pathHeight = 0;
+	const pathWidth =
+		pathNodes
+			.map((path) => Number.parseInt(String(path['@_w'] ?? '0'), 10))
+			.find((width) => width > 0) ??
+		variables.get('w') ??
+		0;
+	const pathHeight =
+		pathNodes
+			.map((path) => Number.parseInt(String(path['@_h'] ?? '0'), 10))
+			.find((height) => height > 0) ??
+		variables.get('h') ??
+		0;
 
 	for (const path of pathNodes) {
 		// Each path element may declare its own coordinate-space dimensions
 		const w = Number.parseInt(String(path['@_w'] ?? '0'), 10);
 		const h = Number.parseInt(String(path['@_h'] ?? '0'), 10);
-
-		// Use the first non-zero dimensions as the overall coordinate space
-		if (pathWidth === 0 && w > 0) {
-			pathWidth = w;
-		}
-		if (pathHeight === 0 && h > 0) {
-			pathHeight = h;
-		}
+		const scaleX = pathWidth > 0 && w > 0 ? pathWidth / w : 1;
+		const scaleY = pathHeight > 0 && h > 0 ? pathHeight / h : 1;
+		const resolveX = (value: string | number | undefined) =>
+			resolveCoordinate(value, variables) * scaleX;
+		const resolveY = (value: string | number | undefined) =>
+			resolveCoordinate(value, variables) * scaleY;
 
 		const commands: string[] = [];
 		// Track current pen position for arcTo conversion (arcTo needs the
@@ -80,8 +88,8 @@ export function evaluateGeometryPaths(
 				if (key === 'a:moveTo') {
 					const pt = record['a:pt'] as Record<string, unknown> | undefined;
 					if (pt) {
-						const x = resolveCoordinate(pt['@_x'] as string | number | undefined, variables);
-						const y = resolveCoordinate(pt['@_y'] as string | number | undefined, variables);
+						const x = resolveX(pt['@_x'] as string | number | undefined);
+						const y = resolveY(pt['@_y'] as string | number | undefined);
 						commands.push(`M ${x} ${y}`);
 						penX = x;
 						penY = y;
@@ -91,8 +99,8 @@ export function evaluateGeometryPaths(
 				} else if (key === 'a:lnTo') {
 					const pt = record['a:pt'] as Record<string, unknown> | undefined;
 					if (pt) {
-						const x = resolveCoordinate(pt['@_x'] as string | number | undefined, variables);
-						const y = resolveCoordinate(pt['@_y'] as string | number | undefined, variables);
+						const x = resolveX(pt['@_x'] as string | number | undefined);
+						const y = resolveY(pt['@_y'] as string | number | undefined);
 						commands.push(`L ${x} ${y}`);
 						penX = x;
 						penY = y;
@@ -101,8 +109,8 @@ export function evaluateGeometryPaths(
 					const pts = ensureArray(record['a:pt']) as Array<Record<string, unknown>>;
 					if (pts.length === 3) {
 						const coords = pts.map((pt) => ({
-							x: resolveCoordinate(pt['@_x'] as string | number | undefined, variables),
-							y: resolveCoordinate(pt['@_y'] as string | number | undefined, variables),
+							x: resolveX(pt['@_x'] as string | number | undefined),
+							y: resolveY(pt['@_y'] as string | number | undefined),
 						}));
 						commands.push(
 							`C ${coords[0].x} ${coords[0].y} ${coords[1].x} ${coords[1].y} ${coords[2].x} ${coords[2].y}`,
@@ -114,16 +122,16 @@ export function evaluateGeometryPaths(
 					const pts = ensureArray(record['a:pt']) as Array<Record<string, unknown>>;
 					if (pts.length === 2) {
 						const coords = pts.map((pt) => ({
-							x: resolveCoordinate(pt['@_x'] as string | number | undefined, variables),
-							y: resolveCoordinate(pt['@_y'] as string | number | undefined, variables),
+							x: resolveX(pt['@_x'] as string | number | undefined),
+							y: resolveY(pt['@_y'] as string | number | undefined),
 						}));
 						commands.push(`Q ${coords[0].x} ${coords[0].y} ${coords[1].x} ${coords[1].y}`);
 						penX = coords[1].x;
 						penY = coords[1].y;
 					}
 				} else if (key === 'a:arcTo') {
-					const wR = resolveCoordinate(record['@_wR'] as string | number | undefined, variables);
-					const hR = resolveCoordinate(record['@_hR'] as string | number | undefined, variables);
+					const wR = resolveX(record['@_wR'] as string | number | undefined);
+					const hR = resolveY(record['@_hR'] as string | number | undefined);
 					const stAng = resolveCoordinate(
 						record['@_stAng'] as string | number | undefined,
 						variables,
@@ -159,8 +167,8 @@ export function evaluateGeometryPaths(
 
 	return {
 		pathData: trimmed,
-		pathWidth: pathWidth || (variables.get('w') ?? 0),
-		pathHeight: pathHeight || (variables.get('h') ?? 0),
+		pathWidth,
+		pathHeight,
 	};
 }
 

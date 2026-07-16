@@ -320,6 +320,36 @@ describe('evaluateGeometryPaths — multiple paths', () => {
 		expect(result!.pathWidth).toBe(200);
 		expect(result!.pathHeight).toBe(150);
 	});
+
+	it('normalizes each path into the shared SVG coordinate space', () => {
+		const vars = makeVars({ w: 200, h: 100 });
+		const pathNodes = [
+			{
+				'@_w': '200',
+				'@_h': '100',
+				'a:moveTo': { 'a:pt': { '@_x': '200', '@_y': '100' } },
+			},
+			{
+				'@_w': '400',
+				'@_h': '400',
+				'a:moveTo': { 'a:pt': { '@_x': '400', '@_y': '400' } },
+				'a:arcTo': {
+					'@_wR': '200',
+					'@_hR': '100',
+					'@_stAng': '0',
+					'@_swAng': '5400000',
+				},
+			},
+		];
+
+		const result = evaluateGeometryPaths(pathNodes, vars, ensureArray);
+
+		expect(result).toStrictEqual({
+			pathData: 'M 200 100 M 200 100 A 100 25 0 0 1 100 125',
+			pathWidth: 200,
+			pathHeight: 100,
+		});
+	});
 });
 
 // ---------------------------------------------------------------------------
