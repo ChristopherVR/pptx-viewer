@@ -1,6 +1,9 @@
 import type {
 	MasterViewTab,
 	ParsedTableStyleMap,
+	PptxAppProperties,
+	PptxCoreProperties,
+	PptxCustomProperty,
 	PptxElement,
 	PptxHandoutMaster,
 	PptxNotesMaster,
@@ -41,6 +44,9 @@ export interface ViewerState {
 	slides: PptxSlide[];
 	/** Presentation sections used to group slides in the thumbnail rail. */
 	sections: PptxSection[];
+	coreProperties?: PptxCoreProperties;
+	appProperties?: PptxAppProperties;
+	customProperties: PptxCustomProperty[];
 	/** Inherited layout/master elements, separated so interaction can be gated. */
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	/** Parsed slide masters and layouts used by the dedicated master canvas. */
@@ -118,6 +124,9 @@ export function createInitialViewerState(): ViewerState {
 	return {
 		slides: [],
 		sections: [],
+		coreProperties: undefined,
+		appProperties: undefined,
+		customProperties: [],
 		templateElementsBySlideId: {},
 		slideMasters: [],
 		notesMaster: undefined,

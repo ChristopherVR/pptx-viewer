@@ -65,6 +65,9 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 			store.set({
 				slides: partition.slides,
 				sections: loaded.sections,
+				coreProperties: loaded.coreProperties,
+				appProperties: loaded.appProperties,
+				customProperties: loaded.customProperties,
 				templateElementsBySlideId: partition.templateElementsBySlideId,
 				slideMasters: loaded.slideMasters,
 				notesMaster: loaded.notesMaster,

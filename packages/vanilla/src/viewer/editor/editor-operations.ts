@@ -1,4 +1,7 @@
 import type {
+	PptxAppProperties,
+	PptxCoreProperties,
+	PptxCustomProperty,
 	PptxElement,
 	PptxHandoutMaster,
 	PptxHandler,
@@ -69,6 +72,11 @@ export interface EditorOps {
 	applyFormatPainter(sourceId: string, targetId: string): boolean;
 	commitTableCell(id: string, row: number, column: number, text: string): void;
 	updateEquation(id: string, omml: Record<string, unknown>): void;
+	updateDocumentProperties(
+		core: PptxCoreProperties,
+		app: PptxAppProperties,
+		custom: PptxCustomProperty[],
+	): void;
 	undo(): void;
 	redo(): void;
 	canUndo(): boolean;
@@ -80,6 +88,9 @@ export interface EditorOps {
 interface EditorSnapshot {
 	slides: PptxSlide[];
 	sections: PptxSection[];
+	coreProperties?: PptxCoreProperties;
+	appProperties?: PptxAppProperties;
+	customProperties: PptxCustomProperty[];
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	slideMasters: PptxSlideMaster[];
 	notesMaster?: PptxNotesMaster;
@@ -104,6 +115,9 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 	const snapshot = (): EditorSnapshot => ({
 		slides: cloneSlides(store.get().slides),
 		sections: structuredClone(store.get().sections),
+		coreProperties: structuredClone(store.get().coreProperties),
+		appProperties: structuredClone(store.get().appProperties),
+		customProperties: structuredClone(store.get().customProperties),
 		templateElementsBySlideId: cloneTemplateElementsBySlideId(
 			store.get().templateElementsBySlideId,
 		),
@@ -140,6 +154,9 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		store.set({
 			slides: cloneSlides(next.slides),
 			sections: structuredClone(next.sections),
+			coreProperties: structuredClone(next.coreProperties),
+			appProperties: structuredClone(next.appProperties),
+			customProperties: structuredClone(next.customProperties),
 			templateElementsBySlideId: cloneTemplateElementsBySlideId(next.templateElementsBySlideId),
 			slideMasters: structuredClone(next.slideMasters),
 			notesMaster: structuredClone(next.notesMaster),
@@ -287,6 +304,19 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 
 		...structured,
 
+		updateDocumentProperties(core, app, custom) {
+			if (!store.get().editable) {
+				return;
+			}
+			pushHistory();
+			store.set({
+				coreProperties: structuredClone(core),
+				appProperties: structuredClone(app),
+				customProperties: structuredClone(custom),
+			});
+			commitChange();
+		},
+
 		undo() {
 			restore(history.undo(snapshot())?.snapshot);
 		},
@@ -311,6 +341,9 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 				buildSaveSlides(state.slides, state.templateElementsBySlideId),
 				{
 					sections: state.sections.length > 0 ? state.sections : undefined,
+					coreProperties: state.coreProperties,
+					appProperties: state.appProperties,
+					customProperties: state.customProperties.length > 0 ? state.customProperties : undefined,
 					slideMasters: state.slideMasters,
 					notesMaster: state.notesMaster,
 					handoutMaster: state.handoutMaster,

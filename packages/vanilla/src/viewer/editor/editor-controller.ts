@@ -1,4 +1,7 @@
 import type {
+	PptxAppProperties,
+	PptxCoreProperties,
+	PptxCustomProperty,
 	PptxElement,
 	PptxHandler,
 	PptxSaveFormat,
@@ -71,6 +74,11 @@ export interface EditorController {
 	getFindReplaceActions(): FindReplaceActions;
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	setHandoutSlidesPerPage(count: number): void;
+	updateDocumentProperties(
+		core: PptxCoreProperties,
+		app: PptxAppProperties,
+		custom: PptxCustomProperty[],
+	): void;
 	save(format?: PptxSaveFormat): Promise<Uint8Array>;
 	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
 	packageForSharing(fileName?: string): Promise<void>;
@@ -338,6 +346,8 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		getFindReplaceActions: () => findReplaceActions,
 		commitNotes: (notes, notesSegments) => ops.commitNotes(notes, notesSegments),
 		setHandoutSlidesPerPage: (count) => ops.setHandoutSlidesPerPage(count),
+		updateDocumentProperties: (core, app, custom) =>
+			ops.updateDocumentProperties(core, app, custom),
 		save: (format) => ops.save(format),
 		async downloadAs(format, fileName = `presentation.${format}`) {
 			const bytes = await ops.save(format);

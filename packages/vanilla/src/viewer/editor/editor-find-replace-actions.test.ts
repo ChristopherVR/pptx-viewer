@@ -41,6 +41,7 @@ function fakeOps(): EditorOps {
 		applyFormatPainter: vi.fn(() => false),
 		commitTableCell: vi.fn(),
 		updateEquation: vi.fn(),
+		updateDocumentProperties: vi.fn(),
 		undo: vi.fn(),
 		redo: vi.fn(),
 		canUndo: () => false,

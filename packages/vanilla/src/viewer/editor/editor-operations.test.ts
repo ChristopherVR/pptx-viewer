@@ -190,6 +190,9 @@ describe('createEditorOps save formats', () => {
 			...createInitialViewerState(),
 			slides: [buildSlide('a')],
 			sections: [{ id: 'section-1', name: 'Opening', slideIds: ['1'] }],
+			coreProperties: { title: 'Quarterly review' },
+			appProperties: { company: 'Example Co' },
+			customProperties: [{ name: 'Status', value: 'Draft', type: 'lpwstr' }],
 			dirty: true,
 		});
 		const save = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]));
@@ -207,8 +210,44 @@ describe('createEditorOps save formats', () => {
 			expect.objectContaining({
 				outputFormat: 'ppsx',
 				sections: [{ id: 'section-1', name: 'Opening', slideIds: ['1'] }],
+				coreProperties: { title: 'Quarterly review' },
+				appProperties: { company: 'Example Co' },
+				customProperties: [{ name: 'Status', value: 'Draft', type: 'lpwstr' }],
 			}),
 		);
 		expect(store.get().dirty).toBeFalsy();
+	});
+
+	it('updates document properties as one undoable change', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			editable: true,
+			coreProperties: { title: 'Original' },
+			appProperties: { company: 'Old Co' },
+			customProperties: [{ name: 'Status', value: 'Draft', type: 'lpwstr' }],
+		});
+		const ops = createEditorOps({
+			store,
+			getHandler: () => null,
+			onHistoryChange: vi.fn(),
+		});
+
+		ops.updateDocumentProperties({ title: 'Updated' }, { company: 'New Co' }, [
+			{ name: 'Status', value: 'Final', type: 'lpwstr' },
+		]);
+
+		expect(store.get()).toMatchObject({
+			coreProperties: { title: 'Updated' },
+			appProperties: { company: 'New Co' },
+			customProperties: [{ name: 'Status', value: 'Final', type: 'lpwstr' }],
+			dirty: true,
+		});
+		expect(ops.canUndo()).toBeTruthy();
+		ops.undo();
+		expect(store.get()).toMatchObject({
+			coreProperties: { title: 'Original' },
+			appProperties: { company: 'Old Co' },
+			customProperties: [{ name: 'Status', value: 'Draft', type: 'lpwstr' }],
+		});
 	});
 });

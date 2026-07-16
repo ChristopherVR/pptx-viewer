@@ -1,6 +1,9 @@
 import type {
 	MediaPptxElement,
 	ParsedTableStyleMap,
+	PptxAppProperties,
+	PptxCoreProperties,
+	PptxCustomProperty,
 	PptxElement,
 	PptxHandoutMaster,
 	PptxNotesMaster,
@@ -33,6 +36,9 @@ export interface LoadedPresentation {
 	slides: PptxSlide[];
 	/** Parsed presentation sections. */
 	sections: PptxSection[];
+	coreProperties?: PptxCoreProperties;
+	appProperties?: PptxAppProperties;
+	customProperties: PptxCustomProperty[];
 	/** Slide canvas size in CSS px. */
 	canvasSize: CanvasSize;
 	/** Archive-path to displayable URL map for media + poster frames. */
@@ -63,6 +69,9 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 			handler,
 			slides,
 			sections: parsed.sections ?? [],
+			coreProperties: parsed.coreProperties,
+			appProperties: parsed.appProperties,
+			customProperties: parsed.customProperties ?? [],
 			canvasSize: {
 				width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
 				height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,
