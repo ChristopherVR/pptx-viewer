@@ -26,6 +26,8 @@ export interface LayoutEngineShape {
 	width: number;
 	/** Height of the shape in pixels. */
 	height: number;
+	/** Primary font size selected by layout constraints/rules. */
+	fontSize?: number;
 }
 
 // ============================================================================

@@ -78,4 +78,6 @@ export interface PptxSmartArtLayoutDefinition {
 	descriptions?: PptxSmartArtLocalizedText[];
 	categories?: PptxSmartArtLayoutCategory[];
 	rootNode: PptxSmartArtLayoutNode;
+	/** Original definition retained for constraint evaluation and foreign rules. */
+	rawXml?: XmlObject;
 }

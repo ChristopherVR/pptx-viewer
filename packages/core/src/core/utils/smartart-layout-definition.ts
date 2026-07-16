@@ -138,6 +138,7 @@ export function parseSmartArtLayoutDefinition(
 			.filter(Boolean) as PptxSmartArtLocalizedText[],
 		categories: categories.length > 0 ? categories : undefined,
 		rootNode: parseNode(root, localName),
+		rawXml: JSON.parse(JSON.stringify(layoutDef)) as XmlObject,
 	};
 }
 

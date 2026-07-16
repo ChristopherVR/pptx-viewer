@@ -28,8 +28,12 @@ import {
 	makeShapeElement,
 	getContentNodes,
 } from './smartart-helpers';
-import { computeSmartArtLayout, layoutEngineShapesToDrawingShapes } from './smartart-layout-engine';
-import type { ParsedLayoutDef } from './smartart-layout-engine';
+import {
+	computeSmartArtLayout,
+	layoutEngineShapesToDrawingShapes,
+	parseLayoutDefinition,
+} from './smartart-layout-engine';
+import type { ParsedLayoutDef } from './smartart-layout-engine-types';
 import {
 	layoutList,
 	layoutProcess,
@@ -194,8 +198,11 @@ export function decomposeSmartArt(
 
 	// When a parsed layout definition is available, use the constraint-driven
 	// layout engine for more accurate positioning.
-	if (layoutDef) {
-		const engineShapes = computeSmartArtLayout(smartArtData, containerBounds, layoutDef);
+	const effectiveLayoutDef =
+		layoutDef ??
+		parseLayoutDefinition(smartArtData.layoutDefinition?.rawXml as Record<string, unknown>);
+	if (effectiveLayoutDef) {
+		const engineShapes = computeSmartArtLayout(smartArtData, containerBounds, effectiveLayoutDef);
 		if (engineShapes && engineShapes.length > 0) {
 			const layoutType: SmartArtLayoutType =
 				smartArtData.resolvedLayoutType ?? resolveLayoutFromRawType(smartArtData.layoutType);

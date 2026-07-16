@@ -27,19 +27,13 @@ import type {
 import type { ContainerBounds } from './smartart-helpers';
 import { getContentNodes } from './smartart-helpers';
 import {
-	computeSnakeLayout,
-	computeLinearLayout,
-	computeHierarchyLayout,
-	computeCycleLayout,
-	computePyramidLayout,
-	computeMatrixLayout,
-} from './smartart-layout-engine-algorithms';
-import type {
-	LayoutAlgorithmType,
-	LayoutConstraints,
-	LayoutEngineShape,
-	ParsedLayoutDef,
-} from './smartart-layout-engine-types';
+	computeByAlgorithmType,
+	computeByLayoutType,
+	getDefaultShapeType,
+	resolveLayoutTypeFromString,
+} from './smartart-layout-engine-dispatch';
+import type { LayoutEngineShape, ParsedLayoutDef } from './smartart-layout-engine-types';
+import { applyNodeLayoutRules, evaluateLayoutRules } from './smartart-layout-rule-evaluator';
 import { projectSmartArtNodeText } from './smartart-node-text-projection';
 
 // ── Re-exports: types ────────────────────────────────────────────────────
@@ -98,7 +92,12 @@ export function computeSmartArtLayout(
 		return undefined;
 	}
 
-	const constraints = layoutDef?.constraints ?? {};
+	const evaluated = evaluateLayoutRules(
+		layoutDef?.constraints ?? {},
+		layoutDef?.rules ?? [],
+		contentNodes,
+	);
+	const constraints = evaluated.constraints;
 
 	// Determine the layout algorithm to use.
 	// Priority: parsed layout definition > resolved layout type > raw layout type > heuristic
@@ -106,17 +105,18 @@ export function computeSmartArtLayout(
 	const resolvedType = data.resolvedLayoutType;
 
 	// Map algorithm type to layout function
-	if (algorithmType && algorithmType !== 'unknown') {
-		return computeByAlgorithmType(algorithmType, nodes, constraints, bounds);
-	}
-
-	if (resolvedType) {
-		return computeByLayoutType(resolvedType, nodes, constraints, bounds);
-	}
-
-	// Fall back to heuristic based on raw layoutType string
-	const layoutType = resolveLayoutTypeFromString(data.layoutType);
-	return computeByLayoutType(layoutType, nodes, constraints, bounds);
+	const shapes =
+		algorithmType && algorithmType !== 'unknown'
+			? computeByAlgorithmType(algorithmType, nodes, constraints, bounds)
+			: resolvedType
+				? computeByLayoutType(resolvedType, nodes, constraints, bounds)
+				: computeByLayoutType(
+						resolveLayoutTypeFromString(data.layoutType),
+						nodes,
+						constraints,
+						bounds,
+					);
+	return applyNodeLayoutRules(shapes, evaluated.nodeConstraints, bounds, constraints);
 }
 
 /**
@@ -152,181 +152,13 @@ export function layoutEngineShapesToDrawingShapes(
 			y: shape.y,
 			width: shape.width,
 			height: shape.height,
+			fontSize: shape.fontSize,
 			text: node?.text,
-			textSegments: node ? projectSmartArtNodeText(node) : undefined,
+			textSegments: node
+				? projectSmartArtNodeText(node, {
+						...(shape.fontSize !== undefined ? { fontSize: shape.fontSize * (96 / 72) } : {}),
+					})
+				: undefined,
 		};
 	});
-}
-
-// ============================================================================
-// Internal Helpers
-// ============================================================================
-
-/**
- * Map a parsed algorithm type to a layout function.
- *
- * @param algorithmType - Parsed algorithm type from the layout definition.
- * @param nodes - SmartArt nodes to position.
- * @param constraints - Layout constraint values.
- * @param bounds - Container bounding box.
- * @returns Array of positioned shapes.
- */
-function computeByAlgorithmType(
-	algorithmType: LayoutAlgorithmType,
-	nodes: PptxSmartArtNode[],
-	constraints: LayoutConstraints,
-	bounds: ContainerBounds,
-): LayoutEngineShape[] {
-	switch (algorithmType) {
-		case 'snake':
-			return computeSnakeLayout(nodes, constraints, bounds);
-		case 'lin':
-			return computeLinearLayout(nodes, constraints, bounds);
-		case 'hierChild':
-		case 'hierRoot':
-			return computeHierarchyLayout(nodes, constraints, bounds);
-		case 'cycle':
-			return computeCycleLayout(nodes, constraints, bounds);
-		case 'pyra':
-			return computePyramidLayout(nodes, constraints, bounds);
-		case 'tx':
-		case 'sp':
-			// Text and space algorithms default to linear layout
-			return computeLinearLayout(nodes, constraints, bounds);
-		case 'composite':
-		case 'conn':
-			// Composite and connector algorithms default to linear
-			return computeLinearLayout(nodes, constraints, bounds);
-		default:
-			return computeLinearLayout(nodes, constraints, bounds);
-	}
-}
-
-/**
- * Map a SmartArtLayoutType to a layout function.
- *
- * @param layoutType - Resolved SmartArt layout type.
- * @param nodes - SmartArt nodes to position.
- * @param constraints - Layout constraint values.
- * @param bounds - Container bounding box.
- * @returns Array of positioned shapes.
- */
-function computeByLayoutType(
-	layoutType: SmartArtLayoutType,
-	nodes: PptxSmartArtNode[],
-	constraints: LayoutConstraints,
-	bounds: ContainerBounds,
-): LayoutEngineShape[] {
-	switch (layoutType) {
-		case 'list':
-			return computeLinearLayout(nodes, { ...constraints, aspectRatio: 0.3 }, bounds);
-		case 'process':
-		case 'chevron':
-			return computeLinearLayout(nodes, constraints, bounds);
-		case 'cycle':
-			return computeCycleLayout(nodes, constraints, bounds);
-		case 'hierarchy':
-			return computeHierarchyLayout(nodes, constraints, bounds);
-		case 'relationship':
-		case 'venn':
-			return computeCycleLayout(nodes, constraints, bounds);
-		case 'matrix':
-			return computeMatrixLayout(nodes, constraints, bounds);
-		case 'pyramid':
-		case 'funnel':
-			return computePyramidLayout(nodes, constraints, bounds);
-		case 'bending':
-			return computeSnakeLayout(nodes, constraints, bounds);
-		case 'timeline':
-			return computeLinearLayout(nodes, constraints, bounds);
-		case 'target':
-			return computeCycleLayout(nodes, constraints, bounds);
-		case 'gear':
-			return computeCycleLayout(nodes, { ...constraints, w: 0.2 }, bounds);
-		default:
-			return computeLinearLayout(nodes, constraints, bounds);
-	}
-}
-
-/**
- * Resolve a raw layout type string to a SmartArtLayoutType.
- *
- * @param layoutType - Raw layout type string from the PPTX data model.
- * @returns Resolved SmartArt layout type.
- */
-function resolveLayoutTypeFromString(layoutType: string | undefined): SmartArtLayoutType {
-	if (!layoutType) {
-		return 'list';
-	}
-	const lower = layoutType.toLowerCase();
-
-	if (lower.includes('hierarchy') || lower.includes('org')) {
-		return 'hierarchy';
-	}
-	if (lower.includes('cycle') || lower.includes('radial')) {
-		return 'cycle';
-	}
-	if (lower.includes('snake') || lower.includes('bending') || lower.includes('zigzag')) {
-		return 'bending';
-	}
-	if (lower.includes('process') || lower.includes('chevron') || lower.includes('arrow')) {
-		return 'process';
-	}
-	if (lower.includes('venn')) {
-		return 'relationship';
-	}
-	if (lower.includes('matrix')) {
-		return 'matrix';
-	}
-	if (lower.includes('pyramid')) {
-		return 'pyramid';
-	}
-	if (lower.includes('funnel')) {
-		return 'funnel';
-	}
-	if (lower.includes('timeline')) {
-		return 'timeline';
-	}
-	if (lower.includes('target') || lower.includes('bullseye')) {
-		return 'target';
-	}
-	if (lower.includes('gear')) {
-		return 'gear';
-	}
-	if (lower.includes('list') || lower.includes('block')) {
-		return 'list';
-	}
-	if (lower.includes('relationship')) {
-		return 'relationship';
-	}
-
-	return 'list';
-}
-
-/**
- * Get the default shape type for a layout category.
- *
- * @param layoutType - SmartArt layout type.
- * @returns Default shape type string for the given layout.
- */
-function getDefaultShapeType(layoutType: SmartArtLayoutType): string {
-	switch (layoutType) {
-		case 'cycle':
-		case 'target':
-		case 'gear':
-			return 'ellipse';
-		case 'relationship':
-		case 'venn':
-			return 'ellipse';
-		case 'chevron':
-			return 'chevron';
-		case 'pyramid':
-		case 'funnel':
-			return 'trapezoid';
-		case 'timeline':
-		case 'bending':
-			return 'roundRect';
-		default:
-			return 'roundRect';
-	}
 }
