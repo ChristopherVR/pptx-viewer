@@ -10,6 +10,7 @@ import type {
 	PptxHandoutMaster,
 	PptxNotesMaster,
 	PptxSaveFormat,
+	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxTheme,
@@ -61,6 +62,7 @@ export class LoadContentService {
 	readonly notesMaster = signal<PptxNotesMaster | undefined>(undefined);
 	/** Handout master, including its editable element tree. */
 	readonly handoutMaster = signal<PptxHandoutMaster | undefined>(undefined);
+	readonly sections = signal<PptxSection[]>([]);
 	/** Whether the loaded package contains a VBA project. */
 	readonly hasMacros = signal(false);
 	/** Archive-path → displayable URL map for media + poster frames. */
@@ -115,6 +117,7 @@ export class LoadContentService {
 	async saveSlides(
 		slides: readonly PptxSlide[],
 		outputFormat: PptxSaveFormat = 'pptx',
+		sections: readonly PptxSection[] = this.sections(),
 	): Promise<Uint8Array> {
 		if (!this.handler) {
 			throw new Error('No presentation is loaded.');
@@ -123,6 +126,7 @@ export class LoadContentService {
 			slideMasters: this.slideMasters(),
 			notesMaster: this.notesMaster(),
 			handoutMaster: this.handoutMaster(),
+			sections: sections.length > 0 ? [...sections] : undefined,
 			outputFormat,
 		});
 	}
@@ -282,6 +286,7 @@ export class LoadContentService {
 			this.slideMasters.set(parsed.slideMasters ?? []);
 			this.notesMaster.set(parsed.notesMaster);
 			this.handoutMaster.set(parsed.handoutMaster);
+			this.sections.set(parsed.sections ?? []);
 			this.hasMacros.set(parsed.hasMacros ?? false);
 			this.embeddedFonts.set(parsed.embeddedFonts ?? []);
 			this.coreProperties.set(parsed.coreProperties);

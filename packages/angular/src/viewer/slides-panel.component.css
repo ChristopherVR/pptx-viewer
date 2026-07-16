@@ -38,6 +38,58 @@
 	inset-inline: 0;
 }
 
+.pptx-ng-section-header {
+	display: flex;
+	align-items: center;
+	gap: 0.2rem;
+	min-height: 1.75rem;
+	color: rgba(255, 255, 255, 0.58);
+}
+
+.pptx-ng-section-toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	min-width: 0;
+	flex: 1;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	text-align: left;
+}
+
+.pptx-ng-section-toggle strong {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.7rem;
+}
+
+.pptx-ng-section-actions {
+	display: flex;
+}
+
+.pptx-ng-section-actions button {
+	width: 1.25rem;
+	height: 1.25rem;
+	padding: 0;
+	border: 0;
+	border-radius: 0.2rem;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+}
+
+.pptx-ng-section-actions button:hover:not(:disabled) {
+	background: rgba(59, 130, 246, 0.35);
+	color: #fff;
+}
+
+.pptx-ng-section-actions button:disabled {
+	opacity: 0.3;
+}
+
 /* ── Card ── */
 
 .pptx-ng-spanel-card {

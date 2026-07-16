@@ -17,7 +17,7 @@
  */
 
 import { inject, Injectable, signal } from '@angular/core';
-import type { PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
+import type { PptxSaveFormat, PptxSection, PptxSlide } from 'pptx-viewer-core';
 
 import { downloadBlob, openPptxFile } from '../internal/shared';
 import { ExportService } from './export.service';
@@ -32,6 +32,7 @@ interface FileIOHost {
 	readonly content: () => Uint8Array | ArrayBuffer | null;
 	readonly onOpenFile: () => (() => void) | undefined;
 	readonly slides: () => readonly PptxSlide[];
+	readonly sections: () => readonly PptxSection[];
 	readonly templateElementsBySlideId: () => TemplateElementsBySlideId;
 	readonly emitContentChange: (bytes: Uint8Array) => void;
 }
@@ -85,6 +86,8 @@ export class ViewerFileIOService {
 		const data = host.canEdit()
 			? await this.loader.saveSlides(
 					buildSaveSlides(host.slides(), host.templateElementsBySlideId()),
+					'pptx',
+					host.sections(),
 				)
 			: await this.loader.getContent();
 		// Mirror React's imperative handle: serialising the deck also notifies the
@@ -102,7 +105,7 @@ export class ViewerFileIOService {
 		const host = this.requireHost();
 		const slides = buildSaveSlides(host.slides(), host.templateElementsBySlideId());
 		const bytes = host.canEdit()
-			? await this.loader.saveSlides(slides, format)
+			? await this.loader.saveSlides(slides, format, host.sections())
 			: await this.loader.saveSlides(this.loader.slides(), format);
 		host.emitContentChange(bytes);
 		this.exportSvc.savePresentation(bytes, `presentation.${format}`, format);

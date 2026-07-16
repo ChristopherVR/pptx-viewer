@@ -115,7 +115,7 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 					type="button"
 					class="pptx-rb-gb"
 					[title]="'pptx.sections.sectionButtonLabel' | translate"
-					(click)="addSection.emit()"
+					(click)="editor.addSection(slideIndex())"
 				>
 					{{ 'pptx.sections.sectionButtonLabel' | translate }}
 				</button>
@@ -175,7 +175,6 @@ export class RibbonHomeSectionComponent {
 	readonly findReplace = output<void>();
 	readonly applyLayout = output<string>();
 	readonly resetSlide = output<void>();
-	readonly addSection = output<void>();
 
 	protected hasSel(): boolean {
 		return this.editor.selectedIds().length > 0;

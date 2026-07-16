@@ -18,7 +18,7 @@ import {
 	LucidePlus,
 	LucideTrash2,
 } from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { computeVirtualRange, SLIDE_VIRTUALIZATION_THRESHOLD } from '../internal/shared';
 import type { CanvasSize } from '../internal/shared';
@@ -81,6 +81,7 @@ export class SlidesPanelComponent {
 	readonly select = output<number>();
 
 	protected readonly editor = inject(EditorStateService);
+	private readonly translate = inject(TranslateService);
 	private readonly scrollViewport = viewChild<ElementRef<HTMLElement>>('scrollViewport');
 	private readonly scrollTop = signal(0);
 	private readonly viewportHeight = signal(600);
@@ -103,7 +104,9 @@ export class SlidesPanelComponent {
 
 	readonly itemHeight = computed(() => this.thumbH() + THUMB_CARD_CHROME_HEIGHT);
 	readonly shouldVirtualize = computed(
-		() => this.editor.slides().length >= SLIDE_VIRTUALIZATION_THRESHOLD,
+		() =>
+			this.editor.sections().length === 0 &&
+			this.editor.slides().length >= SLIDE_VIRTUALIZATION_THRESHOLD,
 	);
 	readonly virtualRange = computed(() =>
 		computeVirtualRange(
@@ -115,9 +118,24 @@ export class SlidesPanelComponent {
 	);
 	readonly renderedSlides = computed(() => {
 		const slides = this.editor.slides();
+		if (this.editor.sections().length > 0) {
+			return this.editor.sectionGroups().flatMap((group) =>
+				group.slides.map((slide, offset) => ({
+					slide,
+					index: group.slideIndexes[offset],
+					section: group.section,
+					sectionStart: offset === 0,
+				})),
+			);
+		}
 		const start = this.shouldVirtualize() ? this.virtualRange().startIndex : 0;
 		const end = this.shouldVirtualize() ? this.virtualRange().endIndex : slides.length - 1;
-		return slides.slice(start, end + 1).map((slide, offset) => ({ slide, index: start + offset }));
+		return slides.slice(start, end + 1).map((slide, offset) => ({
+			slide,
+			index: start + offset,
+			section: undefined,
+			sectionStart: false,
+		}));
 	});
 
 	constructor() {
@@ -171,5 +189,16 @@ export class SlidesPanelComponent {
 
 	onAddSlide(): void {
 		this.editor.addSlide(this.activeIndex());
+	}
+
+	onRenameSection(sectionId: string, currentName: string): void {
+		const name = window.prompt(this.translate.instant('pptx.sections.rename'), currentName);
+		if (name !== null) {
+			this.editor.sectionOps.rename(sectionId, name);
+		}
+	}
+
+	sectionIndex(sectionId: string): number {
+		return this.editor.sections().findIndex((section) => section.id === sectionId);
 	}
 }

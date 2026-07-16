@@ -15,13 +15,14 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { cloneElement, cloneSlide, cloneTemplateElementsBySlideId } from 'pptx-viewer-core';
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSection, PptxSlide } from 'pptx-viewer-core';
 
-import { isTemplateElement, isTemplateElementId } from '../internal/shared';
+import { groupSlidesBySection, isTemplateElement, isTemplateElementId } from '../internal/shared';
 import { translationsEn } from '../internal/shared-src/i18n';
 import { computeAlign, computeDistribute } from './align-distribute';
 import type { AlignMode, DistributeMode } from './align-distribute';
 import { EditorHistory } from './editor-history';
+import { createEditorSectionOperations } from './editor-section-operations';
 import {
 	bringForward,
 	bringToFront,
@@ -51,6 +52,7 @@ const DUPLICATE_OFFSET = 12;
 interface EditorSnapshot {
 	slides: readonly PptxSlide[];
 	templateElementsBySlideId: TemplateElementsBySlideId;
+	sections: readonly PptxSection[];
 }
 
 @Injectable()
@@ -90,6 +92,13 @@ export class EditorStateService {
 
 	/** The editable slide deck (a clone of the loaded presentation). */
 	readonly slides = signal<readonly PptxSlide[]>([]);
+	readonly sections = signal<readonly PptxSection[]>([]);
+	readonly sectionGroups = computed(() => groupSlidesBySection(this.sections(), this.slides()));
+	readonly sectionOps = createEditorSectionOperations({
+		sections: () => this.sections(),
+		slides: () => this.slides(),
+		commit: (sections, slides) => this.commitSections(sections, slides),
+	});
 	/** Ids of the currently selected elements (on the active slide). */
 	readonly selectedIds = signal<readonly string[]>([]);
 	/** Whether the deck has unsaved edits. */
@@ -126,10 +135,11 @@ export class EditorStateService {
 	 * elements move into {@link templateElementsBySlideId}, rendered as a separate
 	 * layer and re-merged on save.
 	 */
-	setSlides(slides: readonly PptxSlide[]): void {
+	setSlides(slides: readonly PptxSlide[], sections: readonly PptxSection[] = []): void {
 		const partitioned = partitionSlides(slides.map(cloneSlide));
 		this.slides.set(partitioned.slides);
 		this.templateElementsBySlideId.set(partitioned.templateElementsBySlideId);
+		this.sections.set(structuredClone(sections));
 		this.selectedIds.set([]);
 		this.history.clear();
 		this.dirty.set(false);
@@ -174,6 +184,7 @@ export class EditorStateService {
 		return {
 			slides: this.slides().map(cloneSlide),
 			templateElementsBySlideId: cloneTemplateElementsBySlideId(this.templateElementsBySlideId()),
+			sections: structuredClone(this.sections()),
 		};
 	}
 
@@ -181,6 +192,7 @@ export class EditorStateService {
 	private restoreSnapshot(snapshot: EditorSnapshot): void {
 		this.slides.set(snapshot.slides);
 		this.templateElementsBySlideId.set(snapshot.templateElementsBySlideId);
+		this.sections.set(snapshot.sections);
 	}
 
 	/** The template (master/layout) elements separated out of a slide, by id. */
@@ -620,6 +632,18 @@ export class EditorStateService {
 		const [moved] = next.splice(from, 1);
 		next.splice(to, 0, moved);
 		this.slides.set(this.renumber(next));
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
+	addSection(afterSlideIndex: number): void {
+		this.sectionOps.add(afterSlideIndex, this.t('pptx.sections.defaultName'));
+	}
+
+	private commitSections(sections: readonly PptxSection[], slides: readonly PptxSlide[]): void {
+		this.history.record(this.captureSnapshot(), this.t('pptx.sections.sectionButtonLabel'));
+		this.sections.set(sections);
+		this.slides.set(slides);
 		this.dirty.set(true);
 		this.syncHistory();
 	}

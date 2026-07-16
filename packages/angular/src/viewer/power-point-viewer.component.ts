@@ -1126,7 +1126,7 @@ export class PowerPointViewerComponent {
 		// presentation finishes loading.
 		effect(() => {
 			const slides = this.loader.slides();
-			this.editor.setSlides(slides);
+			this.editor.setSlides(slides, this.loader.sections());
 			this.activeSlideIndex.set(0);
 		});
 
@@ -1389,6 +1389,7 @@ export class PowerPointViewerComponent {
 			content: () => this.content(),
 			onOpenFile: () => this.onOpenFile(),
 			slides: () => this.editor.slides(),
+			sections: () => this.editor.sections(),
 			templateElementsBySlideId: () => this.editor.templateElementsBySlideId(),
 			emitContentChange: (bytes) => this.contentChange.emit(bytes),
 		});
@@ -1846,6 +1847,8 @@ export class PowerPointViewerComponent {
 		}
 		return this.loader.saveSlides(
 			buildSaveSlides(this.editor.slides(), this.editor.templateElementsBySlideId()),
+			'pptx',
+			this.editor.sections(),
 		);
 	}
 

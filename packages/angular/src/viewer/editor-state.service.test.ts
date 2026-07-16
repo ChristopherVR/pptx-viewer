@@ -18,6 +18,29 @@ function service(): EditorStateService {
 }
 
 describe('editorStateService', () => {
+	it('manages sections as undoable editor state', () => {
+		const svc = new EditorStateService();
+		svc.setSlides([slide('s1', []), slide('s2', []), slide('s3', [])]);
+
+		svc.sectionOps.add(1, 'Part 2');
+		const sectionId = svc.sections()[0]?.id;
+		expect(sectionId).toBeTruthy();
+		expect(svc.slides().map((item) => item.sectionId)).toStrictEqual([
+			undefined,
+			sectionId,
+			sectionId,
+		]);
+
+		svc.sectionOps.rename(sectionId!, 'Closing');
+		expect(svc.sections()[0]?.name).toBe('Closing');
+		svc.sectionOps.toggle(sectionId!);
+		expect(svc.sections()[0]?.collapsed).toBeTruthy();
+		svc.sectionOps.delete(sectionId!);
+		expect(svc.sections()).toStrictEqual([]);
+		svc.undo();
+		expect(svc.sections()[0]?.id).toBe(sectionId);
+	});
+
 	it('clones slides on load (source mutation does not leak in)', () => {
 		const svc = new EditorStateService();
 		const src = [slide('s1', [element('a')])];

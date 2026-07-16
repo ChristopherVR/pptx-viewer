@@ -20,85 +20,129 @@
 				@for (item of renderedSlides(); track item.slide.id) {
 					@let slide = item.slide;
 					@let i = item.index;
-					<div
-						class="pptx-ng-spanel-card"
-						[class.is-active]="i === activeIndex()"
-						role="option"
-						[attr.aria-selected]="i === activeIndex()"
-						[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
-					>
-						<!-- Thumbnail (clickable to select) -->
-						<button
-							type="button"
-							class="pptx-ng-spanel-thumb-btn"
-							[attr.aria-label]="'pptx.slidesPanel.goToSlide' | translate: { n: i + 1 }"
-							(click)="select.emit(i)"
-						>
-							<!-- Clipping wrapper: neutralises the 1rem auto margin from SlideCanvas -->
-							<div class="pptx-ng-spanel-clip" [ngStyle]="clipStyle()">
-								<pptx-slide-canvas
-									[slide]="slide"
-									[templateElements]="editor.templateElementsBySlideId()[slide.id] ?? []"
-									[canvasSize]="canvasSize()"
-									[mediaDataUrls]="mediaDataUrls()"
-									[zoom]="thumbZoom()"
-									[editable]="false"
-									[autoFit]="false"
-									[interactive]="false"
-								/>
-							</div>
-						</button>
-
-						<!-- Slide number badge -->
-						<span class="pptx-ng-spanel-num" aria-hidden="true">{{ i + 1 }}</span>
-
-						<!-- Per-card action toolbar (visible on hover / focus-within) -->
+					@if (item.sectionStart) {
+						<header class="pptx-ng-section-header" [attr.data-section-id]="item.section?.id">
+							<button
+								type="button"
+								class="pptx-ng-section-toggle"
+								[attr.aria-expanded]="!item.section?.collapsed"
+								(click)="item.section && editor.sectionOps.toggle(item.section.id)"
+							>
+								<span>{{ item.section?.collapsed ? '▸' : '▾' }}</span>
+								<strong>{{
+									item.section?.name ?? ('pptx.slides.ungroupedSlides' | translate)
+								}}</strong>
+							</button>
+							@if (item.section) {
+								<div class="pptx-ng-section-actions">
+									<button
+										type="button"
+										(click)="onRenameSection(item.section.id, item.section.name)"
+									>
+										✎
+									</button>
+									<button
+										type="button"
+										[disabled]="sectionIndex(item.section.id) === 0"
+										(click)="editor.sectionOps.move(item.section.id, 'up')"
+									>
+										↑
+									</button>
+									<button
+										type="button"
+										[disabled]="sectionIndex(item.section.id) === editor.sections().length - 1"
+										(click)="editor.sectionOps.move(item.section.id, 'down')"
+									>
+										↓
+									</button>
+									<button type="button" (click)="editor.sectionOps.delete(item.section.id)">
+										×
+									</button>
+								</div>
+							}
+						</header>
+					}
+					@if (!item.section?.collapsed) {
 						<div
-							class="pptx-ng-spanel-actions"
-							role="toolbar"
-							[attr.aria-label]="'pptx.slideMenu.slideActions' | translate: { n: i + 1 }"
+							class="pptx-ng-spanel-card"
+							[class.is-active]="i === activeIndex()"
+							role="option"
+							[attr.aria-selected]="i === activeIndex()"
+							[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
 						>
+							<!-- Thumbnail (clickable to select) -->
 							<button
 								type="button"
-								class="pptx-ng-spanel-action"
-								[title]="'pptx.ribbon.duplicateSlide' | translate"
-								[attr.aria-label]="'pptx.arrange.duplicate' | translate"
-								(click)="onDuplicate(i)"
+								class="pptx-ng-spanel-thumb-btn"
+								[attr.aria-label]="'pptx.slidesPanel.goToSlide' | translate: { n: i + 1 }"
+								(click)="select.emit(i)"
 							>
-								<svg lucideCopy class="h-3.5 w-3.5"></svg>
+								<!-- Clipping wrapper: neutralises the 1rem auto margin from SlideCanvas -->
+								<div class="pptx-ng-spanel-clip" [ngStyle]="clipStyle()">
+									<pptx-slide-canvas
+										[slide]="slide"
+										[templateElements]="editor.templateElementsBySlideId()[slide.id] ?? []"
+										[canvasSize]="canvasSize()"
+										[mediaDataUrls]="mediaDataUrls()"
+										[zoom]="thumbZoom()"
+										[editable]="false"
+										[autoFit]="false"
+										[interactive]="false"
+									/>
+								</div>
 							</button>
-							<button
-								type="button"
-								class="pptx-ng-spanel-action"
-								[title]="'pptx.slidesPanel.deleteSlide' | translate"
-								[attr.aria-label]="'pptx.arrange.delete' | translate"
-								[disabled]="editor.slides().length <= 1"
-								(click)="onDelete(i)"
+
+							<!-- Slide number badge -->
+							<span class="pptx-ng-spanel-num" aria-hidden="true">{{ i + 1 }}</span>
+
+							<!-- Per-card action toolbar (visible on hover / focus-within) -->
+							<div
+								class="pptx-ng-spanel-actions"
+								role="toolbar"
+								[attr.aria-label]="'pptx.slideMenu.slideActions' | translate: { n: i + 1 }"
 							>
-								<svg lucideTrash2 class="h-3.5 w-3.5"></svg>
-							</button>
-							<button
-								type="button"
-								class="pptx-ng-spanel-action"
-								[title]="'pptx.sections.moveUp' | translate"
-								[attr.aria-label]="'pptx.sections.moveUp' | translate"
-								[disabled]="i === 0"
-								(click)="onMoveUp(i)"
-							>
-								<svg lucideArrowUp class="h-3.5 w-3.5"></svg>
-							</button>
-							<button
-								type="button"
-								class="pptx-ng-spanel-action"
-								[title]="'pptx.sections.moveDown' | translate"
-								[attr.aria-label]="'pptx.sections.moveDown' | translate"
-								[disabled]="i === editor.slides().length - 1"
-								(click)="onMoveDown(i)"
-							>
-								<svg lucideArrowDown class="h-3.5 w-3.5"></svg>
-							</button>
+								<button
+									type="button"
+									class="pptx-ng-spanel-action"
+									[title]="'pptx.ribbon.duplicateSlide' | translate"
+									[attr.aria-label]="'pptx.arrange.duplicate' | translate"
+									(click)="onDuplicate(i)"
+								>
+									<svg lucideCopy class="h-3.5 w-3.5"></svg>
+								</button>
+								<button
+									type="button"
+									class="pptx-ng-spanel-action"
+									[title]="'pptx.slidesPanel.deleteSlide' | translate"
+									[attr.aria-label]="'pptx.arrange.delete' | translate"
+									[disabled]="editor.slides().length <= 1"
+									(click)="onDelete(i)"
+								>
+									<svg lucideTrash2 class="h-3.5 w-3.5"></svg>
+								</button>
+								<button
+									type="button"
+									class="pptx-ng-spanel-action"
+									[title]="'pptx.sections.moveUp' | translate"
+									[attr.aria-label]="'pptx.sections.moveUp' | translate"
+									[disabled]="i === 0"
+									(click)="onMoveUp(i)"
+								>
+									<svg lucideArrowUp class="h-3.5 w-3.5"></svg>
+								</button>
+								<button
+									type="button"
+									class="pptx-ng-spanel-action"
+									[title]="'pptx.sections.moveDown' | translate"
+									[attr.aria-label]="'pptx.sections.moveDown' | translate"
+									[disabled]="i === editor.slides().length - 1"
+									(click)="onMoveDown(i)"
+								>
+									<svg lucideArrowDown class="h-3.5 w-3.5"></svg>
+								</button>
+							</div>
 						</div>
-					</div>
+					}
 				}
 			</div>
 		</div>
