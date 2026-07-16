@@ -4,6 +4,83 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-16
+
+_Releases: pptx-viewer-core@1.5.0, pptx-react-viewer@1.18.0, pptx-vue-viewer@1.18.0, pptx-angular-viewer@1.18.0, pptx-vanilla-viewer@0.8.0, pptx-svelte-viewer@0.8.0, pptx-viewer-mcp@1.3.0, @christophervr/pptx-viewer@1.5.3_
+
+### Features
+
+- **viewer:** Add cross-framework collaboration join flow (by @ChristopherVR) ([d828541](https://github.com/ChristopherVR/pptx-viewer/commit/d828541a8b33bc4938d4042b96433c6c97e5ae62))
+- **core:** Support editable auxiliary master elements (by @ChristopherVR) ([fdb32c6](https://github.com/ChristopherVR/pptx-viewer/commit/fdb32c6589fb64fe19dad3c0864e2316eb7b0e34))
+- **locales:** Add complete internal reference dictionaries (by @ChristopherVR) ([767cd50](https://github.com/ChristopherVR/pptx-viewer/commit/767cd50d9416f45187e55dd483308d3a58761265))
+- **viewer:** Complete auxiliary master view parity (by @ChristopherVR) ([87bb0e8](https://github.com/ChristopherVR/pptx-viewer/commit/87bb0e8899d2d2558b55454f14a676f3baa22671))
+- **present:** Add multi-screen presenter sessions (by @ChristopherVR) ([9608480](https://github.com/ChristopherVR/pptx-viewer/commit/9608480a9436852a7d7b395804b7f261b6be3eaa))
+- **present:** Add synchronized presenter console (by @ChristopherVR) ([2522229](https://github.com/ChristopherVR/pptx-viewer/commit/2522229ff7f5696456855e484aab4143d958f455))
+- **viewer:** Complete presenter parity and conformance (by @ChristopherVR) ([ac2be2f](https://github.com/ChristopherVR/pptx-viewer/commit/ac2be2fec909f07b3338b93091ca9f9f83e5051f))
+- **core:** Preserve chart manual layouts (by @ChristopherVR) ([823a5d1](https://github.com/ChristopherVR/pptx-viewer/commit/823a5d13fff02aef63cadb26a8ba127be419b8d2))
+- **angular:** Accept host font sources (by @ChristopherVR) ([59a0174](https://github.com/ChristopherVR/pptx-viewer/commit/59a01740577b5783e24eb9efea45f3137eece28b))
+- **angular:** Add rehearsal and connector effects (by @ChristopherVR) ([1920bcd](https://github.com/ChristopherVR/pptx-viewer/commit/1920bcdd9f0ba1748f5d149de69bbd5359ec2ec0))
+- **vue:** Add host fonts and ink replay (by @ChristopherVR) ([1930a9b](https://github.com/ChristopherVR/pptx-viewer/commit/1930a9bbdda586d1f5d93c3bb816422bf7a5f5a3))
+- **viewer:** Deepen rendering and validation parity (by @ChristopherVR) ([39f7f27](https://github.com/ChristopherVR/pptx-viewer/commit/39f7f27f5bb1275e785a2a69db21eecba1520a61))
+- **vanilla:** Implement canonical viewer api (by @ChristopherVR) ([75ee359](https://github.com/ChristopherVR/pptx-viewer/commit/75ee359dcaca7b6e040b18b3e1bdd8a39fa459e5))
+- **vanilla:** Complete ribbon tab roster (by @ChristopherVR) ([c298a50](https://github.com/ChristopherVR/pptx-viewer/commit/c298a5014a03570fd139889ad66fb88ca14b06d0))
+- **svelte:** Complete ribbon tab roster (by @ChristopherVR) ([2cd4fd6](https://github.com/ChristopherVR/pptx-viewer/commit/2cd4fd673e2d5db2c39d0a4ddd4b8a82a74f76f2))
+- **core:** Expand OpenXML conformance coverage (by @ChristopherVR) ([4f8353a](https://github.com/ChristopherVR/pptx-viewer/commit/4f8353a4a68e7110c44f392e1dd8635c4b5b9d96))
+- **core:** Extend OpenXML semantic parity (by @ChristopherVR) ([a214d59](https://github.com/ChristopherVR/pptx-viewer/commit/a214d59663119334c0b82893bb67067bf299ef95))
+- **core:** Preserve advanced OpenXML structures (by @ChristopherVR) ([28aef73](https://github.com/ChristopherVR/pptx-viewer/commit/28aef7326c7d6652bb47cff126e817ff2c67f212))
+- **core:** Round-trip modern OpenXML metadata (by @ChristopherVR) ([2fda235](https://github.com/ChristopherVR/pptx-viewer/commit/2fda2351d97971700d8800d4ae7efc4c2ecbdf1e))
+- **vue:** Insert dynamic fields (by @ChristopherVR) ([6a98862](https://github.com/ChristopherVR/pptx-viewer/commit/6a98862c6d7541e8e8be2c6550b069b0f20d6fe5))
+- **core:** Round-trip chart data tables (by @ChristopherVR) ([d8fbd72](https://github.com/ChristopherVR/pptx-viewer/commit/d8fbd7269809f346ca429d7c5005ad6fcace5d06))
+- **svelte:** Activate zoom navigation (by @ChristopherVR) ([3a63a7c](https://github.com/ChristopherVR/pptx-viewer/commit/3a63a7c69dd1cfe6847acda7b0ae73a6fe6db411))
+- **core:** Round-trip text body scene geometry (by @ChristopherVR) ([16c7acb](https://github.com/ChristopherVR/pptx-viewer/commit/16c7acb9a91550b75fc2b2a0687cd52d9f24dad2))
+- **core:** Preserve slide transition sound actions (by @ChristopherVR) ([039efcc](https://github.com/ChristopherVR/pptx-viewer/commit/039efcc75b01a79dd6e2f9c2f3e1fa4724b620c4))
+- **vue:** Launch presenter view from ribbon (by @ChristopherVR) ([a6505ce](https://github.com/ChristopherVR/pptx-viewer/commit/a6505ce0ad9f961705f7e283943117f9eda655dd))
+- **vue:** Complete rehearsal timing flow (by @ChristopherVR) ([4234d9a](https://github.com/ChristopherVR/pptx-viewer/commit/4234d9aad8dc8891af970c5f52d39e31c01b691b))
+- **vue:** Compare external presentations (by @ChristopherVR) ([8655285](https://github.com/ChristopherVR/pptx-viewer/commit/8655285539cb18b9c2ca9f2ecb48092b668e5ebc))
+- **vue:** Wire ribbon eyedropper state (by @ChristopherVR) ([6f36a33](https://github.com/ChristopherVR/pptx-viewer/commit/6f36a33392fdb163061fef70b27f10944c4965c0))
+- **core:** Round-trip chart display units (by @ChristopherVR) ([2d575dd](https://github.com/ChristopherVR/pptx-viewer/commit/2d575ddf04e7291dc335bdd010c90d7111254d9b))
+- **core:** Round-trip SmartArt layout definitions (by @ChristopherVR) ([92f9091](https://github.com/ChristopherVR/pptx-viewer/commit/92f90917e71d9438f26149655163dbadb71ed1fa))
+- **core:** Preserve secondary DrawingML effects (by @ChristopherVR) ([f9c1a3a](https://github.com/ChristopherVR/pptx-viewer/commit/f9c1a3a8ff06681c08ada5aef2d23464c9cfb3ae))
+- **vanilla:** Activate zoom navigation (by @ChristopherVR) ([daf7927](https://github.com/ChristopherVR/pptx-viewer/commit/daf792716cea22ac8e14b25846d495b5b9118301))
+- **angular:** Replay ink during presentation (by @ChristopherVR) ([f25aa7b](https://github.com/ChristopherVR/pptx-viewer/commit/f25aa7b95632e9891b9149b7e003dd500d24821d))
+- **vanilla:** Replay content part ink (by @ChristopherVR) ([3aa41b2](https://github.com/ChristopherVR/pptx-viewer/commit/3aa41b2999f75f2f62c283d0bb3b44c15826c384))
+- **svelte:** Replay content part ink (by @ChristopherVR) ([64f1eac](https://github.com/ChristopherVR/pptx-viewer/commit/64f1eac679cb76153185cb38bf48636b2a27f719))
+- **core:** Round-trip effect DAG primitives (by @ChristopherVR) ([a3a62ef](https://github.com/ChristopherVR/pptx-viewer/commit/a3a62efc5b6b1bc9f0e26b04bac6eb395d0fac5a))
+- **core:** Round-trip chart axis label controls (by @ChristopherVR) ([ee24d2d](https://github.com/ChristopherVR/pptx-viewer/commit/ee24d2da1f5929cba0bc4c950f7f49b880028f05))
+- **core:** Round-trip SmartArt style definitions (by @ChristopherVR) ([c5a7c15](https://github.com/ChristopherVR/pptx-viewer/commit/c5a7c153af1985fd776f2a34d960544e897c3db4))
+
+### Bug Fixes
+
+- **theme:** Apply slide overrides immediately (by @ChristopherVR) ([e74b7bb](https://github.com/ChristopherVR/pptx-viewer/commit/e74b7bbe8d689bc883cc338500b0df61d13c7659))
+- **smartart:** Preserve layouts in PowerPoint (by @ChristopherVR) ([47ab731](https://github.com/ChristopherVR/pptx-viewer/commit/47ab731b5fbd2a0194f42412e20e2d6206051952))
+- **a11y:** Improve WCAG support across viewer bindings (by @ChristopherVR) ([543fb45](https://github.com/ChristopherVR/pptx-viewer/commit/543fb452af09ecf307386805a211a9bcd78861e7))
+- **svelte:** Validate canonical viewer surface (by @ChristopherVR) ([76888e4](https://github.com/ChristopherVR/pptx-viewer/commit/76888e41427a6ca67517f81940881503bad8664a))
+- **vanilla:** Register all element renderers (by @ChristopherVR) ([0947e1d](https://github.com/ChristopherVR/pptx-viewer/commit/0947e1db1a73af52c3df3dca09ac733d7659a4d9))
+- **vue:** Type ink replay styles (by @ChristopherVR) ([be17fb2](https://github.com/ChristopherVR/pptx-viewer/commit/be17fb2f1214790d7aca2193f2cbf25270dbcf9f))
+- **vue:** Default presenter session state (by @ChristopherVR) ([72ff1ab](https://github.com/ChristopherVR/pptx-viewer/commit/72ff1ab8571fef9317f295fe2e5b881352596977))
+- **svelte:** Align review ribbon with react (by @ChristopherVR) ([0af7d45](https://github.com/ChristopherVR/pptx-viewer/commit/0af7d4590ba9f3f88f977e5e547f41ecd0678b57))
+- **vue:** Enable presentation ink replay (by @ChristopherVR) ([d823bf0](https://github.com/ChristopherVR/pptx-viewer/commit/d823bf0dac44c6f7ce65ae2b8a0d2aee39d88b0c))
+- **shared:** Accept nullable chart display metadata (by @ChristopherVR) ([2c05f6c](https://github.com/ChristopherVR/pptx-viewer/commit/2c05f6cc13d6190aaaaa394230d2c203691163f4))
+- **core:** Validate preset shadow direction (by @ChristopherVR) ([7f66a84](https://github.com/ChristopherVR/pptx-viewer/commit/7f66a84f12a85b72d72279ec6ca5a0cc870d2ac5))
+- **react:** Adapt shared slide background styles (by @ChristopherVR) ([54650b1](https://github.com/ChristopherVR/pptx-viewer/commit/54650b1c6f59f46193b1c890e44af367bf117719))
+- **vue:** Match React zoom range (by @ChristopherVR) ([90ddf7b](https://github.com/ChristopherVR/pptx-viewer/commit/90ddf7b2daba5541ff134bc8cb6da84c819cb51a))
+- **shared:** Sync expanded presentation fields (by @ChristopherVR) ([a323073](https://github.com/ChristopherVR/pptx-viewer/commit/a32307362ee221c6c1271b747cd6ac43603df22c))
+- **demo-vanilla:** Map shared and locales specs to source for typecheck (by @ChristopherVR) ([93448b7](https://github.com/ChristopherVR/pptx-viewer/commit/93448b723a86f3df0be5469c90420e07f9fcce09))
+- Numerous test and build issues (by @ChristopherVR) ([51698cf](https://github.com/ChristopherVR/pptx-viewer/commit/51698cfefd71903126721682ea953b94ea2facda))
+
+### Documentation
+
+- **packages:** Add package-specific readme visuals (by @ChristopherVR) ([9e20f13](https://github.com/ChristopherVR/pptx-viewer/commit/9e20f133dc8f21db75a1ca5e46e77c0af3c96d66))
+
+### Testing
+
+- **viewer:** Stabilize parity validation (by @ChristopherVR) ([7f118f1](https://github.com/ChristopherVR/pptx-viewer/commit/7f118f100e7516211908d466d6f0bd05a0d7a602))
+- **vanilla:** Lock multi-select arrange parity (by @ChristopherVR) ([3906067](https://github.com/ChristopherVR/pptx-viewer/commit/390606722033d0cf93e213512fb338b33b284028))
+- **core:** Record Wave 8 OpenXML coverage (by @ChristopherVR) ([50d26ef](https://github.com/ChristopherVR/pptx-viewer/commit/50d26ef841659ea1a59f8acc53ce1ffaa7edb322))
+- **core:** Record Wave 9 OpenXML coverage (by @ChristopherVR) ([b0f50dd](https://github.com/ChristopherVR/pptx-viewer/commit/b0f50ddc7f14059eef9ad8299d4784443985bd97))
+- **core:** Cover preset shadow angle bounds (by @ChristopherVR) ([eba9fde](https://github.com/ChristopherVR/pptx-viewer/commit/eba9fdea00552f9ce4e8754b25f9dbe7f4507b0a))
+- **core:** Record Wave 10 OpenXML coverage (by @ChristopherVR) ([54b7517](https://github.com/ChristopherVR/pptx-viewer/commit/54b7517871542e8b6ba830ffe7a36375c2fe5e9d))
+
 ## 2026-07-15
 
 _Releases: pptx-react-viewer@1.17.1, pptx-vue-viewer@1.17.1, pptx-angular-viewer@1.17.1, pptx-vanilla-viewer@0.7.0, pptx-svelte-viewer@0.7.0_
