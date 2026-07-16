@@ -1,0 +1,118 @@
+<div class="pptx-ng-spanel">
+	<!-- Scrollable slide list -->
+	<div
+		#scrollViewport
+		class="pptx-ng-spanel-scroll"
+		role="listbox"
+		[attr.aria-label]="'pptx.sections.slides' | translate"
+		(scroll)="onScroll()"
+	>
+		<div
+			class="pptx-ng-spanel-space"
+			[attr.data-virtualized]="shouldVirtualize() ? 'true' : null"
+			[style.height.px]="shouldVirtualize() ? virtualRange().totalHeight : null"
+		>
+			<div
+				class="pptx-ng-spanel-window"
+				[class.is-virtualized]="shouldVirtualize()"
+				[style.top.px]="shouldVirtualize() ? virtualRange().offsetY : null"
+			>
+				@for (item of renderedSlides(); track item.slide.id) {
+					@let slide = item.slide;
+					@let i = item.index;
+					<div
+						class="pptx-ng-spanel-card"
+						[class.is-active]="i === activeIndex()"
+						role="option"
+						[attr.aria-selected]="i === activeIndex()"
+						[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
+					>
+						<!-- Thumbnail (clickable to select) -->
+						<button
+							type="button"
+							class="pptx-ng-spanel-thumb-btn"
+							[attr.aria-label]="'pptx.slidesPanel.goToSlide' | translate: { n: i + 1 }"
+							(click)="select.emit(i)"
+						>
+							<!-- Clipping wrapper: neutralises the 1rem auto margin from SlideCanvas -->
+							<div class="pptx-ng-spanel-clip" [ngStyle]="clipStyle()">
+								<pptx-slide-canvas
+									[slide]="slide"
+									[templateElements]="editor.templateElementsBySlideId()[slide.id] ?? []"
+									[canvasSize]="canvasSize()"
+									[mediaDataUrls]="mediaDataUrls()"
+									[zoom]="thumbZoom()"
+									[editable]="false"
+									[autoFit]="false"
+									[interactive]="false"
+								/>
+							</div>
+						</button>
+
+						<!-- Slide number badge -->
+						<span class="pptx-ng-spanel-num" aria-hidden="true">{{ i + 1 }}</span>
+
+						<!-- Per-card action toolbar (visible on hover / focus-within) -->
+						<div
+							class="pptx-ng-spanel-actions"
+							role="toolbar"
+							[attr.aria-label]="'pptx.slideMenu.slideActions' | translate: { n: i + 1 }"
+						>
+							<button
+								type="button"
+								class="pptx-ng-spanel-action"
+								[title]="'pptx.ribbon.duplicateSlide' | translate"
+								[attr.aria-label]="'pptx.arrange.duplicate' | translate"
+								(click)="onDuplicate(i)"
+							>
+								<svg lucideCopy class="h-3.5 w-3.5"></svg>
+							</button>
+							<button
+								type="button"
+								class="pptx-ng-spanel-action"
+								[title]="'pptx.slidesPanel.deleteSlide' | translate"
+								[attr.aria-label]="'pptx.arrange.delete' | translate"
+								[disabled]="editor.slides().length <= 1"
+								(click)="onDelete(i)"
+							>
+								<svg lucideTrash2 class="h-3.5 w-3.5"></svg>
+							</button>
+							<button
+								type="button"
+								class="pptx-ng-spanel-action"
+								[title]="'pptx.sections.moveUp' | translate"
+								[attr.aria-label]="'pptx.sections.moveUp' | translate"
+								[disabled]="i === 0"
+								(click)="onMoveUp(i)"
+							>
+								<svg lucideArrowUp class="h-3.5 w-3.5"></svg>
+							</button>
+							<button
+								type="button"
+								class="pptx-ng-spanel-action"
+								[title]="'pptx.sections.moveDown' | translate"
+								[attr.aria-label]="'pptx.sections.moveDown' | translate"
+								[disabled]="i === editor.slides().length - 1"
+								(click)="onMoveDown(i)"
+							>
+								<svg lucideArrowDown class="h-3.5 w-3.5"></svg>
+							</button>
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+
+	<!-- Footer: add new slide -->
+	<footer class="pptx-ng-spanel-footer">
+		<button
+			type="button"
+			class="pptx-ng-spanel-add"
+			[attr.aria-label]="'pptx.sections.addSlide' | translate"
+			(click)="onAddSlide()"
+		>
+			<svg lucidePlus class="h-3.5 w-3.5"></svg> {{ 'pptx.sections.addSlide' | translate }}
+		</button>
+	</footer>
+</div>
