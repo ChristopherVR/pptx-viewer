@@ -27,13 +27,14 @@
 	import ChartSection from './ChartSection.svelte';
 	import ImageSection from './ImageSection.svelte';
 	import PositionSection from './PositionSection.svelte';
+	import ShapeSection from './ShapeSection.svelte';
 	import SmartArtSection from './SmartArtSection.svelte';
 	import MediaSection from './MediaSection.svelte';
 	import TableSection from './TableSection.svelte';
 	import TextSection from './TextSection.svelte';
 	import ThemeSection from './ThemeSection.svelte';
 
-	const { editor, handler, presentationTheme, onthemechange }: { editor: EditorState; handler?: PptxHandler | null; presentationTheme?: PptxTheme; onthemechange?: (theme: PptxTheme) => void } = $props();
+	const { editor, handler, presentationTheme, onthemechange, mediaDataUrls = new Map() }: { editor: EditorState; handler?: PptxHandler | null; presentationTheme?: PptxTheme; onthemechange?: (theme: PptxTheme) => void; mediaDataUrls?: Map<string, string> } = $props();
 	const t = useTranslator();
 
 	// eslint-disable-next-line prefer-const
@@ -82,6 +83,7 @@
 				{#if canShape}
 					<div class="pptx-svelte-inspector-section">
 						<h4>{t('pptx.inspector.fillStroke')}</h4>
+						<ShapeSection {editor} {el} />
 						<FillStrokeSection {editor} {el} />
 					</div>
 				{/if}
@@ -114,7 +116,7 @@
 					</div>
 				{/if}
 				{#if isChart}<div class="pptx-svelte-inspector-section"><h4>Chart</h4><ChartSection {editor} /></div>{/if}
-				{#if isMedia}<div class="pptx-svelte-inspector-section"><h4>Media</h4><MediaSection {editor} /></div>{/if}
+				{#if isMedia}<div class="pptx-svelte-inspector-section"><h4>Media</h4><MediaSection {editor} {mediaDataUrls} /></div>{/if}
 			{:else}
 				<p class="pptx-svelte-inspector-empty">{t('pptx.inspector.noSlideSelected')}</p>
 			{/if}

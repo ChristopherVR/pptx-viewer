@@ -14,7 +14,7 @@
 	import { readEditableText, resolveInlineSurface } from '../editor/inline-text';
 	import type { InlineTextEditorProps } from './props';
 
-	const { element, box, scale, oncommit, onclose }: InlineTextEditorProps = $props();
+	const { element, box, scale, spellCheck = false, oncommit, onclose }: InlineTextEditorProps = $props();
 
 	const surface = $derived(resolveInlineSurface(element));
 	// The surface is remounted per edit session (keyed on the element id), so the
@@ -76,6 +76,7 @@
 	data-inline-editor
 	style={style}
 	contenteditable="true"
+	spellcheck={spellCheck}
 	role="textbox"
 	tabindex="0"
 	aria-multiline="true"

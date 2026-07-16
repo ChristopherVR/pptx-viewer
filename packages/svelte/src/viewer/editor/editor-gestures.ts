@@ -5,6 +5,7 @@ import {
 	boxCenter,
 	computeRotation,
 	computeSnapToShape,
+	snapToGridStep,
 	snapAngle,
 } from 'pptx-viewer-shared';
 
@@ -39,6 +40,10 @@ export interface GestureDeps {
 	getElementBox(id: string): InteractionBox | undefined;
 	/** Sibling boxes on the same slide, for snap-to-shape during a move. */
 	getSiblings(): SnapSibling[];
+	getSnapToGrid?(): boolean;
+	getSnapToShape?(): boolean;
+	getGridSize?(): number;
+	getGuides?(): readonly { axis: 'h' | 'v'; position: number }[];
 	/** Overlay origin in client coordinates, for rotation pointer mapping. */
 	getStageOrigin(): { left: number; top: number };
 	/** First movement past the dead zone (push history, mark interaction). */
@@ -86,10 +91,14 @@ export function createGestureController(deps: GestureDeps): GestureController {
 
 	function computeMove(g: ActiveGesture, dx: number, dy: number): [GestureTransform, SnapLine[]] {
 		const scale = deps.getScale();
-		const box = applyDragDelta(g.startBox, dx, dy, scale);
+		let box = applyDragDelta(g.startBox, dx, dy, scale);
+		if (deps.getSnapToGrid?.()) {
+			const grid = deps.getGridSize?.() ?? 12;
+			box = { ...box, x: snapToGridStep(box.x, grid), y: snapToGridStep(box.y, grid) };
+		}
 		// Snap to sibling edges/centres (skipped for rotated boxes, whose AABB
 		// no longer matches the visual outline).
-		if (!box.rotation) {
+		if (!box.rotation && deps.getSnapToShape?.() !== false) {
 			const siblings = deps.getSiblings();
 			const snapped = computeSnapToShape(
 				box.x,
@@ -98,7 +107,7 @@ export function createGestureController(deps: GestureDeps): GestureController {
 				box.height,
 				siblings,
 				new Set([g.id]),
-				[],
+				deps.getGuides?.() ?? [],
 			);
 			return [{ ...toTransform(g.id, box), x: snapped.x, y: snapped.y }, snapped.lines];
 		}

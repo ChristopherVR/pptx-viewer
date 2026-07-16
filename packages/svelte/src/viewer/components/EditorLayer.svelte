@@ -11,7 +11,7 @@
 	import SelectionOverlay from './SelectionOverlay.svelte';
 	import type { EditorLayerProps } from './props';
 
-	const { controller, scale }: EditorLayerProps = $props();
+	const { controller, scale, spellCheck = false }: EditorLayerProps = $props();
 
 	const editingElement = $derived(controller.editingElement);
 	const editingBox = $derived(
@@ -43,6 +43,7 @@
 		element={editingElement}
 		box={editingBox}
 		{scale}
+		{spellCheck}
 		oncommit={(text) => controller.commitInline(controller.editingId ?? '', text)}
 		onclose={() => controller.closeInline()}
 	/>

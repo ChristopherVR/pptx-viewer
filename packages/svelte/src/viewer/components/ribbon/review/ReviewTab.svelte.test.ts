@@ -16,6 +16,16 @@ function slide(elements: PptxSlide['elements']): PptxSlide {
 }
 
 describe('reviewTab', () => {
+	it('toggles live spell checking from the Review ribbon', () => {
+		const target = document.createElement('div');
+		const onspellcheckchange = vi.fn();
+		const instance = mount(ReviewTab, { target, props: { slides: [], onnavigate: vi.fn(), spellCheck: false, onspellcheckchange } });
+		cleanup = () => unmount(instance);
+		const spell = [...target.querySelectorAll('button')].find((button) => button.textContent?.includes('Spell')) as HTMLButtonElement;
+		spell.click();
+		expect(onspellcheckchange).toHaveBeenCalledWith(true);
+	});
+
 	it('runs the shared audit and routes an issue to its slide', () => {
 		const target = document.createElement('div');
 		const onnavigate = vi.fn();

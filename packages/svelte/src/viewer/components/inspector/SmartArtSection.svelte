@@ -2,9 +2,16 @@
 	import type {
 		SmartArtColorScheme,
 		SmartArtLayoutType,
+		SmartArtStyle,
 		SmartArtPptxElement,
 	} from 'pptx-viewer-core';
 	import {
+		addSmartArtNode,
+		demoteSmartArtNode,
+		promoteSmartArtNode,
+		removeSmartArtNode,
+		reorderSmartArtNode,
+		setSmartArtNodeStyle,
 		SWITCHABLE_LAYOUT_TYPES,
 		switchSmartArtLayout,
 		updateSmartArtNodeText,
@@ -16,6 +23,9 @@
 	const { editor, el }: { editor: EditorState; el: SmartArtPptxElement } = $props();
 	const t = useTranslator();
 	const data = $derived(el.smartArtData);
+	// eslint-disable-next-line prefer-const
+	let selectedNodeId = $state<string | null>(null);
+	const selectedNode = $derived(data?.nodes.find((node) => node.id === selectedNodeId));
 
 	const colorSchemes: readonly SmartArtColorScheme[] = [
 		'colorful1',
@@ -40,6 +50,19 @@
 	function setColorScheme(scheme: SmartArtColorScheme): void {
 		if (data) {
 			editor.applyElementPatch(el.id, { smartArtData: { ...data, colorScheme: scheme } });
+		}
+	}
+	function applyData(next: NonNullable<typeof data>): void {
+		editor.applyElementPatch(el.id, { smartArtData: next });
+	}
+	function setDiagramStyle(style: SmartArtStyle): void {
+		if (data) {
+			applyData({ ...data, style, drawingDirty: true, drawingShapes: [] });
+		}
+	}
+	function nodeStyle(patch: Parameters<typeof setSmartArtNodeStyle>[2]): void {
+		if (data && selectedNodeId) {
+			applyData(setSmartArtNodeStyle(data, selectedNodeId, patch));
 		}
 	}
 </script>
@@ -72,12 +95,13 @@
 			{/each}
 		</select>
 	</label>
+	<label class="pptx-svelte-smartart-field"><span>Diagram style</span><select value={data.style ?? 'moderate'} onchange={(event) => setDiagramStyle(event.currentTarget.value as SmartArtStyle)}><option value="flat">Flat</option><option value="moderate">Moderate</option><option value="intense">Intense</option></select></label>
 
 	<span class="pptx-svelte-smartart-label">{t('pptx.smartart.textPane')}</span>
 	<div class="pptx-svelte-smartart-nodes">
 		{#each data.nodes as node, index (node.id)}
-			<label class="pptx-svelte-smartart-node">
-				<span>{index + 1}</span>
+			<div class="pptx-svelte-smartart-node" class:active={node.id === selectedNodeId}>
+				<button type="button" aria-label={`Select item ${index + 1}`} onclick={() => (selectedNodeId = node.id)}>{index + 1}</button>
 				<input
 					type="text"
 					value={node.text}
@@ -85,9 +109,11 @@
 					data-testid="smartart-node-text"
 					onchange={(event) => setNodeText(node.id, event.currentTarget.value)}
 				/>
-			</label>
+			</div>
 		{/each}
 	</div>
+	<div class="pptx-svelte-smartart-actions"><button type="button" onclick={() => { if (data) applyData(addSmartArtNode(data, 'New item', selectedNodeId ?? undefined)); }}>Add</button><button type="button" disabled={!selectedNodeId || data.nodes.length <= 1} onclick={() => { if (data && selectedNodeId) { applyData(removeSmartArtNode(data, selectedNodeId)); selectedNodeId = null; } }}>Remove</button><button type="button" disabled={!selectedNodeId} onclick={() => { if (data && selectedNodeId) applyData(reorderSmartArtNode(data, selectedNodeId, -1)); }}>Up</button><button type="button" disabled={!selectedNodeId} onclick={() => { if (data && selectedNodeId) applyData(reorderSmartArtNode(data, selectedNodeId, 1)); }}>Down</button><button type="button" disabled={!selectedNodeId} onclick={() => { if (data && selectedNodeId) applyData(promoteSmartArtNode(data, selectedNodeId)); }}>Promote</button><button type="button" disabled={!selectedNodeId} onclick={() => { if (data && selectedNodeId) applyData(demoteSmartArtNode(data, selectedNodeId)); }}>Demote</button></div>
+	{#if selectedNode}<div class="pptx-svelte-smartart-style"><label>Fill<input type="color" value={selectedNode.style?.fillColor ?? '#4472c4'} onchange={(event) => nodeStyle({ fillColor: event.currentTarget.value })} /></label><label>Font<input type="color" value={selectedNode.style?.fontColor ?? '#ffffff'} onchange={(event) => nodeStyle({ fontColor: event.currentTarget.value })} /></label><button type="button" class:active={selectedNode.style?.bold} onclick={() => nodeStyle({ bold: !selectedNode.style?.bold })}>Bold</button><button type="button" class:active={selectedNode.style?.italic} onclick={() => nodeStyle({ italic: !selectedNode.style?.italic })}>Italic</button></div>{/if}
 {/if}
 
 <style>
@@ -164,13 +190,11 @@
 		align-items: center;
 		gap: 5px;
 	}
-
-	.pptx-svelte-smartart-node span {
-		color: var(--pptx-muted-foreground, #94a3b8);
-		text-align: center;
-	}
+	.pptx-svelte-smartart-node.active { border-radius: 4px; outline: 2px solid var(--pptx-primary); }
+	.pptx-svelte-smartart-node button { min-width: 20px; padding: 0; border: 0; background: transparent; color: inherit; }
 
 	.pptx-svelte-smartart-node input {
 		min-width: 0;
 	}
+	.pptx-svelte-smartart-actions,.pptx-svelte-smartart-style{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:7px}.pptx-svelte-smartart-actions button,.pptx-svelte-smartart-style button{min-width:0;height:25px;border:1px solid var(--pptx-border);border-radius:4px;background:var(--pptx-muted);color:inherit}.pptx-svelte-smartart-style{grid-template-columns:1fr 1fr auto auto}.pptx-svelte-smartart-style label{display:grid;gap:2px;color:var(--pptx-muted-foreground);font-size:9px}.pptx-svelte-smartart-style input{width:100%;height:24px}.pptx-svelte-smartart-style button.active{background:var(--pptx-primary);color:var(--pptx-primary-foreground)}
 </style>

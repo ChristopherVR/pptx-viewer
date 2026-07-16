@@ -14,14 +14,17 @@
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import { ANIMATION_CATEGORIES } from './animation-categories';
 	import AnimationTimeline from './AnimationTimeline.svelte';
+	import { previewElementAnimation } from './animation-preview-player';
 
 	const { editor }: { editor: EditorState } = $props();
 	const t = useTranslator();
 
 	const disabled = $derived(!editor.editable || !editor.selectedElementId);
+	const selectedAnimation = $derived(editor.slides[editor.currentSlideIndex]?.animations?.find((animation) => animation.elementId === editor.selectedElementId));
 </script>
 
 <div class="pptx-svelte-animationstab" role="group" aria-label={t('pptx.ribbon.tab.animations')}>
+	<button type="button" disabled={!selectedAnimation} onclick={() => { if (selectedAnimation) previewElementAnimation(selectedAnimation); }}>Preview</button>
 	{#each ANIMATION_CATEGORIES as category (category.group)}
 		<div class="pptx-svelte-animationstab-group">
 			<span class="pptx-svelte-animationstab-label">{t(category.labelKey)}</span>

@@ -22,11 +22,15 @@
 		onnavigate,
 		editor,
 		oncompare,
+		spellCheck = false,
+		onspellcheckchange,
 	}: {
 		slides: readonly PptxSlide[];
 		onnavigate: (slideIndex: number, elementId?: string) => void;
 		editor?: EditorState;
 		oncompare?: () => void;
+		spellCheck?: boolean;
+		onspellcheckchange?: (enabled: boolean) => void;
 	} = $props();
 	const t = useTranslator();
 
@@ -58,6 +62,7 @@
 			{t('pptx.review.accessibilityCheck')}
 		</button>
 		{#if oncompare}<button type="button" onclick={oncompare}>{t('pptx.compare.title')}</button>{/if}
+		<button type="button" aria-pressed={spellCheck} class:active={spellCheck} onclick={() => onspellcheckchange?.(!spellCheck)}>{t('pptx.settings.spellCheck')}</button>
 	</section>
 
 	{#if activePanel}
@@ -124,6 +129,7 @@
 	.pptx-svelte-review-shell { position: relative; display: flex; align-items: center; min-width: 0; }
 	.pptx-svelte-review-actions { display: flex; align-items: center; gap: 6px; }
 	.pptx-svelte-review-actions button { height: 28px; padding: 0 10px; border: 1px solid var(--pptx-border, #33334d); border-radius: var(--pptx-radius, 6px); background: var(--pptx-muted, #2a2a3d); color: inherit; cursor: pointer; font: inherit; font-size: 12px; }
+	.pptx-svelte-review-actions button.active { background: var(--pptx-primary); color: var(--pptx-primary-foreground); }
 	.pptx-svelte-review-panel { position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; display: flex; gap: 12px; width: min(920px, calc(100vw - 32px)); max-height: min(520px, calc(100vh - 180px)); padding: 12px; overflow: auto; border: 1px solid var(--pptx-border, #33334d); border-radius: var(--pptx-radius, 6px); background: var(--pptx-card, #1e1e2e); box-shadow: 0 12px 32px rgb(0 0 0 / 35%); }
 	.pptx-svelte-review-close { position: absolute; top: 6px; right: 8px; border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; }
 	.pptx-svelte-review { display: flex; flex-direction: column; gap: 8px; width: min(560px, 100%); }

@@ -5,6 +5,10 @@
 	 * always-visible zoom group.
 	 */
 	import { useTranslator } from '../../../../i18n/context';
+	import type { ViewerPreferences } from 'pptx-viewer-shared';
+	import { updateViewerPreference } from 'pptx-viewer-shared';
+	import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+	import type { EditorState } from '../../../editor/editor-state.svelte';
 
 	const {
 		zoomPercent,
@@ -21,6 +25,14 @@
 		onnotestoggle,
 		onselectionpane,
 		onslidesorter,
+		editor,
+		preferences,
+		onpreferenceschange,
+		showGuides,
+		onshowguideschange,
+		snapToShape,
+		onsnapToShapechange,
+		onaddguide,
 	}: {
 		zoomPercent: number;
 		onzoomin: () => void;
@@ -36,9 +48,29 @@
 		onnotestoggle?: () => void;
 		onselectionpane: () => void;
 		onslidesorter: () => void;
+		editor: EditorState;
+		preferences: ViewerPreferences;
+		onpreferenceschange: (preferences: ViewerPreferences) => void;
+		showGuides: boolean;
+		onshowguideschange: (show: boolean) => void;
+		snapToShape: boolean;
+		onsnapToShapechange: (enabled: boolean) => void;
+		onaddguide: (axis: 'h' | 'v') => void;
 	} = $props();
 
 	const t = useTranslator();
+	function toggle(key: 'showGrid' | 'showRulers' | 'snapToGrid'): void {
+		onpreferenceschange(updateViewerPreference(preferences, key, !preferences[key]));
+	}
+	async function eyedropper(): Promise<void> {
+		const Picker = (window as unknown as { EyeDropper?: new () => { open(): Promise<{ sRGBHex: string }> } }).EyeDropper;
+		const el = editor.selectedElement;
+		if (!Picker || !el || !('shapeStyle' in el)) {
+			return;
+		}
+		const { sRGBHex } = await new Picker().open();
+		editor.patchSelected({ shapeStyle: { ...el.shapeStyle, fillMode: 'solid', fillColor: sRGBHex } as ShapeStyle } as Partial<PptxElement>);
+	}
 </script>
 
 <div class="pptx-svelte-viewtab" role="group" aria-label={t('pptx.ribbon.tab.view')}>
@@ -59,6 +91,13 @@
 	</button>
 
 	<span class="pptx-svelte-viewtab-sep" aria-hidden="true"></span>
+	<button type="button" class:pptx-svelte-viewtab-active={preferences.showRulers} aria-pressed={preferences.showRulers} onclick={() => toggle('showRulers')}>Rulers</button>
+	<button type="button" class:pptx-svelte-viewtab-active={preferences.showGrid} aria-pressed={preferences.showGrid} onclick={() => toggle('showGrid')}>Grid</button>
+	<button type="button" class:pptx-svelte-viewtab-active={showGuides} aria-pressed={showGuides} onclick={() => onshowguideschange(!showGuides)}>Guides</button>
+	<button type="button" class:pptx-svelte-viewtab-active={preferences.snapToGrid} aria-pressed={preferences.snapToGrid} onclick={() => toggle('snapToGrid')}>Snap to grid</button>
+	<button type="button" class:pptx-svelte-viewtab-active={snapToShape} aria-pressed={snapToShape} onclick={() => onsnapToShapechange(!snapToShape)}>Snap to shape</button>
+	<button type="button" onclick={() => onaddguide('h')}>Add H guide</button><button type="button" onclick={() => onaddguide('v')}>Add V guide</button>
+	<button type="button" disabled={typeof window === 'undefined' || !('EyeDropper' in window) || !editor.selectedElement} onclick={() => void eyedropper()}>Eyedropper</button>
 	<button type="button" aria-label={t('pptx.view.slideMasterTooltip')} title={t('pptx.view.slideMasterTooltip')} onclick={() => onentermasterview?.()}>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3h11v9h-11zM5 6h6M5 8.5h4M4 1.5v3M12 1.5v3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
 		<span>{t('pptx.master.title')}</span>

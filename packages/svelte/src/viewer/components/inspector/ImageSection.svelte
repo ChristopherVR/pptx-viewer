@@ -47,7 +47,20 @@
 			editor.patchSelected(imageCropPatch(el, { [edge]: n / 100 }));
 		}
 	}
+	function replaceImage(file: File | undefined): void {
+		if (!file) {
+			return;
+		}
+		const reader = new FileReader();
+		reader.onload = () => editor.patchSelected({ imageData: String(reader.result), imagePath: undefined } as Partial<PptxElement>);
+		reader.readAsDataURL(file);
+	}
+	function resetImage(): void {
+		editor.patchSelected({ cropLeft: 0, cropTop: 0, cropRight: 0, cropBottom: 0, imageEffects: undefined } as Partial<PptxElement>);
+	}
 </script>
+
+<div class="pptx-svelte-image-actions"><label>Replace<input type="file" accept="image/*" onchange={(event) => replaceImage(event.currentTarget.files?.[0])} /></label><button type="button" onclick={resetImage}>Reset picture</button></div>
 
 <label class="pptx-svelte-field">
 	<span class="pptx-svelte-field-label"
@@ -131,6 +144,10 @@
 
 <label class="pptx-svelte-field"><span>{t('pptx.image.artisticEffects')}</span><select value={effects?.artisticEffect ?? 'none'} onchange={(e) => setEffects({ artisticEffect: e.currentTarget.value === 'none' ? undefined : e.currentTarget.value })}>{#each ARTISTIC_EFFECTS as preset}<option value={preset[0]}>{t(preset[1])}</option>{/each}</select></label>
 <div class="pptx-svelte-duotone"><span>{t('pptx.image.duotone')}</span>{#each DUOTONE_PRESETS as preset}<button type="button" title={t(preset.labelKey)} style={`--shadow:${preset.shadow};--highlight:${preset.highlight}`} onclick={() => setEffects({ duotone: { color1: preset.shadow, color2: preset.highlight } })}></button>{/each}<button type="button" title={t('pptx.image.duotoneClear')} onclick={() => setEffects({ duotone: undefined })}>×</button></div>
+<label class="pptx-svelte-field"><span>Transparency {100 - (effects?.alphaModFix ?? 100)}%</span><input type="range" min="0" max="100" value={100 - (effects?.alphaModFix ?? 100)} oninput={(event) => setEffects({ alphaModFix: 100 - Number(event.currentTarget.value) })} /></label>
+<label class="pptx-svelte-field"><span>Bi-level threshold {effects?.biLevel ?? 0}%</span><input type="range" min="0" max="100" value={effects?.biLevel ?? 0} oninput={(event) => setEffects({ biLevel: Number(event.currentTarget.value) || undefined })} /></label>
+<label class="pptx-svelte-field-checkbox"><input type="checkbox" checked={Boolean(effects?.colorWash)} onchange={(event) => setEffects({ colorWash: event.currentTarget.checked ? { color: '#0066cc', opacity: 40 } : undefined })} /><span>Color wash</span></label>
+{#if effects?.colorWash}<div class="pptx-svelte-inspector-grid"><label><span>Wash color</span><input type="color" value={effects.colorWash.color} onchange={(event) => setEffects({ colorWash: { ...effects.colorWash, color: event.currentTarget.value } })} /></label><label><span>Wash opacity</span><input type="number" min="0" max="100" value={effects.colorWash.opacity ?? 40} onchange={(event) => setEffects({ colorWash: { ...effects.colorWash, opacity: Number(event.currentTarget.value) } })} /></label></div>{/if}
 
 <style>
 	.pptx-svelte-field {
@@ -186,4 +203,5 @@
 		font: inherit;
 	}
 	.pptx-svelte-field select{height:26px;border:1px solid var(--pptx-border);border-radius:6px;background:var(--pptx-background);color:inherit}.pptx-svelte-duotone{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:10px}.pptx-svelte-duotone>span{width:100%;color:var(--pptx-muted-foreground);font-size:10px}.pptx-svelte-duotone button{width:24px;height:24px;border:1px solid var(--pptx-border);border-radius:50%;background:linear-gradient(135deg,var(--shadow) 50%,var(--highlight) 50%);color:inherit}
+	.pptx-svelte-image-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.pptx-svelte-image-actions label,.pptx-svelte-image-actions button{display:grid;place-items:center;min-height:28px;border:1px solid var(--pptx-border);border-radius:5px;background:var(--pptx-muted);color:inherit;font-size:10px}.pptx-svelte-image-actions input{position:absolute;width:1px;height:1px;opacity:0}.pptx-svelte-field-checkbox{display:flex;align-items:center;gap:5px;margin-top:8px}
 </style>

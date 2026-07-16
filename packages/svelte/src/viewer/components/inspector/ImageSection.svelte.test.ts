@@ -79,6 +79,17 @@ function mountSection(
 }
 
 describe('imageSection', () => {
+	it('resets crop and advanced image effects', () => {
+		const editor = makeEditor(imageEl({ cropLeft: 0.2, imageEffects: { alphaModFix: 40, biLevel: 60, colorWash: { color: '#0066cc', opacity: 40 } } }));
+		const { target } = mountSection(editor, currentEl(editor));
+		const reset = [...target.querySelectorAll('button')].find((button) => button.textContent?.includes('Reset picture')) as HTMLButtonElement;
+		reset.click();
+		flushSync();
+		const current = currentEl(editor) as ImageShape;
+		expect(current.cropLeft).toBe(0);
+		expect(current.imageEffects).toBeUndefined();
+	});
+
 	it('sets brightness, contrast, and saturation via the sliders', () => {
 		const editor = makeEditor(imageEl());
 		const { target, setProps } = mountSection(editor, currentEl(editor));

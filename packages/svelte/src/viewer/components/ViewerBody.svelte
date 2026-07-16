@@ -25,6 +25,7 @@
 	import NotesPanel from './NotesPanel.svelte';
 	import SlideStage from './SlideStage.svelte';
 	import ThumbnailRail from './ThumbnailRail.svelte';
+	import AlignmentGuides from './AlignmentGuides.svelte';
 
 	const {
 		t,
@@ -61,6 +62,9 @@
 		onContextMenuClose,
 		onmoveSlide,
 		annotations,
+		guides = [],
+		onchangeguide,
+		spellCheck = false,
 	}: {
 		t: Translator;
 		editor: EditorState;
@@ -89,9 +93,7 @@
 		onAdvance: () => void;
 		editingActive: boolean;
 		controller: EditorController;
-		/** Reports the viewport's measured client size on every resize. */
 		onstageresize: (width: number, height: number) => void;
-		/** Reports the stage-holder DOM node once mounted (null on teardown). */
 		onstageholder: (el: HTMLDivElement | null) => void;
 		notesExpanded: boolean;
 		onNotesCommit?: (notes: string, segments?: TextSegment[]) => void;
@@ -103,6 +105,9 @@
 		onContextMenuClose: () => void;
 		onmoveSlide?: (fromIndex: number, toIndex: number) => void;
 		annotations: PresentationAnnotations;
+		guides?: readonly { axis: 'h' | 'v'; position: number }[];
+		onchangeguide?: (index: number, position: number) => void;
+		spellCheck?: boolean;
 	} = $props();
 
 	// The template's bind:clientWidth/Height write these (invisible to the linter).
@@ -148,9 +153,13 @@
 
 	function commitSmartArtFill(id: string, nodeId: string, fill: string): void {
 		const element = editor.activeElements.find((candidate) => candidate.id === id);
-		if (element?.type !== 'smartArt' || !element.smartArtData) return;
+		if (element?.type !== 'smartArt' || !element.smartArtData) {
+			return;
+		}
 		const next = setSmartArtNodeStyle(element.smartArtData, nodeId, { fillColor: fill });
-		if (next !== element.smartArtData) editor.applyElementPatch(id, { smartArtData: next });
+		if (next !== element.smartArtData) {
+			editor.applyElementPatch(id, { smartArtData: next });
+		}
 	}
 </script>
 
@@ -203,8 +212,9 @@
 					onclick={presenting ? onAdvance : undefined}
 				>
 					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive editTemplateMode={editor.editTemplateMode} ontablecellcommit={editingActive ? commitTableCell : undefined} onsmartartnodecommit={editingActive ? commitSmartArtNode : undefined} onsmartartnodefill={editingActive ? commitSmartArtFill : undefined} />
+					{#if editingActive && guides.length && onchangeguide}<AlignmentGuides {guides} {scale} onchange={onchangeguide} />{/if}
 					{#if editingActive}
-						<EditorLayer {controller} {scale} />
+						<EditorLayer {controller} {scale} {spellCheck} />
 						<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />
 					{/if}
 					{#if presenting}<PresentationAnnotationOverlay {annotations} {current} {canvasSize} />{/if}
@@ -240,7 +250,7 @@
 		{/if}
 	</div>
 	{#if editingActive && chromeVisible && displaySlides.length > 0}
-		<InspectorPanel {editor} {handler} {presentationTheme} {onthemechange} />
+		<InspectorPanel {editor} {handler} {presentationTheme} {onthemechange} {mediaDataUrls} />
 	{/if}
 </div>
 

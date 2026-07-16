@@ -21,6 +21,9 @@ export class ViewerParityUiState {
 	customShowsOpen = $state(false);
 	selectionPaneOpen = $state(false);
 	slideSorterOpen = $state(false);
+	showGuides = $state(false);
+	snapToShape = $state(true);
+	guides = $state<{ axis: 'h' | 'v'; position: number }[]>([]);
 	preferences = $state<ViewerPreferences>({ ...DEFAULT_VIEWER_PREFERENCES });
 
 	constructor(editor: EditorState) {

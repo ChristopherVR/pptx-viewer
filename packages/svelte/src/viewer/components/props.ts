@@ -156,6 +156,7 @@ export interface InlineTextEditorProps {
 	box: OverlayBox;
 	/** Stage scale (screen px per element px). */
 	scale: number;
+	spellCheck?: boolean;
 	/** Called with the edited plain text on commit (only when it changed). */
 	oncommit: (text: string) => void;
 	/** Called after the surface closes (commit or cancel). */
@@ -168,6 +169,7 @@ export interface EditorLayerProps {
 	controller: EditorController;
 	/** Stage scale (screen px per element px). */
 	scale: number;
+	spellCheck?: boolean;
 }
 
 /** Position and callbacks for the editable element context menu. */

@@ -30,6 +30,7 @@
 	const vAlign = $derived(textAdvancedStateOf(el).vAlign);
 	const wrap = $derived(textWrapOf(el));
 	const autoFit = $derived(autoFitModeOf(el));
+	const textStyle = $derived('textStyle' in el ? (el.textStyle ?? {}) : {});
 
 	function setVAlign(value: string): void {
 		editor.patchSelected(vAlignPatch(el, value as NonNullable<TextStyle['vAlign']>));
@@ -39,6 +40,9 @@
 	}
 	function setAutoFit(value: string): void {
 		editor.patchSelected(autoFitModePatch(el, value as NonNullable<TextStyle['autoFitMode']>));
+	}
+	function patchText(next: Partial<TextStyle>): void {
+		editor.patchSelected({ textStyle: { ...textStyle, ...next } } as Partial<PptxElement>);
 	}
 </script>
 
@@ -67,6 +71,15 @@
 
 <TextEffectsSection {editor} {el} />
 
+<div class="pptx-svelte-grid">
+	<label class="pptx-svelte-field"><span>Line spacing</span><input type="number" min="0.5" max="5" step="0.05" value={textStyle.lineSpacing ?? 1} onchange={(event) => patchText({ lineSpacing: Number(event.currentTarget.value), lineSpacingExactPt: undefined })} /></label>
+	<label class="pptx-svelte-field"><span>Before (pt)</span><input type="number" min="0" value={textStyle.paragraphSpacingBefore ?? 0} onchange={(event) => patchText({ paragraphSpacingBefore: Number(event.currentTarget.value) })} /></label>
+	<label class="pptx-svelte-field"><span>After (pt)</span><input type="number" min="0" value={textStyle.paragraphSpacingAfter ?? 0} onchange={(event) => patchText({ paragraphSpacingAfter: Number(event.currentTarget.value) })} /></label>
+	<label class="pptx-svelte-field"><span>Columns</span><input type="number" min="1" max="16" value={textStyle.columnCount ?? 1} onchange={(event) => patchText({ columnCount: Math.max(1, Number(event.currentTarget.value)) })} /></label>
+</div>
+<label class="pptx-svelte-field"><span>Text direction</span><select value={textStyle.textDirection ?? 'horizontal'} onchange={(event) => patchText({ textDirection: event.currentTarget.value as TextStyle['textDirection'] })}><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option><option value="vertical270">Vertical 270</option><option value="eaVert">East Asian vertical</option><option value="wordArtVert">Stacked</option><option value="wordArtVertRtl">Stacked RTL</option><option value="mongolianVert">Mongolian vertical</option></select></label>
+<label class="pptx-svelte-field-checkbox"><input type="checkbox" checked={textStyle.rtl ?? false} onchange={(event) => patchText({ rtl: event.currentTarget.checked })} /><span>Right-to-left</span></label>
+
 <style>
 	.pptx-svelte-field {
 		display: flex;
@@ -91,6 +104,8 @@
 		color: inherit;
 		font: inherit;
 	}
+	.pptx-svelte-field input { height: 26px; box-sizing: border-box; border: 1px solid var(--pptx-border, #33334d); border-radius: var(--pptx-radius, 6px); background: var(--pptx-background, #11111b); color: inherit; font: inherit; }
+	.pptx-svelte-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 6px; }
 
 	.pptx-svelte-field-checkbox {
 		display: flex;

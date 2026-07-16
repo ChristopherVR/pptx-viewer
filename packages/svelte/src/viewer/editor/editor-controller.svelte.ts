@@ -16,16 +16,9 @@ import type { EditorMarqueeRect } from './editor-selection-gestures';
 import type { EditorState } from './editor-state.svelte';
 import { resolveTopLevelElementId } from './element-hit';
 import { canInlineEditElement } from './inline-text';
+import type { EditorControllerDeps } from './editor-controller-deps';
 
-export interface EditorControllerDeps {
-	getScale(): number;
-	getCurrent(): number;
-	getPresenting(): boolean;
-	getStageRoot(): Element | null;
-	getHolderEl(): HTMLElement | null;
-	onCursorMove?(x: number, y: number): void;
-	onContextMenu?(x: number, y: number): void;
-}
+export type { EditorControllerDeps } from './editor-controller-deps';
 
 export class EditorController {
 	readonly #editor: EditorState;
@@ -47,6 +40,9 @@ export class EditorController {
 			getScale: () => this.#deps.getScale(),
 			getElementBox: (id) => elementInteractionBox(this.#currentElements(), id),
 			getSiblings: () => siblingBoxes(this.#currentElements()),
+			getSnapToGrid: () => this.#deps.getSnapToGrid?.() ?? false,
+			getSnapToShape: () => this.#deps.getSnapToShape?.() ?? true,
+			getGuides: () => this.#deps.getGuides?.() ?? [],
 			getStageOrigin: () => {
 				const rect = this.#deps.getHolderEl()?.getBoundingClientRect();
 				return { left: rect?.left ?? 0, top: rect?.top ?? 0 };
