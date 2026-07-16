@@ -4,6 +4,8 @@
 	 * the real `SlideStage` at miniature scale, so thumbnails always match the
 	 * main canvas.
 	 */
+	import { computeVirtualRange, SLIDE_VIRTUALIZATION_THRESHOLD } from 'pptx-viewer-shared';
+
 	import { useTranslator } from '../../i18n/context';
 	import SlideStage from './SlideStage.svelte';
 	import type { ThumbnailRailProps } from './props';
@@ -15,7 +17,37 @@
 	const THUMB_WIDTH = 148;
 	const thumbScale = $derived(canvasSize.width > 0 ? THUMB_WIDTH / canvasSize.width : 0.1);
 	const thumbHeight = $derived(Math.round(canvasSize.height * thumbScale));
+	const itemHeight = $derived(thumbHeight + 16);
+	const shouldVirtualize = $derived(slides.length >= SLIDE_VIRTUALIZATION_THRESHOLD);
 	let draggedIndex = $state<number | null>(null);
+	let railEl = $state<HTMLElement>();
+	let scrollTop = $state(0);
+	let viewportHeight = $state(600);
+	const virtualRange = $derived(
+		computeVirtualRange(slides.length, itemHeight, scrollTop, viewportHeight),
+	);
+	const renderedSlides = $derived.by(() => {
+		const start = shouldVirtualize ? virtualRange.startIndex : 0;
+		const end = shouldVirtualize ? virtualRange.endIndex : slides.length - 1;
+		return slides.slice(start, end + 1).map((slide, offset) => ({ slide, index: start + offset }));
+	});
+
+	function onScroll(): void {
+		if (!railEl) return;
+		scrollTop = railEl.scrollTop;
+		viewportHeight = railEl.clientHeight || 600;
+	}
+
+	$effect(() => {
+		if (!shouldVirtualize || !railEl) return;
+		const top = current * itemHeight;
+		const bottom = top + itemHeight;
+		if (top < railEl.scrollTop) railEl.scrollTop = top;
+		else if (bottom > railEl.scrollTop + viewportHeight) {
+			railEl.scrollTop = Math.max(0, bottom - viewportHeight);
+		}
+		onScroll();
+	});
 
 	function onDragStart(index: number, event: DragEvent): void {
 		draggedIndex = index;
@@ -32,8 +64,10 @@
 	}
 </script>
 
-<nav class="pptx-svelte-thumbs" aria-label={t('pptx.sections.slides')}>
-	{#each slides as slide, index (slide.id)}
+<nav bind:this={railEl} bind:clientHeight={viewportHeight} class="pptx-svelte-thumbs" aria-label={t('pptx.sections.slides')} onscroll={onScroll}>
+	<div class="pptx-svelte-thumbs-space" data-virtualized={shouldVirtualize ? 'true' : undefined} style={shouldVirtualize ? `height:${virtualRange.totalHeight}px` : undefined}>
+	<div class="pptx-svelte-thumbs-window" style={shouldVirtualize ? `position:absolute;inset-inline:0;top:${virtualRange.offsetY}px` : undefined}>
+	{#each renderedSlides as { slide, index } (slide.id)}
 		<button
 			type="button"
 			class="pptx-svelte-thumb"
@@ -55,18 +89,27 @@
 			</span>
 		</button>
 	{/each}
+	</div>
+	</div>
 </nav>
 
 <style>
 	.pptx-svelte-thumbs {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
 		padding: 10px;
 		overflow-y: auto;
 		background: var(--pptx-card, #1e1e2e);
 		border-right: 1px solid var(--pptx-border, #33334d);
 		flex: none;
+	}
+
+	.pptx-svelte-thumbs-space {
+		position: relative;
+	}
+
+	.pptx-svelte-thumbs-window {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
 	}
 
 	.pptx-svelte-thumb {

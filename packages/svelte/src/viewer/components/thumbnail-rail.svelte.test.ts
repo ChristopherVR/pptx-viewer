@@ -20,6 +20,15 @@ function slides(): PptxSlide[] {
 	}));
 }
 
+function manySlides(count: number): PptxSlide[] {
+	return Array.from({ length: count }, (_, index) => ({
+		id: `slide-${index}`,
+		rId: `rId-${index}`,
+		slideNumber: index + 1,
+		elements: [],
+	}));
+}
+
 describe('thumbnailRail', () => {
 	it('exposes the canonical Slides navigation name', () => {
 		const target = document.createElement('div');
@@ -91,5 +100,27 @@ describe('thumbnailRail', () => {
 		thumbs[2].dispatchEvent(drop);
 		expect(drop.defaultPrevented).toBeTruthy();
 		expect(onmove).toHaveBeenCalledWith(0, 2);
+	});
+
+	it('virtualizes thumbnail rows at the React large-deck threshold', () => {
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(ThumbnailRail, {
+			target,
+			props: {
+				slides: manySlides(100),
+				canvasSize: { width: 960, height: 540 },
+				mediaDataUrls: new Map(),
+				current: 0,
+				onselect: vi.fn(),
+			},
+		});
+		flushSync();
+		cleanup = () => {
+			unmount(instance);
+			target.remove();
+		};
+		expect(target.querySelector('[data-virtualized="true"]')).toBeTruthy();
+		expect(target.querySelectorAll('.pptx-svelte-thumb').length).toBeLessThan(30);
 	});
 });
