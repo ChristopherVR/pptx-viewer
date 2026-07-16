@@ -115,6 +115,38 @@ assign(
 	},
 );
 
+assign(
+	[
+		'presentation:complexType:CT_PrintProperties',
+		'presentation:simpleType:ST_PrintColorMode',
+		'presentation:simpleType:ST_PrintWhat',
+		'presentation:element:prnPr',
+		'presentation:attribute:clrMode',
+		'presentation:attribute:frameSlides',
+		'presentation:attribute:hiddenSlides',
+		'presentation:attribute:prnWhat',
+		'presentation:attribute:scaleToFitPaper',
+	],
+	{
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: 'Presentation print properties are typed, validated, schema-ordered, and losslessly editable.',
+		evidence: [
+			testEvidence('src/core/core/runtime/pptx-print-properties.test.ts', [
+				'parses every CT_PrintProperties attribute and XML boolean spelling',
+				'edits and removes known attributes while preserving unknown data and extLst',
+				'rejects invalid runtime enum values and handout counts',
+			]),
+			testEvidence('src/__tests__/integration/presentation-print-properties-roundtrip.test.ts', [
+				'loads an alternate prefix, edits all attributes, and preserves extensions',
+				'removes p:prnPr and serializes legacy handout settings as schema attributes',
+			]),
+		],
+	},
+);
+
 export const OPENXML_TRANSITIONS_SCENES_AND_CHART_TABLES_COVERAGE: Readonly<
 	Record<string, OpenXmlCoverageFacets>
 > = overrides;

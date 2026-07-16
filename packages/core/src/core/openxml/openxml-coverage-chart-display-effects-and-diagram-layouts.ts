@@ -204,6 +204,35 @@ assign(
 	},
 );
 
+assign(
+	[
+		'chart:complexType:CT_Protection',
+		'chart:element:protection',
+		'chart:element:chartObject',
+		'chart:element:data',
+		'chart:element:formatting',
+		'chart:element:selection',
+		'chart:element:userInterface',
+	],
+	{
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: 'Classic ChartML protection is typed with exact CT_Boolean defaults, ordering, and ChartEx guards.',
+		evidence: [
+			testEvidence('src/core/utils/chart-protection.test.ts', [
+				'parses prefixed CT_Boolean values and the omitted-val true default',
+				'edits and orders known children while preserving foreign markup',
+				'does not parse or emit classic protection in a cx chart space',
+			]),
+			testEvidence('src/__tests__/integration/chart-protection-roundtrip.test.ts', [
+				'loads, edits, saves, and reloads protection without losing foreign markup',
+			]),
+		],
+	},
+);
+
 export const OPENXML_CHART_DISPLAY_EFFECTS_AND_DIAGRAM_LAYOUTS_COVERAGE: Readonly<
 	Record<string, OpenXmlCoverageFacets>
 > = overrides;

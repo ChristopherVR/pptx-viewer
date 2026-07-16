@@ -240,6 +240,24 @@ describe('open XML schema coverage inventory', () => {
 			edit: 'native',
 			serialize: 'native',
 		});
+		expect(findOpenXmlCoverage('presentation:complexType:CT_PrintProperties')).toMatchObject({
+			parse: 'native',
+			preserve: 'native',
+			edit: 'native',
+			serialize: 'native',
+		});
+		expect(findOpenXmlCoverage('chart:complexType:CT_Protection')).toMatchObject({
+			parse: 'native',
+			preserve: 'native',
+			edit: 'native',
+			serialize: 'native',
+		});
+		expect(findOpenXmlCoverage('diagram:complexType:CT_Constraint')).toMatchObject({
+			parse: 'native',
+			preserve: 'native',
+			edit: 'native',
+			serialize: 'native',
+		});
 	});
 
 	it('summarizes every facet', () => {
@@ -262,10 +280,10 @@ describe('open XML schema coverage inventory', () => {
 				0,
 			),
 		).toBe(OPENXML_COVERAGE.length * 4);
-		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(361);
-		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(589);
+		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(354);
+		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(580);
 		expect(listUnassessedOpenXmlCoverage('drawing')).toHaveLength(814);
-		expect(listUnassessedOpenXmlCoverage('diagram')).toHaveLength(197);
+		expect(listUnassessedOpenXmlCoverage('diagram')).toHaveLength(175);
 	});
 
 	it('keeps assessed capabilities documented and monotonic', () => {
