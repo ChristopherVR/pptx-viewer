@@ -246,6 +246,7 @@ const TABS: readonly TabDef[] = [
 							(exportPdf)="exportPdf.emit()"
 							(exportGif)="exportGif.emit()"
 							(exportVideo)="exportVideo.emit()"
+							(copySlideAsImage)="copySlideAsImage.emit()"
 							(print)="print.emit()"
 							(info)="info.emit()"
 							(signatures)="signatures.emit()"
@@ -469,6 +470,7 @@ export class RibbonComponent {
 	readonly exportPdf = output<void>();
 	readonly exportGif = output<void>();
 	readonly exportVideo = output<void>();
+	readonly copySlideAsImage = output<void>();
 	readonly replace = output<void>();
 	/**
 	 * Emitted by Design / Transitions / Animations tabs when the user wants to

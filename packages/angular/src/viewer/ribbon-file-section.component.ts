@@ -71,6 +71,15 @@ import { TranslatePipe } from '@ngx-translate/core';
 				{{ 'pptx.file.video' | translate }}
 			</button>
 		</div>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[disabled]="exporting() || slideCount() === 0"
+			(click)="copySlideAsImage.emit()"
+			[title]="'pptx.file.copyImageTooltip' | translate"
+		>
+			{{ 'pptx.file.copyImage' | translate }}
+		</button>
 		<span class="pptx-rb-sep"></span>
 		<button type="button" class="pptx-rb-pill" (click)="print.emit()">
 			{{ 'pptx.print.printButton' | translate }}
@@ -121,6 +130,7 @@ export class RibbonFileSectionComponent {
 	readonly exportPdf = output<void>();
 	readonly exportGif = output<void>();
 	readonly exportVideo = output<void>();
+	readonly copySlideAsImage = output<void>();
 	readonly print = output<void>();
 	readonly info = output<void>();
 	readonly signatures = output<void>();

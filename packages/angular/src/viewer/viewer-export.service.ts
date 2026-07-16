@@ -94,6 +94,22 @@ export class ViewerExportService {
 		}
 	}
 
+	/** Copy the current slide to the system clipboard as a PNG image. */
+	async copySlideAsImage(): Promise<void> {
+		const el = this.requireHost().resolveStage();
+		if (!el || this.exporting()) {
+			return;
+		}
+		this.exporting.set(true);
+		try {
+			await this.exportSvc.copyElementAsPng(el);
+		} catch (err) {
+			console.error('[PowerPointViewer] Copy slide as image failed:', err);
+		} finally {
+			this.exporting.set(false);
+		}
+	}
+
 	/**
 	 * Export every slide to a multi-page PDF. Each slide is made the live stage,
 	 * given a render tick to settle, captured to a canvas, then the original

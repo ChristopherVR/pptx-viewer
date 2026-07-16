@@ -78,6 +78,26 @@ export class ExportService {
 		downloadBlob(blob, sanitizeFileName(fileName));
 	}
 
+	/** Rasterize an element and copy it to the system clipboard as a PNG image. */
+	async copyElementAsPng(el: HTMLElement, scale: number = 2): Promise<void> {
+		if (typeof ClipboardItem === 'undefined' || !navigator.clipboard?.write) {
+			throw new Error('[ExportService] Image clipboard is unavailable');
+		}
+
+		const canvas = await renderToCanvas(el, { scale });
+		const blob = await new Promise<Blob>((resolve, reject) => {
+			canvas.toBlob((value) => {
+				if (value) {
+					resolve(value);
+				} else {
+					reject(new Error('[ExportService] canvas.toBlob returned null'));
+				}
+			}, 'image/png');
+		});
+
+		await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+	}
+
 	/**
 	 * Rasterize a single element to a canvas (passthrough to html2canvas-pro).
 	 * Capture each slide's canvas *while that slide is the live DOM*: the

@@ -293,6 +293,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(exportPdf)="xport.exportPdf()"
 					(exportGif)="xport.exportGif()"
 					(exportVideo)="xport.exportVideo()"
+					(copySlideAsImage)="xport.copySlideAsImage()"
 					(replace)="findReplace.openFindReplace()"
 					(toggleInspector)="inspectorPanel.toggleFormatPanel()"
 					(drawToolChange)="onDrawToolChange($event)"
