@@ -104,6 +104,10 @@ export function buildChromeCallbacks(
 			openHyperlink: () => deps.openHyperlink(),
 			toggleTemplateEditing: () => deps.toggleTemplateEditing(),
 			toggleMasterView: () => deps.toggleMasterNavigation(),
+			toggleViewOption: (option) => deps.getEditActions().toggleViewOption(option),
+			addGuide: (axis) => deps.getEditActions().addGuide(axis),
+			activateEyedropper: () => deps.getEditActions().activateEyedropper(),
+			toggleSpellCheck: () => deps.getEditActions().toggleSpellCheck(),
 		},
 		primary: {
 			undo: () => deps.undo(),
@@ -169,11 +173,14 @@ export function buildChromeCallbacks(
 		setShapeFill: (color) => deps.getEditActions().setShapeFill(color),
 		setShapeStroke: (color) => deps.getEditActions().setShapeStroke(color),
 		setShapeStrokeWidth: (width) => deps.getEditActions().setShapeStrokeWidth(width),
+		setShapeStyle: (patch) => deps.getEditActions().setShapeStyle(patch),
+		setShapeType: (shapeType) => deps.getEditActions().setShapeType(shapeType),
 
 		setTextVerticalAlign: (vAlign) => deps.getEditActions().setTextVerticalAlign(vAlign),
 		setTextWrap: (wrap) => deps.getEditActions().setTextWrap(wrap),
 		setAutoFitMode: (mode) => deps.getEditActions().setAutoFitMode(mode),
 		setTextAdvanced: (patch) => deps.getEditActions().setTextAdvanced(patch),
+		setTextStyle: (patch, selection) => deps.getEditActions().setTextStyle(patch, selection),
 
 		setFillOpacity: (opacity) => deps.getEditActions().setFillOpacity(opacity),
 		setStrokeOpacity: (opacity) => deps.getEditActions().setStrokeOpacity(opacity),
@@ -188,6 +195,8 @@ export function buildChromeCallbacks(
 		setImageSaturation: (value) => deps.getEditActions().setImageSaturation(value),
 		setImageCrop: (edge, value) => deps.getEditActions().setImageCrop(edge, value),
 		setImageEffects: (patch) => deps.getEditActions().setImageEffects(patch),
+		replaceImage: () => void deps.getEditActions().replaceSelectedImage(),
+		resetImage: () => deps.getEditActions().resetSelectedImage(),
 		setElementAction: (trigger, action) => deps.getEditActions().setElementAction(trigger, action),
 		setChartData: (data) => deps.getEditActions().setChartData(data),
 		setMediaProperties: (patch) => deps.getEditActions().setMediaProperties(patch),
@@ -198,8 +207,20 @@ export function buildChromeCallbacks(
 		setTableOptions: (patch, cellStyle) => deps.getEditActions().setTableOptions(patch, cellStyle),
 		setTableCellStyle: (row, column, patch) =>
 			deps.getEditActions().setTableCellStyle(row, column, patch),
+		setTableCellStyles: (cells, patch) => deps.getEditActions().setTableCellStyles(cells, patch),
+		mutateTableStructure: (cell, action) =>
+			deps.getEditActions().mutateTableStructure(cell, action),
+		setTableColumnWidth: (column, percent) =>
+			deps.getEditActions().setTableColumnWidth(column, percent),
+		setTableRowHeight: (row, height) => deps.getEditActions().setTableRowHeight(row, height),
+		mergeTableCells: (cells) => deps.getEditActions().mergeTableCells(cells),
+		splitTableCell: (cell) => deps.getEditActions().splitTableCell(cell),
 
 		setSmartArtNodeText: (nodeId, text) => deps.getEditActions().setSmartArtNodeText(nodeId, text),
+		setSmartArtNodeStyle: (nodeId, patch) =>
+			deps.getEditActions().setSmartArtNodeStyle(nodeId, patch),
+		mutateSmartArtNode: (nodeId, action) =>
+			deps.getEditActions().mutateSmartArtNode(nodeId, action),
 		setSmartArtLayout: (layout) => deps.getEditActions().setSmartArtLayout(layout),
 		setSmartArtColorScheme: (scheme) => deps.getEditActions().setSmartArtColorScheme(scheme),
 	};
