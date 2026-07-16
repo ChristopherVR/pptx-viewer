@@ -105,6 +105,7 @@ import SnapLinesOverlay from './components/SnapLinesOverlay.vue';
 import StatusBar from './components/StatusBar.vue';
 import ThemeGallery from './components/ThemeGallery.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
+import { mergeElementAnimations, replaceSlideAnimations } from './composables/animation-persistence';
 import { useChartCanvasEditContext } from './composables/chart-part-selection';
 import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
 import { SmartArt3DKey } from './composables/smart-art-3d';
@@ -804,10 +805,19 @@ function writeElementAnimations(elementId: string, animations: PptxSlide['animat
 		return;
 	}
 	history.pushHistory();
-	const others = (slide.animations ?? []).filter((a) => a.elementId !== elementId);
 	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, animations: [...others, ...(animations ?? [])] };
+	nextSlides[index] = mergeElementAnimations(slide, elementId, animations ?? []);
 	slides.value = nextSlides;
+}
+
+function writeSlideAnimations(animations: PptxSlide['animations']): void {
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (!slide) {
+		return;
+	}
+	history.pushHistory();
+	slides.value = replaceSlideAnimations(slides.value, index, animations ?? []);
 }
 
 // ── Slide operations (add / duplicate / delete / reorder) ─────────────
@@ -2008,7 +2018,10 @@ function handleCommandSearch(command: string): void {
 					:can-edit="props.canEdit"
 					:slide-count="slideCount"
 					:media-data-urls="mediaDataUrls"
+					:slide-elements="activeSlide?.elements ?? []"
+					:slide-animations="activeSlide?.animations ?? []"
 					@update="onInspectorUpdate"
+					@update-slide-animations="writeSlideAnimations"
 				/>
 
 				<!-- Slide-level inspector (no element selected): slide transition, etc. -->
@@ -2456,7 +2469,10 @@ function handleCommandSearch(command: string): void {
 					:can-edit="props.canEdit"
 					:slide-count="slideCount"
 					:media-data-urls="mediaDataUrls"
+					:slide-elements="activeSlide?.elements ?? []"
+					:slide-animations="activeSlide?.animations ?? []"
 					@update="onInspectorUpdate"
+					@update-slide-animations="writeSlideAnimations"
 				/>
 				<SlideInspector
 					v-else-if="slideCount > 0"
