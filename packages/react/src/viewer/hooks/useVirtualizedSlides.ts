@@ -8,14 +8,12 @@
  *
  * @module useVirtualizedSlides
  */
+import { computeVirtualRange, DEFAULT_VIRTUAL_OVERSCAN } from 'pptx-viewer-shared';
+import type { VirtualizedRange } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-/* ------------------------------------------------------------------ */
-/*  Constants                                                          */
-/* ------------------------------------------------------------------ */
-
-/** Number of items to render outside the visible viewport on each side. */
-const DEFAULT_OVERSCAN = 5;
+export { computeVirtualRange } from 'pptx-viewer-shared';
+export type { VirtualizedRange } from 'pptx-viewer-shared';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -30,76 +28,11 @@ export interface VirtualizedSlidesOptions {
 	overscan?: number;
 }
 
-export interface VirtualizedRange {
-	/** The first index to render (inclusive). */
-	startIndex: number;
-	/** The last index to render (inclusive). */
-	endIndex: number;
-	/** Total height of the virtual container (for scrollbar sizing). */
-	totalHeight: number;
-	/** Offset (top padding) to position the rendered window correctly. */
-	offsetY: number;
-	/** The visible range without overscan (for analytics/testing). */
-	visibleRange: { start: number; end: number };
-}
-
 export interface VirtualizedSlidesResult extends VirtualizedRange {
 	/** Ref to attach to the scroll container element. */
 	scrollContainerRef: React.RefObject<HTMLDivElement | null>;
 	/** Call this to scroll a specific index into view. */
 	scrollToIndex: (index: number, behavior?: ScrollBehavior) => void;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Pure computation (exported for testing)                            */
-/* ------------------------------------------------------------------ */
-
-/**
- * Compute the rendered index range given scroll state and item dimensions.
- *
- * This is a pure function with no React or DOM dependencies so it can
- * be unit-tested without `renderHook` or a DOM environment.
- */
-export function computeVirtualRange(
-	totalItems: number,
-	itemHeight: number,
-	scrollTop: number,
-	viewportHeight: number,
-	overscan: number = DEFAULT_OVERSCAN,
-): VirtualizedRange {
-	const safeItemHeight = Math.max(itemHeight, 1);
-	const totalHeight = totalItems * safeItemHeight;
-
-	if (totalItems === 0) {
-		return {
-			startIndex: 0,
-			endIndex: -1,
-			totalHeight: 0,
-			offsetY: 0,
-			visibleRange: { start: 0, end: -1 },
-		};
-	}
-
-	// Visible range (no overscan)
-	const visibleStart = Math.floor(scrollTop / safeItemHeight);
-	const visibleEnd = Math.min(
-		totalItems - 1,
-		Math.floor((scrollTop + viewportHeight) / safeItemHeight),
-	);
-
-	// Rendered range (with overscan)
-	const startIndex = Math.max(0, visibleStart - overscan);
-	const endIndex = Math.min(totalItems - 1, visibleEnd + overscan);
-
-	const offsetY = startIndex * safeItemHeight;
-
-	return {
-		startIndex,
-		endIndex,
-		totalHeight,
-		offsetY,
-		visibleRange: { start: visibleStart, end: visibleEnd },
-	};
 }
 
 /* ------------------------------------------------------------------ */
@@ -109,7 +42,7 @@ export function computeVirtualRange(
 export function useVirtualizedSlides({
 	totalItems,
 	itemHeight,
-	overscan = DEFAULT_OVERSCAN,
+	overscan = DEFAULT_VIRTUAL_OVERSCAN,
 }: VirtualizedSlidesOptions): VirtualizedSlidesResult {
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const [scrollTop, setScrollTop] = useState(0);
