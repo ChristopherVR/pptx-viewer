@@ -34,6 +34,9 @@ describe('presentationLoader', () => {
 		expect(loader.slides.length).toBeGreaterThan(0);
 		expect(loader.canvasSize.width).toBeGreaterThan(0);
 		expect(loader.canvasSize.height).toBeGreaterThan(0);
+		expect(Array.isArray(loader.embeddedFonts)).toBeTruthy();
+		expect(loader.digitalSignatureCount).toBeGreaterThanOrEqual(0);
+		expect(loader.hasDigitalSignatures).toBe(loader.digitalSignatureCount > 0);
 		// Every slide carries an id + elements array (the viewer's contract).
 		for (const slide of loader.slides) {
 			expect(slide.id).toBeTruthy();
