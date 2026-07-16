@@ -87,6 +87,36 @@ describe('buildFabricatedDrawingXml', () => {
 		)!;
 		expect(xml).toContain('prst="rect"');
 	});
+
+	it('serializes structured custom geometry instead of a rectangle', () => {
+		const xml = buildFabricatedDrawingXml(
+			[
+				{
+					id: 'engine-n1',
+					shapeType: 'custom',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 100,
+					customGeometryPaths: [
+						{
+							width: 100,
+							height: 100,
+							segments: [
+								{ type: 'moveTo', pt: { x: 100, y: 50 } },
+								{ type: 'arcTo', wR: 50, hR: 50, stAng: 0, swAng: 10800000 },
+							],
+						},
+					],
+				},
+			],
+			NODES,
+			GUIDS,
+		)!;
+		expect(xml).toContain('<a:custGeom>');
+		expect(xml).toContain('<a:arcTo wR="50" hR="50" stAng="0" swAng="10800000"/>');
+		expect(xml).not.toContain('<a:prstGeom');
+	});
 });
 
 describe('smartArtElementsToDrawingShapes', () => {

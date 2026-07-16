@@ -132,6 +132,8 @@ export interface CustomGeometryPath {
  * and the text rectangle are not lost when a custGeom is edited and saved.
  */
 export interface CustomGeometryRawData {
+	/** Raw `a:avLst` XML content (adjustment value list). */
+	avLstXml?: unknown;
 	/** Raw `a:gdLst` XML content (guide list). */
 	gdLstXml?: unknown;
 	/** Raw `a:ahLst` XML content (adjustment handles). */
@@ -281,7 +283,7 @@ export interface PptxCustomPathProperties {
 	pathHeight?: number;
 	/** Structured custom geometry paths for editing (maps to a:custGeom/a:pathLst). */
 	customGeometryPaths?: CustomGeometryPath[];
-	/** Raw a:gdLst/a:ahLst/a:cxnLst/a:rect XML preserved for round-trip serialization. */
+	/** Raw adjustment/guide/handle/connection/text-rectangle XML preserved for serialization. */
 	customGeometryRawData?: CustomGeometryRawData;
 	/**
 	 * Typed XY adjustment handles parsed from `a:custGeom/a:ahLst/a:ahXY`.

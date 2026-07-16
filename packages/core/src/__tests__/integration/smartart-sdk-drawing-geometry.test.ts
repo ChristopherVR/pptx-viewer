@@ -45,6 +45,28 @@ const PYRAMID_SHAPES: PptxSmartArtDrawingShape[] = [
 	},
 ];
 
+const CUSTOM_SHAPE: PptxSmartArtDrawingShape = {
+	id: 'engine-n1',
+	shapeType: 'custom',
+	x: 100,
+	y: 50,
+	width: 200,
+	height: 200,
+	text: 'Top',
+	customGeometryPaths: [
+		{
+			width: 100,
+			height: 100,
+			segments: [
+				{ type: 'moveTo', pt: { x: 100, y: 50 } },
+				{ type: 'arcTo', wR: 50, hR: 50, stAng: 0, swAng: 10800000 },
+				{ type: 'lineTo', pt: { x: 100, y: 50 } },
+				{ type: 'close' },
+			],
+		},
+	],
+};
+
 function makePyramid(
 	layout: SmartArtLayout,
 	drawingShapes?: PptxSmartArtDrawingShape[],
@@ -145,6 +167,43 @@ describe('sDK-created SmartArt preserves per-node shape geometry on save', () =>
 			'trapezoid',
 			'trapezoid',
 		]);
+	});
+
+	it('round-trips cached custom geometry through save, load, and decomposition', async () => {
+		const zip = await saveWithSmartArt(makePyramid('basicPyramid', [CUSTOM_SHAPE]));
+		const drawing = await zip.file('ppt/diagrams/drawing1.xml')!.async('string');
+		expect(drawing).toContain('<a:custGeom>');
+		expect(drawing).toContain('<a:arcTo wR="50" hR="50" stAng="0" swAng="10800000"/>');
+		expect(drawing).not.toContain('<a:prstGeom');
+
+		const bytes = await zip.generateAsync({ type: 'uint8array' });
+		const reloaded = await new PptxHandler().load(bytes.buffer as ArrayBuffer);
+		const element = reloaded.slides[0].elements.find(
+			(candidate): candidate is SmartArtPptxElement => candidate.type === 'smartArt',
+		);
+		const cached = element?.smartArtData?.drawingShapes?.[0];
+		expect(cached).toMatchObject({ shapeType: 'custom', pathWidth: 100, pathHeight: 100 });
+		expect(cached?.pathData).toContain('A 50 50');
+		expect(cached?.customGeometryPaths?.[0].segments).toContainEqual({
+			type: 'arcTo',
+			wR: 50,
+			hR: 50,
+			stAng: 0,
+			swAng: 10800000,
+		});
+
+		const decomposed = decomposeSmartArt(element!.smartArtData!, {
+			x: element!.x,
+			y: element!.y,
+			width: element!.width,
+			height: element!.height,
+		});
+		expect(decomposed?.[0]).toMatchObject({
+			shapeType: 'custom',
+			pathWidth: 100,
+			pathHeight: 100,
+		});
+		expect((decomposed?.[0] as { pathData?: string } | undefined)?.pathData).toContain('A 50 50');
 	});
 
 	it('caches viewer-computed geometry when the element has no drawingShapes', async () => {

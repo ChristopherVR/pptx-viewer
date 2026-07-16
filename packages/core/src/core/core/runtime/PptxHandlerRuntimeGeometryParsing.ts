@@ -160,7 +160,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
-	 * Extract `a:gdLst`/`a:ahLst`/`a:cxnLst`/`a:rect` raw XML from a `a:custGeom`
+	 * Extract adjustment, guide, handle, connection, and text-rectangle raw XML from `a:custGeom`
 	 * node so they can be re-emitted on save when the geometry is edited.
 	 * Returns `undefined` when none of these auxiliary children carry data.
 	 */
@@ -180,6 +180,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return Object.keys(node as Record<string, unknown>).length > 0;
 		};
 		const result: CustomGeometryRawData = {};
+		const avLst = custGeom['a:avLst'];
+		if (isNonEmpty(avLst)) {
+			result.avLstXml = avLst;
+		}
 		const gdLst = custGeom['a:gdLst'];
 		if (isNonEmpty(gdLst)) {
 			result.gdLstXml = gdLst;

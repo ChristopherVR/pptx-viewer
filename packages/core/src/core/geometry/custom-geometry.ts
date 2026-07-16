@@ -426,7 +426,7 @@ export function customGeometryPathsToXml(
 	}
 
 	const result: XmlObject = {
-		'a:avLst': {},
+		'a:avLst': (rawData?.avLstXml as XmlObject | undefined) ?? {},
 		'a:gdLst': (rawData?.gdLstXml as XmlObject | undefined) ?? {},
 		'a:ahLst': ahLstXml ?? {},
 		'a:cxnLst': cxnLstXml ?? {},

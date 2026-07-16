@@ -1,6 +1,7 @@
 import { XmlObject } from '../../types';
 import type {
 	PptxSmartArtConnection,
+	PptxCustomPathProperties,
 	PptxSmartArtDrawingShape,
 	PptxSmartArtQuickStyle,
 } from '../../types';
@@ -191,7 +192,29 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const skewY = xfrm?.['@_skewY'] ? parseInt(String(xfrm['@_skewY']), 10) / 60000 : undefined;
 
 		const prstGeom = this.xmlLookupService.getChildByLocalName(spPr, 'prstGeom');
-		const shapeType = prstGeom ? String(prstGeom['@_prst'] || 'rect') : 'rect';
+		const custGeom = this.xmlLookupService.getChildByLocalName(spPr, 'custGeom');
+		let shapeType = prstGeom ? String(prstGeom['@_prst'] || 'rect') : 'rect';
+		let customGeometry: PptxCustomPathProperties = {};
+		if (custGeom) {
+			const path = this.parseCustomGeometry(custGeom, width, height);
+			if (path) {
+				shapeType = 'custom';
+				const handles = this.extractCustomGeometryAdjustHandles(custGeom);
+				customGeometry = {
+					...path,
+					customGeometryPaths: this.buildStructuredCustomGeometryPaths(
+						custGeom,
+						path.pathWidth,
+						path.pathHeight,
+					),
+					customGeometryRawData: this.extractCustomGeometryRawData(custGeom),
+					customGeometryAdjustHandlesXY: handles.xy,
+					customGeometryAdjustHandlesPolar: handles.polar,
+					customGeometryConnectionSites: this.extractCustomGeometryConnectionSites(custGeom),
+					customGeometryTextRect: this.extractCustomGeometryTextRect(custGeom),
+				};
+			}
+		}
 
 		const solidFill = this.xmlLookupService.getChildByLocalName(spPr, 'solidFill');
 		const fillColor = this.parseColor(solidFill);
@@ -238,6 +261,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			text,
 			fontSize,
 			fontColor,
+			...customGeometry,
 		};
 	}
 

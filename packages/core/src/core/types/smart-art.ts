@@ -6,6 +6,7 @@
  * @module pptx-types/smart-art
  */
 
+import type { PptxCustomPathProperties } from './geometry';
 import type { PptxSmartArtLayoutDefinition } from './smart-art-layout-definition';
 import type { PptxSmartArtNode } from './smart-art-node';
 import type {
@@ -190,7 +191,7 @@ export interface PptxSmartArtConnection {
  * // => satisfies PptxSmartArtDrawingShape
  * ```
  */
-export interface PptxSmartArtDrawingShape {
+export interface PptxSmartArtDrawingShape extends PptxCustomPathProperties {
 	/** Shape ID within the drawing. */
 	id: string;
 	/** Preset geometry type (e.g. "roundRect", "ellipse"). */

@@ -9,6 +9,7 @@ import type {
 	PptxSmartArtNode,
 	ShapePptxElement,
 	ConnectorPptxElement,
+	PptxCustomPathProperties,
 	ShapeStyle,
 	TextStyle,
 } from '../types';
@@ -83,7 +84,7 @@ export function makeShapeElement(
 	shapeType: string,
 	fillColor: string,
 	text: string,
-	opts?: {
+	opts?: PptxCustomPathProperties & {
 		rotation?: number;
 		skewX?: number;
 		skewY?: number;
@@ -130,6 +131,19 @@ export function makeShapeElement(
 		text,
 		textStyle,
 		textSegments: [{ text, style: textStyle }],
+		...(opts?.pathData || opts?.customGeometryPaths?.length
+			? {
+					pathData: opts.pathData,
+					pathWidth: opts.pathWidth,
+					pathHeight: opts.pathHeight,
+					customGeometryPaths: opts.customGeometryPaths,
+					customGeometryRawData: opts.customGeometryRawData,
+					customGeometryAdjustHandlesXY: opts.customGeometryAdjustHandlesXY,
+					customGeometryAdjustHandlesPolar: opts.customGeometryAdjustHandlesPolar,
+					customGeometryConnectionSites: opts.customGeometryConnectionSites,
+					customGeometryTextRect: opts.customGeometryTextRect,
+				}
+			: {}),
 	};
 }
 

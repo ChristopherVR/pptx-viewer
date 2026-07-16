@@ -1,3 +1,5 @@
+import { XMLBuilder } from 'fast-xml-parser';
+
 /**
  * Fabricate the cached diagram DRAWING part (`ppt/diagrams/drawingN.xml`) for
  * an SDK-created SmartArt element from its in-memory `drawingShapes`.
@@ -14,6 +16,7 @@
  * association model used by PowerPoint-authored diagrams.
  */
 import { EMU_PER_PX } from '../../constants';
+import { customGeometryPathsToXml } from '../../geometry/custom-geometry';
 import type {
 	PptxElement,
 	PptxSmartArtDrawingShape,
@@ -37,6 +40,12 @@ const DSP_XMLNS =
 
 /** The six theme accent colours SmartArt cycles through, one per node. */
 const ACCENTS = ['accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6'];
+const geometryBuilder = new XMLBuilder({
+	ignoreAttributes: false,
+	attributeNamePrefix: '@_',
+	suppressEmptyNode: true,
+	format: false,
+});
 
 /** Round a pixel measurement to whole EMU. */
 function toEmu(px: number): number {
@@ -136,8 +145,22 @@ function shapePropsXml(shape: PptxSmartArtDrawingShape): string {
 		`<a:off x="${toEmu(shape.x)}" y="${toEmu(shape.y)}"/>` +
 		`<a:ext cx="${toEmu(Math.max(shape.width, 1))}" cy="${toEmu(Math.max(shape.height, 1))}"/>` +
 		`</a:xfrm>`;
-	const prst = shape.shapeType && shape.shapeType.length > 0 ? shape.shapeType : 'rect';
-	const geom = `<a:prstGeom prst="${xmlEscape(prst)}"><a:avLst/></a:prstGeom>`;
+	const prst = shape.shapeType && shape.shapeType !== 'custom' ? shape.shapeType : 'rect';
+	const geom =
+		shape.customGeometryPaths && shape.customGeometryPaths.length > 0
+			? geometryBuilder.build({
+					'a:custGeom': customGeometryPathsToXml(
+						shape.customGeometryPaths,
+						shape.customGeometryRawData,
+						{
+							adjustHandlesXY: shape.customGeometryAdjustHandlesXY,
+							adjustHandlesPolar: shape.customGeometryAdjustHandlesPolar,
+							connectionSites: shape.customGeometryConnectionSites,
+							textRect: shape.customGeometryTextRect,
+						},
+					),
+				})
+			: `<a:prstGeom prst="${xmlEscape(prst)}"><a:avLst/></a:prstGeom>`;
 	const fillHex = normalizeHex(shape.fillColor);
 	const fill = fillHex ? `<a:solidFill><a:srgbClr val="${fillHex}"/></a:solidFill>` : '';
 	const strokeHex = normalizeHex(shape.strokeColor);
@@ -226,6 +249,19 @@ export function smartArtElementsToDrawingShapes(
 			rotation: shape.rotation,
 			skewX: shape.skewX,
 			skewY: shape.skewY,
+			...(shape.pathData || shape.customGeometryPaths?.length
+				? {
+						pathData: shape.pathData,
+						pathWidth: shape.pathWidth,
+						pathHeight: shape.pathHeight,
+						customGeometryPaths: shape.customGeometryPaths,
+						customGeometryRawData: shape.customGeometryRawData,
+						customGeometryAdjustHandlesXY: shape.customGeometryAdjustHandlesXY,
+						customGeometryAdjustHandlesPolar: shape.customGeometryAdjustHandlesPolar,
+						customGeometryConnectionSites: shape.customGeometryConnectionSites,
+						customGeometryTextRect: shape.customGeometryTextRect,
+					}
+				: {}),
 			fillColor: shape.shapeStyle?.fillColor,
 			strokeColor: shape.shapeStyle?.strokeColor,
 			strokeWidth: shape.shapeStyle?.strokeWidth,

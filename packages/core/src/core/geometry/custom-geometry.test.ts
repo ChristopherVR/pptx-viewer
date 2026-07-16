@@ -437,7 +437,7 @@ describe('recalculatePathBounds', () => {
 // ---------------------------------------------------------------------------
 
 describe('customGeometryPathsToXml — round-trip extension', () => {
-	it('preserves raw a:gdLst / a:ahLst / a:cxnLst / a:rect when provided', () => {
+	it('preserves raw adjustment, guide, handle, connection, and text-rect data', () => {
 		const paths: CustomGeometryPath[] = [
 			{
 				width: 100,
@@ -449,12 +449,14 @@ describe('customGeometryPathsToXml — round-trip extension', () => {
 			},
 		];
 		const rawData = {
+			avLstXml: { 'a:gd': { '@_name': 'adj1', '@_fmla': 'val 25000' } },
 			gdLstXml: { 'a:gd': [{ '@_name': 'g1', '@_fmla': 'val 21600' }] },
 			ahLstXml: { 'a:ahXY': { '@_gdRefX': 'adj1', 'a:pos': { '@_x': '50', '@_y': '50' } } },
 			cxnLstXml: { 'a:cxn': { '@_ang': '0', 'a:pos': { '@_x': '0', '@_y': '50' } } },
 			rectXml: { '@_l': 'g1', '@_t': '0', '@_r': '100', '@_b': '100' },
 		};
 		const xml = customGeometryPathsToXml(paths, rawData);
+		expect(xml['a:avLst']).toBe(rawData.avLstXml);
 		expect(xml['a:gdLst']).toBe(rawData.gdLstXml);
 		expect(xml['a:ahLst']).toBe(rawData.ahLstXml);
 		expect(xml['a:cxnLst']).toBe(rawData.cxnLstXml);
