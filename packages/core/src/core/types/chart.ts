@@ -357,6 +357,18 @@ export interface PptxChartBoxWhiskerOptions {
 	showOutlierPoints?: boolean;
 }
 
+/** Office 2016 ChartEx histogram and Pareto series layout options. */
+export interface PptxChartHistogramOptions {
+	/** Maps to `clusteredColumn` for histogram columns or `paretoLine`. */
+	layout?: 'histogram' | 'pareto';
+	/** Exactly one of binSize and binCount is emitted by the ChartEx writer. */
+	binSize?: number;
+	binCount?: number;
+	intervalClosed?: 'l' | 'r';
+	underflow?: number | 'auto';
+	overflow?: number | 'auto';
+}
+
 /**
  * A single data series within a chart.
  *
@@ -393,6 +405,7 @@ export interface PptxChartSeries {
 	 */
 	seriesChartType?: PptxChartType;
 	boxWhiskerOptions?: PptxChartBoxWhiskerOptions;
+	histogramOptions?: PptxChartHistogramOptions;
 }
 
 /**

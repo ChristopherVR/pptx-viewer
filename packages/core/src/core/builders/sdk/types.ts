@@ -11,7 +11,7 @@
  */
 
 import type { PptxAnimationPreset, PptxAnimationTrigger } from '../../types/animation';
-import type { PptxChartBoxWhiskerOptions } from '../../types/chart';
+import type { PptxChartBoxWhiskerOptions, PptxChartHistogramOptions } from '../../types/chart';
 import type { StrokeDashType, ConnectorArrowType } from '../../types/common';
 import type { PptxTransitionType } from '../../types/transition';
 
@@ -169,6 +169,7 @@ export interface ChartSeriesInput {
 	values: number[];
 	color?: string;
 	boxWhiskerOptions?: PptxChartBoxWhiskerOptions;
+	histogramOptions?: PptxChartHistogramOptions;
 }
 
 export interface ChartInput {

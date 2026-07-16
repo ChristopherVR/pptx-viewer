@@ -15,6 +15,26 @@ function seriesColor(series: PptxChartSeries): XmlObject | undefined {
 	return color ? { 'a:solidFill': { 'a:srgbClr': { '@_val': color } } } : undefined;
 }
 
+function buildHistogramBinning(series: PptxChartSeries): XmlObject {
+	const options = series.histogramOptions;
+	const binning: XmlObject = {};
+	if (options?.intervalClosed) {
+		binning['@_intervalClosed'] = options.intervalClosed;
+	}
+	if (options?.underflow !== undefined) {
+		binning['@_underflow'] = String(options.underflow);
+	}
+	if (options?.overflow !== undefined) {
+		binning['@_overflow'] = String(options.overflow);
+	}
+	if (options?.binSize !== undefined) {
+		binning['cx:binSize'] = String(options.binSize);
+	} else if (options?.binCount !== undefined) {
+		binning['cx:binCount'] = String(options.binCount);
+	}
+	return binning;
+}
+
 function buildData(chartData: PptxChartData, series: PptxChartSeries, id: number): XmlObject {
 	const categoryLevels =
 		chartData.chartType === 'sunburst' && chartData.categoryLevels?.length
@@ -51,7 +71,11 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 					? 'sunburst'
 					: chartData.chartType === 'boxWhisker'
 						? 'boxWhisker'
-						: 'funnel';
+						: chartData.chartType === 'histogram'
+							? series.histogramOptions?.layout === 'pareto'
+								? 'paretoLine'
+								: 'clusteredColumn'
+							: 'funnel';
 	const result: XmlObject = {
 		'@_layoutId': layoutId,
 		'cx:tx': { 'cx:txData': { 'cx:v': series.name } },
@@ -92,6 +116,12 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 			result['cx:layoutPr'] = layoutPr;
 		}
 	}
+	if (chartData.chartType === 'histogram') {
+		const binning = buildHistogramBinning(series);
+		if (series.histogramOptions?.layout !== 'pareto' || Object.keys(binning).length > 0) {
+			result['cx:layoutPr'] = { 'cx:binning': binning };
+		}
+	}
 	return result;
 }
 
@@ -102,7 +132,8 @@ export function canGenerateChartEx(chartData: PptxChartData): boolean {
 		chartData.chartType === 'waterfall' ||
 		chartData.chartType === 'treemap' ||
 		chartData.chartType === 'sunburst' ||
-		chartData.chartType === 'boxWhisker'
+		chartData.chartType === 'boxWhisker' ||
+		chartData.chartType === 'histogram'
 	);
 }
 

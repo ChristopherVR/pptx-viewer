@@ -13,6 +13,7 @@
 
 import type { XmlObject, PptxChartData, PptxChartSeries, PptxChartDataLabel } from '../types';
 import { parseCxBoxWhiskerOptions } from './chart-cx-box-whisker';
+import { parseCxHistogramOptions } from './chart-cx-histogram';
 
 /** Minimal xml-lookup interface needed by the cx: parser. */
 export interface XmlLookupLike {
@@ -240,6 +241,10 @@ export function parseCxChartSeries(
 		const boxWhiskerOptions = parseCxBoxWhiskerOptions(ser, xmlLookup);
 		if (boxWhiskerOptions) {
 			result.boxWhiskerOptions = boxWhiskerOptions;
+		}
+		const histogramOptions = parseCxHistogramOptions(ser, xmlLookup);
+		if (histogramOptions) {
+			result.histogramOptions = histogramOptions;
 		}
 		if (color) {
 			result.color = color;

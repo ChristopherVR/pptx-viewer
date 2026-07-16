@@ -377,4 +377,43 @@ describe('parseCxChartSeries', () => {
 			showOutlierPoints: false,
 		});
 	});
+
+	it('parses histogram binning and Pareto series layouts', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': [
+					{
+						'@_layoutId': 'clusteredColumn',
+						'cx:data': {
+							'cx:numDim': { 'cx:lvl': { 'cx:pt': [{ '#text': '7' }] } },
+						},
+						'cx:layoutPr': {
+							'cx:binning': {
+								'@_intervalClosed': 'l',
+								'@_underflow': '-5',
+								'@_overflow': 'auto',
+								'cx:binSize': 2.5,
+							},
+						},
+					},
+					{
+						'@_layoutId': 'paretoLine',
+						'cx:data': {
+							'cx:numDim': { 'cx:lvl': { 'cx:pt': [{ '#text': '100' }] } },
+						},
+					},
+				],
+			},
+		};
+
+		const result = parseCxChartSeries(plotArea, xmlLookup);
+		expect(result?.series[0].histogramOptions).toStrictEqual({
+			layout: 'histogram',
+			binSize: 2.5,
+			intervalClosed: 'l',
+			underflow: -5,
+			overflow: 'auto',
+		});
+		expect(result?.series[1].histogramOptions).toStrictEqual({ layout: 'pareto' });
+	});
 });

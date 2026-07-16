@@ -58,6 +58,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				);
 				for (const ser of seriesArr) {
 					const layoutRef = String(ser?.['@_layoutId'] || '').toLowerCase();
+					const layoutPr = this.xmlLookupService.getChildByLocalName(ser, 'layoutPr');
+					const hasBinning = Boolean(
+						this.xmlLookupService.getChildByLocalName(layoutPr, 'binning'),
+					);
 					if (layoutRef.includes('waterfall')) {
 						return 'waterfall';
 					}
@@ -73,7 +77,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (layoutRef.includes('boxwhisker') || layoutRef.includes('box')) {
 						return 'boxWhisker';
 					}
-					if (layoutRef.includes('histogram') || layoutRef.includes('pareto')) {
+					if (
+						layoutRef.includes('histogram') ||
+						layoutRef.includes('pareto') ||
+						(layoutRef === 'clusteredcolumn' && hasBinning)
+					) {
 						return 'histogram';
 					}
 					if (layoutRef.includes('regionmap') || layoutRef.includes('map')) {

@@ -107,6 +107,8 @@ function detectChartType(plotArea: XmlObject | undefined): ChartType {
 			const seriesArr = ensureArray(innerObj?.['cx:series'] ?? innerObj?.['series']) as XmlObject[];
 			for (const ser of seriesArr) {
 				const layoutRef = String(ser?.['@_layoutId'] || '').toLowerCase();
+				const layoutPr = (ser?.['cx:layoutPr'] ?? ser?.['layoutPr']) as XmlObject | undefined;
+				const hasBinning = Boolean(layoutPr?.['cx:binning'] ?? layoutPr?.['binning']);
 				if (layoutRef.includes('waterfall')) {
 					return 'waterfall';
 				}
@@ -122,7 +124,11 @@ function detectChartType(plotArea: XmlObject | undefined): ChartType {
 				if (layoutRef.includes('boxwhisker') || layoutRef.includes('box')) {
 					return 'boxWhisker';
 				}
-				if (layoutRef.includes('histogram') || layoutRef.includes('pareto')) {
+				if (
+					layoutRef.includes('histogram') ||
+					layoutRef.includes('pareto') ||
+					(layoutRef === 'clusteredcolumn' && hasBinning)
+				) {
 					return 'histogram';
 				}
 			}
@@ -291,6 +297,19 @@ describe('detectChartType', () => {
 			detectChartType({
 				'cx:plotAreaRegion': {
 					'cx:series': { '@_layoutId': 'pareto' },
+				},
+			}),
+		).toBe('histogram');
+	});
+
+	it('should detect schema-standard clusteredColumn binning as histogram', () => {
+		expect(
+			detectChartType({
+				'cx:plotAreaRegion': {
+					'cx:series': {
+						'@_layoutId': 'clusteredColumn',
+						'cx:layoutPr': { 'cx:binning': { 'cx:binCount': 5 } },
+					},
 				},
 			}),
 		).toBe('histogram');
