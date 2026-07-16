@@ -12,11 +12,16 @@
 	const t = useTranslator();
 
 	let open = $state(false);
+	// eslint-disable-next-line prefer-const -- `trigger` is reassigned by Svelte bind:this.
 	let trigger: HTMLButtonElement | null = null;
 
 	function close(): void {
 		open = false;
 		void tick().then(() => trigger?.focus());
+	}
+
+	function openDialog(): void {
+		open = true;
 	}
 
 	function insert(layout: SmartArtLayout, defaultItems: string[]): void {
@@ -34,7 +39,7 @@
 		aria-expanded={open}
 		aria-label={t('pptx.ribbon.insertSmartArt')}
 		title={t('pptx.ribbon.insertSmartArt')}
-		onclick={() => (open = true)}
+		onclick={openDialog}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="4" r="2" fill="none" stroke="currentColor" stroke-width="1.1" /><circle cx="12" cy="4" r="2" fill="none" stroke="currentColor" stroke-width="1.1" /><circle cx="8" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.1" /><path d="M6 5.5 7 10M10 5.5 9 10" stroke="currentColor" stroke-width="1" /></svg>
 		<span>{t('pptx.ribbon.smartArt')}</span>

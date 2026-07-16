@@ -1,10 +1,9 @@
 <script lang="ts">
 	import type { SmartArtLayout } from 'pptx-viewer-core';
+	import type { SmartArtCategory, SmartArtPreset } from 'pptx-viewer-shared';
 	import {
 		CATEGORIES,
 		PRESETS,
-		type SmartArtCategory,
-		type SmartArtPreset,
 	} from 'pptx-viewer-shared';
 	import { onMount } from 'svelte';
 

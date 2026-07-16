@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { useTranslator } from '../../../../i18n/context';
+
 	const t = useTranslator();
 </script>
 

@@ -29,13 +29,13 @@ const formatPainterPath = resolve(
 async function loadDeck(page: Page, fixturePath: string): Promise<void> {
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
-	await page.locator('[aria-roledescription="slide"]').waitFor();
+	await page.locator('[aria-roledescription="slide"]').first().waitFor();
 	await page.locator('[data-pptx-element="true"]').first().waitFor();
 }
 
 /** The single main-canvas slide region (never a thumbnail; see file header). */
 function slideRegion(page: Page): Locator {
-	return page.locator('[aria-roledescription="slide"]');
+	return page.locator('[aria-roledescription="slide"]').first();
 }
 
 const zoomInButton = (page: Page): Locator =>
@@ -189,7 +189,7 @@ test.describe('viewer basics', () => {
 	test('the smartArt3D opt-in flag does not break normal rendering', async ({ page }) => {
 		await page.goto('/?smartArt3D=1');
 		await page.locator('#file-input').setInputFiles(formatPainterPath);
-		await page.locator('[aria-roledescription="slide"]').waitFor();
+		await page.locator('[aria-roledescription="slide"]').first().waitFor();
 
 		const source = page.locator('[data-pptx-element="true"]').filter({ hasText: 'SOURCE' });
 		const target = page.locator('[data-pptx-element="true"]').filter({ hasText: 'TARGET' });

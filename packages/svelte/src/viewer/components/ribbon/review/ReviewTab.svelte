@@ -33,6 +33,10 @@
 	let issues = $state.raw<ReturnType<typeof collectAccessibilityIssues>>([]);
 	const groups = $derived(groupIssuesBySeverity(issues));
 
+	function setPanel(panel: 'accessibility' | 'comments' | null): void {
+		activePanel = panel;
+	}
+
 	function runCheck(): void {
 		issues = collectAccessibilityIssues(slides);
 		hasRun = true;
@@ -45,10 +49,10 @@
 
 <div class="pptx-svelte-review-shell">
 	<section class="pptx-svelte-review-actions" aria-label={t('pptx.ribbon.tab.review')}>
-		<button type="button" onclick={() => (activePanel = 'comments')}>
+		<button type="button" onclick={() => setPanel('comments')}>
 			{t('pptx.comments.slideComments')}
 		</button>
-		<button type="button" onclick={() => (activePanel = 'accessibility')}>
+		<button type="button" onclick={() => setPanel('accessibility')}>
 			{t('pptx.review.accessibilityCheck')}
 		</button>
 	</section>
@@ -59,7 +63,7 @@
 				type="button"
 				class="pptx-svelte-review-close"
 				aria-label={t('pptx.common.close')}
-				onclick={() => (activePanel = null)}>x</button
+				onclick={() => setPanel(null)}>x</button
 			>
 			{#if activePanel === 'accessibility'}
 				<section class="pptx-svelte-review" aria-label={t('pptx.ribbon.tab.review')}>

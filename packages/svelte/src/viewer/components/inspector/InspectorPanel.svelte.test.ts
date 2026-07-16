@@ -104,7 +104,7 @@ describe('inspectorPanel', () => {
 		const { target } = mountInspector(editor);
 
 		expect(target.querySelector('aside')?.getAttribute('aria-label')).toBe('Properties');
-		expect(target.querySelector('aside')?.hasAttribute('data-pptx-inspector')).toBe(true);
+		expect(target.querySelector('aside')?.hasAttribute('data-pptx-inspector')).toBeTruthy();
 		expect(target.querySelector('.pptx-svelte-inspector-empty')).not.toBeNull();
 		expect(target.querySelector('.pptx-svelte-inspector-grid')).toBeNull();
 	});
@@ -115,7 +115,7 @@ describe('inspectorPanel', () => {
 		editor.select(el.id);
 		const { target } = mountInspector(editor);
 
-		expect(target.querySelector('.pptx-svelte-inspector-grid')).not.toBeNull();
+		expect(target.querySelector('.pptx-svelte-inspector-grid')).toBeTruthy();
 		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Text']);
 		expect(target.querySelector('.pptx-svelte-inspector-empty')).toBeNull();
 	});

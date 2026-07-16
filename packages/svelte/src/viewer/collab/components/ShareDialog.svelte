@@ -39,6 +39,15 @@
 	const canStart = $derived(canStartShare({ roomId, userName, serverUrl }));
 	const canJoin = $derived(canJoinShare({ invitation, userName, serverUrl }));
 	const isPeerToPeer = $derived(isPeerToPeerShare(serverUrl));
+	const isJoinMode = $derived(mode === 'join');
+
+	function setMode(targetMode: 'create' | 'join'): void {
+		mode = targetMode;
+	}
+
+	function setInvitation(value: string): void {
+		invitation = value;
+	}
 
 	function handleStart(): void {
 		const config =
@@ -69,23 +78,24 @@
 	{:else}
 		<div class="pptx-svelte-share-form">
 			<div class="pptx-svelte-share-tabs" role="tablist">
-				<button type="button" role="tab" aria-selected={mode === 'create'} onclick={() => (mode = 'create')}>
+				<button type="button" role="tab" aria-selected={mode === 'create'} onclick={() => setMode('create')}>
 					{t('pptx.share.createSession')}
 				</button>
-				<button type="button" role="tab" aria-selected={mode === 'join'} onclick={() => (mode = 'join')}>
+				<button type="button" role="tab" aria-selected={mode === 'join'} onclick={() => setMode('join')}>
 					{t('pptx.share.joinSession')}
 				</button>
 			</div>
 			<p class="pptx-svelte-share-desc">
-				{t(mode === 'join' ? 'pptx.share.joinDescription' : 'pptx.share.formDescription')}
+				{t(isJoinMode ? 'pptx.share.joinDescription' : 'pptx.share.formDescription')}
 			</p>
-			{#if mode === 'join'}
+			{#if isJoinMode}
 			<div class="pptx-svelte-share-field">
 				<label for="pptx-svelte-share-invitation">{t('pptx.share.invitationLabel')}</label>
 				<input
 					id="pptx-svelte-share-invitation"
 					type="text"
-					bind:value={invitation}
+					value={invitation}
+					oninput={(event: Event) => setInvitation((event.target as HTMLInputElement).value)}
 					placeholder={t('pptx.share.invitationPlaceholder')}
 				/>
 				<p class="pptx-svelte-share-p2p-hint">{t('pptx.share.invitationHint')}</p>
@@ -125,19 +135,19 @@
 		</div>
 	{/if}
 	{#snippet footer()}
-		<button type="button" class="pptx-svelte-share-btn" onclick={onclose}>
-			{active ? t('pptx.share.close') : t('pptx.share.cancel')}
-		</button>
-		{#if !active}
-			<button
-				type="button"
-				class="pptx-svelte-share-btn pptx-svelte-share-btn-primary"
-				disabled={mode === 'join' ? !canJoin : !canStart}
-				onclick={handleStart}
-			>
-				{t(mode === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing')}
+			<button type="button" class="pptx-svelte-share-btn" onclick={onclose}>
+				{active ? t('pptx.share.close') : t('pptx.share.cancel')}
 			</button>
-		{/if}
+			{#if !active}
+				<button
+					type="button"
+					class="pptx-svelte-share-btn pptx-svelte-share-btn-primary"
+					disabled={isJoinMode ? !canJoin : !canStart}
+					onclick={handleStart}
+				>
+					{t(isJoinMode ? 'pptx.share.joinSession' : 'pptx.share.startSharing')}
+				</button>
+			{/if}
 	{/snippet}
 </ModalDialog>
 

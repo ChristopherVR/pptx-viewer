@@ -20,7 +20,9 @@
 	function onDragStart(index: number, event: DragEvent): void {
 		draggedIndex = index;
 		event.dataTransfer?.setData('text/plain', String(index));
-		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = 'move';
+		}
 	}
 
 	function onDrop(index: number, event: DragEvent): void {
