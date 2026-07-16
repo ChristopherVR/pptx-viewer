@@ -1,12 +1,9 @@
-import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import React, { useState, useCallback, useMemo } from 'react';
 
-import { DEFAULT_FILL_COLOR, DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
-import type { TableCellEditorState } from '../types';
+import { DEFAULT_TEXT_COLOR } from '../constants';
 import {
 	cn,
-	buildCssGradientFromShapeStyle,
 	getImageEffectsFilter,
 	getImageEffectsOpacity,
 	getImageRenderStyle,
@@ -15,12 +12,12 @@ import {
 	getTextStyleForElement,
 	isConnectorOrLineElement,
 	isEditableTextElement,
-	normalizeHexColor,
 	renderVectorShape,
 } from '../utils';
 import { getAriaRole, getAriaLabel, getAriaRoleDescription } from '../utils/accessibility';
 import { build3DExtrusionData } from '../utils/shape-visual-3d';
 import { ConnectorElementRenderer } from './elements/ConnectorElementRenderer';
+import { getElementInteractionProps } from './elements/element-interaction-props';
 import {
 	renderDagDuotoneFilterForElement,
 	getContainerStyle,
@@ -28,24 +25,16 @@ import {
 	elementHasTextHyperlink,
 } from './elements/element-renderer-helpers';
 import type { ElementRendererProps } from './elements/element-renderer-types';
+import { shapeParams } from './elements/element-shape-params';
 import { renderBody } from './elements/ElementBody';
 import { Extrusion3DOverlay } from './elements/Extrusion3DOverlay';
 import { LinkTooltip } from './elements/LinkTooltip';
 import { ResizeHandles } from './elements/ResizeHandles';
+import { getScopedElementHandlers } from './elements/scoped-element-handlers';
+import { StaticElementRenderer } from './StaticElementRenderer';
 
 export type { ElementRendererProps } from './elements/element-renderer-types';
-
-export function shapeParams(el: PptxElement) {
-	const ss = hasShapeProperties(el) ? el.shapeStyle : undefined;
-	const sw = Math.max(0, ss?.strokeWidth || 0);
-	const sc = normalizeHexColor(ss?.strokeColor, DEFAULT_STROKE_COLOR);
-	const fc = normalizeHexColor(ss?.fillColor, DEFAULT_FILL_COLOR);
-	const hf =
-		(ss?.fillColor !== undefined && ss?.fillColor !== 'transparent') ||
-		Boolean(buildCssGradientFromShapeStyle(ss) || ss?.fillGradient) ||
-		(ss?.fillMode === 'pattern' && Boolean(ss.fillPatternPreset));
-	return { hf, fc, sw, sc } as const;
-}
+export { shapeParams } from './elements/element-shape-params';
 
 export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 	// oxlint-disable-next-line prefer-arrow-callback -- named fn gives the memo component its displayName
@@ -92,28 +81,19 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		fieldContext,
 		tableStyleContext,
 	}) {
-		// Create element-scoped table cell select handler
-		const cellSelectHandler = onTableCellSelect
-			? (cell: TableCellEditorState | null) => onTableCellSelect(cell, el.id)
-			: undefined;
-		// Create element-scoped cell edit commit handler
-		const cellCommitHandler = onCommitCellEdit
-			? (rowIndex: number, colIndex: number, text: string) =>
-					onCommitCellEdit(el.id, rowIndex, colIndex, text)
-			: undefined;
-		// Create element-scoped column / row resize handlers
-		const colResizeHandler = onResizeTableColumns
-			? (newWidths: number[]) => onResizeTableColumns(el.id, newWidths)
-			: undefined;
-		const rowResizeHandler = onResizeTableRow
-			? (rowIndex: number, newHeight: number) => onResizeTableRow(el.id, rowIndex, newHeight)
-			: undefined;
-		// Create element-scoped SmartArt update handler (inline on-canvas node edits).
-		const smartArtUpdateHandler = onUpdateSmartArtElement
-			? (updates: Partial<PptxElement>) => onUpdateSmartArtElement(el.id, updates)
-			: undefined;
-		// On-canvas chart edits route through the same generic element-update path
-		// (updateElementById) the SmartArt handler wraps, so they share it.
+		const {
+			cellSelectHandler,
+			cellCommitHandler,
+			colResizeHandler,
+			rowResizeHandler,
+			smartArtUpdateHandler,
+		} = getScopedElementHandlers(el.id, {
+			onTableCellSelect,
+			onCommitCellEdit,
+			onResizeTableColumns,
+			onResizeTableRow,
+			onUpdateSmartArtElement,
+		});
 		const chartUpdateHandler = smartArtUpdateHandler;
 		const { hf, fc, sw, sc } = shapeParams(el);
 		const elementLocks = el.locks;
@@ -126,7 +106,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const isModel3D = el.type === 'model3d';
 		const isConn = isConnectorOrLineElement(el);
 
-		// ── 3D extrusion data ──
 		const shapeStyle3d = hasShapeProperties(el) ? el.shapeStyle : undefined;
 		const extrusionData = useMemo(
 			() =>
@@ -134,13 +113,11 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			[shapeStyle3d?.shape3d, shapeStyle3d?.scene3d, fc, el.width, el.height],
 		);
 
-		// ── Full-screen media play state tracking ──
 		const [isMediaPlaying, setIsMediaPlaying] = useState(false);
 		const handleMediaPlayStateChange = useCallback((playing: boolean): void => {
 			setIsMediaPlaying(playing);
 		}, []);
 
-		// ── Connector / line elements get specialised SVG-based rendering ──
 		if (isConn) {
 			return (
 				<ConnectorElementRenderer
@@ -163,20 +140,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const effectiveCanInteract = canInteract && !elementLocks?.noSelect;
 		const effectiveShowResizeHandles = showResizeHandles && !elementLocks?.noResize;
 		const effectiveIsInlineEditing = isInlineEditing && !elementLocks?.noTextEdit;
-		// Inline SmartArt node editing follows the same gate as text editing: the
-		// element must be interactive (so not presentation/passive) and not text-
-		// locked. The leaf additionally requires the update handler to be present.
 		const canEditSmartArt = effectiveCanInteract && !elementLocks?.noTextEdit;
-		// Direct chart-part editing follows the interactivity gate only: chart data
-		// edits are not text edits, so `noTextEdit` does not apply.
 		const canEditChart = effectiveCanInteract;
 
-		// Elements with actions or hyperlinks should be clickable even when not
-		// in editing mode (e.g. during presentation mode). `hasHyperlinks` must
-		// key off the element actually carrying a run-level hyperlink, not the
-		// mere presence of the always-supplied `onHyperlinkClick` handler, or
-		// every element (including inert template shapes) would stay actionable
-		// and bypass the `editTemplateMode` interaction gate.
 		const hasAction = Boolean(el.actionClick && onActionClick);
 		const hasHoverAction = Boolean(el.actionHover);
 		const hasHyperlinks = Boolean(onHyperlinkClick) && elementHasTextHyperlink(el);
@@ -202,11 +168,20 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const isFullscreenMedia =
 			el.type === 'media' && Boolean(el.fullScreen) && isPresentationPassive && isMediaPlaying;
 
-		// Accessibility attributes
 		const ariaRole = isActionable ? 'button' : getAriaRole(el);
 		const ariaLabel = getAriaLabel(el);
 		const ariaRoleDescription = getAriaRoleDescription(el);
 		const isFocusable = effectiveCanInteract || isActionable;
+		const interactionProps = getElementInteractionProps({
+			element: el,
+			isEditableText: isTxt,
+			canInteract: effectiveCanInteract,
+			isInlineEditing: effectiveIsInlineEditing,
+			isActionable,
+			isPresentationPassive,
+			onInlineEditCancel,
+			onActionClick,
+		});
 
 		return (
 			<div
@@ -237,76 +212,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					has3DExtrusion: extrusionData.hasExtrusion,
 					templateEditing,
 				})}
-				onKeyDown={(e) => {
-					if (e.key === 'Enter' && isTxt && effectiveCanInteract && !effectiveIsInlineEditing) {
-						// Start inline editing on Enter
-						e.preventDefault();
-						e.stopPropagation();
-						const dblClickEvt = new MouseEvent('dblclick', { bubbles: true });
-						e.currentTarget.dispatchEvent(dblClickEvt);
-					} else if (e.key === 'Escape' && effectiveIsInlineEditing) {
-						// Exit inline editing on Escape
-						e.preventDefault();
-						e.stopPropagation();
-						onInlineEditCancel();
-					} else if ((e.key === 'Enter' || e.key === ' ') && isActionable) {
-						e.preventDefault();
-						e.stopPropagation();
-						e.currentTarget.click();
-					}
-				}}
-				onClick={(e) => {
-					if (el.actionClick && onActionClick) {
-						// In presentation mode, plain click triggers the action.
-						// In editing mode, Ctrl+Click (or Cmd+Click on Mac) follows
-						// the hyperlink, matching PowerPoint behavior.
-						const shouldTrigger = !effectiveCanInteract || e.ctrlKey || e.metaKey;
-						if (shouldTrigger) {
-							e.stopPropagation();
-							e.preventDefault();
-							if (el.actionClick.highlightClick) {
-								const target = e.currentTarget;
-								target.style.filter = 'brightness(1.18)';
-								target.style.outline = '2px solid rgba(59, 130, 246, 0.6)';
-								window.setTimeout(() => {
-									target.style.filter = '';
-									target.style.outline = '';
-								}, 320);
-							}
-							onActionClick(el.id, el.actionClick);
-						}
-					}
-				}}
-				onMouseEnter={(e) => {
-					if (hasHoverAction && el.actionHover?.highlightClick) {
-						const target = e.currentTarget;
-						target.style.filter = 'brightness(1.15)';
-						target.style.outline = '2px solid rgba(59, 130, 246, 0.5)';
-					}
-					if (
-						isPresentationPassive &&
-						el.actionHover &&
-						onActionClick &&
-						(el.actionHover.url || el.actionHover.targetSlideIndex !== undefined)
-					) {
-						onActionClick(el.id, el.actionHover);
-					}
-				}}
-				onMouseLeave={
-					hasHoverAction && el.actionHover?.highlightClick
-						? (e) => {
-								const target = e.currentTarget;
-								target.style.filter = '';
-								target.style.outline = '';
-							}
-						: undefined
-				}
-				title={
-					// In editing mode with an action, the styled LinkTooltip replaces the native title.
-					effectiveCanInteract && el.actionClick
-						? undefined
-						: el.actionClick?.tooltip || el.actionHover?.tooltip || undefined
-				}
+				{...interactionProps}
 			>
 				{renderDagDuotoneFilterForElement(el)}
 				{extrusionData.hasExtrusion && <Extrusion3DOverlay data={extrusionData} />}
@@ -329,6 +235,17 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					isSel: isSelected,
 					doInk,
 					doGrp,
+					renderGroupChild: (child, index) => (
+						<StaticElementRenderer
+							key={child.id}
+							element={child}
+							activeSlide={activeSlide}
+							allSlides={allSlides}
+							mediaDataUrls={mediaDataUrls}
+							sourceSlideIndex={sourceSlideIndex}
+							zIndex={index}
+						/>
+					),
 					onEditChange: onInlineEditChange,
 					onCommit: onInlineEditCommit,
 					onCancel: onInlineEditCancel,

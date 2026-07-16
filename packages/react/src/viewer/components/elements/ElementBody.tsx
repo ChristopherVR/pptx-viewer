@@ -7,24 +7,16 @@ import type {
 	PptxSlide,
 	ZoomPptxElement,
 } from 'pptx-viewer-core';
-import { hasTextProperties, isInkElement, getLinkedTextBoxSegments } from 'pptx-viewer-core';
+import { isInkElement } from 'pptx-viewer-core';
 import React from 'react';
 
-import { DEFAULT_TEXT_COLOR } from '../../constants';
 import {
-	cn,
-	getTextCompensationTransform,
 	getTextLayoutStyle,
-	getTextWarpStyle,
 	renderMediaElement,
 	renderTableElement,
-	renderTextSegments,
 	shouldRenderFallbackLabel,
 	getElementLabel,
 } from '../../utils';
-import { buildTextBody3DSceneStyle } from '../../utils/text-effects';
-import { shouldUseSvgWarp, WarpedText } from '../../utils/text-warp';
-import { ActionButtonGlyphOverlay, isActionButtonShape } from './ActionButtonGlyphOverlay';
 import { ChartElementView } from './ChartElementView';
 import type { RenderBodyOptions } from './element-body-types';
 import { renderImg } from './ImageRenderer';
@@ -33,6 +25,7 @@ import { InlineTextEditor } from './InlineTextEditor';
 import { Model3DRenderer } from './Model3DRenderer';
 import { OleRenderer } from './OleRenderer';
 import { SmartArtElement } from './SmartArtElement';
+import { renderTextElementBody } from './TextElementBody';
 import { ZoomElementRenderer } from './ZoomElementRenderer';
 
 export type { RenderBodyOptions } from './element-body-types';
@@ -57,6 +50,7 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 		isSel,
 		doInk,
 		doGrp,
+		renderGroupChild,
 		onEditChange,
 		onCommit,
 		onCancel,
@@ -64,16 +58,11 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 		onCellCommit,
 		onColResize,
 		onRowResize,
-		findHl,
-		onHyperlinkClick,
 		isPresentationPassive,
 		handleMediaPlayStateChange,
-		presentationElementStates,
-		slideElements,
 		allSlides,
 		onZoomClick,
 		sourceSlideIndex,
-		fieldContext,
 		tableStyleContext,
 		onFormatText,
 		canEditSmartArt,
@@ -178,6 +167,13 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 		return <OleRenderer element={el as OlePptxElement} />;
 	}
 	if (doGrp && el.type === 'group' && (el as GroupPptxElement).children) {
+		if (renderGroupChild) {
+			return (
+				<div className='relative w-full h-full pointer-events-none'>
+					{(el as GroupPptxElement).children.map(renderGroupChild)}
+				</div>
+			);
+		}
 		return renderGroup((el as GroupPptxElement).children);
 	}
 	if (shouldRenderFallbackLabel(el, isTxtEl)) {
@@ -188,153 +184,5 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 		);
 	}
 
-	// Linked text box chain: clip overflow so text does not spill beyond the frame.
-	const isLinkedTxbx = hasTextProperties(el) && el.linkedTxbxId !== undefined;
-	const linkedOverflowCss: React.CSSProperties = isLinkedTxbx ? { overflow: 'hidden' } : {};
-
-	// Compute distributed text segments for linked text box chains.
-	// When an element belongs to a chain, getLinkedTextBoxSegments returns the
-	// slice of text that should render in this particular box after overflow
-	// distribution. For non-linked elements this is undefined and rendering
-	// falls back to the element's own textSegments.
-	const linkedSegments =
-		isLinkedTxbx && slideElements ? getLinkedTextBoxSegments(el, slideElements) : undefined;
-
-	// Determine if the element should use SVG textPath-based warp rendering.
-	const warpPreset = hasTextProperties(el) ? el.textStyle?.textWarpPreset : undefined;
-	const useSvgWarp = shouldUseSvgWarp(warpPreset);
-
-	// Text body 3D scene style (perspective + rotation from a:bodyPr/a:scene3d)
-	const scene3dStyle = hasTextProperties(el) ? buildTextBody3DSceneStyle(el.textStyle) : undefined;
-
-	// Compose transforms: flip compensation + 3D scene rotation
-	const compensationTransform = getTextCompensationTransform(el);
-	const composedTransform =
-		[compensationTransform, scene3dStyle?.transform].filter(Boolean).join(' ') || undefined;
-
-	// Scene3d CSS without the transform (perspective, transformStyle, etc.)
-	const scene3dNonTransform: React.CSSProperties | undefined = scene3dStyle
-		? {
-				...(scene3dStyle.perspective ? { perspective: scene3dStyle.perspective } : {}),
-				...(scene3dStyle.transformStyle ? { transformStyle: scene3dStyle.transformStyle } : {}),
-			}
-		: undefined;
-
-	const shapeTypeForGlyph =
-		'shapeType' in el ? (el as { shapeType?: string }).shapeType : undefined;
-	const showActionButtonGlyph = isActionButtonShape(shapeTypeForGlyph);
-
-	return (
-		<>
-			{vecShape}
-			{showActionButtonGlyph && <ActionButtonGlyphOverlay element={el} />}
-			{isTxtEl ? (
-				useSvgWarp ? (
-					<div
-						className={cn(
-							'relative z-10 w-full h-full',
-							onHyperlinkClick ? '' : 'pointer-events-none',
-						)}
-						style={{
-							...getTextLayoutStyle(el),
-							transform: composedTransform,
-							transformOrigin: 'center',
-							...scene3dNonTransform,
-							...linkedOverflowCss,
-						}}
-					>
-						<WarpedText
-							element={el}
-							width={el.width}
-							height={el.height}
-							fallbackColor={DEFAULT_TEXT_COLOR}
-							findHighlights={findHl}
-							fieldContext={fieldContext}
-						/>
-					</div>
-				) : (
-					<div
-						className={cn(
-							'relative z-10 w-full h-full whitespace-pre-wrap break-words leading-[1.3]',
-							onHyperlinkClick ? '' : 'pointer-events-none',
-						)}
-						style={{
-							...getTextLayoutStyle(el),
-							...txtS,
-							...getTextWarpStyle(txtSE),
-							transform: composedTransform,
-							transformOrigin: 'center',
-							...scene3dNonTransform,
-							...linkedOverflowCss,
-						}}
-					>
-						{renderTextSegments(
-							el,
-							DEFAULT_TEXT_COLOR,
-							undefined,
-							findHl,
-							onHyperlinkClick,
-							fieldContext,
-							presentationElementStates,
-							linkedSegments ?? undefined,
-							!isPresentationPassive,
-						)}
-					</div>
-				)
-			) : hasTextProperties(el) && el.promptText ? (
-				useSvgWarp ? (
-					<div
-						className={cn(
-							'relative z-10 w-full h-full',
-							onHyperlinkClick ? '' : 'pointer-events-none',
-						)}
-						style={{
-							...getTextLayoutStyle(el),
-							transform: composedTransform,
-							transformOrigin: 'center',
-							...scene3dNonTransform,
-							...linkedOverflowCss,
-						}}
-					>
-						<WarpedText
-							element={el}
-							width={el.width}
-							height={el.height}
-							fallbackColor={DEFAULT_TEXT_COLOR}
-							findHighlights={findHl}
-							fieldContext={fieldContext}
-						/>
-					</div>
-				) : (
-					<div
-						className={cn(
-							'relative z-10 w-full h-full whitespace-pre-wrap break-words leading-[1.3]',
-							onHyperlinkClick ? '' : 'pointer-events-none',
-						)}
-						style={{
-							...getTextLayoutStyle(el),
-							...txtS,
-							...getTextWarpStyle(txtSE),
-							transform: composedTransform,
-							transformOrigin: 'center',
-							...scene3dNonTransform,
-							...linkedOverflowCss,
-						}}
-					>
-						{renderTextSegments(
-							el,
-							DEFAULT_TEXT_COLOR,
-							undefined,
-							findHl,
-							onHyperlinkClick,
-							fieldContext,
-							presentationElementStates,
-							linkedSegments ?? undefined,
-							!isPresentationPassive,
-						)}
-					</div>
-				)
-			) : null}
-		</>
-	);
+	return renderTextElementBody(options);
 }

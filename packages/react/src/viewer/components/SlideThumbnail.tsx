@@ -1,40 +1,11 @@
-import type {
-	ChartPptxElement,
-	PptxElement,
-	PptxSlide,
-	SmartArtPptxElement,
-} from 'pptx-viewer-core';
-import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import {
-	DEFAULT_TEXT_COLOR,
-	DEFAULT_FILL_COLOR,
-	DEFAULT_STROKE_COLOR,
-	SLIDE_NAV_THUMBNAIL_WIDTH,
-	SLIDE_TRANSITION_OPTIONS,
-} from '../constants';
+import { SLIDE_NAV_THUMBNAIL_WIDTH, SLIDE_TRANSITION_OPTIONS } from '../constants';
 import type { CanvasSize } from '../types';
-import {
-	normalizeHexColor,
-	buildCssGradientFromShapeStyle,
-	getShapeVisualStyle,
-	renderVectorShape,
-	getTextStyleForElement,
-	getImageRenderStyle,
-	isEditableTextElement,
-	shouldRenderFallbackLabel,
-	getElementLabel,
-	getElementTransform,
-	getTextCompensationTransform,
-	getTextLayoutStyle,
-	renderTextSegments,
-	isImageTiled,
-	getImageTilingStyle,
-} from '../utils';
 import { getReactSlideBackgroundStyle } from '../utils/slide-background-style';
-import { ThumbnailChart, ThumbnailSmartArt, ThumbnailTable } from './thumbnail-element-renderers';
+import { StaticElementRenderer } from './StaticElementRenderer';
 
 interface SlideThumbnailProps {
 	slide: PptxSlide;
@@ -85,106 +56,15 @@ function SlideThumbnailImpl({
 							{transitionLabel}
 						</div>
 					)}
-				{previewElements.map((element) => {
-					const elementWidth = Math.max(element.width, 1);
-					const elementHeight = Math.max(element.height, 1);
-					const elShapeStyle = hasShapeProperties(element) ? element.shapeStyle : undefined;
-					const hasFill =
-						(elShapeStyle?.fillColor !== undefined && elShapeStyle?.fillColor !== 'transparent') ||
-						Boolean(buildCssGradientFromShapeStyle(elShapeStyle) || elShapeStyle?.fillGradient) ||
-						(elShapeStyle?.fillMode === 'pattern' && Boolean(elShapeStyle.fillPatternPreset));
-					const fillColor = normalizeHexColor(elShapeStyle?.fillColor, DEFAULT_FILL_COLOR);
-					const strokeWidth = Math.max(0, elShapeStyle?.strokeWidth || 0);
-					const strokeColor = normalizeHexColor(elShapeStyle?.strokeColor, DEFAULT_STROKE_COLOR);
-					const shapeVisualStyle = getShapeVisualStyle(
-						element,
-						hasFill,
-						fillColor,
-						strokeWidth,
-						strokeColor,
-					);
-					const vectorShape = renderVectorShape(
-						element,
-						hasFill,
-						fillColor,
-						strokeWidth,
-						strokeColor,
-					);
-					const fallbackTextColor =
-						element.type === 'shape' && hasFill ? '#ffffff' : DEFAULT_TEXT_COLOR;
-					const textStyle = getTextStyleForElement(element, fallbackTextColor);
-					const imageRenderStyle = getImageRenderStyle(element);
-					const canRenderText = isEditableTextElement(element);
-					const elText = hasTextProperties(element) ? element.text : undefined;
-					const elTextSegments = hasTextProperties(element) ? element.textSegments : undefined;
-					const hasText =
-						(typeof elText === 'string' && elText.trim().length > 0) ||
-						(elTextSegments?.length ?? 0) > 0;
-					const fallbackLabel = shouldRenderFallbackLabel(element, canRenderText)
-						? getElementLabel(element)
-						: '';
-
-					return (
-						<div
-							key={element.id}
-							className='absolute overflow-hidden'
-							style={{
-								left: element.x,
-								top: element.y,
-								width: elementWidth,
-								height: elementHeight,
-								transform: getElementTransform(element),
-								transformOrigin: 'center',
-							}}
-						>
-							{(element.type === 'picture' || element.type === 'image') &&
-							(element.svgData || element.imageData) ? (
-								isImageTiled(element) ? (
-									<div
-										className='pointer-events-none w-full h-full'
-										style={getImageTilingStyle(element)}
-									/>
-								) : (
-									<img
-										src={element.svgData || element.imageData}
-										alt=''
-										className='pointer-events-none'
-										style={imageRenderStyle}
-										draggable={false}
-									/>
-								)
-							) : element.type === 'table' ? (
-								<ThumbnailTable element={element} textStyle={textStyle} />
-							) : element.type === 'smartArt' ? (
-								<ThumbnailSmartArt element={element as SmartArtPptxElement} />
-							) : element.type === 'chart' ? (
-								<ThumbnailChart element={element as ChartPptxElement} />
-							) : (
-								<div className='relative w-full h-full overflow-hidden' style={shapeVisualStyle}>
-									{vectorShape}
-									{canRenderText && hasText && (
-										<div
-											className='w-full h-full whitespace-pre-wrap break-words px-1 py-0.5 leading-[1.3]'
-											style={{
-												...getTextLayoutStyle(element),
-												...textStyle,
-												transform: getTextCompensationTransform(element),
-												transformOrigin: 'center',
-											}}
-										>
-											{renderTextSegments(element, fallbackTextColor)}
-										</div>
-									)}
-									{!hasText && fallbackLabel.length > 0 && (
-										<div className='absolute inset-0 flex items-center justify-center text-[10px] text-muted-foreground'>
-											{fallbackLabel}
-										</div>
-									)}
-								</div>
-							)}
-						</div>
-					);
-				})}
+				{previewElements.map((element, index) => (
+					<StaticElementRenderer
+						key={element.id}
+						element={element}
+						activeSlide={slide}
+						allSlides={[slide]}
+						zIndex={index}
+					/>
+				))}
 			</div>
 		</div>
 	);

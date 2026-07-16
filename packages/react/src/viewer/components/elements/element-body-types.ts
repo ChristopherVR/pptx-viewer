@@ -33,6 +33,8 @@ export interface RenderBodyOptions {
 	isSel: boolean;
 	doInk: boolean;
 	doGrp: boolean;
+	/** Optional rich read-only dispatcher for children inside a grouped element. */
+	renderGroupChild?: (child: PptxElement, index: number) => React.ReactNode;
 	onEditChange: (t: string) => void;
 	onCommit: () => void;
 	onCancel: () => void;
