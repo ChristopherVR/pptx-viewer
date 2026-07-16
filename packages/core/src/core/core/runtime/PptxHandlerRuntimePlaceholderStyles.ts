@@ -1,4 +1,5 @@
 import { XmlObject, PlaceholderTextLevelStyle } from '../../types';
+import { xmlHasChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSlideUtils';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -113,7 +114,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		// Bullet suppression
-		if (levelProps['a:buNone']) {
+		if (xmlHasChild(levelProps, 'a:buNone')) {
 			style.bulletNone = true;
 		}
 

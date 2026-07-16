@@ -1,7 +1,7 @@
 import { BulletInfo, XmlObject } from '../../types';
 import type { PlaceholderTextLevelStyle } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
-import { xmlChild, xmlPath } from '../../utils/xml-access';
+import { xmlChild, xmlHasChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextDefaults';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -17,7 +17,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return null;
 		}
 		const paragraphProps = paragraph['a:pPr'] as XmlObject | undefined;
-		if (paragraphProps?.['a:buNone']) {
+		if (xmlHasChild(paragraphProps, 'a:buNone')) {
 			return { none: true };
 		}
 
@@ -43,7 +43,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (!candidate) {
 				continue;
 			}
-			if (candidate['a:buNone']) {
+			if (xmlHasChild(candidate, 'a:buNone')) {
 				return { none: true };
 			}
 			// Accept inherit-from-text bullet markers as a valid resolution

@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type React from 'react';
 
 import type { CanvasSize, SlideSectionGroup } from '../../types';
@@ -9,6 +9,7 @@ import type { CanvasSize, SlideSectionGroup } from '../../types';
 
 export interface SlidesPaneSidebarProps {
 	slides: PptxSlide[];
+	templateElementsBySlideId: Record<string, PptxElement[]>;
 	activeSlideIndex: number;
 	canvasSize: CanvasSize;
 	sectionGroups: SlideSectionGroup[];

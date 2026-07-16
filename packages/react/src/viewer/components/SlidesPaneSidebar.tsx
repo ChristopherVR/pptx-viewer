@@ -14,6 +14,8 @@ import type { SlidesPaneSidebarProps } from './slides-pane/types';
 import { useSlidePaneCallbacks } from './slides-pane/useSlidePaneCallbacks';
 import { buildFlatPaneItems, estimateSlideItemHeight } from './slides-pane/utils';
 
+const EMPTY_TEMPLATE_ELEMENTS: SlidesPaneSidebarProps['templateElementsBySlideId'][string] = [];
+
 export type { SlidesPaneSidebarProps } from './slides-pane/types';
 
 // ---------------------------------------------------------------------------
@@ -29,6 +31,7 @@ export const VIRTUALIZATION_THRESHOLD = SLIDE_VIRTUALIZATION_THRESHOLD;
 
 export function SlidesPaneSidebar({
 	slides,
+	templateElementsBySlideId,
 	activeSlideIndex,
 	canvasSize,
 	sectionGroups,
@@ -215,6 +218,9 @@ export function SlidesPaneSidebar({
 									<SlideItem
 										key={slide.id ?? item.slideIndex}
 										slide={slide}
+										templateElements={
+											templateElementsBySlideId[slide.id] ?? EMPTY_TEMPLATE_ELEMENTS
+										}
 										slideIndex={item.slideIndex}
 										isActive={item.slideIndex === activeSlideIndex}
 										canvasSize={canvasSize}
@@ -278,6 +284,9 @@ export function SlidesPaneSidebar({
 									<SlideItem
 										key={slide.id ?? idx}
 										slide={slide}
+										templateElements={
+											templateElementsBySlideId[slide.id] ?? EMPTY_TEMPLATE_ELEMENTS
+										}
 										slideIndex={idx}
 										isActive={idx === activeSlideIndex}
 										canvasSize={canvasSize}

@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import React, { useCallback } from 'react';
 import { LuEyeOff, LuMessageSquare } from 'react-icons/lu';
 
@@ -20,6 +20,7 @@ export interface SlidePresenceUser {
 
 export interface SlideItemProps {
 	slide: PptxSlide;
+	templateElements: PptxElement[];
 	slideIndex: number;
 	isActive: boolean;
 	canvasSize: CanvasSize;
@@ -43,6 +44,7 @@ export interface SlideItemProps {
 
 function SlideItemInner({
 	slide,
+	templateElements,
 	slideIndex,
 	isActive,
 	canvasSize,
@@ -133,7 +135,12 @@ function SlideItemInner({
 				{isHidden && (
 					<div className='absolute inset-0 pointer-events-none z-10 bg-[repeating-linear-gradient(135deg,transparent,transparent_4px,rgba(255,255,255,0.04)_4px,rgba(255,255,255,0.04)_8px)]' />
 				)}
-				<LazyThumbnail slide={slide} canvasSize={canvasSize} previewHeight={previewHeight} />
+				<LazyThumbnail
+					slide={slide}
+					templateElements={templateElements}
+					canvasSize={canvasSize}
+					previewHeight={previewHeight}
+				/>
 				{(slide.comments?.length ?? 0) > 0 && (
 					<div className='absolute top-0.5 right-0.5 flex items-center gap-0.5 rounded bg-amber-500/90 px-1 py-0.5 text-[8px] font-medium text-white leading-none z-10'>
 						<LuMessageSquare className='w-2 h-2' />

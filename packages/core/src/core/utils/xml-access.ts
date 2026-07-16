@@ -78,6 +78,14 @@ export function xmlChildren(node: unknown, key: string): XmlObject[] {
 }
 
 /**
+ * Test whether an XML child element is present, including self-closing empty
+ * elements that fast-xml-parser may represent as an empty string.
+ */
+export function xmlHasChild(node: unknown, key: string): boolean {
+	return isXmlObject(node) && Object.hasOwn(node, key);
+}
+
+/**
  * Read an attribute value. Pass the unprefixed name (e.g. `"id"` or
  * `"r:embed"`); the `@_` prefix is added internally.
  */

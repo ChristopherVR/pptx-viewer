@@ -7,6 +7,7 @@ import {
 	xmlAttrNumber,
 	xmlChild,
 	xmlChildren,
+	xmlHasChild,
 	xmlPath,
 	xmlText,
 } from './xml-access';
@@ -62,6 +63,18 @@ describe('xml-access', () => {
 		it('returns an empty array for non-object input', () => {
 			expect(xmlChildren(undefined, 'p:sp')).toStrictEqual([]);
 			expect(xmlChildren('text', 'p:sp')).toStrictEqual([]);
+		});
+	});
+
+	describe('xmlHasChild', () => {
+		it('detects object and self-closing empty children', () => {
+			expect(xmlHasChild({ 'a:buNone': {} }, 'a:buNone')).toBeTruthy();
+			expect(xmlHasChild({ 'a:buNone': '' }, 'a:buNone')).toBeTruthy();
+		});
+
+		it('returns false when the child is absent or the node is invalid', () => {
+			expect(xmlHasChild({}, 'a:buNone')).toBeFalsy();
+			expect(xmlHasChild(undefined, 'a:buNone')).toBeFalsy();
 		});
 	});
 

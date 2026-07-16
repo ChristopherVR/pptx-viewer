@@ -120,6 +120,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 					<>
 						<SlidesPaneSidebar
 							slides={slides}
+							templateElementsBySlideId={state.templateElementsBySlideId}
 							activeSlideIndex={activeSlideIndex}
 							canvasSize={canvasSize}
 							sectionGroups={slideSectionGroups}

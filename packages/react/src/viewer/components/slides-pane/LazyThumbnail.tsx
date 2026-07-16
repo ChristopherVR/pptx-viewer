@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 /**
  * LazyThumbnail: Defers rendering of a SlideThumbnail until its
  * container enters (or is near) the viewport.
@@ -22,6 +22,7 @@ import { SlideThumbnail } from '../SlideThumbnail';
 
 interface LazyThumbnailProps {
 	slide: PptxSlide;
+	templateElements: PptxElement[];
 	canvasSize: CanvasSize;
 	/** Pre-computed preview height so the placeholder matches exactly. */
 	previewHeight: number;
@@ -33,6 +34,7 @@ interface LazyThumbnailProps {
 
 function LazyThumbnailInner({
 	slide,
+	templateElements,
 	canvasSize,
 	previewHeight,
 }: LazyThumbnailProps): React.ReactElement {
@@ -75,7 +77,7 @@ function LazyThumbnailInner({
 	return (
 		<div ref={containerRef}>
 			{isVisible ? (
-				<SlideThumbnail slide={slide} templateElements={[]} canvasSize={canvasSize} />
+				<SlideThumbnail slide={slide} templateElements={templateElements} canvasSize={canvasSize} />
 			) : (
 				<div
 					className='relative w-full overflow-hidden rounded border border-border bg-muted/30 animate-pulse'
