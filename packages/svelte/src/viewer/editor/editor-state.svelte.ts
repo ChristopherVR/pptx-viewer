@@ -1,4 +1,7 @@
 import type {
+	PptxAppProperties,
+	PptxCoreProperties,
+	PptxCustomProperty,
 	PptxElement,
 	PptxHandoutMaster,
 	PptxHandler,
@@ -51,6 +54,9 @@ export class EditorState {
 	notesMaster = $state.raw<PptxNotesMaster | undefined>(undefined);
 	handoutMaster = $state.raw<PptxHandoutMaster | undefined>(undefined);
 	sections = $state.raw<PptxSection[]>([]);
+	coreProperties = $state.raw<PptxCoreProperties | undefined>(undefined);
+	appProperties = $state.raw<PptxAppProperties | undefined>(undefined);
+	customProperties = $state.raw<PptxCustomProperty[]>([]);
 	masterViewTarget = $state.raw<MasterViewTarget | null>(null);
 	readonly selection = new EditorSelection();
 	editable = $state(false);
@@ -156,6 +162,9 @@ export class EditorState {
 		notesMaster?: PptxNotesMaster,
 		handoutMaster?: PptxHandoutMaster,
 		sections: PptxSection[] = [],
+		coreProperties?: PptxCoreProperties,
+		appProperties?: PptxAppProperties,
+		customProperties: PptxCustomProperty[] = [],
 	): void {
 		const partition = partitionTemplateElements(slides);
 		this.slides = partition.slides;
@@ -164,6 +173,9 @@ export class EditorState {
 		this.notesMaster = structuredClone(notesMaster);
 		this.handoutMaster = structuredClone(handoutMaster);
 		this.sections = structuredClone(sections);
+		this.coreProperties = structuredClone(coreProperties);
+		this.appProperties = structuredClone(appProperties);
+		this.customProperties = structuredClone(customProperties);
 		this.masterViewTarget = null;
 		this.selection.clear();
 		this.editTemplateMode = false;
@@ -277,6 +289,9 @@ export class EditorState {
 		this.notesMaster = restored.notesMaster;
 		this.handoutMaster = restored.handoutMaster;
 		this.sections = restored.sections;
+		this.coreProperties = restored.coreProperties;
+		this.appProperties = restored.appProperties;
+		this.customProperties = restored.customProperties;
 		this.interactionActive = false;
 		this.selection.prune((id) => this.activeElements.some((element) => element.id === id));
 		this.commitChange();
@@ -294,6 +309,21 @@ export class EditorState {
 	commitInlineText = (id: string, text: string): void => this.elementOps.commitInlineText(id, text);
 	commitNotes = (notes: string, notesSegments?: TextSegment[]): void =>
 		this.elementOps.commitNotes(notes, notesSegments);
+
+	updateDocumentProperties(
+		core: PptxCoreProperties,
+		app: PptxAppProperties,
+		custom: PptxCustomProperty[],
+	): void {
+		if (!this.editable) {
+			return;
+		}
+		this.pushHistory();
+		this.coreProperties = { ...core };
+		this.appProperties = { ...app };
+		this.customProperties = custom.map((property) => ({ ...property }));
+		this.commitChange();
+	}
 
 	undo(): void {
 		this.#restore(this.#history.undo(this.#snapshot())?.snapshot);

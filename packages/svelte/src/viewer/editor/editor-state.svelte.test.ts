@@ -189,6 +189,36 @@ describe('editorState history-tracked mutations', () => {
 		});
 	});
 
+	it('edits and saves document properties with undo support', async () => {
+		const { editor, save } = make();
+		editor.editable = true;
+		editor.setSlides(
+			[slide('a', [])],
+			[],
+			undefined,
+			undefined,
+			[],
+			{ title: 'Old title' },
+			{ company: 'Old company' },
+			[{ name: 'Project', value: 'Alpha', type: 'lpwstr' }],
+		);
+
+		editor.updateDocumentProperties({ title: 'New title' }, { company: 'New company' }, [
+			{ name: 'Project', value: 'Beta', type: 'lpwstr' },
+		]);
+		expect(editor.coreProperties?.title).toBe('New title');
+		expect(editor.customProperties[0].value).toBe('Beta');
+		editor.undo();
+		expect(editor.coreProperties?.title).toBe('Old title');
+		editor.redo();
+		await editor.save();
+		expect(save.mock.calls[0]?.[1]).toMatchObject({
+			coreProperties: { title: 'New title' },
+			appProperties: { company: 'New company' },
+			customProperties: [{ name: 'Project', value: 'Beta', type: 'lpwstr' }],
+		});
+	});
+
 	it('deleteSelected removes, marks dirty, fires onChange, and is undoable', () => {
 		const { editor, onChange } = make();
 		editor.setSlides([slide('a', [shape('e1'), shape('e2')])]);

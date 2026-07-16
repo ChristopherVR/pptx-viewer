@@ -16,6 +16,7 @@
 		hasMacros,
 		onopenfile,
 		exportUi,
+		onproperties,
 	}: {
 		ondownload: () => void;
 		ondownloadppsx: () => void;
@@ -24,6 +25,7 @@
 		hasMacros: boolean;
 		onopenfile?: () => void;
 		exportUi?: ExportUiState;
+		onproperties?: () => void;
 	} = $props();
 	const t = useTranslator();
 </script>
@@ -61,6 +63,7 @@
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M14 5 8 8.5 2 5m0 0 6-3 6 3v6L8 14l-6-3zM8 8.5V14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
 		<span>{t('pptx.file.package')}</span>
 	</button>
+	{#if onproperties}<button type="button" title={t('pptx.ribbon.documentProperties')} onclick={onproperties}><span>{t('pptx.ribbon.documentProperties')}</span></button>{/if}
 	{#if exportUi}
 		<button
 			type="button"

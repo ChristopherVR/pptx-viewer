@@ -1,4 +1,7 @@
 import type {
+	PptxAppProperties,
+	PptxCoreProperties,
+	PptxCustomProperty,
 	PptxHandoutMaster,
 	PptxHandler,
 	PptxNotesMaster,
@@ -19,6 +22,9 @@ export interface EditorSnapshot {
 	notesMaster: PptxNotesMaster | undefined;
 	handoutMaster: PptxHandoutMaster | undefined;
 	sections: PptxSection[];
+	coreProperties: PptxCoreProperties | undefined;
+	appProperties: PptxAppProperties | undefined;
+	customProperties: PptxCustomProperty[];
 }
 
 export function createEditorSnapshot(snapshot: EditorSnapshot): EditorSnapshot {
@@ -29,6 +35,9 @@ export function createEditorSnapshot(snapshot: EditorSnapshot): EditorSnapshot {
 		notesMaster: structuredClone(snapshot.notesMaster),
 		handoutMaster: structuredClone(snapshot.handoutMaster),
 		sections: structuredClone(snapshot.sections),
+		coreProperties: structuredClone(snapshot.coreProperties),
+		appProperties: structuredClone(snapshot.appProperties),
+		customProperties: structuredClone(snapshot.customProperties),
 	};
 }
 
@@ -47,10 +56,18 @@ export async function saveEditorDocument(
 				notesMaster: snapshot.notesMaster,
 				handoutMaster: snapshot.handoutMaster,
 				sections: snapshot.sections.length > 0 ? snapshot.sections : undefined,
+				coreProperties: snapshot.coreProperties,
+				appProperties: snapshot.appProperties,
+				customProperties:
+					snapshot.customProperties.length > 0 ? snapshot.customProperties : undefined,
 				outputFormat: format,
 			})
 		: handler.save(snapshot.slides, {
 				sections: snapshot.sections.length > 0 ? snapshot.sections : undefined,
+				coreProperties: snapshot.coreProperties,
+				appProperties: snapshot.appProperties,
+				customProperties:
+					snapshot.customProperties.length > 0 ? snapshot.customProperties : undefined,
 				outputFormat: format,
 			});
 }

@@ -10,6 +10,7 @@
 	import DesignTab from './design/DesignTab.svelte';
 	import DrawTab from './draw/DrawTab.svelte';
 	import FileTab from './file/FileTab.svelte';
+	import DocumentPropertiesDialog from './file/DocumentPropertiesDialog.svelte';
 	import FindReplacePanel from './FindReplacePanel.svelte';
 	import HomeTab from './home/HomeTab.svelte';
 	import InsertTab from './insert/InsertTab.svelte';
@@ -28,6 +29,7 @@
 	const t = useTranslator();
 
 	let activeTab = $state(DEFAULT_RIBBON_TAB);
+	let propertiesOpen = $state(false);
 	$effect(() => {
 		if (props.editor.equationOps.editingId) {
 			activeTab = 'insert';
@@ -36,6 +38,10 @@
 
 	function selectTab(id: typeof activeTab): void {
 		activeTab = id;
+	}
+
+	function setPropertiesOpen(open: boolean): void {
+		propertiesOpen = open;
 	}
 </script>
 
@@ -56,7 +62,8 @@
 					onpackage={props.onpackage}
 					hasMacros={props.hasMacros}
 				onopenfile={props.onopenfile}
-				exportUi={props.exportUi}
+					exportUi={props.exportUi}
+				onproperties={() => setPropertiesOpen(true)}
 			/>
 		{:else if activeTab === 'home'}
 			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />
@@ -101,6 +108,7 @@
 		{/if}
 	</div>
 </div>
+{#if propertiesOpen}<DocumentPropertiesDialog editor={props.editor} onclose={() => setPropertiesOpen(false)} />{/if}
 
 <style>
 	.pptx-svelte-ribbon {

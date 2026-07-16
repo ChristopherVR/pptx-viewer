@@ -76,6 +76,9 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 					deps.loader.notesMaster,
 					deps.loader.handoutMaster,
 					deps.loader.sections,
+					deps.loader.coreProperties,
+					deps.loader.appProperties,
+					deps.loader.customProperties,
 				),
 			);
 			deps.getOnload()?.({

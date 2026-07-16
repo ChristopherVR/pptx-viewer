@@ -1,5 +1,8 @@
 import type {
 	ParsedTableStyleMap,
+	PptxAppProperties,
+	PptxCoreProperties,
+	PptxCustomProperty,
 	PptxHandoutMaster,
 	PptxNotesMaster,
 	PptxSection,
@@ -30,6 +33,9 @@ export class PresentationLoader {
 	notesMaster = $state.raw<PptxNotesMaster | undefined>(undefined);
 	handoutMaster = $state.raw<PptxHandoutMaster | undefined>(undefined);
 	sections = $state.raw<PptxSection[]>([]);
+	coreProperties = $state.raw<PptxCoreProperties | undefined>(undefined);
+	appProperties = $state.raw<PptxAppProperties | undefined>(undefined);
+	customProperties = $state.raw<PptxCustomProperty[]>([]);
 	/** Whether the loaded package contains a VBA project. */
 	hasMacros = $state(false);
 	notesCanvasSize = $state.raw<CanvasSize | undefined>(undefined);
@@ -100,6 +106,9 @@ export class PresentationLoader {
 			this.notesMaster = parsed.notesMaster;
 			this.handoutMaster = parsed.handoutMaster;
 			this.sections = parsed.sections ?? [];
+			this.coreProperties = parsed.coreProperties;
+			this.appProperties = parsed.appProperties;
+			this.customProperties = parsed.customProperties ?? [];
 			this.hasMacros = parsed.hasMacros ?? false;
 			this.notesCanvasSize =
 				parsed.notesWidthEmu && parsed.notesHeightEmu
