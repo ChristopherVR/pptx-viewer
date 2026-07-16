@@ -119,7 +119,11 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 		>
 			<FileSection
 				v-if="s === 'file'"
+				:file-name="props.fileName"
+				:on-close="() => props.onSetToolbarSection('home')"
+				:on-create-presentation="props.onCreatePresentation"
 				:on-open-file="props.onOpenFile"
+				:on-open-recent-file="props.onOpenRecentFile"
 				:on-export-png="props.onExportPng"
 				:on-export-pdf="props.onExportPdf"
 				:on-export-video="props.onExportVideo"
@@ -131,6 +135,8 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:has-macros="props.hasMacros"
 				:on-copy-slide-as-image="props.onCopySlideAsImage"
 				:on-print="props.onPrint"
+				:on-open-settings="props.onOpenSettings"
+				:on-open-share-dialog="props.onOpenShareDialog"
 				:on-open-document-properties="props.onOpenDocumentProperties"
 				:on-open-password-protection="props.onOpenPasswordProtection"
 				:on-open-font-embedding="props.onOpenFontEmbedding"

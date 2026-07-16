@@ -34,9 +34,11 @@ import type { CollaborationTransport, DistributeAxis } from 'pptx-viewer-shared'
 import {
 	buildBroadcastViewerUrl,
 	buildUserFontFaceStyles,
+	createBackstagePresentation,
 	downloadBlob,
 	isTemplateElementId,
 	openPptxFile,
+	readBackstageRecentFile,
 	setCellText,
 	strokeToInkElement,
 } from 'pptx-viewer-shared';
@@ -202,6 +204,22 @@ function handleOpenFile(): void {
 			internalContent.value = new Uint8Array(picked.buffer);
 		}
 	})();
+}
+
+function handleOpenRecentFile(key: string): void {
+	void (async () => {
+		const bytes = await readBackstageRecentFile(key);
+		if (bytes) {
+			internalContent.value = bytes;
+		}
+	})();
+}
+
+function createPresentation(templateId: string): void {
+	slides.value = createBackstagePresentation(templateId);
+	templateElementsBySlideId.value = {};
+	activeSlideIndex.value = 0;
+	selectedElementIds.value = [];
 }
 
 const {
@@ -1546,6 +1564,8 @@ const ribbonProps = useRibbonProps({
 	duplicateSelected,
 	deleteSelected,
 	handleOpenFile,
+	handleOpenRecentFile,
+	createPresentation,
 	onExportPng,
 	onExportPdf,
 	onExportWebm,

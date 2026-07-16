@@ -278,7 +278,11 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 
 				<div v-else-if="active === 'file'" :class="WRAP">
 					<FileSection
+						:file-name="props.fileName"
+						:on-close="() => emit('close')"
+						:on-create-presentation="props.onCreatePresentation"
 						:on-open-file="props.onOpenFile"
+						:on-open-recent-file="props.onOpenRecentFile"
 						:on-export-png="props.onExportPng"
 						:on-export-pdf="props.onExportPdf"
 						:on-export-video="props.onExportVideo"
@@ -290,6 +294,8 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:has-macros="props.hasMacros"
 						:on-copy-slide-as-image="props.onCopySlideAsImage"
 						:on-print="props.onPrint"
+						:on-open-settings="props.onOpenSettings"
+						:on-open-share-dialog="props.onOpenShareDialog"
 						:on-open-document-properties="props.onOpenDocumentProperties"
 						:on-open-password-protection="props.onOpenPasswordProtection"
 						:on-open-font-embedding="props.onOpenFontEmbedding"

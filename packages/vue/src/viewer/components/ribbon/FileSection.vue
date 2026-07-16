@@ -1,164 +1,288 @@
 <script setup lang="ts">
-/**
- * FileSection: the Vue 3 port of React's `toolbar/FileSection.tsx`. Renders the
- * File ribbon tab's Save/Export/Print/Info pill buttons. A faithful, mechanical
- * port for visual + behavioral parity: class strings are copied verbatim, the
- * `react-icons/lu` glyphs become their `lucide-vue-next` equivalents, and React's
- * individual callback props become Vue `defineProps` callbacks invoked directly.
- */
+import { ArrowLeft } from 'lucide-vue-next';
 import {
-	Copy,
-	Download,
-	FileText,
-	FolderOpen,
-	Image,
-	Info,
-	Lock,
-	Package,
-	Play,
-	Printer,
-	ShieldAlert,
-	Type,
-	Video,
-} from 'lucide-vue-next';
-import { useI18n } from 'vue-i18n';
+	BACKSTAGE_NAV,
+	BACKSTAGE_TEMPLATES,
+	formatBackstageDate,
+	formatBackstageSize,
+	listBackstageRecentFiles,
+	type BackstagePage,
+	type BackstageRecentFile,
+} from 'pptx-viewer-shared';
+import { computed, onMounted, ref } from 'vue';
 
-import { ic, pill, SEP } from './ribbon-constants';
+import { backstageIcon } from './file-section-icons';
+import type { FileSectionProps } from './file-section-types';
 
-interface Props {
-	/** Open another presentation. Hidden when not provided. */
-	onOpenFile?: () => void;
-	onExportPng: () => void;
-	onExportPdf: () => void;
-	onExportVideo: () => void;
-	onExportGif: () => void;
-	onPackageForSharing: () => void;
-	onSaveAsPptx: () => void;
-	onSaveAsPpsx: () => void;
-	onSaveAsPptm: () => void;
-	hasMacros: boolean;
-	onCopySlideAsImage: () => void;
-	onPrint: () => void;
-	onOpenDocumentProperties?: () => void;
-	onOpenPasswordProtection?: () => void;
-	onOpenFontEmbedding?: () => void;
-	onOpenDigitalSignatures?: () => void;
+const props = defineProps<FileSectionProps>();
+const page = ref<BackstagePage>('home');
+const query = ref('');
+const recent = ref<BackstageRecentFile[]>([]);
+onMounted(() => void listBackstageRecentFiles().then((items) => (recent.value = items)));
+const visibleRecent = computed(() => {
+	const q = query.value.trim().toLowerCase();
+	return q
+		? recent.value.filter((file) => `${file.name} ${file.location}`.toLowerCase().includes(q))
+		: recent.value;
+});
+const title = computed(() => BACKSTAGE_NAV.find((item) => item.id === page.value)?.label ?? 'Home');
+const run = (action?: () => void) => {
+	action?.();
+	if (action) props.onClose();
+};
+const actions = computed(() => {
+	if (page.value === 'info')
+		return [
+			[
+				'Protect Presentation',
+				'Control what changes people can make.',
+				'🔒',
+				props.onOpenPasswordProtection,
+			],
+			[
+				'Inspect Presentation',
+				'Review properties and hidden content.',
+				'ⓘ',
+				props.onOpenDocumentProperties,
+			],
+			['Embed Fonts', 'Keep typography consistent across devices.', 'T', props.onOpenFontEmbedding],
+			[
+				'Digital Signatures',
+				'View and manage attached signatures.',
+				'✓',
+				props.onOpenDigitalSignatures,
+			],
+		] as const;
+	if (page.value === 'saveAs')
+		return [
+			['PowerPoint Presentation', 'Save an editable .pptx copy.', 'P', props.onSaveAsPptx],
+			['PowerPoint Show', 'Save a .ppsx slide show.', '▶', props.onSaveAsPpsx],
+			...(props.hasMacros
+				? [
+						[
+							'Macro-Enabled Presentation',
+							'Preserve VBA in a .pptm file.',
+							'M',
+							props.onSaveAsPptm,
+						] as const,
+					]
+				: []),
+			['Package for Sharing', 'Bundle the deck and linked assets.', '□', props.onPackageForSharing],
+		] as const;
+	if (page.value === 'export')
+		return [
+			['Create PDF', 'Publish one page per slide.', 'PDF', props.onExportPdf],
+			['Export current slide', 'Create a high-quality PNG image.', 'PNG', props.onExportPng],
+			['Create a Video', 'Export timings and animations as WebM.', '▶', props.onExportVideo],
+			['Create an Animated GIF', 'Make a compact looping preview.', 'GIF', props.onExportGif],
+			['Copy as Image', 'Copy the current slide to the clipboard.', '▣', props.onCopySlideAsImage],
+		] as const;
+	if (page.value === 'print')
+		return [
+			[
+				'Print Presentation',
+				'Choose layout and output settings in the browser print dialog.',
+				'▧',
+				props.onPrint,
+			],
+		] as const;
+	if (page.value === 'share')
+		return [
+			['Share with People', 'Invite collaborators to work together.', '◇', props.onOpenShareDialog],
+			[
+				'Package for Sharing',
+				'Download a self-contained offline package.',
+				'□',
+				props.onPackageForSharing,
+			],
+		] as const;
+	return [];
+});
+function selectPage(id: BackstagePage): void {
+	if (id === 'close') return props.onClose();
+	if (id === 'save') return run(props.onSaveAsPptx);
+	if (id === 'options' && props.onOpenSettings) return run(props.onOpenSettings);
+	page.value = id;
 }
-
-const props = defineProps<Props>();
-const { t } = useI18n();
 </script>
 
 <template>
-	<!-- Open another presentation -->
-	<template v-if="props.onOpenFile">
-		<button
-			:class="pill"
-			:title="t('pptx.ribbon.openAnotherPresentation')"
-			@click="props.onOpenFile()"
-		>
-			<FolderOpen :class="ic" />
-			{{ t('pptx.ribbon.open') }}
-		</button>
-		<div :class="SEP" />
-	</template>
-
-	<!-- Save & Export -->
-	<button :class="pill" :title="t('pptx.file.saveAsPptxTooltip')" @click="props.onSaveAsPptx()">
-		<Download :class="ic" />
-		{{ t('pptx.file.saveAsPptx') }}
-	</button>
-	<button :class="pill" :title="t('pptx.file.saveAsPpsxTooltip')" @click="props.onSaveAsPpsx()">
-		<Play :class="ic" />
-		{{ t('pptx.file.saveAsPpsx') }}
-	</button>
-	<button
-		v-if="props.hasMacros"
-		:class="pill"
-		:title="t('pptx.file.saveAsPptmTooltip')"
-		@click="props.onSaveAsPptm()"
+	<div
+		class="fixed inset-0 z-[200] flex bg-background font-[Aptos,Segoe_UI,sans-serif] text-foreground"
+		role="dialog"
+		aria-modal="true"
+		aria-label="File"
 	>
-		<FileText :class="ic" />
-		{{ t('pptx.file.saveAsPptm') }}
-	</button>
-	<button :class="pill" :title="t('pptx.file.packageTooltip')" @click="props.onPackageForSharing()">
-		<Package :class="ic" />
-		{{ t('pptx.file.package') }}
-	</button>
-
-	<div :class="SEP" />
-
-	<!-- Export -->
-	<button :class="pill" :title="t('pptx.ribbon.exportPng')" @click="props.onExportPng()">
-		<Download :class="ic" />
-		{{ t('pptx.file.png') }}
-	</button>
-	<button :class="pill" :title="t('pptx.ribbon.exportPdf')" @click="props.onExportPdf()">
-		<FileText :class="ic" />
-		{{ t('pptx.file.pdf') }}
-	</button>
-	<button :class="pill" :title="t('pptx.ribbon.exportVideo')" @click="props.onExportVideo()">
-		<Video :class="ic" />
-		{{ t('pptx.file.video') }}
-	</button>
-	<button :class="pill" :title="t('pptx.ribbon.exportGif')" @click="props.onExportGif()">
-		<Image :class="ic" />
-		{{ t('pptx.file.gif') }}
-	</button>
-	<button
-		:class="pill"
-		:title="t('pptx.file.copyImageTooltip')"
-		@click="props.onCopySlideAsImage()"
-	>
-		<Copy :class="ic" />
-		{{ t('pptx.file.copyImage') }}
-	</button>
-
-	<div :class="SEP" />
-
-	<!-- Print -->
-	<button :class="pill" :title="t('pptx.print.printButton')" @click="props.onPrint()">
-		<Printer :class="ic" />
-		{{ t('pptx.print.printButton') }}
-	</button>
-
-	<div :class="SEP" />
-
-	<!-- Info -->
-	<button
-		v-if="props.onOpenDocumentProperties"
-		:class="pill"
-		:title="t('pptx.ribbon.documentProperties')"
-		@click="props.onOpenDocumentProperties()"
-	>
-		<Info :class="ic" />
-		{{ t('pptx.ribbon.properties') }}
-	</button>
-	<button
-		v-if="props.onOpenPasswordProtection"
-		:class="pill"
-		:title="t('pptx.security.protectPresentation')"
-		@click="props.onOpenPasswordProtection()"
-	>
-		<Lock :class="ic" />
-		{{ t('pptx.ribbon.protect') }}
-	</button>
-	<button
-		v-if="props.onOpenFontEmbedding"
-		:class="pill"
-		:title="t('pptx.ribbon.embedFonts')"
-		@click="props.onOpenFontEmbedding()"
-	>
-		<Type :class="ic" />
-		{{ t('pptx.file.fonts') }}
-	</button>
-	<button
-		v-if="props.onOpenDigitalSignatures"
-		:class="pill"
-		:title="t('pptx.digitalSignatures.title')"
-		@click="props.onOpenDigitalSignatures()"
-	>
-		<ShieldAlert :class="ic" />
-		{{ t('pptx.ribbon.signatures') }}
-	</button>
+		<aside class="flex w-[148px] shrink-0 flex-col border-r border-border bg-secondary">
+			<button
+				type="button"
+				aria-label="Back to presentation"
+				class="grid min-h-12 place-items-center border-b border-border text-xl hover:bg-accent"
+				@click="props.onClose()"
+			>
+				<ArrowLeft :size="18" aria-hidden="true" />
+			</button>
+			<nav class="flex min-h-0 flex-1 flex-col py-2">
+				<button
+					v-for="item in BACKSTAGE_NAV.filter((entry) => !entry.group)"
+					:key="item.id"
+					type="button"
+					:class="[
+						'flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px]',
+						page === item.id
+							? 'border-primary bg-card text-primary'
+							: 'border-transparent hover:bg-accent',
+					]"
+					@click="selectPage(item.id)"
+				>
+					<component :is="backstageIcon(item.id)" :size="17" aria-hidden="true" />
+					{{ item.label }}
+				</button>
+				<div class="flex-1" />
+				<button
+					v-for="item in BACKSTAGE_NAV.filter((entry) => entry.group)"
+					:key="item.id"
+					type="button"
+					:class="[
+						'flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px]',
+						page === item.id
+							? 'border-primary bg-card text-primary'
+							: 'border-transparent hover:bg-accent',
+					]"
+					@click="selectPage(item.id)"
+				>
+					<component :is="backstageIcon(item.id)" :size="17" aria-hidden="true" />
+					{{ item.label }}
+				</button>
+			</nav>
+		</aside>
+		<main class="min-w-0 flex-1 overflow-y-auto px-[clamp(32px,4vw,72px)] py-5">
+			<h1 class="text-[24px] font-semibold">{{ page === 'home' ? 'Good evening' : title }}</h1>
+			<template v-if="page === 'home' || page === 'new'">
+				<h2 class="mt-7 text-[17px] font-semibold">New</h2>
+				<div class="mt-5 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-6">
+					<button
+						v-for="template in BACKSTAGE_TEMPLATES"
+						:key="template.id"
+						type="button"
+						class="text-left"
+						@click="run(() => props.onCreatePresentation(template.id))"
+					>
+						<span
+							class="block aspect-[16/9] border border-border shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:shadow-lg"
+							:style="{ background: template.preview }"
+						/><strong class="mt-2 block truncate text-[12px] font-medium">{{
+							template.name
+						}}</strong
+						><span class="block truncate text-[10px] text-muted-foreground">{{
+							template.description
+						}}</span>
+					</button>
+				</div>
+			</template>
+			<template v-if="page === 'home' || page === 'open'">
+				<input
+					v-model="query"
+					class="mt-8 h-10 w-full max-w-[540px] border border-input bg-card px-4 text-[13px] text-card-foreground outline-none focus:border-ring"
+					placeholder="Search recent presentations"
+				/>
+				<button
+					v-if="page === 'open'"
+					type="button"
+					class="mt-4 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+					@click="run(props.onOpenFile)"
+				>
+					Browse this device
+				</button>
+				<h2 class="mt-6 text-[16px] font-semibold">Recent</h2>
+				<div class="mt-5 border-t border-border">
+					<div
+						class="grid grid-cols-[1fr_120px_90px] px-3 py-2 text-[11px] font-semibold text-muted-foreground"
+					>
+						<span>Name</span><span>Date modified</span><span>Size</span>
+					</div>
+					<button
+						v-for="file in visibleRecent"
+						:key="file.key"
+						type="button"
+						class="grid w-full grid-cols-[1fr_120px_90px] items-center border-t border-border px-3 py-3 text-left hover:bg-accent"
+						@click="run(() => props.onOpenRecentFile?.(file.key))"
+					>
+						<span class="flex min-w-0 items-center gap-3"
+							><span
+								class="grid size-8 shrink-0 place-items-center bg-primary font-bold text-primary-foreground"
+								>P</span
+							><span class="min-w-0"
+								><strong class="block truncate text-[13px] font-normal">{{ file.name }}</strong
+								><small class="block truncate text-[11px] text-muted-foreground">{{
+									file.location
+								}}</small></span
+							></span
+						><span class="text-[11px] text-muted-foreground">{{
+							formatBackstageDate(file.timestamp)
+						}}</span
+						><span class="text-[11px] text-muted-foreground">{{
+							formatBackstageSize(file.size)
+						}}</span>
+					</button>
+					<div
+						v-if="visibleRecent.length === 0"
+						class="border-t border-border px-3 py-10 text-center text-sm text-muted-foreground"
+					>
+						No recent presentations yet.
+					</div>
+				</div>
+			</template>
+			<div v-if="actions.length" class="mt-8 grid max-w-[900px] grid-cols-2 gap-5">
+				<button
+					v-for="action in actions"
+					:key="action[0]"
+					type="button"
+					class="flex min-h-28 items-start gap-4 border border-border bg-card p-5 text-left text-card-foreground transition hover:border-primary hover:shadow-md"
+					@click="run(action[3])"
+				>
+					<span class="grid size-10 shrink-0 place-items-center bg-accent text-primary">{{
+						action[2]
+					}}</span
+					><span
+						><strong class="block text-[15px]">{{ action[0] }}</strong
+						><span class="mt-1 block text-[12px] leading-5 text-muted-foreground">{{
+							action[1]
+						}}</span></span
+					>
+				</button>
+			</div>
+			<div
+				v-if="page === 'account' || page === 'options'"
+				class="mt-8 max-w-[760px] border border-border bg-card p-7 text-card-foreground"
+			>
+				<div
+					class="grid size-14 place-items-center rounded-full bg-primary text-xl font-semibold text-primary-foreground"
+				>
+					{{ page === 'options' ? '⚙' : 'P' }}
+				</div>
+				<h2 class="mt-4 text-lg font-semibold">
+					{{ page === 'options' ? 'PowerPoint Options' : 'PowerPoint Viewer' }}
+				</h2>
+				<p class="mt-2 text-sm leading-6 text-muted-foreground">
+					{{
+						page === 'options'
+							? 'Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.'
+							: 'Your presentations and recovery history stay in your browser unless you explicitly share or download them.'
+					}}
+				</p>
+				<button
+					v-if="page === 'options'"
+					type="button"
+					class="mt-6 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+					@click="run(props.onOpenSettings)"
+				>
+					Open Options
+				</button>
+			</div>
+			<p class="mt-12 text-[11px] text-muted-foreground">
+				{{ props.fileName || 'Untitled Presentation.pptx' }} · Saved to this browser
+			</p>
+		</main>
+	</div>
 </template>

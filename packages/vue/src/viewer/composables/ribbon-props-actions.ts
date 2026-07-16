@@ -118,6 +118,8 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onDuplicate: input.duplicateSelected,
 		onDelete: input.deleteSelected,
 		onOpenFile: input.handleOpenFile,
+		onOpenRecentFile: input.handleOpenRecentFile,
+		onCreatePresentation: input.createPresentation,
 		onExportPng: input.onExportPng,
 		onExportPdf: input.onExportPdf,
 		onExportVideo: input.onExportWebm,

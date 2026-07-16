@@ -126,6 +126,8 @@ export interface UseRibbonPropsActionsInput {
 	duplicateSelected: () => void;
 	deleteSelected: () => void;
 	handleOpenFile: () => void;
+	handleOpenRecentFile: (key: string) => void;
+	createPresentation: (templateId: string) => void;
 	onExportPng: () => void;
 	onExportPdf: () => void;
 	onExportWebm: () => void;

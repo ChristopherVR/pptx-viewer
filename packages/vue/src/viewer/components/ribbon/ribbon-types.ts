@@ -97,6 +97,7 @@ export interface LayoutOption {
  * The shell (`RibbonToolbar.vue`) passes the relevant subset to each section.
  */
 export interface RibbonProps {
+	fileName?: string;
 	mode: ViewerMode;
 	canEdit: boolean;
 	isNarrowViewport: boolean;
@@ -194,6 +195,8 @@ export interface RibbonProps {
 	onDelete: () => void;
 	/** Open another presentation (File ▸ Open). Hidden when not provided. */
 	onOpenFile?: () => void;
+	onOpenRecentFile?: (key: string) => void;
+	onCreatePresentation: (templateId: string) => void;
 	onExportPng: () => void;
 	onExportPdf: () => void;
 	onExportVideo: () => void;
