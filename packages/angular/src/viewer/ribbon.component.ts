@@ -263,6 +263,7 @@ const TABS: readonly TabDef[] = [
 						/>
 					}
 					@case ('home') {
+							(options)="requestSettings()"
 						<pptx-ribbon-home-section
 							[slideIndex]="slideIndex()"
 							[selectedElement]="selectedElement()"
@@ -333,13 +334,13 @@ const TABS: readonly TabDef[] = [
 							(a11y)="a11y.emit()"
 							(openCompare)="openCompare.emit()"
 							(link)="link.emit()"
-						/>
 							[spellCheckEnabled]="spellCheckEnabled()"
 							(spellCheckChange)="setSpellCheck($event)"
+						/>
+							(language)="requestSettings()"
 					}
 					@case ('view') {
 						<pptx-ribbon-view-section
-							(language)="requestSettings()"
 							[canEdit]="canEdit()"
 							[showGrid]="showGrid()"
 							[showRulers]="showRulers()"
@@ -457,9 +458,9 @@ export class RibbonComponent {
 	readonly prev = output<void>();
 	readonly next = output<void>();
 	readonly zoomIn = output<void>();
-	readonly zoomOut = output<void>();
 	/** Current live proofing state shown by the Review ribbon command. */
 	readonly spellCheckEnabled = input<boolean>(false);
+	readonly zoomOut = output<void>();
 	readonly zoomReset = output<void>();
 	readonly find = output<void>();
 	readonly present = output<void>();
@@ -470,10 +471,10 @@ export class RibbonComponent {
 	readonly broadcast = output<void>();
 	readonly openFile = output<void>();
 	/** Emitted when the user clicks "Save" in the File tab (saves as .pptx). */
-	readonly save = output<void>();
 	readonly recordFromBeginning = output<void>();
 	readonly recordFromCurrent = output<void>();
 	readonly spellCheckChange = output<boolean>();
+	readonly save = output<void>();
 	readonly savePpsx = output<void>();
 	readonly savePptm = output<void>();
 	readonly packageForSharing = output<void>();
@@ -589,7 +590,6 @@ export class RibbonComponent {
 		this.drawingWidth.set(state.width);
 		this.drawToolChange.emit(state);
 	}
-}
 
 	/** Route both File Options and Review Language to the real Settings dialog. */
 	protected requestSettings(): void {
@@ -600,3 +600,4 @@ export class RibbonComponent {
 	protected setSpellCheck(enabled: boolean): void {
 		this.spellCheckChange.emit(enabled);
 	}
+}
