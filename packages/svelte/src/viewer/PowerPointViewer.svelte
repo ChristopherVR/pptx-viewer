@@ -152,6 +152,7 @@
 			void editor.save().then((bytes) => oncontentchange?.(bytes));
 		},
 	});
+	const parityUi = new ViewerParityUiState(editor);
 	provideZoomNavigation({
 		navigateToZoomTarget: (index) => viewer.goTo(index),
 		getSlides: () => editor.renderedSlides,
@@ -166,6 +167,9 @@
 		onContextMenu: (x, y) => {
 			stageContextMenu = { x, y };
 		},
+		getSnapToGrid: () => parityUi.preferences.snapToGrid,
+		getSnapToShape: () => parityUi.snapToShape,
+		getGuides: () => parityUi.guides,
 	});
 	// The ribbon's Home tab Editing group / Ctrl+F Find & Replace panel.
 	const findReplace = new FindReplaceState({
@@ -210,7 +214,6 @@
 	// `CollaborationDialogsState`, both driving the same `collab` controller
 	// the `collaboration` prop auto-starts.
 	const dialogs = new CollaborationDialogsState(collab, () => shareDefaults);
-	const parityUi = new ViewerParityUiState(editor);
 	let versionHistoryOpen = $state(false);
 	let signatureWarningOpen = $state(false);
 	let signatureWarningAcknowledged = $state(false);
@@ -340,12 +343,16 @@
 	let wasPresenting = false;
 	$effect(() => {
 		const presenting = viewer.isFullscreen;
-		if (wasPresenting && !presenting && parityUi.annotations.count > 0) parityUi.keepAnnotationsOpen = true;
+		if (wasPresenting && !presenting && parityUi.annotations.count > 0) {
+			parityUi.keepAnnotationsOpen = true;
+		}
 		wasPresenting = presenting;
-		if (!presenting && parityUi.rehearse.active) parityUi.rehearse.finish();
+		if (!presenting && parityUi.rehearse.active) {
+			parityUi.rehearse.finish();
+		}
 	});
 	$effect(() => { parityUi.rehearse.move(viewer.current); });
-	$effect(() => { if (!parityUi.rehearse.active || parityUi.rehearse.paused) return; const timer = window.setInterval(() => parityUi.rehearse.tick(), 250); return () => window.clearInterval(timer); });
+	$effect(() => { if (!parityUi.rehearse.active || parityUi.rehearse.paused) { return; } const timer = window.setInterval(() => parityUi.rehearse.tick(), 250); return () => window.clearInterval(timer); });
 
 	// ── Fullscreen / keyboard ────────────────────────────────────────────
 	// Assigned by the template's bind:this (invisible to the linter).
@@ -526,6 +533,7 @@
 	class:pptx-svelte-fullscreen={viewer.isFullscreen}
 	class:pptx-svelte-show-grid={parityUi.preferences.showGrid}
 	class:pptx-svelte-show-rulers={parityUi.preferences.showRulers}
+	class:pptx-svelte-show-guides={parityUi.showGuides}
 	class:pptx-svelte-reduced-motion={parityUi.preferences.reducedMotion}
 	style={rootStyle}
 	role="region"
@@ -628,6 +636,13 @@
 				oncustomshows={() => (parityUi.customShowsOpen = true)}
 				onselectionpane={() => (parityUi.selectionPaneOpen = !parityUi.selectionPaneOpen)}
 				onslidesorter={() => (parityUi.slideSorterOpen = true)}
+				preferences={parityUi.preferences}
+				onpreferenceschange={(next) => { parityUi.preferences = next; }}
+				showGuides={parityUi.showGuides}
+				onshowguideschange={(next) => (parityUi.showGuides = next)}
+				snapToShape={parityUi.snapToShape}
+				onsnapToShapechange={(next) => (parityUi.snapToShape = next)}
+				onaddguide={(axis) => { parityUi.guides = [...parityUi.guides, { axis, position: axis === 'v' ? loader.canvasSize.width / 2 : loader.canvasSize.height / 2 }]; parityUi.showGuides = true; }}
 				{exportUi}
 				{onopenfile}
 				theme={effectiveTheme}
@@ -702,6 +717,9 @@
 		{editingActive}
 		{controller}
 		annotations={parityUi.annotations}
+		guides={parityUi.showGuides ? parityUi.guides : []}
+		onchangeguide={(index, position) => { parityUi.guides = parityUi.guides.map((guide, guideIndex) => guideIndex === index ? { ...guide, position } : guide); }}
+		spellCheck={parityUi.preferences.spellCheck}
 		onstageresize={(width, height) => {
 			viewportWidth = width;
 			viewportHeight = height;
