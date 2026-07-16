@@ -12,6 +12,7 @@
 import type { PptxElementAnimation, PptxNativeAnimation } from './animation';
 import type { XmlObject, PptxDrawingGuide } from './common';
 import type { PptxElement } from './elements';
+import type { PptxEmbeddedFontList } from './embedded-font';
 import type {
 	PptxThemeOption,
 	PptxNotesMaster,
@@ -508,6 +509,8 @@ export interface PptxData {
 	isPasswordProtected?: boolean;
 	/** Embedded font data (name + binary data URL) extracted from the presentation. */
 	embeddedFonts?: PptxEmbeddedFont[];
+	/** Typed `p:embeddedFontLst` package metadata, including unresolved variants. */
+	embeddedFontList?: PptxEmbeddedFontList;
 	/** Most-recently-used colour list from presentation properties. */
 	mruColors?: string[];
 	/** Parsed notes master data if present in the PPTX. */

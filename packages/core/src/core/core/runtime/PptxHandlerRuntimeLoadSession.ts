@@ -145,6 +145,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.signatureDetection = null;
 		this.customXmlParts = [];
 		this.loadedEmbeddedFonts = [];
+		this.loadedEmbeddedFontList = undefined;
 		this.isStrictOoxml = false;
 		this.restoreOriginalParser();
 		this.compatibilityService.resetWarnings();

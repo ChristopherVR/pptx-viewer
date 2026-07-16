@@ -61,6 +61,7 @@ export class PptxLoadDataBuilder {
 	private tableStyleMap: ParsedTableStyleMap | undefined;
 
 	private embeddedFonts: PptxEmbeddedFont[] | undefined;
+	private embeddedFontList: PptxData['embeddedFontList'];
 
 	private mruColors: string[] | undefined;
 
@@ -175,6 +176,11 @@ export class PptxLoadDataBuilder {
 
 	public withEmbeddedFonts(embeddedFonts: PptxEmbeddedFont[] | undefined): this {
 		this.embeddedFonts = embeddedFonts;
+		return this;
+	}
+
+	public withEmbeddedFontList(embeddedFontList: PptxData['embeddedFontList']): this {
+		this.embeddedFontList = embeddedFontList;
 		return this;
 	}
 
@@ -313,6 +319,7 @@ export class PptxLoadDataBuilder {
 			theme: this.theme,
 			tableStyleMap: this.tableStyleMap,
 			embeddedFonts: this.embeddedFonts,
+			embeddedFontList: this.embeddedFontList,
 			mruColors: this.mruColors,
 			notesMaster: this.notesMaster,
 			handoutMaster: this.handoutMaster,

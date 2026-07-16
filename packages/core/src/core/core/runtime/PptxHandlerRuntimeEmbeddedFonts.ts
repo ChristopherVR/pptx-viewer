@@ -1,5 +1,5 @@
 import { XmlObject, PptxLayoutOption } from '../../types';
-import type { PptxEmbeddedFont } from '../../types';
+import type { PptxEmbeddedFont, PptxEmbeddedFontList } from '../../types';
 import { isEotFormat, extractFontFromEot, parseEotHeader } from '../../utils/eot-parser';
 import {
 	deobfuscateFont,
@@ -8,16 +8,12 @@ import {
 } from '../../utils/font-deobfuscation';
 import { resolveLayoutDisplayName } from '../../utils/layout-display-name';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
-import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
+import { xmlAttr, xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePresentationStructure';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
-	protected async getEmbeddedFonts(): Promise<PptxEmbeddedFont[]> {
-		const embeddedFontEntries = this.ensureArray(
-			xmlPath(this.presentationData, 'p:presentation', 'p:embeddedFontLst')?.['p:embeddedFont'],
-		) as XmlObject[];
-
-		if (embeddedFontEntries.length === 0) {
+	protected async getEmbeddedFonts(fontList?: PptxEmbeddedFontList): Promise<PptxEmbeddedFont[]> {
+		if (!fontList || fontList.fonts.length === 0) {
 			return [];
 		}
 
@@ -28,35 +24,34 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		const results: PptxEmbeddedFont[] = [];
-		for (const entry of embeddedFontEntries) {
-			const typeface = (xmlAttr(xmlChild(entry, 'p:font'), 'typeface') || '').trim();
+		for (const entry of fontList.fonts) {
+			const typeface = (entry.font.typeface || '').trim();
 			if (!typeface) {
 				continue;
 			}
 
 			const variants: Array<{
-				key: string;
+				data: typeof entry.regular;
 				bold: boolean;
 				italic: boolean;
 			}> = [
-				{ key: 'p:regular', bold: false, italic: false },
-				{ key: 'p:bold', bold: true, italic: false },
-				{ key: 'p:italic', bold: false, italic: true },
-				{ key: 'p:boldItalic', bold: true, italic: true },
+				{ data: entry.regular, bold: false, italic: false },
+				{ data: entry.bold, bold: true, italic: false },
+				{ data: entry.italic, bold: false, italic: true },
+				{ data: entry.boldItalic, bold: true, italic: true },
 			];
 
 			for (const variant of variants) {
-				const variantEl = entry?.[variant.key] as XmlObject | undefined;
-				if (!variantEl) {
+				if (!variant.data) {
 					continue;
 				}
-				const rId = String(variantEl['@_r:id'] || '').trim();
+				const rId = String(variant.data.relationshipId || '').trim();
 				if (!rId) {
 					continue;
 				}
 
 				// Per ECMA-376 Part 2 §14.2.1, the obfuscation GUID is in the fontKey attribute
-				const fontKey = String(variantEl['@_fontKey'] || '').trim() || undefined;
+				const fontKey = String(variant.data.rawXml?.['@_fontKey'] || '').trim() || undefined;
 
 				const font = await this.extractEmbeddedFontVariant(
 					typeface,

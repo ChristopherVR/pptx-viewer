@@ -10,6 +10,7 @@ import {
 	XmlObject,
 } from '../../types';
 import type { PptxSection, PptxLayoutOption } from '../../types';
+import { parseEmbeddedFontList } from '../../utils/embedded-font-list';
 import { parsePresentationDrawingGuides } from '../../utils/guide-utils';
 import { resolveLayoutDisplayName } from '../../utils/layout-display-name';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
@@ -33,9 +34,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const presentationProperties = await this.parsePresentationProperties();
 		const customShows = this.parseCustomShows();
 		const tableStyleMap = await this.parseTableStyles();
-		const embeddedFonts = await this.getEmbeddedFonts();
+		const embeddedFontList = parseEmbeddedFontList(this.presentationData);
+		const embeddedFonts = await this.getEmbeddedFonts(embeddedFontList);
 		// Preserve for automatic re-embedding during save
 		this.loadedEmbeddedFonts = embeddedFonts;
+		this.loadedEmbeddedFontList = embeddedFontList;
 		const themeOptions = await this.parseThemeOptions();
 		const notesMaster = await this.parseNotesMaster();
 		const handoutMaster = await this.parseHandoutMaster();
@@ -81,6 +84,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			.withThemeOptions(themeOptions.length > 0 ? themeOptions : undefined)
 			.withTableStyleMap(tableStyleMap)
 			.withEmbeddedFonts(embeddedFonts.length > 0 ? embeddedFonts : undefined)
+			.withEmbeddedFontList(embeddedFontList)
 			.withMruColors(presentationProperties?.mruColors)
 			.withNotesMaster(notesMaster)
 			.withHandoutMaster(handoutMaster)
@@ -242,6 +246,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.vbaProjectBin = null;
 		this.customXmlParts = [];
 		this.loadedEmbeddedFonts = [];
+		this.loadedEmbeddedFontList = undefined;
 		this.orderedSlidePaths = [];
 		// Release the ZIP archive — this is typically the largest allocation
 		// (the entire PPTX file contents live here). The handler is unusable

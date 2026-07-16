@@ -2,12 +2,15 @@ import { XmlObject, PptxElement } from '../../types';
 import type {
 	SmartArtPptxElement,
 	PptxEmbeddedFont,
+	PptxEmbeddedFontList,
 	PptxNotesMaster,
 	PptxHandoutMaster,
 	PptxTagCollection,
 } from '../../types';
 import { applySmartArtLayoutDefinition, convertXmlToStrict } from '../../utils';
+import { serializeEmbeddedFontList, setEmbeddedFontList } from '../../utils/embedded-font-list';
 import { obfuscateFont, generateFontGuid } from '../../utils/font-deobfuscation';
+import { safeResolveZipPath } from '../../utils/safe-path';
 import type { PptxSaveFormat } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDataSerialization';
 import { applySmartArtColorTransform } from './smartart-colors-builder';
@@ -565,13 +568,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 *
 	 * @param explicitFonts - Fonts from save options, or undefined for auto.
 	 */
-	protected async applyEmbeddedFontPreservation(explicitFonts?: PptxEmbeddedFont[]): Promise<void> {
+	protected async applyEmbeddedFontPreservation(
+		explicitFonts?: PptxEmbeddedFont[],
+		explicitFontList?: PptxEmbeddedFontList | null,
+	): Promise<void> {
+		if (explicitFontList === null) {
+			await this.removeEmbeddedFontPackageData();
+			return;
+		}
+
 		// Determine which fonts to embed:
 		// - explicit list from save options takes priority
 		// - fallback: fonts loaded from the original PPTX
 		const fonts = explicitFonts ?? this.loadedEmbeddedFonts;
 		const fontsWithData = fonts.filter((f) => f.rawFontData && f.rawFontData.length > 0);
 		if (fontsWithData.length === 0) {
+			const metadata = explicitFontList ?? this.loadedEmbeddedFontList;
+			if (metadata && this.presentationData) {
+				setEmbeddedFontList(this.presentationData, serializeEmbeddedFontList(metadata));
+			}
 			return;
 		}
 
@@ -640,7 +655,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				let relativeTarget: string;
 				let rId: string;
 				let bytesToWrite: Uint8Array;
-				let fontKeyForXml: string | undefined;
 
 				if (reuseObfuscation) {
 					guid = variant.fontGuid!;
@@ -650,7 +664,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						: fontPartPath;
 					rId = variant.originalRId!;
 					bytesToWrite = obfuscateFont(fontData, guid);
-					fontKeyForXml = `{${guid}}`;
 				} else if (reuseVerbatim) {
 					// No usable GUID: preserve original bytes + rel unchanged.
 					guid = '';
@@ -663,7 +676,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					// fontKey attribute intentionally omitted — the source
 					// file didn't declare one and emitting a synthetic GUID
 					// would not match the opaque bytes on disk.
-					fontKeyForXml = undefined;
 				} else {
 					// New / externally-supplied font: mint a fresh GUID-named part.
 					guid = variant.fontGuid ?? generateFontGuid();
@@ -671,7 +683,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					fontPartPath = `ppt/fonts/${fileName}`;
 					relativeTarget = `fonts/${fileName}`;
 					bytesToWrite = obfuscateFont(fontData, guid);
-					fontKeyForXml = `{${guid}}`;
 
 					// Reuse an existing rel pointing at the same target,
 					// otherwise allocate a new rId.
@@ -703,11 +714,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 								? 'p:italic'
 								: 'p:regular';
 
-				const variantEntry: XmlObject = { '@_r:id': rId };
-				if (fontKeyForXml) {
-					variantEntry['@_fontKey'] = fontKeyForXml;
-				}
-				entry[variantKey] = variantEntry;
+				entry[variantKey] = { '@_r:id': rId };
 			}
 
 			embeddedFontEntries.push(entry);
@@ -719,12 +726,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.zip.file(relsPath, this.builder.build(relsData));
 
 		// ── 5. Update p:embeddedFontLst in presentation.xml ──────────
-		const presentationNode = this.presentationData['p:presentation'] as XmlObject | undefined;
-		if (presentationNode) {
-			presentationNode['p:embeddedFontLst'] = {
+		if (this.presentationData) {
+			const generatedList: XmlObject = {
 				'p:embeddedFont':
 					embeddedFontEntries.length === 1 ? embeddedFontEntries[0] : embeddedFontEntries,
 			};
+			const metadata = explicitFontList
+				? serializeEmbeddedFontList(explicitFontList)
+				: explicitFonts === undefined && this.loadedEmbeddedFontList
+					? serializeEmbeddedFontList(this.loadedEmbeddedFontList)
+					: generatedList;
+			setEmbeddedFontList(this.presentationData, metadata);
 		}
 
 		// ── 6. Ensure [Content_Types].xml has fntdata extension ──────
@@ -752,6 +764,35 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			ctData['Types'] = typesRoot;
 			this.zip.file('[Content_Types].xml', this.builder.build(ctData));
 		}
+	}
+
+	private async removeEmbeddedFontPackageData(): Promise<void> {
+		if (this.presentationData) {
+			setEmbeddedFontList(this.presentationData, null);
+		}
+		const relsPath = 'ppt/_rels/presentation.xml.rels';
+		const relsXml = await this.zip.file(relsPath)?.async('string');
+		if (!relsXml) {
+			return;
+		}
+		const relsData = this.parser.parse(relsXml) as XmlObject;
+		const root = (relsData.Relationships ?? {}) as XmlObject;
+		const relationships = this.ensureArray(root.Relationship) as XmlObject[];
+		const retained: XmlObject[] = [];
+		for (const relationship of relationships) {
+			if (!String(relationship['@_Type'] ?? '').includes('/font')) {
+				retained.push(relationship);
+				continue;
+			}
+			const target = String(relationship['@_Target'] ?? '');
+			const path = safeResolveZipPath('ppt', target);
+			if (path) {
+				this.zip.remove(path);
+			}
+		}
+		root.Relationship = retained;
+		relsData.Relationships = root;
+		this.zip.file(relsPath, this.builder.build(relsData));
 	}
 
 	/**

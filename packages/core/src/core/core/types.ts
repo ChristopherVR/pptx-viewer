@@ -7,6 +7,7 @@ import type {
 	PptxCompatibilityWarning,
 	PptxCustomShow,
 	PptxEmbeddedFont,
+	PptxEmbeddedFontList,
 	PptxExportOptions,
 	PptxHandoutMaster,
 	PptxLayoutOption,
@@ -156,6 +157,8 @@ export interface PptxHandlerSaveOptions {
 	 * preserved (i.e. the default is lossless round-trip).
 	 */
 	embeddedFonts?: PptxEmbeddedFont[];
+	/** Typed embedded-font list metadata. Set to null to remove fonts and relationships. */
+	embeddedFontList?: PptxEmbeddedFontList | null;
 	/**
 	 * OOXML conformance class for the saved output.
 	 * - `'preserve'` (default): use the same conformance as the loaded file.

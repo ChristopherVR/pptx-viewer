@@ -353,6 +353,9 @@ export class PptxHandlerRuntime {
 	/** Embedded fonts extracted during load, preserved for automatic re-embedding on save. */
 	protected loadedEmbeddedFonts: PptxEmbeddedFont[] = [];
 
+	/** Typed source metadata for lossless embedded-font list round trips. */
+	protected loadedEmbeddedFontList: import('../../types').PptxEmbeddedFontList | undefined;
+
 	/** Map of comment author IDs to display names (from `ppt/commentAuthors.xml`). */
 	protected commentAuthorMap: Map<string, string> = new Map();
 

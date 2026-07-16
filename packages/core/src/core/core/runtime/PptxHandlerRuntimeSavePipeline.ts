@@ -154,7 +154,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Re-embed fonts (must run before presentation XML is serialized
 		// because it modifies p:embeddedFontLst on presentationData)
-		await this.applyEmbeddedFontPreservation(options?.embeddedFonts);
+		await this.applyEmbeddedFontPreservation(options?.embeddedFonts, options?.embeddedFontList);
 
 		// Presentation save
 		if (this.presentationData) {

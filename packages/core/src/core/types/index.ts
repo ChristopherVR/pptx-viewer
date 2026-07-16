@@ -40,5 +40,6 @@ export * from './theme-presets';
 export * from './masters';
 export * from './presentation';
 export * from './presentation-print-properties';
+export * from './embedded-font';
 export * from './view-properties';
 export * from './collaboration-field-schema';
