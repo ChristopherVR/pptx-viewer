@@ -127,6 +127,7 @@ export {
 	buildFunnelViewModel,
 	buildSunburstViewModel,
 	computeFunnelSegments,
+	computeHierarchicalSunburstArcs,
 	computeSunburstArcs,
 } from './chart-funnel-sunburst';
 export type { FunnelSegment, SunburstArc } from './chart-funnel-sunburst';
@@ -571,6 +572,7 @@ export * from './smartart-reflow-to-shapes';
 // + swallowed autoplay-blocked rejection) each binding calls when present mode
 // makes a media element's slide the live surface.
 export * from './media-playback';
+export * from './media-trim-timeline';
 
 export * from './image-artistic-presets';
 export * from './text-warp-presets';

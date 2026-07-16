@@ -22,8 +22,14 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { computeHierarchicalSunburstArcs, computeSunburstArcs } from './chart-sunburst-hierarchy';
 import type { ChartViewModel, SvgPath, SvgPrimitive, SvgText } from './chart-view-model';
 import { computePlotLayout, formatAxisValue, paletteColor } from './chart-view-model';
+
+export type { SunburstArc } from './chart-sunburst-hierarchy';
+export { computeHierarchicalSunburstArcs, computeSunburstArcs } from './chart-sunburst-hierarchy';
+
+type HierarchicalChartData = PptxChartData & { categoryLevels?: string[][] };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared empty-chrome helper (funnel / sunburst have no cartesian axes)
@@ -185,71 +191,6 @@ export function buildFunnelViewModel(
 	};
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Sunburst geometry
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** One sunburst ring arc segment. */
-export interface SunburstArc {
-	/** SVG path `d` of the arc (donut wedge). */
-	d: string;
-	/** Fill colour (palette by value index within the ring). */
-	fill: string;
-	/** Opacity (outer rings fade), clamped to >= 0.1. */
-	opacity: number;
-}
-
-/**
- * Compute the concentric ring arcs for a sunburst chart: one ring per series,
- * each split into wedges proportional to abs(value). Mirrors the React / Vue
- * sunburst geometry; opacity is clamped to a 0.1 floor (the Vue behaviour, a
- * superset of React which let it drop unclamped).
- */
-export function computeSunburstArcs(
-	series: PptxChartData['series'],
-	cx: number,
-	cy: number,
-	maxR: number,
-	colorPalette: readonly string[] | undefined,
-): SunburstArc[] {
-	const seriesCount = Math.max(series.length, 1);
-	const ringWidth = maxR / (seriesCount + 0.5);
-	const out: SunburstArc[] = [];
-
-	for (let si = 0; si < series.length; si++) {
-		const s = series[si];
-		const iR = ringWidth * (si + 0.5);
-		const oR = ringWidth * (si + 1.5);
-		const total = s.values.reduce((acc, v) => acc + Math.abs(v), 0) || 1;
-		let startAngle = -Math.PI / 2;
-
-		for (let vi = 0; vi < s.values.length; vi++) {
-			const val = s.values[vi];
-			const sweep = (Math.abs(val) / total) * Math.PI * 2;
-			const endAngle = startAngle + sweep;
-			const largeArc = sweep > Math.PI ? 1 : 0;
-
-			const x1 = cx + oR * Math.cos(startAngle);
-			const y1 = cy + oR * Math.sin(startAngle);
-			const x2 = cx + oR * Math.cos(endAngle);
-			const y2 = cy + oR * Math.sin(endAngle);
-			const x3 = cx + iR * Math.cos(endAngle);
-			const y3 = cy + iR * Math.sin(endAngle);
-			const x4 = cx + iR * Math.cos(startAngle);
-			const y4 = cy + iR * Math.sin(startAngle);
-
-			out.push({
-				d: `M ${x1} ${y1} A ${oR} ${oR} 0 ${largeArc} 1 ${x2} ${y2} L ${x3} ${y3} A ${iR} ${iR} 0 ${largeArc} 0 ${x4} ${y4} Z`,
-				fill: paletteColor(vi, colorPalette),
-				opacity: Math.max(0.1, 0.9 - si * 0.1),
-			});
-
-			startAngle = endAngle;
-		}
-	}
-	return out;
-}
-
 /**
  * Build the view-model for a sunburst chart: concentric arc rings, one per
  * series. Mirrors `renderSunburstChart` (React) / `SunburstChart.vue`.
@@ -263,8 +204,18 @@ export function buildSunburstViewModel(
 	const cx = layout.plotLeft + layout.plotWidth / 2;
 	const cy = layout.plotTop + layout.plotHeight / 2;
 	const maxR = Math.min(layout.plotWidth, layout.plotHeight) / 2 - 4;
+	const categoryLevels = (chartData as HierarchicalChartData).categoryLevels;
 
-	const arcs = computeSunburstArcs(chartData.series, cx, cy, maxR, chartData.colorPalette);
+	const arcs = categoryLevels?.length
+		? computeHierarchicalSunburstArcs(
+				categoryLevels,
+				chartData.series[0]?.values ?? [],
+				cx,
+				cy,
+				maxR,
+				chartData.colorPalette,
+			)
+		: computeSunburstArcs(chartData.series, cx, cy, maxR, chartData.colorPalette);
 	const primitives: SvgPrimitive[] = arcs.map(
 		(arc) =>
 			({
@@ -274,11 +225,18 @@ export function buildSunburstViewModel(
 				stroke: '#ffffff',
 				strokeWidth: 1,
 				opacity: arc.opacity,
+				part:
+					arc.pointIndex === undefined
+						? undefined
+						: { role: 'dataPoint', seriesIndex: 0, pointIndex: arc.pointIndex },
 			}) satisfies SvgPath,
 	);
 
+	const legendLabels = categoryLevels?.length
+		? [...new Set(categoryLevels.at(-1)?.filter(Boolean) ?? categoryLabels)]
+		: categoryLabels;
 	const legend = chartData.style?.hasLegend
-		? categoryLabels.map((label, i) => ({ color: paletteColor(i, chartData.colorPalette), label }))
+		? legendLabels.map((label, i) => ({ color: paletteColor(i, chartData.colorPalette), label }))
 		: [];
 
 	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;

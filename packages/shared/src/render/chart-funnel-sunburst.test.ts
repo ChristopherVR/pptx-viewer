@@ -12,6 +12,7 @@ import {
 	buildFunnelViewModel,
 	buildSunburstViewModel,
 	computeFunnelSegments,
+	computeHierarchicalSunburstArcs,
 	computeSunburstArcs,
 } from './chart-funnel-sunburst';
 import { buildChartViewModel } from './chart-view-model';
@@ -200,6 +201,44 @@ describe('buildSunburstViewModel', () => {
 		const plain: PptxChartData = { ...chartData, style: {} };
 		const vm = buildSunburstViewModel(chartElement(plain), plain, plain.categories);
 		expect(vm.legend).toHaveLength(0);
+	});
+
+	it('renders ChartEx hierarchy as aligned parent and leaf rings', () => {
+		const hierarchical: PptxChartData = {
+			chartType: 'sunburst',
+			categories: ['A1', 'A2', 'B1', 'B2'],
+			categoryLevels: [
+				['A1', 'A2', 'B1', 'B2'],
+				['A', 'A', 'B', 'B'],
+			],
+			series: [{ name: 'Size', values: [10, 30, 20, 40] }],
+			style: { hasLegend: true },
+		};
+		const vm = buildSunburstViewModel(
+			chartElement(hierarchical),
+			hierarchical,
+			hierarchical.categories,
+		);
+		const paths = vm.primitives.filter((primitive) => primitive.kind === 'path');
+		expect(paths).toHaveLength(6);
+		expect(paths.filter((path) => path.part?.pointIndex !== undefined)).toHaveLength(4);
+		expect(vm.legend.map((entry) => entry.label)).toStrictEqual(['A', 'B']);
+		const arcs = computeHierarchicalSunburstArcs(
+			hierarchical.categoryLevels!,
+			hierarchical.series[0].values,
+			100,
+			100,
+			80,
+			undefined,
+		);
+		expect(arcs.map(({ level, label }) => [level, label])).toStrictEqual([
+			[0, 'A'],
+			[0, 'B'],
+			[1, 'A1'],
+			[1, 'A2'],
+			[1, 'B1'],
+			[1, 'B2'],
+		]);
 	});
 });
 
