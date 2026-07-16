@@ -199,14 +199,31 @@ export function applySmartArtControlFlow(
 
 export function validateSmartArtControlFlow(node: PptxSmartArtLayoutNode): string[] {
 	const errors: string[] = [];
+	const validateIterator = (value: PptxSmartArtIteratorAttributes, path: string): void => {
+		for (const field of ['start', 'step'] as const) {
+			if (
+				value[field]?.some(
+					(entry) => !Number.isInteger(entry) || entry < -2_147_483_648 || entry > 2_147_483_647,
+				)
+			) {
+				errors.push(`${path}.${field} values must be signed 32-bit integers`);
+			}
+		}
+		if (value.count?.some((entry) => !Number.isInteger(entry) || entry < 0 || entry > UINT_MAX)) {
+			errors.push(`${path}.count values must be unsigned 32-bit integers`);
+		}
+	};
+	node.forEach?.forEach((value, index) => validateIterator(value, `forEach[${index}]`));
 	node.choose?.forEach((choose, chooseIndex) => {
 		if (choose.when.length === 0) {
 			errors.push(`choose[${chooseIndex}].when requires at least one branch`);
 		}
 		choose.when.forEach((branch, branchIndex) => {
+			const path = `choose[${chooseIndex}].when[${branchIndex}]`;
+			validateIterator(branch, path);
 			for (const field of ['function', 'operator', 'value'] as const) {
 				if (!branch[field].trim()) {
-					errors.push(`choose[${chooseIndex}].when[${branchIndex}].${field} is required`);
+					errors.push(`${path}.${field} is required`);
 				}
 			}
 		});
