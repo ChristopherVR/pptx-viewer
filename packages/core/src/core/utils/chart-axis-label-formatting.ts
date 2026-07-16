@@ -14,6 +14,9 @@ type AxisLabels = Pick<
 	| 'tickLabelSkip'
 	| 'tickMarkSkip'
 	| 'noMultiLevelLabels'
+	| 'crosses'
+	| 'crossesAt'
+	| 'crossBetween'
 >;
 
 const ORDER = [
@@ -52,6 +55,8 @@ const TICK_MARKS = new Set<PptxChartTickMark>(['cross', 'in', 'none', 'out']);
 const TICK_LABEL_POSITIONS = new Set<string>(['high', 'low', 'nextTo', 'none']);
 const LABEL_ALIGNMENTS = new Set<string>(['ctr', 'l', 'r']);
 const AXIS_POSITIONS = new Set(['b', 'l', 'r', 't']);
+const CROSSING_MODES = new Set(['autoZero', 'min', 'max']);
+const CROSS_BETWEEN_MODES = new Set(['between', 'midCat']);
 
 function findKey(node: XmlObject, name: string, localName: LocalName): string | undefined {
 	return Object.keys(node).find((key) => localName(key) === name);
@@ -103,6 +108,20 @@ export function parseChartAxisLabelFormatting(
 	const tickLabelPosition = String(child(node, 'tickLblPos', localName)?.['@_val'] ?? '');
 	if (TICK_LABEL_POSITIONS.has(tickLabelPosition)) {
 		result.tickLblPos = tickLabelPosition as AxisLabels['tickLblPos'];
+	}
+	const crosses = String(child(node, 'crosses', localName)?.['@_val'] ?? '');
+	if (CROSSING_MODES.has(crosses)) {
+		result.crosses = crosses as AxisLabels['crosses'];
+	}
+	const crossesAt = Number.parseFloat(String(child(node, 'crossesAt', localName)?.['@_val'] ?? ''));
+	if (Number.isFinite(crossesAt)) {
+		result.crossesAt = crossesAt;
+	}
+	if (axisType === 'valAx') {
+		const crossBetween = String(child(node, 'crossBetween', localName)?.['@_val'] ?? '');
+		if (CROSS_BETWEEN_MODES.has(crossBetween)) {
+			result.crossBetween = crossBetween as AxisLabels['crossBetween'];
+		}
 	}
 	if (axisType === 'catAx' || axisType === 'dateAx') {
 		result.auto = parseBoolean(child(node, 'auto', localName));
@@ -172,6 +191,25 @@ export function applyChartAxisLabelFormatting(
 		if (value !== undefined) {
 			upsertOrdered(node, name, { '@_val': value }, localName);
 		}
+	}
+	if (formatting.crossesAt !== undefined) {
+		if (!Number.isFinite(formatting.crossesAt)) {
+			throw new RangeError('crossesAt must be finite');
+		}
+		const crossesKey = findKey(node, 'crosses', localName);
+		if (crossesKey) {
+			delete node[crossesKey];
+		}
+		upsertOrdered(node, 'crossesAt', { '@_val': String(formatting.crossesAt) }, localName);
+	} else if (formatting.crosses !== undefined) {
+		const crossesAtKey = findKey(node, 'crossesAt', localName);
+		if (crossesAtKey) {
+			delete node[crossesAtKey];
+		}
+		upsertOrdered(node, 'crosses', { '@_val': formatting.crosses }, localName);
+	}
+	if (formatting.axisType === 'valAx' && formatting.crossBetween !== undefined) {
+		upsertOrdered(node, 'crossBetween', { '@_val': formatting.crossBetween }, localName);
 	}
 	if (formatting.axisType === 'catAx' || formatting.axisType === 'dateAx') {
 		if (formatting.auto !== undefined) {

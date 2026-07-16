@@ -48,6 +48,20 @@ describe('chart axis label formatting', () => {
 		});
 	});
 
+	it('parses crossing modes, explicit values, and value-axis category placement', () => {
+		const node: XmlObject = {
+			'x:crossesAt': { '@_val': '12.5' },
+			'x:crossBetween': { '@_val': 'midCat' },
+		};
+		expect(parseChartAxisLabelFormatting(node, 'valAx', localName)).toStrictEqual({
+			crossesAt: 12.5,
+			crossBetween: 'midCat',
+		});
+		expect(
+			parseChartAxisLabelFormatting({ 'x:crosses': { '@_val': 'max' } }, 'dateAx', localName),
+		).toStrictEqual({ crosses: 'max' });
+	});
+
 	it('rejects invalid enums, booleans, and offsets', () => {
 		const node: XmlObject = {
 			'c:majorTickMark': { '@_val': 'sideways' },
@@ -95,6 +109,25 @@ describe('chart axis label formatting', () => {
 		expect(names.indexOf('minorTickMark')).toBeLessThan(names.indexOf('spPr'));
 		expect(names.indexOf('lblOffset')).toBeGreaterThan(names.indexOf('crossAx'));
 		expect(names.indexOf('noMultiLvlLbl')).toBeLessThan(names.indexOf('extLst'));
+	});
+
+	it('writes mutually exclusive crossing controls in schema order', () => {
+		const node: XmlObject = {
+			'c:crossAx': { '@_val': '2' },
+			'c:crosses': { '@_val': 'autoZero' },
+			'c:extLst': { 'c:ext': { '@_uri': 'keep' } },
+		};
+		applyChartAxisLabelFormatting(
+			node,
+			{ axisType: 'valAx', crossesAt: 7.5, crossBetween: 'between' },
+			localName,
+		);
+		expect(node['c:crosses']).toBeUndefined();
+		expect(node['c:crossesAt']).toStrictEqual({ '@_val': '7.5' });
+		expect(node['c:crossBetween']).toStrictEqual({ '@_val': 'between' });
+		expect(node['c:extLst']).toStrictEqual({ 'c:ext': { '@_uri': 'keep' } });
+		const names = Object.keys(node).map(localName);
+		expect(names.indexOf('crossesAt')).toBeLessThan(names.indexOf('crossBetween'));
 	});
 
 	it('limits category-only controls and validates emitted offset range', () => {

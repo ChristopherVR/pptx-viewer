@@ -27,6 +27,7 @@ describe('chartML axis label formatting round-trip', () => {
 		chartFrom(data.slides).chartData!.axes = [
 			{
 				axisType: 'catAx',
+				crosses: 'max',
 				majorTickMark: 'out',
 				minorTickMark: 'in',
 				tickLblPos: 'low',
@@ -35,6 +36,7 @@ describe('chartML axis label formatting round-trip', () => {
 				labelOffset: 160,
 				noMultiLevelLabels: true,
 			},
+			{ axisType: 'valAx', crossesAt: 12, crossBetween: 'midCat' },
 		];
 
 		const firstHandler = new PptxHandler();
@@ -43,6 +45,7 @@ describe('chartML axis label formatting round-trip', () => {
 			(axis) => axis.axisType === 'catAx',
 		);
 		expect(loadedAxis).toMatchObject({
+			crosses: 'max',
 			majorTickMark: 'out',
 			minorTickMark: 'in',
 			tickLblPos: 'low',
@@ -51,8 +54,13 @@ describe('chartML axis label formatting round-trip', () => {
 			labelOffset: 160,
 			noMultiLevelLabels: true,
 		});
+		expect(
+			chartFrom(first.slides).chartData!.axes?.find((axis) => axis.axisType === 'valAx'),
+		).toMatchObject({ crossesAt: 12, crossBetween: 'midCat' });
 
 		Object.assign(loadedAxis!, {
+			crosses: undefined,
+			crossesAt: 2,
 			majorTickMark: 'cross',
 			minorTickMark: 'none',
 			auto: true,
@@ -60,11 +68,16 @@ describe('chartML axis label formatting round-trip', () => {
 			labelOffset: 90,
 			noMultiLevelLabels: false,
 		});
+		const loadedValueAxis = chartFrom(first.slides).chartData!.axes?.find(
+			(axis) => axis.axisType === 'valAx',
+		);
+		Object.assign(loadedValueAxis!, { crossesAt: undefined, crosses: 'min' });
 		const secondBytes = await firstHandler.save(first.slides);
 		const second = await new PptxHandler().load(secondBytes.buffer as ArrayBuffer);
 		expect(
 			chartFrom(second.slides).chartData!.axes?.find((axis) => axis.axisType === 'catAx'),
 		).toMatchObject({
+			crossesAt: 2,
 			majorTickMark: 'cross',
 			minorTickMark: 'none',
 			auto: true,
@@ -72,5 +85,8 @@ describe('chartML axis label formatting round-trip', () => {
 			labelOffset: 90,
 			noMultiLevelLabels: false,
 		});
+		expect(
+			chartFrom(second.slides).chartData!.axes?.find((axis) => axis.axisType === 'valAx'),
+		).toMatchObject({ crosses: 'min', crossBetween: 'midCat' });
 	});
 });

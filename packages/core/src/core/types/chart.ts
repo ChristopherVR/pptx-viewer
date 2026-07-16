@@ -287,6 +287,12 @@ export interface PptxChartAxisFormatting extends PptxChartAxisLabelFormatting {
 	axisId?: number;
 	/** Cross-axis identifier — the axis this axis crosses. */
 	crossAxisId?: number;
+	/** Automatic crossing mode (`c:crosses`). Mutually exclusive with `crossesAt`. */
+	crosses?: 'autoZero' | 'min' | 'max';
+	/** Explicit crossing value (`c:crossesAt`). Units depend on the axis type. */
+	crossesAt?: number;
+	/** Whether a value axis crosses between or at category tick marks. */
+	crossBetween?: 'between' | 'midCat';
 	numFmt?: PptxChartAxisNumFmt;
 	titleText?: string;
 	spPr?: PptxChartShapeProps;
