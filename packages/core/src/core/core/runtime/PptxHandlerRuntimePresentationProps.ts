@@ -3,6 +3,7 @@ import type { PptxPresentationProperties, PptxChartStyle, PptxViewProperties } f
 import { parseChartDataLabelOptions } from '../../utils/chart-data-label-parser';
 import { parseChartLegendEntries } from '../../utils/chart-legend-serializer';
 import { parseShowProperties } from './pptx-presentation-props-helpers';
+import { findChildByLocalName, parsePrintProperties } from './pptx-print-properties';
 import { parseViewProperties } from './pptx-view-props-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSlideMasters';
 
@@ -36,7 +37,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			const prXml = this.parser.parse(prXmlStr);
-			const presProps = prXml?.['p:presentationPr'];
+			const rootKey = Object.keys(prXml ?? {}).find(
+				(key) => this.compatibilityService.getXmlLocalName(key) === 'presentationPr',
+			);
+			const presProps = rootKey ? (prXml[rootKey] as XmlObject | undefined) : undefined;
 			if (!presProps) {
 				return undefined;
 			}
@@ -50,19 +54,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			// Print properties (p:prnPr)
-			const prnPr = presProps['p:prnPr'] as XmlObject | undefined;
+			const prnPr = findChildByLocalName(presProps, 'prnPr');
 			if (prnPr) {
-				props.printFrameSlides = prnPr['@_frameSlides'] === '1';
-				const slidesPerPageRaw = prnPr['@_sldPerPg'] ?? prnPr['@_slidesPerPage'];
-				if (slidesPerPageRaw !== undefined) {
-					const slidesPerPage = Number.parseInt(String(slidesPerPageRaw), 10);
-					if (Number.isFinite(slidesPerPage) && slidesPerPage > 0) {
-						props.printSlidesPerPage = slidesPerPage;
-					}
-				}
-				const clrMode = prnPr['@_clrMode'] as string | undefined;
-				if (clrMode === 'clr' || clrMode === 'gray' || clrMode === 'bw') {
-					props.printColorMode = clrMode;
+				const printProperties = parsePrintProperties(prnPr);
+				props.printProperties = printProperties;
+				props.printFrameSlides = printProperties.frameSlides ?? undefined;
+				props.printColorMode = printProperties.colorMode ?? undefined;
+				const handoutMatch = printProperties.printWhat?.match(/^handouts([123469])$/u);
+				if (handoutMatch) {
+					props.printSlidesPerPage = Number.parseInt(handoutMatch[1], 10);
 				}
 			}
 

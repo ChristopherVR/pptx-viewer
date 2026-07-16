@@ -28,6 +28,7 @@ import type {
 	PptxCoreProperties,
 	PptxAppProperties,
 } from './metadata';
+import type { PptxPresentationPrintProperties } from './presentation-print-properties';
 import type { ParsedTableStyleMap } from './table';
 import type { TextSegment } from './text';
 import type { PptxTheme } from './theme';
@@ -306,11 +307,13 @@ export interface PptxPresentationProperties {
 	showSlidesTo?: number;
 	/** Whether to show subtitles/captions during presentation mode. */
 	showSubtitles?: boolean;
-	/** Print settings: slides per page. */
+	/** Typed `p:prnPr` settings. Set to null during save to remove the element. */
+	printProperties?: PptxPresentationPrintProperties | null;
+	/** @deprecated Use `printProperties.printWhat`; retained as a handout compatibility alias. */
 	printSlidesPerPage?: number;
-	/** Print settings: frame slides. */
+	/** @deprecated Use `printProperties.frameSlides`. */
 	printFrameSlides?: boolean;
-	/** Print settings: colour mode (from `p:prnPr/@clrMode`). */
+	/** @deprecated Use `printProperties.colorMode`. */
 	printColorMode?: 'clr' | 'gray' | 'bw';
 	/** Most-recently-used colours from the presentation palette. */
 	mruColors?: string[];

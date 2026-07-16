@@ -5,6 +5,13 @@ import {
 	getSignaturePathsToStrip,
 	DIGITAL_SIGNATURE_ORIGIN_REL_TYPE,
 } from '../../utils/signature-detection';
+import {
+	findChildByLocalName,
+	parsePrintProperties,
+	serializePrintProperties,
+	setPresentationPropertiesChild,
+	slidesPerPageToPrintOutput,
+} from './pptx-print-properties';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDocumentParts';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -46,16 +53,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		const existingPropsXml = await this.zip.file(propsPath)?.async('string');
-		const propsData = existingPropsXml
+		const propsData: XmlObject = existingPropsXml
 			? (this.parser.parse(existingPropsXml) as XmlObject)
-			: {
+			: ({
 					'p:presentationPr': {
 						'@_xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main',
 						'@_xmlns:a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
 					},
-				};
+				} as XmlObject);
 
-		const root = (propsData['p:presentationPr'] || {}) as XmlObject;
+		const rootKey =
+			Object.keys(propsData).find((key) => key.replace(/^.*:/u, '') === 'presentationPr') ??
+			'p:presentationPr';
+		let root = (propsData[rootKey] || {}) as XmlObject;
 
 		// Preserve any existing attributes and the `p:extLst` tail, but rebuild
 		// the child sequence in the exact OOXML CT_ShowProperties order:
@@ -129,22 +139,31 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		root['p:showPr'] = rebuiltShowPr;
 
-		if (
+		if (properties.printProperties === null) {
+			root = setPresentationPropertiesChild(root, 'prnPr', null);
+		} else if (properties.printProperties !== undefined) {
+			root = setPresentationPropertiesChild(
+				root,
+				'prnPr',
+				serializePrintProperties(properties.printProperties),
+			);
+		} else if (
 			properties.printFrameSlides !== undefined ||
 			properties.printSlidesPerPage !== undefined ||
 			properties.printColorMode !== undefined
 		) {
-			const prnPr = (root['p:prnPr'] || {}) as XmlObject;
+			const existing = findChildByLocalName(root, 'prnPr');
+			const legacy = existing ? parsePrintProperties(existing) : {};
 			if (properties.printFrameSlides !== undefined) {
-				prnPr['@_frameSlides'] = properties.printFrameSlides ? '1' : '0';
+				legacy.frameSlides = properties.printFrameSlides;
 			}
 			if (properties.printSlidesPerPage !== undefined) {
-				prnPr['@_sldPerPg'] = String(properties.printSlidesPerPage);
+				legacy.printWhat = slidesPerPageToPrintOutput(properties.printSlidesPerPage);
 			}
 			if (properties.printColorMode !== undefined) {
-				prnPr['@_clrMode'] = properties.printColorMode;
+				legacy.colorMode = properties.printColorMode;
 			}
-			root['p:prnPr'] = prnPr;
+			root = setPresentationPropertiesChild(root, 'prnPr', serializePrintProperties(legacy));
 		}
 
 		if (properties.mruColors && properties.mruColors.length > 0) {
@@ -163,7 +182,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			};
 		}
 
-		propsData['p:presentationPr'] = root;
+		propsData[rootKey] = root;
 		this.zip.file(propsPath, this.builder.build(propsData));
 	}
 
