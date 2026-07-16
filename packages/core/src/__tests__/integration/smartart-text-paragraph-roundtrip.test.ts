@@ -2,9 +2,9 @@ import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 
 import { PresentationBuilder } from '../../core/builders/sdk/PresentationBuilder';
-import { smartArtParagraphsText } from '../../core/core/runtime/smartart-text-paragraphs';
 import { PptxHandler } from '../../core/PptxHandler';
 import type { PptxElement, SmartArtPptxElement } from '../../core/types/elements';
+import { decomposeSmartArt } from '../../core/utils/smartart-decompose';
 
 async function presentationWithRichSmartArtText(): Promise<Uint8Array> {
 	const { handler, data, createSlide } = await PresentationBuilder.create();
@@ -67,17 +67,36 @@ describe('smartArt data-model paragraph round-trip', () => {
 			'run',
 		]);
 
-		const secondRun = node.paragraphs![1].items[0];
-		expect(secondRun.kind).toBe('run');
-		if (secondRun.kind === 'run') {
-			secondRun.run.text = 'Second edited';
-		}
-		node.text = smartArtParagraphsText(node.paragraphs!);
+		node.text = 'Bold!\tField\nTail\nSecond edited';
+		element.smartArtData!.drawingShapes = undefined;
+		element.smartArtData!.drawingDirty = true;
+		const renderModel = decomposeSmartArt(element.smartArtData!, {
+			x: element.x,
+			y: element.y,
+			width: element.width,
+			height: element.height,
+		});
+		const renderShape = renderModel?.find((candidate) => candidate.type === 'shape');
+		expect(renderShape?.textSegments?.map((segment) => segment.text)).toStrictEqual([
+			'Bold!',
+			'\t',
+			'Field',
+			'\n',
+			'Tail',
+			'',
+			'Second edited',
+		]);
 
 		const saved = await handler.save(loaded.slides);
 		const savedZip = await JSZip.loadAsync(saved);
 		const savedData = await savedZip.file('ppt/diagrams/data1.xml')!.async('string');
-		const richPoint = /<dgm:pt\b[^>]*>[\s\S]*?<a:t>Bold<\/a:t>[\s\S]*?<\/dgm:pt>/u.exec(
+		const drawingXml = await savedZip.file('ppt/diagrams/drawing1.xml')!.async('string');
+		expect(drawingXml.match(/<a:p(?:>|\s)/gu)).toHaveLength(2);
+		expect(drawingXml).toContain('<a:tab');
+		expect(drawingXml).toContain('<a:fld id="f1" type="slidenum"');
+		expect(drawingXml).toContain('<a:br>');
+		expect(drawingXml).toContain('b="1"');
+		const richPoint = /<dgm:pt\b[^>]*>[\s\S]*?<a:t>Bold!<\/a:t>[\s\S]*?<\/dgm:pt>/u.exec(
 			savedData,
 		)?.[0];
 		expect(richPoint).toBeDefined();
@@ -98,7 +117,7 @@ describe('smartArt data-model paragraph round-trip', () => {
 		const reloader = new PptxHandler();
 		const reloaded = await reloader.load(saved.buffer as ArrayBuffer);
 		const reloadedNode = smartArtElement(reloaded.slides).smartArtData!.nodes[0];
-		expect(reloadedNode.text).toBe('Bold\tField\nTail\nSecond edited');
+		expect(reloadedNode.text).toBe('Bold!\tField\nTail\nSecond edited');
 		expect(reloadedNode.paragraphs?.[0].pPr).toStrictEqual({ '@_lvl': '1' });
 		expect(reloadedNode.paragraphs?.[0].endParaRPr).toStrictEqual({ '@_sz': '1800' });
 		expect(reloadedNode.paragraphs?.[1].items[0]).toMatchObject({
@@ -117,5 +136,18 @@ describe('smartArt data-model paragraph round-trip', () => {
 			childOrder: ['rPr', 'extLst', 'pPr', 't'],
 			rawXml: { 'a:extLst': { 'a:ext': { '@_uri': 'field-keep' } } },
 		});
+		const cachedShape = smartArtElement(reloaded.slides).smartArtData!.drawingShapes?.find(
+			(shape) => shape.text?.includes('Bold!'),
+		);
+		expect(cachedShape?.textSegments?.map((segment) => segment.text)).toStrictEqual([
+			'Bold!',
+			'\t',
+			'Field',
+			'\n',
+			'Tail',
+			'',
+			'Second edited',
+		]);
+		expect(cachedShape?.textSegments?.[0]).toMatchObject({ style: { bold: true } });
 	});
 });

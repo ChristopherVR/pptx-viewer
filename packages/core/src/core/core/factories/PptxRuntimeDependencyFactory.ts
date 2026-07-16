@@ -114,7 +114,7 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			if (typeof xml === 'string' && xml.includes('custGeom')) {
 				annotateCustomGeometryCommandOrder(xml, parsed);
 			}
-			if (typeof xml === 'string' && xml.includes('dataModel')) {
+			if (typeof xml === 'string' && (xml.includes('dataModel') || xml.includes('txBody'))) {
 				annotateSmartArtTextOrder(xml, parsed);
 			}
 			return parsed;

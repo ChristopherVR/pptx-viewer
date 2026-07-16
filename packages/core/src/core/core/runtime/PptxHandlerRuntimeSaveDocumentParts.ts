@@ -7,14 +7,17 @@ import type {
 	PptxHandoutMaster,
 	PptxTagCollection,
 } from '../../types';
-import { applySmartArtLayoutDefinition, convertXmlToStrict } from '../../utils';
+import { applySmartArtLayoutDefinition, convertXmlToStrict, decomposeSmartArt } from '../../utils';
 import { serializeEmbeddedFontList, setEmbeddedFontList } from '../../utils/embedded-font-list';
 import { obfuscateFont, generateFontGuid } from '../../utils/font-deobfuscation';
 import { safeResolveZipPath } from '../../utils/safe-path';
 import type { PptxSaveFormat } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDataSerialization';
 import { applySmartArtColorTransform } from './smartart-colors-builder';
-import { buildFabricatedDrawingXml } from './smartart-fabrication-drawing';
+import {
+	buildFabricatedDrawingXml,
+	smartArtElementsToDrawingShapes,
+} from './smartart-fabrication-drawing';
 import { synthesizeNewSmartArtStructuralPoints } from './smartart-node-synthesis';
 import { applySmartArtQuickStyle } from './smartart-quick-style-builder';
 import { applySmartArtChrome } from './smartart-save-chrome';
@@ -176,19 +179,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 				}
 
-				if (
-					smartArtData.drawingDirty &&
-					smartArtData.drawingRelId &&
-					smartArtData.drawingShapes?.length
-				) {
+				if (smartArtData.drawingDirty && smartArtData.drawingRelId) {
 					const drawingTarget = relationships?.get(smartArtData.drawingRelId);
+					const drawingShapes = smartArtData.drawingShapes?.length
+						? smartArtData.drawingShapes
+						: smartArtElementsToDrawingShapes(
+								decomposeSmartArt(smartArtData, {
+									x: 0,
+									y: 0,
+									width: Math.max(element.width, 1),
+									height: Math.max(element.height, 1),
+								}),
+							);
 					const mergedPoints =
 						ptKey && ptList ? (this.ensureArray(ptList[ptKey]) as XmlObject[]) : [];
 					const presentationIds = presentationIdsFromPoints(mergedPoints, (key) =>
 						this.compatibilityService.getXmlLocalName(key),
 					);
 					const drawingXml = buildFabricatedDrawingXml(
-						smartArtData.drawingShapes,
+						drawingShapes,
 						smartArtData.nodes,
 						presentationIds,
 					);

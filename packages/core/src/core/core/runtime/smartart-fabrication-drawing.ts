@@ -25,6 +25,7 @@ import type {
 	ShapePptxElement,
 } from '../../types';
 import { XML_PROLOG, xmlEscape } from './smartart-fabrication-data';
+import { drawingTextBodyXml } from './smartart-fabrication-text';
 
 /** Content type for the cached diagram drawing part. */
 export const DIAGRAM_DRAWING_CONTENT_TYPE =
@@ -103,19 +104,6 @@ function resolveShapeModelId(
 	return '';
 }
 
-function textBodyXml(shape: PptxSmartArtDrawingShape): string {
-	const text = shape.text ?? '';
-	const fontColor = normalizeHex(shape.fontColor);
-	const size =
-		shape.fontSize && shape.fontSize > 0 ? ` sz="${Math.round(shape.fontSize * 100)}"` : '';
-	const fill = fontColor ? `<a:solidFill><a:srgbClr val="${fontColor}"/></a:solidFill>` : '';
-	const rPr = `<a:rPr lang="en-US"${size}>${fill}</a:rPr>`;
-	const run = text
-		? `<a:r>${rPr}<a:t>${xmlEscape(text)}</a:t></a:r>`
-		: `<a:endParaRPr lang="en-US"/>`;
-	return `<dsp:txBody><a:bodyPr anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/>${run}</a:p></dsp:txBody>`;
-}
-
 function textTransformXml(shape: PptxSmartArtDrawingShape): string {
 	return (
 		`<dsp:txXfrm>` +
@@ -190,7 +178,7 @@ function shapeXml(
 	return (
 		`<dsp:sp modelId="${modelId}">` +
 		`<dsp:nvSpPr><dsp:cNvPr id="0" name=""/><dsp:cNvSpPr/></dsp:nvSpPr>` +
-		`${shapePropsXml(shape)}${styleXml(index)}${textBodyXml(shape)}${textTransformXml(shape)}</dsp:sp>`
+		`${shapePropsXml(shape)}${styleXml(index)}${drawingTextBodyXml(shape)}${textTransformXml(shape)}</dsp:sp>`
 	);
 }
 
@@ -269,6 +257,7 @@ export function smartArtElementsToDrawingShapes(
 			strokeColor: shape.shapeStyle?.strokeColor,
 			strokeWidth: shape.shapeStyle?.strokeWidth,
 			text: shape.text,
+			...(shape.textSegments ? { textSegments: shape.textSegments } : {}),
 			fontSize: shape.textStyle?.fontSize,
 			fontColor: shape.textStyle?.color,
 		});

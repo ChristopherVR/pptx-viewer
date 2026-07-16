@@ -40,6 +40,7 @@ import type {
 	LayoutEngineShape,
 	ParsedLayoutDef,
 } from './smartart-layout-engine-types';
+import { projectSmartArtNodeText } from './smartart-node-text-projection';
 
 // ── Re-exports: types ────────────────────────────────────────────────────
 
@@ -152,6 +153,7 @@ export function layoutEngineShapesToDrawingShapes(
 			width: shape.width,
 			height: shape.height,
 			text: node?.text,
+			textSegments: node ? projectSmartArtNodeText(node) : undefined,
 		};
 	});
 }

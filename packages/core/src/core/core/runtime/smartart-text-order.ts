@@ -23,7 +23,11 @@ function collectParsedParagraphs(root: unknown): XmlObject[] {
 		}
 		const node = current as XmlObject;
 		for (const [key, value] of Object.entries(node).reverse()) {
-			if (localName(key) === 't' && value && typeof value === 'object') {
+			if (
+				(localName(key) === 't' || localName(key) === 'txBody') &&
+				value &&
+				typeof value === 'object'
+			) {
 				for (const [childKey, childValue] of Object.entries(value as XmlObject)) {
 					if (localName(childKey) !== 'p') {
 						continue;

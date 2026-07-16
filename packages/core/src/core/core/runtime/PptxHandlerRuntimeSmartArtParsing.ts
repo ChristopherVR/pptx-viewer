@@ -11,7 +11,9 @@ import {
 	parseSmartArtDefinitionMetadata,
 	parseSmartArtQuickStyleLabels,
 } from '../../utils/smartart-definition-metadata';
+import { projectSmartArtNodeText } from '../../utils/smartart-node-text-projection';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtXmlUtils';
+import { parseSmartArtTextParagraphs, smartArtParagraphsText } from './smartart-text-paragraphs';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected reportIncompleteSmartArtRelationships(
@@ -236,6 +238,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const text = textValues.join('').trim() || undefined;
 
 		const { fontSize, fontColor } = this.extractDrawingShapeTextStyle(txBody);
+		const paragraphs = txBody ? parseSmartArtTextParagraphs({ 'dgm:t': txBody }) : undefined;
+		const structuredText = paragraphs ? smartArtParagraphsText(paragraphs) : text;
+		const textSegments = paragraphs
+			? projectSmartArtNodeText(
+					{ id: String(sp['@_modelId'] || `dsp-${index}`), text: structuredText ?? '', paragraphs },
+					{
+						...(fontSize !== undefined ? { fontSize } : {}),
+						...(fontColor ? { color: fontColor } : {}),
+					},
+				)
+			: undefined;
 
 		const nvSpPr = this.xmlLookupService.getChildByLocalName(sp, 'nvSpPr');
 		const cNvPr = this.xmlLookupService.getChildByLocalName(nvSpPr, 'cNvPr');
@@ -258,7 +271,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			fillColor: fillColor ?? undefined,
 			strokeColor: strokeColor ?? undefined,
 			strokeWidth,
-			text,
+			text: structuredText,
+			textSegments,
 			fontSize,
 			fontColor,
 			...customGeometry,

@@ -152,6 +152,7 @@ function convertDrawingShapes(
 				strokeWidth: ds.strokeWidth !== undefined ? ds.strokeWidth * strokeScale : undefined,
 				fontSize: ds.fontSize,
 				fontColor: ds.fontColor ?? '#FFFFFF',
+				textSegments: ds.textSegments,
 			},
 		);
 	});

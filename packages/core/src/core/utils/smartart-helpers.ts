@@ -12,6 +12,7 @@ import type {
 	PptxCustomPathProperties,
 	ShapeStyle,
 	TextStyle,
+	TextSegment,
 } from '../types';
 
 // ── Theme colour cycling ────────────────────────────────────────────────
@@ -95,6 +96,7 @@ export function makeShapeElement(
 		textAlign?: 'left' | 'center' | 'right';
 		textVAlign?: 'top' | 'middle' | 'bottom';
 		cornerRadius?: number;
+		textSegments?: TextSegment[];
 	},
 ): ShapePptxElement {
 	const shapeStyle: ShapeStyle = {
@@ -130,7 +132,7 @@ export function makeShapeElement(
 		shapeStyle,
 		text,
 		textStyle,
-		textSegments: [{ text, style: textStyle }],
+		textSegments: opts?.textSegments ?? [{ text, style: textStyle }],
 		...(opts?.pathData || opts?.customGeometryPaths?.length
 			? {
 					pathData: opts.pathData,

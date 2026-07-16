@@ -13,6 +13,7 @@ import type {
 	PptxSmartArtColorTransform,
 	PptxSmartArtQuickStyle,
 } from './smart-art-style-definition';
+import type { TextSegment } from './text';
 
 // Node-related types (PptxSmartArtTextRun, PptxSmartArtNodeStyle,
 // PptxSmartArtNode) live in `smart-art-node.ts` to keep this file within the
@@ -217,6 +218,8 @@ export interface PptxSmartArtDrawingShape extends PptxCustomPathProperties {
 	strokeWidth?: number;
 	/** Text content of the shape. */
 	text?: string;
+	/** Standard rich-text segments projected from the associated SmartArt node. */
+	textSegments?: TextSegment[];
 	/** Font size in points. */
 	fontSize?: number;
 	/** Font colour (hex). */

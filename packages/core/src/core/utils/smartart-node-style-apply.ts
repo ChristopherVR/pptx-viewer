@@ -17,6 +17,7 @@
 
 import type { PptxElement, PptxSmartArtNode } from '../types';
 import { getContentNodes } from './smartart-helpers';
+import { projectSmartArtNodeText } from './smartart-node-text-projection';
 
 /** Content nodes that actually carry a per-node style override, in order. */
 function styledContentNodes(nodes: PptxSmartArtNode[]): PptxSmartArtNode[] {
@@ -42,8 +43,8 @@ export function applyNodeStylesToElements(
 			return element;
 		}
 		const node = contentNodes[shapeIndex++];
-		const style = node?.style;
-		if (!style || Object.keys(style).length === 0) {
+		const style = node?.style ?? {};
+		if (!node) {
 			return element;
 		}
 
@@ -68,7 +69,8 @@ export function applyNodeStylesToElements(
 			textStyle.italic = style.italic;
 		}
 
-		const segments = element.textSegments?.map((seg) => ({
+		const projectedSegments = projectSmartArtNodeText(node, textStyle);
+		const segments = projectedSegments.map((seg) => ({
 			...seg,
 			style: {
 				...seg.style,
@@ -80,6 +82,7 @@ export function applyNodeStylesToElements(
 
 		return {
 			...element,
+			text: node.text,
 			shapeStyle,
 			textStyle,
 			...(segments ? { textSegments: segments } : {}),
