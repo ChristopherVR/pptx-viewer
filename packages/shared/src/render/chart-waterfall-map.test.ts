@@ -423,6 +423,63 @@ describe('buildRegionMapViewModel — unmatched regions', () => {
 	});
 });
 
+describe('buildRegionMapViewModel — ChartEx geography options', () => {
+	const el = makeElement(600, 400);
+	const regionData = (
+		regionLabelLayout: 'none' | 'bestFitOnly' | 'showAll',
+		viewedRegionType: 'world' | 'dataOnly' = 'world',
+	): PptxChartData => ({
+		chartType: 'regionMap',
+		categories: ['Opaque provider category'],
+		series: [
+			{
+				name: 'Values',
+				values: [1234.5],
+				regionMapOptions: {
+					entityIds: ['country:AU'],
+					categorySourceIndices: [7],
+					valueSourceIndices: [7],
+					entityIdSourceIndices: [7],
+					regionLabelLayout,
+					viewedRegionType,
+					cultureLanguage: 'de-DE',
+					attribution: 'Bing',
+				},
+			},
+		],
+	});
+
+	it('matches entity IDs and retains the source index on the map path', () => {
+		const data = regionData('showAll');
+		const vm = buildRegionMapViewModel(el, data, data.categories);
+		const matched = vm.primitives.find(
+			(primitive) =>
+				primitive.kind === 'path' &&
+				primitive.part?.role === 'dataPoint' &&
+				primitive.part.pointIndex === 7,
+		);
+		expect(matched).toBeDefined();
+		expect(vm.primitives.some((item) => item.kind === 'text' && item.text === '1.234,5')).toBeTruthy();
+		expect(vm.primitives.some((item) => item.kind === 'text' && item.text === 'Bing')).toBeTruthy();
+	});
+
+	it('suppresses region labels when regionLabelLayout is none', () => {
+		const data = regionData('none');
+		const vm = buildRegionMapViewModel(el, data, data.categories);
+		expect(vm.primitives.some((item) => item.kind === 'text' && item.text === '1.234,5')).toBeFalsy();
+	});
+
+	it('zooms dataOnly to the authored data regions instead of the whole world', () => {
+		const world = regionData('showAll', 'world');
+		const dataOnly = regionData('showAll', 'dataOnly');
+		const matchedPath = (data: PptxChartData) =>
+			buildRegionMapViewModel(el, data, data.categories).primitives.find(
+				(item) => item.kind === 'path' && item.part?.pointIndex === 7,
+			);
+		expect(matchedPath(dataOnly)).not.toStrictEqual(matchedPath(world));
+	});
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // buildRegionMapViewModel — edge cases
 // ─────────────────────────────────────────────────────────────────────────────

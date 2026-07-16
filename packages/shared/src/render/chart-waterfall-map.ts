@@ -16,9 +16,14 @@
  * @module chart-waterfall-map
  */
 
-import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
+import type { PptxChartData, PptxChartRegionMapOptions, PptxElement } from 'pptx-viewer-core';
 
 import type { ChartViewModel, SvgLine, SvgPath, SvgRect, SvgText } from './chart-view-model';
+import {
+	buildRegionMapEntries,
+	formatRegionMapValue,
+	shouldRenderRegionLabel,
+} from './chart-region-map-data';
 import {
 	buildGridlinesAndLabels,
 	buildLegend,
@@ -437,6 +442,51 @@ const WORLD_REGIONS: RegionDef[] = [
 	},
 ];
 
+interface RegionBounds {
+	minX: number;
+	minY: number;
+	maxX: number;
+	maxY: number;
+}
+
+function regionBounds(region: RegionDef): RegionBounds {
+	const coordinates = region.path.match(/-?\d+(?:\.\d+)?/gu)?.map(Number) ?? [];
+	const xs: number[] = [];
+	const ys: number[] = [];
+	for (let index = 0; index < coordinates.length; index += 2) {
+		xs.push(coordinates[index] ?? 0);
+		ys.push(coordinates[index + 1] ?? 0);
+	}
+	return {
+		minX: Math.min(...xs),
+		minY: Math.min(...ys),
+		maxX: Math.max(...xs),
+		maxY: Math.max(...ys),
+	};
+}
+
+function regionViewBounds(
+	viewedRegionType: PptxChartRegionMapOptions['viewedRegionType'],
+	regionValues: ReadonlyMap<string, unknown>,
+): RegionBounds {
+	if (!viewedRegionType || viewedRegionType === 'world' || regionValues.size === 0) {
+		return { minX: 0, minY: 0, maxX: 1000, maxY: 500 };
+	}
+	const matched = WORLD_REGIONS.filter((region) => regionValues.has(region.code));
+	const targets = viewedRegionType === 'countryRegion' ? matched.slice(0, 1) : matched;
+	if (targets.length === 0) {
+		return { minX: 0, minY: 0, maxX: 1000, maxY: 500 };
+	}
+	const bounds = targets.map(regionBounds);
+	const padding = 10;
+	return {
+		minX: Math.max(0, Math.min(...bounds.map((item) => item.minX)) - padding),
+		minY: Math.max(0, Math.min(...bounds.map((item) => item.minY)) - padding),
+		maxX: Math.min(1000, Math.max(...bounds.map((item) => item.maxX)) + padding),
+		maxY: Math.min(500, Math.max(...bounds.map((item) => item.maxY)) + padding),
+	};
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Public: buildRegionMapViewModel
 // ─────────────────────────────────────────────────────────────────────────────
@@ -460,24 +510,28 @@ export function buildRegionMapViewModel(
 	const svgHeight = Math.max(element.height, 200);
 
 	const categories = categoryLabels.length > 0 ? categoryLabels : chartData.categories;
-	const values = chartData.series.length > 0 ? (chartData.series[0]?.values ?? []) : [];
+	const series = chartData.series[0];
+	const options = series?.regionMapOptions;
+	const entries = buildRegionMapEntries(categories, series?.values ?? [], options, resolveRegionCode);
+	const values = entries.map((entry) => entry.value);
 
 	const finiteVals = values.filter((v) => Number.isFinite(v));
 	const minVal = finiteVals.length > 0 ? Math.min(...finiteVals) : 0;
 	const maxVal = finiteVals.length > 0 ? Math.max(...finiteVals) : 1;
 
 	// Build region → value lookup.
-	const regionValueMap = new Map<string, { value: number; label: string }>();
+	const regionValueMap = new Map<string, { value: number; label: string; sourceIndex: number }>();
 	const unmatchedRows: Array<{ label: string; value: number }> = [];
 
-	for (let i = 0; i < categories.length; i++) {
-		const cat = categories[i] ?? '';
-		const value = values[i] ?? 0;
-		const code = resolveRegionCode(cat);
-		if (code !== undefined) {
-			regionValueMap.set(code, { value, label: cat });
+	for (const entry of entries) {
+		if (entry.code !== undefined) {
+			regionValueMap.set(entry.code, {
+				value: entry.value,
+				label: entry.label,
+				sourceIndex: entry.sourceIndex,
+			});
 		} else {
-			unmatchedRows.push({ label: cat, value });
+			unmatchedRows.push({ label: entry.label, value: entry.value });
 		}
 	}
 
@@ -489,10 +543,12 @@ export function buildRegionMapViewModel(
 	const titleH = chartData.title ? 22 : 0;
 	const mapAreaH = Math.max(svgHeight - titleH - legendHeight - fallbackTableH - 8, 80);
 
-	// Scale the 1000 x 500 region coordinate space into the available area.
-	const mapScale = Math.min((svgWidth - 20) / 1000, mapAreaH / 500);
-	const mapOffsetX = (svgWidth - 1000 * mapScale) / 2;
-	const mapOffsetY = titleH + 4;
+	const viewBounds = regionViewBounds(options?.viewedRegionType, regionValueMap);
+	const viewWidth = Math.max(viewBounds.maxX - viewBounds.minX, 1);
+	const viewHeight = Math.max(viewBounds.maxY - viewBounds.minY, 1);
+	const mapScale = Math.min((svgWidth - 20) / viewWidth, mapAreaH / viewHeight);
+	const mapOffsetX = (svgWidth - viewWidth * mapScale) / 2 - viewBounds.minX * mapScale;
+	const mapOffsetY = titleH + 4 - viewBounds.minY * mapScale;
 
 	const primitives: Array<SvgPath | SvgRect | SvgText> = [];
 
@@ -544,17 +600,34 @@ export function buildRegionMapViewModel(
 			fill,
 			stroke: '#94a3b8',
 			strokeWidth: Math.max(0.5 / mapScale, 0.3),
+			...(entry
+				? {
+						part: {
+							role: 'dataPoint' as const,
+							seriesIndex: 0,
+							pointIndex: entry.sourceIndex,
+						},
+					}
+				: {}),
 		} satisfies SvgPath);
 
 		// Inline data label for matched regions.
-		if (entry !== undefined) {
+		const bounds = regionBounds(region);
+		if (
+			entry !== undefined &&
+			shouldRenderRegionLabel(
+				options?.regionLabelLayout,
+				(bounds.maxX - bounds.minX) * mapScale,
+				(bounds.maxY - bounds.minY) * mapScale,
+			)
+		) {
 			const lx = region.labelXY[0] * mapScale + mapOffsetX;
 			const ly = region.labelXY[1] * mapScale + mapOffsetY + 4;
 			primitives.push({
 				kind: 'text',
 				x: lx,
 				y: ly,
-				text: formatAxisValue(entry.value),
+				text: formatRegionMapValue(entry.value, options?.cultureLanguage),
 				fontSize: Math.max(6, 7 * mapScale),
 				fill: '#1e293b',
 				textAnchor: 'middle',
@@ -616,6 +689,18 @@ export function buildRegionMapViewModel(
 			textAnchor: 'middle',
 		} satisfies SvgText,
 	);
+
+	if (options?.attribution) {
+		primitives.push({
+			kind: 'text',
+			x: svgWidth - 4,
+			y: svgHeight - 4,
+			text: options.attribution,
+			fontSize: 5,
+			fill: '#64748b',
+			textAnchor: 'end',
+		} satisfies SvgText);
+	}
 
 	// Fallback table for unmatched regions.
 	if (unmatchedRows.length > 0) {

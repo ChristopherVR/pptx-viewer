@@ -147,6 +147,13 @@ export {
 	normalizeValue,
 } from './chart-waterfall-map';
 export {
+	buildRegionMapEntries,
+	formatRegionMapValue,
+	resolveRegionEntityCode,
+	shouldRenderRegionLabel,
+} from './chart-region-map-data';
+export type { RegionMapEntry } from './chart-region-map-data';
+export {
 	computeTrendlinePrimitives,
 	computeErrorBarPrimitives,
 	computeAxisTitlePrimitives,
