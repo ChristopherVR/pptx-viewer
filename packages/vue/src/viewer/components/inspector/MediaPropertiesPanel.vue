@@ -54,7 +54,9 @@ const isPlaying = ref(false);
 /** Playable source: embedded data first, then the package relationship map. */
 const previewSrc = computed(() => {
 	const value = media.value;
-	return value?.mediaData ?? (value?.mediaPath ? props.mediaDataUrls?.get(value.mediaPath) : undefined);
+	return (
+		value?.mediaData ?? (value?.mediaPath ? props.mediaDataUrls?.get(value.mediaPath) : undefined)
+	);
 });
 const isVideo = computed(() => media.value?.mediaType === 'video');
 const bookmarks = computed(() => media.value?.bookmarks ?? []);
