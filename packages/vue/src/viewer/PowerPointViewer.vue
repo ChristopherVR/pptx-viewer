@@ -2005,6 +2005,7 @@ function handleCommandSearch(command: string): void {
 					v-if="props.canEdit && !isMobile && inspectorElementForPanels && inspectorOpen"
 					:element="inspectorElementForPanels"
 					:can-edit="props.canEdit"
+					:slide-count="slideCount"
 					@update="onInspectorUpdate"
 				/>
 
@@ -2451,6 +2452,7 @@ function handleCommandSearch(command: string): void {
 					mobile
 					:element="inspectorElementForPanels"
 					:can-edit="props.canEdit"
+					:slide-count="slideCount"
 					@update="onInspectorUpdate"
 				/>
 				<SlideInspector

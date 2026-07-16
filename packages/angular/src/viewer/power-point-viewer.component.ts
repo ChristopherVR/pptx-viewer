@@ -81,6 +81,7 @@ import { ShareDialogComponent } from './share-dialog.component';
 import { SignaturesPanelComponent } from './signatures-panel.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
+import { SlideThemeOverridePanelComponent } from './slide-theme-override-panel.component';
 import { SlidesPanelComponent } from './slides-panel.component';
 import { SmartArt3DService } from './smart-art-3d.service';
 import { buildSmartArtInsertElement } from './smart-art-insert-helpers';
@@ -173,6 +174,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		PresenterViewComponent,
 		MobilePresenterViewComponent,
 		SlideSorterOverlayComponent,
+		SlideThemeOverridePanelComponent,
 		FindBarComponent,
 		FindReplaceBarComponent,
 		InspectorPanelComponent,
@@ -523,6 +525,11 @@ import { ZoomTargetService } from './zoom-target.service';
 														>{{ sl.notes || '' }}</textarea
 													>
 												</label>
+												<pptx-slide-theme-override-panel
+													[slide]="sl"
+													[theme]="loader.theme()"
+													(patch)="editor.updateSlide(activeSlideIndex(), $event)"
+												/>
 											</div>
 										}
 									}
@@ -689,7 +696,9 @@ import { ZoomTargetService } from './zoom-target.service';
 			<pptx-theme-gallery
 				[open]="themeGallery.showThemeGallery()"
 				[activeName]="themeGallery.activeThemeName()"
+				[theme]="loader.theme()"
 				(applyTheme)="themeGallery.applyThemePreset($event)"
+				(applyCustomTheme)="themeGallery.applyCustomTheme($event.colorScheme, $event.fontScheme, $event.name)"
 				(close)="themeGallery.showThemeGallery.set(false)"
 			/>
 
