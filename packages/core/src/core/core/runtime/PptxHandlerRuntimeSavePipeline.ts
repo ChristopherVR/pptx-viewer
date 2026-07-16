@@ -4,7 +4,7 @@ import { persistModernCommentPackage } from '../../utils/modern-comment-package'
 import { PptxSaveStateBuilder } from '../builders';
 import { createPptxSaveConstants } from '../factories';
 import type { PptxHandlerSaveOptions } from '../types';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveNotesInfrastructure';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveHandoutInfrastructure';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -51,6 +51,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			relationshipsNamespace,
 		});
 		await this.ensureNotesMasterForAuthoredNotes(slides, saveConstants);
+		await this.ensureHandoutMasterInfrastructure(options?.handoutMaster, saveConstants);
 
 		// Process each slide (this may embed new media files that register
 		// extensions in usedMediaPaths, so content-types must be updated after).
