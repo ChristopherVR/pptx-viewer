@@ -36,4 +36,18 @@ describe('useRibbonUiState', () => {
 		expect(packageForSharing).toHaveBeenCalledOnce();
 		expect(shareOpen.value).toBeFalsy();
 	});
+
+	it('opens the header and footer editor from the Insert ribbon', () => {
+		const state = useRibbonUiState();
+		const showHeaderFooter = ref(false);
+		const actions = buildRibbonPropsActions({
+			...state,
+			canDistribute: ref(false),
+			showHeaderFooter,
+		} as unknown as UseRibbonPropsInput);
+
+		actions.onOpenHeaderFooter();
+
+		expect(showHeaderFooter.value).toBeTruthy();
+	});
 });

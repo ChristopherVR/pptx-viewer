@@ -1489,6 +1489,7 @@ const ribbonProps = useRibbonProps({
 	shareOpen,
 	showShortcuts,
 	showSettings,
+	showHeaderFooter,
 	showA11y,
 	showSorter,
 	showCustomShows,

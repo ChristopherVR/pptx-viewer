@@ -168,6 +168,7 @@ export interface RibbonProps {
 	onAddEquation: () => void;
 	onAddActionButton: (shapeType: string) => void;
 	onInsertField?: (fieldType: string, value?: string) => void;
+	onOpenHeaderFooter?: () => void;
 	onOpenImagePicker: () => void;
 	onOpenMediaPicker: () => void;
 	onSetActiveTool: (tool: DrawingTool) => void;

@@ -58,6 +58,9 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		},
 		onAddActionButton: input.addActionButton,
 		onInsertField: input.addField,
+		onOpenHeaderFooter: () => {
+			input.showHeaderFooter.value = true;
+		},
 		onOpenImagePicker: input.openImagePicker,
 		onOpenMediaPicker: input.openMediaPicker,
 		onSetActiveTool: (t: typeof input.activeTool.value) => {

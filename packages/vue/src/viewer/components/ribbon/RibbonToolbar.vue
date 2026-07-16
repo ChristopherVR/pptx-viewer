@@ -168,6 +168,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:on-add-equation="props.onAddEquation"
 				:on-add-action-button="props.onAddActionButton"
 				:on-insert-field="props.onInsertField"
+				:on-open-header-footer="props.onOpenHeaderFooter"
 				:on-open-image-picker="props.onOpenImagePicker"
 				:on-open-media-picker="props.onOpenMediaPicker"
 			/>

@@ -74,6 +74,7 @@ export interface UseRibbonPropsStateInput {
 	shareOpen: Ref<boolean>;
 	showShortcuts: Ref<boolean>;
 	showSettings: Ref<boolean>;
+	showHeaderFooter: Ref<boolean>;
 	showA11y: Ref<boolean>;
 	showSorter: Ref<boolean>;
 	showCustomShows: Ref<boolean>;

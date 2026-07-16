@@ -56,6 +56,7 @@ interface Props {
 	onAddEquation: () => void;
 	onAddActionButton: (shapeType: string) => void;
 	onInsertField?: (fieldType: string, value?: string) => void;
+	onOpenHeaderFooter?: () => void;
 	onOpenImagePicker: () => void;
 	onOpenMediaPicker: () => void;
 }
@@ -531,6 +532,15 @@ function previewTime(): string {
 			</div>
 		</div>
 	</div>
+	<button
+		v-if="props.onOpenHeaderFooter"
+		type="button"
+		:disabled="!canEdit"
+		:class="pill"
+		@click="props.onOpenHeaderFooter"
+	>
+		{{ t('pptx.headerFooter.title') }}
+	</button>
 	<!-- Date/Time picker popover -->
 	<div
 		v-if="datePickerOpen"
