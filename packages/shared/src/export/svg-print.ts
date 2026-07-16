@@ -146,6 +146,19 @@ export function isSafeSvgMarkup(svg: string): boolean {
 	return !EVENT_HANDLER_ATTR_RE.test(trimmed);
 }
 
+function sanitizeSlideSvg(svg: string, width: number, height: number): string {
+	if (!isSafeSvgMarkup(svg)) {
+		return '';
+	}
+	const sanitized = sanitizeMarkupOrEmpty(svg, { USE_PROFILES: { svg: true } }).trim();
+	if (!sanitized || sanitized.toLowerCase().startsWith('<svg')) {
+		return sanitized;
+	}
+	const safeWidth = Number.isFinite(width) && width > 0 ? width : 1;
+	const safeHeight = Number.isFinite(height) && height > 0 ? height : 1;
+	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${safeWidth} ${safeHeight}" width="${safeWidth}" height="${safeHeight}">${sanitized}</svg>`;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Print stylesheet / document construction                           */
 /* ------------------------------------------------------------------ */
@@ -203,9 +216,7 @@ export function buildPrintDocument(
 			// markup (stripping `<script>`/`<foreignObject>`/event handlers/
 			// `javascript:` URIs) before it is spliced in, rather than merely
 			// gating the raw, untransformed string behind a boolean check.
-			const safeSvg = isSafeSvgMarkup(svg)
-				? sanitizeMarkupOrEmpty(svg, { USE_PROFILES: { svg: true } })
-				: '';
+			const safeSvg = sanitizeSlideSvg(svg, width, height);
 			return `<section class="print-slide-page" aria-label="Slide ${i + 1}">
   ${safeSvg}
 </section>`;
