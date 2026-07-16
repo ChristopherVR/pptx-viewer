@@ -7,6 +7,10 @@ function localName(name: string): string {
 	return colon >= 0 ? name.slice(colon + 1) : name;
 }
 
+function isXmlObject(value: unknown): value is XmlObject {
+	return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
 function collectParsedParagraphs(root: unknown): XmlObject[] {
 	const paragraphs: XmlObject[] = [];
 	const stack: unknown[] = [root];
@@ -33,7 +37,7 @@ function collectParsedParagraphs(root: unknown): XmlObject[] {
 						continue;
 					}
 					paragraphs.push(
-						...((Array.isArray(childValue) ? childValue : [childValue]) as XmlObject[]),
+						...(Array.isArray(childValue) ? childValue : [childValue]).filter(isXmlObject),
 					);
 				}
 			} else {
@@ -83,9 +87,7 @@ function directChildrenByLocalName(paragraphs: XmlObject[], name: string): XmlOb
 				return [];
 			}
 			const values = Array.isArray(value) ? value : [value];
-			return values.filter((item): item is XmlObject =>
-				Boolean(item && typeof item === 'object' && !Array.isArray(item)),
-			);
+			return values.filter(isXmlObject);
 		}),
 	);
 }
