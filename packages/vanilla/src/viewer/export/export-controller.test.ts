@@ -206,9 +206,10 @@ describe('createExportController', () => {
 
 		await expect(print({ openPrintWindow })).resolves.toBeTruthy();
 
-		expect(rasterizeSlide).toHaveBeenCalledTimes(2);
+		expect(rasterizeSlide).not.toHaveBeenCalled();
 		expect(openPrintWindow).toHaveBeenCalledOnce();
-		expect(openPrintWindow.mock.calls[0][0]).toContain('<title>Slides</title>');
+		expect(openPrintWindow.mock.calls[0][0]).toContain('<title>Slides (Vector)</title>');
+		expect(openPrintWindow.mock.calls[0][0]).toContain('<svg');
 	});
 
 	it('routes GIF/video/print through the single-export guard', async () => {
