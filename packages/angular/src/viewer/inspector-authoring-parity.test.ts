@@ -1,8 +1,9 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { toggleElementFlip } from './element-flip-controls.component';
 import { connectorStylePatch } from './element-misc-properties.component';
-import { clampImageCrop } from './image-crop-wash-panel.component';
+import { clampImageCrop, replacementImagePatch } from './image-crop-wash-panel.component';
 import { shapeTypePatch } from './shape-authoring-panel.component';
 import { textWarpPatch } from './text-warp-gallery.component';
 
@@ -26,6 +27,13 @@ describe('angular inspector authoring parity', () => {
 		expect(patch.shapeStyle.connectorEndArrow).toBe('triangle');
 	});
 
+	it('toggles horizontal and vertical element flips independently', () => {
+		expect(toggleElementFlip(shape, 'flipHorizontal')).toStrictEqual({ flipHorizontal: true });
+		expect(toggleElementFlip({ ...shape, flipVertical: true }, 'flipVertical')).toStrictEqual({
+			flipVertical: false,
+		});
+	});
+
 	it('sets round rectangle defaults without discarding the shape style', () => {
 		const patch = shapeTypePatch(shape, 'roundRect') as {
 			shapeType: string;
@@ -41,6 +49,15 @@ describe('angular inspector authoring parity', () => {
 		expect(clampImageCrop(-1)).toBe(0);
 		expect(clampImageCrop(0.42)).toBe(0.42);
 		expect(clampImageCrop(2)).toBe(0.8);
+	});
+
+	it('replaces archived image sources with the selected data URL', () => {
+		expect(replacementImagePatch('data:image/png;base64,new')).toStrictEqual({
+			imageData: 'data:image/png;base64,new',
+			imagePath: undefined,
+			svgData: undefined,
+			svgPath: undefined,
+		});
 	});
 
 	it('preserves text style while applying and clearing text warp', () => {

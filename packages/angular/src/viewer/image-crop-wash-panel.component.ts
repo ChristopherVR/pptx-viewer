@@ -1,14 +1,33 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
+import type { PptxCropShape, PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 
 const SIDES = ['Left', 'Top', 'Right', 'Bottom'] as const;
+const CROP_SHAPES: readonly { value: PptxCropShape; label: string; glyph: string }[] = [
+	{ value: 'none', label: 'None', glyph: '▭' },
+	{ value: 'ellipse', label: 'Ellipse', glyph: '●' },
+	{ value: 'roundedRect', label: 'Rounded rectangle', glyph: '▣' },
+	{ value: 'triangle', label: 'Triangle', glyph: '▲' },
+	{ value: 'diamond', label: 'Diamond', glyph: '◆' },
+	{ value: 'pentagon', label: 'Pentagon', glyph: '⬟' },
+	{ value: 'hexagon', label: 'Hexagon', glyph: '⬢' },
+	{ value: 'star', label: 'Star', glyph: '★' },
+];
 type CropSide = (typeof SIDES)[number];
 type ImageElement = PptxElement & { imageEffects?: PptxImageEffects };
 
 export function clampImageCrop(value: number | undefined): number {
 	return Math.max(0, Math.min(0.8, Number.isFinite(value) ? (value as number) : 0));
+}
+
+export function replacementImagePatch(dataUrl: string): Partial<PptxElement> {
+	return {
+		imageData: dataUrl,
+		imagePath: undefined,
+		svgData: undefined,
+		svgPath: undefined,
+	} as Partial<PptxElement>;
 }
 
 @Component({
@@ -18,6 +37,10 @@ export function clampImageCrop(value: number | undefined): number {
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<section class="panel" aria-label="Image crop and color wash">
+			<label class="replace">
+				<span>Replace image</span>
+				<input type="file" accept="image/*" (change)="onReplaceImage($event)" />
+			</label>
 			<div class="crop-grid">
 				@for (side of sides; track side) {
 					<label
@@ -32,6 +55,19 @@ export function clampImageCrop(value: number | undefined): number {
 				}
 			</div>
 			<button type="button" (click)="resetCrop()">{{ 'pptx.image.resetCrop' | translate }}</button>
+			<div class="shapes" role="group" aria-label="Crop to shape">
+				@for (shape of cropShapes; track shape.value) {
+					<button
+						type="button"
+						[class.active]="cropShape() === shape.value"
+						[title]="shape.label"
+						[attr.aria-label]="shape.label"
+						(click)="setCropShape(shape.value)"
+					>
+						{{ shape.glyph }}
+					</button>
+				}
+			</div>
 			<label class="toggle"
 				><span>{{ 'pptx.image.colorWash' | translate }}</span
 				><input type="checkbox" [checked]="!!wash()" (change)="toggleWash($event)"
@@ -68,6 +104,24 @@ export function clampImageCrop(value: number | undefined): number {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 			gap: 7px;
 		}
+		.replace input {
+			width: 100%;
+			font-size: 10px;
+			color: inherit;
+		}
+		.shapes {
+			display: grid;
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+			gap: 4px;
+		}
+		.shapes button {
+			font-size: 17px;
+			line-height: 1;
+		}
+		.shapes button.active {
+			border-color: var(--pptx-primary, #2563eb);
+			background: color-mix(in srgb, var(--pptx-primary, #2563eb) 25%, transparent);
+		}
 		label {
 			display: grid;
 			gap: 3px;
@@ -96,8 +150,26 @@ export class ImageCropWashPanelComponent {
 	readonly element = input.required<PptxElement>();
 	readonly patch = output<Partial<PptxElement>>();
 	protected readonly sides = SIDES;
+	protected readonly cropShapes = CROP_SHAPES;
 	protected readonly effects = computed(() => (this.element() as ImageElement).imageEffects ?? {});
 	protected readonly wash = computed(() => this.effects().colorWash);
+	protected readonly cropShape = computed(
+		() => (this.element() as ImageElement & { cropShape?: PptxCropShape }).cropShape ?? 'none',
+	);
+
+	protected onReplaceImage(event: Event): void {
+		const file = (event.target as HTMLInputElement).files?.[0];
+		if (!file) {
+			return;
+		}
+		const reader = new FileReader();
+		reader.onload = () => {
+			if (typeof reader.result === 'string') {
+				this.patch.emit(replacementImagePatch(reader.result));
+			}
+		};
+		reader.readAsDataURL(file);
+	}
 
 	protected crop(side: CropSide): number {
 		return clampImageCrop(this.element()[`crop${side}` as keyof PptxElement] as number | undefined);
@@ -117,6 +189,9 @@ export class ImageCropWashPanelComponent {
 			cropRight: 0,
 			cropBottom: 0,
 		} as Partial<PptxElement>);
+	}
+	protected setCropShape(value: PptxCropShape): void {
+		this.patch.emit({ cropShape: value } as Partial<PptxElement>);
 	}
 	protected toggleWash(event: Event): void {
 		this.updateEffects({

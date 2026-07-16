@@ -36,6 +36,7 @@ import { AnimationAuthorPanelComponent } from './animation-author-panel.componen
 import { ChartDataEditorComponent } from './chart-data-editor.component';
 import { EditorStateService } from './editor-state.service';
 import { EffectsPanelComponent } from './effects-panel.component';
+import { ElementFlipControlsComponent } from './element-flip-controls.component';
 import { ElementMiscPropertiesComponent } from './element-misc-properties.component';
 import { GradientPickerComponent } from './gradient-picker.component';
 import { ImagePropertiesPanelComponent } from './image-properties-panel.component';
@@ -78,6 +79,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 		ImagePropertiesPanelComponent,
 		MediaPropertiesPanelComponent,
 		ElementMiscPropertiesComponent,
+		ElementFlipControlsComponent,
 		ShapeAuthoringPanelComponent,
 		TextWarpGalleryComponent,
 		TranslatePipe,
@@ -182,6 +184,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 					</div>
 				}
 			</section>
+			<pptx-element-flip-controls [element]="el()" (patch)="onPatch($event)" />
 
 			<!-- ── Shape fill & stroke (shape-style elements only) ────────────── -->
 			@if (hasShape()) {

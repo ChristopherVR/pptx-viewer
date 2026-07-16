@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { buildImageBiLevelTable, buildImageLuminanceTransfer } from '../internal/shared';
 import { buildAngularImageRenderView } from './image-renderer-helpers';
 
-function image(imageEffects?: PptxImageEffects): PptxElement {
+function image(imageEffects?: PptxImageEffects, extra: Partial<PptxElement> = {}): PptxElement {
 	return {
 		type: 'image',
 		id: 'angular-image',
@@ -14,6 +14,7 @@ function image(imageEffects?: PptxImageEffects): PptxElement {
 		height: 180,
 		imageData: 'data:image/png;base64,AAAA',
 		imageEffects,
+		...extra,
 	};
 }
 
@@ -87,5 +88,13 @@ describe('buildAngularImageRenderView', () => {
 		expect(view.svgFilters).toStrictEqual([]);
 		expect(view.clrChange).toBeUndefined();
 		expect(view.colorWashStyle).toBeUndefined();
+	});
+
+	it('clips both the image and color wash to the authored crop shape', () => {
+		const view = buildAngularImageRenderView(
+			image({ colorWash: { color: '#336699', opacity: 40 } }, { cropShape: 'ellipse' }),
+		);
+		expect(view.imageStyle['clip-path']).toBeTruthy();
+		expect(view.colorWashStyle?.['clip-path']).toBe(view.imageStyle['clip-path']);
 	});
 });

@@ -1,7 +1,11 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 
-import { getComputedImageStyle, getImageColorWashStyle } from '../internal/shared';
+import {
+	getComputedImageStyle,
+	getImageColorWashStyle,
+	getResolvedShapeClipPathFor,
+} from '../internal/shared';
 import type { ImageSvgFilterDefinition } from '../internal/shared';
 import { getClrChangeParams } from './color-changed-image-helpers';
 import type { ClrChangeParams } from './color-changed-image-helpers';
@@ -12,6 +16,19 @@ export interface AngularImageRenderView {
 	svgFilters: ImageSvgFilterDefinition[];
 	clrChange: ClrChangeParams | undefined;
 	colorWashStyle: StyleMap | undefined;
+}
+
+export function getImageCropShapeClipPath(element: PptxElement): string | undefined {
+	if (!isImageLikeElement(element) || !element.cropShape || element.cropShape === 'none') {
+		return undefined;
+	}
+	const shapeType =
+		element.cropShape === 'roundedRect'
+			? 'roundRect'
+			: element.cropShape === 'star'
+				? 'star5'
+				: element.cropShape;
+	return getResolvedShapeClipPathFor(shapeType, element.width, element.height);
 }
 
 /** Build the complete shared image-effect view consumed by Angular templates. */
@@ -29,6 +46,10 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 	if (computed.opacity !== undefined) {
 		imageStyle.opacity = computed.opacity;
 	}
+	const cropShapeClipPath = getImageCropShapeClipPath(element);
+	if (cropShapeClipPath) {
+		imageStyle['clip-path'] = cropShapeClipPath;
+	}
 
 	const colorWash = getImageColorWashStyle(
 		isImageLikeElement(element) ? element.imageEffects?.colorWash : undefined,
@@ -40,6 +61,7 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 				'pointer-events': 'none',
 				'background-color': colorWash.backgroundColor,
 				opacity: colorWash.opacity,
+				...(cropShapeClipPath ? { 'clip-path': cropShapeClipPath } : {}),
 			}
 		: undefined;
 

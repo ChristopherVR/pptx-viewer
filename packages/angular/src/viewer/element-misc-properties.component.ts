@@ -18,6 +18,17 @@ const ARROWS: readonly ConnectorArrowType[] = [
 	'oval',
 ];
 const SIZES = ['sm', 'med', 'lg'] as const;
+const GEOMETRIES = [
+	['straightConnector1', 'Straight'],
+	['bentConnector2', 'Bent'],
+	['bentConnector3', 'Double Bent'],
+	['bentConnector4', 'Triple Bent'],
+	['bentConnector5', 'Quad Bent'],
+	['curvedConnector2', 'Curved'],
+	['curvedConnector3', 'Curved (Cubic)'],
+	['curvedConnector4', 'Curved 4'],
+	['curvedConnector5', 'Curved 5'],
+] as const;
 
 export function connectorStylePatch(
 	element: PptxElement,
@@ -36,6 +47,14 @@ export function connectorStylePatch(
 		@if (connector()) {
 			<section class="card" aria-label="Connector">
 				<h3>Connector</h3>
+				<label class="geometry">
+					<span>Geometry</span>
+					<select [value]="connectorType()" (change)="onConnectorType($event)">
+						@for (geometry of geometries; track geometry[0]) {
+							<option [value]="geometry[0]">{{ geometry[1] }}</option>
+						}
+					</select>
+				</label>
 				<div class="grid">
 					@for (end of ends; track end) {
 						<label>
@@ -116,6 +135,9 @@ export function connectorStylePatch(
 			gap: 3px;
 			color: var(--pptx-inspector-muted, #aaa);
 		}
+		.geometry {
+			margin-bottom: 6px;
+		}
 		select {
 			min-width: 0;
 			padding: 3px;
@@ -154,8 +176,12 @@ export class ElementMiscPropertiesComponent {
 	readonly patch = output<Partial<PptxElement>>();
 	protected readonly arrows = ARROWS;
 	protected readonly sizes = SIZES;
+	protected readonly geometries = GEOMETRIES;
 	protected readonly ends = ['Start', 'End'] as const;
 	protected readonly connector = computed(() => this.element().type === 'connector');
+	protected readonly connectorType = computed(
+		() => (this.element() as { shapeType?: string }).shapeType ?? 'straightConnector1',
+	);
 	protected readonly group = computed(() =>
 		this.element().type === 'group' ? (this.element() as GroupPptxElement) : undefined,
 	);
@@ -183,6 +209,11 @@ export class ElementMiscPropertiesComponent {
 	}
 	protected onArrow(end: 'Start' | 'End', event: Event): void {
 		this.updateStyle({ [`connector${end}Arrow`]: (event.target as HTMLSelectElement).value });
+	}
+	protected onConnectorType(event: Event): void {
+		this.patch.emit({
+			shapeType: (event.target as HTMLSelectElement).value,
+		} as Partial<PptxElement>);
 	}
 	protected onSize(end: 'Start' | 'End', dimension: 'Width' | 'Length', event: Event): void {
 		this.updateStyle({
