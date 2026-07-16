@@ -1,3 +1,5 @@
+import { ARTISTIC_EFFECTS } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import type { NumberFieldHandle } from '../controls';
@@ -49,6 +51,60 @@ export function createImageSection(
 	});
 	el.append(brightness.el, contrast.el, saturation.el);
 
+	const artisticLabel = doc.createElement('label');
+	artisticLabel.textContent = t('pptx.image.artisticEffects');
+	const artistic = doc.createElement('select');
+	for (const [value, labelKey] of ARTISTIC_EFFECTS) {
+		const option = doc.createElement('option');
+		option.value = value;
+		option.textContent = t(labelKey);
+		artistic.appendChild(option);
+	}
+	artistic.addEventListener('change', () =>
+		handlers.setImageEffects({
+			artisticEffect: artistic.value === 'none' ? undefined : artistic.value,
+		}),
+	);
+	artisticLabel.appendChild(artistic);
+	const transparency = makeRangeField(doc, {
+		label: t('pptx.imageAdjustments.transparency'),
+		min: 0,
+		max: 100,
+		formatValue: pct,
+		onCommit: (value) => handlers.setImageEffects({ alphaModFix: 100 - value }),
+	});
+	const biLevel = makeRangeField(doc, {
+		label: t('pptx.imageAdjustments.biLevelThreshold'),
+		min: 0,
+		max: 100,
+		formatValue: pct,
+		onCommit: (value) => handlers.setImageEffects({ biLevel: value }),
+	});
+	const duotone = createEl(doc, 'div', 'pptxv-inspector-grid');
+	const colorInputs: Partial<Record<'color1' | 'color2', HTMLInputElement>> = {};
+	const duoField = (labelText: string, key: 'color1' | 'color2'): HTMLInputElement => {
+		const label = doc.createElement('label');
+		label.textContent = labelText;
+		const input = doc.createElement('input');
+		input.type = 'color';
+		input.addEventListener('input', () =>
+			handlers.setImageEffects({
+				duotone: {
+					color1: key === 'color1' ? input.value : (colorInputs.color1?.value ?? '#000000'),
+					color2: key === 'color2' ? input.value : (colorInputs.color2?.value ?? '#ffffff'),
+				},
+			}),
+		);
+		label.appendChild(input);
+		duotone.appendChild(label);
+		return input;
+	};
+	const color1 = duoField(t('pptx.image.duotoneDark'), 'color1');
+	const color2 = duoField(t('pptx.image.duotoneLight'), 'color2');
+	colorInputs.color1 = color1;
+	colorInputs.color2 = color2;
+	el.append(artisticLabel, transparency.el, biLevel.el, duotone);
+
 	const cropGrid = createEl(doc, 'div', 'pptxv-inspector-grid');
 	el.appendChild(cropGrid);
 	const cropField = (
@@ -79,13 +135,21 @@ export function createImageSection(
 			brightness.setValue(state.imageBrightness);
 			contrast.setValue(state.imageContrast);
 			saturation.setValue(state.imageSaturation);
+			artistic.value = state.imageArtisticEffect;
+			transparency.setValue(state.imageTransparency);
+			biLevel.setValue(state.imageBiLevel);
+			color1.value = state.imageDuotone1;
+			color2.value = state.imageDuotone2;
 			cropLeft.setValue(state.cropLeft * 100);
 			cropTop.setValue(state.cropTop * 100);
 			cropRight.setValue(state.cropRight * 100);
 			cropBottom.setValue(state.cropBottom * 100);
-			for (const c of sliders) {
+			for (const c of [...sliders, transparency, biLevel]) {
 				c.setDisabled(!state.isImage);
 			}
+			artistic.disabled = !state.isImage;
+			color1.disabled = !state.isImage;
+			color2.disabled = !state.isImage;
 			for (const c of cropFields) {
 				c.setDisabled(!state.isImage);
 			}

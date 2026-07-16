@@ -216,6 +216,56 @@ describe('createInspectorActions image', () => {
 		expect(el.cropLeft).toBe(0.1);
 		expect(el.cropRight).toBe(0.9); // clamped
 	});
+
+	it('authors artistic, transparency, bi-level, and duotone effects', () => {
+		const { store, actions } = buildActions(imageElement());
+
+		actions.setImageEffects({
+			artisticEffect: 'pencilSketch',
+			alphaModFix: 75,
+			biLevel: 40,
+			duotone: { color1: '#112233', color2: '#ddeeff' },
+		});
+
+		expect((selectedEl(store) as { imageEffects?: unknown }).imageEffects).toMatchObject({
+			artisticEffect: 'pencilSketch',
+			alphaModFix: 75,
+			biLevel: 40,
+			duotone: { color1: '#112233', color2: '#ddeeff' },
+		});
+	});
+});
+
+describe('createInspectorActions chart and action settings', () => {
+	it('updates chart data and click actions with history', () => {
+		const chart = {
+			type: 'chart',
+			id: 'chart1',
+			x: 0,
+			y: 0,
+			width: 300,
+			height: 200,
+			chartData: { chartType: 'bar', categories: ['A'], series: [{ name: 'Sales', values: [1] }] },
+		} as PptxElement;
+		const { store, ops, actions } = buildActions(chart);
+
+		actions.setChartData({
+			chartType: 'line',
+			categories: ['A', 'B'],
+			series: [{ name: 'Sales', values: [1, 2] }],
+			style: { hasLegend: true, hasDataLabels: true },
+		});
+		actions.setElementAction('click', { trigger: 'click', type: 'nextSlide' });
+
+		const updated = selectedEl(store);
+		expect(updated.type === 'chart' ? updated.chartData : undefined).toMatchObject({
+			chartType: 'line',
+			categories: ['A', 'B'],
+			style: { hasLegend: true, hasDataLabels: true },
+		});
+		expect(updated.actionClick?.action).toContain('hlinkshowjump?jump=nextslide');
+		expect(ops.canUndo()).toBeTruthy();
+	});
 });
 
 describe('createInspectorActions table', () => {

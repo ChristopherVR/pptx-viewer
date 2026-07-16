@@ -1,7 +1,10 @@
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { createActionSection } from './action-section';
+import { createChartSection } from './chart-section';
 import { createFillSection } from './fill-section';
 import { createImageSection } from './image-section';
+import { createMediaSection } from './media-section';
 import { createPositionSection } from './position-section';
 import { createSmartArtSection } from './smartart-section';
 import { createTableSection } from './table-section';
@@ -61,7 +64,10 @@ export function createInspector(
 	const image = createImageSection(doc, t, section, handlers);
 	const table = createTableSection(doc, t, section, handlers);
 	const smartArt = createSmartArtSection(doc, t, section, handlers);
-	const sections = [position, fill, text, image, table, smartArt];
+	const action = createActionSection(doc, t, section, handlers);
+	const chart = createChartSection(doc, t, section, handlers);
+	const media = createMediaSection(doc, t, section, handlers);
+	const sections = [position, fill, text, image, table, smartArt, action, chart, media];
 
 	let expanded = true;
 	const applyExpanded = (): void => {

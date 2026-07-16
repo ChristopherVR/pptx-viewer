@@ -36,6 +36,8 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			slideCount: state.slides.length,
 			selectedCount: state.selectedElementIds.length,
 			formatPainterActive: state.formatPainterSourceId !== null,
+			selectedElementId: state.selectedElementId ?? undefined,
+			animations: state.slides[state.currentSlide]?.animations ?? [],
 		});
 		ribbon?.setDrawState({ tool: state.drawTool, color: state.drawColor, width: state.drawWidth });
 

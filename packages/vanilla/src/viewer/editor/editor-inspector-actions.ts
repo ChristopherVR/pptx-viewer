@@ -1,5 +1,18 @@
-import type { SmartArtColorScheme, SmartArtLayoutType, TextStyle } from 'pptx-viewer-core';
-import { switchSmartArtLayout, updateSmartArtNodeText } from 'pptx-viewer-core';
+import type {
+	PptxImageEffects,
+	PptxChartData,
+	MediaPptxElement,
+	ElementAction,
+	SmartArtColorScheme,
+	SmartArtLayoutType,
+	TextStyle,
+} from 'pptx-viewer-core';
+import {
+	elementActionToPptxAction,
+	isImageLikeElement,
+	switchSmartArtLayout,
+	updateSmartArtNodeText,
+} from 'pptx-viewer-core';
 import {
 	addGradientStopPatch,
 	applyUniformCellPaddingPatch,
@@ -45,6 +58,10 @@ export interface InspectorActions {
 	setImageContrast(value: number): void;
 	setImageSaturation(value: number): void;
 	setImageCrop(edge: 'left' | 'top' | 'right' | 'bottom', value: number): void;
+	setImageEffects(patch: Partial<PptxImageEffects>): void;
+	setElementAction(trigger: 'click' | 'hover', action: ElementAction): void;
+	setChartData(data: PptxChartData): void;
+	setMediaProperties(patch: Partial<MediaPptxElement>): void;
 
 	setTableHeaderRow(enabled: boolean): void;
 	setTableBandedRows(enabled: boolean): void;
@@ -88,6 +105,19 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 			applyToSelected((el) => imageAdjustmentsPatch(el, { saturation: value })),
 		setImageCrop: (edge, value) =>
 			applyToSelected((el) => imageCropPatch(el, { [CROP_KEY[edge]]: value })),
+		setImageEffects: (patch) =>
+			applyToSelected((el) =>
+				isImageLikeElement(el)
+					? ({ imageEffects: { ...el.imageEffects, ...patch } } as Partial<typeof el>)
+					: {},
+			),
+		setElementAction: (trigger, action) =>
+			applyToSelected(() => ({
+				[trigger === 'click' ? 'actionClick' : 'actionHover']: elementActionToPptxAction(action),
+			})),
+		setChartData: (data) =>
+			applyToSelected((el) => (el.type === 'chart' ? { chartData: data } : {})),
+		setMediaProperties: (patch) => applyToSelected((el) => (el.type === 'media' ? patch : {})),
 
 		setTableHeaderRow: (enabled) =>
 			applyToSelected((el) => tableInspectorPatch(el, { firstRowHeader: enabled })),

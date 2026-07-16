@@ -141,4 +141,37 @@ describe('createAnimationActions', () => {
 
 		expect(store.get().slides[0].animations).toBeUndefined();
 	});
+
+	it('updates timing and reorders the full slide timeline', () => {
+		const animations: PptxElementAnimation[] = [
+			{ elementId: 'el1', entrance: 'fadeIn', order: 0 },
+			{ elementId: 'el2', entrance: 'zoomIn', order: 1 },
+		];
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [
+				{
+					...buildSlide('a', [buildElement('el1'), buildElement('el2')]),
+					animations,
+				},
+			],
+			currentSlide: 0,
+			editable: true,
+			selectedElementId: 'el1',
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createAnimationActions({ store, ops });
+
+		actions.setAnimationTiming('el1', { durationMs: 1200, delayMs: 300, trigger: 'afterPrevious' });
+		actions.reorderAnimation('el2', 'up');
+
+		const updated = store.get().slides[0].animations!;
+		expect(updated.find(({ elementId }) => elementId === 'el1')).toMatchObject({
+			durationMs: 1200,
+			delayMs: 300,
+			trigger: 'afterPrevious',
+			order: 1,
+		});
+		expect(updated.find(({ elementId }) => elementId === 'el2')?.order).toBe(0);
+	});
 });

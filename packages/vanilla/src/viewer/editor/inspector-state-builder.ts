@@ -1,5 +1,9 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
+import {
+	hasShapeProperties,
+	isImageLikeElement,
+	pptxActionToElementAction,
+} from 'pptx-viewer-core';
 import type { GradientState } from 'pptx-viewer-shared';
 import {
 	autoFitModeOf,
@@ -67,6 +71,8 @@ export function buildInspectorState(el: PptxElement | undefined): InspectorState
 		canShape: canFormatShape(el),
 		canText: canFormatText(el),
 		isImage: el !== undefined && isImageLikeElement(el),
+		isChart: el?.type === 'chart',
+		isMedia: el?.type === 'media',
 		isTable: el?.type === 'table',
 		isSmartArt: el?.type === 'smartArt',
 		smartArtData: el?.type === 'smartArt' ? el.smartArtData : undefined,
@@ -88,6 +94,19 @@ export function buildInspectorState(el: PptxElement | undefined): InspectorState
 		imageBrightness: image?.brightness ?? 0,
 		imageContrast: image?.contrast ?? 0,
 		imageSaturation: image?.saturation ?? 0,
+		imageArtisticEffect:
+			el && isImageLikeElement(el) ? (el.imageEffects?.artisticEffect ?? 'none') : 'none',
+		imageTransparency:
+			el && isImageLikeElement(el) ? 100 - (el.imageEffects?.alphaModFix ?? 100) : 0,
+		imageBiLevel: el && isImageLikeElement(el) ? (el.imageEffects?.biLevel ?? 0) : 0,
+		imageDuotone1:
+			el && isImageLikeElement(el) ? (el.imageEffects?.duotone?.color1 ?? '#000000') : '#000000',
+		imageDuotone2:
+			el && isImageLikeElement(el) ? (el.imageEffects?.duotone?.color2 ?? '#ffffff') : '#ffffff',
+		actionClick: el?.actionClick ? pptxActionToElementAction(el.actionClick, 'click') : undefined,
+		actionHover: el?.actionHover ? pptxActionToElementAction(el.actionHover, 'hover') : undefined,
+		chartData: el?.type === 'chart' ? el.chartData : undefined,
+		media: el?.type === 'media' ? el : undefined,
 		cropLeft: crop?.cropLeft ?? 0,
 		cropTop: crop?.cropTop ?? 0,
 		cropRight: crop?.cropRight ?? 0,

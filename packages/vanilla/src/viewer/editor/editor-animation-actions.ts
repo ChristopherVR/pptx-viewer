@@ -1,6 +1,27 @@
-import type { PptxAnimationPreset } from 'pptx-viewer-core';
+import type {
+	PptxAnimationPreset,
+	PptxAnimationDirection,
+	PptxAnimationRepeatMode,
+	PptxAnimationSequence,
+	PptxAnimationTimingCurve,
+	PptxAnimationTrigger,
+	PptxElementAnimation,
+} from 'pptx-viewer-core';
 import type { AnimationGroup } from 'pptx-viewer-shared';
-import { applyAnimationPreset, removeElementAnimation } from 'pptx-viewer-shared';
+import {
+	applyAnimationPreset,
+	removeElementAnimation,
+	reorderAnimationDown,
+	reorderAnimationUp,
+	setDelay,
+	setDirection,
+	setDuration,
+	setRepeatCount,
+	setRepeatMode,
+	setSequence,
+	setTimingCurve,
+	setTrigger,
+} from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import { updateSlide } from './editor-mutations';
@@ -22,6 +43,20 @@ import type { EditorOps } from './editor-operations';
 export interface AnimationActions {
 	addAnimation(group: AnimationGroup, preset: PptxAnimationPreset): void;
 	removeAnimation(): void;
+	setAnimationTiming(
+		elementId: string,
+		patch: {
+			durationMs?: number;
+			delayMs?: number;
+			trigger?: PptxAnimationTrigger;
+			direction?: PptxAnimationDirection;
+			sequence?: PptxAnimationSequence;
+			timingCurve?: PptxAnimationTimingCurve;
+			repeatCount?: number;
+			repeatMode?: PptxAnimationRepeatMode | 'none';
+		},
+	): void;
+	reorderAnimation(elementId: string, direction: 'up' | 'down'): void;
 }
 
 export interface AnimationActionsDeps {
@@ -31,6 +66,20 @@ export interface AnimationActionsDeps {
 
 export function createAnimationActions(deps: AnimationActionsDeps): AnimationActions {
 	const { store, ops } = deps;
+	const commitAnimations = (
+		elementId: string,
+		update: (animations: readonly PptxElementAnimation[]) => PptxElementAnimation[],
+	): void => {
+		const state = store.get();
+		const slide = state.slides[state.currentSlide];
+		if (!state.editable || !slide?.animations?.some((item) => item.elementId === elementId)) {
+			return;
+		}
+		const animations = update(slide.animations);
+		ops.pushHistory();
+		store.set({ slides: updateSlide(state.slides, state.currentSlide, { animations }) });
+		ops.commitChange();
+	};
 
 	return {
 		addAnimation(group, preset) {
@@ -60,6 +109,45 @@ export function createAnimationActions(deps: AnimationActionsDeps): AnimationAct
 			ops.pushHistory();
 			store.set({ slides: updateSlide(state.slides, state.currentSlide, { animations }) });
 			ops.commitChange();
+		},
+
+		setAnimationTiming(elementId, patch) {
+			commitAnimations(elementId, (current) => {
+				let animations = [...current];
+				if (patch.durationMs !== undefined) {
+					animations = setDuration(animations, elementId, patch.durationMs);
+				}
+				if (patch.delayMs !== undefined) {
+					animations = setDelay(animations, elementId, patch.delayMs);
+				}
+				if (patch.trigger !== undefined) {
+					animations = setTrigger(animations, elementId, patch.trigger);
+				}
+				if (patch.direction !== undefined) {
+					animations = setDirection(animations, elementId, patch.direction);
+				}
+				if (patch.sequence !== undefined) {
+					animations = setSequence(animations, elementId, patch.sequence);
+				}
+				if (patch.timingCurve !== undefined) {
+					animations = setTimingCurve(animations, elementId, patch.timingCurve);
+				}
+				if (patch.repeatCount !== undefined) {
+					animations = setRepeatCount(animations, elementId, patch.repeatCount);
+				}
+				if (patch.repeatMode !== undefined) {
+					animations = setRepeatMode(animations, elementId, patch.repeatMode);
+				}
+				return animations;
+			});
+		},
+
+		reorderAnimation(elementId, direction) {
+			commitAnimations(elementId, (animations) =>
+				direction === 'up'
+					? reorderAnimationUp(animations, elementId)
+					: reorderAnimationDown(animations, elementId),
+			);
 		},
 	};
 }

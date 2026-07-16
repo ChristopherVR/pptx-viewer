@@ -1,4 +1,12 @@
-import type { PptxSmartArtData, SmartArtColorScheme, SmartArtLayoutType } from 'pptx-viewer-core';
+import type {
+	PptxImageEffects,
+	PptxChartData,
+	MediaPptxElement,
+	PptxSmartArtData,
+	ElementAction,
+	SmartArtColorScheme,
+	SmartArtLayoutType,
+} from 'pptx-viewer-core';
 import type { GradientState } from 'pptx-viewer-shared';
 
 import type { GeometryPatch } from '../../editor/editor-edit-ops';
@@ -29,6 +37,10 @@ export interface InspectorHandlers {
 	setImageContrast(value: number): void;
 	setImageSaturation(value: number): void;
 	setImageCrop(edge: 'left' | 'top' | 'right' | 'bottom', value: number): void;
+	setImageEffects(patch: Partial<PptxImageEffects>): void;
+	setElementAction(trigger: 'click' | 'hover', action: ElementAction): void;
+	setChartData(data: PptxChartData): void;
+	setMediaProperties(patch: Partial<MediaPptxElement>): void;
 
 	setTableHeaderRow(enabled: boolean): void;
 	setTableBandedRows(enabled: boolean): void;
@@ -45,6 +57,8 @@ export interface InspectorState {
 	canShape: boolean;
 	canText: boolean;
 	isImage: boolean;
+	isChart: boolean;
+	isMedia: boolean;
 	isTable: boolean;
 	isSmartArt: boolean;
 	smartArtData: PptxSmartArtData | undefined;
@@ -66,6 +80,15 @@ export interface InspectorState {
 	imageBrightness: number;
 	imageContrast: number;
 	imageSaturation: number;
+	imageArtisticEffect: string;
+	imageTransparency: number;
+	imageBiLevel: number;
+	imageDuotone1: string;
+	imageDuotone2: string;
+	actionClick?: ElementAction;
+	actionHover?: ElementAction;
+	chartData?: PptxChartData;
+	media?: MediaPptxElement;
 	cropLeft: number;
 	cropTop: number;
 	cropRight: number;
