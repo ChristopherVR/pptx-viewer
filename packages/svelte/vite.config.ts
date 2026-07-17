@@ -21,13 +21,21 @@ import dts from 'vite-plugin-dts';
  * client runtime (`svelte/internal/client`) is ESM-only, so a CJS artifact
  * could never be `require()`d successfully anyway.
  *
- * Component CSS is compiled with `css: 'injected'`, so consumers do not need
- * a separate stylesheet import.
+ * Component CSS is compiled with `css: 'external'` and extracted to
+ * `dist/pptx-svelte-viewer.css`, matching how the React/Vue/Vanilla packages
+ * ship a real stylesheet consumers import explicitly. Runtime style injection
+ * (`css: 'injected'`) was tried first but is unreliable once this package is
+ * consumed as an actual npm dependency: the injected `<style>` tag is created
+ * by a mount-time effect (not present at SSR time), so a strict CSP with no
+ * matching nonce silently drops it, and because it lands in `<head>` late it
+ * can lose cascade-order fights against a host app's own global CSS (e.g. a
+ * reset) despite matching specificity. A build-time stylesheet sidesteps all
+ * of that.
  */
 export default defineConfig({
 	plugins: [
 		svelte({
-			compilerOptions: { css: 'injected' },
+			compilerOptions: { css: 'external' },
 		}),
 		dts({
 			tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),

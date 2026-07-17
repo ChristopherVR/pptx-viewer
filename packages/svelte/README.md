@@ -48,6 +48,15 @@ Requires Svelte 5 (runes) as a peer. The `pptx-viewer-core` engine is
 **bundled in**, so you don't install it separately unless you want to call
 the SDK directly.
 
+Component styles ship as a real stylesheet, not runtime-injected CSS (which
+proved unreliable in real SvelteKit apps: SSR, a strict CSP, or the host's own
+global CSS could all cause it to silently not apply). Import it once at your
+app entry:
+
+```ts
+import 'pptx-svelte-viewer/styles';
+```
+
 ## Usage
 
 ```svelte
