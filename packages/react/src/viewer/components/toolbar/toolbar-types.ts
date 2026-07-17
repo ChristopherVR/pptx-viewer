@@ -6,6 +6,7 @@ import type {
 	TextStyle,
 	PptxCustomShow,
 } from 'pptx-viewer-core';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 
 import type {
 	DrawingTool,
@@ -162,4 +163,6 @@ export interface ToolbarProps {
 	activeSlide?: PptxSlide;
 	onTransitionChange: (updates: Partial<PptxSlideTransition>) => void;
 	onApplyTransitionToAll: () => void;
+	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. See `PowerPointViewerProps.hiddenActions`. */
+	hiddenActions?: readonly ToolbarActionId[];
 }

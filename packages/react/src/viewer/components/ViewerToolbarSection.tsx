@@ -7,6 +7,7 @@ import type {
 	PptxAnimationPreset,
 } from 'pptx-viewer-core';
 import { createBackstagePresentation, DEFAULT_INSERT_CHART_TYPE } from 'pptx-viewer-shared';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 /**
  * ViewerToolbarSection: Renders the top toolbar, signature badge,
  * and hidden file-input elements.
@@ -140,6 +141,8 @@ export interface ViewerToolbarSectionProps {
 	autosaveStatus?: AutosaveStatus;
 	autosaveEnabled?: boolean;
 	onToggleAutosave?: () => void;
+	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
+	hiddenActions?: ToolbarActionId[];
 }
 
 // ---------------------------------------------------------------------------
@@ -177,6 +180,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		autosaveStatus,
 		autosaveEnabled = true,
 		onToggleAutosave,
+		hiddenActions,
 	} = props;
 
 	const handleAddAnimation = useCallback(
@@ -390,12 +394,14 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 					findReplaceOpen={findReplace.findReplaceOpen}
 					onToggleFindReplace={() => findReplace.setFindReplaceOpen(!findReplace.findReplaceOpen)}
 					onCommandSearch={handleCommandSearch}
+					hiddenActions={hiddenActions}
 				/>
 			)}
 			<Toolbar
 				fileName={fileName}
 				mode={mode}
 				canEdit={canEdit}
+				hiddenActions={hiddenActions}
 				isNarrowViewport={dialogs.isNarrowViewport}
 				isSidebarCollapsed={!s.isSlidesPaneOpen}
 				isInspectorPaneOpen={s.isInspectorPaneOpen}

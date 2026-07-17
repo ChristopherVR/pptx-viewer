@@ -16,6 +16,7 @@ import {
 	LuWand,
 } from 'react-icons/lu';
 
+import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
 import { cn } from '../../utils';
 import { AnimationsSection } from '../toolbar/AnimationsSection';
 import { ArrangeSection } from '../toolbar/ArrangeSection';
@@ -81,6 +82,7 @@ export function MobileMenuSheet(props: MobileMenuSheetProps): React.ReactElement
 	const { t } = useTranslation();
 	const { open, onClose } = props;
 	const [active, setActive] = useState<MenuKey>('home');
+	const { isTabVisible } = useToolbarVisibility(props.hiddenActions);
 
 	return (
 		<MobileSheet open={open} onClose={onClose} autoHeight title={t('pptx.mobileToolbar.menu')}>
@@ -89,7 +91,7 @@ export function MobileMenuSheet(props: MobileMenuSheetProps): React.ReactElement
 				    without horizontal scrolling (which hid the trailing sections). */}
 				<div className='sticky top-0 z-10 bg-background border-b border-border'>
 					<div className='flex flex-wrap gap-1.5 px-3 py-2'>
-						{MENU_ITEMS.map(({ key, label, icon: Icon }) => (
+						{MENU_ITEMS.filter(({ key }) => isTabVisible(key)).map(({ key, label, icon: Icon }) => (
 							<button
 								key={key}
 								type='button'
@@ -266,6 +268,7 @@ function MobileSectionBody({
 						onToggleSubtitles={p.onToggleSubtitles ?? (() => {})}
 						showSubtitles={p.showSubtitles ?? false}
 						onSetMode={p.onSetMode}
+						hiddenActions={p.hiddenActions}
 					/>
 				</div>
 			);
@@ -335,6 +338,7 @@ function MobileSectionBody({
 						onOpenPasswordProtection={p.onOpenPasswordProtection}
 						onOpenFontEmbedding={p.onOpenFontEmbedding}
 						onOpenDigitalSignatures={p.onOpenDigitalSignatures}
+						hiddenActions={p.hiddenActions}
 					/>
 				</div>
 			);

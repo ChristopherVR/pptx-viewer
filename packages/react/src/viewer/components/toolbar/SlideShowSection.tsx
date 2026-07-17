@@ -1,3 +1,4 @@
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -13,6 +14,7 @@ import {
 	LuVideo,
 } from 'react-icons/lu';
 
+import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
 import type { ViewerMode } from '../../types';
 import {
 	RibbonCommand,
@@ -30,10 +32,13 @@ export interface SlideShowSectionProps {
 	onToggleSubtitles: () => void;
 	showSubtitles: boolean;
 	onSetMode: (mode: ViewerMode) => void;
+	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
+	hiddenActions?: readonly ToolbarActionId[];
 }
 
 export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 	const { t } = useTranslation();
+	const { isHidden } = useToolbarVisibility(p.hiddenActions);
 	return (
 		<>
 			<RibbonGroup label={t('pptx.slideShow.start', { defaultValue: 'Start Slide Show' })}>
@@ -62,12 +67,14 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 					icon={<LuListVideo />}
 					disabled
 				/>
-				<RibbonCommand
-					label={t('pptx.slideShow.broadcast')}
-					icon={<LuCast />}
-					onClick={p.onOpenBroadcastDialog}
-					title='Broadcast slide show'
-				/>
+				{!isHidden('broadcast') && (
+					<RibbonCommand
+						label={t('pptx.slideShow.broadcast')}
+						icon={<LuCast />}
+						onClick={p.onOpenBroadcastDialog}
+						title='Broadcast slide show'
+					/>
+				)}
 			</RibbonGroup>
 			<RibbonGroup label={t('pptx.slideShow.setUpGroup', { defaultValue: 'Set Up' })}>
 				<RibbonCommand

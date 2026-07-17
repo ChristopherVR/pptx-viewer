@@ -4,12 +4,13 @@ import {
 	TITLE_BAR_CLASSES as TB,
 	TITLE_BAR_DEFAULT_FILE_KEY,
 } from 'pptx-viewer-shared';
-import type { CommandSearchEntry } from 'pptx-viewer-shared';
+import type { CommandSearchEntry, ToolbarActionId } from 'pptx-viewer-shared';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuRedo, LuSave, LuSearch, LuUndo } from 'react-icons/lu';
 
 import type { AutosaveStatus } from '../../hooks/useAutosave';
+import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
 import type { ViewerMode } from '../../types';
 import { cn } from '../../utils';
 
@@ -34,6 +35,8 @@ export interface TitleBarProps {
 	onToggleFindReplace: () => void;
 	/** Dispatch a command from the search palette. */
 	onCommandSearch?: (command: string) => void;
+	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
+	hiddenActions?: readonly ToolbarActionId[];
 }
 
 /**
@@ -44,6 +47,7 @@ export interface TitleBarProps {
 export function TitleBar(p: TitleBarProps): React.ReactElement {
 	const { t } = useTranslation();
 	const editing = (p.mode === 'edit' || p.mode === 'master') && p.canEdit;
+	const { isHidden } = useToolbarVisibility(p.hiddenActions);
 
 	const [searchQuery, setSearchQuery] = useState('');
 	const [searchFocused, setSearchFocused] = useState(false);
@@ -141,34 +145,38 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 							<LuSave className='w-3.5 h-3.5' />
 						</button>
 					)}
-					<button
-						type='button'
-						onClick={p.onUndo}
-						disabled={!p.canUndo}
-						className={TB.quickButton}
-						title={
-							p.undoLabel
-								? t('pptx.toolbar.undoAction', { action: p.undoLabel })
-								: t('pptx.toolbar.undo')
-						}
-						aria-label={t('pptx.toolbar.undo')}
-					>
-						<LuUndo className='w-3.5 h-3.5' />
-					</button>
-					<button
-						type='button'
-						onClick={p.onRedo}
-						disabled={!p.canRedo}
-						className={TB.quickButton}
-						title={
-							p.redoLabel
-								? t('pptx.toolbar.redoAction', { action: p.redoLabel })
-								: t('pptx.toolbar.redo')
-						}
-						aria-label={t('pptx.toolbar.redo')}
-					>
-						<LuRedo className='w-3.5 h-3.5' />
-					</button>
+					{!isHidden('undo') && (
+						<button
+							type='button'
+							onClick={p.onUndo}
+							disabled={!p.canUndo}
+							className={TB.quickButton}
+							title={
+								p.undoLabel
+									? t('pptx.toolbar.undoAction', { action: p.undoLabel })
+									: t('pptx.toolbar.undo')
+							}
+							aria-label={t('pptx.toolbar.undo')}
+						>
+							<LuUndo className='w-3.5 h-3.5' />
+						</button>
+					)}
+					{!isHidden('redo') && (
+						<button
+							type='button'
+							onClick={p.onRedo}
+							disabled={!p.canRedo}
+							className={TB.quickButton}
+							title={
+								p.redoLabel
+									? t('pptx.toolbar.redoAction', { action: p.redoLabel })
+									: t('pptx.toolbar.redo')
+							}
+							aria-label={t('pptx.toolbar.redo')}
+						>
+							<LuRedo className='w-3.5 h-3.5' />
+						</button>
+					)}
 
 					<div className={TB.separator} />
 				</>

@@ -388,6 +388,51 @@ describe('statusBar - zoom controls', () => {
 // Full width rendering
 // ===========================================================================
 
+// ===========================================================================
+// hiddenActions (issue #64: per-button toolbar visibility)
+// ===========================================================================
+
+describe('statusBar - hiddenActions gating', () => {
+	it('renders zoom controls, notes toggle, and fullscreen toggle by default', () => {
+		const html = render(
+			React.createElement(
+				StatusBar,
+				createMockStatusBarProps({ onToggleNotes: vi.fn<() => void>() }),
+			),
+		);
+		expect(html).toContain('aria-label="Zoom in"');
+		expect(html).toContain('aria-label="Toggle notes"');
+		expect(html).toContain('aria-label="Slide show"');
+	});
+
+	it('hides the zoom cluster when hideZoomControls is true', () => {
+		const html = render(
+			React.createElement(StatusBar, createMockStatusBarProps({ hideZoomControls: true })),
+		);
+		expect(html).not.toContain('aria-label="Zoom in"');
+		expect(html).not.toContain('aria-label="Zoom out"');
+	});
+
+	it('hides the notes toggle when hideNotesToggle is true', () => {
+		const html = render(
+			React.createElement(
+				StatusBar,
+				createMockStatusBarProps({ onToggleNotes: vi.fn<() => void>(), hideNotesToggle: true }),
+			),
+		);
+		expect(html).not.toContain('aria-label="Toggle notes"');
+	});
+
+	it('hides the Slide Show (fullscreen) toggle when hideFullscreenToggle is true', () => {
+		const html = render(
+			React.createElement(StatusBar, createMockStatusBarProps({ hideFullscreenToggle: true })),
+		);
+		expect(html).not.toContain('aria-label="Slide show"');
+		// Sibling mode buttons stay visible: only the fullscreen toggle is gated.
+		expect(html).toContain('aria-label="Normal view"');
+	});
+});
+
 describe('statusBar - layout', () => {
 	it('has w-full class on the root element', () => {
 		const html = render(React.createElement(StatusBar, createMockStatusBarProps()));

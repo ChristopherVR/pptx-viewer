@@ -93,19 +93,20 @@ const bytes = await viewerRef.current?.getContent(); // Uint8Array of a valid .p
 
 ### `PowerPointViewer` props
 
-| Prop                  | Type                                | Default  | Description                                                       |
-| --------------------- | ----------------------------------- | -------- | ----------------------------------------------------------------- |
-| `content`             | `ArrayBuffer \| Uint8Array \| null` | required | Raw .pptx file bytes                                              |
-| `filePath`            | `string`                            | n/a      | Optional file path (for display and autosave)                     |
-| `canEdit`             | `boolean`                           | `false`  | Enable editing mode                                               |
-| `onContentChange`     | `(dirty: boolean) => void`          | n/a      | Called when content changes                                       |
-| `onDirtyChange`       | `(isDirty: boolean) => void`        | n/a      | Called when dirty state changes                                   |
-| `onActiveSlideChange` | `(index: number) => void`           | n/a      | Called when the active slide changes                              |
-| `onModeChange`        | `(mode: ViewerMode) => void`        | n/a      | Called when the viewer mode changes                               |
-| `onZoomChange`        | `(zoom: number) => void`            | n/a      | Called when the zoom level changes                                |
-| `onSelectionChange`   | `(ids: string[]) => void`           | n/a      | Called when element selection changes                             |
-| `onSlideCountChange`  | `(count: number) => void`           | n/a      | Called when the total slide count changes                         |
-| `theme`               | `ViewerTheme`                       | n/a      | Theme configuration for customising colours, radius, and CSS vars |
+| Prop                  | Type                                | Default  | Description                                                                                                                            |
+| --------------------- | ----------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`             | `ArrayBuffer \| Uint8Array \| null` | required | Raw .pptx file bytes                                                                                                                   |
+| `filePath`            | `string`                            | n/a      | Optional file path (for display and autosave)                                                                                          |
+| `canEdit`             | `boolean`                           | `false`  | Enable editing mode                                                                                                                    |
+| `onContentChange`     | `(dirty: boolean) => void`          | n/a      | Called when content changes                                                                                                            |
+| `onDirtyChange`       | `(isDirty: boolean) => void`        | n/a      | Called when dirty state changes                                                                                                        |
+| `onActiveSlideChange` | `(index: number) => void`           | n/a      | Called when the active slide changes                                                                                                   |
+| `onModeChange`        | `(mode: ViewerMode) => void`        | n/a      | Called when the viewer mode changes                                                                                                    |
+| `onZoomChange`        | `(zoom: number) => void`            | n/a      | Called when the zoom level changes                                                                                                     |
+| `onSelectionChange`   | `(ids: string[]) => void`           | n/a      | Called when element selection changes                                                                                                  |
+| `onSlideCountChange`  | `(count: number) => void`           | n/a      | Called when the total slide count changes                                                                                              |
+| `theme`               | `ViewerTheme`                       | n/a      | Theme configuration for customising colours, radius, and CSS vars                                                                      |
+| `hiddenActions`       | `ToolbarActionId[]`                 | n/a      | Hide individual toolbar buttons and/or ribbon tabs (e.g. `['share', 'broadcast']`) instead of the whole toolbar; omitted hides nothing |
 
 ### `PowerPointViewerHandle` (via `ref`)
 

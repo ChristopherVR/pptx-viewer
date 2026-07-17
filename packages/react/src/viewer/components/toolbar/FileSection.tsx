@@ -22,6 +22,7 @@ import {
 	LuVideo,
 } from 'react-icons/lu';
 
+import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
 import { BackstageNavIcon } from './file-backstage-icons';
 import {
 	BackstageAction as Action,
@@ -34,6 +35,8 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 	const [page, setPage] = useState<BackstagePage>('home');
 	const [query, setQuery] = useState('');
 	const [recent, setRecent] = useState<BackstageRecentFile[]>([]);
+	const { isHidden } = useToolbarVisibility(p.hiddenActions);
+	const exportHidden = isHidden('export');
 	useEffect(() => {
 		void listBackstageRecentFiles().then(setRecent);
 	}, []);
@@ -68,7 +71,9 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 					<LuArrowLeft />
 				</button>
 				<nav className='flex min-h-0 flex-1 flex-col py-2'>
-					{BACKSTAGE_NAV.filter((item) => !item.group).map((item) => (
+					{BACKSTAGE_NAV.filter(
+						(item) => !item.group && !(item.id === 'export' && exportHidden),
+					).map((item) => (
 						<button
 							key={item.id}
 							type='button'
@@ -193,7 +198,7 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 						/>
 					</div>
 				)}
-				{page === 'export' && (
+				{page === 'export' && !exportHidden && (
 					<div className='mt-8 grid max-w-[900px] grid-cols-2 gap-5'>
 						<Action
 							icon={<LuFileText />}

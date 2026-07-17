@@ -1,3 +1,4 @@
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 /**
@@ -1811,4 +1812,106 @@ describe('toolbar - section content rendering', () => {
 	// short-circuit at the top of the component). The expand/collapse button
 	// was part of the old in-Toolbar compact mode and no longer exists.
 	// MobileToolbar has its own test coverage for the mobile-first UI.
+});
+
+// ===========================================================================
+// 12. hiddenActions (issue #64: per-button/tab toolbar visibility)
+// ===========================================================================
+
+function createHiddenActionsFileProps(hiddenActions?: ToolbarActionId[]) {
+	return {
+		onClose: vi.fn<() => void>(),
+		onCreatePresentation: vi.fn<(templateId: string) => void>(),
+		onSaveAsPptx: vi.fn<() => void>(),
+		onExportPng: vi.fn<() => void>(),
+		onExportPdf: vi.fn<() => void>(),
+		onExportVideo: vi.fn<() => void>(),
+		onExportGif: vi.fn<() => void>(),
+		onPackageForSharing: vi.fn<() => void>(),
+		onSaveAsPpsx: vi.fn<() => void>(),
+		onSaveAsPptm: vi.fn<() => void>(),
+		hasMacros: false,
+		onCopySlideAsImage: vi.fn<() => void>(),
+		onPrint: vi.fn<() => void>(),
+		onOpenDocumentProperties: vi.fn<() => void>(),
+		onOpenPasswordProtection: vi.fn<() => void>(),
+		onOpenFontEmbedding: vi.fn<() => void>(),
+		onOpenDigitalSignatures: vi.fn<() => void>(),
+		hiddenActions,
+	};
+}
+
+describe('toolbar - hiddenActions', () => {
+	it('renders every ribbon tab when hiddenActions is omitted (backward compatible)', () => {
+		const html = render(React.createElement(Toolbar, createMockToolbarProps()));
+		expect(html).toContain('>File</button>');
+		expect(html).toContain('>Review</button>');
+	});
+
+	it('omits a ribbon tab listed in hiddenActions', () => {
+		const html = render(
+			React.createElement(Toolbar, createMockToolbarProps({ hiddenActions: ['review'] })),
+		);
+		expect(html).not.toContain('>Review</button>');
+		expect(html).toContain('>Home</button>');
+	});
+
+	it('omits the Share button when "share" is hidden', () => {
+		const html = render(
+			React.createElement(Toolbar, createMockToolbarProps({ hiddenActions: ['share'] })),
+		);
+		expect(html).not.toContain('aria-label="Share"');
+	});
+
+	it('renders the Share button when hiddenActions is omitted', () => {
+		const html = render(React.createElement(Toolbar, createMockToolbarProps()));
+		expect(html).toContain('aria-label="Share"');
+	});
+
+	it('omits the Broadcast command when "broadcast" is hidden', () => {
+		const html = render(
+			React.createElement(
+				Toolbar,
+				createMockToolbarProps({ toolbarSection: 'slideShow', hiddenActions: ['broadcast'] }),
+			),
+		);
+		expect(html).not.toContain('title="Broadcast slide show"');
+	});
+
+	it('renders the Broadcast command when hiddenActions is omitted', () => {
+		const html = render(
+			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'slideShow' })),
+		);
+		expect(html).toContain('title="Broadcast slide show"');
+	});
+
+	it('omits Export from the File backstage nav when "export" is hidden', () => {
+		const html = render(React.createElement(FileSection, createHiddenActionsFileProps(['export'])));
+		expect(html).not.toContain('>Export<');
+	});
+
+	it('renders Export in the File backstage nav when hiddenActions is omitted', () => {
+		const html = render(React.createElement(FileSection, createHiddenActionsFileProps()));
+		expect(html).toContain('>Export<');
+	});
+
+	it('omits the Undo/Redo quick buttons independently when hidden', () => {
+		const htmlUndoHidden = render(
+			React.createElement(TitleBar, createTitleBarProps({ hiddenActions: ['undo'] })),
+		);
+		expect(htmlUndoHidden).not.toContain('aria-label="Undo"');
+		expect(htmlUndoHidden).toContain('aria-label="Redo"');
+
+		const htmlRedoHidden = render(
+			React.createElement(TitleBar, createTitleBarProps({ hiddenActions: ['redo'] })),
+		);
+		expect(htmlRedoHidden).toContain('aria-label="Undo"');
+		expect(htmlRedoHidden).not.toContain('aria-label="Redo"');
+	});
+
+	it('renders Undo/Redo when hiddenActions is omitted', () => {
+		const html = render(React.createElement(TitleBar, createTitleBarProps()));
+		expect(html).toContain('aria-label="Undo"');
+		expect(html).toContain('aria-label="Redo"');
+	});
 });

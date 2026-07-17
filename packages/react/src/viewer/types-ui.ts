@@ -6,7 +6,7 @@ import type {
 	StrokeDashType,
 	XmlObject,
 } from 'pptx-viewer-core';
-import type { PowerPointViewerAPI, ViewerFontSource } from 'pptx-viewer-shared';
+import type { PowerPointViewerAPI, ToolbarActionId, ViewerFontSource } from 'pptx-viewer-shared';
 /**
  * UI-related and interaction types for the PowerPoint viewer/editor plugin.
  *
@@ -367,6 +367,25 @@ export interface PowerPointViewerProps {
 	 * back to the SVG `SmartArtRenderer`. Default `false`.
 	 */
 	smartArt3D?: boolean;
+
+	/**
+	 * Hide individual toolbar buttons and/or ribbon tabs instead of the whole
+	 * toolbar. Accepts any mix of button ids (`share`, `broadcast`, `export`,
+	 * `undo`, `redo`, `record`, `notes`, `fullscreen`, `zoom`, `navigation`)
+	 * and ribbon-tab ids (`file`, `home`, `insert`, `draw`, `design`,
+	 * `transitions`, `animations`, `slideShow`, `record`, `review`, `view`,
+	 * `help`). `zoom` and `navigation` each hide their whole control cluster
+	 * (zoom in/out/fit; previous/next slide), not each sub-button. `record`
+	 * is shared between the quick-access Record button and the Record ribbon
+	 * tab: hiding it hides both. Omitted or empty hides nothing (default,
+	 * fully backward compatible).
+	 *
+	 * @example
+	 * ```tsx
+	 * <PowerPointViewer content={bytes} hiddenActions={['share', 'broadcast', 'record']} />
+	 * ```
+	 */
+	hiddenActions?: ToolbarActionId[];
 }
 
 export interface PowerPointViewerHandle extends FileViewerHandle, PowerPointViewerAPI {

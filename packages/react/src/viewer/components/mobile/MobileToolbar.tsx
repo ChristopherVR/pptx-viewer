@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuDownload, LuMenu, LuPresentation, LuRedo, LuShare2, LuUndo } from 'react-icons/lu';
 
+import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
 import { cn } from '../../utils';
 import type { ToolbarProps } from '../toolbar/toolbar-types';
 import { MobileMenuSheet } from './MobileMenuSheet';
@@ -20,6 +21,7 @@ export function MobileToolbar(props: ToolbarProps): React.ReactElement {
 	const { t } = useTranslation();
 	const { mode, canUndo, canRedo, onUndo, onRedo, onSetMode, onSaveAsPptx } = props;
 	const [menuOpen, setMenuOpen] = useState(false);
+	const { isHidden } = useToolbarVisibility(props.hiddenActions);
 
 	const showEdit = mode === 'edit' || mode === 'master';
 
@@ -46,29 +48,29 @@ export function MobileToolbar(props: ToolbarProps): React.ReactElement {
 			)}
 
 			{/* Undo / Redo */}
-			{showEdit && (
-				<>
-					<button
-						type='button'
-						onClick={onUndo}
-						disabled={!canUndo}
-						className={btn}
-						title={t('pptx.toolbar.undo')}
-						aria-label={t('pptx.toolbar.undo')}
-					>
-						<LuUndo className='w-5 h-5' />
-					</button>
-					<button
-						type='button'
-						onClick={onRedo}
-						disabled={!canRedo}
-						className={btn}
-						title={t('pptx.toolbar.redo')}
-						aria-label={t('pptx.toolbar.redo')}
-					>
-						<LuRedo className='w-5 h-5' />
-					</button>
-				</>
+			{showEdit && !isHidden('undo') && (
+				<button
+					type='button'
+					onClick={onUndo}
+					disabled={!canUndo}
+					className={btn}
+					title={t('pptx.toolbar.undo')}
+					aria-label={t('pptx.toolbar.undo')}
+				>
+					<LuUndo className='w-5 h-5' />
+				</button>
+			)}
+			{showEdit && !isHidden('redo') && (
+				<button
+					type='button'
+					onClick={onRedo}
+					disabled={!canRedo}
+					className={btn}
+					title={t('pptx.toolbar.redo')}
+					aria-label={t('pptx.toolbar.redo')}
+				>
+					<LuRedo className='w-5 h-5' />
+				</button>
 			)}
 
 			{/* Flexible spacer (could hold filename later) */}
@@ -87,19 +89,21 @@ export function MobileToolbar(props: ToolbarProps): React.ReactElement {
 				<LuDownload className='w-5 h-5' />
 			</button>
 
-			{/* Present */}
-			<button
-				type='button'
-				onClick={() => onSetMode('present')}
-				className={cn(btn, 'text-primary')}
-				title={t('pptx.toolbar.present')}
-				aria-label={t('pptx.toolbar.present')}
-			>
-				<LuPresentation className='w-5 h-5' />
-			</button>
+			{/* Present (mobile's equivalent of the status bar's fullscreen toggle) */}
+			{!isHidden('fullscreen') && (
+				<button
+					type='button'
+					onClick={() => onSetMode('present')}
+					className={cn(btn, 'text-primary')}
+					title={t('pptx.toolbar.present')}
+					aria-label={t('pptx.toolbar.present')}
+				>
+					<LuPresentation className='w-5 h-5' />
+				</button>
+			)}
 
 			{/* Share */}
-			{showEdit && (
+			{showEdit && !isHidden('share') && (
 				<button
 					type='button'
 					onClick={props.onOpenShareDialog ?? props.onPackageForSharing}

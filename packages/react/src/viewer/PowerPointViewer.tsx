@@ -104,6 +104,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onStopCollaboration,
 			shareDefaults,
 			smartArt3D = false,
+			hiddenActions,
 		} = props;
 
 		useEffect(() => {
@@ -500,6 +501,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									autosaveStatus={autosaveStatus}
 									autosaveEnabled={autosaveEnabled}
 									onToggleAutosave={() => setAutosaveEnabled((p) => !p)}
+									hiddenActions={hiddenActions}
 								/>
 							)}
 
@@ -533,6 +535,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 								onResizeLeft={isMobile ? undefined : resizablePanels.onResizeLeft}
 								rightPanelWidth={isMobile ? undefined : resizablePanels.rightWidth}
 								onResizeRight={isMobile ? undefined : resizablePanels.onResizeRight}
+								hiddenActions={hiddenActions}
 							/>
 
 							{/* Keep the bottom panels mounted while the notes panel is expanded:
@@ -564,6 +567,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									onSetMode={handleSetMode}
 									onToggleSlideSorter={() => state.setShowSlideSorter((p) => !p)}
 									hideStatusBar={isMobile}
+									hiddenActions={hiddenActions}
 								/>
 							)}
 

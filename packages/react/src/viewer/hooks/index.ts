@@ -118,6 +118,9 @@ export type { UseViewerIntegrationInput, ViewerIntegrationResult } from './useVi
 export { useReducedMotion } from './useReducedMotion';
 export type { UseReducedMotionResult } from './useReducedMotion';
 
+export { useToolbarVisibility, computeToolbarVisibility } from './useToolbarVisibility';
+export type { ToolbarVisibility } from './useToolbarVisibility';
+
 // Collaboration
 export type {
 	CollaborationConfig,

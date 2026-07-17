@@ -1,4 +1,5 @@
 import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 /**
  * ViewerCanvasArea: The `<main>` element containing the slide canvas,
  * find/replace panel, and presentation annotation / toolbar overlays.
@@ -23,6 +24,7 @@ import type { UsePresentationAnnotationsResult } from '../hooks/usePresentationA
 import type { UsePresentationModeResult } from '../hooks/usePresentationMode';
 import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 import type { TableOperationHandlers } from '../hooks/useTableOperations';
+import { useToolbarVisibility } from '../hooks/useToolbarVisibility';
 import type { ViewerState } from '../hooks/useViewerState';
 import type { UseZoomViewportResult } from '../hooks/useZoomViewport';
 import type { CanvasSize, TableCellEditorState } from '../types';
@@ -78,6 +80,8 @@ export interface ViewerCanvasAreaProps {
 		handleReplaceAll: () => void;
 		setFindReplaceOpen: (v: boolean) => void;
 	};
+	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
+	hiddenActions?: readonly ToolbarActionId[];
 }
 
 // ---------------------------------------------------------------------------
@@ -105,8 +109,10 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 		presentation,
 		onEndPresentation,
 		findReplace,
+		hiddenActions,
 	} = props;
 	const { t } = useTranslation();
+	const { isHidden } = useToolbarVisibility(hiddenActions);
 
 	const effectiveSlide = mode === 'master' ? masterPseudoSlide : activeSlide;
 	const effectiveTemplateElements =
@@ -423,6 +429,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					totalSlides={slides.length}
 					onMovePresentationSlide={presentation.movePresentationSlide}
 					onEndPresentation={onEndPresentation ?? (() => {})}
+					hideNavigation={isHidden('navigation')}
 				/>
 			)}
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { TOOLBAR_SECTIONS } from '../constants';
+import { useToolbarVisibility } from '../hooks/useToolbarVisibility';
 import { cn } from '../utils';
 import { MobileToolbar } from './mobile/MobileToolbar';
 import { AnimationsSection } from './toolbar/AnimationsSection';
@@ -28,6 +29,7 @@ export type { ToolbarProps } from './toolbar/toolbar-types';
 export function Toolbar(p: ToolbarProps): React.ReactElement {
 	const { mode, isNarrowViewport, isCompactToolbarOpen, toolbarSection, onSetToolbarSection } = p;
 	const { t } = useTranslation();
+	const { isTabVisible } = useToolbarVisibility(p.hiddenActions);
 
 	// Mobile-first: at <768px we swap the entire desktop ribbon for a compact
 	// top bar plus a slide-up sheet exposing every section. The bottom action
@@ -68,7 +70,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 					role='tablist'
 					className='flex items-center border-b border-border/60 px-1 max-md:overflow-x-auto max-md:scrollbar-none'
 				>
-					{TOOLBAR_SECTIONS.map((s) => (
+					{TOOLBAR_SECTIONS.filter((s) => isTabVisible(s.id)).map((s) => (
 						<button
 							key={s.id}
 							type='button'
@@ -94,6 +96,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 						onEnterRehearsalMode={p.canEdit ? p.onEnterRehearsalMode : undefined}
 						onOpenShareDialog={p.onOpenShareDialog}
 						onPackageForSharing={p.onPackageForSharing}
+						hiddenActions={p.hiddenActions}
 					/>
 					{isNarrowViewport && (
 						<button
@@ -147,6 +150,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onOpenPasswordProtection={p.onOpenPasswordProtection}
 							onOpenFontEmbedding={p.onOpenFontEmbedding}
 							onOpenDigitalSignatures={p.onOpenDigitalSignatures}
+							hiddenActions={p.hiddenActions}
 						/>
 					)}
 
@@ -285,6 +289,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onToggleSubtitles={p.onToggleSubtitles ?? (() => {})}
 							showSubtitles={p.showSubtitles ?? false}
 							onSetMode={p.onSetMode}
+							hiddenActions={p.hiddenActions}
 						/>
 					)}
 

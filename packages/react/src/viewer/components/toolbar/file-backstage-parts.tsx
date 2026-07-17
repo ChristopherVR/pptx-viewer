@@ -1,5 +1,5 @@
 import { BACKSTAGE_TEMPLATES, formatBackstageDate, formatBackstageSize } from 'pptx-viewer-shared';
-import type { BackstageRecentFile } from 'pptx-viewer-shared';
+import type { BackstageRecentFile, ToolbarActionId } from 'pptx-viewer-shared';
 import React from 'react';
 
 export interface FileSectionProps {
@@ -25,6 +25,8 @@ export interface FileSectionProps {
 	onOpenPasswordProtection?: () => void;
 	onOpenFontEmbedding?: () => void;
 	onOpenDigitalSignatures?: () => void;
+	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
+	hiddenActions?: readonly ToolbarActionId[];
 }
 
 const actionClass =

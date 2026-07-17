@@ -3,6 +3,7 @@
  * canvas, context menu, and side panels.
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 
 import { SlidesPaneSidebar, MasterViewSidebar, ContextMenu } from '.';
 import type { UseCommentsResult } from '../hooks/useComments-helpers';
@@ -63,6 +64,8 @@ export interface ViewerMainContentProps {
 	rightPanelWidth?: number;
 	/** Callback to resize the right panel. */
 	onResizeRight?: (delta: number) => void;
+	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
+	hiddenActions?: readonly ToolbarActionId[];
 }
 
 // ---------------------------------------------------------------------------
@@ -100,6 +103,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 		onResizeLeft,
 		rightPanelWidth,
 		onResizeRight,
+		hiddenActions,
 	} = props;
 
 	const {
@@ -200,6 +204,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 					presentation={presentation}
 					onEndPresentation={onEndPresentation}
 					findReplace={findReplace}
+					hiddenActions={hiddenActions}
 				/>
 
 				{state.contextMenuState && (

@@ -5,8 +5,10 @@
  * when the viewer is not in presentation mode.
  */
 import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 
 import type { AutosaveStatus } from '../hooks/useAutosave';
+import { useToolbarVisibility } from '../hooks/useToolbarVisibility';
 import type { ViewerMode } from '../types-core';
 import { ResizeHandle } from './ResizeHandle';
 import { SlideNotesPanel } from './SlideNotesPanel';
@@ -49,6 +51,8 @@ export interface ViewerBottomPanelsProps {
 	onToggleSlideSorter?: () => void;
 	/** When true, the StatusBar row is omitted (mobile uses MobileBottomBar instead). */
 	hideStatusBar?: boolean;
+	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
+	hiddenActions?: readonly ToolbarActionId[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -77,7 +81,9 @@ export function ViewerBottomPanels({
 	onSetMode,
 	onToggleSlideSorter,
 	hideStatusBar = false,
+	hiddenActions,
 }: ViewerBottomPanelsProps): React.ReactElement {
+	const { isHidden } = useToolbarVisibility(hiddenActions);
 	return (
 		<>
 			{onResizeBottom && !isSlideNotesCollapsed && (
@@ -108,6 +114,9 @@ export function ViewerBottomPanels({
 					onSetMode={onSetMode as ((mode: 'edit' | 'present') => void) | undefined}
 					onToggleSlideSorter={onToggleSlideSorter}
 					collaborationSlot={collaborationSlot}
+					hideZoomControls={isHidden('zoom')}
+					hideNotesToggle={isHidden('notes')}
+					hideFullscreenToggle={isHidden('fullscreen')}
 				/>
 			)}
 		</>

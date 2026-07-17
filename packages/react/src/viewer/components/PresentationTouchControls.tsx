@@ -27,6 +27,8 @@ export interface PresentationTouchControlsProps {
 	onMovePresentationSlide: (direction: 1 | -1) => void;
 	/** Exit the slideshow. */
 	onEndPresentation: () => void;
+	/** Hides the previous/next chevrons (the close button always stays). Maps to `hiddenActions: ['navigation']`. */
+	hideNavigation?: boolean;
 }
 
 export function PresentationTouchControls({
@@ -34,6 +36,7 @@ export function PresentationTouchControls({
 	totalSlides,
 	onMovePresentationSlide,
 	onEndPresentation,
+	hideNavigation = false,
 }: PresentationTouchControlsProps): React.ReactElement | null {
 	const { t } = useTranslation();
 	const { isTouchDevice } = useIsMobile();
@@ -71,41 +74,44 @@ export function PresentationTouchControls({
 				<LuX size={22} />
 			</button>
 
-			{/* Previous (left edge) */}
-			<button
-				type='button'
-				className={`fixed z-[90] top-1/2 -translate-y-1/2 ${btnClass} disabled:opacity-30`}
-				style={{
-					left: 'calc(env(safe-area-inset-left, 0px) + 0.5rem)',
-					touchAction: 'manipulation',
-				}}
-				disabled={currentSlideIndex <= 0}
-				onClick={(e) => {
-					stop(e);
-					onMovePresentationSlide(-1);
-				}}
-				aria-label={t('pptx.presenter.previousSlide')}
-			>
-				<LuChevronLeft size={26} />
-			</button>
+			{/* Previous / Next (left / right edges) */}
+			{!hideNavigation && (
+				<>
+					<button
+						type='button'
+						className={`fixed z-[90] top-1/2 -translate-y-1/2 ${btnClass} disabled:opacity-30`}
+						style={{
+							left: 'calc(env(safe-area-inset-left, 0px) + 0.5rem)',
+							touchAction: 'manipulation',
+						}}
+						disabled={currentSlideIndex <= 0}
+						onClick={(e) => {
+							stop(e);
+							onMovePresentationSlide(-1);
+						}}
+						aria-label={t('pptx.presenter.previousSlide')}
+					>
+						<LuChevronLeft size={26} />
+					</button>
 
-			{/* Next (right edge) */}
-			<button
-				type='button'
-				className={`fixed z-[90] top-1/2 -translate-y-1/2 ${btnClass} disabled:opacity-30`}
-				style={{
-					right: 'calc(env(safe-area-inset-right, 0px) + 0.5rem)',
-					touchAction: 'manipulation',
-				}}
-				disabled={currentSlideIndex >= totalSlides - 1}
-				onClick={(e) => {
-					stop(e);
-					onMovePresentationSlide(1);
-				}}
-				aria-label={t('pptx.presenter.nextSlide')}
-			>
-				<LuChevronRight size={26} />
-			</button>
+					<button
+						type='button'
+						className={`fixed z-[90] top-1/2 -translate-y-1/2 ${btnClass} disabled:opacity-30`}
+						style={{
+							right: 'calc(env(safe-area-inset-right, 0px) + 0.5rem)',
+							touchAction: 'manipulation',
+						}}
+						disabled={currentSlideIndex >= totalSlides - 1}
+						onClick={(e) => {
+							stop(e);
+							onMovePresentationSlide(1);
+						}}
+						aria-label={t('pptx.presenter.nextSlide')}
+					>
+						<LuChevronRight size={26} />
+					</button>
+				</>
+			)}
 
 			{/* Slide counter (bottom-centre, safe-area aware) */}
 			<span

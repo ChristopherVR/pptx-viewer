@@ -37,6 +37,12 @@ export interface StatusBarProps {
 	onToggleSlideSorter?: () => void;
 	/** Optional collaboration status indicator rendered inline. */
 	collaborationSlot?: React.ReactNode;
+	/** Hides the zoom in/out/to-fit control cluster. Maps to `hiddenActions: ['zoom']`. */
+	hideZoomControls?: boolean;
+	/** Hides the notes-panel toggle button. Maps to `hiddenActions: ['notes']`. */
+	hideNotesToggle?: boolean;
+	/** Hides the quick "Slide Show" (fullscreen present) toggle button. Maps to `hiddenActions: ['fullscreen']`. */
+	hideFullscreenToggle?: boolean;
 }
 
 function formatAutosaveAge(
@@ -69,6 +75,9 @@ export function StatusBar({
 	onSetMode,
 	onToggleSlideSorter,
 	collaborationSlot,
+	hideZoomControls = false,
+	hideNotesToggle = false,
+	hideFullscreenToggle = false,
 }: StatusBarProps): React.ReactElement {
 	const { t } = useTranslation();
 
@@ -126,7 +135,7 @@ export function StatusBar({
 			<div className='flex-1' />
 
 			{/* Notes toggle */}
-			{onToggleNotes && (
+			{onToggleNotes && !hideNotesToggle && (
 				<button
 					type='button'
 					onClick={onToggleNotes}
@@ -168,15 +177,17 @@ export function StatusBar({
 							<LuColumns2 className='w-3.5 h-3.5' />
 						</button>
 					)}
-					<button
-						type='button'
-						onClick={() => onSetMode('present')}
-						className={cn(vb, mode === 'present' && 'text-primary')}
-						title={t('pptx.statusBar.slideShow')}
-						aria-label={t('pptx.statusBar.slideShow')}
-					>
-						<LuPresentation className='w-3.5 h-3.5' />
-					</button>
+					{!hideFullscreenToggle && (
+						<button
+							type='button'
+							onClick={() => onSetMode('present')}
+							className={cn(vb, mode === 'present' && 'text-primary')}
+							title={t('pptx.statusBar.slideShow')}
+							aria-label={t('pptx.statusBar.slideShow')}
+						>
+							<LuPresentation className='w-3.5 h-3.5' />
+						</button>
+					)}
 				</div>
 			)}
 
@@ -189,7 +200,7 @@ export function StatusBar({
 			)}
 
 			{/* Zoom controls */}
-			{scale !== undefined && (
+			{scale !== undefined && !hideZoomControls && (
 				<>
 					<div className='w-px h-3 bg-border/60 mx-0.5' />
 					<div className='flex items-center gap-0.5'>
