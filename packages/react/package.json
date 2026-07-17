@@ -1,6 +1,6 @@
 {
 	"name": "pptx-react-viewer",
-	"version": "1.20.0",
+	"version": "1.21.0",
 	"description": "React PowerPoint viewer and editor component: render, edit, and export PPTX slides in the browser.",
 	"keywords": [
 		"editor",

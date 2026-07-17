@@ -6,6 +6,20 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-17
 
+_Releases: pptx-react-viewer@1.21.0, pptx-angular-viewer@1.26.0, pptx-vanilla-viewer@0.11.0_
+
+### Features
+
+- **react:** Add hiddenActions prop to hide individual toolbar/ribbon actions (by @ChristopherVR) ([3eaabcd](https://github.com/ChristopherVR/pptx-viewer/commit/3eaabcd208793c5a53f2c45b1b9fd948830e75ea))
+- **vanilla:** Add hiddenActions option to hide individual toolbar/ribbon actions (by @ChristopherVR) ([2c6af54](https://github.com/ChristopherVR/pptx-viewer/commit/2c6af54d21ed93fa6b8151d7c5812cf37a3a8885))
+- **angular:** Add hiddenActions input to hide individual toolbar/ribbon actions (by @ChristopherVR) ([61eb995](https://github.com/ChristopherVR/pptx-viewer/commit/61eb995be25b317f2172a5983b83575deaefc16c))
+
+### Other
+
+- Integrate release version bumps (by @ChristopherVR) ([4b3893f](https://github.com/ChristopherVR/pptx-viewer/commit/4b3893f4158803cc5533beb266ffdc8c776177cb))
+
+## 2026-07-17
+
 _Releases: pptx-angular-viewer@1.25.0_
 
 ## 2026-07-17
