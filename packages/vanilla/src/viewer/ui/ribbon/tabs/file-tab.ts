@@ -1,4 +1,4 @@
-import { Settings, UserRound } from 'lucide';
+import { Settings } from 'lucide';
 import {
 	BACKSTAGE_NAV,
 	BACKSTAGE_TEMPLATES,
@@ -6,11 +6,12 @@ import {
 	formatBackstageSize,
 	listBackstageRecentFiles,
 } from 'pptx-viewer-shared';
-import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
+import type { AccountAuthConfig, BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import type { RibbonFileHandlers } from '../ribbon-types';
+import { renderAccountPage } from './file-tab-account';
 import { createFileActionGrid } from './file-tab-actions';
 import { button, iconButton, labeledIconButton } from './file-tab-dom';
 import { createLucideIcon } from './file-tab-icons';
@@ -22,9 +23,10 @@ export interface FileTab {
 
 export function createFileTab(
 	doc: Document,
-	_t: Translator,
+	t: Translator,
 	handlers: RibbonFileHandlers,
 	onClose: () => void,
+	accountAuth?: AccountAuthConfig,
 ): FileTab {
 	const el = createEl(doc, 'div', 'pptxv-backstage');
 	el.setAttribute('role', 'dialog');
@@ -148,23 +150,19 @@ export function createFileTab(
 	function renderActions(): void {
 		main.appendChild(createFileActionGrid(doc, page, handlers, hasMacros, run));
 	}
-	function renderCard(): void {
+	function renderOptionsCard(): void {
 		const card = createEl(doc, 'section', 'pptxv-bs-card');
 		const avatar = doc.createElement('b');
-		avatar.appendChild(createLucideIcon(doc, page === 'options' ? Settings : UserRound, 24));
+		avatar.appendChild(createLucideIcon(doc, Settings, 24));
 		const heading = doc.createElement('h2');
-		heading.textContent = page === 'options' ? 'PowerPoint Options' : 'PowerPoint Viewer';
+		heading.textContent = 'PowerPoint Options';
 		const copy = doc.createElement('p');
 		copy.textContent =
-			page === 'options'
-				? 'Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.'
-				: 'Your presentations and recovery history stay in your browser unless you explicitly share or download them.';
+			'Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.';
 		card.append(avatar, heading, copy);
-		if (page === 'options') {
-			card.appendChild(
-				button(doc, 'Open Options', () => run(handlers.openSettings), 'pptxv-bs-primary'),
-			);
-		}
+		card.appendChild(
+			button(doc, 'Open Options', () => run(handlers.openSettings), 'pptxv-bs-primary'),
+		);
 		main.appendChild(card);
 	}
 	function render(): void {
@@ -185,8 +183,11 @@ export function createFileTab(
 		if (['info', 'saveAs', 'print', 'share', 'export'].includes(page)) {
 			renderActions();
 		}
-		if (page === 'account' || page === 'options') {
-			renderCard();
+		if (page === 'options') {
+			renderOptionsCard();
+		}
+		if (page === 'account') {
+			renderAccountPage(doc, t, main, accountAuth);
 		}
 		const footer = doc.createElement('footer');
 		footer.textContent = 'Presentation · Saved to this browser';

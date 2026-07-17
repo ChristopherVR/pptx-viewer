@@ -6,7 +6,8 @@ import {
 	DEFAULT_VIEWER_SETTINGS,
 	openPptxFile,
 } from 'pptx-viewer-shared';
-import type { ViewerSettings } from 'pptx-viewer-shared';
+import type { ThemeCatalogEntry, ViewerSettings, ViewerTheme } from 'pptx-viewer-shared';
+import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
 import type { EditorController } from './editor';
 import type { PrintOptions } from './export/export-print';
@@ -35,6 +36,14 @@ export interface ParityWorkflowHost {
 	print(options: PrintOptions): Promise<boolean>;
 	goToSlide(index: number): void;
 	enterPresentation(): Promise<void>;
+	/** Apply a viewer chrome theme (same mechanism as `PptxViewer.setTheme`); persists via the viewer's own precedence. */
+	setTheme(theme: ViewerTheme | undefined): void;
+	/** Switch the UI locale (same mechanism as `PptxViewer.setLocale`); persists via the viewer's own precedence. */
+	setLocale(locale: string): void;
+	/** The viewer's live theme catalog + currently active key, read fresh each time Options opens. */
+	getThemeState(): { key: string; catalog: readonly ThemeCatalogEntry[] };
+	/** The viewer's live locale catalog + currently active code, read fresh each time Options opens. */
+	getLocaleState(): { code: string; catalog: readonly LocaleCatalogEntry[] };
 }
 
 export interface ParityWorkflows {
@@ -59,6 +68,8 @@ export function createParityWorkflows(
 	const state = (): ViewerState => host.store.get();
 	return {
 		openSettings(tab = 'general') {
+			const themeState = host.getThemeState();
+			const localeState = host.getLocaleState();
 			openSettingsDialog(
 				host.doc,
 				host.t,
@@ -75,6 +86,16 @@ export function createParityWorkflows(
 					}
 				},
 				tab,
+				{
+					catalog: themeState.catalog,
+					currentKey: themeState.key,
+					onSelect: (theme) => host.setTheme(theme),
+				},
+				{
+					catalog: localeState.catalog,
+					currentCode: localeState.code,
+					onSelect: (code) => host.setLocale(code),
+				},
 			);
 		},
 		openSetUpSlideShow() {

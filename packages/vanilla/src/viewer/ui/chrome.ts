@@ -1,4 +1,5 @@
 import type { TextSegment } from 'pptx-viewer-core';
+import type { AccountAuthConfig } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -41,6 +42,8 @@ export interface ChromeOptions {
 	inspectorHandlers: InspectorHandlers;
 	/** PowerPoint-style top chrome, built when the toolbar is visible. */
 	titleBar: TitleBarDeps;
+	/** Optional File > Account sign-in hook point; disabled/absent by default. */
+	accountAuth?: AccountAuthConfig;
 	onSelectSlide(index: number): void;
 	/** Header click on the notes panel; shares the ribbon Notes button's handler. */
 	onToggleNotes(): void;
@@ -103,7 +106,7 @@ export function buildViewerChrome(
 	if (options.showToolbar) {
 		titleBar = createTitleBar(doc, t, options.titleBar);
 		root.appendChild(titleBar.el);
-		ribbon = createRibbon(doc, t, options.ribbonHandlers);
+		ribbon = createRibbon(doc, t, options.ribbonHandlers, options.accountAuth);
 		if (!options.showFormatToolbar) {
 			ribbon.setEditable(false);
 		}

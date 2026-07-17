@@ -1,5 +1,6 @@
 import { defaultCssVars } from 'pptx-viewer-shared';
 
+import { ACCOUNT_CSS } from './account-css';
 import { ANIMATION_AUTHORING_CSS } from './animation-authoring-css';
 import { COLLAB_CSS } from './collab-css';
 import { DOCUMENT_PROPERTIES_CSS } from './document-properties-css';
@@ -465,5 +466,5 @@ const CHROME_CSS = `
 
 /** The full stylesheet text (theme-var defaults + chrome rules + editor + collab chrome). */
 export function buildViewerCss(): string {
-	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${DOCUMENT_PROPERTIES_CSS}\n${FILE_INFO_CSS}\n${SMARTART_DIALOG_CSS}\n${COLLAB_CSS}\n${PRESENTATION_TOUCH_CSS}\n${MOBILE_SHEET_CSS}\n${MASTER_VIEW_CSS}\n${PARITY_DIALOG_CSS}\n${ANIMATION_AUTHORING_CSS}`;
+	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${DOCUMENT_PROPERTIES_CSS}\n${FILE_INFO_CSS}\n${SMARTART_DIALOG_CSS}\n${COLLAB_CSS}\n${PRESENTATION_TOUCH_CSS}\n${MOBILE_SHEET_CSS}\n${MASTER_VIEW_CSS}\n${PARITY_DIALOG_CSS}\n${ANIMATION_AUTHORING_CSS}\n${ACCOUNT_CSS}`;
 }

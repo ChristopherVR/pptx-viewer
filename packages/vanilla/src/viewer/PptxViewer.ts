@@ -1,6 +1,11 @@
 import { cloneSlide, setSmartArtNodeStyle, updateSmartArtNodeText } from 'pptx-viewer-core';
 import type { PptxElement, PptxHandler, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
-import type { PresentationSnapshot, ViewerMode, ViewerTheme } from 'pptx-viewer-shared';
+import type {
+	PresentationSnapshot,
+	ThemeCatalogEntry,
+	ViewerMode,
+	ViewerTheme,
+} from 'pptx-viewer-shared';
 import {
 	buildPresentationAudienceUrl,
 	buildUserFontFaceStyles,
@@ -13,6 +18,7 @@ import {
 	placeAudienceWindow,
 	PRESENTATION_CHANNEL_NAME,
 	PRESENTATION_MESSAGE_ORIGIN,
+	readStoredViewerPrefs,
 	resolveAudienceScreenPlacement,
 	shouldCommitSmartArtNodeText,
 	storePresentationDeck,
@@ -23,7 +29,10 @@ import {
 	makeSlideId,
 	mergePresentationSnapshot,
 	openPptxFile,
+	THEME_CATALOG,
+	writeStoredViewerPrefs,
 } from 'pptx-viewer-shared';
+import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
 import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
 import { buildMountChromeDeps, mountChrome, unmountChrome } from './chrome-lifecycle';
@@ -35,7 +44,7 @@ import type { Translator } from './i18n';
 import { createTranslator } from './i18n';
 import type { LoadingController } from './loading-controller';
 import { createLoadingController } from './loading-controller';
-import type { ParityWorkflows } from './parity-workflows';
+import type { ParityWorkflowHost, ParityWorkflows } from './parity-workflows';
 import { createParityWorkflows } from './parity-workflows';
 import type { PresentationAnnotationsHost } from './presentation-annotations-host';
 import { createPresentationAnnotationsHost } from './presentation-annotations-host';
@@ -53,6 +62,12 @@ import { createStateSync } from './state-sync';
 import { ensureViewerStyles } from './styles';
 import { toggleMasterView } from './template-view-control';
 import { applyThemeVars } from './theme-apply';
+import {
+	findThemeCatalogKey,
+	resolveAvailableLocales,
+	resolveInitialLocale,
+	resolveInitialThemeState,
+} from './theme-locale-prefs';
 import type {
 	CollaborationConfig,
 	ConnectionStatus,
@@ -83,6 +98,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	readonly store: Store<ViewerState>;
 	readonly renderer: RenderController;
 	t: Translator;
+	/** The viewer's live theme (kept in sync by `setTheme`); read by `ChromeHost` on mount/remount. */
+	currentTheme: ViewerTheme | undefined;
+	private readonly availableThemes: readonly ThemeCatalogEntry[];
+	private readonly availableLocales: readonly LocaleCatalogEntry[];
+	private currentThemeKey: string;
+	private currentLocale: string;
 	lifecycle!: ChromeLifecycle;
 	editor!: EditorController;
 	protected readonly exporter: ExportLifecycle;
@@ -109,7 +130,22 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.container = container;
 		this.doc = container.ownerDocument;
 		this.options = options;
-		this.t = createTranslator(options.locale ?? 'en', options.messages);
+		const storedPrefs = readStoredViewerPrefs();
+		this.availableThemes = options.availableThemes ?? THEME_CATALOG;
+		this.availableLocales = resolveAvailableLocales(options);
+		const themeState = resolveInitialThemeState(
+			options,
+			storedPrefs.themeKey,
+			this.availableThemes,
+		);
+		this.currentThemeKey = themeState.key;
+		this.currentTheme = themeState.theme;
+		this.currentLocale = resolveInitialLocale(
+			options,
+			storedPrefs.localeCode,
+			this.availableLocales,
+		);
+		this.t = createTranslator(this.currentLocale, options.messages);
 		this.registry = options.registry ?? createDefaultRegistry();
 		this.store = createStore(createInitialViewerState());
 		this.loading = createLoadingController({
@@ -202,20 +238,27 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getTranslator: () => this.t,
 			smartArt3D: options.smartArt3D ?? false,
 		});
-		this.parityWorkflows = createParityWorkflows(
-			{
-				doc: this.doc,
-				t: this.t,
-				store: this.store,
-				editor: this.editor,
-				root: () => this.lifecycle.chrome.root,
-				setAutosaveEnabled: (enabled) => this.setAutosaveEnabled(enabled),
-				print: (printOptions) => this.print(printOptions),
-				goToSlide: (index) => this.goToSlide(index),
-				enterPresentation: () => this.enterPresentation(),
-			},
-			options.autosave ?? false,
-		);
+		const parityWorkflowHost: ParityWorkflowHost = {
+			doc: this.doc,
+			t: this.t,
+			store: this.store,
+			editor: this.editor,
+			root: () => this.lifecycle.chrome.root,
+			setAutosaveEnabled: (enabled) => this.setAutosaveEnabled(enabled),
+			print: (printOptions) => this.print(printOptions),
+			goToSlide: (index) => this.goToSlide(index),
+			enterPresentation: () => this.enterPresentation(),
+			setTheme: (theme) => this.setTheme(theme),
+			setLocale: (locale) => this.setLocale(locale),
+			getThemeState: () => ({ key: this.currentThemeKey, catalog: this.availableThemes }),
+			getLocaleState: () => ({ code: this.currentLocale, catalog: this.availableLocales }),
+		};
+		// `t` needs to be a live getter (not the value copy above): `setLocale`
+		// reassigns `this.t` on every language switch, and parityWorkflows'
+		// dialogs (including Options itself) must read the current translator
+		// each time they open, not whatever was active when this host was built.
+		Object.defineProperty(parityWorkflowHost, 't', { get: () => this.t });
+		this.parityWorkflows = createParityWorkflows(parityWorkflowHost, options.autosave ?? false);
 		if (options.editable) {
 			this.store.set({ editable: true });
 			this.editor.setEditable(true);
@@ -416,12 +459,34 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.store.set({ notesExpanded: !this.store.get().notesExpanded });
 	}
 
+	/**
+	 * Apply a viewer chrome theme (pass `undefined` to reset to defaults).
+	 * When `theme` matches a catalog entry's `theme` by reference (the shared
+	 * `THEME_CATALOG` presets, or a host's own `availableThemes`), the match
+	 * also updates `currentThemeKey` and persists the choice: to
+	 * `options.onThemeChange` when the host supplied one, otherwise to
+	 * `localStorage` via `writeStoredViewerPrefs`. A theme with no catalog
+	 * match (an ad hoc `ViewerTheme` a host passes directly) still applies but
+	 * isn't tracked as a "choice", matching how the Design tab's own gallery
+	 * already calls this method.
+	 */
 	setTheme(theme: ViewerTheme | undefined): void {
 		this.lifecycle.appliedThemeVars = applyThemeVars(
 			this.lifecycle.chrome.root,
 			theme,
 			this.lifecycle.appliedThemeVars,
 		);
+		this.currentTheme = theme;
+		const key = findThemeCatalogKey(theme, this.availableThemes);
+		if (key === undefined) {
+			return;
+		}
+		this.currentThemeKey = key;
+		if (this.options.onThemeChange) {
+			this.options.onThemeChange(key);
+		} else {
+			writeStoredViewerPrefs({ themeKey: key });
+		}
 	}
 
 	applyPresentationTheme(presetId: string): void {
@@ -694,12 +759,23 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.disposePresenterConsole = null;
 	}
 
+	/**
+	 * Switch the UI locale (rebuilds the chrome labels). Persists the choice
+	 * the same way {@link setTheme} does: `options.onLocaleChange` when the
+	 * host supplied one, otherwise `localStorage` via `writeStoredViewerPrefs`.
+	 */
 	setLocale(locale: string): void {
 		this.t = createTranslator(locale, this.options.messages);
+		this.currentLocale = locale;
 		// Chrome labels are baked at build time; rebuild it under the new locale.
 		this.remountChrome();
 		this.editor.attachChrome();
 		this.renderer.renderAll();
+		if (this.options.onLocaleChange) {
+			this.options.onLocaleChange(locale);
+		} else {
+			writeStoredViewerPrefs({ localeCode: locale });
+		}
 	}
 
 	setEditable(editable: boolean): void {

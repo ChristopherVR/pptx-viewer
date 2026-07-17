@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import type { AccountAuthConfig } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
@@ -56,7 +57,12 @@ export interface Ribbon {
  * swappable tab content. Slide navigation and zoom live in the status bar,
  * avoiding the duplicate counter row that used to sit above the tabs.
  */
-export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandlers): Ribbon {
+export function createRibbon(
+	doc: Document,
+	t: Translator,
+	handlers: RibbonHandlers,
+	accountAuth?: AccountAuthConfig,
+): Ribbon {
 	const el = createEl(doc, 'div', 'pptxv-ribbon');
 	el.setAttribute('role', 'toolbar');
 	el.setAttribute('aria-label', t('pptx.toolbar.presentationToolbarAria'));
@@ -79,7 +85,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	const formatBackgroundPanel = createFormatBackgroundPanel(doc, t, handlers.edit);
 	el.appendChild(formatBackgroundPanel.el);
 
-	const fileTab = createFileTab(doc, t, handlers.file, () => setActiveTab('home'));
+	const fileTab = createFileTab(doc, t, handlers.file, () => setActiveTab('home'), accountAuth);
 	const homeTab: HomeTab = createHomeTab(doc, t, {
 		edit: handlers.edit,
 		onToggleFindReplace: () => findReplace.toggle(),
