@@ -268,7 +268,9 @@ export default defineConfig({
 					items: [
 						{ text: 'Architecture', link: '/guide/architecture' },
 						{ text: 'The PptxData Model', link: '/guide/data-model' },
+						{ text: 'Theming', link: '/guide/theming' },
 						{ text: 'Localization (i18n)', link: '/guide/localization' },
+						{ text: 'Account & Sign-in', link: '/guide/account' },
 						{ text: 'Limitations', link: '/guide/limitations' },
 					],
 				},

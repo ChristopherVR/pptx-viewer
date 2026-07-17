@@ -204,6 +204,22 @@ registerTranslations('fr', translationsFr);
 
 Registrations merge over whatever is already registered for that locale, so you can call `registerTranslations` more than once (e.g. once per feature area) without clobbering earlier overrides. As with Vanilla, English is always the fallback for keys you haven't translated yet.
 
+## File > Options > Language
+
+Every binding's Settings dialog also has a **Language** tab: a list of locales the user can pick from at runtime, right next to the [Appearance](/guide/theming) tab. It never bundles or fetches translation content itself - it only offers a UI to switch between locales _you've already registered_ with whichever i18n setup you wired up above. Concretely, when you don't supply `availableLocales` yourself, each binding introspects what's already loaded:
+
+| Binding | How it discovers available locales                                            |
+| ------- | ----------------------------------------------------------------------------- |
+| React   | `i18n.options.resources` / `i18n.languages` from the `react-i18next` instance |
+| Vue 3   | `useI18n().availableLocales` (a built-in `vue-i18n` composable property)      |
+| Angular | `TranslateService.getLangs()`                                                 |
+| Vanilla | the `messages` dictionary passed to `createPptxViewer`, plus `'en'`           |
+| Svelte  | every locale passed to `registerTranslations`                                 |
+
+So if you've only ever registered `en` and `fr`, the Language tab offers exactly those two - never a locale with no dictionary behind it. Codes are labeled via the shared `LOCALE_CATALOG` (English/French/Spanish/German display names) when recognized, or shown as the raw code otherwise.
+
+Precedence mirrors the Appearance tab: a picked locale applies immediately by calling into your i18n instance directly (`i18n.changeLanguage`, `locale.value =`, `TranslateService.use`, etc.) and persists to `localStorage` (`pptx-viewer-prefs`) - unless you pass `onLocaleChange`, in which case the viewer never touches your i18n instance itself and only calls that callback, leaving persistence and application entirely up to you. See [Theming](/guide/theming) for the full `defaultLocale`/`availableLocales`/`onLocaleChange` prop reference (same shape as the theme props, documented there once rather than twice).
+
 ## Adding a language in your app
 
 Translating the viewer into another language doesn't require touching this repo at all - it's exactly the same shape of work as translating any other part of your app. Build a dictionary with the same keys as `translationsEn` and register it as a second resource/locale/translation in whichever library your framework uses (`resources.fr` for i18next, `messages.fr` for vue-i18n, `translate.setTranslation('fr', ...)` for ngx-translate). You don't need every key on day one - anything you haven't translated yet falls back through `keyToLabel` automatically, so partial coverage degrades gracefully rather than showing blank labels or raw keys.
