@@ -85,22 +85,23 @@ import 'pptx-svelte-viewer/styles';
 
 ## Props
 
-| Prop             | Type                            | Default | Description                                       |
-| ---------------- | ------------------------------- | ------- | ------------------------------------------------- |
-| `source`         | `Uint8Array \| ArrayBuffer`     | -       | Raw `.pptx` bytes.                                |
-| `theme`          | `ViewerTheme`                   | -       | Color/radius/CSS-var overrides.                   |
-| `locale`         | `string`                        | `'en'`  | UI locale (see `pptx-svelte-viewer/i18n`).        |
-| `initialSlide`   | `number`                        | `0`     | Slide shown after load (0-based).                 |
-| `showThumbnails` | `boolean`                       | `true`  | Thumbnail sidebar.                                |
-| `showToolbar`    | `boolean`                       | `true`  | Navigation/zoom/fullscreen toolbar.               |
-| `showNotes`      | `boolean`                       | `true`  | Speaker-notes panel and its toolbar toggle.       |
-| `editable`       | `boolean`                       | `false` | Ribbon editing, insertion, arrange, and save.     |
-| `smartArt3D`     | `boolean`                       | `false` | Opt-in Three.js 3D SmartArt renderer.             |
-| `onload`         | `(d: ViewerLoadDetail) => void` | -       | Fired after a presentation loads.                 |
-| `onerror`        | `(message: string) => void`     | -       | Fired when loading fails.                         |
-| `onslidechange`  | `(index: number) => void`       | -       | Fired when the active slide changes.              |
-| `onnotesupdate`  | `(notes: string) => void`       | -       | Fired when the user edits the speaker notes.      |
-| `onchange`       | `() => void`                    | -       | Fired after every committed edit when `editable`. |
+| Prop             | Type                            | Default | Description                                                                                                            |
+| ---------------- | ------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `source`         | `Uint8Array \| ArrayBuffer`     | -       | Raw `.pptx` bytes.                                                                                                     |
+| `theme`          | `ViewerTheme`                   | -       | Color/radius/CSS-var overrides.                                                                                        |
+| `locale`         | `string`                        | `'en'`  | UI locale (see `pptx-svelte-viewer/i18n`).                                                                             |
+| `initialSlide`   | `number`                        | `0`     | Slide shown after load (0-based).                                                                                      |
+| `showThumbnails` | `boolean`                       | `true`  | Thumbnail sidebar.                                                                                                     |
+| `showToolbar`    | `boolean`                       | `true`  | Navigation/zoom/fullscreen toolbar.                                                                                    |
+| `showNotes`      | `boolean`                       | `true`  | Speaker-notes panel and its toolbar toggle.                                                                            |
+| `hiddenActions`  | `ToolbarActionId[]`             | -       | Toolbar buttons/ribbon tabs to hide individually (e.g. `['share', 'broadcast']`), instead of hiding the whole toolbar. |
+| `editable`       | `boolean`                       | `false` | Ribbon editing, insertion, arrange, and save.                                                                          |
+| `smartArt3D`     | `boolean`                       | `false` | Opt-in Three.js 3D SmartArt renderer.                                                                                  |
+| `onload`         | `(d: ViewerLoadDetail) => void` | -       | Fired after a presentation loads.                                                                                      |
+| `onerror`        | `(message: string) => void`     | -       | Fired when loading fails.                                                                                              |
+| `onslidechange`  | `(index: number) => void`       | -       | Fired when the active slide changes.                                                                                   |
+| `onnotesupdate`  | `(notes: string) => void`       | -       | Fired when the user edits the speaker notes.                                                                           |
+| `onchange`       | `() => void`                    | -       | Fired after every committed edit when `editable`.                                                                      |
 
 See the [full docs](https://christophervr.github.io/pptx-viewer/svelte/) for
 the complete props/events contract, theming, and localization guides.

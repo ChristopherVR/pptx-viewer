@@ -1,17 +1,27 @@
 <script lang="ts">
 	/** RibbonTabBar: the File/Home/Insert/View tab strip, driven by the registry. */
+	import { filterVisibleTabs } from 'pptx-viewer-shared';
+	import type { ToolbarActionId } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../i18n/context';
 	import { RIBBON_TABS } from './ribbon-tabs';
 	import type { RibbonTabId } from './ribbon-tabs';
 
-	const { active, onselect }: { active: RibbonTabId; onselect: (id: RibbonTabId) => void } =
-		$props();
+	const {
+		active,
+		onselect,
+		hiddenActions,
+	}: {
+		active: RibbonTabId;
+		onselect: (id: RibbonTabId) => void;
+		hiddenActions?: ToolbarActionId[];
+	} = $props();
 
 	const t = useTranslator();
+	const visibleTabs = $derived(filterVisibleTabs(RIBBON_TABS, hiddenActions));
 </script>
 
 <div class="pptx-svelte-ribbon-tabs" role="tablist">
-	{#each RIBBON_TABS as tab (tab.id)}
+	{#each visibleTabs as tab (tab.id)}
 		<button
 			type="button"
 			class="pptx-svelte-ribbon-tab"

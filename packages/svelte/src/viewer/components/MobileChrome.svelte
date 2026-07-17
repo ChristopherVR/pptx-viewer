@@ -1,5 +1,7 @@
 <script lang="ts">
 	/** Phone toolbar matching React's compact top-row action placement. */
+	import { isActionHidden } from 'pptx-viewer-shared';
+	import type { ToolbarActionId } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../i18n/context';
 
 	const {
@@ -12,6 +14,7 @@
 		onsave,
 		onpresent,
 		onshare,
+		hiddenActions,
 	}: {
 		editable: boolean;
 		canUndo: boolean;
@@ -22,6 +25,7 @@
 		onsave: () => void;
 		onpresent: () => void;
 		onshare: () => void;
+		hiddenActions?: ToolbarActionId[];
 	} = $props();
 
 	const t = useTranslator();
@@ -32,21 +36,27 @@
 		<button type="button" aria-label={t('pptx.mobileToolbar.menu')} title={t('pptx.mobileToolbar.menu')} onclick={onmenu}>
 			<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" /></svg>
 		</button>
-		<button type="button" aria-label={t('pptx.toolbar.undo')} title={t('pptx.toolbar.undo')} disabled={!canUndo} onclick={onundo}>
-			<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5 3 9l4 4M4 9h7a5 5 0 0 1 5 5" /></svg>
-		</button>
-		<button type="button" aria-label={t('pptx.toolbar.redo')} title={t('pptx.toolbar.redo')} disabled={!canRedo} onclick={onredo}>
-			<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m13 5 4 4-4 4M16 9H9a5 5 0 0 0-5 5" /></svg>
-		</button>
+		{#if !isActionHidden('undo', hiddenActions)}
+			<button type="button" aria-label={t('pptx.toolbar.undo')} title={t('pptx.toolbar.undo')} disabled={!canUndo} onclick={onundo}>
+				<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5 3 9l4 4M4 9h7a5 5 0 0 1 5 5" /></svg>
+			</button>
+		{/if}
+		{#if !isActionHidden('redo', hiddenActions)}
+			<button type="button" aria-label={t('pptx.toolbar.redo')} title={t('pptx.toolbar.redo')} disabled={!canRedo} onclick={onredo}>
+				<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m13 5 4 4-4 4M16 9H9a5 5 0 0 0-5 5" /></svg>
+			</button>
+		{/if}
 	{/if}
 	<span class="pptx-svelte-mobile-toolbar-spacer"></span>
 	<button type="button" aria-label={t('pptx.toolbar.save')} title={t('pptx.toolbar.save')} onclick={onsave}>
 		<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9M6.5 9.5 10 13l3.5-3.5M4 16h12" /></svg>
 	</button>
-	<button type="button" class="pptx-svelte-mobile-present" aria-label={t('pptx.toolbar.present')} title={t('pptx.toolbar.present')} onclick={onpresent}>
-		<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4h12v9H4zM7 17l3-4 3 4" /></svg>
-	</button>
-	{#if editable}
+	{#if !isActionHidden('fullscreen', hiddenActions)}
+		<button type="button" class="pptx-svelte-mobile-present" aria-label={t('pptx.toolbar.present')} title={t('pptx.toolbar.present')} onclick={onpresent}>
+			<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4h12v9H4zM7 17l3-4 3 4" /></svg>
+		</button>
+	{/if}
+	{#if editable && !isActionHidden('share', hiddenActions)}
 		<button type="button" class="pptx-svelte-mobile-share" aria-label={t('pptx.toolbar.share')} title={t('pptx.toolbar.share')} onclick={onshare}>
 			<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="5" cy="10" r="2" /><circle cx="15" cy="5" r="2" /><circle cx="15" cy="15" r="2" /><path d="m7 9 6-3M7 11l6 3" /></svg>
 		</button>

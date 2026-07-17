@@ -1,5 +1,11 @@
 import type { PptxElement, PptxSection, PptxSlide, TextSegment } from 'pptx-viewer-core';
-import type { CanvasSize, RenderParagraph, ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
+import type {
+	CanvasSize,
+	RenderParagraph,
+	ResizeHandleId,
+	SnapLine,
+	ToolbarActionId,
+} from 'pptx-viewer-shared';
 
 import type { EditorController } from '../editor/editor-controller.svelte';
 import type { EditorMarqueeRect } from '../editor/editor-selection-gestures';
@@ -128,6 +134,8 @@ export interface ViewerToolbarProps {
 	onbroadcast?: () => void;
 	/** Whether a collaboration session is currently active (highlights the Share button). */
 	collabActive?: boolean;
+	/** Toolbar buttons to hide; see `PowerPointViewerProps.hiddenActions`. Default undefined: nothing hidden. */
+	hiddenActions?: ToolbarActionId[];
 }
 
 /** Props for the selection overlay (box + 8 resize handles + rotate handle). */

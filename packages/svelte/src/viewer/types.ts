@@ -5,6 +5,7 @@ import type {
 	CollaborationRole,
 	CollaborationTransport,
 	PowerPointViewerAPI,
+	ToolbarActionId,
 	ViewerFontSource,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
@@ -31,6 +32,7 @@ export type {
 	CollaborationConfig,
 	CollaborationRole,
 	CollaborationTransport,
+	ToolbarActionId,
 	ViewerTheme,
 };
 
@@ -62,6 +64,15 @@ export interface PowerPointViewerProps {
 	showThumbnails?: boolean;
 	/** Show the navigation/zoom toolbar. Default true. */
 	showToolbar?: boolean;
+	/**
+	 * Toolbar buttons and/or ribbon tabs to hide, e.g. `['share', 'broadcast']`
+	 * to remove the collaboration entry points from a read-only embed, or
+	 * `['record']` to drop both the quick-access Record button and the Record
+	 * ribbon tab (they share one id). `zoom` and `navigation` each hide their
+	 * whole control cluster, not one sub-button. Default undefined: nothing is
+	 * hidden, matching the pre-existing always-visible behaviour.
+	 */
+	hiddenActions?: ToolbarActionId[];
 	/**
 	 * Show the speaker-notes panel and its toolbar toggle. Default true. The
 	 * panel is plain-text only and reads the active slide's notes; pass

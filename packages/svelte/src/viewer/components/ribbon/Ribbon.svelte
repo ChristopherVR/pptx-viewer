@@ -71,8 +71,9 @@
 		onshare={props.onshare}
 		onbroadcast={props.onbroadcast}
 		collabActive={props.collabActive}
+		hiddenActions={props.hiddenActions}
 	/>
-	<RibbonTabBar active={activeTab} onselect={selectTab} />
+	<RibbonTabBar active={activeTab} onselect={selectTab} hiddenActions={props.hiddenActions} />
 	<FindReplacePanel findReplace={props.findReplace} editable={props.editor.editable} />
 	<div class="pptx-svelte-ribbon-content">
 		{#if activeTab === 'file'}

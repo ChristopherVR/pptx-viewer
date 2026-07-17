@@ -4,6 +4,7 @@
 	 * and the fullscreen/presentation toggle. All strings come from the shared
 	 * i18n dictionary via the context translator; theming via `--pptx-*` vars.
 	 */
+	import { isActionHidden } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../i18n/context';
 	import AutosaveIndicator from './AutosaveIndicator.svelte';
 	import ExportMenu from './ExportMenu.svelte';
@@ -37,6 +38,7 @@
 		onshare,
 		onbroadcast,
 		collabActive = false,
+		hiddenActions,
 	}: ViewerToolbarProps = $props();
 
 	const t = useTranslator();
@@ -86,68 +88,74 @@
 			{/if}
 		</div>
 	{/if}
-	<div class="pptx-svelte-toolbar-group">
-		<button
-			type="button"
-			aria-label={t('pptx.mobileBar.previousSlide')}
-			title={t('pptx.mobileBar.previousSlide')}
-			disabled={current <= 0}
-			onclick={onprev}
-		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 3 5.5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg>
-		</button>
-		<span class="pptx-svelte-toolbar-counter" aria-live="polite">
-			{total > 0
-				? t('pptx.statusBar.slideOf', { current: current + 1, total })
-				: t('pptx.statusBar.noSlides')}
-		</span>
-		<button
-			type="button"
-			aria-label={t('pptx.mobileBar.nextSlide')}
-			title={t('pptx.mobileBar.nextSlide')}
-			disabled={current >= total - 1}
-			onclick={onnext}
-		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3 10.5 8l-5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg>
-		</button>
-	</div>
+	{#if !isActionHidden('navigation', hiddenActions)}
+		<div class="pptx-svelte-toolbar-group">
+			<button
+				type="button"
+				aria-label={t('pptx.mobileBar.previousSlide')}
+				title={t('pptx.mobileBar.previousSlide')}
+				disabled={current <= 0}
+				onclick={onprev}
+			>
+				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 3 5.5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			</button>
+			<span class="pptx-svelte-toolbar-counter" aria-live="polite">
+				{total > 0
+					? t('pptx.statusBar.slideOf', { current: current + 1, total })
+					: t('pptx.statusBar.noSlides')}
+			</span>
+			<button
+				type="button"
+				aria-label={t('pptx.mobileBar.nextSlide')}
+				title={t('pptx.mobileBar.nextSlide')}
+				disabled={current >= total - 1}
+				onclick={onnext}
+			>
+				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3 10.5 8l-5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			</button>
+		</div>
+	{/if}
 
 	<div class="pptx-svelte-toolbar-group">
-		<button
-			type="button"
-			aria-label={t('pptx.statusBar.zoomOut')}
-			title={t('pptx.statusBar.zoomOut')}
-			onclick={onzoomout}
-		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /></svg>
-		</button>
-		<button
-			type="button"
-			class="pptx-svelte-toolbar-zoom"
-			aria-label={t('pptx.statusBar.zoomToFit')}
-			title={t('pptx.statusBar.zoomToFit')}
-			onclick={onzoomfit}
-		>
-			{zoomPercent}%
-		</button>
-		<button
-			type="button"
-			aria-label={t('pptx.statusBar.zoomIn')}
-			title={t('pptx.statusBar.zoomIn')}
-			onclick={onzoomin}
-		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /></svg>
-		</button>
-		<button
-			type="button"
-			aria-label={t('pptx.statusBar.slideShow')}
-			title={t('pptx.statusBar.slideShow')}
-			aria-pressed={isFullscreen}
-			onclick={onfullscreen}
-		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6v-3.5h3.5M13.5 6v-3.5h-3.5M2.5 10v3.5h3.5M13.5 10v3.5h-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
-		</button>
-		{#if showNotes}
+		{#if !isActionHidden('zoom', hiddenActions)}
+			<button
+				type="button"
+				aria-label={t('pptx.statusBar.zoomOut')}
+				title={t('pptx.statusBar.zoomOut')}
+				onclick={onzoomout}
+			>
+				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /></svg>
+			</button>
+			<button
+				type="button"
+				class="pptx-svelte-toolbar-zoom"
+				aria-label={t('pptx.statusBar.zoomToFit')}
+				title={t('pptx.statusBar.zoomToFit')}
+				onclick={onzoomfit}
+			>
+				{zoomPercent}%
+			</button>
+			<button
+				type="button"
+				aria-label={t('pptx.statusBar.zoomIn')}
+				title={t('pptx.statusBar.zoomIn')}
+				onclick={onzoomin}
+			>
+				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /></svg>
+			</button>
+		{/if}
+		{#if !isActionHidden('fullscreen', hiddenActions)}
+			<button
+				type="button"
+				aria-label={t('pptx.statusBar.slideShow')}
+				title={t('pptx.statusBar.slideShow')}
+				aria-pressed={isFullscreen}
+				onclick={onfullscreen}
+			>
+				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6v-3.5h3.5M13.5 6v-3.5h-3.5M2.5 10v3.5h3.5M13.5 10v3.5h-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			</button>
+		{/if}
+		{#if showNotes && !isActionHidden('notes', hiddenActions)}
 			<button
 				type="button"
 				class="pptx-svelte-toolbar-notes"
@@ -161,7 +169,7 @@
 				<span class="pptx-svelte-toolbar-notes-label">{t('pptx.notes.title')}</span>
 			</button>
 		{/if}
-		{#if onshare}
+		{#if onshare && !isActionHidden('share', hiddenActions)}
 			<button
 				type="button"
 				class="pptx-svelte-toolbar-share"
@@ -174,7 +182,7 @@
 				<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="8" r="1.6" fill="none" stroke="currentColor" stroke-width="1.3" /><circle cx="12" cy="3.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.3" /><circle cx="12" cy="12.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M5.4 7.2 10.6 4.3M5.4 8.8 10.6 11.7" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
 			</button>
 		{/if}
-		{#if onbroadcast}
+		{#if onbroadcast && !isActionHidden('broadcast', hiddenActions)}
 			<button
 				type="button"
 				aria-label={t('pptx.broadcast.title')}
@@ -184,7 +192,7 @@
 				<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="1.4" fill="currentColor" /><path d="M5.5 5.5a3.5 3.5 0 0 0 0 5M10.5 5.5a3.5 3.5 0 0 1 0 5M3.3 3.3a6.5 6.5 0 0 0 0 9.4M12.7 3.3a6.5 6.5 0 0 1 0 9.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
 			</button>
 		{/if}
-		{#if exportUi}
+		{#if exportUi && !isActionHidden('export', hiddenActions)}
 			<ExportMenu {exportUi} />
 		{/if}
 	</div>

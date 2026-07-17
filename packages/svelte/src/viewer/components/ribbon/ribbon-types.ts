@@ -1,5 +1,10 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { CanvasSize, ViewerPreferences, ViewerTheme } from 'pptx-viewer-shared';
+import type {
+	CanvasSize,
+	ToolbarActionId,
+	ViewerPreferences,
+	ViewerTheme,
+} from 'pptx-viewer-shared';
 
 import type { FindReplaceState } from '../../editor/editor-find-replace.svelte';
 import type { EditorState } from '../../editor/editor-state.svelte';
@@ -53,6 +58,8 @@ export interface RibbonProps {
 	onshare?: () => void;
 	onbroadcast?: () => void;
 	collabActive?: boolean;
+	/** Toolbar buttons/ribbon tabs to hide; see `PowerPointViewerProps.hiddenActions`. */
+	hiddenActions?: ToolbarActionId[];
 	/** Slide Show tab actions: enter presentation from slide 0 or the current slide. */
 	onfrombeginning: () => void;
 	onfromcurrent: () => void;

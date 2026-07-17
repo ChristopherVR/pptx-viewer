@@ -62,6 +62,7 @@
 		showThumbnails = true,
 		showToolbar = true,
 		showNotes = true,
+		hiddenActions,
 		smartArt3D = false,
 		editable: editableProp = false,
 		class: className = '',
@@ -559,6 +560,7 @@
 			onsave={() => void downloadPptx()}
 			onpresent={onFullscreenToggle}
 			onshare={() => dialogs.openShare()}
+			{hiddenActions}
 		/>
 		<TitleBar
 			{fileName}
@@ -659,6 +661,7 @@
 				theme={effectiveTheme}
 				onsettheme={onSetTheme}
 				onentermasterview={() => editor.masterOps.enter()}
+				{hiddenActions}
 			/>
 		{:else}
 			<ViewerToolbar
@@ -679,6 +682,7 @@
 				onshare={() => dialogs.openShare()}
 				onbroadcast={() => dialogs.openBroadcast()}
 				collabActive={collab.active}
+				{hiddenActions}
 			/>
 		{/if}
 	{/if}
