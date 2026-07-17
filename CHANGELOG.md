@@ -6,6 +6,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-17
 
+_Releases: pptx-angular-viewer@1.22.0_
+
+## 2026-07-17
+
 _Releases: pptx-viewer-core@1.6.1, pptx-react-viewer@1.19.1, pptx-vue-viewer@1.19.1, pptx-angular-viewer@1.21.0, pptx-vanilla-viewer@0.9.1, pptx-svelte-viewer@0.9.1, pptx-viewer-mcp@1.3.1, @christophervr/pptx-viewer@1.5.4_
 
 ### Bug Fixes
