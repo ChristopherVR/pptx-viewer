@@ -1,3 +1,6 @@
+import type { ThemeCatalogEntry, ViewerSettings } from 'pptx-viewer-shared';
+import { SETTING_TOGGLES } from 'pptx-viewer-shared';
+import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuSettings, LuX } from 'react-icons/lu';
@@ -5,6 +8,8 @@ import { LuSettings, LuX } from 'react-icons/lu';
 import { SHORTCUT_REFERENCE_ITEMS } from '../constants';
 import { useModalDismissDrag } from '../hooks';
 import { cn } from '../utils';
+import { SettingsAppearanceTab } from './SettingsAppearanceTab';
+import { SettingsLanguageTab } from './SettingsLanguageTab';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -13,19 +18,23 @@ import { cn } from '../utils';
 export interface SettingsDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
-	spellCheckEnabled?: boolean;
-	onSetSpellCheckEnabled?: (v: boolean) => void;
-	showGrid?: boolean;
-	onSetShowGrid?: (v: boolean) => void;
-	showRulers?: boolean;
-	onSetShowRulers?: (v: boolean) => void;
-	snapToGrid?: boolean;
-	onSetSnapToGrid?: (v: boolean) => void;
-	reducedMotion?: boolean;
-	onToggleReducedMotion?: () => void;
+	/** Current values of every toggle rendered on the General tab. */
+	settings: ViewerSettings;
+	/** Fired with the toggle's key and its new value when a General-tab switch flips. */
+	onSettingsChange: (key: keyof ViewerSettings, value: boolean) => void;
+	/** Key of the currently active theme catalog entry. */
+	themeKey: string;
+	/** Catalog rendered on the Appearance tab (defaults to the shared `THEME_CATALOG`). */
+	availableThemes: readonly ThemeCatalogEntry[];
+	onSelectTheme: (key: string) => void;
+	/** Currently active locale code. */
+	localeCode: string;
+	/** Locales rendered on the Language tab. */
+	availableLocales: readonly LocaleCatalogEntry[];
+	onSelectLocale: (code: string) => void;
 }
 
-type SettingsTab = 'general' | 'shortcuts';
+type SettingsTab = 'general' | 'appearance' | 'language' | 'shortcuts';
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -72,19 +81,16 @@ function ToggleSwitch({
 export function SettingsDialog({
 	isOpen,
 	onClose,
-	spellCheckEnabled = false,
-	onSetSpellCheckEnabled,
-	showGrid = false,
-	onSetShowGrid,
-	showRulers = false,
-	onSetShowRulers,
-	snapToGrid = false,
-	onSetSnapToGrid,
-	reducedMotion = false,
-	onToggleReducedMotion,
+	settings,
+	onSettingsChange,
+	themeKey,
+	availableThemes,
+	onSelectTheme,
+	localeCode,
+	availableLocales,
+	onSelectLocale,
 }: SettingsDialogProps): React.ReactElement | null {
 	const [activeTab, setActiveTab] = useState<SettingsTab>('general');
-	const [autoSave, setAutoSave] = useState(true);
 	const { t } = useTranslation();
 	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
 
@@ -111,6 +117,8 @@ export function SettingsDialog({
 
 	const tabs: Array<{ id: SettingsTab; label: string }> = [
 		{ id: 'general', label: t('pptx.settings.general') },
+		{ id: 'appearance', label: t('pptx.settings.appearance') },
+		{ id: 'language', label: t('pptx.settings.language') },
 		{ id: 'shortcuts', label: t('pptx.settings.keyboardShortcuts') },
 	];
 
@@ -178,37 +186,31 @@ export function SettingsDialog({
 					<div className='px-5 py-4 max-h-[60vh] overflow-y-auto'>
 						{activeTab === 'general' && (
 							<div className='space-y-0.5'>
-								<ToggleSwitch
-									label={t('pptx.settings.autoSave')}
-									enabled={autoSave}
-									onToggle={() => setAutoSave(!autoSave)}
-								/>
-								<ToggleSwitch
-									label={t('pptx.settings.spellCheck')}
-									enabled={spellCheckEnabled}
-									onToggle={() => onSetSpellCheckEnabled?.(!spellCheckEnabled)}
-								/>
-								<ToggleSwitch
-									label={t('pptx.settings.showGrid')}
-									enabled={showGrid}
-									onToggle={() => onSetShowGrid?.(!showGrid)}
-								/>
-								<ToggleSwitch
-									label={t('pptx.settings.showRulers')}
-									enabled={showRulers}
-									onToggle={() => onSetShowRulers?.(!showRulers)}
-								/>
-								<ToggleSwitch
-									label={t('pptx.settings.snapToGrid')}
-									enabled={snapToGrid}
-									onToggle={() => onSetSnapToGrid?.(!snapToGrid)}
-								/>
-								<ToggleSwitch
-									label={t('pptx.settings.reducedMotion')}
-									enabled={reducedMotion}
-									onToggle={() => onToggleReducedMotion?.()}
-								/>
+								{SETTING_TOGGLES.map((toggle) => (
+									<ToggleSwitch
+										key={toggle.key}
+										label={t(toggle.labelKey)}
+										enabled={settings[toggle.key]}
+										onToggle={() => onSettingsChange(toggle.key, !settings[toggle.key])}
+									/>
+								))}
 							</div>
+						)}
+
+						{activeTab === 'appearance' && (
+							<SettingsAppearanceTab
+								activeThemeKey={themeKey}
+								themes={availableThemes}
+								onSelectTheme={onSelectTheme}
+							/>
+						)}
+
+						{activeTab === 'language' && (
+							<SettingsLanguageTab
+								activeLocale={localeCode}
+								locales={availableLocales}
+								onSelectLocale={onSelectLocale}
+							/>
 						)}
 
 						{activeTab === 'shortcuts' && (

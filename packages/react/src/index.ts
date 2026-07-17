@@ -9,7 +9,7 @@ export type { ViewerMode, PowerPointViewerAPI } from 'pptx-viewer-shared';
 export { renderToCanvas } from './lib/canvas-export';
 
 // ── Theme configuration ──
-export type { ViewerTheme, ViewerThemeColors } from './theme';
+export type { ViewerTheme, ViewerThemeColors, ThemeCatalogEntry } from './theme';
 export {
 	defaultThemeColors,
 	defaultRadius,
@@ -22,4 +22,30 @@ export {
 	vermilionLightTheme,
 	vermilionDarkTheme,
 	vermilionRadius,
+	THEME_CATALOG,
+	resolveThemeCatalogEntry,
 } from './theme';
+
+// ── Locale catalog (File > Options > Language) ──
+export { LOCALE_CATALOG } from 'pptx-viewer-shared/i18n';
+export type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
+
+// ── Viewer preferences & account (File > Options / File > Account) ──
+export {
+	VIEWER_PREFS_STORAGE_KEY,
+	readStoredViewerPrefs,
+	writeStoredViewerPrefs,
+	clearStoredViewerPrefs,
+	DEFAULT_VIEWER_PROFILE,
+	AVATAR_COLOR_SWATCHES,
+	resolveProfileInitial,
+	getLocalStorageUsageSummary,
+	clearAllLocalViewerData,
+	saveViewerProfile,
+} from 'pptx-viewer-shared';
+export type {
+	StoredViewerPrefs,
+	ViewerProfile,
+	AccountAuthConfig,
+	LocalStorageUsageSummary,
+} from 'pptx-viewer-shared';

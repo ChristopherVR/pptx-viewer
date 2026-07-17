@@ -1,9 +1,16 @@
 import { defineConfig } from 'tsup';
 
+import pkg from './package.json' with { type: 'json' };
+
 export default defineConfig((options) => ({
 	entry: ['src/index.ts', 'src/viewer/index.ts', 'src/i18n.ts', 'src/hooks-unstable.ts'],
 	format: ['esm', 'cjs'],
 	minify: false,
+	// File > Account's About panel reads this to show the installed package
+	// version without bundling `package.json` itself.
+	define: {
+		__PPTX_PACKAGE_VERSION__: JSON.stringify(pkg.version),
+	},
 	// Inline the .d.ts of the bundled internal workspace packages so the
 	// published types resolve standalone: consumers don't need (and for
 	// `pptx-viewer-shared`, can't get) those packages from npm. Mirrors the
