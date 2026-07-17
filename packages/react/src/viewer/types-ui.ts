@@ -6,7 +6,14 @@ import type {
 	StrokeDashType,
 	XmlObject,
 } from 'pptx-viewer-core';
-import type { PowerPointViewerAPI, ToolbarActionId, ViewerFontSource } from 'pptx-viewer-shared';
+import type {
+	AccountAuthConfig,
+	PowerPointViewerAPI,
+	ThemeCatalogEntry,
+	ToolbarActionId,
+	ViewerFontSource,
+} from 'pptx-viewer-shared';
+import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 /**
  * UI-related and interaction types for the PowerPoint viewer/editor plugin.
  *
@@ -301,6 +308,57 @@ export interface PowerPointViewerProps {
 	 * @see {@link ViewerTheme} for the full type definition.
 	 */
 	theme?: import('../theme').ViewerTheme;
+
+	/**
+	 * Initial key into `availableThemes` (or the built-in `THEME_CATALOG`) for
+	 * File > Options > Appearance. Ignored once the user picks a different
+	 * entry in that session, and always overridden by the `theme` prop when
+	 * both are supplied. Falls back to a persisted `localStorage` choice, then
+	 * `'default'`.
+	 */
+	defaultThemeKey?: string;
+
+	/**
+	 * Theme choices offered by File > Options > Appearance. Defaults to the
+	 * shared `THEME_CATALOG` (default/light/vermilionLight/vermilionDark).
+	 */
+	availableThemes?: ThemeCatalogEntry[];
+
+	/**
+	 * Called when the user picks a theme from File > Options > Appearance.
+	 * When provided, the host owns persisting the choice (the viewer will not
+	 * also write it to `localStorage`); otherwise the viewer persists it via
+	 * the shared `writeStoredViewerPrefs` helper.
+	 */
+	onThemeChange?: (key: string) => void;
+
+	/**
+	 * Initial locale code for File > Options > Language. Falls back to a
+	 * persisted `localStorage` choice, then `'en'`.
+	 */
+	defaultLocale?: string;
+
+	/**
+	 * Locale choices offered by File > Options > Language. Defaults to the
+	 * codes actually registered on the host's `react-i18next` instance
+	 * (mapped through the shared `LOCALE_CATALOG` for display labels).
+	 */
+	availableLocales?: LocaleCatalogEntry[];
+
+	/**
+	 * Called when the user picks a language from File > Options > Language.
+	 * When provided, the host owns applying and persisting the choice (the
+	 * viewer will not call `i18n.changeLanguage` or touch `localStorage`
+	 * itself); otherwise the viewer applies and persists it directly.
+	 */
+	onLocaleChange?: (code: string) => void;
+
+	/**
+	 * Optional hook point for File > Account's sign-in section. Disabled by
+	 * default (renders nothing extra); pass `{ enabled: true, onSignIn }` to
+	 * surface a real sign-in flow.
+	 */
+	accountAuth?: AccountAuthConfig;
 
 	/**
 	 * Optional real-time collaboration configuration.

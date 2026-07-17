@@ -23,6 +23,7 @@ import {
 } from 'react-icons/lu';
 
 import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
+import { AccountPage } from './AccountPage';
 import { BackstageNavIcon } from './file-backstage-icons';
 import {
 	BackstageAction as Action,
@@ -258,23 +259,7 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 						/>
 					</div>
 				)}
-				{page === 'account' && (
-					<div className='mt-8 max-w-[700px] border border-border bg-card p-7 text-card-foreground'>
-						<div className='flex items-center gap-4'>
-							<span className='grid size-14 place-items-center rounded-full bg-primary text-xl font-semibold text-primary-foreground'>
-								P
-							</span>
-							<div>
-								<h2 className='text-lg font-semibold'>PowerPoint Viewer</h2>
-								<p className='text-sm text-muted-foreground'>Local-first presentation editing</p>
-							</div>
-						</div>
-						<p className='mt-6 text-sm leading-6 text-muted-foreground'>
-							Your presentations and recovery history stay in your browser unless you explicitly
-							share or download them.
-						</p>
-					</div>
-				)}
+				{page === 'account' && <AccountPage />}
 				{page === 'options' && (
 					<div className='mt-8 max-w-[760px] border border-border bg-card p-7 text-card-foreground'>
 						<LuSettings className='text-3xl text-primary' />

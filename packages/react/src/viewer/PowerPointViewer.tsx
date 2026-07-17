@@ -19,10 +19,25 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
  * The component exposes a `PowerPointViewerHandle` via `forwardRef` so host
  * applications can call `getContent()` to retrieve the current file bytes.
  */
-import { buildUserFontFaceStyles, openPptxFile, readBackstageRecentFile } from 'pptx-viewer-shared';
-import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
+import type { ViewerSettings } from 'pptx-viewer-shared';
+import {
+	buildUserFontFaceStyles,
+	openPptxFile,
+	readBackstageRecentFile,
+	readStoredViewerPrefs,
+	writeStoredViewerPrefs,
+} from 'pptx-viewer-shared';
+import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
+import { LOCALE_CATALOG } from 'pptx-viewer-shared/i18n';
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
-import { ViewerThemeProvider, useThemeStyle } from '../theme';
+import {
+	THEME_CATALOG,
+	ViewerThemeProvider,
+	resolveThemeCatalogEntry,
+	useThemeStyle,
+} from '../theme';
 // Components
 import {
 	LoadingState,
@@ -43,6 +58,7 @@ import { SmartArt3DContext } from './components/elements/smart-art-3d-context';
 import { HeaderFooterPanel } from './components/HeaderFooterPanel';
 import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
 import { SettingsDialog } from './components/SettingsDialog';
+import { AccountAuthContext } from './components/toolbar/account-auth-context';
 import { ViewerDialogGroup } from './components/ViewerDialogGroup';
 import { ViewerMainContent } from './components/ViewerMainContent';
 import { ViewerPresentationLayer } from './components/ViewerPresentationLayer';
@@ -98,6 +114,13 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onSlideCountChange,
 			onOpenFile: hostOpenFile,
 			theme,
+			defaultThemeKey,
+			availableThemes,
+			onThemeChange,
+			defaultLocale,
+			availableLocales,
+			onLocaleChange,
+			accountAuth,
 			authorName,
 			collaboration,
 			onStartCollaboration,
@@ -119,7 +142,78 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			return () => style.remove();
 		}, [fonts]);
 
-		const themeStyle = useThemeStyle(theme);
+		// ── Theme catalog (File > Options > Appearance) ────────────────
+		// `theme` always wins when the host supplies it directly (fully
+		// backward compatible); otherwise the internally-managed `themeKey`
+		// resolves through the catalog. Falls back to a persisted localStorage
+		// choice, then the catalog's `'default'` entry (the built-in theme).
+		const [themeKey, setThemeKey] = useState<string>(
+			() => defaultThemeKey ?? readStoredViewerPrefs().themeKey ?? 'default',
+		);
+		const themeCatalog = availableThemes ?? THEME_CATALOG;
+		const effectiveTheme = theme ?? resolveThemeCatalogEntry(themeKey, themeCatalog);
+		const handleThemeChange = useCallback(
+			(key: string) => {
+				setThemeKey(key);
+				if (onThemeChange) {
+					onThemeChange(key);
+				} else {
+					writeStoredViewerPrefs({ themeKey: key });
+				}
+			},
+			[onThemeChange],
+		);
+
+		const themeStyle = useThemeStyle(effectiveTheme);
+
+		// ── Locale catalog (File > Options > Language) ─────────────────
+		// This package never bundles an i18n instance: the host initialises
+		// `react-i18next` and this component only calls `changeLanguage` on it.
+		const { i18n } = useTranslation();
+		const [localeCode, setLocaleCode] = useState<string>(
+			() => defaultLocale ?? readStoredViewerPrefs().localeCode ?? 'en',
+		);
+		// A persisted non-English choice needs to actually take effect on
+		// reload; only applies it ourselves when the host hasn't taken over
+		// locale handling via `onLocaleChange`.
+		useEffect(() => {
+			if (localeCode !== 'en' && !onLocaleChange) {
+				void i18n.changeLanguage(localeCode);
+			}
+			// Intentionally run once on mount: subsequent changes flow through
+			// handleLocaleChange below, not this effect.
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, []);
+		const resolvedLocales = useMemo<LocaleCatalogEntry[]>(() => {
+			if (availableLocales) {
+				return availableLocales;
+			}
+			// Introspect what the host's i18n instance actually has dictionaries
+			// for, rather than assuming every LOCALE_CATALOG entry is wired up.
+			const registeredCodes = i18n.options.resources
+				? Object.keys(i18n.options.resources)
+				: (i18n.languages ?? ['en']);
+			return registeredCodes.map(
+				(code) =>
+					LOCALE_CATALOG.find((entry) => entry.code === code) ?? {
+						code,
+						label: code,
+						nativeLabel: code,
+					},
+			);
+		}, [availableLocales, i18n]);
+		const handleLocaleChange = useCallback(
+			(code: string) => {
+				setLocaleCode(code);
+				if (onLocaleChange) {
+					onLocaleChange(code);
+				} else {
+					void i18n.changeLanguage(code);
+					writeStoredViewerPrefs({ localeCode: code });
+				}
+			},
+			[onLocaleChange, i18n],
+		);
 
 		// Local content state -- synced from incoming prop but may diverge during editing.
 		const [content, setContent] = useState<ArrayBuffer | Uint8Array | null>(incomingContent);
@@ -187,6 +281,59 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			activeSlide,
 			selectedElement,
 		} = state;
+
+		// ── Settings dialog (General tab) ────────────────────────────
+		// A single `ViewerSettings` bag + change callback, mapped over the
+		// shared `SETTING_TOGGLES` by `SettingsDialog` instead of six separate
+		// prop pairs. `autoSave` reads from the same `autosaveEnabled` state
+		// the title bar toggle drives, so the two stay in sync.
+		const settings: ViewerSettings = useMemo(
+			() => ({
+				autoSave: autosaveEnabled,
+				spellCheck: state.spellCheckEnabled,
+				showGrid: state.showGrid,
+				showRulers: state.showRulers,
+				snapToGrid: state.snapToGrid,
+				reducedMotion,
+			}),
+			[
+				autosaveEnabled,
+				state.spellCheckEnabled,
+				state.showGrid,
+				state.showRulers,
+				state.snapToGrid,
+				reducedMotion,
+			],
+		);
+		const handleSettingsChange = useCallback(
+			(key: keyof ViewerSettings, value: boolean) => {
+				switch (key) {
+					case 'autoSave':
+						setAutosaveEnabled(value);
+						break;
+					case 'spellCheck':
+						state.setSpellCheckEnabled(value);
+						break;
+					case 'showGrid':
+						state.setShowGrid(value);
+						break;
+					case 'showRulers':
+						state.setShowRulers(value);
+						break;
+					case 'snapToGrid':
+						state.setSnapToGrid(value);
+						break;
+					case 'reducedMotion':
+						if (value !== reducedMotion) {
+							toggleReducedMotion();
+						}
+						break;
+					default:
+						break;
+				}
+			},
+			[state, reducedMotion, toggleReducedMotion],
+		);
 
 		// ── Mobile / responsive ─────────────────────────────────────
 		const mobile = useIsMobile({ containerRef });
@@ -621,16 +768,14 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				<SettingsDialog
 					isOpen={isSettingsOpen}
 					onClose={() => setIsSettingsOpen(false)}
-					spellCheckEnabled={state.spellCheckEnabled}
-					onSetSpellCheckEnabled={state.setSpellCheckEnabled}
-					showGrid={state.showGrid}
-					onSetShowGrid={state.setShowGrid}
-					showRulers={state.showRulers}
-					onSetShowRulers={state.setShowRulers}
-					snapToGrid={state.snapToGrid}
-					onSetSnapToGrid={state.setSnapToGrid}
-					reducedMotion={reducedMotion}
-					onToggleReducedMotion={toggleReducedMotion}
+					settings={settings}
+					onSettingsChange={handleSettingsChange}
+					themeKey={themeKey}
+					availableThemes={themeCatalog}
+					onSelectTheme={handleThemeChange}
+					localeCode={localeCode}
+					availableLocales={resolvedLocales}
+					onSelectLocale={handleLocaleChange}
 				/>
 
 				{isHeaderFooterOpen && (
@@ -733,29 +878,31 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		// undefined the provider stays dormant (no transport, null context), so
 		// its sync/follow children below are inert no-ops.
 		return (
-			<SmartArt3DContext.Provider value={smartArt3D}>
-				<ViewerThemeProvider theme={theme}>
-					<CollaborationProvider
-						config={collaboration}
-						canvasWidth={canvasSize.width}
-						canvasHeight={canvasSize.height}
-					>
-						<CollaborationDocumentSync
-							slides={slides}
-							templateElementsBySlideId={templateElementsBySlideId}
-							setSlides={state.setSlides}
+			<AccountAuthContext.Provider value={accountAuth}>
+				<SmartArt3DContext.Provider value={smartArt3D}>
+					<ViewerThemeProvider theme={effectiveTheme}>
+						<CollaborationProvider
 							config={collaboration}
-							content={content}
-						/>
-						<CollaborationFollowLayer
-							activeSlideIndex={activeSlideIndex}
-							setActiveSlideIndex={state.setActiveSlideIndex}
-							slideCount={slides.length}
-						/>
-						{viewerContent}
-					</CollaborationProvider>
-				</ViewerThemeProvider>
-			</SmartArt3DContext.Provider>
+							canvasWidth={canvasSize.width}
+							canvasHeight={canvasSize.height}
+						>
+							<CollaborationDocumentSync
+								slides={slides}
+								templateElementsBySlideId={templateElementsBySlideId}
+								setSlides={state.setSlides}
+								config={collaboration}
+								content={content}
+							/>
+							<CollaborationFollowLayer
+								activeSlideIndex={activeSlideIndex}
+								setActiveSlideIndex={state.setActiveSlideIndex}
+								slideCount={slides.length}
+							/>
+							{viewerContent}
+						</CollaborationProvider>
+					</ViewerThemeProvider>
+				</SmartArt3DContext.Provider>
+			</AccountAuthContext.Provider>
 		);
 	},
 );
