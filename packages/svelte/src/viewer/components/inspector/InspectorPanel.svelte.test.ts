@@ -1,8 +1,10 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { EditorState } from '../../editor/editor-state.svelte';
+import { createInspectorDeckActions, INSPECTOR_DECK_CONTEXT_KEY } from '../../state/inspector-deck';
+import { PresentationLoader } from '../../state/presentation-loader.svelte';
 import InspectorPanel from './InspectorPanel.svelte';
 
 /**
@@ -192,5 +194,106 @@ describe('inspectorPanel', () => {
 		item?.click();
 		flushSync();
 		expect(editor.selectedElementId).toBe(el.id);
+	});
+});
+
+describe('inspectorPanel deck properties (no selection)', () => {
+	function mountWithDeck(
+		editor: EditorState,
+		loader: PresentationLoader,
+		withThemeOverride = false,
+	): { target: HTMLElement } {
+		const deck = createInspectorDeckActions({ loader, editor });
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const props = withThemeOverride
+			? {
+					editor,
+					handler: {} as unknown as PptxHandler,
+					onthemechange: (): void => undefined,
+				}
+			: { editor };
+		const instance = mount(InspectorPanel, {
+			target,
+			props,
+			context: new Map<symbol, unknown>([[INSPECTOR_DECK_CONTEXT_KEY, deck]]),
+		});
+		flushSync();
+		cleanup = () => {
+			unmount(instance);
+			target.remove();
+		};
+		return { target };
+	}
+
+	it('renders the deck sections in React order with no selection', () => {
+		const editor = makeEditor([shapeEl()]);
+		const { target } = mountWithDeck(editor, new PresentationLoader(), true);
+
+		expect(sectionTitles(target)).toStrictEqual([
+			'Presentation',
+			'Theme',
+			'Theme Override',
+			'Slide Size',
+			'Notes & Handout',
+			'Document',
+		]);
+	});
+
+	it('omits only Theme Override when no theme handler is wired', () => {
+		const editor = makeEditor([shapeEl()]);
+		const { target } = mountWithDeck(editor, new PresentationLoader());
+
+		expect(sectionTitles(target)).toStrictEqual([
+			'Presentation',
+			'Theme',
+			'Slide Size',
+			'Notes & Handout',
+			'Document',
+		]);
+	});
+
+	it('writes slide-size edits to the canvas size and marks the deck dirty', () => {
+		const editor = makeEditor([shapeEl()]);
+		const loader = new PresentationLoader();
+		const { target } = mountWithDeck(editor, loader);
+
+		const width = target.querySelector('.pptx-svelte-slide-size input') as HTMLInputElement;
+		expect(width).not.toBeNull();
+		width.value = '1280';
+		width.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		expect(loader.canvasSize.width).toBe(1280);
+		expect(editor.dirty).toBeTruthy();
+	});
+
+	it('commits a document title edit into editor state and marks it dirty', () => {
+		const editor = makeEditor([shapeEl()]);
+		const { target } = mountWithDeck(editor, new PresentationLoader());
+
+		const title = target.querySelector('.pptx-svelte-doc-props input') as HTMLInputElement;
+		expect(title).not.toBeNull();
+		title.value = 'Quarterly Review';
+		title.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(editor.coreProperties?.title).toBe('Quarterly Review');
+		expect(editor.dirty).toBeTruthy();
+	});
+
+	it('adds a custom document property via the Add button', () => {
+		const editor = makeEditor([shapeEl()]);
+		const { target } = mountWithDeck(editor, new PresentationLoader());
+
+		const add = target.querySelector('.pptx-svelte-custom-props button') as HTMLButtonElement;
+		expect(add).not.toBeNull();
+		add.click();
+		flushSync();
+
+		expect(editor.customProperties).toStrictEqual([
+			{ name: 'Property 1', value: '', type: 'lpwstr' },
+		]);
+		expect(editor.dirty).toBeTruthy();
 	});
 });

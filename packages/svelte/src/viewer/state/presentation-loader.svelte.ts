@@ -14,6 +14,7 @@ import type {
 	PptxSlideMaster,
 	PptxThemeColorScheme,
 	PptxTheme,
+	PptxThemeOption,
 } from 'pptx-viewer-core';
 import { EncryptedFileError, PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
@@ -51,6 +52,8 @@ export class PresentationLoader {
 	/** Whether the loaded package contains a VBA project. */
 	hasMacros = $state(false);
 	notesCanvasSize = $state.raw<CanvasSize | undefined>(undefined);
+	/** Packaged theme parts (`ppt/theme/*.xml`) selectable in the inspector. */
+	themeOptions = $state.raw<PptxThemeOption[]>([]);
 	/** Slide canvas size in pixels. */
 	canvasSize = $state.raw<CanvasSize>({
 		width: DEFAULT_CANVAS_WIDTH,
@@ -130,10 +133,15 @@ export class PresentationLoader {
 			this.digitalSignatureCount = parsed.digitalSignatureCount ?? 0;
 			this.isPasswordProtected = parsed.isPasswordProtected ?? false;
 			this.hasMacros = parsed.hasMacros ?? false;
+			// 9525 EMU per pixel (matches React/Vue's useLoadContent conversion).
 			this.notesCanvasSize =
 				parsed.notesWidthEmu && parsed.notesHeightEmu
-					? { width: parsed.notesWidthEmu / 9525, height: parsed.notesHeightEmu / 9525 }
+					? {
+							width: Math.round(parsed.notesWidthEmu / 9525),
+							height: Math.round(parsed.notesHeightEmu / 9525),
+						}
 					: undefined;
+			this.themeOptions = parsed.themeOptions ?? [];
 			this.mediaDataUrls = media.urls;
 			this.colorScheme = parsed.theme?.colorScheme;
 			this.presentationTheme = parsed.theme;

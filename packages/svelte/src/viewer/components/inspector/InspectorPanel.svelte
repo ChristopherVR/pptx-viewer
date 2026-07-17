@@ -7,8 +7,9 @@
 	 * - Elements: the active slide's layer-order list ({@link ElementsListSection}).
 	 * - Properties: with a selection, the element-type-aware sections
 	 *   (Position, Fill & Stroke, Text, Image, Table, SmartArt, Chart, Media);
-	 *   with no selection, the presentation-level sections (slide size summary
-	 *   plus {@link ThemeSection}'s presentation theme / slide theme override).
+	 *   with no selection, the deck-level sections in React's order
+	 *   ({@link PresentationPropertiesPanel}: PRESENTATION, THEME, THEME
+	 *   OVERRIDE, SLIDE SIZE, NOTES & HANDOUT, DOCUMENT).
 	 * - Comments: the slide's comment thread ({@link ReviewCommentsPanel}).
 	 *
 	 * Every control routes edits through `EditorState.applyElementPatch` /
@@ -24,21 +25,25 @@
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
 	import type { ChromeUiState, InspectorTabId } from '../../state/chrome-ui.svelte';
+	import { useInspectorDeck } from '../../state/inspector-deck';
 	import ReviewCommentsPanel from '../ribbon/review/ReviewCommentsPanel.svelte';
 	import FillStrokeSection from './FillStrokeSection.svelte';
 	import ChartSection from './ChartSection.svelte';
 	import ElementsListSection from './ElementsListSection.svelte';
 	import ImageSection from './ImageSection.svelte';
 	import PositionSection from './PositionSection.svelte';
+	import PresentationPropertiesPanel from './PresentationPropertiesPanel.svelte';
 	import ShapeSection from './ShapeSection.svelte';
 	import SmartArtSection from './SmartArtSection.svelte';
 	import MediaSection from './MediaSection.svelte';
 	import TableSection from './TableSection.svelte';
 	import TextSection from './TextSection.svelte';
-	import ThemeSection from './ThemeSection.svelte';
 
 	const { editor, handler, presentationTheme, onthemechange, mediaDataUrls = new Map(), ui, canvasSize }: { editor: EditorState; handler?: PptxHandler | null; presentationTheme?: PptxTheme; onthemechange?: (theme: PptxTheme) => void; mediaDataUrls?: Map<string, string>; ui?: ChromeUiState; canvasSize?: CanvasSize } = $props();
 	const t = useTranslator();
+	// Deck-level state/mutations for the no-selection Properties tab, provided
+	// by `PowerPointViewer` (undefined in standalone mounts, e.g. tests).
+	const deck = useInspectorDeck();
 
 	// Standalone fallbacks when no ChromeUiState is provided (tests, hosts).
 	let localTab = $state<InspectorTabId>('properties');
@@ -157,15 +162,7 @@
 				{#if isChart}<div class="pptx-svelte-inspector-section"><h4>Chart</h4><ChartSection {editor} /></div>{/if}
 				{#if isMedia}<div class="pptx-svelte-inspector-section"><h4>Media</h4><MediaSection {editor} {mediaDataUrls} /></div>{/if}
 			{:else}
-				{#if canvasSize}
-					<div class="pptx-svelte-inspector-section">
-						<h4>{t('pptx.slideSize.title')}</h4>
-						<p class="pptx-svelte-inspector-meta">{canvasSize.width} &times; {canvasSize.height} px &middot; {t('pptx.customShows.slideCount', { count: editor.slides.length })}</p>
-					</div>
-				{/if}
-				{#if handler && onthemechange}
-					<div class="pptx-svelte-inspector-section"><ThemeSection {editor} {handler} theme={presentationTheme} {onthemechange} /></div>
-				{/if}
+				<PresentationPropertiesPanel {editor} {deck} {canvasSize} {handler} {presentationTheme} {onthemechange} />
 				<p class="pptx-svelte-inspector-empty">{t('pptx.inspector.noSlideSelected')}</p>
 			{/if}
 		</div>
@@ -285,11 +282,6 @@
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
-		color: var(--pptx-muted-foreground, #94a3b8);
-	}
-
-	.pptx-svelte-inspector-meta {
-		margin: 0;
 		color: var(--pptx-muted-foreground, #94a3b8);
 	}
 

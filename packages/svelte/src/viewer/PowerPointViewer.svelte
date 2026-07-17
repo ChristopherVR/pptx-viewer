@@ -53,6 +53,7 @@
 	import { ExportUiState } from './export/export-ui.svelte';
 	import { PresentationController, PresenterSession, usePresentationEffects } from './presentation';
 	import { PresentationLoader } from './state/presentation-loader.svelte';
+	import { createInspectorDeckActions, provideInspectorDeck } from './state/inspector-deck';
 	import { ChromeUiState } from './state/chrome-ui.svelte';
 	import { ViewerParityUiState } from './state/viewer-parity-ui.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
@@ -213,6 +214,8 @@
 			void editor.save().then((bytes) => oncontentchange?.(bytes));
 		},
 	});
+	// Deck-level inspector actions (Properties tab, no selection), via context.
+	provideInspectorDeck(createInspectorDeckActions({ loader, editor }));
 	const parityUi = new ViewerParityUiState(editor);
 	// Slides-rail / inspector open state, shared by the ribbon's toggle buttons.
 	const chromeUi = new ChromeUiState();
