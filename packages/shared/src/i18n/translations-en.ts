@@ -249,6 +249,34 @@ export const translationsEn: Record<string, string> = {
 	'pptx.settings.showRulers': 'Show rulers',
 	'pptx.settings.snapToGrid': 'Snap to grid',
 	'pptx.settings.reducedMotion': 'Reduced motion',
+	'pptx.settings.appearance': 'Appearance',
+	'pptx.settings.language': 'Language',
+	'pptx.settings.theme.default': 'Default',
+	'pptx.settings.theme.light': 'Light',
+	'pptx.settings.theme.vermilionLight': 'Vermilion Light',
+	'pptx.settings.theme.vermilionDark': 'Vermilion Dark',
+
+	// Account page (File > Account)
+	'pptx.account.profile.title': 'Profile',
+	'pptx.account.profile.nameLabel': 'Display name',
+	'pptx.account.profile.namePlaceholder': 'Your name',
+	'pptx.account.profile.avatarColorLabel': 'Avatar color',
+	'pptx.account.storage.title': 'Storage & Privacy',
+	'pptx.account.storage.usage': '{{count}} saved presentation(s), {{size}} used',
+	'pptx.account.storage.usageEmpty': 'No presentations saved locally yet.',
+	'pptx.account.storage.clear': 'Clear local data',
+	'pptx.account.storage.clearConfirm':
+		'This permanently deletes every locally saved presentation and recovery snapshot on this device. This cannot be undone. Continue?',
+	'pptx.account.storage.clearedNotice': 'Local data cleared.',
+	'pptx.account.storage.privacyBlurb':
+		'Your presentations and recovery history stay in your browser unless you explicitly share or download them.',
+	'pptx.account.about.title': 'About',
+	'pptx.account.about.version': 'Version {{version}}',
+	'pptx.account.signIn.title': 'Sign in',
+	'pptx.account.signIn.description':
+		'Sign in to sync your presentations and settings across devices.',
+	'pptx.account.signIn.button': 'Sign in',
+	'pptx.account.signIn.signedInAs': 'Signed in as {{name}}',
 
 	// Sections / slides pane
 	'pptx.sections.slides': 'Slides',

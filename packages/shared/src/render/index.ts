@@ -620,3 +620,8 @@ export * from './password-protection';
 export * from './viewer-preferences';
 export * from './presentation-setup';
 export * from './presentation-subtitles';
+export * from './account';
+export * from './viewer-prefs-storage';
+// Toolbar action / ribbon-tab visibility: the ToolbarActionId catalogue and
+// TOOLBAR_TABS registry each binding's `hiddenActions` prop is built on.
+export * from './toolbar-actions';

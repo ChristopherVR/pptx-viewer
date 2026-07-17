@@ -1,5 +1,5 @@
 export type { ViewerTheme, ViewerThemeColors } from './types';
-export { defaultThemeColors, defaultRadius } from './defaults';
+export { defaultThemeColors, defaultRadius, lightThemeColors, lightTheme } from './defaults';
 export { themeToCssVars, defaultCssVars } from './css-vars';
 export {
 	vermilionLightColors,
@@ -8,3 +8,5 @@ export {
 	vermilionDarkTheme,
 	vermilionRadius,
 } from './presets';
+export { THEME_CATALOG, resolveThemeCatalogEntry } from './theme-catalog';
+export type { ThemeCatalogEntry } from './theme-catalog';

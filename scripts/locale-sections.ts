@@ -7,6 +7,7 @@ const SECTION_DEFINITIONS = [
 			'titleBar',
 			'toolbar',
 			'settings',
+			'account',
 			'close',
 			'cancel',
 			'apply',
