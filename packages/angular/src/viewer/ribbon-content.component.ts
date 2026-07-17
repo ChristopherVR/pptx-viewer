@@ -94,6 +94,18 @@ import type { RibbonTab } from './ribbon-types';
 					(moveLayer)="moveLayer.emit($event)"
 					(moveLayerToEdge)="moveLayerToEdge.emit($event)"
 				/>
+				<span class="pptx-rb-sep"></span>
+				<!--
+					React parity (Toolbar.tsx: sArr = sHome || toolbarSection === 'arrange'):
+					the Home tab also ends with the Arrange group. The dedicated Arrange
+					tab below stays unchanged.
+				-->
+				<pptx-ribbon-arrange-section
+					[slideIndex]="slideIndex()"
+					[formatPainterActive]="formatPainterActive()"
+					[canActivateFormatPainter]="canActivateFormatPainter()"
+					(toggleFormatPainter)="toggleFormatPainter.emit()"
+				/>
 			}
 			@case ('insert') {
 				<pptx-ribbon-insert-section

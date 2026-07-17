@@ -1,13 +1,14 @@
 /**
- * slide-default-inspector.component.ts: the right-docked inspector's default
- * (no element selected) state, mirroring React's tabbed `InspectorPane`:
- * an [Elements | Properties | Comments] tab strip (Properties active by
- * default) over the presentation-properties sections, the layer-order list
- * and the comments panel.
- *
- * Replaces the old bare "SLIDE / Background / Notes" panel; those slide
- * controls now live at the bottom of the Properties tab (the same position
- * React gives its `SlideBackgroundPanel`).
+ * slide-default-inspector.component.ts: the right-docked inspector's tabbed
+ * format pane, mirroring React's `InspectorPane`: an
+ * [Elements | Properties | Comments] tab strip (Properties active by default)
+ * that is ALWAYS rendered, with or without a selection. With no selection the
+ * Properties tab shows the presentation-properties sections plus the slide
+ * background/notes card; with an element selected it shows the element
+ * inspector (`pptx-inspector-panel`) instead. The Elements (layer-order) and
+ * Comments tabs stay available either way, and the active tab survives
+ * selection changes because the host renders this one component for both the
+ * 'element' and 'slide' inspector kinds.
  */
 import {
 	ChangeDetectionStrategy,
@@ -19,7 +20,7 @@ import {
 	signal,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxComment } from 'pptx-viewer-core';
+import type { PptxComment, PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import { CommentsPanelComponent } from './comments-panel.component';
@@ -27,6 +28,7 @@ import { EditorStateService } from './editor-state.service';
 import { INSPECTOR_CARD_STYLES } from './inspector-card-styles';
 import type { SlideInspectorTab } from './inspector-pane-header.component';
 import { InspectorPaneHeaderComponent } from './inspector-pane-header.component';
+import { InspectorPanelComponent } from './inspector-panel.component';
 import { PresentationPropertiesPanelComponent } from './presentation-properties-panel.component';
 import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
@@ -46,6 +48,7 @@ interface LayerRow {
 	imports: [
 		TranslatePipe,
 		InspectorPaneHeaderComponent,
+		InspectorPanelComponent,
 		PresentationPropertiesPanelComponent,
 		CommentsPanelComponent,
 	],
@@ -77,32 +80,45 @@ interface LayerRow {
 					}
 				}
 				@case ('properties') {
-					<pptx-presentation-properties-panel [canEdit]="canEdit()" [slideIndex]="slideIndex()" />
-					@if (activeSlide(); as sl) {
-						<section class="icard" [attr.data-slide-key]="slideKey()">
-							<h3 class="icard__heading">{{ 'pptx.viewer.slide' | translate }}</h3>
-							<label class="icard__row">
-								<span class="icard__label">{{ 'pptx.viewer.background' | translate }}</span>
-								<input
-									type="color"
-									[disabled]="!canEdit()"
-									[attr.value]="sl.backgroundColor || '#ffffff'"
-									(change)="canvasEditing.onSlideBackground($event)"
-								/>
-							</label>
-							<label class="icard__col">
-								<span class="icard__label">{{ 'pptx.notes.title' | translate }}</span>
-								<textarea
-									rows="4"
-									class="icard__input"
-									[disabled]="!canEdit()"
-									[attr.placeholder]="'pptx.viewer.speakerNotesPlaceholder' | translate"
-									(change)="canvasEditing.onSlideNotes($event)"
-									(blur)="canvasEditing.onSlideNotes($event)"
-									>{{ sl.notes || '' }}</textarea
-								>
-							</label>
-						</section>
+					@if (selectedElement(); as el) {
+						<!--
+							React parity: with an element selected the Properties tab shows
+							the element inspector (ElementInspectorBody); the tab strip above
+							stays in place and the other tabs remain reachable.
+						-->
+						<pptx-inspector-panel
+							[element]="el"
+							[slideIndex]="slideIndex()"
+							[canEdit]="canEdit()"
+						/>
+					} @else {
+						<pptx-presentation-properties-panel [canEdit]="canEdit()" [slideIndex]="slideIndex()" />
+						@if (activeSlide(); as sl) {
+							<section class="icard" [attr.data-slide-key]="slideKey()">
+								<h3 class="icard__heading">{{ 'pptx.viewer.slide' | translate }}</h3>
+								<label class="icard__row">
+									<span class="icard__label">{{ 'pptx.viewer.background' | translate }}</span>
+									<input
+										type="color"
+										[disabled]="!canEdit()"
+										[attr.value]="sl.backgroundColor || '#ffffff'"
+										(change)="canvasEditing.onSlideBackground($event)"
+									/>
+								</label>
+								<label class="icard__col">
+									<span class="icard__label">{{ 'pptx.notes.title' | translate }}</span>
+									<textarea
+										rows="4"
+										class="icard__input"
+										[disabled]="!canEdit()"
+										[attr.placeholder]="'pptx.viewer.speakerNotesPlaceholder' | translate"
+										(change)="canvasEditing.onSlideNotes($event)"
+										(blur)="canvasEditing.onSlideNotes($event)"
+										>{{ sl.notes || '' }}</textarea
+									>
+								</label>
+							</section>
+						}
 					}
 				}
 				@case ('comments') {
@@ -176,6 +192,12 @@ export class SlideDefaultInspectorComponent {
 	readonly slideIndex = input.required<number>();
 	/** Whether mutation controls are enabled. */
 	readonly canEdit = input<boolean>(true);
+	/**
+	 * The single selected element, or null. When set, the Properties tab shows
+	 * the element inspector instead of the presentation/slide sections (the tab
+	 * strip itself persists either way, matching React's InspectorPane).
+	 */
+	readonly selectedElement = input<PptxElement | null>(null);
 	/** The active slide's comments (host-owned; history-aware writes stay there). */
 	readonly comments = input<PptxComment[]>([]);
 

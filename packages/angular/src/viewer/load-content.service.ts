@@ -123,6 +123,11 @@ export class LoadContentService {
 	/**
 	 * Serialise an explicit set of slides back to `.pptx` bytes (e.g. the
 	 * editor's edited deck) using the loaded presentation's handler.
+	 *
+	 * Document properties (`docProps/core.xml` / `app.xml` / `custom.xml`)
+	 * are passed from the live signals so inspector edits (DOCUMENT card)
+	 * survive the save, mirroring React's `useSerialize` save options; core's
+	 * `PptxDocumentPropertiesUpdater` writes them back into the package.
 	 */
 	async saveSlides(
 		slides: readonly PptxSlide[],
@@ -132,6 +137,7 @@ export class LoadContentService {
 		if (!this.handler) {
 			throw new Error('No presentation is loaded.');
 		}
+		const customProperties = this.customProperties();
 		return this.handler.save([...slides], {
 			headerFooter: this.headerFooter(),
 			presentationProperties: this.presentationProperties(),
@@ -139,6 +145,9 @@ export class LoadContentService {
 			notesMaster: this.notesMaster(),
 			handoutMaster: this.handoutMaster(),
 			sections: sections.length > 0 ? [...sections] : undefined,
+			coreProperties: this.coreProperties(),
+			appProperties: this.appProperties(),
+			customProperties: customProperties.length > 0 ? [...customProperties] : undefined,
 			outputFormat,
 		});
 	}

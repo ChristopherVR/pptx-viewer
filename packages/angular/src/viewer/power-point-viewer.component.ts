@@ -70,7 +70,6 @@ import { FollowModeBarComponent } from './follow-mode-bar.component';
 import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InsertSmartArtDialogComponent } from './insert-smart-art-dialog.component';
 import type { SmartArtInsertEvent } from './insert-smart-art-dialog.component';
-import { InspectorPanelComponent } from './inspector-panel.component';
 import { IsMobileService } from './is-mobile';
 import { LoadContentService } from './load-content.service';
 import { MasterViewCanvasComponent } from './master-view-canvas.component';
@@ -193,7 +192,6 @@ import { ZoomTargetService } from './zoom-target.service';
 		SlideDefaultInspectorComponent,
 		FindBarComponent,
 		FindReplaceBarComponent,
-		InspectorPanelComponent,
 		SlidesPanelComponent,
 		StatusBarComponent,
 		EditorToolbarComponent,
@@ -528,25 +526,21 @@ import { ZoomTargetService } from './zoom-target.service';
 										(toggleHidden)="canvasEditing.onToggleElementHidden($event)"
 									/>
 								}
-								@case ('element') {
-									@if (selectedElement(); as el) {
-										<pptx-inspector-panel
-											[element]="el"
-											[slideIndex]="activeSlideIndex()"
-											[canEdit]="canEdit()"
-										/>
-									}
-								}
-								@case ('slide') {
+								@default {
 									<!--
-										Default (no element selected) inspector: React-parity tabbed pane
-										(Elements | Properties | Comments) over the presentation-properties
-										sections; the slide background/notes controls live at the bottom of
-										its Properties tab.
+										Format pane, covering BOTH the 'element' and 'slide' inspector
+										kinds with one React-parity tabbed pane (Elements | Properties |
+										Comments). Using a single @default branch (instead of one @case
+										per kind) keeps the SAME component instance alive across
+										selection changes, so the active tab persists: selecting or
+										deselecting an element only swaps the Properties tab's content
+										(element inspector vs presentation/slide sections), exactly like
+										React's always-rendered InspectorPane.
 									-->
 									<pptx-slide-default-inspector
 										[slideIndex]="activeSlideIndex()"
 										[canEdit]="canEdit()"
+										[selectedElement]="selectedElement()"
 										[comments]="activeComments()"
 										(commentAdd)="onCommentAdd($event)"
 										(commentRemove)="onCommentRemove($event)"
