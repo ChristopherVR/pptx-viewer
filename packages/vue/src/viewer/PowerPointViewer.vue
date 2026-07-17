@@ -39,13 +39,23 @@ import {
 	isTemplateElementId,
 	openPptxFile,
 	readBackstageRecentFile,
+	readStoredViewerPrefs,
+	saveAutosaveSnapshot,
 	setCellText,
 	strokeToInkElement,
+	writeStoredViewerPrefs,
 } from 'pptx-viewer-shared';
-import { computed, nextTick, provide, ref, toRef, watch, watchEffect } from 'vue';
+import { computed, nextTick, onMounted, provide, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { provideViewerTheme, useThemeStyle } from '../theme';
+import type { LocaleCatalogEntry } from '../i18n';
+import { LOCALE_CATALOG } from '../i18n';
+import {
+	provideViewerTheme,
+	resolveThemeCatalogEntry,
+	THEME_CATALOG,
+	useThemeStyle,
+} from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
 import BroadcastDialog from './components/BroadcastDialog.vue';
 import CanvasGuides from './components/CanvasGuides.vue';
@@ -107,7 +117,11 @@ import SnapLinesOverlay from './components/SnapLinesOverlay.vue';
 import StatusBar from './components/StatusBar.vue';
 import ThemeGallery from './components/ThemeGallery.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
-import { mergeElementAnimations, replaceSlideAnimations } from './composables/animation-persistence';
+import { AccountAuthKey } from './composables/account-auth';
+import {
+	mergeElementAnimations,
+	replaceSlideAnimations,
+} from './composables/animation-persistence';
 import { useChartCanvasEditContext } from './composables/chart-part-selection';
 import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
 import { SmartArt3DKey } from './composables/smart-art-3d';
@@ -169,14 +183,72 @@ const props = withDefaults(defineProps<PowerPointViewerProps>(), {
 });
 const emit = defineEmits<PowerPointViewerEmits>();
 
-const { t } = useI18n();
+const { t, availableLocales, locale } = useI18n();
 
 // ── Theme ─────────────────────────────────────────────────────────────
-const theme = toRef(props, 'theme');
-provideViewerTheme(theme);
+// `themeKey` drives the File ▸ Options ▸ Appearance picker; an explicit
+// `theme` prop still wins over it (fully backward compatible with hosts that
+// only ever passed `theme`). The initial key falls back to a persisted
+// `localStorage` choice, then the catalog's `'default'` entry.
+const themeKey = ref(props.defaultThemeKey ?? readStoredViewerPrefs().themeKey ?? 'default');
+const effectiveTheme = computed(
+	() =>
+		props.theme ?? resolveThemeCatalogEntry(themeKey.value, props.availableThemes ?? THEME_CATALOG),
+);
+provideViewerTheme(effectiveTheme);
 // SmartArt 3D opt-in: surface the prop to the element dispatcher via inject.
 provide(SmartArt3DKey, props.smartArt3D);
-const themeStyle = useThemeStyle(theme);
+// File ▸ Account sign-in hook point: surface the prop to AccountPage.vue via
+// inject, avoiding threading `accountAuth` through the large RibbonProps
+// contract just to reach one deeply-nested panel (mirrors SmartArt3DKey above).
+provide(AccountAuthKey, props.accountAuth);
+const themeStyle = useThemeStyle(effectiveTheme);
+
+/** File ▸ Options ▸ Appearance: apply a theme-catalog selection. */
+function selectTheme(key: string): void {
+	themeKey.value = key;
+	if (props.onThemeChange) {
+		props.onThemeChange(key);
+	} else {
+		writeStoredViewerPrefs({ themeKey: key });
+	}
+}
+
+// ── Locale ────────────────────────────────────────────────────────────
+// `localeCode` drives the File ▸ Options ▸ Language picker. The host's
+// `vue-i18n` instance is peer-supplied (this package never bundles one); a
+// persisted non-English choice is applied to it on mount unless the host owns
+// locale switching itself via `onLocaleChange`.
+const localeCode = ref(props.defaultLocale ?? readStoredViewerPrefs().localeCode ?? 'en');
+onMounted(() => {
+	if (localeCode.value !== 'en' && !props.onLocaleChange) {
+		locale.value = localeCode.value;
+	}
+});
+/** Every locale the host's `vue-i18n` instance actually has messages for, mapped to display labels. */
+const resolvedAvailableLocales = computed<LocaleCatalogEntry[]>(
+	() =>
+		props.availableLocales ??
+		availableLocales.map(
+			(code) =>
+				LOCALE_CATALOG.find((entry) => entry.code === code) ?? {
+					code,
+					label: code,
+					nativeLabel: code,
+				},
+		),
+);
+
+/** File ▸ Options ▸ Language: apply a locale-catalog selection. */
+function selectLocale(code: string): void {
+	localeCode.value = code;
+	if (props.onLocaleChange) {
+		props.onLocaleChange(code);
+	} else {
+		locale.value = code;
+		writeStoredViewerPrefs({ localeCode: code });
+	}
+}
 
 // ── Load + parse content ──────────────────────────────────────────────
 // `internalContent` lets the built-in File ▸ Open picker swap the deck in place
@@ -1090,6 +1162,11 @@ const autosave = useAutosave({
 		emit('autosave', bytes);
 		// Snapshot a restorable version on each autosave.
 		versionHistory.capture('Autosave', Date.now());
+		// Also persist to the shared IndexedDB recovery store (matches
+		// React/Angular/Vanilla/Svelte's `useAutosave`), so File ▸ Account's
+		// Storage & Privacy panel (`getLocalStorageUsageSummary`) and File ▸
+		// Open's "Recent" list have something real to report.
+		void saveAutosaveSnapshot(props.filePath ?? props.fileName ?? 'Untitled Presentation', bytes);
 	},
 });
 // Loading a deck reassigns `slides`, which the autosave watcher counts as an
@@ -2254,6 +2331,12 @@ function handleCommandSearch(command: string): void {
 			<SettingsDialog
 				:open="showSettings"
 				:settings="viewerSettings"
+				:theme-key="themeKey"
+				:on-theme-select="selectTheme"
+				:locale-code="localeCode"
+				:on-locale-select="selectLocale"
+				:available-themes="props.availableThemes"
+				:available-locales="resolvedAvailableLocales"
 				@update="onSettingsUpdate"
 				@close="showSettings = false"
 			/>

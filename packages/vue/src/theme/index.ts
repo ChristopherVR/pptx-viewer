@@ -8,4 +8,6 @@ export {
 	vermilionRadius,
 } from './presets';
 export { themeToCssVars, defaultCssVars } from './css-vars';
+export { resolveThemeCatalogEntry, THEME_CATALOG } from './theme-catalog';
+export type { ThemeCatalogEntry } from './theme-catalog';
 export { provideViewerTheme, useViewerTheme, useThemeStyle } from './provider';

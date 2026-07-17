@@ -2,7 +2,11 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import type { LocaleCatalogEntry } from '../../i18n';
+import type { ThemeCatalogEntry } from '../../theme';
 import ModalDialog from './ModalDialog.vue';
+import SettingsAppearanceTab from './SettingsAppearanceTab.vue';
+import SettingsLanguageTab from './SettingsLanguageTab.vue';
 import type { ViewerSettings } from './viewer-settings';
 import { SETTING_TOGGLES, SHORTCUT_REFERENCE_ITEMS } from './viewer-settings';
 
@@ -11,14 +15,20 @@ import { SETTING_TOGGLES, SHORTCUT_REFERENCE_ITEMS } from './viewer-settings';
  *
  * Vue counterpart of the React package's `SettingsDialog.tsx`. It exposes the
  * same boolean preferences (autosave, spell-check, show-grid, show-rulers,
- * snap-to-grid, reduced-motion) on a "General" tab, plus a read-only keyboard
- * "Shortcuts" reference tab.
+ * snap-to-grid, reduced-motion) on a "General" tab, a read-only keyboard
+ * "Shortcuts" reference tab, plus "Appearance" (viewer chrome theme catalog)
+ * and "Language" (locale catalog) tabs delegating to
+ * `SettingsAppearanceTab.vue` / `SettingsLanguageTab.vue`.
  *
  * Where the React dialog threaded each setting through its own prop/callback
  * (and kept `autoSave` as dialog-local state), the Vue port takes the whole
  * `ViewerSettings` object as one `settings` prop and emits a single
  * `update(settings)` with the full next value whenever a toggle flips. The host
  * owns persistence; this component is purely presentational.
+ *
+ * Theme/locale are not part of `ViewerSettings` (they live in
+ * `PowerPointViewer.vue`'s own `themeKey`/`localeCode` refs), so they're
+ * threaded as separate props/callbacks rather than folded into `settings`.
  *
  * The form is seeded from `settings` each time the dialog opens, so a host can
  * pass a live reactive object or re-feed it on every open; both work.
@@ -28,6 +38,18 @@ const props = defineProps<{
 	open: boolean;
 	/** Current viewer settings. */
 	settings: ViewerSettings;
+	/** Key of the currently active theme-catalog entry. */
+	themeKey: string;
+	/** Invoked with the entry's `key` when the user picks an Appearance swatch. */
+	onThemeSelect: (key: string) => void;
+	/** Code of the currently active locale. */
+	localeCode: string;
+	/** Invoked with the entry's `code` when the user picks a Language choice. */
+	onLocaleSelect: (code: string) => void;
+	/** Theme choices to offer on the Appearance tab; defaults to the built-in catalog. */
+	availableThemes?: ThemeCatalogEntry[];
+	/** Locale choices to offer on the Language tab. */
+	availableLocales: LocaleCatalogEntry[];
 }>();
 
 const emit = defineEmits<{
@@ -37,7 +59,7 @@ const emit = defineEmits<{
 	(e: 'close'): void;
 }>();
 
-type SettingsTab = 'general' | 'shortcuts';
+type SettingsTab = 'general' | 'shortcuts' | 'appearance' | 'language';
 
 const { t } = useI18n();
 
@@ -61,6 +83,8 @@ const shortcuts = SHORTCUT_REFERENCE_ITEMS;
 
 const tabs = computed<Array<{ id: SettingsTab; label: string }>>(() => [
 	{ id: 'general', label: t('pptx.settings.general') },
+	{ id: 'appearance', label: t('pptx.settings.appearance') },
+	{ id: 'language', label: t('pptx.settings.language') },
 	{ id: 'shortcuts', label: t('pptx.settings.keyboardShortcuts') },
 ]);
 
@@ -127,6 +151,20 @@ function close(): void {
 					</button>
 				</div>
 			</div>
+
+			<SettingsAppearanceTab
+				v-else-if="activeTab === 'appearance'"
+				:theme-key="themeKey"
+				:catalog="availableThemes"
+				:on-select="onThemeSelect"
+			/>
+
+			<SettingsLanguageTab
+				v-else-if="activeTab === 'language'"
+				:locale-code="localeCode"
+				:locales="availableLocales"
+				:on-select="onLocaleSelect"
+			/>
 
 			<div v-else class="pptx-vue-settings-panel flex max-h-[56vh] flex-col overflow-y-auto">
 				<div

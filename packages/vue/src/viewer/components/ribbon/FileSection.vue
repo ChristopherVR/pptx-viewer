@@ -10,6 +10,7 @@ import {
 import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
 import { computed, onMounted, ref } from 'vue';
 
+import AccountPage from './AccountPage.vue';
 import { backstageIcon } from './file-section-icons';
 import type { FileSectionProps } from './file-section-types';
 
@@ -264,27 +265,21 @@ function selectPage(id: BackstagePage): void {
 					>
 				</button>
 			</div>
+			<AccountPage v-if="page === 'account'" />
 			<div
-				v-if="page === 'account' || page === 'options'"
+				v-else-if="page === 'options'"
 				class="mt-8 max-w-[760px] border border-border bg-card p-7 text-card-foreground"
 			>
 				<div
 					class="grid size-14 place-items-center rounded-full bg-primary text-xl font-semibold text-primary-foreground"
 				>
-					{{ page === 'options' ? '⚙' : 'P' }}
+					⚙
 				</div>
-				<h2 class="mt-4 text-lg font-semibold">
-					{{ page === 'options' ? 'PowerPoint Options' : 'PowerPoint Viewer' }}
-				</h2>
+				<h2 class="mt-4 text-lg font-semibold">PowerPoint Options</h2>
 				<p class="mt-2 text-sm leading-6 text-muted-foreground">
-					{{
-						page === 'options'
-							? 'Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.'
-							: 'Your presentations and recovery history stay in your browser unless you explicitly share or download them.'
-					}}
+					Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.
 				</p>
 				<button
-					v-if="page === 'options'"
 					type="button"
 					class="mt-6 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
 					@click="run(props.onOpenSettings)"

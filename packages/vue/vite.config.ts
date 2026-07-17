@@ -14,6 +14,11 @@ function readSourceFile(path: string): string | undefined {
 	}
 }
 
+/** Package version, baked into the bundle as `__PPTX_PACKAGE_VERSION__` (see `src/version.ts`). */
+const pkgVersion = (
+	JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')) as { version: string }
+).version;
+
 /**
  * Library build for `pptx-vue-viewer`.
  *
@@ -33,6 +38,9 @@ function readSourceFile(path: string): string | undefined {
 const INTERNAL_BUNDLED = ['pptx-viewer-core', 'pptx-viewer-shared'];
 
 export default defineConfig({
+	define: {
+		__PPTX_PACKAGE_VERSION__: JSON.stringify(pkgVersion),
+	},
 	plugins: [
 		vue({
 			script: {

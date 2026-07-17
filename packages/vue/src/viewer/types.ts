@@ -1,4 +1,5 @@
 import type {
+	AccountAuthConfig,
 	CanvasSize,
 	CollaborationConfig,
 	CollaborationRole,
@@ -6,7 +7,8 @@ import type {
 	ViewerFontSource,
 } from 'pptx-viewer-shared';
 
-import type { ViewerTheme } from '../theme';
+import type { LocaleCatalogEntry } from '../i18n';
+import type { ThemeCatalogEntry, ViewerTheme } from '../theme';
 
 /**
  * Public component types for the Vue PowerPoint viewer.
@@ -92,6 +94,49 @@ export interface PowerPointViewerProps {
 	 * back to the SVG SmartArt renderer. Default `false`.
 	 */
 	smartArt3D?: boolean;
+	/**
+	 * Initial theme-catalog selection key (e.g. `'vermilionDark'`), used only
+	 * when no persisted preference exists. Has no effect when the `theme` prop
+	 * is set: an explicit `theme` always wins over the catalog selection.
+	 */
+	defaultThemeKey?: string;
+	/**
+	 * Theme choices offered by File > Options > Appearance. Defaults to the
+	 * shared `THEME_CATALOG` (default / light / vermilion light / vermilion
+	 * dark).
+	 */
+	availableThemes?: ThemeCatalogEntry[];
+	/**
+	 * Host hook for the File > Options > Appearance theme picker. When
+	 * provided, the host owns persisting the choice (only this callback is
+	 * invoked); when omitted, the viewer persists the choice to `localStorage`
+	 * itself via the shared `writeStoredViewerPrefs`.
+	 */
+	onThemeChange?: (key: string) => void;
+	/**
+	 * Initial locale code (e.g. `'fr'`), used only when no persisted
+	 * preference exists.
+	 */
+	defaultLocale?: string;
+	/**
+	 * Locale choices offered by File > Options > Language. Defaults to every
+	 * locale registered with the host's `vue-i18n` instance (via
+	 * `useI18n().availableLocales`), mapped through the shared
+	 * `LOCALE_CATALOG` for display labels.
+	 */
+	availableLocales?: LocaleCatalogEntry[];
+	/**
+	 * Host hook for the File > Options > Language picker. When provided, the
+	 * host owns applying and persisting the locale switch (the viewer leaves
+	 * its own `vue-i18n` `locale` ref untouched); when omitted, the viewer
+	 * sets `locale.value` itself and persists the choice to `localStorage`.
+	 */
+	onLocaleChange?: (code: string) => void;
+	/**
+	 * Optional sign-in hook point for File > Account. Disabled by default: the
+	 * Account page renders nothing extra unless `enabled: true` is passed.
+	 */
+	accountAuth?: AccountAuthConfig;
 }
 
 /**
