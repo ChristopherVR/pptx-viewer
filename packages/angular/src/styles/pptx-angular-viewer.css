@@ -80,6 +80,8 @@
    no compiler step can drop. Only ribbon-color-popover is genuinely
    single-root (one wrapping <div> around its whole template) and is
    excluded; every other name below renders 2+ top-level sibling elements. */
+pptx-ribbon-content,
+pptx-ribbon-content-secondary,
 pptx-ribbon-file-section,
 pptx-ribbon-home-section,
 pptx-ribbon-insert-section,

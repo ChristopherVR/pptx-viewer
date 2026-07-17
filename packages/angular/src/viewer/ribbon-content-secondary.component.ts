@@ -36,6 +36,7 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 	selector: 'pptx-ribbon-content-secondary',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [
 		TranslatePipe,
 		RibbonSlideshowSectionComponent,

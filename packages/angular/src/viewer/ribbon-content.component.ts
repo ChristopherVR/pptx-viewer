@@ -35,6 +35,7 @@ import type { RibbonTab } from './ribbon-types';
 	selector: 'pptx-ribbon-content',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [
 		RibbonFileSectionComponent,
 		RibbonHomeSectionComponent,
@@ -85,16 +86,6 @@ import type { RibbonTab } from './ribbon-types';
 					[canActivateFormatPainter]="canActivateFormatPainter()"
 					(toggleFormatPainter)="toggleFormatPainter.emit()"
 					(findReplace)="find.emit()"
-				/>
-				<span class="pptx-rb-sep"></span>
-				<pptx-ribbon-font-controls
-					[slideIndex]="slideIndex()"
-					[selectedElement]="selectedElement()"
-				/>
-				<span class="pptx-rb-sep"></span>
-				<pptx-ribbon-paragraph-controls
-					[slideIndex]="slideIndex()"
-					[selectedElement]="selectedElement()"
 				/>
 				<span class="pptx-rb-sep"></span>
 				<pptx-ribbon-drawing-group
