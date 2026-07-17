@@ -1,5 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { ToolbarActionId } from 'pptx-viewer-shared';
+import type { AccountAuthConfig, ToolbarActionId } from 'pptx-viewer-shared';
 import { filterVisibleTabs, isActionHidden } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
@@ -68,6 +68,7 @@ export function createRibbon(
 	t: Translator,
 	handlers: RibbonHandlers,
 	hiddenActions?: readonly ToolbarActionId[],
+	accountAuth?: AccountAuthConfig,
 ): Ribbon {
 	const el = createEl(doc, 'div', 'pptxv-ribbon');
 	el.setAttribute('role', 'toolbar');
@@ -94,7 +95,7 @@ export function createRibbon(
 	const hidden = (id: RibbonTabId): boolean => isActionHidden(id, hiddenActions);
 	const fileTab = hidden('file')
 		? null
-		: createFileTab(doc, t, handlers.file, () => setActiveTab('home'), hiddenActions);
+		: createFileTab(doc, t, handlers.file, () => setActiveTab('home'), hiddenActions, accountAuth);
 	const homeTab: HomeTab | null = hidden('home')
 		? null
 		: createHomeTab(doc, t, {

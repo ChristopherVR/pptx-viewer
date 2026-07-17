@@ -36,6 +36,13 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	options: PptxViewerOptions;
 	store: Store<ViewerState>;
 	renderer: RenderController;
+	/**
+	 * The theme to apply on mount: the viewer's live `currentTheme` (tracks
+	 * `setTheme` calls), not the static constructor `options.theme`. Falling
+	 * back to `options.theme` keeps direct `MountChromeDeps` construction (e.g.
+	 * tests) working without this field.
+	 */
+	initialTheme?: ViewerTheme;
 	goToFirstSlide(): void;
 	goToLastSlide(): void;
 	exitPresentation(): void;
@@ -66,9 +73,10 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			commands: buildTitleBarCommands(deps),
 			hiddenActions: options.hiddenActions,
 		},
+		accountAuth: options.accountAuth,
 		...buildChromeCallbacks(deps),
 	});
-	const appliedThemeVars = applyThemeVars(chrome.root, options.theme, []);
+	const appliedThemeVars = applyThemeVars(chrome.root, deps.initialTheme ?? options.theme, []);
 	container.appendChild(chrome.root);
 	chrome.statusBar?.setNotesExpanded(store.get().notesExpanded);
 	chrome.statusBar?.setDirty(store.get().dirty);
@@ -144,6 +152,8 @@ export interface ChromeHost {
 	store: Store<ViewerState>;
 	renderer: RenderController;
 	lifecycle: ChromeLifecycle;
+	/** The viewer's live theme (kept in sync by `setTheme`); read on mount/remount instead of the static `options.theme`. */
+	currentTheme: ViewerTheme | undefined;
 	editor: {
 		commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 		getEditActions(): EditActions;
@@ -213,6 +223,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		options: host.options,
 		store: host.store,
 		renderer: host.renderer,
+		initialTheme: host.currentTheme,
 		prev: () => host.prev(),
 		next: () => host.next(),
 		zoomIn: () => host.zoomIn(),

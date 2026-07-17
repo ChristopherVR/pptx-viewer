@@ -1,5 +1,6 @@
 import type { PptxHandler, PptxSaveFormat } from 'pptx-viewer-core';
 import type {
+	AccountAuthConfig,
 	AutosaveRecord,
 	CanvasSize,
 	CollaborationConfig,
@@ -7,10 +8,12 @@ import type {
 	CollaborationTransport,
 	ConnectionStatus,
 	PowerPointViewerAPI,
+	ThemeCatalogEntry,
 	ToolbarActionId,
 	ViewerFontSource,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
+import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
 import type { AutosaveStatus } from './autosave';
 import type { ShareDefaults } from './collab/share-helpers';
@@ -93,6 +96,37 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	 * built-in shared dictionary; other locales fall back to English.
 	 */
 	messages?: TranslationMessages;
+	/**
+	 * Theme choices offered by File > Options > Appearance (and, by reference
+	 * match, highlighted in the Design tab's quick-access gallery). Defaults to
+	 * the shared `THEME_CATALOG` (default/light/vermilion light/vermilion dark).
+	 */
+	availableThemes?: readonly ThemeCatalogEntry[];
+	/**
+	 * Language choices offered by File > Options > Language. Defaults to every
+	 * locale with a registered `messages` dictionary plus `'en'`.
+	 */
+	availableLocales?: readonly LocaleCatalogEntry[];
+	/**
+	 * Fired when a theme is selected via File > Options > Appearance (or any
+	 * `setTheme` call that matches a known catalog entry) with the entry's
+	 * `key`. When supplied, the host owns persisting the choice; otherwise the
+	 * viewer falls back to `localStorage` (`pptx-viewer-prefs`) automatically.
+	 */
+	onThemeChange?: (key: string) => void;
+	/**
+	 * Fired when a language is selected via File > Options > Language (or any
+	 * `setLocale` call) with the new locale code. When supplied, the host owns
+	 * persisting the choice; otherwise the viewer falls back to `localStorage`
+	 * (`pptx-viewer-prefs`) automatically.
+	 */
+	onLocaleChange?: (code: string) => void;
+	/**
+	 * Optional hook point wiring a real sign-in flow into File > Account.
+	 * Disabled by default: the Account page's sign-in section renders nothing
+	 * unless `enabled: true` is passed.
+	 */
+	accountAuth?: AccountAuthConfig;
 	/** Zero-based slide to show after load (default 0). */
 	initialSlide?: number;
 	/**

@@ -16,7 +16,12 @@ export const PARITY_DIALOG_CSS = `
 .pptxv-parity-footer { justify-content: flex-end; gap: 8px; border-top: 1px solid var(--pptx-border); }
 .pptxv-parity-footer button, .pptxv-parity-tabs button, .pptxv-compare-panel button { padding: 7px 11px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: inherit; cursor: pointer; }
 .pptxv-parity-footer .is-primary, .pptxv-parity-tabs .is-active, .pptxv-compare-actions button { border-color: var(--pptx-primary); background: var(--pptx-primary); color: #fff; }
-.pptxv-parity-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--pptx-border); }
+.pptxv-parity-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--pptx-border); flex-wrap: wrap; }
+.pptxv-parity-swatch-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.pptxv-parity-swatch { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border: 2px solid transparent; border-radius: 6px; background: var(--pptx-muted); color: inherit; font-size: 11px; cursor: pointer; }
+.pptxv-parity-swatch:hover { border-color: var(--pptx-border); }
+.pptxv-parity-swatch.is-active { border-color: var(--pptx-primary); }
+.pptxv-parity-swatch-preview { display: block; width: 44px; height: 30px; border: 1px solid var(--pptx-border); border-radius: 4px; }
 .pptxv-shortcut-list { display: flex; flex-direction: column; gap: 3px; }
 .pptxv-shortcut-list > div { display: flex; justify-content: space-between; gap: 14px; padding: 7px 8px; border-radius: 4px; background: var(--pptx-muted); }
 .pptxv-shortcut-list kbd { color: var(--pptx-muted-foreground); white-space: nowrap; }

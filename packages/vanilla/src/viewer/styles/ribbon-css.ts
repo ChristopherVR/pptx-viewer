@@ -66,6 +66,12 @@ export const RIBBON_CSS = `
 	padding: 6px 8px;
 }
 .pptxv-ribbon-tab-content[hidden] { display: none; }
+/* Design tab theme galleries: .pptxv-btn is a fixed 28x28 icon-button
+   primitive elsewhere in the ribbon, so it needs an auto-width override here
+   to fit a swatch preview + label without overlapping its neighbours. */
+.pptxv-theme-gallery { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 8px; }
+.pptxv-theme-gallery .pptxv-btn { width: auto; height: auto; gap: 6px; padding: 4px 10px 4px 4px; white-space: nowrap; }
+.pptxv-theme-swatch-preview { display: block; width: 20px; height: 20px; flex: none; border: 1px solid var(--pptx-border); border-radius: 4px; }
 .pptxv-record-dot { width: 12px; height: 12px; margin: 7px; border-radius: 50%; background: #ef4444; }
 .pptxv-shortcut-help { align-self: center; padding: 5px 8px; color: var(--pptx-muted-foreground); font-size: 11px; }
 .pptxv-ribbon-insert-content {
