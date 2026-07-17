@@ -1,40 +1,40 @@
 <script setup lang="ts">
 /**
- * SlideInspector: the slide-level property inspector, shown in the right pane
- * when no element is selected (mirrors React's inspector, which swaps element
- * panels for slide properties). Hosts the Background section (React's
- * `SlideBackgroundPanel`, non-template part), the Slide Transition section
- * (type/duration/advance plus direction/orientation/spokes, driven by the core
- * `TRANSITION_VALID_DIRECTIONS` table), and the Theme Colours section (per-slide
- * `clrMapOverride`, React's `SlideThemeOverridePanel`).
+ * SlideInspector: the right inspector shown when no element is selected,
+ * mirroring React's `InspectorPane.tsx` no-selection state: an
+ * [Elements | Properties | Comments] tab strip (Properties active by default),
+ * with the Properties tab hosting `PresentationPropertiesPanel` (PRESENTATION,
+ * THEME, THEME OVERRIDE, SLIDE SIZE, NOTES & HANDOUT, DOCUMENT) followed by the
+ * Background card (`SlideBackgroundPanel`), matching React's section order.
  *
- * Slide size is still deferred (it does not persist to save in React either, so
- * it is a display-only change); so is the transition preview animation.
+ * Slide transitions are no longer a section here: as in React, they surface on
+ * the ribbon's Transitions tab (the extracted `SlideTransitionSection`
+ * component mirrors React's equally-unmounted inspector section).
  */
 import type {
+	PptxAppProperties,
+	PptxComment,
+	PptxCoreProperties,
+	PptxCustomProperty,
+	PptxHandoutMaster,
+	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSlide,
-	PptxSlideTransition,
+	PptxSlideMaster,
 	PptxTheme,
-	PptxTransitionType,
+	PptxThemeOption,
 } from 'pptx-viewer-core';
-import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
-import { computed } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import SlideTransitionPanel from '../SlideTransitionPanel.vue';
-import DirectionPicker from './DirectionPicker.vue';
-import PresentationSettingsCard from './PresentationSettingsCard.vue';
+import type { CanvasSize } from '../../types';
+import CommentsPanel from '../CommentsPanel.vue';
+import type { InspectorTab } from './inspector-cards';
+import { CARD, HEADING } from './inspector-cards';
+import InspectorElementsTab from './InspectorElementsTab.vue';
+import InspectorTabs from './InspectorTabs.vue';
+import PresentationPropertiesPanel from './PresentationPropertiesPanel.vue';
 import SlideBackgroundPanel from './SlideBackgroundPanel.vue';
-import SlideThemeOverridePanel from './SlideThemeOverridePanel.vue';
-
-/** Transition types that pick a horz/vert orientation instead of a direction. */
-const ORIENTATION_TYPES: ReadonlySet<PptxTransitionType> = new Set([
-	'blinds',
-	'checker',
-	'comb',
-	'randomBar',
-]);
 
 const props = withDefaults(
 	defineProps<{
@@ -43,175 +43,109 @@ const props = withDefaults(
 		presentationProperties?: PptxPresentationProperties;
 		mobile?: boolean;
 		canEdit?: boolean;
+		themeOptions?: PptxThemeOption[];
+		slideMasters?: PptxSlideMaster[];
+		canvasSize?: CanvasSize;
+		notesCanvasSize?: CanvasSize;
+		notesMaster?: PptxNotesMaster;
+		handoutMaster?: PptxHandoutMaster;
+		coreProperties?: PptxCoreProperties;
+		appProperties?: PptxAppProperties;
+		customProperties?: PptxCustomProperty[];
+		comments?: PptxComment[];
+		authorName?: string;
 	}>(),
-	{ canEdit: true },
+	{ canEdit: true, authorName: 'You' },
 );
 
 const emit = defineEmits<{
-	'transition-update': [transition: PptxSlideTransition | undefined];
 	'slide-update': [patch: Partial<PptxSlide>];
 	'presentation-update': [patch: Partial<PptxPresentationProperties>];
+	'apply-theme': [path: string, allMasters: boolean];
+	'canvas-size-update': [size: CanvasSize];
+	'update-core-properties': [patch: Partial<PptxCoreProperties>];
+	'update-app-properties': [patch: Partial<PptxAppProperties>];
+	'update-custom-properties': [props: PptxCustomProperty[]];
+	'select-element': [id: string];
+	'comment-add': [text: string];
+	'comment-remove': [id: string];
+	'comment-resolve': [id: string];
+	'comment-reply': [payload: { parentId: string; text: string }];
+	close: [];
 }>();
 
 const { t } = useI18n();
 
-/** A real (non-"none") transition is set on this slide. */
-const hasTransition = computed(
-	() => Boolean(props.slide?.transition) && props.slide?.transition?.type !== 'none',
-);
-/** PowerPoint default is advance-on-click unless explicitly disabled. */
-const advanceOnClick = computed(() => props.slide?.transition?.advanceOnClick !== false);
-
-const transitionType = computed<PptxTransitionType>(
-	() => (props.slide?.transition?.type as PptxTransitionType) ?? 'none',
-);
-const validDirections = computed<readonly string[]>(
-	() => TRANSITION_VALID_DIRECTIONS[transitionType.value] ?? [],
-);
-const usesOrientation = computed(() => ORIENTATION_TYPES.has(transitionType.value));
-const showDirection = computed(
-	() => hasTransition.value && validDirections.value.length > 0 && !usesOrientation.value,
-);
-const isWheel = computed(() => transitionType.value === 'wheel');
-const orient = computed(() => props.slide?.transition?.orient ?? 'horz');
-const spokes = computed(() => props.slide?.transition?.spokes ?? 4);
-
-/** Merge a partial transition patch into the current transition and commit. */
-function patchTransition(updates: Partial<PptxSlideTransition>): void {
-	const current = props.slide?.transition;
-	if (!current) {
-		return;
-	}
-	emit('transition-update', { ...current, ...updates });
-}
-
-function onSpokesInput(e: Event): void {
-	const value = Number((e.target as HTMLInputElement).value);
-	if (!Number.isFinite(value)) {
-		return;
-	}
-	patchTransition({ spokes: Math.max(1, Math.min(8, Math.round(value))) });
-}
-
-function onAdvanceChange(e: Event): void {
-	patchTransition({ advanceOnClick: (e.target as HTMLInputElement).checked });
-}
+/** Active tab; Properties by default, matching React's initial inspector tab. */
+const activeTab = ref<InspectorTab>('properties');
 </script>
 
 <template>
 	<aside
 		:data-pptx-inspector="mobile ? undefined : ''"
-		class="pptx-vue-inspector overflow-y-auto bg-background box-border px-3 pb-8 text-xs text-foreground"
-		:class="mobile ? 'w-full pt-1' : 'w-72 flex-[0_0_18rem] border-l border-border pt-2'"
+		class="pptx-vue-inspector flex flex-col overflow-hidden bg-background box-border text-xs text-foreground"
+		:class="mobile ? 'w-full' : 'w-72 flex-[0_0_18rem] border-l border-border'"
 		:aria-label="t('pptx.viewer.slideProperties')"
 	>
-		<div class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.viewer.background') }}
-			</h3>
-			<SlideBackgroundPanel
+		<InspectorTabs
+			:active-tab="activeTab"
+			@set-tab="(tab) => (activeTab = tab)"
+			@close="emit('close')"
+		/>
+
+		<div class="flex-1 overflow-y-auto p-3 space-y-3">
+			<!-- Elements -->
+			<InspectorElementsTab
+				v-if="activeTab === 'elements'"
 				:slide="slide"
-				:can-edit="canEdit"
-				@update="(patch) => emit('slide-update', patch)"
+				@select-element="(id) => emit('select-element', id)"
 			/>
-		</div>
 
-		<div class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.slideInspector.themeColours') }}
-			</h3>
-			<SlideThemeOverridePanel
-				:slide="slide"
-				:theme="theme"
-				:can-edit="canEdit"
-				@update="(patch) => emit('slide-update', patch)"
-			/>
-		</div>
-
-		<div class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.slideInspector.slideTransition') }}
-			</h3>
-			<SlideTransitionPanel :slide="slide" @update="(t) => emit('transition-update', t)" />
-
-			<div v-if="showDirection" class="mt-2 space-y-1 px-2.5">
-				<span class="text-xs text-muted-foreground">{{ t('pptx.transition.direction') }}</span>
-				<DirectionPicker
-					:directions="validDirections"
-					:value="slide?.transition?.direction"
-					@change="(dir) => patchTransition({ direction: dir })"
+			<!-- Properties (no selection): presentation-level cards + background -->
+			<template v-else-if="activeTab === 'properties'">
+				<PresentationPropertiesPanel
+					:slide="slide"
+					:theme="theme"
+					:presentation-properties="presentationProperties"
+					:can-edit="canEdit"
+					:theme-options="themeOptions"
+					:slide-masters="slideMasters"
+					:canvas-size="canvasSize"
+					:notes-canvas-size="notesCanvasSize"
+					:notes-master="notesMaster"
+					:handout-master="handoutMaster"
+					:core-properties="coreProperties"
+					:app-properties="appProperties"
+					:custom-properties="customProperties"
+					@presentation-update="(patch) => emit('presentation-update', patch)"
+					@apply-theme="(path, allMasters) => emit('apply-theme', path, allMasters)"
+					@slide-update="(patch) => emit('slide-update', patch)"
+					@canvas-size-update="(size) => emit('canvas-size-update', size)"
+					@update-core-properties="(patch) => emit('update-core-properties', patch)"
+					@update-app-properties="(patch) => emit('update-app-properties', patch)"
+					@update-custom-properties="(next) => emit('update-custom-properties', next)"
 				/>
-			</div>
 
-			<div v-if="hasTransition && usesOrientation" class="mt-2 space-y-1 px-2.5">
-				<span class="text-xs text-muted-foreground">{{ t('pptx.transition.orientation') }}</span>
-				<div class="flex gap-1">
-					<button
-						v-for="o in ['horz', 'vert'] as const"
-						:key="o"
-						type="button"
-						class="rounded border px-2 py-1 text-xs"
-						:class="
-							orient === o
-								? 'border-primary bg-primary text-white'
-								: 'border-border bg-muted hover:bg-accent'
-						"
-						:aria-pressed="orient === o"
-						@click="patchTransition({ orient: o })"
-					>
-						{{
-							o === 'horz' ? t('pptx.slideInspector.horizontal') : t('pptx.slideInspector.vertical')
-						}}
-					</button>
+				<div v-if="slide" :class="CARD">
+					<div :class="HEADING">{{ t('pptx.viewer.background') }}</div>
+					<SlideBackgroundPanel
+						:slide="slide"
+						:can-edit="canEdit"
+						@update="(patch) => emit('slide-update', patch)"
+					/>
 				</div>
-			</div>
+			</template>
 
-			<label v-if="isWheel" class="mt-2 flex flex-col gap-1 px-2.5">
-				<span class="text-xs text-muted-foreground">{{ t('pptx.transition.spokes') }}</span>
-				<input
-					type="number"
-					min="1"
-					max="8"
-					:value="spokes"
-					data-testid="transition-spokes"
-					class="w-16 rounded border border-border bg-muted px-2 py-1 text-xs"
-					@input="onSpokesInput"
-				/>
-			</label>
-
-			<label
-				v-if="hasTransition"
-				class="mt-1 inline-flex items-center gap-2 px-2.5 text-xs text-foreground"
-			>
-				<input
-					type="checkbox"
-					data-testid="transition-advance"
-					:checked="advanceOnClick"
-					@change="onAdvanceChange"
-				/>
-				{{ t('pptx.transition.advanceOnClick') }}
-			</label>
-		</div>
-
-		<div
-			v-if="presentationProperties"
-			class="pptx-vue-inspector-section py-2 border-b border-border"
-		>
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.slideInspector.presentation') }}
-			</h3>
-			<PresentationSettingsCard
-				:presentation-properties="presentationProperties"
-				:can-edit="canEdit"
-				@update="(patch) => emit('presentation-update', patch)"
+			<!-- Comments -->
+			<CommentsPanel
+				v-else
+				class="!border-l-0"
+				:comments="comments ?? []"
+				:author-name="authorName"
+				@add="(text) => emit('comment-add', text)"
+				@remove="(id) => emit('comment-remove', id)"
+				@resolve="(id) => emit('comment-resolve', id)"
+				@reply="(payload) => emit('comment-reply', payload)"
 			/>
 		</div>
 	</aside>

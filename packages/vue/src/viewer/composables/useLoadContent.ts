@@ -18,6 +18,7 @@ import type {
 	PptxSlide,
 	PptxSlideMaster,
 	PptxTheme,
+	PptxThemeOption,
 	XmlObject,
 } from 'pptx-viewer-core';
 import { PptxHandler, EncryptedFileError, parseSignatureXml } from 'pptx-viewer-core';
@@ -131,6 +132,10 @@ export interface UseLoadContentResult {
 	notesMaster: ShallowRef<PptxNotesMaster | undefined>;
 	/** Parsed handout master, or `undefined` when absent. */
 	handoutMaster: ShallowRef<PptxHandoutMaster | undefined>;
+	/** Theme parts discovered in the package (`{ path, name }`), empty when none. */
+	themeOptions: ShallowRef<PptxThemeOption[]>;
+	/** Notes page size in pixels (`p:notesSz`), or `undefined` when absent. */
+	notesCanvasSize: Ref<CanvasSize | undefined>;
 	/** Serialise the current presentation back to `.pptx` bytes. */
 	getContent: () => Promise<Uint8Array>;
 	/** Serialise to a specific OpenXML format (pptx / ppsx / pptm). */
@@ -167,6 +172,8 @@ export function useLoadContent(
 	const headerFooter = shallowRef<PptxHeaderFooter | undefined>(undefined);
 	const notesMaster = shallowRef<PptxNotesMaster | undefined>(undefined);
 	const handoutMaster = shallowRef<PptxHandoutMaster | undefined>(undefined);
+	const themeOptions = shallowRef<PptxThemeOption[]>([]);
+	const notesCanvasSize = ref<CanvasSize | undefined>(undefined);
 
 	let renderToken = 0;
 	let activeBlobUrls: string[] = [];
@@ -357,6 +364,18 @@ export function useLoadContent(
 			headerFooter.value = parsed.headerFooter;
 			notesMaster.value = parsed.notesMaster;
 			handoutMaster.value = parsed.handoutMaster;
+			themeOptions.value = parsed.themeOptions ?? [];
+			// 9525 EMU per pixel (matches React's useLoadContent conversion).
+			notesCanvasSize.value =
+				typeof parsed.notesWidthEmu === 'number' &&
+				typeof parsed.notesHeightEmu === 'number' &&
+				parsed.notesWidthEmu > 0 &&
+				parsed.notesHeightEmu > 0
+					? {
+							width: Math.round(parsed.notesWidthEmu / 9525),
+							height: Math.round(parsed.notesHeightEmu / 9525),
+						}
+					: undefined;
 			signatures.value =
 				parsed.hasDigitalSignatures && signatureBuffer instanceof ArrayBuffer
 					? await parseSignaturesFromBuffer(signatureBuffer)
@@ -444,6 +463,8 @@ export function useLoadContent(
 		headerFooter,
 		notesMaster,
 		handoutMaster,
+		themeOptions,
+		notesCanvasSize,
 		saveAs,
 		getContent,
 	};

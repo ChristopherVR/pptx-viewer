@@ -1,92 +1,118 @@
 import { mount } from '@vue/test-utils';
-import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import SlideInspector from './SlideInspector.vue';
 
 /**
- * SlideInspector (Vue): slide-level inspector hosting the transition controls,
- * shown when no element is selected.
+ * SlideInspector (Vue): the tabbed no-selection inspector mirroring React's
+ * `InspectorPane` (Elements | Properties | Comments; Properties active by
+ * default with React's section order, Background last).
  */
-function slide(transition?: PptxSlideTransition): PptxSlide {
-	return { id: 's1', elements: [], transition } as unknown as PptxSlide;
+function slide(elements: PptxElement[] = []): PptxSlide {
+	return { id: 's1', elements } as unknown as PptxSlide;
 }
 
+function textElement(id: string, text: string): PptxElement {
+	return { id, type: 'text', text } as unknown as PptxElement;
+}
+
+const baseProps = {
+	slide: slide(),
+	presentationProperties: {},
+	canvasSize: { width: 960, height: 540 },
+};
+
 describe('slideInspector', () => {
-	it('renders the Slide Transition section', () => {
-		const wrapper = mount(SlideInspector, { props: { slide: slide() } });
-		expect(wrapper.text()).toContain('Slide transition');
-		expect(wrapper.find('[data-testid="transition-type"]').exists()).toBeTruthy();
+	it('renders the Elements | Properties | Comments tab strip', () => {
+		const wrapper = mount(SlideInspector, { props: baseProps });
+		const labels = wrapper.text();
+		expect(labels).toContain('Elements');
+		expect(labels).toContain('Properties');
+		expect(labels).toContain('Comments');
 	});
 
-	it('relays the transition-panel update', async () => {
-		const wrapper = mount(SlideInspector, { props: { slide: slide() } });
-		const select = wrapper.get('[data-testid="transition-type"]');
-		await select.setValue('fade');
-		const first = wrapper.emitted('transition-update')?.[0]?.[0] as PptxSlideTransition | undefined;
-		expect(first?.type).toBe('fade');
+	it('shows the Properties tab by default with React section order', () => {
+		const wrapper = mount(SlideInspector, { props: baseProps });
+		const text = wrapper.text();
+		const order = [
+			'Presentation',
+			'Theme',
+			'Theme Override',
+			'Slide Size',
+			'Notes & Handout',
+			'Document',
+			'Background',
+		];
+		let last = -1;
+		for (const heading of order) {
+			const index = text.indexOf(heading, last + 1);
+			expect(index, `section "${heading}" out of order`).toBeGreaterThan(last);
+			last = index;
+		}
 	});
 
-	it('hides advance-on-click until a transition is set', () => {
-		const noTransition = mount(SlideInspector, { props: { slide: slide() } });
-		expect(noTransition.text()).not.toContain('Advance on click');
-		const withTransition = mount(SlideInspector, {
-			props: { slide: slide({ type: 'fade', durationMs: 500 }) },
-		});
-		expect(withTransition.text()).toContain('Advance on click');
+	it('no longer renders a Slide Transition section on the default tab', () => {
+		const wrapper = mount(SlideInspector, { props: baseProps });
+		expect(wrapper.text()).not.toContain('Slide transition');
 	});
 
-	it('emits advanceOnClick changes', async () => {
+	it('relays background edits as slide-update patches', async () => {
+		const wrapper = mount(SlideInspector, { props: baseProps });
+		const color = wrapper.get('input[type="color"]');
+		await color.setValue('#ff0000');
+		const patches = wrapper.emitted('slide-update');
+		expect(patches?.some((args) => 'backgroundColor' in (args[0] as object))).toBeTruthy();
+	});
+
+	it('emits apply-theme with the selected path and all-masters flag', async () => {
 		const wrapper = mount(SlideInspector, {
-			props: { slide: slide({ type: 'fade', durationMs: 500, advanceOnClick: true }) },
+			props: {
+				...baseProps,
+				themeOptions: [{ path: 'ppt/theme/theme1.xml', name: 'Office' }],
+			},
 		});
-		await wrapper.get('[data-testid="transition-advance"]').setValue(false);
-		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as
-			| PptxSlideTransition
-			| undefined;
-		expect(last?.advanceOnClick).toBeFalsy();
-		expect(last?.type).toBe('fade');
+		const applyAll = wrapper.findAll('button').find((b) => b.text() === 'Apply All Masters');
+		await applyAll!.trigger('click');
+		expect(wrapper.emitted('apply-theme')?.[0]).toStrictEqual(['ppt/theme/theme1.xml', true]);
 	});
 
-	it('shows a direction picker for directional transitions and emits the choice', async () => {
+	it('emits canvas-size-update from the Slide Size card', async () => {
+		const wrapper = mount(SlideInspector, { props: baseProps });
+		// number inputs on the Properties tab: [0] slides/page, [1] W, [2] H.
+		const width = wrapper.findAll('input[type="number"]')[1];
+		await width.setValue('1280');
+		expect(wrapper.emitted('canvas-size-update')?.[0]).toStrictEqual([
+			{ width: 1280, height: 540 },
+		]);
+	});
+
+	it('lists elements on the Elements tab and emits select-element', async () => {
 		const wrapper = mount(SlideInspector, {
-			props: { slide: slide({ type: 'push', durationMs: 500 }) },
+			props: { ...baseProps, slide: slide([textElement('a', 'Hello'), textElement('b', 'World')]) },
 		});
-		expect(wrapper.text()).toContain('Direction');
-		await wrapper.get('button[title="r"]').trigger('click');
-		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
-		expect(last.direction).toBe('r');
-		expect(last.type).toBe('push');
+		const elementsTab = wrapper.findAll('button').find((b) => b.text().includes('Elements'));
+		await elementsTab!.trigger('click');
+		expect(wrapper.text()).toContain('Layer Order');
+		// Top-most element (last in z-order) is listed first.
+		expect(wrapper.text().indexOf('World')).toBeLessThan(wrapper.text().indexOf('Hello'));
+		const row = wrapper.findAll('[title]').find((n) => n.attributes('title')?.includes('text - a'));
+		await row!.trigger('click');
+		expect(wrapper.emitted('select-element')?.[0]).toStrictEqual(['a']);
 	});
 
-	it('shows orientation buttons for orientation transitions and emits orient', async () => {
-		const wrapper = mount(SlideInspector, {
-			props: { slide: slide({ type: 'blinds', durationMs: 500 }) },
-		});
-		expect(wrapper.text()).toContain('Orientation');
-		// No directional picker for orientation types.
-		expect(wrapper.find('button[title="r"]').exists()).toBeFalsy();
-		const vert = wrapper.findAll('button').find((b) => b.text() === 'Vertical');
-		await vert!.trigger('click');
-		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
-		expect(last.orient).toBe('vert');
+	it('hosts the comments panel on the Comments tab and relays adds', async () => {
+		const wrapper = mount(SlideInspector, { props: { ...baseProps, comments: [] } });
+		const commentsTab = wrapper.findAll('button').find((b) => b.text().includes('Comments'));
+		await commentsTab!.trigger('click');
+		await wrapper.get('textarea').setValue('First!');
+		await wrapper.get('form').trigger('submit.prevent');
+		expect(wrapper.emitted('comment-add')?.[0]).toStrictEqual(['First!']);
 	});
 
-	it('shows a spokes input for the wheel transition and clamps the value', async () => {
-		const wrapper = mount(SlideInspector, {
-			props: { slide: slide({ type: 'wheel', durationMs: 500 }) },
-		});
-		expect(wrapper.text()).toContain('Spokes');
-		const input = wrapper.get('[data-testid="transition-spokes"]');
-		await input.setValue('12');
-		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
-		expect(last.spokes).toBe(8);
-	});
-
-	it('does not render direction/orientation/spokes when no transition is set', () => {
-		const wrapper = mount(SlideInspector, { props: { slide: slide() } });
-		expect(wrapper.text()).not.toContain('Direction');
-		expect(wrapper.text()).not.toContain('Orientation');
-		expect(wrapper.text()).not.toContain('Spokes');
+	it('emits close from the tab strip close button', async () => {
+		const wrapper = mount(SlideInspector, { props: baseProps });
+		await wrapper.get('button[title="Close"]').trigger('click');
+		expect(wrapper.emitted('close')).toHaveLength(1);
 	});
 });

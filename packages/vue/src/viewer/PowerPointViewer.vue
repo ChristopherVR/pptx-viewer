@@ -149,6 +149,7 @@ import { useHeaderFooterDialog } from './composables/useHeaderFooterDialog';
 import { useInkDrawing } from './composables/useInkDrawing';
 import { useInlineEditing } from './composables/useInlineEditing';
 import { useInsertElementDialogs } from './composables/useInsertElementDialogs';
+import { useInspectorDeckActions } from './composables/useInspectorDeckActions';
 import { useIsMobile } from './composables/useIsMobile';
 import { useKeyboardInsets } from './composables/useKeyboardInsets';
 import { useLoadContent } from './composables/useLoadContent';
@@ -316,6 +317,8 @@ const {
 	headerFooter,
 	notesMaster,
 	handoutMaster,
+	themeOptions,
+	notesCanvasSize,
 	theme: pptxTheme,
 	themeColorMap,
 	handler,
@@ -1080,7 +1083,6 @@ const a11y = useAccessibility(slides);
 const {
 	onNotesUpdate,
 	toggleSlideHidden,
-	applySlideTransition,
 	applySlideBackgroundPatch,
 	onTransitionChange,
 	onApplyTransitionToAll,
@@ -1176,6 +1178,31 @@ watch(loading, (now, was) => {
 	if (was && !now) {
 		autosave.isDirty.value = false;
 	}
+});
+
+// ── No-selection inspector deck actions (theme-by-path / slide size / doc
+// properties), feeding the tabbed SlideInspector's Properties tab. ────────
+const {
+	applyThemeByPath,
+	updateCanvasSize,
+	updateCoreProperties,
+	updateAppProperties,
+	updateCustomProperties,
+} = useInspectorDeckActions({
+	handler,
+	slideMasters,
+	canvasSize,
+	coreProperties,
+	appProperties,
+	customProperties,
+	markDirty: () => {
+		autosave.isDirty.value = true;
+	},
+	// Mirror React's refreshContentAfterThemeChange: re-serialise and reload so
+	// slide colours re-resolve against the newly-applied theme.
+	refreshContent: async () => {
+		internalContent.value = await getContent();
+	},
 });
 
 // ── Comments ──────────────────────────────────────────────────────────
@@ -2126,16 +2153,38 @@ function handleCommandSearch(command: string): void {
 					@update-slide-animations="writeSlideAnimations"
 				/>
 
-				<!-- Slide-level inspector (no element selected): slide transition, etc. -->
+				<!-- Slide-level inspector (no element selected): tabbed
+				     Elements / Properties / Comments pane, mirroring React. -->
 				<SlideInspector
 					v-else-if="props.canEdit && !isMobile && inspectorOpen && slideCount > 0"
 					:slide="activeSlide"
 					:theme="pptxTheme"
 					:presentation-properties="presentationProperties"
 					:can-edit="props.canEdit"
-					@transition-update="applySlideTransition"
+					:theme-options="themeOptions"
+					:slide-masters="slideMasters"
+					:canvas-size="canvasSize"
+					:notes-canvas-size="notesCanvasSize"
+					:notes-master="notesMaster"
+					:handout-master="handoutMaster"
+					:core-properties="coreProperties"
+					:app-properties="appProperties"
+					:custom-properties="customProperties"
+					:comments="commentsApi.slideComments.value"
+					:author-name="authorNameRef"
 					@slide-update="applySlideBackgroundPatch"
 					@presentation-update="onPresentationPropertiesUpdate"
+					@apply-theme="applyThemeByPath"
+					@canvas-size-update="updateCanvasSize"
+					@update-core-properties="updateCoreProperties"
+					@update-app-properties="updateAppProperties"
+					@update-custom-properties="updateCustomProperties"
+					@select-element="onSelectionPaneSelect"
+					@comment-add="(t) => commitComments(commentsApi.addComment(t))"
+					@comment-remove="(id) => commitComments(commentsApi.removeComment(id))"
+					@comment-resolve="(id) => commitComments(commentsApi.resolveComment(id))"
+					@comment-reply="(p) => commitComments(commentsApi.replyToComment(p.parentId, p.text))"
+					@close="inspectorOpen = false"
 				/>
 
 				<!-- Accessibility checker -->
@@ -2591,9 +2640,30 @@ function handleCommandSearch(command: string): void {
 					:theme="pptxTheme"
 					:presentation-properties="presentationProperties"
 					:can-edit="props.canEdit"
-					@transition-update="applySlideTransition"
+					:theme-options="themeOptions"
+					:slide-masters="slideMasters"
+					:canvas-size="canvasSize"
+					:notes-canvas-size="notesCanvasSize"
+					:notes-master="notesMaster"
+					:handout-master="handoutMaster"
+					:core-properties="coreProperties"
+					:app-properties="appProperties"
+					:custom-properties="customProperties"
+					:comments="commentsApi.slideComments.value"
+					:author-name="authorNameRef"
 					@slide-update="applySlideBackgroundPatch"
 					@presentation-update="onPresentationPropertiesUpdate"
+					@apply-theme="applyThemeByPath"
+					@canvas-size-update="updateCanvasSize"
+					@update-core-properties="updateCoreProperties"
+					@update-app-properties="updateAppProperties"
+					@update-custom-properties="updateCustomProperties"
+					@select-element="onSelectionPaneSelect"
+					@comment-add="(t) => commitComments(commentsApi.addComment(t))"
+					@comment-remove="(id) => commitComments(commentsApi.removeComment(id))"
+					@comment-resolve="(id) => commitComments(commentsApi.resolveComment(id))"
+					@comment-reply="(p) => commitComments(commentsApi.replyToComment(p.parentId, p.text))"
+					@close="mobileInspectorOpen = false"
 				/>
 				<p v-else class="px-4 py-6 text-center text-xs text-muted-foreground">
 					{{ t('pptx.inspector.noSlideSelected') }}
