@@ -17,6 +17,7 @@ import type {
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
+	PptxTagCollection,
 	PptxTheme,
 	PptxThemeOption,
 	XmlObject,
@@ -110,6 +111,8 @@ export interface UseLoadContentResult {
 	customProperties: ShallowRef<PptxCustomProperty[]>;
 	/** Parsed application properties (manager/company/…), or undefined. */
 	appProperties: ShallowRef<PptxAppProperties | undefined>;
+	/** Parsed `ppt/tags/tag*.xml` collections (name/value pairs), empty when none. */
+	tagCollections: ShallowRef<PptxTagCollection[]>;
 	/** Embedded fonts (for `@font-face` injection). */
 	embeddedFonts: ShallowRef<PptxEmbeddedFont[]>;
 	/** Parsed digital signatures (empty when unsigned). */
@@ -163,6 +166,7 @@ export function useLoadContent(
 	const coreProperties = shallowRef<PptxCoreProperties | undefined>(undefined);
 	const customProperties = shallowRef<PptxCustomProperty[]>([]);
 	const appProperties = shallowRef<PptxAppProperties | undefined>(undefined);
+	const tagCollections = shallowRef<PptxTagCollection[]>([]);
 	const embeddedFonts = shallowRef<PptxEmbeddedFont[]>([]);
 	const signatures = shallowRef<ParsedSignature[]>([]);
 	const tableStyleMap = shallowRef<ParsedTableStyleMap | undefined>(undefined);
@@ -356,6 +360,7 @@ export function useLoadContent(
 			coreProperties.value = parsed.coreProperties;
 			customProperties.value = parsed.customProperties ?? [];
 			appProperties.value = parsed.appProperties;
+			tagCollections.value = parsed.tags ?? [];
 			embeddedFonts.value = parsed.embeddedFonts ?? [];
 			tableStyleMap.value = parsed.tableStyleMap;
 			sections.value = parsed.sections ?? [];
@@ -402,7 +407,8 @@ export function useLoadContent(
 		// Merge the separately-stored template (master/layout) elements back in
 		// front of (behind) each slide's content before serialising, so template
 		// edits persist. Persist edited document metadata (core properties,
-		// sections, custom shows, header/footer) into the saved file.
+		// sections, custom shows, header/footer, tag collections) into the
+		// saved file.
 		return handler.value.save(buildSaveSlides(slides.value, templateElementsBySlideId.value), {
 			coreProperties: coreProperties.value,
 			customProperties: customProperties.value,
@@ -414,6 +420,7 @@ export function useLoadContent(
 			slideMasters: slideMasters.value,
 			notesMaster: notesMaster.value,
 			handoutMaster: handoutMaster.value,
+			tags: tagCollections.value.length > 0 ? tagCollections.value : undefined,
 			outputFormat: format,
 		});
 	};
@@ -454,6 +461,7 @@ export function useLoadContent(
 		coreProperties,
 		customProperties,
 		appProperties,
+		tagCollections,
 		embeddedFonts,
 		signatures,
 		tableStyleMap,

@@ -3,7 +3,8 @@
  * PresentationPropertiesPanel: the no-selection Properties tab body, mirroring
  * React's `inspector/PresentationPropertiesPanel.tsx` section order:
  * PRESENTATION, THEME, THEME OVERRIDE, SLIDE SIZE, NOTES & HANDOUT, DOCUMENT,
- * then a small read-only Slide info card. Also ports React's
+ * TAGS (when tag collections are provided), then a small read-only Slide info
+ * card. Also ports React's
  * `useInspectorPaneState` selected-theme-path handling (falls back to the first
  * master's theme path when the package lists no theme options).
  */
@@ -16,6 +17,7 @@ import type {
 	PptxPresentationProperties,
 	PptxSlide,
 	PptxSlideMaster,
+	PptxTagCollection,
 	PptxTheme,
 	PptxThemeOption,
 } from 'pptx-viewer-core';
@@ -29,6 +31,7 @@ import NotesHandoutCard from './NotesHandoutCard.vue';
 import PresentationSettingsCard from './PresentationSettingsCard.vue';
 import SlideSizeCard from './SlideSizeCard.vue';
 import SlideThemeOverridePanel from './SlideThemeOverridePanel.vue';
+import TagsSection from './TagsSection.vue';
 import ThemeSelectorCard from './ThemeSelectorCard.vue';
 
 const props = withDefaults(
@@ -46,6 +49,7 @@ const props = withDefaults(
 		coreProperties?: PptxCoreProperties;
 		appProperties?: PptxAppProperties;
 		customProperties?: PptxCustomProperty[];
+		tagCollections?: PptxTagCollection[];
 	}>(),
 	{ canEdit: true },
 );
@@ -58,6 +62,7 @@ const emit = defineEmits<{
 	'update-core-properties': [patch: Partial<PptxCoreProperties>];
 	'update-app-properties': [patch: Partial<PptxAppProperties>];
 	'update-custom-properties': [props: PptxCustomProperty[]];
+	'update-tag-collections': [next: PptxTagCollection[]];
 }>();
 
 const { t } = useI18n();
@@ -132,6 +137,13 @@ watch(
 			@update-core="(patch) => emit('update-core-properties', patch)"
 			@update-app="(patch) => emit('update-app-properties', patch)"
 			@update-custom="(next) => emit('update-custom-properties', next)"
+		/>
+
+		<TagsSection
+			v-if="props.tagCollections"
+			:tag-collections="props.tagCollections"
+			:can-edit="props.canEdit"
+			@update="(next) => emit('update-tag-collections', next)"
 		/>
 
 		<div v-if="props.slide" :class="[CARD, 'space-y-1']">

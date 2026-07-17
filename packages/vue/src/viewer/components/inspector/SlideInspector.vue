@@ -21,6 +21,7 @@ import type {
 	PptxPresentationProperties,
 	PptxSlide,
 	PptxSlideMaster,
+	PptxTagCollection,
 	PptxTheme,
 	PptxThemeOption,
 } from 'pptx-viewer-core';
@@ -52,6 +53,7 @@ const props = withDefaults(
 		coreProperties?: PptxCoreProperties;
 		appProperties?: PptxAppProperties;
 		customProperties?: PptxCustomProperty[];
+		tagCollections?: PptxTagCollection[];
 		comments?: PptxComment[];
 		authorName?: string;
 	}>(),
@@ -66,6 +68,7 @@ const emit = defineEmits<{
 	'update-core-properties': [patch: Partial<PptxCoreProperties>];
 	'update-app-properties': [patch: Partial<PptxAppProperties>];
 	'update-custom-properties': [props: PptxCustomProperty[]];
+	'update-tag-collections': [next: PptxTagCollection[]];
 	'select-element': [id: string];
 	'comment-add': [text: string];
 	'comment-remove': [id: string];
@@ -117,6 +120,7 @@ const activeTab = ref<InspectorTab>('properties');
 					:core-properties="coreProperties"
 					:app-properties="appProperties"
 					:custom-properties="customProperties"
+					:tag-collections="tagCollections"
 					@presentation-update="(patch) => emit('presentation-update', patch)"
 					@apply-theme="(path, allMasters) => emit('apply-theme', path, allMasters)"
 					@slide-update="(patch) => emit('slide-update', patch)"
@@ -124,6 +128,7 @@ const activeTab = ref<InspectorTab>('properties');
 					@update-core-properties="(patch) => emit('update-core-properties', patch)"
 					@update-app-properties="(patch) => emit('update-app-properties', patch)"
 					@update-custom-properties="(next) => emit('update-custom-properties', next)"
+					@update-tag-collections="(next) => emit('update-tag-collections', next)"
 				/>
 
 				<div v-if="slide" :class="CARD">

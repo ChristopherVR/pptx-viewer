@@ -52,6 +52,35 @@ describe('slideInspector', () => {
 		}
 	});
 
+	it('renders the Tags card when tag collections are provided', async () => {
+		const wrapper = mount(SlideInspector, {
+			props: {
+				...baseProps,
+				tagCollections: [
+					{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'DECK_ID', value: 'deck-123' }] },
+				],
+			},
+		});
+		expect(wrapper.text()).toContain('Tags');
+		// Collapsed by default (React parity); expanding reveals the tag row.
+		const toggle = wrapper.findAll('button').find((b) => b.text().includes('Tags'));
+		await toggle!.trigger('click');
+		const name = wrapper
+			.findAll('input')
+			.find((i) => (i.element as HTMLInputElement).value === 'DECK_ID');
+		expect(name).toBeDefined();
+		await name!.setValue('DECK');
+		const next = wrapper.emitted('update-tag-collections')?.[0]?.[0];
+		expect(next).toStrictEqual([
+			{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'DECK', value: 'deck-123' }] },
+		]);
+	});
+
+	it('hides the Tags card when no tag collections are provided', () => {
+		const wrapper = mount(SlideInspector, { props: baseProps });
+		expect(wrapper.text()).not.toContain('Tags');
+	});
+
 	it('no longer renders a Slide Transition section on the default tab', () => {
 		const wrapper = mount(SlideInspector, { props: baseProps });
 		expect(wrapper.text()).not.toContain('Slide transition');

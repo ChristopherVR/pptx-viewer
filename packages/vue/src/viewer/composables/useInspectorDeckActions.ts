@@ -4,6 +4,7 @@ import type {
 	PptxCustomProperty,
 	PptxHandler,
 	PptxSlideMaster,
+	PptxTagCollection,
 } from 'pptx-viewer-core';
 import type { Ref, ShallowRef } from 'vue';
 
@@ -16,6 +17,7 @@ export interface UseInspectorDeckActionsInput {
 	coreProperties: ShallowRef<PptxCoreProperties | undefined>;
 	appProperties: ShallowRef<PptxAppProperties | undefined>;
 	customProperties: ShallowRef<PptxCustomProperty[]>;
+	tagCollections: ShallowRef<PptxTagCollection[]>;
 	markDirty: () => void;
 	/**
 	 * Re-serialise the deck and swap it back in as the active content so slide
@@ -37,6 +39,8 @@ export interface UseInspectorDeckActionsResult {
 	updateAppProperties: (patch: Partial<PptxAppProperties>) => void;
 	/** Replace the custom document-property list. */
 	updateCustomProperties: (next: PptxCustomProperty[]) => void;
+	/** Replace the document tag collections (inspector TAGS card). */
+	updateTagCollections: (next: PptxTagCollection[]) => void;
 }
 
 /**
@@ -56,6 +60,7 @@ export function useInspectorDeckActions(
 		coreProperties,
 		appProperties,
 		customProperties,
+		tagCollections,
 		markDirty,
 		refreshContent,
 	} = input;
@@ -100,11 +105,17 @@ export function useInspectorDeckActions(
 		markDirty();
 	}
 
+	function updateTagCollections(next: PptxTagCollection[]): void {
+		tagCollections.value = next;
+		markDirty();
+	}
+
 	return {
 		applyThemeByPath,
 		updateCanvasSize,
 		updateCoreProperties,
 		updateAppProperties,
 		updateCustomProperties,
+		updateTagCollections,
 	};
 }

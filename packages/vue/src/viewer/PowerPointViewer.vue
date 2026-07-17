@@ -306,6 +306,7 @@ const {
 	coreProperties,
 	customProperties,
 	appProperties,
+	tagCollections,
 	embeddedFonts,
 	signatures,
 	tableStyleMap,
@@ -1188,6 +1189,7 @@ const {
 	updateCoreProperties,
 	updateAppProperties,
 	updateCustomProperties,
+	updateTagCollections,
 } = useInspectorDeckActions({
 	handler,
 	slideMasters,
@@ -1195,6 +1197,7 @@ const {
 	coreProperties,
 	appProperties,
 	customProperties,
+	tagCollections,
 	markDirty: () => {
 		autosave.isDirty.value = true;
 	},
@@ -2170,6 +2173,7 @@ function handleCommandSearch(command: string): void {
 					:core-properties="coreProperties"
 					:app-properties="appProperties"
 					:custom-properties="customProperties"
+					:tag-collections="tagCollections"
 					:comments="commentsApi.slideComments.value"
 					:author-name="authorNameRef"
 					@slide-update="applySlideBackgroundPatch"
@@ -2179,6 +2183,7 @@ function handleCommandSearch(command: string): void {
 					@update-core-properties="updateCoreProperties"
 					@update-app-properties="updateAppProperties"
 					@update-custom-properties="updateCustomProperties"
+					@update-tag-collections="updateTagCollections"
 					@select-element="onSelectionPaneSelect"
 					@comment-add="(t) => commitComments(commentsApi.addComment(t))"
 					@comment-remove="(id) => commitComments(commentsApi.removeComment(id))"
@@ -2649,6 +2654,7 @@ function handleCommandSearch(command: string): void {
 					:core-properties="coreProperties"
 					:app-properties="appProperties"
 					:custom-properties="customProperties"
+					:tag-collections="tagCollections"
 					:comments="commentsApi.slideComments.value"
 					:author-name="authorNameRef"
 					@slide-update="applySlideBackgroundPatch"
@@ -2658,6 +2664,7 @@ function handleCommandSearch(command: string): void {
 					@update-core-properties="updateCoreProperties"
 					@update-app-properties="updateAppProperties"
 					@update-custom-properties="updateCustomProperties"
+					@update-tag-collections="updateTagCollections"
 					@select-element="onSelectionPaneSelect"
 					@comment-add="(t) => commitComments(commentsApi.addComment(t))"
 					@comment-remove="(id) => commitComments(commentsApi.removeComment(id))"
