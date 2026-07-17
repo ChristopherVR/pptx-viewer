@@ -7,6 +7,7 @@ import type {
 	CollaborationTransport,
 	ConnectionStatus,
 	PowerPointViewerAPI,
+	ToolbarActionId,
 	ViewerFontSource,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
@@ -119,6 +120,17 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	 * `true`. Only *visible* while editing is enabled.
 	 */
 	showInspector?: boolean;
+	/**
+	 * Individually hide toolbar buttons and/or ribbon tabs (default `undefined`,
+	 * nothing hidden). Each id in {@link ToolbarActionId} controls one button
+	 * (e.g. `'share'`, `'undo'`) or one whole control cluster (`'zoom'` covers
+	 * zoom in/out/fit as a unit, `'navigation'` covers prev/next as a unit) or
+	 * one ribbon tab (e.g. `'insert'`, `'view'`). `'record'` hides both the
+	 * quick-access Record control and the Record ribbon tab, since they surface
+	 * the same feature. Unlike {@link showToolbar}, this hides individual
+	 * pieces rather than the whole chrome.
+	 */
+	hiddenActions?: ToolbarActionId[];
 	/**
 	 * Custom element-renderer registry. Defaults to `createDefaultRegistry()`;
 	 * pass your own (or mutate the default via `getRegistry()`) to add or

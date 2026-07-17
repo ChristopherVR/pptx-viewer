@@ -6,7 +6,7 @@ import {
 	formatBackstageSize,
 	listBackstageRecentFiles,
 } from 'pptx-viewer-shared';
-import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
+import type { BackstagePage, BackstageRecentFile, ToolbarActionId } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
@@ -25,6 +25,7 @@ export function createFileTab(
 	_t: Translator,
 	handlers: RibbonFileHandlers,
 	onClose: () => void,
+	hiddenActions?: readonly ToolbarActionId[],
 ): FileTab {
 	const el = createEl(doc, 'div', 'pptxv-backstage');
 	el.setAttribute('role', 'dialog');
@@ -146,7 +147,7 @@ export function createFileTab(
 		main.append(heading, list);
 	}
 	function renderActions(): void {
-		main.appendChild(createFileActionGrid(doc, page, handlers, hasMacros, run));
+		main.appendChild(createFileActionGrid(doc, page, handlers, hasMacros, run, hiddenActions));
 	}
 	function renderCard(): void {
 		const card = createEl(doc, 'section', 'pptxv-bs-card');

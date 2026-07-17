@@ -1,5 +1,5 @@
-import type { CollaborationConfig, ConnectionStatus } from 'pptx-viewer-shared';
-import { buildBroadcastViewerUrl } from 'pptx-viewer-shared';
+import type { CollaborationConfig, ConnectionStatus, ToolbarActionId } from 'pptx-viewer-shared';
+import { buildBroadcastViewerUrl, isActionHidden } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -37,6 +37,8 @@ export interface CollabUiDeps {
 	getConfig: () => CollaborationConfig | null;
 	followUser: (clientId: number | null) => void;
 	shareDefaults?: ShareDefaults;
+	/** Individually hidden toolbar buttons; gates the Share/Broadcast triggers this module builds. */
+	hiddenActions?: readonly ToolbarActionId[];
 }
 
 export interface CollabUiController {
@@ -119,26 +121,36 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 	};
 	// The ribbon replaced the old flat toolbar.ts; its primary row (undo/redo/
 	// save + autosave pill) is the closest equivalent anchor for these buttons.
+	// Hidden per the host's `hiddenActions` option ('share' / 'broadcast'), each
+	// button is only constructed (not merely hidden) when its action is visible.
+	const showShare = !isActionHidden('share', deps.hiddenActions);
+	const showBroadcast = !isActionHidden('broadcast', deps.hiddenActions);
 	const toolbarEl = chrome.ribbon?.el.querySelector<HTMLElement>('.pptxv-ribbon-primary') ?? null;
 	if (toolbarEl) {
-		shareBtn = createEl(doc, 'button', 'pptxv-btn');
-		shareBtn.type = 'button';
-		shareBtn.title = t('pptx.toolbar.share');
-		shareBtn.setAttribute('aria-label', t('pptx.toolbar.share'));
-		shareBtn.appendChild(createIcon(doc, 'share'));
-		shareBtn.addEventListener('click', openShare);
-
-		broadcastBtn = createEl(doc, 'button', 'pptxv-btn');
-		broadcastBtn.type = 'button';
-		broadcastBtn.title = t('pptx.broadcast.startTitle');
-		broadcastBtn.setAttribute('aria-label', t('pptx.broadcast.startTitle'));
-		broadcastBtn.appendChild(createIcon(doc, 'broadcast'));
-		broadcastBtn.addEventListener('click', openBroadcast);
-
-		toolbarEl.append(shareBtn, broadcastBtn, statusPill.el);
+		if (showShare) {
+			shareBtn = createEl(doc, 'button', 'pptxv-btn');
+			shareBtn.type = 'button';
+			shareBtn.title = t('pptx.toolbar.share');
+			shareBtn.setAttribute('aria-label', t('pptx.toolbar.share'));
+			shareBtn.appendChild(createIcon(doc, 'share'));
+			shareBtn.addEventListener('click', openShare);
+		}
+		if (showBroadcast) {
+			broadcastBtn = createEl(doc, 'button', 'pptxv-btn');
+			broadcastBtn.type = 'button';
+			broadcastBtn.title = t('pptx.broadcast.startTitle');
+			broadcastBtn.setAttribute('aria-label', t('pptx.broadcast.startTitle'));
+			broadcastBtn.appendChild(createIcon(doc, 'broadcast'));
+			broadcastBtn.addEventListener('click', openBroadcast);
+		}
+		toolbarEl.append(
+			...(shareBtn ? [shareBtn] : []),
+			...(broadcastBtn ? [broadcastBtn] : []),
+			statusPill.el,
+		);
 	}
 	const mobileCollaborationHost = chrome.mobileToolbar?.collaborationHost ?? null;
-	if (mobileCollaborationHost) {
+	if (mobileCollaborationHost && showShare) {
 		mobileShareBtn = createEl(doc, 'button', 'pptxv-mobile-toolbar-btn pptxv-mobile-share');
 		mobileShareBtn.type = 'button';
 		mobileShareBtn.title = t('pptx.toolbar.share');

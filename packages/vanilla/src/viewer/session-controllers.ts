@@ -144,6 +144,7 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		getConfig: () => collaboration.getConfig(),
 		followUser: (clientId) => collaboration.followUser(clientId),
 		shareDefaults: options.shareDefaults,
+		hiddenActions: options.hiddenActions,
 	});
 	notifyCollabUi = (status) => collabUi.onStatusChange(status);
 

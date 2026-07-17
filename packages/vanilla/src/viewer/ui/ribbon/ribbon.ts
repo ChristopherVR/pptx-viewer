@@ -1,4 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
+import { filterVisibleTabs, isActionHidden } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
@@ -55,8 +57,18 @@ export interface Ribbon {
  * The tabbed editing ribbon: a React-aligned command row, tab bar, and
  * swappable tab content. Slide navigation and zoom live in the status bar,
  * avoiding the duplicate counter row that used to sit above the tabs.
+ *
+ * `hiddenActions` (from the host's `hiddenActions` viewer option) gates DOM
+ * construction, not just visibility: a hidden ribbon tab's content module is
+ * never called, and a hidden button/cluster inside a tab is never built by
+ * that tab's own module (see `ribbon-types.ts` handlers vs. this file).
  */
-export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandlers): Ribbon {
+export function createRibbon(
+	doc: Document,
+	t: Translator,
+	handlers: RibbonHandlers,
+	hiddenActions?: readonly ToolbarActionId[],
+): Ribbon {
 	const el = createEl(doc, 'div', 'pptxv-ribbon');
 	el.setAttribute('role', 'toolbar');
 	el.setAttribute('aria-label', t('pptx.toolbar.presentationToolbarAria'));
@@ -64,7 +76,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	const primary = createRibbonPrimaryRow(doc, t, handlers.primary);
 	el.append(primary.el);
 
-	const tabBar = createRibbonTabBar(doc, t, (tab) => setActiveTab(tab));
+	const tabBar = createRibbonTabBar(doc, t, (tab) => setActiveTab(tab), hiddenActions);
 	tabBar.el.hidden = true;
 	el.appendChild(tabBar.el);
 
@@ -79,51 +91,75 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	const formatBackgroundPanel = createFormatBackgroundPanel(doc, t, handlers.edit);
 	el.appendChild(formatBackgroundPanel.el);
 
-	const fileTab = createFileTab(doc, t, handlers.file, () => setActiveTab('home'));
-	const homeTab: HomeTab = createHomeTab(doc, t, {
-		edit: handlers.edit,
-		onToggleFindReplace: () => findReplace.toggle(),
-	});
-	const insertTab: InsertTab = createInsertTab(doc, t, handlers.insert, () =>
-		equationPanel.toggle(),
-	);
-	const drawTab: DrawTab = createDrawTab(doc, t, handlers.draw);
-	const designTab: DesignTab = createDesignTab(doc, t, handlers.design, () =>
-		formatBackgroundPanel.toggle(),
-	);
-	const transitionsTab: TransitionsTab = createTransitionsTab(doc, t, handlers.edit);
-	const animationsTab: AnimationsTab = createAnimationsTab(doc, t, handlers.edit);
-	const slideShowTab = createSlideShowTab(doc, t, handlers.slideShow);
-	const recordTab = createRecordTab(doc, t, handlers.slideShow);
-	const reviewTab = createReviewTab(doc, t, handlers.nav);
-	const viewTab = createViewTab(doc, t, handlers.nav);
-	const helpTab = createHelpTab(doc, t, handlers.nav);
+	const hidden = (id: RibbonTabId): boolean => isActionHidden(id, hiddenActions);
+	const fileTab = hidden('file')
+		? null
+		: createFileTab(doc, t, handlers.file, () => setActiveTab('home'), hiddenActions);
+	const homeTab: HomeTab | null = hidden('home')
+		? null
+		: createHomeTab(doc, t, {
+				edit: handlers.edit,
+				onToggleFindReplace: () => findReplace.toggle(),
+			});
+	const insertTab: InsertTab | null = hidden('insert')
+		? null
+		: createInsertTab(doc, t, handlers.insert, () => equationPanel.toggle());
+	const drawTab: DrawTab | null = hidden('draw') ? null : createDrawTab(doc, t, handlers.draw);
+	const designTab: DesignTab | null = hidden('design')
+		? null
+		: createDesignTab(doc, t, handlers.design, () => formatBackgroundPanel.toggle());
+	const transitionsTab: TransitionsTab | null = hidden('transitions')
+		? null
+		: createTransitionsTab(doc, t, handlers.edit);
+	const animationsTab: AnimationsTab | null = hidden('animations')
+		? null
+		: createAnimationsTab(doc, t, handlers.edit);
+	const slideShowTab = hidden('slideShow')
+		? null
+		: createSlideShowTab(doc, t, handlers.slideShow, hiddenActions);
+	const recordTab = hidden('record') ? null : createRecordTab(doc, t, handlers.slideShow);
+	const reviewTab = hidden('review') ? null : createReviewTab(doc, t, handlers.nav);
+	const viewTab = hidden('view') ? null : createViewTab(doc, t, handlers.nav, hiddenActions);
+	const helpTab = hidden('help') ? null : createHelpTab(doc, t, handlers.nav);
 
-	const panes: Record<RibbonTabId, HTMLElement> = {
-		file: fileTab.el,
-		home: homeTab.el,
-		insert: insertTab.el,
-		draw: drawTab.el,
-		design: designTab.el,
-		transitions: transitionsTab.el,
-		animations: animationsTab.el,
-		slideShow: slideShowTab.el,
-		record: recordTab,
-		review: reviewTab.el,
-		view: viewTab.el,
-		help: helpTab,
+	const panes: Partial<Record<RibbonTabId, HTMLElement>> = {
+		file: fileTab?.el,
+		home: homeTab?.el,
+		insert: insertTab?.el,
+		draw: drawTab?.el,
+		design: designTab?.el,
+		transitions: transitionsTab?.el,
+		animations: animationsTab?.el,
+		slideShow: slideShowTab?.el,
+		record: recordTab ?? undefined,
+		review: reviewTab?.el,
+		view: viewTab?.el,
+		help: helpTab ?? undefined,
 	};
-	for (const tab of RIBBON_TABS) {
-		panes[tab.id].hidden = true;
-		el.appendChild(panes[tab.id]);
+	const visibleTabs = filterVisibleTabs(RIBBON_TABS, hiddenActions);
+	for (const tab of visibleTabs) {
+		const pane = panes[tab.id];
+		if (pane) {
+			pane.hidden = true;
+			el.appendChild(pane);
+		}
 	}
 
-	let activeTab: RibbonTabId = DEFAULT_RIBBON_TAB;
+	let activeTab: RibbonTabId =
+		visibleTabs.find((tab) => tab.id === DEFAULT_RIBBON_TAB)?.id ??
+		visibleTabs[0]?.id ??
+		DEFAULT_RIBBON_TAB;
 	function setActiveTab(tab: RibbonTabId): void {
+		if (!panes[tab]) {
+			return;
+		}
 		activeTab = tab;
 		tabBar.setActive(tab);
 		for (const id of Object.keys(panes) as RibbonTabId[]) {
-			panes[id].hidden = id !== tab;
+			const pane = panes[id];
+			if (pane) {
+				pane.hidden = id !== tab;
+			}
 		}
 	}
 	setActiveTab(activeTab);
@@ -132,7 +168,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	let latestExtra: RibbonSelectionState = { hasClipboard: false, slideCount: 0, selectedCount: 0 };
 
 	const syncHome = (): void => {
-		homeTab.update({
+		homeTab?.update({
 			editable: lastEditable,
 			selectedElement: latestSelected,
 			hasClipboard: latestExtra.hasClipboard,
@@ -142,7 +178,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 		});
 	};
 	const syncAnimations = (): void => {
-		animationsTab.update({
+		animationsTab?.update({
 			editable: lastEditable,
 			hasSelection: latestSelected !== undefined,
 			selectedElementId: latestExtra.selectedElementId,
@@ -163,22 +199,22 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 		setAutosaveStatus: (label, kind) => primary.setAutosaveStatus(label, kind),
 		setEditable(editable) {
 			lastEditable = editable;
-			reviewTab.setEditable(editable);
-			viewTab.setEditable(editable);
-			insertTab.setEditable(editable);
-			drawTab.setEditable(editable);
+			reviewTab?.setEditable(editable);
+			viewTab?.setEditable(editable);
+			insertTab?.setEditable(editable);
+			drawTab?.setEditable(editable);
 			findReplace.setEditable(editable);
 			equationPanel.setEditable(editable);
 			formatBackgroundPanel.setEditable(editable);
-			designTab.setEditable(editable);
-			transitionsTab.setEditable(editable);
+			designTab?.setEditable(editable);
+			transitionsTab?.setEditable(editable);
 			syncHome();
 			syncAnimations();
 		},
-		setDrawState: (state) => drawTab.update(state),
-		setTemplateEditing: (active) => viewTab.setTemplateEditing(active),
-		setHasMacros: (hasMacros) => fileTab.setHasMacros(hasMacros),
-		setSubtitlesVisible: (visible) => slideShowTab.setSubtitlesVisible(visible),
+		setDrawState: (state) => drawTab?.update(state),
+		setTemplateEditing: (active) => viewTab?.setTemplateEditing(active),
+		setHasMacros: (hasMacros) => fileTab?.setHasMacros(hasMacros),
+		setSubtitlesVisible: (visible) => slideShowTab?.setSubtitlesVisible(visible),
 		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),
 		updateSelection(selectedElement, extra) {
 			latestSelected = selectedElement;

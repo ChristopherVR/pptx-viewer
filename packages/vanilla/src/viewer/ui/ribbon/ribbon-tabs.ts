@@ -9,6 +9,12 @@ import type { RibbonTabId } from './ribbon-types';
  * remaining entries are commented out rather than omitted so a later wave
  * adds one registry line + one tab-content module per tab, matching this
  * file's shape.
+ *
+ * Ids here are the ribbon-tab subset of the shared `ToolbarTabId` (see
+ * `pptx-viewer-shared`'s `toolbar-actions.ts`); `createRibbon` filters this
+ * list through `filterVisibleTabs` so a host's `hiddenActions` option skips
+ * building a hidden tab's content entirely, rather than hiding it after the
+ * fact.
  */
 export interface RibbonTabDef {
 	id: RibbonTabId;

@@ -1,4 +1,9 @@
-import { resolveTitleBarStatusKey, TITLE_BAR_DEFAULT_FILE_KEY } from 'pptx-viewer-shared';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
+import {
+	isActionHidden,
+	resolveTitleBarStatusKey,
+	TITLE_BAR_DEFAULT_FILE_KEY,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -22,6 +27,8 @@ export interface TitleBarDeps {
 	redo(): void;
 	/** Command-search entries (new slide / undo / export / zoom / ...). */
 	commands: readonly CommandSearchCommand[];
+	/** Individually hidden toolbar buttons (gates undo/redo independently). */
+	hiddenActions?: readonly ToolbarActionId[];
 }
 
 export interface TitleBar {
@@ -87,19 +94,23 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 		className: 'pptxv-titlebar-btn',
 		onClick: () => deps.save(),
 	});
-	const undo = makeButton(doc, {
-		label: t('pptx.toolbar.undo'),
-		icon: 'undo',
-		className: 'pptxv-titlebar-btn',
-		onClick: () => deps.undo(),
-	});
-	const redo = makeButton(doc, {
-		label: t('pptx.toolbar.redo'),
-		icon: 'redo',
-		className: 'pptxv-titlebar-btn',
-		onClick: () => deps.redo(),
-	});
-	el.append(save.btn, undo.btn, redo.btn);
+	const undo = isActionHidden('undo', deps.hiddenActions)
+		? null
+		: makeButton(doc, {
+				label: t('pptx.toolbar.undo'),
+				icon: 'undo',
+				className: 'pptxv-titlebar-btn',
+				onClick: () => deps.undo(),
+			});
+	const redo = isActionHidden('redo', deps.hiddenActions)
+		? null
+		: makeButton(doc, {
+				label: t('pptx.toolbar.redo'),
+				icon: 'redo',
+				className: 'pptxv-titlebar-btn',
+				onClick: () => deps.redo(),
+			});
+	el.append(save.btn, ...(undo ? [undo.btn] : []), ...(redo ? [redo.btn] : []));
 	const sep2 = createEl(doc, 'span', 'pptxv-titlebar-sep');
 	el.appendChild(sep2);
 
@@ -136,15 +147,22 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 	return {
 		el,
 		setEditState({ editable, canUndo, canRedo }) {
-			const editingEls = [autosaveGroup, sep1, save.btn, undo.btn, redo.btn, sep2];
+			const editingEls = [
+				autosaveGroup,
+				sep1,
+				save.btn,
+				sep2,
+				...(undo ? [undo.btn] : []),
+				...(redo ? [redo.btn] : []),
+			];
 			for (const editingEl of editingEls) {
 				editingEl.hidden = !editable;
 			}
 			statusDot.hidden = !editable;
 			statusText.hidden = !editable;
 			searchWrap.hidden = !editable;
-			undo.setDisabled(!canUndo);
-			redo.setDisabled(!canRedo);
+			undo?.setDisabled(!canUndo);
+			redo?.setDisabled(!canRedo);
 		},
 		setAutosaveState(state) {
 			autosaveState = state;

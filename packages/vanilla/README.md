@@ -94,6 +94,32 @@ All chrome colors come from the shared `--pptx-*` CSS custom properties. Pass
 a `ViewerTheme` (`theme` option or `setTheme`) to override them; the
 `vermilionLightTheme` / `vermilionDarkTheme` presets are re-exported.
 
+## Toolbar customization
+
+`showToolbar` hides the whole ribbon/title-bar/status-bar chrome; to hide
+individual buttons or ribbon tabs instead, pass `hiddenActions`:
+
+```ts
+const viewer = createPptxViewer(document.getElementById('host')!, {
+	source: '/decks/quarterly.pptx',
+	editable: true,
+	// Hide Share, the Broadcast action, and the whole Insert ribbon tab, while
+	// keeping every other button and tab visible.
+	hiddenActions: ['share', 'broadcast', 'insert'],
+});
+```
+
+Each id in `hiddenActions` hides a single quick-access button (`'share'`,
+`'broadcast'`, `'export'`, `'undo'`, `'redo'`, `'notes'`, `'fullscreen'`), a
+whole control cluster as a unit (`'zoom'` covers zoom in/out/fit, `'navigation'`
+covers the presentation slide-show's prev/next controls), or a ribbon tab
+(`'file'`, `'home'`, `'insert'`, `'draw'`, `'design'`, `'transitions'`,
+`'animations'`, `'slideShow'`, `'record'`, `'review'`, `'view'`, `'help'`).
+`'record'` hides both the quick-access Record control and the Record ribbon
+tab, since they surface the same feature. Hidden actions are never built (not
+just visually hidden), on desktop and mobile chrome alike. Omit the option (or
+leave it `undefined`) to keep today's fully-visible default.
+
 ## Editing
 
 Pass `editable: true` (or call `setEditable(true)` at runtime) to turn on:

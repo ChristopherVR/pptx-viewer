@@ -1,4 +1,5 @@
 import type { TextSegment } from 'pptx-viewer-core';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -35,6 +36,12 @@ export interface ChromeOptions {
 	showInspector: boolean;
 	/** Whether editing is initially enabled (gates ribbon tab content/inspector visibility). */
 	editable: boolean;
+	/**
+	 * Individually hidden toolbar buttons/ribbon tabs (default: nothing
+	 * hidden). Threaded down to every chrome surface that renders a hideable
+	 * action so DOM nodes for hidden actions are never constructed.
+	 */
+	hiddenActions?: readonly ToolbarActionId[];
 	/** Every ribbon handler (nav/primary/file/insert/edit/findReplace). */
 	ribbonHandlers: RibbonHandlers;
 	/** Inspector actions (geometry + shape fill/stroke). */
@@ -103,7 +110,7 @@ export function buildViewerChrome(
 	if (options.showToolbar) {
 		titleBar = createTitleBar(doc, t, options.titleBar);
 		root.appendChild(titleBar.el);
-		ribbon = createRibbon(doc, t, options.ribbonHandlers);
+		ribbon = createRibbon(doc, t, options.ribbonHandlers, options.hiddenActions);
 		if (!options.showFormatToolbar) {
 			ribbon.setEditable(false);
 		}
@@ -111,13 +118,18 @@ export function buildViewerChrome(
 	}
 	let mobileActionSheets: MobileActionSheets | null = null;
 	const mobileToolbar = options.showToolbar
-		? createMobileToolbar(doc, t, {
-				openMenu: () => mobileActionSheets?.toggle('menu'),
-				undo: options.ribbonHandlers.primary.undo,
-				redo: options.ribbonHandlers.primary.redo,
-				save: options.ribbonHandlers.file.save,
-				present: options.ribbonHandlers.slideShow.startFromCurrent,
-			})
+		? createMobileToolbar(
+				doc,
+				t,
+				{
+					openMenu: () => mobileActionSheets?.toggle('menu'),
+					undo: options.ribbonHandlers.primary.undo,
+					redo: options.ribbonHandlers.primary.redo,
+					save: options.ribbonHandlers.file.save,
+					present: options.ribbonHandlers.slideShow.startFromCurrent,
+				},
+				options.hiddenActions,
+			)
 		: null;
 	if (mobileToolbar) {
 		mobileToolbar.setEditState({ editable: options.editable, canUndo: false, canRedo: false });
@@ -162,13 +174,18 @@ export function buildViewerChrome(
 	root.appendChild(notes.el);
 
 	const statusBar = options.showToolbar
-		? createStatusBar(doc, t, {
-				toggleNotes: options.ribbonHandlers.nav.toggleNotes,
-				togglePresentation: options.ribbonHandlers.nav.togglePresentation,
-				zoomIn: options.ribbonHandlers.nav.zoomIn,
-				zoomOut: options.ribbonHandlers.nav.zoomOut,
-				zoomToFit: options.ribbonHandlers.nav.zoomToFit,
-			})
+		? createStatusBar(
+				doc,
+				t,
+				{
+					toggleNotes: options.ribbonHandlers.nav.toggleNotes,
+					togglePresentation: options.ribbonHandlers.nav.togglePresentation,
+					zoomIn: options.ribbonHandlers.nav.zoomIn,
+					zoomOut: options.ribbonHandlers.nav.zoomOut,
+					zoomToFit: options.ribbonHandlers.nav.zoomToFit,
+				},
+				options.hiddenActions,
+			)
 		: null;
 	if (statusBar) {
 		root.appendChild(statusBar.el);
@@ -180,17 +197,23 @@ export function buildViewerChrome(
 				options.ribbonHandlers,
 				options.onSelectSlide,
 				inspector?.el ?? null,
+				options.hiddenActions,
 			)
 		: null;
 	if (mobileActionSheets) {
 		mobileActionSheets.setEditable(options.editable);
 		root.appendChild(mobileActionSheets.el);
 	}
-	const presentationTouchControls = createPresentationTouchControls(doc, t, {
-		previous: options.ribbonHandlers.nav.prev,
-		next: options.ribbonHandlers.nav.next,
-		exit: options.ribbonHandlers.nav.togglePresentation,
-	});
+	const presentationTouchControls = createPresentationTouchControls(
+		doc,
+		t,
+		{
+			previous: options.ribbonHandlers.nav.prev,
+			next: options.ribbonHandlers.nav.next,
+			exit: options.ribbonHandlers.nav.togglePresentation,
+		},
+		options.hiddenActions,
+	);
 	presentationTouchControls.update(0, 0);
 	root.appendChild(presentationTouchControls.el);
 

@@ -16,7 +16,8 @@ import {
 	Video,
 } from 'lucide';
 import type { IconNode } from 'lucide';
-import type { BackstagePage } from 'pptx-viewer-shared';
+import type { BackstagePage, ToolbarActionId } from 'pptx-viewer-shared';
+import { isActionHidden } from 'pptx-viewer-shared';
 
 import { createEl } from '../../../render';
 import type { RibbonFileHandlers } from '../ribbon-types';
@@ -29,6 +30,7 @@ export function createFileActionGrid(
 	handlers: RibbonFileHandlers,
 	hasMacros: boolean,
 	run: (callback: () => void) => void,
+	hiddenActions?: readonly ToolbarActionId[],
 ): HTMLElement {
 	const grid = createEl(doc, 'div', 'pptxv-bs-actions');
 	const action = (title: string, body: string, icon: IconNode, callback: () => void) => {
@@ -66,7 +68,7 @@ export function createFileActionGrid(
 			);
 		}
 	}
-	if (page === 'export') {
+	if (page === 'export' && !isActionHidden('export', hiddenActions)) {
 		grid.append(
 			action('Create PDF', 'Publish one page per slide.', FileText, handlers.exportPdf),
 			action('Export current slide', 'Create a high-quality PNG.', Image, handlers.exportPng),

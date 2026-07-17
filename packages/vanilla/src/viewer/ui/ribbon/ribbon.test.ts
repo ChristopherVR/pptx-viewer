@@ -267,4 +267,77 @@ describe('createRibbon', () => {
 		expect(button(t('pptx.ribbon.templatesOff'))?.disabled).toBeFalsy();
 		expect(button(t('pptx.ribbon.eyedropper'))?.disabled).toBeFalsy();
 	});
+
+	describe('hiddenActions', () => {
+		it('omitting hiddenActions renders every tab (backward compatible default)', () => {
+			const t = createTranslator();
+			const ribbon = createRibbon(document, t, buildHandlers());
+			const tabs = ribbon.el.querySelectorAll('.pptxv-ribbon-tab');
+			expect(tabs).toHaveLength(12);
+		});
+
+		it('never constructs a hidden ribbon tab: no tab button and no pane content', () => {
+			const t = createTranslator();
+			const ribbon = createRibbon(document, t, buildHandlers(), ['insert']);
+			const tabLabels = Array.from(ribbon.el.querySelectorAll('.pptxv-ribbon-tab')).map(
+				(btn) => btn.textContent,
+			);
+			expect(tabLabels).not.toContain(t('pptx.ribbon.tab.insert'));
+			expect(ribbon.el.querySelector('.pptxv-shape-grid')).toBeNull();
+		});
+
+		it('falls back to the first visible tab (File) when the default (Home) tab is hidden', () => {
+			const t = createTranslator();
+			const ribbon = createRibbon(document, t, buildHandlers(), ['home']);
+			// File's pane (`.pptxv-backstage`) isn't a `.pptxv-ribbon-tab-content`
+			// pane like the others, so check it directly plus every other pane.
+			expect(ribbon.el.querySelector<HTMLElement>('.pptxv-backstage')?.hidden).toBeFalsy();
+			const otherPanes = ribbon.el.querySelectorAll<HTMLElement>('.pptxv-ribbon-tab-content');
+			expect(Array.from(otherPanes).every((pane) => pane.hidden)).toBeTruthy();
+		});
+
+		it('hides the Broadcast action from the Slide Show tab', () => {
+			const t = createTranslator();
+			const ribbon = createRibbon(document, t, buildHandlers(), ['broadcast']);
+			const tabs = ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab');
+			tabs[7].click();
+			expect(
+				ribbon.el.querySelector(`[aria-label="${t('pptx.slideShow.broadcastTooltip')}"]`),
+			).toBeNull();
+		});
+
+		it('hides the Export actions grid in the File tab', () => {
+			const t = createTranslator();
+			const ribbon = createRibbon(document, t, buildHandlers(), ['export']);
+			const fileTab = Array.from(
+				ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab'),
+			).find((button) => button.textContent === 'File');
+			fileTab?.click();
+			const backstage = ribbon.el.querySelector<HTMLElement>('.pptxv-backstage');
+			const exportNav = Array.from(backstage?.querySelectorAll('nav button') ?? []).find(
+				(button) => button.textContent?.trim() === 'Export',
+			);
+			exportNav?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+			expect(backstage?.querySelectorAll('.pptxv-bs-actions button')).toHaveLength(0);
+		});
+
+		it('hides zoom, fullscreen, and notes actions from the View tab as independent units', () => {
+			const t = createTranslator();
+			const ribbon = createRibbon(document, t, buildHandlers(), ['zoom', 'fullscreen', 'notes']);
+			const tabs = ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab');
+			const viewTabIndex = Array.from(tabs).findIndex(
+				(button) => button.textContent === t('pptx.ribbon.tab.view'),
+			);
+			tabs[viewTabIndex].click();
+			expect(ribbon.el.querySelector(`[aria-label="${t('pptx.statusBar.zoomOut')}"]`)).toBeNull();
+			expect(ribbon.el.querySelector(`[aria-label="${t('pptx.statusBar.slideShow')}"]`)).toBeNull();
+			expect(
+				ribbon.el.querySelector(`[aria-label="${t('pptx.statusBar.toggleNotes')}"]`),
+			).toBeNull();
+			// An unrelated View action stays, proving the hide is scoped to those ids.
+			expect(
+				ribbon.el.querySelector(`[aria-label="${t('pptx.ribbon.accessibilityCheck')}"]`),
+			).not.toBeNull();
+		});
+	});
 });

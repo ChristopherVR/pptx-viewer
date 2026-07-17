@@ -1,3 +1,6 @@
+import type { ToolbarActionId } from 'pptx-viewer-shared';
+import { isActionHidden } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
@@ -13,6 +16,7 @@ export function createSlideShowTab(
 	doc: Document,
 	t: Translator,
 	handlers: RibbonSlideShowHandlers,
+	hiddenActions?: readonly ToolbarActionId[],
 ): SlideShowTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 	const fromBeginning = makeButton(doc, {
@@ -27,12 +31,14 @@ export function createSlideShowTab(
 		icon: 'presentation',
 		onClick: handlers.startFromCurrent,
 	});
-	const broadcast = makeButton(doc, {
-		label: t('pptx.slideShow.broadcastTooltip'),
-		text: t('pptx.slideShow.broadcast'),
-		icon: 'broadcast',
-		onClick: handlers.openBroadcast,
-	});
+	const broadcast = isActionHidden('broadcast', hiddenActions)
+		? null
+		: makeButton(doc, {
+				label: t('pptx.slideShow.broadcastTooltip'),
+				text: t('pptx.slideShow.broadcast'),
+				icon: 'broadcast',
+				onClick: handlers.openBroadcast,
+			});
 	const presenter = makeButton(doc, {
 		label: t('pptx.slideShow.presenterViewTooltip'),
 		text: t('pptx.slideShow.presenterView'),
@@ -71,7 +77,7 @@ export function createSlideShowTab(
 		setUp.btn,
 		rehearse.btn,
 		customShows.btn,
-		broadcast.btn,
+		...(broadcast ? [broadcast.btn] : []),
 		subtitles.btn,
 		subtitleSettings.btn,
 	);

@@ -39,4 +39,28 @@ describe('createPresentationTouchControls', () => {
 		expect(handlers.exit).toHaveBeenCalledOnce();
 		expect(bubbled).not.toHaveBeenCalled();
 	});
+
+	describe('hiddenActions', () => {
+		it('omitting hiddenActions renders the prev/next pair (backward compatible default)', () => {
+			const controls = createPresentationTouchControls(document, createTranslator('en'), {
+				previous: vi.fn(),
+				next: vi.fn(),
+				exit: vi.fn(),
+			});
+			expect(controls.el.querySelector('.pptxv-presentation-touch-prev')).not.toBeNull();
+			expect(controls.el.querySelector('.pptxv-presentation-touch-next')).not.toBeNull();
+		});
+
+		it("hides the prev/next pair as a unit on 'navigation', keeping exit always available", () => {
+			const controls = createPresentationTouchControls(
+				document,
+				createTranslator('en'),
+				{ previous: vi.fn(), next: vi.fn(), exit: vi.fn() },
+				['navigation'],
+			);
+			expect(controls.el.querySelector('.pptxv-presentation-touch-prev')).toBeNull();
+			expect(controls.el.querySelector('.pptxv-presentation-touch-next')).toBeNull();
+			expect(controls.el.querySelector('.pptxv-presentation-touch-exit')).not.toBeNull();
+		});
+	});
 });

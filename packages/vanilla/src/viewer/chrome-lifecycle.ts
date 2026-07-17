@@ -55,6 +55,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		showFormatToolbar: options.showFormatToolbar ?? true,
 		showInspector: options.showInspector ?? true,
 		editable: options.editable ?? false,
+		hiddenActions: options.hiddenActions,
 		titleBar: {
 			fileName: options.fileName,
 			autosaveEnabled: options.autosave ?? false,
@@ -63,6 +64,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			undo: () => deps.undo(),
 			redo: () => deps.redo(),
 			commands: buildTitleBarCommands(deps),
+			hiddenActions: options.hiddenActions,
 		},
 		...buildChromeCallbacks(deps),
 	});

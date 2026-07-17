@@ -1,8 +1,9 @@
 import type { PptxComment, PptxSlide } from 'pptx-viewer-core';
-import type { MobileSheetKey } from 'pptx-viewer-shared';
+import type { MobileSheetKey, ToolbarActionId } from 'pptx-viewer-shared';
 import {
 	buildBarActions,
 	createSheetDismissGesture,
+	isActionHidden,
 	slideTitle,
 	toggleSheet,
 } from 'pptx-viewer-shared';
@@ -27,6 +28,7 @@ export function createMobileActionSheets(
 	handlers: RibbonHandlers,
 	onSelectSlide: (index: number) => void,
 	inspector: HTMLElement | null,
+	hiddenActions?: readonly ToolbarActionId[],
 ): MobileActionSheets {
 	const el = createEl(doc, 'div', 'pptxv-mobile-actions');
 	const sheetHost = createEl(doc, 'div', 'pptxv-mobile-sheet-host');
@@ -170,16 +172,19 @@ export function createMobileActionSheets(
 			add.append(draft, submit);
 			body.appendChild(add);
 		} else {
-			const buttons = [
-				[t('pptx.ribbon.insert'), () => handlers.insert.insert('text')],
-				[t('pptx.presenter.previousSlide'), handlers.nav.prev],
-				[t('pptx.presenter.nextSlide'), handlers.nav.next],
-				[t('pptx.statusBar.zoomOut'), handlers.nav.zoomOut],
-				[t('pptx.statusBar.zoomIn'), handlers.nav.zoomIn],
-				[t('pptx.notes.title'), handlers.nav.toggleNotes],
-				[t('pptx.statusBar.slideShow'), handlers.nav.togglePresentation],
-			] as const;
-			for (const [label, run] of buttons) {
+			const buttons: readonly [string, () => void, ToolbarActionId | null][] = [
+				[t('pptx.ribbon.insert'), () => handlers.insert.insert('text'), null],
+				[t('pptx.presenter.previousSlide'), handlers.nav.prev, 'navigation'],
+				[t('pptx.presenter.nextSlide'), handlers.nav.next, 'navigation'],
+				[t('pptx.statusBar.zoomOut'), handlers.nav.zoomOut, 'zoom'],
+				[t('pptx.statusBar.zoomIn'), handlers.nav.zoomIn, 'zoom'],
+				[t('pptx.notes.title'), handlers.nav.toggleNotes, 'notes'],
+				[t('pptx.statusBar.slideShow'), handlers.nav.togglePresentation, 'fullscreen'],
+			];
+			for (const [label, run, actionId] of buttons) {
+				if (actionId && isActionHidden(actionId, hiddenActions)) {
+					continue;
+				}
 				const button = doc.createElement('button');
 				button.type = 'button';
 				button.textContent = label;
@@ -212,6 +217,9 @@ export function createMobileActionSheets(
 	} as const;
 	for (const descriptor of buildBarActions({ slideCount: 0 })) {
 		const key = descriptor.key as 'slides' | 'insert' | 'inspector' | 'comments' | 'notes';
+		if (key === 'notes' && isActionHidden('notes', hiddenActions)) {
+			continue;
+		}
 		const button = doc.createElement('button');
 		button.type = 'button';
 		button.dataset.mobileAction = key;

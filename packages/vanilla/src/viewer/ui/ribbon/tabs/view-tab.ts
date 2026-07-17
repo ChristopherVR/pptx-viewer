@@ -1,3 +1,6 @@
+import type { ToolbarActionId } from 'pptx-viewer-shared';
+import { isActionHidden } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
@@ -14,34 +17,50 @@ export interface ViewTab {
  * bar keeps these actions available outside the tab while avoiding a duplicate
  * navigation row above the ribbon.
  */
-export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavHandlers): ViewTab {
+export function createViewTab(
+	doc: Document,
+	t: Translator,
+	handlers: RibbonNavHandlers,
+	hiddenActions?: readonly ToolbarActionId[],
+): ViewTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 
-	const zoomOut = makeButton(doc, {
-		label: t('pptx.statusBar.zoomOut'),
-		icon: 'zoom-out',
-		onClick: handlers.zoomOut,
-	});
-	const zoomIn = makeButton(doc, {
-		label: t('pptx.statusBar.zoomIn'),
-		icon: 'zoom-in',
-		onClick: handlers.zoomIn,
-	});
-	const fit = makeButton(doc, {
-		label: t('pptx.view.zoomToFit'),
-		icon: 'fit',
-		onClick: handlers.zoomToFit,
-	});
-	const present = makeButton(doc, {
-		label: t('pptx.statusBar.slideShow'),
-		icon: 'play',
-		onClick: handlers.togglePresentation,
-	});
-	const notes = makeButton(doc, {
-		label: t('pptx.statusBar.toggleNotes'),
-		icon: 'notes',
-		onClick: handlers.toggleNotes,
-	});
+	const showZoom = !isActionHidden('zoom', hiddenActions);
+	const zoomOut = showZoom
+		? makeButton(doc, {
+				label: t('pptx.statusBar.zoomOut'),
+				icon: 'zoom-out',
+				onClick: handlers.zoomOut,
+			})
+		: null;
+	const zoomIn = showZoom
+		? makeButton(doc, {
+				label: t('pptx.statusBar.zoomIn'),
+				icon: 'zoom-in',
+				onClick: handlers.zoomIn,
+			})
+		: null;
+	const fit = showZoom
+		? makeButton(doc, {
+				label: t('pptx.view.zoomToFit'),
+				icon: 'fit',
+				onClick: handlers.zoomToFit,
+			})
+		: null;
+	const present = isActionHidden('fullscreen', hiddenActions)
+		? null
+		: makeButton(doc, {
+				label: t('pptx.statusBar.slideShow'),
+				icon: 'play',
+				onClick: handlers.togglePresentation,
+			});
+	const notes = isActionHidden('notes', hiddenActions)
+		? null
+		: makeButton(doc, {
+				label: t('pptx.statusBar.toggleNotes'),
+				icon: 'notes',
+				onClick: handlers.toggleNotes,
+			});
 	const accessibility = makeButton(doc, {
 		label: t('pptx.ribbon.accessibilityCheck'),
 		icon: 'sidebar',
@@ -105,11 +124,9 @@ export function createViewTab(doc: Document, t: Translator, handlers: RibbonNavH
 	templates.btn.dataset.testid = 'template-edit-toggle';
 
 	el.append(
-		zoomOut.btn,
-		zoomIn.btn,
-		fit.btn,
-		present.btn,
-		notes.btn,
+		...(zoomOut && zoomIn && fit ? [zoomOut.btn, zoomIn.btn, fit.btn] : []),
+		...(present ? [present.btn] : []),
+		...(notes ? [notes.btn] : []),
 		accessibility.btn,
 		templates.btn,
 		masterView.btn,

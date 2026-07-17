@@ -1,3 +1,6 @@
+import type { ToolbarActionId } from 'pptx-viewer-shared';
+import { isActionHidden } from 'pptx-viewer-shared';
+
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import { makeButton } from './controls';
@@ -36,6 +39,7 @@ export function createStatusBar(
 	doc: Document,
 	t: Translator,
 	handlers: StatusBarHandlers,
+	hiddenActions?: readonly ToolbarActionId[],
 ): StatusBar {
 	const el = createEl(doc, 'div', 'pptxv-statusbar');
 
@@ -68,16 +72,23 @@ export function createStatusBar(
 	applySaveState();
 
 	// -- Right: notes toggle + view buttons + zoom cluster ---------------------
-	const notes = createEl(doc, 'button', 'pptxv-statusbar-btn pptxv-statusbar-notes');
-	notes.type = 'button';
-	notes.title = t('pptx.statusBar.toggleNotes');
-	notes.setAttribute('aria-label', t('pptx.statusBar.toggleNotes'));
-	notes.setAttribute('aria-pressed', 'false');
-	notes.appendChild(createIconSpan(doc, 'sticky-note'));
-	const notesLabel = createEl(doc, 'span');
-	notesLabel.textContent = t('pptx.notes.title');
-	notes.appendChild(notesLabel);
-	notes.addEventListener('click', handlers.toggleNotes);
+	const showNotes = !isActionHidden('notes', hiddenActions);
+	const showFullscreen = !isActionHidden('fullscreen', hiddenActions);
+	const showZoom = !isActionHidden('zoom', hiddenActions);
+
+	let notes: HTMLButtonElement | null = null;
+	if (showNotes) {
+		notes = createEl(doc, 'button', 'pptxv-statusbar-btn pptxv-statusbar-notes');
+		notes.type = 'button';
+		notes.title = t('pptx.statusBar.toggleNotes');
+		notes.setAttribute('aria-label', t('pptx.statusBar.toggleNotes'));
+		notes.setAttribute('aria-pressed', 'false');
+		notes.appendChild(createIconSpan(doc, 'sticky-note'));
+		const notesLabel = createEl(doc, 'span');
+		notesLabel.textContent = t('pptx.notes.title');
+		notes.appendChild(notesLabel);
+		notes.addEventListener('click', handlers.toggleNotes);
+	}
 
 	const normal = makeButton(doc, {
 		label: t('pptx.statusBar.normalView'),
@@ -85,42 +96,47 @@ export function createStatusBar(
 		className: 'pptxv-statusbar-btn is-active',
 		onClick: () => {},
 	});
-	const slideShow = makeButton(doc, {
-		label: t('pptx.statusBar.slideShow'),
-		icon: 'presentation',
-		className: 'pptxv-statusbar-btn',
-		onClick: handlers.togglePresentation,
-	});
+	const slideShow = showFullscreen
+		? makeButton(doc, {
+				label: t('pptx.statusBar.slideShow'),
+				icon: 'presentation',
+				className: 'pptxv-statusbar-btn',
+				onClick: handlers.togglePresentation,
+			})
+		: null;
 
-	const zoomOut = makeButton(doc, {
-		label: t('pptx.statusBar.zoomOut'),
-		icon: 'minus',
-		className: 'pptxv-statusbar-btn',
-		onClick: handlers.zoomOut,
-	});
-	const zoomPercent = createEl(doc, 'button', 'pptxv-statusbar-zoom');
-	zoomPercent.type = 'button';
-	// The aria-label wins over the visible percent text, so the "Zoom to fit"
-	// accessible name (e2e contract) survives the percent readout.
-	zoomPercent.title = t('pptx.statusBar.zoomToFit');
-	zoomPercent.setAttribute('aria-label', t('pptx.statusBar.zoomToFit'));
-	zoomPercent.addEventListener('click', handlers.zoomToFit);
-	const zoomIn = makeButton(doc, {
-		label: t('pptx.statusBar.zoomIn'),
-		icon: 'plus',
-		className: 'pptxv-statusbar-btn',
-		onClick: handlers.zoomIn,
-	});
+	let zoomOut: ReturnType<typeof makeButton> | null = null;
+	let zoomPercent: HTMLButtonElement | null = null;
+	let zoomIn: ReturnType<typeof makeButton> | null = null;
+	if (showZoom) {
+		zoomOut = makeButton(doc, {
+			label: t('pptx.statusBar.zoomOut'),
+			icon: 'minus',
+			className: 'pptxv-statusbar-btn',
+			onClick: handlers.zoomOut,
+		});
+		zoomPercent = createEl(doc, 'button', 'pptxv-statusbar-zoom');
+		zoomPercent.type = 'button';
+		// The aria-label wins over the visible percent text, so the "Zoom to fit"
+		// accessible name (e2e contract) survives the percent readout.
+		zoomPercent.title = t('pptx.statusBar.zoomToFit');
+		zoomPercent.setAttribute('aria-label', t('pptx.statusBar.zoomToFit'));
+		zoomPercent.addEventListener('click', handlers.zoomToFit);
+		zoomIn = makeButton(doc, {
+			label: t('pptx.statusBar.zoomIn'),
+			icon: 'plus',
+			className: 'pptxv-statusbar-btn',
+			onClick: handlers.zoomIn,
+		});
+	}
 
 	el.append(
-		notes,
+		...(notes ? [notes] : []),
 		divider(),
 		normal.btn,
-		slideShow.btn,
+		...(slideShow ? [slideShow.btn] : []),
 		divider(),
-		zoomOut.btn,
-		zoomPercent,
-		zoomIn.btn,
+		...(zoomOut && zoomPercent && zoomIn ? [zoomOut.btn, zoomPercent, zoomIn.btn] : []),
 	);
 
 	return {
@@ -130,11 +146,13 @@ export function createStatusBar(
 				total > 0
 					? t('pptx.statusBar.slideOf', { current: current + 1, total })
 					: t('pptx.statusBar.noSlides');
-			zoomPercent.textContent = `${Math.round(percent)}%`;
+			if (zoomPercent) {
+				zoomPercent.textContent = `${Math.round(percent)}%`;
+			}
 		},
 		setNotesExpanded(expanded) {
-			notes.setAttribute('aria-pressed', String(expanded));
-			notes.classList.toggle('is-active', expanded);
+			notes?.setAttribute('aria-pressed', String(expanded));
+			notes?.classList.toggle('is-active', expanded);
 		},
 		setSaveStatus(label, kind) {
 			pushedLabel = label;
