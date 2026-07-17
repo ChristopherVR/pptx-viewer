@@ -2,8 +2,8 @@ import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
-import { buildSummaryZoomView } from 'pptx-viewer-shared';
 
+import { buildSummaryZoomView } from '../internal/shared-src/render/summary-zoom';
 import type { StyleMap } from './element-style';
 import { ZoomNavigationService } from './zoom-navigation.service';
 import {
@@ -154,7 +154,9 @@ export class ZoomRendererComponent {
 	});
 	readonly summaryView = computed(() => {
 		const zoom = this.vm().zoom;
-		return zoom ? buildSummaryZoomView(zoom, (index) => this.zoomTarget?.lookup(index)) : undefined;
+		return zoom
+			? buildSummaryZoomView(zoom, (index: number) => this.zoomTarget?.lookup(index))
+			: undefined;
 	});
 
 	/**
