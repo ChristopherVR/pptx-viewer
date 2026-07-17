@@ -77,6 +77,7 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				isPasswordProtected: loaded.isPasswordProtected,
 				templateElementsBySlideId: partition.templateElementsBySlideId,
 				slideMasters: loaded.slideMasters,
+				themeOptions: loaded.themeOptions,
 				notesMaster: loaded.notesMaster,
 				notesCanvasSize: loaded.notesCanvasSize,
 				handoutMaster: loaded.handoutMaster,

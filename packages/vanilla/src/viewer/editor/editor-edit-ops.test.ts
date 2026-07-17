@@ -36,7 +36,7 @@ function setup(overrides: Partial<ViewerState> = {}) {
 		...overrides,
 	});
 	const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
-	const actions = createEditActions({ doc: document, store, ops });
+	const actions = createEditActions({ doc: document, store, ops, getHandler: () => null });
 	return { store, ops, actions };
 }
 

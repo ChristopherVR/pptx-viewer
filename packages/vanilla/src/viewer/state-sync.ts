@@ -33,6 +33,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		if (
 			((state.slides !== previous.slides ||
 				state.sections !== previous.sections ||
+				state.canvasSize !== previous.canvasSize ||
 				state.templateElementsBySlideId !== previous.templateElementsBySlideId ||
 				state.slideMasters !== previous.slideMasters ||
 				state.notesMaster !== previous.notesMaster ||
@@ -50,6 +51,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			state.templateElementsBySlideId !== previous.templateElementsBySlideId ||
 			state.currentSlide !== previous.currentSlide ||
 			state.zoom !== previous.zoom ||
+			state.canvasSize !== previous.canvasSize ||
 			state.presenting !== previous.presenting ||
 			state.editTemplateMode !== previous.editTemplateMode ||
 			state.slideMasters !== previous.slideMasters ||

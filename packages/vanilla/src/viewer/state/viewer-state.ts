@@ -15,6 +15,7 @@ import type {
 	PptxSlideMaster,
 	PptxSlide,
 	PptxThemeColorScheme,
+	PptxThemeOption,
 } from 'pptx-viewer-core';
 import type {
 	CanvasSize,
@@ -64,6 +65,8 @@ export interface ViewerState {
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	/** Parsed slide masters and layouts used by the dedicated master canvas. */
 	slideMasters: PptxSlideMaster[];
+	/** Theme parts discovered in the package (inspector THEME card). */
+	themeOptions: PptxThemeOption[];
 	/** Parsed notes master and its portrait page size. */
 	notesMaster?: PptxNotesMaster;
 	notesCanvasSize?: CanvasSize;
@@ -164,6 +167,7 @@ export function createInitialViewerState(): ViewerState {
 		isPasswordProtected: false,
 		templateElementsBySlideId: {},
 		slideMasters: [],
+		themeOptions: [],
 		notesMaster: undefined,
 		notesCanvasSize: undefined,
 		handoutMaster: undefined,

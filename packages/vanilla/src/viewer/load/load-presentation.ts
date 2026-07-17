@@ -15,6 +15,7 @@ import type {
 	PptxSlide,
 	PptxSlideMaster,
 	PptxThemeColorScheme,
+	PptxThemeOption,
 } from 'pptx-viewer-core';
 import { PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
@@ -59,6 +60,8 @@ export interface LoadedPresentation {
 	/** Parsed presentation table styles keyed by style id. */
 	tableStyleMap?: ParsedTableStyleMap;
 	slideMasters: PptxSlideMaster[];
+	/** Theme parts discovered in the package (inspector THEME card). */
+	themeOptions: PptxThemeOption[];
 	notesMaster?: PptxNotesMaster;
 	handoutMaster?: PptxHandoutMaster;
 	hasMacros: boolean;
@@ -98,6 +101,7 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 			colorScheme: parsed.theme?.colorScheme,
 			tableStyleMap: parsed.tableStyleMap,
 			slideMasters: parsed.slideMasters ?? [],
+			themeOptions: parsed.themeOptions ?? [],
 			notesMaster: parsed.notesMaster,
 			handoutMaster: parsed.handoutMaster,
 			hasMacros: parsed.hasMacros ?? false,

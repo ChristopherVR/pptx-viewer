@@ -58,7 +58,7 @@ describe('vanilla template editing', () => {
 			selectedElementIds: ['shape-1', 'shape-2'],
 		});
 		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
-		const actions = createEditActions({ doc: document, store, ops });
+		const actions = createEditActions({ doc: document, store, ops, getHandler: () => null });
 
 		actions.groupSelected();
 

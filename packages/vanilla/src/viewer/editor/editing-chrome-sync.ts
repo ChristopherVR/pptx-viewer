@@ -64,6 +64,17 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			docTitle: state.coreProperties?.title,
 			docAuthor: state.coreProperties?.creator,
 			editable: editingVisible,
+			presentationProperties: state.presentationProperties,
+			themeOptions: state.themeOptions,
+			activeSlide,
+			colorScheme: state.colorScheme,
+			notesCanvasSize: state.notesCanvasSize,
+			notesPlaceholderCount: state.notesMaster
+				? (state.notesMaster.placeholders?.length ?? 0)
+				: undefined,
+			handoutPlaceholderCount: state.handoutMaster
+				? (state.handoutMaster.placeholders?.length ?? 0)
+				: undefined,
 		});
 	};
 }

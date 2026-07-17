@@ -182,6 +182,11 @@ export function buildChromeCallbacks(
 	const inspectorHandlers: ChromeOptions['inspectorHandlers'] = {
 		selectElement: (id) => deps.selectElement(id),
 		openDocumentProperties: () => deps.openDocumentProperties(),
+		updatePresentationSettings: (patch) => deps.getEditActions().updatePresentationSettings(patch),
+		applyThemeByPath: (themePath, allMasters) =>
+			deps.getEditActions().applyThemeByPath(themePath, allMasters),
+		updateActiveSlide: (patch) => deps.getEditActions().updateActiveSlide(patch),
+		updateCanvasSize: (size) => deps.getEditActions().updateCanvasSize(size),
 		addComment: (text) => void deps.getEditActions().comments.addComment(text),
 		deleteComment: (id) => deps.getEditActions().comments.deleteComment(id),
 		toggleCommentResolved: (id) => deps.getEditActions().comments.toggleCommentResolved(id),

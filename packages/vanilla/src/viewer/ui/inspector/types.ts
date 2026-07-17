@@ -4,10 +4,14 @@ import type {
 	MediaPptxElement,
 	PptxComment,
 	PptxElement,
+	PptxPresentationProperties,
+	PptxSlide,
 	PptxSmartArtData,
 	PptxSmartArtNodeStyle,
 	PptxTableCellStyle,
 	PptxTableData,
+	PptxThemeColorScheme,
+	PptxThemeOption,
 	ElementAction,
 	SmartArtColorScheme,
 	SmartArtLayoutType,
@@ -29,6 +33,14 @@ export interface InspectorHandlers {
 	selectElement(id: string): void;
 	/** Open the full Document Properties dialog from the Properties tab. */
 	openDocumentProperties(): void;
+	/** Merge a patch into the presentation show/print settings (PRESENTATION card). */
+	updatePresentationSettings(patch: Partial<PptxPresentationProperties>): void;
+	/** Apply a packaged theme part by archive path (THEME card). */
+	applyThemeByPath(themePath: string, allMasters: boolean): void;
+	/** Patch the active slide (THEME OVERRIDE card). */
+	updateActiveSlide(patch: Partial<PptxSlide>): void;
+	/** Resize the slide canvas (SLIDE SIZE card). */
+	updateCanvasSize(size: { width: number; height: number }): void;
 	/** Add a comment on the current slide (Comments tab). */
 	addComment(text: string): void;
 	deleteComment(id: string): void;
@@ -185,6 +197,20 @@ export interface InspectorDeckState {
 	docTitle: string | undefined;
 	docAuthor: string | undefined;
 	editable: boolean;
+	/** Presentation show/print settings (PRESENTATION card controls). */
+	presentationProperties: PptxPresentationProperties;
+	/** Theme parts discovered in the package (THEME card dropdown). */
+	themeOptions: readonly PptxThemeOption[];
+	/** The visible slide (THEME OVERRIDE card), or undefined on an empty deck. */
+	activeSlide: PptxSlide | undefined;
+	/** Presentation theme colours used to preview override target slots. */
+	colorScheme: PptxThemeColorScheme | undefined;
+	/** Notes page size in px (NOTES & HANDOUT card), when the package has one. */
+	notesCanvasSize: { width: number; height: number } | undefined;
+	/** Notes master placeholder count, or undefined when no notes master. */
+	notesPlaceholderCount: number | undefined;
+	/** Handout master placeholder count, or undefined when no handout master. */
+	handoutPlaceholderCount: number | undefined;
 }
 
 export interface Inspector {

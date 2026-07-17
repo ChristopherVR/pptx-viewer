@@ -1,4 +1,4 @@
-import type { PptxChartType, PptxElement, SmartArtLayout } from 'pptx-viewer-core';
+import type { PptxChartType, PptxElement, PptxHandler, SmartArtLayout } from 'pptx-viewer-core';
 import { MIN_ELEMENT_SIZE } from 'pptx-viewer-core';
 import { createGuide } from 'pptx-viewer-shared';
 import type { Guide, ShapePresetType } from 'pptx-viewer-shared';
@@ -15,6 +15,8 @@ import type { ClipboardActions } from './editor-clipboard-actions';
 import { createClipboardActions } from './editor-clipboard-actions';
 import type { CommentActions } from './editor-comment-actions';
 import { createCommentActions } from './editor-comment-actions';
+import type { DeckActions } from './editor-deck-actions';
+import { createDeckActions } from './editor-deck-actions';
 import { patchShapeStyle } from './editor-format-mutations';
 import type { InkActions } from './editor-ink-actions';
 import { createInkActions } from './editor-ink-actions';
@@ -70,7 +72,8 @@ export interface EditActions
 		TransitionActions,
 		AnimationActions,
 		InspectorActions,
-		InkActions {
+		InkActions,
+		DeckActions {
 	/** Slide section CRUD and ordering actions. */
 	sections: SectionActions;
 	// Slide-level review comments, shared by desktop and mobile chrome.
@@ -106,6 +109,8 @@ export interface EditActionsDeps {
 	doc: Document;
 	store: Store<ViewerState>;
 	ops: EditorOps;
+	/** Live handler getter (deck-level theme apply); null before a load. */
+	getHandler(): PptxHandler | null;
 }
 
 /**
@@ -145,6 +150,7 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		...createAnimationActions({ store, ops }),
 		...createInspectorActions(applyToSelected),
 		...createInkActions({ store, ops }),
+		...createDeckActions({ store, ops, getHandler: deps.getHandler }),
 		sections: createSectionActions(store, ops),
 		comments: createCommentActions({ store, ops }),
 		toggleFormatPainter() {

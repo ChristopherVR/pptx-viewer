@@ -123,7 +123,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		onHistoryChange: () => updateToolbar(),
 	});
 
-	const editActions = createEditActions({ doc, store, ops });
+	const editActions = createEditActions({ doc, store, ops, getHandler: deps.getHandler });
 	const findReplaceActions = createFindReplaceActions({ store, ops });
 
 	const syncEditingChrome = createEditingChromeSync({

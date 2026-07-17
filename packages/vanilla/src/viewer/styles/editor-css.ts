@@ -127,6 +127,19 @@ export const EDITOR_CSS = `
 	cursor: pointer;
 }
 .pptxv-inspector-deck-btn:hover { background: var(--pptx-accent); }
+.pptxv-inspector-deck-btn:disabled { opacity: 0.5; cursor: default; }
+.pptxv-inspector-deck-btn-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.pptxv-inspector-theme-select { width: 100%; margin-bottom: 6px; }
+.pptxv-inspector-override-rows { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+.pptxv-inspector-override-row { display: grid; grid-template-columns: minmax(0, 1fr) 14px minmax(0, 1fr); align-items: center; gap: 6px; }
+.pptxv-inspector-override-row .pptxv-inspector-row-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pptxv-inspector-override-swatch {
+	width: 14px;
+	height: 14px;
+	border: 1px solid var(--pptx-border);
+	border-radius: 3px;
+	flex-shrink: 0;
+}
 .pptxv-inspector-comment { padding: 6px 0; border-bottom: 1px solid color-mix(in srgb, var(--pptx-border) 60%, transparent); }
 .pptxv-inspector-comment.is-resolved { opacity: 0.6; }
 .pptxv-inspector-comment-meta { font-size: 11px; font-weight: 600; }

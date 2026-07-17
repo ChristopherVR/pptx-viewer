@@ -19,6 +19,8 @@ export type {
 export { createSlideBackgroundActions } from './editor-background-actions';
 export type { ClipboardActions, ClipboardActionsDeps } from './editor-clipboard-actions';
 export { createClipboardActions } from './editor-clipboard-actions';
+export type { DeckActions, DeckActionsDeps } from './editor-deck-actions';
+export { createDeckActions } from './editor-deck-actions';
 export type { EditorController, EditorControllerDeps } from './editor-controller';
 export { createEditorController } from './editor-controller';
 export type { DrawGestures, DrawGesturesDeps } from './editor-draw-gestures';
