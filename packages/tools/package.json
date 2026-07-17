@@ -70,16 +70,16 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.29.0",
-		"fast-xml-parser": "^5.10.0",
+		"fast-xml-parser": "^5.10.1",
 		"jszip": "^3.10.1",
 		"pptx-viewer-core": "^1.1.0",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"tsdown": "^0.22.7",
+		"tsdown": "^0.22.9",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
-		"vitest": "^4.1.9",
+		"vitest": "^4.1.10",
 		"yjs": "^13.6.31"
 	},
 	"peerDependencies": {

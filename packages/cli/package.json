@@ -53,11 +53,11 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"devDependencies": {
-		"@types/node": "^26.0.0",
-		"tsdown": "^0.22.7",
+		"@types/node": "^26.1.1",
+		"tsdown": "^0.22.9",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
-		"vitest": "^4.1.9"
+		"vitest": "^4.1.10"
 	},
 	"engines": {
 		"node": ">=18"

@@ -9,22 +9,22 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-		"fast-xml-parser": "^5.10.0",
+		"fast-xml-parser": "^5.10.1",
 		"jszip": "^3.10.1",
 		"pptx-svelte-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-locales": "workspace:*",
-		"svelte": "^5.46.4",
+		"svelte": "^5.56.6",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
 		"yjs": "^13.6.31"
 	},
 	"devDependencies": {
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
-		"@tailwindcss/vite": "^4.3.2",
-		"@types/node": "^26.0.0",
-		"tailwindcss": "^4.3.2",
+		"@tailwindcss/vite": "^4.3.3",
+		"@types/node": "^26.1.1",
+		"tailwindcss": "^4.3.3",
 		"typescript": "^6.0.3",
-		"vite": "^8.0.16"
+		"vite": "^8.1.5"
 	}
 }

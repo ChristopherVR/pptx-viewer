@@ -56,25 +56,25 @@
 	},
 	"dependencies": {
 		"dompurify": "^3.4.12",
-		"html2canvas-pro": "^2.2.3",
+		"html2canvas-pro": "^2.2.4",
 		"jspdf": "^4.2.1",
-		"lucide": "^1.24.0"
+		"lucide": "^1.25.0"
 	},
 	"devDependencies": {
 		"@types/dompurify": "^3.2.0",
 		"happy-dom": "^20.10.6",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-shared": "workspace:*",
-		"tsdown": "^0.22.7",
+		"tsdown": "^0.22.9",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
-		"vitest": "^4.1.9",
+		"vitest": "^4.1.10",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
 		"yjs": "^13.6.31"
 	},
 	"peerDependencies": {
-		"fast-xml-parser": "^5.8.0",
+		"fast-xml-parser": "^5.10.1",
 		"jszip": "^3.10.1"
 	},
 	"optionalDependencies": {

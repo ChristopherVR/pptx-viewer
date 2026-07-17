@@ -10,7 +10,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"fast-xml-parser": "^5.10.0",
+		"fast-xml-parser": "^5.10.1",
 		"jszip": "^3.10.1",
 		"pptx-vanilla-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
@@ -20,10 +20,10 @@
 		"yjs": "^13.6.31"
 	},
 	"devDependencies": {
-		"@tailwindcss/vite": "^4.3.2",
-		"@types/node": "^26.0.0",
-		"tailwindcss": "^4.3.2",
+		"@tailwindcss/vite": "^4.3.3",
+		"@types/node": "^26.1.1",
+		"tailwindcss": "^4.3.3",
 		"typescript": "^7.0.2",
-		"vite": "^8.0.16"
+		"vite": "^8.1.5"
 	}
 }
