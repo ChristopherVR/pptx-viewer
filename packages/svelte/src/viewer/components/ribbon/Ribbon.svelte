@@ -34,11 +34,16 @@
 
 	let activeTab = $state(DEFAULT_RIBBON_TAB);
 	let propertiesOpen = $state(false);
+	// eslint-disable-next-line prefer-const
 	let fontsOpen = $state(false);
+	// eslint-disable-next-line prefer-const
 	let signaturesOpen = $state(false);
+	// eslint-disable-next-line prefer-const
 	let protectionOpen = $state(false);
+	// eslint-disable-next-line prefer-const
 	let embedFontsEnabled = $state(false);
 	let passwordProtected = $state(false);
+	// eslint-disable-next-line prefer-const
 	let presentationPassword = $state<string | null>(null);
 	const usedFontFamilies = $derived(collectUsedFonts(props.editor.slides));
 	$effect(() => {

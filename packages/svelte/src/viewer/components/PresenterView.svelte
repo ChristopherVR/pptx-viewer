@@ -1,8 +1,12 @@
 <script lang="ts">
 	import type { PptxSlide } from 'pptx-viewer-core';
-	import { formatElapsed, formatTime, NOTES_FONT_SIZE_DEFAULT, stepPresenterZoom } from 'pptx-viewer-shared';
-	import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
-	import type { CanvasSize } from 'pptx-viewer-shared';
+	import {
+		formatElapsed,
+		formatTime,
+		NOTES_FONT_SIZE_DEFAULT,
+		stepPresenterZoom,
+	} from 'pptx-viewer-shared';
+	import type { CanvasSize, PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
 
 	import SlideStage from './SlideStage.svelte';
 
@@ -34,10 +38,11 @@
 		onnavigate: (index: number) => void;
 	} = $props();
 
-	let now = $state(Date.now());
-	// eslint-disable-next-line prefer-const
-	let notesSize = $state(NOTES_FONT_SIZE_DEFAULT);
-	let showSlides = $state(false);
+let now = $state(Date.now());
+// eslint-disable-next-line prefer-const
+let notesSize = $state(NOTES_FONT_SIZE_DEFAULT);
+// eslint-disable-next-line prefer-const
+let showSlides = $state(false);
 	const setTool = (tool: PresentationPointerTool) => onupdate({ pointer: { ...(snapshot.pointer ?? { x:.5, y:.5, color:'#ef4444' }), tool } });
 	$effect(() => {
 		const timer = setInterval(() => (now = Date.now()), 1000);

@@ -18,7 +18,8 @@
 
 	let activeCategory = $state<SmartArtCategory>('list');
 	let selectedLayout = $state<SmartArtLayout | null>(null);
-	let panel: HTMLDivElement | null = null;
+	// eslint-disable-next-line prefer-const
+	let panel = $state<HTMLDivElement>();
 	const filteredPresets = $derived(PRESETS.filter((preset) => preset.category === activeCategory));
 
 	onMount(() => panel?.focus());

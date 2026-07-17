@@ -2,8 +2,10 @@
 	import { VIEWER_PREFERENCE_TOGGLES, VIEWER_SHORTCUT_REFERENCE, updateViewerPreference } from 'pptx-viewer-shared';
 	import type { ViewerPreferences } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../i18n/context';
+
 	const { preferences, onclose, onchange }: { preferences: ViewerPreferences; onclose: () => void; onchange: (next: ViewerPreferences) => void } = $props();
 	const t = useTranslator();
+	// eslint-disable-next-line prefer-const
 	let tab = $state<'general' | 'shortcuts'>('general');
 </script>
 <div class="backdrop"><button class="scrim" type="button" aria-label={t('pptx.settings.closeSettings')} onclick={onclose}></button>

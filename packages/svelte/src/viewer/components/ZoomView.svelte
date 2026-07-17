@@ -59,7 +59,7 @@
 	}
 
 	function activateSummary(event: Event, target: number): void {
-		if (!interactive) return;
+		if (!interactive) {return;}
 		event.preventDefault();
 		event.stopPropagation();
 		navigation?.navigateToZoomTarget(target);

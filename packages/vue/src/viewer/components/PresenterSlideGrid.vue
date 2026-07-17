@@ -3,6 +3,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../types';
 import SlideStage from './SlideStage.vue';
+
 defineProps<{
 	slides: PptxSlide[];
 	current: number;

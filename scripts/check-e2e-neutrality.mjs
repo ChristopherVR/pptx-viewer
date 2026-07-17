@@ -56,21 +56,21 @@ function containsProjectReference(node, aliases) {
 function collectProjectAliases(sourceFile) {
 	const aliases = new Set();
 	let changed = true;
+	const visit = (node) => {
+		if (
+			ts.isVariableDeclaration(node) &&
+			ts.isIdentifier(node.name) &&
+			node.initializer &&
+			containsProjectReference(node.initializer, aliases) &&
+			!aliases.has(node.name.text)
+		) {
+			aliases.add(node.name.text);
+			changed = true;
+		}
+		ts.forEachChild(node, visit);
+	};
 	while (changed) {
 		changed = false;
-		const visit = (node) => {
-			if (
-				ts.isVariableDeclaration(node) &&
-				ts.isIdentifier(node.name) &&
-				node.initializer &&
-				containsProjectReference(node.initializer, aliases) &&
-				!aliases.has(node.name.text)
-			) {
-				aliases.add(node.name.text);
-				changed = true;
-			}
-			ts.forEachChild(node, visit);
-		};
 		visit(sourceFile);
 	}
 	return aliases;

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import ViewSection from './ViewSection.vue';
 
-vi.mock('vue-i18n', () => ({
+vi.mock(import('vue-i18n'), () => ({
 	useI18n: () => ({ t: (key: string) => key }),
 }));
 

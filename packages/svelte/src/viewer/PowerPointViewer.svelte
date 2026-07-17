@@ -214,6 +214,7 @@
 	// `CollaborationDialogsState`, both driving the same `collab` controller
 	// the `collaboration` prop auto-starts.
 	const dialogs = new CollaborationDialogsState(collab, () => shareDefaults);
+	// eslint-disable-next-line prefer-const
 	let versionHistoryOpen = $state(false);
 	let signatureWarningOpen = $state(false);
 	let signatureWarningAcknowledged = $state(false);

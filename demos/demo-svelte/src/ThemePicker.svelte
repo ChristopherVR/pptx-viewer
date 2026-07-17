@@ -12,7 +12,7 @@
 	const { current, onchange }: { current: string; onchange: (key: string) => void } = $props();
 
 	let open = $state(false);
-	let isSmallScreen = $state(typeof window !== 'undefined' && window.innerWidth < 768);
+	const isSmallScreen = $state(typeof window !== 'undefined' && window.innerWidth < 768);
 
 	const preset = $derived(themes[current] ?? themes.dark);
 	const bg = $derived(preset.theme.colors?.card ?? '#111827');

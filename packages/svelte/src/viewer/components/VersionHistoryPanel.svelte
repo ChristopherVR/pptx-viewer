@@ -1,12 +1,6 @@
 <script lang="ts">
-	import {
-		deleteAutosaveSnapshot,
-		formatBackstageSize,
-		formatRelativeTime,
-		formatVersionTimestamp,
-		getAutosaveSnapshot,
-		type AutosaveRecord,
-	} from 'pptx-viewer-shared';
+	import { deleteAutosaveSnapshot, formatBackstageSize, formatRelativeTime, formatVersionTimestamp, getAutosaveSnapshot } from 'pptx-viewer-shared';
+import type { AutosaveRecord } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../i18n/context';
 
 	const { filePath, onclose, onrestore }: { filePath?: string; onclose: () => void; onrestore: (data: Uint8Array) => void | Promise<void> } = $props();
@@ -20,11 +14,12 @@
 		void (filePath ? getAutosaveSnapshot(filePath) : Promise.resolve(undefined)).then((record) => {
 			version = record;
 			loading = false;
+			return record;
 		});
 	});
 
 	async function restore(): Promise<void> {
-		if (!version) return;
+		if (!version) {return;}
 		busy = true;
 		try {
 			await onrestore(version.data);
@@ -35,7 +30,7 @@
 	}
 
 	async function remove(): Promise<void> {
-		if (!version) return;
+		if (!version) {return;}
 		busy = true;
 		await deleteAutosaveSnapshot(version.key);
 		version = undefined;

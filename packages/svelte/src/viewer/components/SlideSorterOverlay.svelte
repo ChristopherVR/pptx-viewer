@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PptxSlide } from 'pptx-viewer-core'; import type { CanvasSize } from 'pptx-viewer-shared'; import { useTranslator } from '../../i18n/context'; import SlideStage from './SlideStage.svelte';
+
 	const { slides, canvasSize, mediaDataUrls, current, onselect, onmove, onclose }: { slides: PptxSlide[]; canvasSize: CanvasSize; mediaDataUrls: Map<string,string>; current: number; onselect: (index:number)=>void; onmove:(from:number,to:number)=>void; onclose:()=>void } = $props(); const t=useTranslator(); const scale=$derived(180/canvasSize.width);
 </script>
 <div class="overlay"><header><h2>{t('pptx.view.slideSorter')}</h2><button onclick={onclose}>×</button></header><main>{#each slides as slide,index}<article class:active={current===index}><button class="preview" onclick={() => { onselect(index); onclose(); }}><SlideStage {slide} {canvasSize} {mediaDataUrls} {scale} presenting={false} /></button><footer><span>{index+1}</span><button disabled={index===0} onclick={() => onmove(index,index-1)}>←</button><button disabled={index===slides.length-1} onclick={() => onmove(index,index+1)}>→</button></footer></article>{/each}</main></div>

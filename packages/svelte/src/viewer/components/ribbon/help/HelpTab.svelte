@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { useTranslator } from '../../../../i18n/context';
+
 	const { onaccessibility, onshortcuts, onsettings }: { onaccessibility: () => void; onshortcuts: () => void; onsettings: () => void } = $props();
 	const t = useTranslator();
 </script>

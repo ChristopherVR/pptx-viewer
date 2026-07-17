@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
+
 const props = defineProps<{ snapshot: PresentationSnapshot; audienceOpen: boolean }>();
 const emit = defineEmits<{
 	(e: 'timer' | 'reset-timer' | 'slides' | 'reset-zoom' | 'audience' | 'subtitles' | 'exit'): void;

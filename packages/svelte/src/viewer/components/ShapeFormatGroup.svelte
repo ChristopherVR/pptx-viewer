@@ -21,7 +21,7 @@
 	const t = useTranslator();
 
 	const el = $derived(editor.selectedElement);
-	const active = $derived(!!el && hasShapeProperties(el));
+	const active = $derived(el !== undefined && hasShapeProperties(el));
 	const fill = $derived(el && active ? fillColorOf(el) : '#ffffff');
 	const stroke = $derived(el && active ? strokeColorOf(el) : '#000000');
 	const strokeWidth = $derived(el && active ? strokeWidthOf(el) : 1);

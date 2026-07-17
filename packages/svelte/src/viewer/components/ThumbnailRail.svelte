@@ -25,6 +25,7 @@
 	const hasSections = $derived(sections.length > 0);
 	const shouldVirtualize = $derived(!hasSections && slides.length >= SLIDE_VIRTUALIZATION_THRESHOLD);
 	let draggedIndex = $state<number | null>(null);
+	// eslint-disable-next-line prefer-const
 	let railEl = $state<HTMLElement>();
 	let scrollTop = $state(0);
 	let viewportHeight = $state(600);
@@ -38,16 +39,16 @@
 	});
 
 	function onScroll(): void {
-		if (!railEl) return;
+		if (!railEl) {return;}
 		scrollTop = railEl.scrollTop;
 		viewportHeight = railEl.clientHeight || 600;
 	}
 
 	$effect(() => {
-		if (!shouldVirtualize || !railEl) return;
+		if (!shouldVirtualize || !railEl) {return;}
 		const top = current * itemHeight;
 		const bottom = top + itemHeight;
-		if (top < railEl.scrollTop) railEl.scrollTop = top;
+		if (top < railEl.scrollTop) {railEl.scrollTop = top;}
 		else if (bottom > railEl.scrollTop + viewportHeight) {
 			railEl.scrollTop = Math.max(0, bottom - viewportHeight);
 		}
@@ -64,13 +65,13 @@
 
 	function onDrop(index: number, event: DragEvent): void {
 		event.preventDefault();
-		if (draggedIndex !== null) onmove?.(draggedIndex, index);
+		if (draggedIndex !== null) {onmove?.(draggedIndex, index);}
 		draggedIndex = null;
 	}
 
 	function renameSection(sectionId: string, currentName: string): void {
 		const next = window.prompt(t('pptx.sections.rename'), currentName);
-		if (next !== null) onsectionrename?.(sectionId, next);
+		if (next !== null) {onsectionrename?.(sectionId, next);}
 	}
 </script>
 

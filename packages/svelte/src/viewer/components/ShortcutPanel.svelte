@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { VIEWER_SHORTCUT_REFERENCE } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../i18n/context';
+
 	const { onclose }: { onclose: () => void } = $props();
 	const t = useTranslator();
 </script>

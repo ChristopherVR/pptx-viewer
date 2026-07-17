@@ -8,8 +8,11 @@
 
 	const { protected: isProtected, onset, onremove, onclose }: { protected: boolean; onset: (password: string) => void; onremove: () => void; onclose: () => void } = $props();
 	const t = useTranslator();
+	// eslint-disable-next-line prefer-const
 	let password = $state('');
+	// eslint-disable-next-line prefer-const
 	let confirmation = $state('');
+	// eslint-disable-next-line prefer-const
 	let visible = $state(false);
 	let error = $state('');
 	const strength = $derived(getPasswordStrength(password));

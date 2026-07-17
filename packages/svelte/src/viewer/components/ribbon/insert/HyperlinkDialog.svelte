@@ -8,7 +8,9 @@
 	const t = useTranslator();
 	const initialElement = untrack(() => editor.selectedElement);
 	const element = $derived(editor.selectedElement);
+	// eslint-disable-next-line prefer-const
 	let url = $state(initialElement?.actionClick?.url ?? '');
+	// eslint-disable-next-line prefer-const
 	let tooltip = $state(initialElement?.actionClick?.tooltip ?? '');
 
 	function save(): void {

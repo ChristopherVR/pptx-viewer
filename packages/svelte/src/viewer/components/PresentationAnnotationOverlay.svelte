@@ -2,6 +2,7 @@
 	import { pointsToSvgPathD } from 'pptx-viewer-shared';
 	import type { CanvasSize } from 'pptx-viewer-shared';
 	import type { PresentationAnnotations } from '../presentation/presentation-annotations.svelte';
+
 	const { annotations, current, canvasSize }: { annotations: PresentationAnnotations; current: number; canvasSize: CanvasSize } = $props();
 	function point(event: PointerEvent): { x: number; y: number } { const rect = (event.currentTarget as SVGSVGElement).getBoundingClientRect(); return { x: (event.clientX - rect.left) * canvasSize.width / rect.width, y: (event.clientY - rect.top) * canvasSize.height / rect.height }; }
 </script>

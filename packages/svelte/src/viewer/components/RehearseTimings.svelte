@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { RehearseState } from '../presentation/rehearse-state.svelte';
 	import { useTranslator } from '../../i18n/context';
+
 	const { rehearse, onsave, ondiscard }: { rehearse: RehearseState; onsave: () => void; ondiscard: () => void } = $props(); const t = useTranslator();
 	const format = (ms: number) => new Date(ms).toISOString().slice(14, 19);
 </script>

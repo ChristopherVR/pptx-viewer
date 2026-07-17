@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { useTranslator } from '../../i18n/context';
+
 	const { annotationCount, slideCount, onkeep, ondiscard }: { annotationCount: number; slideCount: number; onkeep: () => void; ondiscard: () => void } = $props();
 	const t = useTranslator();
 </script>

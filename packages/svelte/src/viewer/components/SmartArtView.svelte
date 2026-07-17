@@ -35,22 +35,23 @@
 	const ariaLabel = $derived(smartArt ? smartArtAriaLabel(smartArt) : undefined);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 	const palette = $derived(smartArt?.smartArtData ? resolvePalette(smartArt.smartArtData) : []);
+	// eslint-disable-next-line prefer-const
 	let chromeEl = $state<HTMLDivElement>();
 	let editing = $state<{ nodeId: string; left: number; top: number; width: number; height: number } | null>(null);
 	let draft = $state('');
 	let hovered = $state<{ nodeId: string; left: number; top: number } | null>(null);
 
 	function nodeRect(target: SVGGElement) {
-		if (!chromeEl) return null;
+		if (!chromeEl) {return null;}
 		const text = target.querySelector('text');
 		const source = text && text.getBoundingClientRect().width > 0 ? text : target;
 		return computeInlineEditorRect(source.getBoundingClientRect(), chromeEl.getBoundingClientRect());
 	}
 
 	function openEditor(event: MouseEvent, nodeId: string | undefined): void {
-		if (!nodeId || !smartArt?.smartArtData || !onsmartartnodecommit) return;
+		if (!nodeId || !smartArt?.smartArtData || !onsmartartnodecommit) {return;}
 		const rect = nodeRect(event.currentTarget as SVGGElement);
-		if (!rect) return;
+		if (!rect) {return;}
 		event.stopPropagation();
 		hovered = null;
 		draft = findSmartArtNodeText(smartArt.smartArtData, nodeId) ?? '';
@@ -64,13 +65,13 @@
 	}
 
 	function showStyle(event: MouseEvent, nodeId: string | undefined): void {
-		if (!nodeId || !onsmartartnodefill || editing) return;
+		if (!nodeId || !onsmartartnodefill || editing) {return;}
 		const rect = nodeRect(event.currentTarget as SVGGElement);
-		if (rect) hovered = { nodeId, left: Math.max(0, rect.left), top: Math.max(0, rect.top - 26) };
+		if (rect) {hovered = { nodeId, left: Math.max(0, rect.left), top: Math.max(0, rect.top - 26) };}
 	}
 
 	function commitEdit(): void {
-		if (!editing || !smartArt) return;
+		if (!editing || !smartArt) {return;}
 		onsmartartnodecommit?.(smartArt.id, editing.nodeId, draft);
 		editing = null;
 	}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { EditorState } from '../editor/editor-state.svelte'; import { useTranslator } from '../../i18n/context';
+
 	const { editor, onclose }: { editor: EditorState; onclose: () => void } = $props(); const t = useTranslator();
 	const elements = $derived(editor.activeElements);
 </script>

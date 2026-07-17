@@ -58,7 +58,9 @@ export function createLucideIcon(doc: Document, icon: IconNode, size: number): S
 	for (const [tag, attributes] of icon) {
 		const child = doc.createElementNS(SVG_NS, tag);
 		for (const [name, value] of Object.entries(attributes)) {
-			if (value !== undefined) child.setAttribute(name, String(value));
+			if (value !== undefined) {
+				child.setAttribute(name, String(value));
+			}
 		}
 		svg.appendChild(child);
 	}

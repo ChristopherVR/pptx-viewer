@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { CompareController } from '../compare/compare-controller.svelte';
 	import { useTranslator } from '../../i18n/context';
+
 	const { compare, onclose }: { compare: CompareController; onclose: () => void } = $props();
 	const t = useTranslator();
 	const diffs = $derived(compare.result?.diffs.filter((diff) => diff.status !== 'unchanged') ?? []);

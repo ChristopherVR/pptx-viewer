@@ -436,40 +436,40 @@ export function useKeyboardShortcuts(
 		switch (result.action) {
 			case 'escape':
 				actions.escape?.();
-				return;
+				break;
 			case 'delete':
 				actions.delete?.();
-				return;
+				break;
 			case 'undo':
 				actions.undo?.();
-				return;
+				break;
 			case 'redo':
 				actions.redo?.();
-				return;
+				break;
 			case 'copy':
 				actions.copy?.();
-				return;
+				break;
 			case 'cut':
 				actions.cut?.();
-				return;
+				break;
 			case 'paste':
 				actions.paste?.();
-				return;
+				break;
 			case 'duplicate':
 				actions.duplicate?.();
-				return;
+				break;
 			case 'selectAll':
 				actions.selectAll?.();
-				return;
+				break;
 			case 'nudge':
 				actions.nudge?.(result.dx ?? 0, result.dy ?? 0);
-				return;
+				break;
 			case 'prevSlide':
 				actions.prevSlide?.();
-				return;
+				break;
 			case 'nextSlide':
 				actions.nextSlide?.();
-				return;
+				break;
 			case null:
 			default:
 				break;

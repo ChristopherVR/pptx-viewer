@@ -24,12 +24,15 @@
 	import BackstageNavIcon from './BackstageNavIcon.svelte';
 
 	const { fileName, onclose, oncreatepresentation, ondownload, ondownloadppsx, ondownloadpptm, onpackage, hasMacros, onopenfile, onopenrecent, exportUi, onproperties, onfonts, onsignatures, onprotect, onversionhistory, onshare, onprint, onsettings }: { fileName?: string; onclose: () => void; oncreatepresentation: (templateId: string) => void; ondownload: () => void; ondownloadppsx: () => void; ondownloadpptm: () => void; onpackage: () => void; hasMacros: boolean; onopenfile?: () => void; onopenrecent?: (key: string) => void; exportUi?: ExportUiState; onproperties?: () => void; onfonts?: () => void; onsignatures?: () => void; onprotect?: () => void; onversionhistory?: () => void; onshare?: () => void; onprint?: () => void; onsettings?: () => void } = $props();
-	let page = $state<BackstagePage>('home'); let query = $state(''); let recent = $state<BackstageRecentFile[]>([]);
+	let page = $state<BackstagePage>('home');
+	// eslint-disable-next-line prefer-const
+	let query = $state('');
+	let recent = $state<BackstageRecentFile[]>([]);
 	onMount(() => { void listBackstageRecentFiles().then((items) => (recent = items)); });
-	let visibleRecent = $derived.by(() => { const q = query.trim().toLowerCase(); return q ? recent.filter((file) => `${file.name} ${file.location}`.toLowerCase().includes(q)) : recent; });
-	let title = $derived(BACKSTAGE_NAV.find((item) => item.id === page)?.label ?? 'Home');
-	function run(action?: () => void): void { action?.(); if (action) onclose(); }
-	function select(id: BackstagePage): void { if (id === 'close') onclose(); else if (id === 'save') run(ondownload); else if (id === 'options' && onsettings) run(onsettings); else page = id; }
+	const visibleRecent = $derived.by(() => { const q = query.trim().toLowerCase(); return q ? recent.filter((file) => `${file.name} ${file.location}`.toLowerCase().includes(q)) : recent; });
+	const title = $derived(BACKSTAGE_NAV.find((item) => item.id === page)?.label ?? 'Home');
+	function run(action?: () => void): void { action?.(); if (action) {onclose();} }
+	function select(id: BackstagePage): void { if (id === 'close') {onclose();} else if (id === 'save') {run(ondownload);} else if (id === 'options' && onsettings) {run(onsettings);} else {page = id;} }
 </script>
 
 <div class="bs" role="dialog" aria-modal="true" aria-label="File">

@@ -31,6 +31,7 @@
 	// eslint-disable-next-line prefer-const
 	let mediaInput = $state<HTMLInputElement | null>(null);
 	let equationOpen = $state(false);
+	// eslint-disable-next-line prefer-const
 	let hyperlinkOpen = $state(false);
 	$effect(() => {
 		if (editor.equationOps.editingId) {

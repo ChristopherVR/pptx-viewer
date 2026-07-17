@@ -33,6 +33,7 @@
 				available = found;
 				scanning = false;
 			}
+			return found;
 		});
 		return () => {
 			active = false;

@@ -47,6 +47,7 @@
 	let text = $state('');
 	let seededId: string | null = null;
 	let rich = $state(defaultRichEnabled());
+	// eslint-disable-next-line prefer-const
 	let editorEl: HTMLDivElement | undefined = $state();
 	let segments: TextSegment[] = [];
 
@@ -58,7 +59,7 @@
 		seededId = nextId;
 		segments = resolveNotesSegments(slide);
 		text = segmentsToPlainText(segments);
-		if (editorEl) editorEl.innerHTML = segmentsToEditorHtml(segments);
+		if (editorEl) {editorEl.innerHTML = segmentsToEditorHtml(segments);}
 	});
 
 	function commit(event: Event): void {
@@ -68,7 +69,7 @@
 	}
 
 	function commitRich(): void {
-		if (!editorEl) return;
+		if (!editorEl) {return;}
 		const next = readEditorSegments(editorEl);
 		segments = next.segments;
 		text = next.text;
@@ -82,7 +83,7 @@
 	}
 
 	function paragraph(command: 'bullet' | 'numbered' | 'indent' | 'outdent'): void {
-		if (!editorEl) return;
+		if (!editorEl) {return;}
 		const next = applyParagraphCommand(editorEl, segments, command);
 		segments = next.segments;
 		text = next.text;
@@ -92,9 +93,9 @@
 	}
 
 	function link(): void {
-		if (!editorEl) return;
+		if (!editorEl) {return;}
 		const url = window.prompt(t('pptx.notes.linkUrl'));
-		if (!url) return;
+		if (!url) {return;}
 		const selected = window.getSelection()?.toString() || window.prompt(t('pptx.notes.linkDisplayText')) || url;
 		editorEl.focus();
 		insertHyperlinkAtSelection(url, selected);
@@ -103,7 +104,7 @@
 
 	function toggleMode(): void {
 		rich = !rich;
-		if (rich && editorEl) editorEl.innerHTML = segmentsToEditorHtml(segments);
+		if (rich && editorEl) {editorEl.innerHTML = segmentsToEditorHtml(segments);}
 	}
 </script>
 

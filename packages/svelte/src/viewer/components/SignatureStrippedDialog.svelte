@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { useTranslator } from '../../i18n/context';
+
 	const { signatureCount, onclose }: { signatureCount: number; onclose: () => void } = $props();
 	const t = useTranslator();
 </script>

@@ -14,17 +14,24 @@
 		onprint: (options: PrintOptions) => void;
 	} = $props();
 	const t = useTranslator();
+	// eslint-disable-next-line prefer-const
 	let printWhat = $state<'slides' | 'handouts' | 'notes' | 'outline'>('slides');
+	// eslint-disable-next-line prefer-const
 	let slideRange = $state<'all' | 'current' | 'custom'>('all');
+	// eslint-disable-next-line prefer-const
 	let slidesPerPage = $state<1 | 2 | 3 | 4 | 6 | 9>(6);
+	// eslint-disable-next-line prefer-const
 	let orientation = $state<'portrait' | 'landscape'>('landscape');
+	// eslint-disable-next-line prefer-const
 	let colorMode = $state<'color' | 'grayscale' | 'blackAndWhite'>('color');
+	// eslint-disable-next-line prefer-const
 	let frameSlides = $state(false);
+	// eslint-disable-next-line prefer-const
 	let customRangeFrom = $state(1);
 	let customRangeTo = $state(1);
 
 	$effect(() => {
-		if (customRangeTo === 1 && slideCount > 1) customRangeTo = slideCount;
+		if (customRangeTo === 1 && slideCount > 1) {customRangeTo = slideCount;}
 	});
 
 	function print(): void {

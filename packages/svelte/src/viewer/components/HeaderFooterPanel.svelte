@@ -2,6 +2,7 @@
 	import type { PptxHeaderFooter } from 'pptx-viewer-core';
 	import { untrack } from 'svelte';
 	import { useTranslator } from '../../i18n/context';
+
 	const { value, onclose, onapply }: { value: PptxHeaderFooter; onclose: () => void; onapply: (next: PptxHeaderFooter) => void } = $props();
 	const t = useTranslator();
 	let draft = $state<PptxHeaderFooter>(structuredClone(untrack(() => value)));

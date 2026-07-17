@@ -93,7 +93,9 @@ function activate(target = targetSlideIndex.value): void {
 }
 
 function activateSummary(event: Event, target: number): void {
-	if (!interactive.value) return;
+	if (!interactive.value) {
+		return;
+	}
 	event.preventDefault();
 	event.stopPropagation();
 	activate(target);

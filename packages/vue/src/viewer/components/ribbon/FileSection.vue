@@ -6,9 +6,8 @@ import {
 	formatBackstageDate,
 	formatBackstageSize,
 	listBackstageRecentFiles,
-	type BackstagePage,
-	type BackstageRecentFile,
 } from 'pptx-viewer-shared';
+import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
 import { computed, onMounted, ref } from 'vue';
 
 import { backstageIcon } from './file-section-icons';
@@ -28,10 +27,12 @@ const visibleRecent = computed(() => {
 const title = computed(() => BACKSTAGE_NAV.find((item) => item.id === page.value)?.label ?? 'Home');
 const run = (action?: () => void) => {
 	action?.();
-	if (action) props.onClose();
+	if (action) {
+		props.onClose();
+	}
 };
 const actions = computed(() => {
-	if (page.value === 'info')
+	if (page.value === 'info') {
 		return [
 			[
 				'Protect Presentation',
@@ -53,7 +54,8 @@ const actions = computed(() => {
 				props.onOpenDigitalSignatures,
 			],
 		] as const;
-	if (page.value === 'saveAs')
+	}
+	if (page.value === 'saveAs') {
 		return [
 			['PowerPoint Presentation', 'Save an editable .pptx copy.', 'P', props.onSaveAsPptx],
 			['PowerPoint Show', 'Save a .ppsx slide show.', '▶', props.onSaveAsPpsx],
@@ -69,7 +71,8 @@ const actions = computed(() => {
 				: []),
 			['Package for Sharing', 'Bundle the deck and linked assets.', '□', props.onPackageForSharing],
 		] as const;
-	if (page.value === 'export')
+	}
+	if (page.value === 'export') {
 		return [
 			['Create PDF', 'Publish one page per slide.', 'PDF', props.onExportPdf],
 			['Export current slide', 'Create a high-quality PNG image.', 'PNG', props.onExportPng],
@@ -77,7 +80,8 @@ const actions = computed(() => {
 			['Create an Animated GIF', 'Make a compact looping preview.', 'GIF', props.onExportGif],
 			['Copy as Image', 'Copy the current slide to the clipboard.', '▣', props.onCopySlideAsImage],
 		] as const;
-	if (page.value === 'print')
+	}
+	if (page.value === 'print') {
 		return [
 			[
 				'Print Presentation',
@@ -86,7 +90,8 @@ const actions = computed(() => {
 				props.onPrint,
 			],
 		] as const;
-	if (page.value === 'share')
+	}
+	if (page.value === 'share') {
 		return [
 			['Share with People', 'Invite collaborators to work together.', '◇', props.onOpenShareDialog],
 			[
@@ -96,12 +101,19 @@ const actions = computed(() => {
 				props.onPackageForSharing,
 			],
 		] as const;
+	}
 	return [];
 });
 function selectPage(id: BackstagePage): void {
-	if (id === 'close') return props.onClose();
-	if (id === 'save') return run(props.onSaveAsPptx);
-	if (id === 'options' && props.onOpenSettings) return run(props.onOpenSettings);
+	if (id === 'close') {
+		return props.onClose();
+	}
+	if (id === 'save') {
+		return run(props.onSaveAsPptx);
+	}
+	if (id === 'options' && props.onOpenSettings) {
+		return run(props.onOpenSettings);
+	}
 	page.value = id;
 }
 </script>
