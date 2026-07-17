@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.0.0) - 2026-07-17
+
+### Features
+
+- **svelte:** Add hiddenActions prop to hide individual toolbar/ribbon actions (by @ChristopherVR) ([dbc6a7d](https://github.com/ChristopherVR/pptx-viewer/commit/dbc6a7d4c9480de00d269697820092de426f600e))
+
+### Bug Fixes
+
+- **svelte:** Ship extracted stylesheet instead of runtime-injected CSS (by @ChristopherVR) ([80270a1](https://github.com/ChristopherVR/pptx-viewer/commit/80270a17e39ed6a8d06189fa21c99a56ccb88490))
+
 ## [0.9.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.9.1) - 2026-07-17
 
 ### Dependencies

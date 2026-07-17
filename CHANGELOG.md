@@ -6,6 +6,26 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-17
 
+_Releases: pptx-viewer-core@1.6.2, pptx-react-viewer@1.20.0, pptx-vue-viewer@1.20.0, pptx-angular-viewer@1.23.0, pptx-vanilla-viewer@0.10.0, pptx-svelte-viewer@1.0.0_
+
+### Features
+
+- **shared:** Add theme/locale catalogs, viewer prefs storage, and account model (by @ChristopherVR) ([9b9ad18](https://github.com/ChristopherVR/pptx-viewer/commit/9b9ad1888507dc879693f5d9b844ddcaabad909a))
+- **svelte:** Add hiddenActions prop to hide individual toolbar/ribbon actions (by @ChristopherVR) ([dbc6a7d](https://github.com/ChristopherVR/pptx-viewer/commit/dbc6a7d4c9480de00d269697820092de426f600e))
+- **vue:** Add hiddenActions prop to hide individual toolbar/ribbon actions (by @ChristopherVR) ([2e917df](https://github.com/ChristopherVR/pptx-viewer/commit/2e917df9f2703fe5e56de0015b20744697092ff7))
+
+### Bug Fixes
+
+- **svelte:** Ship extracted stylesheet instead of runtime-injected CSS (by @ChristopherVR) ([80270a1](https://github.com/ChristopherVR/pptx-viewer/commit/80270a17e39ed6a8d06189fa21c99a56ccb88490))
+- **shared:** Add missing toolbar-actions module (by @ChristopherVR) ([21144f5](https://github.com/ChristopherVR/pptx-viewer/commit/21144f525fcd4aff77ec42dc98cdd599c98cddf9))
+- **angular:** Resolve pptx-viewer-shared imports via the vendored copy (by @ChristopherVR) ([f8a67c5](https://github.com/ChristopherVR/pptx-viewer/commit/f8a67c5f22dc5e89e08915d2d19eca98dc07c73c))
+
+### Styling
+
+- Fix oxfmt formatting drift blocking CI (by @ChristopherVR) ([4f26420](https://github.com/ChristopherVR/pptx-viewer/commit/4f26420ce8db8eae9176f315a6450d843054e2a6))
+
+## 2026-07-17
+
 _Releases: pptx-angular-viewer@1.22.0_
 
 ## 2026-07-17
