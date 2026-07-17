@@ -1,6 +1,5 @@
 import { PptxHandler } from 'pptx-viewer-core';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
 
@@ -24,7 +23,6 @@ import {
 	deleteAutosaveSnapshot,
 } from '../../packages/shared/src/render/autosave-store';
 import i18nInstance from './i18n'; // Initialises i18next before any component renders
-import { LanguagePicker } from './LanguagePicker';
 
 import './app.css';
 
@@ -266,8 +264,6 @@ const themes: Record<string, ThemePreset> = {
 	},
 };
 
-const themeKeys = Object.keys(themes);
-
 // ── Apply theme vars to :root ──────────────────────────────────────────────
 
 function useRootTheme(theme: ViewerTheme) {
@@ -286,149 +282,6 @@ function useRootTheme(theme: ViewerTheme) {
 	}, [theme]);
 }
 
-// ── Theme picker (rendered via portal) ─────────────────────────────────────
-
-const pickerRoot = document.getElementById('theme-picker-root')!;
-
-function ThemePicker({ current, onChange }: { current: string; onChange: (key: string) => void }) {
-	const [open, setOpen] = useState(false);
-	// The picker is a fixed sibling of the viewer, so any z-index floats it above
-	// the viewer's whole subtree (its bottom sheets / action bar live in their own
-	// stacking context). Rather than fight that, on small screens we anchor it to
-	// the top-right — clear of the mobile bottom bar and the bottom sheets — and
-	// keep the familiar bottom-right spot on desktop.
-	const [isSmallScreen, setIsSmallScreen] = useState(
-		() => typeof window !== 'undefined' && window.innerWidth < 768,
-	);
-	useEffect(() => {
-		const onResize = () => setIsSmallScreen(window.innerWidth < 768);
-		window.addEventListener('resize', onResize);
-		return () => window.removeEventListener('resize', onResize);
-	}, []);
-	const preset = themes[current];
-	const bg = preset.theme.colors?.card ?? '#111827';
-	const border = preset.theme.colors?.border ?? '#374151';
-	const fg = preset.theme.colors?.mutedForeground ?? '#9ca3af';
-	const primary = preset.theme.colors?.primary ?? '#6366f1';
-
-	const picker = (
-		<div
-			style={{
-				position: 'fixed',
-				...(isSmallScreen
-					? { top: 'calc(env(safe-area-inset-top, 0px) + 60px)', right: 8 }
-					: { bottom: 48, right: 12 }),
-				zIndex: open ? 100000 : 99999,
-				fontFamily: 'system-ui, sans-serif',
-			}}
-		>
-			<button
-				onClick={() => setOpen(!open)}
-				title='Switch theme'
-				style={{
-					display: 'flex',
-					alignItems: 'center',
-					gap: 6,
-					padding: '6px 12px',
-					borderRadius: 9999,
-					border: `1px solid ${border}`,
-					background: bg,
-					color: fg,
-					cursor: 'pointer',
-					fontSize: 13,
-					fontWeight: 500,
-					boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-				}}
-			>
-				<svg
-					width='14'
-					height='14'
-					viewBox='0 0 24 24'
-					fill='none'
-					stroke='currentColor'
-					strokeWidth='2'
-					strokeLinecap='round'
-					strokeLinejoin='round'
-				>
-					<circle cx='12' cy='12' r='4' />
-					<path d='M12 2v2' />
-					<path d='M12 20v2' />
-					<path d='m4.93 4.93 1.41 1.41' />
-					<path d='m17.66 17.66 1.41 1.41' />
-					<path d='M2 12h2' />
-					<path d='M20 12h2' />
-					<path d='m6.34 17.66-1.41 1.41' />
-					<path d='m19.07 4.93-1.41 1.41' />
-				</svg>
-				{preset.label}
-			</button>
-			{open && (
-				<div
-					style={{
-						position: 'absolute',
-						// On mobile the button is anchored near the top, so an upward
-						// menu was clipped off-screen (Dark/Light unreachable). Open
-						// downward there; keep the bottom-anchored placement on desktop.
-						...(isSmallScreen
-							? { top: '100%', marginTop: 4 }
-							: { bottom: '100%', marginBottom: 4 }),
-						right: 0,
-						background: bg,
-						border: `1px solid ${border}`,
-						borderRadius: 8,
-						overflowY: 'auto',
-						maxHeight: '60dvh',
-						boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-						minWidth: 150,
-					}}
-				>
-					{themeKeys.map((key) => {
-						const p = themes[key];
-						const isActive = key === current;
-						return (
-							<button
-								key={key}
-								onClick={() => {
-									onChange(key);
-									setOpen(false);
-								}}
-								style={{
-									display: 'flex',
-									alignItems: 'center',
-									gap: 8,
-									width: '100%',
-									padding: '8px 14px',
-									border: 'none',
-									background: isActive ? `${primary}22` : 'transparent',
-									color: isActive ? primary : fg,
-									cursor: 'pointer',
-									fontSize: 13,
-									fontWeight: isActive ? 600 : 400,
-									textAlign: 'left',
-								}}
-							>
-								<span
-									style={{
-										width: 14,
-										height: 14,
-										borderRadius: 9999,
-										background: p.theme.colors?.primary ?? '#6366f1',
-										border: `2px solid ${p.theme.colors?.border ?? '#374151'}`,
-										flexShrink: 0,
-									}}
-								/>
-								{p.label}
-							</button>
-						);
-					})}
-				</div>
-			)}
-		</div>
-	);
-
-	return createPortal(picker, pickerRoot);
-}
-
 // ── App ────────────────────────────────────────────────────────────────────
 
 const RECOVERY_STORAGE_KEY = 'pptx-demo-last-file';
@@ -441,20 +294,20 @@ function App() {
 		timestamp: number;
 		size: number;
 	} | null>(null);
-	const [themeKey, setThemeKey] = useState<string>(() => {
+	const themeKey = useMemo<string>(() => {
 		try {
 			return localStorage.getItem('pptx-demo-theme') ?? 'vermilionDark';
 		} catch {
 			return 'vermilionDark';
 		}
-	});
-	const [languageKey, setLanguageKey] = useState<string>(() => {
+	}, []);
+	const languageKey = useMemo<string>(() => {
 		try {
 			return localStorage.getItem('pptx-demo-lang') ?? 'en';
 		} catch {
 			return 'en';
 		}
-	});
+	}, []);
 
 	// ── URL-based collaboration / broadcast join ────────────────────────
 	const [urlRoom, setUrlRoom] = useState(() =>
@@ -838,27 +691,9 @@ function App() {
 
 	const { t } = useTranslation();
 
-	const handleThemeChange = useCallback((key: string) => {
-		setThemeKey(key);
-		try {
-			localStorage.setItem('pptx-demo-theme', key);
-		} catch {
-			/* ignore */
-		}
-	}, []);
-
 	useEffect(() => {
 		void i18nInstance.changeLanguage(languageKey);
 	}, [languageKey]);
-
-	const handleLanguageChange = useCallback((code: string) => {
-		setLanguageKey(code);
-		try {
-			localStorage.setItem('pptx-demo-lang', code);
-		} catch {
-			/* ignore */
-		}
-	}, []);
 
 	const handleFile = useCallback((file: File) => {
 		setFileName(file.name);
@@ -918,12 +753,6 @@ function App() {
 	if (content) {
 		return (
 			<main className='h-[100dvh] w-screen'>
-				<ThemePicker current={themeKey} onChange={handleThemeChange} />
-				<LanguagePicker
-					current={languageKey}
-					onChange={handleLanguageChange}
-					theme={currentPreset}
-				/>
 				<PowerPointViewer
 					content={content}
 					fileName={fileName}
@@ -950,8 +779,6 @@ function App() {
 	return (
 		<main className='flex flex-col items-center justify-center h-[100dvh] w-screen bg-background text-foreground'>
 			<h1 className='sr-only'>PPTX Viewer</h1>
-			<ThemePicker current={themeKey} onChange={handleThemeChange} />
-			<LanguagePicker current={languageKey} onChange={handleLanguageChange} theme={currentPreset} />
 			{recoveryOffer && (
 				<div className='max-w-[900px] w-full mb-4 p-4 rounded-lg border border-primary/40 bg-primary/5 flex items-center justify-between gap-4'>
 					<div>

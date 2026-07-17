@@ -17,9 +17,17 @@ import { TranslatePipe } from '@ngx-translate/core';
 			type="button"
 			class="pptx-rb-pill"
 			[disabled]="slideCount() === 0"
-			(click)="present.emit()"
+			(click)="presentFromBeginning.emit()"
 		>
 			{{ 'pptx.ribbon.fromBeginning' | translate }}
+		</button>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[disabled]="slideCount() === 0"
+			(click)="presentFromCurrent.emit()"
+		>
+			{{ 'pptx.slideShow.fromCurrent' | translate }}
 		</button>
 		<button
 			type="button"
@@ -28,6 +36,24 @@ import { TranslatePipe } from '@ngx-translate/core';
 			(click)="presenter.emit()"
 		>
 			{{ 'pptx.ribbon.presenterView' | translate }}
+		</button>
+		<button type="button" class="pptx-rb-pill" (click)="rehearseTimings.emit()">
+			{{ 'pptx.slideShow.rehearseTimings' | translate }}
+		</button>
+		<button type="button" class="pptx-rb-pill" (click)="record.emit()">
+			{{ 'pptx.titleBar.record' | translate }}
+		</button>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[class.is-active]="showSubtitles()"
+			[attr.aria-pressed]="showSubtitles()"
+			(click)="toggleSubtitles.emit()"
+		>
+			{{ 'pptx.slideShow.subtitles' | translate }}
+		</button>
+		<button type="button" class="pptx-rb-pill" (click)="openSubtitleSettings.emit()">
+			Subtitle Settings
 		</button>
 		<button type="button" class="pptx-rb-pill" (click)="broadcast.emit()">
 			{{ 'pptx.ribbon.broadcast' | translate }}
@@ -47,10 +73,16 @@ import { TranslatePipe } from '@ngx-translate/core';
 })
 export class RibbonSlideshowSectionComponent {
 	readonly slideCount = input<number>(0);
+	readonly showSubtitles = input<boolean>(false);
 
-	readonly present = output<void>();
+	readonly presentFromBeginning = output<void>();
+	readonly presentFromCurrent = output<void>();
 	readonly presenter = output<void>();
 	readonly broadcast = output<void>();
 	readonly openCustomShows = output<void>();
 	readonly openSetUpSlideShow = output<void>();
+	readonly rehearseTimings = output<void>();
+	readonly record = output<void>();
+	readonly toggleSubtitles = output<void>();
+	readonly openSubtitleSettings = output<void>();
 }

@@ -92,6 +92,23 @@ import { EditorStateService } from './editor-state.service';
 		>
 			{{ 'pptx.grid.snapToGrid' | translate }}
 		</button>
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[ngClass]="snapToShape() ? 'bg-primary text-primary-foreground' : ''"
+			(click)="toggleSnapToShape.emit()"
+		>
+			{{ 'pptx.grid.snapToShape' | translate }}
+		</button>
+		<button type="button" class="pptx-rb-pill" (click)="addGuide.emit('y')">
+			{{ 'pptx.view.addHorizontalGuide' | translate }}
+		</button>
+		<button type="button" class="pptx-rb-pill" (click)="addGuide.emit('x')">
+			{{ 'pptx.view.addVerticalGuide' | translate }}
+		</button>
+		<button type="button" class="pptx-rb-pill" (click)="zoomToFit.emit()">
+			{{ 'pptx.view.zoomToFit' | translate }}
+		</button>
 		<span class="pptx-rb-sep"></span>
 		<button
 			type="button"
@@ -110,6 +127,7 @@ import { EditorStateService } from './editor-state.service';
 		<button
 			type="button"
 			class="pptx-rb-pill"
+			[disabled]="!canEdit()"
 			[ngClass]="eyedropperActive() ? 'pptx-rb-eyedropper-active' : ''"
 			[title]="'pptx.ribbon.eyedropperTitle' | translate"
 			(click)="toggleEyedropper.emit()"
@@ -126,6 +144,7 @@ export class RibbonViewSectionComponent {
 	readonly showRulers = input<boolean>(false);
 	readonly showGuides = input<boolean>(false);
 	readonly snapToGrid = input<boolean>(false);
+	readonly snapToShape = input<boolean>(true);
 	readonly eyedropperActive = input<boolean>(false);
 
 	readonly openSorter = output<void>();
@@ -138,5 +157,8 @@ export class RibbonViewSectionComponent {
 	readonly toggleGuides = output<void>();
 	readonly toggleSelectionPane = output<void>();
 	readonly toggleSnapToGrid = output<void>();
+	readonly toggleSnapToShape = output<void>();
+	readonly addGuide = output<'x' | 'y'>();
+	readonly zoomToFit = output<void>();
 	readonly toggleEyedropper = output<void>();
 }

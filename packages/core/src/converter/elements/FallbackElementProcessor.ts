@@ -2,7 +2,7 @@ import type { PptxElement } from '../../core';
 import type { ElementProcessor, ElementProcessorContext } from './ElementProcessor';
 
 interface ZoomLikeElement {
-	zoomType: 'slide' | 'section';
+	zoomType: 'slide' | 'section' | 'summary';
 	targetSlideIndex: number;
 	targetSectionId?: string;
 	imageData?: string;
@@ -43,6 +43,8 @@ export class FallbackElementProcessor implements ElementProcessor {
 			} else {
 				parts.push(`*[Zoom to Section (Slide ${slideNumber})]*`);
 			}
+		} else if (zoomElement.zoomType === 'summary') {
+			parts.push(`*[Summary Zoom starting at Slide ${slideNumber}]*`);
 		} else {
 			parts.push(`*[Zoom to Slide ${slideNumber}]*`);
 		}

@@ -18,8 +18,11 @@ import {
 	storePresentationDeck,
 	createInitialPresentationSnapshot,
 	createBlankSlide,
+	createBackstagePresentation,
+	readBackstageRecentFile,
 	makeSlideId,
 	mergePresentationSnapshot,
+	openPptxFile,
 } from 'pptx-viewer-shared';
 
 import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
@@ -34,10 +37,10 @@ import type { LoadingController } from './loading-controller';
 import { createLoadingController } from './loading-controller';
 import type { ParityWorkflows } from './parity-workflows';
 import { createParityWorkflows } from './parity-workflows';
-import { mountPresenterConsole, renderAudienceEffects } from './presenter-console';
 import type { PresentationAnnotationsHost } from './presentation-annotations-host';
 import { createPresentationAnnotationsHost } from './presentation-annotations-host';
 import { applyPresentationThemePreset } from './presentation-theme-controller';
+import { mountPresenterConsole, renderAudienceEffects } from './presenter-console';
 import type { ElementRendererRegistry } from './render';
 import { createDefaultRegistry } from './render';
 import type { RenderController } from './render-controller';
@@ -268,6 +271,28 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		await this.loading.load(file);
 	}
 
+	openFile(): void {
+		void (async () => {
+			const picked = await openPptxFile();
+			if (picked) {
+				await this.loadFile(picked.buffer);
+			}
+		})();
+	}
+
+	openRecentFile(key: string): void {
+		void (async () => {
+			const bytes = await readBackstageRecentFile(key);
+			if (bytes) {
+				await this.loadFile(bytes);
+			}
+		})();
+	}
+
+	createPresentation(templateId: string): void {
+		this.editor.commitSlides(createBackstagePresentation(templateId), 0);
+	}
+
 	async loadUrl(url: string): Promise<void> {
 		this.signatureWarningAcknowledged = false;
 		await this.loading.load(url);
@@ -412,36 +437,55 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	openAccessibility(): void {
 		this.lifecycle.chrome.accessibility.open(collectAccessibilityIssues(this.store.get().slides));
 	}
+
 	openSettings(tab: 'general' | 'shortcuts' = 'general'): void {
 		this.parityWorkflows.openSettings(tab);
 	}
+
 	openSetUpSlideShow(): void {
 		this.parityWorkflows.openSetUpSlideShow();
 	}
+
+	toggleSubtitles(): void {
+		const presentationProperties = this.store.get().presentationProperties;
+		this.editor.updatePresentationProperties({
+			...presentationProperties,
+			showSubtitles: !presentationProperties.showSubtitles,
+		});
+	}
+
 	openHeaderFooter(): void {
 		this.parityWorkflows.openHeaderFooter();
 	}
+
 	openCompare(): void {
 		this.parityWorkflows.openCompare();
 	}
+
 	openPrintDialog(): void {
 		this.parityWorkflows.openPrintDialog();
 	}
+
 	startRehearsal(): void {
 		this.parityWorkflows.startRehearsal();
 	}
+
 	openSelectionPane(): void {
 		this.parityWorkflows.openSelectionPane();
 	}
+
 	openSlideSorter(): void {
 		this.parityWorkflows.openSlideSorter();
 	}
+
 	openComments(): void {
 		this.parityWorkflows.openComments();
 	}
+
 	openHyperlink(): void {
 		this.parityWorkflows.openHyperlink();
 	}
+
 	openCustomShows(): void {
 		this.parityWorkflows.openCustomShows();
 	}
@@ -752,6 +796,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 
 	openBroadcast(): void {
 		this.sessions.openBroadcast();
+	}
+
+	openShare(): void {
+		this.sessions.openShare();
 	}
 
 	destroy(): void {

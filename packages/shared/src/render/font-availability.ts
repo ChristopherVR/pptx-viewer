@@ -17,7 +17,7 @@ export function isFontFamilyAvailable(
 		return false;
 	}
 	try {
-		return source.check(`12px "${family.replaceAll('"', '\\"')}"`);
+		return source.check(`12px "${family.replace(/"/g, '\\"')}"`);
 	} catch {
 		return false;
 	}

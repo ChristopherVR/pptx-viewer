@@ -6,7 +6,7 @@
 	 * the ribbon tabs.
 	 */
 	import { useTranslator } from '../../../i18n/context';
-	import { collectUsedFonts } from 'pptx-viewer-shared';
+	import { collectUsedFonts, createBackstagePresentation } from 'pptx-viewer-shared';
 	import AnimationsTab from './animations/AnimationsTab.svelte';
 	import DesignTab from './design/DesignTab.svelte';
 	import DrawTab from './draw/DrawTab.svelte';
@@ -72,20 +72,25 @@
 	<div class="pptx-svelte-ribbon-content">
 		{#if activeTab === 'file'}
 				<FileTab
+					fileName={props.fileName}
+					onclose={() => (activeTab = 'home')}
+					oncreatepresentation={(templateId) => props.editor.setSlides(createBackstagePresentation(templateId))}
 					ondownload={props.ondownload}
 					ondownloadppsx={props.ondownloadppsx}
 					ondownloadpptm={props.ondownloadpptm}
 					onpackage={props.onpackage}
 					hasMacros={props.hasMacros}
 				onopenfile={props.onopenfile}
+				onopenrecent={props.onopenrecent}
 					exportUi={props.exportUi}
 				onproperties={() => setPropertiesOpen(true)}
 				onfonts={() => (fontsOpen = true)}
 				onsignatures={() => (signaturesOpen = true)}
 				onprotect={() => (protectionOpen = true)}
 				onversionhistory={props.onversionhistory}
-				onprint={props.onprintsettings}
-				onsettings={props.onsettings}
+					onshare={props.onshare}
+					onprint={props.onprintsettings}
+					onsettings={props.onsettings}
 			/>
 		{:else if activeTab === 'home'}
 			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />

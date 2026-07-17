@@ -20,18 +20,15 @@ import {
 	resolveDefaultServerUrl,
 } from './collab';
 import i18n from './i18n';
-import LanguagePicker from './LanguagePicker.vue';
 import type { LanguageCode } from './languages';
 import { languageKeys } from './languages';
-import ThemePicker from './ThemePicker.vue';
 import { themes } from './themes';
 
 /**
  * Demo app for `pptx-vue-viewer`, mirroring the React `demo/main.tsx`.
  *
  * The viewer fills the screen; there is no demo header (download lives in the
- * viewer's File menu). A floating theme picker hovers above the viewer. URL
- * params drive collaboration / broadcast / audience joins.
+ * viewer's File menu). URL params drive collaboration / broadcast / audience joins.
  */
 
 const content = shallowRef<Uint8Array | null>(null);
@@ -51,15 +48,6 @@ const currentPreset = computed(() => themes[themeKey.value] ?? themes.vermilionD
 
 const { t } = useI18n();
 
-function setTheme(key: string): void {
-	themeKey.value = key;
-	try {
-		localStorage.setItem('pptx-demo-theme', key);
-	} catch {
-		/* ignore */
-	}
-}
-
 // ── Language ────────────────────────────────────────────────────────────────
 function readStoredLanguage(): LanguageCode {
 	try {
@@ -76,15 +64,6 @@ const languageKey = ref<LanguageCode>(readStoredLanguage());
 watchEffect(() => {
 	i18n.global.locale.value = languageKey.value;
 });
-
-function setLanguage(code: LanguageCode): void {
-	languageKey.value = code;
-	try {
-		localStorage.setItem('pptx-demo-lang', code);
-	} catch {
-		/* ignore */
-	}
-}
 
 // ── Apply theme vars to :root so the dropzone chrome tracks the theme ──────
 let appliedVarKeys: string[] = [];
@@ -390,8 +369,6 @@ function onInputChange(e: Event): void {
 
 <template>
 	<main v-if="content" class="demo-shell">
-		<ThemePicker :current="themeKey" @change="setTheme" />
-		<LanguagePicker :current="languageKey" :theme="themeKey" @change="setLanguage" />
 		<PowerPointViewer
 			:content="content"
 			:file-name="fileName"
@@ -410,8 +387,6 @@ function onInputChange(e: Event): void {
 
 	<main v-else class="demo-stage">
 		<h1 class="sr-only">PPTX Viewer</h1>
-		<ThemePicker :current="themeKey" @change="setTheme" />
-		<LanguagePicker :current="languageKey" :theme="themeKey" @change="setLanguage" />
 		<div
 			class="demo-dropzone"
 			role="group"

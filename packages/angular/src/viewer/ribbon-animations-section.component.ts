@@ -27,6 +27,10 @@ import {
 } from './animation-author-helpers';
 import { EditorStateService } from './editor-state.service';
 
+export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boolean {
+	return canEdit && hasSelection;
+}
+
 @Component({
 	selector: 'pptx-ribbon-animations-section',
 	standalone: true,
@@ -45,7 +49,7 @@ import { EditorStateService } from './editor-state.service';
 		<button
 			type="button"
 			class="pptx-rb-pill"
-			[disabled]="!hasSel()"
+			[disabled]="!canAuthor()"
 			[title]="'pptx.animations.previewTooltip' | translate"
 			(click)="present.emit()"
 		>
@@ -57,7 +61,7 @@ import { EditorStateService } from './editor-state.service';
 			<button
 				type="button"
 				class="pptx-rb-pill"
-				[disabled]="!hasSel()"
+				[disabled]="!canAuthor()"
 				[title]="'pptx.animations.addTooltip' | translate"
 			>
 				<svg lucideSparkles class="h-4 w-4"></svg>
@@ -76,7 +80,7 @@ import { EditorStateService } from './editor-state.service';
 					@for (item of entrancePresets; track item.value) {
 						<button
 							type="button"
-							[disabled]="!hasSel()"
+							[disabled]="!canAuthor()"
 							(click)="addAnimation(item.value, 'entrance')"
 							class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
 							[title]="'pptx.ribbonAnimations.entranceTooltip' | translate: { name: item.label }"
@@ -93,7 +97,7 @@ import { EditorStateService } from './editor-state.service';
 					@for (item of emphasisPresets; track item.value) {
 						<button
 							type="button"
-							[disabled]="!hasSel()"
+							[disabled]="!canAuthor()"
 							(click)="addAnimation(item.value, 'emphasis')"
 							class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
 							[title]="'pptx.ribbonAnimations.emphasisTooltip' | translate: { name: item.label }"
@@ -110,7 +114,7 @@ import { EditorStateService } from './editor-state.service';
 					@for (item of exitPresets; track item.value) {
 						<button
 							type="button"
-							[disabled]="!hasSel()"
+							[disabled]="!canAuthor()"
 							(click)="addAnimation(item.value, 'exit')"
 							class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
 							[title]="'pptx.ribbonAnimations.exitTooltip' | translate: { name: item.label }"
@@ -126,7 +130,7 @@ import { EditorStateService } from './editor-state.service';
 		<button
 			type="button"
 			class="pptx-rb-pill"
-			[disabled]="!hasSel()"
+			[disabled]="!canAuthor()"
 			[title]="'pptx.animations.removeTooltip' | translate"
 			(click)="removeAnim()"
 		>
@@ -150,6 +154,7 @@ export class RibbonAnimationsSectionComponent {
 
 	readonly slideIndex = input<number>(0);
 	readonly selectedElement = input<PptxElement | null>(null);
+	readonly canEdit = input<boolean>(false);
 
 	readonly present = output<void>();
 	readonly toggleInspector = output<void>();
@@ -162,6 +167,10 @@ export class RibbonAnimationsSectionComponent {
 		return this.editor.selectedIds().length > 0;
 	}
 
+	protected canAuthor(): boolean {
+		return canAuthorAnimation(this.canEdit(), this.hasSel());
+	}
+
 	/**
 	 * Add an animation preset to the selected element on the active slide.
 	 * Delegates to the immutable helpers in animation-author-helpers.ts and
@@ -171,6 +180,9 @@ export class RibbonAnimationsSectionComponent {
 		preset: PptxAnimationPreset,
 		group: 'entrance' | 'emphasis' | 'exit',
 	): void {
+		if (!this.canEdit()) {
+			return;
+		}
 		const el = this.selectedElement();
 		if (!el) {
 			return;
@@ -193,6 +205,9 @@ export class RibbonAnimationsSectionComponent {
 
 	/** Remove all animations from the selected element. */
 	protected removeAnim(): void {
+		if (!this.canEdit()) {
+			return;
+		}
 		const el = this.selectedElement();
 		if (!el) {
 			return;

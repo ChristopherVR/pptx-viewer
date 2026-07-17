@@ -24,6 +24,10 @@ export interface RulerGuide {
 	pos: number;
 }
 
+export function centeredGuide(axis: RulerGuide['axis'], size: CanvasSize, id: string): RulerGuide {
+	return { id, axis, pos: axis === 'x' ? size.width / 2 : size.height / 2 };
+}
+
 /** Live host accessors the guide controller needs. */
 interface RulerGuidesHost {
 	readonly editable: () => boolean;
@@ -59,6 +63,16 @@ export class RulerGuidesService {
 	/** True while an existing or just-created guide is being dragged. */
 	isDragging(): boolean {
 		return this.guideDrag !== null;
+	}
+
+	/** Add a centered guide from the View ribbon without starting a drag gesture. */
+	addGuide(axis: RulerGuide['axis']): void {
+		const host = this.requireHost();
+		if (!host.editable()) {
+			return;
+		}
+		const id = `guide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+		this.rulerGuides.update((guides) => [...guides, centeredGuide(axis, host.canvasSize(), id)]);
 	}
 
 	/** Begin dragging an existing guide. Called from the guide handle pointerdown. */

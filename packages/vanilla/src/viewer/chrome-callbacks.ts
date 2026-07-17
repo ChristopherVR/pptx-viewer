@@ -29,6 +29,7 @@ export interface ChromeCallbackDeps {
 	startPresentationFromCurrent(): void;
 	openPresenterView(): void;
 	openBroadcast(): void;
+	openShare(): void;
 	toggleNotes(): void;
 	openAccessibility(): void;
 	openSettings(tab?: 'general' | 'shortcuts'): void;
@@ -36,6 +37,7 @@ export interface ChromeCallbackDeps {
 	openCompare(): void;
 	openSetUpSlideShow(): void;
 	startRehearsal(): void;
+	toggleSubtitles(): void;
 	openSelectionPane(): void;
 	openSlideSorter(): void;
 	openComments(): void;
@@ -119,6 +121,7 @@ export function buildChromeCallbacks(
 			openRecentFile: (key) => deps.openRecentFile(key),
 			createPresentation: (templateId) => deps.createPresentation(templateId),
 			openSettings: () => deps.openSettings('general'),
+			openShare: () => deps.openShare(),
 			openDocumentProperties: () => deps.openDocumentProperties(),
 			openFontEmbedding: () => deps.openFontEmbedding(),
 			openDigitalSignatures: () => deps.openDigitalSignatures(),
@@ -143,6 +146,8 @@ export function buildChromeCallbacks(
 			openSetUp: () => deps.openSetUpSlideShow(),
 			startRehearsal: () => deps.startRehearsal(),
 			openCustomShows: () => deps.openCustomShows(),
+			toggleSubtitles: () => deps.toggleSubtitles(),
+			openSubtitleSettings: () => deps.openSetUpSlideShow(),
 		},
 		// Every editing action delegates to the (lazily-resolved) editor edit
 		// actions, so a click after mount always hits the live editor instance.

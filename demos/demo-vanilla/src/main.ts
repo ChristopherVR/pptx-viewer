@@ -12,19 +12,16 @@ import {
 import { PptxHandler } from 'pptx-viewer-core';
 
 import { buildRoomConfig, readRoomFromUrl, resolveAutoName } from './collab';
-import { getLanguage, onLanguageChange, setLanguage, t, viewerMessages } from './demo-i18n';
+import { getLanguage, onLanguageChange, t, viewerMessages } from './demo-i18n';
 import { createDropzone } from './dropzone';
-import { createLanguagePicker } from './language-picker';
-import { observeNotesHeight } from './notes-offset';
-import { createThemePicker } from './theme-picker';
-import { readStoredTheme, storeTheme, themes } from './themes';
+import { readStoredTheme, themes } from './themes';
 
 import './styles.css';
 
 /**
  * Demo app for `pptx-vanilla-viewer`, mirroring demos/demo-vue/src/App.vue: the
- * viewer fills the screen, floating theme + language pickers hover above it, and
- * a landing dropzone handles file open / sample deck loading. A `?room=<id>` URL
+ * viewer fills the screen and a landing dropzone handles file open / sample deck
+ * loading. A `?room=<id>` URL
  * param auto-joins a serverless (WebRTC) collaboration session. Starting a new
  * session is dialog-driven: the viewer's own toolbar Share/Broadcast buttons
  * open the built-in modal dialogs (see `pptx-vanilla-viewer`'s
@@ -38,10 +35,9 @@ if (!appRoot) {
 }
 const app: HTMLElement = appRoot;
 
-let themeKey = readStoredTheme();
+const themeKey = readStoredTheme();
 let viewer: PptxViewerInstance | null = null;
 let appliedVarKeys: string[] = [];
-let stopNotesObserver: (() => void) | null = null;
 
 // A demo-generated display name, offered to the viewer's built-in Share and
 // Broadcast dialogs as a prefilled default (see `shareDefaults` below).
@@ -50,20 +46,6 @@ const userName = resolveAutoName();
 // Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`,
 // mirroring demo-vue's `App.vue`.
 const smartArt3D = new URLSearchParams(window.location.search).get('smartArt3D') === '1';
-
-const themePicker = createThemePicker(
-	() => themeKey,
-	(key) => {
-		setTheme(key);
-	},
-);
-const languagePicker = createLanguagePicker(
-	() => themeKey,
-	(code) => {
-		setLanguage(code);
-	},
-);
-document.body.append(themePicker.el, languagePicker.el);
 
 /** Apply theme vars to :root so the dropzone chrome tracks the theme. */
 function applyRootVars(): void {
@@ -78,19 +60,8 @@ function applyRootVars(): void {
 	}
 }
 
-function setTheme(key: string): void {
-	themeKey = key;
-	storeTheme(key);
-	applyRootVars();
-	viewer?.setTheme(themes[key].theme);
-	themePicker.refresh();
-	languagePicker.refresh();
-}
-
 onLanguageChange((code) => {
 	viewer?.setLocale(code);
-	themePicker.refresh();
-	languagePicker.refresh();
 	if (!viewer) {
 		showLanding();
 	}
@@ -115,8 +86,6 @@ function openViewer(
 ): void {
 	viewer?.destroy();
 	viewer = null;
-	stopNotesObserver?.();
-	stopNotesObserver = null;
 	app.replaceChildren();
 
 	const shell = document.createElement('main');
@@ -143,20 +112,11 @@ function openViewer(
 	});
 	// e2e/debug seam: expose the live viewer handle for scripted verification.
 	(window as unknown as { __pptxViewer?: PptxViewerInstance }).__pptxViewer = viewer;
-	// Keep the floating theme and language pickers clear of the notes panel as it expands
-	// (see notes-offset.ts): the viewer chrome mounts synchronously above, so
-	// `.pptxv-notes` is already in the DOM here.
-	const notesEl = shell.querySelector('.pptxv-notes');
-	if (notesEl) {
-		stopNotesObserver = observeNotesHeight(notesEl);
-	}
 }
 
 function showLanding(): void {
 	viewer?.destroy();
 	viewer = null;
-	stopNotesObserver?.();
-	stopNotesObserver = null;
 	document.title = 'pptx-vanilla-viewer demo';
 	app.replaceChildren();
 	app.append(

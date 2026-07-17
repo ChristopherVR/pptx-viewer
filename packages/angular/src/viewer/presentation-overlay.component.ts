@@ -360,6 +360,7 @@ export class PresentationOverlayComponent implements OnInit {
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly startIndex = input<number>(0);
 	readonly showWithAnimation = input<boolean | undefined>(undefined);
+	readonly subtitlesVisible = input<boolean>(false);
 
 	// ------------------------------------------------------------------
 	// Outputs
@@ -367,6 +368,7 @@ export class PresentationOverlayComponent implements OnInit {
 
 	readonly indexChange = output<number>();
 	readonly closed = output<void>();
+	readonly subtitlesChange = output<boolean>();
 	/**
 	 * Fired just before `closed` when the show carries ink annotations, so the
 	 * host can offer the keep/discard prompt (mirrors React's exit flow).
@@ -412,8 +414,6 @@ export class PresentationOverlayComponent implements OnInit {
 	 * target slide on click. Descendants resolve this same instance.
 	 */
 	private readonly zoomNavigation = inject(ZoomNavigationService);
-	/** Whether the live-caption bar is shown. */
-	protected readonly subtitlesVisible = signal(false);
 
 	/** The slide stage root; animation styles are applied to its elements. */
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
@@ -775,7 +775,7 @@ export class PresentationOverlayComponent implements OnInit {
 
 	/** Toggle the live-caption (subtitle) bar. */
 	protected toggleSubtitles(): void {
-		this.subtitlesVisible.update((v) => !v);
+		this.subtitlesChange.emit(!this.subtitlesVisible());
 	}
 
 	/** Close button click: stop propagation so it does not also advance. */

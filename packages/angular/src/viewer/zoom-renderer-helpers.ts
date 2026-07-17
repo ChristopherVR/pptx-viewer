@@ -25,7 +25,7 @@ export interface ZoomViewModel {
 	/** Zero-based target slide index. */
 	readonly targetSlideIndex: number;
 	/** Zoom type string used as the badge label source and data attribute. */
-	readonly zoomType: 'slide' | 'section';
+	readonly zoomType: 'slide' | 'section' | 'summary';
 	/** Optional section identifier for section zooms. */
 	readonly targetSectionId: string | undefined;
 	/** Human-readable badge text ("Slide Zoom" / "Section Zoom"). */
@@ -66,9 +66,14 @@ export function buildZoomViewModel(
 	const zoom = isZoomElement(element) ? element : undefined;
 	const previewSrc = zoom?.imageData;
 	const targetSlideIndex = zoom?.targetSlideIndex ?? 0;
-	const zoomType: 'slide' | 'section' = zoom?.zoomType ?? 'slide';
+	const zoomType: 'slide' | 'section' | 'summary' = zoom?.zoomType ?? 'slide';
 	const targetSectionId = zoom?.targetSectionId;
-	const badgeText = zoomType === 'section' ? 'Section Zoom' : 'Slide Zoom';
+	const badgeText =
+		zoomType === 'section'
+			? 'Section Zoom'
+			: zoomType === 'summary'
+				? 'Summary Zoom'
+				: 'Slide Zoom';
 	const slideLabel =
 		targetInfo?.slideNumber !== undefined
 			? `Slide ${targetInfo.slideNumber}`

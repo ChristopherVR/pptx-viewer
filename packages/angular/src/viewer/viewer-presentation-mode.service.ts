@@ -72,6 +72,8 @@ export class ViewerPresentationModeService {
 	readonly rehearsalStartedAt = signal<number | null>(null);
 	readonly slideStartedAt = signal<number | null>(null);
 	readonly recordedTimings = signal<Record<number, number>>({});
+	/** Live subtitle preference shared by the ribbon and presentation overlay. */
+	readonly subtitlesVisible = signal(false);
 	private pauseStartedAt: number | null = null;
 	private pausedOnSlideMs = 0;
 
@@ -103,6 +105,22 @@ export class ViewerPresentationModeService {
 			host.clearEditing();
 			this.presenting.set(true);
 		}
+	}
+
+	presentFromBeginning(): void {
+		const host = this.requireHost();
+		if (host.slideCount() > 0) {
+			host.setActiveSlideIndex(0);
+			this.present();
+		}
+	}
+
+	presentFromCurrent(): void {
+		this.present();
+	}
+
+	toggleSubtitles(): void {
+		this.subtitlesVisible.update((visible) => !visible);
 	}
 
 	startRehearsalFromBeginning(): void {

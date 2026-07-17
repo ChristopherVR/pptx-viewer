@@ -24,6 +24,7 @@ import type {
 	PptxSlide,
 } from 'pptx-viewer-core';
 
+import { createBackstagePresentation, readBackstageRecentFile } from '../internal/shared';
 import type { ViewerSettings, ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
@@ -270,6 +271,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					[collabConnected]="collab.connected()"
 					[connectedCount]="collab.connectedCount()"
 					[spellCheckEnabled]="spellCheck()"
+					[showSubtitles]="presentationMode.subtitlesVisible()"
 					(toggleSidebar)="slidesPanelCollapsed.update(v => !v)"
 					(prev)="goPrev()"
 					(next)="goNext()"
@@ -278,14 +280,20 @@ import { ZoomTargetService } from './zoom-target.service';
 					(zoomReset)="zoomSvc.zoomReset()"
 					(find)="findReplace.showFind.set(true)"
 					(present)="presentationMode.present()"
+					(presentFromBeginning)="presentationMode.presentFromBeginning()"
 					(presenter)="presentationMode.presentPresenter()"
 					(record)="presentationMode.startRehearsalFromCurrent()"
 					(recordFromBeginning)="presentationMode.startRehearsalFromBeginning()"
 					(recordFromCurrent)="presentationMode.startRehearsalFromCurrent()"
 					(spellCheckChange)="spellCheck.set($event)"
+					(rehearseTimings)="presentationMode.startRehearsalFromCurrent()"
+					(toggleSubtitles)="presentationMode.toggleSubtitles()"
+					(openSubtitleSettings)="presentationMode.toggleSubtitles()"
 					(share)="session.showShare.set(true)"
 					(broadcast)="session.showBroadcast.set(true)"
 					(openFile)="fileIO.openFile()"
+					(openRecentFile)="onOpenRecentFile($event)"
+					(createPresentation)="onCreatePresentation($event)"
 					(save)="fileIO.saveAsPptx()"
 					(savePpsx)="fileIO.saveAsPpsx()"
 					(savePptm)="fileIO.saveAsPptm()"
@@ -311,11 +319,15 @@ import { ZoomTargetService } from './zoom-target.service';
 					[showRulers]="showRulers()"
 					[showGuides]="showGuides()"
 					[snapToGrid]="snapToGrid()"
+					[snapToShape]="snapToShape()"
 					[eyedropperActive]="formatPainter.eyedropperActive()"
 					(toggleGrid)="showGrid.update(v => !v)"
 					(toggleRulers)="showRulers.update(v => !v)"
 					(toggleGuides)="showGuides.update(v => !v)"
 					(toggleSnapToGrid)="snapToGrid.update(v => !v)"
+					(toggleSnapToShape)="snapToShape.update(v => !v)"
+					(addGuide)="addGuide($event)"
+					(zoomToFit)="zoomSvc.zoomReset()"
 					(toggleEyedropper)="formatPainter.toggleEyedropper()"
 					[themeGalleryOpen]="themeGallery.showThemeGallery()"
 					(toggleThemeGallery)="themeGallery.showThemeGallery.update(v => !v)"
@@ -384,6 +396,8 @@ import { ZoomTargetService } from './zoom-target.service';
 							[showRulers]="showRulers()"
 							[showGuides]="showGuides()"
 							[snapToGrid]="snapToGrid()"
+							[snapToShape]="snapToShape()"
+							[guideCommand]="guideCommand()"
 							[spellCheck]="spellCheck()"
 							[snapToGuides]="showGuides()"
 							[drawTool]="activeDrawTool()"
@@ -497,7 +511,11 @@ import { ZoomTargetService } from './zoom-target.service';
 								}
 								@case ('element') {
 									@if (selectedElement(); as el) {
-										<pptx-inspector-panel [element]="el" [slideIndex]="activeSlideIndex()" />
+										<pptx-inspector-panel
+											[element]="el"
+											[slideIndex]="activeSlideIndex()"
+											[canEdit]="canEdit()"
+										/>
 									}
 								}
 								@case ('slide') {
@@ -616,6 +634,8 @@ import { ZoomTargetService } from './zoom-target.service';
 					[mediaDataUrls]="loader.mediaDataUrls()"
 					[startIndex]="customShowsCtl.presentationStartIndex()"
 					[showWithAnimation]="loader.presentationProperties().showWithAnimation"
+					[subtitlesVisible]="presentationMode.subtitlesVisible()"
+					(subtitlesChange)="presentationMode.subtitlesVisible.set($event)"
 					(indexChange)="presentationMode.onPresentationIndexChange($event)"
 					(annotationsExit)="presentationMode.onPresentationAnnotationsExit($event)"
 					(closed)="presentationMode.closePresentation()"
@@ -1097,6 +1117,10 @@ export class PowerPointViewerComponent {
 	protected readonly showGuides = signal(false);
 	/** Whether snap-to-grid is active on the editor canvas. */
 	protected readonly snapToGrid = signal(false);
+	/** Whether elements snap to nearby element edges and centres. */
+	protected readonly snapToShape = signal(true);
+	/** Monotonic command consumed by the active canvas to add a ruler guide. */
+	protected readonly guideCommand = signal<{ id: number; axis: 'x' | 'y' } | null>(null);
 	/** Whether browser spell-check is active in the inline text editor. */
 	protected readonly spellCheck = signal(false);
 	/** User override that suppresses viewer animations and transitions. */
@@ -1553,6 +1577,20 @@ export class PowerPointViewerComponent {
 	goPrev(): void {
 		this.goTo(this.activeSlideIndex() - 1);
 	}
+
+	protected onCreatePresentation(templateId: string): void {
+		this.editor.setSlides(createBackstagePresentation(templateId));
+		this.activeSlideIndex.set(0);
+	}
+
+	protected onOpenRecentFile(key: string): void {
+		void (async () => {
+			const bytes = await readBackstageRecentFile(key);
+			if (bytes) {
+				this.fileIO.contentOverride.set(bytes);
+			}
+		})();
+	}
 	goNext(): void {
 		this.goTo(this.activeSlideIndex() + 1);
 	}
@@ -1885,7 +1923,15 @@ export class PowerPointViewerComponent {
 
 	/** Review ▸ Compare: pick a `.pptx` and diff it against the current deck. */
 	protected onOpenCompare(): void {
+		if (!this.canEdit()) {
+			return;
+		}
 		this.compareSvc.startCompare();
+	}
+
+	protected addGuide(axis: 'x' | 'y'): void {
+		this.showGuides.set(true);
+		this.guideCommand.update((current) => ({ id: (current?.id ?? 0) + 1, axis }));
 	}
 
 	/** Swap the deck for a restored version-history snapshot. */

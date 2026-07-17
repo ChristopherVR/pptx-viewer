@@ -54,7 +54,11 @@ export interface RibbonPrimaryHandlers {
 
 /** File tab handlers: save + export actions already implemented by the viewer's export lifecycle. */
 export interface RibbonFileHandlers {
+	openFile(): void;
+	openRecentFile(key: string): void;
+	createPresentation(templateId: string): void;
 	openSettings(): void;
+	openShare(): void;
 	openDocumentProperties(): void;
 	openFontEmbedding(): void;
 	openDigitalSignatures(): void;
@@ -81,6 +85,8 @@ export interface RibbonSlideShowHandlers {
 	openSetUp(): void;
 	startRehearsal(): void;
 	openCustomShows(): void;
+	toggleSubtitles(): void;
+	openSubtitleSettings(): void;
 }
 
 /**

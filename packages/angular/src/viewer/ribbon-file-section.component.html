@@ -1,0 +1,94 @@
+<div class="bs" role="dialog" aria-modal="true" aria-label="File">
+	<aside>
+		<button class="back" type="button" aria-label="Back to presentation" (click)="close.emit()">
+			<pptx-backstage-nav-icon page="back" />
+		</button>
+		<nav>
+			@for (item of mainNav; track item.id) {
+				<button type="button" [class.active]="page() === item.id" (click)="selectPage(item.id)">
+					<span><pptx-backstage-nav-icon [page]="item.id" /></span>{{ item.label }}
+				</button>
+			}
+			<i></i>
+			@for (item of footerNav; track item.id) {
+				<button type="button" [class.active]="page() === item.id" (click)="selectPage(item.id)">
+					<span><pptx-backstage-nav-icon [page]="item.id" /></span>{{ item.label }}
+				</button>
+			}
+		</nav>
+	</aside>
+	<main>
+		<h1>{{ page() === 'home' ? 'Good evening' : title() }}</h1>
+		@if (page() === 'home' || page() === 'new') {
+			<h2>New</h2>
+			<div class="templates">
+				@for (template of templates; track template.id) {
+					<button type="button" (click)="create(template.id)">
+						<b [style.background]="template.preview"></b><strong>{{ template.name }}</strong
+						><small>{{ template.description }}</small>
+					</button>
+				}
+			</div>
+		}
+		@if (page() === 'home' || page() === 'open') {
+			<input
+				class="search"
+				type="search"
+				placeholder="Search recent presentations"
+				[value]="query()"
+				(input)="query.set($any($event.target).value)"
+			/>
+			@if (page() === 'open') {
+				<button class="primary" type="button" (click)="run(openFile)">Browse this device</button>
+			}
+			<h2>Recent</h2>
+			<div class="recent">
+				<header><span>Name</span><span>Date modified</span><span>Size</span></header>
+				@for (file of visibleRecent(); track file.key) {
+					<button type="button" (click)="openRecent(file.key)">
+						<span class="name"
+							><b>P</b
+							><span
+								><strong>{{ file.name }}</strong
+								><small>{{ file.location }}</small></span
+							></span
+						><span>{{ date(file.timestamp) }}</span
+						><span>{{ size(file.size) }}</span>
+					</button>
+				} @empty {
+					<p>No recent presentations yet.</p>
+				}
+			</div>
+		}
+		@if (actions().length) {
+			<div class="actions">
+				@for (action of actions(); track action.title) {
+					<button type="button" (click)="run(action.event)">
+						<b>{{ action.icon }}</b
+						><span
+							><strong>{{ action.title }}</strong
+							><small>{{ action.body }}</small></span
+						>
+					</button>
+				}
+			</div>
+		}
+		@if (page() === 'account' || page() === 'options') {
+			<section class="card">
+				<b class="avatar">{{ page() === 'options' ? '⚙' : 'P' }}</b>
+				<h2>{{ page() === 'options' ? 'PowerPoint Options' : 'PowerPoint Viewer' }}</h2>
+				<p>
+					{{
+						page() === 'options'
+							? 'Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.'
+							: 'Your presentations and recovery history stay in your browser unless you explicitly share or download them.'
+					}}
+				</p>
+				@if (page() === 'options') {
+					<button class="primary" type="button" (click)="run(options)">Open Options</button>
+				}
+			</section>
+		}
+		<footer>{{ fileName() || 'Untitled Presentation.pptx' }} · Saved to this browser</footer>
+	</main>
+</div>

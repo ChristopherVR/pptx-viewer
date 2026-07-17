@@ -1,8 +1,8 @@
 <script lang="ts">
 	/**
 	 * Demo shell for `pptx-svelte-viewer`, mirroring demos/demo-vue/src/App.vue:
-	 * the viewer fills the screen, floating theme + language pickers hover above
-	 * it, and a landing dropzone handles file open / new-deck creation. A
+	 * the viewer fills the screen and a landing dropzone handles file open /
+	 * new-deck creation. A
 	 * `?room=<id>` URL param joins a serverless (y-webrtc P2P) collaboration
 	 * session so two tabs on the same URL edit the same deck live.
 	 */
@@ -16,14 +16,12 @@
 	import { PptxHandler } from 'pptx-viewer-core';
 
 	import { resolveAutoName, resolveAutoRoomId, randomUserColor } from './collab';
-	import { language, setLanguage, t } from './demo-i18n.svelte';
-	import LanguagePicker from './LanguagePicker.svelte';
-	import ThemePicker from './ThemePicker.svelte';
-	import { readStoredTheme, storeTheme, themes } from './themes';
+	import { language, t } from './demo-i18n.svelte';
+	import { readStoredTheme, themes } from './themes';
 
 	let bytes = $state<Uint8Array | null>(null);
 	let fileName = $state('');
-	let themeKey = $state(readStoredTheme());
+	const themeKey = readStoredTheme();
 	let errorMessage = $state('');
 	// eslint-disable-next-line prefer-const
 
@@ -98,11 +96,6 @@
 
 	const currentTheme = $derived((themes[themeKey] ?? themes.vermilionDark).theme);
 
-	function setTheme(key: string): void {
-		themeKey = key;
-		storeTheme(key);
-	}
-
 	// Apply theme vars to :root so the dropzone chrome tracks the theme.
 	let appliedVarKeys: string[] = [];
 	$effect(() => {
@@ -172,11 +165,6 @@
 		document.title = 'pptx-svelte-viewer demo';
 	}
 </script>
-
-<header aria-label="Demo settings">
-	<ThemePicker current={themeKey} onchange={setTheme} />
-	<LanguagePicker current={language.current} theme={themeKey} onchange={setLanguage} />
-</header>
 
 {#if viewerMounted}
 	<!-- Match the React demo's full-screen viewer shell and hide the build badge

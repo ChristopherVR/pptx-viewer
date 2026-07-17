@@ -28,30 +28,22 @@ import {
 } from './collab-utils';
 import { demoStringsDe, demoStringsEn, demoStringsFr, demoStringsEs } from './demo-locales';
 import { DropzoneComponent } from './dropzone.component';
-import { LanguagePickerComponent } from './language-picker.component';
-import { persistLanguageKey, restoreLanguageKey } from './languages';
-import { ThemePickerComponent } from './theme-picker.component';
-import { persistThemeKey, restoreThemeKey, THEMES } from './themes';
+import { restoreLanguageKey } from './languages';
+import { restoreThemeKey, THEMES } from './themes';
 
 type DemoContent = Uint8Array | ArrayBuffer;
 
 /**
  * Angular demo app: mirrors the React demo (demos/demo-react/main.tsx).
  *
- * There is no header bar; the viewer fills the screen and a floating theme
- * picker hovers above it. Collaboration / broadcast / audience flows are driven
- * from URL params and auto-connect to trusted servers only.
+ * There is no header bar; the viewer fills the screen. Collaboration, broadcast,
+ * and audience flows are driven from URL params and auto-connect to trusted servers only.
  */
 @Component({
 	selector: 'app-root',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [
-		PowerPointViewerComponent,
-		ThemePickerComponent,
-		LanguagePickerComponent,
-		DropzoneComponent,
-	],
+	imports: [PowerPointViewerComponent, DropzoneComponent],
 	styles: [
 		`
 			:host {
@@ -73,15 +65,6 @@ type DemoContent = Uint8Array | ArrayBuffer;
 		`,
 	],
 	template: `
-		<header aria-label="Demo settings">
-			<app-theme-picker [current]="themeKey()" (themeChange)="onThemeChange($event)" />
-			<app-language-picker
-				[current]="languageKey()"
-				[theme]="themeKey()"
-				(languageChange)="onLanguageChange($event)"
-			/>
-		</header>
-
 		@if (content()) {
 			<main class="demo-viewer-host">
 				<pptx-viewer
@@ -171,17 +154,6 @@ export class AppComponent {
 				document.title = `${prefix} ${this.fileName()} - PPTX Viewer`;
 			}
 		});
-	}
-
-	onThemeChange(key: string): void {
-		this.themeKey.set(key);
-		persistThemeKey(key);
-	}
-
-	onLanguageChange(code: string): void {
-		this.languageKey.set(code);
-		persistLanguageKey(code);
-		this.translate.use(code);
 	}
 
 	onDirtyChange(dirty: boolean): void {

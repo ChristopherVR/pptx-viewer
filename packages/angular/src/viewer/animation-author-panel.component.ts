@@ -94,6 +94,7 @@ import { AnimationTimelineComponent } from './animation-timeline.component';
 						<button
 							type="button"
 							class="pptx-ng-anim__remove-btn inline-flex items-center gap-1"
+							[disabled]="!canEdit()"
 							[title]="'pptx.animations.removeFromElement' | translate"
 							(click)="onRemove()"
 						>
@@ -684,6 +685,9 @@ export class AnimationAuthorPanelComponent {
 	// ── Emit helper ──────────────────────────────────────────────────────────
 
 	private emit(updated: PptxElementAnimation[]): void {
+		if (!this.canEdit()) {
+			return;
+		}
 		this.animationsChange.emit(updated);
 	}
 

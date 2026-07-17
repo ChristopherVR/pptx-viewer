@@ -39,8 +39,12 @@ function positionedCategoryX(
 		if (positions[index] !== undefined) {
 			return positions[index];
 		}
-		const gap = (positions.at(-1) ?? 0) - (positions.at(-2) ?? positions[0] ?? 0);
-		return (positions.at(-1) ?? 0) + gap * (index - positions.length + 1);
+		const lastIndex = positions.length - 1;
+		const last = positions[lastIndex] ?? 0;
+		const beforeLast =
+			lastIndex > 0 ? (positions[lastIndex - 1] ?? positions[0] ?? 0) : (positions[0] ?? 0);
+		const gap = last - beforeLast;
+		return last + gap * (index - positions.length + 1);
 	};
 	return at(lower) + (at(upper) - at(lower)) * (value - lower);
 }

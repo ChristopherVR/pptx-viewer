@@ -31,6 +31,7 @@ import { EditorStateService } from './editor-state.service';
 		<button
 			type="button"
 			class="pptx-rb-pill"
+			[disabled]="!canEdit()"
 			[title]="'pptx.ribbon.compareTitle' | translate"
 			(click)="openCompare.emit()"
 		>
@@ -64,6 +65,7 @@ export class RibbonReviewSectionComponent {
 	private readonly editor = inject(EditorStateService);
 
 	readonly spellCheckEnabled = input(false);
+	readonly canEdit = input(false);
 	readonly comments = output<void>();
 	readonly spellCheckChange = output<boolean>();
 	readonly a11y = output<void>();

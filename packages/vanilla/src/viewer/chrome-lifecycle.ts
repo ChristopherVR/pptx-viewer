@@ -168,12 +168,14 @@ export interface ChromeHost {
 	openPresenterView(): void;
 	exitPresentation(): Promise<void>;
 	openBroadcast(): void;
+	openShare(): void;
 	openAccessibility(): void;
 	openSettings(tab?: 'general' | 'shortcuts'): void;
 	openHeaderFooter(): void;
 	openCompare(): void;
 	openSetUpSlideShow(): void;
 	startRehearsal(): void;
+	toggleSubtitles(): void;
 	openSelectionPane(): void;
 	openSlideSorter(): void;
 	openComments(): void;
@@ -193,6 +195,9 @@ export interface ChromeHost {
 	exportVideo(): Promise<void>;
 	print(): Promise<boolean>;
 	openPrintDialog(): void;
+	openFile(): void;
+	openRecentFile(key: string): void;
+	createPresentation(templateId: string): void;
 	setTheme(theme: ViewerTheme | undefined): void;
 	applyPresentationTheme(presetId: string): void;
 }
@@ -225,12 +230,14 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		startPresentationFromCurrent: () => void host.enterPresentation(),
 		openPresenterView: () => host.openPresenterView(),
 		openBroadcast: () => host.openBroadcast(),
+		openShare: () => host.openShare(),
 		openAccessibility: () => host.openAccessibility(),
 		openSettings: (tab) => host.openSettings(tab),
 		openHeaderFooter: () => host.openHeaderFooter(),
 		openCompare: () => host.openCompare(),
 		openSetUpSlideShow: () => host.openSetUpSlideShow(),
 		startRehearsal: () => host.startRehearsal(),
+		toggleSubtitles: () => host.toggleSubtitles(),
 		openSelectionPane: () => host.openSelectionPane(),
 		openSlideSorter: () => host.openSlideSorter(),
 		openComments: () => host.openComments(),
@@ -258,6 +265,9 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		exportGif: () => host.exportGif(),
 		exportVideo: () => host.exportVideo(),
 		print: () => Promise.resolve((host.openPrintDialog(), true)),
+		openFile: () => host.openFile(),
+		openRecentFile: (key) => host.openRecentFile(key),
+		createPresentation: (templateId) => host.createPresentation(templateId),
 		getEditActions: () => host.editor.getEditActions(),
 		getFindReplaceActions: () => host.editor.getFindReplaceActions(),
 		setTheme: (theme) => host.setTheme(theme),

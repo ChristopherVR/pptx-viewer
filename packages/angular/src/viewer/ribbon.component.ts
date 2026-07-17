@@ -240,10 +240,13 @@ const TABS: readonly TabDef[] = [
 				@switch (activeTab()) {
 					@case ('file') {
 						<pptx-ribbon-file-section
+							(close)="activeTab.set('home')"
+							(createPresentation)="createPresentation.emit($event)"
 							[slideCount]="slideCount()"
 							[exporting]="exporting()"
 							[hasMacros]="hasMacros()"
 							(openFile)="openFile.emit()"
+							(openRecentFile)="openRecentFile.emit($event)"
 							(save)="save.emit()"
 							(savePpsx)="savePpsx.emit()"
 							(savePptm)="savePptm.emit()"
@@ -260,6 +263,7 @@ const TABS: readonly TabDef[] = [
 							(openPassword)="openPassword.emit()"
 							(openFontEmbedding)="openFontEmbedding.emit()"
 							(openVersionHistory)="openVersionHistory.emit()"
+							(share)="share.emit()"
 							(options)="requestSettings()"
 						/>
 					}
@@ -321,8 +325,14 @@ const TABS: readonly TabDef[] = [
 					@case ('slideShow') {
 						<pptx-ribbon-slideshow-section
 							[slideCount]="slideCount()"
-							(present)="present.emit()"
+							[showSubtitles]="showSubtitles()"
+							(presentFromBeginning)="presentFromBeginning.emit()"
+							(presentFromCurrent)="present.emit()"
 							(presenter)="presenter.emit()"
+							(rehearseTimings)="rehearseTimings.emit()"
+							(record)="record.emit()"
+							(toggleSubtitles)="toggleSubtitles.emit()"
+							(openSubtitleSettings)="openSubtitleSettings.emit()"
 							(broadcast)="broadcast.emit()"
 							(openCustomShows)="openCustomShows.emit()"
 							(openSetUpSlideShow)="openSetUpSlideShow.emit()"
@@ -330,6 +340,7 @@ const TABS: readonly TabDef[] = [
 					}
 					@case ('review') {
 						<pptx-ribbon-review-section
+							[canEdit]="canEdit()"
 							[spellCheckEnabled]="spellCheckEnabled()"
 							(spellCheckChange)="setSpellCheck($event)"
 							(comments)="comments.emit()"
@@ -346,6 +357,7 @@ const TABS: readonly TabDef[] = [
 							[showRulers]="showRulers()"
 							[showGuides]="showGuides()"
 							[snapToGrid]="snapToGrid()"
+							[snapToShape]="snapToShape()"
 							[eyedropperActive]="eyedropperActive()"
 							(openSorter)="openSorter.emit()"
 							(toggleNotes)="toggleNotes.emit()"
@@ -357,6 +369,9 @@ const TABS: readonly TabDef[] = [
 							(toggleGuides)="toggleGuides.emit()"
 							(toggleSelectionPane)="toggleSelectionPane.emit()"
 							(toggleSnapToGrid)="toggleSnapToGrid.emit()"
+							(toggleSnapToShape)="toggleSnapToShape.emit()"
+							(addGuide)="addGuide.emit($event)"
+							(zoomToFit)="zoomToFit.emit()"
 							(toggleEyedropper)="toggleEyedropper.emit()"
 						/>
 					}
@@ -391,6 +406,7 @@ const TABS: readonly TabDef[] = [
 						<pptx-ribbon-animations-section
 							[slideIndex]="slideIndex()"
 							[selectedElement]="selectedElement()"
+							[canEdit]="canEdit()"
 							(present)="present.emit()"
 							(toggleInspector)="toggleInspector.emit()"
 						/>
@@ -436,6 +452,7 @@ export class RibbonComponent {
 	readonly showGuides = input<boolean>(false);
 	/** Current state of snap-to-grid (for active-state styling). */
 	readonly snapToGrid = input<boolean>(false);
+	readonly snapToShape = input<boolean>(true);
 	/** Current state of eyedropper tool (for active-state styling). */
 	readonly eyedropperActive = input<boolean>(false);
 	/** Current visibility state of the theme gallery overlay (for active-state styling). */
@@ -456,6 +473,7 @@ export class RibbonComponent {
 	readonly connectedCount = input<number>(0);
 	/** Current live proofing state shown by the Review ribbon command. */
 	readonly spellCheckEnabled = input<boolean>(false);
+	readonly showSubtitles = input<boolean>(false);
 
 	readonly prev = output<void>();
 	readonly next = output<void>();
@@ -467,12 +485,18 @@ export class RibbonComponent {
 	readonly presenter = output<void>();
 	/** Emitted by the tab-row Record button (starts a slide-show run-through). */
 	readonly record = output<void>();
+	readonly presentFromBeginning = output<void>();
+	readonly rehearseTimings = output<void>();
+	readonly toggleSubtitles = output<void>();
+	readonly openSubtitleSettings = output<void>();
 	readonly recordFromBeginning = output<void>();
 	readonly recordFromCurrent = output<void>();
 	readonly spellCheckChange = output<boolean>();
 	readonly share = output<void>();
 	readonly broadcast = output<void>();
 	readonly openFile = output<void>();
+	readonly openRecentFile = output<string>();
+	readonly createPresentation = output<string>();
 	/** Emitted when the user clicks "Save" in the File tab (saves as .pptx). */
 	readonly save = output<void>();
 	readonly savePpsx = output<void>();
@@ -526,6 +550,9 @@ export class RibbonComponent {
 	readonly openCustomShows = output<void>();
 	/** Emitted when the user toggles snap-to-grid in the View tab. */
 	readonly toggleSnapToGrid = output<void>();
+	readonly toggleSnapToShape = output<void>();
+	readonly addGuide = output<'x' | 'y'>();
+	readonly zoomToFit = output<void>();
 	/** Emitted when the user activates the eyedropper in the View tab. */
 	readonly toggleEyedropper = output<void>();
 	/**

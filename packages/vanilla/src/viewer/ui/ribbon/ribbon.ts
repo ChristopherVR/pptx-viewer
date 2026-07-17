@@ -47,6 +47,7 @@ export interface Ribbon {
 	setDrawState(state: RibbonDrawState): void;
 	setTemplateEditing(active: boolean): void;
 	setHasMacros(hasMacros: boolean): void;
+	setSubtitlesVisible(visible: boolean): void;
 	openEquationEditor(id: string, omml: Record<string, unknown>): void;
 }
 
@@ -78,7 +79,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 	const formatBackgroundPanel = createFormatBackgroundPanel(doc, t, handlers.edit);
 	el.appendChild(formatBackgroundPanel.el);
 
-	const fileTab = createFileTab(doc, t, handlers.file);
+	const fileTab = createFileTab(doc, t, handlers.file, () => setActiveTab('home'));
 	const homeTab: HomeTab = createHomeTab(doc, t, {
 		edit: handlers.edit,
 		onToggleFindReplace: () => findReplace.toggle(),
@@ -108,7 +109,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 		animations: animationsTab.el,
 		slideShow: slideShowTab.el,
 		record: recordTab,
-		review: reviewTab,
+		review: reviewTab.el,
 		view: viewTab.el,
 		help: helpTab,
 	};
@@ -162,6 +163,8 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 		setAutosaveStatus: (label, kind) => primary.setAutosaveStatus(label, kind),
 		setEditable(editable) {
 			lastEditable = editable;
+			reviewTab.setEditable(editable);
+			viewTab.setEditable(editable);
 			insertTab.setEditable(editable);
 			drawTab.setEditable(editable);
 			findReplace.setEditable(editable);
@@ -175,6 +178,7 @@ export function createRibbon(doc: Document, t: Translator, handlers: RibbonHandl
 		setDrawState: (state) => drawTab.update(state),
 		setTemplateEditing: (active) => viewTab.setTemplateEditing(active),
 		setHasMacros: (hasMacros) => fileTab.setHasMacros(hasMacros),
+		setSubtitlesVisible: (visible) => slideShowTab.setSubtitlesVisible(visible),
 		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),
 		updateSelection(selectedElement, extra) {
 			latestSelected = selectedElement;

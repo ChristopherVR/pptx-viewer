@@ -13,6 +13,7 @@ import type { AutosaveStatus } from '../../state/autosave.svelte';
  */
 
 export interface RibbonProps {
+	fileName?: string;
 	/** History-tracked editor state; Home/Insert tab groups read/write it directly. */
 	editor: EditorState;
 	/** Reactive Find & Replace panel state, owned by the host so it can navigate the viewer. */
@@ -63,9 +64,9 @@ export interface RibbonProps {
 	onsettings: () => void;
 	onprintsettings: () => void;
 	onrehearse: () => void;
-	onsubtitles: () => void;
 	onrecordfrombeginning: () => void;
 	onrecordfromcurrent: () => void;
+	onsubtitles: () => void;
 	oncustomshows: () => void;
 	onselectionpane: () => void;
 	onslidesorter: () => void;
@@ -97,6 +98,7 @@ export interface RibbonProps {
 	/** File tab: export menu (PNG / PDF / GIF / video / print). */
 	exportUi?: ExportUiState;
 	onopenfile?: () => void;
+	onopenrecent?: (key: string) => void;
 
 	/**
 	 * Design tab: the current effective viewer-chrome theme (for highlighting

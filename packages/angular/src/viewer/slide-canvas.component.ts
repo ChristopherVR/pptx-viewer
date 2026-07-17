@@ -552,6 +552,10 @@ export class SlideCanvasComponent implements SlideContext {
 	 * Combines with edge-alignment snapping.
 	 */
 	readonly snapToGrid = input<boolean>(false);
+	/** Whether moving elements snap to other element edges and centres. */
+	readonly snapToShape = input<boolean>(true);
+	/** Imperative toolbar request to add a centered user guide. */
+	readonly guideCommand = input<{ id: number; axis: 'x' | 'y' } | null>(null);
 	/** Whether the inline text editor uses the browser spell checker. */
 	readonly spellCheck = input<boolean>(false);
 	/**
@@ -679,6 +683,7 @@ export class SlideCanvasComponent implements SlideContext {
 	private seededEditId: string | null = null;
 	/** Last-tap timestamp + element id, for synthetic double-tap detection on touch. */
 	private lastTap: { id: string; time: number } | null = null;
+	private lastGuideCommandId = 0;
 
 	constructor() {
 		// Seed + focus the inline editor exactly once when it first appears for a
@@ -766,6 +771,14 @@ export class SlideCanvasComponent implements SlideContext {
 			stageElement: () => this.stageRef()?.nativeElement,
 			effectiveScale: () => this.effectiveScale(),
 			canvasSize: () => this.canvasSize(),
+		});
+
+		effect(() => {
+			const command = this.guideCommand();
+			if (command && command.id !== this.lastGuideCommandId) {
+				this.lastGuideCommandId = command.id;
+				this.rulerGuidesSvc.addGuide(command.axis);
+			}
 		});
 	}
 
@@ -1254,9 +1267,13 @@ export class SlideCanvasComponent implements SlideContext {
 			const others = this.allElements()
 				.filter((el) => el.id !== drag.id)
 				.map((el) => ({ x: el.x, y: el.y, width: el.width, height: el.height }));
-			const snap = computeSnap(box, others, SNAP_SCREEN_PX / zoom);
-			box = { ...box, x: snap.x, y: snap.y };
-			this.snapGuides.set(snap.guides);
+			if (this.snapToShape()) {
+				const snap = computeSnap(box, others, SNAP_SCREEN_PX / zoom);
+				box = { ...box, x: snap.x, y: snap.y };
+				this.snapGuides.set(snap.guides);
+			} else {
+				this.snapGuides.set([]);
+			}
 
 			// Grid snap: applied after element-edge snap so grid takes precedence.
 			if (this.snapToGrid()) {

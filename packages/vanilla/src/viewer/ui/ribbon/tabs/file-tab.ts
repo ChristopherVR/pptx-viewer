@@ -59,6 +59,9 @@ export function createFileTab(
 		if (next === 'save') {
 			return run(handlers.save);
 		}
+		if (next === 'options') {
+			return run(handlers.openSettings);
+		}
 		page = next;
 		render();
 	}

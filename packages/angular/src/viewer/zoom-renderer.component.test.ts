@@ -82,6 +82,12 @@ describe('buildZoomViewModel', () => {
 		expect(vm.targetSectionId).toBe('Intro');
 	});
 
+	it('returns "Summary Zoom" badge text for summary zoom type', () => {
+		const vm = buildZoomViewModel(zoom({ zoomType: 'summary' }));
+		expect(vm.badgeText).toBe('Summary Zoom');
+		expect(vm.zoomType).toBe('summary');
+	});
+
 	it('includes section id in ariaLabel when section zoom has a targetSectionId', () => {
 		const vm = buildZoomViewModel(zoom({ zoomType: 'section', targetSectionId: 'Intro' }));
 		expect(vm.ariaLabel).toContain('section: Intro');

@@ -576,6 +576,7 @@
 		/>
 		{#if showRibbon}
 			<Ribbon
+				{fileName}
 				{editor}
 				{findReplace}
 				canvasSize={loader.canvasSize}
@@ -632,9 +633,9 @@
 				onsettings={() => { parityUi.syncAutosave(autosaveEnabled); parityUi.settingsOpen = true; }}
 				onprintsettings={() => (parityUi.printSettingsOpen = true)}
 				onrehearse={() => { parityUi.rehearse.start(viewer.current); onFullscreenToggle(); }}
-				onsubtitles={() => (parityUi.subtitlesEnabled = !parityUi.subtitlesEnabled)}
 				onrecordfrombeginning={() => { viewer.goTo(0); parityUi.rehearse.start(0); onFullscreenToggle(); }}
 				onrecordfromcurrent={() => { parityUi.rehearse.start(viewer.current); onFullscreenToggle(); }}
+				onsubtitles={() => (parityUi.subtitlesEnabled = !parityUi.subtitlesEnabled)}
 				oncustomshows={() => (parityUi.customShowsOpen = true)}
 				onselectionpane={() => (parityUi.selectionPaneOpen = !parityUi.selectionPaneOpen)}
 				onslidesorter={() => (parityUi.slideSorterOpen = true)}
@@ -647,6 +648,13 @@
 				onaddguide={(axis) => { parityUi.guides = [...parityUi.guides, { axis, position: axis === 'v' ? loader.canvasSize.width / 2 : loader.canvasSize.height / 2 }]; parityUi.showGuides = true; }}
 				{exportUi}
 				{onopenfile}
+				onopenrecent={(key) => {
+					void (async () => {
+						const { readBackstageRecentFile } = await import('pptx-viewer-shared');
+						const bytes = await readBackstageRecentFile(key);
+						if (bytes) await loader.load(bytes);
+					})();
+				}}
 				theme={effectiveTheme}
 				onsettheme={onSetTheme}
 				onentermasterview={() => editor.masterOps.enter()}

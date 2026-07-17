@@ -446,6 +446,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 					[slideIndex]="slideIndex()"
 					[animations]="slideAnimations()"
 					[slideElements]="slideElements()"
+					[canEdit]="canEdit()"
 					(animationsChange)="onAnimationsChange($event)"
 				/>
 			</details>
@@ -732,6 +733,8 @@ export class InspectorPanelComponent {
 	readonly element = input.required<PptxElement>();
 	/** Zero-based index of the active slide. */
 	readonly slideIndex = input.required<number>();
+	/** Whether mutation controls in the inspector are enabled. */
+	readonly canEdit = input<boolean>(true);
 
 	protected readonly editor = inject(EditorStateService);
 
