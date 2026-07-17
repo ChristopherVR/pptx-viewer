@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.1.0) - 2026-07-17
+
+### Features
+
+- **svelte:** Add theme/language switching and a real Account page (by @ChristopherVR) ([499fef4](https://github.com/ChristopherVR/pptx-viewer/commit/499fef497be18a8137ed3956e5dce2186ad31411))
+
+### Other
+
+- Integrate release version bumps (by @ChristopherVR) ([4b3893f](https://github.com/ChristopherVR/pptx-viewer/commit/4b3893f4158803cc5533beb266ffdc8c776177cb))
+- Integrate Svelte theme/language switching and Account page (by @ChristopherVR) ([2f1488e](https://github.com/ChristopherVR/pptx-viewer/commit/2f1488e435497e967bf2fe268d7495778957245b))
+
 ## [1.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.0.0) - 2026-07-17
 
 ### Features

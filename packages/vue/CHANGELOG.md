@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.21.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.21.0) - 2026-07-17
+
+### Features
+
+- **vue:** Add theme/language switching and a real Account page (by @ChristopherVR) ([234dd01](https://github.com/ChristopherVR/pptx-viewer/commit/234dd01e997c88eeeb20a9187dff8268a2f56693))
+
+### Other
+
+- Integrate release version bumps (by @ChristopherVR) ([4b3893f](https://github.com/ChristopherVR/pptx-viewer/commit/4b3893f4158803cc5533beb266ffdc8c776177cb))
+- Integrate Vue theme/language switching and Account page (by @ChristopherVR) ([0f8915a](https://github.com/ChristopherVR/pptx-viewer/commit/0f8915af7c7a70b610128c7c931c0750504010bc))
+
 ## [1.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.20.0) - 2026-07-17
 
 ### Features

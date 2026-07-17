@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.22.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.22.0) - 2026-07-17
+
+### Features
+
+- **react:** Add theme/language switching and a real Account page (by @ChristopherVR) ([f2b4d8b](https://github.com/ChristopherVR/pptx-viewer/commit/f2b4d8b209a26b21aa71a5e28eb4066d9bbf9500))
+
+### Other
+
+- Integrate React theme/language switching and Account page (by @ChristopherVR) ([2fb0854](https://github.com/ChristopherVR/pptx-viewer/commit/2fb0854ed4f4505dbb22889aa6c4e5d3c2540094))
+
 ## [1.21.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.21.0) - 2026-07-17
 
 ### Features

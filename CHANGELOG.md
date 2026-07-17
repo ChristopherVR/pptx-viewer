@@ -6,6 +6,30 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-17
 
+_Releases: pptx-react-viewer@1.22.0, pptx-vue-viewer@1.21.0, pptx-angular-viewer@1.27.0, pptx-vanilla-viewer@0.12.0, pptx-svelte-viewer@1.1.0_
+
+### Features
+
+- **react:** Add theme/language switching and a real Account page (by @ChristopherVR) ([f2b4d8b](https://github.com/ChristopherVR/pptx-viewer/commit/f2b4d8b209a26b21aa71a5e28eb4066d9bbf9500))
+- **vue:** Add theme/language switching and a real Account page (by @ChristopherVR) ([234dd01](https://github.com/ChristopherVR/pptx-viewer/commit/234dd01e997c88eeeb20a9187dff8268a2f56693))
+- **angular:** Add theme/language switching and a real Account page (by @ChristopherVR) ([b33cdb9](https://github.com/ChristopherVR/pptx-viewer/commit/b33cdb92e44b149f73319945aa230068d35370cb))
+- **vanilla:** Persist theme/language switching and add a real Account page (by @ChristopherVR) ([c6959e0](https://github.com/ChristopherVR/pptx-viewer/commit/c6959e094a2d3ba044ecac6cced6076394ab40de))
+- **svelte:** Add theme/language switching and a real Account page (by @ChristopherVR) ([499fef4](https://github.com/ChristopherVR/pptx-viewer/commit/499fef497be18a8137ed3956e5dce2186ad31411))
+
+### Other
+
+- Integrate React theme/language switching and Account page (by @ChristopherVR) ([2fb0854](https://github.com/ChristopherVR/pptx-viewer/commit/2fb0854ed4f4505dbb22889aa6c4e5d3c2540094))
+- Integrate Vue theme/language switching and Account page (by @ChristopherVR) ([0f8915a](https://github.com/ChristopherVR/pptx-viewer/commit/0f8915af7c7a70b610128c7c931c0750504010bc))
+- Integrate Angular theme/language switching and Account page (by @ChristopherVR) ([2683183](https://github.com/ChristopherVR/pptx-viewer/commit/2683183be0508b4f5322e1909cfc762e6f7a82cc))
+- Integrate Vanilla theme/language persistence and Account page (by @ChristopherVR) ([d86984f](https://github.com/ChristopherVR/pptx-viewer/commit/d86984fdd63c3305c3f3f4654b7be0d719514896))
+- Integrate Svelte theme/language switching and Account page (by @ChristopherVR) ([2f1488e](https://github.com/ChristopherVR/pptx-viewer/commit/2f1488e435497e967bf2fe268d7495778957245b))
+
+### Documentation
+
+- Document theme/language switching and Account sign-in wiring (by @ChristopherVR) ([f883eff](https://github.com/ChristopherVR/pptx-viewer/commit/f883eff0ae285b580cb7cad1091e29fc60ab14ab))
+
+## 2026-07-17
+
 _Releases: pptx-react-viewer@1.21.0, pptx-angular-viewer@1.26.0, pptx-vanilla-viewer@0.11.0_
 
 ### Features
