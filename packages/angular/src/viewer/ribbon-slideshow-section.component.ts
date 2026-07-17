@@ -6,6 +6,9 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import type { ToolbarActionId } from '../internal/shared';
+import { toolbarVisibility } from './toolbar-visibility';
+
 @Component({
 	selector: 'pptx-ribbon-slideshow-section',
 	standalone: true,
@@ -55,9 +58,11 @@ import { TranslatePipe } from '@ngx-translate/core';
 		<button type="button" class="pptx-rb-pill" (click)="openSubtitleSettings.emit()">
 			Subtitle Settings
 		</button>
-		<button type="button" class="pptx-rb-pill" (click)="broadcast.emit()">
-			{{ 'pptx.ribbon.broadcast' | translate }}
-		</button>
+		@if (!toolbar.isHidden('broadcast')) {
+			<button type="button" class="pptx-rb-pill" (click)="broadcast.emit()">
+				{{ 'pptx.ribbon.broadcast' | translate }}
+			</button>
+		}
 		<button type="button" class="pptx-rb-pill" (click)="openCustomShows.emit()">
 			{{ 'pptx.ribbon.customShowsButton' | translate }}
 		</button>
@@ -74,6 +79,8 @@ import { TranslatePipe } from '@ngx-translate/core';
 export class RibbonSlideshowSectionComponent {
 	readonly slideCount = input<number>(0);
 	readonly showSubtitles = input<boolean>(false);
+	/** Toolbar buttons the host wants hidden (gates Broadcast). */
+	readonly hiddenActions = input<ToolbarActionId[]>([]);
 
 	readonly presentFromBeginning = output<void>();
 	readonly presentFromCurrent = output<void>();
@@ -85,4 +92,6 @@ export class RibbonSlideshowSectionComponent {
 	readonly record = output<void>();
 	readonly toggleSubtitles = output<void>();
 	readonly openSubtitleSettings = output<void>();
+
+	protected readonly toolbar = toolbarVisibility(this.hiddenActions);
 }

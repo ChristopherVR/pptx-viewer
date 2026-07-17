@@ -23,7 +23,9 @@ import {
 } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
+import type { ToolbarActionId } from '../internal/shared';
 import type { AutosaveStatus } from './autosave.service';
+import { toolbarVisibility } from './toolbar-visibility';
 
 @Component({
 	selector: 'pptx-status-bar',
@@ -65,17 +67,19 @@ import type { AutosaveStatus } from './autosave.service';
 			<div class="flex-1"></div>
 
 			<!-- Notes toggle -->
-			<button
-				type="button"
-				class="flex items-center gap-1 rounded-sm p-1 text-[10px] text-muted-foreground transition-colors hover:bg-accent/60"
-				[ngClass]="notesOpen() ? 'text-primary' : ''"
-				[title]="'pptx.statusBar.toggleNotes' | translate"
-				[attr.aria-label]="'pptx.statusBar.toggleNotes' | translate"
-				(click)="toggleNotes.emit()"
-			>
-				<svg lucideStickyNote class="h-3 w-3"></svg>
-				<span>{{ 'pptx.notes.title' | translate }}</span>
-			</button>
+			@if (!toolbar.isHidden('notes')) {
+				<button
+					type="button"
+					class="flex items-center gap-1 rounded-sm p-1 text-[10px] text-muted-foreground transition-colors hover:bg-accent/60"
+					[ngClass]="notesOpen() ? 'text-primary' : ''"
+					[title]="'pptx.statusBar.toggleNotes' | translate"
+					[attr.aria-label]="'pptx.statusBar.toggleNotes' | translate"
+					(click)="toggleNotes.emit()"
+				>
+					<svg lucideStickyNote class="h-3 w-3"></svg>
+					<span>{{ 'pptx.notes.title' | translate }}</span>
+				</button>
+			}
 
 			<div class="mx-0.5 h-3 w-px bg-border/60"></div>
 
@@ -101,49 +105,53 @@ import type { AutosaveStatus } from './autosave.service';
 				>
 					<svg lucideColumns2 class="h-3.5 w-3.5"></svg>
 				</button>
-				<button
-					type="button"
-					class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
-					[ngClass]="presenting() ? 'text-primary' : ''"
-					[disabled]="slideCount() === 0"
-					[title]="'pptx.statusBar.slideShow' | translate"
-					[attr.aria-label]="'pptx.statusBar.slideShow' | translate"
-					(click)="slideShow.emit()"
-				>
-					<svg lucidePresentation class="h-3.5 w-3.5"></svg>
-				</button>
+				@if (!toolbar.isHidden('fullscreen')) {
+					<button
+						type="button"
+						class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
+						[ngClass]="presenting() ? 'text-primary' : ''"
+						[disabled]="slideCount() === 0"
+						[title]="'pptx.statusBar.slideShow' | translate"
+						[attr.aria-label]="'pptx.statusBar.slideShow' | translate"
+						(click)="slideShow.emit()"
+					>
+						<svg lucidePresentation class="h-3.5 w-3.5"></svg>
+					</button>
+				}
 			</div>
 
 			<!-- Zoom controls -->
-			<div class="mx-0.5 h-3 w-px bg-border/60"></div>
-			<div class="flex items-center gap-0.5">
-				<button
-					type="button"
-					class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
-					[title]="'pptx.statusBar.zoomOut' | translate"
-					[attr.aria-label]="'pptx.statusBar.zoomOut' | translate"
-					(click)="zoomOut.emit()"
-				>
-					<svg lucideMinus class="h-3 w-3"></svg>
-				</button>
-				<button
-					type="button"
-					class="min-w-[3rem] rounded-sm px-1.5 py-0.5 text-center text-[10px] tabular-nums text-muted-foreground transition-colors hover:bg-accent/60"
-					[title]="'pptx.statusBar.zoomToFit' | translate"
-					(click)="zoomReset.emit()"
-				>
-					{{ zoomPercent() }}%
-				</button>
-				<button
-					type="button"
-					class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
-					[title]="'pptx.statusBar.zoomIn' | translate"
-					[attr.aria-label]="'pptx.statusBar.zoomIn' | translate"
-					(click)="zoomIn.emit()"
-				>
-					<svg lucidePlus class="h-3 w-3"></svg>
-				</button>
-			</div>
+			@if (!toolbar.isHidden('zoom')) {
+				<div class="mx-0.5 h-3 w-px bg-border/60"></div>
+				<div class="flex items-center gap-0.5">
+					<button
+						type="button"
+						class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
+						[title]="'pptx.statusBar.zoomOut' | translate"
+						[attr.aria-label]="'pptx.statusBar.zoomOut' | translate"
+						(click)="zoomOut.emit()"
+					>
+						<svg lucideMinus class="h-3 w-3"></svg>
+					</button>
+					<button
+						type="button"
+						class="min-w-[3rem] rounded-sm px-1.5 py-0.5 text-center text-[10px] tabular-nums text-muted-foreground transition-colors hover:bg-accent/60"
+						[title]="'pptx.statusBar.zoomToFit' | translate"
+						(click)="zoomReset.emit()"
+					>
+						{{ zoomPercent() }}%
+					</button>
+					<button
+						type="button"
+						class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
+						[title]="'pptx.statusBar.zoomIn' | translate"
+						[attr.aria-label]="'pptx.statusBar.zoomIn' | translate"
+						(click)="zoomIn.emit()"
+					>
+						<svg lucidePlus class="h-3 w-3"></svg>
+					</button>
+				</div>
+			}
 		</div>
 	`,
 })
@@ -160,6 +168,8 @@ export class StatusBarComponent {
 	readonly sorterActive = input<boolean>(false);
 	/** True when the presentation overlay is open (active-state styling). */
 	readonly presenting = input<boolean>(false);
+	/** Toolbar buttons the host wants hidden (notes/fullscreen/zoom independently). */
+	readonly hiddenActions = input<ToolbarActionId[]>([]);
 
 	readonly toggleNotes = output<void>();
 	readonly normalView = output<void>();
@@ -170,6 +180,7 @@ export class StatusBarComponent {
 	readonly zoomReset = output<void>();
 
 	private readonly translate = inject(TranslateService);
+	protected readonly toolbar = toolbarVisibility(this.hiddenActions);
 
 	/** "Normal" is active when neither the sorter nor the slideshow is showing. */
 	protected isNormal(): boolean {

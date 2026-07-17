@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+
 import {
 	BACKSTAGE_NAV,
 	BACKSTAGE_TEMPLATES,
 	formatBackstageDate,
 	formatBackstageSize,
+	isActionHidden,
 	listBackstageRecentFiles,
-} from 'pptx-viewer-shared';
-import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
-
+} from '../internal/shared';
+import type { BackstagePage, BackstageRecentFile, ToolbarActionId } from '../internal/shared';
 import { BackstageNavIconComponent } from './backstage-nav-icon.component';
 
 interface BackstageAction {
@@ -15,6 +16,20 @@ interface BackstageAction {
 	body: string;
 	icon: string;
 	event: { emit: () => void };
+}
+
+/**
+ * Pure, testable filter: the main (non-footer) backstage nav entries visible
+ * for a given `hiddenActions` list. Only the Export entry maps to a toolbar
+ * action id ('export'); every other backstage page (Home, New, Open, ...) has
+ * no `ToolbarActionId` counterpart and always stays.
+ */
+export function visibleMainNav(
+	hiddenActions: readonly ToolbarActionId[] | undefined,
+): typeof BACKSTAGE_NAV {
+	return BACKSTAGE_NAV.filter(
+		(item) => !item.group && !(item.id === 'export' && isActionHidden('export', hiddenActions)),
+	);
 }
 
 @Component({
@@ -31,6 +46,8 @@ export class RibbonFileSectionComponent {
 	readonly slideCount = input(0);
 	readonly exporting = input(false);
 	readonly hasMacros = input(false);
+	/** Toolbar buttons the host wants hidden (drops the Export nav entry/page). */
+	readonly hiddenActions = input<ToolbarActionId[]>([]);
 	readonly close = output<void>();
 	readonly createPresentation = output<string>();
 	readonly openFile = output<void>();
@@ -55,7 +72,7 @@ export class RibbonFileSectionComponent {
 	readonly options = output<void>();
 
 	protected readonly templates = BACKSTAGE_TEMPLATES;
-	protected readonly mainNav = BACKSTAGE_NAV.filter((item) => !item.group);
+	protected readonly mainNav = computed(() => visibleMainNav(this.hiddenActions()));
 	protected readonly footerNav = BACKSTAGE_NAV.filter((item) => item.group);
 	protected readonly page = signal<BackstagePage>('home');
 	protected readonly query = signal('');

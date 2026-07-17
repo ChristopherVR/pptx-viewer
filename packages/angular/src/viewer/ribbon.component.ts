@@ -1,115 +1,37 @@
 /**
- * ribbon.component.ts: Office-style tabbed ribbon for the Angular editor chrome.
- *
- * 1:1 port of React's `viewer/components/Toolbar.tsx` + its `toolbar/*Section`
- * components, built with the Tailwind 4 utility classes shared across the
- * React/Vue/Angular packages (see `styles/theme.css`). Replaces the previous
- * flat button-row header.
- *
- * Layout (mirrors React):
- *   - Primary quick-access row: undo/redo, find, zoom · spacer · present/share/
- *     export/info/print/a11y/comments/link
- *   - Tab bar: File/Home/Insert/Text/Draw/Arrange/Design/Transitions/Animations/
- *     Slide Show/Review/View/Help
- *   - Ribbon content: the active tab's grouped controls
- *
- * This component is a thin shell: the tab bar plus a `@switch` that dispatches to
- * one standalone section component per tab (`ribbon-*-section.component.ts`),
- * mirroring Vue's `ribbon/*Section.vue` split. Tab-local state that must survive
- * tab switches (draw tool, transition preset/duration, insert chart type) lives
- * here and is passed to the sections as inputs, so switching tabs never resets
- * it. Everything else is wired through the shared {@link EditorStateService}
- * (injected by each section) or bubbled up as `output()` events the
- * {@link PowerPointViewerComponent} already handles.
+ * ribbon.component.ts: Office-style tabbed ribbon for the Angular editor chrome,
+ * 1:1 port of React's `viewer/components/Toolbar.tsx`. A thin orchestrator: owns
+ * `activeTab` (shared state) and renders the siblings this file was split into
+ * to get under the repo's 300-LOC cap: {@link RibbonPrimaryRowComponent} (quick
+ * -access row), {@link RibbonTabListComponent} (tab strip + Record/Share +
+ * collapse), and {@link RibbonContentComponent}/{@link RibbonContentSecondaryComponent}
+ * (the active tab's controls, split across two files since the combined
+ * `@switch` for all fourteen tabs was itself over the cap). Every input/output
+ * here is unchanged from before the split, so `PowerPointViewerComponent`'s
+ * bindings to `<pptx-ribbon>` did not need to change.
  */
-import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
-import { LucideChevronDown, LucideChevronUp, LucideShare2 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxChartType, PptxElement, PptxTransitionType } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
 
-import { DEFAULT_INSERT_CHART_TYPE, TAB_ROW_ACTION_CLASSES } from '../internal/shared';
-import { RibbonAnimationsSectionComponent } from './ribbon-animations-section.component';
-import { RibbonArrangeSectionComponent } from './ribbon-arrange-section.component';
-import { RibbonDesignSectionComponent } from './ribbon-design-section.component';
-import type { DrawTool, DrawToolState } from './ribbon-draw-section.component';
-import { RibbonDrawSectionComponent } from './ribbon-draw-section.component';
-import { RibbonDrawingGroupComponent } from './ribbon-drawing-group.component';
-import { RibbonFileSectionComponent } from './ribbon-file-section.component';
-import { RibbonFontControlsComponent } from './ribbon-font-controls.component';
-import { RibbonHomeSectionComponent } from './ribbon-home-section.component';
-import { RibbonInsertSectionComponent } from './ribbon-insert-section.component';
-import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.component';
+import type { ToolbarActionId } from '../internal/shared';
+import { RibbonContentSecondaryComponent } from './ribbon-content-secondary.component';
+import { RibbonContentComponent } from './ribbon-content.component';
+import type { DrawToolState } from './ribbon-draw-section.component';
 import { RibbonPrimaryRowComponent } from './ribbon-primary-row.component';
-import { RibbonRecordSectionComponent } from './ribbon-record-section.component';
-import { RibbonReviewSectionComponent } from './ribbon-review-section.component';
-import { RibbonSlideshowSectionComponent } from './ribbon-slideshow-section.component';
-import { RibbonTransitionsSectionComponent } from './ribbon-transitions-section.component';
-import { RibbonViewSectionComponent } from './ribbon-view-section.component';
-
-/** Ribbon tab identifiers (mirrors React `TOOLBAR_SECTIONS`). */
-type RibbonTab =
-	| 'file'
-	| 'home'
-	| 'insert'
-	| 'text'
-	| 'draw'
-	| 'arrange'
-	| 'design'
-	| 'transitions'
-	| 'animations'
-	| 'slideShow'
-	| 'record'
-	| 'review'
-	| 'view'
-	| 'help';
-
-interface TabDef {
-	id: RibbonTab;
-	labelKey: string;
-}
-
-const TABS: readonly TabDef[] = [
-	{ id: 'file', labelKey: 'pptx.ribbon.tab.file' },
-	{ id: 'home', labelKey: 'pptx.ribbon.tab.home' },
-	{ id: 'insert', labelKey: 'pptx.ribbon.tab.insert' },
-	{ id: 'draw', labelKey: 'pptx.ribbon.tab.draw' },
-	{ id: 'design', labelKey: 'pptx.ribbon.tab.design' },
-	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
-	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
-	{ id: 'slideShow', labelKey: 'pptx.ribbon.tab.slideShow' },
-	{ id: 'record', labelKey: 'pptx.ribbon.tab.record' },
-	{ id: 'review', labelKey: 'pptx.ribbon.tab.review' },
-	{ id: 'view', labelKey: 'pptx.ribbon.tab.view' },
-	{ id: 'help', labelKey: 'pptx.ribbon.tab.help' },
-];
+import { RibbonTabListComponent } from './ribbon-tab-list.component';
+import type { RibbonTab } from './ribbon-types';
 
 @Component({
 	selector: 'pptx-ribbon',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
-		NgClass,
 		TranslatePipe,
-		LucideShare2,
-		LucideChevronUp,
-		LucideChevronDown,
 		RibbonPrimaryRowComponent,
-		RibbonRecordSectionComponent,
-		RibbonFileSectionComponent,
-		RibbonHomeSectionComponent,
-		RibbonInsertSectionComponent,
-		RibbonFontControlsComponent,
-		RibbonParagraphControlsComponent,
-		RibbonArrangeSectionComponent,
-		RibbonSlideshowSectionComponent,
-		RibbonReviewSectionComponent,
-		RibbonViewSectionComponent,
-		RibbonDrawSectionComponent,
-		RibbonDrawingGroupComponent,
-		RibbonDesignSectionComponent,
-		RibbonTransitionsSectionComponent,
-		RibbonAnimationsSectionComponent,
+		RibbonTabListComponent,
+		RibbonContentComponent,
+		RibbonContentSecondaryComponent,
 	],
 	template: `
 		<div
@@ -117,13 +39,13 @@ const TABS: readonly TabDef[] = [
 			[attr.aria-label]="'pptx.toolbar.presentationToolbarAria' | translate"
 			class="relative z-20 overflow-visible border-b border-border bg-secondary/50"
 		>
-			<!-- ── Primary quick-access row (ToolbarPrimaryRow parity) ──── -->
 			<pptx-ribbon-primary-row
 				[slideCount]="slideCount()"
 				[sidebarCollapsed]="sidebarCollapsed()"
 				[inspectorOpen]="inspectorOpen()"
 				[commentsOpen]="commentsOpen()"
 				[commentCount]="commentCount()"
+				[hiddenActions]="hiddenActions()"
 				(toggleSidebar)="toggleSidebar.emit()"
 				(toggleComments)="comments.emit()"
 				(present)="present.emit()"
@@ -141,294 +63,117 @@ const TABS: readonly TabDef[] = [
 				(save)="save.emit()"
 			/>
 
-			<!-- ── Tab bar ───────────────────────────────────────────────────── -->
-			<div role="tablist" class="flex items-center border-b border-border/60 px-1">
-				<!-- Scrollable tab strip: on narrow widths the tabs scroll instead of
-				     clipping (mirrors React's max-md:overflow-x-auto scrollbar-none),
-				     while the Record/Share actions and collapse toggle stay pinned. -->
-				<div class="flex min-w-0 flex-1 items-center overflow-x-auto pptx-scrollbar-none">
-					@for (t of tabs; track t.id) {
-						<button
-							type="button"
-							role="tab"
-							[attr.aria-selected]="activeTab() === t.id"
-							(click)="activeTab.set(t.id)"
-							class="relative whitespace-nowrap px-3.5 py-2 text-[12px] font-medium transition-colors"
-							[ngClass]="
-								activeTab() === t.id
-									? 'text-foreground after:absolute after:-bottom-px after:left-0 after:right-0 after:h-[2.5px] after:bg-primary'
-									: 'text-muted-foreground hover:bg-accent/30 hover:text-foreground'
-							"
-						>
-							{{ t.labelKey | translate }}
-						</button>
-					}
-				</div>
+			<pptx-ribbon-tab-list
+				[activeTab]="activeTab()"
+				[canEdit]="canEdit()"
+				[collabConnected]="collabConnected()"
+				[connectedCount]="connectedCount()"
+				[ribbonExpanded]="ribbonExpanded()"
+				[hiddenActions]="hiddenActions()"
+				(selectTab)="activeTab.set($event)"
+				(record)="record.emit()"
+				(share)="share.emit()"
+				(toggleRibbonExpanded)="ribbonExpanded.set(!ribbonExpanded())"
+			/>
 
-				<!-- Tab-row right actions (Record + Share), mirroring React's TabRowActions -->
-				<div class="flex shrink-0 items-center gap-1 pr-1">
-					@if (canEdit()) {
-						<button
-							type="button"
-							[class]="tra.record"
-							[title]="'pptx.titleBar.record' | translate"
-							[attr.aria-label]="'pptx.titleBar.record' | translate"
-							(click)="record.emit()"
-						>
-							<span [class]="tra.recordDot" aria-hidden="true"></span>
-							<span>{{ 'pptx.titleBar.record' | translate }}</span>
-						</button>
-					}
-					<div
-						role="status"
-						[attr.aria-label]="
-							collabConnected()
-								? ('pptx.collaboration.statusAriaLabel'
-									| translate: { status: 'pptx.collaboration.status.connected' | translate })
-								: null
-						"
-					>
-						<button
-							type="button"
-							class="relative inline-flex items-center gap-1 whitespace-nowrap rounded-sm px-2.5 py-1 text-[11px] font-medium text-white transition-colors"
-							[ngClass]="
-								collabConnected()
-									? 'bg-green-600 hover:bg-green-500'
-									: 'bg-primary hover:bg-primary/90'
-							"
-							[title]="
-								collabConnected()
-									? ('pptx.toolbar.sharingUsers' | translate: { count: connectedCount() })
-									: ('pptx.toolbar.share' | translate)
-							"
-							[attr.aria-label]="'pptx.toolbar.share' | translate"
-							(click)="share.emit()"
-						>
-							<svg lucideShare2 class="h-3.5 w-3.5"></svg>
-							<span>{{
-								collabConnected()
-									? ('pptx.toolbar.sharingCount' | translate: { count: connectedCount() })
-									: ('pptx.toolbar.share' | translate)
-							}}</span>
-						</button>
-					</div>
-				</div>
-
-				<button
-					type="button"
-					class="mr-1 shrink-0 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-					[attr.aria-pressed]="!ribbonExpanded()"
-					[title]="
-						(ribbonExpanded() ? 'pptx.ribbon.collapseRibbon' : 'pptx.ribbon.expandRibbon')
-							| translate
-					"
-					(click)="ribbonExpanded.set(!ribbonExpanded())"
-				>
-					@if (ribbonExpanded()) {
-						<svg lucideChevronUp class="h-3.5 w-3.5"></svg>
-					} @else {
-						<svg lucideChevronDown class="h-3.5 w-3.5"></svg>
-					}
-				</button>
-			</div>
-
-			<!-- ── Ribbon content (collapsible via the ribbon toggle) ──────────── -->
 			<div
 				class="flex flex-nowrap items-center gap-1.5 overflow-x-auto px-2 py-1"
 				[style.display]="ribbonExpanded() ? null : 'none'"
 			>
-				@switch (activeTab()) {
-					@case ('file') {
-						<pptx-ribbon-file-section
-							(close)="activeTab.set('home')"
-							(createPresentation)="createPresentation.emit($event)"
-							[slideCount]="slideCount()"
-							[exporting]="exporting()"
-							[hasMacros]="hasMacros()"
-							(openFile)="openFile.emit()"
-							(openRecentFile)="openRecentFile.emit($event)"
-							(save)="save.emit()"
-							(savePpsx)="savePpsx.emit()"
-							(savePptm)="savePptm.emit()"
-							(packageForSharing)="packageForSharing.emit()"
-							(exportPng)="exportPng.emit()"
-							(exportPdf)="exportPdf.emit()"
-							(exportGif)="exportGif.emit()"
-							(exportVideo)="exportVideo.emit()"
-							(copySlideAsImage)="copySlideAsImage.emit()"
-							(print)="print.emit()"
-							(info)="info.emit()"
-							(signatures)="signatures.emit()"
-							(replace)="replace.emit()"
-							(openPassword)="openPassword.emit()"
-							(openFontEmbedding)="openFontEmbedding.emit()"
-							(openVersionHistory)="openVersionHistory.emit()"
-							(share)="share.emit()"
-							(options)="requestSettings()"
-						/>
-					}
-					@case ('home') {
-						<pptx-ribbon-home-section
-							[slideIndex]="slideIndex()"
-							[selectedElement]="selectedElement()"
-							[formatPainterActive]="formatPainterActive()"
-							[canActivateFormatPainter]="canActivateFormatPainter()"
-							(toggleFormatPainter)="toggleFormatPainter.emit()"
-							(findReplace)="find.emit()"
-						/>
-						<span class="pptx-rb-sep"></span>
-						<pptx-ribbon-font-controls
-							[slideIndex]="slideIndex()"
-							[selectedElement]="selectedElement()"
-						/>
-						<span class="pptx-rb-sep"></span>
-						<pptx-ribbon-paragraph-controls
-							[slideIndex]="slideIndex()"
-							[selectedElement]="selectedElement()"
-						/>
-						<span class="pptx-rb-sep"></span>
-						<pptx-ribbon-drawing-group
-							[canEdit]="canEdit()"
-							(shapeInsert)="shapeInsert.emit($event)"
-							(moveLayer)="moveLayer.emit($event)"
-							(moveLayerToEdge)="moveLayerToEdge.emit($event)"
-						/>
-					}
-					@case ('insert') {
-						<pptx-ribbon-insert-section
-							[slideIndex]="slideIndex()"
-							[newChartType]="newChartType()"
-							(chartTypeChange)="newChartType.set($event)"
-							(openSmartArtDialog)="openSmartArtDialog.emit()"
-							(openEquationDialog)="openEquationDialog.emit()"
-						/>
-					}
-					@case ('text') {
-						<pptx-ribbon-font-controls
-							[slideIndex]="slideIndex()"
-							[selectedElement]="selectedElement()"
-						/>
-						<span class="pptx-rb-sep"></span>
-						<pptx-ribbon-paragraph-controls
-							[slideIndex]="slideIndex()"
-							[selectedElement]="selectedElement()"
-						/>
-					}
-					@case ('arrange') {
-						<pptx-ribbon-arrange-section
-							[slideIndex]="slideIndex()"
-							[formatPainterActive]="formatPainterActive()"
-							[canActivateFormatPainter]="canActivateFormatPainter()"
-							(toggleFormatPainter)="toggleFormatPainter.emit()"
-						/>
-					}
-					@case ('slideShow') {
-						<pptx-ribbon-slideshow-section
-							[slideCount]="slideCount()"
-							[showSubtitles]="showSubtitles()"
-							(presentFromBeginning)="presentFromBeginning.emit()"
-							(presentFromCurrent)="present.emit()"
-							(presenter)="presenter.emit()"
-							(rehearseTimings)="rehearseTimings.emit()"
-							(record)="record.emit()"
-							(toggleSubtitles)="toggleSubtitles.emit()"
-							(openSubtitleSettings)="openSubtitleSettings.emit()"
-							(broadcast)="broadcast.emit()"
-							(openCustomShows)="openCustomShows.emit()"
-							(openSetUpSlideShow)="openSetUpSlideShow.emit()"
-						/>
-					}
-					@case ('review') {
-						<pptx-ribbon-review-section
-							[canEdit]="canEdit()"
-							[spellCheckEnabled]="spellCheckEnabled()"
-							(spellCheckChange)="setSpellCheck($event)"
-							(comments)="comments.emit()"
-							(a11y)="a11y.emit()"
-							(openCompare)="openCompare.emit()"
-							(language)="requestSettings()"
-							(link)="link.emit()"
-						/>
-					}
-					@case ('view') {
-						<pptx-ribbon-view-section
-							[canEdit]="canEdit()"
-							[showGrid]="showGrid()"
-							[showRulers]="showRulers()"
-							[showGuides]="showGuides()"
-							[snapToGrid]="snapToGrid()"
-							[snapToShape]="snapToShape()"
-							[eyedropperActive]="eyedropperActive()"
-							(openSorter)="openSorter.emit()"
-							(toggleNotes)="toggleNotes.emit()"
-							(print)="print.emit()"
-							(openShortcuts)="openShortcuts.emit()"
-							(openMasterView)="openMasterView.emit()"
-							(toggleGrid)="toggleGrid.emit()"
-							(toggleRulers)="toggleRulers.emit()"
-							(toggleGuides)="toggleGuides.emit()"
-							(toggleSelectionPane)="toggleSelectionPane.emit()"
-							(toggleSnapToGrid)="toggleSnapToGrid.emit()"
-							(toggleSnapToShape)="toggleSnapToShape.emit()"
-							(addGuide)="addGuide.emit($event)"
-							(zoomToFit)="zoomToFit.emit()"
-							(toggleEyedropper)="toggleEyedropper.emit()"
-						/>
-					}
-					@case ('draw') {
-						<pptx-ribbon-draw-section
-							[activeTool]="activeTool()"
-							[drawingColor]="drawingColor()"
-							[drawingWidth]="drawingWidth()"
-							(drawToolChange)="onDrawChange($event)"
-						/>
-					}
-					@case ('design') {
-						<pptx-ribbon-design-section
-							[themeGalleryOpen]="themeGalleryOpen()"
-							(toggleThemeGallery)="toggleThemeGallery.emit()"
-							(info)="info.emit()"
-							(toggleInspector)="toggleInspector.emit()"
-						/>
-					}
-					@case ('transitions') {
-						<pptx-ribbon-transitions-section
-							[slideIndex]="slideIndex()"
-							[selectedTransition]="selectedTransition()"
-							[transitionDurationSec]="transitionDurationSec()"
-							(transitionChange)="selectedTransition.set($event)"
-							(durationChange)="transitionDurationSec.set($event)"
-							(present)="present.emit()"
-							(toggleInspector)="toggleInspector.emit()"
-						/>
-					}
-					@case ('animations') {
-						<pptx-ribbon-animations-section
-							[slideIndex]="slideIndex()"
-							[selectedElement]="selectedElement()"
-							[canEdit]="canEdit()"
-							(present)="present.emit()"
-							(toggleInspector)="toggleInspector.emit()"
-						/>
-					}
-					@case ('help') {
-						<button type="button" class="pptx-rb-pill" (click)="openSettings.emit()">
-							{{ 'pptx.settings.title' | translate }}
-						</button>
-						<button type="button" class="pptx-rb-pill" (click)="openShortcuts.emit()">
-							{{ 'pptx.settings.keyboardShortcuts' | translate }}
-						</button>
-						<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">
-							{{ 'pptx.ribbon.accessibility' | translate }}
-						</button>
-					}
-					@case ('record') {
-						<pptx-ribbon-record-section
-							(recordFromBeginning)="recordFromBeginning.emit()"
-							(recordFromCurrent)="recordFromCurrent.emit()"
-						/>
-					}
-				}
+				<pptx-ribbon-content
+					[activeTab]="activeTab()"
+					[slideIndex]="slideIndex()"
+					[slideCount]="slideCount()"
+					[canEdit]="canEdit()"
+					[selectedElement]="selectedElement()"
+					[formatPainterActive]="formatPainterActive()"
+					[canActivateFormatPainter]="canActivateFormatPainter()"
+					[exporting]="exporting()"
+					[hasMacros]="hasMacros()"
+					[hiddenActions]="hiddenActions()"
+					(selectTab)="activeTab.set($event)"
+					(find)="find.emit()"
+					(share)="share.emit()"
+					(openFile)="openFile.emit()"
+					(openRecentFile)="openRecentFile.emit($event)"
+					(createPresentation)="createPresentation.emit($event)"
+					(save)="save.emit()"
+					(savePpsx)="savePpsx.emit()"
+					(savePptm)="savePptm.emit()"
+					(packageForSharing)="packageForSharing.emit()"
+					(signatures)="signatures.emit()"
+					(info)="info.emit()"
+					(print)="print.emit()"
+					(toggleFormatPainter)="toggleFormatPainter.emit()"
+					(exportPng)="exportPng.emit()"
+					(exportPdf)="exportPdf.emit()"
+					(exportGif)="exportGif.emit()"
+					(exportVideo)="exportVideo.emit()"
+					(copySlideAsImage)="copySlideAsImage.emit()"
+					(replace)="replace.emit()"
+					(openSmartArtDialog)="openSmartArtDialog.emit()"
+					(openEquationDialog)="openEquationDialog.emit()"
+					(openPassword)="openPassword.emit()"
+					(openFontEmbedding)="openFontEmbedding.emit()"
+					(openVersionHistory)="openVersionHistory.emit()"
+					(openSettings)="requestSettings()"
+					(shapeInsert)="shapeInsert.emit($event)"
+					(moveLayer)="moveLayer.emit($event)"
+					(moveLayerToEdge)="moveLayerToEdge.emit($event)"
+				/>
+				<pptx-ribbon-content-secondary
+					[activeTab]="activeTab()"
+					[slideIndex]="slideIndex()"
+					[slideCount]="slideCount()"
+					[canEdit]="canEdit()"
+					[selectedElement]="selectedElement()"
+					[showGrid]="showGrid()"
+					[showRulers]="showRulers()"
+					[showGuides]="showGuides()"
+					[snapToGrid]="snapToGrid()"
+					[snapToShape]="snapToShape()"
+					[eyedropperActive]="eyedropperActive()"
+					[themeGalleryOpen]="themeGalleryOpen()"
+					[spellCheckEnabled]="spellCheckEnabled()"
+					[showSubtitles]="showSubtitles()"
+					[hiddenActions]="hiddenActions()"
+					(present)="present.emit()"
+					(presenter)="presenter.emit()"
+					(record)="record.emit()"
+					(presentFromBeginning)="presentFromBeginning.emit()"
+					(rehearseTimings)="rehearseTimings.emit()"
+					(toggleSubtitles)="toggleSubtitles.emit()"
+					(openSubtitleSettings)="openSubtitleSettings.emit()"
+					(recordFromBeginning)="recordFromBeginning.emit()"
+					(recordFromCurrent)="recordFromCurrent.emit()"
+					(spellCheckChange)="setSpellCheck($event)"
+					(broadcast)="broadcast.emit()"
+					(info)="info.emit()"
+					(print)="print.emit()"
+					(comments)="comments.emit()"
+					(a11y)="a11y.emit()"
+					(link)="link.emit()"
+					(openSorter)="openSorter.emit()"
+					(openMasterView)="openMasterView.emit()"
+					(toggleNotes)="toggleNotes.emit()"
+					(toggleInspector)="toggleInspector.emit()"
+					(drawToolChange)="drawToolChange.emit($event)"
+					(toggleThemeGallery)="toggleThemeGallery.emit()"
+					(toggleGrid)="toggleGrid.emit()"
+					(toggleRulers)="toggleRulers.emit()"
+					(toggleGuides)="toggleGuides.emit()"
+					(toggleSelectionPane)="toggleSelectionPane.emit()"
+					(openCustomShows)="openCustomShows.emit()"
+					(toggleSnapToGrid)="toggleSnapToGrid.emit()"
+					(toggleSnapToShape)="toggleSnapToShape.emit()"
+					(addGuide)="addGuide.emit($event)"
+					(zoomToFit)="zoomToFit.emit()"
+					(toggleEyedropper)="toggleEyedropper.emit()"
+					(openSetUpSlideShow)="openSetUpSlideShow.emit()"
+					(openCompare)="openCompare.emit()"
+					(openShortcuts)="openShortcuts.emit()"
+					(openSettings)="requestSettings()"
+				/>
 			</div>
 		</div>
 	`,
@@ -474,6 +219,8 @@ export class RibbonComponent {
 	/** Current live proofing state shown by the Review ribbon command. */
 	readonly spellCheckEnabled = input<boolean>(false);
 	readonly showSubtitles = input<boolean>(false);
+	/** Toolbar buttons/tabs the host wants hidden. Default `[]` hides nothing. */
+	readonly hiddenActions = input<ToolbarActionId[]>([]);
 
 	readonly prev = output<void>();
 	readonly next = output<void>();
@@ -521,22 +268,11 @@ export class RibbonComponent {
 	readonly exportVideo = output<void>();
 	readonly copySlideAsImage = output<void>();
 	readonly replace = output<void>();
-	/**
-	 * Emitted by Design / Transitions / Animations tabs when the user wants to
-	 * open the right-docked Inspector panel (Format Background, Transitions full
-	 * options, Animation Panel). The parent component decides what to show.
-	 */
+	/** Design/Transitions/Animations tabs want the right-docked Inspector panel opened. */
 	readonly toggleInspector = output<void>();
-	/**
-	 * Emitted whenever the Draw tab tool state changes (tool / colour / width).
-	 * The parent may connect this to an annotation / ink layer when available.
-	 * Currently UI-only; no freehand-draw back-end exists in the Angular port.
-	 */
+	/** Draw tab tool state changed (tool/colour/width); UI-only, no ink back-end yet. */
 	readonly drawToolChange = output<DrawToolState>();
-	/**
-	 * Emitted when the user clicks "Browse Themes" in the Design tab.
-	 * The parent toggles the theme-gallery overlay.
-	 */
+	/** Emitted when the user clicks "Browse Themes" in the Design tab. */
 	readonly toggleThemeGallery = output<void>();
 	/** Emitted when the user toggles the grid overlay in the View tab. */
 	readonly toggleGrid = output<void>();
@@ -555,11 +291,7 @@ export class RibbonComponent {
 	readonly zoomToFit = output<void>();
 	/** Emitted when the user activates the eyedropper in the View tab. */
 	readonly toggleEyedropper = output<void>();
-	/**
-	 * Emitted when the user clicks "SmartArt" in the Insert tab. The host opens
-	 * the Insert SmartArt gallery dialog and performs the actual insert, so the
-	 * ribbon stays free of the dialog state and node-building logic.
-	 */
+	/** "SmartArt" in the Insert tab; the host opens the gallery dialog and does the insert. */
 	readonly openSmartArtDialog = output<void>();
 	/** Emitted when the user clicks "Equation" in the Insert tab (opens the editor). */
 	readonly openEquationDialog = output<void>();
@@ -584,39 +316,10 @@ export class RibbonComponent {
 	/** Emitted when the user moves an element to front/back. */
 	readonly moveLayerToEdge = output<string>();
 
-	protected readonly tabs = TABS;
-
-	/** Shared class tokens for the tab-row Record button. */
-	protected readonly tra = TAB_ROW_ACTION_CLASSES;
-
 	protected readonly activeTab = signal<RibbonTab>('home');
 
 	/** Ribbon content expanded (true) vs collapsed to just the tab bar (false). */
 	protected readonly ribbonExpanded = signal(true);
-
-	// ── Tab-local state (owned here so it survives tab switches) ────────────────
-	/** The chart type currently chosen in the Insert tab dropdown. */
-	protected readonly newChartType = signal<PptxChartType>(DEFAULT_INSERT_CHART_TYPE);
-
-	/** Active drawing tool (UI state only; no ink back-end yet). */
-	protected readonly activeTool = signal<DrawTool>('select');
-	/** Drawing pen colour (UI state only). */
-	protected readonly drawingColor = signal<string>('#000000');
-	/** Drawing stroke width in pixels (UI state only). */
-	protected readonly drawingWidth = signal<number>(3);
-
-	/** The transition type currently selected in the ribbon gallery. */
-	protected readonly selectedTransition = signal<PptxTransitionType>('none');
-	/** Transition duration in seconds (round-trips through the UI input). */
-	protected readonly transitionDurationSec = signal<number>(0.5);
-
-	/** Sync the draw-tool signals with a Draw-tab change and re-broadcast it. */
-	protected onDrawChange(state: DrawToolState): void {
-		this.activeTool.set(state.tool);
-		this.drawingColor.set(state.color);
-		this.drawingWidth.set(state.width);
-		this.drawToolChange.emit(state);
-	}
 
 	/** Route both File Options and Review Language to the real Settings dialog. */
 	protected requestSettings(): void {

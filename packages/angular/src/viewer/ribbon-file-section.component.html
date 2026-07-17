@@ -4,7 +4,7 @@
 			<pptx-backstage-nav-icon page="back" />
 		</button>
 		<nav>
-			@for (item of mainNav; track item.id) {
+			@for (item of mainNav(); track item.id) {
 				<button type="button" [class.active]="page() === item.id" (click)="selectPage(item.id)">
 					<span><pptx-backstage-nav-icon [page]="item.id" /></span>{{ item.label }}
 				</button>

@@ -8,7 +8,6 @@
  * {@link resolveTitleBarStatusKey}), and a centred search button that opens
  * Find & Replace. Rendered ABOVE and OUTSIDE the ribbon's `role="toolbar"`
  * container so the toolbar height stays measurable for the e2e parity spec.
- *
  * Purely presentational + `OnPush`: every action is an `output()` the
  * {@link PowerPointViewerComponent} already has handlers for. Class tokens come
  * verbatim from the shared {@link TITLE_BAR_CLASSES} so the three bindings stay
@@ -34,8 +33,9 @@ import {
 	TITLE_BAR_CLASSES,
 	TITLE_BAR_DEFAULT_FILE_KEY,
 } from '../internal/shared';
-import type { CommandSearchEntry } from '../internal/shared';
+import type { CommandSearchEntry, ToolbarActionId } from '../internal/shared';
 import type { AutosaveStatus } from './autosave.service';
+import { toolbarVisibility } from './toolbar-visibility';
 
 @Component({
 	selector: 'pptx-title-bar',
@@ -81,34 +81,38 @@ import type { AutosaveStatus } from './autosave.service';
 				>
 					<svg lucideSave class="h-3.5 w-3.5"></svg>
 				</button>
-				<button
-					type="button"
-					[class]="tb.quickButton"
-					[disabled]="!canUndo()"
-					[title]="
-						undoLabel()
-							? ('pptx.toolbar.undoAction' | translate: { action: undoLabel() })
-							: ('pptx.toolbar.undo' | translate)
-					"
-					[attr.aria-label]="'pptx.toolbar.undo' | translate"
-					(click)="undo.emit()"
-				>
-					<svg lucideUndo class="h-3.5 w-3.5"></svg>
-				</button>
-				<button
-					type="button"
-					[class]="tb.quickButton"
-					[disabled]="!canRedo()"
-					[title]="
-						redoLabel()
-							? ('pptx.toolbar.redoAction' | translate: { action: redoLabel() })
-							: ('pptx.toolbar.redo' | translate)
-					"
-					[attr.aria-label]="'pptx.toolbar.redo' | translate"
-					(click)="redo.emit()"
-				>
-					<svg lucideRedo class="h-3.5 w-3.5"></svg>
-				</button>
+				@if (!toolbar.isHidden('undo')) {
+					<button
+						type="button"
+						[class]="tb.quickButton"
+						[disabled]="!canUndo()"
+						[title]="
+							undoLabel()
+								? ('pptx.toolbar.undoAction' | translate: { action: undoLabel() })
+								: ('pptx.toolbar.undo' | translate)
+						"
+						[attr.aria-label]="'pptx.toolbar.undo' | translate"
+						(click)="undo.emit()"
+					>
+						<svg lucideUndo class="h-3.5 w-3.5"></svg>
+					</button>
+				}
+				@if (!toolbar.isHidden('redo')) {
+					<button
+						type="button"
+						[class]="tb.quickButton"
+						[disabled]="!canRedo()"
+						[title]="
+							redoLabel()
+								? ('pptx.toolbar.redoAction' | translate: { action: redoLabel() })
+								: ('pptx.toolbar.redo' | translate)
+						"
+						[attr.aria-label]="'pptx.toolbar.redo' | translate"
+						(click)="redo.emit()"
+					>
+						<svg lucideRedo class="h-3.5 w-3.5"></svg>
+					</button>
+				}
 
 				<div [class]="tb.separator"></div>
 			}
@@ -215,6 +219,8 @@ export class TitleBarComponent {
 	readonly redoLabel = input<string | undefined>(undefined);
 	/** Whether the Find & Replace panel is open (search-button active state). */
 	readonly findReplaceOpen = input<boolean>(false);
+	/** Toolbar buttons the host wants hidden (gates Undo/Redo independently). */
+	readonly hiddenActions = input<ToolbarActionId[]>([]);
 
 	readonly toggleAutosave = output<void>();
 	readonly save = output<void>();
@@ -226,6 +232,7 @@ export class TitleBarComponent {
 	private readonly translate = inject(TranslateService);
 	protected readonly tb = TITLE_BAR_CLASSES;
 	protected readonly defaultFileKey = TITLE_BAR_DEFAULT_FILE_KEY;
+	protected readonly toolbar = toolbarVisibility(this.hiddenActions);
 
 	protected readonly searchQuery = signal('');
 	protected readonly searchFocused = signal(false);

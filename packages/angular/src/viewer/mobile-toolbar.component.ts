@@ -33,6 +33,9 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import type { ToolbarActionId } from '../internal/shared';
+import { toolbarVisibility } from './toolbar-visibility';
+
 @Component({
 	selector: 'pptx-mobile-toolbar',
 	standalone: true,
@@ -69,51 +72,55 @@ import { TranslatePipe } from '@ngx-translate/core';
 					</svg>
 				</button>
 
-				<button
-					type="button"
-					class="pptx-ng-mtoolbar-btn"
-					[attr.aria-label]="'pptx.toolbar.undo' | translate"
-					[title]="'pptx.toolbar.undo' | translate"
-					[disabled]="!canUndo()"
-					(click)="undo.emit()"
-				>
-					<svg
-						class="pptx-ng-mtoolbar-icon"
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						aria-hidden="true"
+				@if (!toolbar.isHidden('undo')) {
+					<button
+						type="button"
+						class="pptx-ng-mtoolbar-btn"
+						[attr.aria-label]="'pptx.toolbar.undo' | translate"
+						[title]="'pptx.toolbar.undo' | translate"
+						[disabled]="!canUndo()"
+						(click)="undo.emit()"
 					>
-						<path d="M3 7v6h6 M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
-					</svg>
-				</button>
+						<svg
+							class="pptx-ng-mtoolbar-icon"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<path d="M3 7v6h6 M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+						</svg>
+					</button>
+				}
 
-				<button
-					type="button"
-					class="pptx-ng-mtoolbar-btn"
-					[attr.aria-label]="'pptx.toolbar.redo' | translate"
-					[title]="'pptx.toolbar.redo' | translate"
-					[disabled]="!canRedo()"
-					(click)="redo.emit()"
-				>
-					<svg
-						class="pptx-ng-mtoolbar-icon"
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						aria-hidden="true"
+				@if (!toolbar.isHidden('redo')) {
+					<button
+						type="button"
+						class="pptx-ng-mtoolbar-btn"
+						[attr.aria-label]="'pptx.toolbar.redo' | translate"
+						[title]="'pptx.toolbar.redo' | translate"
+						[disabled]="!canRedo()"
+						(click)="redo.emit()"
 					>
-						<path d="M21 7v6h-6 M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
-					</svg>
-				</button>
+						<svg
+							class="pptx-ng-mtoolbar-icon"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<path d="M21 7v6h-6 M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+						</svg>
+					</button>
+				}
 			}
 
 			<div class="pptx-ng-mtoolbar-spacer"></div>
@@ -252,6 +259,8 @@ export class MobileToolbarComponent {
 	readonly canEdit = input<boolean>(false);
 	/** Whether the mobile-menu sheet is currently open (highlights the button). */
 	readonly menuOpen = input<boolean>(false);
+	/** Toolbar buttons the host wants hidden (gates Undo/Redo independently). */
+	readonly hiddenActions = input<ToolbarActionId[]>([]);
 
 	/** User tapped the Menu (hamburger) button. */
 	readonly toggleMenu = output<void>();
@@ -263,4 +272,6 @@ export class MobileToolbarComponent {
 	readonly save = output<void>();
 	/** User tapped Present. */
 	readonly present = output<void>();
+
+	protected readonly toolbar = toolbarVisibility(this.hiddenActions);
 }

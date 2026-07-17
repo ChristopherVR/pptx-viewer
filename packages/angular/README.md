@@ -145,13 +145,14 @@ async save() {
 
 ### Inputs
 
-| Input           | Type                                | Default | Description                                                       |
-| --------------- | ----------------------------------- | ------- | ----------------------------------------------------------------- |
-| `content`       | `Uint8Array \| ArrayBuffer \| null` | `null`  | The `.pptx` bytes to render.                                      |
-| `theme`         | `ViewerTheme`                       | n/a     | Color/radius overrides applied as CSS custom properties.          |
-| `class`         | `string`                            | `''`    | Class applied to the root element.                                |
-| `canEdit`       | `boolean`                           | `false` | Enables the editor toolbar, inspector, and drag-and-drop editing. |
-| `collaboration` | `CollaborationConfig`               | n/a     | Yjs real-time collaboration config (server URL, room, role).      |
+| Input           | Type                                | Default | Description                                                                                                            |
+| --------------- | ----------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `content`       | `Uint8Array \| ArrayBuffer \| null` | `null`  | The `.pptx` bytes to render.                                                                                           |
+| `theme`         | `ViewerTheme`                       | n/a     | Color/radius overrides applied as CSS custom properties.                                                               |
+| `class`         | `string`                            | `''`    | Class applied to the root element.                                                                                     |
+| `canEdit`       | `boolean`                           | `false` | Enables the editor toolbar, inspector, and drag-and-drop editing.                                                      |
+| `collaboration` | `CollaborationConfig`               | n/a     | Yjs real-time collaboration config (server URL, room, role).                                                           |
+| `hiddenActions` | `ToolbarActionId[]`                 | `[]`    | Toolbar buttons/ribbon tabs to hide individually (e.g. `['share', 'broadcast']`), instead of hiding the whole toolbar. |
 
 ### Outputs
 

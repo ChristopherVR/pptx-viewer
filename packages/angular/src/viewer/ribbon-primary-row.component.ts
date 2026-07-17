@@ -15,7 +15,7 @@
  * `output()` the {@link PowerPointViewerComponent} already handles.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import {
 	LucideChevronDown,
 	LucideEllipsis,
@@ -26,6 +26,39 @@ import {
 	LucidePlus,
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
+
+import { isActionHidden } from '../internal/shared';
+import type { ToolbarActionId } from '../internal/shared';
+import { toolbarVisibility } from './toolbar-visibility';
+
+/** Overflow menu items (mirrors React's File/overflow actions that exist here). */
+const ALL_OVERFLOW_ITEMS: ReadonlyArray<{
+	key: string;
+	labelKey: string;
+	needsSlides?: boolean;
+}> = [
+	{ key: 'png', labelKey: 'pptx.ribbon.exportPng', needsSlides: true },
+	{ key: 'pdf', labelKey: 'pptx.ribbon.exportPdf', needsSlides: true },
+	{ key: 'video', labelKey: 'pptx.ribbon.exportVideo', needsSlides: true },
+	{ key: 'gif', labelKey: 'pptx.ribbon.exportGif', needsSlides: true },
+	{ key: 'save', labelKey: 'pptx.ribbon.savePptx', needsSlides: true },
+	{ key: '---0', labelKey: '' },
+	{ key: 'print', labelKey: 'pptx.print.printButton' },
+	{ key: 'info', labelKey: 'pptx.ribbon.documentProperties' },
+	{ key: 'a11y', labelKey: 'pptx.ribbon.accessibilityCheck' },
+];
+
+/** png/pdf/video/gif are the export overflow rows; dropped when 'export' is hidden. */
+const EXPORT_OVERFLOW_KEYS = new Set(['png', 'pdf', 'video', 'gif']);
+
+/** Pure, testable filter: the overflow items visible for a given `hiddenActions` list. */
+export function visibleOverflowItems(
+	hiddenActions: readonly ToolbarActionId[] | undefined,
+): typeof ALL_OVERFLOW_ITEMS {
+	return ALL_OVERFLOW_ITEMS.filter(
+		(item) => !EXPORT_OVERFLOW_KEYS.has(item.key) || !isActionHidden('export', hiddenActions),
+	);
+}
 
 @Component({
 	selector: 'pptx-ribbon-primary-row',
@@ -116,13 +149,15 @@ import { TranslatePipe } from '@ngx-translate/core';
 							>
 								{{ 'pptx.ribbon.presenterView' | translate }}
 							</button>
-							<button
-								type="button"
-								class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
-								(click)="broadcast.emit(); presentMenuOpen.set(false)"
-							>
-								{{ 'pptx.ribbon.broadcast' | translate }}
-							</button>
+							@if (!toolbar.isHidden('broadcast')) {
+								<button
+									type="button"
+									class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
+									(click)="broadcast.emit(); presentMenuOpen.set(false)"
+								>
+									{{ 'pptx.ribbon.broadcast' | translate }}
+								</button>
+							}
 						</div>
 					</div>
 				}
@@ -166,7 +201,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 				@if (overflowOpen()) {
 					<div class="absolute right-0 top-full z-50 w-52 pt-1">
 						<div class="rounded-lg border border-border bg-popover py-1 shadow-2xl">
-							@for (item of overflowItems; track item.key) {
+							@for (item of overflowItems(); track item.key) {
 								@if (item.key.startsWith('---')) {
 									<div class="my-1 h-px bg-border/60"></div>
 								} @else {
@@ -193,6 +228,8 @@ export class RibbonPrimaryRowComponent {
 	readonly inspectorOpen = input<boolean>(false);
 	readonly commentsOpen = input<boolean>(false);
 	readonly commentCount = input<number>(0);
+	/** Toolbar buttons the host wants hidden (gates Broadcast + the export overflow items). */
+	readonly hiddenActions = input<ToolbarActionId[]>([]);
 
 	readonly toggleSidebar = output<void>();
 	readonly toggleComments = output<void>();
@@ -212,23 +249,8 @@ export class RibbonPrimaryRowComponent {
 
 	protected readonly presentMenuOpen = signal(false);
 	protected readonly overflowOpen = signal(false);
-
-	/** Overflow menu items (mirrors React's File/overflow actions that exist here). */
-	protected readonly overflowItems: ReadonlyArray<{
-		key: string;
-		labelKey: string;
-		needsSlides?: boolean;
-	}> = [
-		{ key: 'png', labelKey: 'pptx.ribbon.exportPng', needsSlides: true },
-		{ key: 'pdf', labelKey: 'pptx.ribbon.exportPdf', needsSlides: true },
-		{ key: 'video', labelKey: 'pptx.ribbon.exportVideo', needsSlides: true },
-		{ key: 'gif', labelKey: 'pptx.ribbon.exportGif', needsSlides: true },
-		{ key: 'save', labelKey: 'pptx.ribbon.savePptx', needsSlides: true },
-		{ key: '---0', labelKey: '' },
-		{ key: 'print', labelKey: 'pptx.print.printButton' },
-		{ key: 'info', labelKey: 'pptx.ribbon.documentProperties' },
-		{ key: 'a11y', labelKey: 'pptx.ribbon.accessibilityCheck' },
-	];
+	protected readonly toolbar = toolbarVisibility(this.hiddenActions);
+	protected readonly overflowItems = computed(() => visibleOverflowItems(this.hiddenActions()));
 
 	protected onOverflow(key: string): void {
 		this.overflowOpen.set(false);

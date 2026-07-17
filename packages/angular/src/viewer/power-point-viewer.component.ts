@@ -25,7 +25,7 @@ import type {
 } from 'pptx-viewer-core';
 
 import { createBackstagePresentation, readBackstageRecentFile } from '../internal/shared';
-import type { ViewerSettings, ViewerTheme } from '../internal/shared';
+import type { ToolbarActionId, ViewerSettings, ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
@@ -246,6 +246,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[undoLabel]="editor.undoLabel()"
 						[redoLabel]="editor.redoLabel()"
 						[findReplaceOpen]="findReplace.showFind() || findReplace.showFindReplace()"
+						[hiddenActions]="hiddenActions()"
 						(toggleAutosave)="autosaveEnabled.update(v => !v)"
 						(save)="fileIO.saveAsPptx()"
 						(undo)="editor.undo()"
@@ -258,6 +259,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					[slideCount]="slideCount()"
 					[canEdit]="canEdit()"
 					[selectedElement]="selectedElement()"
+					[hiddenActions]="hiddenActions()"
 					[zoomPercent]="zoomSvc.zoomPercent()"
 					[formatPainterActive]="formatPainter.active()"
 					[canActivateFormatPainter]="formatPainter.canActivate()"
@@ -353,6 +355,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[canRedo]="editor.canRedo()"
 						[canPresent]="slideCount() > 0"
 						[menuOpen]="mobileSheetSvc.mobileSheet() === 'menu'"
+						[hiddenActions]="hiddenActions()"
 						(toggleMenu)="mobileSheetSvc.mobileSheet.set(mobileSheetSvc.mobileSheet() === 'menu' ? null : 'menu')"
 						(undo)="editor.undo()"
 						(redo)="editor.redo()"
@@ -572,6 +575,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[zoomPercent]="zoomSvc.zoomPercent()"
 						[sorterActive]="showSorter()"
 						[presenting]="presentationMode.presenting()"
+						[hiddenActions]="hiddenActions()"
 						(toggleNotes)="mobileSheetSvc.toggleNotes()"
 						(normalView)="showSorter.set(false)"
 						(openSorter)="showSorter.set(true)"
@@ -837,6 +841,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					[exporting]="xport.exporting()"
 					[showNotes]="mobileSheetSvc.showNotes()"
 					[canEdit]="canEdit()"
+					[hiddenActions]="hiddenActions()"
 					(closed)="mobileSheetSvc.mobileSheet.set(null)"
 					(openFind)="findReplace.showFind.set(true)"
 					(openSorter)="showSorter.set(true)"
@@ -962,6 +967,12 @@ export class PowerPointViewerComponent {
 	 * back to the SVG SmartArt renderer. Default `false`.
 	 */
 	readonly smartArt3D = input<boolean>(false);
+	/**
+	 * Toolbar buttons and ribbon tabs the host wants hidden (share, broadcast,
+	 * export, undo, redo, record, notes, fullscreen, zoom, navigation, or any
+	 * ribbon tab id). Default `[]` hides nothing, matching prior behaviour.
+	 */
+	readonly hiddenActions = input<ToolbarActionId[]>([]);
 
 	/** Fired when the active slide changes. */
 	readonly activeSlideChange = output<number>();
