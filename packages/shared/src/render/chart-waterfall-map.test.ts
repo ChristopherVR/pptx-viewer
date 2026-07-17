@@ -459,14 +459,18 @@ describe('buildRegionMapViewModel — ChartEx geography options', () => {
 				primitive.part.pointIndex === 7,
 		);
 		expect(matched).toBeDefined();
-		expect(vm.primitives.some((item) => item.kind === 'text' && item.text === '1.234,5')).toBeTruthy();
+		expect(
+			vm.primitives.some((item) => item.kind === 'text' && item.text === '1.234,5'),
+		).toBeTruthy();
 		expect(vm.primitives.some((item) => item.kind === 'text' && item.text === 'Bing')).toBeTruthy();
 	});
 
 	it('suppresses region labels when regionLabelLayout is none', () => {
 		const data = regionData('none');
 		const vm = buildRegionMapViewModel(el, data, data.categories);
-		expect(vm.primitives.some((item) => item.kind === 'text' && item.text === '1.234,5')).toBeFalsy();
+		expect(
+			vm.primitives.some((item) => item.kind === 'text' && item.text === '1.234,5'),
+		).toBeFalsy();
 	});
 
 	it('zooms dataOnly to the authored data regions instead of the whole world', () => {

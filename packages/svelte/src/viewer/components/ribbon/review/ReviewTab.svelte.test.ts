@@ -58,8 +58,8 @@ describe('reviewTab', () => {
 		});
 		cleanup = () => unmount(instance);
 
-		const compare = [...target.querySelectorAll('button')].find(
-			(button) => button.textContent?.includes('Compare'),
+		const compare = [...target.querySelectorAll('button')].find((button) =>
+			button.textContent?.includes('Compare'),
 		) as HTMLButtonElement;
 		expect(compare.disabled).toBeTruthy();
 	});

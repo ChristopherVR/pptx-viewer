@@ -1,6 +1,6 @@
 import type { PptxChartRegionMapOptions, XmlObject } from '../types';
-import { cloneXmlObject } from './clone-utils';
 import type { XmlLookupLike } from './chart-cx-parser';
+import { cloneXmlObject } from './clone-utils';
 
 const PROJECTIONS = new Set(['mercator', 'miller', 'robinson', 'albers']);
 const VIEW_LEVELS = new Set([
@@ -71,9 +71,7 @@ function readIndexedDimension(
 	const level = xmlLookup.getChildByLocalName(dimension, 'lvl');
 	const values: string[] = [];
 	const indices: number[] = [];
-	for (const [position, point] of xmlLookup
-		.getChildrenArrayByLocalName(level, 'pt')
-		.entries()) {
+	for (const [position, point] of xmlLookup.getChildrenArrayByLocalName(level, 'pt').entries()) {
 		const raw = xmlLookup.getScalarChildByLocalName(point, 'v') ?? point['#text'];
 		values.push(String(raw ?? '').trim());
 		const parsed = Number.parseInt(String(point['@_idx'] ?? position), 10);

@@ -14,7 +14,11 @@ function sourceIndices(indices: number[] | undefined, length: number): number[] 
 	return Array.from({ length }, (_, position) => indices?.[position] ?? position);
 }
 
-function valueAtSource<T>(values: readonly T[], indices: number[], sourceIndex: number): T | undefined {
+function valueAtSource<T>(
+	values: readonly T[],
+	indices: number[],
+	sourceIndex: number,
+): T | undefined {
 	const position = indices.indexOf(sourceIndex);
 	return position >= 0 ? values[position] : undefined;
 }

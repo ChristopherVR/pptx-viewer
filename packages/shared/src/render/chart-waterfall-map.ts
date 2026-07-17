@@ -18,12 +18,12 @@
 
 import type { PptxChartData, PptxChartRegionMapOptions, PptxElement } from 'pptx-viewer-core';
 
-import type { ChartViewModel, SvgLine, SvgPath, SvgRect, SvgText } from './chart-view-model';
 import {
 	buildRegionMapEntries,
 	formatRegionMapValue,
 	shouldRenderRegionLabel,
 } from './chart-region-map-data';
+import type { ChartViewModel, SvgLine, SvgPath, SvgRect, SvgText } from './chart-view-model';
 import {
 	buildGridlinesAndLabels,
 	buildLegend,
@@ -512,7 +512,12 @@ export function buildRegionMapViewModel(
 	const categories = categoryLabels.length > 0 ? categoryLabels : chartData.categories;
 	const series = chartData.series[0];
 	const options = series?.regionMapOptions;
-	const entries = buildRegionMapEntries(categories, series?.values ?? [], options, resolveRegionCode);
+	const entries = buildRegionMapEntries(
+		categories,
+		series?.values ?? [],
+		options,
+		resolveRegionCode,
+	);
 	const values = entries.map((entry) => entry.value);
 
 	const finiteVals = values.filter((v) => Number.isFinite(v));

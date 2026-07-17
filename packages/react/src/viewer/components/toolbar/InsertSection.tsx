@@ -347,12 +347,7 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 				</div>
 			)}
 			{p.onOpenHeaderFooter && (
-				<button
-					type='button'
-					disabled={!canEdit}
-					className={pill}
-					onClick={p.onOpenHeaderFooter}
-				>
+				<button type='button' disabled={!canEdit} className={pill} onClick={p.onOpenHeaderFooter}>
 					{t('pptx.headerFooter.title')}
 				</button>
 			)}

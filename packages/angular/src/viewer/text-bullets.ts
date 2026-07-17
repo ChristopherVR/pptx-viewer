@@ -13,12 +13,7 @@ import type { TextSegment } from 'pptx-viewer-core';
 import type { PictureBulletMarker } from '../internal/shared';
 import { resolveParagraphBullet } from '../internal/shared';
 
-export {
-	alphaLabel,
-	bulletIndentPx,
-	formatAutoNumber,
-	romanNumeral,
-} from '../internal/shared';
+export { alphaLabel, bulletIndentPx, formatAutoNumber, romanNumeral } from '../internal/shared';
 export { resolveParagraphBullet };
 export type { ParagraphBulletResult, PictureBulletMarker } from '../internal/shared';
 
