@@ -1,4 +1,4 @@
-import DOMPurify from 'dompurify';
+import { sanitizeMathMl } from 'pptx-viewer-shared';
 import React, { useState, useMemo, useCallback, useRef, useEffect, useDeferredValue } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
@@ -9,21 +9,6 @@ import { cn } from '../utils';
 import { convertLatexToOmml, convertOmmlToLatex } from '../utils/latex-to-omml';
 import { convertOmmlToMathMl } from '../utils/omml-to-mathml';
 import type { OmmlNode } from '../utils/omml-to-mathml';
-
-/**
- * Sanitize a MathML/SVG markup string. Falls back to the raw input when
- * `DOMPurify.sanitize` is unavailable (e.g. node-based tests without jsdom);
- * the XSS surface only matters in real browsers.
- */
-function sanitizeMathMl(markup: string): string {
-	const purify = DOMPurify as unknown as {
-		sanitize?: (dirty: string, cfg?: Record<string, unknown>) => string;
-	};
-	if (typeof purify.sanitize !== 'function') {
-		return markup;
-	}
-	return purify.sanitize(markup, { USE_PROFILES: { mathMl: true, svg: true } });
-}
 
 // ── Equation templates ────────────────────────────────────────────────────
 

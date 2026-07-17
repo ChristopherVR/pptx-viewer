@@ -12,21 +12,22 @@
  * (Angular renders equations through its own `DomSanitizer`, so it does not
  * consume this helper.)
  */
-import { sanitizeMarkupOrRaw } from './dompurify-safe';
+import { sanitizeMarkupOrEmpty } from './dompurify-safe';
 
 /**
  * Safely sanitise a MathML/SVG markup string.
  *
  * In browser environments DOMPurify ships with `sanitize` ready to go. In
- * non-DOM contexts (node-based tests, SSR without jsdom) it falls back to the
- * raw input; the XSS surface only matters in the browser, so this fallback
- * is safe for non-DOM consumers.
+ * non-DOM contexts (node-based tests, SSR without jsdom) there is no
+ * sanitizer to run, and the markup can originate from an untrusted OOXML
+ * equation, so this fails closed (empty string) rather than passing raw,
+ * unsanitised markup through to a caller that injects it as HTML.
  *
  * @param markup - MathML (optionally with embedded SVG) markup to sanitise.
- * @returns The sanitised markup, or the raw input when no DOM is available.
+ * @returns The sanitised markup, or `''` when no DOM sanitizer is available.
  */
 export function sanitizeMathMl(markup: string): string {
-	const sanitized = sanitizeMarkupOrRaw(markup, { USE_PROFILES: { mathMl: true, svg: true } });
+	const sanitized = sanitizeMarkupOrEmpty(markup, { USE_PROFILES: { mathMl: true, svg: true } });
 	// DOMPurify's HTML parser can retain MathML descendants while dropping the
 	// outer namespace-bearing <math> node. Restore that generated, constant
 	// wrapper so browsers keep the fragment in the MathML rendering context.

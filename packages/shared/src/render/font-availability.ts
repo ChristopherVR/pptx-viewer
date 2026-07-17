@@ -17,7 +17,8 @@ export function isFontFamilyAvailable(
 		return false;
 	}
 	try {
-		return source.check(`12px "${family.replace(/"/g, '\\"')}"`);
+		const escaped = family.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+		return source.check(`12px "${escaped}"`);
 	} catch {
 		return false;
 	}

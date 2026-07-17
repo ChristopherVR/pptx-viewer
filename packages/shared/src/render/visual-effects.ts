@@ -35,6 +35,21 @@ import { isImageLikeElement } from 'pptx-viewer-core';
 const DEFAULT_SHADOW_COLOR = '#000000';
 const DEFAULT_GLOW_COLOR = '#ffff00';
 
+/**
+ * Escape a string for safe inclusion in an SVG/XML attribute value. Applied
+ * to element-derived ids before they're interpolated into hand-built
+ * `<filter>` markup (some bindings inject that markup via `innerHTML`/
+ * `v-html`, so an unescaped id from a crafted OOXML shape id could otherwise
+ * break out of the attribute).
+ */
+function escapeSvgAttr(value: string): string {
+	return value
+		.replace(/&/g, '&amp;')
+		.replace(/"/g, '&quot;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;');
+}
+
 /** Clamp a numeric value to the [0, 1] range. */
 function clampUnitInterval(value: number): number {
 	return Math.min(1, Math.max(0, value));
@@ -673,7 +688,7 @@ export function getDuotoneSvgFilter(
 	const slopeB = c2.b - c1.b;
 
 	const filterMarkup = [
-		`<filter id="${id}" color-interpolation-filters="sRGB">`,
+		`<filter id="${escapeSvgAttr(id)}" color-interpolation-filters="sRGB">`,
 		`<feColorMatrix type="matrix" values="${grayscaleMatrix}"/>`,
 		`<feComponentTransfer>`,
 		`<feFuncR type="linear" slope="${slopeR}" intercept="${c1.r}"/>`,
@@ -719,7 +734,7 @@ export function getDuotoneSvgFilterMarkup(
 	return [
 		`<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">`,
 		`<defs>`,
-		`<filter id="${filterId}" color-interpolation-filters="sRGB">`,
+		`<filter id="${escapeSvgAttr(filterId)}" color-interpolation-filters="sRGB">`,
 		`<feColorMatrix type="matrix" values="${grayscaleMatrix}"/>`,
 		`<feComponentTransfer>`,
 		`<feFuncR type="linear" slope="${slopeR}" intercept="${c1.r}"/>`,
