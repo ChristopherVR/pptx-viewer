@@ -96,6 +96,7 @@
 					onshare={props.onshare}
 					onprint={props.onprintsettings}
 					onsettings={props.onsettings}
+					accountAuth={props.accountAuth}
 			/>
 		{:else if activeTab === 'home'}
 			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />

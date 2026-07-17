@@ -15,15 +15,15 @@
 	import Settings from '@lucide/svelte/icons/settings';
 	import Share2 from '@lucide/svelte/icons/share-2';
 	import Type from '@lucide/svelte/icons/type';
-	import UserRound from '@lucide/svelte/icons/user-round';
 	import Video from '@lucide/svelte/icons/video';
 	import { BACKSTAGE_NAV, BACKSTAGE_TEMPLATES, formatBackstageDate, formatBackstageSize, listBackstageRecentFiles } from 'pptx-viewer-shared';
-	import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
+	import type { AccountAuthConfig, BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
 	import type { ExportUiState } from '../../../export/export-ui.svelte';
+	import AccountPage from './AccountPage.svelte';
 	import BackstageAction from './BackstageAction.svelte';
 	import BackstageNavIcon from './BackstageNavIcon.svelte';
 
-	const { fileName, onclose, oncreatepresentation, ondownload, ondownloadppsx, ondownloadpptm, onpackage, hasMacros, onopenfile, onopenrecent, exportUi, onproperties, onfonts, onsignatures, onprotect, onversionhistory, onshare, onprint, onsettings }: { fileName?: string; onclose: () => void; oncreatepresentation: (templateId: string) => void; ondownload: () => void; ondownloadppsx: () => void; ondownloadpptm: () => void; onpackage: () => void; hasMacros: boolean; onopenfile?: () => void; onopenrecent?: (key: string) => void; exportUi?: ExportUiState; onproperties?: () => void; onfonts?: () => void; onsignatures?: () => void; onprotect?: () => void; onversionhistory?: () => void; onshare?: () => void; onprint?: () => void; onsettings?: () => void } = $props();
+	const { fileName, onclose, oncreatepresentation, ondownload, ondownloadppsx, ondownloadpptm, onpackage, hasMacros, onopenfile, onopenrecent, exportUi, onproperties, onfonts, onsignatures, onprotect, onversionhistory, onshare, onprint, onsettings, accountAuth }: { fileName?: string; onclose: () => void; oncreatepresentation: (templateId: string) => void; ondownload: () => void; ondownloadppsx: () => void; ondownloadpptm: () => void; onpackage: () => void; hasMacros: boolean; onopenfile?: () => void; onopenrecent?: (key: string) => void; exportUi?: ExportUiState; onproperties?: () => void; onfonts?: () => void; onsignatures?: () => void; onprotect?: () => void; onversionhistory?: () => void; onshare?: () => void; onprint?: () => void; onsettings?: () => void; accountAuth?: AccountAuthConfig } = $props();
 	let page = $state<BackstagePage>('home');
 	// eslint-disable-next-line prefer-const
 	let query = $state('');
@@ -48,7 +48,8 @@
 		{#if page === 'export'}<div class="actions"><BackstageAction icon={FileText} title="Create PDF" body="Publish one page per slide." onclick={() => run(() => void exportUi?.runPdf())} /><BackstageAction icon={Image} title="Export current slide" body="Create a high-quality PNG image." onclick={() => run(() => exportUi?.runPng())} /><BackstageAction icon={Video} title="Create a Video" body="Export timings and animations." onclick={() => run(() => void exportUi?.runVideo())} /><BackstageAction icon={Images} title="Create an Animated GIF" body="Make a compact looping preview." onclick={() => run(() => void exportUi?.runGif())} /><BackstageAction icon={Copy} title="Copy as Image" body="Copy the current slide." onclick={() => run(() => exportUi?.runCopyImage())} /></div>{/if}
 		{#if page === 'print'}<div class="actions"><BackstageAction icon={Printer} title="Print Presentation" body="Choose layout and output settings." onclick={() => run(onprint)} /></div>{/if}
 		{#if page === 'share'}<div class="actions"><BackstageAction icon={Share2} title="Share with People" body="Invite collaborators to work together." onclick={() => run(onshare)} /><BackstageAction icon={Package} title="Package for Sharing" body="Download a self-contained package." onclick={() => run(onpackage)} /></div>{/if}
-		{#if page === 'account' || page === 'options'}<section class="card"><b class="avatar">{#if page === 'options'}<Settings size={24} aria-hidden="true" />{:else}<UserRound size={24} aria-hidden="true" />{/if}</b><h2>{page === 'options' ? 'PowerPoint Options' : 'PowerPoint Viewer'}</h2><p>{page === 'options' ? 'Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.' : 'Your presentations and recovery history stay in your browser unless you explicitly share or download them.'}</p>{#if page === 'options' && onsettings}<button class="primary" type="button" onclick={() => run(onsettings)}>Open Options</button>{/if}</section>{/if}
+		{#if page === 'account'}<AccountPage {accountAuth} />{/if}
+		{#if page === 'options'}<section class="card"><b class="avatar"><Settings size={24} aria-hidden="true" /></b><h2>PowerPoint Options</h2><p>Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.</p>{#if onsettings}<button class="primary" type="button" onclick={() => run(onsettings)}>Open Options</button>{/if}</section>{/if}
 		<footer>{fileName || 'Untitled Presentation.pptx'} · Saved to this browser</footer>
 	</main>
 </div>

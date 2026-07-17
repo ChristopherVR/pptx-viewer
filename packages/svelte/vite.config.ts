@@ -1,8 +1,16 @@
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+
+// Read once at config-eval time so `__PPTX_SVELTE_VIEWER_VERSION__` (see
+// `src/build-info.d.ts`) always reflects this package's own version, with no
+// separate value to keep in sync. Used by AccountPage.svelte's About section.
+const pkgVersion = (
+	JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8')) as { version: string }
+).version;
 
 /**
  * Library build for `pptx-svelte-viewer`.
@@ -33,6 +41,9 @@ import dts from 'vite-plugin-dts';
  * of that.
  */
 export default defineConfig({
+	define: {
+		__PPTX_SVELTE_VIEWER_VERSION__: JSON.stringify(pkgVersion),
+	},
 	plugins: [
 		svelte({
 			compilerOptions: { css: 'external' },

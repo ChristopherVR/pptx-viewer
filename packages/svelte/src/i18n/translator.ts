@@ -28,6 +28,15 @@ export function registerTranslations(locale: string, dictionary: TranslationDict
 	registry.set(locale, existing ? { ...existing, ...dictionary } : { ...dictionary });
 }
 
+/**
+ * List every locale code with a registered dictionary: `en` (built in) plus
+ * anything added via {@link registerTranslations}. Used by File > Options'
+ * Language tab to offer only locales the host has actually wired up.
+ */
+export function getRegisteredLocales(): string[] {
+	return [...registry.keys()];
+}
+
 /** Interpolate `{{name}}` placeholders (the shared-dictionary convention). */
 export function interpolate(
 	message: string,

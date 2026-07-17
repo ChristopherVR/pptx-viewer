@@ -3,11 +3,13 @@
  * framework-agnostic `ViewerTheme` system (types, defaults, CSS-variable
  * helpers, and the Vermilion presets), mirroring the Vue package.
  */
-export type { ViewerTheme, ViewerThemeColors } from 'pptx-viewer-shared';
+export type { ThemeCatalogEntry, ViewerTheme, ViewerThemeColors } from 'pptx-viewer-shared';
 export {
 	defaultCssVars,
 	defaultRadius,
 	defaultThemeColors,
+	resolveThemeCatalogEntry,
+	THEME_CATALOG,
 	themeToCssVars,
 	vermilionDarkColors,
 	vermilionDarkTheme,

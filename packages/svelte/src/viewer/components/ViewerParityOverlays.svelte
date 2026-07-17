@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PptxSlide } from 'pptx-viewer-core';
-	import type { CanvasSize } from 'pptx-viewer-shared';
+	import type { CanvasSize, ThemeCatalogEntry } from 'pptx-viewer-shared';
+	import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
 	import type { EditorState } from '../editor/editor-state.svelte';
 	import type { ExportUiState } from '../export/export-ui.svelte';
@@ -28,6 +29,11 @@
 		current,
 		fullscreen,
 		locale,
+		themeKey,
+		themeCatalog,
+		onsetthemekey,
+		availableLocales,
+		onsetlocale,
 		onselectslide,
 		onmoveslide,
 		onpreferenceschange,
@@ -40,7 +46,14 @@
 		mediaDataUrls: Map<string, string>;
 		current: number;
 		fullscreen: boolean;
+		/** Effective locale (host `locale` prop, or the user's Options > Language choice). */
 		locale: string;
+		/** Effective File > Options > Appearance selection, threaded to `SettingsDialog`. */
+		themeKey: string;
+		themeCatalog: readonly ThemeCatalogEntry[];
+		onsetthemekey: (key: string) => void;
+		availableLocales?: readonly LocaleCatalogEntry[];
+		onsetlocale: (code: string) => void;
 		onselectslide: (index: number) => void;
 		onmoveslide: (from: number, to: number) => void;
 		onpreferenceschange: (next: ViewerParityUiState['preferences']) => void;
@@ -49,7 +62,7 @@
 
 {#if ui.setupSlideShowOpen}<SetUpSlideShowDialog properties={editor.presentationProperties} customShows={editor.customShows} slideCount={slides.length} onclose={() => (ui.setupSlideShowOpen = false)} onsave={(next) => editor.presentationMetadata.updatePresentationProperties(next)} />{/if}
 {#if ui.headerFooterOpen}<HeaderFooterPanel value={editor.headerFooter} onclose={() => (ui.headerFooterOpen = false)} onapply={(next) => editor.presentationMetadata.updateHeaderFooter(next)} />{/if}
-{#if ui.settingsOpen}<SettingsDialog preferences={ui.preferences} onclose={() => (ui.settingsOpen = false)} onchange={onpreferenceschange} />{/if}
+{#if ui.settingsOpen}<SettingsDialog preferences={ui.preferences} onclose={() => (ui.settingsOpen = false)} onchange={onpreferenceschange} {themeKey} {themeCatalog} {onsetthemekey} {locale} {availableLocales} {onsetlocale} />{/if}
 {#if ui.shortcutsOpen}<ShortcutPanel onclose={() => (ui.shortcutsOpen = false)} />{/if}
 {#if ui.compare.open}<ComparePanel compare={ui.compare} onclose={() => (ui.compare.open = false)} />{/if}
 {#if ui.printSettingsOpen}<PrintDialog slideCount={slides.length} {current} onclose={() => (ui.printSettingsOpen = false)} onprint={(options) => exportUi.runPrint(options)} />{/if}
