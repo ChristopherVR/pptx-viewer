@@ -1,7 +1,12 @@
-import { keyToLabel, translationsEn as sharedTranslationsEn } from 'pptx-viewer-shared/i18n';
-import type { TranslationKey } from 'pptx-viewer-shared/i18n';
+import {
+	keyToLabel,
+	LOCALE_CATALOG,
+	translationsEn as sharedTranslationsEn,
+} from 'pptx-viewer-shared/i18n';
+import type { LocaleCatalogEntry, TranslationKey } from 'pptx-viewer-shared/i18n';
 
-export type { TranslationKey };
+export type { LocaleCatalogEntry, TranslationKey };
+export { LOCALE_CATALOG };
 
 /**
  * vue-i18n's message compiler only supports single-brace `{var}` named
