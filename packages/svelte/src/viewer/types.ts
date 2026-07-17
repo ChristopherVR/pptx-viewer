@@ -1,14 +1,17 @@
 import type { PptxSaveFormat } from 'pptx-viewer-core';
 import type {
+	AccountAuthConfig,
 	CanvasSize,
 	CollaborationConfig,
 	CollaborationRole,
 	CollaborationTransport,
 	PowerPointViewerAPI,
+	ThemeCatalogEntry,
 	ToolbarActionId,
 	ViewerFontSource,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
+import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
 import type {
 	ExportGifOptions,
@@ -58,6 +61,49 @@ export interface PowerPointViewerProps {
 	theme?: ViewerTheme;
 	/** UI locale (BCP 47). English ships built in; register others via `pptx-svelte-viewer/i18n`. */
 	locale?: string;
+	/**
+	 * Initial File > Options > Appearance selection: a key into `availableThemes`
+	 * (or the built-in `THEME_CATALOG` when unset). Falls back to a value
+	 * persisted in `localStorage` (see `pptx-viewer-shared`'s
+	 * `readStoredViewerPrefs`), then `'default'`. Once the user picks a theme
+	 * from the Design tab or Options, that choice (`themeKey`) is the single
+	 * source of truth for `effectiveTheme` for the rest of the session; the
+	 * `theme` prop above still wins whenever the resolved key is `'default'`
+	 * (its entry maps to `undefined`), preserving prior host-prop precedence.
+	 */
+	defaultThemeKey?: string;
+	/** Theme choices offered by File > Options > Appearance. Defaults to the built-in `THEME_CATALOG`. */
+	availableThemes?: readonly ThemeCatalogEntry[];
+	/**
+	 * Fired when the user picks a theme (Design tab or File > Options >
+	 * Appearance) with the selected catalog key. Supplying this hands
+	 * persistence to the host; without it, the choice is written to
+	 * `localStorage` automatically.
+	 */
+	onThemeChange?: (themeKey: string) => void;
+	/**
+	 * Initial File > Options > Language selection (locale code). Falls back to
+	 * a value persisted in `localStorage`, then the `locale` prop. Once the
+	 * user picks a language from Options, that choice always wins over `locale`
+	 * for the rest of the session: unlike `theme`, there is no "host forces
+	 * this language no matter what" case in this binding.
+	 */
+	defaultLocale?: string;
+	/** Language choices offered by File > Options > Language. Defaults to every locale registered via `pptx-svelte-viewer/i18n`'s `registerTranslations`, labelled from the shared `LOCALE_CATALOG`. */
+	availableLocales?: readonly LocaleCatalogEntry[];
+	/**
+	 * Fired when the user picks a language from File > Options > Language with
+	 * the selected locale code. Supplying this hands persistence to the host;
+	 * without it, the choice is written to `localStorage` automatically. Note
+	 * this only switches which registered dictionary is read; registering the
+	 * dictionary itself is a separate step (`registerTranslations`).
+	 */
+	onLocaleChange?: (locale: string) => void;
+	/**
+	 * Optional hook point for a real sign-in flow in File > Account. Disabled
+	 * by default (renders nothing extra) unless `enabled: true`.
+	 */
+	accountAuth?: AccountAuthConfig;
 	/** Slide shown after load (0-based, clamped). Default 0. */
 	initialSlide?: number;
 	/** Show the thumbnail sidebar. Default true. */

@@ -6,10 +6,21 @@
 	 * `pptx-viewer-core` / `pptx-viewer-shared` and this package's `.ts`
 	 * modules; this SFC is thin composition.
 	 */
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { cloneSlide } from 'pptx-viewer-core';
 	import type { PptxElement, TextSegment } from 'pptx-viewer-core';
-	import { buildUserFontFaceStyles, createBlankSlide, defaultCssVars, makeSlideId, themeToCssVars, toggleSheet } from 'pptx-viewer-shared';
+	import {
+		buildUserFontFaceStyles,
+		createBlankSlide,
+		defaultCssVars,
+		makeSlideId,
+		readStoredViewerPrefs,
+		resolveThemeCatalogEntry,
+		THEME_CATALOG,
+		themeToCssVars,
+		toggleSheet,
+		writeStoredViewerPrefs,
+	} from 'pptx-viewer-shared';
 	import type { MobileSheetKey, ViewerMode } from 'pptx-viewer-shared';
 
 	import { createTranslator } from '../i18n/translator';
@@ -58,6 +69,13 @@
 		fonts = [],
 		theme,
 		locale = 'en',
+		defaultThemeKey,
+		availableThemes,
+		onThemeChange,
+		defaultLocale,
+		availableLocales,
+		onLocaleChange,
+		accountAuth,
 		initialSlide = 0,
 		showThumbnails = true,
 		showToolbar = true,
@@ -103,7 +121,48 @@
 		return () => style.remove();
 	});
 
-	const t = createTranslator(() => locale);
+	// ── Theme + locale (File > Options Appearance/Language, Design tab) ────
+	// `themeKey` is the single source of truth for the viewer chrome's theme;
+	// both the Design tab's swatch gallery and the Options dialog funnel
+	// through `setThemeKey` below so they stay in sync. Persisted to the
+	// shared `pptx-viewer-prefs` localStorage key unless the host wires
+	// `onThemeChange`, in which case persistence is the host's responsibility.
+	let themeKey = $state<string>(untrack(() => defaultThemeKey) ?? readStoredViewerPrefs().themeKey ?? 'default');
+	const themeCatalog = $derived(availableThemes ?? THEME_CATALOG);
+	const themeOverride = $derived(resolveThemeCatalogEntry(themeKey, themeCatalog));
+	function setThemeKey(key: string): void {
+		themeKey = key;
+		if (onThemeChange) {
+			onThemeChange(key);
+		} else {
+			writeStoredViewerPrefs({ themeKey: key });
+		}
+	}
+	// The Design tab's theme-preset gallery predates the Options catalog and
+	// passes a `ViewerTheme` value directly (its own small `THEME_SWATCHES`
+	// idiom); resolve it back to a catalog key so both entry points update the
+	// same `themeKey` state and stay in sync with each other.
+	function onSetTheme(next: PowerPointViewerProps['theme']): void {
+		setThemeKey(themeCatalog.find((entry) => entry.theme === next)?.key ?? 'default');
+	}
+
+	// Locale: unlike `theme`, there is no "host forces this locale no matter
+	// what" case in this binding, so once the user picks a language via
+	// Options, `localeOverride` always wins over the `locale` prop for the
+	// rest of the session (the opposite precedence direction from `theme`,
+	// where the host prop still wins over a `'default'` override).
+	let localeOverride = $state<string | undefined>(untrack(() => defaultLocale) ?? readStoredViewerPrefs().localeCode);
+	const effectiveLocale = $derived(localeOverride ?? locale);
+	function setLocale(code: string): void {
+		localeOverride = code;
+		if (onLocaleChange) {
+			onLocaleChange(code);
+		} else {
+			writeStoredViewerPrefs({ localeCode: code });
+		}
+	}
+
+	const t = createTranslator(() => effectiveLocale);
 	provideTranslator(t);
 	provideSmartArt3D(() => smartArt3D);
 
@@ -314,10 +373,9 @@
 	$effect(() => onselectionchange?.([...editor.selection.ids]));
 	$effect(() => onslidecountchange?.(displaySlides.length));
 
-	// The Design tab's theme-preset gallery overrides the host `theme` prop
-	// locally (React/vanilla's `setTheme` public API pattern); clearing it
-	// (`undefined`) falls back to whatever the host passed in.
-	let themeOverride = $state<PowerPointViewerProps['theme']>(undefined);
+	// `themeOverride`/`themeCatalog` are declared earlier alongside `setThemeKey`.
+	// The host `theme` prop still wins whenever the resolved key is `'default'`
+	// (that catalog entry maps to `undefined`), preserving prior precedence.
 	const effectiveTheme = $derived(themeOverride ?? theme);
 
 	const rootStyle = $derived(
@@ -402,11 +460,6 @@
 			notesExpanded = false;
 		}
 		activeMobileSheet = next;
-	}
-
-	// ── Design tab theme switching ──────────────────────────────────────
-	function onSetTheme(next: PowerPointViewerProps['theme']): void {
-		themeOverride = next;
 	}
 
 	// Route notes edits through the history-tracked editor when editable (so
@@ -660,6 +713,7 @@
 				}}
 				theme={effectiveTheme}
 				onsettheme={onSetTheme}
+				{accountAuth}
 				onentermasterview={() => editor.masterOps.enter()}
 				{hiddenActions}
 			/>
@@ -695,7 +749,7 @@
 	/>
 	{#if versionHistoryOpen}<VersionHistoryPanel {filePath} onclose={() => (versionHistoryOpen = false)} onrestore={(bytes) => loader.load(bytes)} />{/if}
 	{#if signatureWarningOpen}<SignatureStrippedDialog signatureCount={loader.digitalSignatureCount} onclose={closeSignatureWarning} />{/if}
-	<ViewerParityOverlays ui={parityUi} {editor} {exportUi} slides={displaySlides} canvasSize={loader.canvasSize} mediaDataUrls={loader.mediaDataUrls} current={viewer.current} fullscreen={viewer.isFullscreen} {locale} onselectslide={(index) => viewer.goTo(index)} onmoveslide={moveSlide} onpreferenceschange={(next) => { parityUi.updatePreferences(next, (enabled) => { autosaveEnabled = enabled; onautosavetoggle?.(enabled); }); }} />
+	<ViewerParityOverlays ui={parityUi} {editor} {exportUi} slides={displaySlides} canvasSize={loader.canvasSize} mediaDataUrls={loader.mediaDataUrls} current={viewer.current} fullscreen={viewer.isFullscreen} locale={effectiveLocale} {themeKey} {themeCatalog} onsetthemekey={setThemeKey} {availableLocales} onsetlocale={setLocale} onselectslide={(index) => viewer.goTo(index)} onmoveslide={moveSlide} onpreferenceschange={(next) => { parityUi.updatePreferences(next, (enabled) => { autosaveEnabled = enabled; onautosavetoggle?.(enabled); }); }} />
 	{#if editor.masterViewTarget}
 		<MasterViewBody
 			{editor}

@@ -1,5 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type {
+	AccountAuthConfig,
 	CanvasSize,
 	ToolbarActionId,
 	ViewerPreferences,
@@ -113,4 +114,7 @@ export interface RibbonProps {
 	 */
 	theme: ViewerTheme | undefined;
 	onsettheme: (theme: ViewerTheme | undefined) => void;
+
+	/** File tab > Account: disabled-by-default sign-in hook point. */
+	accountAuth?: AccountAuthConfig;
 }
