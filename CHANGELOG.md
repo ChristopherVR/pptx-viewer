@@ -6,6 +6,18 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-17
 
+_Releases: pptx-viewer-core@1.6.1, pptx-react-viewer@1.19.1, pptx-vue-viewer@1.19.1, pptx-angular-viewer@1.21.0, pptx-vanilla-viewer@0.9.1, pptx-svelte-viewer@0.9.1, pptx-viewer-mcp@1.3.1, @christophervr/pptx-viewer@1.5.4_
+
+### Bug Fixes
+
+- **shared:** Close XSS/injection gaps flagged by code scanning (by @ChristopherVR) ([9671a8f](https://github.com/ChristopherVR/pptx-viewer/commit/9671a8fa2df0de2de8feb77ed1e6ac23be497dd4))
+
+### Dependencies
+
+- **deps:** Update outdated dependencies within semver ranges (by @ChristopherVR) ([3249d8e](https://github.com/ChristopherVR/pptx-viewer/commit/3249d8ecd53ea79089f87f942f2c88caae840466))
+
+## 2026-07-17
+
 _Releases: pptx-angular-viewer@1.20.0_
 
 ## 2026-07-17
