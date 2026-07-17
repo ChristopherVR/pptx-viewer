@@ -29,6 +29,15 @@ export {
 } from './find-replace-helpers';
 export type { FindResult, FindOptions, ReplaceResult } from './find-replace-helpers';
 export { InspectorPanelComponent } from './inspector-panel.component';
+export { InspectorPaneHeaderComponent } from './inspector-pane-header.component';
+export type { SlideInspectorTab } from './inspector-pane-header.component';
+export { SlideDefaultInspectorComponent } from './slide-default-inspector.component';
+export { PresentationPropertiesPanelComponent } from './presentation-properties-panel.component';
+export { PresentationSettingsCardComponent } from './presentation-settings-card.component';
+export { ThemeSelectorCardComponent } from './theme-selector-card.component';
+export { SlideSizeCardComponent } from './slide-size-card.component';
+export { NotesHandoutCardComponent } from './notes-handout-card.component';
+export { DocumentPropertiesCardComponent } from './document-properties-card.component';
 export { GradientPickerComponent } from './gradient-picker.component';
 export { EffectsPanelComponent } from './effects-panel.component';
 export { TextAdvancedPanelComponent } from './text-advanced-panel.component';

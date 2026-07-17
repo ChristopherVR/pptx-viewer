@@ -2,6 +2,7 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import type {
 	MediaPptxElement,
 	ParsedSignature,
+	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxElement,
@@ -15,6 +16,7 @@ import type {
 	PptxSlide,
 	PptxSlideMaster,
 	PptxTheme,
+	PptxThemeOption,
 	XmlObject,
 } from 'pptx-viewer-core';
 import { EncryptedFileError, parseSignatureXml, PptxHandler } from 'pptx-viewer-core';
@@ -73,6 +75,12 @@ export class LoadContentService {
 	readonly embeddedFonts = signal<PptxEmbeddedFont[]>([]);
 	/** Core document properties from `docProps/core.xml`. */
 	readonly coreProperties = signal<PptxCoreProperties | undefined>(undefined);
+	/** Extended application properties from `docProps/app.xml`. */
+	readonly appProperties = signal<PptxAppProperties | undefined>(undefined);
+	/** Selectable theme parts discovered in the package (path + display name). */
+	readonly themeOptions = signal<PptxThemeOption[]>([]);
+	/** Notes page size in pixels (from `p:notesSz`), when present. */
+	readonly notesCanvasSize = signal<CanvasSize | undefined>(undefined);
 	/** Custom document properties (used for `docproperty` field substitution). */
 	readonly customProperties = signal<PptxCustomProperty[]>([]);
 	/** Header/footer settings (footer/header/date-time text + format) for field substitution. */
@@ -295,6 +303,20 @@ export class LoadContentService {
 			this.hasMacros.set(parsed.hasMacros ?? false);
 			this.embeddedFonts.set(parsed.embeddedFonts ?? []);
 			this.coreProperties.set(parsed.coreProperties);
+			this.appProperties.set(parsed.appProperties);
+			this.themeOptions.set(parsed.themeOptions ?? []);
+			this.notesCanvasSize.set(
+				typeof parsed.notesWidthEmu === 'number' &&
+					typeof parsed.notesHeightEmu === 'number' &&
+					parsed.notesWidthEmu > 0 &&
+					parsed.notesHeightEmu > 0
+					? {
+							// EMU → px (EMU_PER_PIXEL = 9525), same rounding as the React port.
+							width: Math.round(parsed.notesWidthEmu / 9525),
+							height: Math.round(parsed.notesHeightEmu / 9525),
+						}
+					: undefined,
+			);
 			this.customProperties.set(parsed.customProperties ?? []);
 			this.headerFooter.set(parsed.headerFooter);
 			this.hasDigitalSignatures.set(parsed.hasDigitalSignatures ?? false);
@@ -323,6 +345,24 @@ export class LoadContentService {
 				this.loading.set(false);
 			}
 		}
+	}
+
+	/**
+	 * Point the presentation (first master, or every master) at another theme
+	 * part in the package, mirroring React's `handleApplyTheme`. Updates the
+	 * in-memory ZIP for save round-trip and the `slideMasters` signal so the
+	 * change is visible to consumers; callers mark the editor dirty.
+	 */
+	async setPresentationTheme(themePath: string, applyToAllMasters: boolean): Promise<void> {
+		if (!this.handler) {
+			return;
+		}
+		await this.handler.setPresentationTheme(themePath, applyToAllMasters);
+		this.slideMasters.update((masters) =>
+			masters.map((master, index) =>
+				applyToAllMasters || index === 0 ? { ...master, themePath } : master,
+			),
+		);
 	}
 
 	private disposeHandler(): void {

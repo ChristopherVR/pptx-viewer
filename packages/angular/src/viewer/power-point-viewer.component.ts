@@ -96,8 +96,8 @@ import { SelectionPaneComponent } from './selection-pane.component';
 import { ShareDialogComponent } from './share-dialog.component';
 import { SignaturesPanelComponent } from './signatures-panel.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
+import { SlideDefaultInspectorComponent } from './slide-default-inspector.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
-import { SlideThemeOverridePanelComponent } from './slide-theme-override-panel.component';
 import { SlidesPanelComponent } from './slides-panel.component';
 import { SmartArt3DService } from './smart-art-3d.service';
 import { buildSmartArtInsertElement } from './smart-art-insert-helpers';
@@ -190,7 +190,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		PresenterViewComponent,
 		MobilePresenterViewComponent,
 		SlideSorterOverlayComponent,
-		SlideThemeOverridePanelComponent,
+		SlideDefaultInspectorComponent,
 		FindBarComponent,
 		FindReplaceBarComponent,
 		InspectorPanelComponent,
@@ -539,41 +539,19 @@ import { ZoomTargetService } from './zoom-target.service';
 								}
 								@case ('slide') {
 									<!--
-										Keyed on the active index so the inputs are recreated (and reseeded)
-										only when the slide changes, never on every change-detection pass
-										while typing. This keeps the on-screen keyboard open and the caret
-										stable on mobile.
+										Default (no element selected) inspector: React-parity tabbed pane
+										(Elements | Properties | Comments) over the presentation-properties
+										sections; the slide background/notes controls live at the bottom of
+										its Properties tab.
 									-->
-									@if (activeSlide(); as sl) {
-										@if (slidePropsKey(); as key) {
-											<div class="pptx-ng-slide-props" [attr.data-slide-key]="key">
-												<h2 class="pptx-ng-notes-title">{{ 'pptx.viewer.slide' | translate }}</h2>
-												<label class="pptx-ng-prop-row">
-													<span>{{ 'pptx.viewer.background' | translate }}</span>
-													<input
-														type="color"
-														[attr.value]="sl.backgroundColor || '#ffffff'"
-														(change)="canvasEditing.onSlideBackground($event)"
-													/>
-												</label>
-												<label class="pptx-ng-prop-row pptx-ng-prop-col">
-													<span>{{ 'pptx.notes.title' | translate }}</span>
-													<textarea
-														rows="5"
-														[attr.placeholder]="'pptx.viewer.speakerNotesPlaceholder' | translate"
-														(change)="canvasEditing.onSlideNotes($event)"
-														(blur)="canvasEditing.onSlideNotes($event)"
-														>{{ sl.notes || '' }}</textarea
-													>
-												</label>
-												<pptx-slide-theme-override-panel
-													[slide]="sl"
-													[theme]="loader.theme()"
-													(patch)="editor.updateSlide(activeSlideIndex(), $event)"
-												/>
-											</div>
-										}
-									}
+									<pptx-slide-default-inspector
+										[slideIndex]="activeSlideIndex()"
+										[canEdit]="canEdit()"
+										[comments]="activeComments()"
+										(commentAdd)="onCommentAdd($event)"
+										(commentRemove)="onCommentRemove($event)"
+										(commentResolve)="onCommentResolve($event)"
+									/>
 								}
 							}
 						</aside>
@@ -1244,13 +1222,6 @@ export class PowerPointViewerComponent {
 	}));
 	/** Whether the Insert SmartArt gallery dialog is open. */
 	protected readonly showSmartArtInsert = signal(false);
-	/**
-	 * Stable, always-truthy key for the slide-properties form. Changes only when
-	 * the active slide changes, so the `@if` recreates (and reseeds) the
-	 * uncontrolled notes/background inputs on navigation, but never mid-typing.
-	 * String-prefixed so slide index 0 stays truthy under `@if (…; as key)`.
-	 */
-	protected readonly slidePropsKey = computed(() => `slide-${this.activeSlideIndex()}`);
 	/** The single selected element on the active slide (for the inspector). */
 	protected readonly selectedElement = computed<PptxElement | null>(() => {
 		const ids = this.editor.selectedIds();
