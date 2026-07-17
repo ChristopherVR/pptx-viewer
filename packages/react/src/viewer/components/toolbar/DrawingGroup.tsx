@@ -220,6 +220,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 											key={c}
 											type='button'
 											aria-label={`Fill colour ${c}`}
+											data-pptx-compact
 											className='w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform'
 											style={{ backgroundColor: c }}
 											title={c}
@@ -253,6 +254,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 											key={c}
 											type='button'
 											aria-label={`Outline colour ${c}`}
+											data-pptx-compact
 											className='w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform'
 											style={{ backgroundColor: c }}
 											title={c}

@@ -90,6 +90,7 @@ export const ColorPickerRow: React.FC<{
 						style={{ backgroundColor: c }}
 						title={`${label} ${c}`}
 						aria-label={`${label} ${c}`}
+						data-pptx-compact
 						disabled={disabled}
 						onClick={() => onChange(c)}
 					/>
@@ -98,6 +99,7 @@ export const ColorPickerRow: React.FC<{
 					<button
 						key={`${prefix}-recent-${c}`}
 						type='button'
+						data-pptx-compact
 						className='h-4 w-4 rounded border border-primary'
 						style={{ backgroundColor: c }}
 						title={`Recent ${c}`}

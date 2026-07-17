@@ -130,6 +130,7 @@ export function TextProperties({
 							<button
 								key={`theme-${c}`}
 								type='button'
+								data-pptx-compact
 								className='h-5 w-5 rounded border border-border'
 								style={{ backgroundColor: c }}
 								title={`Use ${c}`}
@@ -141,6 +142,7 @@ export function TextProperties({
 							<button
 								key={`recent-${c}`}
 								type='button'
+								data-pptx-compact
 								className='h-5 w-5 rounded border border-primary'
 								style={{ backgroundColor: c }}
 								title={`Recent ${c}`}

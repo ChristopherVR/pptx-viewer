@@ -445,6 +445,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 											key={c}
 											type='button'
 											aria-label={c}
+											data-pptx-compact
 											className={`w-5 h-5 rounded-full border transition-transform hover:scale-125 ${
 												currentColor?.toLowerCase() === c
 													? 'border-primary ring-1 ring-primary'
@@ -499,6 +500,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 											key={c}
 											type='button'
 											aria-label={c}
+											data-pptx-compact
 											className={`w-5 h-5 rounded-full border transition-transform hover:scale-125 ${
 												currentHighlight?.toLowerCase() === c
 													? 'border-primary ring-1 ring-primary'

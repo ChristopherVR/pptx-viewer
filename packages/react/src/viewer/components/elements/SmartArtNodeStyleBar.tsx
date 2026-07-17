@@ -36,6 +36,7 @@ export function SmartArtNodeStyleBar({
 					key={color}
 					type='button'
 					aria-label={`Set fill to ${color}`}
+					data-pptx-compact
 					// Sized generously (not the historical 14px) because this popover
 					// lives inside the slide canvas's zoom transform: at typical
 					// zoom-out levels a small swatch shrinks to just a few real

@@ -63,6 +63,7 @@ export function ThemeColorGrid({
 									key={`${cell.schemeKey}-${rowIdx}`}
 									type='button'
 									disabled={disabled}
+									data-pptx-compact
 									className={`h-4 w-full rounded-sm border transition-colors ${
 										isSelected
 											? 'border-primary ring-1 ring-primary'

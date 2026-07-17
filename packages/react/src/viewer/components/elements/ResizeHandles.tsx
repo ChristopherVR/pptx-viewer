@@ -211,6 +211,7 @@ export function ResizeHandles({
 				<button
 					type='button'
 					aria-label={t('pptx.resizeHandles.rotateAria')}
+					data-pptx-compact
 					className='absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-5 h-5 max-md:w-7 max-md:h-7 rounded-full border border-white bg-primary text-white shadow cursor-grab active:cursor-grabbing'
 					style={peStyle}
 					onPointerDown={(e) => {
@@ -236,6 +237,7 @@ export function ResizeHandles({
 				<button
 					type='button'
 					aria-label={t('pptx.canvas.adjustShape')}
+					data-pptx-compact
 					className='absolute h-2.5 w-2.5 max-md:h-4 max-md:w-4 rotate-45 border border-amber-700 bg-amber-300 shadow z-10'
 					style={{
 						left: adjH.left - 5,
