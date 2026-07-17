@@ -41,6 +41,7 @@ export function renderThumbnailSections(options: SectionRendererOptions): HTMLEl
 			const add = (label: string, text: string, run: () => void, disabled = false) => {
 				const button = createEl(doc, 'button');
 				button.type = 'button';
+				button.setAttribute('data-pptx-compact', '');
 				button.title = label;
 				button.setAttribute('aria-label', label);
 				button.textContent = text;

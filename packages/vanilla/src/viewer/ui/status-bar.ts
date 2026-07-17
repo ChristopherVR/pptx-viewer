@@ -83,6 +83,7 @@ export function createStatusBar(
 		notes.title = t('pptx.statusBar.toggleNotes');
 		notes.setAttribute('aria-label', t('pptx.statusBar.toggleNotes'));
 		notes.setAttribute('aria-pressed', 'false');
+		notes.setAttribute('data-pptx-compact', '');
 		notes.appendChild(createIconSpan(doc, 'sticky-note'));
 		const notesLabel = createEl(doc, 'span');
 		notesLabel.textContent = t('pptx.notes.title');
@@ -96,6 +97,7 @@ export function createStatusBar(
 		className: 'pptxv-statusbar-btn is-active',
 		onClick: () => {},
 	});
+	normal.btn.setAttribute('data-pptx-compact', '');
 	const slideShow = showFullscreen
 		? makeButton(doc, {
 				label: t('pptx.statusBar.slideShow'),
@@ -104,6 +106,7 @@ export function createStatusBar(
 				onClick: handlers.togglePresentation,
 			})
 		: null;
+	slideShow?.btn.setAttribute('data-pptx-compact', '');
 
 	let zoomOut: ReturnType<typeof makeButton> | null = null;
 	let zoomPercent: HTMLButtonElement | null = null;
@@ -115,12 +118,14 @@ export function createStatusBar(
 			className: 'pptxv-statusbar-btn',
 			onClick: handlers.zoomOut,
 		});
+		zoomOut.btn.setAttribute('data-pptx-compact', '');
 		zoomPercent = createEl(doc, 'button', 'pptxv-statusbar-zoom');
 		zoomPercent.type = 'button';
 		// The aria-label wins over the visible percent text, so the "Zoom to fit"
 		// accessible name (e2e contract) survives the percent readout.
 		zoomPercent.title = t('pptx.statusBar.zoomToFit');
 		zoomPercent.setAttribute('aria-label', t('pptx.statusBar.zoomToFit'));
+		zoomPercent.setAttribute('data-pptx-compact', '');
 		zoomPercent.addEventListener('click', handlers.zoomToFit);
 		zoomIn = makeButton(doc, {
 			label: t('pptx.statusBar.zoomIn'),
@@ -128,6 +133,7 @@ export function createStatusBar(
 			className: 'pptxv-statusbar-btn',
 			onClick: handlers.zoomIn,
 		});
+		zoomIn.btn.setAttribute('data-pptx-compact', '');
 	}
 
 	el.append(

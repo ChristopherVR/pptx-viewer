@@ -100,6 +100,7 @@ export function makeSwatchPicker(
 	for (const hex of options.swatches) {
 		const btn = createEl(doc, 'button', 'pptxv-swatch');
 		btn.type = 'button';
+		btn.setAttribute('data-pptx-compact', '');
 		btn.style.backgroundColor = hex;
 		btn.setAttribute('aria-label', hex);
 		btn.addEventListener('click', () => {

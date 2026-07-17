@@ -121,6 +121,7 @@ export function enableSmartArtEditing(
 				cursor: 'pointer',
 			});
 			button.type = 'button';
+			button.setAttribute('data-pptx-compact', '');
 			button.setAttribute('aria-label', `${context.t('pptx.smartArt.fillColor')} ${color}`);
 			// eslint-disable-next-line no-loop-func
 			button.addEventListener('click', (clickEvent) => {

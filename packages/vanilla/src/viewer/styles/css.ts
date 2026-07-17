@@ -48,7 +48,7 @@ const CHROME_CSS = `
 .pptxv:focus { outline: none; }
 .pptxv:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -2px; }
 .pptxv :is(button, a, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--pptx-ring) !important; outline-offset: 2px; }
-.pptxv :is(button, [role='button']) { min-width: 24px; min-height: 24px; touch-action: manipulation; }
+.pptxv :is(button, [role='button']):not([role='switch']):not([data-pptx-compact]) { min-width: 24px; min-height: 24px; touch-action: manipulation; }
 @media (prefers-reduced-motion: reduce) {
 	.pptxv *, .pptxv *::before, .pptxv *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

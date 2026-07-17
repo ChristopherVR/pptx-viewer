@@ -95,6 +95,7 @@ export function createSelectionOverlay(
 		top: `${-ROTATE_STEM_PX}px`,
 	});
 	knob.type = 'button';
+	knob.setAttribute('data-pptx-compact', '');
 	knob.setAttribute('aria-label', t('pptx.selectionOverlay.rotate'));
 	knob.addEventListener('pointerdown', (event) => hooks.onRotatePointerDown(event));
 	box.appendChild(knob);
@@ -107,6 +108,7 @@ export function createSelectionOverlay(
 			cursor: HANDLE_CURSORS[handle],
 		});
 		btn.type = 'button';
+		btn.setAttribute('data-pptx-compact', '');
 		btn.dataset.handle = handle;
 		btn.setAttribute('aria-label', t('pptx.selectionOverlay.resize', { handle }));
 		btn.addEventListener('pointerdown', (event) => hooks.onHandlePointerDown(handle, event));
