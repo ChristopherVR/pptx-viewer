@@ -108,4 +108,32 @@ describe('mobileBottomBar', () => {
 		expect(last.get('button[aria-label="Next slide"]').attributes('disabled')).toBeDefined();
 		expect(last.get('button[aria-label="Previous slide"]').attributes('disabled')).toBeUndefined();
 	});
+
+	it('renders navigation and zoom by default (hiddenActions omitted)', () => {
+		const wrapper = mountBar();
+		expect(wrapper.find('button[aria-label="Previous slide"]').exists()).toBeTruthy();
+		expect(wrapper.find('button[aria-label="Zoom in"]').exists()).toBeTruthy();
+	});
+
+	it('hides the navigation cluster when "navigation" is in hiddenActions', () => {
+		const wrapper = mount(MobileBottomBar, {
+			props: { slideIndex: 1, slideCount: 5, zoomPercent: 100, hiddenActions: ['navigation'] },
+		});
+		expect(wrapper.find('button[aria-label="Previous slide"]').exists()).toBeFalsy();
+		expect(wrapper.find('button[aria-label="Next slide"]').exists()).toBeFalsy();
+		expect(wrapper.find('.pptx-vue-mobile-counter').exists()).toBeFalsy();
+		// The zoom cluster stays intact.
+		expect(wrapper.find('button[aria-label="Zoom in"]').exists()).toBeTruthy();
+	});
+
+	it('hides the zoom cluster when "zoom" is in hiddenActions', () => {
+		const wrapper = mount(MobileBottomBar, {
+			props: { slideIndex: 1, slideCount: 5, zoomPercent: 100, hiddenActions: ['zoom'] },
+		});
+		expect(wrapper.find('button[aria-label="Zoom in"]').exists()).toBeFalsy();
+		expect(wrapper.find('button[aria-label="Zoom out"]').exists()).toBeFalsy();
+		expect(wrapper.find('.pptx-vue-mobile-zoom').exists()).toBeFalsy();
+		// Navigation stays intact.
+		expect(wrapper.find('button[aria-label="Previous slide"]').exists()).toBeTruthy();
+	});
 });

@@ -21,8 +21,11 @@
  * Every tap target is at least 44×44px (WCAG 2.5.5 / Apple HIG) and the bar is
  * pinned with `position: fixed; bottom: 0`, respecting the iOS safe-area inset.
  */
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import { useToolbarVisibility } from '../composables/useToolbarVisibility';
 
 const { t } = useI18n();
 
@@ -42,7 +45,11 @@ const props = defineProps<{
 	keyboardInset?: number;
 	/** Number of comments on the active slide (renders a badge, capped at 99+). */
 	commentCount?: number;
+	/** Toolbar buttons the host has asked to hide (gates prev/next and zoom below). */
+	hiddenActions?: ToolbarActionId[];
 }>();
+
+const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 
 /** Comment-count badge text, capped at "99+" like the React mobile bar. */
 const commentBadge = computed(() => {
@@ -104,68 +111,72 @@ const MOBILE_LABEL =
 		:style="barStyle"
 		:aria-label="t('pptx.mobileBar.ariaLabel')"
 	>
-		<button
-			type="button"
-			class="pptx-vue-mobile-btn"
-			:class="MOBILE_BTN"
-			:disabled="atStart"
-			:aria-label="t('pptx.mobileBar.previousSlide')"
-			@click="emit('prev')"
-		>
-			<span aria-hidden="true">‹</span>
-		</button>
+		<template v-if="!isHidden('navigation')">
+			<button
+				type="button"
+				class="pptx-vue-mobile-btn"
+				:class="MOBILE_BTN"
+				:disabled="atStart"
+				:aria-label="t('pptx.mobileBar.previousSlide')"
+				@click="emit('prev')"
+			>
+				<span aria-hidden="true">‹</span>
+			</button>
 
-		<span class="pptx-vue-mobile-counter" :class="MOBILE_LABEL" aria-live="polite">{{
-			counterLabel
-		}}</span>
+			<span class="pptx-vue-mobile-counter" :class="MOBILE_LABEL" aria-live="polite">{{
+				counterLabel
+			}}</span>
 
-		<button
-			type="button"
-			class="pptx-vue-mobile-btn"
-			:class="MOBILE_BTN"
-			:disabled="atEnd"
-			:aria-label="t('pptx.mobileBar.nextSlide')"
-			@click="emit('next')"
-		>
-			<span aria-hidden="true">›</span>
-		</button>
+			<button
+				type="button"
+				class="pptx-vue-mobile-btn"
+				:class="MOBILE_BTN"
+				:disabled="atEnd"
+				:aria-label="t('pptx.mobileBar.nextSlide')"
+				@click="emit('next')"
+			>
+				<span aria-hidden="true">›</span>
+			</button>
 
-		<span
-			class="pptx-vue-mobile-divider flex-[0_0_1px] w-px my-2 mx-px bg-border"
-			aria-hidden="true"
-		/>
+			<span
+				class="pptx-vue-mobile-divider flex-[0_0_1px] w-px my-2 mx-px bg-border"
+				aria-hidden="true"
+			/>
+		</template>
 
-		<button
-			type="button"
-			class="pptx-vue-mobile-btn"
-			:class="MOBILE_BTN"
-			:aria-label="t('pptx.statusBar.zoomOut')"
-			@click="emit('zoom-out')"
-		>
-			<span aria-hidden="true">−</span>
-		</button>
+		<template v-if="!isHidden('zoom')">
+			<button
+				type="button"
+				class="pptx-vue-mobile-btn"
+				:class="MOBILE_BTN"
+				:aria-label="t('pptx.statusBar.zoomOut')"
+				@click="emit('zoom-out')"
+			>
+				<span aria-hidden="true">−</span>
+			</button>
 
-		<span
-			class="pptx-vue-mobile-zoom"
-			:class="MOBILE_LABEL"
-			:aria-label="t('pptx.mobileBar.zoomLevel')"
-			>{{ zoomPercent }}%</span
-		>
+			<span
+				class="pptx-vue-mobile-zoom"
+				:class="MOBILE_LABEL"
+				:aria-label="t('pptx.mobileBar.zoomLevel')"
+				>{{ zoomPercent }}%</span
+			>
 
-		<button
-			type="button"
-			class="pptx-vue-mobile-btn"
-			:class="MOBILE_BTN"
-			:aria-label="t('pptx.statusBar.zoomIn')"
-			@click="emit('zoom-in')"
-		>
-			<span aria-hidden="true">+</span>
-		</button>
+			<button
+				type="button"
+				class="pptx-vue-mobile-btn"
+				:class="MOBILE_BTN"
+				:aria-label="t('pptx.statusBar.zoomIn')"
+				@click="emit('zoom-in')"
+			>
+				<span aria-hidden="true">+</span>
+			</button>
 
-		<span
-			class="pptx-vue-mobile-divider flex-[0_0_1px] w-px my-2 mx-px bg-border"
-			aria-hidden="true"
-		/>
+			<span
+				class="pptx-vue-mobile-divider flex-[0_0_1px] w-px my-2 mx-px bg-border"
+				aria-hidden="true"
+			/>
+		</template>
 
 		<button
 			type="button"

@@ -55,4 +55,31 @@ describe('statusBar', () => {
 				.exists(),
 		).toBeTruthy();
 	});
+
+	it('renders zoom, notes, and the Slide Show button by default (hiddenActions omitted)', () => {
+		const wrapper = mount(StatusBar, { props: { ...base, showNotes: true } });
+		expect(wrapper.find('[aria-label="Zoom in"]').exists()).toBeTruthy();
+		expect(wrapper.find('[aria-label="Toggle notes"]').exists()).toBeTruthy();
+		expect(wrapper.find('[aria-label="Slide show"]').exists()).toBeTruthy();
+	});
+
+	it('hides the zoom cluster when "zoom" is in hiddenActions', () => {
+		const wrapper = mount(StatusBar, { props: { ...base, hiddenActions: ['zoom'] } });
+		expect(wrapper.find('[aria-label="Zoom in"]').exists()).toBeFalsy();
+		expect(wrapper.find('[aria-label="Zoom out"]').exists()).toBeFalsy();
+	});
+
+	it('hides the Notes toggle when "notes" is in hiddenActions, even with showNotes', () => {
+		const wrapper = mount(StatusBar, {
+			props: { ...base, showNotes: true, hiddenActions: ['notes'] },
+		});
+		expect(wrapper.find('[aria-label="Toggle notes"]').exists()).toBeFalsy();
+	});
+
+	it('hides the Slide Show (fullscreen) button when "fullscreen" is in hiddenActions', () => {
+		const wrapper = mount(StatusBar, { props: { ...base, hiddenActions: ['fullscreen'] } });
+		expect(wrapper.find('[aria-label="Slide show"]').exists()).toBeFalsy();
+		// The rest of the view-mode cluster stays intact.
+		expect(wrapper.find('[aria-label="Normal view"]').exists()).toBeTruthy();
+	});
 });

@@ -6,12 +6,13 @@ import {
 	TITLE_BAR_CLASSES as TB,
 	TITLE_BAR_DEFAULT_FILE_KEY,
 } from 'pptx-viewer-shared';
-import type { CommandSearchEntry } from 'pptx-viewer-shared';
+import type { CommandSearchEntry, ToolbarActionId } from 'pptx-viewer-shared';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import type { AutosaveStatus } from '../../composables/useAutosave';
+import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
 import type { ViewerMode } from './ribbon-types';
 
 interface Props {
@@ -33,10 +34,13 @@ interface Props {
 	findReplaceOpen: boolean;
 	onToggleFindReplace: () => void;
 	onCommandSearch?: (command: string) => void;
+	/** Toolbar buttons the host has asked to hide (gates Undo/Redo independently below). */
+	hiddenActions?: ToolbarActionId[];
 }
 
 const props = defineProps<Props>();
 const { t } = useI18n();
+const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 
 const editing = computed(() => (props.mode === 'edit' || props.mode === 'master') && props.canEdit);
 
@@ -123,6 +127,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutsideCli
 				<Save class="w-3.5 h-3.5" />
 			</button>
 			<button
+				v-if="!isHidden('undo')"
 				type="button"
 				:disabled="!props.canUndo"
 				:class="TB.quickButton"
@@ -137,6 +142,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutsideCli
 				<Undo class="w-3.5 h-3.5" />
 			</button>
 			<button
+				v-if="!isHidden('redo')"
 				type="button"
 				:disabled="!props.canRedo"
 				:class="TB.quickButton"

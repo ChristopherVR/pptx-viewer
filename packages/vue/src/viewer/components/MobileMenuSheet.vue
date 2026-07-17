@@ -15,25 +15,13 @@
  * bundle it already assembles for the desktop ribbon, plus `open` + a `close`
  * emit, exactly like React threads `ToolbarProps` through.
  */
-import {
-	ClipboardList,
-	File as FileIcon,
-	LayoutGrid,
-	Paintbrush,
-	Plus,
-	Presentation,
-	Settings,
-	Shapes,
-	Sparkles,
-	TextCursorInput,
-	Type,
-	Wand,
-} from 'lucide-vue-next';
-import type { Component } from 'vue';
+import { TOOLBAR_TABS } from 'pptx-viewer-shared';
+import type { ToolbarTabId } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../utils';
+import { useToolbarVisibility } from '../composables/useToolbarVisibility';
 import MobileSheet from './MobileSheet.vue';
 import AnimationsSection from './ribbon/AnimationsSection.vue';
 import ArrangeSection from './ribbon/ArrangeSection.vue';
@@ -42,15 +30,14 @@ import DrawSection from './ribbon/DrawSection.vue';
 import FileSection from './ribbon/FileSection.vue';
 import HomeSection from './ribbon/HomeSection.vue';
 import InsertSection from './ribbon/InsertSection.vue';
+import { MOBILE_MENU_ITEMS } from './ribbon/mobile-menu-items';
+import type { MobileMenuKey } from './ribbon/mobile-menu-items';
 import ReviewSection from './ribbon/ReviewSection.vue';
-import type { RibbonProps, ToolbarSection } from './ribbon/ribbon-types';
+import type { RibbonProps } from './ribbon/ribbon-types';
 import SlideShowSection from './ribbon/SlideShowSection.vue';
 import TextSection from './ribbon/TextSection.vue';
 import TransitionsSection from './ribbon/TransitionsSection.vue';
 import ViewSection from './ribbon/ViewSection.vue';
-
-/** Sections surfaced as chips, in the same order as React's MENU_ITEMS. */
-type MenuKey = Exclude<ToolbarSection, 'help'>;
 
 interface Props extends RibbonProps {
 	open: boolean;
@@ -60,24 +47,20 @@ const props = defineProps<Props>();
 const emit = defineEmits<{ close: [] }>();
 
 const { t } = useI18n();
+const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 
-const MENU_ITEMS = computed<Array<{ key: MenuKey; label: string; icon: Component }>>(() => [
-	{ key: 'home', label: t('pptx.ribbon.home'), icon: ClipboardList },
-	{ key: 'insert', label: t('pptx.ribbon.insert'), icon: Plus },
-	{ key: 'text', label: t('pptx.ribbon.text'), icon: Type },
-	{ key: 'draw', label: t('pptx.ribbon.draw'), icon: Paintbrush },
-	{ key: 'arrange', label: t('pptx.ribbon.arrange'), icon: Shapes },
-	{ key: 'design', label: t('pptx.ribbon.design'), icon: LayoutGrid },
-	{ key: 'transitions', label: t('pptx.ribbon.transitions'), icon: Sparkles },
-	{ key: 'animations', label: t('pptx.ribbon.animations'), icon: Wand },
-	{ key: 'slideShow', label: t('pptx.ribbon.slideShow'), icon: Presentation },
-	{ key: 'review', label: t('pptx.ribbon.review'), icon: TextCursorInput },
-	{ key: 'view', label: t('pptx.ribbon.view'), icon: Settings },
-	{ key: 'file', label: t('pptx.ribbon.file'), icon: FileIcon },
-]);
+/** Ribbon-tab ids among the menu chips (draw/home/insert/... but not text/arrange, which aren't tabs). */
+const TAB_KEYS = new Set<string>(TOOLBAR_TABS.map((tab) => tab.id));
 
-const active = ref<MenuKey | null>('home');
-function toggle(key: MenuKey): void {
+/** Chips resolved with their label, minus any hidden ribbon tabs. */
+const MENU_ITEMS = computed(() =>
+	MOBILE_MENU_ITEMS.filter(
+		(item) => !TAB_KEYS.has(item.key) || !isHidden(item.key as ToolbarTabId),
+	).map((item) => ({ key: item.key, label: t(item.labelKey), icon: item.icon })),
+);
+
+const active = ref<MobileMenuKey | null>('home');
+function toggle(key: MobileMenuKey): void {
 	active.value = active.value === key ? null : key;
 }
 
@@ -234,6 +217,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:on-toggle-subtitles="props.onToggleSubtitles ?? (() => {})"
 						:show-subtitles="props.showSubtitles ?? false"
 						:on-set-mode="props.onSetMode"
+						:hidden-actions="props.hiddenActions"
 					/>
 				</div>
 
@@ -300,6 +284,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:on-open-password-protection="props.onOpenPasswordProtection"
 						:on-open-font-embedding="props.onOpenFontEmbedding"
 						:on-open-digital-signatures="props.onOpenDigitalSignatures"
+						:hidden-actions="props.hiddenActions"
 					/>
 				</div>
 

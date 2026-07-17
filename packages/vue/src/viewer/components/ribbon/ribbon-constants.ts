@@ -41,7 +41,7 @@ import {
  */
 import type { Component } from 'vue';
 
-import type { DrawingTool, ToolbarSection, ViewerMode } from './ribbon-types';
+import type { DrawingTool, ViewerMode } from './ribbon-types';
 
 /* Style tokens: touch-friendly variants use min-h/min-w of 44px (WCAG 2.5.8).
  * Tailwind 4 has no built-in `touch:` variant, so `max-md:` is used as a proxy
@@ -154,21 +154,6 @@ export const ATXT: Array<{ id: string; icon: Component; labelKey: string }> = [
 	{ id: 'center', icon: AlignCenter, labelKey: 'pptx.ribbon.alignCenter' },
 	{ id: 'right', icon: AlignRight, labelKey: 'pptx.ribbon.alignRight' },
 	{ id: 'justify', icon: AlignJustify, labelKey: 'pptx.ribbon.justify' },
-];
-
-export const TOOLBAR_SECTIONS: Array<{ id: ToolbarSection; labelKey: string }> = [
-	{ id: 'file', labelKey: 'pptx.ribbon.tab.file' },
-	{ id: 'home', labelKey: 'pptx.ribbon.tab.home' },
-	{ id: 'insert', labelKey: 'pptx.ribbon.tab.insert' },
-	{ id: 'draw', labelKey: 'pptx.ribbon.tab.draw' },
-	{ id: 'design', labelKey: 'pptx.ribbon.tab.design' },
-	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
-	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
-	{ id: 'slideShow', labelKey: 'pptx.ribbon.tab.slideShow' },
-	{ id: 'record', labelKey: 'pptx.ribbon.tab.record' },
-	{ id: 'review', labelKey: 'pptx.ribbon.tab.review' },
-	{ id: 'view', labelKey: 'pptx.ribbon.tab.view' },
-	{ id: 'help', labelKey: 'pptx.ribbon.tab.help' },
 ];
 
 export const COMMON_FONTS = [

@@ -33,3 +33,5 @@ export {
 	loadAudienceContent,
 	clearAudienceContent,
 } from './audience-content-store';
+export { useToolbarVisibility } from './useToolbarVisibility';
+export type { UseToolbarVisibilityResult } from './useToolbarVisibility';

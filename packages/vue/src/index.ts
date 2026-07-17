@@ -34,7 +34,13 @@ export type {
 } from './viewer';
 
 // ── Shared API types ──
-export type { ViewerMode, PowerPointViewerAPI } from 'pptx-viewer-shared';
+export type {
+	ViewerMode,
+	PowerPointViewerAPI,
+	ToolbarActionId,
+	ToolbarButtonId,
+	ToolbarTabId,
+} from 'pptx-viewer-shared';
 
 // ── Audience / presenter content sharing (IndexedDB, wire-compatible with React) ──
 export {

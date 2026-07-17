@@ -1,3 +1,5 @@
+import type { ToolbarActionId } from 'pptx-viewer-shared';
+
 export interface FileSectionProps {
 	fileName?: string;
 	onClose: () => void;
@@ -21,4 +23,6 @@ export interface FileSectionProps {
 	onOpenPasswordProtection?: () => void;
 	onOpenFontEmbedding?: () => void;
 	onOpenDigitalSignatures?: () => void;
+	/** Toolbar buttons the host has asked to hide (gates the Export page's action cards). */
+	hiddenActions?: ToolbarActionId[];
 }

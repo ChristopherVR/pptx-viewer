@@ -9,11 +9,13 @@
  * i18n keys become their English literals.
  */
 import { Columns2, Minus, Monitor, Plus, Presentation, StickyNote } from 'lucide-vue-next';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../utils';
 import type { AutosaveStatus } from '../composables/useAutosave';
+import { useToolbarVisibility } from '../composables/useToolbarVisibility';
 
 const { t } = useI18n();
 
@@ -30,7 +32,11 @@ const props = defineProps<{
 	mode?: string;
 	/** Whether the Notes toggle is shown (host has a notes panel). */
 	showNotes?: boolean;
+	/** Toolbar buttons the host has asked to hide (zoom, notes, fullscreen). */
+	hiddenActions?: ToolbarActionId[];
 }>();
+
+const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 
 const emit = defineEmits<{
 	'zoom-in': [];
@@ -100,7 +106,7 @@ const statusText = computed(() => {
 
 		<!-- Notes toggle -->
 		<button
-			v-if="props.showNotes"
+			v-if="props.showNotes && !isHidden('notes')"
 			type="button"
 			:class="
 				cn(vb, 'flex items-center gap-1 text-[10px]', props.isNotesExpanded && 'text-primary')
@@ -135,7 +141,10 @@ const statusText = computed(() => {
 			>
 				<Columns2 class="w-3.5 h-3.5" />
 			</button>
+			<!-- Entering Slide Show requests real fullscreen (see PresentationMode.vue),
+			     so this is the closest match to the shared 'fullscreen' toolbar-action id. -->
 			<button
+				v-if="!isHidden('fullscreen')"
 				type="button"
 				:class="cn(vb, props.mode === 'present' && 'text-primary')"
 				:title="t('pptx.statusBar.slideShow')"
@@ -147,7 +156,7 @@ const statusText = computed(() => {
 		</div>
 
 		<!-- Zoom controls -->
-		<template v-if="props.scale !== undefined">
+		<template v-if="props.scale !== undefined && !isHidden('zoom')">
 			<div class="w-px h-3 bg-border/60 mx-0.5" />
 			<div class="flex items-center gap-0.5">
 				<button

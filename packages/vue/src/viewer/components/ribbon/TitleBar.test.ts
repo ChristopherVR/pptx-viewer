@@ -73,4 +73,20 @@ describe('titleBar', () => {
 		expect(wrapper.find('button[role="switch"]').exists()).toBeFalsy();
 		expect(wrapper.find('button[aria-label="Undo"]').exists()).toBeFalsy();
 	});
+
+	it('renders Undo and Redo by default (hiddenActions omitted)', () => {
+		const wrapper = mountTitleBar();
+		expect(wrapper.find('button[aria-label="Undo"]').exists()).toBeTruthy();
+		expect(wrapper.find('button[aria-label="Redo"]').exists()).toBeTruthy();
+	});
+
+	it('hides Undo and Redo independently via hiddenActions', () => {
+		const undoHidden = mountTitleBar({ hiddenActions: ['undo'] });
+		expect(undoHidden.find('button[aria-label="Undo"]').exists()).toBeFalsy();
+		expect(undoHidden.find('button[aria-label="Redo"]').exists()).toBeTruthy();
+
+		const redoHidden = mountTitleBar({ hiddenActions: ['redo'] });
+		expect(redoHidden.find('button[aria-label="Undo"]').exists()).toBeTruthy();
+		expect(redoHidden.find('button[aria-label="Redo"]').exists()).toBeFalsy();
+	});
 });

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Captions, Cast, Clock, Monitor, Play, Settings } from 'lucide-vue-next';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
 import { ic, pill, SEP } from './ribbon-constants';
 /**
  * SlideShowSection: the Vue 3 port of React's `toolbar/SlideShowSection.tsx`.
@@ -23,10 +25,13 @@ interface Props {
 	onToggleSubtitles: () => void;
 	showSubtitles: boolean;
 	onSetMode: (mode: ViewerMode) => void;
+	/** Toolbar buttons the host has asked to hide (gates the Broadcast button below). */
+	hiddenActions?: ToolbarActionId[];
 }
 
 const props = defineProps<Props>();
 const { t } = useI18n();
+const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 </script>
 
 <template>
@@ -69,6 +74,7 @@ const { t } = useI18n();
 		{{ t('pptx.slideShow.setUp') }}
 	</button>
 	<button
+		v-if="!isHidden('broadcast')"
 		:class="pill"
 		:title="t('pptx.slideShow.broadcastTooltip')"
 		@click="props.onOpenBroadcastDialog()"

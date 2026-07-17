@@ -17,7 +17,7 @@ import type {
 	PptxSlideTransition,
 	TextStyle,
 } from 'pptx-viewer-core';
-import type { ChangeCaseMode } from 'pptx-viewer-shared';
+import type { ChangeCaseMode, ToolbarActionId } from 'pptx-viewer-shared';
 
 /** Viewer interaction mode. Mirrors React `ViewerMode`. */
 export type ViewerMode = 'preview' | 'edit' | 'present' | 'master';
@@ -144,6 +144,8 @@ export interface RibbonProps {
 	isCollaborating?: boolean;
 	/** Connected collaborator count, shown on the Share button while collaborating. */
 	collaboratorCount?: number;
+	/** Toolbar buttons / ribbon tabs the host has asked to hide. Undefined/empty hides nothing. */
+	hiddenActions?: ToolbarActionId[];
 
 	onSetMode: (mode: ViewerMode) => void;
 	onToggleSidebar: () => void;

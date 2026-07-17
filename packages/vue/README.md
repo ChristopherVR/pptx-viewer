@@ -162,15 +162,16 @@ async function save() {
 
 ### Props
 
-| Prop            | Type                        | Default | Description                                                       |
-| --------------- | --------------------------- | ------- | ----------------------------------------------------------------- |
-| `content`       | `Uint8Array \| ArrayBuffer` | n/a     | The `.pptx` bytes to render. **Required.**                        |
-| `theme`         | `ViewerTheme`               | n/a     | Color/radius overrides applied as CSS custom properties.          |
-| `class`         | `string`                    | n/a     | Class applied to the root element.                                |
-| `canEdit`       | `boolean`                   | `false` | Enables the editor toolbar, inspector, and drag-and-drop editing. |
-| `filePath`      | `string`                    | n/a     | Passed to autosave / recovery logic.                              |
-| `authorName`    | `string`                    | n/a     | Displayed in comment annotations.                                 |
-| `collaboration` | `CollaborationConfig`       | n/a     | Yjs real-time collaboration config (server URL, room, role).      |
+| Prop            | Type                        | Default | Description                                                                                                               |
+| --------------- | --------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `content`       | `Uint8Array \| ArrayBuffer` | n/a     | The `.pptx` bytes to render. **Required.**                                                                                |
+| `theme`         | `ViewerTheme`               | n/a     | Color/radius overrides applied as CSS custom properties.                                                                  |
+| `class`         | `string`                    | n/a     | Class applied to the root element.                                                                                        |
+| `canEdit`       | `boolean`                   | `false` | Enables the editor toolbar, inspector, and drag-and-drop editing.                                                         |
+| `filePath`      | `string`                    | n/a     | Passed to autosave / recovery logic.                                                                                      |
+| `authorName`    | `string`                    | n/a     | Displayed in comment annotations.                                                                                         |
+| `collaboration` | `CollaborationConfig`       | n/a     | Yjs real-time collaboration config (server URL, room, role).                                                              |
+| `hiddenActions` | `ToolbarActionId[]`         | n/a     | Individual toolbar buttons and/or ribbon tabs to hide (e.g. `['share', 'broadcast', 'insert']`). Omit to show everything. |
 
 ### Events
 
@@ -214,7 +215,7 @@ async function save() {
 
 `PowerPointViewer`, `SlideCanvas`, `SlideStage`, `ElementRenderer`,
 `provideViewerTheme`, `useViewerTheme`, and the `ViewerTheme` / `CanvasSize` /
-`CollaborationConfig` types.
+`CollaborationConfig` / `ToolbarActionId` types.
 
 ## Localization (i18n)
 

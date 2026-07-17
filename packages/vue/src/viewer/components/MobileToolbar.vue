@@ -24,6 +24,7 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../utils';
+import { useToolbarVisibility } from '../composables/useToolbarVisibility';
 import MobileMenuSheet from './MobileMenuSheet.vue';
 import type { RibbonProps } from './ribbon/ribbon-types';
 
@@ -32,6 +33,7 @@ interface Props extends RibbonProps {}
 const props = defineProps<Props>();
 
 const { t } = useI18n();
+const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 
 const menuOpen = ref(false);
 
@@ -63,6 +65,7 @@ const BTN =
 		<!-- Undo / Redo -->
 		<template v-if="showEdit()">
 			<button
+				v-if="!isHidden('undo')"
 				type="button"
 				:disabled="!props.canUndo"
 				:class="BTN"
@@ -73,6 +76,7 @@ const BTN =
 				<Undo class="h-5 w-5" />
 			</button>
 			<button
+				v-if="!isHidden('redo')"
 				type="button"
 				:disabled="!props.canRedo"
 				:class="BTN"
@@ -110,7 +114,7 @@ const BTN =
 
 		<!-- Share -->
 		<button
-			v-if="showEdit()"
+			v-if="showEdit() && !isHidden('share')"
 			type="button"
 			:class="cn(BTN, 'bg-primary px-3 text-white hover:bg-primary/90')"
 			:title="t('pptx.toolbar.share')"

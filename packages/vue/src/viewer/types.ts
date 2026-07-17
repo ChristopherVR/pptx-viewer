@@ -3,6 +3,7 @@ import type {
 	CollaborationConfig,
 	CollaborationRole,
 	PowerPointViewerAPI,
+	ToolbarActionId,
 	ViewerFontSource,
 } from 'pptx-viewer-shared';
 
@@ -92,6 +93,14 @@ export interface PowerPointViewerProps {
 	 * back to the SVG SmartArt renderer. Default `false`.
 	 */
 	smartArt3D?: boolean;
+	/**
+	 * Individual toolbar buttons and/or ribbon tabs to hide, letting a host
+	 * curate the chrome instead of only the all-or-nothing `canEdit` toggle.
+	 * Omit (default) to show everything, matching prior behaviour.
+	 *
+	 * @see {@link ToolbarActionId}
+	 */
+	hiddenActions?: ToolbarActionId[];
 }
 
 /**

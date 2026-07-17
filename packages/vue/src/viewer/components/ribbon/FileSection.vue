@@ -10,6 +10,8 @@ import {
 import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
 import { computed, onMounted, ref } from 'vue';
 
+import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
+import { buildFileSectionActions } from './file-section-actions';
 import { backstageIcon } from './file-section-icons';
 import type { FileSectionProps } from './file-section-types';
 
@@ -31,79 +33,8 @@ const run = (action?: () => void) => {
 		props.onClose();
 	}
 };
-const actions = computed(() => {
-	if (page.value === 'info') {
-		return [
-			[
-				'Protect Presentation',
-				'Control what changes people can make.',
-				'🔒',
-				props.onOpenPasswordProtection,
-			],
-			[
-				'Inspect Presentation',
-				'Review properties and hidden content.',
-				'ⓘ',
-				props.onOpenDocumentProperties,
-			],
-			['Embed Fonts', 'Keep typography consistent across devices.', 'T', props.onOpenFontEmbedding],
-			[
-				'Digital Signatures',
-				'View and manage attached signatures.',
-				'✓',
-				props.onOpenDigitalSignatures,
-			],
-		] as const;
-	}
-	if (page.value === 'saveAs') {
-		return [
-			['PowerPoint Presentation', 'Save an editable .pptx copy.', 'P', props.onSaveAsPptx],
-			['PowerPoint Show', 'Save a .ppsx slide show.', '▶', props.onSaveAsPpsx],
-			...(props.hasMacros
-				? [
-						[
-							'Macro-Enabled Presentation',
-							'Preserve VBA in a .pptm file.',
-							'M',
-							props.onSaveAsPptm,
-						] as const,
-					]
-				: []),
-			['Package for Sharing', 'Bundle the deck and linked assets.', '□', props.onPackageForSharing],
-		] as const;
-	}
-	if (page.value === 'export') {
-		return [
-			['Create PDF', 'Publish one page per slide.', 'PDF', props.onExportPdf],
-			['Export current slide', 'Create a high-quality PNG image.', 'PNG', props.onExportPng],
-			['Create a Video', 'Export timings and animations as WebM.', '▶', props.onExportVideo],
-			['Create an Animated GIF', 'Make a compact looping preview.', 'GIF', props.onExportGif],
-			['Copy as Image', 'Copy the current slide to the clipboard.', '▣', props.onCopySlideAsImage],
-		] as const;
-	}
-	if (page.value === 'print') {
-		return [
-			[
-				'Print Presentation',
-				'Choose layout and output settings in the browser print dialog.',
-				'▧',
-				props.onPrint,
-			],
-		] as const;
-	}
-	if (page.value === 'share') {
-		return [
-			['Share with People', 'Invite collaborators to work together.', '◇', props.onOpenShareDialog],
-			[
-				'Package for Sharing',
-				'Download a self-contained offline package.',
-				'□',
-				props.onPackageForSharing,
-			],
-		] as const;
-	}
-	return [];
-});
+const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
+const actions = computed(() => buildFileSectionActions(page.value, props, isHidden));
 function selectPage(id: BackstagePage): void {
 	if (id === 'close') {
 		return props.onClose();

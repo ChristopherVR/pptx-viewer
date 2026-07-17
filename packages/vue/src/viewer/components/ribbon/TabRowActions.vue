@@ -13,9 +13,11 @@ import { Share2 } from 'lucide-vue-next';
  * `RibbonProps`).
  */
 import { TAB_ROW_ACTION_CLASSES as TRA } from 'pptx-viewer-shared';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
 
 interface Props {
 	onEnterRehearsalMode?: () => void;
@@ -23,16 +25,19 @@ interface Props {
 	onPackageForSharing?: () => void;
 	isCollaborating?: boolean;
 	collaboratorCount?: number;
+	/** Toolbar buttons the host has asked to hide (gates Record + Share below). */
+	hiddenActions?: ToolbarActionId[];
 }
 
 const props = defineProps<Props>();
 const { t } = useI18n();
+const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 </script>
 
 <template>
 	<div class="flex items-center gap-1 pr-1">
 		<button
-			v-if="props.onEnterRehearsalMode"
+			v-if="props.onEnterRehearsalMode && !isHidden('record')"
 			type="button"
 			:class="TRA.record"
 			:title="t('pptx.titleBar.record')"
@@ -43,6 +48,7 @@ const { t } = useI18n();
 			<span>{{ t('pptx.titleBar.record') }}</span>
 		</button>
 		<button
+			v-if="!isHidden('share')"
 			type="button"
 			:class="
 				cn(

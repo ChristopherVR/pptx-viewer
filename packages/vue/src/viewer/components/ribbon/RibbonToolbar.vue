@@ -15,7 +15,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { cn } from '../../../utils';
+import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
 import AnimationsSection from './AnimationsSection.vue';
 import ArrangeSection from './ArrangeSection.vue';
 import DesignSection from './DesignSection.vue';
@@ -23,14 +23,14 @@ import DrawingGroup from './DrawingGroup.vue';
 import DrawSection from './DrawSection.vue';
 import EditingSection from './EditingSection.vue';
 import FileSection from './FileSection.vue';
+import HelpSection from './HelpSection.vue';
 import HomeSection from './HomeSection.vue';
 import InsertSection from './InsertSection.vue';
 import RecordSection from './RecordSection.vue';
 import ReviewSection from './ReviewSection.vue';
-import { pill, TOOLBAR_SECTIONS } from './ribbon-constants';
 import type { RibbonProps } from './ribbon-types';
+import RibbonTabBar from './RibbonTabBar.vue';
 import SlideShowSection from './SlideShowSection.vue';
-import TabRowActions from './TabRowActions.vue';
 import TextSection from './TextSection.vue';
 import ToolbarPrimaryRow from './ToolbarPrimaryRow.vue';
 import TransitionsSection from './TransitionsSection.vue';
@@ -45,6 +45,8 @@ const showRibbon = computed(() => props.mode === 'edit' || props.mode === 'maste
 const s = computed(() => props.toolbarSection);
 /** The Text group shows on both the Home and Text tabs (mirrors React). */
 const showText = computed(() => s.value === 'home' || s.value === 'text');
+/** Tab list + per-button gating, driven by the host's `hiddenActions` prop. */
+const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 </script>
 
 <template>
@@ -57,59 +59,22 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 		<ToolbarPrimaryRow v-bind="props" />
 
 		<!-- Ribbon Tab Bar -->
-		<div
+		<RibbonTabBar
 			v-if="showRibbon"
-			role="tablist"
-			class="flex items-center border-b border-border/60 px-1 max-md:overflow-x-auto max-md:scrollbar-none"
-		>
-			<button
-				v-for="sec in TOOLBAR_SECTIONS"
-				:key="sec.id"
-				type="button"
-				role="tab"
-				:aria-selected="props.toolbarSection === sec.id"
-				:class="
-					cn(
-						'relative px-3.5 py-2 text-[12px] font-medium whitespace-nowrap transition-colors max-md:min-h-[36px] max-md:px-3',
-						props.toolbarSection === sec.id
-							? sec.id === 'file'
-								? 'text-white bg-primary/80 rounded-sm'
-								: 'text-foreground after:absolute after:-bottom-px after:left-0 after:right-0 after:h-[2.5px] after:bg-primary'
-							: sec.id === 'file'
-								? 'text-primary hover:bg-primary/15 rounded-sm'
-								: 'text-muted-foreground hover:text-foreground hover:bg-accent/30',
-					)
-				"
-				@click="props.onSetToolbarSection(sec.id)"
-			>
-				{{ t(sec.labelKey) }}
-			</button>
-			<div class="flex-1" />
-			<TabRowActions
-				:on-enter-rehearsal-mode="
-					props.canEdit
-						? (props.onEnterRehearsalMode ?? (() => props.onSetMode('present')))
-						: undefined
-				"
-				:on-open-share-dialog="props.onOpenShareDialog"
-				:on-package-for-sharing="props.onPackageForSharing"
-				:is-collaborating="props.isCollaborating"
-				:collaborator-count="props.collaboratorCount"
-			/>
-			<button
-				type="button"
-				class="mr-1 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-				:aria-pressed="!props.isCompactToolbarOpen"
-				:title="
-					props.isCompactToolbarOpen
-						? t('pptx.ribbon.collapseRibbon')
-						: t('pptx.ribbon.expandRibbon')
-				"
-				@click="props.onToggleCompactToolbar"
-			>
-				{{ props.isCompactToolbarOpen ? '▴' : '▾' }}
-			</button>
-		</div>
+			:toolbar-section="props.toolbarSection"
+			:visible-tabs="visibleTabs"
+			:on-set-toolbar-section="props.onSetToolbarSection"
+			:can-edit="props.canEdit"
+			:on-enter-rehearsal-mode="props.onEnterRehearsalMode"
+			:on-set-mode="props.onSetMode"
+			:on-open-share-dialog="props.onOpenShareDialog"
+			:on-package-for-sharing="props.onPackageForSharing"
+			:is-collaborating="props.isCollaborating"
+			:collaborator-count="props.collaboratorCount"
+			:hidden-actions="props.hiddenActions"
+			:is-compact-toolbar-open="props.isCompactToolbarOpen"
+			:on-toggle-compact-toolbar="props.onToggleCompactToolbar"
+		/>
 
 		<!-- Ribbon Content (collapsible via the ribbon toggle) -->
 		<div
@@ -141,6 +106,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:on-open-password-protection="props.onOpenPasswordProtection"
 				:on-open-font-embedding="props.onOpenFontEmbedding"
 				:on-open-digital-signatures="props.onOpenDigitalSignatures"
+				:hidden-actions="props.hiddenActions"
 			/>
 
 			<HomeSection
@@ -276,6 +242,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:on-toggle-subtitles="props.onToggleSubtitles ?? (() => {})"
 				:show-subtitles="props.showSubtitles ?? false"
 				:on-set-mode="props.onSetMode"
+				:hidden-actions="props.hiddenActions"
 			/>
 
 			<ReviewSection
@@ -321,24 +288,11 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:on-toggle-eyedropper="props.onToggleEyedropper"
 			/>
 
-			<template v-if="s === 'help'">
-				<button
-					type="button"
-					:class="pill"
-					:title="t('pptx.settings.keyboardShortcuts')"
-					@click="props.onToggleShortcuts()"
-				>
-					{{ t('pptx.settings.keyboardShortcuts') }}
-				</button>
-				<button
-					type="button"
-					:class="pill"
-					:title="t('pptx.ribbon.accessibilityCheck')"
-					@click="props.onRunAccessibilityCheck()"
-				>
-					{{ t('pptx.ribbon.accessibility') }}
-				</button>
-			</template>
+			<HelpSection
+				v-if="s === 'help'"
+				:on-toggle-shortcuts="props.onToggleShortcuts"
+				:on-run-accessibility-check="props.onRunAccessibilityCheck"
+			/>
 		</div>
 	</div>
 </template>

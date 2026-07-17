@@ -107,7 +107,10 @@ import SnapLinesOverlay from './components/SnapLinesOverlay.vue';
 import StatusBar from './components/StatusBar.vue';
 import ThemeGallery from './components/ThemeGallery.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
-import { mergeElementAnimations, replaceSlideAnimations } from './composables/animation-persistence';
+import {
+	mergeElementAnimations,
+	replaceSlideAnimations,
+} from './composables/animation-persistence';
 import { useChartCanvasEditContext } from './composables/chart-part-selection';
 import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
 import { SmartArt3DKey } from './composables/smart-art-3d';
@@ -1855,9 +1858,14 @@ function handleCommandSearch(command: string): void {
 					:find-replace-open="findOpen"
 					:on-toggle-find-replace="() => (findOpen = !findOpen)"
 					:on-command-search="handleCommandSearch"
+					:hidden-actions="props.hiddenActions"
 				/>
-				<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
-				<MobileToolbar v-else v-bind="ribbonProps" />
+				<RibbonToolbar
+					v-if="!isMobile"
+					v-bind="ribbonProps"
+					:hidden-actions="props.hiddenActions"
+				/>
+				<MobileToolbar v-else v-bind="ribbonProps" :hidden-actions="props.hiddenActions" />
 			</template>
 
 			<!-- Hidden pickers for Insert ▸ Image / Media -->
@@ -2150,6 +2158,7 @@ function handleCommandSearch(command: string): void {
 				:mode="ribbonMode"
 				:is-notes-expanded="notesExpanded"
 				:show-notes="props.canEdit"
+				:hidden-actions="props.hiddenActions"
 				@zoom-in="zoomIn"
 				@zoom-out="zoomOut"
 				@zoom-to-fit="zoomReset"
@@ -2424,6 +2433,7 @@ function handleCommandSearch(command: string): void {
 				:can-edit="props.canEdit"
 				:keyboard-inset="keyboardInset"
 				:comment-count="activeComments.length"
+				:hidden-actions="props.hiddenActions"
 				@prev="goPrev"
 				@next="goNext"
 				@zoom-in="zoomIn"
