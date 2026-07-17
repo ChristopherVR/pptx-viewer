@@ -437,6 +437,7 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 			<button
 				type="button"
 				class="pptx-vue-rotate-knob"
+				data-pptx-compact
 				:style="rotateKnobStyle(box)"
 				:aria-label="t('pptx.selectionOverlay.rotate')"
 				@pointerdown="(e) => beginGesture('rotate', box.id, e)"
@@ -449,6 +450,7 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 				type="button"
 				class="pptx-vue-resize-handle"
 				:class="`pptx-vue-resize-${meta.id}`"
+				data-pptx-compact
 				:data-handle="meta.id"
 				:style="handleStyle(meta, box)"
 				:aria-label="t('pptx.selectionOverlay.resize', { handle: meta.id })"
@@ -460,6 +462,7 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 				v-if="adjustDescriptorFor(box.id)"
 				type="button"
 				class="pptx-vue-adjust-handle"
+				data-pptx-compact
 				:style="adjustHandleStyle(box)"
 				:aria-label="t('pptx.selectionOverlay.adjust')"
 				@pointerdown="(e) => beginAdjust(box.id, e)"

@@ -203,6 +203,7 @@ function onToggleSlide(slide: PptxSlide): void {
 					<button
 						type="button"
 						class="pptx-vue-cs-mini inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-border bg-transparent p-0 text-[9px] text-muted-foreground enabled:hover:bg-muted enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+						data-pptx-compact
 						:title="t('pptx.sections.moveUp')"
 						:aria-label="t('pptx.sections.moveUp')"
 						:disabled="i === 0"
@@ -213,6 +214,7 @@ function onToggleSlide(slide: PptxSlide): void {
 					<button
 						type="button"
 						class="pptx-vue-cs-mini inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-border bg-transparent p-0 text-[9px] text-muted-foreground enabled:hover:bg-muted enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+						data-pptx-compact
 						:title="t('pptx.sections.moveDown')"
 						:aria-label="t('pptx.sections.moveDown')"
 						:disabled="i === orderedShowSlides.length - 1"

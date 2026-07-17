@@ -213,6 +213,7 @@ function slideLabel(slide: PptxSlide, index: number): string {
 					<button
 						type="button"
 						class="pptx-vue-section-action inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-[10px] leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
+						data-pptx-compact
 						:title="t('pptx.sectionList.moveUp')"
 						:aria-label="t('pptx.sectionList.moveUp')"
 						@click="emit('move-up', group.section.id)"
@@ -222,6 +223,7 @@ function slideLabel(slide: PptxSlide, index: number): string {
 					<button
 						type="button"
 						class="pptx-vue-section-action inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-[10px] leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
+						data-pptx-compact
 						:title="t('pptx.sectionList.moveDown')"
 						:aria-label="t('pptx.sectionList.moveDown')"
 						@click="emit('move-down', group.section.id)"
@@ -231,6 +233,7 @@ function slideLabel(slide: PptxSlide, index: number): string {
 					<button
 						type="button"
 						class="pptx-vue-section-action pptx-vue-section-action--danger inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-[10px] leading-none text-muted-foreground hover:bg-muted hover:text-destructive"
+						data-pptx-compact
 						:title="t('pptx.sectionList.deleteSection')"
 						:aria-label="t('pptx.sectionList.deleteSection')"
 						@click="emit('delete', group.section.id)"

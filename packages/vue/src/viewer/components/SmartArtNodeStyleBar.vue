@@ -10,6 +10,7 @@
 			type="button"
 			:aria-label="t('pptx.smartArt.setFill', { color })"
 			class="w-5 h-5 rounded-full border border-black/10 hover:scale-125 transition-transform"
+			data-pptx-compact
 			:style="{ background: color }"
 			@click="$emit('pickFill', color)"
 		/>

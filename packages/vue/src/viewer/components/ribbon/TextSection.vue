@@ -389,6 +389,7 @@ function handleChangeCase(value: string): void {
 										? 'border-primary ring-1 ring-primary'
 										: 'border-border',
 								]"
+								data-pptx-compact
 								:style="{ backgroundColor: c }"
 								@mousedown.prevent
 								@click="handleColorChange(c)"
@@ -440,6 +441,7 @@ function handleChangeCase(value: string): void {
 										? 'border-primary ring-1 ring-primary'
 										: 'border-border',
 								]"
+								data-pptx-compact
 								:style="{ backgroundColor: c }"
 								@mousedown.prevent
 								@click="handleHighlightChange(c)"

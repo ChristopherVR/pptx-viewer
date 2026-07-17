@@ -174,6 +174,7 @@ function handleOutline(color: string): void {
 							:key="c"
 							type="button"
 							class="w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform"
+							data-pptx-compact
 							:style="{ backgroundColor: c }"
 							:title="c"
 							@click="handleFill(c)"
@@ -202,6 +203,7 @@ function handleOutline(color: string): void {
 							:key="c"
 							type="button"
 							class="w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform"
+							data-pptx-compact
 							:style="{ backgroundColor: c }"
 							:title="c"
 							@click="handleOutline(c)"

@@ -115,7 +115,8 @@
 	outline-offset: 2px;
 }
 
-:where(.pptx-vue-viewer) :where(button, [role='button']) {
+:where(.pptx-vue-viewer)
+	:where(button, [role='button']):where(:not([role='switch']):not([data-pptx-compact])) {
 	min-width: 24px;
 	min-height: 24px;
 	touch-action: manipulation;

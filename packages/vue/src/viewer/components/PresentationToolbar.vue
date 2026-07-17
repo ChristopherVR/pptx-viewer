@@ -229,6 +229,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			<button
 				type="button"
 				class="pptx-vue-ptb-caret -ml-1 flex h-9 w-[18px] items-center justify-center rounded-r-md text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+				data-pptx-compact
 				:title="t('pptx.presentationToolbar.penColor')"
 				:aria-label="t('pptx.presentationToolbar.penColor')"
 				@click="togglePenColors"
@@ -273,6 +274,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			<button
 				type="button"
 				class="pptx-vue-ptb-caret -ml-1 flex h-9 w-[18px] items-center justify-center rounded-r-md text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+				data-pptx-compact
 				:title="t('pptx.presentationToolbar.highlighterColor')"
 				:aria-label="t('pptx.presentationToolbar.highlighterColor')"
 				@click="toggleHighlighterColors"
