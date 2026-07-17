@@ -82,6 +82,7 @@
 						class:pptx-svelte-swatch-cell-selected={hex.toLowerCase() === value.toLowerCase()}
 						style={`background-color:${hex}`}
 						aria-label={hex}
+						data-pptx-compact
 						onclick={() => choose(hex)}
 					></button>
 				{/each}

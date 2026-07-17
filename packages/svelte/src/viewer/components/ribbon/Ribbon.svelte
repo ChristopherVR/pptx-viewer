@@ -6,7 +6,7 @@
 	 * the ribbon tabs.
 	 */
 	import { useTranslator } from '../../../i18n/context';
-	import { collectUsedFonts, createBackstagePresentation } from 'pptx-viewer-shared';
+	import { collectUsedFonts, createBackstagePresentation, isActionHidden } from 'pptx-viewer-shared';
 	import AnimationsTab from './animations/AnimationsTab.svelte';
 	import DesignTab from './design/DesignTab.svelte';
 	import DrawTab from './draw/DrawTab.svelte';
@@ -46,6 +46,7 @@
 	// eslint-disable-next-line prefer-const
 	let presentationPassword = $state<string | null>(null);
 	const usedFontFamilies = $derived(collectUsedFonts(props.editor.slides));
+	const slideCommentCount = $derived(props.slides[props.current]?.comments?.length ?? 0);
 	$effect(() => {
 		if (props.isPasswordProtected) {
 			passwordProtected = true;
@@ -68,12 +69,28 @@
 
 <div class="pptx-svelte-ribbon" role="toolbar" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
 	<RibbonPrimaryRow
+		chromeUi={props.chromeUi}
+		commentCount={slideCommentCount}
+		onpresent={props.onfromcurrent}
+		onpresenter={props.onpresenter}
+		onrehearse={props.onrehearse}
+		onsetup={props.onsetupslideshow}
+		onbroadcast={props.onbroadcast && !isActionHidden('broadcast', props.hiddenActions) ? props.onbroadcast : undefined}
+		onsubtitles={props.onsubtitles}
+		subtitlesEnabled={props.subtitlesEnabled}
+		oncustomshows={props.oncustomshows}
+		onsettings={props.onsettings}
+		exportUi={props.exportUi}
+		hiddenActions={props.hiddenActions}
+	/>
+	<RibbonTabBar
+		active={activeTab}
+		onselect={selectTab}
+		onrecord={props.onrehearse}
 		onshare={props.onshare}
-		onbroadcast={props.onbroadcast}
 		collabActive={props.collabActive}
 		hiddenActions={props.hiddenActions}
 	/>
-	<RibbonTabBar active={activeTab} onselect={selectTab} hiddenActions={props.hiddenActions} />
 	<FindReplacePanel findReplace={props.findReplace} editable={props.editor.editable} />
 	<div class="pptx-svelte-ribbon-content">
 		{#if activeTab === 'file'}
@@ -179,12 +196,54 @@
 		flex: none;
 	}
 
+	/* One horizontal, non-wrapping row of ribbon groups (React: `flex
+	   flex-nowrap overflow-x-auto`); narrow viewports scroll sideways. */
 	.pptx-svelte-ribbon-content {
 		display: flex;
 		align-items: center;
-		flex-wrap: wrap;
+		flex-wrap: nowrap;
 		gap: 6px;
 		padding: 4px 8px;
+		overflow-x: auto;
+		overflow-y: hidden;
+		scrollbar-width: thin;
+	}
+
+	/* Shared compact dark select for ribbon dropdowns (font family, change
+	   case, character spacing, line spacing, ...), matching React's ribbon
+	   select-style triggers: dark translucent background, subtle border,
+	   small font, custom chevron instead of the native OS control chrome. */
+	.pptx-svelte-ribbon :global(select.pptx-svelte-ribbon-select) {
+		height: 24px;
+		padding: 0 18px 0 8px;
+		border: 1px solid color-mix(in srgb, var(--pptx-border, #33334d) 60%, transparent);
+		border-radius: 4px;
+		background-color: color-mix(in srgb, var(--pptx-background, #11111b) 60%, transparent);
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right 5px center;
+		background-size: 9px;
+		color: var(--pptx-card-foreground, #e2e8f0);
+		font: inherit;
+		font-size: 11px;
+		line-height: 1;
+		appearance: none;
+		cursor: pointer;
+		transition: background-color 0.15s ease;
+	}
+
+	.pptx-svelte-ribbon :global(select.pptx-svelte-ribbon-select:hover:not(:disabled)) {
+		background-color: color-mix(in srgb, var(--pptx-accent, #33334d) 40%, transparent);
+	}
+
+	.pptx-svelte-ribbon :global(select.pptx-svelte-ribbon-select:disabled) {
+		opacity: 0.35;
+		cursor: default;
+	}
+
+	.pptx-svelte-ribbon :global(select.pptx-svelte-ribbon-select option) {
+		background: var(--pptx-popover, #111827);
+		color: var(--pptx-popover-foreground, #f3f4f6);
 	}
 
 	@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {

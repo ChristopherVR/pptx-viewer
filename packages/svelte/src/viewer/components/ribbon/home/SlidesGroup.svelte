@@ -22,7 +22,6 @@
 </script>
 
 <div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.home.newSlide')}>
-	<span class="pptx-svelte-rgroup-label">{t('pptx.ribbon.slides')}</span>
 	<div class="pptx-svelte-rgroup-row">
 		<button
 			type="button"
@@ -64,11 +63,13 @@
 			<span>{t('pptx.sections.sectionButtonLabel')}</span>
 		</button>
 	</div>
+	<span class="pptx-svelte-rgroup-label">{t('pptx.ribbon.slides')}</span>
 </div>
 
 <style>
 	.pptx-svelte-rgroup {
 		display: flex;
+		flex: none;
 		flex-direction: column;
 		align-items: center;
 		gap: 3px;

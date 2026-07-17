@@ -178,7 +178,7 @@
 	.pptx-svelte-inserttab {
 		display: flex;
 		align-items: center;
-		flex-wrap: wrap;
+		flex-wrap: nowrap;
 		gap: 4px;
 	}
 

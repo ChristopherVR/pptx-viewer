@@ -13,6 +13,7 @@
 	import CollaborationCursors from '../collab/components/CollaborationCursors.svelte';
 	import type { EditorController } from '../editor/editor-controller.svelte';
 	import type { EditorState } from '../editor/editor-state.svelte';
+	import type { ChromeUiState } from '../state/chrome-ui.svelte';
 	import type { Translator } from '../../i18n/translator';
 	import type { TransitionState } from '../presentation';
 	import type { PresentationAnnotations } from '../presentation/presentation-annotations.svelte';
@@ -65,6 +66,7 @@
 		guides = [],
 		onchangeguide,
 		spellCheck = false,
+		chromeUi,
 	}: {
 		t: Translator;
 		editor: EditorState;
@@ -108,6 +110,8 @@
 		guides?: readonly { axis: 'h' | 'v'; position: number }[];
 		onchangeguide?: (index: number, position: number) => void;
 		spellCheck?: boolean;
+		/** Side-panel open/collapsed state shared with the ribbon's toggles. */
+		chromeUi?: ChromeUiState;
 	} = $props();
 
 	// The template's bind:clientWidth/Height write these (invisible to the linter).
@@ -164,7 +168,7 @@
 </script>
 
 <div class="pptx-svelte-body">
-	{#if showThumbnails && chromeVisible && displaySlides.length > 0}
+	{#if showThumbnails && !chromeUi?.sidebarCollapsed && chromeVisible && displaySlides.length > 0}
 		<ThumbnailRail
 			slides={displaySlides}
 			sections={editor.sections}
@@ -249,8 +253,8 @@
 			/>
 		{/if}
 	</div>
-	{#if editingActive && chromeVisible && displaySlides.length > 0}
-		<InspectorPanel {editor} {handler} {presentationTheme} {onthemechange} {mediaDataUrls} />
+	{#if editingActive && chromeVisible && displaySlides.length > 0 && chromeUi?.inspectorOpen !== false}
+		<InspectorPanel {editor} {handler} {presentationTheme} {onthemechange} {mediaDataUrls} ui={chromeUi} {canvasSize} />
 	{/if}
 </div>
 

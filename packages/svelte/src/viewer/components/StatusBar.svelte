@@ -57,15 +57,15 @@
 	</div>
 	<div class="pptx-svelte-statusbar-right">
 		{#if showNotes}
-			<button type="button" class:active={notesExpanded} aria-pressed={notesExpanded} aria-label={t('pptx.statusBar.toggleNotes')} title={t('pptx.statusBar.toggleNotes')} onclick={onnotestoggle}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h9v11h-9zM5 5.5h6M5 8h6M5 10.5h4" /></svg><span class="pptx-svelte-statusbar-wide">{t('pptx.notes.title')}</span></button>
+			<button type="button" class:active={notesExpanded} aria-pressed={notesExpanded} aria-label={t('pptx.statusBar.toggleNotes')} title={t('pptx.statusBar.toggleNotes')} data-pptx-compact onclick={onnotestoggle}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h9v11h-9zM5 5.5h6M5 8h6M5 10.5h4" /></svg><span class="pptx-svelte-statusbar-wide">{t('pptx.notes.title')}</span></button>
 			<i></i>
 		{/if}
-		<button type="button" class="active" aria-label={t('pptx.statusBar.normalView')} title={t('pptx.statusBar.normalView')}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v8h-11zM6 12.5h4" /></svg></button>
-		<button type="button" class:active={isFullscreen} aria-pressed={isFullscreen} aria-label={t('pptx.statusBar.slideShow')} title={t('pptx.statusBar.slideShow')} onclick={onfullscreen}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6v-3.5h3.5M13.5 6v-3.5h-3.5M2.5 10v3.5h3.5M13.5 10v3.5h-3.5" /></svg></button>
+		<button type="button" class="active" aria-label={t('pptx.statusBar.normalView')} title={t('pptx.statusBar.normalView')} data-pptx-compact><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v8h-11zM6 12.5h4" /></svg></button>
+		<button type="button" class:active={isFullscreen} aria-pressed={isFullscreen} aria-label={t('pptx.statusBar.slideShow')} title={t('pptx.statusBar.slideShow')} data-pptx-compact onclick={onfullscreen}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6v-3.5h3.5M13.5 6v-3.5h-3.5M2.5 10v3.5h3.5M13.5 10v3.5h-3.5" /></svg></button>
 		<i></i>
-		<button type="button" aria-label={t('pptx.statusBar.zoomOut')} title={t('pptx.statusBar.zoomOut')} onclick={onzoomout}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" /></svg></button>
-		<button type="button" class="pptx-svelte-statusbar-zoom" aria-label={t('pptx.statusBar.zoomToFit')} title={t('pptx.statusBar.zoomToFit')} onclick={onzoomfit}>{zoomPercent}%</button>
-		<button type="button" aria-label={t('pptx.statusBar.zoomIn')} title={t('pptx.statusBar.zoomIn')} onclick={onzoomin}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" /></svg></button>
+		<button type="button" aria-label={t('pptx.statusBar.zoomOut')} title={t('pptx.statusBar.zoomOut')} data-pptx-compact onclick={onzoomout}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" /></svg></button>
+		<button type="button" class="pptx-svelte-statusbar-zoom" aria-label={t('pptx.statusBar.zoomToFit')} title={t('pptx.statusBar.zoomToFit')} data-pptx-compact onclick={onzoomfit}>{zoomPercent}%</button>
+		<button type="button" aria-label={t('pptx.statusBar.zoomIn')} title={t('pptx.statusBar.zoomIn')} data-pptx-compact onclick={onzoomin}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" /></svg></button>
 	</div>
 </div>
 

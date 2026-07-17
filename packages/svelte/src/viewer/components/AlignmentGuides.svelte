@@ -19,6 +19,6 @@
 </script>
 
 <svelte:window onpointermove={move} onpointerup={() => (active = null)} />
-<div class="guides" bind:this={holder} aria-label="Alignment guides">{#each guides as guide, index}<button type="button" class:vertical={guide.axis === 'v'} class:horizontal={guide.axis === 'h'} aria-label={`${guide.axis === 'v' ? 'Vertical' : 'Horizontal'} guide ${Math.round(guide.position)}`} style={guide.axis === 'v' ? `left:${guide.position * scale}px` : `top:${guide.position * scale}px`} onpointerdown={(event) => { event.stopPropagation(); active = { index, axis: guide.axis }; }}></button>{/each}</div>
+<div class="guides" bind:this={holder} aria-label="Alignment guides">{#each guides as guide, index}<button type="button" class:vertical={guide.axis === 'v'} class:horizontal={guide.axis === 'h'} aria-label={`${guide.axis === 'v' ? 'Vertical' : 'Horizontal'} guide ${Math.round(guide.position)}`} style={guide.axis === 'v' ? `left:${guide.position * scale}px` : `top:${guide.position * scale}px`} data-pptx-compact onpointerdown={(event) => { event.stopPropagation(); active = { index, axis: guide.axis }; }}></button>{/each}</div>
 
 <style>.guides{position:absolute;inset:0;z-index:25;pointer-events:none}.guides button{position:absolute;margin:0;padding:0;border:0;background:#06b6d4;pointer-events:auto}.vertical{top:0;bottom:0;width:2px;cursor:ew-resize}.horizontal{left:0;right:0;height:2px;cursor:ns-resize}</style>

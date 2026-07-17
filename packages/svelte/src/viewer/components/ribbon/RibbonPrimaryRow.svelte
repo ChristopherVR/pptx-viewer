@@ -1,22 +1,45 @@
 <script lang="ts">
 	/**
-	 * React-aligned command row above the ribbon tabs. The title bar owns
-	 * save/undo/redo and autosave state; this row keeps collaboration actions
-	 * on the upper right.
+	 * React-aligned command row above the ribbon tabs (`ToolbarPrimaryRow`
+	 * port): slides-pane toggle on the left; comments, Present split button,
+	 * "+ Show" (custom shows), inspector toggle, settings gear, and the export
+	 * overflow menu on the right. Save/undo/redo stay in the title bar.
 	 */
 	import { isActionHidden } from 'pptx-viewer-shared';
 	import type { ToolbarActionId } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../i18n/context';
+	import type { ChromeUiState } from '../../state/chrome-ui.svelte';
+	import type { ExportUiState } from '../../export/export-ui.svelte';
+	import ExportMenu from '../ExportMenu.svelte';
+	import PresentSplitButton from './PresentSplitButton.svelte';
 
 	const {
-		onshare,
+		chromeUi,
+		commentCount = 0,
+		onpresent,
+		onpresenter,
+		onrehearse,
+		onsetup,
 		onbroadcast,
-		collabActive = false,
+		onsubtitles,
+		subtitlesEnabled = false,
+		oncustomshows,
+		onsettings,
+		exportUi,
 		hiddenActions,
 	}: {
-		onshare?: () => void;
+		chromeUi?: ChromeUiState;
+		commentCount?: number;
+		onpresent: () => void;
+		onpresenter?: () => void;
+		onrehearse?: () => void;
+		onsetup?: () => void;
 		onbroadcast?: () => void;
-		collabActive?: boolean;
+		onsubtitles?: () => void;
+		subtitlesEnabled?: boolean;
+		oncustomshows?: () => void;
+		onsettings?: () => void;
+		exportUi?: ExportUiState;
 		hiddenActions?: ToolbarActionId[];
 	} = $props();
 
@@ -24,22 +47,79 @@
 </script>
 
 <div class="pptx-svelte-ribbon-primary" role="group" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
-	{#if onshare && !isActionHidden('share', hiddenActions)}
+	{#if chromeUi}
 		<button
 			type="button"
-			class:pptx-svelte-ribbon-primary-active={collabActive}
-			aria-label={t('pptx.toolbar.share')}
-			title={t('pptx.toolbar.share')}
-			aria-pressed={collabActive}
-			onclick={onshare}
+			class:pptx-svelte-ribbon-primary-on={!chromeUi.sidebarCollapsed}
+			aria-label={t('pptx.toolbar.toggleSlidesPanel')}
+			title={t('pptx.toolbar.toggleSlidesPanel')}
+			aria-pressed={!chromeUi.sidebarCollapsed}
+			onclick={() => chromeUi.toggleSidebar()}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="8" r="1.6" fill="none" stroke="currentColor" stroke-width="1.3" /><circle cx="12" cy="3.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.3" /><circle cx="12" cy="12.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M5.4 7.2 10.6 4.3M5.4 8.8 10.6 11.7" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
+			<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M6 2.5v11" stroke="currentColor" stroke-width="1.3" /></svg>
 		</button>
 	{/if}
-	{#if onbroadcast && !isActionHidden('broadcast', hiddenActions)}
-		<button type="button" aria-label={t('pptx.broadcast.title')} title={t('pptx.broadcast.title')} onclick={onbroadcast}>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="1.4" fill="currentColor" /><path d="M5.5 5.5a3.5 3.5 0 0 0 0 5M10.5 5.5a3.5 3.5 0 0 1 0 5M3.3 3.3a6.5 6.5 0 0 0 0 9.4M12.7 3.3a6.5 6.5 0 0 1 0 9.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
+	<span class="pptx-svelte-ribbon-primary-spacer"></span>
+	{#if chromeUi}
+		<button
+			type="button"
+			class="pptx-svelte-ribbon-primary-comments"
+			class:pptx-svelte-ribbon-primary-on={chromeUi.commentsOpen}
+			aria-label={t('pptx.toolbar.comments')}
+			title={t('pptx.toolbar.comments')}
+			aria-pressed={chromeUi.commentsOpen}
+			onclick={() => chromeUi.toggleComments()}
+		>
+			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 3v-3h-2z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /></svg>
+			{#if commentCount > 0}<span class="pptx-svelte-ribbon-primary-badge">{commentCount}</span>{/if}
 		</button>
+	{/if}
+	<PresentSplitButton
+		{onpresent}
+		{onpresenter}
+		{onrehearse}
+		{onsetup}
+		{onbroadcast}
+		{onsubtitles}
+		{subtitlesEnabled}
+	/>
+	{#if oncustomshows}
+		<button
+			type="button"
+			class="pptx-svelte-ribbon-primary-shows"
+			aria-label={t('pptx.customShows.createTooltip')}
+			title={t('pptx.customShows.createTooltip')}
+			onclick={oncustomshows}
+		>
+			<!-- React hardcodes "+ Show" here (no dictionary key exists for it). -->
+			+ Show
+		</button>
+	{/if}
+	<span class="pptx-svelte-ribbon-primary-sep" aria-hidden="true"></span>
+	{#if chromeUi}
+		<button
+			type="button"
+			class:pptx-svelte-ribbon-primary-on={chromeUi.inspectorOpen}
+			aria-label={t('pptx.toolbar.toggleInspector')}
+			title={t('pptx.toolbar.toggleInspector')}
+			aria-pressed={chromeUi.inspectorOpen}
+			onclick={() => chromeUi.toggleInspector()}
+		>
+			<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M10 2.5v11" stroke="currentColor" stroke-width="1.3" /></svg>
+		</button>
+	{/if}
+	{#if onsettings}
+		<button
+			type="button"
+			aria-label={t('pptx.toolbar.settings')}
+			title={t('pptx.toolbar.settingsShortcuts')}
+			onclick={onsettings}
+		>
+			<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M12.4 3.6 11 5M5 11l-1.4 1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
+		</button>
+	{/if}
+	{#if exportUi && !isActionHidden('export', hiddenActions)}
+		<ExportMenu {exportUi} />
 	{/if}
 </div>
 
@@ -47,10 +127,20 @@
 	.pptx-svelte-ribbon-primary {
 		display: flex;
 		align-items: center;
-		justify-content: flex-end;
 		gap: 4px;
 		padding: 3px 10px;
 		border-top: 1px solid var(--pptx-border, #33334d);
+	}
+
+	.pptx-svelte-ribbon-primary-spacer {
+		flex: 1;
+	}
+
+	.pptx-svelte-ribbon-primary-sep {
+		width: 1px;
+		align-self: stretch;
+		margin: 2px 4px;
+		background: var(--pptx-border, #33334d);
 	}
 
 	.pptx-svelte-ribbon-primary button {
@@ -62,8 +152,9 @@
 		border: none;
 		border-radius: var(--pptx-radius, 6px);
 		background: transparent;
-		color: inherit;
+		color: var(--pptx-muted-foreground, #94a3b8);
 		cursor: pointer;
+		font: inherit;
 	}
 
 	.pptx-svelte-ribbon-primary button:hover:not(:disabled) {
@@ -81,7 +172,33 @@
 		height: 15px;
 	}
 
-	.pptx-svelte-ribbon-primary-active {
-		color: var(--pptx-primary, #6366f1);
+	.pptx-svelte-ribbon-primary-on {
+		color: var(--pptx-card-foreground, #e2e8f0);
+	}
+
+	.pptx-svelte-ribbon-primary-comments {
+		position: relative;
+	}
+
+	.pptx-svelte-ribbon-primary-badge {
+		position: absolute;
+		top: -2px;
+		right: -2px;
+		display: grid;
+		place-items: center;
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		background: var(--pptx-primary, #6366f1);
+		color: #fff;
+		font-size: 8px;
+		line-height: 1;
+	}
+
+	.pptx-svelte-ribbon-primary-shows {
+		padding: 0 8px;
+		font-size: 11px;
+		white-space: nowrap;
+		background: var(--pptx-muted, #2a2a3d);
 	}
 </style>

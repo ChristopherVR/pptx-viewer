@@ -1,12 +1,13 @@
 <script lang="ts">
 	/**
-	 * HomeTab: composes the Home tab's six ribbon groups (Clipboard, Slides,
-	 * Font, Paragraph, Arrange, Editing), matching React's Home tab layout
-	 * (React folds several dedicated section components into one visual
-	 * "Home" row; this does the same via composition, not inheritance). Every
-	 * group is thin presentation; all logic lives in the editor modules each
-	 * group imports.
+	 * HomeTab: composes the Home tab's ribbon groups (Clipboard, Slides,
+	 * Font, Paragraph, Arrange, Editing) into React's layout: one horizontal
+	 * non-wrapping row of group columns, each with its controls on top and a
+	 * tiny muted label below, separated by thin vertical rules, scrolling
+	 * horizontally when the viewport is narrow. Every group is thin
+	 * presentation; all logic lives in the editor modules each group imports.
 	 */
+	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import type { FindReplaceState } from '../../../editor/editor-find-replace.svelte';
 	import ArrangeGroup from '../../ArrangeGroup.svelte';
@@ -28,6 +29,7 @@
 		findReplace: FindReplaceState;
 		onnavigateslide: (index: number) => void;
 	} = $props();
+	const t = useTranslator();
 </script>
 
 <div class="pptx-svelte-hometab">
@@ -35,14 +37,29 @@
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
 	<SlidesGroup {editor} onnavigate={onnavigateslide} />
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
-	<TextFormatGroup {editor} />
-	<FontExtrasGroup {editor} />
+	<div class="pptx-svelte-hometab-group">
+		<div class="pptx-svelte-hometab-row">
+			<TextFormatGroup {editor} />
+			<FontExtrasGroup {editor} />
+		</div>
+		<span class="pptx-svelte-hometab-label">{t('pptx.ribbon.font')}</span>
+	</div>
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
-	<ParagraphGroup {editor} />
+	<div class="pptx-svelte-hometab-group">
+		<div class="pptx-svelte-hometab-row">
+			<ParagraphGroup {editor} />
+		</div>
+		<span class="pptx-svelte-hometab-label">{t('pptx.ribbon.paragraph')}</span>
+	</div>
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
-	<ShapeFormatGroup {editor} />
-	<ArrangeGroup {editor} />
-	<ArrangeExtras {editor} />
+	<div class="pptx-svelte-hometab-group">
+		<div class="pptx-svelte-hometab-row">
+			<ShapeFormatGroup {editor} />
+			<ArrangeGroup {editor} />
+			<ArrangeExtras {editor} />
+		</div>
+		<span class="pptx-svelte-hometab-label">{t('pptx.ribbon.arrange')}</span>
+	</div>
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
 	<EditingGroup {editor} {findReplace} />
 </div>
@@ -51,13 +68,36 @@
 	.pptx-svelte-hometab {
 		display: flex;
 		align-items: center;
-		flex-wrap: wrap;
+		flex-wrap: nowrap;
 		gap: 6px;
 	}
 
 	.pptx-svelte-hometab-sep {
 		width: 1px;
-		height: 26px;
-		background: var(--pptx-border, #33334d);
+		align-self: stretch;
+		margin: 2px 0;
+		flex: none;
+		background: color-mix(in srgb, var(--pptx-border, #33334d) 40%, transparent);
+	}
+
+	.pptx-svelte-hometab-group {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 3px;
+		flex: none;
+	}
+
+	.pptx-svelte-hometab-row {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.pptx-svelte-hometab-label {
+		font-size: 9px;
+		color: var(--pptx-muted-foreground, #94a3b8);
+		line-height: 1;
+		white-space: nowrap;
 	}
 </style>

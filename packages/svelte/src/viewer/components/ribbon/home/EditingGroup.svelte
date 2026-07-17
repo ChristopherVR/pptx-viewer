@@ -20,7 +20,6 @@
 </script>
 
 <div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.editing.find')}>
-	<span class="pptx-svelte-rgroup-label">{t('pptx.ribbon.editing')}</span>
 	<div class="pptx-svelte-rgroup-row">
 		<button
 			type="button"
@@ -50,11 +49,13 @@
 			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5.5 6 8l6-4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /><rect x="1.5" y="1.5" width="13" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="1" /></svg>
 		</button>
 	</div>
+	<span class="pptx-svelte-rgroup-label">{t('pptx.ribbon.editing')}</span>
 </div>
 
 <style>
 	.pptx-svelte-rgroup {
 		display: flex;
+		flex: none;
 		flex-direction: column;
 		align-items: center;
 		gap: 3px;

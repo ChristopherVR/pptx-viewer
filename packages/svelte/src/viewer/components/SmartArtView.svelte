@@ -200,7 +200,7 @@
 			{#if hovered && !editing}
 				<div class="pptx-svelte-smartart-swatches" role="group" aria-label={t('pptx.smartArt.fillColor')} style={`left:${hovered.left}px;top:${hovered.top}px`} onmouseleave={() => (hovered = null)}>
 					{#each palette.slice(0, 6) as color (color)}
-						<button type="button" aria-label={`${t('pptx.smartArt.fillColor')} ${color}`} style={`background:${color}`} onclick={() => { if (smartArt) onsmartartnodefill?.(smartArt.id, hovered!.nodeId, color); hovered = null; }}></button>
+						<button type="button" aria-label={`${t('pptx.smartArt.fillColor')} ${color}`} style={`background:${color}`} data-pptx-compact onclick={() => { if (smartArt) onsmartartnodefill?.(smartArt.id, hovered!.nodeId, color); hovered = null; }}></button>
 					{/each}
 				</div>
 			{/if}

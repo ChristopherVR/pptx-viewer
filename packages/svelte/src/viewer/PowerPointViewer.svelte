@@ -53,6 +53,7 @@
 	import { ExportUiState } from './export/export-ui.svelte';
 	import { PresentationController, PresenterSession, usePresentationEffects } from './presentation';
 	import { PresentationLoader } from './state/presentation-loader.svelte';
+	import { ChromeUiState } from './state/chrome-ui.svelte';
 	import { ViewerParityUiState } from './state/viewer-parity-ui.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
 	import { provideRenderContext } from './state/render-context';
@@ -213,6 +214,8 @@
 		},
 	});
 	const parityUi = new ViewerParityUiState(editor);
+	// Slides-rail / inspector open state, shared by the ribbon's toggle buttons.
+	const chromeUi = new ChromeUiState();
 	provideZoomNavigation({
 		navigateToZoomTarget: (index) => viewer.goTo(index),
 		getSlides: () => editor.renderedSlides,
@@ -352,10 +355,12 @@
 			viewer.isFullscreen ? 0 : 24,
 		),
 	);
+	// React parity: the user-facing zoom percent is relative to fit-to-viewport
+	// (100% = fitted, the default), not to the slide's native pixel size.
 	const scale = $derived(
-		viewer.isFullscreen || viewer.zoomPercent === null ? fittedScale : viewer.zoomPercent / 100,
+		viewer.isFullscreen ? fittedScale : fittedScale * ((viewer.zoomPercent ?? 100) / 100),
 	);
-	const effectivePercent = $derived(Math.max(1, Math.round(scale * 100)));
+	const effectivePercent = $derived(Math.max(1, Math.round(viewer.zoomPercent ?? 100)));
 	// Render the editable slide array (single source of truth), so committed
 	// edits flow to the stage, thumbnails, and notes panel.
 	const displaySlides = $derived(editor.renderedSlides);
@@ -671,6 +676,8 @@
 				onshare={() => dialogs.openShare()}
 				onbroadcast={() => dialogs.openBroadcast()}
 				collabActive={collab.active}
+				{chromeUi}
+				subtitlesEnabled={parityUi.subtitlesEnabled}
 				slides={displaySlides}
 				onnavigatetoissue={(slideIndex, elementId) => {
 					viewer.goTo(slideIndex);
@@ -763,6 +770,7 @@
 	{:else}<ViewerBody
 		{t}
 		{editor}
+		{chromeUi}
 		handler={loader.handler}
 		presentationTheme={loader.presentationTheme}
 		onthemechange={(next) => { loader.presentationTheme = next; loader.colorScheme = next.colorScheme; }}
@@ -903,7 +911,7 @@
 		outline-offset: 2px;
 	}
 
-	:global(.pptx-svelte-viewer :is(button, [role='button'])) {
+	:global(.pptx-svelte-viewer :is(button, [role='button']):not([role='switch']):not([data-pptx-compact])) {
 		min-width: 24px;
 		min-height: 24px;
 		touch-action: manipulation;

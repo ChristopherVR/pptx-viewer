@@ -17,7 +17,6 @@
 </script>
 
 <div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.ribbon.clipboard')}>
-	<span class="pptx-svelte-rgroup-label">{t('pptx.ribbon.clipboard')}</span>
 	<div class="pptx-svelte-rgroup-row">
 		<button
 			type="button"
@@ -78,11 +77,13 @@
 			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 4.5h9M6 4.5V3h4v1.5M5 4.5l.6 8.2c.05.7.6 1.3 1.3 1.3h2.2c.7 0 1.25-.6 1.3-1.3l.6-8.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
 		</button>
 	</div>
+	<span class="pptx-svelte-rgroup-label">{t('pptx.ribbon.clipboard')}</span>
 </div>
 
 <style>
 	.pptx-svelte-rgroup {
 		display: flex;
+		flex: none;
 		flex-direction: column;
 		align-items: center;
 		gap: 3px;

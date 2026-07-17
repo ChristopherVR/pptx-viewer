@@ -35,4 +35,42 @@ describe('ribbonTabBar hiddenActions', () => {
 		expect(tabLabels(target)).not.toContain('Design');
 		expect(tabLabels(target)).not.toContain('Record');
 	});
+
+	it('renders Record and Share on the tab row right side when wired', () => {
+		const onrecord = vi.fn();
+		const onshare = vi.fn();
+		const target = document.createElement('div');
+		const instance = mount(RibbonTabBar, {
+			target,
+			props: { active: 'home', onselect: vi.fn(), onrecord, onshare },
+		});
+		cleanup = () => unmount(instance);
+
+		const record = target.querySelector<HTMLButtonElement>('.pptx-svelte-ribbon-record');
+		const share = target.querySelector<HTMLButtonElement>('.pptx-svelte-ribbon-share');
+		expect(record).not.toBeNull();
+		expect(share).not.toBeNull();
+		record?.click();
+		share?.click();
+		expect(onrecord).toHaveBeenCalledOnce();
+		expect(onshare).toHaveBeenCalledOnce();
+	});
+
+	it('hides the tab-row Record / Share quick actions via hiddenActions', () => {
+		const target = document.createElement('div');
+		const instance = mount(RibbonTabBar, {
+			target,
+			props: {
+				active: 'home',
+				onselect: vi.fn(),
+				onrecord: vi.fn(),
+				onshare: vi.fn(),
+				hiddenActions: ['record', 'share'],
+			},
+		});
+		cleanup = () => unmount(instance);
+
+		expect(target.querySelector('.pptx-svelte-ribbon-record')).toBeNull();
+		expect(target.querySelector('.pptx-svelte-ribbon-share')).toBeNull();
+	});
 });

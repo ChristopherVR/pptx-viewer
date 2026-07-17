@@ -50,7 +50,7 @@
 
 <div class="pptx-svelte-fontx" role="group" aria-label={t('pptx.ribbon.font')}>
 	<select
-		class="pptx-svelte-fontx-family"
+		class="pptx-svelte-ribbon-select pptx-svelte-fontx-family"
 		disabled={!active}
 		aria-label={t('pptx.text.fontFamily')}
 		title={t('pptx.text.fontFamily')}
@@ -87,7 +87,7 @@
 	</button>
 
 	<select
-		class="pptx-svelte-fontx-select"
+		class="pptx-svelte-ribbon-select"
 		disabled={!active}
 		aria-label={t('pptx.text.changeCase')}
 		title={t('pptx.text.changeCase')}
@@ -105,7 +105,7 @@
 	</select>
 
 	<select
-		class="pptx-svelte-fontx-select"
+		class="pptx-svelte-ribbon-select"
 		disabled={!active}
 		aria-label={t('pptx.text.characterSpacing')}
 		title={t('pptx.text.characterSpacing')}
@@ -145,25 +145,10 @@
 		gap: 3px;
 	}
 
+	/* Look and feel comes from the shared `.pptx-svelte-ribbon-select` class
+	   (defined once in Ribbon.svelte); only the width cap is local. */
 	.pptx-svelte-fontx-family {
-		height: 28px;
-		max-width: 96px;
-		border: 1px solid var(--pptx-border, #33334d);
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-background, #11111b);
-		color: inherit;
-		font: inherit;
-		font-size: 11.5px;
-	}
-
-	.pptx-svelte-fontx-select {
-		height: 28px;
-		border: 1px solid var(--pptx-border, #33334d);
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-background, #11111b);
-		color: inherit;
-		font: inherit;
-		font-size: 11px;
+		max-width: 120px;
 	}
 
 	.pptx-svelte-fontx-btn {
@@ -186,9 +171,7 @@
 		color: var(--pptx-accent-foreground, #f8fafc);
 	}
 
-	.pptx-svelte-fontx-btn:disabled,
-	.pptx-svelte-fontx-family:disabled,
-	.pptx-svelte-fontx-select:disabled {
+	.pptx-svelte-fontx-btn:disabled {
 		opacity: 0.35;
 		cursor: default;
 	}

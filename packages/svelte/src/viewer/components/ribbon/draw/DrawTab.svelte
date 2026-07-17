@@ -122,7 +122,7 @@
 	.pptx-svelte-drawtab {
 		display: flex;
 		align-items: center;
-		flex-wrap: wrap;
+		flex-wrap: nowrap;
 		gap: 8px;
 	}
 

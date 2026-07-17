@@ -1,30 +1,33 @@
 <script lang="ts">
 	/**
-	 * InspectorPanel: collapsible right-hand property panel for the selected
-	 * element. Delegates to element-type-aware sub-sections so each stays under
-	 * the file-size budget and only renders what's relevant to the selection:
+	 * InspectorPanel: right-hand inspector pane, structured like React's
+	 * `InspectorPane`: an [Elements | Properties | Comments] tab strip with a
+	 * close button, defaulting to Properties.
 	 *
-	 * - {@link PositionSection}: X/Y/W/H/rotation, shown for every selection.
-	 * - {@link FillStrokeSection} (+ {@link GradientPanel}): fill/stroke colour,
-	 *   opacity, and gradient, for elements with `shapeStyle`.
-	 * - {@link TextSection}: vertical anchor, wrap, autofit, for elements with
-	 *   `textStyle`.
-	 * - {@link ImageSection}: brightness/contrast/saturation + crop, for
-	 *   image-like elements.
-	 * - {@link TableSection}: header row / banded rows / cell padding, for
-	 *   table elements.
+	 * - Elements: the active slide's layer-order list ({@link ElementsListSection}).
+	 * - Properties: with a selection, the element-type-aware sections
+	 *   (Position, Fill & Stroke, Text, Image, Table, SmartArt, Chart, Media);
+	 *   with no selection, the presentation-level sections (slide size summary
+	 *   plus {@link ThemeSection}'s presentation theme / slide theme override).
+	 * - Comments: the slide's comment thread ({@link ReviewCommentsPanel}).
 	 *
 	 * Every control routes edits through `EditorState.applyElementPatch` /
-	 * `patchSelected`, so every change is undo/redo-integrated. Vanilla
-	 * counterpart: `packages/vanilla/src/viewer/ui/inspector/`.
+	 * `patchSelected`, so every change is undo/redo-integrated. Open state and
+	 * the active tab live in {@link ChromeUiState} when the host passes `ui`
+	 * (so the toolbar's comments/inspector toggles stay in sync); standalone
+	 * mounts fall back to local state.
 	 */
 	import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-viewer-core';
 	import type { PptxHandler, PptxTheme } from 'pptx-viewer-core';
+	import type { CanvasSize } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
+	import type { ChromeUiState, InspectorTabId } from '../../state/chrome-ui.svelte';
+	import ReviewCommentsPanel from '../ribbon/review/ReviewCommentsPanel.svelte';
 	import FillStrokeSection from './FillStrokeSection.svelte';
 	import ChartSection from './ChartSection.svelte';
+	import ElementsListSection from './ElementsListSection.svelte';
 	import ImageSection from './ImageSection.svelte';
 	import PositionSection from './PositionSection.svelte';
 	import ShapeSection from './ShapeSection.svelte';
@@ -34,11 +37,34 @@
 	import TextSection from './TextSection.svelte';
 	import ThemeSection from './ThemeSection.svelte';
 
-	const { editor, handler, presentationTheme, onthemechange, mediaDataUrls = new Map() }: { editor: EditorState; handler?: PptxHandler | null; presentationTheme?: PptxTheme; onthemechange?: (theme: PptxTheme) => void; mediaDataUrls?: Map<string, string> } = $props();
+	const { editor, handler, presentationTheme, onthemechange, mediaDataUrls = new Map(), ui, canvasSize }: { editor: EditorState; handler?: PptxHandler | null; presentationTheme?: PptxTheme; onthemechange?: (theme: PptxTheme) => void; mediaDataUrls?: Map<string, string>; ui?: ChromeUiState; canvasSize?: CanvasSize } = $props();
 	const t = useTranslator();
 
-	// eslint-disable-next-line prefer-const
-	let collapsed = $state(false);
+	// Standalone fallbacks when no ChromeUiState is provided (tests, hosts).
+	let localTab = $state<InspectorTabId>('properties');
+	let localClosed = $state(false);
+	const activeTab = $derived(ui ? ui.inspectorTab : localTab);
+	function setTab(tab: InspectorTabId): void {
+		if (ui) {
+			ui.setInspectorTab(tab);
+		} else {
+			localTab = tab;
+		}
+	}
+	function close(): void {
+		if (ui) {
+			ui.inspectorOpen = false;
+		} else {
+			localClosed = !localClosed;
+		}
+	}
+
+	// React's INSPECTOR_TABS labels 'Elements' literally (no dictionary key).
+	const tabs = $derived<Array<{ id: InspectorTabId; label: string }>>([
+		{ id: 'elements', label: 'Elements' },
+		{ id: 'properties', label: t('pptx.inspector.properties') },
+		{ id: 'comments', label: t('pptx.toolbar.comments') },
+	]);
 
 	const el = $derived(editor.selectedElement);
 	const canShape = $derived(el !== undefined && hasShapeProperties(el));
@@ -52,30 +78,43 @@
 
 <aside
 	class="pptx-svelte-inspector"
-	class:pptx-svelte-inspector-collapsed={collapsed}
+	class:pptx-svelte-inspector-collapsed={localClosed}
 	data-pptx-inspector
 	aria-label={t('pptx.inspector.properties')}
 >
-	<button
-		type="button"
-		class="pptx-svelte-inspector-header"
-		aria-expanded={!collapsed}
-		onclick={() => (collapsed = !collapsed)}
-	>
-		<span>{t('pptx.inspector.properties')}</span>
-		<svg
-			viewBox="0 0 16 16"
-			aria-hidden="true"
-			class:pptx-svelte-inspector-chev-collapsed={collapsed}
+	<div class="pptx-svelte-inspector-header">
+		<div class="pptx-svelte-inspector-tabs" role="tablist">
+			{#each tabs as tab (tab.id)}
+				<button
+					type="button"
+					role="tab"
+					aria-selected={activeTab === tab.id}
+					class:pptx-svelte-inspector-tab-active={activeTab === tab.id}
+					onclick={() => setTab(tab.id)}
+				>
+					{tab.label}
+				</button>
+			{/each}
+		</div>
+		<button
+			type="button"
+			class="pptx-svelte-inspector-close"
+			aria-expanded={!localClosed}
+			aria-label={t('common.close')}
+			title={t('common.close')}
+			onclick={close}
 		>
-			<path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-		</svg>
-	</button>
+			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg>
+		</button>
+	</div>
 
-	{#if !collapsed}
+	{#if !localClosed}
 		<div class="pptx-svelte-inspector-body">
-			{#if handler && onthemechange}<div class="pptx-svelte-inspector-section"><ThemeSection {editor} {handler} theme={presentationTheme} {onthemechange} /></div>{/if}
-			{#if el}
+			{#if activeTab === 'elements'}
+				<ElementsListSection {editor} />
+			{:else if activeTab === 'comments'}
+				<ReviewCommentsPanel {editor} />
+			{:else if el}
 				<div class="pptx-svelte-inspector-section">
 					<PositionSection {editor} {el} />
 				</div>
@@ -118,6 +157,15 @@
 				{#if isChart}<div class="pptx-svelte-inspector-section"><h4>Chart</h4><ChartSection {editor} /></div>{/if}
 				{#if isMedia}<div class="pptx-svelte-inspector-section"><h4>Media</h4><MediaSection {editor} {mediaDataUrls} /></div>{/if}
 			{:else}
+				{#if canvasSize}
+					<div class="pptx-svelte-inspector-section">
+						<h4>{t('pptx.slideSize.title')}</h4>
+						<p class="pptx-svelte-inspector-meta">{canvasSize.width} &times; {canvasSize.height} px &middot; {t('pptx.customShows.slideCount', { count: editor.slides.length })}</p>
+					</div>
+				{/if}
+				{#if handler && onthemechange}
+					<div class="pptx-svelte-inspector-section"><ThemeSection {editor} {handler} theme={presentationTheme} {onthemechange} /></div>
+				{/if}
 				<p class="pptx-svelte-inspector-empty">{t('pptx.inspector.noSlideSelected')}</p>
 			{/if}
 		</div>
@@ -147,27 +195,72 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 8px;
-		padding: 8px 12px;
+		padding: 8px 10px;
+		border-bottom: 1px solid var(--pptx-border, #33334d);
+	}
+
+	.pptx-svelte-inspector-tabs {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+		padding: 2px;
+		border-radius: var(--pptx-radius, 6px);
+		background: var(--pptx-muted, #2a2a3d);
+	}
+
+	.pptx-svelte-inspector-tabs button {
+		padding: 3px 8px;
 		border: none;
+		border-radius: calc(var(--pptx-radius, 6px) - 2px);
 		background: transparent;
-		color: inherit;
+		color: var(--pptx-muted-foreground, #94a3b8);
 		cursor: pointer;
 		font: inherit;
-		font-weight: 600;
+		font-size: 11px;
+		white-space: nowrap;
 	}
 
-	.pptx-svelte-inspector-header svg {
-		width: 14px;
-		height: 14px;
-		transition: transform 0.15s ease;
+	.pptx-svelte-inspector-tabs button:hover {
+		background: var(--pptx-accent, #33334d);
+		color: var(--pptx-accent-foreground, #f8fafc);
 	}
 
-	.pptx-svelte-inspector-chev-collapsed {
-		transform: rotate(-90deg);
+	.pptx-svelte-inspector-tab-active {
+		background: var(--pptx-primary, #6366f1) !important;
+		color: #fff !important;
+	}
+
+	.pptx-svelte-inspector-close {
+		display: grid;
+		place-items: center;
+		width: 22px;
+		height: 22px;
+		border: none;
+		border-radius: var(--pptx-radius, 6px);
+		background: transparent;
+		color: var(--pptx-muted-foreground, #94a3b8);
+		cursor: pointer;
+	}
+
+	.pptx-svelte-inspector-close:hover {
+		background: var(--pptx-muted, #2a2a3d);
+		color: var(--pptx-card-foreground, #e2e8f0);
+	}
+
+	.pptx-svelte-inspector-close svg {
+		width: 13px;
+		height: 13px;
 	}
 
 	.pptx-svelte-inspector-body {
 		padding: 0 12px 12px;
+	}
+
+	.pptx-svelte-inspector-body > :global(.pptx-svelte-comments) {
+		width: 100%;
+		padding-left: 0;
+		border-left: none;
+		margin-top: 12px;
 	}
 
 	.pptx-svelte-inspector-section {
@@ -182,6 +275,10 @@
 		border-top: none;
 	}
 
+	.pptx-svelte-inspector-body > :global(.pptx-svelte-layers) {
+		margin-top: 12px;
+	}
+
 	.pptx-svelte-inspector-section h4 {
 		margin: 0 0 8px;
 		font-size: 11px;
@@ -191,8 +288,13 @@
 		color: var(--pptx-muted-foreground, #94a3b8);
 	}
 
+	.pptx-svelte-inspector-meta {
+		margin: 0;
+		color: var(--pptx-muted-foreground, #94a3b8);
+	}
+
 	.pptx-svelte-inspector-empty {
-		margin: 8px 0 0;
+		margin: 12px 0 0;
 		color: var(--pptx-muted-foreground, #94a3b8);
 	}
 </style>

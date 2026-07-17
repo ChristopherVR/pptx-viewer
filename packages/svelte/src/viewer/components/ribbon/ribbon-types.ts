@@ -11,6 +11,7 @@ import type { FindReplaceState } from '../../editor/editor-find-replace.svelte';
 import type { EditorState } from '../../editor/editor-state.svelte';
 import type { ExportUiState } from '../../export/export-ui.svelte';
 import type { AutosaveStatus } from '../../state/autosave.svelte';
+import type { ChromeUiState } from '../../state/chrome-ui.svelte';
 
 /**
  * Prop contracts for the ribbon shell and its tabs. Kept in a plain `.ts`
@@ -55,10 +56,14 @@ export interface RibbonProps {
 	autosaveStatus?: AutosaveStatus;
 	autosaveDirty?: boolean;
 
-	/** Collaboration entry points, kept in the primary row like React's chrome. */
+	/** Collaboration entry points: Share on the tab row, broadcast in the Present dropdown (React parity). */
 	onshare?: () => void;
 	onbroadcast?: () => void;
 	collabActive?: boolean;
+	/** Side-panel (slides rail / inspector) open state + toggles for the primary row. */
+	chromeUi?: ChromeUiState;
+	/** Whether live subtitles are currently enabled (Present dropdown checkmark). */
+	subtitlesEnabled?: boolean;
 	/** Toolbar buttons/ribbon tabs to hide; see `PowerPointViewerProps.hiddenActions`. */
 	hiddenActions?: ToolbarActionId[];
 	/** Slide Show tab actions: enter presentation from slide 0 or the current slide. */

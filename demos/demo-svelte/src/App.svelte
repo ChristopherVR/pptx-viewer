@@ -177,6 +177,7 @@
 			{smartArt3D}
 			editable
 			autosave
+			fileName={fileName || undefined}
 			filePath={fileName || (collaborationConfig ? `room-${collaborationConfig.roomId}.pptx` : undefined)}
 			collaboration={collaborationConfig ?? undefined}
 			{shareDefaults}

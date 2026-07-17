@@ -17,6 +17,8 @@ export {
 } from './fullscreen';
 export { resolveLazyImages, resolveMediaUrls, revokeBlobUrls } from './loader-helpers';
 export type { ResolvedMedia } from './loader-helpers';
+export { ChromeUiState } from './chrome-ui.svelte';
+export type { InspectorTabId } from './chrome-ui.svelte';
 export { PresentationLoader } from './presentation-loader.svelte';
 export { ViewerState } from './viewer-state.svelte';
 export { provideSmartArt3D, useSmartArt3D } from './smart-art-3d-context';

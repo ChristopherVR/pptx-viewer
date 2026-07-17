@@ -68,6 +68,7 @@
 				class="pptx-svelte-rotate-knob"
 				style={`top:${-ROTATE_STEM_PX}px`}
 				aria-label={t('pptx.selectionOverlay.rotate')}
+				data-pptx-compact
 				onpointerdown={onrotatepointerdown}
 			></button>{/if}
 			{#each RESIZE_HANDLES as handle (handle)}
@@ -77,6 +78,7 @@
 					style={`left:${HANDLE_POSITIONS[handle].fx * 100}%;top:${HANDLE_POSITIONS[handle].fy * 100}%;cursor:${HANDLE_CURSORS[handle]}`}
 					data-handle={handle}
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
+					data-pptx-compact
 					onpointerdown={(event) => onhandlepointerdown(handle, event)}
 				></button>
 			{/each}

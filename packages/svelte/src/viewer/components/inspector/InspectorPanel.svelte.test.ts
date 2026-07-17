@@ -147,17 +147,50 @@ describe('inspectorPanel', () => {
 		expect(sectionTitles(target)).toStrictEqual(['Table']);
 	});
 
-	it('collapses and expands via the header toggle', () => {
+	it('collapses and expands via the header close toggle (standalone, no ChromeUiState)', () => {
 		const el = shapeEl();
 		const editor = makeEditor([el]);
 		editor.select(el.id);
 		const { target } = mountInspector(editor);
 
-		const header = target.querySelector<HTMLButtonElement>('.pptx-svelte-inspector-header');
-		expect(header?.getAttribute('aria-expanded')).toBe('true');
-		header?.click();
+		const closeButton = target.querySelector<HTMLButtonElement>('.pptx-svelte-inspector-close');
+		expect(closeButton?.getAttribute('aria-expanded')).toBe('true');
+		closeButton?.click();
 		flushSync();
-		expect(header?.getAttribute('aria-expanded')).toBe('false');
+		expect(closeButton?.getAttribute('aria-expanded')).toBe('false');
 		expect(target.querySelector('.pptx-svelte-inspector-body')).toBeNull();
+	});
+
+	it('renders the [Elements | Properties | Comments] tab strip with Properties active by default', () => {
+		const editor = makeEditor([shapeEl()]);
+		const { target } = mountInspector(editor);
+
+		const tabs = Array.from(
+			target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-inspector-tabs [role="tab"]'),
+		);
+		expect(tabs.map((tab) => tab.textContent?.trim())).toStrictEqual([
+			'Elements',
+			'Properties',
+			'Comments',
+		]);
+		expect(tabs[1].getAttribute('aria-selected')).toBe('true');
+	});
+
+	it('shows the layer-order list on the Elements tab and selects an element on click', () => {
+		const el = shapeEl();
+		const editor = makeEditor([el]);
+		const { target } = mountInspector(editor);
+
+		const elementsTab = target.querySelector<HTMLButtonElement>(
+			'.pptx-svelte-inspector-tabs [role="tab"]',
+		);
+		elementsTab?.click();
+		flushSync();
+
+		const item = target.querySelector<HTMLButtonElement>('.pptx-svelte-layers-item');
+		expect(item).not.toBeNull();
+		item?.click();
+		flushSync();
+		expect(editor.selectedElementId).toBe(el.id);
 	});
 });

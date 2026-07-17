@@ -105,7 +105,7 @@
 	{/each}
 
 	<select
-		class="pptx-svelte-para-select"
+		class="pptx-svelte-ribbon-select"
 		disabled={!active}
 		aria-label={t('pptx.paragraph.lineSpacing')}
 		title={t('pptx.paragraph.lineSpacing')}
@@ -171,17 +171,6 @@
 		background: var(--pptx-border, #33334d);
 	}
 
-	.pptx-svelte-para-select {
-		height: 26px;
-		border: 1px solid var(--pptx-border, #33334d);
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-background, #11111b);
-		color: inherit;
-		font: inherit;
-		font-size: 11px;
-	}
-
-	.pptx-svelte-para-select:disabled {
-		opacity: 0.35;
-	}
+	/* The line-spacing select is styled by the shared
+	   `.pptx-svelte-ribbon-select` class defined in Ribbon.svelte. */
 </style>

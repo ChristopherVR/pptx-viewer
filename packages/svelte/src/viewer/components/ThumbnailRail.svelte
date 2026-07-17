@@ -110,10 +110,10 @@
 					</button>
 					{#if editable && group.section}
 						<div class="pptx-svelte-section-actions">
-							<button type="button" title={t('pptx.sections.rename')} onclick={() => renameSection(group.section!.id, group.section!.name)}>✎</button>
-							<button type="button" title={t('pptx.sections.moveUp')} disabled={groupIndex === 0} onclick={() => onsectionmove?.(group.section!.id, 'up')}>↑</button>
-							<button type="button" title={t('pptx.sections.moveDown')} disabled={groupIndex === sectionGroups.length - 1} onclick={() => onsectionmove?.(group.section!.id, 'down')}>↓</button>
-							<button type="button" title={t('pptx.sectionList.deleteSection')} onclick={() => onsectiondelete?.(group.section!.id)}>×</button>
+							<button type="button" title={t('pptx.sections.rename')} data-pptx-compact onclick={() => renameSection(group.section!.id, group.section!.name)}>✎</button>
+							<button type="button" title={t('pptx.sections.moveUp')} disabled={groupIndex === 0} data-pptx-compact onclick={() => onsectionmove?.(group.section!.id, 'up')}>↑</button>
+							<button type="button" title={t('pptx.sections.moveDown')} disabled={groupIndex === sectionGroups.length - 1} data-pptx-compact onclick={() => onsectionmove?.(group.section!.id, 'down')}>↓</button>
+							<button type="button" title={t('pptx.sectionList.deleteSection')} data-pptx-compact onclick={() => onsectiondelete?.(group.section!.id)}>×</button>
 						</div>
 					{/if}
 				</header>
