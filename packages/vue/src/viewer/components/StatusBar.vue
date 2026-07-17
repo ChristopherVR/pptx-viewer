@@ -57,9 +57,9 @@ const statusText = computed(() => {
 	if (props.autosaveStatus === 'error') {
 		return t('pptx.autosave.error');
 	}
-	if (props.autosaveStatus === 'saved') {
-		return t('pptx.autosave.saved', { time: '' }).trim();
-	}
+	// A settled 'saved' state with no pending edits reads "All saved", matching
+	// React's StatusBar (which only shows "Saved <time>" with a real timestamp;
+	// the Vue autosave status carries none).
 	return props.isDirty ? t('pptx.statusBar.unsavedChanges') : t('pptx.statusBar.allSaved');
 });
 </script>
