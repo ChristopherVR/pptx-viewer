@@ -119,21 +119,31 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 			viewerUrl(),
 		);
 	};
-	// The ribbon replaced the old flat toolbar.ts; its primary row (undo/redo/
-	// save + autosave pill) is the closest equivalent anchor for these buttons.
-	// Hidden per the host's `hiddenActions` option ('share' / 'broadcast'), each
-	// button is only constructed (not merely hidden) when its action is visible.
+	// Share lives on the ribbon tab row's right side (React's `TabRowActions`
+	// orange Share button); Broadcast + the status pill stay on the quick-access
+	// primary row. When no tab row exists (toolbar-less chrome, tests) both fall
+	// back to the primary row. Hidden per the host's `hiddenActions` option
+	// ('share' / 'broadcast'), each button is only constructed (not merely
+	// hidden) when its action is visible.
 	const showShare = !isActionHidden('share', deps.hiddenActions);
 	const showBroadcast = !isActionHidden('broadcast', deps.hiddenActions);
 	const toolbarEl = chrome.ribbon?.el.querySelector<HTMLElement>('.pptxv-ribbon-primary') ?? null;
+	const tabRowActionsEl =
+		chrome.ribbon?.el.querySelector<HTMLElement>('.pptxv-tabrow-actions') ?? null;
 	if (toolbarEl) {
 		if (showShare) {
-			shareBtn = createEl(doc, 'button', 'pptxv-btn');
+			shareBtn = createEl(doc, 'button', tabRowActionsEl ? 'pptxv-tabrow-share' : 'pptxv-btn');
 			shareBtn.type = 'button';
 			shareBtn.title = t('pptx.toolbar.share');
 			shareBtn.setAttribute('aria-label', t('pptx.toolbar.share'));
 			shareBtn.appendChild(createIcon(doc, 'share'));
+			if (tabRowActionsEl) {
+				const label = createEl(doc, 'span');
+				label.textContent = t('pptx.toolbar.share');
+				shareBtn.appendChild(label);
+			}
 			shareBtn.addEventListener('click', openShare);
+			(tabRowActionsEl ?? toolbarEl).appendChild(shareBtn);
 		}
 		if (showBroadcast) {
 			broadcastBtn = createEl(doc, 'button', 'pptxv-btn');
@@ -142,12 +152,9 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 			broadcastBtn.setAttribute('aria-label', t('pptx.broadcast.startTitle'));
 			broadcastBtn.appendChild(createIcon(doc, 'broadcast'));
 			broadcastBtn.addEventListener('click', openBroadcast);
+			toolbarEl.appendChild(broadcastBtn);
 		}
-		toolbarEl.append(
-			...(shareBtn ? [shareBtn] : []),
-			...(broadcastBtn ? [broadcastBtn] : []),
-			statusPill.el,
-		);
+		toolbarEl.appendChild(statusPill.el);
 	}
 	const mobileCollaborationHost = chrome.mobileToolbar?.collaborationHost ?? null;
 	if (mobileCollaborationHost && showShare) {

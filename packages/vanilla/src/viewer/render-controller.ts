@@ -50,6 +50,8 @@ export interface RenderController {
 	renderThumbnails(): void;
 	/** Resolve the requested zoom into a concrete scale factor. */
 	effectiveScale(): number;
+	/** Display zoom relative to fit-to-viewport (fit === 100%), like React. */
+	zoomPercent(): number;
 	/**
 	 * Presentation-mode animation/transition playback, driven by the stage
 	 * rebuild flow. Navigation (`viewer-controls`) consults `advance()` so a
@@ -101,11 +103,8 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			templateEditing: state.editTemplateMode || state.masterViewTarget !== null,
 		});
 	};
-	const effectiveScaleFor = (canvasSize: { width: number; height: number }): number => {
+	const fitScaleFor = (canvasSize: { width: number; height: number }): number => {
 		const state = store.get();
-		if (state.zoom !== 'fit') {
-			return state.zoom;
-		}
 		const viewport = deps.getChrome().viewport;
 		const padding = state.presenting ? 0 : FIT_PADDING_PX;
 		const scale = Math.min(
@@ -114,9 +113,18 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		);
 		return Number.isFinite(scale) && scale > 0 ? scale : 1;
 	};
+	const effectiveScaleFor = (canvasSize: { width: number; height: number }): number => {
+		const state = store.get();
+		return state.zoom !== 'fit' ? state.zoom : fitScaleFor(canvasSize);
+	};
 
 	const effectiveScale = (): number => {
 		return effectiveScaleFor(store.get().canvasSize);
+	};
+
+	const zoomPercent = (): number => {
+		const canvasSize = store.get().canvasSize;
+		return (effectiveScaleFor(canvasSize) / fitScaleFor(canvasSize)) * 100;
 	};
 
 	const renderStage = (): void => {
@@ -192,15 +200,18 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		if (stageNode && slide) {
 			chrome.stageWrap.appendChild(stageNode);
 		}
+		// React shows zoom relative to fit-to-viewport (fit === 100%), so the
+		// default reads 100% instead of the raw stage scale factor.
+		const stageZoomPercent = (scale / fitScaleFor(pageSize)) * 100;
 		chrome.ribbon?.update({
 			current: state.currentSlide,
 			total: state.slides.length,
-			zoomPercent: scale * 100,
+			zoomPercent: stageZoomPercent,
 		});
 		chrome.statusBar?.update({
 			current: state.currentSlide,
 			total: state.slides.length,
-			zoomPercent: scale * 100,
+			zoomPercent: stageZoomPercent,
 		});
 		chrome.presentationTouchControls.update(state.currentSlide, state.slides.length);
 		chrome.mobileActionSheets?.update(state.currentSlide, state.slides, slide?.comments ?? []);
@@ -304,6 +315,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		renderStage,
 		renderThumbnails,
 		effectiveScale,
+		zoomPercent,
 		presentationPlayback,
 	};
 }

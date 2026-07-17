@@ -58,12 +58,16 @@ export const RIBBON_CSS = `
 }
 
 /* ── Tab content + groups ────────────────────────────────────────────── */
+/* One horizontal row (React: flex flex-nowrap + overflow-x) instead of the
+ * old two-row wrap; each group is a column with its label below the buttons. */
 .pptxv-ribbon-tab-content {
 	display: flex;
-	flex-wrap: wrap;
-	align-items: flex-start;
+	flex-wrap: nowrap;
+	align-items: stretch;
 	gap: 2px;
-	padding: 6px 8px;
+	padding: 4px 8px;
+	overflow-x: auto;
+	overflow-y: hidden;
 }
 .pptxv-ribbon-tab-content[hidden] { display: none; }
 /* Design tab theme galleries: .pptxv-btn is a fixed 28x28 icon-button
@@ -81,21 +85,33 @@ export const RIBBON_CSS = `
 }
 .pptxv-rgroup {
 	display: flex;
+	flex: none;
 	flex-direction: column;
 	align-items: center;
+	justify-content: space-between;
 	gap: 2px;
 	padding: 2px 8px;
-	border-right: 1px solid var(--pptx-border);
+	border-right: 1px solid color-mix(in srgb, var(--pptx-border) 40%, transparent);
 }
 .pptxv-rgroup:last-child { border-right: none; }
-.pptxv-rgroup-row { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+.pptxv-rgroup-row { display: flex; flex-wrap: nowrap; align-items: center; gap: 2px; }
+/* Sentence-case tiny muted label below each group (React: 9px, no uppercase). */
 .pptxv-rgroup-label {
 	font-size: 9px;
+	line-height: 1;
 	color: var(--pptx-muted-foreground);
-	text-transform: uppercase;
-	letter-spacing: 0.03em;
 }
 .pptxv-rgroup .pptxv-btn.is-active { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+/* Labelled pill button (React's pill token): icon + text on a muted chip. */
+.pptxv-btn.pptxv-btn-pill {
+	width: auto;
+	gap: 6px;
+	padding: 0 10px;
+	background: var(--pptx-muted);
+	font-size: 12px;
+	white-space: nowrap;
+}
+.pptxv-btn-label { font-size: 12px; }
 
 /* ── Shape insert grid ───────────────────────────────────────────────── */
 .pptxv-shape-grid {

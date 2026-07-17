@@ -96,6 +96,7 @@ function openViewer(
 	document.title = `${name} - PPTX Viewer`;
 	viewer = createPptxViewer(shell, {
 		source,
+		fileName: name,
 		theme: themes[themeKey].theme,
 		locale: getLanguage(),
 		messages: viewerMessages,

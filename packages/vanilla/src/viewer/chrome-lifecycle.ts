@@ -200,6 +200,7 @@ export interface ChromeHost {
 	openVersionHistory(): void;
 	toggleTemplateEditing(): void;
 	toggleMasterNavigation(): void;
+	selectElements(ids: string[]): void;
 	exportSlidePng(): Promise<void>;
 	copySlideAsImage(): Promise<void>;
 	exportPdf(): Promise<void>;
@@ -263,6 +264,8 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		openVersionHistory: () => host.openVersionHistory(),
 		toggleTemplateEditing: () => host.toggleTemplateEditing(),
 		toggleMasterNavigation: () => host.toggleMasterNavigation(),
+		toggleInspector: () => host.store.set({ inspectorOpen: !host.store.get().inspectorOpen }),
+		selectElement: (id) => host.selectElements([id]),
 		save: () => void host.downloadPptx(),
 		downloadAs: (format) => host.downloadAs(format),
 		packageForSharing: () => host.packageForSharing(),

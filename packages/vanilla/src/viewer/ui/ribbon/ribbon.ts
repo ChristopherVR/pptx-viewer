@@ -50,6 +50,8 @@ export interface Ribbon {
 	setTemplateEditing(active: boolean): void;
 	setHasMacros(hasMacros: boolean): void;
 	setSubtitlesVisible(visible: boolean): void;
+	/** Reflect the inspector panel's open state on the quick-access toggle. */
+	setInspectorOpen(open: boolean): void;
 	openEquationEditor(id: string, omml: Record<string, unknown>): void;
 }
 
@@ -74,10 +76,12 @@ export function createRibbon(
 	el.setAttribute('role', 'toolbar');
 	el.setAttribute('aria-label', t('pptx.toolbar.presentationToolbarAria'));
 
-	const primary = createRibbonPrimaryRow(doc, t, handlers.primary);
+	const primary = createRibbonPrimaryRow(doc, t, handlers, hiddenActions);
 	el.append(primary.el);
 
-	const tabBar = createRibbonTabBar(doc, t, (tab) => setActiveTab(tab), hiddenActions);
+	const tabBar = createRibbonTabBar(doc, t, (tab) => setActiveTab(tab), hiddenActions, {
+		startRecording: () => handlers.slideShow.startRehearsal(),
+	});
 	tabBar.el.hidden = true;
 	el.appendChild(tabBar.el);
 
@@ -216,6 +220,7 @@ export function createRibbon(
 		setTemplateEditing: (active) => viewTab?.setTemplateEditing(active),
 		setHasMacros: (hasMacros) => fileTab?.setHasMacros(hasMacros),
 		setSubtitlesVisible: (visible) => slideShowTab?.setSubtitlesVisible(visible),
+		setInspectorOpen: (open) => primary.setInspectorOpen(open),
 		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),
 		updateSelection(selectedElement, extra) {
 			latestSelected = selectedElement;

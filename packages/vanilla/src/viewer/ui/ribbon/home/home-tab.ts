@@ -96,7 +96,8 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 		toggleFindReplace: deps.onToggleFindReplace,
 	});
 
-	el.append(clipboard.el, slides.el, font.el, paragraph.el, arrange.el, editing.el);
+	// React's Home tab order: Clipboard, Slides, Font, Paragraph, Editing, Arrange.
+	el.append(clipboard.el, slides.el, font.el, paragraph.el, editing.el, arrange.el);
 
 	return {
 		el,

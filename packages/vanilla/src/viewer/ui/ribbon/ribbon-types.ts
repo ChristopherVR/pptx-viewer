@@ -39,6 +39,8 @@ export interface RibbonNavHandlers {
 	openHyperlink(): void;
 	toggleTemplateEditing?(): void;
 	toggleMasterView?(): void;
+	/** Show/hide the right-hand property inspector (React's panel toggle). */
+	toggleInspector?(): void;
 	toggleViewOption(option: 'showGrid' | 'showRulers' | 'snapToGrid' | 'snapToShape'): void;
 	addGuide(axis: 'h' | 'v'): void;
 	activateEyedropper(): void;

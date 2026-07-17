@@ -71,21 +71,91 @@ export const EDITOR_CSS = `
 	font-size: 12px;
 }
 .pptxv-inspector[hidden] { display: none; }
-.pptxv-inspector-header {
+/* React-style tab strip: [Elements | Properties | Comments]. */
+.pptxv-inspector-tabs {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	width: 100%;
-	padding: 8px 12px;
-	border: none;
+	gap: 2px;
+	padding: 6px 8px;
 	border-bottom: 1px solid var(--pptx-border);
-	background: transparent;
-	color: var(--pptx-foreground);
+}
+.pptxv-inspector-tab {
+	padding: 4px 8px;
+	border: none;
+	border-radius: 4px;
+	background: var(--pptx-muted);
+	color: var(--pptx-muted-foreground);
 	font: inherit;
-	font-weight: 600;
+	font-size: 11px;
 	cursor: pointer;
 }
-.pptxv-inspector-header:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-inspector-tab:hover { color: var(--pptx-foreground); background: var(--pptx-accent); }
+.pptxv-inspector-tab.is-active { background: var(--pptx-primary); color: var(--pptx-primary-foreground, #fff); }
+/* Elements tab: layer-order rows. */
+.pptxv-inspector-layer-list { display: flex; flex-direction: column; gap: 2px; }
+.pptxv-inspector-layer-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 4px 8px;
+	border: none;
+	border-radius: 4px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+.pptxv-inspector-layer-row:hover { background: var(--pptx-muted); }
+.pptxv-inspector-layer-row.is-selected { background: color-mix(in srgb, var(--pptx-primary) 25%, transparent); color: var(--pptx-primary); }
+.pptxv-inspector-layer-num { min-width: 16px; color: var(--pptx-muted-foreground); text-align: right; }
+.pptxv-inspector-layer-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* No-selection Properties deck panel + Comments tab. */
+.pptxv-inspector-row-value { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.pptxv-inspector-deck[hidden] { display: none; }
+.pptxv-inspector-deck-btn {
+	width: 100%;
+	margin-top: 4px;
+	padding: 5px 8px;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: var(--pptx-muted);
+	color: inherit;
+	font: inherit;
+	font-size: 11px;
+	cursor: pointer;
+}
+.pptxv-inspector-deck-btn:hover { background: var(--pptx-accent); }
+.pptxv-inspector-comment { padding: 6px 0; border-bottom: 1px solid color-mix(in srgb, var(--pptx-border) 60%, transparent); }
+.pptxv-inspector-comment.is-resolved { opacity: 0.6; }
+.pptxv-inspector-comment-meta { font-size: 11px; font-weight: 600; }
+.pptxv-inspector-comment-text { margin: 2px 0 4px; }
+.pptxv-inspector-comment-actions { display: flex; gap: 6px; }
+.pptxv-inspector-comment-action {
+	padding: 2px 6px;
+	border: none;
+	border-radius: 4px;
+	background: var(--pptx-muted);
+	color: var(--pptx-muted-foreground);
+	font: inherit;
+	font-size: 10px;
+	cursor: pointer;
+}
+.pptxv-inspector-comment-action:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-inspector-comment-add[hidden] { display: none; }
+.pptxv-inspector-comment-input {
+	width: 100%;
+	margin-top: 6px;
+	padding: 6px 8px;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: var(--pptx-background);
+	color: var(--pptx-foreground);
+	font: inherit;
+	font-size: 12px;
+	resize: vertical;
+}
 .pptxv-inspector-body { padding: 10px 12px; }
 .pptxv-inspector-body[hidden] { display: none; }
 .pptxv-inspector-empty { color: var(--pptx-muted-foreground); margin: 0; }

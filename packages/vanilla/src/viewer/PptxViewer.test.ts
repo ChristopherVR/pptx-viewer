@@ -37,12 +37,21 @@ describe('createPptxViewer', () => {
 		expect(container.querySelector('.pptxv-statusbar [aria-label*="Previous"]')).toBeNull();
 		const primary = container.querySelector('.pptxv-ribbon-primary');
 		expect(primary?.getAttribute('role')).toBeNull();
-		expect(primary?.children).toHaveLength(3);
-		expect(primary?.querySelector('button[aria-label="Share"]')).toBeTruthy();
+		// React-aligned quick-access cluster: comments, Present split, "+ Show",
+		// inspector toggle, settings, overflow; collab appends broadcast + pill.
+		expect(primary?.querySelector('button[aria-label="Comments"]')).toBeTruthy();
+		expect(primary?.querySelector('.pptxv-present-split')).toBeTruthy();
+		expect(primary?.querySelector('button[aria-label="Toggle inspector panel"]')).toBeTruthy();
+		expect(primary?.querySelector('button[aria-label="Settings & Shortcuts"]')).toBeTruthy();
+		expect(primary?.querySelector('button[aria-label="More actions"]')).toBeTruthy();
 		expect(
 			primary?.querySelector('button[aria-label="Broadcast to a live audience"]'),
 		).toBeTruthy();
 		expect(primary?.querySelector('.pptxv-collab-status')).toBeTruthy();
+		// Share and Record live on the tab row's right side, matching React.
+		const tabRowActions = container.querySelector('.pptxv-tabrow-actions');
+		expect(tabRowActions?.querySelector('button[aria-label="Share"]')).toBeTruthy();
+		expect(tabRowActions?.querySelector('button[aria-label="Record"]')).toBeTruthy();
 		expect(container.querySelector('[data-pptx-inspector]')?.getAttribute('aria-label')).toBe(
 			'Properties',
 		);

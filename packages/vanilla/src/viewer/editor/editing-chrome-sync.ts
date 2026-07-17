@@ -27,7 +27,10 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 		}
 		const editingVisible = state.editable && !state.presenting;
 		ribbon?.setEditable(editingVisible);
-		inspector?.setEditable(editingVisible);
+		// The panel toggle in the quick-access row hides the inspector without
+		// leaving edit mode (React's `isInspectorPaneOpen`).
+		inspector?.setEditable(editingVisible && state.inspectorOpen);
+		ribbon?.setInspectorOpen(state.inspectorOpen);
 
 		const el = editingVisible ? deps.selectedElement(state) : undefined;
 
@@ -50,5 +53,17 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 				state.mediaDataUrls,
 			),
 		);
+		const activeSlide = state.slides[state.currentSlide];
+		inspector?.updateDeck({
+			slideCount: state.slides.length,
+			currentSlide: state.currentSlide,
+			canvasSize: state.canvasSize,
+			elements: activeSlide?.elements ?? [],
+			selectedIds: state.selectedElementIds,
+			comments: activeSlide?.comments ?? [],
+			docTitle: state.coreProperties?.title,
+			docAuthor: state.coreProperties?.creator,
+			editable: editingVisible,
+		});
 	};
 }

@@ -123,6 +123,8 @@ export interface ViewerState {
 	 * navigation for the life of the viewer instance (in-memory only).
 	 */
 	notesExpanded: boolean;
+	/** True when the right-hand property inspector panel is shown (editing chrome). */
+	inspectorOpen: boolean;
 	/** Remote collaborators currently in the session (empty when not collaborating). */
 	remotePresences: SanitizedPresence[];
 	/** Remote cursors visible on the current slide, projected from `remotePresences`. */
@@ -189,6 +191,7 @@ export function createInitialViewerState(): ViewerState {
 		dirty: false,
 		interactionActive: false,
 		notesExpanded: false,
+		inspectorOpen: true,
 		remotePresences: [],
 		cursors: [],
 		followedClientId: null,

@@ -14,6 +14,11 @@ export interface ButtonOptions {
 	icon?: IconName;
 	/** Short text glyph when no icon (e.g. "B" for bold). */
 	text?: string;
+	/**
+	 * Visible text label rendered next to the icon; turns the fixed-size icon
+	 * button into a React-style labelled pill (`.pptxv-btn-pill`).
+	 */
+	textLabel?: string;
 	/** Extra class on the button (e.g. for a bold/italic glyph style). */
 	className?: string;
 	onClick(): void;
@@ -39,6 +44,12 @@ export function makeButton(doc: Document, options: ButtonOptions): ButtonHandle 
 		btn.appendChild(createIcon(doc, options.icon));
 	} else if (options.text !== undefined) {
 		btn.textContent = options.text;
+	}
+	if (options.textLabel !== undefined) {
+		btn.classList.add('pptxv-btn-pill');
+		const labelEl = createEl(doc, 'span', 'pptxv-btn-label');
+		labelEl.textContent = options.textLabel;
+		btn.appendChild(labelEl);
 	}
 	btn.addEventListener('click', options.onClick);
 	return {

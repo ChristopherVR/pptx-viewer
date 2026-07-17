@@ -92,7 +92,11 @@ export type IconName =
 	| 'panel-right'
 	| 'sticky-note'
 	| 'monitor'
-	| 'presentation';
+	| 'presentation'
+	| 'comment'
+	| 'settings'
+	| 'folder-plus'
+	| 'ellipsis';
 
 const ICON_PATHS: Record<IconName, string[]> = {
 	'chevron-left': ['M15 18l-6-6 6-6'],
@@ -250,6 +254,24 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	'sticky-note': ['M5 4h14v10l-6 6H5z', 'M13 20v-6h6'],
 	monitor: ['M3 5h18v12H3z', 'M8 21h8', 'M12 17v4'],
 	presentation: ['M3 4h18', 'M5 4h14v11H5z', 'M12 15v3', 'M9 21l3-3 3 3'],
+	comment: ['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'],
+	settings: [
+		'M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z',
+		'M12 2v3',
+		'M12 19v3',
+		'M2 12h3',
+		'M19 12h3',
+		'M4.9 4.9l2.2 2.2',
+		'M16.9 16.9l2.2 2.2',
+		'M4.9 19.1l2.2-2.2',
+		'M16.9 7.1l2.2-2.2',
+	],
+	'folder-plus': [
+		'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z',
+		'M12 10v6',
+		'M9 13h6',
+	],
+	ellipsis: ['M5 12h.01', 'M12 12h.01', 'M19 12h.01'],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

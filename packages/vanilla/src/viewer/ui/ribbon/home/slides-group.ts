@@ -32,27 +32,31 @@ export function createSlidesGroup(
 	label.textContent = t('pptx.sections.slides');
 	el.appendChild(label);
 
+	// React's Slides group shows labelled pills ("New Slide", "Section");
+	// duplicate/delete stay icon-only (React reaches them via context menu).
 	const add = makeButton(doc, {
 		label: t('pptx.home.newSlide'),
 		icon: 'new-slide',
+		textLabel: t('pptx.home.newSlide'),
 		onClick: handlers.addSlide,
+	});
+	const section = makeButton(doc, {
+		label: t('pptx.sections.addSection'),
+		icon: 'folder-plus',
+		textLabel: t('pptx.sections.sectionButtonLabel'),
+		onClick: handlers.addSection,
 	});
 	const duplicate = makeButton(doc, {
 		label: t('pptx.arrange.duplicate'),
 		icon: 'duplicate',
 		onClick: handlers.duplicateSlide,
 	});
-	const section = makeButton(doc, {
-		label: t('pptx.sections.sectionButtonLabel'),
-		text: '§',
-		onClick: handlers.addSection,
-	});
 	const del = makeButton(doc, {
 		label: t('pptx.arrange.delete'),
 		icon: 'trash',
 		onClick: handlers.deleteSlide,
 	});
-	row.append(add.btn, duplicate.btn, del.btn, section.btn);
+	row.append(add.btn, section.btn, duplicate.btn, del.btn);
 
 	return {
 		el,

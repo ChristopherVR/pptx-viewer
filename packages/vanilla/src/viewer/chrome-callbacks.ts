@@ -50,6 +50,10 @@ export interface ChromeCallbackDeps {
 	openVersionHistory(): void;
 	toggleTemplateEditing(): void;
 	toggleMasterNavigation(): void;
+	/** Show/hide the right-hand property inspector panel. */
+	toggleInspector(): void;
+	/** Select a single element by id (inspector Elements tab). */
+	selectElement(id: string): void;
 	goToSlide(index: number): void;
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	exportSlidePng(): Promise<void>;
@@ -106,6 +110,7 @@ export function buildChromeCallbacks(
 			openHyperlink: () => deps.openHyperlink(),
 			toggleTemplateEditing: () => deps.toggleTemplateEditing(),
 			toggleMasterView: () => deps.toggleMasterNavigation(),
+			toggleInspector: () => deps.toggleInspector(),
 			toggleViewOption: (option) => deps.getEditActions().toggleViewOption(option),
 			addGuide: (axis) => deps.getEditActions().addGuide(axis),
 			activateEyedropper: () => deps.getEditActions().activateEyedropper(),
@@ -175,6 +180,11 @@ export function buildChromeCallbacks(
 		},
 	};
 	const inspectorHandlers: ChromeOptions['inspectorHandlers'] = {
+		selectElement: (id) => deps.selectElement(id),
+		openDocumentProperties: () => deps.openDocumentProperties(),
+		addComment: (text) => void deps.getEditActions().comments.addComment(text),
+		deleteComment: (id) => deps.getEditActions().comments.deleteComment(id),
+		toggleCommentResolved: (id) => deps.getEditActions().comments.toggleCommentResolved(id),
 		setGeometry: (patch) => deps.getEditActions().setGeometry(patch),
 		setShapeFill: (color) => deps.getEditActions().setShapeFill(color),
 		setShapeStroke: (color) => deps.getEditActions().setShapeStroke(color),

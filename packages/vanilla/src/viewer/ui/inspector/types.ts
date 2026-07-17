@@ -2,6 +2,8 @@ import type {
 	PptxImageEffects,
 	PptxChartData,
 	MediaPptxElement,
+	PptxComment,
+	PptxElement,
 	PptxSmartArtData,
 	PptxSmartArtNodeStyle,
 	PptxTableCellStyle,
@@ -23,6 +25,15 @@ import type { TableCellPosition, TableStructureAction } from '../../editor/table
  * opacity, image adjustments/crop, table-level flags + padding).
  */
 export interface InspectorHandlers {
+	/** Select an element from the Elements (layer-order) tab. */
+	selectElement(id: string): void;
+	/** Open the full Document Properties dialog from the Properties tab. */
+	openDocumentProperties(): void;
+	/** Add a comment on the current slide (Comments tab). */
+	addComment(text: string): void;
+	deleteComment(id: string): void;
+	toggleCommentResolved(id: string): void;
+
 	setGeometry(patch: GeometryPatch): void;
 	setShapeFill(color: string): void;
 	setShapeStroke(color: string): void;
@@ -160,8 +171,26 @@ export interface InspectorState {
 	tableRowHeights: number[];
 }
 
+/**
+ * Deck/slide-level state for the inspector's Elements and Comments tabs plus
+ * the no-selection Properties sections (React's `InspectorPane` default view).
+ */
+export interface InspectorDeckState {
+	slideCount: number;
+	currentSlide: number;
+	canvasSize: { width: number; height: number };
+	elements: readonly PptxElement[];
+	selectedIds: readonly string[];
+	comments: readonly PptxComment[];
+	docTitle: string | undefined;
+	docAuthor: string | undefined;
+	editable: boolean;
+}
+
 export interface Inspector {
 	el: HTMLElement;
 	update(state: InspectorState): void;
+	/** Refresh the deck-level tabs (Elements/Comments + no-selection Properties). */
+	updateDeck(state: InspectorDeckState): void;
 	setEditable(editable: boolean): void;
 }
