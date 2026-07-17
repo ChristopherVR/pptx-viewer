@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.20.0) - 2026-07-17
+
+### Features
+
+- **vue:** Add hiddenActions prop to hide individual toolbar/ribbon actions (by @ChristopherVR) ([2e917df](https://github.com/ChristopherVR/pptx-viewer/commit/2e917df9f2703fe5e56de0015b20744697092ff7))
+
 ## [1.19.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.19.1) - 2026-07-17
 
 ### Dependencies
