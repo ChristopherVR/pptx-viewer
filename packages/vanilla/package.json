@@ -1,6 +1,6 @@
 {
 	"name": "pptx-vanilla-viewer",
-	"version": "0.8.0",
+	"version": "0.9.0",
 	"description": "Zero-framework PowerPoint viewer: render PPTX slides in the browser with plain DOM, no React/Vue/Angular required.",
 	"keywords": [
 		"javascript",

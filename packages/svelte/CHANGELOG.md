@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [0.9.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.9.0) - 2026-07-17
+
+### Features
+
+- **file:** Use Lucide icons in Svelte and Vanilla (by @ChristopherVR) ([a956f1b](https://github.com/ChristopherVR/pptx-viewer/commit/a956f1ba7c05c949db517184cd0413cc0271b8dc))
+
 ## [0.8.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.8.1) - 2026-07-16
 
 ## [0.8.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@0.8.0) - 2026-07-16
