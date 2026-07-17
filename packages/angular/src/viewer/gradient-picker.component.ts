@@ -130,6 +130,7 @@ import type { GradientState, GradientStop } from './gradient-picker-helpers';
 					<button
 						type="button"
 						class="pptx-ng-grad__btn pptx-ng-grad__btn--remove"
+						data-pptx-compact
 						[title]="'pptx.gradient.removeStop' | translate"
 						(click)="onRemoveStop($index)"
 					>

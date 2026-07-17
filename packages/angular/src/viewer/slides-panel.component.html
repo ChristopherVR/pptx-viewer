@@ -37,12 +37,14 @@
 								<div class="pptx-ng-section-actions">
 									<button
 										type="button"
+										data-pptx-compact
 										(click)="onRenameSection(item.section.id, item.section.name)"
 									>
 										✎
 									</button>
 									<button
 										type="button"
+										data-pptx-compact
 										[disabled]="sectionIndex(item.section.id) === 0"
 										(click)="editor.sectionOps.move(item.section.id, 'up')"
 									>
@@ -50,12 +52,17 @@
 									</button>
 									<button
 										type="button"
+										data-pptx-compact
 										[disabled]="sectionIndex(item.section.id) === editor.sections().length - 1"
 										(click)="editor.sectionOps.move(item.section.id, 'down')"
 									>
 										↓
 									</button>
-									<button type="button" (click)="editor.sectionOps.delete(item.section.id)">
+									<button
+										type="button"
+										data-pptx-compact
+										(click)="editor.sectionOps.delete(item.section.id)"
+									>
 										×
 									</button>
 								</div>
@@ -104,6 +111,7 @@
 								<button
 									type="button"
 									class="pptx-ng-spanel-action"
+									data-pptx-compact
 									[title]="'pptx.ribbon.duplicateSlide' | translate"
 									[attr.aria-label]="'pptx.arrange.duplicate' | translate"
 									(click)="onDuplicate(i)"
@@ -113,6 +121,7 @@
 								<button
 									type="button"
 									class="pptx-ng-spanel-action"
+									data-pptx-compact
 									[title]="'pptx.slidesPanel.deleteSlide' | translate"
 									[attr.aria-label]="'pptx.arrange.delete' | translate"
 									[disabled]="editor.slides().length <= 1"
@@ -123,6 +132,7 @@
 								<button
 									type="button"
 									class="pptx-ng-spanel-action"
+									data-pptx-compact
 									[title]="'pptx.sections.moveUp' | translate"
 									[attr.aria-label]="'pptx.sections.moveUp' | translate"
 									[disabled]="i === 0"
@@ -133,6 +143,7 @@
 								<button
 									type="button"
 									class="pptx-ng-spanel-action"
+									data-pptx-compact
 									[title]="'pptx.sections.moveDown' | translate"
 									[attr.aria-label]="'pptx.sections.moveDown' | translate"
 									[disabled]="i === editor.slides().length - 1"

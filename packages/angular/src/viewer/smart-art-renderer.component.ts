@@ -273,6 +273,7 @@ import {
 							<button
 								type="button"
 								class="pptx-ng-smartart-swatch"
+								data-pptx-compact
 								[attr.aria-label]="'pptx.smartArt.setFill' | translate: { color: color }"
 								[style.background]="color"
 								(click)="handleChangeNodeStyle(hoveredNodeId()!, color)"

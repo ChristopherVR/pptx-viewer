@@ -257,6 +257,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 						<button
 							type="button"
 							class="pptx-ng-inspector__toggle"
+							data-pptx-compact
 							[class.is-active]="currentBold()"
 							[attr.aria-label]="'pptx.inspector.bold' | translate"
 							(click)="onBoldToggle()"
@@ -266,6 +267,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 						<button
 							type="button"
 							class="pptx-ng-inspector__toggle"
+							data-pptx-compact
 							[class.is-active]="currentItalic()"
 							[attr.aria-label]="'pptx.inspector.italic' | translate"
 							(click)="onItalicToggle()"
@@ -275,6 +277,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 						<button
 							type="button"
 							class="pptx-ng-inspector__toggle"
+							data-pptx-compact
 							[class.is-active]="currentUnderline()"
 							[attr.aria-label]="'pptx.inspector.underline' | translate"
 							(click)="onUnderlineToggle()"

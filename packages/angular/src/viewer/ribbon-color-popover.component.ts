@@ -32,6 +32,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 						@for (c of presets(); track c) {
 							<button
 								type="button"
+								data-pptx-compact
 								class="h-5 w-5 rounded-full border transition-transform hover:scale-125"
 								[ngClass]="
 									current().toLowerCase() === c

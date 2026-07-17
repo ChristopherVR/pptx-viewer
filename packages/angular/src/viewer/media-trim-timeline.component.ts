@@ -39,6 +39,7 @@ import type { MediaTrimHandle, MediaTrimRange } from '../internal/shared';
 				<button
 					type="button"
 					class="handle start"
+					data-pptx-compact
 					[style.left.%]="geometry().startPercent"
 					(pointerdown)="beginDrag('start', $event)"
 					aria-label="Trim start"
@@ -46,6 +47,7 @@ import type { MediaTrimHandle, MediaTrimRange } from '../internal/shared';
 				<button
 					type="button"
 					class="handle end"
+					data-pptx-compact
 					[style.left.%]="geometry().endPercent"
 					(pointerdown)="beginDrag('end', $event)"
 					aria-label="Trim end"
@@ -55,6 +57,7 @@ import type { MediaTrimHandle, MediaTrimRange } from '../internal/shared';
 				<button
 					type="button"
 					class="bookmark"
+					data-pptx-compact
 					[style.left.%]="bookmarkPercent(bookmark)"
 					[title]="bookmark.label"
 					(click)="seekBookmark(bookmark, $event)"
