@@ -29,6 +29,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxChartType, PptxElement, PptxTransitionType } from 'pptx-viewer-core';
 
 import { DEFAULT_INSERT_CHART_TYPE, TAB_ROW_ACTION_CLASSES } from '../internal/shared';
+import type { AccountAuthConfig } from '../internal/shared';
 import { RibbonAnimationsSectionComponent } from './ribbon-animations-section.component';
 import { RibbonArrangeSectionComponent } from './ribbon-arrange-section.component';
 import { RibbonDesignSectionComponent } from './ribbon-design-section.component';
@@ -265,6 +266,7 @@ const TABS: readonly TabDef[] = [
 							(openVersionHistory)="openVersionHistory.emit()"
 							(share)="share.emit()"
 							(options)="requestSettings()"
+							[accountAuth]="accountAuth()"
 						/>
 					}
 					@case ('home') {
@@ -474,6 +476,8 @@ export class RibbonComponent {
 	/** Current live proofing state shown by the Review ribbon command. */
 	readonly spellCheckEnabled = input<boolean>(false);
 	readonly showSubtitles = input<boolean>(false);
+	/** Optional sign-in hook point for File > Account. Absent/disabled by default. */
+	readonly accountAuth = input<AccountAuthConfig | undefined>(undefined);
 
 	readonly prev = output<void>();
 	readonly next = output<void>();

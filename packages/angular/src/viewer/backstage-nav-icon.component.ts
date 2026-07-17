@@ -14,7 +14,8 @@ import {
 	LucideUserRound,
 	LucideX,
 } from '@lucide/angular';
-import type { BackstagePage } from 'pptx-viewer-shared';
+
+import type { BackstagePage } from '../internal/shared';
 
 @Component({
 	selector: 'pptx-backstage-nav-icon',

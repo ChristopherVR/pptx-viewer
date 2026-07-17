@@ -8,8 +8,8 @@
 export * from './viewer';
 export * from './theme';
 export { cn, type ClassValue } from './utils';
-export { keyToLabel, translationsEn } from './internal/shared-src/i18n';
-export type { TranslationKey } from './internal/shared-src/i18n';
+export { keyToLabel, translationsEn, LOCALE_CATALOG } from './internal/shared-src/i18n';
+export type { TranslationKey, LocaleCatalogEntry } from './internal/shared-src/i18n';
 
 // ── Unstable / internal: no compatibility guarantees ──────────────────────
 // Every internal service, component, and helper that composes

@@ -282,6 +282,22 @@ export type { RecoveryVersion } from './version-history-helpers';
 export { ShortcutPanelComponent } from './shortcut-panel.component';
 export { SettingsDialogComponent } from './settings-dialog.component';
 export type { ViewerSettings } from './settings-dialog.component';
+export { SettingsAppearanceTabComponent } from './settings-appearance-tab.component';
+export { SettingsLanguageTabComponent } from './settings-language-tab.component';
+export { AccountPageComponent } from './account-page.component';
+export {
+	AVATAR_COLOR_SWATCHES,
+	clearAllLocalViewerData,
+	DEFAULT_VIEWER_PROFILE,
+	getLocalStorageUsageSummary,
+	resolveProfileInitial,
+	saveViewerProfile,
+} from '../internal/shared';
+export type {
+	AccountAuthConfig,
+	LocalStorageUsageSummary,
+	ViewerProfile,
+} from '../internal/shared';
 export { KeepAnnotationsDialogComponent } from './keep-annotations-dialog.component';
 export { SignatureStrippedDialogComponent } from './signature-stripped-dialog.component';
 export {

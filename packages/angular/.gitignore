@@ -1,3 +1,5 @@
 dist/
 # Vendored at build time from packages/shared/src by scripts/inline-shared.mjs
 src/internal/shared-src/
+# Generated at build time from package.json by scripts/inline-shared.mjs
+src/internal/version.ts

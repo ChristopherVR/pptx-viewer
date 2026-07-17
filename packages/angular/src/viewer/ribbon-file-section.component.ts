@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+
 import {
 	BACKSTAGE_NAV,
 	BACKSTAGE_TEMPLATES,
 	formatBackstageDate,
 	formatBackstageSize,
 	listBackstageRecentFiles,
-} from 'pptx-viewer-shared';
-import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
-
+} from '../internal/shared';
+import type { AccountAuthConfig, BackstagePage, BackstageRecentFile } from '../internal/shared';
+import { AccountPageComponent } from './account-page.component';
 import { BackstageNavIconComponent } from './backstage-nav-icon.component';
 
 interface BackstageAction {
@@ -22,7 +23,7 @@ interface BackstageAction {
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [BackstageNavIconComponent],
+	imports: [BackstageNavIconComponent, AccountPageComponent],
 	templateUrl: './ribbon-file-section.component.html',
 	styleUrl: './ribbon-file-section.component.css',
 })
@@ -31,6 +32,8 @@ export class RibbonFileSectionComponent {
 	readonly slideCount = input(0);
 	readonly exporting = input(false);
 	readonly hasMacros = input(false);
+	/** Optional sign-in hook point for the Account page. Absent/disabled by default. */
+	readonly accountAuth = input<AccountAuthConfig | undefined>(undefined);
 	readonly close = output<void>();
 	readonly createPresentation = output<string>();
 	readonly openFile = output<void>();

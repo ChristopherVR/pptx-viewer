@@ -1,0 +1,102 @@
+:host {
+	display: block;
+	font-family: Aptos, 'Segoe UI', sans-serif;
+}
+.acct {
+	display: flex;
+	max-width: 760px;
+	flex-direction: column;
+	gap: 20px;
+	margin-top: 32px;
+}
+.acct-card {
+	padding: 24px 28px;
+	border: 1px solid var(--pptx-border, #ddd);
+	background: var(--pptx-card, #fff);
+	color: var(--pptx-card-foreground, #242424);
+}
+.acct-card h2 {
+	margin: 0 0 16px;
+	font-size: 15px;
+}
+.acct-card p {
+	margin: 0 0 8px;
+	color: var(--pptx-muted-foreground, #666);
+	font-size: 13px;
+	line-height: 1.6;
+}
+.acct-profile-row {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+.acct-avatar {
+	display: grid;
+	width: 56px;
+	height: 56px;
+	flex: none;
+	place-items: center;
+	border-radius: 50%;
+	color: #fff;
+	font-size: 20px;
+	font-weight: 600;
+}
+.acct-field {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 6px;
+	font-size: 12px;
+}
+.acct-field input {
+	height: 36px;
+	padding: 0 12px;
+	border: 1px solid var(--pptx-input, #888);
+	background: var(--pptx-background, #fff);
+	color: inherit;
+	font-size: 13px;
+}
+.acct-field input:focus {
+	border-color: var(--pptx-ring, #c43e1c);
+	outline: none;
+}
+.acct-swatches {
+	margin-top: 18px;
+	font-size: 12px;
+}
+.acct-swatch-row {
+	display: flex;
+	gap: 10px;
+	margin-top: 8px;
+}
+.acct-swatch {
+	width: 28px;
+	height: 28px;
+	border: 2px solid transparent;
+	border-radius: 50%;
+	cursor: pointer;
+}
+.acct-swatch.is-active {
+	border-color: var(--pptx-foreground, #242424);
+	box-shadow: 0 0 0 2px var(--pptx-card, #fff);
+}
+.acct-privacy {
+	font-size: 12px;
+}
+.acct-clear {
+	margin-top: 4px;
+	padding: 9px 16px;
+	border: 1px solid var(--pptx-border, #ddd);
+	background: var(--pptx-secondary, #f5eee9);
+	color: inherit;
+	font-size: 12px;
+	cursor: pointer;
+}
+.acct-clear:hover {
+	border-color: var(--pptx-primary, #c43e1c);
+}
+.acct-cleared-notice {
+	margin-top: 10px;
+	color: var(--pptx-primary, #c43e1c);
+	font-size: 12px;
+}

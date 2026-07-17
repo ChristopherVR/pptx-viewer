@@ -10,4 +10,7 @@ export {
 	vermilionLightTheme,
 	vermilionDarkTheme,
 	vermilionRadius,
+	THEME_CATALOG,
+	resolveThemeCatalogEntry,
 } from '../internal/shared';
+export type { ThemeCatalogEntry } from '../internal/shared';
