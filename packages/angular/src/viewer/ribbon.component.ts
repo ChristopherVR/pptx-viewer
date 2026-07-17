@@ -14,7 +14,7 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import type { ToolbarActionId } from '../internal/shared';
+import type { AccountAuthConfig, ToolbarActionId } from '../internal/shared';
 import { RibbonContentSecondaryComponent } from './ribbon-content-secondary.component';
 import { RibbonContentComponent } from './ribbon-content.component';
 import type { DrawToolState } from './ribbon-draw-section.component';
@@ -91,6 +91,7 @@ import type { RibbonTab } from './ribbon-types';
 					[exporting]="exporting()"
 					[hasMacros]="hasMacros()"
 					[hiddenActions]="hiddenActions()"
+					[accountAuth]="accountAuth()"
 					(selectTab)="activeTab.set($event)"
 					(find)="find.emit()"
 					(share)="share.emit()"
@@ -221,6 +222,8 @@ export class RibbonComponent {
 	readonly showSubtitles = input<boolean>(false);
 	/** Toolbar buttons/tabs the host wants hidden. Default `[]` hides nothing. */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
+	/** Optional sign-in hook point for File > Account. Absent/disabled by default. */
+	readonly accountAuth = input<AccountAuthConfig | undefined>(undefined);
 
 	readonly prev = output<void>();
 	readonly next = output<void>();

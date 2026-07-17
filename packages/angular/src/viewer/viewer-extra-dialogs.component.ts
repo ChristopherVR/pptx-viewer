@@ -1,17 +1,16 @@
 /**
- * viewer-extra-dialogs.component.ts: Single host for the secondary viewer
- * dialogs / side panels (equation editor, set-up-slide-show, password
- * protection, encrypted-file notice, compare, font embedding, version history,
- * shortcut cheat-sheet, keep-annotations, signature-stripped warning).
+ * viewer-extra-dialogs.component.ts: Single host (`pptx-viewer-extra-dialogs`)
+ * for the secondary viewer dialogs / side panels (equation editor,
+ * set-up-slide-show, password protection, encrypted-file notice, compare,
+ * font embedding, version history, shortcut cheat-sheet, settings, keep-
+ * annotations, signature-stripped warning).
  *
- * Selector: `pptx-viewer-extra-dialogs`
- *
- * Mirrors the React `ViewerDialogGroup` / `ViewerOverlays` aggregators: it keeps
+ * Mirrors the React `ViewerDialogGroup` / `ViewerOverlays` aggregators: keeps
  * the large `PowerPointViewerComponent` orchestrator from growing one tag +
- * handler per dialog. Open-state lives in the shared {@link ViewerDialogsService}
- * (provided on the viewer host) so the ribbon can open a dialog without knowing
- * how it renders. This container injects the viewer-scoped editor / loader /
- * font services directly and performs the per-dialog wiring internally.
+ * handler per dialog. Open-state lives in {@link ViewerDialogsService}
+ * (provided on the viewer host) so the ribbon can open a dialog without
+ * knowing how it renders; this container injects the viewer-scoped editor /
+ * loader / font services directly and wires each dialog internally.
  */
 
 import {
@@ -26,6 +25,10 @@ import {
 } from '@angular/core';
 import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-core';
 
+import { THEME_CATALOG } from '../internal/shared';
+import type { ThemeCatalogEntry } from '../internal/shared';
+import { LOCALE_CATALOG } from '../internal/shared-src/i18n';
+import type { LocaleCatalogEntry } from '../internal/shared-src/i18n';
 import { ComparePanelComponent } from './compare-panel.component';
 import { EditorStateService } from './editor-state.service';
 import { EmbeddedFontsService } from './embedded-fonts.service';
@@ -134,7 +137,13 @@ import {
 		<pptx-settings-dialog
 			[open]="svc.showSettings()"
 			[settings]="settings()"
+			[themeKey]="themeKey()"
+			[availableThemes]="availableThemes()"
+			[localeCode]="localeCode()"
+			[availableLocales]="availableLocales()"
 			(settingsChange)="settingsChange.emit($event)"
+			(themeKeySelect)="themeKeySelect.emit($event)"
+			(localeSelect)="localeSelect.emit($event)"
 			(close)="svc.showSettings.set(false)"
 		/>
 
@@ -172,11 +181,19 @@ export class ViewerExtraDialogsComponent {
 	readonly customShows = input<PptxCustomShow[]>([]);
 	/** Live viewer preferences surfaced by the settings dialog. */
 	readonly settings = input.required<ViewerSettings>();
+	// Settings dialog Appearance/Language tab state; see PowerPointViewerComponent.
+	readonly themeKey = input<string>('default');
+	readonly availableThemes = input<readonly ThemeCatalogEntry[]>(THEME_CATALOG);
+	readonly localeCode = input<string>('en');
+	readonly availableLocales = input<readonly LocaleCatalogEntry[]>(LOCALE_CATALOG);
 
 	/** Fired with a restored `.pptx` version's bytes; the host swaps the deck. */
 	readonly restoreContent = output<Uint8Array>();
 	/** Fired whenever a settings toggle changes. */
 	readonly settingsChange = output<ViewerSettings>();
+	// Fired when the user picks a Settings dialog Appearance/Language selection.
+	readonly themeKeySelect = output<string>();
+	readonly localeSelect = output<string>();
 
 	protected readonly svc = inject(ViewerDialogsService);
 	protected readonly compare = inject(ViewerCompareService);

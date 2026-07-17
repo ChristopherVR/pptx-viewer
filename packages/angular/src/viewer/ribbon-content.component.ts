@@ -21,7 +21,7 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 import type { PptxChartType, PptxElement } from 'pptx-viewer-core';
 
 import { DEFAULT_INSERT_CHART_TYPE } from '../internal/shared';
-import type { ToolbarActionId } from '../internal/shared';
+import type { AccountAuthConfig, ToolbarActionId } from '../internal/shared';
 import { RibbonArrangeSectionComponent } from './ribbon-arrange-section.component';
 import { RibbonDrawingGroupComponent } from './ribbon-drawing-group.component';
 import { RibbonFileSectionComponent } from './ribbon-file-section.component';
@@ -74,6 +74,7 @@ import type { RibbonTab } from './ribbon-types';
 					(openVersionHistory)="openVersionHistory.emit()"
 					(share)="share.emit()"
 					(options)="openSettings.emit()"
+					[accountAuth]="accountAuth()"
 				/>
 			}
 			@case ('home') {
@@ -146,6 +147,8 @@ export class RibbonContentComponent {
 	readonly hasMacros = input<boolean>(false);
 	/** Toolbar buttons the host wants hidden (threaded to the File section). */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
+	/** Optional sign-in hook point for File > Account. Absent/disabled by default. */
+	readonly accountAuth = input<AccountAuthConfig | undefined>(undefined);
 
 	/** Emitted when the File tab wants to close back to the Home tab. */
 	readonly selectTab = output<RibbonTab>();

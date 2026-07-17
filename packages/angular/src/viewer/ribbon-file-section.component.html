@@ -73,20 +73,15 @@
 				}
 			</div>
 		}
-		@if (page() === 'account' || page() === 'options') {
+		@if (page() === 'account') {
+			<pptx-account-page [accountAuth]="accountAuth()" />
+		}
+		@if (page() === 'options') {
 			<section class="card">
-				<b class="avatar">{{ page() === 'options' ? '⚙' : 'P' }}</b>
-				<h2>{{ page() === 'options' ? 'PowerPoint Options' : 'PowerPoint Viewer' }}</h2>
-				<p>
-					{{
-						page() === 'options'
-							? 'Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.'
-							: 'Your presentations and recovery history stay in your browser unless you explicitly share or download them.'
-					}}
-				</p>
-				@if (page() === 'options') {
-					<button class="primary" type="button" (click)="run(options)">Open Options</button>
-				}
+				<b class="avatar">⚙</b>
+				<h2>PowerPoint Options</h2>
+				<p>Configure autosave, proofing, grid, rulers, language, theme, and keyboard shortcuts.</p>
+				<button class="primary" type="button" (click)="run(options)">Open Options</button>
 			</section>
 		}
 		<footer>{{ fileName() || 'Untitled Presentation.pptx' }} · Saved to this browser</footer>

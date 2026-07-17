@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import { buildSummaryZoomView } from '../internal/shared-src/render/summary-zoom';
+import { buildSummaryZoomView } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { ZoomNavigationService } from './zoom-navigation.service';
 import {

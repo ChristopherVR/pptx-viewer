@@ -4,10 +4,15 @@ import { TranslatePipe } from '@ngx-translate/core';
 import {
 	SETTING_TOGGLES,
 	SHORTCUT_REFERENCE_ITEMS,
+	THEME_CATALOG,
 	updateViewerPreference,
 } from '../internal/shared';
-import type { ViewerSettings } from '../internal/shared';
+import type { ThemeCatalogEntry, ViewerSettings } from '../internal/shared';
+import { LOCALE_CATALOG } from '../internal/shared-src/i18n';
+import type { LocaleCatalogEntry } from '../internal/shared-src/i18n';
 import { ModalDialogComponent } from './modal-dialog.component';
+import { SettingsAppearanceTabComponent } from './settings-appearance-tab.component';
+import { SettingsLanguageTabComponent } from './settings-language-tab.component';
 
 export type { ViewerSettings } from '../internal/shared';
 
@@ -22,7 +27,12 @@ export function toggleViewerSetting(
 	selector: 'pptx-settings-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, TranslatePipe],
+	imports: [
+		ModalDialogComponent,
+		TranslatePipe,
+		SettingsAppearanceTabComponent,
+		SettingsLanguageTabComponent,
+	],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
@@ -39,6 +49,24 @@ export function toggleViewerSetting(
 						(click)="activeTab.set('general')"
 					>
 						{{ 'pptx.settings.general' | translate }}
+					</button>
+					<button
+						type="button"
+						role="tab"
+						[attr.aria-selected]="activeTab() === 'appearance'"
+						[class.is-active]="activeTab() === 'appearance'"
+						(click)="activeTab.set('appearance')"
+					>
+						{{ 'pptx.settings.appearance' | translate }}
+					</button>
+					<button
+						type="button"
+						role="tab"
+						[attr.aria-selected]="activeTab() === 'language'"
+						[class.is-active]="activeTab() === 'language'"
+						(click)="activeTab.set('language')"
+					>
+						{{ 'pptx.settings.language' | translate }}
 					</button>
 					<button
 						type="button"
@@ -69,6 +97,18 @@ export function toggleViewerSetting(
 							</div>
 						}
 					</div>
+				} @else if (activeTab() === 'appearance') {
+					<pptx-settings-appearance-tab
+						[themes]="availableThemes()"
+						[activeKey]="themeKey()"
+						(select)="themeKeySelect.emit($event)"
+					/>
+				} @else if (activeTab() === 'language') {
+					<pptx-settings-language-tab
+						[locales]="availableLocales()"
+						[activeCode]="localeCode()"
+						(select)="localeSelect.emit($event)"
+					/>
 				} @else {
 					<div class="pptx-ng-settings-list">
 						@for (item of shortcuts; track item.actionKey; let even = $even) {
@@ -92,6 +132,7 @@ export function toggleViewerSetting(
 			}
 			.pptx-ng-settings-tabs {
 				display: flex;
+				flex-wrap: wrap;
 				gap: 4px;
 				border-bottom: 1px solid var(--pptx-border);
 			}
@@ -172,9 +213,23 @@ export function toggleViewerSetting(
 export class SettingsDialogComponent {
 	readonly open = input(false);
 	readonly settings = input.required<ViewerSettings>();
+	/** Selected `THEME_CATALOG` (or `availableThemes`) key, for the Appearance tab. */
+	readonly themeKey = input<string>('default');
+	/** Theme choices offered by the Appearance tab. Defaults to the built-in `THEME_CATALOG`. */
+	readonly availableThemes = input<readonly ThemeCatalogEntry[]>(THEME_CATALOG);
+	/** Active locale code, for the Language tab. */
+	readonly localeCode = input<string>('en');
+	/** Locale choices offered by the Language tab. Defaults to the built-in `LOCALE_CATALOG`. */
+	readonly availableLocales = input<readonly LocaleCatalogEntry[]>(LOCALE_CATALOG);
 	readonly settingsChange = output<ViewerSettings>();
+	/** Fired when the user picks an Appearance tab swatch. */
+	readonly themeKeySelect = output<string>();
+	/** Fired when the user picks a Language tab entry. */
+	readonly localeSelect = output<string>();
 	readonly close = output<void>();
-	protected readonly activeTab = signal<'general' | 'shortcuts'>('general');
+	protected readonly activeTab = signal<'general' | 'appearance' | 'language' | 'shortcuts'>(
+		'general',
+	);
 	protected readonly specs = SETTING_TOGGLES;
 	protected readonly shortcuts = SHORTCUT_REFERENCE_ITEMS;
 

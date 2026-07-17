@@ -13,7 +13,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type {
 	MasterViewTab,
 	PptxComment,
@@ -24,8 +24,23 @@ import type {
 	PptxSlide,
 } from 'pptx-viewer-core';
 
-import { createBackstagePresentation, readBackstageRecentFile } from '../internal/shared';
-import type { ToolbarActionId, ViewerSettings, ViewerTheme } from '../internal/shared';
+import {
+	createBackstagePresentation,
+	readBackstageRecentFile,
+	readStoredViewerPrefs,
+	resolveThemeCatalogEntry,
+	THEME_CATALOG,
+	writeStoredViewerPrefs,
+} from '../internal/shared';
+import type {
+	AccountAuthConfig,
+	ThemeCatalogEntry,
+	ToolbarActionId,
+	ViewerSettings,
+	ViewerTheme,
+} from '../internal/shared';
+import { LOCALE_CATALOG } from '../internal/shared-src/i18n';
+import type { LocaleCatalogEntry } from '../internal/shared-src/i18n';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
@@ -345,6 +360,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(openVersionHistory)="dialogs.showVersionHistory.set(true)"
 					(openShortcuts)="dialogs.showShortcuts.set(true)"
 					(openSettings)="dialogs.showSettings.set(true)"
+					[accountAuth]="accountAuth()"
 					/>
 				}
 
@@ -746,8 +762,14 @@ import { ZoomTargetService } from './zoom-target.service';
 				[filePath]="filePath()"
 				[customShows]="customShowsCtl.pptxCustomShows()"
 				[settings]="viewerSettings()"
+				[themeKey]="themeKey()"
+				[availableThemes]="resolvedThemes()"
+				[localeCode]="localeCode()"
+				[availableLocales]="resolvedLocales()"
 				(restoreContent)="onRestoreVersion($event)"
 				(settingsChange)="onSettingsChange($event)"
+				(themeKeySelect)="selectThemeKey($event)"
+				(localeSelect)="selectLocale($event)"
 			/>
 
 			@if (canEdit()) {
@@ -922,8 +944,40 @@ export class PowerPointViewerComponent {
 	readonly canEdit = input<boolean>(false);
 	/** Optional class applied to the root element. */
 	readonly class = input<string>('');
-	/** Theme configuration for customising the viewer's appearance. */
+	/** Theme configuration for customising the viewer's appearance. Always wins over a File > Options > Appearance selection; see {@link defaultThemeKey}. */
 	readonly theme = input<ViewerTheme | undefined>(undefined);
+	/**
+	 * Initial File > Options > Appearance selection (a `THEME_CATALOG`, or
+	 * `availableThemes`, key) applied when no stored `pptx-viewer-prefs`
+	 * preference exists yet. Has no effect once the host supplies an explicit
+	 * {@link theme}, which always wins.
+	 */
+	readonly defaultThemeKey = input<string | undefined>(undefined);
+	/** Theme choices offered by File > Options > Appearance. Defaults to the built-in `THEME_CATALOG` (4 entries). */
+	readonly availableThemes = input<readonly ThemeCatalogEntry[] | undefined>(undefined);
+	/**
+	 * Host hook for File > Options > Appearance selections. When supplied, the
+	 * host owns persisting the choice (e.g. into a user profile) and the
+	 * viewer never touches `localStorage`. When omitted, the viewer falls back
+	 * to the `pptx-viewer-prefs` `localStorage` entry. Mirrors the
+	 * {@link onOpenFile} opt-in convention.
+	 */
+	readonly onThemeChange = input<((key: string) => void) | undefined>(undefined);
+	/**
+	 * Initial File > Options > Language selection applied when no stored
+	 * `pptx-viewer-prefs` preference exists yet.
+	 */
+	readonly defaultLocale = input<string | undefined>(undefined);
+	/**
+	 * Locale choices offered by File > Options > Language. Defaults to every
+	 * language `TranslateService.getLangs()` reports registered, mapped
+	 * through `LOCALE_CATALOG` for display labels.
+	 */
+	readonly availableLocales = input<readonly LocaleCatalogEntry[] | undefined>(undefined);
+	/** Host hook for File > Options > Language selections; see {@link onThemeChange}. */
+	readonly onLocaleChange = input<((code: string) => void) | undefined>(undefined);
+	/** Optional sign-in hook point for File > Account. Absent/disabled by default: no visible change unless a host opts in with `enabled: true`. */
+	readonly accountAuth = input<AccountAuthConfig | undefined>(undefined);
 	/**
 	 * Host file path/identifier keying the version-history store. When omitted
 	 * the version-history panel shows its empty state. Mirrors React's
@@ -1029,6 +1083,7 @@ export class PowerPointViewerComponent {
 	protected readonly canvasEditing = inject(ViewerCanvasEditingService);
 	protected readonly collabCursor = inject(ViewerCollabCursorService);
 	protected readonly docProperties = inject(ViewerDocumentPropertiesService);
+	private readonly translateService = inject(TranslateService);
 
 	/** Handle on the secondary-dialog host (keep-annotations prompt). */
 	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
@@ -1071,7 +1126,49 @@ export class PowerPointViewerComponent {
 		}
 		return this.editor.templateElementsBySlideId()[slide.id] ?? [];
 	});
-	protected readonly rootStyle = computed(() => themeStyle(this.theme()));
+	/**
+	 * Selected `THEME_CATALOG` (or `availableThemes`) key, driving File >
+	 * Options > Appearance. Seeded once from {@link defaultThemeKey} or the
+	 * stored `pptx-viewer-prefs` preference; see {@link selectThemeKey}.
+	 */
+	protected readonly themeKey = signal<string>('default');
+	/**
+	 * Active locale code, driving File > Options > Language. Seeded once from
+	 * {@link defaultLocale} or the stored `pptx-viewer-prefs` preference; see
+	 * {@link selectLocale}.
+	 */
+	protected readonly localeCode = signal<string>('en');
+	/** Theme catalog offered to the Settings dialog's Appearance tab. */
+	protected readonly resolvedThemes = computed<readonly ThemeCatalogEntry[]>(
+		() => this.availableThemes() ?? THEME_CATALOG,
+	);
+	/**
+	 * Locale list offered to the Settings dialog's Language tab: the host's
+	 * `availableLocales` when supplied, else every locale `TranslateService`
+	 * currently has registered (mapped through `LOCALE_CATALOG` for display
+	 * labels), falling back to `['en']` when none are registered yet.
+	 */
+	protected readonly resolvedLocales = computed<readonly LocaleCatalogEntry[]>(() => {
+		const supplied = this.availableLocales();
+		if (supplied) {
+			return supplied;
+		}
+		const langs = this.translateService.getLangs();
+		const codes = langs.length ? langs : ['en'];
+		return codes.map(
+			(code) =>
+				LOCALE_CATALOG.find((entry) => entry.code === code) ?? {
+					code,
+					label: code,
+					nativeLabel: code,
+				},
+		);
+	});
+	/** The active `ViewerTheme`: an explicit `theme` input always wins over the Appearance tab's catalog selection. */
+	protected readonly effectiveTheme = computed<ViewerTheme | undefined>(
+		() => this.theme() ?? resolveThemeCatalogEntry(this.themeKey(), this.resolvedThemes()),
+	);
+	protected readonly rootStyle = computed(() => themeStyle(this.effectiveTheme()));
 
 	/** Slide-sorter grid overlay visibility. */
 	protected readonly showSorter = signal(false);
@@ -1171,6 +1268,24 @@ export class PowerPointViewerComponent {
 	});
 
 	constructor() {
+		// Seed the Appearance/Language catalog selections from an explicit
+		// default input or else the stored `pptx-viewer-prefs` fallback, and
+		// apply the initial locale (unless a host `onLocaleChange` hook means the
+		// host owns applying it). Reads `defaultThemeKey`/`defaultLocale` as its
+		// only reactive dependencies, so this runs once at startup and again
+		// only if the host changes those inputs later; it never re-fires from
+		// the user's own Settings dialog picks (see `selectThemeKey`/`selectLocale`).
+		effect(() => {
+			const stored = readStoredViewerPrefs();
+			this.themeKey.set(this.defaultThemeKey() ?? stored.themeKey ?? 'default');
+
+			const initialLocale = this.defaultLocale() ?? stored.localeCode ?? 'en';
+			this.localeCode.set(initialLocale);
+			if (initialLocale !== 'en' && !this.onLocaleChange()) {
+				void this.translateService.use(initialLocale);
+			}
+		});
+
 		// Surface the `smartArt3D` opt-in to the element dispatcher via the
 		// viewer-scoped SmartArt3DService.
 		effect(() => {
@@ -1592,6 +1707,38 @@ export class PowerPointViewerComponent {
 	protected onCreatePresentation(templateId: string): void {
 		this.editor.setSlides(createBackstagePresentation(templateId));
 		this.activeSlideIndex.set(0);
+	}
+
+	/**
+	 * File > Options > Appearance selection handler. When a host supplies
+	 * `onThemeChange` it owns persisting the choice; otherwise this falls back
+	 * to the shared `pptx-viewer-prefs` `localStorage` entry.
+	 */
+	protected selectThemeKey(key: string): void {
+		this.themeKey.set(key);
+		const onThemeChange = this.onThemeChange();
+		if (onThemeChange) {
+			onThemeChange(key);
+		} else {
+			writeStoredViewerPrefs({ themeKey: key });
+		}
+	}
+
+	/**
+	 * File > Options > Language selection handler. When a host supplies
+	 * `onLocaleChange` it owns applying/persisting the choice; otherwise this
+	 * applies the locale via `TranslateService` and falls back to the shared
+	 * `pptx-viewer-prefs` `localStorage` entry.
+	 */
+	protected selectLocale(code: string): void {
+		this.localeCode.set(code);
+		const onLocaleChange = this.onLocaleChange();
+		if (onLocaleChange) {
+			onLocaleChange(code);
+		} else {
+			void this.translateService.use(code);
+			writeStoredViewerPrefs({ localeCode: code });
+		}
 	}
 
 	protected onOpenRecentFile(key: string): void {

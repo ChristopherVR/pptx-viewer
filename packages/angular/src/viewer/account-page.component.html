@@ -1,0 +1,80 @@
+<div class="acct">
+	<section class="acct-card">
+		<h2>{{ 'pptx.account.profile.title' | translate }}</h2>
+		<div class="acct-profile-row">
+			<span class="acct-avatar" [style.background]="profile().avatarColor">{{ initial() }}</span>
+			<label class="acct-field">
+				<span>{{ 'pptx.account.profile.nameLabel' | translate }}</span>
+				<input
+					type="text"
+					[value]="profile().displayName"
+					[attr.placeholder]="'pptx.account.profile.namePlaceholder' | translate"
+					(change)="updateName($any($event.target).value)"
+				/>
+			</label>
+		</div>
+		<div class="acct-swatches">
+			<span>{{ 'pptx.account.profile.avatarColorLabel' | translate }}</span>
+			<div class="acct-swatch-row">
+				@for (color of swatches; track color) {
+					<button
+						type="button"
+						class="acct-swatch"
+						[class.is-active]="color === profile().avatarColor"
+						[style.background]="color"
+						[attr.aria-label]="color"
+						[attr.aria-pressed]="color === profile().avatarColor"
+						(click)="selectColor(color)"
+					></button>
+				}
+			</div>
+		</div>
+	</section>
+
+	<section class="acct-card">
+		<h2>{{ 'pptx.account.storage.title' | translate }}</h2>
+		@if (usage(); as u) {
+			@if (u.presentationCount > 0) {
+				<p>
+					{{
+						'pptx.account.storage.usage'
+							| translate: { count: u.presentationCount, size: formattedSize() }
+					}}
+				</p>
+			} @else {
+				<p>{{ 'pptx.account.storage.usageEmpty' | translate }}</p>
+			}
+		}
+		<p class="acct-privacy">{{ 'pptx.account.storage.privacyBlurb' | translate }}</p>
+		<button type="button" class="acct-clear" (click)="clearData()">
+			{{ 'pptx.account.storage.clear' | translate }}
+		</button>
+		@if (cleared()) {
+			<p class="acct-cleared-notice" role="status">
+				{{ 'pptx.account.storage.clearedNotice' | translate }}
+			</p>
+		}
+	</section>
+
+	<section class="acct-card">
+		<h2>{{ 'pptx.account.about.title' | translate }}</h2>
+		<p>pptx-angular-viewer</p>
+		<p>{{ 'pptx.account.about.version' | translate: { version } }}</p>
+	</section>
+
+	@if (accountAuth(); as auth) {
+		@if (auth.enabled) {
+			<section class="acct-card">
+				<h2>{{ 'pptx.account.signIn.title' | translate }}</h2>
+				@if (auth.signedInUser; as user) {
+					<p>{{ 'pptx.account.signIn.signedInAs' | translate: { name: user.name } }}</p>
+				} @else {
+					<p>{{ 'pptx.account.signIn.description' | translate }}</p>
+					<button type="button" class="acct-clear" (click)="auth.onSignIn()">
+						{{ 'pptx.account.signIn.button' | translate }}
+					</button>
+				}
+			</section>
+		}
+	}
+</div>
