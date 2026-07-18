@@ -295,6 +295,11 @@ function createPresentation(templateId: string): void {
 	selectedElementIds.value = [];
 }
 
+// Bumped each time the load pipeline finishes applying a parsed deck; the
+// collaboration layer watches it to re-adopt the shared doc's slides when a
+// slow local load lands mid-session (late-joiner bootstrap-deck clobber).
+const loadVersion = ref(0);
+
 const {
 	slides,
 	templateElementsBySlideId,
@@ -325,7 +330,11 @@ const {
 	handler,
 	getContent,
 	saveAs,
-} = useLoadContent(() => activeContent.value);
+} = useLoadContent(() => activeContent.value, {
+	onContentApplied: () => {
+		loadVersion.value += 1;
+	},
+});
 
 // Expose the presentation colour scheme + parsed table-style map to table
 // cells (banded/header colour resolution by table-style GUID) via
@@ -1233,6 +1242,7 @@ const {
 	onBroadcastStop,
 } = useCollaborationWiring({
 	slides,
+	loadVersion,
 	getTemplateElements: () => templateElementsBySlideId.value,
 	// Retain the loaded source bytes for elected-writer (role 'owner') write-back:
 	// the write-back reloads the original file, overlays the live Y.Doc slides,

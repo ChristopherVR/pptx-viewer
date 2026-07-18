@@ -32,6 +32,14 @@ export interface UseCollaborationOptions {
 	 * elected-writer write-back can merge template edits back into the saved file.
 	 */
 	getTemplateElements?: () => Record<string, import('pptx-viewer-core').PptxElement[]>;
+	/**
+	 * Monotonic counter bumped each time the content-load pipeline finishes
+	 * applying a parsed deck to viewer state. A local load that lands while the
+	 * shared doc already holds slides (a late joiner's bootstrap deck parsing
+	 * after the room state arrived) would silently clobber the synced slides;
+	 * each bump re-adopts the doc's slides when the room has content.
+	 */
+	loadVersion?: Ref<number>;
 }
 
 /**

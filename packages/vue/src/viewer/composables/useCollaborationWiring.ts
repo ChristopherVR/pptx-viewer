@@ -9,6 +9,12 @@ import type { UseCollaborationResult } from './useCollaboration';
 
 export interface UseCollaborationWiringInput {
 	slides: Ref<PptxSlide[]>;
+	/**
+	 * Bumped by the load pipeline each time a parsed deck is applied to viewer
+	 * state; the session re-adopts the doc's slides on each bump so a slow local
+	 * load cannot clobber remotely-synced content.
+	 */
+	loadVersion?: Ref<number>;
 	getTemplateElements: () => Record<string, PptxElement[]>;
 	/** Retain the loaded source bytes for elected-writer (role 'owner') write-back. */
 	getSourceBytes: () => Uint8Array | null;
@@ -57,6 +63,7 @@ export function useCollaborationWiring(
 ): UseCollaborationWiringResult {
 	const {
 		slides,
+		loadVersion,
 		getTemplateElements,
 		getSourceBytes,
 		initialUserColor,
@@ -74,6 +81,7 @@ export function useCollaborationWiring(
 
 	const collab = useCollaboration({
 		slides,
+		loadVersion,
 		onRemoteSlides: (remote) => {
 			slides.value = remote;
 		},

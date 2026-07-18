@@ -29,6 +29,7 @@ import {
 import { computed, onScopeDispose, ref, watch } from 'vue';
 
 import type { RemoteCursor } from '../components/CollaborationCursors.vue';
+import { watchLoadAdoption } from './collaboration-load-adoption';
 import { projectPresence, readBound } from './collaboration-presence-view';
 import { createCollabProvider } from './collaboration-provider';
 import type { CollabProviderHandle } from './collaboration-provider';
@@ -71,6 +72,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 	let localActiveSlide = 0;
 	let applyingRemote = false;
 	let stopWatch: (() => void) | null = null;
+	let stopLoadAdoption: (() => void) | null = null;
 	let unobserveSlides: (() => void) | null = null;
 	let connectTimer: ReturnType<typeof setTimeout> | null = null;
 	let heartbeat: ReturnType<typeof setInterval> | null = null;
@@ -255,6 +257,25 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 				writeBack.schedule(config);
 			});
 
+			// Re-adopt the doc's slides when a local content load finishes
+			// mid-session (see collaboration-load-adoption.ts). Sync-flushed so
+			// the adoption re-primes lastSynced before the queued slides watch
+			// below could reconcile the bootstrap deck into the doc.
+			if (options.loadVersion) {
+				stopLoadAdoption = watchLoadAdoption({
+					loadVersion: options.loadVersion,
+					getYDoc: () => currentYDoc,
+					isConnected: () => status.value === 'connected',
+					adoptDocSlides: (docSlides) => {
+						applyingRemote = true;
+						options.onRemoteSlides(docSlides);
+						applyingRemote = false;
+						// Dedupe the echo: the watch this assignment schedules is a no-op.
+						lastSynced = JSON.stringify(docSlides);
+					},
+				});
+			}
+
 			// Broadcast local slide edits granularly (diff by id, one transaction).
 			// Suppressed until the sync gate opens; the gate flushes on open.
 			stopWatch = watch(
@@ -283,6 +304,8 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		unobserveSlides = null;
 		stopWatch?.();
 		stopWatch = null;
+		stopLoadAdoption?.();
+		stopLoadAdoption = null;
 		awareness?.off?.('change', refreshPresence);
 		awareness?.off?.('update', refreshPresence);
 		publisher?.dispose();

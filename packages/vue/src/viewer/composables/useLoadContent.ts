@@ -145,8 +145,18 @@ export interface UseLoadContentResult {
 	saveAs: (format: PptxSaveFormat) => Promise<Uint8Array>;
 }
 
+export interface UseLoadContentOptions {
+	/**
+	 * Called after a parse fully applies to viewer state (slides & co.).
+	 * Collaboration uses this to re-adopt the shared doc's slides when a local
+	 * load lands mid-session and would otherwise clobber remotely-synced state.
+	 */
+	onContentApplied?: () => void;
+}
+
 export function useLoadContent(
 	content: MaybeRefOrGetter<Uint8Array | ArrayBuffer | null | undefined>,
+	options?: UseLoadContentOptions,
 ): UseLoadContentResult {
 	const slides = shallowRef<PptxSlide[]>([]);
 	const templateElementsBySlideId = shallowRef<TemplateElementMap>({});
@@ -385,6 +395,7 @@ export function useLoadContent(
 				parsed.hasDigitalSignatures && signatureBuffer instanceof ArrayBuffer
 					? await parseSignaturesFromBuffer(signatureBuffer)
 					: [];
+			options?.onContentApplied?.();
 		} catch (err) {
 			if (token === renderToken) {
 				if (err instanceof EncryptedFileError) {
