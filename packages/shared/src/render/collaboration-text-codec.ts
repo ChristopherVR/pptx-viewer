@@ -227,7 +227,12 @@ export function decodeDelta(delta: DeltaOp[]): Record<string, unknown>[] {
 				/* skip */
 			}
 		}
-		if (op.insert !== '\n' && op.insert !== '​') {
+		// '\n' is only the synthetic break marker when the op carries a break
+		// attribute; a literal newline TEXT run (no pb/lb) must keep its text or
+		// runs like "Project\nAtlas" collapse to "ProjectAtlas" on decode. The
+		// zero-width space is always the empty-run attribute holder.
+		const isBreakMarker = op.insert === '\n' && (a.pb === '1' || a.lb === '1');
+		if (!isBreakMarker && op.insert !== '​') {
 			seg.text = op.insert;
 		}
 		segments.push(seg);
