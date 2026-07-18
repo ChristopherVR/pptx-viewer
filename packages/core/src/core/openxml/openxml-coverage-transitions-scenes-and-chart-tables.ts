@@ -141,7 +141,7 @@ assign(
 			]),
 			testEvidence('src/__tests__/integration/presentation-print-properties-roundtrip.test.ts', [
 				'loads an alternate prefix, edits all attributes, and preserves extensions',
-				'removes p:prnPr and serializes legacy handout settings as schema attributes',
+				'removes p:prnPr when printProperties is null',
 			]),
 		],
 	},
