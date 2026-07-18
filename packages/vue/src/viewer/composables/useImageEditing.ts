@@ -17,20 +17,6 @@ export interface CropSide {
 }
 
 /**
- * The four crop sides, in the same order as React's ImageCropSection.
- *
- * @deprecated Hardcoded English labels; prefer {@link useCropSides}, which
- * resolves labels through the i18n dictionary. Kept for existing consumers
- * until they switch over.
- */
-export const CROP_SIDES: readonly CropSide[] = [
-	{ key: 'cropLeft', label: 'Crop Left' },
-	{ key: 'cropTop', label: 'Crop Top' },
-	{ key: 'cropRight', label: 'Crop Right' },
-	{ key: 'cropBottom', label: 'Crop Bottom' },
-] as const;
-
-/**
  * The four crop sides with i18n-resolved labels. Must be called from within a
  * component's `setup()` (directly, or synchronously from another composable
  * invoked during `setup()`), matching the `useI18n()` composition rules.
