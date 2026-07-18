@@ -6,6 +6,20 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-18
 
+_Releases: pptx-react-viewer@1.25.0, pptx-vue-viewer@1.24.0, pptx-angular-viewer@1.31.0, pptx-vanilla-viewer@0.17.0, pptx-svelte-viewer@1.12.0_
+
+### Features
+
+- **shared:** PowerPoint File > Options parity model (by @ChristopherVR) ([b1f041d](https://github.com/ChristopherVR/pptx-viewer/commit/b1f041d2396520e3d04c30172a4842f725c7c655))
+- **locales:** Translate File > Options strings (fr, es, de) (by @ChristopherVR) ([a5d6bbd](https://github.com/ChristopherVR/pptx-viewer/commit/a5d6bbdca4716b42ff0c214a1ffa83b9d047b4f9))
+- **react:** PowerPoint-style File > Options dialog (by @ChristopherVR) ([0de245f](https://github.com/ChristopherVR/pptx-viewer/commit/0de245f244c408930780d306ad711883d44d39e8))
+- **vue:** PowerPoint-style File > Options dialog (by @ChristopherVR) ([3fe2b3f](https://github.com/ChristopherVR/pptx-viewer/commit/3fe2b3f512998449e97d35e80a8687451232a0b5))
+- **angular:** PowerPoint-style File > Options dialog (by @ChristopherVR) ([8635ad6](https://github.com/ChristopherVR/pptx-viewer/commit/8635ad677ac1c224850af65a0b5110cd7cd2fd7e))
+- **svelte:** PowerPoint-style File > Options dialog (by @ChristopherVR) ([00a2221](https://github.com/ChristopherVR/pptx-viewer/commit/00a222106f73ea45a77d7ff43e1f77d2bceed993))
+- **vanilla:** PowerPoint-style File > Options dialog (by @ChristopherVR) ([81ba347](https://github.com/ChristopherVR/pptx-viewer/commit/81ba34734ef9d3df45ebe8f1deb03ae0058700b0))
+
+## 2026-07-18
+
 _Releases: pptx-svelte-viewer@1.11.0_
 
 ## 2026-07-18
