@@ -11,14 +11,15 @@ export { cn, type ClassValue } from './utils';
 export { keyToLabel, translationsEn, LOCALE_CATALOG } from './internal/shared-src/i18n';
 export type { TranslationKey, LocaleCatalogEntry } from './internal/shared-src/i18n';
 
-// ── Unstable / internal: no compatibility guarantees ──────────────────────
+// ── Internal building blocks. Not covered by semver; prefer the stable root exports. ──
 // Every internal service, component, and helper that composes
 // `PowerPointViewerComponent` but isn't part of the curated surface above.
-// ng-packagr builds this package as a single entry point, so there is no
-// separate `pptx-angular-viewer/hooks-unstable` subpath the way React has
-// `pptx-react-viewer/hooks-unstable`; these are exported from the package
-// root instead. See `docs/angular/services.md` and
-// `docs/angular/services-reference.md` for the full picture. Names,
-// signatures, and behavior here can change or be removed in ANY release,
-// including a patch release, without a deprecation period.
-export * from './services-unstable';
+// Import these from the `pptx-angular-viewer/internals` subpath, which is the
+// uniform internal entry point across every binding. ng-packagr builds this
+// package as a single compilation unit whose `rootDir` cannot span a separate
+// secondary entry point without physically relocating ~150 source files, so
+// `pptx-angular-viewer/internals` is an alias of the same bundle rather than an
+// isolated one; as a consequence these symbols also remain importable from the
+// package root. See `docs/angular/services.md` and
+// `docs/angular/services-reference.md`.
+export * from './internals';

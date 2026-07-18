@@ -1,4 +1,4 @@
-// ── Unstable, complete export of every internal PowerPointViewerComponent building block ──
+// ── Internal building blocks. Not covered by semver; prefer the stable root exports. ──
 //
 // `PowerPointViewerComponent` composes ~150 internal Angular building blocks: `@Injectable`
 // orchestration services (provided on the component and injected with `inject()`), standalone
@@ -7,15 +7,10 @@
 // This module re-exports literally everything else, for advanced integrations that need
 // finer-grained control than the component's inputs/outputs provide.
 //
-// No compatibility guarantees: names, signatures, and behavior can change or be removed in any
-// release - including a patch release - without a deprecation period. Prefer the curated exports
-// from `pptx-angular-viewer` (the package root) for anything that needs semver stability.
+// It backs the dedicated `pptx-angular-viewer/internals` secondary entry point (see
+// `internals/ng-package.json`), so import these the same way as any other subpath:
 //
-// This module is re-exported from the package root (there is no separate `hooks-unstable`
-// subpath: `pptx-angular-viewer` has a single ng-packagr entry point), so import it the same way
-// as everything else:
-//
-//   import { EditorStateService, buildSaveSlides } from 'pptx-angular-viewer';
+//   import { AutosaveService, buildSaveSlides } from 'pptx-angular-viewer/internals';
 //
 // Generated from `packages/angular/src/viewer/**/*.ts`. If you add, rename, or remove a building
 // block here, update `docs/angular/services-reference.md` in the same change.

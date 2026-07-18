@@ -424,16 +424,6 @@ import { ZoomTargetService } from './zoom-target.service';
 								/>
 							</div>
 						}
-						@if (canEdit() && !mobile.isMobile()) {
-							<aside class="pptx-ng-notes" [attr.aria-label]="'pptx.notes.speakerNotes' | translate">
-								<pptx-notes-panel
-									[slide]="activeSlide()"
-									[expanded]="mobileSheetSvc.showNotes()"
-									(update)="canvasEditing.onNotesUpdate($event)"
-									(notesToggle)="mobileSheetSvc.toggleNotes()"
-								/>
-							</aside>
-						}
 					</main>
 
 					<!--
@@ -516,6 +506,23 @@ import { ZoomTargetService } from './zoom-target.service';
 						</aside>
 					}
 				</div>
+
+				<!--
+					Speaker-notes strip: a full-width band spanning the whole viewer
+					(slides rail + canvas + inspector), docked between the body and the
+					status bar to match React/Vanilla, rather than nested under the
+					canvas column inside <main>.
+				-->
+				@if (canEdit() && !mobile.isMobile()) {
+					<aside class="pptx-ng-notes" [attr.aria-label]="'pptx.notes.speakerNotes' | translate">
+						<pptx-notes-panel
+							[slide]="activeSlide()"
+							[expanded]="mobileSheetSvc.showNotes()"
+							(update)="canvasEditing.onNotesUpdate($event)"
+							(notesToggle)="mobileSheetSvc.toggleNotes()"
+						/>
+					</aside>
+				}
 
 				@if (!mobile.isMobile()) {
 					<pptx-status-bar
@@ -951,11 +958,11 @@ export class PowerPointViewerComponent {
 	 */
 	readonly onOpenFile = input<(() => void) | undefined>(undefined);
 	/**
-	 * Opt in to the experimental Three.js SmartArt renderer. When `true`,
-	 * SmartArt diagrams render as extruded 3D blocks on a WebGL canvas instead
-	 * of flat SVG. Requires the optional `three` peer dependency; when it is not
-	 * installed (or the diagram has no geometry), the viewer transparently falls
-	 * back to the SVG SmartArt renderer. Default `false`.
+	 * Opt in to the Three.js SmartArt renderer. When `true`, SmartArt diagrams
+	 * render as extruded 3D blocks on a WebGL canvas instead of flat SVG.
+	 * Requires the optional `three` peer dependency; when it is not installed
+	 * (or the diagram has no geometry), the viewer transparently falls back to
+	 * the SVG SmartArt renderer. Default `false`.
 	 */
 	readonly smartArt3D = input<boolean>(false);
 	/**

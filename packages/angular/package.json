@@ -30,7 +30,11 @@
 	},
 	"exports": {
 		"./styles": "./pptx-angular-viewer.css",
-		"./styles.css": "./pptx-angular-viewer.css"
+		"./styles.css": "./pptx-angular-viewer.css",
+		"./internals": {
+			"types": "./types/pptx-angular-viewer.d.ts",
+			"default": "./fesm2022/pptx-angular-viewer.mjs"
+		}
 	},
 	"scripts": {
 		"inline-shared": "node ./scripts/inline-shared.mjs",
