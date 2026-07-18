@@ -26,11 +26,13 @@ import type {
 } from 'pptx-viewer-core';
 
 import {
+	applyPreferenceToOptions,
 	createBackstagePresentation,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
 	resolveThemeCatalogEntry,
 	THEME_CATALOG,
+	viewerOptionsToPreferences,
 	writeStoredViewerPrefs,
 } from '../internal/shared';
 import type {
@@ -119,6 +121,7 @@ import { ViewerFormatPainterService } from './viewer-format-painter.service';
 import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 import { ViewerKeyboardService } from './viewer-keyboard.service';
 import { ViewerMobileSheetService } from './viewer-mobile-sheet.service';
+import { ViewerOptionsService } from './viewer-options.service';
 import { ViewerPresentationModeService } from './viewer-presentation-mode.service';
 import { ViewerThemeGalleryService } from './viewer-theme-gallery.service';
 import { ViewerTouchGesturesService } from './viewer-touch-gestures.service';
@@ -193,7 +196,7 @@ import { ZoomTargetService } from './zoom-target.service';
 	template: `
 		<div
 			class="pptx-ng-viewer"
-			[ngClass]="[class(), reducedMotion() ? 'pptx-ng-reduced-motion' : '']"
+			[ngClass]="rootClasses()"
 			[ngStyle]="rootStyle()"
 			[attr.aria-busy]="loader.loading()"
 		>
@@ -225,10 +228,12 @@ import { ZoomTargetService } from './zoom-target.service';
 						[redoLabel]="editor.redoLabel()"
 						[findReplaceOpen]="findReplace.showFind() || findReplace.showFindReplace()"
 						[hiddenActions]="hiddenActions()"
+						[quickAccess]="viewerOpts.options().quickAccess"
 						(toggleAutosave)="autosaveEnabled.update(v => !v)"
 						(save)="fileIO.saveAsPptx()"
 						(undo)="editor.undo()"
 						(redo)="editor.redo()"
+						(quickCommand)="onQuickAccessCommand($event)"
 						(toggleFindReplace)="toggleFindReplace()"
 						(commandSearch)="handleCommandSearch($event)"
 					/>
@@ -698,13 +703,11 @@ import { ZoomTargetService } from './zoom-target.service';
 				[selectedElementId]="selectedElement()?.id ?? null"
 				[filePath]="filePath()"
 				[customShows]="customShowsCtl.pptxCustomShows()"
-				[settings]="viewerSettings()"
 				[themeKey]="themeKey()"
 				[availableThemes]="resolvedThemes()"
 				[localeCode]="localeCode()"
 				[availableLocales]="resolvedLocales()"
 				(restoreContent)="onRestoreVersion($event)"
-				(settingsChange)="onSettingsChange($event)"
 				(themeKeySelect)="selectThemeKey($event)"
 				(localeSelect)="selectLocale($event)"
 			/>
@@ -877,8 +880,8 @@ export class PowerPointViewerComponent {
 	readonly fontsInput = input<import('../internal/shared').ViewerFontSource[]>([], {
 		alias: 'fonts',
 	});
-	/** Whether editing actions are enabled. (Editor chrome not yet ported.) */
-	readonly canEdit = input<boolean>(false);
+	/** Whether editing actions are enabled (host input; see {@link canEdit}). */
+	readonly canEditInput = input<boolean>(false, { alias: 'canEdit' });
 	/** Optional class applied to the root element. */
 	readonly class = input<string>('');
 	/** Theme configuration for customising the viewer's appearance. Always wins over a File > Options > Appearance selection; see {@link defaultThemeKey}. */
@@ -1003,6 +1006,7 @@ export class PowerPointViewerComponent {
 	protected readonly presenterWindow = inject(PresenterWindowService);
 	private readonly destroyRef = inject(DestroyRef);
 	protected readonly dialogs = inject(ViewerDialogsService);
+	protected readonly viewerOpts = inject(ViewerOptionsService);
 	private readonly compareSvc = inject(ViewerCompareService);
 	protected readonly xport = inject(ViewerExportService);
 	protected readonly findReplace = inject(ViewerFindReplaceService);
@@ -1034,6 +1038,15 @@ export class PowerPointViewerComponent {
 
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
+
+	/**
+	 * Effective edit permission: the host's `canEdit` input gated by Trust
+	 * Center > "Open presentations in Protected View", which forces the deck
+	 * read-only while enabled (File > Options wiring, mirrors PowerPoint).
+	 */
+	protected readonly canEdit = computed(
+		() => this.canEditInput() && !this.viewerOpts.options().trust.openInProtectedView,
+	);
 
 	protected readonly activeSlideIndex = signal(0);
 	/** Slides to display: the editable deck when `canEdit`, else the loaded deck. */
@@ -1170,7 +1183,10 @@ export class PowerPointViewerComponent {
 	protected readonly spellCheck = signal(false);
 	/** User override that suppresses viewer animations and transitions. */
 	protected readonly reducedMotion = signal(false);
-	/** Snapshot consumed by the settings dialog. */
+	/**
+	 * The six legacy preference toggles as a snapshot, kept in a guarded
+	 * two-way sync with the File > Options store (see the constructor).
+	 */
 	protected readonly viewerSettings = computed<ViewerSettings>(() => ({
 		autoSave: this.autosaveEnabled(),
 		spellCheck: this.spellCheck(),
@@ -1179,6 +1195,16 @@ export class PowerPointViewerComponent {
 		snapToGrid: this.snapToGrid(),
 		reducedMotion: this.reducedMotion(),
 	}));
+	/**
+	 * Root class list: the host `class` input, the reduced-motion override, and
+	 * the option-driven display classes (`resolveOptionRootClasses`, so e.g.
+	 * hardware-acceleration and compatibility-display choices are styleable).
+	 */
+	protected readonly rootClasses = computed<string[]>(() => [
+		this.class(),
+		this.reducedMotion() ? 'pptx-ng-reduced-motion' : '',
+		...this.viewerOpts.rootClasses(),
+	]);
 	/** Whether the Insert SmartArt gallery dialog is open. */
 	protected readonly showSmartArtInsert = signal(false);
 	/** The single selected element on the active slide (for the inspector). */
@@ -1213,6 +1239,43 @@ export class PowerPointViewerComponent {
 			this.localeCode.set(initialLocale);
 			if (initialLocale !== 'en' && !this.onLocaleChange()) {
 				void this.translateService.use(initialLocale);
+			}
+		});
+
+		// ── File > Options store ──────────────────────────────────────────
+		// The full PowerPoint Options model lives in ViewerOptionsService
+		// (persisted to localStorage by the shared store). The six legacy
+		// ViewerSettings toggles stay the source of behavior; the two effects
+		// below keep them and the store in sync BOTH ways without echoing:
+		// each side only writes when the mapped values actually differ, and
+		// signal writes are synchronous, so a store change lands on the legacy
+		// signals before the reverse effect re-compares (and vice versa).
+		effect(() => {
+			// Options -> scattered legacy state (dialog edits, persisted values).
+			const mapped = viewerOptionsToPreferences(this.viewerOpts.options());
+			untracked(() => {
+				const current = this.viewerSettings();
+				for (const key of Object.keys(mapped) as (keyof ViewerSettings)[]) {
+					if (mapped[key] !== current[key]) {
+						this.applyPreferenceSnapshot({ ...current, ...mapped });
+						break;
+					}
+				}
+			});
+		});
+		effect(() => {
+			// Legacy state -> options (ribbon View toggles, title-bar autosave).
+			const settings = this.viewerSettings();
+			const current = this.viewerOpts.store.getOptions();
+			const mapped = viewerOptionsToPreferences(current);
+			let next = current;
+			for (const key of Object.keys(mapped) as (keyof ViewerSettings)[]) {
+				if (mapped[key] !== settings[key]) {
+					next = applyPreferenceToOptions(next, key, settings[key]);
+				}
+			}
+			if (next !== current) {
+				this.viewerOpts.store.setOptions(next);
 			}
 		});
 
@@ -1556,6 +1619,8 @@ export class PowerPointViewerComponent {
 			filePath: () => this.filePath(),
 			isDirty: () => this.editor.dirty(),
 			serialize: () => this.serializeForAutosave(),
+			// Options > Save > "Save AutoRecover information every N minutes".
+			intervalSeconds: () => this.viewerOpts.autosaveIntervalSeconds(),
 		});
 	}
 
@@ -2044,14 +2109,50 @@ export class PowerPointViewerComponent {
 		this.fileIO.contentOverride.set(bytes);
 	}
 
-	/** Apply Settings dialog changes to the live editor state. */
-	protected onSettingsChange(settings: ViewerSettings): void {
+	/** Apply one legacy preference snapshot onto the scattered live signals. */
+	private applyPreferenceSnapshot(settings: ViewerSettings): void {
 		this.autosaveEnabled.set(settings.autoSave);
 		this.spellCheck.set(settings.spellCheck);
 		this.showGrid.set(settings.showGrid);
 		this.showRulers.set(settings.showRulers);
 		this.snapToGrid.set(settings.snapToGrid);
 		this.reducedMotion.set(settings.reducedMotion);
+	}
+
+	/** Dispatch a Quick Access Toolbar command id to its existing handler. */
+	protected onQuickAccessCommand(id: string): void {
+		switch (id) {
+			case 'save':
+				void this.fileIO.saveAsPptx();
+				break;
+			case 'undo':
+				this.editor.undo();
+				break;
+			case 'redo':
+				this.editor.redo();
+				break;
+			case 'presentFromStart':
+				this.presentationMode.presentFromBeginning();
+				break;
+			case 'print':
+				this.print.openDialog();
+				break;
+			case 'exportPdf':
+				void this.xport.exportPdf();
+				break;
+			case 'newSlide':
+				this.editor.addSlide(this.activeSlideIndex());
+				break;
+			case 'spellCheck':
+				this.spellCheck.update((enabled) => !enabled);
+				break;
+			case 'zoomIn':
+				this.zoomSvc.zoomIn();
+				break;
+			case 'zoomOut':
+				this.zoomSvc.zoomOut();
+				break;
+		}
 	}
 
 	/**

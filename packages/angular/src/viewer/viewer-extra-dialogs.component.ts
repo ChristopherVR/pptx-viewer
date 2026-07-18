@@ -42,7 +42,6 @@ import { PasswordProtectionDialogComponent } from './password-protection-dialog.
 import type { SlideAnnotationMap } from './presentation-annotations-helpers';
 import { SetUpSlideShowDialogComponent } from './set-up-slide-show-dialog.component';
 import { SettingsDialogComponent } from './settings-dialog.component';
-import type { ViewerSettings } from './settings-dialog.component';
 import { ShortcutPanelComponent } from './shortcut-panel.component';
 import { SignatureStrippedDialogComponent } from './signature-stripped-dialog.component';
 import { VersionHistoryPanelComponent } from './version-history-panel.component';
@@ -55,6 +54,7 @@ import {
 	collectUsedFontFamilies,
 	countAnnotationStrokes,
 } from './viewer-extra-dialogs-helpers';
+import { ViewerOptionsService } from './viewer-options.service';
 
 @Component({
 	selector: 'pptx-viewer-extra-dialogs',
@@ -136,12 +136,17 @@ import {
 
 		<pptx-settings-dialog
 			[open]="svc.showSettings()"
-			[settings]="settings()"
+			[options]="viewerOpts.options()"
 			[themeKey]="themeKey()"
 			[availableThemes]="availableThemes()"
 			[localeCode]="localeCode()"
 			[availableLocales]="availableLocales()"
-			(settingsChange)="settingsChange.emit($event)"
+			(optionChange)="viewerOpts.setValue($event.group, $event.key, $event.value)"
+			(restoreOptions)="viewerOpts.restore($event)"
+			(ribbonTabHiddenChange)="viewerOpts.setRibbonTabHidden($event.tabId, $event.hidden)"
+			(quickAccessCommandsChange)="viewerOpts.setQuickAccessCommands($event)"
+			(resetOptions)="viewerOpts.reset($event)"
+			(clearCache)="onClearOptionsCache()"
 			(themeKeySelect)="themeKeySelect.emit($event)"
 			(localeSelect)="localeSelect.emit($event)"
 			(close)="svc.showSettings.set(false)"
@@ -179,8 +184,6 @@ export class ViewerExtraDialogsComponent {
 	readonly filePath = input<string | undefined>(undefined);
 	/** Custom shows offered in the set-up-slide-show "show slides" fieldset. */
 	readonly customShows = input<PptxCustomShow[]>([]);
-	/** Live viewer preferences surfaced by the settings dialog. */
-	readonly settings = input.required<ViewerSettings>();
 	// Settings dialog Appearance/Language tab state; see PowerPointViewerComponent.
 	readonly themeKey = input<string>('default');
 	readonly availableThemes = input<readonly ThemeCatalogEntry[]>(THEME_CATALOG);
@@ -189,13 +192,12 @@ export class ViewerExtraDialogsComponent {
 
 	/** Fired with a restored `.pptx` version's bytes; the host swaps the deck. */
 	readonly restoreContent = output<Uint8Array>();
-	/** Fired whenever a settings toggle changes. */
-	readonly settingsChange = output<ViewerSettings>();
 	// Fired when the user picks a Settings dialog Appearance/Language selection.
 	readonly themeKeySelect = output<string>();
 	readonly localeSelect = output<string>();
 
 	protected readonly svc = inject(ViewerDialogsService);
+	protected readonly viewerOpts = inject(ViewerOptionsService);
 	protected readonly compare = inject(ViewerCompareService);
 	protected readonly editor = inject(EditorStateService);
 	protected readonly loader = inject(LoadContentService);
@@ -247,6 +249,11 @@ export class ViewerExtraDialogsComponent {
 		if (strokeCount === 0) {
 			return;
 		}
+		// Options > Advanced > "Prompt to keep ink annotations": when off, the
+		// ink is discarded without asking (PowerPoint parity).
+		if (!this.viewerOpts.options().advanced.slideShowPromptKeepInkAnnotations) {
+			return;
+		}
 		this.pendingAnnotations.set(map);
 		this.svc.keepAnnotationCount.set(strokeCount);
 		this.svc.keepSlideCount.set(map.size);
@@ -263,6 +270,11 @@ export class ViewerExtraDialogsComponent {
 		}
 		this.pendingAnnotations.set(null);
 		this.svc.showKeepAnnotations.set(false);
+	}
+
+	/** Options > Save > "Delete cached files": purge autosave recovery snapshots. */
+	protected onClearOptionsCache(): void {
+		void this.viewerOpts.clearCache();
 	}
 
 	/** Drop the pending presentation ink. */

@@ -1,0 +1,141 @@
+.pptx-ng-options-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 1200;
+	border: 0;
+	background: rgb(0 0 0 / 60%);
+	cursor: default;
+}
+.pptx-ng-options-modal {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	z-index: 1201;
+	display: flex;
+	flex-direction: column;
+	width: min(56rem, calc(100vw - 2rem));
+	max-height: 85vh;
+	transform: translate(-50%, -50%);
+	border: 1px solid var(--pptx-border);
+	border-radius: 12px;
+	background: var(--pptx-popover, var(--pptx-background));
+	color: var(--pptx-foreground);
+	box-shadow: 0 24px 64px rgb(0 0 0 / 35%);
+}
+.pptx-ng-options-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 14px 20px;
+	border-bottom: 1px solid var(--pptx-border);
+}
+.pptx-ng-options-header h2 {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+}
+.pptx-ng-options-x {
+	border: 0;
+	border-radius: 4px;
+	padding: 4px 8px;
+	background: transparent;
+	color: var(--pptx-muted-foreground);
+	cursor: pointer;
+}
+.pptx-ng-options-x:hover {
+	background: var(--pptx-accent);
+}
+.pptx-ng-options-layout {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+.pptx-ng-options-layout nav {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	width: 176px;
+	flex-shrink: 0;
+	overflow-y: auto;
+	padding: 8px;
+	border-right: 1px solid var(--pptx-border);
+}
+.pptx-ng-options-layout nav button {
+	padding: 8px 12px;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--pptx-foreground);
+	font-size: 13px;
+	text-align: left;
+	white-space: nowrap;
+	cursor: pointer;
+}
+.pptx-ng-options-layout nav button:hover {
+	background: var(--pptx-accent);
+}
+.pptx-ng-options-layout nav button.is-active {
+	background: color-mix(in srgb, var(--pptx-primary) 10%, transparent);
+	color: var(--pptx-primary);
+	font-weight: 500;
+}
+.pptx-ng-options-content {
+	flex: 1;
+	min-height: 0;
+	min-width: 0;
+	overflow-y: auto;
+	padding: 16px 20px;
+}
+.pptx-ng-options-headline {
+	margin: 0 0 12px;
+	font-size: 13px;
+	font-weight: 600;
+}
+.pptx-ng-options-subhead {
+	margin: 0 0 4px;
+	padding-bottom: 4px;
+	border-bottom: 1px solid var(--pptx-border);
+	color: var(--pptx-muted-foreground);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+.pptx-ng-options-note {
+	margin: 2px 0 6px;
+	color: var(--pptx-muted-foreground);
+	font-size: 11px;
+}
+.pptx-ng-options-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 10px 20px;
+	border-top: 1px solid var(--pptx-border);
+}
+.pptx-ng-options-footer-end {
+	display: inline-flex;
+	gap: 8px;
+}
+.pptx-ng-options-ghost,
+.pptx-ng-options-ok {
+	padding: 6px 16px;
+	border-radius: 4px;
+	font-size: 12px;
+	cursor: pointer;
+}
+.pptx-ng-options-ghost {
+	border: 1px solid var(--pptx-border);
+	background: transparent;
+	color: var(--pptx-foreground);
+}
+.pptx-ng-options-ghost:hover {
+	background: var(--pptx-accent);
+}
+.pptx-ng-options-ok {
+	border: 0;
+	background: var(--pptx-primary);
+	color: white;
+	font-weight: 500;
+}
