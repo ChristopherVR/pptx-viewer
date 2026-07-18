@@ -7,10 +7,16 @@
  * Edits patch the loader's `presentationProperties` signal (the same object
  * `LoadContentService.saveSlides` serialises) and mark the editor dirty.
  */
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxPresentationProperties } from 'pptx-viewer-core';
 
+import {
+	printPropertiesFrameSlides,
+	printPropertiesSlidesPerPage,
+	withFrameSlides,
+	withSlidesPerPage,
+} from '../internal/shared-src/render/presentation-print-settings';
 import { EditorStateService } from './editor-state.service';
 import { INSPECTOR_CARD_STYLES } from './inspector-card-styles';
 import { LoadContentService } from './load-content.service';
@@ -80,8 +86,8 @@ import { LoadContentService } from './load-content.service';
 				<input
 					type="checkbox"
 					[disabled]="!canEdit()"
-					[checked]="!!props().printFrameSlides"
-					(change)="onCheckbox($event, 'printFrameSlides')"
+					[checked]="frameSlides()"
+					(change)="onFrameSlidesChange($event)"
 				/>
 			</label>
 			<label class="icard__row">
@@ -94,7 +100,7 @@ import { LoadContentService } from './load-content.service';
 					min="1"
 					max="16"
 					[disabled]="!canEdit()"
-					[value]="props().printSlidesPerPage ?? 1"
+					[value]="slidesPerPage()"
 					(change)="onSlidesPerPageChange($event)"
 				/>
 			</label>
@@ -111,6 +117,13 @@ export class PresentationSettingsCardComponent {
 
 	protected readonly props = this.loader.presentationProperties;
 
+	protected readonly frameSlides = computed(() =>
+		printPropertiesFrameSlides(this.props().printProperties),
+	);
+	protected readonly slidesPerPage = computed(() =>
+		printPropertiesSlidesPerPage(this.props().printProperties),
+	);
+
 	private patch(patch: Partial<PptxPresentationProperties>): void {
 		this.loader.presentationProperties.update((current) => ({ ...current, ...patch }));
 		this.editor.dirty.set(true);
@@ -123,15 +136,20 @@ export class PresentationSettingsCardComponent {
 
 	protected onCheckbox(
 		event: Event,
-		key: 'loopContinuously' | 'showWithNarration' | 'showWithAnimation' | 'printFrameSlides',
+		key: 'loopContinuously' | 'showWithNarration' | 'showWithAnimation',
 	): void {
 		this.patch({ [key]: (event.target as HTMLInputElement).checked });
+	}
+
+	protected onFrameSlidesChange(event: Event): void {
+		const checked = (event.target as HTMLInputElement).checked;
+		this.patch({ printProperties: withFrameSlides(this.props().printProperties, checked) });
 	}
 
 	protected onSlidesPerPageChange(event: Event): void {
 		const value = Number((event.target as HTMLInputElement).value);
 		if (Number.isFinite(value) && value >= 1) {
-			this.patch({ printSlidesPerPage: value });
+			this.patch({ printProperties: withSlidesPerPage(this.props().printProperties, value) });
 		}
 	}
 }
