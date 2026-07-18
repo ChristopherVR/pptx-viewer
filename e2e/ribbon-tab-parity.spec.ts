@@ -72,8 +72,10 @@ function frameworksForProject(projectName: string): Framework[] {
 // folded into the Home tab rather than a standalone tab button, so clicking a
 // same-named "Text"/"Arrange" button here previously hit a *different*,
 // selection-gated control (e.g. DrawingGroup's Arrange dropdown) and timed out.
+// "File" is also excluded: it opens the full-screen backstage overlay in every
+// binding, not a ribbon content row, so measuring the (hidden) toolbar behind
+// it compares meaningless leftover chrome instead of tab layout.
 const TABS = [
-	'File',
 	'Home',
 	'Insert',
 	'Draw',
@@ -89,6 +91,16 @@ const TABS = [
 // A tab wrapping into one extra row typically inflates height by ~1.7-3x;
 // normal cross-framework icon/font/padding differences stay well under 1.6x.
 const MAX_HEIGHT_RATIO = 1.6;
+
+// Per-tab overrides where a taller layout is an intentional design difference,
+// not a stacking bug. React's View tab uses PowerPoint-style tall groups
+// (icon-over-label view buttons plus the stacked Rulers/Grid/Guides/Snap
+// checkbox column) while the other bindings render a compact single row;
+// that legitimate difference measures ~1.9x. Catching an ACTUAL extra
+// wrapped row on top of it still trips the 2.4 ceiling (a wrap adds ~2x).
+const TAB_MAX_HEIGHT_RATIO: Partial<Record<(typeof TABS)[number], number>> = {
+	View: 2.4,
+};
 
 async function loadDeck(page: Page, port: number): Promise<void> {
 	await page.goto(`http://localhost:${port}/`);
@@ -177,7 +189,7 @@ test.describe('ribbon tab layout parity', () => {
 						`stacks (needs display: contents on the host, or an explicit flex row ` +
 						`wrapper around it - see git log for "stop ribbon groups stacking ` +
 						`vertically" / "wrapping to a new row" for the established fix pattern).`,
-				).toBeLessThanOrEqual(MAX_HEIGHT_RATIO);
+				).toBeLessThanOrEqual(TAB_MAX_HEIGHT_RATIO[tab] ?? MAX_HEIGHT_RATIO);
 			} finally {
 				await Promise.all(pages.map(({ page }) => page.close()));
 			}
