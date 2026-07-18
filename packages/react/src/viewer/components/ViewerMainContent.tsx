@@ -4,6 +4,7 @@
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
+import { useMemo } from 'react';
 
 import { SlidesPaneSidebar, MasterViewSidebar, ContextMenu } from '.';
 import type { UseCommentsResult } from '../hooks/useComments-helpers';
@@ -117,6 +118,28 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 		findReplace,
 	} = editorOps;
 
+	// Presentation-wide field/table context so sidebar thumbnails substitute
+	// fields and resolve table theme colours identically to the canvas. Kept
+	// stable so the memoised SlideThumbnails don't re-render every frame.
+	const hf = state.headerFooter;
+	const thumbnailFieldContext = useMemo(
+		() => ({
+			dateTimeText: hf.dateTimeText,
+			dateFormat: hf.dateFormat,
+			footerText: hf.footerText,
+			headerText: hf.headerText,
+			customProperties: state.customProperties.map((p) => ({ name: p.name, value: p.value })),
+		}),
+		[hf.dateTimeText, hf.dateFormat, hf.footerText, hf.headerText, state.customProperties],
+	);
+	const thumbnailTableStyleContext = useMemo(
+		() =>
+			state.theme || state.tableStyleMap
+				? { theme: state.theme, tableStyleMap: state.tableStyleMap }
+				: undefined,
+		[state.theme, state.tableStyleMap],
+	);
+
 	return (
 		<ChartPartSelectionProvider>
 			<div className='relative z-10 flex flex-1 min-h-0'>
@@ -146,6 +169,8 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 									: undefined
 							}
 							panelWidth={leftPanelWidth}
+							fieldContext={thumbnailFieldContext}
+							tableStyleContext={thumbnailTableStyleContext}
 						/>
 						{onResizeLeft && <ResizeHandle direction='horizontal' onResize={onResizeLeft} />}
 					</>

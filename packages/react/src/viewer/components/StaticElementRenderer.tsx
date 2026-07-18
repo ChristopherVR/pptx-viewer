@@ -15,6 +15,8 @@ import {
 	normalizeHexColor,
 	renderVectorShape,
 } from '../utils';
+import type { TableStyleContext } from '../utils/table-band-style';
+import type { FieldSubstitutionContext } from '../utils/text-field-substitution';
 import { renderBody } from './elements/ElementBody';
 
 export interface StaticElementRendererProps {
@@ -25,6 +27,10 @@ export interface StaticElementRendererProps {
 	sourceSlideIndex?: number;
 	zIndex?: number;
 	positioned?: boolean;
+	/** Text-field substitution context (slide number, date/header/footer). */
+	fieldContext?: FieldSubstitutionContext;
+	/** Theme + table style map for resolving table band/header colours. */
+	tableStyleContext?: TableStyleContext;
 }
 
 const noop = (): void => {};
@@ -39,6 +45,8 @@ export function StaticElementRenderer({
 	sourceSlideIndex,
 	zIndex,
 	positioned = true,
+	fieldContext,
+	tableStyleContext,
 }: StaticElementRendererProps): React.ReactElement {
 	const style = hasShapeProperties(element) ? element.shapeStyle : undefined;
 	const hasFill =
@@ -49,10 +57,9 @@ export function StaticElementRenderer({
 	const strokeWidth = Math.max(0, style?.strokeWidth || 0);
 	const stroke = normalizeHexColor(style?.strokeColor, DEFAULT_STROKE_COLOR);
 	const visualStyle = getShapeVisualStyle(element, hasFill, fill, strokeWidth, stroke);
-	const textStyle = getTextStyleForElement(
-		element,
-		element.type === 'shape' && hasFill ? '#ffffff' : DEFAULT_TEXT_COLOR,
-	);
+	// Match the canvas ElementRenderer default (DEFAULT_TEXT_COLOR) so inherited /
+	// placeholder text resolves to the same colour in the thumbnail as on stage.
+	const textStyle = getTextStyleForElement(element, DEFAULT_TEXT_COLOR);
 	const isImage = element.type === 'picture' || element.type === 'image';
 
 	return (
@@ -81,6 +88,8 @@ export function StaticElementRenderer({
 							mediaDataUrls={mediaDataUrls}
 							sourceSlideIndex={sourceSlideIndex}
 							zIndex={index}
+							fieldContext={fieldContext}
+							tableStyleContext={tableStyleContext}
 						/>
 					))}
 				</div>
@@ -111,6 +120,8 @@ export function StaticElementRenderer({
 					slideElements: activeSlide?.elements,
 					allSlides,
 					sourceSlideIndex,
+					fieldContext,
+					tableStyleContext,
 					canEditSmartArt: false,
 					canEditChart: false,
 				})

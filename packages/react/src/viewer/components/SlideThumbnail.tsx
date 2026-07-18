@@ -1,28 +1,39 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { buildPreviewElements } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { SLIDE_NAV_THUMBNAIL_WIDTH, SLIDE_TRANSITION_OPTIONS } from '../constants';
 import type { CanvasSize } from '../types';
 import { getReactSlideBackgroundStyle } from '../utils/slide-background-style';
+import type { TableStyleContext } from '../utils/table-band-style';
+import type { FieldSubstitutionContext } from '../utils/text-field-substitution';
+import { deriveSlideFieldContext } from './slide-field-context';
 import { StaticElementRenderer } from './StaticElementRenderer';
 
 interface SlideThumbnailProps {
 	slide: PptxSlide;
 	templateElements: PptxElement[];
 	canvasSize: CanvasSize;
+	/** Presentation-wide field context (date/header/footer/custom props). */
+	fieldContext?: FieldSubstitutionContext;
+	/** Theme + table style map for resolving table band/header colours. */
+	tableStyleContext?: TableStyleContext;
 }
 
 function SlideThumbnailImpl({
 	slide,
 	templateElements,
 	canvasSize,
+	fieldContext,
+	tableStyleContext,
 }: SlideThumbnailProps): React.ReactElement {
 	const safeCanvasWidth = Math.max(canvasSize.width, 1);
 	const safeCanvasHeight = Math.max(canvasSize.height, 1);
 	const scale = SLIDE_NAV_THUMBNAIL_WIDTH / safeCanvasWidth;
 	const previewHeight = Math.max(56, Math.round(safeCanvasHeight * scale));
-	const previewElements = [...templateElements, ...slide.elements].slice(0, 60);
+	const previewElements = buildPreviewElements(slide, templateElements);
+	const slideFieldContext = deriveSlideFieldContext(fieldContext, slide);
 	const { t } = useTranslation();
 	const transitionLabel = slide.transition
 		? (() => {
@@ -63,6 +74,8 @@ function SlideThumbnailImpl({
 						activeSlide={slide}
 						allSlides={[slide]}
 						zIndex={index}
+						fieldContext={slideFieldContext}
+						tableStyleContext={tableStyleContext}
 					/>
 				))}
 			</div>
@@ -101,6 +114,12 @@ function arePropsEqual(prev: SlideThumbnailProps, next: SlideThumbnailProps): bo
 		return false;
 	}
 	if (prev.templateElements !== next.templateElements) {
+		return false;
+	}
+	if (prev.fieldContext !== next.fieldContext) {
+		return false;
+	}
+	if (prev.tableStyleContext !== next.tableStyleContext) {
 		return false;
 	}
 	if (

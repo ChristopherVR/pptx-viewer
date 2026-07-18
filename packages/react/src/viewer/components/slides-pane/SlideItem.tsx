@@ -5,6 +5,8 @@ import { LuEyeOff, LuMessageSquare } from 'react-icons/lu';
 import { SLIDE_NAV_THUMBNAIL_WIDTH } from '../../constants';
 import type { CanvasSize } from '../../types';
 import { cn } from '../../utils';
+import type { TableStyleContext } from '../../utils/table-band-style';
+import type { FieldSubstitutionContext } from '../../utils/text-field-substitution';
 import { LazyThumbnail } from './LazyThumbnail';
 import { formatTimingMs } from './utils';
 
@@ -28,6 +30,10 @@ export interface SlideItemProps {
 	rehearsalTimings?: Record<number, number>;
 	/** Remote users currently viewing this slide. */
 	presenceUsers?: SlidePresenceUser[];
+	/** Presentation-wide field context (date/header/footer/custom props). */
+	fieldContext?: FieldSubstitutionContext;
+	/** Theme + table style map for resolving table band/header colours. */
+	tableStyleContext?: TableStyleContext;
 	onSelectSlide: (index: number) => void;
 	onSlideContextMenu: (e: React.MouseEvent, index: number) => void;
 	onAddSection?: (name: string, afterSlideIndex: number) => void;
@@ -51,6 +57,8 @@ function SlideItemInner({
 	canEdit,
 	rehearsalTimings,
 	presenceUsers,
+	fieldContext,
+	tableStyleContext,
 	onSelectSlide,
 	onSlideContextMenu,
 	onAddSection,
@@ -140,6 +148,8 @@ function SlideItemInner({
 					templateElements={templateElements}
 					canvasSize={canvasSize}
 					previewHeight={previewHeight}
+					fieldContext={fieldContext}
+					tableStyleContext={tableStyleContext}
 				/>
 				{(slide.comments?.length ?? 0) > 0 && (
 					<div className='absolute top-0.5 right-0.5 flex items-center gap-0.5 rounded bg-amber-500/90 px-1 py-0.5 text-[8px] font-medium text-white leading-none z-10'>

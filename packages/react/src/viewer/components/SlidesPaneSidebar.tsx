@@ -49,6 +49,8 @@ export function SlidesPaneSidebar({
 	onMoveSectionDown,
 	rehearsalTimings,
 	panelWidth,
+	fieldContext,
+	tableStyleContext,
 }: SlidesPaneSidebarProps): React.ReactElement | null {
 	const { t } = useTranslation();
 	const collab = useCollaboration();
@@ -227,6 +229,8 @@ export function SlidesPaneSidebar({
 										canEdit={canEdit}
 										rehearsalTimings={rehearsalTimings}
 										presenceUsers={slidePresenceMap?.get(item.slideIndex)}
+										fieldContext={fieldContext}
+										tableStyleContext={tableStyleContext}
 										onSelectSlide={onSelectSlide}
 										onSlideContextMenu={onSlideContextMenu}
 										onAddSection={onAddSection}
@@ -293,6 +297,8 @@ export function SlidesPaneSidebar({
 										canEdit={canEdit}
 										rehearsalTimings={rehearsalTimings}
 										presenceUsers={slidePresenceMap?.get(idx)}
+										fieldContext={fieldContext}
+										tableStyleContext={tableStyleContext}
 										onSelectSlide={onSelectSlide}
 										onSlideContextMenu={onSlideContextMenu}
 										onAddSection={onAddSection}

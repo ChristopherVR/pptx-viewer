@@ -2,6 +2,8 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type React from 'react';
 
 import type { CanvasSize, SlideSectionGroup } from '../../types';
+import type { TableStyleContext } from '../../utils/table-band-style';
+import type { FieldSubstitutionContext } from '../../utils/text-field-substitution';
 
 // ---------------------------------------------------------------------------
 // SlidesPaneSidebar props
@@ -29,6 +31,13 @@ export interface SlidesPaneSidebarProps {
 	rehearsalTimings?: Record<number, number>;
 	/** Width of the panel in pixels (for resizable panels). */
 	panelWidth?: number;
+	/**
+	 * Presentation-wide field context (date/header/footer/custom props) so
+	 * thumbnails substitute the same field placeholders as the canvas.
+	 */
+	fieldContext?: FieldSubstitutionContext;
+	/** Theme + table style map so thumbnails resolve table band/header colours. */
+	tableStyleContext?: TableStyleContext;
 }
 
 // ---------------------------------------------------------------------------
