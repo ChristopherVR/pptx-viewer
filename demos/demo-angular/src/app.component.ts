@@ -105,6 +105,8 @@ export class AppComponent {
 	private readonly params = new URLSearchParams(window.location.search);
 	/** Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`. */
 	readonly smartArt3D = this.params.get('smartArt3D') === '1';
+	/** `?sample=1` auto-loads the bundled sample deck (docs landing embed). */
+	private readonly urlSample = this.params.get('sample') === '1';
 	readonly urlRoom = this.params.get('room');
 	readonly urlBroadcast = this.params.get('broadcast');
 	private readonly urlServer = this.params.get('server') ?? resolveDefaultServerUrl();
@@ -160,6 +162,7 @@ export class AppComponent {
 		this.translate.use(this.languageKey());
 
 		this.autoConnectFromUrl();
+		void this.loadSampleFromUrl();
 		this.joinFromUrl();
 		void this.loadAudienceTab();
 
@@ -299,9 +302,35 @@ export class AppComponent {
 		});
 	}
 
+	/**
+	 * Auto-load the bundled sample deck when `?sample=1` is present (docs landing
+	 * embed), so a `?sample=1&room=…` host pane seeds the session with the sample.
+	 */
+	private async loadSampleFromUrl(): Promise<void> {
+		if (!this.urlSample || this.content()) {
+			return;
+		}
+		try {
+			const res = await fetch(`${import.meta.env.BASE_URL}sample-deck.pptx`);
+			if (!res.ok) {
+				throw new Error(`HTTP ${res.status}`);
+			}
+			const buf = await res.arrayBuffer();
+			if (this.content()) {
+				return;
+			}
+			this.content.set(new Uint8Array(buf));
+			this.fileName.set('sample-deck.pptx');
+		} catch {
+			// Sample not available: fall through to the regular dropzone.
+		}
+	}
+
 	private joinFromUrl(): void {
 		const joinRoomId = this.urlRoom ?? this.urlBroadcast;
-		if (!joinRoomId || this.content()) {
+		// A `?sample=1` host seeds the session from the bundled deck instead, so
+		// never race it with the blank-deck / IndexedDB fallbacks.
+		if (!joinRoomId || this.content() || this.urlSample) {
 			return;
 		}
 		// Serverless peer-to-peer: there is no file server to fetch from. Bootstrap

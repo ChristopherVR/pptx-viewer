@@ -142,9 +142,33 @@
 		}
 	}
 
+	// `?sample=1` auto-loads the bundled sample deck (used by the docs landing
+	// page to embed a live, pre-populated viewer). With `?room=` too, the sample
+	// seeds the collaboration session instead of a blank deck.
+	const urlSample = params.get('sample') === '1';
+
+	async function loadSampleDeck(): Promise<void> {
+		try {
+			const res = await fetch(`${import.meta.env.BASE_URL}sample-deck.pptx`);
+			if (!res.ok) {
+				throw new Error(`HTTP ${res.status}`);
+			}
+			const buf = await res.arrayBuffer();
+			if (!bytes) {
+				bytes = new Uint8Array(buf);
+				fileName = 'sample-deck.pptx';
+				document.title = 'sample-deck.pptx - PPTX Viewer';
+			}
+		} catch {
+			// Sample not available: fall through to the regular dropzone.
+		}
+	}
+
 	if (urlRoom) {
 		joinRoom(urlRoom);
-		void newPresentation();
+		void (urlSample ? loadSampleDeck() : newPresentation());
+	} else if (urlSample) {
+		void loadSampleDeck();
 	}
 
 	function onDrop(e: DragEvent): void {

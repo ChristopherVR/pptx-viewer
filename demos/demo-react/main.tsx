@@ -340,6 +340,12 @@ function App() {
 	const [smartArt3D] = useState(
 		() => new URLSearchParams(window.location.search).get('smartArt3D') === '1',
 	);
+	// `?sample=1` auto-loads the bundled sample deck (used by the docs landing
+	// page to embed a live, pre-populated viewer).
+	// eslint-disable-next-line react/hook-use-state
+	const [urlSample] = useState(
+		() => new URLSearchParams(window.location.search).get('sample') === '1',
+	);
 
 	// Generate stable defaults for the Share dialog — these are demo-specific
 	const autoRoomId = useMemo(() => {
@@ -500,6 +506,36 @@ function App() {
 		window.history.replaceState({}, '', url.toString());
 	}, []);
 
+	// Auto-load the bundled sample deck when `?sample=1` is present. Runs before
+	// the blank-deck collab bootstrap below (local fetch beats its 1.5s timer),
+	// so a `?sample=1&room=…` host pane seeds the session with the sample.
+	useEffect(() => {
+		if (!urlSample || content) {
+			return;
+		}
+		let cancelled = false;
+		void fetch(`${import.meta.env.BASE_URL}sample-deck.pptx`)
+			.then((res) => {
+				if (!res.ok) {
+					throw new Error(`HTTP ${res.status}`);
+				}
+				return res.arrayBuffer();
+			})
+			.then((buf) => {
+				if (!cancelled) {
+					setContent(new Uint8Array(buf));
+					setFileName('sample-deck.pptx');
+				}
+				return undefined;
+			})
+			.catch(() => {
+				// Sample not available: fall through to the regular dropzone.
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [urlSample, content]);
+
 	// When joining via URL with a room/broadcast param, download PPTX from the
 	// collab server — but ONLY if the server is in the trusted-host allowlist.
 	// Otherwise a crafted URL could trick the demo into ingesting attacker bytes.
@@ -550,7 +586,9 @@ function App() {
 	// provider) mount; the Y.Doc late-joiner sync then replaces the slides with
 	// the host's deck.
 	useEffect(() => {
-		if (!joinRoomId || content) {
+		// A `?sample=1` host seeds the session from the bundled deck instead, so
+		// never race it with the IndexedDB / blank-deck fallbacks.
+		if (!joinRoomId || content || urlSample) {
 			return;
 		}
 		let cancelled = false;
@@ -584,7 +622,7 @@ function App() {
 			cancelled = true;
 			clearTimeout(timer);
 		};
-	}, [joinRoomId, content, isWebrtcJoin, urlBroadcast]);
+	}, [joinRoomId, content, isWebrtcJoin, urlBroadcast, urlSample]);
 
 	// When opened as an audience tab, load the PPTX content from IndexedDB
 	useEffect(() => {

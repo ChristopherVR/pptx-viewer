@@ -100,6 +100,9 @@ const isWebrtcJoin = urlTransport === 'webrtc';
 const urlServer = isWebrtcJoin ? '' : (params.get('server') ?? resolveDefaultServerUrl());
 // Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`.
 const smartArt3D = params.get('smartArt3D') === '1';
+// `?sample=1` auto-loads the bundled sample deck (used by the docs landing
+// page to embed a live, pre-populated viewer).
+const urlSample = params.get('sample') === '1';
 
 // Stable defaults for the Share dialog (demo-specific).
 const autoRoomId = resolveAutoRoomId();
@@ -208,6 +211,35 @@ function handleStopCollaboration(): void {
 	window.history.replaceState({}, '', url.toString());
 }
 
+// Auto-load the bundled sample deck when `?sample=1` is present, so a
+// `?sample=1&room=…` host pane seeds the session with the sample.
+watchEffect((onCleanup) => {
+	if (!urlSample || content.value) {
+		return;
+	}
+	let cancelled = false;
+	void fetch(`${import.meta.env.BASE_URL}sample-deck.pptx`)
+		.then((res) => {
+			if (!res.ok) {
+				throw new Error(`HTTP ${res.status}`);
+			}
+			return res.arrayBuffer();
+		})
+		.then((buf) => {
+			if (!cancelled && !content.value) {
+				content.value = new Uint8Array(buf);
+				fileName.value = 'sample-deck.pptx';
+			}
+			return undefined;
+		})
+		.catch(() => {
+			// Sample not available: fall through to the regular dropzone.
+		});
+	onCleanup(() => {
+		cancelled = true;
+	});
+});
+
 // When joining via URL with a room/broadcast param, download PPTX from the
 // collab server, but ONLY if the server is in the trusted-host allowlist.
 const joinRoomId = computed(() => urlRoom.value ?? urlBroadcast.value);
@@ -253,8 +285,10 @@ watchEffect((onCleanup) => {
 });
 
 // Fallback: try IndexedDB if server download didn't work (same-browser tabs).
+// A `?sample=1` host seeds the session from the bundled deck instead, so never
+// race it with the IndexedDB / blank-deck fallbacks.
 watchEffect((onCleanup) => {
-	if (!joinRoomId.value || content.value) {
+	if (!joinRoomId.value || content.value || urlSample) {
 		return;
 	}
 	let cancelled = false;
@@ -278,7 +312,7 @@ watchEffect((onCleanup) => {
 // a blank deck so the viewer mounts and starts collaborating. The owner's real
 // slides then arrive through Y.Doc late-joiner sync and replace the blank deck.
 watchEffect((onCleanup) => {
-	if (!isWebrtcJoin || !joinRoomId.value || content.value) {
+	if (!isWebrtcJoin || !joinRoomId.value || content.value || urlSample) {
 		return;
 	}
 	let cancelled = false;
