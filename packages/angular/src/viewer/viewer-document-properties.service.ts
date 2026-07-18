@@ -1,8 +1,10 @@
 /**
  * viewer-document-properties.service.ts: Viewer-scoped state + logic for the
  * Info (document properties) dialog and the hyperlink-edit dialog: their
- * open/closed signals, the in-session core-properties override merged over
- * the loaded document properties, and persisting an edit from either dialog.
+ * open/closed signals and persisting an edit from either dialog. Info-dialog
+ * edits write the loader's `coreProperties` signal (the single source of
+ * truth `saveSlides` serialises, shared with the inspector DOCUMENT card)
+ * and mark the deck dirty, mirroring React's `handleUpdateCoreProperties`.
  *
  * Extracted from {@link PowerPointViewerComponent}: the component binds the
  * few accessors/emitters it alone owns (canEdit / selected-element /
@@ -34,13 +36,8 @@ export class ViewerDocumentPropertiesService {
 	readonly showProperties = signal(false);
 	/** Hyperlink-edit dialog visibility. */
 	readonly showHyperlink = signal(false);
-	/** Local overrides applied to document properties via the Info dialog. */
-	private readonly coreOverride = signal<Partial<PptxCoreProperties>>({});
-	/** Document core properties (loaded, with any in-session edits merged in). */
-	readonly coreProperties = computed<PptxCoreProperties>(() => ({
-		...(this.loader.coreProperties() ?? {}),
-		...this.coreOverride(),
-	}));
+	/** Document core properties (loaded, including any in-session edits). */
+	readonly coreProperties = computed<PptxCoreProperties>(() => this.loader.coreProperties() ?? {});
 
 	private host: DocumentPropertiesHost | null = null;
 
@@ -59,7 +56,8 @@ export class ViewerDocumentPropertiesService {
 	/**
 	 * Persist a document-properties edit from the Info dialog. Gated on
 	 * `canEdit`: viewers may inspect properties but not mutate them (mirrors the
-	 * comments / hyperlink edit paths).
+	 * comments / hyperlink edit paths). Writes the loader signal so the edit
+	 * reaches `saveSlides` (docProps/core.xml) and the inspector DOCUMENT card.
 	 */
 	onPropertiesSave(patch: Partial<PptxCoreProperties>): void {
 		const host = this.requireHost();
@@ -67,7 +65,8 @@ export class ViewerDocumentPropertiesService {
 			this.showProperties.set(false);
 			return;
 		}
-		this.coreOverride.update((current) => ({ ...current, ...patch }));
+		this.loader.coreProperties.update((current) => ({ ...(current ?? {}), ...patch }));
+		this.editor.dirty.set(true);
 		host.emitPropertiesChange(patch);
 		this.showProperties.set(false);
 	}
