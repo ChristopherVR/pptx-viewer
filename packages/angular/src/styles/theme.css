@@ -46,6 +46,38 @@
 	--radius-xl: calc(var(--pptx-radius, 0.5rem) + 4px);
 }
 
+/*
+ * Inspector token map: resolve the `--pptx-inspector-*` family (consumed by
+ * the inspector, side panels and editor popovers) from the ViewerTheme-driven
+ * `--pptx-*` tokens, so presets (light/dark/brand) restyle those panels
+ * instead of leaving them on the hardcoded dark fallbacks. When no theme is
+ * supplied the `--pptx-*` vars are unset and the second fallback keeps the
+ * default dark look unchanged.
+ */
+.pptx-ng-viewer {
+	--pptx-inspector-bg: var(--pptx-card, #1e1e1e);
+	--pptx-inspector-fg: var(--pptx-card-foreground, #e0e0e0);
+	--pptx-inspector-border: var(--pptx-border, #444);
+	--pptx-inspector-muted: var(--pptx-muted-foreground, #999);
+	--pptx-inspector-input-bg: var(--pptx-muted, #2d2d2d);
+	--pptx-inspector-hover: var(--pptx-accent, #3a3a3a);
+	--pptx-inspector-active: var(--pptx-primary, #0078d4);
+	--pptx-inspector-active-bg: color-mix(in srgb, var(--pptx-primary, #2b88d8) 25%, transparent);
+	--pptx-inspector-accent: var(--pptx-primary, #2563eb);
+	--pptx-inspector-card-bg: color-mix(in srgb, var(--pptx-foreground, #fff) 4%, transparent);
+	--pptx-inspector-danger: var(--pptx-destructive, #f47c7c);
+	--pptx-inspector-danger-border: color-mix(
+		in srgb,
+		var(--pptx-destructive, #ef4444) 45%,
+		transparent
+	);
+	--pptx-inspector-danger-hover: color-mix(
+		in srgb,
+		var(--pptx-destructive, #ef4444) 18%,
+		transparent
+	);
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.pptx-ng-viewer *,
 	.pptx-ng-viewer *::before,

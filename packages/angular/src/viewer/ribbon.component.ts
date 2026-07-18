@@ -53,6 +53,7 @@ import type { RibbonTab } from './ribbon-types';
 				(broadcast)="broadcast.emit()"
 				(openCustomShows)="openCustomShows.emit()"
 				(toggleInspector)="toggleInspector.emit()"
+				(openSettings)="requestSettings()"
 				(exportPng)="exportPng.emit()"
 				(exportPdf)="exportPdf.emit()"
 				(exportGif)="exportGif.emit()"

@@ -6,8 +6,8 @@
  *   LEFT  : slides-pane toggle
  *   RIGHT : Comments (with count), Present split-button + dropdown
  *           (From Beginning / Presenter View / Broadcast), +Show (custom
- *           shows), Inspector toggle, overflow "..." menu (exports / print /
- *           properties / accessibility / save).
+ *           shows), Inspector toggle, Settings cog, overflow "..." menu
+ *           (exports / print / properties / accessibility / save).
  *
  * Undo/Redo/Find and Save moved up to the title bar; Record and Share moved to
  * the ribbon tab row (both mirroring React). Slide navigation and zoom live in
@@ -15,7 +15,17 @@
  * `output()` the {@link PowerPointViewerComponent} already handles.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	ElementRef,
+	HostListener,
+	input,
+	output,
+	signal,
+	viewChild,
+} from '@angular/core';
 import {
 	LucideChevronDown,
 	LucideEllipsis,
@@ -24,6 +34,7 @@ import {
 	LucidePanelRight,
 	LucidePlay,
 	LucidePlus,
+	LucideSettings,
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -74,6 +85,7 @@ export function visibleOverflowItems(
 		LucideChevronDown,
 		LucidePlus,
 		LucideEllipsis,
+		LucideSettings,
 	],
 	template: `
 		<div class="flex items-center gap-0.5 px-1.5 py-0.5">
@@ -111,7 +123,7 @@ export function visibleOverflowItems(
 			</button>
 
 			<!-- Present split-button + dropdown -->
-			<div class="relative inline-flex items-center">
+			<div class="relative inline-flex items-center" #presentRoot>
 				<button
 					type="button"
 					class="pptx-rb-pill rounded-r-none"
@@ -186,8 +198,19 @@ export function visibleOverflowItems(
 				<svg lucidePanelRight class="h-4 w-4"></svg>
 			</button>
 
+			<!-- Settings (mirrors React: between the panel toggle and the overflow "...") -->
+			<button
+				type="button"
+				class="pptx-rb-icon text-muted-foreground"
+				[title]="'pptx.toolbar.settingsShortcuts' | translate"
+				[attr.aria-label]="'pptx.toolbar.settings' | translate"
+				(click)="openSettings.emit()"
+			>
+				<svg lucideSettings class="h-3.5 w-3.5"></svg>
+			</button>
+
 			<!-- Overflow menu -->
-			<div class="relative inline-flex items-center">
+			<div class="relative inline-flex items-center" #overflowRoot>
 				<button
 					type="button"
 					class="pptx-rb-icon text-muted-foreground"
@@ -238,6 +261,8 @@ export class RibbonPrimaryRowComponent {
 	readonly broadcast = output<void>();
 	readonly openCustomShows = output<void>();
 	readonly toggleInspector = output<void>();
+	/** Emitted when the user clicks the Settings cog (opens the Settings dialog). */
+	readonly openSettings = output<void>();
 	readonly exportPng = output<void>();
 	readonly exportPdf = output<void>();
 	readonly exportGif = output<void>();
@@ -251,6 +276,31 @@ export class RibbonPrimaryRowComponent {
 	protected readonly overflowOpen = signal(false);
 	protected readonly toolbar = toolbarVisibility(this.hiddenActions);
 	protected readonly overflowItems = computed(() => visibleOverflowItems(this.hiddenActions()));
+
+	private readonly presentRoot = viewChild<ElementRef<HTMLElement>>('presentRoot');
+	private readonly overflowRoot = viewChild<ElementRef<HTMLElement>>('overflowRoot');
+
+	/** Escape dismisses any open dropdown (Present options / overflow). */
+	@HostListener('document:keydown.escape')
+	protected onDocumentEscape(): void {
+		this.presentMenuOpen.set(false);
+		this.overflowOpen.set(false);
+	}
+
+	/** A pointerdown outside a dropdown's trigger + panel dismisses it. */
+	@HostListener('document:pointerdown', ['$event'])
+	protected onDocumentPointerDown(event: PointerEvent): void {
+		const target = event.target;
+		if (!(target instanceof Node)) {
+			return;
+		}
+		if (this.presentMenuOpen() && !this.presentRoot()?.nativeElement.contains(target)) {
+			this.presentMenuOpen.set(false);
+		}
+		if (this.overflowOpen() && !this.overflowRoot()?.nativeElement.contains(target)) {
+			this.overflowOpen.set(false);
+		}
+	}
 
 	protected onOverflow(key: string): void {
 		this.overflowOpen.set(false);

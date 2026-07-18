@@ -195,13 +195,13 @@ const CHANGE_CASE_OPTIONS = [
 		<!-- Text Shadow toggle -->
 		<button
 			type="button"
-			class="pptx-rb-gb"
+			class="pptx-rb-gb whitespace-nowrap"
 			[disabled]="!isText()"
 			[ngClass]="curStyle()?.textShadowColor ? 'bg-accent' : ''"
 			[title]="'pptx.textEffects.shadow' | translate"
 			(click)="toggleShadow()"
 		>
-			Shadow
+			{{ 'pptx.textEffects.shadow' | translate }}
 		</button>
 		<!-- Character Spacing -->
 		<select

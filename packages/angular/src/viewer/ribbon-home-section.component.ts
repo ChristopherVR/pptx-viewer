@@ -6,7 +6,13 @@
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
-import { LucidePlus } from '@lucide/angular';
+import {
+	LucideClipboardPaste,
+	LucideCopy,
+	LucidePaintbrush,
+	LucidePlus,
+	LucideScissors,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
@@ -24,6 +30,10 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 		NgClass,
 		TranslatePipe,
 		LucidePlus,
+		LucideClipboardPaste,
+		LucideCopy,
+		LucidePaintbrush,
+		LucideScissors,
 		RibbonFontControlsComponent,
 		RibbonParagraphControlsComponent,
 		RibbonEditingSectionComponent,
@@ -32,31 +42,35 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 		<!-- Clipboard -->
 		<div class="flex flex-col items-center gap-0.5">
 			<div class="pptx-rb-grp">
+				<!-- Icon-only clipboard buttons with title tooltips, matching React's HomeSection. -->
 				<button
 					type="button"
 					class="pptx-rb-gb"
 					[title]="'pptx.arrange.paste' | translate"
+					[attr.aria-label]="'pptx.arrange.paste' | translate"
 					(click)="paste()"
 				>
-					{{ 'pptx.arrange.paste' | translate }}
+					<svg lucideClipboardPaste class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
 					class="pptx-rb-gb"
 					[title]="'pptx.arrange.cut' | translate"
+					[attr.aria-label]="'pptx.arrange.cut' | translate"
 					[disabled]="!hasSel()"
 					(click)="cut()"
 				>
-					{{ 'pptx.arrange.cut' | translate }}
+					<svg lucideScissors class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
 					class="pptx-rb-gb"
 					[title]="'pptx.arrange.copy' | translate"
+					[attr.aria-label]="'pptx.arrange.copy' | translate"
 					[disabled]="!hasSel()"
 					(click)="copy()"
 				>
-					{{ 'pptx.arrange.copy' | translate }}
+					<svg lucideCopy class="h-4 w-4"></svg>
 				</button>
 				<button
 					type="button"
@@ -66,9 +80,10 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 					[ngClass]="formatPainterActive() ? 'bg-primary text-primary-foreground' : ''"
 					[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
 					[title]="'pptx.arrange.formatPainter' | translate"
+					[attr.aria-label]="'pptx.arrange.formatPainter' | translate"
 					(click)="toggleFormatPainter.emit()"
 				>
-					{{ 'pptx.ribbon.painter' | translate }}
+					<svg lucidePaintbrush class="h-4 w-4"></svg>
 				</button>
 			</div>
 			<span class="text-[9px] leading-none text-muted-foreground">
@@ -105,7 +120,7 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 				</button>
 				<button
 					type="button"
-					class="pptx-rb-gb"
+					class="pptx-rb-gb whitespace-nowrap"
 					[title]="'pptx.sections.resetSlideTitle' | translate"
 					(click)="resetSlide.emit()"
 				>

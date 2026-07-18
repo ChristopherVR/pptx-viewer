@@ -20,7 +20,8 @@ import { LoadContentService } from './load-content.service';
 			<h3 class="icard__heading">{{ 'pptx.slideSize.title' | translate }}</h3>
 			<div class="icard__grid2">
 				<label class="icard__row">
-					<span class="icard__label">{{ 'pptx.slideSize.width' | translate }}</span>
+					<!-- Compact "W"/"H" labels, matching React's SlideSizeCard. -->
+					<span class="icard__label">W</span>
 					<input
 						type="number"
 						class="icard__input icard__input--number"
@@ -31,7 +32,7 @@ import { LoadContentService } from './load-content.service';
 					/>
 				</label>
 				<label class="icard__row">
-					<span class="icard__label">{{ 'pptx.slideSize.height' | translate }}</span>
+					<span class="icard__label">H</span>
 					<input
 						type="number"
 						class="icard__input icard__input--number"

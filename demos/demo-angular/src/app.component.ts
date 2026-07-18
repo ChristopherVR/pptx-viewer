@@ -69,7 +69,6 @@ type DemoContent = Uint8Array | ArrayBuffer;
 			<main class="demo-viewer-host">
 				<pptx-viewer
 					[content]="content()!"
-					[theme]="activeTheme()"
 					[canEdit]="true"
 					[fileName]="fileName()"
 					[filePath]="fileName() || undefined"

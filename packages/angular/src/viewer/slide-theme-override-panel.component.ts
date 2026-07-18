@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { ColorMapAliasKey, PptxSlide, PptxTheme } from 'pptx-viewer-core';
 import {
 	applyThemeOverrideToSlide,
@@ -30,11 +31,12 @@ export function createIdentityColorMapOverride(): Record<string, string> {
 	selector: 'pptx-slide-theme-override-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		<div class="override">
 			<label class="toggle">
 				<input type="checkbox" [checked]="active()" (change)="toggle($event)" />
-				<span>Use slide color override</span>
+				<span>{{ 'pptx.themeOverride.enableOverride' | translate }}</span>
 			</label>
 			@if (active()) {
 				@for (alias of aliases; track alias) {

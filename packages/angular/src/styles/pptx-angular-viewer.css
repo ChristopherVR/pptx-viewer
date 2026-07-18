@@ -54,8 +54,11 @@
 	.pptx-rb-sep {
 		@apply mx-1 w-px self-stretch bg-border/40;
 	}
+	/* Native selects styled to sit flush with the surrounding ribbon pills
+	   (same height, radius, background and type size as .pptx-rb-pill /
+	   .pptx-rb-gb) instead of the stock OS select chrome. */
 	.pptx-rb-select {
-		@apply rounded border border-border bg-card px-1 py-1 text-xs text-foreground;
+		@apply h-7 cursor-pointer rounded border border-border bg-muted px-1.5 text-xs text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
 	}
 	/* Horizontal-scroll container for the ribbon tab row with a hidden
 	   scrollbar (mirrors React's `overflow-x-auto scrollbar-none`), so on
@@ -274,7 +277,9 @@ pptx-element-renderer {
 	flex: 1;
 	min-width: 0;
 	overflow: auto;
-	background: #1e293b;
+	/* Same token React's <main> uses (bg-background), with the theme.css
+	   dark fallback for themeless hosts. */
+	background: var(--pptx-background, #030712);
 }
 
 /* Floating follow-mode bar: centred at the top of the canvas area. */
