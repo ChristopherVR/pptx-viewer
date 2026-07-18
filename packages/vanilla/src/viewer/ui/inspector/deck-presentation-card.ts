@@ -1,3 +1,11 @@
+import type { PptxPresentationPrintProperties } from 'pptx-viewer-core';
+import {
+	printPropertiesFrameSlides,
+	printPropertiesSlidesPerPage,
+	withFrameSlides,
+	withSlidesPerPage,
+} from 'pptx-viewer-shared';
+
 import type { Translator } from '../../i18n';
 import { makeCheckboxField, makeSelectField } from './controls-extra';
 import type { DeckCard } from './deck-card-helpers';
@@ -18,6 +26,10 @@ export function createDeckPresentationCard(
 	handlers: Pick<InspectorHandlers, 'updatePresentationSettings'>,
 ): DeckCard {
 	const { el, body } = makeSection(doc, t('pptx.slideInspector.presentation'));
+
+	// The change handlers fire outside `update()`, so keep the latest typed print
+	// properties around to spread into each patch.
+	let printProperties: PptxPresentationPrintProperties | null | undefined;
 
 	const showType = makeSelectField<ShowType>(doc, {
 		label: t('pptx.presentationSettings.showType'),
@@ -42,7 +54,10 @@ export function createDeckPresentationCard(
 	});
 	const frameSlides = makeCheckboxField(doc, {
 		label: t('pptx.presentationSettings.frameSlides'),
-		onChange: (checked) => handlers.updatePresentationSettings({ printFrameSlides: checked }),
+		onChange: (checked) =>
+			handlers.updatePresentationSettings({
+				printProperties: withFrameSlides(printProperties, checked),
+			}),
 	});
 	const slidesPerPage = doc.createElement('input');
 	slidesPerPage.type = 'number';
@@ -53,7 +68,9 @@ export function createDeckPresentationCard(
 	slidesPerPage.addEventListener('change', () => {
 		const value = Number.parseInt(slidesPerPage.value, 10);
 		if (Number.isFinite(value)) {
-			handlers.updatePresentationSettings({ printSlidesPerPage: value });
+			handlers.updatePresentationSettings({
+				printProperties: withSlidesPerPage(printProperties, value),
+			});
 		}
 	});
 	const slidesPerPageRow = makeRow(doc, t('pptx.presentationSettings.slidesPerPage'));
@@ -72,13 +89,14 @@ export function createDeckPresentationCard(
 		el,
 		update(state) {
 			const props = state.presentationProperties;
+			printProperties = props.printProperties;
 			showType.setValue(props.showType ?? 'presented');
 			loop.setValue(Boolean(props.loopContinuously));
 			narration.setValue(props.showWithNarration !== false);
 			animation.setValue(props.showWithAnimation !== false);
-			frameSlides.setValue(Boolean(props.printFrameSlides));
+			frameSlides.setValue(printPropertiesFrameSlides(props.printProperties));
 			if (doc.activeElement !== slidesPerPage) {
-				slidesPerPage.value = String(props.printSlidesPerPage ?? 1);
+				slidesPerPage.value = String(printPropertiesSlidesPerPage(props.printProperties));
 			}
 			for (const control of [showType, loop, narration, animation, frameSlides]) {
 				control.setDisabled(!state.editable);
