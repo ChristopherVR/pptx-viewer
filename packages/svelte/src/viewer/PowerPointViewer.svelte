@@ -333,6 +333,7 @@
 		getOnload: () => onload,
 		getOnerror: () => onerror,
 		getOnslidechange: () => onslidechange,
+		onContentApplied: () => collab.adoptDocAfterLoad(),
 	});
 
 	onDestroy(() => {

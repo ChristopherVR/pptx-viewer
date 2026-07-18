@@ -87,6 +87,7 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		getOnload: () => options.onload,
 		getOnerror: () => options.onerror,
 		getOnslidechange: () => options.onslidechange,
+		onContentApplied: () => collab.adoptDocAfterLoad(),
 	});
 
 	return {
