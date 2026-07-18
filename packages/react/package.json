@@ -79,6 +79,7 @@
 		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {
+		"@ai-sdk/react": "^4.0.34",
 		"@tailwindcss/cli": "^4.3.3",
 		"@types/dompurify": "^3.2.0",
 		"@types/react": "^19.2.17",
@@ -95,6 +96,8 @@
 		"yjs": "^13.6.31"
 	},
 	"peerDependencies": {
+		"@ai-sdk/react": "^4.0.34",
+		"ai": ">=6 <8",
 		"fast-xml-parser": "^5.10.1",
 		"framer-motion": "^12.42.2",
 		"i18next": "^26.3.6",
@@ -105,6 +108,14 @@
 		"react-dom": "^19.2.7",
 		"react-i18next": "^17.0.9",
 		"react-icons": "^5.7.0"
+	},
+	"peerDependenciesMeta": {
+		"@ai-sdk/react": {
+			"optional": true
+		},
+		"ai": {
+			"optional": true
+		}
 	},
 	"optionalDependencies": {
 		"three": "^0.185.1",

@@ -33,11 +33,12 @@ export default defineConfig((options) => ({
 		'tailwind-merge',
 		'i18next',
 		'react-i18next',
-		// Optional AI SDK peer, reachable only through the lazily-loaded
-		// `pptx-viewer-shared/ai` subpath. Kept external so the dynamic
-		// `import('ai')` inside shared stays a real optional runtime import and
-		// the SDK is never inlined into this bundle.
+		// Optional AI SDK peers, reachable only through the lazily-loaded AI
+		// chat panel / `pptx-viewer-shared/ai` subpath. Kept external so the
+		// dynamic `import('ai')` inside shared stays a real optional runtime
+		// import and neither SDK is ever inlined into this bundle.
 		'ai',
+		'@ai-sdk/react',
 	],
 	// Bundle the internal workspace packages so consumers can install just
 	// `pptx-react-viewer` without also pulling `pptx-viewer-core` from npm.

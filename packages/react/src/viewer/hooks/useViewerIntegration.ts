@@ -1,4 +1,4 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
 import type { ViewerMode } from 'pptx-viewer-shared';
 /**
  * useViewerIntegration: Wires pointer handling, content lifecycle,
@@ -6,7 +6,7 @@ import type { ViewerMode } from 'pptx-viewer-shared';
  * and keyboard shortcuts into the viewer orchestrator.
  */
 import { useEffect, useImperativeHandle, useState } from 'react';
-import type { Dispatch, ForwardedRef, SetStateAction } from 'react';
+import type { Dispatch, ForwardedRef, RefObject, SetStateAction } from 'react';
 
 import { MIN_ZOOM_SCALE, MAX_ZOOM_SCALE } from '../constants';
 import type { PowerPointViewerHandle } from '../types';
@@ -81,6 +81,8 @@ export interface ViewerIntegrationResult {
 	autosaveStatus: AutosaveStatus;
 	isEncryptedDialogOpen: boolean;
 	setIsEncryptedDialogOpen: Dispatch<SetStateAction<boolean>>;
+	/** The loaded core handler, exposed for the AI bridge (`getHandler`). */
+	handlerRef: RefObject<PptxHandler | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -428,5 +430,6 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		autosaveStatus,
 		isEncryptedDialogOpen,
 		setIsEncryptedDialogOpen,
+		handlerRef,
 	};
 }
