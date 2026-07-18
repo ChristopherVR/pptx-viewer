@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-import LandingBento from './LandingBento.vue';
+import LandingAgents from './LandingAgents.vue';
+import LandingDemos from './LandingDemos.vue';
+import LandingFaq from './LandingFaq.vue';
+import LandingFeatures from './LandingFeatures.vue';
 import LandingFinale from './LandingFinale.vue';
 import LandingHero from './LandingHero.vue';
-import LandingSections from './LandingSections.vue';
-import LandingStack from './LandingStack.vue';
-import LandingStatement from './LandingStatement.vue';
+import LandingQuickstart from './LandingQuickstart.vue';
 import { useReveals } from './useReveals';
 
 const root = ref<HTMLElement | null>(null);
@@ -16,10 +17,11 @@ useReveals(root);
 <template>
 	<div ref="root" class="pv-landing">
 		<LandingHero />
-		<LandingStatement />
-		<LandingSections />
-		<LandingBento />
-		<LandingStack />
+		<LandingFeatures />
+		<LandingAgents />
+		<LandingQuickstart />
+		<LandingDemos />
+		<LandingFaq />
 		<LandingFinale />
 	</div>
 </template>

@@ -3,18 +3,32 @@ export interface LandingLink {
 	href: string;
 }
 
-export interface LandingPanelCopy {
-	kicker: string;
+export interface LandingFeatureCopy {
 	title: string;
 	copy: string;
 	link: LandingLink;
 }
 
-export interface LandingTileCopy {
+export interface LandingFaqItem {
+	q: string;
+	a: string;
+	link?: LandingLink;
+}
+
+export interface LandingFooterLink extends LandingLink {
+	external?: boolean;
+}
+
+export interface LandingFooterColumn {
 	title: string;
-	copy: string;
+	links: LandingFooterLink[];
+}
+
+export interface LandingDemoCard {
+	name: string;
+	desc: string;
 	href: string;
-	wide?: boolean;
+	external?: boolean;
 }
 
 export interface LandingCopy {
@@ -28,27 +42,37 @@ export interface LandingCopy {
 		scroll: string;
 		frameCaption: string;
 		frameTry: string;
+		copyLabel: string;
+		copiedLabel: string;
 	};
-	statement: {
-		kicker: string;
-		line1: string;
-		line2Pre: string;
-		line2Em: string;
-		line2Post: string;
-		line3: string;
-	};
-	panels: LandingPanelCopy[];
-	bento: {
-		kicker: string;
-		tiles: LandingTileCopy[];
-	};
-	stack: {
+	features: {
 		kicker: string;
 		title: string;
-		copyPre: string;
-		copyCode: string;
-		copyPost: string;
-		packages: Array<{ name: string; desc: string; href: string; external: boolean }>;
+		items: LandingFeatureCopy[];
+	};
+	agents: {
+		kicker: string;
+		title: string;
+		copy: string;
+		link: LandingLink;
+	};
+	quickstart: {
+		kicker: string;
+		title: string;
+		copy: string;
+		docsLabel: string;
+	};
+	demos: {
+		kicker: string;
+		title: string;
+		copy: string;
+		open: string;
+		cards: LandingDemoCard[];
+	};
+	faq: {
+		kicker: string;
+		title: string;
+		items: LandingFaqItem[];
 	};
 	finale: {
 		kicker: string;
@@ -56,7 +80,8 @@ export interface LandingCopy {
 		sub: string;
 		quick: LandingLink;
 		github: string;
-		footLeft: string;
-		footRight: string;
+		columns: LandingFooterColumn[];
+		bottomLeft: string;
+		bottomRight: string;
 	};
 }

@@ -4,6 +4,10 @@ import { withBase } from 'vitepress';
 import { useLandingCopy } from './copy';
 
 const copy = useLandingCopy();
+
+function resolve(href: string, external?: boolean): string {
+	return external ? href : withBase(href);
+}
 </script>
 
 <template>
@@ -22,9 +26,23 @@ const copy = useLandingCopy();
 				</a>
 			</div>
 		</div>
+		<div class="pv-finale__columns">
+			<div v-for="column in copy.finale.columns" :key="column.title" class="pv-finale__column">
+				<span class="pv-finale__coltitle">{{ column.title }}</span>
+				<a
+					v-for="link in column.links"
+					:key="link.text"
+					:href="resolve(link.href, link.external)"
+					:target="link.external ? '_blank' : undefined"
+					:rel="link.external ? 'noreferrer' : undefined"
+				>
+					{{ link.text }}
+				</a>
+			</div>
+		</div>
 		<div class="pv-finale__foot">
-			<span>{{ copy.finale.footLeft }}</span>
-			<span>{{ copy.finale.footRight }}</span>
+			<span>{{ copy.finale.bottomLeft }}</span>
+			<span>{{ copy.finale.bottomRight }}</span>
 		</div>
 	</section>
 </template>
@@ -43,7 +61,7 @@ const copy = useLandingCopy();
 .pv-finale__inner {
 	max-width: 84rem;
 	margin: 0 auto;
-	padding: clamp(6rem, 16vh, 11rem) clamp(1.4rem, 5vw, 4.5rem) clamp(4.5rem, 11vh, 8rem);
+	padding: clamp(6rem, 16vh, 11rem) clamp(1.4rem, 5vw, 4.5rem) clamp(4rem, 9vh, 6.5rem);
 	text-align: center;
 }
 
@@ -123,6 +141,42 @@ const copy = useLandingCopy();
 	border-color: #f0efec;
 }
 
+.pv-finale__columns {
+	max-width: 84rem;
+	margin: 0 auto;
+	padding: 3rem clamp(1.4rem, 5vw, 4.5rem);
+	border-top: 1px solid rgba(240, 239, 236, 0.12);
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 2rem;
+}
+
+.pv-finale__column {
+	display: flex;
+	flex-direction: column;
+	gap: 0.65rem;
+}
+
+.pv-finale__coltitle {
+	font-family: var(--pv-mono);
+	font-size: 0.66rem;
+	letter-spacing: 0.28em;
+	text-transform: uppercase;
+	color: rgba(240, 239, 236, 0.45);
+	margin-bottom: 0.4rem;
+}
+
+.pv-finale__column a {
+	font-size: 0.88rem;
+	color: rgba(240, 239, 236, 0.72);
+	transition: color 0.2s ease;
+	width: fit-content;
+}
+
+.pv-finale__column a:hover {
+	color: var(--pv-accent);
+}
+
 .pv-finale__foot {
 	max-width: 84rem;
 	margin: 0 auto;
@@ -136,5 +190,11 @@ const copy = useLandingCopy();
 	font-size: 0.68rem;
 	letter-spacing: 0.16em;
 	color: rgba(240, 239, 236, 0.45);
+}
+
+@media (max-width: 700px) {
+	.pv-finale__columns {
+		grid-template-columns: 1fr;
+	}
 }
 </style>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress';
 
+import InstallPicker from './code/InstallPicker.vue';
 import { useLandingCopy } from './copy';
 
 const DEMO_URL = 'https://christophervr.github.io/pptx-viewer/demo/';
@@ -25,7 +26,9 @@ const copy = useLandingCopy();
 						<span>{{ copy.hero.demo }}</span>
 					</a>
 				</div>
-				<code class="pv-hero__install pv-enter pv-enter--4">npx @christophervr/pptx-viewer</code>
+				<div class="pv-enter pv-enter--4">
+					<InstallPicker />
+				</div>
 			</div>
 			<div class="pv-hero__stage pv-enter pv-enter--3">
 				<a class="pv-hero__frame" :href="DEMO_URL" target="_blank" rel="noreferrer">
@@ -102,23 +105,6 @@ const copy = useLandingCopy();
 	flex-wrap: wrap;
 	gap: 0.9rem;
 	margin-top: 2.2rem;
-}
-
-.pv-hero__install {
-	display: inline-block;
-	margin-top: 1.6rem;
-	font-family: var(--pv-mono);
-	font-size: 0.8rem;
-	color: var(--pv-ink-soft);
-	background: var(--pv-surface);
-	border: 1px solid var(--pv-line);
-	border-radius: 3px;
-	padding: 0.55em 1em;
-}
-
-.pv-hero__install::before {
-	content: '$ ';
-	color: var(--pv-accent);
 }
 
 .pv-hero__frame {
