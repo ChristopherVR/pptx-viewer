@@ -38,7 +38,7 @@ export function PresentDropdown({
 	const [open, setOpen] = useState(false);
 	return (
 		<div className='relative'>
-			<div className='inline-flex border-l border-border'>
+			<div className='inline-flex items-stretch rounded border border-border bg-muted text-xs overflow-hidden'>
 				<button
 					type='button'
 					onClick={onPresent}
@@ -54,7 +54,7 @@ export function PresentDropdown({
 					type='button'
 					onClick={() => setOpen((prev) => !prev)}
 					className={cn(
-						'px-1 py-1 transition-colors border-l border-border',
+						'inline-flex items-center px-1 transition-colors border-l border-border',
 						open ? 'bg-primary text-white' : 'hover:bg-accent text-foreground',
 					)}
 					title={t('pptx.present.optionsTooltip')}

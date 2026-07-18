@@ -46,7 +46,7 @@ export const gB = `${_b} border-r border-border hover:bg-accent disabled:opacity
 export const gL = `${_b} hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed`;
 export const grp = 'inline-flex items-center rounded bg-muted text-xs overflow-hidden';
 export const pill =
-	'inline-flex items-center gap-1.5 px-2.5 py-1.5 max-md:min-h-[44px] rounded bg-muted hover:bg-accent text-xs transition-colors active:scale-95 active:opacity-80';
+	'inline-flex items-center gap-1.5 px-2.5 py-1.5 max-md:min-h-[44px] rounded bg-muted hover:bg-accent text-xs transition-colors active:scale-95 active:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed';
 export const sep = <div className='w-px self-stretch bg-border/40 mx-1 max-md:hidden' />;
 export const ic = 'w-4 h-4';
 export const ics = 'w-3.5 h-3.5';

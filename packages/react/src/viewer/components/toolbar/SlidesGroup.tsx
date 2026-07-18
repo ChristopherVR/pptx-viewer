@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { LuChevronDown, LuFolderPlus, LuPlus, LuRotateCcw, LuLayoutGrid } from 'react-icons/lu';
 
 import { cn } from '../../utils';
+import { RibbonMenu } from './RibbonMenu';
 import { ic, pill, sep } from './toolbar-constants';
 
 export interface SlidesGroupProps {
@@ -86,7 +87,7 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 							</button>
 						)}
 						{newSlideMenuOpen && (
-							<div className='absolute left-0 top-full z-50 flex flex-col w-48 pt-1'>
+							<RibbonMenu anchorRef={newSlideMenuRef} className='flex flex-col w-48 pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
 									{p.layoutOptions.map((lo) => (
 										<button
@@ -102,7 +103,7 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 										</button>
 									))}
 								</div>
-							</div>
+							</RibbonMenu>
 						)}
 					</div>
 
@@ -119,7 +120,7 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 							{t('pptx.master.layout')}
 						</button>
 						{layoutMenuOpen && (
-							<div className='absolute left-0 top-full z-50 flex flex-col w-48 pt-1'>
+							<RibbonMenu anchorRef={layoutMenuRef} className='flex flex-col w-48 pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
 									{p.layoutOptions.map((lo) => (
 										<button
@@ -135,7 +136,7 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 										</button>
 									))}
 								</div>
-							</div>
+							</RibbonMenu>
 						)}
 					</div>
 

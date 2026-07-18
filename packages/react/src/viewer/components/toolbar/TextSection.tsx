@@ -16,6 +16,7 @@ import {
 import type { TableCellEditorState } from '../../types';
 import type { ChangeCaseMode } from '../../utils/text-case-transform';
 import { ColumnsDropdown, LineSpacingDropdown, TextDirectionDropdown } from './ParagraphDropdowns';
+import { RibbonMenu } from './RibbonMenu';
 import { gB, gL, grp, FMT, ATXT, pill, ic, sep } from './toolbar-constants';
 
 /**
@@ -108,6 +109,10 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 
 	const colorInputRef = useRef<HTMLInputElement>(null);
 	const highlightInputRef = useRef<HTMLInputElement>(null);
+	const charSpacingRef = useRef<HTMLDivElement>(null);
+	const changeCaseRef = useRef<HTMLDivElement>(null);
+	const fontColorRef = useRef<HTMLDivElement>(null);
+	const highlightMenuRef = useRef<HTMLDivElement>(null);
 	const handleColorChange = useCallback(
 		(color: string) => {
 			if (!canFormat) {
@@ -288,7 +293,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 					</div>
 
 					{/* Character Spacing */}
-					<div className='relative group'>
+					<div className='relative group' ref={charSpacingRef}>
 						<button
 							type='button'
 							disabled={!canMut}
@@ -318,7 +323,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								<path d='M21 20 L19 20 M21 20 L23 20' strokeWidth='1.5' />
 							</svg>
 						</button>
-						<div className='absolute left-0 top-full z-50 hidden group-hover:block pt-1'>
+						<RibbonMenu anchorRef={charSpacingRef} className='hidden group-hover:block pt-1'>
 							<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 w-32'>
 								{[
 									{ label: 'Very Tight', value: -150 },
@@ -343,11 +348,11 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 									</button>
 								))}
 							</div>
-						</div>
+						</RibbonMenu>
 					</div>
 
 					{/* Change Case (Aa) */}
-					<div className='relative group'>
+					<div className='relative group' ref={changeCaseRef}>
 						<button
 							type='button'
 							disabled={!canMut}
@@ -375,7 +380,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								</text>
 							</svg>
 						</button>
-						<div className='absolute left-0 top-full z-50 hidden group-hover:block pt-1'>
+						<RibbonMenu anchorRef={changeCaseRef} className='hidden group-hover:block pt-1'>
 							<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 w-44'>
 								{[
 									{ label: t('pptx.text.changeCaseSentence'), value: 'sentence' },
@@ -408,11 +413,11 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 									</button>
 								))}
 							</div>
-						</div>
+						</RibbonMenu>
 					</div>
 
 					{/* Font colour */}
-					<div className='relative group'>
+					<div className='relative group' ref={fontColorRef}>
 						<button
 							type='button'
 							disabled={!canMut}
@@ -437,7 +442,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								style={{ backgroundColor: currentColor }}
 							/>
 						</button>
-						<div className='absolute left-0 top-full z-50 hidden group-hover:block pt-1'>
+						<RibbonMenu anchorRef={fontColorRef} className='hidden group-hover:block pt-1'>
 							<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 w-36'>
 								<div className='grid grid-cols-5 gap-1.5 mb-2'>
 									{FONT_COLOR_PRESETS.map((c) => (
@@ -473,11 +478,11 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 									onChange={(e) => handleColorChange(e.target.value)}
 								/>
 							</div>
-						</div>
+						</RibbonMenu>
 					</div>
 
 					{/* Text highlight colour */}
-					<div className='relative group'>
+					<div className='relative group' ref={highlightMenuRef}>
 						<button
 							type='button'
 							disabled={!canMut}
@@ -492,7 +497,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								style={{ backgroundColor: currentHighlight }}
 							/>
 						</button>
-						<div className='absolute left-0 top-full z-50 hidden group-hover:block pt-1'>
+						<RibbonMenu anchorRef={highlightMenuRef} className='hidden group-hover:block pt-1'>
 							<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 w-36'>
 								<div className='grid grid-cols-5 gap-1.5 mb-2'>
 									{HIGHLIGHT_COLOR_PRESETS.map((c) => (
@@ -528,7 +533,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 									onChange={(e) => handleHighlightChange(e.target.value)}
 								/>
 							</div>
-						</div>
+						</RibbonMenu>
 					</div>
 				</div>
 				<span className='text-[9px] text-muted-foreground leading-none'>Font</span>

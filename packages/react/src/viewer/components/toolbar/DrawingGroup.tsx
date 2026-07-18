@@ -6,6 +6,7 @@ import { LuLayers, LuPaintBucket, LuPenLine, LuShapes, LuSparkles } from 'react-
 import { SHAPE_PRESETS } from '../../constants';
 import type { SupportedShapeType } from '../../types-core';
 import { cn } from '../../utils';
+import { RibbonMenu } from './RibbonMenu';
 import { ic, pill, sep } from './toolbar-constants';
 
 export interface DrawingGroupProps {
@@ -116,7 +117,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 							{t('pptx.drawing.shapes')}
 						</button>
 						{shapesOpen && (
-							<div className='absolute left-0 top-full z-50 flex flex-col w-52 pt-1'>
+							<RibbonMenu anchorRef={shapesRef} className='flex flex-col w-52 pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
 									{TOP_SHAPES.map((s) => (
 										<button
@@ -137,7 +138,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 										</button>
 									))}
 								</div>
-							</div>
+							</RibbonMenu>
 						)}
 					</div>
 
@@ -154,7 +155,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 							{t('pptx.ribbon.arrange')}
 						</button>
 						{arrangeOpen && (
-							<div className='absolute left-0 top-full z-50 flex flex-col w-44 pt-1'>
+							<RibbonMenu anchorRef={arrangeRef} className='flex flex-col w-44 pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1'>
 									<button
 										type='button'
@@ -197,7 +198,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 										{t('pptx.contextMenu.sendToBack')}
 									</button>
 								</div>
-							</div>
+							</RibbonMenu>
 						)}
 					</div>
 
@@ -213,7 +214,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 							<LuPaintBucket className={ic} />
 						</button>
 						{fillOpen && (
-							<div className='absolute left-0 top-full z-50 pt-1'>
+							<RibbonMenu anchorRef={fillRef} className='pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 grid grid-cols-6 gap-1'>
 									{FILL_COLORS.map((c) => (
 										<button
@@ -231,7 +232,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 										/>
 									))}
 								</div>
-							</div>
+							</RibbonMenu>
 						)}
 					</div>
 
@@ -247,7 +248,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 							<LuPenLine className={ic} />
 						</button>
 						{outlineOpen && (
-							<div className='absolute left-0 top-full z-50 pt-1'>
+							<RibbonMenu anchorRef={outlineRef} className='pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 grid grid-cols-6 gap-1'>
 									{FILL_COLORS.map((c) => (
 										<button
@@ -265,7 +266,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 										/>
 									))}
 								</div>
-							</div>
+							</RibbonMenu>
 						)}
 					</div>
 
@@ -273,7 +274,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 					<button
 						type='button'
 						disabled
-						className={cn(pill, 'opacity-50 cursor-not-allowed')}
+						className={pill}
 						title={t('pptx.drawing.shapeEffectsUnavailable')}
 					>
 						<LuSparkles className={ic} />

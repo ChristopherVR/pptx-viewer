@@ -6,6 +6,7 @@ import { LuChevronDown, LuClipboardPaste, LuCopy, LuPaintbrush, LuScissors } fro
 
 import type { ElementClipboardPayload } from '../../types';
 import { cn } from '../../utils';
+import { RibbonMenu } from './RibbonMenu';
 import { SlidesGroup } from './SlidesGroup';
 import { gB, gL, grp, ic, sep } from './toolbar-constants';
 
@@ -191,7 +192,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 							<LuChevronDown className='w-3 h-3 ml-1 shrink-0 text-muted-foreground' />
 						</button>
 						{fontMenuOpen && (
-							<div className='absolute left-0 top-full z-50 flex flex-col w-48 pt-1'>
+							<RibbonMenu anchorRef={fontMenuRef} className='flex flex-col w-48 pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
 									{COMMON_FONTS.map((f) => (
 										<button
@@ -208,7 +209,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 										</button>
 									))}
 								</div>
-							</div>
+							</RibbonMenu>
 						)}
 					</div>
 					<div className='relative' ref={sizeMenuRef}>
@@ -221,7 +222,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 							<LuChevronDown className='w-3 h-3 ml-1 shrink-0 text-muted-foreground' />
 						</button>
 						{sizeMenuOpen && (
-							<div className='absolute left-0 top-full z-50 flex flex-col w-48 pt-1'>
+							<RibbonMenu anchorRef={sizeMenuRef} className='flex flex-col w-48 pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
 									{COMMON_SIZES.map((s) => (
 										<button
@@ -237,7 +238,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 										</button>
 									))}
 								</div>
-							</div>
+							</RibbonMenu>
 						)}
 					</div>
 				</div>

@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuColumns3 } from 'react-icons/lu';
 
+import { RibbonMenu } from './RibbonMenu';
 import { ic, pill } from './toolbar-constants';
 
 interface DropdownProps {
@@ -81,7 +82,7 @@ export function LineSpacingDropdown(p: DropdownProps): React.ReactElement {
 				</svg>
 			</button>
 			{open && (
-				<div className='absolute left-0 top-full z-50 pt-1'>
+				<RibbonMenu anchorRef={ref} className='pt-1'>
 					<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 w-28'>
 						{LINE_SPACING_OPTIONS.map((opt) => (
 							<button
@@ -104,7 +105,7 @@ export function LineSpacingDropdown(p: DropdownProps): React.ReactElement {
 							</button>
 						))}
 					</div>
-				</div>
+				</RibbonMenu>
 			)}
 		</div>
 	);
@@ -136,7 +137,7 @@ export function TextDirectionDropdown(p: SimpleDropdownProps): React.ReactElemen
 				</svg>
 			</button>
 			{open && (
-				<div className='absolute left-0 top-full z-50 pt-1'>
+				<RibbonMenu anchorRef={ref} className='pt-1'>
 					<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 w-36'>
 						{TEXT_DIRECTION_OPTIONS.map((opt) => (
 							<button
@@ -156,7 +157,7 @@ export function TextDirectionDropdown(p: SimpleDropdownProps): React.ReactElemen
 							</button>
 						))}
 					</div>
-				</div>
+				</RibbonMenu>
 			)}
 		</div>
 	);
@@ -181,7 +182,7 @@ export function ColumnsDropdown(p: SimpleDropdownProps): React.ReactElement {
 				<LuColumns3 className={ic} />
 			</button>
 			{open && (
-				<div className='absolute left-0 top-full z-50 pt-1'>
+				<RibbonMenu anchorRef={ref} className='pt-1'>
 					<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 w-28'>
 						{COLUMN_OPTIONS.map((opt) => (
 							<button
@@ -201,7 +202,7 @@ export function ColumnsDropdown(p: SimpleDropdownProps): React.ReactElement {
 							</button>
 						))}
 					</div>
-				</div>
+				</RibbonMenu>
 			)}
 		</div>
 	);

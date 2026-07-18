@@ -14,6 +14,8 @@ import {
 
 import { SHAPE_PRESETS, ACTION_BUTTON_PRESETS } from '../../constants';
 import type { SupportedShapeType } from '../../types';
+import { cn } from '../../utils';
+import { RibbonMenu } from './RibbonMenu';
 import { grp, ic, pill } from './toolbar-constants';
 
 export interface InsertSectionProps {
@@ -41,6 +43,8 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 	const [dateFormat, setDateFormat] = useState('locale');
 	const [newChartType, setNewChartType] = useState<PptxChartType>(DEFAULT_INSERT_CHART_TYPE);
 	const datePickerRef = useRef<HTMLDivElement>(null);
+	const actionMenuRef = useRef<HTMLDivElement>(null);
+	const fieldMenuRef = useRef<HTMLDivElement>(null);
 
 	const openDatePicker = useCallback(() => {
 		const now = new Date();
@@ -235,7 +239,7 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 				{t('pptx.ribbon.equation')}
 			</button>
 			{/* Action Buttons dropdown */}
-			<div className='relative group'>
+			<div className='relative group inline-flex items-center' ref={actionMenuRef}>
 				<button
 					type='button'
 					disabled={!canEdit}
@@ -257,7 +261,10 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 					{t('pptx.ribbon.action')}
 					<LuChevronDown className='w-3 h-3' />
 				</button>
-				<div className='absolute left-0 top-full z-50 hidden group-hover:flex flex-col w-40 pt-1'>
+				<RibbonMenu
+					anchorRef={actionMenuRef}
+					className='hidden group-hover:flex flex-col w-40 pt-1'
+				>
 					<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1'>
 						{ACTION_BUTTON_PRESETS.map((preset) => (
 							<button
@@ -282,11 +289,11 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 							</button>
 						))}
 					</div>
-				</div>
+				</RibbonMenu>
 			</div>
 			{/* Insert Field dropdown */}
 			{p.onInsertField && (
-				<div className='relative group'>
+				<div className='relative group inline-flex items-center' ref={fieldMenuRef}>
 					<button
 						type='button'
 						disabled={!canEdit}
@@ -308,7 +315,10 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 						{t('pptx.field.field')}
 						<LuChevronDown className='w-3 h-3' />
 					</button>
-					<div className='absolute left-0 top-full z-50 hidden group-hover:flex flex-col w-44 pt-1'>
+					<RibbonMenu
+						anchorRef={fieldMenuRef}
+						className='hidden group-hover:flex flex-col w-44 pt-1'
+					>
 						<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1'>
 							<button
 								type='button'
@@ -343,11 +353,16 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 								{t('pptx.field.footer')}
 							</button>
 						</div>
-					</div>
+					</RibbonMenu>
 				</div>
 			)}
 			{p.onOpenHeaderFooter && (
-				<button type='button' disabled={!canEdit} className={pill} onClick={p.onOpenHeaderFooter}>
+				<button
+					type='button'
+					disabled={!canEdit}
+					className={cn(pill, 'whitespace-nowrap')}
+					onClick={p.onOpenHeaderFooter}
+				>
 					{t('pptx.headerFooter.title')}
 				</button>
 			)}

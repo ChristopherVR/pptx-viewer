@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuMousePointer2, LuReplace, LuSearch } from 'react-icons/lu';
 
+import { RibbonMenu } from './RibbonMenu';
 import { gB, gL, grp, ic, pill, sep } from './toolbar-constants';
 
 export interface EditingSectionProps {
@@ -67,7 +68,7 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 							<LuMousePointer2 className={ic} />
 						</button>
 						{selectMenuOpen && (
-							<div className='absolute left-0 top-full z-50 pt-1'>
+							<RibbonMenu anchorRef={menuRef} className='pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 w-32'>
 									<button
 										type='button'
@@ -81,7 +82,7 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 										{t('pptx.editing.selectAll')}
 									</button>
 								</div>
-							</div>
+							</RibbonMenu>
 						)}
 					</div>
 				</div>
