@@ -159,7 +159,15 @@ describe('powerPointViewer', () => {
 		);
 		viewTab?.click();
 		flushSync();
-		toolbarButton(target, 'Edit slide masters and layouts').click();
+		// Accessible name is the visible "Slide Master" text (cross-binding e2e
+		// contract); the tooltip lives on title only.
+		const slideMasterButton = [...target.querySelectorAll<HTMLButtonElement>('button')].find(
+			(button) => button.textContent?.trim() === 'Slide Master',
+		);
+		if (!slideMasterButton) {
+			throw new Error('Slide Master button not found');
+		}
+		slideMasterButton.click();
 		flushSync();
 		expect(target.querySelector('.pptx-svelte-master-workspace')).not.toBeNull();
 		expect(target.querySelector('.pptx-svelte-master-canvas .pptx-svelte-stage')).not.toBeNull();

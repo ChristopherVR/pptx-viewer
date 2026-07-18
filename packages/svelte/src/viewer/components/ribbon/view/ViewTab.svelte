@@ -98,7 +98,10 @@
 	<button type="button" class:pptx-svelte-viewtab-active={snapToShape} aria-pressed={snapToShape} onclick={() => onsnapToShapechange(!snapToShape)}>Snap to shape</button>
 	<button type="button" onclick={() => onaddguide('h')}>Add H guide</button><button type="button" onclick={() => onaddguide('v')}>Add V guide</button>
 	<button type="button" disabled={!editor.editable || typeof window === 'undefined' || !('EyeDropper' in window) || !editor.selectedElement} onclick={() => void eyedropper()}>Eyedropper</button>
-	<button type="button" disabled={!editor.editable} aria-label={t('pptx.view.slideMasterTooltip')} title={t('pptx.view.slideMasterTooltip')} onclick={() => onentermasterview?.()}>
+	<!-- No aria-label here: it would override the visible "Slide Master" text as
+	     the accessible name (the cross-binding e2e contract); the tooltip stays
+	     on title only. -->
+	<button type="button" disabled={!editor.editable} title={t('pptx.view.slideMasterTooltip')} onclick={() => onentermasterview?.()}>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3h11v9h-11zM5 6h6M5 8.5h4M4 1.5v3M12 1.5v3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
 		<span>{t('pptx.master.title')}</span>
 	</button>
