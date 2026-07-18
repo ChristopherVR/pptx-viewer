@@ -6,6 +6,46 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-18
 
+_Releases: pptx-react-viewer@1.22.2, pptx-vue-viewer@1.22.1, pptx-angular-viewer@1.28.1, pptx-vanilla-viewer@0.14.0, pptx-svelte-viewer@1.3.0_
+
+### Features
+
+- **svelte:** Docked per-element animation panel at React parity (by @ChristopherVR) ([65a9e50](https://github.com/ChristopherVR/pptx-viewer/commit/65a9e5063719e20cb408e970c5b48e7ea20e546e))
+- **vanilla:** Docked animation panel and threaded comment editing (by @ChristopherVR) ([b497528](https://github.com/ChristopherVR/pptx-viewer/commit/b49752886321e7d0b9b806291d533c3e10ca9d1b))
+
+### Bug Fixes
+
+- **react:** Persist tag edits on save (by @ChristopherVR) ([43e541b](https://github.com/ChristopherVR/pptx-viewer/commit/43e541bf41e91a9108748080954efefb4cff0a73))
+- **angular:** Make Home-tab Drawing shape insert actually insert (by @ChristopherVR) ([2e51ec7](https://github.com/ChristopherVR/pptx-viewer/commit/2e51ec73dc27975a146f3d0885d05a5e5b47c7c0))
+- **svelte:** Ship jszip and fast-xml-parser as real dependencies (by @ChristopherVR) ([20d8cf2](https://github.com/ChristopherVR/pptx-viewer/commit/20d8cf2de4ff94de2598143bfc9a8aa1c9d26f71))
+- **vanilla:** Ship jszip and fast-xml-parser as real dependencies (by @ChristopherVR) ([786186d](https://github.com/ChristopherVR/pptx-viewer/commit/786186db8a0cdc8acf2cb4988a25865388b7a5af))
+- **angular:** Persist Info-dialog document-property edits on save (by @ChristopherVR) ([8d9b3a7](https://github.com/ChristopherVR/pptx-viewer/commit/8d9b3a740a60bfe697b482f6bca2be91b14659b1))
+- **react:** Expose Templates On/Off state on the View-tab toggle (by @ChristopherVR) ([dc7cddf](https://github.com/ChristopherVR/pptx-viewer/commit/dc7cddf162fa0359680195ff4341c53e043e500b))
+- **svelte:** Stop aria-hiding non-interactive slide stages (by @ChristopherVR) ([d7678d6](https://github.com/ChristopherVR/pptx-viewer/commit/d7678d64729ec7174f9b82b0ff7a646ac6981502))
+- **vue:** Single slide region and marker-free static stages (by @ChristopherVR) ([fa3b635](https://github.com/ChristopherVR/pptx-viewer/commit/fa3b635c2027eed8810164889243af39aa3625df))
+- **angular:** Start the format pane closed on mobile (by @ChristopherVR) ([906bb98](https://github.com/ChristopherVR/pptx-viewer/commit/906bb982ad87e3b4e87737142debd45991a9402c))
+- **vanilla:** Present-mode thumbnail hiding and touch inline editing (by @ChristopherVR) ([42a941b](https://github.com/ChristopherVR/pptx-viewer/commit/42a941b959821006d347b50588c45e3a184a1e2c))
+- **angular:** Stop undo from wiping the history via the deck-seed effect (by @ChristopherVR) ([a3c2ec0](https://github.com/ChristopherVR/pptx-viewer/commit/a3c2ec05c431e0851513ecf8144dd64f8f1dbc64))
+- **svelte:** Let the Slide Master button expose its visible name (by @ChristopherVR) ([b077aac](https://github.com/ChristopherVR/pptx-viewer/commit/b077aacc9eb113cdc7dc03700e0d0efd83f827d4))
+
+### Documentation
+
+- **site:** Rebuild landing page with install picker, quickstart, and FAQ (by @ChristopherVR) ([053bd4d](https://github.com/ChristopherVR/pptx-viewer/commit/053bd4d40279692a1f71e02b4aeb6d4816fcb946))
+- Single-command install for svelte and vanilla bindings (by @ChristopherVR) ([2e3dfe0](https://github.com/ChristopherVR/pptx-viewer/commit/2e3dfe01366dc2cfd5958f3161baade2e71c84cf))
+- Restyle documentation pages, deepen reference content, add screenshots (by @ChristopherVR) ([ab04926](https://github.com/ChristopherVR/pptx-viewer/commit/ab049268c6eaa7a5baae9dbe1643e50e2aa0d684))
+- Plain-spoken tone, goal-based navigation hub, deeper user and API guides (by @ChristopherVR) ([d6b6aa4](https://github.com/ChristopherVR/pptx-viewer/commit/d6b6aa4329a66b7b281d1a1920afcead7be88c64))
+
+### Testing
+
+- **e2e:** Align ribbon parity spec with backstage File and tall View tab (by @ChristopherVR) ([665dcf3](https://github.com/ChristopherVR/pptx-viewer/commit/665dcf321924169d91c628c27b960e091e39bdba))
+- **e2e:** Drive the backstage Save flow through a shared exact helper (by @ChristopherVR) ([fa72b10](https://github.com/ChristopherVR/pptx-viewer/commit/fa72b10e0928fa6a842202d3869694aae583a4ba))
+
+### Build & CI
+
+- Build pptx-viewer-locales in the foundation step (by @ChristopherVR) ([9a7d617](https://github.com/ChristopherVR/pptx-viewer/commit/9a7d61755176658107d88ab94899e359a895b61c))
+
+## 2026-07-18
+
 _Releases: pptx-react-viewer@1.22.1, pptx-vue-viewer@1.22.0, pptx-angular-viewer@1.28.0, pptx-vanilla-viewer@0.13.0, pptx-svelte-viewer@1.2.0_
 
 ### Features

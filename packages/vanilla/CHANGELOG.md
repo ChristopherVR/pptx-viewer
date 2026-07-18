@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [0.14.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.14.0) - 2026-07-18
+
+### Bug Fixes
+
+- **vanilla:** Ship jszip and fast-xml-parser as real dependencies (by @ChristopherVR) ([786186d](https://github.com/ChristopherVR/pptx-viewer/commit/786186db8a0cdc8acf2cb4988a25865388b7a5af))
+
 ## [0.13.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.13.0) - 2026-07-18
 
 ## [0.12.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.12.0) - 2026-07-17

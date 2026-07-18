@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.3.0) - 2026-07-18
+
+### Bug Fixes
+
+- **svelte:** Ship jszip and fast-xml-parser as real dependencies (by @ChristopherVR) ([20d8cf2](https://github.com/ChristopherVR/pptx-viewer/commit/20d8cf2de4ff94de2598143bfc9a8aa1c9d26f71))
+
 ## [1.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.2.0) - 2026-07-18
 
 ## [1.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.1.0) - 2026-07-17
