@@ -2,11 +2,11 @@
 import { ref } from 'vue';
 
 import LandingAgents from './LandingAgents.vue';
-import LandingDemos from './LandingDemos.vue';
 import LandingFaq from './LandingFaq.vue';
 import LandingFeatures from './LandingFeatures.vue';
 import LandingFinale from './LandingFinale.vue';
 import LandingHero from './LandingHero.vue';
+import LandingLiveDemo from './LandingLiveDemo.vue';
 import LandingQuickstart from './LandingQuickstart.vue';
 import { useReveals } from './useReveals';
 
@@ -17,10 +17,10 @@ useReveals(root);
 <template>
 	<div ref="root" class="pv-landing">
 		<LandingHero />
+		<LandingLiveDemo />
 		<LandingFeatures />
 		<LandingAgents />
 		<LandingQuickstart />
-		<LandingDemos />
 		<LandingFaq />
 		<LandingFinale />
 	</div>

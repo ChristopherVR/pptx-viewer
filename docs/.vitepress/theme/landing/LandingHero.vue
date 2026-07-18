@@ -4,7 +4,6 @@ import { withBase } from 'vitepress';
 import InstallPicker from './code/InstallPicker.vue';
 import { useLandingCopy } from './copy';
 
-const DEMO_URL = 'https://christophervr.github.io/pptx-viewer/demo/';
 const copy = useLandingCopy();
 </script>
 
@@ -22,7 +21,7 @@ const copy = useLandingCopy();
 					<a class="pv-btn pv-btn--solid" :href="withBase(copy.hero.start.href)">
 						<span>{{ copy.hero.start.text }}</span>
 					</a>
-					<a class="pv-btn pv-btn--ghost" :href="DEMO_URL" target="_blank" rel="noreferrer">
+					<a class="pv-btn pv-btn--ghost" href="#live-demo">
 						<span>{{ copy.hero.demo }}</span>
 					</a>
 				</div>
@@ -31,7 +30,7 @@ const copy = useLandingCopy();
 				</div>
 			</div>
 			<div class="pv-hero__stage pv-enter pv-enter--3">
-				<a class="pv-hero__frame" :href="DEMO_URL" target="_blank" rel="noreferrer">
+				<a class="pv-hero__frame" href="#live-demo">
 					<span class="pv-hero__framebar">
 						<span class="pv-hero__dots" aria-hidden="true"><i></i><i></i><i></i></span>
 						<span class="pv-hero__framefile">{{ copy.hero.frameCaption }}</span>

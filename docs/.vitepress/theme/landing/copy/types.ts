@@ -24,11 +24,23 @@ export interface LandingFooterColumn {
 	links: LandingFooterLink[];
 }
 
-export interface LandingDemoCard {
-	name: string;
-	desc: string;
-	href: string;
-	external?: boolean;
+export interface LandingLiveDemoCopy {
+	kicker: string;
+	title: string;
+	copy: string;
+	/** aria-label for the framework tablist. */
+	frameworkLabel: string;
+	soloTab: string;
+	collabTab: string;
+	/** Label for the guest-framework picker in collaboration mode. */
+	guestPicker: string;
+	load: string;
+	loading: string;
+	openFull: string;
+	hostLabel: string;
+	guestLabel: string;
+	soloHint: string;
+	collabHint: string;
 }
 
 export interface LandingCopy {
@@ -62,13 +74,7 @@ export interface LandingCopy {
 		copy: string;
 		docsLabel: string;
 	};
-	demos: {
-		kicker: string;
-		title: string;
-		copy: string;
-		open: string;
-		cards: LandingDemoCard[];
-	};
+	demos: LandingLiveDemoCopy;
 	faq: {
 		kicker: string;
 		title: string;

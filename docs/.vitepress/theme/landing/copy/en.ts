@@ -73,47 +73,22 @@ export const en: LandingCopy = {
 		docsLabel: 'Full guide',
 	},
 	demos: {
-		kicker: 'Demos',
-		title: 'See it running.',
-		copy: 'Every binding ships a complete demo app, deployed from this repository alongside the docs. Open one and drop in a deck of your own.',
-		open: 'Open',
-		cards: [
-			{
-				name: 'pptx-react-viewer',
-				desc: 'The complete editor in React 19: ribbon, inspector, collaboration, export.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo/',
-				external: true,
-			},
-			{
-				name: 'pptx-vue-viewer',
-				desc: 'The same feature set in Vue 3, driven by props and events.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-vue/',
-				external: true,
-			},
-			{
-				name: 'pptx-angular-viewer',
-				desc: 'A standalone Angular component with signal-based inputs.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-angular/',
-				external: true,
-			},
-			{
-				name: 'pptx-svelte-viewer',
-				desc: 'The same editor built as a Svelte 5 component.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-svelte/',
-				external: true,
-			},
-			{
-				name: 'pptx-vanilla-viewer',
-				desc: 'Zero framework: one function call mounts the whole viewer.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-vanilla/',
-				external: true,
-			},
-			{
-				name: 'pptx-viewer-core',
-				desc: 'No UI at all. Parse, edit, convert, and save in Node, Bun, or the browser.',
-				href: '/core/',
-			},
-		],
+		kicker: 'Live demo',
+		title: 'Try it right here.',
+		copy: 'This is the real editor running in your browser: the same deployed demo app you would get from npm, embedded live. Switch frameworks, or split the view and watch two independent apps co-edit one deck.',
+		frameworkLabel: 'Framework',
+		soloTab: 'Editor',
+		collabTab: 'Collaboration',
+		guestPicker: 'Guest',
+		load: 'Load the live demo',
+		loading: 'Loading the live editor',
+		openFull: 'Open full app',
+		hostLabel: 'Host',
+		guestLabel: 'Guest',
+		soloHint:
+			'Everything runs client-side: parsing, rendering, editing, and saving happen in this tab, and the deck never leaves your browser. Open the full app to drop in a deck of your own.',
+		collabHint:
+			'Two separate live apps sharing one deck over a serverless CRDT session (y-webrtc, peer-to-peer). Drag a shape or edit text in either pane and watch the other follow, including across different frameworks.',
 	},
 	faq: {
 		kicker: 'FAQ',
