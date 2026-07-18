@@ -63,11 +63,11 @@ on demand instead, use the handle's [`getContent()`](/react/handle).
 
 ## Presentation / authoring
 
-| Prop         | Type      | Default | Description                                                                                                                                            |
-| ------------ | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `authorName` | `string`  | -       | Display name used as the author for comments and annotations. Falls back to `collaboration.userName` when collaborating, otherwise `'You'`.            |
-| `className`  | `string`  | -       | Optional class name applied to the viewer root element.                                                                                                |
-| `smartArt3D` | `boolean` | `false` | Opt in to the experimental Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it. |
+| Prop         | Type      | Default | Description                                                                                                                                 |
+| ------------ | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authorName` | `string`  | -       | Display name used as the author for comments and annotations. Falls back to `collaboration.userName` when collaborating, otherwise `'You'`. |
+| `className`  | `string`  | -       | Optional class name applied to the viewer root element.                                                                                     |
+| `smartArt3D` | `boolean` | `false` | Opt in to the Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it.   |
 
 ## Theming
 

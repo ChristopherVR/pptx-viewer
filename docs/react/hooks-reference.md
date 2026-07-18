@@ -1,6 +1,6 @@
 ---
 title: Complete Hooks Reference
-description: The full list of every internal hook that composes PowerPointViewer, and how to import them via pptx-react-viewer/hooks-unstable.
+description: The full list of every internal hook that composes PowerPointViewer, and how to import them via pptx-react-viewer/internals.
 ---
 
 # Complete Hooks Reference
@@ -9,15 +9,15 @@ This is the complete list referenced from the [Hooks](/react/hooks) page: every 
 `PowerPointViewer` internally, grouped by concern. For the small curated subset that has a
 semver-stable public API, see [Hooks -> Public hooks](/react/hooks#public-hooks) instead.
 
-::: warning No compatibility guarantees
-All of the hooks below are importable from `pptx-react-viewer/hooks-unstable`, but the name is
-literal: signatures, behavior, and existence can change in **any** release, including a patch
-release, without a deprecation period. Reach for this entry only when the curated
-`pptx-react-viewer/viewer` export and the public `PowerPointViewer` props/handle genuinely can't do
-what you need. Pin an exact version if you depend on it.
+::: warning Internal building blocks
+All of the hooks below are importable from `pptx-react-viewer/internals`, but the name is
+literal: they are not covered by semver, so signatures, behavior, and existence can change without
+a major bump. Reach for this entry only when the curated `pptx-react-viewer/viewer` export and the
+public `PowerPointViewer` props/handle genuinely can't do what you need. Pin an exact version if
+you depend on it.
 
 ```tsx
-import { useViewerState, useEditorHistory } from 'pptx-react-viewer/hooks-unstable';
+import { useViewerState, useEditorHistory } from 'pptx-react-viewer/internals';
 ```
 
 :::
@@ -132,5 +132,5 @@ See [Collaboration](/react/collaboration) for the curated public subset. The ful
 | `useReducedMotion`   | Respects `prefers-reduced-motion` for animations/transitions. |
 
 This list is generated from `packages/react/src/viewer/hooks/**/*.ts` and re-exported in full from
-[`pptx-react-viewer/hooks-unstable`](https://github.com/ChristopherVR/pptx-viewer/blob/main/packages/react/src/hooks-unstable.ts).
+[`pptx-react-viewer/internals`](https://github.com/ChristopherVR/pptx-viewer/blob/main/packages/react/src/internals.ts).
 If you add or rename a hook there, update this page in the same change.

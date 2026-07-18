@@ -61,12 +61,12 @@ callback-prop shape rather than the emit convention used elsewhere in this compo
 
 ## Presentation / authoring
 
-| Prop         | Type         | Default | Description                                                                                                                                            |
-| ------------ | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `authorName` | `string`     | -       | Display name used as the author for comments and annotations. Falls back to `collaboration.userName` when collaborating, otherwise `'You'`.            |
-| `class`      | `string`     | -       | Optional class name applied to the viewer root element (props key is `class`, not `className`).                                                        |
-| `smartArt3D` | `boolean`    | `false` | Opt in to the experimental Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it. |
-| `onOpenFile` | `() => void` | -       | Host override for the File > Open action: bypasses the built-in file picker; the host then supplies a new `content` prop instead.                      |
+| Prop         | Type         | Default | Description                                                                                                                                 |
+| ------------ | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authorName` | `string`     | -       | Display name used as the author for comments and annotations. Falls back to `collaboration.userName` when collaborating, otherwise `'You'`. |
+| `class`      | `string`     | -       | Optional class name applied to the viewer root element (props key is `class`, not `className`).                                             |
+| `smartArt3D` | `boolean`    | `false` | Opt in to the Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it.   |
+| `onOpenFile` | `() => void` | -       | Host override for the File > Open action: bypasses the built-in file picker; the host then supplies a new `content` prop instead.           |
 
 ## Theming
 

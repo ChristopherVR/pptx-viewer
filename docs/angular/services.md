@@ -12,13 +12,14 @@ plain helper functions. This is Angular's counterpart to React's 67+ custom hook
 composables: the same decomposition, expressed through Angular's own idiom (injectable services with
 signal-based state instead of hook closures).
 
-::: info Internal vs public vs unstable
+::: info Public vs internal
 Most of these building blocks are **internal architecture**: they assume a specific composition
-order and shared inputs. Unlike React, Angular's ng-packagr build produces a **single entry point**;
-there is no separate `pptx-angular-viewer/hooks-unstable` subpath. A curated subset (listed below)
-is the intended public surface; the **complete** set is also importable from the same
-`pptx-angular-viewer` package, but with **no compatibility guarantees**:
-see [Complete Services Reference](/angular/services-reference).
+order and shared inputs. A curated subset (listed below) is the intended public surface, exported
+from the `pptx-angular-viewer` package root. The **complete** set is importable from the
+`pptx-angular-viewer/internals` subpath: internal building blocks that are not covered by semver, so
+prefer the stable root exports. (ng-packagr builds this package as a single compilation unit, so
+`internals` is an alias over the same bundle rather than an isolated one; the symbols therefore stay
+importable from the root too.) See [Complete Services Reference](/angular/services-reference).
 :::
 
 ## DI setup
@@ -151,12 +152,12 @@ const bytes = await this.loader.saveSlides(editor.snapshot());
 For building custom collaboration UIs or driving sync yourself. See
 [Collaboration](/angular/collaboration).
 
-| Export                                       | Purpose                                                                                                                                                                                                                                                   |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CollaborationService`                       | `connect(config, options?)` / `disconnect()` / `retry()` for a Yjs session; signals for `status`, `presence`, `cursors`, `connectedCount`; `broadcastSlides`, `setCursor`, `setSelection`, `setActiveSlide`, `followUser`. Disconnects itself on destroy. |
-| `CollaborationCursorsComponent`              | Renders remote cursors on the slide canvas.                                                                                                                                                                                                               |
-| `RemoteSelectionOverlayComponent` (unstable) | Renders remote users' element-selection highlights.                                                                                                                                                                                                       |
-| `collaboration-helpers` exports              | `validateRoomId`, `sanitizeUserName`, `derivePresenceList`, `assignUserColor`, and more.                                                                                                                                                                  |
+| Export                                        | Purpose                                                                                                                                                                                                                                                   |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CollaborationService`                        | `connect(config, options?)` / `disconnect()` / `retry()` for a Yjs session; signals for `status`, `presence`, `cursors`, `connectedCount`; `broadcastSlides`, `setCursor`, `setSelection`, `setActiveSlide`, `followUser`. Disconnects itself on destroy. |
+| `CollaborationCursorsComponent`               | Renders remote cursors on the slide canvas.                                                                                                                                                                                                               |
+| `RemoteSelectionOverlayComponent` (internals) | Renders remote users' element-selection highlights.                                                                                                                                                                                                       |
+| `collaboration-helpers` exports               | `validateRoomId`, `sanitizeUserName`, `derivePresenceList`, `assignUserColor`, and more.                                                                                                                                                                  |
 
 ```ts
 const collab = inject(CollaborationService);
@@ -191,13 +192,14 @@ subpath):
 import { ViewerZoomService, buildSaveSlides } from 'pptx-angular-viewer';
 ```
 
-::: warning No compatibility guarantees
+::: warning Internal building blocks
 Everything documented on the [Complete Services Reference](/angular/services-reference) page is
 re-exported unmodified from the same building blocks `PowerPointViewerComponent` composes
-internally. They are not part of the package's semver contract: signatures and behavior can change,
-and services/components can be renamed or removed, in **any** release including a patch release.
-Prefer the inputs/outputs/[public API](/angular/api) or the curated services above first; reach for
-this only for advanced integrations, and pin an exact version if you depend on it.
+internally, behind the `pptx-angular-viewer/internals` subpath. They are **not covered by semver**:
+signatures and behavior can change, and services/components can be renamed or removed, without a
+major bump. Prefer the inputs/outputs/[public API](/angular/api) or the curated services above
+first; reach for `internals` only for advanced integrations, and pin an exact version if you depend
+on it.
 :::
 
 See the **[Complete Services Reference](/angular/services-reference)** for the full list and

@@ -1,6 +1,6 @@
 ---
 title: Export
-description: Export slides to PNG, PDF, GIF, and WebM video from the viewer, plus SVG, notes-PDF, save-as formats, the standalone renderToCanvas utility, and the unstable export hooks.
+description: Export slides to PNG, PDF, GIF, and WebM video from the viewer, plus SVG, notes-PDF, save-as formats, the standalone renderToCanvas utility, and the internal export hooks.
 ---
 
 # Export
@@ -43,12 +43,12 @@ Export is **driven by the viewer's UI**, not by props or the imperative handle:
 `PowerPointViewerHandle` carries no `export()` method: PNG/PDF/GIF/video exports and printing are
 user-initiated through the toolbar/dialog. If you need programmatic raster export of arbitrary DOM,
 use `renderToCanvas` (below); if you need the viewer's own export flows programmatically, the hooks
-are reachable through the unstable subpath (next section).
+are reachable through the internals subpath (next section).
 :::
 
-## Programmatic export: `pptx-react-viewer/hooks-unstable`
+## Programmatic export: `pptx-react-viewer/internals`
 
-`useExportHandlers` and `usePrintHandlers` are exported from the `pptx-react-viewer/hooks-unstable`
+`useExportHandlers` and `usePrintHandlers` are exported from the `pptx-react-viewer/internals`
 subpath (explicitly **not** covered by semver; the stable root exports only `renderToCanvas` and the
 viewer component/handle). `useExportHandlers(input)` returns:
 

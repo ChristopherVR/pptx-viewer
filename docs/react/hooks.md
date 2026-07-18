@@ -1,6 +1,6 @@
 ---
 title: Hooks
-description: The hooks-based architecture of PowerPointViewer, the curated set of public, tree-shakeable hooks exported from pptx-react-viewer/viewer, and the full internal set exposed via pptx-react-viewer/hooks-unstable.
+description: The hooks-based architecture of PowerPointViewer, the curated set of public, tree-shakeable hooks exported from pptx-react-viewer/viewer, and the full internal set exposed via pptx-react-viewer/internals.
 ---
 
 # Hooks
@@ -9,11 +9,11 @@ description: The hooks-based architecture of PowerPointViewer, the curated set o
 hooks** composed inside `PowerPointViewer.tsx`, while the visual components are largely
 presentational. State is held entirely in React hooks; there is no external state library.
 
-::: info Internal vs public vs unstable
+::: info Public vs internal
 Most of these hooks are **internal architecture**: they assume a specific composition order and
 shared inputs. A small curated subset is exported from `pptx-react-viewer/viewer` with a normal
-semver-stable API. The **complete** set is also importable from
-`pptx-react-viewer/hooks-unstable`, but with **no compatibility guarantees**: see
+semver-stable API. The **complete** set is also importable from `pptx-react-viewer/internals`:
+internal building blocks that are not covered by semver, so prefer the stable root exports. See
 [Complete Hooks Reference](/react/hooks-reference).
 :::
 
@@ -174,18 +174,18 @@ Not hooks, but exported from `pptx-react-viewer/viewer` for the presenter/audien
 ## Using an internal hook directly
 
 If the curated public hooks above don't cover what you need, every internal hook is also
-importable in full from `pptx-react-viewer/hooks-unstable`:
+importable in full from `pptx-react-viewer/internals`:
 
 ```tsx
-import { useEditorHistory, useViewerState } from 'pptx-react-viewer/hooks-unstable';
+import { useEditorHistory, useViewerState } from 'pptx-react-viewer/internals';
 ```
 
-::: warning No compatibility guarantees
-`pptx-react-viewer/hooks-unstable` re-exports the same hooks `PowerPointViewer` composes
-internally, unmodified. They are not part of the package's semver contract: signatures and
-behavior can change, and hooks can be renamed or removed, in **any** release including a patch
-release. Prefer the props/handle API or the curated `pptx-react-viewer/viewer` hooks first; reach
-for this only for advanced integrations, and pin an exact version if you depend on it.
+::: warning Internal building blocks
+`pptx-react-viewer/internals` re-exports the same hooks `PowerPointViewer` composes
+internally, unmodified. They are **not covered by semver**: signatures and behavior can change,
+and hooks can be renamed or removed, without a major bump. Prefer the props/handle API or the
+curated `pptx-react-viewer/viewer` hooks first; reach for `internals` only for advanced
+integrations, and pin an exact version if you depend on it.
 :::
 
 See the **[Complete Hooks Reference](/react/hooks-reference)** for the full list and

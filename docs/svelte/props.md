@@ -21,16 +21,16 @@ events are **callback props** (`onload`, not `@load`), and the content prop is n
 
 ## Chrome and behaviour
 
-| Prop             | Type                | Default | Description                                                                                                                                                                 |
-| ---------------- | ------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `initialSlide`   | `number`            | `0`     | Slide shown after load (0-based, clamped).                                                                                                                                  |
-| `showThumbnails` | `boolean`           | `true`  | Show the thumbnail sidebar.                                                                                                                                                 |
-| `showToolbar`    | `boolean`           | `true`  | Show the navigation/zoom toolbar (and, when `editable`, the ribbon).                                                                                                        |
-| `showNotes`      | `boolean`           | `true`  | Show the speaker-notes panel and its toolbar toggle. Pass `onnotesupdate` to make the panel editable; omit it for read-only notes.                                          |
-| `hiddenActions`  | `ToolbarActionId[]` | -       | Toolbar buttons and/or ribbon tabs to hide (see [values below](#hiddenactions-values)).                                                                                     |
-| `fileName`       | `string`            | -       | Display name shown in the desktop title bar.                                                                                                                                |
-| `smartArt3D`     | `boolean`           | `false` | Opt in to the experimental Three.js (WebGL) SmartArt renderer. Requires the optional `three` dependency; falls back to SVG when it is unavailable or the WebGL mount fails. |
-| `editable`       | `boolean`           | `false` | Enable in-place editing: select, drag, resize/rotate handles, double-click text editing, keyboard shortcuts, undo/redo, save/download.                                      |
+| Prop             | Type                | Default | Description                                                                                                                                                    |
+| ---------------- | ------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `initialSlide`   | `number`            | `0`     | Slide shown after load (0-based, clamped).                                                                                                                     |
+| `showThumbnails` | `boolean`           | `true`  | Show the thumbnail sidebar.                                                                                                                                    |
+| `showToolbar`    | `boolean`           | `true`  | Show the navigation/zoom toolbar (and, when `editable`, the ribbon).                                                                                           |
+| `showNotes`      | `boolean`           | `true`  | Show the speaker-notes panel and its toolbar toggle. Pass `onnotesupdate` to make the panel editable; omit it for read-only notes.                             |
+| `hiddenActions`  | `ToolbarActionId[]` | -       | Toolbar buttons and/or ribbon tabs to hide (see [values below](#hiddenactions-values)).                                                                        |
+| `fileName`       | `string`            | -       | Display name shown in the desktop title bar.                                                                                                                   |
+| `smartArt3D`     | `boolean`           | `false` | Opt in to the Three.js (WebGL) SmartArt renderer. Requires the optional `three` dependency; falls back to SVG when it is unavailable or the WebGL mount fails. |
+| `editable`       | `boolean`           | `false` | Enable in-place editing: select, drag, resize/rotate handles, double-click text editing, keyboard shortcuts, undo/redo, save/download.                         |
 
 ### `hiddenActions` values {#hiddenactions-values}
 

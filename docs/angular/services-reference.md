@@ -10,16 +10,16 @@ building block that composes `PowerPointViewerComponent`, grouped by concern. Fo
 subset that has a semver-stable public API, see
 [Services › Public services & components](/angular/services#public-services-components) instead.
 
-::: warning No compatibility guarantees
-Everything below is importable from `pptx-angular-viewer` (the package root - Angular has no
-separate `hooks-unstable` subpath, since ng-packagr builds a single entry point here), but the
-framing is literal: signatures, behavior, and existence can change in **any** release, including a
-patch release, without a deprecation period. Reach for this only when the curated services/inputs/
-outputs/[public API](/angular/api) genuinely can't do what you need. Pin an exact version if you
-depend on it.
+::: warning Internal building blocks
+Everything below is importable from the `pptx-angular-viewer/internals` subpath (ng-packagr builds
+this package as a single compilation unit, so `internals` is an alias over the same bundle and these
+symbols stay importable from the root too). They are **not covered by semver**: signatures,
+behavior, and existence can change without a major bump. Reach for `internals` only when the curated
+services/inputs/outputs/[public API](/angular/api) genuinely can't do what you need. Pin an exact
+version if you depend on it.
 
 ```ts
-import { EditorStateService, ViewerExportService } from 'pptx-angular-viewer';
+import { AutosaveService, ViewerExportService } from 'pptx-angular-viewer/internals';
 ```
 
 :::
@@ -200,6 +200,6 @@ Not part of the curated root export, but composed directly by `PowerPointViewerC
 | `animation-author-helpers` exports                       | Helpers backing `AnimationAuthorPanelComponent`.                             |
 
 This list is generated from `packages/angular/src/viewer/**/*.ts` and re-exported in full from
-[`pptx-angular-viewer/src/services-unstable.ts`](https://github.com/ChristopherVR/pptx-viewer/blob/main/packages/angular/src/services-unstable.ts),
+[`pptx-angular-viewer/src/internals.ts`](https://github.com/ChristopherVR/pptx-viewer/blob/main/packages/angular/src/internals.ts),
 itself re-exported from the package root via `public-api.ts`. If you add or rename a building block
 there, update this page in the same change.

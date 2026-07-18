@@ -128,7 +128,7 @@ clamps frame dimensions to a 1920 px longest side; the shared helpers (`planGifF
 `planVideoSegments`, `recordWebm`, `pickSupportedMimeType`, ...) are all exported from the package
 root too.
 
-## `ViewerExportService` (unstable)
+## `ViewerExportService` (internals)
 
 `ViewerExportService` is the higher-level orchestrator the ribbon actually calls: it owns the
 export-progress modal state (signals `exporting`, `modalOpen`, `modalTitle`, `progress`,
@@ -148,11 +148,11 @@ xport.bind({
 });
 ```
 
-::: warning Unstable barrel
+::: warning Internal building blocks
 `ViewerExportService` and `ExportProgressModalComponent` ship through the package's
-**services-unstable** surface (no semver guarantees), unlike `ExportService`, `PrintService`, and
-`renderToCanvas`, which are stable root exports. Reach for `ExportService` unless you are
-reproducing the viewer's own multi-slide export loop. See [Services](/angular/services).
+`pptx-angular-viewer/internals` surface (not covered by semver), unlike `ExportService`,
+`PrintService`, and `renderToCanvas`, which are stable root exports. Reach for `ExportService`
+unless you are reproducing the viewer's own multi-slide export loop. See [Services](/angular/services).
 :::
 
 ## Print: `PrintService`

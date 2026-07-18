@@ -1,6 +1,6 @@
 ---
 title: Export
-description: Export slides to PNG, PDF, GIF, WebM video, and SVG from the viewer, plus save-as PPTX, the toolbar-driven html2canvas-pro pipeline, and the unstable export composables.
+description: Export slides to PNG, PDF, GIF, WebM video, and SVG from the viewer, plus save-as PPTX, the toolbar-driven html2canvas-pro pipeline, and the internal export composables.
 ---
 
 # Export
@@ -45,7 +45,7 @@ Export is **driven by the viewer's UI**, not by props or the exposed API:
 The `defineExpose` surface has no raster/PDF/GIF/WebM/print methods; those are user-initiated
 through the toolbar/dialog. There is also no equivalent of React's standalone `renderToCanvas`
 utility at the Vue package root. For programmatic flows use the stable SVG functions below, or the
-unstable composables.
+internal composables.
 :::
 
 ## Stable: SVG export functions
@@ -89,10 +89,10 @@ function downloadActiveSlideSvg() {
 </template>
 ```
 
-## Unstable: the export composables
+## Internals: the export composables
 
-Everything else is reachable via `pptx-vue-viewer/composables-unstable` (explicitly **not** covered
-by semver):
+Everything else is reachable via `pptx-vue-viewer/internals` (internal building blocks, **not**
+covered by semver; prefer the stable root exports):
 
 | Composable          | Returns                                                                                                                                                     |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |

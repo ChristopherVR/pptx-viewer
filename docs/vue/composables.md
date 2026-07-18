@@ -1,6 +1,6 @@
 ---
 title: Composables
-description: The composables-based architecture of PowerPointViewer, the curated set of public composables exported from pptx-vue-viewer/viewer, and the full internal set exposed via pptx-vue-viewer/composables-unstable.
+description: The composables-based architecture of PowerPointViewer, the curated set of public composables exported from pptx-vue-viewer/viewer, and the full internal set exposed via pptx-vue-viewer/internals.
 ---
 
 # Composables
@@ -10,11 +10,11 @@ description: The composables-based architecture of PowerPointViewer, the curated
 visual components are largely presentational. State is held entirely in Vue's reactivity system;
 there is no external state library.
 
-::: info Internal vs public vs unstable
+::: info Public vs internal
 Most of these composables are **internal architecture**: they assume a specific composition order
 and shared inputs. A small curated subset is exported from `pptx-vue-viewer/viewer` with a normal
-semver-stable API. The **complete** set is also importable from
-`pptx-vue-viewer/composables-unstable`, but with **no compatibility guarantees**: see
+semver-stable API. The **complete** set is also importable from `pptx-vue-viewer/internals`:
+internal building blocks that are not covered by semver, so prefer the stable root exports. See
 [Complete Composables Reference](/vue/composables-reference).
 :::
 
@@ -208,19 +208,19 @@ The stable entry also exports `CollaborationCursors`, `CollaborationStatusIndica
 ## Using an internal composable directly
 
 If the curated public composables above don't cover what you need, every internal composable is
-also importable in full from `pptx-vue-viewer/composables-unstable`:
+also importable in full from `pptx-vue-viewer/internals`:
 
 ```ts
-import { useAlignGroup, useAutosave } from 'pptx-vue-viewer/composables-unstable';
+import { useAlignGroup, useAutosave } from 'pptx-vue-viewer/internals';
 ```
 
-::: warning No compatibility guarantees
-`pptx-vue-viewer/composables-unstable` re-exports the same composables `PowerPointViewer.vue`
+::: warning Internal building blocks
+`pptx-vue-viewer/internals` re-exports the same composables `PowerPointViewer.vue`
 composes internally (directly, or via a wiring composable used by a child component), unmodified.
-They are not part of the package's semver contract: signatures and behavior can change, and
-composables can be renamed or removed, in **any** release including a patch release. Prefer the
-props/`defineExpose` API or the curated `pptx-vue-viewer/viewer` composables first; reach for this
-only for advanced integrations, and pin an exact version if you depend on it.
+They are **not covered by semver**: signatures and behavior can change, and composables can be
+renamed or removed, without a major bump. Prefer the props/`defineExpose` API or the curated
+`pptx-vue-viewer/viewer` composables first; reach for `internals` only for advanced integrations,
+and pin an exact version if you depend on it.
 :::
 
 See the **[Complete Composables Reference](/vue/composables-reference)** for the full list and

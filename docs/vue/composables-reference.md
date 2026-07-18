@@ -1,6 +1,6 @@
 ---
 title: Complete Composables Reference
-description: The full list of every internal composable that composes PowerPointViewer, and how to import them via pptx-vue-viewer/composables-unstable.
+description: The full list of every internal composable that composes PowerPointViewer, and how to import them via pptx-vue-viewer/internals.
 ---
 
 # Complete Composables Reference
@@ -10,15 +10,15 @@ that composes `PowerPointViewer.vue` internally (directly, or via a wiring compo
 child component), grouped by concern. For the small curated subset that has a semver-stable public
 API, see [Composables > Public composables](/vue/composables#public-composables) instead.
 
-::: warning No compatibility guarantees
-All of the composables below are importable from `pptx-vue-viewer/composables-unstable`, but the
-name is literal: signatures, behavior, and existence can change in **any** release, including a
-patch release, without a deprecation period. Reach for this entry only when the curated
-`pptx-vue-viewer/viewer` export and the public props/`defineExpose` API genuinely can't do what you
-need. Pin an exact version if you depend on it.
+::: warning Internal building blocks
+All of the composables below are importable from `pptx-vue-viewer/internals`, but the
+name is literal: they are not covered by semver, so signatures, behavior, and existence can change
+without a major bump. Reach for this entry only when the curated `pptx-vue-viewer/viewer` export
+and the public props/`defineExpose` API genuinely can't do what you need. Pin an exact version if
+you depend on it.
 
 ```ts
-import { useEditorHistory, useAlignGroup } from 'pptx-vue-viewer/composables-unstable';
+import { useEditorHistory, useAlignGroup } from 'pptx-vue-viewer/internals';
 ```
 
 :::
@@ -156,7 +156,7 @@ See [Collaboration](/vue/collaboration) for the prop-driven flow. The full inter
 
 This list is generated from `packages/vue/src/viewer/composables/**/*.ts` (files that export a
 `use*()` composable function) and re-exported in full from
-[`pptx-vue-viewer/composables-unstable`](https://github.com/ChristopherVR/pptx-viewer/blob/main/packages/vue/src/composables-unstable.ts).
+[`pptx-vue-viewer/internals`](https://github.com/ChristopherVR/pptx-viewer/blob/main/packages/vue/src/internals.ts).
 Files that only export pure helper functions, provide/inject keys, or constants (no `use*()`
 function) are internal implementation detail and are not part of this surface. If you add or
 rename a composable, update this page in the same change.
@@ -164,6 +164,6 @@ rename a composable, update this page in the same change.
 ::: info `RasterizeSlide`
 `useExport`, `useMediaExport`, and `usePrint` each declare an identical `RasterizeSlide` type
 (`(index: number) => Promise<HTMLCanvasElement>`). To avoid an ambiguous re-export, only
-`useExport`'s copy is re-exported from `pptx-vue-viewer/composables-unstable`; import the others
+`useExport`'s copy is re-exported from `pptx-vue-viewer/internals`; import the others
 directly from their source files if you need the type by that exact name.
 :::

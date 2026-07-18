@@ -64,7 +64,7 @@ The viewer's built-in autosave timer periodically serializes the document to Ind
 | ------------ | --------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `authorName` | `string \| undefined`       | -       | Display name used as the author for comments/annotations and as the broadcast owner's name. Falls back to `collaboration.userName` or `'You'`/`'Presenter'`. |
 | `class`      | `string`                    | `''`    | Optional class name applied to the viewer's root element.                                                                                                    |
-| `smartArt3D` | `boolean`                   | `false` | Opt in to the experimental Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it.       |
+| `smartArt3D` | `boolean`                   | `false` | Opt in to the Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it.                    |
 | `onOpenFile` | `(() => void) \| undefined` | -       | Host override for the File ▸ Open action: bypasses the built-in native file picker; the host then supplies a new `content` value instead.                    |
 
 ## Theming
