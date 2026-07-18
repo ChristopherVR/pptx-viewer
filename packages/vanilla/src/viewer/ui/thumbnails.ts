@@ -152,7 +152,11 @@ export function createThumbnailRail(
 			const scale = THUMB_STAGE_WIDTH / Math.max(canvasSize.width, 1);
 			itemHeight = Math.round(canvasSize.height * scale) + 8;
 			virtualized = !sections?.length && slides.length >= SLIDE_VIRTUALIZATION_THRESHOLD;
-			el.style.display = virtualized ? 'block' : 'flex';
+			// Class toggle (not an inline display) so the presenting-mode and
+			// mobile-layout `display: none` stylesheet rules can still hide the
+			// rail; an inline style would override them and leak thumbnail text
+			// into presentation mode.
+			el.classList.toggle('pptxv-thumbs-virtualized', virtualized);
 			renderWindow();
 			this.setActive(activeIndex);
 		},
@@ -189,7 +193,7 @@ export function createThumbnailRail(
 			el.replaceChildren();
 			buttons = new Map();
 			virtualized = false;
-			el.style.display = 'flex';
+			el.classList.remove('pptxv-thumbs-virtualized');
 			const scale = THUMB_STAGE_WIDTH / Math.max(canvasSize.width, 1);
 			const add = (
 				slide: PptxSlide,

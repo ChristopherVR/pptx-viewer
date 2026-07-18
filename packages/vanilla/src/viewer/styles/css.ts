@@ -168,6 +168,12 @@ const CHROME_CSS = `
 	flex-direction: column;
 	gap: 8px;
 }
+/* Virtualized rail: block layout for the absolute-positioned window. :where()
+   keeps specificity at one class so the mobile and presenting display:none
+   rules below still win (a naked two-class rule, or the inline style this
+   replaces, would override them). */
+.pptxv-thumbs:where(.pptxv-thumbs-virtualized) { display: block; }
+.pptxv-thumbs[hidden] { display: none; }
 .pptxv-thumb {
 	display: flex;
 	align-items: flex-start;
