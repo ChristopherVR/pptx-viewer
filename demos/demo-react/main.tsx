@@ -22,6 +22,7 @@ import {
 	listAutosaveSnapshots,
 	deleteAutosaveSnapshot,
 } from '../../packages/shared/src/render/autosave-store';
+import { AiDemoConfigForm, useDemoAiConfig } from './ai-config';
 import i18nInstance from './i18n'; // Initialises i18next before any component renders
 
 import './app.css';
@@ -367,6 +368,9 @@ function App() {
 	}, []);
 
 	const defaultServerUrl = resolveDefaultServerUrl();
+
+	// ── AI assistant (demo-only: the host supplies the provider) ─────────
+	const { fields: aiFields, config: aiConfig, setField: setAiField } = useDemoAiConfig();
 
 	// ── Collaboration ────────────────────────────────────────────────────
 	const [collaborationConfig, setCollaborationConfig] = useState<CollaborationConfig | null>(null);
@@ -768,6 +772,7 @@ function App() {
 						userName: autoName,
 						serverUrl: defaultServerUrl,
 					}}
+					ai={aiConfig}
 					onDirtyChange={(dirty) => {
 						document.title = dirty ? `* ${fileName} - PPTX Viewer` : `${fileName} - PPTX Viewer`;
 					}}
@@ -859,6 +864,7 @@ function App() {
 					onChange={handleInputChange}
 				/>
 			</div>
+			<AiDemoConfigForm fields={aiFields} onChange={setAiField} enabled={Boolean(aiConfig)} />
 		</main>
 	);
 }

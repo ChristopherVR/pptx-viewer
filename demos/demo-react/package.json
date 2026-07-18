@@ -23,11 +23,14 @@
 		"react-icons": "^5.7.0"
 	},
 	"devDependencies": {
+		"@ai-sdk/openai-compatible": "^3.0.12",
+		"@ai-sdk/react": "^4.0.34",
 		"@tailwindcss/vite": "^4.3.3",
 		"@types/node": "^26.1.1",
 		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react": "^6.0.3",
+		"ai": "^7.0.31",
 		"tailwindcss": "^4.3.3",
 		"typescript": "^7.0.2",
 		"vite": "^8.1.5"
