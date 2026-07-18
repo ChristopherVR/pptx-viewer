@@ -24,6 +24,12 @@ export interface UsePresentationAnnotationsInput {
 	isActive: boolean;
 	/** Current slide index: used to track which slide annotations belong to. */
 	activeSlideIndex: number;
+	/**
+	 * Options > Advanced > "Show popup toolbar" (default true). When false,
+	 * mouse movement never auto-reveals the presentation toolbar; it can
+	 * still be summoned explicitly (Ctrl+M).
+	 */
+	popupToolbarEnabled?: boolean;
 }
 
 export interface UsePresentationAnnotationsResult {

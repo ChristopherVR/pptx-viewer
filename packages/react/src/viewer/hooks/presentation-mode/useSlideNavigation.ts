@@ -23,6 +23,12 @@ export interface UseSlideNavigationInput {
 	loopContinuously?: boolean;
 	/** Whether to use rehearsed auto-advance timings. When false, slides advance only on click. */
 	useTimings?: boolean;
+	/**
+	 * Fired when the user advances past the last slide (no loop, no rehearsal).
+	 * The presentation-mode hook uses it for PowerPoint's "End with black
+	 * slide" behavior. When absent, advancing past the end clamps as before.
+	 */
+	onAdvancePastLastSlide?: () => void;
 	playNextAnimationGroup: () => boolean;
 	clearPresentationTimers: () => void;
 	runPresentationEntranceAnimations: (slideIndex: number) => void;
@@ -56,6 +62,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 		onPlayActionSound,
 		loopContinuously,
 		useTimings,
+		onAdvancePastLastSlide,
 		playNextAnimationGroup,
 		clearPresentationTimers,
 		runPresentationEntranceAnimations,
@@ -138,6 +145,19 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				return;
 			}
 
+			// Advancing past the last slide (no loop, not rehearsing): let the
+			// presentation hook decide (black end-of-show slide or exit).
+			if (
+				!loopContinuously &&
+				!rehearsing &&
+				direction === 1 &&
+				nextPosition >= availableSlideIndexes.length &&
+				onAdvancePastLastSlide
+			) {
+				onAdvancePastLastSlide();
+				return;
+			}
+
 			// Loop wrap: if advancing past the last slide and loop is enabled,
 			// wrap around to the first slide instead of clamping.
 			let resolvedPosition: number;
@@ -180,6 +200,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 		[
 			clearPresentationTimers,
 			loopContinuously,
+			onAdvancePastLastSlide,
 			onPlayActionSound,
 			onSetActiveSlideIndex,
 			onSetMode,

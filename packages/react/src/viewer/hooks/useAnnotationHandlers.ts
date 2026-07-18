@@ -26,6 +26,12 @@ export interface UseAnnotationHandlersInput {
 	history: EditorHistoryResult;
 	setMode: React.Dispatch<React.SetStateAction<ViewerMode>>;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
+	/**
+	 * Options > Advanced > "Prompt to keep ink annotations when exiting"
+	 * (default true). When false, exiting a slide show with annotations
+	 * skips the dialog and keeps them silently.
+	 */
+	promptKeepInkAnnotations?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,29 +52,18 @@ export interface AnnotationHandlersResult {
 // ---------------------------------------------------------------------------
 
 export function useAnnotationHandlers(input: UseAnnotationHandlersInput): AnnotationHandlersResult {
-	const { mode, presentation, annotations, history, setMode, setSlides } = input;
+	const {
+		mode,
+		presentation,
+		annotations,
+		history,
+		setMode,
+		setSlides,
+		promptKeepInkAnnotations = true,
+	} = input;
 
 	const [showKeepAnnotationsDialog, setShowKeepAnnotationsDialog] = useState(false);
 	const pendingModeAfterAnnotationsRef = useRef<ViewerMode>('edit');
-
-	// ── handleSetMode ─────────────────────────────────────────────
-	const handleSetMode = useCallback(
-		(nextMode: ViewerMode) => {
-			if (nextMode === 'present') {
-				presentation.enterPresentMode();
-			} else if (mode === 'present' && annotations.hasAnyAnnotations) {
-				stopAllPersistentAudio();
-				pendingModeAfterAnnotationsRef.current = nextMode;
-				setShowKeepAnnotationsDialog(true);
-			} else {
-				if (mode === 'present') {
-					stopAllPersistentAudio();
-				}
-				setMode(nextMode);
-			}
-		},
-		[presentation, mode, annotations.hasAnyAnnotations, setMode],
-	);
 
 	// ── Keep annotations as ink elements ──────────────────────────
 	const handleKeepAnnotations = useCallback(() => {
@@ -143,6 +138,37 @@ export function useAnnotationHandlers(input: UseAnnotationHandlersInput): Annota
 		setShowKeepAnnotationsDialog(false);
 		setMode(pendingModeAfterAnnotationsRef.current);
 	}, [annotations, setMode, setSlides, history]);
+
+	// ── handleSetMode ─────────────────────────────────────────────
+	const handleSetMode = useCallback(
+		(nextMode: ViewerMode) => {
+			if (nextMode === 'present') {
+				presentation.enterPresentMode();
+			} else if (mode === 'present' && annotations.hasAnyAnnotations) {
+				stopAllPersistentAudio();
+				pendingModeAfterAnnotationsRef.current = nextMode;
+				if (promptKeepInkAnnotations) {
+					setShowKeepAnnotationsDialog(true);
+				} else {
+					// Option off: keep the ink silently, no dialog.
+					handleKeepAnnotations();
+				}
+			} else {
+				if (mode === 'present') {
+					stopAllPersistentAudio();
+				}
+				setMode(nextMode);
+			}
+		},
+		[
+			presentation,
+			mode,
+			annotations.hasAnyAnnotations,
+			promptKeepInkAnnotations,
+			handleKeepAnnotations,
+			setMode,
+		],
+	);
 
 	// ── Discard annotations ───────────────────────────────────────
 	const handleDiscardAnnotations = useCallback(() => {

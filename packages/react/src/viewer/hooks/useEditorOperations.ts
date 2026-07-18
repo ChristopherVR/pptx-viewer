@@ -58,6 +58,8 @@ export interface UseEditorOperationsInput {
 	userName?: string;
 	/** Ref to the loaded PPTX handler; populated by the content-lifecycle hook. */
 	handlerRef?: React.RefObject<PptxHandler | null> | React.MutableRefObject<PptxHandler | null>;
+	/** AutoCorrect transform applied to committed inline text edits. */
+	transformCommittedText?: (text: string) => string;
 }
 
 // ---------------------------------------------------------------------------
@@ -98,6 +100,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		presentation,
 		userName,
 		handlerRef,
+		transformCommittedText,
 	} = input;
 
 	const ops = useElementOperations({
@@ -175,6 +178,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		setEditingEquationOmml: dialogs.setEditingEquationOmml,
 		setIsEquationDialogOpen: dialogs.setIsEquationDialogOpen,
 		setPointerCommitNonce: state.setPointerCommitNonce,
+		transformCommittedText,
 	});
 
 	const insertHandlers = useInsertElements({

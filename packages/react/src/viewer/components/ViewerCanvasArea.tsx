@@ -1,10 +1,11 @@
 import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
+import { shouldConfirmExternalHyperlink } from 'pptx-viewer-shared';
 /**
  * ViewerCanvasArea: The `<main>` element containing the slide canvas,
  * find/replace panel, and presentation annotation / toolbar overlays.
  */
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -33,6 +34,10 @@ import { safeOpenUrl, isPpactionUrl, parsePpactionUrl } from '../utils/hyperlink
 import type { TableStyleContext } from '../utils/table-parse';
 import type { FieldSubstitutionContext } from '../utils/text-field-substitution';
 import { CollaborationCursorOverlay, RemoteSelectionOverlay } from './collaboration';
+import type { PresentationContextMenuState } from './PresentationContextMenu';
+import { PresentationContextMenu } from './PresentationContextMenu';
+import { PresentationEndOverlay } from './PresentationEndOverlay';
+import { useViewerOptionsContext } from './viewer-options-context';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -113,6 +118,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 	} = props;
 	const { t } = useTranslation();
 	const { isHidden } = useToolbarVisibility(hiddenActions);
+	const viewerOptions = useViewerOptionsContext();
 
 	const effectiveSlide = mode === 'master' ? masterPseudoSlide : activeSlide;
 	const effectiveTemplateElements =
@@ -158,6 +164,21 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 	}, [s.theme, s.tableStyleMap]);
 
 	// ── Action / hyperlink handlers ────────────────────────────────────
+	// Trust Center gate: external http(s) links may require confirmation
+	// before opening (Options > Trust Center > confirm external hyperlinks).
+	const openExternalUrl = useCallback(
+		(url: string) => {
+			if (
+				shouldConfirmExternalHyperlink(viewerOptions, url) &&
+				!window.confirm(`${t('pptx.options.trust.confirmHyperlinks')}\n\n${url}`)
+			) {
+				return;
+			}
+			safeOpenUrl(url);
+		},
+		[viewerOptions, t],
+	);
+
 	const handleActionClick = useCallback(
 		(_elementId: string, action: PptxAction) => {
 			if (mode === 'present') {
@@ -165,10 +186,10 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 			} else if (action.url) {
 				// In editing/view mode, only open external URLs (Ctrl+Click).
 				// Slide-internal jumps are not meaningful outside presentation mode.
-				safeOpenUrl(action.url);
+				openExternalUrl(action.url);
 			}
 		},
-		[mode, presentation],
+		[mode, presentation, openExternalUrl],
 	);
 
 	const handleHyperlinkClick = useCallback(
@@ -188,9 +209,30 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 				}
 				return;
 			}
-			safeOpenUrl(url);
+			openExternalUrl(url);
 		},
-		[mode, presentation],
+		[mode, presentation, openExternalUrl],
+	);
+
+	// ── Slide-show right-click menu ────────────────────────────────────
+	// Options > Advanced > "Show menu on right mouse click": while presenting,
+	// right-click opens a minimal Next/Previous/End Show menu; with the option
+	// off, right-click is swallowed entirely (no browser menu either).
+	const [presentationMenu, setPresentationMenu] = useState<PresentationContextMenuState | null>(
+		null,
+	);
+	const handlePresentationContextMenu = useCallback(
+		(e: React.MouseEvent) => {
+			if (mode !== 'present') {
+				return;
+			}
+			e.preventDefault();
+			if (!viewerOptions.advanced.slideShowShowMenuOnRightClick) {
+				return;
+			}
+			setPresentationMenu({ x: e.clientX, y: e.clientY });
+		},
+		[mode, viewerOptions.advanced.slideShowShowMenuOnRightClick],
 	);
 
 	// ── Toolbar hover handling: keep toolbar visible while hovering ────
@@ -232,11 +274,13 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 	});
 
 	return (
+		// eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the canvas area hosts swipe navigation and the presentation-mode right-click menu; it has no interactive semantics of its own
 		<main
 			aria-label={t('pptx.viewer.slideEditorAria')}
 			className='flex-1 min-w-0 relative flex flex-col bg-background'
 			onTouchStart={swipe.onTouchStart}
 			onTouchEnd={swipe.onTouchEnd}
+			onContextMenu={mode === 'present' ? handlePresentationContextMenu : undefined}
 		>
 			{findReplace.findReplaceOpen && (
 				<FindReplacePanel
@@ -396,6 +440,22 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 						onComplete={presentation.handleTransitionOverlayComplete}
 					/>
 				)}
+
+			{/* Black end-of-show screen (Options > Advanced > "End with black slide") */}
+			{mode === 'present' && presentation.endOfShowVisible && (
+				<PresentationEndOverlay onExit={() => presentation.movePresentationSlide(1)} />
+			)}
+
+			{/* Slide-show right-click menu */}
+			{mode === 'present' && presentationMenu && (
+				<PresentationContextMenu
+					state={presentationMenu}
+					onNext={() => presentation.movePresentationSlide(1)}
+					onPrevious={() => presentation.movePresentationSlide(-1)}
+					onEndShow={onEndPresentation ?? (() => {})}
+					onClose={() => setPresentationMenu(null)}
+				/>
+			)}
 
 			{/* Presentation annotation overlay */}
 			{mode === 'present' && annotations.presentationTool !== 'none' && (
