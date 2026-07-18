@@ -26,9 +26,11 @@ import { EditorStateService } from './editor-state.service';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { thumbnailHeight, thumbnailZoom } from './slide-sorter-overlay-helpers';
 
-/** Pixel width of each thumbnail clipping box inside the panel. */
-const THUMB_W = 150;
-const THUMB_CARD_CHROME_HEIGHT = 31;
+/** Pixel width of each thumbnail clipping box inside the panel. Slightly
+ *  narrower than the panel so the slide-number column fits to its left
+ *  (React SlideItem lays the number beside, not below, the preview). */
+const THUMB_W = 132;
+const THUMB_CARD_CHROME_HEIGHT = 12;
 
 /**
  * SlidesPanelComponent: vertical slide-strip for the editor sidebar.

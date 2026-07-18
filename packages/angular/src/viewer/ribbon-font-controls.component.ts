@@ -192,16 +192,33 @@ const CHANGE_CASE_OPTIONS = [
 				S
 			</button>
 		</div>
-		<!-- Text Shadow toggle -->
+		<!-- Text Shadow toggle (icon-only "S" shadow glyph, React TextSection parity). -->
 		<button
 			type="button"
-			class="pptx-rb-gb whitespace-nowrap"
+			class="pptx-rb-gb"
 			[disabled]="!isText()"
 			[ngClass]="curStyle()?.textShadowColor ? 'bg-accent' : ''"
 			[title]="'pptx.textEffects.shadow' | translate"
+			[attr.aria-label]="'pptx.textEffects.shadow' | translate"
 			(click)="toggleShadow()"
 		>
-			{{ 'pptx.textEffects.shadow' | translate }}
+			<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<text x="6" y="17" font-size="16" font-weight="bold" fill="currentColor" stroke="none">
+					S
+				</text>
+				<text
+					x="7.5"
+					y="18.5"
+					font-size="16"
+					font-weight="bold"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="0.5"
+					opacity="0.4"
+				>
+					S
+				</text>
+			</svg>
 		</button>
 		<!-- Character Spacing -->
 		<select
@@ -286,7 +303,8 @@ export class RibbonFontControlsComponent {
 		return this.curStyle()?.fontFamily ?? 'Segoe UI';
 	}
 	protected curFontSize(): number {
-		return Math.round(this.curStyle()?.fontSize ?? 18);
+		// Mirror React's HomeSection default (24) shown when nothing is selected.
+		return Math.round(this.curStyle()?.fontSize ?? 24);
 	}
 	/** Current font colour of the selection (for the swatch + active-state ring). */
 	protected curColor(): string {
