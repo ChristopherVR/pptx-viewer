@@ -1514,6 +1514,28 @@ describe('toolbar - Quick Access Bar (ToolbarPrimaryRow)', () => {
 		expect(html).toContain('aria-label="Toggle inspector panel"');
 	});
 
+	it('omits the AI assistant toggle when the ai prop is absent', () => {
+		const html = render(React.createElement(ToolbarPrimaryRow, createMockToolbarProps()));
+		expect(html).not.toContain('aria-label="Toggle AI assistant"');
+	});
+
+	it('renders the AI assistant toggle only when aiEnabled', () => {
+		const html = render(
+			React.createElement(ToolbarPrimaryRow, createMockToolbarProps({ aiEnabled: true })),
+		);
+		expect(html).toContain('aria-label="Toggle AI assistant"');
+	});
+
+	it('hides the AI assistant toggle in present mode even when aiEnabled', () => {
+		const html = render(
+			React.createElement(
+				ToolbarPrimaryRow,
+				createMockToolbarProps({ aiEnabled: true, mode: 'present' }),
+			),
+		);
+		expect(html).not.toContain('aria-label="Toggle AI assistant"');
+	});
+
 	it('renders the search box that opens Find and Replace', () => {
 		const html = render(React.createElement(TitleBar, createTitleBarProps()));
 		expect(html).toContain('aria-label="Search"');

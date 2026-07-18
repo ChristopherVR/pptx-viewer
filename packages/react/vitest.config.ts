@@ -7,6 +7,7 @@ export default defineConfig({
 		alias: {
 			'pptx-viewer-core': path.resolve(__dirname, '../core/src/index.ts'),
 			'pptx-viewer-shared/i18n': path.resolve(__dirname, '../shared/src/i18n/index.ts'),
+			'pptx-viewer-shared/ai': path.resolve(__dirname, '../shared/src/ai/index.ts'),
 			'pptx-viewer-shared': path.resolve(__dirname, '../shared/src/index.ts'),
 		},
 	},
