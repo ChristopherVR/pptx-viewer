@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.5.0) - 2026-07-18
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
 ## [1.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.4.0) - 2026-07-18
 
 ### Dependencies

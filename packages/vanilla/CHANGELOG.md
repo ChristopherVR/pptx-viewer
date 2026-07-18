@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [0.16.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.16.0) - 2026-07-18
+
+### Features
+
+- **vanilla:** Export createRibbon for independent composition (by @ChristopherVR) ([521d494](https://github.com/ChristopherVR/pptx-viewer/commit/521d4943e2d457d87e5305c15090928212c58a3c))
+
 ## [0.15.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.15.0) - 2026-07-18
 
 ### Dependencies
