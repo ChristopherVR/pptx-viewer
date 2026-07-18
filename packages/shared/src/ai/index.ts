@@ -33,3 +33,35 @@ export type {
 	PptxAiNotifyLevel,
 	PptxAiSlidesUpdater,
 } from './bridge';
+
+export { ProposalStore } from './proposals';
+export type { ProposalView, StagedProposal } from './proposals';
+export { diffSlides } from './proposals-diff';
+
+export {
+	buildDeckOutline,
+	buildSlideMarkdown,
+	clampToTokenBudget,
+	estimateTokens,
+	slideTitle,
+} from './context';
+
+export { BASE_SYSTEM_PROMPT, buildSystemPrompt } from './system-prompt';
+
+export {
+	buildToolExecutors,
+	buildToolSet,
+	enabledToolNames,
+	requireElement,
+	requireSlide,
+	routeWrite,
+	TOOL_DEFINITIONS,
+} from './tools';
+export type {
+	AiToolContext,
+	AiToolExecutor,
+	BoundExecutor,
+	JsonSchema,
+	ToolDefinition,
+	WriteRouteResult,
+} from './tools';
