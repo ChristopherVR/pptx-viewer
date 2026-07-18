@@ -26,6 +26,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
+import { savePptxViaBackstage } from './save-pptx';
+
 const gifFixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/test-image.gif', import.meta.url)),
 );
@@ -209,18 +211,9 @@ test.describe('save corruption reproduction', () => {
 		await editTableCell(page, 'Test Content');
 		await page.waitForTimeout(200);
 
-		// 9. Save the file
-		// Switch to File tab and click Save
-		const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-		const fileTab = toolbar.getByRole('tab', { name: 'File', exact: true });
-		await fileTab.click();
-		await page.waitForTimeout(300);
-
-		const downloadPromise = page.waitForEvent('download');
-		const saveBtn = page.getByRole('button', { name: 'Save .pptx', exact: true });
-		await saveBtn.click();
-
-		const download = await downloadPromise;
+		// 9. Save the file through the File backstage's sidebar "Save" entry
+		// (shared helper; identical flow in every binding).
+		const download = await savePptxViaBackstage(page);
 		const suggestedName = download.suggestedFilename();
 		const projectOutputDir = resolve(outputDir, testInfo.project.name);
 		const fs = await import('node:fs/promises');

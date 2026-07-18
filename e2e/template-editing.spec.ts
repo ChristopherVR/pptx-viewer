@@ -46,6 +46,7 @@ import {
 	MASTER_SHAPE_TEXT,
 	SLIDE_SHAPE_TEXT,
 } from './fixtures/generate-template-editing-fixture';
+import { savePptxViaBackstage } from './save-pptx';
 
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/template-editing.pptx', import.meta.url)),
@@ -283,24 +284,9 @@ test.describe('template / master element editing', () => {
 		await retextInline(page, masterShape, 'TPL-MASTER-SAVED');
 		await expect(elementByText(page, 'TPL-MASTER-SAVED')).toBeVisible();
 
-		// Save via the File tab.
-		const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-		await ribbonTab(page, 'File').click();
-		await page.waitForTimeout(200);
-
-		const downloadPromise = page.waitForEvent('download');
-		// The Save button's accessible name is "Save .pptx" in React/Vue but
-		// just "Save" in Angular (`pptx.toolbar.save`); match either. Scoped to
-		// the ribbon toolbar: Angular also has a quick-access "Save" icon button
-		// in its title bar (outside the ribbon, same handler) that would
-		// otherwise be an equally-valid but ambiguous second match.
-		await toolbar
-			.getByRole('button', {
-				name: /^Save(?: as)?(?: Presentation)?(?: \(\.pptx\)| \.pptx)?$/u,
-			})
-			.first()
-			.click();
-		const download = await downloadPromise;
+		// Save via the File backstage's sidebar "Save" entry (shared helper;
+		// identical flow in every binding).
+		const download = await savePptxViaBackstage(page);
 		const savedPath = resolve(
 			outputDir,
 			`${testInfo.project.name}-${download.suggestedFilename() || 'template-editing-saved.pptx'}`,

@@ -48,6 +48,8 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { savePptxViaBackstage } from './save-pptx';
+
 const oleFixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/ole-embed.pptx', import.meta.url)),
 );
@@ -144,26 +146,10 @@ test.describe('ink annotations', () => {
 		// `ink-save-roundtrip.test.ts` guards against (ink used to be
 		// downgraded to a plain `custGeom` shape on any dirty save).
 		//
-		// Scoped to the toolbar (not a bare `button` text filter): some bindings
-		// render an extra, hidden duplicate control tree for responsive
-		// breakpoints, so an unscoped text filter can resolve `.first()` to a
-		// non-visible copy. Mirrors `ribbon-tab-parity.spec.ts`'s selector.
-		const fileTab = page
-			.getByRole('toolbar', { name: 'Presentation toolbar' })
-			.getByRole('tab', { name: 'File', exact: true });
-		await fileTab.click();
-		await page.waitForTimeout(300);
-
-		// The File-tab save control is labelled "Save", "Save .pptx", or
-		// "Save as .pptx" depending on the binding.
-		const downloadPromise = page.waitForEvent('download');
-		await page
-			.getByRole('button', {
-				name: /^Save(?: as)?(?: Presentation)?(?: \(\.pptx\)| \.pptx)?$/iu,
-			})
-			.last()
-			.click();
-		const download = await downloadPromise;
+		// The File tab opens the full-screen backstage; the shared helper
+		// drives its sidebar "Save" entry to a .pptx download identically in
+		// every binding (see `save-pptx.ts`).
+		const download = await savePptxViaBackstage(page);
 
 		const outDir = fileURLToPath(new URL('../test-results/ole-and-ink/', import.meta.url));
 		const { mkdirSync } = await import('node:fs');
