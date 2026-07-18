@@ -47,8 +47,14 @@ export class ViewerInspectorPanelService {
 	 * React's/Vue's own open/closed toggle state. Never affects the explicit
 	 * tool panels (comments/accessibility/signatures/selection), which show
 	 * regardless of this flag.
+	 *
+	 * Starts closed on mobile so the canvas owns the screen on first paint and
+	 * the format pane's tab strip (with its own Comments button) never collides
+	 * with the mobile bottom bar; the bottom bar's "Format" slot opens it
+	 * explicitly instead. Mirrors React's `isInspectorPaneOpen` initializer
+	 * (open on desktop, closed under the mobile breakpoint).
 	 */
-	readonly formatPanelClosed = signal(false);
+	readonly formatPanelClosed = signal(this.mobile.isMobile());
 	/**
 	 * Swipe-to-dismiss drag for the inspector host. The host docks in-flow below
 	 * the canvas on mobile (same keyboard-reachability reason as the notes
@@ -158,6 +164,18 @@ export class ViewerInspectorPanelService {
 	togglePanel(panel: InspectorToolPanel): void {
 		this.activePanel.update((current) => (current === panel ? null : panel));
 		// Tapping a panel button re-opens the host even after a swipe-dismiss.
+		this.mobileInspectorHidden.set(false);
+	}
+
+	/**
+	 * Mobile bottom-bar "Format" slot: close any explicit tool panel, reopen
+	 * the format (element/slide) view, and undo a prior swipe-dismiss so the
+	 * pane is guaranteed to surface (React parity: the Format button opens the
+	 * inspector that starts closed on mobile).
+	 */
+	openFormatPanel(): void {
+		this.activePanel.set(null);
+		this.formatPanelClosed.set(false);
 		this.mobileInspectorHidden.set(false);
 	}
 

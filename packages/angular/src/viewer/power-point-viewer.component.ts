@@ -1180,7 +1180,7 @@ export class PowerPointViewerComponent {
 		if (this.mobileSheetSvc.showNotes()) {
 			return 'notes';
 		}
-		if (this.selectedElement()) {
+		if (this.selectedElement() && this.inspectorPanel.inspectorPaneOpen()) {
 			return 'inspector';
 		}
 		return null;
@@ -2073,17 +2073,16 @@ export class PowerPointViewerComponent {
 	}
 
 	/**
-	 * Mobile "Format" slot: surface the inspector for the current selection. The
-	 * inspector renders inline (below the canvas) whenever an element is selected
-	 * and no other right-docked panel is open, so closing any open panel reveals
-	 * it. With nothing selected this is a no-op (the slide-properties panel shows
-	 * instead).
+	 * Mobile "Format" slot: surface the inspector for the current selection.
+	 * On mobile the format pane starts closed (React parity: the canvas owns
+	 * the first paint), so this explicitly opens it; with an element selected
+	 * it shows the element inspector, otherwise the slide-properties view.
 	 */
 	protected onMobileFormat(): void {
-		this.inspectorPanel.activePanel.set(null);
 		this.mobileSheetSvc.mobileSheet.set(null);
-		// Reopen the inspector if a prior swipe-down had dismissed it.
-		this.inspectorPanel.mobileInspectorHidden.set(false);
+		// Close any tool panel, clear the mobile-closed default, and undo a
+		// prior swipe-down dismissal so the format pane surfaces.
+		this.inspectorPanel.openFormatPanel();
 	}
 
 	/** Receive draw-tool state changes from the ribbon Draw tab. */
