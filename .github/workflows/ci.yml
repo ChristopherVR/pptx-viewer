@@ -40,10 +40,14 @@ jobs:
         run: bun install
 
       # Foundation packages: hard failure if any of these break.
+      # pptx-viewer-locales is demo-support: every demo app imports it, so the
+      # e2e web servers 500 on startup when its dist is missing from the
+      # artifact.
       - name: Build foundation packages
         run: |
           bun run --filter 'pptx-viewer-core' build
           bun run --filter 'pptx-viewer-shared' build
+          bun run --filter 'pptx-viewer-locales' build
           bun run --filter 'pptx-viewer-mcp' build
           bun run --filter '@christophervr/pptx-viewer' build
 
