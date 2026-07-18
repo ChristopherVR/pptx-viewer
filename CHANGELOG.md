@@ -6,6 +6,32 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-18
 
+_Releases: pptx-viewer-core@1.6.4, pptx-react-viewer@1.24.0, pptx-vue-viewer@1.23.1, pptx-angular-viewer@1.30.0, pptx-vanilla-viewer@0.16.0, pptx-svelte-viewer@1.5.0_
+
+### Features
+
+- **angular:** Promote RibbonComponent for independent composition (by @ChristopherVR) ([00ab33e](https://github.com/ChristopherVR/pptx-viewer/commit/00ab33e515857cd60a5aef01537c1024297e08e5))
+- **vanilla:** Export createRibbon for independent composition (by @ChristopherVR) ([521d494](https://github.com/ChristopherVR/pptx-viewer/commit/521d4943e2d457d87e5305c15090928212c58a3c))
+- **react:** Export Toolbar/SlideCanvas + useViewerBuildingBlocks hook (by @ChristopherVR) ([37220c3](https://github.com/ChristopherVR/pptx-viewer/commit/37220c3afa1f7eaf62ec9eaa6fca72ee6ab19d7d))
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **core:** Preserve OMML sibling order through parse, save, and markdown (by @ChristopherVR) ([54e5de5](https://github.com/ChristopherVR/pptx-viewer/commit/54e5de5b4c0bc1509e80bf632a8d3c2a5c24be38))
+- **react:** Make useViewerBuildingBlocks test poll a wall-clock deadline (by @ChristopherVR) ([e57e00d](https://github.com/ChristopherVR/pptx-viewer/commit/e57e00dd1185f7614514f95845cfd69a11347677))
+- **core:** Resolve ReDoS and prototype pollution in OMML sibling-order scan (by @ChristopherVR) ([2eef210](https://github.com/ChristopherVR/pptx-viewer/commit/2eef210de3c5a366be8721e420aaac6a5643b0af))
+
+### Refactor
+
+- **shared:** Emit core's ordered-key convention for interleaved OMML (by @ChristopherVR) ([81db024](https://github.com/ChristopherVR/pptx-viewer/commit/81db024967197fbc1ee65b27a00419613637f5f2))
+
+### Build & CI
+
+- **release:** Keep only the latest github release per package (by @ChristopherVR) ([3dcd838](https://github.com/ChristopherVR/pptx-viewer/commit/3dcd838c5f05ee75e3485b096376c7dbea02500c))
+- Fix oxfmt quoting in prune-releases workflow (by @ChristopherVR) ([a95adad](https://github.com/ChristopherVR/pptx-viewer/commit/a95adadcb5c332c2b924807be6b03f8e8752bd9e))
+
+## 2026-07-18
+
 _Releases: pptx-viewer-core@1.6.3, pptx-react-viewer@1.23.0, pptx-vue-viewer@1.23.0, pptx-angular-viewer@1.29.0, pptx-vanilla-viewer@0.15.0, pptx-svelte-viewer@1.4.0_
 
 ### Features

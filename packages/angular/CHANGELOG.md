@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.30.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.30.0) - 2026-07-18
+
+### Features
+
+- **angular:** Promote RibbonComponent for independent composition (by @ChristopherVR) ([00ab33e](https://github.com/ChristopherVR/pptx-viewer/commit/00ab33e515857cd60a5aef01537c1024297e08e5))
+
 ## [1.29.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.29.0) - 2026-07-18
 
 ### Dependencies

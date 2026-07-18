@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.24.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.24.0) - 2026-07-18
+
+### Features
+
+- **react:** Export Toolbar/SlideCanvas + useViewerBuildingBlocks hook (by @ChristopherVR) ([37220c3](https://github.com/ChristopherVR/pptx-viewer/commit/37220c3afa1f7eaf62ec9eaa6fca72ee6ab19d7d))
+
 ## [1.23.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.23.0) - 2026-07-18
 
 ### Dependencies
