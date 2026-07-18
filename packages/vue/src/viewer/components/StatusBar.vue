@@ -10,7 +10,7 @@
  */
 import { Columns2, Minus, Monitor, Plus, Presentation, StickyNote } from 'lucide-vue-next';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
-import { computed } from 'vue';
+import { computed, useSlots } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../utils';
@@ -24,6 +24,8 @@ const props = defineProps<{
 	activeSlideIndex: number;
 	isDirty: boolean;
 	autosaveStatus?: AutosaveStatus;
+	/** Epoch ms of the last successful autosave, for the "Saved <time>" label. */
+	lastSavedAt?: number | null;
 	/** Current zoom scale (1 = 100%). */
 	scale?: number;
 	/** Whether the notes panel is expanded. */
@@ -35,6 +37,8 @@ const props = defineProps<{
 	/** Toolbar buttons the host has asked to hide (zoom, notes, fullscreen). */
 	hiddenActions?: ToolbarActionId[];
 }>();
+
+const slots = useSlots();
 
 const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 
@@ -50,16 +54,30 @@ const emit = defineEmits<{
 const vb =
 	'p-1 rounded-sm transition-colors hover:bg-accent/60 text-muted-foreground active:scale-95 active:opacity-80';
 
+/** Relative age label for a saved timestamp ("just now" / "N min ago"). */
+function formatAutosaveAge(timestamp: number): string {
+	const minutes = Math.floor((Date.now() - timestamp) / 60_000);
+	if (minutes < 1) {
+		return t('pptx.autosave.justNow');
+	}
+	if (minutes === 1) {
+		return t('pptx.autosave.oneMinAgo');
+	}
+	return t('pptx.autosave.minutesAgo', { count: minutes });
+}
+
 const statusText = computed(() => {
 	if (props.autosaveStatus === 'saving') {
 		return t('pptx.autosave.saving');
 	}
+	// A settled 'saved' state renders "Saved <time>" with the real timestamp,
+	// matching React's StatusBar.
+	if (props.autosaveStatus === 'saved' && typeof props.lastSavedAt === 'number') {
+		return t('pptx.autosave.saved', { time: formatAutosaveAge(props.lastSavedAt) });
+	}
 	if (props.autosaveStatus === 'error') {
 		return t('pptx.autosave.error');
 	}
-	// A settled 'saved' state with no pending edits reads "All saved", matching
-	// React's StatusBar (which only shows "Saved <time>" with a real timestamp;
-	// the Vue autosave status carries none).
 	return props.isDirty ? t('pptx.statusBar.unsavedChanges') : t('pptx.statusBar.allSaved');
 });
 </script>
@@ -154,6 +172,12 @@ const statusText = computed(() => {
 				<Presentation class="w-3.5 h-3.5" />
 			</button>
 		</div>
+
+		<!-- Collaboration status (React parity: between view-mode + zoom) -->
+		<template v-if="slots.collaboration">
+			<div class="w-px h-3 bg-border/40 mx-0.5" />
+			<slot name="collaboration" />
+		</template>
 
 		<!-- Zoom controls -->
 		<template v-if="props.scale !== undefined && !isHidden('zoom')">

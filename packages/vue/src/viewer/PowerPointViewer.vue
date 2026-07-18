@@ -2239,18 +2239,6 @@ function handleCommandSearch(command: string): void {
 					@follow="collab.followUser"
 				/>
 
-				<!-- Collaboration connection / participant status pill -->
-				<div
-					v-if="collabActive"
-					class="pptx-vue-collab-status-pill pointer-events-auto absolute bottom-2 right-2 z-50 rounded-full border border-border bg-background/90 px-2.5 py-1 shadow-sm backdrop-blur"
-				>
-					<CollaborationStatusIndicator
-						:status="collab.status.value"
-						:connected-count="collab.connectedCount.value"
-						@retry="collab.retry"
-					/>
-				</div>
-
 				<!-- Custom shows -->
 				<CustomShowsPanel
 					v-if="props.canEdit && showCustomShows"
@@ -2288,6 +2276,7 @@ function handleCommandSearch(command: string): void {
 				:autosave-status="
 					autosaveDisabledReason ? 'disabled' : autosaveEnabled ? autosave.status.value : undefined
 				"
+				:last-saved-at="autosave.lastSavedAt.value"
 				:scale="zoom"
 				:mode="ribbonMode"
 				:is-notes-expanded="notesExpanded"
@@ -2299,7 +2288,17 @@ function handleCommandSearch(command: string): void {
 				@toggle-notes="notesExpanded = !notesExpanded"
 				@toggle-slide-sorter="showSorter = true"
 				@set-mode="(m) => (m === 'present' ? startPresenting() : (presenting = false))"
-			/>
+			>
+				<!-- Collaboration status in the footer (React parity), replacing the
+				     former floating pill. -->
+				<template v-if="collabActive" #collaboration>
+					<CollaborationStatusIndicator
+						:status="collab.status.value"
+						:connected-count="collab.connectedCount.value"
+						@retry="collab.retry"
+					/>
+				</template>
+			</StatusBar>
 
 			<!-- Design ▸ Themes gallery -->
 			<ThemeGallery
