@@ -6,6 +6,12 @@
 	 * The parent owns `properties` and commits each patch.
 	 */
 	import type { PptxPresentationProperties } from 'pptx-viewer-core';
+	import {
+		printPropertiesFrameSlides,
+		printPropertiesSlidesPerPage,
+		withFrameSlides,
+		withSlidesPerPage,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 
@@ -69,8 +75,9 @@
 		<input
 			type="checkbox"
 			disabled={!canEdit}
-			checked={Boolean(properties.printFrameSlides)}
-			onchange={(event) => onupdate({ printFrameSlides: event.currentTarget.checked })}
+			checked={printPropertiesFrameSlides(properties.printProperties)}
+			onchange={(event) =>
+				onupdate({ printProperties: withFrameSlides(properties.printProperties, event.currentTarget.checked) })}
 		/>
 	</label>
 	<label>
@@ -80,8 +87,9 @@
 			min="1"
 			max="16"
 			disabled={!canEdit}
-			value={properties.printSlidesPerPage ?? 1}
-			oninput={(event) => onupdate({ printSlidesPerPage: Number(event.currentTarget.value) })}
+			value={printPropertiesSlidesPerPage(properties.printProperties)}
+			oninput={(event) =>
+				onupdate({ printProperties: withSlidesPerPage(properties.printProperties, Number(event.currentTarget.value)) })}
 		/>
 	</label>
 </div>
