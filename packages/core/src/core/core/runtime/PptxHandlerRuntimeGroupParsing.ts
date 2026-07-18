@@ -63,6 +63,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const grpSpPr = group['p:grpSpPr'] as XmlObject | undefined;
 		const xfrm = grpSpPr?.['a:xfrm'] as XmlObject | undefined;
 
+		// Keep the group transform in UNROUNDED pixels. A themed background
+		// often uses a compact child coordinate space (e.g. `chExt` of a few
+		// thousand EMU for a full-slide group); rounding `chExt`/child offsets
+		// to whole pixels early collapses them to 0, which both zeroes the
+		// child geometry and makes the scale fall back to 1. Float math keeps
+		// the ratio (`parentExt / chExt`) accurate no matter the units.
+		const EMU_PX = PptxHandlerRuntime.EMU_PER_PX;
 		let parentX = 0,
 			parentY = 0,
 			parentW = 0,
@@ -75,28 +82,60 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (xfrm) {
 			const off = xfrm['a:off'] as XmlObject | undefined;
 			if (off) {
-				parentX = Math.round(parseEmuInt(off['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
-				parentY = Math.round(parseEmuInt(off['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
+				parentX = parseEmuInt(off['@_x']) / EMU_PX;
+				parentY = parseEmuInt(off['@_y']) / EMU_PX;
 			}
 			const ext = xfrm['a:ext'] as XmlObject | undefined;
 			if (ext) {
-				parentW = Math.round(parseEmuInt(ext['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
-				parentH = Math.round(parseEmuInt(ext['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
+				parentW = parseEmuInt(ext['@_cx']) / EMU_PX;
+				parentH = parseEmuInt(ext['@_cy']) / EMU_PX;
 			}
 			const chOff = xfrm['a:chOff'] as XmlObject | undefined;
 			if (chOff) {
-				chX = Math.round(parseEmuInt(chOff['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
-				chY = Math.round(parseEmuInt(chOff['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
+				chX = parseEmuInt(chOff['@_x']) / EMU_PX;
+				chY = parseEmuInt(chOff['@_y']) / EMU_PX;
 			}
 			const chExt = xfrm['a:chExt'] as XmlObject | undefined;
 			if (chExt) {
-				chW = Math.round(parseEmuInt(chExt['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
-				chH = Math.round(parseEmuInt(chExt['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
+				chW = parseEmuInt(chExt['@_cx']) / EMU_PX;
+				chH = parseEmuInt(chExt['@_cy']) / EMU_PX;
 			}
 		}
 
 		const scaleX = chW > 0 ? parentW / chW : 1;
 		const scaleY = chH > 0 ? parentH / chH : 1;
+
+		// A child shape's own `a:xfrm` is expressed in the group's child
+		// coordinate space, not EMU. `parseShape` converts it as if it were
+		// EMU (dividing by EMU_PER_PX and rounding), so compact child units
+		// round to 0. Recover the child's true position/size by re-reading its
+		// raw `a:off`/`a:ext` here (unrounded) before the group scale is
+		// applied, so the transform below produces the correct pixels.
+		const rawChildXfrm = (childNode: XmlObject | undefined): XmlObject | undefined => {
+			if (!childNode) {
+				return undefined;
+			}
+			const childXfrm =
+				((childNode['p:spPr'] as XmlObject | undefined)?.['a:xfrm'] as XmlObject | undefined) ??
+				(childNode['p:xfrm'] as XmlObject | undefined);
+			return childXfrm;
+		};
+		const applyRawChildGeometry = (el: PptxElement, childNode: XmlObject | undefined): void => {
+			const childXfrm = rawChildXfrm(childNode);
+			if (!childXfrm) {
+				return;
+			}
+			const off = childXfrm['a:off'] as XmlObject | undefined;
+			const ext = childXfrm['a:ext'] as XmlObject | undefined;
+			if (off) {
+				el.x = parseEmuInt(off['@_x']) / EMU_PX;
+				el.y = parseEmuInt(off['@_y']) / EMU_PX;
+			}
+			if (ext) {
+				el.width = parseEmuInt(ext['@_cx']) / EMU_PX;
+				el.height = parseEmuInt(ext['@_cy']) / EMU_PX;
+			}
+		};
 
 		const transformElement = (el: PptxElement) => {
 			const relativeX = el.x - chX;
@@ -159,6 +198,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					`${baseId}-`,
 				);
 				if (element) {
+					const childNode = this.ensureArray(group[entry.tag])[entry.indexInType] as
+						| XmlObject
+						| undefined;
+					applyRawChildGeometry(element, childNode);
 					transformElement(element);
 					elements.push(element);
 				}

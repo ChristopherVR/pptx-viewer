@@ -186,9 +186,28 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						element.id = `layout-${element.id}`;
 						elements.push(element);
 					}
+				} else if (entry.tag === 'p:grpSp') {
+					// Themed decks often place ALL their decorative background
+					// artwork inside a top-level group on the layout (e.g. the
+					// "Balloons" family). Skipping groups here dropped the entire
+					// themed background; parse them like slide groups instead.
+					const groups = this.ensureArray(spTree['p:grpSp']);
+					const group = groups[entry.indexInType] as XmlObject | undefined;
+					if (!group) {
+						continue;
+					}
+					const element = await this.parseGroupShapeAsGroup(
+						group,
+						`layout-group-${layoutToken}-${entry.indexInType}`,
+						layoutPath,
+					);
+					if (element) {
+						element.id = `layout-${element.id}`;
+						elements.push(element);
+					}
 				}
-				// Other element types (p:grpSp, p:contentPart) are
-				// uncommon in layouts but could be added here if needed.
+				// Other element types (p:contentPart) are uncommon in layouts
+				// but could be added here if needed.
 			}
 
 			// Check whether master shapes should be shown on this layout
