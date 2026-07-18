@@ -1,12 +1,8 @@
-// ── Unstable, complete export of every internal PowerPointViewer hook ──
+// ── Internal building blocks. Not covered by semver; prefer the stable root exports. ──
 //
 // These are the same hooks `PowerPointViewer` composes internally. They are exposed here for
 // advanced integrations that need finer-grained control than the component or the curated
 // `pptx-react-viewer/viewer` entry provide.
-//
-// No compatibility guarantees: names, signatures, and behavior can change or be removed in any
-// release - including a patch release - without a deprecation period. Prefer
-// `pptx-react-viewer/viewer` for anything that needs semver stability.
 
 export * from './viewer/hooks';
 

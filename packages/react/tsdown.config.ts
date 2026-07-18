@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsdown';
 
 export default defineConfig((options) => ({
-	entry: ['src/index.ts', 'src/viewer/index.ts', 'src/i18n.ts', 'src/hooks-unstable.ts'],
+	entry: ['src/index.ts', 'src/viewer/index.ts', 'src/i18n.ts', 'src/internals.ts'],
 	format: ['esm', 'cjs'],
 	outDir: '.types',
 	minify: false,

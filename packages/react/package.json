@@ -54,17 +54,17 @@
 			"import": "./dist/i18n.mjs",
 			"require": "./dist/i18n.js"
 		},
-		"./hooks-unstable": {
-			"types": "./dist/hooks-unstable.d.ts",
-			"import": "./dist/hooks-unstable.mjs",
-			"require": "./dist/hooks-unstable.js"
+		"./internals": {
+			"types": "./dist/internals.d.ts",
+			"import": "./dist/internals.mjs",
+			"require": "./dist/internals.js"
 		},
 		"./styles": "./dist/pptx-viewer.css",
 		"./styles.css": "./dist/pptx-viewer.css",
 		"./theme.css": "./src/styles/theme.css"
 	},
 	"scripts": {
-		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs && node ../../scripts/bundle-declarations.mjs index viewer/index i18n hooks-unstable && node ../../scripts/merge-declarations.mjs .types-bundle && npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify && node ../../scripts/compress-dist.mjs dist",
+		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs && node ../../scripts/bundle-declarations.mjs index viewer/index i18n internals && node ../../scripts/merge-declarations.mjs .types-bundle && npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify && node ../../scripts/compress-dist.mjs dist",
 		"build:css": "npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",

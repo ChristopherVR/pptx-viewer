@@ -213,7 +213,7 @@ UI labels go through [i18next](https://www.i18next.com/) / [react-i18next](https
 
 You only need the `<PowerPointViewer>` component; everything else is internal. Behind it, the logic lives in many small, focused React hooks, and the components themselves just draw what those hooks produce. Slides are rendered as ordinary HTML and CSS (charts as inline SVG, tables as real `<table>` elements), which is why text stays sharp, selectable, and accessible. For the full component tree, the rendering pipeline, the animation and transition engine, connector routing, collaboration, and a file-by-file map, see the [full documentation](https://christophervr.github.io/pptx-viewer/).
 
-A small curated set of those hooks is exported from `pptx-react-viewer/viewer` with a stable API; the complete set (67+) is also importable from `pptx-react-viewer/hooks-unstable` for advanced integrations, with **no compatibility guarantees** across releases. See the [Hooks reference](https://christophervr.github.io/pptx-viewer/react/hooks-reference) for the full list.
+A small curated set of those hooks is exported from `pptx-react-viewer/viewer` with a stable API; the complete set (67+) is also importable from `pptx-react-viewer/internals` for advanced integrations. The `internals` subpath is **not covered by semver**: prefer the stable root exports. See the [Hooks reference](https://christophervr.github.io/pptx-viewer/react/hooks-reference) for the full list.
 
 ## Limitations
 
