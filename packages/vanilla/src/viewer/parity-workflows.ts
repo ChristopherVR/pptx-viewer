@@ -3,10 +3,14 @@ import {
 	applyAcceptSlide,
 	applyRehearsalTimings,
 	compareSlides,
-	DEFAULT_VIEWER_SETTINGS,
 	openPptxFile,
 } from 'pptx-viewer-shared';
-import type { ThemeCatalogEntry, ViewerSettings, ViewerTheme } from 'pptx-viewer-shared';
+import type {
+	ThemeCatalogEntry,
+	ViewerOptionsStore,
+	ViewerOptionsTabId,
+	ViewerTheme,
+} from 'pptx-viewer-shared';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
 import type { EditorController } from './editor';
@@ -31,6 +35,10 @@ export interface ParityWorkflowHost {
 	t: Translator;
 	store: Store<ViewerState>;
 	editor: EditorController;
+	/** The File > Options store the Options dialog reads and writes. */
+	optionsStore: ViewerOptionsStore;
+	/** Options > Save > "Delete cached files". */
+	clearOptionsCache(): void;
 	root(): HTMLElement;
 	setAutosaveEnabled(enabled: boolean): void;
 	print(options: PrintOptions): Promise<boolean>;
@@ -60,43 +68,29 @@ export interface ParityWorkflows {
 	openCustomShows(): void;
 }
 
-export function createParityWorkflows(
-	host: ParityWorkflowHost,
-	autosave: boolean,
-): ParityWorkflows {
-	let settings: ViewerSettings = { ...DEFAULT_VIEWER_SETTINGS, autoSave: autosave };
+export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows {
 	const state = (): ViewerState => host.store.get();
 	return {
 		openSettings(tab = 'general') {
 			const themeState = host.getThemeState();
 			const localeState = host.getLocaleState();
-			openSettingsDialog(
-				host.doc,
-				host.t,
-				{ ...settings },
-				(next) => {
-					const autosaveChanged = next.autoSave !== settings.autoSave;
-					settings = next;
-					const root = host.root();
-					root.classList.toggle('pptxv-show-grid', next.showGrid);
-					root.classList.toggle('pptxv-show-rulers', next.showRulers);
-					root.classList.toggle('pptxv-reduced-motion', next.reducedMotion);
-					if (autosaveChanged) {
-						host.setAutosaveEnabled(next.autoSave);
-					}
-				},
-				tab,
-				{
+			// The shortcut reference lives inside the Customize Ribbon pane now.
+			const initialTab: ViewerOptionsTabId = tab === 'shortcuts' ? 'ribbon' : 'general';
+			openSettingsDialog(host.doc, host.t, {
+				store: host.optionsStore,
+				initialTab,
+				onClearCache: () => host.clearOptionsCache(),
+				themeOptions: {
 					catalog: themeState.catalog,
 					currentKey: themeState.key,
 					onSelect: (theme) => host.setTheme(theme),
 				},
-				{
+				localeOptions: {
 					catalog: localeState.catalog,
 					currentCode: localeState.code,
 					onSelect: (code) => host.setLocale(code),
 				},
-			);
+			});
 		},
 		openSetUpSlideShow() {
 			const current = state();

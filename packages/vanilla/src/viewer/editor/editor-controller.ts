@@ -60,6 +60,8 @@ export interface EditorController {
 	redo(): void;
 	canUndo(): boolean;
 	canRedo(): boolean;
+	/** File > Options > Advanced > "Maximum number of undos". */
+	setHistoryDepth(depth: number): void;
 	deleteSelected(): void;
 	duplicateSelected(): string | null;
 	getSelectedElementId(): string | null;
@@ -311,6 +313,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		redo: () => ops.redo(),
 		canUndo: () => ops.canUndo(),
 		canRedo: () => ops.canRedo(),
+		setHistoryDepth: (depth) => ops.setHistoryDepth(depth),
 		deleteSelected: () => ops.deleteSelected(),
 		duplicateSelected: () => ops.duplicateSelected(),
 		getSelectedElementId: () => store.get().selectedElementId,

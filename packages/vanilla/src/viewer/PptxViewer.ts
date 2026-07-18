@@ -25,6 +25,8 @@ import {
 	createInitialPresentationSnapshot,
 	createBlankSlide,
 	createBackstagePresentation,
+	deleteAutosaveSnapshot,
+	listAutosaveSnapshots,
 	readBackstageRecentFile,
 	makeSlideId,
 	mergePresentationSnapshot,
@@ -82,6 +84,8 @@ import { openSignatureStrippedDialog } from './ui/signature-stripped-dialog';
 import { openVersionHistoryPanel } from './ui/version-history-panel';
 import type { ViewerControls } from './viewer-controls';
 import { createViewerControls } from './viewer-controls';
+import type { ViewerOptionsController } from './viewer-options-controller';
+import { createViewerOptionsController } from './viewer-options-controller';
 
 /**
  * The zero-framework PowerPoint viewer. Construct via {@link createPptxViewer}:
@@ -124,6 +128,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private detachSignatureWarning: (() => void) | null = null;
 	private annotations!: PresentationAnnotationsHost;
 	private parityWorkflows!: ParityWorkflows;
+	/** File > Options store + option-driven behavior (undo depth, ribbon, etc.). */
+	private optionsController!: ViewerOptionsController;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
 		super();
@@ -245,11 +251,40 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getTranslator: () => this.t,
 			smartArt3D: options.smartArt3D ?? false,
 		});
+		// File > Options controller: owns the persisted options store and turns
+		// option values into behavior. Created before the parity workflows (which
+		// open the Options dialog against its store) and the chrome; its host
+		// methods read `this.*` lazily and are only exercised by `applyAll()`
+		// after every subsystem below exists.
+		this.optionsController = createViewerOptionsController(
+			{
+				store: this.store,
+				root: () => this.lifecycle?.chrome.root ?? null,
+				isAutosaveEnabled: () => this.sessions?.isAutosaveEnabled() ?? false,
+				setAutosaveEnabled: (enabled) => this.sessions?.setAutosaveEnabled(enabled),
+				setAutosaveIntervalMs: () => {
+					// The recovery autosave interval is fixed at construction in the
+					// session controllers; a runtime change is a no-op for now.
+				},
+				setHistoryDepth: (depth) => this.editor?.setHistoryDepth(depth),
+				setRibbonHiddenTabs: (tabIds) => this.lifecycle?.chrome.ribbon?.setHiddenOptionTabs(tabIds),
+				refreshQuickAccess: () => this.lifecycle?.chrome.titleBar?.refreshQuickAccess(),
+				applyScreenTips: () =>
+					this.lifecycle?.chrome.ribbon?.applyScreenTips((label) =>
+						this.optionsController.screenTip(label),
+					),
+			},
+			// Seed autosave from the constructor option so persisted values (if any)
+			// override it, and the default does not force autosave (+ IndexedDB) on.
+			{ initial: { save: { autoSave: options.autosave ?? false } } },
+		);
 		const parityWorkflowHost: ParityWorkflowHost = {
 			doc: this.doc,
 			t: this.t,
 			store: this.store,
 			editor: this.editor,
+			optionsStore: this.optionsController.optionsStore,
+			clearOptionsCache: () => this.clearOptionsCache(),
 			root: () => this.lifecycle.chrome.root,
 			setAutosaveEnabled: (enabled) => this.setAutosaveEnabled(enabled),
 			print: (printOptions) => this.print(printOptions),
@@ -265,7 +300,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		// dialogs (including Options itself) must read the current translator
 		// each time they open, not whatever was active when this host was built.
 		Object.defineProperty(parityWorkflowHost, 't', { get: () => this.t });
-		this.parityWorkflows = createParityWorkflows(parityWorkflowHost, options.autosave ?? false);
+		this.parityWorkflows = createParityWorkflows(parityWorkflowHost);
 		if (options.editable) {
 			this.store.set({ editable: true });
 			this.editor.setEditable(true);
@@ -308,6 +343,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			setEditable: (editable) => this.setEditable(editable),
 			goToSlide: (index) => this.controls.goToSlide(index),
 		});
+		// Every subsystem the options controller drives now exists: apply the
+		// persisted File > Options values (undo depth, ribbon visibility, root
+		// classes, ScreenTips, etc.) for the first time.
+		this.optionsController.applyAll();
 		this.renderer.renderAll();
 
 		if (options.source !== undefined) {
@@ -893,6 +932,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.closeAudienceWindow();
 		this.presenterChannel?.close();
 		this.sessions.destroy();
+		this.optionsController.dispose();
 		this.detachSignatureWarning?.();
 		this.loading.invalidate();
 		this.editor.destroy();
@@ -903,9 +943,20 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.loading.releaseLoaded();
 	}
 
+	/** File > Options > Save > "Delete cached files": drop recovery snapshots. */
+	private clearOptionsCache(): void {
+		void (async () => {
+			const snapshots = await listAutosaveSnapshots();
+			await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
+		})();
+	}
+
 	private remountChrome(): void {
 		unmountChrome(this.lifecycle, () => this.editor?.detachChrome());
 		this.lifecycle = mountChrome(buildMountChromeDeps(this));
+		// Re-apply option-driven chrome behavior (ribbon visibility, ScreenTips,
+		// quick access) against the freshly mounted chrome.
+		this.optionsController.applyAll();
 	}
 }
 

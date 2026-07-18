@@ -1,5 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { compareSlides } from 'pptx-viewer-shared';
+import { compareSlides, createViewerOptionsStore, THEME_CATALOG } from 'pptx-viewer-shared';
+import { LOCALE_CATALOG } from 'pptx-viewer-shared/i18n';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../i18n';
@@ -22,31 +23,26 @@ function slide(id: string, text = ''): PptxSlide {
 
 describe('remaining parity dialogs', () => {
 	it('shows the shared shortcut reference and persists settings', () => {
-		const onSave = vi.fn();
-		openSettingsDialog(
-			document,
-			createTranslator(),
-			{
-				autoSave: true,
-				spellCheck: false,
-				showGrid: false,
-				showRulers: false,
-				snapToGrid: false,
-				reducedMotion: false,
-			},
-			onSave,
-			'shortcuts',
-		);
+		localStorage.clear();
+		const store = createViewerOptionsStore();
+		openSettingsDialog(document, createTranslator(), {
+			store,
+			initialTab: 'ribbon',
+			onClearCache: vi.fn(),
+			themeOptions: { catalog: THEME_CATALOG, currentKey: 'default', onSelect: vi.fn() },
+			localeOptions: { catalog: LOCALE_CATALOG, currentCode: 'en', onSelect: vi.fn() },
+		});
+		// The Customize Ribbon pane carries the keyboard-shortcut reference.
 		expect(document.body.textContent).toContain('Ctrl/Cmd+C');
-		const general = Array.from(document.querySelectorAll('button')).find(
-			(button) => button.textContent === 'General',
+		const advanced = Array.from(document.querySelectorAll('button')).find(
+			(button) => button.textContent === 'Advanced',
 		)!;
-		general.click();
+		advanced.click();
 		const grid = Array.from(document.querySelectorAll('label'))
 			.find((label) => label.textContent === 'Show grid')!
 			.querySelector<HTMLInputElement>('input')!;
 		grid.click();
-		expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ showGrid: true }));
+		expect(store.getOptions().advanced.showGrid).toBeTruthy();
 	});
 
 	it('saves show range and kiosk settings', () => {

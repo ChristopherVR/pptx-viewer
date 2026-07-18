@@ -53,6 +53,14 @@ export interface Ribbon {
 	/** Reflect the inspector panel's open state on the quick-access toggle. */
 	setInspectorOpen(open: boolean): void;
 	openEquationEditor(id: string, omml: Record<string, unknown>): void;
+	/**
+	 * Hide ribbon tabs unticked in Options > Customize Ribbon. The File tab
+	 * always survives; a hidden active tab falls back to Home (or the first
+	 * remaining tab).
+	 */
+	setHiddenOptionTabs(tabIds: readonly string[]): void;
+	/** Apply Options > General ScreenTip style to the tab-bar tooltips. */
+	applyScreenTips(tip: (label: string) => string | undefined): void;
 }
 
 /**
@@ -193,6 +201,20 @@ export function createRibbon(
 	};
 
 	let lastEditable = false;
+	let optionHiddenTabs = new Set<string>();
+
+	const setHiddenOptionTabs = (tabIds: readonly string[]): void => {
+		optionHiddenTabs = new Set(tabIds.filter((id) => id !== 'file'));
+		tabBar.setHiddenTabs(optionHiddenTabs);
+		if (optionHiddenTabs.has(activeTab)) {
+			const fallback = optionHiddenTabs.has('home')
+				? visibleTabs.find((tab) => !optionHiddenTabs.has(tab.id))?.id
+				: 'home';
+			if (fallback) {
+				setActiveTab(fallback);
+			}
+		}
+	};
 
 	return {
 		el,
@@ -223,6 +245,8 @@ export function createRibbon(
 		setSubtitlesVisible: (visible) => slideShowTab?.setSubtitlesVisible(visible),
 		setInspectorOpen: (open) => primary.setInspectorOpen(open),
 		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),
+		setHiddenOptionTabs,
+		applyScreenTips: (tip) => tabBar.applyScreenTips(tip),
 		updateSelection(selectedElement, extra) {
 			latestSelected = selectedElement;
 			latestExtra = extra;

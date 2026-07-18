@@ -87,6 +87,8 @@ export interface EditorOps {
 	canUndo(): boolean;
 	canRedo(): boolean;
 	clearHistory(): void;
+	/** File > Options > Advanced > "Maximum number of undos". */
+	setHistoryDepth(depth: number): void;
 	save(format?: PptxSaveFormat): Promise<Uint8Array>;
 }
 
@@ -370,6 +372,9 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			history.clear();
 			lastNudgeAt = 0;
 			deps.onHistoryChange();
+		},
+		setHistoryDepth(depth) {
+			history.setMaxDepth(depth);
 		},
 
 		async save(format: PptxSaveFormat = 'pptx') {
