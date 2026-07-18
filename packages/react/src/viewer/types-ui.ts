@@ -13,6 +13,7 @@ import type {
 	ToolbarActionId,
 	ViewerFontSource,
 } from 'pptx-viewer-shared';
+import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 /**
  * UI-related and interaction types for the PowerPoint viewer/editor plugin.
@@ -444,6 +445,25 @@ export interface PowerPointViewerProps {
 	 * ```
 	 */
 	hiddenActions?: ToolbarActionId[];
+
+	/**
+	 * Opt in to the built-in AI assistant. When provided, a Sparkles toggle
+	 * appears in the toolbar and opens a chat panel wired to this config; when
+	 * omitted, no AI icon renders and no AI code is loaded (the panel and its
+	 * `@ai-sdk/react` dependency are `React.lazy`-imported only on first open).
+	 *
+	 * The host supplies the model connection (a backend `endpoint`, an in-browser
+	 * `model`, or a custom `transport`) plus optional tool allow/deny lists and a
+	 * write policy. Requires the optional `ai` and `@ai-sdk/react` peers.
+	 *
+	 * @example
+	 * ```tsx
+	 * <PowerPointViewer content={bytes} ai={{ connection: { kind: 'model', model } }} />
+	 * ```
+	 *
+	 * @see {@link PptxAiConfig}
+	 */
+	ai?: PptxAiConfig;
 }
 
 export interface PowerPointViewerHandle extends FileViewerHandle, PowerPointViewerAPI {

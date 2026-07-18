@@ -4,6 +4,7 @@
  */
 import { themeColorSchemesEqual } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 
 import { ViewerInspector, SelectionPane } from '.';
 import type { UseCommentsResult } from '../hooks/useComments-helpers';
@@ -15,6 +16,7 @@ import type { ThemeHandlersResult } from '../hooks/useThemeHandlers';
 import type { ViewerState } from '../hooks/useViewerState';
 import type { CanvasSize } from '../types';
 import type { ViewerMode } from '../types-core';
+import { AiChatPanelLazy } from './ai';
 import { ThemeEditorPanel } from './inspector/ThemeEditorPanel';
 import { MobileDismissSheet } from './mobile/MobileDismissSheet';
 import { ResizeHandle } from './ResizeHandle';
@@ -45,6 +47,14 @@ export interface ViewerSidePanelsProps {
 	panelWidth?: number;
 	/** Callback to resize the right panel. */
 	onResizeRight?: (delta: number) => void;
+	/** AI assistant config (present only when the host passes the `ai` prop). */
+	aiConfig?: PptxAiConfig;
+	/** Bridge exposing the live deck to the AI core. */
+	aiBridge?: PptxAiBridge;
+	/** Whether the AI assistant panel is open. */
+	isAiPanelOpen?: boolean;
+	/** Close the AI assistant panel. */
+	onCloseAiPanel?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,6 +80,10 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 		history,
 		panelWidth,
 		onResizeRight,
+		aiConfig,
+		aiBridge,
+		isAiPanelOpen,
+		onCloseAiPanel,
 	} = props;
 
 	const effectiveSlide = mode === 'master' ? masterPseudoSlide : activeSlide;
@@ -166,6 +180,15 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 						onClose={() => s.setIsThemeEditorOpen(false)}
 					/>
 				</MobileDismissSheet>
+			)}
+
+			{isAiPanelOpen && aiConfig && aiBridge && (mode === 'edit' || mode === 'master') && (
+				<AiChatPanelLazy
+					bridge={aiBridge}
+					config={aiConfig}
+					onClose={() => onCloseAiPanel?.()}
+					panelWidth={panelWidth}
+				/>
 			)}
 
 			<ThemeGallery

@@ -1,4 +1,4 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, PptxTheme } from 'pptx-viewer-core';
 /**
  * PowerPoint Viewer Plugin: Top-level Orchestrator Component.
  *
@@ -63,6 +63,7 @@ import { ViewerDialogGroup } from './components/ViewerDialogGroup';
 import { ViewerMainContent } from './components/ViewerMainContent';
 import { ViewerPresentationLayer } from './components/ViewerPresentationLayer';
 import { ViewerToolbarSection } from './components/ViewerToolbarSection';
+import { useAiBridge } from './hooks/ai/useAiBridge';
 import { useYjsDocumentSync, useBroadcastFollower, useFollowMode } from './hooks/collaboration';
 import type { CollaborationConfig } from './hooks/collaboration';
 import { useDerivedSlideState } from './hooks/useDerivedSlideState';
@@ -128,6 +129,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			shareDefaults,
 			smartArt3D = false,
 			hiddenActions,
+			ai,
 		} = props;
 
 		useEffect(() => {
@@ -254,6 +256,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 
 		// ── Share dialog ────────────────────────────────────────────
 		const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+
+		// ── AI assistant panel (gated on the `ai` prop) ─────────────
+		const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
 		// ── Share dialog defaults (provided by host app via shareDefaults prop) ──
 
@@ -547,6 +552,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			autosaveStatus,
 			isEncryptedDialogOpen,
 			setIsEncryptedDialogOpen,
+			handlerRef,
 		} = useViewerIntegration({
 			state,
 			zoom,
@@ -577,6 +583,39 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onZoomChange,
 			onSelectionChange,
 			onSlideCountChange,
+		});
+
+		// ── AI assistant bridge ─────────────────────────────────────
+		// Built unconditionally (cheap, type-only SDK deps) but only consumed
+		// when the host passes the `ai` prop. Its three write choke points route
+		// through the editor-history layer so AI edits are a single Ctrl+Z.
+		const applyAiTheme = useCallback(
+			(updates: Partial<PptxTheme>) => {
+				if (updates.colorScheme) {
+					void themeHandlers.handleUpdateThemeColorScheme(updates.colorScheme);
+				}
+				if (updates.fontScheme) {
+					void themeHandlers.handleUpdateThemeFontScheme(updates.fontScheme);
+				}
+			},
+			[themeHandlers],
+		);
+		const bumpAiHistory = useCallback(() => {
+			state.setPointerCommitNonce((n) => n + 1);
+		}, [state]);
+		const aiBridge = useAiBridge({
+			slides,
+			activeSlideIndex,
+			canvasSize,
+			theme: state.theme,
+			fileName,
+			handlerRef,
+			setSlides: state.setSlides,
+			setActiveSlideIndex: state.setActiveSlideIndex,
+			applySelection: editorOps.ops.applySelection,
+			bumpHistory: bumpAiHistory,
+			markDirty: history.markDirty,
+			applyThemeUpdates: applyAiTheme,
 		});
 
 		// On mobile, the slides pane is hidden by default (shown as overlay via
@@ -649,6 +688,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									autosaveEnabled={autosaveEnabled}
 									onToggleAutosave={() => setAutosaveEnabled((p) => !p)}
 									hiddenActions={hiddenActions}
+									aiEnabled={Boolean(ai)}
+									isAiPanelOpen={aiPanelOpen}
+									onToggleAiPanel={() => setAiPanelOpen((p) => !p)}
 								/>
 							)}
 
@@ -683,6 +725,10 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 								rightPanelWidth={isMobile ? undefined : resizablePanels.rightWidth}
 								onResizeRight={isMobile ? undefined : resizablePanels.onResizeRight}
 								hiddenActions={hiddenActions}
+								aiConfig={ai}
+								aiBridge={ai ? aiBridge : undefined}
+								isAiPanelOpen={aiPanelOpen}
+								onCloseAiPanel={() => setAiPanelOpen(false)}
 							/>
 
 							{/* Keep the bottom panels mounted while the notes panel is expanded:

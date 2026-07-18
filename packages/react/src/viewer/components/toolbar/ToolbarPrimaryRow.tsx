@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuMessageSquare, LuPanelLeft, LuPanelRight, LuSettings } from 'react-icons/lu';
+import { LuMessageSquare, LuPanelLeft, LuPanelRight, LuSettings, LuSparkles } from 'react-icons/lu';
 
 import { cn } from '../../utils';
 import { useCollaboration, UserAvatarBar } from '../collaboration';
@@ -121,6 +121,19 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 					aria-label={t('pptx.toolbar.toggleInspector')}
 				>
 					<LuPanelRight className={ic} />
+				</button>
+			)}
+
+			{/* AI assistant: only rendered when the host opts in via the `ai` prop */}
+			{p.aiEnabled && (mode === 'edit' || mode === 'master') && (
+				<button
+					type='button'
+					onClick={p.onToggleAiPanel}
+					className={cn(qab, p.isAiPanelOpen ? 'text-primary' : 'text-muted-foreground')}
+					title={t('pptx.toolbar.toggleAiAssistant')}
+					aria-label={t('pptx.toolbar.toggleAiAssistant')}
+				>
+					<LuSparkles className={ic} />
 				</button>
 			)}
 

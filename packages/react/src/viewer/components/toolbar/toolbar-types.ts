@@ -165,4 +165,10 @@ export interface ToolbarProps {
 	onApplyTransitionToAll: () => void;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. See `PowerPointViewerProps.hiddenActions`. */
 	hiddenActions?: readonly ToolbarActionId[];
+	/** Whether the AI assistant is available (the host passed the `ai` prop). */
+	aiEnabled?: boolean;
+	/** Whether the AI assistant panel is currently open. */
+	isAiPanelOpen?: boolean;
+	/** Toggle the AI assistant panel. */
+	onToggleAiPanel?: () => void;
 }

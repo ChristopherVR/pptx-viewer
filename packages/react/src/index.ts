@@ -23,6 +23,16 @@ export type {
 // ── Shared API types ──
 export type { ViewerMode, PowerPointViewerAPI } from 'pptx-viewer-shared';
 
+// ── AI assistant (optional; requires the `ai` + `@ai-sdk/react` peers) ──
+export type {
+	PptxAiBridge,
+	PptxAiConfig,
+	PptxAiConnection,
+	PptxAiContextStrategy,
+	PptxAiToolName,
+	PptxAiWritePolicy,
+} from 'pptx-viewer-shared/ai';
+
 // ── Toolbar visibility (hiddenActions) ──
 export type { ToolbarActionId, ToolbarButtonId, ToolbarTabId } from 'pptx-viewer-shared';
 

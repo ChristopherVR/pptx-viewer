@@ -4,6 +4,7 @@
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
+import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 import { useMemo } from 'react';
 
 import { SlidesPaneSidebar, MasterViewSidebar, ContextMenu } from '.';
@@ -67,6 +68,14 @@ export interface ViewerMainContentProps {
 	onResizeRight?: (delta: number) => void;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
 	hiddenActions?: readonly ToolbarActionId[];
+	/** AI assistant config (present only when the host passes the `ai` prop). */
+	aiConfig?: PptxAiConfig;
+	/** Bridge exposing the live deck to the AI core. */
+	aiBridge?: PptxAiBridge;
+	/** Whether the AI assistant panel is open. */
+	isAiPanelOpen?: boolean;
+	/** Close the AI assistant panel. */
+	onCloseAiPanel?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -105,6 +114,10 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 		rightPanelWidth,
 		onResizeRight,
 		hiddenActions,
+		aiConfig,
+		aiBridge,
+		isAiPanelOpen,
+		onCloseAiPanel,
 	} = props;
 
 	const {
@@ -270,6 +283,10 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 					history={history}
 					panelWidth={rightPanelWidth}
 					onResizeRight={onResizeRight}
+					aiConfig={aiConfig}
+					aiBridge={aiBridge}
+					isAiPanelOpen={isAiPanelOpen}
+					onCloseAiPanel={onCloseAiPanel}
 				/>
 			</div>
 		</ChartPartSelectionProvider>

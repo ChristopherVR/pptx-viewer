@@ -1,0 +1,6 @@
+/**
+ * Barrel for the AI chat panel. Only the lazy boundary is exported for eager
+ * import; the panel body and its SDK dependencies stay behind `React.lazy`.
+ */
+export { AiChatPanelLazy } from './AiChatPanelLazy';
+export type { AiChatPanelLazyProps } from './AiChatPanelLazy';

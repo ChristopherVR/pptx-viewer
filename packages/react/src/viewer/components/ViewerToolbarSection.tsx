@@ -143,6 +143,12 @@ export interface ViewerToolbarSectionProps {
 	onToggleAutosave?: () => void;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
 	hiddenActions?: ToolbarActionId[];
+	/** Whether the AI assistant is available (the host passed the `ai` prop). */
+	aiEnabled?: boolean;
+	/** Whether the AI assistant panel is currently open. */
+	isAiPanelOpen?: boolean;
+	/** Toggle the AI assistant panel. */
+	onToggleAiPanel?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -181,6 +187,9 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		autosaveEnabled = true,
 		onToggleAutosave,
 		hiddenActions,
+		aiEnabled,
+		isAiPanelOpen,
+		onToggleAiPanel,
 	} = props;
 
 	const handleAddAnimation = useCallback(
@@ -557,6 +566,9 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				activeSlide={activeSlide}
 				onTransitionChange={handleTransitionChange}
 				onApplyTransitionToAll={handleApplyTransitionToAll}
+				aiEnabled={aiEnabled}
+				isAiPanelOpen={isAiPanelOpen}
+				onToggleAiPanel={onToggleAiPanel}
 			/>
 
 			{/* Signature status badge */}
