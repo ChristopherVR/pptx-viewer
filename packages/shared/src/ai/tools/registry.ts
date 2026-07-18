@@ -86,12 +86,9 @@ export function buildToolSet(
 	for (const name of enabledToolNames(config)) {
 		const def = TOOL_DEFINITIONS[name];
 		const inputSchema = sdk.jsonSchema(def.inputSchema as Parameters<AiSdkModule['jsonSchema']>[0]);
+		const base = { description: def.description, inputSchema };
 		const execute = options.withExecute ? executors.get(name) : undefined;
-		tools[name] = sdk.tool(
-			execute
-				? { description: def.description, inputSchema, execute }
-				: { description: def.description, inputSchema },
-		);
+		tools[name] = execute ? sdk.tool({ ...base, execute }) : sdk.tool(base);
 	}
 	return { ...tools, ...(config.tools?.extra ?? {}) };
 }

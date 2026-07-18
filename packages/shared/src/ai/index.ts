@@ -65,3 +65,11 @@ export type {
 	ToolDefinition,
 	WriteRouteResult,
 } from './tools';
+
+export { createAiChatSession } from './session';
+export type { PptxAiChatSession } from './session';
+
+export { createVanillaChat } from './vanilla-chat';
+export type { VanillaChatController, VanillaChatSnapshot } from './vanilla-chat';
+
+export { buildPptxAiSystemPrompt, buildPptxAiTools } from './server';

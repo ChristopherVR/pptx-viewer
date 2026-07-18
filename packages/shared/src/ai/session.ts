@@ -1,0 +1,96 @@
+/**
+ * {@link createAiChatSession} - the single entry point a binding calls to wire
+ * up the assistant. It loads the optional SDK, builds the tool set + executors,
+ * resolves the transport for the configured connection, and returns the pieces
+ * the binding feeds into its own `Chat` / `useChat` instance.
+ *
+ * All `ai` usage is routed through {@link loadAiSdk}; there is no static runtime
+ * import of `ai` here, so importing this module never forces the peer to exist.
+ */
+
+import type { ChatTransport, ToolSet } from 'ai';
+
+import type { PptxAiBridge } from './bridge';
+import type { PptxAiConfig, PptxAiToolName, PptxAiUIMessage } from './config';
+import { resolveChatTransport } from './config';
+import { loadAiSdk } from './loader';
+import { ProposalStore } from './proposals';
+import { buildSystemPrompt } from './system-prompt';
+import { buildToolExecutors, buildToolSet } from './tools';
+
+/** Everything a binding needs to construct its chat instance. */
+export interface PptxAiChatSession {
+	/** Transport to hand to `Chat` / `useChat`. */
+	transport: ChatTransport<PptxAiUIMessage>;
+	/** Schema-only tool set, for client-side rendering of tool calls. */
+	tools: ToolSet;
+	/** Composed system prompt (base + policy + host extras). */
+	systemPrompt: string;
+	/** Staged-write store; drives the review UI and accept/revert actions. */
+	proposals: ProposalStore;
+	/**
+	 * `sendAutomaticallyWhen` predicate: resubmit once every tool call in the
+	 * last assistant message has a result (client-side tool loop for endpoint
+	 * connections). Wire straight into `Chat` / `useChat`.
+	 */
+	sendAutomaticallyWhen: (options: { messages: PptxAiUIMessage[] }) => boolean;
+	/**
+	 * Execute one tool call against the deck and return its JSON-serialisable
+	 * output. Throws on unknown tool or executor error. Bindings call this from
+	 * their `onToolCall` handler and forward the result to `chat.addToolOutput`.
+	 */
+	executeToolCall(toolName: string, input: unknown): Promise<unknown>;
+}
+
+/**
+ * Build an AI chat session for the given bridge + config.
+ *
+ * @throws Error when the optional `ai` SDK is not installed. Callers should
+ *   guard with {@link isAiAvailable} and disable the AI UI when it is absent.
+ */
+export async function createAiChatSession(
+	bridge: PptxAiBridge,
+	config: PptxAiConfig,
+): Promise<PptxAiChatSession> {
+	const sdk = await loadAiSdk();
+	if (!sdk) {
+		throw new Error(
+			'The optional "ai" SDK is not installed. Install `ai` (>=6 <8) to enable the assistant.',
+		);
+	}
+
+	const proposals = new ProposalStore(bridge);
+	const executors = buildToolExecutors(bridge, proposals, config);
+	const tools = buildToolSet(sdk, config, executors, { withExecute: false });
+	const systemPrompt = buildSystemPrompt({
+		writePolicy: config.writePolicy ?? 'stage',
+		extras: config.systemPromptExtras,
+	});
+
+	const connection = config.connection;
+	const toolsWithExecute =
+		connection.kind === 'model'
+			? buildToolSet(sdk, config, executors, { withExecute: true })
+			: undefined;
+	const transport = resolveChatTransport({
+		sdk,
+		connection,
+		toolsWithExecute,
+		system: systemPrompt,
+	});
+
+	return {
+		transport,
+		tools,
+		systemPrompt,
+		proposals,
+		sendAutomaticallyWhen: sdk.lastAssistantMessageIsCompleteWithToolCalls,
+		async executeToolCall(toolName: string, input: unknown): Promise<unknown> {
+			const executor = executors.get(toolName as PptxAiToolName);
+			if (!executor) {
+				throw new Error(`Unknown tool: ${toolName}`);
+			}
+			return executor(input);
+		},
+	};
+}
