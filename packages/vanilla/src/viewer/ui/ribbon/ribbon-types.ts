@@ -166,6 +166,14 @@ export interface RibbonEditState {
 	canRedo: boolean;
 }
 
+/** A slide layout the Home > Slides group offers for New Slide / Layout. */
+export interface LayoutOption {
+	/** Archive path of the layout part (e.g. `ppt/slideLayouts/slideLayout2.xml`). */
+	path: string;
+	/** Human-readable layout name shown in the dropdown. */
+	name: string;
+}
+
 /** Selection-derived state the Home tab's Font/Paragraph/Arrange groups reflect. */
 export interface RibbonSelectionState {
 	hasClipboard: boolean;
@@ -174,4 +182,6 @@ export interface RibbonSelectionState {
 	formatPainterActive?: boolean;
 	selectedElementId?: string;
 	animations?: readonly PptxElementAnimation[];
+	/** Available slide layouts for the Slides group's New Slide / Layout menus. */
+	layouts?: readonly LayoutOption[];
 }

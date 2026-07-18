@@ -9,8 +9,11 @@ import { ChangeDetectionStrategy, Component, inject, input, output } from '@angu
 import {
 	LucideClipboardPaste,
 	LucideCopy,
+	LucideFolderPlus,
+	LucideLayoutGrid,
 	LucidePaintbrush,
 	LucidePlus,
+	LucideRotateCcw,
 	LucideScissors,
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -32,7 +35,10 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 		LucidePlus,
 		LucideClipboardPaste,
 		LucideCopy,
+		LucideFolderPlus,
+		LucideLayoutGrid,
 		LucidePaintbrush,
+		LucideRotateCcw,
 		LucideScissors,
 		RibbonFontControlsComponent,
 		RibbonParagraphControlsComponent,
@@ -94,29 +100,23 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 		<!-- Slides -->
 		<div class="flex flex-col items-center gap-0.5">
 			<div class="pptx-rb-grp">
+				<!-- New Slide (React SlidesGroup parity: New Slide / Layout / Reset /
+				     Section, no Duplicate button). -->
 				<button
 					type="button"
-					class="pptx-rb-gb gap-1.5"
-					[title]="'pptx.ribbon.newSlide' | translate"
+					class="pptx-rb-gb gap-1.5 whitespace-nowrap"
+					[title]="'pptx.home.newSlide' | translate"
 					(click)="editor.addSlide(slideIndex())"
 				>
-					<svg lucidePlus class="h-4 w-4"></svg> {{ 'pptx.ribbon.slide' | translate }}
+					<svg lucidePlus class="h-4 w-4"></svg> {{ 'pptx.home.newSlide' | translate }}
 				</button>
 				<button
 					type="button"
-					class="pptx-rb-gl"
-					[title]="'pptx.ribbon.duplicateSlide' | translate"
-					(click)="editor.duplicateSlide(slideIndex())"
-				>
-					{{ 'pptx.arrange.duplicate' | translate }}
-				</button>
-				<button
-					type="button"
-					class="pptx-rb-gb"
+					class="pptx-rb-gb whitespace-nowrap"
 					[title]="'pptx.master.layout' | translate"
 					(click)="applyLayout.emit('blank')"
 				>
-					{{ 'pptx.master.layout' | translate }}
+					<svg lucideLayoutGrid class="h-4 w-4"></svg> {{ 'pptx.master.layout' | translate }}
 				</button>
 				<button
 					type="button"
@@ -124,14 +124,15 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 					[title]="'pptx.sections.resetSlideTitle' | translate"
 					(click)="resetSlide.emit()"
 				>
-					{{ 'pptx.sections.resetSlideTitle' | translate }}
+					<svg lucideRotateCcw class="h-4 w-4"></svg> {{ 'pptx.animations.reset' | translate }}
 				</button>
 				<button
 					type="button"
-					class="pptx-rb-gb"
-					[title]="'pptx.sections.sectionButtonLabel' | translate"
+					class="pptx-rb-gl whitespace-nowrap"
+					[title]="'pptx.sections.addSection' | translate"
 					(click)="editor.addSection(slideIndex())"
 				>
+					<svg lucideFolderPlus class="h-4 w-4"></svg>
 					{{ 'pptx.sections.sectionButtonLabel' | translate }}
 				</button>
 			</div>

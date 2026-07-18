@@ -12,6 +12,7 @@ import {
 	loadAudienceContent,
 	parseAudienceNonce,
 	PowerPointViewerComponent,
+	themeToCssVars,
 	translationsEn,
 } from 'pptx-angular-viewer';
 import type { CollaborationConfig, ViewerTheme } from 'pptx-angular-viewer';
@@ -128,7 +129,30 @@ export class AppComponent {
 		() => (THEMES[this.themeKey()] ?? THEMES['vermilionDark']).theme,
 	);
 
+	/** CSS-custom-property keys applied to `:root` by the most recent theme, so
+	 *  the next theme change can clear them before applying its own. */
+	private appliedRootVarKeys: string[] = [];
+
 	constructor() {
+		// Mirror the React demo's `useRootTheme`: write the active theme's
+		// `--pptx-*` / `--color-*` custom properties onto `document.documentElement`
+		// so BOTH the landing dropzone and the mounted viewer chrome track the
+		// picker. The viewer never receives a `[theme]` input (that would disable
+		// its own Settings > Appearance picker); it derives every colour from
+		// these root vars, falling back to the built-in dark palette when unset.
+		effect(() => {
+			const vars = themeToCssVars(this.activeTheme());
+			const root = document.documentElement;
+			for (const key of this.appliedRootVarKeys) {
+				root.style.removeProperty(key);
+			}
+			const keys = Object.keys(vars);
+			for (const key of keys) {
+				root.style.setProperty(key, vars[key]);
+			}
+			this.appliedRootVarKeys = keys;
+		});
+
 		this.translate.setTranslation('en', { ...translationsEn, ...demoStringsEn });
 		this.translate.setTranslation('fr', { ...translationsFr, ...demoStringsFr });
 		this.translate.setTranslation('es', { ...translationsEs, ...demoStringsEs });

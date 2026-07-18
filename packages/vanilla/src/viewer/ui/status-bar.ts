@@ -13,6 +13,7 @@ export type StatusBarSaveKind = 'idle' | 'saving' | 'saved' | 'error';
 
 export interface StatusBarHandlers {
 	toggleNotes(): void;
+	openSlideSorter(): void;
 	togglePresentation(): void;
 	zoomIn(): void;
 	zoomOut(): void;
@@ -98,6 +99,13 @@ export function createStatusBar(
 		onClick: () => {},
 	});
 	normal.btn.setAttribute('data-pptx-compact', '');
+	const slideSorter = makeButton(doc, {
+		label: t('pptx.statusBar.slideSorter'),
+		icon: 'columns',
+		className: 'pptxv-statusbar-btn',
+		onClick: handlers.openSlideSorter,
+	});
+	slideSorter.btn.setAttribute('data-pptx-compact', '');
 	const slideShow = showFullscreen
 		? makeButton(doc, {
 				label: t('pptx.statusBar.slideShow'),
@@ -140,6 +148,7 @@ export function createStatusBar(
 		...(notes ? [notes] : []),
 		divider(),
 		normal.btn,
+		slideSorter.btn,
 		...(slideShow ? [slideShow.btn] : []),
 		divider(),
 		...(zoomOut && zoomPercent && zoomIn ? [zoomOut.btn, zoomPercent, zoomIn.btn] : []),

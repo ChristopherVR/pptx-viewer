@@ -7,6 +7,7 @@ import { createStatusBar } from './status-bar';
 function makeHandlers(): StatusBarHandlers {
 	return {
 		toggleNotes: vi.fn(),
+		openSlideSorter: vi.fn(),
 		togglePresentation: vi.fn(),
 		zoomIn: vi.fn(),
 		zoomOut: vi.fn(),

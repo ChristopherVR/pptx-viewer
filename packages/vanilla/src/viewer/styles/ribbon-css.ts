@@ -113,6 +113,28 @@ export const RIBBON_CSS = `
 }
 .pptxv-btn-label { font-size: 12px; }
 
+/* ── Home > Slides split button (New Slide + layout caret) ──────────────*/
+.pptxv-slides-split { position: relative; display: inline-flex; align-items: stretch; }
+.pptxv-slides-split .pptxv-btn-pill { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.pptxv-slides-caret {
+	display: inline-flex;
+	align-items: center;
+	padding: 0 3px;
+	border: none;
+	border-left: 1px solid color-mix(in srgb, var(--pptx-border) 60%, transparent);
+	border-radius: 0 var(--pptx-radius) var(--pptx-radius) 0;
+	background: var(--pptx-muted);
+	color: var(--pptx-foreground);
+	cursor: pointer;
+}
+.pptxv-slides-caret:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-slides-caret[hidden] { display: none; }
+.pptxv-slides-caret svg { width: 12px; height: 12px; }
+.pptxv-slides-menu-host { position: relative; display: inline-flex; }
+/* Layout menus anchor to the left of their host (unlike the right-aligned
+   primary-row menus, which the shared .pptxv-primary-menu rule right-aligns). */
+.pptxv-layout-menu { right: auto; left: 0; }
+
 /* ── Shape insert grid ───────────────────────────────────────────────── */
 .pptxv-shape-grid {
 	display: grid;

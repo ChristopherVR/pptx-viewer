@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.4.0) - 2026-07-18
+
+### Dependencies
+
+- **deps:** Update dependencies to latest and migrate core/shared/locales to TypeScript 7 (by @ChristopherVR) ([cc72948](https://github.com/ChristopherVR/pptx-viewer/commit/cc729482cc5ae4ae56e1219f290c2953ec83c12a))
+
 ## [1.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.3.0) - 2026-07-18
 
 ### Bug Fixes

@@ -77,13 +77,17 @@
 							[attr.aria-selected]="i === activeIndex()"
 							[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
 						>
-							<!-- Thumbnail (clickable to select) -->
+							<!-- Thumbnail (clickable to select). Slide number sits to the LEFT
+							     of the preview (React SlideItem parity), not below it. -->
 							<button
 								type="button"
 								class="pptx-ng-spanel-thumb-btn"
 								[attr.aria-label]="'pptx.slidesPanel.goToSlide' | translate: { n: i + 1 }"
 								(click)="select.emit(i)"
 							>
+								<!-- Slide number badge (left column) -->
+								<span class="pptx-ng-spanel-num" aria-hidden="true">{{ i + 1 }}</span>
+
 								<!-- Clipping wrapper: neutralises the 1rem auto margin from SlideCanvas -->
 								<div class="pptx-ng-spanel-clip" [ngStyle]="clipStyle()">
 									<pptx-slide-canvas
@@ -98,9 +102,6 @@
 									/>
 								</div>
 							</button>
-
-							<!-- Slide number badge -->
-							<span class="pptx-ng-spanel-num" aria-hidden="true">{{ i + 1 }}</span>
 
 							<!-- Per-card action toolbar (visible on hover / focus-within) -->
 							<div

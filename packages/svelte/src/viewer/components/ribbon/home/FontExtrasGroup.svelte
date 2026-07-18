@@ -17,6 +17,7 @@
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
+	import { anchoredPopup } from '../anchored-popup';
 	import {
 		changeCasePatch,
 		clearFormattingPatch,
@@ -31,6 +32,21 @@
 
 	const { editor }: { editor: EditorState } = $props();
 	const t = useTranslator();
+
+	// React renders change-case ("Aa") and character-spacing ("AV") as compact
+	// icon-trigger dropdowns rather than labelled selects; mirror that here.
+	let openMenu = $state<'case' | 'spacing' | null>(null);
+	// eslint-disable-next-line prefer-const
+	let caseMenuEl: HTMLElement | undefined = $state();
+	// eslint-disable-next-line prefer-const
+	let spacingMenuEl: HTMLElement | undefined = $state();
+
+	function onFocusOut(event: FocusEvent): void {
+		const root = event.currentTarget as HTMLElement;
+		if (!(event.relatedTarget instanceof Node) || !root.contains(event.relatedTarget)) {
+			openMenu = null;
+		}
+	}
 
 	const el = $derived(editor.selectedElement);
 	const active = $derived(el !== undefined && hasTextProperties(el));
@@ -86,40 +102,69 @@
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h7l3 3-7 7-3-3z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /><path d="M3 13h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
 	</button>
 
-	<select
-		class="pptx-svelte-ribbon-select"
-		disabled={!active}
-		aria-label={t('pptx.text.changeCase')}
-		title={t('pptx.text.changeCase')}
-		onchange={(e) => {
-			if (el && e.currentTarget.value) {
-				apply(changeCasePatch(el, e.currentTarget.value as (typeof CHANGE_CASE_OPTIONS)[number]['value']));
-			}
-			e.currentTarget.value = '';
-		}}
-	>
-		<option value="">{t('pptx.text.changeCase')}</option>
-		{#each CHANGE_CASE_OPTIONS as option (option.value)}
-			<option value={option.value}>{t(option.i18nKey)}</option>
-		{/each}
-	</select>
+	<div class="pptx-svelte-fontx-menu" bind:this={caseMenuEl} onfocusout={onFocusOut}>
+		<button
+			type="button"
+			class="pptx-svelte-fontx-btn"
+			class:pptx-svelte-fontx-on={openMenu === 'case'}
+			disabled={!active}
+			aria-haspopup="menu"
+			aria-expanded={openMenu === 'case'}
+			aria-label={t('pptx.text.changeCase')}
+			title={t('pptx.text.changeCase')}
+			onclick={() => (openMenu = openMenu === 'case' ? null : 'case')}
+		>
+			<span class="pptx-svelte-fontx-glyph">Aa</span>
+		</button>
+		{#if openMenu === 'case'}
+			<div class="pptx-svelte-fontx-pop" role="menu" use:anchoredPopup={{ anchor: caseMenuEl }}>
+				{#each CHANGE_CASE_OPTIONS as option (option.value)}
+					<button
+						type="button"
+						role="menuitem"
+						onclick={() => {
+							if (el) {
+								apply(changeCasePatch(el, option.value));
+							}
+							openMenu = null;
+						}}
+					>{t(option.i18nKey)}</button>
+				{/each}
+			</div>
+		{/if}
+	</div>
 
-	<select
-		class="pptx-svelte-ribbon-select"
-		disabled={!active}
-		aria-label={t('pptx.text.characterSpacing')}
-		title={t('pptx.text.characterSpacing')}
-		onchange={(e) => {
-			if (el && e.currentTarget.value) {
-				apply(setCharacterSpacingPatch(el, Number(e.currentTarget.value)));
-			}
-		}}
-	>
-		<option value="">{t('pptx.text.characterSpacing')}</option>
-		{#each CHARACTER_SPACING_OPTIONS as option (option.value)}
-			<option value={option.value}>{t(option.i18nKey)}</option>
-		{/each}
-	</select>
+	<div class="pptx-svelte-fontx-menu" bind:this={spacingMenuEl} onfocusout={onFocusOut}>
+		<button
+			type="button"
+			class="pptx-svelte-fontx-btn"
+			class:pptx-svelte-fontx-on={openMenu === 'spacing'}
+			disabled={!active}
+			aria-haspopup="menu"
+			aria-expanded={openMenu === 'spacing'}
+			aria-label={t('pptx.text.characterSpacing')}
+			title={t('pptx.text.characterSpacing')}
+			onclick={() => (openMenu = openMenu === 'spacing' ? null : 'spacing')}
+		>
+			<span class="pptx-svelte-fontx-glyph">AV</span>
+		</button>
+		{#if openMenu === 'spacing'}
+			<div class="pptx-svelte-fontx-pop" role="menu" use:anchoredPopup={{ anchor: spacingMenuEl }}>
+				{#each CHARACTER_SPACING_OPTIONS as option (option.value)}
+					<button
+						type="button"
+						role="menuitem"
+						onclick={() => {
+							if (el) {
+								apply(setCharacterSpacingPatch(el, Number(option.value)));
+							}
+							openMenu = null;
+						}}
+					>{t(option.i18nKey)}</button>
+				{/each}
+			</div>
+		{/if}
+	</div>
 
 	<SwatchColorPicker
 		value={textColor}
@@ -184,5 +229,52 @@
 	.pptx-svelte-fontx-btn svg {
 		width: 14px;
 		height: 14px;
+	}
+
+	.pptx-svelte-fontx-glyph {
+		font-size: 12px;
+		font-weight: 700;
+		line-height: 1;
+	}
+
+	.pptx-svelte-fontx-menu {
+		position: relative;
+		display: inline-flex;
+	}
+
+	.pptx-svelte-fontx-pop {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		z-index: 50;
+		margin-top: 4px;
+		display: flex;
+		min-width: 148px;
+		flex-direction: column;
+		border: 1px solid var(--pptx-border, #33334d);
+		border-radius: calc(var(--pptx-radius, 6px) + 2px);
+		background: var(--pptx-popover, #111827);
+		color: var(--pptx-popover-foreground, #f3f4f6);
+		padding: 4px;
+		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -4px rgba(0, 0, 0, 0.35);
+	}
+
+	.pptx-svelte-fontx-pop button {
+		display: block;
+		width: 100%;
+		border: none;
+		border-radius: var(--pptx-radius, 6px);
+		background: transparent;
+		color: inherit;
+		padding: 6px 10px;
+		text-align: left;
+		font: inherit;
+		font-size: 12px;
+		cursor: pointer;
+	}
+
+	.pptx-svelte-fontx-pop button:hover {
+		background: var(--pptx-accent, #33334d);
+		color: var(--pptx-accent-foreground, #f8fafc);
 	}
 </style>

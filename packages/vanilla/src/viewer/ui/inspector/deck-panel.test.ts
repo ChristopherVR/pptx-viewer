@@ -161,7 +161,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		const values = Array.from(
 			notesSection.querySelectorAll<HTMLElement>('.pptxv-inspector-row-value'),
 		).map((el) => el.textContent);
-		expect(values[0]).toBe('720 x 960 px');
+		expect(values[0]).toBe('720 × 960px');
 		expect(values[1]).toContain('3');
 		expect(values[2]).toBe(t('pptx.digitalSignatures.notAvailable'));
 	});

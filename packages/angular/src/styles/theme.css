@@ -78,6 +78,39 @@
 	);
 }
 
+/* ── Custom scrollbar styling ───────────────────────────────────────
+ * Thin, subtle scrollbars matching React's `[data-pptx-viewer]` rules, so the
+ * ribbon row, slide-thumbnail rail, canvas viewport and inspector don't show
+ * chunky native OS scrollbars. Uses both the WebKit pseudo-elements and the
+ * standard `scrollbar-*` properties.
+ */
+:where(.pptx-ng-viewer) {
+	scrollbar-width: thin;
+	scrollbar-color: var(--pptx-border, #374151) transparent;
+}
+
+:where(.pptx-ng-viewer) ::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+:where(.pptx-ng-viewer) ::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+:where(.pptx-ng-viewer) ::-webkit-scrollbar-thumb {
+	background-color: var(--pptx-border, #374151);
+	border-radius: 3px;
+}
+
+:where(.pptx-ng-viewer) ::-webkit-scrollbar-thumb:hover {
+	background-color: var(--pptx-muted-foreground, #9ca3af);
+}
+
+:where(.pptx-ng-viewer) ::-webkit-scrollbar-corner {
+	background: transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.pptx-ng-viewer *,
 	.pptx-ng-viewer *::before,

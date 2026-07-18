@@ -169,6 +169,12 @@ export class EditorState {
 		return this.#deps.getCurrent();
 	}
 
+	/** The loaded core handler, or null before a deck is open. Used by the
+	 *  Slides group for layout switching (`applyLayoutToSlide`). */
+	getHandler(): PptxHandler | null {
+		return this.#deps.getHandler();
+	}
+
 	#syncHistoryFlags(): void {
 		this.#canUndo = this.#history.canUndo;
 		this.#canRedo = this.#history.canRedo;

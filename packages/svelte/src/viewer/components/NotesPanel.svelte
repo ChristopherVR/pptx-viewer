@@ -117,7 +117,6 @@
 		onclick={() => ontoggle?.()}
 	>
 		<span class="pptx-svelte-notes-title">{t('pptx.notes.title')}</span>
-		<span class="pptx-svelte-notes-chevron" aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
 	</button>
 
 	<!-- `slide-notes-content` matches the id/aria-controls pair the React/Vue
@@ -165,10 +164,6 @@
 	.pptx-svelte-notes-header:hover {
 		background: var(--pptx-accent, #33334d);
 		color: var(--pptx-accent-foreground, #f8fafc);
-	}
-
-	.pptx-svelte-notes-chevron {
-		font-size: 11px;
 	}
 
 	.pptx-svelte-notes-body {

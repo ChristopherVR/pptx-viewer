@@ -158,18 +158,15 @@ describe('inspectorPanel', () => {
 		expect(sectionTitles(target)).toStrictEqual(['Table']);
 	});
 
-	it('collapses and expands via the header close toggle (standalone, no ChromeUiState)', () => {
+	it('has no header close button on the tab row (React InspectorPane parity)', () => {
 		const el = shapeEl();
 		const editor = makeEditor([el]);
 		editor.select(el.id);
 		const { target } = mountInspector(editor);
 
-		const closeButton = target.querySelector<HTMLButtonElement>('.pptx-svelte-inspector-close');
-		expect(closeButton?.getAttribute('aria-expanded')).toBe('true');
-		closeButton?.click();
-		flushSync();
-		expect(closeButton?.getAttribute('aria-expanded')).toBe('false');
-		expect(target.querySelector('.pptx-svelte-inspector-body')).toBeNull();
+		expect(target.querySelector('.pptx-svelte-inspector-close')).toBeNull();
+		// Body is always present now that the standalone collapse toggle is gone.
+		expect(target.querySelector('.pptx-svelte-inspector-body')).not.toBeNull();
 	});
 
 	it('renders the [Elements | Properties | Comments] tab strip with Properties active by default', () => {

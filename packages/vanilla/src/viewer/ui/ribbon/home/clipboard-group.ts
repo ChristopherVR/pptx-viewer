@@ -6,8 +6,6 @@ export interface ClipboardGroupHandlers {
 	copy(): void;
 	cut(): void;
 	paste(): void;
-	duplicate(): void;
-	delete(): void;
 	toggleFormatPainter(): void;
 }
 
@@ -23,7 +21,7 @@ export interface ClipboardGroup {
 	update(state: ClipboardGroupState): void;
 }
 
-/** The ribbon Home tab's Clipboard group: paste, cut, copy, duplicate, delete. */
+/** The ribbon Home tab's Clipboard group: paste, cut, copy, format painter (matches React). */
 export function createClipboardGroup(
 	doc: Document,
 	t: Translator,
@@ -47,23 +45,13 @@ export function createClipboardGroup(
 		icon: 'copy',
 		onClick: handlers.copy,
 	});
-	const duplicate = makeButton(doc, {
-		label: t('pptx.arrange.duplicate'),
-		icon: 'duplicate',
-		onClick: handlers.duplicate,
-	});
-	const del = makeButton(doc, {
-		label: t('pptx.arrange.delete'),
-		icon: 'trash',
-		onClick: handlers.delete,
-	});
 	const painter = makeButton(doc, {
 		label: t('pptx.arrange.formatPainter'),
 		icon: 'copy',
 		onClick: handlers.toggleFormatPainter,
 	});
 	painter.btn.dataset.testid = 'format-painter-toggle';
-	row.append(paste.btn, cut.btn, copy.btn, painter.btn, duplicate.btn, del.btn);
+	row.append(paste.btn, cut.btn, copy.btn, painter.btn);
 
 	return {
 		el,
@@ -71,8 +59,6 @@ export function createClipboardGroup(
 			paste.setDisabled(!editable || !hasClipboard);
 			cut.setDisabled(!editable || !hasSelection);
 			copy.setDisabled(!hasSelection);
-			duplicate.setDisabled(!editable || !hasSelection);
-			del.setDisabled(!editable || !hasSelection);
 			painter.setDisabled(!editable || (!hasSelection && !formatPainterActive));
 			painter.btn.dataset.active = String(formatPainterActive);
 		},

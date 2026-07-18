@@ -4,6 +4,7 @@ import type { EditActions } from '../../../editor/editor-edit-ops';
 import { canFormatText, readTextFormatState } from '../../../editor/editor-format-mutations';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
+import type { LayoutOption } from '../ribbon-types';
 import type { ArrangeGroup } from './arrange-group';
 import { createArrangeGroup } from './arrange-group';
 import type { ClipboardGroup } from './clipboard-group';
@@ -29,6 +30,7 @@ export interface HomeTabSyncState {
 	slideCount: number;
 	selectedCount: number;
 	formatPainterActive: boolean;
+	layouts: readonly LayoutOption[];
 }
 
 export interface HomeTab {
@@ -45,15 +47,14 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 		copy: edit.copy,
 		cut: edit.cut,
 		paste: edit.paste,
-		duplicate: edit.duplicateSelected,
-		delete: edit.deleteSelected,
 		toggleFormatPainter: edit.toggleFormatPainter,
 	});
 	const slides: SlidesGroup = createSlidesGroup(doc, t, {
 		addSlide: edit.addSlide,
+		insertSlideFromLayout: edit.insertSlideFromLayout,
+		applyLayout: edit.applyLayout,
+		resetSlide: edit.resetSlide,
 		addSection: () => edit.sections.addSection(t('pptx.sections.defaultName')),
-		duplicateSlide: edit.duplicateSlide,
-		deleteSlide: edit.deleteSlide,
 	});
 	const font: FontGroup = createFontGroup(doc, t, {
 		toggleBold: edit.toggleBold,
@@ -108,6 +109,7 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 			slideCount,
 			selectedCount,
 			formatPainterActive,
+			layouts,
 		}) {
 			const canFormat = canFormatText(selectedElement);
 			const text = readTextFormatState(selectedElement);
@@ -117,7 +119,7 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 				editable,
 				formatPainterActive,
 			});
-			slides.update({ editable, slideCount });
+			slides.update({ editable, slideCount, layouts });
 			font.update({ canFormat, editable, text });
 			paragraph.update({ canFormat, editable, text });
 			arrange.update({

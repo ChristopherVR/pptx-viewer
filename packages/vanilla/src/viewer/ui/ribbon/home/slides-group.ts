@@ -1,17 +1,21 @@
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import { createIcon } from '../../icons';
+import type { LayoutOption } from '../ribbon-types';
 
 export interface SlidesGroupHandlers {
 	addSlide(): void;
+	insertSlideFromLayout(layoutPath: string, layoutName?: string): void;
+	applyLayout(layoutPath: string): void;
+	resetSlide(): void;
 	addSection(): void;
-	duplicateSlide(): void;
-	deleteSlide(): void;
 }
 
 export interface SlidesGroupState {
 	editable: boolean;
 	slideCount: number;
+	layouts: readonly LayoutOption[];
 }
 
 export interface SlidesGroup {
@@ -19,7 +23,63 @@ export interface SlidesGroup {
 	update(state: SlidesGroupState): void;
 }
 
-/** The ribbon Home tab's Slides group: new, duplicate, delete, and section actions. */
+/** A layout picker popover: repopulated on every `setItems`, closes on select/outside. */
+interface LayoutMenu {
+	el: HTMLElement;
+	setItems(layouts: readonly LayoutOption[]): void;
+	toggle(): void;
+	close(): void;
+}
+
+function createLayoutMenu(
+	doc: Document,
+	ariaLabel: string,
+	onPick: (layout: LayoutOption) => void,
+): LayoutMenu {
+	const el = createEl(doc, 'div', 'pptxv-primary-menu pptxv-layout-menu');
+	el.setAttribute('role', 'menu');
+	el.setAttribute('aria-label', ariaLabel);
+	el.hidden = true;
+
+	let open = false;
+	const setOpen = (next: boolean): void => {
+		open = next;
+		el.hidden = !next;
+	};
+
+	doc.addEventListener('pointerdown', (event) => {
+		if (open && !el.parentElement?.contains(event.target as Node)) {
+			setOpen(false);
+		}
+	});
+
+	return {
+		el,
+		setItems(layouts) {
+			el.replaceChildren();
+			for (const layout of layouts) {
+				const btn = createEl(doc, 'button', 'pptxv-primary-menu-item');
+				btn.type = 'button';
+				btn.setAttribute('role', 'menuitem');
+				btn.textContent = layout.name;
+				btn.addEventListener('click', () => {
+					setOpen(false);
+					onPick(layout);
+				});
+				el.appendChild(btn);
+			}
+		},
+		toggle: () => setOpen(!open),
+		close: () => setOpen(false),
+	};
+}
+
+/**
+ * The ribbon Home tab's Slides group, mirroring React's `SlidesGroup`: a New
+ * Slide split button (with a layout dropdown), a Layout dropdown, a Reset
+ * button, and a Section button. Duplicate/delete are reached elsewhere (context
+ * menu / thumbnail rail), matching React.
+ */
 export function createSlidesGroup(
 	doc: Document,
 	t: Translator,
@@ -32,13 +92,49 @@ export function createSlidesGroup(
 	label.textContent = t('pptx.sections.slides');
 	el.appendChild(label);
 
-	// React's Slides group shows labelled pills ("New Slide", "Section");
-	// duplicate/delete stay icon-only (React reaches them via context menu).
+	// -- New Slide split button (main + layout-dropdown caret) ----------------
+	const newSlideSplit = createEl(doc, 'div', 'pptxv-slides-split');
 	const add = makeButton(doc, {
 		label: t('pptx.home.newSlide'),
 		icon: 'new-slide',
 		textLabel: t('pptx.home.newSlide'),
 		onClick: handlers.addSlide,
+	});
+	const caret = createEl(doc, 'button', 'pptxv-slides-caret');
+	caret.type = 'button';
+	caret.title = t('pptx.home.chooseLayout');
+	caret.setAttribute('aria-label', t('pptx.home.chooseLayout'));
+	caret.setAttribute('aria-haspopup', 'menu');
+	caret.appendChild(createIcon(doc, 'chevron-down'));
+	const newSlideMenu = createLayoutMenu(doc, t('pptx.home.chooseLayout'), (layout) =>
+		handlers.insertSlideFromLayout(layout.path, layout.name),
+	);
+	caret.addEventListener('click', (event) => {
+		event.stopPropagation();
+		newSlideMenu.toggle();
+	});
+	newSlideSplit.append(add.btn, caret, newSlideMenu.el);
+
+	// -- Layout dropdown -------------------------------------------------------
+	const layoutHost = createEl(doc, 'div', 'pptxv-slides-menu-host');
+	const layout = makeButton(doc, {
+		label: t('pptx.master.layout'),
+		icon: 'layout',
+		textLabel: t('pptx.master.layout'),
+		onClick: () => layoutMenu.toggle(),
+	});
+	layout.btn.setAttribute('aria-haspopup', 'menu');
+	const layoutMenu = createLayoutMenu(doc, t('pptx.master.layout'), (l) =>
+		handlers.applyLayout(l.path),
+	);
+	layoutHost.append(layout.btn, layoutMenu.el);
+
+	// -- Reset + Section pills -------------------------------------------------
+	const reset = makeButton(doc, {
+		label: t('pptx.sections.resetSlideTitle'),
+		icon: 'undo',
+		textLabel: t('pptx.animations.reset'),
+		onClick: handlers.resetSlide,
 	});
 	const section = makeButton(doc, {
 		label: t('pptx.sections.addSection'),
@@ -46,25 +142,26 @@ export function createSlidesGroup(
 		textLabel: t('pptx.sections.sectionButtonLabel'),
 		onClick: handlers.addSection,
 	});
-	const duplicate = makeButton(doc, {
-		label: t('pptx.arrange.duplicate'),
-		icon: 'duplicate',
-		onClick: handlers.duplicateSlide,
-	});
-	const del = makeButton(doc, {
-		label: t('pptx.arrange.delete'),
-		icon: 'trash',
-		onClick: handlers.deleteSlide,
-	});
-	row.append(add.btn, section.btn, duplicate.btn, del.btn);
+
+	row.append(newSlideSplit, layoutHost, reset.btn, section.btn);
 
 	return {
 		el,
-		update({ editable, slideCount }) {
+		update({ editable, slideCount, layouts }) {
+			const hasLayouts = layouts.length > 0;
+			newSlideMenu.setItems(layouts);
+			layoutMenu.setItems(layouts);
 			add.setDisabled(!editable);
-			duplicate.setDisabled(!editable || slideCount === 0);
-			del.setDisabled(!editable || slideCount <= 1);
+			// The caret only appears when there are layouts to choose (React parity).
+			caret.hidden = !hasLayouts;
+			caret.disabled = !editable;
+			layout.setDisabled(!editable || !hasLayouts);
+			reset.setDisabled(!editable || slideCount === 0);
 			section.setDisabled(!editable || slideCount === 0);
+			if (!editable) {
+				newSlideMenu.close();
+				layoutMenu.close();
+			}
 		},
 	};
 }

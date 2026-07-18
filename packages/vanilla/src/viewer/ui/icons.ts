@@ -93,6 +93,7 @@ export type IconName =
 	| 'sticky-note'
 	| 'monitor'
 	| 'presentation'
+	| 'columns'
 	| 'comment'
 	| 'settings'
 	| 'folder-plus'
@@ -115,7 +116,11 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	sidebar: ['M4 4h16v16H4z', 'M9 4v16'],
 	undo: ['M3 7v6h6', 'M21 17a9 9 0 0 0-15-6.7L3 13'],
 	redo: ['M21 7v6h-6', 'M3 17a9 9 0 0 1 15-6.7L21 13'],
-	save: ['M12 3v12', 'M7 10l5 5 5-5', 'M5 21h14'],
+	save: [
+		'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z',
+		'M17 21v-8H7v8',
+		'M7 3v5h8',
+	],
 	notes: ['M5 4h14v16H5z', 'M8 9h8', 'M8 13h8', 'M8 17h4'],
 	plus: ['M12 5v14', 'M5 12h14'],
 	minus: ['M5 12h14'],
@@ -254,6 +259,7 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	'sticky-note': ['M5 4h14v10l-6 6H5z', 'M13 20v-6h6'],
 	monitor: ['M3 5h18v12H3z', 'M8 21h8', 'M12 17v4'],
 	presentation: ['M3 4h18', 'M5 4h14v11H5z', 'M12 15v3', 'M9 21l3-3 3 3'],
+	columns: ['M4 4h16v16H4z', 'M12 4v16'],
 	comment: ['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'],
 	settings: [
 		'M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z',

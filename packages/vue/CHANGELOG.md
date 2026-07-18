@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.23.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.23.0) - 2026-07-18
+
+### Features
+
+- **vue:** Export RibbonToolbar for independent composition (by @ChristopherVR) ([00a57ca](https://github.com/ChristopherVR/pptx-viewer/commit/00a57ca4f96339edc1b79d544f71330558f2ceff))
+
+### Dependencies
+
+- **deps:** Update dependencies to latest and migrate core/shared/locales to TypeScript 7 (by @ChristopherVR) ([cc72948](https://github.com/ChristopherVR/pptx-viewer/commit/cc729482cc5ae4ae56e1219f290c2953ec83c12a))
+
 ## [1.22.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.22.1) - 2026-07-18
 
 ## [1.22.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.22.0) - 2026-07-18
