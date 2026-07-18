@@ -1,10 +1,12 @@
 /** Deterministic Notes Master and Handout Master fixture for cross-binding E2E coverage. */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import JSZip from 'jszip';
 import { PptxHandler } from 'pptx-viewer-core';
+
+import { writeFixtureDeterministic } from './write-fixture';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -107,7 +109,7 @@ export async function generateMasterViewsFixture(): Promise<string> {
 
 	const outPath = resolve(__dirname, 'master-views.pptx');
 	mkdirSync(dirname(outPath), { recursive: true });
-	writeFileSync(outPath, await zip.generateAsync({ type: 'uint8array' }));
+	await writeFixtureDeterministic(outPath, await zip.generateAsync({ type: 'uint8array' }));
 	return outPath;
 }
 

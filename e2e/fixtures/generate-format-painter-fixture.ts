@@ -7,11 +7,13 @@
  *
  * Re-runnable; the spec invokes it from globalSetup.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { PptxHandler } from 'pptx-viewer-core';
+
+import { writeFixtureDeterministic } from './write-fixture';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -47,7 +49,7 @@ export async function generateFixture(): Promise<string> {
 	const bytes = await handler.save(data.slides);
 	const outPath = resolve(__dirname, 'format-painter.pptx');
 	mkdirSync(dirname(outPath), { recursive: true });
-	writeFileSync(outPath, bytes);
+	await writeFixtureDeterministic(outPath, bytes);
 	return outPath;
 }
 

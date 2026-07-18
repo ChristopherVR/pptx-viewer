@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 /**
  * Generates `chart-gallery.pptx` - a multi-slide deck with exactly one chart
  * per slide, covering the breadth of chart kinds the viewers render. Used by
@@ -51,6 +51,7 @@ import {
 	buildScatterChartXml,
 } from './chart-xml';
 import type { ChartXmlInput, ChartXmlSeries } from './chart-xml';
+import { writeFixtureDeterministic } from './write-fixture';
 
 const coreRequire = createRequire(createRequire(import.meta.url).resolve('pptx-viewer-core'));
 // jszip uses `export = JSZip`; the required value is the constructor itself.
@@ -290,7 +291,7 @@ export async function generateChartFixture(): Promise<string> {
 	const bytes = await zip.generateAsync({ type: 'uint8array' });
 	const outPath = resolve(__dirname, 'chart-gallery.pptx');
 	mkdirSync(dirname(outPath), { recursive: true });
-	writeFileSync(outPath, bytes);
+	await writeFixtureDeterministic(outPath, bytes);
 	return outPath;
 }
 

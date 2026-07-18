@@ -34,7 +34,7 @@
  *
  * Re-runnable; the spec invokes it from globalSetup.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,6 +42,8 @@ import { deflateSync } from 'node:zlib';
 
 import type JSZipType from 'jszip';
 import { PptxHandler } from 'pptx-viewer-core';
+
+import { writeFixtureDeterministic } from './write-fixture';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -298,7 +300,7 @@ export async function generateOleFixture(): Promise<string> {
 	const bytes = await zip.generateAsync({ type: 'uint8array' });
 	const outPath = resolve(__dirname, 'ole-embed.pptx');
 	mkdirSync(dirname(outPath), { recursive: true });
-	writeFileSync(outPath, bytes);
+	await writeFixtureDeterministic(outPath, bytes);
 	return outPath;
 }
 
@@ -402,7 +404,7 @@ export async function generateInkFixture(): Promise<string> {
 	const bytes = await zip.generateAsync({ type: 'uint8array' });
 	const outPath = resolve(__dirname, 'ink-annotation.pptx');
 	mkdirSync(dirname(outPath), { recursive: true });
-	writeFileSync(outPath, bytes);
+	await writeFixtureDeterministic(outPath, bytes);
 	return outPath;
 }
 
