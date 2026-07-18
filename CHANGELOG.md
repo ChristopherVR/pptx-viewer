@@ -6,6 +6,50 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-18
 
+_Releases: pptx-viewer-core@1.6.3, pptx-react-viewer@1.23.0, pptx-vue-viewer@1.23.0, pptx-angular-viewer@1.29.0, pptx-vanilla-viewer@0.15.0, pptx-svelte-viewer@1.4.0_
+
+### Features
+
+- **shared:** Shared equation template catalogue for the editor dialogs (by @ChristopherVR) ([9828ff9](https://github.com/ChristopherVR/pptx-viewer/commit/9828ff98316b541f9702e15c11b06fa19cb62d26))
+- **svelte:** React-parity modal equation editor dialog (by @ChristopherVR) ([d52f341](https://github.com/ChristopherVR/pptx-viewer/commit/d52f3410d6d8bd99f548fd30a4e5b0dfdb22bfd0))
+- **vanilla:** React-parity modal equation editor dialog with styles (by @ChristopherVR) ([a872715](https://github.com/ChristopherVR/pptx-viewer/commit/a87271553635eb83b6aa91ad11a506dc313fd4e3))
+- **vue:** Export RibbonToolbar for independent composition (by @ChristopherVR) ([00a57ca](https://github.com/ChristopherVR/pptx-viewer/commit/00a57ca4f96339edc1b79d544f71330558f2ceff))
+
+### Bug Fixes
+
+- **shared:** Emit inspector accent and border theme tokens (by @ChristopherVR) ([cf3e12e](https://github.com/ChristopherVR/pptx-viewer/commit/cf3e12e907be9c90872120dc03ee8d840253e6b4))
+- **react:** Scrollable ribbon, escaped popups, and toolbar chrome fixes (by @ChristopherVR) ([266433b](https://github.com/ChristopherVR/pptx-viewer/commit/266433bbc1e9e0b31384776bfbb0b1a7e28513a4))
+- **vue:** Stop pinning the demo theme so the appearance picker works (by @ChristopherVR) ([635c496](https://github.com/ChristopherVR/pptx-viewer/commit/635c4969d0336cd597abc5f9ae1adeacbff90160))
+- **svelte:** Top-bar cog, add-slide rail button, and inspector parity (by @ChristopherVR) ([b4cf8de](https://github.com/ChristopherVR/pptx-viewer/commit/b4cf8de4dd333e99d39ac12a3f1a87086bc7052c))
+- **angular:** Themeable chrome, settings cog, and ribbon polish (by @ChristopherVR) ([8960219](https://github.com/ChristopherVR/pptx-viewer/commit/8960219fbfb33562e6ed1c94380d17cdd23eb63c))
+- **vanilla:** Settings cog icon, themed collab dialogs, add-slide button (by @ChristopherVR) ([034e57b](https://github.com/ChristopherVR/pptx-viewer/commit/034e57bfc32bb92b8d2b8240b165f47d495a9216))
+- **shared:** Preserve operator order in LaTeX to OMML conversion (by @ChristopherVR) ([0357d90](https://github.com/ChristopherVR/pptx-viewer/commit/0357d904155ebf8cb60513b52c57fc9266bf2496))
+- **vue:** Make viewer chrome fully theme-var driven; dock notes bar (by @ChristopherVR) ([5923a65](https://github.com/ChristopherVR/pptx-viewer/commit/5923a65f0c884d36565b978ca8825e998e3bf850))
+- **angular:** Themeable chrome, root-theme demo, ribbon + thumbnail parity (by @ChristopherVR) ([295221e](https://github.com/ChristopherVR/pptx-viewer/commit/295221e88a20fc6cd9b7c36aa5f893722c498856))
+- **vanilla:** Align chrome parity nits with the React reference (by @ChristopherVR) ([b84be6f](https://github.com/ChristopherVR/pptx-viewer/commit/b84be6fdd08d6c3c0fb4cc4f789638b921a09f33))
+- **svelte:** Light-theme chrome parity, overflow menu, ribbon scroll (by @ChristopherVR) ([c04e912](https://github.com/ChristopherVR/pptx-viewer/commit/c04e9125c1d5271115b78d30cd7aa0ee4fd62d61))
+
+### Refactor
+
+- **react:** Consume the shared equation template catalogue (by @ChristopherVR) ([4c1b7cc](https://github.com/ChristopherVR/pptx-viewer/commit/4c1b7cce62868b7da49a36bc0660d48d5329d4fd))
+- **vue:** Consume the shared equation template catalogue (by @ChristopherVR) ([4b9cf5b](https://github.com/ChristopherVR/pptx-viewer/commit/4b9cf5b1abca7db522535bfaac9b0a1d97835861))
+- **angular:** Consume the shared equation template catalogue (by @ChristopherVR) ([37ebda3](https://github.com/ChristopherVR/pptx-viewer/commit/37ebda35af129ad014064f23d681b5913b6d68ba))
+
+### Testing
+
+- **e2e:** Make generated fixtures deterministic to stop git churn (by @ChristopherVR) ([aea5d49](https://github.com/ChristopherVR/pptx-viewer/commit/aea5d49775548107f185c0431721f095bec9877f))
+
+### Dependencies
+
+- **deps:** Sync bun.lock with current manifests (by @ChristopherVR) ([6c19a9c](https://github.com/ChristopherVR/pptx-viewer/commit/6c19a9c1af80525aaac79b7154b11a30f6e2df2a))
+- **deps:** Update dependencies to latest and migrate core/shared/locales to TypeScript 7 (by @ChristopherVR) ([cc72948](https://github.com/ChristopherVR/pptx-viewer/commit/cc729482cc5ae4ae56e1219f290c2953ec83c12a))
+
+### Chores
+
+- Add project verify skill for live demo verification (by @ChristopherVR) ([9e6366b](https://github.com/ChristopherVR/pptx-viewer/commit/9e6366b73b4b10610146d17d4c21a75be5d4585f))
+
+## 2026-07-18
+
 _Releases: pptx-react-viewer@1.22.2, pptx-vue-viewer@1.22.1, pptx-angular-viewer@1.28.1, pptx-vanilla-viewer@0.14.0, pptx-svelte-viewer@1.3.0_
 
 ### Features
