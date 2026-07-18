@@ -17,6 +17,19 @@ function mountCanvas(slide: PptxSlide | undefined) {
 	});
 }
 
+describe('slideCanvas slide-region contract', () => {
+	// The e2e accessibility contract is ONE visible slide region for the
+	// current slide: the wrapper. The inner interactive SlideStage must not
+	// duplicate the aria-roledescription (a strict Playwright locator on
+	// '[aria-roledescription="slide"]' resolved to 2 elements before this).
+	it('renders exactly one aria-roledescription="slide" region', () => {
+		const wrapper = mountCanvas(makeSlide({}));
+		expect(wrapper.findAll('[aria-roledescription="slide"]')).toHaveLength(1);
+		const region = wrapper.get('[aria-roledescription="slide"]');
+		expect(region.classes()).toContain('pptx-vue-canvas-wrapper');
+	});
+});
+
 describe('slideCanvas background inheritance', () => {
 	// The e2e contract reads the background off the aria-roledescription="slide"
 	// region (the wrapper), mirroring React/Angular. A slide whose background is

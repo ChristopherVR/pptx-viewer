@@ -5,6 +5,7 @@ import type { CSSProperties } from 'vue';
 import { computed, ref, watchPostEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { stripElementIdMarkers } from '../composables/stage-element-markers';
 import type { CanvasSize } from '../types';
 import ElementRenderer from './ElementRenderer.vue';
 
@@ -20,6 +21,15 @@ import ElementRenderer from './ElementRenderer.vue';
  * slide content (lower z), supplied separately via `templateElements`. They are
  * interactive (and gain the editable affordance) only while `editTemplateMode`
  * is on; otherwise they render but are locked.
+ *
+ * Accessibility contract: exactly ONE `aria-roledescription="slide"` region
+ * exists per surface. On the editable canvas that region is the `SlideCanvas`
+ * wrapper (which also paints the resolved background), mirroring React's
+ * `SlideCanvas.tsx`, so the interactive stage itself stays unlabelled. Only the
+ * standalone live presentation stage (`presenting`, no wrapper) self-labels.
+ * Static stages (thumbnails, sorter, previews, export) are `aria-hidden` and
+ * additionally have their `data-element-id` markers stripped post-render (see
+ * `stripElementIdMarkers`) so element queries always hit the real canvas copy.
  */
 const props = withDefaults(
 	defineProps<{
@@ -63,8 +73,20 @@ const accessibleElements = computed(() => [
 ]);
 
 watchPostEffect(() => {
-	if (stageRef.value && (props.interactive || props.presenting)) {
-		applyRenderedElementAccessibility(stageRef.value, accessibleElements.value);
+	const stage = stageRef.value;
+	// Read the element list in both branches so structural changes re-trigger
+	// this effect for static stages too (the strip must re-run after them).
+	const elements = accessibleElements.value;
+	if (!stage) {
+		return;
+	}
+	if (props.interactive || props.presenting) {
+		applyRenderedElementAccessibility(stage, elements);
+	} else {
+		// Static surface (thumbnail, sorter, preview, export stage): remove the
+		// `data-element-id` markers so only the real canvas / presentation stage
+		// exposes them, matching React's marker-free static renderer.
+		stripElementIdMarkers(stage);
 	}
 });
 
@@ -94,9 +116,9 @@ const stageStyle = computed<CSSProperties>(() => ({
 		ref="stageRef"
 		class="pptx-vue-stage"
 		:style="stageStyle"
-		:role="interactive || presenting ? 'region' : undefined"
-		:aria-roledescription="interactive || presenting ? 'slide' : undefined"
-		:aria-label="interactive || presenting ? t('pptx.canvas.slide') : undefined"
+		:role="presenting ? 'region' : undefined"
+		:aria-roledescription="presenting ? 'slide' : undefined"
+		:aria-label="presenting ? t('pptx.canvas.slide') : undefined"
 		:aria-hidden="!interactive && !presenting ? 'true' : undefined"
 	>
 		<!-- Template (master/layout) layer: behind the slide content (lower z). -->
