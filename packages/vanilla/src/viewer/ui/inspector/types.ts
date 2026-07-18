@@ -1,4 +1,5 @@
 import type {
+	PptxAnimationPreset,
 	PptxImageEffects,
 	PptxChartData,
 	MediaPptxElement,
@@ -18,8 +19,14 @@ import type {
 	TextStyle,
 	ShapeStyle,
 } from 'pptx-viewer-core';
-import type { GradientState, InlineTextSelection, TextAdvancedChanges } from 'pptx-viewer-shared';
+import type {
+	AnimationGroup,
+	GradientState,
+	InlineTextSelection,
+	TextAdvancedChanges,
+} from 'pptx-viewer-shared';
 
+import type { AnimationTimingPatch } from '../../editor/editor-animation-actions';
 import type { GeometryPatch } from '../../editor/editor-edit-ops';
 import type { TableCellPosition, TableStructureAction } from '../../editor/table-editor-mutations';
 
@@ -43,8 +50,19 @@ export interface InspectorHandlers {
 	updateCanvasSize(size: { width: number; height: number }): void;
 	/** Add a comment on the current slide (Comments tab). */
 	addComment(text: string): void;
+	/** Append a reply under a top-level comment (Comments tab reply form). */
+	addCommentReply(parentId: string, text: string): void;
+	/** Replace a comment's (or reply's) text (Comments tab edit-in-place). */
+	editComment(id: string, text: string): void;
 	deleteComment(id: string): void;
 	toggleCommentResolved(id: string): void;
+
+	/** Set/clear one effect bucket on the selected element (docked Animation panel). */
+	setAnimationEffect(group: AnimationGroup, preset: PptxAnimationPreset | 'none'): void;
+	/** Patch timing/effect options on one element's animation entry. */
+	setAnimationTiming(elementId: string, patch: AnimationTimingPatch): void;
+	/** Move an element's animation one step in the slide play order. */
+	reorderAnimation(elementId: string, direction: 'up' | 'down'): void;
 
 	setGeometry(patch: GeometryPatch): void;
 	setShapeFill(color: string): void;
@@ -193,6 +211,8 @@ export interface InspectorDeckState {
 	canvasSize: { width: number; height: number };
 	elements: readonly PptxElement[];
 	selectedIds: readonly string[];
+	/** Primary selected element id (docked Animation panel target), if any. */
+	selectedElementId?: string;
 	comments: readonly PptxComment[];
 	docTitle: string | undefined;
 	docAuthor: string | undefined;

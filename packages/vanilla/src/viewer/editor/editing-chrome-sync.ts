@@ -60,6 +60,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			canvasSize: state.canvasSize,
 			elements: activeSlide?.elements ?? [],
 			selectedIds: state.selectedElementIds,
+			selectedElementId: el?.id,
 			comments: activeSlide?.comments ?? [],
 			docTitle: state.coreProperties?.title,
 			docAuthor: state.coreProperties?.creator,

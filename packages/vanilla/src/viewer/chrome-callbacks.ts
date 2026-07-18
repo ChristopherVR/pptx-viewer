@@ -188,8 +188,16 @@ export function buildChromeCallbacks(
 		updateActiveSlide: (patch) => deps.getEditActions().updateActiveSlide(patch),
 		updateCanvasSize: (size) => deps.getEditActions().updateCanvasSize(size),
 		addComment: (text) => void deps.getEditActions().comments.addComment(text),
+		addCommentReply: (parentId, text) =>
+			void deps.getEditActions().comments.addCommentReply(parentId, text),
+		editComment: (id, text) => deps.getEditActions().comments.editComment(id, text),
 		deleteComment: (id) => deps.getEditActions().comments.deleteComment(id),
 		toggleCommentResolved: (id) => deps.getEditActions().comments.toggleCommentResolved(id),
+		setAnimationEffect: (group, preset) => deps.getEditActions().setAnimationEffect(group, preset),
+		setAnimationTiming: (elementId, patch) =>
+			deps.getEditActions().setAnimationTiming(elementId, patch),
+		reorderAnimation: (elementId, direction) =>
+			deps.getEditActions().reorderAnimation(elementId, direction),
 		setGeometry: (patch) => deps.getEditActions().setGeometry(patch),
 		setShapeFill: (color) => deps.getEditActions().setShapeFill(color),
 		setShapeStroke: (color) => deps.getEditActions().setShapeStroke(color),

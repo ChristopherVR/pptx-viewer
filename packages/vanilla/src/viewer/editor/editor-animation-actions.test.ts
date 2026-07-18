@@ -189,6 +189,51 @@ describe('createAnimationActions', () => {
 		expect(updated.find(({ elementId }) => elementId === 'el2')?.order).toBe(0);
 	});
 
+	it('setAnimationEffect sets one bucket on the selected element and marks dirty', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [buildSlide('a', [buildElement('el1')])],
+			currentSlide: 0,
+			editable: true,
+			selectedElementId: 'el1',
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createAnimationActions({ store, ops });
+
+		actions.setAnimationEffect('entrance', 'fadeIn');
+
+		const animations = store.get().slides[0].animations;
+		expect(animations).toHaveLength(1);
+		expect(animations?.[0]).toMatchObject({ elementId: 'el1', entrance: 'fadeIn' });
+		expect(store.get().dirty).toBeTruthy();
+		expect(ops.canUndo()).toBeTruthy();
+	});
+
+	it('setAnimationEffect with none clears the bucket and drops an empty entry', () => {
+		const animations: PptxElementAnimation[] = [
+			{ elementId: 'el1', entrance: 'fadeIn', exit: 'fadeOut', order: 0 },
+		];
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [{ ...buildSlide('a', [buildElement('el1')]), animations }],
+			currentSlide: 0,
+			editable: true,
+			selectedElementId: 'el1',
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createAnimationActions({ store, ops });
+
+		actions.setAnimationEffect('exit', 'none');
+		expect(store.get().slides[0].animations?.[0]).toMatchObject({
+			elementId: 'el1',
+			entrance: 'fadeIn',
+		});
+		expect(store.get().slides[0].animations?.[0].exit).toBeUndefined();
+
+		actions.setAnimationEffect('entrance', 'none');
+		expect(store.get().slides[0].animations).toHaveLength(0);
+	});
+
 	it('sets a trigger shape and supports drag-order placement', () => {
 		const animations: PptxElementAnimation[] = [
 			{ elementId: 'a', entrance: 'fadeIn', order: 0 },

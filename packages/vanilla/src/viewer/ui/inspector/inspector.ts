@@ -1,6 +1,7 @@
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import { createActionSection } from './action-section';
+import { createAnimationPanel } from './animation-panel';
 import { createChartSection } from './chart-section';
 import { createCommentsTab } from './comments-tab';
 import { createDeckPanel } from './deck-panel';
@@ -66,6 +67,12 @@ export function createInspector(
 	commentsTab.el.classList.add('pptxv-inspector-body');
 	el.appendChild(commentsTab.el);
 
+	// Docked per-element Animation panel: always at the bottom of the pane,
+	// visible (on any tab) whenever an element is selected, matching React's
+	// `InspectorPane` placement below the tab body.
+	const animationPanel = createAnimationPanel(doc, t, handlers);
+	el.appendChild(animationPanel.el);
+
 	let activeTab: InspectorTabId = 'properties';
 	const setActiveTab = (tab: InspectorTabId): void => {
 		activeTab = tab;
@@ -117,6 +124,12 @@ export function createInspector(
 			elementsTab.update(state);
 			commentsTab.update(state);
 			deckPanel.update(state);
+			animationPanel.update({
+				editable: state.editable,
+				selectedElementId: state.selectedElementId,
+				elements: state.elements,
+				animations: state.activeSlide?.animations ?? [],
+			});
 		},
 		setEditable(editable) {
 			el.hidden = !editable;

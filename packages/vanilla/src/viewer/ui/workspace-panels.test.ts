@@ -57,6 +57,7 @@ describe('workspace parity panels', () => {
 		const addComment = vi.fn(() => 'comment');
 		openCommentsPanel(document, document.body, createTranslator(), [], {
 			addComment,
+			addCommentReply: vi.fn(),
 			editComment: vi.fn(),
 			deleteComment: vi.fn(),
 			toggleCommentResolved: vi.fn(),

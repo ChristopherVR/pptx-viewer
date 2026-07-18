@@ -1,12 +1,25 @@
-import type { PptxSlide } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import type { PptxComment, PptxSlide } from 'pptx-viewer-core';
+import { describe, expect, it, vi } from 'vitest';
 
-import { updateSlideComments } from './editor-comment-actions';
+import { createInitialViewerState, createStore } from '../state';
+import { createCommentActions, updateSlideComments } from './editor-comment-actions';
+import { createEditorOps } from './editor-operations';
 
 const slides: PptxSlide[] = [
 	{ id: 's1', rId: 'r1', slideNumber: 1, elements: [], comments: [{ id: 'c1', text: 'Old' }] },
 	{ id: 's2', rId: 'r2', slideNumber: 2, elements: [] },
 ];
+
+function makeActions(comments: PptxComment[]) {
+	const store = createStore({
+		...createInitialViewerState(),
+		slides: [{ id: 's1', rId: 'r1', slideNumber: 1, elements: [], comments }],
+		currentSlide: 0,
+		editable: true,
+	});
+	const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+	return { store, ops, actions: createCommentActions({ store, ops }) };
+}
 
 describe('updateSlideComments', () => {
 	it('updates only the requested slide and preserves other references', () => {
@@ -25,5 +38,82 @@ describe('updateSlideComments', () => {
 		expect(edited[0].comments?.[0]).toMatchObject({ text: 'Edited', resolved: true });
 		const removed = updateSlideComments(edited, 0, () => []);
 		expect(removed[0].comments).toStrictEqual([]);
+	});
+});
+
+describe('createCommentActions replies and edit-in-place', () => {
+	it('appends a reply under the parent with threadId and inherited elementId', () => {
+		const { store, actions } = makeActions([
+			{ id: 'c1', text: 'Parent', elementId: 'el7' },
+			{ id: 'c2', text: 'Other' },
+		]);
+
+		const id = actions.addCommentReply('c1', 'A reply');
+
+		const comments = store.get().slides[0].comments!;
+		expect(comments[0].replies).toHaveLength(1);
+		expect(comments[0].replies?.[0]).toMatchObject({
+			id,
+			text: 'A reply',
+			threadId: 'c1',
+			elementId: 'el7',
+		});
+		expect(comments[1].replies).toBeUndefined();
+		expect(store.get().dirty).toBeTruthy();
+	});
+
+	it('addCommentReply is a no-op for blank text or a missing parent', () => {
+		const { store, ops, actions } = makeActions([{ id: 'c1', text: 'Parent' }]);
+
+		expect(actions.addCommentReply('c1', '   ')).toBeNull();
+		expect(actions.addCommentReply('missing', 'text')).toBeNull();
+		expect(store.get().slides[0].comments?.[0].replies).toBeUndefined();
+		expect(ops.canUndo()).toBeFalsy();
+	});
+
+	it('editComment rewrites a top-level comment in place and marks dirty', () => {
+		const { store, ops, actions } = makeActions([{ id: 'c1', text: 'Original' }]);
+
+		actions.editComment('c1', 'Rewritten');
+
+		expect(store.get().slides[0].comments?.[0].text).toBe('Rewritten');
+		expect(store.get().dirty).toBeTruthy();
+		ops.undo();
+		expect(store.get().slides[0].comments?.[0].text).toBe('Original');
+	});
+
+	it('editComment reaches nested replies', () => {
+		const { store, actions } = makeActions([
+			{
+				id: 'c1',
+				text: 'Parent',
+				replies: [{ id: 'r1', text: 'Reply', threadId: 'c1' }],
+			},
+		]);
+
+		actions.editComment('r1', 'Reply v2');
+
+		const parent = store.get().slides[0].comments?.[0];
+		expect(parent?.text).toBe('Parent');
+		expect(parent?.replies?.[0].text).toBe('Reply v2');
+	});
+
+	it('deleteComment and toggleCommentResolved also reach nested replies', () => {
+		const { store, actions } = makeActions([
+			{
+				id: 'c1',
+				text: 'Parent',
+				replies: [
+					{ id: 'r1', text: 'Reply 1', threadId: 'c1' },
+					{ id: 'r2', text: 'Reply 2', threadId: 'c1' },
+				],
+			},
+		]);
+
+		actions.toggleCommentResolved('r1');
+		expect(store.get().slides[0].comments?.[0].replies?.[0].resolved).toBeTruthy();
+
+		actions.deleteComment('r2');
+		expect(store.get().slides[0].comments?.[0].replies?.map(({ id }) => id)).toStrictEqual(['r1']);
 	});
 });

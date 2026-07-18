@@ -13,6 +13,9 @@ import {
 	removeElementAnimation,
 	reorderAnimationDown,
 	reorderAnimationUp,
+	setAnimationEmphasis,
+	setAnimationEntrance,
+	setAnimationExit,
 	setDelay,
 	setDirection,
 	setDuration,
@@ -41,23 +44,30 @@ import type { EditorOps } from './editor-operations';
  * entrance/emphasis/exit without touching the others; remove drops the whole
  * entry.
  */
+/** Partial timing/effect-option update for one element's animation entry. */
+export interface AnimationTimingPatch {
+	durationMs?: number;
+	delayMs?: number;
+	trigger?: PptxAnimationTrigger;
+	direction?: PptxAnimationDirection;
+	sequence?: PptxAnimationSequence;
+	timingCurve?: PptxAnimationTimingCurve;
+	repeatCount?: number;
+	repeatMode?: PptxAnimationRepeatMode | 'none';
+	triggerShapeId?: string;
+}
+
 export interface AnimationActions {
 	addAnimation(group: AnimationGroup, preset: PptxAnimationPreset): void;
 	removeAnimation(): void;
-	setAnimationTiming(
-		elementId: string,
-		patch: {
-			durationMs?: number;
-			delayMs?: number;
-			trigger?: PptxAnimationTrigger;
-			direction?: PptxAnimationDirection;
-			sequence?: PptxAnimationSequence;
-			timingCurve?: PptxAnimationTimingCurve;
-			repeatCount?: number;
-			repeatMode?: PptxAnimationRepeatMode | 'none';
-			triggerShapeId?: string;
-		},
-	): void;
+	/**
+	 * Set (or clear with `'none'`) a single effect bucket on the selected
+	 * element, React's `AnimationPanel` select model: the entry is created on
+	 * first effect and dropped once all three buckets are empty (shared
+	 * `setAnimationEntrance`/`setAnimationExit`/`setAnimationEmphasis`).
+	 */
+	setAnimationEffect(group: AnimationGroup, preset: PptxAnimationPreset | 'none'): void;
+	setAnimationTiming(elementId: string, patch: AnimationTimingPatch): void;
 	reorderAnimation(elementId: string, direction: 'up' | 'down'): void;
 	moveAnimation(elementId: string, index: number): void;
 }
@@ -109,6 +119,25 @@ export function createAnimationActions(deps: AnimationActionsDeps): AnimationAct
 			if (animations.length === slide.animations.length) {
 				return;
 			}
+			ops.pushHistory();
+			store.set({ slides: updateSlide(state.slides, state.currentSlide, { animations }) });
+			ops.commitChange();
+		},
+
+		setAnimationEffect(group, preset) {
+			const state = store.get();
+			const elementId = state.selectedElementId;
+			const slide = state.slides[state.currentSlide];
+			if (!state.editable || !elementId || !slide) {
+				return;
+			}
+			const setter =
+				group === 'entrance'
+					? setAnimationEntrance
+					: group === 'exit'
+						? setAnimationExit
+						: setAnimationEmphasis;
+			const animations = setter(slide.animations ?? [], elementId, preset);
 			ops.pushHistory();
 			store.set({ slides: updateSlide(state.slides, state.currentSlide, { animations }) });
 			ops.commitChange();
