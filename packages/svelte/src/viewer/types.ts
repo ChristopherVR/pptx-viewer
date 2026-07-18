@@ -126,11 +126,11 @@ export interface PowerPointViewerProps {
 	 */
 	showNotes?: boolean;
 	/**
-	 * Opt in to the experimental Three.js (WebGL) SmartArt renderer for
-	 * `smartArt` elements, in place of the default SVG renderer. Requires the
-	 * optional `three` peer dependency; when it is unavailable, or a diagram
-	 * has no renderable nodes, or the WebGL mount fails, the SVG renderer is
-	 * used automatically. Default false.
+	 * Opt in to the Three.js (WebGL) SmartArt renderer for `smartArt` elements,
+	 * in place of the default SVG renderer. Requires the optional `three` peer
+	 * dependency; when it is unavailable, or a diagram has no renderable nodes,
+	 * or the WebGL mount fails, the SVG renderer is used automatically. Default
+	 * false.
 	 */
 	smartArt3D?: boolean;
 	/**
