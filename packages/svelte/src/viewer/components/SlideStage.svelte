@@ -56,6 +56,12 @@
 	}
 </script>
 
+<!-- Non-interactive stages (thumbnail rail, presenter previews) get no
+     role/label but are NOT aria-hidden: they can contain real interactive
+     controls (e.g. the OLE Download/Open action bar), and hiding a subtree
+     with focusable controls is an accessibility violation that also removed
+     those controls from the accessibility tree. Matches the other bindings,
+     which only withhold the region role from thumbnail stages. -->
 <div
 	class="pptx-svelte-stage"
 	use:accessibleStage={slide?.elements ?? []}
@@ -63,7 +69,6 @@
 	role={interactive ? 'region' : undefined}
 	aria-roledescription={interactive ? 'slide' : undefined}
 	aria-label={interactive ? t('pptx.canvas.slide') : undefined}
-	aria-hidden={interactive ? undefined : 'true'}
 >
 	{#each slide?.elements ?? [] as element, index (element.id)}
 		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} {interactive} {editTemplateMode} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} />
