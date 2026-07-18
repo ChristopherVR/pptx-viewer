@@ -660,6 +660,14 @@ export interface PptxChartManualLayout {
 	y?: number;
 	width?: number;
 	height?: number;
+	/**
+	 * Raw `c:extLst` (CT_ExtensionList) of the `c:manualLayout`, captured
+	 * verbatim so it round-trips through the typed model. Without this, a dirty
+	 * write of an edited layout would drop the extension list (the manual node
+	 * is rebuilt from the typed fields). Emitted as the trailing child, matching
+	 * the CT_ManualLayout schema order.
+	 */
+	ext?: XmlObject;
 }
 
 /**

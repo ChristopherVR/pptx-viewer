@@ -103,11 +103,11 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		],
 	},
 	'chart:complexType:CT_Layout': {
-		parse: 'partial',
-		preserve: 'passthrough',
-		edit: 'partial',
-		serialize: 'partial',
-		note: 'Manual layout is typed; extension-list content is passthrough only.',
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: 'Manual layout and its CT_ManualLayout extension list round-trip through the typed model (the extLst is captured on parse and re-emitted as the trailing child on a dirty write, so an edit no longer drops it). The layout wrapper is retained verbatim.',
 		evidence: [
 			testEvidence(
 				'src/core/utils/chart-axis-parser.test.ts',
@@ -115,8 +115,13 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 				['parse'],
 			),
 			testEvidence(
-				'src/core/utils/chart-axis-dispunits-serializer.test.ts',
-				['retains extension and unmodeled XML during a dirty write'],
+				'src/core/utils/chart-layout.test.ts',
+				['parses the typed manual-layout fields'],
+				['parse'],
+			),
+			testEvidence(
+				'src/core/utils/chart-layout.test.ts',
+				['round-trips the manual layout extension list through the typed model'],
 				['preserve', 'edit', 'serialize'],
 			),
 		],

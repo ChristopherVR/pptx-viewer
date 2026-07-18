@@ -42,6 +42,10 @@ export function parseChartManualLayout(
 	result.y = numberValue(child(manual, 'y', localName));
 	result.width = numberValue(child(manual, 'w', localName));
 	result.height = numberValue(child(manual, 'h', localName));
+	const ext = child(manual, 'extLst', localName);
+	if (ext !== undefined) {
+		result.ext = ext;
+	}
 	for (const key of Object.keys(result) as Array<keyof PptxChartManualLayout>) {
 		if (result[key] === undefined) {
 			delete result[key];
@@ -136,6 +140,11 @@ export function applyChartManualLayout(
 	add('y', layout.y);
 	add('w', layout.width);
 	add('h', layout.height);
+	// CT_ManualLayout.extLst is the trailing child; re-emit the captured raw
+	// node so an edited layout preserves its extensions instead of dropping them.
+	if (layout.ext !== undefined) {
+		manual['c:extLst'] = layout.ext;
+	}
 	if (Object.keys(manual).length === 0) {
 		return;
 	}
