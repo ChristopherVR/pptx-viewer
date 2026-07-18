@@ -27,6 +27,7 @@
 	import type { ChromeUiState, InspectorTabId } from '../../state/chrome-ui.svelte';
 	import { useInspectorDeck } from '../../state/inspector-deck';
 	import ReviewCommentsPanel from '../ribbon/review/ReviewCommentsPanel.svelte';
+	import AnimationPanel from './AnimationPanel.svelte';
 	import FillStrokeSection from './FillStrokeSection.svelte';
 	import ChartSection from './ChartSection.svelte';
 	import ElementsListSection from './ElementsListSection.svelte';
@@ -166,6 +167,9 @@
 				<p class="pptx-svelte-inspector-empty">{t('pptx.inspector.noSlideSelected')}</p>
 			{/if}
 		</div>
+
+		<!-- Bottom dock: per-element animations, any tab (React InspectorPane parity). -->
+		<AnimationPanel {editor} />
 	{/if}
 </aside>
 
@@ -180,7 +184,8 @@
 		color: var(--pptx-card-foreground, #e2e8f0);
 		font-family: system-ui, sans-serif;
 		font-size: 12px;
-		overflow-y: auto;
+		overflow: hidden;
+		min-height: 0;
 	}
 
 	.pptx-svelte-inspector-collapsed {
@@ -250,6 +255,9 @@
 	}
 
 	.pptx-svelte-inspector-body {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
 		padding: 0 12px 12px;
 	}
 
