@@ -35,12 +35,12 @@ For a precise list of what the underlying parser supports, and what is approxima
 ## Installation
 
 ```bash
-npm i pptx-vanilla-viewer jszip fast-xml-parser
+npm i pptx-vanilla-viewer
 ```
 
-The core engine (`pptx-viewer-core`) and shared render layer are **bundled in**; the only peer
-dependencies are `jszip` and `fast-xml-parser`. There are no framework peers and no optional peers -
-what you install is everything the viewer needs.
+The core engine (`pptx-viewer-core`) and shared render layer are **bundled in**, and the engine's
+runtime dependencies (`jszip`, `fast-xml-parser`) install automatically. There are no framework
+peers - one install is everything the viewer needs.
 
 ## Quick example
 

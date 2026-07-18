@@ -102,7 +102,7 @@ export class DeckComponent {
 	{
 		id: 'svelte',
 		label: 'Svelte 5',
-		install: 'npm i pptx-svelte-viewer jszip fast-xml-parser',
+		install: 'npm i pptx-svelte-viewer',
 		file: 'Deck.svelte',
 		docsHref: '/svelte/getting-started',
 		code: `<script lang="ts">
@@ -124,7 +124,7 @@ export class DeckComponent {
 	{
 		id: 'vanilla',
 		label: 'Vanilla JS',
-		install: 'npm i pptx-vanilla-viewer jszip fast-xml-parser',
+		install: 'npm i pptx-vanilla-viewer',
 		file: 'main.ts',
 		docsHref: '/vanilla/getting-started',
 		code: `import { createPptxViewer } from 'pptx-vanilla-viewer';
