@@ -200,6 +200,71 @@ function tokenize(latex: string): Token[] {
 	return tokens;
 }
 
+// ── Sibling merging ──────────────────────────────────────────────────────────
+
+/**
+ * True when merging the sibling nodes into one tag-keyed object keeps their
+ * visual order. fast-xml-parser's collapsed shape stores same-tag siblings as
+ * an array under one key and distinct tags under separate keys, so a walker
+ * iterating `Object.keys` re-emits the sequence grouped by tag in
+ * first-appearance order. That equals the original order only while each
+ * tag's occurrences are contiguous (e.g. `r r sSup` survives, `sSup r sSup`
+ * does not: the runs would migrate to the end, turning a^2+b^2 into a2b2+).
+ */
+function mergesLosslessly(nodes: OmmlNode[]): boolean {
+	const seen = new Set<string>();
+	let previous = '';
+	for (const node of nodes) {
+		for (const key of Object.keys(node)) {
+			if (node[key] === undefined) {
+				continue;
+			}
+			if (key !== previous && seen.has(key)) {
+				return false;
+			}
+			seen.add(key);
+			previous = key;
+		}
+	}
+	return true;
+}
+
+/**
+ * Merge parsed sibling nodes into a single OMML container object.
+ *
+ * When tags interleave (`m:sSup`, `m:r`, `m:sSup`, ... for a^2+b^2=c^2), the
+ * collapsed tag-keyed shape cannot represent the sibling order, so each node
+ * is wrapped in its own `m:box`: the standard OMML invisible grouping element
+ * (ECMA-376 §22.1.2.13). Every sibling then shares the single `m:box` key and
+ * their array preserves the exact order through MathML rendering, the reverse
+ * LaTeX conversion, and OOXML serialization on save. Grouped-by-tag sequences
+ * keep the compact merged shape.
+ */
+function mergeSiblings(nodes: OmmlNode[]): OmmlNode {
+	if (!mergesLosslessly(nodes)) {
+		return { 'm:box': nodes.map((node) => ({ 'm:e': node })) as unknown as OmmlNode[] };
+	}
+	const result: OmmlNode = {};
+	for (const node of nodes) {
+		for (const key of Object.keys(node)) {
+			if (node[key] === undefined) {
+				continue;
+			}
+			if (result[key]) {
+				const existing = result[key];
+				if (Array.isArray(existing)) {
+					(existing as OmmlNode[]).push(node[key] as OmmlNode);
+				} else {
+					result[key] = [existing as OmmlNode, node[key] as OmmlNode];
+				}
+			} else {
+				result[key] = node[key];
+			}
+		}
+	}
+	return result;
+}
+
 // ── Construct helpers ────────────────────────────────────────────────────────
 
 interface LatexParserContext {
@@ -424,24 +489,10 @@ class LatexParser implements LatexParserContext {
 				'm:nary': nodes[0]!['m:nary'],
 				'm:d': nodes[0]!['m:d'],
 				'm:func': nodes[0]!['m:func'],
+				'm:box': nodes[0]!['m:box'],
 			};
 		}
-		const result: OmmlNode = {};
-		for (const n of nodes) {
-			for (const key of Object.keys(n)) {
-				if (result[key]) {
-					const existing = result[key];
-					if (Array.isArray(existing)) {
-						(existing as OmmlNode[]).push(n[key] as OmmlNode);
-					} else {
-						result[key] = [existing as OmmlNode, n[key] as OmmlNode];
-					}
-				} else {
-					result[key] = n[key];
-				}
-			}
-		}
-		return result;
+		return mergeSiblings(nodes);
 	}
 
 	public makeRun(text: string, normal = false): OmmlNode {
@@ -620,21 +671,7 @@ export function convertLatexToOmml(latex: string): Record<string, unknown> {
 		return {};
 	}
 
-	const oMath: OmmlNode = {};
-	for (const node of nodes) {
-		for (const key of Object.keys(node)) {
-			if (oMath[key]) {
-				const existing = oMath[key];
-				if (Array.isArray(existing)) {
-					(existing as OmmlNode[]).push(node[key] as OmmlNode);
-				} else {
-					oMath[key] = [existing as OmmlNode, node[key] as OmmlNode];
-				}
-			} else {
-				oMath[key] = node[key];
-			}
-		}
-	}
+	const oMath = mergeSiblings(nodes);
 
 	return {
 		'm:oMathPara': {
@@ -813,6 +850,14 @@ function ommlElementToLatex(tag: string, node: Record<string, unknown>): string 
 			const fName = ommlChildrenToLatex(childNode(node, 'm:fName'));
 			const body = ommlChildrenToLatex(childNode(node, 'm:e'));
 			return `${fName}{${body}}`;
+		}
+		case 'm:box':
+		case 'm:borderBox': {
+			// Transparent grouping containers: emit the boxed content in place
+			// (mergeSiblings emits per-sibling boxes to preserve ordering).
+			return ensureArr(node['m:e'])
+				.map((e) => ommlChildrenToLatex(e))
+				.join('');
 		}
 		case 'm:oMath':
 			return ommlChildrenToLatex(node);

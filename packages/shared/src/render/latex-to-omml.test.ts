@@ -634,3 +634,47 @@ describe('convertOmmlToLatex', () => {
 		expect(convertOmmlToLatex(convertLatexToOmml('x^{2}'))).toBe('x^{2}');
 	});
 });
+
+describe('operator/construct interleaving order', () => {
+	// The collapsed fast-xml-parser shape groups siblings by tag, so an
+	// interleaved sequence (sSup, r, sSup, ...) must be emitted as per-sibling
+	// m:box wrappers under one key to keep its order. Grouped-by-tag
+	// sequences keep the compact shape.
+
+	it('emits ordered m:box siblings for a^{2}+b^{2}=c^{2}', () => {
+		const oMath = getOmml('a^{2}+b^{2}=c^{2}');
+		const boxes = oMath['m:box'];
+		expect(Array.isArray(boxes)).toBeTruthy();
+		// sSup(a,2), '+', sSup(b,2), '=', sSup(c,2)
+		expect(boxes).toHaveLength(5);
+	});
+
+	it('round-trips a^{2}+b^{2}=c^{2} back to identical LaTeX', () => {
+		expect(convertOmmlToLatex(convertLatexToOmml('a^{2}+b^{2}=c^{2}'))).toBe('a^{2}+b^{2}=c^{2}');
+	});
+
+	it('round-trips interleaving inside a fraction argument', () => {
+		expect(convertOmmlToLatex(convertLatexToOmml('\\frac{a+b^{2}+c}{d}'))).toBe(
+			'\\frac{a+b^{2}+c}{d}',
+		);
+	});
+
+	it('round-trips a trig identity with interleaved functions and operators', () => {
+		expect(convertOmmlToLatex(convertLatexToOmml('e^{x}+1=0'))).toBe('e^{x}+1=0');
+	});
+
+	it('keeps grouped-by-tag sequences in the compact merged shape (no boxes)', () => {
+		expect(getOmml('a+b=c')['m:box']).toBeUndefined();
+		expect(getOmml('x=\\frac{-b\\pm\\sqrt{b^{2}-4ac}}{2a}')['m:box']).toBeUndefined();
+		expect(getOmml('\\frac{a}{b}')['m:box']).toBeUndefined();
+	});
+
+	it('reverses standalone m:box nodes (e.g. from real OMML) transparently', () => {
+		const omml = {
+			'm:oMath': {
+				'm:box': { 'm:e': { 'm:r': { 'm:t': 'x' } } },
+			},
+		};
+		expect(convertOmmlToLatex(omml)).toBe('x');
+	});
+});

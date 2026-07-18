@@ -457,3 +457,37 @@ describe('omml DrawingML colour', () => {
 		expect(result).toContain('mathsize="162pt"');
 	});
 });
+
+describe('sibling ordering via m:box wrappers', () => {
+	it('renders interleaved constructs and operators in source order', () => {
+		// The editor's LaTeX converter wraps interleaved siblings in per-node
+		// m:box elements; the array under the single key preserves order.
+		const omml = {
+			'm:oMath': {
+				'm:box': [
+					{
+						'm:e': {
+							'm:sSup': { 'm:e': { 'm:r': { 'm:t': 'a' } }, 'm:sup': { 'm:r': { 'm:t': '2' } } },
+						},
+					},
+					{ 'm:e': { 'm:r': { 'm:t': '+' } } },
+					{
+						'm:e': {
+							'm:sSup': { 'm:e': { 'm:r': { 'm:t': 'b' } }, 'm:sup': { 'm:r': { 'm:t': '2' } } },
+						},
+					},
+					{ 'm:e': { 'm:r': { 'm:t': '=' } } },
+					{
+						'm:e': {
+							'm:sSup': { 'm:e': { 'm:r': { 'm:t': 'c' } }, 'm:sup': { 'm:r': { 'm:t': '2' } } },
+						},
+					},
+				],
+			},
+		};
+
+		const result = convertOmmlToMathMl(omml);
+		// Strip tags: the remaining character stream is the visual reading order.
+		expect(result.replace(/<[^>]+>/gu, '')).toBe('a2+b2=c2');
+	});
+});
