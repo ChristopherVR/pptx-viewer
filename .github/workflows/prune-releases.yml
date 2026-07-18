@@ -23,7 +23,7 @@ on:
         required: false
         default: false
       tags:
-        description: 'Also delete the pruned versions'' git tags'
+        description: "Also delete the pruned versions' git tags"
         type: boolean
         required: false
         default: false
