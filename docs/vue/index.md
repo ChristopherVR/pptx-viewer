@@ -11,6 +11,8 @@ complete UI: toolbar, inspector panels, slide canvas, animation engine, presenta
 collaboration, and export. It is a `<script setup>` port of the [React viewer](/react/), sharing the
 same underlying architecture and the same `PowerPointViewerAPI` contract.
 
+![The editor chrome is identical across bindings: ribbon, slide thumbnails, canvas, and inspector](/docs-shots/editor.jpg)
+
 ## What it provides
 
 | Capability         | Summary                                                                                                                                      |

@@ -97,6 +97,8 @@ console.log(markdown);
 
 The `PowerPointViewer` component renders a deck from a `Uint8Array` and can run in editable mode. The `onContentChange` callback receives the re-serialized `.pptx` bytes whenever the presentation is edited.
 
+![The editable viewer with ribbon, thumbnails, and inspector](/docs-shots/editor.jpg)
+
 ```tsx
 import { useState } from 'react';
 import { PowerPointViewer } from 'pptx-react-viewer/viewer';

@@ -12,6 +12,8 @@ canvas, animation engine, presentation mode, real-time collaboration, and export
 counterpart of `pptx-react-viewer` and `pptx-vue-viewer`, sharing framework-agnostic logic with both
 through the internal `pptx-viewer-shared` package.
 
+![The editor chrome is identical across bindings: ribbon, slide thumbnails, canvas, and inspector](/docs-shots/editor.jpg)
+
 ## What it provides
 
 | Capability         | Summary                                                                                                                                         |

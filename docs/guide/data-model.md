@@ -1,6 +1,6 @@
 ---
 title: The PptxData Model
-description: The shape of the parsed PptxData model - slides, theme, masters, and metadata - and the full PptxElement discriminated union.
+description: The shape of the parsed PptxData model - slides, theme, masters, and metadata - plus the full PptxElement discriminated union, type guards, and EMU unit conversions.
 ---
 
 # The PptxData Model
@@ -44,7 +44,7 @@ interface PptxData {
 ```
 
 ::: info Pixels vs EMU
-`width` / `height` are approximate pixels for convenient layout math; `widthEmu` / `heightEmu` preserve the exact source values for round-trip. EMU (English Metric Units) is PowerPoint's native coordinate system: 1 inch = 914,400 EMU, 1 pixel = 9,525 EMU at 96 DPI.
+`width` / `height` are approximate pixels for convenient layout math; `widthEmu` / `heightEmu` preserve the exact source values for round-trip. See [Units](#units-emu-and-pixels) below.
 :::
 
 ## `PptxSlide`
@@ -67,14 +67,64 @@ interface PptxSlide {
 	backgroundImage?: string; // base64 data URL
 	backgroundGradient?: string; // CSS gradient string
 	backgroundPattern?: PptxSlideBackgroundPattern;
+	transition?: PptxSlideTransition;
+	animations?: PptxElementAnimation[];
 }
 ```
 
-A slide resolves its unspecified styling through its layout and master - see [Architecture](/guide/architecture) for the resolution chain.
+A slide resolves its unspecified styling through its layout and master - see [Slides, layouts, and masters](#slides-layouts-and-masters) below.
+
+## The element base and mixins
+
+Every element variant extends `PptxElementBase` (defined in `packages/core/src/core/types/element-base.ts`), which carries identity, geometry, and round-trip data:
+
+```ts
+interface PptxElementBase {
+	id: string; // synthetic positional id assigned by the loader
+	shapeId?: string; // native OOXML id from p:cNvPr/@id (animation target key)
+	name?: string; // cNvPr/@name (used for morph "!!" matching)
+
+	x: number; // pixels, converted from EMU at parse time
+	y: number;
+	width: number;
+	height: number;
+	rotation?: number; // degrees
+	skewX?: number; // degrees
+	skewY?: number;
+	flipHorizontal?: boolean;
+	flipVertical?: boolean;
+
+	hidden?: boolean;
+	opacity?: number; // 0-1
+	locks?: PptxShapeLocks; // p:cNvSpPr/a:spLocks
+	actionClick?: PptxAction; // a:hlinkClick on p:cNvPr
+	actionHover?: PptxAction; // a:hlinkHover on p:cNvPr
+
+	rawXml?: XmlObject; // preserved source XML
+	extLstXml?: XmlObject[]; // unrecognised <a:ext> extensions, kept verbatim
+}
+```
+
+Two mixin interfaces layer on capability. Text-bearing elements add `PptxTextProperties` (`text`, `textStyle`, rich `textSegments`, `promptText`, linked-text-box chaining); shapes, connectors, and images add `PptxShapeProperties` (`shapeType`, `shapeStyle`, `shapeAdjustments`, `adjustmentHandles`). For example:
+
+```ts
+interface TextPptxElement extends PptxElementBase, PptxTextProperties, PptxShapeProperties {
+	type: 'text';
+}
+
+interface ImagePptxElement
+	extends PptxElementBase, PptxShapeProperties, PptxCustomPathProperties, PptxImageProperties {
+	type: 'image';
+}
+```
+
+::: tip Round-trip fields
+`rawXml` and `extLstXml` are how the model stays lossless: markup the typed model does not (yet) understand is preserved on the element and re-emitted on save. Do not strip these fields if you intend to save.
+:::
 
 ## The `PptxElement` union
 
-`slide.elements` is an array of the `PptxElement` discriminated union. Narrow on the `type` field to access variant-specific properties.
+`slide.elements` is an array of the `PptxElement` discriminated union: **16 variants**, defined in `packages/core/src/core/types/elements.ts`. Narrow on the `type` field to access variant-specific properties.
 
 | `type` string   | Interface                | Description                                                                            |
 | --------------- | ------------------------ | -------------------------------------------------------------------------------------- |
@@ -95,9 +145,120 @@ A slide resolves its unspecified styling through its layout and master - see [Ar
 | `"model3d"`     | `Model3DPptxElement`     | A 3D model (`.glb`/`.gltf`) embedded via `p16:model3D`, with a poster image.           |
 | `"unknown"`     | `UnknownPptxElement`     | An element the parser does not recognise; preserved for round-trip.                    |
 
-::: tip Subset aliases
-For function signatures that accept a subset, the core package exports helper aliases such as `PptxElementWithText` (`text` | `shape` | `connector`), `PptxElementWithShapeStyle`, and `PptxImageLikeElement` (`image` | `picture`).
-:::
+Graphic-frame variants (`table`, `chart`, `smartArt`) also carry an `extensionXml` array of unrecognised `a:graphicData/a:extLst` extensions, preserved verbatim for round-trip.
+
+A few of these element types as the engine renders them (charts as inline SVG, tables as HTML, shapes and connectors as SVG geometry):
+
+![A bar chart element rendered as inline SVG](/docs-shots/chart-slide.jpg)
+
+![A table element rendered as an HTML table](/docs-shots/table-slide.jpg)
+
+![Preset shapes and connectors rendered as SVG geometry](/docs-shots/shapes-slide.jpg)
+
+### Subset aliases
+
+For function signatures that accept a subset, the core package exports helper aliases:
+
+```ts
+type PptxElementWithText = TextPptxElement | ShapePptxElement | ConnectorPptxElement;
+type PptxImageLikeElement = ImagePptxElement | PicturePptxElement;
+// plus PptxElementWithShapeStyle for everything carrying shapeStyle
+```
+
+## Type guards
+
+`packages/core/src/core/types/type-guards.ts` exports runtime guards so you can narrow without writing `element.type === ...` comparisons by hand:
+
+| Guard                    | Narrows to                                            |
+| ------------------------ | ----------------------------------------------------- |
+| `isTextElement(el)`      | `TextPptxElement`                                     |
+| `isShapeElement(el)`     | `ShapePptxElement`                                    |
+| `isConnectorElement(el)` | `ConnectorPptxElement`                                |
+| `isImageLikeElement(el)` | `PptxImageLikeElement` (`image` or `picture`)         |
+| `isInkElement(el)`       | `InkPptxElement`                                      |
+| `isZoomElement(el)`      | `ZoomPptxElement`                                     |
+| `hasTextProperties(el)`  | `PptxElementWithText` (can carry text)                |
+| `hasShapeProperties(el)` | `PptxElementWithShapeStyle` (can carry a shape style) |
+
+```ts
+import { isImageLikeElement, hasTextProperties } from 'pptx-viewer-core';
+
+for (const el of slide.elements) {
+	if (isImageLikeElement(el)) console.log(el.imagePath);
+	if (hasTextProperties(el)) console.log(el.text);
+}
+```
+
+## Units: EMU and pixels
+
+PowerPoint's native coordinate system is the **English Metric Unit** (EMU):
+
+| Constant                       | Value              | Where                                          |
+| ------------------------------ | ------------------ | ---------------------------------------------- |
+| `EMU_PER_PX` / `EMU_PER_PIXEL` | `9525` (at 96 DPI) | `core/constants.ts` and the SDK `units` module |
+| `EMU_PER_INCH`                 | `914400`           | SDK `units` module                             |
+| `EMU_PER_POINT`                | `12700`            | SDK `units` module                             |
+
+Element positions and sizes in the model are **pixels**, converted (and rounded) from EMU at parse time and converted back on save. The builder SDK also exports conversion helpers:
+
+```ts
+import {
+	inches,
+	cm,
+	mm,
+	pt, // to pixels
+	emuToPixels,
+	pixelsToEmu, // EMU <-> px
+	inchesToEmu,
+	cmToEmu, // to EMU (e.g. for slide dimensions)
+	SlideSizes,
+} from 'pptx-viewer-core';
+
+inches(1); // => 96 (px)
+pt(12); // => 16 (px)
+pixelsToEmu(96); // => 914400
+SlideSizes.WIDESCREEN_16_9; // => { width: 12192000, height: 6858000 } (EMU)
+```
+
+`SlideSizes` provides the standard deck dimensions in EMU: `WIDESCREEN_16_9` (the modern default), `STANDARD_4_3`, `WIDESCREEN_16_10`, `A4_LANDSCAPE`, `A4_PORTRAIT`, `LETTER_LANDSCAPE`, and `LETTER_PORTRAIT`.
+
+## Slides, layouts, and masters
+
+A presentation's styling is hierarchical. Each slide references a **layout** (via `slide.layoutPath`), each layout belongs to a **master**, and each master references a **theme**:
+
+```
+PptxSlide ── layoutPath ──> PptxSlideLayout ──> PptxSlideMaster ── themePath ──> PptxTheme
+```
+
+`data.slideMasters` exposes this tree:
+
+```ts
+interface PptxSlideMaster {
+	path: string; // e.g. "ppt/slideMasters/slideMaster1.xml"
+	name?: string;
+	themePath?: string; // theme this master references
+	layoutPaths?: string[]; // layouts belonging to this master
+	layouts?: PptxSlideLayout[]; // parsed layout objects
+	elements?: PptxElement[]; // shapes drawn on the master itself
+	placeholders?: Array<{ type: string; idx?: string }>;
+	txStyles?: PptxMasterTextStyles; // title/body/other text defaults
+	clrMap?: Record<string, string>; // scheme-colour alias map (bg1, tx1, ...)
+	backgroundColor?: string;
+	backgroundImage?: string;
+}
+
+interface PptxSlideLayout {
+	path: string;
+	name?: string;
+	elements?: PptxElement[];
+	placeholders?: Array<{ type: string; idx?: string }>;
+	clrMapOverride?: Record<string, string>; // p:clrMapOvr
+	backgroundColor?: string;
+	backgroundImage?: string;
+}
+```
+
+When a slide element leaves a property unspecified, the engine resolves it up the chain: element, then the matching placeholder on the layout, then the master, then the theme. `themeColorMap` on `PptxData` is the already-resolved scheme-colour lookup for the default master. The resolution rules are described in [Architecture](/guide/architecture#theme-resolution-chain).
 
 ## Iterating and narrowing
 
@@ -142,3 +303,4 @@ for (const slide of data.slides) {
 
 - [Architecture](/guide/architecture) - how the engine is structured and how theme resolution works.
 - [Core package overview](/core/) - handler, builder, and converter APIs.
+- [OpenXML conformance](/architecture/openxml-conformance) - Strict vs Transitional round-trip.

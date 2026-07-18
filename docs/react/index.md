@@ -10,6 +10,8 @@ interactive PowerPoint experience. It is built on top of [`pptx-viewer-core`](/c
 complete UI: toolbar, inspector panels, slide canvas, animation engine, presentation mode,
 real-time collaboration, and export.
 
+![The full editor: ribbon, slide thumbnails, canvas, and inspector panel](/docs-shots/editor.jpg)
+
 ## What it provides
 
 | Capability         | Summary                                                                                                                                      |

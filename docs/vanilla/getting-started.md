@@ -9,7 +9,7 @@ This page walks from an empty `<div>` to a working viewer with file loading, nav
 presentation mode.
 
 ::: tip Prerequisites
-Install the package and its two peer deps first, see [Overview > Installation](/vanilla/#installation).
+Install the package first, see [Overview > Installation](/vanilla/#installation).
 :::
 
 ## 1. Mount a viewer

@@ -1,7 +1,8 @@
 /**
- * Site-wide brand overrides for the VitePress default theme.
- * The landing page has its own token system in landing/landing.css;
- * these variables keep the docs pages on the same vermilion brand.
+ * Site-wide look and feel for the VitePress default theme (all docs pages).
+ * The landing page has its own token system in landing/landing.css; the rules
+ * here carry the same identity (vermilion accent, Bricolage Grotesque display
+ * type, IBM Plex Mono labels) onto every documentation page.
  */
 
 :root {
@@ -13,6 +14,23 @@
 	--vp-button-brand-bg: #c2431f;
 	--vp-button-brand-hover-bg: #a83a1b;
 	--vp-button-brand-active-bg: #8f2e12;
+
+	--vp-font-family-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+	/* Paper-tinted canvas matching the landing's light palette */
+	--vp-c-bg: #fdfcfa;
+	--vp-c-bg-alt: #f7f5f0;
+	--vp-c-bg-soft: #f7f5f0;
+	--vp-c-divider: #e6e2d9;
+	--vp-c-gutter: #e6e2d9;
+
+	--vp-code-block-bg: #14171b;
+	--vp-code-tab-divider: rgba(240, 239, 236, 0.14);
+	--vp-code-copy-code-bg: rgba(240, 239, 236, 0.1);
+	--vp-code-copy-code-hover-bg: rgba(240, 239, 236, 0.2);
+
+	--pvd-display: 'Bricolage Grotesque', var(--vp-font-family-base);
+	--pvd-mono: var(--vp-font-family-mono);
 }
 
 .dark {
@@ -24,4 +42,283 @@
 	--vp-button-brand-bg: #c2431f;
 	--vp-button-brand-hover-bg: #d4552c;
 	--vp-button-brand-active-bg: #a83a1b;
+
+	--vp-c-bg: #0f1113;
+	--vp-c-bg-alt: #14171b;
+	--vp-c-bg-soft: #171a1e;
+	--vp-c-divider: #272c33;
+	--vp-c-gutter: #272c33;
+
+	--vp-code-block-bg: #101317;
+}
+
+/* ---- Headings: display face, tight tracking ------------------------ */
+
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3,
+.vp-doc h4,
+.VPTeamPageTitle .title {
+	font-family: var(--pvd-display);
+	letter-spacing: -0.02em;
+}
+
+.vp-doc h1 {
+	font-size: 2.35rem;
+	font-weight: 700;
+	line-height: 1.15;
+}
+
+.vp-doc h2 {
+	border-top: none;
+	margin-top: 3.2rem;
+	padding-top: 1.6rem;
+	font-size: 1.5rem;
+	font-weight: 660;
+	position: relative;
+}
+
+.vp-doc h2::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 2.4rem;
+	height: 2px;
+	background: var(--vp-c-brand-1);
+}
+
+.vp-doc h3 {
+	font-size: 1.16rem;
+	font-weight: 640;
+}
+
+/* ---- Body copy ----------------------------------------------------- */
+
+.vp-doc p,
+.vp-doc li {
+	line-height: 1.75;
+}
+
+.vp-doc a {
+	text-decoration-thickness: 1px;
+	text-underline-offset: 3px;
+}
+
+.vp-doc :not(pre) > code {
+	border-radius: 3px;
+	font-size: 0.82em;
+}
+
+/* ---- Code blocks and code groups ---------------------------------- */
+
+.vp-doc div[class*='language-'] {
+	border-radius: 8px;
+	border: 1px solid var(--vp-c-divider);
+	box-shadow: 0 14px 34px -22px rgba(26, 29, 33, 0.4);
+}
+
+.dark .vp-doc div[class*='language-'] {
+	border-color: #272c33;
+	box-shadow: 0 14px 34px -22px rgba(0, 0, 0, 0.7);
+}
+
+.vp-doc [class*='language-'] > span.lang {
+	font-family: var(--pvd-mono);
+	font-size: 0.66rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: rgba(240, 239, 236, 0.55);
+}
+
+.vp-doc [class*='language-'] pre {
+	font-size: 0.84em;
+	line-height: 1.72;
+}
+
+.vp-code-group .tabs {
+	border-radius: 8px 8px 0 0;
+}
+
+.vp-code-group .tabs label {
+	font-family: var(--pvd-mono);
+	font-size: 0.72rem;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.vp-code-group div[class*='language-'] {
+	border-radius: 0 0 8px 8px;
+	border-top: none;
+}
+
+/* ---- Custom containers (tip / warning / info / details) ------------ */
+
+.vp-doc .custom-block {
+	border: 1px solid var(--vp-c-divider);
+	border-left: 3px solid var(--vp-c-brand-1);
+	border-radius: 6px;
+	background: var(--vp-c-bg-soft);
+	padding: 1.1rem 1.3rem;
+}
+
+.vp-doc .custom-block.warning {
+	border-left-color: #d99a2b;
+}
+
+.vp-doc .custom-block.danger {
+	border-left-color: #d43d3d;
+}
+
+.vp-doc .custom-block.details {
+	border-left-color: var(--vp-c-divider);
+}
+
+.vp-doc .custom-block-title {
+	font-family: var(--pvd-mono);
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--vp-c-brand-1);
+}
+
+.vp-doc .custom-block.warning .custom-block-title {
+	color: #b07a17;
+}
+
+.dark .vp-doc .custom-block.warning .custom-block-title {
+	color: #d99a2b;
+}
+
+.vp-doc .custom-block.danger .custom-block-title {
+	color: #d43d3d;
+}
+
+/* ---- Tables -------------------------------------------------------- */
+
+.vp-doc table {
+	width: 100%;
+	display: table;
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.vp-doc th {
+	font-family: var(--pvd-mono);
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	text-align: left;
+	background: var(--vp-c-bg-alt);
+}
+
+.vp-doc td {
+	font-size: 0.88rem;
+}
+
+/* ---- Screenshots and figures --------------------------------------- */
+
+.vp-doc img {
+	border: 1px solid var(--vp-c-divider);
+	border-radius: 8px;
+	box-shadow: 0 18px 40px -26px rgba(26, 29, 33, 0.45);
+	margin: 1.4rem 0;
+}
+
+.dark .vp-doc img {
+	box-shadow: 0 18px 40px -26px rgba(0, 0, 0, 0.8);
+}
+
+/* Inline icons/badges must not get the screenshot frame */
+.vp-doc img[src*='shields.io'],
+.vp-doc img[src*='badge'],
+.vp-doc h1 img,
+.vp-doc a > img[height] {
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	margin: 0;
+}
+
+/* ---- Sidebar ------------------------------------------------------- */
+
+.VPSidebarItem.level-0 > .item > .text {
+	font-family: var(--pvd-mono);
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--vp-c-text-2);
+}
+
+.VPSidebarItem.level-1 .text {
+	font-size: 0.85rem;
+}
+
+.VPSidebarItem.is-active > .item > .link > .text {
+	color: var(--vp-c-brand-1);
+	font-weight: 600;
+}
+
+/* ---- Right-hand outline -------------------------------------------- */
+
+.VPDocAsideOutline .content {
+	border-left: 1px solid var(--vp-c-divider);
+}
+
+.VPDocAsideOutline .outline-title {
+	font-family: var(--pvd-mono);
+	font-size: 0.66rem;
+	font-weight: 600;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--vp-c-text-2);
+}
+
+.VPDocAsideOutline .outline-marker {
+	background: var(--vp-c-brand-1);
+}
+
+/* ---- Nav bar ------------------------------------------------------- */
+
+.VPNavBarTitle .title {
+	font-family: var(--pvd-display);
+	font-weight: 680;
+	letter-spacing: -0.01em;
+}
+
+.VPNavBarMenuLink,
+.VPNavBarMenuGroup .text {
+	font-size: 0.88rem;
+}
+
+/* ---- Doc footer (prev / next) -------------------------------------- */
+
+.VPDocFooter .pager-link {
+	border-radius: 8px;
+	transition: border-color 0.25s ease;
+}
+
+.VPDocFooter .pager-link:hover {
+	border-color: var(--vp-c-brand-1);
+}
+
+.VPDocFooter .pager-link .desc {
+	font-family: var(--pvd-mono);
+	font-size: 0.64rem;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+}
+
+.VPDocFooter .pager-link .title {
+	font-family: var(--pvd-display);
+	letter-spacing: -0.01em;
+}
+
+/* ---- Local search -------------------------------------------------- */
+
+.VPNavBarSearchButton {
+	border-radius: 6px;
 }

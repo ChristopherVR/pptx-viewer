@@ -14,6 +14,12 @@ export default defineConfig({
 	cleanUrls: true,
 	ignoreDeadLinks: true,
 
+	// Code blocks render on a dark card in both color modes (same as the
+	// landing page's code cards), so use a dark token palette everywhere.
+	markdown: {
+		theme: { light: 'vitesse-dark', dark: 'vitesse-dark' },
+	},
+
 	locales: {
 		root: {
 			label: 'English',
@@ -411,6 +417,16 @@ export default defineConfig({
 						{ text: 'Overview', link: '/svelte/' },
 						{ text: 'Getting Started', link: '/svelte/getting-started' },
 						{ text: 'Component Props', link: '/svelte/props' },
+						{ text: 'Instance API', link: '/svelte/api' },
+					],
+				},
+				{
+					text: 'Customisation',
+					items: [
+						{ text: 'Theming', link: '/svelte/theming' },
+						{ text: 'Export & Print', link: '/svelte/export' },
+						{ text: 'Collaboration', link: '/svelte/collaboration' },
+						{ text: 'Localization', link: '/svelte/i18n' },
 					],
 				},
 			],
