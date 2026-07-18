@@ -6,6 +6,15 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-18
 
+_Releases: pptx-viewer-core@1.6.6, pptx-react-viewer@1.25.1, pptx-vue-viewer@1.24.1, pptx-angular-viewer@1.31.1, pptx-vanilla-viewer@0.17.1, pptx-svelte-viewer@1.14.0_
+
+### Bug Fixes
+
+- **core:** Load themed backgrounds and inherited placeholders ([#66](https://github.com/ChristopherVR/pptx-viewer/issues/66)) (by @ChristopherVR) ([bed627b](https://github.com/ChristopherVR/pptx-viewer/commit/bed627bc4e2abb5c897e7e9b49fb27735f5e01a1))
+- **react:** Render themed background group children on the slide canvas (by @ChristopherVR) ([ca154f1](https://github.com/ChristopherVR/pptx-viewer/commit/ca154f1e2e6a080442a8fbc8f51bbd6325a2a3a6))
+
+## 2026-07-18
+
 _Releases: pptx-svelte-viewer@1.13.0_
 
 ## 2026-07-18
