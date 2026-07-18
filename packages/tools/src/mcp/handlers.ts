@@ -82,8 +82,3 @@ export async function runMcpTool<T>(
 	const ctx = createMcpContext(options);
 	return executeToolWithContext(safePath, ctx, fn);
 }
-
-/**
- * @deprecated Use runMcpTool instead.
- */
-export { runMcpTool as runMutatingTool };

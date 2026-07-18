@@ -20,7 +20,7 @@ import * as tableTools from '../tools/table-tools.js';
 import * as templateTools from '../tools/template-tools.js';
 import * as themeTools from '../tools/theme-tools.js';
 import * as validationTools from '../tools/validation-tools.js';
-import { runMcpTool as runMutatingTool, resolveScopedFilePath } from './handlers.js';
+import { runMcpTool, resolveScopedFilePath } from './handlers.js';
 
 export function createServer(): McpServer {
 	const server = new McpServer({
@@ -37,7 +37,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.GetSlideSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				slideTools.getSlide(ctx, { slideIndex: params.slideIndex }),
 			);
 			return {
@@ -58,9 +58,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.AddSlideSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
-				slideTools.addSlide(ctx, params),
-			);
+			const result = await runMcpTool(params.filePath, (ctx) => slideTools.addSlide(ctx, params));
 			return {
 				content: [
 					{
@@ -79,7 +77,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.DeleteSlidesSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				slideTools.deleteSlides(ctx, {
 					slideIndexes: params.slideIndexes,
 				}),
@@ -102,7 +100,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ReorderSlidesSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				slideTools.reorderSlides(ctx, { newOrder: params.newOrder }),
 			);
 			return {
@@ -123,7 +121,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.DuplicateSlideSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				slideTools.duplicateSlide(ctx, params),
 			);
 			return {
@@ -144,7 +142,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.UpdateSlidePropertiesSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				slideTools.updateSlideProperties(ctx, params),
 			);
 			return {
@@ -165,7 +163,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.SetSlideTransitionSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				slideTools.setSlideTransition(ctx, params),
 			);
 			return {
@@ -186,7 +184,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.SetCanvasSizeSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				slideTools.setCanvasSize(ctx, params),
 			);
 			return {
@@ -209,7 +207,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.AddElementSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				elementTools.addElement(ctx, params),
 			);
 			return {
@@ -230,7 +228,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.UpdateElementSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				elementTools.updateElement(ctx, params),
 			);
 			return {
@@ -251,7 +249,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.DeleteElementsSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				elementTools.deleteElements(ctx, params),
 			);
 			return {
@@ -272,7 +270,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ArrangeElementsSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				elementTools.arrangeElements(ctx, params),
 			);
 			return {
@@ -293,7 +291,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.CloneElementSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				elementTools.cloneElement(ctx, params),
 			);
 			return {
@@ -314,7 +312,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.SetElementAnimationSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				elementTools.setElementAnimation(ctx, params),
 			);
 			return {
@@ -335,7 +333,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.GroupElementsSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				elementTools.groupElements(ctx, params),
 			);
 			return {
@@ -356,7 +354,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.UngroupElementsSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				elementTools.ungroupElements(ctx, params),
 			);
 			return {
@@ -377,7 +375,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.BatchUpdateElementsSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				elementTools.batchUpdateElements(ctx, params),
 			);
 			return {
@@ -400,7 +398,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.UpdateTableCellsSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				tableTools.updateTableCells(ctx, params),
 			);
 			return {
@@ -421,7 +419,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ManageTableStructureSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				tableTools.manageTableStructure(ctx, params),
 			);
 			return {
@@ -444,7 +442,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.UpdateElementStyleSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				styleTools.updateElementStyle(ctx, params as styleTools.UpdateElementStyleParams),
 			);
 			return {
@@ -465,7 +463,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.AccessibilityCheckSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				styleTools.runAccessibilityCheck(ctx),
 			);
 			return {
@@ -488,9 +486,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.FindTextSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
-				contentTools.findText(ctx, params),
-			);
+			const result = await runMcpTool(params.filePath, (ctx) => contentTools.findText(ctx, params));
 			return {
 				content: [
 					{
@@ -509,7 +505,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ReplaceTextSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				contentTools.replaceText(ctx, params),
 			);
 			return {
@@ -530,7 +526,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ManageCommentsSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				contentTools.manageComments(ctx, params),
 			);
 			return {
@@ -553,7 +549,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ConvertToMarkdownSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				conversionTools.convertToMarkdown(ctx, params),
 			);
 			return {
@@ -576,7 +572,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.GetThemeInfoSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) => themeTools.getThemeInfo(ctx));
+			const result = await runMcpTool(params.filePath, (ctx) => themeTools.getThemeInfo(ctx));
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
 		},
 	);
@@ -588,7 +584,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ApplyThemePresetSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				themeTools.applyThemePreset(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -602,7 +598,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.UpdateThemeColorsSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				themeTools.updateThemeColors(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -616,7 +612,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.UpdateThemeFontsSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				themeTools.updateThemeFonts(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -632,7 +628,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.UpdateChartSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				chartTools.updateChart(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -646,7 +642,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.AddChartSeriesSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				chartTools.addChartSeriesT(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -660,7 +656,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.RemoveChartSeriesSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				chartTools.removeChartSeriesT(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -674,7 +670,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.UpdateChartSeriesDataSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				chartTools.updateChartSeriesData(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -688,7 +684,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.CreateChartSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				chartTools.createChart(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -705,7 +701,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ManageSmartArtSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				smartartTools.manageSmartArt(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -721,7 +717,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.FindPlaceholdersSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				templateTools.findPlaceholdersT(ctx),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -735,7 +731,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ApplyTemplateSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				templateTools.applyTemplateT(ctx, { data: params.data as Record<string, unknown> }),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -751,9 +747,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.GetMetadataSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
-				metadataTools.getMetadata(ctx),
-			);
+			const result = await runMcpTool(params.filePath, (ctx) => metadataTools.getMetadata(ctx));
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
 		},
 	);
@@ -765,7 +759,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.UpdateMetadataSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				metadataTools.updateMetadata(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -781,7 +775,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ManageSectionsSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				sectionTools.manageSections(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -797,7 +791,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ExportToSvgSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				exportTools.exportToSvg(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -811,7 +805,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ExportSlideSvgSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				exportTools.exportSlideSvg(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -827,7 +821,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ManageHyperlinksSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				hyperlinkTools.manageHyperlinks(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -843,7 +837,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ReplaceGeometrySchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				geometryTools.replaceGeometry(ctx, {
 					...params,
 					adjustments: params.adjustments as Record<string, number> | undefined,
@@ -863,7 +857,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.SetElementLockSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				lockTools.setElementLockT(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -916,7 +910,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.GetPresentationPropertiesSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				presentationTools.getPresentationProperties(ctx),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -930,7 +924,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.UpdatePresentationPropertiesSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				presentationTools.updatePresentationProperties(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
@@ -946,7 +940,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.GetLayoutsSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) => layoutTools.getLayouts(ctx));
+			const result = await runMcpTool(params.filePath, (ctx) => layoutTools.getLayouts(ctx));
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
 		},
 	);
@@ -958,7 +952,7 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ApplyLayoutSchema.shape,
 		},
 		async (params) => {
-			const result = await runMutatingTool(params.filePath, (ctx) =>
+			const result = await runMcpTool(params.filePath, (ctx) =>
 				layoutTools.applyLayout(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
