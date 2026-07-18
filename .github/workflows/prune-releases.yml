@@ -1,10 +1,11 @@
 name: Prune releases
 
-# Retention for releases AND tags: keep only the newest N versions per
-# published package (tagged `<npm-name>@x.y.z`) and delete both the older
-# GitHub Release entries and their git tags. Safe because changelogs are
-# prepend-only and release-plan.mjs only reads each package's newest tags.
-# npm versions are never touched. See scripts/prune-releases.mjs.
+# Release retention: keep only the newest version per published package
+# (tagged `<npm-name>@x.y.z`) and delete the older GitHub Release entries, so
+# the Releases page reads as a "current version of every package" list. Git
+# tags are kept (opt in to deleting them via the `tags` input); npm versions
+# are never touched. See scripts/prune-releases.mjs. The release workflow also
+# prunes right after tagging; this scheduled run is the backstop.
 
 on:
   schedule:
@@ -13,16 +14,21 @@ on:
   workflow_dispatch:
     inputs:
       keep:
-        description: 'Number of newest versions (release + tag) to keep per package'
+        description: 'Number of newest releases to keep per package'
         required: false
-        default: '5'
+        default: '1'
       dry_run:
         description: 'List what would be deleted without deleting'
         type: boolean
         required: false
         default: false
+      tags:
+        description: 'Also delete the pruned versions'' git tags'
+        type: boolean
+        required: false
+        default: false
       legacy:
-        description: 'Also delete retired global v* tags'
+        description: 'Also delete retired global v* releases/tags'
         type: boolean
         required: false
         default: false
@@ -40,14 +46,17 @@ jobs:
         with:
           node-version: 22
 
-      - name: Prune old releases and tags
+      - name: Prune old releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          keep="${{ github.event.inputs.keep || '5' }}"
+          keep="${{ github.event.inputs.keep || '1' }}"
           flags=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             flags="$flags --dry-run"
+          fi
+          if [ "${{ github.event.inputs.tags }}" = "true" ]; then
+            flags="$flags --tags"
           fi
           if [ "${{ github.event.inputs.legacy }}" = "true" ]; then
             flags="$flags --legacy"

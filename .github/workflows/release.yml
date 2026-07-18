@@ -202,6 +202,11 @@ jobs:
             fi
 
             awk '/^## \[/{c++} c==1{print} c==2{exit}' "$dir/CHANGELOG.md" > "${RUNNER_TEMP}/notes.md"
+            {
+              echo ""
+              echo "---"
+              echo "Superseded releases are pruned from this page; the full version history lives in [\`$dir/CHANGELOG.md\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/main/$dir/CHANGELOG.md)."
+            } >> "${RUNNER_TEMP}/notes.md"
             gh release create "$tag" \
               --target "$COMMIT" \
               --title "$tag" \
@@ -226,6 +231,16 @@ jobs:
           name: release-plan-${{ github.run_id }}
           path: release-plan.json
           retention-days: 1
+
+      # Immediately retire the releases each new tag supersedes (tags are
+      # kept), so the Releases page always lists exactly one release per
+      # package: the current version. The scheduled prune-releases workflow is
+      # the backstop.
+      - name: Prune superseded releases
+        if: steps.tagged.outputs.any_released == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/prune-releases.mjs --keep 1
 
       # Redeploy the docs site + demos ONLY when something was actually
       # released. With an hourly schedule, triggering docs via workflow_run
