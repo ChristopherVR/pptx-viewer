@@ -493,6 +493,7 @@ export * from './share-session';
 // spec. Each binding renders the spec into its own nodes.
 export * from './presenter-view';
 export * from './presenter-console';
+export * from './presentation-print-settings';
 export * from './presentation-session';
 // Presentation toolbar: bottom-trigger-zone visibility math, auto-hide timing,
 // pen/highlighter colour swatches, and slide-counter formatting.
