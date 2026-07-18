@@ -123,4 +123,34 @@ describe('themed layout placeholders + grouped background (issue #66)', () => {
 		}
 		expect(maxSegments, 'balloon custom-geometry path was truncated').toBeGreaterThan(30);
 	});
+
+	it.skipIf(!hasFixture)('parses each large layout/master part once, not per slide', async () => {
+		// Background resolution used to re-read and re-parse the (large) layout
+		// and master XML for every slide, making themed-deck load O(slides) in
+		// the ~200 KB master (~28 large parses for these 10 slides). It is now a
+		// small constant (the master and layout1 are each parsed a few times by
+		// distinct one-time consumers), independent of slide count. A bound well
+		// under the per-slide count guards against the regression returning.
+		const bytes = fs.readFileSync(fixturePath);
+		const buffer = bytes.buffer.slice(
+			bytes.byteOffset,
+			bytes.byteOffset + bytes.byteLength,
+		) as ArrayBuffer;
+		const handler = new PptxHandler();
+		const runtime = (
+			handler as unknown as {
+				runtime: { parser: { parse(xml: string, opt?: unknown): unknown } };
+			}
+		).runtime;
+		const originalParse = runtime.parser.parse.bind(runtime.parser);
+		let largeParses = 0;
+		runtime.parser.parse = (xml: string, opt?: unknown): unknown => {
+			if (typeof xml === 'string' && xml.length > 100_000) {
+				largeParses += 1;
+			}
+			return opt === undefined ? originalParse(xml) : originalParse(xml, opt);
+		};
+		await handler.load(buffer);
+		expect(largeParses, 'large layout/master XML was re-parsed per slide').toBeLessThanOrEqual(8);
+	});
 });
