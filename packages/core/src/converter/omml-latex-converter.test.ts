@@ -157,4 +157,36 @@ describe('ommlLatexConverter', () => {
 		};
 		expect(converter.convert(omml)).toBe('fallback text');
 	});
+
+	it('should render every construct in a mixed container, not just the first tag', () => {
+		// Collapsed grouped shape: two sSup siblings followed by runs.
+		const omml = {
+			'm:sSup': [
+				{ 'm:e': { 'm:r': { 'm:t': 'a' } }, 'm:sup': { 'm:r': { 'm:t': '2' } } },
+				{ 'm:e': { 'm:r': { 'm:t': 'b' } }, 'm:sup': { 'm:r': { 'm:t': '2' } } },
+			],
+			'm:r': { 'm:t': '+' },
+		};
+		expect(converter.convert(omml)).toBe('a^{2}b^{2}+');
+	});
+
+	it('should honour #pptx-order-N key markers for interleaved sequences', () => {
+		const omml = {
+			'm:sSup#pptx-order-0': {
+				'm:e': { 'm:r': { 'm:t': 'a' } },
+				'm:sup': { 'm:r': { 'm:t': '2' } },
+			},
+			'm:r#pptx-order-1': { 'm:t': '+' },
+			'm:sSup#pptx-order-2': {
+				'm:e': { 'm:r': { 'm:t': 'b' } },
+				'm:sup': { 'm:r': { 'm:t': '2' } },
+			},
+			'm:r#pptx-order-3': { 'm:t': '=' },
+			'm:sSup#pptx-order-4': {
+				'm:e': { 'm:r': { 'm:t': 'c' } },
+				'm:sup': { 'm:r': { 'm:t': '2' } },
+			},
+		};
+		expect(converter.convert(omml)).toBe('a^{2}+b^{2}=c^{2}');
+	});
 });

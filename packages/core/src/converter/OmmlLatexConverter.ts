@@ -1,3 +1,7 @@
+import { stripXmlOrderSuffix } from '../core/geometry';
+
+const IGNORED_KEYS = new Set(['m:rPr', 'm:ctrlPr', 'm:argPr']);
+
 /** Converts OMML XML structures to LaTeX strings. */
 export class OmmlLatexConverter {
 	/** Extracts LaTeX from an OMML XML node tree. */
@@ -37,38 +41,60 @@ export class OmmlLatexConverter {
 			return this.renderNode(record['m:t']);
 		}
 
-		const handlers: Array<(r: Record<string, unknown>) => string | null> = [
-			(r) => this.tryFraction(r),
-			(r) => this.trySuperscript(r),
-			(r) => this.trySubscript(r),
-			(r) => this.trySubSup(r),
-			(r) => this.tryRadical(r),
-			(r) => this.tryNary(r),
-			(r) => this.tryDelimiter(r),
-			(r) => this.tryMatrix(r),
-			(r) => this.tryFunction(r),
-			(r) => this.tryBar(r),
-			(r) => this.tryGroupChar(r),
-			(r) => this.tryLimLow(r),
-			(r) => this.tryLimUpp(r),
-		];
-
-		for (const handler of handlers) {
-			const result = handler(record);
-			if (result) {
-				return result;
-			}
-		}
-
-		const ignored = new Set(['@_', 'm:rPr', 'm:ctrlPr', 'm:argPr']);
+		// Walk entries in insertion order so mixed containers (an oMath holding
+		// constructs AND runs, or several constructs of different kinds) render
+		// every child in sequence. Keys may carry `#pptx-order-N` markers (see
+		// core/runtime/omml-sibling-order.ts): strip them before dispatch.
 		let output = '';
 		for (const [key, value] of Object.entries(record)) {
-			if (ignored.has(key) || key.startsWith('@_')) {
+			if (key.startsWith('@_')) {
 				continue;
 			}
-			output += this.renderNode(value);
+			const tag = stripXmlOrderSuffix(key);
+			if (IGNORED_KEYS.has(tag)) {
+				continue;
+			}
+			const items = Array.isArray(value) ? value : [value];
+			for (const item of items) {
+				output += this.renderElement(tag, item);
+			}
 		}
 		return output;
+	}
+
+	/** Render one child element by tag; unknown tags fall back to a generic walk. */
+	private renderElement(tag: string, item: unknown): string {
+		const wrapped = { [tag]: item };
+		switch (tag) {
+			case 'm:f':
+				return this.tryFraction(wrapped) ?? this.renderNode(item);
+			case 'm:sSup':
+				return this.trySuperscript(wrapped) ?? this.renderNode(item);
+			case 'm:sSub':
+				return this.trySubscript(wrapped) ?? this.renderNode(item);
+			case 'm:sSubSup':
+				return this.trySubSup(wrapped) ?? this.renderNode(item);
+			case 'm:rad':
+				return this.tryRadical(wrapped) ?? this.renderNode(item);
+			case 'm:nary':
+				return this.tryNary(wrapped) ?? this.renderNode(item);
+			case 'm:d':
+				return this.tryDelimiter(wrapped) ?? this.renderNode(item);
+			case 'm:m':
+				return this.tryMatrix(wrapped) ?? this.renderNode(item);
+			case 'm:func':
+				return this.tryFunction(wrapped) ?? this.renderNode(item);
+			case 'm:bar':
+				return this.tryBar(wrapped) ?? this.renderNode(item);
+			case 'm:groupChr':
+				return this.tryGroupChar(wrapped) ?? this.renderNode(item);
+			case 'm:limLow':
+				return this.tryLimLow(wrapped) ?? this.renderNode(item);
+			case 'm:limUpp':
+				return this.tryLimUpp(wrapped) ?? this.renderNode(item);
+			default:
+				return this.renderNode(item);
+		}
 	}
 
 	private tryFraction(node: Record<string, unknown>): string | null {

@@ -27,6 +27,7 @@ import type {
 	IPptxXmlLookupService,
 } from '../../services';
 import { decodeXmlEntities } from '../../utils/xml-entities';
+import { annotateOmmlSiblingOrder } from '../runtime/omml-sibling-order';
 import { annotateSmartArtTextOrder } from '../runtime/smartart-text-order';
 
 export interface PptxRuntimeDependencyFactoryInput {
@@ -116,6 +117,9 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			}
 			if (typeof xml === 'string' && (xml.includes('dataModel') || xml.includes('txBody'))) {
 				annotateSmartArtTextOrder(xml, parsed);
+			}
+			if (typeof xml === 'string' && xml.includes('oMath')) {
+				annotateOmmlSiblingOrder(xml, parsed);
 			}
 			return parsed;
 		}) as typeof parser.parse;

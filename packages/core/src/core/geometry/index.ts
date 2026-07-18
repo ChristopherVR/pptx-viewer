@@ -66,6 +66,8 @@ export {
 export type { GeometryGuide, GeometryContext } from './guide-formula';
 export { parseStructuredCustomGeometry } from './custom-geometry-parser';
 
+export { orderedXmlKey, stripXmlOrderSuffix } from './custom-geometry-command-order';
+
 export {
 	unionShapes,
 	intersectShapes,
