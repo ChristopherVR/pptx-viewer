@@ -18,8 +18,9 @@ describe('lightThemeColors', () => {
 
 	it('converts to a full set of CSS vars', () => {
 		const vars = themeToCssVars(lightTheme);
+		// Every color plus the 2 derived inspector tokens (active/border).
 		expect(Object.keys(vars).filter((k) => k.startsWith('--pptx-'))).toHaveLength(
-			Object.keys(lightThemeColors).length,
+			Object.keys(lightThemeColors).length + 2,
 		);
 	});
 });

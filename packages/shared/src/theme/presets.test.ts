@@ -30,8 +30,9 @@ describe('vermilion theme presets', () => {
 	it.each(presets)('%s theme converts to a full set of CSS vars', (_name, colors, theme) => {
 		const vars = themeToCssVars(theme);
 		expect(vars['--pptx-radius']).toBe(vermilionRadius);
+		// Every color, the radius, and the 2 derived inspector tokens (active/border).
 		expect(Object.keys(vars).filter((k) => k.startsWith('--pptx-'))).toHaveLength(
-			Object.keys(colors).length + 1,
+			Object.keys(colors).length + 3,
 		);
 	});
 

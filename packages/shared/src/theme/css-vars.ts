@@ -28,6 +28,20 @@ const COLOR_KEY_TO_CSS: Record<keyof ViewerThemeColors, string> = {
 };
 
 /**
+ * Derived component tokens: CSS custom properties consumed by the binding
+ * chrome (inspector accents and separators) that are sourced from the base
+ * `ViewerThemeColors` rather than being standalone theme inputs. Emitting
+ * them here lets `var(--pptx-inspector-*)` lookups resolve in every binding.
+ */
+const DERIVED_COLOR_TOKENS: ReadonlyArray<{
+	source: keyof ViewerThemeColors;
+	cssSuffix: string;
+}> = [
+	{ source: 'primary', cssSuffix: 'inspector-active' },
+	{ source: 'border', cssSuffix: 'inspector-border' },
+];
+
+/**
  * Convert a `ViewerTheme` into a flat `Record<string, string>` of CSS
  * custom properties (including the `--` prefix) ready to be spread onto
  * a `style` attribute.
@@ -60,6 +74,16 @@ export function themeToCssVars(
 			// Also set the Tailwind semantic token directly so it overrides the
 			// @theme :root declaration, which cannot see vars set on a child element.
 			vars[`--color-${cssSuffix}`] = value;
+		}
+		for (const { source, cssSuffix } of DERIVED_COLOR_TOKENS) {
+			const value = colors[source];
+			if (value === undefined) {
+				continue;
+			}
+			if (omitDefaults && value === defaultThemeColors[source]) {
+				continue;
+			}
+			vars[`--pptx-${cssSuffix}`] = value;
 		}
 	}
 
@@ -95,6 +119,9 @@ export function defaultCssVars(): Record<string, string> {
 
 	for (const [key, cssSuffix] of Object.entries(COLOR_KEY_TO_CSS)) {
 		vars[`--pptx-${cssSuffix}`] = defaultThemeColors[key as keyof ViewerThemeColors];
+	}
+	for (const { source, cssSuffix } of DERIVED_COLOR_TOKENS) {
+		vars[`--pptx-${cssSuffix}`] = defaultThemeColors[source];
 	}
 	vars['--pptx-radius'] = defaultRadius;
 

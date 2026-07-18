@@ -110,6 +110,23 @@ describe('themeToCssVars', () => {
 		expect(vars['--pptx-radius']).toBe('1rem');
 	});
 
+	it('should emit derived inspector tokens from primary and border', () => {
+		const vars = themeToCssVars({
+			colors: { primary: '#FF0000', border: '#00FF00' },
+		});
+		expect(vars['--pptx-inspector-active']).toBe('#FF0000');
+		expect(vars['--pptx-inspector-border']).toBe('#00FF00');
+	});
+
+	it('should not emit derived inspector tokens for defaults when omitDefaults is true', () => {
+		const vars = themeToCssVars(
+			{ colors: { primary: defaultThemeColors.primary, border: defaultThemeColors.border } },
+			true,
+		);
+		expect(vars['--pptx-inspector-active']).toBeUndefined();
+		expect(vars['--pptx-inspector-border']).toBeUndefined();
+	});
+
 	it('should skip undefined color values', () => {
 		const vars = themeToCssVars({
 			colors: {
@@ -146,9 +163,15 @@ describe('defaultCssVars', () => {
 		expect(vars['--pptx-radius']).toBe(defaultRadius);
 	});
 
-	it('should produce 20 keys (19 colors + 1 radius)', () => {
+	it('should produce 22 keys (19 colors + 2 derived tokens + 1 radius)', () => {
 		const vars = defaultCssVars();
-		expect(Object.keys(vars)).toHaveLength(20);
+		expect(Object.keys(vars)).toHaveLength(22);
+	});
+
+	it('should map the derived inspector tokens from primary and border', () => {
+		const vars = defaultCssVars();
+		expect(vars['--pptx-inspector-active']).toBe(defaultThemeColors.primary);
+		expect(vars['--pptx-inspector-border']).toBe(defaultThemeColors.border);
 	});
 
 	it('should only produce keys prefixed with --pptx-', () => {
