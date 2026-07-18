@@ -30,8 +30,7 @@ export interface StaticElementRendererProps {
 const noop = (): void => {};
 const EMPTY_MEDIA_DATA_URLS = new Map<string, string>();
 
-/** Read-only element dispatcher shared by previews, thumbnails, and groups. */
-export function StaticElementRenderer({
+function StaticElementRendererImpl({
 	element,
 	activeSlide,
 	allSlides,
@@ -118,3 +117,15 @@ export function StaticElementRenderer({
 		</div>
 	);
 }
+
+/**
+ * Read-only element dispatcher shared by previews, thumbnails, and groups.
+ *
+ * Memoized: a themed background group can hold dozens of static freeform
+ * shapes (per slide and per thumbnail), and every element is a stable parsed
+ * object, so re-renders driven by zoom, slide navigation, or presentation
+ * state must not re-render the whole subtree. The recursion above references
+ * this memoized export so nested group children stay memoized too.
+ */
+export const StaticElementRenderer = React.memo(StaticElementRendererImpl);
+StaticElementRenderer.displayName = 'StaticElementRenderer';
