@@ -48,20 +48,12 @@
 
 	// Standalone fallbacks when no ChromeUiState is provided (tests, hosts).
 	let localTab = $state<InspectorTabId>('properties');
-	let localClosed = $state(false);
 	const activeTab = $derived(ui ? ui.inspectorTab : localTab);
 	function setTab(tab: InspectorTabId): void {
 		if (ui) {
 			ui.setInspectorTab(tab);
 		} else {
 			localTab = tab;
-		}
-	}
-	function close(): void {
-		if (ui) {
-			ui.inspectorOpen = false;
-		} else {
-			localClosed = !localClosed;
 		}
 	}
 
@@ -85,7 +77,6 @@
 
 <aside
 	class="pptx-svelte-inspector"
-	class:pptx-svelte-inspector-collapsed={localClosed}
 	data-pptx-inspector
 	aria-label={t('pptx.inspector.properties')}
 >
@@ -103,20 +94,9 @@
 				</button>
 			{/each}
 		</div>
-		<button
-			type="button"
-			class="pptx-svelte-inspector-close"
-			aria-expanded={!localClosed}
-			aria-label={t('common.close')}
-			title={t('common.close')}
-			onclick={close}
-		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg>
-		</button>
 	</div>
 
-	{#if !localClosed}
-		<div class="pptx-svelte-inspector-body">
+	<div class="pptx-svelte-inspector-body">
 			{#if activeTab === 'elements'}
 				<ElementsListSection {editor} />
 			{:else if activeTab === 'comments'}
@@ -170,11 +150,10 @@
 					<p class="pptx-svelte-inspector-empty">{t('pptx.inspector.noSlideSelected')}</p>
 				{/if}
 			{/if}
-		</div>
+	</div>
 
-		<!-- Bottom dock: per-element animations, any tab (React InspectorPane parity). -->
-		<AnimationPanel {editor} />
-	{/if}
+	<!-- Bottom dock: per-element animations, any tab (React InspectorPane parity). -->
+	<AnimationPanel {editor} />
 </aside>
 
 <style>
@@ -192,14 +171,9 @@
 		min-height: 0;
 	}
 
-	.pptx-svelte-inspector-collapsed {
-		width: auto;
-	}
-
 	.pptx-svelte-inspector-header {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		gap: 8px;
 		padding: 8px 10px;
 		border-bottom: 1px solid var(--pptx-border, #33334d);
@@ -234,28 +208,6 @@
 	.pptx-svelte-inspector-tab-active {
 		background: var(--pptx-primary, #6366f1) !important;
 		color: #fff !important;
-	}
-
-	.pptx-svelte-inspector-close {
-		display: grid;
-		place-items: center;
-		width: 22px;
-		height: 22px;
-		border: none;
-		border-radius: var(--pptx-radius, 6px);
-		background: transparent;
-		color: var(--pptx-muted-foreground, #94a3b8);
-		cursor: pointer;
-	}
-
-	.pptx-svelte-inspector-close:hover {
-		background: var(--pptx-muted, #2a2a3d);
-		color: var(--pptx-card-foreground, #e2e8f0);
-	}
-
-	.pptx-svelte-inspector-close svg {
-		width: 13px;
-		height: 13px;
 	}
 
 	.pptx-svelte-inspector-body {

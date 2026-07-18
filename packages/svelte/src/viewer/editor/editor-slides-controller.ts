@@ -1,4 +1,5 @@
 import { cloneElement } from 'pptx-viewer-core';
+import type { PptxLayoutOption } from 'pptx-viewer-core';
 
 import {
 	deleteSlideAt,
@@ -71,6 +72,49 @@ export class EditorSlidesController {
 		this.#editor.templateElementsBySlideId = templateElementsBySlideId;
 		this.#editor.selection.clear();
 		return result.newIndex;
+	}
+
+	/**
+	 * The layouts available for the current slide (its master's layouts),
+	 * resolved via the core `getAvailableLayoutsForSlide` API. Empty when no
+	 * deck is loaded. Backs the Home tab's Layout dropdown (React parity).
+	 */
+	async availableLayouts(): Promise<PptxLayoutOption[]> {
+		const handler = this.#editor.getHandler();
+		if (!handler) {
+			return [];
+		}
+		return handler.getAvailableLayoutsForSlide(this.#editor.currentSlideIndex, this.#editor.slides);
+	}
+
+	/** Re-map the current slide onto `layoutPath`. Returns its index, or null when not editable. */
+	async applyLayout(layoutPath: string): Promise<number | null> {
+		if (!this.#editor.editable) {
+			return null;
+		}
+		const handler = this.#editor.getHandler();
+		if (!handler) {
+			return null;
+		}
+		const index = this.#editor.currentSlideIndex;
+		const updated = await handler.applyLayoutToSlide(index, layoutPath, this.#editor.slides);
+		this.#editor.commitSlides(
+			this.#editor.slides.map((slide, i) => (i === index ? updated : slide)),
+		);
+		return index;
+	}
+
+	/**
+	 * Reset the current slide by re-applying its own layout, restoring inherited
+	 * placeholder geometry/formatting (React's Home > Reset). Returns the slide
+	 * index, or null when the slide has no known layout path.
+	 */
+	async resetSlide(): Promise<number | null> {
+		const path = this.#editor.slides[this.#editor.currentSlideIndex]?.layoutPath;
+		if (!path) {
+			return null;
+		}
+		return this.applyLayout(path);
 	}
 
 	/** Move an arbitrary thumbnail slide. Returns the selected target index on success. */

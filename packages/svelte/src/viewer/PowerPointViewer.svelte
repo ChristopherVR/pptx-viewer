@@ -12,7 +12,6 @@
 	import {
 		buildUserFontFaceStyles,
 		createBlankSlide,
-		defaultCssVars,
 		makeSlideId,
 		readStoredViewerPrefs,
 		resolveThemeCatalogEntry,
@@ -63,7 +62,7 @@
 	import { fitScale } from './state/navigation';
 	import { useViewerEffects } from './state/viewer-effects.svelte';
 	import { createViewportHandlers } from './state/viewport-handlers';
-	import { mergeStyles, styleToString } from './style';
+	import { styleToString } from './style';
 	import type { PowerPointViewerProps } from './types';
 
 	const {
@@ -386,9 +385,13 @@
 	// (that catalog entry maps to `undefined`), preserving prior precedence.
 	const effectiveTheme = $derived(themeOverride ?? theme);
 
-	const rootStyle = $derived(
-		styleToString(mergeStyles(defaultCssVars(), themeToCssVars(effectiveTheme))),
-	);
+	// Emit CSS custom properties ONLY for an explicitly chosen theme, matching
+	// React's `useThemeStyle` (returns nothing when no theme is set). Emitting a
+	// full `defaultCssVars()` palette here would hard-override any `--pptx-*`
+	// vars a host sets on `:root`, freezing the chrome to the built-in dark
+	// palette; instead the chrome's own `var(--pptx-*, <dark fallback>)` lookups
+	// resolve against the host `:root` (or the dark fallbacks when standalone).
+	const rootStyle = $derived(styleToString(themeToCssVars(effectiveTheme)));
 
 	// ── Presentation mode (animations + slide transitions) ───────────────
 	// Owns the click-stepped element-animation playback and the transient

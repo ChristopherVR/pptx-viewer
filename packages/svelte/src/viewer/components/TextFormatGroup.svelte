@@ -24,7 +24,9 @@
 	const bold = $derived(el ? isBold(el) : false);
 	const italic = $derived(el ? isItalic(el) : false);
 	const underline = $derived(el ? isUnderline(el) : false);
-	const fontSize = $derived(el ? fontSizeOf(el) : 18);
+	// With no selection the ribbon shows PowerPoint's default body size, matching
+	// React's `HomeSection` (`extractFontInfo` defaults to Segoe UI / 24).
+	const fontSize = $derived(el ? fontSizeOf(el) : 24);
 
 	function toggle(flag: 'bold' | 'italic' | 'underline'): void {
 		if (el) {

@@ -11,8 +11,8 @@
 	import { useTranslator } from '../../../i18n/context';
 	import type { ChromeUiState } from '../../state/chrome-ui.svelte';
 	import type { ExportUiState } from '../../export/export-ui.svelte';
-	import ExportMenu from '../ExportMenu.svelte';
 	import PresentSplitButton from './PresentSplitButton.svelte';
+	import RibbonOverflowMenu from './RibbonOverflowMenu.svelte';
 
 	const {
 		chromeUi,
@@ -119,7 +119,7 @@
 		</button>
 	{/if}
 	{#if exportUi && !isActionHidden('export', hiddenActions)}
-		<ExportMenu {exportUi} />
+		<RibbonOverflowMenu {exportUi} />
 	{/if}
 </div>
 
