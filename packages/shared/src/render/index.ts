@@ -594,6 +594,9 @@ export * from './text-3d-presets';
 // clipboard. Each binding's cut/copy/paste handlers are thin wrappers on this.
 export * from './element-clipboard';
 export * from './template-editing';
+// Ordered + capped element composition for slide previews / sidebar thumbnails,
+// mirroring `buildSaveSlides` (template elements first, then slide-owned).
+export * from './preview-elements';
 // Insert > Shape picker catalogue: preset geometry types + labels/i18n keys +
 // framework-neutral glyph descriptors; each binding maps glyphs to its icons.
 export * from './shape-preset-catalog';
