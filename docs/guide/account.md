@@ -1,11 +1,11 @@
 ---
 title: Account & Sign-in
-description: What File > Account shows out of the box, and how to wire a real sign-in flow into its disabled-by-default hook point.
+description: What File > Account shows by default, and how to wire a sign-in flow into its disabled-by-default hook point.
 ---
 
 # Account & Sign-in
 
-File > Account is a real page, not a stub: a local profile editor, a storage/privacy panel backed by real numbers, an About section, and an optional sign-in section that stays invisible until a host explicitly wires it up.
+File > Account contains a local profile editor, a storage/privacy panel showing live local-storage figures, an About section, and an optional sign-in section that stays hidden until a host explicitly wires it up.
 
 ## What ships by default
 

@@ -6,13 +6,13 @@ description: pptx-vanilla-viewer is a zero-framework PowerPoint viewer for the b
 # Vanilla JS Viewer Overview
 
 `pptx-vanilla-viewer` is a **zero-framework** PowerPoint viewer: it renders `.pptx` slides in the
-browser with plain DOM. There is no React, Vue, or Angular in sight - you call one factory function,
-`createPptxViewer(container, options)`, and get back a viewer instance with an imperative API. The
-parsing engine ([`pptx-viewer-core`](/core/)) and the shared render logic (`pptx-viewer-shared`) are
-bundled in, so the package is self-contained.
+browser with plain DOM and has no dependency on React, Vue, or Angular. Calling the factory
+function `createPptxViewer(container, options)` returns a viewer instance with an imperative API.
+The parsing engine ([`pptx-viewer-core`](/core/)) and the shared render logic
+(`pptx-viewer-shared`) are bundled in, so the package is self-contained.
 
-Try it live: the [vanilla demo](https://christophervr.github.io/pptx-viewer/demo-vanilla/) is this
-package running with no framework at all.
+The live [vanilla demo](https://christophervr.github.io/pptx-viewer/demo-vanilla/) is this
+package running without a framework.
 
 ## What it provides
 
@@ -40,7 +40,7 @@ npm i pptx-vanilla-viewer
 
 The core engine (`pptx-viewer-core`) and shared render layer are **bundled in**, and the engine's
 runtime dependencies (`jszip`, `fast-xml-parser`) install automatically. There are no framework
-peers - one install is everything the viewer needs.
+peer dependencies.
 
 ## Quick example
 

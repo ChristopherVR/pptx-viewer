@@ -5,13 +5,12 @@ description: pptx-svelte-viewer is a Svelte 5 PowerPoint viewer component built 
 
 # Svelte Viewer Overview
 
-`pptx-svelte-viewer` brings the pptx-viewer engine to **Svelte 5**: a single
-`<PowerPointViewer>` component (built with runes) renders `.pptx` slides with the same shared
-render logic and theme system as the React, Vue, Angular, and Vanilla JS bindings. The parsing
-engine ([`pptx-viewer-core`](/core/)) and the shared render layer are bundled in, so one
-dependency is all it takes.
+`pptx-svelte-viewer` is a **Svelte 5** viewer/editor component for `.pptx` files. Its
+`<PowerPointViewer>` component renders `.pptx` slides with the same shared render logic and
+theme system as the React, Vue, Angular, and Vanilla JS bindings. The parsing engine
+([`pptx-viewer-core`](/core/)) and the shared render layer are bundled into the package.
 
-Try it live: the [Svelte demo](https://christophervr.github.io/pptx-viewer/demo-svelte/).
+A live [Svelte demo](https://christophervr.github.io/pptx-viewer/demo-svelte/) is available.
 
 ## What it provides
 

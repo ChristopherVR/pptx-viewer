@@ -7,22 +7,21 @@ description: The composables-based architecture of PowerPointViewer, the curated
 
 `PowerPointViewer.vue` is a thin `<script setup>` orchestrator. Almost all of its logic lives in
 **70+ custom composables** under `viewer/composables/`, composed inside the component, while the
-visual components are largely presentational. State is held entirely in Vue's reactivity system,
+visual components are largely presentational. State is held entirely in Vue's reactivity system;
 there is no external state library.
 
 ::: info Internal vs public vs unstable
 Most of these composables are **internal architecture**: they assume a specific composition order
 and shared inputs. A small curated subset is exported from `pptx-vue-viewer/viewer` with a normal
-semver-stable API. The **complete** set, every composable listed below, is also importable from
+semver-stable API. The **complete** set is also importable from
 `pptx-vue-viewer/composables-unstable`, but with **no compatibility guarantees**: see
-[Complete Composables Reference](/vue/composables-reference). The tables below mark which category
-each composable falls into.
+[Complete Composables Reference](/vue/composables-reference).
 :::
 
 ## Architecture (internal)
 
 These composables describe how the viewer is wired. They are importable (see below) but assume a
-specific composition order and shared inputs, treat this table as conceptual reference, not an API
+specific composition order and shared inputs; treat this table as conceptual reference, not an API
 contract.
 
 | Composable                  | Concern                                                                          |
@@ -44,37 +43,163 @@ contract.
 There are dozens more (dialogs, comments, sections, SmartArt editing, table editing, presentation
 sub-composables, mobile chrome, etc.). See the
 **[Complete Composables Reference](/vue/composables-reference)** for the full list, grouped by
-concern, and how to import all of them from `pptx-vue-viewer/composables-unstable`.
+concern.
 
 ## Public composables
 
-The following are exported from `pptx-vue-viewer/viewer` (and the root `pptx-vue-viewer` entry) and
-are safe to import. They are opt-in and tree-shakeable.
+The following are exported from `pptx-vue-viewer/viewer` and are safe to import. They are opt-in
+and tree-shakeable. The root `pptx-vue-viewer` entry re-exports only the collaboration pair
+(`useCollaboration`, `useCollaborationWiring`); the rest come from the `/viewer` subpath.
 
 ```ts
 import {
 	useCollaboration,
-	useCollaborationWiring,
 	useEditorHistory,
 	useEditorOperations,
 	useLoadContent,
 } from 'pptx-vue-viewer/viewer';
 ```
 
-| Composable               | Exported type(s)                                                      | Purpose                                                             |
-| ------------------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `useLoadContent`         | `UseLoadContentResult`                                                | Parse a `.pptx` buffer via `PptxHandler` and expose reactive state. |
-| `useEditorHistory`       | -                                                                     | Undo/redo snapshot stack.                                           |
-| `useEditorOperations`    | -                                                                     | Element create/update/delete primitives.                            |
-| `useCollaboration`       | `UseCollaborationOptions`, `UseCollaborationResult`, `RemotePresence` | Yjs session, presence, cursors, and elected-writer synchronization. |
-| `useCollaborationWiring` | `UseCollaborationWiringInput`, `UseCollaborationWiringResult`         | Full viewer collaboration and broadcast lifecycle wiring.           |
+### `useLoadContent`
 
-Alongside these, `pptx-vue-viewer/viewer` also exports a handful of **pure helper functions** (not
-composables) used by the renderer components: `getContainerStyle`, `getShapeFillStrokeStyle`,
-`getTextBlockStyle`, `getImageSrc`, `getResolvedShapeClipPath`, `getResolvedShapeClipPathFor`,
+Parses a `.pptx` buffer via `PptxHandler` and exposes the result as reactive state. The input is a
+`MaybeRefOrGetter`, so a plain value, a `ref`, or a getter all work; the load re-runs when it
+changes.
+
+```ts
+function useLoadContent(
+	content: MaybeRefOrGetter<Uint8Array | ArrayBuffer | null | undefined>,
+): UseLoadContentResult;
+```
+
+`UseLoadContentResult` exposes (all reactive): `slides`, `templateElementsBySlideId`,
+`canvasSize`, `theme`, `themeColorMap`, `slideMasters`, `layoutOptions`, `mediaDataUrls`,
+`loading`, `error`, `isEncrypted`, `handler` (the live `PptxHandler`, for saving), plus document
+metadata (`coreProperties`, `appProperties`, `customProperties`, `sections`, `customShows`,
+`embeddedFonts`, `signatures`, and more).
+
+```vue
+<script setup lang="ts">
+import { useLoadContent } from 'pptx-vue-viewer/viewer';
+
+const props = defineProps<{ bytes: ArrayBuffer | null }>();
+
+const { slides, canvasSize, loading, error, handler } = useLoadContent(() => props.bytes);
+
+async function save(): Promise<Uint8Array | undefined> {
+	return handler.value?.save([...slides.value]);
+}
+</script>
+
+<template>
+	<p v-if="loading">Parsing...</p>
+	<p v-else-if="error">{{ error }}</p>
+	<p v-else>{{ slides.length }} slides at {{ canvasSize.width }}x{{ canvasSize.height }}</p>
+</template>
+```
+
+### `useEditorHistory` and `useEditorOperations`
+
+These two compose into a minimal headless editor. `useEditorHistory(slides)` owns the undo/redo
+snapshot stack; `useEditorOperations` provides element CRUD that snapshots through it.
+
+```ts
+function useEditorHistory(
+	slides: Ref<PptxSlide[]>,
+	templateElementsBySlideId?: Ref<TemplateElementMap>,
+): {
+	canUndo: ComputedRef<boolean>;
+	canRedo: ComputedRef<boolean>;
+	pushHistory: () => void; // call immediately BEFORE committing a mutation
+	undo: () => void;
+	redo: () => void;
+	clearHistory: () => void;
+};
+
+function useEditorOperations(input: {
+	slides: Ref<PptxSlide[]>;
+	activeSlideIndex: Ref<number>;
+	pushHistory: () => void;
+	selectedElementIds?: Ref<string[]>;
+	templateElementsBySlideId?: Ref<TemplateElementMap>;
+}): EditorOperations;
+```
+
+`EditorOperations` includes `activeSlide`, `selectedElementIds`, `addElement`, `updateElement`,
+`removeElement`, `transformElement` / `moveElement`, `duplicateElement`, `bringForward`,
+`sendBackward`, `reorder`, and `updateElementText`.
+
+```ts
+import { ref } from 'vue';
+import { useEditorHistory, useEditorOperations, useLoadContent } from 'pptx-vue-viewer/viewer';
+
+const { slides } = useLoadContent(() => props.bytes);
+const activeSlideIndex = ref(0);
+
+const history = useEditorHistory(slides);
+const ops = useEditorOperations({
+	slides,
+	activeSlideIndex,
+	pushHistory: history.pushHistory,
+});
+
+ops.updateElementText('el_12', 'Updated headline');
+ops.transformElement('el_12', { x: 120, y: 80 });
+history.undo(); // reverts both, most recent first
+```
+
+::: tip Snapshot ordering
+`pushHistory()` snapshots the **current** state, so it must run before a mutation is committed.
+The operations returned by `useEditorOperations` handle this for you; only call `pushHistory`
+manually when you mutate `slides` yourself.
+:::
+
+### `useCollaboration` and `useCollaborationWiring`
+
+`useCollaboration` manages a Yjs session, presence, cursors, and elected-writer synchronization
+without the viewer component. See [Collaboration](/vue/collaboration) for the full guide.
+
+```ts
+function useCollaboration(options: {
+	slides: Ref<PptxSlide[]>;
+	onRemoteSlides: (slides: PptxSlide[]) => void;
+	userColor?: string;
+	canvasWidth?: Ref<number> | number;
+	canvasHeight?: Ref<number> | number;
+	getSourceBytes?: () => Uint8Array | null;
+	getTemplateElements?: () => Record<string, PptxElement[]>;
+}): UseCollaborationResult;
+```
+
+The result exposes reactive `status`, `connected`, `cursors`, `remotePresences`,
+`connectedCount`, `followedSlideIndex`, `broadcasterSlideIndex`, and the imperative
+`start(config)`, `stop()`, `retry()`, `setCursor(x, y)`, `setSelection(ids)`,
+`setActiveSlide(index)`, and `followUser(clientId)`.
+
+```ts
+const collab = useCollaboration({
+	slides,
+	onRemoteSlides: (next) => (slides.value = next),
+});
+
+await collab.start({
+	roomId: 'deck-42',
+	serverUrl: 'wss://collab.example.com',
+	userName: 'Ada',
+});
+```
+
+`useCollaborationWiring` is the higher-level variant the component itself uses: the full viewer
+collaboration + broadcast dialog lifecycle.
+
+### Helper functions
+
+Alongside the composables, `pptx-vue-viewer/viewer` exports pure helper functions used by the
+renderer components: `getContainerStyle`, `getShapeFillStrokeStyle`, `getTextBlockStyle`,
+`getImageSrc`, `getResolvedShapeClipPath`, `getResolvedShapeClipPathFor`,
 `collectMediaElements`, `collectImagePaths`, `buildInitialGuides`, plus the audience/presenter
 content-sharing helpers (`isAudienceTab`, `storeAudienceContent`, `loadAudienceContent`,
-`clearAudienceContent`).
+`clearAudienceContent`) and `useToolbarVisibility`.
 
 The stable entry also exports `CollaborationCursors`, `CollaborationStatusIndicator`,
 `RemoteSelectionOverlay`, and `FollowModeBar` for custom presence UI. See
@@ -86,7 +211,7 @@ If the curated public composables above don't cover what you need, every interna
 also importable in full from `pptx-vue-viewer/composables-unstable`:
 
 ```ts
-import { useEditorHistory, useAlignGroup } from 'pptx-vue-viewer/composables-unstable';
+import { useAlignGroup, useAutosave } from 'pptx-vue-viewer/composables-unstable';
 ```
 
 ::: warning No compatibility guarantees

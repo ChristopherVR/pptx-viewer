@@ -13,21 +13,21 @@ Node.js **18 or newer** is required for TypeScript compilation and for running t
 
 ## Choose your framework
 
-| Framework                 | Package               | Notes                                                           |
-| ------------------------- | --------------------- | --------------------------------------------------------------- |
-| React                     | `pptx-react-viewer`   | Full-featured: viewer, editor, presenter, export, collaboration |
-| Vue 3                     | `pptx-vue-viewer`     | Same engine and feature set as the React binding                |
-| Angular                   | `pptx-angular-viewer` | Same engine and feature set as the React binding                |
-| Svelte 5                  | `pptx-svelte-viewer`  | Same engine and feature set as the React binding                |
-| No framework              | `pptx-vanilla-viewer` | Same engine, plain DOM: no framework dependency at all          |
-| Headless (Node / browser) | `pptx-viewer-core`    | No UI, no framework dependency                                  |
-| AI / MCP tooling          | `pptx-viewer-mcp`     | 51 MCP tools + CLI + Y.Doc codec                                |
+| Framework                 | Package               | Notes                                                  |
+| ------------------------- | --------------------- | ------------------------------------------------------ |
+| React                     | `pptx-react-viewer`   | Viewer, editor, presenter, export, collaboration       |
+| Vue 3                     | `pptx-vue-viewer`     | Same engine and feature set as the React binding       |
+| Angular                   | `pptx-angular-viewer` | Same engine and feature set as the React binding       |
+| Svelte 5                  | `pptx-svelte-viewer`  | Same engine and feature set as the React binding       |
+| No framework              | `pptx-vanilla-viewer` | Same engine, plain DOM: no framework dependency at all |
+| Headless (Node / browser) | `pptx-viewer-core`    | No UI, no framework dependency                         |
+| AI / MCP tooling          | `pptx-viewer-mcp`     | 51 MCP tools + CLI + Y.Doc codec                       |
 
 ## Installing from npm
 
 ### React viewer
 
-The full-featured React viewer/editor component, published as **`pptx-react-viewer`**. The core engine is **bundled in**, so you don't install it separately.
+The React viewer/editor component, published as **`pptx-react-viewer`**. The core engine is **bundled in**, so you don't install it separately.
 
 ::: code-group
 

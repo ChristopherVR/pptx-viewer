@@ -1,15 +1,15 @@
 ---
 title: Vue Viewer Overview
-description: pptx-vue-viewer is a full-featured Vue 3 component for viewing, editing, presenting, exporting, and collaboratively editing PowerPoint (.pptx) files in the browser.
+description: pptx-vue-viewer is a Vue 3 component for viewing, editing, presenting, exporting, and collaboratively editing PowerPoint (.pptx) files in the browser.
 ---
 
 # Vue Viewer Overview
 
-`pptx-vue-viewer` is a drop-in **Vue 3** component that turns raw `.pptx` bytes into a fully
-interactive PowerPoint experience. It is built on top of [`pptx-viewer-core`](/core/) and bundles a
-complete UI: toolbar, inspector panels, slide canvas, animation engine, presentation mode, real-time
-collaboration, and export. It is a `<script setup>` port of the [React viewer](/react/), sharing the
-same underlying architecture and the same `PowerPointViewerAPI` contract.
+`pptx-vue-viewer` is a **Vue 3** component for rendering and editing `.pptx` files. It is built
+on [`pptx-viewer-core`](/core/) and includes the toolbar, inspector panels, slide canvas,
+animation engine, presentation mode, real-time collaboration, and export. It is a `<script setup>`
+port of the [React viewer](/react/), sharing the same underlying architecture and the same
+`PowerPointViewerAPI` contract.
 
 ![The editor chrome is identical across bindings: ribbon, slide thumbnails, canvas, and inspector](/docs-shots/editor.jpg)
 
@@ -79,7 +79,7 @@ entry for the common case.
 ## Rendering philosophy: CSS, not Canvas
 
 Slides are rendered with **CSS positioning and transforms** (scaled HTML/SVG), not an HTML Canvas.
-This buys:
+This provides:
 
 - Crisp text at any zoom level
 - Native browser text selection and accessibility

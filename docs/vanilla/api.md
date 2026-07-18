@@ -6,8 +6,8 @@ description: The PptxViewerInstance returned by createPptxViewer - loading, navi
 # Viewer Instance API
 
 `createPptxViewer` returns a `PptxViewerInstance`, the imperative equivalent of the other bindings'
-template refs / handles. Everything the built-in toolbar does is available here, so you can hide
-the chrome (`showToolbar: false`, `showThumbnails: false`) and drive the viewer entirely from your
+template refs / handles. All toolbar operations are also available as instance methods, so you can
+hide the chrome (`showToolbar: false`, `showThumbnails: false`) and drive the viewer from your
 own UI. The interface extends the shared `PowerPointViewerAPI` implemented by every binding, so the
 `getContent` / `goTo` / `getSlides`-style methods below match the React, Vue, and Angular handles.
 
@@ -278,7 +278,7 @@ See [Options](/vanilla/options#collaboration) for `CollaborationConfig` and the 
 ### Core escape hatch {#core-escape-hatch}
 
 `getHandler()` exposes the full [`pptx-viewer-core`](/core/) `PptxHandler` behind the viewer, which
-unlocks operations the viewer itself does not surface: convert the deck to Markdown or read parts
+allows operations the viewer itself does not surface: convert the deck to Markdown or read parts
 of the underlying archive. (For plain serialisation prefer the instance's own `save()` /
 `getContent()`, which also clear the dirty flag.)
 

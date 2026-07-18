@@ -5,7 +5,7 @@ description: pptx-viewer-mcp provides 51 pure PPTX manipulation tools, Zod input
 
 # MCP & Tools
 
-`pptx-viewer-mcp` (source lives in `packages/tools`) packages everything you need to drive PPTX edits from AI agents and collaborative runtimes: **51 pure tool functions**, **Zod schemas** for every tool input, an **MCP server**, and a **Y.Doc collaboration codec**. It is built entirely on top of [`pptx-viewer-core`](/core/).
+`pptx-viewer-mcp` (source lives in `packages/tools`) provides the tooling for driving PPTX edits from AI agents and collaborative runtimes: **51 pure tool functions**, **Zod schemas** for every tool input, an **MCP server**, and a **Y.Doc collaboration codec**. It is built entirely on top of [`pptx-viewer-core`](/core/).
 
 ::: tip Where this fits
 The tools take the [`PptxData` model](/guide/data-model) the core engine produces, mutate it as plain in-memory data, and hand it back. They add no file I/O or framework dependencies of their own - you (or the provided MCP server / execution pipeline) decide how to load and persist.

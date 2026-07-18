@@ -31,7 +31,7 @@ export default defineConfig({
 			link: '/fr/',
 			themeConfig: {
 				nav: [
-					{ text: 'Guide', link: '/fr/guide/introduction', activeMatch: '/fr/guide/' },
+					{ text: 'Guide developpeur', link: '/fr/guide/', activeMatch: '/fr/guide/' },
 					{ text: 'Guide utilisateur', link: '/user/', activeMatch: '/user/' },
 					{
 						text: 'Packages',
@@ -85,7 +85,7 @@ export default defineConfig({
 			link: '/es/',
 			themeConfig: {
 				nav: [
-					{ text: 'Guia', link: '/es/guide/introduction', activeMatch: '/es/guide/' },
+					{ text: 'Guia del desarrollador', link: '/es/guide/', activeMatch: '/es/guide/' },
 					{ text: 'Guia de usuario', link: '/user/', activeMatch: '/user/' },
 					{
 						text: 'Paquetes',
@@ -139,7 +139,7 @@ export default defineConfig({
 			link: '/de/',
 			themeConfig: {
 				nav: [
-					{ text: 'Anleitung', link: '/de/guide/introduction', activeMatch: '/de/guide/' },
+					{ text: 'Entwicklerhandbuch', link: '/de/guide/', activeMatch: '/de/guide/' },
 					{ text: 'Benutzerhandbuch', link: '/user/', activeMatch: '/user/' },
 					{
 						text: 'Pakete',
@@ -215,7 +215,7 @@ export default defineConfig({
 	themeConfig: {
 		// https://vitepress.dev/reference/default-theme-config
 		nav: [
-			{ text: 'Guide', link: '/guide/introduction', activeMatch: '/guide/' },
+			{ text: 'Developer Guide', link: '/guide/', activeMatch: '/guide/' },
 			{ text: 'User Guide', link: '/user/', activeMatch: '/user/' },
 			{
 				text: 'Packages',
@@ -262,8 +262,9 @@ export default defineConfig({
 		sidebar: {
 			'/guide/': [
 				{
-					text: 'Introduction',
+					text: 'Start Here',
 					items: [
+						{ text: 'Documentation Overview', link: '/guide/' },
 						{ text: 'What is pptx-viewer?', link: '/guide/introduction' },
 						{ text: 'Installation', link: '/guide/installation' },
 						{ text: 'Quick Start', link: '/guide/quick-start' },

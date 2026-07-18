@@ -64,7 +64,7 @@ each successful load.
 
 ## 3. Navigation, zoom, and presentation
 
-Everything the built-in toolbar does is also available on the instance:
+All toolbar operations are also available as instance methods:
 
 ```ts
 viewer.next();

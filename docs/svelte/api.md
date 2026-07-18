@@ -7,9 +7,9 @@ description: The PowerPointViewerApi surface exposed on the component instance v
 
 The component instance obtained through `bind:this` implements `PowerPointViewerApi`: the
 shared cross-binding viewer contract (the same one behind React's ref handle and Vue's
-`defineExpose`) plus the Svelte binding's editing and export methods. Everything the built-in
-toolbar does is available here, so you can hide the chrome (`showToolbar={false}`,
-`showThumbnails={false}`) and drive the viewer entirely from your own UI.
+`defineExpose`) plus the Svelte binding's editing and export methods. All toolbar operations are
+also available as instance methods, so you can hide the chrome (`showToolbar={false}`,
+`showThumbnails={false}`) and drive the viewer from your own UI.
 
 ```svelte
 <script lang="ts">

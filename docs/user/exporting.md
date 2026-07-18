@@ -1,60 +1,74 @@
 ---
 title: Exporting
-description: Save and export your presentation to PNG, PDF, GIF, video, back to .pptx, and more.
+description: Save your edits back to .pptx, export PDF, PNG, GIF, and video, package for sharing, and print handouts and notes pages.
 ---
 
 # Exporting
 
-You can export the current slide or the whole presentation to several formats, and save your edits back to a PowerPoint file. Export actions live in the **File** toolbar tab (look for **Export** / **Save As**).
-
-## Available formats
-
-| Format                  | What you get                                                                               | Scope         |
-| ----------------------- | ------------------------------------------------------------------------------------------ | ------------- |
-| **PNG image**           | A raster image of the current slide.                                                       | Current slide |
-| **Copy as image**       | Copies the current slide to your clipboard as an image.                                    | Current slide |
-| **PDF**                 | A multi-page PDF, one slide per page.                                                      | Whole deck    |
-| **PDF (with notes)**    | A PDF that also lays out each slide's speaker notes, with overflow paginated across pages. | Whole deck    |
-| **GIF**                 | An animated GIF that cycles through the slides.                                            | Whole deck    |
-| **Video**               | A `.webm` video that plays through the slides.                                             | Whole deck    |
-| **Save as PPTX**        | A standard PowerPoint file containing your edits.                                          | Whole deck    |
-| **Save as PPSX**        | A PowerPoint _slideshow_ file (opens directly into a slideshow).                           | Whole deck    |
-| **Save as PPTM**        | A macro-enabled PowerPoint file.                                                           | Whole deck    |
-| **Package for sharing** | Bundles the presentation for sharing.                                                      | Whole deck    |
-
-::: tip SVG export
-A vector **SVG** export path is also available. Because SVG is vector-based, it avoids the rasterization limits described below and is a good choice when you need crisp, scalable output. Availability of this option depends on how your app exposes it.
-:::
-
-## How to export
-
-1. Open the **File** toolbar tab.
-2. Choose **Export** (or **Save As**) and pick a format.
-3. For whole-deck formats (PDF, GIF, video), a **progress dialog** appears while each slide is captured and the file is assembled. You can **cancel** mid-way if needed.
-4. The finished file downloads automatically (or, for "copy as image", lands on your clipboard).
+Everything you export is generated in your browser and downloaded to your device; nothing is uploaded anywhere. Export and save actions live in the **File** tab (the backstage), and the most common ones are repeated in the **"..."** overflow menu at the right end of the toolbar.
 
 ![File tab showing export options](/user-guide/exporting-file-menu.jpg)
 
 ## Saving back to PowerPoint
 
-Choose **Save as PPTX** to write your edits to a standard `.pptx` file that opens in Microsoft PowerPoint and other apps. This round-trips your changes - added/edited elements, slide changes, notes, and so on. Use **PPSX** if you want a file that opens straight into a slideshow, or **PPTM** for macro-enabled decks.
+1. Click the **File** tab.
+2. Click **Save** to download the presentation as a `.pptx` file, or open **Save As** for all formats:
 
-## Resolution and quality notes
+| Save As option                 | What you get                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------ |
+| **PowerPoint Presentation**    | An editable `.pptx` file with all your changes.                                            |
+| **PowerPoint Show**            | A `.ppsx` file that opens directly into a slideshow.                                       |
+| **Macro-Enabled Presentation** | A `.pptm` file that preserves VBA macros. Shown only when the opened file contains macros. |
+| **Package for Sharing**        | A `.zip` bundle containing the `.pptx` plus a readme.                                      |
 
-- **PDF** is captured at higher resolution (about 2× scale) for sharp output.
-- **GIF** is captured at a smaller scale to keep file size reasonable.
-- **Video** records each slide for a few seconds per slide as it plays through the deck.
+The **Save** button in the title bar does the same as **File > Save**. Saved files round-trip your edits: added and changed elements, slide order, notes, sections, and so on.
 
-## Fidelity caveats
+::: warning There is no Ctrl+S
+Because the app runs in a browser, **Ctrl+S** triggers the browser's own page-save dialog, not a presentation save. Use the **Save** button or the File tab instead. Files always save as downloads; check your browser's download folder.
+:::
+
+## Exporting images, PDF, GIF, and video
+
+Open **File > Export**:
+
+| Option                     | What you get                                                          | Scope         |
+| -------------------------- | --------------------------------------------------------------------- | ------------- |
+| **Create PDF**             | A PDF with one page per slide, captured at high resolution.           | Whole deck    |
+| **Export current slide**   | A PNG image of the current slide.                                     | Current slide |
+| **Create a Video**         | A `.webm` video that plays through the deck, a few seconds per slide. | Whole deck    |
+| **Create an Animated GIF** | A compact looping GIF of the deck.                                    | Whole deck    |
+| **Copy as Image**          | Copies the current slide to your clipboard as an image.               | Current slide |
+
+For whole-deck formats a progress dialog shows each slide being captured, with a **Cancel** button if you change your mind. The finished file downloads automatically.
+
+## Printing
+
+1. Open **File > Print** and click **Print Presentation**. A print dialog opens with a live preview.
+2. Choose what to print under **Print What**: **Full Page Slides**, **Handouts** (with a slides-per-page setting), **Notes Pages** (each slide above its speaker notes), or **Outline**.
+3. Set **Orientation**, **Color Mode** (Color, Grayscale, Black and White), whether to **Frame Slides**, and the **Slide Range** (All Slides, Current Slide, or a custom From/To range).
+4. Click **Print**. Your browser's print window opens, where you pick the printer or save as PDF.
+
+::: tip Notes handouts
+Printing **Notes Pages** is the way to get a document that pairs each slide with its speaker notes.
+:::
+
+## Protecting and inspecting the file
+
+The **File > Info** page offers:
+
+- **Protect Presentation** - set a password so the saved file is encrypted.
+- **Inspect Presentation** - review document properties.
+- **Embed Fonts** - keep typography consistent when the file moves between devices.
+- **Digital Signatures** - view signatures attached to the presentation.
+
+## Fidelity and size notes
 
 ::: warning Raster exports are an approximation
-PNG, JPEG, PDF, GIF, and video exports rasterize the on-screen HTML/CSS using `html2canvas`. This works well for most content, but a few CSS features aren't fully supported during capture (for example `backdrop-filter`, CSS `var()` custom properties, and CSS 3D transforms). The app preprocesses these to approximate them, but some visual fidelity can be lost.
-
-For the crispest, most faithful output, prefer the **SVG** (vector) export where it is available. See [Limitations](/guide/limitations) for the complete list of rendering and export caveats.
+PNG, PDF, GIF, and video exports rasterize the on-screen slide using `html2canvas`. Most content captures faithfully, but a few CSS effects are approximated during capture, so minor visual differences are possible. See [Limitations](/guide/limitations) for the complete list.
 :::
 
 ::: info Very large slides
-Raster exports are bounded by your browser's maximum canvas size (commonly 16384×16384 or 32768×32768 pixels). Extremely large slides at high scale may hit this limit.
+Raster exports are bounded by your browser's maximum canvas size. Extremely large slides exported at high scale may hit this limit.
 :::
 
 ## Next

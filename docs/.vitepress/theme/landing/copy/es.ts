@@ -6,7 +6,7 @@ export const es: LandingCopy = {
 		titleTop: 'Edicion .pptx,',
 		titleAccent: 'lista para integrar.',
 		sub: 'Visor y editor WYSIWYG de PowerPoint de codigo abierto para React, Vue 3, Angular, Svelte 5 y JavaScript vanilla. Un nucleo TypeScript headless carga, edita y guarda archivos .pptx; los componentes los muestran como HTML, CSS y SVG nativos.',
-		start: { text: 'Empezar', href: '/es/guide/introduction' },
+		start: { text: 'Empezar', href: '/es/guide/' },
 		demo: 'Demo en vivo',
 		scroll: 'Desplazar',
 		frameCaption: 'sample-deck.pptx · en vivo en el navegador',
@@ -98,7 +98,7 @@ export const es: LandingCopy = {
 			},
 			{
 				name: 'pptx-svelte-viewer',
-				desc: 'El binding de Svelte 5, con runes incluidas.',
+				desc: 'El mismo editor como componente de Svelte 5.',
 				href: 'https://christophervr.github.io/pptx-viewer/demo-svelte/',
 				external: true,
 			},

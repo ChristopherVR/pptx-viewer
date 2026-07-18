@@ -1,14 +1,14 @@
 ---
 title: Angular Viewer Overview
-description: pptx-angular-viewer is a full-featured Angular standalone component for viewing, editing, presenting, exporting, and collaboratively editing PowerPoint (.pptx) files in the browser.
+description: pptx-angular-viewer is an Angular standalone component for viewing, editing, presenting, exporting, and collaboratively editing PowerPoint (.pptx) files in the browser.
 ---
 
 # Angular Viewer Overview
 
-`pptx-angular-viewer` is a drop-in **Angular 22** standalone component (`<pptx-viewer>`) that turns
-raw `.pptx` bytes into a fully interactive PowerPoint experience. It is built on top of
-[`pptx-viewer-core`](/core/) and bundles a complete UI: ribbon toolbar, inspector panels, slide
-canvas, animation engine, presentation mode, real-time collaboration, and export. It is the Angular
+`pptx-angular-viewer` is an **Angular 22** standalone component (`<pptx-viewer>`) for rendering
+and editing `.pptx` files. It is built on [`pptx-viewer-core`](/core/) and includes the ribbon
+toolbar, inspector panels, slide canvas, animation engine, presentation mode, real-time
+collaboration, and export. It is the Angular
 counterpart of `pptx-react-viewer` and `pptx-vue-viewer`, sharing framework-agnostic logic with both
 through the internal `pptx-viewer-shared` package.
 
@@ -71,7 +71,7 @@ all live at the package root; see [Localization](/guide/localization) for the i1
 ## Rendering philosophy: CSS, not Canvas
 
 Slides are rendered with **CSS positioning and transforms** (scaled HTML/SVG), not an HTML Canvas.
-This buys:
+This provides:
 
 - Crisp text at any zoom level
 - Native browser text selection and accessibility

@@ -5,9 +5,9 @@ description: A high-level overview of the pptx-viewer TypeScript monorepo for pa
 
 # What is pptx-viewer?
 
-`pptx-viewer` is a comprehensive TypeScript monorepo for **parsing, editing, rendering, and converting** Microsoft PowerPoint (`.pptx`) files - in the browser and in Node.js. It works entirely in-memory on the OpenXML ZIP archive with no native dependencies.
+`pptx-viewer` is a TypeScript monorepo for **parsing, editing, rendering, and converting** Microsoft PowerPoint (`.pptx`) files - in the browser and in Node.js. It works entirely in-memory on the OpenXML ZIP archive with no native dependencies.
 
-Where most PowerPoint libraries do one thing - generate slides _or_ render them _or_ extract text - `pptx-viewer` covers the full round-trip: load an existing deck, mutate its structured data model, render it with full visual fidelity, and save it back to a valid `.pptx` file. The same core engine powers drop-in components for **React**, **Vue 3**, **Angular**, and **Svelte 5**, plus a **vanilla JavaScript** build for projects with no framework at all.
+`pptx-viewer` covers the full round-trip: load an existing deck, mutate its structured data model, render it, and save it back to a valid `.pptx` file. The same core engine powers components for **React**, **Vue 3**, **Angular**, and **Svelte 5**, plus a **vanilla JavaScript** build for projects without a framework.
 
 ## What it does
 
@@ -15,7 +15,7 @@ The SDK provides nine core capabilities:
 
 1. **Parse** `.pptx` files from a raw `ArrayBuffer` into a structured [`PptxData`](/guide/data-model) model.
 2. **Create** presentations from scratch with a fluent builder API.
-3. **Render** slides as interactive React, Vue, Angular, Svelte, or vanilla JS components with full visual fidelity.
+3. **Render** slides as interactive React, Vue, Angular, Svelte, or vanilla JS components.
 4. **Edit** presentations programmatically or via the built-in WYSIWYG editor.
 5. **Save** changes back to a valid `.pptx` file (round-trip safe).
 6. **Convert** presentations to Markdown with optional media extraction.
@@ -32,9 +32,9 @@ The engine handles the full OpenXML specification including 16 element types, 18
 - **Backend and automation work**: the core package is framework-agnostic and runs in Node.js, so you can generate, inspect, diff, or convert decks in scripts, servers, and CI.
 - **AI and agent pipelines**: `pptx-viewer-mcp` exposes the engine as MCP tool calls, and the Markdown converter turns decks into LLM-friendly text.
 
-## What makes the rendering different
+## Rendering model
 
-Most PPTX renderers rasterize slides - either server-side (convert to images or PDF first) or client-side onto a `<canvas>`. `pptx-viewer` does neither. Slides render as **real HTML, CSS, and SVG in the DOM**:
+`pptx-viewer` does not rasterize slides, server-side or onto a `<canvas>`. Slides render as **HTML, CSS, and SVG in the DOM**:
 
 - Text is real HTML text: selectable, searchable, translatable, and readable by screen readers.
 - Shapes and connectors are SVG with computed clip paths from the geometry engine.
@@ -45,7 +45,7 @@ Most PPTX renderers rasterize slides - either server-side (convert to images or 
 Rasterization only happens when you ask for it: raster export (PNG/JPEG/PDF/GIF/video) draws the DOM through `html2canvas`.
 
 ::: tip Tradeoffs
-CSS cannot express every PowerPoint effect pixel-perfectly (for example some blend modes and 3D rotations are approximated). See [Limitations](/guide/limitations) for the honest list.
+CSS cannot express every PowerPoint effect pixel-perfectly (for example some blend modes and 3D rotations are approximated). See [Limitations](/guide/limitations) for the full list.
 :::
 
 ## The packages
@@ -81,7 +81,7 @@ pptx-svelte-viewer  ┘                               └── mtx-decompressor
 - **`emf-converter`** (EMF/WMF metafile to PNG) and **`mtx-decompressor`** (MicroType Express embedded fonts) are standalone npm dependencies of Core.
 - **`pptx-viewer-mcp`** builds on `pptx-viewer-core` to expose tool-call and collaboration surfaces for AI agents.
 
-## A quick taste
+## Minimal examples
 
 ::: code-group
 
@@ -115,7 +115,7 @@ const bytes = await handler.save(data.slides);
 ## Next steps
 
 - [Installation](/guide/installation) - install the packages and set up local development.
-- [Quick Start](/guide/quick-start) - end-to-end flows to get productive fast.
+- [Quick Start](/guide/quick-start) - end-to-end usage examples.
 - [Architecture](/guide/architecture) - how the load/save pipelines and the layered design work.
 - [The PptxData Model](/guide/data-model) - the typed model you edit.
 - [Core package overview](/core/) - the parsing, editing, and serialization engine.
