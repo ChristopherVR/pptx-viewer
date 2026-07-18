@@ -118,9 +118,6 @@ import type { RibbonTab } from './ribbon-types';
 					(openFontEmbedding)="openFontEmbedding.emit()"
 					(openVersionHistory)="openVersionHistory.emit()"
 					(openSettings)="requestSettings()"
-					(shapeInsert)="shapeInsert.emit($event)"
-					(moveLayer)="moveLayer.emit($event)"
-					(moveLayerToEdge)="moveLayerToEdge.emit($event)"
 				/>
 				<pptx-ribbon-content-secondary
 					[activeTab]="activeTab()"
@@ -312,12 +309,6 @@ export class RibbonComponent {
 	readonly openShortcuts = output<void>();
 	/** Emitted when the user opens viewer preferences from the Help tab. */
 	readonly openSettings = output<void>();
-	/** Emitted when a shape is inserted from the Drawing group. */
-	readonly shapeInsert = output<string>();
-	/** Emitted when the user reorders an element layer (up/down). */
-	readonly moveLayer = output<string>();
-	/** Emitted when the user moves an element to front/back. */
-	readonly moveLayerToEdge = output<string>();
 
 	protected readonly activeTab = signal<RibbonTab>('home');
 

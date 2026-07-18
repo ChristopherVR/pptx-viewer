@@ -88,12 +88,7 @@ import type { RibbonTab } from './ribbon-types';
 					(findReplace)="find.emit()"
 				/>
 				<span class="pptx-rb-sep"></span>
-				<pptx-ribbon-drawing-group
-					[canEdit]="canEdit()"
-					(shapeInsert)="shapeInsert.emit($event)"
-					(moveLayer)="moveLayer.emit($event)"
-					(moveLayerToEdge)="moveLayerToEdge.emit($event)"
-				/>
+				<pptx-ribbon-drawing-group [canEdit]="canEdit()" [slideIndex]="slideIndex()" />
 				<span class="pptx-rb-sep"></span>
 				<!--
 					React parity (Toolbar.tsx: sArr = sHome || toolbarSection === 'arrange'):
@@ -181,10 +176,6 @@ export class RibbonContentComponent {
 	readonly openFontEmbedding = output<void>();
 	readonly openVersionHistory = output<void>();
 	readonly openSettings = output<void>();
-	readonly shapeInsert = output<string>();
-	readonly moveLayer = output<string>();
-	readonly moveLayerToEdge = output<string>();
-
 	/** The chart type currently chosen in the Insert tab dropdown (survives tab switches). */
 	protected readonly newChartType = signal<PptxChartType>(DEFAULT_INSERT_CHART_TYPE);
 }

@@ -1,30 +1,26 @@
 /**
  * ribbon-drawing-group.component.ts: Drawing group for the Home tab ribbon.
  * Provides shape insertion, layer arrangement, and shape formatting placeholders.
+ *
+ * Shape picks insert straight through the shared {@link EditorStateService}
+ * (like the Insert and Arrange sections do), matching React's immediate-insert
+ * behaviour (DrawingGroup -> onAddShape): the element appears at a default
+ * position, becomes the selection, marks the deck dirty, and is undoable.
+ * The picker lists the first 12 entries of the shared preset catalogue
+ * ({@link SHAPE_PRESET_DEFS}), so the geometry ids are valid OOXML
+ * `a:prstGeom` values shared with every binding.
  */
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { LucideChevronDown } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
-interface ShapePreset {
-	id: string;
-	labelKey: string;
-}
+import { SHAPE_PRESET_DEFS } from '../internal/shared';
+import type { ShapePresetDef } from '../internal/shared';
+import { newPresetShapeElement } from './editor-insert';
+import { EditorStateService } from './editor-state.service';
 
-const SHAPE_PRESETS: readonly ShapePreset[] = [
-	{ id: 'rectangle', labelKey: 'pptx.editorToolbar.shapeRectangle' },
-	{ id: 'roundedRectangle', labelKey: 'pptx.editorToolbar.shapeRoundedRectangle' },
-	{ id: 'ellipse', labelKey: 'pptx.editorToolbar.shapeEllipse' },
-	{ id: 'triangle', labelKey: 'pptx.editorToolbar.shapeTriangle' },
-	{ id: 'diamond', labelKey: 'pptx.shapePresets.diamond' },
-	{ id: 'pentagon', labelKey: 'pptx.shapePresets.pentagon' },
-	{ id: 'hexagon', labelKey: 'pptx.shapePresets.hexagon' },
-	{ id: 'arrow', labelKey: 'pptx.shapePresets.arrow' },
-	{ id: 'star5', labelKey: 'pptx.shapePresets.star' },
-	{ id: 'heart', labelKey: 'pptx.shapePresets.heart' },
-	{ id: 'cloud', labelKey: 'pptx.shapePresets.cloud' },
-	{ id: 'callout', labelKey: 'pptx.editorToolbar.shapeCallout' },
-];
+/** The quick "top shapes" row shared with React's toolbar (first 12 presets). */
+const TOP_SHAPES: readonly ShapePresetDef[] = SHAPE_PRESET_DEFS.slice(0, 12);
 
 @Component({
 	selector: 'pptx-ribbon-drawing-group',
@@ -50,13 +46,13 @@ const SHAPE_PRESETS: readonly ShapePreset[] = [
 						<div
 							class="absolute left-0 top-full z-50 mt-0.5 grid grid-cols-4 gap-0.5 rounded border border-border bg-popover p-1 shadow-md"
 						>
-							@for (shape of shapes; track shape.id) {
+							@for (shape of shapes; track shape.type) {
 								<button
 									type="button"
 									class="rounded px-1.5 py-0.5 text-[10px] hover:bg-accent"
-									(click)="onShapeSelect(shape.id)"
+									(click)="onShapeSelect(shape)"
 								>
-									{{ shape.labelKey | translate }}
+									{{ shape.i18nKey | translate }}
 								</button>
 							}
 						</div>
@@ -67,7 +63,7 @@ const SHAPE_PRESETS: readonly ShapePreset[] = [
 					<button
 						type="button"
 						class="pptx-rb-gb gap-1.5"
-						[disabled]="!canEdit()"
+						[disabled]="!canEdit() || !editor.hasSelection()"
 						[title]="'pptx.ribbon.arrange' | translate"
 						(click)="arrangeOpen.set(!arrangeOpen())"
 					>
@@ -134,27 +130,37 @@ const SHAPE_PRESETS: readonly ShapePreset[] = [
 	`,
 })
 export class RibbonDrawingGroupComponent {
-	readonly canEdit = input<boolean>(false);
-	readonly shapeInsert = output<string>();
-	readonly moveLayer = output<string>();
-	readonly moveLayerToEdge = output<string>();
+	protected readonly editor = inject(EditorStateService);
 
-	protected readonly shapes = SHAPE_PRESETS;
+	readonly canEdit = input<boolean>(false);
+	/** Index of the active slide (insertion target). */
+	readonly slideIndex = input<number>(0);
+
+	protected readonly shapes = TOP_SHAPES;
 	protected readonly shapesOpen = signal(false);
 	protected readonly arrangeOpen = signal(false);
 
-	protected onShapeSelect(shape: string): void {
+	/** Insert the picked preset immediately (selects it and records history). */
+	protected onShapeSelect(shape: ShapePresetDef): void {
 		this.shapesOpen.set(false);
-		this.shapeInsert.emit(shape);
+		this.editor.addElement(this.slideIndex(), newPresetShapeElement(shape.type, shape.label));
 	}
 
-	protected onArrange(direction: string): void {
+	protected onArrange(direction: 'up' | 'down'): void {
 		this.arrangeOpen.set(false);
-		this.moveLayer.emit(direction);
+		if (direction === 'up') {
+			this.editor.bringSelectedForward(this.slideIndex());
+			return;
+		}
+		this.editor.sendSelectedBackward(this.slideIndex());
 	}
 
-	protected onArrangeEdge(edge: string): void {
+	protected onArrangeEdge(edge: 'front' | 'back'): void {
 		this.arrangeOpen.set(false);
-		this.moveLayerToEdge.emit(edge);
+		if (edge === 'front') {
+			this.editor.bringSelectedToFront(this.slideIndex());
+			return;
+		}
+		this.editor.sendSelectedToBack(this.slideIndex());
 	}
 }

@@ -11,6 +11,7 @@
 import type { PptxChartType, PptxElement } from 'pptx-viewer-core';
 
 import { createDefaultChartElement } from '../internal/shared';
+import type { ShapePresetType } from '../internal/shared';
 
 export {
 	newTextElement,
@@ -55,4 +56,36 @@ export {
  */
 export function newChartElement(chartType: PptxChartType): PptxElement {
 	return { ...createDefaultChartElement(chartType), id: '' } as PptxElement;
+}
+
+/**
+ * Create a new shape element for any Insert > Shapes picker preset geometry.
+ *
+ * The shared `newShapeElement` only covers the rect/ellipse/line trio used by
+ * the Insert tab quick buttons; this factory accepts the full shared preset
+ * catalogue ({@link ShapePresetType}) offered by the Home tab Shapes dropdown.
+ * Defaults mirror React's toolbar insert path (`useInsertElements.handleAddShape`):
+ * same position, size, and blue fill / dark stroke, so the dropdown inserts
+ * identically across bindings. The id is `''` so
+ * `EditorStateService.addElement` assigns a real one.
+ *
+ * @param shapeType - Preset geometry (OOXML `a:prstGeom` value) to insert.
+ * @param name - Element name; defaults to the capitalised preset type.
+ */
+export function newPresetShapeElement(shapeType: ShapePresetType, name?: string): PptxElement {
+	return {
+		type: 'shape',
+		id: '',
+		name: name ?? shapeType.charAt(0).toUpperCase() + shapeType.slice(1),
+		x: 150,
+		y: 150,
+		width: 200,
+		height: 150,
+		shapeType,
+		shapeStyle: {
+			fillColor: '#3b82f6',
+			strokeColor: '#1f2937',
+			strokeWidth: 2,
+		},
+	} as PptxElement;
 }
