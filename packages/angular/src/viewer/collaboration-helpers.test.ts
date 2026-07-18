@@ -481,6 +481,46 @@ function slide(id: string): PptxSlide {
 	return { id, elements: [] } as unknown as PptxSlide;
 }
 
+/**
+ * Minimal Y.Map-shaped stub for a slide already present in the shared doc's
+ * pptx:slides Y.Array (as written by a remote peer), readable by
+ * readSlidesFromYDoc.
+ */
+function remoteSlideYMap(id: string): {
+	get: (k: string) => unknown;
+	set: () => void;
+	forEach: (cb: (v: unknown, k: string) => void) => void;
+} {
+	const emptyElements = {
+		length: 0,
+		get: () => undefined,
+		push: () => {},
+		delete: () => {},
+		insert: () => {},
+		toArray: () => [],
+		observe: () => {},
+		unobserve: () => {},
+		observeDeep: () => {},
+		unobserveDeep: () => {},
+	};
+	return {
+		get: (k: string) => {
+			if (k === 'id') {
+				return id;
+			}
+			if (k === 'elements') {
+				return emptyElements;
+			}
+			return undefined;
+		},
+		set: () => {},
+		forEach: (cb: (v: unknown, k: string) => void) => {
+			cb(id, 'id');
+			cb(emptyElements, 'elements');
+		},
+	};
+}
+
 const config = { roomId: 'room-1', serverUrl: 'wss://x', userName: 'Ada' };
 
 describe('collaborationService', () => {
@@ -603,49 +643,30 @@ describe('collaborationService', () => {
 		await svc.connect(config, { onRemoteSlides });
 
 		// Simulate a remote peer pushing a slide into the Y.Array.
-		const remoteSlideMap = {
-			get: (k: string) => {
-				if (k === 'id') {
-					return '9';
-				}
-				if (k === 'elements') {
-					return {
-						length: 0,
-						get: () => undefined,
-						push: () => {},
-						delete: () => {},
-						insert: () => {},
-						toArray: () => [],
-						observe: () => {},
-						unobserve: () => {},
-						observeDeep: () => {},
-						unobserveDeep: () => {},
-					};
-				}
-				return undefined;
-			},
-			set: () => {},
-			forEach: (_cb: (v: unknown, k: string) => void) => {
-				_cb('9', 'id');
-				_cb(
-					{
-						length: 0,
-						get: () => undefined,
-						push: () => {},
-						delete: () => {},
-						insert: () => {},
-						toArray: () => [],
-						observe: () => {},
-						unobserve: () => {},
-						observeDeep: () => {},
-						unobserveDeep: () => {},
-					},
-					'elements',
-				);
-			},
-		};
-		hoisted.slidesArray?.push([remoteSlideMap]);
+		hoisted.slidesArray?.push([remoteSlideYMap('9')]);
 		hoisted.slidesObserverCb?.();
+		expect(onRemoteSlides).toHaveBeenCalledWith([expect.objectContaining({ id: '9' })]);
+
+		destroy();
+	});
+
+	it('re-adopts the doc slides after a local load when the room already has content', async () => {
+		reset();
+		const onRemoteSlides = vi.fn();
+		const { svc, destroy } = makeService();
+		await svc.connect(config, { onRemoteSlides });
+		hoisted.statusCb?.({ status: 'connected' });
+		hoisted.syncCb?.(true);
+
+		// Empty room: this client is the seeder, so its loaded deck stands.
+		expect(svc.adoptDocSlidesAfterLoad()).toBeFalsy();
+		expect(onRemoteSlides).not.toHaveBeenCalled();
+
+		// The room's real slides arrive (written by a remote peer). A local
+		// bootstrap load that finishes AFTER this point would clobber them; the
+		// adoption step re-applies the doc content instead.
+		hoisted.slidesArray?.push([remoteSlideYMap('9')]);
+		expect(svc.adoptDocSlidesAfterLoad()).toBeTruthy();
 		expect(onRemoteSlides).toHaveBeenCalledWith([expect.objectContaining({ id: '9' })]);
 
 		destroy();

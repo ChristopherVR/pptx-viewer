@@ -1246,6 +1246,15 @@ export class PowerPointViewerComponent {
 			untracked(() => {
 				this.editor.setSlides(slides, this.loader.sections());
 				this.activeSlideIndex.set(0);
+				// A load that lands mid-session must not clobber remotely synced
+				// slides: when the shared doc already holds the room's content, a
+				// late joiner's bootstrap deck (parsed slower than the doc sync)
+				// would silently overwrite it here and, with the doc unchanged,
+				// never see it re-applied. Re-adopt the doc's slides synchronously
+				// so the broadcast effect below (which only runs after this effect
+				// completes) sees the adopted deck, never the placeholder, and its
+				// write dedupes against the adopted baseline.
+				this.collab.adoptDocSlidesAfterLoad();
 			});
 		});
 
