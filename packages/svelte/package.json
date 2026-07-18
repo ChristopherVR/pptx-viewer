@@ -66,8 +66,10 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.25.0",
+		"fast-xml-parser": "^5.10.1",
 		"html2canvas-pro": "^2.2.4",
-		"jspdf": "^4.2.1"
+		"jspdf": "^4.2.1",
+		"jszip": "^3.10.1"
 	},
 	"devDependencies": {
 		"@microsoft/api-extractor": "^7.58.11",
@@ -88,8 +90,6 @@
 		"yjs": "^13.6.31"
 	},
 	"peerDependencies": {
-		"fast-xml-parser": "^5.10.1",
-		"jszip": "^3.10.1",
 		"svelte": "^5.0.0"
 	},
 	"optionalDependencies": {

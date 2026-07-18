@@ -41,12 +41,13 @@ The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www
 ## Install
 
 ```bash
-npm install pptx-svelte-viewer jszip fast-xml-parser
+npm install pptx-svelte-viewer
 ```
 
 Requires Svelte 5 (runes) as a peer. The `pptx-viewer-core` engine is
-**bundled in**, so you don't install it separately unless you want to call
-the SDK directly.
+**bundled in** and its runtime dependencies (`jszip`, `fast-xml-parser`)
+install automatically, so you don't install anything separately unless you
+want to call the SDK directly.
 
 Component styles ship as a real stylesheet, not runtime-injected CSS (which
 proved unreliable in real SvelteKit apps: SSR, a strict CSP, or the host's own
