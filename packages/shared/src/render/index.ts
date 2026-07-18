@@ -626,3 +626,6 @@ export * from './viewer-prefs-storage';
 // Toolbar action / ribbon-tab visibility: the ToolbarActionId catalogue and
 // TOOLBAR_TABS registry each binding's `hiddenActions` prop is built on.
 export * from './toolbar-actions';
+// File > Options parity: schema, store, persistence, and behavior helpers
+// behind the PowerPoint-style Options dialog in every binding.
+export * from './options';

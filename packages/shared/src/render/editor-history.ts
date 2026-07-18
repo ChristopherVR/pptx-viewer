@@ -68,12 +68,24 @@ export interface EditorHistoryOptions {
  * already-cloned snapshots.
  */
 export class EditorHistory<T> {
-	private readonly _maxDepth: number;
+	private _maxDepth: number;
 	private readonly _past: HistoryEntry<T>[] = [];
 	private readonly _future: HistoryEntry<T>[] = [];
 
 	constructor(options?: EditorHistoryOptions) {
 		this._maxDepth = options?.maxDepth ?? 100;
+	}
+
+	/**
+	 * Change the maximum undo depth at runtime (File > Options > Advanced >
+	 * "Maximum number of undos"). Trims the past stack immediately if the new
+	 * limit is smaller.
+	 */
+	setMaxDepth(maxDepth: number): void {
+		this._maxDepth = Math.max(1, Math.floor(maxDepth));
+		while (this._past.length > this._maxDepth) {
+			this._past.shift();
+		}
 	}
 
 	// -- Getters --------------------------------------------------------------

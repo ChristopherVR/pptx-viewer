@@ -1,4 +1,5 @@
 import type { ViewerProfile } from './account';
+import type { StoredViewerOptions } from './options/viewer-options';
 
 /**
  * `localStorage`-backed viewer chrome preferences (theme/locale/profile),
@@ -20,6 +21,8 @@ export interface StoredViewerPrefs {
 	localeCode?: string;
 	/** Local-only display profile shown in File > Account. */
 	profile?: ViewerProfile;
+	/** Sparse File > Options diff against `DEFAULT_VIEWER_OPTIONS`. */
+	options?: StoredViewerOptions;
 }
 
 function hasLocalStorage(): boolean {
