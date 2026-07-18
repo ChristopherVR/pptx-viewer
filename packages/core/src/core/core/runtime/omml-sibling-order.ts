@@ -35,23 +35,110 @@ function ensureItems(value: unknown): unknown[] {
 	return Array.isArray(value) ? value : [value];
 }
 
+/**
+ * Set an own property whose key comes from untrusted XML tag names (which may
+ * legally be `__proto__`). `Object.defineProperty` always creates a literal
+ * own property; unlike `node[key] = value`, it never walks the prototype
+ * chain and so can't be abused to overwrite `Object.prototype`.
+ */
+function setOwnProperty(node: XmlObject, key: string, value: XmlObject[string]): void {
+	Object.defineProperty(node, key, { value, writable: true, enumerable: true, configurable: true });
+}
+
 function localName(name: string): string {
 	const colon = name.indexOf(':');
 	return colon >= 0 ? name.slice(colon + 1) : name;
 }
 
-/** Matches every `m:oMath` element (any prefix), capturing its inner XML. */
-const OMATH_RE =
-	/<([A-Za-z_][\w.-]*:)?oMath\b(?:"[^"]*"|'[^']*'|[^"'>])*?(?:\/>|>([\s\S]*?)<\/\1oMath\s*>)/gu;
+/** Matches an XML tag's name (open or close) at an exact position. */
+const TAG_NAME_RE = /<(\/)?([A-Za-z_][\w.:-]*)/uy;
 
-/** Open/close/self-closing tag scanner (quote-aware for `>` in attributes). */
-const TAG_RE = /<(\/)?([A-Za-z_][\w.:-]*)((?:"[^"]*"|'[^']*'|[^"'>])*?)(\/)?>/gu;
+/**
+ * Index just past the `>` that closes the tag starting at `xml[start]`
+ * (`'<'`), skipping over `>` characters inside quoted attribute values.
+ * Scans linearly (no regex backtracking) so it stays safe on adversarial,
+ * untrusted OOXML input.
+ */
+function findTagClose(xml: string, start: number): number {
+	let index = start;
+	while (index < xml.length) {
+		const char = xml[index];
+		if (char === '"' || char === "'") {
+			const closingQuote = xml.indexOf(char, index + 1);
+			index = closingQuote === -1 ? xml.length : closingQuote + 1;
+			continue;
+		}
+		if (char === '>') {
+			return index + 1;
+		}
+		index++;
+	}
+	return xml.length;
+}
+
+interface ScannedTag {
+	/** True for a closing tag (`</name>`). */
+	closing: boolean;
+	/** True for a self-closing tag (`<name/>`). */
+	selfClosing: boolean;
+	/** Full prefixed tag name. */
+	name: string;
+	/** Index of the tag's opening `<`. */
+	start: number;
+	/** Index just past the tag's closing `>`. */
+	end: number;
+}
+
+/** Scan forward from `from` for the next open/close/self-closing tag. */
+function nextTag(xml: string, from: number): ScannedTag | null {
+	let open = xml.indexOf('<', from);
+	while (open !== -1) {
+		TAG_NAME_RE.lastIndex = open;
+		const nameMatch = TAG_NAME_RE.exec(xml);
+		if (nameMatch) {
+			const end = findTagClose(xml, open);
+			const selfClosing = xml[end - 2] === '/';
+			return { closing: Boolean(nameMatch[1]), selfClosing, name: nameMatch[2]!, start: open, end };
+		}
+		open = xml.indexOf('<', open + 1);
+	}
+	return null;
+}
 
 /** Inner XML of every oMath element in document order ('' for empty ones). */
 function extractOmathInnerXml(xml: string): string[] {
 	const fragments: string[] = [];
-	for (const match of xml.matchAll(OMATH_RE)) {
-		fragments.push(match[2] ?? '');
+	let cursor = 0;
+	let tag = nextTag(xml, cursor);
+	while (tag) {
+		if (!tag.closing && localName(tag.name) === 'oMath') {
+			if (tag.selfClosing) {
+				fragments.push('');
+				cursor = tag.end;
+			} else {
+				const innerStart = tag.end;
+				let depth = 1;
+				let inner = xml.slice(innerStart);
+				let scanCursor = innerStart;
+				let nested = nextTag(xml, scanCursor);
+				while (nested) {
+					if (localName(nested.name) === 'oMath') {
+						depth += nested.closing ? -1 : nested.selfClosing ? 0 : 1;
+						if (depth === 0) {
+							inner = xml.slice(innerStart, nested.start);
+							break;
+						}
+					}
+					scanCursor = nested.end;
+					nested = nextTag(xml, scanCursor);
+				}
+				fragments.push(inner);
+				cursor = nested ? nested.end : xml.length;
+			}
+		} else {
+			cursor = tag.end;
+		}
+		tag = nextTag(xml, cursor);
 	}
 	return fragments;
 }
@@ -101,27 +188,27 @@ function scanDirectChildren(inner: string): RawChild[] {
 	const children: RawChild[] = [];
 	let depth = 0;
 	let open: { tag: string; innerStart: number } | null = null;
-	for (const match of inner.matchAll(TAG_RE)) {
-		const closing = Boolean(match[1]);
-		const selfClosing = Boolean(match[4]);
-		if (closing) {
+	let cursor = 0;
+	let tag = nextTag(inner, cursor);
+	while (tag) {
+		if (tag.closing) {
 			depth = Math.max(0, depth - 1);
 			if (depth === 0 && open) {
-				children.push({ tag: open.tag, inner: inner.slice(open.innerStart, match.index) });
+				children.push({ tag: open.tag, inner: inner.slice(open.innerStart, tag.start) });
 				open = null;
 			}
-			continue;
-		}
-		if (selfClosing) {
+		} else if (tag.selfClosing) {
 			if (depth === 0) {
-				children.push({ tag: match[2]!, inner: '' });
+				children.push({ tag: tag.name, inner: '' });
 			}
-			continue;
+		} else {
+			if (depth === 0) {
+				open = { tag: tag.name, innerStart: tag.end };
+			}
+			depth++;
 		}
-		if (depth === 0) {
-			open = { tag: match[2]!, innerStart: match.index! + match[0].length };
-		}
-		depth++;
+		cursor = tag.end;
+		tag = nextTag(inner, cursor);
 	}
 	return children;
 }
@@ -176,14 +263,14 @@ function reorderContainer(node: XmlObject, rawInner: string): void {
 
 	const preserved = Object.entries(node).filter(([key]) => !occurrence.has(key));
 	for (const key of Object.keys(node)) {
-		delete node[key];
+		Reflect.deleteProperty(node, key);
 	}
 	for (const [key, value] of preserved) {
-		node[key] = value as XmlObject[string];
+		setOwnProperty(node, key, value as XmlObject[string]);
 	}
 	for (const [position, { tag, value }] of resolved.entries()) {
 		const key = (occurrence.get(tag) ?? 0) > 1 ? orderedXmlKey(tag, position) : tag;
-		node[key] = value as XmlObject[string];
+		setOwnProperty(node, key, value as XmlObject[string]);
 	}
 }
 

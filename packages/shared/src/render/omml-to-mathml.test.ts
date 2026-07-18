@@ -5,6 +5,22 @@ import { convertOmmlToMathMl, ommlToMathml } from './omml-to-mathml';
 
 const MATH_NS = 'xmlns="http://www.w3.org/1998/Math/MathML"';
 
+/** Text content of a MathML fragment, for asserting visual reading order in tests. */
+function visibleText(markup: string): string {
+	let text = '';
+	let inTag = false;
+	for (const char of markup) {
+		if (char === '<') {
+			inTag = true;
+		} else if (char === '>') {
+			inTag = false;
+		} else if (!inTag) {
+			text += char;
+		}
+	}
+	return text;
+}
+
 describe('convertOmmlToMathMl', () => {
 	// ── Null / empty inputs ──────────────────────────────────────────────
 
@@ -487,8 +503,8 @@ describe('sibling ordering via m:box wrappers', () => {
 		};
 
 		const result = convertOmmlToMathMl(omml);
-		// Strip tags: the remaining character stream is the visual reading order.
-		expect(result.replace(/<[^>]+>/gu, '')).toBe('a2+b2=c2');
+		// The remaining character stream (tags stripped) is the visual reading order.
+		expect(visibleText(result)).toBe('a2+b2=c2');
 	});
 });
 
@@ -514,7 +530,7 @@ describe('sibling ordering via #pptx-order-N key markers', () => {
 		};
 
 		const result = convertOmmlToMathMl(omml);
-		expect(result.replace(/<[^>]+>/gu, '')).toBe('a2+b2=c2');
+		expect(visibleText(result)).toBe('a2+b2=c2');
 	});
 
 	it('recognises a bare order-marked container via the content sniff', () => {
@@ -531,6 +547,6 @@ describe('sibling ordering via #pptx-order-N key markers', () => {
 		};
 
 		const result = convertOmmlToMathMl(omml);
-		expect(result.replace(/<[^>]+>/gu, '')).toBe('x2+y2');
+		expect(visibleText(result)).toBe('x2+y2');
 	});
 });
