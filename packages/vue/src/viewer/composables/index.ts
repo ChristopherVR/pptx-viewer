@@ -21,17 +21,25 @@ export type {
 	UseCollaborationOptions,
 	UseCollaborationResult,
 } from './useCollaboration';
-export { useCollaborationWiring } from './useCollaborationWiring';
+// Granular collaboration composables (cross-binding parity with React/Angular).
+// `useCollaboration` stays as the convenience wrapper that bundles every facet.
+export {
+	useYjsProvider,
+	usePresenceTracking,
+	useCollaborativeState,
+	useCollaborativeHistory,
+} from './useCollaborationGranular';
 export type {
-	UseCollaborationWiringInput,
-	UseCollaborationWiringResult,
-} from './useCollaborationWiring';
+	UsePresenceTrackingResult,
+	UseCollaborativeStateResult,
+	UseCollaborativeHistoryInput,
+	UseCollaborativeHistoryResult,
+} from './useCollaborationGranular';
 export {
 	AUDIENCE_HASH,
 	isAudienceTab,
+	parseAudienceNonce,
 	storeAudienceContent,
 	loadAudienceContent,
 	clearAudienceContent,
 } from './audience-content-store';
-export { useToolbarVisibility } from './useToolbarVisibility';
-export type { UseToolbarVisibilityResult } from './useToolbarVisibility';

@@ -223,10 +223,10 @@ async function save() {
 dialog into one component. If you only want a subset, for example your own
 chrome around just the ribbon and the slide canvas, import the pieces
 independently instead: `RibbonToolbar` (from `pptx-vue-viewer`, same as
-`SlideCanvas`) and the `useRibbonProps` composable (from the "advanced
-integrations" entry point `pptx-vue-viewer/composables-unstable`) that
-assembles its props. `composables-unstable` has no semver stability
-guarantee, so pin your version when relying on it.
+`SlideCanvas`) and the `useRibbonProps` composable (from the internal
+building-blocks entry point `pptx-vue-viewer/internals`) that assembles its
+props. The `internals` subpath is not covered by semver; prefer the stable
+root exports, and pin your version when relying on `internals`.
 
 ```vue
 <script setup lang="ts">
@@ -237,7 +237,7 @@ import {
 	useSelection,
 	// ...plus whichever other composables you need to build the
 	// `UseRibbonPropsInput` state/action fields (see ribbon-props-types.ts).
-} from 'pptx-vue-viewer/composables-unstable';
+} from 'pptx-vue-viewer/internals';
 
 // Wire up just the state/handlers your custom shell needs; anything from
 // `UseRibbonPropsInput` you don't use can be a no-op ref/callback.

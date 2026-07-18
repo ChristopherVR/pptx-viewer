@@ -1,4 +1,4 @@
-// ── Unstable, complete export of every internal PowerPointViewer composable ──
+// ── Internal building blocks. Not covered by semver; prefer the stable root exports. ──
 //
 // These are the same composables `PowerPointViewer.vue` composes internally (directly, or via a
 // wiring composable used by a child component). They are exposed here for advanced integrations
@@ -9,10 +9,6 @@
 // input/result types declared alongside it). Purely internal helper modules that back a composable
 // (pure functions, provide/inject keys, constant tables) are not part of this surface - they are
 // implementation detail, not composables.
-//
-// No compatibility guarantees: names, signatures, and behavior can change or be removed in any
-// release - including a patch release - without a deprecation period. Prefer
-// `pptx-vue-viewer/viewer` for anything that needs semver stability.
 
 export * from './viewer/composables/smart-art-3d';
 export * from './viewer/composables/smartart-inline-edit';
@@ -100,6 +96,9 @@ export * from './viewer/composables/useSmartArtNodeEditContext';
 export * from './viewer/composables/useTableCellEditingContext';
 export * from './viewer/composables/useThemeEditing';
 export * from './viewer/composables/useToolbarAutoHide';
+// Moved out of the curated `pptx-vue-viewer/viewer` surface: internal wiring.
+export { useToolbarVisibility } from './viewer/composables/useToolbarVisibility';
+export type { UseToolbarVisibilityResult } from './viewer/composables/useToolbarVisibility';
 export * from './viewer/composables/useTouchGestures';
 export * from './viewer/composables/useVersionHistory';
 export * from './viewer/composables/useVersionHistoryWiring';

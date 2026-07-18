@@ -12,6 +12,7 @@
 import {
 	clearPresentationDeck,
 	loadPresentationDeck,
+	parsePresentationSessionId,
 	storePresentationDeck,
 } from 'pptx-viewer-shared';
 
@@ -60,6 +61,15 @@ function openDb(): Promise<IDBDatabase> {
 /** Returns true if the current page was opened as an audience tab. */
 export function isAudienceTab(): boolean {
 	return window.location.hash.startsWith(AUDIENCE_HASH);
+}
+
+/**
+ * Parse the session nonce from the current page URL hash. Returns `null` if the
+ * hash is not in the expected `#pptx-audience&nonce=<uuid>` form. Mirrors
+ * React's `parseAudienceNonce` for cross-tab handshake parity.
+ */
+export function parseAudienceNonce(): string | null {
+	return parsePresentationSessionId(window.location.hash);
 }
 
 /**

@@ -64,7 +64,7 @@ export default defineConfig({
 				index: resolve(__dirname, 'src/index.ts'),
 				'viewer/index': resolve(__dirname, 'src/viewer/index.ts'),
 				i18n: resolve(__dirname, 'src/i18n.ts'),
-				'composables-unstable': resolve(__dirname, 'src/composables-unstable.ts'),
+				internals: resolve(__dirname, 'src/internals.ts'),
 			},
 			formats: ['es', 'cjs'],
 			fileName: (format, entryName) => `${entryName}.${format === 'es' ? 'js' : 'cjs'}`,

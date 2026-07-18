@@ -30,7 +30,7 @@ export type {
 } from './types';
 
 // `RibbonToolbar`'s prop contract, for composing a custom ribbon/toolbar shell
-// with `useRibbonProps` (see `pptx-vue-viewer/composables-unstable`) instead of
+// with `useRibbonProps` (see `pptx-vue-viewer/internals`) instead of
 // the bundled `PowerPointViewer`. `ViewerMode` is intentionally not
 // re-exported here: it is structurally identical to (and satisfied by) the
 // `ViewerMode` already exported from `pptx-viewer-shared` / the package root.

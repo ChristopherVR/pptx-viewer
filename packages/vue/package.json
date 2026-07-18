@@ -51,10 +51,10 @@
 			"import": "./dist/viewer/index.js",
 			"require": "./dist/viewer/index.cjs"
 		},
-		"./composables-unstable": {
-			"types": "./dist/composables-unstable.d.ts",
-			"import": "./dist/composables-unstable.js",
-			"require": "./dist/composables-unstable.cjs"
+		"./internals": {
+			"types": "./dist/internals.d.ts",
+			"import": "./dist/internals.js",
+			"require": "./dist/internals.cjs"
 		},
 		"./i18n": {
 			"types": "./dist/i18n.d.ts",
