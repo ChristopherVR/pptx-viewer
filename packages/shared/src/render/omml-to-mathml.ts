@@ -14,6 +14,7 @@
  */
 
 import type { XmlObject } from 'pptx-viewer-core';
+import { stripXmlOrderSuffix } from 'pptx-viewer-core';
 
 import { getOmmlMathColor, getOmmlMathFontSize } from './omml-color';
 
@@ -485,13 +486,16 @@ function convertChildren(node: OmmlNode): string {
 		if (key.startsWith('@_')) {
 			continue;
 		}
-		if (key === 'm:oMathPara') {
+		// Keys may carry `#pptx-order-N` position markers (interleaved sibling
+		// sequences); strip them before dispatching on the tag name.
+		const tag = stripXmlOrderSuffix(key);
+		if (tag === 'm:oMathPara') {
 			continue;
 		}
 
 		const items = ensureArray(node[key]);
 		for (const item of items) {
-			const result = convertElement(key, item);
+			const result = convertElement(tag, item);
 			if (result) {
 				parts.push(result);
 			}
@@ -563,7 +567,8 @@ function findOmathRoots(node: OmmlNode): OmmlNode[] {
 			return ensureArray(paraNode['m:oMath']);
 		}
 	}
-	if (node['m:r'] || node['m:f'] || node['m:rad'] || node['m:sSup'] || node['m:sSub']) {
+	const contentTags = new Set(['m:r', 'm:f', 'm:rad', 'm:sSup', 'm:sSub', 'm:box']);
+	if (Object.keys(node).some((key) => contentTags.has(stripXmlOrderSuffix(key)))) {
 		return [node];
 	}
 	return [];

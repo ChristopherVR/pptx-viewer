@@ -12,6 +12,8 @@
  * matching what the core shape-parsing pipeline stores as
  * `TextSegment.equationXml`.
  */
+import { orderedXmlKey, stripXmlOrderSuffix } from 'pptx-viewer-core';
+
 import type { OmmlNode } from './omml-to-mathml';
 
 // ── Greek letter map ─────────────────────────────────────────────────────────
@@ -203,7 +205,7 @@ function tokenize(latex: string): Token[] {
 // ── Sibling merging ──────────────────────────────────────────────────────────
 
 /**
- * True when merging the sibling nodes into one tag-keyed object keeps their
+ * True when merging the sibling entries into one tag-keyed object keeps their
  * visual order. fast-xml-parser's collapsed shape stores same-tag siblings as
  * an array under one key and distinct tags under separate keys, so a walker
  * iterating `Object.keys` re-emits the sequence grouped by tag in
@@ -211,20 +213,15 @@ function tokenize(latex: string): Token[] {
  * tag's occurrences are contiguous (e.g. `r r sSup` survives, `sSup r sSup`
  * does not: the runs would migrate to the end, turning a^2+b^2 into a2b2+).
  */
-function mergesLosslessly(nodes: OmmlNode[]): boolean {
+function isGroupedByTag(tags: string[]): boolean {
 	const seen = new Set<string>();
 	let previous = '';
-	for (const node of nodes) {
-		for (const key of Object.keys(node)) {
-			if (node[key] === undefined) {
-				continue;
-			}
-			if (key !== previous && seen.has(key)) {
-				return false;
-			}
-			seen.add(key);
-			previous = key;
+	for (const tag of tags) {
+		if (tag !== previous && seen.has(tag)) {
+			return false;
 		}
+		seen.add(tag);
+		previous = tag;
 	}
 	return true;
 }
@@ -233,33 +230,48 @@ function mergesLosslessly(nodes: OmmlNode[]): boolean {
  * Merge parsed sibling nodes into a single OMML container object.
  *
  * When tags interleave (`m:sSup`, `m:r`, `m:sSup`, ... for a^2+b^2=c^2), the
- * collapsed tag-keyed shape cannot represent the sibling order, so each node
- * is wrapped in its own `m:box`: the standard OMML invisible grouping element
- * (ECMA-376 §22.1.2.13). Every sibling then shares the single `m:box` key and
- * their array preserves the exact order through MathML rendering, the reverse
- * LaTeX conversion, and OOXML serialization on save. Grouped-by-tag sequences
+ * collapsed tag-keyed shape cannot represent the sibling order under plain
+ * keys, so repeated tags get position-marked keys (`m:r#pptx-order-1`, via
+ * core's `orderedXmlKey`): object insertion order then carries the true
+ * sequence. This is the same convention core's load pipeline applies to real
+ * decks (`omml-sibling-order.ts`), and core's save-side XMLBuilder strips the
+ * markers from emitted tag names, so the serialized OOXML is the natural
+ * interleaved sequence PowerPoint itself writes. Grouped-by-tag sequences
  * keep the compact merged shape.
  */
 function mergeSiblings(nodes: OmmlNode[]): OmmlNode {
-	if (!mergesLosslessly(nodes)) {
-		return { 'm:box': nodes.map((node) => ({ 'm:e': node })) as unknown as OmmlNode[] };
-	}
-	const result: OmmlNode = {};
+	const entries: Array<[string, OmmlNode[keyof OmmlNode]]> = [];
 	for (const node of nodes) {
 		for (const key of Object.keys(node)) {
-			if (node[key] === undefined) {
-				continue;
+			if (node[key] !== undefined) {
+				entries.push([key, node[key]]);
 			}
-			if (result[key]) {
-				const existing = result[key];
-				if (Array.isArray(existing)) {
-					(existing as OmmlNode[]).push(node[key] as OmmlNode);
-				} else {
-					result[key] = [existing as OmmlNode, node[key] as OmmlNode];
-				}
+		}
+	}
+
+	if (!isGroupedByTag(entries.map(([key]) => key))) {
+		const counts = new Map<string, number>();
+		for (const [key] of entries) {
+			counts.set(key, (counts.get(key) ?? 0) + 1);
+		}
+		const ordered: OmmlNode = {};
+		for (const [position, [key, value]] of entries.entries()) {
+			ordered[(counts.get(key) ?? 0) > 1 ? orderedXmlKey(key, position) : key] = value;
+		}
+		return ordered;
+	}
+
+	const result: OmmlNode = {};
+	for (const [key, value] of entries) {
+		if (result[key]) {
+			const existing = result[key];
+			if (Array.isArray(existing)) {
+				(existing as OmmlNode[]).push(value as OmmlNode);
 			} else {
-				result[key] = node[key];
+				result[key] = [existing as OmmlNode, value as OmmlNode];
 			}
+		} else {
+			result[key] = value;
 		}
 	}
 	return result;
@@ -478,19 +490,11 @@ class LatexParser implements LatexParserContext {
 	}
 
 	public wrapE(nodes: OmmlNode[]): OmmlNode {
+		// A single node passes through unchanged: it may itself be a merged
+		// container whose keys carry `#pptx-order-N` markers, which a fixed
+		// key-name copy would silently drop.
 		if (nodes.length === 1) {
-			return {
-				'm:r': nodes[0]!['m:r'],
-				'm:f': nodes[0]!['m:f'],
-				'm:rad': nodes[0]!['m:rad'],
-				'm:sSup': nodes[0]!['m:sSup'],
-				'm:sSub': nodes[0]!['m:sSub'],
-				'm:sSubSup': nodes[0]!['m:sSubSup'],
-				'm:nary': nodes[0]!['m:nary'],
-				'm:d': nodes[0]!['m:d'],
-				'm:func': nodes[0]!['m:func'],
-				'm:box': nodes[0]!['m:box'],
-			};
+			return nodes[0]!;
 		}
 		return mergeSiblings(nodes);
 	}
@@ -749,9 +753,12 @@ function ommlChildrenToLatex(node: Record<string, unknown> | undefined): string 
 		if (key.startsWith('@_')) {
 			continue;
 		}
+		// Keys may carry `#pptx-order-N` position markers (interleaved sibling
+		// sequences); strip them before dispatching on the tag name.
+		const tag = stripXmlOrderSuffix(key);
 		const items = ensureArr(node[key]);
 		for (const item of items) {
-			const result = ommlElementToLatex(key, item);
+			const result = ommlElementToLatex(tag, item);
 			if (result) {
 				parts.push(result);
 			}

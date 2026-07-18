@@ -491,3 +491,46 @@ describe('sibling ordering via m:box wrappers', () => {
 		expect(result.replace(/<[^>]+>/gu, '')).toBe('a2+b2=c2');
 	});
 });
+
+describe('sibling ordering via #pptx-order-N key markers', () => {
+	it('renders order-marked interleaved siblings in source order', () => {
+		const omml = {
+			'm:oMath': {
+				'm:sSup#pptx-order-0': {
+					'm:e': { 'm:r': { 'm:t': 'a' } },
+					'm:sup': { 'm:r': { 'm:t': '2' } },
+				},
+				'm:r#pptx-order-1': { 'm:t': '+' },
+				'm:sSup#pptx-order-2': {
+					'm:e': { 'm:r': { 'm:t': 'b' } },
+					'm:sup': { 'm:r': { 'm:t': '2' } },
+				},
+				'm:r#pptx-order-3': { 'm:t': '=' },
+				'm:sSup#pptx-order-4': {
+					'm:e': { 'm:r': { 'm:t': 'c' } },
+					'm:sup': { 'm:r': { 'm:t': '2' } },
+				},
+			},
+		};
+
+		const result = convertOmmlToMathMl(omml);
+		expect(result.replace(/<[^>]+>/gu, '')).toBe('a2+b2=c2');
+	});
+
+	it('recognises a bare order-marked container via the content sniff', () => {
+		const omml = {
+			'm:sSup#pptx-order-0': {
+				'm:e': { 'm:r': { 'm:t': 'x' } },
+				'm:sup': { 'm:r': { 'm:t': '2' } },
+			},
+			'm:r#pptx-order-1': { 'm:t': '+' },
+			'm:sSup#pptx-order-2': {
+				'm:e': { 'm:r': { 'm:t': 'y' } },
+				'm:sup': { 'm:r': { 'm:t': '2' } },
+			},
+		};
+
+		const result = convertOmmlToMathMl(omml);
+		expect(result.replace(/<[^>]+>/gu, '')).toBe('x2+y2');
+	});
+});

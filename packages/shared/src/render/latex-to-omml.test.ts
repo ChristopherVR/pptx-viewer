@@ -637,16 +637,21 @@ describe('convertOmmlToLatex', () => {
 
 describe('operator/construct interleaving order', () => {
 	// The collapsed fast-xml-parser shape groups siblings by tag, so an
-	// interleaved sequence (sSup, r, sSup, ...) must be emitted as per-sibling
-	// m:box wrappers under one key to keep its order. Grouped-by-tag
+	// interleaved sequence (sSup, r, sSup, ...) is emitted with
+	// `#pptx-order-N` position-marked keys (the same convention core's load
+	// pipeline uses; the save-side builder strips the markers). Grouped-by-tag
 	// sequences keep the compact shape.
 
-	it('emits ordered m:box siblings for a^{2}+b^{2}=c^{2}', () => {
+	it('emits order-marked keys for a^{2}+b^{2}=c^{2}', () => {
 		const oMath = getOmml('a^{2}+b^{2}=c^{2}');
-		const boxes = oMath['m:box'];
-		expect(Array.isArray(boxes)).toBeTruthy();
 		// sSup(a,2), '+', sSup(b,2), '=', sSup(c,2)
-		expect(boxes).toHaveLength(5);
+		expect(Object.keys(oMath)).toStrictEqual([
+			'm:sSup#pptx-order-0',
+			'm:r#pptx-order-1',
+			'm:sSup#pptx-order-2',
+			'm:r#pptx-order-3',
+			'm:sSup#pptx-order-4',
+		]);
 	});
 
 	it('round-trips a^{2}+b^{2}=c^{2} back to identical LaTeX', () => {
@@ -663,10 +668,12 @@ describe('operator/construct interleaving order', () => {
 		expect(convertOmmlToLatex(convertLatexToOmml('e^{x}+1=0'))).toBe('e^{x}+1=0');
 	});
 
-	it('keeps grouped-by-tag sequences in the compact merged shape (no boxes)', () => {
-		expect(getOmml('a+b=c')['m:box']).toBeUndefined();
-		expect(getOmml('x=\\frac{-b\\pm\\sqrt{b^{2}-4ac}}{2a}')['m:box']).toBeUndefined();
-		expect(getOmml('\\frac{a}{b}')['m:box']).toBeUndefined();
+	it('keeps grouped-by-tag sequences in the compact merged shape (no markers)', () => {
+		const hasMarkers = (latex: string): boolean =>
+			Object.keys(getOmml(latex)).some((key) => key.includes('#pptx-order-'));
+		expect(hasMarkers('a+b=c')).toBeFalsy();
+		expect(hasMarkers('x=\\frac{-b\\pm\\sqrt{b^{2}-4ac}}{2a}')).toBeFalsy();
+		expect(hasMarkers('\\frac{a}{b}')).toBeFalsy();
 	});
 
 	it('reverses standalone m:box nodes (e.g. from real OMML) transparently', () => {
