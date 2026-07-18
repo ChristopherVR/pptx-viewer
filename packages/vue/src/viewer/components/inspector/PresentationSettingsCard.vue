@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import type { PptxPresentationProperties } from 'pptx-viewer-core';
+import {
+	printPropertiesFrameSlides,
+	printPropertiesSlidesPerPage,
+	withFrameSlides,
+	withSlidesPerPage,
+} from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
 /**
@@ -86,8 +92,15 @@ function onNumber(e: Event): number {
 			<input
 				type="checkbox"
 				:disabled="!props.canEdit"
-				:checked="Boolean(props.presentationProperties.printFrameSlides)"
-				@change="emit('update', { printFrameSlides: ($event.target as HTMLInputElement).checked })"
+				:checked="printPropertiesFrameSlides(props.presentationProperties.printProperties)"
+				@change="
+					emit('update', {
+						printProperties: withFrameSlides(
+							props.presentationProperties.printProperties,
+							($event.target as HTMLInputElement).checked,
+						),
+					})
+				"
 			/>
 		</label>
 
@@ -99,8 +112,15 @@ function onNumber(e: Event): number {
 				:max="16"
 				:disabled="!props.canEdit"
 				class="w-20 rounded border border-border bg-muted px-2 py-1 text-xs"
-				:value="props.presentationProperties.printSlidesPerPage ?? 1"
-				@input="emit('update', { printSlidesPerPage: onNumber($event) })"
+				:value="printPropertiesSlidesPerPage(props.presentationProperties.printProperties)"
+				@input="
+					emit('update', {
+						printProperties: withSlidesPerPage(
+							props.presentationProperties.printProperties,
+							onNumber($event),
+						),
+					})
+				"
 			/>
 		</label>
 	</div>
