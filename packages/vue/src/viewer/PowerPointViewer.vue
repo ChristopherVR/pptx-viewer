@@ -2133,13 +2133,6 @@ function handleCommandSearch(command: string): void {
 							:zoom="effectiveZoom"
 						/>
 					</SlideCanvas>
-					<NotesPanel
-						v-if="props.canEdit && !isMobile"
-						:slide="activeSlide"
-						:expanded="notesExpanded"
-						@update="onNotesUpdate"
-						@toggle="notesExpanded = !notesExpanded"
-					/>
 				</main>
 
 				<!-- Property inspector (single selection, edit mode). On mobile this
@@ -2272,6 +2265,19 @@ function handleCommandSearch(command: string): void {
 					@move-slide="customShowOps.moveSlideInShow"
 				/>
 			</div>
+
+			<!-- Docked speaker-notes panel (desktop): collapsed to a "Notes" strip
+			     that sits directly above the status bar (React parity via
+			     ViewerBottomPanels). Toggling it expands the editor inline; the
+			     status-bar Notes button and this strip's chevron stay in sync. It
+			     lives OUTSIDE <main> so it never scrolls away with the canvas. -->
+			<NotesPanel
+				v-if="props.canEdit && !isMobile && slideCount > 0"
+				:slide="activeSlide"
+				:expanded="notesExpanded"
+				@update="onNotesUpdate"
+				@toggle="notesExpanded = !notesExpanded"
+			/>
 
 			<!-- Bottom status bar (desktop): React-parity chrome -->
 			<StatusBar

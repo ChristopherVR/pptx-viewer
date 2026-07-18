@@ -257,7 +257,7 @@ function onMenuSelect(id: string): void {
 				@click="emit('add-slide')"
 			>
 				<Plus class="h-3 w-3" />
-				{{ t('pptx.slideMenu.addSlide') }}
+				{{ t('pptx.sections.addSlide') }}
 			</button>
 		</div>
 

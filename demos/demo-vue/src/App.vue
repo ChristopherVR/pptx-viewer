@@ -328,6 +328,18 @@ watchEffect(() => {
 	}
 });
 
+// Reflect the loaded deck's name in the document title (all other demos do
+// this). The collaboration effect above owns the title while a session is
+// active; otherwise show "<fileName> - PPTX Viewer", falling back to the plain
+// demo title before any deck is opened.
+watchEffect(() => {
+	if (collaborationConfig.value) {
+		return;
+	}
+	document.title =
+		content.value && fileName.value ? `${fileName.value} - PPTX Viewer` : 'pptx-vue-viewer demo';
+});
+
 function onDirtyChange(dirty: boolean): void {
 	document.title = dirty ? `* ${fileName.value} - PPTX Viewer` : `${fileName.value} - PPTX Viewer`;
 }
