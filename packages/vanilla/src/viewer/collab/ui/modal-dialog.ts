@@ -1,4 +1,4 @@
-import { activateModalFocus } from 'pptx-viewer-shared';
+import { activateModalFocus, defaultCssVars } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
@@ -18,6 +18,13 @@ import { createEl } from '../../render';
 export interface ModalDialogOptions {
 	title: string;
 	onClose(): void;
+	/**
+	 * Element carrying the active `--pptx-*` theme vars (the `.pptxv` root).
+	 * The backdrop lives on `document.body`, outside that root, so on every
+	 * open the current vars are copied onto it; without this the dialog keeps
+	 * the stylesheet/page defaults and ignores the viewer's active theme.
+	 */
+	themeHost?: () => HTMLElement | null;
 }
 
 export interface ModalDialog {
@@ -80,6 +87,22 @@ export function createModalDialog(
 	}
 	applyTitle(options.title);
 
+	/** Mirror the viewer root's current `--pptx-*` vars onto the backdrop. */
+	function syncThemeVars(): void {
+		const host = options.themeHost?.();
+		const view = host?.ownerDocument.defaultView;
+		if (!host || !view) {
+			return;
+		}
+		const computed = view.getComputedStyle(host);
+		for (const key of Object.keys(defaultCssVars())) {
+			const value = computed.getPropertyValue(key).trim();
+			if (value) {
+				backdrop.style.setProperty(key, value);
+			}
+		}
+	}
+
 	return {
 		el: backdrop,
 		bodyEl,
@@ -94,6 +117,7 @@ export function createModalDialog(
 			isOpen = open;
 			backdrop.hidden = !open;
 			if (open) {
+				syncThemeVars();
 				releaseFocus = activateModalFocus(panel, { onEscape: options.onClose });
 			} else {
 				releaseFocus?.();

@@ -22,10 +22,12 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 		const state = deps.store.get();
 		const chrome = deps.getChrome();
 		const { ribbon, inspector } = chrome;
+		const editingVisible = state.editable && !state.presenting;
+		// The thumbnail rail's pinned Add Slide footer is an editing affordance.
+		chrome.thumbnails?.setAddSlideVisible(editingVisible);
 		if (!ribbon && !inspector) {
 			return;
 		}
-		const editingVisible = state.editable && !state.presenting;
 		ribbon?.setEditable(editingVisible);
 		// The panel toggle in the quick-access row hides the inspector without
 		// leaving edit mode (React's `isInspectorPaneOpen`).

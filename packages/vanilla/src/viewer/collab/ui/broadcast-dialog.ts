@@ -40,6 +40,7 @@ export function createBroadcastDialog(
 	doc: Document,
 	t: Translator,
 	handlers: BroadcastDialogHandlers,
+	themeHost?: () => HTMLElement | null,
 ): BroadcastDialog {
 	let fields: BroadcastConfig = seedBroadcastFields();
 	let active = false;
@@ -48,6 +49,7 @@ export function createBroadcastDialog(
 	const modal: ModalDialog = createModalDialog(doc, t, {
 		title: t('pptx.broadcast.startTitle'),
 		onClose: () => modal.setOpen(false),
+		themeHost,
 	});
 	doc.body.appendChild(modal.el);
 

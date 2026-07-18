@@ -71,33 +71,48 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 		);
 	}
 
-	const shareDialog = createShareDialog(doc, t, {
-		onStart: (config) =>
-			void deps.startCollaboration(config).then(() => shareDialog.setActive(true)),
-		onStop: () => {
-			deps.stopCollaboration();
-			shareDialog.setActive(false);
-			shareDialog.close();
-		},
-	});
+	// Both dialogs mount on document.body, outside the themed `.pptxv` root;
+	// they copy the root's active `--pptx-*` vars on open so they follow the
+	// viewer theme (matching the other body-mounted dialogs).
+	const themeHost = (): HTMLElement | null => deps.getChrome().root;
 
-	const broadcastDialog = createBroadcastDialog(doc, t, {
-		onStart: (config: BroadcastConfig) => {
-			broadcastRoomId = config.roomId;
-			broadcastServerUrl = config.serverUrl;
-			const session = buildBroadcastSessionConfig(config, deps.shareDefaults?.userName);
-			void deps
-				.startCollaboration(session)
-				.then(() => broadcastDialog.setActive(true, viewerUrl()));
+	const shareDialog = createShareDialog(
+		doc,
+		t,
+		{
+			onStart: (config) =>
+				void deps.startCollaboration(config).then(() => shareDialog.setActive(true)),
+			onStop: () => {
+				deps.stopCollaboration();
+				shareDialog.setActive(false);
+				shareDialog.close();
+			},
 		},
-		onStop: () => {
-			deps.stopCollaboration();
-			broadcastRoomId = '';
-			broadcastServerUrl = '';
-			broadcastDialog.setActive(false, '');
-			broadcastDialog.close();
+		themeHost,
+	);
+
+	const broadcastDialog = createBroadcastDialog(
+		doc,
+		t,
+		{
+			onStart: (config: BroadcastConfig) => {
+				broadcastRoomId = config.roomId;
+				broadcastServerUrl = config.serverUrl;
+				const session = buildBroadcastSessionConfig(config, deps.shareDefaults?.userName);
+				void deps
+					.startCollaboration(session)
+					.then(() => broadcastDialog.setActive(true, viewerUrl()));
+			},
+			onStop: () => {
+				deps.stopCollaboration();
+				broadcastRoomId = '';
+				broadcastServerUrl = '';
+				broadcastDialog.setActive(false, '');
+				broadcastDialog.close();
+			},
 		},
-	});
+		themeHost,
+	);
 
 	const statusPill = createCollaborationStatus(doc, t, () => {
 		const config = deps.getConfig();

@@ -153,7 +153,10 @@ export function buildViewerChrome(
 
 	let thumbnails: ThumbnailRail | null = null;
 	if (options.showThumbnails) {
-		thumbnails = createThumbnailRail(doc, t, options.onSelectSlide);
+		// The pinned Add Slide footer reuses the ribbon Home > New Slide action.
+		thumbnails = createThumbnailRail(doc, t, options.onSelectSlide, () =>
+			options.ribbonHandlers.edit.addSlide(),
+		);
 		body.appendChild(thumbnails.el);
 	}
 

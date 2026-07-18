@@ -4,6 +4,7 @@ import type { CanvasSize } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { createIcon } from './icons';
 import type { ThumbnailSectionActions } from './thumbnail-sections';
 import { renderThumbnailSections } from './thumbnail-sections';
 
@@ -26,6 +27,8 @@ export interface ThumbnailRail {
 	setActive(index: number): void;
 	/** Show or hide the rail. */
 	setVisible(visible: boolean): void;
+	/** Show or hide the pinned Add Slide footer (editing enabled only). */
+	setAddSlideVisible(visible: boolean): void;
 	renderMasters(
 		masters: readonly PptxSlideMaster[],
 		canvasSize: CanvasSize,
@@ -43,10 +46,34 @@ export function createThumbnailRail(
 	doc: Document,
 	t: Translator,
 	onSelect: (index: number) => void,
+	onAddSlide?: () => void,
 ): ThumbnailRail {
 	const el = createEl(doc, 'aside', 'pptxv-thumbs');
 	el.setAttribute('role', 'navigation');
 	el.setAttribute('aria-label', t('pptx.sections.slides'));
+	// Scrollable slide list; the Add Slide footer stays pinned below it
+	// (mirrors React's SlidesPaneSidebar bottom button).
+	const list = createEl(doc, 'div', 'pptxv-thumbs-list');
+	el.appendChild(list);
+	let footer: HTMLElement | null = null;
+	let addSlideVisible = false;
+	let masterMode = false;
+	const applyFooterVisibility = (): void => {
+		if (footer) {
+			footer.hidden = !addSlideVisible || masterMode;
+		}
+	};
+	if (onAddSlide) {
+		footer = createEl(doc, 'div', 'pptxv-thumbs-footer');
+		footer.hidden = true;
+		const addBtn = createEl(doc, 'button', 'pptxv-thumbs-add');
+		addBtn.type = 'button';
+		addBtn.appendChild(createIcon(doc, 'plus'));
+		addBtn.appendChild(doc.createTextNode(t('pptx.sections.addSlide')));
+		addBtn.addEventListener('click', () => onAddSlide());
+		footer.appendChild(addBtn);
+		el.appendChild(footer);
+	}
 	let buttons = new Map<number, HTMLButtonElement>();
 	let activeIndex = 0;
 	let sourceSlides: PptxSlide[] = [];
@@ -83,7 +110,7 @@ export function createThumbnailRail(
 		buttons = new Map();
 		const scale = THUMB_STAGE_WIDTH / Math.max(sourceCanvasSize.width, 1);
 		if (sourceSections.length > 0) {
-			el.replaceChildren(
+			list.replaceChildren(
 				...renderThumbnailSections({
 					doc,
 					t,
@@ -97,7 +124,12 @@ export function createThumbnailRail(
 			return;
 		}
 		const range = virtualized
-			? computeVirtualRange(sourceSlides.length, itemHeight, el.scrollTop, el.clientHeight || 600)
+			? computeVirtualRange(
+					sourceSlides.length,
+					itemHeight,
+					list.scrollTop,
+					list.clientHeight || 600,
+				)
 			: computeVirtualRange(
 					sourceSlides.length,
 					itemHeight,
@@ -129,13 +161,13 @@ export function createThumbnailRail(
 			space.dataset.virtualized = 'true';
 		}
 		space.appendChild(window);
-		el.replaceChildren(space);
+		list.replaceChildren(space);
 		const active = buttons.get(activeIndex);
 		active?.classList.add('is-active');
 		active?.setAttribute('aria-current', 'page');
 	};
 
-	el.addEventListener('scroll', () => {
+	list.addEventListener('scroll', () => {
 		if (virtualized) {
 			renderWindow();
 		}
@@ -144,6 +176,8 @@ export function createThumbnailRail(
 	return {
 		el,
 		render(slides, canvasSize, renderStage, sections, sectionActions) {
+			masterMode = false;
+			applyFooterVisibility();
 			sourceSlides = slides;
 			sourceCanvasSize = canvasSize;
 			sourceRenderStage = renderStage;
@@ -165,11 +199,11 @@ export function createThumbnailRail(
 			if (virtualized) {
 				const top = index * itemHeight;
 				const bottom = top + itemHeight;
-				const viewport = el.clientHeight || 600;
-				if (top < el.scrollTop) {
-					el.scrollTop = top;
-				} else if (bottom > el.scrollTop + viewport) {
-					el.scrollTop = Math.max(0, bottom - viewport);
+				const viewport = list.clientHeight || 600;
+				if (top < list.scrollTop) {
+					list.scrollTop = top;
+				} else if (bottom > list.scrollTop + viewport) {
+					list.scrollTop = Math.max(0, bottom - viewport);
 				}
 				renderWindow();
 			}
@@ -189,8 +223,14 @@ export function createThumbnailRail(
 		setVisible(visible) {
 			el.hidden = !visible;
 		},
+		setAddSlideVisible(visible) {
+			addSlideVisible = visible;
+			applyFooterVisibility();
+		},
 		renderMasters(masters, canvasSize, renderStage, select, active) {
-			el.replaceChildren();
+			masterMode = true;
+			applyFooterVisibility();
+			list.replaceChildren();
 			buttons = new Map();
 			virtualized = false;
 			el.classList.remove('pptxv-thumbs-virtualized');
@@ -225,7 +265,7 @@ export function createThumbnailRail(
 				frame.appendChild(renderStage(slide, scale));
 				btn.append(name, frame);
 				btn.addEventListener('click', () => select(masterIndex, layoutIndex));
-				el.appendChild(btn);
+				list.appendChild(btn);
 			};
 			masters.forEach((master, masterIndex) => {
 				add(

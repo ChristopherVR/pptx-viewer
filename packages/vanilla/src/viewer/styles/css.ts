@@ -159,21 +159,50 @@ const CHROME_CSS = `
 .pptxv-thumbs {
 	flex: none;
 	width: 168px;
+	min-height: 0;
+	border-right: 1px solid var(--pptx-border);
+	background: var(--pptx-card);
+	display: flex;
+	flex-direction: column;
+}
+/* Scrollable slide list; the Add Slide footer stays pinned below it. */
+.pptxv-thumbs-list {
+	flex: 1;
+	min-height: 0;
 	overflow-y: auto;
 	overflow-x: hidden;
 	padding: 8px;
-	border-right: 1px solid var(--pptx-border);
-	background: var(--pptx-card);
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 }
 /* Virtualized rail: block layout for the absolute-positioned window. :where()
-   keeps specificity at one class so the mobile and presenting display:none
-   rules below still win (a naked two-class rule, or the inline style this
-   replaces, would override them). */
-.pptxv-thumbs:where(.pptxv-thumbs-virtualized) { display: block; }
+   keeps the .pptxv-thumbs-virtualized part at zero specificity so the mobile
+   and presenting display:none rules on the rail still win. */
+:where(.pptxv-thumbs-virtualized) .pptxv-thumbs-list { display: block; }
 .pptxv-thumbs[hidden] { display: none; }
+.pptxv-thumbs-footer {
+	flex: none;
+	padding: 6px 8px;
+	border-top: 1px solid var(--pptx-border);
+}
+.pptxv-thumbs-footer[hidden] { display: none; }
+.pptxv-thumbs-add {
+	display: flex;
+	width: 100%;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	padding: 4px 8px;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--pptx-muted-foreground);
+	font-size: 11px;
+	cursor: pointer;
+}
+.pptxv-thumbs-add:hover { background: var(--pptx-accent); color: var(--pptx-foreground); }
+.pptxv-thumbs-add svg { width: 12px; height: 12px; }
 .pptxv-thumb {
 	display: flex;
 	align-items: flex-start;

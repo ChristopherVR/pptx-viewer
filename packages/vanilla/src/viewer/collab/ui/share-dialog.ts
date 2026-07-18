@@ -44,6 +44,7 @@ export function createShareDialog(
 	doc: Document,
 	t: Translator,
 	handlers: ShareDialogHandlers,
+	themeHost?: () => HTMLElement | null,
 ): ShareDialog {
 	let fields: ShareFormFields = seedShareFields();
 	let active = false;
@@ -53,6 +54,7 @@ export function createShareDialog(
 	const modal: ModalDialog = createModalDialog(doc, t, {
 		title: t('pptx.toolbar.share'),
 		onClose: () => modal.setOpen(false),
+		themeHost,
 	});
 	doc.body.appendChild(modal.el);
 
