@@ -1,4 +1,5 @@
 import { translations as accessibility_print_and_export } from './accessibility-print-and-export';
+import { translations as ai_assistant } from './ai-assistant';
 import { translations as animations } from './animations';
 import { translations as application_shell } from './application-shell';
 import { translations as charts } from './charts';
@@ -17,6 +18,7 @@ import { translations as text_and_equations } from './text-and-equations';
 
 export const translationsDe: Record<string, string> = {
 	...application_shell,
+	...ai_assistant,
 	...editing_and_review,
 	...drawing_and_layout,
 	...accessibility_print_and_export,
