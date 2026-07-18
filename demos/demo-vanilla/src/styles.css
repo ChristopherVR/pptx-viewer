@@ -188,3 +188,49 @@ body {
 	border-radius: 9999px;
 	flex-shrink: 0;
 }
+
+/* ── AI assistant config card (landing screen) ─────────────────────────── */
+.demo-ai-card {
+	width: min(440px, 92vw);
+	margin: 20px auto 0;
+	padding: 18px 20px;
+	border: 1px solid var(--pptx-border, #e2e8f0);
+	border-radius: 12px;
+	background: var(--pptx-card, #fff);
+	color: var(--pptx-foreground, #0f172a);
+	text-align: left;
+}
+.demo-ai-title {
+	margin: 0 0 4px;
+	font-size: 15px;
+	font-weight: 600;
+}
+.demo-ai-note {
+	margin: 0 0 14px;
+	font-size: 12.5px;
+	line-height: 1.5;
+	color: var(--pptx-muted-foreground, #64748b);
+}
+.demo-ai-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 10px;
+}
+.demo-ai-field span {
+	font-size: 12px;
+	font-weight: 600;
+}
+.demo-ai-field input {
+	padding: 8px 10px;
+	border: 1px solid var(--pptx-border, #e2e8f0);
+	border-radius: 8px;
+	background: var(--pptx-muted, #f8fafc);
+	color: inherit;
+	font: inherit;
+	font-size: 13px;
+}
+.demo-ai-field input:focus-visible {
+	outline: 2px solid var(--pptx-primary, #2563eb);
+	outline-offset: 1px;
+}

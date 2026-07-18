@@ -11,6 +11,7 @@ import {
 } from 'pptx-vanilla-viewer';
 import { PptxHandler } from 'pptx-viewer-core';
 
+import { buildViewerAiConfig, createAiConfigCard } from './ai-config';
 import { buildRoomConfig, readRoomFromUrl, resolveAutoName } from './collab';
 import { getLanguage, onLanguageChange, t, viewerMessages } from './demo-i18n';
 import { createDropzone } from './dropzone';
@@ -104,6 +105,7 @@ function openViewer(
 		autosave: true,
 		collaboration,
 		smartArt3D,
+		ai: buildViewerAiConfig(),
 		shareDefaults: { userName },
 		onError: (message, error) => {
 			console.error('pptx-vanilla-viewer failed to load', message, error);
@@ -137,6 +139,7 @@ function showLanding(): void {
 				})();
 			},
 		}),
+		createAiConfigCard(),
 	);
 }
 
