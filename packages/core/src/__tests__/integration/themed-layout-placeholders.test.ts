@@ -95,4 +95,32 @@ describe('themed layout placeholders + grouped background (issue #66)', () => {
 			expect(decorativeShapes, `slide ${index + 1} background group is empty`).toBeGreaterThan(10);
 		}
 	});
+
+	it.skipIf(!hasFixture)('keeps complete custom-geometry paths on the balloon freeforms', () => {
+		// The balloon freeforms are custGeom paths with dozens of lnTo segments.
+		// A command-order misalignment used to truncate them to ~4 points, so
+		// they rendered as tiny slivers. Assert at least one background shape
+		// keeps its full path.
+		const groups = data.slides[0].elements.filter(
+			(element) => element.type === 'group' && /^(layout|master)-/u.test(element.id),
+		);
+		let maxSegments = 0;
+		const visit = (element: PptxElement): void => {
+			if (element.type === 'group') {
+				for (const child of (element as { children?: PptxElement[] }).children ?? []) {
+					visit(child);
+				}
+				return;
+			}
+			const geometryPaths = (element as { customGeometryPaths?: Array<{ segments?: unknown[] }> })
+				.customGeometryPaths;
+			for (const geometryPath of geometryPaths ?? []) {
+				maxSegments = Math.max(maxSegments, geometryPath.segments?.length ?? 0);
+			}
+		};
+		for (const group of groups) {
+			visit(group);
+		}
+		expect(maxSegments, 'balloon custom-geometry path was truncated').toBeGreaterThan(30);
+	});
 });
