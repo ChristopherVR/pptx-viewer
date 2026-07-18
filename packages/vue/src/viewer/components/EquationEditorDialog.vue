@@ -2,7 +2,12 @@
 import DOMPurify from 'dompurify';
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import type { OmmlNode } from 'pptx-viewer-shared';
-import { convertLatexToOmml, convertOmmlToLatex, convertOmmlToMathMl } from 'pptx-viewer-shared';
+import {
+	EQUATION_TEMPLATES,
+	convertLatexToOmml,
+	convertOmmlToLatex,
+	convertOmmlToMathMl,
+} from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -45,26 +50,11 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-/** Pre-built equation templates (LaTeX + i18n label key). */
-interface EquationTemplate {
-	i18nKey: string;
-	latex: string;
-}
-
-const TEMPLATES: EquationTemplate[] = [
-	{ i18nKey: 'pptx.equation.template.fraction', latex: '\\frac{a}{b}' },
-	{ i18nKey: 'pptx.equation.template.quadratic', latex: 'x=\\frac{-b\\pm\\sqrt{b^{2}-4ac}}{2a}' },
-	{ i18nKey: 'pptx.equation.template.pythagorean', latex: 'a^{2}+b^{2}=c^{2}' },
-	{ i18nKey: 'pptx.equation.template.sum', latex: '\\sum_{i=1}^{n}{a_{i}}' },
-	{ i18nKey: 'pptx.equation.template.integral', latex: '\\int_{a}^{b}{f(x)}dx' },
-	{ i18nKey: 'pptx.equation.template.squareRoot', latex: '\\sqrt{x^{2}+y^{2}}' },
-	{ i18nKey: 'pptx.equation.template.limit', latex: '\\lim_{x\\to\\infty}{f(x)}' },
-	{ i18nKey: 'pptx.equation.template.euler', latex: 'e^{i\\pi}+1=0' },
-	{ i18nKey: 'pptx.equation.template.matrix', latex: '\\left[a,b;c,d\\right]' },
-	{ i18nKey: 'pptx.equation.template.binomial', latex: '\\left(a+b\\right)^{n}' },
-	{ i18nKey: 'pptx.equation.template.derivative', latex: '\\frac{dy}{dx}' },
-	{ i18nKey: 'pptx.equation.template.trigIdentity', latex: '\\sin^{2}\\theta+\\cos^{2}\\theta=1' },
-];
+/**
+ * Pre-built equation templates (LaTeX + i18n label key), shared across every
+ * binding's equation dialog.
+ */
+const TEMPLATES = EQUATION_TEMPLATES;
 
 /**
  * Sanitise a MathML markup string. Falls back to the raw input when
