@@ -107,6 +107,99 @@ import 'pptx-svelte-viewer/styles';
 See the [full docs](https://christophervr.github.io/pptx-viewer/svelte/) for
 the complete props/events contract, theming, and localization guides.
 
+### Composing a custom viewer shell
+
+`<PowerPointViewer>` bundles the slide canvas, ribbon, thumbnail rail,
+inspector, and every dialog into one component. If you only want a subset,
+for example your own chrome around just the ribbon and the slide canvas,
+import the pieces independently from the `pptx-svelte-viewer/viewer`
+sub-path instead: `Ribbon` / `ViewerToolbar` (the full editing ribbon and the
+compact read-only toolbar), `SlideCanvas` (the slide stage-holder), and
+`createViewerState`, a factory that builds the same reactive controllers
+(`ViewerState`, `EditorState`, `EditorController`, `CollaborationController`,
+etc.) `PowerPointViewer.svelte` itself constructs, so wiring `Ribbon` /
+`ViewerToolbar` to its return value mirrors the bundled component exactly.
+
+```svelte
+<script lang="ts">
+	import { createViewerState, Ribbon, SlideCanvas } from 'pptx-svelte-viewer/viewer';
+
+	let source: ArrayBuffer | undefined = $state();
+	let rootEl: HTMLDivElement | undefined;
+	let stageHolderEl: HTMLDivElement | undefined;
+	let viewportWidth = $state(0);
+	let viewportHeight = $state(0);
+
+	// Must be called synchronously here, in your own shell component's
+	// script (not inside a callback or after an `await`): it registers
+	// `onMount`/`onDestroy` and Svelte context (the translator context
+	// `Ribbon`'s tabs and `ViewerToolbar` read via `useTranslator()`,
+	// among others) that only work during component initialisation.
+	const state = createViewerState({
+		getSource: () => source,
+		getAutosave: () => false,
+		getFilePath: () => undefined,
+		getInitialSlide: () => 0,
+		t: (key) => key, // or `createTranslator` from `pptx-svelte-viewer/i18n`
+		getSmartArt3D: () => false,
+		getEditable: () => true,
+		getStageHolderEl: () => stageHolderEl,
+		getRootEl: () => rootEl,
+		getViewportWidth: () => viewportWidth,
+		getViewportHeight: () => viewportHeight,
+		getMasterScale: () => 1,
+	});
+</script>
+
+<div bind:this={rootEl} class="my-custom-shell">
+	<Ribbon
+		editor={state.editor}
+		findReplace={state.findReplace}
+		canvasSize={state.loader.canvasSize}
+		current={state.viewer.current}
+		total={state.viewer.slideCount}
+		onprev={() => state.viewer.prev()}
+		onnext={() => state.viewer.next()}
+		onnavigateslide={(index) => state.viewer.goTo(index)}
+	/>
+	<!-- ...plus whichever other `RibbonProps` fields your shell needs. -->
+	<div bind:clientWidth={viewportWidth} bind:clientHeight={viewportHeight}>
+		<SlideCanvas
+			slide={state.activeSlide}
+			canvasSize={state.loader.canvasSize}
+			mediaDataUrls={state.loader.mediaDataUrls}
+			scale={state.scale}
+			editingActive={state.editingActive}
+			onstageholder={(el) => (stageHolderEl = el ?? undefined)}
+			onstagepointerdown={state.controller.onStagePointerDown}
+			onstagepointermove={state.controller.onStagePointerMove}
+		/>
+	</div>
+</div>
+```
+
+`Ribbon`'s full prop contract is the `RibbonProps` type; `ViewerToolbar`'s is
+`ViewerToolbarProps`; `SlideCanvas`'s is `SlideCanvasProps` (flat/typed
+props, no live state-class instances - the editing/annotation/collaboration
+overlays that stack on top of the stage are passed in as `SlideCanvas`
+children instead, since only the host knows which of them it needs).
+`createViewerState`'s options and return value are `CreateViewerStateOptions`
+and `ViewerStateBag`.
+
+Two caveats if you go this route:
+
+- There is no standalone "canvas-only" component that also owns the
+  thumbnail rail, notes panel, and inspector pane the way the bundled
+  viewer's `ViewerBody` does - those stay your shell's responsibility to
+  assemble (or reuse `ViewerBody` itself, which is not exported, since it
+  takes live state-class instances rather than flat props).
+- `createViewerState` is a newer, lower-level extraction than the rest of
+  this package's public API; its exact option/return shape may still be
+  refined as more of the bundled component's construction gets folded into
+  it. `PowerPointViewer.svelte` currently keeps its own parallel inline copy
+  of the same wiring rather than calling `createViewerState` itself, so treat
+  the factory as accurate-today rather than the single source of truth yet.
+
 ## License
 
 Apache-2.0. See `LICENSE` and `NOTICE`.

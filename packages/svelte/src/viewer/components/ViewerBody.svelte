@@ -24,7 +24,7 @@
 	import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.svelte';
 	import InspectorPanel from './inspector/InspectorPanel.svelte';
 	import NotesPanel from './NotesPanel.svelte';
-	import SlideStage from './SlideStage.svelte';
+	import SlideCanvas from './SlideCanvas.svelte';
 	import ThumbnailRail from './ThumbnailRail.svelte';
 	import AlignmentGuides from './AlignmentGuides.svelte';
 
@@ -123,16 +123,6 @@
 		onstageresize(viewportWidth, viewportHeight);
 	});
 
-	/** Reports the stage-holder node to the parent on mount/teardown. */
-	function attachStageHolder(node: HTMLDivElement, callback: (el: HTMLDivElement | null) => void) {
-		callback(node);
-		return {
-			destroy(): void {
-				callback(null);
-			},
-		};
-	}
-
 	function commitTableCell(id: string, rowIndex: number, cellIndex: number, text: string): void {
 		const table = editor.activeElements.find((element) => element.id === id);
 		if (table?.type !== 'table') {
@@ -203,23 +193,24 @@
 			{:else if error}
 				<div class="pptx-svelte-message" role="alert">{error}</div>
 			{:else if activeSlide}
-				<!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
-				<!-- The stage holder is the editing hit-surface; the overlay above
-				     it (pointer-events:none except handles) lets clicks reach the
-				     rendered elements underneath. While presenting, a tap advances
-				     the show (keyboard advance is handled on the viewer root). -->
-				<div
-					use:attachStageHolder={onstageholder}
-					class="pptx-svelte-stage-holder"
-					class:pptx-svelte-editing={editingActive}
-					style={`width: ${canvasSize.width * scale}px; height: ${canvasSize.height * scale}px`}
-					onpointerdown={editingActive ? controller.onStagePointerDown : undefined}
-					onpointermove={editingActive ? controller.onStagePointerMove : undefined}
-					ondblclick={editingActive ? controller.onStageDblClick : undefined}
-					oncontextmenu={editingActive ? controller.onStageContextMenu : undefined}
-					onclick={presenting ? onAdvance : undefined}
+				<SlideCanvas
+					slide={activeSlide}
+					{canvasSize}
+					{mediaDataUrls}
+					{scale}
+					{presenting}
+					{editingActive}
+					editTemplateMode={editor.editTemplateMode}
+					ontablecellcommit={editingActive ? commitTableCell : undefined}
+					onsmartartnodecommit={editingActive ? commitSmartArtNode : undefined}
+					onsmartartnodefill={editingActive ? commitSmartArtFill : undefined}
+					{onstageholder}
+					onstagepointerdown={controller.onStagePointerDown}
+					onstagepointermove={controller.onStagePointerMove}
+					onstagedblclick={controller.onStageDblClick}
+					onstagecontextmenu={controller.onStageContextMenu}
+					onstageclick={presenting ? onAdvance : undefined}
 				>
-					<SlideStage slide={activeSlide} {canvasSize} {mediaDataUrls} {scale} {presenting} interactive editTemplateMode={editor.editTemplateMode} ontablecellcommit={editingActive ? commitTableCell : undefined} onsmartartnodecommit={editingActive ? commitSmartArtNode : undefined} onsmartartnodefill={editingActive ? commitSmartArtFill : undefined} />
 					{#if editingActive && guides.length && onchangeguide}<AlignmentGuides {guides} {scale} onchange={onchangeguide} />{/if}
 					{#if editingActive}
 						<EditorLayer {controller} {scale} {spellCheck} />
@@ -240,7 +231,7 @@
 							ondone={onTransitionDone}
 						/>
 					{/if}
-				</div>
+				</SlideCanvas>
 				{#if contextMenu}
 					<ElementContextMenu x={contextMenu.x} y={contextMenu.y} {editor} onclose={onContextMenuClose} />
 				{/if}
@@ -283,19 +274,6 @@
 		overflow: auto;
 		min-width: 0;
 		min-height: 0;
-	}
-
-	.pptx-svelte-stage-holder {
-		position: relative;
-		margin: auto;
-		flex: none;
-		overflow: hidden;
-		box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-	}
-
-	.pptx-svelte-editing {
-		cursor: default;
-		touch-action: none;
 	}
 
 	.pptx-svelte-message {

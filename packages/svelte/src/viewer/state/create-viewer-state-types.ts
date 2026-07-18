@@ -1,0 +1,144 @@
+import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
+import type {
+	CanvasSize,
+	CollaborationConfig,
+	MobileSheetKey,
+	ViewerMode,
+} from 'pptx-viewer-shared';
+
+import type { Translator } from '../../i18n/translator';
+import type { CollaborationController, CollaborationDialogsState } from '../collab';
+import type { ShareDefaultsInput } from '../collab/collaboration-dialogs.svelte';
+import type { EditingApi } from '../editor/editing-api';
+import type { EditorController } from '../editor/editor-controller.svelte';
+import type { FindReplaceState } from '../editor/editor-find-replace.svelte';
+import type { EditorState } from '../editor/editor-state.svelte';
+import type { ExportUiState } from '../export/export-ui.svelte';
+import type { ExportWiring } from '../export/export-wiring.svelte';
+import type { ExportingApi } from '../export/exporting-api';
+import type { PresentationController, PresenterSession } from '../presentation';
+import type { ViewerLoadDetail } from '../types';
+import type { AutosaveController } from './autosave.svelte';
+import type { ChromeUiState } from './chrome-ui.svelte';
+import type { PresentationLoader } from './presentation-loader.svelte';
+import type { ViewerParityUiState } from './viewer-parity-ui.svelte';
+import type { ViewerState } from './viewer-state.svelte';
+
+export type { CanvasSize };
+
+/**
+ * Options accepted by {@link createViewerState}. Mirrors the subset of
+ * `PowerPointViewerProps` the extracted construction block (formerly
+ * inlined at the top of `PowerPointViewer.svelte`'s `<script>`) closes
+ * over, plus getter callbacks for the handful of DOM-bound values
+ * (`bind:this` / `bind:clientWidth` targets) that must stay owned by
+ * whichever component renders the actual markup.
+ */
+export interface CreateViewerStateOptions {
+	getSource: () => Uint8Array | ArrayBuffer | null | undefined;
+	collaboration?: CollaborationConfig;
+	shareDefaults?: ShareDefaultsInput;
+	/** Host `autosave` prop (post-effect value the caller keeps in sync). */
+	getAutosave: () => boolean;
+	autosaveIntervalMs?: number;
+	getFilePath: () => string | undefined;
+	getInitialSlide: () => number;
+	/** Already locale-bound translator; propagated to descendants via context. */
+	t: Translator;
+	getSmartArt3D: () => boolean;
+	/** Whether in-place editing is enabled (host `editable` prop, post-effect value). */
+	getEditable: () => boolean;
+
+	onload?: (detail: ViewerLoadDetail) => void;
+	onerror?: (message: string) => void;
+	onslidechange?: (index: number) => void;
+	onnotesupdate?: (notes: string) => void;
+	onchange?: () => void;
+	ondirtychange?: (dirty: boolean) => void;
+	oncontentchange?: (content: Uint8Array) => void;
+	onmodechange?: (mode: ViewerMode) => void;
+	onzoomchange?: (zoom: number) => void;
+	onselectionchange?: (elementIds: string[]) => void;
+	onslidecountchange?: (count: number) => void;
+	onautosave?: (bytes: Uint8Array) => void;
+	/** Fired when the host toggles AutoSave (title bar / Settings dialog). */
+	onautosavetoggle?: (enabled: boolean) => void;
+	onstartcollaboration?: (config: CollaborationConfig) => void;
+	onstopcollaboration?: () => void;
+
+	/** DOM-bound getters, supplied by the component that owns the markup. */
+	getStageHolderEl: () => HTMLDivElement | undefined;
+	getRootEl: () => HTMLDivElement | undefined;
+	getViewportWidth: () => number;
+	getViewportHeight: () => number;
+	/** Master/layout workspace zoom, assigned by `MasterViewBody`. */
+	getMasterScale: () => number;
+}
+
+/**
+ * Everything the ribbon, toolbar, and canvas need, returned from
+ * {@link createViewerState}. Reactive/derived fields are exposed as
+ * getters (some paired with setters for the plain local UI flags) so reads
+ * anywhere, not just inside an `$effect`, stay live.
+ */
+export interface ViewerStateBag {
+	readonly loader: PresentationLoader;
+	readonly viewer: ViewerState;
+	readonly editor: EditorState;
+	readonly controller: EditorController;
+	readonly parityUi: ViewerParityUiState;
+	readonly chromeUi: ChromeUiState;
+	readonly findReplace: FindReplaceState;
+	readonly collab: CollaborationController;
+	readonly dialogs: CollaborationDialogsState;
+	readonly autosaveCtl: AutosaveController;
+	readonly presentation: PresentationController;
+	readonly presenterSession: PresenterSession;
+	readonly exportWiring: ExportWiring;
+	readonly exportUi: ExportUiState;
+	readonly t: Translator;
+	/** Imperative undo/redo/save/download API, matching `PowerPointViewerApi`'s editing subset. */
+	readonly editingApi: EditingApi;
+	/** Imperative PNG/PDF/GIF/video/print API, matching `PowerPointViewerApi`'s export subset. */
+	readonly exportingApi: ExportingApi;
+
+	/** Effective scale (fit-to-viewport x user zoom), matching the main canvas. */
+	readonly scale: number;
+	/** User-facing zoom percent (rounded, never below 1). */
+	readonly effectivePercent: number;
+	readonly displaySlides: EditorState['renderedSlides'];
+	readonly activeSlide: EditorState['renderedSlides'][number] | undefined;
+	readonly chromeVisible: boolean;
+	/** True when in-place editing is actually available (editable, not presenting, not read-only). */
+	readonly editingActive: boolean;
+	/** True once the ribbon (vs. the compact `ViewerToolbar`) should be shown. */
+	readonly showRibbon: boolean;
+	readonly viewerMode: ViewerMode;
+	/** True while the autosave debounce/write cycle is armed. */
+	readonly autosaveActive: boolean;
+
+	/** Read-only: mutate via {@link setAutosaveEnabled}, which also fires `onautosavetoggle`. */
+	readonly autosaveEnabled: boolean;
+	setAutosaveEnabled(enabled: boolean): void;
+	presenterMode: boolean;
+	/** `Date.now()` timestamp of the last `enterPresenterView()` call; the presenter view's elapsed-time display. */
+	readonly presenterStartedAt: number;
+	stageContextMenu: { x: number; y: number } | null;
+	readonly activeMobileSheet: MobileSheetKey;
+	setActiveMobileSheet(next: MobileSheetKey): void;
+	readonly notesExpanded: boolean;
+	versionHistoryOpen: boolean;
+	readonly signatureWarningOpen: boolean;
+
+	enterPresenterView(): void;
+	closeSignatureWarning(): void;
+	onNotesToggle(): void;
+	onNotesCommit(notes: string, segments?: TextSegment[]): void;
+	onFullscreenToggle(): void;
+	onFullscreenChange(): void;
+	onKeydown(event: KeyboardEvent): void;
+	downloadPptx(fileName?: string): Promise<void>;
+	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
+	/** Tear down every constructed controller (call from the host's `onDestroy`). */
+	destroy(): void;
+}

@@ -22,3 +22,5 @@ export type { InspectorTabId } from './chrome-ui.svelte';
 export { PresentationLoader } from './presentation-loader.svelte';
 export { ViewerState } from './viewer-state.svelte';
 export { provideSmartArt3D, useSmartArt3D } from './smart-art-3d-context';
+export { createViewerState } from './create-viewer-state.svelte';
+export type { CreateViewerStateOptions, ViewerStateBag } from './create-viewer-state-types';

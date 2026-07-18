@@ -84,6 +84,44 @@ export interface SlideStageProps {
 	onsmartartnodefill?: (elementId: string, nodeId: string, fill: string) => void;
 }
 
+export interface SlideCanvasProps {
+	slide: PptxSlide | undefined;
+	canvasSize: CanvasSize;
+	mediaDataUrls: Map<string, string>;
+	/** Effective scale (fit-to-viewport x user zoom), pre-computed by the host. */
+	scale: number;
+	/** True only on the live presentation stage; see `SlideStageProps.presenting`. */
+	presenting?: boolean;
+	/** True while in-place editing is available; gates the pointer handlers and the editing cursor/class. */
+	editingActive?: boolean;
+	editTemplateMode?: boolean;
+	ontablecellcommit?: (
+		elementId: string,
+		rowIndex: number,
+		cellIndex: number,
+		text: string,
+	) => void;
+	onsmartartnodecommit?: (elementId: string, nodeId: string, text: string) => void;
+	onsmartartnodefill?: (elementId: string, nodeId: string, fill: string) => void;
+	/** Reports the stage-holder node to the host on mount/teardown (editing hit-surface, export capture anchor). */
+	onstageholder?: (el: HTMLDivElement | null) => void;
+	onstagepointerdown?: (event: PointerEvent) => void;
+	onstagepointermove?: (event: PointerEvent) => void;
+	onstagedblclick?: (event: MouseEvent) => void;
+	onstagecontextmenu?: (event: MouseEvent) => void;
+	/** Fired on any stage click; the host wires this to advance presentation playback. */
+	onstageclick?: (event: MouseEvent) => void;
+	/**
+	 * Overlay content layered above the slide (selection/editor layer, ink
+	 * drawing, alignment guides, presentation annotations, collaboration
+	 * cursors, transition overlay, ...). Rendered inside the same
+	 * fixed-size, scaled stage-holder as the slide itself. Kept out of this
+	 * component's own props (rather than a fixed list of overlay slots) so it
+	 * stays free of the live editor/controller instances those overlays need.
+	 */
+	children?: import('svelte').Snippet;
+}
+
 export interface ViewerToolbarProps {
 	/** Active slide (0-based). */
 	current: number;
