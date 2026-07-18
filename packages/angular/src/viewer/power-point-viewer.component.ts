@@ -11,6 +11,7 @@ import {
 	input,
 	output,
 	signal,
+	untracked,
 	viewChild,
 } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -1269,11 +1270,19 @@ export class PowerPointViewerComponent {
 		});
 
 		// Reset to the first slide and seed the editable deck whenever a new
-		// presentation finishes loading.
+		// presentation finishes loading. Only loader.slides() may be tracked
+		// here: setSlides clears the undo/redo history, and its sections/
+		// headerFooter reads (incl. the headerFooter DEFAULT PARAMETER, which
+		// executes in this reactive context) would otherwise re-trigger the
+		// seed on unrelated loader writes - undo()'s restoreSnapshot writes
+		// loader.headerFooter, which used to wipe the history right after
+		// every undo.
 		effect(() => {
 			const slides = this.loader.slides();
-			this.editor.setSlides(slides, this.loader.sections());
-			this.activeSlideIndex.set(0);
+			untracked(() => {
+				this.editor.setSlides(slides, this.loader.sections());
+				this.activeSlideIndex.set(0);
+			});
 		});
 
 		// Selecting an element re-opens the inspector if a prior swipe had hidden
