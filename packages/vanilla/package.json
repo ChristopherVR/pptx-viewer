@@ -75,6 +75,14 @@
 		"y-websocket": "^3.0.0",
 		"yjs": "^13.6.31"
 	},
+	"peerDependencies": {
+		"ai": ">=6.0.0 <8"
+	},
+	"peerDependenciesMeta": {
+		"ai": {
+			"optional": true
+		}
+	},
 	"optionalDependencies": {
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",

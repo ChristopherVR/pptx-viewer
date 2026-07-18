@@ -13,6 +13,7 @@ import type {
 	ViewerFontSource,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
+import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
 import type { AutosaveStatus } from './autosave';
@@ -213,6 +214,16 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	 * presenter's display name.
 	 */
 	shareDefaults?: ShareDefaults;
+	/**
+	 * Opt-in AI assistant (default: off). When supplied, a sparkles toggle
+	 * appears in the title bar that opens a right-side chat panel wired to the
+	 * framework-agnostic AI core (`pptx-viewer-shared/ai`). The panel and the
+	 * optional `ai` SDK peer are dynamically imported only when the panel is
+	 * first opened, so a viewer without this option pays nothing. The host owns
+	 * the model connection (a backend `endpoint`, an in-browser `model`, or a
+	 * custom `transport`); see {@link PptxAiConfig}.
+	 */
+	ai?: PptxAiConfig;
 }
 
 /** The viewer handle returned by `createPptxViewer`. */

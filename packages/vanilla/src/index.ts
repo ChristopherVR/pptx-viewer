@@ -30,6 +30,17 @@ export type {
 	ConnectionStatus,
 } from './viewer';
 
+// ── AI assistant (opt-in `ai` viewer option; types only, so re-exporting
+// here never pulls the AI core or the optional `ai` SDK into the bundle) ─
+export type {
+	PptxAiBridge,
+	PptxAiConfig,
+	PptxAiConnection,
+	PptxAiContextStrategy,
+	PptxAiToolName,
+	PptxAiWritePolicy,
+} from 'pptx-viewer-shared/ai';
+
 // ── Element renderer extension surface ─────────────────────────────────
 export type {
 	CssStyleMap,
