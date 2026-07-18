@@ -64,8 +64,9 @@ export const RIBBON_CSS = `
 	display: flex;
 	flex-wrap: nowrap;
 	align-items: stretch;
-	gap: 2px;
-	padding: 4px 8px;
+	gap: 0;
+	min-height: 82px;
+	padding: 2px 4px;
 	overflow-x: auto;
 	overflow-y: hidden;
 }

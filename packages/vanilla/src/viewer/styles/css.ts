@@ -407,10 +407,10 @@ const CHROME_CSS = `
 	display: flex;
 	align-items: center;
 	gap: 4px;
-	min-height: 28px;
+	min-height: 20px;
 	padding: 2px 8px;
 	border-top: 1px solid var(--pptx-border);
-	background: color-mix(in srgb, var(--pptx-muted) 55%, var(--pptx-card));
+	background: color-mix(in srgb, var(--pptx-secondary) 50%, transparent);
 	color: var(--pptx-muted-foreground);
 	font-size: 10px;
 }

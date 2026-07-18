@@ -26,6 +26,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		}
 		if (state.presenting !== previous.presenting) {
 			chrome.setPresenting(state.presenting);
+			chrome.statusBar?.setPresenting(state.presenting);
 			callbacks.onPresentationChange?.(state.presenting);
 		}
 		// Thumbnails are skipped while a drag/resize gesture streams slide

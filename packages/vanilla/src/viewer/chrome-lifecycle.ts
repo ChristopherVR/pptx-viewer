@@ -234,6 +234,14 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 			void (host.lifecycle.presentation.isActive()
 				? host.exitPresentation()
 				: host.enterPresentation()),
+		returnToNormalView: () => {
+			// Return to the normal editing view: leave presentation if it is
+			// running and dismiss the (modal) slide-sorter overlay if it is open.
+			if (host.store.get().presenting) {
+				void host.exitPresentation();
+			}
+			host.container.querySelector('[data-pptx-slide-sorter]')?.remove();
+		},
 		undo: () => host.undo(),
 		redo: () => host.redo(),
 		toggleAutosave: () => host.toggleAutosave(),

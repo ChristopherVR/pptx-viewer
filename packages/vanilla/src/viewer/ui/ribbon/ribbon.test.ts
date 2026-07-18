@@ -33,6 +33,7 @@ function buildHandlers(): RibbonHandlers {
 			zoomOut: vi.fn(),
 			zoomToFit: vi.fn(),
 			togglePresentation: vi.fn(),
+			normalView: vi.fn(),
 			toggleNotes: vi.fn(),
 			openAccessibility: vi.fn(),
 			openSettings: vi.fn(),

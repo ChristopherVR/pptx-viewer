@@ -28,6 +28,8 @@ export interface RibbonNavHandlers {
 	zoomOut(): void;
 	zoomToFit(): void;
 	togglePresentation(): void;
+	/** Return to the normal editing view: exit presentation + close the slide sorter. */
+	normalView(): void;
 	toggleNotes(): void;
 	openAccessibility(): void;
 	openSettings(tab?: 'general' | 'shortcuts'): void;

@@ -13,6 +13,8 @@ export type StatusBarSaveKind = 'idle' | 'saving' | 'saved' | 'error';
 
 export interface StatusBarHandlers {
 	toggleNotes(): void;
+	/** Return to the normal editing view (exit presentation + close slide sorter). */
+	normalView(): void;
 	openSlideSorter(): void;
 	togglePresentation(): void;
 	zoomIn(): void;
@@ -29,6 +31,9 @@ export interface StatusBar {
 	setSaveStatus(label: string, kind: StatusBarSaveKind): void;
 	/** Reflect the unsaved-changes flag in the idle save-state text. */
 	setDirty(dirty: boolean): void;
+	/** Reflect presentation state so the Normal / Slide Show buttons show the
+	    active view (derived, not hardcoded). */
+	setPresenting(presenting: boolean): void;
 }
 
 /**
@@ -41,6 +46,12 @@ export function createStatusBar(
 	t: Translator,
 	handlers: StatusBarHandlers,
 	hiddenActions?: readonly ToolbarActionId[],
+	/**
+	 * Optional collaboration-status element, projected between the view-mode
+	 * cluster and the zoom cluster (React parity's `collaborationSlot`). Hosts
+	 * can supply their own connection-status indicator here.
+	 */
+	collaborationSlot?: HTMLElement,
 ): StatusBar {
 	const el = createEl(doc, 'div', 'pptxv-statusbar');
 
@@ -95,8 +106,10 @@ export function createStatusBar(
 	const normal = makeButton(doc, {
 		label: t('pptx.statusBar.normalView'),
 		icon: 'monitor',
+		// Active by default (not presenting on mount); `setPresenting` keeps this
+		// in sync with the real view instead of hardcoding it.
 		className: 'pptxv-statusbar-btn is-active',
-		onClick: () => {},
+		onClick: handlers.normalView,
 	});
 	normal.btn.setAttribute('data-pptx-compact', '');
 	const slideSorter = makeButton(doc, {
@@ -150,6 +163,7 @@ export function createStatusBar(
 		normal.btn,
 		slideSorter.btn,
 		...(slideShow ? [slideShow.btn] : []),
+		...(collaborationSlot ? [divider(), collaborationSlot] : []),
 		divider(),
 		...(zoomOut && zoomPercent && zoomIn ? [zoomOut.btn, zoomPercent, zoomIn.btn] : []),
 	);
@@ -177,6 +191,13 @@ export function createStatusBar(
 		setDirty(isDirty) {
 			dirty = isDirty;
 			applySaveState();
+		},
+		setPresenting(presenting) {
+			// Normal view is active when not presenting; the Slide Show button
+			// lights up while presenting. (The slide-sorter overlay is modal and
+			// self-dismissing, so it is not tracked as a persistent active view.)
+			normal.btn.classList.toggle('is-active', !presenting);
+			slideShow?.btn.classList.toggle('is-active', presenting);
 		},
 	};
 }

@@ -19,6 +19,8 @@ export interface ChromeCallbackDeps {
 	zoomOut(): void;
 	zoomToFit(): void;
 	togglePresentation(): void;
+	/** Return to the normal editing view (exit presentation + close slide sorter). */
+	returnToNormalView(): void;
 	undo(): void;
 	redo(): void;
 	save(): void;
@@ -99,6 +101,7 @@ export function buildChromeCallbacks(
 			zoomOut: () => deps.zoomOut(),
 			zoomToFit: () => deps.zoomToFit(),
 			togglePresentation: () => deps.togglePresentation(),
+			normalView: () => deps.returnToNormalView(),
 			toggleNotes: () => deps.toggleNotes(),
 			openAccessibility: () => deps.openAccessibility(),
 			openSettings: (tab) => deps.openSettings(tab),

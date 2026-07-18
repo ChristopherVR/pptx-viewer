@@ -190,6 +190,7 @@ export function buildViewerChrome(
 				t,
 				{
 					toggleNotes: options.ribbonHandlers.nav.toggleNotes,
+					normalView: options.ribbonHandlers.nav.normalView,
 					openSlideSorter: options.ribbonHandlers.nav.openSlideSorter,
 					togglePresentation: options.ribbonHandlers.nav.togglePresentation,
 					zoomIn: options.ribbonHandlers.nav.zoomIn,
