@@ -144,6 +144,33 @@ import { renderToCanvas } from 'pptx-react-viewer';
 const canvas = await renderToCanvas(element, options); // => HTMLCanvasElement
 ```
 
+### Composing a custom viewer shell
+
+`<PowerPointViewer>` bundles a full editor chrome (toolbar, canvas, side panels, dialogs, presentation mode). If you only need the toolbar and slide canvas, with your own layout around them, `Toolbar` and `SlideCanvas` are exported as standalone components, and `useViewerBuildingBlocks` wires up the same state and hooks `PowerPointViewer` uses internally, mapped into the flat props those two components expect:
+
+```tsx
+import { Toolbar, SlideCanvas, useViewerBuildingBlocks } from 'pptx-react-viewer';
+
+function MyCustomViewer({ content }: { content: Uint8Array }) {
+	const { toolbarProps, canvasProps, loading, error } = useViewerBuildingBlocks({
+		content,
+		canEdit: true,
+	});
+
+	if (loading) return <p>Loading…</p>;
+	if (error) return <p>Failed to load: {error}</p>;
+
+	return (
+		<div className='my-custom-layout'>
+			<Toolbar {...toolbarProps} />
+			<SlideCanvas {...canvasProps} />
+		</div>
+	);
+}
+```
+
+`useViewerBuildingBlocks` accepts the same `content` / `canEdit` / `filePath` / `hiddenActions` / `onDirtyChange`-style inputs as `PowerPointViewer`, plus `onOpenSettings` / `onOpenHeaderFooter` / `onOpenShareDialog` callbacks (fired by the corresponding toolbar buttons) since this composition doesn't render those dialogs itself. It's an additive alternative, not a replacement: dialogs, presentation-mode overlays, mobile chrome, resizable side panels, and real-time collaboration are all part of `PowerPointViewer` and are out of scope for these building blocks. Reach for `PowerPointViewer` when you need the full editor; reach for `useViewerBuildingBlocks` when you're assembling your own chrome around just the toolbar and canvas.
+
 ---
 
 ## Styling & theming

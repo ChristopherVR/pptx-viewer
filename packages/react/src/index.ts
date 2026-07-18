@@ -2,6 +2,24 @@
 export { PowerPointViewer, getAnimationInitialStyle } from './viewer/PowerPointViewer';
 export type { PowerPointViewerProps, PowerPointViewerHandle } from './viewer/PowerPointViewer';
 
+// ── Building blocks: compose a custom viewer shell from standalone pieces ──
+// `Toolbar` and `SlideCanvas` are the same flat, self-contained components
+// `PowerPointViewer` renders internally. `useViewerBuildingBlocks` wires up
+// the same state/hooks `PowerPointViewer` does and maps them into the flat
+// props these components expect, so a host can compose its own shell:
+//
+//   const { toolbarProps, canvasProps } = useViewerBuildingBlocks({ content, canEdit: true });
+//   return (<><Toolbar {...toolbarProps} /><SlideCanvas {...canvasProps} /></>);
+export { Toolbar } from './viewer/components/Toolbar';
+export type { ToolbarProps } from './viewer/components/Toolbar';
+export { SlideCanvas } from './viewer/components/SlideCanvas';
+export type { SlideCanvasProps } from './viewer/components/SlideCanvas';
+export { useViewerBuildingBlocks } from './viewer/hooks/useViewerBuildingBlocks';
+export type {
+	UseViewerBuildingBlocksInput,
+	ViewerBuildingBlocksResult,
+} from './viewer/hooks/useViewerBuildingBlocks';
+
 // ── Shared API types ──
 export type { ViewerMode, PowerPointViewerAPI } from 'pptx-viewer-shared';
 

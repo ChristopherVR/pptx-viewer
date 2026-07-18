@@ -155,3 +155,10 @@ export type { UseTouchGesturesInput, TouchGestureCallbacks } from './useTouchGes
 
 export { useKeyboardInsets } from './useKeyboardInsets';
 export type { UseKeyboardInsetsResult } from './useKeyboardInsets';
+
+// Building blocks (standalone Toolbar / SlideCanvas composition)
+export { useViewerBuildingBlocks } from './useViewerBuildingBlocks';
+export type {
+	UseViewerBuildingBlocksInput,
+	ViewerBuildingBlocksResult,
+} from './useViewerBuildingBlocks';
