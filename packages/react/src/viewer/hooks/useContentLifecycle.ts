@@ -31,6 +31,8 @@ export interface UseContentLifecycleInput {
 	actionSoundHandlerRef: React.MutableRefObject<PptxHandler | null>;
 	setIsEncryptedDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	password?: string;
+	/** Forwarded to {@link useLoadContent}: fires after a parse applies. */
+	onContentApplied?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +61,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		actionSoundHandlerRef,
 		setIsEncryptedDialogOpen,
 		password,
+		onContentApplied,
 	} = input;
 
 	const { handlerRef } = useLoadContent({
@@ -95,6 +98,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		setError: state.setError,
 		setIsDirty: state.setIsDirty,
 		setIsEncrypted: setIsEncryptedDialogOpen,
+		onContentApplied,
 	});
 
 	// Sync the shared handler ref for action sounds

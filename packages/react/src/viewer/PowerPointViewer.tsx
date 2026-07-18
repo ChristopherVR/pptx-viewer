@@ -547,6 +547,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			autosaveStatus,
 			isEncryptedDialogOpen,
 			setIsEncryptedDialogOpen,
+			loadVersion,
 		} = useViewerIntegration({
 			state,
 			zoom,
@@ -892,6 +893,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 								setSlides={state.setSlides}
 								config={collaboration}
 								content={content}
+								loadVersion={loadVersion}
 							/>
 							<CollaborationFollowLayer
 								activeSlideIndex={activeSlideIndex}
@@ -941,12 +943,14 @@ function CollaborationDocumentSync({
 	setSlides,
 	config,
 	content,
+	loadVersion,
 }: {
 	slides: PptxSlide[];
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 	config?: CollaborationConfig;
 	content: ArrayBuffer | Uint8Array | null;
+	loadVersion: number;
 }) {
 	const collab = useCollaboration();
 	// Retain the loaded source bytes so the elected writer (role 'owner') can
@@ -971,6 +975,7 @@ function CollaborationDocumentSync({
 		isSynced: collab?.synced ?? true,
 		config,
 		getSourceBytes,
+		loadVersion,
 	});
 	return null;
 }
