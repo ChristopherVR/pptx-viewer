@@ -4,6 +4,7 @@ import { persistModernCommentPackage } from '../../utils/modern-comment-package'
 import { PptxSaveStateBuilder } from '../builders';
 import { createPptxSaveConstants } from '../factories';
 import type { PptxHandlerSaveOptions } from '../types';
+import { slidesPerPageToPrintOutput } from './pptx-print-properties';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveHandoutInfrastructure';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -192,11 +193,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const presentationXml = this.builder.build(this.presentationData);
 			this.zip.file('ppt/presentation.xml', presentationXml);
 		}
+		// Bridge a handout master's slides-per-page into the typed print
+		// properties, but only when the caller has not supplied its own
+		// `printProperties` (an explicit value, including `null` for removal,
+		// always wins over the handout master's inferred layout).
+		const handoutSlidesPerPage = options?.handoutMaster?.slidesPerPage;
 		const presentationProperties =
-			options?.handoutMaster?.slidesPerPage !== undefined
+			handoutSlidesPerPage !== undefined &&
+			options?.presentationProperties?.printProperties === undefined
 				? {
 						...options?.presentationProperties,
-						printSlidesPerPage: options.handoutMaster.slidesPerPage,
+						printProperties: {
+							printWhat: slidesPerPageToPrintOutput(handoutSlidesPerPage),
+						},
 					}
 				: options?.presentationProperties;
 		await this.applyPresentationPropertiesPart(presentationProperties);

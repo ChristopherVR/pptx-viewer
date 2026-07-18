@@ -314,12 +314,6 @@ export interface PptxPresentationProperties {
 	showSubtitles?: boolean;
 	/** Typed `p:prnPr` settings. Set to null during save to remove the element. */
 	printProperties?: PptxPresentationPrintProperties | null;
-	/** @deprecated Use `printProperties.printWhat`; retained as a handout compatibility alias. */
-	printSlidesPerPage?: number;
-	/** @deprecated Use `printProperties.frameSlides`. */
-	printFrameSlides?: boolean;
-	/** @deprecated Use `printProperties.colorMode`. */
-	printColorMode?: 'clr' | 'gray' | 'bw';
 	/** Most-recently-used colours from the presentation palette. */
 	mruColors?: string[];
 	/** Grid spacing in EMUs (cx, cy). Default is 914400 / 8 = 114300. */

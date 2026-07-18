@@ -32,7 +32,6 @@ describe('presentationML print properties integration', () => {
 			scaleToFitPaper: false,
 			frameSlides: true,
 		});
-		expect(data.presentationProperties!.printSlidesPerPage).toBe(4);
 
 		print.printWhat = 'outline';
 		print.colorMode = 'bw';
@@ -60,7 +59,7 @@ describe('presentationML print properties integration', () => {
 		});
 	});
 
-	it('removes p:prnPr and serializes legacy handout settings as schema attributes', async () => {
+	it('removes p:prnPr when printProperties is null', async () => {
 		const firstHandler = new PptxHandler();
 		const data = await firstHandler.load(await buildPrefixedDeck());
 		const removed = await firstHandler.save(data.slides, {
@@ -72,19 +71,5 @@ describe('presentationML print properties integration', () => {
 			.file('ppt/presProps.xml')!
 			.async('string');
 		expect(removedXml).not.toMatch(/<[^>]*:?prnPr\b/u);
-
-		const secondHandler = new PptxHandler();
-		const removedData = await secondHandler.load(removed.buffer as ArrayBuffer);
-		const legacy = await secondHandler.save(removedData.slides, {
-			presentationProperties: { printSlidesPerPage: 6, printFrameSlides: false },
-		});
-		const legacyXml = await (
-			await JSZip.loadAsync(legacy)
-		)
-			.file('ppt/presProps.xml')!
-			.async('string');
-		expect(legacyXml).toContain('prnWhat="handouts6"');
-		expect(legacyXml).toContain('frameSlides="0"');
-		expect(legacyXml).not.toContain('sldPerPg=');
 	});
 });

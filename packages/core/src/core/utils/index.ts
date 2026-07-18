@@ -141,7 +141,6 @@ export {
 	getSignaturePathsToStrip,
 	parseSignatureXml,
 	verifySignatureDigests,
-	DIGITAL_SIGNATURE_ORIGIN_REL_TYPE,
 	type SignatureDetectionResult,
 	type SignatureCertificateInfo,
 	type SignatureStatus,
@@ -150,6 +149,7 @@ export {
 } from './signature-detection';
 
 export {
+	DIGITAL_SIGNATURE_ORIGIN_REL_TYPE,
 	DIGITAL_SIGNATURE_REL_TYPE,
 	PPTX_VIEWER_MANIFEST_NS,
 	XMLDSIG_NS,

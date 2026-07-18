@@ -42,8 +42,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const themeOptions = await this.parseThemeOptions();
 		const notesMaster = await this.parseNotesMaster();
 		const handoutMaster = await this.parseHandoutMaster();
-		if (handoutMaster && presentationProperties?.printSlidesPerPage !== undefined) {
-			handoutMaster.slidesPerPage = presentationProperties.printSlidesPerPage;
+		const handoutMatch =
+			presentationProperties?.printProperties?.printWhat?.match(/^handouts([123469])$/u);
+		if (handoutMaster && handoutMatch) {
+			handoutMaster.slidesPerPage = Number.parseInt(handoutMatch[1], 10);
 		}
 		await this.enrichAuxiliaryMasterElements(notesMaster, 'p:notesMaster');
 		await this.enrichAuxiliaryMasterElements(handoutMaster, 'p:handoutMaster');

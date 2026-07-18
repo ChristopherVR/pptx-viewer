@@ -56,14 +56,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Print properties (p:prnPr)
 			const prnPr = findChildByLocalName(presProps, 'prnPr');
 			if (prnPr) {
-				const printProperties = parsePrintProperties(prnPr);
-				props.printProperties = printProperties;
-				props.printFrameSlides = printProperties.frameSlides ?? undefined;
-				props.printColorMode = printProperties.colorMode ?? undefined;
-				const handoutMatch = printProperties.printWhat?.match(/^handouts([123469])$/u);
-				if (handoutMatch) {
-					props.printSlidesPerPage = Number.parseInt(handoutMatch[1], 10);
-				}
+				props.printProperties = parsePrintProperties(prnPr);
 			}
 
 			// Most-recently-used colours (p:clrMru)

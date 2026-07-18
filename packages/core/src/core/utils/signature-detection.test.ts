@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 
+import { DIGITAL_SIGNATURE_ORIGIN_REL_TYPE } from './signature-constants';
 import {
 	detectDigitalSignatures,
 	getSignaturePathsToStrip,
 	parseSignatureXml,
 	verifySignatureDigests,
-	DIGITAL_SIGNATURE_ORIGIN_REL_TYPE,
 } from './signature-detection';
 
 describe('detectDigitalSignatures', () => {

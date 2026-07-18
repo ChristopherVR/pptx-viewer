@@ -1,17 +1,9 @@
 import { XmlObject } from '../../types';
 import type { PptxPresentationProperties } from '../../types';
 import { safeResolveZipPath } from '../../utils/safe-path';
-import {
-	getSignaturePathsToStrip,
-	DIGITAL_SIGNATURE_ORIGIN_REL_TYPE,
-} from '../../utils/signature-detection';
-import {
-	findChildByLocalName,
-	parsePrintProperties,
-	serializePrintProperties,
-	setPresentationPropertiesChild,
-	slidesPerPageToPrintOutput,
-} from './pptx-print-properties';
+import { DIGITAL_SIGNATURE_ORIGIN_REL_TYPE } from '../../utils/signature-constants';
+import { getSignaturePathsToStrip } from '../../utils/signature-detection';
+import { serializePrintProperties, setPresentationPropertiesChild } from './pptx-print-properties';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDocumentParts';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -147,23 +139,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				'prnPr',
 				serializePrintProperties(properties.printProperties),
 			);
-		} else if (
-			properties.printFrameSlides !== undefined ||
-			properties.printSlidesPerPage !== undefined ||
-			properties.printColorMode !== undefined
-		) {
-			const existing = findChildByLocalName(root, 'prnPr');
-			const legacy = existing ? parsePrintProperties(existing) : {};
-			if (properties.printFrameSlides !== undefined) {
-				legacy.frameSlides = properties.printFrameSlides;
-			}
-			if (properties.printSlidesPerPage !== undefined) {
-				legacy.printWhat = slidesPerPageToPrintOutput(properties.printSlidesPerPage);
-			}
-			if (properties.printColorMode !== undefined) {
-				legacy.colorMode = properties.printColorMode;
-			}
-			root = setPresentationPropertiesChild(root, 'prnPr', serializePrintProperties(legacy));
 		}
 
 		if (properties.mruColors && properties.mruColors.length > 0) {
