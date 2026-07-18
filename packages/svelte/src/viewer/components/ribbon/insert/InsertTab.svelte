@@ -4,11 +4,12 @@
 	 * same one-click inserts as the pre-ribbon `InsertMenu`; the shape gallery
 	 * lives in `ShapePicker.svelte`. This wave adds the "structured" Insert
 	 * actions React's `InsertSection` offers: media (audio/video file picker),
-	 * a chart-type dropdown, a docked equation panel, a SmartArt gallery
-	 * picker, an action-button dropdown, and a field dropdown. Every insertion
-	 * routes through `EditorState.insertElement` (undoable, selects the new
-	 * element), except Equation, which stages LaTeX -> OMML in a docked panel
-	 * before inserting (there's no single-click default for free-form maths).
+	 * a chart-type dropdown, a modal equation editor dialog, a SmartArt
+	 * gallery picker, an action-button dropdown, and a field dropdown. Every
+	 * insertion routes through `EditorState.insertElement` (undoable, selects
+	 * the new element), except Equation, which stages LaTeX -> OMML in
+	 * `EquationEditorDialog` before inserting (there's no single-click default
+	 * for free-form maths).
 	 */
 	import type { CanvasSize } from 'pptx-viewer-shared';
 
@@ -17,7 +18,7 @@
 	import { buildMediaInsertElement, newImageElement, newTableElement, newTextElement } from '../../../editor';
 	import ActionButtonMenu from './ActionButtonMenu.svelte';
 	import ChartMenu from './ChartMenu.svelte';
-	import EquationPanel from './EquationPanel.svelte';
+	import EquationEditorDialog from './EquationEditorDialog.svelte';
 	import FieldMenu from './FieldMenu.svelte';
 	import HyperlinkDialog from './HyperlinkDialog.svelte';
 	import ShapePicker from './ShapePicker.svelte';
@@ -41,11 +42,11 @@
 
 	const MAX_IMAGE_EDGE = 400;
 
-	function toggleEquationPanel(): void {
+	function toggleEquationDialog(): void {
 		equationOpen = !equationOpen;
 	}
 
-	function closeEquationPanel(): void {
+	function closeEquationDialog(): void {
 		equationOpen = false;
 		editor.equationOps.close();
 	}
@@ -151,7 +152,7 @@
 		aria-expanded={equationOpen}
 		aria-label={t('pptx.ribbon.insertEquation')}
 		title={t('pptx.ribbon.insertEquation')}
-		onclick={toggleEquationPanel}
+		onclick={toggleEquationDialog}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h6l-3 5 3 5H4M9 8h3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
 		<span>{t('pptx.equation.insertTitle')}</span>
@@ -166,11 +167,7 @@
 	<input bind:this={imageInput} type="file" accept="image/*" class="pptx-svelte-inserttab-file" onchange={onImageFileChange} />
 	<input bind:this={mediaInput} type="file" accept="video/*,audio/*" class="pptx-svelte-inserttab-file" onchange={onMediaFileChange} />
 
-	{#if equationOpen}
-		<div class="pptx-svelte-inserttab-equation">
-			<EquationPanel {editor} {canvasSize} open={equationOpen} onclose={closeEquationPanel} />
-		</div>
-	{/if}
+	<EquationEditorDialog {editor} {canvasSize} open={equationOpen} onclose={closeEquationDialog} />
 	{#if hyperlinkOpen}<HyperlinkDialog {editor} onclose={() => (hyperlinkOpen = false)} />{/if}
 </div>
 
@@ -214,9 +211,5 @@
 
 	.pptx-svelte-inserttab-file {
 		display: none;
-	}
-
-	.pptx-svelte-inserttab-equation {
-		flex-basis: 100%;
 	}
 </style>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * FormatBackgroundPanel: a docked solid-colour slide-background panel,
-	 * mirroring `EquationPanel.svelte`'s / `FindReplacePanel.svelte`'s docked
+	 * mirroring `FindReplacePanel.svelte`'s docked
 	 * idiom rather than a floating dialog. Sets/clears the current slide's
 	 * background colour via `EditorState.backgroundOps` (undoable).
 	 */

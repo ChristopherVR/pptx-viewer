@@ -8,8 +8,8 @@ import { centerOnCanvas } from './editor-insert';
  * `shape` whose single text segment carries `equationXml`, the same
  * structure an equation renderer consumes when rendering inline equations
  * within a paragraph. The OMML payload is produced by the shared
- * `latex-to-omml` module (`EquationPanel.svelte` owns the LaTeX input + live
- * preview; this factory only builds the element once OMML is ready).
+ * `latex-to-omml` module (`EquationEditorDialog.svelte` owns the LaTeX input +
+ * live preview; this factory only builds the element once OMML is ready).
  */
 
 /** Default box size (px) for a freshly-inserted equation shape. */

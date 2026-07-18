@@ -10,7 +10,7 @@ import InsertTab from './InsertTab.svelte';
  * one-click inserts) and the two file-picker actions (image / media) that
  * stay owned by this file rather than a subcomponent, plus the equation
  * panel's open/close toggle. The dropdown/grid subcomponents (ShapePicker,
- * ChartMenu, SmartArtMenu, ActionButtonMenu, FieldMenu, EquationPanel) each
+ * ChartMenu, SmartArtMenu, ActionButtonMenu, FieldMenu, EquationEditorDialog) each
  * have their own focused test file.
  */
 
