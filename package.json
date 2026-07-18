@@ -59,6 +59,7 @@
 		"@playwright/test": "^1.61.1",
 		"@types/three": "^0.185.1",
 		"@typescript/typescript6": "^6.0.2",
+		"ai": "^7.0.31",
 		"husky": "^9.1.7",
 		"jszip": "^3.10.1",
 		"lib0": "^0.2.117",

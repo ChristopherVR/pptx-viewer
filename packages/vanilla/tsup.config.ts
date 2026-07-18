@@ -37,6 +37,10 @@ export default defineConfig((options) => ({
 		'yjs',
 		'y-webrtc',
 		'y-websocket',
+		// Optional AI SDK peer, reachable only through the lazily-loaded
+		// `pptx-viewer-shared/ai` subpath. Kept external so the dynamic
+		// `import('ai')` inside shared stays a real optional runtime import.
+		'ai',
 	],
 	// Bundle the internal workspace packages so consumers can install just
 	// `pptx-vanilla-viewer` without also pulling `pptx-viewer-core` from npm.

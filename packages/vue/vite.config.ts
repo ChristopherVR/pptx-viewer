@@ -101,6 +101,10 @@ export default defineConfig({
 				// the SmartArt 3D chunk resolves it from the host's node_modules.
 				'three',
 				/^three\//u,
+				// Optional AI SDK peer, reachable only through the lazily-loaded
+				// `pptx-viewer-shared/ai` subpath. Kept external so the dynamic
+				// `import('ai')` inside shared stays a real optional runtime import.
+				'ai',
 			],
 			output: {
 				globals: { vue: 'Vue' },
