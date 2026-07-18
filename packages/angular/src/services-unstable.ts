@@ -101,7 +101,9 @@ export * from './viewer/table-properties-helpers';
 export * from './viewer/table-renderer-helpers';
 
 // ── Ribbon (toolbar sub-sections composed by RibbonComponent) ──
-export { RibbonComponent } from './viewer/ribbon.component';
+// `RibbonComponent` itself is a curated export (see `viewer/index.ts` /
+// `pptx-angular-viewer`'s package root); the sub-sections below are internal
+// building blocks it composes for its own template.
 export { RibbonAnimationsSectionComponent } from './viewer/ribbon-animations-section.component';
 export { RibbonArrangeSectionComponent } from './viewer/ribbon-arrange-section.component';
 export { RibbonColorPopoverComponent } from './viewer/ribbon-color-popover.component';

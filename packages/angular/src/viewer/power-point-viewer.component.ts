@@ -47,7 +47,6 @@ import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
 import { AutosaveService } from './autosave.service';
 import { BroadcastDialogComponent } from './broadcast-dialog.component';
-import { ChartPartSelectionService } from './chart-part-selection.service';
 import { CollaborationCursorsComponent } from './collaboration-cursors.component';
 import { CollaborationService } from './collaboration.service';
 import {
@@ -63,8 +62,6 @@ import { EditorStateService } from './editor-state.service';
 import { EditorToolbarComponent } from './editor-toolbar.component';
 import { EmbeddedFontsService } from './embedded-fonts.service';
 import { ExportProgressModalComponent } from './export-progress-modal.component';
-import { ExportService } from './export.service';
-import { FieldContextService } from './field-context.service';
 import { FindBarComponent } from './find-bar.component';
 import { FindReplaceBarComponent } from './find-replace-bar.component';
 import { FollowModeBarComponent } from './follow-mode-bar.component';
@@ -82,6 +79,7 @@ import { MobilePresenterViewComponent } from './mobile-presenter-view.component'
 import { MobileSlidesSheetComponent } from './mobile-slides-sheet.component';
 import { MobileToolbarComponent } from './mobile-toolbar.component';
 import { NotesPanelComponent } from './notes-panel.component';
+import { POWER_POINT_VIEWER_PROVIDERS } from './power-point-viewer.providers';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { PresenterViewComponent } from './presenter-view.component';
 import { parseAudienceNonce, PresenterWindowService } from './presenter-window.service';
@@ -102,7 +100,6 @@ import { SlidesPanelComponent } from './slides-panel.component';
 import { SmartArt3DService } from './smart-art-3d.service';
 import { buildSmartArtInsertElement } from './smart-art-insert-helpers';
 import { StatusBarComponent } from './status-bar.component';
-import { TableSelectionService } from './table-selection.service';
 import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
 import { TitleBarComponent } from './title-bar.component';
@@ -148,40 +145,7 @@ import { ZoomTargetService } from './zoom-target.service';
 	selector: 'pptx-viewer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	providers: [
-		LoadContentService,
-		ExportService,
-		EditorStateService,
-		ChartPartSelectionService,
-		TableSelectionService,
-		EmbeddedFontsService,
-		CollaborationService,
-		AccessibilityService,
-		AutosaveService,
-		PrintService,
-		IsMobileService,
-		SmartArt3DService,
-		FieldContextService,
-		ZoomTargetService,
-		ViewerDialogsService,
-		ViewerCompareService,
-		ViewerExportService,
-		ViewerFindReplaceService,
-		ViewerCustomShowsService,
-		ViewerCollaborationSessionService,
-		ViewerCanvasEditingService,
-		ViewerCollabCursorService,
-		ViewerDocumentPropertiesService,
-		ViewerFileIOService,
-		ViewerFormatPainterService,
-		ViewerInspectorPanelService,
-		ViewerKeyboardService,
-		ViewerMobileSheetService,
-		ViewerPresentationModeService,
-		ViewerThemeGalleryService,
-		ViewerTouchGesturesService,
-		ViewerZoomService,
-	],
+	providers: [...POWER_POINT_VIEWER_PROVIDERS],
 	imports: [
 		NgClass,
 		NgStyle,

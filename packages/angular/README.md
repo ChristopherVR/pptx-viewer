@@ -141,6 +141,66 @@ async save() {
 }
 ```
 
+### Composing your own custom viewer host
+
+`<pptx-viewer>` (`PowerPointViewerComponent`) is the bundled, batteries-included
+chrome, but its building blocks are curated exports too, so you can compose
+your own host component instead: bring your own layout/toolbar and reuse the
+ribbon and slide canvas directly, wired to the same shared DI state via
+`POWER_POINT_VIEWER_PROVIDERS`, the exact provider list `PowerPointViewerComponent`
+itself uses.
+
+```ts
+import { Component, inject, signal } from '@angular/core';
+import {
+	DEFAULT_CANVAS_HEIGHT,
+	DEFAULT_CANVAS_WIDTH,
+	EditorStateService,
+	LoadContentService,
+	POWER_POINT_VIEWER_PROVIDERS,
+	RibbonComponent,
+	SlideCanvasComponent,
+} from 'pptx-angular-viewer';
+
+@Component({
+	selector: 'my-custom-viewer',
+	standalone: true,
+	providers: [...POWER_POINT_VIEWER_PROVIDERS],
+	imports: [RibbonComponent, SlideCanvasComponent],
+	template: `
+		<pptx-ribbon
+			[slideIndex]="loader.activeSlideIndex()"
+			[slideCount]="editor.slides().length"
+			[canEdit]="true"
+			(save)="onSave()"
+		/>
+		<pptx-slide-canvas
+			[slide]="editor.slides()[loader.activeSlideIndex()]"
+			[canvasSize]="{ width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT }"
+			[editable]="true"
+		/>
+	`,
+})
+export class MyCustomViewerComponent {
+	protected readonly loader = inject(LoadContentService);
+	protected readonly editor = inject(EditorStateService);
+	protected readonly DEFAULT_CANVAS_WIDTH = DEFAULT_CANVAS_WIDTH;
+	protected readonly DEFAULT_CANVAS_HEIGHT = DEFAULT_CANVAS_HEIGHT;
+
+	onSave() {
+		/* ... */
+	}
+}
+```
+
+`RibbonComponent` and `SlideCanvasComponent` are plain, DI-free `input()`/`output()`
+signal components (the ribbon renders ~90 bindings for the full Office-style tab
+set; the snippet above shows an illustrative subset, not the exhaustive list),
+so this recipe scales down too: provide only the services the pieces you use
+actually need instead of the full `POWER_POINT_VIEWER_PROVIDERS` list, as long
+as you cover whatever `inject()` calls those pieces make (`EditorStateService`
+and `LoadContentService` are the two nearly everything depends on).
+
 ## API
 
 ### Inputs
@@ -194,9 +254,12 @@ async save() {
 
 ### Exported components & helpers
 
-`PowerPointViewerComponent`, `SlideCanvasComponent`, `ElementRendererComponent`,
-`LoadContentService`, `provideViewerTheme`, `VIEWER_THEME`, and the
-`ViewerTheme` / `CanvasSize` / `CollaborationConfig` types.
+`PowerPointViewerComponent`, `SlideCanvasComponent`, `RibbonComponent`,
+`ElementRendererComponent`, `LoadContentService`, `POWER_POINT_VIEWER_PROVIDERS`,
+`provideViewerTheme`, `VIEWER_THEME`, and the `ViewerTheme` / `CanvasSize` /
+`CollaborationConfig` types. See "Composing your own custom viewer host" above
+for using `RibbonComponent` and `SlideCanvasComponent` outside
+`PowerPointViewerComponent`.
 
 ## Localization (i18n)
 

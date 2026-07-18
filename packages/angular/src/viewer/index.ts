@@ -1,4 +1,6 @@
 export { PowerPointViewerComponent } from './power-point-viewer.component';
+export { POWER_POINT_VIEWER_PROVIDERS } from './power-point-viewer.providers';
+export { RibbonComponent } from './ribbon.component';
 export { SlideCanvasComponent } from './slide-canvas.component';
 export { ElementRendererComponent } from './element-renderer.component';
 export { ConnectorRendererComponent } from './connector-renderer.component';
