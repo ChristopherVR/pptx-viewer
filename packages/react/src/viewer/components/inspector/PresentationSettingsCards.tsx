@@ -1,4 +1,10 @@
 import type { PptxPresentationProperties, PptxThemeOption } from 'pptx-viewer-core';
+import {
+	printPropertiesFrameSlides,
+	printPropertiesSlidesPerPage,
+	withFrameSlides,
+	withSlidesPerPage,
+} from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -90,8 +96,12 @@ export function PresentationSettingsCard({
 				<CheckboxRow
 					label={t('pptx.presentationSettings.frameSlides')}
 					disabled={!canEdit}
-					checked={Boolean(presentationProperties.printFrameSlides)}
-					onChange={(v) => onUpdate({ printFrameSlides: v })}
+					checked={printPropertiesFrameSlides(presentationProperties.printProperties)}
+					onChange={(v) =>
+						onUpdate({
+							printProperties: withFrameSlides(presentationProperties.printProperties, v),
+						})
+					}
 				/>
 				<label className='flex items-center justify-between gap-2'>
 					<span className='text-muted-foreground'>
@@ -103,8 +113,15 @@ export function PresentationSettingsCard({
 						max={16}
 						disabled={!canEdit}
 						className={cn(INPUT, 'w-20')}
-						value={presentationProperties.printSlidesPerPage ?? 1}
-						onChange={(e) => onUpdate({ printSlidesPerPage: Number(e.target.value) })}
+						value={printPropertiesSlidesPerPage(presentationProperties.printProperties)}
+						onChange={(e) =>
+							onUpdate({
+								printProperties: withSlidesPerPage(
+									presentationProperties.printProperties,
+									Number(e.target.value),
+								),
+							})
+						}
 					/>
 				</label>
 			</div>

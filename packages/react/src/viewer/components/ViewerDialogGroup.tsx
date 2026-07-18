@@ -9,6 +9,7 @@ import type {
 	PptxAppProperties,
 	PptxCustomProperty,
 } from 'pptx-viewer-core';
+import { printPropertiesFrameSlides, printPropertiesSlidesPerPage } from 'pptx-viewer-shared';
 
 import {
 	PasswordProtectionDialog,
@@ -220,8 +221,8 @@ export function ViewerDialogGroup(props: ViewerDialogGroupProps) {
 				onPrint={printHandlers.handlePrintWithSettings}
 				slides={slides}
 				activeSlideIndex={activeSlideIndex}
-				defaultSlidesPerPage={presentationProperties.printSlidesPerPage}
-				defaultFrameSlides={presentationProperties.printFrameSlides}
+				defaultSlidesPerPage={printPropertiesSlidesPerPage(presentationProperties.printProperties)}
+				defaultFrameSlides={printPropertiesFrameSlides(presentationProperties.printProperties)}
 			/>
 
 			<KeepAnnotationsDialog
