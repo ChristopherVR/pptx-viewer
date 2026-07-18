@@ -73,3 +73,15 @@ export { createVanillaChat } from './vanilla-chat';
 export type { VanillaChatController, VanillaChatSnapshot } from './vanilla-chat';
 
 export { buildPptxAiSystemPrompt, buildPptxAiTools } from './server';
+
+export { applyElementUpdate, applyShapeStyleUpdate, applyTextUpdate } from './tools/mutations';
+
+export { toRenderableParts } from './ui-parts';
+export type {
+	AiUiMessage,
+	RenderablePart,
+	RenderableTextPart,
+	RenderableToolPart,
+} from './ui-parts';
+
+export { summarizeToolArgs, toolLabel } from './tool-summary';
