@@ -5,6 +5,7 @@ import { ANIMATION_AUTHORING_CSS } from './animation-authoring-css';
 import { COLLAB_CSS } from './collab-css';
 import { DOCUMENT_PROPERTIES_CSS } from './document-properties-css';
 import { EDITOR_CSS } from './editor-css';
+import { EQUATION_DIALOG_CSS } from './equation-dialog-css';
 import { FILE_INFO_CSS } from './file-info-css';
 import { INSPECTOR_PANELS_CSS } from './inspector-panels-css';
 import { MASTER_VIEW_CSS } from './master-view-css';
@@ -503,5 +504,5 @@ const CHROME_CSS = `
 
 /** The full stylesheet text (theme-var defaults + chrome rules + editor + collab chrome). */
 export function buildViewerCss(): string {
-	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${RIBBON_QUICK_CSS}\n${DOCUMENT_PROPERTIES_CSS}\n${FILE_INFO_CSS}\n${SMARTART_DIALOG_CSS}\n${COLLAB_CSS}\n${PRESENTATION_TOUCH_CSS}\n${MOBILE_SHEET_CSS}\n${MASTER_VIEW_CSS}\n${PARITY_DIALOG_CSS}\n${ANIMATION_AUTHORING_CSS}\n${INSPECTOR_PANELS_CSS}\n${ACCOUNT_CSS}`;
+	return `${defaultVarsBlock()}\n${CHROME_CSS}\n${EDITOR_CSS}\n${RIBBON_CSS}\n${RIBBON_QUICK_CSS}\n${DOCUMENT_PROPERTIES_CSS}\n${FILE_INFO_CSS}\n${SMARTART_DIALOG_CSS}\n${EQUATION_DIALOG_CSS}\n${COLLAB_CSS}\n${PRESENTATION_TOUCH_CSS}\n${MOBILE_SHEET_CSS}\n${MASTER_VIEW_CSS}\n${PARITY_DIALOG_CSS}\n${ANIMATION_AUTHORING_CSS}\n${INSPECTOR_PANELS_CSS}\n${ACCOUNT_CSS}`;
 }

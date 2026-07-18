@@ -56,8 +56,8 @@ export interface InsertTab {
  * SmartArt, action button, field, and the full shape picker grid. Every
  * insertion routes through `RibbonInsertHandlers` (backed by `EditActions`,
  * so it's undoable and selects the new element), except Equation, which opens
- * the docked `equation-panel.ts` (LaTeX has no single-click default, unlike
- * every other insert kind here).
+ * the modal equation editor dialog (`equation-panel.ts`; LaTeX has no
+ * single-click default, unlike every other insert kind here).
  */
 export function createInsertTab(
 	doc: Document,

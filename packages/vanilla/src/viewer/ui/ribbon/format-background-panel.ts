@@ -13,7 +13,7 @@ export interface FormatBackgroundPanel {
 
 /**
  * A simple docked "Format Background" panel (solid colour fill only, matching
- * the docked-panel idiom of `find-replace-panel.ts` / `equation-panel.ts`
+ * the docked-panel idiom of `find-replace-panel.ts`
  * rather than React's inspector-pane version). Applies immediately on colour
  * pick via {@link SlideBackgroundActions}; the panel doesn't reflect the
  * current slide's existing background (it's a write-only applier, same as
