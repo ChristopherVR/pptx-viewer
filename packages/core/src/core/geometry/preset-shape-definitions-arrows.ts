@@ -578,15 +578,16 @@ const quadArrow: PresetShapeGeometryDefinition = {
 };
 
 // ---------------------------------------------------------------------------
-// Bent / U-turn arrows  (SIMPLIFIED)
+// Bent / U-turn arrows
 // ---------------------------------------------------------------------------
-// These shapes' canonical formula sets reach 50+ guides each. The
-// implementations below are spec-faithful for the *default* avLst —
-// arbitrary adjustment overrides are TODO.
+// SUPERSEDED: bentArrow, bentUpArrow, and uturnArrow now have verbatim
+// ISO/IEC 29500-1 transcriptions in `preset-shape-definitions-arrows-refined.ts`
+// (spread after this batch in the aggregator), so they honour arbitrary
+// adjustment overrides. The default-adjustment polygons kept below are dead
+// entries retained only as a documented fallback silhouette.
 
 // bentArrow — L-shaped right-then-up arrow. Defaults: 25000 / 25000 / 25000 /
 // 43750 (body width, head width, head length, knee position).
-// SIMPLIFIED: default-adjustment polygon only.
 const bentArrow: PresetShapeGeometryDefinition = {
 	name: 'bentArrow',
 	avLst: { adj1: 25000, adj2: 25000, adj3: 25000, adj4: 43750 },
@@ -624,7 +625,7 @@ const bentArrow: PresetShapeGeometryDefinition = {
 };
 
 // bentUpArrow — L-shape pointing up after running right.
-// SIMPLIFIED: default-adjustment polygon only.
+// SUPERSEDED: see the exact transcription in the refined arrows module.
 const bentUpArrow: PresetShapeGeometryDefinition = {
 	name: 'bentUpArrow',
 	avLst: { adj1: 25000, adj2: 25000, adj3: 25000 },
@@ -657,7 +658,7 @@ const bentUpArrow: PresetShapeGeometryDefinition = {
 };
 
 // uturnArrow — U-shape that loops over the top and comes back down.
-// SIMPLIFIED: default-adjustment polygon only.
+// SUPERSEDED: see the exact transcription in the refined arrows module.
 const uturnArrow: PresetShapeGeometryDefinition = {
 	name: 'uturnArrow',
 	avLst: { adj1: 25000, adj2: 25000, adj3: 25000, adj4: 43750, adj5: 75000 },

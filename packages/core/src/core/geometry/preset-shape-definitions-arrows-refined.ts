@@ -3,10 +3,15 @@
  * eight arrow shapes whose canonical formulas were previously reduced to
  * default-adjustment silhouettes in `preset-shape-definitions-arrows.ts`.
  *
- * Each entry below transcribes the full `<a:gd>` / `<a:pathLst>` payload
- * from Microsoft's `presetShapeDefinitions.xml` (ISO/IEC 29500-1
- * §20.1.10.55), so the generated geometry honours arbitrary `avLst`
- * overrides instead of being baked at the spec defaults.
+ * Each entry below drives its geometry from the `avLst` adjust values so the
+ * generated path honours arbitrary overrides instead of being baked at the
+ * spec defaults.
+ *
+ * `bentArrow`, `bentUpArrow`, and `uturnArrow` are verbatim transcriptions of
+ * the canonical `presetShapeDefinitions.xml` payload (ISO/IEC 29500-1
+ * §20.1.10.55). The remaining circular / swoosh / curved variants reproduce
+ * the spec's guide chain closely but are adjustment-responsive approximations
+ * of the arrowhead-tangent maths, not byte-for-byte transcriptions.
  *
  * The aggregator in `preset-shape-definitions-table.ts` is expected to
  * spread `REFINED_ARROW_PRESET_DEFINITIONS` *after*
@@ -49,70 +54,60 @@ function gd(name: string, formula: string): { name: string; formula: string; arg
 const FULL_RECT = { l: 'l', t: 't', r: 'r', b: 'b' } as const;
 
 // ---------------------------------------------------------------------------
-// bentArrow — right-angle arrow turning right.
+// bentArrow — right-angle arrow turning right. Verbatim transcription of the
+// canonical ISO/IEC 29500-1 §20.1.10.55 `bentArrow` definition.
 //
 // avLst (spec defaults):
 //   adj1 = 25000  body / arm thickness as fraction of ss
-//   adj2 = 25000  head width
-//   adj3 = 25000  head length
-//   adj4 = 43750  knee position (vertical leg height) as fraction of ss
+//   adj2 = 25000  head width (half) as fraction of ss
+//   adj3 = 25000  head length as fraction of ss
+//   adj4 = 43750  knee (rounded corner) radius as fraction of ss
 //
-// Canonical pathLst draws a single closed polygon along the L spine,
-// using the four head-tangent guides (x3..x5, y3..y5) to lay out the
-// triangular tip.
+// The spine turns through a quarter-circle knee (`bd` radius) and the tip is
+// laid out from the head-tangent guides (`dh2`, `aw2`, `x4`, `y3..y5`).
 // ---------------------------------------------------------------------------
 const bentArrow: PresetShapeGeometryDefinition = {
 	name: 'bentArrow',
 	avLst: { adj1: 25000, adj2: 25000, adj3: 25000, adj4: 43750 },
 	gdLst: [
-		// Pin all four adjusts to their valid ranges.
-		gd('a1', 'pin 0 adj1 25000'),
-		gd('a2', 'pin 0 adj2 25000'),
+		gd('a2', 'pin 0 adj2 50000'),
+		gd('maxAdj1', '*/ a2 2 1'),
+		gd('a1', 'pin 0 adj1 maxAdj1'),
 		gd('a3', 'pin 0 adj3 50000'),
-		gd('a4', 'pin 0 adj4 50000'),
-		// Body half-width and head half-width.
 		gd('th', '*/ ss a1 100000'),
 		gd('aw2', '*/ ss a2 100000'),
-		// Arrow-head depth (length).
 		gd('th2', '*/ th 1 2'),
-		gd('dh2', '+- aw2 th2 0'),
+		gd('dh2', '+- aw2 0 th2'),
 		gd('ah', '*/ ss a3 100000'),
-		// Knee y position.
 		gd('bw', '+- r 0 ah'),
 		gd('bh', '+- b 0 dh2'),
 		gd('bs', 'min bw bh'),
 		gd('maxAdj4', '*/ 100000 bs ss'),
-		gd('a4p', 'pin 0 adj4 maxAdj4'),
-		gd('bd', '*/ ss a4p 100000'),
+		gd('a4', 'pin 0 adj4 maxAdj4'),
+		gd('bd', '*/ ss a4 100000'),
 		gd('bd3', '+- bd 0 th'),
 		gd('bd2', 'max bd3 0'),
-		// Vertical leg geometry.
-		gd('x3', '+- l th bd2'),
-		gd('x4', '+- x3 th 0'),
-		gd('y3', '+- b 0 ah'),
+		gd('x3', '+- th bd2 0'),
+		gd('x4', '+- r 0 ah'),
+		gd('y3', '+- dh2 th 0'),
 		gd('y4', '+- y3 dh2 0'),
-		// Right tip.
-		gd('y5', '+- y4 0 aw2'),
-		gd('y6', '+- y4 aw2 0'),
+		gd('y5', '+- dh2 bd 0'),
+		gd('y6', '+- y3 bd2 0'),
 	],
-	rect: { l: 'x3', t: 't', r: 'r', b: 'y4' },
+	rect: { l: 'l', t: 't', r: 'r', b: 'b' },
 	pathLst: [
 		{
 			commands: [
-				// Outer L hugging the bottom-left corner.
 				{ kind: 'moveTo', x: 'l', y: 'b' },
-				{ kind: 'lnTo', x: 'l', y: 'th' },
-				{ kind: 'arcTo', wR: 'bd2', hR: 'bd2', stAng: 'cd2', swAng: 'cd4' },
-				// Up along the inner spine of the arm to the head shoulder.
-				{ kind: 'lnTo', x: 'x4', y: 'y3' },
-				// Left side of arrowhead.
-				{ kind: 'lnTo', x: 'x4', y: 'y5' },
-				{ kind: 'lnTo', x: 'r', y: 'y4' },
-				// Right side of arrowhead back to the body.
-				{ kind: 'lnTo', x: 'x4', y: 'y6' },
+				{ kind: 'lnTo', x: 'l', y: 'y5' },
+				{ kind: 'arcTo', wR: 'bd', hR: 'bd', stAng: 'cd2', swAng: 'cd4' },
+				{ kind: 'lnTo', x: 'x4', y: 'dh2' },
+				{ kind: 'lnTo', x: 'x4', y: 't' },
+				{ kind: 'lnTo', x: 'r', y: 'aw2' },
 				{ kind: 'lnTo', x: 'x4', y: 'y4' },
-				{ kind: 'lnTo', x: 'x3', y: 'y4' },
-				{ kind: 'arcTo', wR: 'bd', hR: 'bd', stAng: '3cd4', swAng: '-5400000' },
+				{ kind: 'lnTo', x: 'x4', y: 'y3' },
+				{ kind: 'lnTo', x: 'x3', y: 'y3' },
+				{ kind: 'arcTo', wR: 'bd2', hR: 'bd2', stAng: '3cd4', swAng: '-5400000' },
 				{ kind: 'lnTo', x: 'th', y: 'b' },
 				{ kind: 'close' },
 			],
@@ -121,12 +116,14 @@ const bentArrow: PresetShapeGeometryDefinition = {
 };
 
 // ---------------------------------------------------------------------------
-// bentUpArrow — L-shaped arrow that runs right then turns up.
+// bentUpArrow — L-shaped arrow that runs right then turns up. Verbatim
+// transcription of the canonical ISO/IEC 29500-1 §20.1.10.55 definition; the
+// spec models this shape as a pure sharp-cornered polygon (no rounded knee).
 //
 // avLst (spec defaults):
 //   adj1 = 25000  body thickness as fraction of ss
-//   adj2 = 25000  arrow head width (extra width over the body)
-//   adj3 = 25000  arrow head length
+//   adj2 = 25000  arrow head width as fraction of ss
+//   adj3 = 25000  arrow head length as fraction of ss
 // ---------------------------------------------------------------------------
 const bentUpArrow: PresetShapeGeometryDefinition = {
 	name: 'bentUpArrow',
@@ -135,32 +132,32 @@ const bentUpArrow: PresetShapeGeometryDefinition = {
 		gd('a1', 'pin 0 adj1 50000'),
 		gd('a2', 'pin 0 adj2 50000'),
 		gd('a3', 'pin 0 adj3 50000'),
-		gd('th', '*/ ss a1 100000'),
-		gd('aw', '*/ ss a2 100000'),
-		gd('ah', '*/ ss a3 100000'),
-		gd('th2', '*/ th 1 2'),
-		gd('aw2', '*/ aw 1 2'),
-		// Vertical column anchored on the right edge of the spine.
-		gd('x1', '+- r 0 aw2'),
-		gd('x1p', '+- x1 0 th2'),
-		gd('x2', '+- x1 th2 0'),
-		gd('x3', '+- r 0 aw'),
-		// Y position where arm joins the vertical leg.
-		gd('y1', '+- b 0 th'),
-		gd('y2', '+- t ah 0'),
+		gd('y1', '*/ ss a3 100000'),
+		gd('dx1', '*/ ss a2 50000'),
+		gd('x1', '+- r 0 dx1'),
+		gd('dx3', '*/ ss a2 100000'),
+		gd('x3', '+- r 0 dx3'),
+		gd('dx2', '*/ ss a1 200000'),
+		gd('x2', '+- x3 0 dx2'),
+		gd('x4', '+- x3 dx2 0'),
+		gd('dy2', '*/ ss a1 100000'),
+		gd('y2', '+- b 0 dy2'),
+		gd('x0', '*/ x4 1 2'),
+		gd('y3', '+/ y2 b 2'),
+		gd('y15', '+/ y1 b 2'),
 	],
-	rect: { l: 'l', t: 'y2', r: 'x2', b: 'b' },
+	rect: { l: 'l', t: 'y2', r: 'x4', b: 'b' },
 	pathLst: [
 		{
 			commands: [
-				{ kind: 'moveTo', x: 'l', y: 'y1' },
-				{ kind: 'lnTo', x: 'x1p', y: 'y1' },
-				{ kind: 'lnTo', x: 'x1p', y: 'y2' },
-				{ kind: 'lnTo', x: 'x3', y: 'y2' },
-				{ kind: 'lnTo', x: 'x1', y: 't' },
-				{ kind: 'lnTo', x: 'r', y: 'y2' },
+				{ kind: 'moveTo', x: 'l', y: 'y2' },
 				{ kind: 'lnTo', x: 'x2', y: 'y2' },
-				{ kind: 'lnTo', x: 'x2', y: 'b' },
+				{ kind: 'lnTo', x: 'x2', y: 'y1' },
+				{ kind: 'lnTo', x: 'x1', y: 'y1' },
+				{ kind: 'lnTo', x: 'x3', y: 't' },
+				{ kind: 'lnTo', x: 'r', y: 'y1' },
+				{ kind: 'lnTo', x: 'x4', y: 'y1' },
+				{ kind: 'lnTo', x: 'x4', y: 'b' },
 				{ kind: 'lnTo', x: 'l', y: 'b' },
 				{ kind: 'close' },
 			],
@@ -169,66 +166,73 @@ const bentUpArrow: PresetShapeGeometryDefinition = {
 };
 
 // ---------------------------------------------------------------------------
-// uturnArrow — vertical leg, semicircular cap at the top, second leg
-// pointing down with arrowhead.
+// uturnArrow — U-shaped arrow: up the left leg, around a rounded top bend,
+// and back down the right leg to the arrowhead. Verbatim transcription of the
+// canonical ISO/IEC 29500-1 §20.1.10.55 definition (two rounded outer corners
+// of radius `bd` and two rounded inner corners of radius `bd2`).
 //
 // avLst (spec defaults):
-//   adj1 = 25000  body thickness
-//   adj2 = 25000  head extra width
-//   adj3 = 25000  head length
-//   adj4 = 43750  cap height (controls how tall the loop is)
-//   adj5 = 75000  outer right edge (controls overall width of the U)
+//   adj1 = 25000  body thickness as fraction of ss
+//   adj2 = 25000  head half-width as fraction of ss
+//   adj3 = 25000  head length as fraction of ss
+//   adj4 = 43750  corner (bend) radius as fraction of ss
+//   adj5 = 75000  right-leg vertical extent as fraction of h
 // ---------------------------------------------------------------------------
 const uturnArrow: PresetShapeGeometryDefinition = {
 	name: 'uturnArrow',
 	avLst: { adj1: 25000, adj2: 25000, adj3: 25000, adj4: 43750, adj5: 75000 },
 	gdLst: [
-		gd('a1', 'pin 0 adj1 25000'),
 		gd('a2', 'pin 0 adj2 25000'),
-		gd('a3', 'pin 0 adj3 50000'),
-		gd('a5', 'pin 1 adj5 100000'),
-		// Body / head dimensions.
+		gd('maxAdj1', '*/ a2 2 1'),
+		gd('a1', 'pin 0 adj1 maxAdj1'),
+		gd('q2', '*/ a1 ss h'),
+		gd('q3', '+- 100000 0 q2'),
+		gd('maxAdj3', '*/ q3 h ss'),
+		gd('a3', 'pin 0 adj3 maxAdj3'),
+		gd('q1', '+- a3 a1 0'),
+		gd('minAdj5', '*/ q1 ss h'),
+		gd('a5', 'pin minAdj5 adj5 100000'),
 		gd('th', '*/ ss a1 100000'),
 		gd('aw2', '*/ ss a2 100000'),
 		gd('th2', '*/ th 1 2'),
-		gd('dh2', '+- aw2 th2 0'),
-		gd('y5', '*/ ss a3 100000'),
-		gd('ah', '+- y5 0 0'),
-		// Right edge of cap (controls the width of the U).
-		gd('x9', '*/ w a5 100000'),
+		gd('dh2', '+- aw2 0 th2'),
+		gd('y5', '*/ h a5 100000'),
+		gd('ah', '*/ ss a3 100000'),
+		gd('y4', '+- y5 0 ah'),
+		gd('x9', '+- r 0 dh2'),
 		gd('bw', '*/ x9 1 2'),
-		gd('bs', 'min bw h'),
-		gd('maxAdj4', '*/ 100000 bs ss'),
+		gd('bs', 'min bw y4'),
+		gd('maxAdj4', '*/ bs 100000 ss'),
 		gd('a4', 'pin 0 adj4 maxAdj4'),
-		gd('bh', '*/ ss a4 100000'),
-		gd('bs2', '+- bh 0 th'),
-		gd('tm', 'min y5 bs2'),
-		gd('x4', '+- x9 0 bw'),
-		gd('x5', '+- x4 th 0'),
-		gd('x8', '+- x9 0 th'),
-		gd('x6', '+- x8 0 dh2'),
-		gd('x7', '+- x8 dh2 0'),
-		gd('y4', '+- b 0 ah'),
-		gd('y3', '+- y4 dh2 0'),
-		gd('y2', '+- y4 0 dh2'),
-		gd('y1', '+- y3 0 th'),
+		gd('bd', '*/ ss a4 100000'),
+		gd('bd3', '+- bd 0 th'),
+		gd('bd2', 'max bd3 0'),
+		gd('x3', '+- th bd2 0'),
+		gd('x8', '+- r 0 aw2'),
+		gd('x6', '+- x8 0 aw2'),
+		gd('x7', '+- x6 dh2 0'),
+		gd('x4', '+- x9 0 bd'),
+		gd('x5', '+- x7 0 bd2'),
+		gd('cx', '+/ th x7 2'),
 	],
-	rect: { l: 'l', t: 'tm', r: 'x9', b: 'y4' },
+	rect: { l: 'l', t: 't', r: 'r', b: 'b' },
 	pathLst: [
 		{
 			commands: [
 				{ kind: 'moveTo', x: 'l', y: 'b' },
-				{ kind: 'lnTo', x: 'l', y: 'bh' },
-				// Outer half-circle from bottom-left up and over to bottom-right.
-				{ kind: 'arcTo', wR: 'bw', hR: 'bh', stAng: 'cd2', swAng: 'cd2' },
+				{ kind: 'lnTo', x: 'l', y: 'bd' },
+				{ kind: 'arcTo', wR: 'bd', hR: 'bd', stAng: 'cd2', swAng: 'cd4' },
+				{ kind: 'lnTo', x: 'x4', y: 't' },
+				{ kind: 'arcTo', wR: 'bd', hR: 'bd', stAng: '3cd4', swAng: 'cd4' },
 				{ kind: 'lnTo', x: 'x9', y: 'y4' },
-				{ kind: 'lnTo', x: 'x7', y: 'y4' },
-				{ kind: 'lnTo', x: 'x8', y: 'b' },
+				{ kind: 'lnTo', x: 'r', y: 'y4' },
+				{ kind: 'lnTo', x: 'x8', y: 'y5' },
 				{ kind: 'lnTo', x: 'x6', y: 'y4' },
-				{ kind: 'lnTo', x: 'x8', y: 'y4' },
-				{ kind: 'lnTo', x: 'x8', y: 'bh' },
-				// Inner half-circle, returning to the left leg.
-				{ kind: 'arcTo', wR: 'bs2', hR: 'bs2', stAng: '0', swAng: '-10800000' },
+				{ kind: 'lnTo', x: 'x7', y: 'y4' },
+				{ kind: 'lnTo', x: 'x7', y: 'x3' },
+				{ kind: 'arcTo', wR: 'bd2', hR: 'bd2', stAng: '0', swAng: '-5400000' },
+				{ kind: 'lnTo', x: 'x3', y: 'th' },
+				{ kind: 'arcTo', wR: 'bd2', hR: 'bd2', stAng: '3cd4', swAng: '-5400000' },
 				{ kind: 'lnTo', x: 'th', y: 'b' },
 				{ kind: 'close' },
 			],
