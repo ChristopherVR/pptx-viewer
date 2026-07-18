@@ -4,6 +4,30 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-18
+
+_Releases: pptx-react-viewer@1.22.1, pptx-vue-viewer@1.22.0, pptx-angular-viewer@1.28.0, pptx-vanilla-viewer@0.13.0, pptx-svelte-viewer@1.2.0_
+
+### Features
+
+- **angular:** Tabbed default inspector at React parity (by @ChristopherVR) ([a415ed6](https://github.com/ChristopherVR/pptx-viewer/commit/a415ed6f50ce4eff01cf04f121412852a4acf5b7))
+- **vue:** Tabbed default inspector at React parity (by @ChristopherVR) ([c057f5c](https://github.com/ChristopherVR/pptx-viewer/commit/c057f5c24e4fae931d9f5b50a97e1fd917090490))
+- **svelte:** Ribbon and chrome parity with React (by @ChristopherVR) ([41b5bf1](https://github.com/ChristopherVR/pptx-viewer/commit/41b5bf100afb99b58a7db3d2d0b26ccc77d413fc))
+- **vanilla:** Ribbon and chrome parity with React (by @ChristopherVR) ([c385ee9](https://github.com/ChristopherVR/pptx-viewer/commit/c385ee9a83f6d2228767bb489b97bf57d404aef5))
+- **vue:** Port React TagsSection with tag persistence on save (by @ChristopherVR) ([cd110c4](https://github.com/ChristopherVR/pptx-viewer/commit/cd110c478c662fd722cf706c394b0bcc0897eaf4))
+- **angular:** Persistent inspector tabs, docProps save, Home Arrange group (by @ChristopherVR) ([40606e5](https://github.com/ChristopherVR/pptx-viewer/commit/40606e5ca8bc521a6fdd73c86c6a76a11f7b4b56))
+- **svelte:** Full React-parity Properties sections in the inspector (by @ChristopherVR) ([2afd746](https://github.com/ChristopherVR/pptx-viewer/commit/2afd74633dadb0634db3b19fb42864394cd00c21))
+- **vanilla:** Full React-parity Properties sections in the inspector (by @ChristopherVR) ([c8ef0c0](https://github.com/ChristopherVR/pptx-viewer/commit/c8ef0c021237a3a130e4c192ee07b19ee9500916))
+
+### Bug Fixes
+
+- **angular:** Restore horizontal ribbon layout and dedup Home font/paragraph groups (by @ChristopherVR) ([fd7e1d2](https://github.com/ChristopherVR/pptx-viewer/commit/fd7e1d20f7e93e56354e6b955714e3879fe3d4d4))
+- **vue:** Show "All saved" for settled autosave state like React (by @ChristopherVR) ([b154e59](https://github.com/ChristopherVR/pptx-viewer/commit/b154e59ea8153ea2d6fafd0fe34fd47b750fb772))
+- **react:** Stop the 24px tap-target floor from ballooning small controls (by @ChristopherVR) ([1d068f8](https://github.com/ChristopherVR/pptx-viewer/commit/1d068f83049825ffad45f834f039f6e1450eeec5))
+- **vue:** Stop the 24px tap-target floor from ballooning small controls (by @ChristopherVR) ([f8a0ed8](https://github.com/ChristopherVR/pptx-viewer/commit/f8a0ed8ed796f1cd1e92bd143e951bb609137fbd))
+- **angular:** Stop the 24px tap-target floor from ballooning small controls (by @ChristopherVR) ([c6b2e7f](https://github.com/ChristopherVR/pptx-viewer/commit/c6b2e7fe277950ef6fe7022dd76c4f19d5eb8a24))
+- **vanilla:** Stop the 24px tap-target floor from ballooning small controls (by @ChristopherVR) ([297e3cf](https://github.com/ChristopherVR/pptx-viewer/commit/297e3cfffd603165b3079b9444320369a11fb7b3))
+
 ## 2026-07-17
 
 _Releases: pptx-react-viewer@1.22.0, pptx-vue-viewer@1.21.0, pptx-angular-viewer@1.27.0, pptx-vanilla-viewer@0.12.0, pptx-svelte-viewer@1.1.0_
