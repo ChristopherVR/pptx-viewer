@@ -465,13 +465,16 @@ pptx-element-renderer {
 	align-items: center;
 }
 
+/* Full-width speaker-notes strip: a band spanning the whole viewer between
+   the body and the status bar (React/Vanilla parity), not nested under the
+   canvas column. `flex: 0 0 auto` keeps it out of the body's vertical grow. */
 .pptx-ng-notes {
+	flex: 0 0 auto;
 	max-height: 30%;
 	overflow: auto;
-	margin: 0.5rem 1rem 1rem;
 	padding: 0.5rem 0.75rem;
-	border-top: 1px solid rgba(0, 0, 0, 0.1);
-	background: rgba(0, 0, 0, 0.02);
+	border-top: 1px solid var(--pptx-border, #374151);
+	background: var(--pptx-card, #111827);
 	font-size: 0.875rem;
 	line-height: 1.4;
 }

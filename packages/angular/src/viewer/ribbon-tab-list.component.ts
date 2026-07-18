@@ -37,8 +37,12 @@ import { toolbarVisibility } from './toolbar-visibility';
 						class="relative whitespace-nowrap px-3.5 py-2 text-[12px] font-medium transition-colors"
 						[ngClass]="
 							activeTab() === t.id
-								? 'text-foreground after:absolute after:-bottom-px after:left-0 after:right-0 after:h-[2.5px] after:bg-primary'
-								: 'text-muted-foreground hover:bg-accent/30 hover:text-foreground'
+								? t.id === 'file'
+									? 'text-white bg-primary/80 rounded-sm'
+									: 'text-foreground after:absolute after:-bottom-px after:left-0 after:right-0 after:h-[2.5px] after:bg-primary'
+								: t.id === 'file'
+									? 'text-primary hover:bg-primary/15 rounded-sm'
+									: 'text-muted-foreground hover:bg-accent/30 hover:text-foreground'
 						"
 					>
 						{{ t.labelKey | translate }}

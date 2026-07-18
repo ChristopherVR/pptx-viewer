@@ -55,13 +55,15 @@ import { toolbarVisibility } from './toolbar-visibility';
 				}}
 			</span>
 
-			<div class="mx-1 h-3 w-px bg-border/40"></div>
-			<span class="shrink-0 text-[10px]">{{ 'pptx.statusBar.language' | translate }}</span>
+			<div class="mx-1 h-3 w-px bg-border/40 max-md:hidden"></div>
+			<span class="shrink-0 text-[10px] max-md:hidden">{{
+				'pptx.statusBar.language' | translate
+			}}</span>
 
-			@if (canEdit()) {
-				<div class="mx-1 h-3 w-px bg-border/60"></div>
-				<span class="shrink-0" [ngClass]="saveStateClass()">{{ saveStatusText() }}</span>
-			}
+			<div class="mx-1 h-3 w-px bg-border/60 max-md:hidden"></div>
+			<span class="shrink-0 max-md:hidden" [ngClass]="saveStateClass()">{{
+				saveStatusText()
+			}}</span>
 
 			<!-- Center spacer -->
 			<div class="flex-1"></div>
@@ -110,7 +112,6 @@ import { toolbarVisibility } from './toolbar-visibility';
 						type="button"
 						class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
 						[ngClass]="presenting() ? 'text-primary' : ''"
-						[disabled]="slideCount() === 0"
 						[title]="'pptx.statusBar.slideShow' | translate"
 						[attr.aria-label]="'pptx.statusBar.slideShow' | translate"
 						(click)="slideShow.emit()"
@@ -119,6 +120,13 @@ import { toolbarVisibility } from './toolbar-visibility';
 					</button>
 				}
 			</div>
+
+			<!--
+				Collaboration status slot (React parity: sits between the view-mode
+				cluster and the zoom cluster). Exposed for hosts / the viewer to
+				project a connection-status indicator via [pptxCollabStatus].
+			-->
+			<ng-content select="[pptxCollabStatus]"></ng-content>
 
 			<!-- Zoom controls -->
 			@if (!toolbar.isHidden('zoom')) {
