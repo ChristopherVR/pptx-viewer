@@ -44,6 +44,16 @@ export interface SessionControllers {
 	setCollaborationCursor(x: number, y: number): void;
 	/** Follow the given peer's active slide, or `null` to stop following. */
 	followCollaborationUser(clientId: number | null): void;
+	/**
+	 * The load pipeline is about to commit a parsed deck: suppress collaboration
+	 * slide publishing until {@link notifyCollaborationContentLoaded} runs.
+	 */
+	beginCollaborationContentLoad(): void;
+	/**
+	 * A content load finished; when the shared doc already has slides, they are
+	 * re-adopted over the just-loaded deck (late-joiner bootstrap protection).
+	 */
+	notifyCollaborationContentLoaded(): void;
 	/** Force an immediate autosave (no-op when autosave is disabled). */
 	autosaveNow(): Promise<void>;
 	/** Enable/disable recovery autosave for the active viewer session. */
@@ -154,6 +164,8 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		getCollaborationStatus: () => collaboration.getStatus(),
 		setCollaborationCursor: (x, y) => collaboration.setCursor(x, y, deps.store.get().currentSlide),
 		followCollaborationUser: (clientId) => collaboration.followUser(clientId),
+		beginCollaborationContentLoad: () => collaboration.beginContentLoad(),
+		notifyCollaborationContentLoaded: () => collaboration.notifyContentLoaded(),
 		autosaveNow: () => autosave.saveNow(),
 		setAutosaveEnabled(enabled) {
 			autosave.setEnabled(enabled);

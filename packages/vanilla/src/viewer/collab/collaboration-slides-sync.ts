@@ -24,8 +24,14 @@ export interface SlidesSync {
 		config: CollaborationConfig | null,
 		publishSuppressed: boolean,
 	): void;
-	/** Apply the doc's current slides into the store (skips an empty/unsynced doc). */
-	applyRemoteSlides(ydoc: YDocLike | null, config: CollaborationConfig): void;
+	/**
+	 * Apply the doc's current slides into the store (skips an empty/unsynced
+	 * doc). Applies unconditionally when the doc has slides: the JSON dedupe is
+	 * only ever written here, never consulted, so callers can also use this to
+	 * re-adopt the doc after a local content load. Returns whether doc slides
+	 * were applied.
+	 */
+	applyRemoteSlides(ydoc: YDocLike | null, config: CollaborationConfig): boolean;
 	/** Whether a remote apply is currently in flight (observer re-entrancy guard). */
 	isApplyingRemote(): boolean;
 	/** Clear echo-dedupe/re-entrancy state (session teardown). */
@@ -60,13 +66,13 @@ export function createSlidesSync(
 		}
 	}
 
-	function applyRemoteSlides(ydoc: YDocLike | null, config: CollaborationConfig): void {
+	function applyRemoteSlides(ydoc: YDocLike | null, config: CollaborationConfig): boolean {
 		if (!ydoc) {
-			return;
+			return false;
 		}
 		const remote: PptxSlide[] = readSlidesFromYDoc(ydoc);
 		if (remote.length === 0) {
-			return;
+			return false;
 		}
 		applyingRemote = true;
 		store.set({
@@ -77,6 +83,7 @@ export function createSlidesSync(
 		// Dedupe the echo: the store change this triggers is a no-op for us.
 		lastSynced = JSON.stringify(remote);
 		scheduleWriteBack(config);
+		return true;
 	}
 
 	function reset(): void {

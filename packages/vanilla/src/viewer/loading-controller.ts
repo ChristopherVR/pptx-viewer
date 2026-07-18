@@ -15,6 +15,16 @@ export interface LoadingControllerDeps {
 	store: Store<ViewerState>;
 	getTranslator(): Translator;
 	getEditor(): EditorController | undefined;
+	/**
+	 * Called synchronously right before a successfully parsed deck is committed
+	 * to the store. The store notifies subscribers synchronously, so this is the
+	 * only point where a collaboration session can suppress publishing the
+	 * about-to-land slides into the shared doc ahead of the adoption check in
+	 * `onContentApplied` (late-joiner bootstrap protection).
+	 */
+	onContentApplying?: () => void;
+	/** Called synchronously right after a parsed deck was applied to the store. */
+	onContentApplied?: () => void;
 }
 
 export interface LoadingController {
@@ -62,6 +72,7 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 			handler = loaded.handler;
 			blobUrls = loaded.blobUrls;
 			const partition = partitionTemplateElements(loaded.slides);
+			deps.onContentApplying?.();
 			store.set({
 				slides: partition.slides,
 				sections: loaded.sections,
@@ -92,6 +103,7 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				currentSlide: clampSlideIndex(options.initialSlide ?? 0, partition.slides.length),
 				loading: false,
 			});
+			deps.onContentApplied?.();
 			options.onLoad?.({ slideCount: loaded.slides.length, canvasSize: loaded.canvasSize });
 		} catch (error) {
 			if (token !== loadToken) {

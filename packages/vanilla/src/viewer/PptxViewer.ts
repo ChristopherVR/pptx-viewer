@@ -153,6 +153,13 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			store: this.store,
 			getTranslator: () => this.t,
 			getEditor: () => this.editor,
+			// Late-joiner bootstrap protection: bracket the load commit so an
+			// active collaboration session can suppress publishing the parsed
+			// deck and instead re-adopt the room's slides when the shared doc
+			// already has content (`this.sessions` is constructed later, hence
+			// the lazy optional access).
+			onContentApplying: () => this.sessions?.beginCollaborationContentLoad(),
+			onContentApplied: () => this.sessions?.notifyCollaborationContentLoaded(),
 		});
 		this.renderer = createRenderController({
 			doc: this.doc,
