@@ -148,11 +148,14 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 			</RibbonGroup>
 			<RibbonGroup label={t('pptx.view.window', { defaultValue: 'Window' })}>
 				<RibbonCommand
-					label={t('pptx.view.templateEditing', { defaultValue: 'Template Editing' })}
+					label={t(p.editTemplateMode ? 'pptx.ribbon.templatesOn' : 'pptx.ribbon.templatesOff')}
 					icon={<LuRuler />}
 					onClick={() => p.onSetEditTemplateMode(!p.editTemplateMode)}
 					active={p.editTemplateMode}
 					disabled={!p.canEdit}
+					title={t('pptx.view.templateEditingTooltip', {
+						defaultValue: 'Toggle template/master element editing',
+					})}
 				/>
 				<RibbonCommand
 					label={t('pptx.view.macros', { defaultValue: 'Macros' })}

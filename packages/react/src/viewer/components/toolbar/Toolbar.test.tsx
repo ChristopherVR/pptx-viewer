@@ -1455,6 +1455,32 @@ describe('toolbar - View tab', () => {
 		const html = render(React.createElement(ViewSection, createViewProps({ canEdit: false })));
 		expect(html).toMatch(/disabled[^>]*title="Edit slide masters and layouts"/u);
 	});
+
+	// The template-mode toggle's accessible name is the e2e/UX contract shared
+	// with every other binding: it must read "Templates Off" while the mode is
+	// off and "Templates On" while it is on (e2e/template-editing.spec.ts
+	// queries the button by exactly that name). A static "Template Editing"
+	// label regressed the whole template-editing e2e flow for React once.
+	it('template-mode toggle reads "Templates Off" when the mode is off', () => {
+		const html = render(React.createElement(ViewSection, createViewProps()));
+		expect(html).toContain('>Templates Off<');
+		expect(html).not.toContain('>Templates On<');
+		expect(html).toContain('title="Toggle template/master element editing"');
+	});
+
+	it('template-mode toggle reads "Templates On" with active styling when on', () => {
+		const html = render(
+			React.createElement(ViewSection, createViewProps({ editTemplateMode: true })),
+		);
+		expect(html).toContain('>Templates On<');
+		expect(html).not.toContain('>Templates Off<');
+		expect(html).toMatch(/title="Toggle template\/master element editing"[^>]*bg-primary\/15/u);
+	});
+
+	it('template-mode toggle is disabled when canEdit is false', () => {
+		const html = render(React.createElement(ViewSection, createViewProps({ canEdit: false })));
+		expect(html).toMatch(/disabled[^>]*title="Toggle template\/master element editing"/u);
+	});
 });
 
 // ===========================================================================
