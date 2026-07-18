@@ -280,6 +280,7 @@ export {
 export { VML_SHAPE_TAGS, parseVmlElement, parseVmlElements } from './vml-parser';
 
 export { parseActiveXControlsFromSlide } from './activex-parser';
+export { applyActiveXControlsToSlide, buildActiveXControlNode } from './activex-serializer';
 
 export { parseKinsoku, applyKinsokuToXml } from './kinsoku-parser';
 

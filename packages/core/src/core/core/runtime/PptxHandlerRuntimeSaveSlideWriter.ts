@@ -2,7 +2,7 @@ import { remapEditorAnimationsToShapeIds } from '../../services';
 import { XmlObject, PptxComment, PptxSlide } from '../../types';
 import type { MediaPptxElement } from '../../types';
 import type { AlternateContentBlock } from '../../utils';
-import { SHAPE_TREE_ELEMENT_TAGS } from '../../utils';
+import { applyActiveXControlsToSlide, SHAPE_TREE_ELEMENT_TAGS } from '../../utils';
 import { saveModernSlideComments } from '../../utils/modern-comment-package';
 import { saveSlideSynchronization } from '../../utils/slide-synchronization';
 import { buildClrMapOverrideXml } from '../../utils/theme-override-utils';
@@ -342,6 +342,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		if (slideContainsMathElement(slideNode)) {
 			ensureMathNamespaceOnSlideRoot(slideNode);
+		}
+
+		// Rebuild `<p:controls>` from the typed ActiveX model so control edits
+		// (rename, spid retarget, add/remove) round-trip. Undefined means the
+		// slide was never parsed for controls, so leave any raw passthrough
+		// intact rather than wiping it.
+		if (slide.activeXControls !== undefined) {
+			applyActiveXControlsToSlide(xmlObj, slide.activeXControls);
 		}
 
 		this.zip.file(slide.id, this.builder.build(xmlObj));

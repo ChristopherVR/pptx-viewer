@@ -186,6 +186,61 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 			]),
 		],
 	},
+	'presentation:complexType:CT_ControlList': {
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: 'The `p:controls` container round-trips: controls can be parsed, added, removed, and reordered.',
+		evidence: [
+			testEvidence('src/core/utils/activex-serializer.test.ts', [
+				'round-trips typed ActiveX controls through parse and serialize',
+				'drops the controls container when no controls remain',
+				'keeps the controls container ahead of the extension list',
+			]),
+		],
+	},
+	'presentation:element:controls': {
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: 'The `p:controls` container round-trips: controls can be parsed, added, removed, and reordered.',
+		evidence: [
+			testEvidence('src/core/utils/activex-serializer.test.ts', [
+				'round-trips typed ActiveX controls through parse and serialize',
+				'drops the controls container when no controls remain',
+			]),
+		],
+	},
+	'presentation:complexType:CT_Control': {
+		parse: 'partial',
+		preserve: 'passthrough',
+		edit: 'partial',
+		serialize: 'partial',
+		note: 'The r:id, name, and spid attributes are typed and editable; the placeholder pic and extLst children are preserved as passthrough. Not rendered by any binding.',
+		evidence: [
+			testEvidence('src/core/utils/activex-serializer.test.ts', [
+				'round-trips typed ActiveX controls through parse and serialize',
+				'preserves the placeholder pic child during a typed write',
+				'serializes edited control attributes back into the slide',
+			]),
+		],
+	},
+	'presentation:element:control': {
+		parse: 'partial',
+		preserve: 'passthrough',
+		edit: 'partial',
+		serialize: 'partial',
+		note: 'The r:id, name, and spid attributes are typed and editable; the placeholder pic and extLst children are preserved as passthrough. Not rendered by any binding.',
+		evidence: [
+			testEvidence('src/core/utils/activex-serializer.test.ts', [
+				'preserves the placeholder pic child during a typed write',
+				'serializes edited control attributes back into the slide',
+				'emits a bare control node when only a relationship id is known',
+			]),
+		],
+	},
 };
 
 for (const id of [

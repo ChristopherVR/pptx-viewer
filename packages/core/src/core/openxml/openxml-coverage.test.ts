@@ -84,6 +84,18 @@ describe('open XML schema coverage inventory', () => {
 			edit: 'partial',
 			serialize: 'partial',
 		});
+		expect(findOpenXmlCoverage('presentation:complexType:CT_ControlList')).toMatchObject({
+			parse: 'native',
+			preserve: 'native',
+			edit: 'native',
+			serialize: 'native',
+		});
+		expect(findOpenXmlCoverage('presentation:complexType:CT_Control')).toMatchObject({
+			parse: 'partial',
+			preserve: 'passthrough',
+			edit: 'partial',
+			serialize: 'partial',
+		});
 		expect(findOpenXmlCoverage('drawing:complexType:CT_SRgbColor')).toMatchObject({
 			parse: 'native',
 			preserve: 'native',
@@ -281,7 +293,7 @@ describe('open XML schema coverage inventory', () => {
 			),
 		).toBe(OPENXML_COVERAGE.length * 4);
 		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(345);
-		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(566);
+		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(562);
 		expect(listUnassessedOpenXmlCoverage('drawing')).toHaveLength(798);
 		expect(listUnassessedOpenXmlCoverage('diagram')).toHaveLength(145);
 	});
