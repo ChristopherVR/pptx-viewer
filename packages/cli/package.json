@@ -1,6 +1,6 @@
 {
 	"name": "@christophervr/pptx-viewer",
-	"version": "1.5.4",
+	"version": "1.5.5",
 	"description": "Interactive installer for the pptx-viewer family of packages: React, Vue, Angular, Svelte, and vanilla JS viewer components, the framework-agnostic core engine, and the MCP server.",
 	"keywords": [
 		"angular",
