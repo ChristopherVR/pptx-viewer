@@ -88,7 +88,6 @@ export const TOOL_DEFINITIONS: Record<PptxAiToolName, ToolDefinition> = {
 		inputSchema: obj({}),
 	},
 
-	// ── navigation ──────────────────────────────────────────────────────────
 	go_to_slide: {
 		description: 'Navigate the viewer to a slide.',
 		inputSchema: obj({ slideIndex }, ['slideIndex']),
