@@ -37,6 +37,7 @@ export * from './image-effect-filter-values';
 export * from './text-warp';
 export * from './omml-to-mathml';
 export * from './latex-to-omml';
+export * from './equation-templates';
 export * from './chart-helpers';
 export * from './chart-trendlines';
 export * from './chart-axis';
