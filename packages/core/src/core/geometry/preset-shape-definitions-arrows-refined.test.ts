@@ -26,7 +26,6 @@ const REQUIRED_REFINEMENTS = [
 	'leftCircularArrow',
 	'leftRightCircularArrow',
 	'swooshArrow',
-	'curvedRightArrow',
 ] as const;
 
 const KNOWN_OPS = new Set([
@@ -55,7 +54,7 @@ const KNOWN_OPS = new Set([
 const PLACEHOLDER_PATTERNS = [/TODO/i, /FIXME/i, /SIMPLIFIED/i, /placeholder/i, /…/];
 
 describe('refined arrow preset definitions', () => {
-	it('contains all 8 refined shapes', () => {
+	it('contains all 7 refined shapes', () => {
 		for (const name of REQUIRED_REFINEMENTS) {
 			expect(
 				REFINED_ARROW_PRESET_DEFINITIONS[name],

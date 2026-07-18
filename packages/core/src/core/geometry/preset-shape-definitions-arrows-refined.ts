@@ -9,9 +9,9 @@
  *
  * `bentArrow`, `bentUpArrow`, and `uturnArrow` are verbatim transcriptions of
  * the canonical `presetShapeDefinitions.xml` payload (ISO/IEC 29500-1
- * §20.1.10.55). The remaining circular / swoosh / curved variants reproduce
- * the spec's guide chain closely but are adjustment-responsive approximations
- * of the arrowhead-tangent maths, not byte-for-byte transcriptions.
+ * §20.1.10.55). The remaining circular / swoosh variants reproduce the spec's
+ * guide chain closely but are adjustment-responsive approximations of the
+ * arrowhead-tangent maths, not byte-for-byte transcriptions.
  *
  * The aggregator in `preset-shape-definitions-table.ts` is expected to
  * spread `REFINED_ARROW_PRESET_DEFINITIONS` *after*
@@ -28,7 +28,9 @@
  *   • leftCircularArrow      (5 adjusts; mirrors circularArrow)
  *   • leftRightCircularArrow (5 adjusts; heads at both ends of arc)
  *   • swooshArrow     (2 adjusts)
- *   • curvedRightArrow (3 adjusts; arrow follows an arc)
+ *
+ * (`curvedRightArrow` was promoted to a spec-exact transcription in
+ * `preset-shape-definitions-curved-arrows-exact.ts`.)
  *
  * Conventions (matching the rest of the geometry layer):
  *   • EMU-aware tokens like `ss`, `wd2`, `hd2`, `cd2`, `cd4`, `cd8`
@@ -601,84 +603,12 @@ const swooshArrow: PresetShapeGeometryDefinition = {
 };
 
 // ---------------------------------------------------------------------------
-// curvedRightArrow — arrow whose body follows an arc to the right.
-//
-// avLst (spec defaults):
-//   adj1 = 25000  body thickness as fraction of h
-//   adj2 = 50000  head extra width as fraction of h
-//   adj3 = 25000  head length as fraction of w
-//
-// The spec sweeps an outer and inner arc between the back of the body
-// and the arrow shoulder, with a triangular head. We use cubic Béziers
-// so the curve respects the spec's two control points and remains
-// faithful to the wider OOXML curve family.
-// ---------------------------------------------------------------------------
-const curvedRightArrow: PresetShapeGeometryDefinition = {
-	name: 'curvedRightArrow',
-	avLst: { adj1: 25000, adj2: 50000, adj3: 25000 },
-	gdLst: [
-		gd('a1', 'pin 0 adj1 100000'),
-		gd('a2', 'pin 0 adj2 100000'),
-		gd('a3', 'pin 0 adj3 100000'),
-		gd('th', '*/ h a1 100000'),
-		gd('th2', '*/ th 1 2'),
-		gd('aw', '*/ h a2 100000'),
-		gd('aw2', '*/ aw 1 2'),
-		gd('hl', '*/ w a3 100000'),
-		// Y-positions of the body bands.
-		gd('y1', '+- th 0 0'),
-		gd('y2', '+- y1 th2 0'),
-		gd('y3', '+- y2 th2 0'),
-		gd('y4', '+- y3 aw2 0'),
-		gd('y5', '+- b 0 aw2'),
-		gd('y6', '+- y5 aw2 0'),
-		// X positions: the head shoulder is `hl` in from the right edge.
-		gd('x1', '+- r 0 hl'),
-		// Outer arc control / sweep helpers.
-		gd('dx', '+- r 0 l'),
-		gd('cx1', '*/ dx 1 2'),
-		gd('cx2', '*/ dx 3 4'),
-	],
-	rect: FULL_RECT,
-	pathLst: [
-		{
-			commands: [
-				// Start at the back of the arrow body (top-left), sweep along
-				// the outer (top) arc to the head shoulder.
-				{ kind: 'moveTo', x: 'l', y: 't' },
-				{
-					kind: 'cubicBezTo',
-					x1: 'cx1',
-					y1: 't',
-					x2: 'x1',
-					y2: 'y2',
-					x3: 'x1',
-					y3: 'y3',
-				},
-				// Head triangle: shoulder up, tip out, shoulder down.
-				{ kind: 'lnTo', x: 'x1', y: 'y4' },
-				{ kind: 'lnTo', x: 'r', y: 'y5' },
-				{ kind: 'lnTo', x: 'x1', y: 'b' },
-				{ kind: 'lnTo', x: 'x1', y: 'y6' },
-				// Inner arc sweeps back from the shoulder to the body root.
-				{
-					kind: 'cubicBezTo',
-					x1: 'cx2',
-					y1: 'b',
-					x2: 'cx1',
-					y2: 'y1',
-					x3: 'l',
-					y3: 'y1',
-				},
-				{ kind: 'close' },
-			],
-		},
-	],
-};
-
-// ---------------------------------------------------------------------------
 // Public table — spread last in `preset-shape-definitions-table.ts` so
 // these refined entries override the simplified versions.
+//
+// `curvedRightArrow` was promoted out of this batch: it is now a spec-exact
+// transcription in `preset-shape-definitions-curved-arrows-exact.ts` (spread
+// even later so it wins), alongside its up/down/left siblings.
 // ---------------------------------------------------------------------------
 
 export const REFINED_ARROW_PRESET_DEFINITIONS: Record<string, PresetShapeGeometryDefinition> = {
@@ -689,5 +619,4 @@ export const REFINED_ARROW_PRESET_DEFINITIONS: Record<string, PresetShapeGeometr
 	leftCircularArrow,
 	leftRightCircularArrow,
 	swooshArrow,
-	curvedRightArrow,
 };

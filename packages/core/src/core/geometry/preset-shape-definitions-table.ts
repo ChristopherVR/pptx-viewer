@@ -49,6 +49,7 @@ import { ARROW_PRESET_DEFINITIONS } from './preset-shape-definitions-arrows';
 import { REFINED_ARROW_PRESET_DEFINITIONS } from './preset-shape-definitions-arrows-refined';
 import { CONNECTORS_BRACKETS_PRESET_DEFINITIONS } from './preset-shape-definitions-connectors-brackets';
 import { CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS } from './preset-shape-definitions-curved-arrows-connectors';
+import { EXACT_CURVED_ARROW_PRESET_DEFINITIONS } from './preset-shape-definitions-curved-arrows-exact';
 import { FLOWCHART_PRESET_DEFINITIONS } from './preset-shape-definitions-flowchart';
 import { MISC_PRESET_DEFINITIONS } from './preset-shape-definitions-misc';
 import { RECTS_SNIPS_PRESET_DEFINITIONS } from './preset-shape-definitions-rects-snips';
@@ -1112,4 +1113,7 @@ export const PRESET_SHAPE_GEOMETRY_TABLE: Record<string, PresetShapeGeometryDefi
 	// Refined arrows MUST come last so its full-spec versions override the
 	// simplified entries from ARROW_PRESET_DEFINITIONS.
 	...REFINED_ARROW_PRESET_DEFINITIONS,
+	// Spec-exact curved arrows override BOTH the simplified connector-batch
+	// entries and the refined curvedRightArrow approximation.
+	...EXACT_CURVED_ARROW_PRESET_DEFINITIONS,
 };

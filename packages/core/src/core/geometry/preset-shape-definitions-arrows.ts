@@ -971,7 +971,9 @@ const swooshArrow: PresetShapeGeometryDefinition = {
 };
 
 // curvedRightArrow — quad-bezier curved arrow pointing right.
-// SIMPLIFIED.
+// SUPERSEDED: the active definition is the spec-exact transcription in
+// `preset-shape-definitions-curved-arrows-exact.ts` (spread later in the
+// master table). This entry is retained only for batch-history continuity.
 const curvedRightArrow: PresetShapeGeometryDefinition = {
 	name: 'curvedRightArrow',
 	avLst: { adj1: 25000, adj2: 50000, adj3: 25000 },

@@ -15,10 +15,6 @@ import { describe, expect, it } from 'vitest';
 import { CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS } from './preset-shape-definitions-curved-arrows-connectors';
 
 const REQUIRED_SHAPES = [
-	// Curved arrows
-	'curvedDownArrow',
-	'curvedLeftArrow',
-	'curvedUpArrow',
 	// Lines
 	'line',
 	'lineInv',
@@ -68,16 +64,16 @@ const KNOWN_OPS = new Set([
 	'sat2',
 ]);
 
-describe('preset shape curved-arrow + connector definitions', () => {
-	it('contains every required shape (10 entries)', () => {
+describe('preset shape line + connector definitions', () => {
+	it('contains every required shape (7 entries)', () => {
 		for (const name of REQUIRED_SHAPES) {
 			expect(
 				CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS[name],
 				`missing preset ${name}`,
 			).toBeDefined();
 		}
-		expect(REQUIRED_SHAPES).toHaveLength(10);
-		expect(Object.keys(CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS)).toHaveLength(10);
+		expect(REQUIRED_SHAPES).toHaveLength(7);
+		expect(Object.keys(CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS)).toHaveLength(7);
 	});
 
 	it('shape names match their dictionary keys', () => {
@@ -123,29 +119,6 @@ describe('preset shape curved-arrow + connector definitions', () => {
 	it('every shape exposes a rect (text bounds)', () => {
 		for (const def of Object.values(CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS)) {
 			expect(def.rect, `${def.name} missing rect`).toBeDefined();
-		}
-	});
-
-	// -------------------------------------------------------------------------
-	// Curved-arrow defaults
-	// -------------------------------------------------------------------------
-
-	it('curved arrow defaults are 25000 / 50000 / 25000 (matches curvedRightArrow)', () => {
-		for (const name of ['curvedDownArrow', 'curvedLeftArrow', 'curvedUpArrow'] as const) {
-			expect(CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS[name]?.avLst?.adj1).toBe(25000);
-			expect(CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS[name]?.avLst?.adj2).toBe(50000);
-			expect(CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS[name]?.avLst?.adj3).toBe(25000);
-		}
-	});
-
-	it('every curved arrow renders as a filled silhouette (fill: norm) with stroke', () => {
-		for (const name of ['curvedDownArrow', 'curvedLeftArrow', 'curvedUpArrow'] as const) {
-			const def = CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS[name];
-			expect(def, `missing ${name}`).toBeDefined();
-			for (const path of def?.pathLst ?? []) {
-				expect(path.fill, `${name}: fill should be 'norm'`).toBe('norm');
-				expect(path.stroke, `${name}: stroke should be true`).toBeTruthy();
-			}
 		}
 	});
 

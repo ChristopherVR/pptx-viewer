@@ -1,12 +1,12 @@
 /**
- * ECMA-376 ST_ShapeType preset geometry definitions — curved arrows + bent
- * connectors batch.
+ * ECMA-376 ST_ShapeType preset geometry definitions — lines + bent connectors
+ * batch.
  *
- * This batch authors 10 additional shapes whose geometry is defined in
- * Microsoft's `presetShapeDefinitions.xml` (ISO/IEC 29500-1 §20.1.10.55):
- *
- * Curved arrows (filled silhouettes — `fill: 'norm'`)
- *  • `curvedDownArrow`, `curvedLeftArrow`, `curvedUpArrow`
+ * This batch authors 7 shapes whose geometry is defined in Microsoft's
+ * `presetShapeDefinitions.xml` (ISO/IEC 29500-1 §20.1.10.55). The curved
+ * arrows that once lived here (`curvedDownArrow`, `curvedLeftArrow`,
+ * `curvedUpArrow`) have been promoted to spec-exact transcriptions in
+ * `preset-shape-definitions-curved-arrows-exact.ts`.
  *
  * Lines (filled silhouettes are not applicable; stroke-only paths)
  *  • `line`        — straight horizontal stroke (top-left → bottom-right)
@@ -20,15 +20,6 @@
  *  • `bentConnector5`     — right-angle, 5 segments, 3 adjustments
  *
  * # Notes on faithfulness
- *
- * The spec XML for `curvedDownArrow`, `curvedLeftArrow`, and `curvedUpArrow`
- * is symmetrical with `curvedRightArrow`, which the existing arrows batch
- * marks as `SIMPLIFIED:` (a faithful default-adjustment silhouette using
- * quad-Bézier curves for the arc body, plus a triangular arrow head). Those
- * three shapes here use the same reduction strategy — visually correct at the
- * spec-default avLst values but not yet honouring arbitrary adjustment
- * overrides. Future work can replace them with the full guide-formula sets
- * once the evaluator covers all of `quadBezTo`'s control-point math.
  *
  * Connectors carry `fill: 'none', stroke: true` on every path. The path
  * commands describe the polyline that PowerPoint draws between the connector
@@ -62,159 +53,6 @@ function gd(name: string, formula: string): { name: string; formula: string; arg
 
 /** Default text rectangle equal to the shape bounds. */
 const FULL_RECT = { l: 'l', t: 't', r: 'r', b: 'b' } as const;
-
-// ---------------------------------------------------------------------------
-// Curved arrows
-// ---------------------------------------------------------------------------
-
-// curvedDownArrow — quad-Bézier curved arrow pointing down. Mirrors the
-// `curvedRightArrow` reduction in `preset-shape-definitions-arrows.ts`,
-// rotated 90° (the arc travels along the X axis and the head points down).
-//   adj1 — body thickness as a fraction of ss.
-//   adj2 — horizontal centre of the arrow head along the body (fraction of w).
-//   adj3 — head length as a fraction of h (the bottom-aligned head depth).
-// SIMPLIFIED.
-const curvedDownArrow: PresetShapeGeometryDefinition = {
-	name: 'curvedDownArrow',
-	avLst: { adj1: 25000, adj2: 50000, adj3: 25000 },
-	gdLst: [
-		gd('a1', 'pin 0 adj1 100000'),
-		gd('a2', 'pin 0 adj2 100000'),
-		gd('a3', 'pin 0 adj3 100000'),
-		gd('th', '*/ ss a1 100000'),
-		gd('hl', '*/ h a3 100000'),
-		gd('y1', '+- b 0 hl'),
-		gd('x1', '*/ w a2 100000'),
-	],
-	rect: FULL_RECT,
-	pathLst: [
-		{
-			fill: 'norm',
-			stroke: true,
-			commands: [
-				{ kind: 'moveTo', x: 'r', y: 't' },
-				{
-					kind: 'quadBezTo',
-					x1: 'l',
-					y1: 'vc',
-					x2: 'x1',
-					y2: 'y1',
-				},
-				{ kind: 'lnTo', x: 'l', y: 'y1' },
-				{ kind: 'lnTo', x: 'hc', y: 'b' },
-				{ kind: 'lnTo', x: 'r', y: 'y1' },
-				{ kind: 'lnTo', x: 'x1', y: 'y1' },
-				{
-					kind: 'quadBezTo',
-					x1: 'r',
-					y1: 'vc',
-					x2: 'r',
-					y2: 't',
-				},
-				{ kind: 'close' },
-			],
-		},
-	],
-};
-
-// curvedLeftArrow — quad-Bézier curved arrow pointing left. Mirrors
-// `curvedRightArrow`, rotated 180°.
-//   adj1 — body thickness as a fraction of ss.
-//   adj2 — vertical centre of the arrow head along the body (fraction of h).
-//   adj3 — head length as a fraction of w (the left-aligned head depth).
-// SIMPLIFIED.
-const curvedLeftArrow: PresetShapeGeometryDefinition = {
-	name: 'curvedLeftArrow',
-	avLst: { adj1: 25000, adj2: 50000, adj3: 25000 },
-	gdLst: [
-		gd('a1', 'pin 0 adj1 100000'),
-		gd('a2', 'pin 0 adj2 100000'),
-		gd('a3', 'pin 0 adj3 100000'),
-		gd('th', '*/ ss a1 100000'),
-		gd('hl', '*/ w a3 100000'),
-		gd('x1', '+- l 0 0'),
-		gd('x2', '*/ w a3 100000'),
-		gd('y1', '*/ h a2 100000'),
-	],
-	rect: FULL_RECT,
-	pathLst: [
-		{
-			fill: 'norm',
-			stroke: true,
-			commands: [
-				{ kind: 'moveTo', x: 'r', y: 'b' },
-				{
-					kind: 'quadBezTo',
-					x1: 'hc',
-					y1: 't',
-					x2: 'x2',
-					y2: 'y1',
-				},
-				{ kind: 'lnTo', x: 'x2', y: 't' },
-				{ kind: 'lnTo', x: 'l', y: 'vc' },
-				{ kind: 'lnTo', x: 'x2', y: 'b' },
-				{ kind: 'lnTo', x: 'x2', y: 'y1' },
-				{
-					kind: 'quadBezTo',
-					x1: 'hc',
-					y1: 'b',
-					x2: 'r',
-					y2: 'b',
-				},
-				{ kind: 'close' },
-			],
-		},
-	],
-};
-
-// curvedUpArrow — quad-Bézier curved arrow pointing up. Mirrors
-// `curvedRightArrow`, rotated -90° (head points up, arc along X axis).
-//   adj1 — body thickness as a fraction of ss.
-//   adj2 — horizontal centre of the arrow head along the body (fraction of w).
-//   adj3 — head length as a fraction of h (the top-aligned head depth).
-// SIMPLIFIED.
-const curvedUpArrow: PresetShapeGeometryDefinition = {
-	name: 'curvedUpArrow',
-	avLst: { adj1: 25000, adj2: 50000, adj3: 25000 },
-	gdLst: [
-		gd('a1', 'pin 0 adj1 100000'),
-		gd('a2', 'pin 0 adj2 100000'),
-		gd('a3', 'pin 0 adj3 100000'),
-		gd('th', '*/ ss a1 100000'),
-		gd('hl', '*/ h a3 100000'),
-		gd('y1', '*/ h a3 100000'),
-		gd('x1', '*/ w a2 100000'),
-	],
-	rect: FULL_RECT,
-	pathLst: [
-		{
-			fill: 'norm',
-			stroke: true,
-			commands: [
-				{ kind: 'moveTo', x: 'l', y: 'b' },
-				{
-					kind: 'quadBezTo',
-					x1: 'r',
-					y1: 'vc',
-					x2: 'x1',
-					y2: 'y1',
-				},
-				{ kind: 'lnTo', x: 'r', y: 'y1' },
-				{ kind: 'lnTo', x: 'hc', y: 't' },
-				{ kind: 'lnTo', x: 'l', y: 'y1' },
-				{ kind: 'lnTo', x: 'x1', y: 'y1' },
-				{
-					kind: 'quadBezTo',
-					x1: 'l',
-					y1: 'vc',
-					x2: 'l',
-					y2: 'b',
-				},
-				{ kind: 'close' },
-			],
-		},
-	],
-};
 
 // ---------------------------------------------------------------------------
 // Lines
@@ -391,9 +229,6 @@ export const CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS: Record<
 	string,
 	PresetShapeGeometryDefinition
 > = {
-	curvedDownArrow,
-	curvedLeftArrow,
-	curvedUpArrow,
 	line,
 	lineInv,
 	straightConnector1,
