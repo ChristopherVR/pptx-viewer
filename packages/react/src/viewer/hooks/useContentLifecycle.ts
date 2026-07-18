@@ -116,6 +116,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		coreProperties: state.coreProperties,
 		appProperties: state.appProperties,
 		customProperties: state.customProperties,
+		tagCollections: state.tagCollections,
 		notesMaster: state.notesMaster,
 		handoutMaster: state.handoutMaster,
 		handlerRef,

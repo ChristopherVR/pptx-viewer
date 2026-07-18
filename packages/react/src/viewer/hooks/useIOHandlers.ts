@@ -89,6 +89,7 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		coreProperties: (state.coreProperties ?? null) as Record<string, unknown> | null,
 		appProperties: (state.appProperties ?? null) as Record<string, unknown> | null,
 		customProperties: state.customProperties as unknown as Array<Record<string, unknown>>,
+		tagCollections: state.tagCollections as unknown as Array<Record<string, unknown>>,
 		notesMaster: state.notesMaster as unknown as Record<string, unknown> | undefined,
 		handoutMaster: state.handoutMaster as unknown as Record<string, unknown> | undefined,
 		guides: state.guides,

@@ -30,6 +30,7 @@ export interface UseExportSaveAsInput {
 	coreProperties: Record<string, unknown> | null;
 	appProperties: Record<string, unknown> | null;
 	customProperties: Array<Record<string, unknown>>;
+	tagCollections: Array<Record<string, unknown>>;
 	notesMaster: Record<string, unknown> | undefined;
 	handoutMaster: Record<string, unknown> | undefined;
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
@@ -60,6 +61,7 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		coreProperties,
 		appProperties,
 		customProperties,
+		tagCollections,
 		notesMaster,
 		handoutMaster,
 		guides,
@@ -178,6 +180,7 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 			coreProperties: coreProperties ?? undefined,
 			appProperties: appProperties ?? undefined,
 			customProperties: customProperties.length > 0 ? customProperties : undefined,
+			tags: tagCollections.length > 0 ? tagCollections : undefined,
 			notesMaster,
 			handoutMaster,
 			outputFormat: format,

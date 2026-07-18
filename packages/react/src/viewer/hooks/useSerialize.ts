@@ -10,6 +10,7 @@ import type {
 	PptxNotesMaster,
 	PptxHandoutMaster,
 	PptxSection,
+	PptxTagCollection,
 } from 'pptx-viewer-core';
 import { guidePxToEmu, hasTextProperties } from 'pptx-viewer-core';
 /**
@@ -40,6 +41,7 @@ export interface UseSerializeInput {
 	coreProperties: PptxCoreProperties | undefined;
 	appProperties: PptxAppProperties | undefined;
 	customProperties: PptxCustomProperty[];
+	tagCollections: PptxTagCollection[];
 	notesMaster: PptxNotesMaster | undefined;
 	handoutMaster: PptxHandoutMaster | undefined;
 	handlerRef: React.RefObject<PptxHandler | null>;
@@ -65,6 +67,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		coreProperties,
 		appProperties,
 		customProperties,
+		tagCollections,
 		notesMaster,
 		handoutMaster,
 		handlerRef,
@@ -130,6 +133,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 			coreProperties,
 			appProperties,
 			customProperties: customProperties.length > 0 ? customProperties : undefined,
+			tags: tagCollections.length > 0 ? tagCollections : undefined,
 			notesMaster,
 			handoutMaster,
 		};
@@ -148,6 +152,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		coreProperties,
 		appProperties,
 		customProperties,
+		tagCollections,
 		notesMaster,
 		handoutMaster,
 		guides,

@@ -28,6 +28,7 @@ export interface UseExportHandlersInput {
 	coreProperties: Record<string, unknown> | null;
 	appProperties: Record<string, unknown> | null;
 	customProperties: Array<Record<string, unknown>>;
+	tagCollections: Array<Record<string, unknown>>;
 	notesMaster: Record<string, unknown> | undefined;
 	handoutMaster: Record<string, unknown> | undefined;
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
