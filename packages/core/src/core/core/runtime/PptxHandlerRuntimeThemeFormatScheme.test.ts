@@ -202,9 +202,7 @@ describe('parseEffectStyleList', () => {
 
 	it('should return empty-ish style when effectStyle has no effectLst', () => {
 		const listNode: XmlObject = {
-			'a:effectStyle': {
-				/* no a:effectLst */
-			},
+			'a:effectStyle': {/* no a:effectLst */},
 		};
 		const result = parseEffectStyleList(listNode);
 		expect(result).toHaveLength(1);

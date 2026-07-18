@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsup';
+import { defineConfig } from 'tsdown';
 
 export default defineConfig((options) => ({
 	entry: [
@@ -8,25 +8,10 @@ export default defineConfig((options) => ({
 		'src/signature-node/index.ts',
 	],
 	format: ['esm', 'cjs'],
-	dts: false,
-	splitting: false,
+	outDir: '.types',
+	dts: { emitDtsOnly: true },
 	sourcemap: false,
 	clean: !options.watch,
-	external: [
-		'emf-converter',
-		'mtx-decompressor',
-		'jszip',
-		'fast-xml-parser',
-		'fs',
-		'path',
-		'node-forge',
-		'xml-crypto',
-		'@xmldom/xmldom',
-		'crypto',
-		'http',
-		'https',
-		'tls',
-	],
 	treeshake: true,
 	platform: 'neutral',
 }));

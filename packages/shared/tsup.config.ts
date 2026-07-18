@@ -9,7 +9,7 @@ export default defineConfig((options) => ({
 		'src/i18n/index.ts',
 	],
 	format: ['esm', 'cjs'],
-	dts: true,
+	dts: false,
 	splitting: false,
 	sourcemap: false,
 	clean: !options.watch,

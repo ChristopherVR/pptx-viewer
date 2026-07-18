@@ -59,7 +59,7 @@
 		}
 	},
 	"scripts": {
-		"build": "tsup",
+		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",
 		"test": "vitest run",
@@ -74,8 +74,9 @@
 		"@types/three": "^0.185.1",
 		"pptx-viewer-core": "workspace:*",
 		"three": "^0.185.1",
+		"tsdown": "^0.22.9",
 		"tsup": "^8.5.1",
-		"typescript": "^6.0.3",
+		"typescript": "^7.0.2",
 		"vitest": "^4.1.10",
 		"yjs": "^13.6.31"
 	},
