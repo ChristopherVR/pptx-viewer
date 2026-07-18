@@ -49,9 +49,23 @@ const props = withDefaults(
 		startIndex?: number;
 		startInPresenterView?: boolean;
 		presentationProperties?: PptxPresentationProperties;
+		/** File > Options > Advanced > Slide Show behavior flags. */
+		endWithBlackSlide?: boolean;
+		promptKeepInkAnnotations?: boolean;
 	}>(),
-	{ startIndex: 0, startInPresenterView: false },
+	{
+		startIndex: 0,
+		startInPresenterView: false,
+		endWithBlackSlide: true,
+		promptKeepInkAnnotations: true,
+	},
 );
+
+/** Slide-show option flags read by navigation / exit (File > Options gated). */
+const showOptions = computed(() => ({
+	endWithBlackSlide: props.endWithBlackSlide,
+	promptKeepInkAnnotations: props.promptKeepInkAnnotations,
+}));
 
 const emit = defineEmits<{
 	/**
@@ -154,23 +168,43 @@ function applyAnimationStyles(): void {
 	});
 }
 
+/** Black "End of slide show" screen shown past the last slide (option-gated). */
+const showEndScreen = ref(false);
+
 function next(): void {
+	if (showEndScreen.value) {
+		// A second advance on the end screen exits the show, like PowerPoint.
+		close();
+		return;
+	}
 	if (playback.advance()) {
 		return; // revealed an animation build step; stay on the slide
+	}
+	if (currentIndex.value >= props.slides.length - 1) {
+		if (showOptions.value.endWithBlackSlide) {
+			showEndScreen.value = true;
+		}
+		return;
 	}
 	goTo(currentIndex.value + 1);
 }
 
 function prev(): void {
+	if (showEndScreen.value) {
+		showEndScreen.value = false;
+		return;
+	}
 	goTo(currentIndex.value - 1);
 }
 
 /**
  * Request exit. When ink annotations were drawn, prompt to keep or discard them
- * (KeepAnnotationsDialog) before leaving; otherwise exit immediately.
+ * (KeepAnnotationsDialog) before leaving; otherwise exit immediately. The
+ * prompt is skipped (annotations silently discarded) when File > Options >
+ * Advanced > "Prompt to keep ink annotations when exiting" is off.
  */
 function close(): void {
-	if (annotations.hasAnyAnnotations.value) {
+	if (annotations.hasAnyAnnotations.value && showOptions.value.promptKeepInkAnnotations) {
 		showKeepPrompt.value = true;
 		return;
 	}

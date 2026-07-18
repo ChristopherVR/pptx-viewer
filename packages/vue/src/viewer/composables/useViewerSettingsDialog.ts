@@ -1,3 +1,5 @@
+import type { ViewerOptions, ViewerOptionsStore } from 'pptx-viewer-shared';
+import { applyPreferenceToOptions, viewerOptionsToPreferences } from 'pptx-viewer-shared';
 import { ref, watch } from 'vue';
 import type { Ref } from 'vue';
 
@@ -17,11 +19,21 @@ export interface UseViewerSettingsDialogInput {
 	showRulers: Ref<boolean>;
 	snapToGrid: Ref<boolean>;
 	reducedMotion: Ref<boolean>;
+	/**
+	 * The File > Options store (see `useViewerOptionsStore`). When provided, the
+	 * six legacy `ViewerSettings` toggles stay the behavior source and are kept
+	 * in sync with the options model both ways, mirroring React's guarded
+	 * bidirectional sync in `PowerPointViewer.tsx`.
+	 */
+	optionsStore?: ViewerOptionsStore;
+	/** Reactive snapshot of `optionsStore` (from `useViewerOptionsStore`). */
+	viewerOptions?: Ref<ViewerOptions>;
 }
 
 /**
- * useViewerSettingsDialog: File ▸ Settings dialog (general viewer
- * preferences). Extracted verbatim from `PowerPointViewer.vue`.
+ * useViewerSettingsDialog: File > Options dialog state plus the two-way sync
+ * between the full options model and the scattered legacy viewer state (the
+ * six `ViewerSettings` toggles the ribbon / title bar drive directly).
  */
 export function useViewerSettingsDialog(
 	input: UseViewerSettingsDialogInput,
@@ -37,6 +49,41 @@ export function useViewerSettingsDialog(
 		reducedMotion: input.reducedMotion.value,
 	});
 
+	const legacyRefs: Record<keyof ViewerSettings, Ref<boolean>> = {
+		autoSave: input.autoSave,
+		spellCheck: input.spellCheck,
+		showGrid: input.showGrid,
+		showRulers: input.showRulers,
+		snapToGrid: input.snapToGrid,
+		reducedMotion: input.reducedMotion,
+	};
+
+	/** Guard so options -> legacy writes do not echo straight back into the store. */
+	let syncingFromOptions = false;
+
+	// Options -> scattered legacy state (dialog edits, persisted values). The
+	// sync watchers flush synchronously so the guard flag reliably brackets the
+	// legacy-ref writes an options change triggers.
+	if (input.viewerOptions) {
+		watch(
+			input.viewerOptions,
+			(next) => {
+				const mapped = viewerOptionsToPreferences(next);
+				syncingFromOptions = true;
+				try {
+					for (const key of Object.keys(mapped) as (keyof ViewerSettings)[]) {
+						if (legacyRefs[key].value !== mapped[key]) {
+							legacyRefs[key].value = mapped[key];
+						}
+					}
+				} finally {
+					syncingFromOptions = false;
+				}
+			},
+			{ immediate: true, flush: 'sync' },
+		);
+	}
+
 	watch(
 		[
 			input.autoSave,
@@ -47,7 +94,7 @@ export function useViewerSettingsDialog(
 			input.reducedMotion,
 		],
 		([autoSave, spellCheck, showGrid, showRulers, snapToGrid, reducedMotion]) => {
-			viewerSettings.value = {
+			const next: ViewerSettings = {
 				autoSave,
 				spellCheck,
 				showGrid,
@@ -55,7 +102,25 @@ export function useViewerSettingsDialog(
 				snapToGrid,
 				reducedMotion,
 			};
+			viewerSettings.value = next;
+			// Legacy state -> options (ribbon View toggles, title-bar autosave).
+			const store = input.optionsStore;
+			if (!store || syncingFromOptions) {
+				return;
+			}
+			const current = store.getOptions();
+			const mapped = viewerOptionsToPreferences(current);
+			let updated = current;
+			for (const key of Object.keys(mapped) as (keyof ViewerSettings)[]) {
+				if (mapped[key] !== next[key]) {
+					updated = applyPreferenceToOptions(updated, key, next[key]);
+				}
+			}
+			if (updated !== current) {
+				store.setOptions(updated);
+			}
 		},
+		{ flush: 'sync' },
 	);
 
 	function onSettingsUpdate(next: ViewerSettings): void {

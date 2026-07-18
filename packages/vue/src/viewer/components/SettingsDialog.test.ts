@@ -1,26 +1,38 @@
 import { mount } from '@vue/test-utils';
-import { afterEach, describe, expect, it } from 'vitest';
+import { createViewerOptionsStore, THEME_CATALOG, VIEWER_OPTIONS_TABS } from 'pptx-viewer-shared';
+import { LOCALE_CATALOG } from 'pptx-viewer-shared/i18n';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import SettingsDialog from './SettingsDialog.vue';
-import type { ViewerSettings } from './viewer-settings';
-import { DEFAULT_VIEWER_SETTINGS } from './viewer-settings';
 
+beforeEach(() => localStorage.clear());
 afterEach(() => {
 	document.body.innerHTML = '';
 });
 
-function settings(overrides: Partial<ViewerSettings> = {}): ViewerSettings {
-	return { ...DEFAULT_VIEWER_SETTINGS, ...overrides };
-}
-
-function switchByLabel(label: string): HTMLButtonElement {
-	const btn = document.body.querySelector<HTMLButtonElement>(
-		`button[role="switch"][aria-label="${label}"]`,
-	);
-	if (!btn) {
-		throw new Error(`switch "${label}" not found`);
-	}
-	return btn;
+function mountDialog() {
+	const store = createViewerOptionsStore();
+	const onRestoreOptions = vi.fn();
+	const wrapper = mount(SettingsDialog, {
+		props: {
+			open: true,
+			options: store.getOptions(),
+			onOptionChange: (group, key, value) => store.setValue(group, key, value),
+			onRestoreOptions,
+			onRibbonTabHiddenChange: (tabId, hidden) => store.setRibbonTabHidden(tabId, hidden),
+			onQuickAccessCommandsChange: (ids) => store.setQuickAccessCommands(ids),
+			onResetOptions: (group) => store.reset(group),
+			onClearCache: vi.fn(),
+			themeKey: 'default',
+			onThemeSelect: vi.fn(),
+			localeCode: 'en',
+			onLocaleSelect: vi.fn(),
+			availableThemes: THEME_CATALOG,
+			availableLocales: LOCALE_CATALOG,
+		},
+		attachTo: document.body,
+	});
+	return { wrapper, store, onRestoreOptions };
 }
 
 function clickText(label: string): void {
@@ -33,79 +45,47 @@ function clickText(label: string): void {
 	btn.click();
 }
 
-describe('settingsDialog', () => {
-	it('renders a switch per setting reflecting the current values', () => {
-		mount(SettingsDialog, {
-			props: { open: true, settings: settings({ showGrid: true }) },
-			attachTo: document.body,
-		});
-
-		expect(switchByLabel('Show grid').getAttribute('aria-checked')).toBe('true');
-		expect(switchByLabel('Snap to grid').getAttribute('aria-checked')).toBe('false');
+describe('settingsDialog (File > Options)', () => {
+	it('renders all ten PowerPoint categories in the rail', () => {
+		mountDialog();
+		const railLabels = Array.from(
+			document.body.querySelectorAll<HTMLElement>('.pptx-vue-options-rail button'),
+		).map((b) => b.textContent?.trim());
+		expect(railLabels).toHaveLength(VIEWER_OPTIONS_TABS.length);
+		expect(railLabels).toContain('Advanced');
+		expect(railLabels).toContain('Trust Center');
 	});
 
-	it('emits update with the full toggled settings when a switch is flipped', async () => {
-		const wrapper = mount(SettingsDialog, {
-			props: { open: true, settings: settings() },
-			attachTo: document.body,
-		});
-
-		switchByLabel('Show grid').click();
+	it('writes a toggled option into the store', async () => {
+		const { wrapper, store } = mountDialog();
+		clickText('Advanced');
 		await wrapper.vm.$nextTick();
-
-		const updates = wrapper.emitted('update');
-		expect(updates).toHaveLength(1);
-		const payload = updates?.[0]?.[0] as ViewerSettings;
-		expect(payload).toStrictEqual(settings({ showGrid: true }));
+		const grid = Array.from(document.body.querySelectorAll('label'))
+			.find((label) => label.textContent?.includes('Show grid'))
+			?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+		grid?.click();
+		await wrapper.vm.$nextTick();
+		expect(store.getOptions().advanced.showGrid).toBeTruthy();
 	});
 
-	it('toggles off a setting that started enabled', async () => {
-		const wrapper = mount(SettingsDialog, {
-			props: { open: true, settings: settings({ autoSave: true }) },
-			attachTo: document.body,
-		});
-
-		switchByLabel('Auto-save').click();
+	it('shows the keyboard shortcut reference on the Customize Ribbon pane', async () => {
+		const { wrapper } = mountDialog();
+		clickText('Customize Ribbon');
 		await wrapper.vm.$nextTick();
-
-		const payload = wrapper.emitted('update')?.[0]?.[0] as ViewerSettings;
-		expect(payload.autoSave).toBeFalsy();
-	});
-
-	it('shows the keyboard shortcut reference on the Shortcuts tab', async () => {
-		const wrapper = mount(SettingsDialog, {
-			props: { open: true, settings: settings() },
-			attachTo: document.body,
-		});
-
-		clickText('Keyboard Shortcuts');
-		await wrapper.vm.$nextTick();
-
-		expect(document.body.textContent).toContain('Undo');
 		expect(document.body.textContent).toContain('Ctrl/Cmd+Z');
 	});
 
-	it('emits close from the Done button', async () => {
-		const wrapper = mount(SettingsDialog, {
-			props: { open: true, settings: settings() },
-			attachTo: document.body,
-		});
-
-		clickText('Done');
+	it('restores the opening snapshot on Cancel', async () => {
+		const { wrapper, onRestoreOptions } = mountDialog();
+		clickText('Cancel');
 		await wrapper.vm.$nextTick();
-
-		expect(wrapper.emitted('close')).toHaveLength(1);
+		expect(onRestoreOptions).toHaveBeenCalledOnce();
 	});
 
-	it('re-seeds the draft from settings each time it opens', async () => {
-		const wrapper = mount(SettingsDialog, {
-			props: { open: false, settings: settings({ showGrid: false }) },
-			attachTo: document.body,
-		});
-
-		await wrapper.setProps({ open: true, settings: settings({ showGrid: true }) });
+	it('emits close from the OK button', async () => {
+		const { wrapper } = mountDialog();
+		clickText('OK');
 		await wrapper.vm.$nextTick();
-
-		expect(switchByLabel('Show grid').getAttribute('aria-checked')).toBe('true');
+		expect(wrapper.emitted('close')).toHaveLength(1);
 	});
 });

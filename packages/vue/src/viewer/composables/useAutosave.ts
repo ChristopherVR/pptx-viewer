@@ -33,8 +33,12 @@ export interface UseAutosaveOptions {
 	slides: Ref<PptxSlide[]>;
 	/** Master on/off switch. When falsy the debounce timer never fires. */
 	enabled?: Ref<boolean> | boolean;
-	/** Debounce window in milliseconds (e.g. `2000`). */
-	intervalMs: number;
+	/**
+	 * Debounce window in milliseconds (e.g. `2000`). A `Ref` is re-read each
+	 * time the timer is armed, so File > Options > Save > AutoRecover cadence
+	 * changes apply to the next edit without re-mounting.
+	 */
+	intervalMs: number | Ref<number>;
 	/**
 	 * Host save callback: typically calls `getContent()` and persists/emits
 	 * the resulting bytes. May be sync or async; rejections flip status to
@@ -131,7 +135,7 @@ export function useAutosave(options: UseAutosaveOptions): UseAutosaveResult {
 			if (isEnabled()) {
 				void runSave().catch(() => {});
 			}
-		}, intervalMs);
+		}, toValue(intervalMs));
 	};
 
 	// Fires only on actual reassignments of `slides` (not on setup, since
