@@ -97,6 +97,8 @@ export type IconName =
 	| 'comment'
 	| 'settings'
 	| 'folder-plus'
+	| 'sparkles'
+	| 'send'
 	| 'ellipsis';
 
 const ICON_PATHS: Record<IconName, string[]> = {
@@ -271,6 +273,11 @@ const ICON_PATHS: Record<IconName, string[]> = {
 		'M9 13h6',
 	],
 	ellipsis: ['M5 12h.01', 'M12 12h.01', 'M19 12h.01'],
+	sparkles: [
+		'M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z',
+		'M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z',
+	],
+	send: ['M22 2L11 13', 'M22 2l-7 20-4-9-9-4 20-7z'],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

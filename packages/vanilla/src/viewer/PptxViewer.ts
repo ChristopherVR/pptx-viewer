@@ -1,5 +1,11 @@
 import { cloneSlide, setSmartArtNodeStyle, updateSmartArtNodeText } from 'pptx-viewer-core';
-import type { PptxElement, PptxHandler, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxHandler,
+	PptxSaveFormat,
+	PptxSlide,
+	PptxTheme,
+} from 'pptx-viewer-core';
 import type {
 	PresentationSnapshot,
 	ThemeCatalogEntry,
@@ -34,6 +40,8 @@ import {
 } from 'pptx-viewer-shared';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
+import type { AiChatMount } from './ai';
+import { createVanillaAiBridge, mountAiChat } from './ai';
 import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
 import { buildMountChromeDeps, mountChrome, unmountChrome } from './chrome-lifecycle';
 import type { EditorController } from './editor';
@@ -124,6 +132,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private detachSignatureWarning: (() => void) | null = null;
 	private annotations!: PresentationAnnotationsHost;
 	private parityWorkflows!: ParityWorkflows;
+	private aiChat: AiChatMount | null = null;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
 		super();
@@ -302,11 +311,60 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			goToSlide: (index) => this.controls.goToSlide(index),
 		});
 		this.renderer.renderAll();
+		this.setupAiChat();
 
 		if (options.source !== undefined) {
 			void this.loading.load(options.source);
 		}
 		this.connectAudienceRole();
+	}
+
+	/**
+	 * Mount the optional AI assistant (toggle button + lazy chat panel) when the
+	 * host supplied an {@link PptxViewerOptions.ai} config. Re-callable: tears down
+	 * a prior mount first, so it can re-attach after a locale-driven chrome
+	 * remount. No-op (and never touches the `ai` SDK) when `ai` is absent.
+	 */
+	private setupAiChat(): void {
+		const config = this.options.ai;
+		if (!config) {
+			return;
+		}
+		this.aiChat?.destroy();
+		const bridge = createVanillaAiBridge({
+			store: this.store,
+			editor: this.editor,
+			goToSlide: (index) => this.controls.goToSlide(index),
+			ensureEditable: () => {
+				if (!this.store.get().editable) {
+					this.setEditable(true);
+				}
+			},
+			getHandler: () => this.loading.getHandler(),
+			applyThemeUpdates: (updates) => this.applyAiThemeUpdates(updates),
+		});
+		this.aiChat = mountAiChat({
+			doc: this.doc,
+			chrome: this.lifecycle.chrome,
+			t: this.t,
+			bridge,
+			config,
+		});
+	}
+
+	/**
+	 * Merge AI-proposed theme scheme updates into the live deck and re-render.
+	 * Theme scheme state sits outside the slides history snapshot, so this is a
+	 * best-effort apply (not a strictly undoable step, unlike slide edits).
+	 */
+	private applyAiThemeUpdates(updates: Partial<PptxTheme>): void {
+		if (!updates.colorScheme) {
+			return;
+		}
+		this.store.set({
+			colorScheme: { ...(this.store.get().colorScheme ?? {}), ...updates.colorScheme },
+		});
+		this.renderer.renderAll();
 	}
 
 	async loadFile(file: Blob | ArrayBuffer | Uint8Array): Promise<void> {
@@ -770,6 +828,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		// Chrome labels are baked at build time; rebuild it under the new locale.
 		this.remountChrome();
 		this.editor.attachChrome();
+		this.setupAiChat();
 		this.renderer.renderAll();
 		if (this.options.onLocaleChange) {
 			this.options.onLocaleChange(locale);
@@ -883,6 +942,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			return;
 		}
 		this.destroyed = true;
+		this.aiChat?.destroy();
+		this.aiChat = null;
 		this.closeAudienceWindow();
 		this.presenterChannel?.close();
 		this.sessions.destroy();
