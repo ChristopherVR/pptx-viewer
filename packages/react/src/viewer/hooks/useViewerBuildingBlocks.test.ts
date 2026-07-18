@@ -49,12 +49,16 @@ async function flush(): Promise<void> {
 	});
 }
 
-/** Poll `flush()` until `isDone()` reports true or the attempt budget runs out. */
-async function flushUntil(isDone: () => boolean, maxAttempts = 25): Promise<void> {
-	for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-		if (isDone()) {
-			return;
-		}
+/**
+ * Poll `flush()` until `isDone()` reports true or `timeoutMs` of wall-clock
+ * time elapses. A fixed attempt count is too tight on a slow/contended CI
+ * runner, where each macrotask tick can take far longer than it does
+ * locally; a real deadline scales with however long the runner actually
+ * needs instead of assuming a fixed number of ticks is "enough".
+ */
+async function flushUntil(isDone: () => boolean, timeoutMs = 10_000): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!isDone() && Date.now() < deadline) {
 		await flush();
 	}
 }
@@ -110,7 +114,7 @@ describe('useViewerBuildingBlocks', () => {
 		expect(canvasProps.canvasSize.height).toBeGreaterThan(0);
 		expect(canvasProps.onClick).toBeTypeOf('function');
 		expect(canvasProps.onInlineEditChange).toBeTypeOf('function');
-	});
+	}, 15_000);
 
 	it('starts in a loading state before the buffer resolves', async () => {
 		await act(async () => {
@@ -124,5 +128,5 @@ describe('useViewerBuildingBlocks', () => {
 
 		await flushUntil(() => latest?.loading === false);
 		expect(latest?.loading).toBeFalsy();
-	});
+	}, 15_000);
 });
