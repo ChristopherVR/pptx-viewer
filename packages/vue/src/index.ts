@@ -4,6 +4,7 @@ export {
 	SlideCanvas,
 	SlideStage,
 	ElementRenderer,
+	RibbonToolbar,
 	CollaborationCursors,
 	CollaborationStatusIndicator,
 	RemoteSelectionOverlay,
@@ -31,6 +32,13 @@ export type {
 	UseCollaborationWiringResult,
 	SvgExportSingleSlideOptions,
 	SvgExportAllOptions,
+	RibbonProps,
+	ToolbarSection,
+	DrawingTool,
+	SupportedShapeType,
+	ElementClipboardPayload,
+	TableCellEditorState,
+	LayoutOption,
 } from './viewer';
 
 // ── Shared API types ──

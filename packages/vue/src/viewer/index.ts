@@ -18,6 +18,7 @@ export { default as CollaborationStatusIndicator } from './components/Collaborat
 export { default as RemoteSelectionOverlay } from './components/RemoteSelectionOverlay.vue';
 export type { RemoteSelectionBox } from './components/RemoteSelectionOverlay.vue';
 export { default as FollowModeBar } from './components/FollowModeBar.vue';
+export { default as RibbonToolbar } from './components/ribbon/RibbonToolbar.vue';
 
 export type {
 	PowerPointViewerProps,
@@ -27,6 +28,21 @@ export type {
 	CollaborationRole,
 	CanvasSize,
 } from './types';
+
+// `RibbonToolbar`'s prop contract, for composing a custom ribbon/toolbar shell
+// with `useRibbonProps` (see `pptx-vue-viewer/composables-unstable`) instead of
+// the bundled `PowerPointViewer`. `ViewerMode` is intentionally not
+// re-exported here: it is structurally identical to (and satisfied by) the
+// `ViewerMode` already exported from `pptx-viewer-shared` / the package root.
+export type {
+	RibbonProps,
+	ToolbarSection,
+	DrawingTool,
+	SupportedShapeType,
+	ElementClipboardPayload,
+	TableCellEditorState,
+	LayoutOption,
+} from './components/ribbon/ribbon-types';
 
 export * from './composables';
 export {

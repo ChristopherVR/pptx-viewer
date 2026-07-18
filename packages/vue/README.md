@@ -214,8 +214,50 @@ async function save() {
 ### Exported components & helpers
 
 `PowerPointViewer`, `SlideCanvas`, `SlideStage`, `ElementRenderer`,
-`provideViewerTheme`, `useViewerTheme`, and the `ViewerTheme` / `CanvasSize` /
-`CollaborationConfig` / `ToolbarActionId` types.
+`RibbonToolbar`, `provideViewerTheme`, `useViewerTheme`, and the `ViewerTheme` /
+`CanvasSize` / `CollaborationConfig` / `ToolbarActionId` / `RibbonProps` types.
+
+### Composing a custom viewer shell
+
+`<PowerPointViewer>` bundles the slide canvas, ribbon, inspector, and every
+dialog into one component. If you only want a subset, for example your own
+chrome around just the ribbon and the slide canvas, import the pieces
+independently instead: `RibbonToolbar` (from `pptx-vue-viewer`, same as
+`SlideCanvas`) and the `useRibbonProps` composable (from the "advanced
+integrations" entry point `pptx-vue-viewer/composables-unstable`) that
+assembles its props. `composables-unstable` has no semver stability
+guarantee, so pin your version when relying on it.
+
+```vue
+<script setup lang="ts">
+import { SlideCanvas, RibbonToolbar } from 'pptx-vue-viewer';
+import {
+	useRibbonProps,
+	useEditorHistory,
+	useSelection,
+	// ...plus whichever other composables you need to build the
+	// `UseRibbonPropsInput` state/action fields (see ribbon-props-types.ts).
+} from 'pptx-vue-viewer/composables-unstable';
+
+// Wire up just the state/handlers your custom shell needs; anything from
+// `UseRibbonPropsInput` you don't use can be a no-op ref/callback.
+const ribbonProps = useRibbonProps({
+	/* ribbonMode, canEdit, isMobile, ..., see UseRibbonPropsInput */
+});
+</script>
+
+<template>
+	<div class="my-custom-shell">
+		<RibbonToolbar v-bind="ribbonProps" />
+		<SlideCanvas :slide="activeSlide" :scale="zoom" />
+	</div>
+</template>
+```
+
+`RibbonToolbar`'s full prop contract is the `RibbonProps` type; `useRibbonProps`
+returns a `ComputedRef<RibbonProps>` built from the same state/action
+composables `PowerPointViewer.vue` itself uses, so `v-bind`ing it straight onto
+`RibbonToolbar` mirrors the bundled component's wiring exactly.
 
 ## Localization (i18n)
 
