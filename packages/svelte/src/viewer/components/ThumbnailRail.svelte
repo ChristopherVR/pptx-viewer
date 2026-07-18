@@ -11,7 +11,7 @@
 	import type { ThumbnailRailProps } from './props';
 
 	const {
-		slides, canvasSize, mediaDataUrls, current, onselect, editable = false, onmove,
+		slides, canvasSize, mediaDataUrls, current, onselect, editable = false, onmove, onaddslide,
 		sections = [], onsectiontoggle, onsectionrename, onsectiondelete, onsectionmove,
 	}: ThumbnailRailProps = $props();
 
@@ -98,7 +98,8 @@
 	</button>
 {/snippet}
 
-<nav bind:this={railEl} bind:clientHeight={viewportHeight} class="pptx-svelte-thumbs" aria-label={t('pptx.sections.slides')} onscroll={onScroll}>
+<nav class="pptx-svelte-thumbs" aria-label={t('pptx.sections.slides')}>
+	<div bind:this={railEl} bind:clientHeight={viewportHeight} class="pptx-svelte-thumbs-scroll" onscroll={onScroll}>
 	{#if hasSections}
 		{#each sectionGroups as group, groupIndex (group.section?.id ?? 'ungrouped')}
 			<section class="pptx-svelte-section" data-section-id={group.section?.id}>
@@ -135,15 +136,65 @@
 	</div>
 	</div>
 	{/if}
+	</div>
+	{#if editable && onaddslide}
+		<!-- React SlidesPaneSidebar parity: "+ Add Slide" pinned below the list. -->
+		<div class="pptx-svelte-thumbs-add">
+			<button type="button" onclick={onaddslide}>
+				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
+				{t('pptx.sections.addSlide')}
+			</button>
+		</div>
+	{/if}
 </nav>
 
 <style>
 	.pptx-svelte-thumbs {
-		padding: 10px;
-		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
 		background: var(--pptx-card, #1e1e2e);
 		border-right: 1px solid var(--pptx-border, #33334d);
 		flex: none;
+	}
+
+	.pptx-svelte-thumbs-scroll {
+		flex: 1 1 auto;
+		min-height: 0;
+		padding: 10px;
+		overflow-y: auto;
+	}
+
+	.pptx-svelte-thumbs-add {
+		flex: none;
+		padding: 6px 8px;
+		border-top: 1px solid var(--pptx-border, #33334d);
+	}
+
+	.pptx-svelte-thumbs-add button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+		width: 100%;
+		padding: 4px 8px;
+		border: none;
+		border-radius: var(--pptx-radius, 6px);
+		background: transparent;
+		color: var(--pptx-muted-foreground, #94a3b8);
+		cursor: pointer;
+		font: inherit;
+		font-size: 11px;
+	}
+
+	.pptx-svelte-thumbs-add button:hover {
+		background: var(--pptx-accent, #33334d);
+		color: var(--pptx-accent-foreground, #f8fafc);
+	}
+
+	.pptx-svelte-thumbs-add svg {
+		width: 12px;
+		height: 12px;
 	}
 
 	.pptx-svelte-thumbs-space {

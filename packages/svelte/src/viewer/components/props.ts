@@ -197,6 +197,12 @@ export interface ThumbnailRailProps {
 	/** Enables native thumbnail drag-and-drop slide reordering. */
 	editable?: boolean;
 	onmove?: (fromIndex: number, toIndex: number) => void;
+	/**
+	 * Inserts a new blank slide (React's sidebar "+ Add Slide" button). The
+	 * button is pinned below the scrollable list and only renders while
+	 * `editable` is set and this callback is provided.
+	 */
+	onaddslide?: () => void;
 	sections?: PptxSection[];
 	onsectiontoggle?: (sectionId: string) => void;
 	onsectionrename?: (sectionId: string, name: string) => void;

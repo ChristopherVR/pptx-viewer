@@ -96,7 +96,10 @@
 
 	const currentTheme = $derived((themes[themeKey] ?? themes.vermilionDark).theme);
 
-	// Apply theme vars to :root so the dropzone chrome tracks the theme.
+	// Apply theme vars to :root so the dropzone chrome tracks the theme. Like
+	// the React demo, the preset is NOT passed to <PowerPointViewer>: the
+	// viewer's own Settings > Appearance picker owns the viewer chrome theme
+	// (so "Default" resolves to the built-in defaults).
 	let appliedVarKeys: string[] = [];
 	$effect(() => {
 		const vars = themeToCssVars(currentTheme);
@@ -172,7 +175,6 @@
 	<main class="demo-shell" data-pptx-viewer>
 		<PowerPointViewer
 			source={bytes}
-			theme={currentTheme}
 			locale={language.current}
 			{smartArt3D}
 			editable

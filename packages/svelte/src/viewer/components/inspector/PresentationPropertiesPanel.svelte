@@ -44,6 +44,7 @@
 
 	const canEdit = $derived(deck !== undefined && editor.editable);
 	const effectiveCanvasSize = $derived(deck?.canvasSize ?? canvasSize);
+	const activeSlide = $derived(editor.slides[editor.currentSlideIndex]);
 
 	// ── Theme selection (React's useInspectorPaneState) ──────────────────
 	const activeThemePath = $derived(editor.slideMasters[0]?.themePath);
@@ -117,6 +118,14 @@
 			onupdatecustom={(next) => deck.updateCustomProperties(next)}
 		/>
 	</div>
+	{#if activeSlide}
+		<!-- React's SLIDE card: the active slide's element count (literal
+		     "Slide" / "elements" copy, matching React which has no key here). -->
+		<div class="pptx-svelte-inspector-section">
+			<h4>Slide</h4>
+			<p class="pptx-svelte-inspector-meta">{activeSlide.elements?.length ?? 0} elements</p>
+		</div>
+	{/if}
 {:else}
 	{#if canvasSize}
 		<div class="pptx-svelte-inspector-section">

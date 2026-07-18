@@ -101,14 +101,23 @@ function sectionTitles(target: HTMLElement): string[] {
 }
 
 describe('inspectorPanel', () => {
-	it('shows the empty state when nothing is selected', () => {
+	it('shows the deck panel without the "No slide selected" note when a slide is active', () => {
 		const editor = makeEditor([shapeEl()]);
 		const { target } = mountInspector(editor);
 
 		expect(target.querySelector('aside')?.getAttribute('aria-label')).toBe('Properties');
 		expect(target.querySelector('aside')?.hasAttribute('data-pptx-inspector')).toBeTruthy();
-		expect(target.querySelector('.pptx-svelte-inspector-empty')).not.toBeNull();
+		expect(target.querySelector('.pptx-svelte-inspector-empty')).toBeNull();
 		expect(target.querySelector('.pptx-svelte-inspector-grid')).toBeNull();
+	});
+
+	it('shows the "No slide selected" note only when there is genuinely no active slide', () => {
+		const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
+		editor.editable = true;
+		editor.setSlides([]);
+		const { target } = mountInspector(editor);
+
+		expect(target.querySelector('.pptx-svelte-inspector-empty')).not.toBeNull();
 	});
 
 	it('shows Position + Fill & Stroke + Text for a shape element (shapes carry text properties too)', () => {
@@ -237,6 +246,7 @@ describe('inspectorPanel deck properties (no selection)', () => {
 			'Slide Size',
 			'Notes & Handout',
 			'Document',
+			'Slide',
 		]);
 	});
 
@@ -250,6 +260,7 @@ describe('inspectorPanel deck properties (no selection)', () => {
 			'Slide Size',
 			'Notes & Handout',
 			'Document',
+			'Slide',
 		]);
 	});
 

@@ -5,6 +5,7 @@
 	 * "+ Show" (custom shows), inspector toggle, settings gear, and the export
 	 * overflow menu on the right. Save/undo/redo stay in the title bar.
 	 */
+	import Settings from '@lucide/svelte/icons/settings';
 	import { isActionHidden } from 'pptx-viewer-shared';
 	import type { ToolbarActionId } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../i18n/context';
@@ -91,8 +92,7 @@
 			title={t('pptx.customShows.createTooltip')}
 			onclick={oncustomshows}
 		>
-			<!-- React hardcodes "+ Show" here (no dictionary key exists for it). -->
-			+ Show
+			{t('pptx.customShows.addShow')}
 		</button>
 	{/if}
 	<span class="pptx-svelte-ribbon-primary-sep" aria-hidden="true"></span>
@@ -115,7 +115,7 @@
 			title={t('pptx.toolbar.settingsShortcuts')}
 			onclick={onsettings}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M12.4 3.6 11 5M5 11l-1.4 1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
+			<Settings size={15} strokeWidth={1.7} aria-hidden="true" />
 		</button>
 	{/if}
 	{#if exportUi && !isActionHidden('export', hiddenActions)}

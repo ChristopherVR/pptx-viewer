@@ -73,6 +73,7 @@
 	]);
 
 	const el = $derived(editor.selectedElement);
+	const activeSlide = $derived(editor.slides[editor.currentSlideIndex]);
 	const canShape = $derived(el !== undefined && hasShapeProperties(el));
 	const canText = $derived(el !== undefined && hasTextProperties(el));
 	const isImage = $derived(el !== undefined && isImageLikeElement(el));
@@ -164,7 +165,10 @@
 				{#if isMedia}<div class="pptx-svelte-inspector-section"><h4>Media</h4><MediaSection {editor} {mediaDataUrls} /></div>{/if}
 			{:else}
 				<PresentationPropertiesPanel {editor} {deck} {canvasSize} {handler} {presentationTheme} {onthemechange} />
-				<p class="pptx-svelte-inspector-empty">{t('pptx.inspector.noSlideSelected')}</p>
+				{#if !activeSlide}
+					<!-- React parity: only when there is genuinely no active slide. -->
+					<p class="pptx-svelte-inspector-empty">{t('pptx.inspector.noSlideSelected')}</p>
+				{/if}
 			{/if}
 		</div>
 

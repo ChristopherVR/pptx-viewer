@@ -178,6 +178,10 @@
 			{onselect}
 			editable={editingActive}
 			onmove={onmoveSlide}
+			onaddslide={() => {
+				const index = editor.slidesOps.insertSlideAfterCurrent();
+				if (index !== null) onselect(index);
+			}}
 			onsectiontoggle={(id) => editor.sectionOps.toggle(id)}
 			onsectionrename={(id, name) => editor.sectionOps.rename(id, name)}
 			onsectiondelete={(id) => editor.sectionOps.delete(id)}
