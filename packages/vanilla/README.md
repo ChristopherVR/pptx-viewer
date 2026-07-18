@@ -18,7 +18,7 @@ The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www
 ## Install
 
 ```bash
-npm install pptx-vanilla-viewer jszip fast-xml-parser
+npm install pptx-vanilla-viewer
 ```
 
 ## Usage
