@@ -172,6 +172,76 @@ viewer.getRegistry().register('table', renderTable);
 
 See `src/viewer/render/elements/README.md` for the full renderer contract.
 
+## Building your own chrome
+
+`createPptxViewer` mounts the whole viewer (ribbon, canvas, inspector,
+controllers) as one unit. If you want to build custom chrome around the same
+primitives instead, the ribbon builder and the canvas renderer are both
+importable independently:
+
+```ts
+import {
+	createRibbon,
+	createStore,
+	createInitialViewerState,
+	renderSlideStage,
+	createDefaultRegistry,
+	type RibbonHandlers,
+	type Store,
+	type ViewerState,
+} from 'pptx-vanilla-viewer';
+
+// Your own reactive container, seeded with the same shape `createPptxViewer`
+// uses internally.
+const store: Store<ViewerState> = createStore(createInitialViewerState());
+
+// `createRibbon` is callback-driven: it never reaches into a `PptxViewer`
+// instance or a store directly, so it renders against whatever `RibbonHandlers`
+// you hand it.
+const handlers: RibbonHandlers = {
+	/* nav, primary, file, slideShow, insert, edit, findReplace, design, draw */
+};
+const ribbon = createRibbon(document, t, handlers);
+host.appendChild(ribbon.el);
+
+// Draw the current slide with the same DOM renderer the bundled viewer uses.
+const registry = createDefaultRegistry();
+const stageEl = renderSlideStage({
+	doc: document,
+	slide: store.get().slides[store.get().currentSlide],
+	registry,
+	// ...canvasSize, scale, editable, selection, etc. (see `SlideStageOptions`)
+});
+canvasHost.appendChild(stageEl);
+
+// Re-render on every store change.
+store.subscribe((state) => {
+	ribbon.update({ current: state.currentSlide, total: state.slides.length, zoomPercent: 100 });
+	/* re-render the stage, drive ribbon.setEditState/updateSelection/etc. */
+});
+```
+
+Be aware of what this buys you and what it doesn't:
+
+- `renderSlideStage`, `createElementRendererRegistry` / `createDefaultRegistry`,
+  and `createRibbon` are pure, callback-driven building blocks with no hidden
+  coupling to `PptxViewer`; they are safe to use standalone.
+- `createStore` / `createInitialViewerState` give you the same reactive
+  container and `ViewerState` shape `createPptxViewer` uses, so you can seed
+  state and pass slices of it into `renderSlideStage`.
+- `RibbonHandlers` (the `edit` and `findReplace` groups especially, typed by
+  the exported `EditActions` / `FindReplaceActions` interfaces) is a large
+  surface: insert/format/arrange/clipboard/history/animation/transition
+  actions, comments, sections, and more. The built-in implementations of
+  these (`createEditorController`, `createEditActions`, `RenderController`,
+  `LoadingController`, ...) are **not** exported: they're wired directly
+  into `PptxViewer`'s own mount lifecycle (`getChrome`, `getHandler`, history,
+  autosave) and aren't decomposable into standalone pieces without a larger
+  refactor. Building a fully-featured custom editor chrome today means
+  implementing `RibbonHandlers` yourself against your own store and history,
+  not reusing the bundled editor logic; `createPptxViewer` remains the
+  supported path for a complete, batteries-included editor.
+
 ## License
 
 Apache-2.0. See `LICENSE` and `NOTICE`.

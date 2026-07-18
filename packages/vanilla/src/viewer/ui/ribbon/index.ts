@@ -8,6 +8,8 @@ export { DEFAULT_RIBBON_TAB, isRibbonTab, RIBBON_TABS } from './ribbon-tabs';
 export type { RibbonTabDef } from './ribbon-tabs';
 export type {
 	RibbonDesignHandlers,
+	RibbonDrawHandlers,
+	RibbonDrawState,
 	RibbonEditState,
 	RibbonFileHandlers,
 	RibbonHandlers,
@@ -16,5 +18,6 @@ export type {
 	RibbonNavState,
 	RibbonPrimaryHandlers,
 	RibbonSelectionState,
+	RibbonSlideShowHandlers,
 	RibbonTabId,
 } from './ribbon-types';

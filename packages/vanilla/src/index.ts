@@ -48,6 +48,34 @@ export {
 	renderSlideStage,
 } from './viewer';
 
+// ── Ribbon / chrome builder (buildable standalone against your own store) ─
+export type { Ribbon } from './viewer';
+export { createRibbon } from './viewer';
+export type {
+	RibbonDesignHandlers,
+	RibbonDrawHandlers,
+	RibbonDrawState,
+	RibbonEditState,
+	RibbonFileHandlers,
+	RibbonHandlers,
+	RibbonInsertHandlers,
+	RibbonNavHandlers,
+	RibbonNavState,
+	RibbonPrimaryHandlers,
+	RibbonSelectionState,
+	RibbonSlideShowHandlers,
+	RibbonTabId,
+} from './viewer';
+// `RibbonHandlers.edit`/`findReplace` are typed by these two action-set
+// interfaces; the factories that build real implementations of them
+// (`createEditActions`, `createEditorController`, ...) stay internal,
+// coupled to `PptxViewer`'s store/chrome/history wiring.
+export type { EditActions, FindReplaceActions } from './viewer';
+
+// ── Reactive store (build your own state container against `ViewerState`) ─
+export type { Store } from './viewer';
+export { createInitialViewerState, createStore } from './viewer';
+
 // ── Export (PNG / PDF / GIF / WebM video / print) ───────────────────────
 export type {
 	ExportGifOptions,
@@ -68,6 +96,9 @@ export type { TranslationKey } from 'pptx-viewer-shared/i18n';
 
 // ── Theme (re-exported from pptx-viewer-shared for host configuration) ─
 export type { ViewerTheme, ViewerThemeColors } from 'pptx-viewer-shared';
+// `createRibbon`'s `hiddenActions`/`accountAuth` params, re-exported so hosts
+// can type them without a direct `pptx-viewer-shared` import.
+export type { AccountAuthConfig, ToolbarActionId } from 'pptx-viewer-shared';
 export {
 	defaultCssVars,
 	defaultRadius,

@@ -1,4 +1,10 @@
 export { createPptxViewer, PptxViewer } from './PptxViewer';
+// Type-only: `RibbonHandlers.edit`/`findReplace` are typed by these (see
+// `./ui/ribbon/ribbon-types.ts`). Only the two composed action-set types are
+// surfaced here, not the rest of `./editor`'s internal wiring (controllers,
+// factories, gesture/mutation helpers), which stays coupled to `PptxViewer`.
+export type { EditActions } from './editor';
+export type { FindReplaceActions } from './editor';
 export type { PptxViewerCallbacks, PptxViewerInstance, PptxViewerOptions } from './types';
 export type {
 	AutosaveRecord,
