@@ -71,6 +71,73 @@ viewer.destroy();
 
 The container should have a size (the viewer fills it: `width/height: 100%`).
 
+## Options
+
+All options are optional except the container element itself. Beyond the ones
+shown above:
+
+| Option                                 | Type                                                  | Default               | Description                                                                                 |
+| -------------------------------------- | ----------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------- |
+| `source`                               | `string \| ArrayBuffer \| Uint8Array \| Blob \| File` | -                     | The presentation to open (URL or bytes). Omit to start empty and call `loadFile`/`loadUrl`. |
+| `fonts`                                | `ViewerFontSource[]`                                  | -                     | Licensed font sources supplied by the host application.                                     |
+| `theme`                                | `ViewerTheme`                                         | -                     | Chrome theme (colors, radius, CSS vars).                                                    |
+| `fileName`                             | `string`                                              | -                     | Display name shown in the title bar.                                                        |
+| `locale` / `messages`                  | `string` / `TranslationMessages`                      | `'en'`                | UI locale and per-locale `pptx.*` dictionaries (see [i18n](#i18n)).                         |
+| `initialSlide`                         | `number`                                              | `0`                   | Zero-based slide shown after load.                                                          |
+| `editable`                             | `boolean`                                             | `false`               | Enable editing (see [Editing](#editing)).                                                   |
+| `showToolbar`                          | `boolean`                                             | `true`                | Whole ribbon/title-bar/status-bar chrome.                                                   |
+| `showThumbnails`                       | `boolean`                                             | `true`                | Thumbnail sidebar.                                                                          |
+| `showFormatToolbar`                    | `boolean`                                             | `true`                | Editing format toolbar row (visible only while editing).                                    |
+| `showInspector`                        | `boolean`                                             | `true`                | Property inspector panel (visible only while editing).                                      |
+| `hiddenActions`                        | `ToolbarActionId[]`                                   | -                     | Hide individual buttons/tabs (see [Toolbar customization](#toolbar-customization)).         |
+| `registry`                             | `ElementRendererRegistry`                             | -                     | Custom element-renderer registry (see [Element coverage](#element-coverage)).               |
+| `smartArt3D`                           | `boolean`                                             | `false`               | Opt-in Three.js 3D SmartArt renderer (optional `three` peer, lazily imported).              |
+| `autosave`                             | `boolean`                                             | `false`               | Debounced crash-recovery autosave to IndexedDB.                                             |
+| `autosaveIntervalMs`                   | `number`                                              | `2000`                | Autosave debounce window.                                                                   |
+| `autosaveFilePath`                     | `string`                                              | `'presentation.pptx'` | IndexedDB recovery key for autosave snapshots.                                              |
+| `collaboration`                        | `CollaborationConfig`                                 | -                     | Start a Yjs collaboration session immediately (y-websocket or serverless y-webrtc).         |
+| `shareDefaults`                        | `{ roomId?, userName?, serverUrl? }`                  | -                     | Prefilled values for the Share/Broadcast dialogs.                                           |
+| `availableThemes` / `availableLocales` | catalog entries                                       | -                     | Choices offered by File > Options.                                                          |
+| `onThemeChange` / `onLocaleChange`     | `(key: string) => void`                               | -                     | Host hooks for the File > Options pickers (host owns persistence when supplied).            |
+| `accountAuth`                          | `AccountAuthConfig`                                   | -                     | Optional sign-in hook point for File > Account.                                             |
+
+Callbacks: `onLoad`, `onError`, `onSlideChange`, `onZoomChange`,
+`onPresentationChange`, `onChange` (any document mutation), `onDirtyChange`,
+`onSelectionChange`, `onAutosaveStatus`, `onAutosaveRecovery` (offers a prior
+session's recovery snapshot), `onToggleAutosave`, and `onCollaborationStatus`.
+
+## Instance API
+
+The handle returned by `createPptxViewer` implements the shared
+`PowerPointViewerAPI` (the same imperative contract as the React/Vue/Angular/
+Svelte bindings: `getContent`, `goTo`, `undo`/`redo`, zoom and mode getters/
+setters, `getSlides`/`getSlide`/`getActiveSlide`, `addSlide`/`deleteSlides`/
+`duplicateSlides`/`moveSlide`/`toggleHideSlides`, `getElements`/
+`getElementById`/`updateElement`/`deleteElements`/`duplicateElement`, and the
+selection methods) plus vanilla-specific methods:
+
+- **Loading**: `loadFile(bytesOrBlob)`, `loadUrl(url)`.
+- **Navigation / zoom**: `next()`, `prev()`, `goToSlide(index)`,
+  `getSlideCount()`, `getCurrentSlide()`, `getZoom()`, `setZoom(scale)`,
+  `zoomIn()`, `zoomOut()`, `zoomToFit()`.
+- **Presentation**: `enterPresentation()`, `exitPresentation()`.
+- **Editing**: `setEditable(flag)`, `setEditTemplateMode(flag)`, `undo()`,
+  `redo()`, `canUndo()`, `canRedo()`, `deleteSelected()`,
+  `getSelectedElementId()`.
+- **Saving**: `save(format?)`, `downloadPptx(fileName?)`,
+  `downloadAs(format, fileName?)`, `packageForSharing(fileName?)`.
+- **Export / print**: `exportSlidePng(index?)`, `copySlideAsImage(index?)`,
+  `exportPdf(options?)`, `exportGif(options?)`, `exportVideo(options?)`,
+  `print(options?)` (returns `false` when the popup was blocked; call from a
+  click handler).
+- **Collaboration**: `startCollaboration(config)`, `stopCollaboration()`,
+  `getCollaborationStatus()`.
+- **Autosave**: `autosaveNow()`, `setAutosaveEnabled(flag)`,
+  `isAutosaveEnabled()`.
+- **Chrome / extension**: `setTheme(theme?)`, `setLocale(locale)`,
+  `getRegistry()`, `getHandler()` (the live `pptx-viewer-core` handler),
+  `destroy()`.
+
 ## Keyboard
 
 Navigation: arrow keys / PageUp / PageDown / Space, Home/End jump to the
@@ -136,9 +203,6 @@ Pass `editable: true` (or call `setEditable(true)` at runtime) to turn on:
 - Rich speaker notes, accessibility checks, autosave, and collaboration.
 - The toolbar's Save button (shown only when `editable`), which calls
   `downloadPptx()` to serialise and download the edited `.pptx`.
-
-For CSP-strict hosts, import `pptx-vanilla-viewer/styles.css` instead of using
-automatic style injection.
 
 Use `viewer.getSelectedElementId()` and the `onSelectionChange` /
 `onDirtyChange` callbacks to build your own chrome around the selection

@@ -86,23 +86,88 @@ import 'pptx-svelte-viewer/styles';
 
 ## Props
 
-| Prop             | Type                            | Default | Description                                                                                                            |
-| ---------------- | ------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `source`         | `Uint8Array \| ArrayBuffer`     | -       | Raw `.pptx` bytes.                                                                                                     |
-| `theme`          | `ViewerTheme`                   | -       | Color/radius/CSS-var overrides.                                                                                        |
-| `locale`         | `string`                        | `'en'`  | UI locale (see `pptx-svelte-viewer/i18n`).                                                                             |
-| `initialSlide`   | `number`                        | `0`     | Slide shown after load (0-based).                                                                                      |
-| `showThumbnails` | `boolean`                       | `true`  | Thumbnail sidebar.                                                                                                     |
-| `showToolbar`    | `boolean`                       | `true`  | Navigation/zoom/fullscreen toolbar.                                                                                    |
-| `showNotes`      | `boolean`                       | `true`  | Speaker-notes panel and its toolbar toggle.                                                                            |
-| `hiddenActions`  | `ToolbarActionId[]`             | -       | Toolbar buttons/ribbon tabs to hide individually (e.g. `['share', 'broadcast']`), instead of hiding the whole toolbar. |
-| `editable`       | `boolean`                       | `false` | Ribbon editing, insertion, arrange, and save.                                                                          |
-| `smartArt3D`     | `boolean`                       | `false` | Opt-in Three.js 3D SmartArt renderer.                                                                                  |
-| `onload`         | `(d: ViewerLoadDetail) => void` | -       | Fired after a presentation loads.                                                                                      |
-| `onerror`        | `(message: string) => void`     | -       | Fired when loading fails.                                                                                              |
-| `onslidechange`  | `(index: number) => void`       | -       | Fired when the active slide changes.                                                                                   |
-| `onnotesupdate`  | `(notes: string) => void`       | -       | Fired when the user edits the speaker notes.                                                                           |
-| `onchange`       | `() => void`                    | -       | Fired after every committed edit when `editable`.                                                                      |
+| Prop                 | Type                                 | Default | Description                                                                                                            |
+| -------------------- | ------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `source`             | `Uint8Array \| ArrayBuffer \| null`  | -       | Raw `.pptx` bytes.                                                                                                     |
+| `theme`              | `ViewerTheme`                        | -       | Color/radius/CSS-var overrides.                                                                                        |
+| `fonts`              | `ViewerFontSource[]`                 | `[]`    | Licensed font sources supplied by the host application.                                                                |
+| `locale`             | `string`                             | `'en'`  | UI locale (see `pptx-svelte-viewer/i18n`).                                                                             |
+| `initialSlide`       | `number`                             | `0`     | Slide shown after load (0-based).                                                                                      |
+| `showThumbnails`     | `boolean`                            | `true`  | Thumbnail sidebar.                                                                                                     |
+| `showToolbar`        | `boolean`                            | `true`  | Navigation/zoom/fullscreen toolbar.                                                                                    |
+| `showNotes`          | `boolean`                            | `true`  | Speaker-notes panel and its toolbar toggle.                                                                            |
+| `hiddenActions`      | `ToolbarActionId[]`                  | -       | Toolbar buttons/ribbon tabs to hide individually (e.g. `['share', 'broadcast']`), instead of hiding the whole toolbar. |
+| `editable`           | `boolean`                            | `false` | Ribbon editing, insertion, arrange, and save.                                                                          |
+| `smartArt3D`         | `boolean`                            | `false` | Opt-in Three.js 3D SmartArt renderer (needs the optional `three` peer; falls back to SVG without it).                  |
+| `class`              | `string`                             | -       | Class applied to the root element.                                                                                     |
+| `fileName`           | `string`                             | -       | Display name shown in the desktop title bar.                                                                           |
+| `autosave`           | `boolean`                            | `false` | Debounced crash-recovery autosave to IndexedDB (requires `filePath`; fires `onautosave`).                              |
+| `filePath`           | `string`                             | -       | IndexedDB record key for autosave; autosave is inert without it.                                                       |
+| `autosaveIntervalMs` | `number`                             | `2000`  | Autosave debounce window in milliseconds.                                                                              |
+| `collaboration`      | `CollaborationConfig`                | -       | Yjs real-time collaboration config (y-websocket or serverless y-webrtc room, role).                                    |
+| `shareDefaults`      | `{ roomId?, userName?, serverUrl? }` | -       | Prefilled values for the Share/Broadcast dialogs.                                                                      |
+| `defaultThemeKey`    | `string`                             | -       | Initial File > Options > Appearance selection when no persisted preference exists.                                     |
+| `availableThemes`    | `ThemeCatalogEntry[]`                | -       | Theme choices offered by File > Options > Appearance (defaults to the built-in catalog).                               |
+| `onThemeChange`      | `(key: string) => void`              | -       | Host hook for the appearance picker; when set, the host owns persisting the choice.                                    |
+| `defaultLocale`      | `string`                             | -       | Initial File > Options > Language selection when no persisted preference exists.                                       |
+| `availableLocales`   | `LocaleCatalogEntry[]`               | -       | Locale choices offered by File > Options > Language (defaults to the registered dictionaries).                         |
+| `onLocaleChange`     | `(code: string) => void`             | -       | Host hook for the language picker; when set, the host owns persisting the switch.                                      |
+| `accountAuth`        | `AccountAuthConfig`                  | -       | Optional sign-in hook point for File > Account (disabled unless `enabled: true`).                                      |
+
+### Callbacks
+
+| Callback               | Payload               | Description                                                                      |
+| ---------------------- | --------------------- | -------------------------------------------------------------------------------- |
+| `onload`               | `ViewerLoadDetail`    | Fired after a presentation loads.                                                |
+| `onerror`              | `string`              | Fired when loading fails (human-readable message).                               |
+| `onslidechange`        | `number`              | Fired when the active slide changes (0-based).                                   |
+| `onnotesupdate`        | `string`              | Fired when the user edits the speaker notes; omit to render the panel read-only. |
+| `onchange`             | -                     | Fired after every committed edit when `editable`.                                |
+| `ondirtychange`        | `boolean`             | Fired when the unsaved-changes flag toggles.                                     |
+| `oncontentchange`      | `Uint8Array`          | Fired with freshly serialised `.pptx` bytes when the content changes.            |
+| `onmodechange`         | `string`              | Fired when the viewer mode changes.                                              |
+| `onzoomchange`         | `number`              | Fired when the zoom level changes.                                               |
+| `onselectionchange`    | `string[]`            | Fired with the selected element IDs when selection changes.                      |
+| `onslidecountchange`   | `number`              | Fired when the total slide count changes.                                        |
+| `onopenfile`           | -                     | Host override for the File > Open action.                                        |
+| `onautosave`           | `Uint8Array`          | Fired with serialised bytes after each successful autosave.                      |
+| `onautosavetoggle`     | `boolean`             | Fired when the title bar toggles AutoSave.                                       |
+| `onstartcollaboration` | `CollaborationConfig` | Fired when a collaboration session starts.                                       |
+| `onstopcollaboration`  | -                     | Fired when a collaboration session stops.                                        |
+
+## Imperative API (`bind:this`)
+
+The component instance implements the full shared `PowerPointViewerAPI` plus
+editing and export methods (the `PowerPointViewerApi` type):
+
+```svelte
+<script lang="ts">
+	import { PowerPointViewer, type PowerPointViewerApi } from 'pptx-svelte-viewer';
+
+	let viewer: PowerPointViewerApi | undefined = $state();
+</script>
+
+<PowerPointViewer bind:this={viewer} {source} editable />
+<button onclick={() => viewer?.undo()}>Undo</button>
+```
+
+- **Serialisation**: `getContent()`, `save(format?)`, `downloadPptx(fileName?)`,
+  `downloadAs(format, fileName?)`, `packageForSharing(fileName?)`.
+- **Navigation / zoom / mode**: `goTo(index)`, `goPrev()`, `goNext()`,
+  `getZoom()`, `setZoom(level)`, `zoomIn()`, `zoomOut()`, `zoomReset()`,
+  `getMode()`, `setMode(mode)`, `getActiveSlideIndex()`,
+  `setActiveSlideIndex(index)`, `getSlideCount()`, `isDirty()`.
+- **Editing**: `undo()`, `redo()`, `canUndo()`, `canRedo()`, `deleteSelected()`,
+  `getSelectedElementId()`, `getSelectedElementIds()`, `selectElements(ids)`,
+  `clearSelection()`.
+- **Slides / elements**: `getSlides()`, `getSlide(index)`, `getActiveSlide()`,
+  `addSlide(afterIndex?)`, `deleteSlides(indexes)`, `duplicateSlides(indexes)`,
+  `moveSlide(from, to)`, `toggleHideSlides(indexes)`, `getElements(slideIndex?)`,
+  `getElementById(id, slideIndex?)`, `updateElement(id, patch)`,
+  `deleteElements(ids)`, `duplicateElement(id)`.
+- **Export / print**: `exportSlidePng(index?)`, `copySlideAsImage(index?)`,
+  `exportPdf(options?)`, `exportGif(options?)`, `exportVideo(options?)`,
+  `print(options?)`.
 
 See the [full docs](https://christophervr.github.io/pptx-viewer/svelte/) for
 the complete props/events contract, theming, and localization guides.

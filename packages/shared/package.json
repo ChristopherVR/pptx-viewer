@@ -2,7 +2,7 @@
 	"name": "pptx-viewer-shared",
 	"version": "0.1.0",
 	"private": true,
-	"description": "INTERNAL, non-published package. Framework-agnostic viewer logic shared by the React, Vue, and Angular pptx-viewer bindings (theme, load helpers, types). Bundled into each binding — never published to npm.",
+	"description": "INTERNAL, non-published package. Framework-agnostic viewer logic shared by the React, Vue, Angular, Svelte, and vanilla JS pptx-viewer bindings (theme, rendering, editing state). Bundled into each binding; never published to npm.",
 	"keywords": [
 		"openxml",
 		"powerpoint",

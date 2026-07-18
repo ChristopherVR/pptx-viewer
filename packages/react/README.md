@@ -12,8 +12,6 @@ Slides render with real **HTML/CSS** (not `<canvas>`), so text stays crisp at an
 
 <samp>**[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo/)** · **[📦 npm](https://www.npmjs.com/package/pptx-react-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[🧩 Core SDK](https://www.npmjs.com/package/pptx-viewer-core)**</samp>
 
-> **[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo/)**: open a `.pptx` in your browser and view, edit, present, and export it. No install required.
-
 ---
 
 ## Install
@@ -29,7 +27,7 @@ npm install react react-dom framer-motion lucide-react react-icons jspdf jszip f
 ```
 
 > The package is named **`pptx-react-viewer`** on npm. `pptx-viewer-core` (the engine) is **bundled in**, so you don't install it separately unless you want to call the SDK directly.
-> **Optional:** `three` for 3D models/charts · `yjs y-websocket` for real-time collaboration.
+> **Optional:** `three` (3D models/charts, 3D SmartArt) and `yjs` / `y-websocket` / `y-webrtc` (real-time collaboration) are declared as `optionalDependencies`, so npm installs them automatically when possible; the features degrade gracefully if they're absent.
 
 ## Quick start
 
@@ -40,11 +38,11 @@ import { PowerPointViewer } from 'pptx-react-viewer';
 import 'pptx-react-viewer/styles';
 
 export default function App() {
-	const [content, setContent] = useState<ArrayBuffer | null>(null);
+	const [content, setContent] = useState<Uint8Array | null>(null);
 
-	// Load any .pptx as an ArrayBuffer (fetch, <input type="file">, drag-drop, …)
+	// Load any .pptx as bytes (fetch, <input type="file">, drag-drop, …)
 	const onPick = (e: React.ChangeEvent<HTMLInputElement>) =>
-		e.target.files?.[0]?.arrayBuffer().then(setContent);
+		e.target.files?.[0]?.arrayBuffer().then((buf) => setContent(new Uint8Array(buf)));
 
 	return (
 		<div style={{ height: '100vh' }}>
@@ -78,7 +76,7 @@ const bytes = await viewerRef.current?.getContent(); // Uint8Array of a valid .p
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | **View**           | Render slides with 16 element types: shapes, text, images, tables, 23 chart types, SmartArt, connectors, media, ink, OLE, 3D models, zoom |
 | **Edit**           | Insert/move/resize/delete elements, edit text inline, modify styles, manage slides                                                        |
-| **Present**        | Fullscreen slideshow with 40+ animations, 42 transitions (including morph), speaker notes, presenter view with timer                      |
+| **Present**        | Fullscreen slideshow with 40+ animations, 46 transitions (including morph), speaker notes, presenter view with timer                      |
 | **Export**         | PNG/JPEG/SVG/PDF/GIF/video slide export, save-as PPTX                                                                                     |
 | **Collaborate**    | Real-time multi-user editing (powered by Yjs) with live presence, remote cursors, and user avatars                                        |
 | **Print**          | Print dialog with handout layouts and notes page formatting with overflow pagination                                                      |
@@ -93,20 +91,37 @@ const bytes = await viewerRef.current?.getContent(); // Uint8Array of a valid .p
 
 ### `PowerPointViewer` props
 
-| Prop                  | Type                                | Default  | Description                                                                                                                            |
-| --------------------- | ----------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `content`             | `ArrayBuffer \| Uint8Array \| null` | required | Raw .pptx file bytes                                                                                                                   |
-| `filePath`            | `string`                            | n/a      | Optional file path (for display and autosave)                                                                                          |
-| `canEdit`             | `boolean`                           | `false`  | Enable editing mode                                                                                                                    |
-| `onContentChange`     | `(dirty: boolean) => void`          | n/a      | Called when content changes                                                                                                            |
-| `onDirtyChange`       | `(isDirty: boolean) => void`        | n/a      | Called when dirty state changes                                                                                                        |
-| `onActiveSlideChange` | `(index: number) => void`           | n/a      | Called when the active slide changes                                                                                                   |
-| `onModeChange`        | `(mode: ViewerMode) => void`        | n/a      | Called when the viewer mode changes                                                                                                    |
-| `onZoomChange`        | `(zoom: number) => void`            | n/a      | Called when the zoom level changes                                                                                                     |
-| `onSelectionChange`   | `(ids: string[]) => void`           | n/a      | Called when element selection changes                                                                                                  |
-| `onSlideCountChange`  | `(count: number) => void`           | n/a      | Called when the total slide count changes                                                                                              |
-| `theme`               | `ViewerTheme`                       | n/a      | Theme configuration for customising colours, radius, and CSS vars                                                                      |
-| `hiddenActions`       | `ToolbarActionId[]`                 | n/a      | Hide individual toolbar buttons and/or ribbon tabs (e.g. `['share', 'broadcast']`) instead of the whole toolbar; omitted hides nothing |
+| Prop                   | Type                                    | Default  | Description                                                                                                                            |
+| ---------------------- | --------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`              | `Uint8Array`                            | required | Raw .pptx file bytes                                                                                                                   |
+| `filePath`             | `string`                                | n/a      | Optional file path (for display and autosave recovery)                                                                                 |
+| `fileName`             | `string`                                | n/a      | Display name of the open document, shown in the title bar                                                                              |
+| `className`            | `string`                                | n/a      | Class applied to the root element                                                                                                      |
+| `canEdit`              | `boolean`                               | `false`  | Enable editing mode                                                                                                                    |
+| `fonts`                | `ViewerFontSource[]`                    | n/a      | Licensed font sources supplied by the host application                                                                                 |
+| `authorName`           | `string`                                | n/a      | Author name for comments/annotations and collaboration presence                                                                        |
+| `collaboration`        | `CollaborationConfig`                   | n/a      | Yjs real-time collaboration config (server URL, room, role)                                                                            |
+| `shareDefaults`        | `{ roomId?, userName?, serverUrl? }`    | n/a      | Seed values for the Share dialog fields                                                                                                |
+| `smartArt3D`           | `boolean`                               | `false`  | Opt-in Three.js 3D SmartArt renderer (needs the optional `three` dependency; falls back to SVG without it)                             |
+| `onOpenFile`           | `() => void`                            | n/a      | Host override for File > Open; bypasses the built-in file picker                                                                       |
+| `onContentChange`      | `(content: Uint8Array) => void`         | n/a      | Called with freshly serialised `.pptx` bytes when the content changes                                                                  |
+| `onDirtyChange`        | `(isDirty: boolean) => void`            | n/a      | Called when dirty state changes                                                                                                        |
+| `onActiveSlideChange`  | `(index: number) => void`               | n/a      | Called when the active slide changes                                                                                                   |
+| `onModeChange`         | `(mode: ViewerMode) => void`            | n/a      | Called when the viewer mode changes                                                                                                    |
+| `onZoomChange`         | `(zoom: number) => void`                | n/a      | Called when the zoom level changes                                                                                                     |
+| `onSelectionChange`    | `(ids: string[]) => void`               | n/a      | Called when element selection changes                                                                                                  |
+| `onSlideCountChange`   | `(count: number) => void`               | n/a      | Called when the total slide count changes                                                                                              |
+| `onStartCollaboration` | `(config: CollaborationConfig) => void` | n/a      | Called when the user starts a collaboration session from the Share dialog                                                              |
+| `onStopCollaboration`  | `() => void`                            | n/a      | Called when the collaboration session stops                                                                                            |
+| `theme`                | `ViewerTheme`                           | n/a      | Theme configuration for customising colours, radius, and CSS vars                                                                      |
+| `hiddenActions`        | `ToolbarActionId[]`                     | n/a      | Hide individual toolbar buttons and/or ribbon tabs (e.g. `['share', 'broadcast']`) instead of the whole toolbar; omitted hides nothing |
+| `defaultThemeKey`      | `string`                                | n/a      | Initial File > Options > Appearance selection when no persisted preference exists                                                      |
+| `availableThemes`      | `ThemeCatalogEntry[]`                   | n/a      | Theme choices offered by File > Options > Appearance (defaults to the built-in catalog)                                                |
+| `onThemeChange`        | `(key: string) => void`                 | n/a      | Host hook for the appearance picker; when set, the host owns persisting the choice                                                     |
+| `defaultLocale`        | `string`                                | n/a      | Initial locale code when no persisted preference exists                                                                                |
+| `availableLocales`     | `LocaleCatalogEntry[]`                  | n/a      | Locale choices offered by File > Options > Language (defaults to the registered i18next locales)                                       |
+| `onLocaleChange`       | `(code: string) => void`                | n/a      | Host hook for the language picker; when set, the host owns applying/persisting the switch                                              |
+| `accountAuth`          | `AccountAuthConfig`                     | n/a      | Optional sign-in hook point for File > Account (disabled unless `enabled: true`)                                                       |
 
 ### `PowerPointViewerHandle` (via `ref`)
 
@@ -134,6 +149,15 @@ const bytes = await viewerRef.current?.getContent(); // Uint8Array of a valid .p
 | `selectElements`        | `(ids: string[]) => void`    | Programmatically select elements by ID   |
 | `clearSelection`        | `() => void`                 | Clear the current selection              |
 
+The handle implements the full shared `PowerPointViewerAPI`, so the following
+slide/element manipulation methods are also available:
+`setActiveSlideIndex(index)`, `getSlides()`, `getSlide(index)`,
+`getActiveSlide()`, `addSlide(afterIndex?)`, `deleteSlides(indexes)`,
+`duplicateSlides(indexes)`, `moveSlide(from, to)`, `toggleHideSlides(indexes)`,
+`getElements(slideIndex?)`, `getElementById(id, slideIndex?)`,
+`updateElement(id, patch)`, `deleteElements(ids)`, and
+`duplicateElement(id)`.
+
 ### `renderToCanvas`
 
 Standalone utility for rendering a DOM element to a Canvas (with an oklch colour-space workaround):
@@ -152,6 +176,7 @@ const canvas = await renderToCanvas(element, options); // => HTMLCanvasElement
 import { Toolbar, SlideCanvas, useViewerBuildingBlocks } from 'pptx-react-viewer';
 
 function MyCustomViewer({ content }: { content: Uint8Array }) {
+	// Also returned: `mode` (current ViewerMode) and `autosaveStatus`
 	const { toolbarProps, canvasProps, loading, error } = useViewerBuildingBlocks({
 		content,
 		canEdit: true,

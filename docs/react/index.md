@@ -17,7 +17,7 @@ animation engine, presentation mode, real-time collaboration, and export.
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Viewer**         | Renders slides with 16 element types (shapes, text, images, tables, 23 chart types, SmartArt, connectors, media, ink, OLE, 3D models, zoom). |
 | **WYSIWYG editor** | Insert / move / resize / delete elements, inline text editing, style editing, slide management - gated behind `canEdit`.                     |
-| **Presenter**      | Fullscreen slideshow with 40+ animations, 42 transitions (including morph), speaker notes, presenter view with timer.                        |
+| **Presenter**      | Fullscreen slideshow with 40+ animations, 46 transitions (including morph), speaker notes, presenter view with timer.                        |
 | **Export**         | PNG / JPEG / SVG / PDF / GIF / video slide export, plus save-as PPTX. See [Export](/react/export).                                           |
 | **Collaboration**  | Real-time multi-user editing via Yjs CRDT with presence tracking, remote cursors, and avatars. See [Collaboration](/react/collaboration).    |
 
