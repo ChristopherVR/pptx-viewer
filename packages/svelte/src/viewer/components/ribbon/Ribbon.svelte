@@ -70,6 +70,7 @@
 <div class="pptx-svelte-ribbon" role="toolbar" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
 	<RibbonPrimaryRow
 		chromeUi={props.chromeUi}
+		readOnly={props.readOnly}
 		commentCount={slideCommentCount}
 		onpresent={props.onfromcurrent}
 		onpresenter={props.onpresenter}
@@ -189,24 +190,36 @@
 	.pptx-svelte-ribbon {
 		display: flex;
 		flex-direction: column;
-		background: var(--pptx-card, #1e1e2e);
+		background: color-mix(in srgb, var(--pptx-secondary, #1e1e2e) 50%, transparent);
 		color: var(--pptx-card-foreground, #e2e8f0);
 		border-bottom: 1px solid var(--pptx-border, #33334d);
 		font-family: system-ui, sans-serif;
 		flex: none;
 	}
 
-	/* One horizontal, non-wrapping row of ribbon groups (React: `flex
-	   flex-nowrap overflow-x-auto`); narrow viewports scroll sideways. */
+	/* One horizontal, non-wrapping row of ribbon groups (React parity:
+	   `flex min-h-[82px] items-stretch gap-0 px-1 py-0.5 overflow-x-auto
+	   flex-nowrap`); the tall min-height + stretch lets each tab's groups fill
+	   the row (controls pinned to the top) instead of floating in a short band.
+	   Narrow viewports scroll sideways. */
 	.pptx-svelte-ribbon-content {
 		display: flex;
-		align-items: center;
+		align-items: stretch;
 		flex-wrap: nowrap;
-		gap: 6px;
-		padding: 4px 8px;
+		gap: 0;
+		min-height: 82px;
+		padding: 2px 4px;
 		overflow-x: auto;
 		overflow-y: hidden;
 		scrollbar-width: thin;
+	}
+
+	/* Each active tab is the single direct child; stretch it to the full row
+	   height and top-align its groups so controls sit at the top with labels
+	   below (PowerPoint layout), rather than vertically centered. */
+	.pptx-svelte-ribbon-content > :global(*) {
+		align-self: stretch;
+		align-items: flex-start;
 	}
 
 	/* Shared compact dark select for ribbon dropdowns (font family, change

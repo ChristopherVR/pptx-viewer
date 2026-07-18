@@ -16,6 +16,7 @@
 
 	const {
 		chromeUi,
+		readOnly = false,
 		commentCount = 0,
 		onpresent,
 		onpresenter,
@@ -30,6 +31,7 @@
 		hiddenActions,
 	}: {
 		chromeUi?: ChromeUiState;
+		readOnly?: boolean;
 		commentCount?: number;
 		onpresent: () => void;
 		onpresenter?: () => void;
@@ -121,6 +123,9 @@
 	{#if exportUi && !isActionHidden('export', hiddenActions)}
 		<RibbonOverflowMenu {exportUi} />
 	{/if}
+	{#if readOnly}
+		<span class="pptx-svelte-ribbon-primary-readonly">{t('pptx.toolbar.readOnly')}</span>
+	{/if}
 </div>
 
 <style>
@@ -200,5 +205,16 @@
 		font-size: 11px;
 		white-space: nowrap;
 		background: var(--pptx-muted, #2a2a3d);
+	}
+
+	.pptx-svelte-ribbon-primary-readonly {
+		display: inline-flex;
+		align-items: center;
+		padding: 1px 8px;
+		border-radius: 3px;
+		background: color-mix(in srgb, #d97706 90%, transparent);
+		color: #fffbeb;
+		font-size: 10px;
+		white-space: nowrap;
 	}
 </style>

@@ -28,6 +28,9 @@ export interface RibbonProps {
 	/** Slide canvas size (px); the Insert tab centres new charts/media/SmartArt/etc. on it. */
 	canvasSize: CanvasSize;
 
+	/** Read-only deck: the full ribbon still renders (React parity) but a
+	    read-only badge shows in the primary row and edits are inert. */
+	readOnly?: boolean;
 	/** Compact nav row (always visible): active slide (0-based) / total. */
 	current: number;
 	total: number;

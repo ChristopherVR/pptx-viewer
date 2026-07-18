@@ -26,6 +26,7 @@
 	import { provideTranslator } from '../i18n/context';
 	import { CollaborationController, CollaborationDialogsState } from './collab';
 	import CollaborationChrome from './collab/components/CollaborationChrome.svelte';
+	import CollaborationStatusIndicator from './collab/components/CollaborationStatusIndicator.svelte';
 	import { useCollaborationPresenceEffects } from './collab/collaboration-presence-effects.svelte';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
 	import SignatureStrippedDialog from './components/SignatureStrippedDialog.svelte';
@@ -370,9 +371,11 @@
 	const chromeVisible = $derived(!viewer.isFullscreen);
 	const editingActive = $derived(editable && !viewer.isFullscreen && !collab.readOnly);
 	// The ribbon replaces the lean `ViewerToolbar` once a presentation is
-	// loaded and editing is actually available; read-only mode (or no
-	// presentation yet) keeps the compact viewer chrome unchanged.
-	const showRibbon = $derived(editable && !collab.readOnly && loader.slides.length > 0);
+	// loaded (React parity: the full ribbon renders for read-only decks too, with
+	// a read-only badge and inert edits); only the empty/loading state keeps the
+	// compact viewer chrome, and presentation mode hides all chrome.
+	const showRibbon = $derived(loader.slides.length > 0);
+	const ribbonReadOnly = $derived(!editable || collab.readOnly);
 	const viewerMode = $derived<ViewerMode>(editor.masterViewTarget ? 'master' : viewer.isFullscreen ? 'present' : editable ? 'edit' : 'preview');
 	$effect(() => ondirtychange?.(editor.dirty));
 	$effect(() => onmodechange?.(viewerMode));
@@ -645,6 +648,7 @@
 			<Ribbon
 				{fileName}
 				{editor}
+				readOnly={ribbonReadOnly}
 				{findReplace}
 				canvasSize={loader.canvasSize}
 				current={viewer.current}
@@ -867,6 +871,13 @@
 			onzoomfit={() => viewer.zoomToFit()}
 		/>
 	{/if}
+	{#snippet collabStatus()}
+		<CollaborationStatusIndicator
+			status={collab.status}
+			connectedCount={dialogs.connectedCount}
+			onretry={() => dialogs.retry(collaboration)}
+		/>
+	{/snippet}
 	{#if showToolbar && chromeVisible}
 		<StatusBar
 			current={viewer.current}
@@ -877,11 +888,20 @@
 			showNotes={showNotes && loader.slides.length > 0}
 			{notesExpanded}
 			isFullscreen={viewer.isFullscreen}
+			slideSorterActive={parityUi.slideSorterOpen}
 			onzoomin={() => viewer.zoomIn(effectivePercent)}
 			onzoomout={() => viewer.zoomOut(effectivePercent)}
 			onzoomfit={() => viewer.zoomToFit()}
 			onfullscreen={onFullscreenToggle}
 			onnotestoggle={onNotesToggle}
+			onnormal={() => {
+				if (viewer.isFullscreen) {
+					onFullscreenToggle();
+				}
+				parityUi.slideSorterOpen = false;
+			}}
+			onslidesorter={() => (parityUi.slideSorterOpen = true)}
+			collaborationSlot={collab.active ? collabStatus : undefined}
 		/>
 	{/if}
 	<CollaborationChrome
@@ -889,7 +909,6 @@
 		{dialogs}
 		{shareDefaults}
 		showOverlay={collab.active && chromeVisible}
-		{collaboration}
 	/>
 </div>
 

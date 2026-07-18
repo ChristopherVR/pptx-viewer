@@ -51,21 +51,15 @@ async function mountViewer(props: Partial<PowerPointViewerProps> = {}): Promise<
 	return { target, onload, onslidechange };
 }
 
-function toolbarButton(target: HTMLElement, label: string): HTMLButtonElement {
-	const button = target.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
-	if (!button) {
-		throw new Error(`Toolbar button not found: ${label}`);
-	}
-	return button;
-}
-
 describe('powerPointViewer', () => {
 	it('loads a deck, renders the stage, and reports the slide count', async () => {
 		const { target, onload } = await mountViewer();
 		const detail = onload.mock.calls[0][0] as { slideCount: number };
 		expect(detail.slideCount).toBeGreaterThan(1);
 		expect(target.querySelector('.pptx-svelte-stage')).not.toBeNull();
-		expect(target.querySelector('.pptx-svelte-toolbar')).not.toBeNull();
+		// Read-only decks now render the full ribbon (React parity), not the
+		// lean fallback toolbar.
+		expect(target.querySelector('.pptx-svelte-ribbon')).not.toBeNull();
 		expect(target.textContent).toContain(`Slide 1 of ${detail.slideCount}`);
 	});
 
@@ -90,14 +84,17 @@ describe('powerPointViewer', () => {
 		).toStrictEqual(['Slides', 'Insert', 'Format', 'Comments', 'Notes']);
 	});
 
-	it('navigates with the toolbar buttons and fires slidechange', async () => {
+	it('navigates via the thumbnail rail and fires slidechange', async () => {
+		// Read-only chrome no longer carries prev/next buttons (React parity:
+		// navigation is via thumbnails / keyboard), so drive nav from the rail.
 		const { target, onslidechange } = await mountViewer();
 		onslidechange.mockClear();
-		toolbarButton(target, 'Next slide').click();
+		const thumbs = target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-thumb');
+		thumbs[1].click();
 		flushSync();
 		expect(onslidechange).toHaveBeenLastCalledWith(1);
 		expect(target.textContent).toContain('Slide 2 of');
-		toolbarButton(target, 'Previous slide').click();
+		thumbs[0].click();
 		flushSync();
 		expect(onslidechange).toHaveBeenLastCalledWith(0);
 	});

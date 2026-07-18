@@ -6,12 +6,9 @@
 	 * concerns already) to keep that file within the repo's file-size budget;
 	 * this component owns no state of its own beyond what it's handed.
 	 */
-	import type { CollaborationConfig } from 'pptx-viewer-shared';
-
 	import type { CollaborationController } from '../collaboration.svelte';
 	import type { CollaborationDialogsState, ShareDefaultsInput } from '../collaboration-dialogs.svelte';
 	import BroadcastDialog from './BroadcastDialog.svelte';
-	import CollaborationStatusIndicator from './CollaborationStatusIndicator.svelte';
 	import FollowModeBar from './FollowModeBar.svelte';
 	import ShareDialog from './ShareDialog.svelte';
 
@@ -20,15 +17,12 @@
 		dialogs,
 		shareDefaults,
 		showOverlay,
-		collaboration,
 	}: {
 		collab: CollaborationController;
 		dialogs: CollaborationDialogsState;
 		shareDefaults?: ShareDefaultsInput;
-		/** Show the floating follow-bar/status overlay (active session + chrome visible). */
+		/** Show the floating follow-bar overlay (active session + chrome visible). */
 		showOverlay: boolean;
-		/** The host's live `collaboration` prop, used to retry after a connection error. */
-		collaboration: CollaborationConfig | undefined;
 	} = $props();
 </script>
 
@@ -39,13 +33,6 @@
 			followedClientId={collab.followedClientId}
 			onfollow={(clientId) => collab.followUser(clientId)}
 		/>
-		<div class="pptx-svelte-collab-status-pill">
-			<CollaborationStatusIndicator
-				status={collab.status}
-				connectedCount={dialogs.connectedCount}
-				onretry={() => dialogs.retry(collaboration)}
-			/>
-		</div>
 	</div>
 {/if}
 <ShareDialog
@@ -82,15 +69,5 @@
 
 	.pptx-svelte-collab-overlay :global(.pptx-svelte-follow-bar) {
 		pointer-events: auto;
-	}
-
-	.pptx-svelte-collab-status-pill {
-		flex-shrink: 0;
-		pointer-events: auto;
-		border: 1px solid var(--pptx-border, #33334d);
-		border-radius: 9999px;
-		background: color-mix(in srgb, var(--pptx-background, #11111b) 90%, transparent);
-		padding: 4px 10px;
-		backdrop-filter: blur(4px);
 	}
 </style>
