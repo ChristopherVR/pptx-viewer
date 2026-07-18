@@ -2,7 +2,31 @@ import type { PptxElement } from 'pptx-viewer-core';
 
 import type { Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
+import type { LayoutOption } from '../ui/ribbon/ribbon-types';
 import { buildInspectorState } from './inspector-state-builder';
+
+/**
+ * Flatten every slide master's layouts into the `{ path, name }` options the
+ * Home > Slides group's New Slide / Layout menus consume (React derives the
+ * same list from the load pipeline's `layoutOptions`).
+ */
+function collectLayoutOptions(state: ViewerState): LayoutOption[] {
+	const options: LayoutOption[] = [];
+	const seen = new Set<string>();
+	for (const master of state.slideMasters) {
+		for (const layout of master.layouts ?? []) {
+			if (!layout.path || seen.has(layout.path)) {
+				continue;
+			}
+			seen.add(layout.path);
+			options.push({
+				path: layout.path,
+				name: layout.name || layout.path.split('/').pop() || layout.path,
+			});
+		}
+	}
+	return options;
+}
 
 /**
  * Keep the editing chrome (ribbon + property inspector) in sync with the
@@ -43,6 +67,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			formatPainterActive: state.formatPainterSourceId !== null,
 			selectedElementId: state.selectedElementId ?? undefined,
 			animations: state.slides[state.currentSlide]?.animations ?? [],
+			layouts: collectLayoutOptions(state),
 		});
 		ribbon?.setDrawState({ tool: state.drawTool, color: state.drawColor, width: state.drawWidth });
 

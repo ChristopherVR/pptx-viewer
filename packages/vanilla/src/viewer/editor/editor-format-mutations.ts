@@ -58,8 +58,12 @@ export interface TextFormatState {
 	lineSpacing: number | undefined;
 }
 
-/** Default font size (pt) assumed when neither the element nor a run sets one. */
-const DEFAULT_FONT_SIZE = 18;
+/**
+ * Default font size (pt) assumed when neither the element nor a run sets one.
+ * Matches React's `extractFontInfo` fallback (24) so the ribbon Font group and
+ * the size stepper derive the same default the reference binding shows.
+ */
+const DEFAULT_FONT_SIZE = 24;
 /** Clamp bounds for the font-size stepper / numeric input. */
 const MIN_FONT_SIZE = 1;
 const MAX_FONT_SIZE = 400;

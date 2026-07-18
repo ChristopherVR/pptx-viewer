@@ -7,9 +7,10 @@ import type { InspectorHandlers } from './types';
 type ShowType = 'presented' | 'browsed' | 'kiosk';
 
 /**
- * The PRESENTATION card of the no-selection Properties tab: the slide/element
- * counts plus React's `PresentationSettingsCard` controls (show type, loop,
- * narration, animation, frame slides, slides per page).
+ * The PRESENTATION card of the no-selection Properties tab: mirrors React's
+ * `PresentationSettingsCard` controls (show type, loop, narration, animation,
+ * frame slides, slides per page). React does not show slide/element counts
+ * here, so neither do we.
  */
 export function createDeckPresentationCard(
 	doc: Document,
@@ -17,10 +18,6 @@ export function createDeckPresentationCard(
 	handlers: Pick<InspectorHandlers, 'updatePresentationSettings'>,
 ): DeckCard {
 	const { el, body } = makeSection(doc, t('pptx.slideInspector.presentation'));
-
-	const slidesRow = makeRow(doc, t('pptx.sections.slides'));
-	const elementsRow = makeRow(doc, t('pptx.documentProperties.statistics.elements'));
-	body.append(slidesRow.el, elementsRow.el);
 
 	const showType = makeSelectField<ShowType>(doc, {
 		label: t('pptx.presentationSettings.showType'),
@@ -74,8 +71,6 @@ export function createDeckPresentationCard(
 	return {
 		el,
 		update(state) {
-			slidesRow.value.textContent = String(state.slideCount);
-			elementsRow.value.textContent = String(state.elements.length);
 			const props = state.presentationProperties;
 			showType.setValue(props.showType ?? 'presented');
 			loop.setValue(Boolean(props.loopContinuously));

@@ -38,15 +38,15 @@ describe('createPptxViewer', () => {
 		const primary = container.querySelector('.pptxv-ribbon-primary');
 		expect(primary?.getAttribute('role')).toBeNull();
 		// React-aligned quick-access cluster: comments, Present split, "+ Show",
-		// inspector toggle, settings, overflow; collab appends broadcast + pill.
+		// inspector toggle, settings, overflow; collab appends the status pill.
+		// Broadcast has no standalone icon here (React reaches it via the Present
+		// menu's "Present Online" item), so it must NOT be in the primary row.
 		expect(primary?.querySelector('button[aria-label="Comments"]')).toBeTruthy();
 		expect(primary?.querySelector('.pptxv-present-split')).toBeTruthy();
 		expect(primary?.querySelector('button[aria-label="Toggle inspector panel"]')).toBeTruthy();
 		expect(primary?.querySelector('button[aria-label="Settings & Shortcuts"]')).toBeTruthy();
 		expect(primary?.querySelector('button[aria-label="More actions"]')).toBeTruthy();
-		expect(
-			primary?.querySelector('button[aria-label="Broadcast to a live audience"]'),
-		).toBeTruthy();
+		expect(primary?.querySelector('button[aria-label="Broadcast to a live audience"]')).toBeNull();
 		expect(primary?.querySelector('.pptxv-collab-status')).toBeTruthy();
 		// Share and Record live on the tab row's right side, matching React.
 		const tabRowActions = container.querySelector('.pptxv-tabrow-actions');

@@ -180,6 +180,7 @@ export function createRibbon(
 			formatPainterActive: latestExtra.formatPainterActive ?? false,
 			slideCount: latestExtra.slideCount,
 			selectedCount: latestExtra.selectedCount ?? 0,
+			layouts: latestExtra.layouts ?? [],
 		});
 	};
 	const syncAnimations = (): void => {

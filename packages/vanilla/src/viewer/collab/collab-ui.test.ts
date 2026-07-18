@@ -39,23 +39,23 @@ function makeDeps(over: Partial<CollabUiDeps> = {}): CollabUiDeps {
 }
 
 describe('createCollabUi', () => {
-	it('omitting hiddenActions renders both the Share and Broadcast quick-access buttons (backward compatible default)', () => {
+	it('omitting hiddenActions renders only the Share quick-access button (Broadcast lives in the Present menu, matching React)', () => {
 		const deps = makeDeps();
 		createCollabUi(deps);
 		const primaryRow = deps.getChrome().ribbon?.el.querySelector('.pptxv-ribbon-primary');
-		expect(primaryRow?.querySelectorAll(':scope > button')).toHaveLength(2);
+		expect(primaryRow?.querySelectorAll(':scope > button')).toHaveLength(1);
 	});
 
 	it("hides the Share quick-access button (desktop + mobile) on 'share'", () => {
 		const deps = makeDeps({ hiddenActions: ['share'] });
 		createCollabUi(deps);
 		const primaryRow = deps.getChrome().ribbon?.el.querySelector('.pptxv-ribbon-primary');
-		expect(primaryRow?.querySelectorAll(':scope > button')).toHaveLength(1);
+		expect(primaryRow?.querySelectorAll(':scope > button')).toHaveLength(0);
 		const mobileHost = deps.getChrome().mobileToolbar?.collaborationHost;
 		expect(mobileHost?.querySelector('button')).toBeNull();
 	});
 
-	it("hides the Broadcast quick-access button on 'broadcast' without touching Share", () => {
+	it("'broadcast' in hiddenActions does not remove the Share quick-access button", () => {
 		const deps = makeDeps({ hiddenActions: ['broadcast'] });
 		createCollabUi(deps);
 		const primaryRow = deps.getChrome().ribbon?.el.querySelector('.pptxv-ribbon-primary');

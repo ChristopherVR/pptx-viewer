@@ -32,13 +32,14 @@ function createSlideSizeCard(
 	const grid = createEl(doc, 'div', 'pptxv-inspector-grid');
 	body.appendChild(grid);
 	let size = { width: 0, height: 0 };
+	// React's `SlideSizeCard` labels the fields with the bare letters "W"/"H".
 	const wField = makeNumberField(doc, {
-		label: t('pptx.arrange.width'),
+		label: 'W',
 		min: 1,
 		onCommit: (value) => handlers.updateCanvasSize({ width: value, height: size.height }),
 	});
 	const hField = makeNumberField(doc, {
-		label: t('pptx.arrange.height'),
+		label: 'H',
 		min: 1,
 		onCommit: (value) => handlers.updateCanvasSize({ width: size.width, height: value }),
 	});
@@ -68,8 +69,10 @@ function createNotesHandoutCard(doc: Document, t: Translator): DeckCard {
 	return {
 		el,
 		update(state) {
+			// React's `NotesHandoutCard` renders "W × Hpx" (U+00D7, no spaces
+			// around the digits and "px" flush against the height).
 			sizeRow.value.textContent = state.notesCanvasSize
-				? `${state.notesCanvasSize.width} x ${state.notesCanvasSize.height} px`
+				? `${state.notesCanvasSize.width} × ${state.notesCanvasSize.height}px`
 				: na;
 			notesRow.value.textContent = placeholders(state.notesPlaceholderCount);
 			handoutRow.value.textContent = placeholders(state.handoutPlaceholderCount);

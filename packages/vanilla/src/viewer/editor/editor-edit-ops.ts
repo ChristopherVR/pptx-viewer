@@ -144,7 +144,7 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		...createTextActions(applyToSelected),
 		...createArrangeActions({ store, ops, applyToSelected }),
 		...createClipboardActions({ store, ops }),
-		...createSlideActions({ store, ops }),
+		...createSlideActions({ store, ops, getHandler: deps.getHandler }),
 		...createSlideBackgroundActions({ store, ops }),
 		...createTransitionActions({ store, ops }),
 		...createAnimationActions({ store, ops }),

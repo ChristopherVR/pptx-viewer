@@ -65,7 +65,7 @@ export function createFontGroup(
 
 	const fontSize = makeDropdown(doc, {
 		triggerLabel: t('pptx.textPanel.size'),
-		triggerText: '18',
+		triggerText: '24',
 		items: COMMON_FONT_SIZES.map((s) => ({ label: String(s), value: s })),
 		onSelect: handlers.setFontSize,
 	});
