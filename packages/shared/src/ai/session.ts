@@ -35,6 +35,22 @@ export interface PptxAiChatSession {
 	 */
 	sendAutomaticallyWhen: (options: { messages: PptxAiUIMessage[] }) => boolean;
 	/**
+	 * Whether the BINDING must run the tool loop client-side (execute each tool
+	 * from `onToolCall` and resubmit via {@link sendAutomaticallyWhen}).
+	 *
+	 * - `endpoint` / `transport`: `true`. The server (or scripted transport) owns
+	 *   the model turn but cannot reach the binding's local executors + proposal
+	 *   store, so the client executes tools and feeds results back.
+	 * - `model`: `false`. The in-process `ToolLoopAgent` already runs the whole
+	 *   tool loop locally (its tools carry `execute`), so the client must NOT
+	 *   re-execute; doing so double-stages every proposal (one from the agent's
+	 *   `execute`, one from the client's `onToolCall`).
+	 *
+	 * Bindings gate both their `onToolCall` executor and `sendAutomaticallyWhen`
+	 * wiring on this flag so each tool call executes and stages EXACTLY once.
+	 */
+	clientExecutesTools: boolean;
+	/**
 	 * Execute one tool call against the deck and return its JSON-serialisable
 	 * output. Throws on unknown tool or executor error. Bindings call this from
 	 * their `onToolCall` handler and forward the result to `chat.addToolOutput`.
@@ -85,6 +101,9 @@ export async function createAiChatSession(
 		systemPrompt,
 		proposals,
 		sendAutomaticallyWhen: sdk.lastAssistantMessageIsCompleteWithToolCalls,
+		// The in-process `model` agent runs tools itself; every other connection
+		// needs the binding to run them client-side. See the field doc above.
+		clientExecutesTools: connection.kind !== 'model',
 		async executeToolCall(toolName: string, input: unknown): Promise<unknown> {
 			const executor = executors.get(toolName as PptxAiToolName);
 			if (!executor) {

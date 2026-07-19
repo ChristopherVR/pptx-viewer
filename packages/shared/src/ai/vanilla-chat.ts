@@ -117,14 +117,19 @@ export async function createVanillaChat(options: {
 	const ChatCtor = sdk.AbstractChat as unknown as new (
 		init: Record<string, unknown>,
 	) => VanillaChatBase;
-	const chat = new ChatCtor({
+	// In `model` mode the in-process agent already runs the tool loop, so we must
+	// NOT wire a client-side executor (that double-stages every proposal) nor a
+	// resubmit predicate. See `PptxAiChatSession.clientExecutesTools`.
+	const init: Record<string, unknown> = {
 		transport: session.transport,
 		state,
-		sendAutomaticallyWhen: session.sendAutomaticallyWhen,
 		onError: (err: Error) => {
 			options.config.onError?.(err);
 		},
-		onToolCall: async (args: { toolCall: ToolCallInfo }) => {
+	};
+	if (session.clientExecutesTools) {
+		init.sendAutomaticallyWhen = session.sendAutomaticallyWhen;
+		init.onToolCall = async (args: { toolCall: ToolCallInfo }) => {
 			const { toolName, toolCallId, input } = args.toolCall;
 			const addOutput = chat.addToolOutput as unknown as (arg: ToolOutputArg) => void;
 			try {
@@ -138,8 +143,9 @@ export async function createVanillaChat(options: {
 					errorText: err instanceof Error ? err.message : String(err),
 				});
 			}
-		},
-	});
+		};
+	}
+	const chat = new ChatCtor(init);
 
 	return {
 		sendMessage: (text: string) => chat.sendMessage({ text }),
