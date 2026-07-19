@@ -1,6 +1,7 @@
 import { PptxSlide, XmlObject } from '../../types';
 import type {
 	ParsedTableBackground,
+	ParsedTableStyleBorders,
 	ParsedTableStyleFill,
 	ParsedTableStyleText,
 	PptxExportOptions,
@@ -8,6 +9,7 @@ import type {
 	ParsedTableStyleMap,
 } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeState';
+import { parseSolidFillStyle, parseTableStyleBorders } from './table-style-border-parse';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -114,34 +116,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return undefined;
 		}
 		const tcStyle = section['a:tcStyle'] as XmlObject | undefined;
-		if (!tcStyle) {
-			return undefined;
-		}
-		const fill = tcStyle['a:fill'] as XmlObject | undefined;
-		if (!fill) {
-			return undefined;
-		}
-		const solidFill = fill['a:solidFill'] as XmlObject | undefined;
-		if (!solidFill) {
-			return undefined;
-		}
-		const schemeClr = solidFill['a:schemeClr'] as XmlObject | undefined;
-		if (!schemeClr) {
-			return undefined;
-		}
-		const schemeColor = String(schemeClr['@_val'] || '').trim() || undefined;
-		if (!schemeColor) {
-			return undefined;
-		}
+		const fill = tcStyle?.['a:fill'] as XmlObject | undefined;
+		return parseSolidFillStyle(fill?.['a:solidFill'] as XmlObject | undefined);
+	}
 
-		const tintRaw = schemeClr['a:tint'] as XmlObject | undefined;
-		const tint = tintRaw ? parseInt(String(tintRaw['@_val'] || '0'), 10) || undefined : undefined;
-		const shadeRaw = schemeClr['a:shade'] as XmlObject | undefined;
-		const shade = shadeRaw
-			? parseInt(String(shadeRaw['@_val'] || '0'), 10) || undefined
-			: undefined;
-
-		return { schemeColor, tint, shade };
+	/**
+	 * Extract border styling from a table style section's
+	 * `a:tcStyle/a:tcBdr` (per-side line width, dash, and colour).
+	 */
+	protected extractTableStyleSectionBorders(section: XmlObject | undefined) {
+		return parseTableStyleBorders(section?.['a:tcStyle'] as XmlObject | undefined);
 	}
 
 	/**
@@ -313,6 +297,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 				}
 
+				// Extract per-role border styling (a:tcStyle/a:tcBdr)
+				const borderProps: Partial<
+					Record<`${(typeof sectionNames)[number]}Borders`, ParsedTableStyleBorders>
+				> = {};
+				for (const name of sectionNames) {
+					const borders = this.extractTableStyleSectionBorders(
+						(style as XmlObject)[`a:${name}`] as XmlObject | undefined,
+					);
+					if (borders) {
+						borderProps[`${name}Borders`] = borders;
+					}
+				}
+
 				const entry: ParsedTableStyleEntry = {
 					styleId,
 					styleName,
@@ -332,6 +329,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					...(neCellFill ? { neCellFill } : {}),
 					...(nwCellFill ? { nwCellFill } : {}),
 					...textProps,
+					...borderProps,
 				};
 				map[styleId] = entry;
 			}

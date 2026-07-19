@@ -29,6 +29,7 @@ import type {
 } from 'pptx-viewer-core';
 
 import { getPatternSvg, normalizeHexColor } from './fill-style';
+import { resolveCellBorderCss } from './table-style-borders';
 
 /** A framework-agnostic CSS style object: camelCased property → value. */
 export type TableCellCss = Record<string, string | number>;
@@ -641,6 +642,22 @@ export function getTableCellBandStyle(
 			}
 		}
 		applyStyleText(styleEntry?.lastColText, colorScheme, style);
+		applied = true;
+	}
+
+	// ── Table-style borders (issue #71). ──
+	// Resolve gridlines/edges the cell inherits from the table style and let
+	// them supersede the hardcoded total-row line above. Per-cell explicit
+	// `a:lnX` borders (parsed into the cell style) are applied on top of this
+	// layer by the renderer, so they still win.
+	const borderCss = resolveCellBorderCss(
+		styleEntry,
+		tableData,
+		{ rowIndex, cellIndex, rowCount, columnCount },
+		(fill) => resolveStyleFillColor(fill, colorScheme),
+	);
+	if (borderCss) {
+		Object.assign(style, borderCss);
 		applied = true;
 	}
 

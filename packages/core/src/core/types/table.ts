@@ -300,6 +300,55 @@ export interface ParsedTableStyleText {
 }
 
 /**
+ * A single border side within a table style's `a:tcStyle/a:tcBdr`.
+ *
+ * Corresponds to one of `a:left`, `a:right`, `a:top`, `a:bottom`,
+ * `a:insideH`, `a:insideV`, `a:tl2br`, `a:bl2tr` (each a
+ * `CT_ThemeableLineStyle` wrapping an `a:ln`).
+ *
+ * @example
+ * ```ts
+ * const side: ParsedTableStyleBorder = {
+ *   width: 1,
+ *   dash: 'solid',
+ *   fill: { schemeColor: 'lt1' },
+ * };
+ * // => satisfies ParsedTableStyleBorder
+ * ```
+ */
+export interface ParsedTableStyleBorder {
+	/** Line width in px (converted from the `a:ln@w` EMU value). */
+	width?: number;
+	/** OOXML `a:prstDash@val` (e.g. `solid`, `dash`, `sysDot`). */
+	dash?: string;
+	/** Border colour as a theme scheme fill (from `a:ln/a:solidFill/a:schemeClr`). */
+	fill?: ParsedTableStyleFill;
+	/** Explicit hex colour when the line used `a:srgbClr` (e.g. `#808080`). */
+	color?: string;
+	/** The line was `a:noFill` — an explicit "no border" that clears lower layers. */
+	noFill?: boolean;
+}
+
+/**
+ * The set of border sides parsed from a table style section's
+ * `a:tcStyle/a:tcBdr` element.
+ */
+export interface ParsedTableStyleBorders {
+	left?: ParsedTableStyleBorder;
+	right?: ParsedTableStyleBorder;
+	top?: ParsedTableStyleBorder;
+	bottom?: ParsedTableStyleBorder;
+	/** Interior horizontal borders between rows in the region. */
+	insideH?: ParsedTableStyleBorder;
+	/** Interior vertical borders between columns in the region. */
+	insideV?: ParsedTableStyleBorder;
+	/** Top-left to bottom-right diagonal. */
+	tl2br?: ParsedTableStyleBorder;
+	/** Bottom-left to top-right diagonal. */
+	bl2tr?: ParsedTableStyleBorder;
+}
+
+/**
  * Table background style (CT_TableBackgroundStyle, ECMA-376 §21.1.3.7).
  *
  * Corresponds to the `<a:tblBg>` child of `<a:tblStyle>`. Currently
@@ -334,6 +383,24 @@ export interface ParsedTableStyleEntry {
 	swCellFill?: ParsedTableStyleFill;
 	neCellFill?: ParsedTableStyleFill;
 	nwCellFill?: ParsedTableStyleFill;
+	/**
+	 * Per-role border styling from `a:tcStyle/a:tcBdr`. These supply the
+	 * gridlines/edges a styled table inherits from its table style when the
+	 * cells carry no explicit per-cell `a:lnX` overrides.
+	 */
+	wholeTblBorders?: ParsedTableStyleBorders;
+	firstRowBorders?: ParsedTableStyleBorders;
+	lastRowBorders?: ParsedTableStyleBorders;
+	firstColBorders?: ParsedTableStyleBorders;
+	lastColBorders?: ParsedTableStyleBorders;
+	band1HBorders?: ParsedTableStyleBorders;
+	band2HBorders?: ParsedTableStyleBorders;
+	band1VBorders?: ParsedTableStyleBorders;
+	band2VBorders?: ParsedTableStyleBorders;
+	seCellBorders?: ParsedTableStyleBorders;
+	swCellBorders?: ParsedTableStyleBorders;
+	neCellBorders?: ParsedTableStyleBorders;
+	nwCellBorders?: ParsedTableStyleBorders;
 	/** Per-role text styling from a:tcTxStyle. */
 	wholeTblText?: ParsedTableStyleText;
 	firstRowText?: ParsedTableStyleText;
