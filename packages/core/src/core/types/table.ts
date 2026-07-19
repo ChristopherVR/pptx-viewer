@@ -258,12 +258,53 @@ export interface PptxTableData {
  * ```
  */
 export interface ParsedTableStyleFill {
-	/** Theme colour key (e.g. `accent1`, `dk1`). */
+	/**
+	 * Theme colour key (e.g. `accent1`, `dk1`). Empty string when the fill is a
+	 * non-scheme fill (explicit sRGB, gradient, pattern, or none) that carries
+	 * no theme colour reference; the renderer then resolves {@link color},
+	 * {@link gradient}, {@link pattern}, or {@link noFill} instead.
+	 */
 	schemeColor: string;
 	/** Tint value (0-100 000). */
 	tint?: number;
 	/** Shade value (0-100 000). */
 	shade?: number;
+	/** Explicit sRGB hex colour (e.g. `#FF8800`) from `a:srgbClr`. */
+	color?: string;
+	/** The fill was `a:noFill`: renders transparent and clears lower layers. */
+	noFill?: boolean;
+	/** Gradient fill parsed from `a:gradFill`. */
+	gradient?: ParsedTableStyleGradient;
+	/** Preset pattern fill parsed from `a:pattFill`. */
+	pattern?: ParsedTableStylePattern;
+}
+
+/** A single colour stop within a {@link ParsedTableStyleGradient}. */
+export interface ParsedTableStyleGradientStop {
+	/** Stop position as a percentage (0-100). */
+	position: number;
+	/** Stop colour (scheme or explicit sRGB). */
+	fill: ParsedTableStyleFill;
+}
+
+/** A gradient fill parsed from a table style section's `a:gradFill`. */
+export interface ParsedTableStyleGradient {
+	/** Ordered colour stops. */
+	stops: ParsedTableStyleGradientStop[];
+	/** Linear gradient angle in degrees (from `a:lin@ang`, 60000ths -> deg). */
+	angle?: number;
+	/** Gradient family: linear (`a:lin`) or radial (`a:path`). */
+	type: 'linear' | 'radial';
+}
+
+/** A preset pattern fill parsed from a table style section's `a:pattFill`. */
+export interface ParsedTableStylePattern {
+	/** OOXML preset name (e.g. `ltDnDiag`) from `a:pattFill@prst`. */
+	preset: string;
+	/** Foreground colour (`a:fgClr`). */
+	foreground?: ParsedTableStyleFill;
+	/** Background colour (`a:bgClr`). */
+	background?: ParsedTableStyleFill;
 }
 
 /**
@@ -291,12 +332,20 @@ export interface ParsedTableStyleText {
 	bold?: boolean;
 	/** Font italic. */
 	italic?: boolean;
+	/** Font underline (from `a:tcTxStyle@u`, any value other than `none`). */
+	underline?: boolean;
 	/** Font colour as theme scheme key. */
 	fontSchemeColor?: string;
 	/** Font colour tint (0-100 000). */
 	fontTint?: number;
 	/** Font colour shade (0-100 000). */
 	fontShade?: number;
+	/** Explicit sRGB hex font colour (e.g. `#FF0000`) from `a:srgbClr`. */
+	fontColor?: string;
+	/** Typeface from `a:font@typeface` (latin font). */
+	fontFace?: string;
+	/** Font-collection index from `a:fontRef@idx` (`minor`, `major`, `none`). */
+	fontRefIdx?: string;
 }
 
 /**

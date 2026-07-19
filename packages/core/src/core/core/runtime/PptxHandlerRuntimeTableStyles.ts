@@ -9,20 +9,14 @@ import type {
 	ParsedTableStyleMap,
 } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeState';
-import { parseSolidFillStyle, parseTableStyleBorders } from './table-style-border-parse';
+import { parseTableStyleBorders } from './table-style-border-parse';
+import { parseTableStyleSectionFill, parseTableStyleSectionText } from './table-style-fill-parse';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
-	 * Export slides to a raster/vector format.
-	 *
-	 * This is a stub that signals export intent. Actual rendering requires a
-	 * platform-specific canvas or PDF library (e.g. Puppeteer, node-canvas,
-	 * pdfkit). Host applications should override or extend this method with
-	 * their own rendering pipeline.
-	 *
-	 * @param _slides  The slides to export.
-	 * @param _options Export options (format, DPI, slide indices, etc.).
-	 * @returns A map of slide index → exported binary data.
+	 * Export slides to a raster/vector format. This is a stub that signals
+	 * export intent; actual rendering requires a platform-specific canvas or
+	 * PDF backend that host applications wire in by overriding this method.
 	 */
 	async exportSlides(
 		slides: PptxSlide[],
@@ -107,17 +101,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	/**
 	 * Extract fill information from a table style section element
-	 * (e.g. `a:wholeTbl`, `a:band1H`, `a:firstRow`).
+	 * (e.g. `a:wholeTbl`, `a:band1H`, `a:firstRow`). Handles scheme + sRGB
+	 * solids, gradients, preset patterns, and `a:noFill` (issue #95).
 	 */
 	protected extractTableStyleSectionFill(
 		section: XmlObject | undefined,
 	): ParsedTableStyleFill | undefined {
-		if (!section) {
-			return undefined;
-		}
-		const tcStyle = section['a:tcStyle'] as XmlObject | undefined;
-		const fill = tcStyle?.['a:fill'] as XmlObject | undefined;
-		return parseSolidFillStyle(fill?.['a:solidFill'] as XmlObject | undefined);
+		return parseTableStyleSectionFill(section);
 	}
 
 	/**
@@ -129,52 +119,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
-	 * Extract text properties from a:tcTxStyle in a table style section.
+	 * Extract text properties from `a:tcTxStyle` in a table style section.
+	 * Captures bold/italic/underline, typeface, font-collection index, and the
+	 * font colour (scheme or sRGB) (issue #95).
 	 */
 	protected extractTableStyleSectionText(
 		section: XmlObject | undefined,
 	): ParsedTableStyleText | undefined {
-		if (!section) {
-			return undefined;
-		}
-		const tcTxStyle = section['a:tcTxStyle'] as XmlObject | undefined;
-		if (!tcTxStyle) {
-			return undefined;
-		}
-
-		const result: ParsedTableStyleText = {};
-		let hasProps = false;
-
-		if (tcTxStyle['@_b'] === 'on') {
-			result.bold = true;
-			hasProps = true;
-		}
-		if (tcTxStyle['@_i'] === 'on') {
-			result.italic = true;
-			hasProps = true;
-		}
-
-		const fontClr = tcTxStyle['a:fontRef'] as XmlObject | undefined;
-		const schemeClr = (fontClr?.['a:schemeClr'] ?? tcTxStyle['a:schemeClr']) as
-			| XmlObject
-			| undefined;
-		if (schemeClr) {
-			const val = String(schemeClr['@_val'] || '').trim();
-			if (val) {
-				result.fontSchemeColor = val;
-				hasProps = true;
-				const tintNode = schemeClr['a:tint'] as XmlObject | undefined;
-				if (tintNode) {
-					result.fontTint = parseInt(String(tintNode['@_val'] || '0'), 10) || undefined;
-				}
-				const shadeNode = schemeClr['a:shade'] as XmlObject | undefined;
-				if (shadeNode) {
-					result.fontShade = parseInt(String(shadeNode['@_val'] || '0'), 10) || undefined;
-				}
-			}
-		}
-
-		return hasProps ? result : undefined;
+		return parseTableStyleSectionText(section);
 	}
 
 	protected ensureArray(val: unknown): XmlObject[] {
