@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { summarizeToolArgs, toolLabel } from './tool-summary';
+import { describeToolActivity, summarizeToolArgs, toolLabel } from './tool-summary';
 
 describe('toolLabel', () => {
 	it('title-cases a snake_case tool name', () => {
@@ -31,5 +31,70 @@ describe('summarizeToolArgs', () => {
 	it('returns an empty string for non-object input', () => {
 		expect(summarizeToolArgs(null)).toBe('');
 		expect(summarizeToolArgs('hi')).toBe('');
+	});
+});
+
+describe('describeToolActivity', () => {
+	it('turns a read tool + slide index into a friendly past-tense phrase', () => {
+		expect(describeToolActivity('get_slide', { slideIndex: 4 }).label).toBe('Looked at slide 5');
+		expect(describeToolActivity('get_slide', { slideIndex: 4 }, 'present').label).toBe(
+			'Looking at slide 5',
+		);
+	});
+
+	it('phrases edit tools plainly and NEVER leaks element ids', () => {
+		const merged = describeToolActivity('merge_tables', {
+			slideIndex: 2,
+			elementIdA: 'ppt/slides/slide3.xml-graphicFrame-178',
+			elementIdB: 'ppt/slides/slide3.xml-graphicFrame-9',
+		});
+		expect(merged.label).toBe('Merged two tables on slide 3');
+		expect(merged.label).not.toContain('178');
+		expect(merged.label).not.toContain('graphicFrame');
+
+		const text = describeToolActivity('update_text', {
+			slideIndex: 0,
+			elementId: 'ppt/slides/slide1.xml-shape-9',
+			text: 'Hello',
+		});
+		expect(text.label).toBe('Updated text on slide 1');
+		expect(text.label).not.toContain('shape-9');
+	});
+
+	it('humanizes theme and slide tools', () => {
+		expect(describeToolActivity('update_theme_colors', {}).label).toBe('Changed the theme colours');
+		expect(describeToolActivity('add_slide', {}).label).toBe('Added a slide');
+		expect(describeToolActivity('apply_theme_preset', { presetName: 'Vermilion' }).label).toBe(
+			'Applied the Vermilion theme',
+		);
+	});
+
+	it('pluralises deletion counts', () => {
+		expect(
+			describeToolActivity('delete_elements', { slideIndex: 1, elementIds: ['a', 'b'] }).label,
+		).toBe('Deleted 2 elements on slide 2');
+		expect(
+			describeToolActivity('delete_elements', { slideIndex: 1, elementIds: ['a'] }).label,
+		).toBe('Deleted 1 element on slide 2');
+	});
+
+	it('names the chart kind and the new insert tools', () => {
+		expect(describeToolActivity('create_chart', { slideIndex: 2, chartType: 'bar' }).label).toBe(
+			'Added a bar chart on slide 3',
+		);
+		expect(describeToolActivity('create_chart', { slideIndex: 2 }).label).toBe(
+			'Added a chart on slide 3',
+		);
+		expect(describeToolActivity('add_smartart', { slideIndex: 0, layout: 'cycle' }).label).toBe(
+			'Added a SmartArt graphic on slide 1',
+		);
+	});
+
+	it('carries an icon category and falls back for unknown tools', () => {
+		expect(describeToolActivity('get_slide', { slideIndex: 0 }).icon).toBe('view');
+		expect(describeToolActivity('update_theme_colors', {}).icon).toBe('theme');
+		const unknown = describeToolActivity('some_custom_tool', {});
+		expect(unknown.icon).toBe('tool');
+		expect(unknown.label).toBe('Some custom tool');
 	});
 });

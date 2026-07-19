@@ -40,7 +40,7 @@ export type { FocusedContextOptions } from './focused-context';
 
 export { ProposalStore } from './proposals';
 export type { ProposalView, StagedProposal } from './proposals';
-export { diffSlides } from './proposals-diff';
+export { diffSlides, humanizeDiffLine } from './proposals-diff';
 
 export {
 	buildDeckOutline,
@@ -95,4 +95,8 @@ export type {
 	RenderableToolPart,
 } from './ui-parts';
 
-export { summarizeToolArgs, toolLabel } from './tool-summary';
+export { describeToolActivity, summarizeToolArgs, toolLabel } from './tool-summary';
+export type { ToolActivity, ToolActivityIcon, ToolActivityTense } from './tool-summary';
+
+export { toolCanvasTarget } from './tool-target';
+export type { ToolCanvasTarget } from './tool-target';

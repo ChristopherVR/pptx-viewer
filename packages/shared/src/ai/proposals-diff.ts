@@ -78,3 +78,23 @@ export function diffSlides(before: PptxSlide[], after: PptxSlide[]): string[] {
 	}
 	return out;
 }
+
+/**
+ * Rewrite one {@link diffSlides} line into plain language for a non-technical
+ * reader, dropping the raw element id: `Slide 1: modify text el-9: "Title"`
+ * becomes `Slide 1: update the text "Title"`. Lines without an element clause
+ * (slide add/remove, notes, background) pass through unchanged. Safe to run on
+ * any string; unrecognised shapes are returned as-is.
+ */
+export function humanizeDiffLine(line: string): string {
+	return line.replace(
+		/\b(add|remove|modify) (\w+) [^\s:]+(: )?/gu,
+		(_match, verb: string, type: string, colon: string | undefined) => {
+			const article = verb === 'add' ? 'a' : 'the';
+			const friendlyVerb = verb === 'modify' ? 'update' : verb;
+			// A following `: "snippet"` becomes a plain space so it reads
+			// `update the text "Title"` rather than `update the text: "Title"`.
+			return `${friendlyVerb} ${article} ${type}${colon ? ' ' : ''}`;
+		},
+	);
+}
