@@ -69,7 +69,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const nvPr = (pic?.['p:nvPicPr'] as XmlObject | undefined)?.['p:nvPr'] as
 				| XmlObject
 				| undefined;
-			const mediaReference = parseDrawingMediaReference(nvPr);
+			const mediaReference = parseDrawingMediaReference(nvPr, this.externalRelsMap.get(slidePath));
 
 			if (mediaReference) {
 				this.compatibilityService.inspectMediaReferenceCompatibility(

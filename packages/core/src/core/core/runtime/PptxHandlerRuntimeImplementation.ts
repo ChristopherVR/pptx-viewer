@@ -109,6 +109,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		});
 		this.mediaDataParser = new PptxMediaDataParser({
 			slideRelsMap: this.slideRelsMap,
+			externalRelsMap: this.externalRelsMap,
 			resolvePath: (base, relative) => this.resolvePath(base, relative),
 			getPathExtension: (pathValue) => this.getPathExtension(pathValue),
 		});

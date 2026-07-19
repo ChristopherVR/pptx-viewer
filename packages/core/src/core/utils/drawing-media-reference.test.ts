@@ -16,15 +16,49 @@ describe('drawingML media references', () => {
 		});
 	});
 
-	it('parses linked QuickTime media', () => {
-		expect(parseDrawingMediaReference({ 'a:quickTimeFile': { '@_r:link': 'rId9' } })).toMatchObject(
-			{
-				kind: 'quickTimeFile',
-				mediaType: 'video',
-				relationshipId: 'rId9',
-				isLinked: true,
-			},
-		);
+	it('parses linked QuickTime media when the relationship is external', () => {
+		expect(
+			parseDrawingMediaReference({ 'a:quickTimeFile': { '@_r:link': 'rId9' } }, new Set(['rId9'])),
+		).toMatchObject({
+			kind: 'quickTimeFile',
+			mediaType: 'video',
+			relationshipId: 'rId9',
+			isLinked: true,
+		});
+	});
+
+	it('treats r:link to an INTERNAL media part as embedded (isLinked false)', () => {
+		// Regression for issue #79: embedded media legitimately references an
+		// internal media part via r:link; link presence must not imply linked.
+		expect(
+			parseDrawingMediaReference(
+				{ 'a:videoFile': { '@_r:link': 'rId5' } },
+				new Set(['rId9']), // rId5 is NOT external
+			),
+		).toMatchObject({
+			kind: 'videoFile',
+			mediaType: 'video',
+			relationshipId: 'rId5',
+			isLinked: false,
+		});
+	});
+
+	it('treats r:link to an EXTERNAL target as linked', () => {
+		expect(
+			parseDrawingMediaReference({ 'a:videoFile': { '@_r:link': 'rId5' } }, new Set(['rId5'])),
+		).toMatchObject({ kind: 'videoFile', relationshipId: 'rId5', isLinked: true });
+	});
+
+	it('treats r:embed video as embedded regardless of external set', () => {
+		expect(
+			parseDrawingMediaReference({ 'a:videoFile': { '@_r:embed': 'rId5' } }, new Set(['rId5'])),
+		).toMatchObject({ kind: 'videoFile', relationshipId: 'rId5', isLinked: false });
+	});
+
+	it('treats r:link as embedded when no external-rels set is provided', () => {
+		expect(parseDrawingMediaReference({ 'a:videoFile': { '@_r:link': 'rId5' } })).toMatchObject({
+			isLinked: false,
+		});
 	});
 
 	it('parses Audio CD start and end positions', () => {
@@ -82,13 +116,16 @@ describe('drawingML media references', () => {
 	});
 
 	it('parses arbitrary element and relationship prefixes', () => {
-		const result = parseDrawingMediaReference({
-			'd:audioFile': {
-				'@_rel:link': 'rId12',
-				'@_contentType': 'audio/flac',
-				'd:extLst': { 'd:ext': { '@_uri': 'keep' } },
+		const result = parseDrawingMediaReference(
+			{
+				'd:audioFile': {
+					'@_rel:link': 'rId12',
+					'@_contentType': 'audio/flac',
+					'd:extLst': { 'd:ext': { '@_uri': 'keep' } },
+				},
 			},
-		});
+			new Set(['rId12']),
+		);
 		expect(result).toMatchObject({
 			kind: 'audioFile',
 			relationshipId: 'rId12',

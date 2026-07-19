@@ -8,6 +8,7 @@ function makeContext(
 ): PptxMediaDataParserContext {
 	return {
 		slideRelsMap: new Map(),
+		externalRelsMap: new Map(),
 		resolvePath: (base, relative) => {
 			// Simple path resolution: join directory of base with relative
 			const dir = base.substring(0, base.lastIndexOf('/'));
@@ -100,6 +101,8 @@ describe('pptxMediaDataParser — media type detection', () => {
 			mediaMimeType: 'audio/wav',
 			isLinked: false,
 		});
+		// rIdMov points at an INTERNAL media part, so despite using r:link the
+		// clip is embedded, not linked (issue #79).
 		const quickTime = parser.parseMediaData(
 			{ 'a:quickTimeFile': { '@_r:link': 'rIdMov' } },
 			slidePath,
@@ -108,7 +111,7 @@ describe('pptxMediaDataParser — media type detection', () => {
 			mediaType: 'video',
 			mediaReferenceKind: 'quickTimeFile',
 			mediaMimeType: 'video/quicktime',
-			isLinked: true,
+			isLinked: false,
 		});
 		const audioCd = parser.parseMediaData(
 			{
@@ -122,6 +125,17 @@ describe('pptxMediaDataParser — media type detection', () => {
 			audioCdStart: { track: 1, time: 0 },
 			audioCdEnd: { track: 3, time: 0 },
 		});
+	});
+
+	it('marks r:link media as linked only when the relationship is external', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = makeSlideRelsMap(slidePath, {
+			rIdExt: 'https://example.com/clip.mp4',
+		});
+		const externalRelsMap = new Map([[slidePath, new Set(['rIdExt'])]]);
+		const parser = new PptxMediaDataParser(makeContext({ slideRelsMap, externalRelsMap }));
+		const linked = parser.parseMediaData({ 'a:videoFile': { '@_r:link': 'rIdExt' } }, slidePath);
+		expect(linked).toMatchObject({ mediaType: 'video', isLinked: true });
 	});
 
 	it('returns unknown when neither video nor audio is present', () => {

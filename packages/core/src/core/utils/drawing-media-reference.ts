@@ -27,6 +27,7 @@ export interface ParsedDrawingMediaReference {
 
 export function parseDrawingMediaReference(
 	container: XmlObject | undefined,
+	externalRelIds?: ReadonlySet<string>,
 ): ParsedDrawingMediaReference | undefined {
 	if (!container) {
 		return undefined;
@@ -36,12 +37,17 @@ export function parseDrawingMediaReference(
 		if (!node) {
 			continue;
 		}
+		const linkId = String(attribute(node, 'link') ?? '').trim() || undefined;
+		const embedId = String(attribute(node, 'embed') ?? '').trim() || undefined;
 		return {
 			kind,
 			mediaType: kind === 'videoFile' || kind === 'quickTimeFile' ? 'video' : 'audio',
-			relationshipId:
-				String(attribute(node, 'link') ?? attribute(node, 'embed') ?? '').trim() || undefined,
-			isLinked: attribute(node, 'link') !== undefined,
+			relationshipId: linkId ?? embedId,
+			// Embedded media legitimately uses r:link pointing at an INTERNAL
+			// media part, so link presence alone does not imply a linked clip.
+			// It is only truly linked when the referenced relationship is
+			// external (TargetMode="External"), mirroring the OLE parser.
+			isLinked: linkId !== undefined && externalRelIds?.has(linkId) === true,
 			name:
 				kind === 'wavAudioFile' ? String(attribute(node, 'name') ?? '') || undefined : undefined,
 			contentType:
