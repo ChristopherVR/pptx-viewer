@@ -33,6 +33,7 @@ import {
 	ASSET_ELEMENT_FIELDS,
 	getAssetsMap,
 	isAssetRefKey,
+	isAssetVersionKey,
 	readAssetFields,
 	writeAssetFields,
 } from './collaboration-assets';
@@ -304,8 +305,9 @@ export function readElementFromYMap(ymap: YMapLike, assets: YMapLike): PptxEleme
 			if (isYTextLike(value)) {
 				element.textSegments = decodeTextBody(value);
 			}
-		} else if (isAssetRefKey(key)) {
-			// handled by readAssetFields below; not a literal PptxElement field
+		} else if (isAssetRefKey(key) || isAssetVersionKey(key)) {
+			// Ref pointers are resolved by readAssetFields below; version
+			// counters are an internal sync token, never a PptxElement field.
 		} else if (REV_COMPLEX_ELEMENT[key]) {
 			try {
 				element[REV_COMPLEX_ELEMENT[key]] = JSON.parse(value as string);

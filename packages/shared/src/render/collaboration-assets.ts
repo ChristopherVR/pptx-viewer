@@ -43,6 +43,30 @@ const REV_ASSET_REF_KEYS: Readonly<Record<string, string>> = Object.fromEntries(
 	Object.entries(ASSET_REF_KEYS).map(([field, ref]) => [ref, field]),
 );
 
+/**
+ * Suffix for the per-field version counter stored on an element's own Y.Map
+ * (e.g. `mediaData__v`). Replacing the binary on an EXISTING element only
+ * mutates the separate `pptx:assets` map and leaves the element's ref value
+ * unchanged, so the `pptx:slides` deep observer would never fire and peers
+ * would keep the stale binary. Bumping this counter in the same transaction
+ * touches the element map, so the observer fires and readSlidesFromYDoc
+ * re-resolves the asset. It is an internal sync token, not a PptxElement
+ * field, so the read path skips it (see isAssetVersionKey).
+ */
+const ASSET_VERSION_SUFFIX = '__v';
+
+export function assetVersionKey(fieldName: string): string {
+	return `${fieldName}${ASSET_VERSION_SUFFIX}`;
+}
+
+/** True when `key` is one of the internal per-field asset version counters. */
+export function isAssetVersionKey(key: string): boolean {
+	if (!key.endsWith(ASSET_VERSION_SUFFIX)) {
+		return false;
+	}
+	return ASSET_ELEMENT_FIELDS.has(key.slice(0, -ASSET_VERSION_SUFFIX.length));
+}
+
 export function assetKey(elementId: string, fieldName: string): string {
 	return `${elementId}:${fieldName}`;
 }
@@ -101,6 +125,13 @@ export function reconcileAssetFields(
 			const key = assetKey(elementId, field);
 			if (assets.get(key) !== value) {
 				assets.set(key, value);
+				// The payload changed for an existing element. When the ref key is
+				// unchanged (an in-place binary swap) nothing on the element map
+				// would move, so bump a version counter to force a pptx:slides
+				// transaction; without it, no peer re-reads the new binary.
+				const vKey = assetVersionKey(field);
+				const currentVersion = ymap.get(vKey);
+				ymap.set(vKey, (typeof currentVersion === 'number' ? currentVersion : 0) + 1);
 			}
 			if (ymap.get(refKey) !== key) {
 				ymap.set(refKey, key);

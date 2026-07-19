@@ -3,14 +3,21 @@ import { ELEMENT_FIELD_KIND, SLIDE_FIELD_KIND } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 
-import { ASSET_ELEMENT_FIELDS, getAssetsMap } from './collaboration-assets';
-import { reconcileElementYMap } from './collaboration-reconcile';
+import {
+	ASSET_ELEMENT_FIELDS,
+	assetVersionKey,
+	getAssetsMap,
+	isAssetVersionKey,
+} from './collaboration-assets';
+import { reconcileElementYMap, reconcileSlidesInYDoc } from './collaboration-reconcile';
 import type { YDocLike, YjsFactories, YMapLike } from './collaboration-sync';
 import {
 	COMPLEX_ELEMENT_FIELDS,
 	COMPLEX_SLIDE_FIELDS,
+	observeYDocSlides,
 	readElementFromYMap,
 	readSlideFromYMap,
+	readSlidesFromYDoc,
 	SCALAR_ELEMENT_KEYS,
 	SCALAR_SLIDE_KEYS,
 	writeElementToYMap,
@@ -309,6 +316,80 @@ describe('collaboration-sync: element field coverage', () => {
 		);
 		expect(assets.get('vid_1:mediaData')).toBeUndefined();
 		expect((holder.get(0) as Y.Map<unknown>).get('_mdRef')).toBeUndefined();
+	});
+});
+
+describe('collaboration-sync: in-place asset swap propagation', () => {
+	function mediaSlide(mediaData: string): PptxSlide {
+		return {
+			id: 's1',
+			slideNumber: 1,
+			elements: [
+				{
+					type: 'media',
+					id: 'vid_1',
+					x: 0,
+					y: 0,
+					width: 640,
+					height: 360,
+					mediaType: 'video',
+					mediaData,
+				} as PptxElement,
+			],
+		} as PptxSlide;
+	}
+
+	it('fires the pptx:slides observer and re-resolves the binary when an existing element swaps its payload', () => {
+		const doc = new Y.Doc();
+		reconcileSlidesInYDoc([mediaSlide('data:video/mp4;base64,AAA')], asDoc(doc), factories);
+
+		let observerFired = 0;
+		const unobserve = observeYDocSlides(asDoc(doc), () => {
+			observerFired++;
+		});
+
+		// Swap the binary on the SAME element id (an in-place media replacement).
+		reconcileSlidesInYDoc([mediaSlide('data:video/mp4;base64,ZZZ')], asDoc(doc), factories);
+		unobserve();
+
+		// The slides observer must have fired so peers re-read.
+		expect(observerFired).toBeGreaterThan(0);
+
+		// A fresh read resolves the NEW binary from the assets map.
+		const [slide] = readSlidesFromYDoc(asDoc(doc));
+		const el = slide.elements[0] as unknown as Record<string, unknown>;
+		expect(el.mediaData).toBe('data:video/mp4;base64,ZZZ');
+		// The internal version token never leaks onto the element.
+		expect(el.mediaData__v).toBeUndefined();
+	});
+
+	it('bumps the per-field version counter on the element map when the payload changes', () => {
+		const doc = new Y.Doc();
+		reconcileSlidesInYDoc([mediaSlide('data:video/mp4;base64,AAA')], asDoc(doc), factories);
+		const arr = doc.getArray('pptx:slides');
+		const elemMap = (arr.get(0) as Y.Map<unknown>).get('elements') as Y.Array<Y.Map<unknown>>;
+		const vKey = assetVersionKey('mediaData');
+		const before = elemMap.get(0).get(vKey);
+
+		reconcileSlidesInYDoc([mediaSlide('data:video/mp4;base64,ZZZ')], asDoc(doc), factories);
+		const after = elemMap.get(0).get(vKey);
+
+		expect(after).not.toBe(before);
+		expect(after).toBeTypeOf('number');
+		expect(isAssetVersionKey(vKey)).toBeTruthy();
+	});
+
+	it('does NOT bump the version counter when the payload is unchanged', () => {
+		const doc = new Y.Doc();
+		reconcileSlidesInYDoc([mediaSlide('data:video/mp4;base64,AAA')], asDoc(doc), factories);
+		const arr = doc.getArray('pptx:slides');
+		const elemMap = (arr.get(0) as Y.Map<unknown>).get('elements') as Y.Array<Y.Map<unknown>>;
+		const vKey = assetVersionKey('mediaData');
+		const before = elemMap.get(0).get(vKey);
+
+		// Re-reconcile the identical deck: no payload change, no version bump.
+		reconcileSlidesInYDoc([mediaSlide('data:video/mp4;base64,AAA')], asDoc(doc), factories);
+		expect(elemMap.get(0).get(vKey)).toBe(before);
 	});
 });
 
