@@ -59,6 +59,9 @@ describe('useThemeHandlersInput contract', () => {
 			history: {
 				markDirty: vi.fn<() => void>(),
 			} as unknown as UseThemeHandlersInput['history'],
+			setSlides: vi.fn<() => void>(),
+			theme: undefined,
+			bumpHistory: vi.fn<() => void>(),
 		};
 
 		expect(input.handlerRef.current).toBeNull();

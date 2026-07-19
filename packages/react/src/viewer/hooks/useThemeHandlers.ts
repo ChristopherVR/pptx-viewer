@@ -1,4 +1,7 @@
+import { buildThemeColorMap, reResolveSlideColors } from 'pptx-viewer-core';
 import type {
+	PptxSlide,
+	PptxTheme,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemeOption,
@@ -21,6 +24,15 @@ export interface UseThemeHandlersInput {
 	setSlideMasters: React.Dispatch<React.SetStateAction<Array<Record<string, unknown>>>>;
 	slideMasters: Array<Record<string, unknown>>;
 	history: EditorHistoryResult;
+	/** Current live slides, re-coloured in place on a scheme-colour change. */
+	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
+	/** Current theme, used to derive the previous colour map for re-resolution. */
+	theme: PptxTheme | undefined;
+	/**
+	 * Force the history stack to capture the next slides change so an in-place
+	 * theme re-colour lands as a single undoable entry (mirrors the AI path).
+	 */
+	bumpHistory: () => void;
 }
 
 export interface ThemeHandlersResult {
@@ -55,6 +67,9 @@ export function useThemeHandlers(input: UseThemeHandlersInput): ThemeHandlersRes
 		setSlideMasters,
 		slideMasters,
 		history,
+		setSlides,
+		theme,
+		bumpHistory,
 	} = input;
 
 	const refreshContentAfterThemeChange = async () => {
@@ -88,9 +103,22 @@ export function useThemeHandlers(input: UseThemeHandlersInput): ThemeHandlersRes
 		if (!handler) {
 			return;
 		}
+		// Update the theme in the underlying archive + colour map so a later save
+		// (and any future parse) carries the new scheme.
 		await handler.updateThemeColorScheme(colorScheme);
+		// Re-colour the live slides IN PLACE rather than serialising the whole
+		// deck and feeding it back through the load pipeline. The old round-trip
+		// (`serialize -> setContent -> full re-parse`) is a heavy main-thread
+		// operation that also reset history/selection; driven by the AI mid-stream
+		// or by the theme editor's colour picker (which fires continuously while
+		// dragging) it stampeded into a multi-second renderer freeze. A direct
+		// scheme-colour remap is cheap, keeps selection + history intact, and lands
+		// as a single undoable entry.
+		const previousMap = theme?.colorScheme ? buildThemeColorMap(theme.colorScheme) : {};
+		setSlides((prev) => reResolveSlideColors(prev, previousMap, colorScheme));
 		setTheme((prev) => (prev ? { ...prev, colorScheme } : { colorScheme }));
-		await refreshContentAfterThemeChange();
+		bumpHistory();
+		history.markDirty();
 	};
 
 	const handleUpdateThemeFontScheme = async (fontScheme: PptxThemeFontScheme) => {
