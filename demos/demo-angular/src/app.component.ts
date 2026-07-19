@@ -15,11 +15,14 @@ import {
 	themeToCssVars,
 	translationsEn,
 } from 'pptx-angular-viewer';
-import type { CollaborationConfig, ViewerTheme } from 'pptx-angular-viewer';
+import type { CollaborationConfig, PptxAiConfig, ViewerTheme } from 'pptx-angular-viewer';
 import { PptxHandler } from 'pptx-viewer-core';
 import 'pptx-angular-viewer/styles';
 import { translationsDe, translationsEs, translationsFr } from 'pptx-viewer-locales';
 
+import { buildDemoAiConfig, readStoredAiFields, writeStoredAiFields } from './ai-config';
+import type { DemoAiFields } from './ai-config';
+import { AiConfigFormComponent } from './ai-config-form.component';
 import {
 	ensureAutoRoomId,
 	generateAutoName,
@@ -44,7 +47,7 @@ type DemoContent = Uint8Array | ArrayBuffer;
 	selector: 'app-root',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [PowerPointViewerComponent, DropzoneComponent],
+	imports: [PowerPointViewerComponent, DropzoneComponent, AiConfigFormComponent],
 	styles: [
 		`
 			:host {
@@ -77,6 +80,7 @@ type DemoContent = Uint8Array | ArrayBuffer;
 					[authorName]="autoName"
 					[shareDefaults]="{ roomId: autoRoomId, userName: autoName, serverUrl: defaultServerUrl }"
 					[collaboration]="collaborationConfig() ?? undefined"
+					[ai]="aiConfig() ?? undefined"
 					(startCollaboration)="handleStartCollaboration($event)"
 					(stopCollaboration)="handleStopCollaboration()"
 					(dirtyChange)="onDirtyChange($event)"
@@ -90,6 +94,11 @@ type DemoContent = Uint8Array | ArrayBuffer;
 				[busy]="isBusy()"
 				(file)="loadFile($event)"
 				(create)="newPresentation()"
+			/>
+			<app-ai-config-form
+				[fields]="aiFields()"
+				[enabled]="!!aiConfig()"
+				(change)="onAiFieldChange($event)"
 			/>
 		}
 	`,
@@ -124,6 +133,11 @@ export class AppComponent {
 	readonly defaultServerUrl = resolveDefaultServerUrl();
 
 	readonly collaborationConfig = signal<CollaborationConfig | null>(null);
+
+	/** Demo AI provider fields (base URL / API key / model), persisted locally. */
+	readonly aiFields = signal<DemoAiFields>(readStoredAiFields());
+	/** The viewer `ai` config built from {@link aiFields}, or null when incomplete. */
+	readonly aiConfig = computed<PptxAiConfig | undefined>(() => buildDemoAiConfig(this.aiFields()));
 
 	readonly activeTheme = computed<ViewerTheme>(
 		() => (THEMES[this.themeKey()] ?? THEMES['vermilionDark']).theme,
@@ -177,6 +191,13 @@ export class AppComponent {
 				document.title = `${prefix} ${this.fileName()} - PPTX Viewer`;
 			}
 		});
+	}
+
+	/** Update one demo AI field, persist it, and let {@link aiConfig} recompute. */
+	onAiFieldChange(event: { key: keyof DemoAiFields; value: string }): void {
+		const next: DemoAiFields = { ...this.aiFields(), [event.key]: event.value };
+		this.aiFields.set(next);
+		writeStoredAiFields(next);
 	}
 
 	onDirtyChange(dirty: boolean): void {
