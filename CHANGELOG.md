@@ -6,6 +6,16 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-19
 
+_Releases: pptx-viewer-core@1.6.8, pptx-react-viewer@1.25.3, pptx-vue-viewer@1.24.3, pptx-angular-viewer@1.31.3, pptx-vanilla-viewer@0.17.3, pptx-svelte-viewer@1.16.0_
+
+### Bug Fixes
+
+- **core:** Themed background text, colour and geometry fidelity (by @ChristopherVR) ([a8fc2be](https://github.com/ChristopherVR/pptx-viewer/commit/a8fc2bea2407f70bc3df4008be5c152d107cc3eb))
+- **shared:** Render freeform fills via clip-path and correct flip/rotate order (by @ChristopherVR) ([7122f43](https://github.com/ChristopherVR/pptx-viewer/commit/7122f43c7ff9bae5bf0278d2753a6209bc1821af))
+- **react:** Paint freeform fills only via the vector path and rotate-first (by @ChristopherVR) ([e95c6ab](https://github.com/ChristopherVR/pptx-viewer/commit/e95c6ab0764fd53ef1b177c7c151942154439c62))
+
+## 2026-07-19
+
 _Releases: pptx-viewer-core@1.6.7, pptx-react-viewer@1.25.2, pptx-vue-viewer@1.24.2, pptx-angular-viewer@1.31.2, pptx-vanilla-viewer@0.17.2, pptx-svelte-viewer@1.15.0_
 
 ### Bug Fixes
