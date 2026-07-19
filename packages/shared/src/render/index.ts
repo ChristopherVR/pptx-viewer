@@ -338,6 +338,9 @@ export * from './collaboration-presence';
 // layer (writes the same nested `presence` awareness field they all read).
 export * from './collaboration-presence-publisher';
 export * from './collaboration-sync';
+// One-way broadcast auto-follow policy (only a local `viewer` follows the
+// session `owner`), shared by every binding so the rule cannot drift.
+export * from './collaboration-broadcast-follow';
 // Granular local -> Y.Doc reconciliation (per-slide/element/field diffing,
 // origin-tagged transactions). Prefer over writeSlidesToYDoc for live editing.
 export * from './collaboration-reconcile';
