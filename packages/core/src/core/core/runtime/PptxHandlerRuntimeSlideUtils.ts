@@ -22,9 +22,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						: `ppt/${stripParentDirSegments(target)}`;
 
 				try {
-					const layoutXmlStr = await this.zip.file(layoutPath)?.async('string');
-					if (layoutXmlStr) {
-						const layoutXmlObj = this.parser.parse(layoutXmlStr);
+					const layoutXmlObj = await this.resolveCachedLayoutXml(layoutPath);
+					if (layoutXmlObj) {
 						const layoutGrad = this.extractBackgroundGradient(layoutXmlObj, 'p:sldLayout');
 						if (layoutGrad) {
 							return layoutGrad;
@@ -61,9 +60,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						: `ppt/${stripParentDirSegments(target)}`;
 
 				try {
-					const masterXmlStr = await this.zip.file(masterPath)?.async('string');
-					if (masterXmlStr) {
-						const masterXmlObj = this.parser.parse(masterXmlStr);
+					const masterXmlObj = await this.resolveCachedMasterXml(masterPath);
+					if (masterXmlObj) {
 						return this.extractBackgroundGradient(masterXmlObj, 'p:sldMaster');
 					}
 				} catch {

@@ -334,9 +334,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						element.id = `master-${element.id}`;
 						elements.push(element);
 					}
+				} else if (entry.tag === 'p:grpSp') {
+					// Master background artwork is frequently wrapped in a
+					// top-level group; parse it like slide groups so themed
+					// backgrounds drawn on the master render on slides.
+					const groups = this.ensureArray(spTree['p:grpSp']);
+					const group = groups[entry.indexInType] as XmlObject | undefined;
+					if (!group) {
+						continue;
+					}
+					const element = await this.parseGroupShapeAsGroup(
+						group,
+						`master-group-${masterToken}-${entry.indexInType}`,
+						masterPath,
+					);
+					if (element) {
+						element.id = `master-${element.id}`;
+						elements.push(element);
+					}
 				}
-				// Other element types (p:grpSp, p:contentPart) are
-				// uncommon in masters but could be added here if needed.
+				// Other element types (p:contentPart) are uncommon in masters
+				// but could be added here if needed.
 			}
 
 			this.masterCache.set(masterPath, elements);

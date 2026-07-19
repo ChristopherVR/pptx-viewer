@@ -14,8 +14,6 @@ The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www
 
 <samp>**[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-angular/)** · **[📦 npm](https://www.npmjs.com/package/pptx-angular-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[🧩 Core SDK](https://www.npmjs.com/package/pptx-viewer-core)**</samp>
 
-> **[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-angular/)**: open a `.pptx` and render it in your browser, no install required.
-
 ## Features
 
 - **Standalone component**: `<pptx-viewer>`, no NgModule needed.
@@ -48,7 +46,18 @@ The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www
 npm install pptx-angular-viewer
 ```
 
-**Peer requirements:** Angular 22+ (`@angular/core`, `@angular/common`) and `rxjs`.
+**Peer requirements:** Angular 22+ (`@angular/core`, `@angular/common`), `rxjs`,
+and `@ngx-translate/core` (all UI labels go through it, see
+[Localization](#localization-i18n)):
+
+```bash
+npm install @angular/core @angular/common rxjs @ngx-translate/core
+```
+
+**Optional peers:** `three` enables interactive GLB/GLTF 3D models and the
+`smartArt3D` renderer; `yjs` + `y-websocket` (or `y-webrtc` for serverless
+peer-to-peer) enable real-time collaboration. Without them those features
+degrade gracefully (poster images, no live session).
 
 ## Usage
 
@@ -205,26 +214,43 @@ and `LoadContentService` are the two nearly everything depends on).
 
 ### Inputs
 
-| Input           | Type                                | Default | Description                                                                                                            |
-| --------------- | ----------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `content`       | `Uint8Array \| ArrayBuffer \| null` | `null`  | The `.pptx` bytes to render.                                                                                           |
-| `theme`         | `ViewerTheme`                       | n/a     | Color/radius overrides applied as CSS custom properties.                                                               |
-| `class`         | `string`                            | `''`    | Class applied to the root element.                                                                                     |
-| `canEdit`       | `boolean`                           | `false` | Enables the editor toolbar, inspector, and drag-and-drop editing.                                                      |
-| `collaboration` | `CollaborationConfig`               | n/a     | Yjs real-time collaboration config (server URL, room, role).                                                           |
-| `hiddenActions` | `ToolbarActionId[]`                 | `[]`    | Toolbar buttons/ribbon tabs to hide individually (e.g. `['share', 'broadcast']`), instead of hiding the whole toolbar. |
+| Input              | Type                                 | Default | Description                                                                                                            |
+| ------------------ | ------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `content`          | `Uint8Array \| ArrayBuffer \| null`  | `null`  | The `.pptx` bytes to render.                                                                                           |
+| `theme`            | `ViewerTheme`                        | n/a     | Color/radius overrides applied as CSS custom properties. Always wins over the File > Options theme picker.             |
+| `class`            | `string`                             | `''`    | Class applied to the root element.                                                                                     |
+| `canEdit`          | `boolean`                            | `false` | Enables the editor toolbar, inspector, and drag-and-drop editing.                                                      |
+| `filePath`         | `string`                             | n/a     | Host file path/identifier keying the version-history store.                                                            |
+| `fileName`         | `string`                             | n/a     | Display name of the open document, shown in the title bar.                                                             |
+| `fonts`            | `ViewerFontSource[]`                 | `[]`    | Licensed font sources supplied by the host application.                                                                |
+| `authorName`       | `string`                             | n/a     | Display name for the local user in collaboration/broadcast sessions and presence avatars.                              |
+| `collaboration`    | `CollaborationConfig`                | n/a     | Yjs real-time collaboration config (server URL, room, role).                                                           |
+| `shareDefaults`    | `{ roomId?, userName?, serverUrl? }` | n/a     | Seed values for the Share dialog's start form.                                                                         |
+| `onOpenFile`       | `() => void`                         | n/a     | Host override for File > Open; bypasses the built-in file picker.                                                      |
+| `smartArt3D`       | `boolean`                            | `false` | Opt-in Three.js 3D SmartArt renderer (needs the optional `three` peer; falls back to SVG without it).                  |
+| `hiddenActions`    | `ToolbarActionId[]`                  | `[]`    | Toolbar buttons/ribbon tabs to hide individually (e.g. `['share', 'broadcast']`), instead of hiding the whole toolbar. |
+| `defaultThemeKey`  | `string`                             | n/a     | Initial File > Options > Appearance selection when no persisted preference exists.                                     |
+| `availableThemes`  | `ThemeCatalogEntry[]`                | n/a     | Theme choices offered by File > Options > Appearance (defaults to the built-in catalog).                               |
+| `onThemeChange`    | `(key: string) => void`              | n/a     | Host hook for the appearance picker; when set, the host owns persisting the choice.                                    |
+| `defaultLocale`    | `string`                             | n/a     | Initial locale code when no persisted preference exists.                                                               |
+| `availableLocales` | `LocaleCatalogEntry[]`               | n/a     | Locale choices offered by File > Options > Language (defaults to the registered `TranslateService` languages).         |
+| `onLocaleChange`   | `(code: string) => void`             | n/a     | Host hook for the language picker; when set, the host owns applying/persisting the switch.                             |
+| `accountAuth`      | `AccountAuthConfig`                  | n/a     | Optional sign-in hook point for File > Account (disabled unless `enabled: true`).                                      |
 
 ### Outputs
 
-| Output              | Payload      | Description                                                          |
-| ------------------- | ------------ | -------------------------------------------------------------------- |
-| `activeSlideChange` | `number`     | Emits the active slide index on navigation.                          |
-| `dirtyChange`       | `boolean`    | Emits `true`/`false` when the dirty state changes.                   |
-| `contentChange`     | `Uint8Array` | Emits updated bytes after any editing change.                        |
-| `modeChange`        | `string`     | Emits the new mode (`'preview'`, `'edit'`, `'present'`, `'master'`). |
-| `zoomChange`        | `number`     | Emits the new zoom level (1 = 100%).                                 |
-| `selectionChange`   | `string[]`   | Emits the selected element IDs when selection changes.               |
-| `slideCountChange`  | `number`     | Emits the total slide count when slides change.                      |
+| Output               | Payload                       | Description                                                          |
+| -------------------- | ----------------------------- | -------------------------------------------------------------------- |
+| `activeSlideChange`  | `number`                      | Emits the active slide index on navigation.                          |
+| `dirtyChange`        | `boolean`                     | Emits `true`/`false` when the dirty state changes.                   |
+| `contentChange`      | `Uint8Array`                  | Emits updated bytes after any editing change.                        |
+| `modeChange`         | `string`                      | Emits the new mode (`'preview'`, `'edit'`, `'present'`, `'master'`). |
+| `zoomChange`         | `number`                      | Emits the new zoom level (1 = 100%).                                 |
+| `selectionChange`    | `string[]`                    | Emits the selected element IDs when selection changes.               |
+| `slideCountChange`   | `number`                      | Emits the total slide count when slides change.                      |
+| `propertiesChange`   | `Partial<PptxCoreProperties>` | Emits when the user edits document properties in the Info dialog.    |
+| `startCollaboration` | `CollaborationConfig`         | Emits when a collaboration/broadcast session starts.                 |
+| `stopCollaboration`  | `void`                        | Emits when the collaboration/broadcast session stops.                |
 
 ### Methods
 
@@ -251,6 +277,15 @@ and `LoadContentService` are the two nearly everything depends on).
 | `getSelectedElementIds()` | `string[]`            | Get IDs of currently selected elements.        |
 | `selectElements(ids)`     | `void`                | Programmatically select elements by ID.        |
 | `clearSelection()`        | `void`                | Clear the current selection.                   |
+
+The component implements the full shared `PowerPointViewerAPI`, so the
+following slide/element manipulation methods are also available:
+`setActiveSlideIndex(index)`, `getSlides()`, `getSlide(index)`,
+`getActiveSlide()`, `addSlide(afterIndex?)`, `deleteSlides(indexes)`,
+`duplicateSlides(indexes)`, `moveSlide(from, to)`, `toggleHideSlides(indexes)`,
+`getElements(slideIndex?)`, `getElementById(id, slideIndex?)`,
+`updateElement(id, patch)`, `deleteElements(ids)`, and
+`duplicateElement(id)`.
 
 ### Exported components & helpers
 

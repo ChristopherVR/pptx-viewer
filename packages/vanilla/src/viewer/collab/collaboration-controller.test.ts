@@ -184,6 +184,63 @@ describe('createCollaborationController', () => {
 		collab.stop();
 	});
 
+	it('adopts the doc slides over a late-finishing content load (no placeholder write)', async () => {
+		const collab = build();
+		await collab.start({ ...webrtcConfig, role: 'collaborator' });
+		capturedSynced?.(); // gate opens (seed flush of the empty deck)
+		reconcileSlidesInYDoc.mockClear();
+
+		// The room's real slides already live in the doc (synced on join).
+		readSlidesFromYDoc.mockReturnValue([slide('room-1')]);
+
+		// The bootstrap load finishes parsing afterwards and commits its deck.
+		collab.beginContentLoad();
+		store.set({ slides: [slide('placeholder')] });
+		// Ordering guarantee: the placeholder must not reach the doc before the
+		// adoption check runs.
+		expect(reconcileSlidesInYDoc).not.toHaveBeenCalled();
+
+		collab.notifyContentLoaded();
+		// The room content wins over the placeholder deck...
+		expect(store.get().slides).toStrictEqual([slide('room-1')]);
+		// ...and the placeholder deck is never written into the doc.
+		expect(reconcileSlidesInYDoc).not.toHaveBeenCalled();
+		collab.stop();
+	});
+
+	it('publishes the loaded deck after a content load into an empty room (seeder)', async () => {
+		const collab = build();
+		await collab.start({ ...webrtcConfig, role: 'collaborator' });
+		capturedSynced?.(); // gate opens
+		reconcileSlidesInYDoc.mockClear();
+
+		collab.beginContentLoad();
+		store.set({ slides: [slide('loaded')] });
+		expect(reconcileSlidesInYDoc).not.toHaveBeenCalled();
+
+		// Empty doc: this client is the seeder; the suppressed publish runs now.
+		collab.notifyContentLoaded();
+		expect(reconcileSlidesInYDoc).toHaveBeenCalledOnce();
+		expect(reconcileSlidesInYDoc.mock.calls[0][0]).toStrictEqual([slide('loaded')]);
+		collab.stop();
+	});
+
+	it('defers the seeder publish to the sync gate when it has not opened yet', async () => {
+		const collab = build();
+		await collab.start({ ...webrtcConfig, role: 'collaborator' });
+
+		collab.beginContentLoad();
+		store.set({ slides: [slide('loaded')] });
+		collab.notifyContentLoaded();
+		// Gate still closed: nothing may be written yet.
+		expect(reconcileSlidesInYDoc).not.toHaveBeenCalled();
+
+		capturedSynced?.(); // gate opens -> deferred first write
+		expect(reconcileSlidesInYDoc).toHaveBeenCalledOnce();
+		expect(reconcileSlidesInYDoc.mock.calls[0][0]).toStrictEqual([slide('loaded')]);
+		collab.stop();
+	});
+
 	it('fails fast on an invalid room id', async () => {
 		const statuses: string[] = [];
 		const collab = createCollaborationController({

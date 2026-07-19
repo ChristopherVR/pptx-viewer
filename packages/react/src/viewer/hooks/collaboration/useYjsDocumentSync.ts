@@ -49,6 +49,14 @@ export interface UseYjsDocumentSyncInput {
 	 * when role === 'owner' and onWriteBack is set.
 	 */
 	getSourceBytes?: () => Uint8Array | null;
+	/**
+	 * Monotonic counter bumped each time the content-load pipeline finishes
+	 * applying a parsed deck to viewer state. A local load that lands while the
+	 * shared doc already holds slides (a late joiner's bootstrap deck parsing
+	 * after the room state arrived) would silently clobber the synced slides;
+	 * each bump re-adopts the doc's slides when the room has content.
+	 */
+	loadVersion?: number;
 }
 
 export function useYjsDocumentSync({
@@ -60,12 +68,14 @@ export function useYjsDocumentSync({
 	isSynced = true,
 	config,
 	getSourceBytes,
+	loadVersion = 0,
 }: UseYjsDocumentSyncInput): void {
 	const isApplyingRemoteRef = useRef(false);
 	const lastSyncedRef = useRef('');
 	const hasInitializedRef = useRef(false);
 	const writeBackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const factoriesRef = useRef<YjsFactories | null>(null);
+	const lastLoadVersionRef = useRef(loadVersion);
 
 	// Lazily build the factories once we have a live Yjs import.
 	const getFactories = useCallback(async (): Promise<YjsFactories> => {
@@ -117,6 +127,38 @@ export function useYjsDocumentSync({
 			}
 		}, debounceMs);
 	}, [doc, config, getSourceBytes, templateElementsBySlideId]);
+
+	// Re-adopt the shared doc after a local content load. The load pipeline
+	// applies its parsed slides unconditionally, so when a load finishes AFTER
+	// the room's slides were already applied (a late joiner's bootstrap deck
+	// parses slower than the doc sync), the synced state would be silently
+	// clobbered and, with the doc unchanged, never re-applied. On each load
+	// bump: if the room already has slides, they win; an empty room means this
+	// client is the seeder and the loaded deck stands.
+	useEffect(() => {
+		if (loadVersion === lastLoadVersionRef.current) {
+			return;
+		}
+		lastLoadVersionRef.current = loadVersion;
+		if (!doc || !isConnected) {
+			return;
+		}
+		const docSlides = readSlidesFromYDoc(
+			doc as unknown as Parameters<typeof readSlidesFromYDoc>[0],
+		);
+		if (docSlides.length === 0) {
+			return;
+		}
+		// Unconditional re-apply: the freshly loaded slides differ from the doc
+		// even when the doc matches what we last synced, so the usual JSON dedupe
+		// must not skip this application.
+		lastSyncedRef.current = JSON.stringify(docSlides);
+		isApplyingRemoteRef.current = true;
+		setSlides(docSlides);
+		requestAnimationFrame(() => {
+			isApplyingRemoteRef.current = false;
+		});
+	}, [loadVersion, doc, isConnected, setSlides]);
 
 	// Sync local slide changes -> Y.Doc. Gated on isSynced: until the provider
 	// confirms its initial sync (or the grace period lifts the gate), local

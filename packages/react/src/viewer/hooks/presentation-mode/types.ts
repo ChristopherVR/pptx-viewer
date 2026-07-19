@@ -56,6 +56,13 @@ export interface UsePresentationModeInput {
 	showWithAnimation?: boolean;
 	/** Whether to use rehearsed auto-advance timings (false = manual advance only). */
 	useTimings?: boolean;
+	/**
+	 * Options > Advanced > "End with black slide". When true (PowerPoint's
+	 * default), advancing past the last slide shows a black end-of-show
+	 * screen; the next advance (or a click on it) exits. When false,
+	 * advancing past the last slide exits the show directly.
+	 */
+	endWithBlackSlide?: boolean;
 }
 
 export interface UsePresentationModeResult {
@@ -71,6 +78,8 @@ export interface UsePresentationModeResult {
 	presentationKeyframesCss: string;
 	clearPresentationTimers: () => void;
 	runPresentationEntranceAnimations: (slideIndex: number) => void;
+	/** True while the black "End of slide show" screen is displayed. */
+	endOfShowVisible: boolean;
 	movePresentationSlide: (direction: 1 | -1) => void;
 	navigateToSlide: (slideIndex: number) => void;
 	handlePresentationAction: (action: PptxAction) => void;

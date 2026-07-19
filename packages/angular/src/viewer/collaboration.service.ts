@@ -376,6 +376,34 @@ export class CollaborationService {
 		this.lastSynced = JSON.stringify(slides);
 	}
 
+	/**
+	 * Re-adopt the shared document's slides after a local content load has been
+	 * committed to viewer state. The load pipeline applies its parsed deck
+	 * unconditionally, so a load that finishes AFTER the room's slides were
+	 * already applied (a late joiner's bootstrap deck parsing slower than the
+	 * doc sync) silently clobbers the synced state and, with the doc itself
+	 * unchanged, the remote observer never re-fires. When the room already has
+	 * slides they win: the doc content is re-applied through `onRemoteSlides`
+	 * and recorded as the sync baseline (bypassing the usual JSON dedupe) so
+	 * the follow-up local broadcast of the adopted deck is a no-op. An empty
+	 * room means this client is the seeder and the loaded deck stands, written
+	 * by the normal gated broadcast path. Returns true when the doc was adopted.
+	 */
+	adoptDocSlidesAfterLoad(): boolean {
+		if (!this.ydoc || !this.connected()) {
+			return false;
+		}
+		const docSlides = readSlidesFromYDoc(this.ydoc);
+		if (docSlides.length === 0) {
+			return false;
+		}
+		this.lastSynced = JSON.stringify(docSlides);
+		this.applyingRemote = true;
+		this.onRemoteSlides?.(docSlides);
+		this.applyingRemote = false;
+		return true;
+	}
+
 	broadcastSlides(slides: readonly PptxSlide[]): void {
 		if (!this.ydoc || !this.yFactories || this.applyingRemote || slides.length === 0) {
 			return;

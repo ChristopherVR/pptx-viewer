@@ -65,15 +65,76 @@ function extractSourceOrders(xml: string): string[][] {
 	return orders;
 }
 
-/** Attach source command order to parsed custom-geometry path objects. */
+function ensureArrayLocal(value: unknown): unknown[] {
+	return Array.isArray(value) ? value : value === undefined ? [] : [value];
+}
+
+function countsSignature(counts: Map<string, number>): string {
+	return [...counts.entries()]
+		.sort((a, b) => (a[0] < b[0] ? -1 : 1))
+		.map(([name, count]) => `${name}:${count}`)
+		.join(',');
+}
+
+/** Command multiset of a parsed `<a:path>` object (order-independent). */
+function pathSignature(path: XmlObject): string {
+	const counts = new Map<string, number>();
+	for (const key of Object.keys(path)) {
+		const name = localName(key);
+		if (!PATH_COMMANDS.has(name)) {
+			continue;
+		}
+		counts.set(name, (counts.get(name) ?? 0) + ensureArrayLocal(path[key]).length);
+	}
+	return countsSignature(counts);
+}
+
+/** Command multiset of a source-order command list. */
+function orderSignature(order: string[]): string {
+	const counts = new Map<string, number>();
+	for (const name of order) {
+		counts.set(name, (counts.get(name) ?? 0) + 1);
+	}
+	return countsSignature(counts);
+}
+
+/**
+ * Attach source command order to parsed custom-geometry path objects.
+ *
+ * fast-xml-parser groups a path's child commands by type, discarding the
+ * interleaved document order, and it also groups a group-shape's children by
+ * type, so a depth-first walk of the parsed tree cannot reproduce the source
+ * document order of the paths themselves. Pairing regex-extracted orders to
+ * parsed paths purely by index therefore misaligns whenever custom-geometry
+ * shapes are interleaved with other shapes (e.g. a themed background group):
+ * a complex 40-segment freeform could inherit a 4-segment shape's order and
+ * be truncated. Match each parsed path to an unconsumed source order that has
+ * the SAME command multiset instead, which is robust to that reordering; only
+ * genuinely interleaved paths need the order at all, and a signature match
+ * guarantees the order is applicable to the path it lands on.
+ */
 export function annotateCustomGeometryCommandOrder(xml: string, parsed: unknown): void {
 	const orders = extractSourceOrders(xml);
 	if (orders.length === 0) {
 		return;
 	}
 	const paths = collectParsedPaths(parsed);
-	for (let index = 0; index < Math.min(paths.length, orders.length); index++) {
-		commandOrder.set(paths[index], orders[index]);
+	const ordersBySignature = new Map<string, string[][]>();
+	for (const order of orders) {
+		const signature = orderSignature(order);
+		const bucket = ordersBySignature.get(signature);
+		if (bucket) {
+			bucket.push(order);
+		} else {
+			ordersBySignature.set(signature, [order]);
+		}
+	}
+	for (const path of paths) {
+		const bucket = ordersBySignature.get(pathSignature(path));
+		const order = bucket?.shift();
+		if (order) {
+			commandOrder.set(path, order);
+		}
 	}
 }
 

@@ -21,10 +21,14 @@ import type { PptxElement, PptxSlide, PptxTheme } from 'pptx-viewer-core';
  */
 import type { ViewerSettings } from 'pptx-viewer-shared';
 import {
+	applyPreferenceToOptions,
 	buildUserFontFaceStyles,
+	deleteAutosaveSnapshot,
+	listAutosaveSnapshots,
 	openPptxFile,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
+	viewerOptionsToPreferences,
 	writeStoredViewerPrefs,
 } from 'pptx-viewer-shared';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
@@ -76,6 +80,7 @@ import { useResizablePanels } from './hooks/useResizablePanels';
 import { useTouchGestures } from './hooks/useTouchGestures';
 import { useViewerDialogs } from './hooks/useViewerDialogs';
 import { useViewerIntegration } from './hooks/useViewerIntegration';
+import { useViewerOptions } from './hooks/useViewerOptions';
 // Hooks
 import { useViewerState } from './hooks/useViewerState';
 import { useZoomViewport } from './hooks/useZoomViewport';
@@ -340,6 +345,56 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			[state, reducedMotion, toggleReducedMotion],
 		);
 
+		// ── File > Options store ─────────────────────────────────────
+		// Full PowerPoint Options model; persisted to localStorage by the
+		// shared store. The six legacy `ViewerSettings` toggles stay the
+		// source of behavior, kept in sync with the store both ways.
+		const { optionsStore, options: viewerOptions } = useViewerOptions();
+		const settingsRef = useRef(settings);
+		settingsRef.current = settings;
+		const syncingFromOptionsRef = useRef(false);
+		useEffect(() => {
+			// Options -> scattered legacy state (dialog edits, persisted values).
+			const mapped = viewerOptionsToPreferences(viewerOptions);
+			let changed = false;
+			for (const key of Object.keys(mapped) as (keyof ViewerSettings)[]) {
+				if (mapped[key] !== settingsRef.current[key]) {
+					changed = true;
+					handleSettingsChange(key, mapped[key]);
+				}
+			}
+			if (changed) {
+				syncingFromOptionsRef.current = true;
+			}
+		}, [viewerOptions, handleSettingsChange]);
+		useEffect(() => {
+			// Legacy state -> options (ribbon View toggles, title-bar autosave).
+			const current = optionsStore.getOptions();
+			const mapped = viewerOptionsToPreferences(current);
+			const keys = Object.keys(mapped) as (keyof ViewerSettings)[];
+			if (syncingFromOptionsRef.current) {
+				if (keys.every((key) => mapped[key] === settings[key])) {
+					syncingFromOptionsRef.current = false;
+				}
+				return;
+			}
+			let next = current;
+			for (const key of keys) {
+				if (mapped[key] !== settings[key]) {
+					next = applyPreferenceToOptions(next, key, settings[key]);
+				}
+			}
+			if (next !== current) {
+				optionsStore.setOptions(next);
+			}
+		}, [settings, optionsStore]);
+		const handleClearOptionsCache = useCallback(() => {
+			void (async () => {
+				const snapshots = await listAutosaveSnapshots();
+				await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
+			})();
+		}, []);
+
 		// ── Mobile / responsive ─────────────────────────────────────
 		const mobile = useIsMobile({ containerRef });
 		const { isMobile, isTouchDevice, isVirtualKeyboardOpen } = mobile;
@@ -553,6 +608,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			isEncryptedDialogOpen,
 			setIsEncryptedDialogOpen,
 			handlerRef,
+			loadVersion,
 		} = useViewerIntegration({
 			state,
 			zoom,
@@ -814,8 +870,17 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				<SettingsDialog
 					isOpen={isSettingsOpen}
 					onClose={() => setIsSettingsOpen(false)}
-					settings={settings}
-					onSettingsChange={handleSettingsChange}
+					options={viewerOptions}
+					onOptionChange={(group, key, value) => optionsStore.setValue(group, key, value)}
+					onRestoreOptions={(snapshot) => optionsStore.setOptions(snapshot)}
+					onRibbonTabHiddenChange={(tabId, hidden) =>
+						optionsStore.setRibbonTabHidden(tabId, hidden)
+					}
+					onQuickAccessCommandsChange={(commandIds) =>
+						optionsStore.setQuickAccessCommands(commandIds)
+					}
+					onResetOptions={(group) => optionsStore.reset(group)}
+					onClearCache={handleClearOptionsCache}
 					themeKey={themeKey}
 					availableThemes={themeCatalog}
 					onSelectTheme={handleThemeChange}
@@ -938,6 +1003,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 								setSlides={state.setSlides}
 								config={collaboration}
 								content={content}
+								loadVersion={loadVersion}
 							/>
 							<CollaborationFollowLayer
 								activeSlideIndex={activeSlideIndex}
@@ -987,12 +1053,14 @@ function CollaborationDocumentSync({
 	setSlides,
 	config,
 	content,
+	loadVersion,
 }: {
 	slides: PptxSlide[];
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 	config?: CollaborationConfig;
 	content: ArrayBuffer | Uint8Array | null;
+	loadVersion: number;
 }) {
 	const collab = useCollaboration();
 	// Retain the loaded source bytes so the elected writer (role 'owner') can
@@ -1017,6 +1085,7 @@ function CollaborationDocumentSync({
 		isSynced: collab?.synced ?? true,
 		config,
 		getSourceBytes,
+		loadVersion,
 	});
 	return null;
 }

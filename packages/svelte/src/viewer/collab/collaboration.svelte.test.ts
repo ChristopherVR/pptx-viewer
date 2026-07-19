@@ -228,6 +228,69 @@ describe('collaborationController', () => {
 		});
 	});
 
+	it('re-adopts the doc slides when a late local load lands mid-session', async () => {
+		const doc = new Y.Doc();
+		await inRoot(async () => {
+			const editor = makeEditor([slide('s1', [shape('e1')])]);
+			const collab = new CollaborationController({
+				getSlides: () => editor.slides,
+				applyRemoteSlides: (s) => editor.applyRemoteSlides(s),
+				getConfig: () => CONFIG,
+				createSession: fakeSessionFactory(doc, true),
+			});
+			await collab.start(CONFIG);
+
+			// A remote peer replaces the room content (applied via the observer).
+			reconcileSlidesInYDoc(
+				[slide('room', [shape('r1')])],
+				doc as unknown as YDocLike,
+				realFactories(),
+				'remote-peer',
+			);
+			expect(editor.slides.map((s) => s.id)).toStrictEqual(['room']);
+
+			// The async bootstrap load lands late, clobbering viewer state; the
+			// load pipeline then calls adoptDocAfterLoad synchronously, before
+			// any local-to-doc publish of the placeholder deck can flush.
+			editor.setSlides([slide('placeholder', [shape('p1')])]);
+			collab.adoptDocAfterLoad();
+			flushSync();
+
+			// The room's slides win locally and the placeholder never reaches the doc.
+			expect(editor.slides.map((s) => s.id)).toStrictEqual(['room']);
+			expect(readSlidesFromYDoc(doc as unknown as YDocLike).map((s) => s.id)).toStrictEqual([
+				'room',
+			]);
+			collab.stop();
+		});
+	});
+
+	it('keeps the loaded deck when the room is empty (this client seeds it)', async () => {
+		const doc = new Y.Doc();
+		await inRoot(async () => {
+			const editor = makeEditor([]);
+			const collab = new CollaborationController({
+				getSlides: () => editor.slides,
+				applyRemoteSlides: (s) => editor.applyRemoteSlides(s),
+				getConfig: () => CONFIG,
+				createSession: fakeSessionFactory(doc, true),
+			});
+			await collab.start(CONFIG);
+
+			// Load completes into an empty room: adoption is a no-op and the
+			// normal gated publish path seeds the doc with the loaded deck.
+			editor.setSlides([slide('loaded', [shape('l1')])]);
+			collab.adoptDocAfterLoad();
+			flushSync();
+
+			expect(editor.slides.map((s) => s.id)).toStrictEqual(['loaded']);
+			expect(readSlidesFromYDoc(doc as unknown as YDocLike).map((s) => s.id)).toStrictEqual([
+				'loaded',
+			]);
+			collab.stop();
+		});
+	});
+
 	it('enforces the viewer role: read-only and never publishes local edits', async () => {
 		const doc = new Y.Doc();
 		const viewerConfig: CollaborationConfig = { ...CONFIG, role: 'viewer' };

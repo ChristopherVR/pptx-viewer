@@ -1,5 +1,5 @@
 export { useLoadContent } from './useLoadContent';
-export type { UseLoadContentResult } from './useLoadContent';
+export type { UseLoadContentOptions, UseLoadContentResult } from './useLoadContent';
 export {
 	collectMediaElements,
 	collectImagePaths,

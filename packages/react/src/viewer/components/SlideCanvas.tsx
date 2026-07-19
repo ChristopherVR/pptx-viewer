@@ -264,7 +264,7 @@ export function SlideCanvas({
 								!inlineEditingElementId
 							}
 							renderInk={false}
-							renderGroups={false}
+							renderGroups
 							adjustmentHandleDescriptor={
 								isEditableCanvas && selectedElement?.id === element.id
 									? getShapeAdjustmentHandleDescriptor(element)

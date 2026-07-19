@@ -9,6 +9,10 @@ import type { RibbonTabId } from './ribbon-types';
 export interface RibbonTabBar {
 	el: HTMLElement;
 	setActive(tab: RibbonTabId): void;
+	/** Hide/show tab buttons per Options > Customize Ribbon (File always shown). */
+	setHiddenTabs(hidden: ReadonlySet<string>): void;
+	/** Set each tab's `title` from a ScreenTip resolver (Options > General). */
+	applyScreenTips(resolve: (label: string) => string | undefined): void;
 }
 
 /** Right-side quick actions on the tab row (React's `TabRowActions`). */
@@ -35,6 +39,7 @@ export function createRibbonTabBar(
 	el.setAttribute('role', 'tablist');
 
 	const buttons = new Map<RibbonTabId, HTMLButtonElement>();
+	const labels = new Map<RibbonTabId, string>();
 	for (const tab of filterVisibleTabs(RIBBON_TABS, hiddenActions)) {
 		const btn = createEl(doc, 'button', 'pptxv-ribbon-tab');
 		if (tab.id === 'file') {
@@ -42,10 +47,12 @@ export function createRibbonTabBar(
 		}
 		btn.type = 'button';
 		btn.setAttribute('role', 'tab');
-		btn.textContent = t(tab.labelKey);
+		const label = t(tab.labelKey);
+		btn.textContent = label;
 		btn.addEventListener('click', () => onSelect(tab.id));
 		el.appendChild(btn);
 		buttons.set(tab.id, btn);
+		labels.set(tab.id, label);
 	}
 
 	if (actions) {
@@ -74,6 +81,21 @@ export function createRibbonTabBar(
 				const active = id === tab;
 				btn.classList.toggle('is-active', active);
 				btn.setAttribute('aria-selected', String(active));
+			}
+		},
+		setHiddenTabs(hidden) {
+			for (const [id, btn] of buttons) {
+				btn.hidden = id !== 'file' && hidden.has(id);
+			}
+		},
+		applyScreenTips(resolve) {
+			for (const [id, btn] of buttons) {
+				const tip = resolve(labels.get(id) ?? '');
+				if (tip) {
+					btn.title = tip;
+				} else {
+					btn.removeAttribute('title');
+				}
 			}
 		},
 	};

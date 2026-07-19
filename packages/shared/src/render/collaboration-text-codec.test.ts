@@ -43,6 +43,25 @@ describe('encodeTextBody / decodeTextBody', () => {
 		expect(decoded[2].isParagraphBreak).toBeUndefined();
 	});
 
+	it('preserves a literal newline text run without break flags (regression)', () => {
+		// A run whose TEXT is "\n" (no isParagraphBreak/isLineBreak) must keep
+		// its newline; it previously decoded to an empty segment, collapsing
+		// "Project" + "\n" + "Atlas" into "ProjectAtlas".
+		const segments = [
+			{ text: 'Project', style: { bold: true } },
+			{ text: '\n', style: {} },
+			{ text: 'Atlas', style: { bold: true } },
+		];
+		const ytext = liveText();
+		encodeTextBody(segments, ytext);
+		const decoded = decodeTextBody(ytext);
+		expect(decoded).toStrictEqual([
+			{ text: 'Project', style: { bold: true } },
+			{ text: '\n', style: {} },
+			{ text: 'Atlas', style: { bold: true } },
+		]);
+	});
+
 	it('preserves paragraph breaks, levels, and bullet info', () => {
 		const segments = [
 			{ text: 'Item', style: {}, paragraphLevel: 1, bulletInfo: { type: 'bullet', char: '-' } },

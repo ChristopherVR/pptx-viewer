@@ -14,8 +14,6 @@ The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www
 
 <samp>**[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-vue/)** · **[📦 npm](https://www.npmjs.com/package/pptx-vue-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[🧩 Core SDK](https://www.npmjs.com/package/pptx-viewer-core)**</samp>
 
-> **[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-vue/)**: open a `.pptx` and render it in your browser, no install required.
-
 ## Features
 
 - **A single component**: `<PowerPointViewer>`, written in `<script setup>` style.
@@ -46,12 +44,17 @@ The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www
 npm install pptx-vue-viewer
 ```
 
-**Peer requirements:** Vue 3.5+ and the engine's `jszip` / `fast-xml-parser`
-peers:
+**Peer requirements:** Vue 3.5+, `vue-i18n` (all UI labels go through it, see
+[Localization](#localization-i18n)), and the engine's `jszip` /
+`fast-xml-parser` peers:
 
 ```bash
-npm install vue jszip fast-xml-parser
+npm install vue vue-i18n jszip fast-xml-parser
 ```
+
+**Optional:** `three` enables interactive GLB/GLTF 3D models and the
+`smartArt3D` renderer; without it those elements fall back to poster images /
+flat SVG.
 
 The `pptx-viewer-core` engine is **bundled in**, so you don't install it
 separately unless you want to call the SDK directly.
@@ -162,28 +165,45 @@ async function save() {
 
 ### Props
 
-| Prop            | Type                        | Default | Description                                                                                                               |
-| --------------- | --------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `content`       | `Uint8Array \| ArrayBuffer` | n/a     | The `.pptx` bytes to render. **Required.**                                                                                |
-| `theme`         | `ViewerTheme`               | n/a     | Color/radius overrides applied as CSS custom properties.                                                                  |
-| `class`         | `string`                    | n/a     | Class applied to the root element.                                                                                        |
-| `canEdit`       | `boolean`                   | `false` | Enables the editor toolbar, inspector, and drag-and-drop editing.                                                         |
-| `filePath`      | `string`                    | n/a     | Passed to autosave / recovery logic.                                                                                      |
-| `authorName`    | `string`                    | n/a     | Displayed in comment annotations.                                                                                         |
-| `collaboration` | `CollaborationConfig`       | n/a     | Yjs real-time collaboration config (server URL, room, role).                                                              |
-| `hiddenActions` | `ToolbarActionId[]`         | n/a     | Individual toolbar buttons and/or ribbon tabs to hide (e.g. `['share', 'broadcast', 'insert']`). Omit to show everything. |
+| Prop                 | Type                                 | Default | Description                                                                                                               |
+| -------------------- | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `content`            | `Uint8Array \| ArrayBuffer`          | n/a     | The `.pptx` bytes to render. **Required.**                                                                                |
+| `theme`              | `ViewerTheme`                        | n/a     | Color/radius overrides applied as CSS custom properties. Always wins over the File > Options theme picker.                |
+| `class`              | `string`                             | n/a     | Class applied to the root element.                                                                                        |
+| `canEdit`            | `boolean`                            | `false` | Enables the editor toolbar, inspector, and drag-and-drop editing.                                                         |
+| `filePath`           | `string`                             | n/a     | Original file path, used for autosave recovery and version history.                                                       |
+| `fileName`           | `string`                             | n/a     | Display name of the open document, shown in the title bar.                                                                |
+| `fonts`              | `ViewerFontSource[]`                 | n/a     | Licensed font sources supplied by the host application.                                                                   |
+| `autosave`           | `boolean`                            | `false` | Enables debounced autosave (emits `@autosave` with serialised bytes).                                                     |
+| `autosaveIntervalMs` | `number`                             | `2000`  | Autosave debounce window in milliseconds.                                                                                 |
+| `authorName`         | `string`                             | n/a     | Author name for comments/annotations and collaboration presence.                                                          |
+| `collaboration`      | `CollaborationConfig`                | n/a     | Yjs real-time collaboration config (server URL, room, role).                                                              |
+| `shareDefaults`      | `{ roomId?, userName?, serverUrl? }` | n/a     | Seed values for the Share dialog fields.                                                                                  |
+| `onOpenFile`         | `() => void`                         | n/a     | Host override for File > Open; bypasses the built-in file picker.                                                         |
+| `smartArt3D`         | `boolean`                            | `false` | Opt-in Three.js 3D SmartArt renderer (needs the optional `three` peer; falls back to SVG without it).                     |
+| `hiddenActions`      | `ToolbarActionId[]`                  | n/a     | Individual toolbar buttons and/or ribbon tabs to hide (e.g. `['share', 'broadcast', 'insert']`). Omit to show everything. |
+| `defaultThemeKey`    | `string`                             | n/a     | Initial File > Options > Appearance selection when no persisted preference exists.                                        |
+| `availableThemes`    | `ThemeCatalogEntry[]`                | n/a     | Theme choices offered by File > Options > Appearance (defaults to the built-in catalog).                                  |
+| `onThemeChange`      | `(key: string) => void`              | n/a     | Host hook for the appearance picker; when set, the host owns persisting the choice.                                       |
+| `defaultLocale`      | `string`                             | n/a     | Initial locale code when no persisted preference exists.                                                                  |
+| `availableLocales`   | `LocaleCatalogEntry[]`               | n/a     | Locale choices offered by File > Options > Language (defaults to the host `vue-i18n` locales).                            |
+| `onLocaleChange`     | `(code: string) => void`             | n/a     | Host hook for the language picker; when set, the host owns applying/persisting the switch.                                |
+| `accountAuth`        | `AccountAuthConfig`                  | n/a     | Optional sign-in hook point for File > Account (disabled unless `enabled: true`).                                         |
 
 ### Events
 
-| Event                 | Payload      | Description                                                                          |
-| --------------------- | ------------ | ------------------------------------------------------------------------------------ |
-| `active-slide-change` | `number`     | Emits the active slide index on navigation.                                          |
-| `content-change`      | `Uint8Array` | Emits updated bytes after any editing change.                                        |
-| `dirty-change`        | `boolean`    | Emits `true`/`false` when the dirty state changes.                                   |
-| `mode-change`         | `string`     | Emits the new mode when it changes (`'preview'`, `'edit'`, `'present'`, `'master'`). |
-| `zoom-change`         | `number`     | Emits the new zoom level (1 = 100%).                                                 |
-| `selection-change`    | `string[]`   | Emits the selected element IDs when selection changes.                               |
-| `slide-count-change`  | `number`     | Emits the total slide count when slides are added/removed.                           |
+| Event                 | Payload               | Description                                                                          |
+| --------------------- | --------------------- | ------------------------------------------------------------------------------------ |
+| `active-slide-change` | `number`              | Emits the active slide index on navigation.                                          |
+| `content-change`      | `Uint8Array`          | Emits updated bytes after any editing change.                                        |
+| `dirty-change`        | `boolean`             | Emits `true`/`false` when the dirty state changes.                                   |
+| `mode-change`         | `string`              | Emits the new mode when it changes (`'preview'`, `'edit'`, `'present'`, `'master'`). |
+| `zoom-change`         | `number`              | Emits the new zoom level (1 = 100%).                                                 |
+| `selection-change`    | `string[]`            | Emits the selected element IDs when selection changes.                               |
+| `slide-count-change`  | `number`              | Emits the total slide count when slides are added/removed.                           |
+| `autosave`            | `Uint8Array`          | Emits serialised bytes when autosave persists the presentation (`autosave` prop).    |
+| `start-collaboration` | `CollaborationConfig` | Emits when the user starts a collaboration session from the Share dialog.            |
+| `stop-collaboration`  | -                     | Emits when the user stops a collaboration session.                                   |
 
 ### Exposed methods (template `ref`)
 
@@ -210,6 +230,15 @@ async function save() {
 | `getSelectedElementIds()` | `string[]`            | Get IDs of currently selected elements.        |
 | `selectElements(ids)`     | `void`                | Programmatically select elements by ID.        |
 | `clearSelection()`        | `void`                | Clear the current selection.                   |
+
+The exposed surface implements the full shared `PowerPointViewerAPI`, so the
+following slide/element manipulation methods are also available:
+`setActiveSlideIndex(index)`, `getSlides()`, `getSlide(index)`,
+`getActiveSlide()`, `addSlide(afterIndex?)`, `deleteSlides(indexes)`,
+`duplicateSlides(indexes)`, `moveSlide(from, to)`, `toggleHideSlides(indexes)`,
+`getElements(slideIndex?)`, `getElementById(id, slideIndex?)`,
+`updateElement(id, patch)`, `deleteElements(ids)`, and
+`duplicateElement(id)`.
 
 ### Exported components & helpers
 

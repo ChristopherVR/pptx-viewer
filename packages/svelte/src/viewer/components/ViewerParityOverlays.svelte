@@ -5,6 +5,7 @@
 
 	import type { EditorState } from '../editor/editor-state.svelte';
 	import type { ExportUiState } from '../export/export-ui.svelte';
+	import type { ViewerOptionsState } from '../state/viewer-options.svelte';
 	import type { ViewerParityUiState } from '../state/viewer-parity-ui.svelte';
 	import ComparePanel from './ComparePanel.svelte';
 	import CustomShowsDialog from './CustomShowsDialog.svelte';
@@ -36,10 +37,11 @@
 		onsetlocale,
 		onselectslide,
 		onmoveslide,
-		onpreferenceschange,
+		optionsState,
 	}: {
 		ui: ViewerParityUiState;
 		editor: EditorState;
+		optionsState: ViewerOptionsState;
 		exportUi: ExportUiState;
 		slides: PptxSlide[];
 		canvasSize: CanvasSize;
@@ -56,13 +58,12 @@
 		onsetlocale: (code: string) => void;
 		onselectslide: (index: number) => void;
 		onmoveslide: (from: number, to: number) => void;
-		onpreferenceschange: (next: ViewerParityUiState['preferences']) => void;
 	} = $props();
 </script>
 
 {#if ui.setupSlideShowOpen}<SetUpSlideShowDialog properties={editor.presentationProperties} customShows={editor.customShows} slideCount={slides.length} onclose={() => (ui.setupSlideShowOpen = false)} onsave={(next) => editor.presentationMetadata.updatePresentationProperties(next)} />{/if}
 {#if ui.headerFooterOpen}<HeaderFooterPanel value={editor.headerFooter} onclose={() => (ui.headerFooterOpen = false)} onapply={(next) => editor.presentationMetadata.updateHeaderFooter(next)} />{/if}
-{#if ui.settingsOpen}<SettingsDialog preferences={ui.preferences} onclose={() => (ui.settingsOpen = false)} onchange={onpreferenceschange} {themeKey} {themeCatalog} {onsetthemekey} {locale} {availableLocales} {onsetlocale} />{/if}
+{#if ui.settingsOpen}<SettingsDialog {optionsState} onclose={() => (ui.settingsOpen = false)} {themeKey} {themeCatalog} {onsetthemekey} {locale} {availableLocales} {onsetlocale} />{/if}
 {#if ui.shortcutsOpen}<ShortcutPanel onclose={() => (ui.shortcutsOpen = false)} />{/if}
 {#if ui.compare.open}<ComparePanel compare={ui.compare} onclose={() => (ui.compare.open = false)} />{/if}
 {#if ui.printSettingsOpen}<PrintDialog slideCount={slides.length} {current} onclose={() => (ui.printSettingsOpen = false)} onprint={(options) => exportUi.runPrint(options)} />{/if}

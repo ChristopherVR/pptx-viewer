@@ -15,6 +15,7 @@ import { translations as ribbon } from './ribbon';
 import { translations as smart_art } from './smart-art';
 import { translations as tables } from './tables';
 import { translations as text_and_equations } from './text-and-equations';
+import { translations as viewer_options } from './viewer-options';
 
 export const translationsDe: Record<string, string> = {
 	...application_shell,
@@ -34,4 +35,5 @@ export const translationsDe: Record<string, string> = {
 	...fills_and_strokes,
 	...tables,
 	...ribbon,
+	...viewer_options,
 };

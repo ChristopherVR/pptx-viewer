@@ -78,21 +78,34 @@ interface HistorySnapshot {
 	template: TemplateElementMap;
 }
 
+/** Optional tuning knobs for the history stack. */
+export interface UseEditorHistoryOptions {
+	/**
+	 * Maximum undo depth. Defaults to `MAX_HISTORY_ENTRIES`; File > Options >
+	 * Advanced > "Maximum number of undos" threads `resolveHistoryDepth` here.
+	 */
+	maxDepth?: number;
+}
+
 /**
  * @param slides Reactive reference to the live slide array the editor mutates.
  *               A `shallowRef` is recommended for large decks.
  * @param templateElementsBySlideId Optional reactive store of the per-slide
  *               master/layout (template) elements, snapshotted alongside slides
  *               so edits in `editTemplateMode` are undoable.
+ * @param options Optional tuning knobs (undo depth).
  */
 export function useEditorHistory(
 	slides: Ref<PptxSlide[]>,
 	templateElementsBySlideId?: Ref<TemplateElementMap>,
+	options?: UseEditorHistoryOptions,
 ): EditorHistoryResult {
 	// The shared, framework-agnostic command stack. It performs no cloning, so we
 	// snapshot with `cloneSlide` / `cloneElement` before every record/undo/redo
 	// round-trip.
-	const stack = new EditorHistory<HistorySnapshot>({ maxDepth: MAX_HISTORY_ENTRIES });
+	const stack = new EditorHistory<HistorySnapshot>({
+		maxDepth: options?.maxDepth ?? MAX_HISTORY_ENTRIES,
+	});
 
 	// A monotonically-increasing tick bumped on every mutation so the `computed`
 	// flags below re-evaluate against the (non-reactive) shared stack.

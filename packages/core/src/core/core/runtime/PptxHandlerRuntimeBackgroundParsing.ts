@@ -267,6 +267,42 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return undefined;
 	}
 
+	/**
+	 * Reuse the cached parse of a layout XML part, parsing (and caching) on a
+	 * miss. Background resolution runs per slide but the layout/master parts are
+	 * large (a themed master can be ~200 KB); re-parsing them for every slide
+	 * dominated load time, so share the same parsed object `getLayoutElements`
+	 * already populated.
+	 */
+	protected async resolveCachedLayoutXml(layoutPath: string): Promise<XmlObject | undefined> {
+		const cached = this.layoutXmlMap.get(layoutPath);
+		if (cached) {
+			return cached;
+		}
+		const xml = await this.zip.file(layoutPath)?.async('string');
+		if (!xml) {
+			return undefined;
+		}
+		const parsed = this.parser.parse(xml) as XmlObject;
+		this.layoutXmlMap.set(layoutPath, parsed);
+		return parsed;
+	}
+
+	/** Reuse the cached parse of a master XML part, parsing (and caching) on a miss. */
+	protected async resolveCachedMasterXml(masterPath: string): Promise<XmlObject | undefined> {
+		const cached = this.masterXmlMap.get(masterPath);
+		if (cached) {
+			return cached;
+		}
+		const xml = await this.zip.file(masterPath)?.async('string');
+		if (!xml) {
+			return undefined;
+		}
+		const parsed = this.parser.parse(xml) as XmlObject;
+		this.masterXmlMap.set(masterPath, parsed);
+		return parsed;
+	}
+
 	protected async getMasterBackgroundImage(layoutPath: string): Promise<string | undefined> {
 		const layoutRels = this.slideRelsMap.get(layoutPath);
 		if (!layoutRels) {
@@ -283,9 +319,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						: `ppt/${stripParentDirSegments(target)}`;
 
 				try {
-					const masterXmlStr = await this.zip.file(masterPath)?.async('string');
-					if (masterXmlStr) {
-						const masterXmlObj = this.parser.parse(masterXmlStr);
+					const masterXmlObj = await this.resolveCachedMasterXml(masterPath);
+					if (masterXmlObj) {
 						const masterRelsPath = `${masterPath.replace('slideMasters/', 'slideMasters/_rels/')}.rels`;
 						await this.loadSlideRelationships(masterPath, masterRelsPath);
 
@@ -316,9 +351,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						: `ppt/${stripParentDirSegments(target)}`;
 
 				try {
-					const layoutXmlStr = await this.zip.file(layoutPath)?.async('string');
-					if (layoutXmlStr) {
-						const layoutXmlObj = this.parser.parse(layoutXmlStr);
+					const layoutXmlObj = await this.resolveCachedLayoutXml(layoutPath);
+					if (layoutXmlObj) {
 						// We need to load layout rels to resolve images
 						const layoutRelsPath = `${layoutPath.replace('slideLayouts/', 'slideLayouts/_rels/')}.rels`;
 						await this.loadSlideRelationships(layoutPath, layoutRelsPath);
@@ -357,9 +391,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						: `ppt/${stripParentDirSegments(target)}`;
 
 				try {
-					const layoutXmlStr = await this.zip.file(layoutPath)?.async('string');
-					if (layoutXmlStr) {
-						const layoutXmlObj = this.parser.parse(layoutXmlStr);
+					const layoutXmlObj = await this.resolveCachedLayoutXml(layoutPath);
+					if (layoutXmlObj) {
 						const layoutBg = this.extractBackgroundColor(layoutXmlObj, 'p:sldLayout');
 						if (layoutBg) {
 							return layoutBg;
@@ -396,9 +429,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						: `ppt/${stripParentDirSegments(target)}`;
 
 				try {
-					const masterXmlStr = await this.zip.file(masterPath)?.async('string');
-					if (masterXmlStr) {
-						const masterXmlObj = this.parser.parse(masterXmlStr);
+					const masterXmlObj = await this.resolveCachedMasterXml(masterPath);
+					if (masterXmlObj) {
 						return this.extractBackgroundColor(masterXmlObj, 'p:sldMaster');
 					}
 				} catch {

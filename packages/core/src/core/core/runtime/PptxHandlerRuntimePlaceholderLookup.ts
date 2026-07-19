@@ -125,6 +125,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				!Array.isArray(existing)
 			) {
 				merged[key] = this.mergeXmlObjects(existing as XmlObject, value as XmlObject, depth + 1);
+			} else if (
+				value === '' &&
+				existing !== undefined &&
+				existing !== '' &&
+				typeof existing === 'object'
+			) {
+				// An empty element in the override (e.g. a self-closing
+				// `<p:spPr/>` on a layout placeholder, parsed as "") means
+				// "no explicit value at this level" and must NOT clobber a
+				// populated value inherited from the base (master). Keeping the
+				// base preserves inherited geometry (`a:xfrm`) so the slide
+				// placeholder still resolves a position instead of being dropped.
+				merged[key] = existing;
 			} else {
 				merged[key] = value;
 			}

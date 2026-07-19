@@ -26,6 +26,11 @@ import type { PrintOptions } from './export-print';
 export interface ExportUiDeps {
 	controller: ExportController;
 	getTranslator(): Translator;
+	/**
+	 * Fired after an export completes successfully (Options > Accessibility
+	 * "feedback with sound" hook); not called on abort or failure.
+	 */
+	onComplete?(): void;
 }
 
 export class ExportUiState {
@@ -78,12 +83,18 @@ export class ExportUiState {
 
 	/** Export the current slide as PNG (no modal; quick single capture). */
 	runPng(): void {
-		this.#deps.controller.exportSlidePng().catch((err: unknown) => this.#fail('PNG', err));
+		this.#deps.controller
+			.exportSlidePng()
+			.then(() => this.#deps.onComplete?.())
+			.catch((err: unknown) => this.#fail('PNG', err));
 	}
 
 	/** Copy the current slide to the system image clipboard. */
 	runCopyImage(): void {
-		this.#deps.controller.copySlideAsImage().catch((err: unknown) => this.#fail('Copy image', err));
+		this.#deps.controller
+			.copySlideAsImage()
+			.then(() => this.#deps.onComplete?.())
+			.catch((err: unknown) => this.#fail('Copy image', err));
 	}
 
 	/** Run the PDF export with the progress modal wired. */
@@ -100,6 +111,7 @@ export class ExportUiState {
 			this.progress = EXPORT_ASSEMBLING_PERCENT;
 			this.status = this.#t('pptx.export.buildingPdf');
 			this.progress = EXPORT_DONE_PERCENT;
+			this.#deps.onComplete?.();
 		} catch (err) {
 			this.#fail('PDF', err);
 		} finally {
@@ -119,6 +131,7 @@ export class ExportUiState {
 				},
 			});
 			this.status = this.#t('pptx.export.savingFile');
+			this.#deps.onComplete?.();
 		} catch (err) {
 			this.#fail('GIF', err);
 		} finally {
@@ -142,6 +155,7 @@ export class ExportUiState {
 				},
 			});
 			this.status = this.#t('pptx.export.savingFile');
+			this.#deps.onComplete?.();
 		} catch (err) {
 			this.#fail('Video', err);
 		} finally {

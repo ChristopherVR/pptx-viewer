@@ -109,15 +109,24 @@ It also ships unit helpers (`inches`, `cm`, `mm`, `pt`), common slide sizes (`Sl
 ### Turn a deck into Markdown
 
 ```typescript
-import { PptxMarkdownConverter } from 'pptx-viewer-core';
+import { PptxHandler, PptxMarkdownConverter } from 'pptx-viewer-core';
 
-const converter = new PptxMarkdownConverter({ includeMetadata: true, imageHandling: 'extract' });
-const result = await converter.convert(
-	buffer,
-	{ outputPath: 'output.md', mediaFolderName: 'media' },
+const handler = new PptxHandler();
+const data = await handler.load(buffer);
+
+const converter = new PptxMarkdownConverter(
+	'./output', // output directory for the .md file and extracted media
+	{
+		sourceName: 'presentation.pptx',
+		includeMetadata: true,
+		includeSpeakerNotes: true,
+		mediaFolderName: 'media',
+		semanticMode: true, // clean headings/lists instead of positioned HTML
+	},
 	fileSystemAdapter,
 );
-// => the Markdown text, plus stats on any images that were pulled out
+
+const markdown = await converter.convert(data); // => the Markdown text
 ```
 
 To write files to disk, pass a `FileSystemAdapter` (an object with `writeFile`, `writeBinaryFile`, and `createFolder` methods); this keeps the converter free of any assumptions about where it runs. By default it keeps each element where it sat on the slide (absolutely positioned HTML); set `semanticMode: true` to get clean headings, paragraphs, and lists instead.
@@ -149,10 +158,10 @@ The `PptxData` you get from `load()` exposes `slides`, `canvasSize`, `theme`, `s
 | **Element types** | 16: text, shape, connector, image, picture, table, chart, smartArt, ole, media, group, ink, contentPart, zoom, model3d, unknown                     |
 | **Preset shapes** | 187+ PowerPoint shapes, including ones with adjustable handles                                                                                      |
 | **Chart types**   | 23, including waterfall, funnel, treemap, sunburst, box-whisker, region-map, and combo charts; with trendlines, error bars, and embedded Excel data |
-| **Transitions**   | 42 types (including morph, vortex, ripple, and shred)                                                                                               |
+| **Transitions**   | 46 types (including morph, vortex, ripple, and shred)                                                                                               |
 | **Animations**    | 40+ presets, including colour animation, motion paths, and text that builds in by word, letter, or paragraph                                        |
 | **SmartArt**      | 14 layout families, broken into editable shapes with a live reflow engine for structural edits                                                      |
-| **Fills**         | Solid, gradient (linear, radial, path), image, and 48 patterns                                                                                      |
+| **Fills**         | Solid, gradient (linear, radial, path), image, and 56 patterns                                                                                      |
 | **Themes**        | 8 built-in presets, switchable at runtime, with layout and placeholder remapping                                                                    |
 | **Security**      | AES-128/256 encryption and decryption, modify-password (SHA), and detection of digital signatures                                                   |
 | **Preserved**     | VBA macros, custom XML, comment authors, and strict-format files are kept intact through a save                                                     |

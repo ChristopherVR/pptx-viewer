@@ -71,6 +71,7 @@ export class EditorState {
 	clipboard = $state.raw<ElementClipboardPayload | null>(null);
 
 	#history = new EditorHistory<EditorSnapshot>({ maxDepth: MAX_HISTORY_ENTRIES });
+	#historyDepth = MAX_HISTORY_ENTRIES;
 	#canUndo = $state(false);
 	#canRedo = $state(false);
 	readonly #deps: EditorStateDeps;
@@ -260,6 +261,20 @@ export class EditorState {
 		}
 		this.editTemplateMode = enabled;
 		this.selection.clear();
+	}
+
+	/**
+	 * Apply the File > Options "maximum number of undos" value. Recreates the
+	 * history stack when the depth changes (PowerPoint likewise applies the new
+	 * maximum going forward; existing entries are dropped).
+	 */
+	setHistoryDepth(depth: number): void {
+		if (depth === this.#historyDepth) {
+			return;
+		}
+		this.#historyDepth = depth;
+		this.#history = new EditorHistory<EditorSnapshot>({ maxDepth: depth });
+		this.#syncHistoryFlags();
 	}
 
 	pushHistory(): void {

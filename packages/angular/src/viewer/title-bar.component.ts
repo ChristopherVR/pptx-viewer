@@ -28,12 +28,18 @@ import { LucideRedo, LucideSave, LucideSearch, LucideUndo } from '@lucide/angula
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import {
+	DEFAULT_VIEWER_OPTIONS,
 	filterCommands,
+	QUICK_ACCESS_COMMAND_CATALOG,
 	resolveTitleBarStatusKey,
 	TITLE_BAR_CLASSES,
 	TITLE_BAR_DEFAULT_FILE_KEY,
 } from '../internal/shared';
-import type { CommandSearchEntry, ToolbarActionId } from '../internal/shared';
+import type {
+	CommandSearchEntry,
+	ToolbarActionId,
+	ViewerQuickAccessOptions,
+} from '../internal/shared';
 import type { AutosaveStatus } from './autosave.service';
 import { toolbarVisibility } from './toolbar-visibility';
 
@@ -72,46 +78,65 @@ import { toolbarVisibility } from './toolbar-visibility';
 
 				<div [class]="tb.separator"></div>
 
-				<button
-					type="button"
-					[class]="tb.quickButton"
-					[title]="'pptx.titleBar.save' | translate"
-					[attr.aria-label]="'pptx.titleBar.save' | translate"
-					(click)="save.emit()"
-				>
-					<svg lucideSave class="h-3.5 w-3.5"></svg>
-				</button>
-				@if (!toolbar.isHidden('undo')) {
+				@if (qat().visible) {
 					<button
 						type="button"
 						[class]="tb.quickButton"
-						[disabled]="!canUndo()"
-						[title]="
-							undoLabel()
-								? ('pptx.toolbar.undoAction' | translate: { action: undoLabel() })
-								: ('pptx.toolbar.undo' | translate)
-						"
-						[attr.aria-label]="'pptx.toolbar.undo' | translate"
-						(click)="undo.emit()"
+						[title]="'pptx.titleBar.save' | translate"
+						[attr.aria-label]="'pptx.titleBar.save' | translate"
+						(click)="save.emit()"
 					>
-						<svg lucideUndo class="h-3.5 w-3.5"></svg>
+						<svg lucideSave class="h-3.5 w-3.5"></svg>
 					</button>
-				}
-				@if (!toolbar.isHidden('redo')) {
-					<button
-						type="button"
-						[class]="tb.quickButton"
-						[disabled]="!canRedo()"
-						[title]="
-							redoLabel()
-								? ('pptx.toolbar.redoAction' | translate: { action: redoLabel() })
-								: ('pptx.toolbar.redo' | translate)
-						"
-						[attr.aria-label]="'pptx.toolbar.redo' | translate"
-						(click)="redo.emit()"
-					>
-						<svg lucideRedo class="h-3.5 w-3.5"></svg>
-					</button>
+					@if (!toolbar.isHidden('undo')) {
+						<button
+							type="button"
+							[class]="tb.quickButton"
+							[disabled]="!canUndo()"
+							[title]="
+								undoLabel()
+									? ('pptx.toolbar.undoAction' | translate: { action: undoLabel() })
+									: ('pptx.toolbar.undo' | translate)
+							"
+							[attr.aria-label]="'pptx.toolbar.undo' | translate"
+							(click)="undo.emit()"
+						>
+							<svg lucideUndo class="h-3.5 w-3.5"></svg>
+						</button>
+					}
+					@if (!toolbar.isHidden('redo')) {
+						<button
+							type="button"
+							[class]="tb.quickButton"
+							[disabled]="!canRedo()"
+							[title]="
+								redoLabel()
+									? ('pptx.toolbar.redoAction' | translate: { action: redoLabel() })
+									: ('pptx.toolbar.redo' | translate)
+							"
+							[attr.aria-label]="'pptx.toolbar.redo' | translate"
+							(click)="redo.emit()"
+						>
+							<svg lucideRedo class="h-3.5 w-3.5"></svg>
+						</button>
+					}
+					@for (cmd of extraQuickCommands(); track cmd.id) {
+						<button
+							type="button"
+							[class]="tb.quickButton"
+							[title]="cmd.labelKey | translate"
+							[attr.aria-label]="cmd.labelKey | translate"
+							(click)="onQuickCommand(cmd.id)"
+						>
+							@if (qat().showCommandLabels) {
+								<span class="text-[11px]">{{ cmd.labelKey | translate }}</span>
+							} @else {
+								<span class="text-[11px] font-semibold" aria-hidden="true">{{
+									(cmd.labelKey | translate).charAt(0)
+								}}</span>
+							}
+						</button>
+					}
 				}
 
 				<div [class]="tb.separator"></div>
@@ -221,11 +246,15 @@ export class TitleBarComponent {
 	readonly findReplaceOpen = input<boolean>(false);
 	/** Toolbar buttons the host wants hidden (gates Undo/Redo independently). */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
+	/** Live Quick Access Toolbar options (File > Options > Quick Access). */
+	readonly quickAccess = input<ViewerQuickAccessOptions | null>(null);
 
 	readonly toggleAutosave = output<void>();
 	readonly save = output<void>();
 	readonly undo = output<void>();
 	readonly redo = output<void>();
+	/** A configured Quick Access command was pressed (catalog id). */
+	readonly quickCommand = output<string>();
 	readonly toggleFindReplace = output<void>();
 	readonly commandSearch = output<string>();
 
@@ -236,6 +265,43 @@ export class TitleBarComponent {
 
 	protected readonly searchQuery = signal('');
 	protected readonly searchFocused = signal(false);
+
+	/** Resolved Quick Access options (host-supplied, or the default trio+). */
+	protected readonly qat = computed<ViewerQuickAccessOptions>(
+		() => this.quickAccess() ?? DEFAULT_VIEWER_OPTIONS.quickAccess,
+	);
+
+	/**
+	 * Configured Quick Access commands beyond the dedicated save/undo/redo
+	 * buttons (which keep their own gating + labels). Rendered as text-label
+	 * buttons routed through {@link onQuickCommand}.
+	 */
+	protected readonly extraQuickCommands = computed(() => {
+		const dedicated = new Set(['save', 'undo', 'redo']);
+		return this.qat()
+			.commandIds.filter((id) => !dedicated.has(id))
+			.map((id) => QUICK_ACCESS_COMMAND_CATALOG.find((entry) => entry.id === id))
+			.filter(
+				(entry): entry is (typeof QUICK_ACCESS_COMMAND_CATALOG)[number] => entry !== undefined,
+			);
+	});
+
+	/**
+	 * Route a Quick Access press: keep the dedicated save/undo/redo outputs
+	 * (existing host wiring, `hiddenActions` gating) and forward everything
+	 * else through the generic {@link quickCommand} output.
+	 */
+	protected onQuickCommand(id: string): void {
+		if (id === 'save') {
+			this.save.emit();
+		} else if (id === 'undo' && !this.toolbar.isHidden('undo')) {
+			this.undo.emit();
+		} else if (id === 'redo' && !this.toolbar.isHidden('redo')) {
+			this.redo.emit();
+		} else if (id !== 'undo' && id !== 'redo') {
+			this.quickCommand.emit(id);
+		}
+	}
 
 	protected readonly commandResults = computed(() =>
 		filterCommands(this.searchQuery(), (key) => this.translate.instant(key)),

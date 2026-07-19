@@ -10,8 +10,10 @@
 	import { cloneSlide } from 'pptx-viewer-core';
 	import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 	import {
+		applyAutoCorrect,
 		buildUserFontFaceStyles,
 		createBlankSlide,
+		DEFAULT_VIEWER_OPTIONS,
 		makeSlideId,
 		readStoredViewerPrefs,
 		resolveThemeCatalogEntry,
@@ -35,6 +37,8 @@
 	import MobileActionSheets from './components/MobileActionSheets.svelte';
 	import MobileChrome from './components/MobileChrome.svelte';
 	import MasterViewBody from './components/MasterViewBody.svelte';
+	import PresentationContextMenu from './components/PresentationContextMenu.svelte';
+	import PresentationEndScreen from './components/PresentationEndScreen.svelte';
 	import PresentationTouchControls from './components/PresentationTouchControls.svelte';
 	import PresenterView from './components/PresenterView.svelte';
 	import StatusBar from './components/StatusBar.svelte';
@@ -55,6 +59,9 @@
 	import { PresentationLoader } from './state/presentation-loader.svelte';
 	import { createInspectorDeckActions, provideInspectorDeck } from './state/inspector-deck';
 	import { ChromeUiState } from './state/chrome-ui.svelte';
+	import { ViewerOptionsState } from './state/viewer-options.svelte';
+	import { provideViewerOptions } from './state/viewer-options-context';
+	import { useViewerOptionsWiring } from './state/viewer-options-wiring.svelte';
 	import { ViewerParityUiState } from './state/viewer-parity-ui.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
 	import { provideRenderContext } from './state/render-context';
@@ -219,6 +226,11 @@
 	// Deck-level inspector actions (Properties tab, no selection), via context.
 	provideInspectorDeck(createInspectorDeckActions({ loader, editor }));
 	const parityUi = new ViewerParityUiState(editor);
+	// Full PowerPoint File > Options model (persisted); provided to chrome
+	// components (quick access, ribbon) and the Options dialog. The wiring below
+	// keeps it in sync with the six legacy preference toggles both ways.
+	const optionsState = new ViewerOptionsState();
+	provideViewerOptions(optionsState);
 	// Slides-rail / inspector open state, shared by the ribbon's toggle buttons.
 	const chromeUi = new ChromeUiState();
 	provideZoomNavigation({
@@ -367,6 +379,19 @@
 		onSaved: (bytes) => onautosave?.(bytes),
 	});
 
+	// Guarded bidirectional sync (options <-> six legacy toggles), undo depth,
+	// and Trust Center's Protected View on load.
+	useViewerOptionsWiring({
+		optionsState,
+		parityUi,
+		editor,
+		getAutosaveEnabled: () => autosaveEnabled,
+		setAutosaveEnabled: (enabled) => (autosaveEnabled = enabled),
+		onAutosaveToggle: (enabled) => onautosavetoggle?.(enabled),
+		getLoadCount: () => loader.loadCount,
+		setEditable: (next) => (editable = next),
+	});
+
 	useViewerEffects({
 		getSource: () => source,
 		getEditable: () => editable && !collab.readOnly,
@@ -379,6 +404,7 @@
 		getOnload: () => onload,
 		getOnerror: () => onerror,
 		getOnslidechange: () => onslidechange,
+		onContentApplied: () => collab.adoptDocAfterLoad(),
 	});
 
 	onDestroy(() => {
@@ -813,7 +839,7 @@
 	/>
 	{#if versionHistoryOpen}<VersionHistoryPanel {filePath} onclose={() => (versionHistoryOpen = false)} onrestore={(bytes) => loader.load(bytes)} />{/if}
 	{#if signatureWarningOpen}<SignatureStrippedDialog signatureCount={loader.digitalSignatureCount} onclose={closeSignatureWarning} />{/if}
-	<ViewerParityOverlays ui={parityUi} {editor} {exportUi} slides={displaySlides} canvasSize={loader.canvasSize} mediaDataUrls={loader.mediaDataUrls} current={viewer.current} fullscreen={viewer.isFullscreen} locale={effectiveLocale} {themeKey} {themeCatalog} onsetthemekey={setThemeKey} {availableLocales} onsetlocale={setLocale} onselectslide={(index) => viewer.goTo(index)} onmoveslide={moveSlide} onpreferenceschange={(next) => { parityUi.updatePreferences(next, (enabled) => { autosaveEnabled = enabled; onautosavetoggle?.(enabled); }); }} />
+	<ViewerParityOverlays ui={parityUi} {editor} {exportUi} slides={displaySlides} canvasSize={loader.canvasSize} mediaDataUrls={loader.mediaDataUrls} current={viewer.current} fullscreen={viewer.isFullscreen} locale={effectiveLocale} {themeKey} {themeCatalog} onsetthemekey={setThemeKey} {availableLocales} onsetlocale={setLocale} onselectslide={(index) => viewer.goTo(index)} onmoveslide={moveSlide} {optionsState} />
 	{#if editor.masterViewTarget}
 		<MasterViewBody
 			{editor}

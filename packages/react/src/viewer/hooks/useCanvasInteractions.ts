@@ -51,6 +51,12 @@ export interface UseCanvasInteractionsInput {
 	setIsEquationDialogOpen: (open: boolean) => void;
 	/** Bumped after a committed on-canvas edit so the history hook snapshots it. */
 	setPointerCommitNonce?: React.Dispatch<React.SetStateAction<number>>;
+	/**
+	 * Optional transform run over typed text when an inline edit commits
+	 * (AutoCorrect, Options > Proofing). Applied only to user-typed commits,
+	 * never to programmatic segment remaps.
+	 */
+	transformCommittedText?: (text: string) => string;
 }
 
 export function useCanvasInteractions(
@@ -85,6 +91,7 @@ export function useCanvasInteractions(
 		setEditingEquationOmml,
 		setIsEquationDialogOpen,
 		setPointerCommitNonce,
+		transformCommittedText,
 	} = input;
 
 	// Track whether the mouseDown event just selected the element.
@@ -99,9 +106,13 @@ export function useCanvasInteractions(
 		}
 		const el = elementLookup.get(editId);
 		if (el && hasTextProperties(el)) {
-			const newSegments = remapTextToSegments(inlineEditingText, el.textSegments, el.textStyle);
+			// AutoCorrect runs on the typed text before it becomes segments.
+			const committedText = transformCommittedText
+				? transformCommittedText(inlineEditingText)
+				: inlineEditingText;
+			const newSegments = remapTextToSegments(committedText, el.textSegments, el.textStyle);
 			ops.updateElementById(editId, {
-				text: inlineEditingText,
+				text: committedText,
 				textSegments: newSegments,
 			} as Partial<PptxElement>);
 			history.markDirty();
@@ -238,6 +249,11 @@ export function useCanvasInteractions(
 	};
 
 	const handleElementContextMenu = (elementId: string, e: React.MouseEvent) => {
+		if (mode === 'present') {
+			// During a slide show, right-clicks belong to the presentation-level
+			// menu (ViewerCanvasArea); let the event bubble up unhandled.
+			return;
+		}
 		e.preventDefault();
 		e.stopPropagation();
 		if (!selectedElementIdSet.has(elementId)) {

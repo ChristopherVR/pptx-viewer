@@ -39,6 +39,15 @@ export interface UsePresentationSetupInput {
 	setActiveSlideIndex: React.Dispatch<React.SetStateAction<number>>;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 	history: EditorHistoryResult;
+	/** Options > Advanced > "End with black slide" (default true). */
+	endWithBlackSlide?: boolean;
+	/**
+	 * Options > Advanced > "Prompt to keep ink annotations when exiting"
+	 * (default true). When false, exits skip the keep/discard dialog.
+	 */
+	promptKeepInkAnnotations?: boolean;
+	/** Options > Advanced > "Show popup toolbar" (default true). */
+	popupToolbarEnabled?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,6 +78,9 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		setActiveSlideIndex,
 		setSlides,
 		history,
+		endWithBlackSlide = true,
+		promptKeepInkAnnotations = true,
+		popupToolbarEnabled = true,
 	} = input;
 
 	const actionSoundHandlerRef = useRef<PptxHandler | null>(null);
@@ -80,6 +92,7 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 	const annotations = usePresentationAnnotations({
 		isActive: mode === 'present',
 		activeSlideIndex,
+		popupToolbarEnabled,
 	});
 
 	const presentation = usePresentationMode({
@@ -90,7 +103,12 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		containerRef,
 		content,
 		onSetMode: (nextMode: ViewerMode) => {
-			if (mode === 'present' && nextMode !== 'present' && annotations.hasAnyAnnotations) {
+			if (
+				mode === 'present' &&
+				nextMode !== 'present' &&
+				annotations.hasAnyAnnotations &&
+				promptKeepInkAnnotations
+			) {
 				pendingModeRef.current = nextMode;
 				setShowKeepAnnotationsDialog(true);
 			} else {
@@ -149,6 +167,7 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		loopContinuously: shouldLoopContinuously(presentationProperties),
 		showWithAnimation: presentationProperties.showWithAnimation,
 		useTimings: presentationProperties.advanceMode !== 'manual',
+		endWithBlackSlide,
 	});
 
 	return { presentation, annotations, actionSoundHandlerRef };

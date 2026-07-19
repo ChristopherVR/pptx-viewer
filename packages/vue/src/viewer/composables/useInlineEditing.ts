@@ -1,6 +1,7 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
-import { setCellText } from 'pptx-viewer-shared';
+import type { ViewerProofingOptions } from 'pptx-viewer-shared';
+import { applyAutoCorrect, setCellText } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -11,6 +12,12 @@ export interface UseInlineEditingInput {
 	canEdit: () => boolean;
 	findActiveElement: (id: string) => PptxElement | undefined;
 	ops: EditorOperations;
+	/**
+	 * File > Options > Proofing values. When supplied, AutoCorrect runs over the
+	 * typed text on commit (inline element edits and table-cell edits only, so
+	 * loaded content is never rewritten).
+	 */
+	proofing?: () => ViewerProofingOptions | undefined;
 }
 
 export interface UseInlineEditingResult {
@@ -31,6 +38,12 @@ export interface UseInlineEditingResult {
  */
 export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditingResult {
 	const { canEdit, findActiveElement, ops } = input;
+
+	/** Apply the enabled AutoCorrect rules to a typed-text commit. */
+	function autoCorrect(text: string): string {
+		const proofing = input.proofing?.();
+		return proofing ? applyAutoCorrect(text, proofing) : text;
+	}
 
 	const inlineEditingElementId = ref<string | null>(null);
 	const inlineEditingText = ref('');
@@ -66,7 +79,7 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 		const el = findActiveElement(id) as
 			| (PptxElement & { textSegments?: unknown; textStyle?: unknown })
 			| undefined;
-		const text = inlineEditingText.value;
+		const text = autoCorrect(inlineEditingText.value);
 		inlineEditingElementId.value = null;
 		if (el) {
 			const segments = remapTextToSegments(
@@ -98,7 +111,7 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 		if (!el || el.type !== 'table') {
 			return;
 		}
-		const updated = setCellText(el, rowIndex, colIndex, text);
+		const updated = setCellText(el, rowIndex, colIndex, autoCorrect(text));
 		ops.updateElement(elementId, { tableData: updated.tableData } as Partial<PptxElement>);
 	}
 

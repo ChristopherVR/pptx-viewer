@@ -36,8 +36,10 @@ import {
 	buildBroadcastViewerUrl,
 	buildUserFontFaceStyles,
 	createBackstagePresentation,
+	deleteAutosaveSnapshot,
 	downloadBlob,
 	isTemplateElementId,
+	listAutosaveSnapshots,
 	openPptxFile,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
@@ -177,6 +179,7 @@ import { useTableCellEditingContext } from './composables/useTableCellEditingCon
 import { useThemeEditing } from './composables/useThemeEditing';
 import { useTouchGestures } from './composables/useTouchGestures';
 import { useVersionHistoryWiring } from './composables/useVersionHistoryWiring';
+import { useViewerOptionsStore } from './composables/useViewerOptionsStore';
 import { useViewerSettingsDialog } from './composables/useViewerSettingsDialog';
 import { provideZoomTargetLookup, toZoomTargetInfo } from './composables/zoom-target';
 import type { PowerPointViewerEmits, PowerPointViewerExpose, PowerPointViewerProps } from './types';
@@ -298,6 +301,11 @@ function createPresentation(templateId: string): void {
 	selectedElementIds.value = [];
 }
 
+// Bumped each time the load pipeline finishes applying a parsed deck; the
+// collaboration layer watches it to re-adopt the shared doc's slides when a
+// slow local load lands mid-session (late-joiner bootstrap-deck clobber).
+const loadVersion = ref(0);
+
 const {
 	slides,
 	templateElementsBySlideId,
@@ -328,7 +336,11 @@ const {
 	handler,
 	getContent,
 	saveAs,
-} = useLoadContent(() => activeContent.value);
+} = useLoadContent(() => activeContent.value, {
+	onContentApplied: () => {
+		loadVersion.value += 1;
+	},
+});
 
 // Expose the presentation colour scheme + parsed table-style map to table
 // cells (banded/header colour resolution by table-style GUID) via
@@ -1236,6 +1248,7 @@ const {
 	onBroadcastStop,
 } = useCollaborationWiring({
 	slides,
+	loadVersion,
 	getTemplateElements: () => templateElementsBySlideId.value,
 	// Retain the loaded source bytes for elected-writer (role 'owner') write-back:
 	// the write-back reloads the original file, overlays the live Y.Doc slides,
@@ -1530,6 +1543,9 @@ const {
 
 // ── Viewer settings ───────────────────────────────────────────────────
 const reducedMotion = ref(false);
+// Full PowerPoint File > Options model (persisted); the six legacy toggles
+// below stay the behavior source and sync with it both ways.
+const { optionsStore, viewerOptions } = useViewerOptionsStore();
 const { showSettings, viewerSettings, onSettingsUpdate } = useViewerSettingsDialog({
 	autoSave: autosaveEnabled,
 	spellCheck: spellCheckEnabled,
@@ -1537,7 +1553,16 @@ const { showSettings, viewerSettings, onSettingsUpdate } = useViewerSettingsDial
 	showRulers,
 	snapToGrid,
 	reducedMotion,
+	optionsStore,
+	viewerOptions,
 });
+
+function onOptionsClearCache(): void {
+	void (async () => {
+		const snapshots = await listAutosaveSnapshots();
+		await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
+	})();
+}
 
 const { drawingActive, addInkStroke, eraseInkAt } = useInkDrawing({
 	canEdit: () => props.canEdit,
@@ -2451,17 +2476,24 @@ function handleCommandSearch(command: string): void {
 			<!-- Keyboard shortcut help -->
 			<ShortcutPanel :open="showShortcuts" @close="showShortcuts = false" />
 
-			<!-- File / Help ▸ Settings -->
+			<!-- File / Help ▸ Options -->
 			<SettingsDialog
 				:open="showSettings"
-				:settings="viewerSettings"
+				:options="viewerOptions"
+				:on-option-change="(group, key, value) => optionsStore.setValue(group, key, value)"
+				:on-restore-options="(snapshot) => optionsStore.setOptions(snapshot)"
+				:on-ribbon-tab-hidden-change="
+					(tabId, hidden) => optionsStore.setRibbonTabHidden(tabId, hidden)
+				"
+				:on-quick-access-commands-change="(ids) => optionsStore.setQuickAccessCommands(ids)"
+				:on-reset-options="(group) => optionsStore.reset(group)"
+				:on-clear-cache="onOptionsClearCache"
 				:theme-key="themeKey"
 				:on-theme-select="selectTheme"
 				:locale-code="localeCode"
 				:on-locale-select="selectLocale"
 				:available-themes="props.availableThemes"
 				:available-locales="resolvedAvailableLocales"
-				@update="onSettingsUpdate"
 				@close="showSettings = false"
 			/>
 
@@ -2810,6 +2842,8 @@ function handleCommandSearch(command: string): void {
 			:start-index="activeSlideIndex"
 			:start-in-presenter-view="startInPresenterView"
 			:presentation-properties="presentationProperties"
+			:end-with-black-slide="viewerOptions.advanced.slideShowEndWithBlackSlide"
+			:prompt-keep-ink-annotations="viewerOptions.advanced.slideShowPromptKeepInkAnnotations"
 			@close="closePresentation"
 			@slide-change="handlePresentSlideChange"
 		/>

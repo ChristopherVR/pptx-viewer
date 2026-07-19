@@ -73,47 +73,22 @@ export const de: LandingCopy = {
 		docsLabel: 'Vollstandige Anleitung',
 	},
 	demos: {
-		kicker: 'Demos',
-		title: 'Sehen Sie es laufen.',
-		copy: 'Jedes Binding bringt eine vollstandige Demo-App mit, die zusammen mit der Dokumentation aus diesem Repository deployt wird. Offnen Sie eine und ziehen Sie ein eigenes Deck hinein.',
-		open: 'Offnen',
-		cards: [
-			{
-				name: 'pptx-react-viewer',
-				desc: 'Der komplette Editor in React 19: Menuband, Inspektor, Kollaboration, Export.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo/',
-				external: true,
-			},
-			{
-				name: 'pptx-vue-viewer',
-				desc: 'Derselbe Funktionsumfang in Vue 3, gesteuert uber Props und Events.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-vue/',
-				external: true,
-			},
-			{
-				name: 'pptx-angular-viewer',
-				desc: 'Eine Standalone-Angular-Komponente mit signalbasierten Inputs.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-angular/',
-				external: true,
-			},
-			{
-				name: 'pptx-svelte-viewer',
-				desc: 'Derselbe Editor als Svelte-5-Komponente.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-svelte/',
-				external: true,
-			},
-			{
-				name: 'pptx-vanilla-viewer',
-				desc: 'Null Framework: ein einziger Funktionsaufruf montiert den ganzen Viewer.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-vanilla/',
-				external: true,
-			},
-			{
-				name: 'pptx-viewer-core',
-				desc: 'Ganz ohne UI. Parsen, bearbeiten, konvertieren und speichern in Node, Bun oder im Browser.',
-				href: '/core/',
-			},
-		],
+		kicker: 'Live-Demo',
+		title: 'Direkt hier ausprobieren.',
+		copy: 'Das ist der echte Editor, der in Ihrem Browser lauft: dieselbe deployte Demo-App wie von npm, live eingebettet. Wechseln Sie das Framework, oder teilen Sie die Ansicht und sehen Sie zu, wie zwei unabhangige Apps dasselbe Deck gemeinsam bearbeiten.',
+		frameworkLabel: 'Framework',
+		soloTab: 'Editor',
+		collabTab: 'Kollaboration',
+		guestPicker: 'Gast',
+		load: 'Live-Demo laden',
+		loading: 'Editor wird geladen',
+		openFull: 'App offnen',
+		hostLabel: 'Host',
+		guestLabel: 'Gast',
+		soloHint:
+			'Alles lauft clientseitig: Parsen, Rendern, Bearbeiten und Speichern passieren in diesem Tab, und das Deck verlasst nie Ihren Browser. Offnen Sie die vollstandige App, um ein eigenes Deck hineinzuziehen.',
+		collabHint:
+			'Zwei getrennte Live-Apps teilen sich ein Deck uber eine serverlose CRDT-Sitzung (y-webrtc, Peer-to-Peer). Verschieben Sie eine Form oder bearbeiten Sie Text in einem Bereich, und der andere folgt, auch uber verschiedene Frameworks hinweg.',
 	},
 	faq: {
 		kicker: 'FAQ',

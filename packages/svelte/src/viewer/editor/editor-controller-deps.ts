@@ -9,4 +9,9 @@ export interface EditorControllerDeps {
 	getSnapToGrid?(): boolean;
 	getSnapToShape?(): boolean;
 	getGuides?(): readonly { axis: 'h' | 'v'; position: number }[];
+	/**
+	 * Transform inline-editor text at commit time (File > Options > Proofing
+	 * AutoCorrect); identity when unset.
+	 */
+	transformCommittedText?(text: string): string;
 }

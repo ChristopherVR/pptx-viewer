@@ -19,6 +19,11 @@ export interface EditorHistoryInput {
 	headerFooter: PptxHeaderFooter;
 	loading: boolean;
 	error: string | null;
+	/**
+	 * Undo-stack depth (File > Options > Advanced > "Maximum number of undos",
+	 * resolved via the shared `resolveHistoryDepth`). Defaults to 120.
+	 */
+	maxHistoryEntries?: number;
 	hasActivePointerInteraction: () => boolean;
 	pointerCommitNonce: number;
 	// Setters for applying snapshots
@@ -48,7 +53,7 @@ export interface EditorHistoryResult {
 // Constants
 // ---------------------------------------------------------------------------
 
-const MAX_HISTORY_ENTRIES = 120;
+const DEFAULT_MAX_HISTORY_ENTRIES = 120;
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -62,6 +67,7 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		templateElementsBySlideId,
 		loading,
 		error,
+		maxHistoryEntries = DEFAULT_MAX_HISTORY_ENTRIES,
 		hasActivePointerInteraction,
 		pointerCommitNonce,
 		setSlides,
@@ -286,7 +292,7 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		}
 
 		historyPastRef.current.push(cloneHistorySnapshot(previousSnapshot));
-		if (historyPastRef.current.length > MAX_HISTORY_ENTRIES) {
+		while (historyPastRef.current.length > Math.max(1, maxHistoryEntries)) {
 			historyPastRef.current.shift();
 		}
 		historyFutureRef.current = [];
@@ -302,6 +308,7 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		error,
 		hasActivePointerInteraction,
 		loading,
+		maxHistoryEntries,
 		pointerCommitNonce,
 		slides,
 		updateHistoryAvailability,

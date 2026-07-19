@@ -6,7 +6,6 @@ import type {
 	YjsFactories,
 } from 'pptx-viewer-shared';
 import {
-	CONNECTION_TIMEOUT_MS,
 	createSyncGate,
 	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
@@ -17,6 +16,8 @@ import {
 } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
+import type { ConnectionWiring } from './collaboration-connection';
+import { wireConnectionStatus } from './collaboration-connection';
 import type { PresenceController } from './collaboration-presence';
 import { createPresenceController } from './collaboration-presence';
 import type { CollabProviderHandle } from './collaboration-provider';
@@ -70,6 +71,20 @@ export interface CollaborationController {
 	followUser(clientId: number | null): void;
 	/** The last config used to start a session (persists after `stop()`, for retry). */
 	getConfig(): CollaborationConfig | null;
+	/**
+	 * The load pipeline is about to commit a parsed deck to the store: suppress
+	 * local->doc slide publishing until {@link notifyContentLoaded} runs, so a
+	 * late joiner's bootstrap deck is never written into the room's doc before
+	 * the adoption check.
+	 */
+	beginContentLoad(): void;
+	/**
+	 * A content load finished applying to viewer state. When the shared doc
+	 * already holds slides (the room content arrived while the load was still
+	 * parsing), adopt them over the just-loaded deck; when the doc is empty this
+	 * client is the seeder and the deferred publish of the loaded deck runs.
+	 */
+	notifyContentLoaded(): void;
 	/** Stop and release everything (viewer destroy). */
 	destroy(): void;
 }
@@ -91,7 +106,8 @@ export function createCollaborationController(
 	let lastConfig: CollaborationConfig | null = null;
 	let unobserveSlides: (() => void) | null = null;
 	let unsubscribeStore: (() => void) | null = null;
-	let connectTimer: ReturnType<typeof setTimeout> | null = null;
+	let connection: ConnectionWiring | null = null;
+	let loadApplying = false;
 
 	function setStatus(next: ConnectionStatus): void {
 		if (next === status) {
@@ -99,13 +115,6 @@ export function createCollaborationController(
 		}
 		status = next;
 		deps.onStatusChange?.(next);
-	}
-
-	function clearConnectTimer(): void {
-		if (connectTimer !== null) {
-			clearTimeout(connectTimer);
-			connectTimer = null;
-		}
 	}
 
 	const writeBack = createWriteBackScheduler({
@@ -183,47 +192,24 @@ export function createCollaborationController(
 				syncGate.arm();
 			}
 
-			if (transport === 'webrtc') {
-				// Same-browser tabs meet over BroadcastChannel at once (no server wait).
-				setStatus('connected');
-				// y-webrtc reports peer connectivity via the same onStatus surface;
-				// re-arm the gate on a drop so a reconnect re-gates writes instead
-				// of leaving it permanently open from the first connection.
-				provider.onStatus((isConnected) => {
-					if (isConnected) {
-						setStatus('connected');
-					} else if (active) {
-						setStatus('disconnected');
-						syncGate.reset();
-						syncGate.arm();
+			// Connection-status wiring (incl. websocket connect timeout and the
+			// gate re-arm on drops) lives in collaboration-connection.ts.
+			connection = wireConnectionStatus({
+				provider,
+				transport,
+				setStatus,
+				isActive: () => active,
+				reArmGate: () => {
+					syncGate.reset();
+					syncGate.arm();
+				},
+				onConnectTimeout: () => {
+					if (status !== 'connected') {
+						stop();
+						setStatus('error');
 					}
-				});
-			} else {
-				provider.onStatus((isConnected) => {
-					if (isConnected) {
-						clearConnectTimer();
-						setStatus('connected');
-					} else if (active) {
-						setStatus('disconnected');
-						// Re-arm on (re)connect: without this, a peer that drops and
-						// rejoins keeps the gate permanently open from the first
-						// connection and can clobber the room with a stale local doc.
-						syncGate.reset();
-						syncGate.arm();
-					}
-				});
-				if (provider.connectedNow) {
-					setStatus('connected');
-				} else {
-					connectTimer = setTimeout(() => {
-						connectTimer = null;
-						if (status !== 'connected') {
-							stop();
-							setStatus('error');
-						}
-					}, CONNECTION_TIMEOUT_MS);
-				}
-			}
+				},
+			});
 
 			// Observe remote slide changes, skipping our own reconcile transactions.
 			unobserveSlides = observeYDocSlides(currentYDoc, (_events, transaction) => {
@@ -234,9 +220,11 @@ export function createCollaborationController(
 			});
 
 			// Broadcast local slide edits granularly (diff by id, one transaction).
-			// Suppressed until the sync gate opens; the gate flushes on open.
+			// Suppressed until the sync gate opens (the gate flushes on open) and
+			// while the load pipeline is committing a parsed deck (adoption in
+			// notifyContentLoaded decides whether that deck may be published).
 			unsubscribeStore = store.subscribe((state, previous) => {
-				if (state.slides !== previous.slides && syncGate.isOpen()) {
+				if (state.slides !== previous.slides && !loadApplying && syncGate.isOpen()) {
 					flushLocal();
 				}
 			});
@@ -248,8 +236,37 @@ export function createCollaborationController(
 		}
 	}
 
+	// Content-load adoption: the load pipeline commits its parsed deck to the
+	// store unconditionally, so a late joiner whose bootstrap deck finishes
+	// parsing AFTER the room's slides were applied would clobber the synced
+	// state and, with the doc itself unchanged, the observer never re-fires to
+	// repair it. The load path brackets its commit with beginContentLoad /
+	// notifyContentLoaded: publishing is suppressed for that window, then the
+	// room's slides win when the doc has content (applyRemoteSlides bypasses
+	// the JSON dedupe and re-arms it against the echo); an empty doc means this
+	// client is the seeder, so the suppressed publish runs now instead.
+	function beginContentLoad(): void {
+		loadApplying = true;
+	}
+
+	function notifyContentLoaded(): void {
+		const suppressed = loadApplying;
+		loadApplying = false;
+		if (!active || !currentYDoc || !lastConfig) {
+			return;
+		}
+		if (slidesSync.applyRemoteSlides(currentYDoc, lastConfig)) {
+			return;
+		}
+		if (suppressed && syncGate.isOpen()) {
+			flushLocal();
+		}
+	}
+
 	function stop(): void {
-		clearConnectTimer();
+		connection?.cancelConnectTimer();
+		connection = null;
+		loadApplying = false;
 		writeBack.cancel();
 		syncGate.reset();
 		slidesSync.reset();
@@ -286,6 +303,8 @@ export function createCollaborationController(
 		setActiveSlide: (index) => presence?.setActiveSlide(index),
 		followUser: (clientId) => presence?.followUser(clientId ?? null),
 		getConfig: () => lastConfig,
+		beginContentLoad,
+		notifyContentLoaded,
 		destroy: stop,
 	};
 }

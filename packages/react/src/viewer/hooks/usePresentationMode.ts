@@ -39,6 +39,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		loopContinuously,
 		showWithAnimation,
 		useTimings,
+		endWithBlackSlide = true,
 	} = input;
 
 	// -----------------------------------------------------------------------
@@ -53,6 +54,9 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		setTransitionOverlay(null);
 	}, []);
 	const [presenterMode, setPresenterMode] = useState(false);
+	// Black "End of slide show" screen shown after advancing past the last
+	// slide (Options > Advanced > "End with black slide").
+	const [endOfShowVisible, setEndOfShowVisible] = useState(false);
 	const [presentationStartTime, setPresentationStartTime] = useState<number | null>(null);
 	// Guards against the fullscreenchange listener exiting present mode
 	// when we intentionally exit fullscreen to switch to presenter view.
@@ -98,8 +102,18 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		setPresenterMode,
 	});
 
+	// Advancing past the last slide either shows the black end-of-show
+	// screen (PowerPoint's "End with black slide") or exits directly.
+	const handleAdvancePastLastSlide = useCallback(() => {
+		if (endWithBlackSlide) {
+			setEndOfShowVisible(true);
+		} else {
+			onSetMode('edit');
+		}
+	}, [endWithBlackSlide, onSetMode]);
+
 	const {
-		movePresentationSlide,
+		movePresentationSlide: moveNavigationSlide,
 		navigateToSlide,
 		handlePresentationAction,
 		scheduleAutoAdvanceForSlide,
@@ -115,6 +129,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		onPlayActionSound,
 		loopContinuously,
 		useTimings,
+		onAdvancePastLastSlide: handleAdvancePastLastSlide,
 		playNextAnimationGroup,
 		clearPresentationTimers,
 		runPresentationEntranceAnimations,
@@ -123,6 +138,22 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		recordCurrentSlideTime,
 		setShowRehearsalSummary,
 	});
+
+	// While the end-of-show screen is up, the next forward advance exits the
+	// show and a backward advance returns to the last slide.
+	const movePresentationSlide = useCallback(
+		(direction: 1 | -1) => {
+			if (endOfShowVisible) {
+				setEndOfShowVisible(false);
+				if (direction === 1) {
+					onSetMode('edit');
+				}
+				return;
+			}
+			moveNavigationSlide(direction);
+		},
+		[endOfShowVisible, moveNavigationSlide, onSetMode],
+	);
 
 	const { handleZoomClick, zoomReturnSlideIndex, returnToZoomSlide, clearZoomReturn } =
 		useZoomNavigation({ navigateToSlide });
@@ -278,6 +309,8 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 			// Leaving present mode: drop any in-flight transition overlay.
 			setTransitionOverlay(null);
 		}
+		// Entering or leaving, a stale end-of-show screen never carries over.
+		setEndOfShowVisible(false);
 		// NOTE: fullscreen exit is handled by the dedicated effect below -
 		// doing it here would fire on every dependency change (e.g. slide
 		// navigation) and race with the fullscreenchange listener.
@@ -377,6 +410,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		presentationKeyframesCss,
 		clearPresentationTimers,
 		runPresentationEntranceAnimations,
+		endOfShowVisible,
 		movePresentationSlide,
 		navigateToSlide,
 		handlePresentationAction,

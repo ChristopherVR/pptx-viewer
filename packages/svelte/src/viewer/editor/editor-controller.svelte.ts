@@ -279,7 +279,7 @@ export class EditorController {
 
 	/** Commit the inline editor's text onto the element and close it. */
 	commitInline(id: string, text: string): void {
-		this.#editor.commitInlineText(id, text);
+		this.#editor.commitInlineText(id, this.#deps.transformCommittedText?.(text) ?? text);
 	}
 
 	/** Close the inline editor without further mutation. */

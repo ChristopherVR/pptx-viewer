@@ -1,7 +1,7 @@
 // oxlint-disable react-hooks/rules-of-hooks
 import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
-import { effectScope, ref } from 'vue';
+import { effectScope, nextTick, ref } from 'vue';
 
 import { useCollaboration } from './useCollaboration';
 
@@ -426,6 +426,46 @@ describe('useCollaboration', () => {
 		expect(cursor.x).toBe(120); // clamped to width + 20px margin
 		expect(cursor.y).toBe(-20); // clamped to 0 - 20px margin
 		expect(cursor.color).toBe('#4c8bf5'); // invalid colour -> safe fallback
+		scope.stop();
+	});
+
+	it('re-adopts the doc slides when a local load finishes mid-session', async () => {
+		state.slidesArray = null;
+		state.slidesObserverCb = null;
+		state.awarenessStates.clear();
+		state.lastTransactionOrigin = undefined;
+		const slides = ref<PptxSlide[]>([]);
+		const loadVersion = ref(0);
+		// Mirror the wiring: remote slides replace local state.
+		const onRemoteSlides = vi.fn((remote: PptxSlide[]) => {
+			slides.value = remote;
+		});
+		const scope = effectScope();
+		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides, loadVersion }))!;
+		await collab.start(config);
+		state.statusCb?.({ status: 'connected' });
+		state.syncCb?.(true); // open the first-write gate
+
+		// The room's real slides arrive over the doc sync before the local
+		// bootstrap deck finishes parsing.
+		state.slidesArray?.push([remoteSlideMap('9')]);
+		state.slidesObserverCb?.(undefined, { origin: 'remote-peer' });
+		expect(slides.value[0]?.id).toBe('9');
+
+		// The late bootstrap load clobbers local state and bumps the load
+		// version; the adoption watcher must re-apply the doc's slides before
+		// the slides watch could reconcile the bootstrap deck into the doc.
+		state.lastTransactionOrigin = undefined;
+		slides.value = [slide('bootstrap')];
+		loadVersion.value += 1;
+		await nextTick();
+
+		expect(slides.value[0]?.id).toBe('9');
+		// The bootstrap deck never reached the doc (no local-sync transaction).
+		expect(state.lastTransactionOrigin).toBeUndefined();
+		expect(state.slidesArray?.length).toBe(1);
+
+		collab.stop();
 		scope.stop();
 	});
 

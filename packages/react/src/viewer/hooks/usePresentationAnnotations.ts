@@ -43,7 +43,7 @@ function nextStrokeId(): string {
 export function usePresentationAnnotations(
 	input: UsePresentationAnnotationsInput,
 ): UsePresentationAnnotationsResult {
-	const { isActive, activeSlideIndex } = input;
+	const { isActive, activeSlideIndex, popupToolbarEnabled = true } = input;
 
 	// Internal setter is wrapped below by a public `setPresentationTool` callback.
 	// eslint-disable-next-line react/hook-use-state
@@ -250,6 +250,10 @@ export function usePresentationAnnotations(
 			// user decides to keep or discard them via the dialog.
 			return;
 		}
+		if (!popupToolbarEnabled) {
+			// Options > Advanced > "Show popup toolbar" is off: never auto-show.
+			return;
+		}
 
 		const handleMouseMove = () => {
 			setToolbarVisible(true);
@@ -264,7 +268,7 @@ export function usePresentationAnnotations(
 			window.removeEventListener('mousemove', handleMouseMove);
 			window.clearTimeout(toolbarTimerRef.current);
 		};
-	}, [isActive]);
+	}, [isActive, popupToolbarEnabled]);
 
 	// Snapshot current strokes into the map before returning allSlideAnnotations
 	// so the caller always gets the latest view.

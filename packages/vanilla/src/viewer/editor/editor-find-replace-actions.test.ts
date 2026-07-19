@@ -50,6 +50,7 @@ function fakeOps(): EditorOps {
 		canUndo: () => false,
 		canRedo: () => false,
 		clearHistory: vi.fn(),
+		setHistoryDepth: vi.fn(),
 		save: vi.fn(),
 	};
 }

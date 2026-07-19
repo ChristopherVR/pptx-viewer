@@ -66,8 +66,6 @@ The UI packages **bundle the core engine**, so for an app you install exactly on
 | **Headless** parse / edit / convert (Node or web) | `npm i pptx-viewer-core`    | [pptx-viewer-core](https://www.npmjs.com/package/pptx-viewer-core)       |
 | **CLI / MCP / AI** tooling                        | `npm i pptx-viewer-mcp`     | [pptx-viewer-mcp](https://www.npmjs.com/package/pptx-viewer-mcp)         |
 
-> **Naming note:** the React package publishes to npm as **`pptx-react-viewer`** - `pptx-viewer` (used throughout this repo) is its internal workspace name.
-
 ## What it does
 
 1. **Parse** `.pptx` files from a raw `ArrayBuffer` into a structured `PptxData` model
@@ -80,7 +78,7 @@ The UI packages **bundle the core engine**, so for an app you install exactly on
 8. **Collaborate** in real-time via Yjs CRDT with presence tracking
 9. **Encrypt/Decrypt** password-protected PPTX files (AES-128/256)
 
-The engine handles the full OpenXML specification: 16 element types, 187+ preset shapes, 23 chart types, SmartArt (14 layouts), 3D models, animations (40+ presets), transitions (42 types including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink with pressure sensitivity, digital signatures, PPTX encryption, VBA macro preservation, OOXML Strict conformance, and more - backed by **18,800+ passing tests** across 840+ files.
+The engine handles the full OpenXML specification: 16 element types, 187+ preset shapes, 23 chart types, SmartArt (14 layouts), 3D models, animations (40+ presets), transitions (46 types including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink with pressure sensitivity, digital signatures, PPTX encryption, VBA macro preservation, OOXML Strict conformance, and more - backed by **18,800+ passing tests** across 1,300+ files.
 
 > _Developed with [Claude Code](https://claude.com/claude-code) (Opus 4.x)._
 
@@ -103,7 +101,7 @@ packages/
 | Package                                         | npm                                                                                                                                 | Description                                                                                              | README                                      |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
 | **[pptx-viewer-core](packages/core/)**          | [![npm](https://img.shields.io/npm/v/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)                         | Core PPTX engine - parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.     | [Documentation](packages/core/README.md)    |
-| **[pptx-viewer-shared](packages/shared/)**      | _(internal - not published)_                                                                                                        | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.  | [Documentation](packages/shared/README.md)  |
+| **[pptx-viewer-shared](packages/shared/)**      | _(internal - not published)_                                                                                                        | Framework-agnostic viewer logic (theme, rendering, editing state) shared by all five UI bindings.        | [Documentation](packages/shared/README.md)  |
 | **[pptx-viewer-locales](packages/locales/)**    | _(internal - not published)_                                                                                                        | Complete French, Spanish, and German reference dictionaries used by the five demo applications.          | [Contributing](packages/locales/README.md)  |
 | **[pptx-react-viewer](packages/react/)**        | [![npm](https://img.shields.io/npm/v/pptx-react-viewer.svg)](https://www.npmjs.com/package/pptx-react-viewer)                       | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export. | [Documentation](packages/react/README.md)   |
 | **[pptx-vue-viewer](packages/vue/)**            | [![npm](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)                           | Vue 3 PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.           | [Documentation](packages/vue/README.md)     |
@@ -283,8 +281,9 @@ console.log(markdown);
 import { PowerPointViewer } from 'pptx-react-viewer';
 
 function App() {
-	const [content, setContent] = useState<ArrayBuffer | null>(null);
+	const [content, setContent] = useState<Uint8Array | null>(null);
 
+	if (!content) return null;
 	return (
 		<PowerPointViewer
 			content={content}
@@ -313,7 +312,7 @@ const content = ref<ArrayBuffer | null>(null);
 </script>
 
 <template>
-	<PowerPointViewer :content="content" can-edit />
+	<PowerPointViewer v-if="content" :content="content" can-edit />
 </template>
 ```
 
@@ -322,18 +321,18 @@ const content = ref<ArrayBuffer | null>(null);
 > Installs from npm as **`pptx-angular-viewer`** (see [packages/angular](packages/angular/README.md)).
 
 ```typescript
-// app.module.ts
-import { PptxAngularViewerModule } from 'pptx-angular-viewer';
+import { Component, signal } from '@angular/core';
+import { PowerPointViewerComponent } from 'pptx-angular-viewer';
 
-@NgModule({
-	imports: [PptxAngularViewerModule],
+@Component({
+	selector: 'app-root',
+	standalone: true,
+	imports: [PowerPointViewerComponent],
+	template: `<pptx-viewer [content]="content()" [canEdit]="true" />`,
 })
-export class AppModule {}
-```
-
-```html
-<!-- app.component.html -->
-<pptx-viewer [content]="content"></pptx-viewer>
+export class AppComponent {
+	readonly content = signal<ArrayBuffer | null>(null);
+}
 ```
 
 ### Svelte 5 Viewer Component
@@ -380,7 +379,7 @@ const viewer = createPptxViewer(document.getElementById('host')!, {
 }
 ```
 
-Or call the 25 tool functions directly in your own pipeline:
+Or call the 51 tool functions directly in your own pipeline:
 
 ```typescript
 import { PptxHandler } from 'pptx-viewer-core';
@@ -405,7 +404,7 @@ await fs.writeFile('deck.pptx', out);
 
 ```
 +-------------------------------------------------------------------+
-|          React / Vue / Angular packages (UI bindings)              |
+|     React / Vue / Angular / Svelte / Vanilla JS (UI bindings)      |
 |                                                                    |
 |  +----------------+  +--------------+  +------------------------+  |
 |  | PowerPoint     |  | SlideCanvas  |  |   Inspector/Toolbar    |  |
@@ -465,7 +464,7 @@ await fs.writeFile('deck.pptx', out);
 
 ```bash
 bun install                  # Install all workspace dependencies
-bun run build                # Build all packages (core -> shared -> react / vue / angular)
+bun run build                # Build all packages (core -> shared -> react / vue / angular / vanilla / svelte)
 bun run test                 # Run vitest across all packages
 bun run typecheck            # Type-check all packages
 bun run fmt                  # Format all files with oxfmt
@@ -514,7 +513,7 @@ bun run pack:svelte  # packages/svelte
 | **3D**            | Three.js (optional)                                                                       |
 | **Collaboration** | Yjs (CRDT), y-websocket (optional)                                                        |
 | **Crypto**        | Web Crypto API (AES-128/256 for PPTX encryption)                                          |
-| **Testing**       | Vitest (18,800+ tests across 840+ files)                                                  |
+| **Testing**       | Vitest (18,800+ tests across 1,300+ files)                                                |
 | **Formatting**    | oxfmt (from the [oxc](https://oxc.rs) toolchain)                                          |
 | **Linting**       | oxlint (from the [oxc](https://oxc.rs) toolchain)                                         |
 | **Bundler**       | tsup (ESM + CJS with .d.ts declarations)                                                  |

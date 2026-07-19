@@ -145,10 +145,29 @@ function showLanding(): void {
 
 applyRootVars();
 
+/**
+ * `?sample=1` auto-loads the bundled sample deck (used by the docs landing page
+ * to embed a live, pre-populated viewer). Returns null when unavailable so the
+ * caller can fall back to its default flow.
+ */
+async function fetchSampleDeck(): Promise<Uint8Array | null> {
+	try {
+		const res = await fetch(`${import.meta.env.BASE_URL}sample-deck.pptx`);
+		if (!res.ok) {
+			throw new Error(`HTTP ${res.status}`);
+		}
+		return new Uint8Array(await res.arrayBuffer());
+	} catch {
+		return null;
+	}
+}
+
 // A `?room=<id>` link auto-joins a collaboration session: open a blank deck
-// wired to the room so the host's slides arrive through late-joiner sync.
+// wired to the room so the host's slides arrive through late-joiner sync. With
+// `?sample=1` too, the sample deck seeds the session instead of a blank one.
 const audienceSession = parsePresentationSessionId(window.location.hash);
 const joinRoom = readRoomFromUrl();
+const wantSample = new URLSearchParams(window.location.search).get('sample') === '1';
 if (audienceSession) {
 	void loadPresentationDeck(audienceSession).then((content) => {
 		if (content) {
@@ -158,6 +177,11 @@ if (audienceSession) {
 	});
 } else if (joinRoom) {
 	void (async () => {
+		const sample = wantSample ? await fetchSampleDeck() : null;
+		if (sample) {
+			openViewer(sample, 'sample-deck.pptx', buildRoomConfig(joinRoom, userName));
+			return;
+		}
 		const { handler, data } = await PptxHandler.createBlank({
 			title: 'Shared Session',
 			initialSlideCount: 1,
@@ -166,6 +190,15 @@ if (audienceSession) {
 		handler.dispose();
 		openViewer(bytes, 'Shared Session', buildRoomConfig(joinRoom, userName));
 	})();
+} else if (wantSample) {
+	void fetchSampleDeck().then((sample) => {
+		if (sample) {
+			openViewer(sample, 'sample-deck.pptx');
+		} else {
+			showLanding();
+		}
+		return undefined;
+	});
 } else {
 	showLanding();
 }

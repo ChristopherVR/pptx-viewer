@@ -19,6 +19,14 @@ export interface ViewerEffectsDeps {
 	getOnload(): ((detail: ViewerLoadDetail) => void) | undefined;
 	getOnerror(): ((message: string) => void) | undefined;
 	getOnslidechange(): ((index: number) => void) | undefined;
+	/**
+	 * Called synchronously right after a completed load is committed to editor
+	 * state, before the commit's effects flush. Collaboration re-adopts the
+	 * shared doc's slides here so a slow bootstrap load that lands mid-session
+	 * cannot clobber content already synced from the room (and the placeholder
+	 * deck is never published into the doc).
+	 */
+	onContentApplied?(): void;
 }
 
 /**
@@ -69,7 +77,7 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 			announcedLoadCount = count;
 			deps.viewer.reset(deps.loader.slides.length, deps.getInitialSlide());
 			// Seed the editable slide array from the freshly-loaded presentation.
-			untrack(() =>
+			untrack(() => {
 				deps.editor.setSlides(
 					deps.loader.slides,
 					deps.loader.slideMasters,
@@ -82,8 +90,12 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 					deps.loader.headerFooter,
 					deps.loader.presentationProperties,
 					deps.loader.customShows,
-				),
-			);
+				);
+				// Must run before this commit's effects flush: a live collab
+				// session re-adopts the shared doc's slides so the load cannot
+				// clobber (or publish over) already-synced room content.
+				deps.onContentApplied?.();
+			});
 			deps.getOnload()?.({
 				slideCount: deps.loader.slides.length,
 				canvasSize: deps.loader.canvasSize,

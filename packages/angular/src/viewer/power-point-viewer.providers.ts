@@ -48,6 +48,7 @@ import { ViewerFormatPainterService } from './viewer-format-painter.service';
 import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 import { ViewerKeyboardService } from './viewer-keyboard.service';
 import { ViewerMobileSheetService } from './viewer-mobile-sheet.service';
+import { ViewerOptionsService } from './viewer-options.service';
 import { ViewerPresentationModeService } from './viewer-presentation-mode.service';
 import { ViewerThemeGalleryService } from './viewer-theme-gallery.service';
 import { ViewerTouchGesturesService } from './viewer-touch-gestures.service';
@@ -90,6 +91,7 @@ export const POWER_POINT_VIEWER_PROVIDERS = [
 	ViewerInspectorPanelService,
 	ViewerKeyboardService,
 	ViewerMobileSheetService,
+	ViewerOptionsService,
 	ViewerPresentationModeService,
 	ViewerThemeGalleryService,
 	ViewerTouchGesturesService,

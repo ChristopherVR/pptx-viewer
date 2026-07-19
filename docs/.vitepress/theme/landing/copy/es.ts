@@ -73,47 +73,22 @@ export const es: LandingCopy = {
 		docsLabel: 'Guia completa',
 	},
 	demos: {
-		kicker: 'Demos',
-		title: 'Miralo funcionando.',
-		copy: 'Cada binding incluye una aplicacion demo completa, desplegada desde este repositorio junto con la documentacion. Abre una y arrastra un deck tuyo.',
-		open: 'Abrir',
-		cards: [
-			{
-				name: 'pptx-react-viewer',
-				desc: 'El editor completo en React 19: cinta, inspector, colaboracion, exportacion.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo/',
-				external: true,
-			},
-			{
-				name: 'pptx-vue-viewer',
-				desc: 'El mismo conjunto de funciones en Vue 3, controlado por props y eventos.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-vue/',
-				external: true,
-			},
-			{
-				name: 'pptx-angular-viewer',
-				desc: 'Un componente Angular standalone con entradas basadas en signals.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-angular/',
-				external: true,
-			},
-			{
-				name: 'pptx-svelte-viewer',
-				desc: 'El mismo editor como componente de Svelte 5.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-svelte/',
-				external: true,
-			},
-			{
-				name: 'pptx-vanilla-viewer',
-				desc: 'Cero frameworks: una sola llamada de funcion monta todo el visor.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-vanilla/',
-				external: true,
-			},
-			{
-				name: 'pptx-viewer-core',
-				desc: 'Sin UI. Analiza, edita, convierte y guarda en Node, Bun o el navegador.',
-				href: '/core/',
-			},
-		],
+		kicker: 'Demo en vivo',
+		title: 'Pruebalo aqui mismo.',
+		copy: 'Este es el editor real ejecutandose en tu navegador: la misma aplicacion demo desplegada que obtendrias de npm, incrustada en vivo. Cambia de framework, o divide la vista y mira como dos aplicaciones independientes coeditan un mismo deck.',
+		frameworkLabel: 'Framework',
+		soloTab: 'Editor',
+		collabTab: 'Colaboracion',
+		guestPicker: 'Invitado',
+		load: 'Cargar la demo en vivo',
+		loading: 'Cargando el editor',
+		openFull: 'Abrir la aplicacion',
+		hostLabel: 'Anfitrion',
+		guestLabel: 'Invitado',
+		soloHint:
+			'Todo se ejecuta en el cliente: el analisis, el renderizado, la edicion y el guardado ocurren en esta pestana, y el deck nunca sale de tu navegador. Abre la aplicacion completa para arrastrar un deck tuyo.',
+		collabHint:
+			'Dos aplicaciones independientes comparten un mismo deck mediante una sesion CRDT sin servidor (y-webrtc, par a par). Arrastra una forma o edita texto en un panel y mira como el otro lo sigue, incluso entre frameworks distintos.',
 	},
 	faq: {
 		kicker: 'FAQ',

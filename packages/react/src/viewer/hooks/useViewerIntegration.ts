@@ -83,6 +83,12 @@ export interface ViewerIntegrationResult {
 	setIsEncryptedDialogOpen: Dispatch<SetStateAction<boolean>>;
 	/** The loaded core handler, exposed for the AI bridge (`getHandler`). */
 	handlerRef: RefObject<PptxHandler | null>;
+	/**
+	 * Bumped each time the load pipeline finishes applying parsed content to
+	 * viewer state. Collaboration watches it to re-adopt the shared doc's
+	 * slides when a local load lands mid-session (see useYjsDocumentSync).
+	 */
+	loadVersion: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -154,6 +160,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 
 	// ── Content lifecycle (load, font, serialize, autosave) ───────
 	const [isEncryptedDialogOpen, setIsEncryptedDialogOpen] = useState(false);
+	const [loadVersion, setLoadVersion] = useState(0);
 	const { handlerRef, serializeSlides, autosaveStatus } = useContentLifecycle({
 		content,
 		filePath,
@@ -165,6 +172,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		actionSoundHandlerRef,
 		setIsEncryptedDialogOpen,
 		password: dialogs.presentationPassword ?? undefined,
+		onContentApplied: () => setLoadVersion((v) => v + 1),
 	});
 
 	// ── I/O handlers (export, print, theme, properties) ───────────
@@ -431,5 +439,6 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		isEncryptedDialogOpen,
 		setIsEncryptedDialogOpen,
 		handlerRef,
+		loadVersion,
 	};
 }

@@ -73,47 +73,22 @@ export const fr: LandingCopy = {
 		docsLabel: 'Guide complet',
 	},
 	demos: {
-		kicker: 'Demos',
-		title: 'Voyez-le tourner.',
-		copy: 'Chaque binding embarque une application demo complete, deployee depuis ce depot avec la documentation. Ouvrez-en une et glissez-y un de vos decks.',
-		open: 'Ouvrir',
-		cards: [
-			{
-				name: 'pptx-react-viewer',
-				desc: "L'editeur complet en React 19 : ruban, inspecteur, collaboration, export.",
-				href: 'https://christophervr.github.io/pptx-viewer/demo/',
-				external: true,
-			},
-			{
-				name: 'pptx-vue-viewer',
-				desc: 'Le meme ensemble de fonctionnalites en Vue 3, pilote par props et evenements.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-vue/',
-				external: true,
-			},
-			{
-				name: 'pptx-angular-viewer',
-				desc: 'Un composant Angular standalone avec des entrees basees sur les signals.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-angular/',
-				external: true,
-			},
-			{
-				name: 'pptx-svelte-viewer',
-				desc: 'Le meme editeur en composant Svelte 5.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-svelte/',
-				external: true,
-			},
-			{
-				name: 'pptx-vanilla-viewer',
-				desc: 'Zero framework : un seul appel de fonction monte toute la visionneuse.',
-				href: 'https://christophervr.github.io/pptx-viewer/demo-vanilla/',
-				external: true,
-			},
-			{
-				name: 'pptx-viewer-core',
-				desc: 'Aucune UI. Analysez, modifiez, convertissez et enregistrez dans Node, Bun ou le navigateur.',
-				href: '/core/',
-			},
-		],
+		kicker: 'Demo en direct',
+		title: 'Essayez-le ici meme.',
+		copy: "C'est le vrai editeur qui tourne dans votre navigateur : la meme application demo deployee que celle de npm, integree en direct. Changez de framework, ou scindez la vue et regardez deux applications independantes co-editer un meme deck.",
+		frameworkLabel: 'Framework',
+		soloTab: 'Editeur',
+		collabTab: 'Collaboration',
+		guestPicker: 'Invite',
+		load: 'Charger la demo en direct',
+		loading: "Chargement de l'editeur",
+		openFull: "Ouvrir l'application",
+		hostLabel: 'Hote',
+		guestLabel: 'Invite',
+		soloHint:
+			"Tout s'execute cote client : analyse, rendu, edition et enregistrement se font dans cet onglet, et le deck ne quitte jamais votre navigateur. Ouvrez l'application complete pour y glisser un de vos decks.",
+		collabHint:
+			"Deux applications distinctes partagent un meme deck via une session CRDT sans serveur (y-webrtc, pair-a-pair). Deplacez une forme ou modifiez du texte dans un panneau et regardez l'autre suivre, y compris entre frameworks differents.",
 	},
 	faq: {
 		kicker: 'FAQ',

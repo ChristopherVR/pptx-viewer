@@ -77,6 +77,12 @@ export interface UseLoadContentInput {
 	setError: React.Dispatch<React.SetStateAction<string | null>>;
 	setIsDirty: React.Dispatch<React.SetStateAction<boolean>>;
 	setIsEncrypted: React.Dispatch<React.SetStateAction<boolean>>;
+	/**
+	 * Called after a parse fully applies to viewer state (setSlides & co.).
+	 * Collaboration uses this to re-adopt the shared doc's slides when a local
+	 * load lands mid-session and would otherwise clobber remotely-synced state.
+	 */
+	onContentApplied?: () => void;
 }
 
 export interface UseLoadContentResult {
@@ -121,6 +127,7 @@ export function useLoadContent({
 	setError,
 	setIsDirty,
 	setIsEncrypted,
+	onContentApplied,
 }: UseLoadContentInput): UseLoadContentResult {
 	const handlerRef = useRef<PptxHandler | null>(null);
 	const originalBufferRef = useRef<ArrayBuffer | null>(null);
@@ -338,6 +345,7 @@ export function useLoadContent({
 				clearSelection();
 				setIsDirty(false);
 				history.resetHistory();
+				onContentApplied?.();
 			} catch (err) {
 				if (!cancelled && token === renderTokenRef.current) {
 					if (err instanceof EncryptedFileError) {

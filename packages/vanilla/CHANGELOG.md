@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [0.17.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.17.1) - 2026-07-18
+
+## [0.17.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.17.0) - 2026-07-18
+
+## [0.16.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.16.1) - 2026-07-18
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
 ## [0.16.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.16.0) - 2026-07-18
 
 ### Features

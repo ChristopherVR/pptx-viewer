@@ -1,6 +1,7 @@
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 import {
 	isActionHidden,
+	QUICK_ACCESS_COMMAND_CATALOG,
 	resolveTitleBarStatusKey,
 	TITLE_BAR_DEFAULT_FILE_KEY,
 } from 'pptx-viewer-shared';
@@ -9,11 +10,28 @@ import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import type { CommandSearchCommand } from './command-search';
 import { createCommandSearch } from './command-search';
+import type { ButtonHandle } from './controls';
 import { makeButton } from './controls';
+import type { IconName } from './icons';
 import type { RibbonEditState } from './ribbon/ribbon-types';
 
 /** Autosave lifecycle states the title-bar status text reflects. */
 export type TitleBarAutosaveKind = 'idle' | 'saving' | 'saved' | 'error';
+
+/** Live Quick Access Toolbar config (File > Options > Quick Access Toolbar). */
+export interface TitleBarQuickAccessState {
+	visible: boolean;
+	showCommandLabels: boolean;
+	commandIds: readonly string[];
+}
+
+export interface TitleBarQuickAccess {
+	getState(): TitleBarQuickAccessState;
+	/** Run a non-core command id (`presentFromStart`, `print`, `zoomIn`, ...). */
+	run(id: string): void;
+	/** ScreenTip text for a command label; undefined suppresses the tooltip. */
+	screenTip(label: string): string | undefined;
+}
 
 export interface TitleBarDeps {
 	/** Display name of the open document (host-supplied). */
@@ -29,6 +47,8 @@ export interface TitleBarDeps {
 	commands: readonly CommandSearchCommand[];
 	/** Individually hidden toolbar buttons (gates undo/redo independently). */
 	hiddenActions?: readonly ToolbarActionId[];
+	/** Options-driven Quick Access strip; omitted = the classic Save/Undo/Redo. */
+	quickAccess?: TitleBarQuickAccess;
 }
 
 export interface TitleBar {
@@ -41,11 +61,26 @@ export interface TitleBar {
 	setDirty(dirty: boolean): void;
 	/** Synchronize the AutoSave switch with a host-driven runtime change. */
 	setAutosaveEnabled(enabled: boolean): void;
+	/** Re-render the Quick Access strip from the current options state. */
+	refreshQuickAccess(): void;
 }
+
+/** Catalog icon name -> local inline icon; unmapped ids fall back to a glyph. */
+const QAT_ICONS: Record<string, IconName> = {
+	save: 'save',
+	undo: 'undo',
+	redo: 'redo',
+	play: 'play',
+	printer: 'printer',
+	fileDown: 'download',
+	plus: 'new-slide',
+	zoomIn: 'zoom-in',
+	zoomOut: 'zoom-out',
+};
 
 /**
  * PowerPoint-style title bar (vanilla counterpart of React's `TitleBar.tsx`):
- * logo mark, AutoSave toggle, quick-access Save/Undo/Redo, file name +
+ * logo mark, AutoSave toggle, the Quick Access Toolbar strip, file name +
  * save-location status, and the centred command search box.
  */
 export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps): TitleBar {
@@ -85,34 +120,76 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 		applyStatus();
 	});
 
-	// -- Quick actions: Save / Undo / Redo ------------------------------------
+	// -- Quick Access strip: Save/Undo/Redo + configured commands -------------
 	const sep1 = createEl(doc, 'span', 'pptxv-titlebar-sep');
 	el.appendChild(sep1);
-	const save = makeButton(doc, {
-		label: t('pptx.titleBar.save'),
-		icon: 'save',
-		className: 'pptxv-titlebar-btn',
-		onClick: () => deps.save(),
-	});
-	const undo = isActionHidden('undo', deps.hiddenActions)
-		? null
-		: makeButton(doc, {
-				label: t('pptx.toolbar.undo'),
-				icon: 'undo',
-				className: 'pptxv-titlebar-btn',
-				onClick: () => deps.undo(),
-			});
-	const redo = isActionHidden('redo', deps.hiddenActions)
-		? null
-		: makeButton(doc, {
-				label: t('pptx.toolbar.redo'),
-				icon: 'redo',
-				className: 'pptxv-titlebar-btn',
-				onClick: () => deps.redo(),
-			});
-	el.append(save.btn, ...(undo ? [undo.btn] : []), ...(redo ? [redo.btn] : []));
+	const qat = createEl(doc, 'span', 'pptxv-qat');
+	el.appendChild(qat);
 	const sep2 = createEl(doc, 'span', 'pptxv-titlebar-sep');
 	el.appendChild(sep2);
+
+	let lastEditState: RibbonEditState = { editable: true, canUndo: false, canRedo: false };
+	let undoHandle: ButtonHandle | null = null;
+	let redoHandle: ButtonHandle | null = null;
+
+	const runCommand = (id: string): void => {
+		if (id === 'save') {
+			deps.save();
+		} else if (id === 'undo') {
+			deps.undo();
+		} else if (id === 'redo') {
+			deps.redo();
+		} else {
+			deps.quickAccess?.run(id);
+		}
+	};
+
+	const renderQuickAccess = (): void => {
+		qat.replaceChildren();
+		undoHandle = null;
+		redoHandle = null;
+		const state: TitleBarQuickAccessState = deps.quickAccess?.getState() ?? {
+			visible: true,
+			showCommandLabels: false,
+			commandIds: ['save', 'undo', 'redo'],
+		};
+		qat.hidden = !state.visible || !lastEditState.editable;
+		for (const id of state.commandIds) {
+			if ((id === 'undo' || id === 'redo') && isActionHidden(id, deps.hiddenActions)) {
+				continue;
+			}
+			const command = QUICK_ACCESS_COMMAND_CATALOG.find((entry) => entry.id === id);
+			if (!command) {
+				continue;
+			}
+			const label = t(command.labelKey);
+			const icon = QAT_ICONS[command.icon];
+			const handle = makeButton(doc, {
+				label,
+				icon,
+				text: icon === undefined ? 'Ab' : undefined,
+				textLabel: state.showCommandLabels ? label : undefined,
+				className: 'pptxv-titlebar-btn',
+				onClick: () => runCommand(id),
+			});
+			if (deps.quickAccess) {
+				const tip = deps.quickAccess.screenTip(label);
+				if (tip === undefined) {
+					handle.btn.removeAttribute('title');
+				} else {
+					handle.btn.title = tip;
+				}
+			}
+			if (id === 'undo') {
+				undoHandle = handle;
+				handle.setDisabled(!lastEditState.canUndo);
+			} else if (id === 'redo') {
+				redoHandle = handle;
+				handle.setDisabled(!lastEditState.canRedo);
+			}
+			qat.appendChild(handle.btn);
+		}
+	};
 
 	// -- File name + save-location status -------------------------------------
 	const fileGroup = createEl(doc, 'span', 'pptxv-titlebar-file');
@@ -143,26 +220,22 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 
 	applyAutosaveSwitch();
 	applyStatus();
+	renderQuickAccess();
 
 	return {
 		el,
-		setEditState({ editable, canUndo, canRedo }) {
-			const editingEls = [
-				autosaveGroup,
-				sep1,
-				save.btn,
-				sep2,
-				...(undo ? [undo.btn] : []),
-				...(redo ? [redo.btn] : []),
-			];
-			for (const editingEl of editingEls) {
-				editingEl.hidden = !editable;
+		setEditState(state) {
+			lastEditState = state;
+			for (const editingEl of [autosaveGroup, sep1, sep2]) {
+				editingEl.hidden = !state.editable;
 			}
-			statusDot.hidden = !editable;
-			statusText.hidden = !editable;
-			searchWrap.hidden = !editable;
-			undo?.setDisabled(!canUndo);
-			redo?.setDisabled(!canRedo);
+			const qatState = deps.quickAccess?.getState();
+			qat.hidden = !state.editable || qatState?.visible === false;
+			statusDot.hidden = !state.editable;
+			statusText.hidden = !state.editable;
+			searchWrap.hidden = !state.editable;
+			undoHandle?.setDisabled(!state.canUndo);
+			redoHandle?.setDisabled(!state.canRedo);
 		},
 		setAutosaveState(state) {
 			autosaveState = state;
@@ -177,5 +250,6 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 			applyAutosaveSwitch();
 			applyStatus();
 		},
+		refreshQuickAccess: renderQuickAccess,
 	};
 }

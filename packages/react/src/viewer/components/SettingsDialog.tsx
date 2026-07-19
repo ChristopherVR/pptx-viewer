@@ -1,13 +1,23 @@
-import type { ThemeCatalogEntry, ViewerSettings } from 'pptx-viewer-shared';
-import { SETTING_TOGGLES } from 'pptx-viewer-shared';
+import type {
+	ThemeCatalogEntry,
+	ToolbarTabId,
+	ViewerAddinStatus,
+	ViewerOptions,
+	ViewerOptionsGroupId,
+	ViewerOptionsTabId,
+} from 'pptx-viewer-shared';
+import { DEFAULT_QUICK_ACCESS_COMMAND_IDS, VIEWER_OPTIONS_TABS } from 'pptx-viewer-shared';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuSettings, LuX } from 'react-icons/lu';
 
-import { SHORTCUT_REFERENCE_ITEMS } from '../constants';
 import { useModalDismissDrag } from '../hooks';
 import { cn } from '../utils';
+import { OptionsAddInsPane } from './settings/OptionsAddInsPane';
+import { OptionsPane } from './settings/OptionsPane';
+import { OptionsQuickAccessPane } from './settings/OptionsQuickAccessPane';
+import { OptionsRibbonPane } from './settings/OptionsRibbonPane';
 import { SettingsAppearanceTab } from './SettingsAppearanceTab';
 import { SettingsLanguageTab } from './SettingsLanguageTab';
 
@@ -18,71 +28,52 @@ import { SettingsLanguageTab } from './SettingsLanguageTab';
 export interface SettingsDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
-	/** Current values of every toggle rendered on the General tab. */
-	settings: ViewerSettings;
-	/** Fired with the toggle's key and its new value when a General-tab switch flips. */
-	onSettingsChange: (key: keyof ViewerSettings, value: boolean) => void;
+	/** Full File > Options snapshot rendered by every pane. */
+	options: ViewerOptions;
+	onOptionChange: (
+		group: ViewerOptionsGroupId,
+		key: string,
+		value: boolean | number | string,
+	) => void;
+	/** Restore a snapshot wholesale (Cancel semantics). */
+	onRestoreOptions: (options: ViewerOptions) => void;
+	onRibbonTabHiddenChange: (tabId: ToolbarTabId, hidden: boolean) => void;
+	onQuickAccessCommandsChange: (commandIds: string[]) => void;
+	onResetOptions: (group?: ViewerOptionsGroupId) => void;
+	/** Options > Save > "Delete cached files". */
+	onClearCache: () => void;
+	/** Availability flags for the Add-ins pane. */
+	addinStatus?: ViewerAddinStatus;
 	/** Key of the currently active theme catalog entry. */
 	themeKey: string;
-	/** Catalog rendered on the Appearance tab (defaults to the shared `THEME_CATALOG`). */
 	availableThemes: readonly ThemeCatalogEntry[];
 	onSelectTheme: (key: string) => void;
 	/** Currently active locale code. */
 	localeCode: string;
-	/** Locales rendered on the Language tab. */
 	availableLocales: readonly LocaleCatalogEntry[];
 	onSelectLocale: (code: string) => void;
-}
-
-type SettingsTab = 'general' | 'appearance' | 'language' | 'shortcuts';
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-function ToggleSwitch({
-	label,
-	enabled,
-	onToggle,
-}: {
-	label: string;
-	enabled: boolean;
-	onToggle: () => void;
-}): React.ReactElement {
-	return (
-		<div className='flex items-center justify-between py-2.5 px-3'>
-			<span className='text-sm text-foreground'>{label}</span>
-			<button
-				type='button'
-				onClick={onToggle}
-				className={cn(
-					'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
-					enabled ? 'bg-primary' : 'bg-muted-foreground/30',
-				)}
-				role='switch'
-				aria-checked={enabled}
-				aria-label={label}
-			>
-				<span
-					className={cn(
-						'inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform',
-						enabled ? 'translate-x-[18px]' : 'translate-x-[3px]',
-					)}
-				/>
-			</button>
-		</div>
-	);
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ * File > Options: a PowerPoint Options-style dialog with the ten shared
+ * categories in a left rail and schema-driven panes on the right. Changes
+ * apply live; Cancel restores the snapshot taken when the dialog opened.
+ */
 export function SettingsDialog({
 	isOpen,
 	onClose,
-	settings,
-	onSettingsChange,
+	options,
+	onOptionChange,
+	onRestoreOptions,
+	onRibbonTabHiddenChange,
+	onQuickAccessCommandsChange,
+	onResetOptions,
+	onClearCache,
+	addinStatus,
 	themeKey,
 	availableThemes,
 	onSelectTheme,
@@ -90,11 +81,28 @@ export function SettingsDialog({
 	availableLocales,
 	onSelectLocale,
 }: SettingsDialogProps): React.ReactElement | null {
-	const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+	const [activeTabId, setActiveTabId] = useState<ViewerOptionsTabId>('general');
 	const { t } = useTranslation();
 	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
+	const snapshotRef = useRef<ViewerOptions | null>(null);
+	const wasOpenRef = useRef(false);
 
-	// Close on Escape
+	// Snapshot on open for Cancel semantics.
+	useEffect(() => {
+		if (isOpen && !wasOpenRef.current) {
+			snapshotRef.current = options;
+		}
+		wasOpenRef.current = isOpen;
+	}, [isOpen, options]);
+
+	const handleCancel = useCallback(() => {
+		if (snapshotRef.current) {
+			onRestoreOptions(snapshotRef.current);
+		}
+		onClose();
+	}, [onClose, onRestoreOptions]);
+
+	// Close (confirming) on Escape.
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent) => {
 			if (e.key === 'Escape') {
@@ -115,12 +123,11 @@ export function SettingsDialog({
 		return null;
 	}
 
-	const tabs: Array<{ id: SettingsTab; label: string }> = [
-		{ id: 'general', label: t('pptx.settings.general') },
-		{ id: 'appearance', label: t('pptx.settings.appearance') },
-		{ id: 'language', label: t('pptx.settings.language') },
-		{ id: 'shortcuts', label: t('pptx.settings.keyboardShortcuts') },
-	];
+	const activeTab =
+		VIEWER_OPTIONS_TABS.find((tab) => tab.id === activeTabId) ?? VIEWER_OPTIONS_TABS[0];
+	if (!activeTab) {
+		return null;
+	}
 
 	return (
 		<>
@@ -139,98 +146,167 @@ export function SettingsDialog({
 			>
 				<div
 					style={panelStyle}
-					className='pointer-events-auto w-[min(32rem,calc(100%-2rem))] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-h-[88dvh] max-md:overflow-y-auto max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'
+					role='dialog'
+					aria-modal='true'
+					aria-label={t('pptx.options.title')}
+					className='pointer-events-auto flex max-h-[85vh] w-[min(56rem,calc(100%-2rem))] flex-col rounded-xl border border-border bg-popover shadow-2xl backdrop-blur-xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:max-h-[88dvh] max-md:w-full max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'
 				>
-					{/* Header — also a swipe-down-to-dismiss grab region on touch. */}
+					{/* Header - also a swipe-down-to-dismiss grab region on touch. */}
 					<div
 						{...dragHandlers}
-						className='flex items-center justify-between px-5 py-4 border-b border-border/60 touch-none'
+						className='flex items-center justify-between border-b border-border/60 px-5 py-4 touch-none'
 					>
 						<div className='flex items-center gap-2'>
-							<LuSettings className='w-5 h-5 text-primary' />
-							<h2 className='text-sm font-semibold text-foreground'>{t('pptx.settings.title')}</h2>
+							<LuSettings className='h-5 w-5 text-primary' />
+							<h2 className='text-sm font-semibold text-foreground'>{t('pptx.options.title')}</h2>
 						</div>
 						<button
 							type='button'
 							onClick={onClose}
-							className='p-1 rounded hover:bg-accent transition-colors'
+							className='rounded p-1 transition-colors hover:bg-accent'
 							aria-label={t('pptx.settings.close')}
 						>
-							<LuX className='w-4 h-4 text-muted-foreground' />
+							<LuX className='h-4 w-4 text-muted-foreground' />
 						</button>
 					</div>
 
-					{/* Tab bar */}
-					<div className='flex border-b border-border/60 px-5'>
-						{tabs.map((tab) => (
-							<button
-								key={tab.id}
-								type='button'
-								onClick={() => setActiveTab(tab.id)}
-								className={cn(
-									'px-3 py-2 text-xs font-medium transition-colors relative',
-									activeTab === tab.id
-										? 'text-primary'
-										: 'text-muted-foreground hover:text-foreground',
-								)}
-							>
-								{tab.label}
-								{activeTab === tab.id && (
-									<span className='absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full' />
-								)}
-							</button>
-						))}
+					{/* Body: category rail + pane */}
+					<div className='flex min-h-0 flex-1 max-md:flex-col'>
+						<nav
+							aria-label={t('pptx.options.title')}
+							className='w-44 shrink-0 space-y-0.5 overflow-y-auto border-r border-border/60 p-2 max-md:flex max-md:w-full max-md:space-y-0 max-md:gap-1 max-md:overflow-x-auto max-md:border-b max-md:border-r-0'
+						>
+							{VIEWER_OPTIONS_TABS.map((tab) => (
+								<button
+									key={tab.id}
+									type='button'
+									onClick={() => setActiveTabId(tab.id)}
+									aria-current={activeTabId === tab.id}
+									className={cn(
+										'block w-full whitespace-nowrap rounded px-3 py-2 text-left text-sm transition-colors max-md:w-auto',
+										activeTabId === tab.id
+											? 'bg-primary/10 font-medium text-primary'
+											: 'text-foreground hover:bg-accent',
+									)}
+								>
+									{t(tab.labelKey)}
+								</button>
+							))}
+						</nav>
+
+						<div className='min-h-0 flex-1 overflow-y-auto px-5 py-4'>
+							{activeTab.custom === 'language' ? (
+								<div className='space-y-4'>
+									<p className='text-sm font-medium text-foreground'>
+										{t(activeTab.descriptionKey)}
+									</p>
+									<section>
+										<h3 className='mb-1 border-b border-border/60 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+											{t('pptx.options.language.displayLanguage')}
+										</h3>
+										<p className='mb-2 text-xs text-muted-foreground'>
+											{t('pptx.options.language.displayLanguageDescription')}
+										</p>
+										<SettingsLanguageTab
+											activeLocale={localeCode}
+											locales={availableLocales}
+											onSelectLocale={onSelectLocale}
+										/>
+									</section>
+								</div>
+							) : activeTab.custom === 'ribbon' ? (
+								<div className='space-y-4'>
+									<p className='text-sm font-medium text-foreground'>
+										{t(activeTab.descriptionKey)}
+									</p>
+									<OptionsRibbonPane
+										options={options}
+										onRibbonTabHiddenChange={onRibbonTabHiddenChange}
+										onResetRibbon={() => onResetOptions('ribbon')}
+									/>
+								</div>
+							) : activeTab.custom === 'addIns' ? (
+								<div className='space-y-4'>
+									<p className='text-sm font-medium text-foreground'>
+										{t(activeTab.descriptionKey)}
+									</p>
+									<OptionsAddInsPane addinStatus={addinStatus} />
+								</div>
+							) : (
+								<OptionsPane
+									tab={activeTab}
+									options={options}
+									onOptionChange={onOptionChange}
+									renderSpecial={(section) => {
+										if (section.special === 'themePicker') {
+											return (
+												<div className='mt-2'>
+													<SettingsAppearanceTab
+														activeThemeKey={themeKey}
+														themes={availableThemes}
+														onSelectTheme={onSelectTheme}
+													/>
+												</div>
+											);
+										}
+										if (section.special === 'clearCache') {
+											return (
+												<div className='mt-2'>
+													<p className='mb-2 text-xs text-muted-foreground'>
+														{t('pptx.options.save.clearCacheDescription')}
+													</p>
+													<button
+														type='button'
+														onClick={onClearCache}
+														className='rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-accent'
+													>
+														{t('pptx.options.save.clearCacheNow')}
+													</button>
+												</div>
+											);
+										}
+										return null;
+									}}
+								>
+									{activeTab.custom === 'quickAccess' && (
+										<OptionsQuickAccessPane
+											options={options}
+											onQuickAccessCommandsChange={onQuickAccessCommandsChange}
+											onResetQuickAccess={() =>
+												onQuickAccessCommandsChange([...DEFAULT_QUICK_ACCESS_COMMAND_IDS])
+											}
+										/>
+									)}
+								</OptionsPane>
+							)}
+						</div>
 					</div>
 
-					{/* Content */}
-					<div className='px-5 py-4 max-h-[60vh] overflow-y-auto'>
-						{activeTab === 'general' && (
-							<div className='space-y-0.5'>
-								{SETTING_TOGGLES.map((toggle) => (
-									<ToggleSwitch
-										key={toggle.key}
-										label={t(toggle.labelKey)}
-										enabled={settings[toggle.key]}
-										onToggle={() => onSettingsChange(toggle.key, !settings[toggle.key])}
-									/>
-								))}
-							</div>
-						)}
-
-						{activeTab === 'appearance' && (
-							<SettingsAppearanceTab
-								activeThemeKey={themeKey}
-								themes={availableThemes}
-								onSelectTheme={onSelectTheme}
-							/>
-						)}
-
-						{activeTab === 'language' && (
-							<SettingsLanguageTab
-								activeLocale={localeCode}
-								locales={availableLocales}
-								onSelectLocale={onSelectLocale}
-							/>
-						)}
-
-						{activeTab === 'shortcuts' && (
-							<div className='space-y-0.5'>
-								{SHORTCUT_REFERENCE_ITEMS.map((shortcut, i) => (
-									<div
-										key={shortcut.actionKey}
-										className={cn(
-											'flex items-center justify-between gap-3 rounded px-3 py-2',
-											i % 2 === 0 ? 'bg-muted/60' : '',
-										)}
-									>
-										<span className='text-xs text-foreground'>{t(shortcut.actionKey)}</span>
-										<span className='font-mono text-[11px] text-muted-foreground whitespace-nowrap'>
-											{shortcut.shortcut}
-										</span>
-									</div>
-								))}
-							</div>
-						)}
+					{/* Footer */}
+					<div className='flex items-center justify-between gap-2 border-t border-border/60 px-5 py-3'>
+						<button
+							type='button'
+							onClick={() => onResetOptions()}
+							className='rounded border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'
+						>
+							{t('pptx.options.resetAll')}
+						</button>
+						<div className='flex items-center gap-2'>
+							<button
+								type='button'
+								onClick={handleCancel}
+								className='rounded border border-border px-4 py-1.5 text-xs text-foreground transition-colors hover:bg-accent'
+							>
+								{t('pptx.common.cancel')}
+							</button>
+							<button
+								type='button'
+								onClick={onClose}
+								className='rounded bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90'
+							>
+								{t('pptx.common.ok')}
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>

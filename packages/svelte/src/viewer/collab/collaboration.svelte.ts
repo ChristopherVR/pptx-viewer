@@ -25,32 +25,14 @@ import {
 	validateRoomId,
 } from 'pptx-viewer-shared';
 
+import type { CollaborationDeps } from './collaboration-deps';
 import { CollaborationPresence } from './collaboration-presence.svelte';
 import type { CollabProviderHandle } from './collaboration-provider';
-import { observeRemoteSlides } from './collaboration-remote-sync';
+import type { ObserveRemoteDeps } from './collaboration-remote-sync';
+import { adoptDocSlidesAfterLoad, observeRemoteSlides } from './collaboration-remote-sync';
 import type { CollabSession, CollabSessionFactory } from './collaboration-session';
 import { createDefaultSession } from './collaboration-session';
 import { wireProviderStatus } from './collaboration-status';
-
-export interface CollaborationDeps {
-	/** Read the current local slides (broadcast granularly on change). */
-	getSlides: () => PptxSlide[];
-	/** Apply a remote peer's slide snapshot into the editable slides. */
-	applyRemoteSlides: (slides: PptxSlide[]) => void;
-	/** Live host `collaboration` config; watched to auto start/stop a session. */
-	getConfig: () => CollaborationConfig | undefined;
-	/** Return the loaded source bytes for elected-writer (role 'owner') write-back. */
-	getSourceBytes?: () => Uint8Array | null;
-	/** Slide canvas width/height (unscaled px), used to clamp incoming cursor coordinates. */
-	getCanvasWidth?: () => number | undefined;
-	getCanvasHeight?: () => number | undefined;
-	/** Fired when a session starts (host observability). */
-	onStart?: (config: CollaborationConfig) => void;
-	/** Fired when a session stops (host observability). */
-	onStop?: () => void;
-	/** Session factory seam (defaults to the real yjs + transport wiring). */
-	createSession?: CollabSessionFactory;
-}
 
 /**
  * The collaboration controller. Construct it once during component setup: it
@@ -146,6 +128,19 @@ export class CollaborationController {
 	/** Follow the given peer's active slide, or `null` to stop following. */
 	followUser(clientId: number | null): void {
 		this.#presence.followUser(clientId);
+	}
+
+	/**
+	 * Re-adopt the shared doc's slides after a local content load committed a
+	 * parsed deck to viewer state (see `adoptDocSlidesAfterLoad`). The load
+	 * pipeline calls this synchronously right after it applies, i.e. before the
+	 * publish effect can flush the freshly loaded slides into the doc, so a
+	 * late joiner's bootstrap deck never clobbers the room's synced content.
+	 */
+	adoptDocAfterLoad(): void {
+		if (this.#active && this.#ydoc) {
+			adoptDocSlidesAfterLoad(this.#ydoc, this.#remoteDeps());
+		}
 	}
 
 	#syncConfig(config: CollaborationConfig | undefined): void {
@@ -265,17 +260,22 @@ export class CollaborationController {
 		});
 	}
 
-	#observeRemote(config: CollaborationConfig): void {
-		if (!this.#ydoc) {
-			return;
-		}
-		this.#unobserve = observeRemoteSlides(this.#ydoc, config, {
+	/** Callback bundle shared by the remote observer and post-load adoption. */
+	#remoteDeps(): ObserveRemoteDeps {
+		return {
 			isApplyingRemote: () => this.#applyingRemote,
 			setApplyingRemote: (value) => (this.#applyingRemote = value),
 			setLastSynced: (value) => (this.#lastSynced = value),
 			applyRemoteSlides: (slides) => this.#deps.applyRemoteSlides(slides),
 			scheduleWriteBack: (cfg) => this.#writeBack.schedule(cfg),
-		});
+		};
+	}
+
+	#observeRemote(config: CollaborationConfig): void {
+		if (!this.#ydoc) {
+			return;
+		}
+		this.#unobserve = observeRemoteSlides(this.#ydoc, config, this.#remoteDeps());
 	}
 
 	stop(): void {
