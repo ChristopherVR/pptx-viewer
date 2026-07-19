@@ -7,6 +7,7 @@ import type {
 	ViewerOptionsTabId,
 } from 'pptx-viewer-shared';
 import { DEFAULT_QUICK_ACCESS_COMMAND_IDS, VIEWER_OPTIONS_TABS } from 'pptx-viewer-shared';
+import type { PptxAiChatStore } from 'pptx-viewer-shared/ai';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,8 +19,13 @@ import { OptionsAddInsPane } from './settings/OptionsAddInsPane';
 import { OptionsPane } from './settings/OptionsPane';
 import { OptionsQuickAccessPane } from './settings/OptionsQuickAccessPane';
 import { OptionsRibbonPane } from './settings/OptionsRibbonPane';
+import { SettingsAiTab } from './SettingsAiTab';
 import { SettingsAppearanceTab } from './SettingsAppearanceTab';
 import { SettingsLanguageTab } from './SettingsLanguageTab';
+
+/** Synthetic tab id for the AI section (appended only when `aiEnabled`). */
+const AI_TAB_ID = 'ai';
+type SettingsTabId = ViewerOptionsTabId | typeof AI_TAB_ID;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -52,6 +58,10 @@ export interface SettingsDialogProps {
 	localeCode: string;
 	availableLocales: readonly LocaleCatalogEntry[];
 	onSelectLocale: (code: string) => void;
+	/** When true, an "AI" section is shown for exporting detailed chat logs. */
+	aiEnabled?: boolean;
+	/** Chat store the AI section reads from (defaults to the shared store). */
+	chatStore?: PptxAiChatStore;
 }
 
 // ---------------------------------------------------------------------------
@@ -80,8 +90,10 @@ export function SettingsDialog({
 	localeCode,
 	availableLocales,
 	onSelectLocale,
+	aiEnabled,
+	chatStore,
 }: SettingsDialogProps): React.ReactElement | null {
-	const [activeTabId, setActiveTabId] = useState<ViewerOptionsTabId>('general');
+	const [activeTabId, setActiveTabId] = useState<SettingsTabId>('general');
 	const { t } = useTranslation();
 	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
 	const snapshotRef = useRef<ViewerOptions | null>(null);
@@ -192,10 +204,32 @@ export function SettingsDialog({
 									{t(tab.labelKey)}
 								</button>
 							))}
+							{aiEnabled && (
+								<button
+									type='button'
+									onClick={() => setActiveTabId(AI_TAB_ID)}
+									aria-current={activeTabId === AI_TAB_ID}
+									className={cn(
+										'block w-full whitespace-nowrap rounded px-3 py-2 text-left text-sm transition-colors max-md:w-auto',
+										activeTabId === AI_TAB_ID
+											? 'bg-primary/10 font-medium text-primary'
+											: 'text-foreground hover:bg-accent',
+									)}
+								>
+									{t('pptx.ai.settingsSectionTitle')}
+								</button>
+							)}
 						</nav>
 
 						<div className='min-h-0 flex-1 overflow-y-auto px-5 py-4'>
-							{activeTab.custom === 'language' ? (
+							{activeTabId === AI_TAB_ID ? (
+								<div className='space-y-4'>
+									<p className='text-sm font-medium text-foreground'>
+										{t('pptx.ai.settingsSectionTitle')}
+									</p>
+									<SettingsAiTab store={chatStore} />
+								</div>
+							) : activeTab.custom === 'language' ? (
 								<div className='space-y-4'>
 									<p className='text-sm font-medium text-foreground'>
 										{t(activeTab.descriptionKey)}

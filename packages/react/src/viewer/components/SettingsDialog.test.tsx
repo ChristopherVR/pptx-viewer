@@ -113,6 +113,20 @@ describe('settingsDialog', () => {
 		expect(value).toBeTypeOf('boolean');
 	});
 
+	it('shows the AI section only when aiEnabled is set', () => {
+		renderDialog(createProps());
+		const aiNav = Array.from(container.querySelectorAll('nav button')).find(
+			(b) => b.textContent === 'pptx.ai.settingsSectionTitle',
+		);
+		expect(aiNav).toBeUndefined();
+
+		renderDialog(createProps({ aiEnabled: true }));
+		const aiButton = navButton('pptx.ai.settingsSectionTitle');
+		act(() => aiButton.click());
+		expect(aiButton.getAttribute('aria-current')).toBe('true');
+		expect(container.textContent).toContain('pptx.ai.exportLogsJson');
+	});
+
 	it('cancel restores the snapshot taken when the dialog opened', () => {
 		const props = createProps();
 		renderDialog(props);

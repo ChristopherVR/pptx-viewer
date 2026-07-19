@@ -84,14 +84,15 @@ export const translationsEn: Record<string, string> = {
 	'pptx.ai.unavailableHint': 'The optional "ai" SDK is not installed.',
 	'pptx.ai.errorPrefix': 'Something went wrong',
 	'pptx.ai.retry': 'Retry',
-	'pptx.ai.toolRunning': 'Running',
+	'pptx.ai.toolRunning': 'Working',
 	'pptx.ai.toolDone': 'Done',
 	'pptx.ai.toolFailed': 'Failed',
-	'pptx.ai.proposedChange': 'Proposed change',
-	'pptx.ai.accept': 'Accept',
-	'pptx.ai.reject': 'Reject',
-	'pptx.ai.acceptAll': 'Accept all',
-	'pptx.ai.pendingChanges': 'Pending changes ({{count}})',
+	'pptx.ai.toolDetails': 'Details',
+	'pptx.ai.proposedChange': 'Suggested change',
+	'pptx.ai.accept': 'Apply',
+	'pptx.ai.reject': 'Discard',
+	'pptx.ai.acceptAll': 'Apply all',
+	'pptx.ai.pendingChanges': 'Suggested changes ({{count}})',
 	'pptx.ai.moreChanges': '+{{count}} more',
 	// Canvas -> Ask AI affordances
 	'pptx.ai.askAboutElement': 'Ask AI about this',
@@ -102,6 +103,12 @@ export const translationsEn: Record<string, string> = {
 	'pptx.ai.pinnedFocus': 'Pinned',
 	'pptx.ai.clearFocus': 'Clear focus',
 	'pptx.ai.mergeSelectedTables': 'Merge selected tables',
+	// Pick-an-element mode
+	'pptx.ai.pickElement': 'Point at a slide element',
+	'pptx.ai.pickElementHint': 'Click an element on the slide',
+	'pptx.ai.pickDone': 'Done',
+	'pptx.ai.pickClear': 'Clear',
+	'pptx.ai.pickAria': 'Pick an element for the assistant',
 	// Applied (theme) confirmation
 	'pptx.ai.applied': 'Applied',
 	'pptx.ai.undo': 'Undo',
@@ -115,6 +122,19 @@ export const translationsEn: Record<string, string> = {
 	'pptx.ai.historyHint': 'Chats are saved in this browser.',
 	'pptx.ai.untitledChat': 'Untitled chat',
 	'pptx.ai.messageCount': '{{count}} messages',
+
+	// AI settings section (File > Options > AI): detailed chat-log export.
+	'pptx.ai.settingsSectionTitle': 'AI',
+	'pptx.ai.exportLogs': 'Export chat logs',
+	'pptx.ai.exportLogsHint':
+		"Download a detailed log of every saved AI chat, including each tool call's inputs and outputs. For technical users and debugging.",
+	'pptx.ai.exportLogsCounting': 'Counting saved chats…',
+	'pptx.ai.exportLogsStoredCount': '{{count}} saved chats in this browser.',
+	'pptx.ai.exportLogsDetailed': 'Include tool call inputs and outputs',
+	'pptx.ai.exportLogsJson': 'Export JSON',
+	'pptx.ai.exportLogsMarkdown': 'Export Markdown',
+	'pptx.ai.exportLogsDone': 'Exported {{count}} chats.',
+	'pptx.ai.noChatsToExport': 'No saved chats to export.',
 
 	// Find & Replace
 	'pptx.findReplace.title': 'Find & Replace',

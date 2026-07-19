@@ -675,6 +675,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			selectedElementId,
 			selectedElementIds,
 			pinnedFocus: aiPanel.pinnedFocus,
+			pickedFocus: aiPanel.pickTargets.length > 0 ? aiPanel.pickTargets : null,
 			handlerRef,
 			setSlides: state.setSlides,
 			setActiveSlideIndex: state.setActiveSlideIndex,
@@ -896,6 +897,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					localeCode={localeCode}
 					availableLocales={resolvedLocales}
 					onSelectLocale={handleLocaleChange}
+					aiEnabled={Boolean(ai)}
 				/>
 
 				{isHeaderFooterOpen && (
