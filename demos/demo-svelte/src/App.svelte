@@ -6,7 +6,7 @@
 	 * `?room=<id>` URL param joins a serverless (y-webrtc P2P) collaboration
 	 * session so two tabs on the same URL edit the same deck live.
 	 */
-	import type { CollaborationConfig } from 'pptx-svelte-viewer';
+	import type { CollaborationConfig, PptxAiConfig } from 'pptx-svelte-viewer';
 	import {
 		loadPresentationDeck,
 		parsePresentationSessionId,
@@ -15,12 +15,17 @@
 	} from 'pptx-svelte-viewer';
 	import { PptxHandler } from 'pptx-viewer-core';
 
+	import { buildViewerAiConfig } from './ai-config';
+	import AiSettings from './AiSettings.svelte';
 	import { resolveAutoName, resolveAutoRoomId, randomUserColor } from './collab';
 	import { language, t } from './demo-i18n.svelte';
 	import { readStoredTheme, themes } from './themes';
 
 	let bytes = $state<Uint8Array | null>(null);
 	let fileName = $state('');
+	// Built from the persisted demo AI settings when a deck opens; undefined
+	// leaves the viewer with no AI assistant (the default when no key is set).
+	let aiConfig = $state<PptxAiConfig | undefined>(undefined);
 	const themeKey = readStoredTheme();
 	let errorMessage = $state('');
 	// eslint-disable-next-line prefer-const
@@ -115,6 +120,7 @@
 
 	function openFile(file: File): void {
 		errorMessage = '';
+		aiConfig = buildViewerAiConfig();
 		fileName = file.name;
 		void file.arrayBuffer().then((buf) => {
 			bytes = new Uint8Array(buf);
@@ -127,6 +133,7 @@
 
 	async function newPresentation(): Promise<void> {
 		creating = true;
+		aiConfig = buildViewerAiConfig();
 		try {
 			const { handler, data } = await PptxHandler.createBlank({
 				title: 'Untitled Presentation',
@@ -183,6 +190,7 @@
 			filePath={fileName || (collaborationConfig ? `room-${collaborationConfig.roomId}.pptx` : undefined)}
 			collaboration={collaborationConfig ?? undefined}
 			{shareDefaults}
+			ai={aiConfig}
 			onstartcollaboration={onCollabStart}
 			onstopcollaboration={onCollabStop}
 			onerror={onViewerError}
@@ -206,6 +214,7 @@
 			{#if errorMessage}
 				<p class="demo-error">{errorMessage}</p>
 			{/if}
+			<AiSettings />
 			<!-- stopPropagation: the programmatic click() would bubble back to the
 			     zone's onclick and re-open the file chooser in a loop -->
 			<input
