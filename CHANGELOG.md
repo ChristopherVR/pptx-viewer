@@ -6,6 +6,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## 2026-07-19
 
+_Releases: pptx-svelte-viewer@1.19.0_
+
+## 2026-07-19
+
 _Releases: pptx-viewer-core@1.6.10, pptx-react-viewer@1.25.5, pptx-vue-viewer@1.24.5, pptx-angular-viewer@1.31.5, pptx-vanilla-viewer@0.17.5, pptx-svelte-viewer@1.18.0_
 
 ### Bug Fixes
