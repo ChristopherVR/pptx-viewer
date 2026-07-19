@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2.0.0
+
+V2 tidies the MCP server's public API. (The exact version and date are set
+when the release is tagged.)
+
+### Breaking changes and migration
+
+- The deprecated `runMutatingTool` re-export is removed. Call `runMcpTool`
+  instead; it is a pure rename with no behavioural difference.
+
 ## [1.3.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@1.3.2) - 2026-07-18
 
 ### Documentation

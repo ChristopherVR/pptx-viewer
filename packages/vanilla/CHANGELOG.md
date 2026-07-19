@@ -4,6 +4,34 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2.0.0
+
+V2 brings the AI assistant to the zero-framework viewer and matches the React
+viewer chrome. (The exact version and date are set when the release is
+tagged.)
+
+### AI assistant (new)
+
+- A chat panel (DOM + styles) and toolbar toggle, backed by an ai-bridge over
+  the viewer controller, that can read and edit your deck through the shared
+  toolset (add, update, remove elements, recolour, insert charts and SmartArt,
+  merge tables).
+- Edits arrive as staged proposals you Apply or Discard; each is a single
+  undoable step.
+- Bring your own key via the Vercel AI SDK (optional `ai` peer dependency);
+  the demo shows how to wire the connection config.
+- Fully translated (English, French, Spanish, German).
+
+### Viewer parity
+
+- Viewer chrome (footer, toolbar, ribbon, surrounding UI) brought to React
+  parity.
+
+### Breaking changes and migration
+
+- Presentation print settings now go through the typed `printProperties.*`
+  fields; the removed flat print aliases are no longer used.
+
 ## [0.17.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.17.2) - 2026-07-19
 
 ## [0.17.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@0.17.1) - 2026-07-18

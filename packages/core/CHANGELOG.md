@@ -4,6 +4,33 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2.0.0
+
+The V2 core release sharpens OpenXML fidelity and stabilizes the public API.
+(The exact version and date are set when the release is tagged.)
+
+### Highlights
+
+- Spec-exact arrow geometry. Curved arrows (right, left, up, down) and bent
+  arrows (bentArrow, bentUpArrow, uturnArrow) are transcribed verbatim from
+  the ECMA-376 / ISO-IEC 29500 preset shape definitions, so they respond
+  correctly to any adjustment handle instead of approximating.
+- ActiveX controls round-trip. Control edits (rename, retarget, add, remove,
+  reorder) now serialize from a typed model rather than surviving only as
+  raw XML.
+- Chart manual-layout extension lists are captured into the typed model and
+  re-emitted, so editing or re-saving such a chart no longer drops them.
+
+### Breaking changes and migration
+
+- Removed the deprecated flat print fields
+  `PptxPresentationProperties.printSlidesPerPage`, `.printFrameSlides`, and
+  `.printColorMode`. Read and write `printProperties.printWhat`,
+  `.frameSlides`, and `.colorMode` instead.
+- Removed the deprecated `DIGITAL_SIGNATURE_ORIGIN_REL_TYPE` re-export from
+  `signature-detection`; import it from `signature-constants` (still
+  re-exported from the `core/utils` barrel).
+
 ## [1.6.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.6.7) - 2026-07-19
 
 ## [1.6.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.6.6) - 2026-07-18

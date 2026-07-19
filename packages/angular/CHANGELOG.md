@@ -4,6 +4,40 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2.0.0
+
+V2 brings the AI assistant to the Angular viewer, matches the React viewer
+chrome, and stabilizes the public API. (The exact version and date are set
+when the release is tagged.)
+
+### AI assistant (new)
+
+- A chat panel and toolbar toggle, backed by an ai-bridge and chat service,
+  that can read and edit your deck through the shared toolset (add, update,
+  remove elements, recolour, insert charts and SmartArt, merge tables).
+- Edits arrive as staged proposals you Apply or Discard; each is a single
+  undoable step.
+- Bring your own key via the Vercel AI SDK (optional `ai` peer dependency);
+  the demo shows how to wire the connection config.
+- Fully translated (English, French, Spanish, German).
+
+### Viewer parity
+
+- Viewer chrome (footer, toolbar, ribbon, surrounding UI) brought to React
+  parity.
+- Broadcaster auto-follow now routes through the shared collaboration policy,
+  matching React and Vue.
+
+### Breaking changes and migration
+
+- Internal services, components, and helpers are now exposed through the
+  dedicated `pptx-angular-viewer/internals` subpath (uniform with React and
+  Vue). That surface is not covered by semver; use the stable root exports for
+  anything needing stability.
+- Presentation print settings now go through the typed `printProperties.*`
+  fields; the removed flat print aliases are no longer used.
+- `smartArt3D` graduated from experimental to stable (no code change needed).
+
 ## [1.31.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.31.2) - 2026-07-19
 
 ## [1.31.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.31.1) - 2026-07-18

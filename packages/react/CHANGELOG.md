@@ -4,6 +4,52 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2.0.0
+
+V2 brings the flagship AI assistant to the React viewer, plus a stabilized
+public API. (The exact version and date are set when the release is tagged.)
+
+### AI assistant (new)
+
+A chat panel that lives inside the viewer and can read and edit your deck.
+
+- Chat with your deck in plain language; the assistant uses around 30+ tools
+  to read the outline, inspect elements, edit content, recolour and restyle,
+  insert charts and SmartArt, and merge tables.
+- Staged proposals you Apply or Discard (Apply all for a batch). Nothing
+  changes until you say so, and each change is a single undoable step.
+- Pick-an-element focus mode: point at a slide element (multi-pick supported)
+  so "fix this" or "merge these two tables" just works.
+- Live "collaborator" presence: the panel navigates to the slide it is
+  touching and pulses an animated highlight around the element, with colour
+  edits tweening as they apply.
+- Persistent chat history (IndexedDB first, localStorage fallback),
+  auto-titled and resumable from a Chats menu, per-deck and private to your
+  browser.
+- Friendly, non-technical transcript: tool activity reads as plain language
+  and hides raw ids behind an optional Details disclosure.
+- "Ask AI" and "Fix with AI" canvas context-menu actions scoped to the
+  clicked element.
+- Bring your own key via the Vercel AI SDK (optional `ai` peer dependency):
+  point it at your backend route or an in-process model.
+- New AI section in File > Options to export a detailed JSON or Markdown log
+  of stored chats for debugging.
+
+### Fixes
+
+- Static slide thumbnails now render layout-inherited colours plus table and
+  field content, matching the live canvas.
+
+### Breaking changes and migration
+
+- The `pptx-react-viewer/hooks-unstable` subpath is removed. Import the same
+  building blocks from `pptx-react-viewer/internals` (a surface explicitly not
+  covered by semver; prefer the stable root and `/viewer` exports).
+- Presentation print settings now read and write the typed
+  `printProperties.*` fields; the removed flat `printSlidesPerPage` /
+  `printFrameSlides` aliases are no longer used.
+- `smartArt3D` graduated from experimental to stable (no code change needed).
+
 ## [1.25.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.25.2) - 2026-07-19
 
 ## [1.25.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.25.1) - 2026-07-18

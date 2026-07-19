@@ -4,6 +4,46 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2.0.0
+
+V2 brings the AI assistant to the Vue viewer, matches the React viewer chrome,
+and stabilizes the public API. (The exact version and date are set when the
+release is tagged.)
+
+### AI assistant (new)
+
+- A chat panel and toolbar toggle, backed by ai-bridge and chat-session
+  composables, that can read and edit your deck through the shared toolset
+  (add, update, remove elements, recolour, insert charts and SmartArt, merge
+  tables).
+- Edits arrive as staged proposals you Apply or Discard; each is a single
+  undoable step.
+- Bring your own key via the Vercel AI SDK (optional `ai` peer dependency);
+  the demo shows how to wire the connection config.
+- Fully translated (English, French, Spanish, German).
+
+### Viewer parity
+
+- Viewer chrome (footer, toolbar, ribbon, surrounding UI) brought to React
+  parity.
+- New granular collaboration composables (`useYjsProvider`,
+  `usePresenceTracking`, `useCollaborativeState`, `useCollaborativeHistory`)
+  match the React and Angular collaboration surface; `useCollaboration` stays
+  as the convenience wrapper.
+
+### Breaking changes and migration
+
+- The `pptx-vue-viewer/composables-unstable` subpath is removed. Import
+  internal building blocks from `pptx-vue-viewer/internals` (not covered by
+  semver; prefer the stable root and `/viewer` exports).
+- `useCollaborationWiring` and `useToolbarVisibility` are no longer root
+  exports; import them from `pptx-vue-viewer/internals`.
+- `CROP_SIDES` is removed from `useImageEditing`; use the `useCropSides()`
+  composable instead.
+- Presentation print settings now go through the typed `printProperties.*`
+  fields; the removed flat print aliases are no longer used.
+- `smartArt3D` graduated from experimental to stable (no code change needed).
+
 ## [1.24.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.24.2) - 2026-07-19
 
 ## [1.24.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.24.1) - 2026-07-18

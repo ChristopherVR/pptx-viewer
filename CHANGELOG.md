@@ -1,8 +1,130 @@
 # Changelog
 
 All notable changes to this project are documented here.
-This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
-by [git-cliff](https://git-cliff.org); do not edit it by hand.
+
+The `2.0.0` section below is hand-authored to showcase the V2 release; the
+dated sections beneath it are generated from
+[Conventional Commits](https://www.conventionalcommits.org) by
+[git-cliff](https://git-cliff.org). The exact version number and date for
+`2.0.0` are finalized when the release is tagged.
+
+## 2.0.0
+
+pptx-viewer V2 is a big one. The headline is a brand-new in-viewer AI
+assistant that can read and edit your deck for you, available across every
+binding (React, Vue, Angular, Svelte, and Vanilla). Alongside it, V2 brings
+the five bindings to full UI parity, sharpens OpenXML fidelity in the core,
+and cleans up the public API surface. That API cleanup is why 2.0.0 is a
+breaking release; see "Breaking changes and migration" below.
+
+### AI assistant (new)
+
+Meet your deck's new co-pilot: a chat panel that lives right inside the
+viewer and can actually read and edit the presentation you are looking at.
+
+- Chat with your deck. Ask questions about slides or tell the assistant to
+  make changes in plain language ("add a title to slide 3", "make this box
+  blue", "merge these two tables").
+- Around 30+ built-in tools let the assistant read the outline, inspect
+  elements, and edit content: add, update, and remove elements, recolour and
+  restyle, insert charts and SmartArt, and merge tables.
+- Staged proposals, always in your control. Edits arrive as a "Suggested
+  change" card you Apply or Discard (Apply all for a batch); nothing touches
+  your deck until you say so, and each change lands as a single undoable step.
+- Pick-an-element focus mode. Point at a slide element and the assistant
+  scopes its work to it, so "fix this" or "merge these" just works without
+  restating anything.
+- Live "collaborator" presence. Watch the assistant work: it navigates to the
+  slide it is touching and pulses an animated highlight around the element in
+  real time, with colour edits tweening as they apply.
+- Chat history that persists. Conversations are saved in your browser
+  (IndexedDB first, with a localStorage fallback), auto-titled, and resumable
+  from a Chats menu. History is per-deck and private to your browser.
+- Friendly, non-technical UI. Tool activity reads as plain language ("Looked
+  at slide 5", "Merged two tables"); raw tool names and element ids stay
+  tucked behind an optional Details disclosure.
+- Bring your own key, any provider. The assistant is provider-agnostic via the
+  Vercel AI SDK (`ai`), which is an optional peer dependency. Wire it to your
+  own backend route or an in-process model with a declarative connection
+  config, plus write-policy and tool allow/deny controls.
+- AI log export. A new AI section in File > Options lets you download a
+  detailed JSON or Markdown transcript of stored chats for debugging.
+- Fully translated (English, French, Spanish, German).
+
+Note: the assistant ships across all five bindings. The round-3 polish
+(pick-to-focus, the live presence highlight, the friendlier cards, and the
+in-Options log export) landed in React first and is being ported to the
+other bindings.
+
+### UI parity across all five bindings
+
+- React, Vue, Angular, Svelte, and Vanilla now share the same viewer chrome:
+  footer, toolbar, ribbon, and surrounding UI are brought to React parity.
+- A lot of previously per-binding logic (the share form, the eyedropper colour
+  sampler, theme-gallery presets, the audience-content store, and preview
+  composition) moved into shared helpers, so the bindings behave consistently
+  and stay in sync.
+
+### OpenXML fidelity
+
+- Spec-exact arrow geometry. Curved arrows (right, left, up, down) and bent
+  arrows (bentArrow, bentUpArrow, uturnArrow) are now transcribed verbatim
+  from the ECMA-376 / ISO-IEC 29500 preset shape definitions, so they respond
+  correctly to any adjustment handles instead of approximating.
+- ActiveX controls round-trip. Control edits (rename, retarget, add, remove,
+  reorder) now serialize from a typed model instead of surviving only as
+  raw XML.
+- Chart manual-layout extensions are typed and preserved, so editing or
+  re-saving a chart with a manual-layout extension list no longer drops it.
+- Table-merge fidelity. Merging tables loaded from a real .pptx now renders
+  every row correctly; a stale `rawXml` on the merged table was previously
+  masking the second table's rows.
+
+### Collaboration
+
+- Real-time sync keeps working in backgrounded tabs and survives restarts.
+- Broadcaster auto-follow is routed through a shared policy across React, Vue,
+  and Angular; late joiners adopt the shared doc correctly, and in-place asset
+  swaps propagate to peers.
+
+### Under the hood
+
+- GitHub release notes now carry the real per-release changes instead of an
+  empty pruned-history footer.
+
+### Breaking changes and migration
+
+V2 stabilizes the public API, which is why it is a major release. If you only
+import from each package's stable root (or `/viewer`) export, you likely have
+nothing to change. The breaking bits:
+
+- Internal building blocks moved to an `/internals` subpath, and the old
+  `*-unstable` subpaths are gone:
+  - `pptx-react-viewer/hooks-unstable` becomes `pptx-react-viewer/internals`
+  - `pptx-vue-viewer/composables-unstable` becomes `pptx-vue-viewer/internals`
+  - Angular internal services are now exposed via `pptx-angular-viewer/internals`
+
+  The `/internals` surface is explicitly not covered by semver; prefer the
+  stable root and `/viewer` exports.
+
+- Deprecated print fields removed (core).
+  `PptxPresentationProperties.printSlidesPerPage`, `.printFrameSlides`, and
+  `.printColorMode` are gone. Use the typed `printProperties.printWhat`,
+  `.frameSlides`, and `.colorMode` instead.
+- Other removed deprecated members:
+  - `CROP_SIDES` (Vue `useImageEditing`): use the `useCropSides()` composable.
+  - `runMutatingTool` (pptx-viewer-mcp): use `runMcpTool`.
+  - The `DIGITAL_SIGNATURE_ORIGIN_REL_TYPE` re-export from
+    `signature-detection`: import it from `signature-constants` (still
+    re-exported from the `core/utils` barrel).
+- `smartArt3D` graduated from experimental to stable. No code change is
+  needed; the prop is simply supported now.
+
+Vue also gains granular collaboration composables (`useYjsProvider`,
+`usePresenceTracking`, `useCollaborativeState`, `useCollaborativeHistory`) to
+match React and Angular; `useCollaboration` stays as the convenience wrapper.
+`useCollaborationWiring` and `useToolbarVisibility` are no longer root
+exports; import them from `pptx-vue-viewer/internals`.
 
 ## 2026-07-19
 
