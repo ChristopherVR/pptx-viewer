@@ -277,6 +277,7 @@ export default defineConfig({
 						{ text: 'The PptxData Model', link: '/guide/data-model' },
 						{ text: 'Theming', link: '/guide/theming' },
 						{ text: 'Localization (i18n)', link: '/guide/localization' },
+						{ text: 'AI Assistant', link: '/guide/ai-assistant' },
 						{ text: 'Account & Sign-in', link: '/guide/account' },
 						{ text: 'Limitations', link: '/guide/limitations' },
 					],
