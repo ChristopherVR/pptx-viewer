@@ -69,6 +69,9 @@ export type {
 export { createAiChatSession } from './session';
 export type { PptxAiChatSession } from './session';
 
+export { createChatHistoryStore } from './chat-history-store';
+export type { PptxAiChatStore, PptxAiChatSummary, PptxAiStoredChat } from './chat-history-store';
+
 export { createVanillaChat } from './vanilla-chat';
 export type { VanillaChatController, VanillaChatSnapshot } from './vanilla-chat';
 

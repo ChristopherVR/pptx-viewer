@@ -79,6 +79,7 @@
 		"@types/dompurify": "^3.2.0",
 		"@types/three": "^0.185.1",
 		"ai": "^7.0.31",
+		"fake-indexeddb": "^6.2.2",
 		"pptx-viewer-core": "workspace:*",
 		"three": "^0.185.1",
 		"tsdown": "^0.22.9",
