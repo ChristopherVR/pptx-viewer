@@ -114,7 +114,7 @@ describe('aiProposalCard', () => {
 			}),
 		);
 		expect(container.textContent).toContain('Recolor title');
-		expect(container.textContent).toContain('Proposed change');
+		expect(container.textContent).toContain('Suggested change');
 		expect(view.summary.length).toBeGreaterThan(0);
 	});
 
@@ -134,7 +134,7 @@ describe('aiProposalCard', () => {
 			}),
 		);
 		act(() => {
-			findButton(container, 'Accept').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+			findButton(container, 'Apply').dispatchEvent(new MouseEvent('click', { bubbles: true }));
 		});
 		expect(applied).toHaveLength(1);
 		expect(applied[0].label).toBe('Move title');
@@ -157,7 +157,7 @@ describe('aiProposalCard', () => {
 			}),
 		);
 		act(() => {
-			findButton(container, 'Reject').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+			findButton(container, 'Discard').dispatchEvent(new MouseEvent('click', { bubbles: true }));
 		});
 		expect(applied).toHaveLength(0);
 		expect(store.size).toBe(0);

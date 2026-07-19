@@ -19,7 +19,7 @@ export function AiAppliedThemeCard({ summary, onUndo }: AiAppliedThemeCardProps)
 	return (
 		<div className='flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-[12px]'>
 			<LuPalette className='w-3.5 h-3.5 shrink-0 text-primary' />
-			<span className='min-w-0 flex-1 truncate text-foreground' title={summary}>
+			<span className='min-w-0 flex-1 break-words text-foreground'>
 				<span className='font-medium text-primary'>{t('pptx.ai.applied')}:</span> {summary}
 			</span>
 			{!undone && (
