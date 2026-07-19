@@ -1,6 +1,6 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { CollaborationConfig, CollaborationTransport } from 'pptx-viewer-shared';
-import { buildBroadcastViewerUrl } from 'pptx-viewer-shared';
+import { buildBroadcastViewerUrl, shouldAutoFollowBroadcaster } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -130,8 +130,16 @@ export function useCollaborationWiring(
 		}
 	});
 	// Viewers in a one-way broadcast auto-follow the broadcaster's active slide.
+	// The role guard is the shared policy (only a local `viewer` follows the
+	// `owner`), so Vue no longer yanks a `collaborator` to the owner's slide
+	// while React/Angular leave it free. `broadcasterSlideIndex` is only
+	// non-null when an `owner` peer exists, so the broadcaster role is `owner`.
 	watch(collab.broadcasterSlideIndex, (index) => {
-		if (index !== null && collab.followedClientId.value === null) {
+		if (
+			index !== null &&
+			collab.followedClientId.value === null &&
+			shouldAutoFollowBroadcaster({ localRole: collab.activeRole.value, broadcasterRole: 'owner' })
+		) {
 			goTo(index);
 		}
 	});

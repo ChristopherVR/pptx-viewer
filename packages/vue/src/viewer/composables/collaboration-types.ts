@@ -63,6 +63,8 @@ export interface UseCollaborationResult {
 	remotePresences: Ref<RemotePresence[]>;
 	connectedCount: ComputedRef<number>;
 	active: Ref<boolean>;
+	/** The local user's role in the active session (undefined when stopped). */
+	activeRole: Ref<CollaborationRole | undefined>;
 	followedClientId: Ref<number | null>;
 	followedSlideIndex: ComputedRef<number | null>;
 	broadcasterSlideIndex: ComputedRef<number | null>;

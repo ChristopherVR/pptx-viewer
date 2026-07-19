@@ -7,6 +7,7 @@
  */
 import type {
 	CollaborationConfig,
+	CollaborationRole,
 	PresencePublisher,
 	YjsFactories,
 	YDocLike,
@@ -48,6 +49,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 	const connected = computed(() => status.value === 'connected');
 	const remotePresences = ref<RemotePresence[]>([]);
 	const active = ref(false);
+	const activeRole = ref<CollaborationRole | undefined>(undefined);
 	const followedClientId = ref<number | null>(null);
 	const cursors = ref<RemoteCursor[]>([]);
 	const connectedCount = computed(() => remotePresences.value.length + (active.value ? 1 : 0));
@@ -148,6 +150,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 	async function start(config: CollaborationConfig): Promise<void> {
 		stop();
 		lastConfig = config;
+		activeRole.value = config.role;
 		try {
 			validateRoomId(config.roomId);
 		} catch {
@@ -257,6 +260,19 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 				writeBack.schedule(config);
 			});
 
+			// Late-joiner catch-up: a sync that landed BEFORE observeYDocSlides
+			// attached never fires the observer, so a late joiner would render an
+			// empty deck until the next remote edit. React reads the array on its
+			// first observe for the same reason; mirror it here.
+			const initialSlides = readSlidesFromYDoc(currentYDoc);
+			if (initialSlides.length > 0) {
+				applyingRemote = true;
+				options.onRemoteSlides(initialSlides);
+				applyingRemote = false;
+				// Dedupe the echo: the queued slides watch sees no net change.
+				lastSynced = JSON.stringify(initialSlides);
+			}
+
 			// Re-adopt the doc's slides when a local content load finishes
 			// mid-session (see collaboration-load-adoption.ts). Sync-flushed so
 			// the adoption re-primes lastSynced before the queued slides watch
@@ -323,6 +339,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		lastSynced = '';
 		status.value = 'disconnected';
 		active.value = false;
+		activeRole.value = undefined;
 		cursors.value = [];
 		remotePresences.value = [];
 		followedClientId.value = null;
@@ -362,6 +379,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		remotePresences,
 		connectedCount,
 		active,
+		activeRole,
 		followedClientId,
 		followedSlideIndex,
 		broadcasterSlideIndex,
