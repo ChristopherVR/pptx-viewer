@@ -498,6 +498,9 @@ export * from './presenter-view';
 export * from './presenter-console';
 export * from './presentation-print-settings';
 export * from './presentation-session';
+// Audience content store: IndexedDB presenter <-> audience deck handoff, plus
+// the audience-tab hash detection helpers. Shared by every binding.
+export * from './audience-content-store';
 // Presentation toolbar: bottom-trigger-zone visibility math, auto-hide timing,
 // pen/highlighter colour swatches, and slide-counter formatting.
 export * from './presentation-toolbar';
