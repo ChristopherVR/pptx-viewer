@@ -112,6 +112,19 @@ export interface SlideCanvasProps {
 	/** Fired on any stage click; the host wires this to advance presentation playback. */
 	onstageclick?: (event: MouseEvent) => void;
 	/**
+	 * True while the AI panel is picking an element: the next element click(s)
+	 * become the assistant's focus (highlighted) instead of selecting / editing.
+	 */
+	aiPickMode?: boolean;
+	/**
+	 * True while a running AI tool is active: the stage marks itself
+	 * `data-pptx-ai-active` so element colour changes tween while the assistant
+	 * works (see AiFocusHighlightOverlay's tween rule).
+	 */
+	aiActive?: boolean;
+	/** Route a picked canvas element to the AI focus (pick mode only). */
+	onaipickelement?: (elementId: string) => void;
+	/**
 	 * Overlay content layered above the slide (selection/editor layer, ink
 	 * drawing, alignment guides, presentation annotations, collaboration
 	 * cursors, transition overlay, ...). Rendered inside the same
@@ -223,6 +236,10 @@ export interface ElementContextMenuProps {
 	x: number;
 	y: number;
 	editor: EditorState;
+	/** "Ask AI about this" action (shown only when the host enables the `ai` prop). */
+	onaskai?: () => void;
+	/** "Fix with AI" action (shown only when the host enables the `ai` prop). */
+	onfixai?: () => void;
 	onclose: () => void;
 }
 

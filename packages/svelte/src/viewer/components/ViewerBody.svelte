@@ -10,6 +10,8 @@
 	import type { CanvasSize, RemoteCursor } from 'pptx-viewer-shared';
 	import { setCellText, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 
+	import type { AiCanvasHighlight } from '../ai/ai-panel-controller.svelte';
+	import AiFocusHighlightOverlay from './ai/AiFocusHighlightOverlay.svelte';
 	import CollaborationCursors from '../collab/components/CollaborationCursors.svelte';
 	import type { EditorController } from '../editor/editor-controller.svelte';
 	import type { EditorState } from '../editor/editor-state.svelte';
@@ -67,6 +69,12 @@
 		onchangeguide,
 		spellCheck = false,
 		chromeUi,
+		aiPickMode = false,
+		aiActive = false,
+		aiHighlights = [],
+		onaipickelement,
+		onaskai,
+		onfixai,
 	}: {
 		t: Translator;
 		editor: EditorState;
@@ -112,6 +120,18 @@
 		spellCheck?: boolean;
 		/** Side-panel open/collapsed state shared with the ribbon's toggles. */
 		chromeUi?: ChromeUiState;
+		/** True while the AI panel is picking a slide element (see SlideCanvas). */
+		aiPickMode?: boolean;
+		/** True while a running AI tool is active (enables the canvas colour tween). */
+		aiActive?: boolean;
+		/** Rings the AI focus overlay should draw on the active slide. */
+		aiHighlights?: readonly AiCanvasHighlight[];
+		/** Route a picked canvas element to the AI focus (pick mode). */
+		onaipickelement?: (elementId: string) => void;
+		/** "Ask AI about this" from the element context menu (gated on the `ai` prop). */
+		onaskai?: () => void;
+		/** "Fix with AI" from the element context menu (gated on the `ai` prop). */
+		onfixai?: () => void;
 	} = $props();
 
 	// The template's bind:clientWidth/Height write these (invisible to the linter).
@@ -210,7 +230,19 @@
 					onstagedblclick={controller.onStageDblClick}
 					onstagecontextmenu={controller.onStageContextMenu}
 					onstageclick={presenting ? onAdvance : undefined}
+					{aiPickMode}
+					{aiActive}
+					{onaipickelement}
 				>
+					{#if aiHighlights.length > 0}
+						<AiFocusHighlightOverlay
+							highlights={aiHighlights}
+							elements={activeSlide?.elements ?? []}
+							activeSlideIndex={current}
+							{scale}
+							{canvasSize}
+						/>
+					{/if}
 					{#if editingActive && guides.length && onchangeguide}<AlignmentGuides {guides} {scale} onchange={onchangeguide} />{/if}
 					{#if editingActive}
 						<EditorLayer {controller} {scale} {spellCheck} />
@@ -233,7 +265,7 @@
 					{/if}
 				</SlideCanvas>
 				{#if contextMenu}
-					<ElementContextMenu x={contextMenu.x} y={contextMenu.y} {editor} onclose={onContextMenuClose} />
+					<ElementContextMenu x={contextMenu.x} y={contextMenu.y} {editor} {onaskai} {onfixai} onclose={onContextMenuClose} />
 				{/if}
 			{:else}
 				<div class="pptx-svelte-message" role="status">{t('pptx.statusBar.noSlides')}</div>

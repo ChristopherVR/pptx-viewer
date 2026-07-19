@@ -7,7 +7,7 @@
 	import { useTranslator } from '../../i18n/context';
 	import type { ElementContextMenuProps } from './props';
 
-	const { x, y, editor, onclose }: ElementContextMenuProps = $props();
+	const { x, y, editor, onaskai, onfixai, onclose }: ElementContextMenuProps = $props();
 	const t = useTranslator();
 
 	const menuStyle = $derived(`left: ${Math.max(x, 8)}px; top: ${Math.max(y, 8)}px`);
@@ -38,6 +38,11 @@
 	<button type="button" role="menuitem" onclick={() => act(() => editor.reorderSelected('back'))}>{t('pptx.contextMenu.sendToBack')}</button>
 	<div class="pptx-svelte-context-separator" role="separator"></div>
 	<button type="button" role="menuitem" class="pptx-svelte-context-delete" onclick={() => act(() => editor.deleteSelected())}>{t('pptx.contextMenu.delete')}</button>
+	{#if onaskai || onfixai}
+		<div class="pptx-svelte-context-separator" role="separator"></div>
+		{#if onaskai}<button type="button" role="menuitem" onclick={() => act(onaskai)}>{t('pptx.ai.askAboutElement')}</button>{/if}
+		{#if onfixai}<button type="button" role="menuitem" onclick={() => act(onfixai)}>{t('pptx.ai.fixElement')}</button>{/if}
+	{/if}
 </div>
 
 <style>

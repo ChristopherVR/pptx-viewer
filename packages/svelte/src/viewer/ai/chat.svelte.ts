@@ -15,13 +15,14 @@
 
 import { Chat } from '@ai-sdk/svelte';
 import type { ChatStatus } from 'ai';
-import { createAiChatSession, isAiAvailable } from 'pptx-viewer-shared/ai';
+import { createAiChatSession, isAiAvailable, toolCanvasTarget } from 'pptx-viewer-shared/ai';
 import type {
 	PptxAiBridge,
 	PptxAiChatSession,
 	PptxAiConfig,
 	PptxAiUIMessage,
 	ProposalView,
+	ToolCanvasTarget,
 } from 'pptx-viewer-shared/ai';
 
 /** Lifecycle of the AI session bootstrap. */
@@ -51,6 +52,12 @@ export interface SvelteAiChatDeps {
 	checkAvailable?: () => Promise<boolean>;
 	/** Session builder; defaults to {@link createAiChatSession}. */
 	createSession?: (bridge: PptxAiBridge, config: PptxAiConfig) => Promise<PptxAiChatSession>;
+	/**
+	 * Called as each tool call starts, with the slide / element(s) it references
+	 * (or `null` for deck-wide tools). Lets the panel navigate + highlight the
+	 * canvas so the viewer mirrors what the assistant is doing in real time.
+	 */
+	onToolTarget?: (target: ToolCanvasTarget | null) => void;
 }
 
 export class SvelteAiChat {
@@ -113,6 +120,9 @@ export class SvelteAiChat {
 					if (!chat) {
 						return;
 					}
+					// Drive the live on-canvas focus: navigate + highlight the element(s)
+					// this tool touches, so the viewer mirrors the assistant in real time.
+					this.#deps.onToolTarget?.(toolCanvasTarget(toolName, input));
 					const addToolOutput = chat.addToolOutput as unknown as AddToolOutput;
 					try {
 						const output = await session.executeToolCall(toolName, input);

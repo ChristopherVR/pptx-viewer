@@ -72,6 +72,7 @@
 	import { createViewportHandlers } from './state/viewport-handlers';
 	import { styleToString } from './style';
 	import { createSvelteAiBridge } from './ai';
+	import { AiPanelController } from './ai/ai-panel-controller.svelte';
 	import type { PowerPointViewerProps } from './types';
 
 	const {
@@ -355,6 +356,20 @@
 			}
 		},
 	});
+	// On-canvas scope for the assistant: focus targets, pick mode, and the live
+	// tool-focus highlight overlay. Owned here so the panel + canvas share it.
+	const aiPanel = new AiPanelController({
+		getActiveSlideIndex: () => viewer.current,
+		getSelectedElementId: () => editor.selectedElementId,
+		getSelectedElementIds: () => editor.selection.ids,
+		getSelectedElement: () => editor.selectedElement,
+		openPanel: () => {
+			aiPanelOpen = true;
+		},
+	});
+	$effect(() => () => aiPanel.dispose());
+	// Highlights only on the active slide; empty when the assistant is idle.
+	const aiHighlights = $derived(ai ? aiPanel.canvasHighlights : []);
 
 	// ── Autosave ─────────────────────────────────────────────────────────
 	// Debounced crash-recovery autosave: enabled only when the host opts in,
@@ -897,6 +912,12 @@
 			const target = editor.slidesOps.moveSlide(fromIndex, toIndex);
 			if (target !== null) viewer.goTo(target);
 		}}
+		aiPickMode={ai ? aiPanel.pickMode : false}
+		aiActive={ai ? aiPanel.canvasAnimating : false}
+		aiHighlights={aiHighlights}
+		onaipickelement={ai ? (elementId) => aiPanel.addPick(viewer.current, elementId) : undefined}
+		onaskai={ai && editor.selectedElement ? () => aiPanel.askAboutSelection() : undefined}
+		onfixai={ai && editor.selectedElement ? () => aiPanel.fixSelection() : undefined}
 	/>{/if}
 	{#if viewer.isFullscreen}
 		<PresentationTouchControls
@@ -986,7 +1007,7 @@
 	{#if ai && aiPanelOpen && chromeVisible}
 		<div class="pptx-svelte-ai-dock">
 			{#await import('./components/ai/AiChatPanel.svelte') then { default: AiChatPanel }}
-				<AiChatPanel bridge={aiBridge} config={ai} onclose={() => (aiPanelOpen = false)} />
+				<AiChatPanel bridge={aiBridge} config={ai} {aiPanel} onclose={() => (aiPanelOpen = false)} />
 			{/await}
 		</div>
 	{/if}

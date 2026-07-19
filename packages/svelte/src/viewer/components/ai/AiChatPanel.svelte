@@ -13,30 +13,55 @@
 	import Sparkles from '@lucide/svelte/icons/sparkles';
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 	import X from '@lucide/svelte/icons/x';
-	import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
+	import type { PptxAiBridge, PptxAiConfig, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
 	import { onMount, untrack } from 'svelte';
 
 	import { useTranslator } from '../../../i18n/context';
+	import type { AiPanelController } from '../../ai/ai-panel-controller.svelte';
 	import { SvelteAiChat } from '../../ai/chat.svelte';
 	import AiComposer from './AiComposer.svelte';
+	import AiFocusBar from './AiFocusBar.svelte';
 	import AiMessageList from './AiMessageList.svelte';
 	import AiProposalCard from './AiProposalCard.svelte';
 
 	const {
 		bridge,
 		config,
+		aiPanel,
 		onclose,
 	}: {
 		bridge: PptxAiBridge;
 		config: PptxAiConfig;
+		/** On-canvas scope controller (focus targets, picks, live-tool highlight). */
+		aiPanel: AiPanelController;
 		onclose: () => void;
 	} = $props();
 
 	const t = useTranslator();
+	// Live "AI as a collaborator" focus: as each tool runs, navigate to and
+	// highlight the slide / element(s) it touches so the canvas mirrors the
+	// assistant in real time (and colour edits tween while it is active).
+	function onToolTarget(target: ToolCanvasTarget | null): void {
+		if (target && target.slideIndex !== undefined) {
+			bridge.goToSlide(target.slideIndex);
+		}
+		aiPanel.flashToolTarget(target);
+	}
 	// The session is built once for the panel's lifetime (the bridge reads live
 	// viewer state through getters, and `config` is stable), so capturing the
 	// initial prop values here is intentional.
-	const chat = untrack(() => new SvelteAiChat({ bridge, config }));
+	const chat = untrack(() => new SvelteAiChat({ bridge, config, onToolTarget }));
+
+	// Applying a suggestion briefly enables the canvas colour tween so the edit
+	// fades in rather than snapping (proposals apply outside the tool loop).
+	function applyProposal(id: string): void {
+		aiPanel.flashToolTarget(null);
+		chat.applyProposal(id);
+	}
+	function acceptAllProposals(): void {
+		aiPanel.flashToolTarget(null);
+		chat.acceptAllProposals();
+	}
 
 	onMount(() => {
 		void chat.init();
@@ -72,6 +97,20 @@
 		</div>
 	{:else if chat.initState === 'ready'}
 		<div class="pptx-svelte-ai-body">
+			<AiFocusBar
+				targets={aiPanel.effectiveTargets}
+				slides={bridge.getSlides()}
+				isPinned={aiPanel.isPinned}
+				hasPicks={aiPanel.hasPicks}
+				pickMode={aiPanel.pickMode}
+				onpin={() => aiPanel.pinFocus()}
+				onclearpin={() => aiPanel.clearPinnedFocus()}
+				onsenddirective={(text) => chat.send(text)}
+				onstartpick={() => aiPanel.startPicking()}
+				onstoppick={() => aiPanel.stopPicking()}
+				onclearpicks={() => aiPanel.clearPicks()}
+			/>
+
 			<AiMessageList messages={chat.messages} isStreaming={chat.isStreaming} />
 
 			{#if chat.error}
@@ -97,7 +136,7 @@
 							<button
 								type="button"
 								class="pptx-svelte-ai-accept-all"
-								onclick={() => chat.acceptAllProposals()}
+								onclick={acceptAllProposals}
 							>
 								{t('pptx.ai.acceptAll')}
 							</button>
@@ -106,7 +145,7 @@
 					{#each chat.proposals as proposal (proposal.id)}
 						<AiProposalCard
 							{proposal}
-							onaccept={(id) => chat.applyProposal(id)}
+							onaccept={applyProposal}
 							onreject={(id) => chat.rejectProposal(id)}
 						/>
 					{/each}
@@ -117,6 +156,8 @@
 				isStreaming={chat.isStreaming}
 				onsend={(text) => chat.send(text)}
 				onstop={() => chat.stop()}
+				prefillText={aiPanel.prefill.text}
+				prefillNonce={aiPanel.prefill.nonce}
 			/>
 		</div>
 	{/if}

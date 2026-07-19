@@ -2,6 +2,7 @@ import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { AiPanelController } from '../../ai/ai-panel-controller.svelte';
 import AiChatPanel from './AiChatPanel.svelte';
 
 let cleanup: (() => void) | undefined;
@@ -9,6 +10,17 @@ afterEach(() => {
 	cleanup?.();
 	cleanup = undefined;
 });
+
+/** A controller with no selection (live focus = the active slide). */
+function fakeController(): AiPanelController {
+	return new AiPanelController({
+		getActiveSlideIndex: () => 0,
+		getSelectedElementId: () => null,
+		getSelectedElementIds: () => [],
+		getSelectedElement: () => undefined,
+		openPanel: () => undefined,
+	});
+}
 
 /** A minimal bridge; no method is exercised by the panel-shell assertions. */
 function fakeBridge(): PptxAiBridge {
@@ -37,7 +49,7 @@ describe('aiChatPanel', () => {
 		const target = document.createElement('div');
 		const instance = mount(AiChatPanel, {
 			target,
-			props: { bridge: fakeBridge(), config, onclose: vi.fn() },
+			props: { bridge: fakeBridge(), config, aiPanel: fakeController(), onclose: vi.fn() },
 		});
 		cleanup = () => unmount(instance);
 
@@ -51,7 +63,7 @@ describe('aiChatPanel', () => {
 		const target = document.createElement('div');
 		const instance = mount(AiChatPanel, {
 			target,
-			props: { bridge: fakeBridge(), config, onclose },
+			props: { bridge: fakeBridge(), config, aiPanel: fakeController(), onclose },
 		});
 		cleanup = () => unmount(instance);
 

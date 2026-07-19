@@ -12,16 +12,38 @@
 		isStreaming,
 		onsend,
 		onstop,
+		prefillText = '',
+		prefillNonce = 0,
 	}: {
 		isStreaming: boolean;
 		onsend: (text: string) => void;
 		onstop: () => void;
+		/** One-shot composer prefill text (applied when `prefillNonce` bumps). */
+		prefillText?: string;
+		/** Bumps on every ask/fix so the composer focuses + applies `prefillText`. */
+		prefillNonce?: number;
 	} = $props();
 
 	const t = useTranslator();
 
 	let value = $state('');
 	const canSend = $derived(value.trim().length > 0);
+	// bind:this writes this (invisible to the linter's prefer-const analysis).
+	// eslint-disable-next-line prefer-const
+	let inputEl = $state<HTMLTextAreaElement | undefined>(undefined);
+
+	// Apply the one-shot prefill whenever the nonce changes (even for empty text,
+	// so an "Ask AI about this" that only pins focus still focuses the composer).
+	let lastNonce = 0;
+	$effect(() => {
+		if (prefillNonce !== lastNonce) {
+			lastNonce = prefillNonce;
+			if (prefillText) {
+				value = prefillText;
+			}
+			inputEl?.focus();
+		}
+	});
 
 	function submit(): void {
 		const trimmed = value.trim();
@@ -44,6 +66,7 @@
 	<div class="pptx-svelte-ai-composer-box">
 		<textarea
 			class="pptx-svelte-ai-input"
+			bind:this={inputEl}
 			bind:value
 			onkeydown={onKeydown}
 			rows="1"

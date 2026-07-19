@@ -36,6 +36,9 @@
 		onstagedblclick,
 		onstagecontextmenu,
 		onstageclick,
+		aiPickMode = false,
+		aiActive = false,
+		onaipickelement,
 		children,
 	}: SlideCanvasProps = $props();
 
@@ -48,6 +51,27 @@
 			},
 		};
 	}
+
+	// ── AI pick mode ────────────────────────────────────────────────────────
+	// While the AI panel is picking, the next element click(s) become the
+	// assistant's focus (and get highlighted) instead of selecting / inline
+	// editing. pointerdown is swallowed so a pick never starts a drag.
+	const pickActive = $derived(aiPickMode && Boolean(onaipickelement) && editingActive);
+
+	function pickFromEvent(event: MouseEvent): void {
+		event.stopPropagation();
+		event.preventDefault();
+		const target = event.target as Element | null;
+		const el = target?.closest('[data-element-id]');
+		const id = el?.getAttribute('data-element-id');
+		if (id) {
+			onaipickelement?.(id);
+		}
+	}
+	function swallow(event: Event): void {
+		event.stopPropagation();
+		event.preventDefault();
+	}
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
@@ -59,12 +83,15 @@
 	use:attachStageHolder={onstageholder}
 	class="pptx-svelte-stage-holder"
 	class:pptx-svelte-editing={editingActive}
+	class:pptx-svelte-ai-picking={pickActive}
+	data-pptx-ai-active={aiActive ? 'true' : undefined}
+	data-ai-pick-mode={pickActive ? 'true' : undefined}
 	style={`width: ${canvasSize.width * scale}px; height: ${canvasSize.height * scale}px`}
-	onpointerdown={editingActive ? onstagepointerdown : undefined}
-	onpointermove={editingActive ? onstagepointermove : undefined}
-	ondblclick={editingActive ? onstagedblclick : undefined}
-	oncontextmenu={editingActive ? onstagecontextmenu : undefined}
-	onclick={onstageclick}
+	onpointerdown={pickActive ? swallow : editingActive ? onstagepointerdown : undefined}
+	onpointermove={editingActive && !pickActive ? onstagepointermove : undefined}
+	ondblclick={editingActive && !pickActive ? onstagedblclick : undefined}
+	oncontextmenu={editingActive && !pickActive ? onstagecontextmenu : undefined}
+	onclick={pickActive ? pickFromEvent : onstageclick}
 >
 	<SlideStage
 		{slide}
@@ -93,5 +120,22 @@
 	.pptx-svelte-editing {
 		cursor: default;
 		touch-action: none;
+	}
+
+	.pptx-svelte-ai-picking {
+		cursor: crosshair;
+	}
+
+	/* While the AI is active, tween colour changes on slide elements so an edit
+	   fades from its old value to the new one instead of snapping. Global so it
+	   reaches the SlideStage-rendered elements ([data-element-id]) below. */
+	:global(.pptx-svelte-stage-holder[data-pptx-ai-active='true'] [data-element-id]),
+	:global(.pptx-svelte-stage-holder[data-pptx-ai-active='true'] [data-element-id] *) {
+		transition:
+			color 0.5s ease,
+			fill 0.5s ease,
+			stroke 0.5s ease,
+			background-color 0.5s ease,
+			border-color 0.5s ease;
 	}
 </style>
