@@ -46,6 +46,9 @@ import type { RibbonTab } from './ribbon-types';
 				[commentsOpen]="commentsOpen()"
 				[commentCount]="commentCount()"
 				[hiddenActions]="hiddenActions()"
+				[aiEnabled]="aiEnabled()"
+				[aiPanelOpen]="aiPanelOpen()"
+				(toggleAiPanel)="toggleAiPanel.emit()"
 				(toggleSidebar)="toggleSidebar.emit()"
 				(toggleComments)="comments.emit()"
 				(present)="present.emit()"
@@ -220,6 +223,10 @@ export class RibbonComponent {
 	readonly showSubtitles = input<boolean>(false);
 	/** Toolbar buttons/tabs the host wants hidden. Default `[]` hides nothing. */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
+	/** Whether the host enabled the AI assistant (shows the Sparkles toggle). */
+	readonly aiEnabled = input<boolean>(false);
+	/** Whether the AI assistant panel is currently open (toggle active state). */
+	readonly aiPanelOpen = input<boolean>(false);
 	/** Optional sign-in hook point for File > Account. Absent/disabled by default. */
 	readonly accountAuth = input<AccountAuthConfig | undefined>(undefined);
 
@@ -252,6 +259,8 @@ export class RibbonComponent {
 	readonly packageForSharing = output<void>();
 	/** Emitted when the user toggles the slides panel from the top bar. */
 	readonly toggleSidebar = output<void>();
+	/** Emitted when the user clicks the AI assistant Sparkles toggle. */
+	readonly toggleAiPanel = output<void>();
 	/** Emitted when the user opens the Digital Signatures panel from the File tab. */
 	readonly signatures = output<void>();
 	readonly info = output<void>();

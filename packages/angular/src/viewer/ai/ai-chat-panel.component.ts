@@ -1,0 +1,159 @@
+/**
+ * AiChatPanelComponent: the right-hand AI assistant pane. Angular port of
+ * React's `AiChatPanel` + `AiConversation`, combined into one thin shell.
+ *
+ * It provides {@link AiChatService} at its own level (so the lazily loaded `ai`
+ * SDK is scoped to the open panel), bootstraps the session from the host bridge
+ * + config, and lays out the transcript, the staged-proposal review strip, an
+ * error banner, and the composer. Mount it behind a `@defer` block so its (and
+ * the SDK's) chunk loads only when the assistant is first opened.
+ */
+import { ChangeDetectionStrategy, Component, effect, inject, input, output } from '@angular/core';
+import { LucideLoaderCircle, LucideSparkles, LucideTriangleAlert, LucideX } from '@lucide/angular';
+import { TranslatePipe } from '@ngx-translate/core';
+
+import type { PptxAiBridge, PptxAiConfig } from '../../internal/shared-ai';
+import { AiChatService } from './ai-chat.service';
+import { AiComposerComponent } from './ai-composer.component';
+import { AiMessageListComponent } from './ai-message-list.component';
+import { AiProposalCardComponent } from './ai-proposal-card.component';
+
+@Component({
+	selector: 'pptx-ai-chat-panel',
+	standalone: true,
+	changeDetection: ChangeDetectionStrategy.OnPush,
+	providers: [AiChatService],
+	imports: [
+		TranslatePipe,
+		AiMessageListComponent,
+		AiProposalCardComponent,
+		AiComposerComponent,
+		LucideSparkles,
+		LucideX,
+		LucideLoaderCircle,
+		LucideTriangleAlert,
+	],
+	template: `
+		<div
+			data-pptx-ai-panel
+			class="pptx-ng-ai-panel flex h-full w-80 flex-col border-l border-border bg-card shadow-xl"
+			[style.width.px]="panelWidth()"
+		>
+			<div class="flex items-center gap-2 border-b border-border px-3 py-2">
+				<svg lucideSparkles class="h-4 w-4 text-primary"></svg>
+				<span class="text-sm font-semibold text-foreground">{{ 'pptx.ai.title' | translate }}</span>
+				<button
+					type="button"
+					(click)="closed.emit()"
+					[title]="'pptx.ai.close' | translate"
+					[attr.aria-label]="'pptx.ai.close' | translate"
+					class="ml-auto rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent"
+				>
+					<svg lucideX class="h-4 w-4"></svg>
+				</button>
+			</div>
+
+			@switch (chat.state()) {
+				@case ('checking') {
+					<div
+						class="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground"
+						role="status"
+						aria-live="polite"
+					>
+						<svg lucideLoaderCircle class="h-5 w-5 animate-spin"></svg>
+					</div>
+				}
+				@case ('ready') {
+					<div class="flex min-h-0 flex-1 flex-col">
+						<pptx-ai-message-list [messages]="chat.messages()" [isStreaming]="chat.isStreaming()" />
+
+						@if (chat.error(); as err) {
+							<div
+								class="mx-3 mb-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-2.5 py-1.5 text-[12px] text-destructive"
+							>
+								<svg lucideTriangleAlert class="mt-0.5 h-3.5 w-3.5 shrink-0"></svg>
+								<div class="min-w-0 flex-1">
+									<div class="font-medium">{{ 'pptx.ai.errorPrefix' | translate }}</div>
+									<div class="truncate text-[11px] opacity-80" [title]="err.message">
+										{{ err.message }}
+									</div>
+								</div>
+								<button
+									type="button"
+									(click)="chat.clearError()"
+									class="shrink-0 rounded-sm px-1.5 py-0.5 text-[11px] underline-offset-2 hover:underline"
+								>
+									{{ 'pptx.ai.retry' | translate }}
+								</button>
+							</div>
+						}
+
+						@if (chat.proposals().length > 0) {
+							<div
+								class="max-h-[38%] space-y-2 overflow-y-auto border-t border-border bg-background px-3 py-2"
+							>
+								<div class="flex items-center justify-between">
+									<span
+										class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+									>
+										{{ 'pptx.ai.pendingChanges' | translate: { count: chat.proposals().length } }}
+									</span>
+									@if (chat.proposals().length > 1) {
+										<button
+											type="button"
+											(click)="chat.acceptAllProposals()"
+											class="rounded-sm bg-primary/90 px-2 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary"
+										>
+											{{ 'pptx.ai.acceptAll' | translate }}
+										</button>
+									}
+								</div>
+								@for (proposal of chat.proposals(); track proposal.id) {
+									<pptx-ai-proposal-card
+										[proposal]="proposal"
+										(accept)="chat.applyProposal($event)"
+										(reject)="chat.rejectProposal($event)"
+									/>
+								}
+							</div>
+						}
+
+						<pptx-ai-composer
+							[isStreaming]="chat.isStreaming()"
+							(onSend)="chat.send($event)"
+							(onStop)="chat.stop()"
+						/>
+					</div>
+				}
+				@default {
+					<div class="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+						<svg lucideTriangleAlert class="h-6 w-6 text-muted-foreground"></svg>
+						<p class="text-sm font-medium text-foreground">
+							{{ 'pptx.ai.unavailableTitle' | translate }}
+						</p>
+						<p class="text-[12px] text-muted-foreground">
+							{{ chat.initError()?.message ?? ('pptx.ai.unavailableHint' | translate) }}
+						</p>
+					</div>
+				}
+			}
+		</div>
+	`,
+})
+export class AiChatPanelComponent {
+	readonly bridge = input.required<PptxAiBridge>();
+	readonly config = input.required<PptxAiConfig>();
+	readonly panelWidth = input<number | undefined>(undefined);
+	readonly closed = output<void>();
+
+	protected readonly chat = inject(AiChatService);
+
+	constructor() {
+		// Bootstrap the session once the bridge + config inputs are bound. `init`
+		// is idempotent, so re-runs (e.g. from an inline config object identity
+		// change) do not tear the live session down.
+		effect(() => {
+			this.chat.init(this.bridge(), this.config());
+		});
+	}
+}

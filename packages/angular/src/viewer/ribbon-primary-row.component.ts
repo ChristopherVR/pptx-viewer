@@ -35,6 +35,7 @@ import {
 	LucidePlay,
 	LucidePlus,
 	LucideSettings,
+	LucideSparkles,
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -86,6 +87,7 @@ export function visibleOverflowItems(
 		LucidePlus,
 		LucideEllipsis,
 		LucideSettings,
+		LucideSparkles,
 	],
 	template: `
 		<div class="flex items-center gap-0.5 px-1.5 py-0.5">
@@ -198,6 +200,21 @@ export function visibleOverflowItems(
 				<svg lucidePanelRight class="h-4 w-4"></svg>
 			</button>
 
+			<!-- AI assistant toggle (only when the host passes an 'ai' config). -->
+			@if (aiEnabled()) {
+				<button
+					type="button"
+					class="pptx-rb-icon"
+					[ngClass]="aiPanelOpen() ? 'text-primary' : 'text-muted-foreground'"
+					[title]="'pptx.toolbar.toggleAiAssistant' | translate"
+					[attr.aria-label]="'pptx.toolbar.toggleAiAssistant' | translate"
+					[attr.aria-pressed]="aiPanelOpen()"
+					(click)="toggleAiPanel.emit()"
+				>
+					<svg lucideSparkles class="h-4 w-4"></svg>
+				</button>
+			}
+
 			<!-- Settings (mirrors React: between the panel toggle and the overflow "...") -->
 			<button
 				type="button"
@@ -253,8 +270,14 @@ export class RibbonPrimaryRowComponent {
 	readonly commentCount = input<number>(0);
 	/** Toolbar buttons the host wants hidden (gates Broadcast + the export overflow items). */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
+	/** Whether the host enabled the AI assistant (shows the Sparkles toggle). */
+	readonly aiEnabled = input<boolean>(false);
+	/** Whether the AI assistant panel is currently open (toggle active state). */
+	readonly aiPanelOpen = input<boolean>(false);
 
 	readonly toggleSidebar = output<void>();
+	/** Emitted when the user clicks the AI assistant Sparkles toggle. */
+	readonly toggleAiPanel = output<void>();
 	readonly toggleComments = output<void>();
 	readonly present = output<void>();
 	readonly presenter = output<void>();

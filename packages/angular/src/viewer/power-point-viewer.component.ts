@@ -23,6 +23,7 @@ import type {
 	PptxHandoutMaster,
 	PptxNotesMaster,
 	PptxSlide,
+	PptxTheme,
 } from 'pptx-viewer-core';
 
 import {
@@ -40,11 +41,15 @@ import type {
 	ViewerSettings,
 	ViewerTheme,
 } from '../internal/shared';
+import type { PptxAiBridge, PptxAiConfig } from '../internal/shared-ai';
 import { LOCALE_CATALOG } from '../internal/shared-src/i18n';
 import type { LocaleCatalogEntry } from '../internal/shared-src/i18n';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
+import { createAngularAiBridge } from './ai/ai-bridge';
+import { AiChatPanelComponent } from './ai/ai-chat-panel.component';
+import { aiToggleVisible } from './ai/ai-gating';
 import { AutosaveService } from './autosave.service';
 import { BroadcastDialogComponent } from './broadcast-dialog.component';
 import { CollaborationCursorsComponent } from './collaboration-cursors.component';
@@ -188,6 +193,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		InsertSmartArtDialogComponent,
 		ViewerExtraDialogsComponent,
 		RehearseTimingsComponent,
+		AiChatPanelComponent,
 		TranslatePipe,
 	],
 	template: `
@@ -324,6 +330,9 @@ import { ZoomTargetService } from './zoom-target.service';
 					(openShortcuts)="dialogs.showShortcuts.set(true)"
 					(openSettings)="dialogs.showSettings.set(true)"
 					[accountAuth]="accountAuth()"
+					[aiEnabled]="aiEnabled()"
+					[aiPanelOpen]="aiPanelOpen()"
+					(toggleAiPanel)="aiPanelOpen.update(v => !v)"
 					/>
 				}
 
@@ -504,6 +513,23 @@ import { ZoomTargetService } from './zoom-target.service';
 								}
 							}
 						</aside>
+					}
+
+					<!--
+						AI assistant pane: a right-rail sibling of the inspector, gated on the
+						host 'ai' config + the Sparkles toggle. Loaded behind @defer so its
+						chunk (and the optional 'ai' SDK) only load when the panel first opens.
+					-->
+					@defer (when ai() && aiPanelOpen()) {
+						@if (ai(); as aiConfig) {
+							@if (aiPanelOpen()) {
+								<pptx-ai-chat-panel
+									[bridge]="aiBridge"
+									[config]="aiConfig"
+									(closed)="aiPanelOpen.set(false)"
+								/>
+							}
+						}
 					}
 				</div>
 
@@ -971,6 +997,14 @@ export class PowerPointViewerComponent {
 	 * ribbon tab id). Default `[]` hides nothing, matching prior behaviour.
 	 */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
+	/**
+	 * Optional AI assistant configuration. When set, a Sparkles toggle appears in
+	 * the ribbon and opens a right-rail chat pane wired to the open deck. The
+	 * `ai` SDK is an optional peer; when it is not installed the pane shows an
+	 * "unavailable" notice instead. Absent by default (no AI UI). Mirrors React's
+	 * `ai` prop.
+	 */
+	readonly ai = input<PptxAiConfig | undefined>(undefined);
 
 	/** Fired when the active slide changes. */
 	readonly activeSlideChange = output<number>();
@@ -1202,6 +1236,35 @@ export class PowerPointViewerComponent {
 			this.activeTemplateElements().find((e) => e.id === id) ??
 			null
 		);
+	});
+
+	/** Whether the AI assistant pane is open (toggled from the ribbon Sparkles). */
+	protected readonly aiPanelOpen = signal(false);
+	/** Whether the AI assistant toggle is shown (host supplied an `ai` config). */
+	protected readonly aiEnabled = computed(() => aiToggleVisible(this.ai()));
+	/**
+	 * Stable {@link PptxAiBridge} exposing this viewer's live state + editor to
+	 * the AI core. Its three write choke points route through
+	 * {@link EditorStateService.applyReplacement}, so each AI edit is a single
+	 * undoable history entry. Built unconditionally (cheap); only consumed when
+	 * the host passes {@link ai}.
+	 */
+	protected readonly aiBridge: PptxAiBridge = createAngularAiBridge({
+		getSlides: () => this.editor.slides(),
+		getActiveSlideIndex: () => this.activeSlideIndex(),
+		getCanvasSize: () => this.loader.canvasSize(),
+		getTheme: () => this.loader.theme(),
+		getFileName: () => this.fileName(),
+		getHandler: () => this.loader.getHandler(),
+		goToSlide: (index) => this.goTo(index),
+		selectElements: (slideIndex, ids) => {
+			if (slideIndex !== this.activeSlideIndex()) {
+				this.activeSlideIndex.set(slideIndex);
+			}
+			this.editor.select([...ids]);
+		},
+		applySlides: (next, label) => this.editor.applyReplacement(next, label),
+		applyTheme: (updates) => this.applyAiTheme(updates),
 	});
 
 	constructor() {
@@ -1652,6 +1715,26 @@ export class PowerPointViewerComponent {
 	protected onCreatePresentation(templateId: string): void {
 		this.editor.setSlides(createBackstagePresentation(templateId));
 		this.activeSlideIndex.set(0);
+	}
+
+	/**
+	 * Route an AI theme edit (partial theme update) through the theme-gallery
+	 * service so it re-resolves slide colours and records ONE undoable entry,
+	 * mirroring how the Design tab applies a theme. Falls back to the current
+	 * colour/font scheme for whichever half the update omits.
+	 */
+	private applyAiTheme(updates: Partial<PptxTheme>): void {
+		const current = this.loader.theme();
+		const colorScheme = updates.colorScheme ?? current?.colorScheme;
+		const fontScheme = updates.fontScheme ?? current?.fontScheme;
+		if (!colorScheme || !fontScheme) {
+			return;
+		}
+		this.themeGallery.applyCustomTheme(
+			colorScheme,
+			fontScheme,
+			updates.name ?? current?.name ?? 'AI theme',
+		);
 	}
 
 	/**
