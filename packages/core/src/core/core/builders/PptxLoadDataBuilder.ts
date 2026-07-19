@@ -25,6 +25,7 @@ import type {
 	PptxTagCollection,
 	PptxTheme,
 	PptxThemeOption,
+	PptxViewProperties,
 } from '../../types';
 
 export class PptxLoadDataBuilder {
@@ -47,6 +48,8 @@ export class PptxLoadDataBuilder {
 	private headerFooter: PptxHeaderFooter | undefined;
 
 	private presentationProperties: PptxPresentationProperties | undefined;
+
+	private viewProperties: PptxViewProperties | undefined;
 
 	private customShows: PptxCustomShow[] | undefined;
 
@@ -141,6 +144,11 @@ export class PptxLoadDataBuilder {
 		presentationProperties: PptxPresentationProperties | undefined,
 	): this {
 		this.presentationProperties = presentationProperties;
+		return this;
+	}
+
+	public withViewProperties(viewProperties: PptxViewProperties | undefined): this {
+		this.viewProperties = viewProperties;
 		return this;
 	}
 
@@ -312,6 +320,7 @@ export class PptxLoadDataBuilder {
 			layoutOptions: this.layoutOptions,
 			headerFooter: this.headerFooter,
 			presentationProperties: this.presentationProperties,
+			viewProperties: this.viewProperties,
 			customShows: this.customShows,
 			sections: this.sections,
 			warnings: this.warnings,

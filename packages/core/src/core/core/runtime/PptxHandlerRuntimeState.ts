@@ -40,6 +40,7 @@ import type {
 	PptxMasterTextStyles,
 	PptxThemeFormatScheme,
 	PptxThemeObjectDefaults,
+	PptxViewProperties,
 } from '../../types';
 import { SignatureDetectionResult, normalizeStrictXml, detectStrictConformance } from '../../utils';
 import type { AlternateContentBlock } from '../../utils';
@@ -355,6 +356,13 @@ export class PptxHandlerRuntime {
 
 	/** Typed source metadata for lossless embedded-font list round trips. */
 	protected loadedEmbeddedFontList: import('../../types').PptxEmbeddedFontList | undefined;
+
+	/**
+	 * View properties parsed from `ppt/viewProps.xml` during load, preserved so
+	 * an unmodified load -> save round-trips the typed model and callers that do
+	 * not override `saveOptions.viewProperties` still persist the loaded state.
+	 */
+	protected loadedViewProperties: PptxViewProperties | undefined;
 
 	/** Map of comment author IDs to display names (from `ppt/commentAuthors.xml`). */
 	protected commentAuthorMap: Map<string, string> = new Map();
