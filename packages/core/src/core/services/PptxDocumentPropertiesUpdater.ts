@@ -8,6 +8,8 @@ import type {
 	PptxSlide,
 	XmlObject,
 } from '../types';
+import { applySlideTitlesToAppProps } from '../utils/app-properties-titles';
+import { deriveSlideTitles } from '../utils/slide-title';
 
 export interface PptxDocumentPropertiesSaveOptions {
 	coreProperties?: PptxCoreProperties;
@@ -99,6 +101,8 @@ export class PptxDocumentPropertiesUpdater {
 			appProps['HiddenSlides'] = String(hiddenSlidesCount);
 			appProps['Notes'] = String(notesCount);
 
+			this.updateSlideTitleProperties(appProps, slides);
+
 			appData['Properties'] = appProps;
 			this.context.zip.file('docProps/app.xml', this.context.builder.build(appData));
 		} catch (error) {
@@ -145,6 +149,16 @@ export class PptxDocumentPropertiesUpdater {
 				coreProps[xmlKey] = text;
 			}
 		}
+	}
+
+	/**
+	 * Recompute `TitlesOfParts` / `HeadingPairs` from the current slide set so
+	 * the per-slide title list in `app.xml` stays consistent after slides are
+	 * added, removed, or retitled. Delegates the vector rebuild to a pure
+	 * helper; here we only derive the ordered titles.
+	 */
+	private updateSlideTitleProperties(appProps: XmlObject, slides: PptxSlide[]): void {
+		applySlideTitlesToAppProps(appProps, deriveSlideTitles(slides));
 	}
 
 	private applyAppPropertiesOverrides(
