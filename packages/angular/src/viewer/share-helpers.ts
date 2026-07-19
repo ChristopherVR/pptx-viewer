@@ -1,47 +1,23 @@
 /**
- * share-helpers.ts: Pure (no Angular) helpers for the Share dialog.
+ * share-helpers.ts: Share dialog helpers for the Angular viewer.
  *
- * Mirrors the form-validation / config-assembly logic of the Vue
- * `ShareDialog.vue` plus the share-link builder from the React `ShareDialog`.
+ * The shared subset (ShareFormFields / ShareDefaults / seedShareFields /
+ * canStartShare) is re-exported from `pptx-viewer-shared` (`render/share-form`).
+ * Two helpers stay local because they diverge from the shared builders:
+ *   - `buildCollaborationConfig` validates with `canStartShare` (non-blank room)
+ *     and emits a config WITHOUT `role`/`sessionIntent`, unlike the shared
+ *     `buildShareConfig` (which is `buildCreateCollaborationConfig`).
+ *   - `buildShareUrl` is Angular-only (no other binding builds a share link).
  *
  * No `any`; all regexes use the `/u` flag; no `String.prototype.replaceAll`,
  * no regex named-capture-groups (ng-packagr lib-target constraints).
  */
 
-import type { CollaborationConfig } from '../internal/shared';
-import { resolveTransportForServerUrl } from '../internal/shared';
+import type { CollaborationConfig, ShareDefaults, ShareFormFields } from '../internal/shared';
+import { canStartShare, resolveTransportForServerUrl, seedShareFields } from '../internal/shared';
 
-/** Prefilled values for the Share form fields. */
-export interface ShareDefaults {
-	roomId?: string;
-	userName?: string;
-	serverUrl?: string;
-}
-
-/** The Share form's editable fields. */
-export interface ShareFormFields {
-	roomId: string;
-	userName: string;
-	serverUrl: string;
-}
-
-/** Seed the form fields from the (optional) defaults, coercing absent values. */
-export function seedShareFields(defaults?: ShareDefaults): ShareFormFields {
-	return {
-		roomId: defaults?.roomId ?? '',
-		userName: defaults?.userName ?? '',
-		serverUrl: defaults?.serverUrl ?? '',
-	};
-}
-
-/**
- * Whether the required fields are non-blank (after trimming). The server URL is
- * optional: a blank server selects the serverless (webrtc) peer-to-peer
- * transport, so only the room id and display name are required.
- */
-export function canStartShare(fields: ShareFormFields): boolean {
-	return fields.roomId.trim().length > 0 && fields.userName.trim().length > 0;
-}
+export type { ShareDefaults, ShareFormFields };
+export { canStartShare, seedShareFields };
 
 /**
  * Assemble a {@link CollaborationConfig} from the (trimmed) form fields, or

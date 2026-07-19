@@ -491,6 +491,9 @@ export * from './secure-random';
 // viewer-link builder for the one-way broadcast (presenter -> viewers) session.
 export * from './broadcast-helpers';
 export * from './share-session';
+// Share dialog form: field seeding, validity, and CollaborationConfig assembly
+// sugar over the neutral session builders. Shared by every binding.
+export * from './share-form';
 // Presenter view: notes font-size clamp + step constants, clock/elapsed-time
 // formatting, and rich-text notes -> framework-agnostic `NotesSpan[]` render
 // spec. Each binding renders the spec into its own nodes.
