@@ -501,6 +501,9 @@ export * from './presentation-session';
 // Audience content store: IndexedDB presenter <-> audience deck handoff, plus
 // the audience-tab hash detection helpers. Shared by every binding.
 export * from './audience-content-store';
+// EyeDropper colour sampler: native EyeDropper API plus an elementFromPoint /
+// canvas DOM-sampling fallback for browsers without it.
+export * from './eyedropper';
 // Presentation toolbar: bottom-trigger-zone visibility math, auto-hide timing,
 // pen/highlighter colour swatches, and slide-counter formatting.
 export * from './presentation-toolbar';

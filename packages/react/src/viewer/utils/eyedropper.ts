@@ -1,24 +1,17 @@
 /**
  * Eyedropper colour sampler.
  *
- * Renders the current slide canvas to an offscreen canvas, then reads
- * the pixel colour at the specified coordinates.
+ * The native EyeDropper API wrapper and the `EyedropperResult` type are shared
+ * across every binding, so they are re-exported from `pptx-viewer-shared`
+ * (`render/eyedropper`). React keeps its own `sampleColorFromSlide` below: it
+ * takes an explicit slide element and bounds-checks against it, a different
+ * signature from the shared coordinate-only fallback.
  */
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import type { EyedropperResult } from 'pptx-viewer-shared';
 
-export interface EyedropperResult {
-	hex: string;
-	r: number;
-	g: number;
-	b: number;
-}
-
-// ---------------------------------------------------------------------------
-// Core sampling
-// ---------------------------------------------------------------------------
+export type { EyedropperResult } from 'pptx-viewer-shared';
+export { openNativeEyeDropper } from 'pptx-viewer-shared';
 
 /**
  * Sample the colour of a pixel from a rendered slide element.
@@ -40,10 +33,6 @@ export function sampleColorFromSlide(
 	if (x < 0 || y < 0 || x >= rect.width || y >= rect.height) {
 		return null;
 	}
-
-	// Try using the EyeDropper API if available (modern Chrome/Edge)
-	// Fallback: use html2canvas-style approach with getComputedStyle
-	// For now, we'll use a canvas-based approach
 
 	const canvas = document.createElement('canvas');
 	canvas.width = 1;
@@ -95,10 +84,6 @@ export function sampleColorFromSlide(
 	return null;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function pixelToResult(data: Uint8ClampedArray): EyedropperResult {
 	const r = data[0];
 	const g = data[1];
@@ -125,29 +110,4 @@ function parseRgbaString(str: string): EyedropperResult | null {
 		b,
 		hex: `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`,
 	};
-}
-
-/**
- * Use the native EyeDropper API if available (Chrome 95+, Edge 95+).
- * Returns a promise that resolves to the sampled hex colour, or null
- * if the API is unavailable or the user cancels.
- */
-export async function openNativeEyeDropper(): Promise<string | null> {
-	if (!('EyeDropper' in window)) {
-		return null;
-	}
-
-	try {
-		// EyeDropper API
-		const dropper = new (
-			window as Record<string, unknown> & {
-				EyeDropper: new () => { open: () => Promise<{ sRGBHex: string }> };
-			}
-		).EyeDropper();
-		const result = await dropper.open();
-		return result.sRGBHex;
-	} catch {
-		// User cancelled or API error
-		return null;
-	}
 }
