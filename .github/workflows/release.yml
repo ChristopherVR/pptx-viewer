@@ -201,7 +201,12 @@ jobs:
               continue
             fi
 
-            awk '/^## \[/{c++} c==1{print} c==2{exit}' "$dir/CHANGELOG.md" > "${RUNNER_TEMP}/notes.md"
+            # Release body = this package's real "what's new" for this tag,
+            # from the single-source release-notes generator (grouped git-cliff
+            # section, with a raw-commit fallback so a package released off
+            # non-conventional commits never renders empty). The pruned-history
+            # line below is only ever a footer under that content.
+            node scripts/release-notes.mjs "$key" > "${RUNNER_TEMP}/notes.md"
             {
               echo ""
               echo "---"
