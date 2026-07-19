@@ -83,6 +83,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		if (style.underline) {
 			runProps['@_u'] = style.underlineStyle || 'sng';
+		} else if (style.underlineExplicitNone) {
+			// Re-emit an explicitly authored `u="none"` suppression rather than
+			// collapsing it to inherit (which would let an inherited underline
+			// bleed through).
+			runProps['@_u'] = 'none';
 		}
 		if (style.strikethrough !== undefined) {
 			runProps['@_strike'] = style.strikethrough ? style.strikeType || 'sngStrike' : 'noStrike';
@@ -102,6 +107,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Text caps
 		if (style.textCaps && style.textCaps !== 'none') {
 			runProps['@_cap'] = style.textCaps;
+		} else if (style.textCapsExplicitNone) {
+			// Re-emit an explicitly authored `cap="none"` rather than dropping it
+			// to inherit (which would let an inherited caps style bleed through).
+			runProps['@_cap'] = 'none';
 		}
 		// NOTE: `rtl` is only valid on CT_TextParagraphProperties (a:pPr), not
 		// CT_TextCharacterProperties (a:rPr). Emitting it here produces a
@@ -247,13 +256,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			runProps['a:effectDag'] = style.textEffectDagXml;
 		}
 
-		// 4. a:highlight
+		// 4. a:highlight — re-emit the preserved colour-choice verbatim (keeping
+		// a themed `a:schemeClr` highlight themed) when the resolved hex still
+		// matches; otherwise fall back to a canonical srgbClr.
 		if (style.highlightColor) {
-			runProps['a:highlight'] = {
-				'a:srgbClr': {
-					'@_val': style.highlightColor.replace('#', ''),
-				},
-			};
+			const resolvedHighlight = style.highlightColorXml
+				? this.parseColor(style.highlightColorXml)
+				: undefined;
+			runProps['a:highlight'] = serializeColorChoice(
+				style.highlightColorXml,
+				resolvedHighlight,
+				style.highlightColor,
+			);
 		}
 
 		// 5a. a:uLnTx / a:uLn (underline line — follows-text marker or explicit
@@ -359,11 +373,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (mouseOverTarget.length > 0) {
 				const mouseOverRelId = resolveHyperlinkRelationshipId(mouseOverTarget);
 				if (mouseOverRelId) {
-					runProps['a:hlinkMouseOver'] = {
-						'@_r:id': mouseOverRelId,
-					};
+					const mouseOverNode: XmlObject = { '@_r:id': mouseOverRelId };
+					// Round-trip the preserved mouse-over sound (`a:snd`) instead of
+					// dropping it (the previous save emitted only `@r:id`).
+					if (
+						style.hyperlinkMouseOverSoundXml &&
+						typeof style.hyperlinkMouseOverSoundXml === 'object'
+					) {
+						mouseOverNode['a:snd'] = style.hyperlinkMouseOverSoundXml;
+					}
+					runProps['a:hlinkMouseOver'] = mouseOverNode;
 				}
 			}
+		}
+
+		// `a:extLst` is the final child of CT_TextCharacterProperties. Re-emit the
+		// captured opaque run-level extension subtree verbatim when present so
+		// authored extensions survive a round-trip.
+		if (style.runPropertiesExtLstXml && typeof style.runPropertiesExtLstXml === 'object') {
+			runProps['a:extLst'] = style.runPropertiesExtLstXml;
 		}
 
 		return runProps;
@@ -384,6 +412,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		if (style.hyperlinkEndSound !== undefined) {
 			hlinkNode['@_endSnd'] = style.hyperlinkEndSound ? '1' : '0';
+		}
+		// CT_Hyperlink sequences `a:snd` before `a:extLst`; here it is the only
+		// child, so re-emit the preserved embedded-WAV subtree verbatim.
+		if (style.hyperlinkSoundXml && typeof style.hyperlinkSoundXml === 'object') {
+			hlinkNode['a:snd'] = style.hyperlinkSoundXml;
 		}
 	}
 }

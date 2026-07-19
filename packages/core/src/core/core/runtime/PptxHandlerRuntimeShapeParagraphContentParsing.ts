@@ -127,14 +127,29 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				),
 			} as TextStyle;
 			const fldType = String(field['@_type'] || '').trim() || undefined;
-			const fldGuid = String(field['@_uuid'] || field['@_id'] || '').trim() || undefined;
+			const uuidAttr = String(field['@_uuid'] || '').trim();
+			const idAttr = String(field['@_id'] || '').trim();
+			const fldGuid = uuidAttr || idAttr || undefined;
+			// Track which attribute spelling authored the guid so the writer
+			// round-trips `@uuid` vs `@id` instead of always normalising to `@id`.
+			const fldGuidAttr: 'uuid' | 'id' | undefined = uuidAttr ? 'uuid' : idAttr ? 'id' : undefined;
 			parts.push(fieldText);
-			segments.push({
+			const fieldSegment: TextSegment = {
 				text: fieldText,
 				style: fieldRunStyle,
 				fieldType: fldType,
 				fieldGuid: fldGuid,
-			});
+			};
+			if (fldGuidAttr) {
+				fieldSegment.fieldGuidAttr = fldGuidAttr;
+			}
+			// Preserve a per-field `a:pPr` (the schema permits paragraph
+			// properties inside `a:fld`) verbatim for round-trip.
+			const fieldPPr = field['a:pPr'];
+			if (fieldPPr && typeof fieldPPr === 'object') {
+				fieldSegment.fieldParagraphPropertiesXml = fieldPPr as XmlObject;
+			}
+			segments.push(fieldSegment);
 			maybeSeed(fieldRunStyle);
 		};
 

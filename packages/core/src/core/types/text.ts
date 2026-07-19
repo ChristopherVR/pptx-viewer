@@ -122,6 +122,13 @@ export interface TextStyle {
 	kerning?: number;
 	/** Text highlight colour as hex string (`a:highlight`). */
 	highlightColor?: string;
+	/**
+	 * Raw colour-choice XML preserved from `a:highlight` so a themed highlight
+	 * (`a:schemeClr` / `a:sysClr` / `a:prstClr`) re-emits with its original
+	 * identity rather than being flattened to `<a:srgbClr/>` on save. On save we
+	 * re-emit verbatim when the resolved {@link highlightColor} still matches.
+	 */
+	highlightColorXml?: XmlObject;
 	/** Text-level gradient fill CSS string (from `a:rPr > a:gradFill`). */
 	textFillGradient?: string;
 	/** Structured gradient stops for text fill round-trip serialization. */
@@ -262,6 +269,14 @@ export interface TextStyle {
 	language?: string;
 	/** Hyperlink mouse-over target from `a:hlinkMouseOver`. */
 	hyperlinkMouseOver?: string;
+	/**
+	 * Raw `a:snd` (embedded WAV audio) child of `a:hlinkClick`, preserved
+	 * verbatim (carries `@r:embed` + `@name`). Round-tripped on save so the
+	 * click sound survives instead of being dropped.
+	 */
+	hyperlinkSoundXml?: XmlObject;
+	/** Raw `a:snd` child of `a:hlinkMouseOver`, preserved verbatim for round-trip. */
+	hyperlinkMouseOverSoundXml?: XmlObject;
 	/** Hyperlink invalidUrl attribute (`a:hlinkClick/@invalidUrl`). */
 	hyperlinkInvalidUrl?: string;
 	/** Hyperlink target frame (`a:hlinkClick/@tgtFrame`). */

@@ -59,6 +59,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (tabStops && tabStops.length > 0) {
 			pp.tabStops = tabStops;
 		}
+		// Preserve `a:pPr/a:defRPr` (paragraph default run properties) and
+		// `a:pPr/a:extLst` verbatim so the save helper re-emits them instead of
+		// dropping the end-paragraph run formatting / authored extensions.
+		const defRPr = pPr['a:defRPr'];
+		if (defRPr && typeof defRPr === 'object') {
+			pp.paragraphDefaultRunPropertiesXml = defRPr as XmlObject;
+		}
+		const pPrExtLst = pPr['a:extLst'];
+		if (pPrExtLst && typeof pPrExtLst === 'object') {
+			pp.paragraphPropertiesExtLstXml = pPrExtLst as XmlObject;
+		}
 		return Object.keys(pp).length > 0 ? pp : undefined;
 	}
 

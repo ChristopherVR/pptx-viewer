@@ -151,7 +151,10 @@ export class PptxColorStyleCodec implements IPptxColorStyleCodec {
 		const alphaMod = this.percentAttrToUnit(
 			(choiceNode['a:alphaMod'] as XmlObject | undefined)?.['@_val'],
 		);
-		const alphaOff = this.percentAttrToUnit(
+		// `alphaOff` is an additive offset that may be negative, so parse it
+		// unclamped; clamping to [0, 1] first would discard negative offsets.
+		// The combined opacity is clamped once at the end.
+		const alphaOff = this.signedPercentToUnit(
 			(choiceNode['a:alphaOff'] as XmlObject | undefined)?.['@_val'],
 		);
 
@@ -168,6 +171,19 @@ export class PptxColorStyleCodec implements IPptxColorStyleCodec {
 		}
 
 		return this.clampUnitInterval(opacity);
+	}
+
+	/**
+	 * Parse an OOXML percentage (thousandths, `100000` = 100%) into a fraction
+	 * WITHOUT clamping to [0, 1]. Used for additive offsets like `a:alphaOff`
+	 * that legitimately carry negative values.
+	 */
+	private signedPercentToUnit(value: unknown): number | undefined {
+		const parsed = Number.parseFloat(String(value ?? '').trim());
+		if (!Number.isFinite(parsed)) {
+			return undefined;
+		}
+		return parsed / 100000;
 	}
 
 	public colorWithOpacity(color: string, opacity: number | undefined): string {

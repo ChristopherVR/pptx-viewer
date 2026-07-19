@@ -159,6 +159,19 @@ describe('pptxColorStyleCodec', () => {
 			// alpha=1.0 + 0.5 = 1.5 → clamped to 1
 			expect(codec.extractColorOpacity(node)).toBe(1);
 		});
+
+		it('applies a NEGATIVE alphaOff without clamping the offset first', () => {
+			const node: XmlObject = {
+				'a:srgbClr': {
+					'@_val': 'FF0000',
+					'a:alpha': { '@_val': '80000' },
+					'a:alphaOff': { '@_val': '-30000' },
+				},
+			};
+			// alpha=0.8 + (-0.3) = 0.5. Previously the offset was clamped to 0
+			// first, so the result wrongly stayed at 0.8.
+			expect(codec.extractColorOpacity(node)).toBeCloseTo(0.5, 5);
+		});
 	});
 
 	// ── colorWithOpacity ─────────────────────────────────────────────────

@@ -57,12 +57,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			style: TextStyle | undefined,
 			fieldType: string,
 			fieldGuid?: string,
-		) => ({
-			'@_type': fieldType,
-			...(fieldGuid ? { '@_id': fieldGuid } : {}),
-			'a:rPr': this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId),
-			'a:t': runText,
-		});
+			fieldGuidAttr?: 'uuid' | 'id',
+			fieldParagraphPropertiesXml?: XmlObject,
+		) => {
+			// CT_TextField child order: rPr?, pPr?, t?. Assign keys in that exact
+			// sequence (fast-xml-parser serialises in insertion order).
+			const fld: XmlObject = { '@_type': fieldType };
+			if (fieldGuid) {
+				// Round-trip whichever attribute spelling the source authored.
+				if (fieldGuidAttr === 'uuid') {
+					fld['@_uuid'] = fieldGuid;
+				} else {
+					fld['@_id'] = fieldGuid;
+				}
+			}
+			fld['a:rPr'] = this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId);
+			if (fieldParagraphPropertiesXml && typeof fieldParagraphPropertiesXml === 'object') {
+				fld['a:pPr'] = fieldParagraphPropertiesXml;
+			}
+			fld['a:t'] = runText;
+			return fld;
+		};
 
 		/**
 		 * Create a run with `a:ruby` containing phonetic annotation.
@@ -206,6 +221,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 							segmentStyle,
 							segment.fieldType,
 							segment.fieldGuid,
+							segment.fieldGuidAttr,
+							segment.fieldParagraphPropertiesXml,
 						);
 						(fieldRun as Record<string, unknown>).__isField = true;
 						currentRuns.push(fieldRun);

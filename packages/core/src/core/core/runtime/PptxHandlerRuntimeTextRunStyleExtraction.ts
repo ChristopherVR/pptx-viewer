@@ -41,6 +41,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				if (rawU.length > 0 && rawU !== 'none') {
 					style.underlineStyle = rawU as TextStyle['underlineStyle'];
 				}
+			} else if (underlineToken === 'none') {
+				// Explicit `<a:rPr u="none"/>` suppression. Record it so the writer
+				// re-emits the explicit token instead of collapsing to inherit.
+				style.underlineExplicitNone = true;
 			}
 		}
 		// Underline colour (a:uFill > a:solidFill or a:uLn > a:solidFill)
@@ -152,9 +156,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		// Text highlight colour
 		if (runProperties['a:highlight']) {
-			const highlightHex = this.parseColor(xmlChild(runProperties, 'a:highlight'));
+			const highlightNode = xmlChild(runProperties, 'a:highlight');
+			const highlightHex = this.parseColor(highlightNode);
 			if (highlightHex) {
 				style.highlightColor = highlightHex;
+			}
+			// Preserve the original colour-choice so a themed (`a:schemeClr`)
+			// highlight re-emits as itself rather than flattening to srgbClr.
+			const highlightXml = extractColorChoiceXml(highlightNode);
+			if (highlightXml) {
+				style.highlightColorXml = highlightXml;
 			}
 		}
 		// Text fill variants (gradient/pattern on a:rPr)
@@ -231,6 +242,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			.toLowerCase();
 		if (capAttr === 'all' || capAttr === 'small') {
 			style.textCaps = capAttr;
+		} else if (capAttr === 'none') {
+			// Explicit `<a:rPr cap="none"/>` suppression. Record it so the writer
+			// re-emits the explicit token instead of dropping it to inherit.
+			style.textCaps = 'none';
+			style.textCapsExplicitNone = true;
 		}
 
 		// Symbol font (a:sym)
@@ -305,6 +321,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Text run effect graph (a:effectDag on a:rPr) — ECMA-376
 		// §21.1.2.3.6 allows `effectDag` as an alternative to `effectLst`.
 		this.applyTextRunEffectDag(style, runProperties);
+
+		// Run-level `a:extLst` preserved verbatim so authored extensions survive
+		// a round-trip. Captured only for real runs (`includeDefaultAlignment` is
+		// true only on run/field/direct-text extraction, false for the
+		// defRPr / level / endParaRPr default-style passes) so a default style's
+		// extLst does not propagate onto every run of the paragraph.
+		if (includeDefaultAlignment) {
+			const runExtLst = runProperties['a:extLst'];
+			if (runExtLst && typeof runExtLst === 'object') {
+				style.runPropertiesExtLstXml = runExtLst as XmlObject;
+			}
+		}
 
 		return style;
 	}

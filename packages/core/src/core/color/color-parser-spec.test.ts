@@ -87,7 +87,7 @@ describe('parseDrawingColorChoice — spec-accurate XML structures', () => {
 			expect(parseDrawingColorChoice(node)).toBe('#FF0000');
 		});
 
-		it("parses 50% grey: <a:scrgbClr r='50000' g='50000' b='50000'/>", () => {
+		it("compands linear scRGB mid-grey: <a:scrgbClr r='50000' g='50000' b='50000'/>", () => {
 			// XML: <a:scrgbClr r="50000" g="50000" b="50000"/>
 			const node: XmlObject = {
 				'a:scrgbClr': {
@@ -96,8 +96,9 @@ describe('parseDrawingColorChoice — spec-accurate XML structures', () => {
 					'@_b': '50000',
 				},
 			};
-			// 50000/100000 * 255 = 127.5 -> 128 = 0x80
-			expect(parseDrawingColorChoice(node)).toBe('#808080');
+			// scRGB is linear-light: 0.5 linear compands to ~0.735 sRGB ->
+			// 187.5 -> 188 = 0xBC (not the naive 0x80).
+			expect(parseDrawingColorChoice(node)).toBe('#BCBCBC');
 		});
 
 		it('parses white: all channels at 100000', () => {

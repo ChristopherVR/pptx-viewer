@@ -52,6 +52,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const esVal = String(endSnd).trim().toLowerCase();
 				style.hyperlinkEndSound = esVal === '1' || esVal === 'true';
 			}
+			// Preserve the embedded-WAV `a:snd` child (r:embed + name) verbatim so
+			// the hyperlink click sound survives a round-trip.
+			const clickSnd = hyperlinkNode['a:snd'];
+			if (clickSnd && typeof clickSnd === 'object') {
+				style.hyperlinkSoundXml = clickSnd as XmlObject;
+			}
 		}
 		const actionStr = String(hyperlinkNode?.['@_action'] || '').trim();
 		if (actionStr) {
@@ -88,6 +94,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					style.hyperlinkMouseOver = mouseOverTarget;
 				} else {
 					style.hyperlinkMouseOver = mouseOverRelId;
+				}
+				// Preserve the mouse-over `a:snd` child verbatim for round-trip.
+				const mouseOverSnd = hlinkMouseOver['a:snd'];
+				if (mouseOverSnd && typeof mouseOverSnd === 'object') {
+					style.hyperlinkMouseOverSoundXml = mouseOverSnd as XmlObject;
 				}
 			}
 		}

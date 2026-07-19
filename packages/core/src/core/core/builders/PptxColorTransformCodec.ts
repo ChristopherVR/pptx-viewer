@@ -1,4 +1,9 @@
-import { hslToRgb, parseDrawingHueDegrees } from '../../color/color-primitives';
+import {
+	hslToRgb,
+	parseDrawingFraction,
+	parseDrawingHueDegrees,
+	scrgbLinearToSrgb8,
+} from '../../color/color-primitives';
 import { applyDrawingColorTransforms } from '../../color/color-transforms';
 import { PRESET_COLOR_MAP, SYSTEM_COLOR_MAP } from '../../constants';
 import type { XmlObject } from '../../types';
@@ -37,11 +42,17 @@ export class PptxColorTransformCodec implements IPptxColorTransformCodec {
 
 		if (colorChoice['a:scrgbClr']) {
 			const scrgb = colorChoice['a:scrgbClr'] as XmlObject;
-			const red = this.percentAttrToUnit(scrgb['@_r']);
-			const green = this.percentAttrToUnit(scrgb['@_g']);
-			const blue = this.percentAttrToUnit(scrgb['@_b']);
+			// scRGB channels are linear-light; compand (linear -> sRGB) before
+			// mapping to 8-bit so mid-tones are not over-darkened.
+			const red = parseDrawingFraction(scrgb['@_r']);
+			const green = parseDrawingFraction(scrgb['@_g']);
+			const blue = parseDrawingFraction(scrgb['@_b']);
 			if (red !== undefined && green !== undefined && blue !== undefined) {
-				const base = this.rgbToHex(red * 255, green * 255, blue * 255);
+				const base = this.rgbToHex(
+					scrgbLinearToSrgb8(red),
+					scrgbLinearToSrgb8(green),
+					scrgbLinearToSrgb8(blue),
+				);
 				return this.applyColorTransforms(base, scrgb);
 			}
 		}
