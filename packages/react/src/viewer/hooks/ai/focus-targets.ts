@@ -47,30 +47,49 @@ function elementTypeLabel(type: PptxElement['type']): string {
 	return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
-/** A renderable focus chip. */
+/** A renderable focus chip. `title` carries the full element id for hover. */
 export interface FocusChip {
 	key: string;
 	label: string;
+	title: string;
+}
+
+/**
+ * A short, human handle for an element id. Element ids carry a source-path
+ * prefix (e.g. `ppt/slides/slide1.xml-shape-9`); the trailing number is the
+ * useful disambiguator, so `Shape 9` reads far better than the raw id. Falls
+ * back to the last path segment when there is no trailing number.
+ */
+function shortElementId(id: string): string {
+	const trailingNumber = id.match(/(\d+)\s*$/u);
+	if (trailingNumber) {
+		return trailingNumber[1];
+	}
+	const tail = id.replace(/^.*[/.-]/u, '');
+	return tail || id;
 }
 
 /**
  * Build display chips for the given targets. Slide targets read `Slide N`;
- * element targets read `<Type> <id>` (or `<Type> (missing)` when the element is
- * no longer on the slide).
+ * element targets read `<Type> <n>` (a friendly short label, full id on hover),
+ * or `<Type> (missing)` when the element is no longer on the slide.
  */
 export function focusTargetChips(targets: PptxAiFocusedTarget[], slides: PptxSlide[]): FocusChip[] {
 	return targets.map((target, index) => {
 		if (target.kind === 'slide') {
-			return {
-				key: `slide-${target.slideIndex}-${index}`,
-				label: `Slide ${target.slideIndex + 1}`,
-			};
+			const label = `Slide ${target.slideIndex + 1}`;
+			return { key: `slide-${target.slideIndex}-${index}`, label, title: label };
 		}
 		const el = slides[target.slideIndex]?.elements.find((e) => e.id === target.elementId);
+		const typeLabel = el ? elementTypeLabel(el.type) : 'Element';
 		const label = el
-			? `${elementTypeLabel(el.type)} ${target.elementId}`
-			: `Element ${target.elementId} (missing)`;
-		return { key: `el-${target.elementId}-${index}`, label };
+			? `${typeLabel} ${shortElementId(target.elementId)}`
+			: `${typeLabel} (missing)`;
+		return {
+			key: `el-${target.elementId}-${index}`,
+			label,
+			title: `${typeLabel}: ${target.elementId}`,
+		};
 	});
 }
 

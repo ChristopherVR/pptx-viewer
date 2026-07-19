@@ -57,7 +57,7 @@ export function AiFocusBar({
 						'inline-flex max-w-[10rem] items-center rounded-full px-2 py-0.5 text-[11px]',
 						isPinned ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
 					)}
-					title={chip.label}
+					title={chip.title}
 				>
 					<span className='truncate'>{chip.label}</span>
 				</span>

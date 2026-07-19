@@ -53,7 +53,8 @@ describe('focusTargetChips', () => {
 			],
 			slides,
 		);
-		expect(chips.map((c) => c.label)).toStrictEqual(['Slide 1', 'Shape rect-5']);
+		expect(chips.map((c) => c.label)).toStrictEqual(['Slide 1', 'Shape 5']);
+		expect(chips[1].title).toBe('Shape: rect-5');
 	});
 });
 
