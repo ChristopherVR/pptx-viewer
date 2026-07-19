@@ -115,12 +115,12 @@ describe('getElementTransform', () => {
 
 	it('combines flipHorizontal and rotation', () => {
 		const el = makeElement({ flipHorizontal: true, rotation: 90 });
-		expect(getElementTransform(el)).toBe('scaleX(-1) rotate(90deg)');
+		expect(getElementTransform(el)).toBe('rotate(90deg) scaleX(-1)');
 	});
 
 	it('combines flipVertical and rotation', () => {
 		const el = makeElement({ flipVertical: true, rotation: 45 });
-		expect(getElementTransform(el)).toBe('scaleY(-1) rotate(45deg)');
+		expect(getElementTransform(el)).toBe('rotate(45deg) scaleY(-1)');
 	});
 
 	// -- All three transforms --
@@ -131,11 +131,11 @@ describe('getElementTransform', () => {
 			flipVertical: true,
 			rotation: 90,
 		});
-		expect(getElementTransform(el)).toBe('scaleX(-1) scaleY(-1) rotate(90deg)');
+		expect(getElementTransform(el)).toBe('rotate(90deg) scaleX(-1) scaleY(-1)');
 	});
 
-	it('applies order: flipH before flipV before rotation', () => {
-		// Verifying the documented order: flipH, flipV, rotation
+	it('applies order: rotation before flipH before flipV', () => {
+		// Verifying the OOXML-correct order: rotation, flipH, flipV
 		const el = makeElement({
 			flipHorizontal: true,
 			flipVertical: true,
@@ -144,9 +144,9 @@ describe('getElementTransform', () => {
 		const result = getElementTransform(el)!;
 		const parts = result.split(' ');
 		expect(parts).toHaveLength(3);
-		expect(parts[0]).toBe('scaleX(-1)');
-		expect(parts[1]).toBe('scaleY(-1)');
-		expect(parts[2]).toBe('rotate(270deg)');
+		expect(parts[0]).toBe('rotate(270deg)');
+		expect(parts[1]).toBe('scaleX(-1)');
+		expect(parts[2]).toBe('scaleY(-1)');
 	});
 
 	// -- Falsy values that should not produce transforms --
@@ -179,7 +179,7 @@ describe('getElementTransform', () => {
 			flipVertical: true,
 			rotation: 180,
 		});
-		expect(getElementTransform(el)).toBe('scaleY(-1) rotate(180deg)');
+		expect(getElementTransform(el)).toBe('rotate(180deg) scaleY(-1)');
 	});
 
 	it('works with group element type', () => {
@@ -334,11 +334,11 @@ describe('getElementTransform vs getTextCompensationTransform relationship', () 
 		const elementT = getElementTransform(el)!;
 		const textT = getTextCompensationTransform(el)!;
 
-		// Element transform should start with the flip, followed by rotation
-		expect(elementT).toBe('scaleX(-1) rotate(120deg)');
+		// Element transform is rotation followed by the flip (OOXML order).
+		expect(elementT).toBe('rotate(120deg) scaleX(-1)');
 		// Text compensation should only have the flip
 		expect(textT).toBe('scaleX(-1)');
-		// The flip portion matches
-		expect(elementT.startsWith(textT)).toBeTruthy();
+		// The flip portion is present in the element transform
+		expect(elementT.includes(textT)).toBeTruthy();
 	});
 });

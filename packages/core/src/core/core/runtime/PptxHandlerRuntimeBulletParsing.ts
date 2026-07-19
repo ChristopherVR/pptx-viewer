@@ -4,6 +4,8 @@ import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import { xmlChild, xmlHasChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextDefaults';
 
+type LevelStyleMap = Record<number, PlaceholderTextLevelStyle>;
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected resolveParagraphBulletInfo(
 		paragraph: XmlObject | undefined,
@@ -12,6 +14,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		inheritedTxBody: XmlObject | undefined,
 		isBodyPlaceholder: boolean = false,
 		slidePath?: string,
+		effectiveLevelStyles?: LevelStyleMap,
 	): BulletInfo | null {
 		if (!paragraph) {
 			return null;
@@ -61,13 +64,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 		if (!resolvedBulletProps) {
-			if (isBodyPlaceholder) {
-				const presentationLevelStyle =
-					this.presentationDefaultTextStyle?.levelStyles?.[normalizedLevel - 1] ??
-					this.presentationDefaultTextStyle?.levelStyles?.[-1];
-				return this.createBulletInfoFromLevelStyle(presentationLevelStyle, paragraphIndex);
-			}
-			return null;
+			// No explicit bullet on the slide paragraph or the placeholder's own
+			// list styles. Fall back to the resolved placeholder cascade
+			// (`effectiveLevelStyles` already merges the layout/master placeholder
+			// list styles with the master `<p:txStyles>/<p:bodyStyle>`, which is
+			// where the default body bullet char lives), then finally the
+			// presentation-level default text style. Without this, an inherited
+			// body bullet (e.g. `buChar="•"` declared only in the master bodyStyle)
+			// is silently dropped even though its indent still resolves.
+			const fallbackLevelStyle =
+				effectiveLevelStyles?.[normalizedLevel - 1] ??
+				effectiveLevelStyles?.[-1] ??
+				(isBodyPlaceholder
+					? (this.presentationDefaultTextStyle?.levelStyles?.[normalizedLevel - 1] ??
+						this.presentationDefaultTextStyle?.levelStyles?.[-1])
+					: undefined);
+			return this.createBulletInfoFromLevelStyle(fallbackLevelStyle, paragraphIndex);
 		}
 
 		// Extract shared bullet styling properties.

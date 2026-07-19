@@ -266,7 +266,7 @@ describe('getElementTransform', () => {
 			flipVertical: true,
 			rotation: 90,
 		});
-		expect(getElementTransform(el)).toBe('scaleX(-1) scaleY(-1) rotate(90deg)');
+		expect(getElementTransform(el)).toBe('rotate(90deg) scaleX(-1) scaleY(-1)');
 	});
 });
 

@@ -11,22 +11,25 @@ import type { PptxElement } from '../types';
 /**
  * Build a CSS `transform` string combining an element's flip and rotation.
  *
- * The order of transforms is: flipH, flipV, rotation — applied in that
- * sequence so that flips happen before rotation in the CSS transform chain.
+ * The order is rotation THEN flips (`rotate(θ) scaleX(-1) scaleY(-1)`). With
+ * CSS `transform-origin: center`, transforms apply right-to-left, so the flips
+ * run first and the rotation second - matching OOXML `a:xfrm`, which mirrors the
+ * shape within its box before rotating it. Emitting the flips first would
+ * reflect the rotation direction for any flipped + rotated shape.
  *
  * @param element - The element whose `flipHorizontal`, `flipVertical`, and `rotation` are read.
- * @returns A CSS `transform` value (e.g. `"scaleX(-1) rotate(45deg)"`), or `undefined` if no transforms apply.
+ * @returns A CSS `transform` value (e.g. `"rotate(45deg) scaleX(-1)"`), or `undefined` if no transforms apply.
  */
 export function getElementTransform(element: PptxElement): string | undefined {
 	const transforms: string[] = [];
+	if (element.rotation) {
+		transforms.push(`rotate(${element.rotation}deg)`);
+	}
 	if (element.flipHorizontal) {
 		transforms.push('scaleX(-1)');
 	}
 	if (element.flipVertical) {
 		transforms.push('scaleY(-1)');
-	}
-	if (element.rotation) {
-		transforms.push(`rotate(${element.rotation}deg)`);
 	}
 	return transforms.length > 0 ? transforms.join(' ') : undefined;
 }

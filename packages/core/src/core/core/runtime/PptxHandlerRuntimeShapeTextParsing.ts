@@ -46,16 +46,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
+		// Percentage spacing (`a:spcPct`) resolves against the paragraph's font size.
+		const spacingBasisPx = typeof textStyle.fontSize === 'number' ? textStyle.fontSize : undefined;
 		if (textStyle.paragraphSpacingBefore === undefined) {
 			const spacingBefore = this.parseParagraphSpacingPx(
 				pPr?.['a:spcBef'] as XmlObject | undefined,
+				spacingBasisPx,
 			);
 			if (spacingBefore !== undefined) {
 				textStyle.paragraphSpacingBefore = spacingBefore;
 			}
 		}
 		if (textStyle.paragraphSpacingAfter === undefined) {
-			const spacingAfter = this.parseParagraphSpacingPx(pPr?.['a:spcAft'] as XmlObject | undefined);
+			const spacingAfter = this.parseParagraphSpacingPx(
+				pPr?.['a:spcAft'] as XmlObject | undefined,
+				spacingBasisPx,
+			);
 			if (spacingAfter !== undefined) {
 				textStyle.paragraphSpacingAfter = spacingAfter;
 			}

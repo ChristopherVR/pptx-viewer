@@ -41,7 +41,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return points * (96 / 72);
 	}
 
-	protected parseParagraphSpacingPx(spacingNode: XmlObject | undefined): number | undefined {
+	protected parseParagraphSpacingPx(
+		spacingNode: XmlObject | undefined,
+		basisFontSizePx?: number,
+	): number | undefined {
 		if (!spacingNode) {
 			return undefined;
 		}
@@ -51,6 +54,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		);
 		if (Number.isFinite(spacingPointsRaw)) {
 			return this.pointsToPixels(spacingPointsRaw / 100);
+		}
+		// Percentage spacing (`a:spcPct`) is relative to the line's font size
+		// (100000 = 100%). It needs a size basis to resolve to pixels; without one
+		// we can't produce a meaningful value, so fall through to undefined.
+		const spacingPercentRaw = Number.parseInt(
+			String((spacingNode['a:spcPct'] as XmlObject | undefined)?.['@_val'] || ''),
+			10,
+		);
+		if (
+			Number.isFinite(spacingPercentRaw) &&
+			typeof basisFontSizePx === 'number' &&
+			basisFontSizePx > 0
+		) {
+			return (spacingPercentRaw / 100000) * basisFontSizePx;
 		}
 		return undefined;
 	}
