@@ -89,6 +89,54 @@ describe('mergeTableElements', () => {
 			/row counts differ/u,
 		);
 	});
+
+	it('vertical: two 5-row tables yield 10 rows in A-then-B order', () => {
+		const gridA = Array.from({ length: 5 }, (_u, r) => [`A${r}c0`, `A${r}c1`]);
+		const gridB = Array.from({ length: 5 }, (_u, r) => [`B${r}c0`, `B${r}c1`]);
+		const a = table('a', gridA, { x: 0, y: 0, width: 100, height: 100 });
+		const b = table('b', gridB, { x: 0, y: 110, width: 100, height: 100 });
+
+		const merged = mergeTableElements(a, b, { direction: 'vertical' });
+		const rows = merged.tableData?.rows ?? [];
+		expect(rows).toHaveLength(10);
+		expect(rows[0].cells.map((c) => c.text)).toStrictEqual(['A0c0', 'A0c1']);
+		expect(rows[4].cells.map((c) => c.text)).toStrictEqual(['A4c0', 'A4c1']);
+		expect(rows[5].cells.map((c) => c.text)).toStrictEqual(['B0c0', 'B0c1']);
+		expect(rows[9].cells.map((c) => c.text)).toStrictEqual(['B4c0', 'B4c1']);
+	});
+
+	it('vertical: IDENTICAL tables sharing row object references still yield 10 rows', () => {
+		// Mirrors a Ctrl+D duplicate whose tableData shares the SAME row objects
+		// as the original. structuredClone must break the aliasing so no rows are
+		// collapsed downstream.
+		const grid = Array.from({ length: 5 }, (_u, r) => [`R${r}`]);
+		const a = table('a', grid, { x: 0, y: 0, width: 100, height: 100 });
+		const b = table('b', grid, { x: 0, y: 110, width: 100, height: 100 });
+		// Force B to literally share A's row objects (worst-case shallow duplicate).
+		(b.tableData as { rows: unknown }).rows = a.tableData!.rows;
+
+		const merged = mergeTableElements(a, b, { direction: 'vertical' });
+		const rows = merged.tableData?.rows ?? [];
+		expect(rows).toHaveLength(10);
+		// Merged rows must be independent copies, not aliases of the source rows.
+		expect(rows[0]).not.toBe(a.tableData!.rows[0]);
+		expect(rows[5]).not.toBe(a.tableData!.rows[0]);
+		rows[0].cells[0].text = 'mutated';
+		expect(a.tableData!.rows[0].cells[0].text).toBe('R0');
+	});
+
+	it('strips stale rawXml so tableData is the single source of truth', () => {
+		const a = table('a', [['A0'], ['A1']], B);
+		const b = table('b', [['B0'], ['B1']], B);
+		// A real loaded table carries its original <a:tbl> graphic frame.
+		(a as { rawXml?: unknown }).rawXml = {
+			'a:graphic': { 'a:graphicData': { 'a:tbl': { 'a:tr': [{}, {}] } } },
+		};
+
+		const merged = mergeTableElements(a, b, { direction: 'vertical' });
+		expect((merged as { rawXml?: unknown }).rawXml).toBeUndefined();
+		expect(merged.tableData?.rows).toHaveLength(4);
+	});
 });
 
 const CONNECTION: PptxAiConfig['connection'] = { kind: 'endpoint', api: '/api/chat' };
@@ -140,6 +188,40 @@ describe('merge_tables tool', () => {
 		// Rows = A (2) + B (1).
 		expect(merged.tableData?.rows).toHaveLength(3);
 		expect(merged.tableData?.rows[2].cells.map((c) => c.text)).toStrictEqual(['South', '200']);
+	});
+
+	it('full executor -> stage -> apply yields one 10-row table (both originals gone)', async () => {
+		const grid5 = (tag: string) =>
+			Array.from({ length: 5 }, (_u, r) => [`${tag}${r}c0`, `${tag}${r}c1`]);
+		const tableA = table('tbl-a', grid5('A'), { x: 0, y: 0, width: 200, height: 200 });
+		const tableB = table('tbl-b', grid5('B'), { x: 0, y: 210, width: 200, height: 200 });
+		const slide: PptxSlide = makeSlide(0, [tableA, tableB] as unknown as PptxSlide['elements']);
+		const bridge = makeMockBridge({ slides: [slide] });
+		const proposals = new ProposalStore(bridge);
+		const executors = buildToolExecutors(bridge, proposals, { connection: CONNECTION });
+
+		const result = (await executors.get('merge_tables')!({
+			slideIndex: 0,
+			elementIdA: 'tbl-a',
+			elementIdB: 'tbl-b',
+			direction: 'vertical',
+		})) as { staged?: boolean; mergedElementId?: string };
+
+		expect(result.staged).toBeTruthy();
+		expect(bridge.edits).toHaveLength(0);
+
+		const [proposal] = proposals.list();
+		expect(proposals.apply(proposal.id)).toBeTruthy();
+		expect(bridge.edits).toHaveLength(1);
+
+		const elements = bridge.getSlides()[0].elements;
+		expect(elements).toHaveLength(1);
+		expect(elements.find((e) => e.id === 'tbl-a')).toBeUndefined();
+		expect(elements.find((e) => e.id === 'tbl-b')).toBeUndefined();
+		const merged = elements[0] as TablePptxElement;
+		expect(merged.id).toBe(result.mergedElementId);
+		expect(merged.tableData?.rows).toHaveLength(10);
+		expect(merged.tableData?.rows[9].cells.map((c) => c.text)).toStrictEqual(['B4c0', 'B4c1']);
 	});
 
 	it('errors clearly when an id is not a table', async () => {

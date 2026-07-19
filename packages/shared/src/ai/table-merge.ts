@@ -122,8 +122,15 @@ export function mergeTableElements(
 	const bData = requireData(b, 'second');
 	const tableData =
 		direction === 'vertical' ? mergeVertical(aData, bData) : mergeHorizontal(aData, bData);
+	// Drop A's `rawXml`. A table loaded from a real `.pptx` carries its original
+	// `<a:tbl>` graphic frame; renderers (and the save fabricator) prefer that XML
+	// over `tableData`. Copying A's stale XML verbatim would make the merged table
+	// render only A's original rows (the exact "5 rows instead of 10" browser bug).
+	// Removing it makes the freshly-merged `tableData` the single source of truth,
+	// which every binding renders from and the save layer rebuilds XML from.
+	const { rawXml: _staleXml, ...rest } = structuredClone(a);
 	return {
-		...structuredClone(a),
+		...rest,
 		id: opts.id ?? newTableId(),
 		...unionBounds(a, b),
 		tableData,
