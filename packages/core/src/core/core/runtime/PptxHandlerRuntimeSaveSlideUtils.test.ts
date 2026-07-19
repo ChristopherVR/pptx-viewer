@@ -109,6 +109,15 @@ function textAlignToDrawingValue(align: TextStyle['align'] | undefined): string 
 	if (align === 'justify') {
 		return 'just';
 	}
+	if (align === 'justLow') {
+		return 'justLow';
+	}
+	if (align === 'dist') {
+		return 'dist';
+	}
+	if (align === 'thaiDist') {
+		return 'thaiDist';
+	}
 	return undefined;
 }
 
@@ -273,6 +282,19 @@ describe('textAlignToDrawingValue', () => {
 
 	it('should map justify to just', () => {
 		expect(textAlignToDrawingValue('justify')).toBe('just');
+	});
+
+	// Regression: issue #78 - justLow/dist/thaiDist were dropped on save.
+	it('should map justLow to justLow', () => {
+		expect(textAlignToDrawingValue('justLow')).toBe('justLow');
+	});
+
+	it('should map dist to dist', () => {
+		expect(textAlignToDrawingValue('dist')).toBe('dist');
+	});
+
+	it('should map thaiDist to thaiDist', () => {
+		expect(textAlignToDrawingValue('thaiDist')).toBe('thaiDist');
 	});
 
 	it('should return undefined for undefined input', () => {

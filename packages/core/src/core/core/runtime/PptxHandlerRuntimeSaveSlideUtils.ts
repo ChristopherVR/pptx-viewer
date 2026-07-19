@@ -192,6 +192,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (align === 'justify') {
 			return 'just';
 		}
+		if (align === 'justLow') {
+			return 'justLow';
+		}
+		if (align === 'dist') {
+			return 'dist';
+		}
+		if (align === 'thaiDist') {
+			return 'thaiDist';
+		}
 		return undefined;
 	}
 
