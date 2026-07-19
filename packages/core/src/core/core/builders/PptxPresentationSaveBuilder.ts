@@ -11,6 +11,7 @@ import type {
 } from '../../types';
 import { applyKinsokuToXml } from '../../utils/kinsoku-parser';
 import { applyCustomShows, applySections } from '../../utils/presentation-collections';
+import type { PptxSlideReferenceRemap } from '../../utils/presentation-collections';
 
 export interface PptxPresentationSaveBuilderOptions {
 	headerFooter?: PptxHeaderFooter;
@@ -29,6 +30,12 @@ export interface PptxPresentationSaveBuildInput {
 	rawSlideHeightEmu: number;
 	rawSlideSizeType?: string;
 	xmlLookupService: IPptxXmlLookupService;
+	/**
+	 * Old->new slide-reference remapping from the slides reconciler. Used to
+	 * rewrite custom-show relationship ids and section numeric slide ids when
+	 * slides were reordered/removed and their ids/rIds were reassigned.
+	 */
+	slideReferenceRemap?: PptxSlideReferenceRemap;
 }
 
 export interface IPptxPresentationSaveBuilder {
@@ -54,8 +61,18 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 			init.rawSlideHeightEmu,
 			init.rawSlideSizeType,
 		);
-		applyCustomShows(presentation, init.options?.customShows, init.xmlLookupService);
-		applySections(presentation, init.options?.sections, init.xmlLookupService);
+		applyCustomShows(
+			presentation,
+			init.options?.customShows,
+			init.xmlLookupService,
+			init.slideReferenceRemap,
+		);
+		applySections(
+			presentation,
+			init.options?.sections,
+			init.xmlLookupService,
+			init.slideReferenceRemap,
+		);
 		this.applyPhotoAlbum(presentation, init.options?.photoAlbum);
 		presentation = this.applyKinsoku(presentation, init.options?.kinsoku);
 		this.applyModifyVerifier(presentation, init.options?.modifyVerifier);

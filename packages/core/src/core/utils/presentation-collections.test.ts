@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
+import { buildSlideReferenceRemap } from '../core/builders/slide-reference-remap';
 import { PptxXmlLookupService } from '../services';
-import type { XmlObject } from '../types';
+import type { PptxSlide, XmlObject } from '../types';
 import { applyCustomShows, applySections, parseCustomShows } from './presentation-collections';
 
 const lookup = new PptxXmlLookupService();
+
+function slide(id: string, rId: string, slideNumber: number): PptxSlide {
+	return { id, rId, slideNumber, elements: [] };
+}
 
 describe('presentation collections', () => {
 	it('parses custom shows by local name and retains their raw XML', () => {
@@ -93,5 +98,95 @@ describe('presentation collections', () => {
 		const ext = (presentation['p:extLst'] as XmlObject)['p:ext'] as XmlObject;
 		expect(ext['x:sectionLst']).toBeUndefined();
 		expect(ext['@_uri']).toBe('sections');
+	});
+
+	// Issue #96: reordering/removing slides can drop a slide and reassign the
+	// rId / numeric id of the survivors. Custom-show and section references must
+	// follow the reconciled ids and must not dangle at the removed slide.
+	it('remaps and drops custom-show / section references for a removed reordered slide', () => {
+		// slide2 (rId3 / sldId 257) is removed; slide3 is reassigned rId4->rId9
+		// and numeric 258->259; slide1 is unchanged.
+		const remap = buildSlideReferenceRemap({
+			slides: [
+				slide('ppt/slides/slide1.xml', 'rId2', 1),
+				slide('ppt/slides/slide3.xml', 'rId9', 2),
+			],
+			originalRIdToPath: new Map([
+				['rId2', 'ppt/slides/slide1.xml'],
+				['rId3', 'ppt/slides/slide2.xml'],
+				['rId4', 'ppt/slides/slide3.xml'],
+			]),
+			originalSldIdToPath: new Map([
+				['256', 'ppt/slides/slide1.xml'],
+				['257', 'ppt/slides/slide2.xml'],
+				['258', 'ppt/slides/slide3.xml'],
+			]),
+			rebuiltSlideIds: [
+				{ '@_id': '256', '@_r:id': 'rId2' },
+				{ '@_id': '259', '@_r:id': 'rId9' },
+			],
+		});
+
+		expect(remap.changed).toBeTruthy();
+		expect(remap.removedRIds.has('rId3')).toBeTruthy();
+		expect(remap.removedSldIds.has('257')).toBeTruthy();
+		expect(remap.rIdByOldRId.get('rId4')).toBe('rId9');
+		expect(remap.sldIdByOldSldId.get('258')).toBe('259');
+
+		const presentation: XmlObject = {};
+		applyCustomShows(
+			presentation,
+			[{ name: 'Show', id: '1', slideRIds: ['rId2', 'rId3', 'rId4'] }],
+			lookup,
+			remap,
+		);
+		const show = ((presentation['p:custShowLst'] as XmlObject)['p:custShow'] as XmlObject[])[0];
+		const showSlides = (show['p:sldLst'] as XmlObject)['p:sld'] as XmlObject[];
+		expect(showSlides.map((entry) => entry['@_r:id'])).toStrictEqual(['rId2', 'rId9']);
+
+		const sectionHost: XmlObject = { 'p:sldSz': {}, 'p:extLst': { 'p:ext': [] } };
+		applySections(
+			sectionHost,
+			[{ id: '{S}', name: 'Sec', slideIds: ['256', '257', '258'] }],
+			lookup,
+			remap,
+		);
+		const ext = ((sectionHost['p:extLst'] as XmlObject)['p:ext'] as XmlObject[])[0];
+		const section = ((ext['p14:sectionLst'] as XmlObject)['p14:section'] as XmlObject[])[0];
+		const sectionSlides = (section['p14:sldIdLst'] as XmlObject)['p14:sldId'] as XmlObject[];
+		expect(sectionSlides.map((entry) => entry['@_id'])).toStrictEqual(['256', '259']);
+	});
+
+	it('leaves references untouched for an unmodified round-trip (changed=false)', () => {
+		const remap = buildSlideReferenceRemap({
+			slides: [
+				slide('ppt/slides/slide1.xml', 'rId2', 1),
+				slide('ppt/slides/slide2.xml', 'rId3', 2),
+			],
+			originalRIdToPath: new Map([
+				['rId2', 'ppt/slides/slide1.xml'],
+				['rId3', 'ppt/slides/slide2.xml'],
+			]),
+			originalSldIdToPath: new Map([
+				['256', 'ppt/slides/slide1.xml'],
+				['257', 'ppt/slides/slide2.xml'],
+			]),
+			rebuiltSlideIds: [
+				{ '@_id': '256', '@_r:id': 'rId2' },
+				{ '@_id': '257', '@_r:id': 'rId3' },
+			],
+		});
+		expect(remap.changed).toBeFalsy();
+
+		const presentation: XmlObject = {};
+		applyCustomShows(
+			presentation,
+			[{ name: 'Show', id: '1', slideRIds: ['rId2', 'rId3'] }],
+			lookup,
+			remap,
+		);
+		const show = ((presentation['p:custShowLst'] as XmlObject)['p:custShow'] as XmlObject[])[0];
+		const showSlides = (show['p:sldLst'] as XmlObject)['p:sld'] as XmlObject[];
+		expect(showSlides.map((entry) => entry['@_r:id'])).toStrictEqual(['rId2', 'rId3']);
 	});
 });

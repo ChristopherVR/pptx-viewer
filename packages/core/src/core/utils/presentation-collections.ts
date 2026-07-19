@@ -4,6 +4,49 @@ import { cloneXmlObject } from './clone-utils';
 
 const SECTION_EXTENSION_URI = '{521415D9-36F7-43E2-AB2F-B90AF26B5E84}';
 
+/**
+ * Slide-reference remapping produced by the presentation-slides reconciler.
+ *
+ * When slides are reordered, added, or removed the reconciler may reassign a
+ * slide relationship id (`r:id`) and mints fresh numeric slide ids for new
+ * slides. Custom shows reference slides by relationship id and sections by
+ * numeric slide id, so those references must be rewritten to the current
+ * values (and references to removed slides dropped) before serialization.
+ */
+export interface PptxSlideReferenceRemap {
+	/** Old presentation-rels slide rId -> current rId, for surviving slides. */
+	rIdByOldRId: Map<string, string>;
+	/** Old numeric slide id -> current numeric slide id, for surviving slides. */
+	sldIdByOldSldId: Map<string, string>;
+	/** Old slide rIds whose slide was removed (references must be dropped). */
+	removedRIds: Set<string>;
+	/** Old numeric slide ids whose slide was removed (references must be dropped). */
+	removedSldIds: Set<string>;
+	/** True when any reference changed or any slide was removed. */
+	changed: boolean;
+}
+
+function remapReferenceList(
+	references: readonly string[],
+	mapping: Map<string, string>,
+	removed: Set<string>,
+): string[] {
+	const result: string[] = [];
+	for (const reference of references) {
+		const mapped = mapping.get(reference);
+		if (mapped !== undefined) {
+			result.push(mapped);
+			continue;
+		}
+		if (removed.has(reference)) {
+			continue;
+		}
+		// Unknown reference (never a tracked slide): leave it untouched.
+		result.push(reference);
+	}
+	return result;
+}
+
 function localName(key: string): string {
 	return key.split(':').pop() ?? key;
 }
@@ -94,6 +137,7 @@ export function applyCustomShows(
 	presentation: XmlObject,
 	shows: PptxCustomShow[] | undefined,
 	lookup: IPptxXmlLookupService,
+	remap?: PptxSlideReferenceRemap,
 ): void {
 	if (shows === undefined) {
 		return;
@@ -108,16 +152,23 @@ export function applyCustomShows(
 	const oldList = key ? (presentation[key] as XmlObject) : undefined;
 	const list = cloneXmlObject(oldList) ?? {};
 	const oldShows = lookup.getChildrenArrayByLocalName(oldList, 'custShow');
-	const updated = shows.map((show) =>
-		updateCustomShow(
-			show,
+	const updated = shows.map((show) => {
+		const effective =
+			remap && remap.changed
+				? {
+						...show,
+						slideRIds: remapReferenceList(show.slideRIds, remap.rIdByOldRId, remap.removedRIds),
+					}
+				: show;
+		return updateCustomShow(
+			effective,
 			oldShows.find(
 				(node) =>
 					String(node[attributeKey(node, 'id') ?? '']) === show.id ||
 					String(node[attributeKey(node, 'name') ?? '']) === show.name,
 			),
-		),
-	);
+		);
+	});
 	replaceChildren(list, 'custShow', updated, 'p:custShow');
 	presentation[key ?? 'p:custShowLst'] = list;
 }
@@ -183,6 +234,7 @@ export function applySections(
 	presentation: XmlObject,
 	sections: PptxSection[] | undefined,
 	lookup: IPptxXmlLookupService,
+	remap?: PptxSlideReferenceRemap,
 ): void {
 	if (sections === undefined) {
 		return;
@@ -205,6 +257,17 @@ export function applySections(
 		location = { parent: ext, key: 'p14:sectionLst', list: ext['p14:sectionLst'] as XmlObject };
 	}
 	const list = cloneXmlObject(location.list) ?? {};
-	replaceChildren(list, 'section', sections.map(updateSection), 'p14:section');
+	const effectiveSections =
+		remap && remap.changed
+			? sections.map((section) => ({
+					...section,
+					slideIds: remapReferenceList(
+						section.slideIds,
+						remap.sldIdByOldSldId,
+						remap.removedSldIds,
+					),
+				}))
+			: sections;
+	replaceChildren(list, 'section', effectiveSections.map(updateSection), 'p14:section');
 	location.parent[location.key] = list;
 }

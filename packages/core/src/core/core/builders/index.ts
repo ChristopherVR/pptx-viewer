@@ -15,6 +15,7 @@ export {
 	type IPptxPresentationSlidesReconciler,
 	type PptxPresentationSlidesReconcilerInput,
 } from './PptxPresentationSlidesReconciler';
+export { buildSlideReferenceRemap, type SlideReferenceRemapInput } from './slide-reference-remap';
 export {
 	PptxSlideRelationshipRegistry,
 	type IPptxSlideRelationshipRegistry,
