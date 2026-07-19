@@ -449,6 +449,13 @@ export interface PptxChartSeries {
 	dataLabels?: PptxChartDataLabel[];
 	explosion?: number;
 	/**
+	 * Series-level `c:invertIfNegative`: when true, bar/column data points with a
+	 * negative value are drawn with an inverted (lightened) fill. A per-point
+	 * `c:dPt/c:invertIfNegative` overrides this for that point. Absent when the
+	 * source XML omits the flag.
+	 */
+	invertIfNegative?: boolean;
+	/**
 	 * Whether this line/scatter series is drawn with bezier smoothing
 	 * (`c:ser/c:smooth/@val`). Absent when the source XML omits `c:smooth`.
 	 */

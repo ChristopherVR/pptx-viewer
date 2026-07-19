@@ -31,6 +31,45 @@ function categoryTotals(series: ReadonlyArray<PptxChartSeries>, catCount: number
 }
 
 /**
+ * Blend a `#RRGGBB` colour halfway toward white. Returns the input unchanged
+ * when it is not a parseable 6-digit hex (e.g. a named colour or gradient ref).
+ */
+function blendToWhite(color: string): string {
+	const match = /^#?([0-9a-f]{6})$/iu.exec(color.trim());
+	if (!match) {
+		return color;
+	}
+	const value = Number.parseInt(match[1], 16);
+	const mix = (channel: number): number => Math.round(channel + (255 - channel) * 0.5);
+	const r = mix((value >> 16) & 0xff);
+	const g = mix((value >> 8) & 0xff);
+	const b = mix(value & 0xff);
+	return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0').toUpperCase()}`;
+}
+
+/**
+ * Apply PowerPoint's `c:invertIfNegative` treatment to a bar fill: when the
+ * point value is negative and invert-if-negative is set (a per-point `c:dPt`
+ * override wins over the series-level flag), the bar is drawn in a lightened
+ * fill. Convention: a 50% blend of the base fill toward white. PowerPoint has no
+ * single canonical inverted colour; a lightened same-hue fill echoes its default
+ * "hollow" appearance and is deterministic across bindings.
+ */
+function invertNegativeFill(
+	series: PptxChartSeries,
+	pointIndex: number,
+	value: number,
+	baseFill: string,
+): string {
+	if (value >= 0) {
+		return baseFill;
+	}
+	const point = series.dataPoints?.find((p) => p.idx === pointIndex);
+	const invert = point?.invertIfNegative ?? series.invertIfNegative ?? false;
+	return invert ? blendToWhite(baseFill) : baseFill;
+}
+
+/**
  * Bar primitives for clustered / stacked / percentStacked, honouring a secondary
  * value range for secondary-mapped series (clustered only). Returns rects + data
  * labels. Mirrors React's `renderDefaultBarChart` / `renderStackedBarChart`.
@@ -82,16 +121,17 @@ export function buildBars(
 				const valY = valueToY(val, activeRange, layout.plotTop, layout.plotBottom);
 				const y = Math.min(zeroY, valY);
 				const h = Math.max(Math.abs(zeroY - valY), 1);
+				const baseFill = varyColorsSingle
+					? resolveVaryColorFill(series[si], sourceIndex, paletteColor(sourceIndex, palette))
+					: (resolveDataPointFill(series[si], sourceIndex, paletteColor(si, palette)) ??
+						seriesColor(series[si], si, palette));
 				primitives.push({
 					kind: 'rect',
 					x,
 					y,
 					w: singleBarWidth,
 					h,
-					fill: varyColorsSingle
-						? resolveVaryColorFill(series[si], sourceIndex, paletteColor(sourceIndex, palette))
-						: (resolveDataPointFill(series[si], sourceIndex, paletteColor(si, palette)) ??
-							seriesColor(series[si], si, palette)),
+					fill: invertNegativeFill(series[si], sourceIndex, val, baseFill),
 					rx: 1,
 					part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
 				} satisfies SvgRect);
@@ -128,6 +168,8 @@ export function buildBars(
 			if (r.seriesIndex !== undefined && r.pointIndex !== undefined) {
 				const sourcePointIndex = sourceIndices[r.pointIndex] ?? r.pointIndex;
 				fill = resolveDataPointFill(series[r.seriesIndex], sourcePointIndex, r.fill) ?? r.fill;
+				const value = series[r.seriesIndex].values[sourcePointIndex] ?? 0;
+				fill = invertNegativeFill(series[r.seriesIndex], sourcePointIndex, value, fill);
 				part = { role: 'dataPoint', seriesIndex: r.seriesIndex, pointIndex: sourcePointIndex };
 			}
 			primitives.push({ kind: 'rect', x: r.x, y: r.y, w: r.w, h: r.h, fill, rx: 1, part });
@@ -166,15 +208,16 @@ export function buildBars(
 			const y = Math.min(baseY, topY);
 			const h = Math.max(Math.abs(baseY - topY), 0.5);
 
+			const pctBaseFill =
+				resolveDataPointFill(series[si], sourceIndex, paletteColor(si, palette)) ??
+				seriesColor(series[si], si, palette);
 			primitives.push({
 				kind: 'rect',
 				x,
 				y,
 				w: barW,
 				h,
-				fill:
-					resolveDataPointFill(series[si], sourceIndex, paletteColor(si, palette)) ??
-					seriesColor(series[si], si, palette),
+				fill: invertNegativeFill(series[si], sourceIndex, rawVal, pctBaseFill),
 				part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
 			} satisfies SvgRect);
 

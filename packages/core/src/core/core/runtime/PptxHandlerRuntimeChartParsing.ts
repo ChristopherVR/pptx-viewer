@@ -481,6 +481,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				? !(smoothNode['@_val'] === '0' || smoothNode['@_val'] === 'false')
 				: undefined;
 
+			// Parse series-level c:invertIfNegative (bar/column): negative points draw
+			// with an inverted fill. A per-point c:dPt override takes precedence.
+			const invertNode = this.xmlLookupService.getChildByLocalName(seriesNode, 'invertIfNegative');
+			const invertIfNegative = invertNode
+				? !(invertNode['@_val'] === '0' || invertNode['@_val'] === 'false')
+				: undefined;
+
 			return {
 				name: seriesName.trim().length > 0 ? seriesName : `Series ${seriesIndex + 1}`,
 				values: fallbackValues,
@@ -491,6 +498,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(seriesMarker ? { marker: seriesMarker } : {}),
 				...(dataLabels.length > 0 ? { dataLabels } : {}),
 				...(explosion !== undefined ? { explosion } : {}),
+				...(invertIfNegative !== undefined ? { invertIfNegative } : {}),
 				...(smooth !== undefined ? { smooth } : {}),
 				...(axisId !== undefined ? { axisId } : {}),
 				...(seriesChartType ? { seriesChartType } : {}),

@@ -184,6 +184,57 @@ describe('buildChartSpaceXml', () => {
 		expect(pa['c:barChart']).toBeDefined();
 	});
 
+	it('emits a stockChart container with hi/low lines and axes for a stock chart', () => {
+		const pa = plotArea(buildChartSpaceXml(makeData({ chartType: 'stock' })));
+		const container = pa['c:stockChart'] as XmlObject;
+		expect(container).toBeDefined();
+		expect(container['c:hiLowLines']).toBeDefined();
+		expect(container['c:grouping']).toBeUndefined();
+		expect(container['c:varyColors']).toBeUndefined();
+		expect(container['c:axId']).toHaveLength(2);
+		expect(pa['c:catAx']).toBeDefined();
+		expect(pa['c:valAx']).toBeDefined();
+	});
+
+	it('emits a surfaceChart container with axes for a surface chart', () => {
+		const pa = plotArea(buildChartSpaceXml(makeData({ chartType: 'surface' })));
+		const container = pa['c:surfaceChart'] as XmlObject;
+		expect(container).toBeDefined();
+		expect(container['c:axId']).toHaveLength(2);
+		expect(pa['c:catAx']).toBeDefined();
+		expect(pa['c:valAx']).toBeDefined();
+	});
+
+	it('emits an ofPieChart container with an ofPieType and no axes', () => {
+		const pa = plotArea(buildChartSpaceXml(makeData({ chartType: 'ofPie' })));
+		const container = pa['c:ofPieChart'] as XmlObject;
+		expect(container).toBeDefined();
+		expect(container['c:ofPieType']).toStrictEqual({ '@_val': 'pie' });
+		expect(pa['c:catAx']).toBeUndefined();
+		expect(pa['c:valAx']).toBeUndefined();
+	});
+
+	it('keeps 3-D variants in their own 3-D container instead of collapsing to 2-D', () => {
+		expect(
+			plotArea(buildChartSpaceXml(makeData({ chartType: 'bar3D' })))['c:bar3DChart'],
+		).toBeDefined();
+		expect(
+			plotArea(buildChartSpaceXml(makeData({ chartType: 'pie3D' })))['c:pie3DChart'],
+		).toBeDefined();
+		expect(
+			plotArea(buildChartSpaceXml(makeData({ chartType: 'line3D' })))['c:line3DChart'],
+		).toBeDefined();
+		expect(
+			plotArea(buildChartSpaceXml(makeData({ chartType: 'area3D' })))['c:area3DChart'],
+		).toBeDefined();
+	});
+
+	it('gives a pie3D chart no cartesian axes', () => {
+		const pa = plotArea(buildChartSpaceXml(makeData({ chartType: 'pie3D' })));
+		expect(pa['c:catAx']).toBeUndefined();
+		expect(pa['c:valAx']).toBeUndefined();
+	});
+
 	it('emits a title and autoTitleDeleted=0 when a title is set', () => {
 		const root = chartRoot(buildChartSpaceXml(makeData({ title: 'Sales' })));
 		expect(root['c:title']).toBeDefined();
