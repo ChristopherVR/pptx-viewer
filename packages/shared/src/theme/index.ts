@@ -10,3 +10,4 @@ export {
 } from './presets';
 export { THEME_CATALOG, resolveThemeCatalogEntry } from './theme-catalog';
 export type { ThemeCatalogEntry } from './theme-catalog';
+export { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
