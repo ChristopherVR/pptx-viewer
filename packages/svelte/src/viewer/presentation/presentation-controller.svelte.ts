@@ -1,4 +1,5 @@
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import { isClickAdvanceAllowed } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'pptx-viewer-shared';
 
 import { AnimationPlayback } from './animation-playback.svelte';
@@ -81,9 +82,18 @@ export class PresentationController {
 	/**
 	 * The on-click advance contract: reveal the next element-animation build if
 	 * one remains, otherwise advance to the next slide.
+	 *
+	 * `fromClick` marks a click/tap/swipe on the slide, which is PowerPoint's
+	 * "on mouse click" advance: it still steps the remaining animation builds,
+	 * but once they are exhausted it advances the slide only when the current
+	 * slide's transition allows it (advanceOnClick !== false). Keyboard and the
+	 * on-screen next button pass `fromClick = false` and are never gated.
 	 */
-	advance(): void {
+	advance(fromClick = false): void {
 		if (this.playback.advance()) {
+			return;
+		}
+		if (fromClick && !isClickAdvanceAllowed(this.#currentSlide())) {
 			return;
 		}
 		this.#deps.navigate(this.#deps.getCurrentIndex() + 1);

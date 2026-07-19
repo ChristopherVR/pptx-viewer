@@ -6,6 +6,7 @@ import {
 	fitZoom,
 	nextVisibleIndex,
 	prevVisibleIndex,
+	shouldBlockClickAdvance,
 } from './presentation-overlay-helpers';
 
 // ---------------------------------------------------------------------------
@@ -25,6 +26,30 @@ function slide(overrides: Partial<PptxSlide> = {}): PptxSlide {
 function slides(...hidden: boolean[]): PptxSlide[] {
 	return hidden.map((h, i) => slide({ id: `s${i}`, slideNumber: i + 1, hidden: h }));
 }
+
+function transitionSlide(advanceOnClick: boolean | undefined): PptxSlide {
+	return slide({ transition: { type: 'fade', advanceOnClick } });
+}
+
+// ---------------------------------------------------------------------------
+// shouldBlockClickAdvance
+// ---------------------------------------------------------------------------
+
+describe('shouldBlockClickAdvance', () => {
+	it('blocks the click advance when builds are done and advanceOnClick is false', () => {
+		expect(shouldBlockClickAdvance(true, transitionSlide(false))).toBeTruthy();
+	});
+
+	it('allows the advance when advanceOnClick is true or undefined', () => {
+		expect(shouldBlockClickAdvance(true, transitionSlide(true))).toBeFalsy();
+		expect(shouldBlockClickAdvance(true, transitionSlide(undefined))).toBeFalsy();
+		expect(shouldBlockClickAdvance(true, slide())).toBeFalsy();
+	});
+
+	it('never blocks while animation builds remain (click still steps builds)', () => {
+		expect(shouldBlockClickAdvance(false, transitionSlide(false))).toBeFalsy();
+	});
+});
 
 // ---------------------------------------------------------------------------
 // clampIndex

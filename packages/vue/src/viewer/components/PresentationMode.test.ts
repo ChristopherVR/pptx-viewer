@@ -15,6 +15,15 @@ function makeSlide(id: string): PptxSlide {
 	} as unknown as PptxSlide;
 }
 
+function makeSlideNoClickAdvance(id: string): PptxSlide {
+	return {
+		id,
+		elements: [],
+		backgroundColor: '#ffffff',
+		transition: { type: 'fade', advanceOnClick: false },
+	} as unknown as PptxSlide;
+}
+
 function mountMode(slides: PptxSlide[], startIndex = 0, startInPresenterView = false) {
 	return mount(PresentationMode, {
 		props: {
@@ -116,6 +125,25 @@ describe('presentationMode', () => {
 		const wrapper = mountMode([makeSlide('s1'), makeSlide('s2')]);
 		const overlay = document.querySelector<HTMLDivElement>('.pptx-vue-presentation');
 		overlay?.click();
+		await wrapper.vm.$nextTick();
+		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([1]);
+		wrapper.unmount();
+	});
+
+	it('does not advance on overlay click when advanceOnClick is false', async () => {
+		const wrapper = mountMode([makeSlideNoClickAdvance('s1'), makeSlide('s2')]);
+		const overlay = document.querySelector<HTMLDivElement>('.pptx-vue-presentation');
+		overlay?.click();
+		await wrapper.vm.$nextTick();
+		// The click on the slide is suppressed by the transition flag.
+		expect(wrapper.emitted('slide-change')).toBeUndefined();
+		wrapper.unmount();
+	});
+
+	it('still advances via keyboard when advanceOnClick is false', async () => {
+		const wrapper = mountMode([makeSlideNoClickAdvance('s1'), makeSlide('s2')]);
+		// Explicit navigation (ArrowRight) is never gated by advanceOnClick.
+		pressKey('ArrowRight');
 		await wrapper.vm.$nextTick();
 		expect(wrapper.emitted('slide-change')?.[0]).toStrictEqual([1]);
 		wrapper.unmount();

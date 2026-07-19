@@ -6,6 +6,7 @@ import type { ChromeCallbackDeps } from './chrome-callbacks';
 import type { EditActions } from './editor';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
 import type { Translator } from './i18n';
+import { isSwipeAdvanceBlocked } from './presentation-advance-gate';
 import type { RenderController } from './render-controller';
 import type { DrawTool, Store, ViewerState } from './state';
 import { applyThemeVars } from './theme-apply';
@@ -97,7 +98,23 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			const state = store.get();
 			return state.presenting || !state.editable;
 		},
-		onNext: () => deps.next(),
+		onNext: () => {
+			// A swipe/tap on the slide is PowerPoint's "on mouse click" advance, so
+			// it is gated by the current slide's advanceOnClick transition flag.
+			// Keyboard and the on-screen next button call deps.next() directly and
+			// are never gated.
+			const state = store.get();
+			if (
+				isSwipeAdvanceBlocked({
+					presenting: state.presenting,
+					animationBuildsComplete: renderer.presentationPlayback.isComplete(),
+					currentSlide: state.slides[state.currentSlide],
+				})
+			) {
+				return;
+			}
+			deps.next();
+		},
 		onPrevious: () => deps.prev(),
 	});
 	const presentation = createPresentationController(chrome.root, (presenting) => {
