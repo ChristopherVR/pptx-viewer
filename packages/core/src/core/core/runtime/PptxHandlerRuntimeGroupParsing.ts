@@ -229,6 +229,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			parentW = 0,
 			parentH = 0;
 
+		// Group-level rotation/flip live on `p:grpSpPr/a:xfrm` and must be
+		// carried onto the GroupPptxElement so the renderer can wrap the whole
+		// group in a single rotate/flip transform (issue #70). `@_rot` is in
+		// 60000ths of a degree (ECMA-376 ST_Angle), matching shape parsing.
+		let groupRotation: number | undefined;
+		let flipHorizontal = false;
+		let flipVertical = false;
+
 		if (xfrm) {
 			const off = xfrm['a:off'] as XmlObject | undefined;
 			if (off) {
@@ -240,6 +248,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				parentW = Math.round(parseEmuInt(ext['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
 				parentH = Math.round(parseEmuInt(ext['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
+			if (xfrm['@_rot'] !== undefined && xfrm['@_rot'] !== null) {
+				const rot = parseInt(String(xfrm['@_rot']), 10) / 60000;
+				groupRotation = Number.isFinite(rot) && rot !== 0 ? rot : undefined;
+			}
+			flipHorizontal = this.parseBooleanAttr(xfrm['@_flipH']);
+			flipVertical = this.parseBooleanAttr(xfrm['@_flipV']);
 		}
 
 		const grpFillStyle = grpSpPr
@@ -299,6 +313,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			y: parentY,
 			width: parentW || Math.max(...children.map((c) => c.x + c.width)),
 			height: parentH || Math.max(...children.map((c) => c.y + c.height)),
+			rotation: groupRotation,
+			flipHorizontal: flipHorizontal || undefined,
+			flipVertical: flipVertical || undefined,
 			children,
 			rawXml: group as XmlObject,
 			actionClick: grpActionClick,
