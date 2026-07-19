@@ -4,7 +4,26 @@ import { useRef, useCallback } from 'react';
 import type { ViewerMode } from '../../types';
 import { handlePresentationActionImpl } from './presentation-actions';
 import { executeSlideTransition } from './slide-transition';
-import type { PresentationTransitionOverlayState } from './types';
+import type { PresentationTransitionOverlayState, SlideAdvanceTrigger } from './types';
+
+// ---------------------------------------------------------------------------
+// Click-advance gating
+// ---------------------------------------------------------------------------
+
+/**
+ * PowerPoint suppresses click-to-advance when a slide's transition sets
+ * `advanceOnClick` to false: the show then advances only via timings or explicit
+ * navigation. Returns true when a click-triggered forward advance must be
+ * blocked. Backward moves and explicit navigation are never blocked, and an
+ * undefined flag defaults to allowed (preserving existing behaviour).
+ */
+export function isClickAdvanceBlocked(
+	slide: PptxSlide | undefined,
+	direction: 1 | -1,
+	trigger: SlideAdvanceTrigger,
+): boolean {
+	return trigger === 'click' && direction === 1 && slide?.transition?.advanceOnClick === false;
+}
 
 // ---------------------------------------------------------------------------
 // Sub-hook interface
@@ -39,7 +58,7 @@ export interface UseSlideNavigationInput {
 }
 
 export interface UseSlideNavigationResult {
-	movePresentationSlide: (direction: 1 | -1) => void;
+	movePresentationSlide: (direction: 1 | -1, trigger?: SlideAdvanceTrigger) => void;
 	navigateToSlide: (slideIndex: number) => void;
 	handlePresentationAction: (action: PptxAction) => void;
 	scheduleAutoAdvanceForSlide: (slideIndex: number) => void;
@@ -111,8 +130,14 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 	// -----------------------------------------------------------------------
 
 	const movePresentationSlide = useCallback(
-		(direction: 1 | -1) => {
+		(direction: 1 | -1, trigger: SlideAdvanceTrigger = 'explicit') => {
+			// A click/tap still steps through any pending element-animation builds,
+			// but once they are exhausted PowerPoint only advances the slide on
+			// click when the transition allows it (advanceOnClick !== false).
 			if (direction === 1 && playNextAnimationGroup()) {
+				return;
+			}
+			if (isClickAdvanceBlocked(slides[presentationSlideIndex], direction, trigger)) {
 				return;
 			}
 

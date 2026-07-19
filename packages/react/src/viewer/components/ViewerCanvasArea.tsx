@@ -255,7 +255,9 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 	const swipeEnabled = mode === 'preview' || mode === 'present';
 	const handleSwipeNext = useCallback(() => {
 		if (mode === 'present') {
-			presentation.movePresentationSlide(1);
+			// A swipe/tap on the slide is PowerPoint's "on mouse click" advance, so
+			// it is gated by the current slide's advanceOnClick transition flag.
+			presentation.movePresentationSlide(1, 'click');
 		} else {
 			s.setActiveSlideIndex((i) => Math.min(slides.length - 1, i + 1));
 		}

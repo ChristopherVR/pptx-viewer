@@ -4,6 +4,17 @@ import type { PresentationSnapshot } from 'pptx-viewer-shared';
 import type { ViewerMode, PresentationAnimationRuntime } from '../../types';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
 
+/**
+ * How a forward/backward slide advance was requested.
+ *
+ * - `'click'`: a click/tap on the slide surface (PowerPoint's "On Mouse Click"
+ *   advance). This is the only trigger governed by `advanceOnClick`.
+ * - `'explicit'`: keyboard, navigation buttons, action triggers, and timed
+ *   auto-advance. These always navigate regardless of `advanceOnClick`, matching
+ *   PowerPoint (arrow keys / Next always work even when click-advance is off).
+ */
+export type SlideAdvanceTrigger = 'click' | 'explicit';
+
 // ---------------------------------------------------------------------------
 // Slide-transition overlay
 // ---------------------------------------------------------------------------
@@ -80,7 +91,7 @@ export interface UsePresentationModeResult {
 	runPresentationEntranceAnimations: (slideIndex: number) => void;
 	/** True while the black "End of slide show" screen is displayed. */
 	endOfShowVisible: boolean;
-	movePresentationSlide: (direction: 1 | -1) => void;
+	movePresentationSlide: (direction: 1 | -1, trigger?: SlideAdvanceTrigger) => void;
 	navigateToSlide: (slideIndex: number) => void;
 	handlePresentationAction: (action: PptxAction) => void;
 	/**

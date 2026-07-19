@@ -1,9 +1,21 @@
+import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
+
+import { isClickAdvanceBlocked } from './useSlideNavigation';
 
 // ---------------------------------------------------------------------------
 // Pure logic extracted from useSlideNavigation for testing.
 // These mirror the navigation calculations inside movePresentationSlide.
 // ---------------------------------------------------------------------------
+
+function slideWithTransition(transition?: Partial<PptxSlideTransition>): PptxSlide {
+	return {
+		id: 's1',
+		rId: 'rId1',
+		elements: [],
+		...(transition ? { transition: transition as PptxSlideTransition } : {}),
+	} as PptxSlide;
+}
 
 /**
  * Determine available slide indexes (visible or all).
@@ -253,5 +265,55 @@ describe('shouldScheduleAutoAdvance', () => {
 
 	it('should return false for negative number', () => {
 		expect(shouldScheduleAutoAdvance(-100)).toBeFalsy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Tests: isClickAdvanceBlocked (advanceOnClick enforcement, issue #82)
+// ---------------------------------------------------------------------------
+
+describe('isClickAdvanceBlocked', () => {
+	it('should block a click-advance when advanceOnClick is false', () => {
+		const slide = slideWithTransition({ type: 'fade', advanceOnClick: false });
+		expect(isClickAdvanceBlocked(slide, 1, 'click')).toBeTruthy();
+	});
+
+	it('should allow a click-advance when advanceOnClick is true', () => {
+		const slide = slideWithTransition({ type: 'fade', advanceOnClick: true });
+		expect(isClickAdvanceBlocked(slide, 1, 'click')).toBeFalsy();
+	});
+
+	it('should allow a click-advance when advanceOnClick is undefined (default)', () => {
+		const slide = slideWithTransition({ type: 'fade' });
+		expect(isClickAdvanceBlocked(slide, 1, 'click')).toBeFalsy();
+	});
+
+	it('should allow a click-advance when the slide has no transition', () => {
+		const slide = slideWithTransition();
+		expect(isClickAdvanceBlocked(slide, 1, 'click')).toBeFalsy();
+	});
+
+	it('should allow a click-advance when the slide is undefined', () => {
+		expect(isClickAdvanceBlocked(undefined, 1, 'click')).toBeFalsy();
+	});
+
+	it('should never block explicit navigation even when advanceOnClick is false', () => {
+		const slide = slideWithTransition({ type: 'fade', advanceOnClick: false });
+		// Keyboard, nav buttons, action triggers, and timed auto-advance all use
+		// the 'explicit' trigger and must keep working.
+		expect(isClickAdvanceBlocked(slide, 1, 'explicit')).toBeFalsy();
+	});
+
+	it('should never block a backward click even when advanceOnClick is false', () => {
+		const slide = slideWithTransition({ type: 'fade', advanceOnClick: false });
+		expect(isClickAdvanceBlocked(slide, -1, 'click')).toBeFalsy();
+	});
+
+	it('should not affect auto-advance scheduling when advanceOnClick is false', () => {
+		// advanceOnClick only governs click-to-advance; timed auto-advance (advTm)
+		// is still scheduled regardless.
+		const slide = slideWithTransition({ advanceOnClick: false, advanceAfterMs: 4000 });
+		expect(shouldScheduleAutoAdvance(slide.transition?.advanceAfterMs)).toBeTruthy();
+		expect(isClickAdvanceBlocked(slide, 1, 'explicit')).toBeFalsy();
 	});
 });
