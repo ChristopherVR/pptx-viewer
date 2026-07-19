@@ -79,9 +79,93 @@ export function getResolvedShapeClipPathFor(
 }
 
 /**
+ * Build a CSS `clip-path: path('…')` value from a custom-geometry (`a:custGeom`)
+ * SVG path string, rescaling its path-space coordinates (`pathWidth` x
+ * `pathHeight`) into the element's pixel box.
+ *
+ * CSS `path()` coordinates live in the element's own border-box pixel space
+ * (there is no viewBox), so freeform coordinates authored against the OOXML path
+ * extent must be scaled by `elemW / pathWidth` and `elemH / pathHeight`. Every
+ * binding already clips its shape container's background fill with the resolved
+ * clip-path, so returning one here lets a themed freeform (e.g. the "Balloons"
+ * background) render as its true outline instead of flooding its bounding box.
+ *
+ * Supports the absolute command set produced by the core geometry engine
+ * (M/L/C/Q/Z) plus elliptical arcs (A); unknown commands are passed through
+ * unscaled rather than dropped.
+ */
+export function buildCustomGeometryClipPath(
+	pathData: string,
+	pathWidth: number,
+	pathHeight: number,
+	elemWidth: number,
+	elemHeight: number,
+): string | undefined {
+	if (
+		!pathData ||
+		!Number.isFinite(pathWidth) ||
+		!Number.isFinite(pathHeight) ||
+		pathWidth <= 0 ||
+		pathHeight <= 0 ||
+		!Number.isFinite(elemWidth) ||
+		!Number.isFinite(elemHeight) ||
+		elemWidth <= 0 ||
+		elemHeight <= 0
+	) {
+		return undefined;
+	}
+	const sx = elemWidth / pathWidth;
+	const sy = elemHeight / pathHeight;
+	const round = (n: number): string => {
+		const r = Math.round(n * 100) / 100;
+		return Object.is(r, -0) ? '0' : String(r);
+	};
+	const tokens = pathData.match(/[MLCQZAHVmlcqzahv][^MLCQZAHVmlcqzahv]*/g) ?? [];
+	const out: string[] = [];
+	for (const token of tokens) {
+		const cmd = token[0];
+		const upper = cmd.toUpperCase();
+		if (upper === 'Z') {
+			out.push('Z');
+			continue;
+		}
+		const nums = (token.slice(1).match(/-?[\d.]+(?:e-?\d+)?/gi) ?? []).map(Number);
+		if (upper === 'A') {
+			// rx ry x-axis-rotation large-arc-flag sweep-flag x y (per 7-number group)
+			const parts: string[] = [];
+			for (let i = 0; i + 6 < nums.length; i += 7) {
+				parts.push(
+					round(nums[i] * sx),
+					round(nums[i + 1] * sy),
+					String(nums[i + 2]),
+					String(nums[i + 3]),
+					String(nums[i + 4]),
+					round(nums[i + 5] * sx),
+					round(nums[i + 6] * sy),
+				);
+			}
+			out.push(`A ${parts.join(' ')}`);
+			continue;
+		}
+		// M/L/C/Q (and H/V) carry (x, y) pairs; scale x by sx and y by sy.
+		const scaled = nums.map((n, i) => round(n * (i % 2 === 0 ? sx : sy)));
+		out.push(`${upper} ${scaled.join(' ')}`);
+	}
+	if (out.length === 0) {
+		return undefined;
+	}
+	return `path('${out.join(' ')}')`;
+}
+
+/**
  * Element-level convenience wrapper. Pulls `shapeType`, `width`, `height`, and
  * `shapeAdjustments` off a {@link PptxElement} and delegates to
  * {@link getResolvedShapeClipPathFor}.
+ *
+ * Custom-geometry freeforms (which carry `pathData`/`pathWidth`/`pathHeight`
+ * rather than a preset `shapeType`) take priority: their outline is rescaled
+ * into the element box via {@link buildCustomGeometryClipPath} so the fill clips
+ * to the real shape instead of its bounding rectangle.
  *
  * @param element The PPTX element to resolve a clip-path for.
  * @param width   Optional width override (pixels). Defaults to `element.width`.
@@ -92,12 +176,29 @@ export function getResolvedShapeClipPath(
 	width?: number,
 	height?: number,
 ): string | undefined {
+	const w = typeof width === 'number' ? width : element.width;
+	const h = typeof height === 'number' ? height : element.height;
+	const custom = element as {
+		pathData?: string;
+		pathWidth?: number;
+		pathHeight?: number;
+	};
+	if (custom.pathData && custom.pathWidth && custom.pathHeight) {
+		const customClip = buildCustomGeometryClipPath(
+			custom.pathData,
+			custom.pathWidth,
+			custom.pathHeight,
+			w,
+			h,
+		);
+		if (customClip) {
+			return customClip;
+		}
+	}
 	const shapeType = (element as { shapeType?: string }).shapeType;
 	if (!shapeType) {
 		return undefined;
 	}
-	const w = typeof width === 'number' ? width : element.width;
-	const h = typeof height === 'number' ? height : element.height;
 	const adjustments = (element as { shapeAdjustments?: Record<string, number> }).shapeAdjustments;
 	return getResolvedShapeClipPathFor(shapeType, w, h, adjustments);
 }

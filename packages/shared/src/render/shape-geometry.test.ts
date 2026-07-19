@@ -1,7 +1,11 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from './shape-geometry';
+import {
+	buildCustomGeometryClipPath,
+	getResolvedShapeClipPath,
+	getResolvedShapeClipPathFor,
+} from './shape-geometry';
 
 function shape(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
@@ -59,5 +63,52 @@ describe('getResolvedShapeClipPath', () => {
 		const el = shape({ shapeType: 'triangle' });
 		const clip = getResolvedShapeClipPath(el, 300, 150);
 		expect(clip).toBeTypeOf('string');
+	});
+
+	it('derives a rescaled clip-path from custom geometry (freeform)', () => {
+		// A 596x666 path space rendered into a 149x166.5 px box scales by 0.25.
+		const el = shape({
+			shapeType: 'custom',
+			width: 149,
+			height: 166.5,
+			pathData: 'M 0 0 L 596 0 L 596 666 Z',
+			pathWidth: 596,
+			pathHeight: 666,
+		} as Partial<PptxElement>);
+		const clip = getResolvedShapeClipPath(el);
+		// Not the bounding rectangle: the freeform outline is clipped to its path.
+		expect(clip).toBe("path('M 0 0 L 149 0 L 149 166.5 Z')");
+	});
+
+	it('prefers custom geometry over the preset table when both are present', () => {
+		const el = shape({
+			shapeType: 'rect',
+			width: 100,
+			height: 100,
+			pathData: 'M 0 0 L 50 0 L 50 50 Z',
+			pathWidth: 50,
+			pathHeight: 50,
+		} as Partial<PptxElement>);
+		expect(getResolvedShapeClipPath(el)).toBe("path('M 0 0 L 100 0 L 100 100 Z')");
+	});
+});
+
+describe('buildCustomGeometryClipPath', () => {
+	it('rescales M/L/C/Q coordinates into the element pixel box', () => {
+		const clip = buildCustomGeometryClipPath(
+			'M 0 0 C 10 20 30 40 50 60 Q 5 5 10 10 Z',
+			100,
+			100,
+			200,
+			50,
+		);
+		// x scaled by 2 (200/100), y scaled by 0.5 (50/100).
+		expect(clip).toBe("path('M 0 0 C 20 10 60 20 100 30 Q 10 2.5 20 5 Z')");
+	});
+
+	it('returns undefined for degenerate dimensions', () => {
+		expect(buildCustomGeometryClipPath('M 0 0 L 1 1 Z', 0, 100, 10, 10)).toBeUndefined();
+		expect(buildCustomGeometryClipPath('M 0 0 L 1 1 Z', 100, 100, 0, 10)).toBeUndefined();
+		expect(buildCustomGeometryClipPath('', 100, 100, 10, 10)).toBeUndefined();
 	});
 });

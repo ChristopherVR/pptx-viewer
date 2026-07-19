@@ -268,19 +268,28 @@ export function getSvgStrokeDasharray(
 /**
  * Builds a CSS `transform` string combining flip and rotation transforms for an element.
  * Flips are expressed as `scaleX(-1)` / `scaleY(-1)`, rotation as `rotate(Ndeg)`.
+ *
+ * Order matters: OOXML `a:xfrm` mirrors the shape *within* its bounding box
+ * (`flipH`/`flipV`) and *then* rotates the box by `rot`. With CSS
+ * `transform-origin: center`, transforms apply right-to-left, so the flips must
+ * come AFTER the rotation in the string (`rotate(θ) scaleX(-1)`) to be applied
+ * first. Emitting `scaleX(-1) rotate(θ)` instead reflects the rotation direction
+ * for any shape that is both flipped and rotated (e.g. the "Balloons" freeforms
+ * render mirrored/tilted the wrong way). This matches the Angular binding's
+ * `getContainerStyle`, which already emits `rotate() scaleX() scaleY()`.
  * @param element - The element whose transforms are read.
  * @returns A CSS transform string, or `undefined` if no transforms apply.
  */
 export function getElementTransform(element: PptxElement): string | undefined {
 	const transforms: string[] = [];
+	if (element.rotation) {
+		transforms.push(`rotate(${element.rotation}deg)`);
+	}
 	if (element.flipHorizontal) {
 		transforms.push('scaleX(-1)');
 	}
 	if (element.flipVertical) {
 		transforms.push('scaleY(-1)');
-	}
-	if (element.rotation) {
-		transforms.push(`rotate(${element.rotation}deg)`);
 	}
 	if (element.skewX) {
 		transforms.push(`skewX(${element.skewX}deg)`);
