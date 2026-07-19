@@ -42,6 +42,27 @@ import type {
  * Emphasis / motion-path presets carry no show/hide semantics, so a missing
  * one is safe to skip and returns `undefined`.
  */
+/**
+ * Map an animation's parsed `accel`/`decel` fractions to a CSS timing function.
+ * PowerPoint's acceleration eases the effect in, deceleration eases it out, and
+ * both together ease in-and-out. With neither set we keep the neutral `ease`
+ * default so existing decks are unchanged.
+ */
+function cssEasingForAnimation(anim: PptxNativeAnimation): string {
+	const hasAccel = anim.accel !== undefined && anim.accel > 0;
+	const hasDecel = anim.decel !== undefined && anim.decel > 0;
+	if (hasAccel && hasDecel) {
+		return 'ease-in-out';
+	}
+	if (hasAccel) {
+		return 'ease-in';
+	}
+	if (hasDecel) {
+		return 'ease-out';
+	}
+	return 'ease';
+}
+
 function fallbackEffectForClass(
 	presetClass: PptxNativeAnimation['presetClass'],
 ): EffectName | undefined {
@@ -205,7 +226,8 @@ export function buildTimeline(
 			}
 
 			const iterStr = iterCount === Infinity ? 'infinite' : String(iterCount);
-			const cssAnimation = `${keyframe} ${duration}ms ease ${delayMs}ms ${iterStr} ${direction} ${fill}`;
+			const easing = cssEasingForAnimation(singleAnim);
+			const cssAnimation = `${keyframe} ${duration}ms ${easing} ${delayMs}ms ${iterStr} ${direction} ${fill}`;
 
 			currentGroup.push({
 				elementId,
@@ -390,7 +412,8 @@ function buildSequenceGroups(
 			}
 
 			const iterStr = iterCount === Infinity ? 'infinite' : String(iterCount);
-			const cssAnimation = `${keyframe} ${duration}ms ease ${delayMs}ms ${iterStr} ${direction} ${fill}`;
+			const easing = cssEasingForAnimation(anim);
+			const cssAnimation = `${keyframe} ${duration}ms ${easing} ${delayMs}ms ${iterStr} ${direction} ${fill}`;
 
 			seqGroup.push({
 				elementId,

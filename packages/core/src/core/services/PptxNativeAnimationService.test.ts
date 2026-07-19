@@ -25,6 +25,8 @@ function buildSimpleEntranceSlide(
 		duration?: number;
 		delay?: number;
 		nodeType?: string;
+		accel?: string;
+		decel?: string;
 	},
 ): XmlObject {
 	const presetId = opts?.presetId ?? 10;
@@ -64,6 +66,8 @@ function buildSimpleEntranceSlide(
 														'@_presetClass': 'entr',
 														'@_dur': String(duration),
 														'@_delay': delay > 0 ? String(delay) : undefined,
+														'@_accel': opts?.accel,
+														'@_decel': opts?.decel,
 														'@_nodeType': nodeType,
 														'p:childTnLst': {
 															'p:animEffect': {
@@ -158,6 +162,24 @@ describe('pptxNativeAnimationService', () => {
 			expect(result![0].presetClass).toBe('entr');
 			expect(result![0].presetId).toBe(10);
 			expect(result![0].durationMs).toBe(500);
+		});
+
+		it('parses accel / decel timing percentages into 0..1 fractions', () => {
+			const slideXml = buildSimpleEntranceSlide('shape1', {
+				accel: '50000',
+				decel: '25000',
+			});
+			const result = service.parseNativeAnimations(slideXml);
+			expect(result).toBeDefined();
+			expect(result![0].accel).toBe(0.5);
+			expect(result![0].decel).toBe(0.25);
+		});
+
+		it('leaves accel / decel undefined when the attributes are absent', () => {
+			const slideXml = buildSimpleEntranceSlide('shape1');
+			const result = service.parseNativeAnimations(slideXml);
+			expect(result![0].accel).toBeUndefined();
+			expect(result![0].decel).toBeUndefined();
 		});
 
 		it("extracts trigger from nodeType 'afterPrevious'", () => {

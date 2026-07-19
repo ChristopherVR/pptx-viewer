@@ -340,6 +340,25 @@ export function extractChildKeyframes(
 	return undefined;
 }
 
+/**
+ * Parse an OOXML `ST_PositiveFixedPercentage` timing value (e.g. `p:cTn/@accel`
+ * or `@decel`) into a fraction in the range 0..1. PowerPoint stores these as an
+ * integer count of 1000ths of a percent, so `50000` means 50% (fraction 0.5).
+ *
+ * Returns `undefined` for absent, unparseable, or non-positive values so a
+ * `0` acceleration does not register as easing.
+ */
+export function parseTimingPercentFraction(raw: unknown): number | undefined {
+	if (raw === undefined || raw === null) {
+		return undefined;
+	}
+	const parsed = Number.parseInt(String(raw), 10);
+	if (!Number.isFinite(parsed) || parsed <= 0) {
+		return undefined;
+	}
+	return Math.min(1, parsed / 100000);
+}
+
 export function extractRepeatInfo(cTn: XmlObject): {
 	repeatCount?: number;
 	autoReverse?: boolean;

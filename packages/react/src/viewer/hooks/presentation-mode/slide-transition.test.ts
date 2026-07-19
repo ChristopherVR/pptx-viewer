@@ -92,7 +92,25 @@ describe('executeSlideTransition', () => {
 			],
 		});
 		executeSlideTransition(1, deps);
-		expect(deps.onPlayActionSound).toHaveBeenCalledWith('swoosh.wav');
+		expect(deps.onPlayActionSound).toHaveBeenCalledWith('swoosh.wav', { loop: false });
+	});
+
+	it('loops the transition sound when soundLoop is set', () => {
+		const deps = createMockDeps({
+			slides: [
+				createMockSlide(),
+				createMockSlide({
+					transition: {
+						type: 'fade',
+						durationMs: 300,
+						soundPath: 'swoosh.wav',
+						soundLoop: true,
+					} as PptxSlide['transition'],
+				}),
+			],
+		});
+		executeSlideTransition(1, deps);
+		expect(deps.onPlayActionSound).toHaveBeenCalledWith('swoosh.wav', { loop: true });
 	});
 
 	it('does not play sound when the incoming transition has none', () => {

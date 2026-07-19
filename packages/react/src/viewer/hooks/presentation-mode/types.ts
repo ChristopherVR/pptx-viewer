@@ -50,7 +50,12 @@ export interface UsePresentationModeInput {
 	content?: ArrayBuffer | Uint8Array | null;
 	onSetMode: (mode: ViewerMode) => void;
 	onSetActiveSlideIndex: (index: number) => void;
-	onPlayActionSound?: (soundPath: string) => void;
+	/**
+	 * Play a sound file for an action/transition. When `options.loop` is true the
+	 * audio repeats until the next animation sound plays or the show exits
+	 * (used for transition sounds flagged with `soundLoop`).
+	 */
+	onPlayActionSound?: (soundPath: string, options?: { loop?: boolean }) => void;
 	/** Called when L key is pressed during presentation. */
 	onToggleLaser?: () => void;
 	/** Called when P key is pressed during presentation. */

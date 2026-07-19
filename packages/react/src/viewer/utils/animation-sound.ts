@@ -14,10 +14,12 @@ let activeAudio: HTMLAudioElement | null = null;
  * Stops any previously playing animation sound first.
  *
  * @param soundUrl - Blob URL or data URL of the sound file.
+ * @param loop - When true, repeat the sound until it is stopped or replaced.
  */
-export function playAnimationSound(soundUrl: string): void {
+export function playAnimationSound(soundUrl: string, loop = false): void {
 	stopAnimationSound();
 	activeAudio = new Audio(soundUrl);
+	activeAudio.loop = loop;
 	activeAudio.play().catch(() => {
 		/* silently ignore autoplay restrictions */
 	});

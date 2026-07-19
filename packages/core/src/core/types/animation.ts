@@ -156,6 +156,19 @@ export interface PptxNativeAnimation {
 	durationMs?: number;
 	/** Delay in milliseconds. */
 	delayMs?: number;
+	/**
+	 * Acceleration fraction in the range 0..1, parsed from `p:cTn/@accel`
+	 * (ST_PositiveFixedPercentage, stored as 1000ths of a percent). A non-zero
+	 * value means the effect eases in (starts slow). Absent means no easing-in.
+	 */
+	accel?: number;
+	/**
+	 * Deceleration fraction in the range 0..1, parsed from `p:cTn/@decel`.
+	 * A non-zero value means the effect eases out (ends slow). Absent means no
+	 * easing-out. When both {@link accel} and {@link decel} are set, the effect
+	 * eases in and out.
+	 */
+	decel?: number;
 	/** Trigger delay in milliseconds (for afterDelay). */
 	triggerDelayMs?: number;
 	/** SVG path string for motion path animations (`p:animMotion/@path`). */

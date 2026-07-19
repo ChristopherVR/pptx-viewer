@@ -11,7 +11,27 @@ import {
 	extractTriggerShapeId,
 	ensureArray,
 	isXmlObject,
+	parseTimingPercentFraction,
 } from './native-animation-helpers';
+
+describe('parseTimingPercentFraction', () => {
+	it('converts a 1000ths-of-a-percent integer to a 0..1 fraction', () => {
+		expect(parseTimingPercentFraction('50000')).toBe(0.5);
+		expect(parseTimingPercentFraction('100000')).toBe(1);
+	});
+
+	it('clamps values above 100% to 1', () => {
+		expect(parseTimingPercentFraction('150000')).toBe(1);
+	});
+
+	it('returns undefined for absent, non-positive, or unparseable values', () => {
+		expect(parseTimingPercentFraction(undefined)).toBeUndefined();
+		expect(parseTimingPercentFraction(null)).toBeUndefined();
+		expect(parseTimingPercentFraction('0')).toBeUndefined();
+		expect(parseTimingPercentFraction('-5000')).toBeUndefined();
+		expect(parseTimingPercentFraction('abc')).toBeUndefined();
+	});
+});
 
 describe('isXmlObject', () => {
 	it('returns true for a plain object', () => {

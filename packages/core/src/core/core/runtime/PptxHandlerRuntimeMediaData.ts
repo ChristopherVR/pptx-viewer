@@ -144,6 +144,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				continue;
 			}
 
+			// Fall back to the p14:media embedded source when the element was
+			// referenced only through the p14 extension (no primary media path).
+			if (
+				timing.mediaEmbedPath &&
+				(typeof el.mediaPath !== 'string' || el.mediaPath.length === 0)
+			) {
+				el.mediaPath = timing.mediaEmbedPath;
+				el.mediaMimeType = this.getImageMimeType(timing.mediaEmbedPath);
+			}
+
 			// Apply trim, loop, and fullScreen data
 			if (timing.trimStartMs !== undefined) {
 				el.trimStartMs = timing.trimStartMs;

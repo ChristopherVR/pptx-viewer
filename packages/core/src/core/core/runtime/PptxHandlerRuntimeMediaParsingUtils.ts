@@ -21,6 +21,13 @@ export interface MediaExtensionData {
 	fadeOutDuration: number | undefined;
 	playbackSpeed: number | undefined;
 	bookmarks: MediaBookmark[];
+	/**
+	 * Relationship id of the embedded media from `p14:media/@r:embed`. Modern
+	 * decks can reference the actual audio/video only through this extension
+	 * (the legacy `a:videoFile` / `p:audioFile` reference is absent), so the
+	 * caller resolves this to a media path when the primary path is missing.
+	 */
+	embedRId: string | undefined;
 }
 
 /**
@@ -192,6 +199,7 @@ export function parseMediaExtensionData(
 	let playbackSpeed: number | undefined;
 	let trimStartMs: number | undefined;
 	let trimEndMs: number | undefined;
+	let embedRId: string | undefined;
 	const bookmarks: MediaBookmark[] = [];
 
 	const extLst = (mediaNode['p:extLst'] ?? cMediaNode['p:extLst']) as XmlObject | undefined;
@@ -201,6 +209,13 @@ export function parseMediaExtensionData(
 			// p14:media — contains fade info and trim in some formats
 			const p14Media = ext['p14:media'] as XmlObject | undefined;
 			if (p14Media) {
+				if (embedRId === undefined) {
+					const embedRaw = p14Media['@_r:embed'] ?? p14Media['@_embed'];
+					const embedStr = embedRaw === undefined ? '' : String(embedRaw).trim();
+					if (embedStr.length > 0) {
+						embedRId = embedStr;
+					}
+				}
 				const p14Trim = p14Media['p14:trim'] as XmlObject | undefined;
 				if (p14Trim) {
 					// st and end are in microseconds (divide by 1000 for ms)
@@ -276,5 +291,6 @@ export function parseMediaExtensionData(
 		fadeOutDuration,
 		playbackSpeed,
 		bookmarks,
+		embedRId,
 	};
 }

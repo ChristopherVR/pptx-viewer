@@ -407,4 +407,32 @@ describe('buildTimeline', () => {
 		expect(result.clickGroups).toHaveLength(0);
 		expect(result.entranceElementIds.has('el1')).toBeFalsy();
 	});
+
+	// -------------------------------------------------------------------
+	// accel / decel easing
+	// -------------------------------------------------------------------
+	it('uses neutral ease when neither accel nor decel is set', () => {
+		const result = buildTimeline([makeAnim()]);
+		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' ease ');
+	});
+
+	it('maps accel to ease-in', () => {
+		const result = buildTimeline([makeAnim({ accel: 0.5 })]);
+		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' ease-in ');
+	});
+
+	it('maps decel to ease-out', () => {
+		const result = buildTimeline([makeAnim({ decel: 0.5 })]);
+		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' ease-out ');
+	});
+
+	it('maps accel + decel to ease-in-out', () => {
+		const result = buildTimeline([makeAnim({ accel: 0.3, decel: 0.3 })]);
+		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' ease-in-out ');
+	});
+
+	it('ignores a zero accel fraction (stays neutral ease)', () => {
+		const result = buildTimeline([makeAnim({ accel: 0 })]);
+		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' ease ');
+	});
 });

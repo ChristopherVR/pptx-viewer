@@ -309,6 +309,7 @@ describe('parseMediaExtensionData', () => {
 			fadeOutDuration: undefined,
 			playbackSpeed: undefined,
 			bookmarks: [],
+			embedRId: undefined,
 		});
 	});
 
@@ -325,6 +326,26 @@ describe('parseMediaExtensionData', () => {
 		const result = parseMediaExtensionData(mediaNode, {}, 's1', ensureArray);
 		expect(result.trimStartMs).toBe(5000);
 		expect(result.trimEndMs).toBe(30000);
+	});
+
+	it('should parse the p14:media/@r:embed relationship id', () => {
+		const mediaNode: XmlObject = {
+			'p:extLst': {
+				'p:ext': {
+					'p14:media': { '@_r:embed': 'rId7' },
+				},
+			},
+		};
+		const result = parseMediaExtensionData(mediaNode, {}, 's1', ensureArray);
+		expect(result.embedRId).toBe('rId7');
+	});
+
+	it('should leave embedRId undefined when no p14:media embed is present', () => {
+		const mediaNode: XmlObject = {
+			'p:extLst': { 'p:ext': { 'p14:media': { 'p14:trim': { '@_st': '0' } } } },
+		};
+		const result = parseMediaExtensionData(mediaNode, {}, 's1', ensureArray);
+		expect(result.embedRId).toBeUndefined();
 	});
 
 	it('should parse fade in/out durations (ms to seconds)', () => {

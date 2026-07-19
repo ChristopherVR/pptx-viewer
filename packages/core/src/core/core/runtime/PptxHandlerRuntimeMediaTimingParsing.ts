@@ -76,6 +76,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const trimStartMs = timing.trimStartMs ?? extData.trimStartMs;
 				const trimEndMs = timing.trimEndMs ?? extData.trimEndMs;
 
+				// Resolve the p14:media embedded-media relationship so a media
+				// element referenced only via the p14 extension still has a source.
+				const mediaEmbedPath = extData.embedRId
+					? this.resolveRelationshipTarget(slidePath, extData.embedRId)
+					: undefined;
+
 				result.set(shapeId, {
 					trimStartMs: trimStartMs !== undefined && !isNaN(trimStartMs) ? trimStartMs : undefined,
 					trimEndMs: trimEndMs !== undefined && !isNaN(trimEndMs) ? trimEndMs : undefined,
@@ -90,6 +96,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					hideWhenNotPlaying: hideWhenNotPlaying || undefined,
 					bookmarks: extData.bookmarks.length > 0 ? extData.bookmarks : undefined,
 					playbackSpeed: extData.playbackSpeed,
+					mediaEmbedPath,
 				});
 			}
 		}
