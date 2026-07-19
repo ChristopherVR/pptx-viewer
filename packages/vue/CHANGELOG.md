@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.24.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.24.5) - 2026-07-19
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
 ## [1.24.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.24.4) - 2026-07-19
 
 ## [1.24.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.24.3) - 2026-07-19
