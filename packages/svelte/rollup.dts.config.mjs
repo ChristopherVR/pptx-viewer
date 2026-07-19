@@ -10,6 +10,7 @@ const internalTypes = new Map([
 	['pptx-viewer-core', resolve(packageDirectory, '../core/dist/index.d.ts')],
 	['pptx-viewer-shared', resolve(packageDirectory, '../shared/dist/index.d.ts')],
 	['pptx-viewer-shared/i18n', resolve(packageDirectory, '../shared/dist/i18n/index.d.ts')],
+	['pptx-viewer-shared/ai', resolve(packageDirectory, '../shared/dist/ai/index.d.ts')],
 ]);
 
 const resolveInternalTypes = {

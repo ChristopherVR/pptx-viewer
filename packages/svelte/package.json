@@ -72,8 +72,10 @@
 		"jszip": "^3.10.1"
 	},
 	"devDependencies": {
+		"@ai-sdk/svelte": "^5.0.31",
 		"@microsoft/api-extractor": "^7.58.11",
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
+		"ai": ">=6 <8",
 		"happy-dom": "^20.10.6",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-shared": "workspace:*",
@@ -90,7 +92,17 @@
 		"yjs": "^13.6.31"
 	},
 	"peerDependencies": {
+		"@ai-sdk/svelte": "^5.0.31",
+		"ai": ">=6 <8",
 		"svelte": "^5.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@ai-sdk/svelte": {
+			"optional": true
+		},
+		"ai": {
+			"optional": true
+		}
 	},
 	"optionalDependencies": {
 		"three": "^0.185.1",

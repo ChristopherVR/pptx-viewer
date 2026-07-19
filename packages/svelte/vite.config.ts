@@ -78,10 +78,12 @@ export default defineConfig({
 				// dynamic imports instead of being inlined into the main chunk.
 				'html2canvas-pro',
 				'jspdf',
-				// Optional AI SDK peer, reachable only through the lazily-loaded
-				// `pptx-viewer-shared/ai` subpath. Kept external so the dynamic
-				// `import('ai')` inside shared stays a real optional runtime import.
+				// Optional AI SDK peers, reachable only through the lazily-loaded
+				// AI panel chunk. Kept external so the dynamic `import('ai')` inside
+				// shared stays a real optional runtime import and `@ai-sdk/svelte`'s
+				// runes `Chat` is never inlined into the base bundle.
 				'ai',
+				/^@ai-sdk\//u,
 			],
 		},
 	},
