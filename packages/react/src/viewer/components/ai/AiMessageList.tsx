@@ -3,6 +3,7 @@
  * tool calls render as {@link AiToolCallCard}s inline between prose. Purely
  * presentational; auto-scrolls to the newest message.
  */
+import type { PptxAiBridge } from 'pptx-viewer-shared/ai';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuBot, LuSparkles, LuUser } from 'react-icons/lu';
@@ -10,14 +11,18 @@ import { LuBot, LuSparkles, LuUser } from 'react-icons/lu';
 import { cn } from '../../utils';
 import type { AiUiMessage } from './ai-message-parts';
 import { toRenderableParts } from './ai-message-parts';
+import { appliedThemeFromPart } from './ai-theme-result';
+import { AiAppliedThemeCard } from './AiAppliedThemeCard';
 import { AiToolCallCard } from './AiToolCallCard';
 
 export interface AiMessageListProps {
 	messages: AiUiMessage[];
 	isStreaming: boolean;
+	/** Bridge, used to Undo an applied theme edit from its confirmation card. */
+	bridge: PptxAiBridge;
 }
 
-export function AiMessageList({ messages, isStreaming }: AiMessageListProps) {
+export function AiMessageList({ messages, isStreaming, bridge }: AiMessageListProps) {
 	const { t } = useTranslation();
 	const endRef = useRef<HTMLDivElement | null>(null);
 
@@ -55,18 +60,29 @@ export function AiMessageList({ messages, isStreaming }: AiMessageListProps) {
 							{isUser ? <LuUser className='w-3.5 h-3.5' /> : <LuBot className='w-3.5 h-3.5' />}
 						</div>
 						<div className='min-w-0 flex-1 space-y-1.5'>
-							{parts.map((part, i) =>
-								part.kind === 'text' ? (
-									<p
-										key={i}
-										className='whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground'
-									>
-										{part.text}
-									</p>
-								) : (
-									<AiToolCallCard key={part.toolCallId || i} part={part} />
-								),
-							)}
+							{parts.map((part, i) => {
+								if (part.kind === 'text') {
+									return (
+										<p
+											key={i}
+											className='whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground'
+										>
+											{part.text}
+										</p>
+									);
+								}
+								const applied = appliedThemeFromPart(part);
+								if (applied) {
+									return (
+										<AiAppliedThemeCard
+											key={part.toolCallId || i}
+											summary={applied.summary}
+											onUndo={() => bridge.applyTheme(applied.previous)}
+										/>
+									);
+								}
+								return <AiToolCallCard key={part.toolCallId || i} part={part} />;
+							})}
 						</div>
 					</div>
 				);

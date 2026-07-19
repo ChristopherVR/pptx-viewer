@@ -8,6 +8,7 @@ import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 import { useMemo } from 'react';
 
 import { SlidesPaneSidebar, MasterViewSidebar, ContextMenu } from '.';
+import type { AiPanelController } from '../hooks/ai/useAiPanelController';
 import type { UseCommentsResult } from '../hooks/useComments-helpers';
 import type { EditorHistoryResult } from '../hooks/useEditorHistory';
 import type { EditorOperationsResult } from '../hooks/useEditorOperations';
@@ -72,10 +73,8 @@ export interface ViewerMainContentProps {
 	aiConfig?: PptxAiConfig;
 	/** Bridge exposing the live deck to the AI core. */
 	aiBridge?: PptxAiBridge;
-	/** Whether the AI assistant panel is open. */
-	isAiPanelOpen?: boolean;
-	/** Close the AI assistant panel. */
-	onCloseAiPanel?: () => void;
+	/** AI panel open state + focus/prefill controller (present when `ai` is set). */
+	aiPanel?: AiPanelController;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,8 +115,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 		hiddenActions,
 		aiConfig,
 		aiBridge,
-		isAiPanelOpen,
-		onCloseAiPanel,
+		aiPanel,
 	} = props;
 
 	const {
@@ -261,6 +259,22 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 						onMergeCellDown={tableOps.handleMergeCellDown}
 						onMergeSelectedCells={tableOps.handleMergeSelectedCells}
 						onSplitCell={tableOps.handleSplitCell}
+						onAskAi={
+							aiPanel && selectedElement
+								? () => {
+										aiPanel.askAboutSelection();
+										state.setContextMenuState(null);
+									}
+								: undefined
+						}
+						onFixAi={
+							aiPanel && selectedElement
+								? () => {
+										aiPanel.fixSelection();
+										state.setContextMenuState(null);
+									}
+								: undefined
+						}
 						onClose={() => state.setContextMenuState(null)}
 					/>
 				)}
@@ -285,8 +299,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 					onResizeRight={onResizeRight}
 					aiConfig={aiConfig}
 					aiBridge={aiBridge}
-					isAiPanelOpen={isAiPanelOpen}
-					onCloseAiPanel={onCloseAiPanel}
+					aiPanel={aiPanel}
 				/>
 			</div>
 		</ChartPartSelectionProvider>

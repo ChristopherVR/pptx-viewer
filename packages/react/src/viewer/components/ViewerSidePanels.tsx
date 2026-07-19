@@ -7,6 +7,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 
 import { ViewerInspector, SelectionPane } from '.';
+import type { AiPanelController } from '../hooks/ai/useAiPanelController';
 import type { UseCommentsResult } from '../hooks/useComments-helpers';
 import type { EditorHistoryResult } from '../hooks/useEditorHistory';
 import type { ElementManipulationHandlers } from '../hooks/useElementManipulation';
@@ -51,10 +52,8 @@ export interface ViewerSidePanelsProps {
 	aiConfig?: PptxAiConfig;
 	/** Bridge exposing the live deck to the AI core. */
 	aiBridge?: PptxAiBridge;
-	/** Whether the AI assistant panel is open. */
-	isAiPanelOpen?: boolean;
-	/** Close the AI assistant panel. */
-	onCloseAiPanel?: () => void;
+	/** AI panel open state + focus/prefill controller (present when `ai` is set). */
+	aiPanel?: AiPanelController;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,8 +81,7 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 		onResizeRight,
 		aiConfig,
 		aiBridge,
-		isAiPanelOpen,
-		onCloseAiPanel,
+		aiPanel,
 	} = props;
 
 	const effectiveSlide = mode === 'master' ? masterPseudoSlide : activeSlide;
@@ -182,11 +180,12 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 				</MobileDismissSheet>
 			)}
 
-			{isAiPanelOpen && aiConfig && aiBridge && (mode === 'edit' || mode === 'master') && (
+			{aiPanel?.isOpen && aiConfig && aiBridge && (mode === 'edit' || mode === 'master') && (
 				<AiChatPanelLazy
 					bridge={aiBridge}
 					config={aiConfig}
-					onClose={() => onCloseAiPanel?.()}
+					aiPanel={aiPanel}
+					onClose={aiPanel.close}
 					panelWidth={panelWidth}
 				/>
 			)}

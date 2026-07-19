@@ -13,6 +13,8 @@ import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type { AiPanelController } from '../../hooks/ai/useAiPanelController';
+
 // oxlint-disable-next-line prefer-ending-with-an-expect
 vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 	useTranslation: () => ({
@@ -44,6 +46,23 @@ function makeBridge(): PptxAiBridge {
 		updateElement: () => {},
 		applyTheme: () => {},
 	} satisfies PptxAiBridge;
+}
+
+/** A minimal AI panel controller (no focus / prefill) for the panel tests. */
+function stubPanel(): AiPanelController {
+	return {
+		isOpen: true,
+		open: () => {},
+		close: () => {},
+		toggle: () => {},
+		liveFocusTargets: [{ kind: 'slide', slideIndex: 0 }],
+		pinnedFocus: null,
+		pinFocus: () => {},
+		clearPinnedFocus: () => {},
+		prefill: { text: '', nonce: 0 },
+		askAboutSelection: () => {},
+		fixSelection: () => {},
+	};
 }
 
 /** A transport that never emits: enough to construct a session, never called. */
@@ -86,6 +105,7 @@ describe('aiChatPanel', () => {
 				React.createElement(AiChatPanel, {
 					bridge: makeBridge(),
 					config: stubConfig(),
+					aiPanel: stubPanel(),
 					onClose: () => {
 						closed = true;
 					},
@@ -114,6 +134,7 @@ describe('aiChatPanel', () => {
 				React.createElement(AiChatPanel, {
 					bridge: makeBridge(),
 					config: stubConfig(),
+					aiPanel: stubPanel(),
 					onClose: () => {},
 				}),
 			);

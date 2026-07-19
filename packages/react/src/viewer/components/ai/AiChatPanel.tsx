@@ -7,22 +7,33 @@
  * and, once ready, delegates the whole conversation to {@link AiConversation}.
  */
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuLoaderCircle, LuSparkles, LuTriangleAlert, LuX } from 'react-icons/lu';
 
+import { deckIdFromBridge } from '../../hooks/ai/ai-deck-id';
 import { useAiChat } from '../../hooks/ai/useAiChat';
+import type { AiPanelController } from '../../hooks/ai/useAiPanelController';
 import { AiConversation } from './AiConversation';
 
 export interface AiChatPanelProps {
 	bridge: PptxAiBridge;
 	config: PptxAiConfig;
+	aiPanel: AiPanelController;
 	onClose: () => void;
 	panelWidth?: number;
 }
 
-export default function AiChatPanel({ bridge, config, onClose, panelWidth }: AiChatPanelProps) {
+export default function AiChatPanel({
+	bridge,
+	config,
+	aiPanel,
+	onClose,
+	panelWidth,
+}: AiChatPanelProps) {
 	const { t } = useTranslation();
 	const { state, session, initError } = useAiChat(bridge, config);
+	const deckId = useMemo(() => deckIdFromBridge(bridge), [bridge]);
 
 	return (
 		<div
@@ -60,7 +71,15 @@ export default function AiChatPanel({ bridge, config, onClose, panelWidth }: AiC
 				</div>
 			)}
 
-			{state === 'ready' && session && <AiConversation session={session} config={config} />}
+			{state === 'ready' && session && (
+				<AiConversation
+					session={session}
+					config={config}
+					bridge={bridge}
+					aiPanel={aiPanel}
+					deckId={deckId}
+				/>
+			)}
 		</div>
 	);
 }

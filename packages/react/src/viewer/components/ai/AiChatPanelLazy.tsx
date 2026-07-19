@@ -8,11 +8,14 @@ import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 import { lazy, Suspense } from 'react';
 import { LuLoaderCircle } from 'react-icons/lu';
 
+import type { AiPanelController } from '../../hooks/ai/useAiPanelController';
+
 const AiChatPanel = lazy(() => import('./AiChatPanel'));
 
 export interface AiChatPanelLazyProps {
 	bridge: PptxAiBridge;
 	config: PptxAiConfig;
+	aiPanel: AiPanelController;
 	onClose: () => void;
 	panelWidth?: number;
 }

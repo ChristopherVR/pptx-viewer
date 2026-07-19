@@ -1,29 +1,100 @@
 /**
  * AiConversation: the "ready" body of the AI panel. Wires the live session to
- * `useChat` (via {@link useAiConversation}) and lays out the transcript, the
- * staged-proposal review strip, an error banner, and the composer.
+ * `useChat` (via {@link useAiConversation}), persists the transcript through
+ * {@link useAiHistory}, and lays out the chat toolbar (chats / new / clear), the
+ * focused-target bar, the transcript, the staged-proposal review strip, an error
+ * banner, and the composer.
  */
-import type { PptxAiChatSession, PptxAiConfig } from 'pptx-viewer-shared/ai';
+import type { PptxAiBridge, PptxAiChatSession, PptxAiConfig } from 'pptx-viewer-shared/ai';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuTriangleAlert } from 'react-icons/lu';
+import { LuHistory, LuMessageSquarePlus, LuTrash2, LuTriangleAlert } from 'react-icons/lu';
 
 import { useAiConversation } from '../../hooks/ai/useAiConversation';
+import { useAiHistory } from '../../hooks/ai/useAiHistory';
+import type { AiPanelController } from '../../hooks/ai/useAiPanelController';
 import { AiComposer } from './AiComposer';
+import { AiFocusBar } from './AiFocusBar';
+import { AiHistoryMenu } from './AiHistoryMenu';
 import { AiMessageList } from './AiMessageList';
 import { AiProposalCard } from './AiProposalCard';
 
 export interface AiConversationProps {
 	session: PptxAiChatSession;
 	config: PptxAiConfig;
+	bridge: PptxAiBridge;
+	aiPanel: AiPanelController;
+	deckId: string;
 }
 
-export function AiConversation({ session, config }: AiConversationProps) {
+export function AiConversation({ session, config, bridge, aiPanel, deckId }: AiConversationProps) {
 	const { t } = useTranslation();
-	const chat = useAiConversation(session, config);
+	const chat = useAiConversation(session, config, bridge);
+	const history = useAiHistory({
+		deckId,
+		messages: chat.messages,
+		setMessages: chat.setMessages,
+	});
+	const [historyOpen, setHistoryOpen] = useState(false);
+
+	const effectiveTargets = aiPanel.pinnedFocus ?? aiPanel.liveFocusTargets;
+	const isPinned = aiPanel.pinnedFocus !== null;
 
 	return (
-		<div className='flex min-h-0 flex-1 flex-col'>
-			<AiMessageList messages={chat.messages} isStreaming={chat.isStreaming} />
+		<div className='relative flex min-h-0 flex-1 flex-col'>
+			<div className='flex items-center gap-1 border-b border-border px-2 py-1'>
+				<button
+					type='button'
+					onClick={() => setHistoryOpen((p) => !p)}
+					className='inline-flex items-center gap-1 rounded-sm px-1.5 py-1 text-[12px] text-muted-foreground hover:bg-accent'
+				>
+					<LuHistory className='w-3.5 h-3.5' />
+					{t('pptx.ai.chats')}
+				</button>
+				<div className='ml-auto flex items-center gap-0.5'>
+					<button
+						type='button'
+						onClick={history.newChat}
+						title={t('pptx.ai.newChat')}
+						aria-label={t('pptx.ai.newChat')}
+						className='rounded-sm p-1 text-muted-foreground hover:bg-accent'
+					>
+						<LuMessageSquarePlus className='w-3.5 h-3.5' />
+					</button>
+					<button
+						type='button'
+						onClick={history.clearCurrent}
+						title={t('pptx.ai.clearChat')}
+						aria-label={t('pptx.ai.clearChat')}
+						disabled={chat.messages.length === 0}
+						className='rounded-sm p-1 text-muted-foreground hover:bg-accent disabled:opacity-40'
+					>
+						<LuTrash2 className='w-3.5 h-3.5' />
+					</button>
+				</div>
+			</div>
+
+			{historyOpen && (
+				<AiHistoryMenu
+					chats={history.chats}
+					activeChatId={history.activeChatId}
+					onResume={(id) => void history.resumeChat(id)}
+					onDelete={(id) => void history.deleteChat(id)}
+					onNewChat={history.newChat}
+					onClose={() => setHistoryOpen(false)}
+				/>
+			)}
+
+			<AiFocusBar
+				targets={effectiveTargets}
+				slides={bridge.getSlides()}
+				isPinned={isPinned}
+				onPin={aiPanel.pinFocus}
+				onClearPin={aiPanel.clearPinnedFocus}
+				onSendDirective={chat.send}
+			/>
+
+			<AiMessageList messages={chat.messages} isStreaming={chat.isStreaming} bridge={bridge} />
 
 			{chat.error && (
 				<div className='mx-3 mb-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-2.5 py-1.5 text-[12px] text-destructive'>
@@ -71,7 +142,13 @@ export function AiConversation({ session, config }: AiConversationProps) {
 				</div>
 			)}
 
-			<AiComposer isStreaming={chat.isStreaming} onSend={chat.send} onStop={chat.stop} />
+			<AiComposer
+				isStreaming={chat.isStreaming}
+				onSend={chat.send}
+				onStop={chat.stop}
+				prefillText={aiPanel.prefill.text}
+				prefillNonce={aiPanel.prefill.nonce}
+			/>
 		</div>
 	);
 }

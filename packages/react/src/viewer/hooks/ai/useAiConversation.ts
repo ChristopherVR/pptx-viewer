@@ -9,10 +9,17 @@
  */
 import { useChat } from '@ai-sdk/react';
 import type { ChatStatus } from 'ai';
-import type { PptxAiChatSession, PptxAiConfig, ProposalView } from 'pptx-viewer-shared/ai';
-import { useCallback, useReducer, useRef } from 'react';
+import type {
+	PptxAiBridge,
+	PptxAiChatSession,
+	PptxAiConfig,
+	PptxAiUIMessage,
+	ProposalView,
+} from 'pptx-viewer-shared/ai';
+import { useCallback, useMemo, useReducer, useRef } from 'react';
 
 import type { AiUiMessage } from '../../components/ai/ai-message-parts';
+import { withDeckContext } from './ai-context-transport';
 
 /** The tool call surfaced by `useChat`'s `onToolCall` (narrowed for our tools). */
 interface IncomingToolCall {
@@ -38,6 +45,8 @@ export interface UseAiConversationResult {
 	send: (text: string) => void;
 	stop: () => void;
 	clearError: () => void;
+	/** Replace the whole transcript (used to resume / start a stored chat). */
+	setMessages: (messages: PptxAiUIMessage[]) => void;
 	proposals: ProposalView[];
 	applyProposal: (id: string) => void;
 	rejectProposal: (id: string) => void;
@@ -47,35 +56,52 @@ export interface UseAiConversationResult {
 export function useAiConversation(
 	session: PptxAiChatSession,
 	config: PptxAiConfig,
+	bridge: PptxAiBridge,
 ): UseAiConversationResult {
 	const [, forceRefresh] = useReducer((n: number) => n + 1, 0);
 	const chatRef = useRef<ReturnType<typeof useChat> | null>(null);
 
+	// In `model` mode the in-process agent runs the whole tool loop, so the
+	// client must NOT execute tools (that double-stages every proposal) nor
+	// resubmit. Every other connection needs the client-side loop. Gate both on
+	// `session.clientExecutesTools`. See its doc in the shared session.
+	const clientExecutes = session.clientExecutesTools;
+
+	// Wrap the resolved transport so every turn carries a fresh deck + focus
+	// context block (see withDeckContext). Memoised on the session so useChat is
+	// not rebuilt on each render.
+	const transport = useMemo(
+		() => withDeckContext(session.transport, bridge, config.contextStrategy ?? 'outline'),
+		[session, bridge, config.contextStrategy],
+	);
+
 	const chat = useChat({
-		transport: session.transport,
-		sendAutomaticallyWhen: session.sendAutomaticallyWhen,
+		transport,
+		sendAutomaticallyWhen: clientExecutes ? session.sendAutomaticallyWhen : undefined,
 		onError: (err: Error) => config.onError?.(err),
-		onToolCall: async ({ toolCall }: { toolCall: unknown }) => {
-			const { toolName, toolCallId, input } = toolCall as IncomingToolCall;
-			const current = chatRef.current;
-			if (!current) {
-				return;
-			}
-			const addToolOutput = current.addToolOutput as unknown as AddToolOutput;
-			try {
-				const output = await session.executeToolCall(toolName, input);
-				addToolOutput({ tool: toolName, toolCallId, output });
-			} catch (err) {
-				addToolOutput({
-					tool: toolName,
-					toolCallId,
-					state: 'output-error',
-					errorText: err instanceof Error ? err.message : String(err),
-				});
-			}
-			// A staged proposal was likely just registered; surface it.
-			forceRefresh();
-		},
+		onToolCall: clientExecutes
+			? async ({ toolCall }: { toolCall: unknown }) => {
+					const { toolName, toolCallId, input } = toolCall as IncomingToolCall;
+					const current = chatRef.current;
+					if (!current) {
+						return;
+					}
+					const addToolOutput = current.addToolOutput as unknown as AddToolOutput;
+					try {
+						const output = await session.executeToolCall(toolName, input);
+						addToolOutput({ tool: toolName, toolCallId, output });
+					} catch (err) {
+						addToolOutput({
+							tool: toolName,
+							toolCallId,
+							state: 'output-error',
+							errorText: err instanceof Error ? err.message : String(err),
+						});
+					}
+					// A staged proposal was likely just registered; surface it.
+					forceRefresh();
+				}
+			: undefined,
 	});
 	chatRef.current = chat;
 
@@ -109,6 +135,16 @@ export function useAiConversation(
 		forceRefresh();
 	}, [session]);
 
+	const setMessages = useCallback(
+		(next: PptxAiUIMessage[]) => {
+			chat.setMessages(next as Parameters<typeof chat.setMessages>[0]);
+			// Switching chats invalidates any staged (unaccepted) proposals.
+			session.proposals.clear();
+			forceRefresh();
+		},
+		[chat, session],
+	);
+
 	return {
 		messages: chat.messages as AiUiMessage[],
 		status: chat.status,
@@ -116,6 +152,7 @@ export function useAiConversation(
 		isStreaming: chat.status === 'submitted' || chat.status === 'streaming',
 		send,
 		stop: () => void chat.stop(),
+		setMessages,
 		clearError: () => chat.clearError(),
 		proposals: session.proposals.list(),
 		applyProposal,

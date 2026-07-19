@@ -213,6 +213,19 @@ describe('aiChatPanel integration', () => {
 				React.createElement(AiChatPanel, {
 					bridge,
 					config: stagingConfig(),
+					aiPanel: {
+						isOpen: true,
+						open: () => {},
+						close: () => {},
+						toggle: () => {},
+						liveFocusTargets: [{ kind: 'slide', slideIndex: 0 }],
+						pinnedFocus: null,
+						pinFocus: () => {},
+						clearPinnedFocus: () => {},
+						prefill: { text: '', nonce: 0 },
+						askAboutSelection: () => {},
+						fixSelection: () => {},
+					},
 					onClose: () => {},
 				}),
 			);

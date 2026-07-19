@@ -21,5 +21,9 @@ export interface ContextMenuProps {
 	onMergeCellDown?: () => void;
 	onMergeSelectedCells?: () => void;
 	onSplitCell?: () => void;
+	/** Open the AI panel scoped to the selected element (present when `ai` set). */
+	onAskAi?: () => void;
+	/** Open the AI panel prefilled with a "fix this element" directive. */
+	onFixAi?: () => void;
 	onClose: () => void;
 }

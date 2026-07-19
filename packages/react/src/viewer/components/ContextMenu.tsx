@@ -19,6 +19,8 @@ export function ContextMenu({
 	onMergeCellDown,
 	onMergeSelectedCells,
 	onSplitCell,
+	onAskAi,
+	onFixAi,
 	onClose,
 }: ContextMenuProps): React.ReactElement | null {
 	const { t } = useTranslation();
@@ -129,6 +131,29 @@ export function ContextMenu({
 					{t('pptx.contextMenu.sendToBack')}
 				</button>
 				<div className='my-1 border-t border-border' />
+				{(onAskAi || onFixAi) && (
+					<>
+						{onAskAi && (
+							<button
+								type='button'
+								className='w-full px-3 py-1.5 text-left hover:bg-muted'
+								onClick={onAskAi}
+							>
+								{t('pptx.ai.askAboutElement')}
+							</button>
+						)}
+						{onFixAi && (
+							<button
+								type='button'
+								className='w-full px-3 py-1.5 text-left hover:bg-muted'
+								onClick={onFixAi}
+							>
+								{t('pptx.ai.fixElement')}
+							</button>
+						)}
+						<div className='my-1 border-t border-border' />
+					</>
+				)}
 				<button
 					type='button'
 					className='w-full px-3 py-1.5 text-left hover:bg-muted'

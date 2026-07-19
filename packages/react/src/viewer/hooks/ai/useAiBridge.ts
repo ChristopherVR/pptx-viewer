@@ -13,6 +13,7 @@ import type {
 	PptxAiBridge,
 	PptxAiDeckMeta,
 	PptxAiElementUpdate,
+	PptxAiFocusedTarget,
 	PptxAiNotifyLevel,
 	PptxAiSlidesUpdater,
 } from 'pptx-viewer-shared/ai';
@@ -20,6 +21,7 @@ import type { RefObject } from 'react';
 import { useMemo, useRef } from 'react';
 
 import { applyAiElementUpdate } from './ai-element-update';
+import { computeFocusTargets } from './focus-targets';
 
 /** Live inputs the bridge closes over. Updated on every render via a ref. */
 export interface UseAiBridgeInput {
@@ -28,6 +30,15 @@ export interface UseAiBridgeInput {
 	canvasSize: { width: number; height: number };
 	theme: PptxTheme | undefined;
 	fileName?: string;
+	/** Primary selected element id on the active slide (null when none). */
+	selectedElementId: string | null;
+	/** All selected element ids on the active slide (multi-select, tables incl). */
+	selectedElementIds: string[];
+	/**
+	 * When the user pins a focus in the chat, these override the live selection
+	 * for {@link PptxAiBridge.getFocusedTargets}; null means "follow selection".
+	 */
+	pinnedFocus: PptxAiFocusedTarget[] | null;
 	handlerRef: RefObject<PptxHandler | null>;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 	setActiveSlideIndex: (index: number) => void;
@@ -97,6 +108,19 @@ export function useAiBridge(input: UseAiBridgeInput): PptxAiBridge {
 			},
 			applyTheme(updates: Partial<PptxTheme>) {
 				ref.current.applyThemeUpdates(updates);
+			},
+			getFocusedTargets(): PptxAiFocusedTarget[] {
+				const live = ref.current;
+				// A pinned focus (set from the chat) wins over the live selection so
+				// the assistant stays scoped even after the user clicks elsewhere.
+				if (live.pinnedFocus && live.pinnedFocus.length > 0) {
+					return live.pinnedFocus;
+				}
+				return computeFocusTargets({
+					activeSlideIndex: live.activeSlideIndex,
+					selectedElementIds: live.selectedElementIds,
+					selectedElementId: live.selectedElementId,
+				});
 			},
 			notify(message: string, level?: PptxAiNotifyLevel) {
 				ref.current.notify?.(message, level);

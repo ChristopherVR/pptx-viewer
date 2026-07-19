@@ -68,6 +68,7 @@ import { ViewerMainContent } from './components/ViewerMainContent';
 import { ViewerPresentationLayer } from './components/ViewerPresentationLayer';
 import { ViewerToolbarSection } from './components/ViewerToolbarSection';
 import { useAiBridge } from './hooks/ai/useAiBridge';
+import { useAiPanelController } from './hooks/ai/useAiPanelController';
 import { useYjsDocumentSync, useBroadcastFollower, useFollowMode } from './hooks/collaboration';
 import type { CollaborationConfig } from './hooks/collaboration';
 import { useDerivedSlideState } from './hooks/useDerivedSlideState';
@@ -262,8 +263,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		// ── Share dialog ────────────────────────────────────────────
 		const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
-		// ── AI assistant panel (gated on the `ai` prop) ─────────────
-		const [aiPanelOpen, setAiPanelOpen] = useState(false);
+		// ── AI assistant panel state lives in useAiPanelController (below,
+		//    once selection state is available). ─────────────────────
 
 		// ── Share dialog defaults (provided by host app via shareDefaults prop) ──
 
@@ -659,12 +660,21 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		const bumpAiHistory = useCallback(() => {
 			state.setPointerCommitNonce((n) => n + 1);
 		}, [state]);
+		const aiPanel = useAiPanelController({
+			activeSlideIndex,
+			selectedElementId,
+			selectedElementIds,
+			selectedElement,
+		});
 		const aiBridge = useAiBridge({
 			slides,
 			activeSlideIndex,
 			canvasSize,
 			theme: state.theme,
 			fileName,
+			selectedElementId,
+			selectedElementIds,
+			pinnedFocus: aiPanel.pinnedFocus,
 			handlerRef,
 			setSlides: state.setSlides,
 			setActiveSlideIndex: state.setActiveSlideIndex,
@@ -745,8 +755,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									onToggleAutosave={() => setAutosaveEnabled((p) => !p)}
 									hiddenActions={hiddenActions}
 									aiEnabled={Boolean(ai)}
-									isAiPanelOpen={aiPanelOpen}
-									onToggleAiPanel={() => setAiPanelOpen((p) => !p)}
+									isAiPanelOpen={aiPanel.isOpen}
+									onToggleAiPanel={aiPanel.toggle}
 								/>
 							)}
 
@@ -783,8 +793,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 								hiddenActions={hiddenActions}
 								aiConfig={ai}
 								aiBridge={ai ? aiBridge : undefined}
-								isAiPanelOpen={aiPanelOpen}
-								onCloseAiPanel={() => setAiPanelOpen(false)}
+								aiPanel={ai ? aiPanel : undefined}
 							/>
 
 							{/* Keep the bottom panels mounted while the notes panel is expanded:

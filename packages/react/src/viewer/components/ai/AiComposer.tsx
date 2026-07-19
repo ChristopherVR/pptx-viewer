@@ -2,7 +2,7 @@
  * AiComposer: the message input row (auto-growing textarea + send / stop
  * button). Enter sends, Shift+Enter inserts a newline. Purely presentational.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuSend, LuSquare } from 'react-icons/lu';
@@ -13,11 +13,37 @@ export interface AiComposerProps {
 	isStreaming: boolean;
 	onSend: (text: string) => void;
 	onStop: () => void;
+	/** One-shot prefill (e.g. from "Fix with AI"); the user can edit before send. */
+	prefillText?: string;
+	/** Bumps on each ask/fix; drives the one-shot prefill + focus even for ''. */
+	prefillNonce?: number;
 }
 
-export function AiComposer({ isStreaming, onSend, onStop }: AiComposerProps) {
+export function AiComposer({
+	isStreaming,
+	onSend,
+	onStop,
+	prefillText,
+	prefillNonce,
+}: AiComposerProps) {
 	const { t } = useTranslation();
 	const [value, setValue] = useState('');
+	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+	const appliedNonce = useRef<number | undefined>(undefined);
+
+	// Apply a one-shot prefill keyed by nonce: fill the box (when text is given)
+	// and focus it. The nonce guard means an ask/fix with an EMPTY directive still
+	// focuses, and a re-render never overwrites the user's own edits.
+	useEffect(() => {
+		if (prefillNonce === undefined || prefillNonce === appliedNonce.current) {
+			return;
+		}
+		appliedNonce.current = prefillNonce;
+		if (prefillText) {
+			setValue(prefillText);
+		}
+		textareaRef.current?.focus();
+	}, [prefillNonce, prefillText]);
 
 	const submit = useCallback(() => {
 		const trimmed = value.trim();
@@ -42,6 +68,7 @@ export function AiComposer({ isStreaming, onSend, onStop }: AiComposerProps) {
 		<div className='border-t border-border p-2'>
 			<div className='flex items-end gap-1.5 rounded-md border border-input bg-background px-2 py-1.5 focus-within:border-ring'>
 				<textarea
+					ref={textareaRef}
 					value={value}
 					onChange={(e) => setValue(e.target.value)}
 					onKeyDown={handleKeyDown}
