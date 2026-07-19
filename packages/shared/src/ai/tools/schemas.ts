@@ -7,6 +7,7 @@
  */
 
 import type { PptxAiToolName } from '../config';
+import { CREATE_CHART_TYPES, CREATE_SMARTART_LAYOUTS } from './create-tools';
 
 /** Minimal structural JSON Schema type (draft-07 subset) used by the tools. */
 export interface JsonSchema {
@@ -148,7 +149,8 @@ export const TOOL_DEFINITIONS: Record<PptxAiToolName, ToolDefinition> = {
 		),
 	},
 	add_element: {
-		description: 'Add a new text, shape, image, table, or connector element.',
+		description:
+			'Add a new text, shape, image, table, or connector element. For charts use create_chart; for SmartArt diagrams use add_smartart.',
 		inputSchema: obj(
 			{
 				slideIndex,
@@ -166,6 +168,51 @@ export const TOOL_DEFINITIONS: Record<PptxAiToolName, ToolDefinition> = {
 				columns: int(),
 			},
 			['slideIndex', 'type'],
+		),
+	},
+	create_chart: {
+		description:
+			'Insert a new chart on a slide. Provide optional categories and series (each with a name and numeric values, one value per category); omit them for sample data. A bare request inserts a default chart of the given type.',
+		inputSchema: obj(
+			{
+				slideIndex,
+				chartType: enm(CREATE_CHART_TYPES, 'Chart family. Default bar.'),
+				title: str('Chart title.'),
+				categories: arr(str(), 'Category-axis labels.'),
+				series: arr(
+					obj(
+						{
+							name: str('Series name.'),
+							values: arr(num(), 'Numeric values, one per category.'),
+							color: str('Hex series colour, e.g. #4f86ff.'),
+						},
+						['name', 'values'],
+					),
+					'One entry per data series.',
+				),
+				legend: bool('Show the legend. Default true.'),
+				x: num(),
+				y: num(),
+				width: num(),
+				height: num(),
+			},
+			['slideIndex'],
+		),
+	},
+	add_smartart: {
+		description:
+			'Insert a SmartArt diagram using a named layout preset. Provide the node texts (top to bottom); omit them to use the preset defaults.',
+		inputSchema: obj(
+			{
+				slideIndex,
+				layout: enm(CREATE_SMARTART_LAYOUTS, 'SmartArt preset layout. Default basicBlockList.'),
+				nodes: arr(str(), 'Text for each node/step.'),
+				x: num(),
+				y: num(),
+				width: num(),
+				height: num(),
+			},
+			['slideIndex'],
 		),
 	},
 	delete_elements: {

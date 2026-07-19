@@ -15,6 +15,7 @@ import type { PptxAiBridge } from '../bridge';
 import type { PptxAiConfig, PptxAiToolName } from '../config';
 import type { AiSdkModule } from '../loader';
 import type { ProposalStore } from '../proposals';
+import { createExecutors } from './create-tools';
 import { editDataExecutors } from './edit-data-tools';
 import { editExecutors } from './edit-tools';
 import type { AiToolContext, AiToolExecutor } from './executor-base';
@@ -30,6 +31,7 @@ const ALL_EXECUTORS: Record<string, AiToolExecutor> = {
 	...readExecutors,
 	...navExecutors,
 	...editExecutors,
+	...createExecutors,
 	...editDataExecutors,
 	...mergeExecutors,
 	...slideExecutors,

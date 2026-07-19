@@ -33,6 +33,8 @@ export type PptxAiToolName =
 	| 'set_shape_style'
 	| 'move_resize_element'
 	| 'add_element'
+	| 'create_chart'
+	| 'add_smartart'
 	| 'delete_elements'
 	| 'arrange_elements'
 	| 'group_elements'
