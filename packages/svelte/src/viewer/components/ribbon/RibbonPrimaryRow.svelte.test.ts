@@ -84,4 +84,26 @@ describe('ribbonPrimaryRow', () => {
 		target.querySelector<HTMLButtonElement>('[aria-label="Settings"]')?.click();
 		expect(onsettings).toHaveBeenCalledOnce();
 	});
+
+	it('hides the AI assistant toggle when no `onai` handler is wired', () => {
+		const target = mountRow({});
+		expect(target.querySelector('[aria-label="Toggle AI assistant"]')).toBeNull();
+	});
+
+	it('shows the AI assistant toggle only when wired and fires `onai` on click', () => {
+		const onai = vi.fn();
+		const target = mountRow({ onai, aiActive: false });
+
+		const toggle = target.querySelector<HTMLButtonElement>('[aria-label="Toggle AI assistant"]');
+		expect(toggle).not.toBeNull();
+		expect(toggle?.getAttribute('aria-pressed')).toBe('false');
+		toggle?.click();
+		expect(onai).toHaveBeenCalledOnce();
+	});
+
+	it('reflects the open panel state via aria-pressed on the AI toggle', () => {
+		const target = mountRow({ onai: vi.fn(), aiActive: true });
+		const toggle = target.querySelector<HTMLButtonElement>('[aria-label="Toggle AI assistant"]');
+		expect(toggle?.getAttribute('aria-pressed')).toBe('true');
+	});
 });
