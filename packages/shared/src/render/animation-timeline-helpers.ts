@@ -17,7 +17,7 @@
 import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
 import { buildColorAnimationKeyframes } from './animation-color';
-import { PRESET_ID_TO_EFFECT } from './animation-presets';
+import { FLY_SUBTYPE_TO_EDGE, PRESET_ID_TO_EFFECT } from './animation-presets';
 import type {
 	AnimationStep,
 	EffectName,
@@ -41,16 +41,42 @@ export function resolveEffect(anim: PptxNativeAnimation): EffectName | undefined
 		return undefined;
 	}
 	if (cls === 'entr') {
-		return PRESET_ID_TO_EFFECT.entr[id];
+		return applyFlyDirection(PRESET_ID_TO_EFFECT.entr[id], anim.presetSubtype);
 	}
 	if (cls === 'exit') {
-		return PRESET_ID_TO_EFFECT.exit[id];
+		return applyFlyDirection(PRESET_ID_TO_EFFECT.exit[id], anim.presetSubtype);
 	}
 	if (cls === 'emph') {
 		return PRESET_ID_TO_EFFECT.emph[id];
 	}
 	// For path/motion/rotation/scale, return undefined — handled dynamically.
 	return undefined;
+}
+
+/**
+ * Redirect a Fly In / Fly Out effect according to its `presetSubtype` code.
+ * The preset tables default the fly family to the bottom edge; when a subtype
+ * is present and maps to a known edge, swap in the matching directional effect.
+ * A missing or unrecognised subtype preserves the bottom default so existing
+ * decks are unaffected.
+ */
+function applyFlyDirection(
+	effect: EffectName | undefined,
+	subtype: number | undefined,
+): EffectName | undefined {
+	if (effect !== 'flyInBottom' && effect !== 'flyOutBottom') {
+		return effect;
+	}
+	if (subtype === undefined) {
+		return effect;
+	}
+	const edge = FLY_SUBTYPE_TO_EDGE[subtype];
+	if (!edge) {
+		return effect;
+	}
+	const prefix = effect === 'flyInBottom' ? 'flyIn' : 'flyOut';
+	const suffix = `${edge.charAt(0).toUpperCase()}${edge.slice(1)}`;
+	return `${prefix}${suffix}` as EffectName;
 }
 
 // ==========================================================================

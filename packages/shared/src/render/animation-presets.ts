@@ -61,3 +61,30 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		26: 'pulse',
 	},
 };
+
+// ==========================================================================
+// Fly In / Fly Out direction (presetSubtype) mapping
+// ==========================================================================
+
+/** The four edges a Fly In/Out effect can travel from/to. */
+export type FlyEdge = 'left' | 'right' | 'top' | 'bottom';
+
+/**
+ * Map an OOXML `p:cTn/@presetSubtype` code to a {@link FlyEdge} for Fly In and
+ * Fly Out effects. PowerPoint encodes the direction as a bitmask on the object
+ * origin edge: 1=top, 2=right, 4=bottom, 8=left. Corners combine two bits
+ * (e.g. 12 = 8|4 = bottom-left) and fall back to their horizontal edge, which
+ * is the more visually distinct component. Unknown/absent codes are left to the
+ * caller (which keeps the preset default of bottom).
+ */
+export const FLY_SUBTYPE_TO_EDGE: Readonly<Record<number, FlyEdge>> = {
+	1: 'top',
+	2: 'right',
+	4: 'bottom',
+	8: 'left',
+	// Corners -> nearest (horizontal) edge.
+	3: 'right', // top-right (1|2)
+	6: 'right', // bottom-right (4|2)
+	9: 'left', // top-left (8|1)
+	12: 'left', // bottom-left (8|4)
+};

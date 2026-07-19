@@ -145,6 +145,13 @@ export interface PptxNativeAnimation {
 	presetClass?: 'entr' | 'exit' | 'emph' | 'path';
 	/** Effect preset sub-type identifier. */
 	presetId?: number;
+	/**
+	 * Effect preset direction/variant code from `p:cTn/@presetSubtype`
+	 * (ECMA-376 CT_TLCommonTimeNodeData). For Fly In/Out this encodes the
+	 * edge/corner the object travels from as a bitmask (1=top, 2=right,
+	 * 4=bottom, 8=left; corners combine bits). Absent means the preset default.
+	 */
+	presetSubtype?: number;
 	/** Duration in milliseconds. */
 	durationMs?: number;
 	/** Delay in milliseconds. */
