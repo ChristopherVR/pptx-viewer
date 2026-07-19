@@ -12,15 +12,24 @@ export interface PptxSlideBackgroundBuilderInput {
 	saveState: PptxSaveState;
 	relationshipRegistry: IPptxSlideRelationshipRegistry;
 	slideImageRelationshipType: string;
-	parseDataUrlToBytes: (dataUrl: string) => { bytes: Uint8Array; extension: string } | null;
+	/**
+	 * Resolve a background-image URL to bytes. Handles `data:` URLs
+	 * synchronously and fetches `blob:`/`http(s)://`/`pptx-resource://`
+	 * asynchronously (same resolver the picture/media embedding uses), so a
+	 * freshly applied background whose URL is not a data URL is embedded as a
+	 * real media part rather than silently dropped.
+	 */
+	resolveImageToBytes: (url: string) => Promise<{ bytes: Uint8Array; extension: string } | null>;
+	/** Optional sink for a "could not embed background" compatibility warning. */
+	reportUnsupportedBackground?: (imageUrl: string) => void;
 }
 
 export interface IPptxSlideBackgroundBuilder {
-	applyBackground(init: PptxSlideBackgroundBuilderInput): void;
+	applyBackground(init: PptxSlideBackgroundBuilderInput): Promise<void>;
 }
 
 export class PptxSlideBackgroundBuilder implements IPptxSlideBackgroundBuilder {
-	public applyBackground(init: PptxSlideBackgroundBuilderInput): void {
+	public async applyBackground(init: PptxSlideBackgroundBuilderInput): Promise<void> {
 		const hasBackgroundColor =
 			typeof init.slide.backgroundColor === 'string' &&
 			init.slide.backgroundColor.length > 0 &&
@@ -65,8 +74,13 @@ export class PptxSlideBackgroundBuilder implements IPptxSlideBackgroundBuilder {
 		}
 
 		const backgroundProperties: XmlObject = {};
-		if (hasDataUrlBackgroundImage) {
-			const parsedBackgroundImage = init.parseDataUrlToBytes(rawBackgroundImage);
+		// Embed ANY resolvable background image (data URL, or a fetched
+		// blob:/http(s):///pptx-resource:// URL), not just data URLs. A freshly
+		// applied background (e.g. from a design/theme preview) is typically a
+		// bundled or remote URL; embedding it here is what makes it appear in
+		// PowerPoint after save instead of being dropped.
+		if (hasBackgroundImage) {
+			const parsedBackgroundImage = await init.resolveImageToBytes(rawBackgroundImage);
 			if (parsedBackgroundImage) {
 				const backgroundImagePath = init.saveState.nextMediaPath(parsedBackgroundImage.extension);
 				init.zip.file(backgroundImagePath, parsedBackgroundImage.bytes);
@@ -84,8 +98,16 @@ export class PptxSlideBackgroundBuilder implements IPptxSlideBackgroundBuilder {
 					},
 					BLIP_FILL_ORDER,
 				);
+			} else {
+				init.reportUnsupportedBackground?.(rawBackgroundImage);
 			}
-		} else if (hasBackgroundColor && init.slide.backgroundColor) {
+		}
+		// Fall back to a solid colour only when no image fill was embedded.
+		if (
+			backgroundProperties['a:blipFill'] === undefined &&
+			hasBackgroundColor &&
+			init.slide.backgroundColor
+		) {
 			backgroundProperties['a:solidFill'] = {
 				'a:srgbClr': {
 					'@_val': init.slide.backgroundColor.replace('#', '').toUpperCase(),
@@ -116,9 +138,16 @@ export class PptxSlideBackgroundBuilder implements IPptxSlideBackgroundBuilder {
 		}
 
 		if (!hasFillChild) {
-			// Nothing to write (e.g. data URL parse failed and no other source).
-			// Fall back to dropping <p:bg> entirely rather than emitting
-			// invalid XML.
+			// No fill child could be produced (e.g. a background image whose URL
+			// could not be resolved to bytes). Prefer preserving any existing
+			// <p:bg> over dropping it, so an unresolvable image does not silently
+			// wipe a background that was there. Only when there is nothing to
+			// preserve do we remove <p:bg> (avoids emitting invalid XML).
+			if (existingBg !== undefined) {
+				this.reorderCSldBgFirst(cSld, existingBg);
+				init.slideNode['p:cSld'] = cSld;
+				return;
+			}
 			delete cSld['p:bg'];
 			init.slideNode['p:cSld'] = cSld;
 			return;
