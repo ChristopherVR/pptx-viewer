@@ -155,9 +155,12 @@ export function useYjsDocumentSync({
 		lastSyncedRef.current = JSON.stringify(docSlides);
 		isApplyingRemoteRef.current = true;
 		setSlides(docSlides);
-		requestAnimationFrame(() => {
-			isApplyingRemoteRef.current = false;
-		});
+		// Clear synchronously (matching Vue). A frame-gated
+		// `requestAnimationFrame` clear never runs in a backgrounded tab, so the
+		// flag would stay true and the local -> doc write effect would stall all
+		// outbound edits until refocus. The `lastSyncedRef` JSON dedupe already
+		// suppresses the echo, so no deferral is needed.
+		isApplyingRemoteRef.current = false;
 	}, [loadVersion, doc, isConnected, setSlides]);
 
 	// Sync local slide changes -> Y.Doc. Gated on isSynced: until the provider
@@ -190,6 +193,19 @@ export function useYjsDocumentSync({
 		})();
 	}, [doc, slides, isConnected, isSynced, getFactories, scheduleWriteBack]);
 
+	// Reset per-session sync state whenever the Y.Doc identity changes (a
+	// stop/restart or provider re-init hands us a new doc). Without this the
+	// long-lived sync component keeps `hasInitializedRef`/`lastSyncedRef` from
+	// the previous deck, so the late-joiner catch-up read never re-runs and the
+	// dedupe could wrongly skip applying the new room's slides. Keyed on `doc`
+	// (not the observer effect's cleanup) so unrelated config churn does not
+	// clear the dedupe. Vue resets its `lastSynced` in stop() for the same
+	// reason.
+	useEffect(() => {
+		hasInitializedRef.current = false;
+		lastSyncedRef.current = '';
+	}, [doc]);
+
 	// Sync remote Y.Doc changes -> local state
 	useEffect(() => {
 		if (!isConnected || !doc) {
@@ -219,9 +235,11 @@ export function useYjsDocumentSync({
 
 			isApplyingRemoteRef.current = true;
 			setSlides(remoteSlides);
-			requestAnimationFrame(() => {
-				isApplyingRemoteRef.current = false;
-			});
+			// Clear synchronously (matching Vue): a `requestAnimationFrame` clear
+			// is frozen in a backgrounded tab, leaving the flag stuck true so no
+			// local edit reaches the doc until refocus. The `lastSyncedRef` JSON
+			// dedupe already prevents the write effect from echoing this apply.
+			isApplyingRemoteRef.current = false;
 			scheduleWriteBack();
 		};
 
