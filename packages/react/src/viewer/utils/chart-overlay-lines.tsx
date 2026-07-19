@@ -173,6 +173,59 @@ export function renderDropLines(
 	return <g key={`${elementId}-droplines`}>{nodes}</g>;
 }
 
+// ── Render up-down bars ────────────────────────────────────────────────
+
+export function renderUpDownBars(
+	elementId: string,
+	chartData: PptxChartData,
+	layout: ChartPlotLayout,
+	range: ChartValueRange,
+	mode: 'line' | 'bar',
+): React.ReactNode {
+	if (!chartData.upDownBars || chartData.series.length < 2) {
+		return null;
+	}
+
+	const catCount = Math.max(chartData.categories.length, 1);
+	const bars = chartData.upDownBars;
+	const first = chartData.series[0];
+	const last = chartData.series[chartData.series.length - 1];
+	const slot = layout.plotWidth / catCount;
+	const gapWidth = bars.gapWidth ?? 150;
+	const barW = Math.max(slot / (1 + Math.max(gapWidth, 0) / 100), 1);
+	const upFill = bars.upBars?.fillColor ?? '#e2e8f0';
+	const downFill = bars.downBars?.fillColor ?? '#334155';
+	const nodes: React.ReactNode[] = [];
+
+	for (let vi = 0; vi < catCount; vi++) {
+		const firstVal = first.values[vi];
+		const lastVal = last.values[vi];
+		if (firstVal === undefined || lastVal === undefined) {
+			continue;
+		}
+		const firstY = valToY(firstVal, range, layout.plotTop, layout.plotBottom);
+		const lastY = valToY(lastVal, range, layout.plotTop, layout.plotBottom);
+		const cx = xToPixel(vi, catCount, layout, mode);
+		nodes.push(
+			<rect
+				key={`${elementId}-udb-${vi}`}
+				x={cx - barW / 2}
+				y={Math.min(firstY, lastY)}
+				width={barW}
+				height={Math.max(Math.abs(firstY - lastY), 1)}
+				fill={lastVal >= firstVal ? upFill : downFill}
+				stroke='#64748b'
+				strokeWidth={0.5}
+			/>,
+		);
+	}
+
+	if (nodes.length === 0) {
+		return null;
+	}
+	return <g key={`${elementId}-updownbars`}>{nodes}</g>;
+}
+
 // ── Render hi-low lines ────────────────────────────────────────────────
 
 export function renderHiLowLines(

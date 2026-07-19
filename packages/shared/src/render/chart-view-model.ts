@@ -55,7 +55,7 @@ import type {
 
 import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
-import { resolveVaryColorFill } from './chart-datapoint-style';
+import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
 import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
@@ -802,8 +802,22 @@ export function computePieLayout(
 	const cx = size / 2;
 	const cy = titleOffset + (size - titleOffset - legendOffset) / 2;
 	const outerR = Math.max((size - titleOffset - legendOffset) * 0.42, 0);
-	const innerR = isDoughnut ? outerR * 0.55 : 0;
+	// Honour c:holeSize (10-90% of the outer diameter) when parsed; otherwise
+	// keep the legacy 0.55 ratio byte-for-byte.
+	const holeRatio =
+		isDoughnut && chartData.doughnutHoleSize !== undefined
+			? Math.min(Math.max(chartData.doughnutHoleSize, 10), 90) / 100
+			: 0.55;
+	const innerR = isDoughnut ? outerR * holeRatio : 0;
 	return { cx, cy, outerR, innerR, size };
+}
+
+/** Options for {@link computePieSlices}: start-angle rotation and per-slice explosion. */
+export interface PieSliceOptions {
+	/** Absolute start angle (radians). Defaults to -PI/2 (12 o'clock). */
+	startAngle?: number;
+	/** Per-slice pull-out distance as a percentage of the outer radius (0-100). */
+	explosions?: ReadonlyArray<number>;
 }
 
 export function computePieSlices(
@@ -812,13 +826,28 @@ export function computePieSlices(
 	cy: number,
 	outerR: number,
 	innerR: number,
+	options?: PieSliceOptions,
 ): PieSliceGeometry[] {
 	const total = values.reduce((s, v) => s + Math.abs(v), 0) || 1;
-	let cumAngle = -Math.PI / 2;
-	return values.map((val) => {
+	let cumAngle = options?.startAngle ?? -Math.PI / 2;
+	return values.map((val, i) => {
 		const sliceAngle = (Math.abs(val) / total) * Math.PI * 2;
 		const startAngle = cumAngle;
 		cumAngle += sliceAngle;
+		// A c:explosion pulls the slice outward along its bisector.
+		const explosion = options?.explosions?.[i] ?? 0;
+		if (explosion > 0) {
+			const mid = (startAngle + cumAngle) / 2;
+			const offset = outerR * (explosion / 100);
+			return computePieSlicePath(
+				cx + Math.cos(mid) * offset,
+				cy + Math.sin(mid) * offset,
+				outerR,
+				innerR,
+				startAngle,
+				cumAngle,
+			);
+		}
 		return computePieSlicePath(cx, cy, outerR, innerR, startAngle, cumAngle);
 	});
 }
@@ -1122,7 +1151,13 @@ function buildPieViewModel(
 
 	const pieSeries = chartData.series[0];
 	const values = pieSeries?.values ?? [];
-	const slices = computePieSlices(values, cx, cy, outerR, innerR);
+	// c:firstSliceAng rotates the pie clockwise from 12 o'clock; c:explosion (per
+	// series or per c:dPt) pulls slices outward.
+	const startAngle = -Math.PI / 2 + ((chartData.firstSliceAngle ?? 0) * Math.PI) / 180;
+	const explosions = pieSeries
+		? values.map((_v, i) => resolveDataPointExplosion(pieSeries, i))
+		: undefined;
+	const slices = computePieSlices(values, cx, cy, outerR, innerR, { startAngle, explosions });
 	const primitives: SvgPrimitive[] = slices.map(
 		({ d }, i) =>
 			({

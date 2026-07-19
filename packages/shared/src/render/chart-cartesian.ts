@@ -19,6 +19,7 @@ import { buildCartesianAxes } from './chart-cartesian-axes';
 import { buildBars } from './chart-cartesian-bars';
 import { buildAreas, buildBubbles, buildLines, buildScatter } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
+import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import {
 	computeAxisTitlePrimitives,
@@ -159,7 +160,21 @@ export function buildCartesianViewModel(
 		plot = buildBubbles(chartData, layout, primaryRange);
 	}
 
-	const primitives: SvgPrimitive[] = [...plot.primitives, ...horizontalAxis.tickMarks];
+	// Drop lines / hi-low lines / up-down bars (line + area kinds). Drawn behind
+	// the series marks so the data stays legible on top.
+	const helperLines =
+		kind === 'line' || kind === 'area'
+			? computeHelperLinePrimitives(chartData, layout, primaryRange, catCount, {
+					mode: 'line',
+					xPositions: horizontalAxis.xPositions,
+				})
+			: [];
+
+	const primitives: SvgPrimitive[] = [
+		...helperLines,
+		...plot.primitives,
+		...horizontalAxis.tickMarks,
+	];
 
 	// Overlays (depth): regression trendlines, error bars, axis titles, data table.
 	const overlays: SvgPrimitive[] = [

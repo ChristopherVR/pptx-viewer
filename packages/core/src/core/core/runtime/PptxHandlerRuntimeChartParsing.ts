@@ -156,6 +156,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
+		// Parse plot-level rendering options carried on the chart-type container:
+		// varyColors (per-point colouring), firstSliceAng/holeSize (pie/doughnut
+		// geometry), gapWidth/overlap (bar spacing). These are read-only for
+		// rendering; save round-trips them via the preserved chart XML.
+		const varyColors = this.parseChartBoolVal(seriesContainer, 'varyColors');
+		const firstSliceAngle = this.parseChartNumberVal(seriesContainer, 'firstSliceAng');
+		const doughnutHoleSize = this.parseChartNumberVal(seriesContainer, 'holeSize');
+		const barGapWidth = this.parseChartNumberVal(seriesContainer, 'gapWidth');
+		const barOverlap = this.parseChartNumberVal(seriesContainer, 'overlap');
+
 		// Store the chart part path for round-trip save
 		const chartPartPath = chartPart.partPath;
 
@@ -260,6 +270,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			title: titleTextValues[0],
 			style: chartStyle,
 			grouping,
+			...(varyColors !== undefined ? { varyColors } : {}),
+			...(firstSliceAngle !== undefined ? { firstSliceAngle } : {}),
+			...(doughnutHoleSize !== undefined ? { doughnutHoleSize } : {}),
+			...(barGapWidth !== undefined ? { barGapWidth } : {}),
+			...(barOverlap !== undefined ? { barOverlap } : {}),
 			chartPartPath,
 			chartRelationshipId,
 			...(dataTable ? { dataTable } : {}),
@@ -358,6 +373,43 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Read a numeric `@val` from a named child of a chart-type container.
+	 * Returns `undefined` when the child or its `@val` is absent/non-finite.
+	 */
+	private parseChartNumberVal(
+		container: XmlObject | undefined,
+		localName: string,
+	): number | undefined {
+		const node = this.xmlLookupService.getChildByLocalName(container, localName);
+		const raw = node?.['@_val'];
+		if (raw === undefined || raw === null || raw === '') {
+			return undefined;
+		}
+		const num = Number.parseFloat(String(raw));
+		return Number.isFinite(num) ? num : undefined;
+	}
+
+	/**
+	 * Read a boolean `@val` from a named child of a chart-type container.
+	 * A present element with no `@val` follows the OOXML `CT_Boolean` default
+	 * of `true`; `undefined` when the child is absent.
+	 */
+	private parseChartBoolVal(
+		container: XmlObject | undefined,
+		localName: string,
+	): boolean | undefined {
+		const node = this.xmlLookupService.getChildByLocalName(container, localName);
+		if (!node) {
+			return undefined;
+		}
+		const raw = node['@_val'];
+		if (raw === undefined || raw === null || raw === '') {
+			return true;
+		}
+		return !(raw === '0' || raw === 'false');
+	}
+
+	/**
 	 * Build the series array from raw OOXML `c:ser` nodes.
 	 *
 	 * For each series, extracts the name, numeric values, fill color,
@@ -423,6 +475,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Parse series-level explosion (c:explosion for pie)
 			const explosion = parseSeriesExplosion(seriesNode, this.xmlLookupService);
 
+			// Parse bezier smoothing flag (c:smooth for line/scatter series).
+			const smoothNode = this.xmlLookupService.getChildByLocalName(seriesNode, 'smooth');
+			const smooth = smoothNode
+				? !(smoothNode['@_val'] === '0' || smoothNode['@_val'] === 'false')
+				: undefined;
+
 			return {
 				name: seriesName.trim().length > 0 ? seriesName : `Series ${seriesIndex + 1}`,
 				values: fallbackValues,
@@ -433,6 +491,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(seriesMarker ? { marker: seriesMarker } : {}),
 				...(dataLabels.length > 0 ? { dataLabels } : {}),
 				...(explosion !== undefined ? { explosion } : {}),
+				...(smooth !== undefined ? { smooth } : {}),
 				...(axisId !== undefined ? { axisId } : {}),
 				...(seriesChartType ? { seriesChartType } : {}),
 			};

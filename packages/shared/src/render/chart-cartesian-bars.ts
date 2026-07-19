@@ -13,7 +13,7 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import type { SeriesPlotResult } from './chart-cartesian-plots';
-import { resolveDataPointFill } from './chart-datapoint-style';
+import { resolveDataPointFill, resolveVaryColorFill } from './chart-datapoint-style';
 import type { PlotLayout, SvgPrimitive, SvgRect, SvgText, ValueRange } from './chart-view-model';
 import {
 	computeStackedBarRects,
@@ -51,18 +51,32 @@ export function buildBars(
 	const palette = chartData.colorPalette;
 	const showLabels = chartData.style?.hasDataLabels;
 
+	// Single-series bar/column with c:varyColors=1 gives every category a distinct
+	// palette colour (a per-point c:dPt fill still wins). Multi-series charts keep
+	// their per-series colours (varyColors has no cross-series meaning there).
+	const varyColorsSingle = chartData.varyColors === true && series.length === 1;
+
 	if (grouping === 'clustered') {
 		const seriesCount = Math.max(series.length, 1);
 		const barGroupWidth = layout.plotWidth / Math.max(catCount, 1);
-		const singleBarWidth = (barGroupWidth * 0.7) / seriesCount;
-		const groupOffset = (barGroupWidth - singleBarWidth * seriesCount) / 2;
+		// Honour c:gapWidth (gap between clusters, % of a bar width) when parsed;
+		// otherwise keep the legacy 0.7-of-group heuristic byte-for-byte.
+		const singleBarWidth =
+			chartData.barGapWidth !== undefined
+				? barGroupWidth / (seriesCount + Math.max(chartData.barGapWidth, 0) / 100)
+				: (barGroupWidth * 0.7) / seriesCount;
+		// Honour c:overlap (% overlap between adjacent series). overlap=0 reproduces
+		// the original side-by-side layout exactly.
+		const overlap = chartData.barOverlap ?? 0;
+		const step = singleBarWidth * (1 - overlap / 100);
+		const clusterWidth = singleBarWidth + step * (seriesCount - 1);
+		const groupOffset = (barGroupWidth - clusterWidth) / 2;
 
 		for (let displayIndex = 0; displayIndex < catCount; displayIndex++) {
 			const sourceIndex = sourceIndices[displayIndex] ?? displayIndex;
 			for (let si = 0; si < series.length; si++) {
 				const val = series[si].values[sourceIndex] ?? 0;
-				const x =
-					layout.plotLeft + barGroupWidth * displayIndex + groupOffset + singleBarWidth * si;
+				const x = layout.plotLeft + barGroupWidth * displayIndex + groupOffset + step * si;
 				const activeRange = secondaryIdx.has(si) && secondaryRange ? secondaryRange : primaryRange;
 				const zeroY = valueToY(0, activeRange, layout.plotTop, layout.plotBottom);
 				const valY = valueToY(val, activeRange, layout.plotTop, layout.plotBottom);
@@ -74,9 +88,10 @@ export function buildBars(
 					y,
 					w: singleBarWidth,
 					h,
-					fill:
-						resolveDataPointFill(series[si], sourceIndex, paletteColor(si, palette)) ??
-						seriesColor(series[si], si, palette),
+					fill: varyColorsSingle
+						? resolveVaryColorFill(series[si], sourceIndex, paletteColor(sourceIndex, palette))
+						: (resolveDataPointFill(series[si], sourceIndex, paletteColor(si, palette)) ??
+							seriesColor(series[si], si, palette)),
 					rx: 1,
 					part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
 				} satisfies SvgRect);

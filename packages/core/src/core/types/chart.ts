@@ -448,6 +448,11 @@ export interface PptxChartSeries {
 	marker?: PptxChartMarker;
 	dataLabels?: PptxChartDataLabel[];
 	explosion?: number;
+	/**
+	 * Whether this line/scatter series is drawn with bezier smoothing
+	 * (`c:ser/c:smooth/@val`). Absent when the source XML omits `c:smooth`.
+	 */
+	smooth?: boolean;
 	/** Axis ID this series is plotted against (links to PptxChartAxisFormatting.axisId). */
 	axisId?: number;
 	/**
@@ -725,6 +730,33 @@ export interface PptxChartData {
 	style?: PptxChartStyle;
 	/** Grouping mode for bar/area/line charts: 'clustered' | 'stacked' | 'percentStacked' */
 	grouping?: 'clustered' | 'stacked' | 'percentStacked';
+	/**
+	 * Whether the first (or only) series varies its point colours
+	 * (`c:varyColors/@val`). Pie/doughnut default this on; single-series
+	 * bar/column honour it by giving each point a distinct palette colour.
+	 * Absent when the source XML omits `c:varyColors`.
+	 */
+	varyColors?: boolean;
+	/**
+	 * Pie/doughnut start angle in degrees clockwise from 12 o'clock
+	 * (`c:firstSliceAng/@val`, 0 through 360). Absent uses the default 0.
+	 */
+	firstSliceAngle?: number;
+	/**
+	 * Doughnut hole diameter as a percentage of the outer diameter
+	 * (`c:holeSize/@val`, 10 through 90). Absent uses the renderer default.
+	 */
+	doughnutHoleSize?: number;
+	/**
+	 * Bar/column gap between category clusters as a percentage of bar width
+	 * (`c:gapWidth/@val`, 0 through 500). Absent uses the renderer default.
+	 */
+	barGapWidth?: number;
+	/**
+	 * Clustered bar/column overlap between series within a category as a
+	 * percentage (`c:overlap/@val`, -100 through 100). Absent uses 0.
+	 */
+	barOverlap?: number;
 	/** Internal: path to the chart XML part in the PPTX archive (for round-trip save). */
 	chartPartPath?: string;
 	/** Internal: relationship ID linking the graphic frame to the chart part. */
