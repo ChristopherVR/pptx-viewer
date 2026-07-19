@@ -162,6 +162,63 @@ describe('applyLineProperties — stroke color', () => {
 });
 
 // ---------------------------------------------------------------------------
+// applyLineProperties — outline fill kind (issue #87)
+// ---------------------------------------------------------------------------
+
+describe('applyLineProperties — outline fill kind', () => {
+	it('models a solid outline as strokeFillMode "solid"', () => {
+		const lineNode: XmlObject = {
+			'a:solidFill': { 'a:srgbClr': { '@_val': '0000FF' } },
+		};
+		const style = makeStyle();
+		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		expect(style.strokeFillMode).toBe('solid');
+		expect(style.strokeGradientXml).toBeUndefined();
+		expect(style.strokePatternXml).toBeUndefined();
+	});
+
+	it('models a gradient outline and preserves the whole a:gradFill node', () => {
+		const gradFill: XmlObject = {
+			'a:gsLst': {
+				'a:gs': [
+					{ '@_pos': '0', 'a:srgbClr': { '@_val': 'FF0000' } },
+					{ '@_pos': '100000', 'a:srgbClr': { '@_val': '0000FF' } },
+				],
+			},
+			'a:lin': { '@_ang': '5400000' },
+		};
+		const lineNode: XmlObject = { 'a:gradFill': gradFill };
+		const style = makeStyle();
+		const ctx = makeContext({ extractGradientFillColor: () => '#7F007F' });
+		applyLineProperties(lineNode, {}, style, ctx, noHiddenLine);
+		expect(style.strokeFillMode).toBe('gradient');
+		expect(style.strokeGradientXml).toBe(gradFill);
+		// Averaged colour still available for solid-only stroke renderers.
+		expect(style.strokeColor).toBe('#7F007F');
+	});
+
+	it('models a pattern outline and preserves the whole a:pattFill node', () => {
+		const pattFill: XmlObject = {
+			'@_prst': 'dkDnDiag',
+			'a:fgClr': { 'a:srgbClr': { '@_val': '112233' } },
+			'a:bgClr': { 'a:srgbClr': { '@_val': '445566' } },
+		};
+		const lineNode: XmlObject = { 'a:pattFill': pattFill };
+		const style = makeStyle();
+		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		expect(style.strokeFillMode).toBe('pattern');
+		expect(style.strokePatternXml).toBe(pattFill);
+	});
+
+	it('models a noFill outline (no hidden line) as strokeFillMode "none"', () => {
+		const lineNode: XmlObject = { 'a:noFill': {} };
+		const style = makeStyle();
+		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		expect(style.strokeFillMode).toBe('none');
+	});
+});
+
+// ---------------------------------------------------------------------------
 // applyLineProperties — dash patterns
 // ---------------------------------------------------------------------------
 

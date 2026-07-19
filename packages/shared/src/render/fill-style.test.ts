@@ -7,6 +7,7 @@ import {
 	buildReflectedGradientStops,
 	getComputedFillStyle,
 	getGradientTileFlipCss,
+	getGradientTileRectCss,
 	getPatternSvg,
 	sanitizeGradientStops,
 	toCssGradientStop,
@@ -552,5 +553,173 @@ describe('getComputedFillStyle', () => {
 	it('emits nothing for fillMode none', () => {
 		const result = getComputedFillStyle(shape({ fillMode: 'none', fillColor: '#ff0000' }));
 		expect(result).toStrictEqual({});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// buildGradientCss — @rotWithShape / @scaled corrections (#97)
+// ---------------------------------------------------------------------------
+
+describe('buildGradientCss angle corrections', () => {
+	it('leaves the angle unchanged when no geometry context is supplied', () => {
+		const css = buildGradientCss({
+			fillMode: 'gradient',
+			fillGradientAngle: 90,
+			fillGradientRotWithShape: false,
+			fillGradientStops: [
+				{ color: '#ff0000', position: 0 },
+				{ color: '#0000ff', position: 100 },
+			],
+		});
+		expect(css).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 100%)');
+	});
+
+	it('counter-rotates by the element rotation when rotWithShape is false', () => {
+		const css = buildGradientCss(
+			{
+				fillMode: 'gradient',
+				fillGradientAngle: 90,
+				fillGradientRotWithShape: false,
+				fillGradientScaled: false,
+				fillGradientStops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#0000ff', position: 100 },
+				],
+			},
+			{ rotation: 45, width: 100, height: 100 },
+		);
+		expect(css).toBe('linear-gradient(45deg, #ff0000 0%, #0000ff 100%)');
+	});
+
+	it('does not counter-rotate when rotWithShape is the default (true)', () => {
+		const css = buildGradientCss(
+			{
+				fillMode: 'gradient',
+				fillGradientAngle: 90,
+				fillGradientScaled: false,
+				fillGradientStops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#0000ff', position: 100 },
+				],
+			},
+			{ rotation: 45, width: 100, height: 100 },
+		);
+		expect(css).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 100%)');
+	});
+
+	it('applies aspect-ratio scaling to the angle when scaled is not false', () => {
+		const css = buildGradientCss(
+			{
+				fillMode: 'gradient',
+				fillGradientAngle: 45,
+				fillGradientStops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#0000ff', position: 100 },
+				],
+			},
+			{ width: 200, height: 100 },
+		);
+		// atan2(100*sin45, 200*cos45) = atan(0.5) ~= 26.57deg -> 27deg
+		expect(css).toBe('linear-gradient(27deg, #ff0000 0%, #0000ff 100%)');
+	});
+
+	it('skips aspect scaling when scaled is explicitly false', () => {
+		const css = buildGradientCss(
+			{
+				fillMode: 'gradient',
+				fillGradientAngle: 45,
+				fillGradientScaled: false,
+				fillGradientStops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#0000ff', position: 100 },
+				],
+			},
+			{ width: 200, height: 100 },
+		);
+		expect(css).toBe('linear-gradient(45deg, #ff0000 0%, #0000ff 100%)');
+	});
+
+	it('skips aspect scaling for a square shape', () => {
+		const css = buildGradientCss(
+			{
+				fillMode: 'gradient',
+				fillGradientAngle: 45,
+				fillGradientStops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#0000ff', position: 100 },
+				],
+			},
+			{ width: 100, height: 100 },
+		);
+		expect(css).toBe('linear-gradient(45deg, #ff0000 0%, #0000ff 100%)');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// getGradientTileRectCss (#97)
+// ---------------------------------------------------------------------------
+
+describe('getGradientTileRectCss', () => {
+	it('returns undefined for a missing rect', () => {
+		expect(getGradientTileRectCss(undefined)).toBeUndefined();
+	});
+
+	it('returns undefined for a full-bleed rect (no meaningful inset)', () => {
+		expect(getGradientTileRectCss({ l: 0, t: 0, r: 0, b: 0 })).toBeUndefined();
+	});
+
+	it('confines the gradient to the tile rectangle', () => {
+		expect(getGradientTileRectCss({ l: 0.25, t: 0, r: 0.25, b: 0 })).toStrictEqual({
+			backgroundSize: '50% 100%',
+			backgroundPosition: '50% 0%',
+			backgroundRepeat: 'no-repeat',
+		});
+	});
+});
+
+describe('getComputedFillStyle tileRect', () => {
+	it('applies tileRect sizing/position to a structured gradient', () => {
+		const result = getComputedFillStyle(
+			shape({
+				fillMode: 'gradient',
+				fillGradientAngle: 90,
+				fillGradientTileRect: { l: 0.25, t: 0.25, r: 0.25, b: 0.25 },
+				fillGradientStops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#0000ff', position: 100 },
+				],
+			}),
+		);
+		expect(result?.backgroundImage).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 100%)');
+		expect(result?.backgroundSize).toBe('50% 50%');
+		expect(result?.backgroundPosition).toBe('50% 50%');
+		expect(result?.backgroundRepeat).toBe('no-repeat');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// getComputedFillStyle — grpFill inheritance (#97c)
+// ---------------------------------------------------------------------------
+
+describe('getComputedFillStyle grpFill inheritance', () => {
+	it('inherits the parent group fill for a fillMode "group" child', () => {
+		const result = getComputedFillStyle(shape({ fillMode: 'group' }), { fillColor: '#abcdef' });
+		expect(result?.backgroundColor).toBe('#abcdef');
+	});
+
+	it('inherits a parent group gradient fill', () => {
+		const result = getComputedFillStyle(shape({ fillMode: 'group' }), {
+			fillMode: 'gradient',
+			fillGradientAngle: 90,
+			fillGradientStops: [
+				{ color: '#ff0000', position: 0 },
+				{ color: '#0000ff', position: 100 },
+			],
+		});
+		expect(result?.backgroundImage).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 100%)');
+	});
+
+	it('emits nothing for a group child with no parent fill supplied', () => {
+		expect(getComputedFillStyle(shape({ fillMode: 'group' }))).toStrictEqual({});
 	});
 });
