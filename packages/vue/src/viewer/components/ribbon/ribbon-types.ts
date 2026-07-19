@@ -146,6 +146,12 @@ export interface RibbonProps {
 	collaboratorCount?: number;
 	/** Toolbar buttons / ribbon tabs the host has asked to hide. Undefined/empty hides nothing. */
 	hiddenActions?: ToolbarActionId[];
+	/** True when the host opted into the AI assistant (the `ai` prop is set). */
+	aiEnabled?: boolean;
+	/** Whether the AI chat panel is currently open (drives the toggle's active state). */
+	isAiPanelOpen?: boolean;
+	/** Toggle the AI chat panel open/closed. */
+	onToggleAiPanel?: () => void;
 
 	onSetMode: (mode: ViewerMode) => void;
 	onToggleSidebar: () => void;

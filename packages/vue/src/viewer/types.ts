@@ -7,6 +7,7 @@ import type {
 	ToolbarActionId,
 	ViewerFontSource,
 } from 'pptx-viewer-shared';
+import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 
 import type { LocaleCatalogEntry } from '../i18n';
 import type { ThemeCatalogEntry, ViewerTheme } from '../theme';
@@ -146,6 +147,17 @@ export interface PowerPointViewerProps {
 	 * Account page renders nothing extra unless `enabled: true` is passed.
 	 */
 	accountAuth?: AccountAuthConfig;
+	/**
+	 * Optional AI assistant configuration. When provided, a Sparkles toggle
+	 * appears in the ribbon's quick-action strip and opens a right-hand chat
+	 * panel that can read and edit the open deck through the framework-agnostic
+	 * AI core. The panel (and its optional `@ai-sdk/vue` + `ai` peers) is
+	 * lazily loaded only when first opened; omit this prop to disable the
+	 * assistant entirely.
+	 *
+	 * @see {@link PptxAiConfig}
+	 */
+	ai?: PptxAiConfig;
 }
 
 /**

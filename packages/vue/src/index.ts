@@ -44,6 +44,13 @@ export type {
 	ElementClipboardPayload,
 	TableCellEditorState,
 	LayoutOption,
+	PptxAiConfig,
+	PptxAiConnection,
+	PptxAiContextStrategy,
+	PptxAiToolName,
+	PptxAiUIMessage,
+	PptxAiWritePolicy,
+	PptxAiBridge,
 } from './viewer';
 
 // ── Shared API types ──

@@ -13,7 +13,7 @@
  * `useCollaboration()` context; in Vue collaboration is host-instantiated (not a
  * ribbon-level context), so that purely-decorative avatar cluster is omitted.
  */
-import { MessageSquare, PanelLeft, PanelRight, Settings } from 'lucide-vue-next';
+import { MessageSquare, PanelLeft, PanelRight, Settings, Sparkles } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
@@ -108,6 +108,18 @@ const qab =
 			@click="props.onToggleInspector()"
 		>
 			<PanelRight :class="ic" />
+		</button>
+
+		<!-- AI assistant: only rendered when the host opts in via the `ai` prop -->
+		<button
+			v-if="props.aiEnabled && (props.mode === 'edit' || props.mode === 'master')"
+			type="button"
+			:class="cn(qab, props.isAiPanelOpen ? 'text-primary' : 'text-muted-foreground')"
+			:title="t('pptx.toolbar.toggleAiAssistant')"
+			:aria-label="t('pptx.toolbar.toggleAiAssistant')"
+			@click="props.onToggleAiPanel?.()"
+		>
+			<Sparkles :class="ic" />
 		</button>
 
 		<!-- Settings -->

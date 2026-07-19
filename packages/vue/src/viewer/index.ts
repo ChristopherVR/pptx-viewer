@@ -29,6 +29,19 @@ export type {
 	CanvasSize,
 } from './types';
 
+// ── AI assistant configuration types (host-facing) ──
+// Re-exported so hosts can type the optional `ai` prop and build a connection
+// without importing from `pptx-viewer-shared/ai` directly.
+export type {
+	PptxAiConfig,
+	PptxAiConnection,
+	PptxAiContextStrategy,
+	PptxAiToolName,
+	PptxAiUIMessage,
+	PptxAiWritePolicy,
+	PptxAiBridge,
+} from 'pptx-viewer-shared/ai';
+
 // `RibbonToolbar`'s prop contract, for composing a custom ribbon/toolbar shell
 // with `useRibbonProps` (see `pptx-vue-viewer/internals`) instead of
 // the bundled `PowerPointViewer`. `ViewerMode` is intentionally not

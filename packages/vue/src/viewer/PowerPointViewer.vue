@@ -26,6 +26,7 @@ import type {
 	PptxHeaderFooter,
 	PptxSaveFormat,
 	PptxSlide,
+	PptxTheme,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemePreset,
@@ -57,6 +58,7 @@ import {
 	useThemeStyle,
 } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
+import { AiChatPanelLazy } from './components/ai';
 import BroadcastDialog from './components/BroadcastDialog.vue';
 import CanvasGuides from './components/CanvasGuides.vue';
 import CollaborationCursors from './components/CollaborationCursors.vue';
@@ -118,6 +120,7 @@ import StatusBar from './components/StatusBar.vue';
 import ThemeGallery from './components/ThemeGallery.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import { AccountAuthKey } from './composables/account-auth';
+import { useAiBridge } from './composables/ai/useAiBridge';
 import {
 	mergeElementAnimations,
 	replaceSlideAnimations,
@@ -1554,6 +1557,44 @@ const { applyTheme, applyThemePreset, applyThemeEdit } = useThemeEditing({
 	themeEditorOpen,
 });
 
+// ── AI assistant ──────────────────────────────────────────────────────
+// The Sparkles ribbon toggle and the right-hand chat panel are gated behind
+// the optional `ai` prop. The bridge is built unconditionally (a cheap pure
+// factory) but only consumed when the host opts in; its three write choke
+// points route through the editor-history layer so AI edits are a single
+// Ctrl+Z. The panel (and its `@ai-sdk/vue` peer) loads lazily on first open.
+const aiPanelOpen = ref(false);
+/** Map a partial AI theme update onto the deck-wide theme editor (mirrors React's applyAiTheme). */
+function applyAiTheme(updates: Partial<PptxTheme>): void {
+	const current = pptxTheme.value;
+	const colorScheme = updates.colorScheme ?? current?.colorScheme;
+	if (!colorScheme) {
+		return;
+	}
+	applyTheme(
+		colorScheme,
+		updates.fontScheme ?? current?.fontScheme,
+		updates.name ?? current?.name ?? 'Theme',
+	);
+}
+const aiBridge = useAiBridge({
+	slides,
+	activeSlideIndex,
+	canvasSize,
+	theme: pptxTheme,
+	handler,
+	fileName: () => props.fileName,
+	pushHistory: history.pushHistory,
+	markDirty: () => {
+		autosave.isDirty.value = true;
+	},
+	goTo,
+	setSelection: (ids) => {
+		selectedElementIds.value = ids;
+	},
+	applyThemeUpdates: applyAiTheme,
+});
+
 const {
 	ribbonMode,
 	activeTableSelection,
@@ -1968,6 +2009,9 @@ function handleCommandSearch(command: string): void {
 					v-if="!isMobile"
 					v-bind="ribbonProps"
 					:hidden-actions="props.hiddenActions"
+					:ai-enabled="Boolean(props.ai)"
+					:is-ai-panel-open="aiPanelOpen"
+					:on-toggle-ai-panel="() => (aiPanelOpen = !aiPanelOpen)"
 				/>
 				<MobileToolbar v-else v-bind="ribbonProps" :hidden-actions="props.hiddenActions" />
 			</template>
@@ -2183,6 +2227,21 @@ function handleCommandSearch(command: string): void {
 					@comment-resolve="(id) => commitComments(commentsApi.resolveComment(id))"
 					@comment-reply="(p) => commitComments(commentsApi.replyToComment(p.parentId, p.text))"
 					@close="inspectorOpen = false"
+				/>
+
+				<!-- AI assistant chat panel (right rail, sibling of the inspector).
+				     Gated behind the optional `ai` prop; lazily loaded on first open
+				     so `@ai-sdk/vue` + the AI core only ship when actually used. -->
+				<AiChatPanelLazy
+					v-if="
+						props.ai &&
+						aiPanelOpen &&
+						!isMobile &&
+						(ribbonMode === 'edit' || ribbonMode === 'master')
+					"
+					:bridge="aiBridge"
+					:config="props.ai"
+					@close="aiPanelOpen = false"
 				/>
 
 				<!-- Accessibility checker -->
