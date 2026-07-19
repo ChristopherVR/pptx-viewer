@@ -8,6 +8,7 @@
  * connector's position and dimensions must be updated to follow.
  */
 
+import { createBuiltinVariables, resolveCoordinate } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 /** A single connection site on a shape's bounding box (element-local coords). */
@@ -20,6 +21,9 @@ export interface ConnectionSite {
 /**
  * Compute connection sites for a rectangular bounding box. Returns the four
  * edge midpoints in element-local coordinates: top, right, bottom, left.
+ *
+ * This is the fallback used for shapes whose real connection sites are
+ * unknown (preset shapes without a parsed `a:cxnLst`).
  */
 export function getConnectionSites(width: number, height: number): ConnectionSite[] {
 	return [
@@ -28,6 +32,46 @@ export function getConnectionSites(width: number, height: number): ConnectionSit
 		{ x: width / 2, y: height, index: 2 }, // bottom center
 		{ x: 0, y: height / 2, index: 3 }, // left center
 	];
+}
+
+/** Structural view of the custom-geometry fields we read off a shape element. */
+interface ShapeGeometryFields {
+	customGeometryConnectionSites?: Array<{ posX?: string; posY?: string; ang?: string }>;
+	pathWidth?: number;
+	pathHeight?: number;
+}
+
+/**
+ * Resolve the connection sites of a shape element in element-local pixel
+ * coordinates.
+ *
+ * When the shape carries typed custom-geometry connection sites (parsed from
+ * `a:custGeom/a:cxnLst/a:cxn`), each `a:pos` formula is evaluated against the
+ * shape's path coordinate space and scaled to the element's pixel box, so a
+ * connector referencing `stCxn/@idx` on a non-rectangular shape attaches near
+ * the real site rather than collapsing to an edge midpoint. Shapes with no
+ * known sites fall back to the four edge midpoints.
+ */
+export function getShapeConnectionSites(shape: PptxElement): ConnectionSite[] {
+	const geo = shape as PptxElement & ShapeGeometryFields;
+	const cxn = geo.customGeometryConnectionSites;
+	if (!cxn || cxn.length === 0) {
+		return getConnectionSites(shape.width, shape.height);
+	}
+
+	// Path coordinate space the `a:pos` formulas are expressed in. Fall back to
+	// the element's pixel dimensions (scale factor 1) when unavailable.
+	const pathW = geo.pathWidth && geo.pathWidth > 0 ? geo.pathWidth : shape.width;
+	const pathH = geo.pathHeight && geo.pathHeight > 0 ? geo.pathHeight : shape.height;
+	const vars = createBuiltinVariables({ w: pathW, h: pathH });
+	const scaleX = pathW > 0 ? shape.width / pathW : 1;
+	const scaleY = pathH > 0 ? shape.height / pathH : 1;
+
+	return cxn.map((site, index) => ({
+		x: resolveCoordinate(site.posX, vars) * scaleX,
+		y: resolveCoordinate(site.posY, vars) * scaleY,
+		index,
+	}));
 }
 
 /** Describes the updated geometry for a connector after rerouting. */
@@ -42,6 +86,15 @@ export interface ReroutedConnector {
 	width: number;
 	/** New height. */
 	height: number;
+	/**
+	 * Recomputed horizontal flip flag. True when the resolved end point is to
+	 * the left of the start point, matching how `getConnectorPathGeometry`
+	 * derives the start/end corners (and thus arrowhead direction) from the
+	 * flip flags. Omitted only when produced outside {@link computeConnectorGeometry}.
+	 */
+	flipHorizontal?: boolean;
+	/** Recomputed vertical flip flag. True when the end point is above the start. */
+	flipVertical?: boolean;
 }
 
 /** A connection reference (shape + site index) on a connector endpoint. */
@@ -131,7 +184,7 @@ export function computeConnectorGeometry(
 		if (!startShape) {
 			return null;
 		}
-		const sites = getConnectionSites(startShape.width, startShape.height);
+		const sites = getShapeConnectionSites(startShape);
 		const siteIndex = startConn.connectionSiteIndex ?? 0;
 		const site = sites[siteIndex] ?? sites[0];
 		sx = startShape.x + site.x;
@@ -149,7 +202,7 @@ export function computeConnectorGeometry(
 		if (!endShape) {
 			return null;
 		}
-		const sites = getConnectionSites(endShape.width, endShape.height);
+		const sites = getShapeConnectionSites(endShape);
 		const siteIndex = endConn.connectionSiteIndex ?? 0;
 		const site = sites[siteIndex] ?? sites[0];
 		ex = endShape.x + site.x;
@@ -159,12 +212,26 @@ export function computeConnectorGeometry(
 		ey = connector.y + connector.height;
 	}
 
+	// Recompute the flip flags from the relative order of the resolved
+	// endpoints. `getConnectorPathGeometry` derives the start/end corners
+	// (and hence line direction / arrowheads) from these flags:
+	//   flipH => start at local x=width, end at x=0
+	//   flipV => start at local y=height, end at y=0
+	// Since the bounding box is anchored at min(sx,ex)/min(sy,ey), a start that
+	// sits to the right of / below the end must be drawn from the far corner,
+	// i.e. flipH when ex < sx and flipV when ey < sy. Equal coordinates keep the
+	// flag false so a purely vertical / horizontal line is not spuriously flipped.
+	const flipHorizontal = ex < sx;
+	const flipVertical = ey < sy;
+
 	return {
 		id: connector.id,
 		x: Math.min(sx, ex),
 		y: Math.min(sy, ey),
 		width: Math.abs(ex - sx) || 1,
 		height: Math.abs(ey - sy) || 1,
+		flipHorizontal,
+		flipVertical,
 	};
 }
 
@@ -191,12 +258,22 @@ export function applyReroutedConnectors(
 		if (!update) {
 			return el;
 		}
-		return {
+		const next: Record<string, unknown> = {
 			...el,
 			x: update.x,
 			y: update.y,
 			width: update.width,
 			height: update.height,
-		} as PptxElement;
+		};
+		// Only overwrite the flip flags when the reroute recomputed them, so
+		// callers that build ReroutedConnector without flip data (e.g. tests or
+		// non-endpoint updates) leave the connector's existing flags intact.
+		if (update.flipHorizontal !== undefined) {
+			next.flipHorizontal = update.flipHorizontal;
+		}
+		if (update.flipVertical !== undefined) {
+			next.flipVertical = update.flipVertical;
+		}
+		return next as unknown as PptxElement;
 	});
 }

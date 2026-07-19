@@ -1,10 +1,12 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { getConnectorPathGeometry } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import {
 	rerouteConnectorsForMovedElements,
 	computeConnectorGeometry,
 	applyReroutedConnectors,
+	getShapeConnectionSites,
 } from './connector-reroute';
 
 // ---------------------------------------------------------------------------
@@ -891,5 +893,148 @@ describe('integration: reroute and apply', () => {
 		expect(updatedBC.y).toBe(50);
 		expect(updatedBC.width).toBe(100);
 		expect(updatedBC.height).toBe(1); // same y → clamped
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Issue #93: flip-flag recompute after endpoint reversal
+// ---------------------------------------------------------------------------
+
+describe('computeConnectorGeometry — flip recompute (issue #93)', () => {
+	it('leaves flip flags false when the start is above-left of the end', () => {
+		const s1 = makeShape('s1', 0, 0, 100, 100);
+		const s2 = makeShape('s2', 400, 400, 100, 100);
+		const map = new Map<string, PptxElement>([
+			['s1', s1],
+			['s2', s2],
+		]);
+		const r = computeConnectorGeometry(
+			makeConnector('c', 0, 0, 1, 1),
+			{ shapeId: 's1', connectionSiteIndex: 1 }, // right center (100, 50)
+			{ shapeId: 's2', connectionSiteIndex: 3 }, // left center (400, 450)
+			map,
+		);
+		expect(r).not.toBeNull();
+		expect(r!.flipHorizontal).toBeFalsy();
+		expect(r!.flipVertical).toBeFalsy();
+	});
+
+	it('flips both flags after the connected shapes reverse order', () => {
+		// Start shape now sits below-right of the end shape.
+		const s1 = makeShape('s1', 400, 400, 100, 100);
+		const s2 = makeShape('s2', 0, 0, 100, 100);
+		const map = new Map<string, PptxElement>([
+			['s1', s1],
+			['s2', s2],
+		]);
+		const r = computeConnectorGeometry(
+			makeConnector('c', 0, 0, 1, 1),
+			{ shapeId: 's1', connectionSiteIndex: 3 }, // left center (400, 450)
+			{ shapeId: 's2', connectionSiteIndex: 1 }, // right center (100, 50)
+			map,
+		);
+		expect(r).not.toBeNull();
+		// end (100, 50) is left-of and above start (400, 450)
+		expect(r!.flipHorizontal).toBeTruthy();
+		expect(r!.flipVertical).toBeTruthy();
+	});
+
+	it('rendered path direction and arrowhead corner follow the recomputed flip', () => {
+		const s1 = makeShape('s1', 400, 400, 100, 100);
+		const s2 = makeShape('s2', 0, 0, 100, 100);
+		const map = new Map<string, PptxElement>([
+			['s1', s1],
+			['s2', s2],
+		]);
+		const r = computeConnectorGeometry(
+			makeConnector('c', 0, 0, 1, 1),
+			{ shapeId: 's1', connectionSiteIndex: 3 },
+			{ shapeId: 's2', connectionSiteIndex: 1 },
+			map,
+		)!;
+		// Feed the recomputed geometry into the same path builder the renderer uses.
+		const geom = getConnectorPathGeometry({
+			shapeType: 'straightConnector1',
+			width: r.width,
+			height: r.height,
+			flipHorizontal: r.flipHorizontal,
+			flipVertical: r.flipVertical,
+		} as unknown as Parameters<typeof getConnectorPathGeometry>[0]);
+		// flipH+V => path starts at the far corner (width, height) so the arrowhead
+		// (path end) lands at (0, 0), pointing at the moved end shape.
+		expect(geom.startX).toBe(r.width);
+		expect(geom.startY).toBe(r.height);
+		expect(geom.endX).toBe(0);
+		expect(geom.endY).toBe(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Issue #93: real connection sites from custom geometry (a:cxnLst)
+// ---------------------------------------------------------------------------
+
+describe('getShapeConnectionSites (issue #93)', () => {
+	it('falls back to four edge midpoints for shapes without custom sites', () => {
+		const sites = getShapeConnectionSites(makeShape('s', 0, 0, 200, 100));
+		expect(sites).toHaveLength(4);
+		expect(sites[1]).toStrictEqual({ x: 200, y: 50, index: 1 });
+	});
+
+	it('derives scaled sites from the shape custom-geometry a:cxnLst', () => {
+		const shape = {
+			id: 'sp',
+			type: 'shape',
+			x: 300,
+			y: 400,
+			width: 200,
+			height: 100,
+			pathWidth: 100,
+			pathHeight: 100,
+			customGeometryConnectionSites: [
+				{ posX: 'hc', posY: '0' }, // 0: top center
+				{ posX: 'w', posY: 'vc' }, // 1: right center
+				{ posX: 'hc', posY: 'h' }, // 2: bottom center
+				{ posX: '0', posY: 'vc' }, // 3: left center
+				{ posX: '0', posY: '0' }, // 4: top-left corner (non-midpoint)
+			],
+		} as unknown as PptxElement;
+		const sites = getShapeConnectionSites(shape);
+		expect(sites).toHaveLength(5);
+		// idx 4 resolves to the scaled top-left corner, not an edge midpoint.
+		expect(sites[4]).toStrictEqual({ x: 0, y: 0, index: 4 });
+		// idx 1 scales the path-space right edge (w=100) to the 200px pixel box.
+		expect(sites[1]).toStrictEqual({ x: 200, y: 50, index: 1 });
+	});
+
+	it('attaches a connector to a real non-midpoint site instead of collapsing to center', () => {
+		const shape = {
+			id: 'sp',
+			type: 'shape',
+			x: 300,
+			y: 400,
+			width: 200,
+			height: 100,
+			pathWidth: 100,
+			pathHeight: 100,
+			customGeometryConnectionSites: [
+				{ posX: 'hc', posY: '0' },
+				{ posX: 'w', posY: 'vc' },
+				{ posX: 'hc', posY: 'h' },
+				{ posX: '0', posY: 'vc' },
+				{ posX: '0', posY: '0' }, // idx 4: top-left corner
+			],
+		} as unknown as PptxElement;
+		const map = new Map<string, PptxElement>([['sp', shape]]);
+		const r = computeConnectorGeometry(
+			makeConnector('c', 700, 700, 0, 0),
+			{ shapeId: 'sp', connectionSiteIndex: 4 },
+			undefined, // end = connector position (700, 700)
+			map,
+		)!;
+		// start = shape origin + site4 (0, 0) = (300, 400), NOT top-center (400, 400).
+		expect(r.x).toBe(300); // min(300, 700)
+		expect(r.y).toBe(400);
+		expect(r.width).toBe(400); // |700-300|
+		expect(r.height).toBe(300); // |700-400|
 	});
 });
