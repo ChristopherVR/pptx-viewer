@@ -7,6 +7,7 @@
  *
  * @module collaboration/useBroadcastFollower
  */
+import { shouldAutoFollowBroadcaster } from 'pptx-viewer-shared';
 import { useEffect, useRef } from 'react';
 
 import type { CollaborationContextValue } from './types';
@@ -49,14 +50,20 @@ export function useBroadcastFollower({
 			return;
 		}
 
-		// Only viewers auto-follow the broadcaster
-		if (collab.config.role !== 'viewer') {
-			return;
-		}
-
 		// Find the broadcaster (the session owner)
 		const broadcaster = collab.remoteUsers.find((u) => u.role === 'owner');
 		if (!broadcaster) {
+			return;
+		}
+
+		// Auto-follow policy lives in one shared helper so React/Vue/Angular
+		// cannot drift: only a local `viewer` follows the `owner`.
+		if (
+			!shouldAutoFollowBroadcaster({
+				localRole: collab.config.role,
+				broadcasterRole: broadcaster.role,
+			})
+		) {
 			return;
 		}
 
