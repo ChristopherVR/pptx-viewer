@@ -105,6 +105,10 @@ export default defineConfig({
 				// `pptx-viewer-shared/ai` subpath. Kept external so the dynamic
 				// `import('ai')` inside shared stays a real optional runtime import.
 				'ai',
+				// Optional `@ai-sdk/vue` peer, reachable only through the lazily-
+				// loaded AI chat panel chunk. Kept external so the binding never
+				// bundles it and hosts dedupe a single copy from node_modules.
+				'@ai-sdk/vue',
 			],
 			output: {
 				globals: { vue: 'Vue' },
