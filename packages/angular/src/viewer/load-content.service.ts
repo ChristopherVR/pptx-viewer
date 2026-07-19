@@ -121,6 +121,15 @@ export class LoadContentService {
 	}
 
 	/**
+	 * The loaded presentation's core handler, or `undefined` before a deck is
+	 * loaded. Exposed for the AI bridge ({@link PptxAiBridge.getHandler}) so the
+	 * assistant can reach low-level core APIs when needed.
+	 */
+	getHandler(): PptxHandler | undefined {
+		return this.handler ?? undefined;
+	}
+
+	/**
 	 * Serialise an explicit set of slides back to `.pptx` bytes (e.g. the
 	 * editor's edited deck) using the loaded presentation's handler.
 	 *
