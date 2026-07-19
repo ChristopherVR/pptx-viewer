@@ -27,6 +27,38 @@ function applyFontMetadata(
 	return fontNode;
 }
 
+/**
+ * Build the `a:uLn` (underline line) XML node from the parsed
+ * {@link TextStyle.underlineLine}. Follows CT_LineProperties child order
+ * (`prstDash`, then `headEnd`, `tailEnd`). The line colour is emitted
+ * separately via `a:uFill`, so no fill child is written here.
+ */
+function buildUnderlineLineXml(line: NonNullable<TextStyle['underlineLine']>): XmlObject {
+	const uln: XmlObject = {};
+	if (typeof line.widthEmu === 'number' && Number.isFinite(line.widthEmu)) {
+		uln['@_w'] = String(Math.round(line.widthEmu));
+	}
+	if (line.compound) {
+		uln['@_cmpd'] = line.compound;
+	}
+	if (line.cap) {
+		uln['@_cap'] = line.cap;
+	}
+	if (line.algn) {
+		uln['@_algn'] = line.algn;
+	}
+	if (line.prstDash) {
+		uln['a:prstDash'] = { '@_val': line.prstDash };
+	}
+	if (line.headEndXml) {
+		uln['a:headEnd'] = line.headEndXml;
+	}
+	if (line.tailEndXml) {
+		uln['a:tailEnd'] = line.tailEndXml;
+	}
+	return uln;
+}
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected createRunPropertiesFromTextStyle(
 		style: TextStyle | undefined,
@@ -111,7 +143,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Sch_UnexpectedElementContentExpectingComplex and PowerPoint's
 		// file-corruption/repair dialog):
 		//   ln, (solidFill | gradFill | pattFill), effectLst, highlight,
-		//   uFill, latin, ea, cs, sym, hlinkClick, hlinkMouseOver.
+		//   (uLnTx | uLn), (uFillTx | uFill), latin, ea, cs, sym,
+		//   hlinkClick, hlinkMouseOver.
 
 		// 1. a:ln (text outline)
 		if (style.textOutlineWidth || style.textOutlineColor) {
@@ -223,8 +256,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			};
 		}
 
-		// 5. a:uFill (underline fill)
-		if (style.underline && style.underlineColor) {
+		// 5a. a:uLnTx / a:uLn (underline line — follows-text marker or explicit
+		// line styling). #85: previously the parsed uLn line props were dropped
+		// and never re-emitted.
+		if (style.underlineLineFollowsText) {
+			runProps['a:uLnTx'] = {};
+		} else if (style.underlineLine) {
+			runProps['a:uLn'] = buildUnderlineLineXml(style.underlineLine);
+		}
+
+		// 5b. a:uFillTx / a:uFill (underline fill — follows-text marker or colour)
+		if (style.underlineFillFollowsText) {
+			runProps['a:uFillTx'] = {};
+		} else if (style.underline && style.underlineColor) {
 			runProps['a:uFill'] = {
 				'a:solidFill': {
 					'a:srgbClr': {
@@ -236,21 +280,32 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// 6. typefaces: latin, ea, cs, sym (CT_TextFont — typeface plus
 		// optional @panose, @pitchFamily, @charset metadata).
-		if (style.fontFamily) {
+		// #84: Prefer the preserved theme token (`+mn-lt`) over the flattened
+		// concrete face, and only emit `a:ea` / `a:cs` when the source actually
+		// carried them. Synthesizing `a:ea = a:cs = latinFont` (the old
+		// behaviour) forces CJK / complex-script glyphs onto the Latin face.
+		const latinFace = style.latinFontThemeToken ?? style.fontFamily;
+		if (latinFace) {
 			runProps['a:latin'] = applyFontMetadata(
-				{ '@_typeface': style.fontFamily },
+				{ '@_typeface': latinFace },
 				style.latinFontPanose,
 				style.latinFontPitchFamily,
 				style.latinFontCharset,
 			);
+		}
+		const eastAsiaFace = style.eastAsiaFontThemeToken ?? style.eastAsiaFont;
+		if (eastAsiaFace) {
 			runProps['a:ea'] = applyFontMetadata(
-				{ '@_typeface': style.eastAsiaFont || style.fontFamily },
+				{ '@_typeface': eastAsiaFace },
 				style.eastAsiaFontPanose,
 				style.eastAsiaFontPitchFamily,
 				style.eastAsiaFontCharset,
 			);
+		}
+		const complexScriptFace = style.complexScriptFontThemeToken ?? style.complexScriptFont;
+		if (complexScriptFace) {
 			runProps['a:cs'] = applyFontMetadata(
-				{ '@_typeface': style.complexScriptFont || style.fontFamily },
+				{ '@_typeface': complexScriptFace },
 				style.complexScriptFontPanose,
 				style.complexScriptFontPitchFamily,
 				style.complexScriptFontCharset,

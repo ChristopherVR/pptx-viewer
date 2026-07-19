@@ -116,16 +116,24 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		let fontScheme: PptxThemeFontScheme | undefined;
 		if (hasFonts) {
+			// #83: surface the parsed per-script overrides (`<a:font script=...>`)
+			// on the theme object so font resolution can consult them. The maps
+			// are keyed by theme path; aggregate across every parsed theme (a
+			// single-master deck has one entry) into one script -> face lookup.
+			const majorByScript = this.aggregateFontScriptOverrides(this.masterThemeMajorFontScripts);
+			const minorByScript = this.aggregateFontScriptOverrides(this.masterThemeMinorFontScripts);
 			fontScheme = {
 				majorFont: {
 					latin: this.themeFontMap['mj-lt'],
 					eastAsia: this.themeFontMap['mj-ea'],
 					complexScript: this.themeFontMap['mj-cs'],
+					...(Object.keys(majorByScript).length > 0 ? { byScript: majorByScript } : {}),
 				},
 				minorFont: {
 					latin: this.themeFontMap['mn-lt'],
 					eastAsia: this.themeFontMap['mn-ea'],
 					complexScript: this.themeFontMap['mn-cs'],
+					...(Object.keys(minorByScript).length > 0 ? { byScript: minorByScript } : {}),
 				},
 			};
 		}
@@ -376,6 +384,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 *
 	 * Phase 4 Stream A / M4.
 	 */
+	/**
+	 * Flatten a per-theme-path script-override map (`themePath -> {script ->
+	 * typeface}`) into a single `{script -> typeface}` lookup for
+	 * {@link buildThemeObject}. Earlier entries win on collision, which matches
+	 * the primary-theme-first parse order. Phase 4 Stream A / M4 (#83).
+	 */
+	protected aggregateFontScriptOverrides(
+		perPathMap: Map<string, Record<string, string>>,
+	): Record<string, string> {
+		const aggregate: Record<string, string> = {};
+		for (const overrides of perPathMap.values()) {
+			for (const [script, typeface] of Object.entries(overrides)) {
+				if (!(script in aggregate)) {
+					aggregate[script] = typeface;
+				}
+			}
+		}
+		return aggregate;
+	}
+
 	protected collectFontScriptOverrides(fontNode: XmlObject | undefined): Record<string, string> {
 		const overrides: Record<string, string> = {};
 		if (!fontNode) {

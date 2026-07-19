@@ -15,24 +15,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		textSegments: TextSegment[] | undefined,
 		resolveHyperlinkRelationshipId?: (target: string) => string | undefined,
 	): XmlObject[] {
-		const paragraphAlign = this.textAlignToDrawingValue(textStyle?.align);
-
-		// Pre-compute spacing XML so the helpers stay pure
-		const spacing: ParagraphSpacingConfig = {
-			spacingBefore: this.createParagraphSpacingXmlFromPx(textStyle?.paragraphSpacingBefore),
-			spacingAfter: this.createParagraphSpacingXmlFromPx(textStyle?.paragraphSpacingAfter),
-			lineSpacing: this.createLineSpacingXmlFromMultiplier(textStyle?.lineSpacing),
-			lineSpacingExactPt: textStyle?.lineSpacingExactPt,
-		};
-
+		// #69: Each paragraph's own pPr geometry (align / spacing / margins /
+		// indent / tabs / rtl), carried on the first segment as
+		// `paragraphProperties`, overrides the shape-level style for that
+		// paragraph. Paragraphs without their own properties fall back to the
+		// shape-level style, preserving prior behaviour for SDK-built text.
 		const createParagraph = (
 			runs: XmlObject[],
 			bulletInfo?: BulletInfo,
 			level?: number,
 			endParaRunProperties?: Record<string, unknown>,
+			paragraphProperties?: TextStyle,
 		): XmlObject => {
+			const effectiveStyle: TextStyle | undefined = paragraphProperties
+				? ({ ...textStyle, ...paragraphProperties } as TextStyle)
+				: textStyle;
+			const paragraphAlign = this.textAlignToDrawingValue(effectiveStyle?.align);
+			const spacing: ParagraphSpacingConfig = {
+				spacingBefore: this.createParagraphSpacingXmlFromPx(effectiveStyle?.paragraphSpacingBefore),
+				spacingAfter: this.createParagraphSpacingXmlFromPx(effectiveStyle?.paragraphSpacingAfter),
+				lineSpacing: this.createLineSpacingXmlFromMultiplier(effectiveStyle?.lineSpacing),
+				lineSpacingExactPt: effectiveStyle?.lineSpacingExactPt,
+			};
 			const paragraphProps = buildParagraphPropertiesXml(
-				textStyle,
+				effectiveStyle,
 				paragraphAlign,
 				bulletInfo,
 				spacing,
@@ -104,17 +110,31 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		let currentBulletInfo: BulletInfo | undefined;
 		let currentLevel: number | undefined;
 		let currentEndParaRunProperties: Record<string, unknown> | undefined;
+		let currentParagraphProperties: TextStyle | undefined;
+		// #69: track whether this paragraph has taken its metadata yet. A
+		// paragraph-break segment (`\n`) splits and leaves a trailing empty run,
+		// so `currentRuns.length === 0` would miss the metadata on the *next*
+		// paragraph's first segment (dropping its per-paragraph pPr / level).
+		let capturedParagraphMeta = false;
 		const pushParagraph = (): void => {
 			if (currentRuns.length === 0) {
 				currentRuns.push(createRun('', textStyle));
 			}
 			paragraphs.push(
-				createParagraph(currentRuns, currentBulletInfo, currentLevel, currentEndParaRunProperties),
+				createParagraph(
+					currentRuns,
+					currentBulletInfo,
+					currentLevel,
+					currentEndParaRunProperties,
+					currentParagraphProperties,
+				),
 			);
 			currentRuns = [];
 			currentBulletInfo = undefined;
 			currentLevel = undefined;
 			currentEndParaRunProperties = undefined;
+			currentParagraphProperties = undefined;
+			capturedParagraphMeta = false;
 		};
 
 		if (textSegments && textSegments.length > 0) {
@@ -128,7 +148,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				} as TextStyle;
 
 				// Capture paragraph-level metadata from the first segment of each paragraph.
-				if (currentRuns.length === 0) {
+				if (!capturedParagraphMeta) {
 					if (segment.bulletInfo) {
 						currentBulletInfo = segment.bulletInfo;
 					}
@@ -138,6 +158,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (segment.endParaRunProperties) {
 						currentEndParaRunProperties = segment.endParaRunProperties;
 					}
+					if (segment.paragraphProperties) {
+						currentParagraphProperties = segment.paragraphProperties;
+					}
+					capturedParagraphMeta = true;
 				}
 
 				// Soft line break (`a:br`) — emit a single br node inside the

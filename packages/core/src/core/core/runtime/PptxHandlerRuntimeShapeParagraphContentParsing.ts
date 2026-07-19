@@ -65,6 +65,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...mergedDefaultRunStyle,
 				...this.extractTextRunStyle(runProps, paraAlign, ctx.slideRelationshipMap),
 			} as TextStyle;
+			// #83: annotate a per-script fallback face when the run's text is
+			// dominantly CJK / Arabic / Hebrew / Thai and the theme declares a
+			// `<a:font script=...>` override. Rendering hint only — never
+			// round-tripped, so the authored typefaces are untouched.
+			if (!runStyle.scriptFallbackFont) {
+				const fallback = this.resolveScriptFallbackFont(runText);
+				if (fallback) {
+					runStyle.scriptFallbackFont = fallback;
+				}
+			}
 			parts.push(runText);
 			segments.push({ text: runText, style: runStyle });
 			maybeSeed(runStyle);
@@ -277,6 +287,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				segments[firstSegmentIndex].endParaRunProperties = {
 					...(endParaRPrRaw as Record<string, unknown>),
 				};
+			}
+			// #69: capture this paragraph's own pPr geometry so per-paragraph
+			// alignment / spacing / margins / indent / tabs round-trip instead
+			// of being flattened to one shape-level pPr on save.
+			const basisFontSize =
+				typeof mergedDefaultRunStyle.fontSize === 'number'
+					? mergedDefaultRunStyle.fontSize
+					: undefined;
+			const paragraphOwnProps = this.extractParagraphOwnProperties(p, basisFontSize);
+			if (paragraphOwnProps) {
+				segments[firstSegmentIndex].paragraphProperties = paragraphOwnProps;
 			}
 		}
 

@@ -1,8 +1,67 @@
 import { XmlObject, TextStyle } from '../../types';
+import {
+	parseAlignmentAttr,
+	parseParagraphMargins,
+	parseParagraphRtl,
+	parseTabStops,
+} from '../../utils/paragraph-properties-parser';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeBodyParsing';
 import type { ShapeTextParsingContext, ParagraphStyleResult } from './PptxHandlerRuntimeTypes';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	/**
+	 * Extract a paragraph's OWN `a:pPr` geometry (align, spacing, margins,
+	 * indent, tabs, rtl) as a partial {@link TextStyle} so per-paragraph
+	 * formatting round-trips rather than collapsing to one shape-level pPr
+	 * (#69). Inherited layout/master values are not re-stamped.
+	 */
+	protected extractParagraphOwnProperties(
+		p: XmlObject,
+		basisFontSize: number | undefined,
+	): TextStyle | undefined {
+		const pPr = p['a:pPr'] as XmlObject | undefined;
+		if (!pPr) {
+			return undefined;
+		}
+		const pp: TextStyle = { ...parseParagraphMargins(pPr) };
+		const align =
+			pPr['@_algn'] !== undefined ? parseAlignmentAttr(String(pPr['@_algn'])) : undefined;
+		if (align) {
+			pp.align = align;
+		}
+		const rtl = parseParagraphRtl(pPr);
+		if (rtl !== undefined) {
+			pp.rtl = rtl;
+		}
+		const spcBef = this.parseParagraphSpacingPx(
+			pPr['a:spcBef'] as XmlObject | undefined,
+			basisFontSize,
+		);
+		if (spcBef !== undefined) {
+			pp.paragraphSpacingBefore = spcBef;
+		}
+		const spcAft = this.parseParagraphSpacingPx(
+			pPr['a:spcAft'] as XmlObject | undefined,
+			basisFontSize,
+		);
+		if (spcAft !== undefined) {
+			pp.paragraphSpacingAfter = spcAft;
+		}
+		const lnSpcNode = pPr['a:lnSpc'] as XmlObject | undefined;
+		const lineSpacing = this.parseLineSpacingMultiplier(lnSpcNode);
+		const exactPt = lineSpacing === undefined ? this.parseLineSpacingExactPt(lnSpcNode) : undefined;
+		if (lineSpacing !== undefined) {
+			pp.lineSpacing = lineSpacing;
+		} else if (exactPt !== undefined) {
+			pp.lineSpacingExactPt = exactPt;
+		}
+		const tabStops = parseTabStops(pPr);
+		if (tabStops && tabStops.length > 0) {
+			pp.tabStops = tabStops;
+		}
+		return Object.keys(pp).length > 0 ? pp : undefined;
+	}
+
 	/**
 	 * Resolve paragraph-level styles (alignment, spacing, margins, tabs,
 	 * level styles) for a single paragraph.  Modifies `textStyle` in place
