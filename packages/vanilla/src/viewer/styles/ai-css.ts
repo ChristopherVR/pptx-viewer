@@ -60,49 +60,98 @@ export const AI_CSS = `
 	font-size: 0.8125rem;
 	text-align: center;
 }
-.pptxv-ai-msg { display: flex; flex-direction: column; gap: 3px; max-width: 100%; }
-.pptxv-ai-msg-role {
-	font-size: 0.625rem;
-	font-weight: 700;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	color: var(--pptx-muted-foreground);
-}
-.pptxv-ai-msg-text {
-	padding: 7px 10px;
-	border-radius: 10px;
-	font-size: 0.8125rem;
-	line-height: 1.45;
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
-}
-.pptxv-ai-msg-user { align-items: flex-end; }
-.pptxv-ai-msg-user .pptxv-ai-msg-text {
-	background: var(--pptx-primary);
-	color: var(--pptx-primary-foreground);
-	border-bottom-right-radius: 3px;
-}
-.pptxv-ai-msg-assistant .pptxv-ai-msg-text {
-	background: var(--pptx-muted);
-	color: var(--pptx-foreground);
-	border-bottom-left-radius: 3px;
-}
-
-/* ── Tool-call cards ──────────────────────────────────────────────────── */
-.pptxv-ai-tool {
+.pptxv-ai-msg { display: flex; gap: 8px; max-width: 100%; }
+.pptxv-ai-msg-avatar {
+	flex: none;
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
-	padding: 5px 9px;
-	border: 1px solid var(--pptx-border);
-	border-radius: 8px;
-	background: color-mix(in srgb, var(--pptx-secondary) 40%, transparent);
-	font-size: 0.75rem;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	margin-top: 2px;
+	border-radius: 50%;
+	background: color-mix(in srgb, var(--pptx-primary) 15%, transparent);
+	color: var(--pptx-primary);
 }
-.pptxv-ai-tool-name { font-weight: 600; }
-.pptxv-ai-tool-state { color: var(--pptx-muted-foreground); }
-.pptxv-ai-tool-state.is-error { color: var(--pptx-destructive); }
+.pptxv-ai-msg-avatar svg { width: 14px; height: 14px; }
+.pptxv-ai-msg-user .pptxv-ai-msg-avatar {
+	background: var(--pptx-secondary);
+	color: var(--pptx-muted-foreground);
+}
+.pptxv-ai-msg-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.pptxv-ai-msg-text {
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	color: var(--pptx-foreground);
+}
+.pptxv-ai-msg-user .pptxv-ai-msg-text {
+	align-self: flex-start;
+	padding: 7px 10px;
+	border-radius: 10px;
+	border-bottom-left-radius: 3px;
+	background: var(--pptx-primary);
+	color: var(--pptx-primary-foreground);
+}
+
+/* ── Friendly tool-call activity cards ────────────────────────────────── */
+.pptxv-ai-tool { font-size: 0.75rem; }
+.pptxv-ai-tool-head { display: flex; align-items: center; gap: 6px; }
+.pptxv-ai-tool-icon {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	color: var(--pptx-muted-foreground);
+}
+.pptxv-ai-tool-name { min-width: 0; overflow-wrap: anywhere; color: var(--pptx-foreground); }
+.pptxv-ai-tool-state {
+	margin-left: auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	flex: none;
+	padding: 1px 6px;
+	border-radius: 4px;
+	font-size: 0.625rem;
+	background: var(--pptx-muted);
+	color: var(--pptx-muted-foreground);
+}
+.pptxv-ai-tool-state svg { width: 11px; height: 11px; }
+.pptxv-ai-tool-state.is-done {
+	background: color-mix(in srgb, var(--pptx-primary) 12%, transparent);
+	color: var(--pptx-primary);
+}
+.pptxv-ai-tool-state.is-error {
+	background: color-mix(in srgb, var(--pptx-destructive) 15%, transparent);
+	color: var(--pptx-destructive);
+}
+.pptxv-ai-tool-state.is-running::before {
+	content: '';
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: currentColor;
+	animation: pptxv-ai-pulse 1s ease-in-out infinite;
+}
+@keyframes pptxv-ai-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.pptxv-ai-tool-error { margin: 2px 0 0 20px; font-size: 0.6875rem; color: var(--pptx-destructive); }
+.pptxv-ai-tool-details { margin: 2px 0 0 20px; }
+.pptxv-ai-tool-details summary {
+	cursor: pointer;
+	list-style: none;
+	font-size: 0.625rem;
+	color: var(--pptx-muted-foreground);
+}
+.pptxv-ai-tool-details summary::-webkit-details-marker { display: none; }
+.pptxv-ai-tool-details summary:hover { color: var(--pptx-foreground); }
+.pptxv-ai-tool-raw {
+	margin-top: 2px;
+	font-family: ui-monospace, monospace;
+	font-size: 0.625rem;
+	color: var(--pptx-muted-foreground);
+	overflow-wrap: anywhere;
+}
 
 /* ── Staged-proposal review ───────────────────────────────────────────── */
 .pptxv-ai-proposals {
@@ -128,7 +177,17 @@ export const AI_CSS = `
 	border-radius: 8px;
 	background: var(--pptx-card);
 }
+.pptxv-ai-proposal-eyebrow {
+	margin-bottom: 3px;
+	font-size: 0.625rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--pptx-primary);
+}
 .pptxv-ai-proposal-label { font-size: 0.8125rem; font-weight: 600; }
+.pptxv-ai-proposal-btn { display: inline-flex; align-items: center; gap: 4px; }
+.pptxv-ai-proposal-btn svg { width: 13px; height: 13px; }
 .pptxv-ai-proposal-summary {
 	margin: 5px 0 8px;
 	padding-left: 16px;

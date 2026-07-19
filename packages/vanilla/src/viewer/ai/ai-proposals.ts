@@ -7,9 +7,11 @@
  */
 
 import type { ProposalView } from 'pptx-viewer-shared/ai';
+import { humanizeDiffLine } from 'pptx-viewer-shared/ai';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { createIcon } from '../ui/icons';
 
 export interface ProposalCallbacks {
 	accept(id: string): void;
@@ -58,15 +60,21 @@ function renderProposalCard(
 	const card = createEl(doc, 'div', 'pptxv-ai-proposal');
 	card.dataset.proposalId = proposal.id;
 
+	const eyebrow = createEl(doc, 'div', 'pptxv-ai-proposal-eyebrow');
+	eyebrow.textContent = t('pptx.ai.proposedChange');
+	card.appendChild(eyebrow);
+
 	const label = createEl(doc, 'div', 'pptxv-ai-proposal-label');
 	label.textContent = proposal.label;
 	card.appendChild(label);
 
+	// Plain-language, human-readable diff lines. The full description is shown
+	// (never truncated); the list scrolls rather than clipping when it is long.
 	if (proposal.summary.length > 0) {
 		const list = createEl(doc, 'ul', 'pptxv-ai-proposal-summary');
-		for (const line of proposal.summary.slice(0, 8)) {
+		for (const line of proposal.summary) {
 			const item = createEl(doc, 'li');
-			item.textContent = line;
+			item.textContent = humanizeDiffLine(line);
 			list.appendChild(item);
 		}
 		card.appendChild(list);
@@ -75,11 +83,11 @@ function renderProposalCard(
 	const actions = createEl(doc, 'div', 'pptxv-ai-proposal-actions');
 	const accept = createEl(doc, 'button', 'pptxv-ai-proposal-btn is-accept');
 	accept.type = 'button';
-	accept.textContent = t('pptx.ai.accept');
+	accept.append(createIcon(doc, 'check'), doc.createTextNode(t('pptx.ai.accept')));
 	accept.addEventListener('click', () => callbacks.accept(proposal.id));
 	const reject = createEl(doc, 'button', 'pptxv-ai-proposal-btn is-reject');
 	reject.type = 'button';
-	reject.textContent = t('pptx.ai.reject');
+	reject.append(createIcon(doc, 'close'), doc.createTextNode(t('pptx.ai.reject')));
 	reject.addEventListener('click', () => callbacks.reject(proposal.id));
 	actions.append(accept, reject);
 	card.appendChild(actions);

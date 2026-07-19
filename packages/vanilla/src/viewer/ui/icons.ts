@@ -99,7 +99,17 @@ export type IconName =
 	| 'folder-plus'
 	| 'sparkles'
 	| 'send'
-	| 'ellipsis';
+	| 'ellipsis'
+	| 'eye'
+	| 'wrench'
+	| 'check'
+	| 'alert'
+	| 'close'
+	| 'crosshair'
+	| 'git-merge'
+	| 'pin'
+	| 'pin-off'
+	| 'bug';
 
 const ICON_PATHS: Record<IconName, string[]> = {
 	'chevron-left': ['M15 18l-6-6 6-6'],
@@ -278,6 +288,40 @@ const ICON_PATHS: Record<IconName, string[]> = {
 		'M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z',
 	],
 	send: ['M22 2L11 13', 'M22 2l-7 20-4-9-9-4 20-7z'],
+	eye: ['M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z', 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'],
+	wrench: [
+		'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z',
+	],
+	check: ['M20 6L9 17l-5-5'],
+	alert: [
+		'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+		'M12 9v4',
+		'M12 17h.01',
+	],
+	close: ['M18 6L6 18', 'M6 6l12 12'],
+	crosshair: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M12 2v4', 'M12 18v4', 'M2 12h4', 'M18 12h4'],
+	'git-merge': [
+		'M3 6a3 3 0 1 0 6 0 3 3 0 1 0 -6 0',
+		'M15 18a3 3 0 1 0 6 0 3 3 0 1 0 -6 0',
+		'M6 9v6',
+		'M6 15a6 6 0 0 0 6 6h3',
+	],
+	pin: ['M12 17v5', 'M9 10.5V4h-1a1 1 0 0 1 0-2h8a1 1 0 0 1 0 2h-1v6.5l2 2.5H7z'],
+	'pin-off': [
+		'M12 17v5',
+		'M9 10.5V4h-1a1 1 0 0 1 0-2h8a1 1 0 0 1 0 2h-1v6.5l2 2.5H7z',
+		'M3 3l18 18',
+	],
+	bug: [
+		'M12 8a4 4 0 0 0-4 4v3a4 4 0 0 0 8 0v-3a4 4 0 0 0-4-4z',
+		'M9 6l1.5 1.5',
+		'M15 6l-1.5 1.5',
+		'M6 12H4',
+		'M20 12h-2',
+		'M6 16H4',
+		'M20 16h-2',
+		'M12 20v-8',
+	],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
