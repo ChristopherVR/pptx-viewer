@@ -103,6 +103,51 @@ describe('applyScene3dStyle', () => {
 		expect(style.scene3d?.backdropAnchorY).toBe(200);
 		expect(style.scene3d?.backdropAnchorZ).toBe(300);
 	});
+
+	it('extracts camera field of view and zoom', () => {
+		const shapeProps: XmlObject = {
+			'a:scene3d': {
+				'a:camera': { '@_prst': 'perspectiveFront', '@_fov': '600000', '@_zoom': '150000' },
+			},
+		};
+		const style = makeStyle();
+		applyScene3dStyle(shapeProps, style);
+		expect(style.scene3d?.cameraFieldOfView).toBe(600000);
+		expect(style.scene3d?.cameraZoom).toBe(150000);
+	});
+
+	it('extracts light-rig rotation (lat/lon/rev)', () => {
+		const shapeProps: XmlObject = {
+			'a:scene3d': {
+				'a:lightRig': {
+					'@_rig': 'threePt',
+					'@_dir': 't',
+					'a:rot': { '@_lat': '10', '@_lon': '20', '@_rev': '30' },
+				},
+			},
+		};
+		const style = makeStyle();
+		applyScene3dStyle(shapeProps, style);
+		expect(style.scene3d?.lightRigRotX).toBe(10);
+		expect(style.scene3d?.lightRigRotY).toBe(20);
+		expect(style.scene3d?.lightRigRotZ).toBe(30);
+	});
+
+	it('extracts backdrop norm and up vectors', () => {
+		const shapeProps: XmlObject = {
+			'a:scene3d': {
+				'a:backdrop': {
+					'a:anchor': { '@_x': '1', '@_y': '2', '@_z': '3' },
+					'a:norm': { '@_dx': '0', '@_dy': '0', '@_dz': '1' },
+					'a:up': { '@_dx': '0', '@_dy': '1', '@_dz': '0' },
+				},
+			},
+		};
+		const style = makeStyle();
+		applyScene3dStyle(shapeProps, style);
+		expect(style.scene3d?.backdropNormalZ).toBe(1);
+		expect(style.scene3d?.backdropUpY).toBe(1);
+	});
 });
 
 // ---------------------------------------------------------------------------

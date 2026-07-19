@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
-import type { XmlObject, ShapeStyle } from '../../types';
+import type { Pptx3DScene, XmlObject, ShapeStyle } from '../../types';
+import { applyScene3dStyle, applyShape3dStyle } from '../builders/shape-style-3d-helpers';
 
 /**
  * The `applyEffectsAndThreeD` method is protected and calls several
@@ -11,6 +12,92 @@ import type { XmlObject, ShapeStyle } from '../../types';
 // ---------------------------------------------------------------------------
 // applyEffectsAndThreeD — reimplemented from source (effect + 3D portions)
 // ---------------------------------------------------------------------------
+
+// Faithful copies of the module-private scene3d save helpers from
+// PptxHandlerRuntimeSaveEffectsWriter (that module cannot be imported here: its
+// mixin chain crashes on load, which is why this suite reimplements the writer).
+function buildSphereRot(
+	lat: number | undefined,
+	lon: number | undefined,
+	rev: number | undefined,
+): XmlObject | undefined {
+	if (lat === undefined && lon === undefined && rev === undefined) {
+		return undefined;
+	}
+	const rot: XmlObject = {};
+	if (lat !== undefined) {
+		rot['@_lat'] = String(lat);
+	}
+	if (lon !== undefined) {
+		rot['@_lon'] = String(lon);
+	}
+	if (rev !== undefined) {
+		rot['@_rev'] = String(rev);
+	}
+	return rot;
+}
+
+function buildScene3dCamera(s3d: Pptx3DScene, source: XmlObject): XmlObject {
+	const camera: XmlObject = { ...((source['a:camera'] as XmlObject | undefined) ?? {}) };
+	if (s3d.cameraPreset) {
+		camera['@_prst'] = s3d.cameraPreset;
+	}
+	if (s3d.cameraFieldOfView !== undefined) {
+		camera['@_fov'] = String(s3d.cameraFieldOfView);
+	}
+	if (s3d.cameraZoom !== undefined) {
+		camera['@_zoom'] = String(s3d.cameraZoom);
+	}
+	const rot = buildSphereRot(s3d.cameraRotX, s3d.cameraRotY, s3d.cameraRotZ);
+	if (rot) {
+		camera['a:rot'] = rot;
+	}
+	return camera;
+}
+
+function buildScene3dLightRig(s3d: Pptx3DScene, source: XmlObject): XmlObject | undefined {
+	const lightRig: XmlObject = { ...((source['a:lightRig'] as XmlObject | undefined) ?? {}) };
+	if (s3d.lightRigType) {
+		lightRig['@_rig'] = s3d.lightRigType;
+	}
+	if (s3d.lightRigDirection) {
+		lightRig['@_dir'] = s3d.lightRigDirection;
+	}
+	const rot = buildSphereRot(s3d.lightRigRotX, s3d.lightRigRotY, s3d.lightRigRotZ);
+	if (rot) {
+		lightRig['a:rot'] = rot;
+	}
+	return Object.keys(lightRig).length > 0 ? lightRig : undefined;
+}
+
+function buildScene3dBackdrop(s3d: Pptx3DScene): XmlObject | undefined {
+	const hasNorm =
+		s3d.backdropNormalX !== undefined ||
+		s3d.backdropNormalY !== undefined ||
+		s3d.backdropNormalZ !== undefined;
+	const hasUp =
+		s3d.backdropUpX !== undefined || s3d.backdropUpY !== undefined || s3d.backdropUpZ !== undefined;
+	if (!s3d.hasBackdrop || !hasNorm || !hasUp) {
+		return undefined;
+	}
+	return {
+		'a:anchor': {
+			'@_x': String(s3d.backdropAnchorX ?? 0),
+			'@_y': String(s3d.backdropAnchorY ?? 0),
+			'@_z': String(s3d.backdropAnchorZ ?? 0),
+		},
+		'a:norm': {
+			'@_dx': String(s3d.backdropNormalX ?? 0),
+			'@_dy': String(s3d.backdropNormalY ?? 0),
+			'@_dz': String(s3d.backdropNormalZ ?? 0),
+		},
+		'a:up': {
+			'@_dx': String(s3d.backdropUpX ?? 0),
+			'@_dy': String(s3d.backdropUpY ?? 0),
+			'@_dz': String(s3d.backdropUpZ ?? 0),
+		},
+	};
+}
 
 function applyEffectsAndThreeD(
 	spPr: XmlObject,
@@ -88,58 +175,23 @@ function applyEffectsAndThreeD(
 		spPr['a:effectDag'] = shapeStyle.effectDagXml;
 	}
 
-	// 3D Scene
+	// 3D Scene — delegates to the real save helpers exercised by this suite.
 	if (shapeStyle.scene3d) {
 		const s3d = shapeStyle.scene3d;
 		const hasData = s3d.cameraPreset || s3d.lightRigType;
 		if (hasData) {
-			const cameraObj: XmlObject = {};
-			if (s3d.cameraPreset) {
-				cameraObj['@_prst'] = s3d.cameraPreset;
+			const source = (spPr['a:scene3d'] as XmlObject | undefined) ?? {};
+			const scene3dXml: XmlObject = { ...source };
+			scene3dXml['a:camera'] = buildScene3dCamera(s3d, source);
+			const lightRig = buildScene3dLightRig(s3d, source);
+			if (lightRig) {
+				scene3dXml['a:lightRig'] = lightRig;
 			}
-			if (
-				s3d.cameraRotX !== undefined ||
-				s3d.cameraRotY !== undefined ||
-				s3d.cameraRotZ !== undefined
-			) {
-				const rot: XmlObject = {};
-				if (s3d.cameraRotX !== undefined) {
-					rot['@_lat'] = s3d.cameraRotX;
-				}
-				if (s3d.cameraRotY !== undefined) {
-					rot['@_lon'] = s3d.cameraRotY;
-				}
-				if (s3d.cameraRotZ !== undefined) {
-					rot['@_rev'] = s3d.cameraRotZ;
-				}
-				cameraObj['a:rot'] = rot;
-			}
-			const lightRigObj: XmlObject = {};
-			if (s3d.lightRigType) {
-				lightRigObj['@_rig'] = s3d.lightRigType;
-			}
-			if (s3d.lightRigDirection) {
-				lightRigObj['@_dir'] = s3d.lightRigDirection;
-			}
-			const scene3dXml: XmlObject = {};
-			scene3dXml['a:camera'] = cameraObj;
-			if (Object.keys(lightRigObj).length > 0) {
-				scene3dXml['a:lightRig'] = lightRigObj;
-			}
-			if (s3d.hasBackdrop) {
-				const backdropObj: XmlObject = {};
-				if (
-					s3d.backdropAnchorX !== undefined ||
-					s3d.backdropAnchorY !== undefined ||
-					s3d.backdropAnchorZ !== undefined
-				) {
-					backdropObj['a:anchor'] = {
-						'@_x': s3d.backdropAnchorX ?? 0,
-						'@_y': s3d.backdropAnchorY ?? 0,
-						'@_z': s3d.backdropAnchorZ ?? 0,
-					};
-				}
-				scene3dXml['a:backdrop'] = backdropObj;
+			const backdrop = buildScene3dBackdrop(s3d);
+			if (backdrop) {
+				scene3dXml['a:backdrop'] = backdrop;
+			} else {
+				delete scene3dXml['a:backdrop'];
 			}
 			spPr['a:scene3d'] = scene3dXml;
 		} else {
@@ -193,12 +245,12 @@ function applyEffectsAndThreeD(
 			}
 			if (sh3d.extrusionColor) {
 				sp3dXml['a:extrusionClr'] = {
-					'a:srgbClr': { '@_val': sh3d.extrusionColor },
+					'a:srgbClr': { '@_val': sh3d.extrusionColor.replace('#', '') },
 				};
 			}
 			if (sh3d.contourColor) {
 				sp3dXml['a:contourClr'] = {
-					'a:srgbClr': { '@_val': sh3d.contourColor },
+					'a:srgbClr': { '@_val': sh3d.contourColor.replace('#', '') },
 				};
 			}
 			spPr['a:sp3d'] = sp3dXml;
@@ -320,12 +372,39 @@ describe('applyEffectsAndThreeD – 3D Scene', () => {
 		});
 		const camera = (spPr['a:scene3d'] as XmlObject)['a:camera'] as XmlObject;
 		const rot = camera['a:rot'] as XmlObject;
-		expect(rot['@_lat']).toBe(1000000);
-		expect(rot['@_lon']).toBe(2000000);
-		expect(rot['@_rev']).toBe(3000000);
+		expect(rot['@_lat']).toBe('1000000');
+		expect(rot['@_lon']).toBe('2000000');
+		expect(rot['@_rev']).toBe('3000000');
 	});
 
-	it('should include backdrop when hasBackdrop is true', () => {
+	it('should emit a valid backdrop (anchor + norm + up) when vectors are present', () => {
+		const spPr: XmlObject = {};
+		applyEffectsAndThreeD(spPr, {
+			scene3d: {
+				cameraPreset: 'orthographicFront',
+				hasBackdrop: true,
+				backdropAnchorX: 100,
+				backdropAnchorY: 200,
+				backdropAnchorZ: 300,
+				backdropNormalX: 0,
+				backdropNormalY: 0,
+				backdropNormalZ: 1,
+				backdropUpX: 0,
+				backdropUpY: 1,
+				backdropUpZ: 0,
+			},
+		});
+		const scene = spPr['a:scene3d'] as XmlObject;
+		const backdrop = scene['a:backdrop'] as XmlObject;
+		expect(backdrop).toBeDefined();
+		const anchor = backdrop['a:anchor'] as XmlObject;
+		expect(anchor['@_x']).toBe('100');
+		expect(anchor['@_z']).toBe('300');
+		expect(backdrop['a:norm']).toStrictEqual({ '@_dx': '0', '@_dy': '0', '@_dz': '1' });
+		expect(backdrop['a:up']).toStrictEqual({ '@_dx': '0', '@_dy': '1', '@_dz': '0' });
+	});
+
+	it('should omit a partial backdrop missing norm/up (schema-invalid)', () => {
 		const spPr: XmlObject = {};
 		applyEffectsAndThreeD(spPr, {
 			scene3d: {
@@ -337,12 +416,7 @@ describe('applyEffectsAndThreeD – 3D Scene', () => {
 			},
 		});
 		const scene = spPr['a:scene3d'] as XmlObject;
-		const backdrop = scene['a:backdrop'] as XmlObject;
-		expect(backdrop).toBeDefined();
-		const anchor = backdrop['a:anchor'] as XmlObject;
-		expect(anchor['@_x']).toBe(100);
-		expect(anchor['@_y']).toBe(200);
-		expect(anchor['@_z']).toBe(300);
+		expect(scene['a:backdrop']).toBeUndefined();
 	});
 
 	it('should delete scene3d when scene3d has no data', () => {
@@ -425,5 +499,98 @@ describe('applyEffectsAndThreeD – 3D Shape', () => {
 		const spPr: XmlObject = { 'a:sp3d': {} };
 		applyEffectsAndThreeD(spPr, {});
 		expect(spPr['a:sp3d']).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Regression: sp3d extrusion colour + scene3d fov/zoom round-trip (issues 67/86)
+// ---------------------------------------------------------------------------
+describe('3D round-trip: parse -> save', () => {
+	// Mirrors the real parse-side colour resolution: srgbClr val -> "#RRGGBB".
+	const parseColor = (node: XmlObject | undefined): string | undefined => {
+		const srgb = node?.['a:srgbClr'] as XmlObject | undefined;
+		return srgb ? `#${srgb['@_val']}` : undefined;
+	};
+
+	it('writes a valid #-free srgbClr val for extrusion/contour colour', () => {
+		const source: XmlObject = {
+			'a:sp3d': {
+				'@_extrusionH': '76200',
+				'a:extrusionClr': { 'a:srgbClr': { '@_val': '4F81BD' } },
+				'a:contourClr': { 'a:srgbClr': { '@_val': 'FF0000' } },
+			},
+		};
+		const style: ShapeStyle = {} as ShapeStyle;
+		applyShape3dStyle(source, style, { parseColor });
+		// The parsed model carries a leading '#'.
+		expect(style.shape3d?.extrusionColor).toBe('#4F81BD');
+
+		const spPr: XmlObject = {};
+		applyEffectsAndThreeD(spPr, style);
+		const sp3d = spPr['a:sp3d'] as XmlObject;
+		const extVal = (sp3d['a:extrusionClr'] as XmlObject)['a:srgbClr'] as XmlObject;
+		const conVal = (sp3d['a:contourClr'] as XmlObject)['a:srgbClr'] as XmlObject;
+		expect(extVal['@_val']).toBe('4F81BD');
+		expect(conVal['@_val']).toBe('FF0000');
+		expect(String(extVal['@_val'])).not.toContain('#');
+		expect(String(conVal['@_val'])).not.toContain('#');
+	});
+
+	it('preserves camera fov/zoom and light-rig rotation across the round-trip', () => {
+		const source: XmlObject = {
+			'a:scene3d': {
+				'a:camera': {
+					'@_prst': 'perspectiveFront',
+					'@_fov': '600000',
+					'@_zoom': '150000',
+					'a:rot': { '@_lat': '1000', '@_lon': '2000', '@_rev': '3000' },
+				},
+				'a:lightRig': {
+					'@_rig': 'threePt',
+					'@_dir': 't',
+					'a:rot': { '@_lat': '10', '@_lon': '20', '@_rev': '30' },
+				},
+			},
+		};
+		const style: ShapeStyle = {} as ShapeStyle;
+		applyScene3dStyle(source, style);
+		expect(style.scene3d?.cameraFieldOfView).toBe(600000);
+		expect(style.scene3d?.cameraZoom).toBe(150000);
+		expect(style.scene3d?.lightRigRotX).toBe(10);
+
+		const spPr: XmlObject = { 'a:scene3d': source['a:scene3d'] };
+		applyEffectsAndThreeD(spPr, style);
+		const scene = spPr['a:scene3d'] as XmlObject;
+		const camera = scene['a:camera'] as XmlObject;
+		expect(camera['@_fov']).toBe('600000');
+		expect(camera['@_zoom']).toBe('150000');
+		const lightRig = scene['a:lightRig'] as XmlObject;
+		const lrRot = lightRig['a:rot'] as XmlObject;
+		expect(lrRot['@_lat']).toBe('10');
+		expect(lrRot['@_rev']).toBe('30');
+	});
+
+	it('round-trips a valid backdrop (anchor + norm + up)', () => {
+		const source: XmlObject = {
+			'a:scene3d': {
+				'a:camera': { '@_prst': 'orthographicFront' },
+				'a:backdrop': {
+					'a:anchor': { '@_x': '1', '@_y': '2', '@_z': '3' },
+					'a:norm': { '@_dx': '0', '@_dy': '0', '@_dz': '1' },
+					'a:up': { '@_dx': '0', '@_dy': '1', '@_dz': '0' },
+				},
+			},
+		};
+		const style: ShapeStyle = {} as ShapeStyle;
+		applyScene3dStyle(source, style);
+		expect(style.scene3d?.backdropNormalZ).toBe(1);
+		expect(style.scene3d?.backdropUpY).toBe(1);
+
+		const spPr: XmlObject = { 'a:scene3d': source['a:scene3d'] };
+		applyEffectsAndThreeD(spPr, style);
+		const backdrop = (spPr['a:scene3d'] as XmlObject)['a:backdrop'] as XmlObject;
+		expect(backdrop['a:anchor']).toBeDefined();
+		expect(backdrop['a:norm']).toStrictEqual({ '@_dx': '0', '@_dy': '0', '@_dz': '1' });
+		expect(backdrop['a:up']).toStrictEqual({ '@_dx': '0', '@_dy': '1', '@_dz': '0' });
 	});
 });
