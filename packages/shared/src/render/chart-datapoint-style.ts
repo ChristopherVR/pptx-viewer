@@ -53,6 +53,21 @@ export function resolveDataPointFill(
 }
 
 /**
+ * Resolve the fill for a data point in a "vary colours" context, where every
+ * point in a single series is drawn with a distinct palette colour (pie /
+ * doughnut slices, or a bar/column series with `c:varyColors=1`). A per-point
+ * `c:dPt` fill still wins; otherwise the supplied per-point `paletteColor` is
+ * used (NOT the single series colour, which would make every point identical).
+ */
+export function resolveVaryColorFill(
+	series: ChartSeriesLike,
+	pointIndex: number,
+	paletteColor: string,
+): string {
+	return findDataPoint(series, pointIndex)?.spPr?.fillColor ?? paletteColor;
+}
+
+/**
  * Resolve the slice explosion (pull-out distance, 0-100) for a pie/doughnut
  * data point: the per-point `c:dPt` explosion when present, otherwise the
  * series-level explosion, otherwise `0`.

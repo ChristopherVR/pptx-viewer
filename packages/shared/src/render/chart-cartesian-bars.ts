@@ -13,8 +13,15 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import type { SeriesPlotResult } from './chart-cartesian-plots';
+import { resolveDataPointFill } from './chart-datapoint-style';
 import type { PlotLayout, SvgPrimitive, SvgRect, SvgText, ValueRange } from './chart-view-model';
-import { computeStackedBarRects, formatAxisValue, seriesColor, valueToY } from './chart-view-model';
+import {
+	computeStackedBarRects,
+	formatAxisValue,
+	paletteColor,
+	seriesColor,
+	valueToY,
+} from './chart-view-model';
 
 /** Per-category absolute totals (for percentStacked normalisation). */
 function categoryTotals(series: ReadonlyArray<PptxChartSeries>, catCount: number): number[] {
@@ -67,7 +74,9 @@ export function buildBars(
 					y,
 					w: singleBarWidth,
 					h,
-					fill: seriesColor(series[si], si, palette),
+					fill:
+						resolveDataPointFill(series[si], sourceIndex, paletteColor(si, palette)) ??
+						seriesColor(series[si], si, palette),
 					rx: 1,
 					part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
 				} satisfies SvgRect);
@@ -99,23 +108,14 @@ export function buildBars(
 		}));
 		const rects = computeStackedBarRects(displaySeries, catCount, layout, primaryRange, palette);
 		for (const r of rects) {
-			primitives.push({
-				kind: 'rect',
-				x: r.x,
-				y: r.y,
-				w: r.w,
-				h: r.h,
-				fill: r.fill,
-				rx: 1,
-				part:
-					r.seriesIndex !== undefined && r.pointIndex !== undefined
-						? {
-								role: 'dataPoint',
-								seriesIndex: r.seriesIndex,
-								pointIndex: sourceIndices[r.pointIndex] ?? r.pointIndex,
-							}
-						: undefined,
-			});
+			let fill = r.fill;
+			let part: SvgRect['part'];
+			if (r.seriesIndex !== undefined && r.pointIndex !== undefined) {
+				const sourcePointIndex = sourceIndices[r.pointIndex] ?? r.pointIndex;
+				fill = resolveDataPointFill(series[r.seriesIndex], sourcePointIndex, r.fill) ?? r.fill;
+				part = { role: 'dataPoint', seriesIndex: r.seriesIndex, pointIndex: sourcePointIndex };
+			}
+			primitives.push({ kind: 'rect', x: r.x, y: r.y, w: r.w, h: r.h, fill, rx: 1, part });
 		}
 		if (showLabels) {
 			pushClusteredStackedLabels(series, sourceIndices, catCount, layout, primaryRange, dataLabels);
@@ -157,7 +157,9 @@ export function buildBars(
 				y,
 				w: barW,
 				h,
-				fill: seriesColor(series[si], si, palette),
+				fill:
+					resolveDataPointFill(series[si], sourceIndex, paletteColor(si, palette)) ??
+					seriesColor(series[si], si, palette),
 				part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
 			} satisfies SvgRect);
 

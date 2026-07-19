@@ -11,6 +11,7 @@
  */
 import type { PptxChartData } from 'pptx-viewer-core';
 
+import { resolveDataPointFill } from './chart-datapoint-style';
 import type {
 	PlotLayout,
 	SvgCircle,
@@ -79,7 +80,7 @@ export function buildLines(
 				cx: pt.x,
 				cy: pt.y,
 				r: 2.5,
-				fill: c,
+				fill: resolveDataPointFill(series, sourceIndex, c) ?? c,
 				part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
 			} satisfies SvgCircle);
 		});
@@ -152,16 +153,17 @@ export function buildAreas(
 			part: { role: 'series', seriesIndex: si },
 		} satisfies SvgPolyline);
 		pts.forEach((pt, displayIndex) => {
+			const sourceIndex = sourceIndices[displayIndex] ?? displayIndex;
 			primitives.push({
 				kind: 'circle',
 				cx: pt.x,
 				cy: pt.y,
 				r: 2,
-				fill: c,
+				fill: resolveDataPointFill(series, sourceIndex, c) ?? c,
 				part: {
 					role: 'dataPoint',
 					seriesIndex: si,
-					pointIndex: sourceIndices[displayIndex] ?? displayIndex,
+					pointIndex: sourceIndex,
 				},
 			} satisfies SvgCircle);
 		});
@@ -209,7 +211,7 @@ export function buildScatter(
 				cx: dot.cx,
 				cy: dot.cy,
 				r: 4,
-				fill: c,
+				fill: resolveDataPointFill(series, vi, c) ?? c,
 				opacity: 0.85,
 				part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
 			} satisfies SvgCircle);
@@ -263,7 +265,7 @@ export function buildBubbles(
 				cx: dot.cx,
 				cy: dot.cy,
 				r,
-				fill: c,
+				fill: resolveDataPointFill(series, vi, c) ?? c,
 				opacity: 0.6,
 				part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
 			} satisfies SvgCircle);

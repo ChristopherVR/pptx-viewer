@@ -55,6 +55,7 @@ import type {
 
 import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
+import { resolveVaryColorFill } from './chart-datapoint-style';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
 import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
@@ -1119,14 +1120,19 @@ function buildPieViewModel(
 	const svgWidth = Math.max(size, 100);
 	const svgHeight = Math.max(size, 60);
 
-	const values = chartData.series[0]?.values ?? [];
+	const pieSeries = chartData.series[0];
+	const values = pieSeries?.values ?? [];
 	const slices = computePieSlices(values, cx, cy, outerR, innerR);
 	const primitives: SvgPrimitive[] = slices.map(
 		({ d }, i) =>
 			({
 				kind: 'path',
 				d,
-				fill: chartData.series[0]?.color ?? paletteColor(i, chartData.colorPalette),
+				// Pie/doughnut vary colours per slice (c:varyColors defaults on), so each
+				// slice takes its palette colour, with a per-point c:dPt fill overriding.
+				fill: pieSeries
+					? resolveVaryColorFill(pieSeries, i, paletteColor(i, chartData.colorPalette))
+					: paletteColor(i, chartData.colorPalette),
 				stroke: '#ffffff',
 				strokeWidth: 1.5,
 				part: { role: 'dataPoint', seriesIndex: 0, pointIndex: i },
