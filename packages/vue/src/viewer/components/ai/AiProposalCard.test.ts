@@ -58,7 +58,7 @@ describe('aiProposalCard', () => {
 		const view = store.list()[0];
 		const wrapper = mount(AiProposalCard, { props: { proposal: view } });
 		expect(wrapper.text()).toContain('Recolor title');
-		expect(wrapper.text()).toContain('Proposed change');
+		expect(wrapper.text()).toContain('Suggested change');
 		expect(view.summary.length).toBeGreaterThan(0);
 	});
 
@@ -73,7 +73,7 @@ describe('aiProposalCard', () => {
 		const wrapper = mount(AiProposalCard, {
 			props: { proposal: view, onAccept: (id: string) => store.apply(id) },
 		});
-		const accept = wrapper.findAll('button').find((b) => b.text().includes('Accept'));
+		const accept = wrapper.findAll('button').find((b) => b.text().includes('Apply'));
 		await accept?.trigger('click');
 		expect(applied).toHaveLength(1);
 		expect(applied[0].label).toBe('Move title');
@@ -91,7 +91,7 @@ describe('aiProposalCard', () => {
 		const wrapper = mount(AiProposalCard, {
 			props: { proposal: view, onReject: (id: string) => store.revert(id) },
 		});
-		const reject = wrapper.findAll('button').find((b) => b.text().includes('Reject'));
+		const reject = wrapper.findAll('button').find((b) => b.text().includes('Discard'));
 		await reject?.trigger('click');
 		expect(applied).toHaveLength(0);
 		expect(store.size).toBe(0);
