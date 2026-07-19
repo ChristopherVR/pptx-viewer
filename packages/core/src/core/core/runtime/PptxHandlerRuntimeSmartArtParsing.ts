@@ -13,6 +13,11 @@ import {
 } from '../../utils/smartart-definition-metadata';
 import { projectSmartArtNodeText } from '../../utils/smartart-node-text-projection';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtXmlUtils';
+import {
+	extractDrawingShapeFill,
+	extractDrawingShapeTextStyle,
+} from './smartart-drawing-shape-style';
+import type { DrawingShapeStyleDeps } from './smartart-drawing-shape-style';
 import { parseSmartArtTextParagraphs, smartArtParagraphsText } from './smartart-text-paragraphs';
 import { resolveSmartArtTextStyles } from './smartart-text-style-resolution';
 
@@ -219,8 +224,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
-		const solidFill = this.xmlLookupService.getChildByLocalName(spPr, 'solidFill');
-		const fillColor = this.parseColor(solidFill);
+		// Fills (solid / gradient / pattern / picture) + outer shadow. Built-in
+		// SmartArt layouts routinely use non-solid fills; reading only solidFill
+		// flattened them to plain boxes (issue #73).
+		const fill = extractDrawingShapeFill(spPr, this.drawingShapeStyleDeps());
 
 		const lnNode = this.xmlLookupService.getChildByLocalName(spPr, 'ln');
 		const lnFill = lnNode
@@ -238,7 +245,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		const text = textValues.join('').trim() || undefined;
 
-		const { fontSize, fontColor } = this.extractDrawingShapeTextStyle(txBody);
+		const { fontSize, fontColor } = extractDrawingShapeTextStyle(
+			txBody,
+			this.drawingShapeStyleDeps(),
+		);
 		const paragraphs = txBody
 			? resolveSmartArtTextStyles(parseSmartArtTextParagraphs({ 'dgm:t': txBody }), (rPr) =>
 					this.extractTextRunStyle(rPr, undefined, undefined, false),
@@ -273,7 +283,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			rotation,
 			skewX,
 			skewY,
-			fillColor: fillColor ?? undefined,
+			...fill,
+			fillColor: fill.fillColor ?? undefined,
 			strokeColor: strokeColor ?? undefined,
 			strokeWidth,
 			text: structuredText,
@@ -284,38 +295,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		};
 	}
 
-	private extractDrawingShapeTextStyle(txBody: XmlObject | undefined): {
-		fontSize: number | undefined;
-		fontColor: string | undefined;
-	} {
-		let fontSize: number | undefined;
-		let fontColor: string | undefined;
-		if (!txBody) {
-			return { fontSize, fontColor };
-		}
-
-		const paragraphs = this.xmlLookupService.getChildrenArrayByLocalName(txBody, 'p');
-		for (const p of paragraphs) {
-			const runs = this.xmlLookupService.getChildrenArrayByLocalName(p, 'r');
-			for (const r of runs) {
-				const rPr = this.xmlLookupService.getChildByLocalName(r, 'rPr');
-				if (rPr && !fontSize) {
-					const szRaw = parseInt(String(rPr['@_sz'] || ''), 10);
-					if (Number.isFinite(szRaw) && szRaw > 0) {
-						fontSize = szRaw / 100;
-					}
-					const rprFill = this.xmlLookupService.getChildByLocalName(rPr, 'solidFill');
-					fontColor = this.parseColor(rprFill) ?? undefined;
-				}
-				if (fontSize) {
-					break;
-				}
-			}
-			if (fontSize) {
-				break;
-			}
-		}
-
-		return { fontSize, fontColor };
+	/**
+	 * Build the injected accessor bundle used by the pure drawing-shape style
+	 * helpers, binding the shared XML-lookup / colour / gradient / shadow codec
+	 * methods so no new colour logic is duplicated here.
+	 */
+	private drawingShapeStyleDeps(): DrawingShapeStyleDeps {
+		return {
+			getChild: (node, local) => this.xmlLookupService.getChildByLocalName(node, local),
+			getChildren: (node, local) => this.xmlLookupService.getChildrenArrayByLocalName(node, local),
+			parseColor: (node) => this.parseColor(node),
+			extractGradientStops: (gradFill) => this.extractGradientStops(gradFill),
+			extractGradientType: (gradFill) => this.extractGradientType(gradFill),
+			extractGradientAngle: (gradFill) => this.extractGradientAngle(gradFill),
+			extractShadowColor: (spPr) => this.extractShadowStyle(spPr).shadowColor,
+		};
 	}
 }

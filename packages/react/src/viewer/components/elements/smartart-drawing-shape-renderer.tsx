@@ -35,6 +35,61 @@ interface DrawingShapeRendererProps {
 	nodeLabels?: Map<string, string>;
 }
 
+// ── Fill helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Build an SVG gradient `<def>` for a cached drawing shape that carries a
+ * gradient fill, plus the `fill` reference (`url(#id)`) to paint it with.
+ * Returns `null` when the shape has no gradient stops.
+ */
+function drawingShapeGradientDef(
+	id: string,
+	shape: PptxSmartArtDrawingShape,
+): { def: React.ReactElement; ref: string } | null {
+	const stops = shape.fillGradientStops;
+	if (!stops || stops.length === 0) {
+		return null;
+	}
+	const stopEls = stops.map((s, i) => (
+		<stop
+			key={`${id}-s${i}`}
+			offset={`${Math.max(0, Math.min(100, s.position))}%`}
+			stopColor={s.color}
+			{...(s.opacity !== undefined ? { stopOpacity: s.opacity } : {})}
+		/>
+	));
+	if (shape.fillGradientType === 'radial') {
+		return {
+			ref: `url(#${id})`,
+			def: (
+				<radialGradient id={id} key={id} cx='50%' cy='50%' r='50%'>
+					{stopEls}
+				</radialGradient>
+			),
+		};
+	}
+	// OOXML angle is clockwise from the +x axis with y pointing down, which
+	// matches the SVG coordinate system, so sin/cos map directly.
+	const rad = ((shape.fillGradientAngle ?? 0) * Math.PI) / 180;
+	const dx = Math.cos(rad) / 2;
+	const dy = Math.sin(rad) / 2;
+	return {
+		ref: `url(#${id})`,
+		def: (
+			<linearGradient
+				id={id}
+				key={id}
+				x1={`${(0.5 - dx) * 100}%`}
+				y1={`${(0.5 - dy) * 100}%`}
+				x2={`${(0.5 + dx) * 100}%`}
+				y2={`${(0.5 + dy) * 100}%`}
+			>
+				{stopEls}
+			</linearGradient>
+		),
+	};
+}
+
 // ── Component ───────────────────────────────────────────────────────────────
 
 /**
@@ -85,7 +140,13 @@ export function DrawingShapeRenderer({
 			data-testid='smartart-drawing-shapes'
 		>
 			{shapes.map((shape, i) => {
-				const fill = shape.fillColor ?? colour(i, palette);
+				const gradient = drawingShapeGradientDef(`${elementId}-dspgrad-${shape.id}-${i}`, shape);
+				// Precedence: gradient -> pattern foreground -> solid/palette.
+				const fill =
+					gradient?.ref ??
+					shape.fillPatternForegroundColor ??
+					shape.fillColor ??
+					colour(i, palette);
 				const relX = shape.x - minX;
 				const relY = shape.y - minY;
 				const rx = shape.shapeType === 'roundRect' ? Math.min(shape.width, shape.height) * 0.1 : 0;
@@ -108,6 +169,7 @@ export function DrawingShapeRenderer({
 				return (
 					<g key={`${elementId}-dsp-${shape.id}-${i}`} {...groupProps}>
 						{nodeLabel ? <title>{nodeLabel}</title> : null}
+						{gradient ? <defs>{gradient.def}</defs> : null}
 						{isEllipse ? (
 							<ellipse
 								cx={relX + shape.width / 2}

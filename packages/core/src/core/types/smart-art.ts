@@ -212,6 +212,36 @@ export interface PptxSmartArtDrawingShape extends PptxCustomPathProperties {
 	skewY?: number;
 	/** Solid fill colour (hex). */
 	fillColor?: string;
+	/**
+	 * Gradient fill stops when the cached shape uses `a:gradFill`. Positions are
+	 * 0..100 (percent). Renderers emit an SVG/CSS gradient instead of a flat box.
+	 */
+	fillGradientStops?: Array<{ color: string; position: number; opacity?: number }>;
+	/** Gradient geometry type (`linear` for `a:lin`, `radial` for `a:path`). */
+	fillGradientType?: 'linear' | 'radial';
+	/** Linear gradient angle in degrees (0..360). */
+	fillGradientAngle?: number;
+	/** Pattern fill preset name from `a:pattFill/@prst` (e.g. "pct50", "cross"). */
+	fillPatternPreset?: string;
+	/** Pattern fill foreground colour (hex) from `a:pattFill/a:fgClr`. */
+	fillPatternForegroundColor?: string;
+	/** Pattern fill background colour (hex) from `a:pattFill/a:bgClr`. */
+	fillPatternBackgroundColor?: string;
+	/**
+	 * Relationship id of a picture (blip) fill's embedded image, from
+	 * `a:blipFill/a:blip/@r:embed`. The image bytes are resolved separately; see
+	 * {@link fillImageUrl}.
+	 */
+	fillBlipEmbedId?: string;
+	/**
+	 * Resolved data-URI/URL for a picture (blip) fill, when the embedded image
+	 * part could be resolved. Absent when only {@link fillBlipEmbedId} is known.
+	 */
+	fillImageUrl?: string;
+	/** Whether the cached shape carries an outer-shadow effect (`a:effectLst`). */
+	hasShadow?: boolean;
+	/** Resolved outer-shadow colour (hex), when present. */
+	shadowColor?: string;
 	/** Stroke colour (hex). */
 	strokeColor?: string;
 	/** Stroke width in points. */
