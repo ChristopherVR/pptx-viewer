@@ -26,6 +26,17 @@ export type {
 	ViewerLoadDetail,
 	ViewerTheme,
 } from './types';
+export type {
+	PptxAiBridge,
+	PptxAiConfig,
+	PptxAiConnection,
+	PptxAiContextStrategy,
+	PptxAiToolName,
+	PptxAiUIMessage,
+	PptxAiWritePolicy,
+} from 'pptx-viewer-shared/ai';
+export type { SvelteAiBridgeDeps } from './ai';
+export { createSvelteAiBridge } from './ai';
 export {
 	clampSlideIndex,
 	createViewerState,

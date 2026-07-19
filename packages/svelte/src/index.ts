@@ -31,6 +31,17 @@ export type {
 	ViewerLoadDetail,
 	ViewerTheme,
 } from './viewer/types';
+// AI assistant types, re-exported so hosts can type the viewer's `ai` prop and
+// build a bridge / connection without depending on `pptx-viewer-shared/ai`.
+export type {
+	PptxAiBridge,
+	PptxAiConfig,
+	PptxAiConnection,
+	PptxAiContextStrategy,
+	PptxAiToolName,
+	PptxAiUIMessage,
+	PptxAiWritePolicy,
+} from 'pptx-viewer-shared/ai';
 export type { AutosaveStatus } from './viewer/state/autosave.svelte';
 // Autosave recovery helpers (shared IndexedDB store), re-exported so a host can
 // offer restore-on-load. The viewer itself never auto-restores (see the

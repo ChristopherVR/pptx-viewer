@@ -6,6 +6,7 @@
 	 * overflow menu on the right. Save/undo/redo stay in the title bar.
 	 */
 	import Settings from '@lucide/svelte/icons/settings';
+	import Sparkles from '@lucide/svelte/icons/sparkles';
 	import { isActionHidden } from 'pptx-viewer-shared';
 	import type { ToolbarActionId } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../i18n/context';
@@ -27,6 +28,8 @@
 		subtitlesEnabled = false,
 		oncustomshows,
 		onsettings,
+		onai,
+		aiActive = false,
 		exportUi,
 		hiddenActions,
 	}: {
@@ -42,6 +45,9 @@
 		subtitlesEnabled?: boolean;
 		oncustomshows?: () => void;
 		onsettings?: () => void;
+		/** Toggle the AI assistant panel; when omitted the Sparkles button is hidden. */
+		onai?: () => void;
+		aiActive?: boolean;
 		exportUi?: ExportUiState;
 		hiddenActions?: ToolbarActionId[];
 	} = $props();
@@ -108,6 +114,19 @@
 			onclick={() => chromeUi.toggleInspector()}
 		>
 			<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M10 2.5v11" stroke="currentColor" stroke-width="1.3" /></svg>
+		</button>
+	{/if}
+	{#if onai}
+		<button
+			type="button"
+			class="pptx-svelte-ribbon-primary-ai"
+			class:pptx-svelte-ribbon-primary-on={aiActive}
+			aria-label={t('pptx.toolbar.toggleAiAssistant')}
+			title={t('pptx.toolbar.toggleAiAssistant')}
+			aria-pressed={aiActive}
+			onclick={onai}
+		>
+			<Sparkles size={15} strokeWidth={1.7} aria-hidden="true" />
 		</button>
 	{/if}
 	{#if onsettings}
@@ -179,6 +198,10 @@
 
 	.pptx-svelte-ribbon-primary-on {
 		color: var(--pptx-card-foreground, #e2e8f0);
+	}
+
+	.pptx-svelte-ribbon-primary-ai.pptx-svelte-ribbon-primary-on {
+		color: var(--pptx-primary, #a5b4fc);
 	}
 
 	.pptx-svelte-ribbon-primary-comments {

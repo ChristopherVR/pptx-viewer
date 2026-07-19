@@ -67,6 +67,10 @@ export interface RibbonProps {
 	chromeUi?: ChromeUiState;
 	/** Whether live subtitles are currently enabled (Present dropdown checkmark). */
 	subtitlesEnabled?: boolean;
+	/** Toggle the AI assistant panel. Only wired when the viewer's `ai` prop is set. */
+	onai?: () => void;
+	/** Whether the AI assistant panel is currently open (primary-row toggle state). */
+	aiActive?: boolean;
 	/** Toolbar buttons/ribbon tabs to hide; see `PowerPointViewerProps.hiddenActions`. */
 	hiddenActions?: ToolbarActionId[];
 	/** Slide Show tab actions: enter presentation from slide 0 or the current slide. */

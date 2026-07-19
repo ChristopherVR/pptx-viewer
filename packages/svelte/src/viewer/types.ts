@@ -11,6 +11,7 @@ import type {
 	ViewerFontSource,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
+import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
 import type {
@@ -38,6 +39,7 @@ export type {
 	ToolbarActionId,
 	ViewerTheme,
 };
+export type { PptxAiConfig };
 
 /** Payload for the `onload` callback. */
 export interface ViewerLoadDetail {
@@ -215,6 +217,15 @@ export interface PowerPointViewerProps {
 	 * object. Purely a starting point; the user can still edit every field.
 	 */
 	shareDefaults?: { roomId?: string; userName?: string; serverUrl?: string };
+	/**
+	 * Optional AI assistant configuration. When provided, a Sparkles toggle
+	 * appears in the ribbon's command row and opens a right-side chat panel that
+	 * can read the open deck and propose edits through the viewer's undo history.
+	 * The panel (and the optional `@ai-sdk/svelte` + `ai` peers it needs) is
+	 * lazily loaded only when first opened; leaving this undefined ships no AI UI
+	 * and never pulls the SDK. See `pptx-viewer-shared/ai`'s `PptxAiConfig`.
+	 */
+	ai?: PptxAiConfig;
 }
 
 /**

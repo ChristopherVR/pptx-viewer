@@ -81,6 +81,8 @@
 		subtitlesEnabled={props.subtitlesEnabled}
 		oncustomshows={props.oncustomshows}
 		onsettings={props.onsettings}
+		onai={props.onai}
+		aiActive={props.aiActive}
 		exportUi={props.exportUi}
 		hiddenActions={props.hiddenActions}
 	/>

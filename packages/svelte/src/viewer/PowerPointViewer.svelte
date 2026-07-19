@@ -64,6 +64,7 @@
 	import { useViewerEffects } from './state/viewer-effects.svelte';
 	import { createViewportHandlers } from './state/viewport-handlers';
 	import { styleToString } from './style';
+	import { createSvelteAiBridge } from './ai';
 	import type { PowerPointViewerProps } from './types';
 
 	const {
@@ -93,6 +94,7 @@
 		autosaveIntervalMs = 2000,
 		collaboration,
 		shareDefaults,
+		ai,
 		onload,
 		onerror,
 		onslidechange,
@@ -298,6 +300,49 @@
 		signatureWarningAcknowledged = true;
 		signatureWarningOpen = false;
 	}
+
+	// ── AI assistant ─────────────────────────────────────────────────────
+	// Opt-in via the `ai` prop: a Sparkles toggle in the ribbon's command row
+	// opens a right-side chat panel. The bridge is built eagerly (it has no
+	// `ai`-SDK dependency), but the panel component (and the `@ai-sdk/svelte` +
+	// `ai` peers it pulls) is lazily imported only when first opened. AI writes
+	// funnel through `editor.commitSlides` so each proposal is ONE undoable
+	// history entry, exactly like a manual edit.
+	// The ribbon's Sparkles toggle + panel close write this (invisible to the linter).
+	// eslint-disable-next-line prefer-const
+	let aiPanelOpen = $state(false);
+	const aiBridge = createSvelteAiBridge({
+		getSlides: () => editor.slides,
+		getActiveSlideIndex: () => viewer.current,
+		getCanvasSize: () => loader.canvasSize,
+		getTheme: () => loader.presentationTheme,
+		getHandler: () => loader.handler,
+		getFileName: () => fileName,
+		goToSlide: (index) => viewer.goTo(index),
+		selectElements: (slideIndex, ids) => {
+			if (slideIndex !== viewer.current) {
+				viewer.goTo(slideIndex);
+			}
+			editor.selection.setAll(ids);
+		},
+		commitSlides: (next) => {
+			if (collab.readOnly) {
+				return;
+			}
+			// Ensure the history-tracked commit is not silently dropped by the
+			// editor's editable gate (an AI edit implies editing).
+			editable = true;
+			editor.editable = true;
+			editor.commitSlides(next);
+		},
+		applyTheme: (updates) => {
+			const nextTheme = { ...(loader.presentationTheme ?? {}), ...updates };
+			loader.presentationTheme = nextTheme;
+			if (nextTheme.colorScheme) {
+				loader.colorScheme = nextTheme.colorScheme;
+			}
+		},
+	});
 
 	// ── Autosave ─────────────────────────────────────────────────────────
 	// Debounced crash-recovery autosave: enabled only when the host opts in,
@@ -703,6 +748,8 @@
 				onheaderfooter={() => (parityUi.headerFooterOpen = true)}
 				oncompare={() => void parityUi.compare.chooseFile()}
 				onshortcuts={() => (parityUi.shortcutsOpen = !parityUi.shortcutsOpen)}
+				onai={ai ? () => (aiPanelOpen = !aiPanelOpen) : undefined}
+				aiActive={aiPanelOpen}
 				onsettings={() => { parityUi.syncAutosave(autosaveEnabled); parityUi.settingsOpen = true; }}
 				onprintsettings={() => (parityUi.printSettingsOpen = true)}
 				onrehearse={() => { parityUi.rehearse.start(viewer.current); onFullscreenToggle(); }}
@@ -910,6 +957,13 @@
 		{shareDefaults}
 		showOverlay={collab.active && chromeVisible}
 	/>
+	{#if ai && aiPanelOpen && chromeVisible}
+		<div class="pptx-svelte-ai-dock">
+			{#await import('./components/ai/AiChatPanel.svelte') then { default: AiChatPanel }}
+				<AiChatPanel bridge={aiBridge} config={ai} onclose={() => (aiPanelOpen = false)} />
+			{/await}
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -928,6 +982,21 @@
 
 	.pptx-svelte-fullscreen {
 		background: #000;
+	}
+
+	.pptx-svelte-ai-dock {
+		position: absolute;
+		top: 0;
+		right: 0;
+		z-index: 30;
+		height: 100%;
+		box-shadow: -8px 0 24px -12px rgba(0, 0, 0, 0.5);
+	}
+
+	@media (max-width: 767px) {
+		.pptx-svelte-ai-dock {
+			inset: 0;
+		}
 	}
 	.presenter-blackout{position:absolute;inset:0;z-index:75}.presenter-laser{position:absolute;z-index:76;width:20px;height:20px;transform:translate(-50%,-50%);border-radius:50%;background:#ef4444;box-shadow:0 0 20px 8px #ef444488;pointer-events:none}.presenter-caption{position:absolute;z-index:77;left:10%;right:10%;bottom:32px;padding:12px 24px;border-radius:8px;background:#000c;color:#fff;text-align:center;font-size:20px;pointer-events:none}
 
