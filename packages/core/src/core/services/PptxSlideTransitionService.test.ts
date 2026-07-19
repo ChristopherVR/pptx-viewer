@@ -318,3 +318,62 @@ describe('pptxSlideTransitionService.buildSlideTransitionXml', () => {
 		expect(result!['@_dur']).toBeUndefined();
 	});
 });
+
+// ---------------------------------------------------------------------------
+// p15 preset transitions (Fracture, Peel Off, Page Curl, etc.) - issue #77
+// ---------------------------------------------------------------------------
+
+describe('pptxSlideTransitionService p15 preset transitions', () => {
+	const service = createService();
+
+	function fractureSlideXml(): XmlObject {
+		return {
+			'p:sld': {
+				'p:transition': {
+					'@_spd': 'slow',
+					'p:extLst': {
+						'p:ext': {
+							'@_uri': '{D42A27DB-BD31-4B8C-83A1-F6EECF244321}',
+							'p15:prstTrans': {
+								'@_xmlns:p15': 'http://schemas.microsoft.com/office/powerpoint/2012/main',
+								'@_prst': 'fracture',
+							},
+						},
+					},
+				},
+			},
+		};
+	}
+
+	it('parses a p15:prstTrans prst="fracture" as a fracture transition', () => {
+		const result = service.parseSlideTransition(fractureSlideXml());
+		expect(result).toBeDefined();
+		expect(result!.type).toBe('fracture');
+		expect(result!.rawExtLst).toBeDefined();
+	});
+
+	it('re-serializes fracture WITHOUT a spurious p:cut child (issue #77)', () => {
+		const parsed = service.parseSlideTransition(fractureSlideXml());
+		const rebuilt = service.buildSlideTransitionXml(parsed!);
+		expect(rebuilt).toBeDefined();
+		// The defect: a fallback <p:cut/> was emitted alongside the real extLst.
+		expect(rebuilt!['p:cut']).toBeUndefined();
+		// No standard child of any kind should be present.
+		expect(rebuilt!['p:fracture']).toBeUndefined();
+		// The real transition bytes survive in the preserved extLst.
+		const extLst = rebuilt!['p:extLst'] as XmlObject;
+		expect(extLst).toBeDefined();
+		const ext = extLst['p:ext'] as XmlObject;
+		const prstTrans = ext['p15:prstTrans'] as XmlObject;
+		expect(prstTrans['@_prst']).toBe('fracture');
+	});
+
+	it('fabricates a p15:prstTrans extLst when no rawExtLst is present', () => {
+		const rebuilt = service.buildSlideTransitionXml({ type: 'peelOff' });
+		expect(rebuilt).toBeDefined();
+		expect(rebuilt!['p:cut']).toBeUndefined();
+		expect(rebuilt!['p:peelOff']).toBeUndefined();
+		const ext = (rebuilt!['p:extLst'] as XmlObject)['p:ext'] as XmlObject;
+		expect((ext['p15:prstTrans'] as XmlObject)['@_prst']).toBe('peelOff');
+	});
+});

@@ -9,6 +9,11 @@
  */
 import type { PptxSlideTransition, XmlObject } from '../types';
 import { parseP14FromExtLst, buildP14ExtLst, P14_TRANSITION_TYPES } from './p14-transition-parser';
+import {
+	parseP15FromExtLst,
+	buildP15ExtLst,
+	P15_TRANSITION_PRESETS,
+} from './p15-transition-parser';
 import type { IPptxXmlLookupService } from './PptxXmlLookupService';
 import {
 	applyTransitionAttributes,
@@ -89,6 +94,9 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 		// transition type was found or if there is an extLst to parse
 		if (rawExtLst && transitionType === 'cut') {
 			const p14Result = parseP14FromExtLst(rawExtLst, this.xmlLookupService, this.getXmlLocalName);
+			const p15Result = p14Result
+				? undefined
+				: parseP15FromExtLst(rawExtLst, this.xmlLookupService, this.getXmlLocalName);
 			if (p14Result) {
 				transitionType = p14Result.type;
 				if (p14Result.direction) {
@@ -100,6 +108,10 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 				if (p14Result.pattern) {
 					pattern = p14Result.pattern;
 				}
+			} else if (p15Result) {
+				// PowerPoint 2013+/365 preset transitions (Fracture, Peel Off,
+				// Page Curl, etc.) live in a `p15:prstTrans` extension.
+				transitionType = p15Result.type;
 			} else if (this.parseMorphFromExtLst(rawExtLst)) {
 				// PowerPoint 2016+ `morph` lives in a p159 extension.
 				transitionType = 'morph';
@@ -195,6 +207,7 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 
 		const transitionType = transition.type || 'cut';
 		const isP14Type = P14_TRANSITION_TYPES.has(transitionType);
+		const isP15Type = P15_TRANSITION_PRESETS.has(transitionType);
 		const isMorphType = transitionType === 'morph';
 		const node = createPreservedTransitionNode(transition.rawTransition, this.getXmlLocalName);
 
@@ -209,6 +222,13 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 				this.xmlLookupService,
 				this.getXmlLocalName,
 			);
+		} else if (isP15Type) {
+			// PowerPoint 2013+/365 preset transitions live in a `p15:prstTrans`
+			// extension, not as a direct child of `p:transition`. Emitting a
+			// standard child (or the historical `<p:cut/>` fallback) corrupts the
+			// file. Preserve the real extLst bytes when present; otherwise
+			// fabricate a minimal `p15:prstTrans` extension.
+			node['p:extLst'] = transition.rawExtLst ?? buildP15ExtLst(transitionType);
 		} else if (isMorphType) {
 			// PowerPoint 2016+ `morph` lives in the p159 extension list, not as a
 			// direct child of `p:transition`. Emitting `<p:morph/>` is silently
@@ -227,8 +247,8 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 			node['p:sndAc'] = soundAction;
 		}
 		// Only write rawExtLst when we did not already build our own extLst.
-		// p14 and morph types build their own extLst (and merge the rest of rawExtLst).
-		if (transition.rawExtLst && !isP14Type && !isMorphType) {
+		// p14, p15 and morph types build (or preserve) their own extLst.
+		if (transition.rawExtLst && !isP14Type && !isP15Type && !isMorphType) {
 			node['p:extLst'] = transition.rawExtLst;
 		}
 

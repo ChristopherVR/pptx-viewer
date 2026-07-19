@@ -70,7 +70,19 @@ export type PptxTransitionType =
 	| 'cube'
 	| 'flip'
 	| 'rotate'
-	| 'orbit';
+	| 'orbit'
+	| 'fallOver'
+	| 'drape'
+	| 'curtains'
+	| 'wind'
+	| 'prestige'
+	| 'fracture'
+	| 'crush'
+	| 'peelOff'
+	| 'pageCurlDouble'
+	| 'pageCurlSingle'
+	| 'airplane'
+	| 'origami';
 
 /** Cardinal direction tokens from OOXML transition `@_dir`. */
 export type PptxTransitionDirection4 = 'l' | 'r' | 'u' | 'd';
