@@ -55,6 +55,7 @@ import {
 } from './smartart-layouts-extra';
 import { layoutHierarchy, layoutRelationship } from './smartart-layouts-tree';
 import { applyNodeStylesToElements } from './smartart-node-style-apply';
+import { parseSmartArtPresLayoutVars } from './smartart-pres-layout-vars';
 
 // ── Pre-computed drawing shape conversion ────────────────────────────────
 
@@ -227,20 +228,39 @@ export function decomposeSmartArt(
 	// the resolved/raw type so SDK-created diagrams get the right algorithm.
 	const layoutType = resolveEffectiveLayoutType(smartArtData);
 
+	// Consult presentation layout variables (direction) so a reversed-flow
+	// diagram lays its nodes out right-to-left. The full DiagramML interpreter
+	// (org-chart / hierBranch geometry) is a separate follow-up; here we only
+	// honour the coarse flow direction against the algorithmic fallback.
+	const layoutVars =
+		smartArtData.presLayoutVars ??
+		parseSmartArtPresLayoutVars(smartArtData.layoutDefinition?.rawXml);
+	const orderedNodes = layoutVars?.direction === 'rev' ? [...nodes].reverse() : nodes;
+
 	// Check for specific named layouts that have their own algorithm,
 	// before falling through to the general category dispatch.
 	const namedLayout = smartArtData.layout;
 	if (namedLayout) {
-		const namedResult = dispatchNamedLayout(namedLayout, nodes, containerBounds, effectiveThemeMap);
+		const namedResult = dispatchNamedLayout(
+			namedLayout,
+			orderedNodes,
+			containerBounds,
+			effectiveThemeMap,
+		);
 		if (namedResult) {
 			// Per-node colour / emphasis overrides win over the cycled palette.
-			return applyNodeStylesToElements(namedResult, nodes);
+			return applyNodeStylesToElements(namedResult, orderedNodes);
 		}
 	}
 
-	const algorithmic = dispatchLayoutByType(layoutType, nodes, containerBounds, effectiveThemeMap);
+	const algorithmic = dispatchLayoutByType(
+		layoutType,
+		orderedNodes,
+		containerBounds,
+		effectiveThemeMap,
+	);
 	// Per-node colour / emphasis overrides win over the cycled palette.
-	return algorithmic ? applyNodeStylesToElements(algorithmic, nodes) : algorithmic;
+	return algorithmic ? applyNodeStylesToElements(algorithmic, orderedNodes) : algorithmic;
 }
 
 /** Dispatch an algorithmic SmartArt layout by its resolved category. */

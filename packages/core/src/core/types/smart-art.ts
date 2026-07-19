@@ -279,6 +279,41 @@ export interface PptxSmartArtChrome {
 }
 
 /**
+ * Presentation layout variables from `dgm:prSet/dgm:presLayoutVars` (data model)
+ * or `dgm:varLst` (layout definition defaults).
+ *
+ * These drive how the DiagramML layout interpreter arranges points: flow
+ * direction, hierarchy branch style, org-chart mode, and child count limits.
+ * The fallback layout engine can consult them for direction/org-chart hints.
+ *
+ * @example
+ * ```ts
+ * const vars: PptxSmartArtPresLayoutVars = { direction: "rev", orgChart: true };
+ * // => satisfies PptxSmartArtPresLayoutVars
+ * ```
+ */
+export interface PptxSmartArtPresLayoutVars {
+	/** Flow direction (`dgm:dir`): "norm" (default) or "rev" (reversed/RTL). */
+	direction?: 'norm' | 'rev';
+	/** Hierarchy branch style (`dgm:hierBranch`): std/init/l/r/hang. */
+	hierarchyBranch?: 'std' | 'init' | 'l' | 'r' | 'hang';
+	/** Org-chart mode enabled (`dgm:orgChart`). */
+	orgChart?: boolean;
+	/** Maximum children per node (`dgm:chMax`, -1 = unbounded). */
+	childMax?: number;
+	/** Preferred children per node (`dgm:chPref`, -1 = unbounded). */
+	childPreferred?: number;
+	/** Whether bullets are enabled (`dgm:bulletEnabled`). */
+	bulletEnabled?: boolean;
+	/** Animation-by-level setting (`dgm:animLvl`). */
+	animationLevel?: string;
+	/** Animate-one setting (`dgm:animOne`). */
+	animateOne?: string;
+	/** Allowed resize handles (`dgm:resizeHandles`). */
+	resizeHandles?: string;
+}
+
+/**
  * Complete parsed SmartArt data for a {@link SmartArtPptxElement}.
  *
  * @example
@@ -319,6 +354,12 @@ export interface PptxSmartArtData {
 	quickStyle?: PptxSmartArtQuickStyle;
 	/** Editable metadata from the related DiagramML layout definition. */
 	layoutDefinition?: PptxSmartArtLayoutDefinition;
+	/**
+	 * Presentation layout variables (direction, hierarchy branch, org-chart,
+	 * child limits, bullets) from `dgm:presLayoutVars` / layout `dgm:varLst`.
+	 * Consulted by the fallback layout engine for direction/org-chart hints.
+	 */
+	presLayoutVars?: PptxSmartArtPresLayoutVars;
 	/** Relationship ID for the diagram data part (for round-trip save). */
 	dataRelId?: string;
 	/** Relationship ID for the diagram layout part. */

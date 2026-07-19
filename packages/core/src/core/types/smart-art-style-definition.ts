@@ -51,6 +51,18 @@ export interface PptxSmartArtColorTransform extends PptxSmartArtDefinitionMetada
 	fillColors: string[];
 	/** Ordered resolved line colors for rendering. */
 	lineColors: string[];
+	/** Ordered resolved text-fill colors (primary styleLbl `txFillClrLst`). */
+	textFillColors?: string[];
+	/** Ordered resolved text-line colors (primary styleLbl `txLinClrLst`). */
+	textLineColors?: string[];
+	/** Ordered resolved effect colors (primary styleLbl `effectClrLst`). */
+	effectColors?: string[];
+	/** Ordered resolved text-effect colors (primary styleLbl `txEffectClrLst`). */
+	textEffectColors?: string[];
+	/** Fill-list span/cycle + hue-direction interpolation of the primary styleLbl. */
+	fillInterpolation?: PptxSmartArtColorListMetadata;
+	/** Line-list span/cycle + hue-direction interpolation of the primary styleLbl. */
+	lineInterpolation?: PptxSmartArtColorListMetadata;
 	/** Ordered CT_CTStyleLabel metadata. */
 	labels?: PptxSmartArtColorStyleLabel[];
 }

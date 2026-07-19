@@ -23,6 +23,7 @@ import {
 	computeProcessLayout,
 	fitFontSize,
 	flattenNodes,
+	interpolateSmartArtPalette,
 	nodeOpacity,
 	resolveLayoutFamily,
 	styleShadow,
@@ -522,5 +523,76 @@ describe('computeSmartArtLayout (dispatcher)', () => {
 		const layout = computeSmartArtLayout([root], BOX, PALETTE, STYLE, ID, 'list');
 		// Should get 3 rendered nodes (root + 2 children flattened)
 		expect(layout.nodes).toHaveLength(3);
+	});
+});
+
+// ── Colour interpolation ──────────────────────────────────────────────────────
+
+describe('interpolateSmartArtPalette', () => {
+	it('returns [] for a zero count or empty palette', () => {
+		expect(interpolateSmartArtPalette(['#fff'], 0)).toStrictEqual([]);
+		expect(interpolateSmartArtPalette([], 3)).toStrictEqual([]);
+	});
+
+	it('cycles the palette by index when method is not span', () => {
+		expect(interpolateSmartArtPalette(['#a', '#b'], 4, 'cycle')).toStrictEqual([
+			'#a',
+			'#b',
+			'#a',
+			'#b',
+		]);
+	});
+
+	it('spans a two-colour palette into a per-node gradient', () => {
+		const out = interpolateSmartArtPalette(['#000000', '#ffffff'], 5, 'span');
+		expect(out).toHaveLength(5);
+		// Endpoints preserved, interior interpolated and monotonic.
+		expect(out[0]).toBe('#000000');
+		expect(out[4]).toBe('#ffffff');
+		expect(out[2]).not.toBe(out[0]);
+		expect(out[2]).not.toBe(out[4]);
+		expect(new Set(out).size).toBe(5);
+	});
+
+	it('does not interpolate when nodes fit within the palette (span, count<=len)', () => {
+		expect(interpolateSmartArtPalette(['#a', '#b', '#c'], 3, 'span')).toStrictEqual([
+			'#a',
+			'#b',
+			'#c',
+		]);
+	});
+});
+
+describe('computeSmartArtLayout — colour spread', () => {
+	it('spreads a 3-colour palette across 3 list nodes', () => {
+		const palette = ['#ff0000', '#00ff00', '#0000ff'];
+		const layout = computeSmartArtLayout(
+			[n('1', 'A'), n('2', 'B'), n('3', 'C')],
+			BOX,
+			palette,
+			STYLE,
+			ID,
+			'list',
+		);
+		const fills = layout.nodes.map((node) => node.fill);
+		expect(fills).toStrictEqual(palette);
+		expect(new Set(fills).size).toBe(3);
+	});
+
+	it('expands the palette into a span gradient when interpolation is span', () => {
+		const layout = computeSmartArtLayout(
+			[n('1', 'A'), n('2', 'B'), n('3', 'C'), n('4', 'D'), n('5', 'E')],
+			BOX,
+			['#000000', '#ffffff'],
+			STYLE,
+			ID,
+			'list',
+			undefined,
+			{ method: 'span' },
+		);
+		const fills = layout.nodes.map((node) => node.fill);
+		expect(fills[0]).toBe('#000000');
+		expect(fills[4]).toBe('#ffffff');
+		expect(new Set(fills).size).toBe(5);
 	});
 });

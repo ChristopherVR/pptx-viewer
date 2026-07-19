@@ -27,6 +27,7 @@ import type {
 	SmartArtStyle,
 } from 'pptx-viewer-core';
 
+import { interpolateColor } from './animation-color';
 import {
 	computeCycleLayout,
 	computeHierarchyLayout,
@@ -49,6 +50,43 @@ export * from './smartart-layout-helpers';
 export * from './smartart-layout-families';
 export * from './smartart-layout-families-extra';
 
+/** Colour-list interpolation controls resolved from a SmartArt colour scheme. */
+export interface SmartArtPaletteInterpolation {
+	/** `span` interpolates a gradient across nodes; `cycle`/`repeat` wrap. */
+	method?: 'span' | 'cycle' | 'repeat';
+	/** Hue rotation direction for `span` interpolation in HSL space. */
+	hueDirection?: 'cw' | 'ccw';
+}
+
+/**
+ * Expand a colour palette across `count` nodes.
+ *
+ * For `span`, distributes the nodes evenly along the palette and interpolates
+ * intermediate colours in HSL space (honouring `hueDirection`), so e.g. a
+ * two-colour "colorful range" scheme fades smoothly across many nodes. For
+ * `cycle`/`repeat`/unset, wraps the palette by index (the historic behaviour).
+ */
+export function interpolateSmartArtPalette(
+	palette: string[],
+	count: number,
+	method?: 'span' | 'cycle' | 'repeat',
+	hueDirection?: 'cw' | 'ccw',
+): string[] {
+	if (count <= 0 || palette.length === 0) {
+		return [];
+	}
+	if (method !== 'span' || palette.length < 2 || count <= palette.length) {
+		return Array.from({ length: count }, (_, i) => palette[i % palette.length]);
+	}
+	const segments = palette.length - 1;
+	return Array.from({ length: count }, (_, i) => {
+		const pos = (i / (count - 1)) * segments;
+		const lower = Math.min(Math.floor(pos), segments - 1);
+		const frac = pos - lower;
+		return interpolateColor(palette[lower], palette[lower + 1], frac, 'hsl', hueDirection);
+	});
+}
+
 /**
  * Compute the SVG layout for a SmartArt element when drawing shapes are absent.
  *
@@ -59,6 +97,11 @@ export * from './smartart-layout-families-extra';
  * @param elementId           - Element ID (used for stable SVG key generation).
  * @param resolvedLayoutType  - Layout type string from the core parser.
  * @param layout              - Named layout preset.
+ * @param interpolation       - Optional colour-list span/cycle interpolation
+ *                              (from the diagram's colour scheme). When `span`,
+ *                              the palette is expanded into a per-node gradient
+ *                              before layout; otherwise the palette is used
+ *                              as-is and cycled by the family computers.
  * @returns Complete layout geometry for the resolved family.
  */
 export function computeSmartArtLayout(
@@ -69,30 +112,35 @@ export function computeSmartArtLayout(
 	elementId: string,
 	resolvedLayoutType?: SmartArtLayoutType,
 	layout?: SmartArtLayout,
+	interpolation?: SmartArtPaletteInterpolation,
 ): SmartArtLayoutResult {
 	const flat = flattenNodes(nodes);
 	const family = resolveLayoutFamily(nodes, resolvedLayoutType, layout);
+	const pal =
+		interpolation?.method === 'span'
+			? interpolateSmartArtPalette(palette, flat.length, 'span', interpolation.hueDirection)
+			: palette;
 
 	switch (family) {
 		case 'list':
-			return computeListLayout(flat, box, palette, style, elementId);
+			return computeListLayout(flat, box, pal, style, elementId);
 		case 'process':
-			return computeProcessLayout(flat, box, palette, style, elementId);
+			return computeProcessLayout(flat, box, pal, style, elementId);
 		case 'cycle':
-			return computeCycleLayout(flat, box, palette, style, elementId);
+			return computeCycleLayout(flat, box, pal, style, elementId);
 		case 'hierarchy':
-			return computeHierarchyLayout(nodes, box, palette, style, elementId);
+			return computeHierarchyLayout(nodes, box, pal, style, elementId);
 		case 'matrix':
-			return computeMatrixLayout(flat, box, palette, style, elementId);
+			return computeMatrixLayout(flat, box, pal, style, elementId);
 		case 'radial':
-			return computeRadialLayout(flat, box, palette, style, elementId);
+			return computeRadialLayout(flat, box, pal, style, elementId);
 		case 'pyramid':
-			return computePyramidLayout(flat, box, palette, style, elementId);
+			return computePyramidLayout(flat, box, pal, style, elementId);
 		case 'venn':
-			return computeVennLayout(flat, box, palette, style, elementId);
+			return computeVennLayout(flat, box, pal, style, elementId);
 		case 'funnel':
-			return computeFunnelLayout(flat, box, palette, style, elementId);
+			return computeFunnelLayout(flat, box, pal, style, elementId);
 		case 'target':
-			return computeTargetLayout(flat, box, palette, style, elementId);
+			return computeTargetLayout(flat, box, pal, style, elementId);
 	}
 }
