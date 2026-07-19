@@ -32,6 +32,7 @@ import {
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
 	resolveThemeCatalogEntry,
+	shouldAutoFollowBroadcaster,
 	THEME_CATALOG,
 	viewerOptionsToPreferences,
 	writeStoredViewerPrefs,
@@ -1513,8 +1514,16 @@ export class PowerPointViewerComponent {
 		});
 
 		// Broadcast auto-follow: a `viewer` tracks the broadcaster (owner) peer.
+		// Routed through the shared policy helper so React/Vue/Angular cannot
+		// drift. `broadcasterSlideIndex` is only non-null when an `owner` peer
+		// exists, so the broadcaster role is `owner`.
 		effect(() => {
-			if (this.collab.activeRole() !== 'viewer') {
+			if (
+				!shouldAutoFollowBroadcaster({
+					localRole: this.collab.activeRole(),
+					broadcasterRole: 'owner',
+				})
+			) {
 				return;
 			}
 			const target = this.collab.broadcasterSlideIndex();
