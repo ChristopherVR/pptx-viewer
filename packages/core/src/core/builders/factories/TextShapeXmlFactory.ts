@@ -30,6 +30,10 @@ export class TextShapeXmlFactory implements ITextShapeXmlFactory {
 		const { element } = init;
 		// Distinguish text boxes from generic rectangles for the cNvSpPr txBox attribute
 		const isText = element.type === 'text';
+		// Prefer the parsed `@txBox` flag (round-tripped via `locks.txBox`) so a
+		// rebuilt shape keeps its original text-box classification; fall back to
+		// the element type for SDK-created shapes with no parsed flag.
+		const isTextBox = element.locks?.txBox ?? isText;
 		const name = isText ? 'TextBox' : 'Rectangle';
 		const geometry = this.context.normalizePresetGeometry(element.shapeType);
 		// Build a:avLst (adjustment values list) for shapes with custom guide values
@@ -55,7 +59,7 @@ export class TextShapeXmlFactory implements ITextShapeXmlFactory {
 					'@_name': `${name} ${elementId}`,
 				},
 				'p:cNvSpPr': {
-					'@_txBox': isText ? '1' : '0',
+					'@_txBox': isTextBox ? '1' : '0',
 				},
 				'p:nvPr': {},
 			},
