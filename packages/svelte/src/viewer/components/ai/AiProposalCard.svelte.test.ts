@@ -52,6 +52,24 @@ describe('aiProposalCard', () => {
 		expect(target.querySelector('.pptx-svelte-ai-proposal-btn.is-accept')).not.toBeNull();
 	});
 
+	it('humanizes every summary line without truncation (no "+N more")', () => {
+		const summary = Array.from({ length: 8 }, (_v, i) => `modify text el-${i}: "Line ${i}"`);
+		const proposal = { id: 'p1', label: 'Rewrite text', summary, createdAt: 0 };
+		const target = document.createElement('div');
+		const instance = mount(AiProposalCard, {
+			target,
+			props: { proposal, onaccept: vi.fn(), onreject: vi.fn() },
+		});
+		cleanup = () => unmount(instance);
+
+		const items = target.querySelectorAll('.pptx-svelte-ai-proposal-summary li');
+		// All 8 lines are rendered (previously capped at 4 + a "more" row).
+		expect(items).toHaveLength(8);
+		expect(target.textContent).not.toContain('more');
+		// humanizeDiffLine turns "modify text ..." into "update the text ...".
+		expect(items[0]?.textContent).toContain('update the text');
+	});
+
 	it('routes Accept through the proposal store to the bridge write choke point', () => {
 		const bridge = fakeBridge();
 		const store = new ProposalStore(bridge);

@@ -1,16 +1,18 @@
 <script lang="ts">
 	/**
-	 * AiProposalCard: a single staged, not-yet-applied write from the assistant.
-	 * Shows a short diff summary with Accept / Reject controls. Purely
-	 * presentational; the accept/reject callbacks route through the proposal store.
+	 * AiProposalCard: a single staged, not-yet-applied change the assistant is
+	 * suggesting. Reads like a human suggestion: a clear title, a plain-language
+	 * description of what will happen (via `humanizeDiffLine`), and friendly Apply
+	 * / Discard buttons. The full description is shown (never truncated); long
+	 * lists scroll rather than clip. The accept/reject callbacks route through the
+	 * proposal store.
 	 */
 	import Check from '@lucide/svelte/icons/check';
 	import X from '@lucide/svelte/icons/x';
+	import { humanizeDiffLine } from 'pptx-viewer-shared/ai';
 	import type { ProposalView } from 'pptx-viewer-shared/ai';
 
 	import { useTranslator } from '../../../i18n/context';
-
-	const MAX_SUMMARY_LINES = 4;
 
 	const {
 		proposal,
@@ -24,21 +26,17 @@
 
 	const t = useTranslator();
 
-	const shown = $derived(proposal.summary.slice(0, MAX_SUMMARY_LINES));
-	const extra = $derived(proposal.summary.length - shown.length);
+	const lines = $derived(proposal.summary.map(humanizeDiffLine));
 </script>
 
 <div class="pptx-svelte-ai-proposal" data-proposal-id={proposal.id}>
 	<div class="pptx-svelte-ai-proposal-tag">{t('pptx.ai.proposedChange')}</div>
 	<div class="pptx-svelte-ai-proposal-label">{proposal.label}</div>
-	{#if shown.length > 0}
+	{#if lines.length > 0}
 		<ul class="pptx-svelte-ai-proposal-summary">
-			{#each shown as line, i (i)}
-				<li title={line}>{line}</li>
+			{#each lines as line, i (i)}
+				<li>{line}</li>
 			{/each}
-			{#if extra > 0}
-				<li class="pptx-svelte-ai-proposal-more">{t('pptx.ai.moreChanges', { count: extra })}</li>
-			{/if}
 		</ul>
 	{/if}
 	<div class="pptx-svelte-ai-proposal-actions">
@@ -90,16 +88,12 @@
 		list-style: disc;
 		font-size: 11px;
 		color: var(--pptx-muted-foreground, #94a3b8);
+		max-height: 10rem;
+		overflow-y: auto;
 	}
 
 	.pptx-svelte-ai-proposal-summary li {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.pptx-svelte-ai-proposal-more {
-		font-style: italic;
+		word-break: break-word;
 	}
 
 	.pptx-svelte-ai-proposal-actions {

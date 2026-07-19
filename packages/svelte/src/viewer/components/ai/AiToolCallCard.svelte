@@ -1,15 +1,31 @@
 <script lang="ts">
 	/**
-	 * AiToolCallCard: a compact card describing one tool the assistant invoked,
-	 * with a human summary of its arguments and a state chip (running / done /
-	 * failed). Purely presentational.
+	 * AiToolCallCard: a subtle, non-technical "activity" row describing one thing
+	 * the assistant did, e.g. "Looked at slide 5" / "Merged two tables", with a
+	 * friendly icon and a status (Working / Done / Failed). The raw tool name +
+	 * arguments are hidden behind an optional, collapsed "Details" disclosure for
+	 * power users; no ids are shown by default. Purely presentational.
 	 */
+	import ChartColumn from '@lucide/svelte/icons/chart-column';
 	import Check from '@lucide/svelte/icons/check';
+	import Eye from '@lucide/svelte/icons/eye';
+	import Film from '@lucide/svelte/icons/film';
+	import LayoutTemplate from '@lucide/svelte/icons/layout-template';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+	import Move from '@lucide/svelte/icons/move';
+	import Navigation from '@lucide/svelte/icons/navigation';
+	import Palette from '@lucide/svelte/icons/palette';
+	import Search from '@lucide/svelte/icons/search';
+	import Shapes from '@lucide/svelte/icons/shapes';
+	import StickyNote from '@lucide/svelte/icons/sticky-note';
+	import Table from '@lucide/svelte/icons/table';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
+	import Type from '@lucide/svelte/icons/type';
 	import Wrench from '@lucide/svelte/icons/wrench';
-	import { summarizeToolArgs, toolLabel } from 'pptx-viewer-shared/ai';
-	import type { RenderableToolPart } from 'pptx-viewer-shared/ai';
+	import { describeToolActivity, summarizeToolArgs, toolLabel } from 'pptx-viewer-shared/ai';
+	import type { RenderableToolPart, ToolActivityIcon } from 'pptx-viewer-shared/ai';
+	import type { Component } from 'svelte';
 
 	import { useTranslator } from '../../../i18n/context';
 
@@ -17,19 +33,39 @@
 
 	const t = useTranslator();
 
+	/** Map a shared icon category to a concrete lucide glyph. */
+	const ICONS: Record<ToolActivityIcon, Component> = {
+		view: Eye,
+		text: Type,
+		shape: Shapes,
+		theme: Palette,
+		table: Table,
+		slide: LayoutTemplate,
+		chart: ChartColumn,
+		move: Move,
+		delete: Trash2,
+		search: Search,
+		nav: Navigation,
+		animation: Film,
+		notes: StickyNote,
+		tool: Wrench,
+	};
+
 	const failed = $derived(part.state === 'output-error');
 	const done = $derived(part.state === 'output-available');
 	const running = $derived(!failed && !done);
-	const summary = $derived(summarizeToolArgs(part.input));
+	const activity = $derived(describeToolActivity(part.toolName, part.input, running ? 'present' : 'past'));
+	const Icon = $derived(ICONS[activity.icon] ?? Wrench);
+	const rawSummary = $derived(summarizeToolArgs(part.input));
 	const statusLabel = $derived(
 		failed ? t('pptx.ai.toolFailed') : done ? t('pptx.ai.toolDone') : t('pptx.ai.toolRunning'),
 	);
 </script>
 
-<div class="pptx-svelte-ai-tool" class:is-error={failed}>
+<div class="pptx-svelte-ai-tool">
 	<div class="pptx-svelte-ai-tool-head">
-		<Wrench size={13} aria-hidden="true" />
-		<span class="pptx-svelte-ai-tool-name">{toolLabel(part.toolName)}</span>
+		<Icon size={14} class={failed ? 'pptx-svelte-ai-tool-ic is-error' : 'pptx-svelte-ai-tool-ic'} aria-hidden="true" />
+		<span class="pptx-svelte-ai-tool-label" class:is-error={failed}>{activity.label}</span>
 		<span class="pptx-svelte-ai-tool-chip" class:is-error={failed} class:is-done={done}>
 			{#if running}<LoaderCircle size={11} class="pptx-svelte-ai-spin" aria-hidden="true" />{/if}
 			{#if done}<Check size={11} aria-hidden="true" />{/if}
@@ -37,38 +73,47 @@
 			{statusLabel}
 		</span>
 	</div>
-	{#if summary}
-		<div class="pptx-svelte-ai-tool-summary" title={summary}>{summary}</div>
-	{/if}
 	{#if failed && part.errorText}
 		<div class="pptx-svelte-ai-tool-error">{part.errorText}</div>
+	{/if}
+	{#if rawSummary}
+		<details class="pptx-svelte-ai-tool-details">
+			<summary>{t('pptx.ai.toolDetails')}</summary>
+			<div class="pptx-svelte-ai-tool-raw">{toolLabel(part.toolName)}: {rawSummary}</div>
+		</details>
 	{/if}
 </div>
 
 <style>
 	.pptx-svelte-ai-tool {
-		border: 1px solid var(--pptx-border, #33334d);
-		border-radius: var(--pptx-radius, 6px);
-		background: color-mix(in srgb, var(--pptx-muted, #2a2a3d) 40%, transparent);
-		padding: 6px 10px;
 		font-size: 12px;
-	}
-
-	.pptx-svelte-ai-tool.is-error {
-		border-color: color-mix(in srgb, var(--pptx-destructive, #ef4444) 50%, transparent);
-		background: color-mix(in srgb, var(--pptx-destructive, #ef4444) 8%, transparent);
 	}
 
 	.pptx-svelte-ai-tool-head {
 		display: flex;
 		align-items: center;
 		gap: 6px;
+	}
+
+	:global(.pptx-svelte-ai-tool-ic) {
+		flex-shrink: 0;
 		color: var(--pptx-muted-foreground, #94a3b8);
 	}
 
-	.pptx-svelte-ai-tool-name {
-		font-weight: 600;
+	:global(.pptx-svelte-ai-tool-ic.is-error) {
+		color: var(--pptx-destructive, #fca5a5);
+	}
+
+	.pptx-svelte-ai-tool-label {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 		color: var(--pptx-card-foreground, #e2e8f0);
+	}
+
+	.pptx-svelte-ai-tool-label.is-error {
+		color: var(--pptx-destructive, #fca5a5);
 	}
 
 	.pptx-svelte-ai-tool-chip {
@@ -93,20 +138,39 @@
 		color: var(--pptx-destructive, #fca5a5);
 	}
 
-	.pptx-svelte-ai-tool-summary {
-		margin-top: 4px;
-		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-		font-size: 11px;
-		color: var(--pptx-muted-foreground, #94a3b8);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
 	.pptx-svelte-ai-tool-error {
 		margin-top: 4px;
+		padding-left: 20px;
 		font-size: 11px;
 		color: var(--pptx-destructive, #fca5a5);
+	}
+
+	.pptx-svelte-ai-tool-details {
+		margin-top: 2px;
+		padding-left: 20px;
+	}
+
+	.pptx-svelte-ai-tool-details summary {
+		cursor: pointer;
+		list-style: none;
+		font-size: 10px;
+		color: color-mix(in srgb, var(--pptx-muted-foreground, #94a3b8) 70%, transparent);
+	}
+
+	.pptx-svelte-ai-tool-details summary:hover {
+		color: var(--pptx-muted-foreground, #94a3b8);
+	}
+
+	.pptx-svelte-ai-tool-details summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.pptx-svelte-ai-tool-raw {
+		margin-top: 2px;
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 10px;
+		color: color-mix(in srgb, var(--pptx-muted-foreground, #94a3b8) 80%, transparent);
+		word-break: break-word;
 	}
 
 	:global(.pptx-svelte-ai-spin) {
