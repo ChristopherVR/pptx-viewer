@@ -93,6 +93,28 @@ export const translationsEn: Record<string, string> = {
 	'pptx.ai.acceptAll': 'Accept all',
 	'pptx.ai.pendingChanges': 'Pending changes ({{count}})',
 	'pptx.ai.moreChanges': '+{{count}} more',
+	// Canvas -> Ask AI affordances
+	'pptx.ai.askAboutElement': 'Ask AI about this',
+	'pptx.ai.fixElement': 'Fix with AI',
+	// Focused-target chips
+	'pptx.ai.focusScope': 'Focus',
+	'pptx.ai.pinFocus': 'Pin this selection',
+	'pptx.ai.pinnedFocus': 'Pinned',
+	'pptx.ai.clearFocus': 'Clear focus',
+	'pptx.ai.mergeSelectedTables': 'Merge selected tables',
+	// Applied (theme) confirmation
+	'pptx.ai.applied': 'Applied',
+	'pptx.ai.undo': 'Undo',
+	// Chat history / sessions
+	'pptx.ai.chats': 'Chats',
+	'pptx.ai.newChat': 'New chat',
+	'pptx.ai.clearChat': 'Clear chat',
+	'pptx.ai.deleteChat': 'Delete chat',
+	'pptx.ai.historyTitle': 'Saved chats',
+	'pptx.ai.historyEmpty': 'No saved chats yet.',
+	'pptx.ai.historyHint': 'Chats are saved in this browser.',
+	'pptx.ai.untitledChat': 'Untitled chat',
+	'pptx.ai.messageCount': '{{count}} messages',
 
 	// Find & Replace
 	'pptx.findReplace.title': 'Find & Replace',
