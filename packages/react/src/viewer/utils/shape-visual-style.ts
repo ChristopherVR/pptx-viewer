@@ -70,6 +70,20 @@ export function getShapeVisualStyle(
 	}
 	const normalizedShapeType = getShapeType(element.shapeType);
 	const clipPath = getResolvedShapeClipPath(element);
+	// Custom-geometry shapes (freeforms) are painted by `renderVectorShape` as an
+	// SVG `<path>` that already carries the fill and stroke. Painting the fill a
+	// second time as a `backgroundColor`/`backgroundImage` on this rectangular
+	// container floods the shape's whole bounding box, so a thin balloon crescent
+	// reads as a solid rectangle. Suppress the container-level fill and border for
+	// these shapes and let the SVG path be the only paint. (Presets keep their
+	// container fill because a `clipPath` constrains it to the shape outline.)
+	const rendersCustomVectorPath =
+		(element.type === 'shape' || element.type === 'image' || element.type === 'picture') &&
+		Boolean(element.pathData) &&
+		typeof element.pathWidth === 'number' &&
+		element.pathWidth > 0 &&
+		typeof element.pathHeight === 'number' &&
+		element.pathHeight > 0;
 	const fillOpacity = element.shapeStyle?.fillOpacity;
 	const strokeOpacity = element.shapeStyle?.strokeOpacity;
 	const strokeDash = normalizeStrokeDashType(element.shapeStyle?.strokeDash);
@@ -225,6 +239,17 @@ export function getShapeVisualStyle(
 
 	// ── 3D effects (perspective + rotation + extrusion/bevel) ──
 	apply3dEffects(base, ss?.scene3d, ss?.shape3d);
+
+	// The SVG `<path>` owns the fill/stroke for freeform geometry; keep effects
+	// (shadow, glow, opacity, blend) on the container but drop the rectangular
+	// fill and border that would otherwise flood the bounding box.
+	if (rendersCustomVectorPath) {
+		base.backgroundColor = 'transparent';
+		base.backgroundImage = undefined;
+		base.borderWidth = undefined;
+		base.borderColor = undefined;
+		base.borderStyle = undefined;
+	}
 
 	if (element.type === 'connector' || normalizedShapeType === 'connector') {
 		return {

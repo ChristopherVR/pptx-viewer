@@ -64,6 +64,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return undefined;
 		}
 
+		// Scheme-slot and clrMap-alias names are stored lowercase everywhere
+		// EXCEPT `folHlink`, which keeps its camelCase form in `themeColorMap`,
+		// `getDefaultSchemeColorMap()`, and the parsed `p:clrMap`. `normalized`
+		// is lowercased, so a `<a:schemeClr val="folHlink"/>` reference (a common
+		// choice for themed accent art, e.g. the "Balloons" purple balloons)
+		// would miss every map and resolve to `undefined` -> a transparent /
+		// dropped shape. Canonicalise a lowercased token back to the stored key
+		// before every map read.
+		const canon = (key: string): string => (key.toLowerCase() === 'folhlink' ? 'folHlink' : key);
+
 		// `phClr` is a contextual placeholder — its actual value is supplied
 		// by the surrounding `fillRef`/`lnRef`/`effectRef`/`fontRef`. When
 		// `parseColorChoice` is given a `placeholderColor` it short-circuits
@@ -96,9 +106,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Phase 2 Stream B / C-H4 / C-H5.
 		const overrideMap = this.currentSlideClrMapOverride ?? this.currentMasterClrMap;
 		if (overrideMap) {
-			const remapped = overrideMap[normalized];
+			const remapped = overrideMap[canon(normalized)];
 			if (remapped) {
-				return this.themeColorMap[remapped] || this.getDefaultSchemeColorMap()[remapped];
+				const target = canon(remapped);
+				return this.themeColorMap[target] || this.getDefaultSchemeColorMap()[target];
 			}
 		} else {
 			// No clrMap on the active master — apply the canonical default
@@ -109,13 +120,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (defaultAliasTarget) {
 				return (
 					this.themeColorMap[defaultAliasTarget] ||
-					this.themeColorMap[normalized] ||
-					this.getDefaultSchemeColorMap()[normalized]
+					this.themeColorMap[canon(normalized)] ||
+					this.getDefaultSchemeColorMap()[canon(normalized)]
 				);
 			}
 		}
 
-		return this.themeColorMap[normalized] || this.getDefaultSchemeColorMap()[normalized];
+		return (
+			this.themeColorMap[canon(normalized)] || this.getDefaultSchemeColorMap()[canon(normalized)]
+		);
 	}
 
 	protected normalizeStrokeDashType(value: unknown): StrokeDashType | undefined {

@@ -37,6 +37,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			ctx.inheritedTxBody,
 			isBodyPlaceholder,
 			ctx.slidePath,
+			ctx.effectiveLevelStyles,
 		);
 		if (paragraphBulletInfo && !paragraphBulletInfo.none) {
 			let bulletText: string;

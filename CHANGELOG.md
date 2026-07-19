@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## 2026-07-19
+
+_Releases: pptx-viewer-core@1.6.7, pptx-react-viewer@1.25.2, pptx-vue-viewer@1.24.2, pptx-angular-viewer@1.31.2, pptx-vanilla-viewer@0.17.2, pptx-svelte-viewer@1.15.0_
+
+### Bug Fixes
+
+- **core:** Stop truncating interleaved custom-geometry paths ([#66](https://github.com/ChristopherVR/pptx-viewer/issues/66)) (by @ChristopherVR) ([9bbac7d](https://github.com/ChristopherVR/pptx-viewer/commit/9bbac7d024fbad8ccd476f7e2a5d993ce1ad2b1b))
+
+### Performance
+
+- **react:** Memoize the static group-child renderer (by @ChristopherVR) ([678c474](https://github.com/ChristopherVR/pptx-viewer/commit/678c47470d1b8129ddf9188a38fa17e6b3dd1246))
+- **core:** Cache layout/master XML during background resolution (by @ChristopherVR) ([9eea305](https://github.com/ChristopherVR/pptx-viewer/commit/9eea3057d62825f2c6355cf9891123a77df0c8fb))
+
 ## 2026-07-18
 
 _Releases: pptx-viewer-core@1.6.6, pptx-react-viewer@1.25.1, pptx-vue-viewer@1.24.1, pptx-angular-viewer@1.31.1, pptx-vanilla-viewer@0.17.1, pptx-svelte-viewer@1.14.0_

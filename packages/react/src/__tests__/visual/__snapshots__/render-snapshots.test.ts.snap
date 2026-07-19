@@ -151,7 +151,7 @@ exports[`element Transform Snapshots > no transform for default element 1`] = `u
 
 exports[`element Transform Snapshots > rotation transform 1`] = `"rotate(90deg)"`;
 
-exports[`element Transform Snapshots > rotation with both flips 1`] = `"scaleX(-1) scaleY(-1) rotate(45deg)"`;
+exports[`element Transform Snapshots > rotation with both flips 1`] = `"rotate(45deg) scaleX(-1) scaleY(-1)"`;
 
 exports[`element Transform Snapshots > text compensation returns undefined with no flips 1`] = `undefined`;
 

@@ -60,13 +60,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
-		// Spacing before / after
-		const spcBef = this.parseParagraphSpacingPx(levelProps['a:spcBef'] as XmlObject | undefined);
+		// Spacing before / after. Percentage spacing (`a:spcPct`) resolves against
+		// the level's own default run size (`a:defRPr/@sz`, in hundredths of a
+		// point), which is the closest size basis available at parse time.
+		const defRPrSzRaw = Number.parseInt(
+			String(
+				((levelProps['a:defRPr'] as XmlObject | undefined)?.['@_sz'] as string | undefined) || '',
+			),
+			10,
+		);
+		const basisFontSizePx = Number.isFinite(defRPrSzRaw)
+			? this.pointsToPixels(defRPrSzRaw / 100)
+			: undefined;
+		const spcBef = this.parseParagraphSpacingPx(
+			levelProps['a:spcBef'] as XmlObject | undefined,
+			basisFontSizePx,
+		);
 		if (spcBef !== undefined) {
 			style.spaceBefore = spcBef;
 		}
 
-		const spcAft = this.parseParagraphSpacingPx(levelProps['a:spcAft'] as XmlObject | undefined);
+		const spcAft = this.parseParagraphSpacingPx(
+			levelProps['a:spcAft'] as XmlObject | undefined,
+			basisFontSizePx,
+		);
 		if (spcAft !== undefined) {
 			style.spaceAfter = spcAft;
 		}

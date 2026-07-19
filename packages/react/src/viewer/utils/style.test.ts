@@ -392,7 +392,7 @@ describe('getElementTransform', () => {
 			rotation: 90,
 		} as PptxElement;
 		const result = getElementTransform(element);
-		expect(result).toBe('scaleX(-1) scaleY(-1) rotate(90deg)');
+		expect(result).toBe('rotate(90deg) scaleX(-1) scaleY(-1)');
 	});
 
 	it('should not include rotation when rotation is 0', () => {
@@ -432,7 +432,7 @@ describe('getElementTransform', () => {
 			flipHorizontal: true,
 			rotation: 180,
 		} as PptxElement;
-		expect(getElementTransform(element)).toBe('scaleX(-1) rotate(180deg)');
+		expect(getElementTransform(element)).toBe('rotate(180deg) scaleX(-1)');
 	});
 });
 

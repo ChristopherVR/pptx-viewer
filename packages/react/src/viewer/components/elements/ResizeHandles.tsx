@@ -129,7 +129,9 @@ export function ResizeHandles({
 		const rect = wrapper.getBoundingClientRect();
 		const cx = rect.left + rect.width / 2;
 		const cy = rect.top + rect.height / 2;
-		const base = nonRotationTransform ? `${nonRotationTransform} ` : '';
+		// Rotation must precede the flip/skew transforms so a live rotate-drag
+		// preview matches the resting `getElementTransform` order (rotate first).
+		const base = nonRotationTransform ? ` ${nonRotationTransform}` : '';
 		const startDeg = rotation ?? 0;
 		let last = startDeg;
 		if (pointerId !== undefined) {
@@ -145,7 +147,7 @@ export function ResizeHandles({
 			}
 			deg = Math.round(((deg % 360) + 360) % 360);
 			last = deg;
-			wrapper.style.transform = `${base}rotate(${deg}deg)`;
+			wrapper.style.transform = `rotate(${deg}deg)${base}`;
 		};
 		const onPointerMove = (ev: PointerEvent): void => apply(ev.clientX, ev.clientY, ev.shiftKey);
 		const end = (): void => {
