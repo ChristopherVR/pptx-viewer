@@ -83,6 +83,9 @@ export { buildPptxAiSystemPrompt, buildPptxAiTools } from './server';
 
 export { applyElementUpdate, applyShapeStyleUpdate, applyTextUpdate } from './tools/mutations';
 
+export { mergeTableElements } from './table-merge';
+export type { MergeTableOptions, TableMergeDirection } from './table-merge';
+
 export { toRenderableParts } from './ui-parts';
 export type {
 	AiUiMessage,

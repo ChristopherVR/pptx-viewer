@@ -213,6 +213,19 @@ export const TOOL_DEFINITIONS: Record<PptxAiToolName, ToolDefinition> = {
 			['slideIndex', 'elementId', 'seriesIndex'],
 		),
 	},
+	merge_tables: {
+		description:
+			'Merge two table elements on a slide into one. vertical (default) appends the second table rows beneath the first; horizontal appends the second table columns to the first. Removes both originals and adds the merged table.',
+		inputSchema: obj(
+			{
+				slideIndex,
+				elementIdA: str('Id of the first (base) table; its style is kept.'),
+				elementIdB: str('Id of the second table, appended to the first.'),
+				direction: enm(['vertical', 'horizontal'], 'Merge direction. Default vertical.'),
+			},
+			['slideIndex', 'elementIdA', 'elementIdB'],
+		),
+	},
 	replace_all: {
 		description: 'Find-and-replace text across the whole deck.',
 		inputSchema: obj(

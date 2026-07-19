@@ -18,6 +18,7 @@ import type { ProposalStore } from '../proposals';
 import { editDataExecutors } from './edit-data-tools';
 import { editExecutors } from './edit-tools';
 import type { AiToolContext, AiToolExecutor } from './executor-base';
+import { mergeExecutors } from './merge-tools';
 import { navExecutors } from './nav-tools';
 import { readExecutors } from './read-tools';
 import { TOOL_DEFINITIONS } from './schemas';
@@ -30,6 +31,7 @@ const ALL_EXECUTORS: Record<string, AiToolExecutor> = {
 	...navExecutors,
 	...editExecutors,
 	...editDataExecutors,
+	...mergeExecutors,
 	...slideExecutors,
 	...themeExecutors,
 };

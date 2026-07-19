@@ -38,6 +38,7 @@ export type PptxAiToolName =
 	| 'group_elements'
 	| 'update_table_cell'
 	| 'update_chart_data'
+	| 'merge_tables'
 	| 'replace_all'
 	// slide editing
 	| 'add_slide'
