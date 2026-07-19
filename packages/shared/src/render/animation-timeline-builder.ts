@@ -26,6 +26,35 @@ import type {
 } from './animation-timeline-types';
 
 // ==========================================================================
+// Unmapped-preset safety net
+// ==========================================================================
+
+/**
+ * Resolve a fallback {@link EffectName} for an animation whose preset we do
+ * not model (no static effect and no dynamic keyframe).
+ *
+ * Without this, an unmapped animation was silently dropped, which broke slide
+ * visibility semantics: an unmapped **entrance** was never registered as
+ * hidden-until-its-start, so it stayed visible from the very first frame; an
+ * unmapped **exit** never hid its element. We substitute a neutral fade so the
+ * element still transitions in (entrance) or out (exit) at the correct time.
+ *
+ * Emphasis / motion-path presets carry no show/hide semantics, so a missing
+ * one is safe to skip and returns `undefined`.
+ */
+function fallbackEffectForClass(
+	presetClass: PptxNativeAnimation['presetClass'],
+): EffectName | undefined {
+	if (presetClass === 'entr') {
+		return 'fadeIn';
+	}
+	if (presetClass === 'exit') {
+		return 'fadeOut';
+	}
+	return undefined;
+}
+
+// ==========================================================================
 // Timeline builder
 // ==========================================================================
 
@@ -95,10 +124,15 @@ export function buildTimeline(
 		const expandedSteps = expandIterateAnimation(anim);
 
 		for (const singleAnim of expandedSteps) {
-			const effect = resolveEffect(singleAnim);
+			let effect = resolveEffect(singleAnim);
 			const dynamic = effect ? undefined : buildDynamicKeyframe(singleAnim, dynamicUid++);
 			if (!effect && !dynamic) {
-				continue;
+				// Unmapped preset: fall back so an entrance is still hidden until
+				// its start and an exit still hides, rather than being dropped.
+				effect = fallbackEffectForClass(singleAnim.presetClass);
+				if (!effect) {
+					continue;
+				}
 			}
 
 			const keyframe = effect ? cssKeyframeName(effect) : dynamic!.keyframeName;
@@ -303,10 +337,14 @@ function buildSequenceGroups(
 		let seqGroup: TimelineStep[] = [];
 
 		for (const anim of anims) {
-			const effect = resolveEffect(anim);
+			let effect = resolveEffect(anim);
 			const dynamic = effect ? undefined : buildDynamicKeyframe(anim, dynamicUid++);
 			if (!effect && !dynamic) {
-				continue;
+				// Same unmapped-preset safety net as the main timeline loop.
+				effect = fallbackEffectForClass(anim.presetClass);
+				if (!effect) {
+					continue;
+				}
 			}
 
 			const keyframe = effect ? cssKeyframeName(effect) : dynamic!.keyframeName;

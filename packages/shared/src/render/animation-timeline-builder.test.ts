@@ -367,4 +367,44 @@ describe('buildTimeline', () => {
 		// default for emph is 800ms
 		expect(result.clickGroups[0].steps[0].durationMs).toBe(800);
 	});
+
+	// -------------------------------------------------------------------
+	// Issue #81: unmapped presets are not silently dropped (which left
+	// entrances visible / exits never hiding).
+	// -------------------------------------------------------------------
+	it('keeps an unmapped entrance hidden-until-start instead of dropping it', () => {
+		const result = buildTimeline([
+			makeAnim({ targetId: 'el1', presetClass: 'entr', presetId: 99999 }),
+		]);
+		// The element must be registered as an entrance (initially hidden) ...
+		expect(result.entranceElementIds.has('el1')).toBeTruthy();
+		// ... and still produce a step so it becomes visible at its start.
+		expect(result.clickGroups).toHaveLength(1);
+		const step = result.clickGroups[0].steps[0];
+		expect(step.elementId).toBe('el1');
+		expect(step.keyframeName).toBe('pptx-fadeIn');
+		expect(step.presetClass).toBe('entr');
+	});
+
+	it('still hides an element with an unmapped exit preset', () => {
+		const result = buildTimeline([
+			makeAnim({ targetId: 'el1', presetClass: 'exit', presetId: 99999 }),
+		]);
+		// An unmapped exit is not an entrance ...
+		expect(result.entranceElementIds.has('el1')).toBeFalsy();
+		// ... but still produces a hiding step (fade out, fill forwards).
+		expect(result.clickGroups).toHaveLength(1);
+		const step = result.clickGroups[0].steps[0];
+		expect(step.keyframeName).toBe('pptx-fadeOut');
+		expect(step.fillMode).toBe('forwards');
+	});
+
+	it('does not fabricate a step for an unmapped emphasis preset', () => {
+		// Emphasis carries no show/hide semantics, so a missing one is skipped.
+		const result = buildTimeline([
+			makeAnim({ targetId: 'el1', presetClass: 'emph', presetId: 99999 }),
+		]);
+		expect(result.clickGroups).toHaveLength(0);
+		expect(result.entranceElementIds.has('el1')).toBeFalsy();
+	});
 });
