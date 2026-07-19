@@ -30,9 +30,13 @@ export type {
 	PptxAiBridge,
 	PptxAiDeckMeta,
 	PptxAiElementUpdate,
+	PptxAiFocusedTarget,
 	PptxAiNotifyLevel,
 	PptxAiSlidesUpdater,
 } from './bridge';
+
+export { buildDeckContext, buildFocusedTargetsContext } from './focused-context';
+export type { FocusedContextOptions } from './focused-context';
 
 export { ProposalStore } from './proposals';
 export type { ProposalView, StagedProposal } from './proposals';

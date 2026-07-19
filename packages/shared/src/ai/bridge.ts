@@ -32,6 +32,15 @@ export interface PptxAiDeckMeta {
 export type PptxAiNotifyLevel = 'info' | 'success' | 'warning' | 'error';
 
 /**
+ * A target the user has scoped the assistant to: either a whole slide or a
+ * single element on a slide. Returned by {@link PptxAiBridge.getFocusedTargets}
+ * so the context builder can tell the model exactly what to focus on.
+ */
+export type PptxAiFocusedTarget =
+	| { kind: 'slide'; slideIndex: number }
+	| { kind: 'element'; slideIndex: number; elementId: string };
+
+/**
  * A pure updater over the deck's slides. It receives a deep clone of the
  * current slides (mutation-safe) and returns the next slides array. The bridge
  * commits the returned array as ONE history entry.
@@ -98,6 +107,16 @@ export interface PptxAiBridge {
 	updateElement(slideIndex: number, elementId: string, updates: PptxAiElementUpdate): void;
 	/** Apply partial theme updates as a single history entry. */
 	applyTheme(updates: Partial<PptxTheme>): void;
+
+	// ── focus (optional) ───────────────────────────────────────────────────────
+	/**
+	 * Return the slides / elements the user has scoped the assistant to, if any.
+	 * When present and non-empty, the context builder tells the model to focus on
+	 * exactly these targets. Optional so existing bridges satisfy the contract
+	 * without change; a bridge that does not implement it behaves as before (no
+	 * focus scoping).
+	 */
+	getFocusedTargets?(): PptxAiFocusedTarget[];
 
 	// ── ui (optional) ────────────────────────────────────────────────────────
 	/** Surface a transient message in the host UI (toast / status line). */
