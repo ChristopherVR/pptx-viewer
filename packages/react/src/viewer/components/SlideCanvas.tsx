@@ -84,6 +84,7 @@ export function SlideCanvas({
 	fieldContext,
 	tableStyleContext,
 	collaborationOverlay,
+	aiActive = false,
 }: SlideCanvasProps) {
 	// True when the stage is an interactive editing surface (drag/resize/marquee
 	// are live). Drives touch-action: none and the touch pointer-down wiring so
@@ -209,6 +210,7 @@ export function SlideCanvas({
 					role='region'
 					aria-label={`Slide ${(activeSlideIndex ?? 0) + 1}`}
 					aria-roledescription='slide'
+					data-pptx-ai-active={aiActive ? 'true' : undefined}
 					className='relative shadow-2xl'
 					style={{
 						width: canvasSize.width,

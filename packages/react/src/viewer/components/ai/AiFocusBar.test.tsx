@@ -68,6 +68,11 @@ describe('aiFocusBar merge action', () => {
 					onSendDirective={(text) => {
 						sent = text;
 					}}
+					pickMode={false}
+					hasPicks={false}
+					onStartPick={() => {}}
+					onStopPick={() => {}}
+					onClearPicks={() => {}}
 				/>,
 			),
 		);
@@ -95,6 +100,11 @@ describe('aiFocusBar merge action', () => {
 					onPin={() => {}}
 					onClearPin={() => {}}
 					onSendDirective={() => {}}
+					pickMode={false}
+					hasPicks={false}
+					onStartPick={() => {}}
+					onStopPick={() => {}}
+					onClearPicks={() => {}}
 				/>,
 			),
 		);
@@ -102,5 +112,45 @@ describe('aiFocusBar merge action', () => {
 			b.textContent?.includes('Merge selected tables'),
 		);
 		expect(mergeBtn).toBeFalsy();
+	});
+});
+
+describe('aiFocusBar pick mode', () => {
+	it('the crosshair button starts picking and the hint shows in pick mode', () => {
+		let started = 0;
+		const rerender = (pickMode: boolean) =>
+			act(() =>
+				root.render(
+					<AiFocusBar
+						targets={[{ kind: 'slide', slideIndex: 0 }]}
+						slides={tableSlides()}
+						isPinned={false}
+						onPin={() => {}}
+						onClearPin={() => {}}
+						onSendDirective={() => {}}
+						pickMode={pickMode}
+						hasPicks={false}
+						onStartPick={() => {
+							started += 1;
+						}}
+						onStopPick={() => {}}
+						onClearPicks={() => {}}
+					/>,
+				),
+			);
+
+		rerender(false);
+		const pickBtn = [...container.querySelectorAll('button')].find(
+			(b) => b.getAttribute('aria-label') === 'Pick an element for the assistant',
+		);
+		expect(pickBtn).toBeTruthy();
+		expect(container.textContent).not.toContain('Click an element on the slide');
+
+		act(() => pickBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+		expect(started).toBe(1);
+
+		// While picking, the panel prompts the user to click a canvas element.
+		rerender(true);
+		expect(container.textContent).toContain('Click an element on the slide');
 	});
 });

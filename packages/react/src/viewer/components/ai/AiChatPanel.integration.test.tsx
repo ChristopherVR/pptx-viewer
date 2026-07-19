@@ -225,6 +225,15 @@ describe('aiChatPanel integration', () => {
 						prefill: { text: '', nonce: 0 },
 						askAboutSelection: () => {},
 						fixSelection: () => {},
+						pickMode: false,
+						startPicking: () => {},
+						stopPicking: () => {},
+						pickTargets: [],
+						addPick: () => {},
+						clearPicks: () => {},
+						canvasHighlights: [],
+						canvasAnimating: false,
+						flashToolTarget: () => {},
 					},
 					onClose: () => {},
 				}),
@@ -250,7 +259,7 @@ describe('aiChatPanel integration', () => {
 		});
 
 		// The scripted tool call stages a proposal; the review card renders.
-		await waitForDom(host, 'Proposed change');
+		await waitForDom(host, 'Suggested change');
 		expect(host.textContent).toContain('AI Edited Title');
 		// Not applied yet: the deck is untouched.
 		expect(applied).toHaveLength(0);
@@ -258,7 +267,7 @@ describe('aiChatPanel integration', () => {
 
 		// Accept routes through the ProposalStore to the bridge choke point.
 		act(() => {
-			findButton(host as HTMLElement, 'Accept').dispatchEvent(
+			findButton(host as HTMLElement, 'Apply').dispatchEvent(
 				new MouseEvent('click', { bubbles: true }),
 			);
 		});
@@ -267,6 +276,6 @@ describe('aiChatPanel integration', () => {
 		expect(applied).toHaveLength(1);
 		expect((current()[0].elements[0] as { text: string }).text).toBe('AI Edited Title');
 		// The review strip clears once the proposal is applied.
-		expect(host.textContent).not.toContain('Proposed change');
+		expect(host.textContent).not.toContain('Suggested change');
 	});
 });

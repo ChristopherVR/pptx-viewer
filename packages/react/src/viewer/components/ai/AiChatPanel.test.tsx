@@ -62,6 +62,15 @@ function stubPanel(): AiPanelController {
 		prefill: { text: '', nonce: 0 },
 		askAboutSelection: () => {},
 		fixSelection: () => {},
+		pickMode: false,
+		startPicking: () => {},
+		stopPicking: () => {},
+		pickTargets: [],
+		addPick: () => {},
+		clearPicks: () => {},
+		canvasHighlights: [],
+		canvasAnimating: false,
+		flashToolTarget: () => {},
 	};
 }
 

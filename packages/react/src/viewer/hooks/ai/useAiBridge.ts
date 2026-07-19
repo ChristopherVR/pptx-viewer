@@ -39,6 +39,11 @@ export interface UseAiBridgeInput {
 	 * for {@link PptxAiBridge.getFocusedTargets}; null means "follow selection".
 	 */
 	pinnedFocus: PptxAiFocusedTarget[] | null;
+	/**
+	 * Elements the user explicitly picked (pick mode). When non-empty these are
+	 * the assistant's focus, winning over a pin and the live selection.
+	 */
+	pickedFocus?: PptxAiFocusedTarget[] | null;
 	handlerRef: RefObject<PptxHandler | null>;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 	setActiveSlideIndex: (index: number) => void;
@@ -111,6 +116,10 @@ export function useAiBridge(input: UseAiBridgeInput): PptxAiBridge {
 			},
 			getFocusedTargets(): PptxAiFocusedTarget[] {
 				const live = ref.current;
+				// Explicit picks (pick mode) are the strongest signal of intent.
+				if (live.pickedFocus && live.pickedFocus.length > 0) {
+					return live.pickedFocus;
+				}
 				// A pinned focus (set from the chat) wins over the live selection so
 				// the assistant stays scoped even after the user clicks elsewhere.
 				if (live.pinnedFocus && live.pinnedFocus.length > 0) {

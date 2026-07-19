@@ -87,6 +87,14 @@ export interface ViewerCanvasAreaProps {
 	};
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
 	hiddenActions?: readonly ToolbarActionId[];
+	/** True while the AI panel is in "pick an element" mode. */
+	aiPickMode?: boolean;
+	/** Route a picked canvas element to the AI focus (pick mode). */
+	onAiPickElement?: (slideIndex: number, elementId: string) => void;
+	/** Overlay node drawing the AI focus highlight rings on the stage. */
+	aiHighlightOverlay?: React.ReactNode;
+	/** True while AI activity should tween element colour changes on the canvas. */
+	aiCanvasActive?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -115,6 +123,10 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 		onEndPresentation,
 		findReplace,
 		hiddenActions,
+		aiPickMode = false,
+		onAiPickElement,
+		aiHighlightOverlay,
+		aiCanvasActive = false,
 	} = props;
 	const { t } = useTranslation();
 	const { isHidden } = useToolbarVisibility(hiddenActions);
@@ -273,11 +285,29 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 		onPrev: handleSwipePrev,
 	});
 
+	// ── AI pick mode ───────────────────────────────────────────────────
+	// While the AI panel is picking, the next element click(s) become the
+	// assistant's focus (and get highlighted) instead of selecting / inline
+	// editing. mousedown is swallowed so a pick never starts a drag.
+	const pickActive = aiPickMode && Boolean(onAiPickElement) && mode === 'edit';
+	const handleElementClick = pickActive
+		? (elementId: string, e: React.MouseEvent) => {
+				e.stopPropagation();
+				onAiPickElement?.(activeSlideIndex, elementId);
+			}
+		: canvasHandlers.handleElementClick;
+	const handleElementMouseDown = pickActive
+		? (_elementId: string, e: React.MouseEvent) => {
+				e.stopPropagation();
+			}
+		: canvasHandlers.handleElementMouseDown;
+
 	return (
 		// eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the canvas area hosts swipe navigation and the presentation-mode right-click menu; it has no interactive semantics of its own
 		<main
 			aria-label={t('pptx.viewer.slideEditorAria')}
-			className='flex-1 min-w-0 relative flex flex-col bg-background'
+			data-ai-pick-mode={pickActive ? 'true' : undefined}
+			className={`flex-1 min-w-0 relative flex flex-col bg-background${pickActive ? ' cursor-crosshair' : ''}`}
 			onTouchStart={swipe.onTouchStart}
 			onTouchEnd={swipe.onTouchEnd}
 			onContextMenu={mode === 'present' ? handlePresentationContextMenu : undefined}
@@ -340,9 +370,9 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					presentationKeyframesCss={
 						mode === 'present' ? presentation.presentationKeyframesCss : undefined
 					}
-					onClick={canvasHandlers.handleElementClick}
+					onClick={handleElementClick}
 					onDoubleClick={canvasHandlers.handleElementDoubleClick}
-					onMouseDown={canvasHandlers.handleElementMouseDown}
+					onMouseDown={handleElementMouseDown}
 					onContextMenu={canvasHandlers.handleElementContextMenu}
 					onCanvasMouseDown={canvasHandlers.handleCanvasMouseDown}
 					onResizePointerDown={canvasHandlers.handleResizePointerDown}
@@ -376,6 +406,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					sourceSlideIndex={mode === 'present' ? activeSlideIndex : undefined}
 					fieldContext={fieldContext}
 					tableStyleContext={tableStyleContext}
+					aiActive={aiCanvasActive}
 					collaborationOverlay={
 						<>
 							<RemoteSelectionOverlay
@@ -388,6 +419,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 								canvasHeight={canvasSize.height}
 								selectedElementId={s.selectedElementId}
 							/>
+							{aiHighlightOverlay}
 						</>
 					}
 					comments={activeSlide?.comments}

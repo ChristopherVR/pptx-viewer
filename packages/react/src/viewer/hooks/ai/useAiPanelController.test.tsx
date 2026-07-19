@@ -90,4 +90,53 @@ describe('useAiPanelController', () => {
 		act(() => h.api().clearPinnedFocus());
 		expect(h.api().pinnedFocus).toBeNull();
 	});
+
+	it('startPicking enters pick mode and opens the panel', () => {
+		const h = mount(baseInput);
+		expect(h.api().pickMode).toBeFalsy();
+		act(() => h.api().startPicking());
+		expect(h.api().pickMode).toBeTruthy();
+		expect(h.api().isOpen).toBeTruthy();
+	});
+
+	it('a simulated canvas pick becomes a focus target and a canvas highlight', () => {
+		const h = mount(baseInput);
+		act(() => h.api().startPicking());
+		act(() => h.api().addPick(2, 'rect-5'));
+
+		expect(h.api().pickTargets).toStrictEqual([
+			{ kind: 'element', slideIndex: 2, elementId: 'rect-5' },
+		]);
+		// The pick drives an on-canvas ring (variant 'pick').
+		expect(h.api().canvasHighlights).toStrictEqual([
+			{ slideIndex: 2, elementId: 'rect-5', variant: 'pick' },
+		]);
+
+		// A second pick supports multi-element intents (e.g. "merge these tables").
+		act(() => h.api().addPick(2, 'tbl-9'));
+		expect(h.api().pickTargets).toHaveLength(2);
+		// Duplicate picks are ignored.
+		act(() => h.api().addPick(2, 'tbl-9'));
+		expect(h.api().pickTargets).toHaveLength(2);
+
+		act(() => h.api().clearPicks());
+		expect(h.api().pickTargets).toHaveLength(0);
+		expect(h.api().pickMode).toBeFalsy();
+		expect(h.api().canvasHighlights).toHaveLength(0);
+	});
+
+	it('flashToolTarget highlights the running tool element and enables tweening', () => {
+		const h = mount(baseInput);
+		act(() => h.api().flashToolTarget({ slideIndex: 4, elementIds: ['shape-1', 'shape-2'] }));
+		expect(h.api().canvasAnimating).toBeTruthy();
+		expect(h.api().canvasHighlights).toStrictEqual([
+			{ slideIndex: 4, elementId: 'shape-1', variant: 'active' },
+			{ slideIndex: 4, elementId: 'shape-2', variant: 'active' },
+		]);
+
+		// A deck-wide tool (null target) still enables colour tweening.
+		act(() => h.api().flashToolTarget(null));
+		expect(h.api().canvasAnimating).toBeTruthy();
+		expect(h.api().canvasHighlights).toHaveLength(0);
+	});
 });

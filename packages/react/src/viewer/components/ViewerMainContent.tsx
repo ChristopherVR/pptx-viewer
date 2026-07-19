@@ -21,6 +21,7 @@ import type { ViewerState } from '../hooks/useViewerState';
 import type { UseZoomViewportResult } from '../hooks/useZoomViewport';
 import type { CanvasSize, SlideSectionGroup } from '../types';
 import type { ViewerMode } from '../types-core';
+import { AiFocusHighlightOverlay } from './ai';
 import { ChartPartSelectionProvider } from './chart-part-selection';
 import { ResizeHandle } from './ResizeHandle';
 import { ViewerCanvasArea } from './ViewerCanvasArea';
@@ -241,6 +242,18 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 					onEndPresentation={onEndPresentation}
 					findReplace={findReplace}
 					hiddenActions={hiddenActions}
+					aiPickMode={aiPanel?.pickMode}
+					onAiPickElement={aiPanel ? aiPanel.addPick : undefined}
+					aiCanvasActive={aiPanel?.canvasAnimating}
+					aiHighlightOverlay={
+						aiPanel ? (
+							<AiFocusHighlightOverlay
+								highlights={aiPanel.canvasHighlights}
+								elements={activeSlide?.elements ?? []}
+								activeSlideIndex={activeSlideIndex}
+							/>
+						) : undefined
+					}
 				/>
 
 				{state.contextMenuState && (

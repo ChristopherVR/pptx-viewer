@@ -15,7 +15,9 @@ import type {
 	PptxAiConfig,
 	PptxAiUIMessage,
 	ProposalView,
+	ToolCanvasTarget,
 } from 'pptx-viewer-shared/ai';
+import { toolCanvasTarget } from 'pptx-viewer-shared/ai';
 import { useCallback, useMemo, useReducer, useRef } from 'react';
 
 import type { AiUiMessage } from '../../components/ai/ai-message-parts';
@@ -53,13 +55,27 @@ export interface UseAiConversationResult {
 	acceptAllProposals: () => void;
 }
 
+/** Optional hooks the panel wires in (e.g. to drive the live on-canvas focus). */
+export interface UseAiConversationOptions {
+	/**
+	 * Called as each tool call starts, with the slide / element(s) it references
+	 * (or `null` for deck-wide tools). Lets the panel navigate + highlight the
+	 * canvas so the viewer reflects what the assistant is doing in real time.
+	 */
+	onToolTarget?: (target: ToolCanvasTarget | null) => void;
+}
+
 export function useAiConversation(
 	session: PptxAiChatSession,
 	config: PptxAiConfig,
 	bridge: PptxAiBridge,
+	options: UseAiConversationOptions = {},
 ): UseAiConversationResult {
 	const [, forceRefresh] = useReducer((n: number) => n + 1, 0);
 	const chatRef = useRef<ReturnType<typeof useChat> | null>(null);
+	// Read the latest callback from a ref so useChat is not rebuilt when it changes.
+	const onToolTargetRef = useRef(options.onToolTarget);
+	onToolTargetRef.current = options.onToolTarget;
 
 	// In `model` mode the in-process agent runs the whole tool loop, so the
 	// client must NOT execute tools (that double-stages every proposal) nor
@@ -86,6 +102,9 @@ export function useAiConversation(
 					if (!current) {
 						return;
 					}
+					// Drive the live on-canvas focus: navigate + highlight the element(s)
+					// this tool touches, so the viewer mirrors the assistant in real time.
+					onToolTargetRef.current?.(toolCanvasTarget(toolName, input));
 					const addToolOutput = current.addToolOutput as unknown as AddToolOutput;
 					try {
 						const output = await session.executeToolCall(toolName, input);

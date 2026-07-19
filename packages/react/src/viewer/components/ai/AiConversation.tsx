@@ -29,7 +29,17 @@ export interface AiConversationProps {
 
 export function AiConversation({ session, config, bridge, aiPanel, deckId }: AiConversationProps) {
 	const { t } = useTranslation();
-	const chat = useAiConversation(session, config, bridge);
+	const chat = useAiConversation(session, config, bridge, {
+		// Live "AI as a collaborator" focus: as each tool runs, navigate to and
+		// highlight the slide / element(s) it touches so the canvas mirrors the
+		// assistant in real time (and colour edits tween while it is active).
+		onToolTarget: (target) => {
+			if (target && target.slideIndex !== undefined) {
+				bridge.goToSlide(target.slideIndex);
+			}
+			aiPanel.flashToolTarget(target);
+		},
+	});
 	const history = useAiHistory({
 		deckId,
 		messages: chat.messages,
@@ -37,8 +47,23 @@ export function AiConversation({ session, config, bridge, aiPanel, deckId }: AiC
 	});
 	const [historyOpen, setHistoryOpen] = useState(false);
 
-	const effectiveTargets = aiPanel.pinnedFocus ?? aiPanel.liveFocusTargets;
-	const isPinned = aiPanel.pinnedFocus !== null;
+	// Explicit picks win over a pin, which wins over the live selection.
+	const hasPicks = aiPanel.pickTargets.length > 0;
+	const effectiveTargets = hasPicks
+		? aiPanel.pickTargets
+		: (aiPanel.pinnedFocus ?? aiPanel.liveFocusTargets);
+	const isPinned = !hasPicks && aiPanel.pinnedFocus !== null;
+
+	// Applying a suggestion briefly enables the canvas colour tween so the edit
+	// fades in rather than snapping (proposals apply outside the tool loop).
+	const applyProposal = (id: string) => {
+		aiPanel.flashToolTarget(null);
+		chat.applyProposal(id);
+	};
+	const acceptAllProposals = () => {
+		aiPanel.flashToolTarget(null);
+		chat.acceptAllProposals();
+	};
 
 	return (
 		<div className='relative flex min-h-0 flex-1 flex-col'>
@@ -92,6 +117,11 @@ export function AiConversation({ session, config, bridge, aiPanel, deckId }: AiC
 				onPin={aiPanel.pinFocus}
 				onClearPin={aiPanel.clearPinnedFocus}
 				onSendDirective={chat.send}
+				pickMode={aiPanel.pickMode}
+				hasPicks={hasPicks}
+				onStartPick={aiPanel.startPicking}
+				onStopPick={aiPanel.stopPicking}
+				onClearPicks={aiPanel.clearPicks}
 			/>
 
 			<AiMessageList messages={chat.messages} isStreaming={chat.isStreaming} bridge={bridge} />
@@ -101,7 +131,7 @@ export function AiConversation({ session, config, bridge, aiPanel, deckId }: AiC
 					<LuTriangleAlert className='mt-0.5 w-3.5 h-3.5 shrink-0' />
 					<div className='min-w-0 flex-1'>
 						<div className='font-medium'>{t('pptx.ai.errorPrefix')}</div>
-						<div className='truncate text-[11px] opacity-80' title={chat.error.message}>
+						<div className='max-h-24 overflow-y-auto break-words text-[11px] opacity-80'>
 							{chat.error.message}
 						</div>
 					</div>
@@ -124,7 +154,7 @@ export function AiConversation({ session, config, bridge, aiPanel, deckId }: AiC
 						{chat.proposals.length > 1 && (
 							<button
 								type='button'
-								onClick={chat.acceptAllProposals}
+								onClick={acceptAllProposals}
 								className='rounded-sm bg-primary/90 px-2 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary'
 							>
 								{t('pptx.ai.acceptAll')}
@@ -135,7 +165,7 @@ export function AiConversation({ session, config, bridge, aiPanel, deckId }: AiC
 						<AiProposalCard
 							key={proposal.id}
 							proposal={proposal}
-							onAccept={chat.applyProposal}
+							onAccept={applyProposal}
 							onReject={chat.rejectProposal}
 						/>
 					))}

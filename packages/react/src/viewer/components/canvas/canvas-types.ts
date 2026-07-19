@@ -186,4 +186,11 @@ export interface SlideCanvasProps {
 	/* ── Collaboration overlay ────────────────────────────────────────── */
 	/** Optional collaboration cursor overlay rendered on top of the canvas. */
 	collaborationOverlay?: React.ReactNode;
+
+	/* ── AI activity ──────────────────────────────────────────────────── */
+	/**
+	 * When true, the stage marks itself `data-pptx-ai-active` so element colour
+	 * changes tween while the AI assistant is working (see AiFocusHighlightOverlay).
+	 */
+	aiActive?: boolean;
 }
