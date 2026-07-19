@@ -11,3 +11,5 @@ export { routeWrite, requireSlide, requireElement } from './executor-base';
 
 export { buildToolExecutors, buildToolSet, enabledToolNames } from './registry';
 export type { BoundExecutor } from './registry';
+
+export type { ThemeApplyResult } from './theme-tools';

@@ -27,7 +27,12 @@ How to work:
 - Colours are hex strings such as #1a1a1a.
 - After acting, briefly tell the user what you did or are proposing, and cite
   slide numbers (1-based for the user, even though tool indexes are 0-based).
-- If a request is ambiguous or destructive, ask a short clarifying question first.`;
+- If a request is ambiguous or destructive, ask a short clarifying question first.
+- Theme edits are the exception to staging: apply_theme_preset, update_theme_colors,
+  and update_theme_fonts take effect IMMEDIATELY and are undoable by the user. Say
+  you HAVE applied a theme change (e.g. "I've set the accent colour to red"), never
+  that you are proposing it; the user sees an inline "Applied" confirmation with an
+  Undo control, not a proposal card.`;
 
 const WRITE_POLICY_NOTES: Record<PptxAiWritePolicy, string> = {
 	stage: `Write etiquette: your edits are STAGED as proposals, not applied immediately.

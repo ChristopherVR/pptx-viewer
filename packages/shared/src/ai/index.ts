@@ -66,6 +66,7 @@ export type {
 	AiToolExecutor,
 	BoundExecutor,
 	JsonSchema,
+	ThemeApplyResult,
 	ToolDefinition,
 	WriteRouteResult,
 } from './tools';

@@ -3,6 +3,11 @@
  * colours / fonts. Theme edits are not slide mutations, so they route through
  * {@link PptxAiBridge.applyTheme} (a single undoable history entry) rather than
  * the slides-oriented proposal store.
+ *
+ * Because these apply IMMEDIATELY (not staged), each executor returns a
+ * `previous` snapshot of the fields it overwrote plus a human `summary`, so the
+ * host can render an inline "Applied: ... (Undo)" confirmation that restores the
+ * prior values via {@link PptxAiBridge.applyTheme}.
  */
 
 import { getThemePreset, ThemePresets } from 'pptx-viewer-core';
@@ -17,13 +22,34 @@ import type { AiToolContext, AiToolExecutor } from './executor-base';
 
 type ColorKey = keyof PptxThemeColorScheme;
 
-const applyThemePreset: AiToolExecutor = (ctx: AiToolContext, input: unknown) => {
+/** Shape returned by every theme executor (drives the inline "Applied" chip). */
+export interface ThemeApplyResult {
+	applied: true;
+	/** Discriminates the confirmation copy. */
+	themeEdit: 'preset' | 'colors' | 'fonts';
+	/** One-line human summary, e.g. `Applied theme preset "Vermilion"`. */
+	summary: string;
+	/** Fields to pass back to `applyTheme` to undo this edit. */
+	previous: Partial<PptxTheme>;
+	/** Preset name, when a preset was applied. */
+	appliedPreset?: string;
+}
+
+const applyThemePreset: AiToolExecutor = (ctx: AiToolContext, input: unknown): ThemeApplyResult => {
 	const p = input as { presetName: string };
 	const preset = getThemePreset(p.presetName as ThemePresetName);
 	if (!preset) {
 		throw new Error(
 			`Unknown theme preset "${p.presetName}". Available: ${Object.keys(ThemePresets).join(', ')}`,
 		);
+	}
+	const current = ctx.bridge.getTheme();
+	const previous: Partial<PptxTheme> = {};
+	if (current?.colorScheme) {
+		previous.colorScheme = { ...current.colorScheme };
+	}
+	if (current?.fontScheme) {
+		previous.fontScheme = { ...current.fontScheme };
 	}
 	const updates: Partial<PptxTheme> = {
 		name: preset.name,
@@ -33,34 +59,52 @@ const applyThemePreset: AiToolExecutor = (ctx: AiToolContext, input: unknown) =>
 		updates.fontScheme = preset.fonts as unknown as PptxThemeFontScheme;
 	}
 	ctx.bridge.applyTheme(updates);
-	return { applied: true, appliedPreset: p.presetName };
+	return {
+		applied: true,
+		themeEdit: 'preset',
+		summary: `Applied theme preset "${preset.name}"`,
+		previous,
+		appliedPreset: p.presetName,
+	};
 };
 
-const updateThemeColors: AiToolExecutor = (ctx: AiToolContext, input: unknown) => {
+const updateThemeColors: AiToolExecutor = (
+	ctx: AiToolContext,
+	input: unknown,
+): ThemeApplyResult => {
 	const p = input as Partial<Record<ColorKey, string>>;
 	const current = ctx.bridge.getTheme()?.colorScheme;
 	const colorScheme: PptxThemeColorScheme = { ...(current ?? DEFAULT_SCHEME) };
-	let changed = 0;
+	const changedKeys: ColorKey[] = [];
 	for (const key of Object.keys(p) as ColorKey[]) {
 		const value = p[key];
 		if (typeof value === 'string') {
 			colorScheme[key] = value;
-			changed += 1;
+			changedKeys.push(key);
 		}
 	}
-	if (changed === 0) {
+	if (changedKeys.length === 0) {
 		throw new Error('No colour fields supplied.');
 	}
 	ctx.bridge.applyTheme({ colorScheme });
-	return { applied: true, updatedColors: changed };
+	return {
+		applied: true,
+		themeEdit: 'colors',
+		summary:
+			changedKeys.length === 1
+				? `Applied theme colour ${changedKeys[0]}`
+				: `Applied ${changedKeys.length} theme colours`,
+		previous: { colorScheme: { ...(current ?? DEFAULT_SCHEME) } },
+	};
 };
 
-const updateThemeFonts: AiToolExecutor = (ctx: AiToolContext, input: unknown) => {
+const updateThemeFonts: AiToolExecutor = (ctx: AiToolContext, input: unknown): ThemeApplyResult => {
 	const p = input as { majorFont?: string; minorFont?: string };
 	if (!p.majorFont && !p.minorFont) {
 		throw new Error('Supply majorFont and/or minorFont.');
 	}
-	const fontScheme: PptxThemeFontScheme = { ...(ctx.bridge.getTheme()?.fontScheme ?? {}) };
+	const currentFonts = ctx.bridge.getTheme()?.fontScheme;
+	const fontScheme: PptxThemeFontScheme = { ...(currentFonts ?? {}) };
 	if (p.majorFont) {
 		fontScheme.majorFont = { latin: p.majorFont };
 	}
@@ -68,7 +112,13 @@ const updateThemeFonts: AiToolExecutor = (ctx: AiToolContext, input: unknown) =>
 		fontScheme.minorFont = { latin: p.minorFont };
 	}
 	ctx.bridge.applyTheme({ fontScheme });
-	return { applied: true, majorFont: p.majorFont, minorFont: p.minorFont };
+	const changed = [p.majorFont && 'heading', p.minorFont && 'body'].filter(Boolean).join(' + ');
+	return {
+		applied: true,
+		themeEdit: 'fonts',
+		summary: `Applied theme ${changed} font${changed.includes('+') ? 's' : ''}`,
+		previous: { fontScheme: { ...(currentFonts ?? {}) } },
+	};
 };
 
 const DEFAULT_SCHEME: PptxThemeColorScheme = {
