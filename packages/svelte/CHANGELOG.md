@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.28.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.28.0) - 2026-07-20
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
 ## [1.27.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.27.0) - 2026-07-20
 
 ### Features
