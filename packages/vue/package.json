@@ -88,7 +88,7 @@
 		"@vitejs/plugin-vue": "^6.0.8",
 		"@vue/compiler-sfc": "^3.5.40",
 		"@vue/test-utils": "^2.4.11",
-		"happy-dom": "^20.10.6",
+		"happy-dom": "^20.11.0",
 		"jsdom": "^29.1.1",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-shared": "workspace:*",
