@@ -3,11 +3,13 @@ import type {
 	InkPptxElement,
 	OlePptxElement,
 	PptxElement,
+	ShapeStyle,
 } from 'pptx-viewer-core';
 import {
 	getOleBadgeLabel,
 	getOleTypeColor,
 	getOleTypeLabel,
+	resolveGroupChildFill,
 	resolveOleType,
 } from 'pptx-viewer-shared';
 import type { ResolvedOleType } from 'pptx-viewer-shared';
@@ -165,12 +167,25 @@ export function renderInk(el: InkPptxElement, options?: InkRenderOptions) {
 	);
 }
 
-export function renderGroup(children: PptxElement[]) {
+export function renderGroup(children: PptxElement[], parentGroupFill?: ShapeStyle) {
 	return (
 		<div className='relative w-full h-full pointer-events-none'>
 			{children.map((c, childIndex) => {
 				const { hf, fc, sw, sc } = shapeParams(c);
-				const ss = getShapeVisualStyle(c, hf, fc, sw, sc);
+				const baseSs = getShapeVisualStyle(c, hf, fc, sw, sc);
+				// `a:grpFill` child: inherit the enclosing group's resolved fill,
+				// overriding the (group-mode, hence transparent) base fill.
+				const inheritedFill = resolveGroupChildFill(c, parentGroupFill);
+				const ss: React.CSSProperties = inheritedFill
+					? {
+							...baseSs,
+							backgroundColor: inheritedFill.backgroundColor,
+							backgroundImage: inheritedFill.backgroundImage,
+							backgroundRepeat: inheritedFill.backgroundRepeat,
+							backgroundSize: inheritedFill.backgroundSize,
+							backgroundPosition: inheritedFill.backgroundPosition,
+						}
+					: baseSs;
 				const vs = renderVectorShape(c, hf, fc, sw, sc);
 				const ts = getTextStyleForElement(c, DEFAULT_TEXT_COLOR);
 				const isTxt = isEditableTextElement(c);

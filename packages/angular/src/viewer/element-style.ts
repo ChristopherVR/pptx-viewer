@@ -1,10 +1,11 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
 import {
 	DEFAULT_STROKE_COLOR,
 	DEFAULT_TEXT_COLOR,
 	getComputedEffectStyle,
+	getComputedFillStyle,
 	getContainerStyle as sharedGetContainerStyle,
 	getImageSrc as sharedGetImageSrc,
 	isVerticalTextDirection,
@@ -63,7 +64,7 @@ export function getContainerStyle(el: PptxElement, zIndex: number): StyleMap {
  * Fill / stroke / corner-radius for shape-like elements. Returns an empty
  * object when the element carries no shape styling.
  */
-export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
+export function getShapeFillStrokeStyle(el: PptxElement, parentGroupFill?: ShapeStyle): StyleMap {
 	if (!hasShapeProperties(el)) {
 		return {};
 	}
@@ -71,6 +72,13 @@ export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
 	const style: StyleMap = {};
 
 	if (ss) {
+		// `a:grpFill` child (fillMode 'group'): inherit the enclosing group's
+		// resolved fill (threaded down by the group render branch). The shared
+		// resolver paints the parent group's fill in this child's own box.
+		const inheritedGroupFill =
+			ss.fillMode === 'group' && parentGroupFill
+				? getComputedFillStyle(el, parentGroupFill)
+				: undefined;
 		// Fill resolution order mirrors the React `getShapeVisualStyle`:
 		// image → pattern (SVG preset) → gradient (structured builder, with the
 		// parser's prebuilt CSS string as fallback) → solid colour.
@@ -81,7 +89,20 @@ export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
 				? (buildCssGradientFromShapeStyle(ss) ?? ss.fillGradient)
 				: ss.fillGradient;
 
-		if (imageFillUrl) {
+		if (inheritedGroupFill) {
+			if (inheritedGroupFill.backgroundColor !== undefined) {
+				style['background-color'] = inheritedGroupFill.backgroundColor;
+			}
+			if (inheritedGroupFill.backgroundImage !== undefined) {
+				style['background-image'] = inheritedGroupFill.backgroundImage;
+			}
+			if (inheritedGroupFill.backgroundRepeat !== undefined) {
+				style['background-repeat'] = inheritedGroupFill.backgroundRepeat;
+			}
+			if (inheritedGroupFill.backgroundSize !== undefined) {
+				style['background-size'] = inheritedGroupFill.backgroundSize;
+			}
+		} else if (imageFillUrl) {
 			style['background-color'] = 'transparent';
 			style['background-image'] = `url(${imageFillUrl})`;
 			style['background-repeat'] = ss.fillImageMode === 'tile' ? 'repeat' : 'no-repeat';

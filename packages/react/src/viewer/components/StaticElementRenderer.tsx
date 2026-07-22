@@ -1,5 +1,6 @@
-import type { GroupPptxElement, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { GroupPptxElement, PptxElement, PptxSlide, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+import { getGroupChildParentFill, resolveGroupChildFill } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_FILL_COLOR, DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
@@ -25,6 +26,12 @@ export interface StaticElementRendererProps {
 	sourceSlideIndex?: number;
 	zIndex?: number;
 	positioned?: boolean;
+	/**
+	 * The enclosing group's fill (`GroupPptxElement.groupFill`), passed down by
+	 * the group branch below so a child painted with `a:grpFill`
+	 * (`fillMode === 'group'`) inherits the group's resolved fill.
+	 */
+	parentGroupFill?: ShapeStyle;
 }
 
 const noop = (): void => {};
@@ -38,6 +45,7 @@ function StaticElementRendererImpl({
 	sourceSlideIndex,
 	zIndex,
 	positioned = true,
+	parentGroupFill,
 }: StaticElementRendererProps): React.ReactElement {
 	const style = hasShapeProperties(element) ? element.shapeStyle : undefined;
 	const hasFill =
@@ -47,7 +55,21 @@ function StaticElementRendererImpl({
 	const fill = normalizeHexColor(style?.fillColor, DEFAULT_FILL_COLOR);
 	const strokeWidth = Math.max(0, style?.strokeWidth || 0);
 	const stroke = normalizeHexColor(style?.strokeColor, DEFAULT_STROKE_COLOR);
-	const visualStyle = getShapeVisualStyle(element, hasFill, fill, strokeWidth, stroke);
+	const baseVisualStyle = getShapeVisualStyle(element, hasFill, fill, strokeWidth, stroke);
+	// `a:grpFill`: a child with fillMode 'group' inherits the enclosing group's
+	// fill. `getShapeVisualStyle` has no group branch, so override the resolved
+	// background here from the shared resolver (no-op for non-grpFill children).
+	const inheritedFill = resolveGroupChildFill(element, parentGroupFill);
+	const visualStyle: React.CSSProperties = inheritedFill
+		? {
+				...baseVisualStyle,
+				backgroundColor: inheritedFill.backgroundColor,
+				backgroundImage: inheritedFill.backgroundImage,
+				backgroundRepeat: inheritedFill.backgroundRepeat,
+				backgroundSize: inheritedFill.backgroundSize,
+				backgroundPosition: inheritedFill.backgroundPosition,
+			}
+		: baseVisualStyle;
 	const textStyle = getTextStyleForElement(
 		element,
 		element.type === 'shape' && hasFill ? '#ffffff' : DEFAULT_TEXT_COLOR,
@@ -80,6 +102,7 @@ function StaticElementRendererImpl({
 							mediaDataUrls={mediaDataUrls}
 							sourceSlideIndex={sourceSlideIndex}
 							zIndex={index}
+							parentGroupFill={getGroupChildParentFill(element)}
 						/>
 					))}
 				</div>

@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-import { buildParagraphs, buildTextBody3DSceneStyle, hasTextWarp } from 'pptx-viewer-shared';
+import {
+	buildParagraphs,
+	buildTextBody3DSceneStyle,
+	getGroupChildParentFill,
+	hasTextWarp,
+} from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -59,6 +64,11 @@ const props = defineProps<{
 	templateEditing?: boolean;
 	/** True only on the live presentation stage; enables media autoplay. */
 	presenting?: boolean;
+	/**
+	 * The enclosing group's fill (`GroupPptxElement.groupFill`), passed down by a
+	 * group's render branch so a child painted with `a:grpFill` inherits it.
+	 */
+	parentGroupFill?: ShapeStyle;
 }>();
 
 const { t } = useI18n();
@@ -72,7 +82,13 @@ const fieldContextSource = injectFieldContext();
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
 );
-const shapeStyle = computed<CSSProperties>(() => getShapeFillStrokeStyle(props.element));
+const shapeStyle = computed<CSSProperties>(() =>
+	getShapeFillStrokeStyle(props.element, props.parentGroupFill),
+);
+/** This group's own fill, handed to `a:grpFill` children (undefined for non-groups). */
+const childParentGroupFill = computed<ShapeStyle | undefined>(() =>
+	getGroupChildParentFill(props.element),
+);
 /**
  * Merge container + shape styles for the shape box. The shape style may carry a
  * 3D `transform` (from `visual-3d`); compose it with the container's
@@ -190,6 +206,7 @@ const linkTooltipLabel = computed(
 			:z-index="i"
 			:interactive="interactive"
 			:presenting="presenting"
+			:parent-group-fill="childParentGroupFill"
 		/>
 	</div>
 

@@ -1,4 +1,10 @@
-import type { PptxElement, PptxSection, PptxSlide, TextSegment } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxSection,
+	PptxSlide,
+	ShapeStyle,
+	TextSegment,
+} from 'pptx-viewer-core';
 import type {
 	CanvasSize,
 	RenderParagraph,
@@ -43,6 +49,12 @@ export interface ElementRendererProps {
 	interactive?: boolean;
 	/** Whether inherited layout/master nodes participate in pointer editing. */
 	editTemplateMode?: boolean;
+	/**
+	 * The enclosing group's fill (`GroupPptxElement.groupFill`), passed down by a
+	 * group's render branch so a child painted with `a:grpFill`
+	 * (`fillMode === 'group'`) inherits the group's resolved fill.
+	 */
+	parentGroupFill?: ShapeStyle;
 	ontablecellcommit?: (
 		elementId: string,
 		rowIndex: number,

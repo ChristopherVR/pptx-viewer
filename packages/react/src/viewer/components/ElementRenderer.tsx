@@ -1,4 +1,5 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+import { getGroupChildParentFill } from 'pptx-viewer-shared';
 import React, { useState, useCallback, useMemo } from 'react';
 
 import { DEFAULT_TEXT_COLOR } from '../constants';
@@ -244,6 +245,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 							mediaDataUrls={mediaDataUrls}
 							sourceSlideIndex={sourceSlideIndex}
 							zIndex={index}
+							parentGroupFill={getGroupChildParentFill(el)}
 						/>
 					),
 					onEditChange: onInlineEditChange,

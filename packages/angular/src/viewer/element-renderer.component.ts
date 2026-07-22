@@ -1,7 +1,7 @@
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import type { PptxElement, PptxTableData, TextSegment } from 'pptx-viewer-core';
+import type { PptxElement, PptxTableData, ShapeStyle, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import {
@@ -252,6 +252,7 @@ interface Paragraph {
 							[interactive]="interactive()"
 							[presenting]="presenting()"
 							[fieldContext]="fieldContext()"
+							[parentGroupFill]="childParentGroupFill()"
 						/>
 					}
 				</div>
@@ -468,6 +469,13 @@ export class ElementRendererComponent {
 	 */
 	readonly editTemplateMode = input<boolean>(false);
 
+	/**
+	 * The enclosing group's fill (`GroupPptxElement.groupFill`), passed down by
+	 * the group render branch so a child painted with `a:grpFill`
+	 * (`fillMode === 'group'`) inherits the group's resolved fill.
+	 */
+	readonly parentGroupFill = input<ShapeStyle | undefined>(undefined);
+
 	/** Emitted when a table cell's text edit is committed. */
 	readonly cellCommit = output<{ id: string; commit: TableCellCommit }>();
 
@@ -501,7 +509,7 @@ export class ElementRendererComponent {
 	}));
 	readonly shapeContainerStyle = computed<StyleMap>(() => ({
 		...getContainerStyle(this.element(), this.zIndex()),
-		...getShapeFillStrokeStyle(this.element()),
+		...getShapeFillStrokeStyle(this.element(), this.parentGroupFill()),
 		...this.templateAffordanceStyle(),
 	}));
 	readonly textStyle = computed<StyleMap>(() => getTextBlockStyle(this.element()));
@@ -542,6 +550,17 @@ export class ElementRendererComponent {
 	readonly children = computed<PptxElement[]>(() => {
 		const el = this.element();
 		return el.type === 'group' ? (el.children ?? []) : [];
+	});
+
+	/**
+	 * This group's own fill, handed to `a:grpFill` children as their
+	 * `parentGroupFill`. Undefined for non-group elements. Mirrors the shared
+	 * `getGroupChildParentFill` helper (inlined here so the Angular binding does
+	 * not depend on a shared symbol that is only vendored at build time).
+	 */
+	readonly childParentGroupFill = computed<ShapeStyle | undefined>(() => {
+		const el = this.element();
+		return el.type === 'group' ? el.groupFill : undefined;
 	});
 
 	readonly isShapeLike = computed(
