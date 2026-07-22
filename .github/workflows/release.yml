@@ -100,6 +100,40 @@ jobs:
         run: bun run --filter 'pptx-svelte-viewer' build
         continue-on-error: true
 
+      # A framework build can fail (continue-on-error above). Its version was
+      # already bumped on disk by `release-plan.mjs --write`, but the tag/publish
+      # step below is gated on build success, so a failed build would otherwise
+      # commit the bump WITHOUT cutting a tag. The baseline is the tag, so on the
+      # next run the package still looks "changed" (its tag never moved), bumps
+      # again, fails again, and re-releases every hour forever, drifting
+      # package.json ahead of the last published tag. Prevent that: for each
+      # release:true framework package whose build failed, revert its manifest
+      # bump and drop it from the plan so it is neither committed nor tagged.
+      # It simply retries on the next run with an unchanged baseline.
+      - name: Drop build-failed packages from the release
+        if: steps.plan.outputs.any_changed == 'true'
+        env:
+          REACT_BUILT: ${{ steps.build-react.outcome == 'success' }}
+          VUE_BUILT: ${{ steps.build-vue.outcome == 'success' }}
+          ANGULAR_BUILT: ${{ steps.build-angular.outcome == 'success' }}
+          VANILLA_BUILT: ${{ steps.build-vanilla.outcome == 'success' }}
+          SVELTE_BUILT: ${{ steps.build-svelte.outcome == 'success' }}
+        run: |
+          drop() {
+            key="$1"
+            release=$(node -p "require('./release-plan.json').packages.$key.release")
+            [ "$release" = "true" ] || return 0
+            dir=$(node -p "require('./release-plan.json').packages.$key.dir")
+            echo "Dropping $key from this release: build failed"
+            git checkout HEAD -- "$dir/package.json"
+            node -e "const fs=require('fs');const p='./release-plan.json';const j=JSON.parse(fs.readFileSync(p));j.packages['$key'].release=false;fs.writeFileSync(p,JSON.stringify(j,null,2));"
+          }
+          [ "$REACT_BUILT"   = "true" ] || drop react
+          [ "$VUE_BUILT"     = "true" ] || drop vue
+          [ "$ANGULAR_BUILT" = "true" ] || drop angular
+          [ "$VANILLA_BUILT" = "true" ] || drop vanilla
+          [ "$SVELTE_BUILT"  = "true" ] || drop svelte
+
       # Prepend the new release section to each released package's CHANGELOG.md.
       # Prepend (rather than full regeneration) means shipped sections are never
       # rewritten, so old tags can be culled by prune-releases without corrupting
