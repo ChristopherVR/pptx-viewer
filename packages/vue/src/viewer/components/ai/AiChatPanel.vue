@@ -10,16 +10,24 @@
  */
 import { LoaderCircle, Sparkles, TriangleAlert, X } from 'lucide-vue-next';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useAiChat } from '../../composables/ai/useAiChat';
+import type { AiPanelController } from '../../composables/ai/useAiPanelController';
+import { useAiPanelController } from '../../composables/ai/useAiPanelController';
 import AiConversation from './AiConversation.vue';
 
 const props = defineProps<{
 	bridge: PptxAiBridge;
 	config: PptxAiConfig;
 	panelWidth?: number;
+	/**
+	 * Focus / pick / live-tool controller owned by `PowerPointViewer` (it reads
+	 * the live canvas selection). When the panel is mounted standalone (tests), a
+	 * self-contained fallback controller keeps the focus bar functional.
+	 */
+	aiPanel?: AiPanelController;
 }>();
 const emit = defineEmits<{ (e: 'close'): void }>();
 const { t } = useI18n();
@@ -28,6 +36,15 @@ const { state, session, initError } = useAiChat(props.bridge, props.config);
 const panelStyle = computed(() =>
 	props.panelWidth ? { width: `${props.panelWidth}px` } : undefined,
 );
+
+// Fall back to a standalone controller (empty selection) when the host does not
+// supply one, so the panel renders its focus bar in isolation too.
+const fallbackPanel = useAiPanelController({
+	activeSlideIndex: ref(0),
+	selectedElementIds: ref<string[]>([]),
+	selectedElement: () => null,
+});
+const panel = computed<AiPanelController>(() => props.aiPanel ?? fallbackPanel);
 </script>
 
 <template>
@@ -72,6 +89,8 @@ const panelStyle = computed(() =>
 			v-else-if="state === 'ready' && session"
 			:session="session"
 			:config="props.config"
+			:bridge="props.bridge"
+			:ai-panel="panel"
 		/>
 	</div>
 </template>

@@ -24,10 +24,13 @@ import type {
 	PptxAiBridge,
 	PptxAiDeckMeta,
 	PptxAiElementUpdate,
+	PptxAiFocusedTarget,
 	PptxAiNotifyLevel,
 	PptxAiSlidesUpdater,
 } from 'pptx-viewer-shared/ai';
 import type { Ref } from 'vue';
+
+import { computeFocusTargets } from './focus-targets';
 
 /** Live reactive inputs the bridge closes over. */
 export interface UseAiBridgeInput {
@@ -48,6 +51,12 @@ export interface UseAiBridgeInput {
 	setSelection: (ids: string[]) => void;
 	/** Route partial theme updates through the editor's theme handlers. */
 	applyThemeUpdates: (updates: Partial<PptxTheme>) => void;
+	/** All selected element ids on the active slide (drives live focus scope). */
+	selectedElementIds?: () => string[];
+	/** A pinned focus set from the chat (wins over the live selection). */
+	pinnedFocus?: () => PptxAiFocusedTarget[] | null;
+	/** Elements explicitly picked in pick mode (win over pin + selection). */
+	pickedFocus?: () => PptxAiFocusedTarget[] | null;
 	notify?: (message: string, level?: PptxAiNotifyLevel) => void;
 }
 
@@ -102,6 +111,25 @@ export function useAiBridge(input: UseAiBridgeInput): PptxAiBridge {
 		},
 		applyTheme(updates: Partial<PptxTheme>) {
 			input.applyThemeUpdates(updates);
+		},
+		getFocusedTargets(): PptxAiFocusedTarget[] {
+			// Explicit picks (pick mode) are the strongest signal of intent.
+			const picked = input.pickedFocus?.();
+			if (picked && picked.length > 0) {
+				return picked;
+			}
+			// A pinned focus (set from the chat) wins over the live selection so the
+			// assistant stays scoped even after the user clicks elsewhere.
+			const pinned = input.pinnedFocus?.();
+			if (pinned && pinned.length > 0) {
+				return pinned;
+			}
+			const selectedIds = input.selectedElementIds?.() ?? [];
+			return computeFocusTargets({
+				activeSlideIndex: input.activeSlideIndex.value,
+				selectedElementIds: selectedIds,
+				selectedElementId: selectedIds[0] ?? null,
+			});
 		},
 		notify(message: string, level?: PptxAiNotifyLevel) {
 			input.notify?.(message, level);

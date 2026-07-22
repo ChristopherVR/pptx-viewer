@@ -13,9 +13,17 @@
  */
 import { useChat } from '@ai-sdk/vue';
 import type { ChatStatus, UIMessage } from 'ai';
-import type { PptxAiChatSession, PptxAiConfig, ProposalView } from 'pptx-viewer-shared/ai';
-import { computed, ref } from 'vue';
+import type {
+	PptxAiChatSession,
+	PptxAiConfig,
+	ProposalView,
+	ToolCanvasTarget,
+} from 'pptx-viewer-shared/ai';
+import { toolCanvasTarget } from 'pptx-viewer-shared/ai';
+import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+
+import { extractReadyToolCalls } from './message-parts';
 
 /** The tool call surfaced by `useChat`'s `onToolCall` (narrowed for our tools). */
 interface IncomingToolCall {
@@ -47,9 +55,20 @@ export interface UseAiConversationResult {
 	acceptAllProposals: () => void;
 }
 
+/** Optional hooks the panel wires in (e.g. to drive the live on-canvas focus). */
+export interface UseAiConversationOptions {
+	/**
+	 * Called as each tool call starts, with the slide / element(s) it references
+	 * (or `null` for deck-wide tools). Lets the panel navigate + highlight the
+	 * canvas so the viewer reflects what the assistant is doing in real time.
+	 */
+	onToolTarget?: (target: ToolCanvasTarget | null) => void;
+}
+
 export function useAiConversation(
 	session: PptxAiChatSession,
 	config: PptxAiConfig,
+	options: UseAiConversationOptions = {},
 ): UseAiConversationResult {
 	const proposals = ref<ProposalView[]>(session.proposals.list());
 	const refreshProposals = (): void => {
@@ -81,6 +100,25 @@ export function useAiConversation(
 
 	const isStreaming = computed(
 		() => chat.status.value === 'submitted' || chat.status.value === 'streaming',
+	);
+
+	// Live "AI as a collaborator" focus, driven from the message stream so it
+	// works in EVERY connection mode (in `model` mode the agent runs the tool
+	// loop and `onToolCall` never fires client-side). Each tool call fires the
+	// focus callback exactly once, the moment its input is available.
+	const seenToolCalls = new Set<string>();
+	watch(
+		chat.messages,
+		(messages) => {
+			for (const call of extractReadyToolCalls(messages)) {
+				if (seenToolCalls.has(call.toolCallId)) {
+					continue;
+				}
+				seenToolCalls.add(call.toolCallId);
+				options.onToolTarget?.(toolCanvasTarget(call.toolName, call.input));
+			}
+		},
+		{ deep: true },
 	);
 
 	const send = (text: string): void => {

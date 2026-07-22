@@ -4,17 +4,39 @@
  * button). Enter sends, Shift+Enter inserts a newline. Purely presentational.
  */
 import { Send, Square } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 
-const props = defineProps<{ isStreaming: boolean }>();
+const props = defineProps<{
+	isStreaming: boolean;
+	/** One-shot text to prefill the composer with (e.g. a "Fix with AI" directive). */
+	prefillText?: string;
+	/** Bumps on every ask/fix so the composer refocuses even when text is unchanged. */
+	prefillNonce?: number;
+}>();
 const emit = defineEmits<{ (e: 'send', text: string): void; (e: 'stop'): void }>();
 const { t } = useI18n();
 
 const value = ref('');
+const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const canSend = computed(() => value.value.trim().length > 0);
+
+// Apply a click-to-ask prefill: set the text (when provided) and focus the
+// composer. Keyed on the nonce so an empty "Ask about this" still refocuses.
+watch(
+	() => props.prefillNonce,
+	(nonce) => {
+		if (nonce === undefined || nonce === 0) {
+			return;
+		}
+		if (props.prefillText) {
+			value.value = props.prefillText;
+		}
+		void nextTick(() => textareaRef.value?.focus());
+	},
+);
 
 function submit(): void {
 	const trimmed = value.value.trim();
@@ -39,6 +61,7 @@ function onKeydown(e: KeyboardEvent): void {
 			class="flex items-end gap-1.5 rounded-md border border-input bg-background px-2 py-1.5 focus-within:border-ring"
 		>
 			<textarea
+				ref="textareaRef"
 				v-model="value"
 				:rows="1"
 				:placeholder="t('pptx.ai.placeholder')"

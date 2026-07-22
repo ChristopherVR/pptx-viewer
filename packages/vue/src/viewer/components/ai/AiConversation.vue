@@ -1,19 +1,32 @@
 <script setup lang="ts">
 /**
  * AiConversation: the "ready" body of the AI panel. Wires the live session to
- * `useChat` (via {@link useAiConversation}) and lays out the transcript, the
- * staged-proposal review strip, an error banner, and the composer.
+ * `useChat` (via {@link useAiConversation}) and lays out the focused-target bar,
+ * the transcript, the staged-proposal review strip, an error banner, and the
+ * composer.
+ *
+ * The focused-target bar (picks / pin / live selection) and the live
+ * "AI as a collaborator" canvas focus are driven by the shared
+ * {@link AiPanelController} threaded down from `PowerPointViewer`.
  */
 import { TriangleAlert } from 'lucide-vue-next';
-import type { PptxAiChatSession, PptxAiConfig } from 'pptx-viewer-shared/ai';
+import type { PptxAiBridge, PptxAiChatSession, PptxAiConfig } from 'pptx-viewer-shared/ai';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useAiConversation } from '../../composables/ai/useAiConversation';
+import type { AiPanelController } from '../../composables/ai/useAiPanelController';
 import AiComposer from './AiComposer.vue';
+import AiFocusBar from './AiFocusBar.vue';
 import AiMessageList from './AiMessageList.vue';
 import AiProposalCard from './AiProposalCard.vue';
 
-const props = defineProps<{ session: PptxAiChatSession; config: PptxAiConfig }>();
+const props = defineProps<{
+	session: PptxAiChatSession;
+	config: PptxAiConfig;
+	bridge: PptxAiBridge;
+	aiPanel: AiPanelController;
+}>();
 const { t } = useI18n();
 
 const {
@@ -27,11 +40,55 @@ const {
 	applyProposal,
 	rejectProposal,
 	acceptAllProposals,
-} = useAiConversation(props.session, props.config);
+} = useAiConversation(props.session, props.config, {
+	// Live "AI as a collaborator" focus: as each tool runs, navigate to and
+	// highlight the slide / element(s) it touches so the canvas mirrors the
+	// assistant in real time (and colour edits tween while it is active).
+	onToolTarget: (target) => {
+		if (target && target.slideIndex !== undefined) {
+			props.bridge.goToSlide(target.slideIndex);
+		}
+		props.aiPanel.flashToolTarget(target);
+	},
+});
+
+// Explicit picks win over a pin, which wins over the live selection.
+const hasPicks = computed(() => props.aiPanel.pickTargets.value.length > 0);
+const effectiveTargets = computed(() =>
+	hasPicks.value
+		? props.aiPanel.pickTargets.value
+		: (props.aiPanel.pinnedFocus.value ?? props.aiPanel.liveFocusTargets.value),
+);
+const isPinned = computed(() => !hasPicks.value && props.aiPanel.pinnedFocus.value !== null);
+
+// Applying a suggestion briefly enables the canvas colour tween so the edit
+// fades in rather than snapping (proposals apply outside the tool loop).
+function onApplyProposal(id: string): void {
+	props.aiPanel.flashToolTarget(null);
+	applyProposal(id);
+}
+function onAcceptAll(): void {
+	props.aiPanel.flashToolTarget(null);
+	acceptAllProposals();
+}
 </script>
 
 <template>
 	<div class="flex min-h-0 flex-1 flex-col">
+		<AiFocusBar
+			:targets="effectiveTargets"
+			:slides="props.bridge.getSlides()"
+			:is-pinned="isPinned"
+			:pick-mode="props.aiPanel.pickMode.value"
+			:has-picks="hasPicks"
+			@pin="props.aiPanel.pinFocus"
+			@clear-pin="props.aiPanel.clearPinnedFocus"
+			@start-pick="props.aiPanel.startPicking"
+			@stop-pick="props.aiPanel.stopPicking"
+			@clear-picks="props.aiPanel.clearPicks"
+			@send-directive="send"
+		/>
+
 		<AiMessageList :messages="messages" :is-streaming="isStreaming" />
 
 		<div
@@ -41,7 +98,7 @@ const {
 			<TriangleAlert class="mt-0.5 w-3.5 h-3.5 shrink-0" />
 			<div class="min-w-0 flex-1">
 				<div class="font-medium">{{ t('pptx.ai.errorPrefix') }}</div>
-				<div class="truncate text-[11px] opacity-80" :title="error.message">
+				<div class="max-h-24 overflow-y-auto break-words text-[11px] opacity-80">
 					{{ error.message }}
 				</div>
 			</div>
@@ -66,7 +123,7 @@ const {
 					v-if="proposals.length > 1"
 					type="button"
 					class="rounded-sm bg-primary/90 px-2 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary"
-					@click="acceptAllProposals"
+					@click="onAcceptAll"
 				>
 					{{ t('pptx.ai.acceptAll') }}
 				</button>
@@ -75,11 +132,17 @@ const {
 				v-for="proposal in proposals"
 				:key="proposal.id"
 				:proposal="proposal"
-				@accept="applyProposal"
+				@accept="onApplyProposal"
 				@reject="rejectProposal"
 			/>
 		</div>
 
-		<AiComposer :is-streaming="isStreaming" @send="send" @stop="stop" />
+		<AiComposer
+			:is-streaming="isStreaming"
+			:prefill-text="props.aiPanel.prefill.value.text"
+			:prefill-nonce="props.aiPanel.prefill.value.nonce"
+			@send="send"
+			@stop="stop"
+		/>
 	</div>
 </template>
