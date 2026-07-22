@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -128,7 +128,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -207,7 +207,7 @@ jobs:
       - uses: actions/checkout@v7
         if: matrix.enabled == 'true'
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         if: matrix.enabled == 'true'
         with:
           node-version: 22
@@ -279,7 +279,7 @@ jobs:
       - uses: actions/checkout@v7
         if: matrix.enabled == 'true'
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         if: matrix.enabled == 'true'
         with:
           node-version: 22
