@@ -1650,6 +1650,11 @@ const aiBridge = useAiBridge({
 	canvasSize,
 	theme: pptxTheme,
 	handler,
+	sections,
+	presentationProperties,
+	customProperties,
+	coreProperties,
+	appProperties,
 	fileName: () => props.fileName,
 	pushHistory: history.pushHistory,
 	markDirty: () => {

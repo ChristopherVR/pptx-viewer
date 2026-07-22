@@ -17,11 +17,22 @@
  * torn down and rebuilt on every keystroke.
  */
 import { cloneSlide } from 'pptx-viewer-core';
-import type { PptxHandler, PptxSlide, PptxTheme } from 'pptx-viewer-core';
+import type {
+	PptxAppProperties,
+	PptxCoreProperties,
+	PptxCustomProperty,
+	PptxData,
+	PptxHandler,
+	PptxPresentationProperties,
+	PptxSection,
+	PptxSlide,
+	PptxTheme,
+} from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
 import { applyElementUpdate } from 'pptx-viewer-shared/ai';
 import type {
 	PptxAiBridge,
+	PptxAiDataUpdater,
 	PptxAiDeckMeta,
 	PptxAiElementUpdate,
 	PptxAiFocusedTarget,
@@ -39,6 +50,16 @@ export interface UseAiBridgeInput {
 	canvasSize: Ref<CanvasSize>;
 	theme: Ref<PptxTheme | undefined>;
 	handler: Ref<PptxHandler | null>;
+	// Presentation-level state, exposed so the AI's `getDeckData`/`applyDeckData`
+	// seam can read and commit sections / canvas size / metadata / presentation
+	// properties (the pptx-viewer-mcp "deck" tools). Slide + theme tools do not
+	// need these; they route through applySlidesUpdate / applyTheme. Each is a
+	// writable ref the bridge assigns `.value` on to fan a changed field out.
+	sections: Ref<PptxSection[]>;
+	presentationProperties: Ref<PptxPresentationProperties>;
+	customProperties: Ref<PptxCustomProperty[]>;
+	coreProperties: Ref<PptxCoreProperties | undefined>;
+	appProperties: Ref<PptxAppProperties | undefined>;
 	/** Display name of the open document, when known. */
 	fileName: () => string | undefined;
 	/** Snapshot the current slides onto the undo stack (call before mutating). */
@@ -69,6 +90,22 @@ export function useAiBridge(input: UseAiBridgeInput): PptxAiBridge {
 		input.slides.value = updater(input.slides.value.map(cloneSlide));
 		input.markDirty();
 	};
+
+	/** Reconstruct the presentation-level PptxData the AI deck tools read/write. */
+	const readDeckData = (): PptxData =>
+		({
+			slides: input.slides.value,
+			width: input.canvasSize.value.width,
+			height: input.canvasSize.value.height,
+			theme: input.theme.value,
+			sections: input.sections.value,
+			presentationProperties: input.presentationProperties.value,
+			customProperties: input.customProperties.value,
+			coreProperties: input.coreProperties.value,
+			appProperties: input.appProperties.value,
+		}) satisfies Partial<PptxData> as PptxData;
+
+	const differs = (a: unknown, b: unknown): boolean => JSON.stringify(a) !== JSON.stringify(b);
 
 	return {
 		getDeckMeta(): PptxAiDeckMeta {
@@ -111,6 +148,47 @@ export function useAiBridge(input: UseAiBridgeInput): PptxAiBridge {
 		},
 		applyTheme(updates: Partial<PptxTheme>) {
 			input.applyThemeUpdates(updates);
+		},
+		getDeckData(): PptxData {
+			return readDeckData();
+		},
+		applyDeckData(updater: PptxAiDataUpdater, _label: string) {
+			const before = readDeckData();
+			const after = updater(structuredClone(before));
+			// Slides and canvas size are the undoable part of a deck edit, so snapshot
+			// history once (before mutating) when either changed. The remaining
+			// presentation-level fields persist into the save model and re-render, but
+			// are not yet individually undoable (a history-snapshot follow-up).
+			const slidesChanged = differs(before.slides, after.slides);
+			const canvasChanged = before.width !== after.width || before.height !== after.height;
+			if (slidesChanged || canvasChanged) {
+				input.pushHistory();
+			}
+			if (slidesChanged) {
+				input.slides.value = after.slides;
+			}
+			if (canvasChanged) {
+				input.canvasSize.value = { width: after.width, height: after.height };
+			}
+			const nextSections = after.sections ?? before.sections ?? [];
+			if (differs(before.sections, nextSections)) {
+				input.sections.value = nextSections;
+			}
+			const nextPresProps = after.presentationProperties ?? input.presentationProperties.value;
+			if (differs(before.presentationProperties, nextPresProps)) {
+				input.presentationProperties.value = nextPresProps;
+			}
+			const nextCustomProps = after.customProperties ?? before.customProperties ?? [];
+			if (differs(before.customProperties, nextCustomProps)) {
+				input.customProperties.value = nextCustomProps;
+			}
+			if (differs(before.coreProperties, after.coreProperties)) {
+				input.coreProperties.value = after.coreProperties;
+			}
+			if (differs(before.appProperties, after.appProperties)) {
+				input.appProperties.value = after.appProperties;
+			}
+			input.markDirty();
 		},
 		getFocusedTargets(): PptxAiFocusedTarget[] {
 			// Explicit picks (pick mode) are the strongest signal of intent.
