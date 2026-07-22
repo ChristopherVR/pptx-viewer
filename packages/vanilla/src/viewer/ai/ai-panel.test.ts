@@ -1,10 +1,17 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { PptxAiBridge, PptxAiConfig, VanillaChatController } from 'pptx-viewer-shared/ai';
+import type {
+	PptxAiBridge,
+	PptxAiConfig,
+	VanillaChatController,
+	VanillaChatSnapshot,
+} from 'pptx-viewer-shared/ai';
 import { ProposalStore } from 'pptx-viewer-shared/ai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../i18n';
+import { createInitialViewerState, createStore } from '../state';
 import { createAiPanel } from './ai-panel';
+import { createAiFocusController } from './ai-panel-controller';
 
 function slide(id: string): PptxSlide {
 	return { id, slideNumber: 1, elements: [] } as unknown as PptxSlide;
@@ -106,5 +113,57 @@ describe('createAiPanel', () => {
 		// The card is cleared and the region hidden after the last proposal applies.
 		expect(host.querySelector('.pptxv-ai-proposal')).toBeNull();
 		expect(host.querySelector<HTMLElement>('.pptxv-ai-proposals')?.hidden).toBeTruthy();
+	});
+
+	it('navigates + highlights the canvas as a tool call runs (live focus)', async () => {
+		host = document.createElement('div');
+		document.body.appendChild(host);
+		const bridge = fakeBridge();
+		const snapshot: VanillaChatSnapshot = {
+			status: 'ready',
+			messages: [
+				{
+					id: 'm1',
+					role: 'assistant',
+					parts: [
+						{
+							type: 'tool-move_resize_element',
+							toolCallId: 'c1',
+							state: 'output-available',
+							input: { slideIndex: 4, elementId: 'el-2' },
+						},
+					],
+				} as unknown as VanillaChatSnapshot['messages'][number],
+			],
+		};
+		const controller: VanillaChatController = {
+			sendMessage: async () => undefined,
+			regenerate: async () => undefined,
+			stop: async () => undefined,
+			clearError: () => undefined,
+			getSnapshot: () => snapshot,
+			subscribe: () => () => undefined,
+			proposals: new ProposalStore(bridge),
+		};
+		const store = createStore({ ...createInitialViewerState(), currentSlide: 4 });
+		const focus = createAiFocusController({ store, requestOpen: () => undefined });
+		const goToSlide = vi.fn();
+
+		await createAiPanel({
+			host,
+			doc: document,
+			t: createTranslator('en'),
+			bridge,
+			config,
+			controller: focus,
+			goToSlide,
+			createChat: async () => controller,
+		});
+
+		// The tool's slide/element drove a navigation + an active on-canvas ring.
+		expect(goToSlide).toHaveBeenCalledWith(4);
+		expect(focus.getHighlights()).toStrictEqual([
+			{ slideIndex: 4, elementId: 'el-2', variant: 'active' },
+		]);
 	});
 });

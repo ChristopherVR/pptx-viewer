@@ -14,6 +14,7 @@ import type {
 	PptxAiBridge,
 	PptxAiDeckMeta,
 	PptxAiElementUpdate,
+	PptxAiFocusedTarget,
 	PptxAiNotifyLevel,
 	PptxAiSlidesUpdater,
 } from 'pptx-viewer-shared/ai';
@@ -37,6 +38,12 @@ export interface VanillaAiBridgeDeps {
 	 * best-effort apply rather than a strictly undoable step.
 	 */
 	applyThemeUpdates(updates: Partial<PptxTheme>): void;
+	/**
+	 * The assistant's current focus (picks / pin / live selection), owned by the
+	 * AI panel controller. When provided, it backs {@link PptxAiBridge.getFocusedTargets}
+	 * so the context builder scopes the model to what the user is pointing at.
+	 */
+	getFocusedTargets?(): PptxAiFocusedTarget[];
 	/** Optional host notification sink (status line / toast / console). */
 	notify?(message: string, level?: PptxAiNotifyLevel): void;
 }
@@ -88,6 +95,7 @@ export function createVanillaAiBridge(deps: VanillaAiBridgeDeps): PptxAiBridge {
 		},
 		applyTheme: (updates) => deps.applyThemeUpdates(updates),
 
+		getFocusedTargets: deps.getFocusedTargets ? () => deps.getFocusedTargets?.() ?? [] : undefined,
 		notify: deps.notify,
 	};
 }

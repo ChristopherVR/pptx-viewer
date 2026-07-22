@@ -43,7 +43,7 @@ import {
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
 import type { AiChatMount } from './ai';
-import { createVanillaAiBridge, mountAiChat } from './ai';
+import { createAiFocusController, createVanillaAiBridge, mountAiChat } from './ai';
 import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
 import { buildMountChromeDeps, mountChrome, unmountChrome } from './chrome-lifecycle';
 import type { EditorController } from './editor';
@@ -294,6 +294,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			editor: this.editor,
 			optionsStore: this.optionsController.optionsStore,
 			clearOptionsCache: () => this.clearOptionsCache(),
+			aiEnabled: options.ai !== undefined,
 			root: () => this.lifecycle.chrome.root,
 			setAutosaveEnabled: (enabled) => this.setAutosaveEnabled(enabled),
 			print: (printOptions) => this.print(printOptions),
@@ -377,6 +378,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			return;
 		}
 		this.aiChat?.destroy();
+		const controller = createAiFocusController({
+			store: this.store,
+			requestOpen: () => this.aiChat?.open(),
+		});
 		const bridge = createVanillaAiBridge({
 			store: this.store,
 			editor: this.editor,
@@ -388,6 +393,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			},
 			getHandler: () => this.loading.getHandler(),
 			applyThemeUpdates: (updates) => this.applyAiThemeUpdates(updates),
+			getFocusedTargets: () => controller.getEffectiveTargets(),
 		});
 		this.aiChat = mountAiChat({
 			doc: this.doc,
@@ -395,6 +401,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			t: this.t,
 			bridge,
 			config,
+			store: this.store,
+			controller,
+			goToSlide: (index) => this.controls.goToSlide(index),
 		});
 	}
 

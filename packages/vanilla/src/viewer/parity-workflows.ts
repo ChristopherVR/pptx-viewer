@@ -39,6 +39,8 @@ export interface ParityWorkflowHost {
 	optionsStore: ViewerOptionsStore;
 	/** Options > Save > "Delete cached files". */
 	clearOptionsCache(): void;
+	/** Whether the host enabled the `ai` option (adds the Options > AI section). */
+	aiEnabled: boolean;
 	root(): HTMLElement;
 	setAutosaveEnabled(enabled: boolean): void;
 	print(options: PrintOptions): Promise<boolean>;
@@ -79,6 +81,7 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 			openSettingsDialog(host.doc, host.t, {
 				store: host.optionsStore,
 				initialTab,
+				aiEnabled: host.aiEnabled,
 				onClearCache: () => host.clearOptionsCache(),
 				themeOptions: {
 					catalog: themeState.catalog,

@@ -8,5 +8,7 @@
 
 export type { VanillaAiBridgeDeps } from './ai-bridge';
 export { createVanillaAiBridge } from './ai-bridge';
+export type { AiFocusController } from './ai-panel-controller';
+export { createAiFocusController } from './ai-panel-controller';
 export type { AiChatMount, MountAiChatDeps } from './ai-toggle';
 export { mountAiChat } from './ai-toggle';

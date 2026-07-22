@@ -8,8 +8,10 @@ import type {
 	ViewerTheme,
 } from 'pptx-viewer-shared';
 import { cloneViewerOptions, VIEWER_OPTIONS_TABS } from 'pptx-viewer-shared';
+import type { PptxAiChatStore } from 'pptx-viewer-shared/ai';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
+import { createAiSettingsSection } from '../ai/ai-settings-section';
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import { appendOptionsAction, appendOptionsSection } from './options/options-controls';
@@ -50,6 +52,10 @@ export interface ViewerOptionsDialogDeps {
 	/** Options > Save > "Delete cached files". */
 	onClearCache: () => void;
 	initialTab?: ViewerOptionsTabId;
+	/** When true, an "AI" section is appended for exporting detailed chat logs. */
+	aiEnabled?: boolean;
+	/** Chat store the AI export reads from (defaults to the shared store). */
+	aiChatStore?: PptxAiChatStore;
 }
 
 /**
@@ -75,6 +81,9 @@ export function openSettingsDialog(
 
 	const snapshot = cloneViewerOptions(store.getOptions());
 	let activeTabId: ViewerOptionsTabId = deps.initialTab ?? 'general';
+	// The AI export lives in a synthetic tab appended after the schema tabs.
+	let aiActive = false;
+	let aiNavButton: HTMLButtonElement | null = null;
 	let selectedThemeKey = deps.themeOptions.currentKey;
 	let selectedLocaleCode = deps.localeOptions.currentCode;
 	const quickAccessState = createQuickAccessPaneState();
@@ -141,7 +150,24 @@ export function openSettingsDialog(
 		}
 	};
 
+	const renderAiPane = (): void => {
+		for (const button of nav.querySelectorAll('button')) {
+			button.classList.remove('is-active');
+			button.setAttribute('aria-current', 'false');
+		}
+		aiNavButton?.classList.add('is-active');
+		aiNavButton?.setAttribute('aria-current', 'true');
+		pane.replaceChildren();
+		const headline = createEl(doc, 'p', 'pptxv-options-headline');
+		headline.textContent = t('pptx.ai.exportLogsHint');
+		pane.append(headline, createAiSettingsSection({ doc, t, store: deps.aiChatStore }));
+	};
+
 	function renderPane(): void {
+		if (aiActive) {
+			renderAiPane();
+			return;
+		}
 		const tab =
 			VIEWER_OPTIONS_TABS.find((entry) => entry.id === activeTabId) ?? VIEWER_OPTIONS_TABS[0];
 		if (!tab) {
@@ -172,11 +198,19 @@ export function openSettingsDialog(
 
 	const selectTab = (tabId: ViewerOptionsTabId): void => {
 		activeTabId = tabId;
+		aiActive = false;
 		renderPane();
 	};
 	for (const tab of VIEWER_OPTIONS_TABS) {
 		const button = appendDialogButton(doc, nav, t(tab.labelKey), () => selectTab(tab.id));
 		button.dataset.tab = tab.id;
+	}
+	if (deps.aiEnabled) {
+		aiNavButton = appendDialogButton(doc, nav, t('pptx.ai.settingsSectionTitle'), () => {
+			aiActive = true;
+			renderPane();
+		});
+		aiNavButton.dataset.tab = 'ai';
 	}
 
 	// Live re-render on any store commit (a control edit, reset, or an external
