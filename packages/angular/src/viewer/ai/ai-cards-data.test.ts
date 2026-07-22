@@ -14,11 +14,11 @@ import {
 describe('tool-call card activity (friendly labels, ids hidden)', () => {
 	it('describes a tool as a plain-language phrase without leaking element ids', () => {
 		const activity = describeToolActivity(
-			'set_shape_style',
+			'update_element_style',
 			{ slideIndex: 4, elementId: 'ppt/slides/slide5.xml-shape-9' },
 			'past',
 		);
-		expect(activity.label).toBe('Restyled a shape on slide 5');
+		expect(activity.label).toBe('Restyled an element on slide 5');
 		expect(activity.icon).toBe('shape');
 		// The friendly line never contains the raw element id.
 		expect(activity.label).not.toContain('shape-9');

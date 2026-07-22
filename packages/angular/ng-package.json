@@ -8,7 +8,9 @@
 		"jszip",
 		"fast-xml-parser",
 		"dompurify",
-		"pptx-viewer-core"
+		"pptx-viewer-core",
+		"pptx-viewer-mcp",
+		"zod"
 	],
 	"assets": [
 		"NOTICE",

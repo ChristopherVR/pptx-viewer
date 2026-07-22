@@ -13,7 +13,7 @@ function storedChat(): PptxAiStoredChat {
 			parts: [
 				{ type: 'text', text: 'Done.' },
 				{
-					type: 'tool-set_shape_style',
+					type: 'tool-update_element_style',
 					toolCallId: 'call-1',
 					state: 'output-available',
 					input: { slideIndex: 2, elementId: 'shape-9', fill: '#ff0000' },
@@ -62,7 +62,7 @@ describe('buildChatLogExport', () => {
 		expect(assistant.text).toBe('Done.');
 		expect(assistant.toolCalls).toHaveLength(1);
 		const call = assistant.toolCalls[0];
-		expect(call.toolName).toBe('set_shape_style');
+		expect(call.toolName).toBe('update_element_style');
 		expect(call.input).toStrictEqual({ slideIndex: 2, elementId: 'shape-9', fill: '#ff0000' });
 		expect(call.output).toStrictEqual({ ok: true });
 	});
@@ -70,7 +70,7 @@ describe('buildChatLogExport', () => {
 	it('omits tool payloads when detailed is false but keeps name + state', () => {
 		const doc = buildChatLogExport([storedChat()], { detailed: false });
 		const call = doc.chats[0].messages[1].toolCalls[0];
-		expect(call.toolName).toBe('set_shape_style');
+		expect(call.toolName).toBe('update_element_style');
 		expect(call.state).toBe('output-available');
 		expect(call.input).toBeUndefined();
 		expect(call.output).toBeUndefined();
@@ -79,7 +79,7 @@ describe('buildChatLogExport', () => {
 	it('renders a Markdown transcript that includes the tool input JSON', () => {
 		const md = buildChatLogMarkdown(buildChatLogExport([storedChat()]));
 		expect(md).toContain('# AI chat logs');
-		expect(md).toContain('Tool `set_shape_style`');
+		expect(md).toContain('Tool `update_element_style`');
 		expect(md).toContain('"elementId": "shape-9"');
 	});
 });
