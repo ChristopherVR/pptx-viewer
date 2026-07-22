@@ -18,9 +18,10 @@ import type {
 	ToolCanvasTarget,
 } from 'pptx-viewer-shared/ai';
 import { toolCanvasTarget } from 'pptx-viewer-shared/ai';
-import { useCallback, useMemo, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 
 import type { AiUiMessage } from '../../components/ai/ai-message-parts';
+import { extractReadyToolCalls } from '../../components/ai/ai-message-parts';
 import { withDeckContext } from './ai-context-transport';
 
 /** The tool call surfaced by `useChat`'s `onToolCall` (narrowed for our tools). */
@@ -76,6 +77,9 @@ export function useAiConversation(
 	// Read the latest callback from a ref so useChat is not rebuilt when it changes.
 	const onToolTargetRef = useRef(options.onToolTarget);
 	onToolTargetRef.current = options.onToolTarget;
+	// Tool calls already surfaced to the live-focus callback, so each fires the
+	// canvas navigation + highlight exactly once. See the effect below.
+	const seenToolCallsRef = useRef<Set<string>>(new Set());
 
 	// In `model` mode the in-process agent runs the whole tool loop, so the
 	// client must NOT execute tools (that double-stages every proposal) nor
@@ -102,9 +106,11 @@ export function useAiConversation(
 					if (!current) {
 						return;
 					}
-					// Drive the live on-canvas focus: navigate + highlight the element(s)
-					// this tool touches, so the viewer mirrors the assistant in real time.
-					onToolTargetRef.current?.(toolCanvasTarget(toolName, input));
+					// NB: the live on-canvas focus is NOT driven from here. `onToolCall`
+					// only fires when the client runs the tool loop (endpoint / transport
+					// connections); in-process `model` mode never calls it. The focus is
+					// instead derived from the message stream in the effect below, so it
+					// mirrors the assistant in every connection mode.
 					const addToolOutput = current.addToolOutput as unknown as AddToolOutput;
 					try {
 						const output = await session.executeToolCall(toolName, input);
@@ -123,6 +129,24 @@ export function useAiConversation(
 			: undefined,
 	});
 	chatRef.current = chat;
+
+	// Live "AI as a collaborator" focus, driven from the message stream so it
+	// works in EVERY connection mode (in `model` mode the agent runs the tool
+	// loop and `onToolCall` never fires client-side). Each tool call fires the
+	// focus callback exactly once, the moment its input is available: navigation
+	// is NOT gated on the tool output or on a staged proposal being applied.
+	// Processing in stream order means the LATEST target wins and sticks (React
+	// batches the burst into one navigation, so it never snaps back).
+	useEffect(() => {
+		const seen = seenToolCallsRef.current;
+		for (const call of extractReadyToolCalls(chat.messages as AiUiMessage[])) {
+			if (seen.has(call.toolCallId)) {
+				continue;
+			}
+			seen.add(call.toolCallId);
+			onToolTargetRef.current?.(toolCanvasTarget(call.toolName, call.input));
+		}
+	}, [chat.messages]);
 
 	const send = useCallback(
 		(text: string) => {
@@ -157,6 +181,12 @@ export function useAiConversation(
 	const setMessages = useCallback(
 		(next: PptxAiUIMessage[]) => {
 			chat.setMessages(next as Parameters<typeof chat.setMessages>[0]);
+			// A resumed/loaded transcript already contains completed tool calls;
+			// mark them seen so opening a stored chat does not replay their canvas
+			// navigation (the focus effect must only follow live, in-flight calls).
+			for (const call of extractReadyToolCalls(next as AiUiMessage[])) {
+				seenToolCallsRef.current.add(call.toolCallId);
+			}
 			// Switching chats invalidates any staged (unaccepted) proposals.
 			session.proposals.clear();
 			forceRefresh();

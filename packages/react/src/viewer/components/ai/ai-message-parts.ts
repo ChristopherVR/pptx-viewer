@@ -39,6 +39,50 @@ interface ToolPartLike {
 	errorText?: string;
 }
 
+/** A tool call whose input is finalized (ready to act on), in stream order. */
+export interface ReadyToolCall {
+	toolName: string;
+	toolCallId: string;
+	input: unknown;
+}
+
+/** Tool-part states at which the input is final (past `input-streaming`). */
+const READY_TOOL_STATES: ReadonlySet<string> = new Set([
+	'input-available',
+	'output-available',
+	'output-error',
+]);
+
+/**
+ * Collect, in stream order, every tool call across `messages` whose input has
+ * finalized (state past `input-streaming`) and that carries a stable id.
+ *
+ * This drives the live "AI as a collaborator" on-canvas focus straight from the
+ * message stream, which works in EVERY connection mode: in-process `model` mode
+ * runs the tool loop inside the agent, so the client's `onToolCall` never fires
+ * and the streamed tool parts are the only signal the client sees.
+ */
+export function extractReadyToolCalls(messages: AiUiMessage[]): ReadyToolCall[] {
+	const out: ReadyToolCall[] = [];
+	for (const message of messages) {
+		for (const part of message.parts) {
+			if (!isToolUIPart(part) && !isDynamicToolUIPart(part)) {
+				continue;
+			}
+			const tp = part as ToolPartLike;
+			const toolCallId = tp.toolCallId ?? '';
+			if (toolCallId.length === 0 || tp.input === undefined) {
+				continue;
+			}
+			if (!READY_TOOL_STATES.has(tp.state ?? '')) {
+				continue;
+			}
+			out.push({ toolName: getToolOrDynamicToolName(part), toolCallId, input: tp.input });
+		}
+	}
+	return out;
+}
+
 /** Flatten a message's parts into the renderable subset, dropping empty text. */
 export function toRenderableParts(message: AiUiMessage): RenderablePart[] {
 	const out: RenderablePart[] = [];

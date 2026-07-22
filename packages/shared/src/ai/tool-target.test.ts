@@ -26,6 +26,27 @@ describe('toolCanvasTarget', () => {
 		).toStrictEqual({ slideIndex: 1, elementIds: ['a', 'b', 'c'] });
 	});
 
+	it('maps a staged create_chart to just its target slide (no element yet)', () => {
+		expect(
+			toolCanvasTarget('create_chart', { slideIndex: 1, chartType: 'bar', title: 'Q3' }),
+		).toStrictEqual({ slideIndex: 1, elementIds: [] });
+	});
+
+	it('maps a staged add_smartart to just its target slide', () => {
+		expect(
+			toolCanvasTarget('add_smartart', { slideIndex: 3, layout: 'basicBlockList' }),
+		).toStrictEqual({ slideIndex: 3, elementIds: [] });
+	});
+
+	it('maps an edit tool to its slide + element', () => {
+		expect(
+			toolCanvasTarget('set_shape_style', { slideIndex: 2, elementId: 'sh-9', fillColor: '#fff' }),
+		).toStrictEqual({ slideIndex: 2, elementIds: ['sh-9'] });
+		expect(
+			toolCanvasTarget('update_text', { slideIndex: 0, elementId: 'tx-1', text: 'hi' }),
+		).toStrictEqual({ slideIndex: 0, elementIds: ['tx-1'] });
+	});
+
 	it('maps a navigation tool to just the slide', () => {
 		expect(toolCanvasTarget('go_to_slide', { slideIndex: 6 })).toStrictEqual({
 			slideIndex: 6,
