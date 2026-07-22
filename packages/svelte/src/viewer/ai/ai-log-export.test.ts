@@ -85,6 +85,8 @@ describe('ai-log-export', () => {
 		const store = seededStore([transcriptChat()]);
 		const createObjectURL = vi.fn(() => 'blob:x');
 		vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+		// Stub the anchor click so happy-dom does not attempt a real navigation.
+		const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockReturnValue(undefined);
 		try {
 			const count = await exportAiChatLogs({ store, format: 'json', now: 0 });
 			expect(count).toBe(1);
@@ -93,6 +95,7 @@ describe('ai-log-export', () => {
 			const blob = createObjectURL.mock.calls[0][0] as Blob;
 			expect(blob.type).toBe('application/json');
 		} finally {
+			clickSpy.mockRestore();
 			vi.unstubAllGlobals();
 		}
 	});
