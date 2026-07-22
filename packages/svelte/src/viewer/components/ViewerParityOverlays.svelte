@@ -38,6 +38,7 @@
 		onselectslide,
 		onmoveslide,
 		optionsState,
+		aiEnabled = false,
 	}: {
 		ui: ViewerParityUiState;
 		editor: EditorState;
@@ -58,12 +59,14 @@
 		onsetlocale: (code: string) => void;
 		onselectslide: (index: number) => void;
 		onmoveslide: (from: number, to: number) => void;
+		/** When true, the Options dialog shows an AI section (chat-log export). */
+		aiEnabled?: boolean;
 	} = $props();
 </script>
 
 {#if ui.setupSlideShowOpen}<SetUpSlideShowDialog properties={editor.presentationProperties} customShows={editor.customShows} slideCount={slides.length} onclose={() => (ui.setupSlideShowOpen = false)} onsave={(next) => editor.presentationMetadata.updatePresentationProperties(next)} />{/if}
 {#if ui.headerFooterOpen}<HeaderFooterPanel value={editor.headerFooter} onclose={() => (ui.headerFooterOpen = false)} onapply={(next) => editor.presentationMetadata.updateHeaderFooter(next)} />{/if}
-{#if ui.settingsOpen}<SettingsDialog {optionsState} onclose={() => (ui.settingsOpen = false)} {themeKey} {themeCatalog} {onsetthemekey} {locale} {availableLocales} {onsetlocale} />{/if}
+{#if ui.settingsOpen}<SettingsDialog {optionsState} onclose={() => (ui.settingsOpen = false)} {themeKey} {themeCatalog} {onsetthemekey} {locale} {availableLocales} {onsetlocale} {aiEnabled} />{/if}
 {#if ui.shortcutsOpen}<ShortcutPanel onclose={() => (ui.shortcutsOpen = false)} />{/if}
 {#if ui.compare.open}<ComparePanel compare={ui.compare} onclose={() => (ui.compare.open = false)} />{/if}
 {#if ui.printSettingsOpen}<PrintDialog slideCount={slides.length} {current} onclose={() => (ui.printSettingsOpen = false)} onprint={(options) => exportUi.runPrint(options)} />{/if}

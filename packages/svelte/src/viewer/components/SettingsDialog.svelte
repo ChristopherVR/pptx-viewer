@@ -11,6 +11,7 @@
 	import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 	import { useTranslator } from '../../i18n/context';
 	import type { ViewerOptionsState } from '../state/viewer-options.svelte';
+	import SettingsAiSection from './ai/SettingsAiSection.svelte';
 	import SettingsAppearanceTab from './SettingsAppearanceTab.svelte';
 	import SettingsLanguageTab from './SettingsLanguageTab.svelte';
 	import OptionsAddInsPane from './settings/OptionsAddInsPane.svelte';
@@ -28,6 +29,7 @@
 		availableLocales,
 		onsetlocale,
 		addinStatus,
+		aiEnabled = false,
 	}: {
 		/** The shared File > Options state (store + behavior projections). */
 		optionsState: ViewerOptionsState;
@@ -39,11 +41,15 @@
 		availableLocales?: readonly LocaleCatalogEntry[];
 		onsetlocale: (code: string) => void;
 		addinStatus?: ViewerAddinStatus;
+		/** When true, an "AI" section is shown for exporting detailed chat logs. */
+		aiEnabled?: boolean;
 	} = $props();
 
 	const t = useTranslator();
+	/** Synthetic tab id for the AI section (appended only when `aiEnabled`). */
+	const AI_TAB_ID = 'ai';
 	// eslint-disable-next-line prefer-const -- reassigned in the nav markup below
-	let activeTabId = $state<ViewerOptionsTabId>('general');
+	let activeTabId = $state<ViewerOptionsTabId | typeof AI_TAB_ID>('general');
 	const activeTab = $derived(
 		VIEWER_OPTIONS_TABS.find((entry) => entry.id === activeTabId) ?? VIEWER_OPTIONS_TABS[0],
 	);
@@ -78,9 +84,15 @@
 				{#each VIEWER_OPTIONS_TABS as tab (tab.id)}
 					<button class:active={activeTabId === tab.id} onclick={() => (activeTabId = tab.id)}>{t(tab.labelKey)}</button>
 				{/each}
+				{#if aiEnabled}
+					<button class:active={activeTabId === AI_TAB_ID} onclick={() => (activeTabId = AI_TAB_ID)}>{t('pptx.ai.settingsSectionTitle')}</button>
+				{/if}
 			</nav>
 			<div class="body">
-				{#if activeTab.custom === 'language'}
+				{#if activeTabId === AI_TAB_ID}
+					<p class="headline">{t('pptx.ai.settingsSectionTitle')}</p>
+					<SettingsAiSection />
+				{:else if activeTab.custom === 'language'}
 					<p class="headline">{t(activeTab.descriptionKey)}</p>
 					<section class="lang">
 						<h3>{t('pptx.options.language.displayLanguage')}</h3>

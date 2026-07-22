@@ -13,10 +13,12 @@
 	import Sparkles from '@lucide/svelte/icons/sparkles';
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 	import X from '@lucide/svelte/icons/x';
+	import { createChatHistoryStore } from 'pptx-viewer-shared/ai';
 	import type { PptxAiBridge, PptxAiConfig, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
 	import { onMount, untrack } from 'svelte';
 
 	import { useTranslator } from '../../../i18n/context';
+	import { deckIdFromBridge, deriveChatTitle, newChatId } from '../../ai/ai-history-persist';
 	import type { AiPanelController } from '../../ai/ai-panel-controller.svelte';
 	import { SvelteAiChat } from '../../ai/chat.svelte';
 	import AiComposer from './AiComposer.svelte';
@@ -62,6 +64,32 @@
 		aiPanel.flashToolTarget(null);
 		chat.acceptAllProposals();
 	}
+
+	// Persist the running transcript to the shared history store (write half only;
+	// the export in File > Options > AI reads it back). Debounced, per-deck id.
+	const historyStore = untrack(() => createChatHistoryStore());
+	const deckId = untrack(() => deckIdFromBridge(bridge));
+	const chatId = untrack(() => newChatId());
+	const createdAt = Date.now();
+	let saveTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => {
+		const messages = chat.messages;
+		if (messages.length === 0) {
+			return;
+		}
+		clearTimeout(saveTimer);
+		saveTimer = setTimeout(() => {
+			void historyStore.saveChat({
+				id: chatId,
+				title: deriveChatTitle(messages) || t('pptx.ai.untitledChat'),
+				deckId,
+				messages,
+				createdAt,
+				updatedAt: Date.now(),
+			});
+		}, 800);
+		return () => clearTimeout(saveTimer);
+	});
 
 	onMount(() => {
 		void chat.init();

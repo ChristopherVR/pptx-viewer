@@ -854,7 +854,7 @@
 	/>
 	{#if versionHistoryOpen}<VersionHistoryPanel {filePath} onclose={() => (versionHistoryOpen = false)} onrestore={(bytes) => loader.load(bytes)} />{/if}
 	{#if signatureWarningOpen}<SignatureStrippedDialog signatureCount={loader.digitalSignatureCount} onclose={closeSignatureWarning} />{/if}
-	<ViewerParityOverlays ui={parityUi} {editor} {exportUi} slides={displaySlides} canvasSize={loader.canvasSize} mediaDataUrls={loader.mediaDataUrls} current={viewer.current} fullscreen={viewer.isFullscreen} locale={effectiveLocale} {themeKey} {themeCatalog} onsetthemekey={setThemeKey} {availableLocales} onsetlocale={setLocale} onselectslide={(index) => viewer.goTo(index)} onmoveslide={moveSlide} {optionsState} />
+	<ViewerParityOverlays ui={parityUi} {editor} {exportUi} slides={displaySlides} canvasSize={loader.canvasSize} mediaDataUrls={loader.mediaDataUrls} current={viewer.current} fullscreen={viewer.isFullscreen} locale={effectiveLocale} {themeKey} {themeCatalog} onsetthemekey={setThemeKey} {availableLocales} onsetlocale={setLocale} onselectslide={(index) => viewer.goTo(index)} onmoveslide={moveSlide} {optionsState} aiEnabled={Boolean(ai)} />
 	{#if editor.masterViewTarget}
 		<MasterViewBody
 			{editor}
