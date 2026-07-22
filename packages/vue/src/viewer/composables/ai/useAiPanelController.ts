@@ -14,7 +14,7 @@
  *     the tool references (see {@link flashToolTarget}).
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import type { PptxAiFocusedTarget, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
+import type { AiChangeBatch, PptxAiFocusedTarget, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
 import { computed, onScopeDispose, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -64,6 +64,12 @@ export interface AiPanelController {
 	canvasHighlights: ComputedRef<AiCanvasHighlight[]>;
 	canvasAnimating: ComputedRef<boolean>;
 	flashToolTarget(target: ToolCanvasTarget | null): void;
+
+	/* Applied-edit change animation */
+	/** The batch of just-applied element changes the canvas should animate. */
+	changeBatch: Ref<AiChangeBatch | null>;
+	/** Push (or clear) the change batch the AI apply path published. */
+	showChangeBatch(batch: AiChangeBatch | null): void;
 }
 
 /** How long a live-tool highlight / colour-tween window stays up after a call. */
@@ -83,6 +89,10 @@ export function useAiPanelController(input: UseAiPanelControllerInput): AiPanelC
 	const toolFocus = ref<{ slideIndex: number; elementIds: string[] } | null>(null);
 	const flashTick = ref(0);
 	let flashTimer: ReturnType<typeof setTimeout> | null = null;
+	const changeBatch = ref<AiChangeBatch | null>(null);
+	const showChangeBatch = (batch: AiChangeBatch | null): void => {
+		changeBatch.value = batch;
+	};
 
 	const liveFocusTargets = computed(() =>
 		computeFocusTargets({
@@ -184,5 +194,7 @@ export function useAiPanelController(input: UseAiPanelControllerInput): AiPanelC
 		canvasHighlights,
 		canvasAnimating,
 		flashToolTarget,
+		changeBatch,
+		showChangeBatch,
 	};
 }

@@ -61,6 +61,7 @@ import {
 } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
 import { AiChatPanelLazy } from './components/ai';
+import AiChangeOverlay from './components/ai/AiChangeOverlay.vue';
 import AiFocusHighlightOverlay from './components/ai/AiFocusHighlightOverlay.vue';
 import BroadcastDialog from './components/BroadcastDialog.vue';
 import CanvasGuides from './components/CanvasGuides.vue';
@@ -2223,6 +2224,12 @@ function handleCommandSearch(command: string): void {
 							v-if="props.ai && aiPanel.canvasHighlights.value.length > 0"
 							:highlights="aiPanel.canvasHighlights.value"
 							:elements="activeSlide?.elements ?? []"
+							:active-slide-index="activeSlideIndex"
+						/>
+						<!-- AI change animation (watch the applied edit land on the canvas) -->
+						<AiChangeOverlay
+							v-if="props.ai && aiPanel.changeBatch.value"
+							:batch="aiPanel.changeBatch.value"
 							:active-slide-index="activeSlideIndex"
 						/>
 						<SelectionOverlay

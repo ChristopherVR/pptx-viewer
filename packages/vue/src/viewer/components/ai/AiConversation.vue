@@ -11,7 +11,7 @@
  */
 import { TriangleAlert } from 'lucide-vue-next';
 import type { PptxAiBridge, PptxAiChatSession, PptxAiConfig } from 'pptx-viewer-shared/ai';
-import { computed } from 'vue';
+import { computed, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useAiConversation } from '../../composables/ai/useAiConversation';
@@ -51,6 +51,17 @@ const {
 		props.aiPanel.flashToolTarget(target);
 	},
 });
+
+// Applied-edit animation: when the AI apply path publishes a batch of changed
+// elements, reveal that slide and hand the batch to the canvas overlay so the
+// user watches the edit land (glide old->new, fade/scale in-out, glow).
+const unsubscribeChanges = props.session.changeAnimator.subscribe((batch) => {
+	if (batch) {
+		props.bridge.goToSlide(batch.slideIndex);
+	}
+	props.aiPanel.showChangeBatch(batch);
+});
+onBeforeUnmount(() => unsubscribeChanges());
 
 // Explicit picks win over a pin, which wins over the live selection.
 const hasPicks = computed(() => props.aiPanel.pickTargets.value.length > 0);
