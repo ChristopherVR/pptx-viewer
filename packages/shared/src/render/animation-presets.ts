@@ -28,8 +28,12 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		9: 'dissolveIn',
 		10: 'fadeIn',
 		12: 'flashIn',
+		14: 'randomBarsIn',
 		16: 'peekIn',
-		17: 'randomBarsIn',
+		// entr.17 = Split per MS-OI29500 / the catalog. (Previously this id was
+		// mislabelled randomBarsIn, so imported Split entrances rendered as
+		// Random Bars.) entr.14 above is Random Bars.
+		17: 'splitIn',
 		22: 'wipeIn',
 		23: 'zoomIn',
 		26: 'riseUp',
