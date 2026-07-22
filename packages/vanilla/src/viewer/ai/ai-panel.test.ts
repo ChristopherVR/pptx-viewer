@@ -127,7 +127,7 @@ describe('createAiPanel', () => {
 					role: 'assistant',
 					parts: [
 						{
-							type: 'tool-move_resize_element',
+							type: 'tool-update_element',
 							toolCallId: 'c1',
 							state: 'output-available',
 							input: { slideIndex: 4, elementId: 'el-2' },

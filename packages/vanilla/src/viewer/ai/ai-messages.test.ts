@@ -54,7 +54,7 @@ describe('renderMessages friendly tool cards', () => {
 			id: 'm2',
 			role: 'assistant',
 			parts: [
-				{ type: 'tool-update_text', toolCallId: 'c2', state: 'output-error', errorText: 'boom' },
+				{ type: 'tool-update_element', toolCallId: 'c2', state: 'output-error', errorText: 'boom' },
 			],
 		} as unknown as PptxAiUIMessage;
 		renderMessages(document, host, [msg], t);
