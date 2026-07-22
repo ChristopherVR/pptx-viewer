@@ -62,6 +62,97 @@ describe('discoverArrangement', () => {
 		);
 		expect(plan?.kind).toBe('hierarchy');
 	});
+
+	it('does not let a passive composite wrapper clobber its inner lin', () => {
+		const plan = discoverArrangement(
+			def({
+				algorithm: { type: 'composite' },
+				children: [{ algorithm: { type: 'lin' }, children: [{ algorithm: { type: 'tx' } }] }],
+			}),
+		);
+		expect(plan?.kind).toBe('linear');
+	});
+
+	it('chooses composite when its child slots carry positioning constraints', () => {
+		const plan = discoverArrangement(
+			def({
+				algorithm: { type: 'composite' },
+				children: [
+					{
+						algorithm: { type: 'sp' },
+						constraints: [
+							{ type: 'l', referenceType: 'w', factor: 0 },
+							{ type: 'w', referenceType: 'w', factor: 0.5 },
+						],
+					},
+					{
+						algorithm: { type: 'tx' },
+						constraints: [
+							{ type: 'l', referenceType: 'w', factor: 0.5 },
+							{ type: 'w', referenceType: 'w', factor: 0.5 },
+						],
+					},
+				],
+			}),
+		);
+		expect(plan?.kind).toBe('composite');
+	});
+
+	it('recognises a dominant conn algorithm as the conn family', () => {
+		const plan = discoverArrangement(
+			def({ algorithm: { type: 'conn' }, children: [{ algorithm: { type: 'tx' } }] }),
+		);
+		expect(plan?.kind).toBe('conn');
+	});
+
+	it('declines a bare spacer with no slots or children', () => {
+		expect(discoverArrangement(def({ algorithm: { type: 'sp' } }))).toBeUndefined();
+	});
+
+	it('prefers a structural lin over sibling conn/tx nodes', () => {
+		const plan = discoverArrangement(
+			def({
+				algorithm: { type: 'lin' },
+				children: [{ algorithm: { type: 'tx' } }, { algorithm: { type: 'conn' } }],
+			}),
+		);
+		expect(plan?.kind).toBe('linear');
+	});
+});
+
+describe('discoverArrangement choose evaluation', () => {
+	// Root drives via a dgm:choose: cnt >= 4 -> cycle, otherwise -> lin. The
+	// flattened children carry both branch algs (cycle first, so the blind path
+	// would always pick cycle).
+	const chooseDef = (): PptxSmartArtLayoutDefinition =>
+		def({
+			choose: [
+				{
+					when: [
+						{
+							function: 'cnt',
+							operator: 'gte',
+							value: '4',
+							rawXml: { 'dgm:layoutNode': { 'dgm:alg': { '@_type': 'cycle' } } },
+						},
+					],
+					otherwise: { rawXml: { 'dgm:layoutNode': { 'dgm:alg': { '@_type': 'lin' } } } },
+				},
+			],
+			children: [{ algorithm: { type: 'cycle' } }, { algorithm: { type: 'lin' } }],
+		});
+
+	it('picks the otherwise branch (lin) below the count threshold', () => {
+		expect(discoverArrangement(chooseDef(), 3)?.kind).toBe('linear');
+	});
+
+	it('picks the if branch (cycle) at or above the count threshold', () => {
+		expect(discoverArrangement(chooseDef(), 5)?.kind).toBe('cycle');
+	});
+
+	it('keeps the blind first-alg behaviour when the count is unknown', () => {
+		expect(discoverArrangement(chooseDef())?.kind).toBe('cycle');
+	});
 });
 
 describe('ratioConstraint', () => {
@@ -75,6 +166,78 @@ describe('ratioConstraint', () => {
 
 	it('falls back when the constraint is absent', () => {
 		expect(ratioConstraint([], ['sibSp'], 0.2)).toBe(0.2);
+	});
+
+	it('prefers a for="ch" constraint over an unscoped one of the same type', () => {
+		expect(
+			ratioConstraint(
+				[
+					{ type: 'sibSp', factor: 0.9 },
+					{ type: 'sibSp', for: 'ch', factor: 0.2 },
+				],
+				['sibSp'],
+				0.5,
+			),
+		).toBe(0.2);
+	});
+
+	it('clamps the ratio to a matching numeric-rule max when supplied', () => {
+		expect(
+			ratioConstraint([{ type: 'sibSp', factor: 0.8 }], ['sibSp'], 0.2, [
+				{ type: 'sibSp', max: 0.3 },
+			]),
+		).toBe(0.3);
+	});
+});
+
+describe('forEach point selection', () => {
+	const nodes = [n('1', 'A'), n('2', 'B'), n('3', 'C')];
+
+	function linWithForEach(
+		forEach: PptxSmartArtLayoutNode['forEach'],
+		flat: PptxSmartArtNode[],
+	): RenderedRectNode[] {
+		const layout = interpretSmartArtLayout({
+			layoutDefinition: def({
+				algorithm: { type: 'lin', parameters: [{ type: 'linDir', value: 'fromL' }] },
+				forEach,
+				children: [{ algorithm: { type: 'tx' } }],
+			}),
+			nodes: flat,
+			flat,
+			box: BOX,
+			palette: PALETTE,
+			style: STYLE,
+			elementId: ID,
+		});
+		return rects(layout!.nodes);
+	}
+
+	it('drops the trailing node when the driving iterator sets hideLastTrans', () => {
+		const boxes = linWithForEach(
+			[{ axis: ['ch'], pointTypes: ['node'], hideLastTransition: [true] }],
+			nodes,
+		);
+		expect(boxes).toHaveLength(2);
+	});
+
+	it('keeps every node when hideLastTrans is absent', () => {
+		const boxes = linWithForEach([{ axis: ['ch'], pointTypes: ['node'] }], nodes);
+		expect(boxes).toHaveLength(3);
+	});
+
+	it('limits the arranged points to the iterator count (cnt)', () => {
+		const many = Array.from({ length: 5 }, (_, i) => n(String(i + 1), `Item ${i + 1}`));
+		const boxes = linWithForEach([{ axis: ['ch'], pointTypes: ['node'], count: [3] }], many);
+		expect(boxes).toHaveLength(3);
+	});
+
+	it('skips leading points for a 1-based start offset (st)', () => {
+		const boxes = linWithForEach([{ axis: ['ch'], pointTypes: ['node'], start: [2] }], nodes);
+		expect(boxes).toHaveLength(2);
+		// Data node '1' is skipped; the first placed rect is node '2'.
+		expect(boxes.some((b) => b.key.includes('-lin-1-'))).toBeFalsy();
+		expect(boxes.some((b) => b.key.includes('-lin-2-'))).toBeTruthy();
 	});
 });
 
