@@ -53,11 +53,14 @@ import type {
 	PptxElement,
 } from 'pptx-viewer-core';
 
+import { applyChart3DDepth } from './chart-3d-depth';
 import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
 import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
+import { buildOfPieViewModel } from './chart-ofpie';
+import { buildPieDataLabels } from './chart-pie-labels';
 import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
 import { buildRegionMapViewModel, buildWaterfallViewModel } from './chart-waterfall-map';
 
@@ -1045,6 +1048,37 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 			? chartData.categories
 			: Array.from({ length: longestLen }, (_, i) => String(i + 1));
 
+	// Pie-of-pie / bar-of-pie splits one series across a primary + secondary plot.
+	if (chartType === 'ofPie') {
+		return buildOfPieViewModel(element, chartData, categoryLabels);
+	}
+
+	// 3D chart kinds keep their flat geometry but get an oblique depth pass driven
+	// by c:view3D so they read as 3D instead of collapsing to a flat plot.
+	const flat = buildFlatViewModel(element, chartData, categoryLabels, kind);
+	if (is3DChartType(chartType)) {
+		return applyChart3DDepth(flat, chartType, chartData.view3D);
+	}
+	return flat;
+}
+
+/** Whether a chart type carries an inherent 3D depth treatment. */
+function is3DChartType(chartType: string): boolean {
+	return (
+		chartType === 'bar3D' ||
+		chartType === 'pie3D' ||
+		chartType === 'line3D' ||
+		chartType === 'area3D'
+	);
+}
+
+/** Build the flat (2D) view-model for a resolved chart kind. */
+function buildFlatViewModel(
+	element: PptxElement,
+	chartData: PptxChartData,
+	categoryLabels: ReadonlyArray<string>,
+	kind: SupportedChartKind,
+): ChartViewModel {
 	if (kind === 'pie' || kind === 'doughnut') {
 		return buildPieViewModel(element, chartData, categoryLabels, kind === 'doughnut');
 	}
@@ -1176,23 +1210,18 @@ function buildPieViewModel(
 
 	const dataLabels: SvgText[] = [];
 	if (chartData.style?.hasDataLabels) {
-		slices.forEach(({ labelX, labelY }, i) => {
-			const val = values[i];
-			if (val === undefined) {
-				return;
-			}
-			dataLabels.push({
-				kind: 'text',
-				x: labelX,
-				y: labelY,
-				text: formatAxisValue(val),
-				fontSize: 8,
-				fill: '#ffffff',
-				textAnchor: 'middle',
-				fontWeight: 'bold',
-				dominantBaseline: 'central',
-			});
+		// Offset (outEnd / bestFit) labels sit outside the rim with c:leaderLines.
+		const labelResult = buildPieDataLabels({
+			slices,
+			values,
+			cx,
+			cy,
+			outerR,
+			position: chartData.style.dataLabels?.position,
+			showLeaderLines: chartData.style.dataLabels?.showLeaderLines,
 		});
+		dataLabels.push(...labelResult.labels);
+		primitives.push(...labelResult.leaderLines);
 	}
 
 	const legendPos = chartData.style?.legendPosition ?? 'b';
