@@ -17,7 +17,12 @@
 import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
 import { buildColorAnimationKeyframes } from './animation-color';
-import { FLY_SUBTYPE_TO_EDGE, PRESET_ID_TO_EFFECT } from './animation-presets';
+import { parseMotionPathPoints } from './animation-motion-path';
+import {
+	emphasisFilterKeyframeCss,
+	FLY_SUBTYPE_TO_EDGE,
+	PRESET_ID_TO_EFFECT,
+} from './animation-presets';
 import type {
 	AnimationStep,
 	EffectName,
@@ -83,31 +88,6 @@ function applyFlyDirection(
 // Dynamic keyframe generation (motion path / rotation / scale / colour)
 // ==========================================================================
 
-/** Parse the points out of a simple `M…L…Z` motion-path string. */
-function parseMotionPathPoints(motionPath: string): Array<{ x: number; y: number }> {
-	const cmds = motionPath
-		.replace(/\s+/gu, ' ')
-		.trim()
-		.split(/(?=[MLCZ])/iu)
-		.filter(Boolean);
-	const points: Array<{ x: number; y: number }> = [];
-	for (const cmd of cmds) {
-		const type = cmd.charAt(0).toUpperCase();
-		if (type === 'Z') {
-			continue;
-		}
-		const nums = cmd
-			.slice(1)
-			.trim()
-			.split(/[\s,]+/u)
-			.map(Number);
-		for (let i = 0; i + 1 < nums.length; i += 2) {
-			points.push({ x: nums[i] * 100, y: nums[i + 1] * 100 });
-		}
-	}
-	return points;
-}
-
 /**
  * Build a dynamic CSS `@keyframes` block for motion path, rotation, scale, or
  * colour animations that don't map to a static effect preset. Uses the
@@ -165,6 +145,15 @@ export function buildDynamicKeyframes(
 		const css = buildColorAnimationKeyframes(anim.colorAnimation, name);
 		if (css) {
 			return { keyframeName: name, css };
+		}
+	}
+
+	// Filter-based emphasis (desaturate / darken / lighten)
+	if (anim.presetClass === 'emph') {
+		const filterName = `pptx-emph-${uid}`;
+		const filterCss = emphasisFilterKeyframeCss(anim.presetId, filterName);
+		if (filterCss) {
+			return { keyframeName: filterName, css: filterCss };
 		}
 	}
 
@@ -234,6 +223,14 @@ export function buildDynamicKeyframe(
 		const css = buildColorAnimationKeyframes(anim.colorAnimation, name);
 		if (css) {
 			return { keyframeName: name, css };
+		}
+	}
+	// Filter-based emphasis (desaturate / darken / lighten)
+	if (anim.presetClass === 'emph') {
+		const filterName = `pptx-tl-emph-${uid}`;
+		const filterCss = emphasisFilterKeyframeCss(anim.presetId, filterName);
+		if (filterCss) {
+			return { keyframeName: filterName, css: filterCss };
 		}
 	}
 	return undefined;

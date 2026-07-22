@@ -399,40 +399,83 @@ describe('buildTimeline', () => {
 		expect(step.fillMode).toBe('forwards');
 	});
 
-	it('does not fabricate a step for an unmapped emphasis preset', () => {
-		// Emphasis carries no show/hide semantics, so a missing one is skipped.
+	it('plays a neutral pulse for an unmapped emphasis preset instead of dropping it', () => {
+		// Emphasis carries no show/hide semantics, but an unmapped emphasis must
+		// still animate rather than being silently dropped (issue: inert emphasis).
 		const result = buildTimeline([
 			makeAnim({ targetId: 'el1', presetClass: 'emph', presetId: 99999 }),
 		]);
-		expect(result.clickGroups).toHaveLength(0);
+		expect(result.clickGroups).toHaveLength(1);
+		const step = result.clickGroups[0].steps[0];
+		expect(step.elementId).toBe('el1');
+		expect(step.keyframeName).toBe('pptx-pulse');
+		expect(step.presetClass).toBe('emph');
+		// An emphasis is not an entrance, so it must not be initially hidden.
 		expect(result.entranceElementIds.has('el1')).toBeFalsy();
 	});
 
+	it('plays a filter-based emphasis (darken) for a mapped emphasis preset', () => {
+		const result = buildTimeline([makeAnim({ targetId: 'el1', presetClass: 'emph', presetId: 4 })]);
+		expect(result.clickGroups).toHaveLength(1);
+		expect(result.keyframesCss).toContain('@keyframes pptx-tl-emph-');
+		expect(result.keyframesCss).toContain('brightness(0.55)');
+	});
+
 	// -------------------------------------------------------------------
-	// accel / decel easing
+	// accel / decel easing (mapped to an accurate cubic-bezier)
 	// -------------------------------------------------------------------
 	it('uses neutral ease when neither accel nor decel is set', () => {
 		const result = buildTimeline([makeAnim()]);
 		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' ease ');
 	});
 
-	it('maps accel to ease-in', () => {
+	it('maps accel to an ease-in cubic-bezier reflecting its magnitude', () => {
 		const result = buildTimeline([makeAnim({ accel: 0.5 })]);
-		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' ease-in ');
+		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(
+			'cubic-bezier(0.500, 0, 1.000, 1)',
+		);
 	});
 
-	it('maps decel to ease-out', () => {
+	it('maps decel to an ease-out cubic-bezier reflecting its magnitude', () => {
 		const result = buildTimeline([makeAnim({ decel: 0.5 })]);
-		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' ease-out ');
+		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(
+			'cubic-bezier(0.000, 0, 0.500, 1)',
+		);
 	});
 
-	it('maps accel + decel to ease-in-out', () => {
+	it('maps accel + decel to an ease-in-out cubic-bezier', () => {
 		const result = buildTimeline([makeAnim({ accel: 0.3, decel: 0.3 })]);
-		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' ease-in-out ');
+		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(
+			'cubic-bezier(0.300, 0, 0.700, 1)',
+		);
 	});
 
 	it('ignores a zero accel fraction (stays neutral ease)', () => {
 		const result = buildTimeline([makeAnim({ accel: 0 })]);
 		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' ease ');
+	});
+
+	// -------------------------------------------------------------------
+	// Directional non-fly entrances (presetSubtype honoured)
+	// -------------------------------------------------------------------
+	it('honours a directional subtype on a wipe entrance', () => {
+		// Wipe In (entr preset 22) with a top origin edge (subtype 1) must reveal
+		// from the top, not the static left-to-right default.
+		const result = buildTimeline([
+			makeAnim({ targetId: 'el1', presetClass: 'entr', presetId: 22, presetSubtype: 1 }),
+		]);
+		expect(result.clickGroups).toHaveLength(1);
+		const step = result.clickGroups[0].steps[0];
+		expect(step.keyframeName).toMatch(/^pptx-tl-dir-/u);
+		expect(result.keyframesCss).toContain('clip-path: inset(0 0 100% 0)');
+		// Still registered as an entrance (initially hidden).
+		expect(result.entranceElementIds.has('el1')).toBeTruthy();
+	});
+
+	it('keeps the static wipe keyframe when no directional subtype is present', () => {
+		const result = buildTimeline([
+			makeAnim({ targetId: 'el1', presetClass: 'entr', presetId: 22 }),
+		]);
+		expect(result.clickGroups[0].steps[0].keyframeName).toBe('pptx-wipeIn');
 	});
 });

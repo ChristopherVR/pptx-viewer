@@ -238,4 +238,35 @@ describe('buildDynamicKeyframe', () => {
 		// Diagonal (1,1) direction = 45 degrees
 		expect(result!.css).toContain('rotate(45.00deg)');
 	});
+
+	it('emits densely sampled keyframes for a cubic-bezier motion path', () => {
+		const anim = {
+			motionPath: 'M 0,0 C 0,1 1,1 1,0',
+		} as unknown as PptxNativeAnimation;
+		const result = buildDynamicKeyframe(anim, 20);
+		expect(result).toBeDefined();
+		// Start + 8 bezier samples => 9 translate stops (a jagged 2-point polyline
+		// through the control handles would only have produced 2).
+		const stops = result!.css.match(/translate\(/gu);
+		expect(stops!.length).toBeGreaterThan(2);
+	});
+
+	it('builds a filter-emphasis keyframe for a mapped emphasis preset (darken)', () => {
+		const anim = {
+			presetClass: 'emph',
+			presetId: 4,
+		} as unknown as PptxNativeAnimation;
+		const result = buildDynamicKeyframe(anim, 21);
+		expect(result).toBeDefined();
+		expect(result!.keyframeName).toBe('pptx-tl-emph-21');
+		expect(result!.css).toContain('filter: brightness(0.55)');
+	});
+
+	it('returns undefined for an emphasis preset with no filter mapping', () => {
+		const anim = {
+			presetClass: 'emph',
+			presetId: 99999,
+		} as unknown as PptxNativeAnimation;
+		expect(buildDynamicKeyframe(anim, 22)).toBeUndefined();
+	});
 });

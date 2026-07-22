@@ -493,8 +493,11 @@ describe('buildColorAnimationKeyframes targetAttribute', () => {
 		};
 		const css = buildColorAnimationKeyframes(anim, 'fill-test', 2);
 		expect(css).toBeDefined();
-		expect(css).toContain('0% { backgroundColor: #ff0000; }');
-		expect(css).toContain('100% { backgroundColor: #0000ff; }');
+		// Routed to the painted SVG vector (`fill`, inherited) plus the HTML-box
+		// fallback (`background-color`), both valid kebab-case CSS.
+		expect(css).toContain('fill: #ff0000;');
+		expect(css).toContain('background-color: #ff0000;');
+		expect(css).toContain('fill: #0000ff;');
 	});
 
 	it('maps style.color to color CSS property', () => {
@@ -519,8 +522,11 @@ describe('buildColorAnimationKeyframes targetAttribute', () => {
 		};
 		const css = buildColorAnimationKeyframes(anim, 'stroke-test', 2);
 		expect(css).toBeDefined();
-		expect(css).toContain('0% { borderColor: #000000; }');
-		expect(css).toContain('100% { borderColor: #ffffff; }');
+		// Routed to the painted SVG vector (`stroke`, inherited) plus the HTML-box
+		// fallback (`border-color`), both valid kebab-case CSS.
+		expect(css).toContain('stroke: #000000;');
+		expect(css).toContain('border-color: #000000;');
+		expect(css).toContain('stroke: #ffffff;');
 	});
 
 	it('defaults to color when targetAttribute is undefined', () => {

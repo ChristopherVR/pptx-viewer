@@ -1,6 +1,6 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
-import { PRESET_ID_TO_EFFECT } from './animation-presets';
+import { EMPH_FILTER_PRESETS, PRESET_ID_TO_EFFECT } from './animation-presets';
 
 describe('pRESET_ID_TO_EFFECT', () => {
 	describe('entrance presets', () => {
@@ -209,6 +209,24 @@ describe('pRESET_ID_TO_EFFECT', () => {
 
 		it('should map preset ID 9 to "transparency"', () => {
 			expect(PRESET_ID_TO_EFFECT.emph[9]).toBe('transparency');
+		});
+
+		it('should map preset ID 7 (blink) to the "flash" keyframe', () => {
+			expect(PRESET_ID_TO_EFFECT.emph[7]).toBe('flash');
+		});
+	});
+
+	describe('eMPH_FILTER_PRESETS', () => {
+		it('maps darken/lighten/desaturate to CSS filter values', () => {
+			expect(EMPH_FILTER_PRESETS[3].name).toBe('desaturate');
+			expect(EMPH_FILTER_PRESETS[4].filterMid).toContain('brightness(0.55)');
+			expect(EMPH_FILTER_PRESETS[5].filterMid).toContain('brightness(1.6)');
+		});
+
+		it('does not collide with statically-mapped emphasis preset ids', () => {
+			for (const id of Object.keys(EMPH_FILTER_PRESETS).map(Number)) {
+				expect(PRESET_ID_TO_EFFECT.emph[id]).toBeUndefined();
+			}
 		});
 	});
 });

@@ -59,12 +59,55 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		1: 'boldFlash',
 		2: 'wave',
 		6: 'growShrink',
+		7: 'flash', // Blink: an opacity blink, closest existing keyframe.
 		8: 'spin',
 		9: 'transparency',
 		14: 'teeter',
 		26: 'pulse',
 	},
 };
+
+// ==========================================================================
+// Filter-based emphasis effects (desaturate / darken / lighten)
+// ==========================================================================
+
+/**
+ * Emphasis presets whose effect is a CSS `filter` pulse rather than a transform
+ * or opacity change. These are generated as dynamic `@keyframes` (see
+ * {@link import('./animation-timeline-helpers').buildDynamicKeyframe}) because
+ * there is no static keyframe for them.
+ *
+ * The `filterMid` is applied at the animation midpoint and eased back to the
+ * neutral value, matching PowerPoint's "emphasise then settle" feel. The preset
+ * IDs are a best-effort mapping of the ECMA-376 emphasis catalogue; any preset
+ * id not covered here (or by {@link PRESET_ID_TO_EFFECT}) still animates via the
+ * neutral emphasis fallback, so an unrecognised id is never dropped.
+ */
+export const EMPH_FILTER_PRESETS: Readonly<Record<number, { name: string; filterMid: string }>> = {
+	3: { name: 'desaturate', filterMid: 'saturate(0.15)' },
+	4: { name: 'darken', filterMid: 'brightness(0.55)' },
+	5: { name: 'lighten', filterMid: 'brightness(1.6)' },
+};
+
+/**
+ * Build a CSS `filter` emphasis `@keyframes` block (desaturate / darken /
+ * lighten) for an emphasis preset id in {@link EMPH_FILTER_PRESETS}. The filter
+ * is applied at the midpoint and eased back to neutral. Returns `undefined` for
+ * any preset id without a filter mapping.
+ */
+export function emphasisFilterKeyframeCss(
+	presetId: number | undefined,
+	name: string,
+): string | undefined {
+	if (presetId === undefined) {
+		return undefined;
+	}
+	const preset = EMPH_FILTER_PRESETS[presetId];
+	if (!preset) {
+		return undefined;
+	}
+	return `@keyframes ${name} {\n\t0% { filter: none; }\n\t50% { filter: ${preset.filterMid}; }\n\t100% { filter: none; }\n}`;
+}
 
 // ==========================================================================
 // Fly In / Fly Out direction (presetSubtype) mapping
