@@ -61,6 +61,7 @@ import {
 } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
 import { AiChatPanelLazy } from './components/ai';
+import AiFocusHighlightOverlay from './components/ai/AiFocusHighlightOverlay.vue';
 import BroadcastDialog from './components/BroadcastDialog.vue';
 import CanvasGuides from './components/CanvasGuides.vue';
 import CollaborationCursors from './components/CollaborationCursors.vue';
@@ -123,6 +124,7 @@ import ThemeGallery from './components/ThemeGallery.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import { AccountAuthKey } from './composables/account-auth';
 import { useAiBridge } from './composables/ai/useAiBridge';
+import { useAiPanelController } from './composables/ai/useAiPanelController';
 import {
 	mergeElementAnimations,
 	replaceSlideAnimations,
@@ -603,6 +605,21 @@ function clearSelection(): void {
 	selectedElementIds.value = [];
 }
 
+// ── AI panel controller (focus / picks / live-tool canvas presence) ────
+// Owns the assistant's focus scope + the on-canvas highlight sources. Created
+// unconditionally (cheap) but only consumed when the host opts into `ai`. Its
+// pick set + pinned focus feed the bridge's `getFocusedTargets`, and its
+// highlights drive the on-canvas ring overlay + the colour-tween attribute.
+const aiPanelOpen = ref(false);
+const aiPanel = useAiPanelController({
+	activeSlideIndex,
+	selectedElementIds,
+	selectedElement: () => {
+		const id = selectedElementIds.value[0];
+		return id ? (findActiveElement(id) ?? null) : null;
+	},
+});
+
 // ── Format painter ────────────────────────────────────────────────────
 const {
 	formatPainterActive,
@@ -701,6 +718,21 @@ function onCanvasPointerDown(event: PointerEvent): void {
 	// turns on edit-template mode; a click on a locked one behaves like an
 	// empty-canvas click (no select / drag / inline-edit).
 	const id = hitId && isElementIdInteractive(hitId, editTemplateMode.value) ? hitId : undefined;
+
+	// AI pick mode: the next canvas element click(s) become picks for the
+	// assistant (multi-pick, deduped) instead of a normal selection/drag. Resolve
+	// via elementFromPoint too so overlays do not swallow the hit.
+	if (aiPanel.pickMode.value) {
+		const pickHost = (document
+			.elementFromPoint(event.clientX, event.clientY)
+			?.closest('[data-element-id]') ?? host) as HTMLElement | null;
+		const pickId = pickHost?.dataset.elementId;
+		if (pickId && isElementIdInteractive(pickId, editTemplateMode.value)) {
+			event.preventDefault();
+			aiPanel.addPick(activeSlideIndex.value, pickId);
+		}
+		return;
+	}
 
 	// On touch, if a table cell is being edited and the tap did NOT land inside
 	// the cell input itself (the input stops its own pointerdown), the
@@ -1139,6 +1171,15 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 	onGroup,
 	onUngroup,
 	openHyperlinkDialog,
+	aiEnabled: () => Boolean(props.ai),
+	onAskAi: () => {
+		aiPanel.askAboutSelection();
+		aiPanelOpen.value = true;
+	},
+	onFixAi: () => {
+		aiPanel.fixSelection();
+		aiPanelOpen.value = true;
+	},
 });
 
 // ── Autosave ──────────────────────────────────────────────────────────
@@ -1588,7 +1629,8 @@ const { applyTheme, applyThemePreset, applyThemeEdit } = useThemeEditing({
 // factory) but only consumed when the host opts in; its three write choke
 // points route through the editor-history layer so AI edits are a single
 // Ctrl+Z. The panel (and its `@ai-sdk/vue` peer) loads lazily on first open.
-const aiPanelOpen = ref(false);
+// (`aiPanelOpen` + the focus/pick controller `aiPanel` are declared earlier,
+// beside the selection state they derive from.)
 /** Map a partial AI theme update onto the deck-wide theme editor (mirrors React's applyAiTheme). */
 function applyAiTheme(updates: Partial<PptxTheme>): void {
 	const current = pptxTheme.value;
@@ -1618,6 +1660,9 @@ const aiBridge = useAiBridge({
 		selectedElementIds.value = ids;
 	},
 	applyThemeUpdates: applyAiTheme,
+	selectedElementIds: () => selectedElementIds.value,
+	pinnedFocus: () => aiPanel.pinnedFocus.value,
+	pickedFocus: () => aiPanel.pickTargets.value,
 });
 
 const {
@@ -2119,6 +2164,7 @@ function handleCommandSearch(command: string): void {
 					ref="mainRef"
 					class="pptx-vue-main"
 					:class="{ 'is-editable': props.canEdit }"
+					:data-pptx-ai-active="props.ai && aiPanel.canvasAnimating.value ? 'true' : undefined"
 					@pointerdown="onCanvasPointerDown"
 					@dblclick.capture="onCanvasDoubleClick"
 					@contextmenu="onCanvasContextMenu"
@@ -2166,6 +2212,13 @@ function handleCommandSearch(command: string): void {
 							:scale="effectiveZoom"
 							@stroke="addInkStroke"
 							@erase="eraseInkAt"
+						/>
+						<!-- AI focus rings (picks + live-tool "AI is working here") -->
+						<AiFocusHighlightOverlay
+							v-if="props.ai && aiPanel.canvasHighlights.value.length > 0"
+							:highlights="aiPanel.canvasHighlights.value"
+							:elements="activeSlide?.elements ?? []"
+							:active-slide-index="activeSlideIndex"
 						/>
 						<SelectionOverlay
 							v-if="props.canEdit && !inlineEditingElementId && !presenting"
@@ -2266,6 +2319,7 @@ function handleCommandSearch(command: string): void {
 					"
 					:bridge="aiBridge"
 					:config="props.ai"
+					:ai-panel="aiPanel"
 					@close="aiPanelOpen = false"
 				/>
 
@@ -2494,6 +2548,7 @@ function handleCommandSearch(command: string): void {
 				:on-locale-select="selectLocale"
 				:available-themes="props.availableThemes"
 				:available-locales="resolvedAvailableLocales"
+				:ai-enabled="Boolean(props.ai)"
 				@close="showSettings = false"
 			/>
 
