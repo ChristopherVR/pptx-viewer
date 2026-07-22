@@ -22,6 +22,7 @@
  * spreads this constant instead of repeating it.
  */
 import { AccessibilityService } from './accessibility.service';
+import { AiPanelStore } from './ai/ai-panel-store';
 import { AutosaveService } from './autosave.service';
 import { ChartPartSelectionService } from './chart-part-selection.service';
 import { CollaborationService } from './collaboration.service';
@@ -77,6 +78,7 @@ export const POWER_POINT_VIEWER_PROVIDERS = [
 	SmartArt3DService,
 	FieldContextService,
 	ZoomTargetService,
+	AiPanelStore,
 	ViewerDialogsService,
 	ViewerCompareService,
 	ViewerExportService,

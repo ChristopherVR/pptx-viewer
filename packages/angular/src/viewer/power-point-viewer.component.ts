@@ -53,6 +53,7 @@ import { AccessibilityService } from './accessibility.service';
 import { createAngularAiBridge } from './ai/ai-bridge';
 import { AiChatPanelComponent } from './ai/ai-chat-panel.component';
 import { aiToggleVisible } from './ai/ai-gating';
+import { AiPanelStore } from './ai/ai-panel-store';
 import { AutosaveService } from './autosave.service';
 import { BroadcastDialogComponent } from './broadcast-dialog.component';
 import { CollaborationCursorsComponent } from './collaboration-cursors.component';
@@ -402,7 +403,11 @@ import { ZoomTargetService } from './zoom-target.service';
 							[drawWidth]="activeDrawWidth()"
 							[editTemplateMode]="editor.editTemplateMode()"
 							[templateElements]="activeTemplateElements()"
-							(elementSelect)="canvasEditing.onElementSelect($event)"
+							[aiHighlights]="aiPanelStore.canvasHighlights()"
+							[aiActive]="aiPanelStore.canvasAnimating()"
+							[aiActiveSlideIndex]="activeSlideIndex()"
+							[aiPickMode]="aiPanelStore.pickMode()"
+							(elementSelect)="onCanvasElementSelect($event)"
 							(backgroundClick)="canvasEditing.onBackgroundClick()"
 							(marqueeSelect)="editor.select($event)"
 							(transformStart)="editor.beginTransform($event.label)"
@@ -709,6 +714,9 @@ import { ZoomTargetService } from './zoom-target.service';
 					[x]="m.x"
 					[y]="m.y"
 					[slideIndex]="activeSlideIndex()"
+					[showAiActions]="aiEnabled() && !!selectedElement()"
+					(askAi)="onContextMenuAskAi()"
+					(fixAi)="onContextMenuFixAi()"
 					(closed)="canvasEditing.contextMenuPos.set(null)"
 				/>
 			}
@@ -741,6 +749,7 @@ import { ZoomTargetService } from './zoom-target.service';
 				[availableThemes]="resolvedThemes()"
 				[localeCode]="localeCode()"
 				[availableLocales]="resolvedLocales()"
+				[aiExportVisible]="aiEnabled()"
 				(restoreContent)="onRestoreVersion($event)"
 				(themeKeySelect)="selectThemeKey($event)"
 				(localeSelect)="selectLocale($event)"
@@ -1064,6 +1073,8 @@ export class PowerPointViewerComponent {
 	protected readonly fileIO = inject(ViewerFileIOService);
 	protected readonly themeGallery = inject(ViewerThemeGalleryService);
 	protected readonly canvasEditing = inject(ViewerCanvasEditingService);
+	/** Shared AI panel scope + on-canvas highlight store (pick mode, tool focus). */
+	protected readonly aiPanelStore = inject(AiPanelStore);
 	protected readonly collabCursor = inject(ViewerCollabCursorService);
 	protected readonly docProperties = inject(ViewerDocumentPropertiesService);
 	private readonly translateService = inject(TranslateService);
@@ -1292,9 +1303,21 @@ export class PowerPointViewerComponent {
 		},
 		applySlides: (next, label) => this.editor.applyReplacement(next, label),
 		applyTheme: (updates) => this.applyAiTheme(updates),
+		// Scope the assistant to the user's AI picks / pinned focus / live
+		// selection (see AiPanelStore); falls back to the whole active slide.
+		getFocusedTargets: () => this.aiPanelStore.getFocusedTargets(),
 	});
 
 	constructor() {
+		// Wire the AI panel store to the live canvas selection so its
+		// follow-selection focus (and the bridge's getFocusedTargets) stay current.
+		this.aiPanelStore.bind({
+			activeSlideIndex: () => this.activeSlideIndex(),
+			selectedElementIds: () => this.editor.selectedIds(),
+			selectedElementId: () => this.editor.selectedIds()[0] ?? null,
+			selectedElement: () => this.selectedElement(),
+		});
+
 		// Seed the Appearance/Language catalog selections from an explicit
 		// default input or else the stored `pptx-viewer-prefs` fallback, and
 		// apply the initial locale (unless a host `onLocaleChange` hook means the
@@ -1936,6 +1959,31 @@ export class PowerPointViewerComponent {
 	/** Whether the document has unsaved changes. */
 	isDirty(): boolean {
 		return this.editor.dirty();
+	}
+
+	/**
+	 * Canvas element press. While the AI panel is picking, the press hands the
+	 * element to the assistant (highlighted + added to the pick set) instead of
+	 * selecting it; otherwise it routes to the normal editor selection.
+	 */
+	protected onCanvasElementSelect(event: { id: string; additive: boolean }): void {
+		if (this.aiPanelStore.pickMode()) {
+			this.aiPanelStore.addPick(this.activeSlideIndex(), event.id);
+			return;
+		}
+		this.canvasEditing.onElementSelect(event);
+	}
+
+	/** Context-menu "Ask AI about this": scope + open the assistant, empty composer. */
+	protected onContextMenuAskAi(): void {
+		this.aiPanelStore.askAboutSelection();
+		this.aiPanelOpen.set(true);
+	}
+
+	/** Context-menu "Fix with AI": scope + open the assistant with a prefilled directive. */
+	protected onContextMenuFixAi(): void {
+		this.aiPanelStore.fixSelection();
+		this.aiPanelOpen.set(true);
 	}
 
 	/** Get the IDs of currently selected elements. */

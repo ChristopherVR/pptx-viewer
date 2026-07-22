@@ -18,6 +18,7 @@ import type {
 	PptxAiBridge,
 	PptxAiDeckMeta,
 	PptxAiElementUpdate,
+	PptxAiFocusedTarget,
 	PptxAiNotifyLevel,
 	PptxAiSlidesUpdater,
 } from '../../internal/shared-ai';
@@ -47,6 +48,12 @@ export interface BridgeDeps {
 	applySlides(next: PptxSlide[], label: string): void;
 	/** Apply partial theme updates through the editor's theme handlers. */
 	applyTheme(updates: Partial<PptxTheme>): void;
+	/**
+	 * The slides / elements the assistant should scope its work to (explicit AI
+	 * picks, else a pinned focus, else the live canvas selection). When omitted,
+	 * the assistant falls back to the whole active slide.
+	 */
+	getFocusedTargets?(): PptxAiFocusedTarget[];
 	/** Optional transient host notification (toast / status line). */
 	notify?(message: string, level?: PptxAiNotifyLevel): void;
 }
@@ -99,6 +106,11 @@ export function createAngularAiBridge(deps: BridgeDeps): PptxAiBridge {
 		},
 		applyTheme(updates: Partial<PptxTheme>): void {
 			deps.applyTheme(updates);
+		},
+		getFocusedTargets(): PptxAiFocusedTarget[] {
+			return (
+				deps.getFocusedTargets?.() ?? [{ kind: 'slide', slideIndex: deps.getActiveSlideIndex() }]
+			);
 		},
 		notify(message: string, level?: PptxAiNotifyLevel): void {
 			deps.notify?.(message, level);

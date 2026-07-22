@@ -15,12 +15,18 @@
  */
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 
-import { createVanillaChat, isAiAvailable } from '../../internal/shared-ai';
+import {
+	createVanillaChat,
+	isAiAvailable,
+	toolCanvasTarget,
+	toRenderableParts,
+} from '../../internal/shared-ai';
 import type {
 	PptxAiBridge,
 	PptxAiConfig,
 	PptxAiUIMessage,
 	ProposalView,
+	ToolCanvasTarget,
 	VanillaChatController,
 	VanillaChatSnapshot,
 } from '../../internal/shared-ai';
@@ -34,6 +40,15 @@ export class AiChatService {
 	private controller: VanillaChatController | null = null;
 	private unsubscribe: (() => void) | null = null;
 	private started = false;
+
+	/**
+	 * Tool call ids we have already reported to {@link toolTargetHandler}, so the
+	 * live on-canvas focus fires once per call as it first appears (the vanilla
+	 * controller has no `onToolCall` hook we can pass, so we derive tool activity
+	 * from the streamed snapshot instead).
+	 */
+	private readonly reportedToolCalls = new Set<string>();
+	private toolTargetHandler: ((target: ToolCanvasTarget | null) => void) | null = null;
 
 	/** Session bootstrap lifecycle. */
 	readonly state = signal<AiChatInitState>('checking');
@@ -85,6 +100,15 @@ export class AiChatService {
 		})();
 	}
 
+	/**
+	 * Register a handler invoked as each tool call first appears, with the slide /
+	 * element(s) it references (or `null` for deck-wide tools). Lets the viewer
+	 * navigate + highlight the canvas so it mirrors the assistant in real time.
+	 */
+	setToolTargetHandler(handler: (target: ToolCanvasTarget | null) => void): void {
+		this.toolTargetHandler = handler;
+	}
+
 	/** Send a user message (no-op when empty or not ready). */
 	send(text: string): void {
 		const trimmed = text.trim();
@@ -128,6 +152,32 @@ export class AiChatService {
 		this.error.set(snapshot.error);
 		// A tool call in the just-received turn may have staged a proposal.
 		this.refreshProposals();
+		// Drive the live on-canvas focus for any newly-appeared tool calls.
+		this.reportNewToolTargets(snapshot.messages);
+	}
+
+	/**
+	 * Fire {@link toolTargetHandler} once per tool call as it first appears with a
+	 * resolved input, mirroring React's `onToolCall` -> `toolCanvasTarget` path
+	 * (the vanilla controller owns `onToolCall`, so we cannot hook it directly).
+	 */
+	private reportNewToolTargets(messages: readonly PptxAiUIMessage[]): void {
+		const handler = this.toolTargetHandler;
+		if (!handler) {
+			return;
+		}
+		for (const message of messages) {
+			for (const part of toRenderableParts(message)) {
+				if (part.kind !== 'tool' || part.input === undefined || part.input === null) {
+					continue;
+				}
+				if (!part.toolCallId || this.reportedToolCalls.has(part.toolCallId)) {
+					continue;
+				}
+				this.reportedToolCalls.add(part.toolCallId);
+				handler(toolCanvasTarget(part.toolName, part.input));
+			}
+		}
 	}
 
 	private refreshProposals(): void {

@@ -27,6 +27,8 @@ import { hasTextProperties } from 'pptx-viewer-core';
 
 import { applyRenderedElementAccessibility } from '../internal/shared';
 import type { CanvasSize } from '../internal/shared';
+import { AiFocusHighlightOverlayComponent } from './ai/ai-focus-highlight-overlay.component';
+import type { AiCanvasHighlight } from './ai/focus-targets';
 import { CanvasFitService } from './canvas-fit.service';
 import { applyMove, applyResize, marqueeHitIds } from './drag-resize';
 import type { Box, ResizeHandle } from './drag-resize';
@@ -125,7 +127,7 @@ function plainText(el: PptxElement): string {
 		// their owning slide; template elements are absent from slides[].elements.
 		{ provide: SLIDE_CONTEXT, useExisting: forwardRef(() => SlideCanvasComponent) },
 	],
-	imports: [NgStyle, ElementRendererComponent, TranslatePipe],
+	imports: [NgStyle, ElementRendererComponent, TranslatePipe, AiFocusHighlightOverlayComponent],
 	styles: [
 		`
 			/*
@@ -153,6 +155,7 @@ function plainText(el: PptxElement): string {
 					[class.is-editable]="editable()"
 					role="region"
 					[attr.aria-roledescription]="interactive() ? 'slide' : null"
+					[attr.data-pptx-ai-active]="aiActive() ? 'true' : null"
 					[ngStyle]="stageStyle()"
 					(pointerdown)="onStagePointerDown($event)"
 					(contextmenu)="onContextMenu($event)"
@@ -196,6 +199,13 @@ function plainText(el: PptxElement): string {
 							[editTemplateMode]="false"
 							(cellCommit)="cellCommit.emit($event)"
 							(tableChange)="tableChange.emit($event)"
+						/>
+					}
+					@if (aiHighlights().length > 0 || aiActive()) {
+						<pptx-ai-focus-highlight-overlay
+							[highlights]="aiHighlights()"
+							[elements]="elements()"
+							[activeSlideIndex]="aiActiveSlideIndex()"
 						/>
 					}
 					@for (box of selectionBoxes(); track box.id) {
@@ -603,6 +613,23 @@ export class SlideCanvasComponent implements SlideContext {
 	 */
 	readonly templateElements = input<readonly PptxElement[]>([]);
 
+	// ── AI assistant inputs (main editing canvas only) ────────────────────────
+	/**
+	 * On-canvas AI highlight rings (explicit picks + the live tool focus), drawn
+	 * inside the scaled stage so element coords map 1:1. Empty on thumbnails.
+	 */
+	readonly aiHighlights = input<readonly AiCanvasHighlight[]>([]);
+	/** True while the AI is active: enables the colour tween on slide elements. */
+	readonly aiActive = input<boolean>(false);
+	/** Zero-based active slide index, so the overlay draws only its own slide. */
+	readonly aiActiveSlideIndex = input<number>(0);
+	/**
+	 * When true, the next element click(s) become AI picks (emitted via
+	 * {@link elementSelect}) instead of selecting / dragging. mousedown never
+	 * starts a drag while picking, mirroring React's pick mode.
+	 */
+	readonly aiPickMode = input<boolean>(false);
+
 	// ── Draw tool inputs ──────────────────────────────────────────────────────
 	/** Active draw tool. When not 'select', pointer gestures draw ink strokes. */
 	readonly drawTool = input<'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform'>('select');
@@ -936,6 +963,11 @@ export class SlideCanvasComponent implements SlideContext {
 			return;
 		}
 		this.elementSelect.emit({ id, additive: event.shiftKey || event.ctrlKey || event.metaKey });
+		// AI pick mode: the press hands this element to the assistant (via the
+		// parent's elementSelect handler); never begin a drag / inline edit.
+		if (this.aiPickMode()) {
+			return;
+		}
 		const el = this.allElements().find((e) => e.id === id);
 		if (!el) {
 			return;

@@ -175,6 +175,21 @@ import { TableSelectionService } from './table-selection.service';
 				</button>
 			</li>
 
+			<!-- ── AI actions (only when the host enables AI + one element is picked) -->
+			@if (showAiActions()) {
+				<li role="separator" class="pptx-ctx__divider"></li>
+				<li role="none">
+					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onAskAi()">
+						{{ 'pptx.ai.askAboutElement' | translate }}
+					</button>
+				</li>
+				<li role="none">
+					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onFixAi()">
+						{{ 'pptx.ai.fixElement' | translate }}
+					</button>
+				</li>
+			}
+
 			<!-- Table row/column/merge actions (only when a table cell is selected) -->
 			@if (tableCtx(); as tc) {
 				<li role="separator" class="pptx-ctx__divider"></li>
@@ -325,9 +340,18 @@ export class EditorContextMenuComponent {
 	readonly y = input.required<number>();
 	/** Zero-based index of the slide being edited. */
 	readonly slideIndex = input.required<number>();
+	/**
+	 * Whether to show the "Ask AI about this" / "Fix with AI" items. Gated by the
+	 * host on the `ai` config + a single selected element.
+	 */
+	readonly showAiActions = input<boolean>(false);
 
 	/** Emitted when the menu should close (Escape or outside click). */
 	readonly closed = output<void>();
+	/** "Ask AI about this": open the assistant scoped to the selection. */
+	readonly askAi = output<void>();
+	/** "Fix with AI": open the assistant with a prefilled fix directive. */
+	readonly fixAi = output<void>();
 
 	protected readonly editor = inject(EditorStateService);
 	private readonly tableSelection = inject(TableSelectionService, { optional: true });
@@ -373,6 +397,16 @@ export class EditorContextMenuComponent {
 	}
 
 	// ── Menu item actions ────────────────────────────────────────────────────
+
+	protected onAskAi(): void {
+		this.askAi.emit();
+		this.closed.emit();
+	}
+
+	protected onFixAi(): void {
+		this.fixAi.emit();
+		this.closed.emit();
+	}
 
 	protected onCut(): void {
 		this.editor.cutSelected(this.slideIndex());

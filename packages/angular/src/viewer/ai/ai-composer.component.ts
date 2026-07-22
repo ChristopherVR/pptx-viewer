@@ -3,7 +3,16 @@
  * stop button). Enter sends, Shift+Enter inserts a newline. Purely
  * presentational; mirrors React's `AiComposer`.
  */
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	effect,
+	ElementRef,
+	input,
+	output,
+	signal,
+	viewChild,
+} from '@angular/core';
 import { LucideSend, LucideSquare } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -18,6 +27,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 				class="flex items-end gap-1.5 rounded-md border border-input bg-background px-2 py-1.5 focus-within:border-ring"
 			>
 				<textarea
+					#textarea
 					[value]="value()"
 					(input)="value.set($any($event.target).value)"
 					(keydown)="onKeyDown($event)"
@@ -58,10 +68,41 @@ import { TranslatePipe } from '@ngx-translate/core';
 })
 export class AiComposerComponent {
 	readonly isStreaming = input<boolean>(false);
+	/**
+	 * One-shot composer prefill from "Ask AI" / "Fix with AI". `prefillNonce`
+	 * bumps on every request so the composer applies `prefillText` (and focuses)
+	 * even when the text is empty and unchanged.
+	 */
+	readonly prefillText = input<string>('');
+	readonly prefillNonce = input<number>(0);
 	readonly onSend = output<string>();
 	readonly onStop = output<void>();
 
 	protected readonly value = signal('');
+	private readonly textarea = viewChild<ElementRef<HTMLTextAreaElement>>('textarea');
+	private lastPrefillNonce = 0;
+
+	constructor() {
+		// Apply the prefill text and focus the composer whenever a new ask/fix
+		// request bumps the nonce. Does not auto-send: the user reviews + presses
+		// Enter (mirrors React's `AiComposer`).
+		effect(() => {
+			const nonce = this.prefillNonce();
+			if (nonce === this.lastPrefillNonce) {
+				return;
+			}
+			this.lastPrefillNonce = nonce;
+			this.value.set(this.prefillText());
+			queueMicrotask(() => {
+				const el = this.textarea()?.nativeElement;
+				if (el) {
+					el.focus();
+					const end = el.value.length;
+					el.setSelectionRange(end, end);
+				}
+			});
+		});
+	}
 
 	protected submit(): void {
 		const trimmed = this.value().trim();

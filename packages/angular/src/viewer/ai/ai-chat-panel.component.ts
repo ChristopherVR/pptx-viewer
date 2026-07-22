@@ -15,7 +15,9 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxAiBridge, PptxAiConfig } from '../../internal/shared-ai';
 import { AiChatService } from './ai-chat.service';
 import { AiComposerComponent } from './ai-composer.component';
+import { AiFocusBarComponent } from './ai-focus-bar.component';
 import { AiMessageListComponent } from './ai-message-list.component';
+import { AiPanelStore } from './ai-panel-store';
 import { AiProposalCardComponent } from './ai-proposal-card.component';
 
 @Component({
@@ -28,6 +30,7 @@ import { AiProposalCardComponent } from './ai-proposal-card.component';
 		AiMessageListComponent,
 		AiProposalCardComponent,
 		AiComposerComponent,
+		AiFocusBarComponent,
 		LucideSparkles,
 		LucideX,
 		LucideLoaderCircle,
@@ -65,6 +68,11 @@ import { AiProposalCardComponent } from './ai-proposal-card.component';
 				}
 				@case ('ready') {
 					<div class="flex min-h-0 flex-1 flex-col">
+						<pptx-ai-focus-bar
+							[slides]="bridge().getSlides()"
+							(sendDirective)="chat.send($event)"
+						/>
+
 						<pptx-ai-message-list [messages]="chat.messages()" [isStreaming]="chat.isStreaming()" />
 
 						@if (chat.error(); as err) {
@@ -101,7 +109,7 @@ import { AiProposalCardComponent } from './ai-proposal-card.component';
 									@if (chat.proposals().length > 1) {
 										<button
 											type="button"
-											(click)="chat.acceptAllProposals()"
+											(click)="acceptAllProposals()"
 											class="rounded-sm bg-primary/90 px-2 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary"
 										>
 											{{ 'pptx.ai.acceptAll' | translate }}
@@ -111,7 +119,7 @@ import { AiProposalCardComponent } from './ai-proposal-card.component';
 								@for (proposal of chat.proposals(); track proposal.id) {
 									<pptx-ai-proposal-card
 										[proposal]="proposal"
-										(accept)="chat.applyProposal($event)"
+										(accept)="applyProposal($event)"
 										(reject)="chat.rejectProposal($event)"
 									/>
 								}
@@ -120,6 +128,8 @@ import { AiProposalCardComponent } from './ai-proposal-card.component';
 
 						<pptx-ai-composer
 							[isStreaming]="chat.isStreaming()"
+							[prefillText]="store.prefill().text"
+							[prefillNonce]="store.prefill().nonce"
 							(onSend)="chat.send($event)"
 							(onStop)="chat.stop()"
 						/>
@@ -147,13 +157,39 @@ export class AiChatPanelComponent {
 	readonly closed = output<void>();
 
 	protected readonly chat = inject(AiChatService);
+	/** Shared panel scope + on-canvas highlight store (provided by the viewer). */
+	protected readonly store = inject(AiPanelStore);
 
 	constructor() {
+		// Live "AI as a collaborator" focus: as each tool runs, navigate to and
+		// highlight the slide / element(s) it touches so the canvas mirrors the
+		// assistant in real time (and colour edits tween while it is active).
+		this.chat.setToolTargetHandler((target) => {
+			if (target && target.slideIndex !== undefined) {
+				this.bridge().goToSlide(target.slideIndex);
+			}
+			this.store.flashToolTarget(target);
+		});
+
 		// Bootstrap the session once the bridge + config inputs are bound. `init`
 		// is idempotent, so re-runs (e.g. from an inline config object identity
 		// change) do not tear the live session down.
 		effect(() => {
 			this.chat.init(this.bridge(), this.config());
 		});
+	}
+
+	/**
+	 * Apply a suggestion, first enabling the canvas colour tween so the edit fades
+	 * in rather than snapping (proposals apply outside the tool loop).
+	 */
+	protected applyProposal(id: string): void {
+		this.store.flashToolTarget(null);
+		this.chat.applyProposal(id);
+	}
+
+	protected acceptAllProposals(): void {
+		this.store.flashToolTarget(null);
+		this.chat.acceptAllProposals();
 	}
 }
