@@ -53,21 +53,25 @@ export {
 export { BASE_SYSTEM_PROMPT, buildSystemPrompt } from './system-prompt';
 
 export {
+	allToolNames,
+	BESPOKE_TOOL_ENTRIES,
 	buildToolExecutors,
 	buildToolSet,
 	enabledToolNames,
+	MCP_TOOL_ENTRIES,
 	requireElement,
 	requireSlide,
 	routeWrite,
-	TOOL_DEFINITIONS,
+	runSharedTool,
 } from './tools';
 export type {
 	AiToolContext,
 	AiToolExecutor,
+	BespokeToolName,
 	BoundExecutor,
-	JsonSchema,
-	ThemeApplyResult,
-	ToolDefinition,
+	McpToolName,
+	SharedToolCommit,
+	SharedToolSpec,
 	WriteRouteResult,
 } from './tools';
 

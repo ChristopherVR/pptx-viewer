@@ -18,7 +18,7 @@ import { createVanillaChat } from './vanilla-chat';
  * proposal, and that the client-side loop stays enabled for other connections.
  */
 
-/** A stub model whose first turn calls `update_text` once, then replies. */
+/** A stub model whose first turn calls `update_element` once, then replies. */
 function stubModel(): LanguageModel {
 	let call = 0;
 	return new MockLanguageModelV4({
@@ -32,7 +32,7 @@ function stubModel(): LanguageModel {
 							{
 								type: 'tool-call',
 								toolCallId: 'call-1',
-								toolName: 'update_text',
+								toolName: 'update_element',
 								input: JSON.stringify({
 									slideIndex: 0,
 									elementId: 'el-1',

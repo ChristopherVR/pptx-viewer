@@ -172,6 +172,7 @@
         "jspdf": "^4.2.1",
         "jszip": "^3.10.1",
         "pptx-viewer-core": "workspace:*",
+        "pptx-viewer-mcp": "workspace:*",
         "tslib": "^2.8.1",
       },
       "devDependencies": {
@@ -281,6 +282,7 @@
         "clsx": "^2.1.1",
         "dompurify": "^3.4.12",
         "html2canvas-pro": "^2.2.4",
+        "pptx-viewer-mcp": "workspace:*",
         "tailwind-merge": "^3.6.0",
       },
       "devDependencies": {
@@ -330,6 +332,7 @@
       "version": "0.1.0",
       "dependencies": {
         "dompurify": "^3.4.12",
+        "zod": "^4.4.3",
       },
       "devDependencies": {
         "@ai-sdk/openai-compatible": "^3.0.12",
@@ -338,16 +341,19 @@
         "ai": "^7.0.31",
         "fake-indexeddb": "^6.2.2",
         "pptx-viewer-core": "workspace:*",
+        "pptx-viewer-mcp": "workspace:*",
         "three": "^0.185.1",
         "tsdown": "^0.22.9",
         "tsup": "^8.5.1",
         "typescript": "^7.0.2",
         "vitest": "^4.1.10",
         "yjs": "^13.6.31",
+        "zod": "^4.4.3",
       },
       "peerDependencies": {
         "ai": ">=6.0.0 <8",
         "pptx-viewer-core": "workspace:*",
+        "pptx-viewer-mcp": "workspace:*",
         "three": "^0.185.1",
       },
       "optionalPeers": [
@@ -364,6 +370,7 @@
         "html2canvas-pro": "^2.2.4",
         "jspdf": "^4.2.1",
         "jszip": "^3.10.1",
+        "pptx-viewer-mcp": "workspace:*",
       },
       "devDependencies": {
         "@ai-sdk/svelte": "^5.0.31",
@@ -438,6 +445,7 @@
         "jspdf": "^4.2.1",
         "jszip": "^3.10.1",
         "lucide": "^1.25.0",
+        "pptx-viewer-mcp": "workspace:*",
       },
       "devDependencies": {
         "@types/dompurify": "^3.2.0",
@@ -473,6 +481,7 @@
         "html2canvas-pro": "^2.2.4",
         "jspdf": "^4.2.1",
         "lucide-vue-next": "^1.0.0",
+        "pptx-viewer-mcp": "workspace:*",
         "tailwind-merge": "^3.6.0",
       },
       "devDependencies": {

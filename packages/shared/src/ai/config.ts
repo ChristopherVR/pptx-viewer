@@ -15,46 +15,74 @@ import type { AiSdkModule } from './loader';
 /** The UI message shape exchanged with the assistant. Alias of the SDK type. */
 export type PptxAiUIMessage = UIMessage;
 
-/** Canonical name of every tool the assistant can call. */
+/**
+ * Canonical name of every tool the assistant can call. Document tools mirror the
+ * `pptx-viewer-mcp` server exactly (they ARE the same functions, run against the
+ * live deck); the viewer-only tools (navigation, deck outline, element/notes
+ * readers, table merge) have no MCP counterpart.
+ */
 export type PptxAiToolName =
-	// read
+	// ── viewer-only reads (live, model-friendly) ──
 	| 'get_deck_overview'
 	| 'get_slide'
 	| 'get_element'
 	| 'get_speaker_notes'
 	| 'find_text'
 	| 'get_theme'
-	// navigation
+	// ── viewer-only navigation + convenience ──
 	| 'go_to_slide'
 	| 'select_elements'
-	// element editing
-	| 'update_text'
-	| 'set_text_style'
-	| 'set_shape_style'
-	| 'move_resize_element'
+	| 'merge_tables'
+	// ── MCP reads (no bespoke equivalent) ──
+	| 'get_metadata'
+	| 'get_layouts'
+	| 'find_placeholders'
+	| 'get_presentation_properties'
+	| 'run_accessibility_check'
+	| 'convert_to_markdown'
+	// ── MCP element editing ──
 	| 'add_element'
-	| 'create_chart'
-	| 'add_smartart'
+	| 'update_element'
 	| 'delete_elements'
 	| 'arrange_elements'
+	| 'clone_element'
+	| 'set_element_animation'
 	| 'group_elements'
-	| 'update_table_cell'
-	| 'update_chart_data'
-	| 'merge_tables'
-	| 'replace_all'
-	// slide editing
+	| 'ungroup_elements'
+	| 'batch_update_elements'
+	| 'update_element_style'
+	| 'replace_geometry'
+	| 'set_element_lock'
+	| 'manage_hyperlinks'
+	// ── MCP text / tables / charts / smartart ──
+	| 'replace_text'
+	| 'manage_comments'
+	| 'update_table_cells'
+	| 'manage_table_structure'
+	| 'create_chart'
+	| 'update_chart'
+	| 'add_chart_series'
+	| 'remove_chart_series'
+	| 'update_chart_series_data'
+	| 'manage_smart_art'
+	| 'apply_template'
+	// ── MCP slide structure ──
 	| 'add_slide'
 	| 'duplicate_slide'
 	| 'delete_slides'
 	| 'reorder_slides'
-	| 'set_speaker_notes'
 	| 'update_slide_properties'
 	| 'set_slide_transition'
-	| 'set_element_animation'
-	// theme editing
+	// ── MCP theme editing (applied immediately) ──
 	| 'apply_theme_preset'
 	| 'update_theme_colors'
-	| 'update_theme_fonts';
+	| 'update_theme_fonts'
+	// ── MCP presentation-level (needs applyDeckData) ──
+	| 'set_canvas_size'
+	| 'update_metadata'
+	| 'manage_sections'
+	| 'update_presentation_properties'
+	| 'apply_layout';
 
 type Resolvable<T> = T | (() => T | Promise<T>);
 

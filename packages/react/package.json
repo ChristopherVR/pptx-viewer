@@ -76,6 +76,7 @@
 		"clsx": "^2.1.1",
 		"dompurify": "^3.4.12",
 		"html2canvas-pro": "^2.2.4",
+		"pptx-viewer-mcp": "workspace:*",
 		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {

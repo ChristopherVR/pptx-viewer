@@ -52,12 +52,12 @@ describe('describeToolActivity', () => {
 		expect(merged.label).not.toContain('178');
 		expect(merged.label).not.toContain('graphicFrame');
 
-		const text = describeToolActivity('update_text', {
+		const text = describeToolActivity('update_element', {
 			slideIndex: 0,
 			elementId: 'ppt/slides/slide1.xml-shape-9',
 			text: 'Hello',
 		});
-		expect(text.label).toBe('Updated text on slide 1');
+		expect(text.label).toBe('Updated an element on slide 1');
 		expect(text.label).not.toContain('shape-9');
 	});
 
@@ -85,8 +85,8 @@ describe('describeToolActivity', () => {
 		expect(describeToolActivity('create_chart', { slideIndex: 2 }).label).toBe(
 			'Added a chart on slide 3',
 		);
-		expect(describeToolActivity('add_smartart', { slideIndex: 0, layout: 'cycle' }).label).toBe(
-			'Added a SmartArt graphic on slide 1',
+		expect(describeToolActivity('manage_smart_art', { slideIndex: 0, layout: 'cycle' }).label).toBe(
+			'Edited SmartArt on slide 1',
 		);
 	});
 

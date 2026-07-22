@@ -55,6 +55,7 @@
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
 		"pptx-viewer-core": "workspace:*",
+		"pptx-viewer-mcp": "workspace:*",
 		"tslib": "^2.8.1"
 	},
 	"devDependencies": {

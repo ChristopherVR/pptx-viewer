@@ -171,26 +171,48 @@ const TOOL_PHRASES: Record<string, ToolPhrase> = {
 		past: (i) => `Selected elements${onSlide(i)}`,
 	},
 
+	// ── MCP reads (no bespoke equivalent) ────────────────────────────────────────
+	get_metadata: {
+		icon: 'view',
+		present: () => 'Checking the file details',
+		past: () => 'Checked the file details',
+	},
+	get_layouts: {
+		icon: 'view',
+		present: () => 'Looking at the layouts',
+		past: () => 'Looked at the layouts',
+	},
+	find_placeholders: {
+		icon: 'search',
+		present: () => 'Finding placeholders',
+		past: () => 'Found placeholders',
+	},
+	get_presentation_properties: {
+		icon: 'view',
+		present: () => 'Checking the slideshow settings',
+		past: () => 'Checked the slideshow settings',
+	},
+	run_accessibility_check: {
+		icon: 'view',
+		present: () => 'Running an accessibility check',
+		past: () => 'Ran an accessibility check',
+	},
+	convert_to_markdown: {
+		icon: 'view',
+		present: () => 'Exporting to Markdown',
+		past: () => 'Exported to Markdown',
+	},
+
 	// ── element editing ────────────────────────────────────────────────────────
-	update_text: {
-		icon: 'text',
-		present: (i) => `Updating text${onSlide(i)}`,
-		past: (i) => `Updated text${onSlide(i)}`,
-	},
-	set_text_style: {
-		icon: 'text',
-		present: (i) => `Restyling text${onSlide(i)}`,
-		past: (i) => `Restyled text${onSlide(i)}`,
-	},
-	set_shape_style: {
-		icon: 'shape',
-		present: (i) => `Restyling a shape${onSlide(i)}`,
-		past: (i) => `Restyled a shape${onSlide(i)}`,
-	},
-	move_resize_element: {
+	update_element: {
 		icon: 'move',
-		present: (i) => `Moving an element${onSlide(i)}`,
-		past: (i) => `Moved an element${onSlide(i)}`,
+		present: (i) => `Updating an element${onSlide(i)}`,
+		past: (i) => `Updated an element${onSlide(i)}`,
+	},
+	update_element_style: {
+		icon: 'shape',
+		present: (i) => `Restyling an element${onSlide(i)}`,
+		past: (i) => `Restyled an element${onSlide(i)}`,
 	},
 	add_element: {
 		icon: 'shape',
@@ -207,43 +229,110 @@ const TOOL_PHRASES: Record<string, ToolPhrase> = {
 		present: (i) => `Rearranging elements${onSlide(i)}`,
 		past: (i) => `Rearranged elements${onSlide(i)}`,
 	},
+	clone_element: {
+		icon: 'shape',
+		present: (i) => `Cloning an element${onSlide(i)}`,
+		past: (i) => `Cloned an element${onSlide(i)}`,
+	},
 	group_elements: {
 		icon: 'shape',
 		present: (i) => `Grouping elements${onSlide(i)}`,
 		past: (i) => `Grouped elements${onSlide(i)}`,
 	},
-	update_table_cell: {
-		icon: 'table',
-		present: (i) => `Editing a table cell${onSlide(i)}`,
-		past: (i) => `Edited a table cell${onSlide(i)}`,
-	},
-	update_chart_data: {
-		icon: 'chart',
-		present: (i) => `Updating chart data${onSlide(i)}`,
-		past: (i) => `Updated chart data${onSlide(i)}`,
-	},
-	create_chart: {
-		icon: 'chart',
-		present: (i) => `Adding a ${chartKind(i.chartType)}chart${onSlide(i)}`,
-		past: (i) => `Added a ${chartKind(i.chartType)}chart${onSlide(i)}`,
-	},
-	add_smartart: {
+	ungroup_elements: {
 		icon: 'shape',
-		present: (i) => `Adding a SmartArt graphic${onSlide(i)}`,
-		past: (i) => `Added a SmartArt graphic${onSlide(i)}`,
+		present: (i) => `Ungrouping a group${onSlide(i)}`,
+		past: (i) => `Ungrouped a group${onSlide(i)}`,
+	},
+	batch_update_elements: {
+		icon: 'move',
+		present: (i) => `Updating several elements${onSlide(i)}`,
+		past: (i) => `Updated several elements${onSlide(i)}`,
+	},
+	replace_geometry: {
+		icon: 'shape',
+		present: (i) => `Reshaping an element${onSlide(i)}`,
+		past: (i) => `Reshaped an element${onSlide(i)}`,
+	},
+	set_element_lock: {
+		icon: 'shape',
+		present: (i) => `Locking an element${onSlide(i)}`,
+		past: (i) => `Locked an element${onSlide(i)}`,
+	},
+	manage_hyperlinks: {
+		icon: 'text',
+		present: (i) => `Updating a link${onSlide(i)}`,
+		past: (i) => `Updated a link${onSlide(i)}`,
+	},
+	set_element_animation: {
+		icon: 'animation',
+		present: (i) => `Adding an animation${onSlide(i)}`,
+		past: (i) => `Added an animation${onSlide(i)}`,
+	},
+
+	// ── text / tables / charts / smartart ────────────────────────────────────────
+	replace_text: {
+		icon: 'search',
+		present: () => 'Replacing text across the deck',
+		past: () => 'Replaced text across the deck',
+	},
+	manage_comments: {
+		icon: 'notes',
+		present: (i) => `Updating comments${onSlide(i)}`,
+		past: (i) => `Updated comments${onSlide(i)}`,
+	},
+	update_table_cells: {
+		icon: 'table',
+		present: (i) => `Editing table cells${onSlide(i)}`,
+		past: (i) => `Edited table cells${onSlide(i)}`,
+	},
+	manage_table_structure: {
+		icon: 'table',
+		present: (i) => `Changing a table${onSlide(i)}`,
+		past: (i) => `Changed a table${onSlide(i)}`,
 	},
 	merge_tables: {
 		icon: 'table',
 		present: (i) => `Merging two tables${onSlide(i)}`,
 		past: (i) => `Merged two tables${onSlide(i)}`,
 	},
-	replace_all: {
-		icon: 'search',
-		present: () => 'Replacing text across the deck',
-		past: () => 'Replaced text across the deck',
+	create_chart: {
+		icon: 'chart',
+		present: (i) => `Adding a ${chartKind(i.chartType)}chart${onSlide(i)}`,
+		past: (i) => `Added a ${chartKind(i.chartType)}chart${onSlide(i)}`,
+	},
+	update_chart: {
+		icon: 'chart',
+		present: (i) => `Updating a chart${onSlide(i)}`,
+		past: (i) => `Updated a chart${onSlide(i)}`,
+	},
+	add_chart_series: {
+		icon: 'chart',
+		present: (i) => `Adding a chart series${onSlide(i)}`,
+		past: (i) => `Added a chart series${onSlide(i)}`,
+	},
+	remove_chart_series: {
+		icon: 'chart',
+		present: (i) => `Removing a chart series${onSlide(i)}`,
+		past: (i) => `Removed a chart series${onSlide(i)}`,
+	},
+	update_chart_series_data: {
+		icon: 'chart',
+		present: (i) => `Updating chart data${onSlide(i)}`,
+		past: (i) => `Updated chart data${onSlide(i)}`,
+	},
+	manage_smart_art: {
+		icon: 'shape',
+		present: (i) => `Editing SmartArt${onSlide(i)}`,
+		past: (i) => `Edited SmartArt${onSlide(i)}`,
+	},
+	apply_template: {
+		icon: 'text',
+		present: () => 'Filling in placeholders',
+		past: () => 'Filled in placeholders',
 	},
 
-	// ── slide editing ──────────────────────────────────────────────────────────
+	// ── slide structure ──────────────────────────────────────────────────────────
 	add_slide: {
 		icon: 'slide',
 		present: () => 'Adding a slide',
@@ -264,11 +353,6 @@ const TOOL_PHRASES: Record<string, ToolPhrase> = {
 		present: () => 'Reordering the slides',
 		past: () => 'Reordered the slides',
 	},
-	set_speaker_notes: {
-		icon: 'notes',
-		present: (i) => `Updating the notes${onSlide(i)}`,
-		past: (i) => `Updated the notes${onSlide(i)}`,
-	},
 	update_slide_properties: {
 		icon: 'slide',
 		present: (i) => `Updating slide ${slideNumber(i) ?? ''}`.trim(),
@@ -279,13 +363,8 @@ const TOOL_PHRASES: Record<string, ToolPhrase> = {
 		present: (i) => `Setting a transition${onSlide(i)}`,
 		past: (i) => `Set a transition${onSlide(i)}`,
 	},
-	set_element_animation: {
-		icon: 'animation',
-		present: (i) => `Adding an animation${onSlide(i)}`,
-		past: (i) => `Added an animation${onSlide(i)}`,
-	},
 
-	// ── theme editing ──────────────────────────────────────────────────────────
+	// ── theme (applied immediately) ──────────────────────────────────────────────
 	apply_theme_preset: {
 		icon: 'theme',
 		present: (i) =>
@@ -302,6 +381,33 @@ const TOOL_PHRASES: Record<string, ToolPhrase> = {
 		icon: 'theme',
 		present: () => 'Changing the theme fonts',
 		past: () => 'Changed the theme fonts',
+	},
+
+	// ── presentation-level ────────────────────────────────────────────────────────
+	set_canvas_size: {
+		icon: 'slide',
+		present: () => 'Resizing the slides',
+		past: () => 'Resized the slides',
+	},
+	update_metadata: {
+		icon: 'tool',
+		present: () => 'Updating the file details',
+		past: () => 'Updated the file details',
+	},
+	manage_sections: {
+		icon: 'slide',
+		present: () => 'Organising the sections',
+		past: () => 'Organised the sections',
+	},
+	update_presentation_properties: {
+		icon: 'tool',
+		present: () => 'Updating the slideshow settings',
+		past: () => 'Updated the slideshow settings',
+	},
+	apply_layout: {
+		icon: 'slide',
+		present: (i) => `Applying a layout${onSlide(i)}`,
+		past: (i) => `Applied a layout${onSlide(i)}`,
 	},
 };
 

@@ -162,7 +162,7 @@ describe('ai flow (scripted transport, no model)', () => {
 			config: config({
 				kind: 'transport',
 				transport: scriptedTransport([
-					toolCallStep('call-write', 'update_text', {
+					toolCallStep('call-write', 'update_element', {
 						slideIndex: 0,
 						elementId: 'el-1',
 						text: 'Renamed Title',
@@ -197,7 +197,7 @@ describe('ai flow (scripted transport, no model)', () => {
 			config: config({
 				kind: 'transport',
 				transport: scriptedTransport([
-					toolCallStep('call-write', 'update_text', {
+					toolCallStep('call-write', 'update_element', {
 						slideIndex: 0,
 						elementId: 'el-1',
 						text: 'Should Not Persist',
@@ -225,7 +225,7 @@ describe('ai flow (scripted transport, no model)', () => {
 				{
 					kind: 'transport',
 					transport: scriptedTransport([
-						toolCallStep('call-auto', 'update_text', {
+						toolCallStep('call-auto', 'update_element', {
 							slideIndex: 0,
 							elementId: 'el-1',
 							text: 'Auto Renamed',

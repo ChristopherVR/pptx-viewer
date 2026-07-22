@@ -12,7 +12,7 @@
  * undoable history entry.
  */
 
-import type { PptxElement, PptxHandler, PptxSlide, PptxTheme } from 'pptx-viewer-core';
+import type { PptxData, PptxElement, PptxHandler, PptxSlide, PptxTheme } from 'pptx-viewer-core';
 
 /** Lightweight, model-friendly summary of the whole deck. */
 export interface PptxAiDeckMeta {
@@ -46,6 +46,17 @@ export type PptxAiFocusedTarget =
  * commits the returned array as ONE history entry.
  */
 export type PptxAiSlidesUpdater = (slides: PptxSlide[]) => PptxSlide[];
+
+/**
+ * A pure updater over the whole parsed deck ({@link PptxData}). Mirrors the
+ * `pptx-viewer-mcp` tool model (data in, mutated data out) so presentation-level
+ * MCP tools (metadata, sections, canvas size, presentation properties, layouts)
+ * can be committed as ONE undoable history entry through {@link
+ * PptxAiBridge.applyDeckData}. Optional: bindings that only track slide/theme
+ * state can omit it, in which case those presentation-level tools report that
+ * they are unavailable in this viewer while every slide/theme tool still works.
+ */
+export type PptxAiDataUpdater = (data: PptxData) => PptxData;
 
 /** Field-level updates for a single element, mirroring the MCP update vocab. */
 export interface PptxAiElementUpdate {
@@ -108,6 +119,26 @@ export interface PptxAiBridge {
 	/** Apply partial theme updates as a single history entry. */
 	applyTheme(updates: Partial<PptxTheme>): void;
 
+	// ── whole-deck reads/writes (optional) ─────────────────────────────────────
+	/**
+	 * Return the full parsed {@link PptxData} for the open deck, with the live
+	 * (edited) slides and theme overlaid. Enables `pptx-viewer-mcp` tools that
+	 * read presentation-level state (metadata, sections, layouts, presentation
+	 * properties). Optional: when absent, the AI core synthesises a minimal
+	 * PptxData from slides + dimensions, which is enough for every slide/theme
+	 * tool but not for presentation-level reads.
+	 */
+	getDeckData?(): PptxData | undefined;
+	/**
+	 * Commit a whole-deck {@link PptxData} mutation as one undoable history entry.
+	 * Used to apply presentation-level MCP tool results (metadata, sections,
+	 * canvas size, presentation properties, layouts). Optional: when absent,
+	 * those tools report they are not supported in this viewer; slide/theme tools
+	 * are unaffected (they route through {@link PptxAiBridge.applySlidesUpdate}
+	 * and {@link PptxAiBridge.applyTheme}).
+	 */
+	applyDeckData?(updater: PptxAiDataUpdater, label: string): void;
+
 	// ── focus (optional) ───────────────────────────────────────────────────────
 	/**
 	 * Return the slides / elements the user has scoped the assistant to, if any.
@@ -124,4 +155,4 @@ export interface PptxAiBridge {
 }
 
 /** Re-exported for binding convenience. */
-export type { PptxElement, PptxSlide, PptxTheme, PptxHandler };
+export type { PptxData, PptxElement, PptxSlide, PptxTheme, PptxHandler };

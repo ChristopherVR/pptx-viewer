@@ -28,7 +28,7 @@ describe('tool registry', () => {
 
 	it('stages edits under the default (stage) policy', async () => {
 		const { bridge, proposals, executors } = setup();
-		const result = (await executors.get('update_text')!({
+		const result = (await executors.get('update_element')!({
 			slideIndex: 0,
 			elementId: 'el-1',
 			text: 'Renamed',
@@ -45,7 +45,7 @@ describe('tool registry', () => {
 
 	it('applies edits immediately under the auto policy', async () => {
 		const { bridge, proposals, executors } = setup({ writePolicy: 'auto' });
-		const result = (await executors.get('move_resize_element')!({
+		const result = (await executors.get('update_element')!({
 			slideIndex: 0,
 			elementId: 'el-1',
 			x: 200,

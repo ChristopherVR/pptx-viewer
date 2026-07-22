@@ -69,7 +69,8 @@
 		"fast-xml-parser": "^5.10.1",
 		"html2canvas-pro": "^2.2.4",
 		"jspdf": "^4.2.1",
-		"jszip": "^3.10.1"
+		"jszip": "^3.10.1",
+		"pptx-viewer-mcp": "workspace:*"
 	},
 	"devDependencies": {
 		"@ai-sdk/svelte": "^5.0.31",
