@@ -14,6 +14,7 @@ import { useConnectorCreation } from './canvas/useConnectorCreation';
 import { useDrawingOverlay } from './canvas/useDrawingOverlay';
 import { useStableCallbacks } from './canvas/useStableCallbacks';
 import { ElementRenderer } from './ElementRenderer';
+import { ActiveXControlOverlay } from './elements/ActiveXControlOverlay';
 
 export type { SlideCanvasProps } from './canvas/canvas-types';
 
@@ -346,6 +347,10 @@ export function SlideCanvas({
 					))}
 
 					<MarqueeOverlay marqueeSelectionState={marqueeSelectionState} />
+
+					{activeSlide?.activeXControls && activeSlide.activeXControls.length > 0 && (
+						<ActiveXControlOverlay controls={activeSlide.activeXControls} canvasSize={canvasSize} />
+					)}
 
 					{showCommentMarkers && comments && comments.length > 0 && (
 						<CommentMarkersOverlay

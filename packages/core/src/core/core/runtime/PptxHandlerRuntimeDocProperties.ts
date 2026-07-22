@@ -107,6 +107,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return Number.isFinite(n) ? n : undefined;
 			};
 
+			const bool = (key: string): boolean | undefined => {
+				const v = props[key];
+				if (v === undefined || v === null) {
+					return undefined;
+				}
+				const raw = String(v).trim().toLowerCase();
+				if (raw === 'true' || raw === '1') {
+					return true;
+				}
+				if (raw === 'false' || raw === '0') {
+					return false;
+				}
+				return undefined;
+			};
+
 			const result: PptxAppProperties = {
 				application: str('Application'),
 				appVersion: str('AppVersion'),
@@ -120,6 +135,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				company: str('Company'),
 				manager: str('Manager'),
 				template: str('Template'),
+				hyperlinkBase: str('HyperlinkBase'),
+				docSecurity: num('DocSecurity'),
+				mmClips: num('MMClips'),
+				scaleCrop: bool('ScaleCrop'),
+				linksUpToDate: bool('LinksUpToDate'),
+				sharedDoc: bool('SharedDoc'),
+				hyperlinksChanged: bool('HyperlinksChanged'),
 			};
 
 			const hasAny = Object.values(result).some((v) => v !== undefined);

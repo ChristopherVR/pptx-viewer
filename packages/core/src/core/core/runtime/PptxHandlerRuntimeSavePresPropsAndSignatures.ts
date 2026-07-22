@@ -195,6 +195,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return;
 		}
 
+		const signatureCount = this.signatureDetection.signatureCount;
+
 		// Collect all entry paths
 		const entryPaths: string[] = [];
 		this.zip.forEach((relativePath) => {
@@ -243,6 +245,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.zip.file('[Content_Types].xml', this.builder.build(ctData));
 			}
 		}
+
+		// Surface the strip as a typed save-scope warning so callers can prompt
+		// the user or re-sign. Editing any part of a signed OOXML package
+		// invalidates every XML-DSig signature, so the parts are removed on
+		// save rather than silently left dangling.
+		this.compatibilityService.reportWarning({
+			code: 'SAVE_SIGNATURES_STRIPPED',
+			message:
+				signatureCount === 1
+					? 'A digital signature was removed on save. Editing a signed presentation invalidates its signature; re-sign the file to restore it.'
+					: `${signatureCount} digital signatures were removed on save. Editing a signed presentation invalidates its signatures; re-sign the file to restore them.`,
+			severity: 'warning',
+			scope: 'save',
+		});
 
 		// Clear the detection result after stripping
 		this.signatureDetection = null;
