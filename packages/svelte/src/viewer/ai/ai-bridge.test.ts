@@ -39,6 +39,15 @@ function makeDeps(overrides: Partial<SvelteAiBridgeDeps> = {}): SvelteAiBridgeDe
 		selectElements: vi.fn(),
 		commitSlides,
 		applyTheme: vi.fn(),
+		getSections: () => [],
+		getPresentationProperties: () => ({}),
+		getCoreProperties: () => undefined,
+		getAppProperties: () => undefined,
+		getCustomProperties: () => [],
+		setCanvasSize: vi.fn(),
+		setSections: vi.fn(),
+		setPresentationProperties: vi.fn(),
+		setDocumentProperties: vi.fn(),
 		...overrides,
 	};
 }
@@ -96,5 +105,53 @@ describe('createSvelteAiBridge', () => {
 
 		bridge.selectElements(2, ['e1']);
 		expect(selectElements).toHaveBeenCalledWith(2, ['e1']);
+	});
+
+	it('reconstructs the deck PptxData from live editor + loader state', () => {
+		const deps = makeDeps({
+			getCanvasSize: () => ({ width: 1280, height: 720 }),
+			getSections: () => [{ id: 'sec1', name: 'Intro', slideIds: ['s1'] }],
+			getPresentationProperties: () => ({ showWithAnimation: true }),
+			getCoreProperties: () => ({ title: 'My Deck' }),
+		});
+		const bridge = createSvelteAiBridge(deps);
+
+		const data = bridge.getDeckData?.();
+		expect(data?.width).toBe(1280);
+		expect(data?.height).toBe(720);
+		expect(data?.sections?.[0]?.name).toBe('Intro');
+		expect(data?.presentationProperties?.showWithAnimation).toBeTruthy();
+		expect(data?.coreProperties?.title).toBe('My Deck');
+	});
+
+	it('fans changed deck fields through their editor setters, skipping unchanged', () => {
+		const setCanvasSize = vi.fn();
+		const setSections = vi.fn();
+		const setPresentationProperties = vi.fn();
+		const setDocumentProperties = vi.fn();
+		const deps = makeDeps({
+			setCanvasSize,
+			setSections,
+			setPresentationProperties,
+			setDocumentProperties,
+		});
+		const bridge = createSvelteAiBridge(deps);
+
+		bridge.applyDeckData?.((data) => {
+			data.width = 1024;
+			data.height = 768;
+			data.coreProperties = { title: 'Renamed' };
+			return data;
+		}, 'Resize + retitle');
+
+		expect(setCanvasSize).toHaveBeenCalledWith({ width: 1024, height: 768 });
+		expect(setDocumentProperties).toHaveBeenCalledOnce();
+		const [core] = setDocumentProperties.mock.calls[0];
+		expect((core as { title?: string }).title).toBe('Renamed');
+		// Sections and presentation properties were untouched, so their setters idle.
+		expect(setSections).not.toHaveBeenCalled();
+		expect(setPresentationProperties).not.toHaveBeenCalled();
+		// Slides did not change either, so no history commit.
+		expect(deps.commitSlides).not.toHaveBeenCalled();
 	});
 });

@@ -355,6 +355,42 @@
 				loader.colorScheme = nextTheme.colorScheme;
 			}
 		},
+		// Presentation-level (deck) state for the AI getDeckData / applyDeckData
+		// seam. Reads come off the editor + loader; writes route through the same
+		// undoable editor mutations the inspector Properties tab uses.
+		getSections: () => editor.sections,
+		getPresentationProperties: () => editor.presentationProperties,
+		getCoreProperties: () => editor.coreProperties,
+		getAppProperties: () => editor.appProperties,
+		getCustomProperties: () => editor.customProperties,
+		setCanvasSize: (size) => {
+			editable = true;
+			editor.editable = true;
+			const width = Math.max(1, Math.round(size.width));
+			const height = Math.max(1, Math.round(size.height));
+			if (!Number.isFinite(width) || !Number.isFinite(height)) {
+				return;
+			}
+			loader.canvasSize = { width, height };
+			editor.commitChange();
+		},
+		setSections: (sections) => {
+			editable = true;
+			editor.editable = true;
+			editor.pushHistory();
+			editor.sections = sections;
+			editor.commitChange();
+		},
+		setPresentationProperties: (props) => {
+			editable = true;
+			editor.editable = true;
+			editor.presentationMetadata.updatePresentationProperties(props);
+		},
+		setDocumentProperties: (core, app, custom) => {
+			editable = true;
+			editor.editable = true;
+			editor.updateDocumentProperties(core, app, custom);
+		},
 	});
 	// On-canvas scope for the assistant: focus targets, pick mode, and the live
 	// tool-focus highlight overlay. Owned here so the panel + canvas share it.
