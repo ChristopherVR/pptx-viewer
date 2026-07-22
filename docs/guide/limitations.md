@@ -58,12 +58,17 @@ Slides render as HTML/CSS rather than Canvas, giving sharp text at any zoom, nat
 
 ### Visual effect approximations
 
-| Effect                               | Rendered as                                 |
-| ------------------------------------ | ------------------------------------------- |
-| `backdrop-filter`-style effects      | Semi-transparent background fallback        |
-| Blend modes (`mix-blend-mode`)       | Opacity-based fallbacks                     |
-| 3D rotations (`rotateX` / `rotateY`) | Flattened to 2D                             |
-| Path gradients                       | Approximated as elliptical radial gradients |
+| Effect                                                                           | Rendered as                                                                                                                  |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `backdrop-filter`-style effects                                                  | Semi-transparent background fallback                                                                                         |
+| Blend modes (`mix-blend-mode`)                                                   | Opacity-based fallbacks                                                                                                      |
+| 3D rotations (`rotateX` / `rotateY`)                                             | Flattened to 2D                                                                                                              |
+| 3D extrusion / bevel / contour / material (`a:sp3d`)                             | CSS `box-shadow` / `filter` approximation, not true geometry or lighting; `extrusionClr` / `contourClr` colours are honoured |
+| Reflections (`a:effectLst` reflection)                                           | `-webkit-box-reflect`: renders in Chromium / WebKit only, not Firefox                                                        |
+| Soft edges (`a:softEdge`)                                                        | SVG alpha-feather filter (feathers the edge, not a whole-element blur)                                                       |
+| Path gradients                                                                   | Approximated as elliptical radial gradients                                                                                  |
+| WordArt envelope warps (`inflate` / `deflate` / `can` / `slant` / ...)           | CSS transform approximation; path warps (arch / circle / wave) use true SVG `textPath`                                       |
+| Cinematic 3-D transitions (`cube`, `flip`, `rotate`, `pageCurl`, `origami`, ...) | Animated via CSS keyframes (perspective / rotate / curl), not a true 3-D render                                              |
 
 ### Platform-bound behaviour
 
