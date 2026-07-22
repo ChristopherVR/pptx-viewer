@@ -174,6 +174,7 @@
         "pptx-viewer-core": "workspace:*",
         "pptx-viewer-mcp": "workspace:*",
         "tslib": "^2.8.1",
+        "zod": "^4.4.3",
       },
       "devDependencies": {
         "@analogjs/vite-plugin-angular": "^2.6.3",
