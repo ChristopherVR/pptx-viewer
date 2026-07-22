@@ -20,6 +20,7 @@ import type {
 	ViewerOptionsTabId,
 } from 'pptx-viewer-shared';
 import { DEFAULT_QUICK_ACCESS_COMMAND_IDS, VIEWER_OPTIONS_TABS } from 'pptx-viewer-shared';
+import type { PptxAiChatStore } from 'pptx-viewer-shared/ai';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -29,8 +30,12 @@ import OptionsAddInsPane from './settings/OptionsAddInsPane.vue';
 import OptionsPane from './settings/OptionsPane.vue';
 import OptionsQuickAccessPane from './settings/OptionsQuickAccessPane.vue';
 import OptionsRibbonPane from './settings/OptionsRibbonPane.vue';
+import SettingsAiTab from './SettingsAiTab.vue';
 import SettingsAppearanceTab from './SettingsAppearanceTab.vue';
 import SettingsLanguageTab from './SettingsLanguageTab.vue';
+
+/** Synthetic tab id for the AI section (appended only when `aiEnabled`). */
+const AI_TAB_ID = 'ai';
 
 const props = defineProps<{
 	/** Whether the dialog is visible. */
@@ -63,6 +68,10 @@ const props = defineProps<{
 	availableThemes?: ThemeCatalogEntry[];
 	/** Locale choices to offer on the Language pane. */
 	availableLocales: LocaleCatalogEntry[];
+	/** When true, an "AI" section is shown for exporting detailed chat logs. */
+	aiEnabled?: boolean;
+	/** Chat store the AI section reads from (defaults to the shared store). */
+	chatStore?: PptxAiChatStore;
 }>();
 
 const emit = defineEmits<{
@@ -72,7 +81,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const activeTabId = ref<ViewerOptionsTabId>('general');
+const activeTabId = ref<ViewerOptionsTabId | typeof AI_TAB_ID>('general');
 const activeTab = computed(
 	() => VIEWER_OPTIONS_TABS.find((tab) => tab.id === activeTabId.value) ?? VIEWER_OPTIONS_TABS[0],
 );
@@ -172,11 +181,33 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onDocumentKeydown)
 							>
 								{{ t(tab.labelKey) }}
 							</button>
+							<button
+								v-if="aiEnabled"
+								type="button"
+								:aria-current="activeTabId === AI_TAB_ID"
+								class="block w-full whitespace-nowrap rounded px-3 py-2 text-left text-sm transition-colors max-md:w-auto"
+								:class="
+									activeTabId === AI_TAB_ID
+										? 'bg-primary/10 font-medium text-primary'
+										: 'text-foreground hover:bg-accent'
+								"
+								@click="activeTabId = AI_TAB_ID"
+							>
+								{{ t('pptx.ai.settingsSectionTitle') }}
+							</button>
 						</nav>
 
 						<div class="pptx-vue-options-body min-h-0 flex-1 overflow-y-auto px-5 py-4">
+							<!-- AI: detailed chat-log export (shown only when enabled) -->
+							<div v-if="activeTabId === AI_TAB_ID" class="space-y-4">
+								<p class="text-sm font-medium text-foreground">
+									{{ t('pptx.ai.settingsSectionTitle') }}
+								</p>
+								<SettingsAiTab :store="chatStore" />
+							</div>
+
 							<!-- Language: bespoke pane around the locale list -->
-							<div v-if="activeTab.custom === 'language'" class="space-y-4">
+							<div v-else-if="activeTab.custom === 'language'" class="space-y-4">
 								<p class="text-sm font-medium text-foreground">{{ t(activeTab.descriptionKey) }}</p>
 								<section>
 									<h3
