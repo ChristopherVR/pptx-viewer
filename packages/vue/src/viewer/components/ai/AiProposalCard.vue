@@ -1,11 +1,14 @@
 <script setup lang="ts">
 /**
- * AiProposalCard: a single staged, not-yet-applied write from the assistant.
- * Shows a short diff summary with Accept / Reject controls. Purely
- * presentational; the accept/reject callbacks route through the proposal store.
+ * AiProposalCard: a single staged, not-yet-applied change the assistant is
+ * suggesting. Reads like a human suggestion: a clear title, a plain-language
+ * description of what will happen, and friendly Apply / Discard buttons. The
+ * full description is shown (never truncated); long lists scroll rather than
+ * clip. The accept/reject callbacks route through the proposal store.
  */
 import { Check, X } from 'lucide-vue-next';
 import type { ProposalView } from 'pptx-viewer-shared/ai';
+import { humanizeDiffLine } from 'pptx-viewer-shared/ai';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -13,9 +16,7 @@ const props = defineProps<{ proposal: ProposalView }>();
 const emit = defineEmits<{ (e: 'accept' | 'reject', id: string): void }>();
 const { t } = useI18n();
 
-const MAX_SUMMARY_LINES = 4;
-const shown = computed(() => props.proposal.summary.slice(0, MAX_SUMMARY_LINES));
-const extra = computed(() => props.proposal.summary.length - shown.value.length);
+const lines = computed(() => props.proposal.summary.map(humanizeDiffLine));
 </script>
 
 <template>
@@ -24,9 +25,11 @@ const extra = computed(() => props.proposal.summary.length - shown.value.length)
 			{{ t('pptx.ai.proposedChange') }}
 		</div>
 		<div class="text-[12px] font-medium text-foreground">{{ props.proposal.label }}</div>
-		<ul v-if="shown.length > 0" class="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
-			<li v-for="(line, i) in shown" :key="i" class="truncate" :title="line">{{ line }}</li>
-			<li v-if="extra > 0" class="italic">{{ t('pptx.ai.moreChanges', { count: extra }) }}</li>
+		<ul
+			v-if="lines.length > 0"
+			class="mt-1 max-h-40 space-y-0.5 overflow-y-auto text-[11px] text-muted-foreground"
+		>
+			<li v-for="(line, i) in lines" :key="i" class="break-words">{{ line }}</li>
 		</ul>
 		<div class="mt-2 flex items-center gap-2">
 			<button
