@@ -25,13 +25,13 @@ describe('extractReadyToolCalls', () => {
 					input: { slideIndex: 4 },
 				},
 				{
-					type: 'tool-update_text',
+					type: 'tool-update_element',
 					toolCallId: 'c2',
 					state: 'input-streaming',
 					input: { slideIndex: 1 },
 				},
 				{
-					type: 'tool-set_shape_style',
+					type: 'tool-update_element_style',
 					toolCallId: 'c3',
 					state: 'input-available',
 					input: { slideIndex: 2, elementId: 'shape-9' },
@@ -47,7 +47,7 @@ describe('extractReadyToolCalls', () => {
 		const messages = [
 			message([
 				{
-					type: 'tool-set_shape_style',
+					type: 'tool-update_element_style',
 					toolCallId: 'c1',
 					state: 'output-available',
 					input: { slideIndex: 2, elementId: 'shape-9' },

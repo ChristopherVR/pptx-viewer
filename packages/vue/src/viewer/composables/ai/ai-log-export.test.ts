@@ -28,7 +28,7 @@ function chatWithToolCall(): PptxAiStoredChat {
 				parts: [
 					{ type: 'text', text: 'Done.' },
 					{
-						type: 'tool-set_shape_style',
+						type: 'tool-update_element_style',
 						toolCallId: 'call-1',
 						state: 'output-available',
 						input: { slideIndex: 0, elementId: 'shape-1', fill: '#0000ff' },
@@ -57,7 +57,7 @@ describe('ai-log-export', () => {
 		expect(doc.format).toBe('pptx-ai-chat-log');
 		expect(doc.chatCount).toBe(1);
 		const call = doc.chats[0].messages[1].toolCalls[0];
-		expect(call.toolName).toBe('set_shape_style');
+		expect(call.toolName).toBe('update_element_style');
 		expect(call.state).toBe('output-available');
 		expect(call.input).toStrictEqual({ slideIndex: 0, elementId: 'shape-1', fill: '#0000ff' });
 		expect(call.output).toStrictEqual({ ok: true });
@@ -66,7 +66,7 @@ describe('ai-log-export', () => {
 	it('omits tool inputs/outputs when not detailed (keeps name + state)', () => {
 		const doc = buildChatLogExport([chatWithToolCall()], { detailed: false });
 		const call = doc.chats[0].messages[1].toolCalls[0];
-		expect(call.toolName).toBe('set_shape_style');
+		expect(call.toolName).toBe('update_element_style');
 		expect(call.input).toBeUndefined();
 		expect(call.output).toBeUndefined();
 	});
@@ -75,7 +75,7 @@ describe('ai-log-export', () => {
 		const md = buildChatLogMarkdown(buildChatLogExport([chatWithToolCall()]));
 		expect(md).toContain('# AI chat logs');
 		expect(md).toContain('Recolour the title');
-		expect(md).toContain('set_shape_style');
+		expect(md).toContain('update_element_style');
 		expect(md).toContain('#0000ff');
 	});
 

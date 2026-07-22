@@ -78,7 +78,7 @@ describe('aiToolCallCard', () => {
 	it('surfaces an error message when the tool failed', () => {
 		const wrapper = mount(AiToolCallCard, {
 			props: {
-				part: toolPart('update_text', { slideIndex: 0 }, 'output-error', 'Element not found'),
+				part: toolPart('update_element', { slideIndex: 0 }, 'output-error', 'Element not found'),
 			},
 		});
 		const shown = visibleText(wrapper.element as HTMLElement);
