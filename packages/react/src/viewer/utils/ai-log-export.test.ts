@@ -31,7 +31,7 @@ function chatWithToolCall(): PptxAiStoredChat {
 				parts: [
 					{ type: 'text', text: 'Done.' },
 					{
-						type: 'tool-set_text_style',
+						type: 'tool-update_element_style',
 						toolCallId: 'call-1',
 						state: 'output-available',
 						input: { slideIndex: 0, color: 'FF0000' },
@@ -74,7 +74,7 @@ describe('buildChatLogExport', () => {
 		expect(assistant.text).toBe('Done.');
 		expect(assistant.toolCalls).toHaveLength(1);
 		const call = assistant.toolCalls[0];
-		expect(call.toolName).toBe('set_text_style');
+		expect(call.toolName).toBe('update_element_style');
 		expect(call.state).toBe('output-available');
 		expect(call.input).toStrictEqual({ slideIndex: 0, color: 'FF0000' });
 		expect(call.output).toStrictEqual({ updated: true });
@@ -83,7 +83,7 @@ describe('buildChatLogExport', () => {
 	it('omits tool inputs/outputs when detailed is false', () => {
 		const doc = buildChatLogExport([chatWithToolCall()], { detailed: false });
 		const call = doc.chats[0].messages[1].toolCalls[0];
-		expect(call.toolName).toBe('set_text_style');
+		expect(call.toolName).toBe('update_element_style');
 		expect(call.input).toBeUndefined();
 		expect(call.output).toBeUndefined();
 	});
@@ -101,7 +101,7 @@ describe('buildChatLogMarkdown', () => {
 	it('renders tool calls with fenced JSON payloads', () => {
 		const md = buildChatLogMarkdown(buildChatLogExport([chatWithToolCall()]));
 		expect(md).toContain('## Recolor the title');
-		expect(md).toContain('Tool `set_text_style`');
+		expect(md).toContain('Tool `update_element_style`');
 		expect(md).toContain('FF0000');
 	});
 });
@@ -129,7 +129,7 @@ describe('exportAiChatLogs', () => {
 			}[];
 		};
 		const call = parsed.chats[0].messages[1].toolCalls[0];
-		expect(call.toolName).toBe('set_text_style');
+		expect(call.toolName).toBe('update_element_style');
 		expect(call.input).toStrictEqual({ slideIndex: 0, color: 'FF0000' });
 		expect(call.output).toStrictEqual({ updated: true });
 	});
@@ -137,7 +137,7 @@ describe('exportAiChatLogs', () => {
 	it('downloads a markdown transcript when requested', async () => {
 		await exportAiChatLogs({ store: mockStore([chatWithToolCall()]), format: 'markdown' });
 		expect(downloaded[0].filename).toMatch(/\.md$/u);
-		await expect(downloaded[0].blob.text()).resolves.toContain('Tool `set_text_style`');
+		await expect(downloaded[0].blob.text()).resolves.toContain('Tool `update_element_style`');
 	});
 
 	it('does not download and returns 0 when there are no chats', async () => {

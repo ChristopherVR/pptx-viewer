@@ -11,7 +11,7 @@ import { translationsEn } from 'pptx-viewer-shared/i18n';
 /**
  * AiChatPanel end-to-end integration: the REAL panel, wired to a scripted
  * `kind: 'transport'` stub (no live model, no network) over a small in-memory
- * deck. The stub emits one `update_text` tool call, which stages a proposal;
+ * deck. The stub emits one `update_element` tool call, which stages a proposal;
  * the panel renders an {@link AiProposalCard}; clicking Accept routes through
  * the session's ProposalStore to the bridge's `applySlidesUpdate` choke point,
  * mutating the deck as exactly one undoable history entry.
@@ -139,7 +139,7 @@ function stagingConfig(): PptxAiConfig {
 		connection: {
 			kind: 'transport',
 			transport: scriptedTransport([
-				toolCallStep('call-1', 'update_text', {
+				toolCallStep('call-1', 'update_element', {
 					slideIndex: 0,
 					elementId: 'el-1',
 					text: 'AI Edited Title',

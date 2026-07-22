@@ -27,7 +27,7 @@ describe('appliedThemeFromPart', () => {
 	});
 
 	it('ignores non-theme tools', () => {
-		expect(appliedThemeFromPart(toolPart({ toolName: 'update_text' }))).toBeNull();
+		expect(appliedThemeFromPart(toolPart({ toolName: 'update_element' }))).toBeNull();
 	});
 
 	it('ignores results that are not yet available', () => {

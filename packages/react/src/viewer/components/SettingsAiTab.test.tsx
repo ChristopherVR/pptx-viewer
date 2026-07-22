@@ -51,7 +51,7 @@ function chatWithToolCall(): PptxAiStoredChat {
 				role: 'assistant',
 				parts: [
 					{
-						type: 'tool-set_text_style',
+						type: 'tool-update_element_style',
 						toolCallId: 'call-1',
 						state: 'output-available',
 						input: { color: 'FF0000' },
@@ -123,7 +123,7 @@ describe('settingsAiTab', () => {
 			}[];
 		};
 		const call = parsed.chats[0].messages[0].toolCalls[0];
-		expect(call.toolName).toBe('set_text_style');
+		expect(call.toolName).toBe('update_element_style');
 		expect(call.input).toStrictEqual({ color: 'FF0000' });
 		expect(call.output).toStrictEqual({ updated: true });
 		expect(container.textContent).toContain('pptx.ai.exportLogsDone:1');

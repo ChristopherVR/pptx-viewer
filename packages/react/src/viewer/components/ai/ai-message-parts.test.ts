@@ -31,7 +31,7 @@ describe('extractReadyToolCalls', () => {
 	it('accepts output-available and output-error states (input still present)', () => {
 		const calls = extractReadyToolCalls([
 			toolMessage('m1', 'get_slide', 'c1', 'output-available', { slideIndex: 2 }),
-			toolMessage('m2', 'update_text', 'c2', 'output-error', { slideIndex: 0, elementId: 'x' }),
+			toolMessage('m2', 'update_element', 'c2', 'output-error', { slideIndex: 0, elementId: 'x' }),
 		]);
 		expect(calls.map((c) => c.toolCallId)).toStrictEqual(['c1', 'c2']);
 	});
@@ -53,10 +53,10 @@ describe('extractReadyToolCalls', () => {
 	it('preserves stream order across messages (latest is last)', () => {
 		const calls = extractReadyToolCalls([
 			toolMessage('m1', 'get_slide', 'c1', 'output-available', { slideIndex: 0 }),
-			toolMessage('m2', 'add_smartart', 'c2', 'input-available', { slideIndex: 4 }),
+			toolMessage('m2', 'manage_smart_art', 'c2', 'input-available', { slideIndex: 4 }),
 		]);
 		expect(calls.map((c) => c.toolCallId)).toStrictEqual(['c1', 'c2']);
-		expect(calls.at(-1)?.toolName).toBe('add_smartart');
+		expect(calls.at(-1)?.toolName).toBe('manage_smart_art');
 	});
 
 	it('ignores plain text parts', () => {

@@ -102,7 +102,7 @@ describe('aiToolCallCard', () => {
 				<AiToolCallCard
 					part={{
 						kind: 'tool',
-						toolName: 'update_text',
+						toolName: 'update_element',
 						toolCallId: 'c1',
 						state: 'output-error',
 						input: { slideIndex: 0 },
