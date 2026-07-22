@@ -42,8 +42,8 @@
 					viewBox="0 0 10 10"
 					refX="5"
 					refY="5"
-					markerWidth="4"
-					markerHeight="4"
+					markerWidth={geometry.startMarker.markerWidth}
+					markerHeight={geometry.startMarker.markerHeight}
 					orient="auto-start-reverse"
 					markerUnits="strokeWidth"
 				>
@@ -60,8 +60,8 @@
 					viewBox="0 0 10 10"
 					refX="5"
 					refY="5"
-					markerWidth="4"
-					markerHeight="4"
+					markerWidth={geometry.endMarker.markerWidth}
+					markerHeight={geometry.endMarker.markerHeight}
 					orient="auto-start-reverse"
 					markerUnits="strokeWidth"
 				>

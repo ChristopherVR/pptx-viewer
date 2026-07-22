@@ -91,6 +91,11 @@ export function getShapeFillStrokeStyle(
 		const elementOpacity = typeof el.opacity === 'number' ? el.opacity : 1;
 		style.opacity = elementOpacity * fx.opacity;
 	}
+	if (fx.overflowVisible) {
+		// Blur `@grow`: let the halo bleed past the element box instead of
+		// clipping it at the shape bounds.
+		style.overflow = 'visible';
+	}
 
 	// Shape 3D (scene3d camera + shape3d extrusion/bevel/material).
 	merge3dStyle(style, getComputed3dStyle(el));

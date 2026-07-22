@@ -17,6 +17,7 @@
 	import ChartView from './ChartView.svelte';
 	import ConnectorView from './ConnectorView.svelte';
 	import DuotoneFilterDefs from './DuotoneFilterDefs.svelte';
+	import ShapeEffectOverlay from './ShapeEffectOverlay.svelte';
 	import EquationView from './EquationView.svelte';
 	import Extrusion3D from './Extrusion3D.svelte';
 	import ContentPartView from './ContentPartView.svelte';
@@ -114,6 +115,7 @@
 		data-pptx-element={elementInteractive ? 'true' : undefined}
 	>
 		<DuotoneFilterDefs {element} {mediaDataUrls} {zIndex} />
+		<ShapeEffectOverlay {element} {mediaDataUrls} {zIndex} />
 		{#if extrusion.hasExtrusion}<Extrusion3D data={extrusion} />{/if}
 		{#if warpedText}
 			<WordArtText {element} {mediaDataUrls} {zIndex} />
