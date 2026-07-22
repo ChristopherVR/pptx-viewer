@@ -8,6 +8,7 @@ import type {
 	PptxHeaderFooter,
 	PptxPresentationProperties,
 	PptxSaveFormat,
+	PptxSection,
 	PptxSlide,
 	TextSegment,
 } from 'pptx-viewer-core';
@@ -86,6 +87,8 @@ export interface EditorController {
 		custom: PptxCustomProperty[],
 	): void;
 	updatePresentationProperties(value: PptxPresentationProperties): void;
+	/** Replace the whole section list as one undoable step (AI deck seam). */
+	updateSections(value: PptxSection[]): void;
 	updateHeaderFooter(value: PptxHeaderFooter): void;
 	updateCustomShows(value: PptxCustomShow[]): void;
 	save(format?: PptxSaveFormat): Promise<Uint8Array>;
@@ -357,6 +360,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		updateDocumentProperties: (core, app, custom) =>
 			ops.updateDocumentProperties(core, app, custom),
 		updatePresentationProperties: (value) => ops.updatePresentationProperties(value),
+		updateSections: (value) => ops.updateSections(value),
 		updateHeaderFooter: (value) => ops.updateHeaderFooter(value),
 		updateCustomShows: (value) => ops.updateCustomShows(value),
 		save: (format) => ops.save(format),

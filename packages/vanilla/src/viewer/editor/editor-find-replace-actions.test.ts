@@ -43,6 +43,7 @@ function fakeOps(): EditorOps {
 		updateEquation: vi.fn(),
 		updateDocumentProperties: vi.fn(),
 		updatePresentationProperties: vi.fn(),
+		updateSections: vi.fn(),
 		updateHeaderFooter: vi.fn(),
 		updateCustomShows: vi.fn(),
 		undo: vi.fn(),

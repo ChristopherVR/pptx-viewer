@@ -80,6 +80,8 @@ export interface EditorOps {
 		custom: PptxCustomProperty[],
 	): void;
 	updatePresentationProperties(value: PptxPresentationProperties): void;
+	/** Replace the whole section list as one undoable step (AI deck seam). */
+	updateSections(value: PptxSection[]): void;
 	updateHeaderFooter(value: PptxHeaderFooter): void;
 	updateCustomShows(value: PptxCustomShow[]): void;
 	undo(): void;
@@ -339,6 +341,15 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			}
 			pushHistory();
 			store.set({ presentationProperties: structuredClone(value) });
+			commitChange();
+		},
+
+		updateSections(value) {
+			if (!store.get().editable) {
+				return;
+			}
+			pushHistory();
+			store.set({ sections: structuredClone(value) });
 			commitChange();
 		},
 

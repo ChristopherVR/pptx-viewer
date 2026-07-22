@@ -9,9 +9,10 @@
  * for the SDK when the chat panel is actually opened.
  */
 
-import type { PptxHandler, PptxSlide, PptxTheme } from 'pptx-viewer-core';
+import type { PptxData, PptxHandler, PptxSlide, PptxTheme } from 'pptx-viewer-core';
 import type {
 	PptxAiBridge,
+	PptxAiDataUpdater,
 	PptxAiDeckMeta,
 	PptxAiElementUpdate,
 	PptxAiFocusedTarget,
@@ -58,6 +59,30 @@ export function createVanillaAiBridge(deps: VanillaAiBridgeDeps): PptxAiBridge {
 		editor.commitSlides(next, store.get().currentSlide);
 	};
 
+	/**
+	 * Reconstruct the presentation-level {@link PptxData} the `pptx-viewer-mcp`
+	 * deck tools read/write. Vanilla tracks the full deck (slides, canvas size,
+	 * theme, sections, document + presentation properties), so this seam covers
+	 * every deck tool. Fields the store does not track are simply omitted, which
+	 * degrades only the corresponding sub-tool.
+	 */
+	const readDeckData = (): PptxData => {
+		const state = store.get();
+		return {
+			slides: state.slides,
+			width: state.canvasSize.width,
+			height: state.canvasSize.height,
+			theme: state.colorScheme ? { colorScheme: state.colorScheme } : undefined,
+			sections: state.sections,
+			presentationProperties: state.presentationProperties,
+			customProperties: state.customProperties,
+			coreProperties: state.coreProperties,
+			appProperties: state.appProperties,
+		} satisfies Partial<PptxData> as PptxData;
+	};
+
+	const differs = (a: unknown, b: unknown): boolean => JSON.stringify(a) !== JSON.stringify(b);
+
 	return {
 		getDeckMeta(): PptxAiDeckMeta {
 			const state = store.get();
@@ -94,6 +119,43 @@ export function createVanillaAiBridge(deps: VanillaAiBridgeDeps): PptxAiBridge {
 			}, `Update ${elementId}`);
 		},
 		applyTheme: (updates) => deps.applyThemeUpdates(updates),
+
+		getDeckData: () => readDeckData(),
+		applyDeckData(updater: PptxAiDataUpdater, _label: string) {
+			const before = readDeckData();
+			const after = updater(structuredClone(before));
+			deps.ensureEditable();
+			// Fan out only the top-level deck fields that actually changed; each
+			// routes through its own undoable editor op (theme is intentionally left
+			// to applyTheme, so it is not applied here). Slides + canvas + sections +
+			// presentation/document properties are all editor-tracked and undoable.
+			if (differs(before.slides, after.slides)) {
+				editor.commitSlides(after.slides, store.get().currentSlide);
+			}
+			if (before.width !== after.width || before.height !== after.height) {
+				editor.getEditActions().updateCanvasSize({ width: after.width, height: after.height });
+			}
+			const nextSections = after.sections ?? before.sections ?? [];
+			if (differs(before.sections, nextSections)) {
+				editor.updateSections(nextSections);
+			}
+			const nextPresProps = after.presentationProperties ?? before.presentationProperties ?? {};
+			if (differs(before.presentationProperties, nextPresProps)) {
+				editor.updatePresentationProperties(nextPresProps);
+			}
+			// The editor commits core / app / custom document properties as one unit,
+			// so touch the combined op when any of the three changed.
+			const nextCore = after.coreProperties ?? before.coreProperties;
+			const nextApp = after.appProperties ?? before.appProperties;
+			const nextCustom = after.customProperties ?? before.customProperties ?? [];
+			if (
+				differs(before.coreProperties, nextCore) ||
+				differs(before.appProperties, nextApp) ||
+				differs(before.customProperties, nextCustom)
+			) {
+				editor.updateDocumentProperties(nextCore ?? {}, nextApp ?? {}, nextCustom);
+			}
+		},
 
 		getFocusedTargets: deps.getFocusedTargets ? () => deps.getFocusedTargets?.() ?? [] : undefined,
 		notify: deps.notify,
