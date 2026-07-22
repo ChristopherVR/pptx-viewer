@@ -1,9 +1,12 @@
-import { isAbsolute, resolve, sep } from 'node:path';
-
 import { PptxMarkdownConverter } from 'pptx-viewer-core';
 import type { PptxConverterOptions } from 'pptx-viewer-core';
 
 import type { ToolContext, ToolResult } from '../types.js';
+
+/** True when running under Node (has a real filesystem to scope paths against). */
+function isNodeRuntime(): boolean {
+	return typeof process !== 'undefined' && Boolean(process.versions?.node);
+}
 
 export interface ConvertToMarkdownParams {
 	outputDir?: string;
@@ -20,8 +23,18 @@ export interface ConvertToMarkdownParams {
 	rootDir?: string;
 }
 
-/** Resolve `outputDir` under `rootDir` and reject any traversal escape. */
-function scopeOutputDir(outputDir: string, rootDir?: string): string {
+/**
+ * Resolve `outputDir` under `rootDir` and reject any traversal escape. This is a
+ * filesystem-security concern that only applies on the server (Node): the
+ * `node:path` module is imported lazily so this tool stays browser-safe (the
+ * in-viewer AI assistant calls it for the markdown string, with no filesystem,
+ * so the output dir is just a prefix for image links).
+ */
+async function scopeOutputDir(outputDir: string, rootDir?: string): Promise<string> {
+	if (!isNodeRuntime()) {
+		return outputDir;
+	}
+	const { isAbsolute, resolve, sep } = await import('node:path');
 	const root = resolve(rootDir ?? process.env['PPTX_TOOLS_ROOT'] ?? process.cwd());
 	const resolved = isAbsolute(outputDir) ? resolve(outputDir) : resolve(root, outputDir);
 	const rootWithSep = root.endsWith(sep) ? root : root + sep;
@@ -53,7 +66,7 @@ export async function convertToMarkdown(
 		sourceName: params.sourceName ?? 'unknown',
 	};
 
-	const safeOutputDir = scopeOutputDir(params.outputDir ?? '.', params.rootDir);
+	const safeOutputDir = await scopeOutputDir(params.outputDir ?? '.', params.rootDir);
 	const converter = new PptxMarkdownConverter(safeOutputDir, options);
 	const markdown = await converter.convert(ctx.pptxData);
 
