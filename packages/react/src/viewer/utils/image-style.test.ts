@@ -6,6 +6,7 @@ import {
 	isImageTiled,
 	getImageTilingStyle,
 	getImageRenderStyle,
+	buildMirrorTiledBackground,
 } from './image-style';
 
 // Helper to create a minimal image element
@@ -210,6 +211,79 @@ describe('getImageTilingStyle', () => {
 		const style = getImageTilingStyle(el);
 		expect(style).toBeDefined();
 		expect(style!.backgroundImage).toContain('url(');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Mirror tile-flip (a:tile/@flip)
+// ---------------------------------------------------------------------------
+
+const FLIP_DATA_URI = 'data:image/png;base64,iVBORw0KGgo=';
+
+/** Decode the inner SVG markup from a composite url("data:image/svg+xml,..."). */
+function decodeFlipSvg(backgroundImage: string): string {
+	const match = /data:image\/svg\+xml,([^"]+)/u.exec(backgroundImage);
+	return match ? decodeURIComponent(match[1]) : '';
+}
+
+describe('buildMirrorTiledBackground', () => {
+	it('doubles the horizontal size and mirrors on the x axis', () => {
+		const result = buildMirrorTiledBackground(FLIP_DATA_URI, 'x', 100, 100);
+		expect(result).toBeDefined();
+		expect(result!.backgroundSize).toBe('200% 100%');
+		const svg = decodeFlipSvg(result!.backgroundImage);
+		expect(svg).toContain('viewBox="0 0 2 1"');
+		expect(svg).toContain('scale(-1,1)');
+		expect(svg).not.toContain('scale(1,-1)');
+	});
+
+	it('doubles the vertical size and mirrors on the y axis', () => {
+		const result = buildMirrorTiledBackground(FLIP_DATA_URI, 'y', 80, 120);
+		expect(result!.backgroundSize).toBe('80% 240%');
+		const svg = decodeFlipSvg(result!.backgroundImage);
+		expect(svg).toContain('viewBox="0 0 1 2"');
+		expect(svg).toContain('scale(1,-1)');
+	});
+
+	it('mirrors both axes across four cells for xy', () => {
+		const result = buildMirrorTiledBackground(FLIP_DATA_URI, 'xy', 100, 100);
+		expect(result!.backgroundSize).toBe('200% 200%');
+		const svg = decodeFlipSvg(result!.backgroundImage);
+		expect(svg).toContain('viewBox="0 0 2 2"');
+		expect(svg.match(/<image/gu)?.length).toBe(4);
+		expect(svg).toContain('scale(-1,-1)');
+	});
+
+	it('refuses non-embeddable (blob/http) sources', () => {
+		expect(buildMirrorTiledBackground('blob:abc-123', 'x', 100, 100)).toBeUndefined();
+		expect(buildMirrorTiledBackground('https://x/y.png', 'xy', 100, 100)).toBeUndefined();
+	});
+});
+
+describe('getImageTilingStyle flip integration', () => {
+	it('applies the mirrored composite when tileFlip is set', () => {
+		const el = makeImageElement({
+			tileScaleX: 1,
+			tileScaleY: 1,
+			imageData: FLIP_DATA_URI,
+			tileFlip: 'xy',
+		} as Partial<PptxElement>);
+		const style = getImageTilingStyle(el);
+		expect(style!.backgroundSize).toBe('200% 200%');
+		expect(String(style!.backgroundImage)).toContain('data:image/svg+xml');
+		expect(style!.backgroundRepeat).toBe('repeat');
+	});
+
+	it('keeps plain repetition when tileFlip is "none"', () => {
+		const el = makeImageElement({
+			tileScaleX: 1,
+			tileScaleY: 1,
+			imageData: FLIP_DATA_URI,
+			tileFlip: 'none',
+		} as Partial<PptxElement>);
+		const style = getImageTilingStyle(el);
+		expect(style!.backgroundSize).toBe('100% 100%');
+		expect(style!.backgroundImage).toBe(`url(${FLIP_DATA_URI})`);
 	});
 });
 

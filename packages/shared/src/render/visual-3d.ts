@@ -209,6 +209,30 @@ const LIGHT_RIG_MAP: Record<string, LightRigCssConfig> = {
 	},
 };
 
+/**
+ * Normalise an arbitrary colour string to an expanded `#RRGGBB` hex, or
+ * `undefined` when it is missing/not a hex colour. 3-digit shorthand (`#000`)
+ * is expanded to 6 digits. Used so extrusion/contour colours (which are passed
+ * straight into CSS and into {@link darkenColor}, both of which require a
+ * `#`-prefixed 6-digit hex) never emit an invalid value such as a bare
+ * `FF0000`, a themed `rgb()` string, or an 8-digit hex.
+ */
+function safeHexColor(color: string | undefined): string | undefined {
+	if (!color) {
+		return undefined;
+	}
+	const candidate = color.startsWith('#') ? color : `#${color}`;
+	if (/^#[0-9a-fA-F]{6}$/u.test(candidate)) {
+		return candidate;
+	}
+	const short = /^#(?<r>[0-9a-fA-F])(?<g>[0-9a-fA-F])(?<b>[0-9a-fA-F])$/u.exec(candidate);
+	if (short?.groups) {
+		const { r, g, b } = short.groups;
+		return `#${r}${r}${g}${g}${b}${b}`;
+	}
+	return undefined;
+}
+
 /** Map a light-rig direction token to a CSS gradient angle (degrees). */
 function getLightDirectionAngle(direction: string | undefined): number {
 	switch (direction) {
@@ -474,11 +498,16 @@ export function get3dTransformCss(
  *
  * Exported under two names: {@link getExtrusionBoxShadow} (neutral pieces API)
  * and the React-compatible alias {@link getExtrusionShadow}.
+ *
+ * `fillColorFallback` supplies the shape's resolved fill colour, which is what
+ * PowerPoint uses for the extrusion side faces when `a:sp3d/@extrusionClr` is
+ * omitted; only when neither is a valid hex do we fall back to a neutral grey.
  */
 export function getExtrusionBoxShadow(
 	shape3d: Shape3dParams | undefined,
 	cameraRotX = 0,
 	cameraRotY = 0,
+	fillColorFallback?: string,
 ): string | undefined {
 	if (!shape3d?.extrusionHeight || shape3d.extrusionHeight <= 0) {
 		return undefined;
@@ -492,7 +521,8 @@ export function getExtrusionBoxShadow(
 	const layerCount = Math.min(rawDepthPx, MAX_EXTRUSION_LAYERS);
 	const step = rawDepthPx / layerCount;
 
-	const extColor = shape3d.extrusionColor || '#888888';
+	const extColor =
+		safeHexColor(shape3d.extrusionColor) ?? safeHexColor(fillColorFallback) ?? '#888888';
 	const { dx, dy } = getExtrusionDirection(cameraRotX, cameraRotY);
 	const depthShadows: string[] = [];
 
@@ -515,13 +545,25 @@ export function getExtrusionBoxShadow(
 /** React-compatible alias for {@link getExtrusionBoxShadow}. */
 export const getExtrusionShadow = getExtrusionBoxShadow;
 
-/** Contour (outline ring) → box-shadow. Returns `undefined` when no contour. */
-export function getContourBoxShadow(shape3d: Shape3dParams | undefined): string | undefined {
+/**
+ * Contour (outline ring) → box-shadow. Returns `undefined` when no contour.
+ *
+ * The ring width mirrors `a:sp3d/@contourW` faithfully (EMU → px, min 1px).
+ * `lineColorFallback` supplies the shape's stroke/line colour, which PowerPoint
+ * uses for the contour when `a:sp3d/a:contourClr` is omitted; the previous
+ * `contourColor || '#000000'` fallback also emitted an invalid CSS colour when
+ * the parsed contour colour lacked a leading `#`, which {@link safeHexColor}
+ * now normalises.
+ */
+export function getContourBoxShadow(
+	shape3d: Shape3dParams | undefined,
+	lineColorFallback?: string,
+): string | undefined {
 	if (!shape3d?.contourWidth || shape3d.contourWidth <= 0) {
 		return undefined;
 	}
 	const widthPx = Math.max(1, Math.round(shape3d.contourWidth / EMU_PER_PX));
-	const color = shape3d.contourColor || '#000000';
+	const color = safeHexColor(shape3d.contourColor) ?? safeHexColor(lineColorFallback) ?? '#000000';
 	return `0 0 0 ${widthPx}px ${color}`;
 }
 
@@ -700,11 +742,17 @@ export type MutableCss = {
  * integration point: each binding passes its own `CSSProperties` object (which
  * structurally satisfies {@link MutableCss}) and the fields are folded in,
  * preserving any pre-existing `transform`/`boxShadow`/`filter`/`backgroundImage`.
+ *
+ * `fillColorFallback` (the shape's resolved fill colour) is used as the
+ * extrusion side-face and contour colour when `extrusionClr`/`contourClr` are
+ * omitted, matching PowerPoint; callers that have the resolved fill should pass
+ * it for higher fidelity.
  */
 export function apply3dEffects(
 	base: MutableCss,
 	scene3d: Scene3dParams | undefined,
 	shape3d: Shape3dParams | undefined,
+	fillColorFallback?: string,
 ): void {
 	if (!scene3d && !shape3d) {
 		return;
@@ -749,13 +797,13 @@ export function apply3dEffects(
 	}
 
 	// ── Extrusion depth → stacked box-shadow ──
-	const extrusionShadow = getExtrusionBoxShadow(shape3d, rotateX, rotateY);
+	const extrusionShadow = getExtrusionBoxShadow(shape3d, rotateX, rotateY, fillColorFallback);
 	if (extrusionShadow) {
 		base.boxShadow = base.boxShadow ? `${base.boxShadow}, ${extrusionShadow}` : extrusionShadow;
 	}
 
 	// ── Contour (outline ring) ──
-	const contourShadow = getContourBoxShadow(shape3d);
+	const contourShadow = getContourBoxShadow(shape3d, fillColorFallback);
 	if (contourShadow) {
 		base.boxShadow = base.boxShadow ? `${base.boxShadow}, ${contourShadow}` : contourShadow;
 	}
@@ -863,15 +911,20 @@ export function getComputed3dStyle(el: PptxElement): Computed3dStyle | undefined
 		result.transformStyle = 'preserve-3d';
 	}
 
+	// Resolved fill/stroke colours drive the extrusion side-face and contour
+	// colours when `extrusionClr`/`contourClr` are omitted (PowerPoint default).
+	const fillColor = ss?.fillColor;
+	const strokeColor = ss?.strokeColor;
+
 	// ── Extrusion (kept SEPARATE for shadow combination) ──
-	const extrusion = getExtrusionBoxShadow(shape3d, rotateX, rotateY);
+	const extrusion = getExtrusionBoxShadow(shape3d, rotateX, rotateY, fillColor);
 	if (extrusion) {
 		result.extrusionBoxShadow = extrusion;
 	}
 
 	// ── Contour + bevel + backdrop shadows (folded into boxShadow) ──
 	const shadowParts: string[] = [];
-	const contour = getContourBoxShadow(shape3d);
+	const contour = getContourBoxShadow(shape3d, strokeColor ?? fillColor);
 	if (contour) {
 		shadowParts.push(contour);
 	}
