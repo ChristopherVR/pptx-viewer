@@ -205,17 +205,20 @@ export function computeCameraTransform(preset?: string, lat?: number, lon?: numb
  *
  * @param shape3d - Shape 3D properties (extrusion, bevel, material).
  * @param scene3d - Scene 3D properties (camera, lighting).
+ * @param fillColorFallback - Resolved shape fill colour; the extrusion/contour
+ *   default to it when no explicit extrusion colour is set.
  * @returns React CSS properties to apply to the shape container.
  */
 export function computeShape3dStyles(
 	shape3d?: Pptx3DShape,
 	scene3d?: Pptx3DScene,
+	fillColorFallback?: string,
 ): React.CSSProperties {
 	if (!shape3d && !scene3d) {
 		return {};
 	}
 
 	const base: React.CSSProperties = {};
-	apply3dEffects(base, scene3d, shape3d);
+	apply3dEffects(base, scene3d, shape3d, fillColorFallback);
 	return base;
 }

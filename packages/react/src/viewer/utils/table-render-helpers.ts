@@ -1,8 +1,10 @@
 import type { PptxTableCellStyle } from 'pptx-viewer-core';
 // `ooxmlDashToCssBorderStyle` is the framework-agnostic OOXML-dash → CSS map;
 // it lives in `pptx-viewer-shared` and is re-exported here so this module's
-// public surface (and colocated tests) stay unchanged.
-import { ooxmlDashToCssBorderStyle } from 'pptx-viewer-shared';
+// public surface (and colocated tests) stay unchanged. `cell3DBevelCss` renders
+// the `a:cell3D` bevel treatment (paired inset box-shadows) so it stays in sync
+// with the shared table renderer.
+import { cell3DBevelCss, ooxmlDashToCssBorderStyle } from 'pptx-viewer-shared';
 import type React from 'react';
 
 import { getPatternSvg, normalizeHexColor } from './color';
@@ -49,9 +51,21 @@ export function cellStyleToCss(style?: PptxTableCellStyle): React.CSSProperties 
 	}
 	if (style.align) {
 		css.textAlign = style.align;
+	} else if (style.anchorCtr) {
+		// `anchorCtr` centres the text block perpendicular to the text flow.
+		// For horizontal text this is horizontal centring; an explicit
+		// paragraph `align` takes precedence when present.
+		css.textAlign = 'center';
 	}
 	if (style.vAlign) {
 		css.verticalAlign = style.vAlign;
+	}
+	// `horzOverflow` = clip clips text at the cell edge; overflow (default)
+	// lets it spill horizontally.
+	if (style.horzOverflow === 'clip') {
+		css.overflowX = 'hidden';
+	} else if (style.horzOverflow === 'overflow') {
+		css.overflowX = 'visible';
 	}
 	// Vertical text direction: map all variants to CSS writing-mode + text-orientation
 	if (style.textDirection) {
@@ -143,6 +157,12 @@ export function cellStyleToCss(style?: PptxTableCellStyle): React.CSSProperties 
 	}
 	if (textShadowParts.length > 0) {
 		css.textShadow = textShadowParts.join(', ');
+	}
+
+	// Cell 3D bevel treatment (a:cell3D): paired inset box-shadows with the
+	// highlight/shadow direction taken from the lightRig direction.
+	if (style.cell3D) {
+		Object.assign(css, cell3DBevelCss(style.cell3D));
 	}
 
 	return css;

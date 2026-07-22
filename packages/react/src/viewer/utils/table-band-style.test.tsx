@@ -201,6 +201,59 @@ describe('getTableCellBandStyle', () => {
 		expect(style!.backgroundColor).toBe('#4472C4');
 	});
 
+	// ── a:fontRef@idx font resolution (fix 1c) ──────────────────
+	it('resolves fontRef@idx="minor" to the theme body font', () => {
+		const tableStyleMap: ParsedTableStyleMap = {
+			'{FONT-STYLE}': {
+				wholeTblText: { fontRefIdx: 'minor' },
+			} as unknown as ParsedTableStyleMap['{FONT-STYLE}'],
+		};
+		const theme = {
+			fontScheme: { minorFont: { latin: 'Calibri' }, majorFont: { latin: 'Calibri Light' } },
+		};
+		const el = makeTableElement({ tableStyleId: '{FONT-STYLE}' });
+		const style = getTableCellBandStyle(el, 1, 1, 3, 3, {
+			tableStyleMap,
+			theme: theme as unknown as PptxTheme,
+		});
+		expect(style).toBeDefined();
+		expect(style!.fontFamily).toBe('Calibri');
+	});
+
+	it('resolves fontRef@idx="major" to the theme heading font', () => {
+		const tableStyleMap: ParsedTableStyleMap = {
+			'{FONT-STYLE}': {
+				wholeTblText: { fontRefIdx: 'major' },
+			} as unknown as ParsedTableStyleMap['{FONT-STYLE}'],
+		};
+		const theme = {
+			fontScheme: { minorFont: { latin: 'Calibri' }, majorFont: { latin: 'Calibri Light' } },
+		};
+		const el = makeTableElement({ tableStyleId: '{FONT-STYLE}' });
+		const style = getTableCellBandStyle(el, 1, 1, 3, 3, {
+			tableStyleMap,
+			theme: theme as unknown as PptxTheme,
+		});
+		expect(style).toBeDefined();
+		expect(style!.fontFamily).toBe('Calibri Light');
+	});
+
+	it('lets an explicit fontFace win over fontRef@idx', () => {
+		const tableStyleMap: ParsedTableStyleMap = {
+			'{FONT-STYLE}': {
+				wholeTblText: { fontFace: 'Arial', fontRefIdx: 'minor' },
+			} as unknown as ParsedTableStyleMap['{FONT-STYLE}'],
+		};
+		const theme = { fontScheme: { minorFont: { latin: 'Calibri' } } };
+		const el = makeTableElement({ tableStyleId: '{FONT-STYLE}' });
+		const style = getTableCellBandStyle(el, 1, 1, 3, 3, {
+			tableStyleMap,
+			theme: theme as unknown as PptxTheme,
+		});
+		expect(style).toBeDefined();
+		expect(style!.fontFamily).toBe('Arial');
+	});
+
 	it('normalises table style ID to upper-case with braces', () => {
 		const tableStyleMap: ParsedTableStyleMap = {
 			'{ABCD-1234}': {

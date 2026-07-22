@@ -260,7 +260,9 @@ export function getShapeVisualStyle(
 	};
 
 	// ── 3D effects (perspective + rotation + extrusion/bevel) ──
-	apply3dEffects(base, ss?.scene3d, ss?.shape3d);
+	// Pass the resolved fill colour so extrusion/contour default to it when no
+	// explicit extrusion colour is set.
+	apply3dEffects(base, ss?.scene3d, ss?.shape3d, ss?.fillColor ?? fillColor);
 
 	// The SVG `<path>` owns the fill/stroke for freeform geometry; keep effects
 	// (shadow, glow, opacity, blend) on the container but drop the rectangular

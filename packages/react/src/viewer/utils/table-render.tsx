@@ -21,6 +21,7 @@ import { cn } from '../../utils';
 import { EMU_PER_PX } from '../constants';
 import type { TableCellEditorState } from '../types';
 import { ensureArrayValue } from './geometry';
+import { getCellDiagonalBorders, TableCellDiagonalBorders } from './table-diagonal-borders';
 import { computeSelectionRect, isCellInRect, rectToCells } from './table-merge-utils';
 import type { CellRect } from './table-merge-utils';
 import {
@@ -156,10 +157,26 @@ export function renderTableElement(
 										const xmlCellStyle = extractTableCellStyle(cell, textStyle, schemeOverrides);
 										const tdCellOverride: PptxTableCellStyle | undefined =
 											tableEl.tableData?.rows[rowIndex]?.cells[cellIndex]?.style;
+										// Diagonal borders: an explicit per-cell diagonal (from a
+										// tableData override) merged with any inherited from the
+										// applicable table-style sections (a:tl2br / a:bl2tr).
+										const diag = getCellDiagonalBorders(
+											tdCellOverride,
+											tableEl.tableData,
+											{
+												rowIndex,
+												cellIndex,
+												rowCount: parsedTable.rowCount,
+												columnCount: parsedTable.columnCount,
+											},
+											options?.styleCtx,
+										);
+
 										const mergedStyle: React.CSSProperties = {
 											...bandStyle,
 											...xmlCellStyle,
 											...(tdCellOverride ? cellStyleToCss(tdCellOverride) : undefined),
+											...(diag ? { position: 'relative' } : undefined),
 										};
 
 										return (
@@ -222,6 +239,7 @@ export function renderTableElement(
 													});
 												}}
 											>
+												{diag ? <TableCellDiagonalBorders diag={diag} /> : null}
 												{selectedCell?.rowIndex === rowIndex &&
 												selectedCell?.columnIndex === cellIndex &&
 												selectedCell?.isEditing ? (

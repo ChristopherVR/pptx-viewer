@@ -1,5 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
+import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import React from 'react';
 import type { CSSProperties } from 'react';
 
@@ -82,12 +82,19 @@ export function getContainerStyle({
 }: ContainerStyleParams): CSSProperties {
 	// For 3D-extruded shapes the side panels extend beyond the element bounds,
 	// so overflow must be visible and the container needs `perspective` to
-	// establish a proper 3D rendering context.
-	const overflowValue = has3DExtrusion
-		? ('visible' as const)
-		: isImg
-			? ('hidden' as const)
-			: undefined;
+	// establish a proper 3D rendering context. A blur effect with `@grow` set
+	// likewise needs `overflow: visible` so the blur halo is not clipped at the
+	// element box (mirrors shared `getComputedEffectStyle().overflowVisible`).
+	const ss = hasShapeProperties(el) ? el.shapeStyle : undefined;
+	const blurGrowVisible = Boolean(
+		ss?.blurGrow && typeof ss.blurRadius === 'number' && ss.blurRadius > 0,
+	);
+	const overflowValue =
+		has3DExtrusion || blurGrowVisible
+			? ('visible' as const)
+			: isImg
+				? ('hidden' as const)
+				: undefined;
 
 	return {
 		left: isFullscreenMedia ? 0 : el.x,
