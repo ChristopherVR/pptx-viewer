@@ -1,10 +1,15 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import type { AiChangeBatch } from '../../internal/shared-ai';
 import { AiPanelStore } from './ai-panel-store';
 
 function el(id: string, type: PptxElement['type']): PptxElement {
 	return { type, id, name: '', x: 0, y: 0, width: 10, height: 10 } as PptxElement;
+}
+
+function slide(id: string, elements: PptxElement[]): PptxSlide {
+	return { id, elements } as PptxSlide;
 }
 
 /** A store bound to a mutable selection snapshot, bypassing TestBed. */
@@ -131,5 +136,48 @@ describe('aiPanelStore live tool focus', () => {
 			{ slideIndex: 0, elementId: 'pick-1', variant: 'pick' },
 			{ slideIndex: 0, elementId: 'tool-1', variant: 'active' },
 		]);
+	});
+});
+
+describe('aiPanelStore change animation', () => {
+	it('showChangeBatch sets and clears the change batch signal', () => {
+		const { store } = setup();
+		expect(store.changeBatch()).toBeNull();
+		const batch = { changes: [], slideIndex: 3, nonce: 1 } as unknown as AiChangeBatch;
+		store.showChangeBatch(batch);
+		expect(store.changeBatch()).toBe(batch);
+		store.showChangeBatch(null);
+		expect(store.changeBatch()).toBeNull();
+	});
+
+	it('publishAiChange broadcasts a diffed batch to changeAnimator subscribers', () => {
+		const { store } = setup();
+		const received: Array<AiChangeBatch | null> = [];
+		const unsubscribe = store.changeAnimator.subscribe((b) => received.push(b));
+
+		const before = [slide('s1', [el('a', 'shape')])];
+		const moved = { ...el('a', 'shape'), x: 200 } as PptxElement;
+		store.publishAiChange(before, [slide('s1', [moved])]);
+
+		const batch = received.find((b): b is AiChangeBatch => b !== null);
+		expect(batch).toBeTruthy();
+		expect(batch?.slideIndex).toBe(0);
+		expect(batch?.changes[0]).toMatchObject({ elementId: 'a', kind: 'moved', slideIndex: 0 });
+
+		unsubscribe();
+		store.changeAnimator.dispose();
+	});
+
+	it('configureChangeAnimation with enabled:false suppresses publishing', () => {
+		const { store } = setup();
+		store.configureChangeAnimation({ enabled: false });
+		const received: Array<AiChangeBatch | null> = [];
+		store.changeAnimator.subscribe((b) => received.push(b));
+
+		// A removed element would normally diff to a batch; disabled => no emit.
+		store.publishAiChange([slide('s1', [el('a', 'shape')])], [slide('s1', [])]);
+		expect(received).toStrictEqual([]);
+
+		store.changeAnimator.dispose();
 	});
 });

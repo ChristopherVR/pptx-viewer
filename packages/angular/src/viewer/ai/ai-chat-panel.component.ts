@@ -8,7 +8,15 @@
  * error banner, and the composer. Mount it behind a `@defer` block so its (and
  * the SDK's) chunk loads only when the assistant is first opened.
  */
-import { ChangeDetectionStrategy, Component, effect, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	DestroyRef,
+	effect,
+	inject,
+	input,
+	output,
+} from '@angular/core';
 import { LucideLoaderCircle, LucideSparkles, LucideTriangleAlert, LucideX } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -170,6 +178,18 @@ export class AiChatPanelComponent {
 			}
 			this.store.flashToolTarget(target);
 		});
+
+		// Applied-edit animation: when the AI apply path publishes a batch of changed
+		// elements, reveal that slide and hand the batch to the canvas overlay so the
+		// user watches the edit land (glide old->new, fade/scale in-out, glow). The
+		// animator is viewer-scoped (on the store), so unsubscribe with this panel.
+		const unsubscribe = this.store.changeAnimator.subscribe((batch) => {
+			if (batch) {
+				this.bridge().goToSlide(batch.slideIndex);
+			}
+			this.store.showChangeBatch(batch);
+		});
+		inject(DestroyRef).onDestroy(unsubscribe);
 
 		// Bootstrap the session once the bridge + config inputs are bound. `init`
 		// is idempotent, so re-runs (e.g. from an inline config object identity

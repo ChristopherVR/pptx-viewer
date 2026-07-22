@@ -27,6 +27,8 @@ import { hasTextProperties } from 'pptx-viewer-core';
 
 import { applyRenderedElementAccessibility } from '../internal/shared';
 import type { CanvasSize } from '../internal/shared';
+import type { AiChangeBatch } from '../internal/shared-ai';
+import { AiChangeOverlayComponent } from './ai/ai-change-overlay.component';
 import { AiFocusHighlightOverlayComponent } from './ai/ai-focus-highlight-overlay.component';
 import type { AiCanvasHighlight } from './ai/focus-targets';
 import { CanvasFitService } from './canvas-fit.service';
@@ -127,7 +129,13 @@ function plainText(el: PptxElement): string {
 		// their owning slide; template elements are absent from slides[].elements.
 		{ provide: SLIDE_CONTEXT, useExisting: forwardRef(() => SlideCanvasComponent) },
 	],
-	imports: [NgStyle, ElementRendererComponent, TranslatePipe, AiFocusHighlightOverlayComponent],
+	imports: [
+		NgStyle,
+		ElementRendererComponent,
+		TranslatePipe,
+		AiFocusHighlightOverlayComponent,
+		AiChangeOverlayComponent,
+	],
 	styles: [
 		`
 			/*
@@ -207,6 +215,9 @@ function plainText(el: PptxElement): string {
 							[elements]="elements()"
 							[activeSlideIndex]="aiActiveSlideIndex()"
 						/>
+					}
+					@if (aiChangeBatch(); as batch) {
+						<pptx-ai-change-overlay [batch]="batch" [activeSlideIndex]="aiActiveSlideIndex()" />
 					}
 					@for (box of selectionBoxes(); track box.id) {
 						<div
@@ -623,6 +634,12 @@ export class SlideCanvasComponent implements SlideContext {
 	readonly aiActive = input<boolean>(false);
 	/** Zero-based active slide index, so the overlay draws only its own slide. */
 	readonly aiActiveSlideIndex = input<number>(0);
+	/**
+	 * The batch of just-applied AI element changes to play on the canvas (glide
+	 * old->new, fade/scale in-out, glow), or null when idle. Drawn inside the
+	 * scaled stage next to the focus overlay so bounds map 1:1. Empty on thumbnails.
+	 */
+	readonly aiChangeBatch = input<AiChangeBatch | null>(null);
 	/**
 	 * When true, the next element click(s) become AI picks (emitted via
 	 * {@link elementSelect}) instead of selecting / dragging. mousedown never

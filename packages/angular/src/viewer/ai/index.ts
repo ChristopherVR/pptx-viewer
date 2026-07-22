@@ -19,6 +19,7 @@ export {
 } from './ai-log-export';
 export type { AiLogChat, AiLogExport, AiLogFormat, AiLogMessage } from './ai-log-export';
 export { AiSettingsSectionComponent } from './ai-settings-section.component';
+export { AiChangeOverlayComponent } from './ai-change-overlay.component';
 export { AiFocusHighlightOverlayComponent } from './ai-focus-highlight-overlay.component';
 export { AiMessageListComponent } from './ai-message-list.component';
 export { AiPanelStore } from './ai-panel-store';

@@ -406,6 +406,7 @@ import { ZoomTargetService } from './zoom-target.service';
 							[aiHighlights]="aiPanelStore.canvasHighlights()"
 							[aiActive]="aiPanelStore.canvasAnimating()"
 							[aiActiveSlideIndex]="activeSlideIndex()"
+							[aiChangeBatch]="aiPanelStore.changeBatch()"
 							[aiPickMode]="aiPanelStore.pickMode()"
 							(elementSelect)="onCanvasElementSelect($event)"
 							(backgroundClick)="canvasEditing.onBackgroundClick()"
@@ -1301,7 +1302,14 @@ export class PowerPointViewerComponent {
 			}
 			this.editor.select([...ids]);
 		},
-		applySlides: (next, label) => this.editor.applyReplacement(next, label),
+		applySlides: (next, label) => {
+			// Single AI write choke point: snapshot the deck, commit as one undoable
+			// entry, then publish the before/after to the change animator so the
+			// canvas plays the edit (reveal slide + ghost motion + glow).
+			const before = this.editor.slides();
+			this.editor.applyReplacement(next, label);
+			this.aiPanelStore.publishAiChange(before, next);
+		},
 		applyTheme: (updates) => this.applyAiTheme(updates),
 		// Presentation-level (deck) reads/writes for the AI `getDeckData`/
 		// `applyDeckData` seam. Sections are editor-tracked (saved with the deck);
@@ -1349,6 +1357,12 @@ export class PowerPointViewerComponent {
 			selectedElementIds: () => this.editor.selectedIds(),
 			selectedElementId: () => this.editor.selectedIds()[0] ?? null,
 			selectedElement: () => this.selectedElement(),
+		});
+
+		// Apply the host's change-animation config (duration / colour / disable) to
+		// the store's shared animator whenever the `ai` config input changes.
+		effect(() => {
+			this.aiPanelStore.configureChangeAnimation(this.ai()?.changeAnimation);
 		});
 
 		// Seed the Appearance/Language catalog selections from an explicit

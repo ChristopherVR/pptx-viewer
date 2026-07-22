@@ -17,9 +17,16 @@
  * bridge all read the same store.
  */
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
-import type { PptxAiFocusedTarget, ToolCanvasTarget } from '../../internal/shared-ai';
+import { createAiChangeAnimator } from '../../internal/shared-ai';
+import type {
+	AiChangeAnimationConfig,
+	AiChangeAnimator,
+	AiChangeBatch,
+	PptxAiFocusedTarget,
+	ToolCanvasTarget,
+} from '../../internal/shared-ai';
 import type { AiCanvasHighlight } from './focus-targets';
 import { computeFocusTargets } from './focus-targets';
 
@@ -75,11 +82,26 @@ export class AiPanelStore {
 	private readonly flashTick = signal(0);
 	private flashTimer: ReturnType<typeof setTimeout> | null = null;
 
+	/**
+	 * Canvas change animator: the shared subscribe/publish bus that carries "these
+	 * elements just changed, animate them" from the AI apply path (the bridge's
+	 * write choke point calls {@link publishAiChange}) to the panel, which reveals
+	 * the slide and hands the batch to the on-canvas overlay via
+	 * {@link showChangeBatch}. Owned here (viewer-scoped) so it survives the panel
+	 * opening/closing while the write path stays alive. Mirrors React's
+	 * `session.changeAnimator`; Angular drives the same shared animator from the
+	 * bridge because its vanilla-chat controller does not surface the session.
+	 */
+	readonly changeAnimator: AiChangeAnimator = createAiChangeAnimator();
+	/** The batch of just-applied element changes the canvas overlay should play. */
+	readonly changeBatch = signal<AiChangeBatch | null>(null);
+
 	constructor() {
 		this.destroyRef?.onDestroy(() => {
 			if (this.flashTimer) {
 				clearTimeout(this.flashTimer);
 			}
+			this.changeAnimator.dispose();
 		});
 	}
 
@@ -212,4 +234,26 @@ export class AiPanelStore {
 	readonly canvasAnimating = computed(
 		() => this.canvasHighlights().length > 0 || this.flashTick() > 0,
 	);
+
+	/* ── Applied-edit change animation ─────────────────────────────────────── */
+
+	/** Apply (or clear) the change batch the panel wants the canvas to animate. */
+	showChangeBatch(batch: AiChangeBatch | null): void {
+		this.changeBatch.set(batch);
+	}
+
+	/**
+	 * Publish an applied AI edit to the change animator (called from the bridge's
+	 * write choke point with the deck slides before + after the edit). The panel's
+	 * subscription reveals the slide and plays the overlay; a no-op edit or the
+	 * host disabling the animation publishes nothing.
+	 */
+	publishAiChange(before: readonly PptxSlide[], after: readonly PptxSlide[]): void {
+		this.changeAnimator.publish([...before], [...after]);
+	}
+
+	/** Apply the host's change-animation config (duration / colour / toggles). */
+	configureChangeAnimation(config?: AiChangeAnimationConfig): void {
+		this.changeAnimator.configure(config);
+	}
 }
