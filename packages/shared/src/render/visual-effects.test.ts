@@ -8,6 +8,7 @@ import {
 	getDuotoneSvgFilter,
 	getEffectDagBlendMode,
 	getEffectDagCssFilter,
+	getEffectDagFillOverlay,
 	getEffectDagOpacity,
 	getEffectFilterCss,
 	getGlowBoxShadowCss,
@@ -15,6 +16,7 @@ import {
 	getMultiLayerShadowCss,
 	getOuterShadowCss,
 	getReflectionCss,
+	getSoftEdgeSvgFilter,
 } from './visual-effects';
 
 function shape(shapeStyle?: ShapeStyle, overrides: Partial<PptxElement> = {}): PptxElement {
@@ -193,8 +195,14 @@ describe('getEffectFilterCss', () => {
 		expect(css).toContain('drop-shadow(0 0 12px rgba(255, 255, 0, 0.75))');
 	});
 
-	it('soft edge produces a blur filter', () => {
-		expect(getEffectFilterCss({ softEdgeRadius: 5 })).toBe('blur(5px)');
+	it('soft edge without an element id falls back to a minimised blur', () => {
+		// A full-element blur would wash out interior fill/text, so with no
+		// injectable SVG-filter target the blur is capped low.
+		expect(getEffectFilterCss({ softEdgeRadius: 5 })).toBe('blur(2px)');
+	});
+
+	it('soft edge references the alpha-feather SVG filter when an element id is given', () => {
+		expect(getEffectFilterCss({ softEdgeRadius: 5 }, 'el-9')).toBe('url(#soft-edge-el-9)');
 	});
 
 	it('standalone blur produces a blur filter', () => {
@@ -334,9 +342,130 @@ describe('getComputedEffectStyle', () => {
 		);
 		expect(result.boxShadow).toContain('rgba(0, 0, 0,');
 		expect(result.filter).toContain('drop-shadow');
-		expect(result.filter).toContain('blur(3px)');
+		// Soft edge now feathers via an SVG filter reference (element id 's1'),
+		// not a whole-element blur.
+		expect(result.filter).toContain('url(#soft-edge-s1)');
 		expect(result.webkitBoxReflect).toContain('below 4px');
 		expect(result.opacity).toBe(0.8);
 		expect(result.mixBlendMode).toBe('multiply');
+	});
+
+	it('emits a fillOverlay tint layer (not a whole-element blend) when a colour is parsed', () => {
+		const result = getComputedEffectStyle(
+			shape({
+				dagFillOverlayColor: '#ff0000',
+				dagFillOverlayOpacity: 0.5,
+				dagFillOverlayBlend: 'mult',
+			}),
+		);
+		expect(result.fillOverlay).toStrictEqual({
+			color: 'rgba(255, 0, 0, 0.5)',
+			blendMode: 'multiply',
+		});
+		// The blend rides on the overlay layer, not the whole element.
+		expect(result.mixBlendMode).toBeUndefined();
+	});
+
+	it('sets overflowVisible when a blur effect has @grow', () => {
+		expect(
+			getComputedEffectStyle(shape({ blurRadius: 6, blurGrow: true })).overflowVisible,
+		).toBeTruthy();
+		expect(getComputedEffectStyle(shape({ blurRadius: 6 })).overflowVisible).toBeUndefined();
+	});
+});
+
+// ── fill overlay tint (item 1) ──────────────────────────────────────────────
+
+describe('getEffectDagFillOverlay', () => {
+	it('returns undefined without an overlay colour', () => {
+		expect(getEffectDagFillOverlay(undefined)).toBeUndefined();
+		expect(getEffectDagFillOverlay({})).toBeUndefined();
+		expect(getEffectDagFillOverlay({ dagFillOverlayColor: 'transparent' })).toBeUndefined();
+	});
+
+	it("maps the 'over' blend to a normal (opaque) tint", () => {
+		expect(
+			getEffectDagFillOverlay({ dagFillOverlayColor: '#00ff00', dagFillOverlayBlend: 'over' }),
+		).toStrictEqual({ color: '#00ff00', blendMode: 'normal' });
+	});
+
+	it('carries opacity into an rgba() overlay colour and maps the blend mode', () => {
+		expect(
+			getEffectDagFillOverlay({
+				dagFillOverlayColor: '#123456',
+				dagFillOverlayOpacity: 0.25,
+				dagFillOverlayBlend: 'screen',
+			}),
+		).toStrictEqual({ color: 'rgba(18, 52, 86, 0.25)', blendMode: 'screen' });
+	});
+});
+
+// ── soft-edge SVG feather filter (item 2) ───────────────────────────────────
+
+describe('getSoftEdgeSvgFilter', () => {
+	it('returns undefined without a positive soft-edge radius', () => {
+		expect(getSoftEdgeSvgFilter({}, 'el-1')).toBeUndefined();
+		expect(getSoftEdgeSvgFilter({ softEdgeRadius: 0 }, 'el-1')).toBeUndefined();
+	});
+
+	it('feathers only the alpha edge (SourceAlpha blur composited into SourceGraphic)', () => {
+		const def = getSoftEdgeSvgFilter({ softEdgeRadius: 5 }, 'el-1');
+		expect(def?.id).toBe('soft-edge-el-1');
+		expect(def?.cssReference).toBe('url(#soft-edge-el-1)');
+		expect(def?.filterMarkup).toContain('<filter id="soft-edge-el-1"');
+		expect(def?.filterMarkup).toContain('feGaussianBlur in="SourceAlpha" stdDeviation="5"');
+		expect(def?.filterMarkup).toContain(
+			'feComposite in="SourceGraphic" in2="softEdgeAlpha" operator="in"',
+		);
+	});
+});
+
+// ── outer-shadow scale spread (item 3) ──────────────────────────────────────
+
+describe('getOuterShadowCss scale (@sx/@sy)', () => {
+	it('adds a positive spread when the shadow is scaled above 100%', () => {
+		// sx/sy 150% → spread = round(max(blur,4) * 0.5) = round(8 * 0.5) = 4
+		const css = getOuterShadowCss({
+			shadowColor: '#000000',
+			shadowOffsetX: 4,
+			shadowOffsetY: 4,
+			shadowBlur: 8,
+			shadowOpacity: 0.35,
+			shadowScaleX: 150000,
+			shadowScaleY: 150000,
+		});
+		expect(css).toBe('4px 4px 8px 4px rgba(0, 0, 0, 0.35)');
+	});
+
+	it('omits the spread term at 100% scale (classic 3-length output)', () => {
+		const css = getOuterShadowCss({
+			shadowColor: '#000000',
+			shadowOffsetX: 4,
+			shadowOffsetY: 4,
+			shadowBlur: 8,
+			shadowOpacity: 0.35,
+			shadowScaleX: 100000,
+			shadowScaleY: 100000,
+		});
+		expect(css).toBe('4px 4px 8px rgba(0, 0, 0, 0.35)');
+	});
+});
+
+// ── reflection start position (item 4) ──────────────────────────────────────
+
+describe('reflection @stPos', () => {
+	it('inserts a hold stop so the reflection stays opaque until the start position', () => {
+		// stPos 0.5 of a 100px fade → hold at 50px.
+		const r = getReflectionCss(
+			{ reflectionStartOpacity: 1, reflectionEndPosition: 0.5, reflectionStartPosition: 0.5 },
+			200,
+		);
+		expect(r?.webkitBoxReflect).toContain('rgba(255,255,255,1) 50px,');
+	});
+
+	it('buildReflectionCssValue leaves output unchanged when startOffset is 0', () => {
+		expect(buildReflectionCssValue(4, 0.5, 0, 100, 0, 0)).toBe(
+			'below 4px linear-gradient(to bottom, rgba(255,255,255,0.5), rgba(255,255,255,0) 100px)',
+		);
 	});
 });

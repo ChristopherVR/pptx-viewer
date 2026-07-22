@@ -332,6 +332,14 @@ export interface ShapeStyle {
 	dagDuotone?: { color1: string; color2: string };
 	/** Fill overlay blend mode from effectDag `a:fillOverlay/@blend`. */
 	dagFillOverlayBlend?: 'over' | 'mult' | 'screen' | 'darken' | 'lighten';
+	/**
+	 * Fill overlay tint colour (hex `#RRGGBB`) from effectDag `a:fillOverlay`'s
+	 * `a:solidFill`/`a:gradFill`. Painted as a blended overlay layer over the
+	 * element; the blend mode comes from {@link dagFillOverlayBlend}.
+	 */
+	dagFillOverlayColor?: string;
+	/** Fill overlay tint opacity (0-1), from the overlay fill colour's alpha. */
+	dagFillOverlayOpacity?: number;
 
 	// ── Style references (CT_ShapeStyle §20.1.2.2.36) ─────────────────────
 	// These mirror the `<p:style>` element on a shape. They preserve the

@@ -87,8 +87,39 @@ export class PptxEffectDagExtractor implements IPptxEffectDagExtractor {
 		extractDagTint(effectDag, style);
 		extractDagDuotone(effectDag, style, this.context);
 		extractDagFillOverlay(effectDag, style);
+		this.extractDagFillOverlayColor(effectDag, style);
 
 		return style;
+	}
+
+	/**
+	 * Parse the `a:fillOverlay` overlay tint colour/opacity (the shared
+	 * {@link extractDagFillOverlay} helper only captures the `@blend` mode). The
+	 * overlay carries a full fill child (`a:solidFill` or `a:gradFill`); we read
+	 * the solid colour, or the first gradient stop's colour, so the renderer can
+	 * paint the tint instead of only mapping a blend mode.
+	 */
+	private extractDagFillOverlayColor(dag: XmlObject, style: Partial<ShapeStyle>): void {
+		const fillOverlay = dag['a:fillOverlay'] as XmlObject | undefined;
+		if (!fillOverlay) {
+			return;
+		}
+
+		const colorHost = fillOverlayColorHost(fillOverlay, this.context);
+		if (!colorHost) {
+			return;
+		}
+
+		const color = this.context.parseColor(colorHost);
+		if (!color) {
+			return;
+		}
+		style.dagFillOverlayColor = color;
+
+		const opacity = this.context.extractColorOpacity(colorHost);
+		if (typeof opacity === 'number' && Number.isFinite(opacity)) {
+			style.dagFillOverlayOpacity = opacity;
+		}
 	}
 
 	// ── Standard effects (same as effectLst children) ──
@@ -216,6 +247,31 @@ export class PptxEffectDagExtractor implements IPptxEffectDagExtractor {
 			style.blurGrow = true;
 		}
 	}
+}
+
+/**
+ * Resolve the colour-bearing node inside an `a:fillOverlay`: the `a:solidFill`
+ * directly, or the first gradient stop (`a:gradFill/a:gsLst/a:gs[0]`) for a
+ * gradient overlay. Returns `undefined` when neither carries a colour.
+ */
+function fillOverlayColorHost(
+	fillOverlay: XmlObject,
+	context: PptxEffectDagExtractorContext,
+): XmlObject | undefined {
+	const solidFill = fillOverlay['a:solidFill'] as XmlObject | undefined;
+	if (solidFill) {
+		return solidFill;
+	}
+	const gradFill = fillOverlay['a:gradFill'] as XmlObject | undefined;
+	if (!gradFill) {
+		return undefined;
+	}
+	const gsLst = gradFill['a:gsLst'] as XmlObject | undefined;
+	if (!gsLst) {
+		return undefined;
+	}
+	const stops = context.ensureArray(gsLst['a:gs']);
+	return stops.length > 0 ? stops[0] : undefined;
 }
 
 function childByLocalName(xml: XmlObject, name: string): XmlObject | undefined {
