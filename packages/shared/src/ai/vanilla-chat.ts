@@ -11,6 +11,7 @@
 import type { ChatState, ChatStatus } from 'ai';
 
 import type { PptxAiBridge } from './bridge';
+import type { AiChangeAnimator } from './change-animator';
 import type { PptxAiConfig, PptxAiUIMessage } from './config';
 import { loadAiSdk } from './loader';
 import type { ProposalStore } from './proposals';
@@ -39,6 +40,12 @@ export interface VanillaChatController {
 	subscribe(listener: (snapshot: VanillaChatSnapshot) => void): () => void;
 	/** The staged-write store for the review UI. */
 	readonly proposals: ProposalStore;
+	/**
+	 * Canvas change animator: publishes "these elements just changed" batches on
+	 * every applied AI edit. The binding subscribes to reveal the slide and play
+	 * the motion + glow (see the shared change-animation helpers).
+	 */
+	readonly changeAnimator: AiChangeAnimator;
 }
 
 interface ToolOutputArg {
@@ -158,6 +165,7 @@ export async function createVanillaChat(options: {
 			return () => listeners.delete(listener);
 		},
 		proposals: session.proposals,
+		changeAnimator: session.changeAnimator,
 	};
 }
 

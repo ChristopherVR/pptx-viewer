@@ -8,6 +8,7 @@
 
 import { createVanillaChat, toolCanvasTarget, toRenderableParts } from 'pptx-viewer-shared/ai';
 import type {
+	AiChangeAnimator,
 	PptxAiBridge,
 	PptxAiConfig,
 	VanillaChatController,
@@ -43,6 +44,12 @@ export interface AiPanelDeps {
 }
 
 export interface AiPanel {
+	/**
+	 * The session's canvas change animator, present once the chat controller was
+	 * created. `ai-toggle` subscribes the change overlay to it so applied AI edits
+	 * animate on the canvas. Absent when the `ai` SDK failed to load.
+	 */
+	changeAnimator?: AiChangeAnimator;
 	destroy(): void;
 }
 
@@ -216,6 +223,7 @@ export async function createAiPanel(deps: AiPanelDeps): Promise<AiPanel> {
 	render(controller.getSnapshot());
 
 	return {
+		changeAnimator: controller.changeAnimator,
 		destroy() {
 			unsubscribe();
 			unsubscribeFocus?.();

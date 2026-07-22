@@ -5,7 +5,7 @@ import type {
 	VanillaChatController,
 	VanillaChatSnapshot,
 } from 'pptx-viewer-shared/ai';
-import { ProposalStore } from 'pptx-viewer-shared/ai';
+import { createAiChangeAnimator, ProposalStore } from 'pptx-viewer-shared/ai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../i18n';
@@ -49,6 +49,7 @@ function fakeController(bridge: PptxAiBridge): VanillaChatController {
 		getSnapshot: () => ({ messages: [], status: 'ready' }),
 		subscribe: () => () => undefined,
 		proposals,
+		changeAnimator: createAiChangeAnimator(),
 	};
 }
 
@@ -144,6 +145,7 @@ describe('createAiPanel', () => {
 			getSnapshot: () => snapshot,
 			subscribe: () => () => undefined,
 			proposals: new ProposalStore(bridge),
+			changeAnimator: createAiChangeAnimator(),
 		};
 		const store = createStore({ ...createInitialViewerState(), currentSlide: 4 });
 		const focus = createAiFocusController({ store, requestOpen: () => undefined });

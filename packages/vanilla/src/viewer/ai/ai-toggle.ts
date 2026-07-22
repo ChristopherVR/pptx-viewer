@@ -18,6 +18,8 @@ import { createEl } from '../render';
 import type { Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
 import { makeButton } from '../ui/controls';
+import { mountAiChangeOverlay } from './ai-change-overlay';
+import type { AiChangeOverlay } from './ai-change-overlay';
 import { mountAiContextMenu } from './ai-context-menu';
 import { mountAiHighlightOverlay } from './ai-highlight-overlay';
 import type { AiPanel } from './ai-panel';
@@ -86,6 +88,7 @@ export function mountAiChat(deps: MountAiChatDeps): AiChatMount {
 	});
 
 	let panel: AiPanel | null = null;
+	let changeOverlay: AiChangeOverlay | null = null;
 	let open = false;
 	let loading = false;
 
@@ -110,6 +113,17 @@ export function mountAiChat(deps: MountAiChatDeps): AiChatMount {
 				controller,
 				goToSlide: deps.goToSlide,
 			});
+			// Once the session exists, play applied AI edits on the canvas: reveal
+			// the changed slide and glide/fade a ghost per changed element.
+			if (panel.changeAnimator) {
+				changeOverlay = mountAiChangeOverlay({
+					doc,
+					store: deps.store,
+					animator: panel.changeAnimator,
+					getStageRoot,
+					goToSlide: deps.goToSlide,
+				});
+			}
 		} finally {
 			loading = false;
 			host.classList.remove('is-loading');
@@ -121,6 +135,8 @@ export function mountAiChat(deps: MountAiChatDeps): AiChatMount {
 			void setOpen(true);
 		},
 		destroy() {
+			changeOverlay?.destroy();
+			changeOverlay = null;
 			panel?.destroy();
 			panel = null;
 			contextMenu.destroy();
