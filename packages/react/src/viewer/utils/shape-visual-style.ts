@@ -157,9 +157,23 @@ export function getShapeVisualStyle(
 		filterParts.push(dagFilter);
 	}
 
-	// Line join → CSS lineJoin (only relevant for SVG; stored for serialisation)
-	const lineJoinCss =
-		ss?.lineJoin === 'round' ? 'round' : ss?.lineJoin === 'bevel' ? 'bevel' : undefined;
+	// Line join → SVG lineJoin (applied by the SVG path renderer; also carried
+	// here for shapes that stroke via SVG). `miter` (with a:miter/@lim) is mapped
+	// alongside round/bevel instead of being dropped to the default.
+	const lineJoinCss: React.CSSProperties['strokeLinejoin'] =
+		ss?.lineJoin === 'round'
+			? 'round'
+			: ss?.lineJoin === 'bevel'
+				? 'bevel'
+				: ss?.lineJoin === 'miter'
+					? 'miter'
+					: undefined;
+	// a:miter/@lim is stored in 1000ths of a percent (800000 = 8.0); SVG's
+	// stroke-miterlimit is a plain ratio >= 1.
+	const miterLimitCss =
+		ss?.lineJoin === 'miter' && typeof ss?.miterLimit === 'number'
+			? Math.max(ss.miterLimit / 100000, 1)
+			: undefined;
 
 	// Pattern fill (SVG-based CSS background)
 	const patternFill = buildPatternFillCss(element.shapeStyle);
@@ -233,8 +247,16 @@ export function getShapeVisualStyle(
 			strokeWidth > 0 ? getCompoundLineBorderWidth(ss?.compoundLine, strokeWidth) : undefined,
 		borderColor: strokeWidth > 0 ? resolvedStrokeColor : undefined,
 		borderStyle: strokeWidth > 0 ? getCssBorderDashStyle(strokeDash, ss?.compoundLine) : undefined,
-		strokeLinejoin: lineJoinCss as React.CSSProperties['strokeLinejoin'],
-		strokeLinecap: ss?.lineCap === 'rnd' ? 'round' : ss?.lineCap === 'sq' ? 'square' : undefined,
+		strokeLinejoin: lineJoinCss,
+		strokeMiterlimit: miterLimitCss,
+		strokeLinecap:
+			ss?.lineCap === 'rnd'
+				? 'round'
+				: ss?.lineCap === 'sq'
+					? 'square'
+					: ss?.lineCap === 'flat'
+						? 'butt'
+						: undefined,
 	};
 
 	// ── 3D effects (perspective + rotation + extrusion/bevel) ──

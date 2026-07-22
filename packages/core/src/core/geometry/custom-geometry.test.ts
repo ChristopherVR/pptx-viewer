@@ -3,11 +3,85 @@ import { describe, it, expect } from 'vitest';
 import type { CustomGeometryPath } from '../types';
 import {
 	customGeometryPathsToSvg,
+	customGeometryPathsToSvgSubpaths,
 	svgToCustomGeometryPaths,
 	customGeometryPathsToXml,
 	getAllPointsFromPaths,
 	recalculatePathBounds,
 } from './custom-geometry';
+
+// ---------------------------------------------------------------------------
+// customGeometryPathsToSvgSubpaths
+// ---------------------------------------------------------------------------
+
+describe('customGeometryPathsToSvgSubpaths', () => {
+	it('keeps each sub-path separate with its fill/stroke flags', () => {
+		const paths: CustomGeometryPath[] = [
+			{
+				width: 100,
+				height: 100,
+				fillMode: 'norm',
+				stroke: true,
+				segments: [
+					{ type: 'moveTo', pt: { x: 0, y: 0 } },
+					{ type: 'lineTo', pt: { x: 100, y: 100 } },
+					{ type: 'close' },
+				],
+			},
+			{
+				width: 100,
+				height: 100,
+				fillMode: 'none',
+				stroke: true,
+				segments: [
+					{ type: 'moveTo', pt: { x: 0, y: 50 } },
+					{ type: 'lineTo', pt: { x: 100, y: 50 } },
+				],
+			},
+		];
+		const result = customGeometryPathsToSvgSubpaths(paths, 100, 100);
+		expect(result).toHaveLength(2);
+		expect(result[0]).toStrictEqual({
+			d: 'M 0 0 L 100 100 Z',
+			fillMode: 'norm',
+			stroke: true,
+		});
+		expect(result[1]).toStrictEqual({
+			d: 'M 0 50 L 100 50',
+			fillMode: 'none',
+			stroke: true,
+		});
+	});
+
+	it('scales a sub-path from its own @w/@h into the target coordinate space', () => {
+		const paths: CustomGeometryPath[] = [
+			{
+				width: 200,
+				height: 400,
+				segments: [
+					{ type: 'moveTo', pt: { x: 100, y: 200 } },
+					{ type: 'lineTo', pt: { x: 200, y: 400 } },
+				],
+			},
+		];
+		// Target space is 100x100, so x halves and y quarters.
+		const [sub] = customGeometryPathsToSvgSubpaths(paths, 100, 100);
+		expect(sub.d).toBe('M 50 50 L 100 100');
+	});
+
+	it('handles a stroke-off (@stroke=0) sub-path flag', () => {
+		const paths: CustomGeometryPath[] = [
+			{
+				width: 10,
+				height: 10,
+				stroke: false,
+				segments: [{ type: 'moveTo', pt: { x: 0, y: 0 } }],
+			},
+		];
+		const [sub] = customGeometryPathsToSvgSubpaths(paths, 10, 10);
+		expect(sub.stroke).toBeFalsy();
+	});
+});
 
 // ---------------------------------------------------------------------------
 // customGeometryPathsToSvg

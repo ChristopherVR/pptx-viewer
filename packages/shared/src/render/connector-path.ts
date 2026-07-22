@@ -23,6 +23,7 @@ import {
 	getCompoundLineWidths,
 	svgLineCap,
 } from './connector-style';
+import { getSvgStrokeDasharray, normalizeStrokeDashType } from './element-style-transform';
 
 /**
  * Optional obstacle-avoidance routing context for bent connectors. When
@@ -36,10 +37,27 @@ export interface ConnectorRouting {
 	canvasHeight: number;
 }
 
+/** A single custom-dash segment (percent-of-line-width, 1000ths of a percent). */
+export interface DashSegment {
+	dash: number;
+	space: number;
+}
+
+/** Arrow head size token (`a:ln/a:headEnd|tailEnd/@w|@len`). */
+export type ArrowSize = 'sm' | 'med' | 'lg';
+
 /** Shape description for a SVG `<marker>` element (viewBox 0 0 10 10). */
 export interface MarkerShape {
 	shape: 'path' | 'circle';
 	d?: string;
+	/**
+	 * Suggested `markerWidth` (along the line: arrow *length*). Derived from the
+	 * connector's `@len` size token. Bindings should apply this instead of a
+	 * hard-coded value so `sm`/`lg` arrows scale. Defaults to the historical `4`.
+	 */
+	markerWidth: number;
+	/** Suggested `markerHeight` (perpendicular: arrow *width*, from `@w`). */
+	markerHeight: number;
 }
 
 /** All derived connector rendering values, computed from a `PptxElement`. */
@@ -98,7 +116,7 @@ export function buildConnectorGeometry(
 	const strokeWidth = Math.max(0, ss?.strokeWidth ?? 2);
 	const strokeColor = ss?.strokeColor ?? DEFAULT_STROKE_COLOR;
 	const strokeOpacity = ss?.strokeOpacity ?? 1;
-	const dashArray = buildDashArray(ss?.strokeDash, strokeWidth);
+	const dashArray = buildDashArray(ss?.strokeDash, strokeWidth, ss?.customDashSegments);
 	const strokeLinecap = svgLineCap(ss?.lineCap);
 	const compoundOffsets = getCompoundLineOffsets(ss?.compoundLine, strokeWidth);
 	const compoundWidths = getCompoundLineWidths(ss?.compoundLine, strokeWidth);
@@ -143,8 +161,12 @@ export function buildConnectorGeometry(
 	const startArrow = normalizeArrow(ss?.connectorStartArrow);
 	const endArrow = normalizeArrow(ss?.connectorEndArrow);
 
-	const startMarker = startArrow ? markerPath(startArrow) : null;
-	const endMarker = endArrow ? markerPath(endArrow) : null;
+	const startMarker = startArrow
+		? markerPath(startArrow, ss?.connectorStartArrowWidth, ss?.connectorStartArrowLength)
+		: null;
+	const endMarker = endArrow
+		? markerPath(endArrow, ss?.connectorEndArrowWidth, ss?.connectorEndArrowLength)
+		: null;
 
 	const startMarkerRef = startMarker ? `url(#${startMarkerId})` : null;
 	const endMarkerRef = endMarker ? `url(#${endMarkerId})` : null;
@@ -177,18 +199,33 @@ export function buildConnectorGeometry(
 }
 
 /**
- * Return the dash-array string for a given stroke dash type and width,
- * or `undefined` for solid lines (no attribute needed).
+ * Return the SVG `stroke-dasharray` string for a given OOXML stroke dash preset
+ * and width, or `undefined` for solid lines (no attribute needed).
+ *
+ * Produces a distinct pattern per preset (`dash`, `lgDash`, `dashDot`,
+ * `sysDashDotDot`, etc.) rather than collapsing every non-dot preset to a single
+ * `3w/w` approximation, and honours a `custDash` segment list (`a:custDash/a:ds`)
+ * when supplied. This delegates to the same {@link getSvgStrokeDasharray} the
+ * shape/border code uses, so connectors and shape outlines stay in lock-step.
+ *
+ * @param dash               Raw `a:ln/@prstDash` token (e.g. `"lgDashDot"`).
+ * @param strokeWidth        Resolved stroke width in px.
+ * @param customDashSegments Optional `custDash` segments; when present they take
+ *                           precedence and are rendered as an explicit pattern.
  */
-export function buildDashArray(dash: string | undefined, strokeWidth: number): string | undefined {
-	const w = Math.max(strokeWidth, 1);
-	if (!dash || dash === 'solid') {
-		return undefined;
-	}
-	if (dash === 'dot' || dash === 'sysDot') {
-		return `${w} ${w}`;
-	}
-	return `${w * 3} ${w}`;
+export function buildDashArray(
+	dash: string | undefined,
+	strokeWidth: number,
+	customDashSegments?: ReadonlyArray<DashSegment>,
+): string | undefined {
+	const segments =
+		customDashSegments && customDashSegments.length > 0
+			? customDashSegments.map((seg) => ({ dash: seg.dash, space: seg.space }))
+			: undefined;
+	// A `custDash` implies the `custom` dash family even when no `@prstDash`
+	// token was authored alongside it.
+	const dashType = segments ? 'custom' : normalizeStrokeDashType(dash);
+	return getSvgStrokeDasharray(dashType, strokeWidth, segments);
 }
 
 /**
@@ -249,20 +286,44 @@ export function buildConnectorPathD(
 }
 
 /**
- * Map a `ConnectorArrowType` value to its SVG marker shape.
- * The viewBox used in the `<marker>` element is `0 0 10 10`.
+ * Base `markerWidth`/`markerHeight` (in `strokeWidth` units) for a `med` arrow.
+ * `sm`/`lg` scale relative to this, mirroring PowerPoint's discrete sizes and
+ * the React binding's `ARROW_SIZE_SCALE`.
  */
-export function markerPath(type: ConnectorArrowType): MarkerShape {
+const ARROW_BASE_MARKER_SIZE = 4;
+const ARROW_SIZE_SCALE: Record<ArrowSize, number> = { sm: 0.6, med: 1, lg: 1.5 };
+
+/**
+ * Map a `ConnectorArrowType` value to its SVG marker shape, scaling the marker
+ * box by the arrow's width (`@w`) and length (`@len`) size tokens.
+ *
+ * The `<marker>` viewBox stays `0 0 10 10`; the returned {@link MarkerShape}
+ * carries `markerWidth` (length, along the line) and `markerHeight` (width,
+ * perpendicular) so bindings render `sm`/`med`/`lg` arrows at the right size
+ * instead of a single fixed dimension.
+ *
+ * @param type        Arrow head shape.
+ * @param arrowWidth  `@w` size token (perpendicular thickness). Defaults `med`.
+ * @param arrowLength `@len` size token (length along the line). Defaults `med`.
+ */
+export function markerPath(
+	type: ConnectorArrowType,
+	arrowWidth?: ArrowSize,
+	arrowLength?: ArrowSize,
+): MarkerShape {
+	const markerWidth = ARROW_BASE_MARKER_SIZE * (ARROW_SIZE_SCALE[arrowLength ?? 'med'] ?? 1);
+	const markerHeight = ARROW_BASE_MARKER_SIZE * (ARROW_SIZE_SCALE[arrowWidth ?? 'med'] ?? 1);
+	const box = { markerWidth, markerHeight };
 	switch (type) {
 		case 'diamond':
-			return { shape: 'path', d: 'M5 0 L10 5 L5 10 L0 5 Z' };
+			return { shape: 'path', d: 'M5 0 L10 5 L5 10 L0 5 Z', ...box };
 		case 'oval':
-			return { shape: 'circle' };
+			return { shape: 'circle', ...box };
 		case 'stealth':
-			return { shape: 'path', d: 'M0 0 L10 5 L0 10 L3 5 Z' };
+			return { shape: 'path', d: 'M0 0 L10 5 L0 10 L3 5 Z', ...box };
 		// triangle / arrow / fallback
 		default:
-			return { shape: 'path', d: 'M0 0 L10 5 L0 10 Z' };
+			return { shape: 'path', d: 'M0 0 L10 5 L0 10 Z', ...box };
 	}
 }
 

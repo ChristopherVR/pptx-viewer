@@ -84,6 +84,23 @@ describe('evaluatePresetShape', () => {
 		expect(thin!.svgPath).not.toBe(thick!.svgPath);
 	});
 
+	it('flags an open stroke-only preset (arc) as fillNone with per-path flags', () => {
+		const result = evaluatePresetShape('arc', 200, 200);
+		expect(result).toBeDefined();
+		expect(result!.fillNone).toBeTruthy();
+		expect(result!.paths).toHaveLength(1);
+		expect(result!.paths[0].fill).toBe('none');
+		expect(result!.paths[0].stroke).toBeTruthy();
+		// The per-path `d` recomposes into the merged svgPath.
+		expect(result!.svgPath).toBe(result!.paths[0].d);
+	});
+
+	it('leaves a normal filled preset (rect) as fillNone=false', () => {
+		const result = evaluatePresetShape('rect', 100, 100);
+		expect(result?.fillNone).toBeFalsy();
+		expect(result?.paths.length).toBeGreaterThan(0);
+	});
+
 	it('exposes textRect derived from the spec rect tokens', () => {
 		const result = evaluatePresetShape('rect', 400, 300);
 		expect(result?.textRect).toStrictEqual({ l: 0, t: 0, r: 400, b: 300 });

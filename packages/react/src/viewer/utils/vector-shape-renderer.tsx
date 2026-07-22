@@ -6,6 +6,7 @@ import {
 	buildCalloutLeaderLineSvgPath,
 	getCalloutViewBoxBounds,
 } from 'pptx-viewer-core';
+import { svgLineCap } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { colorWithOpacity } from './color';
@@ -93,20 +94,65 @@ export function renderVectorShape(
 		element.pathWidth > 0 &&
 		element.pathHeight > 0
 	) {
+		const ss = element.shapeStyle;
+		const lineCap = svgLineCap(ss?.lineCap);
+		const lineJoin: 'round' | 'bevel' | 'miter' =
+			ss?.lineJoin === 'bevel' ? 'bevel' : ss?.lineJoin === 'miter' ? 'miter' : 'round';
+		// a:miter/@lim is stored in 1000ths of a percent (800000 = 8.0); SVG's
+		// stroke-miterlimit is a plain ratio >= 1.
+		const miterLimit =
+			lineJoin === 'miter' && typeof ss?.miterLimit === 'number'
+				? Math.max(ss.miterLimit / 100000, 1)
+				: undefined;
+		// A custom geometry whose sub-paths all opt out of fill
+		// (`a:path/@fill="none"`) is an open stroke, not a filled region; likewise
+		// `@stroke="0"` on every sub-path means outline-off. (Full per-sub-path
+		// mixed fill modes need the structured `customGeometryPaths`, split by
+		// core's `customGeometryPathsToSvgSubpaths` once it is barrel-exported.)
+		const geomPaths = element.customGeometryPaths;
+		const allFillNone =
+			Array.isArray(geomPaths) &&
+			geomPaths.length > 0 &&
+			geomPaths.every((p) => p.fillMode === 'none');
+		const allStrokeOff =
+			Array.isArray(geomPaths) &&
+			geomPaths.length > 0 &&
+			geomPaths.every((p) => p.stroke === false);
+		const doFill = hasFill && !allFillNone;
+		// Compound (dbl/thickThin/tri) outlines render as parallel stroked strands,
+		// matching the connector renderer, instead of a single flat line.
+		const strokeOffsets =
+			strokeWidth > 0 && !allStrokeOff ? getCompoundLineOffsets(ss?.compoundLine, strokeWidth) : [];
+		const strokeWidths = getCompoundLineWidths(ss?.compoundLine, strokeWidth);
 		return (
 			<svg
 				viewBox={`0 0 ${element.pathWidth} ${element.pathHeight}`}
 				className='w-full h-full pointer-events-none'
 				preserveAspectRatio='none'
 			>
-				<path
-					d={element.pathData}
-					fill={hasFill ? fillPaint : 'none'}
-					stroke={strokeWidth > 0 ? strokePaint : 'none'}
-					strokeWidth={strokeWidth}
-					strokeDasharray={dashArray}
-					vectorEffect='non-scaling-stroke'
-				/>
+				{doFill && (
+					<path
+						d={element.pathData}
+						fill={fillPaint}
+						stroke='none'
+						vectorEffect='non-scaling-stroke'
+					/>
+				)}
+				{strokeOffsets.map((offset, idx) => (
+					<path
+						key={idx}
+						d={element.pathData}
+						fill='none'
+						stroke={strokePaint}
+						strokeWidth={Math.max(strokeWidths[idx] ?? strokeWidth, 1)}
+						strokeDasharray={dashArray}
+						strokeLinecap={lineCap}
+						strokeLinejoin={lineJoin}
+						strokeMiterlimit={miterLimit}
+						vectorEffect='non-scaling-stroke'
+						style={offset !== 0 ? { transform: `translate(0, ${offset}px)` } : undefined}
+					/>
+				))}
 			</svg>
 		);
 	}
@@ -188,6 +234,8 @@ export function renderVectorShape(
 		const endArrowW = element.shapeStyle?.connectorEndArrowWidth;
 		const endArrowL = element.shapeStyle?.connectorEndArrowLength;
 		const compoundLine = element.shapeStyle?.compoundLine;
+		// Line cap from a:ln/@cap (flat -> butt, sq -> square, rnd -> round).
+		const connectorLineCap = svgLineCap(element.shapeStyle?.lineCap);
 		// Hit target width: wide invisible stroke so thin lines are easy to click
 		const hitTargetWidth = Math.max(strokeWidth * 3, 12);
 		const offsets = getCompoundLineOffsets(compoundLine, strokeWidth);
@@ -223,7 +271,7 @@ export function renderVectorShape(
 						stroke={strokePaint}
 						strokeWidth={Math.max(widths[idx] ?? strokeWidth, 1)}
 						strokeDasharray={dashArray}
-						strokeLinecap='round'
+						strokeLinecap={connectorLineCap}
 						strokeLinejoin='round'
 						markerStart={
 							idx === 0 && startArrow && startArrow !== 'none'
