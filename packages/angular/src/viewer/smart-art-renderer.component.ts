@@ -546,6 +546,9 @@ export class SmartArtRendererComponent {
 			el.id,
 			data?.resolvedLayoutType,
 			data?.layout,
+			undefined,
+			data?.layoutDefinition,
+			data?.presLayoutVars,
 		);
 	});
 

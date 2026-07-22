@@ -21,7 +21,9 @@
  */
 
 import type {
+	PptxSmartArtLayoutDefinition,
 	PptxSmartArtNode,
+	PptxSmartArtPresLayoutVars,
 	SmartArtLayout,
 	SmartArtLayoutType,
 	SmartArtStyle,
@@ -43,12 +45,15 @@ import {
 	computeVennLayout,
 } from './smartart-layout-families-extra';
 import { flattenNodes, resolveLayoutFamily } from './smartart-layout-helpers';
+import { interpretSmartArtLayout } from './smartart-layout-interpreter';
 import type { BoundingBox, SmartArtLayoutResult } from './smartart-layout-types';
 
 export * from './smartart-layout-types';
 export * from './smartart-layout-helpers';
 export * from './smartart-layout-families';
 export * from './smartart-layout-families-extra';
+export * from './smartart-layout-interpreter';
+export * from './smartart-layout-interpreter-model';
 
 /** Colour-list interpolation controls resolved from a SmartArt colour scheme. */
 export interface SmartArtPaletteInterpolation {
@@ -102,6 +107,14 @@ export function interpolateSmartArtPalette(
  *                              the palette is expanded into a per-node gradient
  *                              before layout; otherwise the palette is used
  *                              as-is and cycled by the family computers.
+ * @param layoutDefinition    - Optional parsed `dgm:layoutDef`. When present and
+ *                              its primary `dgm:alg` family is recognised, the
+ *                              real DiagramML interpreter runs and its geometry
+ *                              is returned; otherwise the legacy family
+ *                              approximation below is used (no regression).
+ * @param presLayoutVars      - Optional presentation layout variables (flow
+ *                              direction / hierarchy branch / org-chart) that
+ *                              refine the interpreter's arrangement.
  * @returns Complete layout geometry for the resolved family.
  */
 export function computeSmartArtLayout(
@@ -113,6 +126,8 @@ export function computeSmartArtLayout(
 	resolvedLayoutType?: SmartArtLayoutType,
 	layout?: SmartArtLayout,
 	interpolation?: SmartArtPaletteInterpolation,
+	layoutDefinition?: PptxSmartArtLayoutDefinition,
+	presLayoutVars?: PptxSmartArtPresLayoutVars,
 ): SmartArtLayoutResult {
 	const flat = flattenNodes(nodes);
 	const family = resolveLayoutFamily(nodes, resolvedLayoutType, layout);
@@ -120,6 +135,20 @@ export function computeSmartArtLayout(
 		interpolation?.method === 'span'
 			? interpolateSmartArtPalette(palette, flat.length, 'span', interpolation.hueDirection)
 			: palette;
+
+	const interpreted = interpretSmartArtLayout({
+		layoutDefinition,
+		nodes,
+		flat,
+		box,
+		palette: pal,
+		style,
+		elementId,
+		presLayoutVars,
+	});
+	if (interpreted) {
+		return interpreted;
+	}
 
 	switch (family) {
 		case 'list':
