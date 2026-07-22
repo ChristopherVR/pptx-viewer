@@ -10,6 +10,7 @@ import type { PptxNativeAnimation, PptxAnimationTrigger } from 'pptx-viewer-core
 
 import { resolveAnimationStart } from './animation-advanced-triggers';
 import { getEffectKeyframes } from './animation-keyframes';
+import { isMediaCommandAnimation, buildStepCommand } from './animation-media-commands';
 import {
 	resolveEffect,
 	buildDynamicKeyframe,
@@ -147,7 +148,10 @@ export function buildTimeline(
 		for (const singleAnim of expandedSteps) {
 			let effect = resolveEffect(singleAnim);
 			const dynamic = effect ? undefined : buildDynamicKeyframe(singleAnim, dynamicUid++);
-			if (!effect && !dynamic) {
+			// A `p:cmd` media command carries no visual effect but must still be
+			// sequenced so the playback layer can act on it at the right time.
+			const isCommand = !effect && !dynamic && isMediaCommandAnimation(singleAnim);
+			if (!effect && !dynamic && !isCommand) {
 				// Unmapped preset: fall back so an entrance is still hidden until
 				// its start and an exit still hides, rather than being dropped.
 				effect = fallbackEffectForClass(singleAnim.presetClass);
@@ -156,7 +160,10 @@ export function buildTimeline(
 				}
 			}
 
-			const keyframe = effect ? cssKeyframeName(effect) : dynamic!.keyframeName;
+			let keyframe = '';
+			if (!isCommand) {
+				keyframe = effect ? cssKeyframeName(effect) : dynamic!.keyframeName;
+			}
 			if (effect) {
 				neededKeyframes.add(effect);
 			}
@@ -164,13 +171,18 @@ export function buildTimeline(
 				dynamicBlocks.push(dynamic.css);
 			}
 
-			const elementId = singleAnim.targetId ?? '';
+			// Command steps carry no element visibility semantics: an empty
+			// elementId keeps them from hiding/revealing a real element; the media
+			// target is routed via the command payload instead.
+			const elementId = isCommand ? '' : (singleAnim.targetId ?? '');
 			// Honour the FULL start-condition OR-set (compound / simultaneous
 			// triggers) rather than the collapsed single trigger. The effective
 			// condition drives grouping and supplies the governing start delay.
 			const effective = resolveAnimationStart(singleAnim);
 			const trigger: PptxAnimationTrigger = effective.trigger;
-			const duration = singleAnim.durationMs ?? defaultDuration(singleAnim.presetClass);
+			const duration = isCommand
+				? 0
+				: (singleAnim.durationMs ?? defaultDuration(singleAnim.presetClass));
 			const animDelay = singleAnim.delayMs ?? 0;
 			// Use the governing condition delay when conditions were present;
 			// otherwise fall back to the simple triggerDelayMs (afterDelay) so
@@ -179,7 +191,7 @@ export function buildTimeline(
 				singleAnim.startConditions && singleAnim.startConditions.length > 0
 					? effective.delayMs
 					: (singleAnim.triggerDelayMs ?? 0);
-			const presetClass = singleAnim.presetClass ?? 'entr';
+			const presetClass = isCommand ? 'emph' : (singleAnim.presetClass ?? 'entr');
 			const fill = fillModeForClass(singleAnim.presetClass);
 
 			// Compute repeat / direction
@@ -227,7 +239,9 @@ export function buildTimeline(
 
 			const iterStr = iterCount === Infinity ? 'infinite' : String(iterCount);
 			const easing = cssEasingForAnimation(singleAnim);
-			const cssAnimation = `${keyframe} ${duration}ms ${easing} ${delayMs}ms ${iterStr} ${direction} ${fill}`;
+			const cssAnimation = isCommand
+				? ''
+				: `${keyframe} ${duration}ms ${easing} ${delayMs}ms ${iterStr} ${direction} ${fill}`;
 
 			currentGroup.push({
 				elementId,
@@ -240,6 +254,7 @@ export function buildTimeline(
 				presetClass: presetClass as TimelineStep['presetClass'],
 				soundPath: singleAnim.soundPath,
 				stopSound: singleAnim.stopSound,
+				command: isCommand ? buildStepCommand(singleAnim) : undefined,
 			});
 		}
 	}

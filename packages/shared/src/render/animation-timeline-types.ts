@@ -83,6 +83,22 @@ export interface AnimationStep {
 // Click-group timeline model (TimelineEngine)
 // ==========================================================================
 
+/**
+ * A media playback command carried by a timeline step, parsed from an OOXML
+ * `p:cmd` node in the timing tree. Unlike a visual animation step, a command
+ * step applies no CSS: it instructs the playback layer to drive a media element
+ * (play/pause/seek) when the step fires. The command participates in click-group
+ * sequencing exactly like a visual step so it triggers at the correct time.
+ */
+export interface TimelineStepCommand {
+	/** OOXML `p:cmd/@type` verb family: `call`, `evt`, or `verb`. */
+	type?: string;
+	/** OOXML `p:cmd/@cmd` string, e.g. `playFrom(0.0)`, `pause`, `play`, `stop`. */
+	command: string;
+	/** Target element/shape id the command acts on (from `p:tgtEl`). */
+	targetId: string;
+}
+
 /** A single animation applied to one element within a click-group. */
 export interface TimelineStep {
 	/** Target element ID. */
@@ -105,6 +121,13 @@ export interface TimelineStep {
 	soundPath?: string;
 	/** Whether to stop any currently playing animation sound. */
 	stopSound?: boolean;
+	/**
+	 * Media playback command from a `p:cmd` timing node. When present, this step
+	 * carries no visual animation (`elementId` is empty and `cssAnimation` is a
+	 * blank string); the playback layer acts on the referenced media element
+	 * instead. See {@link TimelineStepCommand}.
+	 */
+	command?: TimelineStepCommand;
 }
 
 /** A group of animation steps that play on a single click/advance action. */

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import type { TimelineClickGroup } from '../../utils/animation-timeline';
+import {
+	registerMediaElement,
+	clearMediaElementRegistry,
+} from '../../utils/media-element-registry';
 import { applyAnimationGroupSteps } from './animation-helpers';
 
 vi.mock<typeof import('../../utils/animation-sound')>(
@@ -204,6 +208,38 @@ describe('applyAnimationGroupSteps', () => {
 				presentationTimersRef,
 			),
 		).not.toThrow();
+	});
+
+	it('drives a registered media element for a p:cmd command step', () => {
+		clearMediaElementRegistry();
+		const play = vi.fn(() => Promise.resolve());
+		const media = { play, pause: vi.fn(), paused: true, currentTime: 0 };
+		registerMediaElement('video1', media as unknown as HTMLMediaElement);
+
+		const group: TimelineClickGroup = {
+			totalDurationMs: 0,
+			steps: [
+				createMockStep({
+					elementId: '',
+					cssAnimation: '',
+					keyframeName: '',
+					presetClass: 'emph',
+					durationMs: 0,
+					delayMs: 0,
+					command: { type: 'call', command: 'playFrom(1.5)', targetId: 'video1' },
+				}),
+			],
+		};
+		applyAnimationGroupSteps(group, undefined, setPresentationElementStates, presentationTimersRef);
+
+		// Command is scheduled (not run synchronously) and no cleanup timer is added.
+		expect(presentationTimersRef.current).toHaveLength(1);
+		expect(play).not.toHaveBeenCalled();
+
+		vi.advanceTimersByTime(1);
+		expect(media.currentTime).toBe(1.5);
+		expect(play).toHaveBeenCalledOnce();
+		clearMediaElementRegistry();
 	});
 
 	it('should handle multiple steps in a single group', () => {
