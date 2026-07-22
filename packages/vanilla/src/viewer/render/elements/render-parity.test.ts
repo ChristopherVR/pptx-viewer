@@ -87,6 +87,78 @@ describe('vanilla rendering parity', () => {
 		expect(result.style.filter).toContain('url(#dag-duotone-shape-1)');
 	});
 
+	it('injects the soft-edge feather filter and references it', () => {
+		const element = shape({
+			shapeStyle: { fillColor: '#4472C4', softEdgeRadius: 8 },
+		});
+		const result = renderTextShapeElement(element, 0, makeContext()) as HTMLElement;
+		expect(result.querySelector('filter#soft-edge-shape-1')).not.toBeNull();
+		expect(result.style.filter).toContain('url(#soft-edge-shape-1)');
+	});
+
+	it('paints a blended DAG fill-overlay tint layer', () => {
+		const element = shape({
+			shapeStyle: {
+				fillColor: '#4472C4',
+				dagFillOverlayColor: '#ff0000',
+				dagFillOverlayBlend: 'mult',
+			},
+		});
+		const result = renderTextShapeElement(element, 0, makeContext()) as HTMLElement;
+		const overlay = result.querySelector<HTMLElement>('.pptxv-fill-overlay');
+		expect(overlay).not.toBeNull();
+		expect(overlay?.style.background).toBeTruthy();
+		expect(overlay?.style.mixBlendMode).toBe('multiply');
+	});
+
+	it('sets overflow:visible when a blur grow halo applies', () => {
+		const element = shape({
+			shapeStyle: { fillColor: '#4472C4', blurRadius: 10, blurGrow: true },
+		});
+		const result = renderTextShapeElement(element, 0, makeContext()) as HTMLElement;
+		expect(result.style.overflow).toBe('visible');
+	});
+
+	it('resolves preset dashes and a wrapper-inherited stroke on connectors', () => {
+		const element: PptxElement = {
+			type: 'connector',
+			id: 'connector-dash',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 0,
+			shapeStyle: { strokeColor: '#112233', strokeWidth: 3, strokeDash: 'dash' },
+		} as PptxElement;
+		const result = renderConnectorElement(element, 0, makeContext()) as HTMLElement;
+		expect(result.style.stroke).toBe('#112233');
+		const line = result.querySelector('svg line');
+		expect(line?.getAttribute('stroke')).toBe('inherit');
+		expect(line?.getAttribute('stroke-dasharray')).toBeTruthy();
+	});
+
+	it('sizes an lg arrowhead marker from the shared marker geometry', () => {
+		const element: PptxElement = {
+			type: 'connector',
+			id: 'connector-arrow',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 0,
+			shapeStyle: {
+				strokeColor: '#112233',
+				strokeWidth: 2,
+				connectorEndArrow: 'triangle',
+				connectorEndArrowLength: 'lg',
+				connectorEndArrowWidth: 'lg',
+			},
+		} as PptxElement;
+		const result = renderConnectorElement(element, 0, makeContext()) as HTMLElement;
+		const marker = result.querySelector('marker');
+		// Base marker size 4 scaled by the `lg` factor 1.5 = 6.
+		expect(marker?.getAttribute('markerWidth')).toBe('6');
+		expect(marker?.getAttribute('markerHeight')).toBe('6');
+	});
+
 	it('renders connector text plus SVG line shadow and glow', () => {
 		const element: PptxElement = {
 			type: 'connector',

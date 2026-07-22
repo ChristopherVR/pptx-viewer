@@ -15,6 +15,7 @@ import type {
 	PptxSlide,
 	PptxSlideMaster,
 	PptxThemeColorScheme,
+	PptxThemeFontScheme,
 	PptxThemeOption,
 } from 'pptx-viewer-core';
 import { PptxHandler } from 'pptx-viewer-core';
@@ -57,6 +58,8 @@ export interface LoadedPresentation {
 	mediaDataUrls: Map<string, string>;
 	/** Presentation theme colours used by scheme-based rendering. */
 	colorScheme?: PptxThemeColorScheme;
+	/** Presentation theme fonts used by table-style font resolution. */
+	fontScheme?: PptxThemeFontScheme;
 	/** Parsed presentation table styles keyed by style id. */
 	tableStyleMap?: ParsedTableStyleMap;
 	slideMasters: PptxSlideMaster[];
@@ -99,6 +102,7 @@ export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPrese
 			},
 			mediaDataUrls,
 			colorScheme: parsed.theme?.colorScheme,
+			fontScheme: parsed.theme?.fontScheme,
 			tableStyleMap: parsed.tableStyleMap,
 			slideMasters: parsed.slideMasters ?? [],
 			themeOptions: parsed.themeOptions ?? [],
