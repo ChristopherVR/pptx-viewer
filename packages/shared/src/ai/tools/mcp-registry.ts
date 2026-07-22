@@ -319,6 +319,13 @@ export const MCP_TOOL_ENTRIES: Record<string, McpToolEntry> = {
 		'slides',
 		'Apply template',
 	),
+	apply_layout: entry(
+		'Apply a slide layout to a specific slide.',
+		mcpSchemas.ApplyLayoutSchema,
+		mcp.applyLayout,
+		'slides',
+		'Apply layout',
+	),
 
 	// ── theme (applied immediately, undoable) ────────────────────────────────────
 	apply_theme_preset: entry(
@@ -371,13 +378,6 @@ export const MCP_TOOL_ENTRIES: Record<string, McpToolEntry> = {
 		mcp.updatePresentationProperties,
 		'deck',
 		'Update presentation properties',
-	),
-	apply_layout: entry(
-		'Apply a slide layout to a specific slide.',
-		mcpSchemas.ApplyLayoutSchema,
-		mcp.applyLayout,
-		'deck',
-		'Apply layout',
 	),
 };
 

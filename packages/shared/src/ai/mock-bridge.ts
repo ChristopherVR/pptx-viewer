@@ -5,10 +5,17 @@
  * three write choke points against a synthetic deck.
  */
 
-import type { PptxSlide, PptxTheme } from 'pptx-viewer-core';
+import type {
+	PptxCoreProperties,
+	PptxData,
+	PptxSection,
+	PptxSlide,
+	PptxTheme,
+} from 'pptx-viewer-core';
 
 import type {
 	PptxAiBridge,
+	PptxAiDataUpdater,
 	PptxAiDeckMeta,
 	PptxAiElementUpdate,
 	PptxAiSlidesUpdater,
@@ -53,12 +60,19 @@ export interface MockBridge extends PptxAiBridge {
 }
 
 /** Create a mock bridge over a synthetic 2-slide deck (overridable). */
-export function makeMockBridge(initial?: { slides?: PptxSlide[]; theme?: PptxTheme }): MockBridge {
+export function makeMockBridge(initial?: {
+	slides?: PptxSlide[];
+	theme?: PptxTheme;
+	sections?: PptxSection[];
+	coreProperties?: PptxCoreProperties;
+}): MockBridge {
 	let slides = initial?.slides ?? [
 		makeSlide(0, [textElement('el-1', 'Title One'), textElement('el-2', 'Body copy')]),
 		makeSlide(1, [textElement('el-3', 'Title Two')]),
 	];
 	let theme: PptxTheme | undefined = initial?.theme;
+	let sections: PptxSection[] = initial?.sections ?? [];
+	let coreProperties: PptxCoreProperties | undefined = initial?.coreProperties;
 	let activeIndex = 0;
 	const edits: RecordedEdit[] = [];
 	const navigations: number[] = [];
@@ -98,6 +112,26 @@ export function makeMockBridge(initial?: { slides?: PptxSlide[]; theme?: PptxThe
 		applyTheme(updates: Partial<PptxTheme>) {
 			theme = { ...(theme ?? {}), ...updates } as PptxTheme;
 			edits.push({ label: 'applyTheme', slideCount: slides.length });
+		},
+		getDeckData(): PptxData {
+			return { slides, width: 960, height: 540, theme, sections, coreProperties } as PptxData;
+		},
+		applyDeckData(updater: PptxAiDataUpdater, label: string) {
+			const next = updater(
+				structuredClone({
+					slides,
+					width: 960,
+					height: 540,
+					theme,
+					sections,
+					coreProperties,
+				} as PptxData),
+			);
+			slides = next.slides;
+			theme = next.theme;
+			sections = next.sections ?? [];
+			coreProperties = next.coreProperties;
+			edits.push({ label, slideCount: slides.length });
 		},
 	};
 }

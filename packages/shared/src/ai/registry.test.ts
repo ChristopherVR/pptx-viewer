@@ -67,6 +67,27 @@ describe('tool registry', () => {
 		expect(proposals.size).toBe(1);
 	});
 
+	it('routes presentation-level tools through applyDeckData', async () => {
+		const { bridge, proposals, executors } = setup();
+		const result = (await executors.get('update_metadata')!({ title: 'Q3 Deck' })) as {
+			applied?: boolean;
+		};
+		expect(result.applied).toBeTruthy();
+		expect(bridge.getDeckData?.()?.coreProperties?.title).toBe('Q3 Deck');
+		expect(proposals.size).toBe(0);
+		expect(bridge.edits.at(-1)?.label).toBe('Update metadata');
+	});
+
+	it('reports deck tools as unavailable when the bridge cannot apply them', async () => {
+		const bridge = makeMockBridge();
+		delete (bridge as { applyDeckData?: unknown }).applyDeckData;
+		const proposals = new ProposalStore(bridge);
+		const executors = buildToolExecutors(bridge, proposals, { connection: CONNECTION });
+		await expect(executors.get('update_metadata')!({ title: 'X' })).rejects.toThrow(
+			/presentation-level/u,
+		);
+	});
+
 	it('honours the enabled allowlist and disabled denylist', () => {
 		expect(
 			enabledToolNames({ connection: CONNECTION, tools: { enabled: ['get_slide'] } }),
