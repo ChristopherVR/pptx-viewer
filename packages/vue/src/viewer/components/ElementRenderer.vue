@@ -31,6 +31,7 @@ import InkRenderer from './InkRenderer.vue';
 import LinkTooltip from './LinkTooltip.vue';
 import Model3DRenderer from './Model3DRenderer.vue';
 import OleRenderer from './OleRenderer.vue';
+import ShapeEffectOverlay from './ShapeEffectOverlay.vue';
 import SlideTextBlock from './SlideTextBlock.vue';
 import SmartArt3DRenderer from './SmartArt3DRenderer.vue';
 import SmartArtRenderer from './SmartArtRenderer.vue';
@@ -311,6 +312,8 @@ const linkTooltipLabel = computed(
 		:data-pptx-element="interactive ? 'true' : undefined"
 	>
 		<DuotoneFilterDefs :element="element" />
+		<!-- Soft-edge <filter> defs + DAG fill-overlay tint layer. -->
+		<ShapeEffectOverlay :element="element" />
 		<Extrusion3DOverlay v-if="extrusionData.hasExtrusion" :data="extrusionData" />
 		<!-- Action-button glyph (home/help/sound/arrows/...); self-hides for non-buttons. -->
 		<ActionButtonGlyphOverlay :element="element" />

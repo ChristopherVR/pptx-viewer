@@ -152,8 +152,27 @@ const wrapperStyle = computed<CSSProperties>(() => {
 
 // ── Marker shape helpers ──────────────────────────────────────────────────────
 
-const startMarker = computed(() => (startArrow.value ? markerPath(startArrow.value) : null));
-const endMarker = computed(() => (endArrow.value ? markerPath(endArrow.value) : null));
+// Pass the `@w`/`@len` arrow size tokens so `sm`/`med`/`lg` heads scale; the
+// returned MarkerShape carries the suggested `markerWidth` (length along the
+// line) and `markerHeight` (perpendicular width) applied on the <marker> below.
+const startMarker = computed(() =>
+	startArrow.value
+		? markerPath(
+				startArrow.value,
+				ss.value?.connectorStartArrowWidth,
+				ss.value?.connectorStartArrowLength,
+			)
+		: null,
+);
+const endMarker = computed(() =>
+	endArrow.value
+		? markerPath(
+				endArrow.value,
+				ss.value?.connectorEndArrowWidth,
+				ss.value?.connectorEndArrowLength,
+			)
+		: null,
+);
 
 // ── Line shadow / glow effects ─────────────────────────────────────────────────
 
@@ -211,8 +230,8 @@ function offsetTransform(offset: number): string | undefined {
 					viewBox="0 0 10 10"
 					refX="5"
 					refY="5"
-					:markerWidth="4"
-					:markerHeight="4"
+					:markerWidth="startMarker.markerWidth"
+					:markerHeight="startMarker.markerHeight"
 					orient="auto-start-reverse"
 					markerUnits="strokeWidth"
 				>
@@ -225,8 +244,8 @@ function offsetTransform(offset: number): string | undefined {
 					viewBox="0 0 10 10"
 					refX="5"
 					refY="5"
-					:markerWidth="4"
-					:markerHeight="4"
+					:markerWidth="endMarker.markerWidth"
+					:markerHeight="endMarker.markerHeight"
 					orient="auto-start-reverse"
 					markerUnits="strokeWidth"
 				>

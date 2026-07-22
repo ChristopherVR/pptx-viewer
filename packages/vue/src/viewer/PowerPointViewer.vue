@@ -346,6 +346,7 @@ const {
 provide(TableThemeKey, () => ({
 	colorScheme: pptxTheme.value?.colorScheme,
 	tableStyleMap: tableStyleMap.value,
+	fontScheme: pptxTheme.value?.fontScheme,
 }));
 
 // Expose a zoom-target lookup so Slide-Zoom / Section-Zoom tiles can render a

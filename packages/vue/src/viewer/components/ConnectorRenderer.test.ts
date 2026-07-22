@@ -61,6 +61,37 @@ describe('connectorRenderer', () => {
 		expect(wrapper.find('marker').exists()).toBeFalsy();
 		expect(wrapper.get('line').attributes('marker-end')).toBeUndefined();
 	});
+
+	it('sizes the marker box from the shared markerPath (med default is 4)', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({ shapeStyle: { connectorEndArrow: 'triangle' } }),
+				zIndex: 0,
+			},
+		});
+		const marker = wrapper.get('marker#cxn_1-end');
+		expect(marker.attributes('markerWidth')).toBe('4');
+		expect(marker.attributes('markerHeight')).toBe('4');
+	});
+
+	it('scales the marker box for lg length / sm width arrow-size tokens', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeStyle: {
+						connectorEndArrow: 'triangle',
+						connectorEndArrowLength: 'lg',
+						connectorEndArrowWidth: 'sm',
+					},
+				}),
+				zIndex: 0,
+			},
+		});
+		const marker = wrapper.get('marker#cxn_1-end');
+		// markerWidth follows @len (lg = 1.5 * 4 = 6); markerHeight follows @w (sm = 0.6 * 4 = 2.4).
+		expect(marker.attributes('markerWidth')).toBe('6');
+		expect(marker.attributes('markerHeight')).toBe('2.4');
+	});
 });
 
 // ── Bent connector routing ────────────────────────────────────────────────────

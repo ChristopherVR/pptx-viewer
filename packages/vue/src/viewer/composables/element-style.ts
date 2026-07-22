@@ -124,6 +124,11 @@ export function getShapeFillStrokeStyle(
 	if (fx.mixBlendMode) {
 		style.mixBlendMode = fx.mixBlendMode as CSSProperties['mixBlendMode'];
 	}
+	if (fx.overflowVisible) {
+		// Blur `@grow`: let the halo bleed past the element box instead of being
+		// clipped at the shape edge. Mirrors the React `getShapeVisualStyle`.
+		style.overflow = 'visible';
+	}
 	if (fx.opacity !== undefined) {
 		// Compose the effect alpha with any element-level opacity (the shape
 		// style is merged over the container style, so this would otherwise
