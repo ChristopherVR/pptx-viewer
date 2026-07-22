@@ -13,7 +13,7 @@ afterEach(() => {
 function toolPart(overrides: Partial<RenderableToolPart> = {}): RenderableToolPart {
 	return {
 		kind: 'tool',
-		toolName: 'update_text',
+		toolName: 'update_element',
 		toolCallId: 'call-1',
 		state: 'output-available',
 		input: { slideIndex: 4, elementId: 'ppt/slides/slide5.xml-shape-9', text: 'Hello' },
@@ -35,7 +35,7 @@ describe('aiToolCallCard (friendly)', () => {
 		const label = target.querySelector('.pptx-svelte-ai-tool-label')?.textContent ?? '';
 		// A friendly phrase, never the raw tool name or element id.
 		expect(label.length).toBeGreaterThan(0);
-		expect(label).not.toContain('update_text');
+		expect(label).not.toContain('update_element');
 		expect(label).not.toContain('shape-9');
 		// Any raw id lives only inside the collapsed Details, never the head row.
 		const head = target.querySelector('.pptx-svelte-ai-tool-head')?.textContent ?? '';
@@ -52,7 +52,7 @@ describe('aiToolCallCard (friendly)', () => {
 		expect(details).not.toBeNull();
 		expect((details as HTMLDetailsElement).open).toBeFalsy();
 		const raw = target.querySelector('.pptx-svelte-ai-tool-raw')?.textContent ?? '';
-		expect(raw).toContain('Update text');
+		expect(raw).toContain('Update element');
 	});
 
 	it('renders Working / Done / Failed status from the tool state', () => {

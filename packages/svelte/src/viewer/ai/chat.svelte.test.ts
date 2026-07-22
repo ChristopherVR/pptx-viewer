@@ -79,7 +79,7 @@ describe('svelteAiChat live canvas focus', () => {
 
 		await captured?.onToolCall?.({
 			toolCall: {
-				toolName: 'update_text',
+				toolName: 'update_element',
 				toolCallId: 'c1',
 				input: { slideIndex: 4, elementId: 'shape-9', text: 'Hi' },
 			},
@@ -89,7 +89,7 @@ describe('svelteAiChat live canvas focus', () => {
 		expect(targets).toStrictEqual([{ slideIndex: 4, elementIds: ['shape-9'] }]);
 		// The tool output was still handed back to the SDK.
 		expect(captured?.addToolOutput).toHaveBeenCalledWith(
-			expect.objectContaining({ tool: 'update_text', toolCallId: 'c1' }),
+			expect.objectContaining({ tool: 'update_element', toolCallId: 'c1' }),
 		);
 	});
 

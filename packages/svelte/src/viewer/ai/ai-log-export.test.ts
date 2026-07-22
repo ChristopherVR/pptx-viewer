@@ -33,7 +33,7 @@ function transcriptChat(): PptxAiStoredChat {
 			parts: [
 				{ type: 'text', text: 'Done.' },
 				{
-					type: 'tool-update_text',
+					type: 'tool-update_element',
 					toolCallId: 'call-1',
 					state: 'output-available',
 					input: { slideIndex: 0, elementId: 'shape-1', color: '#ff0000' },
@@ -61,7 +61,7 @@ describe('ai-log-export', () => {
 		expect(assistant?.text).toBe('Done.');
 		expect(assistant?.toolCalls).toHaveLength(1);
 		const call = assistant?.toolCalls[0];
-		expect(call?.toolName).toBe('update_text');
+		expect(call?.toolName).toBe('update_element');
 		expect(call?.input).toStrictEqual({ slideIndex: 0, elementId: 'shape-1', color: '#ff0000' });
 		expect(call?.output).toStrictEqual({ ok: true, changed: 1 });
 	});
@@ -69,7 +69,7 @@ describe('ai-log-export', () => {
 	it('omits tool payloads when detailed is false', () => {
 		const doc = buildChatLogExport([transcriptChat()], { detailed: false });
 		const call = doc.chats[0].messages.find((m) => m.role === 'assistant')?.toolCalls[0];
-		expect(call?.toolName).toBe('update_text');
+		expect(call?.toolName).toBe('update_element');
 		expect(call?.input).toBeUndefined();
 		expect(call?.output).toBeUndefined();
 	});
@@ -77,7 +77,7 @@ describe('ai-log-export', () => {
 	it('renders a Markdown transcript with the tool call detail', () => {
 		const md = buildChatLogMarkdown(buildChatLogExport([transcriptChat()], { detailed: true }));
 		expect(md).toContain('# AI chat logs');
-		expect(md).toContain('Tool `update_text`');
+		expect(md).toContain('Tool `update_element`');
 		expect(md).toContain('"changed": 1');
 	});
 
