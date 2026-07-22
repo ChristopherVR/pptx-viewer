@@ -11,6 +11,8 @@
 import type { ChatTransport, ToolSet } from 'ai';
 
 import type { PptxAiBridge } from './bridge';
+import type { AiChangeAnimator } from './change-animator';
+import { createAiChangeAnimator } from './change-animator';
 import type { PptxAiConfig, PptxAiToolName, PptxAiUIMessage } from './config';
 import { resolveChatTransport } from './config';
 import { loadAiSdk } from './loader';
@@ -28,6 +30,13 @@ export interface PptxAiChatSession {
 	systemPrompt: string;
 	/** Staged-write store; drives the review UI and accept/revert actions. */
 	proposals: ProposalStore;
+	/**
+	 * Canvas change animator: publishes "these elements just changed" batches on
+	 * every applied AI edit. The binding subscribes to reveal the slide and play
+	 * the motion + glow. Present regardless of config (disabled config simply
+	 * never publishes), so bindings can wire it unconditionally.
+	 */
+	changeAnimator: AiChangeAnimator;
 	/**
 	 * `sendAutomaticallyWhen` predicate: resubmit once every tool call in the
 	 * last assistant message has a result (client-side tool loop for endpoint
@@ -75,8 +84,9 @@ export async function createAiChatSession(
 		);
 	}
 
-	const proposals = new ProposalStore(bridge);
-	const executors = buildToolExecutors(bridge, proposals, config);
+	const changeAnimator = createAiChangeAnimator(config.changeAnimation);
+	const proposals = new ProposalStore(bridge, changeAnimator);
+	const executors = buildToolExecutors(bridge, proposals, config, changeAnimator);
 	const tools = buildToolSet(sdk, config, executors, { withExecute: false });
 	const systemPrompt = buildSystemPrompt({
 		writePolicy: config.writePolicy ?? 'stage',
@@ -100,6 +110,7 @@ export async function createAiChatSession(
 		tools,
 		systemPrompt,
 		proposals,
+		changeAnimator,
 		sendAutomaticallyWhen: sdk.lastAssistantMessageIsCompleteWithToolCalls,
 		// The in-process `model` agent runs tools itself; every other connection
 		// needs the binding to run them client-side. See the field doc above.

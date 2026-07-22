@@ -79,6 +79,18 @@ export type {
 export { createAiChatSession } from './session';
 export type { PptxAiChatSession } from './session';
 
+export { createAiChangeAnimator, resolveChangeAnimationConfig } from './change-animator';
+export type {
+	AiChangeAnimationConfig,
+	AiChangeAnimator,
+	AiChangeBatch,
+	ResolvedAiChangeAnimationConfig,
+} from './change-animator';
+export { diffChangedElements } from './change-diff';
+export type { AiChangeBounds, AiChangeKind, AiElementChange } from './change-diff';
+export { AI_CHANGE_ATTR, aiChangeAnimationCss, changeGhostStyle } from './change-animation-css';
+export type { GhostStyle } from './change-animation-css';
+
 export { createChatHistoryStore } from './chat-history-store';
 export type { PptxAiChatStore, PptxAiChatSummary, PptxAiStoredChat } from './chat-history-store';
 

@@ -7,6 +7,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import type { PptxAiBridge, PptxAiSlidesUpdater } from '../bridge';
+import type { AiChangeAnimator } from '../change-animator';
 import type { PptxAiWritePolicy } from '../config';
 import type { ProposalStore } from '../proposals';
 
@@ -15,6 +16,8 @@ export interface AiToolContext {
 	bridge: PptxAiBridge;
 	proposals: ProposalStore;
 	writePolicy: PptxAiWritePolicy;
+	/** Optional canvas change animator (present when the host enables it). */
+	animator?: AiChangeAnimator;
 }
 
 /** A tool executor: validated `input` in, JSON-serialisable output out. */
@@ -47,7 +50,12 @@ export function routeWrite(
 	forceApproval = false,
 ): WriteRouteResult {
 	if (ctx.writePolicy === 'auto' && !forceApproval) {
+		const before = ctx.bridge.getSlides();
+		const after = ctx.animator ? updater(structuredClone(before)) : null;
 		ctx.bridge.applySlidesUpdate(updater, label);
+		if (after) {
+			ctx.animator?.publish(before, after);
+		}
 		return { applied: true, summary: [label] };
 	}
 	const proposal = ctx.proposals.stage(label, updater);

@@ -234,6 +234,8 @@ describe('aiChatPanel integration', () => {
 						canvasHighlights: [],
 						canvasAnimating: false,
 						flashToolTarget: () => {},
+						changeBatch: null,
+						showChangeBatch: () => {},
 					},
 					onClose: () => {},
 				}),

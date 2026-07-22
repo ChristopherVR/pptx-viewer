@@ -10,6 +10,7 @@
 
 import type { ChatTransport, LanguageModel, ToolSet, UIMessage } from 'ai';
 
+import type { AiChangeAnimationConfig } from './change-animator';
 import type { AiSdkModule } from './loader';
 
 /** The UI message shape exchanged with the assistant. Alias of the SDK type. */
@@ -138,6 +139,12 @@ export interface PptxAiConfig {
 	/** Default `'outline'`. */
 	contextStrategy?: PptxAiContextStrategy;
 	history?: PptxAiHistoryHooks;
+	/**
+	 * How AI edits are animated on the canvas so the user can watch them land
+	 * (glide old->new, fade/scale in-out, glow-pulse). Omit for the defaults;
+	 * set `{ enabled: false }` to turn it off.
+	 */
+	changeAnimation?: AiChangeAnimationConfig;
 	onError?(error: Error): void;
 }
 

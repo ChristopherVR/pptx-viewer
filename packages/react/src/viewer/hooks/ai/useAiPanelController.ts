@@ -14,7 +14,7 @@
  *     the tool references (see {@link flashToolTarget}).
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import type { PptxAiFocusedTarget, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
+import type { AiChangeBatch, PptxAiFocusedTarget, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { computeFocusTargets } from './focus-targets';
@@ -83,6 +83,12 @@ export interface AiPanelController {
 	 * enable tweening (e.g. a theme-colour edit with no single element target).
 	 */
 	flashToolTarget(target: ToolCanvasTarget | null): void;
+
+	/* ── Applied-edit change animation ──────────────────────────────────────── */
+	/** The batch of just-applied element changes the canvas should animate. */
+	changeBatch: AiChangeBatch | null;
+	/** Push (or clear) the change batch the AI apply path published. */
+	showChangeBatch(batch: AiChangeBatch | null): void;
 }
 
 /** How long a live-tool highlight / colour-tween window stays up after a call. */
@@ -105,6 +111,8 @@ export function useAiPanelController(input: UseAiPanelControllerInput): AiPanelC
 	);
 	const [flashTick, setFlashTick] = useState(0);
 	const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const [changeBatch, setChangeBatch] = useState<AiChangeBatch | null>(null);
+	const showChangeBatch = useCallback((batch: AiChangeBatch | null) => setChangeBatch(batch), []);
 
 	const liveFocusTargets = useMemo(
 		() => computeFocusTargets({ activeSlideIndex, selectedElementIds, selectedElementId }),
@@ -211,5 +219,7 @@ export function useAiPanelController(input: UseAiPanelControllerInput): AiPanelC
 		canvasHighlights,
 		canvasAnimating,
 		flashToolTarget,
+		changeBatch,
+		showChangeBatch,
 	};
 }

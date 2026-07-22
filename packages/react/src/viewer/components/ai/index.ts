@@ -6,3 +6,5 @@ export { AiChatPanelLazy } from './AiChatPanelLazy';
 export type { AiChatPanelLazyProps } from './AiChatPanelLazy';
 export { AiFocusHighlightOverlay } from './AiFocusHighlightOverlay';
 export type { AiFocusHighlightOverlayProps } from './AiFocusHighlightOverlay';
+export { AiChangeOverlay } from './AiChangeOverlay';
+export type { AiChangeOverlayProps } from './AiChangeOverlay';

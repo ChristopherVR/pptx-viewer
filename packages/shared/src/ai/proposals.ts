@@ -12,6 +12,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import type { PptxAiBridge, PptxAiSlidesUpdater } from './bridge';
+import type { AiChangeAnimator } from './change-animator';
 import { diffSlides } from './proposals-diff';
 
 /** A pending, not-yet-applied write. */
@@ -49,7 +50,20 @@ function cloneSlides(slides: PptxSlide[]): PptxSlide[] {
 export class ProposalStore {
 	private readonly proposals = new Map<string, StagedProposal>();
 
-	constructor(private readonly bridge: PptxAiBridge) {}
+	constructor(
+		private readonly bridge: PptxAiBridge,
+		private readonly animator?: AiChangeAnimator,
+	) {}
+
+	/** Apply an updater to the deck and animate the resulting element changes. */
+	private applyAndAnimate(updater: PptxAiSlidesUpdater, label: string): void {
+		const before = this.bridge.getSlides();
+		const after = this.animator ? updater(cloneSlides(before)) : null;
+		this.bridge.applySlidesUpdate(updater, label);
+		if (after) {
+			this.animator?.publish(before, after);
+		}
+	}
 
 	/**
 	 * Stage an updater. Runs it against a clone of the current slides to compute
@@ -100,7 +114,7 @@ export class ProposalStore {
 		if (!p) {
 			return false;
 		}
-		this.bridge.applySlidesUpdate(p.updater, p.label);
+		this.applyAndAnimate(p.updater, p.label);
 		this.proposals.delete(id);
 		return true;
 	}
@@ -117,7 +131,7 @@ export class ProposalStore {
 	acceptAll(): number {
 		const ordered = [...this.proposals.values()].sort((a, b) => a.createdAt - b.createdAt);
 		for (const p of ordered) {
-			this.bridge.applySlidesUpdate(p.updater, p.label);
+			this.applyAndAnimate(p.updater, p.label);
 		}
 		const applied = ordered.length;
 		this.proposals.clear();

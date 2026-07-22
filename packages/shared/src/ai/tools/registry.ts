@@ -16,6 +16,7 @@ import type { ToolSet } from 'ai';
 import type { z } from 'zod';
 
 import type { PptxAiBridge } from '../bridge';
+import type { AiChangeAnimator } from '../change-animator';
 import type { PptxAiConfig, PptxAiToolName } from '../config';
 import type { AiSdkModule } from '../loader';
 import type { ProposalStore } from '../proposals';
@@ -73,11 +74,13 @@ export function buildToolExecutors(
 	bridge: PptxAiBridge,
 	proposals: ProposalStore,
 	config: PptxAiConfig,
+	animator?: AiChangeAnimator,
 ): Map<PptxAiToolName, BoundExecutor> {
 	const ctx: AiToolContext = {
 		bridge,
 		proposals,
 		writePolicy: config.writePolicy ?? 'stage',
+		animator,
 	};
 	const map = new Map<PptxAiToolName, BoundExecutor>();
 	for (const name of enabledToolNames(config)) {

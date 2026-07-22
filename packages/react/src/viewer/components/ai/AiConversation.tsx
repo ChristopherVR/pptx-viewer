@@ -6,7 +6,7 @@
  * banner, and the composer.
  */
 import type { PptxAiBridge, PptxAiChatSession, PptxAiConfig } from 'pptx-viewer-shared/ai';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuHistory, LuMessageSquarePlus, LuTrash2, LuTriangleAlert } from 'react-icons/lu';
 
@@ -46,6 +46,19 @@ export function AiConversation({ session, config, bridge, aiPanel, deckId }: AiC
 		setMessages: chat.setMessages,
 	});
 	const [historyOpen, setHistoryOpen] = useState(false);
+
+	// Applied-edit animation: when the AI apply path publishes a batch of changed
+	// elements, reveal that slide and hand the batch to the canvas overlay so the
+	// user watches the edit land (glide old->new, fade/scale in-out, glow).
+	const { showChangeBatch } = aiPanel;
+	useEffect(() => {
+		return session.changeAnimator.subscribe((batch) => {
+			if (batch) {
+				bridge.goToSlide(batch.slideIndex);
+			}
+			showChangeBatch(batch);
+		});
+	}, [session, bridge, showChangeBatch]);
 
 	// Explicit picks win over a pin, which wins over the live selection.
 	const hasPicks = aiPanel.pickTargets.length > 0;
