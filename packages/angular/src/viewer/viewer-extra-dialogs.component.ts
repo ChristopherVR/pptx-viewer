@@ -141,6 +141,7 @@ import { ViewerOptionsService } from './viewer-options.service';
 			[availableThemes]="availableThemes()"
 			[localeCode]="localeCode()"
 			[availableLocales]="availableLocales()"
+			[aiExportVisible]="aiExportVisible()"
 			(optionChange)="viewerOpts.setValue($event.group, $event.key, $event.value)"
 			(restoreOptions)="viewerOpts.restore($event)"
 			(ribbonTabHiddenChange)="viewerOpts.setRibbonTabHidden($event.tabId, $event.hidden)"
@@ -189,6 +190,8 @@ export class ViewerExtraDialogsComponent {
 	readonly availableThemes = input<readonly ThemeCatalogEntry[]>(THEME_CATALOG);
 	readonly localeCode = input<string>('en');
 	readonly availableLocales = input<readonly LocaleCatalogEntry[]>(LOCALE_CATALOG);
+	/** Whether the Settings dialog shows the bespoke AI chat-log export category. */
+	readonly aiExportVisible = input<boolean>(false);
 
 	/** Fired with a restored `.pptx` version's bytes; the host swaps the deck. */
 	readonly restoreContent = output<Uint8Array>();

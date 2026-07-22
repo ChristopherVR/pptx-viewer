@@ -10,6 +10,20 @@ export { createAngularAiBridge } from './ai-bridge';
 export type { BridgeDeps } from './ai-bridge';
 export { aiToggleVisible } from './ai-gating';
 export { AiComposerComponent } from './ai-composer.component';
+export { AiFocusBarComponent } from './ai-focus-bar.component';
+export {
+	buildChatLogExport,
+	buildChatLogMarkdown,
+	collectStoredChats,
+	exportAiChatLogs,
+} from './ai-log-export';
+export type { AiLogChat, AiLogExport, AiLogFormat, AiLogMessage } from './ai-log-export';
+export { AiSettingsSectionComponent } from './ai-settings-section.component';
+export { AiFocusHighlightOverlayComponent } from './ai-focus-highlight-overlay.component';
 export { AiMessageListComponent } from './ai-message-list.component';
+export { AiPanelStore } from './ai-panel-store';
+export type { AiPanelSelectionAccessors } from './ai-panel-store';
 export { AiProposalCardComponent } from './ai-proposal-card.component';
 export { AiToolCallCardComponent } from './ai-tool-call-card.component';
+export { computeFocusTargets, focusTargetChips, isTwoTableFocus } from './focus-targets';
+export type { AiCanvasHighlight, FocusChip, FocusSelectionInput } from './focus-targets';

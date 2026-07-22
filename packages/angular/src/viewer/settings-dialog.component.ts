@@ -37,6 +37,7 @@ import type {
 } from '../internal/shared';
 import { LOCALE_CATALOG } from '../internal/shared-src/i18n';
 import type { LocaleCatalogEntry } from '../internal/shared-src/i18n';
+import { AiSettingsSectionComponent } from './ai/ai-settings-section.component';
 import { OptionsAddInsPaneComponent } from './options-add-ins-pane.component';
 import { OptionsPaneComponent } from './options-pane.component';
 import type { OptionValueChange } from './options-pane.component';
@@ -69,6 +70,7 @@ export function resolveOptionsTab(id: ViewerOptionsTabId): ViewerOptionsTabDefin
 		OptionsAddInsPaneComponent,
 		SettingsAppearanceTabComponent,
 		SettingsLanguageTabComponent,
+		AiSettingsSectionComponent,
 	],
 	template: `
 		@if (open()) {
@@ -108,57 +110,80 @@ export function resolveOptionsTab(id: ViewerOptionsTabId): ViewerOptionsTabDefin
 								{{ tab.labelKey | translate }}
 							</button>
 						}
+						@if (aiExportVisible()) {
+							<button
+								type="button"
+								[attr.aria-current]="activeTabId() === 'ai'"
+								[class.is-active]="activeTabId() === 'ai'"
+								(click)="activeTabId.set('ai')"
+							>
+								{{ 'pptx.ai.settingsSectionTitle' | translate }}
+							</button>
+						}
 					</nav>
 
 					<div class="pptx-ng-options-content">
-						@switch (activeTab().custom) {
-							@case ('language') {
-								<p class="pptx-ng-options-headline">{{ activeTab().descriptionKey | translate }}</p>
-								<h3 class="pptx-ng-options-subhead">
-									{{ 'pptx.options.language.displayLanguage' | translate }}
-								</h3>
-								<p class="pptx-ng-options-note">
-									{{ 'pptx.options.language.displayLanguageDescription' | translate }}
-								</p>
-								<pptx-settings-language-tab
-									[locales]="availableLocales()"
-									[activeCode]="localeCode()"
-									(select)="localeSelect.emit($event)"
-								/>
-							}
-							@case ('ribbon') {
-								<p class="pptx-ng-options-headline">{{ activeTab().descriptionKey | translate }}</p>
-								<pptx-options-ribbon-pane
-									[options]="options()"
-									(tabHiddenChange)="ribbonTabHiddenChange.emit($event)"
-									(resetRibbon)="resetOptions.emit('ribbon')"
-								/>
-							}
-							@case ('addIns') {
-								<p class="pptx-ng-options-headline">{{ activeTab().descriptionKey | translate }}</p>
-								<pptx-options-add-ins-pane [addinStatus]="addinStatus()" />
-							}
-							@default {
-								<pptx-options-pane
-									[tab]="activeTab()"
-									[options]="options()"
-									(valueChange)="optionChange.emit($event)"
-									(clearCache)="clearCache.emit()"
-								>
-									<div themePicker>
-										<pptx-settings-appearance-tab
-											[themes]="availableThemes()"
-											[activeKey]="themeKey()"
-											(select)="themeKeySelect.emit($event)"
-										/>
-									</div>
-									@if (activeTab().custom === 'quickAccess') {
-										<pptx-options-quick-access-pane
-											[options]="options()"
-											(commandsChange)="quickAccessCommandsChange.emit($event)"
-										/>
-									}
-								</pptx-options-pane>
+						@if (activeTabId() === 'ai') {
+							<p class="pptx-ng-options-headline">
+								{{ 'pptx.ai.settingsSectionTitle' | translate }}
+							</p>
+							<pptx-ai-settings-section />
+						} @else {
+							@switch (activeTab().custom) {
+								@case ('language') {
+									<p class="pptx-ng-options-headline">
+										{{ activeTab().descriptionKey | translate }}
+									</p>
+									<h3 class="pptx-ng-options-subhead">
+										{{ 'pptx.options.language.displayLanguage' | translate }}
+									</h3>
+									<p class="pptx-ng-options-note">
+										{{ 'pptx.options.language.displayLanguageDescription' | translate }}
+									</p>
+									<pptx-settings-language-tab
+										[locales]="availableLocales()"
+										[activeCode]="localeCode()"
+										(select)="localeSelect.emit($event)"
+									/>
+								}
+								@case ('ribbon') {
+									<p class="pptx-ng-options-headline">
+										{{ activeTab().descriptionKey | translate }}
+									</p>
+									<pptx-options-ribbon-pane
+										[options]="options()"
+										(tabHiddenChange)="ribbonTabHiddenChange.emit($event)"
+										(resetRibbon)="resetOptions.emit('ribbon')"
+									/>
+								}
+								@case ('addIns') {
+									<p class="pptx-ng-options-headline">
+										{{ activeTab().descriptionKey | translate }}
+									</p>
+									<pptx-options-add-ins-pane [addinStatus]="addinStatus()" />
+								}
+								@default {
+									<pptx-options-pane
+										[tab]="activeTab()"
+										[options]="options()"
+										(valueChange)="optionChange.emit($event)"
+										(clearCache)="clearCache.emit()"
+									>
+										<div themePicker>
+											<pptx-settings-appearance-tab
+												[themes]="availableThemes()"
+												[activeKey]="themeKey()"
+												(select)="themeKeySelect.emit($event)"
+											/>
+										</div>
+										@if (activeTab().custom === 'quickAccess') {
+											<pptx-options-quick-access-pane
+												[options]="options()"
+												(commandsChange)="quickAccessCommandsChange.emit($event)"
+											/>
+										}
+									</pptx-options-pane>
+								}
 							}
 						}
 					</div>
@@ -198,6 +223,11 @@ export class SettingsDialogComponent {
 	readonly availableLocales = input<readonly LocaleCatalogEntry[]>(LOCALE_CATALOG);
 	/** Availability flags for the Add-ins pane (unset ids default to active). */
 	readonly addinStatus = input<ViewerAddinStatus | undefined>(undefined);
+	/**
+	 * Whether to show the bespoke "AI" category (chat-log export), gated by the
+	 * host on the `ai` config. Absent by default (no AI category).
+	 */
+	readonly aiExportVisible = input<boolean>(false);
 
 	readonly optionChange = output<OptionValueChange>();
 	/** Restore a snapshot wholesale (Cancel semantics). */
@@ -212,8 +242,12 @@ export class SettingsDialogComponent {
 	readonly close = output<void>();
 
 	protected readonly tabs = OPTIONS_DIALOG_TABS;
-	protected readonly activeTabId = signal<ViewerOptionsTabId>('general');
-	protected readonly activeTab = computed(() => resolveOptionsTab(this.activeTabId()));
+	/** Active category id, or the bespoke `'ai'` sentinel for the AI export pane. */
+	protected readonly activeTabId = signal<ViewerOptionsTabId | 'ai'>('general');
+	protected readonly activeTab = computed(() => {
+		const id = this.activeTabId();
+		return resolveOptionsTab(id === 'ai' ? 'general' : id);
+	});
 
 	/** Snapshot taken when the dialog opens, restored by Cancel. */
 	private snapshot: ViewerOptions | null = null;
