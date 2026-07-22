@@ -15,13 +15,16 @@ import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { PictureBulletMarker } from './bullet-list';
 import { resolveParagraphBullet, resolveParagraphIndent } from './bullet-list';
-import { resolveUnderlineDecorationStyle } from './text-decoration';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import { substituteFieldText } from './text-field-substitution';
 import { buildRunEffectStyle } from './text-run-effects';
+import type { RunStyle } from './text-run-style';
+import { applyUnderlineVariant, segmentStyleToCss } from './text-run-style';
 
-/** A plain CSS style map (keys are CSS properties; binding-agnostic). */
-export type RunStyle = Record<string, string | number>;
+// Re-exported so existing `pptx-viewer-shared` / `./text-paragraphs` import
+// paths for the run-style types + builder keep working after the split.
+export type { RunStyle };
+export { segmentStyleToCss };
 
 /** A single rendered run within a paragraph. */
 export interface ParagraphRun {
@@ -42,75 +45,54 @@ export interface RenderParagraph {
 	marginLeftPx?: number;
 	/** `text-indent` in px (first-line / hanging indent). */
 	textIndentPx?: number;
+	/**
+	 * Per-paragraph `line-height` from this paragraph's own `a:pPr > a:lnSpc`.
+	 * A unitless multiplier for proportional spacing (`a:spcPct`) or a `"<n>pt"`
+	 * string for exact spacing (`a:spcPts`). Undefined when the paragraph does
+	 * not override spacing (binding keeps the body-level line-height).
+	 */
+	lineHeight?: number | string;
+	/** `margin-top` in px from this paragraph's `a:pPr > a:spcBef` (space before). */
+	spaceBeforePx?: number;
+	/** `margin-bottom` in px from this paragraph's `a:pPr > a:spcAft` (space after). */
+	spaceAfterPx?: number;
 }
 
-/** Per-run inline style derived from a TextSegment's style. */
-export function segmentStyleToCss(seg: TextSegment): RunStyle {
-	const s = seg.style ?? {};
-	const style: RunStyle = {};
-	if (s.fontFamily) {
-		style.fontFamily = s.fontFamily;
-	}
-	// px, not pt — the parsed value is the CSS px size (matches React + the inline
-	// editor). Appending `pt` inflates every run by ~1.33×.
-	if (typeof s.fontSize === 'number') {
-		style.fontSize = `${s.fontSize}px`;
-	}
-	if (s.color) {
-		style.color = s.color;
-	}
-	if (s.bold) {
-		style.fontWeight = 'bold';
-	}
-	if (s.italic) {
-		style.fontStyle = 'italic';
-	}
-	const deco: string[] = [];
-	if (s.underline) {
-		deco.push('underline');
-	}
-	if (s.strikethrough) {
-		deco.push('line-through');
-	}
-	if (deco.length > 0) {
-		style.textDecoration = deco.join(' ');
-	}
-	return style;
+/** Per-paragraph spacing derived from a paragraph's own `a:pPr`. */
+interface ParagraphSpacing {
+	lineHeight?: number | string;
+	spaceBeforePx?: number;
+	spaceAfterPx?: number;
 }
 
 /**
- * Layer the underline-style / double-strike *variant* decoration CSS
- * (`text-decoration-style` / `-thickness` / `text-underline-offset`) onto a run
- * style. Kept separate from {@link segmentStyleToCss} so that helper's contract
- * (boolean `textDecoration` only) stays stable for its other consumers; this is
- * applied additively by {@link buildParagraphs} when building each run, mirroring
- * React's segment renderer (`text-segment-render.tsx`), which applies
- * `resolveUnderlineDecorationStyle` over the boolean underline.
+ * Resolve a paragraph's own line-height + space-before/after from its parsed
+ * `paragraphProperties` (the first segment's per-paragraph `a:pPr`, #69). Only
+ * keys the paragraph explicitly overrides are set, so a paragraph without its
+ * own spacing inherits the body-level defaults each binding already applies.
+ *
+ * `lineSpacingExactPt` (exact `a:spcPts`) wins over the proportional
+ * `lineSpacing` multiplier (`a:spcPct`), mirroring the body-level resolver in
+ * `text-style-helpers`. `paragraphSpacingBefore` / `paragraphSpacingAfter` are
+ * already parsed into px by core.
  */
-function applyUnderlineVariant(style: RunStyle, seg: TextSegment): void {
-	const s = seg.style;
-	if (!s) {
-		return;
+function resolveParagraphSpacing(pPr: TextSegment['paragraphProperties']): ParagraphSpacing {
+	const out: ParagraphSpacing = {};
+	if (!pPr) {
+		return out;
 	}
-	const isDoubleStrike = Boolean(s.strikethrough && s.strikeType === 'dblStrike');
-	// Only the underline path needs an explicit style token; a plain solid
-	// underline (or no underline) leaves the boolean `textDecoration` untouched.
-	const deco = resolveUnderlineDecorationStyle(
-		isDoubleStrike,
-		s.underline ? s.underlineStyle : undefined,
-	);
-	if (!deco) {
-		return;
+	if (typeof pPr.lineSpacingExactPt === 'number' && pPr.lineSpacingExactPt > 0) {
+		out.lineHeight = `${pPr.lineSpacingExactPt}pt`;
+	} else if (typeof pPr.lineSpacing === 'number' && pPr.lineSpacing > 0) {
+		out.lineHeight = pPr.lineSpacing;
 	}
-	if (deco.textDecorationStyle !== undefined) {
-		style.textDecorationStyle = deco.textDecorationStyle;
+	if (typeof pPr.paragraphSpacingBefore === 'number') {
+		out.spaceBeforePx = pPr.paragraphSpacingBefore;
 	}
-	if (deco.textDecorationThickness !== undefined) {
-		style.textDecorationThickness = deco.textDecorationThickness;
+	if (typeof pPr.paragraphSpacingAfter === 'number') {
+		out.spaceAfterPx = pPr.paragraphSpacingAfter;
 	}
-	if (deco.textUnderlineOffset !== undefined) {
-		style.textUnderlineOffset = deco.textUnderlineOffset;
-	}
+	return out;
 }
 
 /**
@@ -207,6 +189,7 @@ export function buildParagraphs(
 		}
 
 		const indent = resolveParagraphIndent(paragraphIndents?.[paraIndex], firstSeg?.paragraphLevel);
+		const spacing = resolveParagraphSpacing(firstSeg?.paragraphProperties);
 		return {
 			runs,
 			bulletMarker: bullet?.picture?.src ? undefined : bullet?.marker,
@@ -214,6 +197,9 @@ export function buildParagraphs(
 			bulletStyle,
 			marginLeftPx: indent.marginLeftPx,
 			textIndentPx: indent.textIndentPx,
+			lineHeight: spacing.lineHeight,
+			spaceBeforePx: spacing.spaceBeforePx,
+			spaceAfterPx: spacing.spaceAfterPx,
 		};
 	});
 

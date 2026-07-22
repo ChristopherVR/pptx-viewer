@@ -145,17 +145,33 @@ describe('getTextLayoutStyle', () => {
 	});
 
 	// ── Paragraph spacing ──────────────────────────────────────
-	it('includes paragraph spacing in padding', () => {
+	it('does NOT fold paragraph spacing into body padding', () => {
+		// Paragraph spacing (spcBef/spcAft) is applied per-paragraph by the
+		// paragraph renderer, so body padding stays equal to the body inset and
+		// is unaffected by the spacing values.
+		const withSpacing = getTextLayoutStyle(
+			makeTextElement({ paragraphSpacingBefore: 40, paragraphSpacingAfter: 60 }),
+		);
+		const noSpacing = getTextLayoutStyle(makeTextElement({}));
+		expectTypeOf(withSpacing.paddingTop).toBeNumber();
+		expect(withSpacing.paddingTop).toBe(noSpacing.paddingTop);
+		expect(withSpacing.paddingBottom).toBe(noSpacing.paddingBottom);
+	});
+
+	// ── Default tab size (a:pPr/@defTabSz) ─────────────────────
+	it('feeds defaultTabSize into tab-size when no explicit tab stops', () => {
+		const el = makeTextElement({ defaultTabSize: 48 });
+		const style = getTextLayoutStyle(el);
+		expect(style.tabSize).toBe('48px');
+	});
+
+	it('prefers explicit tab stops over defaultTabSize', () => {
 		const el = makeTextElement({
-			paragraphSpacingBefore: 10,
-			paragraphSpacingAfter: 15,
+			tabStops: [{ position: 96, align: 'l' }],
+			defaultTabSize: 48,
 		});
 		const style = getTextLayoutStyle(el);
-		// paddingTop should be bodyInsetTop + paragraphSpacingBefore
-		expectTypeOf(style.paddingTop).toBeNumber();
-		expectTypeOf(style.paddingBottom).toBeNumber();
-		expect(style.paddingTop as number).toBeGreaterThan(0);
-		expect(style.paddingBottom as number).toBeGreaterThan(0);
+		expect(style.tabSize).toBe('96px');
 	});
 
 	// ── Paragraph indentation ──────────────────────────────────

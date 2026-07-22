@@ -12,17 +12,28 @@ import { toCssWritingMode, toCssTextOrientation, toCssVerticalDirection } from '
  * Compute a CSS `tab-size` value from parsed tab stops.
  * If a single tab stop exists, use its position.
  * If multiple tab stops exist, use the average distance between consecutive stops.
+ *
+ * When no explicit tab stops are present, `defaultTabSize` (from
+ * `a:pPr/@defTabSz`, already converted to px) is used so that plain tab
+ * characters advance by the authored default interval rather than the browser
+ * default (8 characters).
  */
-function computeTabSize(
+export function computeTabSize(
 	tabStops: Array<{ position: number; align: 'l' | 'ctr' | 'r' | 'dec' }> | undefined,
+	defaultTabSize?: number,
 ): string | undefined {
+	const fromDefault =
+		typeof defaultTabSize === 'number' && defaultTabSize > 0
+			? `${Math.round(defaultTabSize)}px`
+			: undefined;
+
 	if (!tabStops || tabStops.length === 0) {
-		return undefined;
+		return fromDefault;
 	}
 
 	if (tabStops.length === 1) {
 		const pos = tabStops[0].position;
-		return typeof pos === 'number' && pos > 0 ? `${Math.round(pos)}px` : undefined;
+		return typeof pos === 'number' && pos > 0 ? `${Math.round(pos)}px` : fromDefault;
 	}
 
 	// Sort positions ascending, then compute average gap
@@ -32,7 +43,7 @@ function computeTabSize(
 		.sort((a, b) => a - b);
 
 	if (positions.length < 2) {
-		return positions.length === 1 ? `${Math.round(positions[0])}px` : undefined;
+		return positions.length === 1 ? `${Math.round(positions[0])}px` : fromDefault;
 	}
 
 	let totalGap = 0;
@@ -40,7 +51,7 @@ function computeTabSize(
 		totalGap += positions[i] - positions[i - 1];
 	}
 	const avgGap = totalGap / (positions.length - 1);
-	return avgGap > 0 ? `${Math.round(avgGap)}px` : undefined;
+	return avgGap > 0 ? `${Math.round(avgGap)}px` : fromDefault;
 }
 
 export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
@@ -60,8 +71,9 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
 		verticalAlign === 'middle' ? 'center' : verticalAlign === 'bottom' ? 'flex-end' : 'flex-start';
 
 	// Tab-size: if multiple tab stops, use average distance; else first position.
+	// Falls back to the authored default tab interval (`a:pPr/@defTabSz`).
 	const tabStops = element.textStyle?.tabStops;
-	const tabSize = computeTabSize(tabStops);
+	const tabSize = computeTabSize(tabStops, element.textStyle?.defaultTabSize);
 
 	// Text wrapping mode
 	const textWrapNone = element.textStyle?.textWrap === 'none';
@@ -98,8 +110,10 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
 			display: 'block',
 			columnCount,
 			columnGap,
-			paddingTop: bodyTop + (element.textStyle?.paragraphSpacingBefore || 0),
-			paddingBottom: bodyBottom + (element.textStyle?.paragraphSpacingAfter || 0),
+			// Body inset only. Paragraph spacing (spcBef/spcAft) is applied
+			// per-paragraph by the paragraph renderer, not collapsed here.
+			paddingTop: bodyTop,
+			paddingBottom: bodyBottom,
 			writingMode,
 			textOrientation,
 			direction: verticalDirection,
@@ -119,8 +133,10 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
 		display: 'flex',
 		flexDirection: 'column',
 		justifyContent,
-		paddingTop: bodyTop + (element.textStyle?.paragraphSpacingBefore || 0),
-		paddingBottom: bodyBottom + (element.textStyle?.paragraphSpacingAfter || 0),
+		// Body inset only. Paragraph spacing (spcBef/spcAft) is applied
+		// per-paragraph by the paragraph renderer, not collapsed here.
+		paddingTop: bodyTop,
+		paddingBottom: bodyBottom,
 		writingMode,
 		textOrientation,
 		direction: verticalDirection,

@@ -7,6 +7,8 @@
  * `bullet-list` to keep each module focused and small.
  */
 
+import { formatScriptAutoNumber } from './bullet-autonum-scripts';
+
 /**
  * Convert a positive integer to a Roman numeral string (upper-case).
  * Input is clamped to [1, 3999].
@@ -127,6 +129,8 @@ export function formatAutoNumber(autoNumType: string | undefined, n: number): st
 		case 'circleNumWdBlackPlain':
 			return toCircledBlack(n);
 		default:
-			return `${n}.`;
+			// East-Asian (ea1*) / Hebrew / Hindi / Thai schemes; falls through to
+			// the Arabic `n.` default only when the scheme is genuinely unknown.
+			return formatScriptAutoNumber(autoNumType, n) ?? `${n}.`;
 	}
 }
