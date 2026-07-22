@@ -42,6 +42,12 @@ export interface UseContextMenuInput {
 	onGroup: () => void;
 	onUngroup: () => void;
 	openHyperlinkDialog: (id: string) => void;
+	/** Whether the AI assistant is enabled (adds the "Ask AI" / "Fix with AI" entries). */
+	aiEnabled?: () => boolean;
+	/** Open the AI panel scoped to the current element (empty composer). */
+	onAskAi?: () => void;
+	/** Open the AI panel with a prefilled "fix this element" directive (not sent). */
+	onFixAi?: () => void;
 }
 
 export interface UseContextMenuResult {
@@ -75,6 +81,9 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		onGroup,
 		onUngroup,
 		openHyperlinkDialog,
+		aiEnabled,
+		onAskAi,
+		onFixAi,
 	} = input;
 
 	const contextMenu = ref<ContextMenuState>({
@@ -124,6 +133,14 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 			{ id: 'sep4', label: '', separator: true },
 			{ id: 'hyperlink', label: t('pptx.contextMenu.editHyperlink') },
 		];
+		// AI assistant affordances (only when the host enabled the `ai` prop).
+		if (aiEnabled?.()) {
+			items.push(
+				{ id: 'sep-ai', label: '', separator: true },
+				{ id: 'ai-ask', label: t('pptx.ai.askAboutElement') },
+				{ id: 'ai-fix', label: t('pptx.ai.fixElement') },
+			);
+		}
 		const tbl = contextTable.value;
 		if (tbl) {
 			items.push(
@@ -214,6 +231,12 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 				break;
 			case 'hyperlink':
 				openHyperlinkDialog(target);
+				break;
+			case 'ai-ask':
+				onAskAi?.();
+				break;
+			case 'ai-fix':
+				onFixAi?.();
 				break;
 			default:
 				onContextTableSelect(actionId);
