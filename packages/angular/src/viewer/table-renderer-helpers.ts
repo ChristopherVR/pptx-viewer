@@ -13,8 +13,8 @@
  */
 import type { PptxElement, PptxTableCell, TablePptxElement } from 'pptx-viewer-core';
 
-import type { DiagonalBorderInfo } from '../internal/shared';
-import { getDiagonalBorders, getTableCellBandStyle } from '../internal/shared';
+import type { DiagonalBorderInfo, TableStyleContext } from '../internal/shared';
+import { getCellDiagonalBorders, getTableCellBandStyle } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import type { CellParagraph } from './table-cell-style';
 import {
@@ -88,8 +88,17 @@ export interface TableRowViewModel {
  * resolving spans, applying banding (lowest priority) beneath the explicit cell
  * style, and extracting diagonal-border info. Returns an empty array when
  * `tableData` is absent.
+ *
+ * `styleCtx` (parsed table-style map + theme colour/font scheme) is threaded
+ * into both the banding resolver and the diagonal-border resolver so
+ * table-style-inherited banding, fonts, and section diagonals apply; per-cell
+ * explicit styles still win. When omitted, both fall back to the hardcoded
+ * defaults (unchanged from before).
  */
-export function buildTableViewModel(el: PptxElement): TableRowViewModel[] {
+export function buildTableViewModel(
+	el: PptxElement,
+	styleCtx?: TableStyleContext,
+): TableRowViewModel[] {
 	if (el.type !== 'table') {
 		return [];
 	}
@@ -111,7 +120,14 @@ export function buildTableViewModel(el: PptxElement): TableRowViewModel[] {
 				const rowSpan = cell.rowSpan !== undefined && cell.rowSpan > 1 ? cell.rowSpan : undefined;
 
 				// Banding is a lower-priority layer beneath the explicit cell style.
-				const band = getTableCellBandStyle(tableData, rowIndex, colIndex, rowCount, columnCount);
+				const band = getTableCellBandStyle(
+					tableData,
+					rowIndex,
+					colIndex,
+					rowCount,
+					columnCount,
+					styleCtx,
+				);
 				const tdStyle: StyleMap = {
 					'padding-left': '4px',
 					'padding-right': '4px',
@@ -133,7 +149,14 @@ export function buildTableViewModel(el: PptxElement): TableRowViewModel[] {
 					// mirrors React's `cell.text || ' '` in table-render-data.tsx.
 					displayText: cell.text || ' ',
 					paragraphs: buildCellParagraphs(cell),
-					diagonal: getDiagonalBorders(cell.style),
+					// Combine per-cell explicit diagonals with any inherited from the
+					// applicable table-style sections (per-cell still takes precedence).
+					diagonal: getCellDiagonalBorders(
+						cell.style,
+						tableData,
+						{ rowIndex, cellIndex: colIndex, rowCount, columnCount },
+						styleCtx,
+					),
 				};
 			});
 		return { rowStyle: rowStyle(row), cells };

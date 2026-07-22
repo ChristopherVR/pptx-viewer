@@ -11,10 +11,16 @@ import {
 	segmentStyleToCss,
 	substituteFieldText,
 } from '../internal/shared';
-import type { FieldSubstitutionContext, PictureBulletMarker } from '../internal/shared';
+import type {
+	FieldSubstitutionContext,
+	FillOverlayCss,
+	PictureBulletMarker,
+} from '../internal/shared';
 import { ChartElementViewComponent } from './chart-element-view.component';
 import { ConnectorRendererComponent } from './connector-renderer.component';
 import type { Rect } from './connector-routing';
+import { getEffectFillOverlay, getSoftEdgeFilterDef } from './element-effect-defs';
+import type { SoftEdgeFilterDef } from './element-effect-defs';
 import {
 	getContainerStyle,
 	getDuotoneFilterDef,
@@ -36,6 +42,7 @@ import { TableRendererComponent } from './table-renderer.component';
 import type { TableCellCommit } from './table-renderer.component';
 import { showsTemplateAffordance } from './template-mode';
 import { bulletIndentPx, resolveAngularParagraphBullet } from './text-bullets';
+import { resolveParagraphSpacing } from './text-paragraph-spacing';
 import { getTextWarp } from './text-warp';
 import type { TextWarpPathDef } from './text-warp';
 import { ZoomRendererComponent } from './zoom-renderer.component';
@@ -102,6 +109,16 @@ interface Paragraph {
 	bulletStyle: StyleMap;
 	/** Left indent in px derived from the paragraph outline level. */
 	indentPx: number;
+	/**
+	 * Per-paragraph `line-height` from this paragraph's own `a:lnSpc`: a unitless
+	 * multiplier (`a:spcPct`) or a `"<n>pt"` string (`a:spcPts`). Undefined when
+	 * the paragraph does not override the body-level line-height.
+	 */
+	lineHeight?: number | string;
+	/** `margin-top` in px from `a:spcBef` (space before), when overridden. */
+	spaceBeforePx?: number;
+	/** `margin-bottom` in px from `a:spcAft` (space after), when overridden. */
+	spaceAfterPx?: number;
 }
 
 /**
@@ -282,6 +299,15 @@ interface Paragraph {
 					[attr.data-element-id]="element().id"
 					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
+					@if (fillOverlay(); as ov) {
+						<div
+							class="pptx-ng-fill-overlay"
+							aria-hidden="true"
+							style="position: absolute; inset: 0; pointer-events: none"
+							[style.background]="ov.color"
+							[style.mix-blend-mode]="ov.blendMode"
+						></div>
+					}
 					@if (pathWarp(); as warp) {
 						<svg
 							[attr.width]="warp.width"
@@ -322,7 +348,13 @@ interface Paragraph {
 					} @else if (hasText()) {
 						<div class="pptx-ng-text" [ngStyle]="warpedTextStyle()">
 							@for (para of paragraphs(); track $index) {
-								<p class="pptx-ng-para" [style.padding-left.px]="para.indentPx">
+								<p
+									class="pptx-ng-para"
+									[style.padding-left.px]="para.indentPx"
+									[style.line-height]="para.lineHeight ?? null"
+									[style.margin-top.px]="para.spaceBeforePx ?? null"
+									[style.margin-bottom.px]="para.spaceAfterPx ?? null"
+								>
 									@if (para.bulletPicture?.src) {
 										<img
 											class="pptx-ng-bullet-image"
@@ -380,6 +412,34 @@ interface Paragraph {
 					<div class="pptx-ng-placeholder">{{ placeholderLabel() }}</div>
 				</div>
 			}
+		}
+
+		<!-- Soft-edge feather <filter> def, referenced via filter: url(#soft-edge-<id>). -->
+		@if (softEdgeFilter(); as sef) {
+			<svg
+				width="0"
+				height="0"
+				aria-hidden="true"
+				style="position: absolute; width: 0; height: 0; overflow: hidden"
+			>
+				<defs>
+					<filter
+						[attr.id]="sef.id"
+						x="-20%"
+						y="-20%"
+						width="140%"
+						height="140%"
+						color-interpolation-filters="sRGB"
+					>
+						<feGaussianBlur
+							in="SourceAlpha"
+							[attr.stdDeviation]="sef.radius"
+							result="softEdgeAlpha"
+						/>
+						<feComposite in="SourceGraphic" in2="softEdgeAlpha" operator="in" />
+					</filter>
+				</defs>
+			</svg>
 		}
 
 		<!-- Duotone image-effect <filter> def, referenced via filter: url(#id). -->
@@ -484,6 +544,23 @@ export class ElementRendererComponent {
 
 	/** Duotone SVG `<filter>` descriptor for this element, if any. */
 	readonly duotoneFilter = computed(() => getDuotoneFilterDef(this.element()));
+
+	/**
+	 * Soft-edge feather `<filter>` descriptor (id + radius). The template injects
+	 * a matching `<filter>` into a hidden `<defs>` so the `filter:
+	 * url(#soft-edge-<id>)` reference on the shape resolves. Undefined otherwise.
+	 */
+	readonly softEdgeFilter = computed<SoftEdgeFilterDef | undefined>(() =>
+		getSoftEdgeFilterDef(this.element()),
+	);
+
+	/**
+	 * DAG fill-overlay tint (colour + blend mode) painted as a separate blended
+	 * layer over the shape. Undefined when the element has no fill overlay.
+	 */
+	readonly fillOverlay = computed<FillOverlayCss | undefined>(() =>
+		getEffectFillOverlay(this.element()),
+	);
 
 	/**
 	 * Outline ring + slight transparency applied to inherited template
@@ -594,6 +671,18 @@ export class ElementRendererComponent {
 			if (!paraStarted) {
 				paraStarted = true;
 				current.indentPx = bulletIndentPx(seg.paragraphLevel);
+				// Per-paragraph line-height / space-before / space-after from this
+				// paragraph's own `a:pPr` (#69), mirroring shared `buildParagraphs`.
+				const spacing = resolveParagraphSpacing(seg.paragraphProperties);
+				if (spacing.lineHeight !== undefined) {
+					current.lineHeight = spacing.lineHeight;
+				}
+				if (spacing.spaceBeforePx !== undefined) {
+					current.spaceBeforePx = spacing.spaceBeforePx;
+				}
+				if (spacing.spaceAfterPx !== undefined) {
+					current.spaceAfterPx = spacing.spaceAfterPx;
+				}
 				const baseFontSize = seg.style?.fontSize ?? el.textStyle?.fontSize ?? 16;
 				const bullet = resolveAngularParagraphBullet(seg, baseFontSize);
 				if (bullet) {

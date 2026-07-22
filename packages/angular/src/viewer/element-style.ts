@@ -20,6 +20,7 @@ import { buildCssGradientFromShapeStyle } from './color-gradient';
 import { buildPatternFillCss } from './color-patterns';
 import { buildDuotoneFilter } from './duotone-filter';
 import type { DuotoneFilterDef } from './duotone-filter';
+import { getSoftEdgeFilterDef, resolveShapeFilterCss } from './element-effect-defs';
 import { getResolvedShapeClipPath } from './shape-geometry';
 
 /**
@@ -138,23 +139,26 @@ export function getShapeFillStrokeStyle(el: PptxElement, parentGroupFill?: Shape
 	// <filter> def is actually rendered (i.e. the element has a duotone effect;
 	// the renderer injects the def); otherwise the dangling ref is stripped.
 	const duotone = buildDuotoneFilter(el);
+	// The soft-edge feather `<filter>` def is injected by the renderer, so its
+	// `url(#soft-edge-<id>)` reference must survive the dangling-ref strip.
+	const softEdge = getSoftEdgeFilterDef(el);
 	const fx = getComputedEffectStyle(el);
 	if (fx.boxShadow) {
 		style['box-shadow'] = fx.boxShadow;
 	}
-	if (fx.filter) {
-		const filter = duotone ? fx.filter : fx.filter.replace(/\s*url\(#[^)]*\)/gu, '').trim();
-		if (filter) {
-			style['filter'] = filter;
-		}
-	} else if (duotone) {
-		style['filter'] = duotone.cssFilter;
+	const filterCss = resolveShapeFilterCss(fx.filter, duotone, softEdge);
+	if (filterCss) {
+		style['filter'] = filterCss;
 	}
 	if (fx.webkitBoxReflect) {
 		style['-webkit-box-reflect'] = fx.webkitBoxReflect;
 	}
 	if (fx.mixBlendMode) {
 		style['mix-blend-mode'] = fx.mixBlendMode;
+	}
+	// Blur `@grow`: let the halo bleed past the element box instead of clipping.
+	if (fx.overflowVisible) {
+		style['overflow'] = 'visible';
 	}
 	if (fx.opacity !== undefined) {
 		const elementOpacity = typeof el.opacity === 'number' ? el.opacity : 1;

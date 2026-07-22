@@ -17,6 +17,7 @@ import type {
 	PptxSlideMaster,
 	PptxTheme,
 	PptxThemeOption,
+	ParsedTableStyleMap,
 	XmlObject,
 } from 'pptx-viewer-core';
 import { EncryptedFileError, parseSignatureXml, PptxHandler } from 'pptx-viewer-core';
@@ -59,6 +60,8 @@ export class LoadContentService {
 	readonly theme = signal<PptxTheme | undefined>(undefined);
 	/** Resolved colour map for the presentation theme (scheme key → hex). */
 	readonly themeColorMap = signal<Record<string, string> | undefined>(undefined);
+	/** Parsed table-style definitions from `ppt/tableStyles.xml` (banding/diagonals). */
+	readonly tableStyleMap = signal<ParsedTableStyleMap | undefined>(undefined);
 	/** Slide masters (for placeholder/background resolution). */
 	readonly slideMasters = signal<PptxSlideMaster[]>([]);
 	/** Notes master, including its editable element tree. */
@@ -304,6 +307,7 @@ export class LoadContentService {
 			});
 			this.theme.set(parsed.theme);
 			this.themeColorMap.set(parsed.themeColorMap);
+			this.tableStyleMap.set(parsed.tableStyleMap);
 			this.slideMasters.set(parsed.slideMasters ?? []);
 			this.notesMaster.set(parsed.notesMaster);
 			this.handoutMaster.set(parsed.handoutMaster);

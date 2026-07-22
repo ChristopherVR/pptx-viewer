@@ -622,3 +622,54 @@ describe('buildTableViewModel -- paragraphs field', () => {
 		expect(run.style['text-decoration']).toBe('underline');
 	});
 });
+
+// ==========================================================================
+// buildTableViewModel: diagonal borders (getCellDiagonalBorders integration)
+// ==========================================================================
+
+describe('buildTableViewModel - diagonal borders', () => {
+	it('resolves a per-cell down diagonal into the cell view-model', () => {
+		const style: PptxTableCellStyle = {
+			borderDiagDownColor: '#FF0000',
+			borderDiagDownWidth: 2,
+		};
+		const el = tableElement([{ cells: [{ text: 'x', style }] }], [1]);
+		const rows = buildTableViewModel(el);
+		const diag = rows[0].cells[0].diagonal;
+		expect(diag).not.toBeNull();
+		expect(diag?.diagDownColor).toBe('#FF0000');
+		expect(diag?.diagDownWidth).toBe(2);
+	});
+
+	it('resolves a per-cell up diagonal into the cell view-model', () => {
+		const style: PptxTableCellStyle = {
+			borderDiagUpColor: '#00AA00',
+			borderDiagUpWidth: 3,
+		};
+		const el = tableElement([{ cells: [{ text: 'y', style }] }], [1]);
+		const rows = buildTableViewModel(el);
+		const diag = rows[0].cells[0].diagonal;
+		expect(diag?.diagUpColor).toBe('#00AA00');
+		expect(diag?.diagUpWidth).toBe(3);
+	});
+
+	it('returns null diagonal for a cell with no diagonals', () => {
+		const el = tableElement([{ cells: [{ text: 'z' }] }], [1]);
+		const rows = buildTableViewModel(el);
+		expect(rows[0].cells[0].diagonal).toBeNull();
+	});
+
+	it('accepts a styleCtx (fontScheme threaded) without disturbing per-cell diagonals', () => {
+		const style: PptxTableCellStyle = {
+			borderDiagDownColor: '#0000FF',
+			borderDiagDownWidth: 1,
+		};
+		const el = tableElement([{ cells: [{ text: 'x', style }] }], [1]);
+		const rows = buildTableViewModel(el, {
+			tableStyleMap: undefined,
+			colorScheme: undefined,
+			fontScheme: { majorFont: { latin: 'Calibri Light' }, minorFont: { latin: 'Calibri' } },
+		});
+		expect(rows[0].cells[0].diagonal?.diagDownColor).toBe('#0000FF');
+	});
+});

@@ -56,8 +56,8 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 							viewBox="0 0 10 10"
 							refX="5"
 							refY="5"
-							markerWidth="4"
-							markerHeight="4"
+							[attr.markerWidth]="geo().startMarker!.markerWidth"
+							[attr.markerHeight]="geo().startMarker!.markerHeight"
 							orient="auto-start-reverse"
 							markerUnits="strokeWidth"
 						>
@@ -74,8 +74,8 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 							viewBox="0 0 10 10"
 							refX="5"
 							refY="5"
-							markerWidth="4"
-							markerHeight="4"
+							[attr.markerWidth]="geo().endMarker!.markerWidth"
+							[attr.markerHeight]="geo().endMarker!.markerHeight"
 							orient="auto-start-reverse"
 							markerUnits="strokeWidth"
 						>
