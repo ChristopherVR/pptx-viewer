@@ -54,6 +54,24 @@
 	// initial prop values here is intentional.
 	const chat = untrack(() => new SvelteAiChat({ bridge, config, onToolTarget }));
 
+	// Applied-edit animation: once the session is ready, subscribe to its change
+	// animator so that when the AI apply path publishes a batch of changed
+	// elements we reveal that slide and hand the batch to the canvas overlay (the
+	// user watches the edit land: glide old->new, fade/scale in-out, glow). The
+	// effect re-runs when `chat.session` becomes available and cleans up on teardown.
+	$effect(() => {
+		const session = chat.session;
+		if (!session) {
+			return;
+		}
+		return session.changeAnimator.subscribe((batch) => {
+			if (batch) {
+				bridge.goToSlide(batch.slideIndex);
+			}
+			aiPanel.showChangeBatch(batch);
+		});
+	});
+
 	// Applying a suggestion briefly enables the canvas colour tween so the edit
 	// fades in rather than snapping (proposals apply outside the tool loop).
 	function applyProposal(id: string): void {

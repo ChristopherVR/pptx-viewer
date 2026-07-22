@@ -9,8 +9,10 @@
 	import type { PptxHandler, PptxSlide, PptxTheme, TextSegment } from 'pptx-viewer-core';
 	import type { CanvasSize, RemoteCursor } from 'pptx-viewer-shared';
 	import { setCellText, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
+	import type { AiChangeBatch } from 'pptx-viewer-shared/ai';
 
 	import type { AiCanvasHighlight } from '../ai/ai-panel-controller.svelte';
+	import AiChangeOverlay from './ai/AiChangeOverlay.svelte';
 	import AiFocusHighlightOverlay from './ai/AiFocusHighlightOverlay.svelte';
 	import CollaborationCursors from '../collab/components/CollaborationCursors.svelte';
 	import type { EditorController } from '../editor/editor-controller.svelte';
@@ -72,6 +74,7 @@
 		aiPickMode = false,
 		aiActive = false,
 		aiHighlights = [],
+		aiChangeBatch = null,
 		onaipickelement,
 		onaskai,
 		onfixai,
@@ -126,6 +129,8 @@
 		aiActive?: boolean;
 		/** Rings the AI focus overlay should draw on the active slide. */
 		aiHighlights?: readonly AiCanvasHighlight[];
+		/** Just-applied AI change batch the canvas should animate (glide/fade/glow). */
+		aiChangeBatch?: AiChangeBatch | null;
 		/** Route a picked canvas element to the AI focus (pick mode). */
 		onaipickelement?: (elementId: string) => void;
 		/** "Ask AI about this" from the element context menu (gated on the `ai` prop). */
@@ -238,6 +243,14 @@
 						<AiFocusHighlightOverlay
 							highlights={aiHighlights}
 							elements={activeSlide?.elements ?? []}
+							activeSlideIndex={current}
+							{scale}
+							{canvasSize}
+						/>
+					{/if}
+					{#if aiChangeBatch}
+						<AiChangeOverlay
+							batch={aiChangeBatch}
 							activeSlideIndex={current}
 							{scale}
 							{canvasSize}

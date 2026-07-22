@@ -67,7 +67,9 @@ export class SvelteAiChat {
 	proposals = $state<ProposalView[]>([]);
 
 	#chat = $state.raw<Chat<PptxAiUIMessage> | undefined>(undefined);
-	#session: PptxAiChatSession | undefined;
+	// Reactive so a consumer `$effect` (the panel's change-animator subscription)
+	// re-runs once the session is bootstrapped by `init()`.
+	#session = $state.raw<PptxAiChatSession | undefined>(undefined);
 	readonly #deps: SvelteAiChatDeps;
 
 	constructor(deps: SvelteAiChatDeps) {

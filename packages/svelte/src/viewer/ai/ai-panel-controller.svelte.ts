@@ -17,7 +17,7 @@
  * stays scoped even after the user clicks away.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import type { PptxAiFocusedTarget, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
+import type { AiChangeBatch, PptxAiFocusedTarget, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
 
 import { computeFocusTargets } from './focus-targets';
 
@@ -57,6 +57,8 @@ export class AiPanelController {
 	pickMode = $state(false);
 	/** The elements the user has explicitly handed to the assistant. */
 	pickTargets = $state.raw<PptxAiFocusedTarget[]>([]);
+	/** The batch of just-applied element changes the canvas should animate. */
+	changeBatch = $state.raw<AiChangeBatch | null>(null);
 
 	#toolFocus = $state.raw<{ slideIndex: number; elementIds: string[] } | null>(null);
 	#flashTick = $state(0);
@@ -184,6 +186,15 @@ export class AiPanelController {
 			this.#toolFocus = null;
 			this.#flashTick = 0;
 		}, TOOL_FLASH_MS);
+	}
+
+	/**
+	 * Push (or clear) the change batch the AI apply path published, so the canvas
+	 * overlay animates the just-applied edit (glide old->new, fade/scale in-out,
+	 * glow). Pass `null` to clear once the animation has settled.
+	 */
+	showChangeBatch(batch: AiChangeBatch | null): void {
+		this.changeBatch = batch;
 	}
 
 	/** Cancel the pending flash timer (call on teardown). */

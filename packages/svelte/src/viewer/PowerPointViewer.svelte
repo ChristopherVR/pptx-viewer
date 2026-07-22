@@ -951,6 +951,7 @@
 		aiPickMode={ai ? aiPanel.pickMode : false}
 		aiActive={ai ? aiPanel.canvasAnimating : false}
 		aiHighlights={aiHighlights}
+		aiChangeBatch={ai ? aiPanel.changeBatch : null}
 		onaipickelement={ai ? (elementId) => aiPanel.addPick(viewer.current, elementId) : undefined}
 		onaskai={ai && editor.selectedElement ? () => aiPanel.askAboutSelection() : undefined}
 		onfixai={ai && editor.selectedElement ? () => aiPanel.fixSelection() : undefined}
