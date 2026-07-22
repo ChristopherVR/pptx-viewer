@@ -25,11 +25,21 @@ import type {
 	PptxTableCellStyle,
 	PptxTableData,
 	PptxThemeColorScheme,
+	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
 
 import { getPatternSvg, normalizeHexColor } from './fill-style';
-import { resolveCellBorderCss } from './table-style-borders';
-import { applyStyleFill, applyStyleText, resolveStyleFillColor } from './table-style-fill';
+import type { CellBorderPosition } from './table-style-borders';
+import { resolveCellBorderCss, resolveStyleDiagonalBorders } from './table-style-borders';
+import {
+	applyStyleFill,
+	applyStyleText,
+	cell3DBevelCss,
+	resolveStyleFillColor,
+} from './table-style-fill';
+
+export { resolveStyleDiagonalBorders } from './table-style-borders';
+export { cell3DBevelCss, resolveFontRefIdx } from './table-style-fill';
 
 /** A framework-agnostic CSS style object: camelCased property → value. */
 export type TableCellCss = Record<string, string | number>;
@@ -159,6 +169,12 @@ export interface TableStyleContext {
 	tableStyleMap?: ParsedTableStyleMap;
 	/** Theme colour scheme from the active PPTX theme. */
 	colorScheme?: PptxThemeColorScheme;
+	/**
+	 * Theme font scheme from the active PPTX theme. Supplied so a table
+	 * style's `a:fontRef@idx` (`minor`/`major`) can resolve to a concrete
+	 * font family. Optional: when absent, `fontRefIdx` is left unresolved.
+	 */
+	fontScheme?: PptxThemeFontScheme;
 }
 
 /**
@@ -258,9 +274,22 @@ export function cellStyleToCss(style?: PptxTableCellStyle): TableCellCss {
 
 	if (style.align) {
 		css.textAlign = style.align;
+	} else if (style.anchorCtr) {
+		// `anchorCtr` centres the text block perpendicular to the text flow.
+		// For horizontal text this is horizontal centring; an explicit
+		// paragraph `align` takes precedence when present.
+		css.textAlign = 'center';
 	}
 	if (style.vAlign) {
 		css.verticalAlign = style.vAlign;
+	}
+
+	// `horzOverflow` = clip clips text at the cell edge; overflow (default)
+	// lets it spill horizontally.
+	if (style.horzOverflow === 'clip') {
+		css.overflowX = 'hidden';
+	} else if (style.horzOverflow === 'overflow') {
+		css.overflowX = 'visible';
 	}
 
 	// Vertical text direction — map all variants to CSS writing-mode + orientation.
@@ -353,6 +382,11 @@ export function cellStyleToCss(style?: PptxTableCellStyle): TableCellCss {
 		css.textShadow = textShadowParts.join(', ');
 	}
 
+	// Cell 3D bevel treatment (a:cell3D).
+	if (style.cell3D) {
+		Object.assign(css, cell3DBevelCss(style.cell3D));
+	}
+
 	return css;
 }
 
@@ -367,22 +401,64 @@ export interface DiagonalBorderInfo {
 	diagUpWidth?: number;
 }
 
-/** Extract diagonal-border info from a cell style, or `null` when none. */
-export function getDiagonalBorders(style?: PptxTableCellStyle): DiagonalBorderInfo | null {
-	if (!style) {
+/**
+ * Extract diagonal-border info from a cell style, or `null` when none.
+ *
+ * When `styleDiagonals` (diagonals inherited from the table style, e.g. via
+ * {@link resolveStyleDiagonalBorders}) is supplied, the two are merged with the
+ * per-cell explicit diagonal winning on each axis.
+ */
+export function getDiagonalBorders(
+	style?: PptxTableCellStyle,
+	styleDiagonals?: DiagonalBorderInfo | null,
+): DiagonalBorderInfo | null {
+	const cellHasDown = Boolean(style?.borderDiagDownColor && style?.borderDiagDownWidth);
+	const cellHasUp = Boolean(style?.borderDiagUpColor && style?.borderDiagUpWidth);
+	const styleHasDown = Boolean(styleDiagonals?.diagDownColor && styleDiagonals?.diagDownWidth);
+	const styleHasUp = Boolean(styleDiagonals?.diagUpColor && styleDiagonals?.diagUpWidth);
+
+	if (!cellHasDown && !cellHasUp && !styleHasDown && !styleHasUp) {
 		return null;
 	}
-	const hasDown = Boolean(style.borderDiagDownColor && style.borderDiagDownWidth);
-	const hasUp = Boolean(style.borderDiagUpColor && style.borderDiagUpWidth);
-	if (!hasDown && !hasUp) {
-		return null;
+
+	const info: DiagonalBorderInfo = {};
+	if (cellHasDown) {
+		info.diagDownColor = style?.borderDiagDownColor;
+		info.diagDownWidth = style?.borderDiagDownWidth;
+	} else if (styleHasDown) {
+		info.diagDownColor = styleDiagonals?.diagDownColor;
+		info.diagDownWidth = styleDiagonals?.diagDownWidth;
 	}
-	return {
-		diagDownColor: style.borderDiagDownColor,
-		diagDownWidth: style.borderDiagDownWidth,
-		diagUpColor: style.borderDiagUpColor,
-		diagUpWidth: style.borderDiagUpWidth,
-	};
+	if (cellHasUp) {
+		info.diagUpColor = style?.borderDiagUpColor;
+		info.diagUpWidth = style?.borderDiagUpWidth;
+	} else if (styleHasUp) {
+		info.diagUpColor = styleDiagonals?.diagUpColor;
+		info.diagUpWidth = styleDiagonals?.diagUpWidth;
+	}
+	return info;
+}
+
+/**
+ * Resolve a cell's diagonal borders combining the per-cell explicit diagonals
+ * with any inherited from the applicable table-style sections. A one-call
+ * convenience for renderers: pass the same {@link TableStyleContext} and cell
+ * position used for banding, and per-cell diagonals still take precedence.
+ */
+export function getCellDiagonalBorders(
+	style: PptxTableCellStyle | undefined,
+	tableData: PptxTableData | undefined,
+	pos: CellBorderPosition,
+	styleCtx?: TableStyleContext,
+): DiagonalBorderInfo | null {
+	let styleDiagonals: DiagonalBorderInfo | undefined;
+	if (tableData) {
+		const entry = resolveTableStyleEntry(tableData.tableStyleId, styleCtx?.tableStyleMap);
+		styleDiagonals = resolveStyleDiagonalBorders(entry, tableData, pos, (fill) =>
+			resolveStyleFillColor(fill, styleCtx?.colorScheme),
+		);
+	}
+	return getDiagonalBorders(style, styleDiagonals);
 }
 
 /**
@@ -410,6 +486,7 @@ export function getTableCellBandStyle(
 
 	const styleEntry = resolveTableStyleEntry(tableData.tableStyleId, styleCtx?.tableStyleMap);
 	const colorScheme = styleCtx?.colorScheme;
+	const fontScheme = styleCtx?.fontScheme;
 
 	/**
 	 * Resolve a section fill to a concrete CSS colour string, falling back
@@ -427,7 +504,7 @@ export function getTableCellBandStyle(
 			applied = true;
 		}
 	}
-	if (applyStyleText(styleEntry?.wholeTblText, colorScheme, style)) {
+	if (applyStyleText(styleEntry?.wholeTblText, colorScheme, style, fontScheme)) {
 		applied = true;
 	}
 
@@ -440,11 +517,11 @@ export function getTableCellBandStyle(
 		const bandGroup = Math.floor(bandIndex / rowCycle) % 2;
 		if (bandGroup === 0) {
 			applyStyleFill(styleEntry?.band1HFill, colorScheme, style, 'rgba(217, 226, 243, 0.5)');
-			applyStyleText(styleEntry?.band1HText, colorScheme, style);
+			applyStyleText(styleEntry?.band1HText, colorScheme, style, fontScheme);
 			applied = true;
 		} else if (styleEntry?.band2HFill) {
 			if (applyStyleFill(styleEntry.band2HFill, colorScheme, style, '')) {
-				applyStyleText(styleEntry.band2HText, colorScheme, style);
+				applyStyleText(styleEntry.band2HText, colorScheme, style, fontScheme);
 				applied = true;
 			}
 		}
@@ -464,12 +541,12 @@ export function getTableCellBandStyle(
 			if (colBandGroup === 0) {
 				if (canOverride) {
 					applyStyleFill(styleEntry?.band1VFill, colorScheme, style, 'rgba(217, 226, 243, 0.35)');
-					applyStyleText(styleEntry?.band1VText, colorScheme, style);
+					applyStyleText(styleEntry?.band1VText, colorScheme, style, fontScheme);
 					applied = true;
 				}
 			} else if (styleEntry?.band2VFill && canOverride) {
 				if (applyStyleFill(styleEntry.band2VFill, colorScheme, style, '')) {
-					applyStyleText(styleEntry.band2VText, colorScheme, style);
+					applyStyleText(styleEntry.band2VText, colorScheme, style, fontScheme);
 					applied = true;
 				}
 			}
@@ -481,7 +558,7 @@ export function getTableCellBandStyle(
 		style.fontWeight = 700;
 		applyStyleFill(styleEntry?.firstRowFill, colorScheme, style, 'rgba(68, 114, 196, 0.85)');
 		style.color = '#ffffff';
-		applyStyleText(styleEntry?.firstRowText, colorScheme, style);
+		applyStyleText(styleEntry?.firstRowText, colorScheme, style, fontScheme);
 		applied = true;
 	}
 
@@ -493,7 +570,7 @@ export function getTableCellBandStyle(
 		}
 		const borderColor = resolveFill(styleEntry?.firstRowFill, 'rgba(68, 114, 196, 0.7)');
 		style.borderTop = `2px solid ${borderColor}`;
-		applyStyleText(styleEntry?.lastRowText, colorScheme, style);
+		applyStyleText(styleEntry?.lastRowText, colorScheme, style, fontScheme);
 		applied = true;
 	}
 
@@ -503,7 +580,7 @@ export function getTableCellBandStyle(
 		if (styleEntry?.firstColFill) {
 			applyStyleFill(styleEntry.firstColFill, colorScheme, style, '');
 		}
-		applyStyleText(styleEntry?.firstColText, colorScheme, style);
+		applyStyleText(styleEntry?.firstColText, colorScheme, style, fontScheme);
 		applied = true;
 	}
 
@@ -513,7 +590,7 @@ export function getTableCellBandStyle(
 		if (styleEntry?.lastColFill) {
 			applyStyleFill(styleEntry.lastColFill, colorScheme, style, '');
 		}
-		applyStyleText(styleEntry?.lastColText, colorScheme, style);
+		applyStyleText(styleEntry?.lastColText, colorScheme, style, fontScheme);
 		applied = true;
 	}
 
@@ -545,7 +622,7 @@ export function getTableCellBandStyle(
 		if (cornerFill && applyStyleFill(cornerFill, colorScheme, style, '')) {
 			applied = true;
 		}
-		if (applyStyleText(cornerText, colorScheme, style)) {
+		if (applyStyleText(cornerText, colorScheme, style, fontScheme)) {
 			applied = true;
 		}
 	}

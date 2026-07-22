@@ -39,6 +39,22 @@ export function applyCellAlignmentStyle(
 		}
 	}
 
+	// `@_anchorCtr` centres the text block perpendicular to text flow
+	// (CT_TableCellProperties §21.1.3.9). For horizontal text this is
+	// horizontal block-centring.
+	const anchorCtr = cellProperties['@_anchorCtr'];
+	if (anchorCtr === '1' || anchorCtr === 'true') {
+		style.anchorCtr = true;
+		hasStyle = true;
+	}
+
+	// `@_horzOverflow` (ST_TextHorzOverflowType): clip | overflow.
+	const horzOverflow = String(cellProperties['@_horzOverflow'] || '').trim();
+	if (horzOverflow === 'clip' || horzOverflow === 'overflow') {
+		style.horzOverflow = horzOverflow;
+		hasStyle = true;
+	}
+
 	return hasStyle;
 }
 

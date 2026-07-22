@@ -22,6 +22,7 @@ import type {
 } from 'pptx-viewer-core';
 
 import { ooxmlDashToCssBorderStyle } from './table-style';
+import type { DiagonalBorderInfo } from './table-style';
 
 /** CSS shorthand for a cell's four edges (any subset may be present). */
 export interface CellBorderCss {
@@ -91,24 +92,49 @@ export interface CellBorderPosition {
 }
 
 /**
- * Build the ordered (low -> high precedence) list of edge candidates from the
- * sections that apply to this cell.
+ * One applicable table-style section for a cell, with the region-edge flags
+ * that decide whether the cell sits on the section's outer edge or interior.
  */
-function collectLayers(
+interface SectionLayer {
+	borders: ParsedTableStyleBorders;
+	regionTop: boolean;
+	regionBottom: boolean;
+	regionLeft: boolean;
+	regionRight: boolean;
+}
+
+/**
+ * Build the ordered (low -> high precedence) list of table-style sections that
+ * apply to this cell, each with its region-edge flags. Shared by the CSS
+ * edge-border resolution and the diagonal-border resolution so both honour the
+ * same precedence and section membership.
+ */
+function collectSections(
 	entry: ParsedTableStyleEntry,
 	tableData: PptxTableData,
 	pos: CellBorderPosition,
-): EdgeCandidates[] {
+): SectionLayer[] {
 	const { rowIndex, cellIndex, rowCount, columnCount } = pos;
 	const isTop = rowIndex === 0;
 	const isBottom = rowIndex === rowCount - 1;
 	const isLeft = cellIndex === 0;
 	const isRight = cellIndex === columnCount - 1;
 
-	const layers: (EdgeCandidates | undefined)[] = [];
+	const sections: SectionLayer[] = [];
+	const push = (
+		borders: ParsedTableStyleBorders | undefined,
+		regionTop: boolean,
+		regionBottom: boolean,
+		regionLeft: boolean,
+		regionRight: boolean,
+	): void => {
+		if (borders) {
+			sections.push({ borders, regionTop, regionBottom, regionLeft, regionRight });
+		}
+	};
 
 	// Whole table: region spans the entire table.
-	layers.push(edgesFromSection(entry.wholeTblBorders, isTop, isBottom, isLeft, isRight));
+	push(entry.wholeTblBorders, isTop, isBottom, isLeft, isRight);
 
 	// Banded rows: treat each banded row as its own single-row region.
 	if (tableData.bandedRows) {
@@ -117,8 +143,13 @@ function collectLayers(
 		if (rowIndex >= bandStartRow && rowIndex < bandEndRow) {
 			const rowCycle = Math.max(tableData.bandRowCycle ?? 1, 1);
 			const bandGroup = Math.floor((rowIndex - bandStartRow) / rowCycle) % 2;
-			const bands = bandGroup === 0 ? entry.band1HBorders : entry.band2HBorders;
-			layers.push(edgesFromSection(bands, true, true, isLeft, isRight));
+			push(
+				bandGroup === 0 ? entry.band1HBorders : entry.band2HBorders,
+				true,
+				true,
+				isLeft,
+				isRight,
+			);
 		}
 	}
 
@@ -129,26 +160,49 @@ function collectLayers(
 		if (cellIndex >= colStart && cellIndex < colEnd) {
 			const colCycle = Math.max(tableData.bandColCycle ?? 1, 1);
 			const colGroup = Math.floor((cellIndex - colStart) / colCycle) % 2;
-			const bands = colGroup === 0 ? entry.band1VBorders : entry.band2VBorders;
-			layers.push(edgesFromSection(bands, isTop, isBottom, true, true));
+			push(colGroup === 0 ? entry.band1VBorders : entry.band2VBorders, isTop, isBottom, true, true);
 		}
 	}
 
 	// First/last row: single-row region spanning all columns.
 	if (tableData.firstRowHeader && isTop) {
-		layers.push(edgesFromSection(entry.firstRowBorders, true, true, isLeft, isRight));
+		push(entry.firstRowBorders, true, true, isLeft, isRight);
 	}
 	if (tableData.lastRow && isBottom) {
-		layers.push(edgesFromSection(entry.lastRowBorders, true, true, isLeft, isRight));
+		push(entry.lastRowBorders, true, true, isLeft, isRight);
 	}
 	// First/last column: single-column region spanning all rows.
 	if (tableData.firstCol && isLeft) {
-		layers.push(edgesFromSection(entry.firstColBorders, isTop, isBottom, true, true));
+		push(entry.firstColBorders, isTop, isBottom, true, true);
 	}
 	if (tableData.lastCol && isRight) {
-		layers.push(edgesFromSection(entry.lastColBorders, isTop, isBottom, true, true));
+		push(entry.lastColBorders, isTop, isBottom, true, true);
 	}
 
+	return sections;
+}
+
+/**
+ * Build the ordered (low -> high precedence) list of edge candidates from the
+ * sections that apply to this cell.
+ */
+function collectLayers(
+	entry: ParsedTableStyleEntry,
+	tableData: PptxTableData,
+	pos: CellBorderPosition,
+): EdgeCandidates[] {
+	const layers: (EdgeCandidates | undefined)[] = [];
+	for (const section of collectSections(entry, tableData, pos)) {
+		layers.push(
+			edgesFromSection(
+				section.borders,
+				section.regionTop,
+				section.regionBottom,
+				section.regionLeft,
+				section.regionRight,
+			),
+		);
+	}
 	return layers.filter((layer): layer is EdgeCandidates => layer !== undefined);
 }
 
@@ -193,4 +247,53 @@ export function resolveCellBorderCss(
 		}
 	}
 	return applied ? css : undefined;
+}
+
+/**
+ * Resolve the diagonal borders (`a:tl2br` / `a:bl2tr`) a cell inherits from its
+ * table style, honouring the same section precedence as the edge borders. The
+ * per-cell explicit diagonals (parsed into the cell style) are applied on top
+ * by the caller, so they still win.
+ *
+ * Returns `undefined` when the applicable sections define no diagonal.
+ */
+export function resolveStyleDiagonalBorders(
+	entry: ParsedTableStyleEntry | undefined,
+	tableData: PptxTableData,
+	pos: CellBorderPosition,
+	resolve: ResolveBorderColor,
+): DiagonalBorderInfo | undefined {
+	if (!entry) {
+		return undefined;
+	}
+	const sections = collectSections(entry, tableData, pos);
+	if (sections.length === 0) {
+		return undefined;
+	}
+
+	// Last-wins across the low -> high precedence section list.
+	let tl2br: ParsedTableStyleBorder | undefined;
+	let bl2tr: ParsedTableStyleBorder | undefined;
+	for (const section of sections) {
+		if (section.borders.tl2br) {
+			tl2br = section.borders.tl2br;
+		}
+		if (section.borders.bl2tr) {
+			bl2tr = section.borders.bl2tr;
+		}
+	}
+
+	const info: DiagonalBorderInfo = {};
+	let applied = false;
+	if (tl2br && !tl2br.noFill) {
+		info.diagDownColor = tl2br.color ?? resolve(tl2br.fill) ?? '#000000';
+		info.diagDownWidth = tl2br.width ?? 1;
+		applied = true;
+	}
+	if (bl2tr && !bl2tr.noFill) {
+		info.diagUpColor = bl2tr.color ?? resolve(bl2tr.fill) ?? '#000000';
+		info.diagUpWidth = bl2tr.width ?? 1;
+		applied = true;
+	}
+	return applied ? info : undefined;
 }

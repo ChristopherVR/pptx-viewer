@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import type { PptxTableCellStyle, XmlObject } from '../../types';
+import { applyCell3DStyle } from './table-cell-3d-helpers';
 import {
 	applyCellFillStyle,
 	applyCellBorderStyle,
@@ -333,5 +334,50 @@ describe('applyCellMarginStyle', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		expect(applyCellMarginStyle(cellProps, style, makeContext())).toBeFalsy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// applyCell3DStyle
+// ---------------------------------------------------------------------------
+
+describe('applyCell3DStyle', () => {
+	it('returns false for undefined cellProperties', () => {
+		const style: PptxTableCellStyle = {};
+		expect(applyCell3DStyle(undefined, style, makeContext())).toBeFalsy();
+		expect(style.cell3D).toBeUndefined();
+	});
+
+	it('returns false when no a:cell3D is present', () => {
+		const style: PptxTableCellStyle = {};
+		expect(applyCell3DStyle({}, style, makeContext())).toBeFalsy();
+		expect(style.cell3D).toBeUndefined();
+	});
+
+	it('parses bevel width/height/preset, material, and light rig', () => {
+		const cellProps: XmlObject = {
+			'a:cell3D': {
+				'@_prstMaterial': 'plastic',
+				'a:bevel': { '@_w': '76200', '@_h': '38100', '@_prst': 'circle' },
+				'a:lightRig': { '@_rig': 'threePt', '@_dir': 'tl' },
+			},
+		};
+		const style: PptxTableCellStyle = {};
+		const result = applyCell3DStyle(cellProps, style, makeContext());
+		expect(result).toBeTruthy();
+		// 76200 / 9525 = 8, 38100 / 9525 = 4
+		expect(style.cell3D?.bevelWidth).toBe(8);
+		expect(style.cell3D?.bevelHeight).toBe(4);
+		expect(style.cell3D?.bevelPreset).toBe('circle');
+		expect(style.cell3D?.material).toBe('plastic');
+		expect(style.cell3D?.lightRig).toBe('threePt');
+		expect(style.cell3D?.lightRigDirection).toBe('tl');
+	});
+
+	it('parses an empty a:cell3D as no captured properties', () => {
+		const cellProps: XmlObject = { 'a:cell3D': {} };
+		const style: PptxTableCellStyle = {};
+		expect(applyCell3DStyle(cellProps, style, makeContext())).toBeFalsy();
+		expect(style.cell3D).toBeUndefined();
 	});
 });

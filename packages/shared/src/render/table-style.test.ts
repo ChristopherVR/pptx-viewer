@@ -6,7 +6,13 @@ import type {
 } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
-import { cellStyleToCss, getTableCellBandStyle, ooxmlDashToCssBorderStyle } from './table-style';
+import {
+	cellStyleToCss,
+	getCellDiagonalBorders,
+	getDiagonalBorders,
+	getTableCellBandStyle,
+	ooxmlDashToCssBorderStyle,
+} from './table-style';
 
 describe('ooxmlDashToCssBorderStyle', () => {
 	it('should return "solid" for undefined input', () => {
@@ -71,6 +77,136 @@ describe('cellStyleToCss', () => {
 		} as PptxTableCellStyle;
 		expect(cellStyleToCss(style).background).toBe('linear-gradient(#000, #fff)');
 	});
+
+	it('centres the text block for anchorCtr when no explicit align is set', () => {
+		const css = cellStyleToCss({ anchorCtr: true } as PptxTableCellStyle);
+		expect(css.textAlign).toBe('center');
+	});
+
+	it('lets an explicit align win over anchorCtr', () => {
+		const css = cellStyleToCss({ anchorCtr: true, align: 'right' } as PptxTableCellStyle);
+		expect(css.textAlign).toBe('right');
+	});
+
+	it('clips horizontally for horzOverflow clip', () => {
+		const css = cellStyleToCss({ horzOverflow: 'clip' } as PptxTableCellStyle);
+		expect(css.overflowX).toBe('hidden');
+	});
+
+	it('renders a box-shadow bevel for cell3D', () => {
+		const css = cellStyleToCss({
+			cell3D: { bevelWidth: 8, bevelHeight: 8, lightRigDirection: 'tl' },
+		} as PptxTableCellStyle);
+		expect(String(css.boxShadow)).toContain('inset');
+		expect(String(css.boxShadow)).toContain('rgba(255,255,255,0.55)');
+		expect(String(css.boxShadow)).toContain('rgba(0,0,0,0.4)');
+	});
+});
+
+describe('getDiagonalBorders', () => {
+	it('returns null when neither cell nor style diagonals are present', () => {
+		expect(getDiagonalBorders(undefined)).toBeNull();
+		expect(getDiagonalBorders({} as PptxTableCellStyle)).toBeNull();
+	});
+
+	it('reads per-cell diagonals', () => {
+		const info = getDiagonalBorders({
+			borderDiagDownColor: '#FF0000',
+			borderDiagDownWidth: 2,
+		} as PptxTableCellStyle);
+		expect(info?.diagDownColor).toBe('#FF0000');
+		expect(info?.diagDownWidth).toBe(2);
+	});
+
+	it('falls back to style-inherited diagonals when the cell has none', () => {
+		const info = getDiagonalBorders({} as PptxTableCellStyle, {
+			diagDownColor: '#00FF00',
+			diagDownWidth: 1,
+		});
+		expect(info?.diagDownColor).toBe('#00FF00');
+		expect(info?.diagDownWidth).toBe(1);
+	});
+
+	it('lets the per-cell diagonal win over the style-inherited one per axis', () => {
+		const info = getDiagonalBorders(
+			{ borderDiagDownColor: '#111111', borderDiagDownWidth: 3 } as PptxTableCellStyle,
+			{ diagDownColor: '#999999', diagDownWidth: 1, diagUpColor: '#00FF00', diagUpWidth: 2 },
+		);
+		// Down axis: per-cell wins; up axis: inherited from style.
+		expect(info?.diagDownColor).toBe('#111111');
+		expect(info?.diagDownWidth).toBe(3);
+		expect(info?.diagUpColor).toBe('#00FF00');
+		expect(info?.diagUpWidth).toBe(2);
+	});
+});
+
+describe('getCellDiagonalBorders - style-inherited diagonals (issue: table-style tl2br/bl2tr)', () => {
+	const STYLE_ID = '{TESTSTYLE-0000-0000-0000-0000000000D1}';
+
+	function styledTable(overrides: Partial<PptxTableData> = {}): PptxTableData {
+		return {
+			rows: [],
+			columnWidths: [0.5, 0.5],
+			tableStyleId: STYLE_ID,
+			...overrides,
+		} as unknown as PptxTableData;
+	}
+
+	it('renders a whole-table tl2br/bl2tr diagonal for a cell', () => {
+		const map: ParsedTableStyleMap = {
+			[STYLE_ID]: {
+				styleId: STYLE_ID,
+				wholeTblBorders: {
+					tl2br: { width: 2, color: '#FF0000' },
+					bl2tr: { width: 1, color: '#0000FF' },
+				},
+			},
+		};
+		const info = getCellDiagonalBorders(
+			undefined,
+			styledTable(),
+			{ rowIndex: 1, cellIndex: 1, rowCount: 3, columnCount: 3 },
+			{ tableStyleMap: map },
+		);
+		expect(info?.diagDownColor).toBe('#FF0000');
+		expect(info?.diagDownWidth).toBe(2);
+		expect(info?.diagUpColor).toBe('#0000FF');
+		expect(info?.diagUpWidth).toBe(1);
+	});
+
+	it('resolves a scheme-colour diagonal via the theme colour scheme', () => {
+		const map: ParsedTableStyleMap = {
+			[STYLE_ID]: {
+				styleId: STYLE_ID,
+				wholeTblBorders: { tl2br: { width: 1, fill: { schemeColor: 'accent1' } } },
+			},
+		};
+		const colorScheme = { accent1: '#123456' } as unknown as PptxThemeColorScheme;
+		const info = getCellDiagonalBorders(
+			undefined,
+			styledTable(),
+			{ rowIndex: 0, cellIndex: 0, rowCount: 2, columnCount: 2 },
+			{ tableStyleMap: map, colorScheme },
+		);
+		expect(info?.diagDownColor).toBe('#123456');
+	});
+
+	it('lets a per-cell diagonal override the style-inherited one', () => {
+		const map: ParsedTableStyleMap = {
+			[STYLE_ID]: {
+				styleId: STYLE_ID,
+				wholeTblBorders: { tl2br: { width: 1, color: '#999999' } },
+			},
+		};
+		const info = getCellDiagonalBorders(
+			{ borderDiagDownColor: '#000000', borderDiagDownWidth: 4 } as PptxTableCellStyle,
+			styledTable(),
+			{ rowIndex: 1, cellIndex: 1, rowCount: 3, columnCount: 3 },
+			{ tableStyleMap: map },
+		);
+		expect(info?.diagDownColor).toBe('#000000');
+		expect(info?.diagDownWidth).toBe(4);
+	});
 });
 
 describe('getTableCellBandStyle', () => {
@@ -100,7 +236,7 @@ describe('getTableCellBandStyle', () => {
 	});
 });
 
-describe('getTableCellBandStyle — table-style borders (issue #71)', () => {
+describe('getTableCellBandStyle - table-style borders (issue #71)', () => {
 	const STYLE_ID = '{TESTSTYLE-0000-0000-0000-000000000071}';
 
 	function styledTable(): PptxTableData {
@@ -185,7 +321,7 @@ describe('getTableCellBandStyle — table-style borders (issue #71)', () => {
 	});
 });
 
-describe('getTableCellBandStyle — section fill types (issue #95)', () => {
+describe('getTableCellBandStyle - section fill types (issue #95)', () => {
 	const STYLE_ID = '{TESTSTYLE-0000-0000-0000-000000000095}';
 
 	function tableWith(overrides: Partial<PptxTableData>): PptxTableData {

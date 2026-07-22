@@ -12,7 +12,7 @@
 /**
  * Per-cell visual style for a table cell.
  *
- * All fields are optional — unset values inherit from the table style.
+ * All fields are optional - unset values inherit from the table style.
  *
  * @example
  * ```ts
@@ -138,6 +138,53 @@ export interface PptxTableCellStyle {
 	patternFillForeground?: string;
 	/** Pattern fill background colour. */
 	patternFillBackground?: string;
+	/**
+	 * Cell 3D bevel + lighting from `a:tcPr/a:cell3D` (CT_Cell3D,
+	 * ECMA-376 §21.1.3.1). Rendered as a CSS bevel treatment.
+	 */
+	cell3D?: PptxTableCell3D;
+	/**
+	 * `a:tcPr/@anchorCtr` - centre the text block in the direction
+	 * perpendicular to the text flow (horizontal centring for horizontal text).
+	 */
+	anchorCtr?: boolean;
+	/**
+	 * `a:tcPr/@horzOverflow` (ST_TextHorzOverflowType): `clip` clips text at
+	 * the cell edge, `overflow` (the default) lets it spill.
+	 */
+	horzOverflow?: 'clip' | 'overflow';
+}
+
+/**
+ * Cell 3D bevel + lighting parsed from `a:tcPr/a:cell3D` (CT_Cell3D).
+ *
+ * Only the fields needed to render a plausible bevel treatment are captured;
+ * verbatim round-trip of the full node is handled separately by the save path.
+ *
+ * @example
+ * ```ts
+ * const c3d: PptxTableCell3D = {
+ *   bevelWidth: 8,
+ *   bevelHeight: 8,
+ *   bevelPreset: 'circle',
+ *   material: 'plastic',
+ * };
+ * // => satisfies PptxTableCell3D
+ * ```
+ */
+export interface PptxTableCell3D {
+	/** Bevel width in px (from `a:bevel@w`, EMU converted). */
+	bevelWidth?: number;
+	/** Bevel height in px (from `a:bevel@h`, EMU converted). */
+	bevelHeight?: number;
+	/** Bevel preset name (`a:bevel@prst`, e.g. `circle`, `relaxedInset`). */
+	bevelPreset?: string;
+	/** Preset material (`a:cell3D@prstMaterial`, e.g. `plastic`, `metal`). */
+	material?: string;
+	/** Light rig type (`a:lightRig@rig`, e.g. `threePt`, `soft`). */
+	lightRig?: string;
+	/** Light rig direction (`a:lightRig@dir`, e.g. `tl`, `t`, `tr`). */
+	lightRigDirection?: string;
 }
 
 /**
@@ -374,7 +421,7 @@ export interface ParsedTableStyleBorder {
 	fill?: ParsedTableStyleFill;
 	/** Explicit hex colour when the line used `a:srgbClr` (e.g. `#808080`). */
 	color?: string;
-	/** The line was `a:noFill` — an explicit "no border" that clears lower layers. */
+	/** The line was `a:noFill` - an explicit "no border" that clears lower layers. */
 	noFill?: boolean;
 }
 

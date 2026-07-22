@@ -15,7 +15,9 @@ import type {
 	ParsedTableStyleFill,
 	ParsedTableStyleGradientStop,
 	ParsedTableStyleText,
+	PptxTableCell3D,
 	PptxThemeColorScheme,
+	PptxThemeFontScheme,
 	ShapeStyle,
 } from 'pptx-viewer-core';
 
@@ -179,13 +181,38 @@ export function applyStyleFill(
 }
 
 /**
+ * Resolve a table-style `a:fontRef@idx` collection index to a concrete font
+ * family via the theme font scheme. `minor` maps to the body font, `major` to
+ * the heading font; `none` (or an absent scheme) resolves to `undefined`.
+ */
+export function resolveFontRefIdx(
+	idx: string | undefined,
+	fontScheme: PptxThemeFontScheme | undefined,
+): string | undefined {
+	if (!idx || !fontScheme) {
+		return undefined;
+	}
+	if (idx === 'minor') {
+		return fontScheme.minorFont?.latin;
+	}
+	if (idx === 'major') {
+		return fontScheme.majorFont?.latin;
+	}
+	return undefined;
+}
+
+/**
  * Apply text properties from a {@link ParsedTableStyleText} entry into a
  * {@link TableCellCss} object. Returns `true` when any property was set.
+ *
+ * When `fontScheme` is supplied, a `fontRefIdx` (`minor`/`major`) resolves to
+ * the theme body/heading font family; an explicit `fontFace` still wins.
  */
 export function applyStyleText(
 	text: ParsedTableStyleText | undefined,
 	colorScheme: PptxThemeColorScheme | undefined,
 	css: TableCellCss,
+	fontScheme?: PptxThemeFontScheme,
 ): boolean {
 	if (!text) {
 		return false;
@@ -206,6 +233,12 @@ export function applyStyleText(
 	if (text.fontFace) {
 		css.fontFamily = text.fontFace;
 		applied = true;
+	} else {
+		const refFont = resolveFontRefIdx(text.fontRefIdx, fontScheme);
+		if (refFont) {
+			css.fontFamily = refFont;
+			applied = true;
+		}
 	}
 	if (text.fontSchemeColor && colorScheme) {
 		const base = (colorScheme as unknown as Record<string, string | undefined>)[
@@ -227,4 +260,34 @@ export function applyStyleText(
 		applied = true;
 	}
 	return applied;
+}
+
+/**
+ * Highlight-offset sign per `a:lightRig@dir`. The bevel highlight sits on the
+ * lit edges; the shadow mirrors it on the opposite edges. Keys are the eight
+ * OOXML rig directions; the default (`tl`) lights the top-left.
+ */
+const BEVEL_LIGHT_OFFSETS: Record<string, { x: number; y: number }> = {
+	tl: { x: 1, y: 1 },
+	t: { x: 0, y: 1 },
+	tr: { x: -1, y: 1 },
+	r: { x: -1, y: 0 },
+	br: { x: -1, y: -1 },
+	b: { x: 0, y: -1 },
+	bl: { x: 1, y: -1 },
+	l: { x: 1, y: 0 },
+};
+
+/**
+ * Build a CSS bevel treatment for a table cell's `a:cell3D` (CT_Cell3D). Uses a
+ * pair of inset box-shadows: a light highlight on the lit edges and a dark
+ * shadow on the opposite edges, sized from the bevel height/width.
+ */
+export function cell3DBevelCss(cell3D: PptxTableCell3D): TableCellCss {
+	const size = Math.max(cell3D.bevelHeight ?? cell3D.bevelWidth ?? 4, 1);
+	const dir = cell3D.lightRigDirection ?? 'tl';
+	const off = BEVEL_LIGHT_OFFSETS[dir] ?? BEVEL_LIGHT_OFFSETS.tl;
+	const highlight = `inset ${off.x * size}px ${off.y * size}px ${size}px rgba(255,255,255,0.55)`;
+	const shadow = `inset ${-off.x * size}px ${-off.y * size}px ${size}px rgba(0,0,0,0.4)`;
+	return { boxShadow: `${highlight}, ${shadow}` };
 }
