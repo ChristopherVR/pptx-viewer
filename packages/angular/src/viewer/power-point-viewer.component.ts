@@ -1303,6 +1303,39 @@ export class PowerPointViewerComponent {
 		},
 		applySlides: (next, label) => this.editor.applyReplacement(next, label),
 		applyTheme: (updates) => this.applyAiTheme(updates),
+		// Presentation-level (deck) reads/writes for the AI `getDeckData`/
+		// `applyDeckData` seam. Sections are editor-tracked (saved with the deck);
+		// canvas size + metadata are loader-tracked. Each setter marks the deck
+		// dirty so the change persists on the next save and re-renders.
+		getSections: () => this.editor.sections(),
+		getPresentationProperties: () => this.loader.presentationProperties(),
+		getCustomProperties: () => this.loader.customProperties(),
+		getCoreProperties: () => this.loader.coreProperties(),
+		getAppProperties: () => this.loader.appProperties(),
+		setCanvasSize: (size) => {
+			this.loader.canvasSize.set(size);
+			this.editor.dirty.set(true);
+		},
+		setSections: (sections) => {
+			this.editor.sections.set([...sections]);
+			this.editor.dirty.set(true);
+		},
+		setPresentationProperties: (props) => {
+			this.loader.presentationProperties.set(props);
+			this.editor.dirty.set(true);
+		},
+		setCustomProperties: (props) => {
+			this.loader.customProperties.set([...props]);
+			this.editor.dirty.set(true);
+		},
+		setCoreProperties: (props) => {
+			this.loader.coreProperties.set(props);
+			this.editor.dirty.set(true);
+		},
+		setAppProperties: (props) => {
+			this.loader.appProperties.set(props);
+			this.editor.dirty.set(true);
+		},
 		// Scope the assistant to the user's AI picks / pinned focus / live
 		// selection (see AiPanelStore); falls back to the whole active slide.
 		getFocusedTargets: () => this.aiPanelStore.getFocusedTargets(),
