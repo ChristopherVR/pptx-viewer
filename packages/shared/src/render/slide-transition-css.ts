@@ -19,10 +19,13 @@
  * `honeycomb`/`glitter`/`shred`/`flash`/`vortex`/`warp`/`wheelReverse`/`window`)
  * is rendered faithfully by delegating to {@link getP14TransitionAnimations}
  * (its `@keyframes` live in `p14-transition-keyframes` and are folded into
- * `SLIDE_TRANSITION_KEYFRAMES`). The classic set and the newer p15 cinematic
- * types with no dedicated keyframes (`cube`/`flip`/`rotate`/`orbit`/`fracture`/
- * `peelOff`/`pageCurl*`/`airplane`/`origami`, etc.) fall back to a symmetrical
- * cross-fade.
+ * `SLIDE_TRANSITION_KEYFRAMES`). The newer Office 2013+ (p15) cinematic family
+ * (`cube`/`flip`/`rotate`/`orbit`/`fallOver`/`drape`/`curtains`/`wind`/
+ * `prestige`/`fracture`/`crush`/`peelOff`/`pageCurlSingle`/`pageCurlDouble`/
+ * `airplane`/`origami`) is likewise rendered faithfully via
+ * {@link getCinematicTransitionAnimations} (its `@keyframes` live in
+ * `slide-transition-cinematic` as `CINEMATIC_TRANSITION_KEYFRAMES`). Only truly
+ * unknown types fall back to a symmetrical cross-fade.
  *
  * Everything here is pure and unit-testable: no framework imports, no DOM.
  *
@@ -32,6 +35,7 @@
 import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 
 import { getP14TransitionAnimations } from './p14-transition-css';
+import { getCinematicTransitionAnimations } from './slide-transition-cinematic';
 import {
 	DEFAULT_TRANSITION_DURATION_MS,
 	EASE,
@@ -75,6 +79,17 @@ export function getSlideTransitionAnimations(
 	const p14 = getP14TransitionAnimations(type, durationMs, direction, orient);
 	if (p14) {
 		return p14;
+	}
+
+	// The Office 2013+ (p15) cinematic family (cube/flip/rotate/orbit/fallOver/
+	// drape/curtains/wind/prestige/fracture/crush/peelOff/pageCurlSingle/
+	// pageCurlDouble/airplane/origami) is rendered with real 3-D / composite
+	// keyframes. Returns `undefined` for every other type so the classic 2-D
+	// cases below still run. Its `@keyframes` (`CINEMATIC_TRANSITION_KEYFRAMES`)
+	// are folded into `SLIDE_TRANSITION_KEYFRAMES`.
+	const cinematic = getCinematicTransitionAnimations(type, durationMs, direction, orient);
+	if (cinematic) {
+		return cinematic;
 	}
 
 	switch (type) {
@@ -321,9 +336,9 @@ export function getSlideTransitionAnimations(
 		// switch/vortex/warp/wheelReverse/window) is handled faithfully above via
 		// `getP14TransitionAnimations` and never reaches this switch.
 
-		// Fallback (unknown / not-yet-mapped type, e.g. the p15 cinematic set:
-		// cube/flip/rotate/orbit/fracture/peelOff/pageCurl*/airplane/origami)
-		// — symmetrical cross-fade.
+		// Fallback (genuinely unknown / not-yet-mapped type). The p14 exotic set
+		// and the p15 cinematic set are handled above and never reach here.
+		// Symmetrical cross-fade.
 		default:
 			return {
 				outgoing: `pptx-tr-fade-out ${dur} ${EASE} forwards`,

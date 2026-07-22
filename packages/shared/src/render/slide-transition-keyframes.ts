@@ -21,6 +21,7 @@
  */
 
 import { P14_TRANSITION_KEYFRAMES_ALL } from './p14-transition-keyframes';
+import { CINEMATIC_TRANSITION_KEYFRAMES } from './slide-transition-cinematic';
 
 const CORE_SLIDE_TRANSITION_KEYFRAMES = `
 /* ── Fade ───────────────────────────────────────────────────────────── */
@@ -291,7 +292,7 @@ const CORE_SLIDE_TRANSITION_KEYFRAMES = `
  * faithful Office 2010 (`p14`) keyframes, so both the classic and exotic / 3-D
  * transitions animate wherever this single string is injected.
  */
-export const SLIDE_TRANSITION_KEYFRAMES = `${CORE_SLIDE_TRANSITION_KEYFRAMES}\n${P14_TRANSITION_KEYFRAMES_ALL}`;
+export const SLIDE_TRANSITION_KEYFRAMES = `${CORE_SLIDE_TRANSITION_KEYFRAMES}\n${P14_TRANSITION_KEYFRAMES_ALL}\n${CINEMATIC_TRANSITION_KEYFRAMES}`;
 
 /**
  * Alias of {@link SLIDE_TRANSITION_KEYFRAMES} under the `_CSS` name the Vue

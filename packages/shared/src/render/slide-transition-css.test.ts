@@ -250,12 +250,12 @@ describe('getSlideTransitionAnimations', () => {
 		expect(prism.outgoing).toContain('pptx-tr-prism-out-to-left');
 		expect(prism.incoming).toContain('pptx-tr-prism-in-from-right');
 
-		// `cube`/`flip`/`rotate`/`orbit` and the p15 cinematic set have no faithful
-		// keyframes yet, so they intentionally stay on the cross-fade fallback.
+		// `cube`/`flip`/`rotate`/`orbit` now resolve to the real p15 cinematic 3-D
+		// keyframes (see slide-transition-cinematic), no longer the cross-fade.
 		for (const type of ['cube', 'flip', 'rotate', 'orbit'] as const) {
 			const result = getSlideTransitionAnimations(type as PptxTransitionType, 400, undefined);
-			expect(result.incoming).toContain('pptx-tr-fade-in');
-			expect(result.outgoing).toContain('pptx-tr-fade-out');
+			expect(result.outgoing.startsWith('pptx-tr-fade-out ')).toBeFalsy();
+			expect(result.outgoing).toContain(`pptx-tr-${type === 'rotate' ? 'rotate-out-ccw' : type}`);
 		}
 	});
 
