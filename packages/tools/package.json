@@ -76,7 +76,7 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"tsdown": "^0.22.9",
+		"tsdown": "^0.22.12",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.10",
