@@ -1,16 +1,17 @@
 /**
- * AiProposalCardComponent: a single staged, not-yet-applied write from the
- * assistant. Shows a short diff summary with Accept / Reject controls. Purely
- * presentational; the accept/reject outputs route through the proposal store.
- * Mirrors React's `AiProposalCard`.
+ * AiProposalCardComponent: a single staged, not-yet-applied change the assistant
+ * is suggesting. Reads like a human suggestion: a clear title, a plain-language
+ * description of what will happen ({@link humanizeDiffLine}), and friendly Apply
+ * / Discard buttons. The full description is shown (never truncated); long lists
+ * scroll rather than clip. Purely presentational; the accept/reject outputs
+ * route through the proposal store. Mirrors React's round-3 `AiProposalCard`.
  */
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { LucideCheck, LucideX } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { humanizeDiffLine } from '../../internal/shared-ai';
 import type { ProposalView } from '../../internal/shared-ai';
-
-const MAX_SUMMARY_LINES = 4;
 
 @Component({
 	selector: 'pptx-ai-proposal-card',
@@ -23,15 +24,10 @@ const MAX_SUMMARY_LINES = 4;
 				{{ 'pptx.ai.proposedChange' | translate }}
 			</div>
 			<div class="text-[12px] font-medium text-foreground">{{ proposal().label }}</div>
-			@if (shown().length > 0) {
-				<ul class="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
-					@for (line of shown(); track $index) {
-						<li class="truncate" [title]="line">{{ line }}</li>
-					}
-					@if (extra() > 0) {
-						<li class="italic">
-							{{ 'pptx.ai.moreChanges' | translate: { count: extra() } }}
-						</li>
+			@if (lines().length > 0) {
+				<ul class="mt-1 max-h-40 space-y-0.5 overflow-y-auto text-[11px] text-muted-foreground">
+					@for (line of lines(); track $index) {
+						<li class="break-words">{{ line }}</li>
 					}
 				</ul>
 			}
@@ -61,6 +57,6 @@ export class AiProposalCardComponent {
 	readonly accept = output<string>();
 	readonly reject = output<string>();
 
-	protected readonly shown = computed(() => this.proposal().summary.slice(0, MAX_SUMMARY_LINES));
-	protected readonly extra = computed(() => this.proposal().summary.length - this.shown().length);
+	/** Plain-language description of every staged change (never truncated). */
+	protected readonly lines = computed(() => this.proposal().summary.map(humanizeDiffLine));
 }
