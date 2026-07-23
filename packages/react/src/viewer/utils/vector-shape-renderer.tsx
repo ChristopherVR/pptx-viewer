@@ -18,6 +18,8 @@ import {
 } from './connector-path';
 import { getShapeType } from './shape-types';
 import { normalizeStrokeDashType, getSvgStrokeDasharray } from './style';
+import { getStrokeOnlyPresetPaths } from './vector-subpath-paint';
+import { renderCustomGeometryVector, renderStrokeOnlyPreset } from './vector-subpath-render';
 
 export function renderVectorShape(
 	element: PptxElement,
@@ -94,66 +96,23 @@ export function renderVectorShape(
 		element.pathWidth > 0 &&
 		element.pathHeight > 0
 	) {
-		const ss = element.shapeStyle;
-		const lineCap = svgLineCap(ss?.lineCap);
-		const lineJoin: 'round' | 'bevel' | 'miter' =
-			ss?.lineJoin === 'bevel' ? 'bevel' : ss?.lineJoin === 'miter' ? 'miter' : 'round';
-		// a:miter/@lim is stored in 1000ths of a percent (800000 = 8.0); SVG's
-		// stroke-miterlimit is a plain ratio >= 1.
-		const miterLimit =
-			lineJoin === 'miter' && typeof ss?.miterLimit === 'number'
-				? Math.max(ss.miterLimit / 100000, 1)
-				: undefined;
-		// A custom geometry whose sub-paths all opt out of fill
-		// (`a:path/@fill="none"`) is an open stroke, not a filled region; likewise
-		// `@stroke="0"` on every sub-path means outline-off. (Full per-sub-path
-		// mixed fill modes need the structured `customGeometryPaths`, split by
-		// core's `customGeometryPathsToSvgSubpaths` once it is barrel-exported.)
-		const geomPaths = element.customGeometryPaths;
-		const allFillNone =
-			Array.isArray(geomPaths) &&
-			geomPaths.length > 0 &&
-			geomPaths.every((p) => p.fillMode === 'none');
-		const allStrokeOff =
-			Array.isArray(geomPaths) &&
-			geomPaths.length > 0 &&
-			geomPaths.every((p) => p.stroke === false);
-		const doFill = hasFill && !allFillNone;
-		// Compound (dbl/thickThin/tri) outlines render as parallel stroked strands,
-		// matching the connector renderer, instead of a single flat line.
-		const strokeOffsets =
-			strokeWidth > 0 && !allStrokeOff ? getCompoundLineOffsets(ss?.compoundLine, strokeWidth) : [];
-		const strokeWidths = getCompoundLineWidths(ss?.compoundLine, strokeWidth);
-		return (
-			<svg
-				viewBox={`0 0 ${element.pathWidth} ${element.pathHeight}`}
-				className='w-full h-full pointer-events-none'
-				preserveAspectRatio='none'
-			>
-				{doFill && (
-					<path
-						d={element.pathData}
-						fill={fillPaint}
-						stroke='none'
-						vectorEffect='non-scaling-stroke'
-					/>
-				)}
-				{strokeOffsets.map((offset, idx) => (
-					<path
-						key={idx}
-						d={element.pathData}
-						fill='none'
-						stroke={strokePaint}
-						strokeWidth={Math.max(strokeWidths[idx] ?? strokeWidth, 1)}
-						strokeDasharray={dashArray}
-						strokeLinecap={lineCap}
-						strokeLinejoin={lineJoin}
-						strokeMiterlimit={miterLimit}
-						vectorEffect='non-scaling-stroke'
-						style={offset !== 0 ? { transform: `translate(0, ${offset}px)` } : undefined}
-					/>
-				))}
-			</svg>
+		// Custom geometry: emit one `<path>` per structured sub-path so each
+		// sub-path's own `@fill` mode (norm/lighten/darken/none) and `@stroke`
+		// flag are honoured. Geometry without structured sub-paths falls back to
+		// painting the aggregate `pathData` with a single fill plus compound
+		// stroke strands (the legacy behaviour).
+		return renderCustomGeometryVector(
+			element.pathData,
+			element.pathWidth,
+			element.pathHeight,
+			element.customGeometryPaths,
+			element.shapeStyle,
+			hasFill,
+			fillColor,
+			element.shapeStyle?.fillOpacity,
+			strokePaint,
+			strokeWidth,
+			dashArray,
 		);
 	}
 
@@ -291,6 +250,22 @@ export function renderVectorShape(
 					/>
 				))}
 			</svg>
+		);
+	}
+
+	// Open, stroke-only presets (e.g. `arc`): `evaluatePresetShape` reports
+	// `fillNone`, so paint a stroked outline rather than flood-filling the wedge.
+	// Placed last so connector/callout shapes keep their dedicated renderers.
+	const strokeOnlyPreset = getStrokeOnlyPresetPaths(element);
+	if (strokeOnlyPreset) {
+		return renderStrokeOnlyPreset(
+			strokeOnlyPreset,
+			element.width,
+			element.height,
+			element.shapeStyle,
+			strokePaint,
+			strokeWidth,
+			dashArray,
 		);
 	}
 

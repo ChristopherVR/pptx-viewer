@@ -30,7 +30,10 @@ export {
 	evaluatePresetShape,
 	lookupPresetShape,
 	type PresetShapeEvaluationResult,
+	type PresetSubpathResult,
 } from './preset-shape-evaluator';
+
+export { customGeometryPathsToSvgSubpaths, type CustomGeometrySubpathSvg } from './custom-geometry';
 
 export { getAdjustmentAwareClipPath } from './adjustment-aware-shapes';
 
