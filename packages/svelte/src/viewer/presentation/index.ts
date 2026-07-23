@@ -7,4 +7,7 @@ export type { PresentationControllerDeps, TransitionState } from './presentation
 export { PresenterSession } from './presenter-session.svelte';
 export { usePresentationEffects } from './presentation-effects.svelte';
 export type { PresentationEffectsDeps } from './presentation-effects.svelte';
-export { default as PresentationTransitionOverlay } from './PresentationTransitionOverlay.svelte';
+// .svelte modules must not be re-exported directly from a public barrel (see
+// ./transition-overlay.ts).
+export { PresentationTransitionOverlay } from './transition-overlay';
+export type { PresentationTransitionOverlayProps } from './transition-overlay';
