@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuDownload, LuMenu, LuPresentation, LuRedo, LuShare2, LuUndo } from 'react-icons/lu';
+import {
+	LuDownload,
+	LuMenu,
+	LuPresentation,
+	LuRedo,
+	LuShare2,
+	LuSparkles,
+	LuUndo,
+} from 'react-icons/lu';
 
 import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
 import { cn } from '../../utils';
@@ -75,6 +83,21 @@ export function MobileToolbar(props: ToolbarProps): React.ReactElement {
 
 			{/* Flexible spacer (could hold filename later) */}
 			<div className='flex-1' />
+
+			{/* AI assistant toggle: surfaced in the top-right on mobile too (the
+			    desktop quick-access bar is replaced by this toolbar on mobile, so
+			    without this the assistant was unreachable). Host opts in via `ai`. */}
+			{showEdit && props.aiEnabled && (
+				<button
+					type='button'
+					onClick={props.onToggleAiPanel}
+					className={cn(btn, props.isAiPanelOpen ? 'text-primary' : undefined)}
+					title={t('pptx.toolbar.toggleAiAssistant')}
+					aria-label={t('pptx.toolbar.toggleAiAssistant')}
+				>
+					<LuSparkles className='w-5 h-5' />
+				</button>
+			)}
 
 			{/* Save / download: surfaced directly so it's reachable without
 			    digging into Menu → File, and available even in view-only mode

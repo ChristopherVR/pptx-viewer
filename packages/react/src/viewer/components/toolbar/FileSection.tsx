@@ -57,21 +57,21 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 	const title = BACKSTAGE_NAV.find((item) => item.id === page)?.label ?? 'Home';
 	return (
 		<div
-			className='fixed inset-0 z-[200] flex bg-background font-[Aptos,Segoe_UI,sans-serif] text-foreground'
+			className='fixed inset-0 z-[200] flex bg-background font-[Aptos,Segoe_UI,sans-serif] text-foreground max-md:flex-col'
 			role='dialog'
 			aria-modal='true'
 			aria-label='File'
 		>
-			<aside className='flex w-[148px] shrink-0 flex-col border-r border-border bg-secondary'>
+			<aside className='flex w-[148px] shrink-0 flex-col border-r border-border bg-secondary max-md:w-full max-md:flex-row max-md:items-center max-md:overflow-x-auto max-md:border-r-0 max-md:border-b'>
 				<button
 					type='button'
 					aria-label='Back to presentation'
 					onClick={p.onClose}
-					className='grid h-47px min-h-[48px] place-items-center border-b border-border text-xl hover:bg-accent'
+					className='grid h-47px min-h-[48px] place-items-center border-b border-border text-xl hover:bg-accent max-md:min-w-[48px] max-md:shrink-0 max-md:border-b-0 max-md:border-r'
 				>
 					<LuArrowLeft />
 				</button>
-				<nav className='flex min-h-0 flex-1 flex-col py-2'>
+				<nav className='flex min-h-0 flex-1 flex-col py-2 max-md:flex-row max-md:items-center max-md:py-0'>
 					{BACKSTAGE_NAV.filter(
 						(item) => !item.group && !(item.id === 'export' && exportHidden),
 					).map((item) => (
@@ -85,13 +85,13 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 										? run(p.onSaveAsPptx)
 										: setPage(item.id)
 							}
-							className={`flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px] ${page === item.id ? 'border-primary bg-card text-primary' : 'border-transparent hover:bg-accent'}`}
+							className={`flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px] max-md:shrink-0 max-md:whitespace-nowrap max-md:border-l-0 max-md:border-b-2 max-md:px-3 ${page === item.id ? 'border-primary bg-card text-primary' : 'border-transparent hover:bg-accent'}`}
 						>
 							<BackstageNavIcon page={item.id} />
 							{item.label}
 						</button>
 					))}
-					<div className='flex-1' />
+					<div className='flex-1 max-md:hidden' />
 					{BACKSTAGE_NAV.filter((item) => item.group).map((item) => (
 						<button
 							key={item.id}
@@ -99,7 +99,7 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 							onClick={() =>
 								item.id === 'options' && p.onOpenSettings ? run(p.onOpenSettings) : setPage(item.id)
 							}
-							className={`flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px] ${page === item.id ? 'border-primary bg-card text-primary' : 'border-transparent hover:bg-accent'}`}
+							className={`flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px] max-md:shrink-0 max-md:whitespace-nowrap max-md:border-l-0 max-md:border-b-2 max-md:px-3 ${page === item.id ? 'border-primary bg-card text-primary' : 'border-transparent hover:bg-accent'}`}
 						>
 							<BackstageNavIcon page={item.id} />
 							{item.label}
@@ -107,7 +107,7 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 					))}
 				</nav>
 			</aside>
-			<main className='min-w-0 flex-1 overflow-y-auto bg-background px-[clamp(32px,4vw,72px)] py-5'>
+			<main className='min-w-0 flex-1 overflow-y-auto bg-background px-[clamp(32px,4vw,72px)] py-5 max-md:px-4 max-md:py-4'>
 				<h1 className='text-[24px] font-semibold'>{page === 'home' ? 'Good evening' : title}</h1>
 				{(page === 'home' || page === 'new') && (
 					<BackstageNewGallery

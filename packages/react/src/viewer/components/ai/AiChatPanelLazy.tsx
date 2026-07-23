@@ -25,7 +25,7 @@ export function AiChatPanelLazy(props: AiChatPanelLazyProps) {
 		<Suspense
 			fallback={
 				<div
-					className='absolute right-0 top-0 z-30 flex h-full w-80 items-center justify-center border-l border-border bg-card text-muted-foreground max-md:inset-x-0 max-md:top-auto max-md:bottom-0 max-md:h-auto max-md:max-h-[60vh] max-md:w-full max-md:rounded-t-xl max-md:border-l-0 max-md:border-t'
+					className='absolute right-0 top-0 z-30 flex h-full w-80 items-center justify-center border-l border-border bg-card text-muted-foreground max-md:inset-x-0 max-md:top-auto max-md:bottom-0 max-md:h-[75dvh] max-md:w-full max-md:rounded-t-2xl max-md:border-l-0 max-md:border-t max-md:shadow-2xl'
 					style={props.panelWidth ? { width: props.panelWidth } : undefined}
 				>
 					<LuLoaderCircle className='w-5 h-5 animate-spin' />
