@@ -184,7 +184,7 @@
     },
     "packages/angular": {
       "name": "pptx-angular-viewer",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "dependencies": {
         "@lucide/angular": "^1.25.0",
         "dompurify": "^3.4.12",
@@ -222,8 +222,8 @@
         "zone.js": "^0.16.2",
       },
       "peerDependencies": {
-        "@angular/common": "^22.0.5",
-        "@angular/core": "^22.0.1",
+        "@angular/common": "^19.0.0 || ^20.0.0 || ^21.0.0 || ^22.0.0",
+        "@angular/core": "^19.0.0 || ^20.0.0 || ^21.0.0 || ^22.0.0",
         "@ngx-translate/core": "^18.0.0",
         "ai": ">=6 <8",
         "rxjs": "^7.8.0",
@@ -404,7 +404,7 @@
     },
     "packages/svelte": {
       "name": "pptx-svelte-viewer",
-      "version": "1.39.0",
+      "version": "2.0.0",
       "dependencies": {
         "@lucide/svelte": "^1.25.0",
         "fast-xml-parser": "^5.10.1",
@@ -478,7 +478,7 @@
     },
     "packages/vanilla": {
       "name": "pptx-vanilla-viewer",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "dependencies": {
         "dompurify": "^3.4.12",
         "fast-xml-parser": "^5.10.1",
@@ -515,7 +515,7 @@
     },
     "packages/vue": {
       "name": "pptx-vue-viewer",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "dependencies": {
         "clsx": "^2.1.1",
         "dompurify": "^3.4.12",
