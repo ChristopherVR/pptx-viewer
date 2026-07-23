@@ -22,12 +22,12 @@ import {
 	createWriteBackScheduler,
 	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
-	registerCollaborationTeardown,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
 
 import type { CollaborationDeps } from './collaboration-deps';
+import { registerCollaborationEffects } from './collaboration-effects.svelte';
 import { CollaborationPresence } from './collaboration-presence.svelte';
 import type { CollabProviderHandle } from './collaboration-provider';
 import type { ObserveRemoteDeps } from './collaboration-remote-sync';
@@ -83,37 +83,19 @@ export class CollaborationController {
 			height: this.#deps.getCanvasHeight?.(),
 		}));
 
-		// Auto start/stop when the host supplies (or clears) a config. Compared by
-		// reference so re-emitting the same object does not restart the session.
-		$effect(() => {
-			const config = this.#deps.getConfig();
-			this.#syncConfig(config);
+		registerCollaborationEffects({
+			getConfig: () => this.#deps.getConfig(),
+			getSlides: () => this.#deps.getSlides(),
+			syncConfig: (config) => this.#syncConfig(config),
+			isPublishable: () => this.#active && this.#gate.isOpen(),
+			flushLocalSlides: (slides) => this.#flushLocalSlides(slides),
+			stop: () => this.stop(),
+			rejoin: () => {
+				if (this.#lastStarted) {
+					void this.#run(this.#lastStarted);
+				}
+			},
 		});
-
-		// Broadcast local slide edits granularly. Reading `#active` re-runs the
-		// effect on (de)activation; the gate + role checks live in the flush.
-		$effect(() => {
-			const slides = this.#deps.getSlides();
-			if (this.#active && this.#gate.isOpen()) {
-				this.#flushLocalSlides(slides);
-			}
-		});
-
-		// Component destruction is not the only way a session ends: a tab close, a
-		// navigation, or an embedding page detaching the viewer's iframe destroys
-		// the document without running any Svelte cleanup, leaving a ghost peer in
-		// everyone else's presence list. Leave the room from `pagehide` too; the
-		// effect's return value unregisters the listeners on destroy.
-		$effect(() =>
-			registerCollaborationTeardown({
-				leave: () => this.stop(),
-				rejoin: () => {
-					if (this.#lastStarted) {
-						void this.#run(this.#lastStarted);
-					}
-				},
-			}),
-		);
 	}
 
 	/** Whether a session is live (reactive). */
