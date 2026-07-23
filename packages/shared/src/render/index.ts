@@ -205,6 +205,12 @@ export * from './animation-effects';
 export * from './animation-sequencer';
 export * from './animation-timeline-builder';
 export * from './animation-timeline-engine';
+// Framework-agnostic presentation-mode element-animation controller: wraps the
+// TimelineEngine (with text-build expansion) and caches keyframes CSS + trigger
+// shape ids + the tracked element id list, exposing advance/reset/computeStates
+// + the pure `collectBuildStepIds` staged-build probe. The clock (RAF/timers),
+// DOM injection, and step application stay in each binding.
+export * from './presentation-animation-controller';
 // OOXML `p:cmd` media playback commands (play/pause/seek) surfaced on timeline
 // steps; the DOM `HTMLMediaElement` control stays in each binding.
 export * from './animation-media-commands';

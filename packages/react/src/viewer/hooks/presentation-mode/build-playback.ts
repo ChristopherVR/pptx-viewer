@@ -5,17 +5,20 @@
  * Discrete click-advance handles the whole-element entrance; a staged build
  * additionally needs its `build.progress` to ramp 0 -> 1 across the step. This
  * module owns that clock: while a click-group with an active build step is
- * showing, it recomputes {@link TimelineEngine.getElementStates} with a growing
+ * showing, it recomputes the controller's element states with a growing
  * `elapsedMs` and merges only the `build` field onto the element states, so the
  * base visibility / CSS set by `applyAnimationGroupSteps` is untouched. It stops
  * the loop once every build reaches progress 1.
+ *
+ * The pure staged-build probe (`collectBuildStepIds`) and the state computation
+ * both live in the framework-agnostic `PresentationAnimationController`
+ * (`pptx-viewer-shared`); this module only owns the RAF clock + the React state
+ * merge.
  */
 
-import type {
-	TimelineEngine,
-	ElementAnimationState,
-	TimelineClickGroup,
-} from '../../utils/animation-timeline';
+import type { PresentationAnimationController } from 'pptx-viewer-shared';
+
+import type { ElementAnimationState } from '../../utils/animation-timeline';
 
 /** State updater (compatible with a React `useState` setter). */
 type StateUpdater = (
@@ -25,17 +28,6 @@ type StateUpdater = (
 /** Mutable handle holding the in-flight `requestAnimationFrame` id (or null). */
 export interface BuildRafHandle {
 	current: number | null;
-}
-
-/** Element ids of the steps in a click-group that reveal a staged build. */
-export function collectBuildStepIds(group: TimelineClickGroup): string[] {
-	const ids: string[] = [];
-	for (const step of group.steps) {
-		if (step.build) {
-			ids.push(step.elementId);
-		}
-	}
-	return ids;
 }
 
 /** Cancel any in-flight build RAF and clear the handle. */
@@ -49,13 +41,13 @@ export function cancelBuildReveal(handle: BuildRafHandle): void {
 /**
  * Drive the staged-build reveal for `buildIds` via requestAnimationFrame.
  *
- * Cancels any prior loop, then on each frame recomputes the engine's element
+ * Cancels any prior loop, then on each frame recomputes the controller's element
  * states at the elapsed time since this call and merges each build element's
  * `build` descriptor onto the tracked states. The loop stops (clearing the
  * handle) once no build element is still below progress 1.
  */
 export function driveBuildReveal(
-	engine: TimelineEngine,
+	controller: PresentationAnimationController,
 	buildIds: readonly string[],
 	setStates: StateUpdater,
 	handle: BuildRafHandle,
@@ -69,7 +61,7 @@ export function driveBuildReveal(
 
 	const tick = (): void => {
 		const elapsedMs = performance.now() - start;
-		const states = engine.getElementStates(buildIds, { elapsedMs });
+		const states = controller.computeStatesFor(buildIds, { elapsedMs });
 
 		setStates((prev) => {
 			const next = new Map(prev);
