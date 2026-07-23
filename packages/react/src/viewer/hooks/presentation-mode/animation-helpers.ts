@@ -60,9 +60,16 @@ export function applyAnimationGroupSteps(
 				cssAnimation: undefined,
 			};
 			const shouldBeVisible = step.presetClass === 'exit' ? currentState.visible : true;
+			// Surface the step's colour targets during its active window so a
+			// `p:animClr` fill/stroke recolour reaches the SVG vector (which then
+			// paints with `fill: inherit` / `stroke: inherit` to receive the
+			// wrapper's colour keyframe). Cleared by the cleanup timer below.
+			const colorTargets = step.colorTargets;
 			nextStates.set(step.elementId, {
 				visible: shouldBeVisible,
 				cssAnimation: step.cssAnimation,
+				animatesFill: colorTargets?.includes('fill') ? true : undefined,
+				animatesStroke: colorTargets?.includes('stroke') ? true : undefined,
 			});
 		}
 		return nextStates;

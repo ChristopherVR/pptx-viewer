@@ -64,6 +64,38 @@ describe('applyAnimationGroupSteps', () => {
 		expect(setPresentationElementStates).toHaveBeenCalledOnce();
 	});
 
+	it('folds a step colorTargets into animatesFill/animatesStroke during its active window', () => {
+		let captured: Map<string, { animatesFill?: boolean; animatesStroke?: boolean }> | undefined;
+		setPresentationElementStates.mockImplementation((updater) => {
+			if (typeof updater === 'function') {
+				captured = updater(new Map());
+			}
+		});
+		const group: TimelineClickGroup = {
+			totalDurationMs: 500,
+			steps: [createMockStep({ elementId: 'el-c', colorTargets: ['fill', 'stroke'] })],
+		};
+		applyAnimationGroupSteps(group, undefined, setPresentationElementStates, presentationTimersRef);
+		expect(captured?.get('el-c')?.animatesFill).toBeTruthy();
+		expect(captured?.get('el-c')?.animatesStroke).toBeTruthy();
+	});
+
+	it('leaves animatesFill/animatesStroke unset for a step with no colorTargets', () => {
+		let captured: Map<string, { animatesFill?: boolean; animatesStroke?: boolean }> | undefined;
+		setPresentationElementStates.mockImplementation((updater) => {
+			if (typeof updater === 'function') {
+				captured = updater(new Map());
+			}
+		});
+		const group: TimelineClickGroup = {
+			totalDurationMs: 500,
+			steps: [createMockStep({ elementId: 'el-p' })],
+		};
+		applyAnimationGroupSteps(group, undefined, setPresentationElementStates, presentationTimersRef);
+		expect(captured?.get('el-p')?.animatesFill).toBeUndefined();
+		expect(captured?.get('el-p')?.animatesStroke).toBeUndefined();
+	});
+
 	it('should schedule cleanup timers for each step', () => {
 		const group: TimelineClickGroup = {
 			totalDurationMs: 500,
