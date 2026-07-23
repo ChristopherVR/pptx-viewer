@@ -184,10 +184,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Stage the changelogs AND the --write version bumps, so package.json
-          # in the repo always matches what is published; the release tag then
-          # points at a commit whose manifests are truthful.
-          git add packages/*/CHANGELOG.md CHANGELOG.md packages/*/package.json
+          # `release-plan.mjs --write` bumped each package.json `version`, which
+          # leaves bun.lock's recorded workspace metadata stale. Regenerate the
+          # lockfile so it matches the bumped manifests (dependency resolution is
+          # unchanged; only the workspace version fields move) instead of drifting
+          # until the next manual `bun install`.
+          bun install --lockfile-only
+          # Stage the changelogs, the --write version bumps AND the refreshed
+          # lockfile, so package.json + bun.lock in the repo always match what is
+          # published; the release tag then points at a commit whose manifests are
+          # truthful.
+          git add packages/*/CHANGELOG.md CHANGELOG.md packages/*/package.json bun.lock
           if git diff --cached --quiet; then
             echo "No release changes to commit"
           else
