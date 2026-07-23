@@ -64,6 +64,7 @@
 	import { useViewerOptionsWiring } from './state/viewer-options-wiring.svelte';
 	import { ViewerParityUiState } from './state/viewer-parity-ui.svelte';
 	import { provideSmartArt3D } from './state/smart-art-3d-context';
+	import { providePresentationElementStates } from './state/presentation-element-states-context';
 	import { provideRenderContext } from './state/render-context';
 	import { provideZoomNavigation } from './state/zoom-navigation-context';
 	import { ViewerState } from './state/viewer-state.svelte';
@@ -529,7 +530,12 @@
 		getCurrentIndex: () => viewer.current,
 		navigate: (index) => viewer.goTo(index),
 		getShowWithAnimation: () => loader.presentationProperties.showWithAnimation,
+		getFrameRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
 	});
+	// Publish the per-element native-animation state map so the chart / SmartArt /
+	// connector / shape renderers can reveal staged builds and relinquish animated
+	// fill / stroke (mirrors Vue's `providePresentationElementStates`).
+	providePresentationElementStates(() => presentation.elementStates);
 	usePresentationEffects({
 		controller: presentation,
 		getPresenting: () => viewer.isFullscreen,

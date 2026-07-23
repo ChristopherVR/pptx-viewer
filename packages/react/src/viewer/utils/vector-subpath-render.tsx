@@ -110,6 +110,11 @@ export function renderCustomGeometryVector(
 	strokePaint: string,
 	strokeWidth: number,
 	dashArray: string | undefined,
+	// When an active `p:animClr` targets the shape fill, paint every fill path
+	// with `fill: inherit` so the wrapper's `fill` colour keyframe cascades in.
+	// The stroke is already routed through `strokePaint` (set to `inherit` by
+	// the caller when the stroke is animated), so no separate stroke flag.
+	animatesFill = false,
 ): React.ReactNode {
 	const ctx = strokeContext(shapeStyle, strokePaint, strokeWidth, dashArray);
 	const subpaths =
@@ -137,7 +142,7 @@ export function renderCustomGeometryVector(
 					<path
 						key={`f${idx}`}
 						d={paint.d}
-						fill={paint.fill}
+						fill={animatesFill ? 'inherit' : paint.fill}
 						stroke='none'
 						vectorEffect='non-scaling-stroke'
 					/>,
@@ -153,7 +158,7 @@ export function renderCustomGeometryVector(
 				<path
 					key='fill'
 					d={pathData}
-					fill={colorWithOpacity(fillColor, fillOpacity)}
+					fill={animatesFill ? 'inherit' : colorWithOpacity(fillColor, fillOpacity)}
 					stroke='none'
 					vectorEffect='non-scaling-stroke'
 				/>,

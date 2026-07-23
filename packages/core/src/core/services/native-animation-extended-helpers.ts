@@ -40,16 +40,26 @@ export function extractColorAnimation(
 	const toColor = extractColorValue(node['p:to'] as XmlObject | undefined);
 	const byColor = extractHslDeltaOrColorValue(node['p:by'] as XmlObject | undefined, colorSpace);
 
-	// Extract target attribute from p:cBhvr/p:attrNameLst/p:attrName
+	// Extract target attribute from p:cBhvr/p:attrNameLst/p:attrName. Note:
+	// `p:attrName` is a TEXT element ("fillcolor" / "style.color" / ...), so it
+	// parses to a plain string (or `{ '#text': ... }`), NOT an XmlObject - it must
+	// NOT go through `ensureArray`, which filters to objects and would silently
+	// drop the string, leaving every real p:animClr with no target attribute.
 	let targetAttribute: string | undefined;
 	const cBhvr = node['p:cBhvr'] as XmlObject | undefined;
-	if (cBhvr) {
-		const attrNameLst = cBhvr['p:attrNameLst'] as XmlObject | undefined;
-		if (attrNameLst) {
-			const attrNames = ensureArray(attrNameLst['p:attrName']);
-			if (attrNames.length > 0) {
-				targetAttribute = String(attrNames[0]).toLowerCase().trim();
-			}
+	const attrNameLst = cBhvr?.['p:attrNameLst'] as XmlObject | undefined;
+	const rawAttrName = attrNameLst?.['p:attrName'];
+	const firstAttrName = Array.isArray(rawAttrName) ? rawAttrName[0] : rawAttrName;
+	if (firstAttrName !== undefined && firstAttrName !== null) {
+		const name = (
+			typeof firstAttrName === 'object'
+				? String((firstAttrName as XmlObject)['#text'] ?? '')
+				: String(firstAttrName)
+		)
+			.toLowerCase()
+			.trim();
+		if (name !== '') {
+			targetAttribute = name;
 		}
 	}
 

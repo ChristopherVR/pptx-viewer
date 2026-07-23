@@ -24,7 +24,8 @@ import {
 } from '@angular/core';
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
-import { findChartPartTarget, withChartTitle } from '../internal/shared';
+import { applyChartBuildReveal, findChartPartTarget, withChartTitle } from '../internal/shared';
+import type { ElementAnimationState } from '../internal/shared';
 import {
 	applyChartPartHighlight,
 	beginChartValueDrag,
@@ -85,6 +86,14 @@ export class ChartElementViewComponent {
 	readonly editable = input<boolean>(false);
 
 	/**
+	 * Native-animation playback state. When it carries a staged chart build
+	 * (`build.kind === 'chart'`) the chart reveals its series / categories / cells
+	 * progressively via the shared `applyChartBuildReveal`. Absent outside a
+	 * running presentation, so ordinary rendering is unaffected.
+	 */
+	readonly animationState = input<ElementAnimationState | undefined>(undefined);
+
+	/**
 	 * The editor state layer. Optional: the renderer is also used outside the
 	 * editing viewer (thumbnails, export). On-canvas chart edits commit through
 	 * `updateElement` here, the exact channel the inspector uses, so undo/redo
@@ -129,10 +138,23 @@ export class ChartElementViewComponent {
 		this.canEdit() ? buildChartViewModel(this.element()) : null,
 	);
 
-	/** The element to render: committed data, or the local drag preview. */
+	/**
+	 * The element to render: committed data, or the local drag preview, with its
+	 * data trimmed to the stages revealed at the current staged-build progress (the
+	 * drag preview wins first). Whole-chart / no-build renders return the element
+	 * unchanged. Mirrors the Vue `ChartRenderer`'s `revealedElement`.
+	 */
 	protected readonly renderedElement = computed<PptxElement>(() => {
 		const preview = this.previewData();
-		return preview ? ({ ...this.element(), chartData: preview } as PptxElement) : this.element();
+		const base: PptxElement = preview
+			? ({ ...this.element(), chartData: preview } as PptxElement)
+			: this.element();
+		const build = this.animationState()?.build;
+		if (!build || build.kind !== 'chart' || base.type !== 'chart' || !base.chartData) {
+			return base;
+		}
+		const revealed = applyChartBuildReveal(base.chartData, build);
+		return revealed === base.chartData ? base : ({ ...base, chartData: revealed } as PptxElement);
 	});
 
 	protected readonly dragBadge = computed(() => {

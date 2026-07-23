@@ -27,13 +27,24 @@ export function renderVectorShape(
 	fillColor: string,
 	strokeWidth: number,
 	strokeColor: string,
+	// When an active `p:animClr` color animation targets this shape's fill /
+	// stroke, the painted SVG path relinquishes its static paint and uses
+	// `inherit` so the wrapper-level `fill` / `stroke` colour keyframes (emitted
+	// by the shared timeline) cascade into the vector. Absent/false keeps the
+	// exact static paint (no regression).
+	animatesFill?: boolean,
+	animatesStroke?: boolean,
 ): React.ReactNode | null {
 	if (!hasShapeProperties(element)) {
 		return null;
 	}
 	const normalizedType = (element.shapeType || '').toLowerCase();
-	const fillPaint = colorWithOpacity(fillColor, element.shapeStyle?.fillOpacity);
-	const strokePaint = colorWithOpacity(strokeColor, element.shapeStyle?.strokeOpacity);
+	const fillPaint = animatesFill
+		? 'inherit'
+		: colorWithOpacity(fillColor, element.shapeStyle?.fillOpacity);
+	const strokePaint = animatesStroke
+		? 'inherit'
+		: colorWithOpacity(strokeColor, element.shapeStyle?.strokeOpacity);
 	const dashType = normalizeStrokeDashType(element.shapeStyle?.strokeDash);
 	const dashArray = getSvgStrokeDasharray(
 		dashType,
@@ -113,6 +124,7 @@ export function renderVectorShape(
 			strokePaint,
 			strokeWidth,
 			dashArray,
+			Boolean(animatesFill),
 		);
 	}
 

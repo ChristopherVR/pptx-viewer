@@ -353,4 +353,76 @@ describe('timelineEngine', () => {
 			expect(engine.advanceInteractive('btn')).not.toBeNull();
 		});
 	});
+
+	describe('staged-build + colour-target metadata', () => {
+		it('surfaces the build descriptor with progress advancing over time', () => {
+			const step = makeStep({
+				elementId: 'chart-1',
+				delayMs: 100,
+				durationMs: 400,
+				build: { kind: 'chart', mode: 'byCategory' },
+			});
+			const engine = new TimelineEngine(makeTimeline({ clickGroups: [makeGroup([step])] }));
+			engine.advance();
+
+			// Before elapsed time is known, the build reads as fully revealed.
+			const atRest = engine.getElementStates(['chart-1']).get('chart-1');
+			expect(atRest?.build).toStrictEqual({ kind: 'chart', mode: 'byCategory', progress: 1 });
+
+			const early = engine.getElementStates(['chart-1'], { elapsedMs: 100 }).get('chart-1');
+			const mid = engine.getElementStates(['chart-1'], { elapsedMs: 300 }).get('chart-1');
+			const done = engine.getElementStates(['chart-1'], { elapsedMs: 500 }).get('chart-1');
+			expect(early?.build?.progress).toBe(0);
+			expect(mid?.build?.progress).toBeCloseTo(0.5, 5);
+			expect(done?.build?.progress).toBe(1);
+			expect(mid?.build?.progress ?? 0).toBeGreaterThan(early?.build?.progress ?? -1);
+		});
+
+		it('leaves build undefined for a plain whole-element entrance', () => {
+			const step = makeStep({ elementId: 'plain-1' });
+			const engine = new TimelineEngine(makeTimeline({ clickGroups: [makeGroup([step])] }));
+			engine.advance();
+			const state = engine.getElementStates(['plain-1']).get('plain-1');
+			expect(state?.build).toBeUndefined();
+			expect(state?.animatesFill).toBeUndefined();
+			expect(state?.animatesStroke).toBeUndefined();
+		});
+
+		it('flags animatesFill / animatesStroke from a step colour target', () => {
+			const fillStep = makeStep({
+				elementId: 'fill-shape',
+				presetClass: 'emph',
+				colorTargets: ['fill'],
+			});
+			const strokeStep = makeStep({
+				elementId: 'stroke-shape',
+				presetClass: 'emph',
+				colorTargets: ['stroke'],
+			});
+			const engine = new TimelineEngine(
+				makeTimeline({ clickGroups: [makeGroup([fillStep, strokeStep])] }),
+			);
+			engine.advance();
+			const states = engine.getElementStates(['fill-shape', 'stroke-shape']);
+			expect(states.get('fill-shape')?.animatesFill).toBeTruthy();
+			expect(states.get('fill-shape')?.animatesStroke).toBeUndefined();
+			expect(states.get('stroke-shape')?.animatesStroke).toBeTruthy();
+			expect(states.get('stroke-shape')?.animatesFill).toBeUndefined();
+		});
+
+		it('resets staged metadata on reset()', () => {
+			const step = makeStep({
+				elementId: 'chart-1',
+				build: { kind: 'diagram', mode: 'byLvl' },
+				colorTargets: ['fill'],
+			});
+			const engine = new TimelineEngine(makeTimeline({ clickGroups: [makeGroup([step])] }));
+			engine.advance();
+			expect(engine.getElementStates(['chart-1']).get('chart-1')?.build).toBeDefined();
+			engine.reset();
+			const state = engine.getElementStates(['chart-1']).get('chart-1');
+			expect(state?.build).toBeUndefined();
+			expect(state?.animatesFill).toBeUndefined();
+		});
+	});
 });

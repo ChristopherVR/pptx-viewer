@@ -4,6 +4,7 @@ import { ANIMATION_KEYFRAMES_CSS, isClickAdvanceAllowed } from 'pptx-viewer-shar
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import { providePresentationElementStates } from '../composables/presentation-element-states';
 import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import { useIsMobile } from '../composables/useIsMobile';
 import { usePresentationAnnotations } from '../composables/usePresentationAnnotations';
@@ -138,34 +139,102 @@ function goTo(index: number): void {
 // ZoomRenderer stays a static link in the editor/read-only tree.
 provideZoomNavigation({ navigateToZoomTarget: goTo });
 
-// Animation playback: each "next" first reveals the slide's next click-group of
-// element animations; only when the slide's builds are exhausted do we advance.
-const slideAnimations = computed(() => activeSlide.value?.animations ?? []);
-const playback = useAnimationPlayback({
-	animations: slideAnimations,
-	showWithAnimation: () => props.presentationProperties?.showWithAnimation,
-});
+// Animation playback: each "next" first reveals the slide's next native-timing
+// (`p:timing`) click-group; only when the slide's builds are exhausted do we
+// advance the slide. The controller (via `useAnimationPlayback`) also drives
+// staged chart / SmartArt builds and `p:animClr` colour animations.
 const frameRef = ref<HTMLDivElement | null>(null);
+const playback = useAnimationPlayback({
+	slide: activeSlide,
+	showWithAnimation: () => props.presentationProperties?.showWithAnimation,
+	frameRoot: () => frameRef.value,
+});
+// Publish the per-element state map so the chart / SmartArt / connector / shape
+// renderers can reveal staged builds and relinquish animated fill / stroke.
+providePresentationElementStates(playback.presentationElementStates);
+/** Per-slide native-animation `@keyframes` to inject (top-level for template). */
+const presentationKeyframesCss = playback.presentationKeyframesCss;
 
+/** Resolve the nearest element id above a pointer target, if any. */
+function closestElementId(target: EventTarget | null): string | undefined {
+	if (!(target instanceof Element)) {
+		return undefined;
+	}
+	return target.closest<HTMLElement>('[data-element-id]')?.dataset.elementId;
+}
+
+/**
+ * Apply each tracked element's native-animation state to its DOM wrapper:
+ * visibility (entrance hide-until-revealed / exit), the CSS-animation shorthand
+ * (entrance / emphasis / exit / colour keyframes), and a pointer cursor on
+ * interactive / hover trigger shapes. Structural reveals (chart / SmartArt build,
+ * fill / stroke inherit) are applied declaratively by the renderers themselves.
+ */
 function applyAnimationStyles(): void {
 	const root = frameRef.value;
 	if (!root) {
 		return;
 	}
-	const revealed = playback.elementStyles.value;
-	const pending = playback.pendingStyles.value;
+	const states = playback.presentationElementStates.value;
+	const interactive = playback.interactiveTriggerShapeIds.value;
+	const hover = playback.hoverTriggerShapeIds.value;
 	root.querySelectorAll<HTMLElement>('[data-element-id]').forEach((el) => {
 		const id = el.dataset.elementId;
 		if (!id) {
 			return;
 		}
-		el.style.animation = '';
-		el.style.opacity = '';
-		const active = revealed.get(id) ?? pending.get(id);
-		if (active) {
-			Object.assign(el.style, active);
-		}
+		const state = states.get(id);
+		el.style.animation = state?.cssAnimation ?? '';
+		el.style.visibility = state?.visible === false ? 'hidden' : '';
+		el.style.cursor = interactive.has(id) || hover.has(id) ? 'pointer' : '';
 	});
+}
+
+/** Click on an interactive (`onShapeClick`) trigger shape: play its sequence. */
+function onFrameClick(event: MouseEvent): void {
+	const id = closestElementId(event.target);
+	if (id && playback.interactiveTriggerShapeIds.value.has(id)) {
+		if (playback.handleInteractiveShapeClick(id)) {
+			// Handled: don't let the click bubble to the tap-to-advance overlay.
+			event.stopPropagation();
+		}
+	}
+}
+
+/**
+ * The hover-trigger shape the pointer is currently over, tracked so a hover
+ * sequence fires once on entering a shape (not on every descendant transition
+ * that `mouseover` bubbles up) and is reset on leaving it.
+ */
+let currentHoverTriggerId: string | undefined;
+
+/** Pointer moved over the frame: (re)play the hover sequence on shape entry. */
+function onFrameHover(event: MouseEvent): void {
+	const id = closestElementId(event.target);
+	const triggerId = id && playback.hoverTriggerShapeIds.value.has(id) ? id : undefined;
+	if (triggerId === currentHoverTriggerId) {
+		return;
+	}
+	if (currentHoverTriggerId) {
+		playback.handleHoverEnd(currentHoverTriggerId);
+	}
+	currentHoverTriggerId = triggerId;
+	if (triggerId) {
+		playback.handleHoverStart(triggerId);
+	}
+}
+
+/** Pointer left the frame entirely: reset any active hover trigger. */
+function onFrameHoverEnd(event: MouseEvent): void {
+	// Only when leaving the frame subtree (not moving between its descendants).
+	const related = event.relatedTarget;
+	if (related instanceof Node && frameRef.value?.contains(related)) {
+		return;
+	}
+	if (currentHoverTriggerId) {
+		playback.handleHoverEnd(currentHoverTriggerId);
+		currentHoverTriggerId = undefined;
+	}
 }
 
 /** Black "End of slide show" screen shown past the last slide (option-gated). */
@@ -324,7 +393,8 @@ const transitionState = ref<{
 
 watch(currentIndex, (index, previousIndex) => {
 	emit('slide-change', index);
-	playback.reset();
+	// The playback controller rebuilds itself on the active-slide change (it
+	// watches `activeSlide`), so no explicit reset is needed here.
 	const incoming = props.slides[index];
 	const transition = incoming?.transition;
 	if (transition && transition.type && transition.type !== 'none') {
@@ -343,7 +413,12 @@ function onTransitionDone(): void {
 }
 
 watch(
-	[() => playback.elementStyles.value, () => playback.pendingStyles.value, activeSlide],
+	[
+		playback.presentationElementStates,
+		playback.interactiveTriggerShapeIds,
+		playback.hoverTriggerShapeIds,
+		activeSlide,
+	],
 	() => {
 		void nextTick(applyAnimationStyles);
 	},
@@ -477,9 +552,19 @@ onBeforeUnmount(() => {
 <template>
 	<Teleport to="body">
 		<div ref="overlayRef" class="pptx-vue-presentation" @click="onOverlayClick">
-			<!-- Inject the animation @keyframes once for this overlay. -->
-			<component :is="'style'">{{ ANIMATION_KEYFRAMES_CSS }}</component>
-			<div ref="frameRef" class="pptx-vue-presentation-frame" :style="frameStyle">
+			<!-- Inject the static preset @keyframes plus this slide's native-animation
+			     (`p:timing`) keyframes (staged builds + `p:animClr` colour stops). -->
+			<component :is="'style'"
+				>{{ ANIMATION_KEYFRAMES_CSS }}{{ presentationKeyframesCss }}</component
+			>
+			<div
+				ref="frameRef"
+				class="pptx-vue-presentation-frame"
+				:style="frameStyle"
+				@click="onFrameClick"
+				@mouseover="onFrameHover"
+				@mouseout="onFrameHoverEnd"
+			>
 				<SlideStage
 					:slide="activeSlide"
 					:canvas-size="canvasSize"

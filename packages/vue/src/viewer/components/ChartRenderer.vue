@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import type { PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core';
-import type { ChartViewModel, PlotLayout, ValueRange } from 'pptx-viewer-shared';
-import { computeLayout, computeValueRange, resolveCategoryLabels } from 'pptx-viewer-shared';
+import type {
+	ChartViewModel,
+	ElementAnimationState,
+	PlotLayout,
+	ValueRange,
+} from 'pptx-viewer-shared';
+import {
+	applyChartBuildReveal,
+	computeLayout,
+	computeValueRange,
+	resolveCategoryLabels,
+} from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, ref } from 'vue';
 
@@ -48,6 +58,12 @@ const props = defineProps<{
 	mediaDataUrls?: Map<string, string>;
 	/** True only on the primary editable canvas: enables direct chart editing. */
 	interactive?: boolean;
+	/**
+	 * Native-animation playback state. When it carries a staged chart build
+	 * (`build.kind === 'chart'`) the chart reveals its series / categories / cells
+	 * progressively via the shared `applyChartBuildReveal`.
+	 */
+	animationState?: ElementAnimationState;
 }>();
 
 const containerStyle = computed<CSSProperties>(() =>
@@ -79,9 +95,30 @@ const {
 	buildViewModel: buildVueChartViewModel,
 });
 
+/** Staged chart-build descriptor, when an active native animation reveals one. */
+const chartBuild = computed(() => {
+	const build = props.animationState?.build;
+	return build?.kind === 'chart' ? build : undefined;
+});
+
+/**
+ * The chart element with its data trimmed to the stages revealed at the current
+ * build progress (drag preview wins first). Whole-chart / no-build renders return
+ * the element unchanged. Mirrors React's `ChartElementView` `renderedElement`.
+ */
+const revealedElement = computed<PptxElement>(() => {
+	const el = renderedElement.value;
+	const build = chartBuild.value;
+	if (!build || el.type !== 'chart' || !el.chartData) {
+		return el;
+	}
+	const revealed = applyChartBuildReveal(el.chartData, build);
+	return revealed === el.chartData ? el : { ...el, chartData: revealed };
+});
+
 /** Narrowed chart data, or undefined when the element is not a chart / empty. */
 const chartData = computed<PptxChartData | undefined>(() => {
-	const el = renderedElement.value;
+	const el = revealedElement.value;
 	if (el.type !== 'chart') {
 		return undefined;
 	}
@@ -148,7 +185,7 @@ const usesSharedViewModel = computed(() => SHARED_VIEW_MODEL_KINDS.has(renderKin
  * Built from `renderedElement` so an in-flight value drag previews live.
  */
 const sharedViewModel = computed<ChartViewModel | undefined>(() =>
-	usesSharedViewModel.value ? buildVueChartViewModel(renderedElement.value) : undefined,
+	usesSharedViewModel.value ? buildVueChartViewModel(revealedElement.value) : undefined,
 );
 
 /** Pie / doughnut / radar keep their square `xMidYMid meet` aspect ratio. */
@@ -187,7 +224,7 @@ const sharedAspectRatio = computed<'none' | 'xMidYMid meet'>(() =>
 		/>
 
 		<!-- Sunburst: concentric rings (no axes), shared view-model engine -->
-		<SunburstChart v-else-if="renderKind === 'sunburst'" :element="element" />
+		<SunburstChart v-else-if="renderKind === 'sunburst'" :element="revealedElement" />
 
 		<!-- Treemap: hierarchical rectangles (no axes) -->
 		<svg
@@ -223,13 +260,13 @@ const sharedAspectRatio = computed<'none' | 'xMidYMid meet'>(() =>
 		</svg>
 
 		<!-- Funnel: descending trapezoids (no axes), shared view-model engine -->
-		<FunnelChart v-else-if="renderKind === 'funnel'" :element="element" />
+		<FunnelChart v-else-if="renderKind === 'funnel'" :element="revealedElement" />
 
 		<!-- Histogram: contiguous bars, shared view-model engine -->
-		<HistogramChart v-else-if="renderKind === 'histogram'" :element="element" />
+		<HistogramChart v-else-if="renderKind === 'histogram'" :element="revealedElement" />
 
 		<!-- Box-and-whisker: shared view-model engine -->
-		<BoxWhiskerChart v-else-if="renderKind === 'boxWhisker'" :element="element" />
+		<BoxWhiskerChart v-else-if="renderKind === 'boxWhisker'" :element="revealedElement" />
 
 		<!-- Surface: isometric 2.5D mesh (own SVG, no axis chrome) -->
 		<svg

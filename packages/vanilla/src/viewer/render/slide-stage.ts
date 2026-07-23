@@ -5,7 +5,11 @@ import type {
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
-import type { CanvasSize, FieldSubstitutionContext } from 'pptx-viewer-shared';
+import type {
+	CanvasSize,
+	ElementAnimationState,
+	FieldSubstitutionContext,
+} from 'pptx-viewer-shared';
 import {
 	getAriaLabel,
 	getAriaRole,
@@ -54,6 +58,14 @@ export interface SlideStageOptions {
 	interactive?: boolean;
 	/** Whether inherited layout/master nodes participate in editing. */
 	templateEditing?: boolean;
+	/** Per-element native-animation playback state (presentation mode only). */
+	presentationStates?: ReadonlyMap<string, ElementAnimationState>;
+	/**
+	 * Invoked with the built render context once the stage is assembled. Lets the
+	 * presentation playback re-render single elements (staged chart / SmartArt
+	 * build, `p:animClr` fill / stroke) in place without rebuilding the stage.
+	 */
+	captureContext?: (context: ElementRenderContext) => void;
 }
 
 /**
@@ -98,6 +110,7 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		fontScheme: options.fontScheme,
 		tableStyleMap: options.tableStyleMap,
 		fieldContext: options.fieldContext,
+		presentationStates: options.presentationStates,
 		t,
 		smartArt3D: options.smartArt3D ?? false,
 		presenting: options.presenting ?? false,
@@ -119,6 +132,8 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 			return node;
 		},
 	};
+
+	options.captureContext?.(context);
 
 	slide.elements.forEach((element, index) => {
 		const node = context.renderElement(element, index);

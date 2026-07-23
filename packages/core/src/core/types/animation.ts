@@ -261,6 +261,14 @@ export interface PptxNativeAnimation {
 	 * that aren't OLE charts).
 	 */
 	graphicBuild?: string;
+	/**
+	 * OLE-embedded chart build attribute (`p:bldOleChart/@bld`) when this
+	 * animation stages an OLE chart graphic frame. Values follow
+	 * ST_TLOleChartBuildType: `allAtOnce`, `series`, `category`, `seriesEl`,
+	 * `categoryEl`. Lets a staged-reveal renderer build the chart by series /
+	 * category / element to match PowerPoint, rather than as one whole element.
+	 */
+	oleChartBuild?: string;
 	/** Schema-accurate `p:bldGraphic/p:bldAsOne|p:bldSub` representation. */
 	graphicBuildProperties?: PptxGraphicBuild;
 	/**

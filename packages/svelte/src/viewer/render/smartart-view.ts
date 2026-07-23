@@ -1,5 +1,6 @@
-import type { SmartArtPptxElement, SmartArtStyle } from 'pptx-viewer-core';
+import type { PptxSmartArtNode, SmartArtPptxElement, SmartArtStyle } from 'pptx-viewer-core';
 import type {
+	DiagramBuildState,
 	RenderedNode,
 	RenderedShape,
 	SmartArtLayoutResult,
@@ -13,6 +14,7 @@ import {
 	projectDrawingShapes,
 	resolveDrawingShapeNodeId,
 	resolvePalette,
+	revealedSmartArtNodeCount,
 	styleShadowFilter,
 } from 'pptx-viewer-shared';
 
@@ -62,17 +64,45 @@ export function smartArtAriaLabel(element: SmartArtPptxElement): string | undefi
 }
 
 /**
+ * Number of leading drawing shapes to reveal for a partial diagram build, kept
+ * proportional to the revealed node prefix so the shapes appear in step with the
+ * nodes. Mirrors the Vue `SmartArtRenderer` reveal slice.
+ */
+function revealedShapeCount(shownNodes: number, totalNodes: number, totalShapes: number): number {
+	return Math.ceil((shownNodes / Math.max(totalNodes, 1)) * totalShapes);
+}
+
+/**
  * Pick the rendering path: pre-computed drawing shapes (preferred), the
  * shared layout engine over the node tree, or an empty placeholder.
+ *
+ * `build` is the active staged diagram build (`p:bldDgm`) during a running
+ * presentation, if any: only the leading nodes / drawing shapes for the current
+ * progress are revealed. The view box is still computed from the FULL shape set
+ * so the diagram does not rescale as it builds (mirrors React / Vue).
  */
-export function buildSmartArtView(element: SmartArtPptxElement): SmartArtView {
+export function buildSmartArtView(
+	element: SmartArtPptxElement,
+	build?: DiagramBuildState,
+): SmartArtView {
 	const data = element.smartArtData;
-	const nodes = data?.nodes ?? [];
-	const drawingShapes = data?.drawingShapes ?? [];
+	const nodes: PptxSmartArtNode[] = data?.nodes ?? [];
+	const allDrawingShapes = data?.drawingShapes ?? [];
+	const shownNodeCount = build ? revealedSmartArtNodeCount(nodes, build) : nodes.length;
+	const isPartialBuild = build !== undefined && shownNodeCount < nodes.length;
+	const revealedNodes = isPartialBuild ? nodes.slice(0, shownNodeCount) : nodes;
+	const drawingShapes =
+		isPartialBuild && allDrawingShapes.length > 0
+			? allDrawingShapes.slice(
+					0,
+					revealedShapeCount(shownNodeCount, nodes.length, allDrawingShapes.length),
+				)
+			: allDrawingShapes;
 
-	if (data && drawingShapes.length > 0) {
+	if (data && allDrawingShapes.length > 0) {
 		const style: SmartArtStyle = data.style ?? 'flat';
-		const viewBox = computeDrawingViewBox(drawingShapes);
+		// View box from the FULL shape set so the diagram keeps its size while building.
+		const viewBox = computeDrawingViewBox(allDrawingShapes);
 		const labels = labelMap(buildSmartArtA11y(data).nodes);
 		const shapes = projectDrawingShapes(
 			element.id,
@@ -99,7 +129,7 @@ export function buildSmartArtView(element: SmartArtPptxElement): SmartArtView {
 
 	if (data && nodes.length > 0) {
 		const layout = computeSmartArtLayout(
-			nodes,
+			revealedNodes,
 			{ width: element.width, height: element.height },
 			resolvePalette(data),
 			data.style ?? 'flat',

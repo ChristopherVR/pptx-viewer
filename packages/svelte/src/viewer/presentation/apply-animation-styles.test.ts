@@ -1,12 +1,13 @@
-import type { CSSProperties } from 'pptx-viewer-shared';
+import type { ElementAnimationState } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { applyAnimationStyles } from './apply-animation-styles';
 
 /**
  * DOM-only helper: build a stage with a couple of `[data-element-id]` nodes
- * (happy-dom) and assert that revealed / pending styles are applied and cleared
- * without clobbering the element's own positioning.
+ * (happy-dom) and assert that each element's native-animation state (visibility,
+ * CSS animation, trigger-shape cursor) is applied and cleared without clobbering
+ * the element's own positioning.
  */
 
 function makeStage(): { root: HTMLElement; e1: HTMLElement; e2: HTMLElement } {
@@ -25,44 +26,47 @@ afterEach(() => {
 	document.body.innerHTML = '';
 });
 
-const empty: Map<string, CSSProperties> = new Map();
+const empty: Map<string, ElementAnimationState> = new Map();
 
 describe('applyAnimationStyles', () => {
-	it('applies a revealed style and a pending hidden style by element id', () => {
+	it('applies the CSS animation and hides a not-yet-visible element', () => {
 		const { root, e1, e2 } = makeStage();
-		const revealed = new Map<string, CSSProperties>([
-			['e1', { 'animation-name': 'pptx-vue-fadeIn', 'animation-duration': '500ms' }],
+		const states = new Map<string, ElementAnimationState>([
+			['e1', { visible: true, cssAnimation: 'pptx-vue-fadeIn 500ms both' }],
+			['e2', { visible: false, cssAnimation: undefined }],
 		]);
-		const pending = new Map<string, CSSProperties>([['e2', { opacity: '0' }]]);
 
-		applyAnimationStyles(root, revealed, pending);
+		applyAnimationStyles(root, states);
 
-		expect(e1.style.getPropertyValue('animation-name')).toBe('pptx-vue-fadeIn');
-		expect(e2.style.getPropertyValue('opacity')).toBe('0');
+		expect(e1.style.animation).toBe('pptx-vue-fadeIn 500ms both');
+		expect(e1.style.visibility).toBe('');
+		expect(e2.style.visibility).toBe('hidden');
 		// Positioning is untouched.
 		expect(e1.style.getPropertyValue('left')).toBe('10px');
 	});
 
-	it('prefers a revealed style over a pending one for the same id', () => {
-		const { root, e1 } = makeStage();
-		const revealed = new Map<string, CSSProperties>([
-			['e1', { 'animation-name': 'pptx-vue-fadeIn' }],
-		]);
-		const pending = new Map<string, CSSProperties>([['e1', { opacity: '0' }]]);
+	it('marks interactive / hover trigger shapes with a pointer cursor', () => {
+		const { root, e1, e2 } = makeStage();
+		applyAnimationStyles(root, empty, new Set(['e1']), new Set(['e2']));
 
-		applyAnimationStyles(root, revealed, pending);
-
-		expect(e1.style.getPropertyValue('animation-name')).toBe('pptx-vue-fadeIn');
-		expect(e1.style.getPropertyValue('opacity')).toBe('');
+		expect(e1.style.cursor).toBe('pointer');
+		expect(e2.style.cursor).toBe('pointer');
 	});
 
 	it('clears previously-applied managed properties on a subsequent empty apply', () => {
 		const { root, e1 } = makeStage();
-		applyAnimationStyles(root, new Map([['e1', { opacity: '0' }]]), empty);
-		expect(e1.style.getPropertyValue('opacity')).toBe('0');
+		applyAnimationStyles(
+			root,
+			new Map([['e1', { visible: false, cssAnimation: 'x 1ms' }]]),
+			new Set(['e1']),
+		);
+		expect(e1.style.visibility).toBe('hidden');
+		expect(e1.style.cursor).toBe('pointer');
 
-		applyAnimationStyles(root, empty, empty);
-		expect(e1.style.getPropertyValue('opacity')).toBe('');
+		applyAnimationStyles(root, empty);
+		expect(e1.style.visibility).toBe('');
+		expect(e1.style.animation).toBe('');
+		expect(e1.style.cursor).toBe('');
 		expect(e1.style.getPropertyValue('left')).toBe('10px');
 	});
 });

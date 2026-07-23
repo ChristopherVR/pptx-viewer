@@ -7,6 +7,8 @@
 
 import type { PptxColorAnimation } from 'pptx-viewer-core';
 
+import type { ColorAnimationTarget } from './animation-timeline-types';
+
 // ==========================================================================
 // Colour conversion utilities
 // ==========================================================================
@@ -191,6 +193,27 @@ function resolveCssProperties(attrName?: string): string[] {
 		return ['color'];
 	}
 	return ATTR_NAME_TO_CSS_PROPERTIES[attrName] ?? ['color'];
+}
+
+/**
+ * Resolve which shape paint targets a `p:animClr` color animation drives, from
+ * the same OOXML attribute-name mapping used to emit the keyframes. A `fill`
+ * CSS property implies the shape fill; a `stroke` property implies the stroke.
+ * Returns an empty array for text/`color`-only animations, which do not need a
+ * vector renderer to relinquish its painted fill / stroke.
+ */
+export function resolveColorAnimationTargets(
+	targetAttribute?: string,
+): readonly ColorAnimationTarget[] {
+	const cssProperties = resolveCssProperties(targetAttribute);
+	const targets: ColorAnimationTarget[] = [];
+	if (cssProperties.includes('fill')) {
+		targets.push('fill');
+	}
+	if (cssProperties.includes('stroke')) {
+		targets.push('stroke');
+	}
+	return targets;
 }
 
 /**

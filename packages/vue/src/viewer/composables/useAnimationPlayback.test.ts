@@ -1,132 +1,143 @@
-// oxlint-disable react-hooks/rules-of-hooks
-import type { PptxElementAnimation } from 'pptx-viewer-core';
+import type { PptxElement, PptxNativeAnimation, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
-import { ref } from 'vue';
+import { effectScope, nextTick, ref } from 'vue';
 
 import { buildClickGroups, useAnimationPlayback } from './useAnimationPlayback';
+import type { UseAnimationPlaybackResult } from './useAnimationPlayback';
 
-function a(elementId: string, overrides: Partial<PptxElementAnimation> = {}): PptxElementAnimation {
-	return { elementId, ...overrides };
+// ---------------------------------------------------------------------------
+// Fixtures (mirror the shared controller test)
+// ---------------------------------------------------------------------------
+
+function shapeElement(id: string): PptxElement {
+	return { type: 'shape', id, x: 0, y: 0, width: 100, height: 100 } as unknown as PptxElement;
 }
 
-describe('buildClickGroups', () => {
-	it('starts the first group implicitly and splits on onClick', () => {
+function entranceAnim(targetId: string): PptxNativeAnimation {
+	return {
+		targetId,
+		presetClass: 'entr',
+		trigger: 'onClick',
+	} as unknown as PptxNativeAnimation;
+}
+
+function slideWith(elements: PptxElement[], nativeAnimations?: PptxNativeAnimation[]): PptxSlide {
+	return { id: 'slide-1', elements, nativeAnimations } as unknown as PptxSlide;
+}
+
+/** Run the composable inside an effect scope so `watch` / `onScopeDispose` work. */
+function runPlayback(build: () => UseAnimationPlaybackResult): {
+	result: UseAnimationPlaybackResult;
+	stop: () => void;
+} {
+	const scope = effectScope();
+	const result = scope.run(build) as UseAnimationPlaybackResult;
+	return { result, stop: () => scope.stop() };
+}
+
+// ---------------------------------------------------------------------------
+// Native-animation controller playback
+// ---------------------------------------------------------------------------
+
+describe('useAnimationPlayback (native controller)', () => {
+	it('seeds a hidden state for a pending entrance, visible otherwise', () => {
+		const { result, stop } = runPlayback(() =>
+			useAnimationPlayback({
+				slide: () => slideWith([shapeElement('a'), shapeElement('b')], [entranceAnim('a')]),
+			}),
+		);
+
+		const states = result.presentationElementStates.value;
+		expect(states.get('a')?.visible).toBeFalsy();
+		expect(states.get('b')?.visible).toBeTruthy();
+		expect(result.isComplete.value).toBeFalsy();
+		expect(result.presentationKeyframesCss.value).toBeTypeOf('string');
+		stop();
+	});
+
+	it('advance() reveals the next click-group then reports completion', () => {
+		const { result, stop } = runPlayback(() =>
+			useAnimationPlayback({ slide: () => slideWith([shapeElement('a')], [entranceAnim('a')]) }),
+		);
+
+		expect(result.advance()).toBeTruthy();
+		expect(result.presentationElementStates.value.get('a')?.visible).toBeTruthy();
+		expect(result.isComplete.value).toBeTruthy();
+
+		// Exhausted: advance returns false so the caller navigates slides.
+		expect(result.advance()).toBeFalsy();
+		stop();
+	});
+
+	it('reset() replays the slide from the initial hidden state', () => {
+		const { result, stop } = runPlayback(() =>
+			useAnimationPlayback({ slide: () => slideWith([shapeElement('a')], [entranceAnim('a')]) }),
+		);
+
+		result.advance();
+		expect(result.presentationElementStates.value.get('a')?.visible).toBeTruthy();
+
+		result.reset();
+		expect(result.presentationElementStates.value.get('a')?.visible).toBeFalsy();
+		expect(result.isComplete.value).toBeFalsy();
+		stop();
+	});
+
+	it('skips playback when presentation animations are disabled', () => {
+		const { result, stop } = runPlayback(() =>
+			useAnimationPlayback({
+				slide: () => slideWith([shapeElement('a')], [entranceAnim('a')]),
+				showWithAnimation: () => false,
+			}),
+		);
+
+		expect(result.presentationElementStates.value.size).toBe(0);
+		expect(result.isComplete.value).toBeTruthy();
+		expect(result.advance()).toBeFalsy();
+		stop();
+	});
+
+	it('rebuilds the controller when the active slide changes', async () => {
+		const slide = ref<PptxSlide>(slideWith([shapeElement('a')], [entranceAnim('a')]));
+		const { result, stop } = runPlayback(() => useAnimationPlayback({ slide: () => slide.value }));
+
+		result.advance();
+		expect(result.isComplete.value).toBeTruthy();
+
+		// Switching slides re-seeds the timeline (new pending entrance -> not complete).
+		// The slide watch flushes on the next tick.
+		slide.value = slideWith([shapeElement('c')], [entranceAnim('c')]);
+		await nextTick();
+		expect(result.presentationElementStates.value.get('c')?.visible).toBeFalsy();
+		expect(result.presentationElementStates.value.has('a')).toBeFalsy();
+		expect(result.isComplete.value).toBeFalsy();
+		stop();
+	});
+
+	it('exposes empty trigger sets for a slide without interactive/hover anims', () => {
+		const { result, stop } = runPlayback(() =>
+			useAnimationPlayback({ slide: () => slideWith([shapeElement('a')], [entranceAnim('a')]) }),
+		);
+
+		expect(result.interactiveTriggerShapeIds.value.size).toBe(0);
+		expect(result.hoverTriggerShapeIds.value.size).toBe(0);
+		stop();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Preset click-group re-export (kept for the editor animation preview)
+// ---------------------------------------------------------------------------
+
+describe('buildClickGroups re-export', () => {
+	it('is still re-exported for the editor animation-preview model', () => {
 		const groups = buildClickGroups([
-			a('t1', { entrance: 'fadeIn', trigger: 'onClick' }),
-			a('t2', { entrance: 'fadeIn', trigger: 'withPrevious' }),
-			a('t3', { entrance: 'flyIn', trigger: 'onClick' }),
+			{ elementId: 't1', entrance: 'fadeIn', trigger: 'onClick' },
+			{ elementId: 't2', entrance: 'fadeIn', trigger: 'withPrevious' },
+			{ elementId: 't3', entrance: 'flyIn', trigger: 'onClick' },
 		]);
 		expect(groups).toHaveLength(2);
 		expect(groups[0].animations.map((x) => x.elementId)).toStrictEqual(['t1', 't2']);
 		expect(groups[1].animations.map((x) => x.elementId)).toStrictEqual(['t3']);
-	});
-
-	it('folds afterPrevious into the current group', () => {
-		const groups = buildClickGroups([
-			a('t1', { entrance: 'fadeIn', trigger: 'onClick' }),
-			a('t2', { entrance: 'fadeIn', trigger: 'afterPrevious' }),
-		]);
-		expect(groups).toHaveLength(1);
-		expect(groups[0].animations).toHaveLength(2);
-	});
-});
-
-describe('useAnimationPlayback', () => {
-	const animations: PptxElementAnimation[] = [
-		a('t1', { entrance: 'fadeIn', trigger: 'onClick', durationMs: 500 }),
-		a('t2', { entrance: 'flyIn', trigger: 'onClick', durationMs: 500 }),
-		a('t3', { entrance: 'zoomIn', trigger: 'afterPrevious', durationMs: 300 }),
-	];
-
-	it('reveals nothing before the first advance', () => {
-		const { elementStyles, groupCount, isComplete } = useAnimationPlayback({
-			animations: () => animations,
-		});
-		expect(groupCount.value).toBe(2);
-		expect(elementStyles.value.size).toBe(0);
-		expect(isComplete.value).toBeFalsy();
-	});
-
-	it('advance() reveals the next click group', () => {
-		const { elementStyles, advance, isComplete } = useAnimationPlayback({
-			animations: () => animations,
-		});
-
-		expect(advance()).toBeTruthy();
-		// First group: only t1 is revealed.
-		expect(elementStyles.value.has('t1')).toBeTruthy();
-		expect(elementStyles.value.has('t2')).toBeFalsy();
-		expect(elementStyles.value.get('t1')!['animation-name']).toBe('pptx-vue-fadeIn');
-
-		expect(advance()).toBeTruthy();
-		// Second group: t2 (and its afterPrevious t3) now revealed.
-		expect(elementStyles.value.has('t2')).toBeTruthy();
-		expect(elementStyles.value.has('t3')).toBeTruthy();
-		expect(isComplete.value).toBeTruthy();
-
-		// No more groups: advance returns false so the host can navigate slides.
-		expect(advance()).toBeFalsy();
-	});
-
-	it('skips builds when presentation animations are disabled', () => {
-		const slideAnimations = [a('t1', { entrance: 'fadeIn', trigger: 'onClick' })];
-		const playback = useAnimationPlayback({
-			animations: () => slideAnimations,
-			showWithAnimation: () => false,
-		});
-
-		expect(playback.groupCount.value).toBe(0);
-		expect(playback.pendingStyles.value.size).toBe(0);
-		expect(playback.advance()).toBeFalsy();
-	});
-
-	it('chains afterPrevious delay by the previous duration', () => {
-		const { advance, elementStyles } = useAnimationPlayback({ animations: () => animations });
-		advance();
-		advance();
-		// t3 is afterPrevious of t2 (500ms), so its delay should be 500ms.
-		expect(elementStyles.value.get('t3')!['animation-delay']).toBe('500ms');
-	});
-
-	it('hides pending entrances and stops hiding once revealed', () => {
-		const { advance, pendingStyles } = useAnimationPlayback({ animations: () => animations });
-		expect(pendingStyles.value.get('t1')).toStrictEqual({ opacity: '0' });
-		advance();
-		expect(pendingStyles.value.has('t1')).toBeFalsy();
-		expect(pendingStyles.value.get('t2')).toStrictEqual({ opacity: '0' });
-	});
-
-	it('play() reveals all groups and reset() clears them', () => {
-		const { play, reset, step, groupCount, elementStyles } = useAnimationPlayback({
-			animations: () => animations,
-		});
-		play();
-		expect(step.value).toBe(groupCount.value);
-		expect(elementStyles.value.size).toBeGreaterThan(0);
-		reset();
-		expect(step.value).toBe(0);
-		expect(elementStyles.value.size).toBe(0);
-	});
-
-	it('syncs with an external currentIndex and clamps it', () => {
-		const idx = ref(1);
-		const { step, elementStyles } = useAnimationPlayback({
-			animations: () => animations,
-			currentIndex: idx,
-		});
-		expect(step.value).toBe(1);
-		expect(elementStyles.value.has('t1')).toBeTruthy();
-
-		idx.value = 99;
-		expect(step.value).toBe(2); // clamped to groupCount
-	});
-
-	it('reclamps the step when the animation set shrinks', () => {
-		const list = ref<PptxElementAnimation[]>(animations);
-		const { step, play } = useAnimationPlayback({ animations: list });
-		play();
-		expect(step.value).toBe(2);
-		list.value = [a('t1', { entrance: 'fadeIn', trigger: 'onClick' })];
-		expect(step.value).toBe(1);
 	});
 });

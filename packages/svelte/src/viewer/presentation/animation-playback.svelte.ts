@@ -1,106 +1,219 @@
-import type { PptxElementAnimation } from 'pptx-viewer-core';
+import type { PptxSlide } from 'pptx-viewer-core';
+import { PresentationAnimationController } from 'pptx-viewer-shared';
+import type { ElementAnimationState } from 'pptx-viewer-shared';
+
+import type { BuildRafHandle, PlaybackContext } from './animation-playback-helpers';
 import {
-	buildPresentationClickGroups,
-	clampStep,
-	pendingElementStyles,
-	revealedElementStyles,
-} from 'pptx-viewer-shared';
-import type { AnimationClickGroup, CSSProperties } from 'pptx-viewer-shared';
+	cancelBuildReveal,
+	playGroup,
+	scheduleAutoAdvanceChain,
+} from './animation-playback-helpers';
 
 /**
- * `AnimationPlayback`: reactive, click-stepped element-animation playback for
- * the Svelte binding's presentation mode. The Svelte-runes analogue of the Vue
- * `useAnimationPlayback` composable, kept out of the SFC so it is unit-testable
- * without a DOM.
+ * `AnimationPlayback`: native-timing (`p:timing`) animation playback for the
+ * Svelte binding's presentation mode, driven by the shared, framework-agnostic
+ * {@link PresentationAnimationController}. The runes analogue of the Vue
+ * `useAnimationPlayback` composable, kept out of the SFC so it is unit-testable.
  *
- * A slide carries an ordered list of {@link PptxElementAnimation}s. PowerPoint
- * groups them into "click groups": an `onClick` / `onShapeClick` / `onHover`
- * animation starts a new group, while `withPrevious` / `afterPrevious` fold
- * into the group in progress. Advancing the presentation one step reveals one
- * more click group; only when every group is revealed does the slide advance.
+ * This replaces the older preset (`PptxElementAnimation`) click-group model for
+ * the slide show: the controller builds a timeline engine from the slide's
+ * `nativeAnimations` (expanding staged text builds), which can represent native
+ * staged chart / SmartArt builds (`p:bldChart` / `p:bldDgm`) and colour
+ * animations (`p:animClr`) that the preset model could not. It mirrors the Vue /
+ * React bindings.
  *
- * All of the preset -> CSS mapping and delay chaining is delegated to the
- * framework-agnostic {@link buildClickGroups} / {@link revealedElementStyles} /
- * {@link pendingElementStyles} helpers in `pptx-viewer-shared`; this class only
- * owns the reactive step and exposes the resolved styles as plain getters
- * (reactive when read inside a `$derived` / `$effect` / template).
+ * The class owns the reactive per-element state map, the keyframes CSS, and the
+ * interactive / hover trigger-shape id sets; the controller stays pure. The
+ * clock (timers, requestAnimationFrame) + DOM effects live in
+ * {@link module:presentation/animation-playback-helpers}.
+ *
+ * NOTE: the editor / inspector animation PREVIEW still uses the older shared
+ * `buildClickGroups` model (see `AnimationsTab` / `editor-animation-controller`);
+ * this class is only the running slide show.
  */
 export interface AnimationPlaybackDeps {
-	/** The current slide's animations, in document/timeline order. */
-	getAnimations(): PptxElementAnimation[];
+	/** The current slide to build the native-animation timeline for. */
+	getSlide(): PptxSlide | undefined;
 	/** Presentation-level switch parsed from `p:showPr`. */
 	getShowWithAnimation?(): boolean | undefined;
+	/** Host-provided action-sound player (resolves + plays embedded sounds). */
+	onPlayActionSound?: (soundPath: string) => void;
+	/** Root element to scope media-command (`p:cmd`) target lookups to. */
+	frameRoot?: () => HTMLElement | null;
 }
 
 export class AnimationPlayback {
-	/** How many click groups have been revealed so far. */
-	#step = $state(0);
+	/** Reactive per-element native-animation state, keyed by element id. */
+	#states = $state<Map<string, ElementAnimationState>>(new Map());
+	/** The per-slide `@keyframes` CSS to inject (empty when nothing animates). */
+	#keyframesCss = $state('');
+	/** Shape ids that trigger an interactive (`onShapeClick`) sequence. */
+	#interactiveTriggerShapeIds = $state<ReadonlySet<string>>(new Set());
+	/** Shape ids that trigger a hover (`onHover`) sequence. */
+	#hoverTriggerShapeIds = $state<ReadonlySet<string>>(new Set());
+	/** True once the main timeline has no more click-groups to reveal. */
+	#complete = $state(true);
+
 	readonly #deps: AnimationPlaybackDeps;
+	#controller: PresentationAnimationController | null = null;
+	readonly #timers: number[] = [];
+	readonly #buildHandle: BuildRafHandle = { current: null };
+	readonly #ctx: PlaybackContext;
 
 	constructor(deps: AnimationPlaybackDeps) {
 		this.#deps = deps;
+		this.#ctx = {
+			setStates: (updater) => {
+				this.#states = updater(this.#states);
+			},
+			timers: this.#timers,
+			buildHandle: this.#buildHandle,
+			onPlayActionSound: deps.onPlayActionSound,
+			frameRoot: deps.frameRoot,
+		};
 	}
 
-	/** The current slide's click groups (recomputed from the live animations). */
-	get groups(): AnimationClickGroup[] {
-		return buildPresentationClickGroups(
-			this.#deps.getAnimations(),
-			this.#deps.getShowWithAnimation?.(),
-		);
+	/** Reactive per-element native-animation state (visibility, build, colour). */
+	get elementStates(): Map<string, ElementAnimationState> {
+		return this.#states;
 	}
 
-	/** Number of click groups on the current slide (i.e. how many advance steps). */
-	get groupCount(): number {
-		return this.groups.length;
+	/** The per-slide `@keyframes` CSS to inject once per slide. */
+	get keyframesCss(): string {
+		return this.#keyframesCss;
 	}
 
-	/** The current playback step (revealed click-group count). */
-	get step(): number {
-		return this.#step;
+	/** Shape ids that trigger an interactive (`onShapeClick`) sequence. */
+	get interactiveTriggerShapeIds(): ReadonlySet<string> {
+		return this.#interactiveTriggerShapeIds;
 	}
 
-	/** True once every click group has been revealed. */
+	/** Shape ids that trigger a hover (`onHover`) sequence. */
+	get hoverTriggerShapeIds(): ReadonlySet<string> {
+		return this.#hoverTriggerShapeIds;
+	}
+
+	/** True once every main-timeline click-group has been revealed. */
 	get isComplete(): boolean {
-		return this.#step >= this.groupCount;
+		return this.#complete;
+	}
+
+	#animationsEnabled(): boolean {
+		return this.#deps.getShowWithAnimation?.() !== false;
+	}
+
+	#syncComplete(): void {
+		this.#complete = !this.#controller || !this.#controller.hasMoreSteps();
+	}
+
+	/** Clear all pending timers + the in-flight staged-build RAF. */
+	clearTimers(): void {
+		for (const timer of this.#timers) {
+			window.clearTimeout(timer);
+		}
+		this.#timers.length = 0;
+		cancelBuildReveal(this.#buildHandle);
 	}
 
 	/**
-	 * `elementId -> CSS` for every animation in the revealed groups (with the
-	 * correct cumulative delay for sequential `afterPrevious` chains).
+	 * Rebuild the controller for the current slide and replay from the start. The
+	 * controller builds the timeline engine (expanding text-build animations) and
+	 * derives keyframes CSS, trigger-shape ids, and the tracked element id list.
 	 */
-	get elementStyles(): Map<string, CSSProperties> {
-		return revealedElementStyles(this.groups, this.#step);
+	reset(): void {
+		this.clearTimers();
+		const slide = this.#deps.getSlide();
+		if (!slide || !this.#animationsEnabled()) {
+			this.#controller = null;
+			this.#states = new Map();
+			this.#keyframesCss = '';
+			this.#interactiveTriggerShapeIds = new Set();
+			this.#hoverTriggerShapeIds = new Set();
+			this.#complete = true;
+			return;
+		}
+
+		const controller = PresentationAnimationController.fromSlide(slide);
+		this.#controller = controller;
+		this.#keyframesCss = controller.keyframesCss;
+		this.#interactiveTriggerShapeIds = controller.interactiveTriggerShapeIds;
+		this.#hoverTriggerShapeIds = controller.hoverTriggerShapeIds;
+		this.#states = controller.computeStates();
+		this.#syncComplete();
+
+		// Auto-play the first group when the slide opens with a withPrevious /
+		// afterPrevious / afterDelay build (mirrors React's entrance auto-play).
+		if (controller.hasMoreSteps()) {
+			const firstGroup = controller.peekNext();
+			if (firstGroup?.autoAdvance) {
+				const timer = window.setTimeout(() => {
+					const group = controller.advance();
+					if (group) {
+						playGroup(controller, group, this.#ctx);
+						scheduleAutoAdvanceChain(controller, this.#ctx);
+						this.#syncComplete();
+					}
+				}, firstGroup.autoAdvanceDelayMs ?? 0);
+				this.#timers.push(timer);
+			}
+		}
 	}
 
 	/**
-	 * `elementId -> hidden CSS` for entrances not yet revealed, so the host can
-	 * pre-seed them (hide until their group plays) without a flash.
-	 */
-	get pendingStyles(): Map<string, CSSProperties> {
-		return pendingElementStyles(this.groups, this.#step);
-	}
-
-	/**
-	 * Reveal the next click group. Returns `true` if a group was revealed,
-	 * `false` when playback was already complete (so the caller can fall through
-	 * to slide navigation).
+	 * Reveal the next click-group. Returns `true` if a group was revealed, `false`
+	 * when playback is complete or animations are disabled (so the caller can fall
+	 * through to slide navigation).
 	 */
 	advance(): boolean {
-		const count = this.groupCount;
-		if (this.#step >= count) {
+		if (!this.#animationsEnabled() || !this.#controller || !this.#controller.hasMoreSteps()) {
 			return false;
 		}
-		this.#step = clampStep(this.#step + 1, count);
+		const group = this.#controller.advance();
+		if (!group) {
+			return false;
+		}
+		playGroup(this.#controller, group, this.#ctx);
+		scheduleAutoAdvanceChain(this.#controller, this.#ctx);
+		this.#syncComplete();
 		return true;
 	}
 
-	/** Reveal every click group at once (jump to the slide's final build state). */
-	play(): void {
-		this.#step = this.groupCount;
+	/** Play an interactive shape's sequence; `true` when it triggered one. */
+	handleInteractiveShapeClick(shapeId: string): boolean {
+		if (!this.#controller || !this.#controller.hasInteractiveSequence(shapeId)) {
+			return false;
+		}
+		const group = this.#controller.advanceInteractive(shapeId);
+		if (!group) {
+			return false;
+		}
+		playGroup(this.#controller, group, this.#ctx);
+		return true;
 	}
 
-	/** Reset playback to before the first click group. */
-	reset(): void {
-		this.#step = 0;
+	/** Play a hover shape's sequence; `true` when it triggered one. */
+	handleHoverStart(shapeId: string): boolean {
+		if (
+			!this.#animationsEnabled() ||
+			!this.#controller ||
+			!this.#controller.hasHoverSequence(shapeId)
+		) {
+			return false;
+		}
+		// Reset first so hovering again replays the sequence from the start.
+		this.#controller.resetHover(shapeId);
+		const group = this.#controller.advanceHover(shapeId);
+		if (!group) {
+			return false;
+		}
+		playGroup(this.#controller, group, this.#ctx);
+		return true;
+	}
+
+	/** Reset a hover shape's sequence so the next hover replays it. */
+	handleHoverEnd(shapeId: string): void {
+		if (this.#controller?.hasHoverSequence(shapeId)) {
+			this.#controller.resetHover(shapeId);
+		}
 	}
 }

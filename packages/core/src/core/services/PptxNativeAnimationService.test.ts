@@ -686,6 +686,7 @@ describe('pptxNativeAnimationService', () => {
 			const result = service.parseNativeAnimations(slideXml);
 			expect(result).toBeDefined();
 			expect(result![0].groupId).toBe('5');
+			expect(result![0].oleChartBuild).toBe('series');
 		});
 
 		it('preserves rawEndCondLst from the timing node', () => {

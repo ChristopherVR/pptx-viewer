@@ -1,17 +1,12 @@
-import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxSlide } from 'pptx-viewer-core';
-import { useRef, useState, useCallback } from 'react';
+import { PresentationAnimationController } from 'pptx-viewer-shared';
+import { useRef, useState, useCallback, useEffect } from 'react';
 
 import type { PresentationAnimationRuntime } from '../../types';
-import {
-	TimelineEngine,
-	expandTextBuildAnimations,
-	countTextSegments,
-	TEXT_BUILD_ID_SEP,
-} from '../../utils/animation-timeline';
-import type { ElementAnimationState, TextBuildSegmentCounts } from '../../utils/animation-timeline';
+import type { ElementAnimationState, TimelineClickGroup } from '../../utils/animation-timeline';
 import { computeEntranceAnimationDelay } from '../usePresentationSetup-helpers';
 import { applyAnimationGroupSteps } from './animation-helpers';
+import { driveBuildReveal, cancelBuildReveal } from './build-playback';
 
 // ---------------------------------------------------------------------------
 // Sub-hook interface
@@ -63,7 +58,37 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 
 	// Refs
 	const presentationTimersRef = useRef<number[]>([]);
-	const timelineEngineRef = useRef<TimelineEngine | null>(null);
+	const controllerRef = useRef<PresentationAnimationController | null>(null);
+	/** In-flight requestAnimationFrame id for the active staged-build reveal. */
+	const buildRafRef = useRef<number | null>(null);
+
+	// -----------------------------------------------------------------------
+	// Staged chart / SmartArt build reveal (RAF-driven)
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Start (or restart) the requestAnimationFrame loop that ramps a click-group's
+	 * staged-build `progress` from 0 -> 1. No-op when the group carries no build
+	 * step, so ordinary click-advance is unchanged.
+	 */
+	const startBuildReveal = useCallback(
+		(controller: PresentationAnimationController, group: TimelineClickGroup) => {
+			driveBuildReveal(
+				controller,
+				PresentationAnimationController.collectBuildStepIds(group),
+				setPresentationElementStates,
+				buildRafRef,
+			);
+		},
+		[],
+	);
+
+	// Stop the build loop on unmount so a detached RAF never touches state.
+	useEffect(() => {
+		return () => {
+			cancelBuildReveal(buildRafRef);
+		};
+	}, []);
 
 	// -----------------------------------------------------------------------
 	// Timer management
@@ -74,6 +99,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			window.clearTimeout(timer);
 		});
 		presentationTimersRef.current = [];
+		cancelBuildReveal(buildRafRef);
 	}, []);
 
 	// -----------------------------------------------------------------------
@@ -87,13 +113,13 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 	 * play without additional clicks.
 	 */
 	const scheduleAutoAdvanceChain = useCallback(
-		(engine: TimelineEngine) => {
-			if (!engine.shouldAutoAdvance()) {
+		(controller: PresentationAnimationController) => {
+			if (!controller.shouldAutoAdvance()) {
 				return;
 			}
 
-			const delay = engine.getAutoAdvanceDelay();
-			const previousGroup = engine.peekNext();
+			const delay = controller.getAutoAdvanceDelay();
+			const previousGroup = controller.peekNext();
 			if (!previousGroup) {
 				return;
 			}
@@ -102,7 +128,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 
 			const timer = window.setTimeout(
 				() => {
-					const group = engine.advance();
+					const group = controller.advance();
 					if (!group) {
 						return;
 					}
@@ -113,16 +139,17 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 						setPresentationElementStates,
 						presentationTimersRef,
 					);
+					startBuildReveal(controller, group);
 
 					// Continue the chain if more auto-advance groups follow
-					scheduleAutoAdvanceChain(engine);
+					scheduleAutoAdvanceChain(controller);
 				},
 				Math.max(0, totalDelay),
 			);
 
 			presentationTimersRef.current.push(timer);
 		},
-		[onPlayActionSound],
+		[onPlayActionSound, startBuildReveal],
 	);
 
 	// -----------------------------------------------------------------------
@@ -131,9 +158,10 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 
 	const resetSlideTimeline = useCallback(
 		(slideIndex: number) => {
+			cancelBuildReveal(buildRafRef);
 			const slide = slides[slideIndex];
 			if (!slide) {
-				timelineEngineRef.current = null;
+				controllerRef.current = null;
 				setPresentationElementStates(new Map());
 				setPresentationKeyframesCss('');
 				setInteractiveTriggerShapeIds(new Set());
@@ -141,40 +169,18 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 				return;
 			}
 
-			// Build segment counts for elements that have text-build animations
-			const nativeAnims = slide.nativeAnimations ?? [];
-			const segmentCounts = new Map<string, TextBuildSegmentCounts>();
-			for (const anim of nativeAnims) {
-				if (anim.buildType && anim.buildType !== 'allAtOnce' && anim.targetId) {
-					const el = slide.elements.find((e) => e.id === anim.targetId);
-					if (el && hasTextProperties(el) && el.textSegments && el.textSegments.length > 0) {
-						segmentCounts.set(anim.targetId, countTextSegments(el.textSegments));
-					}
-				}
-			}
-
-			// Expand text-build animations into sub-element animations
-			const expandedAnims =
-				segmentCounts.size > 0
-					? expandTextBuildAnimations(nativeAnims, segmentCounts)
-					: nativeAnims;
-
-			const engine = TimelineEngine.fromAnimations(expandedAnims);
-			timelineEngineRef.current = engine;
-			setPresentationKeyframesCss(engine.getTimeline().keyframesCss);
+			// The controller builds the timeline engine (expanding text-build
+			// animations into sub-element animations) and derives the keyframes CSS,
+			// trigger-shape id sets, and the full tracked element id list.
+			const controller = PresentationAnimationController.fromSlide(slide);
+			controllerRef.current = controller;
+			setPresentationKeyframesCss(controller.keyframesCss);
 
 			// Expose interactive and hover trigger shape IDs for cursor styling
-			setInteractiveTriggerShapeIds(engine.getInteractiveTriggerShapeIds());
-			setHoverTriggerShapeIds(engine.getHoverTriggerShapeIds());
+			setInteractiveTriggerShapeIds(controller.interactiveTriggerShapeIds);
+			setHoverTriggerShapeIds(controller.hoverTriggerShapeIds);
 
-			// Collect both element IDs and sub-element IDs for state tracking
-			const allIds: string[] = slide.elements.map((element) => element.id);
-			for (const anim of expandedAnims) {
-				if (anim.targetId && anim.targetId.includes(TEXT_BUILD_ID_SEP)) {
-					allIds.push(anim.targetId);
-				}
-			}
-			setPresentationElementStates(engine.getElementStates(allIds));
+			setPresentationElementStates(controller.computeStates());
 		},
 		[slides],
 	);
@@ -187,12 +193,12 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 		if (!animationsEnabled) {
 			return false;
 		}
-		const engine = timelineEngineRef.current;
-		if (!engine || !engine.hasMoreSteps()) {
+		const controller = controllerRef.current;
+		if (!controller || !controller.hasMoreSteps()) {
 			return false;
 		}
 
-		const group = engine.advance();
+		const group = controller.advance();
 		if (!group) {
 			return false;
 		}
@@ -203,12 +209,13 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			setPresentationElementStates,
 			presentationTimersRef,
 		);
+		startBuildReveal(controller, group);
 
 		// Schedule auto-advance for consecutive non-click groups
-		scheduleAutoAdvanceChain(engine);
+		scheduleAutoAdvanceChain(controller);
 
 		return true;
-	}, [animationsEnabled, onPlayActionSound, scheduleAutoAdvanceChain]);
+	}, [animationsEnabled, onPlayActionSound, scheduleAutoAdvanceChain, startBuildReveal]);
 
 	// -----------------------------------------------------------------------
 	// Interactive shape-click animation
@@ -216,12 +223,12 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 
 	const handleInteractiveShapeClick = useCallback(
 		(shapeId: string): boolean => {
-			const engine = timelineEngineRef.current;
-			if (!engine || !engine.hasInteractiveSequence(shapeId)) {
+			const controller = controllerRef.current;
+			if (!controller || !controller.hasInteractiveSequence(shapeId)) {
 				return false;
 			}
 
-			const group = engine.advanceInteractive(shapeId);
+			const group = controller.advanceInteractive(shapeId);
 			if (!group) {
 				return false;
 			}
@@ -232,10 +239,11 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 				setPresentationElementStates,
 				presentationTimersRef,
 			);
+			startBuildReveal(controller, group);
 
 			return true;
 		},
-		[onPlayActionSound],
+		[onPlayActionSound, startBuildReveal],
 	);
 
 	// -----------------------------------------------------------------------
@@ -247,15 +255,15 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			if (!animationsEnabled) {
 				return false;
 			}
-			const engine = timelineEngineRef.current;
-			if (!engine || !engine.hasHoverSequence(shapeId)) {
+			const controller = controllerRef.current;
+			if (!controller || !controller.hasHoverSequence(shapeId)) {
 				return false;
 			}
 
 			// Reset hover state so hovering again replays the animation
-			engine.resetHover(shapeId);
+			controller.resetHover(shapeId);
 
-			const group = engine.advanceHover(shapeId);
+			const group = controller.advanceHover(shapeId);
 			if (!group) {
 				return false;
 			}
@@ -266,20 +274,21 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 				setPresentationElementStates,
 				presentationTimersRef,
 			);
+			startBuildReveal(controller, group);
 
 			return true;
 		},
-		[animationsEnabled, onPlayActionSound],
+		[animationsEnabled, onPlayActionSound, startBuildReveal],
 	);
 
 	const handleHoverEnd = useCallback((shapeId: string): void => {
-		const engine = timelineEngineRef.current;
-		if (!engine || !engine.hasHoverSequence(shapeId)) {
+		const controller = controllerRef.current;
+		if (!controller || !controller.hasHoverSequence(shapeId)) {
 			return;
 		}
 
 		// Reset hover sequence so next hover replays from the start
-		engine.resetHover(shapeId);
+		controller.resetHover(shapeId);
 	}, []);
 
 	// -----------------------------------------------------------------------
@@ -292,7 +301,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 
 			// When animations are disabled, skip timeline and entrance animations
 			if (!animationsEnabled) {
-				timelineEngineRef.current = null;
+				controllerRef.current = null;
 				setPresentationAnimations([]);
 				setPresentationElementStates(new Map());
 				setPresentationKeyframesCss('');
@@ -310,13 +319,13 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 
 			// After resetting the timeline, check if the first group should auto-play
 			// (e.g. when the slide starts with withPrevious/afterPrevious animations)
-			const engine = timelineEngineRef.current;
-			if (engine && engine.hasMoreSteps()) {
-				const firstGroup = engine.peekNext();
+			const controller = controllerRef.current;
+			if (controller && controller.hasMoreSteps()) {
+				const firstGroup = controller.peekNext();
 				if (firstGroup && firstGroup.autoAdvance) {
 					// Auto-play the first group after a brief delay
 					const timer = window.setTimeout(() => {
-						const group = engine.advance();
+						const group = controller.advance();
 						if (group) {
 							applyAnimationGroupSteps(
 								group,
@@ -324,7 +333,8 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 								setPresentationElementStates,
 								presentationTimersRef,
 							);
-							scheduleAutoAdvanceChain(engine);
+							startBuildReveal(controller, group);
+							scheduleAutoAdvanceChain(controller);
 						}
 					}, firstGroup.autoAdvanceDelayMs ?? 0);
 					presentationTimersRef.current.push(timer);
@@ -369,6 +379,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			slides,
 			onPlayActionSound,
 			scheduleAutoAdvanceChain,
+			startBuildReveal,
 		],
 	);
 

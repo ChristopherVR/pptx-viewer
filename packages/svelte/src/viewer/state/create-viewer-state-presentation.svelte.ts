@@ -38,6 +38,7 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 		getCurrentIndex: () => viewer.current,
 		navigate: (index) => viewer.goTo(index),
 		getShowWithAnimation: () => loader.presentationProperties.showWithAnimation,
+		getFrameRoot: () => deps.getStageHolderEl()?.querySelector('.pptx-svelte-stage') ?? null,
 	});
 	usePresentationEffects({
 		controller: presentation,

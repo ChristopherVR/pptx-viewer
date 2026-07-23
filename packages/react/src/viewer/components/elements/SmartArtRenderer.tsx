@@ -2,9 +2,11 @@ import type { PptxElement, PptxSmartArtNode, SmartArtStyle } from 'pptx-viewer-c
 import { updateSmartArtNodeText, setSmartArtNodeStyle } from 'pptx-viewer-core';
 import {
 	buildSmartArtA11y,
+	revealedSmartArtNodeCount,
 	shouldCommitSmartArtNodeText,
 	rebuildDrawingShapesIfCleared,
 } from 'pptx-viewer-shared';
+import type { ElementAnimationState } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -85,6 +87,12 @@ interface SmartArtRendererProps {
 	 * Required for editing to take effect.
 	 */
 	onUpdateElement?: (updates: Partial<PptxElement>) => void;
+	/**
+	 * Playback state for the diagram. A staged diagram build
+	 * (`build.kind === 'diagram'`) reveals the leading nodes / drawing shapes for
+	 * the current progress; absent or non-diagram state renders every node.
+	 */
+	animationState?: ElementAnimationState;
 }
 
 /**
@@ -98,6 +106,7 @@ function SmartArtRendererImpl({
 	className = '',
 	canEdit = false,
 	onUpdateElement,
+	animationState,
 }: SmartArtRendererProps): React.ReactElement {
 	const { t } = useTranslation();
 	if (element.type !== 'smartArt' || !element.smartArtData) {
@@ -112,6 +121,22 @@ function SmartArtRendererImpl({
 
 	const smartArtData = element.smartArtData;
 	const { nodes, drawingShapes, chrome } = smartArtData;
+
+	// Staged diagram build (p:bldDgm): reveal only the leading nodes / shapes for
+	// the current playback progress. Non-diagram / absent state reveals all.
+	const diagramBuild = animationState?.build?.kind === 'diagram' ? animationState.build : undefined;
+	const shownNodeCount = diagramBuild
+		? revealedSmartArtNodeCount(nodes, diagramBuild)
+		: nodes.length;
+	const isPartialBuild = diagramBuild !== undefined && shownNodeCount < nodes.length;
+	const revealedNodes = isPartialBuild ? nodes.slice(0, shownNodeCount) : nodes;
+	const revealedShapes =
+		isPartialBuild && drawingShapes && drawingShapes.length > 0
+			? drawingShapes.slice(
+					0,
+					Math.ceil((shownNodeCount / Math.max(nodes.length, 1)) * drawingShapes.length),
+				)
+			: drawingShapes;
 
 	if (nodes.length === 0) {
 		return (
@@ -174,11 +199,11 @@ function SmartArtRendererImpl({
 	// Prefer pre-computed drawing shapes when available; these reflect
 	// PowerPoint's actual layout engine output and are the most accurate.
 	let content: React.ReactElement;
-	if (drawingShapes && drawingShapes.length > 0) {
+	if (revealedShapes && revealedShapes.length > 0) {
 		content = (
 			<DrawingShapeRenderer
 				elementId={element.id}
-				shapes={drawingShapes}
+				shapes={revealedShapes}
 				style={style}
 				palette={palette}
 				nodes={nodes}
@@ -186,13 +211,16 @@ function SmartArtRendererImpl({
 			/>
 		);
 	} else {
-		// Determine the layout category for algorithmic rendering
+		// Determine the layout category for algorithmic rendering. With a staged
+		// build, `revealedNodes` may be empty (progress 0) or a leading prefix; the
+		// layout renderers render nothing for an empty node list, which is exactly
+		// the "not built yet" state while the wrapper is still fading in.
 		const namedLayout = smartArtData.layout;
 		const layoutType = namedLayout
 			? layoutToCategory(namedLayout)
 			: (smartArtData.resolvedLayoutType ?? smartArtData.layoutType ?? 'list').toLowerCase();
 
-		content = renderLayout(layoutType, element, nodes, palette, style, nodeLabels);
+		content = renderLayout(layoutType, element, revealedNodes, palette, style, nodeLabels);
 	}
 
 	const body = editable ? (
@@ -371,6 +399,17 @@ function arePropsEqual(prev: SmartArtRendererProps, next: SmartArtRendererProps)
 	const prevData = prev.element.type === 'smartArt' ? prev.element.smartArtData : undefined;
 	const nextData = next.element.type === 'smartArt' ? next.element.smartArtData : undefined;
 	if (prevData !== nextData) {
+		return false;
+	}
+	// A staged diagram build advances `build.progress` each RAF frame; re-render
+	// whenever the reveal state changes so nodes appear progressively.
+	const prevBuild = prev.animationState?.build;
+	const nextBuild = next.animationState?.build;
+	if (
+		prevBuild?.kind !== nextBuild?.kind ||
+		prevBuild?.mode !== nextBuild?.mode ||
+		prevBuild?.progress !== nextBuild?.progress
+	) {
 		return false;
 	}
 	return true;

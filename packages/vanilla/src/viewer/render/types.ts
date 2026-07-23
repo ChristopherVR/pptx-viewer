@@ -5,7 +5,12 @@ import type {
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
-import type { CanvasSize, CssStyleMap, FieldSubstitutionContext } from 'pptx-viewer-shared';
+import type {
+	CanvasSize,
+	CssStyleMap,
+	ElementAnimationState,
+	FieldSubstitutionContext,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 
@@ -66,6 +71,16 @@ export interface ElementRenderContext {
 	readonly presenting: boolean;
 	readonly onSmartArtNodeTextChange?: (element: PptxElement, nodeId: string, text: string) => void;
 	readonly onSmartArtNodeFillChange?: (element: PptxElement, nodeId: string, fill: string) => void;
+	/**
+	 * Per-element native-animation playback state, keyed by element id, present
+	 * only during a running presentation. Chart / SmartArt renderers read their
+	 * element's {@link ElementAnimationState.build} to reveal a staged build
+	 * (`p:bldChart` / `p:bldDgm`); shape renderers read `animatesFill` /
+	 * `animatesStroke` to relinquish static paint during a `p:animClr` animation.
+	 * A stable map instance, mutated in place by the playback controller so a
+	 * targeted single-element re-render always reads current state.
+	 */
+	readonly presentationStates?: ReadonlyMap<string, ElementAnimationState>;
 	/** The registry in effect, for renderers that need to inspect it. */
 	readonly registry: ElementRendererRegistry;
 	/**

@@ -101,9 +101,25 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const elementLocks = el.locks;
 		const isTxt = isEditableTextElement(el) && !elementLocks?.noTextEdit;
 		const txtSE = hasTextProperties(el) ? el.textStyle : undefined;
-		const ss = getShapeVisualStyle(el, hf, fc, sw, sc);
+		const ss = getShapeVisualStyle(
+			el,
+			hf,
+			fc,
+			sw,
+			sc,
+			animationState?.animatesFill,
+			animationState?.animatesStroke,
+		);
 		const ts = getTextStyleForElement(el, DEFAULT_TEXT_COLOR);
-		const vs = renderVectorShape(el, hf, fc, sw, sc);
+		const vs = renderVectorShape(
+			el,
+			hf,
+			fc,
+			sw,
+			sc,
+			animationState?.animatesFill,
+			animationState?.animatesStroke,
+		);
 		const isImg = el.type === 'picture' || el.type === 'image';
 		const isModel3D = el.type === 'model3d';
 		const isConn = isConnectorOrLineElement(el);

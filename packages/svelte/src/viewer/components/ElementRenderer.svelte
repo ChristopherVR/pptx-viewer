@@ -11,6 +11,7 @@
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, styleToString } from '../style';
 	import { useSmartArt3D } from '../state/smart-art-3d-context';
+	import { usePresentationElementState } from '../state/presentation-element-states-context';
 	// Self-import: groups recurse into this same component (Svelte 5 pattern).
 	// eslint-disable-next-line import/no-self-import
 	import ElementRenderer from './ElementRenderer.svelte';
@@ -40,6 +41,14 @@
 	const elementInteractive = $derived(interactive && (!isTemplateElement(element) || editTemplateMode));
 	/** This group's own fill, handed to `a:grpFill` children (undefined for non-groups). */
 	const childParentGroupFill = $derived(getGroupChildParentFill(element));
+
+	/**
+	 * Native-animation playback state for this element (present only during a
+	 * running presentation). Drives the staged chart / SmartArt build reveal and
+	 * the `p:animClr` fill / stroke relinquish; read from the element-states
+	 * context so editor / read-only rendering (context absent) is unaffected.
+	 */
+	const animationState = $derived(usePresentationElementState(element.id));
 
 	/** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
 	const smartArt3D = useSmartArt3D();
@@ -83,15 +92,15 @@
 {:else if isImageLike}
 	<ImageBox {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'connector'}
-	<ConnectorView {element} {mediaDataUrls} {zIndex} />
+	<ConnectorView {element} {mediaDataUrls} {zIndex} {animationState} />
 {:else if element.type === 'table'}
 	<TableView {element} {mediaDataUrls} {zIndex} {interactive} {ontablecellcommit} />
 {:else if element.type === 'chart'}
-	<ChartView {element} {mediaDataUrls} {zIndex} />
+	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} />
 {:else if element.type === 'smartArt' && smartArt3D}
 	<SmartArt3DView {element} {mediaDataUrls} {zIndex} />
 {:else if element.type === 'smartArt'}
-	<SmartArtView {element} {mediaDataUrls} {zIndex} {interactive} {onsmartartnodecommit} {onsmartartnodefill} />
+	<SmartArtView {element} {mediaDataUrls} {zIndex} {interactive} {animationState} {onsmartartnodecommit} {onsmartartnodefill} />
 {:else if element.type === 'media'}
 	<MediaBox {element} {mediaDataUrls} {zIndex} {presenting} />
 {:else if element.type === 'ink'}
@@ -110,7 +119,7 @@
 	<!-- Text / shape: shared fill/stroke/effects/geometry + rich text block. -->
 	<div
 		class="pptx-svelte-element pptx-svelte-shape"
-		style={styleToString({ ...getShapeBoxStyle(element, zIndex, parentGroupFill), pointerEvents: elementInteractive ? 'auto' : 'none' })}
+		style={styleToString({ ...getShapeBoxStyle(element, zIndex, parentGroupFill, animationState?.animatesFill, animationState?.animatesStroke), pointerEvents: elementInteractive ? 'auto' : 'none' })}
 		data-element-id={element.id}
 		data-pptx-element={elementInteractive ? 'true' : undefined}
 	>

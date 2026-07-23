@@ -8,6 +8,7 @@ import {
 	hslToRgb,
 	interpolateColor,
 	buildColorAnimationKeyframes,
+	resolveColorAnimationTargets,
 } from './animation-color';
 import { buildDynamicKeyframe } from './animation-timeline-helpers';
 
@@ -564,5 +565,27 @@ describe('buildColorAnimationKeyframes targetAttribute', () => {
 		expect(css).toBeDefined();
 		expect(css).toContain('backgroundColor:');
 		expect(css).not.toContain('{ color:');
+	});
+});
+
+// ==========================================================================
+// resolveColorAnimationTargets
+// ==========================================================================
+
+describe('resolveColorAnimationTargets', () => {
+	it('maps fill attributes to a fill target', () => {
+		expect(resolveColorAnimationTargets('fillcolor')).toStrictEqual(['fill']);
+		expect(resolveColorAnimationTargets('fill.color')).toStrictEqual(['fill']);
+	});
+
+	it('maps stroke attributes to a stroke target', () => {
+		expect(resolveColorAnimationTargets('stroke.color')).toStrictEqual(['stroke']);
+		expect(resolveColorAnimationTargets('stroke.dashstyle')).toStrictEqual(['stroke']);
+	});
+
+	it('returns no paint targets for text / colour-only attributes', () => {
+		expect(resolveColorAnimationTargets('style.color')).toStrictEqual([]);
+		expect(resolveColorAnimationTargets(undefined)).toStrictEqual([]);
+		expect(resolveColorAnimationTargets('ppt_x')).toStrictEqual([]);
 	});
 });

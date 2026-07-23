@@ -24,8 +24,10 @@ import {
 	flattenNodes,
 	rebuildDrawingShapesIfCleared,
 	resolveDrawingShapeNodeId,
+	revealedSmartArtNodeCount,
 } from '../internal/shared';
 import type {
+	ElementAnimationState,
 	InlineEditRect,
 	RenderedNode,
 	SmartArtA11y,
@@ -420,6 +422,15 @@ export class SmartArtRendererComponent {
 	readonly editable = input<boolean>(false);
 
 	/**
+	 * Native-animation playback state. A staged diagram build
+	 * (`build.kind === 'diagram'`) reveals the leading nodes / drawing shapes for
+	 * the current progress; absent or non-diagram state renders every node. The
+	 * view box is still computed from the FULL shape set so the diagram does not
+	 * rescale as it builds. Mirrors the Vue `SmartArtRenderer`'s reveal slice.
+	 */
+	readonly animationState = input<ElementAnimationState | undefined>(undefined);
+
+	/**
 	 * The editor state layer. Optional: the renderer is also used outside the
 	 * editing viewer (thumbnails, export), where this service is not provided.
 	 * Inline editing commits through `updateElement` here, the exact channel the
@@ -502,6 +513,43 @@ export class SmartArtRendererComponent {
 
 	readonly hasDrawingShapes = computed(() => this.rawDrawingShapes().length > 0);
 
+	// ── Staged diagram build (p:bldDgm) reveal ──────────────────────────────
+	//
+	// When an active native animation carries a staged diagram build, reveal only
+	// the leading nodes / drawing shapes for the current progress; the view box is
+	// still computed from the FULL shape set so the diagram does not rescale.
+
+	private readonly diagramBuild = computed(() => {
+		const build = this.animationState()?.build;
+		return build?.kind === 'diagram' ? build : undefined;
+	});
+
+	private readonly shownNodeCount = computed(() => {
+		const build = this.diagramBuild();
+		return build ? revealedSmartArtNodeCount(this.nodes(), build) : this.nodes().length;
+	});
+
+	private readonly isPartialBuild = computed(
+		() => this.diagramBuild() !== undefined && this.shownNodeCount() < this.nodes().length,
+	);
+
+	/** Leading node prefix revealed so far (full list when no partial build). */
+	private readonly revealedNodes = computed(() =>
+		this.isPartialBuild() ? this.nodes().slice(0, this.shownNodeCount()) : this.nodes(),
+	);
+
+	/** Leading drawing-shape prefix revealed so far (proportional to nodes). */
+	private readonly revealedShapeList = computed(() => {
+		const shapes = this.rawDrawingShapes();
+		if (!this.isPartialBuild() || shapes.length === 0) {
+			return shapes;
+		}
+		const count = Math.ceil(
+			(this.shownNodeCount() / Math.max(this.nodes().length, 1)) * shapes.length,
+		);
+		return shapes.slice(0, count);
+	});
+
 	private readonly viewBox = computed<DrawingViewBox>(() =>
 		computeDrawingViewBox(this.rawDrawingShapes()),
 	);
@@ -515,7 +563,7 @@ export class SmartArtRendererComponent {
 	readonly renderedShapes = computed<RenderedShape[]>(() =>
 		projectDrawingShapes(
 			this.element().id,
-			this.rawDrawingShapes(),
+			this.revealedShapeList(),
 			this.viewBox(),
 			this.palette(),
 			this.artStyle(),
@@ -539,7 +587,7 @@ export class SmartArtRendererComponent {
 		const el = this.element();
 		const data = this.smartArtData();
 		return computeSmartArtLayout(
-			this.nodes(),
+			this.revealedNodes(),
 			{ width: Math.max(el.width, 1), height: Math.max(el.height, 1) },
 			this.palette(),
 			this.artStyle(),

@@ -189,6 +189,13 @@ export * from './animation-timeline-types';
 export * from './animation-presets';
 export * from './animation-keyframes';
 export * from './animation-color';
+// Staged-build (p:bldChart / p:bldDgm) mode resolution + time->progress helpers
+// consumed by staged chart / SmartArt reveal renderers.
+export * from './animation-build';
+// Staged chart / SmartArt reveal projection: trim chart data / count revealed
+// diagram nodes for the current build progress.
+export * from './chart-build';
+export * from './diagram-build';
 export * from './animation-timeline-helpers';
 // Compound / simultaneous OOXML start+end condition evaluation (p:stCondLst /
 // p:endCondLst OR-sets), consumed by the sequencer + timeline builder.
@@ -198,6 +205,12 @@ export * from './animation-effects';
 export * from './animation-sequencer';
 export * from './animation-timeline-builder';
 export * from './animation-timeline-engine';
+// Framework-agnostic presentation-mode element-animation controller: wraps the
+// TimelineEngine (with text-build expansion) and caches keyframes CSS + trigger
+// shape ids + the tracked element id list, exposing advance/reset/computeStates
+// + the pure `collectBuildStepIds` staged-build probe. The clock (RAF/timers),
+// DOM injection, and step application stay in each binding.
+export * from './presentation-animation-controller';
 // OOXML `p:cmd` media playback commands (play/pause/seek) surfaced on timeline
 // steps; the DOM `HTMLMediaElement` control stays in each binding.
 export * from './animation-media-commands';

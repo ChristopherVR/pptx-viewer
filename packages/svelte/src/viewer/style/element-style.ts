@@ -36,6 +36,12 @@ export function getContainerStyle(el: PptxElement, zIndex: number): CssStyleMap 
 export function getShapeFillStrokeStyle(
 	el: PptxElement,
 	parentGroupFill?: ShapeStyle,
+	// When an active `p:animClr` colour animation targets this shape's fill /
+	// stroke, drop the static paint so the wrapper's colour keyframes (applied as
+	// an `animation` on this same box) own `background-color` / `border-color`.
+	// Mirrors React's / Vue's shape-style resolver. Absent/false keeps the paint.
+	animatesFill?: boolean,
+	animatesStroke?: boolean,
 ): CssStyleMap {
 	if (!hasShapeProperties(el)) {
 		return {};
@@ -46,7 +52,7 @@ export function getShapeFillStrokeStyle(
 	if (ss) {
 		// Fill: image -> structured gradient -> preset pattern -> solid. A child
 		// painted with `a:grpFill` (fillMode 'group') inherits `parentGroupFill`.
-		const fill = getComputedFillStyle(el, parentGroupFill);
+		const fill = animatesFill ? undefined : getComputedFillStyle(el, parentGroupFill);
 		if (fill) {
 			if (fill.backgroundColor !== undefined) {
 				style.backgroundColor = fill.backgroundColor;
@@ -64,9 +70,15 @@ export function getShapeFillStrokeStyle(
 
 		const strokeWidth = Math.max(0, ss.strokeWidth ?? 0);
 		if (strokeWidth > 0) {
-			style.border = `${px(strokeWidth)} ${getCssBorderDashStyle(ss.strokeDash)} ${
-				ss.strokeColor ?? DEFAULT_STROKE_COLOR
-			}`;
+			if (animatesStroke) {
+				// Keep the width / dash; leave the colour to the animated keyframes.
+				style.borderWidth = px(strokeWidth);
+				style.borderStyle = getCssBorderDashStyle(ss.strokeDash) ?? 'solid';
+			} else {
+				style.border = `${px(strokeWidth)} ${getCssBorderDashStyle(ss.strokeDash)} ${
+					ss.strokeColor ?? DEFAULT_STROKE_COLOR
+				}`;
+			}
 		}
 	}
 
@@ -156,9 +168,11 @@ export function getShapeBoxStyle(
 	el: PptxElement,
 	zIndex: number,
 	parentGroupFill?: ShapeStyle,
+	animatesFill?: boolean,
+	animatesStroke?: boolean,
 ): CssStyleMap {
 	const container = getContainerStyle(el, zIndex);
-	const shape = getShapeFillStrokeStyle(el, parentGroupFill);
+	const shape = getShapeFillStrokeStyle(el, parentGroupFill, animatesFill, animatesStroke);
 	const merged: CssStyleMap = { ...container, ...shape };
 	if (container.transform && shape.transform) {
 		merged.transform = `${String(container.transform)} ${String(shape.transform)}`;

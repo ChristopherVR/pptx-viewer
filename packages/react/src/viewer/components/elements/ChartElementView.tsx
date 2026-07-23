@@ -1,12 +1,13 @@
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
 import {
+	applyChartBuildReveal,
 	dragAnchorViewY,
 	dragValueForPart,
 	findChartPartTarget,
 	withChartPointValue,
 	withChartTitle,
 } from 'pptx-viewer-shared';
-import type { ChartPartRef, ChartValueDrag } from 'pptx-viewer-shared';
+import type { ChartPartRef, ChartValueDrag, ElementAnimationState } from 'pptx-viewer-shared';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { renderChartElement } from '../../utils';
@@ -55,6 +56,12 @@ export interface ChartElementViewProps {
 	editable: boolean;
 	/** Commits a chart-data edit through the normal element-update/history path. */
 	onUpdateElement?: (updates: Partial<PptxElement>) => void;
+	/**
+	 * Playback state for the chart. When it carries a staged chart build
+	 * (`build.kind === 'chart'`), the chart reveals its series / categories /
+	 * cells progressively via {@link applyChartBuildReveal}.
+	 */
+	animationState?: ElementAnimationState;
 }
 
 /**
@@ -67,6 +74,7 @@ export function ChartElementView({
 	element,
 	editable,
 	onUpdateElement,
+	animationState,
 }: ChartElementViewProps): React.ReactElement {
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const dragRef = useRef<ActiveValueDrag | null>(null);
@@ -245,9 +253,16 @@ export function ChartElementView({
 		setTitleDraft(null);
 	};
 
-	const renderedElement: ChartPptxElement = previewData
-		? { ...element, chartData: previewData }
-		: element;
+	// Base chart data (a live drag preview wins over the committed data), then the
+	// staged-build reveal trims it to the stages shown at the current progress.
+	const baseChartData = previewData ?? element.chartData;
+	const chartBuild = animationState?.build?.kind === 'chart' ? animationState.build : undefined;
+	const revealedChartData =
+		chartBuild && baseChartData ? applyChartBuildReveal(baseChartData, chartBuild) : baseChartData;
+	const renderedElement: ChartPptxElement =
+		revealedChartData === element.chartData
+			? element
+			: { ...element, chartData: revealedChartData };
 
 	return (
 		<div

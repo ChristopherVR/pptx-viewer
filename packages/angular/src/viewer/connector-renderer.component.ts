@@ -3,6 +3,7 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 
 import { getLineGlowFilterCss, getLineShadowParams } from '../internal/shared';
+import type { ElementAnimationState } from '../internal/shared';
 import { buildConnectorGeometry } from './connector-path';
 import type { MarkerShape } from './connector-path';
 import type { Rect } from './connector-routing';
@@ -62,9 +63,9 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 							markerUnits="strokeWidth"
 						>
 							@if (geo().startMarker!.shape === 'circle') {
-								<circle cx="5" cy="5" r="4" [attr.fill]="geo().strokeColor" />
+								<circle cx="5" cy="5" r="4" [attr.fill]="strokeColor()" />
 							} @else {
-								<path [attr.d]="geo().startMarker!.d" [attr.fill]="geo().strokeColor" />
+								<path [attr.d]="geo().startMarker!.d" [attr.fill]="strokeColor()" />
 							}
 						</marker>
 					}
@@ -80,9 +81,9 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 							markerUnits="strokeWidth"
 						>
 							@if (geo().endMarker!.shape === 'circle') {
-								<circle cx="5" cy="5" r="4" [attr.fill]="geo().strokeColor" />
+								<circle cx="5" cy="5" r="4" [attr.fill]="strokeColor()" />
 							} @else {
-								<path [attr.d]="geo().endMarker!.d" [attr.fill]="geo().strokeColor" />
+								<path [attr.d]="geo().endMarker!.d" [attr.fill]="strokeColor()" />
 							}
 						</marker>
 					}
@@ -103,7 +104,7 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 						<path
 							[attr.d]="geo().pathD"
 							fill="none"
-							[attr.stroke]="geo().strokeColor"
+							[attr.stroke]="strokeColor()"
 							[attr.stroke-width]="strand.width"
 							[attr.stroke-opacity]="geo().strokeOpacity"
 							[attr.stroke-dasharray]="geo().dashArray ?? null"
@@ -120,7 +121,7 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 							[attr.y1]="geo().y1"
 							[attr.x2]="geo().x2"
 							[attr.y2]="geo().y2"
-							[attr.stroke]="geo().strokeColor"
+							[attr.stroke]="strokeColor()"
 							[attr.stroke-width]="strand.width"
 							[attr.stroke-opacity]="geo().strokeOpacity"
 							[attr.stroke-dasharray]="geo().dashArray ?? null"
@@ -150,6 +151,13 @@ export class ConnectorRendererComponent {
 	readonly canvasHeight = input<number>(0);
 	/** See ElementRenderer.interactive: gates the data-pptx-element contract attr. */
 	readonly interactive = input<boolean>(true);
+	/**
+	 * Native-animation playback state. When an active `p:animClr` colour animation
+	 * targets the stroke (`animatesStroke`), the SVG stroke + arrowheads paint
+	 * `inherit` so the wrapper's animated `stroke` keyframes cascade in. Absent
+	 * outside a running presentation.
+	 */
+	readonly animationState = input<ElementAnimationState | undefined>(undefined);
 
 	/** All derived geometry, recomputed on every input change. */
 	readonly geo = computed(() => {
@@ -162,6 +170,14 @@ export class ConnectorRendererComponent {
 	});
 
 	readonly viewBox = computed(() => `0 0 ${this.geo().svgW} ${this.geo().svgH}`);
+	/**
+	 * Stroke paint for the line + arrowheads: `inherit` while a `p:animClr` stroke
+	 * colour animation is active (so the wrapper keyframes own it), else the
+	 * geometry's resolved stroke colour.
+	 */
+	readonly strokeColor = computed(() =>
+		this.animationState()?.animatesStroke ? 'inherit' : this.geo().strokeColor,
+	);
 	private readonly shapeStyle = computed(() => {
 		const element = this.element();
 		return hasShapeProperties(element) ? element.shapeStyle : undefined;

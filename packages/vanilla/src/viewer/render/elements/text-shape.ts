@@ -19,7 +19,14 @@ import { renderWarpedText } from './text-warp';
  */
 export const renderTextShapeElement: ElementRenderer = (element, zIndex, context) => {
 	const container = getContainerStyle(element, zIndex);
-	const shape = getShapeFillStrokeStyle(element);
+	// During a `p:animClr` colour animation the shape relinquishes its static
+	// fill / stroke so the wrapper-level colour keyframes surface (presentation).
+	const animState = context.presentationStates?.get(element.id);
+	const shape = getShapeFillStrokeStyle(
+		element,
+		animState?.animatesFill,
+		animState?.animatesStroke,
+	);
 	// The shape style may carry a 3D transform; compose it with the container's
 	// rotation/flip transform instead of letting the merge clobber it.
 	const merged = { ...container, ...shape };
