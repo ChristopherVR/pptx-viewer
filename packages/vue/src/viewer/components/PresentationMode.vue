@@ -503,7 +503,9 @@ function handleKeyDown(event: KeyboardEvent): void {
 			return;
 		case 'showAllSlides':
 			presenterMode.value = true;
-			return;
+			break;
+		// A pending slide number and the context-menu key are consumed above so
+		// the browser does not act on them; nothing further to do.
 		default:
 			break;
 	}
