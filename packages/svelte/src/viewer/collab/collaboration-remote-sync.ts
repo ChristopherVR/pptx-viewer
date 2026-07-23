@@ -5,8 +5,13 @@
  * holds no state of its own, only callbacks into the controller's fields.
  */
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { CollaborationConfig, YDocLike } from 'pptx-viewer-shared';
-import { LOCAL_SYNC_ORIGIN, observeYDocSlides, readSlidesFromYDoc } from 'pptx-viewer-shared';
+import type { CollaborationConfig, YDocLike, YjsFactories } from 'pptx-viewer-shared';
+import {
+	LOCAL_SYNC_ORIGIN,
+	observeYDocSlides,
+	readSlidesFromYDoc,
+	reconcileSlidesInYDoc,
+} from 'pptx-viewer-shared';
 
 export interface ObserveRemoteDeps {
 	isApplyingRemote: () => boolean;
@@ -68,4 +73,39 @@ export function observeRemoteSlides(
 		deps.setLastSynced(JSON.stringify(remote));
 		deps.scheduleWriteBack(config);
 	});
+}
+
+/** Everything `publishLocalSlides` needs from the controller's private state. */
+export interface PublishLocalSlidesInput {
+	slides: PptxSlide[];
+	ydoc: YDocLike | null;
+	factories: YjsFactories | null;
+	/** True while a remote apply is in flight; publishing then would echo it. */
+	applyingRemote: boolean;
+	role: CollaborationConfig['role'];
+	/** JSON of the last published slides, for the echo dedupe. */
+	lastSynced: string;
+}
+
+/**
+ * Granular local -> doc publish, the write-side sibling of
+ * {@link observeRemoteSlides}. Returns the new `lastSynced` value when it
+ * wrote, or null when the write was skipped (no doc, read-only viewer, a
+ * remote apply in flight, or the slides are unchanged).
+ */
+export function publishLocalSlides(input: PublishLocalSlidesInput): string | null {
+	const { slides, ydoc, factories, applyingRemote, role, lastSynced } = input;
+	if (!ydoc || !factories || applyingRemote) {
+		return null;
+	}
+	// A read-only viewer never writes; owners/collaborators publish edits.
+	if (role === 'viewer') {
+		return null;
+	}
+	const serialized = JSON.stringify(slides);
+	if (serialized === lastSynced) {
+		return null;
+	}
+	reconcileSlidesInYDoc(slides, ydoc, factories);
+	return serialized;
 }

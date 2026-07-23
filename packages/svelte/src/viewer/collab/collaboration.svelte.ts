@@ -22,7 +22,6 @@ import {
 	createWriteBackScheduler,
 	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
-	reconcileSlidesInYDoc,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
@@ -31,7 +30,11 @@ import type { CollaborationDeps } from './collaboration-deps';
 import { CollaborationPresence } from './collaboration-presence.svelte';
 import type { CollabProviderHandle } from './collaboration-provider';
 import type { ObserveRemoteDeps } from './collaboration-remote-sync';
-import { adoptDocSlidesAfterLoad, observeRemoteSlides } from './collaboration-remote-sync';
+import {
+	adoptDocSlidesAfterLoad,
+	observeRemoteSlides,
+	publishLocalSlides,
+} from './collaboration-remote-sync';
 import type { CollabSession, CollabSessionFactory } from './collaboration-session';
 import { createDefaultSession } from './collaboration-session';
 import { wireProviderStatus } from './collaboration-status';
@@ -164,19 +167,18 @@ export class CollaborationController {
 
 	/** Write the current local slides into the doc (granular, echo-deduped). */
 	#flushLocalSlides(slides: PptxSlide[] = this.#deps.getSlides()): void {
-		if (!this.#ydoc || !this.#factories || this.#applyingRemote) {
+		const published = publishLocalSlides({
+			slides,
+			ydoc: this.#ydoc,
+			factories: this.#factories,
+			applyingRemote: this.#applyingRemote,
+			role: this.#config?.role,
+			lastSynced: this.#lastSynced,
+		});
+		if (published === null) {
 			return;
 		}
-		// A read-only viewer never writes; owners/collaborators publish edits.
-		if (this.#config?.role === 'viewer') {
-			return;
-		}
-		const serialized = JSON.stringify(slides);
-		if (serialized === this.#lastSynced) {
-			return;
-		}
-		this.#lastSynced = serialized;
-		reconcileSlidesInYDoc(slides, this.#ydoc, this.#factories);
+		this.#lastSynced = published;
 		if (this.#config) {
 			this.#writeBack.schedule(this.#config);
 		}
@@ -239,8 +241,7 @@ export class CollaborationController {
 				role: config.role,
 			});
 
-			this.#wireStatus(transport);
-			this.#observeRemote(config);
+			this.#wireProvider(transport, config);
 
 			this.#active = true;
 			this.#deps.onStart?.(config);
@@ -250,10 +251,21 @@ export class CollaborationController {
 		}
 	}
 
-	#wireStatus(transport: string): void {
-		if (!this.#provider) {
+	/** Callback bundle shared by the remote observer and post-load adoption. */
+	#remoteDeps = (): ObserveRemoteDeps => ({
+		isApplyingRemote: () => this.#applyingRemote,
+		setApplyingRemote: (value) => (this.#applyingRemote = value),
+		setLastSynced: (value) => (this.#lastSynced = value),
+		applyRemoteSlides: (slides) => this.#deps.applyRemoteSlides(slides),
+		scheduleWriteBack: (cfg) => this.#writeBack.schedule(cfg),
+	});
+
+	/** Attach the status machine and the remote-slide observer to the session. */
+	#wireProvider(transport: string, config: CollaborationConfig): void {
+		if (!this.#provider || !this.#ydoc) {
 			return;
 		}
+		this.#unobserve = observeRemoteSlides(this.#ydoc, config, this.#remoteDeps());
 		wireProviderStatus(this.#provider, transport, {
 			setStatus: (status) => (this.status = status),
 			getStatus: () => this.status,
@@ -263,24 +275,6 @@ export class CollaborationController {
 			setConnectTimer: (timer) => (this.#connectTimer = timer),
 			getConnectTimer: () => this.#connectTimer,
 		});
-	}
-
-	/** Callback bundle shared by the remote observer and post-load adoption. */
-	#remoteDeps(): ObserveRemoteDeps {
-		return {
-			isApplyingRemote: () => this.#applyingRemote,
-			setApplyingRemote: (value) => (this.#applyingRemote = value),
-			setLastSynced: (value) => (this.#lastSynced = value),
-			applyRemoteSlides: (slides) => this.#deps.applyRemoteSlides(slides),
-			scheduleWriteBack: (cfg) => this.#writeBack.schedule(cfg),
-		};
-	}
-
-	#observeRemote(config: CollaborationConfig): void {
-		if (!this.#ydoc) {
-			return;
-		}
-		this.#unobserve = observeRemoteSlides(this.#ydoc, config, this.#remoteDeps());
 	}
 
 	stop(): void {
