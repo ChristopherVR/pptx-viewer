@@ -58,6 +58,11 @@ import { getStrokeOnlyPresetPaths } from './vector-subpath-paint';
  * @param fillColor - Resolved fill colour (hex).
  * @param strokeWidth - Stroke width in pixels.
  * @param strokeColor - Resolved stroke colour (hex).
+ * @param animatesFill - When an active `p:animClr` targets the shape fill, drop
+ *   the static container fill so the wrapper's animated `background-color` /
+ *   `fill` keyframes own the paint. Absent/false keeps the static fill.
+ * @param animatesStroke - As `animatesFill`, but for the container stroke
+ *   (`border-color`).
  * @returns A `React.CSSProperties` object ready to apply to the shape container.
  */
 export function getShapeVisualStyle(
@@ -66,6 +71,8 @@ export function getShapeVisualStyle(
 	fillColor: string,
 	strokeWidth: number,
 	strokeColor: string,
+	animatesFill?: boolean,
+	animatesStroke?: boolean,
 ): React.CSSProperties {
 	if (!hasShapeProperties(element)) {
 		return {};
@@ -294,6 +301,19 @@ export function getShapeVisualStyle(
 		base.borderWidth = undefined;
 		base.borderColor = undefined;
 		base.borderStyle = undefined;
+	}
+
+	// A `p:animClr` colour animation drives the wrapper's `fill` / `stroke` (which
+	// cascade into the SVG vector via `fill: inherit`) plus `background-color` /
+	// `border-color` (for HTML-box shapes). Drop the conflicting static container
+	// paint so those keyframes own it cleanly. Guarded by the flag, so a shape
+	// without an active fill/stroke animation keeps its exact static paint.
+	if (animatesFill) {
+		base.backgroundColor = undefined;
+		base.backgroundImage = undefined;
+	}
+	if (animatesStroke) {
+		base.borderColor = undefined;
 	}
 
 	if (element.type === 'connector' || normalizedShapeType === 'connector') {
