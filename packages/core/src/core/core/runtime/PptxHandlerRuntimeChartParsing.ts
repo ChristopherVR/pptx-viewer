@@ -23,6 +23,7 @@ import {
 	parseLineStyle,
 } from '../../utils/chart-advanced-parser';
 import { parseChartAxes, parseChart3DSurfaces } from '../../utils/chart-axis-parser';
+import { extractSeriesNumbersWithBlanks } from '../../utils/chart-blank-values';
 import { parseBubbleChartOptions } from '../../utils/chart-bubble-options';
 import { chartContainerLocalNameToType } from '../../utils/chart-container-type-map';
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
@@ -251,6 +252,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.compatibilityService.getXmlLocalName(key),
 		);
 		const userShapesXml = this.parseUserShapesXml(chartSpace);
+		const userShapes = await this.parseChartUserShapes(chartSpace, chartPart.partPath);
 		const pivotFormats = parseChartPivotFormats(chartRoot, (key) =>
 			this.compatibilityService.getXmlLocalName(key),
 		);
@@ -304,6 +306,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(chartChrome ? { chartChrome } : {}),
 			...(layouts ? { layouts } : {}),
 			...(userShapesXml ? { userShapesXml } : {}),
+			...(userShapes ? { userShapes } : {}),
 			...(pivotFormats ? { pivotFormats } : {}),
 			...(clrMapOvr ? { clrMapOvr } : {}),
 			...(printSettings ? { printSettings } : {}),
@@ -430,13 +433,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	): PptxChartData['series'] {
 		return seriesList.map((seriesNode, seriesIndex) => {
 			const seriesName = this.extractChartSeriesName(seriesNode);
-			const values = this.extractChartPointValues(
+			const valNode =
 				this.xmlLookupService.getChildByLocalName(seriesNode, 'val') ||
-					this.xmlLookupService.getChildByLocalName(seriesNode, 'yVal'),
-				true,
-			)
-				.map((value) => Number.parseFloat(value))
-				.filter((value) => Number.isFinite(value));
+				this.xmlLookupService.getChildByLocalName(seriesNode, 'yVal');
+			// Expand the numeric cache to full length, keeping blank (absent/empty
+			// c:pt) markers so c:dispBlanksAs can be honoured at render. When the
+			// series has no blanks, fall back to the dense extraction so existing
+			// behaviour is byte-identical.
+			const expanded = extractSeriesNumbersWithBlanks(valNode, this.xmlLookupService);
+			const hasBlanks = expanded.some((value) => value === null);
+			const values = hasBlanks
+				? expanded.map((value) => value ?? 0)
+				: this.extractChartPointValues(valNode, true)
+						.map((value) => Number.parseFloat(value))
+						.filter((value) => Number.isFinite(value));
+			const blanks = hasBlanks ? expanded.map((value) => value === null) : undefined;
 
 			const seriesShapeProperties = this.xmlLookupService.getChildByLocalName(seriesNode, 'spPr');
 			const seriesColor = this.parseColor(
@@ -491,6 +502,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return {
 				name: seriesName.trim().length > 0 ? seriesName : `Series ${seriesIndex + 1}`,
 				values: fallbackValues,
+				...(blanks ? { blanks } : {}),
 				color: seriesColor,
 				...(trendlines.length > 0 ? { trendlines } : {}),
 				...(errBars.length > 0 ? { errBars } : {}),
@@ -562,6 +574,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.compatibilityService.getXmlLocalName(key),
 		);
 		const userShapesXml = this.parseUserShapesXml(chartSpace);
+		const userShapes = await this.parseChartUserShapes(chartSpace, chartPartPath);
 		const pivotFormats = parseChartPivotFormats(chartRoot, (key) =>
 			this.compatibilityService.getXmlLocalName(key),
 		);
@@ -599,6 +612,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(chartChrome ? { chartChrome } : {}),
 			...(layouts ? { layouts } : {}),
 			...(userShapesXml ? { userShapesXml } : {}),
+			...(userShapes ? { userShapes } : {}),
 			...(pivotFormats ? { pivotFormats } : {}),
 			...(clrMapOvr ? { clrMapOvr } : {}),
 			...(printSettings ? { printSettings } : {}),

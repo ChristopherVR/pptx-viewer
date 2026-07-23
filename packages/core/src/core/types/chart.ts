@@ -10,7 +10,10 @@ import type { PptxChartPivotFormats } from './chart-pivot-format';
 import type { PptxChartPivotSource } from './chart-pivot-source';
 import type { PptxChartPrintSettings } from './chart-print-settings';
 import type { PptxChartProtection } from './chart-protection';
+import type { PptxChartUserShape } from './chart-user-shapes';
 import type { XmlObject } from './common';
+
+export type { PptxChartUserShape, PptxChartUserShapeParagraph } from './chart-user-shapes';
 
 // ==========================================================================
 // Chart types
@@ -441,6 +444,15 @@ export interface PptxChartTreemapOptions {
 export interface PptxChartSeries {
 	name: string;
 	values: number[];
+	/**
+	 * Blank-value mask aligned index-for-index with {@link values}: `true` marks
+	 * a category whose numeric cache point (`c:numCache/c:pt`) was absent or
+	 * empty, i.e. a genuine blank rather than a real `0`. Present only when the
+	 * source series actually contains blanks; when set, blank slots in
+	 * {@link values} carry `0` as a placeholder. Renderers honour
+	 * `c:dispBlanksAs` (gap / zero / span) using this mask.
+	 */
+	blanks?: boolean[];
 	color?: string;
 	trendlines?: PptxChartTrendline[];
 	errBars?: PptxChartErrBars[];
@@ -872,6 +884,16 @@ export interface PptxChartData {
 	 * attempting to parse the nested drawing tree.
 	 */
 	userShapesXml?: unknown;
+
+	/**
+	 * Parsed, renderable drawing-overlay shapes resolved from the separate
+	 * drawing part referenced by `c:userShapes/@r:id`
+	 * (`ppt/drawings/drawingN.xml`). Each entry carries chart-relative anchor
+	 * geometry plus light shape/text formatting so the viewer can render an
+	 * overlay on top of the chart plot. Render-only: {@link userShapesXml}
+	 * remains the source of truth for round-trip save.
+	 */
+	userShapes?: PptxChartUserShape[];
 
 	/**
 	 * Raw `c:pivotFmts` XML subtree preserved verbatim.

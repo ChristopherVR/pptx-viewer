@@ -11,6 +11,7 @@
  */
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
+import { resolveBlankDisplay, visibleRuns } from './chart-blank-display';
 import { resolveDataPointFill } from './chart-datapoint-style';
 import { smoothLinePath } from './chart-line-path';
 import { buildMarkerPrimitive } from './chart-marker-shape';
@@ -93,7 +94,15 @@ export function buildLines(
 			continue;
 		}
 		const activeRange = secondaryIdx.has(si) && secondaryRange ? secondaryRange : primaryRange;
-		const displayValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0);
+		const rawValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0);
+		const displayBlanks = sourceIndices.map((sourceIndex) => series.blanks?.[sourceIndex] ?? false);
+		// Honour c:dispBlanksAs: gap breaks the line at blanks, span interpolates,
+		// zero/unset keep the placeholder 0 (existing behaviour).
+		const { values: displayValues, visible } = resolveBlankDisplay(
+			rawValues,
+			displayBlanks,
+			chartData.chartChrome?.dispBlanksAs,
+		);
 		const pts = computeLinePoints(displayValues, catCount, layout, activeRange).map(
 			(point, index) => ({
 				...point,
@@ -103,26 +112,47 @@ export function buildLines(
 		const c = seriesColor(series, si, chartData.colorPalette);
 		// c:smooth draws a bezier path through the points; otherwise a polyline.
 		const seriesPart: ChartPartRef = { role: 'series', seriesIndex: si };
-		primitives.push(
-			series.smooth
-				? ({
-						kind: 'path',
-						d: smoothLinePath(pts),
-						stroke: c,
-						strokeWidth: 2.4,
-						fill: 'none',
-						part: seriesPart,
-					} satisfies SvgPath)
-				: ({
-						kind: 'polyline',
-						points: linePointsToSvgString(pts),
-						stroke: c,
-						strokeWidth: 2.4,
-						fill: 'none',
-						part: seriesPart,
-					} satisfies SvgPolyline),
-		);
+		const allVisible = visible.every(Boolean);
+		if (allVisible) {
+			primitives.push(
+				series.smooth
+					? ({
+							kind: 'path',
+							d: smoothLinePath(pts),
+							stroke: c,
+							strokeWidth: 2.4,
+							fill: 'none',
+							part: seriesPart,
+						} satisfies SvgPath)
+					: ({
+							kind: 'polyline',
+							points: linePointsToSvgString(pts),
+							stroke: c,
+							strokeWidth: 2.4,
+							fill: 'none',
+							part: seriesPart,
+						} satisfies SvgPolyline),
+			);
+		} else {
+			// gap mode: draw one polyline per contiguous run of visible points.
+			for (const run of visibleRuns(visible)) {
+				if (run.length < 2) {
+					continue;
+				}
+				primitives.push({
+					kind: 'polyline',
+					points: linePointsToSvgString(run.map((i) => pts[i])),
+					stroke: c,
+					strokeWidth: 2.4,
+					fill: 'none',
+					part: seriesPart,
+				} satisfies SvgPolyline);
+			}
+		}
 		pts.forEach((pt, displayIndex) => {
+			if (!visible[displayIndex]) {
+				return;
+			}
 			const idx = sourceIndices[displayIndex] ?? displayIndex;
 			const part: ChartPartRef = { role: 'dataPoint', seriesIndex: si, pointIndex: idx };
 			pushMarker(
@@ -138,7 +168,7 @@ export function buildLines(
 		if (showLabels) {
 			displayValues.forEach((val, displayIndex) => {
 				const pt = pts[displayIndex];
-				if (!pt) {
+				if (!pt || !visible[displayIndex]) {
 					return;
 				}
 				dataLabels.push({

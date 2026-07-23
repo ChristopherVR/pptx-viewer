@@ -62,6 +62,7 @@ import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sun
 import { buildOfPieViewModel } from './chart-ofpie';
 import { buildPieDataLabels } from './chart-pie-labels';
 import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
+import { buildChartUserShapeOverlay } from './chart-user-shape-overlay';
 import { buildRegionMapViewModel, buildWaterfallViewModel } from './chart-waterfall-map';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -488,6 +489,13 @@ export interface ChartViewModel {
 	 * hierarchical kinds, where a vertical drag has no single-value meaning.
 	 */
 	valueDrag?: ChartValueDrag;
+	/**
+	 * Drawing-overlay primitives resolved from the chart's `c:userShapes`
+	 * (shapes/text drawn on top of the plot). Already appended to `primitives`;
+	 * surfaced separately so projectors can segregate them if desired. Absent
+	 * when the chart has no overlay.
+	 */
+	userShapes?: SvgPrimitive[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1050,16 +1058,35 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 
 	// Pie-of-pie / bar-of-pie splits one series across a primary + secondary plot.
 	if (chartType === 'ofPie') {
-		return buildOfPieViewModel(element, chartData, categoryLabels);
+		return withUserShapeOverlay(buildOfPieViewModel(element, chartData, categoryLabels), chartData);
 	}
 
 	// 3D chart kinds keep their flat geometry but get an oblique depth pass driven
 	// by c:view3D so they read as 3D instead of collapsing to a flat plot.
 	const flat = buildFlatViewModel(element, chartData, categoryLabels, kind);
 	if (is3DChartType(chartType)) {
-		return applyChart3DDepth(flat, chartType, chartData.view3D);
+		return withUserShapeOverlay(applyChart3DDepth(flat, chartType, chartData.view3D), chartData);
 	}
-	return flat;
+	return withUserShapeOverlay(flat, chartData);
+}
+
+/**
+ * Append the chart's `c:userShapes` drawing overlay to a finished view-model.
+ *
+ * The overlay primitives are positioned in the same SVG coordinate space as the
+ * chart (`svgWidth` x `svgHeight`) and layered last so they sit above the data
+ * marks. Returns the view-model unchanged when the chart has no overlay.
+ */
+function withUserShapeOverlay(vm: ChartViewModel, chartData: PptxChartData): ChartViewModel {
+	const overlay = buildChartUserShapeOverlay(chartData.userShapes, vm.svgWidth, vm.svgHeight);
+	if (overlay.length === 0) {
+		return vm;
+	}
+	return {
+		...vm,
+		primitives: [...vm.primitives, ...overlay],
+		userShapes: overlay,
+	};
 }
 
 /** Whether a chart type carries an inherent 3D depth treatment. */
