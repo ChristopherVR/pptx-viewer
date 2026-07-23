@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Plus, Trash2 } from 'lucide-vue-next';
 import type { PptxChartSeries } from 'pptx-viewer-core';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -103,7 +104,7 @@ watch(
 					:title="t('pptx.chart.addCategory')"
 					@click="emit('addCategory')"
 				>
-					+ {{ t('pptx.chart.cat') }}
+					<Plus class="inline w-3 h-3 mr-0.5" aria-hidden="true" />{{ t('pptx.chart.cat') }}
 				</button>
 				<button
 					type="button"
@@ -112,7 +113,7 @@ watch(
 					:title="t('pptx.chart.addSeries')"
 					@click="emit('addSeries')"
 				>
-					+ {{ t('pptx.chart.seriesShort') }}
+					<Plus class="inline w-3 h-3 mr-0.5" aria-hidden="true" />{{ t('pptx.chart.seriesShort') }}
 				</button>
 			</div>
 		</div>
@@ -150,7 +151,7 @@ watch(
 									:title="t('pptx.chart.removeSeries')"
 									@click="emit('removeSeries', si)"
 								>
-									&times;
+									<Trash2 class="w-3 h-3" aria-hidden="true" />
 								</button>
 							</div>
 						</th>
@@ -175,7 +176,7 @@ watch(
 									:title="t('pptx.chart.removeCategory')"
 									@click="emit('removeCategory', ci)"
 								>
-									&times;
+									<Trash2 class="w-3 h-3" aria-hidden="true" />
 								</button>
 							</div>
 						</td>

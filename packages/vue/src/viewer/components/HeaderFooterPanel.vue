@@ -14,6 +14,7 @@
  * Props : `{ headerFooter: PptxHeaderFooter | undefined }`
  * Emits : `update: [next: PptxHeaderFooter]`, `close: []`
  */
+import { X } from 'lucide-vue-next';
 import type { PptxHeaderFooter } from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -83,7 +84,7 @@ function onDateText(event: Event): void {
 				data-testid="header-footer-close"
 				@click="emit('close')"
 			>
-				&times;
+				<X class="h-4 w-4" aria-hidden="true" />
 			</button>
 		</header>
 

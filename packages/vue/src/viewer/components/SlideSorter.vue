@@ -14,6 +14,7 @@
  *  - Callbacks → emits: `select`, `reorder`, `close`.
  *  - Presentational only; all slide state is owned by the host.
  */
+import { X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
@@ -179,7 +180,7 @@ onBeforeUnmount(() => {
 				:aria-label="t('pptx.slideSorter.close')"
 				@click="emit('close')"
 			>
-				×
+				<X :size="16" aria-hidden="true" />
 			</button>
 		</header>
 

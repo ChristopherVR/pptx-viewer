@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { X } from 'lucide-vue-next';
 import { activateModalFocus } from 'pptx-viewer-shared';
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -134,11 +135,11 @@ onMounted(() => document.addEventListener('keydown', onDocumentKeydown));
 					<span v-else />
 					<button
 						type="button"
-						class="pptx-vue-modal-close inline-flex h-6 w-6 items-center justify-center rounded text-lg leading-none text-muted-foreground hover:bg-muted hover:text-foreground max-md:h-11 max-md:w-11 max-md:text-2xl"
+						class="pptx-vue-modal-close inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground max-md:h-11 max-md:w-11"
 						:aria-label="t('pptx.settings.close')"
 						@click="requestClose"
 					>
-						&times;
+						<X class="h-4 w-4 max-md:h-6 max-md:w-6" aria-hidden="true" />
 					</button>
 				</header>
 

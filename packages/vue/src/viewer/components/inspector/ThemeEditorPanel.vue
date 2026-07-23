@@ -6,6 +6,7 @@
  * `applyThemeToData` path. A compact single-component port of React's
  * `ThemeEditorPanel` + `ThemeColorSchemeEditor`.
  */
+import { X } from 'lucide-vue-next';
 import type { PptxTheme, PptxThemeColorScheme, PptxThemeFontScheme } from 'pptx-viewer-core';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -103,7 +104,7 @@ function apply(): void {
 				:aria-label="t('pptx.themeEditor.close')"
 				@click="emit('close')"
 			>
-				✕
+				<X class="h-4 w-4" aria-hidden="true" />
 			</button>
 		</div>
 

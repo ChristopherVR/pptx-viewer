@@ -8,6 +8,7 @@
  * Emits `update` with a SHALLOW `{ bookmarks }` patch, and `seek` when a
  * bookmark row is clicked.
  */
+import { Plus, Trash2 } from 'lucide-vue-next';
 import type { MediaBookmark, PptxElement } from 'pptx-viewer-core';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -85,7 +86,7 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 					:title="t('pptx.media.removeBookmark')"
 					@click="removeBookmark(bmk.id)"
 				>
-					&times;
+					<Trash2 class="w-3 h-3" aria-hidden="true" />
 				</button>
 			</div>
 		</div>
@@ -100,7 +101,7 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 				@keydown.enter.prevent="addBookmark"
 			/>
 			<button type="button" :class="BTN" :title="t('pptx.media.addBookmark')" @click="addBookmark">
-				+
+				<Plus class="w-3 h-3" aria-hidden="true" />
 			</button>
 		</div>
 	</div>

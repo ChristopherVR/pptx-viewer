@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { GripVertical } from 'lucide-vue-next';
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
 
@@ -92,7 +93,9 @@ function clearDrag(): void {
 				@mouseenter="previewVueAnimation(animation)"
 				@mouseleave="stopVueAnimationPreview"
 			>
-				<span class="text-muted-foreground">⋮⋮ {{ index + 1 }}.</span
+				<GripVertical class="h-3 w-3 shrink-0 text-muted-foreground/50" aria-hidden="true" /><span
+					class="w-4 shrink-0 text-muted-foreground"
+					>{{ index + 1 }}.</span
 				><span class="min-w-0 flex-1 truncate">{{ label(animation) }}</span
 				><span class="text-muted-foreground">{{ animationPresetLabel(animation) }}</span>
 			</div>

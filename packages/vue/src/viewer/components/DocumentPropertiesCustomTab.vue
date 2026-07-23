@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Plus, Trash2 } from 'lucide-vue-next';
 import type { PptxCustomProperty } from 'pptx-viewer-core';
 import { useI18n } from 'vue-i18n';
 
@@ -121,11 +122,11 @@ function valueInputType(type: string): string {
 				</select>
 				<button
 					type="button"
-					class="pptx-vue-docprops-custom-delete inline-flex h-6 w-6 items-center justify-center rounded p-0 text-base leading-none text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-400"
+					class="pptx-vue-docprops-custom-delete inline-flex h-6 w-6 items-center justify-center rounded p-0 text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-400"
 					:aria-label="t('pptx.documentProperties.custom.deleteProperty')"
 					@click="handleDelete(index)"
 				>
-					&times;
+					<Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
 				</button>
 			</div>
 		</div>
@@ -142,6 +143,7 @@ function valueInputType(type: string): string {
 			class="pptx-vue-docprops-custom-add inline-flex items-center gap-1.5 self-start rounded-md border border-border px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 			@click="handleAdd"
 		>
+			<Plus class="h-3.5 w-3.5" aria-hidden="true" />
 			{{ t('pptx.documentProperties.custom.addProperty') }}
 		</button>
 	</div>

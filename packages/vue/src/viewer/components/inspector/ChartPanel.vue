@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { X } from 'lucide-vue-next';
 import type { ChartPptxElement, PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core';
 import { GROUPING_OPTIONS, GROUPING_SUPPORTED_TYPES, CHART_TYPE_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
@@ -242,7 +243,7 @@ const CONTROL =
 						:title="t('pptx.chart.clearSeriesColor')"
 						@click="onClearSeriesColor(si)"
 					>
-						&times;
+						<X class="w-3 h-3" aria-hidden="true" />
 					</button>
 				</div>
 			</div>

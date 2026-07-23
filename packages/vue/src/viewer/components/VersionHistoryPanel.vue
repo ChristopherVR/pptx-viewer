@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ChevronDown, ChevronRight, X } from 'lucide-vue-next';
 import { formatVersionTimestamp as formatTimestamp } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -75,7 +76,7 @@ function togglePreview(id: string): void {
 				:aria-label="t('common.close')"
 				@click="emit('close')"
 			>
-				&times;
+				<X class="h-4 w-4" aria-hidden="true" />
 			</button>
 		</header>
 
@@ -97,9 +98,11 @@ function togglePreview(id: string): void {
 					class="pptx-vue-version-row flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-2.5 text-left text-foreground"
 					@click="togglePreview(version.id)"
 				>
-					<span class="pptx-vue-version-caret flex-shrink-0 text-muted-foreground">
-						{{ previewId === version.id ? '▾' : '▸' }}
-					</span>
+					<component
+						:is="previewId === version.id ? ChevronDown : ChevronRight"
+						class="pptx-vue-version-caret h-3.5 w-3.5 flex-shrink-0 text-muted-foreground"
+						aria-hidden="true"
+					/>
 					<span class="pptx-vue-version-meta flex min-w-0 flex-col gap-0.5">
 						<span class="pptx-vue-version-label truncate text-xs font-medium">{{
 							version.label
