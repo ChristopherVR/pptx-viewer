@@ -749,6 +749,8 @@
 			onsave={() => void downloadPptx()}
 			onpresent={onFullscreenToggle}
 			onshare={() => dialogs.openShare()}
+			onai={ai ? () => (aiPanelOpen = !aiPanelOpen) : undefined}
+			aiActive={aiPanelOpen}
 			{hiddenActions}
 		/>
 		<TitleBar
@@ -1082,8 +1084,8 @@
 	 * panel (inset: 0) covered the whole canvas, so AI-created/selected elements
 	 * could not be tapped ("the whole clicking flow is dead"). Anchor the dock to
 	 * the bottom edge so the top of the canvas stays visible + interactive above
-	 * it; the panel itself caps its own height (max-height: 60vh) and rounds its
-	 * top corners. Matches the app's other mobile bottom sheets.
+	 * it; the panel itself fixes its own height (75dvh) and rounds its top
+	 * corners. Matches the app's other mobile bottom sheets.
 	 */
 	@media (max-width: 767px) {
 		.pptx-svelte-ai-dock {

@@ -224,16 +224,16 @@
 
 	/*
 	 * Mobile (<768px): render as a bottom sheet instead of a full-height side
-	 * panel. Cap the height at 60vh, span the full width, drop the left border for
-	 * a top border, and round the top corners so it reads as a sheet rising from
-	 * the bottom edge (the dock is bottom-anchored in PowerPointViewer). This keeps
-	 * the canvas above the sheet visible + tappable. Matches the React fix.
+	 * panel. Use a fixed 75dvh height so it reads as a proper, roomy sheet (not a
+	 * squished strip), span the full width, drop the left border for a top border,
+	 * and round the top corners so it rises from the bottom edge (the dock is
+	 * bottom-anchored in PowerPointViewer). This keeps the canvas above the sheet
+	 * visible + tappable. Matches the React fix.
 	 */
 	@media (max-width: 767px) {
 		.pptx-svelte-ai-panel {
 			width: 100%;
-			height: auto;
-			max-height: 60vh;
+			height: 75dvh;
 			border-left: none;
 			border-top: 1px solid var(--pptx-border, #33334d);
 			border-top-left-radius: 12px;

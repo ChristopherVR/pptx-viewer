@@ -14,6 +14,8 @@
 		onsave,
 		onpresent,
 		onshare,
+		onai,
+		aiActive = false,
 		hiddenActions,
 	}: {
 		editable: boolean;
@@ -25,6 +27,9 @@
 		onsave: () => void;
 		onpresent: () => void;
 		onshare: () => void;
+		/** AI assistant toggle. Undefined when the host has not opted into `ai`. */
+		onai?: () => void;
+		aiActive?: boolean;
 		hiddenActions?: ToolbarActionId[];
 	} = $props();
 
@@ -48,6 +53,11 @@
 		{/if}
 	{/if}
 	<span class="pptx-svelte-mobile-toolbar-spacer"></span>
+	{#if editable && onai}
+		<button type="button" class="pptx-svelte-mobile-ai" class:pptx-svelte-mobile-ai-on={aiActive} aria-label={t('pptx.toolbar.toggleAiAssistant')} title={t('pptx.toolbar.toggleAiAssistant')} aria-pressed={aiActive} onclick={onai}>
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06L2.37 12.48a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.13 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0z" /><path d="M20 3v4M22 5h-4M4 17v2M5 18H3" /></svg>
+		</button>
+	{/if}
 	<button type="button" aria-label={t('pptx.toolbar.save')} title={t('pptx.toolbar.save')} onclick={onsave}>
 		<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9M6.5 9.5 10 13l3.5-3.5M4 16h12" /></svg>
 	</button>
@@ -74,6 +84,7 @@
 		.pptx-svelte-mobile-toolbar button:disabled { opacity: .4; cursor: default; }
 		.pptx-svelte-mobile-toolbar svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round; }
 		.pptx-svelte-mobile-toolbar-spacer { flex: 1; }
+		.pptx-svelte-mobile-ai-on { color: var(--pptx-primary, #818cf8) !important; }
 		.pptx-svelte-mobile-present { color: var(--pptx-primary, #818cf8) !important; }
 		.pptx-svelte-mobile-share { padding: 0 12px !important; background: var(--pptx-primary, #6366f1) !important; color: #fff !important; }
 	}
