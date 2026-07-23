@@ -26,6 +26,23 @@ describe('evaluatePresetShape', () => {
 		expect(result?.svgPath.endsWith('Z')).toBeTruthy();
 	});
 
+	it('heart scales its native control points into element space', () => {
+		// Regression: the heart humps were authored as literal 21600-grid
+		// coordinates but its anchors resolve into element space, so unscaled
+		// control points (e.g. 23730) exploded the path into a degenerate line.
+		const W = 200;
+		const H = 150;
+		const result = evaluatePresetShape('heart', W, H);
+		expect(result).toBeDefined();
+		const coords = (result?.svgPath.match(/-?\d+(\.\d+)?/gu) ?? []).map(Number);
+		expect(coords.length).toBeGreaterThan(0);
+		// Every coordinate must stay near the element box (control points may
+		// overshoot slightly to round the humps, but never by grid-space orders
+		// of magnitude). A generous 1.4x bound catches the old 100x+ blow-up.
+		const maxAbs = Math.max(...coords.map((n) => Math.abs(n)));
+		expect(maxAbs).toBeLessThan(Math.max(W, H) * 1.4);
+	});
+
 	it('roundRect with default adj produces ~1/3 corner radius', () => {
 		const W = 300;
 		const H = 300;
