@@ -263,7 +263,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const inheritedLockNode = (inheritedCNvSpPr?.['a:spLocks'] ??
 				inheritedCNvSpPr?.['a:picLocks']) as XmlObject | undefined;
 			const inheritedLocks = this.parseShapeLocks(inheritedLockNode);
-			const locks = inheritedLocks ? { ...inheritedLocks, ...slideLocks } : slideLocks;
+			let locks = inheritedLocks ? { ...inheritedLocks, ...slideLocks } : slideLocks;
+			// `@txBox` lives on `p:cNvSpPr` (not inside `a:spLocks`); fold it into
+			// the same `locks` bag so it round-trips through the model.
+			const txBox = this.parseTxBoxFlag(cNvSpPr);
+			if (txBox !== undefined) {
+				locks = { ...(locks ?? {}), txBox };
+			}
 
 			const promptText = !hasText && phDefaults?.promptText ? phDefaults.promptText : undefined;
 

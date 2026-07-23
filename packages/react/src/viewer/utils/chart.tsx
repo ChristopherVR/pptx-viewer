@@ -47,7 +47,14 @@ export function renderChartElement(element: PptxElement): React.ReactNode {
 
 	const chartType = chartData.chartType ?? 'bar';
 
-	if (chartType === 'pie' || chartType === 'doughnut' || chartType === 'pie3D') {
+	if (
+		chartType === 'pie' ||
+		chartType === 'doughnut' ||
+		chartType === 'pie3D' ||
+		chartType === 'ofPie'
+	) {
+		// Pie-of-pie / bar-of-pie share the pie projector; the shared engine builds
+		// the primary + secondary plots and serLines. `meet` keeps the pies circular.
 		return renderPieChart(element, chartData, categoryLabels);
 	}
 	if (chartType === 'scatter') {

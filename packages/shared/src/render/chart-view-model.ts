@@ -53,11 +53,16 @@ import type {
 	PptxElement,
 } from 'pptx-viewer-core';
 
+import { applyChart3DDepth } from './chart-3d-depth';
 import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
+import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
+import { buildOfPieViewModel } from './chart-ofpie';
+import { buildPieDataLabels } from './chart-pie-labels';
 import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
+import { buildChartUserShapeOverlay } from './chart-user-shape-overlay';
 import { buildRegionMapViewModel, buildWaterfallViewModel } from './chart-waterfall-map';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -484,6 +489,13 @@ export interface ChartViewModel {
 	 * hierarchical kinds, where a vertical drag has no single-value meaning.
 	 */
 	valueDrag?: ChartValueDrag;
+	/**
+	 * Drawing-overlay primitives resolved from the chart's `c:userShapes`
+	 * (shapes/text drawn on top of the plot). Already appended to `primitives`;
+	 * surfaced separately so projectors can segregate them if desired. Absent
+	 * when the chart has no overlay.
+	 */
+	userShapes?: SvgPrimitive[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -801,8 +813,22 @@ export function computePieLayout(
 	const cx = size / 2;
 	const cy = titleOffset + (size - titleOffset - legendOffset) / 2;
 	const outerR = Math.max((size - titleOffset - legendOffset) * 0.42, 0);
-	const innerR = isDoughnut ? outerR * 0.55 : 0;
+	// Honour c:holeSize (10-90% of the outer diameter) when parsed; otherwise
+	// keep the legacy 0.55 ratio byte-for-byte.
+	const holeRatio =
+		isDoughnut && chartData.doughnutHoleSize !== undefined
+			? Math.min(Math.max(chartData.doughnutHoleSize, 10), 90) / 100
+			: 0.55;
+	const innerR = isDoughnut ? outerR * holeRatio : 0;
 	return { cx, cy, outerR, innerR, size };
+}
+
+/** Options for {@link computePieSlices}: start-angle rotation and per-slice explosion. */
+export interface PieSliceOptions {
+	/** Absolute start angle (radians). Defaults to -PI/2 (12 o'clock). */
+	startAngle?: number;
+	/** Per-slice pull-out distance as a percentage of the outer radius (0-100). */
+	explosions?: ReadonlyArray<number>;
 }
 
 export function computePieSlices(
@@ -811,13 +837,28 @@ export function computePieSlices(
 	cy: number,
 	outerR: number,
 	innerR: number,
+	options?: PieSliceOptions,
 ): PieSliceGeometry[] {
 	const total = values.reduce((s, v) => s + Math.abs(v), 0) || 1;
-	let cumAngle = -Math.PI / 2;
-	return values.map((val) => {
+	let cumAngle = options?.startAngle ?? -Math.PI / 2;
+	return values.map((val, i) => {
 		const sliceAngle = (Math.abs(val) / total) * Math.PI * 2;
 		const startAngle = cumAngle;
 		cumAngle += sliceAngle;
+		// A c:explosion pulls the slice outward along its bisector.
+		const explosion = options?.explosions?.[i] ?? 0;
+		if (explosion > 0) {
+			const mid = (startAngle + cumAngle) / 2;
+			const offset = outerR * (explosion / 100);
+			return computePieSlicePath(
+				cx + Math.cos(mid) * offset,
+				cy + Math.sin(mid) * offset,
+				outerR,
+				innerR,
+				startAngle,
+				cumAngle,
+			);
+		}
 		return computePieSlicePath(cx, cy, outerR, innerR, startAngle, cumAngle);
 	});
 }
@@ -1015,6 +1056,56 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 			? chartData.categories
 			: Array.from({ length: longestLen }, (_, i) => String(i + 1));
 
+	// Pie-of-pie / bar-of-pie splits one series across a primary + secondary plot.
+	if (chartType === 'ofPie') {
+		return withUserShapeOverlay(buildOfPieViewModel(element, chartData, categoryLabels), chartData);
+	}
+
+	// 3D chart kinds keep their flat geometry but get an oblique depth pass driven
+	// by c:view3D so they read as 3D instead of collapsing to a flat plot.
+	const flat = buildFlatViewModel(element, chartData, categoryLabels, kind);
+	if (is3DChartType(chartType)) {
+		return withUserShapeOverlay(applyChart3DDepth(flat, chartType, chartData.view3D), chartData);
+	}
+	return withUserShapeOverlay(flat, chartData);
+}
+
+/**
+ * Append the chart's `c:userShapes` drawing overlay to a finished view-model.
+ *
+ * The overlay primitives are positioned in the same SVG coordinate space as the
+ * chart (`svgWidth` x `svgHeight`) and layered last so they sit above the data
+ * marks. Returns the view-model unchanged when the chart has no overlay.
+ */
+function withUserShapeOverlay(vm: ChartViewModel, chartData: PptxChartData): ChartViewModel {
+	const overlay = buildChartUserShapeOverlay(chartData.userShapes, vm.svgWidth, vm.svgHeight);
+	if (overlay.length === 0) {
+		return vm;
+	}
+	return {
+		...vm,
+		primitives: [...vm.primitives, ...overlay],
+		userShapes: overlay,
+	};
+}
+
+/** Whether a chart type carries an inherent 3D depth treatment. */
+function is3DChartType(chartType: string): boolean {
+	return (
+		chartType === 'bar3D' ||
+		chartType === 'pie3D' ||
+		chartType === 'line3D' ||
+		chartType === 'area3D'
+	);
+}
+
+/** Build the flat (2D) view-model for a resolved chart kind. */
+function buildFlatViewModel(
+	element: PptxElement,
+	chartData: PptxChartData,
+	categoryLabels: ReadonlyArray<string>,
+	kind: SupportedChartKind,
+): ChartViewModel {
 	if (kind === 'pie' || kind === 'doughnut') {
 		return buildPieViewModel(element, chartData, categoryLabels, kind === 'doughnut');
 	}
@@ -1119,14 +1210,25 @@ function buildPieViewModel(
 	const svgWidth = Math.max(size, 100);
 	const svgHeight = Math.max(size, 60);
 
-	const values = chartData.series[0]?.values ?? [];
-	const slices = computePieSlices(values, cx, cy, outerR, innerR);
+	const pieSeries = chartData.series[0];
+	const values = pieSeries?.values ?? [];
+	// c:firstSliceAng rotates the pie clockwise from 12 o'clock; c:explosion (per
+	// series or per c:dPt) pulls slices outward.
+	const startAngle = -Math.PI / 2 + ((chartData.firstSliceAngle ?? 0) * Math.PI) / 180;
+	const explosions = pieSeries
+		? values.map((_v, i) => resolveDataPointExplosion(pieSeries, i))
+		: undefined;
+	const slices = computePieSlices(values, cx, cy, outerR, innerR, { startAngle, explosions });
 	const primitives: SvgPrimitive[] = slices.map(
 		({ d }, i) =>
 			({
 				kind: 'path',
 				d,
-				fill: chartData.series[0]?.color ?? paletteColor(i, chartData.colorPalette),
+				// Pie/doughnut vary colours per slice (c:varyColors defaults on), so each
+				// slice takes its palette colour, with a per-point c:dPt fill overriding.
+				fill: pieSeries
+					? resolveVaryColorFill(pieSeries, i, paletteColor(i, chartData.colorPalette))
+					: paletteColor(i, chartData.colorPalette),
 				stroke: '#ffffff',
 				strokeWidth: 1.5,
 				part: { role: 'dataPoint', seriesIndex: 0, pointIndex: i },
@@ -1135,23 +1237,18 @@ function buildPieViewModel(
 
 	const dataLabels: SvgText[] = [];
 	if (chartData.style?.hasDataLabels) {
-		slices.forEach(({ labelX, labelY }, i) => {
-			const val = values[i];
-			if (val === undefined) {
-				return;
-			}
-			dataLabels.push({
-				kind: 'text',
-				x: labelX,
-				y: labelY,
-				text: formatAxisValue(val),
-				fontSize: 8,
-				fill: '#ffffff',
-				textAnchor: 'middle',
-				fontWeight: 'bold',
-				dominantBaseline: 'central',
-			});
+		// Offset (outEnd / bestFit) labels sit outside the rim with c:leaderLines.
+		const labelResult = buildPieDataLabels({
+			slices,
+			values,
+			cx,
+			cy,
+			outerR,
+			position: chartData.style.dataLabels?.position,
+			showLeaderLines: chartData.style.dataLabels?.showLeaderLines,
 		});
+		dataLabels.push(...labelResult.labels);
+		primitives.push(...labelResult.leaderLines);
 	}
 
 	const legendPos = chartData.style?.legendPosition ?? 'b';

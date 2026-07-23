@@ -112,12 +112,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
-		// Bullet colour
+		// Bullet colour. Route through `parseColor` so themed choices
+		// (`a:schemeClr`/`a:sysClr`/`a:prstClr`/`a:hslClr`/`a:scrgbClr`), which are
+		// standard in the Office master bodyStyle, resolve correctly rather than
+		// being dropped by reading only `a:srgbClr/@_val`.
 		const buClr = levelProps['a:buClr'] as XmlObject | undefined;
 		if (buClr) {
-			const srgb = buClr['a:srgbClr'] as XmlObject | undefined;
-			if (srgb?.['@_val']) {
-				style.bulletColor = String(srgb['@_val']);
+			const bulletColor = this.parseColor(buClr);
+			if (bulletColor) {
+				style.bulletColor = bulletColor;
 			}
 		}
 

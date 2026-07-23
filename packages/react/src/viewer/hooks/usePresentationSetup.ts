@@ -7,7 +7,7 @@ import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
 import { useRef, useState } from 'react';
 
 import type { ViewerMode } from '../types-core';
-import { stopAnimationSound } from '../utils/animation-sound';
+import { playAnimationSound, stopAnimationSound } from '../utils/animation-sound';
 import { stopAllPersistentAudio } from '../utils/media';
 import type { EditorHistoryResult } from './useEditorHistory';
 import { usePresentationAnnotations } from './usePresentationAnnotations';
@@ -120,18 +120,27 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 			}
 		},
 		onSetActiveSlideIndex: setActiveSlideIndex,
-		onPlayActionSound: (soundPath: string) => {
+		onPlayActionSound: (soundPath: string, options?: { loop?: boolean }) => {
 			void (async () => {
 				if (!soundPath) {
 					return;
 				}
+				// Looping sounds route through the animation-sound singleton so
+				// they stop when the next sound plays or the show exits
+				// (stopAnimationSound is called on mode change); a stray
+				// fire-and-forget Audio would otherwise loop forever.
+				const loop = options?.loop === true;
 				const cachedSound = mediaDataUrls.get(soundPath);
 				if (cachedSound) {
 					try {
-						const audio = new Audio(cachedSound);
-						void audio.play().catch(() => {
-							/* ignore */
-						});
+						if (loop) {
+							playAnimationSound(cachedSound, true);
+						} else {
+							const audio = new Audio(cachedSound);
+							void audio.play().catch(() => {
+								/* ignore */
+							});
+						}
 					} catch {
 						/* ignore */
 					}
@@ -147,10 +156,14 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 						return;
 					}
 					mediaDataUrls.set(soundPath, dataUrl);
-					const audio = new Audio(dataUrl);
-					void audio.play().catch(() => {
-						/* ignore */
-					});
+					if (loop) {
+						playAnimationSound(dataUrl, true);
+					} else {
+						const audio = new Audio(dataUrl);
+						void audio.play().catch(() => {
+							/* ignore */
+						});
+					}
 				} catch {
 					/* ignore */
 				}

@@ -1,6 +1,7 @@
 import type { ConnectorArrowType } from 'pptx-viewer-core';
 import { getConnectorPathGeometry, hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import {
+	buildDashArray,
 	buildParagraphs,
 	connectorNeedsPath,
 	DEFAULT_STROKE_COLOR,
@@ -33,7 +34,10 @@ export const renderConnectorElement: ElementRenderer = (element, zIndex, context
 	const strokeWidth = Math.max(0, ss?.strokeWidth ?? 2);
 	const strokeColor = ss?.strokeColor ?? DEFAULT_STROKE_COLOR;
 	const strokeOpacity = ss?.strokeOpacity ?? 1;
-	const dashArray = resolveDashArray(ss?.strokeDash, strokeWidth);
+	// Shared dash builder: honours every `prstDash` preset (dash/lgDash/dashDot/
+	// sysDashDotDot, etc.) plus a `custDash` segment list, instead of the old
+	// local `3w/w` approximation that collapsed every non-dot preset to one shape.
+	const dashArray = buildDashArray(ss?.strokeDash, strokeWidth, ss?.customDashSegments);
 
 	const w = Math.max(element.width, 1);
 	const h = Math.max(element.height, 1);
@@ -47,6 +51,10 @@ export const renderConnectorElement: ElementRenderer = (element, zIndex, context
 		zIndex,
 		pointerEvents: 'none',
 		overflow: 'visible',
+		// Base stroke colour lives on the wrapper (an inherited SVG property) so a
+		// `p:animClr` `stroke.color` keyframe applied to this `[data-element-id]`
+		// wrapper cascades down to the painted `stroke: inherit` strands below.
+		stroke: strokeColor,
 	});
 	wrapper.dataset.elementId = element.id;
 	if (element.rotation) {
@@ -95,10 +103,20 @@ export const renderConnectorElement: ElementRenderer = (element, zIndex, context
 	const startMarkerId = startArrow ? `${seed}-start` : undefined;
 	const endMarkerId = endArrow ? `${seed}-end` : undefined;
 	if (startArrow && startMarkerId) {
-		defs.appendChild(buildMarker(context, startMarkerId, startArrow, strokeColor));
+		defs.appendChild(
+			buildMarker(context, startMarkerId, startArrow, strokeColor, {
+				width: ss?.connectorStartArrowWidth,
+				length: ss?.connectorStartArrowLength,
+			}),
+		);
 	}
 	if (endArrow && endMarkerId) {
-		defs.appendChild(buildMarker(context, endMarkerId, endArrow, strokeColor));
+		defs.appendChild(
+			buildMarker(context, endMarkerId, endArrow, strokeColor, {
+				width: ss?.connectorEndArrowWidth,
+				length: ss?.connectorEndArrowLength,
+			}),
+		);
 	}
 	if (defs.childNodes.length > 0) {
 		svg.appendChild(defs);
@@ -115,7 +133,8 @@ export const renderConnectorElement: ElementRenderer = (element, zIndex, context
 
 	offsets.forEach((offset, idx) => {
 		const stroke: Record<string, string | number | undefined> = {
-			stroke: strokeColor,
+			// Inherit the wrapper's base stroke so a colour animation cascades.
+			stroke: 'inherit',
 			'stroke-width': Math.max(widths[idx] ?? strokeWidth, 1),
 			'stroke-opacity': strokeOpacity,
 			'stroke-dasharray': dashArray,
@@ -184,35 +203,27 @@ function normalizeArrow(a: ConnectorArrowType | undefined): ConnectorArrowType |
 	return a && a !== 'none' ? a : undefined;
 }
 
-function resolveDashArray(dash: string | undefined, strokeWidth: number): string | undefined {
-	const w = Math.max(strokeWidth, 1);
-	if (!dash || dash === 'solid') {
-		return undefined;
-	}
-	if (dash === 'dot' || dash === 'sysDot') {
-		return `${w} ${w}`;
-	}
-	return `${w * 3} ${w}`;
-}
-
 function buildMarker(
 	context: ElementRenderContext,
 	id: string,
 	arrow: ConnectorArrowType,
 	strokeColor: string,
+	size: { width?: 'sm' | 'med' | 'lg'; length?: 'sm' | 'med' | 'lg' },
 ): SVGMarkerElement {
 	const doc = context.document;
+	// Size the marker box from the shared `markerPath` (`@w`/`@len` size tokens)
+	// so `sm`/`lg` arrowheads scale, instead of the old hard-coded 4x4 box.
+	const shape = markerPath(arrow, size.width, size.length);
 	const marker = createSvgEl(doc, 'marker', {
 		id,
 		viewBox: '0 0 10 10',
 		refX: 5,
 		refY: 5,
-		markerWidth: 4,
-		markerHeight: 4,
+		markerWidth: shape.markerWidth,
+		markerHeight: shape.markerHeight,
 		orient: 'auto-start-reverse',
 		markerUnits: 'strokeWidth',
 	});
-	const shape = markerPath(arrow);
 	if (shape.shape === 'circle') {
 		marker.appendChild(createSvgEl(doc, 'circle', { cx: 5, cy: 5, r: 4, fill: strokeColor }));
 	} else {

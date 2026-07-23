@@ -2,7 +2,7 @@ import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import JSZip from 'jszip';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import type { PptxSlide } from '../types';
+import type { PptxElement, PptxSlide } from '../types';
 import { PptxDocumentPropertiesUpdater } from './PptxDocumentPropertiesUpdater';
 import type { PptxDocumentPropertiesUpdaterContext } from './PptxDocumentPropertiesUpdater';
 
@@ -29,6 +29,76 @@ function makeSlide(overrides: Partial<PptxSlide> = {}): PptxSlide {
 		rawXml: {},
 		...overrides,
 	} as PptxSlide;
+}
+
+/** A slide carrying a single title-placeholder element with the given text. */
+function makeTitleSlide(title: string, slideNumber: number): PptxSlide {
+	const titleElement = {
+		id: `title-${slideNumber}`,
+		type: 'text',
+		x: 0,
+		y: 0,
+		width: 100,
+		height: 50,
+		text: title,
+		placeholderType: 'title',
+	} as unknown as PptxElement;
+	return makeSlide({
+		id: `ppt/slides/slide${slideNumber}.xml`,
+		slideNumber,
+		elements: [titleElement],
+	});
+}
+
+const APP_XML_WITH_TITLES = `<?xml version="1.0"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Slides>2</Slides>
+  <HiddenSlides>0</HiddenSlides>
+  <Notes>0</Notes>
+  <HeadingPairs>
+    <vt:vector size="4" baseType="variant">
+      <vt:variant><vt:lpstr>Theme</vt:lpstr></vt:variant>
+      <vt:variant><vt:i4>1</vt:i4></vt:variant>
+      <vt:variant><vt:lpstr>Slide Titles</vt:lpstr></vt:variant>
+      <vt:variant><vt:i4>2</vt:i4></vt:variant>
+    </vt:vector>
+  </HeadingPairs>
+  <TitlesOfParts>
+    <vt:vector size="3" baseType="lpstr">
+      <vt:lpstr>Office Theme</vt:lpstr>
+      <vt:lpstr>Old Slide 1</vt:lpstr>
+      <vt:lpstr>Old Slide 2</vt:lpstr>
+    </vt:vector>
+  </TitlesOfParts>
+</Properties>`;
+
+interface ParsedVector {
+	'@_size'?: string | number;
+	'@_baseType'?: string;
+	'vt:variant'?: Array<Record<string, unknown>>;
+	'vt:lpstr'?: unknown;
+}
+
+function readTitlesOfParts(props: Record<string, unknown>): {
+	size: string;
+	entries: string[];
+} {
+	const vector = (props['TitlesOfParts'] as Record<string, unknown>)['vt:vector'] as ParsedVector;
+	const raw = vector['vt:lpstr'];
+	const list = Array.isArray(raw) ? raw : raw === undefined ? [] : [raw];
+	return { size: String(vector['@_size']), entries: list.map((v) => String(v)) };
+}
+
+function readSlideTitleCount(props: Record<string, unknown>): number {
+	const vector = (props['HeadingPairs'] as Record<string, unknown>)['vt:vector'] as ParsedVector;
+	const variants = vector['vt:variant'] ?? [];
+	for (let i = 0; i + 1 < variants.length; i += 2) {
+		const name = String((variants[i] as Record<string, unknown>)['vt:lpstr'] ?? '').toLowerCase();
+		if (name.includes('slide') && name.includes('title')) {
+			return Number((variants[i + 1] as Record<string, unknown>)['vt:i4']);
+		}
+	}
+	return -1;
 }
 
 describe('pptxDocumentPropertiesUpdater', () => {
@@ -204,6 +274,102 @@ describe('pptxDocumentPropertiesUpdater', () => {
 
 			// Should not throw
 			await updater.updateOnSave([makeSlide()]);
+		});
+	});
+
+	// ── updateOnSave: slide titles (TitlesOfParts / HeadingPairs) ──────
+
+	describe('updateOnSave — slide titles', () => {
+		it('recomputes TitlesOfParts and HeadingPairs when a slide is added', async () => {
+			context.zip.file('docProps/app.xml', APP_XML_WITH_TITLES);
+
+			const slides = [
+				makeTitleSlide('Intro', 1),
+				makeTitleSlide('Body', 2),
+				makeTitleSlide('Conclusion', 3),
+			];
+			await updater.updateOnSave(slides);
+
+			const updatedXml = await context.zip.file('docProps/app.xml')!.async('string');
+			const parsed = context.parser.parse(updatedXml) as Record<string, unknown>;
+			const props = parsed['Properties'] as Record<string, unknown>;
+
+			expect(String(props['Slides'])).toBe('3');
+			// Slide-titles heading count follows the slide count.
+			expect(readSlideTitleCount(props)).toBe(3);
+
+			const { size, entries } = readTitlesOfParts(props);
+			// 1 theme entry + 3 slide titles.
+			expect(size).toBe('4');
+			expect(entries).toStrictEqual(['Office Theme', 'Intro', 'Body', 'Conclusion']);
+			// Stale titles are gone.
+			expect(entries).not.toContain('Old Slide 1');
+			expect(entries).not.toContain('Old Slide 2');
+		});
+
+		it('recomputes counts when a slide is removed', async () => {
+			context.zip.file('docProps/app.xml', APP_XML_WITH_TITLES);
+
+			await updater.updateOnSave([makeTitleSlide('Only Slide', 1)]);
+
+			const updatedXml = await context.zip.file('docProps/app.xml')!.async('string');
+			const parsed = context.parser.parse(updatedXml) as Record<string, unknown>;
+			const props = parsed['Properties'] as Record<string, unknown>;
+
+			expect(String(props['Slides'])).toBe('1');
+			expect(readSlideTitleCount(props)).toBe(1);
+			const { size, entries } = readTitlesOfParts(props);
+			expect(size).toBe('2');
+			expect(entries).toStrictEqual(['Office Theme', 'Only Slide']);
+		});
+
+		it('reflects retitled slides while preserving non-slide categories', async () => {
+			context.zip.file('docProps/app.xml', APP_XML_WITH_TITLES);
+
+			await updater.updateOnSave([makeTitleSlide('Renamed 1', 1), makeTitleSlide('Renamed 2', 2)]);
+
+			const updatedXml = await context.zip.file('docProps/app.xml')!.async('string');
+			const parsed = context.parser.parse(updatedXml) as Record<string, unknown>;
+			const props = parsed['Properties'] as Record<string, unknown>;
+
+			const { entries } = readTitlesOfParts(props);
+			expect(entries).toStrictEqual(['Office Theme', 'Renamed 1', 'Renamed 2']);
+			// The preserved Theme category keeps count 1.
+			expect(readSlideTitleCount(props)).toBe(2);
+		});
+
+		it('emits an empty title entry for a slide without a title placeholder', async () => {
+			context.zip.file('docProps/app.xml', APP_XML_WITH_TITLES);
+
+			await updater.updateOnSave([makeTitleSlide('Has Title', 1), makeSlide({ slideNumber: 2 })]);
+
+			const updatedXml = await context.zip.file('docProps/app.xml')!.async('string');
+			const parsed = context.parser.parse(updatedXml) as Record<string, unknown>;
+			const props = parsed['Properties'] as Record<string, unknown>;
+
+			const { entries } = readTitlesOfParts(props);
+			expect(entries).toStrictEqual(['Office Theme', 'Has Title', '']);
+			expect(readSlideTitleCount(props)).toBe(2);
+		});
+
+		it('leaves app.xml untouched when HeadingPairs is absent', async () => {
+			const appXml = `<?xml version="1.0"?>
+        <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">
+          <Slides>1</Slides>
+          <HiddenSlides>0</HiddenSlides>
+          <Notes>0</Notes>
+        </Properties>`;
+			context.zip.file('docProps/app.xml', appXml);
+
+			await updater.updateOnSave([makeTitleSlide('A', 1), makeTitleSlide('B', 2)]);
+
+			const updatedXml = await context.zip.file('docProps/app.xml')!.async('string');
+			expect(updatedXml).not.toContain('TitlesOfParts');
+			expect(updatedXml).not.toContain('HeadingPairs');
+			// Slide count is still corrected.
+			const parsed = context.parser.parse(updatedXml) as Record<string, unknown>;
+			const props = parsed['Properties'] as Record<string, unknown>;
+			expect(String(props['Slides'])).toBe('2');
 		});
 	});
 

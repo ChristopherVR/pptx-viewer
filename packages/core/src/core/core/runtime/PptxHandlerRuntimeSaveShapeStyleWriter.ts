@@ -5,6 +5,7 @@ import { applyDrawingLineDash } from '../../utils/drawing-line-dash';
 import { reorderObjectKeys, SHAPE_STYLE_ORDER } from '../../utils/xml-reorder';
 import { mergeDrawingFillXml } from '../builders/drawing-fill-xml';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveXmlHelpers';
+import { writeLineFill } from './save-line-fill';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -94,28 +95,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		// Stroke
-		if (shapeStyle.strokeColor !== undefined) {
+		if (
+			shapeStyle.strokeColor !== undefined ||
+			shapeStyle.strokeFillMode === 'gradient' ||
+			shapeStyle.strokeFillMode === 'pattern'
+		) {
 			if (!spPr['a:ln']) {
 				spPr['a:ln'] = {};
 			}
 			const lineNode = spPr['a:ln'] as XmlObject;
 			const w = Math.round((shapeStyle.strokeWidth || 1) * PptxHandlerRuntime.EMU_PER_PX);
 			lineNode['@_w'] = String(w);
-			if (shapeStyle.strokeColor === 'transparent' || shapeStyle.strokeWidth === 0) {
-				lineNode['a:noFill'] = {};
-				delete lineNode['a:solidFill'];
-			} else {
-				delete lineNode['a:noFill'];
-				const resolvedStrokeOriginal = shapeStyle.strokeColorXml
-					? this.parseColor(shapeStyle.strokeColorXml)
-					: undefined;
-				lineNode['a:solidFill'] = serializeColorChoice(
-					shapeStyle.strokeColorXml,
-					resolvedStrokeOriginal,
-					shapeStyle.strokeColor,
-					shapeStyle.strokeOpacity,
-				);
-			}
+			this.applyLineFill(lineNode, shapeStyle);
 		}
 		if (shapeStyle.strokeDash !== undefined) {
 			if (!spPr['a:ln']) {
@@ -223,6 +214,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (lineEffectListXml && spPr['a:ln']) {
 			(spPr['a:ln'] as XmlObject)['a:effectLst'] = lineEffectListXml;
 		}
+	}
+
+	/**
+	 * Emit the single fill child of an `<a:ln>` (CT_LineProperties allows at
+	 * most one of noFill/solidFill/gradFill/pattFill). Delegates to
+	 * {@link writeLineFill} so the logic stays unit-testable without the full
+	 * save runtime (issue #87).
+	 */
+	private applyLineFill(lineNode: XmlObject, shapeStyle: ShapeStyle): void {
+		writeLineFill(lineNode, shapeStyle, (colorNode) => this.parseColor(colorNode));
 	}
 
 	/**

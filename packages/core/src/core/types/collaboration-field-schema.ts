@@ -218,6 +218,7 @@ export const SLIDE_FIELD_KIND: Record<keyof PptxSlide, CollabFieldKind> = {
 	isDirty: 'scalar',
 	customerData: 'complex',
 	activeXControls: 'complex',
+	legacyVmlElements: 'complex',
 	headerFooterFlags: 'complex',
 	slideSynchronization: 'complex',
 };

@@ -53,6 +53,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 	provideRenderContext({
 		getColorScheme: () => loader.colorScheme,
 		getTableStyleMap: () => loader.tableStyleMap,
+		getFontScheme: () => loader.presentationTheme?.fontScheme,
 	});
 	const viewer = new ViewerState();
 	let presenterMode = $state(false);

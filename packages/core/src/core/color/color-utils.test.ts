@@ -67,7 +67,7 @@ describe('parseDrawingColorChoice', () => {
 		expect(parseDrawingColorChoice(node)).toBe('#FF0000');
 	});
 
-	it('parses a:scrgbClr with partial values', () => {
+	it('parses a:scrgbClr with linear->sRGB companding', () => {
 		const node: XmlObject = {
 			'a:scrgbClr': {
 				'@_r': '50000',
@@ -75,7 +75,9 @@ describe('parseDrawingColorChoice', () => {
 				'@_b': '50000',
 			},
 		};
-		expect(parseDrawingColorChoice(node)).toBe('#808080');
+		// scRGB is linear-light: 50% linear compands to ~73.5% sRGB -> 0xBC,
+		// not the naive 0x80 that treating the fraction as sRGB would give.
+		expect(parseDrawingColorChoice(node)).toBe('#BCBCBC');
 	});
 
 	// ── System colour ──────────────────────────────────────────────────
@@ -307,6 +309,19 @@ describe('parseDrawingColorOpacity', () => {
 		};
 		// 1 + 0.5 = 1.5 → clamped to 1
 		expect(parseDrawingColorOpacity(node)).toBe(1);
+	});
+
+	it('applies a NEGATIVE alphaOff (offset must not be clamped before adding)', () => {
+		const node: XmlObject = {
+			'a:srgbClr': {
+				'@_val': 'FF0000',
+				'a:alpha': { '@_val': '80000' },
+				'a:alphaOff': { '@_val': '-30000' },
+			},
+		};
+		// 0.8 + (-0.3) = 0.5. Previously the offset was clamped to 0 first, so
+		// the result wrongly collapsed to 0.8.
+		expect(parseDrawingColorOpacity(node)).toBeCloseTo(0.5, 5);
 	});
 
 	it('works with scheme colors', () => {

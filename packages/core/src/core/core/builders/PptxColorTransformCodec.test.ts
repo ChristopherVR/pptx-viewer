@@ -282,6 +282,14 @@ describe('pptxColorTransformCodec', () => {
 			};
 			expect(codec.parseColorChoice(node)).toBe('#FF0000');
 		});
+
+		it('compands linear scRGB mid-grey to sRGB (0x80 -> 0xBC)', () => {
+			// scRGB is linear-light: 0.5 linear -> ~0.735 sRGB -> 0xBC.
+			const node: XmlObject = {
+				'a:scrgbClr': { '@_r': '50000', '@_g': '50000', '@_b': '50000' },
+			};
+			expect(codec.parseColorChoice(node)).toBe('#BCBCBC');
+		});
 	});
 
 	// ── parseColor ───────────────────────────────────────────────────────

@@ -329,6 +329,39 @@ export function getGradientTileFlipCss(
 }
 
 /**
+ * Builds the `background-size` / `background-position` / `background-repeat`
+ * that confine a gradient to the rectangle described by `a:gradFill/a:tileRect`.
+ *
+ * `tileRect` LTRB values are 0..1 insets from each edge, so the tile covers
+ * `(1 - l - r)` x `(1 - t - b)` of the shape, offset by `l`/`t`. Returns
+ * `undefined` when the rect is missing, degenerate, or effectively full-bleed
+ * (no meaningful inset), so callers fall through to the plain gradient.
+ */
+export function getGradientTileRectCss(
+	tileRect: ShapeStyle['fillGradientTileRect'] | undefined,
+): { backgroundSize: string; backgroundPosition: string; backgroundRepeat: string } | undefined {
+	if (!tileRect) {
+		return undefined;
+	}
+	const { l, t, r, b } = tileRect;
+	const sizeW = 1 - l - r;
+	const sizeH = 1 - t - b;
+	if (sizeW <= 0 || sizeH <= 0) {
+		return undefined;
+	}
+	if (Math.abs(sizeW - 1) < 0.001 && Math.abs(sizeH - 1) < 0.001) {
+		return undefined;
+	}
+	const posX = 1 - sizeW > 0.001 ? (l / (1 - sizeW)) * 100 : 0;
+	const posY = 1 - sizeH > 0.001 ? (t / (1 - sizeH)) * 100 : 0;
+	return {
+		backgroundSize: `${Math.round(sizeW * 100)}% ${Math.round(sizeH * 100)}%`,
+		backgroundPosition: `${Math.round(posX)}% ${Math.round(posY)}%`,
+		backgroundRepeat: 'no-repeat',
+	};
+}
+
+/**
  * Creates a reflected (mirrored) copy of gradient stops for tile-flip
  * rendering. The original stops run 0->100; the result packs one full
  * forward-backward cycle into 0-100: a forward pass mapped to 0-50 and a
@@ -359,6 +392,65 @@ export function buildReflectedGradientStops(stops: SanitizedStop[]): SanitizedSt
 }
 
 /**
+ * Optional geometry context for {@link buildGradientCss}. Supplying it lets the
+ * resolver apply the two OOXML linear-gradient attributes that depend on the
+ * owning shape:
+ *  - `a:lin/@scaled` (default true): the angle is measured in the shape's unit
+ *    square then stretched to the box, so the visual angle depends on the
+ *    width/height aspect ratio.
+ *  - `a:gradFill/@rotWithShape=false`: the gradient must stay fixed to the page
+ *    frame, so it is counter-rotated by the element's own rotation.
+ */
+export interface GradientRenderContext {
+	/** Element rotation in degrees (`PptxElementBase.rotation`). */
+	rotation?: number;
+	/** Element width in px. */
+	width?: number;
+	/** Element height in px. */
+	height?: number;
+}
+
+/** Normalise a degree value into the [0, 360) range. */
+function normalizeDegrees(deg: number): number {
+	return ((deg % 360) + 360) % 360;
+}
+
+/**
+ * Apply `a:lin/@scaled` (aspect-ratio) and `a:gradFill/@rotWithShape`
+ * corrections to a linear-gradient angle. A no-op when no geometry context is
+ * supplied or neither attribute is in force, so callers that pass only a style
+ * keep the raw authored angle.
+ */
+function adjustLinearGradientAngle(
+	angle: number,
+	gradient: ShapeStyle,
+	context: GradientRenderContext | undefined,
+): number {
+	if (!context) {
+		return angle;
+	}
+	let result = angle;
+	const { width, height, rotation } = context;
+	if (
+		gradient.fillGradientScaled !== false &&
+		typeof width === 'number' &&
+		typeof height === 'number' &&
+		width > 0 &&
+		height > 0 &&
+		width !== height
+	) {
+		const rad = (result * Math.PI) / 180;
+		result = normalizeDegrees(
+			(Math.atan2(height * Math.sin(rad), width * Math.cos(rad)) * 180) / Math.PI,
+		);
+	}
+	if (gradient.fillGradientRotWithShape === false && typeof rotation === 'number') {
+		result = normalizeDegrees(result - rotation);
+	}
+	return result;
+}
+
+/**
  * Converts a structured OOXML gradient on a `ShapeStyle` to a CSS
  * `linear-gradient(...)` / `radial-gradient(...)` string.
  *
@@ -372,9 +464,14 @@ export function buildReflectedGradientStops(stops: SanitizedStop[]): SanitizedSt
  * a radial), matching the React port.
  *
  * @param gradient - The shape style carrying gradient configuration.
+ * @param context  - Optional element geometry enabling `@scaled` /
+ *                   `@rotWithShape` angle corrections (linear only).
  * @returns A CSS gradient string, or `undefined`.
  */
-export function buildGradientCss(gradient: ShapeStyle | undefined): string | undefined {
+export function buildGradientCss(
+	gradient: ShapeStyle | undefined,
+	context?: GradientRenderContext,
+): string | undefined {
 	if (!gradient || gradient.fillMode !== 'gradient') {
 		return undefined;
 	}
@@ -403,6 +500,7 @@ export function buildGradientCss(gradient: ShapeStyle | undefined): string | und
 		typeof gradient.fillGradientAngle === 'number' && Number.isFinite(gradient.fillGradientAngle)
 			? gradient.fillGradientAngle
 			: 90;
+	const effectiveAngle = adjustLinearGradientAngle(normalizedAngle, gradient, context);
 
 	// Tile-flip: reflect the stops so a single tile contains one mirrored
 	// forward-backward cycle. The repeating/halved tiling is applied by the
@@ -410,7 +508,7 @@ export function buildGradientCss(gradient: ShapeStyle | undefined): string | und
 	const flip = gradient.fillGradientFlip;
 	const linearStops = flip && flip !== 'none' ? buildReflectedGradientStops(stops) : stops;
 
-	return `linear-gradient(${Math.round(normalizedAngle)}deg, ${linearStops
+	return `linear-gradient(${Math.round(effectiveAngle)}deg, ${linearStops
 		.map(toCssGradientStop)
 		.join(', ')})`;
 }
@@ -992,6 +1090,7 @@ export interface ComputedFillStyle {
 	backgroundColor?: string;
 	backgroundImage?: string;
 	backgroundSize?: string;
+	backgroundPosition?: string;
 	backgroundRepeat?: string;
 	/** Carried through for renderers that need to inject pattern defs. */
 	svgFilter?: { id: string; markup: string };
@@ -1011,9 +1110,19 @@ export interface ComputedFillStyle {
  * empty-ish object when no fill applies (so callers can spread the result
  * safely).
  *
- * @param element - The PPTX element to resolve a fill for.
+ * A child of a group whose fill is `a:grpFill` (`fillMode === "group"`)
+ * inherits the group's resolved fill: pass the parent group's `ShapeStyle`
+ * (`GroupPptxElement.groupFill`) as {@link parentGroupFill} and it is resolved
+ * in the child's own box.
+ *
+ * @param element         - The PPTX element to resolve a fill for.
+ * @param parentGroupFill - The enclosing group's fill style, used only when the
+ *                          element's own fill is `a:grpFill`.
  */
-export function getComputedFillStyle(element: PptxElement): ComputedFillStyle | undefined {
+export function getComputedFillStyle(
+	element: PptxElement,
+	parentGroupFill?: ShapeStyle,
+): ComputedFillStyle | undefined {
 	if (!hasShapeProperties(element)) {
 		return undefined;
 	}
@@ -1022,6 +1131,22 @@ export function getComputedFillStyle(element: PptxElement): ComputedFillStyle | 
 		return {};
 	}
 
+	// grpFill inheritance: paint the parent group's resolved fill in this
+	// child's box. Without a parent fill there is nothing to inherit.
+	if (ss.fillMode === 'group') {
+		return parentGroupFill ? resolveComputedFill(parentGroupFill, element) : {};
+	}
+
+	return resolveComputedFill(ss, element);
+}
+
+/**
+ * Resolves a concrete {@link ComputedFillStyle} from a {@link ShapeStyle} in the
+ * context of `element` (id namespaces pattern filters; geometry drives gradient
+ * `@scaled`/`@rotWithShape` corrections). Split out so grpFill children can
+ * resolve the parent group's style through the identical pipeline.
+ */
+function resolveComputedFill(ss: ShapeStyle, element: PptxElement): ComputedFillStyle {
 	// 1. Image fill — highest priority.
 	const imageFillUrl = ss.fillMode === 'image' && ss.fillImageUrl ? ss.fillImageUrl : undefined;
 	if (imageFillUrl) {
@@ -1035,8 +1160,13 @@ export function getComputedFillStyle(element: PptxElement): ComputedFillStyle | 
 	}
 
 	// 2. Gradient (structured, with prebuilt-string fallback).
+	const geometry: GradientRenderContext = {
+		rotation: element.rotation,
+		width: element.width,
+		height: element.height,
+	};
 	const gradient =
-		buildGradientCss(ss) ?? (ss.fillMode === 'gradient' ? ss.fillGradient : undefined);
+		buildGradientCss(ss, geometry) ?? (ss.fillMode === 'gradient' ? ss.fillGradient : undefined);
 	if (gradient) {
 		// Tile-flip applies only to structured linear gradients: buildGradientCss
 		// reflects the stops, and the matching halved/repeating background-size +
@@ -1052,6 +1182,17 @@ export function getComputedFillStyle(element: PptxElement): ComputedFillStyle | 
 				backgroundImage: gradient,
 				backgroundSize: tileFlip.backgroundSize,
 				backgroundRepeat: tileFlip.backgroundRepeat,
+			};
+		}
+		// tileRect confines the gradient to a sub-rectangle of the shape.
+		const tileRect =
+			ss.fillMode === 'gradient' ? getGradientTileRectCss(ss.fillGradientTileRect) : undefined;
+		if (tileRect) {
+			return {
+				backgroundImage: gradient,
+				backgroundSize: tileRect.backgroundSize,
+				backgroundPosition: tileRect.backgroundPosition,
+				backgroundRepeat: tileRect.backgroundRepeat,
 			};
 		}
 		return { backgroundImage: gradient };

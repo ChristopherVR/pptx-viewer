@@ -50,6 +50,45 @@ describe('presentationController', () => {
 		expect(navigate).toHaveBeenCalledWith(1);
 	});
 
+	it('blocks a click/tap advance when the slide sets advanceOnClick=false', () => {
+		const deck = new Deck();
+		deck.slides = [
+			slide('s1', { transition: { type: 'fade', advanceOnClick: false } }),
+			slide('s2'),
+		];
+		const navigate = vi.fn();
+		const controller = new PresentationController({
+			getSlides: () => deck.slides,
+			getCurrentIndex: () => deck.index,
+			navigate,
+		});
+
+		// A click/tap/swipe (fromClick) must not advance this slide.
+		controller.advance(true);
+		expect(navigate).not.toHaveBeenCalled();
+
+		// Explicit navigation (keyboard, next button) is never gated.
+		controller.advance();
+		expect(navigate).toHaveBeenCalledWith(1);
+	});
+
+	it('allows a click advance when advanceOnClick is true or undefined', () => {
+		const deck = new Deck();
+		deck.slides = [
+			slide('s1', { transition: { type: 'fade', advanceOnClick: true } }),
+			slide('s2'),
+		];
+		const navigate = vi.fn();
+		const controller = new PresentationController({
+			getSlides: () => deck.slides,
+			getCurrentIndex: () => deck.index,
+			navigate,
+		});
+
+		controller.advance(true);
+		expect(navigate).toHaveBeenCalledWith(1);
+	});
+
 	it('advances straight away on a slide with no animations', () => {
 		const deck = new Deck();
 		deck.slides = [slide('s1'), slide('s2')];

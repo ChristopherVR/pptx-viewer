@@ -8,4 +8,9 @@
  */
 export type { ChartPlotLayout, ChartValueRange } from './chart-overlay-utils';
 export { renderTrendlines } from './chart-trendlines';
-export { renderErrorBars, renderDropLines, renderHiLowLines } from './chart-overlay-lines';
+export {
+	renderErrorBars,
+	renderDropLines,
+	renderHiLowLines,
+	renderUpDownBars,
+} from './chart-overlay-lines';

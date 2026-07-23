@@ -19,6 +19,7 @@ import type {
 	GeometryAdjustmentHandle,
 } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePlaceholderLookup';
+import { evaluatePresetAdjustmentFormula } from './preset-avlst-fmla';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected parseGeometryAdjustments(
@@ -35,6 +36,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		const adjustments: Record<string, number> = {};
+		// Resolved adjustments so far, so a later formula can reference an earlier
+		// adjustment by name (passed to the non-literal formula evaluator).
+		const priorAdjustments = new Map<string, number>();
 		for (const gd of gdNodes) {
 			const name = String(gd?.['@_name'] || '').trim();
 			if (!name) {
@@ -50,17 +54,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			if (value === undefined && gd?.['@_fmla']) {
 				const formula = String(gd['@_fmla']).trim();
+				// Fast path: a literal `val N` adjustment (the overwhelmingly common
+				// preset form). This must never regress.
 				const match = formula.match(/^val\s+(-?\d+)$/i);
 				if (match) {
 					const parsed = Number.parseInt(match[1], 10);
 					if (Number.isFinite(parsed)) {
 						value = parsed;
 					}
+				} else {
+					// Non-literal formula: evaluate geometry-independent forms via the
+					// shared guide-formula engine. Geometry-dependent forms are deferred
+					// (they resolve during render-time guide evaluation instead).
+					value = evaluatePresetAdjustmentFormula(formula, name, priorAdjustments);
 				}
 			}
 
 			if (value !== undefined) {
 				adjustments[name] = value;
+				priorAdjustments.set(name, value);
 			}
 		}
 

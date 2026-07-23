@@ -20,6 +20,7 @@ import {
 	resolveUnderlineDecorationStyle,
 } from './text-segment-helpers';
 import type { ElementFindHighlights } from './text-segment-helpers';
+import { buildTabContext } from './text-tab-layout';
 import { hasDistinctScriptFonts } from './unicode-script-detection';
 
 /**
@@ -86,28 +87,25 @@ export function renderSingleSegment(
 		segmentStyle.underlineStyle,
 	);
 
-	// Superscript / subscript via baseline shift
-	const baselineShift =
-		typeof segmentStyle.baseline === 'number' && segmentStyle.baseline !== 0
-			? segmentStyle.baseline > 0
-				? 'super'
-				: 'sub'
-			: undefined;
-	const baselineFontScale =
-		typeof segmentStyle.baseline === 'number' && segmentStyle.baseline !== 0 ? 0.65 : 1;
+	// Superscript / subscript via baseline shift.
+	// OOXML `a:rPr/@baseline` (ST_Percentage) authors the shift magnitude. It is
+	// typically stored in thousandths of a percent (30000 = 30%) but some
+	// producers emit a bare percent (30). Honour the authored magnitude rather
+	// than snapping every shift to a fixed super/sub amount.
+	const rawBaseline = typeof segmentStyle.baseline === 'number' ? segmentStyle.baseline : 0;
+	const baselineFraction =
+		rawBaseline === 0
+			? 0
+			: Math.abs(rawBaseline) >= 1000
+				? rawBaseline / 100000
+				: rawBaseline / 100;
+	// Sub/superscript text also renders smaller; keep the conventional reduction.
+	const baselineFontScale = baselineFraction !== 0 ? 0.65 : 1;
 
 	// Character spacing → CSS letter-spacing (hundredths of a point → px)
 	const letterSpacing =
 		typeof segmentStyle.characterSpacing === 'number' && segmentStyle.characterSpacing !== 0
 			? `${(segmentStyle.characterSpacing / 100) * (96 / 72)}px`
-			: undefined;
-
-	// Kerning → CSS font-kerning
-	const fontKerning: React.CSSProperties['fontKerning'] =
-		typeof segmentStyle.kerning === 'number'
-			? segmentStyle.kerning === 0
-				? 'none'
-				: 'normal'
 			: undefined;
 
 	// Text fill: gradient or pattern → CSS background-clip:text technique
@@ -125,6 +123,24 @@ export function renderSingleSegment(
 			? element.textStyle.autoFitFontScale
 			: 1;
 	const baseFontSize = rawFontSize * autoFitScale;
+
+	// Baseline shift as a length relative to the (unscaled) base font size, so a
+	// 30% shift raises/lowers by ~0.3 of the run's font size.
+	const baselineShift = baselineFraction !== 0 ? `${baselineFraction * baseFontSize}px` : undefined;
+
+	// Kerning → CSS font-kerning. OOXML `@kern` is a threshold: kerning applies
+	// only at or above the given font size (hundredths of a point). Respect the
+	// threshold where the run font size is known; `0` disables kerning outright.
+	const baseFontSizePt = baseFontSize * (72 / 96);
+	const fontKerning: React.CSSProperties['fontKerning'] =
+		typeof segmentStyle.kerning === 'number'
+			? segmentStyle.kerning === 0
+				? 'none'
+				: baseFontSizePt >= segmentStyle.kerning / 100
+					? 'normal'
+					: 'none'
+			: undefined;
+
 	const rawFontFamily = segmentStyle.fontFamily || element.textStyle?.fontFamily;
 	// Apply PANOSE-based font substitution with fallback chain
 	const baseFontFamily = rawFontFamily
@@ -154,6 +170,10 @@ export function renderSingleSegment(
 			underlineDecoration?.textUnderlineOffset as React.CSSProperties['textUnderlineOffset'],
 		fontFamily: baseFontFamily,
 		verticalAlign: baselineShift,
+		// Text capitalization (a:rPr/@cap): all -> force uppercase glyphs;
+		// small -> render lowercase as small caps.
+		textTransform: segmentStyle.textCaps === 'all' ? 'uppercase' : undefined,
+		fontVariantCaps: segmentStyle.textCaps === 'small' ? 'small-caps' : undefined,
 		letterSpacing,
 		fontKerning,
 		backgroundColor: textFillStyles
@@ -241,6 +261,14 @@ export function renderSingleSegment(
 		scriptFonts,
 		baseFontFamily,
 		findHighlights,
+		buildTabContext(
+			element.textStyle?.tabStops,
+			element.textStyle?.defaultTabSize,
+			baseFontSize,
+			baseFontFamily,
+			Boolean(segmentStyle.bold),
+			Boolean(segmentStyle.italic),
+		),
 	);
 
 	let innerContent: React.ReactNode;

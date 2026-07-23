@@ -9,22 +9,28 @@ import type { RenderParagraph } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 
 defineProps<{ paragraphs: RenderParagraph[]; textStyle: CSSProperties }>();
+
+/**
+ * Per-paragraph inline style: hanging-indent margins plus the paragraph's own
+ * line spacing (`a:lnSpc`) and space-before/after (`a:spcBef`/`a:spcAft`),
+ * carried on the shared {@link RenderParagraph} model. Undefined spacing keys
+ * are omitted so the body-level `line-height` (on the text block) still applies.
+ */
+function paraStyle(para: RenderParagraph): CSSProperties {
+	return {
+		marginTop: para.spaceBeforePx !== undefined ? `${para.spaceBeforePx}px` : 0,
+		marginRight: 0,
+		marginBottom: para.spaceAfterPx !== undefined ? `${para.spaceAfterPx}px` : 0,
+		marginLeft: para.marginLeftPx !== undefined ? `${para.marginLeftPx}px` : 0,
+		textIndent: para.textIndentPx !== undefined ? `${para.textIndentPx}px` : undefined,
+		lineHeight: para.lineHeight,
+	};
+}
 </script>
 
 <template>
 	<div class="pptx-vue-text" :style="textStyle">
-		<p
-			v-for="(para, pi) in paragraphs"
-			:key="pi"
-			class="pptx-vue-para"
-			:style="{
-				marginTop: 0,
-				marginRight: 0,
-				marginBottom: 0,
-				marginLeft: para.marginLeftPx !== undefined ? `${para.marginLeftPx}px` : 0,
-				textIndent: para.textIndentPx !== undefined ? `${para.textIndentPx}px` : undefined,
-			}"
-		>
+		<p v-for="(para, pi) in paragraphs" :key="pi" class="pptx-vue-para" :style="paraStyle(para)">
 			<img
 				v-if="para.bulletPicture?.src"
 				class="pptx-vue-bullet-image"

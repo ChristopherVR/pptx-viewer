@@ -182,6 +182,7 @@
 	provideRenderContext({
 		getColorScheme: () => loader.colorScheme,
 		getTableStyleMap: () => loader.tableStyleMap,
+		getFontScheme: () => loader.presentationTheme?.fontScheme,
 	});
 	const viewer = new ViewerState();
 	let presenterMode = $state(false);
@@ -716,7 +717,7 @@
 <div
 	use:presentationSwipe={{
 		isEnabled: () => viewer.isFullscreen,
-		onNext: () => presentation.advance(),
+		onNext: () => presentation.advance(true),
 		onPrevious: () => viewer.prev(),
 	}}
 	bind:this={rootEl}
@@ -926,7 +927,7 @@
 		presenting={viewer.isFullscreen}
 		presentationTransition={presentation.transition}
 		onTransitionDone={() => presentation.endTransition()}
-		onAdvance={() => presentation.advance()}
+		onAdvance={() => presentation.advance(true)}
 		{editingActive}
 		{controller}
 		annotations={parityUi.annotations}

@@ -1,6 +1,7 @@
 import { PptxSlide, XmlObject, TextStyle } from '../../types';
 import type { PptxElementAnimation, PptxSlideTransition } from '../../types';
 import { parseDataUrlToBytes, fetchUrlToBytes } from '../../utils/data-url-utils';
+import type { PptxSlideReferenceRemap } from '../../utils/presentation-collections';
 import type { PptxSaveState } from '../builders';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePresentationProps';
 
@@ -103,8 +104,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		slideRelationshipType: string;
 		slideLayoutRelationshipType: string;
 		relationshipsNamespace: string;
-	}): Promise<void> {
-		await this.presentationSlidesReconciler.reconcile({
+	}): Promise<PptxSlideReferenceRemap> {
+		return await this.presentationSlidesReconciler.reconcile({
 			...params,
 			zip: this.zip,
 			parser: this.parser,
@@ -191,6 +192,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		if (align === 'justify') {
 			return 'just';
+		}
+		if (align === 'justLow') {
+			return 'justLow';
+		}
+		if (align === 'dist') {
+			return 'dist';
+		}
+		if (align === 'thaiDist') {
+			return 'thaiDist';
 		}
 		return undefined;
 	}

@@ -10,7 +10,7 @@ import type { PresentationTransitionOverlayState } from './types';
 export interface SlideTransitionDeps {
 	slides: PptxSlide[];
 	currentSlideIndex: number;
-	onPlayActionSound?: (soundPath: string) => void;
+	onPlayActionSound?: (soundPath: string, options?: { loop?: boolean }) => void;
 	setPresentationSlideVisible: (visible: boolean) => void;
 	clearPresentationTimers: () => void;
 	setPresentationSlideIndex: (index: number) => void;
@@ -55,7 +55,7 @@ export function executeSlideTransition(nextSlideIndex: number, deps: SlideTransi
 
 	if (durationMs > 0 && transition) {
 		if (transition.soundPath && deps.onPlayActionSound) {
-			deps.onPlayActionSound(transition.soundPath);
+			deps.onPlayActionSound(transition.soundPath, { loop: transition.soundLoop === true });
 		}
 		deps.setTransitionOverlay({
 			outgoingSlideIndex: deps.currentSlideIndex,

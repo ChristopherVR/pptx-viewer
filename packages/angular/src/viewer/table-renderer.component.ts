@@ -15,7 +15,9 @@ import {
 } from '@angular/core';
 import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 
+import type { TableStyleContext } from '../internal/shared';
 import type { StyleMap } from './element-style';
+import { LoadContentService } from './load-content.service';
 import { buildColStyles, buildTableViewModel } from './table-renderer-helpers';
 import type { CellParagraph, TableRowViewModel } from './table-renderer-helpers';
 import { TableResizeOverlayComponent } from './table-resize-overlay.component';
@@ -176,6 +178,13 @@ export class TableRendererComponent {
 	private readonly injector = inject(Injector);
 	/** Shared cell-selection state (present only inside the editor subtree). */
 	private readonly selectionSvc = inject(TableSelectionService, { optional: true });
+	/**
+	 * Deck load state (present in the viewer subtree). Supplies the parsed
+	 * table-style map + theme colour/font scheme so table-style-inherited banding,
+	 * fonts, and section diagonals resolve. Absent (optional) in standalone
+	 * thumbnail/export renderers, where the hardcoded defaults are used.
+	 */
+	private readonly loader = inject(LoadContentService, { optional: true });
 
 	/** The table element to render. Must be `type === 'table'`. */
 	readonly element = input.required<PptxElement>();
@@ -198,8 +207,27 @@ export class TableRendererComponent {
 	/** Pre-computed `<col>` styles for the colgroup. */
 	readonly colStyles = computed<StyleMap[]>(() => buildColStyles(this.element()));
 
+	/**
+	 * Table-style context (parsed style map + theme colour/font scheme) from the
+	 * deck loader, or `undefined` outside the viewer subtree. `fontScheme` lets a
+	 * table style's `a:fontRef@idx` resolve to a concrete font family.
+	 */
+	private readonly styleCtx = computed<TableStyleContext | undefined>(() => {
+		if (!this.loader) {
+			return undefined;
+		}
+		const theme = this.loader.theme();
+		return {
+			tableStyleMap: this.loader.tableStyleMap(),
+			colorScheme: theme?.colorScheme,
+			fontScheme: theme?.fontScheme,
+		};
+	});
+
 	/** Projected view-model rows with merged-cell resolution + banding applied. */
-	readonly rows = computed<TableRowViewModel[]>(() => buildTableViewModel(this.element()));
+	readonly rows = computed<TableRowViewModel[]>(() =>
+		buildTableViewModel(this.element(), this.styleCtx()),
+	);
 
 	/** Column widths (0-1 fractions) for the resize overlay. */
 	readonly columnWidths = computed<number[]>(() => this.tableData()?.columnWidths ?? []);

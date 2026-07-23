@@ -46,11 +46,13 @@ export const PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	blindsIn: { presetClass: 'entr', presetId: 3, defaultSubtype: 0 },
 	boxIn: { presetClass: 'entr', presetId: 4, defaultSubtype: 0 },
 	checkerboardIn: { presetClass: 'entr', presetId: 5, defaultSubtype: 0 },
-	expandIn: { presetClass: 'entr', presetId: 6, defaultSubtype: 0 },
+	// entr.6 = Circle, entr.31 = Expand per MS-OI29500 / the catalog. Random Bars
+	// is entr.14 and Split is entr.17 (see the entr.17/entr.14 catalog labels).
+	expandIn: { presetClass: 'entr', presetId: 31, defaultSubtype: 0 },
 	dissolveIn: { presetClass: 'entr', presetId: 9, defaultSubtype: 0 },
 	flashIn: { presetClass: 'entr', presetId: 12, defaultSubtype: 0 },
 	peekIn: { presetClass: 'entr', presetId: 16, defaultSubtype: 0 },
-	randomBarsIn: { presetClass: 'entr', presetId: 17, defaultSubtype: 0 },
+	randomBarsIn: { presetClass: 'entr', presetId: 14, defaultSubtype: 0 },
 	wipeIn: { presetClass: 'entr', presetId: 22, defaultSubtype: 0 },
 	riseUp: { presetClass: 'entr', presetId: 26, defaultSubtype: 0 },
 	bounceIn: { presetClass: 'entr', presetId: 37, defaultSubtype: 0 },
@@ -58,11 +60,11 @@ export const PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	swivel: { presetClass: 'entr', presetId: 47, defaultSubtype: 0 },
 	spinnerIn: { presetClass: 'entr', presetId: 49, defaultSubtype: 0 },
 	growTurnIn: { presetClass: 'entr', presetId: 53, defaultSubtype: 0 },
-	splitIn: { presetClass: 'entr', presetId: 31, defaultSubtype: 0 },
+	splitIn: { presetClass: 'entr', presetId: 17, defaultSubtype: 0 },
 	wheelIn: { presetClass: 'entr', presetId: 21, defaultSubtype: 1 },
 
 	// ---- Entrance effects (extended catalog) ----
-	circleIn: { presetClass: 'entr', presetId: 7, defaultSubtype: 0 },
+	circleIn: { presetClass: 'entr', presetId: 6, defaultSubtype: 0 },
 	diamondIn: { presetClass: 'entr', presetId: 8, defaultSubtype: 0 },
 	flashBulbIn: { presetClass: 'entr', presetId: 11, defaultSubtype: 0 },
 	plusIn: { presetClass: 'entr', presetId: 13, defaultSubtype: 0 },
@@ -290,20 +292,21 @@ const ENTR_CANONICAL: ReadonlyArray<[number, string]> = [
 	[3, 'blindsIn'],
 	[4, 'boxIn'],
 	[5, 'checkerboardIn'],
-	[6, 'expandIn'], // alias of circleIn — keep `expandIn` as canonical (existing behaviour)
-	[7, 'crawlIn'],
+	[6, 'circleIn'], // entr.6 = Circle (MS-OI29500 / catalog)
+	[7, 'crawlIn'], // entr.7 = Crawl In
 	[8, 'diamondIn'],
 	[9, 'dissolveIn'],
 	[10, 'fadeIn'],
 	[11, 'flashBulbIn'],
 	[12, 'flashIn'],
 	[13, 'plusIn'],
+	// entr.14 = Random Bars, entr.17 = Split per MS-OI29500 / the catalog. Both
+	// the forward map (PRESET_TO_OOXML) and this reverse lookup agree so the
+	// renderer, writer, and catalog are spec-consistent.
+	[14, 'randomBarsIn'],
 	[15, 'spiralIn'],
 	[16, 'peekIn'],
-	// id 17 is `randomBarsIn` in PRESET_TO_OOXML (historical mapping); the
-	// catalog labels entr.17 "Split" but the typed write key for that
-	// integer is randomBarsIn, so the reverse lookup must agree.
-	[17, 'randomBarsIn'],
+	[17, 'splitIn'],
 	[18, 'stretchIn'],
 	[19, 'stripsIn'],
 	[20, 'wedgeIn'],
@@ -311,8 +314,8 @@ const ENTR_CANONICAL: ReadonlyArray<[number, string]> = [
 	[22, 'wipeIn'],
 	[23, 'zoomIn'],
 	[26, 'riseUp'],
-	// `splitIn` historically uses id 31 in PRESET_TO_OOXML; the auto-fill
-	// will resolve id 31 to `splitIn` without an override.
+	// entr.31 = Expand -> `expandIn`; the auto-fill resolves id 31 without an
+	// override since only `expandIn` maps to it.
 	[37, 'bounceIn'],
 	[42, 'floatIn'],
 	[47, 'swivel'],

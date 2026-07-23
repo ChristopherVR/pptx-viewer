@@ -43,6 +43,7 @@ import {
 	fitZoom,
 	nextVisibleIndex,
 	prevVisibleIndex,
+	shouldBlockClickAdvance,
 } from './presentation-overlay-helpers';
 import { PresentationSubtitleBarComponent } from './presentation-subtitle-bar.component';
 import { PresentationTransitionOverlayComponent } from './presentation-transition-overlay.component';
@@ -637,8 +638,15 @@ export class PresentationOverlayComponent implements OnInit {
 				getScale: () => 1,
 				callbacks: {
 					onSwipe: (direction) => {
-						// direction 1 = swipe right (previous), -1 = swipe left (next).
-						this.navigate(direction === 1 ? 'prev' : 'next');
+						// direction 1 = swipe right (previous), -1 = swipe left (next). A
+						// swipe is PowerPoint's on-click advance, so the forward case is
+						// gated by the current slide's advanceOnClick flag; a backward
+						// swipe is explicit navigation and never gated.
+						if (direction === 1) {
+							this.navigate('prev');
+						} else {
+							this.advanceFromClick();
+						}
 					},
 				},
 			});
@@ -763,6 +771,20 @@ export class PresentationOverlayComponent implements OnInit {
 		}
 		// A drawing tool owns pointer gestures; don't hijack them to advance.
 		if (this.annotations.tool() !== 'none') {
+			return;
+		}
+		this.advanceFromClick();
+	}
+
+	/**
+	 * Click/tap/swipe advance. Like every forward step it first reveals the
+	 * current slide's next animation build; only once the builds are exhausted
+	 * does it advance the slide, and then only when the slide's transition allows
+	 * click-advance (advanceOnClick !== false). Keyboard and the on-screen
+	 * next/prev buttons call navigate() directly and are never gated.
+	 */
+	private advanceFromClick(): void {
+		if (shouldBlockClickAdvance(this.playback.isComplete(), this.currentSlide())) {
 			return;
 		}
 		this.navigate('next');

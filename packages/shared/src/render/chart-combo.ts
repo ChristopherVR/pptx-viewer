@@ -10,6 +10,7 @@ import {
 import { verticalAxisX } from './chart-axis-crossing';
 import { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
 import { computeErrorBarPrimitives } from './chart-error-bars';
+import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import type {
 	ChartViewModel,
@@ -132,6 +133,12 @@ export function buildComboViewModel(
 	);
 	const primitives: SvgPrimitive[] = [];
 	const dataLabels: SvgText[] = [];
+
+	// Drop / hi-low / up-down helper lines, drawn behind the combo marks.
+	const helperOpts = { mode: 'line' as const, xPositions: horizontalAxis.xPositions };
+	primitives.push(
+		...computeHelperLinePrimitives(chartData, layout, primaryRange, catCount, helperOpts),
+	);
 
 	const barSeries = chartData.series.slice(0, 1);
 	if (barSeries[0]) {

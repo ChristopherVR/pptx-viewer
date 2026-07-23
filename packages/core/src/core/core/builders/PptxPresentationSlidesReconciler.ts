@@ -2,7 +2,9 @@ import type { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import type JSZip from 'jszip';
 
 import type { PptxSlide, XmlObject } from '../../types';
+import type { PptxSlideReferenceRemap } from '../../utils/presentation-collections';
 import type { PptxSaveState } from './PptxSaveSessionBuilder';
+import { buildSlideReferenceRemap } from './slide-reference-remap';
 
 export interface PptxPresentationSlidesReconcilerInput {
 	slides: PptxSlide[];
@@ -26,11 +28,13 @@ export interface PptxPresentationSlidesReconcilerInput {
 }
 
 export interface IPptxPresentationSlidesReconciler {
-	reconcile(input: PptxPresentationSlidesReconcilerInput): Promise<void>;
+	reconcile(input: PptxPresentationSlidesReconcilerInput): Promise<PptxSlideReferenceRemap>;
 }
 
 export class PptxPresentationSlidesReconciler implements IPptxPresentationSlidesReconciler {
-	public async reconcile(input: PptxPresentationSlidesReconcilerInput): Promise<void> {
+	public async reconcile(
+		input: PptxPresentationSlidesReconcilerInput,
+	): Promise<PptxSlideReferenceRemap> {
 		const presentationRelsXml = await input.zip
 			.file('ppt/_rels/presentation.xml.rels')
 			?.async('string');
@@ -93,6 +97,15 @@ export class PptxPresentationSlidesReconciler implements IPptxPresentationSlides
 		const slideIdByRid = new Map<string, XmlObject>();
 		let maxNumericSlideId = 255;
 
+		// Snapshot the load-time reference topology BEFORE any rId/id
+		// reassignment: which slide path each original slide rId and numeric
+		// slide id pointed at. Custom shows / sections carry these old values
+		// and must be remapped to the reconciled ids after this method runs.
+		const originalRIdToPath = new Map<string, string>();
+		for (const [relationshipId, target] of slideTargetByRid.entries()) {
+			originalRIdToPath.set(relationshipId, input.toSlidePathFromTarget(target));
+		}
+
 		for (const slideIdEntry of existingSlideIds) {
 			const relationshipId = slideIdEntry?.['@_r:id'];
 			if (typeof relationshipId === 'string' && relationshipId.length > 0) {
@@ -102,6 +115,16 @@ export class PptxPresentationSlidesReconciler implements IPptxPresentationSlides
 			const numericSlideId = Number.parseInt(String(slideIdEntry?.['@_id'] ?? ''), 10);
 			if (Number.isFinite(numericSlideId)) {
 				maxNumericSlideId = Math.max(maxNumericSlideId, numericSlideId);
+			}
+		}
+
+		const originalSldIdToPath = new Map<string, string>();
+		for (const slideIdEntry of existingSlideIds) {
+			const relationshipId = String(slideIdEntry?.['@_r:id'] ?? '');
+			const numericSlideId = String(slideIdEntry?.['@_id'] ?? '');
+			const slidePath = originalRIdToPath.get(relationshipId);
+			if (numericSlideId.length > 0 && slidePath !== undefined) {
+				originalSldIdToPath.set(numericSlideId, slidePath);
 			}
 		}
 
@@ -146,6 +169,7 @@ export class PptxPresentationSlidesReconciler implements IPptxPresentationSlides
 		presentationRelsData['Relationships'] = relRoot;
 		input.zip.file('ppt/_rels/presentation.xml.rels', input.xmlBuilder.build(presentationRelsData));
 
+		const rebuiltSlideIds: XmlObject[] = [];
 		if (presentation && slideIdList && input.presentationData) {
 			slideIdList['p:sldId'] = input.slides.map((slide) => {
 				const existing = slideIdByRid.get(slide.rId);
@@ -159,6 +183,7 @@ export class PptxPresentationSlidesReconciler implements IPptxPresentationSlides
 					'@_r:id': slide.rId,
 				};
 			});
+			rebuiltSlideIds.push(...(slideIdList['p:sldId'] as XmlObject[]));
 			// CT_Presentation requires child order:
 			//   sldMasterIdLst, notesMasterIdLst, handoutMasterIdLst, sldIdLst,
 			//   sldSz, notesSz, smartTags, embeddedFontLst, custShowLst,
@@ -175,6 +200,13 @@ export class PptxPresentationSlidesReconciler implements IPptxPresentationSlides
 				slideIdList,
 			);
 		}
+
+		return buildSlideReferenceRemap({
+			slides: input.slides,
+			originalRIdToPath,
+			originalSldIdToPath,
+			rebuiltSlideIds,
+		});
 	}
 
 	/**

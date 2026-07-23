@@ -277,36 +277,28 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			(source.type === 'ctrtitle' && target.type === 'title') ||
 			(source.type === 'subtitle' && target.type === 'body');
 
-		// Per OOXML spec, idx is the primary key for multi-instance
-		// placeholder matching (e.g. content areas 1, 2, 3).
-		if (source.idx !== undefined && target.idx !== undefined) {
-			if (source.idx !== target.idx) {
-				return false;
-			}
-			// idx matches — if both have types, they must also match
-			if (source.type && target.type && !typesMatch) {
-				return false;
-			}
-			return true;
-		}
-
-		// If source has idx but target does not, try matching by type
-		// only for well-known singleton types (title, ctrTitle, subTitle,
-		// dt, ftr, sldNum). For generic body/obj placeholders the idx
-		// mismatch means different instances.
-		if (source.idx !== undefined && target.idx === undefined) {
-			const singletonTypes = new Set(['title', 'ctrtitle', 'subtitle', 'dt', 'ftr', 'sldnum']);
-			if (source.type && singletonTypes.has(source.type)) {
-				return typesMatch;
-			}
+		// Per OOXML (CT_Placeholder/@idx), an absent idx defaults to 0. Normalise
+		// so a slide placeholder with no idx matches a layout/master placeholder
+		// that carries an explicit idx="0" (and vice-versa). idx remains the
+		// primary key for multi-instance matching (content areas 1, 2, 3, ...).
+		const sourceIdx = source.idx ?? '0';
+		const targetIdx = target.idx ?? '0';
+		if (sourceIdx !== targetIdx) {
 			return false;
 		}
 
-		// Neither has idx — match by type
+		// idx agrees. When both sides carry a type they must be compatible.
 		if (source.type && target.type && !typesMatch) {
 			return false;
 		}
-		if (source.type && !target.type) {
+
+		// When only one side has an explicit idx we relied on the default-0
+		// above; keep the stricter heuristic that a typed source (e.g. a title)
+		// must not bind to an untyped generic placeholder, so it does not swallow
+		// the wrong slot. When both sides carry explicit idx values that agree we
+		// trust the idx alone (a layout placeholder may omit its type).
+		const bothHaveExplicitIdx = source.idx !== undefined && target.idx !== undefined;
+		if (!bothHaveExplicitIdx && source.type && !target.type) {
 			return false;
 		}
 

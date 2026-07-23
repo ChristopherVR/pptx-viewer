@@ -41,6 +41,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				if (rawU.length > 0 && rawU !== 'none') {
 					style.underlineStyle = rawU as TextStyle['underlineStyle'];
 				}
+			} else if (underlineToken === 'none') {
+				// Explicit `<a:rPr u="none"/>` suppression. Record it so the writer
+				// re-emits the explicit token instead of collapsing to inherit.
+				style.underlineExplicitNone = true;
 			}
 		}
 		// Underline colour (a:uFill > a:solidFill or a:uLn > a:solidFill)
@@ -52,6 +56,49 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (underlineColor) {
 				style.underlineColor = underlineColor;
 			}
+		}
+		// #85: Underline line styling (a:uLn width/dash/cap/ends) and the
+		// follow-text markers (a:uLnTx / a:uFillTx). Previously only the uLn
+		// solidFill colour above was read; the line properties were dropped.
+		if (uLn) {
+			const line: NonNullable<TextStyle['underlineLine']> = {};
+			const widthEmu = Number.parseInt(String(uLn['@_w'] ?? ''), 10);
+			if (Number.isFinite(widthEmu)) {
+				line.widthEmu = widthEmu;
+			}
+			const compound = String(uLn['@_cmpd'] ?? '').trim();
+			if (compound) {
+				line.compound = compound;
+			}
+			const cap = String(uLn['@_cap'] ?? '').trim();
+			if (cap) {
+				line.cap = cap;
+			}
+			const algn = String(uLn['@_algn'] ?? '').trim();
+			if (algn) {
+				line.algn = algn;
+			}
+			const prstDash = String((uLn['a:prstDash'] as XmlObject | undefined)?.['@_val'] ?? '').trim();
+			if (prstDash) {
+				line.prstDash = prstDash;
+			}
+			const headEnd = uLn['a:headEnd'];
+			if (headEnd && typeof headEnd === 'object') {
+				line.headEndXml = headEnd as XmlObject;
+			}
+			const tailEnd = uLn['a:tailEnd'];
+			if (tailEnd && typeof tailEnd === 'object') {
+				line.tailEndXml = tailEnd as XmlObject;
+			}
+			if (Object.keys(line).length > 0) {
+				style.underlineLine = line;
+			}
+		}
+		if (runProperties['a:uLnTx'] !== undefined) {
+			style.underlineLineFollowsText = true;
+		}
+		if (runProperties['a:uFillTx'] !== undefined) {
+			style.underlineFillFollowsText = true;
 		}
 		if (runProperties['@_strike'] !== undefined) {
 			const strikeToken = String(runProperties['@_strike'] || '')
@@ -109,9 +156,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		// Text highlight colour
 		if (runProperties['a:highlight']) {
-			const highlightHex = this.parseColor(xmlChild(runProperties, 'a:highlight'));
+			const highlightNode = xmlChild(runProperties, 'a:highlight');
+			const highlightHex = this.parseColor(highlightNode);
 			if (highlightHex) {
 				style.highlightColor = highlightHex;
+			}
+			// Preserve the original colour-choice so a themed (`a:schemeClr`)
+			// highlight re-emits as itself rather than flattening to srgbClr.
+			const highlightXml = extractColorChoiceXml(highlightNode);
+			if (highlightXml) {
+				style.highlightColorXml = highlightXml;
 			}
 		}
 		// Text fill variants (gradient/pattern on a:rPr)
@@ -135,21 +189,37 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const latin = xmlChild(runProperties, 'a:latin');
 		const eastAsian = xmlChild(runProperties, 'a:ea');
 		const complexScript = xmlChild(runProperties, 'a:cs');
-		const chosenTypeface =
-			xmlAttr(latin, 'typeface') ||
-			xmlAttr(eastAsian, 'typeface') ||
-			xmlAttr(complexScript, 'typeface');
+		const latinTypefaceToken = xmlAttr(latin, 'typeface');
+		const eaTypefaceToken = xmlAttr(eastAsian, 'typeface');
+		const csTypefaceToken = xmlAttr(complexScript, 'typeface');
+		const chosenTypeface = latinTypefaceToken || eaTypefaceToken || csTypefaceToken;
 		const resolvedTypeface = this.resolveThemeTypeface(chosenTypeface);
 		if (resolvedTypeface) {
 			style.fontFamily = resolvedTypeface;
 		}
 
-		// Store per-script font families for Unicode font fallback
-		const eaTypeface = this.resolveThemeTypeface(xmlAttr(eastAsian, 'typeface'));
+		// #84: Preserve the theme-font token (`+mj-lt` / `+mn-ea` / ...) on the
+		// typeface it was authored on, so the writer can re-emit the token rather
+		// than the flattened concrete face. `fontFamily` above still holds the
+		// resolved concrete face for rendering.
+		if (latinTypefaceToken && latinTypefaceToken.startsWith('+')) {
+			style.latinFontThemeToken = latinTypefaceToken;
+		}
+		if (eaTypefaceToken && eaTypefaceToken.startsWith('+')) {
+			style.eastAsiaFontThemeToken = eaTypefaceToken;
+		}
+		if (csTypefaceToken && csTypefaceToken.startsWith('+')) {
+			style.complexScriptFontThemeToken = csTypefaceToken;
+		}
+
+		// Store per-script font families for Unicode font fallback. Only set when
+		// the source actually authored an `a:ea` / `a:cs` typeface — otherwise the
+		// writer must not synthesize one (see #84).
+		const eaTypeface = this.resolveThemeTypeface(eaTypefaceToken);
 		if (eaTypeface) {
 			style.eastAsiaFont = eaTypeface;
 		}
-		const csTypeface = this.resolveThemeTypeface(xmlAttr(complexScript, 'typeface'));
+		const csTypeface = this.resolveThemeTypeface(csTypefaceToken);
 		if (csTypeface) {
 			style.complexScriptFont = csTypeface;
 		}
@@ -172,6 +242,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			.toLowerCase();
 		if (capAttr === 'all' || capAttr === 'small') {
 			style.textCaps = capAttr;
+		} else if (capAttr === 'none') {
+			// Explicit `<a:rPr cap="none"/>` suppression. Record it so the writer
+			// re-emits the explicit token instead of dropping it to inherit.
+			style.textCaps = 'none';
+			style.textCapsExplicitNone = true;
 		}
 
 		// Symbol font (a:sym)
@@ -246,6 +321,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Text run effect graph (a:effectDag on a:rPr) — ECMA-376
 		// §21.1.2.3.6 allows `effectDag` as an alternative to `effectLst`.
 		this.applyTextRunEffectDag(style, runProperties);
+
+		// Run-level `a:extLst` preserved verbatim so authored extensions survive
+		// a round-trip. Captured only for real runs (`includeDefaultAlignment` is
+		// true only on run/field/direct-text extraction, false for the
+		// defRPr / level / endParaRPr default-style passes) so a default style's
+		// extLst does not propagate onto every run of the paragraph.
+		if (includeDefaultAlignment) {
+			const runExtLst = runProperties['a:extLst'];
+			if (runExtLst && typeof runExtLst === 'object') {
+				style.runPropertiesExtLstXml = runExtLst as XmlObject;
+			}
+		}
 
 		return style;
 	}

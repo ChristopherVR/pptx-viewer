@@ -16,7 +16,7 @@ import {
 	cellPatternFillCss,
 	cellRunStyle,
 	cellStyleToCss,
-	getDiagonalBorders,
+	getCellDiagonalBorders,
 	getTableCellBandStyle,
 } from 'pptx-viewer-shared';
 import type { ComponentPublicInstance, CSSProperties } from 'vue';
@@ -137,7 +137,7 @@ interface RenderableCell {
 	textRuns: CellTextRun[] | null;
 	/** Plain-text fallback rendered when `textRuns` is null. */
 	text: string;
-	diagonals: ReturnType<typeof getDiagonalBorders>;
+	diagonals: ReturnType<typeof getCellDiagonalBorders>;
 }
 
 interface RenderableRow {
@@ -164,8 +164,11 @@ const rows = computed<RenderableRow[]>(() => {
 	const injected = resolveTableTheme(injectedTableTheme);
 	const colorScheme = props.colorScheme ?? injected?.colorScheme;
 	const tableStyleMap = props.tableStyleMap ?? injected?.tableStyleMap;
+	const fontScheme = injected?.fontScheme;
 	const styleCtx: TableStyleContext | undefined =
-		colorScheme || tableStyleMap ? { colorScheme, tableStyleMap } : undefined;
+		colorScheme || tableStyleMap || fontScheme
+			? { colorScheme, tableStyleMap, fontScheme }
+			: undefined;
 
 	return td.rows.map((row, rowIndex) => {
 		const cells: RenderableCell[] = [];
@@ -215,7 +218,12 @@ const rows = computed<RenderableRow[]>(() => {
 				patternFill,
 				textRuns,
 				text: cell.text || ' ',
-				diagonals: getDiagonalBorders(cell.style),
+				diagonals: getCellDiagonalBorders(
+					cell.style,
+					td,
+					{ rowIndex, cellIndex, rowCount: rCount, columnCount: cCount },
+					styleCtx,
+				),
 			});
 		});
 

@@ -87,6 +87,39 @@ describe('buildParagraphs', () => {
 		expect(paras[0].runs.map((r) => r.text)).toStrictEqual(['Item']);
 	});
 
+	it('projects per-paragraph line-height + space before/after from pPr', () => {
+		const paras = buildParagraphs(
+			textEl([
+				{
+					text: 'Prop spacing',
+					style: {},
+					paragraphProperties: {
+						lineSpacing: 1.5,
+						paragraphSpacingBefore: 12,
+						paragraphSpacingAfter: 6,
+					},
+				},
+				{ text: '\n', style: {} },
+				{
+					text: 'Exact spacing',
+					style: {},
+					paragraphProperties: { lineSpacingExactPt: 18 },
+				},
+			]),
+		);
+		expect(paras[0]).toMatchObject({ lineHeight: 1.5, spaceBeforePx: 12, spaceAfterPx: 6 });
+		// Exact points win over a proportional multiplier and emit a pt string.
+		expect(paras[1].lineHeight).toBe('18pt');
+		expect(paras[1].spaceBeforePx).toBeUndefined();
+	});
+
+	it('leaves spacing undefined when a paragraph has no pPr overrides', () => {
+		const paras = buildParagraphs(textEl([{ text: 'plain', style: {} }]));
+		expect(paras[0].lineHeight).toBeUndefined();
+		expect(paras[0].spaceBeforePx).toBeUndefined();
+		expect(paras[0].spaceAfterPx).toBeUndefined();
+	});
+
 	it('applies per-paragraph indent from paragraphIndents', () => {
 		const paras = buildParagraphs(
 			textEl([{ text: 'x', style: {} }], {

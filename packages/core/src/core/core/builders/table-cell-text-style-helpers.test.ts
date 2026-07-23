@@ -33,10 +33,10 @@ function makeContext(
 }
 
 // ---------------------------------------------------------------------------
-// applyCellAlignmentStyle — vertical alignment
+// applyCellAlignmentStyle - vertical alignment
 // ---------------------------------------------------------------------------
 
-describe('applyCellAlignmentStyle — vertical alignment', () => {
+describe('applyCellAlignmentStyle - vertical alignment', () => {
 	it('returns false for undefined cellProperties', () => {
 		const style: PptxTableCellStyle = {};
 		expect(applyCellAlignmentStyle(undefined, style)).toBeFalsy();
@@ -72,10 +72,10 @@ describe('applyCellAlignmentStyle — vertical alignment', () => {
 });
 
 // ---------------------------------------------------------------------------
-// applyCellAlignmentStyle — text direction
+// applyCellAlignmentStyle - text direction
 // ---------------------------------------------------------------------------
 
-describe('applyCellAlignmentStyle — text direction', () => {
+describe('applyCellAlignmentStyle - text direction', () => {
 	it("sets textDirection to vert for 'vert'", () => {
 		const style: PptxTableCellStyle = {};
 		applyCellAlignmentStyle({ '@_vert': 'vert' }, style);
@@ -120,10 +120,52 @@ describe('applyCellAlignmentStyle — text direction', () => {
 });
 
 // ---------------------------------------------------------------------------
-// applyCellTextFormat — paragraph alignment
+// applyCellAlignmentStyle - anchorCtr / horzOverflow
 // ---------------------------------------------------------------------------
 
-describe('applyCellTextFormat — paragraph alignment', () => {
+describe('applyCellAlignmentStyle - anchorCtr and horzOverflow', () => {
+	it("sets anchorCtr when '@_anchorCtr' is '1'", () => {
+		const style: PptxTableCellStyle = {};
+		expect(applyCellAlignmentStyle({ '@_anchorCtr': '1' }, style)).toBeTruthy();
+		expect(style.anchorCtr).toBeTruthy();
+	});
+
+	it("sets anchorCtr when '@_anchorCtr' is 'true'", () => {
+		const style: PptxTableCellStyle = {};
+		applyCellAlignmentStyle({ '@_anchorCtr': 'true' }, style);
+		expect(style.anchorCtr).toBeTruthy();
+	});
+
+	it("does not set anchorCtr when '@_anchorCtr' is '0'", () => {
+		const style: PptxTableCellStyle = {};
+		applyCellAlignmentStyle({ '@_anchorCtr': '0' }, style);
+		expect(style.anchorCtr).toBeUndefined();
+	});
+
+	it("captures horzOverflow 'clip'", () => {
+		const style: PptxTableCellStyle = {};
+		expect(applyCellAlignmentStyle({ '@_horzOverflow': 'clip' }, style)).toBeTruthy();
+		expect(style.horzOverflow).toBe('clip');
+	});
+
+	it("captures horzOverflow 'overflow'", () => {
+		const style: PptxTableCellStyle = {};
+		applyCellAlignmentStyle({ '@_horzOverflow': 'overflow' }, style);
+		expect(style.horzOverflow).toBe('overflow');
+	});
+
+	it('ignores an unrecognized horzOverflow value', () => {
+		const style: PptxTableCellStyle = {};
+		applyCellAlignmentStyle({ '@_horzOverflow': 'ellipsis' }, style);
+		expect(style.horzOverflow).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// applyCellTextFormat - paragraph alignment
+// ---------------------------------------------------------------------------
+
+describe('applyCellTextFormat - paragraph alignment', () => {
 	it("sets align to center for 'ctr'", () => {
 		const tableCell: XmlObject = {
 			'a:txBody': {
@@ -171,10 +213,10 @@ describe('applyCellTextFormat — paragraph alignment', () => {
 });
 
 // ---------------------------------------------------------------------------
-// applyCellTextFormat — run properties (bold, italic, font size, color)
+// applyCellTextFormat - run properties (bold, italic, font size, color)
 // ---------------------------------------------------------------------------
 
-describe('applyCellTextFormat — run properties', () => {
+describe('applyCellTextFormat - run properties', () => {
 	it('applies bold from run properties', () => {
 		const tableCell: XmlObject = {
 			'a:txBody': {
@@ -300,10 +342,10 @@ describe('applyCellTextFormat — run properties', () => {
 });
 
 // ---------------------------------------------------------------------------
-// applyCellTextFormat — text effects (shadow and glow)
+// applyCellTextFormat - text effects (shadow and glow)
 // ---------------------------------------------------------------------------
 
-describe('applyCellTextFormat — text effects', () => {
+describe('applyCellTextFormat - text effects', () => {
 	it('applies text shadow from effect list', () => {
 		const tableCell: XmlObject = {
 			'a:txBody': {

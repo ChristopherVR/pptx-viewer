@@ -122,6 +122,13 @@ export interface TextStyle {
 	kerning?: number;
 	/** Text highlight colour as hex string (`a:highlight`). */
 	highlightColor?: string;
+	/**
+	 * Raw colour-choice XML preserved from `a:highlight` so a themed highlight
+	 * (`a:schemeClr` / `a:sysClr` / `a:prstClr`) re-emits with its original
+	 * identity rather than being flattened to `<a:srgbClr/>` on save. On save we
+	 * re-emit verbatim when the resolved {@link highlightColor} still matches.
+	 */
+	highlightColorXml?: XmlObject;
 	/** Text-level gradient fill CSS string (from `a:rPr > a:gradFill`). */
 	textFillGradient?: string;
 	/** Structured gradient stops for text fill round-trip serialization. */
@@ -240,10 +247,36 @@ export interface TextStyle {
 	eastAsiaFont?: string;
 	/** Complex Script font family from `a:cs`. */
 	complexScriptFont?: string;
+	/**
+	 * Theme-font token (`+mj-lt` / `+mn-lt` / ...) authored on `a:latin`, when
+	 * present. {@link fontFamily} holds the resolved concrete face for
+	 * rendering; this preserves the token linkage so the writer re-emits the
+	 * token rather than the flattened face (see #84).
+	 */
+	latinFontThemeToken?: string;
+	/** Theme-font token authored on `a:ea` (e.g. `+mn-ea`), when present. */
+	eastAsiaFontThemeToken?: string;
+	/** Theme-font token authored on `a:cs` (e.g. `+mn-cs`), when present. */
+	complexScriptFontThemeToken?: string;
+	/**
+	 * Automatic per-script fallback face resolved from the theme's
+	 * `<a:font script="...">` overrides for a run whose text is dominantly
+	 * CJK / Arabic / Hebrew / Thai (see #83). A rendering hint only: it is not
+	 * serialised back on save, so it never disturbs the round-trip typefaces.
+	 */
+	scriptFallbackFont?: string;
 	/** Text language from `a:rPr/@lang`. */
 	language?: string;
 	/** Hyperlink mouse-over target from `a:hlinkMouseOver`. */
 	hyperlinkMouseOver?: string;
+	/**
+	 * Raw `a:snd` (embedded WAV audio) child of `a:hlinkClick`, preserved
+	 * verbatim (carries `@r:embed` + `@name`). Round-tripped on save so the
+	 * click sound survives instead of being dropped.
+	 */
+	hyperlinkSoundXml?: XmlObject;
+	/** Raw `a:snd` child of `a:hlinkMouseOver`, preserved verbatim for round-trip. */
+	hyperlinkMouseOverSoundXml?: XmlObject;
 	/** Hyperlink invalidUrl attribute (`a:hlinkClick/@invalidUrl`). */
 	hyperlinkInvalidUrl?: string;
 	/** Hyperlink target frame (`a:hlinkClick/@tgtFrame`). */
@@ -619,6 +652,15 @@ export interface TextSegment {
 	 * on the first segment of a paragraph.
 	 */
 	endParaRunProperties?: Record<string, unknown>;
+	/**
+	 * Per-paragraph properties (alignment, spacing, margins, indent, tab stops,
+	 * rtl) authored on this paragraph's own `a:pPr` (#69). Only meaningful on
+	 * the first segment of a paragraph. When present, the writer emits these
+	 * per paragraph instead of collapsing one shape-level pPr onto every
+	 * paragraph. Only the paragraph-geometry keys of {@link TextStyle} are
+	 * populated; unrelated fields fall back to the shape-level style.
+	 */
+	paragraphProperties?: TextStyle;
 
 	// ── Ruby text (phonetic guides) ──
 

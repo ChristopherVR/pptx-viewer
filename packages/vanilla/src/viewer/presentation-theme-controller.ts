@@ -33,6 +33,7 @@ export async function applyPresentationThemePreset(options: {
 	options.store.set({
 		templateElementsBySlideId: partition.templateElementsBySlideId,
 		colorScheme: preset.colorScheme,
+		fontScheme: preset.fontScheme,
 	});
 	return true;
 }

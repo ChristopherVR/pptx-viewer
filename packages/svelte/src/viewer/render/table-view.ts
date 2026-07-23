@@ -11,7 +11,7 @@ import {
 	cellRunStyle,
 	cellStyleToCss,
 	DEFAULT_TEXT_COLOR,
-	getDiagonalBorders,
+	getCellDiagonalBorders,
 	getTableCellBandStyle,
 } from 'pptx-viewer-shared';
 
@@ -146,7 +146,12 @@ function buildCellView(
 		colSpan: cell.gridSpan && cell.gridSpan > 1 ? cell.gridSpan : undefined,
 		rowSpan: cell.rowSpan && cell.rowSpan > 1 ? cell.rowSpan : undefined,
 		style: styleToString({ ...CELL_BASE_STYLE, ...style }),
-		diagonals: getDiagonalBorders(cell.style),
+		diagonals: getCellDiagonalBorders(
+			cell.style,
+			tableData,
+			{ rowIndex, cellIndex, rowCount, columnCount },
+			context,
+		),
 		runs: buildRunViews(cell),
 		text: cell.text || ' ',
 	};

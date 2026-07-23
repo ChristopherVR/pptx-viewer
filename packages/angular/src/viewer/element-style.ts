@@ -1,10 +1,11 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
 import {
 	DEFAULT_STROKE_COLOR,
 	DEFAULT_TEXT_COLOR,
 	getComputedEffectStyle,
+	getComputedFillStyle,
 	getContainerStyle as sharedGetContainerStyle,
 	getImageSrc as sharedGetImageSrc,
 	isVerticalTextDirection,
@@ -19,6 +20,7 @@ import { buildCssGradientFromShapeStyle } from './color-gradient';
 import { buildPatternFillCss } from './color-patterns';
 import { buildDuotoneFilter } from './duotone-filter';
 import type { DuotoneFilterDef } from './duotone-filter';
+import { getSoftEdgeFilterDef, resolveShapeFilterCss } from './element-effect-defs';
 import { getResolvedShapeClipPath } from './shape-geometry';
 
 /**
@@ -63,7 +65,7 @@ export function getContainerStyle(el: PptxElement, zIndex: number): StyleMap {
  * Fill / stroke / corner-radius for shape-like elements. Returns an empty
  * object when the element carries no shape styling.
  */
-export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
+export function getShapeFillStrokeStyle(el: PptxElement, parentGroupFill?: ShapeStyle): StyleMap {
 	if (!hasShapeProperties(el)) {
 		return {};
 	}
@@ -71,6 +73,13 @@ export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
 	const style: StyleMap = {};
 
 	if (ss) {
+		// `a:grpFill` child (fillMode 'group'): inherit the enclosing group's
+		// resolved fill (threaded down by the group render branch). The shared
+		// resolver paints the parent group's fill in this child's own box.
+		const inheritedGroupFill =
+			ss.fillMode === 'group' && parentGroupFill
+				? getComputedFillStyle(el, parentGroupFill)
+				: undefined;
 		// Fill resolution order mirrors the React `getShapeVisualStyle`:
 		// image → pattern (SVG preset) → gradient (structured builder, with the
 		// parser's prebuilt CSS string as fallback) → solid colour.
@@ -81,7 +90,20 @@ export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
 				? (buildCssGradientFromShapeStyle(ss) ?? ss.fillGradient)
 				: ss.fillGradient;
 
-		if (imageFillUrl) {
+		if (inheritedGroupFill) {
+			if (inheritedGroupFill.backgroundColor !== undefined) {
+				style['background-color'] = inheritedGroupFill.backgroundColor;
+			}
+			if (inheritedGroupFill.backgroundImage !== undefined) {
+				style['background-image'] = inheritedGroupFill.backgroundImage;
+			}
+			if (inheritedGroupFill.backgroundRepeat !== undefined) {
+				style['background-repeat'] = inheritedGroupFill.backgroundRepeat;
+			}
+			if (inheritedGroupFill.backgroundSize !== undefined) {
+				style['background-size'] = inheritedGroupFill.backgroundSize;
+			}
+		} else if (imageFillUrl) {
 			style['background-color'] = 'transparent';
 			style['background-image'] = `url(${imageFillUrl})`;
 			style['background-repeat'] = ss.fillImageMode === 'tile' ? 'repeat' : 'no-repeat';
@@ -117,23 +139,26 @@ export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
 	// <filter> def is actually rendered (i.e. the element has a duotone effect;
 	// the renderer injects the def); otherwise the dangling ref is stripped.
 	const duotone = buildDuotoneFilter(el);
+	// The soft-edge feather `<filter>` def is injected by the renderer, so its
+	// `url(#soft-edge-<id>)` reference must survive the dangling-ref strip.
+	const softEdge = getSoftEdgeFilterDef(el);
 	const fx = getComputedEffectStyle(el);
 	if (fx.boxShadow) {
 		style['box-shadow'] = fx.boxShadow;
 	}
-	if (fx.filter) {
-		const filter = duotone ? fx.filter : fx.filter.replace(/\s*url\(#[^)]*\)/gu, '').trim();
-		if (filter) {
-			style['filter'] = filter;
-		}
-	} else if (duotone) {
-		style['filter'] = duotone.cssFilter;
+	const filterCss = resolveShapeFilterCss(fx.filter, duotone, softEdge);
+	if (filterCss) {
+		style['filter'] = filterCss;
 	}
 	if (fx.webkitBoxReflect) {
 		style['-webkit-box-reflect'] = fx.webkitBoxReflect;
 	}
 	if (fx.mixBlendMode) {
 		style['mix-blend-mode'] = fx.mixBlendMode;
+	}
+	// Blur `@grow`: let the halo bleed past the element box instead of clipping.
+	if (fx.overflowVisible) {
+		style['overflow'] = 'visible';
 	}
 	if (fx.opacity !== undefined) {
 		const elementOpacity = typeof el.opacity === 'number' ? el.opacity : 1;

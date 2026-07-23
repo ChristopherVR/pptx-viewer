@@ -35,9 +35,16 @@ export function renderTextElementBody(options: RenderBodyOptions): React.ReactNo
 		hasTextProperties(el) ? el.textStyle?.textWarpPreset : undefined,
 	);
 	const scene3dStyle = hasTextProperties(el) ? buildTextBody3DSceneStyle(el.textStyle) : undefined;
+	// `a:bodyPr/@rot` rotates the whole text body (degrees, clockwise positive).
+	const bodyRotation = hasTextProperties(el) ? el.textStyle?.textBodyRotation : undefined;
+	const rotationTransform =
+		typeof bodyRotation === 'number' && Number.isFinite(bodyRotation) && bodyRotation !== 0
+			? `rotate(${bodyRotation}deg)`
+			: undefined;
 	const composedTransform =
-		[getTextCompensationTransform(el), scene3dStyle?.transform].filter(Boolean).join(' ') ||
-		undefined;
+		[rotationTransform, getTextCompensationTransform(el), scene3dStyle?.transform]
+			.filter(Boolean)
+			.join(' ') || undefined;
 	const transformStyle: React.CSSProperties = {
 		transform: composedTransform,
 		transformOrigin: 'center',

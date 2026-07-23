@@ -1082,28 +1082,44 @@ const mathNotEqual: PresetShapeGeometryDefinition = {
 // ---------------------------------------------------------------------------
 
 // heart — two cubic-bezier humps meeting at a V. Fixed proportions.
+// The ECMA reference authors the hump control points as literal coordinates in
+// the native 21600 grid, but the anchors here use guide tokens (hc / hd4 / b)
+// that already resolve into element space (w x h). Path-command coordinates are
+// looked up verbatim (no per-path w/h scaling), so the raw 21600-space literals
+// would overflow massively (e.g. x=23730 on a 200px shape). Scale each control
+// point into element space via guides so the humps line up with the anchors.
 const heart: PresetShapeGeometryDefinition = {
 	name: 'heart',
 	rect: { l: 'wd4', t: 'hd4', r: '3wd4', b: '3hd4' },
+	gdLst: [
+		gd('c1x1', '*/ w 12471 21600'),
+		gd('c1y1', '*/ h -1305 21600'),
+		gd('c1x2', '*/ w 23730 21600'),
+		gd('c1y2', '*/ h 5575 21600'),
+		gd('c2x1', '*/ w -2130 21600'),
+		gd('c2y1', '*/ h 5575 21600'),
+		gd('c2x2', '*/ w 9129 21600'),
+		gd('c2y2', '*/ h -1305 21600'),
+	],
 	pathLst: [
 		{
 			commands: [
 				{ kind: 'moveTo', x: 'hc', y: 'hd4' },
 				{
 					kind: 'cubicBezTo',
-					x1: '12471',
-					y1: '-1305',
-					x2: '23730',
-					y2: '5575',
+					x1: 'c1x1',
+					y1: 'c1y1',
+					x2: 'c1x2',
+					y2: 'c1y2',
 					x3: 'hc',
 					y3: 'b',
 				},
 				{
 					kind: 'cubicBezTo',
-					x1: '-2130',
-					y1: '5575',
-					x2: '9129',
-					y2: '-1305',
+					x1: 'c2x1',
+					y1: 'c2y1',
+					x2: 'c2x2',
+					y2: 'c2y2',
 					x3: 'hc',
 					y3: 'hd4',
 				},

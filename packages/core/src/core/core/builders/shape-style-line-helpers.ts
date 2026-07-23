@@ -32,10 +32,12 @@ export function applyLineProperties(
 			}
 			const hiddenLineFill = hiddenLineProps['a:solidFill'] as XmlObject | undefined;
 			if (hiddenLineFill) {
+				style.strokeFillMode = 'solid';
 				style.strokeColor = context.parseColor(hiddenLineFill);
 				style.strokeOpacity = context.extractColorOpacity(hiddenLineFill);
 			}
 		} else {
+			style.strokeFillMode = 'none';
 			style.strokeWidth = 0;
 			style.strokeColor = 'transparent';
 		}
@@ -61,6 +63,7 @@ function applyStrokeColor(
 	context: ShapeLineStyleContext,
 ): void {
 	if (lineNode['a:solidFill']) {
+		style.strokeFillMode = 'solid';
 		const lineFill = lineNode['a:solidFill'] as XmlObject;
 		style.strokeColor = context.parseColor(lineFill);
 		style.strokeOpacity = context.extractColorOpacity(lineFill);
@@ -69,10 +72,20 @@ function applyStrokeColor(
 			style.strokeColorXml = strokeColorXml;
 		}
 	} else if (lineNode['a:gradFill']) {
-		style.strokeColor = context.extractGradientFillColor(lineNode['a:gradFill'] as XmlObject);
-		style.strokeOpacity = context.extractGradientOpacity(lineNode['a:gradFill'] as XmlObject);
+		// Preserve the whole gradient node so save can re-emit a single
+		// `a:gradFill` outline verbatim (issue #87). `strokeColor` keeps an
+		// averaged colour so solid-only stroke renderers still paint something.
+		style.strokeFillMode = 'gradient';
+		const lineGradFill = lineNode['a:gradFill'] as XmlObject;
+		style.strokeGradientXml = lineGradFill;
+		style.strokeColor = context.extractGradientFillColor(lineGradFill);
+		style.strokeOpacity = context.extractGradientOpacity(lineGradFill);
 	} else if (lineNode['a:pattFill']) {
+		// Preserve the whole pattern node so save re-emits a single `a:pattFill`
+		// outline verbatim rather than downgrading it to a solid fill.
+		style.strokeFillMode = 'pattern';
 		const linePatternFill = lineNode['a:pattFill'] as XmlObject;
+		style.strokePatternXml = linePatternFill;
 		style.strokeColor =
 			context.parseColor(linePatternFill['a:fgClr'] as XmlObject | undefined) ||
 			context.parseColor(linePatternFill['a:bgClr'] as XmlObject | undefined);

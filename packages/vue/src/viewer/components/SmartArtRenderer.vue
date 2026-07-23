@@ -324,6 +324,9 @@ const fallbackLayout = computed<ComputedLayout | undefined>(() => {
 		props.element.id,
 		data?.resolvedLayoutType,
 		data?.layout,
+		undefined,
+		data?.layoutDefinition,
+		data?.presLayoutVars,
 	);
 });
 

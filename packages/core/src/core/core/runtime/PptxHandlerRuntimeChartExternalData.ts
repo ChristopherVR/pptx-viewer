@@ -10,9 +10,14 @@
  */
 
 import { XmlObject } from '../../types';
-import type { PptxExternalData, PptxEmbeddedWorkbookData } from '../../types';
+import type { PptxChartUserShape, PptxExternalData, PptxEmbeddedWorkbookData } from '../../types';
+import { parseChartUserShapesDrawing } from '../../utils/chart-user-shapes-parser';
 import { parseEmbeddedXlsx } from '../../utils/chart-xlsx-parser';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeChartParsingHelpers';
+
+/** Relationship type URI for a chart's user-shapes drawing part. */
+const CHART_USER_SHAPES_REL_TYPE =
+	'http://schemas.openxmlformats.org/officeDocument/2006/relationships/chartUserShapes';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -122,6 +127,56 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		try {
 			return await parseEmbeddedXlsx(externalData.embeddedWorkbookData);
+		} catch {
+			return undefined;
+		}
+	}
+
+	/**
+	 * Resolve and parse the chart's `c:userShapes` drawing overlay.
+	 *
+	 * The `c:userShapes/@r:id` references a separate drawing part
+	 * (`ppt/drawings/drawingN.xml`) via the chart part's `.rels`. This loads
+	 * that part and parses its `cdr:relSizeAnchor` / `cdr:absSizeAnchor` shapes
+	 * into a renderable {@link PptxChartUserShape} model. Returns `undefined`
+	 * when there is no reference, the target cannot be resolved, or the drawing
+	 * contains no shapes.
+	 */
+	protected async parseChartUserShapes(
+		chartSpace: XmlObject | undefined,
+		chartPartPath: string,
+	): Promise<PptxChartUserShape[] | undefined> {
+		if (!chartSpace) {
+			return undefined;
+		}
+		const userShapesNode = this.xmlLookupService.getChildByLocalName(chartSpace, 'userShapes');
+		if (!userShapesNode) {
+			return undefined;
+		}
+		const relId = String(userShapesNode['@_r:id'] || userShapesNode['@_id'] || '').trim();
+
+		const rels = await this.readChartRels(chartPartPath);
+		// Prefer the explicit r:id; fall back to the first chartUserShapes rel.
+		const rel =
+			(relId.length > 0 ? rels.find((r) => r.id === relId) : undefined) ??
+			rels.find((r) => r.type === CHART_USER_SHAPES_REL_TYPE);
+		if (!rel?.target) {
+			return undefined;
+		}
+
+		try {
+			const drawingPath = this.resolveImagePath(chartPartPath, rel.target);
+			if (drawingPath.length === 0) {
+				return undefined;
+			}
+			const drawingXml = await this.zip.file(drawingPath)?.async('string');
+			if (!drawingXml) {
+				return undefined;
+			}
+			const drawingRoot = this.parser.parse(drawingXml) as XmlObject;
+			return parseChartUserShapesDrawing(drawingRoot, this.xmlLookupService, {
+				parseColor: (node, placeholder) => this.parseColor(node, placeholder),
+			});
 		} catch {
 			return undefined;
 		}

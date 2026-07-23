@@ -285,4 +285,16 @@ export interface PptxAppProperties {
 	template?: string;
 	/** Hyperlink base URL. */
 	hyperlinkBase?: string;
+	/** Document security bitmask (`<DocSecurity>`). */
+	docSecurity?: number;
+	/** Number of multimedia clips (`<MMClips>`). */
+	mmClips?: number;
+	/** Whether thumbnail images were scaled to fit (`<ScaleCrop>`). */
+	scaleCrop?: boolean;
+	/** Whether hyperlinks are current (`<LinksUpToDate>`). */
+	linksUpToDate?: boolean;
+	/** Whether the document is shared (`<SharedDoc>`). */
+	sharedDoc?: boolean;
+	/** Whether hyperlinks changed since last save (`<HyperlinksChanged>`). */
+	hyperlinksChanged?: boolean;
 }

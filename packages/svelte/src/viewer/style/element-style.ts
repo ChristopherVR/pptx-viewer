@@ -1,4 +1,4 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { getRoundRectRadiusPx, getShapeType, hasShapeProperties } from 'pptx-viewer-core';
 import type { CssStyleMap } from 'pptx-viewer-shared';
 import {
@@ -33,7 +33,10 @@ export function getContainerStyle(el: PptxElement, zIndex: number): CssStyleMap 
  * binding's `getShapeFillStrokeStyle` (itself a port of React's
  * `getShapeVisualStyle` priority cascade).
  */
-export function getShapeFillStrokeStyle(el: PptxElement): CssStyleMap {
+export function getShapeFillStrokeStyle(
+	el: PptxElement,
+	parentGroupFill?: ShapeStyle,
+): CssStyleMap {
 	if (!hasShapeProperties(el)) {
 		return {};
 	}
@@ -41,8 +44,9 @@ export function getShapeFillStrokeStyle(el: PptxElement): CssStyleMap {
 	const style: CssStyleMap = {};
 
 	if (ss) {
-		// Fill: image -> structured gradient -> preset pattern -> solid.
-		const fill = getComputedFillStyle(el);
+		// Fill: image -> structured gradient -> preset pattern -> solid. A child
+		// painted with `a:grpFill` (fillMode 'group') inherits `parentGroupFill`.
+		const fill = getComputedFillStyle(el, parentGroupFill);
 		if (fill) {
 			if (fill.backgroundColor !== undefined) {
 				style.backgroundColor = fill.backgroundColor;
@@ -86,6 +90,11 @@ export function getShapeFillStrokeStyle(el: PptxElement): CssStyleMap {
 		// merged over the container style, so it would otherwise clobber it).
 		const elementOpacity = typeof el.opacity === 'number' ? el.opacity : 1;
 		style.opacity = elementOpacity * fx.opacity;
+	}
+	if (fx.overflowVisible) {
+		// Blur `@grow`: let the halo bleed past the element box instead of
+		// clipping it at the shape bounds.
+		style.overflow = 'visible';
 	}
 
 	// Shape 3D (scene3d camera + shape3d extrusion/bevel/material).
@@ -143,9 +152,13 @@ export function getShapeFillStrokeStyle(el: PptxElement): CssStyleMap {
  * rotation/flip transform with any 3D transform from the shape style instead
  * of letting the spread clobber it. Mirrors Vue's `shapeDivStyle`.
  */
-export function getShapeBoxStyle(el: PptxElement, zIndex: number): CssStyleMap {
+export function getShapeBoxStyle(
+	el: PptxElement,
+	zIndex: number,
+	parentGroupFill?: ShapeStyle,
+): CssStyleMap {
 	const container = getContainerStyle(el, zIndex);
-	const shape = getShapeFillStrokeStyle(el);
+	const shape = getShapeFillStrokeStyle(el, parentGroupFill);
 	const merged: CssStyleMap = { ...container, ...shape };
 	if (container.transform && shape.transform) {
 		merged.transform = `${String(container.transform)} ${String(shape.transform)}`;

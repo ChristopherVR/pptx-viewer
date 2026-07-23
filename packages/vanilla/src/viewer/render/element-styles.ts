@@ -146,6 +146,10 @@ export function getShapeFillStrokeStyle(el: PptxElement): CssStyleMap {
 		const elementOpacity = typeof el.opacity === 'number' ? el.opacity : 1;
 		style['opacity'] = elementOpacity * fx.opacity;
 	}
+	if (fx.overflowVisible) {
+		// A blur `@grow` halo must not be clipped at the element box.
+		style['overflow'] = 'visible';
+	}
 
 	// Shape 3D (scene3d camera + shape3d extrusion/bevel/material).
 	merge3dStyle(style, getComputed3dStyle(el));

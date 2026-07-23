@@ -565,7 +565,7 @@ describe('getTextLayoutStyle', () => {
 		expect(getTextLayoutStyle(bot).justifyContent).toBe('flex-end');
 	});
 
-	it('should include paragraph spacing in vertical padding', () => {
+	it('should use body inset only for vertical padding (paragraph spacing is applied per-paragraph)', () => {
 		const el = makeTextElement({
 			textStyle: {
 				bodyInsetTop: 5,
@@ -576,8 +576,10 @@ describe('getTextLayoutStyle', () => {
 		});
 		const style = getTextLayoutStyle(el);
 
-		expect(style.paddingTop).toBe(8); // 5 + 3
-		expect(style.paddingBottom).toBe(9); // 5 + 4
+		// Paragraph spacing (spcBef/spcAft) now renders as per-paragraph margins,
+		// not folded into the body padding, so padding is the body inset alone.
+		expect(style.paddingTop).toBe(5);
+		expect(style.paddingBottom).toBe(5);
 	});
 
 	it('should set writingMode for vertical text', () => {

@@ -9,11 +9,17 @@
  *
  * @module chart-cartesian-plots
  */
-import type { PptxChartData } from 'pptx-viewer-core';
+import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
+import { resolveBlankDisplay, visibleRuns } from './chart-blank-display';
+import { resolveDataPointFill } from './chart-datapoint-style';
+import { smoothLinePath } from './chart-line-path';
+import { buildMarkerPrimitive } from './chart-marker-shape';
 import type {
+	ChartPartRef,
 	PlotLayout,
 	SvgCircle,
+	SvgPath,
 	SvgPolyline,
 	SvgPrimitive,
 	SvgText,
@@ -33,6 +39,38 @@ import {
 export interface SeriesPlotResult {
 	primitives: SvgPrimitive[];
 	dataLabels: SvgText[];
+}
+
+/**
+ * Build the marker for a data point (honouring `marker.symbol`/`size`) and push
+ * it, unless the symbol is `none`. Shared by the line / area / scatter builders.
+ */
+function pushMarker(
+	out: SvgPrimitive[],
+	series: PptxChartSeries,
+	cx: number,
+	cy: number,
+	fill: string,
+	defaultRadius: number,
+	part: ChartPartRef,
+	opacity?: number,
+): void {
+	const m = buildMarkerPrimitive({
+		symbol: series.marker?.symbol,
+		size: series.marker?.size,
+		cx,
+		cy,
+		fill,
+		defaultRadius,
+		part,
+	});
+	if (!m) {
+		return;
+	}
+	if (opacity !== undefined) {
+		m.opacity = opacity;
+	}
+	out.push(m);
 }
 
 /** Build line-chart primitives, honouring a secondary value range per series. */
@@ -56,7 +94,15 @@ export function buildLines(
 			continue;
 		}
 		const activeRange = secondaryIdx.has(si) && secondaryRange ? secondaryRange : primaryRange;
-		const displayValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0);
+		const rawValues = sourceIndices.map((sourceIndex) => series.values[sourceIndex] ?? 0);
+		const displayBlanks = sourceIndices.map((sourceIndex) => series.blanks?.[sourceIndex] ?? false);
+		// Honour c:dispBlanksAs: gap breaks the line at blanks, span interpolates,
+		// zero/unset keep the placeholder 0 (existing behaviour).
+		const { values: displayValues, visible } = resolveBlankDisplay(
+			rawValues,
+			displayBlanks,
+			chartData.chartChrome?.dispBlanksAs,
+		);
 		const pts = computeLinePoints(displayValues, catCount, layout, activeRange).map(
 			(point, index) => ({
 				...point,
@@ -64,29 +110,65 @@ export function buildLines(
 			}),
 		);
 		const c = seriesColor(series, si, chartData.colorPalette);
-		primitives.push({
-			kind: 'polyline',
-			points: linePointsToSvgString(pts),
-			stroke: c,
-			strokeWidth: 2.4,
-			fill: 'none',
-			part: { role: 'series', seriesIndex: si },
-		} satisfies SvgPolyline);
+		// c:smooth draws a bezier path through the points; otherwise a polyline.
+		const seriesPart: ChartPartRef = { role: 'series', seriesIndex: si };
+		const allVisible = visible.every(Boolean);
+		if (allVisible) {
+			primitives.push(
+				series.smooth
+					? ({
+							kind: 'path',
+							d: smoothLinePath(pts),
+							stroke: c,
+							strokeWidth: 2.4,
+							fill: 'none',
+							part: seriesPart,
+						} satisfies SvgPath)
+					: ({
+							kind: 'polyline',
+							points: linePointsToSvgString(pts),
+							stroke: c,
+							strokeWidth: 2.4,
+							fill: 'none',
+							part: seriesPart,
+						} satisfies SvgPolyline),
+			);
+		} else {
+			// gap mode: draw one polyline per contiguous run of visible points.
+			for (const run of visibleRuns(visible)) {
+				if (run.length < 2) {
+					continue;
+				}
+				primitives.push({
+					kind: 'polyline',
+					points: linePointsToSvgString(run.map((i) => pts[i])),
+					stroke: c,
+					strokeWidth: 2.4,
+					fill: 'none',
+					part: seriesPart,
+				} satisfies SvgPolyline);
+			}
+		}
 		pts.forEach((pt, displayIndex) => {
-			const sourceIndex = sourceIndices[displayIndex] ?? displayIndex;
-			primitives.push({
-				kind: 'circle',
-				cx: pt.x,
-				cy: pt.y,
-				r: 2.5,
-				fill: c,
-				part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
-			} satisfies SvgCircle);
+			if (!visible[displayIndex]) {
+				return;
+			}
+			const idx = sourceIndices[displayIndex] ?? displayIndex;
+			const part: ChartPartRef = { role: 'dataPoint', seriesIndex: si, pointIndex: idx };
+			pushMarker(
+				primitives,
+				series,
+				pt.x,
+				pt.y,
+				resolveDataPointFill(series, idx, c) ?? c,
+				2.5,
+				part,
+			);
 		});
 		if (showLabels) {
 			displayValues.forEach((val, displayIndex) => {
 				const pt = pts[displayIndex];
-				if (!pt) {
+				if (!pt || !visible[displayIndex]) {
 					return;
 				}
 				dataLabels.push({
@@ -152,18 +234,17 @@ export function buildAreas(
 			part: { role: 'series', seriesIndex: si },
 		} satisfies SvgPolyline);
 		pts.forEach((pt, displayIndex) => {
-			primitives.push({
-				kind: 'circle',
-				cx: pt.x,
-				cy: pt.y,
-				r: 2,
-				fill: c,
-				part: {
-					role: 'dataPoint',
-					seriesIndex: si,
-					pointIndex: sourceIndices[displayIndex] ?? displayIndex,
-				},
-			} satisfies SvgCircle);
+			const idx = sourceIndices[displayIndex] ?? displayIndex;
+			const part: ChartPartRef = { role: 'dataPoint', seriesIndex: si, pointIndex: idx };
+			pushMarker(
+				primitives,
+				series,
+				pt.x,
+				pt.y,
+				resolveDataPointFill(series, idx, c) ?? c,
+				2,
+				part,
+			);
 		});
 		if (showLabels) {
 			displayValues.forEach((val, displayIndex) => {
@@ -204,15 +285,17 @@ export function buildScatter(
 		const c = seriesColor(series, si, chartData.colorPalette);
 		const dots = computeScatterDots(series.values, maxXIndex, layout, range, xValues);
 		dots.forEach((dot, vi) => {
-			primitives.push({
-				kind: 'circle',
-				cx: dot.cx,
-				cy: dot.cy,
-				r: 4,
-				fill: c,
-				opacity: 0.85,
-				part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
-			} satisfies SvgCircle);
+			const part: ChartPartRef = { role: 'dataPoint', seriesIndex: si, pointIndex: vi };
+			pushMarker(
+				primitives,
+				series,
+				dot.cx,
+				dot.cy,
+				resolveDataPointFill(series, vi, c) ?? c,
+				4,
+				part,
+				0.85,
+			);
 		});
 		if (showLabels) {
 			series.values.forEach((val, vi) => {
@@ -263,7 +346,7 @@ export function buildBubbles(
 				cx: dot.cx,
 				cy: dot.cy,
 				r,
-				fill: c,
+				fill: resolveDataPointFill(series, vi, c) ?? c,
 				opacity: 0.6,
 				part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
 			} satisfies SvgCircle);

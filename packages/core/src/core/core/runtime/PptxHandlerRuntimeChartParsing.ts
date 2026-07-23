@@ -23,6 +23,7 @@ import {
 	parseLineStyle,
 } from '../../utils/chart-advanced-parser';
 import { parseChartAxes, parseChart3DSurfaces } from '../../utils/chart-axis-parser';
+import { extractSeriesNumbersWithBlanks } from '../../utils/chart-blank-values';
 import { parseBubbleChartOptions } from '../../utils/chart-bubble-options';
 import { chartContainerLocalNameToType } from '../../utils/chart-container-type-map';
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
@@ -156,6 +157,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
+		// Parse plot-level rendering options carried on the chart-type container:
+		// varyColors (per-point colouring), firstSliceAng/holeSize (pie/doughnut
+		// geometry), gapWidth/overlap (bar spacing). These are read-only for
+		// rendering; save round-trips them via the preserved chart XML.
+		const varyColors = this.parseChartBoolVal(seriesContainer, 'varyColors');
+		const firstSliceAngle = this.parseChartNumberVal(seriesContainer, 'firstSliceAng');
+		const doughnutHoleSize = this.parseChartNumberVal(seriesContainer, 'holeSize');
+		const barGapWidth = this.parseChartNumberVal(seriesContainer, 'gapWidth');
+		const barOverlap = this.parseChartNumberVal(seriesContainer, 'overlap');
+
 		// Store the chart part path for round-trip save
 		const chartPartPath = chartPart.partPath;
 
@@ -241,6 +252,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.compatibilityService.getXmlLocalName(key),
 		);
 		const userShapesXml = this.parseUserShapesXml(chartSpace);
+		const userShapes = await this.parseChartUserShapes(chartSpace, chartPart.partPath);
 		const pivotFormats = parseChartPivotFormats(chartRoot, (key) =>
 			this.compatibilityService.getXmlLocalName(key),
 		);
@@ -260,6 +272,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			title: titleTextValues[0],
 			style: chartStyle,
 			grouping,
+			...(varyColors !== undefined ? { varyColors } : {}),
+			...(firstSliceAngle !== undefined ? { firstSliceAngle } : {}),
+			...(doughnutHoleSize !== undefined ? { doughnutHoleSize } : {}),
+			...(barGapWidth !== undefined ? { barGapWidth } : {}),
+			...(barOverlap !== undefined ? { barOverlap } : {}),
 			chartPartPath,
 			chartRelationshipId,
 			...(dataTable ? { dataTable } : {}),
@@ -289,6 +306,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(chartChrome ? { chartChrome } : {}),
 			...(layouts ? { layouts } : {}),
 			...(userShapesXml ? { userShapesXml } : {}),
+			...(userShapes ? { userShapes } : {}),
 			...(pivotFormats ? { pivotFormats } : {}),
 			...(clrMapOvr ? { clrMapOvr } : {}),
 			...(printSettings ? { printSettings } : {}),
@@ -358,6 +376,43 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Read a numeric `@val` from a named child of a chart-type container.
+	 * Returns `undefined` when the child or its `@val` is absent/non-finite.
+	 */
+	private parseChartNumberVal(
+		container: XmlObject | undefined,
+		localName: string,
+	): number | undefined {
+		const node = this.xmlLookupService.getChildByLocalName(container, localName);
+		const raw = node?.['@_val'];
+		if (raw === undefined || raw === null || raw === '') {
+			return undefined;
+		}
+		const num = Number.parseFloat(String(raw));
+		return Number.isFinite(num) ? num : undefined;
+	}
+
+	/**
+	 * Read a boolean `@val` from a named child of a chart-type container.
+	 * A present element with no `@val` follows the OOXML `CT_Boolean` default
+	 * of `true`; `undefined` when the child is absent.
+	 */
+	private parseChartBoolVal(
+		container: XmlObject | undefined,
+		localName: string,
+	): boolean | undefined {
+		const node = this.xmlLookupService.getChildByLocalName(container, localName);
+		if (!node) {
+			return undefined;
+		}
+		const raw = node['@_val'];
+		if (raw === undefined || raw === null || raw === '') {
+			return true;
+		}
+		return !(raw === '0' || raw === 'false');
+	}
+
+	/**
 	 * Build the series array from raw OOXML `c:ser` nodes.
 	 *
 	 * For each series, extracts the name, numeric values, fill color,
@@ -378,13 +433,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	): PptxChartData['series'] {
 		return seriesList.map((seriesNode, seriesIndex) => {
 			const seriesName = this.extractChartSeriesName(seriesNode);
-			const values = this.extractChartPointValues(
+			const valNode =
 				this.xmlLookupService.getChildByLocalName(seriesNode, 'val') ||
-					this.xmlLookupService.getChildByLocalName(seriesNode, 'yVal'),
-				true,
-			)
-				.map((value) => Number.parseFloat(value))
-				.filter((value) => Number.isFinite(value));
+				this.xmlLookupService.getChildByLocalName(seriesNode, 'yVal');
+			// Expand the numeric cache to full length, keeping blank (absent/empty
+			// c:pt) markers so c:dispBlanksAs can be honoured at render. When the
+			// series has no blanks, fall back to the dense extraction so existing
+			// behaviour is byte-identical.
+			const expanded = extractSeriesNumbersWithBlanks(valNode, this.xmlLookupService);
+			const hasBlanks = expanded.some((value) => value === null);
+			const values = hasBlanks
+				? expanded.map((value) => value ?? 0)
+				: this.extractChartPointValues(valNode, true)
+						.map((value) => Number.parseFloat(value))
+						.filter((value) => Number.isFinite(value));
+			const blanks = hasBlanks ? expanded.map((value) => value === null) : undefined;
 
 			const seriesShapeProperties = this.xmlLookupService.getChildByLocalName(seriesNode, 'spPr');
 			const seriesColor = this.parseColor(
@@ -423,9 +486,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Parse series-level explosion (c:explosion for pie)
 			const explosion = parseSeriesExplosion(seriesNode, this.xmlLookupService);
 
+			// Parse bezier smoothing flag (c:smooth for line/scatter series).
+			const smoothNode = this.xmlLookupService.getChildByLocalName(seriesNode, 'smooth');
+			const smooth = smoothNode
+				? !(smoothNode['@_val'] === '0' || smoothNode['@_val'] === 'false')
+				: undefined;
+
+			// Parse series-level c:invertIfNegative (bar/column): negative points draw
+			// with an inverted fill. A per-point c:dPt override takes precedence.
+			const invertNode = this.xmlLookupService.getChildByLocalName(seriesNode, 'invertIfNegative');
+			const invertIfNegative = invertNode
+				? !(invertNode['@_val'] === '0' || invertNode['@_val'] === 'false')
+				: undefined;
+
 			return {
 				name: seriesName.trim().length > 0 ? seriesName : `Series ${seriesIndex + 1}`,
 				values: fallbackValues,
+				...(blanks ? { blanks } : {}),
 				color: seriesColor,
 				...(trendlines.length > 0 ? { trendlines } : {}),
 				...(errBars.length > 0 ? { errBars } : {}),
@@ -433,6 +510,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(seriesMarker ? { marker: seriesMarker } : {}),
 				...(dataLabels.length > 0 ? { dataLabels } : {}),
 				...(explosion !== undefined ? { explosion } : {}),
+				...(invertIfNegative !== undefined ? { invertIfNegative } : {}),
+				...(smooth !== undefined ? { smooth } : {}),
 				...(axisId !== undefined ? { axisId } : {}),
 				...(seriesChartType ? { seriesChartType } : {}),
 			};
@@ -495,6 +574,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.compatibilityService.getXmlLocalName(key),
 		);
 		const userShapesXml = this.parseUserShapesXml(chartSpace);
+		const userShapes = await this.parseChartUserShapes(chartSpace, chartPartPath);
 		const pivotFormats = parseChartPivotFormats(chartRoot, (key) =>
 			this.compatibilityService.getXmlLocalName(key),
 		);
@@ -532,6 +612,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(chartChrome ? { chartChrome } : {}),
 			...(layouts ? { layouts } : {}),
 			...(userShapesXml ? { userShapesXml } : {}),
+			...(userShapes ? { userShapes } : {}),
 			...(pivotFormats ? { pivotFormats } : {}),
 			...(clrMapOvr ? { clrMapOvr } : {}),
 			...(printSettings ? { printSettings } : {}),

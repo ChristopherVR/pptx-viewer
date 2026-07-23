@@ -1,6 +1,32 @@
 import type { ShapeStyle, XmlObject } from '../../types';
 import { drawingChild, drawingChildren, mergeDrawingFillXml } from './drawing-fill-xml';
 
+/**
+ * Parse `a:gradFill/a:tileRect` LTRB insets into 0..1 fractions.
+ *
+ * Values are stored in 1/100000 units and may be negative. Standalone (no
+ * codec context) so the shape-style extractor can populate the typed field
+ * without threading a new context dependency.
+ */
+export function extractGradientTileRect(
+	gradFill: XmlObject,
+): NonNullable<ShapeStyle['fillGradientTileRect']> | undefined {
+	const tileRect = drawingChild(gradFill, 'tileRect');
+	if (!tileRect) {
+		return undefined;
+	}
+	const toFraction = (raw: unknown): number => {
+		const parsed = Number.parseInt(String(raw ?? '0'), 10);
+		return Number.isFinite(parsed) ? parsed / 100000 : 0;
+	};
+	return {
+		l: toFraction(tileRect['@_l']),
+		t: toFraction(tileRect['@_t']),
+		r: toFraction(tileRect['@_r']),
+		b: toFraction(tileRect['@_b']),
+	};
+}
+
 export interface PptxGradientStyleCodecContext {
 	ensureArray: (value: unknown) => unknown[];
 	parseColor: (colorNode: XmlObject | undefined, placeholderColor?: string) => string | undefined;
@@ -18,6 +44,7 @@ export interface IPptxGradientStyleCodec {
 	extractGradientPathType(gradFill: XmlObject): ShapeStyle['fillGradientPathType'];
 	extractGradientFocalPoint(gradFill: XmlObject): ShapeStyle['fillGradientFocalPoint'];
 	extractGradientFillToRect(gradFill: XmlObject): ShapeStyle['fillGradientFillToRect'];
+	extractGradientTileRect(gradFill: XmlObject): ShapeStyle['fillGradientTileRect'];
 	extractGradientFlip(gradFill: XmlObject): ShapeStyle['fillGradientFlip'];
 	extractGradientRotWithShape(gradFill: XmlObject): boolean | undefined;
 	extractGradientScaled(gradFill: XmlObject): boolean | undefined;
@@ -174,6 +201,10 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 			r: Number.isFinite(r) ? this.context.clampUnitInterval(r / 100000) : 0,
 			b: Number.isFinite(b) ? this.context.clampUnitInterval(b / 100000) : 0,
 		};
+	}
+
+	public extractGradientTileRect(gradFill: XmlObject): ShapeStyle['fillGradientTileRect'] {
+		return extractGradientTileRect(gradFill);
 	}
 
 	public extractGradientFlip(gradFill: XmlObject): ShapeStyle['fillGradientFlip'] {
@@ -399,6 +430,15 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 				linNode['@_scaled'] = '1';
 			}
 			gradientXml['a:lin'] = linNode;
+		}
+		if (shapeStyle.fillGradientTileRect) {
+			const tr = shapeStyle.fillGradientTileRect;
+			gradientXml['a:tileRect'] = {
+				'@_l': String(Math.round(tr.l * 100000)),
+				'@_t': String(Math.round(tr.t * 100000)),
+				'@_r': String(Math.round(tr.r * 100000)),
+				'@_b': String(Math.round(tr.b * 100000)),
+			};
 		}
 		return mergeDrawingFillXml(
 			shapeStyle.fillGradientXml,

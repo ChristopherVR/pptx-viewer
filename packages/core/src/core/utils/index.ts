@@ -6,7 +6,12 @@ export {
 	cloneTemplateElementsBySlideId,
 	cloneXmlObject,
 } from './clone-utils';
-export { applyCustomShows, applySections, parseCustomShows } from './presentation-collections';
+export {
+	applyCustomShows,
+	applySections,
+	parseCustomShows,
+	type PptxSlideReferenceRemap,
+} from './presentation-collections';
 
 export {
 	isTemplateElement,
@@ -464,3 +469,5 @@ export {
 } from './drawing-media-reference';
 export { parseDrawingLineDash, applyDrawingLineDash } from './drawing-line-dash';
 export { extractStyleReferenceColorXml, withThemePlaceholderColor } from './theme-style-reference';
+
+export { deriveSlideTitle, deriveSlideTitles } from './slide-title';

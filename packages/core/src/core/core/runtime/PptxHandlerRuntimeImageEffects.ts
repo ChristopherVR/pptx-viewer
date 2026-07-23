@@ -21,6 +21,12 @@ export interface MediaTimingData {
 	bookmarks?: MediaBookmark[];
 	/** Playback speed multiplier (1 = normal). From p14:media/@spd (percentage * 1000). */
 	playbackSpeed?: number;
+	/**
+	 * Resolved media path from `p14:media/@r:embed`. Used as a fallback source
+	 * when a media element is referenced only through the p14 extension and the
+	 * primary `mediaPath` could not be resolved.
+	 */
+	mediaEmbedPath?: string;
 }
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {

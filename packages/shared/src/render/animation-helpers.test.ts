@@ -56,6 +56,47 @@ describe('resolveEffect', () => {
 		const anim = {} as PptxNativeAnimation;
 		expect(resolveEffect(anim)).toBeUndefined();
 	});
+
+	// Issue #76: Fly In / Fly Out must honour the direction (presetSubtype).
+	it('should default fly-in to bottom when no subtype is present', () => {
+		const anim = { presetClass: 'entr', presetId: 2 } as PptxNativeAnimation;
+		expect(resolveEffect(anim)).toBe('flyInBottom');
+	});
+
+	it('should resolve fly-in from the left (subtype 8)', () => {
+		const anim = { presetClass: 'entr', presetId: 2, presetSubtype: 8 } as PptxNativeAnimation;
+		expect(resolveEffect(anim)).toBe('flyInLeft');
+	});
+
+	it('should resolve fly-in from the right/top/bottom by subtype', () => {
+		const right = { presetClass: 'entr', presetId: 2, presetSubtype: 2 } as PptxNativeAnimation;
+		const top = { presetClass: 'entr', presetId: 2, presetSubtype: 1 } as PptxNativeAnimation;
+		const bottom = { presetClass: 'entr', presetId: 2, presetSubtype: 4 } as PptxNativeAnimation;
+		expect(resolveEffect(right)).toBe('flyInRight');
+		expect(resolveEffect(top)).toBe('flyInTop');
+		expect(resolveEffect(bottom)).toBe('flyInBottom');
+	});
+
+	it('should resolve fly-out from the left (subtype 8)', () => {
+		const anim = { presetClass: 'exit', presetId: 2, presetSubtype: 8 } as PptxNativeAnimation;
+		expect(resolveEffect(anim)).toBe('flyOutLeft');
+	});
+
+	it('should fall back a corner subtype to its horizontal edge', () => {
+		// 12 = bottom-left -> left
+		const anim = { presetClass: 'entr', presetId: 2, presetSubtype: 12 } as PptxNativeAnimation;
+		expect(resolveEffect(anim)).toBe('flyInLeft');
+	});
+
+	it('should keep the bottom default for an unknown subtype', () => {
+		const anim = { presetClass: 'entr', presetId: 2, presetSubtype: 999 } as PptxNativeAnimation;
+		expect(resolveEffect(anim)).toBe('flyInBottom');
+	});
+
+	it('should ignore subtype for non-fly effects', () => {
+		const anim = { presetClass: 'entr', presetId: 1, presetSubtype: 8 } as PptxNativeAnimation;
+		expect(resolveEffect(anim)).toBe('appear');
+	});
 });
 
 describe('buildDynamicKeyframes', () => {

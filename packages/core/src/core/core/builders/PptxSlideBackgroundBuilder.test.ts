@@ -33,10 +33,12 @@ function createInput(
 		} as unknown as PptxSlideBackgroundBuilderInput['relationshipRegistry'],
 		slideImageRelationshipType:
 			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
-		parseDataUrlToBytes: vi.fn<() => void>().mockReturnValue({
-			bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
-			extension: 'png',
-		}),
+		resolveImageToBytes: vi
+			.fn<() => Promise<{ bytes: Uint8Array; extension: string } | null>>()
+			.mockResolvedValue({
+				bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+				extension: 'png',
+			}),
 	};
 }
 
@@ -45,40 +47,40 @@ describe('pptxSlideBackgroundBuilder', () => {
 
 	// ── No background ────────────────────────────────────────────────────
 
-	it('removes p:bg when no background properties are set', () => {
+	it('removes p:bg when no background properties are set', async () => {
 		const slideNode: XmlObject = {
 			'p:cSld': {
 				'p:bg': { 'p:bgPr': { 'a:solidFill': {} } },
 			},
 		};
 		const input = createInput({}, slideNode);
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = slideNode['p:cSld'] as XmlObject;
 		expect(cSld['p:bg']).toBeUndefined();
 	});
 
-	it('removes p:bg when backgroundColor is transparent', () => {
+	it('removes p:bg when backgroundColor is transparent', async () => {
 		const slideNode: XmlObject = {
 			'p:cSld': {
 				'p:bg': { 'p:bgPr': {} },
 			},
 		};
 		const input = createInput({ backgroundColor: 'transparent' }, slideNode);
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = slideNode['p:cSld'] as XmlObject;
 		expect(cSld['p:bg']).toBeUndefined();
 	});
 
-	it('removes p:bg when backgroundColor is empty string', () => {
+	it('removes p:bg when backgroundColor is empty string', async () => {
 		const slideNode: XmlObject = {
 			'p:cSld': {
 				'p:bg': { 'p:bgPr': {} },
 			},
 		};
 		const input = createInput({ backgroundColor: '' }, slideNode);
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = slideNode['p:cSld'] as XmlObject;
 		expect(cSld['p:bg']).toBeUndefined();
@@ -86,9 +88,9 @@ describe('pptxSlideBackgroundBuilder', () => {
 
 	// ── Solid color background ───────────────────────────────────────────
 
-	it('generates a:solidFill for a hex background color', () => {
+	it('generates a:solidFill for a hex background color', async () => {
 		const input = createInput({ backgroundColor: '#FF6600' });
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = input.slideNode['p:cSld'] as XmlObject;
 		const bg = cSld['p:bg'] as XmlObject;
@@ -100,9 +102,9 @@ describe('pptxSlideBackgroundBuilder', () => {
 		expect(srgbClr['@_val']).toBe('FF6600');
 	});
 
-	it('strips # from hex color in solidFill output', () => {
+	it('strips # from hex color in solidFill output', async () => {
 		const input = createInput({ backgroundColor: '#aabbcc' });
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = input.slideNode['p:cSld'] as XmlObject;
 		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
@@ -111,9 +113,9 @@ describe('pptxSlideBackgroundBuilder', () => {
 		expect(srgbClr['@_val']).toBe('AABBCC');
 	});
 
-	it('includes a:effectLst in bgPr for solid fill', () => {
+	it('includes a:effectLst in bgPr for solid fill', async () => {
 		const input = createInput({ backgroundColor: '#FF0000' });
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = input.slideNode['p:cSld'] as XmlObject;
 		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
@@ -122,11 +124,11 @@ describe('pptxSlideBackgroundBuilder', () => {
 
 	// ── Image background ─────────────────────────────────────────────────
 
-	it('generates a:blipFill for a data-URL background image', () => {
+	it('generates a:blipFill for a data-URL background image', async () => {
 		const input = createInput({
 			backgroundImage: 'data:image/png;base64,iVBOR...',
 		});
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = input.slideNode['p:cSld'] as XmlObject;
 		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
@@ -138,11 +140,11 @@ describe('pptxSlideBackgroundBuilder', () => {
 		expect(blipFill['a:stretch']).toStrictEqual({ 'a:fillRect': {} });
 	});
 
-	it('writes image bytes to zip and registers relationship', () => {
+	it('writes image bytes to zip and registers relationship', async () => {
 		const input = createInput({
 			backgroundImage: 'data:image/png;base64,iVBOR...',
 		});
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		expect(input.zip.file).toHaveBeenCalledWith('ppt/media/image1.png', expect.any(Uint8Array));
 		expect(input.relationshipRegistry.upsertRelationship).toHaveBeenCalledWith(
@@ -152,12 +154,12 @@ describe('pptxSlideBackgroundBuilder', () => {
 		);
 	});
 
-	it('image background takes priority over solid color', () => {
+	it('image background takes priority over solid color', async () => {
 		const input = createInput({
 			backgroundColor: '#FF0000',
 			backgroundImage: 'data:image/png;base64,iVBOR...',
 		});
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = input.slideNode['p:cSld'] as XmlObject;
 		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
@@ -169,10 +171,10 @@ describe('pptxSlideBackgroundBuilder', () => {
 
 	// ── cSld initialization ──────────────────────────────────────────────
 
-	it('creates p:cSld if missing from slideNode', () => {
+	it('creates p:cSld if missing from slideNode', async () => {
 		const slideNode: XmlObject = {};
 		const input = createInput({ backgroundColor: '#00FF00' }, slideNode);
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = slideNode['p:cSld'] as XmlObject;
 		expect(cSld).toBeDefined();
@@ -181,17 +183,27 @@ describe('pptxSlideBackgroundBuilder', () => {
 
 	// ── When parseDataUrlToBytes returns null ──────────────────────────────
 
-	it('drops p:bg entirely when image parsing fails and no other fill source is valid', () => {
-		// The builder enters the data-URL image branch; when parsing fails
-		// the blipFill is skipped. The else-if for solidFill is not reached.
-		// Rather than emit a schema-invalid <p:bgPr><a:effectLst/></p:bgPr>
-		// with no fill, the builder now drops <p:bg> entirely.
+	it('falls back to the solid background colour when the image cannot be embedded', async () => {
+		// When the image cannot be resolved to bytes, the blipFill is skipped;
+		// if the slide also carries a background colour it is now used as the
+		// fallback fill (instead of dropping the background entirely).
 		const input = createInput({
 			backgroundColor: '#FF0000',
 			backgroundImage: 'data:image/png;base64,corrupted',
 		});
-		(input.parseDataUrlToBytes as ReturnType<typeof vi.fn>).mockReturnValue(null);
-		builder.applyBackground(input);
+		(input.resolveImageToBytes as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+		await builder.applyBackground(input);
+
+		const cSld = input.slideNode['p:cSld'] as XmlObject;
+		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
+		expect(bgPr['a:blipFill']).toBeUndefined();
+		expect((bgPr['a:solidFill'] as XmlObject)['a:srgbClr']).toStrictEqual({ '@_val': 'FF0000' });
+	});
+
+	it('drops p:bg entirely when image cannot be embedded and there is no other fill', async () => {
+		const input = createInput({ backgroundImage: 'data:image/png;base64,corrupted' });
+		(input.resolveImageToBytes as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+		await builder.applyBackground(input);
 
 		const cSld = input.slideNode['p:cSld'] as XmlObject;
 		expect(cSld['p:bg']).toBeUndefined();
@@ -199,7 +211,7 @@ describe('pptxSlideBackgroundBuilder', () => {
 
 	// ── rId-referenced blipFill preservation ─────────────────────────────
 
-	it('preserves raw p:bg with existing a:blipFill when slide model has no data-URL override', () => {
+	it('preserves raw p:bg with existing a:blipFill when slide model has no data-URL override', async () => {
 		// rId-referenced backgrounds arrive on the slide model as a resolved
 		// data URL on `slide.backgroundImage` OR, in some paths, as a
 		// non-data-URL string (or undefined). Either way, when we don't have
@@ -228,7 +240,7 @@ describe('pptxSlideBackgroundBuilder', () => {
 		// some code paths produce for rId-backed backgrounds. The key point
 		// is it's not a data URL, so we can't regenerate a blipFill from it.
 		const input = createInput({ backgroundImage: 'ppt/media/image5.JPG' }, slideNode);
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = slideNode['p:cSld'] as XmlObject;
 		const bg = cSld['p:bg'] as XmlObject;
@@ -250,7 +262,7 @@ describe('pptxSlideBackgroundBuilder', () => {
 		expect(keys.indexOf('p:bg')).toBeLessThan(keys.indexOf('p:spTree'));
 	});
 
-	it('preserves raw p:bg blipFill even when backgroundImage is undefined but raw XML has one', () => {
+	it('preserves raw p:bg blipFill even when backgroundImage is undefined but raw XML has one', async () => {
 		// Guard against a related shape of the bug: the load pipeline didn't
 		// surface the background onto the model at all (backgroundImage is
 		// undefined), yet the raw slide XML carries a valid blipFill-based
@@ -272,7 +284,7 @@ describe('pptxSlideBackgroundBuilder', () => {
 			},
 		};
 		const input = createInput({}, slideNode);
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = slideNode['p:cSld'] as XmlObject;
 		// With no slide-model background signals, the builder's contract is
@@ -282,7 +294,7 @@ describe('pptxSlideBackgroundBuilder', () => {
 		expect(cSld['p:bg']).toBeUndefined();
 	});
 
-	it('regenerates a:blipFill from a data-URL backgroundImage even when raw XML has a different blipFill', () => {
+	it('regenerates a:blipFill from a data-URL backgroundImage even when raw XML has a different blipFill', async () => {
 		// If the slide model has a fresh data-URL image, it wins over the
 		// raw XML — this is how edits to the background propagate on save.
 		const originalBg: XmlObject = {
@@ -300,7 +312,7 @@ describe('pptxSlideBackgroundBuilder', () => {
 			},
 		};
 		const input = createInput({ backgroundImage: 'data:image/png;base64,iVBOR...' }, slideNode);
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = slideNode['p:cSld'] as XmlObject;
 		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
@@ -316,7 +328,7 @@ describe('pptxSlideBackgroundBuilder', () => {
 
 	// ── Schema child order ────────────────────────────────────────────────
 
-	it('places p:bg before p:spTree in p:cSld when adding a background', () => {
+	it('places p:bg before p:spTree in p:cSld when adding a background', async () => {
 		// OOXML CT_CommonSlideData schema requires child order: bg, spTree,
 		// custDataLst, controls, extLst. fast-xml-parser serialises keys in
 		// insertion order, so p:bg MUST be the first key in p:cSld when
@@ -328,7 +340,7 @@ describe('pptxSlideBackgroundBuilder', () => {
 			},
 		};
 		const input = createInput({ backgroundColor: '#FFFFFF' }, slideNode);
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 
 		const cSld = slideNode['p:cSld'] as XmlObject;
 		const keys = Object.keys(cSld).filter((k) => !k.startsWith('@_'));
@@ -340,36 +352,86 @@ describe('pptxSlideBackgroundBuilder', () => {
 
 	// ── shadeToTitle round-trip (ECMA-376 §19.3.1.2) ──────────────────────
 
-	it('emits @_shadeToTitle="1" when slide.backgroundShadeToTitle is true', () => {
+	it('emits @_shadeToTitle="1" when slide.backgroundShadeToTitle is true', async () => {
 		const input = createInput({
 			backgroundColor: '#FFFFFF',
 			backgroundShadeToTitle: true,
 		});
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 		const bgPr = (
 			((input.slideNode['p:cSld'] as XmlObject)['p:bg'] as XmlObject)['p:bgPr'] as XmlObject
 		)['@_shadeToTitle'];
 		expect(bgPr).toBe('1');
 	});
 
-	it('emits @_shadeToTitle="0" when slide.backgroundShadeToTitle is false', () => {
+	it('emits @_shadeToTitle="0" when slide.backgroundShadeToTitle is false', async () => {
 		const input = createInput({
 			backgroundColor: '#FFFFFF',
 			backgroundShadeToTitle: false,
 		});
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 		const bgPr = (
 			((input.slideNode['p:cSld'] as XmlObject)['p:bg'] as XmlObject)['p:bgPr'] as XmlObject
 		)['@_shadeToTitle'];
 		expect(bgPr).toBe('0');
 	});
 
-	it('omits @_shadeToTitle when backgroundShadeToTitle is undefined', () => {
+	it('omits @_shadeToTitle when backgroundShadeToTitle is undefined', async () => {
 		const input = createInput({ backgroundColor: '#FFFFFF' });
-		builder.applyBackground(input);
+		await builder.applyBackground(input);
 		const bgPr = ((input.slideNode['p:cSld'] as XmlObject)['p:bg'] as XmlObject)[
 			'p:bgPr'
 		] as XmlObject;
 		expect(bgPr['@_shadeToTitle']).toBeUndefined();
+	});
+
+	// ── Non-data-URL image embedding (regression: dropped background) ──────
+
+	it('embeds a non-data-URL background image as a new blipFill', async () => {
+		// Regression: a freshly applied background (e.g. from a design/theme
+		// preview) is typically a bundled/remote URL, not a data URL, and there
+		// is no pre-existing blipFill to preserve. Previously this was dropped
+		// on save; now it is resolved to bytes and embedded.
+		const input = createInput({ backgroundImage: 'https://cdn.example.com/theme-bg.jpg' });
+		await builder.applyBackground(input);
+
+		const cSld = input.slideNode['p:cSld'] as XmlObject;
+		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
+		const blipFill = bgPr['a:blipFill'] as XmlObject;
+		expect(blipFill).toBeDefined();
+		expect((blipFill['a:blip'] as XmlObject)['@_r:embed']).toBe('rId10');
+		expect(input.resolveImageToBytes).toHaveBeenCalledWith('https://cdn.example.com/theme-bg.jpg');
+		expect(input.zip.file).toHaveBeenCalledWith('ppt/media/image1.png', expect.any(Uint8Array));
+		expect(input.relationshipRegistry.upsertRelationship).toHaveBeenCalledWith(
+			'rId10',
+			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
+			'../media/image1.png',
+		);
+	});
+
+	it('preserves an existing p:bg when a background image cannot be resolved', async () => {
+		// Safety guard: if the image URL cannot be fetched/decoded, keep whatever
+		// <p:bg> was already there instead of silently wiping the background.
+		const slideNode: XmlObject = {
+			'p:cSld': {
+				'p:bg': { 'p:bgPr': { 'a:solidFill': { 'a:srgbClr': { '@_val': '112233' } } } },
+				'p:spTree': { 'p:sp': [] },
+			},
+		};
+		const input = createInput(
+			{ backgroundImage: 'https://cdn.example.com/missing.jpg' },
+			slideNode,
+		);
+		const warn = vi.fn<() => void>();
+		input.reportUnsupportedBackground = warn;
+		(input.resolveImageToBytes as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+		await builder.applyBackground(input);
+
+		const cSld = slideNode['p:cSld'] as XmlObject;
+		expect(cSld['p:bg']).toBeDefined();
+		expect(warn).toHaveBeenCalledWith('https://cdn.example.com/missing.jpg');
+		// p:bg still precedes p:spTree.
+		const keys = Object.keys(cSld).filter((k) => !k.startsWith('@_'));
+		expect(keys.indexOf('p:bg')).toBeLessThan(keys.indexOf('p:spTree'));
 	});
 });

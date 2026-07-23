@@ -21,6 +21,7 @@ import {
 	renderErrorBars,
 	renderDropLines,
 	renderHiLowLines,
+	renderUpDownBars,
 } from './chart-overlays';
 import type { ChartPlotLayout, ChartValueRange } from './chart-overlays';
 
@@ -551,6 +552,7 @@ export function renderOverlays(
 	const overlayLayout: ChartPlotLayout = layout;
 	const overlayRange: ChartValueRange = range;
 	const nodes: React.ReactNode[] = [];
+	nodes.push(renderUpDownBars(id, chartData, overlayLayout, overlayRange, mode));
 	nodes.push(renderDropLines(id, chartData, overlayLayout, overlayRange, mode));
 	nodes.push(renderHiLowLines(id, chartData, overlayLayout, overlayRange, mode));
 	nodes.push(renderTrendlines(id, chartData, overlayLayout, overlayRange, mode));

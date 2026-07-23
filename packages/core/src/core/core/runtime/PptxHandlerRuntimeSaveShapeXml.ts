@@ -454,6 +454,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const chExtCx = extCx;
 		const chExtCy = extCy;
 
+		// Preserve group-level rotation/flip (issue #70). `@_rot` is stored in
+		// 60000ths of a degree (ECMA-376 ST_Angle); flips are boolean "1" flags.
+		const xfrmAttrs: XmlObject = {};
+		if (typeof group.rotation === 'number' && group.rotation !== 0) {
+			xfrmAttrs['@_rot'] = String(Math.round(group.rotation * 60000));
+		}
+		if (group.flipHorizontal) {
+			xfrmAttrs['@_flipH'] = '1';
+		}
+		if (group.flipVertical) {
+			xfrmAttrs['@_flipV'] = '1';
+		}
+
 		const grpXml: XmlObject = {
 			'p:nvGrpSpPr': {
 				'p:cNvPr': { '@_id': '0', '@_name': group.id },
@@ -462,6 +475,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			},
 			'p:grpSpPr': {
 				'a:xfrm': {
+					...xfrmAttrs,
 					'a:off': {
 						'@_x': String(offX),
 						'@_y': String(offY),

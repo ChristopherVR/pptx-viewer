@@ -12,6 +12,7 @@ import { getKinsokuLineBreakStyles } from './kinsoku-styles';
 import { wrapWithTextBuildAnimation } from './text-animation';
 import type { ParagraphEntry } from './text-animation';
 import type { FieldSubstitutionContext } from './text-field-substitution';
+import { resolveParagraphSpacing } from './text-paragraph-spacing';
 import type { ElementFindHighlights } from './text-segment-helpers';
 import { renderSingleSegment } from './text-segment-render';
 
@@ -75,6 +76,8 @@ export function renderTextSegments(
 		rubyAlignment?: string;
 		rubyFontSize?: number;
 		rubyStyle?: TextStyle;
+		/** Per-paragraph geometry authored on the first segment of a paragraph. */
+		paragraphProperties?: TextStyle;
 	}>,
 	/** When true, hyperlinks require Ctrl+Click (editing mode). */
 	requireCtrlClick?: boolean,
@@ -107,6 +110,10 @@ export function renderTextSegments(
 	const elementRtl = hasTextProperties(element) ? element.textStyle?.rtl : undefined;
 
 	const elementAlign = hasTextProperties(element) ? element.textStyle?.align : undefined;
+	const bodyStyle = hasTextProperties(element) ? element.textStyle : undefined;
+	// `spcFirstLastPara`: only suppress first/last edge spacing when explicitly
+	// disabled; default to applying it so single-level text keeps its spacing.
+	const spaceFirstLast = bodyStyle?.spaceFirstLastParagraph !== false;
 
 	return paragraphs.map((paraSegments, paraIndex) => {
 		const paraIndent = paragraphIndents?.[paraIndex];
@@ -151,9 +158,34 @@ export function renderTextSegments(
 		const paraKinsokuStyle = getKinsokuLineBreakStyles(firstSeg?.segment.style);
 		const hasParaKinsoku = Object.keys(paraKinsokuStyle).length > 0;
 
+		// Per-paragraph line spacing (a:lnSpc) and space before/after
+		// (a:spcBef / a:spcAft), sourced from this paragraph's own geometry with
+		// a body-level fallback for inherited/single-level text.
+		const paraProps = effectiveSegments[firstSeg?.globalIndex ?? -1]?.paragraphProperties;
+		const spacing = resolveParagraphSpacing({
+			paraProps,
+			bodyStyle,
+			isFirst: paraIndex === 0,
+			isLast: paraIndex === paragraphs.length - 1,
+			spaceFirstLast,
+		});
+		const hasParaSpacing =
+			spacing.marginTop !== undefined ||
+			spacing.marginBottom !== undefined ||
+			spacing.lineHeight !== undefined;
+
 		const paraStyle: React.CSSProperties = {
 			...paraKinsokuStyle,
 		};
+		if (spacing.marginTop !== undefined) {
+			paraStyle.marginTop = spacing.marginTop;
+		}
+		if (spacing.marginBottom !== undefined) {
+			paraStyle.marginBottom = spacing.marginBottom;
+		}
+		if (spacing.lineHeight !== undefined) {
+			paraStyle.lineHeight = spacing.lineHeight;
+		}
 		if (paraMarginLeft !== undefined) {
 			paraStyle.marginLeft = paraMarginLeft;
 		}
@@ -182,7 +214,8 @@ export function renderTextSegments(
 			hasBullet ||
 			paraRtl !== undefined ||
 			cssTextAlign !== undefined ||
-			hasParaKinsoku;
+			hasParaKinsoku ||
+			hasParaSpacing;
 
 		const renderedSegments = paraSegments
 			.filter(({ segment }) => {

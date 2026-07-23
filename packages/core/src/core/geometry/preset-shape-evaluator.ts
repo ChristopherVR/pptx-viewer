@@ -20,12 +20,37 @@ import { PRESET_SHAPE_GEOMETRY_TABLE } from './preset-shape-definitions-table';
 // ---------------------------------------------------------------------------
 
 /**
+ * One evaluated sub-path of a preset shape: its own SVG `d` string plus the
+ * `@fill`/`@stroke` flags declared on the `<a:path>`. Lets a renderer honour
+ * open, stroke-only presets (e.g. `arc`) instead of flood-filling them.
+ */
+export interface PresetSubpathResult {
+	/** SVG path data for this single sub-path. */
+	d: string;
+	/** `<a:path>/@fill` (`'none' | 'norm' | ...`); `undefined` means default. */
+	fill?: string;
+	/** `<a:path>/@stroke`; `undefined`/`true` means stroked, `false` unstroked. */
+	stroke?: boolean;
+}
+
+/**
  * Result of evaluating a preset shape: the merged SVG path data and an
  * optional text rectangle (in the shape's coordinate space, i.e. pixels).
  */
 export interface PresetShapeEvaluationResult {
 	svgPath: string;
 	textRect?: { l: number; t: number; r: number; b: number };
+	/**
+	 * Per-sub-path geometry with fill/stroke flags. `svgPath` is these `d`
+	 * strings concatenated; this array additionally preserves the paint intent.
+	 */
+	paths: PresetSubpathResult[];
+	/**
+	 * `true` when *every* sub-path declares `fill="none"` (an open, stroke-only
+	 * geometry such as `arc`). Renderers should suppress the shape fill in this
+	 * case rather than painting a filled wedge.
+	 */
+	fillNone: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -142,8 +167,9 @@ export function evaluatePresetShape(
 	const guides = (def.gdLst ?? []).map((g) => ({ name: g.name, formula: g.formula }));
 	const vars = evaluateGuides(guides, { w, h }, adj);
 
-	const parts: string[] = [];
+	const paths: PresetSubpathResult[] = [];
 	for (const path of def.pathLst) {
+		const parts: string[] = [];
 		// Track pen position so arcTo conversion can derive the implicit
 		// ellipse centre in the same way custom-geometry.ts does.
 		let penX = 0;
@@ -214,9 +240,18 @@ export function evaluatePresetShape(
 				}
 			}
 		}
+
+		paths.push({ d: parts.join(' ').trim(), fill: path.fill, stroke: path.stroke });
 	}
 
-	const svgPath = parts.join(' ').trim();
+	const svgPath = paths
+		.map((p) => p.d)
+		.filter((d) => d !== '')
+		.join(' ')
+		.trim();
+	// Only treat the geometry as stroke-only when it has paths and they *all*
+	// opt out of fill; a mixed shape keeps its fill.
+	const fillNone = paths.length > 0 && paths.every((p) => p.fill === 'none');
 
 	let textRect: PresetShapeEvaluationResult['textRect'];
 	if (def.rect) {
@@ -237,5 +272,5 @@ export function evaluatePresetShape(
 		};
 	}
 
-	return { svgPath, textRect };
+	return { svgPath, textRect, paths, fillNone };
 }

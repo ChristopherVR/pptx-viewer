@@ -92,9 +92,11 @@ export function apply3dEffects(
 	base: React.CSSProperties,
 	scene3d: Scene3dParams | undefined,
 	shape3d: Shape3dParams | undefined,
+	fillColorFallback?: string,
 ): void {
 	// React's `CSSProperties` allows `string | number` for several fields whereas
 	// shared's neutral `MutableCss` narrows them to string; the mutator only ever
-	// writes string values, so the cast is sound.
-	sharedApply3dEffects(base as MutableCss, scene3d, shape3d);
+	// writes string values, so the cast is sound. `fillColorFallback` lets the
+	// extrusion/contour default to the shape's resolved fill colour.
+	sharedApply3dEffects(base as MutableCss, scene3d, shape3d, fillColorFallback);
 }

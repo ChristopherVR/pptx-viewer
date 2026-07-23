@@ -61,6 +61,55 @@ describe('pptx slide comments XML factory', () => {
 		});
 	});
 
+	it('writes the resolved state back as @_done when a comment is resolved', () => {
+		const xml = new PptxSlideCommentsXmlFactory().createXmlElement({
+			conformance: 'transitional',
+			saveState: makeSaveState(),
+			slideComments: [{ id: '0', text: 'Done', resolved: true }],
+		});
+		const comment = (xml['p:cmLst'] as XmlObject)['p:cm'] as XmlObject[];
+		expect(comment[0]['@_done']).toBe('1');
+	});
+
+	it('emits an explicit unresolved marker when an edit clears a resolved comment', () => {
+		const xml = new PptxSlideCommentsXmlFactory().createXmlElement({
+			conformance: 'transitional',
+			saveState: makeSaveState(),
+			slideComments: [
+				{
+					id: '0',
+					text: 'Reopened',
+					resolved: false,
+					rawXml: { '@_done': '1' },
+				},
+			],
+		});
+		const comment = (xml['p:cmLst'] as XmlObject)['p:cm'] as XmlObject[];
+		expect(comment[0]['@_done']).toBe('0');
+	});
+
+	it('preserves the original @_resolved attribute name on write-back', () => {
+		const xml = new PptxSlideCommentsXmlFactory().createXmlElement({
+			conformance: 'transitional',
+			saveState: makeSaveState(),
+			slideComments: [{ id: '0', text: 'Done', resolved: true, rawXml: { '@_resolved': '1' } }],
+		});
+		const comment = (xml['p:cmLst'] as XmlObject)['p:cm'] as XmlObject[];
+		expect(comment[0]['@_resolved']).toBe('1');
+		expect(comment[0]['@_done']).toBeUndefined();
+	});
+
+	it('omits any resolved marker for an unresolved comment with no prior state', () => {
+		const xml = new PptxSlideCommentsXmlFactory().createXmlElement({
+			conformance: 'transitional',
+			saveState: makeSaveState(),
+			slideComments: [{ id: '0', text: 'Plain' }],
+		});
+		const comment = (xml['p:cmLst'] as XmlObject)['p:cm'] as XmlObject[];
+		expect(comment[0]['@_done']).toBeUndefined();
+		expect(comment[0]['@_resolved']).toBeUndefined();
+	});
+
 	it('uses Strict namespaces for a Strict save', () => {
 		const xml = new PptxSlideCommentsXmlFactory().createXmlElement({
 			conformance: 'strict',

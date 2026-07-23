@@ -102,6 +102,45 @@ export function parseAinkTraceText(raw: string): string | undefined {
 }
 
 /**
+ * Extract per-point pressure values from an `aink:trace` payload.
+ *
+ * Mirrors {@link parseAinkTraceText}'s tokenisation, but reads the optional
+ * third comma-separated component of each `x,y[,pressure]` point (as
+ * `p:contentPart` InkML does). Pressure is clamped to 0-1. Returns an empty
+ * array when no point carries a usable pressure value, so constant-width
+ * strokes stay constant-width.
+ */
+export function parseAinkTracePressures(raw: string): number[] {
+	const cleaned = raw.replace(/\s+/g, ' ').trim();
+	if (cleaned.length === 0) {
+		return [];
+	}
+	const tokens = cleaned.split(/\s+/);
+	const pressures: number[] = [];
+	let sawPressure = false;
+	for (const token of tokens) {
+		const cleanedToken = token.replace(/^[MLml]/, '');
+		const parts = cleanedToken.split(',');
+		if (parts.length < 2) {
+			continue;
+		}
+		const x = Number(parts[0]);
+		const y = Number(parts[1]);
+		if (!Number.isFinite(x) || !Number.isFinite(y)) {
+			continue;
+		}
+		const rawPressure = parts.length > 2 ? Number(parts[2]) : NaN;
+		if (Number.isFinite(rawPressure)) {
+			sawPressure = true;
+			pressures.push(Math.max(0, Math.min(1, rawPressure)));
+		} else {
+			pressures.push(0.5);
+		}
+	}
+	return sawPressure ? pressures : [];
+}
+
+/**
  * Locate the `<aink:ink>` payload inside a graphicData node. Modern files
  * wrap it under `mc:AlternateContent > mc:Choice@Requires="aink"`; older
  * files place it directly under `<a:graphicData>`.
@@ -180,10 +219,12 @@ export function decodeAinkInk(inkRoot: XmlObject): {
 	inkPaths: string[];
 	inkColors: string[];
 	inkWidths: number[];
+	inkPointPressures: number[][];
 } {
 	const inkPaths: string[] = [];
 	const inkColors: string[] = [];
 	const inkWidths: number[] = [];
+	const inkPointPressures: number[][] = [];
 
 	const brush = inkRoot['aink:inkBrush'] as XmlObject | undefined;
 	const defaultColor = (() => {
@@ -223,6 +264,7 @@ export function decodeAinkInk(inkRoot: XmlObject): {
 			continue;
 		}
 		inkPaths.push(path);
+		inkPointPressures.push(parseAinkTracePressures(text));
 		// Per-trace colour/size override (`@_brushColor`, `@_brushSize`)
 		// when the trace itself is an XmlObject.
 		const traceObj = typeof trace === 'string' ? undefined : (trace as XmlObject);
@@ -241,7 +283,7 @@ export function decodeAinkInk(inkRoot: XmlObject): {
 		);
 	}
 
-	return { inkPaths, inkColors, inkWidths };
+	return { inkPaths, inkColors, inkWidths, inkPointPressures };
 }
 
 export interface PptxGraphicFrameParserContext {
@@ -338,12 +380,19 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 				const inkRoot = findAinkInkPayload(graphicData);
 				const decoded = inkRoot
 					? decodeAinkInk(inkRoot)
-					: { inkPaths: [] as string[], inkColors: [] as string[], inkWidths: [] as number[] };
+					: {
+							inkPaths: [] as string[],
+							inkColors: [] as string[],
+							inkWidths: [] as number[],
+							inkPointPressures: [] as number[][],
+						};
+				const hasPressures = decoded.inkPointPressures.some((p) => p.length > 0);
 				return {
 					...baseElement,
 					inkPaths: decoded.inkPaths,
 					...(decoded.inkColors.length > 0 ? { inkColors: decoded.inkColors } : {}),
 					...(decoded.inkWidths.length > 0 ? { inkWidths: decoded.inkWidths } : {}),
+					...(hasPressures ? { inkPointPressures: decoded.inkPointPressures } : {}),
 					...(extensionXml.length > 0 ? { extensionXml } : {}),
 				} as InkPptxElement;
 			}

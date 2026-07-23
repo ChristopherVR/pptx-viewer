@@ -3,6 +3,8 @@ import React from 'react';
 
 import { cn } from '../../utils';
 import type { TableCellEditorState } from '../types';
+import type { TableStyleContext } from './table-band-style';
+import { getCellDiagonalBorders, TableCellDiagonalBorders } from './table-diagonal-borders';
 import { computeSelectionRect, isCellInRect, rectToCells } from './table-merge-utils';
 import type { CellRect } from './table-merge-utils';
 import { TableCellInput } from './table-render-cell-input';
@@ -23,9 +25,12 @@ export function renderTableFromTableData(
 		onCommitCellEdit?: (rowIndex: number, colIndex: number, text: string) => void;
 		onResizeColumns?: (newWidths: number[]) => void;
 		onResizeRow?: (rowIndex: number, newHeight: number) => void;
+		styleCtx?: TableStyleContext;
 	},
 ): React.ReactNode {
 	const tableData = element.tableData!;
+	const rowCount = tableData.rows.length;
+	const columnCount = tableData.columnWidths.length;
 	const selectedCell = options?.selectedCell || null;
 	const isEditable = Boolean(options?.editable);
 	const hasCellSelectionHandler = typeof options?.onSelectCell === 'function';
@@ -78,6 +83,12 @@ export function renderTableFromTableData(
 										selectedCell?.rowIndex === rowIndex && selectedCell?.columnIndex === cellIndex;
 									const isInMultiSelection = isCellInRect(rowIndex, cellIndex, selectionRect);
 									const isCellEditing = isCellSelected && selectedCell?.isEditing;
+									const diag = getCellDiagonalBorders(
+										cell.style,
+										tableData,
+										{ rowIndex, cellIndex, rowCount, columnCount },
+										options?.styleCtx,
+									);
 									return (
 										<td
 											key={`${element.id}-cell-${rowIndex}-${cellIndex}`}
@@ -96,6 +107,7 @@ export function renderTableFromTableData(
 											style={{
 												...textStyle,
 												...cellStyleToCss(cell.style),
+												...(diag ? { position: 'relative' } : undefined),
 											}}
 											onClick={(event) => {
 												if (!isEditable || !hasCellSelectionHandler) {
@@ -134,6 +146,7 @@ export function renderTableFromTableData(
 												});
 											}}
 										>
+											{diag ? <TableCellDiagonalBorders diag={diag} /> : null}
 											{isCellEditing ? (
 												<TableCellInput
 													initialText={cell.text ?? ''}

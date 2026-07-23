@@ -17,7 +17,12 @@
 import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
 import { buildColorAnimationKeyframes } from './animation-color';
-import { PRESET_ID_TO_EFFECT } from './animation-presets';
+import { parseMotionPathPoints } from './animation-motion-path';
+import {
+	emphasisFilterKeyframeCss,
+	FLY_SUBTYPE_TO_EDGE,
+	PRESET_ID_TO_EFFECT,
+} from './animation-presets';
 import type {
 	AnimationStep,
 	EffectName,
@@ -41,10 +46,10 @@ export function resolveEffect(anim: PptxNativeAnimation): EffectName | undefined
 		return undefined;
 	}
 	if (cls === 'entr') {
-		return PRESET_ID_TO_EFFECT.entr[id];
+		return applyFlyDirection(PRESET_ID_TO_EFFECT.entr[id], anim.presetSubtype);
 	}
 	if (cls === 'exit') {
-		return PRESET_ID_TO_EFFECT.exit[id];
+		return applyFlyDirection(PRESET_ID_TO_EFFECT.exit[id], anim.presetSubtype);
 	}
 	if (cls === 'emph') {
 		return PRESET_ID_TO_EFFECT.emph[id];
@@ -53,34 +58,35 @@ export function resolveEffect(anim: PptxNativeAnimation): EffectName | undefined
 	return undefined;
 }
 
+/**
+ * Redirect a Fly In / Fly Out effect according to its `presetSubtype` code.
+ * The preset tables default the fly family to the bottom edge; when a subtype
+ * is present and maps to a known edge, swap in the matching directional effect.
+ * A missing or unrecognised subtype preserves the bottom default so existing
+ * decks are unaffected.
+ */
+function applyFlyDirection(
+	effect: EffectName | undefined,
+	subtype: number | undefined,
+): EffectName | undefined {
+	if (effect !== 'flyInBottom' && effect !== 'flyOutBottom') {
+		return effect;
+	}
+	if (subtype === undefined) {
+		return effect;
+	}
+	const edge = FLY_SUBTYPE_TO_EDGE[subtype];
+	if (!edge) {
+		return effect;
+	}
+	const prefix = effect === 'flyInBottom' ? 'flyIn' : 'flyOut';
+	const suffix = `${edge.charAt(0).toUpperCase()}${edge.slice(1)}`;
+	return `${prefix}${suffix}` as EffectName;
+}
+
 // ==========================================================================
 // Dynamic keyframe generation (motion path / rotation / scale / colour)
 // ==========================================================================
-
-/** Parse the points out of a simple `M…L…Z` motion-path string. */
-function parseMotionPathPoints(motionPath: string): Array<{ x: number; y: number }> {
-	const cmds = motionPath
-		.replace(/\s+/gu, ' ')
-		.trim()
-		.split(/(?=[MLCZ])/iu)
-		.filter(Boolean);
-	const points: Array<{ x: number; y: number }> = [];
-	for (const cmd of cmds) {
-		const type = cmd.charAt(0).toUpperCase();
-		if (type === 'Z') {
-			continue;
-		}
-		const nums = cmd
-			.slice(1)
-			.trim()
-			.split(/[\s,]+/u)
-			.map(Number);
-		for (let i = 0; i + 1 < nums.length; i += 2) {
-			points.push({ x: nums[i] * 100, y: nums[i + 1] * 100 });
-		}
-	}
-	return points;
-}
 
 /**
  * Build a dynamic CSS `@keyframes` block for motion path, rotation, scale, or
@@ -139,6 +145,15 @@ export function buildDynamicKeyframes(
 		const css = buildColorAnimationKeyframes(anim.colorAnimation, name);
 		if (css) {
 			return { keyframeName: name, css };
+		}
+	}
+
+	// Filter-based emphasis (desaturate / darken / lighten)
+	if (anim.presetClass === 'emph') {
+		const filterName = `pptx-emph-${uid}`;
+		const filterCss = emphasisFilterKeyframeCss(anim.presetId, filterName);
+		if (filterCss) {
+			return { keyframeName: filterName, css: filterCss };
 		}
 	}
 
@@ -208,6 +223,14 @@ export function buildDynamicKeyframe(
 		const css = buildColorAnimationKeyframes(anim.colorAnimation, name);
 		if (css) {
 			return { keyframeName: name, css };
+		}
+	}
+	// Filter-based emphasis (desaturate / darken / lighten)
+	if (anim.presetClass === 'emph') {
+		const filterName = `pptx-tl-emph-${uid}`;
+		const filterCss = emphasisFilterKeyframeCss(anim.presetId, filterName);
+		if (filterCss) {
+			return { keyframeName: filterName, css: filterCss };
 		}
 	}
 	return undefined;

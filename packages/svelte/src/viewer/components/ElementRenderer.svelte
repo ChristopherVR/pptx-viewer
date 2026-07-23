@@ -7,7 +7,7 @@
 	 * `unknown` still falls through to the typed placeholder.
 	 */
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-	import { build3DExtrusionData, buildParagraphs, hasTextWarp, isTemplateElement } from 'pptx-viewer-shared';
+	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, hasTextWarp, isTemplateElement } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, styleToString } from '../style';
 	import { useSmartArt3D } from '../state/smart-art-3d-context';
@@ -17,6 +17,7 @@
 	import ChartView from './ChartView.svelte';
 	import ConnectorView from './ConnectorView.svelte';
 	import DuotoneFilterDefs from './DuotoneFilterDefs.svelte';
+	import ShapeEffectOverlay from './ShapeEffectOverlay.svelte';
 	import EquationView from './EquationView.svelte';
 	import Extrusion3D from './Extrusion3D.svelte';
 	import ContentPartView from './ContentPartView.svelte';
@@ -34,9 +35,11 @@
 	import WordArtText from './WordArtText.svelte';
 	import type { ElementRendererProps } from './props';
 
-	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false, editTemplateMode = false, ontablecellcommit, onsmartartnodecommit, onsmartartnodefill }: ElementRendererProps =
+	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false, editTemplateMode = false, parentGroupFill, ontablecellcommit, onsmartartnodecommit, onsmartartnodefill }: ElementRendererProps =
 		$props();
 	const elementInteractive = $derived(interactive && (!isTemplateElement(element) || editTemplateMode));
+	/** This group's own fill, handed to `a:grpFill` children (undefined for non-groups). */
+	const childParentGroupFill = $derived(getGroupChildParentFill(element));
 
 	/** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
 	const smartArt3D = useSmartArt3D();
@@ -74,7 +77,7 @@
 		data-pptx-element={elementInteractive ? 'true' : undefined}
 	>
 		{#each element.children ?? [] as child, i (child.id)}
-			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {editTemplateMode} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} />
+			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {editTemplateMode} parentGroupFill={childParentGroupFill} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} />
 		{/each}
 	</div>
 {:else if isImageLike}
@@ -107,11 +110,12 @@
 	<!-- Text / shape: shared fill/stroke/effects/geometry + rich text block. -->
 	<div
 		class="pptx-svelte-element pptx-svelte-shape"
-		style={styleToString({ ...getShapeBoxStyle(element, zIndex), pointerEvents: elementInteractive ? 'auto' : 'none' })}
+		style={styleToString({ ...getShapeBoxStyle(element, zIndex, parentGroupFill), pointerEvents: elementInteractive ? 'auto' : 'none' })}
 		data-element-id={element.id}
 		data-pptx-element={elementInteractive ? 'true' : undefined}
 	>
 		<DuotoneFilterDefs {element} {mediaDataUrls} {zIndex} />
+		<ShapeEffectOverlay {element} {mediaDataUrls} {zIndex} />
 		{#if extrusion.hasExtrusion}<Extrusion3D data={extrusion} />{/if}
 		{#if warpedText}
 			<WordArtText {element} {mediaDataUrls} {zIndex} />

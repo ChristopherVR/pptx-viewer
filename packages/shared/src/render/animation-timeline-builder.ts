@@ -9,7 +9,9 @@
 import type { PptxNativeAnimation, PptxAnimationTrigger } from 'pptx-viewer-core';
 
 import { resolveAnimationStart } from './animation-advanced-triggers';
+import { buildDirectionalKeyframe } from './animation-directional';
 import { getEffectKeyframes } from './animation-keyframes';
+import { isMediaCommandAnimation, buildStepCommand } from './animation-media-commands';
 import {
 	resolveEffect,
 	buildDynamicKeyframe,
@@ -24,6 +26,68 @@ import type {
 	TimelineClickGroup,
 	AnimationTimeline,
 } from './animation-timeline-types';
+
+// ==========================================================================
+// Unmapped-preset safety net
+// ==========================================================================
+
+/**
+ * Resolve a fallback {@link EffectName} for an animation whose preset we do
+ * not model (no static effect and no dynamic keyframe).
+ *
+ * Without this, an unmapped animation was silently dropped, which broke slide
+ * visibility semantics: an unmapped **entrance** was never registered as
+ * hidden-until-its-start, so it stayed visible from the very first frame; an
+ * unmapped **exit** never hid its element. We substitute a neutral fade so the
+ * element still transitions in (entrance) or out (exit) at the correct time.
+ *
+ * Emphasis / motion-path presets carry no show/hide semantics, so a missing
+ * one is safe to skip and returns `undefined`.
+ */
+/** Clamp a value into the closed unit interval. */
+function clamp01(value: number): number {
+	return Math.max(0, Math.min(1, value));
+}
+
+/**
+ * Map an animation's parsed `accel`/`decel` fractions to a CSS timing function.
+ *
+ * PowerPoint's `accel` is the fraction of the duration spent easing in and
+ * `decel` the fraction spent easing out. We translate the actual magnitudes to
+ * a `cubic-bezier(accel, 0, 1 - decel, 1)` curve so a gentle 10% accel differs
+ * from an aggressive 80% accel (the old keyword mapping collapsed both to a flat
+ * `ease-in`). With neither set we keep the neutral `ease` default so existing
+ * decks are unchanged.
+ */
+function cssEasingForAnimation(anim: PptxNativeAnimation): string {
+	const accel = anim.accel !== undefined && anim.accel > 0 ? clamp01(anim.accel) : 0;
+	const decel = anim.decel !== undefined && anim.decel > 0 ? clamp01(anim.decel) : 0;
+	if (accel === 0 && decel === 0) {
+		return 'ease';
+	}
+	const x1 = accel.toFixed(3);
+	const x2 = (1 - decel).toFixed(3);
+	return `cubic-bezier(${x1}, 0, ${x2}, 1)`;
+}
+
+function fallbackEffectForClass(
+	presetClass: PptxNativeAnimation['presetClass'],
+): EffectName | undefined {
+	if (presetClass === 'entr') {
+		return 'fadeIn';
+	}
+	if (presetClass === 'exit') {
+		return 'fadeOut';
+	}
+	if (presetClass === 'emph') {
+		// Emphasis carries no show/hide semantics, but an unmapped emphasis must
+		// still animate (previously it was silently dropped and rendered inert).
+		// A neutral pulse is a safe stand-in that reads as "this element is being
+		// emphasised" regardless of the specific unmapped preset.
+		return 'pulse';
+	}
+	return undefined;
+}
 
 // ==========================================================================
 // Timeline builder
@@ -95,13 +159,36 @@ export function buildTimeline(
 		const expandedSteps = expandIterateAnimation(anim);
 
 		for (const singleAnim of expandedSteps) {
-			const effect = resolveEffect(singleAnim);
-			const dynamic = effect ? undefined : buildDynamicKeyframe(singleAnim, dynamicUid++);
-			if (!effect && !dynamic) {
-				continue;
+			let effect = resolveEffect(singleAnim);
+			let dynamic = effect ? undefined : buildDynamicKeyframe(singleAnim, dynamicUid++);
+			// Directional non-fly entrance/exit (wipe / split / blinds / peek):
+			// honour `presetSubtype` by swapping the fixed-direction static effect
+			// for a direction-aware clip-path keyframe. Fly is already redirected
+			// inside resolveEffect, and non-directional effects return undefined.
+			if (effect) {
+				const directional = buildDirectionalKeyframe(effect, singleAnim.presetSubtype, dynamicUid);
+				if (directional) {
+					dynamic = directional;
+					effect = undefined;
+					dynamicUid++;
+				}
+			}
+			// A `p:cmd` media command carries no visual effect but must still be
+			// sequenced so the playback layer can act on it at the right time.
+			const isCommand = !effect && !dynamic && isMediaCommandAnimation(singleAnim);
+			if (!effect && !dynamic && !isCommand) {
+				// Unmapped preset: fall back so an entrance is still hidden until
+				// its start and an exit still hides, rather than being dropped.
+				effect = fallbackEffectForClass(singleAnim.presetClass);
+				if (!effect) {
+					continue;
+				}
 			}
 
-			const keyframe = effect ? cssKeyframeName(effect) : dynamic!.keyframeName;
+			let keyframe = '';
+			if (!isCommand) {
+				keyframe = effect ? cssKeyframeName(effect) : dynamic!.keyframeName;
+			}
 			if (effect) {
 				neededKeyframes.add(effect);
 			}
@@ -109,13 +196,18 @@ export function buildTimeline(
 				dynamicBlocks.push(dynamic.css);
 			}
 
-			const elementId = singleAnim.targetId ?? '';
+			// Command steps carry no element visibility semantics: an empty
+			// elementId keeps them from hiding/revealing a real element; the media
+			// target is routed via the command payload instead.
+			const elementId = isCommand ? '' : (singleAnim.targetId ?? '');
 			// Honour the FULL start-condition OR-set (compound / simultaneous
 			// triggers) rather than the collapsed single trigger. The effective
 			// condition drives grouping and supplies the governing start delay.
 			const effective = resolveAnimationStart(singleAnim);
 			const trigger: PptxAnimationTrigger = effective.trigger;
-			const duration = singleAnim.durationMs ?? defaultDuration(singleAnim.presetClass);
+			const duration = isCommand
+				? 0
+				: (singleAnim.durationMs ?? defaultDuration(singleAnim.presetClass));
 			const animDelay = singleAnim.delayMs ?? 0;
 			// Use the governing condition delay when conditions were present;
 			// otherwise fall back to the simple triggerDelayMs (afterDelay) so
@@ -124,7 +216,7 @@ export function buildTimeline(
 				singleAnim.startConditions && singleAnim.startConditions.length > 0
 					? effective.delayMs
 					: (singleAnim.triggerDelayMs ?? 0);
-			const presetClass = singleAnim.presetClass ?? 'entr';
+			const presetClass = isCommand ? 'emph' : (singleAnim.presetClass ?? 'entr');
 			const fill = fillModeForClass(singleAnim.presetClass);
 
 			// Compute repeat / direction
@@ -171,7 +263,10 @@ export function buildTimeline(
 			}
 
 			const iterStr = iterCount === Infinity ? 'infinite' : String(iterCount);
-			const cssAnimation = `${keyframe} ${duration}ms ease ${delayMs}ms ${iterStr} ${direction} ${fill}`;
+			const easing = cssEasingForAnimation(singleAnim);
+			const cssAnimation = isCommand
+				? ''
+				: `${keyframe} ${duration}ms ${easing} ${delayMs}ms ${iterStr} ${direction} ${fill}`;
 
 			currentGroup.push({
 				elementId,
@@ -184,6 +279,7 @@ export function buildTimeline(
 				presetClass: presetClass as TimelineStep['presetClass'],
 				soundPath: singleAnim.soundPath,
 				stopSound: singleAnim.stopSound,
+				command: isCommand ? buildStepCommand(singleAnim) : undefined,
 			});
 		}
 	}
@@ -303,10 +399,14 @@ function buildSequenceGroups(
 		let seqGroup: TimelineStep[] = [];
 
 		for (const anim of anims) {
-			const effect = resolveEffect(anim);
+			let effect = resolveEffect(anim);
 			const dynamic = effect ? undefined : buildDynamicKeyframe(anim, dynamicUid++);
 			if (!effect && !dynamic) {
-				continue;
+				// Same unmapped-preset safety net as the main timeline loop.
+				effect = fallbackEffectForClass(anim.presetClass);
+				if (!effect) {
+					continue;
+				}
 			}
 
 			const keyframe = effect ? cssKeyframeName(effect) : dynamic!.keyframeName;
@@ -352,7 +452,8 @@ function buildSequenceGroups(
 			}
 
 			const iterStr = iterCount === Infinity ? 'infinite' : String(iterCount);
-			const cssAnimation = `${keyframe} ${duration}ms ease ${delayMs}ms ${iterStr} ${direction} ${fill}`;
+			const easing = cssEasingForAnimation(anim);
+			const cssAnimation = `${keyframe} ${duration}ms ${easing} ${delayMs}ms ${iterStr} ${direction} ${fill}`;
 
 			seqGroup.push({
 				elementId,

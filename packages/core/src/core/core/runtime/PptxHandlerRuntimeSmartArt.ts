@@ -1,8 +1,11 @@
 import { XmlObject } from '../../types';
 import type { PptxSmartArtData, PptxSmartArtDrawingShape } from '../../types';
 import { parseDiagramRelationshipIds, parseSmartArtLayoutDefinition } from '../../utils';
+import { parseSmartArtPresLayoutVars } from '../../utils/smartart-pres-layout-vars';
 import { MAX_SMARTART_NODES } from '../builders/smart-art-text-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtParsing';
+import { parseDrawingShapesFromPart } from './smartart-drawing-blip';
+import type { DrawingBlipDeps } from './smartart-drawing-blip';
 import { resolveSmartArtLayoutCategory } from './smartart-layout-category';
 import {
 	firstParagraphRuns,
@@ -169,6 +172,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			layoutDefinition,
 			nodes,
 			connections: parsedConnections.length > 0 ? parsedConnections : undefined,
+			presLayoutVars: parseSmartArtPresLayoutVars(dataModel),
 			drawingShapes: drawingShapes.length > 0 ? drawingShapes : undefined,
 			chrome,
 			colorTransform,
@@ -268,33 +272,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
-	 * Parse SmartArt drawing shapes given an absolute part path.
+	 * Parse cached SmartArt drawing shapes from an absolute part path.
 	 *
-	 * Wraps `parseSmartArtDrawingShapes` (which expects a slide-relative
-	 * relationship id) with a path-based lookup so the resolution layer
-	 * can pull the part from anywhere in the package.
+	 * Enumerates `dsp:sp` / bare `dsp:pic` (incl. nested `dsp:grpSp`) and
+	 * resolves picture (blip) fills to data URLs via the drawing part's own
+	 * relationships. Delegates to a pure helper with an injected dep bundle.
 	 */
 	private async parseSmartArtDrawingShapesFromPath(
 		drawingPath: string,
 	): Promise<PptxSmartArtDrawingShape[]> {
-		const xmlString = await this.zip.file(drawingPath)?.async('string');
-		if (!xmlString) {
-			return [];
-		}
-		try {
-			const xml = this.parser.parse(xmlString) as XmlObject;
-			const drawing = this.xmlLookupService.getChildByLocalName(xml, 'drawing');
-			const spTree = this.xmlLookupService.getChildByLocalName(drawing || xml, 'spTree');
-			if (!spTree) {
-				return [];
-			}
-			const shapes = this.xmlLookupService.getChildrenArrayByLocalName(spTree, 'sp');
-			const emuPerPx = PptxHandlerRuntime.EMU_PER_PX;
-			return shapes
-				.map((sp, index) => this.parseDrawingShape(sp, index, emuPerPx))
-				.filter((entry): entry is PptxSmartArtDrawingShape => entry !== null);
-		} catch {
-			return [];
-		}
+		return parseDrawingShapesFromPart(drawingPath, this.drawingBlipDeps());
+	}
+
+	/** Bind runtime zip / parser / lookup / image helpers for the drawing parser. */
+	private drawingBlipDeps(): DrawingBlipDeps {
+		return {
+			readText: (path) => this.zip.file(path)?.async('string') ?? Promise.resolve(undefined),
+			parse: (xml) => this.parser.parse(xml) as XmlObject,
+			getChild: (node, local) => this.xmlLookupService.getChildByLocalName(node, local),
+			getChildren: (node, local) => this.xmlLookupService.getChildrenArrayByLocalName(node, local),
+			parseDrawingShape: (sp, index, emuPerPx) => this.parseDrawingShape(sp, index, emuPerPx),
+			emuPerPx: PptxHandlerRuntime.EMU_PER_PX,
+			ensureArray: (value) => this.ensureArray(value),
+			resolveImagePath: (base, target) => this.resolveImagePath(base, target),
+			getImageData: (path) => this.getImageData(path),
+		};
 	}
 }

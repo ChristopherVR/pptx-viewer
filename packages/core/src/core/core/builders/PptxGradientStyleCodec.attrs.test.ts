@@ -74,4 +74,33 @@ describe('pptxGradientStyleCodec — flip / rotWithShape / scaled', () => {
 		const xml = codec.buildGradientFillXml(style)!;
 		expect((xml['a:lin'] as XmlObject)['@_scaled']).toBe('1');
 	});
+
+	it('extracts a:tileRect LTRB into 0..1 fractions (may be negative)', () => {
+		const tileRect = codec.extractGradientTileRect({
+			'a:tileRect': { '@_l': '10000', '@_t': '-20000', '@_r': '30000', '@_b': '40000' },
+		} as XmlObject);
+		expect(tileRect).toStrictEqual({ l: 0.1, t: -0.2, r: 0.3, b: 0.4 });
+	});
+
+	it('returns undefined tileRect when the child is absent', () => {
+		expect(codec.extractGradientTileRect({} as XmlObject)).toBeUndefined();
+	});
+
+	it('round-trips fillGradientTileRect through buildGradientFillXml', () => {
+		const style: ShapeStyle = {
+			fillGradientStops: [
+				{ color: '#FF0000', position: 0 },
+				{ color: '#0000FF', position: 100 },
+			],
+			fillGradientType: 'linear',
+			fillGradientTileRect: { l: 0.1, t: 0.2, r: 0.3, b: 0.4 },
+		};
+		const xml = codec.buildGradientFillXml(style)!;
+		expect(xml['a:tileRect']).toStrictEqual({
+			'@_l': '10000',
+			'@_t': '20000',
+			'@_r': '30000',
+			'@_b': '40000',
+		});
+	});
 });

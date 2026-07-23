@@ -14,29 +14,53 @@ export function applyScene3dStyle(shapeProps: XmlObject, style: ShapeStyle): voi
 	const camera = scene3dNode['a:camera'] as XmlObject | undefined;
 	const lightRig = scene3dNode['a:lightRig'] as XmlObject | undefined;
 	const cameraRot = camera?.['a:rot'] as XmlObject | undefined;
+	const lightRigRot = lightRig?.['a:rot'] as XmlObject | undefined;
 	style.scene3d = {
 		cameraPreset: String(camera?.['@_prst'] || '').trim() || undefined,
-		cameraRotX:
-			cameraRot?.['@_lat'] !== undefined ? parseInt(String(cameraRot['@_lat']), 10) : undefined,
-		cameraRotY:
-			cameraRot?.['@_lon'] !== undefined ? parseInt(String(cameraRot['@_lon']), 10) : undefined,
-		cameraRotZ:
-			cameraRot?.['@_rev'] !== undefined ? parseInt(String(cameraRot['@_rev']), 10) : undefined,
+		cameraFieldOfView: intAttr(camera?.['@_fov']),
+		cameraZoom: floatAttr(camera?.['@_zoom']),
+		cameraRotX: intAttr(cameraRot?.['@_lat']),
+		cameraRotY: intAttr(cameraRot?.['@_lon']),
+		cameraRotZ: intAttr(cameraRot?.['@_rev']),
 		lightRigType: String(lightRig?.['@_rig'] || '').trim() || undefined,
 		lightRigDirection: String(lightRig?.['@_dir'] || '').trim() || undefined,
+		lightRigRotX: intAttr(lightRigRot?.['@_lat']),
+		lightRigRotY: intAttr(lightRigRot?.['@_lon']),
+		lightRigRotZ: intAttr(lightRigRot?.['@_rev']),
 	};
 
 	const backdrop = scene3dNode['a:backdrop'] as XmlObject | undefined;
 	if (backdrop) {
 		style.scene3d.hasBackdrop = true;
-		const anchor = (backdrop as XmlObject)['a:anchor'] as XmlObject | undefined;
-		const anchorAttrs = anchor as XmlObject | undefined;
-		if (anchorAttrs) {
-			style.scene3d.backdropAnchorX = parseInt(String(anchorAttrs['@_x'] || '0'), 10);
-			style.scene3d.backdropAnchorY = parseInt(String(anchorAttrs['@_y'] || '0'), 10);
-			style.scene3d.backdropAnchorZ = parseInt(String(anchorAttrs['@_z'] || '0'), 10);
+		const anchor = backdrop['a:anchor'] as XmlObject | undefined;
+		if (anchor) {
+			style.scene3d.backdropAnchorX = intAttr(anchor['@_x']) ?? 0;
+			style.scene3d.backdropAnchorY = intAttr(anchor['@_y']) ?? 0;
+			style.scene3d.backdropAnchorZ = intAttr(anchor['@_z']) ?? 0;
+		}
+		const norm = backdrop['a:norm'] as XmlObject | undefined;
+		if (norm) {
+			style.scene3d.backdropNormalX = intAttr(norm['@_dx']) ?? 0;
+			style.scene3d.backdropNormalY = intAttr(norm['@_dy']) ?? 0;
+			style.scene3d.backdropNormalZ = intAttr(norm['@_dz']) ?? 0;
+		}
+		const up = backdrop['a:up'] as XmlObject | undefined;
+		if (up) {
+			style.scene3d.backdropUpX = intAttr(up['@_dx']) ?? 0;
+			style.scene3d.backdropUpY = intAttr(up['@_dy']) ?? 0;
+			style.scene3d.backdropUpZ = intAttr(up['@_dz']) ?? 0;
 		}
 	}
+}
+
+/** Parse an XML attribute value to an integer, or `undefined` when absent. */
+function intAttr(value: unknown): number | undefined {
+	return value !== undefined ? parseInt(String(value), 10) : undefined;
+}
+
+/** Parse an XML attribute value to a float, or `undefined` when absent. */
+function floatAttr(value: unknown): number | undefined {
+	return value !== undefined ? parseFloat(String(value)) : undefined;
 }
 
 /** Apply `a:sp3d` properties to the shape style. */

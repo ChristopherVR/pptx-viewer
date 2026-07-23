@@ -12,7 +12,7 @@
 /**
  * Per-cell visual style for a table cell.
  *
- * All fields are optional — unset values inherit from the table style.
+ * All fields are optional - unset values inherit from the table style.
  *
  * @example
  * ```ts
@@ -138,6 +138,53 @@ export interface PptxTableCellStyle {
 	patternFillForeground?: string;
 	/** Pattern fill background colour. */
 	patternFillBackground?: string;
+	/**
+	 * Cell 3D bevel + lighting from `a:tcPr/a:cell3D` (CT_Cell3D,
+	 * ECMA-376 §21.1.3.1). Rendered as a CSS bevel treatment.
+	 */
+	cell3D?: PptxTableCell3D;
+	/**
+	 * `a:tcPr/@anchorCtr` - centre the text block in the direction
+	 * perpendicular to the text flow (horizontal centring for horizontal text).
+	 */
+	anchorCtr?: boolean;
+	/**
+	 * `a:tcPr/@horzOverflow` (ST_TextHorzOverflowType): `clip` clips text at
+	 * the cell edge, `overflow` (the default) lets it spill.
+	 */
+	horzOverflow?: 'clip' | 'overflow';
+}
+
+/**
+ * Cell 3D bevel + lighting parsed from `a:tcPr/a:cell3D` (CT_Cell3D).
+ *
+ * Only the fields needed to render a plausible bevel treatment are captured;
+ * verbatim round-trip of the full node is handled separately by the save path.
+ *
+ * @example
+ * ```ts
+ * const c3d: PptxTableCell3D = {
+ *   bevelWidth: 8,
+ *   bevelHeight: 8,
+ *   bevelPreset: 'circle',
+ *   material: 'plastic',
+ * };
+ * // => satisfies PptxTableCell3D
+ * ```
+ */
+export interface PptxTableCell3D {
+	/** Bevel width in px (from `a:bevel@w`, EMU converted). */
+	bevelWidth?: number;
+	/** Bevel height in px (from `a:bevel@h`, EMU converted). */
+	bevelHeight?: number;
+	/** Bevel preset name (`a:bevel@prst`, e.g. `circle`, `relaxedInset`). */
+	bevelPreset?: string;
+	/** Preset material (`a:cell3D@prstMaterial`, e.g. `plastic`, `metal`). */
+	material?: string;
+	/** Light rig type (`a:lightRig@rig`, e.g. `threePt`, `soft`). */
+	lightRig?: string;
+	/** Light rig direction (`a:lightRig@dir`, e.g. `tl`, `t`, `tr`). */
+	lightRigDirection?: string;
 }
 
 /**
@@ -258,12 +305,53 @@ export interface PptxTableData {
  * ```
  */
 export interface ParsedTableStyleFill {
-	/** Theme colour key (e.g. `accent1`, `dk1`). */
+	/**
+	 * Theme colour key (e.g. `accent1`, `dk1`). Empty string when the fill is a
+	 * non-scheme fill (explicit sRGB, gradient, pattern, or none) that carries
+	 * no theme colour reference; the renderer then resolves {@link color},
+	 * {@link gradient}, {@link pattern}, or {@link noFill} instead.
+	 */
 	schemeColor: string;
 	/** Tint value (0-100 000). */
 	tint?: number;
 	/** Shade value (0-100 000). */
 	shade?: number;
+	/** Explicit sRGB hex colour (e.g. `#FF8800`) from `a:srgbClr`. */
+	color?: string;
+	/** The fill was `a:noFill`: renders transparent and clears lower layers. */
+	noFill?: boolean;
+	/** Gradient fill parsed from `a:gradFill`. */
+	gradient?: ParsedTableStyleGradient;
+	/** Preset pattern fill parsed from `a:pattFill`. */
+	pattern?: ParsedTableStylePattern;
+}
+
+/** A single colour stop within a {@link ParsedTableStyleGradient}. */
+export interface ParsedTableStyleGradientStop {
+	/** Stop position as a percentage (0-100). */
+	position: number;
+	/** Stop colour (scheme or explicit sRGB). */
+	fill: ParsedTableStyleFill;
+}
+
+/** A gradient fill parsed from a table style section's `a:gradFill`. */
+export interface ParsedTableStyleGradient {
+	/** Ordered colour stops. */
+	stops: ParsedTableStyleGradientStop[];
+	/** Linear gradient angle in degrees (from `a:lin@ang`, 60000ths -> deg). */
+	angle?: number;
+	/** Gradient family: linear (`a:lin`) or radial (`a:path`). */
+	type: 'linear' | 'radial';
+}
+
+/** A preset pattern fill parsed from a table style section's `a:pattFill`. */
+export interface ParsedTableStylePattern {
+	/** OOXML preset name (e.g. `ltDnDiag`) from `a:pattFill@prst`. */
+	preset: string;
+	/** Foreground colour (`a:fgClr`). */
+	foreground?: ParsedTableStyleFill;
+	/** Background colour (`a:bgClr`). */
+	background?: ParsedTableStyleFill;
 }
 
 /**
@@ -291,12 +379,69 @@ export interface ParsedTableStyleText {
 	bold?: boolean;
 	/** Font italic. */
 	italic?: boolean;
+	/** Font underline (from `a:tcTxStyle@u`, any value other than `none`). */
+	underline?: boolean;
 	/** Font colour as theme scheme key. */
 	fontSchemeColor?: string;
 	/** Font colour tint (0-100 000). */
 	fontTint?: number;
 	/** Font colour shade (0-100 000). */
 	fontShade?: number;
+	/** Explicit sRGB hex font colour (e.g. `#FF0000`) from `a:srgbClr`. */
+	fontColor?: string;
+	/** Typeface from `a:font@typeface` (latin font). */
+	fontFace?: string;
+	/** Font-collection index from `a:fontRef@idx` (`minor`, `major`, `none`). */
+	fontRefIdx?: string;
+}
+
+/**
+ * A single border side within a table style's `a:tcStyle/a:tcBdr`.
+ *
+ * Corresponds to one of `a:left`, `a:right`, `a:top`, `a:bottom`,
+ * `a:insideH`, `a:insideV`, `a:tl2br`, `a:bl2tr` (each a
+ * `CT_ThemeableLineStyle` wrapping an `a:ln`).
+ *
+ * @example
+ * ```ts
+ * const side: ParsedTableStyleBorder = {
+ *   width: 1,
+ *   dash: 'solid',
+ *   fill: { schemeColor: 'lt1' },
+ * };
+ * // => satisfies ParsedTableStyleBorder
+ * ```
+ */
+export interface ParsedTableStyleBorder {
+	/** Line width in px (converted from the `a:ln@w` EMU value). */
+	width?: number;
+	/** OOXML `a:prstDash@val` (e.g. `solid`, `dash`, `sysDot`). */
+	dash?: string;
+	/** Border colour as a theme scheme fill (from `a:ln/a:solidFill/a:schemeClr`). */
+	fill?: ParsedTableStyleFill;
+	/** Explicit hex colour when the line used `a:srgbClr` (e.g. `#808080`). */
+	color?: string;
+	/** The line was `a:noFill` - an explicit "no border" that clears lower layers. */
+	noFill?: boolean;
+}
+
+/**
+ * The set of border sides parsed from a table style section's
+ * `a:tcStyle/a:tcBdr` element.
+ */
+export interface ParsedTableStyleBorders {
+	left?: ParsedTableStyleBorder;
+	right?: ParsedTableStyleBorder;
+	top?: ParsedTableStyleBorder;
+	bottom?: ParsedTableStyleBorder;
+	/** Interior horizontal borders between rows in the region. */
+	insideH?: ParsedTableStyleBorder;
+	/** Interior vertical borders between columns in the region. */
+	insideV?: ParsedTableStyleBorder;
+	/** Top-left to bottom-right diagonal. */
+	tl2br?: ParsedTableStyleBorder;
+	/** Bottom-left to top-right diagonal. */
+	bl2tr?: ParsedTableStyleBorder;
 }
 
 /**
@@ -334,6 +479,24 @@ export interface ParsedTableStyleEntry {
 	swCellFill?: ParsedTableStyleFill;
 	neCellFill?: ParsedTableStyleFill;
 	nwCellFill?: ParsedTableStyleFill;
+	/**
+	 * Per-role border styling from `a:tcStyle/a:tcBdr`. These supply the
+	 * gridlines/edges a styled table inherits from its table style when the
+	 * cells carry no explicit per-cell `a:lnX` overrides.
+	 */
+	wholeTblBorders?: ParsedTableStyleBorders;
+	firstRowBorders?: ParsedTableStyleBorders;
+	lastRowBorders?: ParsedTableStyleBorders;
+	firstColBorders?: ParsedTableStyleBorders;
+	lastColBorders?: ParsedTableStyleBorders;
+	band1HBorders?: ParsedTableStyleBorders;
+	band2HBorders?: ParsedTableStyleBorders;
+	band1VBorders?: ParsedTableStyleBorders;
+	band2VBorders?: ParsedTableStyleBorders;
+	seCellBorders?: ParsedTableStyleBorders;
+	swCellBorders?: ParsedTableStyleBorders;
+	neCellBorders?: ParsedTableStyleBorders;
+	nwCellBorders?: ParsedTableStyleBorders;
 	/** Per-role text styling from a:tcTxStyle. */
 	wholeTblText?: ParsedTableStyleText;
 	firstRowText?: ParsedTableStyleText;

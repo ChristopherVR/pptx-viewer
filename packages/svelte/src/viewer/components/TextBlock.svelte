@@ -7,18 +7,38 @@
 	 */
 	import { styleToString } from '../style';
 	import type { TextBlockProps } from './props';
+	import type { RenderParagraph } from 'pptx-viewer-shared';
 
 	const { paragraphs, textStyle }: TextBlockProps = $props();
+
+	/**
+	 * Per-paragraph inline style: hanging-indent margin-left + first-line
+	 * text-indent, plus this paragraph's own line-height (`a:lnSpc`) and
+	 * space-before/after (`a:spcBef` / `a:spcAft`) carried by the shared model.
+	 * Only keys the paragraph overrides are emitted, so paragraphs without their
+	 * own spacing inherit the body-level `textStyle`.
+	 */
+	function paraStyle(para: RenderParagraph): string {
+		let css = `margin: 0 0 0 ${para.marginLeftPx ?? 0}px;`;
+		if (para.spaceBeforePx !== undefined) {
+			css += `margin-top: ${para.spaceBeforePx}px;`;
+		}
+		if (para.spaceAfterPx !== undefined) {
+			css += `margin-bottom: ${para.spaceAfterPx}px;`;
+		}
+		if (para.lineHeight !== undefined) {
+			css += `line-height: ${para.lineHeight};`;
+		}
+		if (para.textIndentPx !== undefined) {
+			css += `text-indent: ${para.textIndentPx}px;`;
+		}
+		return css;
+	}
 </script>
 
 <div class="pptx-svelte-text" style={textStyle}>
 	{#each paragraphs as para, pi (pi)}
-		<p
-			class="pptx-svelte-para"
-			style="margin: 0 0 0 {para.marginLeftPx ?? 0}px;{para.textIndentPx !== undefined
-				? ` text-indent: ${para.textIndentPx}px;`
-				: ''}"
-		>
+		<p class="pptx-svelte-para" style={paraStyle(para)}>
 			{#if para.bulletPicture?.src}<img
 					class="pptx-svelte-bullet-image"
 					src={para.bulletPicture.src}

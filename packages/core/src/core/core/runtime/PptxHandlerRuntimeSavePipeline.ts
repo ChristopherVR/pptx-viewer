@@ -44,7 +44,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			.withCommentAuthorsRootXml(this.commentAuthorsRootXml)
 			.withEmuPerPx(PptxHandlerRuntime.EMU_PER_PX)
 			.build();
-		await this.reconcilePresentationSlidesForSave({
+		const slideReferenceRemap = await this.reconcilePresentationSlidesForSave({
 			slides,
 			saveSession,
 			slideRelationshipType,
@@ -177,6 +177,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				rawSlideHeightEmu: this.rawSlideHeightEmu,
 				rawSlideSizeType: this.rawSlideSizeType,
 				xmlLookupService: this.xmlLookupService,
+				slideReferenceRemap,
 			});
 			this.deduplicateExtensionLists(this.presentationData);
 			// Keep the `conformance` attribute consistent with the effective class.
@@ -209,7 +210,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 				: options?.presentationProperties;
 		await this.applyPresentationPropertiesPart(presentationProperties);
-		await this.applyViewPropertiesPart(options?.viewProperties);
+		// Default the view properties from the model parsed at load time (issue
+		// #90) so an unmodified load -> save round-trips the typed viewProps and
+		// edits still persist when the caller does not override them.
+		await this.applyViewPropertiesPart(options?.viewProperties ?? this.loadedViewProperties);
 		await this.applyTableStylesPart(options?.tableStyles);
 
 		await this.documentPropertiesUpdater.updateOnSave(slides, {

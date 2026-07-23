@@ -365,3 +365,33 @@ describe('decomposeSmartArt — colour transforms', () => {
 		);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// decomposeSmartArt — presentation layout variables (direction)
+// ---------------------------------------------------------------------------
+
+describe('decomposeSmartArt — presLayoutVars direction', () => {
+	it('keeps node order for normal direction', () => {
+		const data: PptxSmartArtData = {
+			resolvedLayoutType: 'list',
+			nodes: makeNodes(['A', 'B', 'C']),
+			presLayoutVars: { direction: 'norm' },
+		};
+		const result = decomposeSmartArt(data, bounds)!;
+		const shapes = result.filter((e) => e.type === 'shape');
+		expect((shapes[0] as Record<string, unknown>).text).toBe('A');
+		expect((shapes[2] as Record<string, unknown>).text).toBe('C');
+	});
+
+	it('reverses node order when direction is rev (from presLayoutVars)', () => {
+		const data: PptxSmartArtData = {
+			resolvedLayoutType: 'list',
+			nodes: makeNodes(['A', 'B', 'C']),
+			presLayoutVars: { direction: 'rev' },
+		};
+		const result = decomposeSmartArt(data, bounds)!;
+		const shapes = result.filter((e) => e.type === 'shape');
+		expect((shapes[0] as Record<string, unknown>).text).toBe('C');
+		expect((shapes[2] as Record<string, unknown>).text).toBe('A');
+	});
+});

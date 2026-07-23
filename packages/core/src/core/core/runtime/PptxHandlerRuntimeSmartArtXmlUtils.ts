@@ -5,6 +5,7 @@ import type {
 	PptxSmartArtNodeStyle,
 	PptxSmartArtTextRun,
 } from '../../types';
+import { buildSmartArtColorLists } from '../../utils/smartart-color-lists';
 import {
 	parseSmartArtColorStyleLabels,
 	parseSmartArtDefinitionMetadata,
@@ -212,42 +213,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				metadata.titles?.[0]?.value ||
 				String(colorsDef['@_title'] || colorsDef['@_uniqueId'] || '').trim() ||
 				undefined;
-			const fillColors: string[] = [];
-			const lineColors: string[] = [];
 
+			// Resolve the FULL per-styleLbl colour lists (fill/line/text/effect)
+			// plus their span/cycle/hueDir interpolation metadata, so multi-colour
+			// "colorful" schemes spread across nodes instead of collapsing to the
+			// first accent. See {@link buildSmartArtColorLists}.
 			const styleLbls = this.xmlLookupService.getChildrenArrayByLocalName(colorsDef, 'styleLbl');
-			for (const lbl of styleLbls) {
-				const fillClrLst = this.xmlLookupService.getChildByLocalName(lbl, 'fillClrLst');
-				const linClrLst = this.xmlLookupService.getChildByLocalName(lbl, 'linClrLst');
+			const colorLists = buildSmartArtColorLists(styleLbls, {
+				getChild: (node, childName) => this.xmlLookupService.getChildByLocalName(node, childName),
+				parseColorChoice: (colorChoice) => this.parseColor(colorChoice),
+				resolveScheme: (colorNode) => this.resolveSmartArtSchemeColor(colorNode),
+			});
 
-				if (fillClrLst) {
-					const color =
-						this.parseColor(fillClrLst) ??
-						this.resolveSmartArtSchemeColor(
-							this.xmlLookupService.getChildByLocalName(fillClrLst, 'schemeClr'),
-						);
-					if (color) {
-						fillColors.push(color);
-					}
-				}
-
-				if (linClrLst) {
-					const color =
-						this.parseColor(linClrLst) ??
-						this.resolveSmartArtSchemeColor(
-							this.xmlLookupService.getChildByLocalName(linClrLst, 'schemeClr'),
-						);
-					if (color) {
-						lineColors.push(color);
-					}
-				}
-			}
-
-			if (fillColors.length === 0 && lineColors.length === 0) {
+			if (colorLists.fillColors.length === 0 && colorLists.lineColors.length === 0) {
 				return undefined;
 			}
 
-			return { ...metadata, name, fillColors, lineColors, labels };
+			return { ...metadata, name, ...colorLists, labels };
 		} catch {
 			return undefined;
 		}

@@ -10,7 +10,9 @@ import type { XmlObject } from '../types';
 import {
 	clampUnitInterval,
 	parseDrawingPercent,
+	parseDrawingFraction,
 	parseDrawingHueDegrees,
+	scrgbLinearToSrgb8,
 	toHex,
 	hslToRgb,
 } from './color-primitives';
@@ -42,14 +44,19 @@ export function parseDrawingColorChoice(colorNode: XmlObject | undefined): strin
 		return undefined;
 	}
 
-	// ScRGB: percentage-based red/green/blue (each 0-100000 = 0-100%)
+	// ScRGB: linear-light red/green/blue (each 0-100000 = 0-100%). scRGB is a
+	// linear-light space, so companding (linear -> sRGB) is applied before the
+	// channels are mapped to 8-bit; treating the fractions directly as sRGB
+	// over-darkens mid-tones.
 	if (colorNode['a:scrgbClr']) {
 		const scrgb = colorNode['a:scrgbClr'] as XmlObject;
-		const red = parseDrawingPercent(scrgb['@_r']);
-		const green = parseDrawingPercent(scrgb['@_g']);
-		const blue = parseDrawingPercent(scrgb['@_b']);
+		const red = parseDrawingFraction(scrgb['@_r']);
+		const green = parseDrawingFraction(scrgb['@_g']);
+		const blue = parseDrawingFraction(scrgb['@_b']);
 		if (red !== undefined && green !== undefined && blue !== undefined) {
-			const base = `#${toHex(red * 255)}${toHex(green * 255)}${toHex(blue * 255)}`;
+			const base = `#${toHex(scrgbLinearToSrgb8(red))}${toHex(scrgbLinearToSrgb8(green))}${toHex(
+				scrgbLinearToSrgb8(blue),
+			)}`;
 			return applyDrawingColorTransforms(base, scrgb);
 		}
 	}
@@ -182,12 +189,15 @@ export function parseDrawingColorOpacity(colorNode: XmlObject | undefined): numb
 		return undefined;
 	}
 
-	// Parse the three alpha-related transform values
+	// Parse the three alpha-related transform values. `alphaOff` is an additive
+	// offset that may be negative (e.g. `-25%`), so it must be parsed unclamped;
+	// clamping it to [0, 1] first would silently discard negative offsets. The
+	// combined opacity is clamped once at the end.
 	const alpha = parseDrawingPercent((colorChoice['a:alpha'] as XmlObject | undefined)?.['@_val']);
 	const alphaMod = parseDrawingPercent(
 		(colorChoice['a:alphaMod'] as XmlObject | undefined)?.['@_val'],
 	);
-	const alphaOff = parseDrawingPercent(
+	const alphaOff = parseDrawingFraction(
 		(colorChoice['a:alphaOff'] as XmlObject | undefined)?.['@_val'],
 	);
 	if (alpha === undefined && alphaMod === undefined && alphaOff === undefined) {

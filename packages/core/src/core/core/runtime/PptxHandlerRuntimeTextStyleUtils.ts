@@ -1,7 +1,123 @@
 import { TextSegment, TextStyle } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveImageEffects';
 
+/**
+ * ISO 15924 script tags (as used in `<a:font script="...">`) to try, in
+ * priority order, for a detected dominant-script category. CJK ideographs are
+ * ambiguous between simplified/traditional/Japanese, so several are tried.
+ */
+const SCRIPT_CANDIDATES: Record<string, readonly string[]> = {
+	cjk: ['Hans', 'Hant', 'Jpan', 'Hang'],
+	kana: ['Jpan', 'Hans', 'Hant'],
+	hangul: ['Hang'],
+	arabic: ['Arab'],
+	hebrew: ['Hebr'],
+	thai: ['Thai'],
+};
+
+/**
+ * Flatten a per-theme-path script-override map (`themePath -> {script ->
+ * typeface}`) into a single `{script -> typeface}` lookup. Earlier entries win
+ * on collision, matching the primary-theme-first parse order (#83).
+ */
+function aggregateFontScriptOverrides(
+	perPathMap: Map<string, Record<string, string>>,
+): Record<string, string> {
+	const aggregate: Record<string, string> = {};
+	for (const overrides of perPathMap.values()) {
+		for (const [script, typeface] of Object.entries(overrides)) {
+			if (!(script in aggregate)) {
+				aggregate[script] = typeface;
+			}
+		}
+	}
+	return aggregate;
+}
+
+/**
+ * Detect the dominant non-Latin script category of a run's text so the theme's
+ * per-script font override can be consulted (#83). Returns `undefined` when the
+ * text is empty or predominantly Latin (no fallback needed).
+ */
+function detectDominantScript(text: string): string | undefined {
+	const counts: Record<string, number> = {};
+	for (const ch of text) {
+		const code = ch.codePointAt(0) ?? 0;
+		let cat: string | undefined;
+		if (code >= 0x1100 && code <= 0x11ff) {
+			cat = 'hangul';
+		} else if (code >= 0xac00 && code <= 0xd7af) {
+			cat = 'hangul';
+		} else if (code >= 0x3040 && code <= 0x30ff) {
+			cat = 'kana';
+		} else if (
+			(code >= 0x4e00 && code <= 0x9fff) ||
+			(code >= 0x3400 && code <= 0x4dbf) ||
+			(code >= 0xf900 && code <= 0xfaff)
+		) {
+			cat = 'cjk';
+		} else if (code >= 0x0600 && code <= 0x06ff) {
+			cat = 'arabic';
+		} else if (code >= 0x0590 && code <= 0x05ff) {
+			cat = 'hebrew';
+		} else if (code >= 0x0e00 && code <= 0x0e7f) {
+			cat = 'thai';
+		}
+		if (cat) {
+			counts[cat] = (counts[cat] ?? 0) + 1;
+		}
+	}
+	let best: string | undefined;
+	let bestCount = 0;
+	for (const [cat, count] of Object.entries(counts)) {
+		if (count > bestCount) {
+			best = cat;
+			bestCount = count;
+		}
+	}
+	return best;
+}
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	/**
+	 * Resolve the automatic per-script fallback face for a run's text from the
+	 * theme's `<a:font script="...">` overrides (#83). Body (minor) fonts win
+	 * over heading (major) fonts. Returns `undefined` when the deck declares no
+	 * script overrides or the text needs no fallback.
+	 */
+	protected resolveScriptFallbackFont(text: string): string | undefined {
+		if (!text) {
+			return undefined;
+		}
+		if (
+			this.masterThemeMinorFontScripts.size === 0 &&
+			this.masterThemeMajorFontScripts.size === 0
+		) {
+			return undefined;
+		}
+		const category = detectDominantScript(text);
+		if (!category) {
+			return undefined;
+		}
+		const candidates = SCRIPT_CANDIDATES[category];
+		if (!candidates) {
+			return undefined;
+		}
+		const minor = aggregateFontScriptOverrides(this.masterThemeMinorFontScripts);
+		for (const key of candidates) {
+			if (minor[key]) {
+				return minor[key];
+			}
+		}
+		const major = aggregateFontScriptOverrides(this.masterThemeMajorFontScripts);
+		for (const key of candidates) {
+			if (major[key]) {
+				return major[key];
+			}
+		}
+		return undefined;
+	}
+
 	protected textStylesEqual(left: TextStyle | undefined, right: TextStyle | undefined): boolean {
 		const keys: Array<keyof TextStyle> = [
 			'fontFamily',

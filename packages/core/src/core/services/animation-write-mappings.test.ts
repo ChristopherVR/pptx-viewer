@@ -79,9 +79,24 @@ describe('pRESET_TO_OOXML', () => {
 			});
 		});
 
-		it('should map "splitIn" to entr, presetId 31', () => {
+		it('should map "splitIn" to entr, presetId 17 (spec: entr.17 = Split)', () => {
 			expect(PRESET_TO_OOXML['splitIn'].presetClass).toBe('entr');
-			expect(PRESET_TO_OOXML['splitIn'].presetId).toBe(31);
+			expect(PRESET_TO_OOXML['splitIn'].presetId).toBe(17);
+		});
+
+		it('should map "randomBarsIn" to entr, presetId 14 (spec: entr.14 = Random Bars)', () => {
+			expect(PRESET_TO_OOXML['randomBarsIn'].presetClass).toBe('entr');
+			expect(PRESET_TO_OOXML['randomBarsIn'].presetId).toBe(14);
+		});
+
+		it('should map "expandIn" to entr, presetId 31 (spec: entr.31 = Expand)', () => {
+			expect(PRESET_TO_OOXML['expandIn'].presetClass).toBe('entr');
+			expect(PRESET_TO_OOXML['expandIn'].presetId).toBe(31);
+		});
+
+		it('should map "circleIn" to entr, presetId 6 (spec: entr.6 = Circle)', () => {
+			expect(PRESET_TO_OOXML['circleIn'].presetClass).toBe('entr');
+			expect(PRESET_TO_OOXML['circleIn'].presetId).toBe(6);
 		});
 
 		it('should map "floatIn" to entr, presetId 42', () => {
@@ -277,6 +292,32 @@ describe('oOXML_TO_PRESET reverse lookups', () => {
 
 	it('oOXML_TO_PRESET_ENTR maps id 10 back to "fadeIn"', () => {
 		expect(OOXML_TO_PRESET_ENTR[10]).toBe('fadeIn');
+	});
+
+	it('oOXML_TO_PRESET_ENTR maps id 17 back to "splitIn" (spec: entr.17 = Split)', () => {
+		expect(OOXML_TO_PRESET_ENTR[17]).toBe('splitIn');
+	});
+
+	it('oOXML_TO_PRESET_ENTR maps id 14 back to "randomBarsIn" (spec: entr.14 = Random Bars)', () => {
+		expect(OOXML_TO_PRESET_ENTR[14]).toBe('randomBarsIn');
+	});
+
+	it('oOXML_TO_PRESET_ENTR maps id 31 back to "expandIn" and id 6 back to "circleIn"', () => {
+		expect(OOXML_TO_PRESET_ENTR[31]).toBe('expandIn');
+		expect(OOXML_TO_PRESET_ENTR[6]).toBe('circleIn');
+	});
+
+	// Issue #99 / #81 regression: the catalog labels entr.17 = Split, and the
+	// writer + reverse lookup must agree so an imported Split entrance is not
+	// re-emitted (or rendered) as Random Bars. Round-trip the whole chain:
+	// catalog id 17 -> Split -> writer splitIn -> id 17 -> reverse -> splitIn.
+	it('round-trips entr.17 Split through writer + reverse without swapping to Random Bars', () => {
+		const split = PRESET_TO_OOXML['splitIn'];
+		expect(split.presetClass).toBe('entr');
+		expect(split.presetId).toBe(17);
+		const recovered = ooxmlToPresetName({ presetClass: 'entr', presetId: split.presetId });
+		expect(recovered).toBe('splitIn');
+		expect(recovered).not.toBe('randomBarsIn');
 	});
 
 	it('oOXML_TO_PRESET_EXIT maps id 1 back to "disappear"', () => {

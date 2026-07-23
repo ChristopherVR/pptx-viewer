@@ -9,6 +9,21 @@ export function shouldLoopContinuously(input: PresentationLoopInput): boolean {
 	return Boolean(input.loopContinuously) || input.showType === 'kiosk';
 }
 
+/**
+ * PowerPoint's "On Mouse Click" advance gate. An on-slide click / tap / swipe
+ * advances the show only when the current slide's transition allows it: a slide
+ * whose transition sets `advanceOnClick` to false is advanced solely by timings
+ * or by explicit navigation (keyboard, on-screen next/prev buttons). An
+ * undefined flag defaults to allowed, preserving the historical
+ * click-to-advance behaviour.
+ *
+ * Only the click / tap / swipe advance may consult this. Keyboard, on-screen
+ * next/prev buttons and timed auto-advance must never be gated by it.
+ */
+export function isClickAdvanceAllowed(slide: PptxSlide | undefined): boolean {
+	return slide?.transition?.advanceOnClick !== false;
+}
+
 export function applyRehearsalTimings(
 	slides: readonly PptxSlide[],
 	timings: Readonly<Record<number, number>>,

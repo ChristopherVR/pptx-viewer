@@ -15,6 +15,7 @@ import type {
 	PptxSlideMaster,
 	PptxSlide,
 	PptxThemeColorScheme,
+	PptxThemeFontScheme,
 	PptxThemeOption,
 } from 'pptx-viewer-core';
 import type {
@@ -86,6 +87,8 @@ export interface ViewerState {
 	mediaDataUrls: Map<string, string>;
 	/** Presentation theme colours used by scheme-based rendering. */
 	colorScheme?: PptxThemeColorScheme;
+	/** Presentation theme fonts used by table-style font resolution. */
+	fontScheme?: PptxThemeFontScheme;
 	/** Parsed presentation table styles keyed by style id. */
 	tableStyleMap?: ParsedTableStyleMap;
 	/** Zero-based index of the visible slide. */
@@ -178,6 +181,7 @@ export function createInitialViewerState(): ViewerState {
 		canvasSize: { width: DEFAULT_CANVAS_WIDTH, height: DEFAULT_CANVAS_HEIGHT },
 		mediaDataUrls: new Map(),
 		colorScheme: undefined,
+		fontScheme: undefined,
 		tableStyleMap: undefined,
 		currentSlide: 0,
 		zoom: 'fit',

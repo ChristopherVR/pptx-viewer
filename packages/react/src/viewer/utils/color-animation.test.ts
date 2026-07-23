@@ -484,7 +484,7 @@ describe('buildDynamicKeyframe with colorAnimation', () => {
 // ==========================================================================
 
 describe('buildColorAnimationKeyframes targetAttribute', () => {
-	it('maps fillcolor to backgroundColor CSS property', () => {
+	it('maps fillcolor to the SVG fill CSS property', () => {
 		const anim: PptxColorAnimation = {
 			colorSpace: 'rgb',
 			fromColor: '#FF0000',
@@ -493,8 +493,11 @@ describe('buildColorAnimationKeyframes targetAttribute', () => {
 		};
 		const css = buildColorAnimationKeyframes(anim, 'fill-test', 2);
 		expect(css).toBeDefined();
-		expect(css).toContain('0% { backgroundColor: #ff0000; }');
-		expect(css).toContain('100% { backgroundColor: #0000ff; }');
+		// Keyframes are injected as raw CSS, so the property name must be valid
+		// kebab-case CSS; fill cascades from the wrapper to the painted vector.
+		// (A kebab background-color + inert camelCase alias also follow.)
+		expect(css).toContain('0% { fill: #ff0000;');
+		expect(css).toContain('100% { fill: #0000ff;');
 	});
 
 	it('maps style.color to color CSS property', () => {
@@ -510,7 +513,7 @@ describe('buildColorAnimationKeyframes targetAttribute', () => {
 		expect(css).toContain('100% { color: #0000ff; }');
 	});
 
-	it('maps stroke.color to borderColor CSS property', () => {
+	it('maps stroke.color to the SVG stroke CSS property', () => {
 		const anim: PptxColorAnimation = {
 			colorSpace: 'rgb',
 			fromColor: '#000000',
@@ -519,8 +522,8 @@ describe('buildColorAnimationKeyframes targetAttribute', () => {
 		};
 		const css = buildColorAnimationKeyframes(anim, 'stroke-test', 2);
 		expect(css).toBeDefined();
-		expect(css).toContain('0% { borderColor: #000000; }');
-		expect(css).toContain('100% { borderColor: #ffffff; }');
+		expect(css).toContain('0% { stroke: #000000;');
+		expect(css).toContain('100% { stroke: #ffffff;');
 	});
 
 	it('defaults to color when targetAttribute is undefined', () => {

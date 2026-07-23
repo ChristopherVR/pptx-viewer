@@ -3,6 +3,7 @@ import type {
 	PptxElement,
 	PptxSlide,
 	PptxThemeColorScheme,
+	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
 import type { CanvasSize, FieldSubstitutionContext } from 'pptx-viewer-shared';
 import {
@@ -24,6 +25,8 @@ export interface SlideStageOptions {
 	mediaDataUrls: ReadonlyMap<string, string>;
 	/** Optional presentation theme colour scheme for element renderers. */
 	colorScheme?: PptxThemeColorScheme;
+	/** Optional presentation theme font scheme for table-style font resolution. */
+	fontScheme?: PptxThemeFontScheme;
 	/** Optional parsed table-style definitions for theme-aware table rendering. */
 	tableStyleMap?: ParsedTableStyleMap;
 	fieldContext?: FieldSubstitutionContext;
@@ -92,6 +95,7 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		scale,
 		mediaDataUrls,
 		colorScheme: options.colorScheme,
+		fontScheme: options.fontScheme,
 		tableStyleMap: options.tableStyleMap,
 		fieldContext: options.fieldContext,
 		t,

@@ -16,10 +16,24 @@ export function renderTextBlock(
 	const block = createEl(doc, 'div', 'pptxv-text', textStyle);
 
 	for (const para of paragraphs) {
-		const p = createEl(doc, 'p', 'pptxv-para', {
+		const paraStyle: CssStyleMap = {
 			margin: 0,
 			marginLeft: para.marginLeftPx !== undefined ? `${para.marginLeftPx}px` : 0,
-		});
+		};
+		// Per-paragraph spacing from this paragraph's own `a:pPr` (shared #69):
+		// a unitless multiplier or `"<n>pt"` string for line-height, and px
+		// space-before/after as top/bottom margins. Only set when the paragraph
+		// overrides it, so it otherwise inherits the block-level line-height.
+		if (para.lineHeight !== undefined) {
+			paraStyle.lineHeight = para.lineHeight;
+		}
+		if (para.spaceBeforePx !== undefined) {
+			paraStyle.marginTop = `${para.spaceBeforePx}px`;
+		}
+		if (para.spaceAfterPx !== undefined) {
+			paraStyle.marginBottom = `${para.spaceAfterPx}px`;
+		}
+		const p = createEl(doc, 'p', 'pptxv-para', paraStyle);
 		if (para.textIndentPx !== undefined) {
 			p.style.textIndent = `${para.textIndentPx}px`;
 		}

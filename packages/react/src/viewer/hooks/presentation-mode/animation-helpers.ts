@@ -1,5 +1,6 @@
 import { stopAnimationSound } from '../../utils/animation-sound';
 import type { ElementAnimationState, TimelineClickGroup } from '../../utils/animation-timeline';
+import { executeMediaCommand } from '../../utils/media-element-registry';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,8 +26,21 @@ export function applyAnimationGroupSteps(
 	setPresentationElementStates: StateUpdater<Map<string, ElementAnimationState>>,
 	presentationTimersRef: { current: number[] },
 ): void {
-	// Trigger sound actions for steps in this click-group
+	// Trigger sound actions and media playback commands for this click-group.
 	for (const step of group.steps) {
+		if (step.command) {
+			// `p:cmd` media command: drive the registered media element after the
+			// step's delay (relative to the group start), never as a CSS effect.
+			const command = step.command;
+			const timer = window.setTimeout(
+				() => {
+					executeMediaCommand(command);
+				},
+				Math.max(0, step.delayMs),
+			);
+			presentationTimersRef.current.push(timer);
+			continue;
+		}
 		if (step.stopSound) {
 			stopAnimationSound();
 		} else if (step.soundPath && onPlayActionSound) {
@@ -38,6 +52,9 @@ export function applyAnimationGroupSteps(
 	setPresentationElementStates((previousStates: Map<string, ElementAnimationState>) => {
 		const nextStates = new Map(previousStates);
 		for (const step of group.steps) {
+			if (step.command) {
+				continue;
+			}
 			const currentState = nextStates.get(step.elementId) ?? {
 				visible: true,
 				cssAnimation: undefined,
@@ -53,6 +70,9 @@ export function applyAnimationGroupSteps(
 
 	// Schedule cleanup after each step's animation completes
 	for (const step of group.steps) {
+		if (step.command) {
+			continue;
+		}
 		const timer = window.setTimeout(
 			() => {
 				setPresentationElementStates((previousStates: Map<string, ElementAnimationState>) => {

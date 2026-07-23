@@ -99,6 +99,7 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				canvasSize: loaded.canvasSize,
 				mediaDataUrls: loaded.mediaDataUrls,
 				colorScheme: loaded.colorScheme,
+				fontScheme: loaded.fontScheme,
 				tableStyleMap: loaded.tableStyleMap,
 				currentSlide: clampSlideIndex(options.initialSlide ?? 0, partition.slides.length),
 				loading: false,

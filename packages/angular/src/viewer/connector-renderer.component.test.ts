@@ -105,21 +105,21 @@ describe('buildDashArray', () => {
 	});
 
 	it('returns a short dash for "dot"', () => {
-		expect(buildDashArray('dot', 2)).toBe('2 2');
+		expect(buildDashArray('dot', 2)).toBe('2 4');
 	});
 
 	it('returns a short dash for "sysDot"', () => {
-		expect(buildDashArray('sysDot', 2)).toBe('2 2');
+		expect(buildDashArray('sysDot', 2)).toBe('2 4');
 	});
 
 	it('returns a long dash for other types', () => {
-		expect(buildDashArray('dash', 2)).toBe('6 2');
-		expect(buildDashArray('lgDash', 4)).toBe('12 4');
+		expect(buildDashArray('dash', 2)).toBe('8 4');
+		expect(buildDashArray('lgDash', 4)).toBe('28 10');
 	});
 
 	it('clamps minimum stroke width to 1 for the dash calculation', () => {
-		// strokeWidth of 0 → effective w is 1 → '1 1' for dot
-		expect(buildDashArray('dot', 0)).toBe('1 1');
+		// strokeWidth of 0 gives an effective width of 1, so dot yields '1 2'
+		expect(buildDashArray('dot', 0)).toBe('1 2');
 	});
 });
 

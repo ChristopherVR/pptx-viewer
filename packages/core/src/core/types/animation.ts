@@ -145,10 +145,30 @@ export interface PptxNativeAnimation {
 	presetClass?: 'entr' | 'exit' | 'emph' | 'path';
 	/** Effect preset sub-type identifier. */
 	presetId?: number;
+	/**
+	 * Effect preset direction/variant code from `p:cTn/@presetSubtype`
+	 * (ECMA-376 CT_TLCommonTimeNodeData). For Fly In/Out this encodes the
+	 * edge/corner the object travels from as a bitmask (1=top, 2=right,
+	 * 4=bottom, 8=left; corners combine bits). Absent means the preset default.
+	 */
+	presetSubtype?: number;
 	/** Duration in milliseconds. */
 	durationMs?: number;
 	/** Delay in milliseconds. */
 	delayMs?: number;
+	/**
+	 * Acceleration fraction in the range 0..1, parsed from `p:cTn/@accel`
+	 * (ST_PositiveFixedPercentage, stored as 1000ths of a percent). A non-zero
+	 * value means the effect eases in (starts slow). Absent means no easing-in.
+	 */
+	accel?: number;
+	/**
+	 * Deceleration fraction in the range 0..1, parsed from `p:cTn/@decel`.
+	 * A non-zero value means the effect eases out (ends slow). Absent means no
+	 * easing-out. When both {@link accel} and {@link decel} are set, the effect
+	 * eases in and out.
+	 */
+	decel?: number;
 	/** Trigger delay in milliseconds (for afterDelay). */
 	triggerDelayMs?: number;
 	/** SVG path string for motion path animations (`p:animMotion/@path`). */

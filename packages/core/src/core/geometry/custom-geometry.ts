@@ -87,6 +87,110 @@ export function customGeometryPathsToSvg(paths: CustomGeometryPath[]): string {
 	return parts.join(' ');
 }
 
+/**
+ * One sub-path of a custom geometry, emitted as its own SVG `d` string plus the
+ * OOXML fill/stroke flags that decide how it should be painted. Produced by
+ * {@link customGeometryPathsToSvgSubpaths}.
+ */
+export interface CustomGeometrySubpathSvg {
+	/** SVG path data for this single sub-path (already in the target space). */
+	d: string;
+	/** `a:path/@fill`; `undefined` means the default (`norm`, i.e. filled). */
+	fillMode?: CustomGeometryPath['fillMode'];
+	/** `a:path/@stroke`; `undefined`/`true` means stroked, `false` unstroked. */
+	stroke?: boolean;
+}
+
+/** Emit one sub-path's segments as an SVG `d` string, scaling coords by sx/sy. */
+function subpathSegmentsToSvg(path: CustomGeometryPath, sx: number, sy: number): string {
+	const parts: string[] = [];
+	// Pen resets per sub-path (each normally opens with a moveTo). Coordinates
+	// are scaled into the shared target coordinate space so sub-paths that carry
+	// their own @w/@h line up with the first path's viewBox.
+	let penX = 0;
+	let penY = 0;
+	let moveX = 0;
+	let moveY = 0;
+	for (const seg of path.segments) {
+		switch (seg.type) {
+			case 'moveTo':
+				parts.push(`M ${seg.pt.x * sx} ${seg.pt.y * sy}`);
+				penX = seg.pt.x * sx;
+				penY = seg.pt.y * sy;
+				moveX = penX;
+				moveY = penY;
+				break;
+			case 'lineTo':
+				parts.push(`L ${seg.pt.x * sx} ${seg.pt.y * sy}`);
+				penX = seg.pt.x * sx;
+				penY = seg.pt.y * sy;
+				break;
+			case 'cubicBezTo':
+				parts.push(
+					`C ${seg.pts[0].x * sx} ${seg.pts[0].y * sy} ${seg.pts[1].x * sx} ${seg.pts[1].y * sy} ${seg.pts[2].x * sx} ${seg.pts[2].y * sy}`,
+				);
+				penX = seg.pts[2].x * sx;
+				penY = seg.pts[2].y * sy;
+				break;
+			case 'quadBezTo':
+				parts.push(
+					`Q ${seg.pts[0].x * sx} ${seg.pts[0].y * sy} ${seg.pts[1].x * sx} ${seg.pts[1].y * sy}`,
+				);
+				penX = seg.pts[1].x * sx;
+				penY = seg.pts[1].y * sy;
+				break;
+			case 'arcTo': {
+				const result = ooxmlArcToSvg(seg.wR * sx, seg.hR * sy, seg.stAng, seg.swAng, penX, penY);
+				if (result) {
+					parts.push(result.svg);
+					penX = result.endX;
+					penY = result.endY;
+				}
+				break;
+			}
+			case 'close':
+				parts.push('Z');
+				penX = moveX;
+				penY = moveY;
+				break;
+		}
+	}
+	return parts.join(' ');
+}
+
+/**
+ * Convert structured custom geometry paths to one SVG `d` string *per* sub-path,
+ * preserving each sub-path's `@fill`/`@stroke` flags.
+ *
+ * Unlike {@link customGeometryPathsToSvg} (which concatenates every sub-path
+ * into a single `d` that must be painted with one uniform fill), this keeps
+ * sub-paths separate so a renderer can honour per-sub-path fill modes: a
+ * `fill="none"` open stroke, a filled outer contour, etc.
+ *
+ * Each sub-path is scaled from its own `@w`/`@h` coordinate space into the
+ * shared `targetWidth`/`targetHeight` space (that of the first path, i.e. the
+ * viewBox), so multi-`@w`/`@h` geometries line up.
+ *
+ * @param paths        Structured sub-paths.
+ * @param targetWidth  Shared coordinate-space width (viewBox width).
+ * @param targetHeight Shared coordinate-space height (viewBox height).
+ */
+export function customGeometryPathsToSvgSubpaths(
+	paths: CustomGeometryPath[],
+	targetWidth: number,
+	targetHeight: number,
+): CustomGeometrySubpathSvg[] {
+	return paths.map((path) => {
+		const sx = path.width > 0 ? targetWidth / path.width : 1;
+		const sy = path.height > 0 ? targetHeight / path.height : 1;
+		return {
+			d: subpathSegmentsToSvg(path, sx, sy),
+			fillMode: path.fillMode,
+			stroke: path.stroke,
+		};
+	});
+}
+
 // ---------------------------------------------------------------------------
 // SVG path data string -> structured paths (basic parser)
 // ---------------------------------------------------------------------------

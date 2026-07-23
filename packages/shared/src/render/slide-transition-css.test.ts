@@ -208,35 +208,92 @@ describe('getSlideTransitionAnimations', () => {
 		expect(result.incoming).toContain('pptx-tr-fade-in');
 	});
 
-	it('approximates exotic types with the closest 2-d case', () => {
-		// conveyor/gallery/pan -> push, reveal -> wipe, doors -> split,
-		// switch/flythrough/ferris/prism -> zoom, ripple/honeycomb/glitter/shred
-		// -> dissolve, flash -> fade.
+	it('routes the exotic / 3-d family to the faithful p14 keyframes (issue #80)', () => {
+		// These types used to collapse onto a 2-D approximation (push/wipe/split/
+		// zoom/dissolve/fade) or a plain cross-fade. They must now match the
+		// dedicated p14 keyframes emitted by `getP14TransitionAnimations`.
 		expect(getSlideTransitionAnimations('conveyor', 400, 'l').outgoing).toContain(
-			'pptx-tr-push-out-to-left',
+			'pptx-tr-conveyor-out-to-left',
 		);
 		expect(getSlideTransitionAnimations('reveal', 400, 'l').incoming).toContain(
-			'pptx-tr-wipe-from-left',
+			'pptx-tr-reveal-in',
 		);
 		expect(getSlideTransitionAnimations('doors', 400, undefined, 'vert').incoming).toContain(
-			'pptx-tr-split-v-out',
+			'pptx-tr-doors-vert',
 		);
-		expect(getSlideTransitionAnimations('switch', 400, undefined).incoming).toContain(
-			'pptx-tr-zoom-in',
+		expect(getSlideTransitionAnimations('switch', 400, 'l').incoming).toContain(
+			'pptx-tr-switch-in-from-right',
 		);
 		expect(getSlideTransitionAnimations('ripple', 400, undefined).incoming).toContain(
-			'pptx-tr-dissolve-in',
+			'pptx-tr-ripple-in',
 		);
 		expect(getSlideTransitionAnimations('flash', 400, undefined).incoming).toContain(
-			'pptx-tr-fade-in',
+			'pptx-tr-flash-in',
 		);
 	});
 
-	it('falls back to a cross-fade for truly-unknown cinematic types', () => {
+	it('resolves cube/flip to the faithful p14 set or a documented fallback (issue #80)', () => {
+		// `vortex`/`warp`/`window` previously hit the cross-fade default; they now
+		// resolve to their dedicated p14 keyframes and no longer emit fade-*.
+		const vortex = getSlideTransitionAnimations('vortex', 400, undefined);
+		expect(vortex.incoming).toContain('pptx-tr-vortex-in');
+		expect(vortex.outgoing).toContain('pptx-tr-vortex-out');
+		expect(vortex.incoming).not.toContain('pptx-tr-fade-in');
+
+		const windowResult = getSlideTransitionAnimations('window', 400, undefined, 'vert');
+		expect(windowResult.incoming).toContain('pptx-tr-window-vert');
+		expect(windowResult.outgoing).toContain('pptx-tr-window-out');
+
+		// `prism` was latently broken (directionalPair emitted `pptx-tr-prism-to-*`
+		// names with no matching keyframes); it now emits the correct out/in names.
+		const prism = getSlideTransitionAnimations('prism', 400, 'l');
+		expect(prism.outgoing).toContain('pptx-tr-prism-out-to-left');
+		expect(prism.incoming).toContain('pptx-tr-prism-in-from-right');
+
+		// `cube`/`flip`/`rotate`/`orbit` now resolve to the real p15 cinematic 3-D
+		// keyframes (see slide-transition-cinematic), no longer the cross-fade.
 		for (const type of ['cube', 'flip', 'rotate', 'orbit'] as const) {
 			const result = getSlideTransitionAnimations(type as PptxTransitionType, 400, undefined);
-			expect(result.incoming).toContain('pptx-tr-fade-in');
-			expect(result.outgoing).toContain('pptx-tr-fade-out');
+			expect(result.outgoing.startsWith('pptx-tr-fade-out ')).toBeFalsy();
+			expect(result.outgoing).toContain(`pptx-tr-${type === 'rotate' ? 'rotate-out-ccw' : type}`);
+		}
+	});
+
+	it('emits only exotic keyframes that exist in the injected css (issue #80)', () => {
+		// Every p14-routed type must reference a `@keyframes` present in the block
+		// each binding injects; otherwise it would silently animate nothing (worse
+		// than the old approximation). This guards against prism-style name drift.
+		const exotic: PptxTransitionType[] = [
+			'conveyor',
+			'doors',
+			'ferris',
+			'flash',
+			'flythrough',
+			'gallery',
+			'glitter',
+			'honeycomb',
+			'pan',
+			'prism',
+			'reveal',
+			'ripple',
+			'shred',
+			'switch',
+			'vortex',
+			'warp',
+			'wheelReverse',
+			'window',
+		];
+		for (const type of exotic) {
+			for (const direction of ['l', 'r', 'u', 'd', 'out', undefined] as const) {
+				const result = getSlideTransitionAnimations(type, 300, direction, 'vert');
+				for (const shorthand of [result.outgoing, result.incoming]) {
+					if (shorthand === 'none') {
+						continue;
+					}
+					const name = shorthand.split(' ')[0];
+					expect(SLIDE_TRANSITION_KEYFRAMES).toContain(`@keyframes ${name}`);
+				}
+			}
 		}
 	});
 
@@ -383,10 +440,21 @@ describe('getP14TransitionAnimations', () => {
 		);
 	});
 
+	it('resolves prism to its dedicated out/in keyframes (issue #80 fix)', () => {
+		// Regression: `prism` used to reuse `directionalPair` and emit
+		// `pptx-tr-prism-to-left` (no such keyframe). It now emits the correct
+		// `out-to-*` / `in-from-*` names that match the p14 keyframes.
+		const left = getP14TransitionAnimations('prism', 500, 'l');
+		expect(left?.outgoing).toContain('pptx-tr-prism-out-to-left');
+		expect(left?.incoming).toContain('pptx-tr-prism-in-from-right');
+		expect(P14_TRANSITION_KEYFRAMES_ALL).toContain('@keyframes pptx-tr-prism-out-to-left');
+		expect(P14_TRANSITION_KEYFRAMES_ALL).toContain('@keyframes pptx-tr-prism-in-from-right');
+	});
+
 	it('references only keyframes that exist in the p14 css', () => {
-		// `pan`/`prism` go through `directionalPair`, which emits cardinal-only
-		// suffixes (`-to-left`/`-from-right`); only `pan`'s keyframes use that
-		// naming, so they are checked separately below and excluded here.
+		// `pan` goes through `directionalPair`, which emits cardinal-only suffixes
+		// (`-to-left`/`-from-right`) matching only `pan`'s keyframes, so it is
+		// checked separately above and excluded here.
 		const types: PptxTransitionType[] = [
 			'conveyor',
 			'doors',
@@ -396,6 +464,7 @@ describe('getP14TransitionAnimations', () => {
 			'gallery',
 			'glitter',
 			'honeycomb',
+			'prism',
 			'reveal',
 			'ripple',
 			'shred',

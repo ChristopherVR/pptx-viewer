@@ -22,6 +22,8 @@
  */
 export * from './shape-geometry';
 export * from './fill-style';
+// `a:grpFill` inheritance: pull a group's fill + resolve a grpFill child's paint.
+export * from './group-fill';
 // Stroke/dash normalisation, compound-line box-shadow + dasharray, element
 // transform strings (flip/rotation/skew), and OOXML drawing-percent parsing.
 export * from './element-style-transform';
@@ -196,6 +198,9 @@ export * from './animation-effects';
 export * from './animation-sequencer';
 export * from './animation-timeline-builder';
 export * from './animation-timeline-engine';
+// OOXML `p:cmd` media playback commands (play/pause/seek) surfaced on timeline
+// steps; the DOM `HTMLMediaElement` control stays in each binding.
+export * from './animation-media-commands';
 export * from './animation-preview';
 // `visual-3d` is the public surface; it re-exports the symbols from its sibling
 // modules (`visual-3d-camera`, `visual-3d-materials`, `visual-3d-extrusion`,

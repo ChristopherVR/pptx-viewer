@@ -1,4 +1,5 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+import { getGroupChildParentFill } from 'pptx-viewer-shared';
 import React, { useState, useCallback, useMemo } from 'react';
 
 import { DEFAULT_TEXT_COLOR } from '../constants';
@@ -31,6 +32,7 @@ import { Extrusion3DOverlay } from './elements/Extrusion3DOverlay';
 import { LinkTooltip } from './elements/LinkTooltip';
 import { ResizeHandles } from './elements/ResizeHandles';
 import { getScopedElementHandlers } from './elements/scoped-element-handlers';
+import { ShapeEffectOverlay } from './elements/ShapeEffectOverlay';
 import { StaticElementRenderer } from './StaticElementRenderer';
 
 export type { ElementRendererProps } from './elements/element-renderer-types';
@@ -215,6 +217,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 				{...interactionProps}
 			>
 				{renderDagDuotoneFilterForElement(el)}
+				<ShapeEffectOverlay element={el} />
 				{extrusionData.hasExtrusion && <Extrusion3DOverlay data={extrusionData} />}
 				{renderBody({
 					el,
@@ -244,6 +247,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 							mediaDataUrls={mediaDataUrls}
 							sourceSlideIndex={sourceSlideIndex}
 							zIndex={index}
+							parentGroupFill={getGroupChildParentFill(el)}
 						/>
 					),
 					onEditChange: onInlineEditChange,

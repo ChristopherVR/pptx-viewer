@@ -172,14 +172,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			contentType: constants.slideSyncContentType,
 		});
 
-		this.slideBackgroundBuilder.applyBackground({
+		await this.slideBackgroundBuilder.applyBackground({
 			slideNode,
 			slide,
 			zip: this.zip,
 			saveState: saveSession,
 			relationshipRegistry: slideRelationshipRegistry,
 			slideImageRelationshipType: constants.slideImageRelationshipType,
-			parseDataUrlToBytes: (dataUrl) => this.parseDataUrlToBytes(dataUrl),
+			resolveImageToBytes: (url) => this.resolveMediaToBytes(url),
+			reportUnsupportedBackground: (imageUrl) =>
+				this.compatibilityService.reportWarning({
+					code: 'SAVE_BACKGROUND_IMAGE_UNSUPPORTED',
+					message: `Slide background image could not be embedded and was preserved as-is or omitted: ${imageUrl.slice(0, 120)}`,
+					scope: 'save',
+					slideId: slide.id,
+				}),
 		});
 
 		this.slideCommentPartWriter.writeComments({

@@ -133,10 +133,40 @@ export function getOuterShadowCss(style: ShapeStyle | undefined): string | undef
 			? clampUnitInterval(style.shadowOpacity)
 			: 0.35;
 
-	return `${Math.round(offsetX)}px ${Math.round(offsetY)}px ${Math.round(blur)}px ${colorWithOpacity(
+	// Honour @sx/@sy (1000ths of a percent, 100000 = 100%) as a box-shadow
+	// spread: a scaled-up shadow grows outward, a scaled-down one shrinks. This
+	// is a best-effort mapping (box-shadow has no true scale). @kx/@ky skew and
+	// @algn alignment cannot be represented by box-shadow at all and are left
+	// to a drop-shadow / pseudo-element renderer (see report).
+	const spread = getShadowScaleSpread(style.shadowScaleX, style.shadowScaleY, blur);
+
+	const color = colorWithOpacity(
 		normalizeHexColor(style.shadowColor, DEFAULT_SHADOW_COLOR),
 		opacity,
-	)}`;
+	);
+	const geometry = `${Math.round(offsetX)}px ${Math.round(offsetY)}px ${Math.round(blur)}px`;
+	return spread === 0 ? `${geometry} ${color}` : `${geometry} ${spread}px ${color}`;
+}
+
+/**
+ * Derive a box-shadow spread (px) from outer-shadow `@sx`/`@sy` scale factors
+ * (1000ths of a percent; 100000 = 100%). The spread is proportional to the
+ * blur so a larger shadow scale reads as a larger halo. Returns `0` when no
+ * scale is set or it resolves to 100%, keeping the classic 3-length output.
+ */
+function getShadowScaleSpread(
+	scaleX: number | undefined,
+	scaleY: number | undefined,
+	blur: number,
+): number {
+	const sx = typeof scaleX === 'number' && Number.isFinite(scaleX) ? scaleX / 100000 : 1;
+	const sy = typeof scaleY === 'number' && Number.isFinite(scaleY) ? scaleY / 100000 : 1;
+	const avgScale = (sx + sy) / 2;
+	if (avgScale === 1) {
+		return 0;
+	}
+	const base = Math.max(blur, 4);
+	return Math.round(base * (avgScale - 1));
 }
 
 /**
@@ -445,7 +475,8 @@ export function hasEffectDagProperties(style: ShapeStyle | undefined): boolean {
 		typeof style.dagTintHue === 'number' ||
 		typeof style.dagTintAmount === 'number' ||
 		style.dagDuotone ||
-		style.dagFillOverlayBlend,
+		style.dagFillOverlayBlend ||
+		style.dagFillOverlayColor,
 	);
 }
 
@@ -480,9 +511,19 @@ export function getEffectFilterCss(
 		parts.push(`drop-shadow(0 0 ${glowRad}px ${glowCol})`);
 	}
 
-	// Soft edges → blur
+	// Soft edges → feather only the alpha edge (SVG filter), not the whole
+	// element. A full-element `blur()` washes out the interior fill and text;
+	// the alpha-feather filter (see getSoftEdgeSvgFilter) keeps the interior
+	// crisp and only fades the border inward. This mirrors the duotone path:
+	// the referenced `<filter>` markup must be injected once by the integrator.
+	// Without an element id (no injectable filter target) we fall back to a
+	// minimised whole-element blur so at least the interior stays legible.
 	if (typeof style.softEdgeRadius === 'number' && style.softEdgeRadius > 0) {
-		parts.push(`blur(${Math.round(style.softEdgeRadius)}px)`);
+		if (elementId) {
+			parts.push(`url(#${getSoftEdgeFilterId(elementId)})`);
+		} else {
+			parts.push(`blur(${Math.min(2, Math.round(style.softEdgeRadius))}px)`);
+		}
 	}
 
 	// Standalone blur effect (a:blur)
@@ -529,21 +570,27 @@ export function buildReflectionCssValue(
 	endOpacity: number,
 	fadeLength: number,
 	blurRadius = 0,
+	startOffset = 0,
 ): string {
 	const effectiveFadeLength = fadeLength + blurRadius * 2;
 	const midOpacity = (startOpacity + endOpacity) / 2;
 	const midPoint = Math.round(effectiveFadeLength * 0.5);
 
+	// `@stPos` holds full startOpacity until `startOffset` px before the fade
+	// begins. Clamp below the fade length so the hold stop stays ordered.
+	const holdPx = Math.round(Math.max(0, Math.min(startOffset, effectiveFadeLength - 1)));
+	const holdStop = holdPx > 0 ? `rgba(255,255,255,${startOpacity}) ${holdPx}px, ` : '';
+
 	if (blurRadius > 0) {
 		return (
 			`below ${Math.round(distance)}px linear-gradient(to bottom, ` +
-			`rgba(255,255,255,${startOpacity}), ` +
+			`rgba(255,255,255,${startOpacity}), ${holdStop}` +
 			`rgba(255,255,255,${midOpacity}) ${midPoint}px, ` +
 			`rgba(255,255,255,${endOpacity}) ${effectiveFadeLength}px)`
 		);
 	}
 
-	return `below ${Math.round(distance)}px linear-gradient(to bottom, rgba(255,255,255,${startOpacity}), rgba(255,255,255,${endOpacity}) ${fadeLength}px)`;
+	return `below ${Math.round(distance)}px linear-gradient(to bottom, rgba(255,255,255,${startOpacity}), ${holdStop}rgba(255,255,255,${endOpacity}) ${fadeLength}px)`;
 }
 
 /**
@@ -579,6 +626,15 @@ export function getReflectionCss(
 			: 100;
 	const blurRadius =
 		typeof style.reflectionBlurRadius === 'number' ? style.reflectionBlurRadius : 0;
+	// `@stPos` is a 0-1 fraction of the reflection's fade length: the reflection
+	// stays at full startOpacity until this point before fading out. Other
+	// reflection params (@sx/@sy scale, @kx/@ky skew, @rot, @fadeDir, @algn)
+	// cannot be represented by `-webkit-box-reflect` and are left as-is (see
+	// report; note box-reflect is WebKit/Chromium-only, unsupported in Firefox).
+	const startOffset =
+		typeof style.reflectionStartPosition === 'number' && style.reflectionStartPosition > 0
+			? Math.round(clampUnitInterval(style.reflectionStartPosition) * fadeLength)
+			: 0;
 
 	return {
 		webkitBoxReflect: buildReflectionCssValue(
@@ -587,6 +643,7 @@ export function getReflectionCss(
 			endOpacity,
 			fadeLength,
 			blurRadius,
+			startOffset,
 		),
 		distance,
 		startOpacity,
@@ -622,6 +679,38 @@ export function getEffectDagBlendMode(
 		default:
 			return undefined;
 	}
+}
+
+/**
+ * A fill-overlay tint layer: the overlay {@link https://developer.mozilla.org/en-US/docs/Web/CSS/color colour}
+ * (an `rgba()` string carrying the overlay's alpha) plus the `mix-blend-mode`
+ * used to composite it over the element. Unlike the whole-element
+ * {@link getEffectDagBlendMode} proxy, this describes a *separate* coloured
+ * layer the integrator should paint on top of the element (e.g. an absolutely
+ * positioned pseudo-element / child), so the tint colour is actually rendered.
+ */
+export interface FillOverlayCss {
+	/** Overlay colour as an `rgba()`/hex string (already includes opacity). */
+	color: string;
+	/** `mix-blend-mode` for the overlay layer (`normal` for the `over` blend). */
+	blendMode: string;
+}
+
+/**
+ * Resolve the DAG fill-overlay tint layer from a {@link ShapeStyle}. Returns
+ * `undefined` when no overlay colour was parsed. The `over` blend maps to
+ * `normal` (an opaque tint), the others to their `mix-blend-mode` equivalents.
+ */
+export function getEffectDagFillOverlay(style: ShapeStyle | undefined): FillOverlayCss | undefined {
+	if (!style?.dagFillOverlayColor || style.dagFillOverlayColor === 'transparent') {
+		return undefined;
+	}
+	const blendMode = getEffectDagBlendMode(style.dagFillOverlayBlend) ?? 'normal';
+	const color = colorWithOpacity(
+		normalizeHexColor(style.dagFillOverlayColor, DEFAULT_SHADOW_COLOR),
+		style.dagFillOverlayOpacity,
+	);
+	return { color, blendMode };
 }
 
 // ── High-fidelity duotone SVG <filter> markup (secondary path) ─────────────
@@ -701,6 +790,42 @@ export function getDuotoneSvgFilter(
 	return { id, cssReference: `url(#${id})`, filterMarkup };
 }
 
+// ── Soft edges (SVG alpha-feather <filter>) ────────────────────────────────
+
+/** Stable SVG filter id for a soft-edge feather on a given element. */
+export function getSoftEdgeFilterId(elementId: string): string {
+	return `soft-edge-${elementId}`;
+}
+
+/**
+ * Build the soft-edge `<filter>` markup that feathers only the shape's alpha
+ * edge, leaving the interior fill/text sharp. It blurs `SourceAlpha` and
+ * composites the original `SourceGraphic` back *into* that blurred alpha
+ * (`operator="in"`), so the boundary fades inward (matching PowerPoint soft
+ * edges) while interior pixels keep full opacity and no blur.
+ *
+ * Inject `filterMarkup` once into an SVG `<defs>` (or a hidden `<svg>`) and
+ * apply `cssReference` (already emitted by {@link getEffectFilterCss} when an
+ * element id is supplied). Returns `undefined` when no soft edge is configured.
+ */
+export function getSoftEdgeSvgFilter(
+	style: ShapeStyle | undefined,
+	elementId: string,
+): SvgFilterDefinition | undefined {
+	if (!style || typeof style.softEdgeRadius !== 'number' || style.softEdgeRadius <= 0) {
+		return undefined;
+	}
+	const id = getSoftEdgeFilterId(elementId);
+	const radius = Math.round(style.softEdgeRadius);
+	const filterMarkup = [
+		`<filter id="${escapeSvgAttr(id)}" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">`,
+		`<feGaussianBlur in="SourceAlpha" stdDeviation="${radius}" result="softEdgeAlpha"/>`,
+		`<feComposite in="SourceGraphic" in2="softEdgeAlpha" operator="in"/>`,
+		`</filter>`,
+	].join('');
+	return { id, cssReference: `url(#${id})`, filterMarkup };
+}
+
 /**
  * Build a self-contained, hidden `<svg>` wrapper containing a duotone
  * `<filter>` (BT.709 grayscale → linear two-colour ramp), suitable for direct
@@ -763,8 +888,24 @@ export interface ComputedEffectStyle {
 	webkitBoxReflect?: string;
 	/** Overall `opacity` from `dagAlphaModFix`. */
 	opacity?: number;
-	/** `mix-blend-mode` from `dagFillOverlayBlend`. */
+	/**
+	 * `mix-blend-mode` from `dagFillOverlayBlend`. Only emitted for the legacy
+	 * blend-only case (no overlay colour parsed); when {@link fillOverlay} is
+	 * present the blend rides on that overlay layer instead.
+	 */
 	mixBlendMode?: string;
+	/**
+	 * DAG fill-overlay tint layer (colour + blend mode). The integrator should
+	 * paint this as a separate blended layer over the element (an absolutely
+	 * positioned pseudo-element / child), rather than blending the whole element.
+	 */
+	fillOverlay?: FillOverlayCss;
+	/**
+	 * `true` when a blur effect has `@grow` set: the element must render with
+	 * `overflow: visible` (and ideally grown bounds) so the blur halo is not
+	 * clipped at the element box.
+	 */
+	overflowVisible?: boolean;
 }
 
 /**
@@ -806,9 +947,21 @@ export function getComputedEffectStyle(
 		result.opacity = opacity;
 	}
 
-	const blend = getEffectDagBlendMode(style.dagFillOverlayBlend);
-	if (blend) {
-		result.mixBlendMode = blend;
+	// Fill overlay: paint the tint layer when a colour was parsed; otherwise
+	// fall back to the legacy whole-element blend-mode proxy.
+	const overlay = getEffectDagFillOverlay(style);
+	if (overlay) {
+		result.fillOverlay = overlay;
+	} else {
+		const blend = getEffectDagBlendMode(style.dagFillOverlayBlend);
+		if (blend) {
+			result.mixBlendMode = blend;
+		}
+	}
+
+	// Blur `@grow`: let the halo bleed past the element box instead of clipping.
+	if (style.blurGrow && typeof style.blurRadius === 'number' && style.blurRadius > 0) {
+		result.overflowVisible = true;
 	}
 
 	return result;

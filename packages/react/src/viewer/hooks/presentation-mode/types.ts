@@ -4,6 +4,17 @@ import type { PresentationSnapshot } from 'pptx-viewer-shared';
 import type { ViewerMode, PresentationAnimationRuntime } from '../../types';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
 
+/**
+ * How a forward/backward slide advance was requested.
+ *
+ * - `'click'`: a click/tap on the slide surface (PowerPoint's "On Mouse Click"
+ *   advance). This is the only trigger governed by `advanceOnClick`.
+ * - `'explicit'`: keyboard, navigation buttons, action triggers, and timed
+ *   auto-advance. These always navigate regardless of `advanceOnClick`, matching
+ *   PowerPoint (arrow keys / Next always work even when click-advance is off).
+ */
+export type SlideAdvanceTrigger = 'click' | 'explicit';
+
 // ---------------------------------------------------------------------------
 // Slide-transition overlay
 // ---------------------------------------------------------------------------
@@ -39,7 +50,12 @@ export interface UsePresentationModeInput {
 	content?: ArrayBuffer | Uint8Array | null;
 	onSetMode: (mode: ViewerMode) => void;
 	onSetActiveSlideIndex: (index: number) => void;
-	onPlayActionSound?: (soundPath: string) => void;
+	/**
+	 * Play a sound file for an action/transition. When `options.loop` is true the
+	 * audio repeats until the next animation sound plays or the show exits
+	 * (used for transition sounds flagged with `soundLoop`).
+	 */
+	onPlayActionSound?: (soundPath: string, options?: { loop?: boolean }) => void;
 	/** Called when L key is pressed during presentation. */
 	onToggleLaser?: () => void;
 	/** Called when P key is pressed during presentation. */
@@ -80,7 +96,7 @@ export interface UsePresentationModeResult {
 	runPresentationEntranceAnimations: (slideIndex: number) => void;
 	/** True while the black "End of slide show" screen is displayed. */
 	endOfShowVisible: boolean;
-	movePresentationSlide: (direction: 1 | -1) => void;
+	movePresentationSlide: (direction: 1 | -1, trigger?: SlideAdvanceTrigger) => void;
 	navigateToSlide: (slideIndex: number) => void;
 	handlePresentationAction: (action: PptxAction) => void;
 	/**

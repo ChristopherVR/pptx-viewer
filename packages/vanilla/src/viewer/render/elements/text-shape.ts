@@ -5,7 +5,7 @@ import { getShapeFillStrokeStyle, getTextBlockStyle } from '../element-styles';
 import type { ElementRenderer } from '../types';
 import { renderEquations } from './equation';
 import { renderExtrusionOverlay } from './extrusion-overlay';
-import { renderShapeFilterDefs } from './shape-filter-defs';
+import { renderShapeFillOverlay, renderShapeFilterDefs } from './shape-filter-defs';
 import { renderTextBlock } from './text-block';
 import { renderWarpedText } from './text-warp';
 
@@ -38,6 +38,12 @@ export const renderTextShapeElement: ElementRenderer = (element, zIndex, context
 	const filterDefs = renderShapeFilterDefs(context.document, element);
 	if (filterDefs) {
 		el.appendChild(filterDefs);
+	}
+	// DAG fill-overlay tint: a blended layer over the fill but beneath the text,
+	// so the tint applies to the fill without washing out the text/children.
+	const fillOverlay = renderShapeFillOverlay(context.document, element);
+	if (fillOverlay) {
+		el.appendChild(fillOverlay);
 	}
 
 	const equation = renderEquations(element, context);

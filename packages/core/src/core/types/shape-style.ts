@@ -116,6 +116,10 @@ export interface ShapeStyle {
 	 *  Defines the inner rectangle where the gradient reaches its final stop.
 	 *  l/t are insets from left/top edges; r/b are insets from right/bottom edges. */
 	fillGradientFillToRect?: { l: number; t: number; r: number; b: number };
+	/** Raw tileRect LTRB values (0..1 fractions, may be negative) from
+	 *  `a:gradFill/a:tileRect`. Defines the rectangle the gradient tile occupies
+	 *  before any flip/tiling is applied. */
+	fillGradientTileRect?: { l: number; t: number; r: number; b: number };
 	/** Gradient tile flip mode (`a:gradFill/@flip`).
 	 *  `none` = no tiling flip (default), `x|y|xy` = mirror in the named axis. */
 	fillGradientFlip?: 'none' | 'x' | 'y' | 'xy';
@@ -133,6 +137,20 @@ export interface ShapeStyle {
 	 * round-trip serialisation. See {@link fillColorXml} for the rationale.
 	 */
 	strokeColorXml?: XmlObject;
+	/**
+	 * Kind of fill painted on the outline (`a:ln` child). Distinguishes a solid
+	 * outline from a gradient/pattern/none outline so save can emit the correct
+	 * single line fill instead of collapsing every outline to `a:solidFill`
+	 * (which, alongside a preserved `a:gradFill`/`a:pattFill`, produces an
+	 * invalid dual-fill `<a:ln>`).
+	 */
+	strokeFillMode?: 'solid' | 'gradient' | 'pattern' | 'none';
+	/** Raw `a:ln/a:gradFill` XML preserved for round-trip when the outline is
+	 *  gradient-filled. Re-emitted verbatim as the line's single fill on save. */
+	strokeGradientXml?: XmlObject;
+	/** Raw `a:ln/a:pattFill` XML preserved for round-trip when the outline is
+	 *  pattern-filled. Re-emitted verbatim as the line's single fill on save. */
+	strokePatternXml?: XmlObject;
 	strokeWidth?: number;
 	strokeOpacity?: number;
 	strokeDash?: StrokeDashType;
@@ -314,6 +332,14 @@ export interface ShapeStyle {
 	dagDuotone?: { color1: string; color2: string };
 	/** Fill overlay blend mode from effectDag `a:fillOverlay/@blend`. */
 	dagFillOverlayBlend?: 'over' | 'mult' | 'screen' | 'darken' | 'lighten';
+	/**
+	 * Fill overlay tint colour (hex `#RRGGBB`) from effectDag `a:fillOverlay`'s
+	 * `a:solidFill`/`a:gradFill`. Painted as a blended overlay layer over the
+	 * element; the blend mode comes from {@link dagFillOverlayBlend}.
+	 */
+	dagFillOverlayColor?: string;
+	/** Fill overlay tint opacity (0-1), from the overlay fill colour's alpha. */
+	dagFillOverlayOpacity?: number;
 
 	// ── Style references (CT_ShapeStyle §20.1.2.2.36) ─────────────────────
 	// These mirror the `<p:style>` element on a shape. They preserve the

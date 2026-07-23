@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
-import { ANIMATION_KEYFRAMES_CSS } from 'pptx-viewer-shared';
+import { ANIMATION_KEYFRAMES_CSS, isClickAdvanceAllowed } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -198,6 +198,24 @@ function prev(): void {
 }
 
 /**
+ * Click/tap/swipe advance. Like `next()` it first steps the current slide's
+ * remaining animation builds, but once they are exhausted it advances the slide
+ * only when the slide's transition allows click-advance (advanceOnClick !==
+ * false), matching PowerPoint's "on mouse click" gate. Keyboard, the toolbar
+ * next button and the end-screen are unaffected and keep calling `next()`.
+ */
+function advanceFromClick(): void {
+	if (
+		!showEndScreen.value &&
+		playback.isComplete.value &&
+		!isClickAdvanceAllowed(activeSlide.value)
+	) {
+		return;
+	}
+	next();
+}
+
+/**
  * Request exit. When ink annotations were drawn, prompt to keep or discard them
  * (KeepAnnotationsDialog) before leaving; otherwise exit immediately. The
  * prompt is skipped (annotations silently discarded) when File > Options >
@@ -284,7 +302,7 @@ function onOverlayClick(): void {
 	if (annotations.presentationTool.value !== 'none' || presenterMode.value) {
 		return;
 	}
-	next();
+	advanceFromClick();
 }
 
 /** Toolbar `move(±1)` → next/prev. */
@@ -399,7 +417,9 @@ useTouchGestures({
 			if (direction === 1) {
 				prev();
 			} else {
-				next();
+				// A leftward swipe is PowerPoint's on-click advance, so it is gated by
+				// the current slide's advanceOnClick transition flag.
+				advanceFromClick();
 			}
 		},
 	},

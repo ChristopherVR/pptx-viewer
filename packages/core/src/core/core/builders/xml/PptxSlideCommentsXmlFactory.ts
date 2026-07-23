@@ -28,7 +28,7 @@ export class PptxSlideCommentsXmlFactory implements IPptxSlideCommentsXmlFactory
 		const x = init.saveState.toEmu(comment.x, 0);
 		const y = init.saveState.toEmu(comment.y, 0);
 
-		return {
+		const node: XmlObject = {
 			...withoutChildrenByLocalName(comment.rawXml ?? {}, new Set(['pos', 'text'])),
 			'@_authorId': authorId,
 			'@_dt': createdAtIso,
@@ -39,6 +39,34 @@ export class PptxSlideCommentsXmlFactory implements IPptxSlideCommentsXmlFactory
 			},
 			'p:text': String(comment.text || ''),
 		};
+		this.applyResolvedState(node, comment);
+		return node;
+	}
+
+	/**
+	 * Reflect the (possibly edited) `resolved` flag onto the legacy comment
+	 * node. PowerPoint's legacy comment schema has no standard resolved marker,
+	 * but the parser reads a non-standard `@_done` / `@_resolved` attribute, so
+	 * we re-emit the current state rather than leaving the stale value carried
+	 * over from `rawXml`. The original attribute name is preserved when present.
+	 */
+	private applyResolvedState(
+		node: XmlObject,
+		comment: PptxSlideCommentsXmlFactoryInit['slideComments'][number],
+	): void {
+		const raw = comment.rawXml as XmlObject | undefined;
+		const hadResolvedAttr = raw?.['@_resolved'] !== undefined;
+		const hadDoneAttr = raw?.['@_done'] !== undefined;
+		const key = hadResolvedAttr && !hadDoneAttr ? '@_resolved' : '@_done';
+		delete node['@_done'];
+		delete node['@_resolved'];
+		if (comment.resolved === true) {
+			node[key] = '1';
+		} else if (hadResolvedAttr || hadDoneAttr) {
+			// The source marked this comment resolved; an edit cleared it, so
+			// emit an explicit unresolved marker instead of silently dropping it.
+			node[key] = '0';
+		}
 	}
 
 	private resolveCreatedAt(createdAt: string | undefined): string {

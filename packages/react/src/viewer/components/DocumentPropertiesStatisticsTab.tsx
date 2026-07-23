@@ -131,7 +131,7 @@ function formatTotalTime(
  */
 function formatFieldValue(
 	key: keyof PptxAppProperties,
-	value: string | number | undefined,
+	value: string | number | boolean | undefined,
 	t: (key: string, opts?: Record<string, unknown>) => string,
 ): string {
 	if (key === 'totalTime') {
@@ -139,6 +139,9 @@ function formatFieldValue(
 	}
 	if (value === undefined || value === null) {
 		return t('pptx.documentProperties.statistics.notAvailable');
+	}
+	if (typeof value === 'boolean') {
+		return t(value ? 'pptx.documentProperties.custom.yes' : 'pptx.documentProperties.custom.no');
 	}
 	return String(value);
 }

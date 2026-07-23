@@ -102,6 +102,85 @@ function transformElement(
 	};
 }
 
+/**
+ * Extracted from parseGroupShapeAsGroup (issue #70) — reads group-level
+ * rotation/flip from `p:grpSpPr > a:xfrm`. Mirrors the exact guards used in
+ * the runtime: `@_rot` is in 60000ths of a degree and collapses a 0/NaN
+ * value to `undefined`; flips accept the "1"/"true" boolean forms.
+ */
+function parseBooleanAttr(value: unknown): boolean {
+	const normalized = String(value ?? '')
+		.trim()
+		.toLowerCase();
+	return normalized === '1' || normalized === 'true';
+}
+
+function extractGroupRotationFlip(xfrm: XmlObject | undefined): {
+	rotation: number | undefined;
+	flipHorizontal: boolean;
+	flipVertical: boolean;
+} {
+	let rotation: number | undefined;
+	let flipHorizontal = false;
+	let flipVertical = false;
+	if (xfrm) {
+		if (xfrm['@_rot'] !== undefined && xfrm['@_rot'] !== null) {
+			const rot = parseInt(String(xfrm['@_rot']), 10) / 60000;
+			rotation = Number.isFinite(rot) && rot !== 0 ? rot : undefined;
+		}
+		flipHorizontal = parseBooleanAttr(xfrm['@_flipH']);
+		flipVertical = parseBooleanAttr(xfrm['@_flipV']);
+	}
+	return { rotation, flipHorizontal, flipVertical };
+}
+
+// ---------------------------------------------------------------------------
+// Tests: extractGroupRotationFlip (issue #70 group rotation/flip)
+// ---------------------------------------------------------------------------
+describe('extractGroupRotationFlip', () => {
+	it('defaults to no rotation/flip for undefined xfrm', () => {
+		expect(extractGroupRotationFlip(undefined)).toStrictEqual({
+			rotation: undefined,
+			flipHorizontal: false,
+			flipVertical: false,
+		});
+	});
+
+	it('parses @_rot (60000ths of a degree) into degrees', () => {
+		// 45 degrees == 45 * 60000 == 2700000
+		const result = extractGroupRotationFlip({ '@_rot': '2700000' });
+		expect(result.rotation).toBeCloseTo(45);
+	});
+
+	it('parses @_flipH into flipHorizontal', () => {
+		const result = extractGroupRotationFlip({ '@_flipH': '1' });
+		expect(result.flipHorizontal).toBeTruthy();
+		expect(result.flipVertical).toBeFalsy();
+	});
+
+	it('parses @_flipV into flipVertical', () => {
+		const result = extractGroupRotationFlip({ '@_flipV': '1' });
+		expect(result.flipVertical).toBeTruthy();
+		expect(result.flipHorizontal).toBeFalsy();
+	});
+
+	it('parses combined rotation + horizontal flip', () => {
+		const result = extractGroupRotationFlip({ '@_rot': '5400000', '@_flipH': '1' });
+		expect(result.rotation).toBeCloseTo(90);
+		expect(result.flipHorizontal).toBeTruthy();
+	});
+
+	it('collapses a zero rotation to undefined', () => {
+		expect(extractGroupRotationFlip({ '@_rot': '0' }).rotation).toBeUndefined();
+	});
+
+	it('accepts the "true" boolean form for flips', () => {
+		const result = extractGroupRotationFlip({ '@_flipH': 'true', '@_flipV': 'true' });
+		expect(result.flipHorizontal).toBeTruthy();
+		expect(result.flipVertical).toBeTruthy();
+	});
+});
+
 // ---------------------------------------------------------------------------
 // Tests: extractGroupTransform
 // ---------------------------------------------------------------------------

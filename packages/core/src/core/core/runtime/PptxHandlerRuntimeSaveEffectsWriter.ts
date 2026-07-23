@@ -1,5 +1,5 @@
 import { XmlObject } from '../../types';
-import type { ShapeStyle } from '../../types';
+import type { Pptx3DScene, ShapeStyle } from '../../types';
 import { EFFECT_LST_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import { serializeEffectDagContainer } from '../builders/effect-dag-containers';
 import { createEffectList, effectChild, setEffectChild } from '../builders/effect-list-roundtrip';
@@ -102,53 +102,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const s3d = shapeStyle.scene3d;
 			const hasData = s3d.cameraPreset || s3d.lightRigType;
 			if (hasData) {
-				const cameraObj: XmlObject = {};
-				if (s3d.cameraPreset) {
-					cameraObj['@_prst'] = s3d.cameraPreset;
+				// Preserve the ORIGINAL source scene3d node so camera fov/zoom,
+				// light-rig rotation, and any unknown extensions survive the
+				// round-trip; patch only the fields we model.
+				const source = (spPr['a:scene3d'] as XmlObject | undefined) ?? {};
+				const scene3dXml: XmlObject = { ...source };
+				scene3dXml['a:camera'] = buildScene3dCamera(s3d, source);
+				const lightRig = buildScene3dLightRig(s3d, source);
+				if (lightRig) {
+					scene3dXml['a:lightRig'] = lightRig;
 				}
-				if (
-					s3d.cameraRotX !== undefined ||
-					s3d.cameraRotY !== undefined ||
-					s3d.cameraRotZ !== undefined
-				) {
-					const rot: XmlObject = {};
-					if (s3d.cameraRotX !== undefined) {
-						rot['@_lat'] = String(s3d.cameraRotX);
-					}
-					if (s3d.cameraRotY !== undefined) {
-						rot['@_lon'] = String(s3d.cameraRotY);
-					}
-					if (s3d.cameraRotZ !== undefined) {
-						rot['@_rev'] = String(s3d.cameraRotZ);
-					}
-					cameraObj['a:rot'] = rot;
-				}
-				const lightRigObj: XmlObject = {};
-				if (s3d.lightRigType) {
-					lightRigObj['@_rig'] = s3d.lightRigType;
-				}
-				if (s3d.lightRigDirection) {
-					lightRigObj['@_dir'] = s3d.lightRigDirection;
-				}
-				const scene3dXml: XmlObject = {};
-				scene3dXml['a:camera'] = cameraObj;
-				if (Object.keys(lightRigObj).length > 0) {
-					scene3dXml['a:lightRig'] = lightRigObj;
-				}
-				if (s3d.hasBackdrop) {
-					const backdropObj: XmlObject = {};
-					if (
-						s3d.backdropAnchorX !== undefined ||
-						s3d.backdropAnchorY !== undefined ||
-						s3d.backdropAnchorZ !== undefined
-					) {
-						backdropObj['a:anchor'] = {
-							'@_x': String(s3d.backdropAnchorX ?? 0),
-							'@_y': String(s3d.backdropAnchorY ?? 0),
-							'@_z': String(s3d.backdropAnchorZ ?? 0),
-						};
-					}
-					scene3dXml['a:backdrop'] = backdropObj;
+				// Only emit <a:backdrop> when it has valid a:norm + a:up children;
+				// otherwise omit it entirely (a partial backdrop is schema-invalid).
+				const backdrop = buildScene3dBackdrop(s3d);
+				if (backdrop) {
+					scene3dXml['a:backdrop'] = backdrop;
+				} else {
+					delete scene3dXml['a:backdrop'];
 				}
 				spPr['a:scene3d'] = scene3dXml;
 			} else {
@@ -201,13 +171,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					sp3dXml['a:bevelB'] = bevelB;
 				}
 				if (sh3d.extrusionColor) {
+					// ST_HexColorRGB requires 6 hex digits with no leading '#'.
 					sp3dXml['a:extrusionClr'] = {
-						'a:srgbClr': { '@_val': sh3d.extrusionColor },
+						'a:srgbClr': { '@_val': sh3d.extrusionColor.replace('#', '') },
 					};
 				}
 				if (sh3d.contourColor) {
 					sp3dXml['a:contourClr'] = {
-						'a:srgbClr': { '@_val': sh3d.contourColor },
+						'a:srgbClr': { '@_val': sh3d.contourColor.replace('#', '') },
 					};
 				}
 				spPr['a:sp3d'] = sp3dXml;
@@ -218,4 +189,94 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			delete spPr['a:sp3d'];
 		}
 	}
+}
+
+/** Build an `a:rot` sphere-coords node, or `undefined` when no angle is set. */
+function buildSphereRot(
+	lat: number | undefined,
+	lon: number | undefined,
+	rev: number | undefined,
+): XmlObject | undefined {
+	if (lat === undefined && lon === undefined && rev === undefined) {
+		return undefined;
+	}
+	const rot: XmlObject = {};
+	if (lat !== undefined) {
+		rot['@_lat'] = String(lat);
+	}
+	if (lon !== undefined) {
+		rot['@_lon'] = String(lon);
+	}
+	if (rev !== undefined) {
+		rot['@_rev'] = String(rev);
+	}
+	return rot;
+}
+
+/** Patch the source `a:camera` node with modelled preset/fov/zoom/rotation. */
+function buildScene3dCamera(s3d: Pptx3DScene, source: XmlObject): XmlObject {
+	const camera: XmlObject = { ...((source['a:camera'] as XmlObject | undefined) ?? {}) };
+	if (s3d.cameraPreset) {
+		camera['@_prst'] = s3d.cameraPreset;
+	}
+	if (s3d.cameraFieldOfView !== undefined) {
+		camera['@_fov'] = String(s3d.cameraFieldOfView);
+	}
+	if (s3d.cameraZoom !== undefined) {
+		camera['@_zoom'] = String(s3d.cameraZoom);
+	}
+	const rot = buildSphereRot(s3d.cameraRotX, s3d.cameraRotY, s3d.cameraRotZ);
+	if (rot) {
+		camera['a:rot'] = rot;
+	}
+	return camera;
+}
+
+/** Patch the source `a:lightRig` node, or `undefined` when it stays empty. */
+function buildScene3dLightRig(s3d: Pptx3DScene, source: XmlObject): XmlObject | undefined {
+	const lightRig: XmlObject = { ...((source['a:lightRig'] as XmlObject | undefined) ?? {}) };
+	if (s3d.lightRigType) {
+		lightRig['@_rig'] = s3d.lightRigType;
+	}
+	if (s3d.lightRigDirection) {
+		lightRig['@_dir'] = s3d.lightRigDirection;
+	}
+	const rot = buildSphereRot(s3d.lightRigRotX, s3d.lightRigRotY, s3d.lightRigRotZ);
+	if (rot) {
+		lightRig['a:rot'] = rot;
+	}
+	return Object.keys(lightRig).length > 0 ? lightRig : undefined;
+}
+
+/**
+ * Build a schema-valid `a:backdrop` (anchor + norm + up), or `undefined` when
+ * the modelled scene lacks the required norm/up vectors.
+ */
+function buildScene3dBackdrop(s3d: Pptx3DScene): XmlObject | undefined {
+	const hasNorm =
+		s3d.backdropNormalX !== undefined ||
+		s3d.backdropNormalY !== undefined ||
+		s3d.backdropNormalZ !== undefined;
+	const hasUp =
+		s3d.backdropUpX !== undefined || s3d.backdropUpY !== undefined || s3d.backdropUpZ !== undefined;
+	if (!s3d.hasBackdrop || !hasNorm || !hasUp) {
+		return undefined;
+	}
+	return {
+		'a:anchor': {
+			'@_x': String(s3d.backdropAnchorX ?? 0),
+			'@_y': String(s3d.backdropAnchorY ?? 0),
+			'@_z': String(s3d.backdropAnchorZ ?? 0),
+		},
+		'a:norm': {
+			'@_dx': String(s3d.backdropNormalX ?? 0),
+			'@_dy': String(s3d.backdropNormalY ?? 0),
+			'@_dz': String(s3d.backdropNormalZ ?? 0),
+		},
+		'a:up': {
+			'@_dx': String(s3d.backdropUpX ?? 0),
+			'@_dy': String(s3d.backdropUpY ?? 0),
+			'@_dz': String(s3d.backdropUpZ ?? 0),
+		},
+	};
 }

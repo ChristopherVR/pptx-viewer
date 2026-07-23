@@ -32,6 +32,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	): Promise<PptxData> {
 		const headerFooter = this.extractHeaderFooter();
 		const presentationProperties = await this.parsePresentationProperties();
+		const viewProperties = await this.parseViewProperties();
+		// Preserve for automatic re-emission during save (issue #90).
+		this.loadedViewProperties = viewProperties;
 		const customShows = this.parseCustomShows();
 		const tableStyleMap = await this.parseTableStyles();
 		const embeddedFontList = parseEmbeddedFontList(this.presentationData);
@@ -74,6 +77,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			.withLayoutOptions(this.getLayoutOptions())
 			.withHeaderFooter(headerFooter)
 			.withPresentationProperties(presentationProperties)
+			.withViewProperties(viewProperties)
 			.withCustomShows(customShows)
 			.withSections(
 				presentationState.orderedSections.length > 0
@@ -249,6 +253,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.customXmlParts = [];
 		this.loadedEmbeddedFonts = [];
 		this.loadedEmbeddedFontList = undefined;
+		this.loadedViewProperties = undefined;
 		this.orderedSlidePaths = [];
 		// Release the ZIP archive — this is typically the largest allocation
 		// (the entire PPTX file contents live here). The handler is unusable

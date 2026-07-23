@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
+import { getSoftEdgeFilterId } from 'pptx-viewer-shared';
 /**
  * Shape visual style computation.
  *
@@ -37,6 +38,7 @@ import {
 	getCompoundLineBoxShadow,
 	getCompoundLineBorderWidth,
 } from './style';
+import { getStrokeOnlyPresetPaths } from './vector-subpath-paint';
 
 /**
  * Computes the full CSS style object for rendering a PPTX shape element.
@@ -84,6 +86,10 @@ export function getShapeVisualStyle(
 		element.pathWidth > 0 &&
 		typeof element.pathHeight === 'number' &&
 		element.pathHeight > 0;
+	// Open, stroke-only presets (e.g. `arc`) are painted by `renderVectorShape`
+	// as a stroked SVG outline. Suppress the container fill/border (and the
+	// wedge clip-path) so the shape reads as an outline, not a filled region.
+	const rendersStrokeOnlyPreset = Boolean(getStrokeOnlyPresetPaths(element));
 	const fillOpacity = element.shapeStyle?.fillOpacity;
 	const strokeOpacity = element.shapeStyle?.strokeOpacity;
 	const strokeDash = normalizeStrokeDashType(element.shapeStyle?.strokeDash);
@@ -94,6 +100,13 @@ export function getShapeVisualStyle(
 	const resolvedFillColor = colorWithOpacity(fillColor, fillOpacity);
 	const resolvedStrokeColor = colorWithOpacity(strokeColor, strokeOpacity);
 	const ss = element.shapeStyle;
+	// A DAG fill-overlay tint layer is painted separately by `ShapeEffectOverlay`
+	// when a colour is parsed; in that case the whole-element blend proxy below is
+	// suppressed so the overlay layer owns the blend (mirrors shared
+	// `getComputedEffectStyle`).
+	const hasFillOverlayColor = Boolean(
+		ss?.dagFillOverlayColor && ss.dagFillOverlayColor !== 'transparent',
+	);
 
 	// Combine outer, inner, and line shadow into a single boxShadow value.
 	// Multi-layer shadows (from `shadows` array) take precedence over the
@@ -138,8 +151,12 @@ export function getShapeVisualStyle(
 		const glowCol = colorWithOpacity(normalizeHexColor(ss.glowColor, '#ffff00'), glowOpacity);
 		filterParts.push(`drop-shadow(0 0 ${glowRad}px ${glowCol})`);
 	}
+	// Soft edges: feather only the alpha edge via an SVG `<filter>` (injected by
+	// `ShapeEffectOverlay`) rather than a whole-element `blur()` that would wash
+	// out the interior fill/text. `getSoftEdgeSvgFilter` builds the matching
+	// `soft-edge-<id>` filter; here we only reference it.
 	if (typeof ss?.softEdgeRadius === 'number' && ss.softEdgeRadius > 0) {
-		filterParts.push(`blur(${Math.round(ss.softEdgeRadius)}px)`);
+		filterParts.push(`url(#${getSoftEdgeFilterId(element.id)})`);
 	}
 	// Blur effect (a:blur)
 	if (typeof ss?.blurRadius === 'number' && ss.blurRadius > 0) {
@@ -157,9 +174,23 @@ export function getShapeVisualStyle(
 		filterParts.push(dagFilter);
 	}
 
-	// Line join → CSS lineJoin (only relevant for SVG; stored for serialisation)
-	const lineJoinCss =
-		ss?.lineJoin === 'round' ? 'round' : ss?.lineJoin === 'bevel' ? 'bevel' : undefined;
+	// Line join → SVG lineJoin (applied by the SVG path renderer; also carried
+	// here for shapes that stroke via SVG). `miter` (with a:miter/@lim) is mapped
+	// alongside round/bevel instead of being dropped to the default.
+	const lineJoinCss: React.CSSProperties['strokeLinejoin'] =
+		ss?.lineJoin === 'round'
+			? 'round'
+			: ss?.lineJoin === 'bevel'
+				? 'bevel'
+				: ss?.lineJoin === 'miter'
+					? 'miter'
+					: undefined;
+	// a:miter/@lim is stored in 1000ths of a percent (800000 = 8.0); SVG's
+	// stroke-miterlimit is a plain ratio >= 1.
+	const miterLimitCss =
+		ss?.lineJoin === 'miter' && typeof ss?.miterLimit === 'number'
+			? Math.max(ss.miterLimit / 100000, 1)
+			: undefined;
 
 	// Pattern fill (SVG-based CSS background)
 	const patternFill = buildPatternFillCss(element.shapeStyle);
@@ -228,22 +259,36 @@ export function getShapeVisualStyle(
 			typeof ss?.dagAlphaModFix === 'number'
 				? Math.max(0, Math.min(1, ss.dagAlphaModFix / 100))
 				: undefined,
-		mixBlendMode: mapDagBlendModeToCss(ss?.dagFillOverlayBlend),
+		// Only proxy the DAG blend onto the whole element for the legacy
+		// blend-only case (no overlay colour parsed). When a fill-overlay colour
+		// is present, `ShapeEffectOverlay` paints a separate blended tint layer so
+		// the colour is actually rendered (and text/children are not tinted).
+		mixBlendMode: hasFillOverlayColor ? undefined : mapDagBlendModeToCss(ss?.dagFillOverlayBlend),
 		borderWidth:
 			strokeWidth > 0 ? getCompoundLineBorderWidth(ss?.compoundLine, strokeWidth) : undefined,
 		borderColor: strokeWidth > 0 ? resolvedStrokeColor : undefined,
 		borderStyle: strokeWidth > 0 ? getCssBorderDashStyle(strokeDash, ss?.compoundLine) : undefined,
-		strokeLinejoin: lineJoinCss as React.CSSProperties['strokeLinejoin'],
-		strokeLinecap: ss?.lineCap === 'rnd' ? 'round' : ss?.lineCap === 'sq' ? 'square' : undefined,
+		strokeLinejoin: lineJoinCss,
+		strokeMiterlimit: miterLimitCss,
+		strokeLinecap:
+			ss?.lineCap === 'rnd'
+				? 'round'
+				: ss?.lineCap === 'sq'
+					? 'square'
+					: ss?.lineCap === 'flat'
+						? 'butt'
+						: undefined,
 	};
 
 	// ── 3D effects (perspective + rotation + extrusion/bevel) ──
-	apply3dEffects(base, ss?.scene3d, ss?.shape3d);
+	// Pass the resolved fill colour so extrusion/contour default to it when no
+	// explicit extrusion colour is set.
+	apply3dEffects(base, ss?.scene3d, ss?.shape3d, ss?.fillColor ?? fillColor);
 
 	// The SVG `<path>` owns the fill/stroke for freeform geometry; keep effects
 	// (shadow, glow, opacity, blend) on the container but drop the rectangular
 	// fill and border that would otherwise flood the bounding box.
-	if (rendersCustomVectorPath) {
+	if (rendersCustomVectorPath || rendersStrokeOnlyPreset) {
 		base.backgroundColor = 'transparent';
 		base.backgroundImage = undefined;
 		base.borderWidth = undefined;
@@ -277,7 +322,7 @@ export function getShapeVisualStyle(
 		};
 	}
 
-	if (clipPath) {
+	if (clipPath && !rendersStrokeOnlyPreset) {
 		return {
 			...base,
 			clipPath,

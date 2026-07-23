@@ -106,6 +106,9 @@ export function buildSmartArtView(element: SmartArtPptxElement): SmartArtView {
 			element.id,
 			data.resolvedLayoutType,
 			data.layout,
+			undefined,
+			data.layoutDefinition,
+			data.presLayoutVars,
 		);
 		const labels = buildSmartArtA11y(data).nodes;
 		return {

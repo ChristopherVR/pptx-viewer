@@ -10,7 +10,7 @@ import { isUrlSafe } from '../../utils/hyperlink-security';
 export interface PresentationActionDeps {
 	movePresentationSlide: (direction: 1 | -1) => void;
 	navigateToSlide: (slideIndex: number) => void;
-	onPlayActionSound?: (soundPath: string) => void;
+	onPlayActionSound?: (soundPath: string, options?: { loop?: boolean }) => void;
 	onSetMode: (mode: ViewerMode) => void;
 	slidesLength: number;
 }

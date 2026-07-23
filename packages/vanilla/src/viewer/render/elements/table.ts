@@ -10,8 +10,8 @@ import {
 	cellRunStyle,
 	cellStyleToCss,
 	DEFAULT_TEXT_COLOR,
+	getCellDiagonalBorders,
 	getContainerStyle,
-	getDiagonalBorders,
 	getTableCellBandStyle,
 } from 'pptx-viewer-shared';
 
@@ -78,6 +78,7 @@ export const renderTableElement: ElementRenderer = (element, zIndex, context) =>
 				renderCell(doc, tableData, cell, rowIndex, cellIndex, rowCount, columnCount, {
 					colorScheme: context.colorScheme,
 					tableStyleMap: context.tableStyleMap,
+					fontScheme: context.fontScheme,
 				}),
 			);
 		});
@@ -171,7 +172,14 @@ function renderCell(
 	applyStyleMap(td, CELL_BASE_STYLE);
 	applyStyleMap(td, style);
 
-	const diagonals = getDiagonalBorders(cell.style);
+	// Diagonals combine the per-cell explicit borders with any inherited from
+	// the applicable table-style sections (per-cell wins on each axis).
+	const diagonals = getCellDiagonalBorders(
+		cell.style,
+		tableData,
+		{ rowIndex, cellIndex, rowCount, columnCount },
+		styleContext,
+	);
 	if (diagonals) {
 		td.appendChild(renderDiagonalOverlay(doc, diagonals));
 	}

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 
 import type {
 	PresentationTransitionOverlayState,
+	SlideAdvanceTrigger,
 	UsePresentationModeInput,
 	UsePresentationModeResult,
 } from './presentation-mode/types';
@@ -142,7 +143,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	// While the end-of-show screen is up, the next forward advance exits the
 	// show and a backward advance returns to the last slide.
 	const movePresentationSlide = useCallback(
-		(direction: 1 | -1) => {
+		(direction: 1 | -1, trigger: SlideAdvanceTrigger = 'explicit') => {
 			if (endOfShowVisible) {
 				setEndOfShowVisible(false);
 				if (direction === 1) {
@@ -150,7 +151,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 				}
 				return;
 			}
-			moveNavigationSlide(direction);
+			moveNavigationSlide(direction, trigger);
 		},
 		[endOfShowVisible, moveNavigationSlide, onSetMode],
 	);

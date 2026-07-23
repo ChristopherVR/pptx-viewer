@@ -80,6 +80,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Parse the `@txBox` attribute from a `p:cNvSpPr` node. Returns `true` /
+	 * `false` when the attribute is present, or `undefined` when absent so
+	 * callers can distinguish "not a text box" from "unspecified".
+	 */
+	protected parseTxBoxFlag(cNvSpPr: XmlObject | undefined): boolean | undefined {
+		const raw = cNvSpPr?.['@_txBox'];
+		if (raw === undefined) {
+			return undefined;
+		}
+		const val = String(raw).trim().toLowerCase();
+		return val === '1' || val === 'true';
+	}
+
+	/**
 	 * Extract body-level text properties from `a:bodyPr` and apply them to the
 	 * provided {@link TextStyle}.  Returns linked-textbox info when present.
 	 */

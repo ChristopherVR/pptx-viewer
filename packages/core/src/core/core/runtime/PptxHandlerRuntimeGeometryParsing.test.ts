@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
+import { evaluatePresetAdjustmentFormula } from './preset-avlst-fmla';
+
 // Since these are protected methods on a deeply chained mixin, we extract
 // their logic and test it directly. Implementations below are copied
 // verbatim from PptxHandlerRuntimeGeometryParsing.ts.
@@ -27,6 +29,7 @@ function parseGeometryAdjustments(
 	}
 
 	const adjustments: Record<string, number> = {};
+	const priorAdjustments = new Map<string, number>();
 	for (const gd of gdNodes) {
 		const name = String(gd?.['@_name'] || '').trim();
 		if (!name) {
@@ -48,11 +51,14 @@ function parseGeometryAdjustments(
 				if (Number.isFinite(parsed)) {
 					value = parsed;
 				}
+			} else {
+				value = evaluatePresetAdjustmentFormula(formula, name, priorAdjustments);
 			}
 		}
 
 		if (value !== undefined) {
 			adjustments[name] = value;
+			priorAdjustments.set(name, value);
 		}
 	}
 
@@ -195,13 +201,103 @@ describe('parseGeometryAdjustments', () => {
 		expect(result).toBeUndefined();
 	});
 
-	it('should skip entries with non-matching fmla patterns', () => {
+	it('should defer entries referencing an unresolvable guide', () => {
 		const result = parseGeometryAdjustments({
 			'a:avLst': {
 				'a:gd': { '@_name': 'adj', '@_fmla': '*/2 adj 100000' },
 			},
 		});
 		expect(result).toBeUndefined();
+	});
+
+	it('should evaluate a non-literal arithmetic fmla over literals', () => {
+		const result = parseGeometryAdjustments({
+			'a:avLst': {
+				// (100000 * 1) / 2 = 50000
+				'a:gd': { '@_name': 'adj', '@_fmla': '*/ 100000 1 2' },
+			},
+		});
+		expect(result).toStrictEqual({ adj: 50000 });
+	});
+
+	it('should evaluate a +- fmla over literals', () => {
+		const result = parseGeometryAdjustments({
+			'a:avLst': {
+				// 50000 + 10000 - 20000 = 40000
+				'a:gd': { '@_name': 'adj', '@_fmla': '+- 50000 10000 20000' },
+			},
+		});
+		expect(result).toStrictEqual({ adj: 40000 });
+	});
+
+	it('should evaluate a pin (clamp) fmla over literals', () => {
+		const result = parseGeometryAdjustments({
+			'a:avLst': {
+				// clamp 60000 between 0 and 100000 = 60000
+				'a:gd': { '@_name': 'adj', '@_fmla': 'pin 0 60000 100000' },
+			},
+		});
+		expect(result).toStrictEqual({ adj: 60000 });
+	});
+
+	it('should evaluate a fmla that references an earlier adjustment', () => {
+		const result = parseGeometryAdjustments({
+			'a:avLst': {
+				'a:gd': [
+					{ '@_name': 'adj1', '@_val': '20000' },
+					// (adj1 * 2) / 1 = 40000
+					{ '@_name': 'adj2', '@_fmla': '*/ adj1 2 1' },
+				],
+			},
+		});
+		expect(result).toStrictEqual({ adj1: 20000, adj2: 40000 });
+	});
+
+	it('should defer a geometry-dependent fmla (needs shape width/height)', () => {
+		const result = parseGeometryAdjustments({
+			'a:avLst': {
+				// references `w`: cannot resolve without geometry at parse time
+				'a:gd': { '@_name': 'adj', '@_fmla': '*/ w 1 2' },
+			},
+		});
+		expect(result).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// evaluatePresetAdjustmentFormula
+// ---------------------------------------------------------------------------
+describe('evaluatePresetAdjustmentFormula', () => {
+	const noPrior = new Map<string, number>();
+
+	it('evaluates arithmetic over numeric literals', () => {
+		expect(evaluatePresetAdjustmentFormula('*/ 100000 1 2', 'adj', noPrior)).toBe(50000);
+		expect(evaluatePresetAdjustmentFormula('+/ 40000 20000 2', 'adj', noPrior)).toBe(30000);
+		expect(evaluatePresetAdjustmentFormula('min 30000 70000', 'adj', noPrior)).toBe(30000);
+		expect(evaluatePresetAdjustmentFormula('max 30000 70000', 'adj', noPrior)).toBe(70000);
+	});
+
+	it('resolves references to prior adjustments', () => {
+		const prior = new Map<string, number>([['adj1', 25000]]);
+		expect(evaluatePresetAdjustmentFormula('*/ adj1 2 1', 'adj2', prior)).toBe(50000);
+	});
+
+	it('resolves the always-zero l/t constants', () => {
+		expect(evaluatePresetAdjustmentFormula('+- l 12345 0', 'adj', noPrior)).toBe(12345);
+	});
+
+	it('defers formulas that reference geometry-dependent built-ins', () => {
+		expect(evaluatePresetAdjustmentFormula('*/ w 1 2', 'adj', noPrior)).toBeUndefined();
+		expect(evaluatePresetAdjustmentFormula('*/ h 1 2', 'adj', noPrior)).toBeUndefined();
+		expect(evaluatePresetAdjustmentFormula('+- hc 0 0', 'adj', noPrior)).toBeUndefined();
+	});
+
+	it('defers formulas referencing an unknown/external guide', () => {
+		expect(evaluatePresetAdjustmentFormula('*/ someGuide 1 2', 'adj', noPrior)).toBeUndefined();
+	});
+
+	it('returns undefined for an empty formula', () => {
+		expect(evaluatePresetAdjustmentFormula('   ', 'adj', noPrior)).toBeUndefined();
 	});
 });
 

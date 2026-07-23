@@ -1,4 +1,8 @@
-import type { ParsedTableStyleMap, PptxThemeColorScheme } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleMap,
+	PptxThemeColorScheme,
+	PptxThemeFontScheme,
+} from 'pptx-viewer-core';
 import type { InjectionKey, MaybeRefOrGetter } from 'vue';
 import { inject, toValue } from 'vue';
 
@@ -14,6 +18,11 @@ import { inject, toValue } from 'vue';
 export interface TableThemeContext {
 	colorScheme?: PptxThemeColorScheme;
 	tableStyleMap?: ParsedTableStyleMap;
+	/**
+	 * Theme font scheme, so a table style's `a:fontRef@idx` (`minor`/`major`)
+	 * can resolve to a concrete font family in banded/header cell text.
+	 */
+	fontScheme?: PptxThemeFontScheme;
 }
 
 /** Typed injection key for the table theme context (reactive getter or ref). */

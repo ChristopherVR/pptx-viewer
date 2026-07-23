@@ -270,6 +270,57 @@ describe('cartesian percentStacked', () => {
 	});
 });
 
+// ── invertIfNegative (c:invertIfNegative) ────────────────────────
+
+describe('cartesian invertIfNegative', () => {
+	const SERIES_COLOR = '#4472C4';
+
+	function firstTwoRectFills(data: PptxChartData): Array<string> {
+		const vm = buildChartViewModel(chartElement(data));
+		return vm.primitives.filter((p) => p.kind === 'rect').map((p) => p.fill);
+	}
+
+	it('lightens a negative-value bar when the series sets invertIfNegative', () => {
+		const [positive, negative] = firstTwoRectFills({
+			chartType: 'bar',
+			categories: ['Up', 'Down'],
+			series: [{ name: 'S', values: [10, -20], color: SERIES_COLOR, invertIfNegative: true }],
+		});
+		// The positive bar keeps the series colour; the negative bar is inverted.
+		expect(positive).toBe(SERIES_COLOR);
+		expect(negative).not.toBe(SERIES_COLOR);
+		// Convention: 50% blend of #4472C4 toward white -> #A2B9E2.
+		expect(negative).toBe('#A2B9E2');
+	});
+
+	it('leaves negative bars untouched when invertIfNegative is absent', () => {
+		const [positive, negative] = firstTwoRectFills({
+			chartType: 'bar',
+			categories: ['Up', 'Down'],
+			series: [{ name: 'S', values: [10, -20], color: SERIES_COLOR }],
+		});
+		expect(positive).toBe(SERIES_COLOR);
+		expect(negative).toBe(SERIES_COLOR);
+	});
+
+	it('lets a per-point c:dPt invertIfNegative override the series-level flag', () => {
+		const [, negative] = firstTwoRectFills({
+			chartType: 'bar',
+			categories: ['Up', 'Down'],
+			series: [
+				{
+					name: 'S',
+					values: [10, -20],
+					color: SERIES_COLOR,
+					invertIfNegative: false,
+					dataPoints: [{ idx: 1, invertIfNegative: true }],
+				},
+			],
+		});
+		expect(negative).toBe('#A2B9E2');
+	});
+});
+
 // ── Overlays ─────────────────────────────────────────────────────
 
 describe('cartesian overlays', () => {

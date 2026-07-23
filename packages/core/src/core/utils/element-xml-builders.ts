@@ -15,6 +15,9 @@ import { normalizeStrokeDashType } from './stroke-utils';
 
 export function createTemplateShapeRawXml(element: PptxElementWithText): XmlObject {
 	const isText = element.type === 'text';
+	// Prefer the parsed `@txBox` flag (round-tripped via `locks.txBox`) so a
+	// rebuilt shape keeps its original text-box classification.
+	const isTextBox = element.locks?.txBox ?? isText;
 	const name = isText ? 'TextBox' : 'Rectangle';
 	const geometry = element.shapeType === 'cylinder' ? 'can' : element.shapeType || 'rect';
 	const adjustmentEntries = Object.entries(element.shapeAdjustments || {}).filter(
@@ -37,7 +40,7 @@ export function createTemplateShapeRawXml(element: PptxElementWithText): XmlObje
 				'@_name': `${name} ${Math.floor(Math.random() * 100)}`,
 			},
 			'p:cNvSpPr': {
-				'@_txBox': isText ? '1' : '0',
+				'@_txBox': isTextBox ? '1' : '0',
 			},
 			'p:nvPr': {},
 		},

@@ -3,6 +3,7 @@ import type {
 	PptxElement,
 	PptxSlide,
 	PptxThemeColorScheme,
+	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
 import type { CanvasSize, CssStyleMap, FieldSubstitutionContext } from 'pptx-viewer-shared';
 
@@ -41,6 +42,11 @@ export interface ElementRenderContext {
 	readonly mediaDataUrls: ReadonlyMap<string, string>;
 	/** Presentation theme colour scheme used by theme-aware render helpers. */
 	readonly colorScheme?: PptxThemeColorScheme;
+	/**
+	 * Presentation theme font scheme, so table styles resolve their
+	 * `a:fontRef@idx` (`minor`/`major`) to a concrete font family.
+	 */
+	readonly fontScheme?: PptxThemeFontScheme;
 	/** Parsed `ppt/tableStyles.xml` definitions used by table band/header styling. */
 	readonly tableStyleMap?: ParsedTableStyleMap;
 	readonly fieldContext?: FieldSubstitutionContext;

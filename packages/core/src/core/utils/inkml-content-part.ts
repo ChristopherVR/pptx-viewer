@@ -1,4 +1,13 @@
 import type { ContentPartInkStroke, XmlObject } from '../types';
+import {
+	decodeTracePoints,
+	ensureArray,
+	nsAttr,
+	nsGet,
+	pointsToPressures,
+	pointsToSvgPath,
+	resolveChannelOrder,
+} from './inkml-trace-decode';
 
 const INKML_NAMESPACE = 'http://www.w3.org/2003/InkML';
 const METADATA_NAMESPACE = 'https://pptx-viewer.dev/inkml/metadata';
@@ -10,34 +19,43 @@ export interface ParsedInkMlContent {
 
 /** Parse authored InkML trace/brush metadata while tolerating plain legacy traces. */
 export function parseInkMlContent(data: XmlObject): ParsedInkMlContent {
-	const root = (data['ink:ink'] ?? data['ink']) as XmlObject | undefined;
+	const root = (nsGet(data, 'ink') ?? data['ink']) as XmlObject | undefined;
 	if (!root) {
 		return { strokes: [], rawXml: data };
 	}
 	const brushes = new Map<string, Pick<ContentPartInkStroke, 'color' | 'width' | 'opacity'>>();
-	for (const brush of ensureArray(root['ink:brush'] ?? root['brush'])) {
-		const properties = ensureArray(brush['ink:brushProperty'] ?? brush['brushProperty']);
+	for (const brush of ensureArray(nsGet(root, 'brush'))) {
+		const properties = ensureArray(nsGet(brush, 'brushProperty'));
 		const valueByName = new Map(
-			properties.map((property) => [String(property['@_name'] ?? ''), property['@_value']]),
+			properties.map((property) => [
+				String(nsAttr(property, 'name') ?? ''),
+				nsAttr(property, 'value'),
+			]),
 		);
-		brushes.set(String(brush['@_id'] ?? ''), {
+		brushes.set(String(nsAttr(brush, 'id') ?? ''), {
 			color: String(valueByName.get('color') ?? '#000000'),
 			width: finiteNumber(valueByName.get('width'), 1),
 			opacity: finiteNumber(valueByName.get('opacity'), 1),
 		});
 	}
+	const channelOrder = resolveChannelOrder(root);
 	const strokes: ContentPartInkStroke[] = [];
-	for (const trace of ensureArray(root['ink:trace'] ?? root['trace'])) {
+	for (const trace of ensureArray(nsGet(root, 'trace'))) {
 		const text = typeof trace === 'string' ? trace : String(trace['#text'] ?? '').trim();
-		const path =
-			typeof trace === 'string' ? text : String(trace['@_pva:path'] ?? '').trim() || text;
+		// The library's own authored format stamps a ready-made SVG `@pva:path`
+		// on each trace. A real PowerPoint InkML part has none: its trace text
+		// is raw channel data (e.g. "128 240, 130 242") that must be decoded
+		// into `M x y L x y ...` before it can drive an SVG `<path d>`.
+		const authored = typeof trace === 'string' ? '' : String(nsAttr(trace, 'path') ?? '').trim();
+		const points = authored ? [] : decodeTracePoints(text, channelOrder);
+		const path = authored || pointsToSvgPath(points, channelOrder);
 		if (!path) {
 			continue;
 		}
 		const brushRef =
-			typeof trace === 'string' ? '' : String(trace['@_brushRef'] ?? '').replace('#', '');
+			typeof trace === 'string' ? '' : String(nsAttr(trace, 'brushRef') ?? '').replace('#', '');
 		const brush = brushes.get(brushRef) ?? { color: '#000000', width: 1, opacity: 1 };
-		const pressures = tracePressures(text);
+		const pressures = authored ? tracePressures(text) : pointsToPressures(points, channelOrder);
 		strokes.push({ ...brush, path, ...(pressures.length > 0 ? { pressures } : {}) });
 	}
 	return { strokes, rawXml: data };
@@ -105,11 +123,4 @@ function tracePressures(text: string): number[] {
 function finiteNumber(value: unknown, fallback: number): number {
 	const parsed = Number(value);
 	return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function ensureArray(value: unknown): XmlObject[] {
-	if (value === undefined || value === null) {
-		return [];
-	}
-	return (Array.isArray(value) ? value : [value]) as XmlObject[];
 }

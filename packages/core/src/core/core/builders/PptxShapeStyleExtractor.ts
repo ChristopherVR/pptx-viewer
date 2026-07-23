@@ -1,6 +1,7 @@
 import type { ConnectorArrowType, ShapeStyle, StrokeDashType, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import { drawingChild } from './drawing-fill-xml';
+import { extractGradientTileRect } from './PptxGradientStyleCodec';
 import { applyScene3dStyle, applyShape3dStyle } from './shape-style-3d-helpers';
 import { applyLineProperties } from './shape-style-line-helpers';
 
@@ -76,6 +77,10 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 			style.fillGradientPathType = this.context.extractGradientPathType(gradFill);
 			style.fillGradientFocalPoint = this.context.extractGradientFocalPoint(gradFill);
 			style.fillGradientFillToRect = this.context.extractGradientFillToRect(gradFill);
+			const gradTileRect = extractGradientTileRect(gradFill);
+			if (gradTileRect) {
+				style.fillGradientTileRect = gradTileRect;
+			}
 			const gradFlip = this.context.extractGradientFlip(gradFill);
 			if (gradFlip) {
 				style.fillGradientFlip = gradFlip;

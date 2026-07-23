@@ -12,10 +12,18 @@
  * same string — the bindings historically exported it under both names, so the
  * alias preserves their public surface.
  *
+ * The faithful Office 2010 (`p14`) keyframes are appended (via
+ * {@link P14_TRANSITION_KEYFRAMES_ALL}) so the exotic / 3-D transitions routed
+ * through `getP14TransitionAnimations` animate wherever this block is injected,
+ * with no per-binding wiring.
+ *
  * @module render/slide-transition-keyframes
  */
 
-export const SLIDE_TRANSITION_KEYFRAMES = `
+import { P14_TRANSITION_KEYFRAMES_ALL } from './p14-transition-keyframes';
+import { CINEMATIC_TRANSITION_KEYFRAMES } from './slide-transition-cinematic';
+
+const CORE_SLIDE_TRANSITION_KEYFRAMES = `
 /* ── Fade ───────────────────────────────────────────────────────────── */
 @keyframes pptx-tr-fade-in {
 	from { opacity: 0; }
@@ -278,6 +286,13 @@ export const SLIDE_TRANSITION_KEYFRAMES = `
 	to   { clip-path: circle(75% at 50% 50%); transform: rotate(0deg); }
 }
 `;
+
+/**
+ * The full slide-transition `@keyframes` block: the classic set plus the
+ * faithful Office 2010 (`p14`) keyframes, so both the classic and exotic / 3-D
+ * transitions animate wherever this single string is injected.
+ */
+export const SLIDE_TRANSITION_KEYFRAMES = `${CORE_SLIDE_TRANSITION_KEYFRAMES}\n${P14_TRANSITION_KEYFRAMES_ALL}\n${CINEMATIC_TRANSITION_KEYFRAMES}`;
 
 /**
  * Alias of {@link SLIDE_TRANSITION_KEYFRAMES} under the `_CSS` name the Vue

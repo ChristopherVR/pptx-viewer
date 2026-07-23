@@ -34,6 +34,27 @@ describe('renderTextBlock picture bullets', () => {
 		expect(image?.style.height).toBe('24px');
 	});
 
+	it('applies per-paragraph line-height and space before/after', () => {
+		const block = renderTextBlock(
+			document,
+			[paragraph({ lineHeight: 1.5, spaceBeforePx: 12, spaceAfterPx: 6 })],
+			{},
+		);
+		const p = block.querySelector<HTMLParagraphElement>('.pptxv-para');
+		expect(p?.style.lineHeight).toBe('1.5');
+		expect(p?.style.marginTop).toBe('12px');
+		expect(p?.style.marginBottom).toBe('6px');
+	});
+
+	it('supports an exact "<n>pt" line-height and omits unset spacing', () => {
+		const block = renderTextBlock(document, [paragraph({ lineHeight: '18pt' })], {});
+		const p = block.querySelector<HTMLParagraphElement>('.pptxv-para');
+		expect(p?.style.lineHeight).toBe('18pt');
+		// Unset space-before/after leave the base `margin: 0` shorthand (0px).
+		expect(p?.style.marginTop).toBe('0px');
+		expect(p?.style.marginBottom).toBe('0px');
+	});
+
 	it('labels the glyph fallback when the image is unresolved', () => {
 		const block = renderTextBlock(
 			document,

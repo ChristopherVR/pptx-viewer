@@ -2,6 +2,7 @@ import type { MediaPptxElement } from 'pptx-viewer-core';
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { registerMediaElement } from './media-element-registry';
 import { registerPersistentAudio } from './media-persistent-audio';
 
 // ---------------------------------------------------------------------------
@@ -63,6 +64,16 @@ export function PresentationMediaController({
 			}
 		};
 	}, []);
+
+	// Register the media node so `p:cmd` command steps in the animation timeline
+	// can drive it (play/pause/seek) by the owning element id.
+	useEffect(() => {
+		const el = mediaRef.current;
+		if (!el) {
+			return;
+		}
+		return registerMediaElement(element.id, el);
+	}, [element.id]);
 
 	// Apply volume
 	useEffect(() => {

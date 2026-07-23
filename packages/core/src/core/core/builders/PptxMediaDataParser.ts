@@ -3,6 +3,8 @@ import { parseDrawingMediaReference } from '../../utils/drawing-media-reference'
 
 export interface PptxMediaDataParserContext {
 	slideRelsMap: Map<string, Map<string, string>>;
+	/** Relationship IDs with TargetMode="External" per slide/part path. */
+	externalRelsMap: Map<string, Set<string>>;
 	resolvePath: (base: string, relative: string) => string;
 	getPathExtension: (pathValue: string) => string | undefined;
 }
@@ -30,7 +32,10 @@ export class PptxMediaDataParser implements IPptxMediaDataParser {
 		const result: Partial<MediaPptxElement> = {};
 
 		try {
-			const reference = parseDrawingMediaReference(graphicData as XmlObject);
+			const reference = parseDrawingMediaReference(
+				graphicData as XmlObject,
+				this.context.externalRelsMap.get(slidePath),
+			);
 			if (reference) {
 				result.mediaType = reference.mediaType;
 				result.mediaReferenceKind = reference.kind;

@@ -109,6 +109,30 @@ export function parseDrawingPercent(value: unknown): number | undefined {
 }
 
 // ---------------------------------------------------------------------------
+// scRGB companding
+// ---------------------------------------------------------------------------
+
+/**
+ * Convert a single scRGB linear-light channel (as a fraction, where `1` =
+ * 100%) to an 8-bit sRGB value in [0, 255] by applying the IEC 61966-2-1
+ * gamma companding (linear -> sRGB).
+ *
+ * `a:scrgbClr` channels are linear-light, so treating them directly as sRGB
+ * (the historical behaviour) over-darkens mid-tones (e.g. 50% linear became
+ * `#80`, whereas the correct companded value is `#BC`). Values outside
+ * [0, 1] are clamped to the displayable range (8-bit output cannot represent
+ * the >100% HDR values scRGB permits).
+ *
+ * @param linear - Linear-light channel fraction (typically [0, 1]).
+ * @returns Companded sRGB channel value in [0, 255].
+ */
+export function scrgbLinearToSrgb8(linear: number): number {
+	const l = Math.min(1, Math.max(0, linear));
+	const companded = l <= 0.0031308 ? 12.92 * l : 1.055 * l ** (1 / 2.4) - 0.055;
+	return Math.min(255, Math.max(0, Math.round(companded * 255)));
+}
+
+// ---------------------------------------------------------------------------
 // Hex helper
 // ---------------------------------------------------------------------------
 

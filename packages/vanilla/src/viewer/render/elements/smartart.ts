@@ -98,6 +98,9 @@ export const renderSmartArtSvg: ElementRenderer = (element, zIndex, context) => 
 			element.id,
 			data.resolvedLayoutType,
 			data.layout,
+			undefined,
+			data.layoutDefinition,
+			data.presLayoutVars,
 		);
 		chrome.appendChild(
 			buildSmartArtFallbackSvg(

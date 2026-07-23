@@ -6,7 +6,11 @@ import type {
 	ParsedTableStyleMap,
 	PptxTheme,
 	PptxThemeColorScheme,
+	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
+// `resolveFontRefIdx` maps a table-style `a:fontRef@idx` (minor/major) to a
+// concrete theme font family; shared so it stays in sync with the other bindings.
+import { resolveFontRefIdx } from 'pptx-viewer-shared';
 import type React from 'react';
 
 import { tintColor, shadeColor } from './theme';
@@ -59,6 +63,7 @@ function applyTableStyleText(
 	text: ParsedTableStyleText | undefined,
 	colorScheme: PptxThemeColorScheme | undefined,
 	style: React.CSSProperties,
+	fontScheme?: PptxThemeFontScheme,
 ): boolean {
 	if (!text) {
 		return false;
@@ -72,6 +77,22 @@ function applyTableStyleText(
 	if (text.italic) {
 		style.fontStyle = 'italic';
 		applied = true;
+	}
+	if (text.underline) {
+		style.textDecorationLine = 'underline';
+		applied = true;
+	}
+	// Font family: an explicit `a:font@typeface` wins, otherwise resolve the
+	// `a:fontRef@idx` (minor/major) against the theme font scheme.
+	if (text.fontFace) {
+		style.fontFamily = text.fontFace;
+		applied = true;
+	} else {
+		const refFont = resolveFontRefIdx(text.fontRefIdx, fontScheme);
+		if (refFont) {
+			style.fontFamily = refFont;
+			applied = true;
+		}
 	}
 	if (text.fontSchemeColor && colorScheme) {
 		const base = (colorScheme as unknown as Record<string, string | undefined>)[
@@ -139,6 +160,7 @@ export function getTableCellBandStyle(
 
 	const styleEntry = resolveTableStyleEntry(td.tableStyleId, styleCtx?.tableStyleMap);
 	const colorScheme = styleCtx?.theme?.colorScheme;
+	const fontScheme = styleCtx?.theme?.fontScheme;
 
 	// Helper: resolve a section fill to a CSS colour, or fall back
 	const resolveFill = (fill: ParsedTableStyleFill | undefined, fallback: string): string =>
@@ -155,7 +177,7 @@ export function getTableCellBandStyle(
 			applied = true;
 		}
 	}
-	if (applyTableStyleText(styleEntry?.wholeTblText, colorScheme, style)) {
+	if (applyTableStyleText(styleEntry?.wholeTblText, colorScheme, style, fontScheme)) {
 		applied = true;
 	}
 
@@ -213,7 +235,7 @@ export function getTableCellBandStyle(
 		const headerBg = resolveFill(styleEntry?.firstRowFill, 'rgba(68, 114, 196, 0.85)');
 		style.backgroundColor = headerBg;
 		style.color = '#ffffff';
-		applyTableStyleText(styleEntry?.firstRowText, colorScheme, style);
+		applyTableStyleText(styleEntry?.firstRowText, colorScheme, style, fontScheme);
 		applied = true;
 	}
 
@@ -229,7 +251,7 @@ export function getTableCellBandStyle(
 		style.borderTopWidth = 2;
 		style.borderTopColor = resolveFill(styleEntry?.firstRowFill, 'rgba(68, 114, 196, 0.7)');
 		style.borderTopStyle = 'solid';
-		applyTableStyleText(styleEntry?.lastRowText, colorScheme, style);
+		applyTableStyleText(styleEntry?.lastRowText, colorScheme, style, fontScheme);
 		applied = true;
 	}
 
@@ -242,7 +264,7 @@ export function getTableCellBandStyle(
 				style.backgroundColor = firstColBg;
 			}
 		}
-		applyTableStyleText(styleEntry?.firstColText, colorScheme, style);
+		applyTableStyleText(styleEntry?.firstColText, colorScheme, style, fontScheme);
 		applied = true;
 	}
 
@@ -255,7 +277,7 @@ export function getTableCellBandStyle(
 				style.backgroundColor = lastColBg;
 			}
 		}
-		applyTableStyleText(styleEntry?.lastColText, colorScheme, style);
+		applyTableStyleText(styleEntry?.lastColText, colorScheme, style, fontScheme);
 		applied = true;
 	}
 

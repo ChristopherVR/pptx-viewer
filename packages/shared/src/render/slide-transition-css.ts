@@ -16,11 +16,16 @@
  *
  * Superset note: the exotic / 3-D transition family (`pan`/`gallery`/
  * `conveyor`/`reveal`/`doors`/`switch`/`flythrough`/`ferris`/`prism`/`ripple`/
- * `honeycomb`/`glitter`/`shred`/`flash`) is approximated with the closest
- * well-tested 2-D case (originally an Angular-only refinement) rather than a
- * plain fade. Truly-unknown types still fall back to a symmetrical cross-fade.
- * A more faithful per-effect p14 keyframe set is available separately via
- * `p14-transition-keyframes` + {@link getP14TransitionAnimations}.
+ * `honeycomb`/`glitter`/`shred`/`flash`/`vortex`/`warp`/`wheelReverse`/`window`)
+ * is rendered faithfully by delegating to {@link getP14TransitionAnimations}
+ * (its `@keyframes` live in `p14-transition-keyframes` and are folded into
+ * `SLIDE_TRANSITION_KEYFRAMES`). The newer Office 2013+ (p15) cinematic family
+ * (`cube`/`flip`/`rotate`/`orbit`/`fallOver`/`drape`/`curtains`/`wind`/
+ * `prestige`/`fracture`/`crush`/`peelOff`/`pageCurlSingle`/`pageCurlDouble`/
+ * `airplane`/`origami`) is likewise rendered faithfully via
+ * {@link getCinematicTransitionAnimations} (its `@keyframes` live in
+ * `slide-transition-cinematic` as `CINEMATIC_TRANSITION_KEYFRAMES`). Only truly
+ * unknown types fall back to a symmetrical cross-fade.
  *
  * Everything here is pure and unit-testable: no framework imports, no DOM.
  *
@@ -29,6 +34,8 @@
 
 import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 
+import { getP14TransitionAnimations } from './p14-transition-css';
+import { getCinematicTransitionAnimations } from './slide-transition-cinematic';
 import {
 	DEFAULT_TRANSITION_DURATION_MS,
 	EASE,
@@ -59,8 +66,31 @@ export function getSlideTransitionAnimations(
 ): SlideTransitionAnimations {
 	const dur = `${durationMs}ms`;
 	// `spokes` is reserved for future wheel spoke-count support; forwarded only
-	// through recursive calls (random/pull/exotic aliases).
+	// through recursive calls (random / pull aliases).
 	void spokes;
+
+	// Prefer the faithful Office 2010 (p14) keyframe set for the exotic / 3-D
+	// transition family (conveyor/doors/ferris/flash/flythrough/gallery/glitter/
+	// honeycomb/pan/prism/reveal/ripple/shred/switch/vortex/warp/wheelReverse/
+	// window). Returns `undefined` for the classic set, which falls through to
+	// the 2-D CSS cases below. The p14 `@keyframes` are folded into
+	// `SLIDE_TRANSITION_KEYFRAMES`, so every binding that injects that block
+	// animates these faithfully with no per-binding wiring.
+	const p14 = getP14TransitionAnimations(type, durationMs, direction, orient);
+	if (p14) {
+		return p14;
+	}
+
+	// The Office 2013+ (p15) cinematic family (cube/flip/rotate/orbit/fallOver/
+	// drape/curtains/wind/prestige/fracture/crush/peelOff/pageCurlSingle/
+	// pageCurlDouble/airplane/origami) is rendered with real 3-D / composite
+	// keyframes. Returns `undefined` for every other type so the classic 2-D
+	// cases below still run. Its `@keyframes` (`CINEMATIC_TRANSITION_KEYFRAMES`)
+	// are folded into `SLIDE_TRANSITION_KEYFRAMES`.
+	const cinematic = getCinematicTransitionAnimations(type, durationMs, direction, orient);
+	if (cinematic) {
+		return cinematic;
+	}
 
 	switch (type) {
 		case 'none':
@@ -301,32 +331,14 @@ export function getSlideTransitionAnimations(
 			return getSlideTransitionAnimations(randomType, durationMs, direction, orient, spokes);
 		}
 
-		// ── Exotic / 3-D transitions — approximated with the closest well-tested
-		// 2-D CSS behaviour (delegates to an existing case rather than emitting a
-		// plain fade). A faithful per-effect keyframe set is available via
-		// `getP14TransitionAnimations`.
-		case 'pan':
-		case 'gallery':
-		case 'conveyor':
-			return getSlideTransitionAnimations('push', durationMs, direction, orient, spokes);
-		case 'reveal':
-			return getSlideTransitionAnimations('wipe', durationMs, direction, orient, spokes);
-		case 'doors':
-			return getSlideTransitionAnimations('split', durationMs, direction, orient, spokes);
-		case 'switch':
-		case 'flythrough':
-		case 'ferris':
-		case 'prism':
-			return getSlideTransitionAnimations('zoom', durationMs, direction, orient, spokes);
-		case 'ripple':
-		case 'honeycomb':
-		case 'glitter':
-		case 'shred':
-			return getSlideTransitionAnimations('dissolve', durationMs, direction, orient, spokes);
-		case 'flash':
-			return getSlideTransitionAnimations('fade', durationMs, direction, orient, spokes);
+		// The exotic / 3-D transition family (conveyor/doors/ferris/flash/
+		// flythrough/gallery/glitter/honeycomb/pan/prism/reveal/ripple/shred/
+		// switch/vortex/warp/wheelReverse/window) is handled faithfully above via
+		// `getP14TransitionAnimations` and never reaches this switch.
 
-		// Fallback (unknown / not-yet-mapped type) — symmetrical cross-fade.
+		// Fallback (genuinely unknown / not-yet-mapped type). The p14 exotic set
+		// and the p15 cinematic set are handled above and never reach here.
+		// Symmetrical cross-fade.
 		default:
 			return {
 				outgoing: `pptx-tr-fade-out ${dur} ${EASE} forwards`,

@@ -58,7 +58,10 @@ function resolveCardinal(direction: string | undefined): CardinalDir {
 	}
 }
 
-/** Build a directional transition pair given a per-direction keyframe prefix. */
+/**
+ * Build a directional pair using the bare `to-X` / `from-Y` suffixes (the `pan`
+ * keyframes use this naming).
+ */
 function directionalPair(
 	direction: string | undefined,
 	prefix: string,
@@ -73,6 +76,31 @@ function directionalPair(
 		down: ['to-bottom', 'from-top'],
 	};
 	const [outSuffix, inSuffix] = opposites[dir];
+	return {
+		outgoing: `${prefix}-${outSuffix} ${dur} ${ease} forwards`,
+		incoming: `${prefix}-${inSuffix} ${dur} ${ease} forwards`,
+		outgoingOnTop: false,
+	};
+}
+
+/**
+ * Build a directional pair using the explicit `out-to-X` / `in-from-Y` suffixes
+ * (the `prism` keyframes use this naming, matching conveyor/switch/gallery).
+ */
+function cardinalOutInPair(
+	direction: string | undefined,
+	prefix: string,
+	dur: string,
+	ease: string,
+): SlideTransitionAnimations {
+	const dir = resolveCardinal(direction);
+	const map: Record<CardinalDir, [string, string]> = {
+		left: ['out-to-left', 'in-from-right'],
+		right: ['out-to-right', 'in-from-left'],
+		up: ['out-to-top', 'in-from-bottom'],
+		down: ['out-to-bottom', 'in-from-top'],
+	};
+	const [outSuffix, inSuffix] = map[dir];
 	return {
 		outgoing: `${prefix}-${outSuffix} ${dur} ${ease} forwards`,
 		incoming: `${prefix}-${inSuffix} ${dur} ${ease} forwards`,
@@ -195,7 +223,7 @@ export function getP14TransitionAnimations(
 			return directionalPair(direction, 'pptx-tr-pan', dur, ease);
 
 		case 'prism':
-			return directionalPair(direction, 'pptx-tr-prism', dur, ease);
+			return cardinalOutInPair(direction, 'pptx-tr-prism', dur, ease);
 
 		case 'reveal': {
 			const lr = resolveLR(direction);

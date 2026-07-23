@@ -227,6 +227,13 @@ export interface PptxShapeLocks {
 	noAdjustHandles?: boolean;
 	noChangeArrowheads?: boolean;
 	noChangeShapeType?: boolean;
+	/**
+	 * Text-box flag from `p:cNvSpPr/@txBox`. Not a lock in the strict sense,
+	 * but it lives on the same non-visual-properties node as `a:spLocks`, so
+	 * it is captured here to round-trip through the model. When `true` the
+	 * shape is a plain text box (no fill/line by default).
+	 */
+	txBox?: boolean;
 }
 
 /**

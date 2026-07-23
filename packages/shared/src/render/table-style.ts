@@ -22,13 +22,24 @@
 import type {
 	ParsedTableStyleFill,
 	ParsedTableStyleMap,
-	ParsedTableStyleText,
 	PptxTableCellStyle,
 	PptxTableData,
 	PptxThemeColorScheme,
+	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
 
 import { getPatternSvg, normalizeHexColor } from './fill-style';
+import type { CellBorderPosition } from './table-style-borders';
+import { resolveCellBorderCss, resolveStyleDiagonalBorders } from './table-style-borders';
+import {
+	applyStyleFill,
+	applyStyleText,
+	cell3DBevelCss,
+	resolveStyleFillColor,
+} from './table-style-fill';
+
+export { resolveStyleDiagonalBorders } from './table-style-borders';
+export { cell3DBevelCss, resolveFontRefIdx } from './table-style-fill';
 
 /** A framework-agnostic CSS style object: camelCased property → value. */
 export type TableCellCss = Record<string, string | number>;
@@ -143,48 +154,6 @@ export function cellPatternFillCss(style: PptxTableCellStyle): CellPatternFillCs
 }
 
 // ---------------------------------------------------------------------------
-// Theme colour helpers (tint / shade)  — mirrors React viewer/utils/theme.ts
-// ---------------------------------------------------------------------------
-
-/** Parse a 6-digit hex colour (`#RRGGBB` or `RRGGBB`) into RGB components. */
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-	const clean = hex.replace(/^#/u, '');
-	return {
-		r: parseInt(clean.substring(0, 2), 16),
-		g: parseInt(clean.substring(2, 4), 16),
-		b: parseInt(clean.substring(4, 6), 16),
-	};
-}
-
-/** Convert RGB components back to a `#RRGGBB` string. */
-function rgbToHex(r: number, g: number, b: number): string {
-	const clamp = (v: number): number => Math.max(0, Math.min(255, Math.round(v)));
-	return `#${clamp(r).toString(16).padStart(2, '0').toUpperCase()}${clamp(g).toString(16).padStart(2, '0').toUpperCase()}${clamp(b).toString(16).padStart(2, '0').toUpperCase()}`;
-}
-
-/**
- * Compute a tinted (lighter) version of a colour.
- * `tintFactor` is 0–1 where 1 = white and 0 = original.
- */
-function tintColor(hex: string, tintFactor: number): string {
-	const { r, g, b } = hexToRgb(hex);
-	return rgbToHex(
-		r + (255 - r) * tintFactor,
-		g + (255 - g) * tintFactor,
-		b + (255 - b) * tintFactor,
-	);
-}
-
-/**
- * Compute a shaded (darker) version of a colour.
- * `shadeFactor` is 0–1 where 1 = black and 0 = original.
- */
-function shadeColor(hex: string, shadeFactor: number): string {
-	const { r, g, b } = hexToRgb(hex);
-	return rgbToHex(r * (1 - shadeFactor), g * (1 - shadeFactor), b * (1 - shadeFactor));
-}
-
-// ---------------------------------------------------------------------------
 // Theme-aware band / header style resolution
 // ---------------------------------------------------------------------------
 
@@ -200,75 +169,12 @@ export interface TableStyleContext {
 	tableStyleMap?: ParsedTableStyleMap;
 	/** Theme colour scheme from the active PPTX theme. */
 	colorScheme?: PptxThemeColorScheme;
-}
-
-/**
- * Resolve a {@link ParsedTableStyleFill} to a CSS hex colour using the
- * supplied colour scheme.  Returns `undefined` when the scheme colour key
- * cannot be found.
- */
-function resolveStyleFillColor(
-	fill: ParsedTableStyleFill | undefined,
-	colorScheme: PptxThemeColorScheme | undefined,
-): string | undefined {
-	if (!fill) {
-		return undefined;
-	}
-	if (!colorScheme) {
-		return undefined;
-	}
-	const base = (colorScheme as unknown as Record<string, string | undefined>)[fill.schemeColor];
-	if (!base) {
-		return undefined;
-	}
-	let color = base;
-	if (fill.tint !== undefined && fill.tint > 0) {
-		color = tintColor(color, fill.tint / 100_000);
-	}
-	if (fill.shade !== undefined && fill.shade > 0) {
-		color = shadeColor(color, 1 - fill.shade / 100_000);
-	}
-	return color;
-}
-
-/**
- * Apply text properties from a {@link ParsedTableStyleText} entry into a
- * {@link TableCellCss} object.  Returns `true` when any property was set.
- */
-function applyStyleText(
-	text: ParsedTableStyleText | undefined,
-	colorScheme: PptxThemeColorScheme | undefined,
-	css: TableCellCss,
-): boolean {
-	if (!text) {
-		return false;
-	}
-	let applied = false;
-	if (text.bold) {
-		css.fontWeight = 700;
-		applied = true;
-	}
-	if (text.italic) {
-		css.fontStyle = 'italic';
-		applied = true;
-	}
-	if (text.fontSchemeColor && colorScheme) {
-		const base = (colorScheme as unknown as Record<string, string | undefined>)[
-			text.fontSchemeColor
-		];
-		if (base) {
-			let color = base;
-			if (text.fontTint !== undefined && text.fontTint > 0) {
-				color = tintColor(color, text.fontTint / 100_000);
-			}
-			if (text.fontShade !== undefined && text.fontShade > 0) {
-				color = shadeColor(color, 1 - text.fontShade / 100_000);
-			}
-			css.color = color;
-			applied = true;
-		}
-	}
-	return applied;
+	/**
+	 * Theme font scheme from the active PPTX theme. Supplied so a table
+	 * style's `a:fontRef@idx` (`minor`/`major`) can resolve to a concrete
+	 * font family. Optional: when absent, `fontRefIdx` is left unresolved.
+	 */
+	fontScheme?: PptxThemeFontScheme;
 }
 
 /**
@@ -368,9 +274,22 @@ export function cellStyleToCss(style?: PptxTableCellStyle): TableCellCss {
 
 	if (style.align) {
 		css.textAlign = style.align;
+	} else if (style.anchorCtr) {
+		// `anchorCtr` centres the text block perpendicular to the text flow.
+		// For horizontal text this is horizontal centring; an explicit
+		// paragraph `align` takes precedence when present.
+		css.textAlign = 'center';
 	}
 	if (style.vAlign) {
 		css.verticalAlign = style.vAlign;
+	}
+
+	// `horzOverflow` = clip clips text at the cell edge; overflow (default)
+	// lets it spill horizontally.
+	if (style.horzOverflow === 'clip') {
+		css.overflowX = 'hidden';
+	} else if (style.horzOverflow === 'overflow') {
+		css.overflowX = 'visible';
 	}
 
 	// Vertical text direction — map all variants to CSS writing-mode + orientation.
@@ -463,6 +382,11 @@ export function cellStyleToCss(style?: PptxTableCellStyle): TableCellCss {
 		css.textShadow = textShadowParts.join(', ');
 	}
 
+	// Cell 3D bevel treatment (a:cell3D).
+	if (style.cell3D) {
+		Object.assign(css, cell3DBevelCss(style.cell3D));
+	}
+
 	return css;
 }
 
@@ -477,22 +401,64 @@ export interface DiagonalBorderInfo {
 	diagUpWidth?: number;
 }
 
-/** Extract diagonal-border info from a cell style, or `null` when none. */
-export function getDiagonalBorders(style?: PptxTableCellStyle): DiagonalBorderInfo | null {
-	if (!style) {
+/**
+ * Extract diagonal-border info from a cell style, or `null` when none.
+ *
+ * When `styleDiagonals` (diagonals inherited from the table style, e.g. via
+ * {@link resolveStyleDiagonalBorders}) is supplied, the two are merged with the
+ * per-cell explicit diagonal winning on each axis.
+ */
+export function getDiagonalBorders(
+	style?: PptxTableCellStyle,
+	styleDiagonals?: DiagonalBorderInfo | null,
+): DiagonalBorderInfo | null {
+	const cellHasDown = Boolean(style?.borderDiagDownColor && style?.borderDiagDownWidth);
+	const cellHasUp = Boolean(style?.borderDiagUpColor && style?.borderDiagUpWidth);
+	const styleHasDown = Boolean(styleDiagonals?.diagDownColor && styleDiagonals?.diagDownWidth);
+	const styleHasUp = Boolean(styleDiagonals?.diagUpColor && styleDiagonals?.diagUpWidth);
+
+	if (!cellHasDown && !cellHasUp && !styleHasDown && !styleHasUp) {
 		return null;
 	}
-	const hasDown = Boolean(style.borderDiagDownColor && style.borderDiagDownWidth);
-	const hasUp = Boolean(style.borderDiagUpColor && style.borderDiagUpWidth);
-	if (!hasDown && !hasUp) {
-		return null;
+
+	const info: DiagonalBorderInfo = {};
+	if (cellHasDown) {
+		info.diagDownColor = style?.borderDiagDownColor;
+		info.diagDownWidth = style?.borderDiagDownWidth;
+	} else if (styleHasDown) {
+		info.diagDownColor = styleDiagonals?.diagDownColor;
+		info.diagDownWidth = styleDiagonals?.diagDownWidth;
 	}
-	return {
-		diagDownColor: style.borderDiagDownColor,
-		diagDownWidth: style.borderDiagDownWidth,
-		diagUpColor: style.borderDiagUpColor,
-		diagUpWidth: style.borderDiagUpWidth,
-	};
+	if (cellHasUp) {
+		info.diagUpColor = style?.borderDiagUpColor;
+		info.diagUpWidth = style?.borderDiagUpWidth;
+	} else if (styleHasUp) {
+		info.diagUpColor = styleDiagonals?.diagUpColor;
+		info.diagUpWidth = styleDiagonals?.diagUpWidth;
+	}
+	return info;
+}
+
+/**
+ * Resolve a cell's diagonal borders combining the per-cell explicit diagonals
+ * with any inherited from the applicable table-style sections. A one-call
+ * convenience for renderers: pass the same {@link TableStyleContext} and cell
+ * position used for banding, and per-cell diagonals still take precedence.
+ */
+export function getCellDiagonalBorders(
+	style: PptxTableCellStyle | undefined,
+	tableData: PptxTableData | undefined,
+	pos: CellBorderPosition,
+	styleCtx?: TableStyleContext,
+): DiagonalBorderInfo | null {
+	let styleDiagonals: DiagonalBorderInfo | undefined;
+	if (tableData) {
+		const entry = resolveTableStyleEntry(tableData.tableStyleId, styleCtx?.tableStyleMap);
+		styleDiagonals = resolveStyleDiagonalBorders(entry, tableData, pos, (fill) =>
+			resolveStyleFillColor(fill, styleCtx?.colorScheme),
+		);
+	}
+	return getDiagonalBorders(style, styleDiagonals);
 }
 
 /**
@@ -520,6 +486,7 @@ export function getTableCellBandStyle(
 
 	const styleEntry = resolveTableStyleEntry(tableData.tableStyleId, styleCtx?.tableStyleMap);
 	const colorScheme = styleCtx?.colorScheme;
+	const fontScheme = styleCtx?.fontScheme;
 
 	/**
 	 * Resolve a section fill to a concrete CSS colour string, falling back
@@ -533,13 +500,11 @@ export function getTableCellBandStyle(
 
 	// ── Whole-table fill (lowest priority layer). ──
 	if (styleEntry?.wholeTblFill) {
-		const wholeBg = resolveFill(styleEntry.wholeTblFill, '');
-		if (wholeBg) {
-			style.backgroundColor = wholeBg;
+		if (applyStyleFill(styleEntry.wholeTblFill, colorScheme, style, '')) {
 			applied = true;
 		}
 	}
-	if (applyStyleText(styleEntry?.wholeTblText, colorScheme, style)) {
+	if (applyStyleText(styleEntry?.wholeTblText, colorScheme, style, fontScheme)) {
 		applied = true;
 	}
 
@@ -551,16 +516,12 @@ export function getTableCellBandStyle(
 		const rowCycle = Math.max(tableData.bandRowCycle ?? 1, 1);
 		const bandGroup = Math.floor(bandIndex / rowCycle) % 2;
 		if (bandGroup === 0) {
-			style.backgroundColor = resolveFill(styleEntry?.band1HFill, 'rgba(217, 226, 243, 0.5)');
-			if (applyStyleText(styleEntry?.band1HText, colorScheme, style)) {
-				applied = true;
-			}
+			applyStyleFill(styleEntry?.band1HFill, colorScheme, style, 'rgba(217, 226, 243, 0.5)');
+			applyStyleText(styleEntry?.band1HText, colorScheme, style, fontScheme);
 			applied = true;
 		} else if (styleEntry?.band2HFill) {
-			const band2Bg = resolveFill(styleEntry.band2HFill, '');
-			if (band2Bg) {
-				style.backgroundColor = band2Bg;
-				applyStyleText(styleEntry.band2HText, colorScheme, style);
+			if (applyStyleFill(styleEntry.band2HFill, colorScheme, style, '')) {
+				applyStyleText(styleEntry.band2HText, colorScheme, style, fontScheme);
 				applied = true;
 			}
 		}
@@ -575,20 +536,18 @@ export function getTableCellBandStyle(
 		if (!skipCol) {
 			const colCycle = Math.max(tableData.bandColCycle ?? 1, 1);
 			const colBandGroup = Math.floor(colBandIndex / colCycle) % 2;
+			// Column banding yields to row banding when both apply to this cell.
+			const canOverride = !style.backgroundColor || !tableData.bandedRows;
 			if (colBandGroup === 0) {
-				if (!style.backgroundColor || !tableData.bandedRows) {
-					style.backgroundColor = resolveFill(styleEntry?.band1VFill, 'rgba(217, 226, 243, 0.35)');
-					applyStyleText(styleEntry?.band1VText, colorScheme, style);
+				if (canOverride) {
+					applyStyleFill(styleEntry?.band1VFill, colorScheme, style, 'rgba(217, 226, 243, 0.35)');
+					applyStyleText(styleEntry?.band1VText, colorScheme, style, fontScheme);
 					applied = true;
 				}
-			} else if (styleEntry?.band2VFill) {
-				if (!style.backgroundColor || !tableData.bandedRows) {
-					const band2Bg = resolveFill(styleEntry.band2VFill, '');
-					if (band2Bg) {
-						style.backgroundColor = band2Bg;
-						applyStyleText(styleEntry.band2VText, colorScheme, style);
-						applied = true;
-					}
+			} else if (styleEntry?.band2VFill && canOverride) {
+				if (applyStyleFill(styleEntry.band2VFill, colorScheme, style, '')) {
+					applyStyleText(styleEntry.band2VText, colorScheme, style, fontScheme);
+					applied = true;
 				}
 			}
 		}
@@ -597,9 +556,9 @@ export function getTableCellBandStyle(
 	// ── Header row (first row). ──
 	if (tableData.firstRowHeader && rowIndex === 0) {
 		style.fontWeight = 700;
-		style.backgroundColor = resolveFill(styleEntry?.firstRowFill, 'rgba(68, 114, 196, 0.85)');
+		applyStyleFill(styleEntry?.firstRowFill, colorScheme, style, 'rgba(68, 114, 196, 0.85)');
 		style.color = '#ffffff';
-		applyStyleText(styleEntry?.firstRowText, colorScheme, style);
+		applyStyleText(styleEntry?.firstRowText, colorScheme, style, fontScheme);
 		applied = true;
 	}
 
@@ -607,14 +566,11 @@ export function getTableCellBandStyle(
 	if (tableData.lastRow && rowIndex === rowCount - 1) {
 		style.fontWeight = 700;
 		if (styleEntry?.lastRowFill) {
-			const lastRowBg = resolveFill(styleEntry.lastRowFill, '');
-			if (lastRowBg) {
-				style.backgroundColor = lastRowBg;
-			}
+			applyStyleFill(styleEntry.lastRowFill, colorScheme, style, '');
 		}
 		const borderColor = resolveFill(styleEntry?.firstRowFill, 'rgba(68, 114, 196, 0.7)');
 		style.borderTop = `2px solid ${borderColor}`;
-		applyStyleText(styleEntry?.lastRowText, colorScheme, style);
+		applyStyleText(styleEntry?.lastRowText, colorScheme, style, fontScheme);
 		applied = true;
 	}
 
@@ -622,12 +578,9 @@ export function getTableCellBandStyle(
 	if (tableData.firstCol && cellIndex === 0) {
 		style.fontWeight = 700;
 		if (styleEntry?.firstColFill) {
-			const firstColBg = resolveFill(styleEntry.firstColFill, '');
-			if (firstColBg) {
-				style.backgroundColor = firstColBg;
-			}
+			applyStyleFill(styleEntry.firstColFill, colorScheme, style, '');
 		}
-		applyStyleText(styleEntry?.firstColText, colorScheme, style);
+		applyStyleText(styleEntry?.firstColText, colorScheme, style, fontScheme);
 		applied = true;
 	}
 
@@ -635,12 +588,58 @@ export function getTableCellBandStyle(
 	if (tableData.lastCol && cellIndex === columnCount - 1) {
 		style.fontWeight = 700;
 		if (styleEntry?.lastColFill) {
-			const lastColBg = resolveFill(styleEntry.lastColFill, '');
-			if (lastColBg) {
-				style.backgroundColor = lastColBg;
-			}
+			applyStyleFill(styleEntry.lastColFill, colorScheme, style, '');
 		}
-		applyStyleText(styleEntry?.lastColText, colorScheme, style);
+		applyStyleText(styleEntry?.lastColText, colorScheme, style, fontScheme);
+		applied = true;
+	}
+
+	// ── Corner cells (highest fill/text precedence, issue #95). ──
+	// Each corner overrides the intersection of a first/last row with a
+	// first/last column (CT_TableStyle, ECMA-376 §21.1.3.16): nw = top-left,
+	// ne = top-right, sw = bottom-left, se = bottom-right. Only applies when
+	// both the row and column emphasis are active for this cell.
+	if (styleEntry) {
+		const atTop = Boolean(tableData.firstRowHeader) && rowIndex === 0;
+		const atBottom = Boolean(tableData.lastRow) && rowIndex === rowCount - 1;
+		const atLeft = Boolean(tableData.firstCol) && cellIndex === 0;
+		const atRight = Boolean(tableData.lastCol) && cellIndex === columnCount - 1;
+		let cornerFill: ParsedTableStyleFill | undefined;
+		let cornerText = undefined as (typeof styleEntry)['nwCellText'];
+		if (atTop && atLeft) {
+			cornerFill = styleEntry.nwCellFill;
+			cornerText = styleEntry.nwCellText;
+		} else if (atTop && atRight) {
+			cornerFill = styleEntry.neCellFill;
+			cornerText = styleEntry.neCellText;
+		} else if (atBottom && atLeft) {
+			cornerFill = styleEntry.swCellFill;
+			cornerText = styleEntry.swCellText;
+		} else if (atBottom && atRight) {
+			cornerFill = styleEntry.seCellFill;
+			cornerText = styleEntry.seCellText;
+		}
+		if (cornerFill && applyStyleFill(cornerFill, colorScheme, style, '')) {
+			applied = true;
+		}
+		if (applyStyleText(cornerText, colorScheme, style, fontScheme)) {
+			applied = true;
+		}
+	}
+
+	// ── Table-style borders (issue #71). ──
+	// Resolve gridlines/edges the cell inherits from the table style and let
+	// them supersede the hardcoded total-row line above. Per-cell explicit
+	// `a:lnX` borders (parsed into the cell style) are applied on top of this
+	// layer by the renderer, so they still win.
+	const borderCss = resolveCellBorderCss(
+		styleEntry,
+		tableData,
+		{ rowIndex, cellIndex, rowCount, columnCount },
+		(fill) => resolveStyleFillColor(fill, colorScheme),
+	);
+	if (borderCss) {
+		Object.assign(style, borderCss);
 		applied = true;
 	}
 

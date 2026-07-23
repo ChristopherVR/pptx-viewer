@@ -259,6 +259,7 @@ export const COMPLEX_SLIDE_FIELDS: Readonly<Record<string, string>> = {
 	guides: '_gu',
 	customerData: '_cu',
 	activeXControls: '_ax',
+	legacyVmlElements: '_lvml',
 	backgroundPattern: '_bp',
 	modernCommentPart: '_mc',
 	headerFooterFlags: '_hff',

@@ -13,14 +13,60 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import type { SeriesPlotResult } from './chart-cartesian-plots';
+import { resolveDataPointFill, resolveVaryColorFill } from './chart-datapoint-style';
 import type { PlotLayout, SvgPrimitive, SvgRect, SvgText, ValueRange } from './chart-view-model';
-import { computeStackedBarRects, formatAxisValue, seriesColor, valueToY } from './chart-view-model';
+import {
+	computeStackedBarRects,
+	formatAxisValue,
+	paletteColor,
+	seriesColor,
+	valueToY,
+} from './chart-view-model';
 
 /** Per-category absolute totals (for percentStacked normalisation). */
 function categoryTotals(series: ReadonlyArray<PptxChartSeries>, catCount: number): number[] {
 	return Array.from({ length: catCount }, (_, ci) =>
 		series.reduce((sum, s) => sum + Math.abs(s.values[ci] ?? 0), 0),
 	);
+}
+
+/**
+ * Blend a `#RRGGBB` colour halfway toward white. Returns the input unchanged
+ * when it is not a parseable 6-digit hex (e.g. a named colour or gradient ref).
+ */
+function blendToWhite(color: string): string {
+	const match = /^#?([0-9a-f]{6})$/iu.exec(color.trim());
+	if (!match) {
+		return color;
+	}
+	const value = Number.parseInt(match[1], 16);
+	const mix = (channel: number): number => Math.round(channel + (255 - channel) * 0.5);
+	const r = mix((value >> 16) & 0xff);
+	const g = mix((value >> 8) & 0xff);
+	const b = mix(value & 0xff);
+	return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0').toUpperCase()}`;
+}
+
+/**
+ * Apply PowerPoint's `c:invertIfNegative` treatment to a bar fill: when the
+ * point value is negative and invert-if-negative is set (a per-point `c:dPt`
+ * override wins over the series-level flag), the bar is drawn in a lightened
+ * fill. Convention: a 50% blend of the base fill toward white. PowerPoint has no
+ * single canonical inverted colour; a lightened same-hue fill echoes its default
+ * "hollow" appearance and is deterministic across bindings.
+ */
+function invertNegativeFill(
+	series: PptxChartSeries,
+	pointIndex: number,
+	value: number,
+	baseFill: string,
+): string {
+	if (value >= 0) {
+		return baseFill;
+	}
+	const point = series.dataPoints?.find((p) => p.idx === pointIndex);
+	const invert = point?.invertIfNegative ?? series.invertIfNegative ?? false;
+	return invert ? blendToWhite(baseFill) : baseFill;
 }
 
 /**
@@ -44,30 +90,48 @@ export function buildBars(
 	const palette = chartData.colorPalette;
 	const showLabels = chartData.style?.hasDataLabels;
 
+	// Single-series bar/column with c:varyColors=1 gives every category a distinct
+	// palette colour (a per-point c:dPt fill still wins). Multi-series charts keep
+	// their per-series colours (varyColors has no cross-series meaning there).
+	const varyColorsSingle = chartData.varyColors === true && series.length === 1;
+
 	if (grouping === 'clustered') {
 		const seriesCount = Math.max(series.length, 1);
 		const barGroupWidth = layout.plotWidth / Math.max(catCount, 1);
-		const singleBarWidth = (barGroupWidth * 0.7) / seriesCount;
-		const groupOffset = (barGroupWidth - singleBarWidth * seriesCount) / 2;
+		// Honour c:gapWidth (gap between clusters, % of a bar width) when parsed;
+		// otherwise keep the legacy 0.7-of-group heuristic byte-for-byte.
+		const singleBarWidth =
+			chartData.barGapWidth !== undefined
+				? barGroupWidth / (seriesCount + Math.max(chartData.barGapWidth, 0) / 100)
+				: (barGroupWidth * 0.7) / seriesCount;
+		// Honour c:overlap (% overlap between adjacent series). overlap=0 reproduces
+		// the original side-by-side layout exactly.
+		const overlap = chartData.barOverlap ?? 0;
+		const step = singleBarWidth * (1 - overlap / 100);
+		const clusterWidth = singleBarWidth + step * (seriesCount - 1);
+		const groupOffset = (barGroupWidth - clusterWidth) / 2;
 
 		for (let displayIndex = 0; displayIndex < catCount; displayIndex++) {
 			const sourceIndex = sourceIndices[displayIndex] ?? displayIndex;
 			for (let si = 0; si < series.length; si++) {
 				const val = series[si].values[sourceIndex] ?? 0;
-				const x =
-					layout.plotLeft + barGroupWidth * displayIndex + groupOffset + singleBarWidth * si;
+				const x = layout.plotLeft + barGroupWidth * displayIndex + groupOffset + step * si;
 				const activeRange = secondaryIdx.has(si) && secondaryRange ? secondaryRange : primaryRange;
 				const zeroY = valueToY(0, activeRange, layout.plotTop, layout.plotBottom);
 				const valY = valueToY(val, activeRange, layout.plotTop, layout.plotBottom);
 				const y = Math.min(zeroY, valY);
 				const h = Math.max(Math.abs(zeroY - valY), 1);
+				const baseFill = varyColorsSingle
+					? resolveVaryColorFill(series[si], sourceIndex, paletteColor(sourceIndex, palette))
+					: (resolveDataPointFill(series[si], sourceIndex, paletteColor(si, palette)) ??
+						seriesColor(series[si], si, palette));
 				primitives.push({
 					kind: 'rect',
 					x,
 					y,
 					w: singleBarWidth,
 					h,
-					fill: seriesColor(series[si], si, palette),
+					fill: invertNegativeFill(series[si], sourceIndex, val, baseFill),
 					rx: 1,
 					part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
 				} satisfies SvgRect);
@@ -99,23 +163,16 @@ export function buildBars(
 		}));
 		const rects = computeStackedBarRects(displaySeries, catCount, layout, primaryRange, palette);
 		for (const r of rects) {
-			primitives.push({
-				kind: 'rect',
-				x: r.x,
-				y: r.y,
-				w: r.w,
-				h: r.h,
-				fill: r.fill,
-				rx: 1,
-				part:
-					r.seriesIndex !== undefined && r.pointIndex !== undefined
-						? {
-								role: 'dataPoint',
-								seriesIndex: r.seriesIndex,
-								pointIndex: sourceIndices[r.pointIndex] ?? r.pointIndex,
-							}
-						: undefined,
-			});
+			let fill = r.fill;
+			let part: SvgRect['part'];
+			if (r.seriesIndex !== undefined && r.pointIndex !== undefined) {
+				const sourcePointIndex = sourceIndices[r.pointIndex] ?? r.pointIndex;
+				fill = resolveDataPointFill(series[r.seriesIndex], sourcePointIndex, r.fill) ?? r.fill;
+				const value = series[r.seriesIndex].values[sourcePointIndex] ?? 0;
+				fill = invertNegativeFill(series[r.seriesIndex], sourcePointIndex, value, fill);
+				part = { role: 'dataPoint', seriesIndex: r.seriesIndex, pointIndex: sourcePointIndex };
+			}
+			primitives.push({ kind: 'rect', x: r.x, y: r.y, w: r.w, h: r.h, fill, rx: 1, part });
 		}
 		if (showLabels) {
 			pushClusteredStackedLabels(series, sourceIndices, catCount, layout, primaryRange, dataLabels);
@@ -151,13 +208,16 @@ export function buildBars(
 			const y = Math.min(baseY, topY);
 			const h = Math.max(Math.abs(baseY - topY), 0.5);
 
+			const pctBaseFill =
+				resolveDataPointFill(series[si], sourceIndex, paletteColor(si, palette)) ??
+				seriesColor(series[si], si, palette);
 			primitives.push({
 				kind: 'rect',
 				x,
 				y,
 				w: barW,
 				h,
-				fill: seriesColor(series[si], si, palette),
+				fill: invertNegativeFill(series[si], sourceIndex, rawVal, pctBaseFill),
 				part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
 			} satisfies SvgRect);
 

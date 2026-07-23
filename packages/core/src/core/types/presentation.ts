@@ -73,6 +73,21 @@ export interface PptxActiveXControl {
 	name?: string;
 	/** Shape ID this control is linked to (from @spid). */
 	shapeId?: string;
+	/** X position (px) of the control's fallback picture, if present. */
+	x?: number;
+	/** Y position (px) of the control's fallback picture, if present. */
+	y?: number;
+	/** Width (px) of the control's fallback picture, if present. */
+	width?: number;
+	/** Height (px) of the control's fallback picture, if present. */
+	height?: number;
+	/**
+	 * Relationship ID of the control's static fallback picture
+	 * (`mc:AlternateContent > mc:Fallback > p:pic > p:blipFill > a:blip@r:embed`).
+	 * Renderers resolve this to an image so a control shows its last static
+	 * frame instead of a blank area (the live ActiveX cannot run in a viewer).
+	 */
+	fallbackImageRelId?: string;
 	/** Raw XML for round-trip preservation. */
 	rawXml?: XmlObject;
 }
@@ -201,6 +216,13 @@ export interface PptxSlide {
 	customerData?: PptxCustomerData[];
 	/** ActiveX control references from `p:controls` on this slide. */
 	activeXControls?: PptxActiveXControl[];
+	/**
+	 * Shapes parsed from a referenced legacy VML drawing part
+	 * (`ppt/drawings/vmlDrawing*.vml`, linked via a `legacyDrawing`
+	 * relationship). These are read-only render hints: the VML part itself is
+	 * preserved verbatim on save, so this field is not re-serialized.
+	 */
+	legacyVmlElements?: PptxElement[];
 	/** Per-slide header/footer flags from `<p:hf>` (P-H3). */
 	headerFooterFlags?: import('./masters').PptxHeaderFooterFlags;
 	/** Server-backed slide synchronization metadata stored in a related OPC part. */

@@ -174,7 +174,7 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 				</div>
 			);
 		}
-		return renderGroup((el as GroupPptxElement).children);
+		return renderGroup((el as GroupPptxElement).children, (el as GroupPptxElement).groupFill);
 	}
 	if (shouldRenderFallbackLabel(el, isTxtEl)) {
 		return (

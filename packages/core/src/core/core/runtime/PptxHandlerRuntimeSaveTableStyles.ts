@@ -8,12 +8,91 @@ import {
 	writeCellTextFormatting,
 } from './table-cell-save-helpers';
 
+type EnsureArray = (value: unknown) => XmlObject[];
+
+/**
+ * Flatten a cell `a:txBody` to the same `\n`-joined plain string that
+ * `PptxTableDataParser.extractTableCellText` produces at load time
+ * (per-paragraph run text followed by field text). Used to detect whether a
+ * cell's text was actually edited so an unedited cell can keep its rich
+ * multi-run / multi-paragraph structure verbatim (#68).
+ */
+export function flattenCellTxBodyText(
+	txBody: XmlObject | undefined,
+	ensureArray: EnsureArray,
+): string {
+	if (!txBody) {
+		return '';
+	}
+	const paragraphs = ensureArray(txBody['a:p']);
+	const lines: string[] = [];
+	for (const paragraph of paragraphs) {
+		const runs = ensureArray((paragraph as XmlObject)?.['a:r']);
+		const fields = ensureArray((paragraph as XmlObject)?.['a:fld']);
+		let lineText = '';
+		for (const run of runs) {
+			lineText += String((run as XmlObject)?.['a:t'] ?? '');
+		}
+		for (const field of fields) {
+			lineText += String((field as XmlObject)?.['a:t'] ?? '');
+		}
+		lines.push(lineText);
+	}
+	return lines.join('\n');
+}
+
+/**
+ * Whether a cell `a:txBody` carries rich content that the single cell-level
+ * {@link PptxTableCellStyle} cannot represent without loss: more than one run,
+ * any field (`a:fld`), or any run hyperlink (`a:hlinkClick`). Such cells must
+ * keep their per-run formatting rather than have the cell-level font style
+ * stamped over every run (#68).
+ */
+export function isRichCellTxBody(txBody: XmlObject | undefined, ensureArray: EnsureArray): boolean {
+	if (!txBody) {
+		return false;
+	}
+	const paragraphs = ensureArray(txBody['a:p']);
+	let totalRuns = 0;
+	for (const paragraph of paragraphs) {
+		const runs = ensureArray((paragraph as XmlObject)?.['a:r']);
+		totalRuns += runs.length;
+		if (totalRuns > 1) {
+			return true;
+		}
+		if (ensureArray((paragraph as XmlObject)?.['a:fld']).length > 0) {
+			return true;
+		}
+		for (const run of runs) {
+			const rPr = (run as XmlObject)?.['a:rPr'] as XmlObject | undefined;
+			if (rPr?.['a:hlinkClick'] !== undefined) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Write plain text into a table cell's txBody, preserving
 	 * existing run properties where possible.
 	 */
 	protected writeTableCellText(xmlCell: XmlObject, text: string): void {
+		// #68: When the cell text is unchanged from what was parsed, leave the
+		// original `a:txBody` untouched so its rich structure (multiple runs
+		// with per-run rPr, hyperlinks `a:hlinkClick`, fields `a:fld`, and soft
+		// breaks `a:br`) survives the round-trip verbatim. Only a genuinely
+		// edited cell (text differs) falls through to the lossy single-run
+		// rebuild below, which is the best we can do from a flat string.
+		const ensureArray = this.ensureArray.bind(this);
+		const existingTxBody = xmlCell['a:txBody'] as XmlObject | undefined;
+		if (existingTxBody && ensureArray(existingTxBody['a:p']).length > 0) {
+			if (flattenCellTxBodyText(existingTxBody, ensureArray) === text) {
+				return;
+			}
+		}
+
 		if (!xmlCell['a:txBody']) {
 			xmlCell['a:txBody'] = { 'a:bodyPr': {}, 'a:p': {} };
 		}
@@ -179,8 +258,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Diagonal borders
 		writeDiagonalBorders(tcPr, style, PptxHandlerRuntime.EMU_PER_PX);
 
-		// Font properties — update all runs across all paragraphs
-		writeCellTextFormatting(xmlCell, style, this.ensureArray.bind(this));
+		// Font properties — update all runs across all paragraphs.
+		// #68: `writeCellTextFormatting` stamps the single cell-level
+		// bold/italic/underline/size/colour onto every run, which flattens a
+		// multi-run cell's per-run formatting. Skip it for a rich cell (more
+		// than one run, or any field / hyperlink) so its preserved per-run
+		// styling survives; an edited cell reduces to a single run and still
+		// gets the cell-level formatting applied here.
+		if (
+			!isRichCellTxBody(xmlCell['a:txBody'] as XmlObject | undefined, this.ensureArray.bind(this))
+		) {
+			writeCellTextFormatting(xmlCell, style, this.ensureArray.bind(this));
+		}
 
 		// Reorder tcPr children per CT_TableCellProperties §21.1.4.2 — borders
 		// must appear in lnL/lnR/lnT/lnB/lnTlToBr/lnBlToTr order before the

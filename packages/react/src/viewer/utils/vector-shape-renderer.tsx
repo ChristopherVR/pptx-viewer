@@ -6,6 +6,7 @@ import {
 	buildCalloutLeaderLineSvgPath,
 	getCalloutViewBoxBounds,
 } from 'pptx-viewer-core';
+import { svgLineCap } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { colorWithOpacity } from './color';
@@ -17,6 +18,8 @@ import {
 } from './connector-path';
 import { getShapeType } from './shape-types';
 import { normalizeStrokeDashType, getSvgStrokeDasharray } from './style';
+import { getStrokeOnlyPresetPaths } from './vector-subpath-paint';
+import { renderCustomGeometryVector, renderStrokeOnlyPreset } from './vector-subpath-render';
 
 export function renderVectorShape(
 	element: PptxElement,
@@ -93,21 +96,23 @@ export function renderVectorShape(
 		element.pathWidth > 0 &&
 		element.pathHeight > 0
 	) {
-		return (
-			<svg
-				viewBox={`0 0 ${element.pathWidth} ${element.pathHeight}`}
-				className='w-full h-full pointer-events-none'
-				preserveAspectRatio='none'
-			>
-				<path
-					d={element.pathData}
-					fill={hasFill ? fillPaint : 'none'}
-					stroke={strokeWidth > 0 ? strokePaint : 'none'}
-					strokeWidth={strokeWidth}
-					strokeDasharray={dashArray}
-					vectorEffect='non-scaling-stroke'
-				/>
-			</svg>
+		// Custom geometry: emit one `<path>` per structured sub-path so each
+		// sub-path's own `@fill` mode (norm/lighten/darken/none) and `@stroke`
+		// flag are honoured. Geometry without structured sub-paths falls back to
+		// painting the aggregate `pathData` with a single fill plus compound
+		// stroke strands (the legacy behaviour).
+		return renderCustomGeometryVector(
+			element.pathData,
+			element.pathWidth,
+			element.pathHeight,
+			element.customGeometryPaths,
+			element.shapeStyle,
+			hasFill,
+			fillColor,
+			element.shapeStyle?.fillOpacity,
+			strokePaint,
+			strokeWidth,
+			dashArray,
 		);
 	}
 
@@ -188,6 +193,8 @@ export function renderVectorShape(
 		const endArrowW = element.shapeStyle?.connectorEndArrowWidth;
 		const endArrowL = element.shapeStyle?.connectorEndArrowLength;
 		const compoundLine = element.shapeStyle?.compoundLine;
+		// Line cap from a:ln/@cap (flat -> butt, sq -> square, rnd -> round).
+		const connectorLineCap = svgLineCap(element.shapeStyle?.lineCap);
 		// Hit target width: wide invisible stroke so thin lines are easy to click
 		const hitTargetWidth = Math.max(strokeWidth * 3, 12);
 		const offsets = getCompoundLineOffsets(compoundLine, strokeWidth);
@@ -223,7 +230,7 @@ export function renderVectorShape(
 						stroke={strokePaint}
 						strokeWidth={Math.max(widths[idx] ?? strokeWidth, 1)}
 						strokeDasharray={dashArray}
-						strokeLinecap='round'
+						strokeLinecap={connectorLineCap}
 						strokeLinejoin='round'
 						markerStart={
 							idx === 0 && startArrow && startArrow !== 'none'
@@ -243,6 +250,22 @@ export function renderVectorShape(
 					/>
 				))}
 			</svg>
+		);
+	}
+
+	// Open, stroke-only presets (e.g. `arc`): `evaluatePresetShape` reports
+	// `fillNone`, so paint a stroked outline rather than flood-filling the wedge.
+	// Placed last so connector/callout shapes keep their dedicated renderers.
+	const strokeOnlyPreset = getStrokeOnlyPresetPaths(element);
+	if (strokeOnlyPreset) {
+		return renderStrokeOnlyPreset(
+			strokeOnlyPreset,
+			element.width,
+			element.height,
+			element.shapeStyle,
+			strokePaint,
+			strokeWidth,
+			dashArray,
 		);
 	}
 

@@ -212,6 +212,36 @@ export interface PptxSmartArtDrawingShape extends PptxCustomPathProperties {
 	skewY?: number;
 	/** Solid fill colour (hex). */
 	fillColor?: string;
+	/**
+	 * Gradient fill stops when the cached shape uses `a:gradFill`. Positions are
+	 * 0..100 (percent). Renderers emit an SVG/CSS gradient instead of a flat box.
+	 */
+	fillGradientStops?: Array<{ color: string; position: number; opacity?: number }>;
+	/** Gradient geometry type (`linear` for `a:lin`, `radial` for `a:path`). */
+	fillGradientType?: 'linear' | 'radial';
+	/** Linear gradient angle in degrees (0..360). */
+	fillGradientAngle?: number;
+	/** Pattern fill preset name from `a:pattFill/@prst` (e.g. "pct50", "cross"). */
+	fillPatternPreset?: string;
+	/** Pattern fill foreground colour (hex) from `a:pattFill/a:fgClr`. */
+	fillPatternForegroundColor?: string;
+	/** Pattern fill background colour (hex) from `a:pattFill/a:bgClr`. */
+	fillPatternBackgroundColor?: string;
+	/**
+	 * Relationship id of a picture (blip) fill's embedded image, from
+	 * `a:blipFill/a:blip/@r:embed`. The image bytes are resolved separately; see
+	 * {@link fillImageUrl}.
+	 */
+	fillBlipEmbedId?: string;
+	/**
+	 * Resolved data-URI/URL for a picture (blip) fill, when the embedded image
+	 * part could be resolved. Absent when only {@link fillBlipEmbedId} is known.
+	 */
+	fillImageUrl?: string;
+	/** Whether the cached shape carries an outer-shadow effect (`a:effectLst`). */
+	hasShadow?: boolean;
+	/** Resolved outer-shadow colour (hex), when present. */
+	shadowColor?: string;
 	/** Stroke colour (hex). */
 	strokeColor?: string;
 	/** Stroke width in points. */
@@ -246,6 +276,41 @@ export interface PptxSmartArtChrome {
 	outlineColor?: string;
 	/** Outline stroke width in points. */
 	outlineWidth?: number;
+}
+
+/**
+ * Presentation layout variables from `dgm:prSet/dgm:presLayoutVars` (data model)
+ * or `dgm:varLst` (layout definition defaults).
+ *
+ * These drive how the DiagramML layout interpreter arranges points: flow
+ * direction, hierarchy branch style, org-chart mode, and child count limits.
+ * The fallback layout engine can consult them for direction/org-chart hints.
+ *
+ * @example
+ * ```ts
+ * const vars: PptxSmartArtPresLayoutVars = { direction: "rev", orgChart: true };
+ * // => satisfies PptxSmartArtPresLayoutVars
+ * ```
+ */
+export interface PptxSmartArtPresLayoutVars {
+	/** Flow direction (`dgm:dir`): "norm" (default) or "rev" (reversed/RTL). */
+	direction?: 'norm' | 'rev';
+	/** Hierarchy branch style (`dgm:hierBranch`): std/init/l/r/hang. */
+	hierarchyBranch?: 'std' | 'init' | 'l' | 'r' | 'hang';
+	/** Org-chart mode enabled (`dgm:orgChart`). */
+	orgChart?: boolean;
+	/** Maximum children per node (`dgm:chMax`, -1 = unbounded). */
+	childMax?: number;
+	/** Preferred children per node (`dgm:chPref`, -1 = unbounded). */
+	childPreferred?: number;
+	/** Whether bullets are enabled (`dgm:bulletEnabled`). */
+	bulletEnabled?: boolean;
+	/** Animation-by-level setting (`dgm:animLvl`). */
+	animationLevel?: string;
+	/** Animate-one setting (`dgm:animOne`). */
+	animateOne?: string;
+	/** Allowed resize handles (`dgm:resizeHandles`). */
+	resizeHandles?: string;
 }
 
 /**
@@ -289,6 +354,12 @@ export interface PptxSmartArtData {
 	quickStyle?: PptxSmartArtQuickStyle;
 	/** Editable metadata from the related DiagramML layout definition. */
 	layoutDefinition?: PptxSmartArtLayoutDefinition;
+	/**
+	 * Presentation layout variables (direction, hierarchy branch, org-chart,
+	 * child limits, bullets) from `dgm:presLayoutVars` / layout `dgm:varLst`.
+	 * Consulted by the fallback layout engine for direction/org-chart hints.
+	 */
+	presLayoutVars?: PptxSmartArtPresLayoutVars;
 	/** Relationship ID for the diagram data part (for round-trip save). */
 	dataRelId?: string;
 	/** Relationship ID for the diagram layout part. */

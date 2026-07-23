@@ -126,6 +126,144 @@ match React and Angular; `useCollaboration` stays as the convenience wrapper.
 `useCollaborationWiring` and `useToolbarVisibility` are no longer root
 exports; import them from `pptx-vue-viewer/internals`.
 
+## 2026-07-21
+
+_Releases: pptx-svelte-viewer@1.39.0_
+
+## 2026-07-21
+
+_Releases: pptx-svelte-viewer@1.38.0_
+
+## 2026-07-21
+
+_Releases: pptx-svelte-viewer@1.37.0_
+
+## 2026-07-21
+
+_Releases: pptx-svelte-viewer@1.36.0_
+
+## 2026-07-21
+
+_Releases: pptx-svelte-viewer@1.35.0_
+
+## 2026-07-21
+
+_Releases: pptx-svelte-viewer@1.34.0_
+
+## 2026-07-20
+
+_Releases: pptx-svelte-viewer@1.33.0_
+
+## 2026-07-20
+
+_Releases: pptx-svelte-viewer@1.32.0_
+
+## 2026-07-20
+
+_Releases: pptx-svelte-viewer@1.31.0_
+
+## 2026-07-20
+
+_Releases: pptx-svelte-viewer@1.30.0_
+
+## 2026-07-20
+
+_Releases: pptx-svelte-viewer@1.29.0_
+
+## 2026-07-20
+
+_Releases: pptx-svelte-viewer@1.28.0_
+
+## 2026-07-20
+
+_Releases: pptx-svelte-viewer@1.27.0_
+
+## 2026-07-19
+
+_Releases: pptx-svelte-viewer@1.26.0_
+
+## 2026-07-19
+
+_Releases: pptx-svelte-viewer@1.25.0_
+
+## 2026-07-19
+
+_Releases: pptx-svelte-viewer@1.24.0_
+
+## 2026-07-19
+
+_Releases: pptx-svelte-viewer@1.23.0_
+
+## 2026-07-19
+
+_Releases: pptx-svelte-viewer@1.22.0_
+
+## 2026-07-19
+
+_Releases: pptx-svelte-viewer@1.21.0_
+
+## 2026-07-19
+
+_Releases: pptx-svelte-viewer@1.20.0_
+
+## 2026-07-19
+
+_Releases: pptx-svelte-viewer@1.19.0_
+
+## 2026-07-19
+
+_Releases: pptx-viewer-core@1.6.10, pptx-react-viewer@1.25.5, pptx-vue-viewer@1.24.5, pptx-angular-viewer@1.31.5, pptx-vanilla-viewer@0.17.5, pptx-svelte-viewer@1.18.0_
+
+### Bug Fixes
+
+- **core:** Preserve rich cell text, per-paragraph pPr and font fidelity (#68, #69, #83, #84, #85) (by @ChristopherVR) ([4d61e0e](https://github.com/ChristopherVR/pptx-viewer/commit/4d61e0ee4210bbe2897d58e3376539f1ea708a35))
+- **shared:** Route exotic transitions to faithful p14 keyframes ([#80](https://github.com/ChristopherVR/pptx-viewer/issues/80)) (by @ChristopherVR) ([80b972d](https://github.com/ChristopherVR/pptx-viewer/commit/80b972d7a59bbb77fc8d80ae86bf6f97eb80a8b7))
+- **shared:** Keep unmapped animation presets from stranding elements ([#81](https://github.com/ChristopherVR/pptx-viewer/issues/81)) (by @ChristopherVR) ([caf4e5e](https://github.com/ChristopherVR/pptx-viewer/commit/caf4e5e78db3fd2800cf6d1ae45e1a8248679435))
+- **react:** Enforce transition advanceOnClick in presentation mode ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([1f4d9b3](https://github.com/ChristopherVR/pptx-viewer/commit/1f4d9b3d36b6a8776178fb497337a2e22c685eda))
+- **shared:** Render chart markers, helper lines and pie/bar options (#88, #89, #72, #97) (by @ChristopherVR) ([042bd01](https://github.com/ChristopherVR/pptx-viewer/commit/042bd01af29921a29c9e3f548a290ccf582492e9))
+- **core:** Wire viewProps.xml into load and default it on save (#90, #96) (by @ChristopherVR) ([2e6616e](https://github.com/ChristopherVR/pptx-viewer/commit/2e6616e89c256a75c560fb3af634b39646ee9a84))
+- **core:** Recompute app.xml TitlesOfParts and HeadingPairs on save ([#91](https://github.com/ChristopherVR/pptx-viewer/issues/91)) (by @ChristopherVR) ([87585a7](https://github.com/ChristopherVR/pptx-viewer/commit/87585a74526746b35029da6d8844037f2e46add4))
+- **core:** Round-trip cNvSpPr txBox and cover spLocks serialization ([#92](https://github.com/ChristopherVR/pptx-viewer/issues/92)) (by @ChristopherVR) ([9feb36b](https://github.com/ChristopherVR/pptx-viewer/commit/9feb36b96d55e6b4822d33d570182871a3ab6cd0))
+- **shared:** Recompute connector flip and use real connection sites ([#93](https://github.com/ChristopherVR/pptx-viewer/issues/93)) (by @ChristopherVR) ([fa67196](https://github.com/ChristopherVR/pptx-viewer/commit/fa67196bfc737e5ec21a7c771abc3cb6355888fc))
+- **core:** Resolve SmartArt dsp blip fills and enumerate nested shapes ([#73](https://github.com/ChristopherVR/pptx-viewer/issues/73)) (by @ChristopherVR) ([ff08821](https://github.com/ChristopherVR/pptx-viewer/commit/ff088215aeebdfdca5da73ee8a92b533c7218737))
+- **core:** Parse SmartArt colour lists and presLayoutVars ([#94](https://github.com/ChristopherVR/pptx-viewer/issues/94)) (by @ChristopherVR) ([7917f71](https://github.com/ChristopherVR/pptx-viewer/commit/7917f714cb9d53b0a7df3e9d2d3c083963f03478))
+- **core:** Remap custom-show and section slide refs on reorder/remove ([#96](https://github.com/ChristopherVR/pptx-viewer/issues/96)) (by @ChristopherVR) ([9f83519](https://github.com/ChristopherVR/pptx-viewer/commit/9f83519fd4fef7ac6a1fb7868408f531cc998b43))
+- **core:** Embed non-data-URL slide background images on save ([#100](https://github.com/ChristopherVR/pptx-viewer/issues/100)) (by @ChristopherVR) ([61da958](https://github.com/ChristopherVR/pptx-viewer/commit/61da958b29295926b14bb24d576854e001b8cc7c))
+- **core:** Round-trip gradient/pattern line fills and gradient tileRect/grpFill (#87, #97) (by @ChristopherVR) ([3942594](https://github.com/ChristopherVR/pptx-viewer/commit/3942594d22081a6228055219d30aab5bbb128e58))
+- **core:** Broaden table-style fills/text and apply corner-cell fills ([#95](https://github.com/ChristopherVR/pptx-viewer/issues/95)) (by @ChristopherVR) ([c2cab10](https://github.com/ChristopherVR/pptx-viewer/commit/c2cab10bd031b596ccaa1afa7481ee857713251b))
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+- **core:** Render chart invertIfNegative and fix SDK generator containers ([#97](https://github.com/ChristopherVR/pptx-viewer/issues/97)) (by @ChristopherVR) ([888b9c7](https://github.com/ChristopherVR/pptx-viewer/commit/888b9c75da46c771b2817895b95787e7eb036bc6))
+- **core:** Round-trip explicit run/paragraph text properties and fix colour maths ([#98](https://github.com/ChristopherVR/pptx-viewer/issues/98)) (by @ChristopherVR) ([3fe3ced](https://github.com/ChristopherVR/pptx-viewer/commit/3fe3ced01abf9f8666cbb93be11a9e3c3b960ee3))
+- **core:** Apply animation easing, sound loop, comment resolved and p14 media embed ([#98](https://github.com/ChristopherVR/pptx-viewer/issues/98)) (by @ChristopherVR) ([e7c1fd6](https://github.com/ChristopherVR/pptx-viewer/commit/e7c1fd65441d4b5e017a18b596b1fec16ca7d8ec))
+
+## 2026-07-19
+
+_Releases: pptx-viewer-core@1.6.9, pptx-react-viewer@1.25.4, pptx-vue-viewer@1.24.4, pptx-angular-viewer@1.31.4, pptx-vanilla-viewer@0.17.4, pptx-svelte-viewer@1.17.0_
+
+### Bug Fixes
+
+- **core:** Write sp3d colours as valid hex and preserve scene3d (#67, #86) (by @ChristopherVR) ([d30f5a7](https://github.com/ChristopherVR/pptx-viewer/commit/d30f5a754921d3c396856be8a7bbfc2b7233f2dd))
+- **core:** Parse and render group rotation and flip ([#70](https://github.com/ChristopherVR/pptx-viewer/issues/70)) (by @ChristopherVR) ([5bb820a](https://github.com/ChristopherVR/pptx-viewer/commit/5bb820a3ee4d66f7b2810decce45b3a3b752884f))
+- **core:** Resolve table-style borders from tcBdr ([#71](https://github.com/ChristopherVR/pptx-viewer/issues/71)) (by @ChristopherVR) ([1e8c072](https://github.com/ChristopherVR/pptx-viewer/commit/1e8c0726640b12723532bfe9e1f544841d1f021f))
+- **shared:** Render per-point chart dPt fills and pie varyColors ([#72](https://github.com/ChristopherVR/pptx-viewer/issues/72)) (by @ChristopherVR) ([6184c10](https://github.com/ChristopherVR/pptx-viewer/commit/6184c106a1a0ff5c874211dd741bb08d1e8fdf8c))
+- **core:** Parse gradient and pattern fills on SmartArt dsp shapes ([#73](https://github.com/ChristopherVR/pptx-viewer/issues/73)) (by @ChristopherVR) ([6b94c9a](https://github.com/ChristopherVR/pptx-viewer/commit/6b94c9a5aa16a663b2720f28d92d1823fd4cc631))
+- **core:** Decode real InkML contentPart traces to SVG paths ([#74](https://github.com/ChristopherVR/pptx-viewer/issues/74)) (by @ChristopherVR) ([8204f7c](https://github.com/ChristopherVR/pptx-viewer/commit/8204f7cb9805d6ce9d893940a0a3e5c217fab69e))
+- **core:** Resolve themed bullet colour via parseColor ([#75](https://github.com/ChristopherVR/pptx-viewer/issues/75)) (by @ChristopherVR) ([ba311d5](https://github.com/ChristopherVR/pptx-viewer/commit/ba311d57e17aa9a61a0ffc60fef4689b4cb1389c))
+- **core:** Honour fly-in/out animation direction via presetSubtype ([#76](https://github.com/ChristopherVR/pptx-viewer/issues/76)) (by @ChristopherVR) ([316a7db](https://github.com/ChristopherVR/pptx-viewer/commit/316a7db02ad12f135b27635f01ecae1287a44adf))
+- **core:** Parse p15 prstTrans transitions and stop spurious cut ([#77](https://github.com/ChristopherVR/pptx-viewer/issues/77)) (by @ChristopherVR) ([a32260e](https://github.com/ChristopherVR/pptx-viewer/commit/a32260e6d391ae1ed2b98a13b958ccb137bc1347))
+- **core:** Serialize justLow/dist/thaiDist paragraph alignment ([#78](https://github.com/ChristopherVR/pptx-viewer/issues/78)) (by @ChristopherVR) ([59a882a](https://github.com/ChristopherVR/pptx-viewer/commit/59a882a60d43f83e9b8189063838f7ea4d2a5502))
+- **core:** Flag embedded media as embedded, not linked ([#79](https://github.com/ChristopherVR/pptx-viewer/issues/79)) (by @ChristopherVR) ([0decc64](https://github.com/ChristopherVR/pptx-viewer/commit/0decc64d2c5b7b5c1bd3cd469bed6910c5766957))
+
+## 2026-07-19
+
+_Releases: pptx-viewer-core@1.6.8, pptx-react-viewer@1.25.3, pptx-vue-viewer@1.24.3, pptx-angular-viewer@1.31.3, pptx-vanilla-viewer@0.17.3, pptx-svelte-viewer@1.16.0_
+
+### Bug Fixes
+
+- **core:** Themed background text, colour and geometry fidelity (by @ChristopherVR) ([a8fc2be](https://github.com/ChristopherVR/pptx-viewer/commit/a8fc2bea2407f70bc3df4008be5c152d107cc3eb))
+- **shared:** Render freeform fills via clip-path and correct flip/rotate order (by @ChristopherVR) ([7122f43](https://github.com/ChristopherVR/pptx-viewer/commit/7122f43c7ff9bae5bf0278d2753a6209bc1821af))
+- **react:** Paint freeform fills only via the vector path and rotate-first (by @ChristopherVR) ([e95c6ab](https://github.com/ChristopherVR/pptx-viewer/commit/e95c6ab0764fd53ef1b177c7c151942154439c62))
+
 ## 2026-07-19
 
 _Releases: pptx-viewer-core@1.6.7, pptx-react-viewer@1.25.2, pptx-vue-viewer@1.24.2, pptx-angular-viewer@1.31.2, pptx-vanilla-viewer@0.17.2, pptx-svelte-viewer@1.15.0_

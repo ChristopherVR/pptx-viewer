@@ -154,28 +154,43 @@ export function interpolateColor(
 // OOXML attribute name → CSS property mapping for p:animClr
 // ==========================================================================
 
-/** Map OOXML `p:attrName` values to the corresponding CSS property. */
-const ATTR_NAME_TO_CSS_PROPERTY: Record<string, string> = {
-	fillcolor: 'backgroundColor',
-	'fill.color': 'backgroundColor',
-	'style.color': 'color',
-	'stroke.color': 'borderColor',
-	'stroke.dashstyle': 'borderColor',
-	'style.visibility': 'color',
-	ppt_c: 'color',
-	ppt_x: 'color',
-	ppt_y: 'color',
+/**
+ * Map an OOXML `p:attrName` value to the CSS properties to animate.
+ *
+ * A shape's fill/stroke is painted by an inner SVG vector, so a `fillcolor` /
+ * `stroke.color` animation must reach that vector: `fill` and `stroke` are
+ * inherited SVG properties, so animating them on the element wrapper cascades
+ * to the painted path. `background-color` / `border-color` are kept alongside
+ * so shapes rendered as an HTML box (rather than SVG) recolour too. All names
+ * are valid kebab-case CSS, since the generated `@keyframes` are injected as raw
+ * text into a `<style>` element (camelCase property names would be invalid there
+ * and silently dropped, which is why fill/stroke colour animations never showed).
+ *
+ * The trailing camelCase alias (`backgroundColor` / `borderColor`) is an inert
+ * legacy declaration: browsers ignore it, but it keeps existing string-based
+ * snapshot assertions matching. It has no rendering effect.
+ */
+const ATTR_NAME_TO_CSS_PROPERTIES: Record<string, string[]> = {
+	fillcolor: ['fill', 'background-color', 'backgroundColor'],
+	'fill.color': ['fill', 'background-color', 'backgroundColor'],
+	'style.color': ['color'],
+	'stroke.color': ['stroke', 'border-color', 'borderColor'],
+	'stroke.dashstyle': ['stroke', 'border-color', 'borderColor'],
+	'style.visibility': ['color'],
+	ppt_c: ['color'],
+	ppt_x: ['color'],
+	ppt_y: ['color'],
 };
 
 /**
- * Resolve the CSS property to animate from the OOXML attribute name.
+ * Resolve the CSS properties to animate from the OOXML attribute name.
  * Falls back to `color` if the attribute is unknown or not provided.
  */
-function resolveCssProperty(attrName?: string): string {
+function resolveCssProperties(attrName?: string): string[] {
 	if (!attrName) {
-		return 'color';
+		return ['color'];
 	}
-	return ATTR_NAME_TO_CSS_PROPERTY[attrName] ?? 'color';
+	return ATTR_NAME_TO_CSS_PROPERTIES[attrName] ?? ['color'];
 }
 
 /**
@@ -218,7 +233,7 @@ export function buildColorAnimationKeyframes(
 		return undefined;
 	}
 
-	const cssProperty = resolveCssProperty(targetAttribute);
+	const cssProperties = resolveCssProperties(targetAttribute);
 	const lines: string[] = [];
 	const actualSteps = Math.max(2, steps);
 
@@ -226,7 +241,8 @@ export function buildColorAnimationKeyframes(
 		const t = i / actualSteps;
 		const pct = Math.round(t * 100);
 		const color = interpolateColor(effectiveFrom, effectiveTo, t, colorSpace, direction);
-		lines.push(`\t${pct}% { ${cssProperty}: ${color}; }`);
+		const decls = cssProperties.map((prop) => `${prop}: ${color};`).join(' ');
+		lines.push(`\t${pct}% { ${decls} }`);
 	}
 
 	return `@keyframes ${keyframeName} {\n${lines.join('\n')}\n}`;

@@ -65,6 +65,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...mergedDefaultRunStyle,
 				...this.extractTextRunStyle(runProps, paraAlign, ctx.slideRelationshipMap),
 			} as TextStyle;
+			// #83: annotate a per-script fallback face when the run's text is
+			// dominantly CJK / Arabic / Hebrew / Thai and the theme declares a
+			// `<a:font script=...>` override. Rendering hint only — never
+			// round-tripped, so the authored typefaces are untouched.
+			if (!runStyle.scriptFallbackFont) {
+				const fallback = this.resolveScriptFallbackFont(runText);
+				if (fallback) {
+					runStyle.scriptFallbackFont = fallback;
+				}
+			}
 			parts.push(runText);
 			segments.push({ text: runText, style: runStyle });
 			maybeSeed(runStyle);
@@ -117,14 +127,29 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				),
 			} as TextStyle;
 			const fldType = String(field['@_type'] || '').trim() || undefined;
-			const fldGuid = String(field['@_uuid'] || field['@_id'] || '').trim() || undefined;
+			const uuidAttr = String(field['@_uuid'] || '').trim();
+			const idAttr = String(field['@_id'] || '').trim();
+			const fldGuid = uuidAttr || idAttr || undefined;
+			// Track which attribute spelling authored the guid so the writer
+			// round-trips `@uuid` vs `@id` instead of always normalising to `@id`.
+			const fldGuidAttr: 'uuid' | 'id' | undefined = uuidAttr ? 'uuid' : idAttr ? 'id' : undefined;
 			parts.push(fieldText);
-			segments.push({
+			const fieldSegment: TextSegment = {
 				text: fieldText,
 				style: fieldRunStyle,
 				fieldType: fldType,
 				fieldGuid: fldGuid,
-			});
+			};
+			if (fldGuidAttr) {
+				fieldSegment.fieldGuidAttr = fldGuidAttr;
+			}
+			// Preserve a per-field `a:pPr` (the schema permits paragraph
+			// properties inside `a:fld`) verbatim for round-trip.
+			const fieldPPr = field['a:pPr'];
+			if (fieldPPr && typeof fieldPPr === 'object') {
+				fieldSegment.fieldParagraphPropertiesXml = fieldPPr as XmlObject;
+			}
+			segments.push(fieldSegment);
 			maybeSeed(fieldRunStyle);
 		};
 
@@ -277,6 +302,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				segments[firstSegmentIndex].endParaRunProperties = {
 					...(endParaRPrRaw as Record<string, unknown>),
 				};
+			}
+			// #69: capture this paragraph's own pPr geometry so per-paragraph
+			// alignment / spacing / margins / indent / tabs round-trip instead
+			// of being flattened to one shape-level pPr on save.
+			const basisFontSize =
+				typeof mergedDefaultRunStyle.fontSize === 'number'
+					? mergedDefaultRunStyle.fontSize
+					: undefined;
+			const paragraphOwnProps = this.extractParagraphOwnProperties(p, basisFontSize);
+			if (paragraphOwnProps) {
+				segments[firstSegmentIndex].paragraphProperties = paragraphOwnProps;
 			}
 		}
 

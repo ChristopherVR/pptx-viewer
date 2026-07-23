@@ -1,4 +1,5 @@
 import type { PptxTableCellStyle, PptxTableData, PptxTableRow, XmlObject } from '../../types';
+import { applyCell3DStyle } from './table-cell-3d-helpers';
 import {
 	applyCellFillStyle,
 	applyCellBorderStyle,
@@ -230,6 +231,7 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 
 			hasStyle = applyCellFillStyle(cellProperties, style, this.context) || hasStyle;
 			hasStyle = applyCellBorderStyle(cellProperties, style, this.context) || hasStyle;
+			hasStyle = applyCell3DStyle(cellProperties, style, this.context) || hasStyle;
 			hasStyle = applyCellMarginStyle(cellProperties, style, this.context) || hasStyle;
 			hasStyle = applyCellAlignmentStyle(cellProperties, style) || hasStyle;
 			hasStyle = applyCellTextFormat(tableCell, style, this.context) || hasStyle;
@@ -247,5 +249,6 @@ export {
 	applyCellBorderStyle,
 	applyCellMarginStyle,
 } from './table-cell-fill-border-helpers';
+export { applyCell3DStyle } from './table-cell-3d-helpers';
 export type { TableCellTextStyleContext } from './table-cell-text-style-helpers';
 export { applyCellAlignmentStyle, applyCellTextFormat } from './table-cell-text-style-helpers';

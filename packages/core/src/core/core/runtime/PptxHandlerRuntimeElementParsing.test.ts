@@ -58,31 +58,27 @@ function placeholderMatches(
 		return true;
 	}
 
-	// idx is primary key for multi-instance placeholders
-	if (source.idx !== undefined && target.idx !== undefined) {
-		if (source.idx !== target.idx) {
-			return false;
-		}
-		if (source.type && target.type && source.type !== target.type) {
-			return false;
-		}
-		return true;
-	}
+	const typesMatch =
+		source.type === target.type ||
+		(source.type === 'ctrtitle' && target.type === 'title') ||
+		(source.type === 'subtitle' && target.type === 'body');
 
-	// source has idx but target does not — try singleton types
-	if (source.idx !== undefined && target.idx === undefined) {
-		const singletonTypes = new Set(['title', 'ctrtitle', 'subtitle', 'dt', 'ftr', 'sldnum']);
-		if (source.type && singletonTypes.has(source.type)) {
-			return target.type === source.type;
-		}
+	// Per OOXML, an absent idx defaults to 0. Normalise so a slide placeholder
+	// with no idx matches a layout/master placeholder with an explicit idx="0".
+	const sourceIdx = source.idx ?? '0';
+	const targetIdx = target.idx ?? '0';
+	if (sourceIdx !== targetIdx) {
 		return false;
 	}
 
-	// Neither has idx — match by type
-	if (source.type && target.type && source.type !== target.type) {
+	if (source.type && target.type && !typesMatch) {
 		return false;
 	}
-	if (source.type && !target.type) {
+
+	// When only one side has an explicit idx, keep the stricter rule that a
+	// typed source must not bind to an untyped generic placeholder.
+	const bothHaveExplicitIdx = source.idx !== undefined && target.idx !== undefined;
+	if (!bothHaveExplicitIdx && source.type && !target.type) {
 		return false;
 	}
 
@@ -287,6 +283,25 @@ describe('placeholderMatches', () => {
 
 	it('should match when target has type but source does not', () => {
 		expect(placeholderMatches({}, { type: 'title' })).toBeTruthy();
+	});
+
+	// idx defaulting (absent idx === "0" per the OOXML schema default)
+	it('should treat a source with no idx as idx="0" against a layout idx="0"', () => {
+		expect(placeholderMatches({ type: 'body' }, { idx: '0', type: 'body' })).toBeTruthy();
+	});
+
+	it('should treat an explicit idx="0" source as matching a layout with no idx', () => {
+		expect(placeholderMatches({ idx: '0', type: 'body' }, { type: 'body' })).toBeTruthy();
+	});
+
+	it('should NOT match a no-idx source against a non-zero layout idx', () => {
+		// Previously this matched by type alone; the schema default (0) makes it
+		// a different instance from idx="1".
+		expect(placeholderMatches({ type: 'body' }, { idx: '1', type: 'body' })).toBeFalsy();
+	});
+
+	it('should match no-idx-vs-idx=0 for a plain untyped placeholder', () => {
+		expect(placeholderMatches({}, { idx: '0' })).toBeTruthy();
 	});
 });
 

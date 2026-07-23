@@ -10,6 +10,7 @@
 import type { PptxSlide, XmlObject } from '../types';
 import { parseSlideDrawingGuides } from '../utils/guide-utils';
 import { loadSlideSynchronization } from '../utils/slide-synchronization';
+import { loadLegacyVmlDrawings } from '../utils/vml-drawing-loader';
 import { reconcileAnimationTargets } from './animation-target-reconcile';
 import type { IPptxSlideLoaderService, PptxSlideLoaderParams } from './slide-loader-types';
 
@@ -258,6 +259,16 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 
 			const activeXControls = params.parseSlideActiveXControls(slideXmlObj);
 
+			// Legacy VML drawing parts referenced via a `legacyDrawing` rel are
+			// separate `.vml` parts the inline sp-tree parser never sees. Parse
+			// them for read-only rendering; the parts round-trip verbatim.
+			const legacyVmlElements = await loadLegacyVmlDrawings(
+				params.zip,
+				params.parser,
+				path,
+				slideRelsPath,
+			);
+
 			return {
 				id: path,
 				rId,
@@ -286,6 +297,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				guides: drawingGuides.length > 0 ? drawingGuides : undefined,
 				customerData: customerData.length > 0 ? customerData : undefined,
 				activeXControls: activeXControls.length > 0 ? activeXControls : undefined,
+				legacyVmlElements: legacyVmlElements.length > 0 ? legacyVmlElements : undefined,
 				slideSynchronization,
 			};
 		} finally {

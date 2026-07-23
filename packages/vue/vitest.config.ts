@@ -15,9 +15,21 @@ export default defineConfig({
 	},
 	plugins: [vue()],
 	resolve: {
-		alias: {
-			'pptx-viewer-core': resolve(__dirname, '../core/src/index.ts'),
-		},
+		// Test against workspace sources (not dists) so the suite never runs
+		// against stale build output. Mirrors the Vanilla package's vitest setup.
+		// Subpath aliases must come first (first match wins).
+		alias: [
+			{
+				find: 'pptx-viewer-shared/i18n',
+				replacement: resolve(__dirname, '../shared/src/i18n/index.ts'),
+			},
+			{
+				find: 'pptx-viewer-shared/smartart-3d',
+				replacement: resolve(__dirname, '../shared/src/smartart-3d/index.ts'),
+			},
+			{ find: 'pptx-viewer-shared', replacement: resolve(__dirname, '../shared/src/index.ts') },
+			{ find: 'pptx-viewer-core', replacement: resolve(__dirname, '../core/src/index.ts') },
+		],
 	},
 	test: {
 		globals: true,

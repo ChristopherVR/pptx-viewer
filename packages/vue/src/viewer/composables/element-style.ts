@@ -1,4 +1,4 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import {
 	getRoundRectRadiusPx,
 	getShapeType,
@@ -59,8 +59,15 @@ export function getContainerStyle(el: PptxElement, zIndex: number): CSSPropertie
 /**
  * Fill / stroke / corner-radius for shape-like elements. Returns an empty
  * object when the element carries no shape styling.
+ *
+ * `parentGroupFill` is the enclosing group's fill (`GroupPptxElement.groupFill`),
+ * threaded down by the group renderer so a child painted with `a:grpFill`
+ * (`fillMode === 'group'`) inherits the group's resolved fill.
  */
-export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
+export function getShapeFillStrokeStyle(
+	el: PptxElement,
+	parentGroupFill?: ShapeStyle,
+): CSSProperties {
 	if (!hasShapeProperties(el)) {
 		return {};
 	}
@@ -70,8 +77,9 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 	if (ss) {
 		// Fill: resolve in React's order via the structured fill builder;
 		//   image → structured gradient (falls back to prebuilt `fillGradient`)
-		//   → preset pattern → solid (with `fillOpacity`).
-		const fill = getComputedFillStyle(el);
+		//   → preset pattern → solid (with `fillOpacity`). A `a:grpFill` child
+		//   (fillMode 'group') inherits `parentGroupFill`.
+		const fill = getComputedFillStyle(el, parentGroupFill);
 		if (fill) {
 			if (fill.backgroundColor !== undefined) {
 				style.backgroundColor = fill.backgroundColor;
@@ -115,6 +123,11 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 	}
 	if (fx.mixBlendMode) {
 		style.mixBlendMode = fx.mixBlendMode as CSSProperties['mixBlendMode'];
+	}
+	if (fx.overflowVisible) {
+		// Blur `@grow`: let the halo bleed past the element box instead of being
+		// clipped at the shape edge. Mirrors the React `getShapeVisualStyle`.
+		style.overflow = 'visible';
 	}
 	if (fx.opacity !== undefined) {
 		// Compose the effect alpha with any element-level opacity (the shape

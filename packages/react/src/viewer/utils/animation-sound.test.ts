@@ -13,6 +13,7 @@ import { playAnimationSound, stopAnimationSound } from './animation-sound';
 interface MockAudio {
 	src: string;
 	currentTime: number;
+	loop: boolean;
 	play: ReturnType<typeof vi.fn>;
 	pause: ReturnType<typeof vi.fn>;
 }
@@ -23,6 +24,7 @@ function createMockAudio(src: string): MockAudio {
 	const audio: MockAudio = {
 		src,
 		currentTime: 0,
+		loop: false,
 		play: vi.fn<() => void>().mockResolvedValue(undefined),
 		pause: vi.fn<() => void>(),
 	};
@@ -69,6 +71,16 @@ describe('playAnimationSound', () => {
 		// The first audio should have been paused
 		expect(firstAudio.pause).toHaveBeenCalledOnce();
 		expect(firstAudio.currentTime).toBe(0);
+	});
+
+	it('does not loop by default', () => {
+		playAnimationSound('once.mp3');
+		expect(lastCreatedAudio!.loop).toBeFalsy();
+	});
+
+	it('loops the audio when loop is requested', () => {
+		playAnimationSound('loop.mp3', true);
+		expect(lastCreatedAudio!.loop).toBeTruthy();
 	});
 
 	it('handles play() rejection gracefully (autoplay restrictions)', () => {

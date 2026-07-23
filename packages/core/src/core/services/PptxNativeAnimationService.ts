@@ -35,6 +35,7 @@ import {
 	parseConditionList,
 	captureRoundTripCTnAttrs,
 	extractAfterEffect,
+	parseTimingPercentFraction,
 } from './native-animation-helpers';
 
 /**
@@ -175,8 +176,14 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 			const presetId = cTn['@_presetID']
 				? Number.parseInt(String(cTn['@_presetID']), 10)
 				: undefined;
+			const presetSubtype =
+				cTn['@_presetSubtype'] !== undefined
+					? Number.parseInt(String(cTn['@_presetSubtype']), 10)
+					: undefined;
 			const durationMs = cTn['@_dur'] ? Number.parseInt(String(cTn['@_dur']), 10) : undefined;
 			const delayMs = cTn['@_delay'] ? Number.parseInt(String(cTn['@_delay']), 10) : undefined;
+			const accel = parseTimingPercentFraction(cTn['@_accel']);
+			const decel = parseTimingPercentFraction(cTn['@_decel']);
 
 			// Determine trigger from nodeType attribute, falling back to inherited trigger
 			let trigger = currentTrigger;
@@ -250,8 +257,11 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					trigger,
 					presetClass: validPresetClass,
 					presetId,
+					presetSubtype,
 					durationMs,
 					delayMs,
+					accel,
+					decel,
 					triggerDelayMs: trigger === 'afterDelay' ? delayMs : undefined,
 					motionPath: childMotion.motionPath,
 					motionOrigin: childMotion.motionOrigin,

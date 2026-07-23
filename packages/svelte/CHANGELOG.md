@@ -4,32 +4,333 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## 2.0.0
+## [1.39.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.39.0) - 2026-07-21
 
-V2 brings the AI assistant to the Svelte viewer and matches the React viewer
-chrome. (The exact version and date are set when the release is tagged.)
+### Features
 
-### AI assistant (new)
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
 
-- A chat panel and toolbar toggle that can read and edit your deck through the
-  shared toolset (add, update, remove elements, recolour, insert charts and
-  SmartArt, merge tables).
-- Edits arrive as staged proposals you Apply or Discard; each is a single
-  undoable step.
-- Bring your own key via the Vercel AI SDK (optional `ai` peer dependency);
-  the demo shows how to wire the connection config.
-- Fully translated (English, French, Spanish, German).
+### Bug Fixes
 
-### Viewer parity
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
 
-- Viewer chrome (footer, toolbar, ribbon, surrounding UI) brought to React
-  parity.
+### Documentation
 
-### Breaking changes and migration
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
 
-- Presentation print settings now go through the typed `printProperties.*`
-  fields; the removed flat print aliases are no longer used.
-- `smartArt3D` graduated from experimental to stable (no code change needed).
+## [1.38.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.38.0) - 2026-07-21
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.37.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.37.0) - 2026-07-21
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.36.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.36.0) - 2026-07-21
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.35.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.35.0) - 2026-07-21
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.34.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.34.0) - 2026-07-21
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.33.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.33.0) - 2026-07-20
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.32.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.32.0) - 2026-07-20
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.31.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.31.0) - 2026-07-20
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.30.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.30.0) - 2026-07-20
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.29.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.29.0) - 2026-07-20
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.28.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.28.0) - 2026-07-20
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.27.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.27.0) - 2026-07-20
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.26.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.26.0) - 2026-07-19
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.25.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.25.0) - 2026-07-19
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.24.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.24.0) - 2026-07-19
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.23.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.23.0) - 2026-07-19
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.22.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.22.0) - 2026-07-19
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.21.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.21.0) - 2026-07-19
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.20.0) - 2026-07-19
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.19.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.19.0) - 2026-07-19
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.18.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.18.0) - 2026-07-19
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Bug Fixes
+
+- **shared:** Enforce transition advanceOnClick in Vue/Angular/Svelte/Vanilla ([#82](https://github.com/ChristopherVR/pptx-viewer/issues/82)) (by @ChristopherVR) ([66d489b](https://github.com/ChristopherVR/pptx-viewer/commit/66d489b41d899e09d856d004d49d1eb17258d457))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.17.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.17.0) - 2026-07-19
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
+
+## [1.16.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.16.0) - 2026-07-19
+
+### Features
+
+- **svelte:** Export Ribbon/ViewerToolbar + createViewerState factory (by @ChristopherVR) ([8a16608](https://github.com/ChristopherVR/pptx-viewer/commit/8a1660818a586d6b25f0c6c7ab418efd59cd45f6))
+
+### Documentation
+
+- Correct and expand the per-package npm readmes (by @ChristopherVR) ([46f7c57](https://github.com/ChristopherVR/pptx-viewer/commit/46f7c573701a19e91c507d41ebdc956c64699c38))
 
 ## [1.15.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@1.15.0) - 2026-07-19
 

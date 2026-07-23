@@ -211,8 +211,11 @@ describe('getEffectFilterCss', () => {
 		expect(css).toContain('drop-shadow(0 0 12px rgba(255, 255, 0, 0.75))');
 	});
 
-	it('soft edge produces a blur filter', () => {
-		expect(getEffectFilterCss({ softEdgeRadius: 5 })).toBe('blur(5px)');
+	it('soft edge without an element id falls back to a capped blur filter', () => {
+		// With no element id there is no <filter> to reference, so soft edge
+		// falls back to a blur capped at 2px (the SVG alpha-feather filter, which
+		// blurs only the edge rather than the whole element, needs an id).
+		expect(getEffectFilterCss({ softEdgeRadius: 5 })).toBe('blur(2px)');
 	});
 
 	it('standalone blur produces a blur filter', () => {
@@ -352,7 +355,9 @@ describe('getComputedEffectStyle', () => {
 		);
 		expect(result.boxShadow).toContain('rgba(0, 0, 0,');
 		expect(result.filter).toContain('drop-shadow');
-		expect(result.filter).toContain('blur(3px)');
+		// Soft edge now emits an SVG alpha-feather filter reference when an
+		// element id is present, instead of a whole-element blur().
+		expect(result.filter).toContain('url(#soft-edge-');
 		expect(result.webkitBoxReflect).toContain('below 4px');
 		expect(result.opacity).toBe(0.8);
 		expect(result.mixBlendMode).toBe('multiply');

@@ -6,6 +6,22 @@
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 
+import { isClickAdvanceAllowed } from '../internal/shared';
+
+/**
+ * Whether a click/tap/swipe advance must be swallowed instead of moving to the
+ * next slide. A click still steps the current slide's remaining animation
+ * builds, so this only blocks once they are exhausted (`playbackComplete`) and
+ * only when the slide's transition sets advanceOnClick to false. Keyboard and
+ * the on-screen next/prev buttons never consult this.
+ */
+export function shouldBlockClickAdvance(
+	playbackComplete: boolean,
+	slide: PptxSlide | undefined,
+): boolean {
+	return playbackComplete && !isClickAdvanceAllowed(slide);
+}
+
 /**
  * Clamp `index` to the valid range [0, count - 1].
  * Returns 0 when `count` is 0 to avoid -1 states.
