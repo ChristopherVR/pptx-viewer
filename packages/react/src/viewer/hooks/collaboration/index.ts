@@ -30,6 +30,9 @@ export type {
 export { useYjsDocumentSync } from './useYjsDocumentSync';
 export type { UseYjsDocumentSyncInput } from './useYjsDocumentSync';
 
+export { useCollaborationLivePatch } from './useCollaborationLivePatch';
+export type { UseCollaborationLivePatchInput } from './useCollaborationLivePatch';
+
 export { useBroadcastFollower } from './useBroadcastFollower';
 export type { UseBroadcastFollowerInput } from './useBroadcastFollower';
 

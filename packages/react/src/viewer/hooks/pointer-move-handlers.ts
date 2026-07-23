@@ -3,7 +3,7 @@
  * Handles marquee, drag, resize, and shape-adjustment interactions.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { applyResize, snapBoxToGrid } from 'pptx-viewer-shared';
+import { applyResize, publishLiveGeometry, snapBoxToGrid } from 'pptx-viewer-shared';
 import type { ResizeHandleId } from 'pptx-viewer-shared';
 
 import { MIN_ELEMENT_SIZE } from '../constants';
@@ -66,6 +66,28 @@ export function computeAdjustmentValue(
 }
 
 // ---------------------------------------------------------------------------
+// Collaboration live preview
+// ---------------------------------------------------------------------------
+
+/**
+ * Where interim gesture geometry is published so peers see the move live.
+ * `undefined` whenever the gesture must not be mirrored (no collaboration, or
+ * edit-template mode, whose elements live outside the shared slides array).
+ */
+interface LiveGeometryTarget {
+	patcher: NonNullable<UsePointerHandlersInput['livePatcher']>;
+	slideId: string | undefined;
+}
+
+function resolveLiveTarget(input: UsePointerHandlersInput): LiveGeometryTarget | undefined {
+	const { livePatcher, editTemplateMode, activeSlide } = input;
+	if (!livePatcher || editTemplateMode || !livePatcher.isActive()) {
+		return undefined;
+	}
+	return { patcher: livePatcher, slideId: activeSlide?.id };
+}
+
+// ---------------------------------------------------------------------------
 // Main pointer-move processor
 // ---------------------------------------------------------------------------
 
@@ -124,13 +146,14 @@ export function processPointerMove(
 			elementLookup,
 			tracker,
 			setSnapLines,
+			resolveLiveTarget(input),
 		);
 		return;
 	}
 
 	const rs = resizeStateRef.current;
 	if (rs) {
-		processResizeMove(e, rs, editorScale, snapToGrid, gridSpacingPx);
+		processResizeMove(e, rs, editorScale, snapToGrid, gridSpacingPx, resolveLiveTarget(input));
 		return;
 	}
 
@@ -176,6 +199,7 @@ function processDragMove(
 	elementLookup: UsePointerHandlersInput['elementLookup'],
 	tracker: PointerFrameTracker,
 	setSnapLines: UsePointerHandlersInput['setSnapLines'],
+	live: LiveGeometryTarget | undefined,
 ): void {
 	const dx = (e.clientX - drag.startClientX) / editorScale;
 	const dy = (e.clientY - drag.startClientY) / editorScale;
@@ -247,6 +271,18 @@ function processDragMove(
 			domEl.style.top = `${start.y + appliedDy}px`;
 		}
 	}
+	// Mirror the in-flight positions to collaborators. The DOM writes above
+	// deliberately bypass React state, so this is the only thing peers can see
+	// before the pointer-up commit.
+	if (live) {
+		for (const id of Object.keys(drag.startPositionsById)) {
+			const start = drag.startPositionsById[id];
+			publishLiveGeometry(live.patcher, live.slideId, id, {
+				x: start.x + appliedDx,
+				y: start.y + appliedDy,
+			});
+		}
+	}
 }
 
 // ── Resize ───────────────────────────────────────────────────────────────────
@@ -257,6 +293,7 @@ function processResizeMove(
 	editorScale: number,
 	snapToGrid: boolean,
 	gridSpacingPx: number,
+	live: LiveGeometryTarget | undefined,
 ): void {
 	const dx = (e.clientX - rs.startClientX) / editorScale;
 	const dy = (e.clientY - rs.startClientY) / editorScale;
@@ -287,6 +324,14 @@ function processResizeMove(
 		rs.domEl.style.top = `${geo.y}px`;
 		rs.domEl.style.width = `${Math.max(geo.width, MIN_ELEMENT_SIZE)}px`;
 		rs.domEl.style.height = `${Math.max(geo.height, MIN_ELEMENT_SIZE)}px`;
+	}
+	if (live) {
+		publishLiveGeometry(live.patcher, live.slideId, rs.elementId, {
+			x: geo.x,
+			y: geo.y,
+			width: Math.max(geo.width, MIN_ELEMENT_SIZE),
+			height: Math.max(geo.height, MIN_ELEMENT_SIZE),
+		});
 	}
 }
 

@@ -87,6 +87,11 @@ export interface OpenInlineEditorOptions {
 	spellCheck?: boolean;
 	/** Called with the edited text on commit (only when it changed). */
 	onCommit(text: string): void;
+	/**
+	 * Called with the edited text on EVERY keystroke. Used for the collaboration
+	 * live preview only: it must not touch editor state or history.
+	 */
+	onInput?(text: string): void;
 	onSelectionChange?(selection: InlineTextSelection | null): void;
 	/** Called after the surface closes (commit or cancel). */
 	onClose(): void;
@@ -140,6 +145,7 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 		options.onClose();
 	};
 
+	surface.addEventListener('input', () => options.onInput?.(readEditableText(surface)));
 	surface.addEventListener('blur', () => close(readEditableText(surface)));
 	surface.addEventListener('keydown', (event) => {
 		// Keep every keystroke local so viewer navigation/editor shortcuts

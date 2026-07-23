@@ -84,7 +84,16 @@ function reconcileComplexFields(
 	}
 }
 
-function reconcileTextBody(
+/**
+ * Bring `ymap.textBody` in line with `rec.textSegments`, preferring a
+ * character-level in-place merge (so concurrent typing on one element
+ * converges) and falling back to a wholesale Y.Text replacement.
+ *
+ * Exported for the live-patch channel (collaboration-live-patch.ts), which
+ * writes interim editor text into the doc mid-edit and must use the exact same
+ * merge path as this reconcile pass.
+ */
+export function reconcileElementTextBody(
 	ymap: YMapLike,
 	rec: Record<string, unknown>,
 	factories: YjsFactories,
@@ -122,7 +131,7 @@ export function reconcileElementYMap(
 	const rec = element as unknown as Record<string, unknown>;
 	reconcileScalars(ymap, rec, SCALAR_ELEMENT_KEYS);
 	reconcileComplexFields(ymap, rec, COMPLEX_ELEMENT_FIELDS);
-	reconcileTextBody(ymap, rec, factories);
+	reconcileElementTextBody(ymap, rec, factories);
 	reconcileAssetFields(rec.id as string, rec, ymap, assets);
 }
 

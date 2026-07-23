@@ -17,6 +17,8 @@
 import { inject, Injectable, signal } from '@angular/core';
 import type { InkPptxElement, PptxSlide, PptxTableData, TextStyle } from 'pptx-viewer-core';
 
+import { publishLiveInlineText } from '../internal/shared';
+import { CollaborationService } from './collaboration.service';
 import { EditorStateService } from './editor-state.service';
 import { textStylePatch } from './inspector-helpers';
 import { setCellText } from './table-data-helpers';
@@ -36,6 +38,7 @@ export class ViewerCanvasEditingService {
 	private readonly editor = inject(EditorStateService);
 	private readonly dialogs = inject(ViewerDialogsService);
 	private readonly formatPainter = inject(ViewerFormatPainterService);
+	private readonly collab = inject(CollaborationService);
 
 	/** Id of the element being inline text-edited, or null. */
 	readonly editingId = signal<string | null>(null);
@@ -89,9 +92,27 @@ export class ViewerCanvasEditingService {
 		);
 	}
 
+	/**
+	 * Mirror an in-progress inline edit to collaborators. The typed text only
+	 * reaches the editor state (and therefore the Y.Doc reconcile) on commit, so
+	 * without this peers saw nothing until the editor blurred. No-op when not
+	 * collaborating.
+	 */
+	onTextInput(event: { id: string; text: string }): void {
+		publishLiveInlineText(
+			this.collab.livePatcher,
+			this.requireHost().activeSlide(),
+			event.id,
+			event.text,
+		);
+	}
+
 	/** Commit an inline text edit: replace the element's text (one history entry). */
 	onTextCommit(event: { id: string; text: string }): void {
 		const host = this.requireHost();
+		// Push any queued interim frame out first so it cannot land after the
+		// committed text and revert it.
+		this.collab.livePatcher.flush();
 		this.editor.updateElement(host.activeSlideIndex(), event.id, {
 			text: event.text,
 			textSegments: [],

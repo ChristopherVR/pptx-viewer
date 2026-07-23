@@ -1,3 +1,6 @@
+import type { PptxSlide } from 'pptx-viewer-core';
+import type { CollaborationLivePatcher } from 'pptx-viewer-shared';
+
 export interface EditorControllerDeps {
 	getScale(): number;
 	getCurrent(): number;
@@ -14,4 +17,12 @@ export interface EditorControllerDeps {
 	 * AutoCorrect); identity when unset.
 	 */
 	transformCommittedText?(text: string): string;
+	/**
+	 * Collaboration live-preview channel. Inline text only reaches the slides
+	 * state on commit, so peers saw nothing while a peer typed; each keystroke is
+	 * published through this instead. Omit outside a collaborative viewer.
+	 */
+	getLivePatcher?(): CollaborationLivePatcher | undefined;
+	/** The slide the inline-edited element belongs to (live-preview lookup). */
+	getActiveSlide?(): PptxSlide | undefined;
 }

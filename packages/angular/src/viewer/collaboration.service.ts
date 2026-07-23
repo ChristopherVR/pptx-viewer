@@ -20,6 +20,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 
 import type {
 	CollaborationConfig,
+	CollaborationLivePatcher,
 	CollaborationRole,
 	CollaborationTransport,
 	ConnectionStatus,
@@ -30,6 +31,7 @@ import {
 	CONNECTION_TIMEOUT_MS,
 	LOCAL_SYNC_ORIGIN,
 	YDOC_SLIDES_KEY,
+	createCollaborationLivePatcher,
 	createSyncGate,
 	derivePresenceList,
 	isMixedContentBlocked,
@@ -92,6 +94,13 @@ export class CollaborationService {
 	readonly broadcasterSlideIndex = computed<number | null>(
 		() => this.presence().find((p) => p.role === 'owner')?.activeSlideIndex ?? null,
 	);
+
+	/**
+	 * Interim ("live preview") Y.Doc write channel: publishes in-flight inline
+	 * editor text that has not reached the slides state yet, so peers see typing
+	 * as it happens instead of on commit. Dormant outside a session.
+	 */
+	readonly livePatcher: CollaborationLivePatcher = createCollaborationLivePatcher();
 
 	// Internal handles
 	private ydoc: DestroyableYDoc | null = null;
@@ -200,6 +209,7 @@ export class CollaborationService {
 			}
 			this.ydoc = bundle.doc;
 			this.yFactories = bundle.factories;
+			this.livePatcher.configure(bundle.doc, bundle.factories);
 			this.provider = bundle.provider;
 			this.awareness = bundle.awareness;
 			this.selfId = this.awareness.clientID ?? -1;
@@ -373,6 +383,7 @@ export class CollaborationService {
 		this.selfId = -1;
 		this.applyingRemote = false;
 		this.yFactories = null;
+		this.livePatcher.configure(null, null);
 		this.lastSynced = '';
 		this.onRemoteSlides = null;
 		this.currentConfig = null;

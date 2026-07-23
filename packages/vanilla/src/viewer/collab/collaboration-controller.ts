@@ -1,11 +1,13 @@
 import type { PptxHandler } from 'pptx-viewer-core';
 import type {
 	CollaborationConfig,
+	CollaborationLivePatcher,
 	ConnectionStatus,
 	YDocLike,
 	YjsFactories,
 } from 'pptx-viewer-shared';
 import {
+	createCollaborationLivePatcher,
 	createSyncGate,
 	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
@@ -85,6 +87,12 @@ export interface CollaborationController {
 	 * client is the seeder and the deferred publish of the loaded deck runs.
 	 */
 	notifyContentLoaded(): void;
+	/**
+	 * Interim ("live preview") Y.Doc write channel: publishes in-flight inline
+	 * editor text that has not reached the store yet, so peers see typing as it
+	 * happens instead of on commit. Dormant outside a session.
+	 */
+	readonly livePatcher: CollaborationLivePatcher;
 	/** Stop and release everything (viewer destroy). */
 	destroy(): void;
 }
@@ -108,6 +116,7 @@ export function createCollaborationController(
 	let unsubscribeStore: (() => void) | null = null;
 	let connection: ConnectionWiring | null = null;
 	let loadApplying = false;
+	const livePatcher = createCollaborationLivePatcher();
 
 	function setStatus(next: ConnectionStatus): void {
 		if (next === status) {
@@ -160,6 +169,7 @@ export function createCollaborationController(
 				createText: () => new Y.Text(),
 			};
 			currentYDoc = doc as unknown as YDocLike;
+			livePatcher.configure(currentYDoc, yFactories);
 
 			provider = await createCollabProvider(transport, config, doc);
 
@@ -282,6 +292,7 @@ export function createCollaborationController(
 		ydoc = null;
 		currentYDoc = null;
 		yFactories = null;
+		livePatcher.configure(null, null);
 		// Restore the editing state a viewer-role session forced off.
 		if (publishSuppressed && editableBeforeViewer !== null) {
 			deps.setEditable(editableBeforeViewer);
@@ -305,6 +316,7 @@ export function createCollaborationController(
 		getConfig: () => lastConfig,
 		beginContentLoad,
 		notifyContentLoaded,
+		livePatcher,
 		destroy: stop,
 	};
 }

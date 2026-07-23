@@ -44,6 +44,10 @@ export interface EditorControllerDeps {
 	onChange?: () => void;
 	/** Notified with slide-space coordinates on stage pointer move (collaboration cursor broadcast). */
 	onCursorMove?: (x: number, y: number) => void;
+	/** Mirror in-progress inline-editor text to collaborators (live preview). */
+	onInlineTextInput?: (elementId: string, text: string) => void;
+	/** Push any queued live-preview frame out before an inline commit lands. */
+	flushInlineTextInput?: () => void;
 }
 
 export interface EditorController {
@@ -145,6 +149,8 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		getOverlay: () => overlay,
 		getStageRoot: () => attachedWrap?.querySelector('.pptxv-stage') ?? null,
 		onCursorMove: deps.onCursorMove,
+		onInlineTextInput: deps.onInlineTextInput,
+		flushInlineTextInput: deps.flushInlineTextInput,
 		onEditEquation: (id, omml) => deps.getChrome().ribbon?.openEquationEditor(id, omml),
 		onEyedropper: (color) => editActions.setShapeFill(color),
 	});

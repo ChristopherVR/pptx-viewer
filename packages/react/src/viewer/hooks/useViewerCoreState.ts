@@ -33,7 +33,8 @@ import type {
  *
  * @module useViewerCoreState
  */
-import { useCallback, useRef, useState } from 'react';
+import { createCollaborationLivePatcher, publishLiveInlineText } from 'pptx-viewer-shared';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from '../constants';
@@ -88,6 +89,15 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 	const marqueeStateRef = useRef<MarqueeSelectionState | null>(null);
 	const isDrawingRef = useRef(false);
 
+	// ── Collaboration live-patch channel ──────────────────────────────
+	// Interim Y.Doc writes for in-flight gestures/edits. Created once per
+	// viewer instance and left dormant until `useCollaborationLivePatch`
+	// hands it a connected doc.
+	const livePatcher = useMemo(() => createCollaborationLivePatcher(), []);
+	useEffect(() => () => livePatcher.dispose(), [livePatcher]);
+	/** Latest slides, read by the inline-edit live publisher without re-binding it. */
+	const slidesRef = useRef<PptxSlide[]>([]);
+
 	// ── Core State ────────────────────────────────────────────────────
 	const [mode, setMode] = useState<ViewerMode>('edit');
 	const [loading, setLoading] = useState(true);
@@ -125,8 +135,18 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 			const resolved = typeof value === 'function' ? value(inlineEditingTextRef.current) : value;
 			inlineEditingTextRef.current = resolved;
 			setInlineEditingTextBase(value);
+			// Live preview for peers: the typed text only reaches `slides` (and
+			// therefore the Y.Doc reconcile) when the editor commits, so publish
+			// the interim string straight into the element's Y.Text. No-ops when
+			// collaboration is off.
+			publishLiveInlineText(
+				livePatcher,
+				slidesRef.current[activeSlideIndexRef.current],
+				inlineEditingElementIdRef.current,
+				resolved,
+			);
 		},
-		[],
+		[livePatcher],
 	);
 	const [editTemplateMode, setEditTemplateMode] = useState(false);
 	const [newShapeType, setNewShapeType] = useState<SupportedShapeType>('rect');
@@ -163,6 +183,10 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 	const [masterViewTab, setMasterViewTab] = useState<MasterViewTab>('slides');
 	const [handoutSlidesPerPage, setHandoutSlidesPerPage] = useState(4);
 
+	// Mirror slides into a ref so the inline-edit live publisher (a stable
+	// callback) can read the current deck without re-binding every edit.
+	slidesRef.current = slides;
+
 	// ── Derived State ─────────────────────────────────────────────────
 	const derived = useDerivedElementState({
 		slides,
@@ -190,6 +214,7 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		shapeAdjustmentDragStateRef,
 		marqueeStateRef,
 		isDrawingRef,
+		livePatcher,
 		mode,
 		setMode,
 		loading,

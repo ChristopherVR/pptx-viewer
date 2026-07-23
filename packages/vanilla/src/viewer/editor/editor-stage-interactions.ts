@@ -181,7 +181,13 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			scale: deps.getScale(),
 			element: el,
 			spellCheck: state.spellCheckEnabled,
-			onCommit: (text) => ops.commitInlineText(id, text),
+			onInput: (text) => deps.onInlineTextInput?.(id, text),
+			onCommit: (text) => {
+				// Flush the queued live-preview frame first so it cannot land after
+				// the committed text and revert it.
+				deps.flushInlineTextInput?.();
+				ops.commitInlineText(id, text);
+			},
 			onSelectionChange: (selection) => store.set({ selectedTextRange: selection }),
 			onClose() {
 				inline = null;

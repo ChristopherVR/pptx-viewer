@@ -12,6 +12,14 @@ export interface StageInteractionsDeps {
 	getOverlay(): SelectionOverlay | null;
 	getStageRoot(): Element | null;
 	onCursorMove?: (x: number, y: number) => void;
+	/**
+	 * Mirror in-progress inline-editor text to collaborators. Called on every
+	 * keystroke; the commit path is untouched. Omit outside a collaborative
+	 * viewer.
+	 */
+	onInlineTextInput?: (elementId: string, text: string) => void;
+	/** Push any queued live-preview frame out before a commit lands. */
+	flushInlineTextInput?: () => void;
 	onEditEquation?(id: string, omml: Record<string, unknown>): void;
 	onEyedropper?(color: string): void;
 }

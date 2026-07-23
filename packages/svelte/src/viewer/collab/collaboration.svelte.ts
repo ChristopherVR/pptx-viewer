@@ -9,6 +9,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type {
 	CollaborationConfig,
+	CollaborationLivePatcher,
 	ConnectionStatus,
 	RemoteCursor,
 	SanitizedPresence,
@@ -16,6 +17,7 @@ import type {
 	YjsFactories,
 } from 'pptx-viewer-shared';
 import {
+	createCollaborationLivePatcher,
 	createSyncGate,
 	createWriteBackScheduler,
 	DEFAULT_CURSOR_COLOR,
@@ -42,6 +44,8 @@ import { wireProviderStatus } from './collaboration-status';
 export class CollaborationController {
 	/** Live connection status (reactive). */
 	status = $state<ConnectionStatus>('disconnected');
+	/** Interim Y.Doc channel for in-flight inline text (dormant when stopped). */
+	readonly livePatcher: CollaborationLivePatcher = createCollaborationLivePatcher();
 
 	#active = $state(false);
 	readonly #deps: CollaborationDeps;
@@ -215,6 +219,7 @@ export class CollaborationController {
 			this.#session = session;
 			this.#ydoc = session.ydoc;
 			this.#factories = session.factories;
+			this.livePatcher.configure(session.ydoc, session.factories);
 			this.#provider = session.provider;
 
 			// Gate local writes on the provider's initial sync; the grace timer
@@ -289,6 +294,7 @@ export class CollaborationController {
 		this.#provider = null;
 		this.#ydoc = null;
 		this.#factories = null;
+		this.livePatcher.configure(null, null);
 		this.#applyingRemote = false;
 		this.#lastSynced = '';
 		if (this.#active) {

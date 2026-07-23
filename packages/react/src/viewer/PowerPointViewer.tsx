@@ -19,7 +19,7 @@ import type { PptxElement, PptxSlide, PptxTheme } from 'pptx-viewer-core';
  * The component exposes a `PowerPointViewerHandle` via `forwardRef` so host
  * applications can call `getContent()` to retrieve the current file bytes.
  */
-import type { ViewerSettings } from 'pptx-viewer-shared';
+import type { CollaborationLivePatcher, ViewerSettings } from 'pptx-viewer-shared';
 import {
 	applyPreferenceToOptions,
 	buildUserFontFaceStyles,
@@ -69,7 +69,12 @@ import { ViewerPresentationLayer } from './components/ViewerPresentationLayer';
 import { ViewerToolbarSection } from './components/ViewerToolbarSection';
 import { useAiBridge } from './hooks/ai/useAiBridge';
 import { useAiPanelController } from './hooks/ai/useAiPanelController';
-import { useYjsDocumentSync, useBroadcastFollower, useFollowMode } from './hooks/collaboration';
+import {
+	useYjsDocumentSync,
+	useCollaborationLivePatch,
+	useBroadcastFollower,
+	useFollowMode,
+} from './hooks/collaboration';
 import type { CollaborationConfig } from './hooks/collaboration';
 import { useDerivedSlideState } from './hooks/useDerivedSlideState';
 import { useEditorHistory } from './hooks/useEditorHistory';
@@ -1026,6 +1031,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 								config={collaboration}
 								content={content}
 								loadVersion={loadVersion}
+								livePatcher={state.livePatcher}
 							/>
 							<CollaborationFollowLayer
 								activeSlideIndex={activeSlideIndex}
@@ -1076,6 +1082,7 @@ function CollaborationDocumentSync({
 	config,
 	content,
 	loadVersion,
+	livePatcher,
 }: {
 	slides: PptxSlide[];
 	templateElementsBySlideId: Record<string, PptxElement[]>;
@@ -1083,6 +1090,7 @@ function CollaborationDocumentSync({
 	config?: CollaborationConfig;
 	content: ArrayBuffer | Uint8Array | null;
 	loadVersion: number;
+	livePatcher: CollaborationLivePatcher;
 }) {
 	const collab = useCollaboration();
 	// Retain the loaded source bytes so the elected writer (role 'owner') can
@@ -1108,6 +1116,14 @@ function CollaborationDocumentSync({
 		config,
 		getSourceBytes,
 		loadVersion,
+	});
+	// Interim (mid-gesture / mid-typing) writes bypass the slides state, so the
+	// channel needs the doc directly. Dormant unless connected + synced.
+	useCollaborationLivePatch({
+		patcher: livePatcher,
+		doc: collab?.doc ?? null,
+		isConnected: collab?.status === 'connected',
+		isSynced: collab?.synced ?? true,
 	});
 	return null;
 }

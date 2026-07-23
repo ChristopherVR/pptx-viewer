@@ -156,6 +156,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		updateSlides: editorOps.ops.updateSlides,
 		updateElementById: editorOps.ops.updateElementById,
 		markDirty: history.markDirty,
+		livePatcher: state.livePatcher,
 	});
 
 	// ── Content lifecycle (load, font, serialize, autosave) ───────

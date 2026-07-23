@@ -1,4 +1,9 @@
-import type { AwarenessLike, CollaborationConfig, CollaborationRole } from 'pptx-viewer-shared';
+import type {
+	AwarenessLike,
+	CollaborationConfig,
+	CollaborationLivePatcher,
+	CollaborationRole,
+} from 'pptx-viewer-shared';
 /**
  * Types for the `useCollaboration` composable.
  * Extracted here to keep useCollaboration.ts under the 300-line limit.
@@ -75,4 +80,11 @@ export interface UseCollaborationResult {
 	setSelection: (ids: string[]) => void;
 	setActiveSlide: (index: number) => void;
 	followUser: (clientId: number | null) => void;
+	/**
+	 * Interim ("live preview") Y.Doc write channel: publishes in-flight inline
+	 * editor text (and any other mid-gesture state) that has not yet reached
+	 * `slides`, so peers see typing as it happens instead of on commit. Dormant
+	 * until a session starts.
+	 */
+	livePatcher: CollaborationLivePatcher;
 }

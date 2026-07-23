@@ -47,6 +47,7 @@ export function processPointerUp(input: UsePointerHandlersInput): void {
 		updateSlides,
 		updateElementById,
 		markDirty,
+		livePatcher,
 	} = input;
 
 	const marquee = marqueeStateRef.current;
@@ -108,6 +109,13 @@ export function processPointerUp(input: UsePointerHandlersInput): void {
 	}
 
 	const wasMoved = drag?.moved || rs?.moved || adj?.moved;
+
+	// Push the last interim frame out now so peers land on the final geometry
+	// without waiting for the throttle window. The state commit above reconciles
+	// the same values, so this only removes latency, never duplicates history.
+	if (wasMoved) {
+		livePatcher?.flush();
+	}
 
 	marqueeStateRef.current = null;
 	dragStateRef.current = null;

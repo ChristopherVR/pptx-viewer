@@ -1,5 +1,6 @@
 import type { PptxHandler } from 'pptx-viewer-core';
 import type { CollaborationConfig, ConnectionStatus } from 'pptx-viewer-shared';
+import { publishLiveInlineText } from 'pptx-viewer-shared';
 
 import type { AutosaveStatus } from './autosave/autosave-controller';
 import { createAutosaveController } from './autosave/autosave-controller';
@@ -42,6 +43,14 @@ export interface SessionControllers {
 	getCollaborationStatus(): ConnectionStatus;
 	/** Publish a cursor move (slide-space px); no-op when no session is active. */
 	setCollaborationCursor(x: number, y: number): void;
+	/**
+	 * Mirror in-progress inline-editor text to collaborators. Typed text only
+	 * reaches the store on commit, so without this peers saw nothing while a peer
+	 * typed. No-op when no session is active.
+	 */
+	publishCollaborationInlineText(elementId: string, text: string): void;
+	/** Push any queued live-preview frame out (called just before a commit). */
+	flushCollaborationLivePatch(): void;
 	/** Follow the given peer's active slide, or `null` to stop following. */
 	followCollaborationUser(clientId: number | null): void;
 	/**
@@ -163,6 +172,16 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		stopCollaboration: () => collaboration.stop(),
 		getCollaborationStatus: () => collaboration.getStatus(),
 		setCollaborationCursor: (x, y) => collaboration.setCursor(x, y, deps.store.get().currentSlide),
+		publishCollaborationInlineText: (elementId, text) => {
+			const state = deps.store.get();
+			publishLiveInlineText(
+				collaboration.livePatcher,
+				state.slides[state.currentSlide],
+				elementId,
+				text,
+			);
+		},
+		flushCollaborationLivePatch: () => collaboration.livePatcher.flush(),
 		followCollaborationUser: (clientId) => collaboration.followUser(clientId),
 		beginCollaborationContentLoad: () => collaboration.beginContentLoad(),
 		notifyCollaborationContentLoaded: () => collaboration.notifyContentLoaded(),

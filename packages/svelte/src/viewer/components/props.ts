@@ -238,6 +238,8 @@ export interface InlineTextEditorProps {
 	/** Stage scale (screen px per element px). */
 	scale: number;
 	spellCheck?: boolean;
+	/** Called with the edited plain text on every keystroke (live preview only). */
+	oninput?: (text: string) => void;
 	/** Called with the edited plain text on commit (only when it changed). */
 	oncommit: (text: string) => void;
 	/** Called after the surface closes (commit or cancel). */

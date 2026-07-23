@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type { ResizeHandleId, SnapLine } from 'pptx-viewer-shared';
+import { publishLiveInlineText } from 'pptx-viewer-shared';
 
 import type { EditorControllerDeps } from './editor-controller-deps';
 import {
@@ -277,8 +278,19 @@ export class EditorController {
 		this.editingId = id;
 	}
 
+	/**
+	 * Mirror the in-progress inline text to collaborators. Touches no editor
+	 * state or history: the commit path stays the single source of truth.
+	 */
+	previewInline(id: string, text: string): void {
+		publishLiveInlineText(this.#deps.getLivePatcher?.(), this.#deps.getActiveSlide?.(), id, text);
+	}
+
 	/** Commit the inline editor's text onto the element and close it. */
 	commitInline(id: string, text: string): void {
+		// Flush any queued interim frame first so it cannot land after the
+		// committed (AutoCorrected) text and revert it.
+		this.#deps.getLivePatcher?.()?.flush();
 		this.#editor.commitInlineText(id, this.#deps.transformCommittedText?.(text) ?? text);
 	}
 

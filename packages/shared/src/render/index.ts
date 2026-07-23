@@ -362,6 +362,10 @@ export * from './collaboration-broadcast-follow';
 // Granular local -> Y.Doc reconciliation (per-slide/element/field diffing,
 // origin-tagged transactions). Prefer over writeSlidesToYDoc for live editing.
 export * from './collaboration-reconcile';
+// Live ("interim") patch channel: writes mid-gesture geometry and mid-edit text
+// straight into the element's Y.Map, throttled and origin-tagged, so remote
+// peers see a drag/resize/typing before the local gesture commits to state.
+export * from './collaboration-live-patch';
 // Character-level in-place Y.Text merging (minimal text diff + attribute-run
 // reconcile) so concurrent edits to the same text element converge.
 export * from './collaboration-text-merge';

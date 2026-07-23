@@ -241,6 +241,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getHandler: () => this.loading.getHandler(),
 			onChange: options.onChange,
 			onCursorMove: (x, y) => this.sessions.setCollaborationCursor(x, y),
+			onInlineTextInput: (elementId, text) =>
+				this.sessions.publishCollaborationInlineText(elementId, text),
+			flushInlineTextInput: () => this.sessions.flushCollaborationLivePatch(),
 		});
 		this.editor.attachChrome();
 		this.annotations = createPresentationAnnotationsHost({

@@ -306,6 +306,7 @@ function plainText(el: PptxElement): string {
 							[style.width.px]="eb.width"
 							[style.height.px]="eb.height"
 							(pointerdown)="$event.stopPropagation()"
+							(input)="onTextInput($event, eb.id)"
 							(blur)="commitText($event, eb.id)"
 							(keydown)="onEditorKeydown($event)"
 						></textarea>
@@ -669,6 +670,12 @@ export class SlideCanvasComponent implements SlideContext {
 	readonly textEditStart = output<{ id: string }>();
 	/** Emitted with the new text when an inline edit commits. */
 	readonly textCommit = output<{ id: string; text: string }>();
+	/**
+	 * Emitted on EVERY keystroke while inline-editing. The commit path stays the
+	 * only thing that touches editor state/history; this feeds the collaboration
+	 * live preview so peers see typing before the edit commits.
+	 */
+	readonly textInput = output<{ id: string; text: string }>();
 	/** Emitted when an inline edit is cancelled (Escape). */
 	readonly textCancel = output<void>();
 	/** Emitted on Ctrl/Cmd+B/I/U while inline-editing (parity with React/Vue). */
@@ -1109,6 +1116,11 @@ export class SlideCanvasComponent implements SlideContext {
 					? { italic: !ts?.italic }
 					: { underline: !ts?.underline };
 		this.textFormat.emit({ id, updates });
+	}
+
+	/** Mirror each keystroke out for the collaboration live preview. */
+	onTextInput(event: Event, id: string): void {
+		this.textInput.emit({ id, text: (event.target as HTMLTextAreaElement).value });
 	}
 
 	commitText(event: Event, id: string): void {

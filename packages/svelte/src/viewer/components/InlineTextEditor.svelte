@@ -14,7 +14,15 @@
 	import { readEditableText, resolveInlineSurface } from '../editor/inline-text';
 	import type { InlineTextEditorProps } from './props';
 
-	const { element, box, scale, spellCheck = false, oncommit, onclose }: InlineTextEditorProps = $props();
+	const {
+		element,
+		box,
+		scale,
+		spellCheck = false,
+		oninput,
+		oncommit,
+		onclose,
+	}: InlineTextEditorProps = $props();
 
 	const surface = $derived(resolveInlineSurface(element));
 	// The surface is remounted per edit session (keyed on the element id), so the
@@ -38,6 +46,14 @@
 			oncommit(commitText);
 		}
 		onclose();
+	}
+
+	// Every keystroke is mirrored out for the collaboration live preview; the
+	// editor itself stays uncontrolled and only commits on blur/Escape.
+	function onInput(): void {
+		if (el) {
+			oninput?.(readEditableText(el));
+		}
 	}
 
 	function onBlur(): void {
@@ -81,6 +97,7 @@
 	tabindex="0"
 	aria-multiline="true"
 	aria-label="edit text"
+	oninput={onInput}
 	onblur={onBlur}
 	onkeydown={onKeydown}
 	onpointerdown={(event) => event.stopPropagation()}
