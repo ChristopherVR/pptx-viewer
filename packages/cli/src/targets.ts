@@ -11,11 +11,12 @@ import {
 	VUE_MAIN_TS,
 } from './templates';
 
-/** Framework version this target's peer dependency requires, for a compatibility check against an existing project. */
+/** Framework versions this target's peer dependency supports, for a compatibility check against an existing project. */
 export interface FrameworkCompat {
 	/** npm package name to look for in the user's project, e.g. `react`, `vue`, `@angular/core`. */
 	peerPackage: string;
-	requiredMajor: number;
+	/** Every major the viewer package's peer range admits, oldest first. */
+	requiredMajors: number[];
 }
 
 /** How to bootstrap a brand-new starter project for this target. */
@@ -86,7 +87,7 @@ export const TARGETS: Target[] = [
 	{
 		id: 'react',
 		label: 'React',
-		description: 'pptx-react-viewer - viewer/editor component for a React 19 app',
+		description: 'pptx-react-viewer - viewer/editor component for a React 18/19 app',
 		mode: 'install',
 		group: 'framework',
 		packages: [
@@ -108,7 +109,7 @@ import 'pptx-react-viewer/styles.css';
 <PowerPointViewer content={arrayBuffer} canEdit />
 
 Docs: https://www.npmjs.com/package/pptx-react-viewer`,
-		compat: { peerPackage: 'react', requiredMajor: 19 },
+		compat: { peerPackage: 'react', requiredMajors: [18, 19] },
 		scaffold: {
 			command: 'create-vite@latest',
 			// --no-interactive/--no-immediate stop create-vite from prompting for a linter
@@ -154,7 +155,7 @@ import 'pptx-vue-viewer/styles.css';
 </template>
 
 Docs: https://www.npmjs.com/package/pptx-vue-viewer`,
-		compat: { peerPackage: 'vue', requiredMajor: 3 },
+		compat: { peerPackage: 'vue', requiredMajors: [3] },
 		scaffold: {
 			command: 'create-vite@latest',
 			args: (dir) => [dir, '--template', 'vue-ts', '--no-interactive', '--no-immediate'],
@@ -174,7 +175,7 @@ Docs: https://www.npmjs.com/package/pptx-vue-viewer`,
 	{
 		id: 'angular',
 		label: 'Angular',
-		description: 'pptx-angular-viewer - viewer/editor component for an Angular 22+ app',
+		description: 'pptx-angular-viewer - viewer/editor component for an Angular 19-22 app',
 		mode: 'install',
 		group: 'framework',
 		packages: ['pptx-angular-viewer', '@angular/core', '@angular/common', 'rxjs'],
@@ -184,7 +185,7 @@ import 'pptx-angular-viewer/styles.css';
 <pptx-power-point-viewer [content]="content" />
 
 Docs: https://www.npmjs.com/package/pptx-angular-viewer`,
-		compat: { peerPackage: '@angular/core', requiredMajor: 22 },
+		compat: { peerPackage: '@angular/core', requiredMajors: [19, 20, 21, 22] },
 		scaffold: {
 			command: '@angular/cli@latest',
 			// --no-interactive matters even with the flags above supplied: the
@@ -241,7 +242,7 @@ Docs: https://www.npmjs.com/package/pptx-angular-viewer`,
 <PowerPointViewer source={bytes} editable />
 
 Docs: https://www.npmjs.com/package/pptx-svelte-viewer`,
-		compat: { peerPackage: 'svelte', requiredMajor: 5 },
+		compat: { peerPackage: 'svelte', requiredMajors: [5] },
 		scaffold: {
 			command: 'create-vite@latest',
 			args: (dir) => [dir, '--template', 'svelte-ts', '--no-interactive', '--no-immediate'],

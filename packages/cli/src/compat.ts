@@ -23,15 +23,16 @@ export function checkCompat(cwd: string, target: Target): CompatCheck {
 		return { compatible: true, message: null };
 	}
 	const major = extractMajor(installed.version);
-	if (major === null || major === target.compat.requiredMajor) {
+	if (major === null || target.compat.requiredMajors.includes(major)) {
 		return { compatible: true, message: null };
 	}
 	const sourceLabel = installed.source === 'resolved' ? 'installed' : 'declared in package.json';
+	const supported = target.compat.requiredMajors.map((m) => `^${m}`).join(' or ');
 	return {
 		compatible: false,
 		message:
 			`Detected ${target.compat.peerPackage}@${installed.version} (${sourceLabel}) in this project, ` +
-			`but ${target.label} requires ${target.compat.peerPackage}@^${target.compat.requiredMajor}. ` +
+			`but ${target.label} requires ${target.compat.peerPackage}@${supported}. ` +
 			`Continuing may change your ${target.compat.peerPackage} version.`,
 	};
 }

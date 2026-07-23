@@ -25,9 +25,9 @@ It first asks what you're building with an arrow-key checklist (`↑`/`↓` to m
 What are you building with pptx-viewer? (you can pick more than one)
 (↑/↓ move, space toggle, a select all, enter confirm)
 
-❯ ◉ React - pptx-react-viewer, a viewer/editor component for a React 19 app
+❯ ◉ React - pptx-react-viewer, a viewer/editor component for a React 18/19 app
   ◯ Vue - pptx-vue-viewer, a viewer/editor component for a Vue 3.5+ app
-  ◯ Angular - pptx-angular-viewer, a viewer/editor component for an Angular 22+ app
+  ◯ Angular - pptx-angular-viewer, a viewer/editor component for an Angular 19-22 app
   ◯ Svelte - pptx-svelte-viewer, a viewer/editor component for a Svelte 5 app
   ◯ Vanilla JS - pptx-vanilla-viewer, a zero-framework viewer/editor, plain DOM
   ◯ Core engine only - pptx-viewer-core, the framework-agnostic SDK, no UI
@@ -73,15 +73,15 @@ npx @christophervr/pptx-viewer --pm pnpm                           # force a pac
 
 ## What it installs
 
-| Target         | Package                                                                    | What you get                                                            |
-| -------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| **React**      | [`pptx-react-viewer`](https://www.npmjs.com/package/pptx-react-viewer)     | View, edit, present, collaborate, and export `.pptx` files in React 19. |
-| **Vue**        | [`pptx-vue-viewer`](https://www.npmjs.com/package/pptx-vue-viewer)         | The Vue 3.5+ counterpart, feature-equivalent to the React package.      |
-| **Angular**    | [`pptx-angular-viewer`](https://www.npmjs.com/package/pptx-angular-viewer) | The Angular 22+ counterpart, feature-equivalent to the React package.   |
-| **Svelte**     | [`pptx-svelte-viewer`](https://www.npmjs.com/package/pptx-svelte-viewer)   | The Svelte 5 counterpart, built on the same shared engine.              |
-| **Vanilla JS** | [`pptx-vanilla-viewer`](https://www.npmjs.com/package/pptx-vanilla-viewer) | The zero-framework binding: plain DOM, one factory function.            |
-| **Core only**  | [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core)       | The framework-agnostic parse/edit/save/convert SDK, no UI.              |
-| **MCP server** | [`pptx-viewer-mcp`](https://www.npmjs.com/package/pptx-viewer-mcp)         | 51 PowerPoint editing tools exposed to AI agents (Claude, Cursor, ...). |
+| Target         | Package                                                                    | What you get                                                               |
+| -------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **React**      | [`pptx-react-viewer`](https://www.npmjs.com/package/pptx-react-viewer)     | View, edit, present, collaborate, and export `.pptx` files in React 18/19. |
+| **Vue**        | [`pptx-vue-viewer`](https://www.npmjs.com/package/pptx-vue-viewer)         | The Vue 3.5+ counterpart, feature-equivalent to the React package.         |
+| **Angular**    | [`pptx-angular-viewer`](https://www.npmjs.com/package/pptx-angular-viewer) | The Angular 19-22 counterpart, feature-equivalent to the React package.    |
+| **Svelte**     | [`pptx-svelte-viewer`](https://www.npmjs.com/package/pptx-svelte-viewer)   | The Svelte 5 counterpart, built on the same shared engine.                 |
+| **Vanilla JS** | [`pptx-vanilla-viewer`](https://www.npmjs.com/package/pptx-vanilla-viewer) | The zero-framework binding: plain DOM, one factory function.               |
+| **Core only**  | [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core)       | The framework-agnostic parse/edit/save/convert SDK, no UI.                 |
+| **MCP server** | [`pptx-viewer-mcp`](https://www.npmjs.com/package/pptx-viewer-mcp)         | 51 PowerPoint editing tools exposed to AI agents (Claude, Cursor, ...).    |
 
 ## Why this exists
 
