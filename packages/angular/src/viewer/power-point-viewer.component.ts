@@ -423,6 +423,7 @@ import { ZoomTargetService } from './zoom-target.service';
 							(contextMenu)="canvasEditing.onContextMenu($event)"
 							[editingId]="canvasEditing.editingId()"
 							(textEditStart)="canvasEditing.onTextEditStart($event.id)"
+							(textInput)="canvasEditing.onTextInput($event)"
 							(textCommit)="canvasEditing.onTextCommit($event)"
 							(textCancel)="canvasEditing.editingId.set(null)"
 							(textFormat)="canvasEditing.onTextFormat($event)"
