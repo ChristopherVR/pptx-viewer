@@ -4,6 +4,30 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.0.0) - 2026-07-23
+
+### Features
+
+- **shared:** Ai config, loader and bridge contracts (by @ChristopherVR) ([1c40e28](https://github.com/ChristopherVR/pptx-viewer/commit/1c40e28b1661895e2993b01c11bea6262459cb88))
+- **angular:** Move internal building blocks off the package root (by @ChristopherVR) ([fd64790](https://github.com/ChristopherVR/pptx-viewer/commit/fd64790ac37070e751e873b831c66e8de9bce90b))
+- **angular:** Ai bridge and chat service (by @ChristopherVR) ([90bf211](https://github.com/ChristopherVR/pptx-viewer/commit/90bf2113493e4c31aee55acaf775c49cd29e7bdb))
+- **shared:** Indexeddb-first ai chat history store (by @ChristopherVR) ([88920f2](https://github.com/ChristopherVR/pptx-viewer/commit/88920f20eb00e72b84efa9ef2cb500dfd6d20db4))
+- **shared:** Rebuild AI assistant tools on pptx-viewer-mcp (by @ChristopherVR) ([da1c31e](https://github.com/ChristopherVR/pptx-viewer/commit/da1c31ee88c0b60a82628003c8a1b16245f028ed))
+- **core:** Upgrade emf-converter to 2.0.0 (breaking) (by @ChristopherVR) ([effa4e5](https://github.com/ChristopherVR/pptx-viewer/commit/effa4e5338b2b01796a3671f505bcb4563de74cc))
+
+### Documentation
+
+- Friendly 2.0.0 changelog for root and packages (by @ChristopherVR) ([f56564d](https://github.com/ChristopherVR/pptx-viewer/commit/f56564de0dea3f3aa6f0bdf5ad5ed1bf6e9d4823))
+
+### Testing
+
+- **shared:** Opt-in live gpt-4o-mini ai integration test (by @ChristopherVR) ([48622f1](https://github.com/ChristopherVR/pptx-viewer/commit/48622f135a5f2ee4c28d97d08478d3c203745f47))
+- **angular:** Align AI tool fixtures with MCP-backed tool names (by @ChristopherVR) ([834e598](https://github.com/ChristopherVR/pptx-viewer/commit/834e598e54ae8ce0d54091ea2bfba7958c442d00))
+
+### Build & CI
+
+- Pin Vue/Angular/Svelte to exact TypeScript 6.0.3 (by @ChristopherVR) ([3d80082](https://github.com/ChristopherVR/pptx-viewer/commit/3d8008282231e1ee4bc11300757d1cc35e8dc174))
+
 ## [1.31.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.31.5) - 2026-07-19
 
 ## [1.31.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.31.4) - 2026-07-19

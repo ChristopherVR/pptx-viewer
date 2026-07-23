@@ -4,6 +4,30 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.0.0) - 2026-07-23
+
+### Features
+
+- **react:** Rename hooks-unstable subpath to internals (by @ChristopherVR) ([03fc39c](https://github.com/ChristopherVR/pptx-viewer/commit/03fc39c574a3a411f9b28b62d3a79f2699ad839e))
+- **shared:** Ai config, loader and bridge contracts (by @ChristopherVR) ([1c40e28](https://github.com/ChristopherVR/pptx-viewer/commit/1c40e28b1661895e2993b01c11bea6262459cb88))
+- **react:** Add ai bridge and chat session hooks (by @ChristopherVR) ([9a153a7](https://github.com/ChristopherVR/pptx-viewer/commit/9a153a752c47c5e2c140bf58de2984682bcc39ee))
+- **shared:** Indexeddb-first ai chat history store (by @ChristopherVR) ([88920f2](https://github.com/ChristopherVR/pptx-viewer/commit/88920f20eb00e72b84efa9ef2cb500dfd6d20db4))
+- **shared:** Rebuild AI assistant tools on pptx-viewer-mcp (by @ChristopherVR) ([da1c31e](https://github.com/ChristopherVR/pptx-viewer/commit/da1c31ee88c0b60a82628003c8a1b16245f028ed))
+- **core:** Upgrade emf-converter to 2.0.0 (breaking) (by @ChristopherVR) ([effa4e5](https://github.com/ChristopherVR/pptx-viewer/commit/effa4e5338b2b01796a3671f505bcb4563de74cc))
+
+### Documentation
+
+- Friendly 2.0.0 changelog for root and packages (by @ChristopherVR) ([f56564d](https://github.com/ChristopherVR/pptx-viewer/commit/f56564de0dea3f3aa6f0bdf5ad5ed1bf6e9d4823))
+
+### Testing
+
+- **react:** Ai panel gating and proposals (by @ChristopherVR) ([59e35e0](https://github.com/ChristopherVR/pptx-viewer/commit/59e35e082cfed944f756a5d2fb74c593e0592da4))
+- **shared:** Opt-in live gpt-4o-mini ai integration test (by @ChristopherVR) ([48622f1](https://github.com/ChristopherVR/pptx-viewer/commit/48622f135a5f2ee4c28d97d08478d3c203745f47))
+
+### Build & CI
+
+- **shared:** Keep the ai SDK external across bindings (by @ChristopherVR) ([fa5e6b7](https://github.com/ChristopherVR/pptx-viewer/commit/fa5e6b77e6586764d9e7717439f574291810e93b))
+
 ## [1.25.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.25.5) - 2026-07-19
 
 ## [1.25.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.25.4) - 2026-07-19

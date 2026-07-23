@@ -4,6 +4,34 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@2.0.0) - 2026-07-23
+
+### Features
+
+- **vue:** Rename unstable subpath to internals and unify collab API (by @ChristopherVR) ([8bcf4e7](https://github.com/ChristopherVR/pptx-viewer/commit/8bcf4e7dbea249b98a746f857830f1243a8bcdb6))
+- **shared:** Ai config, loader and bridge contracts (by @ChristopherVR) ([1c40e28](https://github.com/ChristopherVR/pptx-viewer/commit/1c40e28b1661895e2993b01c11bea6262459cb88))
+- **vue:** Ai bridge and chat session composables (by @ChristopherVR) ([7143ee7](https://github.com/ChristopherVR/pptx-viewer/commit/7143ee767e90acb15813802aecb29afb413bf096))
+- **shared:** Indexeddb-first ai chat history store (by @ChristopherVR) ([88920f2](https://github.com/ChristopherVR/pptx-viewer/commit/88920f20eb00e72b84efa9ef2cb500dfd6d20db4))
+- **shared:** Rebuild AI assistant tools on pptx-viewer-mcp (by @ChristopherVR) ([da1c31e](https://github.com/ChristopherVR/pptx-viewer/commit/da1c31ee88c0b60a82628003c8a1b16245f028ed))
+- **core:** Upgrade emf-converter to 2.0.0 (breaking) (by @ChristopherVR) ([effa4e5](https://github.com/ChristopherVR/pptx-viewer/commit/effa4e5338b2b01796a3671f505bcb4563de74cc))
+
+### Bug Fixes
+
+- **build:** Restore pptx-viewer-shared/ai vitest alias after main merge (by @ChristopherVR) ([f878be8](https://github.com/ChristopherVR/pptx-viewer/commit/f878be8dc5b4735081690b691ca30bf3b0264559))
+
+### Documentation
+
+- Friendly 2.0.0 changelog for root and packages (by @ChristopherVR) ([f56564d](https://github.com/ChristopherVR/pptx-viewer/commit/f56564de0dea3f3aa6f0bdf5ad5ed1bf6e9d4823))
+
+### Testing
+
+- **shared:** Opt-in live gpt-4o-mini ai integration test (by @ChristopherVR) ([48622f1](https://github.com/ChristopherVR/pptx-viewer/commit/48622f135a5f2ee4c28d97d08478d3c203745f47))
+
+### Build & CI
+
+- **shared:** Keep the ai SDK external across bindings (by @ChristopherVR) ([fa5e6b7](https://github.com/ChristopherVR/pptx-viewer/commit/fa5e6b77e6586764d9e7717439f574291810e93b))
+- Pin Vue/Angular/Svelte to exact TypeScript 6.0.3 (by @ChristopherVR) ([3d80082](https://github.com/ChristopherVR/pptx-viewer/commit/3d8008282231e1ee4bc11300757d1cc35e8dc174))
+
 ## [1.24.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.24.5) - 2026-07-19
 
 ### Bug Fixes
