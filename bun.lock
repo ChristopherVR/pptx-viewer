@@ -261,7 +261,7 @@
         "pptx": "./dist/cli/index.mjs",
       },
       "dependencies": {
-        "emf-converter": "^1.6.0",
+        "emf-converter": "^2.0.0",
         "fast-xml-parser": "^5.10.1",
         "jszip": "^3.10.1",
         "mtx-decompressor": "^1.6.0",
@@ -1538,7 +1538,7 @@
 
     "electron-to-chromium": ["electron-to-chromium@1.5.389", "", {}, "sha512-cEto7aeOqBfU1D+c5py5pE+ooscKE75JifxLBdFUZsqAxRS6y7kebtxAZvICszSl05gPjYHDTjY+lXpyGvpJbg=="],
 
-    "emf-converter": ["emf-converter@1.6.0", "", {}, "sha512-SZQDkHFB5QnH4YoqtHfIG+DdZ0JV3iW8kq0BDQXFRQyGz8rhiKow7jDarsJYCT/5+uZdsR1GRyE9BcW1+Pgwew=="],
+    "emf-converter": ["emf-converter@2.0.0", "", {}, "sha512-VGQzJ8UB39pE941P4/BtAwinuWhn1v5JMnuoe0IQHWpSJ6u2TEAJ7BbN01qKSLvXfZCJgodQCSFALZZZWgw3Ag=="],
 
     "emoji-regex": ["emoji-regex@10.6.0", "", {}, "sha512-toUI84YS5YmxW219erniWD0CIVOo46xGKColeNQRgOzDorgBi1v4D71/OFzgD9GO2UGKIv1C3Sp8DAn0+j5w7A=="],
 

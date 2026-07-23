@@ -126,6 +126,28 @@ match React and Angular; `useCollaboration` stays as the convenience wrapper.
 `useCollaborationWiring` and `useToolbarVisibility` are no longer root
 exports; import them from `pptx-vue-viewer/internals`.
 
+### Dependencies and toolchain
+
+- **`emf-converter` upgraded to `2.0.0` (major).** `pptx-viewer-core` now
+  depends on `emf-converter@^2.0.0` (was `^1.6.0`). This is a breaking major
+  bump of the EMF/WMF metafile converter. If you install `emf-converter`
+  directly, move your dependency to `^2.0.0`; when you only consume it
+  transitively through `pptx-viewer-core`, the new version is pulled in
+  automatically.
+- **All other dependencies refreshed to their latest versions** (React 19.2.8,
+  Angular 22.0.8, Svelte 5.56.7, `html2canvas-pro` 2.3.1, the `@ai-sdk/*`
+  adapters, and the build/lint tooling).
+- **TypeScript is on 7 wherever the toolchain supports it** - `pptx-viewer-core`,
+  `pptx-viewer-shared`, `pptx-react-viewer`, `pptx-vanilla-viewer`,
+  `pptx-viewer-mcp`, the CLI, and the locales package build and type-check on
+  TypeScript 7. The **Vue, Angular, and Svelte bindings remain pinned to
+  TypeScript 6.0.3**: their type-check / build toolchains (`vue-tsc`,
+  `@angular/compiler-cli` / `ng-packagr`, and `svelte-check`) still crash on
+  TypeScript 7 as of their latest releases (`vue-tsc@3.3.8`,
+  `@angular/compiler-cli@22.0.8`, `svelte-check@4.7.3`). These three bindings
+  will move to TypeScript 7 once their upstream tools ship TS7 support; this is
+  an upstream tooling limitation, not a limitation of the bindings themselves.
+
 ## 2026-07-21
 
 _Releases: pptx-svelte-viewer@1.39.0_
