@@ -36,9 +36,10 @@ const content = shallowRef<Uint8Array | null>(null);
 const fileName = ref('');
 
 // Demo AI provider: the host builds an OpenAI-compatible browser model from
-// user-supplied fields and passes it to the viewer's optional `ai` prop. Works
-// blank (assistant simply stays off until a base URL + model are entered).
-const { fields: aiFields, config: aiConfig, setField: setAiField } = useDemoAiConfig();
+// localStorage-supplied fields and passes it to the viewer's optional `ai`
+// prop. The demo ships no key and no config UI, so this is normally undefined
+// and the assistant simply stays off.
+const aiConfig = useDemoAiConfig();
 
 const themeKey = ref<string>(readStoredTheme());
 
@@ -473,51 +474,6 @@ function onInputChange(e: Event): void {
 				class="sr-only"
 				@change="onInputChange"
 			/>
-
-			<!-- Demo-only AI provider form: build an OpenAI-compatible browser model
-			     from user-supplied fields. Leave blank to keep the assistant off. -->
-			<details class="demo-ai" @click.stop>
-				<summary>
-					AI assistant (optional)
-					<span :class="aiConfig ? 'demo-ai-on' : 'demo-ai-off'">
-						{{ aiConfig ? '- ready' : '- not configured' }}
-					</span>
-				</summary>
-				<p class="demo-ai-hint">
-					Paste an OpenAI-compatible endpoint to enable the in-viewer assistant. The demo builds the
-					model in the browser; a real app would proxy through its own backend and keep the key
-					server-side.
-				</p>
-				<div class="demo-ai-fields">
-					<label>
-						Base URL
-						<input
-							type="url"
-							placeholder="https://api.openai.com/v1"
-							:value="aiFields.baseURL"
-							@input="setAiField('baseURL', ($event.target as HTMLInputElement).value)"
-						/>
-					</label>
-					<label>
-						API key
-						<input
-							type="password"
-							placeholder="sk-..."
-							:value="aiFields.apiKey"
-							@input="setAiField('apiKey', ($event.target as HTMLInputElement).value)"
-						/>
-					</label>
-					<label>
-						Model id
-						<input
-							type="text"
-							placeholder="gpt-4o-mini"
-							:value="aiFields.model"
-							@input="setAiField('model', ($event.target as HTMLInputElement).value)"
-						/>
-					</label>
-				</div>
-			</details>
 		</div>
 	</main>
 </template>
@@ -627,66 +583,5 @@ body {
 
 .demo-dropzone button:hover {
 	background: var(--pptx-accent, #1f2937);
-}
-
-.demo-ai {
-	width: 100%;
-	max-width: 640px;
-	margin-top: 1rem;
-	padding: 0.75rem 1rem;
-	border-radius: 0.5rem;
-	border: 1px solid var(--pptx-border, #374151);
-	background: var(--pptx-card, rgba(31, 41, 55, 0.4));
-	text-align: left;
-}
-
-.demo-ai summary {
-	cursor: pointer;
-	font-size: 0.85rem;
-	color: var(--pptx-foreground, #f3f4f6);
-}
-
-.demo-ai-on {
-	color: var(--pptx-primary, #6366f1);
-}
-
-.demo-ai-off {
-	color: var(--pptx-muted-foreground, #9ca3af);
-}
-
-.demo-ai-hint {
-	margin: 0.5rem 0 0;
-	font-size: 0.75rem;
-	color: var(--pptx-muted-foreground, #9ca3af);
-}
-
-.demo-ai-fields {
-	display: grid;
-	gap: 0.5rem;
-	margin-top: 0.75rem;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.demo-ai-fields label {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-	font-size: 0.72rem;
-	color: var(--pptx-muted-foreground, #9ca3af);
-}
-
-.demo-ai-fields input {
-	border-radius: 0.375rem;
-	border: 1px solid var(--pptx-border, #374151);
-	background: var(--pptx-background, #111827);
-	padding: 0.35rem 0.5rem;
-	font-size: 0.8rem;
-	color: var(--pptx-foreground, #f3f4f6);
-}
-
-@media (max-width: 640px) {
-	.demo-ai-fields {
-		grid-template-columns: 1fr;
-	}
 }
 </style>

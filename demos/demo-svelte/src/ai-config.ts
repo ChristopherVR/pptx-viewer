@@ -1,8 +1,15 @@
 /**
- * Demo-only AI wiring: the "host supplies the provider" example. The demo
- * collects an OpenAI-compatible base URL, API key, and model id, then builds an
- * in-browser language model via `@ai-sdk/openai-compatible` and hands it to the
- * viewer as `ai={{ connection: { kind: 'model', model } }}`.
+ * Demo-only AI wiring: the "host supplies the provider" example. The demo reads
+ * an OpenAI-compatible base URL, API key, and model id from localStorage, then
+ * builds an in-browser language model via `@ai-sdk/openai-compatible` and hands
+ * it to the viewer as `ai={{ connection: { kind: 'model', model } }}`.
+ *
+ * There is deliberately NO configuration UI on the landing screen: the demo must
+ * work, and be shippable, without anyone supplying a key. To try the assistant
+ * locally, set the keys by hand:
+ *
+ *   localStorage.setItem('demo.ai.apiKey', 'sk-...')
+ *   localStorage.setItem('demo.ai.model', 'gpt-4o-mini')
  *
  * Real apps would normally keep the key server-side and use a `kind: 'endpoint'`
  * connection instead; running the model in the browser here keeps the demo
@@ -30,12 +37,6 @@ export function readAiSettings(): AiSettings {
 		apiKey: localStorage.getItem(KEY_API_KEY) ?? '',
 		model: localStorage.getItem(KEY_MODEL) ?? 'gpt-4o-mini',
 	};
-}
-
-/** Persist one AI setting field to `localStorage`. */
-export function writeAiSetting(field: keyof AiSettings, value: string): void {
-	const key = field === 'baseURL' ? KEY_BASE_URL : field === 'apiKey' ? KEY_API_KEY : KEY_MODEL;
-	localStorage.setItem(key, value);
 }
 
 /**

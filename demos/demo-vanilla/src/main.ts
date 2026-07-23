@@ -11,7 +11,7 @@ import {
 } from 'pptx-vanilla-viewer';
 import { PptxHandler } from 'pptx-viewer-core';
 
-import { buildViewerAiConfig, createAiConfigCard } from './ai-config';
+import { buildViewerAiConfig } from './ai-config';
 import { buildRoomConfig, readRoomFromUrl, resolveAutoName } from './collab';
 import { getLanguage, onLanguageChange, t, viewerMessages } from './demo-i18n';
 import { createDropzone } from './dropzone';
@@ -139,7 +139,6 @@ function showLanding(): void {
 				})();
 			},
 		}),
-		createAiConfigCard(),
 	);
 }
 

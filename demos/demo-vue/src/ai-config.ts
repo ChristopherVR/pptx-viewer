@@ -3,17 +3,23 @@
  *
  * The pptx-vue-viewer package ships NO model or API key. A host application
  * supplies a `PptxAiConfig` whose `connection` reaches a language model. Here
- * the demo lets the user paste an OpenAI-compatible base URL + API key + model
- * id and builds an in-browser model with `@ai-sdk/openai-compatible`, which is
- * handed to the viewer as `ai={{ connection: { kind: 'model', model } }}`.
+ * the demo reads an OpenAI-compatible base URL + API key + model id from
+ * localStorage and builds an in-browser model with `@ai-sdk/openai-compatible`,
+ * which is handed to the viewer as `ai={{ connection: { kind: 'model', model } }}`.
+ *
+ * There is deliberately NO configuration UI on the landing screen: the demo must
+ * work, and be shippable, without anyone supplying a key. To try the assistant
+ * locally, set the `pptx-demo-ai-config` localStorage key by hand:
+ *
+ *   localStorage.setItem('pptx-demo-ai-config', JSON.stringify({
+ *     baseURL: 'https://api.openai.com/v1', apiKey: 'sk-...', model: 'gpt-4o-mini',
+ *   }))
  *
  * This is intentionally minimal and demo-scoped: a real app would keep the key
  * server-side and use a `{ kind: 'endpoint', api }` connection instead.
  */
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { PptxAiConfig } from 'pptx-vue-viewer';
-import { computed, reactive } from 'vue';
-import type { ComputedRef } from 'vue';
 
 const STORAGE_KEY = 'pptx-demo-ai-config';
 
@@ -23,7 +29,8 @@ export interface DemoAiFields {
 	model: string;
 }
 
-function readStored(): DemoAiFields {
+/** Read the demo AI fields from localStorage; all-empty when unset/unparseable. */
+export function readStoredAiFields(): DemoAiFields {
 	try {
 		const raw = localStorage.getItem(STORAGE_KEY);
 		if (!raw) {
@@ -55,34 +62,15 @@ export function buildDemoAiConfig(fields: DemoAiFields): PptxAiConfig | undefine
 	return { connection: { kind: 'model', model: provider.chatModel(model) } };
 }
 
-export interface UseDemoAiConfigResult {
-	fields: DemoAiFields;
-	config: ComputedRef<PptxAiConfig | undefined>;
-	setField: (key: keyof DemoAiFields, value: string) => void;
-}
-
-/** Reactive store for the demo AI fields, persisted to localStorage. */
-export function useDemoAiConfig(): UseDemoAiConfigResult {
-	const fields = reactive<DemoAiFields>(readStored());
-
-	function setField(key: keyof DemoAiFields, value: string): void {
-		fields[key] = value;
-		try {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...fields }));
-		} catch {
-			/* ignore quota / privacy-mode errors */
-		}
+/**
+ * Viewer `ai` config for the demo, or undefined when nothing is stored. A
+ * malformed base URL throws inside the SDK; swallow it so the demo keeps
+ * working with AI simply off.
+ */
+export function useDemoAiConfig(): PptxAiConfig | undefined {
+	try {
+		return buildDemoAiConfig(readStoredAiFields());
+	} catch {
+		return undefined;
 	}
-
-	// Rebuild the model only when the fields change. A malformed base URL throws
-	// inside the SDK; swallow it so the demo keeps working with AI simply off.
-	const config = computed<PptxAiConfig | undefined>(() => {
-		try {
-			return buildDemoAiConfig({ ...fields });
-		} catch {
-			return undefined;
-		}
-	});
-
-	return { fields, config, setField };
 }

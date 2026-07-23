@@ -3,21 +3,29 @@
  *
  * The pptx-react-viewer package ships NO model or API key. A host application
  * supplies a `PptxAiConfig` whose `connection` reaches a language model. Here
- * the demo lets the user paste an OpenAI-compatible base URL + API key + model
- * id and builds an in-browser model with `@ai-sdk/openai-compatible`, which is
- * handed to the viewer as `ai={{ connection: { kind: 'model', model } }}`.
+ * the demo reads an OpenAI-compatible base URL + API key + model id from
+ * localStorage and builds an in-browser model with `@ai-sdk/openai-compatible`,
+ * which is handed to the viewer as `ai={{ connection: { kind: 'model', model } }}`.
+ *
+ * There is deliberately NO configuration UI on the landing screen: the demo must
+ * work, and be shippable, without anyone supplying a key. To try the assistant
+ * locally, set the `pptx-demo-ai-config` localStorage key by hand:
+ *
+ *   localStorage.setItem('pptx-demo-ai-config', JSON.stringify({
+ *     baseURL: 'https://api.openai.com/v1', apiKey: 'sk-...', model: 'gpt-4o-mini',
+ *   }))
  *
  * This is intentionally minimal and demo-scoped: a real app would keep the key
  * server-side and use a `{ kind: 'endpoint', api }` connection instead.
  */
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import type { PptxAiConfig } from '../../packages/react/src/viewer';
 
 const STORAGE_KEY = 'pptx-demo-ai-config';
 
-interface DemoAiFields {
+export interface DemoAiFields {
 	baseURL: string;
 	apiKey: string;
 	model: string;
@@ -25,7 +33,8 @@ interface DemoAiFields {
 
 const EMPTY: DemoAiFields = { baseURL: '', apiKey: '', model: '' };
 
-function readStored(): DemoAiFields {
+/** Read the demo AI fields from localStorage; all-empty when unset/unparseable. */
+export function readStoredAiFields(): DemoAiFields {
 	try {
 		const raw = localStorage.getItem(STORAGE_KEY);
 		if (!raw) {
@@ -57,96 +66,17 @@ export function buildDemoAiConfig(fields: DemoAiFields): PptxAiConfig | undefine
 	return { connection: { kind: 'model', model: provider.chatModel(model) } };
 }
 
-export interface UseDemoAiConfigResult {
-	fields: DemoAiFields;
-	config: PptxAiConfig | undefined;
-	setField: (key: keyof DemoAiFields, value: string) => void;
-}
-
-/** Reactive store for the demo AI fields, persisted to localStorage. */
-export function useDemoAiConfig(): UseDemoAiConfigResult {
-	const [fields, setFields] = useState<DemoAiFields>(() => readStored());
-
-	const setField = useCallback((key: keyof DemoAiFields, value: string) => {
-		setFields((prev) => {
-			const next = { ...prev, [key]: value };
-			try {
-				localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-			} catch {
-				/* ignore quota / privacy-mode errors */
-			}
-			return next;
-		});
-	}, []);
-
-	// Rebuild the model only when the fields change. A malformed base URL throws
-	// inside the SDK; swallow it so the demo keeps working with AI simply off.
-	const config = useMemo(() => {
+/**
+ * Viewer `ai` config for the demo, or undefined when nothing is stored. A
+ * malformed base URL throws inside the SDK; swallow it so the demo keeps
+ * working with AI simply off.
+ */
+export function useDemoAiConfig(): PptxAiConfig | undefined {
+	return useMemo(() => {
 		try {
-			return buildDemoAiConfig(fields);
+			return buildDemoAiConfig(readStoredAiFields());
 		} catch {
 			return undefined;
 		}
-	}, [fields]);
-
-	return { fields, config, setField };
-}
-
-export interface AiDemoConfigFormProps {
-	fields: DemoAiFields;
-	onChange: (key: keyof DemoAiFields, value: string) => void;
-	enabled: boolean;
-}
-
-/** Landing-screen form for the demo AI provider. */
-export function AiDemoConfigForm({ fields, onChange, enabled }: AiDemoConfigFormProps) {
-	const input =
-		'w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-primary';
-	return (
-		<details className='max-w-[900px] w-full mt-4 rounded-lg border border-border bg-card/40 p-4 text-left'>
-			<summary className='cursor-pointer text-sm font-medium text-foreground'>
-				AI assistant (optional){' '}
-				<span className={enabled ? 'text-primary' : 'text-muted-foreground'}>
-					{enabled ? '- ready' : '- not configured'}
-				</span>
-			</summary>
-			<p className='mt-2 text-xs text-muted-foreground'>
-				Paste an OpenAI-compatible endpoint to enable the in-viewer assistant. The demo builds the
-				model in the browser; a real app would proxy through its own backend and keep the key
-				server-side.
-			</p>
-			<div className='mt-3 grid gap-2 sm:grid-cols-3'>
-				<label className='flex flex-col gap-1 text-xs text-muted-foreground'>
-					Base URL
-					<input
-						className={input}
-						type='url'
-						placeholder='https://api.openai.com/v1'
-						value={fields.baseURL}
-						onChange={(e) => onChange('baseURL', e.target.value)}
-					/>
-				</label>
-				<label className='flex flex-col gap-1 text-xs text-muted-foreground'>
-					API key
-					<input
-						className={input}
-						type='password'
-						placeholder='sk-...'
-						value={fields.apiKey}
-						onChange={(e) => onChange('apiKey', e.target.value)}
-					/>
-				</label>
-				<label className='flex flex-col gap-1 text-xs text-muted-foreground'>
-					Model id
-					<input
-						className={input}
-						type='text'
-						placeholder='gpt-4o-mini'
-						value={fields.model}
-						onChange={(e) => onChange('model', e.target.value)}
-					/>
-				</label>
-			</div>
-		</details>
-	);
+	}, []);
 }

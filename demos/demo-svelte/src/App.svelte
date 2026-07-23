@@ -16,7 +16,6 @@
 	import { PptxHandler } from 'pptx-viewer-core';
 
 	import { buildViewerAiConfig } from './ai-config';
-	import AiSettings from './AiSettings.svelte';
 	import { resolveAutoName, resolveAutoRoomId, randomUserColor } from './collab';
 	import { language, t } from './demo-i18n.svelte';
 	import { readStoredTheme, themes } from './themes';
@@ -238,7 +237,6 @@
 			{#if errorMessage}
 				<p class="demo-error">{errorMessage}</p>
 			{/if}
-			<AiSettings />
 			<!-- stopPropagation: the programmatic click() would bubble back to the
 			     zone's onclick and re-open the file chooser in a loop -->
 			<input

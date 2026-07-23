@@ -22,7 +22,7 @@ import {
 	listAutosaveSnapshots,
 	deleteAutosaveSnapshot,
 } from '../../packages/shared/src/render/autosave-store';
-import { AiDemoConfigForm, useDemoAiConfig } from './ai-config';
+import { useDemoAiConfig } from './ai-config';
 import i18nInstance from './i18n'; // Initialises i18next before any component renders
 
 import './app.css';
@@ -376,7 +376,8 @@ function App() {
 	const defaultServerUrl = resolveDefaultServerUrl();
 
 	// ── AI assistant (demo-only: the host supplies the provider) ─────────
-	const { fields: aiFields, config: aiConfig, setField: setAiField } = useDemoAiConfig();
+	// Read from localStorage only; the demo ships no key and no config UI.
+	const aiConfig = useDemoAiConfig();
 
 	// ── Collaboration ────────────────────────────────────────────────────
 	const [collaborationConfig, setCollaborationConfig] = useState<CollaborationConfig | null>(null);
@@ -902,7 +903,6 @@ function App() {
 					onChange={handleInputChange}
 				/>
 			</div>
-			<AiDemoConfigForm fields={aiFields} onChange={setAiField} enabled={Boolean(aiConfig)} />
 		</main>
 	);
 }

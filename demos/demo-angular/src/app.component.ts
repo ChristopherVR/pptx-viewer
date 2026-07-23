@@ -20,9 +20,7 @@ import { PptxHandler } from 'pptx-viewer-core';
 import 'pptx-angular-viewer/styles';
 import { translationsDe, translationsEs, translationsFr } from 'pptx-viewer-locales';
 
-import { buildDemoAiConfig, readStoredAiFields, writeStoredAiFields } from './ai-config';
-import type { DemoAiFields } from './ai-config';
-import { AiConfigFormComponent } from './ai-config-form.component';
+import { buildDemoAiConfig, readStoredAiFields } from './ai-config';
 import {
 	ensureAutoRoomId,
 	generateAutoName,
@@ -47,7 +45,7 @@ type DemoContent = Uint8Array | ArrayBuffer;
 	selector: 'app-root',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [PowerPointViewerComponent, DropzoneComponent, AiConfigFormComponent],
+	imports: [PowerPointViewerComponent, DropzoneComponent],
 	styles: [
 		`
 			:host {
@@ -95,11 +93,6 @@ type DemoContent = Uint8Array | ArrayBuffer;
 				(file)="loadFile($event)"
 				(create)="newPresentation()"
 			/>
-			<app-ai-config-form
-				[fields]="aiFields()"
-				[enabled]="!!aiConfig()"
-				(change)="onAiFieldChange($event)"
-			/>
 		}
 	`,
 })
@@ -136,10 +129,12 @@ export class AppComponent {
 
 	readonly collaborationConfig = signal<CollaborationConfig | null>(null);
 
-	/** Demo AI provider fields (base URL / API key / model), persisted locally. */
-	readonly aiFields = signal<DemoAiFields>(readStoredAiFields());
-	/** The viewer `ai` config built from {@link aiFields}, or null when incomplete. */
-	readonly aiConfig = computed<PptxAiConfig | undefined>(() => buildDemoAiConfig(this.aiFields()));
+	/**
+	 * Viewer `ai` config built from localStorage-supplied fields, or undefined
+	 * when nothing is stored. The demo ships no key and no config UI, so this is
+	 * normally undefined and the assistant simply stays off.
+	 */
+	readonly aiConfig = signal<PptxAiConfig | undefined>(buildDemoAiConfig(readStoredAiFields()));
 
 	readonly activeTheme = computed<ViewerTheme>(
 		() => (THEMES[this.themeKey()] ?? THEMES['vermilionDark']).theme,
@@ -194,13 +189,6 @@ export class AppComponent {
 				document.title = `${prefix} ${this.fileName()} - PPTX Viewer`;
 			}
 		});
-	}
-
-	/** Update one demo AI field, persist it, and let {@link aiConfig} recompute. */
-	onAiFieldChange(event: { key: keyof DemoAiFields; value: string }): void {
-		const next: DemoAiFields = { ...this.aiFields(), [event.key]: event.value };
-		this.aiFields.set(next);
-		writeStoredAiFields(next);
 	}
 
 	onDirtyChange(dirty: boolean): void {

@@ -3,9 +3,17 @@
  *
  * The pptx-angular-viewer package ships NO model or API key. A host application
  * supplies a `PptxAiConfig` whose `connection` reaches a language model. Here
- * the demo lets the user paste an OpenAI-compatible base URL + API key + model
- * id and builds an in-browser model with `@ai-sdk/openai-compatible`, handed to
- * the viewer as `[ai]="{ connection: { kind: 'model', model } }"`.
+ * the demo reads an OpenAI-compatible base URL + API key + model id from
+ * localStorage and builds an in-browser model with `@ai-sdk/openai-compatible`,
+ * handed to the viewer as `[ai]="{ connection: { kind: 'model', model } }"`.
+ *
+ * There is deliberately NO configuration UI on the landing screen: the demo must
+ * work, and be shippable, without anyone supplying a key. To try the assistant
+ * locally, set the `pptx-demo-ai-config` localStorage key by hand:
+ *
+ *   localStorage.setItem('pptx-demo-ai-config', JSON.stringify({
+ *     baseURL: 'https://api.openai.com/v1', apiKey: 'sk-...', model: 'gpt-4o-mini',
+ *   }))
  *
  * This is intentionally minimal and demo-scoped: a real app would keep the key
  * server-side and use a `{ kind: 'endpoint', api }` connection instead. Mirrors
@@ -39,15 +47,6 @@ export function readStoredAiFields(): DemoAiFields {
 		};
 	} catch {
 		return { ...EMPTY };
-	}
-}
-
-/** Persist the demo AI fields to localStorage (ignoring quota / privacy errors). */
-export function writeStoredAiFields(fields: DemoAiFields): void {
-	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(fields));
-	} catch {
-		/* ignore quota / privacy-mode errors */
 	}
 }
 

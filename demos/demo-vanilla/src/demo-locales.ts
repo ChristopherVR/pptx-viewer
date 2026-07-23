@@ -22,12 +22,6 @@ export const demoStringsEn = {
 	'demo.export.gif': 'Export animated GIF',
 	'demo.export.video': 'Export WebM video',
 	'demo.export.print': 'Print',
-	'demo.ai.title': 'AI assistant (optional)',
-	'demo.ai.note':
-		'Enter an OpenAI-compatible endpoint to enable the in-viewer AI assistant. The key is used only in your browser. Leave blank to disable.',
-	'demo.ai.baseUrl': 'Base URL',
-	'demo.ai.apiKey': 'API key',
-	'demo.ai.model': 'Model id',
 };
 
 export const demoStringsFr = {

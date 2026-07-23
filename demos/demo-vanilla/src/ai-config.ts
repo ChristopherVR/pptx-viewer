@@ -1,8 +1,16 @@
 /**
  * Demo-only AI wiring: this is the "host supplies the provider" example. The
- * demo collects an OpenAI-compatible base URL, API key, and model id, then
- * constructs an in-browser language model via `@ai-sdk/openai-compatible` and
- * hands it to the viewer as `ai: { connection: { kind: 'model', model } }`.
+ * demo reads an OpenAI-compatible base URL, API key, and model id from
+ * localStorage, then constructs an in-browser language model via
+ * `@ai-sdk/openai-compatible` and hands it to the viewer as
+ * `ai: { connection: { kind: 'model', model } }`.
+ *
+ * There is deliberately NO configuration UI on the landing screen: the demo must
+ * work, and be shippable, without anyone supplying a key. To try the assistant
+ * locally, set the keys by hand:
+ *
+ *   localStorage.setItem('demo.ai.apiKey', 'sk-...')
+ *   localStorage.setItem('demo.ai.model', 'gpt-4o-mini')
  *
  * Real apps would normally keep the key server-side and use a `kind: 'endpoint'`
  * connection instead; running the model in the browser here keeps the demo
@@ -12,8 +20,6 @@
 
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { PptxAiConfig } from 'pptx-vanilla-viewer';
-
-import { t } from './demo-i18n';
 
 const KEY_BASE_URL = 'demo.ai.baseURL';
 const KEY_API_KEY = 'demo.ai.apiKey';
@@ -51,45 +57,4 @@ export function buildViewerAiConfig(): PptxAiConfig | undefined {
 		connection: { kind: 'model', model: provider(settings.model.trim()) },
 		writePolicy: 'stage',
 	};
-}
-
-function field(label: string, key: string, value: string, type: 'text' | 'password'): HTMLElement {
-	const wrap = document.createElement('label');
-	wrap.className = 'demo-ai-field';
-	const span = document.createElement('span');
-	span.textContent = label;
-	const input = document.createElement('input');
-	input.type = type;
-	input.value = value;
-	input.autocomplete = 'off';
-	input.spellcheck = false;
-	input.addEventListener('input', () => localStorage.setItem(key, input.value));
-	wrap.append(span, input);
-	return wrap;
-}
-
-/**
- * Build the landing-screen AI settings card. Values persist to `localStorage`
- * on input and take effect the next time a deck is opened.
- */
-export function createAiConfigCard(): HTMLElement {
-	const settings = read();
-	const card = document.createElement('section');
-	card.className = 'demo-ai-card';
-
-	const title = document.createElement('h2');
-	title.className = 'demo-ai-title';
-	title.textContent = t('demo.ai.title');
-	const note = document.createElement('p');
-	note.className = 'demo-ai-note';
-	note.textContent = t('demo.ai.note');
-
-	card.append(
-		title,
-		note,
-		field(t('demo.ai.baseUrl'), KEY_BASE_URL, settings.baseURL, 'text'),
-		field(t('demo.ai.apiKey'), KEY_API_KEY, settings.apiKey, 'password'),
-		field(t('demo.ai.model'), KEY_MODEL, settings.model, 'text'),
-	);
-	return card;
 }
