@@ -19,6 +19,8 @@ const {
 	activeKey,
 	guestKey,
 	roomId,
+	hostPane,
+	guestPane,
 	soloSrc,
 	hostSrc,
 	guestSrc,
@@ -104,6 +106,7 @@ const {
 			<div v-else class="pv-live__stage pv-live__stage--split">
 				<LiveDemoPane
 					:key="`host-${roomId}`"
+					ref="hostPane"
 					:src="hostSrc"
 					:title="`${activeLabel} · ${copy.demos.hostLabel}`"
 					:caption="`${activeLabel} · ${copy.demos.hostLabel} · Ada`"
@@ -112,6 +115,7 @@ const {
 				/>
 				<LiveDemoPane
 					:key="`guest-${roomId}-${guestKey}`"
+					ref="guestPane"
 					:src="guestSrc"
 					:title="`${guestLabel} · ${copy.demos.guestLabel}`"
 					:caption="`${guestLabel} · ${copy.demos.guestLabel} · Grace`"

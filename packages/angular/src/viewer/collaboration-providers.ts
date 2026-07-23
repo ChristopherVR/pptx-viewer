@@ -13,16 +13,20 @@
 
 import type {
 	CollaborationConfig,
+	DepartureChannel,
 	YjsFactories,
 	YDocLike,
 	YMapLike,
 	YArrayLike,
 	YTextLike,
 } from '../internal/shared';
+import { createDepartureChannel } from '../internal/shared';
 
 /** Minimal awareness surface used by the service. */
 export interface AwarenessLike {
 	clientID?: number;
+	/** Passing `null` withdraws the local presence (see `clearLocalAwareness`). */
+	setLocalState?: (state: null) => void;
 	setLocalStateField: (field: string, value: unknown) => void;
 	getStates: () => Map<number, Record<string, unknown>>;
 	on: (event: string, cb: () => void) => void;
@@ -52,6 +56,13 @@ export interface ProviderBundle {
 	provider: ProviderLike;
 	awareness: AwarenessLike;
 	factories: YjsFactories;
+	/**
+	 * Synchronous "I am leaving" announcement. The provider's own awareness
+	 * removal is broadcast a microtask later, which never escapes a document
+	 * that is already being destroyed (see the shared collaboration-departure
+	 * module), so `disconnect()` announces through this first.
+	 */
+	departure: DepartureChannel;
 }
 
 interface YModule {
@@ -101,7 +112,13 @@ export async function createWebsocketBundle(config: CollaborationConfig): Promis
 		doc,
 		config.authToken ? { params: { token: config.authToken } } : undefined,
 	) as unknown as ProviderLike;
-	return { doc, provider, awareness: provider.awareness, factories };
+	return {
+		doc,
+		provider,
+		awareness: provider.awareness,
+		factories,
+		departure: createDepartureChannel(config.roomId, provider.awareness),
+	};
 }
 
 /**
@@ -119,5 +136,11 @@ export async function createWebrtcBundle(config: CollaborationConfig): Promise<P
 		signaling: config.signaling?.length ? config.signaling : undefined,
 		password: config.authToken || undefined,
 	}) as unknown as ProviderLike;
-	return { doc, provider, awareness: provider.awareness, factories };
+	return {
+		doc,
+		provider,
+		awareness: provider.awareness,
+		factories,
+		departure: createDepartureChannel(config.roomId, provider.awareness),
+	};
 }

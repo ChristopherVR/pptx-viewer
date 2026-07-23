@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 
+import { COLLAB_LEAVE_MESSAGE } from './useLiveDemo';
+
 /**
  * One embedded demo app: a browser-chrome style bar (caption + "open full
  * app" link) above an iframe, with a shimmer state until the app loads.
@@ -14,12 +16,24 @@ const props = defineProps<{
 }>();
 
 const loaded = ref(false);
+const frame = ref<HTMLIFrameElement | null>(null);
 watch(
 	() => props.src,
 	() => {
 		loaded.value = false;
 	},
 );
+
+/**
+ * Ask the embedded viewer to leave its collaboration room before this pane is
+ * torn down, so the host pane drops it from the collaborator list immediately.
+ * The viewer also leaves from `pagehide`; this is the earlier, cleaner signal.
+ */
+function signalLeave(): void {
+	frame.value?.contentWindow?.postMessage({ type: COLLAB_LEAVE_MESSAGE }, '*');
+}
+
+defineExpose({ signalLeave });
 </script>
 
 <template>
@@ -37,6 +51,7 @@ watch(
 				<span>{{ loadingLabel }}</span>
 			</span>
 			<iframe
+				ref="frame"
 				:src="src"
 				:title="title"
 				loading="lazy"

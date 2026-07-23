@@ -25,6 +25,7 @@ import {
 	PRESENCE_HEARTBEAT_MS,
 	reconcileSlidesInYDoc,
 	readSlidesFromYDoc,
+	registerCollaborationTeardown,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
@@ -377,7 +378,19 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		followedClientId.value = clientId;
 	}
 
-	onScopeDispose(stop);
+	// Scope disposal is not the only way a session ends: a tab close, a
+	// navigation, or an embedding page detaching the viewer's iframe destroys
+	// the document without running any Vue cleanup, leaving a ghost peer in
+	// everyone else's presence list. Leave the room from `pagehide` too.
+	const disposeTeardown = registerCollaborationTeardown({
+		leave: stop,
+		rejoin: () => void retry(),
+	});
+
+	onScopeDispose(() => {
+		disposeTeardown();
+		stop();
+	});
 
 	return {
 		status,

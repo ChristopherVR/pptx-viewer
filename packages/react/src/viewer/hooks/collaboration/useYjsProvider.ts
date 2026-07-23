@@ -15,12 +15,15 @@
  */
 import {
 	CONNECTION_TIMEOUT_MS,
+	clearLocalAwareness,
+	createDepartureChannel,
 	createSyncGate,
 	isMixedContentBlocked,
+	registerCollaborationTeardown,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
-import type { SyncGate } from 'pptx-viewer-shared';
+import type { DepartureChannel, SyncGate } from 'pptx-viewer-shared';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 import type { WebrtcProvider } from 'y-webrtc';
@@ -102,6 +105,10 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 	// Keep a ref to cleanup functions so we can teardown on unmount or config change
 	const cleanupRef = useRef<(() => void) | null>(null);
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Synchronous departure announcement (see the shared collaboration-departure
+	// module): the provider's own awareness removal is broadcast a microtask
+	// later and never escapes a document that is already being destroyed.
+	const departureRef = useRef<DepartureChannel | null>(null);
 
 	// First-write gate: created once per hook instance (its `onOpen` closes
 	// over the stable `setSynced` setter, so it never needs to be rebuilt).
@@ -124,10 +131,21 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 		cleanupRef.current = null;
 	}, []);
 
-	// Build the teardown closure shared by both transports: destroy the
-	// provider + doc and reset all published state.
+	/** Announce our exit to same-browser peers, then close the channel. */
+	const announceDeparture = useCallback(() => {
+		departureRef.current?.announce();
+		departureRef.current?.dispose();
+		departureRef.current = null;
+	}, []);
+
+	// Build the teardown closure shared by both transports: announce the
+	// departure, withdraw the local awareness entry (so peers drop us at once
+	// instead of waiting out the awareness timeout), destroy the provider + doc
+	// and reset all published state.
 	const buildCleanup = useCallback(
 		(provider: CollabProvider, yDoc: YDoc) => () => {
+			announceDeparture();
+			clearLocalAwareness(provider.awareness);
 			provider.destroy();
 			yDoc.destroy();
 			setDoc(null);
@@ -135,7 +153,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			setClientId(null);
 			setStatus('disconnected');
 		},
-		[],
+		[announceDeparture],
 	);
 
 	const initWebrtc = useCallback(async () => {
@@ -157,7 +175,9 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			if (config.authToken) {
 				opts.password = config.authToken;
 			}
-			const provider = new WebrtcProvider(validateRoomId(config.roomId), yDoc, opts);
+			const roomId = validateRoomId(config.roomId);
+			const provider = new WebrtcProvider(roomId, yDoc, opts);
+			departureRef.current = createDepartureChannel(roomId, provider.awareness);
 
 			setDoc(yDoc);
 			setAwareness(provider.awareness);
@@ -260,6 +280,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			const provider: WebsocketProvider = new WebsocketProvider(config.serverUrl, roomId, yDoc, {
 				params: config.authToken ? { token: config.authToken } : undefined,
 			});
+			departureRef.current = createDepartureChannel(roomId, provider.awareness);
 
 			let connected = false;
 
@@ -313,6 +334,8 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 					if (!connected) {
 						provider.off('status', handleStatus);
 						provider.off('sync', handleSynced);
+						announceDeparture();
+						clearLocalAwareness(provider.awareness);
 						provider.destroy();
 						yDoc.destroy();
 						setDoc(null);
@@ -332,6 +355,8 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			cleanupRef.current = () => {
 				provider.off('status', handleStatus);
 				provider.off('sync', handleSynced);
+				announceDeparture();
+				clearLocalAwareness(provider.awareness);
 				provider.destroy();
 				yDoc.destroy();
 				setDoc(null);
@@ -355,13 +380,25 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 		config?.serverUrl,
 		config?.authToken,
 		config?.transport,
+		announceDeparture,
 		initWebrtc,
 		teardown,
 	]);
 
 	useEffect(() => {
 		init();
-		return teardown;
+		// Unmount is not the only way a session ends: a tab close, a navigation,
+		// or an embedding page detaching the viewer's iframe destroys the
+		// document without ever running React cleanup, leaving a ghost peer in
+		// everyone else's presence list. Leave the room from `pagehide` too.
+		const disposeTeardown = registerCollaborationTeardown({
+			leave: teardown,
+			rejoin: init,
+		});
+		return () => {
+			disposeTeardown();
+			teardown();
+		};
 	}, [init, teardown]);
 
 	const retry = useCallback(() => {

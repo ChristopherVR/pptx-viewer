@@ -372,6 +372,16 @@ export * from './collaboration-text-merge';
 // First-write gate: block local doc writes until the provider's initial sync
 // (or a grace period) so late joiners never seed placeholder content.
 export * from './collaboration-sync-gate';
+// Document-teardown listeners (pagehide / beforeunload / host postMessage) so a
+// peer whose document is destroyed (tab close, navigation, or an embedding page
+// removing the viewer iframe) leaves the room instead of lingering as a ghost
+// collaborator until the awareness timeout.
+export * from './collaboration-teardown';
+// Synchronous "I am leaving" BroadcastChannel announcement: a provider destroyed
+// inside `pagehide` cannot get its awareness removal out (y-webrtc broadcasts it
+// a microtask later, after the frame's channels are dead), so peers drop the
+// departed client from this instead of waiting out the awareness timeout.
+export * from './collaboration-departure';
 // Elected-writer (role 'owner') debounced PPTX write-back, shared by
 // Vue/Svelte/Vanilla (Angular keeps its own DI-style class).
 export * from './collaboration-writeback';

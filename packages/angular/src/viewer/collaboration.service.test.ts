@@ -48,6 +48,7 @@ interface FakeBundle {
 	bundle: ProviderBundle;
 	doc: { destroy: ReturnType<typeof vi.fn> };
 	provider: { disconnect: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> };
+	departure: { announce: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> };
 }
 
 function makeBundle(): FakeBundle {
@@ -66,15 +67,18 @@ function makeBundle(): FakeBundle {
 		createArray: vi.fn(),
 		createText: vi.fn(),
 	} as unknown as YjsFactories;
+	const departure = { announce: vi.fn(), dispose: vi.fn() };
 	return {
 		bundle: {
 			doc: doc as unknown as DestroyableYDoc,
 			provider: provider as unknown as ProviderLike,
 			awareness,
 			factories,
+			departure,
 		},
 		doc,
 		provider,
+		departure,
 	};
 }
 

@@ -24,6 +24,7 @@ import type {
 	CollaborationRole,
 	CollaborationTransport,
 	ConnectionStatus,
+	DepartureChannel,
 	YjsFactories,
 	YTransactionLike,
 } from '../internal/shared';
@@ -31,6 +32,7 @@ import {
 	CONNECTION_TIMEOUT_MS,
 	LOCAL_SYNC_ORIGIN,
 	YDOC_SLIDES_KEY,
+	clearLocalAwareness,
 	createCollaborationLivePatcher,
 	createSyncGate,
 	derivePresenceList,
@@ -39,6 +41,7 @@ import {
 	presenceToCursors,
 	readSlidesFromYDoc,
 	reconcileSlidesInYDoc,
+	registerCollaborationTeardown,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from '../internal/shared';
@@ -106,6 +109,7 @@ export class CollaborationService {
 	private ydoc: DestroyableYDoc | null = null;
 	private provider: ProviderLike | null = null;
 	private awareness: AwarenessLike | null = null;
+	private departure: DepartureChannel | null = null;
 	private selfId = -1;
 	private applyingRemote = false;
 	private yFactories: YjsFactories | null = null;
@@ -156,7 +160,18 @@ export class CollaborationService {
 	};
 
 	constructor() {
-		inject(DestroyRef).onDestroy(() => this.disconnect());
+		// Service destruction is not the only way a session ends: a tab close, a
+		// navigation, or an embedding page detaching the viewer's iframe destroys
+		// the document without running Angular teardown, leaving a ghost peer in
+		// everyone else's presence list. Leave the room from `pagehide` too.
+		const disposeTeardown = registerCollaborationTeardown({
+			leave: () => this.disconnect(),
+			rejoin: () => void this.retry(),
+		});
+		inject(DestroyRef).onDestroy(() => {
+			disposeTeardown();
+			this.disconnect();
+		});
 	}
 
 	async connect(config: CollaborationConfig, options: ConnectOptions = {}): Promise<void> {
@@ -202,11 +217,13 @@ export class CollaborationService {
 				// Superseded by a newer connect() or a disconnect() while awaiting
 				// the transport: destroy the just-created bundle and bail without
 				// touching the (newer call's) service state.
+				bundle.departure.dispose();
 				bundle.provider.disconnect();
 				bundle.provider.destroy();
 				bundle.doc.destroy();
 				return;
 			}
+			this.departure = bundle.departure;
 			this.ydoc = bundle.doc;
 			this.yFactories = bundle.factories;
 			this.livePatcher.configure(bundle.doc, bundle.factories);
@@ -372,6 +389,15 @@ export class CollaborationService {
 		this.unobserveSlides = null;
 		this.awareness?.off?.('change', this.refreshPresence);
 		this.awareness?.off?.('update', this.refreshPresence);
+		// Announce first: it is synchronous, so it still reaches same-browser
+		// peers when this runs from a document that is being destroyed. The
+		// provider's own awareness removal is broadcast a microtask later and
+		// would be dropped, leaving us a ghost collaborator until the 30s
+		// awareness timeout.
+		this.departure?.announce();
+		this.departure?.dispose();
+		this.departure = null;
+		clearLocalAwareness(this.awareness);
 		this.provider?.disconnect();
 		this.provider?.destroy();
 		this.ydoc?.destroy();

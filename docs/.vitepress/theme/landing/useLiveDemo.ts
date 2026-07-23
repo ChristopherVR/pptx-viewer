@@ -20,12 +20,34 @@ export const DEMO_FRAMEWORKS: DemoFramework[] = [
 
 export type LiveDemoMode = 'solo' | 'collab';
 
+/**
+ * `postMessage` payload that tells an embedded viewer to leave its
+ * collaboration room. Mirrors `COLLAB_LEAVE_MESSAGE` in `pptx-viewer-shared`
+ * (the docs site does not depend on the package, so the literal is duplicated
+ * here rather than imported).
+ */
+export const COLLAB_LEAVE_MESSAGE = 'pptx-viewer:collab-leave';
+
+/**
+ * How long to let a departing pane broadcast its exit before its iframe is
+ * destroyed. The viewer also leaves from `pagehide`, so this only has to be
+ * long enough for the message to be delivered.
+ */
+const LEAVE_GRACE_MS = 150;
+
+/** The slice of a {@link LiveDemoPane} instance this composable drives. */
+export interface LiveDemoPaneHandle {
+	signalLeave: () => void;
+}
+
 export interface LiveDemoState {
 	started: Ref<boolean>;
 	mode: Ref<LiveDemoMode>;
 	activeKey: Ref<string>;
 	guestKey: Ref<string>;
 	roomId: Ref<string>;
+	hostPane: Ref<LiveDemoPaneHandle | null>;
+	guestPane: Ref<LiveDemoPaneHandle | null>;
 	soloSrc: ComputedRef<string>;
 	hostSrc: ComputedRef<string>;
 	guestSrc: ComputedRef<string>;
@@ -61,6 +83,9 @@ export function useLiveDemo(section: Ref<HTMLElement | null>): LiveDemoState {
 	const activeKey = ref('react');
 	const guestKey = ref('vue');
 	const roomId = ref('');
+	const hostPane = ref<LiveDemoPaneHandle | null>(null);
+	const guestPane = ref<LiveDemoPaneHandle | null>(null);
+	let leaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 	const soloSrc = computed(() => `${DEMO_ROOT}${frameworkByKey(activeKey.value).path}?sample=1`);
 	const hostSrc = computed(
@@ -78,6 +103,30 @@ export function useLiveDemo(section: Ref<HTMLElement | null>): LiveDemoState {
 		started.value = true;
 	}
 
+	/**
+	 * Ask the panes that are about to be destroyed to leave their collaboration
+	 * room, then apply the change once the message has had a chance to land.
+	 * Without this the departing peer would linger in the surviving pane's
+	 * collaborator list until it noticed the frame was gone.
+	 */
+	function leaveThenApply(panes: Ref<LiveDemoPaneHandle | null>[], apply: () => void): void {
+		const leaving = panes.filter((pane) => pane.value !== null);
+		if (mode.value !== 'collab' || leaving.length === 0 || typeof window === 'undefined') {
+			apply();
+			return;
+		}
+		for (const pane of leaving) {
+			pane.value?.signalLeave();
+		}
+		if (leaveTimer !== null) {
+			clearTimeout(leaveTimer);
+		}
+		leaveTimer = setTimeout(() => {
+			leaveTimer = null;
+			apply();
+		}, LEAVE_GRACE_MS);
+	}
+
 	/** Pick a guest framework different from the host so the pairing shows off
 	 *  cross-framework sync by default. */
 	function fallbackGuest(hostKey: string): string {
@@ -89,15 +138,18 @@ export function useLiveDemo(section: Ref<HTMLElement | null>): LiveDemoState {
 		if (key === activeKey.value) {
 			return;
 		}
-		activeKey.value = key;
-		if (guestKey.value === key) {
-			guestKey.value = fallbackGuest(key);
-		}
-		// A new host must seed a fresh session: re-seeding an existing Y.Doc with
-		// the sample deck again would duplicate its slides.
-		if (mode.value === 'collab') {
-			roomId.value = randomRoomId();
-		}
+		// A new host restarts the room, so BOTH panes are torn down here.
+		leaveThenApply([hostPane, guestPane], () => {
+			activeKey.value = key;
+			if (guestKey.value === key) {
+				guestKey.value = fallbackGuest(key);
+			}
+			// A new host must seed a fresh session: re-seeding an existing Y.Doc
+			// with the sample deck again would duplicate its slides.
+			if (mode.value === 'collab') {
+				roomId.value = randomRoomId();
+			}
+		});
 	}
 
 	function selectGuest(key: string): void {
@@ -106,18 +158,24 @@ export function useLiveDemo(section: Ref<HTMLElement | null>): LiveDemoState {
 		}
 		// The guest merely rejoins the same room; the deck lives in the host pane
 		// and arrives through late-joiner sync.
-		guestKey.value = key === activeKey.value ? fallbackGuest(activeKey.value) : key;
+		const next = key === activeKey.value ? fallbackGuest(activeKey.value) : key;
+		leaveThenApply([guestPane], () => {
+			guestKey.value = next;
+		});
 	}
 
 	function setMode(next: LiveDemoMode): void {
 		if (next === mode.value) {
 			return;
 		}
-		mode.value = next;
-		started.value = true;
-		if (next === 'collab') {
-			roomId.value = randomRoomId();
-		}
+		// Leaving collaboration mode destroys both panes.
+		leaveThenApply([hostPane, guestPane], () => {
+			mode.value = next;
+			started.value = true;
+			if (next === 'collab') {
+				roomId.value = randomRoomId();
+			}
+		});
 	}
 
 	let observer: IntersectionObserver | null = null;
@@ -140,6 +198,10 @@ export function useLiveDemo(section: Ref<HTMLElement | null>): LiveDemoState {
 	onBeforeUnmount(() => {
 		observer?.disconnect();
 		observer = null;
+		if (leaveTimer !== null) {
+			clearTimeout(leaveTimer);
+			leaveTimer = null;
+		}
 	});
 
 	return {
@@ -148,6 +210,8 @@ export function useLiveDemo(section: Ref<HTMLElement | null>): LiveDemoState {
 		activeKey,
 		guestKey,
 		roomId,
+		hostPane,
+		guestPane,
 		soloSrc,
 		hostSrc,
 		guestSrc,
