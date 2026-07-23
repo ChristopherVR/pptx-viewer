@@ -46,7 +46,7 @@ The rendering is done by the framework-agnostic [`pptx-viewer-core`](https://www
 npm install pptx-angular-viewer
 ```
 
-**Peer requirements:** Angular 22+ (`@angular/core`, `@angular/common`), `rxjs`,
+**Peer requirements:** Angular 19-22 (`@angular/core`, `@angular/common`), `rxjs`,
 and `@ngx-translate/core` (all UI labels go through it, see
 [Localization](#localization-i18n)):
 
