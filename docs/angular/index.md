@@ -5,7 +5,7 @@ description: pptx-angular-viewer is an Angular standalone component for viewing,
 
 # Angular Viewer Overview
 
-`pptx-angular-viewer` is an **Angular 22** standalone component (`<pptx-viewer>`) for rendering
+`pptx-angular-viewer` is an **Angular 19-22** standalone component (`<pptx-viewer>`) for rendering
 and editing `.pptx` files. It is built on [`pptx-viewer-core`](/core/) and includes the ribbon
 toolbar, inspector panels, slide canvas, animation engine, presentation mode, real-time
 collaboration, and export. It is the Angular
@@ -39,9 +39,17 @@ The core engine (`pptx-viewer-core`) is **bundled in**, so you don't install it 
 
 **Peer dependencies** (you provide these in your app):
 
-- `@angular/core` ^22, `@angular/common` ^22
+- `@angular/core` and `@angular/common`, matched to each other, on any of ^19 / ^20 / ^21 / ^22
 - `rxjs` ^7
 - `@ngx-translate/core` ^18
+
+::: info Why 19 is the floor
+The package is built with the newest Angular but published as partial (linkable) declarations, so
+the real floor is whatever those declarations demand plus the runtime behaviour the source assumes.
+Two v19 defaults set it: components are standalone without `standalone: true`, and `effect()` bodies
+write signals without `allowSignalWrites`. Both were introduced as defaults in Angular 19. A CI test
+re-derives the linker floor from the built bundle on every run, so it cannot drift silently.
+:::
 
 **Optional peer dependencies** (only needed for specific features):
 

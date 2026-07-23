@@ -20,7 +20,7 @@
 
 Open a `.pptx`, render it with full visual fidelity, edit it in a WYSIWYG UI (or programmatically), present it fullscreen with animations and transitions, collaborate live, and save back to a valid `.pptx` - all client-side. The same engine also converts decks to Markdown and exports slides to PNG/SVG/PDF/GIF/video.
 
-Works with **React 19**, **Vue 3**, **Angular**, **Svelte 5**, and **vanilla JavaScript** (no framework at all) out of the box. The core engine is framework-agnostic and runs in Node.js, Bun, Deno, serverless functions, and build scripts.
+Works with **React 18/19**, **Vue 3**, **Angular 19-22**, **Svelte 5**, and **vanilla JavaScript** (no framework at all) out of the box. The core engine is framework-agnostic and runs in Node.js, Bun, Deno, serverless functions, and build scripts.
 
 ---
 
@@ -503,20 +503,20 @@ bun run pack:svelte  # packages/svelte
 
 ### Tech Stack
 
-| Category          | Technologies                                                                              |
-| ----------------- | ----------------------------------------------------------------------------------------- |
-| **Language**      | TypeScript 6.0 (strict mode)                                                              |
-| **Runtime**       | Bun (package manager), Node.js 18+                                                        |
-| **UI**            | React 19 / Vue 3 / Angular / Svelte 5 / vanilla JS, Framer Motion, Tailwind CSS 4, Lucide |
-| **Parsing**       | JSZip (ZIP), fast-xml-parser (XML)                                                        |
-| **Export**        | html2canvas + jsPDF (PDF), custom GIF encoder, MediaRecorder (video)                      |
-| **3D**            | Three.js (optional)                                                                       |
-| **Collaboration** | Yjs (CRDT), y-websocket (optional)                                                        |
-| **Crypto**        | Web Crypto API (AES-128/256 for PPTX encryption)                                          |
-| **Testing**       | Vitest (18,800+ tests across 1,300+ files)                                                |
-| **Formatting**    | oxfmt (from the [oxc](https://oxc.rs) toolchain)                                          |
-| **Linting**       | oxlint (from the [oxc](https://oxc.rs) toolchain)                                         |
-| **Bundler**       | tsup (ESM + CJS with .d.ts declarations)                                                  |
+| Category          | Technologies                                                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------------- |
+| **Language**      | TypeScript 6.0 (strict mode)                                                                       |
+| **Runtime**       | Bun (package manager), Node.js 18+                                                                 |
+| **UI**            | React 18/19 / Vue 3 / Angular 19-22 / Svelte 5 / vanilla JS, Framer Motion, Tailwind CSS 4, Lucide |
+| **Parsing**       | JSZip (ZIP), fast-xml-parser (XML)                                                                 |
+| **Export**        | html2canvas + jsPDF (PDF), custom GIF encoder, MediaRecorder (video)                               |
+| **3D**            | Three.js (optional)                                                                                |
+| **Collaboration** | Yjs (CRDT), y-websocket (optional)                                                                 |
+| **Crypto**        | Web Crypto API (AES-128/256 for PPTX encryption)                                                   |
+| **Testing**       | Vitest (18,800+ tests across 1,300+ files)                                                         |
+| **Formatting**    | oxfmt (from the [oxc](https://oxc.rs) toolchain)                                                   |
+| **Linting**       | oxlint (from the [oxc](https://oxc.rs) toolchain)                                                  |
+| **Bundler**       | tsup (ESM + CJS with .d.ts declarations)                                                           |
 
 ### Adding a New Element Type
 

@@ -1,11 +1,11 @@
 ---
 title: React Viewer Overview
-description: pptx-react-viewer is a React 19 component for viewing, editing, presenting, exporting, and collaboratively editing PowerPoint (.pptx) files in the browser.
+description: pptx-react-viewer is a React 18/19 component for viewing, editing, presenting, exporting, and collaboratively editing PowerPoint (.pptx) files in the browser.
 ---
 
 # React Viewer Overview
 
-`pptx-react-viewer` is a **React 19** component for rendering and editing `.pptx` files. It is
+`pptx-react-viewer` is a **React 18 or 19** component for rendering and editing `.pptx` files. It is
 built on [`pptx-viewer-core`](/core/) and includes the toolbar, inspector panels, slide canvas,
 animation engine, presentation mode, real-time collaboration, and export.
 
@@ -37,7 +37,7 @@ only if you also want to use the framework-agnostic engine directly.
 
 **Peer dependencies** (you provide these in your app):
 
-- `react` and `react-dom` ^19
+- `react` and `react-dom` ^18.2 or ^19 (both majors are covered by their own CI test run)
 - `framer-motion`, `lucide-react`, `react-icons`
 - `jspdf`, `jszip`, `fast-xml-parser`
 - `i18next`, `react-i18next`
