@@ -21,6 +21,7 @@ import {
 	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
 	reconcileSlidesInYDoc,
+	registerCollaborationTeardown,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
@@ -90,6 +91,22 @@ export class CollaborationController {
 				this.#flushLocalSlides(slides);
 			}
 		});
+
+		// Component destruction is not the only way a session ends: a tab close, a
+		// navigation, or an embedding page detaching the viewer's iframe destroys
+		// the document without running any Svelte cleanup, leaving a ghost peer in
+		// everyone else's presence list. Leave the room from `pagehide` too; the
+		// effect's return value unregisters the listeners on destroy.
+		$effect(() =>
+			registerCollaborationTeardown({
+				leave: () => this.stop(),
+				rejoin: () => {
+					if (this.#lastStarted) {
+						void this.#run(this.#lastStarted);
+					}
+				},
+			}),
+		);
 	}
 
 	/** Whether a session is live (reactive). */
