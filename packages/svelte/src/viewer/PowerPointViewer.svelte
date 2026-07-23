@@ -1050,6 +1050,7 @@
 		{dialogs}
 		{shareDefaults}
 		showOverlay={collab.active && chromeVisible}
+		mobileBarVisible={editingActive && displaySlides.length > 0}
 	/>
 	{#if ai && aiPanelOpen && chromeVisible}
 		<div class="pptx-svelte-ai-dock">

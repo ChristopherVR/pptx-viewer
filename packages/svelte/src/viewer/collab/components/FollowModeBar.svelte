@@ -89,15 +89,18 @@
 <style>
 	.pptx-svelte-follow-bar {
 		display: flex;
+		max-width: 100%;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 12px;
+		border: 1px solid var(--pptx-border, #33334d);
 		border-radius: 8px;
 		padding: 6px 10px;
 		background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 95%, transparent);
 		color: var(--pptx-foreground, #e2e8f0);
 		font-family: system-ui, sans-serif;
 		font-size: 12px;
+		box-shadow: 0 10px 15px -3px rgb(0 0 0 / 25%);
 	}
 
 	.pptx-svelte-follow-status {
@@ -129,6 +132,7 @@
 
 	.pptx-svelte-follow-list {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 6px;
 		margin: 0;
