@@ -1,7 +1,9 @@
+import type { PresentationPointerTool } from 'pptx-viewer-shared';
+import { createPresentationKeyBuffer, mapPresentationKey } from 'pptx-viewer-shared';
+
 import type { EditorController } from '../editor/editor-controller.svelte';
 import type { PresentationController } from '../presentation/presentation-controller.svelte';
 import { isFullscreenActive, toggleFullscreen } from './fullscreen';
-import { resolveNavigationKey } from './navigation';
 import type { ViewerState } from './viewer-state.svelte';
 
 export interface ViewportHandlersDeps {
@@ -11,6 +13,16 @@ export interface ViewportHandlersDeps {
 	getEditingActive(): boolean;
 	/** Presentation-mode playback controller (drives on-click animation steps). */
 	presentation: PresentationController;
+	/** End the running show (Esc / `-`). */
+	onEndShow?(): void;
+	/** Select a pointer tool (Ctrl+L / Ctrl+P / Ctrl+A / Ctrl+E). */
+	setPointerTool?(tool: PresentationPointerTool): void;
+	/** Erase the show's ink annotations (E). */
+	eraseAnnotations?(): void;
+	/** Show or hide ink markup (Ctrl+M). */
+	toggleInkMarkup?(): void;
+	/** Blank the screen black or white (B / W, or `.` / `,`). */
+	toggleBlank?(value: 'black' | 'white'): void;
 }
 
 export interface ViewportHandlers {
@@ -25,6 +37,66 @@ export interface ViewportHandlers {
  * keyboard, mirroring the vanilla binding). Extracted to keep
  * `PowerPointViewer.svelte` under the file-size budget.
  */
+/** Digit buffer backing PowerPoint's "type a slide number, then Enter" jump. */
+const keyBuffer = createPresentationKeyBuffer();
+
+/**
+ * Resolve one key against PowerPoint's slide-show map and perform it. Returns
+ * true when the key was consumed.
+ */
+function handleShowKey(event: KeyboardEvent, deps: ViewportHandlersDeps): boolean {
+	const mapped = mapPresentationKey(event, keyBuffer);
+	if (mapped.action === 'none') {
+		return false;
+	}
+	event.preventDefault();
+
+	switch (mapped.action) {
+		case 'next':
+			// An advance first steps through the current slide's element-animation
+			// builds; only once they are exhausted does the slide itself advance.
+			deps.presentation.advance();
+			return true;
+		case 'previous':
+			deps.viewer.prev();
+			return true;
+		case 'first':
+			deps.viewer.first();
+			return true;
+		case 'last':
+			deps.viewer.last();
+			return true;
+		case 'goto': {
+			const index = mapped.slideNumber - 1;
+			if (index >= 0 && index < deps.viewer.slideCount) {
+				deps.viewer.goTo(index);
+			}
+			return true;
+		}
+		case 'end':
+			deps.onEndShow?.();
+			return true;
+		case 'pointerTool':
+			// PowerPoint's Ctrl+A "arrow" is the plain pointer: no active tool.
+			deps.setPointerTool?.(mapped.tool === 'arrow' ? 'none' : mapped.tool);
+			return true;
+		case 'eraseAnnotations':
+			deps.eraseAnnotations?.();
+			return true;
+		case 'toggleInkMarkup':
+			deps.toggleInkMarkup?.();
+			return true;
+		case 'toggleBlackScreen':
+			deps.toggleBlank?.('black');
+			return true;
+		case 'toggleWhiteScreen':
+			deps.toggleBlank?.('white');
+			return true;
+		default:
+			return true;
+	}
+}
+
 export function createViewportHandlers(deps: ViewportHandlersDeps): ViewportHandlers {
 	return {
 		onFullscreenToggle(): void {
@@ -48,13 +120,10 @@ export function createViewportHandlers(deps: ViewportHandlersDeps): ViewportHand
 					return;
 				}
 			}
-			// While presenting, an advance key first steps through the current
-			// slide's element-animation builds; only once they are exhausted does
-			// the controller advance the slide. Backwards / first / last keys fall
-			// through to plain slide navigation (playback resets on slide change).
-			if (deps.viewer.isFullscreen && resolveNavigationKey(event.key) === 'next') {
-				event.preventDefault();
-				deps.presentation.advance();
+			// A running show takes PowerPoint's full shortcut set. Outside one only
+			// the arrows/paging keys navigate: the bare-letter commands (N, P, B, W,
+			// E) belong to the show and would hijack typing in the editor.
+			if (deps.viewer.isFullscreen && handleShowKey(event, deps)) {
 				return;
 			}
 			if (deps.viewer.handleNavigationKey(event.key)) {

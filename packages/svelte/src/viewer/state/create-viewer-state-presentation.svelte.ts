@@ -76,6 +76,10 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 		controller,
 		getEditingActive: deps.getEditingActive,
 		presentation,
+		setPointerTool: (tool) => {
+			parityUi.annotations.tool = tool;
+		},
+		eraseAnnotations: () => parityUi.annotations.clear(),
 	});
 
 	return { presentation, onFullscreenToggle, onFullscreenChange, onKeydown };

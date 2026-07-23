@@ -571,6 +571,17 @@
 		controller,
 		getEditingActive: () => editingActive,
 		presentation,
+		onEndShow: () => onFullscreenToggle(),
+		setPointerTool: (tool) => { parityUi.annotations.tool = tool; },
+		eraseAnnotations: () => parityUi.annotations.clear(),
+		toggleInkMarkup: () =>
+			presenterSession.updateSnapshot({
+				inkMarkupVisible: presenterSession.snapshot.inkMarkupVisible === false,
+			}),
+		toggleBlank: (value) =>
+			presenterSession.updateSnapshot({
+				blackout: presenterSession.snapshot.blackout === value ? 'none' : value,
+			}),
 	});
 
 	// ── Export (PNG / PDF) ───────────────────────────────────────────────
