@@ -37,6 +37,9 @@ packages/
   core/             pptx-viewer-core     – Parse, edit, serialize PPTX (framework-agnostic)
   shared/           pptx-viewer-shared   – Framework-agnostic viewer logic (INTERNAL, bundled into each binding, never published)
   react/            pptx-viewer          – React viewer/editor component
+  react-compat/     (private, no build)  – React 18 peer set; `packages/react` aliases onto it to
+                                           re-run its whole suite + declaration check against the
+                                           older supported major (`bun run test:react18`)
   vue/              pptx-vue-viewer      – Vue 3 viewer/editor component
   angular/          pptx-angular-viewer  – Angular viewer/editor component
   vanilla/          pptx-vanilla-viewer  – Zero-framework (VanillaJS) viewer

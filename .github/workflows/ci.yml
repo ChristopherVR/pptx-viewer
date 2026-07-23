@@ -178,6 +178,16 @@ jobs:
             dir: packages/react
             cmd: bun vitest run --reporter=verbose --reporter=github-actions
             enabled: ${{ needs.build.outputs.react-built }}
+          # React 18 is the lower bound of the react/react-dom peer range
+          # (`^18.2.0 || ^19.0.0`, issue #105). This leg re-runs the IDENTICAL
+          # specs with react/react-dom aliased onto the React 18 pair owned by
+          # packages/react-compat, then type-checks a consumer of the built
+          # declarations against @types/react 18 - the .d.ts is generated with
+          # React 19 types, so that pairing needs its own proof.
+          - key: react18
+            dir: packages/react
+            cmd: bun vitest run --config vitest.react18.config.ts --reporter=verbose --reporter=github-actions && bun run typecheck:react18
+            enabled: ${{ needs.build.outputs.react-built }}
           - key: vue
             dir: packages/vue
             cmd: bun vitest run --reporter=verbose --reporter=github-actions
