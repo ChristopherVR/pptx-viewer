@@ -422,6 +422,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.presentation.highlighter': 'Highlighter',
 	'pptx.presentation.eraser': 'Eraser',
 	'pptx.presentation.laserPointer': 'Laser Pointer',
+	'pptx.presentation.pointerTools': 'Pointer Options',
 
 	// Selection pane
 	'pptx.selectionPane.title': 'Selection Pane',
@@ -1211,9 +1212,17 @@ export const translationsEn: Record<string, string> = {
 	'pptx.presenter.nextSlide': 'Next Slide',
 	'pptx.presenter.noSlides': 'No slides',
 	'pptx.presenter.openAudienceWindow': 'Open Audience Window',
-	'pptx.presenter.presenterView': 'Presenter View (N)',
+	'pptx.presenter.presenterView': 'Presenter View',
 	'pptx.presenter.prev': 'Prev',
 	'pptx.presenter.previousSlide': 'Previous Slide',
+	'pptx.presenter.seeAllSlides': 'See All Slides',
+	'pptx.presenter.screen': 'Screen',
+	'pptx.presenter.blackScreen': 'Black Screen',
+	'pptx.presenter.whiteScreen': 'White Screen',
+	'pptx.presenter.pointerArrow': 'Arrow',
+	'pptx.presenter.pointerPen': 'Pen',
+	'pptx.presenter.pointerHighlighter': 'Highlighter',
+	'pptx.presenter.eraseAllInk': 'Erase All Ink on Slide',
 	'pptx.presenter.slideLabel': 'Slide {{current}} of {{total}}',
 	'pptx.presenter.timerProgress': 'Timer Progress',
 

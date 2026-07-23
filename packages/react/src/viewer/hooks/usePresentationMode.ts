@@ -160,6 +160,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 
 	const { handleZoomClick, zoomReturnSlideIndex, returnToZoomSlide, clearZoomReturn } =
 		useZoomNavigation({ navigateToSlide });
+	const openAllSlides = useCallback(() => setAllSlidesOpen(true), []);
 	const closeAllSlides = useCallback(() => setAllSlidesOpen(false), []);
 	const presenterConsole = usePresenterConsole(presentationSlideIndex);
 
@@ -271,7 +272,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		onEraseAnnotations,
 		onToggleInkMarkup,
 		onToggleToolbar,
-		onShowAllSlides: () => setAllSlidesOpen(true),
+		onShowAllSlides: openAllSlides,
 		onToggleBlackScreen: () =>
 			presenterConsole.setBlackout(
 				presenterConsole.snapshot.blackout === 'black' ? 'none' : 'black',
@@ -418,6 +419,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		runPresentationEntranceAnimations,
 		endOfShowVisible,
 		allSlidesOpen,
+		openAllSlides,
 		closeAllSlides,
 		movePresentationSlide,
 		navigateToSlide,

@@ -100,6 +100,7 @@ export interface UsePresentationModeResult {
 	endOfShowVisible: boolean;
 	/** Whether the All Slides navigator (Ctrl+S) is open during the show. */
 	allSlidesOpen: boolean;
+	openAllSlides: () => void;
 	closeAllSlides: () => void;
 	movePresentationSlide: (direction: 1 | -1, trigger?: SlideAdvanceTrigger) => void;
 	navigateToSlide: (slideIndex: number) => void;

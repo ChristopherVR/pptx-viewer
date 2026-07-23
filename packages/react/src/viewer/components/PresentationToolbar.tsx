@@ -371,7 +371,7 @@ export function PresentationToolbar({
 							: 'text-white/70 hover:text-white hover:bg-white/10'
 					}`}
 					onClick={onTogglePresenterView}
-					title={t('pptx.presenter.presenterView', { defaultValue: 'Presenter view (N)' })}
+					title={t('pptx.presenter.presenterView', { defaultValue: 'Presenter view' })}
 					aria-label={t('pptx.presenter.presenterView', { defaultValue: 'Presenter view' })}
 				>
 					<LuPanelRight size={18} />

@@ -94,7 +94,7 @@ export const translations = {
 	'pptx.presenter.nextSlide': 'Nächste Folie',
 	'pptx.presenter.noSlides': 'Keine Folien',
 	'pptx.presenter.openAudienceWindow': 'Öffnen Sie das Zielgruppenfenster',
-	'pptx.presenter.presenterView': 'Referentenansicht (N)',
+	'pptx.presenter.presenterView': 'Referentenansicht',
 	'pptx.presenter.prev': 'Vorher',
 	'pptx.presenter.previousSlide': 'Vorherige Folie',
 	'pptx.presenter.slideLabel': 'Folie {{current}} von {{total}}',

@@ -546,6 +546,15 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					onPrevious={() => presentation.movePresentationSlide(-1)}
 					onEndShow={onEndPresentation ?? (() => {})}
 					onClose={() => setPresentationMenu(null)}
+					onSeeAllSlides={presentation.openAllSlides}
+					onShowPresenterView={presentation.togglePresenterView}
+					onBlank={(value) =>
+						presentation.setPresenterBlackout(
+							presentation.presenterSnapshot.blackout === value ? 'none' : value,
+						)
+					}
+					onPointerTool={(tool) => annotations.setPresentationTool(tool === 'none' ? 'none' : tool)}
+					onEraseInk={annotations.clearAnnotations}
 				/>
 			)}
 

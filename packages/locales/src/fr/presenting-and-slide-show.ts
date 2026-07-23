@@ -93,7 +93,7 @@ export const translations = {
 	'pptx.presenter.nextSlide': 'Diapositive suivante',
 	'pptx.presenter.noSlides': 'Pas de diapositives',
 	'pptx.presenter.openAudienceWindow': 'Ouvrir la fenêtre du public',
-	'pptx.presenter.presenterView': 'Vue Présentateur (N)',
+	'pptx.presenter.presenterView': 'Vue Présentateur',
 	'pptx.presenter.prev': 'Précédent',
 	'pptx.presenter.previousSlide': 'Diapositive précédente',
 	'pptx.presenter.slideLabel': 'Diapositive {{current}} sur {{total}}',
