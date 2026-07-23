@@ -22,6 +22,11 @@ import type { Ref } from 'vue';
 export interface UseToolbarAutoHideResult {
 	/** Whether the toolbar should currently be shown (and clickable). */
 	toolbarVisible: Readonly<Ref<boolean>>;
+	/**
+	 * Show or hide the toolbar explicitly, for PowerPoint's Ctrl+H. Any later
+	 * mouse movement resumes the normal auto-hide cycle.
+	 */
+	setToolbarVisible: (visible: boolean) => void;
 }
 
 export function useToolbarAutoHide(): UseToolbarAutoHideResult {
@@ -52,5 +57,10 @@ export function useToolbarAutoHide(): UseToolbarAutoHideResult {
 		clearHideTimer();
 	});
 
-	return { toolbarVisible: readonly(toolbarVisible) };
+	function setToolbarVisible(visible: boolean): void {
+		clearHideTimer();
+		toolbarVisible.value = visible;
+	}
+
+	return { toolbarVisible: readonly(toolbarVisible), setToolbarVisible };
 }

@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
-import { ANIMATION_KEYFRAMES_CSS, isClickAdvanceAllowed } from 'pptx-viewer-shared';
+import {
+	ANIMATION_KEYFRAMES_CSS,
+	createPresentationKeyBuffer,
+	isClickAdvanceAllowed,
+	mapPresentationKey,
+} from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -335,6 +340,8 @@ const presenterSession = usePresenterSession({
 });
 /** Whether the live-caption (subtitle) bar is shown. */
 const subtitlesOn = ref(false);
+/** PowerPoint's Ctrl+M: hide ink markup without discarding the strokes. */
+const inkMarkupVisible = ref(true);
 
 /**
  * The floating mouse toolbar only appears on `mousemove` and hides again
@@ -342,7 +349,7 @@ const subtitlesOn = ref(false);
  * `useToolbarAutoHide` for why (it otherwise sits over the persistent touch
  * controls' fixed prev/next buttons).
  */
-const { toolbarVisible } = useToolbarAutoHide();
+const { toolbarVisible, setToolbarVisible } = useToolbarAutoHide();
 
 const annotations = usePresentationAnnotations({
 	isActive: () => true,
@@ -429,38 +436,76 @@ watch(
 // Keyboard + resize listeners
 // ---------------------------------------------------------------------------
 
+/** Digit buffer backing PowerPoint's "type a slide number, then Enter" jump. */
+const keyBuffer = createPresentationKeyBuffer();
+
+function setBlackout(value: 'black' | 'white'): void {
+	const current = presenterSession.snapshot.value.blackout;
+	presenterSession.updateSnapshot({ blackout: current === value ? 'none' : value });
+}
+
 function handleKeyDown(event: KeyboardEvent): void {
-	switch (event.key) {
-		case 'Escape':
-			event.preventDefault();
+	// Live captions are PowerPoint's "C", which the shared slide-show map leaves
+	// unassigned, so it stays handled here.
+	if ((event.key === 'c' || event.key === 'C') && !event.ctrlKey && !event.metaKey) {
+		event.preventDefault();
+		subtitlesOn.value = !subtitlesOn.value;
+		return;
+	}
+
+	const mapped = mapPresentationKey(event, keyBuffer);
+	if (mapped.action === 'none') {
+		return;
+	}
+	event.preventDefault();
+
+	switch (mapped.action) {
+		case 'end':
 			close();
 			return;
-		case 'ArrowRight':
-		case 'PageDown':
-		case ' ':
-			event.preventDefault();
+		case 'next':
 			next();
 			return;
-		case 'ArrowLeft':
-		case 'PageUp':
-			event.preventDefault();
+		case 'previous':
 			prev();
 			return;
-		case 'Home':
-			event.preventDefault();
+		case 'first':
 			goTo(0);
 			return;
-		case 'End':
-			event.preventDefault();
+		case 'last':
 			goTo(props.slides.length - 1);
 			return;
-		case 'c':
-		case 'C':
-			// Toggle live captions (mirrors PowerPoint's "C" shortcut).
-			event.preventDefault();
-			subtitlesOn.value = !subtitlesOn.value;
-			break;
+		case 'goto': {
+			const index = mapped.slideNumber - 1;
+			if (index >= 0 && index < props.slides.length) {
+				goTo(index);
+			}
+			return;
+		}
+		case 'pointerTool':
+			// PowerPoint's Ctrl+A "arrow" is the plain pointer: no active tool.
+			annotations.setPresentationTool(mapped.tool === 'arrow' ? 'none' : mapped.tool);
+			return;
+		case 'eraseAnnotations':
+			annotations.clearAnnotations();
+			return;
+		case 'toggleInkMarkup':
+			inkMarkupVisible.value = !inkMarkupVisible.value;
+			return;
+		case 'toggleChrome':
+			setToolbarVisible(!toolbarVisible.value);
+			return;
+		case 'toggleBlackScreen':
+			setBlackout('black');
+			return;
+		case 'toggleWhiteScreen':
+			setBlackout('white');
+			return;
+		case 'showAllSlides':
+			presenterMode.value = true;
+			return;
 		default:
+			break;
 	}
 }
 
@@ -572,8 +617,10 @@ onBeforeUnmount(() => {
 					:scale="scale"
 					:presenting="true"
 				/>
-				<!-- Ink / laser / eraser overlay (captures pointers only when armed). -->
+				<!-- Ink / laser / eraser overlay (captures pointers only when armed).
+				     Ctrl+M hides the markup without discarding the strokes. -->
 				<PresentationAnnotationOverlay
+					v-if="inkMarkupVisible"
 					:canvas-size="canvasSize"
 					:editor-scale="scale"
 					:presentation-tool="annotations.presentationTool.value"
