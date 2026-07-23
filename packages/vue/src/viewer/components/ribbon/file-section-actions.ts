@@ -1,9 +1,30 @@
+import {
+	Box,
+	Copy,
+	Download,
+	FileImage,
+	FileText,
+	Info,
+	Lock,
+	Package,
+	Play,
+	Printer,
+	Share2,
+	ShieldAlert,
+	Type,
+	Video,
+} from 'lucide-vue-next';
 import type { BackstagePage, ToolbarActionId } from 'pptx-viewer-shared';
+import type { Component } from 'vue';
 
 import type { FileSectionProps } from './file-section-types';
 
-/** `[label, description, glyph, onClick]` action card shown on a backstage page. */
-export type FileSectionAction = readonly [string, string, string, (() => void) | undefined];
+/**
+ * `[label, description, icon, onClick]` action card shown on a backstage page.
+ * The icon is a `lucide-vue-next` component, picked to match the `react-icons/lu`
+ * glyph React's `toolbar/FileSection.tsx` renders for the same card.
+ */
+export type FileSectionAction = readonly [string, string, Component, (() => void) | undefined];
 
 /**
  * Backstage action-card list for the given page, mirroring PowerPoint's
@@ -25,41 +46,46 @@ export function buildFileSectionActions(
 			[
 				'Protect Presentation',
 				'Control what changes people can make.',
-				'🔒',
+				Lock,
 				props.onOpenPasswordProtection,
 			],
 			[
 				'Inspect Presentation',
 				'Review properties and hidden content.',
-				'ⓘ',
+				Info,
 				props.onOpenDocumentProperties,
 			],
-			['Embed Fonts', 'Keep typography consistent across devices.', 'T', props.onOpenFontEmbedding],
+			[
+				'Embed Fonts',
+				'Keep typography consistent across devices.',
+				Type,
+				props.onOpenFontEmbedding,
+			],
 			[
 				'Digital Signatures',
 				'View and manage attached signatures.',
-				'✓',
+				ShieldAlert,
 				props.onOpenDigitalSignatures,
 			],
 		];
 	}
 	if (page === 'saveAs') {
 		const items: FileSectionAction[] = [
-			['PowerPoint Presentation', 'Save an editable .pptx copy.', 'P', props.onSaveAsPptx],
-			['PowerPoint Show', 'Save a .ppsx slide show.', '▶', props.onSaveAsPpsx],
+			['PowerPoint Presentation', 'Save an editable .pptx copy.', Download, props.onSaveAsPptx],
+			['PowerPoint Show', 'Save a .ppsx slide show.', Play, props.onSaveAsPpsx],
 		];
 		if (props.hasMacros) {
 			items.push([
 				'Macro-Enabled Presentation',
 				'Preserve VBA in a .pptm file.',
-				'M',
+				FileText,
 				props.onSaveAsPptm,
 			]);
 		}
 		items.push([
 			'Package for Sharing',
 			'Bundle the deck and linked assets.',
-			'□',
+			Package,
 			props.onPackageForSharing,
 		]);
 		return items;
@@ -69,11 +95,11 @@ export function buildFileSectionActions(
 			return [];
 		}
 		return [
-			['Create PDF', 'Publish one page per slide.', 'PDF', props.onExportPdf],
-			['Export current slide', 'Create a high-quality PNG image.', 'PNG', props.onExportPng],
-			['Create a Video', 'Export timings and animations as WebM.', '▶', props.onExportVideo],
-			['Create an Animated GIF', 'Make a compact looping preview.', 'GIF', props.onExportGif],
-			['Copy as Image', 'Copy the current slide to the clipboard.', '▣', props.onCopySlideAsImage],
+			['Create PDF', 'Publish one page per slide.', FileText, props.onExportPdf],
+			['Export current slide', 'Create a high-quality PNG image.', FileImage, props.onExportPng],
+			['Create a Video', 'Export timings and animations as WebM.', Video, props.onExportVideo],
+			['Create an Animated GIF', 'Make a compact looping preview.', Box, props.onExportGif],
+			['Copy as Image', 'Copy the current slide to the clipboard.', Copy, props.onCopySlideAsImage],
 		];
 	}
 	if (page === 'print') {
@@ -81,18 +107,23 @@ export function buildFileSectionActions(
 			[
 				'Print Presentation',
 				'Choose layout and output settings in the browser print dialog.',
-				'▧',
+				Printer,
 				props.onPrint,
 			],
 		];
 	}
 	if (page === 'share') {
 		return [
-			['Share with People', 'Invite collaborators to work together.', '◇', props.onOpenShareDialog],
+			[
+				'Share with People',
+				'Invite collaborators to work together.',
+				Share2,
+				props.onOpenShareDialog,
+			],
 			[
 				'Package for Sharing',
 				'Download a self-contained offline package.',
-				'□',
+				Package,
 				props.onPackageForSharing,
 			],
 		];

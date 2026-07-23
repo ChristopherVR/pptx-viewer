@@ -8,12 +8,15 @@
  * enablement state via its props (`canUndo`, `canRedo`, `hasSelection`) and
  * displays the current zoom level (`zoomPercent`).
  *
- * Icons are minimal inline SVG / unicode glyphs (no external icon dependency)
- * (React uses lucide; the Vue port stays dependency-free here).
+ * Icons come from `lucide-vue-next`, matching the `react-icons/lu` glyph React
+ * picks for the same control so both bindings read identically. The shape
+ * presets keep their literal inline SVG outlines: they preview the shape that
+ * is about to be inserted rather than naming a command.
  *
  * The Arrange group is extracted into ArrangeButtonGroup.vue to keep this
  * file under the 300-LOC limit.
  */
+import { Minus, Plus, Redo, Type, Undo } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 import ArrangeButtonGroup from './ArrangeButtonGroup.vue';
@@ -71,6 +74,9 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; labelKey: string }> = 
  */
 const TB_BTN =
 	'inline-flex items-center justify-center px-2.5 py-1.5 rounded bg-muted text-xs hover:bg-accent transition-colors active:scale-95 active:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed';
+
+/** Icon sizing, matching React's shared `ic` toolbar-icon class. */
+const IC = 'w-4 h-4';
 </script>
 
 <template>
@@ -97,16 +103,7 @@ const TB_BTN =
 				:disabled="!props.canUndo"
 				@click="emit('undo')"
 			>
-				<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-					<path
-						d="M9 7L4 12l5 5M4 12h11a4 4 0 0 1 0 8h-1"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					/>
-				</svg>
+				<Undo :class="IC" aria-hidden="true" />
 			</button>
 			<button
 				type="button"
@@ -117,16 +114,7 @@ const TB_BTN =
 				:disabled="!props.canRedo"
 				@click="emit('redo')"
 			>
-				<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-					<path
-						d="M15 7l5 5-5 5M20 12H9a4 4 0 0 0 0 8h1"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					/>
-				</svg>
+				<Redo :class="IC" aria-hidden="true" />
 			</button>
 		</div>
 
@@ -146,7 +134,7 @@ const TB_BTN =
 				:title="t('pptx.statusBar.zoomOut')"
 				@click="emit('zoom-out')"
 			>
-				<span aria-hidden="true">−</span>
+				<Minus :class="IC" aria-hidden="true" />
 			</button>
 			<button
 				type="button"
@@ -166,7 +154,7 @@ const TB_BTN =
 				:title="t('pptx.statusBar.zoomIn')"
 				@click="emit('zoom-in')"
 			>
-				<span aria-hidden="true">+</span>
+				<Plus :class="IC" aria-hidden="true" />
 			</button>
 		</div>
 
@@ -182,13 +170,13 @@ const TB_BTN =
 		>
 			<button
 				type="button"
-				class="pptx-vue-tb-btn pptx-vue-tb-text font-bold font-serif"
+				class="pptx-vue-tb-btn pptx-vue-tb-text"
 				:class="TB_BTN"
 				:aria-label="t('pptx.editorToolbar.addTextBox')"
 				:title="t('pptx.editorToolbar.addTextBox')"
 				@click="emit('add-text')"
 			>
-				<span aria-hidden="true">T</span>
+				<Type :class="IC" aria-hidden="true" />
 			</button>
 			<button
 				v-for="s in SHAPE_PRESETS"

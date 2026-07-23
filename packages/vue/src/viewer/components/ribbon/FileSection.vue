@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft } from 'lucide-vue-next';
+import { ArrowLeft, Settings } from 'lucide-vue-next';
 import {
 	BACKSTAGE_NAV,
 	BACKSTAGE_TEMPLATES,
@@ -191,9 +191,8 @@ function selectPage(id: BackstagePage): void {
 					class="flex min-h-28 items-start gap-4 border border-border bg-card p-5 text-left text-card-foreground transition hover:border-primary hover:shadow-md"
 					@click="run(action[3])"
 				>
-					<span class="grid size-10 shrink-0 place-items-center bg-accent text-primary">{{
-						action[2]
-					}}</span
+					<span class="grid size-10 shrink-0 place-items-center bg-accent text-primary"
+						><component :is="action[2]" :size="20" aria-hidden="true" /></span
 					><span
 						><strong class="block text-[15px]">{{ action[0] }}</strong
 						><span class="mt-1 block text-[12px] leading-5 text-muted-foreground">{{
@@ -208,9 +207,9 @@ function selectPage(id: BackstagePage): void {
 				class="mt-8 max-w-[760px] border border-border bg-card p-7 text-card-foreground"
 			>
 				<div
-					class="grid size-14 place-items-center rounded-full bg-primary text-xl font-semibold text-primary-foreground"
+					class="grid size-14 place-items-center rounded-full bg-primary text-primary-foreground"
 				>
-					⚙
+					<Settings :size="28" aria-hidden="true" />
 				</div>
 				<h2 class="mt-4 text-lg font-semibold">PowerPoint Options</h2>
 				<p class="mt-2 text-sm leading-6 text-muted-foreground">

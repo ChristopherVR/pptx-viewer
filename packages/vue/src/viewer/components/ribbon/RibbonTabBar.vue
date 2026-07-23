@@ -6,6 +6,7 @@
  * convention; this is purely a template split, the props are the same
  * `RibbonToolbar` already reads off `RibbonProps`.
  */
+import { ChevronDown, ChevronUp } from 'lucide-vue-next';
 import type { ToolbarActionId, ToolbarTabDefinition } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
@@ -75,14 +76,21 @@ const { t } = useI18n();
 		/>
 		<button
 			type="button"
-			class="mr-1 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+			class="mr-1 inline-flex items-center justify-center rounded px-2 py-1 text-muted-foreground transition-colors hover:text-foreground"
 			:aria-pressed="!props.isCompactToolbarOpen"
+			:aria-label="
+				props.isCompactToolbarOpen ? t('pptx.ribbon.collapseRibbon') : t('pptx.ribbon.expandRibbon')
+			"
 			:title="
 				props.isCompactToolbarOpen ? t('pptx.ribbon.collapseRibbon') : t('pptx.ribbon.expandRibbon')
 			"
 			@click="props.onToggleCompactToolbar"
 		>
-			{{ props.isCompactToolbarOpen ? '▴' : '▾' }}
+			<component
+				:is="props.isCompactToolbarOpen ? ChevronUp : ChevronDown"
+				class="h-3.5 w-3.5"
+				aria-hidden="true"
+			/>
 		</button>
 	</div>
 </template>
