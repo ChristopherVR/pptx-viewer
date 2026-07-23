@@ -3,6 +3,8 @@
 	 * Options > Quick Access Toolbar: PowerPoint's dual-list command chooser
 	 * with Add/Remove, reorder arrows, and Reset over the shared catalog.
 	 */
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import ChevronUp from '@lucide/svelte/icons/chevron-up';
 	import type { ViewerOptions } from 'pptx-viewer-shared';
 	import {
 		QUICK_ACCESS_COMMAND_CATALOG,
@@ -74,8 +76,8 @@
 		</div>
 		{@render commandList(t('pptx.options.quickAccess.currentCommands'), current, selectedCurrent, (id) => (selectedCurrent = id))}
 		<div class="middle">
-			<button type="button" aria-label={t('pptx.options.quickAccess.moveUp')} disabled={!selectedCurrent} onclick={() => move('up')}>▲</button>
-			<button type="button" aria-label={t('pptx.options.quickAccess.moveDown')} disabled={!selectedCurrent} onclick={() => move('down')}>▼</button>
+			<button type="button" aria-label={t('pptx.options.quickAccess.moveUp')} disabled={!selectedCurrent} onclick={() => move('up')}><ChevronUp size={16} aria-hidden="true" /></button>
+			<button type="button" aria-label={t('pptx.options.quickAccess.moveDown')} disabled={!selectedCurrent} onclick={() => move('down')}><ChevronDown size={16} aria-hidden="true" /></button>
 		</div>
 	</div>
 	<button type="button" class="reset" onclick={onreset}>{t('pptx.options.quickAccess.reset')}</button>
@@ -91,7 +93,7 @@
 	.list [role='option']:hover { background: var(--pptx-accent, #33334d); }
 	.list [role='option'].selected { background: color-mix(in srgb, var(--pptx-primary, #6366f1) 15%, transparent); color: var(--pptx-primary, #6366f1); }
 	.middle { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
-	.middle button, .reset { border: 1px solid var(--pptx-border, #3f3f52); border-radius: 5px; padding: 6px 10px; background: transparent; color: var(--pptx-foreground, #e2e8f0); font-size: 11px; white-space: nowrap; cursor: pointer; }
+	.middle button, .reset { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--pptx-border, #3f3f52); border-radius: 5px; padding: 6px 10px; background: transparent; color: var(--pptx-foreground, #e2e8f0); font-size: 11px; white-space: nowrap; cursor: pointer; }
 	.middle button:hover:not(:disabled), .reset:hover { background: var(--pptx-accent, #33334d); }
 	.middle button:disabled { opacity: 0.5; cursor: not-allowed; }
 	.reset { align-self: flex-start; }

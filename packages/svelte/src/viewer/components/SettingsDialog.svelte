@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Settings from '@lucide/svelte/icons/settings';
+	import X from '@lucide/svelte/icons/x';
 	import { untrack } from 'svelte';
 	import { DEFAULT_QUICK_ACCESS_COMMAND_IDS, VIEWER_OPTIONS_TABS } from 'pptx-viewer-shared';
 	import type {
@@ -76,8 +78,8 @@
 	<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 	<section role="dialog" tabindex="-1" aria-modal="true" aria-label={t('pptx.options.title')}>
 		<header>
-			<div><b>⚙</b><h2>{t('pptx.options.title')}</h2></div>
-			<button type="button" aria-label={t('pptx.settings.close')} onclick={onclose}>×</button>
+			<div><b><Settings size={20} aria-hidden="true" /></b><h2>{t('pptx.options.title')}</h2></div>
+			<button type="button" aria-label={t('pptx.settings.close')} onclick={onclose}><X size={16} aria-hidden="true" /></button>
 		</header>
 		<div class="layout">
 			<nav aria-label={t('pptx.options.title')}>
@@ -140,8 +142,8 @@
 	header { justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--pptx-border, #3f3f52); }
 	header div { gap: 9px; }
 	h2 { margin: 0; font-size: 14px; color: var(--pptx-foreground, #e2e8f0); }
-	header b { color: var(--pptx-primary, #c43b32); }
-	header > button { border: 0; background: transparent; color: inherit; font-size: 20px; cursor: pointer; }
+	header b { display: inline-flex; color: var(--pptx-primary, #c43b32); }
+	header > button { display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: inherit; cursor: pointer; }
 	.layout { display: flex; min-height: 0; flex: 1; }
 	nav { display: flex; flex-direction: column; width: 176px; flex-shrink: 0; gap: 2px; overflow-y: auto; padding: 8px; border-right: 1px solid var(--pptx-border, #3f3f52); }
 	nav button { border: 0; border-radius: 6px; padding: 8px 12px; background: transparent; color: var(--pptx-foreground, #e2e8f0); font-size: 13px; text-align: left; white-space: nowrap; cursor: pointer; }

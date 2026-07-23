@@ -4,6 +4,10 @@
 	 * the real `SlideStage` at miniature scale, so thumbnails always match the
 	 * main canvas.
 	 */
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import ChevronUp from '@lucide/svelte/icons/chevron-up';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import X from '@lucide/svelte/icons/x';
 	import { computeVirtualRange, groupSlidesBySection, SLIDE_VIRTUALIZATION_THRESHOLD } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
@@ -105,16 +109,16 @@
 			<section class="pptx-svelte-section" data-section-id={group.section?.id}>
 				<header class="pptx-svelte-section-header">
 					<button type="button" class="pptx-svelte-section-toggle" onclick={() => group.section && onsectiontoggle?.(group.section.id)} aria-expanded={!group.section?.collapsed}>
-						<span>{group.section?.collapsed ? '▸' : '▾'}</span>
+						<span class="pptx-svelte-section-caret" class:is-collapsed={group.section?.collapsed}><ChevronDown size={12} aria-hidden="true" /></span>
 						<strong>{group.section?.name ?? t('pptx.slides.ungroupedSlides')}</strong>
 						<small>{group.slides.length}</small>
 					</button>
 					{#if editable && group.section}
 						<div class="pptx-svelte-section-actions">
-							<button type="button" title={t('pptx.sections.rename')} data-pptx-compact onclick={() => renameSection(group.section!.id, group.section!.name)}>✎</button>
-							<button type="button" title={t('pptx.sections.moveUp')} disabled={groupIndex === 0} data-pptx-compact onclick={() => onsectionmove?.(group.section!.id, 'up')}>↑</button>
-							<button type="button" title={t('pptx.sections.moveDown')} disabled={groupIndex === sectionGroups.length - 1} data-pptx-compact onclick={() => onsectionmove?.(group.section!.id, 'down')}>↓</button>
-							<button type="button" title={t('pptx.sectionList.deleteSection')} data-pptx-compact onclick={() => onsectiondelete?.(group.section!.id)}>×</button>
+							<button type="button" title={t('pptx.sections.rename')} aria-label={t('pptx.sections.rename')} data-pptx-compact onclick={() => renameSection(group.section!.id, group.section!.name)}><Pencil size={12} aria-hidden="true" /></button>
+							<button type="button" title={t('pptx.sections.moveUp')} aria-label={t('pptx.sections.moveUp')} disabled={groupIndex === 0} data-pptx-compact onclick={() => onsectionmove?.(group.section!.id, 'up')}><ChevronUp size={12} aria-hidden="true" /></button>
+							<button type="button" title={t('pptx.sections.moveDown')} aria-label={t('pptx.sections.moveDown')} disabled={groupIndex === sectionGroups.length - 1} data-pptx-compact onclick={() => onsectionmove?.(group.section!.id, 'down')}><ChevronDown size={12} aria-hidden="true" /></button>
+							<button type="button" title={t('pptx.sectionList.deleteSection')} aria-label={t('pptx.sectionList.deleteSection')} data-pptx-compact onclick={() => onsectiondelete?.(group.section!.id)}><X size={12} aria-hidden="true" /></button>
 						</div>
 					{/if}
 				</header>
@@ -212,8 +216,11 @@
 	.pptx-svelte-section-toggle { flex:1; display:flex; align-items:center; gap:5px; min-width:0; border:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
 	.pptx-svelte-section-toggle strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
 	.pptx-svelte-section-toggle small { margin-left:auto; font-size:9px; }
+	/* React's SectionHeader rotates the same chevron -90deg when collapsed. */
+	.pptx-svelte-section-caret { display:inline-flex; flex:none; transition:transform .15s ease; }
+	.pptx-svelte-section-caret.is-collapsed { transform:rotate(-90deg); }
 	.pptx-svelte-section-actions { display:flex; }
-	.pptx-svelte-section-actions button { width:20px; height:20px; padding:0; border:0; border-radius:3px; background:transparent; color:inherit; cursor:pointer; }
+	.pptx-svelte-section-actions button { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; padding:0; border:0; border-radius:3px; background:transparent; color:inherit; cursor:pointer; }
 	.pptx-svelte-section-actions button:hover:not(:disabled) { background:var(--pptx-accent,#33334d); color:var(--pptx-accent-foreground,#f8fafc); }
 	.pptx-svelte-section-actions button:disabled { opacity:.3; }
 	.pptx-svelte-section-slides { display:flex; flex-direction:column; gap:8px; }

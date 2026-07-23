@@ -4,6 +4,8 @@
 	 * Show), and the Notes toggle, relocated from the pre-ribbon toolbar's
 	 * always-visible zoom group.
 	 */
+	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+	import List from '@lucide/svelte/icons/list';
 	import { useTranslator } from '../../../../i18n/context';
 	import type { ViewerPreferences } from 'pptx-viewer-shared';
 	import { updateViewerPreference } from 'pptx-viewer-shared';
@@ -106,8 +108,8 @@
 		<span>{t('pptx.master.title')}</span>
 	</button>
 
-	<button type="button" title={t('pptx.ribbon.toggleSelectionPane')} onclick={onselectionpane}>☷ <span>{t('pptx.ribbon.selectionPane')}</span></button>
-	<button type="button" onclick={onslidesorter}>▦ <span>{t('pptx.view.slideSorter')}</span></button>
+	<button type="button" title={t('pptx.ribbon.toggleSelectionPane')} onclick={onselectionpane}><List size={15} aria-hidden="true" /> <span>{t('pptx.ribbon.selectionPane')}</span></button>
+	<button type="button" onclick={onslidesorter}><LayoutGrid size={15} aria-hidden="true" /> <span>{t('pptx.view.slideSorter')}</span></button>
 
 	<button
 		type="button"

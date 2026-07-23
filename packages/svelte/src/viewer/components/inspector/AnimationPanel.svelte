@@ -14,6 +14,7 @@
 	 * `onUpdateSlide({ animations })` path. Self-gating: renders nothing
 	 * without a selection, so the host only adds `<AnimationPanel {editor} />`.
 	 */
+	import Play from '@lucide/svelte/icons/play';
 	import type {
 		PptxAnimationDirection,
 		PptxAnimationPreset,
@@ -89,7 +90,7 @@
 			<span class="pptx-svelte-animp-title">{t('pptx.animation.title')}</span>
 			{#if hasAnim}
 				<button type="button" class="pptx-svelte-animp-preview" title={t('pptx.animation.preview')} onclick={onPreview}>
-					▶ {t('pptx.animation.preview')}
+					<Play size={12} aria-hidden="true" /> {t('pptx.animation.preview')}
 				</button>
 			{/if}
 		</div>
@@ -179,6 +180,9 @@
 	}
 
 	.pptx-svelte-animp-preview {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
 		border: none;
 		background: transparent;
 		color: var(--pptx-primary, #6366f1);
