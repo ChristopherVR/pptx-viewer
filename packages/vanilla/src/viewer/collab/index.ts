@@ -3,5 +3,5 @@ export { createCollabProvider } from './collaboration-provider';
 export type {
 	CollaborationController,
 	CollaborationControllerDeps,
-} from './collaboration-controller';
+} from './collaboration-controller-types';
 export { createCollaborationController } from './collaboration-controller';
