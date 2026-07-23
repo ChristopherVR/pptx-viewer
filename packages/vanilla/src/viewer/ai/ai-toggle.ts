@@ -17,6 +17,7 @@ import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import type { Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
+import type { ButtonHandle } from '../ui/controls';
 import { makeButton } from '../ui/controls';
 import { mountAiChangeOverlay } from './ai-change-overlay';
 import type { AiChangeOverlay } from './ai-change-overlay';
@@ -55,14 +56,30 @@ export function mountAiChat(deps: MountAiChatDeps): AiChatMount {
 	const { doc, chrome, t, controller } = deps;
 	const getStageRoot = (): HTMLElement | null => stageRootOf(chrome);
 
-	const toggle = makeButton(doc, {
-		label: t('pptx.toolbar.toggleAiAssistant'),
-		icon: 'sparkles',
-		className: chrome.titleBar ? 'pptxv-titlebar-btn pptxv-ai-toggle' : 'pptxv-ai-toggle-floating',
-		onClick: () => void setOpen(!open),
-	});
-	toggle.btn.setAttribute('aria-expanded', 'false');
-	(chrome.titleBar?.el ?? chrome.root).appendChild(toggle.btn);
+	// One or more toggle buttons drive the same panel and stay in sync. The
+	// title-bar toggle is the desktop entry point; on phones the title bar is
+	// offscreen, so a second toggle is surfaced in the mobile toolbar's top-right
+	// (mirrors React's MobileToolbar AI button) so the assistant stays reachable.
+	const toggles: ButtonHandle[] = [];
+	const addToggle = (host: HTMLElement, className: string): void => {
+		const toggle = makeButton(doc, {
+			label: t('pptx.toolbar.toggleAiAssistant'),
+			icon: 'sparkles',
+			className,
+			onClick: () => void setOpen(!open),
+		});
+		toggle.btn.setAttribute('aria-expanded', 'false');
+		host.appendChild(toggle.btn);
+		toggles.push(toggle);
+	};
+
+	addToggle(
+		chrome.titleBar?.el ?? chrome.root,
+		chrome.titleBar ? 'pptxv-titlebar-btn pptxv-ai-toggle' : 'pptxv-ai-toggle-floating',
+	);
+	if (chrome.mobileToolbar) {
+		addToggle(chrome.mobileToolbar.aiHost, 'pptxv-mobile-toolbar-btn pptxv-ai-toggle');
+	}
 
 	const host = createEl(doc, 'aside', 'pptxv-ai-panel');
 	host.setAttribute('aria-label', t('pptx.ai.title'));
@@ -95,8 +112,10 @@ export function mountAiChat(deps: MountAiChatDeps): AiChatMount {
 	const setOpen = async (next: boolean): Promise<void> => {
 		open = next;
 		host.hidden = !open;
-		toggle.setActive(open);
-		toggle.btn.setAttribute('aria-expanded', String(open));
+		for (const toggle of toggles) {
+			toggle.setActive(open);
+			toggle.btn.setAttribute('aria-expanded', String(open));
+		}
 		if (!open || panel || loading) {
 			return;
 		}
@@ -143,7 +162,9 @@ export function mountAiChat(deps: MountAiChatDeps): AiChatMount {
 			picker.destroy();
 			overlay.destroy();
 			controller.dispose();
-			toggle.btn.remove();
+			for (const toggle of toggles) {
+				toggle.btn.remove();
+			}
 			host.remove();
 		},
 	};

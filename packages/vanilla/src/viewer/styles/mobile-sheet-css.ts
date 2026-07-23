@@ -11,6 +11,9 @@ export const MOBILE_SHEET_CSS = `
 	.pptxv-mobile-present { color: var(--pptx-primary); }
 	.pptxv-mobile-toolbar-collaboration { display: flex; }
 	.pptxv-mobile-toolbar-collaboration[hidden], .pptxv-mobile-toolbar-collaboration:empty { display: none; }
+	.pptxv-mobile-toolbar-ai { display: flex; }
+	.pptxv-mobile-toolbar-ai[hidden], .pptxv-mobile-toolbar-ai:empty { display: none; }
+	.pptxv-mobile-toolbar-ai .pptxv-ai-toggle.is-active { color: var(--pptx-primary); background: transparent; }
 	.pptxv-mobile-share { min-width: 44px; background: var(--pptx-primary); color: var(--pptx-primary-foreground); }
 	.pptxv-mobile-actions { display: contents; }
 	.pptxv-mobile-actions > nav { position: relative; z-index: 50; display: flex; flex: none; min-height: 64px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--pptx-border); background: var(--pptx-card); }

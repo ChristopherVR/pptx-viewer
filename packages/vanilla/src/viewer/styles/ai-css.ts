@@ -280,7 +280,7 @@ export const AI_CSS = `
 	.pptxv-ai-panel {
 		inset: auto 0 calc(64px + env(safe-area-inset-bottom)) 0;
 		width: auto;
-		max-height: min(60dvh, 520px);
+		height: min(75dvh, 640px);
 		z-index: 46;
 		overflow: hidden;
 		border-left: 0;

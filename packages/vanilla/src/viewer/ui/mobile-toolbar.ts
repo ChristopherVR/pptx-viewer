@@ -17,6 +17,14 @@ export interface MobileToolbarHandlers {
 export interface MobileToolbar {
 	el: HTMLElement;
 	collaborationHost: HTMLElement;
+	/**
+	 * Empty top-right host into which the AI assistant mounts its mobile toggle
+	 * (the desktop title-bar toggle is offscreen on phones, so the assistant
+	 * would otherwise be unreachable). Populated by `mountAiChat` when `ai` is
+	 * configured; stays `display:none` while empty. Hidden when not editable,
+	 * matching React's `showEdit && aiEnabled` gating.
+	 */
+	aiHost: HTMLElement;
 	setEditState(state: RibbonEditState): void;
 }
 
@@ -73,6 +81,7 @@ export function createMobileToolbar(
 				className: 'pptxv-mobile-toolbar-btn pptxv-mobile-present',
 				onClick: handlers.present,
 			});
+	const aiHost = createEl(doc, 'span', 'pptxv-mobile-toolbar-ai');
 	const collaborationHost = createEl(doc, 'span', 'pptxv-mobile-toolbar-collaboration');
 
 	el.append(
@@ -80,6 +89,7 @@ export function createMobileToolbar(
 		...(undo ? [undo.btn] : []),
 		...(redo ? [redo.btn] : []),
 		spacer,
+		aiHost,
 		save.btn,
 		...(present ? [present.btn] : []),
 		collaborationHost,
@@ -88,6 +98,7 @@ export function createMobileToolbar(
 	return {
 		el,
 		collaborationHost,
+		aiHost,
 		setEditState({ editable, canUndo, canRedo }) {
 			for (const button of [menu.btn, undo?.btn, redo?.btn]) {
 				if (button) {
@@ -95,6 +106,7 @@ export function createMobileToolbar(
 				}
 			}
 			collaborationHost.hidden = !editable;
+			aiHost.hidden = !editable;
 			undo?.setDisabled(!canUndo);
 			redo?.setDisabled(!canRedo);
 		},
