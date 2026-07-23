@@ -151,15 +151,36 @@ test.describe('colour emphasis (animClr) playback', () => {
 		await expect(await liveNode(page, TITLE.color)).toBeVisible();
 
 		// The shape is an emphasis target: visible from the start, no animation yet.
-		const shape = await liveNode(page, SHAPE_TEXT);
-		await expect(shape).toBeVisible();
+		await expect(await liveNode(page, SHAPE_TEXT)).toBeVisible();
 
 		// The next click plays the fill-colour emphasis: a CSS animation runs on
 		// the shape wrapper (the `p:animClr` colour keyframe). Regression guard for
 		// the target-attribute parse fix - this never fired for real decks before.
+		//
+		// Re-query the shape inside the poll rather than capturing it up front:
+		// Vanilla replaces the shape wrapper wholesale when the emphasis begins, so
+		// a pre-captured node handle goes stale. Among all matches, read the
+		// largest (the live stage render, not a thumbnail-rail duplicate).
 		await advance(page);
+		const shapeMatches = page.locator('[data-element-id]').filter({ hasText: SHAPE_TEXT });
 		await expect
-			.poll(() => shape.evaluate((el) => getComputedStyle(el).animationName), { timeout: 4000 })
+			.poll(
+				() =>
+					shapeMatches.evaluateAll((els) => {
+						let best = 'none';
+						let bestArea = -1;
+						for (const el of els) {
+							const box = el.getBoundingClientRect();
+							const area = box.width * box.height;
+							if (area > bestArea) {
+								bestArea = area;
+								best = getComputedStyle(el).animationName;
+							}
+						}
+						return best;
+					}),
+				{ timeout: 5000 },
+			)
 			.not.toBe('none');
 	});
 });
