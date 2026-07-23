@@ -10,6 +10,26 @@ dated sections beneath it are generated from
 
 ## 2026-07-23
 
+_Releases: pptx-vue-viewer@2.0.1, pptx-angular-viewer@2.0.1, pptx-vanilla-viewer@1.1.0, pptx-svelte-viewer@2.0.0_
+
+### Features
+
+- **svelte:** Render remote selection highlights for collaborators (by @ChristopherVR) ([33adfbd](https://github.com/ChristopherVR/pptx-viewer/commit/33adfbda8bb56faed1069f264d1b4a2e516f17b9))
+- **vanilla:** Remote selection highlights; fix mobile notes strip + follow bar (by @ChristopherVR) ([c4ac6f8](https://github.com/ChristopherVR/pptx-viewer/commit/c4ac6f850d607cfda3461cabe33ad3eff497a6d8))
+
+### Bug Fixes
+
+- **vue:** Stop double-applying zoom to remote cursor/selection overlays (by @ChristopherVR) ([1ca4e67](https://github.com/ChristopherVR/pptx-viewer/commit/1ca4e6773766b2506b7614b2b853689ece0d2b62))
+- **svelte:** Export view components via typed constants to unbreak dts bundling (by @ChristopherVR) ([7de1bf2](https://github.com/ChristopherVR/pptx-viewer/commit/7de1bf2cd93cb6764e97d57e5ebacab3bba83b18))
+- **angular:** Reentrancy-safe collab connect, overlay mobile inspector, mobile share (by @ChristopherVR) ([cb26ab2](https://github.com/ChristopherVR/pptx-viewer/commit/cb26ab2b7630d7448587dfbd694c83181ebe3017))
+- **svelte:** Route PresentationTransitionOverlay through a typed constant (by @ChristopherVR) ([0d42bc1](https://github.com/ChristopherVR/pptx-viewer/commit/0d42bc1ec923ed1862b5a2a31a9cf7fdea134a81))
+
+### Build & CI
+
+- **docs:** Fail loudly when a demo is skipped from the Pages bundle (by @ChristopherVR) ([dff03e1](https://github.com/ChristopherVR/pptx-viewer/commit/dff03e18463f85b0b8694afd1c968521d5f6c62c))
+
+## 2026-07-23
+
 _Releases: _
 
 ## 2026-07-23
