@@ -7,11 +7,11 @@
  * (`packages/react/src/viewer/components/mobile/`): slide navigation, a slide
  * counter, zoom in/out, a present action, the React bottom-bar edit targets
  * (Slides / Insert / Format / Comments / Notes, gated on `canEdit`), Save, and
- * an overflow ("⋯") button that surfaces everything that does not fit on a
- * phone. The companion MobileToolbar carries the menu / undo / redo / share
- * controls. Glyphs reuse the Unicode characters from the desktop
- * `PowerPointViewer.vue` header (‹ › − +) so the two chromes read as one design
- * language.
+ * an overflow button that surfaces everything that does not fit on a phone. The
+ * companion MobileToolbar carries the menu / undo / redo / share controls.
+ * Icons are `lucide-vue-next` components matching the `react-icons/lu` glyphs
+ * React's mobile bar and StatusBar use, so the two chromes read as one design
+ * language across bindings.
  *
  * Conventions vs. React:
  *  - function-prop callbacks → emits.
@@ -21,6 +21,19 @@
  * Every tap target is at least 44×44px (WCAG 2.5.5 / Apple HIG) and the bar is
  * pinned with `position: fixed; bottom: 0`, respecting the iOS safe-area inset.
  */
+import {
+	ChevronLeft,
+	ChevronRight,
+	Layers,
+	MessageSquare,
+	Minus,
+	MoreHorizontal,
+	Plus,
+	Presentation,
+	Save,
+	Settings2,
+	StickyNote,
+} from 'lucide-vue-next';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -101,6 +114,7 @@ const counterLabel = computed(
  */
 const MOBILE_BTN =
 	'inline-flex items-center justify-center flex-1 min-w-0 min-h-[44px] p-0 border-0 rounded-lg bg-transparent text-foreground text-xl leading-none cursor-pointer transition-[background-color,transform] duration-150 hover:bg-accent active:scale-[0.94] disabled:opacity-35 disabled:cursor-not-allowed';
+const ICON = 'w-5 h-5';
 const MOBILE_LABEL =
 	'inline-flex items-center justify-center flex-1 min-w-0 min-h-[44px] px-0.5 text-xs tabular-nums text-muted-foreground select-none whitespace-nowrap';
 </script>
@@ -120,7 +134,7 @@ const MOBILE_LABEL =
 				:aria-label="t('pptx.mobileBar.previousSlide')"
 				@click="emit('prev')"
 			>
-				<span aria-hidden="true">‹</span>
+				<ChevronLeft :class="ICON" aria-hidden="true" />
 			</button>
 
 			<span class="pptx-vue-mobile-counter" :class="MOBILE_LABEL" aria-live="polite">{{
@@ -135,7 +149,7 @@ const MOBILE_LABEL =
 				:aria-label="t('pptx.mobileBar.nextSlide')"
 				@click="emit('next')"
 			>
-				<span aria-hidden="true">›</span>
+				<ChevronRight :class="ICON" aria-hidden="true" />
 			</button>
 
 			<span
@@ -152,7 +166,7 @@ const MOBILE_LABEL =
 				:aria-label="t('pptx.statusBar.zoomOut')"
 				@click="emit('zoom-out')"
 			>
-				<span aria-hidden="true">−</span>
+				<Minus :class="ICON" aria-hidden="true" />
 			</button>
 
 			<span
@@ -169,7 +183,7 @@ const MOBILE_LABEL =
 				:aria-label="t('pptx.statusBar.zoomIn')"
 				@click="emit('zoom-in')"
 			>
-				<span aria-hidden="true">+</span>
+				<Plus :class="ICON" aria-hidden="true" />
 			</button>
 
 			<span
@@ -185,7 +199,7 @@ const MOBILE_LABEL =
 			:aria-label="t('pptx.mobileBar.present')"
 			@click="emit('present')"
 		>
-			<span aria-hidden="true">▶</span>
+			<Presentation :class="ICON" aria-hidden="true" />
 		</button>
 
 		<button
@@ -196,7 +210,7 @@ const MOBILE_LABEL =
 			:title="t('pptx.mobileBar.slidesPanel')"
 			@click="emit('slides')"
 		>
-			<span aria-hidden="true">▦</span>
+			<Layers :class="ICON" aria-hidden="true" />
 		</button>
 
 		<button
@@ -208,7 +222,7 @@ const MOBILE_LABEL =
 			:title="t('pptx.mobileBar.insert')"
 			@click="emit('insert')"
 		>
-			<span aria-hidden="true">＋</span>
+			<Plus :class="ICON" aria-hidden="true" />
 		</button>
 
 		<button
@@ -220,7 +234,7 @@ const MOBILE_LABEL =
 			:title="t('pptx.mobileBar.formatTitle')"
 			@click="emit('format')"
 		>
-			<span aria-hidden="true">⚙</span>
+			<Settings2 :class="ICON" aria-hidden="true" />
 		</button>
 
 		<button
@@ -232,7 +246,7 @@ const MOBILE_LABEL =
 			:title="t('pptx.toolbar.comments')"
 			@click="emit('comments')"
 		>
-			<span aria-hidden="true">💬</span>
+			<MessageSquare :class="ICON" aria-hidden="true" />
 			<span
 				v-if="commentBadge"
 				class="pptx-vue-mobile-badge absolute top-1 right-1/4 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary text-[9px] font-semibold text-white"
@@ -249,7 +263,7 @@ const MOBILE_LABEL =
 			:title="t('pptx.mobileBar.saveTitle')"
 			@click="emit('save')"
 		>
-			<span aria-hidden="true">⤓</span>
+			<Save :class="ICON" aria-hidden="true" />
 		</button>
 
 		<button
@@ -259,7 +273,7 @@ const MOBILE_LABEL =
 			:aria-label="t('pptx.statusBar.toggleNotes')"
 			@click="emit('notes')"
 		>
-			<span aria-hidden="true">📝</span>
+			<StickyNote :class="ICON" aria-hidden="true" />
 		</button>
 
 		<button
@@ -269,7 +283,7 @@ const MOBILE_LABEL =
 			:aria-label="t('pptx.mobileBar.moreActions')"
 			@click="emit('menu')"
 		>
-			<span aria-hidden="true">⋯</span>
+			<MoreHorizontal :class="ICON" aria-hidden="true" />
 		</button>
 	</nav>
 </template>
