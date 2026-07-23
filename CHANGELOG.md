@@ -10,6 +10,23 @@ dated sections beneath it are generated from
 
 ## 2026-07-23
 
+_Releases: pptx-angular-viewer@2.1.1, pptx-vanilla-viewer@1.2.1_
+
+### Refactor
+
+- **vanilla:** Extract the collab controller's public types (by @ChristopherVR) ([9c06b9c](https://github.com/ChristopherVR/pptx-viewer/commit/9c06b9cfebfe33fcab7047e7cbe918152a164a75))
+- **angular:** Split the collaboration service into focused modules (by @ChristopherVR) ([b8d06ec](https://github.com/ChristopherVR/pptx-viewer/commit/b8d06ec6d3ee793669c658e8278c1a8bfad26910))
+
+### Build & CI
+
+- **release:** Refresh bun.lock in the release commit so it stops drifting (by @ChristopherVR) ([5a9363b](https://github.com/ChristopherVR/pptx-viewer/commit/5a9363bee02607b98213dd85dbbc8374409b32eb))
+
+### Chores
+
+- Refresh bun.lock to match committed package versions (by @ChristopherVR) ([5aeeba6](https://github.com/ChristopherVR/pptx-viewer/commit/5aeeba685b67fa78bb3043f9b1784053a31573b1))
+
+## 2026-07-23
+
 _Releases: pptx-react-viewer@2.1.0, pptx-vue-viewer@2.1.0, pptx-angular-viewer@2.1.0, pptx-vanilla-viewer@1.2.0, pptx-svelte-viewer@2.1.0, @christophervr/pptx-viewer@1.5.7_
 
 ### Features
