@@ -27,6 +27,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      skipped-demos: ${{ steps.bundle-demos.outputs.skipped }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -123,9 +125,15 @@ jobs:
           DEMO_BASE: /pptx-viewer/demo-svelte/
 
       # Fold whichever demos succeeded into the docs artifact. Missing dists are
-      # skipped gracefully so the page still deploys with whatever is available.
+      # skipped so the page still deploys with whatever is available, but every
+      # skip is surfaced as an error annotation + step summary, and the
+      # demo-build-status job below turns the run red so a broken demo can
+      # never ship silently again (a svelte build failure once served a 404
+      # for weeks while this workflow stayed green).
       - name: Bundle demos into docs site
+        id: bundle-demos
         run: |
+          skipped=""
           for demo in react:demo vue:demo-vue angular:demo-angular vanilla:demo-vanilla svelte:demo-svelte; do
             framework="${demo%%:*}"
             src="demos/demo-${framework}/dist"
@@ -135,9 +143,12 @@ jobs:
               cp -r "$src/." "$dest/"
               cp "$dest/index.html" "$dest/404.html"
             else
-              echo "Skipping ${framework} demo (dist not found)"
+              echo "::error::${framework} demo was not built (its library or demo build failed above); /${demo##*:}/ will 404 on Pages"
+              echo "- **${framework}** demo skipped: its library or demo build failed, \`/${demo##*:}/\` will 404" >> "$GITHUB_STEP_SUMMARY"
+              skipped="${skipped}${skipped:+ }${framework}"
             fi
           done
+          echo "skipped=${skipped}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
@@ -164,3 +175,19 @@ jobs:
         with:
           timeout: 600000
           error_count: 3
+
+  # Fails the run (without blocking the deploy above) when any demo was
+  # skipped, so a broken binding/demo build is a red run instead of a silent
+  # 404 on the live site.
+  demo-build-status:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any demo was skipped
+        run: |
+          skipped="${{ needs.build.outputs.skipped-demos }}"
+          if [ -n "$skipped" ]; then
+            echo "::error::Demos skipped in this deploy: ${skipped}. Their /demo-*/ paths will 404. Check the build job's binding/demo build steps."
+            exit 1
+          fi
+          echo "All demos built and bundled."
