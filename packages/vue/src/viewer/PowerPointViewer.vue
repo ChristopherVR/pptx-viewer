@@ -637,13 +637,22 @@ const {
 // empty-canvas tap; the typed text is remapped back onto the rich segments.
 const {
 	inlineEditingElementId,
-	inlineEditingText,
 	inlineEditingElement,
+	updateInlineText,
 	enterInlineEdit,
 	commitInlineEdit,
 	cancelInlineEdit,
 	commitTableCell,
-} = useInlineEditing({ canEdit: () => props.canEdit, findActiveElement, ops });
+} = useInlineEditing({
+	canEdit: () => props.canEdit,
+	findActiveElement,
+	ops,
+	// Live preview: mirror each keystroke into the shared doc so peers see
+	// typing before the editor commits. `collab` is declared further down; the
+	// accessors are only invoked from user input, long after setup.
+	livePatcher: () => collab.livePatcher,
+	activeSlide: () => activeSlide.value,
+});
 
 // ── Insert SmartArt / equation ────────────────────────────────────────
 // Declared before the drag/selection wiring below so `requestElementEdit`
@@ -2250,7 +2259,7 @@ function handleCommandSearch(command: string): void {
 							v-if="props.canEdit && inlineEditingElement"
 							:element="inlineEditingElement"
 							:spell-check="spellCheckEnabled"
-							@change="(t) => (inlineEditingText = t)"
+							@change="updateInlineText"
 							@commit="commitInlineEdit"
 							@cancel="cancelInlineEdit"
 							@format="ribbonUpdateTextStyle"

@@ -14,6 +14,7 @@ import type {
 } from 'pptx-viewer-shared';
 import {
 	CONNECTION_TIMEOUT_MS,
+	createCollaborationLivePatcher,
 	createPresencePublisher,
 	createSyncGate,
 	createWriteBackScheduler,
@@ -82,6 +83,10 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 	let lastConfig: CollaborationConfig | null = null;
 	let yFactories: YjsFactories | null = null;
 	let currentYDoc: YDocLike | null = null;
+	// Interim writes for state that has not reached `slides` yet (inline editor
+	// text). Attached in start(), detached in stop(), so every patch call is a
+	// safe no-op outside a session.
+	const livePatcher = createCollaborationLivePatcher();
 
 	const writeBack = createWriteBackScheduler({
 		getYDoc: () => currentYDoc,
@@ -174,6 +179,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 				createText: () => new Y.Text(),
 			};
 			currentYDoc = doc as unknown as YDocLike;
+			livePatcher.configure(currentYDoc, yFactories);
 
 			provider = await createCollabProvider(transport, config, doc);
 			awareness = provider.awareness;
@@ -336,6 +342,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		applyingRemote = false;
 		yFactories = null;
 		currentYDoc = null;
+		livePatcher.configure(null, null);
 		lastSynced = '';
 		status.value = 'disconnected';
 		active.value = false;
@@ -390,5 +397,6 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		setSelection,
 		setActiveSlide,
 		followUser,
+		livePatcher,
 	};
 }

@@ -1,7 +1,7 @@
 import { hasTextProperties } from 'pptx-viewer-core';
-import type { PptxElement } from 'pptx-viewer-core';
-import type { ViewerProofingOptions } from 'pptx-viewer-shared';
-import { applyAutoCorrect, setCellText } from 'pptx-viewer-shared';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { CollaborationLivePatcher, ViewerProofingOptions } from 'pptx-viewer-shared';
+import { applyAutoCorrect, publishLiveInlineText, setCellText } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -18,12 +18,22 @@ export interface UseInlineEditingInput {
 	 * loaded content is never rewritten).
 	 */
 	proofing?: () => ViewerProofingOptions | undefined;
+	/**
+	 * Collaboration live-preview channel. Typed text only reaches `slides` (and
+	 * therefore the Y.Doc reconcile) on commit, so peers saw nothing while a
+	 * peer typed; `updateInlineText` publishes each keystroke through this.
+	 */
+	livePatcher?: () => CollaborationLivePatcher | undefined;
+	/** The slide the edited element belongs to (needed by the live channel). */
+	activeSlide?: () => PptxSlide | undefined;
 }
 
 export interface UseInlineEditingResult {
 	inlineEditingElementId: Ref<string | null>;
 	inlineEditingText: Ref<string>;
 	inlineEditingElement: ComputedRef<PptxElement | undefined>;
+	/** Set the in-progress text and mirror it to collaborators. */
+	updateInlineText: (text: string) => void;
 	enterInlineEdit: (id: string) => void;
 	commitInlineEdit: () => void;
 	cancelInlineEdit: () => void;
@@ -50,6 +60,25 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 	const inlineEditingElement = computed<PptxElement | undefined>(() =>
 		inlineEditingElementId.value ? findActiveElement(inlineEditingElementId.value) : undefined,
 	);
+
+	/**
+	 * Publish everything queued on the live channel right now. Called before a
+	 * commit/cancel so a queued interim frame cannot land AFTER the committed
+	 * (AutoCorrected) text and revert it.
+	 */
+	function flushLiveText(): void {
+		input.livePatcher?.()?.flush();
+	}
+
+	function updateInlineText(text: string): void {
+		inlineEditingText.value = text;
+		publishLiveInlineText(
+			input.livePatcher?.(),
+			input.activeSlide?.(),
+			inlineEditingElementId.value,
+			text,
+		);
+	}
 
 	function enterInlineEdit(id: string): void {
 		const el = findActiveElement(id);
@@ -79,6 +108,7 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 		const el = findActiveElement(id) as
 			| (PptxElement & { textSegments?: unknown; textStyle?: unknown })
 			| undefined;
+		flushLiveText();
 		const text = autoCorrect(inlineEditingText.value);
 		inlineEditingElementId.value = null;
 		if (el) {
@@ -91,6 +121,7 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 		}
 	}
 	function cancelInlineEdit(): void {
+		flushLiveText();
 		inlineEditingElementId.value = null;
 	}
 	/**
@@ -119,6 +150,7 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 		inlineEditingElementId,
 		inlineEditingText,
 		inlineEditingElement,
+		updateInlineText,
 		enterInlineEdit,
 		commitInlineEdit,
 		cancelInlineEdit,
