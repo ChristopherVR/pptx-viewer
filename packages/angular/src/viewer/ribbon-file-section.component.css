@@ -274,9 +274,52 @@ footer {
 	font-size: 11px;
 }
 
-@media (max-width: 700px) {
+/*
+ * Mobile backstage: the fixed 148px vertical rail + big clamped padding is
+ * cramped/broken on phones. Match React's responsive File view (and the rest of
+ * Angular's mobile chrome breakpoint): stack the root, turn the rail into a
+ * horizontal scrollable tab bar with a bottom indicator, hide the flex spacer,
+ * and give the content pane compact padding.
+ */
+@media (max-width: 640px), (pointer: coarse) {
+	.bs {
+		flex-direction: column;
+	}
 	.bs aside {
-		width: 112px;
+		width: 100%;
+		flex-direction: row;
+		align-items: center;
+		overflow-x: auto;
+		border-right: 0;
+		border-bottom: 1px solid var(--pptx-border, #d7d7d7);
+	}
+	.back {
+		min-width: 48px;
+		flex-shrink: 0;
+		border-bottom: 0;
+		border-right: 1px solid var(--pptx-border, #ddd);
+	}
+	nav {
+		flex-direction: row;
+		align-items: center;
+		padding: 0;
+	}
+	nav i {
+		display: none;
+	}
+	nav button {
+		flex-shrink: 0;
+		white-space: nowrap;
+		border-left: 0;
+		border-bottom: 2px solid transparent;
+		padding: 0 12px;
+	}
+	nav button.active {
+		border-left-color: transparent;
+		border-bottom-color: var(--pptx-primary, #c43e1c);
+	}
+	main {
+		padding: 16px;
 	}
 	.actions {
 		grid-template-columns: 1fr;

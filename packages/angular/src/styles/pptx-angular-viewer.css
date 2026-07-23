@@ -771,17 +771,20 @@ pptx-element-renderer {
 	   the component's Tailwind `w-80 h-full border-l` so the canvas above stays
 	   visible and interactive (the panel is a flex sibling, not an overlay, so
 	   without this it keeps `height:100%` and squeezes the canvas to nothing).
-	   Matches React's mobile bottom sheet (max-h 60vh, rounded top, top border,
-	   no left border). Un-layered so it beats the Tailwind `utilities` layer. */
+	   Matches React's mobile bottom sheet (fixed 75dvh so it reads as a proper
+	   sheet rather than shrinking to its content, rounded top, top border, no
+	   left border, elevated shadow). Un-layered so it beats the Tailwind
+	   `utilities` layer. */
 	.pptx-ng-ai-panel {
 		flex: 0 0 auto;
 		width: 100%;
-		height: auto;
-		max-height: 60vh;
+		height: 75dvh;
+		max-height: 75dvh;
 		border-left: none;
 		border-top: 1px solid var(--pptx-border, #374151);
-		border-top-left-radius: 0.75rem;
-		border-top-right-radius: 0.75rem;
+		border-top-left-radius: 1rem;
+		border-top-right-radius: 1rem;
+		box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.35);
 	}
 
 	/* Reveal the swipe-down grab handle when the host is a mobile bottom drawer. */

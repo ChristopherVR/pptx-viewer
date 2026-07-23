@@ -126,6 +126,42 @@ import { toolbarVisibility } from './toolbar-visibility';
 			<div class="pptx-ng-mtoolbar-spacer"></div>
 
 			<!--
+				AI assistant toggle: surfaced in the top-right on mobile too. The
+				mobile toolbar replaces the desktop ribbon (which carries the AI
+				toggle), so without this the assistant is unreachable on phones.
+				Gated on the host opting in via the 'ai' config (aiEnabled) and on
+				edit mode, mirroring the desktop ribbon.
+			-->
+			@if (canEdit() && aiEnabled()) {
+				<button
+					type="button"
+					class="pptx-ng-mtoolbar-btn"
+					[class.is-active]="aiPanelOpen()"
+					[attr.aria-pressed]="aiPanelOpen() ? true : null"
+					[attr.aria-label]="'pptx.toolbar.toggleAiAssistant' | translate"
+					[title]="'pptx.toolbar.toggleAiAssistant' | translate"
+					(click)="toggleAiPanel.emit()"
+				>
+					<svg
+						class="pptx-ng-mtoolbar-icon"
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path
+							d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+						/>
+						<path d="M20 3v4 M22 5h-4 M4 17v2 M5 18H3" />
+					</svg>
+				</button>
+			}
+
+			<!--
 				Save / download: surfaced directly so it's reachable without the
 				Menu sheet, and available even in view-only mode where the editor
 				controls above are hidden.
@@ -259,11 +295,17 @@ export class MobileToolbarComponent {
 	readonly canEdit = input<boolean>(false);
 	/** Whether the mobile-menu sheet is currently open (highlights the button). */
 	readonly menuOpen = input<boolean>(false);
+	/** Whether the host opted into the AI assistant (shows the top-right toggle). */
+	readonly aiEnabled = input<boolean>(false);
+	/** Whether the AI assistant panel is currently open (highlights the button). */
+	readonly aiPanelOpen = input<boolean>(false);
 	/** Toolbar buttons the host wants hidden (gates Undo/Redo independently). */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
 
 	/** User tapped the Menu (hamburger) button. */
 	readonly toggleMenu = output<void>();
+	/** User tapped the AI assistant toggle. */
+	readonly toggleAiPanel = output<void>();
 	/** User tapped Undo. */
 	readonly undo = output<void>();
 	/** User tapped Redo. */
