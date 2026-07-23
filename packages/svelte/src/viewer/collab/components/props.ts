@@ -1,3 +1,4 @@
+import type { PptxElement } from 'pptx-viewer-core';
 import type {
 	BroadcastConfig,
 	BroadcastDefaults,
@@ -69,6 +70,18 @@ export interface CollaborationCursorsProps {
 	/** Remote collaborators to render, in unscaled slide coordinates. */
 	cursors: RemoteCursor[];
 	/** Current canvas zoom factor; cursor positions scale by this. */
+	zoom: number;
+}
+
+/** Props for the remote-selection overlay. */
+export interface RemoteSelectionOverlayProps {
+	/** Remote collaborators' presence (selection + active slide), excludes self. */
+	presences: SanitizedPresence[];
+	/** Elements on the active slide; selected ids resolve against these. */
+	elements: PptxElement[];
+	/** The current slide index; only peers on this slide are drawn. */
+	activeSlideIndex: number;
+	/** Current canvas zoom factor; element geometry scales by this. */
 	zoom: number;
 }
 

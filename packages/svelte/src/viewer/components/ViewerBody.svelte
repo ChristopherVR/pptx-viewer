@@ -7,7 +7,7 @@
 	 */
 	import { setSmartArtNodeStyle, updateSmartArtNodeText } from 'pptx-viewer-core';
 	import type { PptxHandler, PptxSlide, PptxTheme, TextSegment } from 'pptx-viewer-core';
-	import type { CanvasSize, RemoteCursor } from 'pptx-viewer-shared';
+	import type { CanvasSize, RemoteCursor, SanitizedPresence } from 'pptx-viewer-shared';
 	import { setCellText, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 	import type { AiChangeBatch } from 'pptx-viewer-shared/ai';
 
@@ -15,6 +15,7 @@
 	import AiChangeOverlay from './ai/AiChangeOverlay.svelte';
 	import AiFocusHighlightOverlay from './ai/AiFocusHighlightOverlay.svelte';
 	import CollaborationCursors from '../collab/components/CollaborationCursors.svelte';
+	import RemoteSelectionOverlay from '../collab/components/RemoteSelectionOverlay.svelte';
 	import type { EditorController } from '../editor/editor-controller.svelte';
 	import type { EditorState } from '../editor/editor-state.svelte';
 	import type { ChromeUiState } from '../state/chrome-ui.svelte';
@@ -63,6 +64,7 @@
 		onNotesCommit,
 		onNotesToggle,
 		collabCursors = [],
+		collabPresences = [],
 		contextMenu,
 		onContextMenuClose,
 		onmoveSlide,
@@ -113,6 +115,8 @@
 		onNotesToggle: () => void;
 		/** Remote collaborators' cursors on the active slide (unscaled slide px). */
 		collabCursors?: RemoteCursor[];
+		/** Remote collaborators' presence (drives the remote-selection overlay). */
+		collabPresences?: SanitizedPresence[];
 		/** Open element menu position, supplied by the editing controller. */
 		contextMenu: { x: number; y: number } | null;
 		onContextMenuClose: () => void;
@@ -262,6 +266,14 @@
 						<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />
 					{/if}
 					{#if presenting}<PresentationAnnotationOverlay {annotations} {current} {canvasSize} />{/if}
+					{#if collabPresences.length > 0}
+						<RemoteSelectionOverlay
+							presences={collabPresences}
+							elements={activeSlide?.elements ?? []}
+							activeSlideIndex={current}
+							zoom={scale}
+						/>
+					{/if}
 					{#if collabCursors.length > 0}
 						<CollaborationCursors cursors={collabCursors} zoom={scale} />
 					{/if}

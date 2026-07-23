@@ -951,6 +951,7 @@
 		onNotesCommit={editable || onnotesupdate ? onNotesCommit : undefined}
 		{onNotesToggle}
 		collabCursors={collab.cursors}
+		collabPresences={collab.remotePresences}
 		contextMenu={stageContextMenu}
 		onContextMenuClose={() => { stageContextMenu = null; }}
 		onmoveSlide={(fromIndex, toIndex) => {
