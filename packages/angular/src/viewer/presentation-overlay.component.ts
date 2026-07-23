@@ -29,6 +29,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
+import { createPresentationKeyBuffer, mapPresentationKey } from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
 import { PresentationAnnotationOverlayComponent } from './presentation-annotation-overlay.component';
 import { PresentationAnnotationsService } from './presentation-annotations.service';
@@ -246,8 +247,11 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 					/>
 				}
 
-				<!-- Ink annotation overlay (pen/highlighter/eraser/laser). -->
-				<pptx-presentation-annotation-overlay [canvasSize]="canvasSize()" [zoom]="zoom()" />
+				<!-- Ink annotation overlay (pen/highlighter/eraser/laser). Ctrl+M
+				     hides the markup without discarding the strokes. -->
+				@if (inkMarkupVisible()) {
+					<pptx-presentation-annotation-overlay [canvasSize]="canvasSize()" [zoom]="zoom()" />
+				}
 			</div>
 			@if (presenterWindow.snapshot().blackout !== 'none') {
 				<div class="presenter-blank" [style.background]="presenterWindow.snapshot().blackout"></div>
@@ -389,6 +393,8 @@ export class PresentationOverlayComponent implements OnInit {
 
 	/** Zero-based index into `slides()`. */
 	protected readonly currentIndex = signal(0);
+	/** PowerPoint's Ctrl+M: hide ink markup without discarding the strokes. */
+	protected readonly inkMarkupVisible = signal(true);
 	private readonly syncExternalIndex = effect(() => {
 		const count = this.slides().length;
 		if (count === 0) {
@@ -793,35 +799,65 @@ export class PresentationOverlayComponent implements OnInit {
 	// Keyboard navigation (document-level: works even when nothing is focused)
 	// ------------------------------------------------------------------
 
+	/** Digit buffer backing PowerPoint's "type a slide number, then Enter" jump. */
+	private readonly keyBuffer = createPresentationKeyBuffer();
+
 	@HostListener('document:keydown', ['$event'])
 	onKeyDown(event: KeyboardEvent): void {
-		switch (event.key) {
-			case 'ArrowRight':
-			case ' ':
-			case 'PageDown':
-				event.preventDefault();
+		const mapped = mapPresentationKey(event, this.keyBuffer);
+		if (mapped.action === 'none') {
+			return;
+		}
+		event.preventDefault();
+
+		switch (mapped.action) {
+			case 'next':
 				this.navigate('next');
 				break;
-			case 'ArrowLeft':
-			case 'PageUp':
-				event.preventDefault();
+			case 'previous':
 				this.navigate('prev');
 				break;
-			case 'Home':
-				event.preventDefault();
+			case 'first':
 				this.navigate('first');
 				break;
-			case 'End':
-				event.preventDefault();
+			case 'last':
 				this.navigate('last');
 				break;
-			case 'Escape':
-				event.preventDefault();
+			case 'goto': {
+				const index = mapped.slideNumber - 1;
+				if (index >= 0 && index < this.slides().length) {
+					this.goToSlide(index);
+				}
+				break;
+			}
+			case 'end':
 				this.emitClosed();
+				break;
+			case 'pointerTool':
+				// PowerPoint's Ctrl+A "arrow" is the plain pointer: no active tool.
+				this.annotations.setTool(mapped.tool === 'arrow' ? 'none' : mapped.tool);
+				break;
+			case 'eraseAnnotations':
+				this.annotations.clearAnnotations();
+				break;
+			case 'toggleInkMarkup':
+				this.inkMarkupVisible.update((visible) => !visible);
+				break;
+			case 'toggleBlackScreen':
+				this.toggleBlank('black');
+				break;
+			case 'toggleWhiteScreen':
+				this.toggleBlank('white');
 				break;
 			default:
 				break;
 		}
+	}
+
+	/** Toggle PowerPoint's blank black/white screen (B/W, or `.`/`,`). */
+	private toggleBlank(value: 'black' | 'white'): void {
+		const current = this.presenterWindow.snapshot().blackout;
+		this.presenterWindow.updateSnapshot({ blackout: current === value ? 'none' : value });
 	}
 
 	// ------------------------------------------------------------------
