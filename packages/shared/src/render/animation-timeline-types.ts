@@ -65,6 +65,54 @@ export type EffectName =
 	| 'flash';
 
 // ==========================================================================
+// Staged-build reveal descriptors (p:bldChart / p:bldDgm)
+// ==========================================================================
+
+/**
+ * Normalized staged-reveal mode for a chart graphic frame, derived from the
+ * OOXML `a:bldChart/@bld` (or `p:bldOleChart/@bld`) token:
+ *  - `asOne`      the whole chart appears at once (`allAtOnce`).
+ *  - `bySeries`   one data series is revealed per stage (`series`).
+ *  - `byCategory` one category is revealed per stage (`category`).
+ *  - `byElement`  one series/category ELEMENT is revealed per stage
+ *                 (`seriesElement` / `categoryElement`).
+ */
+export type ChartBuildMode = 'asOne' | 'bySeries' | 'byCategory' | 'byElement';
+
+/**
+ * Normalized staged-reveal mode for a SmartArt diagram, derived from the OOXML
+ * `a:bldDgm/@bld` or `p:bldDgm/@bld` token:
+ *  - `asOne`        the whole diagram appears at once (`whole` / `allAtOnce`).
+ *  - `byOne`        one node is revealed per stage (`one`, and the assorted
+ *                   `depthBy*` / `breadthBy*` / directional traversals).
+ *  - `byLvl`        levels are revealed one element at a time (`lvlOne`).
+ *  - `byLvlAtOnce`  a whole level is revealed per stage (`lvlAtOnce`).
+ */
+export type DiagramBuildMode = 'asOne' | 'byOne' | 'byLvl' | 'byLvlAtOnce';
+
+/**
+ * Static staged-build descriptor attached to a {@link TimelineStep}. Carries
+ * only the graphic KIND + normalized MODE; the per-tick reveal fraction is
+ * computed separately (see {@link ElementBuildState.progress}) because it is a
+ * function of playback time, not of the parsed animation.
+ */
+export type StepBuildDescriptor =
+	| { kind: 'chart'; mode: ChartBuildMode }
+	| { kind: 'diagram'; mode: DiagramBuildMode };
+
+/**
+ * Playback-time staged-build state surfaced on {@link ElementAnimationState}.
+ * `progress` is the 0..1 fraction of the build revealed at the current playback
+ * time; a consumer maps it to its own item COUNT (see `revealedStageCount`).
+ */
+export type ElementBuildState =
+	| { kind: 'chart'; mode: ChartBuildMode; progress: number }
+	| { kind: 'diagram'; mode: DiagramBuildMode; progress: number };
+
+/** Which shape paint property an active `p:animClr` color animation targets. */
+export type ColorAnimationTarget = 'fill' | 'stroke';
+
+// ==========================================================================
 // Simple sequenced animation step (AnimationSequencer model)
 // ==========================================================================
 
@@ -128,6 +176,21 @@ export interface TimelineStep {
 	 * instead. See {@link TimelineStepCommand}.
 	 */
 	command?: TimelineStepCommand;
+	/**
+	 * Staged-build descriptor when this step reveals a chart / SmartArt diagram
+	 * in stages (`p:bldChart` / `p:bldDgm`) rather than as one whole element.
+	 * Present alongside the normal `cssAnimation` (the wrapper still fades in);
+	 * a staged-reveal renderer additionally reads the descriptor + the step's
+	 * {@link delayMs}/{@link durationMs} to compute how much is revealed over
+	 * time. Absent for ordinary whole-element entrances.
+	 */
+	build?: StepBuildDescriptor;
+	/**
+	 * Shape paint targets of an active `p:animClr` color animation on this step,
+	 * if any. Lets a vector renderer set `fill: inherit` / `stroke: inherit` on
+	 * the painted path so the wrapper-level colour keyframes cascade through.
+	 */
+	colorTargets?: readonly ColorAnimationTarget[];
 }
 
 /** A group of animation steps that play on a single click/advance action. */
@@ -179,6 +242,29 @@ export interface ElementAnimationState {
 	visible: boolean;
 	/** CSS animation shorthand to apply (undefined = no active animation). */
 	cssAnimation: string | undefined;
+	/**
+	 * Staged-build reveal state, present only when the active animation builds a
+	 * chart or SmartArt diagram in stages (`p:bldChart` / `p:bldDgm`) rather than
+	 * revealing the whole element at once. A staged renderer multiplies
+	 * `build.progress` (0..1) by its own series / category / level COUNT to
+	 * decide how many stages are revealed at the current playback time; see
+	 * {@link import('./animation-build').revealedStageCount}. Absent for ordinary
+	 * whole-element entrances, so existing renderers are unaffected.
+	 */
+	build?: ElementBuildState;
+	/**
+	 * True when an active `p:animClr` color animation targets this shape's fill.
+	 * A vector renderer should then paint the fill with `fill: inherit` so the
+	 * wrapper-level colour keyframes cascade to the SVG path. Absent/false means
+	 * no active fill-colour animation.
+	 */
+	animatesFill?: boolean;
+	/**
+	 * True when an active `p:animClr` color animation targets this shape's
+	 * stroke. A vector renderer should then paint the stroke with
+	 * `stroke: inherit`. Absent/false means no active stroke-colour animation.
+	 */
+	animatesStroke?: boolean;
 }
 
 /**

@@ -106,6 +106,9 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				for (const anim of animations) {
 					if (anim.targetId === entry.spid) {
 						anim.groupId = entry.grpId;
+						// Preserve the staged-build token so the timeline can reveal the
+						// OLE chart by series / category / element (PowerPoint parity).
+						anim.oleChartBuild = entry.bld;
 					}
 				}
 			}

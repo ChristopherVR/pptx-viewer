@@ -9,12 +9,21 @@
 
 import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
+import { applyStepBuildMetadata } from './animation-build';
+import type { ElementBuildStateOptions } from './animation-build';
 import { buildTimeline } from './animation-timeline-builder';
 import type {
 	AnimationTimeline,
 	TimelineClickGroup,
+	TimelineStep,
 	ElementAnimationState,
 } from './animation-timeline-types';
+
+/**
+ * Options for {@link TimelineEngine.getElementStates}. Re-exported alias of
+ * {@link ElementBuildStateOptions} so callers can import it from the engine.
+ */
+export type ElementStatesOptions = ElementBuildStateOptions;
 
 // ==========================================================================
 // TimelineEngine — stateful playback controller
@@ -32,6 +41,12 @@ export class TimelineEngine {
 	 * that have been triggered so far (cumulative).
 	 */
 	private readonly activeAnimations: Map<string, string>;
+	/**
+	 * Map of elementId → the most recently applied step carrying a staged-build
+	 * or colour-target descriptor. Used to surface `build` / `animatesFill` /
+	 * `animatesStroke` on {@link ElementAnimationState}.
+	 */
+	private readonly activeSteps: Map<string, TimelineStep>;
 	/**
 	 * Set of element IDs whose entrance animation has played.
 	 * These elements become visible.
@@ -57,6 +72,7 @@ export class TimelineEngine {
 		this.timeline = timeline;
 		this.currentGroupIndex = -1;
 		this.activeAnimations = new Map();
+		this.activeSteps = new Map();
 		this.revealedElements = new Set();
 		this.exitedElements = new Set();
 		this.interactiveGroupIndexes = new Map();
@@ -175,13 +191,18 @@ export class TimelineEngine {
 	 * Build a snapshot of the current animation state for all elements.
 	 * Returns a map: elementId → { visible, cssAnimation }.
 	 */
-	public getElementStates(elementIds: ReadonlyArray<string>): Map<string, ElementAnimationState> {
+	public getElementStates(
+		elementIds: ReadonlyArray<string>,
+		options?: ElementStatesOptions,
+	): Map<string, ElementAnimationState> {
 		const states = new Map<string, ElementAnimationState>();
 		for (const id of elementIds) {
-			states.set(id, {
+			const state: ElementAnimationState = {
 				visible: this.isElementVisible(id),
 				cssAnimation: this.activeAnimations.get(id),
-			});
+			};
+			applyStepBuildMetadata(state, this.activeSteps.get(id), options);
+			states.set(id, state);
 		}
 		return states;
 	}
@@ -278,6 +299,7 @@ export class TimelineEngine {
 	public reset(): void {
 		this.currentGroupIndex = -1;
 		this.activeAnimations.clear();
+		this.activeSteps.clear();
 		this.revealedElements.clear();
 		this.exitedElements.clear();
 		this.interactiveGroupIndexes.clear();
@@ -290,6 +312,9 @@ export class TimelineEngine {
 	private applyGroupSteps(group: TimelineClickGroup): void {
 		for (const step of group.steps) {
 			this.activeAnimations.set(step.elementId, step.cssAnimation);
+			if (step.build || step.colorTargets) {
+				this.activeSteps.set(step.elementId, step);
+			}
 
 			if (step.presetClass === 'entr') {
 				this.revealedElements.add(step.elementId);

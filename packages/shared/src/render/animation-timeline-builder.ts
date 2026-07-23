@@ -9,6 +9,8 @@
 import type { PptxNativeAnimation, PptxAnimationTrigger } from 'pptx-viewer-core';
 
 import { resolveAnimationStart } from './animation-advanced-triggers';
+import { resolveStepBuildDescriptor } from './animation-build';
+import { resolveColorAnimationTargets } from './animation-color';
 import { buildDirectionalKeyframe } from './animation-directional';
 import { getEffectKeyframes } from './animation-keyframes';
 import { isMediaCommandAnimation, buildStepCommand } from './animation-media-commands';
@@ -68,6 +70,18 @@ function cssEasingForAnimation(anim: PptxNativeAnimation): string {
 	const x1 = accel.toFixed(3);
 	const x2 = (1 - decel).toFixed(3);
 	return `cubic-bezier(${x1}, 0, ${x2}, 1)`;
+}
+
+/**
+ * Resolve the active-color-animation paint targets for a step, or `undefined`
+ * when the animation drives no fill / stroke colour (so the field stays absent).
+ */
+function stepColorTargets(anim: PptxNativeAnimation): TimelineStep['colorTargets'] {
+	if (!anim.colorAnimation) {
+		return undefined;
+	}
+	const targets = resolveColorAnimationTargets(anim.colorAnimation.targetAttribute);
+	return targets.length > 0 ? targets : undefined;
 }
 
 function fallbackEffectForClass(
@@ -280,6 +294,8 @@ export function buildTimeline(
 				soundPath: singleAnim.soundPath,
 				stopSound: singleAnim.stopSound,
 				command: isCommand ? buildStepCommand(singleAnim) : undefined,
+				build: isCommand ? undefined : resolveStepBuildDescriptor(singleAnim),
+				colorTargets: isCommand ? undefined : stepColorTargets(singleAnim),
 			});
 		}
 	}
@@ -466,6 +482,8 @@ function buildSequenceGroups(
 				presetClass: presetClass as TimelineStep['presetClass'],
 				soundPath: anim.soundPath,
 				stopSound: anim.stopSound,
+				build: resolveStepBuildDescriptor(anim),
+				colorTargets: stepColorTargets(anim),
 			});
 		}
 

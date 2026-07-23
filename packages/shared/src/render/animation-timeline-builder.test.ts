@@ -478,4 +478,50 @@ describe('buildTimeline', () => {
 		]);
 		expect(result.clickGroups[0].steps[0].keyframeName).toBe('pptx-wipeIn');
 	});
+
+	// -------------------------------------------------------------------
+	// Staged-build + colour-target descriptors
+	// -------------------------------------------------------------------
+	it('attaches a chart staged-build descriptor from graphicBuildProperties', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'chart1',
+				graphicBuildProperties: {
+					mode: 'sub',
+					kind: 'chart',
+					build: 'series',
+					animateBackground: true,
+				},
+			}),
+		]);
+		expect(result.clickGroups[0].steps[0].build).toStrictEqual({
+			kind: 'chart',
+			mode: 'bySeries',
+		});
+	});
+
+	it('attaches a diagram staged-build descriptor from smartArtBuild', () => {
+		const result = buildTimeline([makeAnim({ targetId: 'dgm1', smartArtBuild: 'lvlOne' })]);
+		expect(result.clickGroups[0].steps[0].build).toStrictEqual({
+			kind: 'diagram',
+			mode: 'byLvl',
+		});
+	});
+
+	it('leaves build undefined for a whole-element (asOne) build', () => {
+		const result = buildTimeline([makeAnim({ targetId: 'el1', smartArtBuild: 'whole' })]);
+		expect(result.clickGroups[0].steps[0].build).toBeUndefined();
+	});
+
+	it('attaches colour targets from an active fill colour animation', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'shape1',
+				presetClass: 'emph',
+				presetId: undefined,
+				colorAnimation: { colorSpace: 'rgb', toColor: '#ff0000', targetAttribute: 'fillcolor' },
+			}),
+		]);
+		expect(result.clickGroups[0].steps[0].colorTargets).toStrictEqual(['fill']);
+	});
 });
