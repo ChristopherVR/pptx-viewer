@@ -11,6 +11,7 @@ import {
 	isMixedContentBlocked,
 	LOCAL_SYNC_ORIGIN,
 	observeYDocSlides,
+	registerCollaborationTeardown,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
@@ -292,6 +293,19 @@ export function createCollaborationController(
 		setStatus('disconnected');
 	}
 
+	// Viewer destruction is not the only way a session ends: a tab close, a
+	// navigation, or an embedding page detaching the viewer's iframe destroys the
+	// document without running any of our teardown, leaving a ghost peer in
+	// everyone else's presence list. Leave the room from `pagehide` too.
+	const disposeTeardown = registerCollaborationTeardown({
+		leave: stop,
+		rejoin: () => {
+			if (lastConfig) {
+				void start(lastConfig);
+			}
+		},
+	});
+
 	return {
 		start,
 		stop,
@@ -305,6 +319,9 @@ export function createCollaborationController(
 		getConfig: () => lastConfig,
 		beginContentLoad,
 		notifyContentLoaded,
-		destroy: stop,
+		destroy: () => {
+			disposeTeardown();
+			stop();
+		},
 	};
 }
