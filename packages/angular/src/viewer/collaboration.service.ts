@@ -22,51 +22,30 @@ import type {
 	CollaborationConfig,
 	CollaborationLivePatcher,
 	CollaborationRole,
-	CollaborationTransport,
 	ConnectionStatus,
-	DepartureChannel,
-	YjsFactories,
-	YTransactionLike,
 } from '../internal/shared';
 import {
-	CONNECTION_TIMEOUT_MS,
-	LOCAL_SYNC_ORIGIN,
-	YDOC_SLIDES_KEY,
-	clearLocalAwareness,
 	createCollaborationLivePatcher,
-	createSyncGate,
 	derivePresenceList,
 	isMixedContentBlocked,
-	observeYDocSlides,
 	presenceToCursors,
-	readSlidesFromYDoc,
-	reconcileSlidesInYDoc,
 	registerCollaborationTeardown,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from '../internal/shared';
-import { DEFAULT_CURSOR_COLOR } from './collaboration-helpers';
 import type { RemoteCursor, RemotePresence } from './collaboration-helpers';
-import { LocalPresencePublisher } from './collaboration-local-presence';
 import { createWebrtcBundle, createWebsocketBundle } from './collaboration-providers';
-import type { AwarenessLike, DestroyableYDoc, ProviderLike } from './collaboration-providers';
+import type { ActiveSession, ConnectOptions } from './collaboration-session-setup';
+import { activateSession, teardownSession } from './collaboration-session-setup';
+import { SlideSyncEngine } from './collaboration-slide-sync';
 import { WriteBackScheduler } from './collaboration-writeback';
 import type { TemplateElementsBySlideId } from './template-mode';
 
-export interface ConnectOptions {
-	onRemoteSlides?: (slides: PptxSlide[]) => void;
-	canvasWidth?: number;
-	canvasHeight?: number;
-	getSourceBytes?: () => Uint8Array | null;
-	/**
-	 * Returns the editor's separated template (master/layout) elements keyed by
-	 * slide id, so the elected-writer write-back can merge them back into the
-	 * broadcast (template-free) slides before serializing. Without this, template
-	 * edits would be dropped from the persisted deck.
-	 */
-	getTemplateElements?: () => TemplateElementsBySlideId;
-}
+// Re-exported so existing importers of `ConnectOptions` from this module keep
+// resolving after the interface moved to collaboration-session-setup.ts.
+export type { ConnectOptions } from './collaboration-session-setup';
 
+/** Sentinel canvas bound used until the host reports real dimensions. */
 const DEFAULT_CANVAS_BOUND = 100_000;
 
 @Injectable()
@@ -105,26 +84,13 @@ export class CollaborationService {
 	 */
 	readonly livePatcher: CollaborationLivePatcher = createCollaborationLivePatcher();
 
-	// Internal handles
-	private ydoc: DestroyableYDoc | null = null;
-	private provider: ProviderLike | null = null;
-	private awareness: AwarenessLike | null = null;
-	private departure: DepartureChannel | null = null;
-	private selfId = -1;
-	private applyingRemote = false;
-	private yFactories: YjsFactories | null = null;
-	private lastSynced = '';
-	private connectTimer: ReturnType<typeof setTimeout> | null = null;
-	private unobserveSlides: (() => void) | null = null;
+	// The live session's transport objects + wiring handles, owned as one atomic
+	// unit: null when disconnected, assigned by connect(), disposed by
+	// disconnect(). See collaboration-session-setup.ts.
+	private session: ActiveSession | null = null;
 	private readonly writeBack = new WriteBackScheduler();
-	/**
-	 * First-write gate: local broadcasts are suppressed (captured as pending)
-	 * until the provider confirms its initial sync or the grace period lifts
-	 * the gate, so a late joiner never seeds its placeholder deck into a room
-	 * whose real content has not arrived yet.
-	 */
-	private readonly syncGate = createSyncGate(() => this.flushPendingBroadcast());
-	private pendingBroadcast: readonly PptxSlide[] | null = null;
+	/** Granular local<->doc slide sync (gate + echo dedupe + broadcast/adopt). */
+	private readonly slideSync = new SlideSyncEngine();
 
 	private onRemoteSlides: ((slides: PptxSlide[]) => void) | null = null;
 	private canvasWidth = DEFAULT_CANVAS_BOUND;
@@ -134,7 +100,6 @@ export class CollaborationService {
 	private currentConfig: CollaborationConfig | null = null;
 	private lastConfig: CollaborationConfig | null = null;
 	private lastOptions: ConnectOptions = {};
-	private localPresence: LocalPresencePublisher | null = null;
 	/**
 	 * Reentrancy token for {@link connect}: bumped by every connect() and
 	 * disconnect(). A connect() whose token no longer matches after an await was
@@ -145,17 +110,13 @@ export class CollaborationService {
 	private connectToken = 0;
 
 	private readonly refreshPresence = (): void => {
-		if (!this.awareness) {
+		const s = this.session;
+		if (!s) {
 			this.presence.set([]);
 			return;
 		}
 		this.presence.set(
-			derivePresenceList(
-				this.awareness.getStates(),
-				this.selfId,
-				this.canvasWidth,
-				this.canvasHeight,
-			),
+			derivePresenceList(s.awareness.getStates(), s.selfId, this.canvasWidth, this.canvasHeight),
 		);
 	};
 
@@ -223,31 +184,20 @@ export class CollaborationService {
 				bundle.doc.destroy();
 				return;
 			}
-			this.departure = bundle.departure;
-			this.ydoc = bundle.doc;
-			this.yFactories = bundle.factories;
-			this.livePatcher.configure(bundle.doc, bundle.factories);
-			this.provider = bundle.provider;
-			this.awareness = bundle.awareness;
-			this.selfId = this.awareness.clientID ?? -1;
-			this.localPresence = new LocalPresencePublisher(this.awareness, {
-				userName: config.userName,
-				userColor: config.userColor ?? DEFAULT_CURSOR_COLOR,
-				userAvatar: config.userAvatar,
-				role: config.role,
+			this.session = activateSession(bundle, config, transport, {
+				slideSync: this.slideSync,
+				livePatcher: this.livePatcher,
+				onRemoteSlides: this.onRemoteSlides,
+				refreshPresence: this.refreshPresence,
+				scheduleWriteBack: () => this.scheduleWriteBack(),
+				setStatus: (status) => this.status.set(status),
+				getStatus: () => this.status(),
+				isActive: () => this.active(),
+				failConnection: () => {
+					this.disconnect();
+					this.status.set('error');
+				},
 			});
-
-			this.localPresence.publish();
-			this.awareness.on('change', this.refreshPresence);
-			this.awareness.on('update', this.refreshPresence);
-
-			this.wireStatus(transport);
-			this.syncGate.reset();
-			this.wireSynced();
-
-			this.unobserveSlides = observeYDocSlides(this.ydoc, (_events, transaction) =>
-				this.onRemoteChange(transaction),
-			);
 
 			this.active.set(true);
 			this.refreshPresence();
@@ -268,149 +218,16 @@ export class CollaborationService {
 		}
 	}
 
-	/** Wire the provider status events + (websocket-only) connection timeout. */
-	private wireStatus(transport: CollaborationTransport): void {
-		const provider = this.provider;
-		if (!provider) {
-			return;
-		}
-		if (transport === 'webrtc') {
-			// P2P: no server round-trip to wait on. Treat "created" as connected,
-			// and reflect explicit disconnect events.
-			this.status.set('connected');
-			provider.on('status', (payload) => {
-				if (payload.connected === false && this.active()) {
-					this.status.set('disconnected');
-					// Re-arm on (re)connect: without this, a peer that drops and
-					// rejoins keeps the gate permanently open from the first
-					// connection and can clobber the room with a stale local doc.
-					this.syncGate.reset();
-					this.syncGate.arm();
-				} else if (payload.connected === true) {
-					this.status.set('connected');
-				}
-			});
-			return;
-		}
-		provider.on('status', (payload) => {
-			if (payload.status === 'connected') {
-				this.clearConnectTimer();
-				this.status.set('connected');
-			} else if (payload.status === 'disconnected' && this.active()) {
-				this.status.set('disconnected');
-				this.syncGate.reset();
-				this.syncGate.arm();
-			}
-		});
-		if (provider.wsconnected) {
-			this.status.set('connected');
-			return;
-		}
-		this.connectTimer = setTimeout(() => {
-			this.connectTimer = null;
-			if (this.status() !== 'connected') {
-				this.disconnect();
-				this.status.set('error');
-			}
-		}, CONNECTION_TIMEOUT_MS);
-	}
-
-	/**
-	 * Open the first-write gate on the provider's initial-sync confirmation.
-	 * y-websocket emits 'sync' with a boolean; y-webrtc emits 'synced' with an
-	 * object carrying a `synced` flag (and only once a peer syncs, hence the
-	 * grace timer). Listen to both; opening is idempotent.
-	 */
-	private wireSynced(): void {
-		const provider = this.provider;
-		if (!provider) {
-			return;
-		}
-		const handle = (payload: unknown): void => {
-			const flag = payload as boolean | { synced?: boolean } | undefined;
-			const isSynced = typeof flag === 'boolean' ? flag : flag?.synced !== false;
-			if (isSynced) {
-				this.syncGate.open();
-			}
-		};
-		provider.on('sync', handle);
-		provider.on('synced', handle);
-		if (provider.synced === true) {
-			this.syncGate.open();
-		} else {
-			this.syncGate.arm();
-		}
-	}
-
-	/**
-	 * Perform the deferred first broadcast once the gate opens. When the doc is
-	 * still empty (fresh room, or nobody else present), clear the baseline so
-	 * the pending deck actually seeds it; when remote content already arrived,
-	 * the pending deck matches the applied baseline and the write is a no-op.
-	 */
-	private flushPendingBroadcast(): void {
-		const pending = this.pendingBroadcast;
-		this.pendingBroadcast = null;
-		if (!pending || !this.ydoc || !this.yFactories) {
-			return;
-		}
-		if (this.ydoc.getArray(YDOC_SLIDES_KEY).length === 0) {
-			this.lastSynced = '';
-		}
-		this.broadcastSlides(pending);
-	}
-
-	/** Handle a remote Y.Doc change, skipping our own local-origin transactions. */
-	private onRemoteChange(transaction?: YTransactionLike): void {
-		if (transaction?.origin === LOCAL_SYNC_ORIGIN || this.applyingRemote || !this.ydoc) {
-			return;
-		}
-		const remote = readSlidesFromYDoc(this.ydoc);
-		if (remote.length === 0) {
-			return;
-		}
-		// Suppress the echo: record what we just applied so the subsequent local
-		// broadcast (driven by the editor signal) is a no-op.
-		this.lastSynced = JSON.stringify(remote);
-		this.applyingRemote = true;
-		this.onRemoteSlides?.(remote);
-		this.applyingRemote = false;
-		this.scheduleWriteBack();
-	}
-
 	disconnect(): void {
 		// Invalidate any in-flight connect() so it discards its bundle on resume.
 		this.connectToken += 1;
-		this.clearConnectTimer();
-		this.syncGate.reset();
-		this.pendingBroadcast = null;
+		this.slideSync.reset();
 		this.writeBack.cancel();
-		this.unobserveSlides?.();
-		this.unobserveSlides = null;
-		this.awareness?.off?.('change', this.refreshPresence);
-		this.awareness?.off?.('update', this.refreshPresence);
-		// Announce first: it is synchronous, so it still reaches same-browser
-		// peers when this runs from a document that is being destroyed. The
-		// provider's own awareness removal is broadcast a microtask later and
-		// would be dropped, leaving us a ghost collaborator until the 30s
-		// awareness timeout.
-		this.departure?.announce();
-		this.departure?.dispose();
-		this.departure = null;
-		clearLocalAwareness(this.awareness);
-		this.provider?.disconnect();
-		this.provider?.destroy();
-		this.ydoc?.destroy();
-
-		this.provider = null;
-		this.ydoc = null;
-		this.awareness = null;
-		this.localPresence = null;
-		this.selfId = -1;
-		this.applyingRemote = false;
-		this.yFactories = null;
+		if (this.session) {
+			teardownSession(this.session, this.refreshPresence);
+			this.session = null;
+		}
 		this.livePatcher.configure(null, null);
-		this.lastSynced = '';
 		this.onRemoteSlides = null;
 		this.currentConfig = null;
 
@@ -422,79 +239,43 @@ export class CollaborationService {
 	}
 
 	/**
-	 * Broadcast the local slide set to peers, reconciling only what changed into
-	 * the pptx:slides Y.Array. An empty deck is never written (so a late-joiner
-	 * that has not yet received the doc cannot clobber it), and an unchanged deck
-	 * is skipped.
-	 */
-	/**
 	 * Record the current local deck as the sync baseline so the first (unchanged)
 	 * broadcast after connecting is suppressed. Call right after {@link connect}
-	 * for a joiner whose local deck is a placeholder awaiting remote sync, so it
-	 * never overwrites the shared document before receiving it.
+	 * for a joiner whose local deck is a placeholder awaiting remote sync.
 	 */
 	seedBaseline(slides: readonly PptxSlide[]): void {
-		this.lastSynced = JSON.stringify(slides);
+		this.slideSync.seedBaseline(slides);
 	}
 
 	/**
-	 * Re-adopt the shared document's slides after a local content load has been
-	 * committed to viewer state. The load pipeline applies its parsed deck
-	 * unconditionally, so a load that finishes AFTER the room's slides were
-	 * already applied (a late joiner's bootstrap deck parsing slower than the
-	 * doc sync) silently clobbers the synced state and, with the doc itself
-	 * unchanged, the remote observer never re-fires. When the room already has
-	 * slides they win: the doc content is re-applied through `onRemoteSlides`
-	 * and recorded as the sync baseline (bypassing the usual JSON dedupe) so
-	 * the follow-up local broadcast of the adopted deck is a no-op. An empty
-	 * room means this client is the seeder and the loaded deck stands, written
-	 * by the normal gated broadcast path. Returns true when the doc was adopted.
+	 * Re-adopt the shared document's slides after a local content load committed
+	 * a parsed deck to viewer state (see {@link SlideSyncEngine.adoptDocAfterLoad}).
+	 * Returns true when the room's slides were adopted over the loaded deck.
 	 */
 	adoptDocSlidesAfterLoad(): boolean {
-		if (!this.ydoc || !this.connected()) {
-			return false;
-		}
-		const docSlides = readSlidesFromYDoc(this.ydoc);
-		if (docSlides.length === 0) {
-			return false;
-		}
-		this.lastSynced = JSON.stringify(docSlides);
-		this.applyingRemote = true;
-		this.onRemoteSlides?.(docSlides);
-		this.applyingRemote = false;
-		return true;
+		return this.connected() ? this.slideSync.adoptDocAfterLoad() : false;
 	}
 
+	/**
+	 * Broadcast the local slide set to peers, reconciling only what changed into
+	 * the pptx:slides Y.Array. Empty/unchanged decks are skipped; while the gate
+	 * is shut the deck is held pending until the initial sync confirms.
+	 */
 	broadcastSlides(slides: readonly PptxSlide[]): void {
-		if (!this.ydoc || !this.yFactories || this.applyingRemote || slides.length === 0) {
-			return;
-		}
-		if (!this.syncGate.isOpen()) {
-			// Defer until the initial sync confirms; the gate flushes the latest
-			// pending deck when it opens.
-			this.pendingBroadcast = slides;
-			return;
-		}
-		const s = JSON.stringify(slides);
-		if (s === this.lastSynced) {
-			return;
-		}
-		this.lastSynced = s;
-		reconcileSlidesInYDoc([...slides], this.ydoc, this.yFactories, LOCAL_SYNC_ORIGIN);
-		this.scheduleWriteBack();
+		this.slideSync.broadcast(slides);
 	}
 
 	setCursor(x: number, y: number, activeSlideIndex?: number): void {
-		this.localPresence?.setCursor(x, y, activeSlideIndex);
+		this.session?.localPresence.setCursor(x, y, activeSlideIndex);
 	}
 
 	setSelection(selectedElementId: string | undefined, activeSlideIndex?: number): void {
-		this.localPresence?.setSelection(selectedElementId, activeSlideIndex);
+		this.session?.localPresence.setSelection(selectedElementId, activeSlideIndex);
 	}
 
 	/** Publish the local active-slide index (drives follow-along). */
 	setActiveSlide(index: number): void {
-		this.localPresence?.setActiveSlide(index);
+		this.session?.localPresence.setActiveSlide(index);
 	}
 
 	/** Follow the given peer's active slide, or `null` to stop following. */
@@ -502,17 +283,10 @@ export class CollaborationService {
 		this.followedClientId.set(clientId);
 	}
 
-	private clearConnectTimer(): void {
-		if (this.connectTimer !== null) {
-			clearTimeout(this.connectTimer);
-			this.connectTimer = null;
-		}
-	}
-
 	private scheduleWriteBack(): void {
 		this.writeBack.schedule(
 			this.currentConfig,
-			this.ydoc,
+			this.session?.ydoc ?? null,
 			this.getSourceBytes,
 			this.getTemplateElements,
 		);
