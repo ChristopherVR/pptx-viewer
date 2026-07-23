@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Pause, Play } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 import { formatRehearseMs } from '../composables/useRehearseTimings';
@@ -58,7 +59,8 @@ const emit = defineEmits<{
 			:aria-label="paused ? t('pptx.rehearse.resume') : t('pptx.rehearse.pause')"
 			@click="emit('toggle-pause')"
 		>
-			{{ paused ? '▶' : '⏸' }}
+			<Play v-if="paused" class="w-4 h-4" aria-hidden="true" />
+			<Pause v-else class="w-4 h-4" aria-hidden="true" />
 		</button>
 	</div>
 </template>

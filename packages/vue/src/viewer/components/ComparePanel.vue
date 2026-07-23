@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -99,7 +100,7 @@ function handleAcceptAll(): void {
 				:aria-label="t('pptx.compare.close')"
 				@click="emit('close')"
 			>
-				&times;
+				<X class="h-4 w-4" aria-hidden="true" />
 			</button>
 		</header>
 

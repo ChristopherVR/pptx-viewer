@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Download, LoaderCircle } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -51,7 +52,8 @@ function choose(kind: 'png' | 'pdf' | 'gif' | 'webm'): void {
 			:title="exporting ? t('pptx.ribbon.exporting') : t('pptx.export.export')"
 			@click="toggle"
 		>
-			{{ exporting ? '…' : '⬇' }}
+			<LoaderCircle v-if="exporting" class="w-4 h-4 animate-spin" aria-hidden="true" />
+			<Download v-else class="w-4 h-4" aria-hidden="true" />
 		</button>
 		<div
 			v-if="open"

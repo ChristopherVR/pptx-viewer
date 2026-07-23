@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Check, ChevronDown, ChevronRight, Minus, Move, Plus, Type, X } from 'lucide-vue-next';
+import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -105,18 +107,18 @@ const thumbStyle = computed(() => ({
 	height: `${props.canvasSize.height * thumbScale.value}px`,
 }));
 
-function changeKindSymbol(kind: ElementChange['kind']): string {
+/** Lucide icon per change kind; mirrors React's `ChangeKindIcon`. */
+function changeKindIcon(kind: ElementChange['kind']): Component {
 	switch (kind) {
 		case 'added':
-			return '+';
+			return Plus;
 		case 'removed':
-			return '−';
+			return Minus;
 		case 'moved':
-			return '↔';
 		case 'resized':
-			return '⤢';
+			return Move;
 		case 'textChanged':
-			return 'T';
+			return Type;
 	}
 }
 
@@ -140,9 +142,11 @@ function toggle(): void {
 			class="pptx-vue-diff-header flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-xs text-foreground"
 			@click="toggle"
 		>
-			<span class="pptx-vue-diff-caret flex-shrink-0 text-muted-foreground">{{
-				expanded ? '▾' : '▸'
-			}}</span>
+			<component
+				:is="expanded ? ChevronDown : ChevronRight"
+				class="pptx-vue-diff-caret h-3.5 w-3.5 flex-shrink-0 text-muted-foreground"
+				aria-hidden="true"
+			/>
 			<span class="pptx-vue-diff-slide-no">{{
 				t('pptx.compare.slideNumber', { number: slideNumber })
 			}}</span>
@@ -217,12 +221,12 @@ function toggle(): void {
 					:key="`${change.elementId}-${change.kind}-${ci}`"
 					class="pptx-vue-diff-change flex items-start gap-2 rounded bg-muted/60 px-2 py-1.5 text-[11px]"
 				>
-					<span
-						class="pptx-vue-diff-change-kind w-3.5 flex-shrink-0 text-center font-bold"
+					<component
+						:is="changeKindIcon(change.kind)"
+						class="pptx-vue-diff-change-kind h-3 w-3 flex-shrink-0"
 						:class="[`pptx-vue-diff-change-kind--${change.kind}`, changeKindColor(change.kind)]"
-					>
-						{{ changeKindSymbol(change.kind) }}
-					</span>
+						aria-hidden="true"
+					/>
 					<span class="pptx-vue-diff-change-desc text-foreground">{{ change.description }}</span>
 				</li>
 			</ul>
@@ -233,6 +237,7 @@ function toggle(): void {
 					class="pptx-vue-diff-btn pptx-vue-diff-btn--accept inline-flex cursor-pointer items-center gap-1 rounded bg-green-700/80 px-2.5 py-1 text-[11px] text-green-50 transition-colors hover:bg-green-600"
 					@click="emit('accept', diffIndex)"
 				>
+					<Check class="h-3 w-3" aria-hidden="true" />
 					{{ t('pptx.compare.accept') }}
 				</button>
 				<button
@@ -240,6 +245,7 @@ function toggle(): void {
 					class="pptx-vue-diff-btn pptx-vue-diff-btn--reject inline-flex cursor-pointer items-center gap-1 rounded bg-accent px-2.5 py-1 text-[11px] text-foreground transition-colors hover:bg-accent/80"
 					@click="emit('reject', diffIndex)"
 				>
+					<X class="h-3 w-3" aria-hidden="true" />
 					{{ t('pptx.compare.reject') }}
 				</button>
 			</div>

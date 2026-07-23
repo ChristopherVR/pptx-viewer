@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { X } from 'lucide-vue-next';
 import type {
 	PptxAnimationDirection,
 	PptxAnimationRepeatMode,
@@ -71,7 +72,7 @@ function label(element: PptxElement): string {
 				:aria-label="t('pptx.animation.remove')"
 				@click="emit('remove')"
 			>
-				×
+				<X class="h-3 w-3" aria-hidden="true" />
 			</button>
 		</div>
 		<div class="grid grid-cols-2 gap-2">

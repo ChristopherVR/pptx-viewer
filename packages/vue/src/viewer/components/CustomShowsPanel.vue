@@ -12,6 +12,7 @@
  * `useCustomShows`. Emits: `create`, `rename`, `delete`, `select`,
  * `toggle-slide`, `move-slide`.
  */
+import { ChevronDown, ChevronUp } from 'lucide-vue-next';
 import type { PptxCustomShow, PptxSlide } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -209,7 +210,7 @@ function onToggleSlide(slide: PptxSlide): void {
 						:disabled="i === 0"
 						@click="emit('move-slide', activeShow.id, i, i - 1)"
 					>
-						▲
+						<ChevronUp class="h-3 w-3" aria-hidden="true" />
 					</button>
 					<button
 						type="button"
@@ -220,7 +221,7 @@ function onToggleSlide(slide: PptxSlide): void {
 						:disabled="i === orderedShowSlides.length - 1"
 						@click="emit('move-slide', activeShow.id, i, i + 1)"
 					>
-						▼
+						<ChevronDown class="h-3 w-3" aria-hidden="true" />
 					</button>
 				</li>
 				<li

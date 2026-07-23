@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ChevronLeft, ChevronRight, X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import {
 	formatMobileElapsed,
@@ -135,7 +136,7 @@ const thumbFrameStyle = computed(() => ({
 				:aria-label="t('pptx.presenter.endPresentation')"
 				@click="emit('exit')"
 			>
-				&times;
+				<X class="w-5 h-5" aria-hidden="true" />
 			</button>
 		</div>
 
@@ -209,7 +210,8 @@ const thumbFrameStyle = computed(() => ({
 				:aria-label="t('pptx.mobileBar.previousSlide')"
 				@click="emit('move', -1)"
 			>
-				‹ {{ t('pptx.mpresenter.prev') }}
+				<ChevronLeft class="w-5 h-5" aria-hidden="true" />
+				{{ t('pptx.mpresenter.prev') }}
 			</button>
 			<button
 				type="button"
@@ -219,7 +221,8 @@ const thumbFrameStyle = computed(() => ({
 				:aria-label="t('pptx.mobileBar.nextSlide')"
 				@click="emit('move', 1)"
 			>
-				{{ t('pptx.mpresenter.next') }} ›
+				{{ t('pptx.mpresenter.next') }}
+				<ChevronRight class="w-5 h-5" aria-hidden="true" />
 			</button>
 		</div>
 	</div>

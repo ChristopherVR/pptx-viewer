@@ -16,6 +16,7 @@
  * operations back: `toggle-collapse`, `rename`, `move-up`, `move-down`,
  * `delete`, `add-section` (after a slide index), and `select` (a slide).
  */
+import { ChevronDown, ChevronUp, X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { ComponentPublicInstance, CSSProperties } from 'vue';
 import { computed, nextTick, ref } from 'vue';
@@ -218,7 +219,7 @@ function slideLabel(slide: PptxSlide, index: number): string {
 						:aria-label="t('pptx.sectionList.moveUp')"
 						@click="emit('move-up', group.section.id)"
 					>
-						▲
+						<ChevronUp class="h-3 w-3" aria-hidden="true" />
 					</button>
 					<button
 						type="button"
@@ -228,7 +229,7 @@ function slideLabel(slide: PptxSlide, index: number): string {
 						:aria-label="t('pptx.sectionList.moveDown')"
 						@click="emit('move-down', group.section.id)"
 					>
-						▼
+						<ChevronDown class="h-3 w-3" aria-hidden="true" />
 					</button>
 					<button
 						type="button"
@@ -238,7 +239,7 @@ function slideLabel(slide: PptxSlide, index: number): string {
 						:aria-label="t('pptx.sectionList.deleteSection')"
 						@click="emit('delete', group.section.id)"
 					>
-						×
+						<X class="h-3 w-3" aria-hidden="true" />
 					</button>
 				</div>
 			</div>

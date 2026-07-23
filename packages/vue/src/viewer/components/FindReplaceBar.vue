@@ -7,6 +7,7 @@
  * and `v-model:match-case`, passes the live `matchCount`/`currentIndex`, and
  * listens for the navigation/replace/close intents as emits.
  */
+import { CaseSensitive, ChevronDown, ChevronUp, X } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -77,7 +78,7 @@ const FR_BTN =
 				:disabled="!hasMatches"
 				@click="emit('prev')"
 			>
-				‹
+				<ChevronUp class="w-4 h-4" aria-hidden="true" />
 			</button>
 			<button
 				type="button"
@@ -88,24 +89,24 @@ const FR_BTN =
 				:disabled="!hasMatches"
 				@click="emit('next')"
 			>
-				›
+				<ChevronDown class="w-4 h-4" aria-hidden="true" />
 			</button>
 			<label
 				class="pptx-vue-fr-case inline-flex items-center gap-1 select-none cursor-pointer"
 				:title="t('pptx.findReplace.matchCase')"
 			>
-				<input v-model="matchCase" type="checkbox" />
-				<span>Aa</span>
+				<input v-model="matchCase" type="checkbox" :aria-label="t('pptx.findReplace.matchCase')" />
+				<CaseSensitive class="w-4 h-4" aria-hidden="true" />
 			</label>
 			<button
 				type="button"
-				class="pptx-vue-fr-btn pptx-vue-fr-close text-[1.1rem]"
+				class="pptx-vue-fr-btn pptx-vue-fr-close"
 				:class="FR_BTN"
 				:title="t('pptx.findReplace.closeEscape')"
 				:aria-label="t('pptx.findReplace.closeAriaLabel')"
 				@click="emit('close')"
 			>
-				×
+				<X class="w-4 h-4" aria-hidden="true" />
 			</button>
 		</div>
 		<div class="pptx-vue-fr-row flex items-center gap-1.5">

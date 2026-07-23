@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { createInitialPresentationSnapshot, stepPresenterZoom } from 'pptx-viewer-shared';
 import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
@@ -265,7 +266,7 @@ const previewMainFrameStyle = computed(() => ({
 							:aria-label="t('pptx.presenter.endPresentation')"
 							@click="emit('exit')"
 						>
-							&times;
+							<X class="h-4 w-4" aria-hidden="true" />
 						</button>
 					</div>
 				</div>
@@ -281,7 +282,8 @@ const previewMainFrameStyle = computed(() => ({
 						:title="t('pptx.mobileBar.previousSlide')"
 						@click="emit('move', -1)"
 					>
-						‹ {{ t('pptx.mpresenter.prev') }}
+						<ChevronLeft class="h-4 w-4" aria-hidden="true" />
+						{{ t('pptx.mpresenter.prev') }}
 					</button>
 					<span class="pptx-vue-presenter-counter font-mono text-sm tabular-nums text-foreground">
 						{{ currentSlideIndex + 1 }} / {{ slides.length }}
@@ -293,7 +295,8 @@ const previewMainFrameStyle = computed(() => ({
 						:title="t('pptx.mobileBar.nextSlide')"
 						@click="emit('move', 1)"
 					>
-						{{ t('pptx.mpresenter.next') }} ›
+						{{ t('pptx.mpresenter.next') }}
+						<ChevronRight class="h-4 w-4" aria-hidden="true" />
 					</button>
 				</div>
 
@@ -341,7 +344,7 @@ const previewMainFrameStyle = computed(() => ({
 								:aria-label="t('pptx.presenterView.decreaseFontSize')"
 								@click="decreaseNotesFontSize"
 							>
-								−
+								<Minus class="h-3.5 w-3.5" aria-hidden="true" />
 							</button>
 							<span
 								class="pptx-vue-presenter-font-val min-w-[28px] select-none text-center font-mono text-[10px] tabular-nums text-muted-foreground"
@@ -355,7 +358,7 @@ const previewMainFrameStyle = computed(() => ({
 								:aria-label="t('pptx.presenterView.increaseFontSize')"
 								@click="increaseNotesFontSize"
 							>
-								+
+								<Plus class="h-3.5 w-3.5" aria-hidden="true" />
 							</button>
 						</div>
 					</div>

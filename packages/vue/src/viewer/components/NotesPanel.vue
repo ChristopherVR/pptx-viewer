@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ChevronDown, ChevronRight } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -103,9 +104,11 @@ function toggle(): void {
 			@click="toggle"
 		>
 			<span class="pptx-vue-notes-title select-none">{{ t('pptx.presenter.speakerNotes') }}</span>
-			<span class="pptx-vue-notes-chevron text-xs text-muted-foreground" aria-hidden="true">{{
-				collapsed ? '▸' : '▾'
-			}}</span>
+			<component
+				:is="collapsed ? ChevronRight : ChevronDown"
+				class="pptx-vue-notes-chevron h-3.5 w-3.5 text-muted-foreground"
+				aria-hidden="true"
+			/>
 		</button>
 
 		<div v-show="!collapsed" id="slide-notes-content" class="pptx-vue-notes-body px-3 pb-3">
