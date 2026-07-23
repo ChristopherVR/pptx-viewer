@@ -509,6 +509,10 @@ const CHROME_CSS = `
 .pptxv.pptxv-presenting .pptxv-titlebar { display: none; }
 .pptxv.pptxv-presenting .pptxv-viewport { background: #000; padding: 0; }
 .pptxv.pptxv-presenting .pptxv-stage-wrap { box-shadow: none; }
+/* A slide show is not a document: dragging across it must not select text the
+   way it does on the editing canvas. */
+.pptxv.pptxv-presenting .pptxv-stage-wrap,
+.pptxv.pptxv-presenting .pptxv-stage-wrap * { user-select: none; }
 `;
 
 /** The full stylesheet text (theme-var defaults + chrome rules + editor + collab chrome). */

@@ -797,7 +797,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		});
 	}
 
-	private updatePresenterSnapshot(patch: Partial<PresentationSnapshot>): void {
+	/** Current presenter snapshot (pointer tool, blackout, ink, captions). */
+	getPresenterSnapshot(): PresentationSnapshot {
+		return this.presenterSnapshot;
+	}
+
+	updatePresenterSnapshot(patch: Partial<PresentationSnapshot>): void {
 		this.presenterSnapshot = mergePresentationSnapshot(this.presenterSnapshot, patch);
 		renderAudienceEffects(this.container, this.presenterSnapshot);
 		this.syncAudience(this.presenterSnapshot.slideIndex);

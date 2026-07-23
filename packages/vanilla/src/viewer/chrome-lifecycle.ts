@@ -1,5 +1,9 @@
 import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
-import type { ViewerTheme } from 'pptx-viewer-shared';
+import type {
+	PresentationPointerTool,
+	PresentationSnapshot,
+	ViewerTheme,
+} from 'pptx-viewer-shared';
 
 import { buildChromeCallbacks } from './chrome-callbacks';
 import type { ChromeCallbackDeps } from './chrome-callbacks';
@@ -47,6 +51,14 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	goToFirstSlide(): void;
 	goToLastSlide(): void;
 	exitPresentation(): void;
+	/** Select a slide-show pointer tool (Ctrl+L / Ctrl+P / Ctrl+A / Ctrl+E). */
+	setPresentationPointerTool?(tool: PresentationPointerTool): void;
+	/** Erase the show's ink annotations (E). */
+	erasePresentationAnnotations?(): void;
+	/** Show or hide ink markup (Ctrl+M). */
+	togglePresentationInkMarkup?(): void;
+	/** Blank the screen black or white (B / W, or `.` / `,`). */
+	togglePresentationBlank?(value: 'black' | 'white'): void;
 }
 
 /**
@@ -90,6 +102,13 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		first: deps.goToFirstSlide,
 		last: deps.goToLastSlide,
 		escape: deps.exitPresentation,
+		isPresenting: () => store.get().presenting,
+		goToSlide: deps.goToSlide,
+		getSlideCount: () => store.get().slides.length,
+		setPointerTool: deps.setPresentationPointerTool,
+		eraseAnnotations: deps.erasePresentationAnnotations,
+		toggleInkMarkup: deps.togglePresentationInkMarkup,
+		toggleBlank: deps.togglePresentationBlank,
 	});
 	const detachTouchGestures = attachTouchGestures(chrome.root, {
 		getScale: () => renderer.effectiveScale(),
@@ -196,6 +215,8 @@ export interface ChromeHost {
 	enterPresentation(): Promise<void>;
 	openPresenterView(): void;
 	exitPresentation(): Promise<void>;
+	getPresenterSnapshot(): PresentationSnapshot;
+	updatePresenterSnapshot(patch: Partial<PresentationSnapshot>): void;
 	openBroadcast(): void;
 	openShare(): void;
 	openAccessibility(): void;
@@ -299,6 +320,19 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		goToFirstSlide: () => host.goToSlide(0),
 		goToLastSlide: () => host.goToSlide(host.getSlideCount() - 1),
 		exitPresentation: () => void host.exitPresentation(),
+		setPresentationPointerTool: (tool) => {
+			const pointer = host.getPresenterSnapshot().pointer ?? { x: 0.5, y: 0.5, color: '#ef4444' };
+			host.updatePresenterSnapshot({ pointer: { ...pointer, tool } });
+		},
+		erasePresentationAnnotations: () => host.updatePresenterSnapshot({ inkStrokes: [] }),
+		togglePresentationInkMarkup: () =>
+			host.updatePresenterSnapshot({
+				inkMarkupVisible: host.getPresenterSnapshot().inkMarkupVisible === false,
+			}),
+		togglePresentationBlank: (value) =>
+			host.updatePresenterSnapshot({
+				blackout: host.getPresenterSnapshot().blackout === value ? 'none' : value,
+			}),
 		commitNotes: (notes, notesSegments) => host.editor.commitNotes(notes, notesSegments),
 		exportSlidePng: () => host.exportSlidePng(),
 		copySlideAsImage: () => host.copySlideAsImage(),

@@ -45,7 +45,8 @@ export function createPresentationAnnotationsHost(options: {
 			const state = options.store.get();
 			controller.syncStage({
 				stageWrap: options.getChrome().stageWrap,
-				active: state.presenting,
+				// Ctrl+M hides the ink overlay without discarding the strokes.
+				active: state.presenting && snapshot.inkMarkupVisible !== false,
 				slideIndex: state.currentSlide,
 				canvasSize: state.canvasSize,
 				pointer: snapshot.pointer,

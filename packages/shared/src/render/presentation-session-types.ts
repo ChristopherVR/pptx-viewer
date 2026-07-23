@@ -8,6 +8,12 @@ export interface PresentationSnapshot {
 	zoom?: PresentationZoomState;
 	pointer?: PresentationPointerState;
 	inkStrokes?: PresentationInkStroke[];
+	/**
+	 * Whether ink markup is drawn (PowerPoint's Ctrl+M). Undefined means visible,
+	 * so existing snapshots keep showing their ink. Hiding never discards the
+	 * strokes, which stay in `inkStrokes` and can be kept on exit.
+	 */
+	inkMarkupVisible?: boolean;
 	caption?: string;
 	subtitlesVisible?: boolean;
 }
