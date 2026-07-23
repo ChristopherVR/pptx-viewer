@@ -2,6 +2,7 @@
  * Shared types for the usePointerHandlers hook and its extracted helpers.
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { CollaborationLivePatcher } from 'pptx-viewer-shared';
 
 import type {
 	CanvasSize,
@@ -40,6 +41,13 @@ export interface UsePointerHandlersInput {
 	updateSlides: (updater: (s: PptxSlide[]) => PptxSlide[]) => void;
 	updateElementById: (id: string, updates: Partial<PptxElement>) => void;
 	markDirty: () => void;
+	/**
+	 * Collaboration live-preview channel. Drag/resize write geometry straight to
+	 * the DOM (no React state churn per frame), so without this remote peers saw
+	 * nothing until pointer-up. Optional: absent in standalone building-block
+	 * compositions, dormant when not collaborating.
+	 */
+	livePatcher?: CollaborationLivePatcher;
 }
 
 /** Mutable tracking state shared between pointer-move and pointer-up helpers. */

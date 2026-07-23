@@ -19,6 +19,7 @@ import type {
 	PptxTagCollection,
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
+import type { CollaborationLivePatcher } from 'pptx-viewer-shared';
 /**
  * Type definitions for the useViewerCoreState hook.
  *
@@ -93,6 +94,15 @@ export interface ViewerCoreState {
 	marqueeStateRef: React.MutableRefObject<MarqueeSelectionState | null>;
 	/** Whether the user is currently performing a freeform drawing stroke. */
 	isDrawingRef: React.MutableRefObject<boolean>;
+
+	// ── Collaboration ─────────────────────────────────────────────────
+
+	/**
+	 * Interim ("live preview") Y.Doc write channel. Drag/resize and inline
+	 * typing publish through it so remote peers see the gesture before it
+	 * commits to `slides`; dormant until collaboration attaches a doc.
+	 */
+	livePatcher: CollaborationLivePatcher;
 
 	// ── Core State ────────────────────────────────────────────────────
 

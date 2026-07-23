@@ -42,6 +42,7 @@ export function usePointerHandlers(input: UsePointerHandlersInput): void {
 		updateSlides,
 		updateElementById,
 		markDirty,
+		livePatcher,
 	} = input;
 
 	useEffect(() => {
@@ -109,6 +110,7 @@ export function usePointerHandlers(input: UsePointerHandlersInput): void {
 		updateSlides,
 		updateElementById,
 		markDirty,
+		livePatcher,
 		input,
 	]);
 }
