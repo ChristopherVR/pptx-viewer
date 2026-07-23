@@ -19,6 +19,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { CanvasSize } from '../types';
+import { PresenterSlideFrame } from './presentation/PresenterSlideFrame';
 import { PresentationAudienceEffects } from './PresentationAudienceEffects';
 import { PresentationSubtitleBar } from './PresentationSubtitleBar';
 import { formatElapsed } from './presenter-view-utils';
@@ -147,14 +148,12 @@ export function PresenterView({
 			<div className='flex flex-1 min-h-0'>
 				{/* Left panel -- current slide (70%) */}
 				<div className='flex-[7] flex flex-col items-center justify-center bg-black p-6 min-w-0 overflow-hidden'>
-					<div
-						className='relative transition-transform duration-200'
-						style={{
-							transform: `scale(${snapshot.zoom?.scale ?? 1})`,
-							transformOrigin: `${(snapshot.zoom?.originX ?? 0.5) * 100}% ${(snapshot.zoom?.originY ?? 0.5) * 100}%`,
-							touchAction: 'none',
-						}}
-						{...ink}
+					<PresenterSlideFrame
+						canvasSize={canvasSize}
+						zoomScale={snapshot.zoom?.scale ?? 1}
+						zoomOriginX={snapshot.zoom?.originX ?? 0.5}
+						zoomOriginY={snapshot.zoom?.originY ?? 0.5}
+						inkProps={ink}
 					>
 						<ScaledSlidePreview
 							slide={currentSlide}
@@ -162,7 +161,7 @@ export function PresenterView({
 							canvasSize={canvasSize}
 						/>
 						<PresentationAudienceEffects snapshot={snapshot} />
-					</div>
+					</PresenterSlideFrame>
 					{/* Slide number badge */}
 					<div className='mt-3 text-xs font-mono tabular-nums text-white/50 select-none'>
 						{t('pptx.presenter.slideLabel', {
