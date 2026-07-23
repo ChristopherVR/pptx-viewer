@@ -50,7 +50,7 @@ const panel = computed<AiPanelController>(() => props.aiPanel ?? fallbackPanel);
 <template>
 	<div
 		data-pptx-ai-panel=""
-		class="absolute right-0 top-0 z-30 flex h-full w-80 flex-col border-l border-border bg-card shadow-xl max-md:inset-x-0 max-md:top-auto max-md:bottom-0 max-md:h-auto max-md:max-h-[60vh] max-md:w-full max-md:rounded-t-xl max-md:border-l-0 max-md:border-t"
+		class="absolute right-0 top-0 z-30 flex h-full w-80 flex-col border-l border-border bg-card shadow-xl max-md:inset-x-0 max-md:top-auto max-md:bottom-0 max-md:h-[75dvh] max-md:w-full max-md:rounded-t-2xl max-md:border-l-0 max-md:border-t max-md:shadow-2xl"
 		:style="panelStyle"
 	>
 		<div class="flex items-center gap-2 border-b border-border px-3 py-2">

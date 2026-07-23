@@ -52,27 +52,31 @@ function selectPage(id: BackstagePage): void {
 
 <template>
 	<div
-		class="fixed inset-0 z-[200] flex bg-background font-[Aptos,Segoe_UI,sans-serif] text-foreground"
+		class="fixed inset-0 z-[200] flex bg-background font-[Aptos,Segoe_UI,sans-serif] text-foreground max-md:flex-col"
 		role="dialog"
 		aria-modal="true"
 		aria-label="File"
 	>
-		<aside class="flex w-[148px] shrink-0 flex-col border-r border-border bg-secondary">
+		<aside
+			class="flex w-[148px] shrink-0 flex-col border-r border-border bg-secondary max-md:w-full max-md:flex-row max-md:items-center max-md:overflow-x-auto max-md:border-r-0 max-md:border-b"
+		>
 			<button
 				type="button"
 				aria-label="Back to presentation"
-				class="grid min-h-12 place-items-center border-b border-border text-xl hover:bg-accent"
+				class="grid min-h-12 place-items-center border-b border-border text-xl hover:bg-accent max-md:min-w-[48px] max-md:shrink-0 max-md:border-b-0 max-md:border-r"
 				@click="props.onClose()"
 			>
 				<ArrowLeft :size="18" aria-hidden="true" />
 			</button>
-			<nav class="flex min-h-0 flex-1 flex-col py-2">
+			<nav
+				class="flex min-h-0 flex-1 flex-col py-2 max-md:flex-row max-md:items-center max-md:py-0"
+			>
 				<button
 					v-for="item in BACKSTAGE_NAV.filter((entry) => !entry.group)"
 					:key="item.id"
 					type="button"
 					:class="[
-						'flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px]',
+						'flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px] max-md:shrink-0 max-md:whitespace-nowrap max-md:border-l-0 max-md:border-b-2 max-md:px-3',
 						page === item.id
 							? 'border-primary bg-card text-primary'
 							: 'border-transparent hover:bg-accent',
@@ -82,13 +86,13 @@ function selectPage(id: BackstagePage): void {
 					<component :is="backstageIcon(item.id)" :size="17" aria-hidden="true" />
 					{{ item.label }}
 				</button>
-				<div class="flex-1" />
+				<div class="flex-1 max-md:hidden" />
 				<button
 					v-for="item in BACKSTAGE_NAV.filter((entry) => entry.group)"
 					:key="item.id"
 					type="button"
 					:class="[
-						'flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px]',
+						'flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px] max-md:shrink-0 max-md:whitespace-nowrap max-md:border-l-0 max-md:border-b-2 max-md:px-3',
 						page === item.id
 							? 'border-primary bg-card text-primary'
 							: 'border-transparent hover:bg-accent',
@@ -100,7 +104,9 @@ function selectPage(id: BackstagePage): void {
 				</button>
 			</nav>
 		</aside>
-		<main class="min-w-0 flex-1 overflow-y-auto px-[clamp(32px,4vw,72px)] py-5">
+		<main
+			class="min-w-0 flex-1 overflow-y-auto px-[clamp(32px,4vw,72px)] py-5 max-md:px-4 max-md:py-4"
+		>
 			<h1 class="text-[24px] font-semibold">{{ page === 'home' ? 'Good evening' : title }}</h1>
 			<template v-if="page === 'home' || page === 'new'">
 				<h2 class="mt-7 text-[17px] font-semibold">New</h2>

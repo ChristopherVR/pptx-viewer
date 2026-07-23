@@ -19,7 +19,7 @@
  *  - the section sheet's open state is owned here (local `ref`), exactly like
  *    React's `useState`.
  */
-import { Download, Menu, Presentation, Redo, Share2, Undo } from 'lucide-vue-next';
+import { Download, Menu, Presentation, Redo, Share2, Sparkles, Undo } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -89,6 +89,20 @@ const BTN =
 		</template>
 
 		<div class="flex-1" />
+
+		<!-- AI assistant toggle: surfaced in the top-right on mobile too (the
+		     desktop quick-access bar is replaced by this toolbar on mobile, so
+		     without this the assistant was unreachable). Host opts in via `ai`. -->
+		<button
+			v-if="showEdit() && props.aiEnabled"
+			type="button"
+			:class="cn(BTN, props.isAiPanelOpen ? 'text-primary' : undefined)"
+			:title="t('pptx.toolbar.toggleAiAssistant')"
+			:aria-label="t('pptx.toolbar.toggleAiAssistant')"
+			@click="props.onToggleAiPanel?.()"
+		>
+			<Sparkles class="h-5 w-5" />
+		</button>
 
 		<!-- Save: reachable without digging into Menu, even in view-only mode -->
 		<button
