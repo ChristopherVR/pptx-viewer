@@ -1,8 +1,9 @@
 export { PowerPointViewer } from './component';
-export { default as Ribbon } from './components/ribbon/Ribbon.svelte';
+// .svelte modules must not be re-exported directly from a public barrel: the
+// declaration bundling step cannot resolve raw `.svelte` specifiers (see
+// `./components/typed-exports.ts`).
+export { Ribbon, SlideCanvas, ViewerToolbar } from './components/typed-exports';
 export type { RibbonProps } from './components/ribbon/ribbon-types';
-export { default as ViewerToolbar } from './components/ViewerToolbar.svelte';
-export { default as SlideCanvas } from './components/SlideCanvas.svelte';
 export type { SlideCanvasProps, ViewerToolbarProps } from './components/props';
 export type {
 	ExportGifOptions,
