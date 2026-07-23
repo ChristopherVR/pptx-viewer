@@ -1,6 +1,6 @@
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import { isClickAdvanceAllowed } from 'pptx-viewer-shared';
-import type { CSSProperties } from 'pptx-viewer-shared';
+import type { ElementAnimationState } from 'pptx-viewer-shared';
 
 import { AnimationPlayback } from './animation-playback.svelte';
 import { ensurePresentationKeyframes } from './keyframes';
@@ -23,9 +23,11 @@ import { ensurePresentationKeyframes } from './keyframes';
  *
  * Matches the Vue binding's presentation-mode behaviour (its parity bar):
  * click-stepped element animations, CSS-driven slide transitions on every slide
- * change, entrance elements hidden until revealed. Deliberately narrower than
- * React's presentation mode: no auto-advance/`afterPrevious` timers, no
- * interactive/hover trigger sequences, no presenter view (all React-only).
+ * change, entrance elements hidden until revealed. Since the native-timing
+ * migration it also drives staged chart / SmartArt builds (`p:bldChart` /
+ * `p:bldDgm`), `p:animClr` colour animations, withPrevious / afterPrevious
+ * auto-advance, and interactive / hover trigger sequences. Still no presenter
+ * view (React-only).
  */
 export interface TransitionState {
 	/** The outgoing (previous) slide, rendered in the exit layer. */
@@ -45,6 +47,10 @@ export interface PresentationControllerDeps {
 	navigate(index: number): void;
 	/** Presentation-level switch parsed from `p:showPr`. */
 	getShowWithAnimation?(): boolean | undefined;
+	/** Host-provided action-sound player (resolves + plays embedded sounds). */
+	onPlayActionSound?: (soundPath: string) => void;
+	/** The live presentation stage root, to scope media-command lookups to. */
+	getFrameRoot?(): HTMLElement | null;
 }
 
 export class PresentationController {
@@ -55,8 +61,10 @@ export class PresentationController {
 	constructor(deps: PresentationControllerDeps) {
 		this.#deps = deps;
 		this.playback = new AnimationPlayback({
-			getAnimations: () => this.#currentSlide()?.animations ?? [],
+			getSlide: () => this.#currentSlide(),
 			getShowWithAnimation: deps.getShowWithAnimation,
+			onPlayActionSound: deps.onPlayActionSound,
+			frameRoot: deps.getFrameRoot,
 		});
 	}
 
@@ -69,14 +77,39 @@ export class PresentationController {
 		return this.#transition;
 	}
 
-	/** Revealed element build styles for the current slide/step. */
-	get elementStyles(): Map<string, CSSProperties> {
-		return this.playback.elementStyles;
+	/** Reactive per-element native-animation state (visibility, build, colour). */
+	get elementStates(): Map<string, ElementAnimationState> {
+		return this.playback.elementStates;
 	}
 
-	/** Pending (hidden-until-revealed) entrance styles for the current slide/step. */
-	get pendingStyles(): Map<string, CSSProperties> {
-		return this.playback.pendingStyles;
+	/** The per-slide native-animation `@keyframes` CSS to inject. */
+	get keyframesCss(): string {
+		return this.playback.keyframesCss;
+	}
+
+	/** Shape ids that trigger an interactive (`onShapeClick`) sequence. */
+	get interactiveTriggerShapeIds(): ReadonlySet<string> {
+		return this.playback.interactiveTriggerShapeIds;
+	}
+
+	/** Shape ids that trigger a hover (`onHover`) sequence. */
+	get hoverTriggerShapeIds(): ReadonlySet<string> {
+		return this.playback.hoverTriggerShapeIds;
+	}
+
+	/** Play an interactive shape's sequence; `true` when it triggered one. */
+	handleInteractiveShapeClick(shapeId: string): boolean {
+		return this.playback.handleInteractiveShapeClick(shapeId);
+	}
+
+	/** Play a hover shape's sequence; `true` when it triggered one. */
+	handleHoverStart(shapeId: string): boolean {
+		return this.playback.handleHoverStart(shapeId);
+	}
+
+	/** Reset a hover shape's sequence so the next hover replays it. */
+	handleHoverEnd(shapeId: string): void {
+		this.playback.handleHoverEnd(shapeId);
 	}
 
 	/**
@@ -106,8 +139,9 @@ export class PresentationController {
 		this.#transition = null;
 	}
 
-	/** Leaving presentation: reset builds and drop any transition overlay. */
+	/** Leaving presentation: clear timers, reset builds, drop any overlay. */
 	stop(): void {
+		this.playback.clearTimers();
 		this.playback.reset();
 		this.#transition = null;
 	}

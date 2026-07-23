@@ -1,8 +1,9 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { CSSProperties } from 'pptx-viewer-shared';
+import type { ElementAnimationState } from 'pptx-viewer-shared';
 import { untrack } from 'svelte';
 
 import { applyAnimationStyles } from './apply-animation-styles';
+import { syncNativeAnimationKeyframes } from './keyframes';
 import type { PresentationController } from './presentation-controller.svelte';
 
 /**
@@ -17,9 +18,13 @@ import type { PresentationController } from './presentation-controller.svelte';
  *     and current slide: `start()` on enter, `stop()` on exit, `onSlideChange()`
  *     on every in-presentation navigation (resets builds + plays the incoming
  *     slide's transition).
- *  2. Push the current build styles onto the live stage after every DOM update
- *     (slide change / build advance). When not presenting it clears the managed
+ *  2. Push each element's native-animation state (visibility, CSS animation,
+ *     trigger-shape cursor) onto the live stage after every DOM update (slide
+ *     change / build advance / auto-advance) and keep the per-slide native
+ *     `@keyframes` injected. When not presenting it clears the managed
  *     properties so the windowed / editing canvas never carries animation state.
+ *     Structural reveals (chart / SmartArt build, `p:animClr` fill / stroke) are
+ *     applied declaratively by the renderers via the element-states context.
  */
 export interface PresentationEffectsDeps {
 	controller: PresentationController;
@@ -33,7 +38,7 @@ export interface PresentationEffectsDeps {
 	getStageRoot(): HTMLElement | null;
 }
 
-const EMPTY_STYLES: Map<string, CSSProperties> = new Map();
+const EMPTY_STATES: Map<string, ElementAnimationState> = new Map();
 
 export function usePresentationEffects(deps: PresentationEffectsDeps): void {
 	// (1) Lifecycle: enter/exit presentation and in-presentation slide changes.
@@ -63,22 +68,25 @@ export function usePresentationEffects(deps: PresentationEffectsDeps): void {
 		}
 	});
 
-	// (2) Apply the current build styles to the live stage after each DOM update.
+	// (2) Apply each element's native-animation state to the live stage after each
+	// DOM update, and keep the per-slide native `@keyframes` injected.
 	$effect(() => {
 		const presenting = deps.getPresenting();
 		// Track slide identity so this re-runs after the stage re-renders its
 		// (freshly-keyed) element nodes on navigation.
 		void deps.getActiveSlide();
-		const revealed = deps.controller.elementStyles;
-		const pending = deps.controller.pendingStyles;
+		const states = deps.controller.elementStates;
+		const interactiveIds = deps.controller.interactiveTriggerShapeIds;
+		const hoverIds = deps.controller.hoverTriggerShapeIds;
+		syncNativeAnimationKeyframes(presenting ? deps.controller.keyframesCss : '');
 		const root = deps.getStageRoot();
 		if (!root) {
 			return;
 		}
 		if (!presenting) {
-			applyAnimationStyles(root, EMPTY_STYLES, EMPTY_STYLES);
+			applyAnimationStyles(root, EMPTY_STATES);
 			return;
 		}
-		applyAnimationStyles(root, revealed, pending);
+		applyAnimationStyles(root, states, interactiveIds, hoverIds);
 	});
 }

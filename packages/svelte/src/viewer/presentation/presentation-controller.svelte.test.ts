@@ -1,25 +1,27 @@
-import type { PptxElementAnimation, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxNativeAnimation, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { PresentationController } from './presentation-controller.svelte';
 
 /**
  * `.svelte.test.ts` so the controller's `$state` transition compiles. Asserts
- * the on-click advance contract (step builds, then navigate) and that a slide
- * change resets the builds and plays the incoming slide's transition. `start()`
- * touches the DOM (keyframe injection) which happy-dom supports.
+ * the on-click advance contract (step native-timeline builds, then navigate) and
+ * that a slide change resets the builds and plays the incoming slide's
+ * transition. `start()` touches the DOM (keyframe injection) which happy-dom
+ * supports.
  */
 
-function slide(id: string, extra: Partial<PptxSlide> = {}): PptxSlide {
-	return { id, rId: `rId-${id}`, slideNumber: 1, elements: [], ...extra };
+function shapeElement(id: string): PptxElement {
+	return { type: 'shape', id, x: 0, y: 0, width: 100, height: 100 } as unknown as PptxElement;
 }
 
-const clickAnim: PptxElementAnimation = {
-	elementId: 'e1',
-	entrance: 'fadeIn',
-	durationMs: 500,
-	trigger: 'onClick',
-};
+function entranceAnim(targetId: string): PptxNativeAnimation {
+	return { targetId, presetClass: 'entr', trigger: 'onClick' } as unknown as PptxNativeAnimation;
+}
+
+function slide(id: string, extra: Partial<PptxSlide> = {}): PptxSlide {
+	return { id, rId: `rId-${id}`, slideNumber: 1, elements: [], ...extra } as PptxSlide;
+}
 
 /** Reactive holder for the slide array + current index. */
 class Deck {
@@ -27,10 +29,16 @@ class Deck {
 	index = $state(0);
 }
 
-describe('presentationController', () => {
+describe('presentationController (native-timing)', () => {
 	it('advance steps the current slide builds before navigating', () => {
 		const deck = new Deck();
-		deck.slides = [slide('s1', { animations: [clickAnim] }), slide('s2')];
+		deck.slides = [
+			slide('s1', {
+				elements: [shapeElement('e1')],
+				nativeAnimations: [entranceAnim('e1')],
+			}),
+			slide('s2'),
+		];
 		const navigate = vi.fn((i: number) => {
 			deck.index = i;
 		});
@@ -39,11 +47,15 @@ describe('presentationController', () => {
 			getCurrentIndex: () => deck.index,
 			navigate,
 		});
+		controller.start();
+
+		// e1 starts hidden (pending entrance).
+		expect(controller.elementStates.get('e1')?.visible).toBeFalsy();
 
 		// First advance reveals the entrance build; the slide stays put.
 		controller.advance();
 		expect(navigate).not.toHaveBeenCalled();
-		expect(controller.elementStyles.get('e1')?.['animation-name']).toBe('pptx-vue-fadeIn');
+		expect(controller.elementStates.get('e1')?.visible).toBeTruthy();
 
 		// Builds exhausted: the next advance navigates to the following slide.
 		controller.advance();
@@ -62,6 +74,7 @@ describe('presentationController', () => {
 			getCurrentIndex: () => deck.index,
 			navigate,
 		});
+		controller.start();
 
 		// A click/tap/swipe (fromClick) must not advance this slide.
 		controller.advance(true);
@@ -84,6 +97,7 @@ describe('presentationController', () => {
 			getCurrentIndex: () => deck.index,
 			navigate,
 		});
+		controller.start();
 
 		controller.advance(true);
 		expect(navigate).toHaveBeenCalledWith(1);
@@ -98,6 +112,7 @@ describe('presentationController', () => {
 			getCurrentIndex: () => deck.index,
 			navigate,
 		});
+		controller.start();
 
 		controller.advance();
 		expect(navigate).toHaveBeenCalledWith(1);
@@ -106,7 +121,10 @@ describe('presentationController', () => {
 	it('onSlideChange resets builds and plays the incoming transition', () => {
 		const deck = new Deck();
 		deck.slides = [
-			slide('s1', { animations: [clickAnim] }),
+			slide('s1', {
+				elements: [shapeElement('e1')],
+				nativeAnimations: [entranceAnim('e1')],
+			}),
 			slide('s2', { transition: { type: 'fade', durationMs: 600 } }),
 		];
 		const controller = new PresentationController({
@@ -114,14 +132,16 @@ describe('presentationController', () => {
 			getCurrentIndex: () => deck.index,
 			navigate: () => {},
 		});
+		controller.start();
 
 		// Reveal a build on slide 0, then move to slide 1.
 		controller.advance();
-		expect(controller.playback.step).toBe(1);
+		expect(controller.playback.isComplete).toBeTruthy();
 		deck.index = 1;
 		controller.onSlideChange(0, 1);
 
-		expect(controller.playback.step).toBe(0);
+		// Slide 2 has no animations: nothing pending, overlay carries the transition.
+		expect(controller.elementStates.has('e1')).toBeFalsy();
 		expect(controller.transition).not.toBeNull();
 		expect(controller.transition?.transition.type).toBe('fade');
 		expect(controller.transition?.outgoing?.id).toBe('s1');

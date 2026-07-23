@@ -13,9 +13,18 @@
 	import type { ElementRendererProps } from './props';
 	import ConnectorLabel from './ConnectorLabel.svelte';
 
-	const { element, zIndex }: ElementRendererProps = $props();
+	const { element, zIndex, animationState }: ElementRendererProps = $props();
 
 	const geometry = $derived(buildConnectorGeometry(element, zIndex));
+	/**
+	 * Effective stroke paint. When an active `p:animClr` colour animation targets
+	 * this connector's stroke, paint `inherit` so the wrapper's animated `color` /
+	 * `stroke` keyframes cascade into the line + arrowheads (mirrors Vue's
+	 * `ConnectorRenderer`). Otherwise the resolved geometry stroke wins.
+	 */
+	const strokeColor = $derived(
+		animationState?.animatesStroke ? 'inherit' : geometry.strokeColor,
+	);
 	const shapeStyle = $derived(hasShapeProperties(element) ? element.shapeStyle : undefined);
 	const lineShadow = $derived(getLineShadowParams(shapeStyle));
 	const lineGlow = $derived(getLineGlowFilterCss(shapeStyle));
@@ -48,9 +57,9 @@
 					markerUnits="strokeWidth"
 				>
 					{#if geometry.startMarker.shape === 'circle'}
-						<circle cx="5" cy="5" r="4" fill={geometry.strokeColor} />
+						<circle cx="5" cy="5" r="4" fill={strokeColor} />
 					{:else}
-						<path d={geometry.startMarker.d} fill={geometry.strokeColor} />
+						<path d={geometry.startMarker.d} fill={strokeColor} />
 					{/if}
 				</marker>
 			{/if}
@@ -66,9 +75,9 @@
 					markerUnits="strokeWidth"
 				>
 					{#if geometry.endMarker.shape === 'circle'}
-						<circle cx="5" cy="5" r="4" fill={geometry.strokeColor} />
+						<circle cx="5" cy="5" r="4" fill={strokeColor} />
 					{:else}
-						<path d={geometry.endMarker.d} fill={geometry.strokeColor} />
+						<path d={geometry.endMarker.d} fill={strokeColor} />
 					{/if}
 				</marker>
 			{/if}
@@ -90,7 +99,7 @@
 				<path
 					d={geometry.pathD}
 					fill="none"
-					stroke={geometry.strokeColor}
+					stroke={strokeColor}
 					stroke-width={Math.max(geometry.compoundWidths[idx] ?? geometry.strokeWidth, 1)}
 					stroke-opacity={geometry.strokeOpacity}
 					stroke-dasharray={geometry.dashArray}
@@ -109,7 +118,7 @@
 					y1={geometry.y1 + offset}
 					x2={geometry.x2}
 					y2={geometry.y2 + offset}
-					stroke={geometry.strokeColor}
+					stroke={strokeColor}
 					stroke-width={Math.max(geometry.compoundWidths[idx] ?? geometry.strokeWidth, 1)}
 					stroke-opacity={geometry.strokeOpacity}
 					stroke-dasharray={geometry.dashArray}

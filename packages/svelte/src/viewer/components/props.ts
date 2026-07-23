@@ -7,6 +7,7 @@ import type {
 } from 'pptx-viewer-core';
 import type {
 	CanvasSize,
+	ElementAnimationState,
 	RenderParagraph,
 	ResizeHandleId,
 	SnapLine,
@@ -55,6 +56,15 @@ export interface ElementRendererProps {
 	 * (`fillMode === 'group'`) inherits the group's resolved fill.
 	 */
 	parentGroupFill?: ShapeStyle;
+	/**
+	 * Native-animation playback state for this element, present only during a
+	 * running presentation. Drives the staged chart / SmartArt build reveal and
+	 * the `p:animClr` fill / stroke relinquish; mirrors React's / Vue's
+	 * per-element `animationState`. Absent (undefined) in editor / read-only
+	 * rendering (element renderers read it from the element-states context, so it
+	 * is optional here and defaulted per renderer).
+	 */
+	animationState?: ElementAnimationState;
 	ontablecellcommit?: (
 		elementId: string,
 		rowIndex: number,

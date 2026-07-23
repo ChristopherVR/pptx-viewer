@@ -11,13 +11,35 @@
 	 * a labelled placeholder box. All maths live in `render/chart-view.ts` +
 	 * `pptx-viewer-shared`; this SFC only emits SVG.
 	 */
+	import { applyChartBuildReveal } from 'pptx-viewer-shared';
+
 	import { buildChartView, buildLegendItems, partAttrs } from '../render';
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex }: ElementRendererProps = $props();
+	const { element, zIndex, animationState }: ElementRendererProps = $props();
 
-	const view = $derived(element.type === 'chart' ? buildChartView(element) : undefined);
+	/** Staged chart-build descriptor, when an active native animation reveals one. */
+	const chartBuild = $derived(
+		animationState?.build?.kind === 'chart' ? animationState.build : undefined,
+	);
+
+	/**
+	 * The chart element with its data trimmed to the stages revealed at the current
+	 * build progress (`p:bldChart`). Whole-chart / no-build renders return the
+	 * element unchanged. Mirrors Vue's / React's `revealedElement`.
+	 */
+	const revealedElement = $derived.by(() => {
+		if (element.type !== 'chart' || !chartBuild || !element.chartData) {
+			return element;
+		}
+		const revealed = applyChartBuildReveal(element.chartData, chartBuild);
+		return revealed === element.chartData ? element : { ...element, chartData: revealed };
+	});
+
+	const view = $derived(
+		revealedElement.type === 'chart' ? buildChartView(revealedElement) : undefined,
+	);
 	const legendItems = $derived(view?.kind === 'chart' ? buildLegendItems(view.vm) : []);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 </script>
