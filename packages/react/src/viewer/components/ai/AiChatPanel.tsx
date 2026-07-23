@@ -38,7 +38,12 @@ export default function AiChatPanel({
 	return (
 		<div
 			data-pptx-ai-panel=''
-			className='absolute right-0 top-0 z-30 flex h-full w-80 flex-col border-l border-border bg-card shadow-xl max-md:inset-x-0 max-md:w-full'
+			// Desktop: right-edge side panel. Mobile (max-md): a bottom sheet, not a
+			// full-screen overlay - a full-height panel covered the whole canvas so
+			// AI-created/selected elements could not be tapped ("breaks the clicking
+			// flow"). Matches the app's other mobile panels (theme editor etc.), so
+			// the top of the canvas stays visible and interactive above the sheet.
+			className='absolute right-0 top-0 z-30 flex h-full w-80 flex-col border-l border-border bg-card shadow-xl max-md:inset-x-0 max-md:top-auto max-md:bottom-0 max-md:h-auto max-md:max-h-[60vh] max-md:w-full max-md:rounded-t-xl max-md:border-l-0 max-md:border-t'
 			style={panelWidth ? { width: panelWidth } : undefined}
 		>
 			<div className='flex items-center gap-2 border-b border-border px-3 py-2'>
