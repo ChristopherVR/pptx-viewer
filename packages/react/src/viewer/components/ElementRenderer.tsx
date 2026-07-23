@@ -32,6 +32,7 @@ import { Extrusion3DOverlay } from './elements/Extrusion3DOverlay';
 import { LinkTooltip } from './elements/LinkTooltip';
 import { ResizeHandles } from './elements/ResizeHandles';
 import { getScopedElementHandlers } from './elements/scoped-element-handlers';
+import { ShapeEffectOverlay } from './elements/ShapeEffectOverlay';
 import { StaticElementRenderer } from './StaticElementRenderer';
 
 export type { ElementRendererProps } from './elements/element-renderer-types';
@@ -216,6 +217,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 				{...interactionProps}
 			>
 				{renderDagDuotoneFilterForElement(el)}
+				<ShapeEffectOverlay element={el} />
 				{extrusionData.hasExtrusion && <Extrusion3DOverlay data={extrusionData} />}
 				{renderBody({
 					el,

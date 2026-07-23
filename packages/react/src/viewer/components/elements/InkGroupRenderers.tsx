@@ -42,6 +42,7 @@ import {
 } from '../../utils/ink-rendering';
 import type { InkReplayConfig } from '../../utils/ink-rendering';
 import { shapeParams } from '../ElementRenderer';
+import { ShapeEffectOverlay } from './ShapeEffectOverlay';
 
 // Re-export the shared OLE type-resolution helpers so existing consumers (and
 // the colocated tests) keep importing them from this module.
@@ -211,6 +212,9 @@ export function renderGroup(children: PptxElement[], parentGroupFill?: ShapeStyl
 							zIndex: childIndex,
 						}}
 					>
+						{/* Soft-edge <filter> defs + DAG fill-overlay tint layer. Required so
+						    a soft-edged child's `filter: url(#soft-edge-<id>)` resolves. */}
+						<ShapeEffectOverlay element={c} />
 						{isI && (('svgData' in c && c.svgData) || ('imageData' in c && c.imageData)) ? (
 							isImageTiled(c) ? (
 								<div

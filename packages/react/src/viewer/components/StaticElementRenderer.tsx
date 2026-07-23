@@ -17,6 +17,7 @@ import {
 	renderVectorShape,
 } from '../utils';
 import { renderBody } from './elements/ElementBody';
+import { ShapeEffectOverlay } from './elements/ShapeEffectOverlay';
 
 export interface StaticElementRendererProps {
 	element: PptxElement;
@@ -91,6 +92,8 @@ function StaticElementRendererImpl({
 				...visualStyle,
 			}}
 		>
+			{/* Soft-edge <filter> defs + DAG fill-overlay tint layer. */}
+			<ShapeEffectOverlay element={element} />
 			{element.type === 'group' ? (
 				<div className='relative w-full h-full'>
 					{((element as GroupPptxElement).children ?? []).map((child, index) => (

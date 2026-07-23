@@ -52,3 +52,45 @@ describe('getShapeVisualStyle line join / cap (a:ln/@join, @cap, a:miter/@lim)',
 		).toBe('round');
 	});
 });
+
+describe('getShapeVisualStyle soft-edge / fill-overlay effects', () => {
+	it('references the soft-edge SVG filter instead of a whole-element blur()', () => {
+		const style = getShapeVisualStyle(makeShape({ softEdgeRadius: 6 }), true, '#fff', 0, '#000');
+		expect(style.filter).toBe('url(#soft-edge-shape-1)');
+		expect(style.filter).not.toContain('blur(');
+	});
+
+	it('composes the soft-edge filter after glow in the filter chain', () => {
+		const style = getShapeVisualStyle(
+			makeShape({ glowColor: '#00ff00', glowRadius: 8, softEdgeRadius: 4 }),
+			true,
+			'#fff',
+			0,
+			'#000',
+		);
+		expect(style.filter).toContain('drop-shadow(');
+		expect(style.filter).toContain('url(#soft-edge-shape-1)');
+	});
+
+	it('drops the whole-element mix-blend-mode when a fill-overlay colour is present', () => {
+		const style = getShapeVisualStyle(
+			makeShape({ dagFillOverlayColor: '#ff0000', dagFillOverlayBlend: 'mult' }),
+			true,
+			'#fff',
+			0,
+			'#000',
+		);
+		expect(style.mixBlendMode).toBeUndefined();
+	});
+
+	it('keeps the whole-element mix-blend-mode for the blend-only case (no overlay colour)', () => {
+		const style = getShapeVisualStyle(
+			makeShape({ dagFillOverlayBlend: 'screen' }),
+			true,
+			'#fff',
+			0,
+			'#000',
+		);
+		expect(style.mixBlendMode).toBe('screen');
+	});
+});
