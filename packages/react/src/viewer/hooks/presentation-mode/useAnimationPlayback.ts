@@ -1,6 +1,6 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxSlide } from 'pptx-viewer-core';
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 
 import type { PresentationAnimationRuntime } from '../../types';
 import {
@@ -9,9 +9,14 @@ import {
 	countTextSegments,
 	TEXT_BUILD_ID_SEP,
 } from '../../utils/animation-timeline';
-import type { ElementAnimationState, TextBuildSegmentCounts } from '../../utils/animation-timeline';
+import type {
+	ElementAnimationState,
+	TextBuildSegmentCounts,
+	TimelineClickGroup,
+} from '../../utils/animation-timeline';
 import { computeEntranceAnimationDelay } from '../usePresentationSetup-helpers';
 import { applyAnimationGroupSteps } from './animation-helpers';
+import { collectBuildStepIds, driveBuildReveal, cancelBuildReveal } from './build-playback';
 
 // ---------------------------------------------------------------------------
 // Sub-hook interface
@@ -64,6 +69,28 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 	// Refs
 	const presentationTimersRef = useRef<number[]>([]);
 	const timelineEngineRef = useRef<TimelineEngine | null>(null);
+	/** In-flight requestAnimationFrame id for the active staged-build reveal. */
+	const buildRafRef = useRef<number | null>(null);
+
+	// -----------------------------------------------------------------------
+	// Staged chart / SmartArt build reveal (RAF-driven)
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Start (or restart) the requestAnimationFrame loop that ramps a click-group's
+	 * staged-build `progress` from 0 -> 1. No-op when the group carries no build
+	 * step, so ordinary click-advance is unchanged.
+	 */
+	const startBuildReveal = useCallback((engine: TimelineEngine, group: TimelineClickGroup) => {
+		driveBuildReveal(engine, collectBuildStepIds(group), setPresentationElementStates, buildRafRef);
+	}, []);
+
+	// Stop the build loop on unmount so a detached RAF never touches state.
+	useEffect(() => {
+		return () => {
+			cancelBuildReveal(buildRafRef);
+		};
+	}, []);
 
 	// -----------------------------------------------------------------------
 	// Timer management
@@ -74,6 +101,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			window.clearTimeout(timer);
 		});
 		presentationTimersRef.current = [];
+		cancelBuildReveal(buildRafRef);
 	}, []);
 
 	// -----------------------------------------------------------------------
@@ -113,6 +141,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 						setPresentationElementStates,
 						presentationTimersRef,
 					);
+					startBuildReveal(engine, group);
 
 					// Continue the chain if more auto-advance groups follow
 					scheduleAutoAdvanceChain(engine);
@@ -122,7 +151,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 
 			presentationTimersRef.current.push(timer);
 		},
-		[onPlayActionSound],
+		[onPlayActionSound, startBuildReveal],
 	);
 
 	// -----------------------------------------------------------------------
@@ -131,6 +160,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 
 	const resetSlideTimeline = useCallback(
 		(slideIndex: number) => {
+			cancelBuildReveal(buildRafRef);
 			const slide = slides[slideIndex];
 			if (!slide) {
 				timelineEngineRef.current = null;
@@ -203,12 +233,13 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			setPresentationElementStates,
 			presentationTimersRef,
 		);
+		startBuildReveal(engine, group);
 
 		// Schedule auto-advance for consecutive non-click groups
 		scheduleAutoAdvanceChain(engine);
 
 		return true;
-	}, [animationsEnabled, onPlayActionSound, scheduleAutoAdvanceChain]);
+	}, [animationsEnabled, onPlayActionSound, scheduleAutoAdvanceChain, startBuildReveal]);
 
 	// -----------------------------------------------------------------------
 	// Interactive shape-click animation
@@ -232,10 +263,11 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 				setPresentationElementStates,
 				presentationTimersRef,
 			);
+			startBuildReveal(engine, group);
 
 			return true;
 		},
-		[onPlayActionSound],
+		[onPlayActionSound, startBuildReveal],
 	);
 
 	// -----------------------------------------------------------------------
@@ -266,10 +298,11 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 				setPresentationElementStates,
 				presentationTimersRef,
 			);
+			startBuildReveal(engine, group);
 
 			return true;
 		},
-		[animationsEnabled, onPlayActionSound],
+		[animationsEnabled, onPlayActionSound, startBuildReveal],
 	);
 
 	const handleHoverEnd = useCallback((shapeId: string): void => {
@@ -324,6 +357,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 								setPresentationElementStates,
 								presentationTimersRef,
 							);
+							startBuildReveal(engine, group);
 							scheduleAutoAdvanceChain(engine);
 						}
 					}, firstGroup.autoAdvanceDelayMs ?? 0);
@@ -369,6 +403,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			slides,
 			onPlayActionSound,
 			scheduleAutoAdvanceChain,
+			startBuildReveal,
 		],
 	);
 

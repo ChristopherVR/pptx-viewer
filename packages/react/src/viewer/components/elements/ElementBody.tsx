@@ -69,7 +69,10 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 		onUpdateSmartArtElement,
 		canEditChart,
 		onUpdateChartElement,
+		presentationElementStates,
 	} = options;
+	// Per-element playback state, used to drive staged chart / SmartArt builds.
+	const animationState = presentationElementStates?.get(el.id);
 	if (el.type === 'model3d') {
 		return (
 			<Model3DRenderer
@@ -132,6 +135,7 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 				element={el as ChartPptxElement}
 				editable={Boolean(isSel && canEditChart)}
 				onUpdateElement={onUpdateChartElement}
+				animationState={animationState}
 			/>
 		);
 	}
@@ -141,6 +145,7 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 				element={el}
 				canEdit={canEditSmartArt}
 				onUpdateElement={onUpdateSmartArtElement}
+				animationState={animationState}
 			/>
 		);
 	}

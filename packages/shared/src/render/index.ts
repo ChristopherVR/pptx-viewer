@@ -189,6 +189,13 @@ export * from './animation-timeline-types';
 export * from './animation-presets';
 export * from './animation-keyframes';
 export * from './animation-color';
+// Staged-build (p:bldChart / p:bldDgm) mode resolution + time->progress helpers
+// consumed by staged chart / SmartArt reveal renderers.
+export * from './animation-build';
+// Staged chart / SmartArt reveal projection: trim chart data / count revealed
+// diagram nodes for the current build progress.
+export * from './chart-build';
+export * from './diagram-build';
 export * from './animation-timeline-helpers';
 // Compound / simultaneous OOXML start+end condition evaluation (p:stCondLst /
 // p:endCondLst OR-sets), consumed by the sequencer + timeline builder.
