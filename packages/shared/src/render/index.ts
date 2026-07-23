@@ -542,6 +542,10 @@ export * from './eyedropper';
 // Presentation toolbar: bottom-trigger-zone visibility math, auto-hide timing,
 // pen/highlighter colour swatches, and slide-counter formatting.
 export * from './presentation-toolbar';
+// Slide-show keyboard map: PowerPoint's published shortcut set (navigation,
+// slide-number jump, blank screens, pointer tools) as one shared mapping so no
+// binding invents its own bindings.
+export * from './presentation-keymap';
 // Insert > Action: OOXML built-in action-button catalogue + element factory
 // (labelled nav buttons carrying an `actionClick` slide jump).
 export * from './action-buttons';
