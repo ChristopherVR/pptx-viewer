@@ -16,20 +16,18 @@
  * framework-neutral accessibility contract the e2e specs assert against
  * (`getByRole('navigation', { name: 'Editor actions' })`).
  *
- * Inputs
- *   slideCount    : total number of slides (gates Slides/Format/Insert)
- *   commentCount  : number of comments on the active slide (badge)
- *   activeSheet   : currently-active sheet, for highlighting the bar button
- *
- * Outputs
- *   openSlides    : user tapped the Slides button
- *   insert        : user tapped the Insert button
- *   openFormat    : user tapped the Format button
- *   openComments  : user tapped the Comments button
- *   notes         : user tapped the Notes button
+ * Icons and colours come from the same Lucide glyphs and `--pptx-*` theme
+ * tokens React uses. Each input/output is documented on its declaration below.
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	LucideLayers,
+	LucideMessageSquare,
+	LucidePlus,
+	LucideSettings2,
+	LucideStickyNote,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
 /** Which mobile sheet/panel is currently active (highlights its button). */
@@ -40,8 +38,6 @@ interface BarAction {
 	key: NonNullable<MobileBarSheet> | 'insert';
 	labelKey: string;
 	ariaLabelKey?: string;
-	/** SVG path data for the icon (24 × 24 view-box). */
-	svgPath: string;
 	disabled: boolean;
 	active: boolean;
 	badge?: number;
@@ -51,7 +47,14 @@ interface BarAction {
 @Component({
 	selector: 'pptx-mobile-bottom-bar',
 	standalone: true,
-	imports: [TranslatePipe],
+	imports: [
+		LucideLayers,
+		LucideMessageSquare,
+		LucidePlus,
+		LucideSettings2,
+		LucideStickyNote,
+		TranslatePipe,
+	],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<nav class="pptx-ng-mbar" [attr.aria-label]="'pptx.mobileBar.ariaLabel' | translate">
@@ -65,19 +68,23 @@ interface BarAction {
 					[disabled]="action.disabled"
 					(click)="action.emit()"
 				>
-					<svg
-						class="pptx-ng-mbar-icon"
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						aria-hidden="true"
-					>
-						<path [attr.d]="action.svgPath" />
-					</svg>
+					@switch (action.key) {
+						@case ('slides') {
+							<svg lucideLayers class="pptx-ng-mbar-icon" aria-hidden="true"></svg>
+						}
+						@case ('insert') {
+							<svg lucidePlus class="pptx-ng-mbar-icon" aria-hidden="true"></svg>
+						}
+						@case ('inspector') {
+							<svg lucideSettings2 class="pptx-ng-mbar-icon" aria-hidden="true"></svg>
+						}
+						@case ('comments') {
+							<svg lucideMessageSquare class="pptx-ng-mbar-icon" aria-hidden="true"></svg>
+						}
+						@case ('notes') {
+							<svg lucideStickyNote class="pptx-ng-mbar-icon" aria-hidden="true"></svg>
+						}
+					}
 					<span class="pptx-ng-mbar-label">{{ action.labelKey | translate }}</span>
 					@if (action.badge && action.badge > 0) {
 						<span class="pptx-ng-mbar-badge" aria-hidden="true">
@@ -99,15 +106,28 @@ interface BarAction {
 
 			/* ── Navigation bar ── */
 
+			/*
+			 * Themed chrome: the same semantic tokens React's MobileBottomBar
+			 * resolves through Tailwind (bg-secondary/80, dropping to /60 when
+			 * backdrop-filter is supported, plus border-border), so a ViewerTheme
+			 * preset restyles the bar instead of leaving it on a hardcoded
+			 * near-black that clashes with the rest of the chrome.
+			 */
 			.pptx-ng-mbar {
 				display: flex;
 				align-items: stretch;
 				justify-content: space-around;
-				background: rgba(26, 26, 26, 0.92);
-				border-top: 1px solid rgba(255, 255, 255, 0.1);
-				backdrop-filter: blur(12px);
-				-webkit-backdrop-filter: blur(12px);
+				background: color-mix(in srgb, var(--pptx-secondary, #1f2937) 80%, transparent);
+				border-top: 1px solid var(--pptx-border, #374151);
 				padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+			}
+
+			@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+				.pptx-ng-mbar {
+					background: color-mix(in srgb, var(--pptx-secondary, #1f2937) 60%, transparent);
+					backdrop-filter: blur(12px);
+					-webkit-backdrop-filter: blur(12px);
+				}
 			}
 
 			/* ── Individual button ── */
@@ -124,7 +144,7 @@ interface BarAction {
 				padding: 0.375rem 0.25rem;
 				border: none;
 				background: transparent;
-				color: rgba(255, 255, 255, 0.55);
+				color: var(--pptx-muted-foreground, #9ca3af);
 				font-size: 0.625rem;
 				font-weight: 500;
 				cursor: pointer;
@@ -140,11 +160,11 @@ interface BarAction {
 			}
 
 			.pptx-ng-mbar-btn.is-active {
-				color: #3b82f6;
+				color: var(--pptx-primary, #6366f1);
 			}
 
 			.pptx-ng-mbar-btn:hover:not([disabled]):not(.is-active) {
-				color: #e5e5e5;
+				color: var(--pptx-foreground, #f3f4f6);
 			}
 
 			.pptx-ng-mbar-btn[disabled] {
@@ -180,8 +200,8 @@ interface BarAction {
 				height: 1rem;
 				padding: 0 0.25rem;
 				border-radius: 9999px;
-				background: #ef4444;
-				color: #fff;
+				background: var(--pptx-primary, #6366f1);
+				color: var(--pptx-primary-foreground, #ffffff);
 				font-size: 0.5625rem;
 				font-weight: 600;
 				line-height: 1;
@@ -197,7 +217,7 @@ interface BarAction {
 				width: 2rem;
 				height: 0.1875rem;
 				border-radius: 9999px;
-				background: #3b82f6;
+				background: var(--pptx-primary, #6366f1);
 			}
 		`,
 	],
@@ -237,8 +257,6 @@ export class MobileBottomBarComponent {
 			{
 				key: 'slides',
 				labelKey: 'pptx.sections.slides',
-				// Layers icon
-				svgPath: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
 				disabled: noSlides,
 				active: active === 'slides',
 				emit: () => this.openSlides.emit(),
@@ -246,8 +264,6 @@ export class MobileBottomBarComponent {
 			{
 				key: 'insert',
 				labelKey: 'pptx.editorToolbar.insert',
-				// Plus icon
-				svgPath: 'M12 5v14 M5 12h14',
 				disabled: noSlides,
 				active: false,
 				emit: () => this.insert.emit(),
@@ -255,8 +271,6 @@ export class MobileBottomBarComponent {
 			{
 				key: 'inspector',
 				labelKey: 'pptx.arrange.format',
-				// Sliders icon
-				svgPath: 'M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M1 14h6 M9 8h6 M17 16h6',
 				disabled: noSlides,
 				active: active === 'inspector',
 				emit: () => this.openFormat.emit(),
@@ -264,8 +278,6 @@ export class MobileBottomBarComponent {
 			{
 				key: 'comments',
 				labelKey: 'pptx.toolbar.comments',
-				// Message-square icon
-				svgPath: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
 				disabled: noSlides,
 				active: active === 'comments',
 				badge: this.commentCount(),
@@ -275,9 +287,6 @@ export class MobileBottomBarComponent {
 				key: 'notes',
 				labelKey: 'pptx.notes.title',
 				ariaLabelKey: 'pptx.statusBar.toggleNotes',
-				// Note / document-text icon
-				svgPath:
-					'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h5',
 				disabled: noSlides,
 				active: active === 'notes',
 				emit: () => this.notes.emit(),

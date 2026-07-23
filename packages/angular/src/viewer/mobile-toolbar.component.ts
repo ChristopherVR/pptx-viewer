@@ -6,7 +6,9 @@
  * A single compact row that replaces the desktop ribbon below the 768px
  * breakpoint. Renders the essential always-available controls:
  *
- *   Menu · Undo · Redo · [spacer] · Present
+ *   Menu · Undo · Redo · [spacer] · AI · Save · Present · Share
+ *
+ * The slot order, icons and colours mirror React's MobileToolbar exactly.
  *
  * Section-specific functionality (Insert/Design/Export/etc.) lives in the
  * `MobileMenuSheetComponent` that opens from the Menu button; per-selection
@@ -16,23 +18,19 @@
  * the framework-neutral accessibility contract the e2e specs assert against
  * (`getByRole('toolbar', { name: 'Toolbar' })`).
  *
- * Inputs
- *   canUndo    : whether the undo action is available
- *   canRedo    : whether the redo action is available
- *   canPresent : whether the Present action should be enabled
- *   canEdit    : whether editor-only controls (menu/undo/redo) should render
- *   menuOpen   : whether the mobile menu sheet is currently open
- *
- * Outputs
- *   toggleMenu : user tapped the Menu (hamburger) button
- *   undo       : user tapped Undo
- *   redo       : user tapped Redo
- *   share      : user tapped Share (opens the collaboration dialog)
- *   present    : user tapped Present
+ * Each input/output is documented on its own declaration below.
  */
 
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { LucideShare2 } from '@lucide/angular';
+import {
+	LucideDownload,
+	LucideMenu,
+	LucidePresentation,
+	LucideRedo,
+	LucideShare2,
+	LucideSparkles,
+	LucideUndo,
+} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import type { ToolbarActionId } from '../internal/shared';
@@ -42,7 +40,16 @@ import { toolbarVisibility } from './toolbar-visibility';
 	selector: 'pptx-mobile-toolbar',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [LucideShare2, TranslatePipe],
+	imports: [
+		LucideDownload,
+		LucideMenu,
+		LucidePresentation,
+		LucideRedo,
+		LucideShare2,
+		LucideSparkles,
+		LucideUndo,
+		TranslatePipe,
+	],
 	template: `
 		<div
 			class="pptx-ng-mtoolbar"
@@ -59,19 +66,7 @@ import { toolbarVisibility } from './toolbar-visibility';
 					[title]="'pptx.mobileToolbar.menu' | translate"
 					(click)="toggleMenu.emit()"
 				>
-					<svg
-						class="pptx-ng-mtoolbar-icon"
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						aria-hidden="true"
-					>
-						<path d="M3 12h18 M3 6h18 M3 18h18" />
-					</svg>
+					<svg lucideMenu class="pptx-ng-mtoolbar-icon" aria-hidden="true"></svg>
 				</button>
 
 				@if (!toolbar.isHidden('undo')) {
@@ -83,19 +78,7 @@ import { toolbarVisibility } from './toolbar-visibility';
 						[disabled]="!canUndo()"
 						(click)="undo.emit()"
 					>
-						<svg
-							class="pptx-ng-mtoolbar-icon"
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							aria-hidden="true"
-						>
-							<path d="M3 7v6h6 M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
-						</svg>
+						<svg lucideUndo class="pptx-ng-mtoolbar-icon" aria-hidden="true"></svg>
 					</button>
 				}
 
@@ -108,19 +91,7 @@ import { toolbarVisibility } from './toolbar-visibility';
 						[disabled]="!canRedo()"
 						(click)="redo.emit()"
 					>
-						<svg
-							class="pptx-ng-mtoolbar-icon"
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							aria-hidden="true"
-						>
-							<path d="M21 7v6h-6 M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
-						</svg>
+						<svg lucideRedo class="pptx-ng-mtoolbar-icon" aria-hidden="true"></svg>
 					</button>
 				}
 			}
@@ -144,39 +115,7 @@ import { toolbarVisibility } from './toolbar-visibility';
 					[title]="'pptx.toolbar.toggleAiAssistant' | translate"
 					(click)="toggleAiPanel.emit()"
 				>
-					<svg
-						class="pptx-ng-mtoolbar-icon"
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						aria-hidden="true"
-					>
-						<path
-							d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
-						/>
-						<path d="M20 3v4 M22 5h-4 M4 17v2 M5 18H3" />
-					</svg>
-				</button>
-			}
-
-			<!--
-				Share: start/join a real-time collaboration session. Gated on edit
-				mode and toolbar visibility, mirroring React's MobileToolbar; the
-				icon is the same Lucide Share2 the desktop ribbon uses.
-			-->
-			@if (canEdit() && !toolbar.isHidden('share')) {
-				<button
-					type="button"
-					class="pptx-ng-mtoolbar-btn"
-					[attr.aria-label]="'pptx.toolbar.share' | translate"
-					[title]="'pptx.toolbar.share' | translate"
-					(click)="share.emit()"
-				>
-					<svg lucideShare2 class="pptx-ng-mtoolbar-icon" aria-hidden="true"></svg>
+					<svg lucideSparkles class="pptx-ng-mtoolbar-icon" aria-hidden="true"></svg>
 				</button>
 			}
 
@@ -192,43 +131,39 @@ import { toolbarVisibility } from './toolbar-visibility';
 				[title]="'pptx.toolbar.save' | translate"
 				(click)="save.emit()"
 			>
-				<svg
-					class="pptx-ng-mtoolbar-icon"
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-				>
-					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3" />
-				</svg>
+				<svg lucideDownload class="pptx-ng-mtoolbar-icon" aria-hidden="true"></svg>
 			</button>
 
-			<button
-				type="button"
-				class="pptx-ng-mtoolbar-btn pptx-ng-mtoolbar-present"
-				[attr.aria-label]="'pptx.toolbar.present' | translate"
-				[title]="'pptx.toolbar.present' | translate"
-				[disabled]="!canPresent()"
-				(click)="present.emit()"
-			>
-				<svg
-					class="pptx-ng-mtoolbar-icon"
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
+			<!-- Present: same Lucide "presentation" glyph React's mobile bar uses. -->
+			@if (!toolbar.isHidden('fullscreen')) {
+				<button
+					type="button"
+					class="pptx-ng-mtoolbar-btn pptx-ng-mtoolbar-present"
+					[attr.aria-label]="'pptx.toolbar.present' | translate"
+					[title]="'pptx.toolbar.present' | translate"
+					[disabled]="!canPresent()"
+					(click)="present.emit()"
 				>
-					<path d="M5 3l14 9-14 9V3z" />
-				</svg>
-			</button>
+					<svg lucidePresentation class="pptx-ng-mtoolbar-icon" aria-hidden="true"></svg>
+				</button>
+			}
+
+			<!--
+				Share: start/join a real-time collaboration session. Sits last in
+				the row (after Present) and renders as a filled primary pill, the
+				same slot and treatment React's MobileToolbar gives it.
+			-->
+			@if (canEdit() && !toolbar.isHidden('share')) {
+				<button
+					type="button"
+					class="pptx-ng-mtoolbar-btn pptx-ng-mtoolbar-share"
+					[attr.aria-label]="'pptx.toolbar.share' | translate"
+					[title]="'pptx.toolbar.share' | translate"
+					(click)="share.emit()"
+				>
+					<svg lucideShare2 class="pptx-ng-mtoolbar-icon is-sm" aria-hidden="true"></svg>
+				</button>
+			}
 		</div>
 	`,
 	styles: [
@@ -245,10 +180,14 @@ import { toolbarVisibility } from './toolbar-visibility';
 				gap: 0.25rem;
 				padding: 0.25rem 0.5rem;
 				min-height: 52px;
-				background: rgba(26, 26, 26, 0.92);
-				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-				backdrop-filter: blur(12px);
-				-webkit-backdrop-filter: blur(12px);
+				/*
+				 * Themed chrome: the same semantic tokens React's mobile toolbar
+				 * resolves through Tailwind (bg-secondary/50, border-border), so a
+				 * ViewerTheme preset restyles this bar instead of leaving it on a
+				 * hardcoded near-black that clashes with the rest of the UI.
+				 */
+				background: color-mix(in srgb, var(--pptx-secondary, #1f2937) 50%, transparent);
+				border-bottom: 1px solid var(--pptx-border, #374151);
 				padding-top: max(env(safe-area-inset-top, 0px), 0.25rem);
 			}
 
@@ -265,7 +204,7 @@ import { toolbarVisibility } from './toolbar-visibility';
 				border: none;
 				border-radius: 0.375rem;
 				background: transparent;
-				color: rgba(255, 255, 255, 0.85);
+				color: color-mix(in srgb, var(--pptx-foreground, #f3f4f6) 80%, transparent);
 				cursor: pointer;
 				touch-action: manipulation;
 				transition:
@@ -279,11 +218,11 @@ import { toolbarVisibility } from './toolbar-visibility';
 			}
 
 			.pptx-ng-mtoolbar-btn:hover:not([disabled]) {
-				background: rgba(255, 255, 255, 0.08);
+				background: color-mix(in srgb, var(--pptx-accent, #1f2937) 60%, transparent);
 			}
 
 			.pptx-ng-mtoolbar-btn.is-active {
-				color: #3b82f6;
+				color: var(--pptx-primary, #6366f1);
 			}
 
 			.pptx-ng-mtoolbar-btn[disabled] {
@@ -292,13 +231,28 @@ import { toolbarVisibility } from './toolbar-visibility';
 			}
 
 			.pptx-ng-mtoolbar-present {
-				color: #3b82f6;
+				color: var(--pptx-primary, #6366f1);
+			}
+
+			.pptx-ng-mtoolbar-share {
+				padding: 0 0.75rem;
+				background: var(--pptx-primary, #6366f1);
+				color: var(--pptx-primary-foreground, #ffffff);
+			}
+
+			.pptx-ng-mtoolbar-share:hover:not([disabled]) {
+				background: color-mix(in srgb, var(--pptx-primary, #6366f1) 90%, transparent);
 			}
 
 			.pptx-ng-mtoolbar-icon {
 				width: 1.25rem;
 				height: 1.25rem;
 				flex-shrink: 0;
+			}
+
+			.pptx-ng-mtoolbar-icon.is-sm {
+				width: 1rem;
+				height: 1rem;
 			}
 		`,
 	],
