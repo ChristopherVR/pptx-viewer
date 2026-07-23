@@ -169,9 +169,10 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 				}
 			})();
 		},
-		onToggleLaser: () => annotations.setPresentationTool('laser'),
-		onTogglePen: () => annotations.setPresentationTool('pen'),
-		onToggleEraser: () => annotations.setPresentationTool('eraser'),
+		// PowerPoint's Ctrl+A "arrow" is the plain pointer, i.e. no active tool.
+		onSetPointerTool: (tool) => annotations.setPresentationTool(tool === 'arrow' ? 'none' : tool),
+		onEraseAnnotations: () => annotations.clearAnnotations(),
+		onToggleInkMarkup: () => annotations.setInkMarkupVisible(!annotations.inkMarkupVisible),
 		onToggleToolbar: () => annotations.setToolbarVisible(!annotations.toolbarVisible),
 		onSaveRehearsalTimings: (timings: Record<number, number>) => {
 			setSlides((prev) => applyRehearsalTimings(prev, timings));

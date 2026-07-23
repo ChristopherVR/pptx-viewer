@@ -9,7 +9,6 @@ import type { UsePresentationModeResult } from '../hooks/usePresentationMode';
 import type { CanvasSize } from '../types';
 import type { ViewerMode } from '../types-core';
 import { MobilePresenterView } from './MobilePresenterView';
-import { PresentationAudienceEffects } from './PresentationAudienceEffects';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -47,9 +46,6 @@ export function ViewerPresentationLayer(props: ViewerPresentationLayerProps) {
 
 	return (
 		<>
-			{mode === 'present' && !presentation.presenterMode && (
-				<PresentationAudienceEffects snapshot={presentation.presenterSnapshot} />
-			)}
 			{presenterActive &&
 				(isMobile ? (
 					<MobilePresenterView

@@ -174,11 +174,15 @@ export function PresentationAnnotationOverlay({
 		onPointerUp();
 	}, [presentationTool, onLaserLeave, onPointerUp]);
 
-	if (presentationTool === 'none') {
+	const allStrokes = currentStroke ? [...annotationStrokes, currentStroke] : annotationStrokes;
+
+	// With no tool selected the overlay still paints existing ink; PowerPoint
+	// keeps annotations on screen after you switch back to the arrow pointer.
+	// It just stops intercepting pointer events so clicks advance the slide.
+	const isCapturing = presentationTool !== 'none';
+	if (!isCapturing && allStrokes.length === 0) {
 		return null;
 	}
-
-	const allStrokes = currentStroke ? [...annotationStrokes, currentStroke] : annotationStrokes;
 
 	return (
 		<div
@@ -186,7 +190,7 @@ export function PresentationAnnotationOverlay({
 			style={{
 				zIndex: 60,
 				cursor: getCursorForTool(presentationTool),
-				pointerEvents: 'auto',
+				pointerEvents: isCapturing ? 'auto' : 'none',
 			}}
 		>
 			<svg

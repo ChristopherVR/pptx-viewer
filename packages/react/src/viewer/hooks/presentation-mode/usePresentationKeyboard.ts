@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import type { PresentationPointerTool } from 'pptx-viewer-shared';
+import { createPresentationKeyBuffer, mapPresentationKey } from 'pptx-viewer-shared';
+import { useEffect, useRef } from 'react';
 
 import type { ViewerMode } from '../../types';
-import { mapKeyToPresentationAction } from './keyboard-helpers';
 
 // ---------------------------------------------------------------------------
 // Sub-hook interface
@@ -10,13 +11,21 @@ import { mapKeyToPresentationAction } from './keyboard-helpers';
 export interface UsePresentationKeyboardInput {
 	mode: ViewerMode;
 	movePresentationSlide: (direction: 1 | -1) => void;
+	/** Jump to a 0-based slide index (Home / End / typed slide number). */
+	navigateToSlide: (index: number) => void;
+	/** Total slide count, so End can resolve the last slide. */
+	slideCount: number;
 	onSetMode: (mode: ViewerMode) => void;
-	onToggleLaser?: () => void;
-	onTogglePen?: () => void;
-	onToggleEraser?: () => void;
+	/** Select a pointer tool (Ctrl+L / Ctrl+P / Ctrl+A / Ctrl+E). */
+	onSetPointerTool?: (tool: PresentationPointerTool | 'arrow') => void;
+	/** Erase this slide's ink annotations (E). */
+	onEraseAnnotations?: () => void;
+	/** Show or hide ink markup (Ctrl+M). */
+	onToggleInkMarkup?: () => void;
+	/** Show or hide the slide-show chrome (Ctrl+H). */
 	onToggleToolbar?: () => void;
-	/** Toggle between presenter view (split-screen with notes) and fullscreen. */
-	onTogglePresenterView?: () => void;
+	/** Open the All Slides navigator (Ctrl+S). */
+	onShowAllSlides?: () => void;
 	onToggleBlackScreen?: () => void;
 	onToggleWhiteScreen?: () => void;
 	rehearsing: boolean;
@@ -30,19 +39,23 @@ export interface UsePresentationKeyboardInput {
 // ---------------------------------------------------------------------------
 
 /**
- * Registers keyboard shortcuts for presentation mode: arrow/space
- * for slide navigation, Escape to exit, and annotation tool toggles.
+ * Registers PowerPoint's slide-show shortcuts while a show is running.
+ *
+ * The key-to-action mapping lives in `pptx-viewer-shared` so every binding
+ * resolves the same chords; this hook only performs the resulting actions.
  */
 export function usePresentationKeyboard(input: UsePresentationKeyboardInput): void {
 	const {
 		mode,
 		movePresentationSlide,
+		navigateToSlide,
+		slideCount,
 		onSetMode,
-		onToggleLaser,
-		onTogglePen,
-		onToggleEraser,
+		onSetPointerTool,
+		onEraseAnnotations,
+		onToggleInkMarkup,
 		onToggleToolbar,
-		onTogglePresenterView,
+		onShowAllSlides,
 		onToggleBlackScreen,
 		onToggleWhiteScreen,
 		rehearsing,
@@ -51,13 +64,17 @@ export function usePresentationKeyboard(input: UsePresentationKeyboardInput): vo
 		setShowRehearsalSummary,
 	} = input;
 
+	// One digit buffer per running show, backing "type a slide number, Enter".
+	const keyBufferRef = useRef(createPresentationKeyBuffer());
+
 	useEffect(() => {
 		if (mode !== 'present') {
+			keyBufferRef.current = createPresentationKeyBuffer();
 			return;
 		}
 
 		const handleKeyDown = (event: KeyboardEvent) => {
-			const mapped = mapKeyToPresentationAction(event.key, event.ctrlKey);
+			const mapped = mapPresentationKey(event, keyBufferRef.current);
 			if (mapped.action === 'none') {
 				return;
 			}
@@ -65,7 +82,7 @@ export function usePresentationKeyboard(input: UsePresentationKeyboardInput): vo
 			event.preventDefault();
 
 			switch (mapped.action) {
-				case 'exit':
+				case 'end':
 					if (rehearsing) {
 						recordCurrentSlideTime(presentationSlideIndex);
 						setShowRehearsalSummary(true);
@@ -75,29 +92,47 @@ export function usePresentationKeyboard(input: UsePresentationKeyboardInput): vo
 				case 'next':
 					movePresentationSlide(1);
 					return;
-				case 'prev':
+				case 'previous':
 					movePresentationSlide(-1);
 					return;
-				case 'toggleLaser':
-					onToggleLaser?.();
+				case 'first':
+					navigateToSlide(0);
 					return;
-				case 'togglePen':
-					onTogglePen?.();
+				case 'last':
+					navigateToSlide(Math.max(0, slideCount - 1));
 					return;
-				case 'toggleEraser':
-					onToggleEraser?.();
+				case 'goto': {
+					// Typed numbers are 1-based; ignore anything past the deck.
+					const index = mapped.slideNumber - 1;
+					if (index >= 0 && index < slideCount) {
+						navigateToSlide(index);
+					}
 					return;
-				case 'toggleToolbar':
+				}
+				case 'pointerTool':
+					onSetPointerTool?.(mapped.tool);
+					return;
+				case 'eraseAnnotations':
+					onEraseAnnotations?.();
+					return;
+				case 'toggleInkMarkup':
+					onToggleInkMarkup?.();
+					return;
+				case 'toggleChrome':
 					onToggleToolbar?.();
 					return;
-				case 'togglePresenterView':
-					onTogglePresenterView?.();
-					break;
+				case 'showAllSlides':
+					onShowAllSlides?.();
+					return;
 				case 'toggleBlackScreen':
 					onToggleBlackScreen?.();
-					break;
+					return;
 				case 'toggleWhiteScreen':
 					onToggleWhiteScreen?.();
+					break;
+				// `buffering` (a pending slide number) and `contextMenu` are consumed
+				// here so the browser does not act on them; nothing else to do.
+				default:
 					break;
 			}
 		};
@@ -109,12 +144,14 @@ export function usePresentationKeyboard(input: UsePresentationKeyboardInput): vo
 	}, [
 		mode,
 		movePresentationSlide,
+		navigateToSlide,
+		slideCount,
 		onSetMode,
-		onToggleLaser,
-		onTogglePen,
-		onToggleEraser,
+		onSetPointerTool,
+		onEraseAnnotations,
+		onToggleInkMarkup,
 		onToggleToolbar,
-		onTogglePresenterView,
+		onShowAllSlides,
 		onToggleBlackScreen,
 		onToggleWhiteScreen,
 		rehearsing,

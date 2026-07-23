@@ -35,9 +35,11 @@ import type { TableStyleContext } from '../utils/table-parse';
 import type { FieldSubstitutionContext } from '../utils/text-field-substitution';
 import { CollaborationCursorOverlay, RemoteSelectionOverlay } from './collaboration';
 import { PresentationStage } from './presentation/PresentationStage';
+import { PresentationAudienceEffects } from './PresentationAudienceEffects';
 import type { PresentationContextMenuState } from './PresentationContextMenu';
 import { PresentationContextMenu } from './PresentationContextMenu';
 import { PresentationEndOverlay } from './PresentationEndOverlay';
+import { PresenterSlideNavigator } from './PresenterSlideNavigator';
 import { useViewerOptionsContext } from './viewer-options-context';
 
 // ---------------------------------------------------------------------------
@@ -348,6 +350,13 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					sourceSlideIndex={activeSlideIndex}
 					fieldContext={fieldContext}
 					tableStyleContext={tableStyleContext}
+					screenOverlay={
+						// Blackout/whiteout, audience ink, laser and captions. Rendered on
+						// the stage rather than beside the viewer, because the fullscreen
+						// element is the viewer's inner container: anything mounted outside
+						// it simply is not painted while a real fullscreen show is running.
+						<PresentationAudienceEffects snapshot={presentation.presenterSnapshot} />
+					}
 				>
 					{(stageScale) => (
 						<>
@@ -370,8 +379,10 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 								)}
 
 							{/* Ink/laser overlay, sharing the slide box origin so strokes
-							    land under the cursor rather than offset by the letterbox. */}
-							{annotations.presentationTool !== 'none' && (
+							    land under the cursor rather than offset by the letterbox.
+							    Stays mounted once ink exists so annotations remain visible
+							    after switching back to the arrow pointer (Ctrl+M hides them). */}
+							{annotations.inkMarkupVisible && (
 								<PresentationAnnotationOverlay
 									canvasSize={canvasSize}
 									editorScale={stageScale}
@@ -504,6 +515,21 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 							},
 						]);
 					}}
+				/>
+			)}
+
+			{/* All Slides navigator (Ctrl+S during a show) */}
+			{mode === 'present' && presentation.allSlidesOpen && (
+				<PresenterSlideNavigator
+					slides={slides}
+					current={presentation.presentationSlideIndex}
+					canvasSize={canvasSize}
+					templateElements={templateElements}
+					onSelect={(index) => {
+						presentation.navigateToSlide(index);
+						presentation.closeAllSlides();
+					}}
+					onClose={presentation.closeAllSlides}
 				/>
 			)}
 

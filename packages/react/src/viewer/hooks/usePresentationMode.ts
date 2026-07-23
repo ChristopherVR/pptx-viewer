@@ -32,9 +32,9 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		onSetMode,
 		onSetActiveSlideIndex,
 		onPlayActionSound,
-		onToggleLaser,
-		onTogglePen,
-		onToggleEraser,
+		onSetPointerTool,
+		onEraseAnnotations,
+		onToggleInkMarkup,
 		onToggleToolbar,
 		onSaveRehearsalTimings,
 		loopContinuously,
@@ -55,6 +55,8 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		setTransitionOverlay(null);
 	}, []);
 	const [presenterMode, setPresenterMode] = useState(false);
+	// PowerPoint's Ctrl+S "All Slides" navigator, available during the show.
+	const [allSlidesOpen, setAllSlidesOpen] = useState(false);
 	// Black "End of slide show" screen shown after advancing past the last
 	// slide (Options > Advanced > "End with black slide").
 	const [endOfShowVisible, setEndOfShowVisible] = useState(false);
@@ -158,6 +160,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 
 	const { handleZoomClick, zoomReturnSlideIndex, returnToZoomSlide, clearZoomReturn } =
 		useZoomNavigation({ navigateToSlide });
+	const closeAllSlides = useCallback(() => setAllSlidesOpen(false), []);
 	const presenterConsole = usePresenterConsole(presentationSlideIndex);
 
 	const {
@@ -261,12 +264,14 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	usePresentationKeyboard({
 		mode,
 		movePresentationSlide,
+		navigateToSlide,
+		slideCount: slides.length,
 		onSetMode,
-		onToggleLaser,
-		onTogglePen,
-		onToggleEraser,
+		onSetPointerTool,
+		onEraseAnnotations,
+		onToggleInkMarkup,
 		onToggleToolbar,
-		onTogglePresenterView: togglePresenterView,
+		onShowAllSlides: () => setAllSlidesOpen(true),
 		onToggleBlackScreen: () =>
 			presenterConsole.setBlackout(
 				presenterConsole.snapshot.blackout === 'black' ? 'none' : 'black',
@@ -412,6 +417,8 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		clearPresentationTimers,
 		runPresentationEntranceAnimations,
 		endOfShowVisible,
+		allSlidesOpen,
+		closeAllSlides,
 		movePresentationSlide,
 		navigateToSlide,
 		handlePresentationAction,

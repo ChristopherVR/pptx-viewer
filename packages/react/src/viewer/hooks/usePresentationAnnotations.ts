@@ -53,6 +53,8 @@ export function usePresentationAnnotations(
 	const [currentStroke, setCurrentStroke] = useState<AnnotationStroke | null>(null);
 	const [laserPosition, setLaserPosition] = useState<LaserPosition | null>(null);
 	const [toolbarVisible, setToolbarVisible] = useState(false);
+	// PowerPoint's Ctrl+M hides ink markup without discarding it.
+	const [inkMarkupVisible, setInkMarkupVisible] = useState(true);
 
 	// Per-slide annotation storage
 	const slideAnnotationsRef = useRef<SlideAnnotationMap>(new Map());
@@ -298,6 +300,8 @@ export function usePresentationAnnotations(
 		laserPosition,
 		toolbarVisible,
 		setToolbarVisible,
+		inkMarkupVisible,
+		setInkMarkupVisible,
 		handlePointerDown,
 		handlePointerMove,
 		handlePointerUp,

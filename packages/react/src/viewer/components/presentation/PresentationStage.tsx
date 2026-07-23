@@ -51,6 +51,12 @@ export interface PresentationStageProps {
 	tableStyleContext?: TableStyleContext;
 	/** Overlays drawn inside the scaled slide box, given the live scale. */
 	children?: (scale: number) => React.ReactNode;
+	/**
+	 * Overlays covering the whole display, letterbox bars included. Blackout and
+	 * whiteout live here: PowerPoint's B/W blank the entire screen, not just the
+	 * slide.
+	 */
+	screenOverlay?: React.ReactNode;
 }
 
 // ---------------------------------------------------------------------------
@@ -72,6 +78,7 @@ export function PresentationStage({
 	fieldContext,
 	tableStyleContext,
 	children,
+	screenOverlay,
 }: PresentationStageProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [box, setBox] = useState<CanvasSize | null>(null);
@@ -223,6 +230,8 @@ export function PresentationStage({
 
 				{children?.(scale)}
 			</div>
+
+			{screenOverlay}
 		</div>
 	);
 }

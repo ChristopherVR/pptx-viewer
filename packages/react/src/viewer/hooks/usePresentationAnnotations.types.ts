@@ -44,6 +44,12 @@ export interface UsePresentationAnnotationsResult {
 	laserPosition: LaserPosition | null;
 	toolbarVisible: boolean;
 	setToolbarVisible: (visible: boolean) => void;
+	/**
+	 * Whether ink markup is drawn (PowerPoint's Ctrl+M). Hiding it keeps the
+	 * strokes so they can be shown again, or kept on exit.
+	 */
+	inkMarkupVisible: boolean;
+	setInkMarkupVisible: (visible: boolean) => void;
 	handlePointerDown: (x: number, y: number) => void;
 	handlePointerMove: (x: number, y: number) => void;
 	handlePointerUp: () => void;

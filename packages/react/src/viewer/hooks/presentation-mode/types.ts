@@ -1,5 +1,5 @@
 import type { PptxAction, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
-import type { PresentationSnapshot } from 'pptx-viewer-shared';
+import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
 
 import type { ViewerMode, PresentationAnimationRuntime } from '../../types';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
@@ -56,14 +56,16 @@ export interface UsePresentationModeInput {
 	 * (used for transition sounds flagged with `soundLoop`).
 	 */
 	onPlayActionSound?: (soundPath: string, options?: { loop?: boolean }) => void;
-	/** Called when L key is pressed during presentation. */
-	onToggleLaser?: () => void;
-	/** Called when P key is pressed during presentation. */
-	onTogglePen?: () => void;
-	/** Called when E key is pressed during presentation. */
-	onToggleEraser?: () => void;
-	/** Called when Ctrl+M is pressed during presentation. */
+	/** Select a pointer tool (Ctrl+L laser, Ctrl+P pen, Ctrl+A arrow, Ctrl+E eraser). */
+	onSetPointerTool?: (tool: PresentationPointerTool | 'arrow') => void;
+	/** Erase the current slide's ink annotations (E). */
+	onEraseAnnotations?: () => void;
+	/** Show or hide ink markup (Ctrl+M). */
+	onToggleInkMarkup?: () => void;
+	/** Show or hide the slide-show chrome (Ctrl+H). */
 	onToggleToolbar?: () => void;
+	/** Open the All Slides navigator (Ctrl+S). */
+	onShowAllSlides?: () => void;
 	/** Called to persist rehearsal timings into slide transitions. */
 	onSaveRehearsalTimings?: (timings: Record<number, number>) => void;
 	/** Whether to loop continuously (kiosk or explicit loop setting). */
@@ -96,6 +98,9 @@ export interface UsePresentationModeResult {
 	runPresentationEntranceAnimations: (slideIndex: number) => void;
 	/** True while the black "End of slide show" screen is displayed. */
 	endOfShowVisible: boolean;
+	/** Whether the All Slides navigator (Ctrl+S) is open during the show. */
+	allSlidesOpen: boolean;
+	closeAllSlides: () => void;
 	movePresentationSlide: (direction: 1 | -1, trigger?: SlideAdvanceTrigger) => void;
 	navigateToSlide: (slideIndex: number) => void;
 	handlePresentationAction: (action: PptxAction) => void;
