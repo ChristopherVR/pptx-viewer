@@ -64,8 +64,20 @@ export function getContainerStyle(el: PptxElement, zIndex: number): StyleMap {
 /**
  * Fill / stroke / corner-radius for shape-like elements. Returns an empty
  * object when the element carries no shape styling.
+ *
+ * `animatesFill` / `animatesStroke` come from an active `p:animClr` colour
+ * animation during presentation playback: when set, the static paint is dropped
+ * so the wrapper's colour keyframes (applied as an `animation` on this same box)
+ * own `background-color` / `border-color`. Mirrors the Vue port's
+ * `getShapeFillStrokeStyle` and React's `getShapeVisualStyle`. Absent/false
+ * keeps the static paint, so editor / read-only rendering is unaffected.
  */
-export function getShapeFillStrokeStyle(el: PptxElement, parentGroupFill?: ShapeStyle): StyleMap {
+export function getShapeFillStrokeStyle(
+	el: PptxElement,
+	parentGroupFill?: ShapeStyle,
+	animatesFill?: boolean,
+	animatesStroke?: boolean,
+): StyleMap {
 	if (!hasShapeProperties(el)) {
 		return {};
 	}
@@ -82,7 +94,8 @@ export function getShapeFillStrokeStyle(el: PptxElement, parentGroupFill?: Shape
 				: undefined;
 		// Fill resolution order mirrors the React `getShapeVisualStyle`:
 		// image → pattern (SVG preset) → gradient (structured builder, with the
-		// parser's prebuilt CSS string as fallback) → solid colour.
+		// parser's prebuilt CSS string as fallback) → solid colour. Skipped
+		// entirely while a `p:animClr` fill animation owns the colour.
 		const imageFillUrl = ss.fillMode === 'image' && ss.fillImageUrl ? ss.fillImageUrl : undefined;
 		const patternCss = ss.fillMode === 'pattern' ? buildPatternFillCss(ss) : undefined;
 		const gradient =
@@ -90,7 +103,9 @@ export function getShapeFillStrokeStyle(el: PptxElement, parentGroupFill?: Shape
 				? (buildCssGradientFromShapeStyle(ss) ?? ss.fillGradient)
 				: ss.fillGradient;
 
-		if (inheritedGroupFill) {
+		if (animatesFill) {
+			// Leave `background-color` / `background-image` to the animated keyframes.
+		} else if (inheritedGroupFill) {
 			if (inheritedGroupFill.backgroundColor !== undefined) {
 				style['background-color'] = inheritedGroupFill.backgroundColor;
 			}
@@ -128,7 +143,13 @@ export function getShapeFillStrokeStyle(el: PptxElement, parentGroupFill?: Shape
 						? 'dotted'
 						: 'dashed'
 					: 'solid';
-			style['border'] = `${px(strokeWidth)} ${dash} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+			if (animatesStroke) {
+				// Keep the width / dash; leave the colour to the animated keyframes.
+				style['border-width'] = px(strokeWidth);
+				style['border-style'] = dash;
+			} else {
+				style['border'] = `${px(strokeWidth)} ${dash} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+			}
 		}
 	}
 

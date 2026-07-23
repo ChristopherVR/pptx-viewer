@@ -12,10 +12,12 @@ import {
 	substituteFieldText,
 } from '../internal/shared';
 import type {
+	ElementAnimationState,
 	FieldSubstitutionContext,
 	FillOverlayCss,
 	PictureBulletMarker,
 } from '../internal/shared';
+import { AnimationPlaybackService } from './animation-playback.service';
 import { ChartElementViewComponent } from './chart-element-view.component';
 import { ConnectorRendererComponent } from './connector-renderer.component';
 import type { Rect } from './connector-routing';
@@ -171,6 +173,7 @@ interface Paragraph {
 					[canvasWidth]="canvasWidth()"
 					[canvasHeight]="canvasHeight()"
 					[interactive]="interactive()"
+					[animationState]="animationState()"
 				/>
 			}
 			@case (element().type === 'ink') {
@@ -213,6 +216,7 @@ interface Paragraph {
 						[element]="element()"
 						[zIndex]="zIndex()"
 						[editable]="interactive() && editable()"
+						[animationState]="animationState()"
 					/>
 				</div>
 			}
@@ -236,6 +240,7 @@ interface Paragraph {
 					<pptx-chart-element-view
 						[element]="element()"
 						[editable]="interactive() && editable()"
+						[animationState]="animationState()"
 					/>
 				</div>
 			}
@@ -487,6 +492,14 @@ export class ElementRendererComponent {
 	 * the viewer subtree (thumbnails, export) default to the SVG renderer.
 	 */
 	private readonly smartArt3DService = inject(SmartArt3DService, { optional: true });
+	/**
+	 * Native-animation playback (present only inside a running presentation, which
+	 * provides {@link AnimationPlaybackService} at the overlay level). Optional so
+	 * the same renderer in the editor / thumbnails / export resolves to `null` and
+	 * renders with no animation state. Mirrors the Vue `injectPresentationElementStates`
+	 * provide/inject and React's threaded `presentationElementStates` prop.
+	 */
+	private readonly playback = inject(AnimationPlaybackService, { optional: true });
 	private readonly translate = inject(TranslateService);
 	readonly smartArt3D = computed(() => this.smartArt3DService?.enabled() ?? false);
 	/** Obstacle rects (absolute slide coords) for connector A* routing. */
@@ -580,15 +593,33 @@ export class ElementRendererComponent {
 		return active;
 	});
 
+	/**
+	 * This element's native-animation playback state, or `undefined` outside a
+	 * running presentation. Drives the staged chart / SmartArt build reveal and the
+	 * `p:animClr` fill / stroke relinquish (threaded to the chart / SmartArt /
+	 * connector renderers), mirroring React's per-element `animationState`.
+	 */
+	readonly animationState = computed<ElementAnimationState | undefined>(() =>
+		this.playback?.presentationElementStates().get(this.element().id),
+	);
+
 	readonly containerStyle = computed<StyleMap>(() => ({
 		...getContainerStyle(this.element(), this.zIndex()),
 		...this.templateAffordanceStyle(),
 	}));
-	readonly shapeContainerStyle = computed<StyleMap>(() => ({
-		...getContainerStyle(this.element(), this.zIndex()),
-		...getShapeFillStrokeStyle(this.element(), this.parentGroupFill()),
-		...this.templateAffordanceStyle(),
-	}));
+	readonly shapeContainerStyle = computed<StyleMap>(() => {
+		const state = this.animationState();
+		return {
+			...getContainerStyle(this.element(), this.zIndex()),
+			...getShapeFillStrokeStyle(
+				this.element(),
+				this.parentGroupFill(),
+				state?.animatesFill,
+				state?.animatesStroke,
+			),
+			...this.templateAffordanceStyle(),
+		};
+	});
 	readonly textStyle = computed<StyleMap>(() => getTextBlockStyle(this.element()));
 	/** Text-warp (WordArt) descriptor for the element, if any. */
 	readonly textWarp = computed(() => getTextWarp(this.element(), this.fieldContext()));

@@ -39,6 +39,11 @@ import {
 	requestPresentationFullscreen,
 } from './presentation-fullscreen';
 import {
+	createSlideKeyframesStyle,
+	ensurePresetAnimationKeyframes,
+} from './presentation-keyframes';
+import type { SlideKeyframesStyle } from './presentation-keyframes';
+import {
 	clampIndex,
 	fitZoom,
 	nextVisibleIndex,
@@ -217,6 +222,8 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 				class="pptx-ng-presentation-stage"
 				[ngStyle]="stageContainerStyle()"
 				(click)="onBodyClick($event)"
+				(mouseover)="onStageHover($event)"
+				(mouseout)="onStageHoverEnd($event)"
 				(contextmenu)="$event.preventDefault()"
 			>
 				<pptx-slide-canvas
@@ -434,27 +441,49 @@ export class PresentationOverlayComponent implements OnInit {
 	 */
 	private closing = false;
 
+	/**
+	 * Managed per-slide keyframes `<style>` element (colour animations + staged
+	 * text builds). The static preset keyframe library is injected once per
+	 * document by {@link ensurePresetAnimationKeyframes}.
+	 */
+	private readonly slideKeyframes: SlideKeyframesStyle = createSlideKeyframesStyle();
+
+	/** The hover-trigger shape the pointer is currently over (fires a sequence once). */
+	private currentHoverTriggerId: string | undefined;
+
 	constructor() {
 		this.setupTouchGestures();
 		this.setupFullscreen();
+
+		ensurePresetAnimationKeyframes();
+		inject(DestroyRef).onDestroy(() => this.slideKeyframes.dispose());
+
+		// Scope media-command (`p:cmd`) target lookups to the slide stage.
+		this.playback.setFrameRoot(() => this.stageRef()?.nativeElement ?? null);
 
 		// Wire the zoom-navigation context to this overlay's slide navigation so a
 		// descendant zoom tile can jump to its target slide on click.
 		this.zoomNavigation.setHandler((index) => this.goToSlide(index));
 
-		// Feed the current slide's element animations into playback (resets to the
-		// pre-build state so entrance-animated elements start hidden).
+		// Rebuild the native-animation controller for the current slide (seeds the
+		// pre-build state so entrance-animated elements start hidden) and publish its
+		// per-slide keyframes CSS.
 		effect(() => {
-			this.playback.setAnimations(this.currentSlide()?.animations, this.showWithAnimation());
+			this.playback.setSlide(this.currentSlide(), this.showWithAnimation());
+			this.slideKeyframes.set(this.playback.keyframesCss());
 		});
 
-		// Apply the reveal / pending styles to the rendered elements whenever the
-		// playback step or the slide changes. Deferred to an animation frame so the
-		// new slide's `[data-element-id]` nodes are in the DOM first.
+		// Apply each element's native-animation state (visibility, CSS animation,
+		// interactive/hover cursor) to its rendered node whenever the state map or
+		// the slide changes. Deferred to an animation frame so the new slide's
+		// `[data-element-id]` nodes are in the DOM first. Structural reveals (chart /
+		// SmartArt build, fill / stroke inherit) are applied declaratively by the
+		// renderers themselves via the injected AnimationPlaybackService.
 		effect(() => {
 			// Register reactive dependencies.
-			this.playback.elementStyles();
-			this.playback.pendingStyles();
+			this.playback.presentationElementStates();
+			this.playback.interactiveTriggerShapeIds();
+			this.playback.hoverTriggerShapeIds();
 			this.currentSlide();
 			if (typeof requestAnimationFrame === 'function') {
 				requestAnimationFrame(() => this.applyAnimationStyles());
@@ -465,33 +494,72 @@ export class PresentationOverlayComponent implements OnInit {
 	}
 
 	/**
-	 * Imperatively apply animation reveal / pending CSS to the slide's element
-	 * nodes (mirrors the Vue `applyAnimationStyles`). Every renderer emits a
-	 * `data-element-id`, so this needs no per-element renderer plumbing.
+	 * Imperatively apply each tracked element's native-animation state to its DOM
+	 * wrapper: visibility (entrance hide-until-revealed / exit), the CSS-animation
+	 * shorthand (entrance / emphasis / exit / colour keyframes), and a pointer
+	 * cursor on interactive / hover trigger shapes. Mirrors the Vue
+	 * `applyAnimationStyles`; every renderer emits a `data-element-id`, so this
+	 * needs no per-element renderer plumbing.
 	 */
 	private applyAnimationStyles(): void {
 		const root = this.stageRef()?.nativeElement;
 		if (!root) {
 			return;
 		}
-		const revealed = this.playback.elementStyles();
-		const pending = this.playback.pendingStyles();
+		const states = this.playback.presentationElementStates();
+		const interactive = this.playback.interactiveTriggerShapeIds();
+		const hover = this.playback.hoverTriggerShapeIds();
 		const nodes = root.querySelectorAll<HTMLElement>('[data-element-id]');
 		nodes.forEach((el) => {
 			const id = el.dataset['elementId'];
 			if (!id) {
 				return;
 			}
-			el.style.removeProperty('animation');
-			el.style.removeProperty('opacity');
-			el.style.removeProperty('visibility');
-			const active = revealed.get(id) ?? pending.get(id);
-			if (active) {
-				for (const [prop, value] of Object.entries(active)) {
-					el.style.setProperty(prop, value);
-				}
-			}
+			const state = states.get(id);
+			el.style.animation = state?.cssAnimation ?? '';
+			el.style.visibility = state?.visible === false ? 'hidden' : '';
+			el.style.cursor = interactive.has(id) || hover.has(id) ? 'pointer' : '';
 		});
+	}
+
+	/** Resolve the nearest element id above a pointer target, if any. */
+	private closestElementId(target: EventTarget | null): string | undefined {
+		if (!(target instanceof Element)) {
+			return undefined;
+		}
+		return target.closest<HTMLElement>('[data-element-id]')?.dataset['elementId'];
+	}
+
+	/**
+	 * Pointer moved over the stage: (re)play a hover-trigger shape's sequence once
+	 * on entering it (not on every descendant transition that `mouseover` bubbles
+	 * up), resetting the previous trigger on leaving it.
+	 */
+	protected onStageHover(event: MouseEvent): void {
+		const id = this.closestElementId(event.target);
+		const triggerId = id && this.playback.hoverTriggerShapeIds().has(id) ? id : undefined;
+		if (triggerId === this.currentHoverTriggerId) {
+			return;
+		}
+		if (this.currentHoverTriggerId) {
+			this.playback.handleHoverEnd(this.currentHoverTriggerId);
+		}
+		this.currentHoverTriggerId = triggerId;
+		if (triggerId) {
+			this.playback.handleHoverStart(triggerId);
+		}
+	}
+
+	/** Pointer left the stage subtree entirely: reset any active hover trigger. */
+	protected onStageHoverEnd(event: MouseEvent): void {
+		const related = event.relatedTarget;
+		if (related instanceof Node && this.stageRef()?.nativeElement.contains(related)) {
+			return;
+		}
+		if (this.currentHoverTriggerId) {
+			this.playback.handleHoverEnd(this.currentHoverTriggerId);
+			this.currentHoverTriggerId = undefined;
+		}
 	}
 
 	/** Viewport dimensions, updated on resize. */
@@ -772,6 +840,14 @@ export class PresentationOverlayComponent implements OnInit {
 		// A drawing tool owns pointer gestures; don't hijack them to advance.
 		if (this.annotations.tool() !== 'none') {
 			return;
+		}
+		// Interactive (`onShapeClick`) trigger shape: play its sequence instead of
+		// advancing the slide (mirrors the Vue `onFrameClick`).
+		const id = this.closestElementId(event.target);
+		if (id && this.playback.interactiveTriggerShapeIds().has(id)) {
+			if (this.playback.handleInteractiveShapeClick(id)) {
+				return;
+			}
 		}
 		this.advanceFromClick();
 	}
