@@ -6,6 +6,11 @@
 	 * `AnimationTimelineSection.tsx`). Rows preview their effect on hover.
 	 * Split from `AnimationTimelineSection.svelte` for the 300-LOC budget.
 	 */
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import ChevronUp from '@lucide/svelte/icons/chevron-up';
+	import GripVertical from '@lucide/svelte/icons/grip-vertical';
+	import MoveRight from '@lucide/svelte/icons/move-right';
+	import RotateCw from '@lucide/svelte/icons/rotate-cw';
 	import type { PptxElementAnimation } from 'pptx-viewer-core';
 
 	import { useTranslator } from '../../../i18n/context';
@@ -94,12 +99,12 @@
 					onmouseenter={() => startAnimationPreview(anim)}
 					onmouseleave={stopAnimationPreview}
 				>
-					{#if canEdit}<span class="pptx-svelte-animtl-grip" aria-hidden="true">⋮⋮</span>{/if}
+					{#if canEdit}<span class="pptx-svelte-animtl-grip"><GripVertical size={12} aria-hidden="true" /></span>{/if}
 					<span class="pptx-svelte-animtl-index">{index + 1}.</span>
 					<span class="pptx-svelte-animtl-label">{label(anim)}</span>
-					{#if anim.entrance}<span class="pptx-svelte-animtl-kind is-entrance" title={t('pptx.animation.entrance')}>→</span>{/if}
-					{#if anim.emphasis}<span class="pptx-svelte-animtl-kind is-emphasis" title={t('pptx.animation.emphasis')}>↻</span>{/if}
-					{#if anim.exit}<span class="pptx-svelte-animtl-kind is-exit" title={t('pptx.animation.exit')}>←</span>{/if}
+					{#if anim.entrance}<span class="pptx-svelte-animtl-kind is-entrance" title={t('pptx.animation.entrance')}><MoveRight size={12} aria-hidden="true" /></span>{/if}
+					{#if anim.emphasis}<span class="pptx-svelte-animtl-kind is-emphasis" title={t('pptx.animation.emphasis')}><RotateCw size={12} aria-hidden="true" /></span>{/if}
+					{#if anim.exit}<span class="pptx-svelte-animtl-kind is-exit is-flipped" title={t('pptx.animation.exit')}><MoveRight size={12} aria-hidden="true" /></span>{/if}
 					{#if canEdit}
 						<span class="pptx-svelte-animtl-move">
 							<button
@@ -111,7 +116,7 @@
 									event.stopPropagation();
 									reorder(index, index - 1);
 								}}
-							>▲</button>
+							><ChevronUp size={12} aria-hidden="true" /></button>
 							<button
 								type="button"
 								disabled={index === sorted.length - 1}
@@ -121,7 +126,7 @@
 									event.stopPropagation();
 									reorder(index, index + 1);
 								}}
-							>▼</button>
+							><ChevronDown size={12} aria-hidden="true" /></button>
 						</span>
 					{/if}
 				</div>
@@ -178,6 +183,7 @@
 	}
 
 	.pptx-svelte-animtl-grip {
+		display: inline-flex;
 		flex: none;
 		opacity: 0.5;
 	}
@@ -195,7 +201,13 @@
 	}
 
 	.pptx-svelte-animtl-kind {
+		display: inline-flex;
 		flex: none;
+	}
+
+	/* React draws the exit marker as the entrance arrow rotated 180deg. */
+	.pptx-svelte-animtl-kind.is-flipped {
+		transform: rotate(180deg);
 	}
 
 	.pptx-svelte-animtl-kind.is-entrance {
@@ -217,13 +229,14 @@
 	}
 
 	.pptx-svelte-animtl-move button {
+		display: inline-flex;
+		align-items: center;
 		padding: 0 2px;
 		border: none;
 		background: transparent;
 		color: inherit;
 		cursor: pointer;
-		font-size: 8px;
-		line-height: 1.4;
+		line-height: 1;
 	}
 
 	.pptx-svelte-animtl-move button:disabled {

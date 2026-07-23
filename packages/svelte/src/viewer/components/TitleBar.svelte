@@ -4,6 +4,7 @@
 	 * only presentation state: command dispatch and document mutation remain in
 	 * the viewer host, just like the React title bar.
 	 */
+	import Search from '@lucide/svelte/icons/search';
 	import { filterCommands, resolveTitleBarStatusKey } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
@@ -105,7 +106,7 @@
 						<button type="button" onmousedown={() => choose(entry.command)}>{t(entry.labelKey)}<small>{entry.category}</small></button>
 					{/each}
 				{:else}<span>{t('pptx.titleBar.searchNoResults')}</span>{/if}
-				<button type="button" onmousedown={() => { onfindreplace(); query = ''; focused = false; }}><span>⌕</span>{t('pptx.titleBar.searchContent')} &quot;{query}&quot;</button>
+				<button type="button" onmousedown={() => { onfindreplace(); query = ''; focused = false; }}><Search size={12} aria-hidden="true" />{t('pptx.titleBar.searchContent')} &quot;{query}&quot;</button>
 			</div>
 		{/if}
 	</div>{/if}

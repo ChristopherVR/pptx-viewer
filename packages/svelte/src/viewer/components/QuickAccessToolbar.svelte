@@ -6,7 +6,18 @@
 	 * maps to an existing viewer handler via the `onexec` callback; tooltips
 	 * honor the ScreenTip style (Options > General).
 	 */
+	import FileDown from '@lucide/svelte/icons/file-down';
+	import Play from '@lucide/svelte/icons/play';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Printer from '@lucide/svelte/icons/printer';
+	import Redo from '@lucide/svelte/icons/redo';
+	import Save from '@lucide/svelte/icons/save';
+	import SpellCheck from '@lucide/svelte/icons/spell-check';
+	import Undo from '@lucide/svelte/icons/undo';
+	import ZoomIn from '@lucide/svelte/icons/zoom-in';
+	import ZoomOut from '@lucide/svelte/icons/zoom-out';
 	import { getQuickAccessCommand } from 'pptx-viewer-shared';
+	import type { Component } from 'svelte';
 	import { useTranslator } from '../../i18n/context';
 	import { useViewerOptions } from '../state/viewer-options-context';
 
@@ -23,17 +34,18 @@
 	const optionsState = useViewerOptions();
 	const quickAccess = $derived(optionsState.options.quickAccess);
 
-	const GLYPHS: Record<string, string> = {
-		save: '⤓',
-		undo: '↶',
-		redo: '↷',
-		presentFromStart: '▶',
-		print: '⎙',
-		exportPdf: '⇩',
-		newSlide: '＋',
-		spellCheck: '✓',
-		zoomIn: '⊕',
-		zoomOut: '⊖',
+	/** Catalog icon name -> Lucide component (same mapping React's QAT uses). */
+	const ICONS: Record<string, Component> = {
+		save: Save,
+		undo: Undo,
+		redo: Redo,
+		play: Play,
+		printer: Printer,
+		fileDown: FileDown,
+		plus: Plus,
+		spellCheck: SpellCheck,
+		zoomIn: ZoomIn,
+		zoomOut: ZoomOut,
 	};
 
 	function isDisabled(id: string): boolean {
@@ -47,6 +59,7 @@
 			{@const command = getQuickAccessCommand(id)}
 			{#if command}
 				{@const label = t(command.labelKey)}
+				{@const Icon = ICONS[command.icon] ?? Save}
 				<button
 					type="button"
 					aria-label={label}
@@ -54,7 +67,7 @@
 					disabled={isDisabled(id)}
 					onclick={() => onexec(id)}
 				>
-					<span aria-hidden="true">{GLYPHS[id] ?? '·'}</span>
+					<Icon size={14} aria-hidden="true" />
 					{#if quickAccess.showCommandLabels}<small>{label}</small>{/if}
 				</button>
 			{/if}
@@ -67,6 +80,5 @@
 	button { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; border: 0; border-radius: 3px; padding: 2px 5px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 	button:hover:not(:disabled) { background: var(--pptx-accent, #33334d); }
 	button:disabled { opacity: 0.4; cursor: default; }
-	button span { font-size: 13px; line-height: 1; }
 	button small { font-size: 10px; white-space: nowrap; }
 </style>

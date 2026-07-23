@@ -1,7 +1,13 @@
 <script lang="ts">
+	import Layers from '@lucide/svelte/icons/layers';
+	import MessageSquare from '@lucide/svelte/icons/message-square';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Settings2 from '@lucide/svelte/icons/settings-2';
+	import StickyNote from '@lucide/svelte/icons/sticky-note';
 	import type { PptxHandler, PptxSlide, PptxTheme } from 'pptx-viewer-core';
 	import type { CanvasSize, MobileSheetKey } from 'pptx-viewer-shared';
 	import { buildBarActions, toggleSheet } from 'pptx-viewer-shared';
+	import type { Component } from 'svelte';
 
 	import { useTranslator } from '../../i18n/context';
 	import { newTextElement } from '../editor';
@@ -41,7 +47,14 @@
 		comments: t('pptx.toolbar.comments'),
 		notes: t('pptx.notes.title'),
 	} as const;
-	const actionIcons = { slides: '▣', insert: '+', inspector: '◇', comments: '▢', notes: '▤' } as const;
+	/** Same Lucide glyphs React's `MobileBottomBar` renders for each target. */
+	const actionIcons = {
+		slides: Layers,
+		insert: Plus,
+		inspector: Settings2,
+		comments: MessageSquare,
+		notes: StickyNote,
+	} satisfies Record<string, Component>;
 	const actions = $derived.by(() =>
 		buildBarActions({ slideCount: slides.length }).map((action) => ({
 			...action,
@@ -75,6 +88,7 @@
 	{/if}
 	<nav aria-label={t('pptx.mobileBar.ariaLabel')}>
 		{#each actions as action}
+			{@const Icon = action.icon}
 			<button
 				type="button"
 				class:active={active === action.key}
@@ -90,7 +104,7 @@
 					}
 				}}
 			>
-				<span aria-hidden="true">{action.icon}</span><small>{action.label}</small>
+				<Icon size={20} aria-hidden="true" /><small>{action.label}</small>
 			</button>
 		{/each}
 	</nav>
@@ -104,7 +118,6 @@
 		.pptx-svelte-mobile-actions nav button { display: grid; flex: 1; place-items: center; align-content: center; gap: 1px; min-width: 44px; border: 0; background: transparent; color: var(--pptx-muted-foreground, #94a3b8); touch-action: manipulation; }
 		.pptx-svelte-mobile-actions nav button:focus-visible, .pptx-svelte-mobile-menu-grid button:focus-visible { outline: 2px solid var(--pptx-ring, #6366f1); outline-offset: -2px; }
 		.pptx-svelte-mobile-actions nav button.active { color: var(--pptx-primary, #818cf8); }
-		.pptx-svelte-mobile-actions nav span { font-size: 21px; line-height: 1; }
 		.pptx-svelte-mobile-actions nav small { font-size: 10px; }
 		.pptx-svelte-mobile-menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 		.pptx-svelte-mobile-menu-grid button { min-height: 44px; border: 1px solid var(--pptx-border, #33334d); border-radius: 8px; background: var(--pptx-muted, #2a2a3d); color: inherit; }

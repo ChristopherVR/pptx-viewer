@@ -11,6 +11,8 @@
 	 * `EquationEditorDialog` before inserting (there's no single-click default
 	 * for free-form maths).
 	 */
+	import Hash from '@lucide/svelte/icons/hash';
+	import Link from '@lucide/svelte/icons/link';
 	import type { CanvasSize } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
@@ -161,8 +163,8 @@
 	<SmartArtMenu {editor} {canvasSize} />
 	<ActionButtonMenu {editor} {canvasSize} />
 	<FieldMenu {editor} {canvasSize} />
-	{#if onheaderfooter}<button type="button" onclick={onheaderfooter}># <span>{t('pptx.headerFooter.title')}</span></button>{/if}
-	<button type="button" disabled={!editor.selectedElementId} onclick={() => (hyperlinkOpen = true)}>↗ <span>{t('pptx.hyperlink.title')}</span></button>
+	{#if onheaderfooter}<button type="button" onclick={onheaderfooter}><Hash size={15} aria-hidden="true" /> <span>{t('pptx.headerFooter.title')}</span></button>{/if}
+	<button type="button" disabled={!editor.selectedElementId} onclick={() => (hyperlinkOpen = true)}><Link size={15} aria-hidden="true" /> <span>{t('pptx.hyperlink.title')}</span></button>
 
 	<input bind:this={imageInput} type="file" accept="image/*" class="pptx-svelte-inserttab-file" onchange={onImageFileChange} />
 	<input bind:this={mediaInput} type="file" accept="video/*,audio/*" class="pptx-svelte-inserttab-file" onchange={onMediaFileChange} />
