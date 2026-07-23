@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.5.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.5.7) - 2026-07-23
+
+### Bug Fixes
+
+- **cli:** Accept every framework major the viewer packages support (by @ChristopherVR) ([fb00075](https://github.com/ChristopherVR/pptx-viewer/commit/fb000758169a74ad15de48344c458e54b3d8ccde))
+
 ## [1.5.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.5.6) - 2026-07-23
 
 ## [1.5.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@1.5.5) - 2026-07-18

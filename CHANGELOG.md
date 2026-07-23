@@ -10,6 +10,65 @@ dated sections beneath it are generated from
 
 ## 2026-07-23
 
+_Releases: pptx-react-viewer@2.1.0, pptx-vue-viewer@2.1.0, pptx-angular-viewer@2.1.0, pptx-vanilla-viewer@1.2.0, pptx-svelte-viewer@2.1.0, @christophervr/pptx-viewer@1.5.7_
+
+### Features
+
+- **react:** Support React 18 alongside React 19 (by @ChristopherVR) ([21bc383](https://github.com/ChristopherVR/pptx-viewer/commit/21bc383f1d7b57541eb1b844cba1e5dfc5d8280c))
+- **angular:** Widen the peer range to Angular 19-22 (by @ChristopherVR) ([825e5f1](https://github.com/ChristopherVR/pptx-viewer/commit/825e5f1a6df52c50a0dfaef2bb457b474f810bcf))
+- **shared:** Live-patch channel for interim collaboration state (by @ChristopherVR) ([efdcc1e](https://github.com/ChristopherVR/pptx-viewer/commit/efdcc1e13ef824f6b26f3c92ba199e0da732b164))
+- **shared:** Make a departing collaborator actually leave the room (by @ChristopherVR) ([6af3d8c](https://github.com/ChristopherVR/pptx-viewer/commit/6af3d8ce9933946a5420f1a21c8de55cf7da3548))
+
+### Bug Fixes
+
+- **cli:** Accept every framework major the viewer packages support (by @ChristopherVR) ([fb00075](https://github.com/ChristopherVR/pptx-viewer/commit/fb000758169a74ad15de48344c458e54b3d8ccde))
+- **vue:** Render the mobile bottom bar with lucide icons (by @ChristopherVR) ([341cdb4](https://github.com/ChristopherVR/pptx-viewer/commit/341cdb4df8ea56655c738b187c4d716bd91da533))
+- **angular:** Theme the mobile chrome and match React's mobile controls (by @ChristopherVR) ([3d0f567](https://github.com/ChristopherVR/pptx-viewer/commit/3d0f5670b9a09bd4a7a15ca14dbebda895d886c2))
+- **vue:** Draw toolbar and backstage icons with lucide (by @ChristopherVR) ([0ca967a](https://github.com/ChristopherVR/pptx-viewer/commit/0ca967a6209b22574f4b1d6643d8a3f1570ed738))
+- **vue:** Draw presentation-mode icons with lucide (by @ChristopherVR) ([a6cf141](https://github.com/ChristopherVR/pptx-viewer/commit/a6cf141dee00055271d8c50eb06abaf215b1a26a))
+- **vue:** Draw panel and inspector icons with lucide (by @ChristopherVR) ([860a057](https://github.com/ChristopherVR/pptx-viewer/commit/860a057f7f1ec9c5880d01647d895238eb8736b2))
+- **react:** Publish drag/resize and typing to peers before commit (by @ChristopherVR) ([bbecc2b](https://github.com/ChristopherVR/pptx-viewer/commit/bbecc2ba1731d5bc3324e44362983a9f817c9aeb))
+- **vue:** Publish inline-editor typing to peers before commit (by @ChristopherVR) ([4aafe84](https://github.com/ChristopherVR/pptx-viewer/commit/4aafe84f1b3c6ecd24c83922258bb0a7a900f525))
+- **angular:** Publish inline-editor typing to peers before commit (by @ChristopherVR) ([f882c12](https://github.com/ChristopherVR/pptx-viewer/commit/f882c126dfd5992bd85769622289f277d499e401))
+- **svelte:** Publish inline-editor typing to peers before commit (by @ChristopherVR) ([ad63f5b](https://github.com/ChristopherVR/pptx-viewer/commit/ad63f5b3e1d4fc8cb5e7662fd74745fea66890c3))
+- **vanilla:** Publish inline-editor typing to peers before commit (by @ChristopherVR) ([ab2875c](https://github.com/ChristopherVR/pptx-viewer/commit/ab2875c60047bbd94dad44eea5274f3cd80cb7bc))
+- **svelte:** Draw chrome icons with lucide, not text glyphs (by @ChristopherVR) ([8df0a37](https://github.com/ChristopherVR/pptx-viewer/commit/8df0a3700263bd49aa7049bdac512f6a0d7feb76))
+- **svelte:** Stack the follow bar above the mobile bottom bar (by @ChristopherVR) ([7f2140f](https://github.com/ChristopherVR/pptx-viewer/commit/7f2140fc1d7e07b9e118ef1acf5bc6140c0d8160))
+- **svelte:** Anchor the follow bar top-centre and trim the collab controller (by @ChristopherVR) ([daade43](https://github.com/ChristopherVR/pptx-viewer/commit/daade4365205ff147229cc311bbb260e9ae1da9e))
+- **react:** Leave the collab room when the document is destroyed (by @ChristopherVR) ([3388c9c](https://github.com/ChristopherVR/pptx-viewer/commit/3388c9c9050d49d3e17515c522f7a66026da3c11))
+- **vue:** Leave the collab room when the document is destroyed (by @ChristopherVR) ([aa12464](https://github.com/ChristopherVR/pptx-viewer/commit/aa12464f629f73073370376e25d460c3846b408f))
+- **angular:** Leave the collab room when the document is destroyed (by @ChristopherVR) ([44f6b5a](https://github.com/ChristopherVR/pptx-viewer/commit/44f6b5af01bc321a2bfe69995c52ea2851d737ea))
+- **svelte:** Leave the collab room when the document is destroyed (by @ChristopherVR) ([17bd9f1](https://github.com/ChristopherVR/pptx-viewer/commit/17bd9f16ac2b30aeb0ec3eae216720613df61e7e))
+- **vanilla:** Leave the collab room when the document is destroyed (by @ChristopherVR) ([e10b2f9](https://github.com/ChristopherVR/pptx-viewer/commit/e10b2f93e07ddd2cf64dff25d23ecec0238f28c6))
+
+### Other
+
+- Angular mobile chrome theming + React-matching Present/Share controls (by @ChristopherVR) ([80bd854](https://github.com/ChristopherVR/pptx-viewer/commit/80bd85484854cce5deabb6cdfafe381feca90498))
+- Vue icon-parity sweep (glyphs to lucide-vue-next) (by @ChristopherVR) ([577b1c5](https://github.com/ChristopherVR/pptx-viewer/commit/577b1c51f0baa4b6573ec7ca22ff5ce3c17eb851))
+- Live collaboration preview for drag/resize geometry and inline typing (by @ChristopherVR) ([26a7069](https://github.com/ChristopherVR/pptx-viewer/commit/26a706931be405a8605138a756f7e3c84622f0ca))
+- Svelte lucide icon sweep + follow bar clears the mobile bottom bar (by @ChristopherVR) ([8b99577](https://github.com/ChristopherVR/pptx-viewer/commit/8b995771af93eb90ab2b0ab03e29dd0314514a09))
+- Peers leave the room synchronously on frame teardown (no ghost collaborators) (by @ChristopherVR) ([ae9acad](https://github.com/ChristopherVR/pptx-viewer/commit/ae9acad9cfe65ee8dfa6a9676152b6c1abab5b0f))
+
+### Refactor
+
+- **shared:** Split the live-patch module and escape its NUL key separator (by @ChristopherVR) ([6362b22](https://github.com/ChristopherVR/pptx-viewer/commit/6362b22135da6b7503113799f2631f8085ea49c5))
+- **svelte:** Lift the collab controller's effects into their own module (by @ChristopherVR) ([b3b9acd](https://github.com/ChristopherVR/pptx-viewer/commit/b3b9acd4b10e1e65e0dcc0040cfe37788b27ce82))
+
+### Documentation
+
+- State the supported React and Angular version windows (by @ChristopherVR) ([ad8937e](https://github.com/ChristopherVR/pptx-viewer/commit/ad8937eacbfaa3dfc66cdc8dd491740ac9a02d29))
+- **landing:** Signal a live-demo pane's exit before destroying it (by @ChristopherVR) ([688676c](https://github.com/ChristopherVR/pptx-viewer/commit/688676c556aaf057880cee2efb5d8edd2e5f22e7))
+
+### Build & CI
+
+- Add a React 18 leg to the test matrix (by @ChristopherVR) ([124b30c](https://github.com/ChristopherVR/pptx-viewer/commit/124b30c07d97568773e60636abbf8ae2e77ef40c))
+
+### Chores
+
+- **demos:** Drop the AI provider form from the landing screens (by @ChristopherVR) ([ed9b239](https://github.com/ChristopherVR/pptx-viewer/commit/ed9b239ac7e6eb5386ed3042d8487b2329c6a9a3))
+
+## 2026-07-23
+
 _Releases: pptx-vue-viewer@2.0.1, pptx-angular-viewer@2.0.1, pptx-vanilla-viewer@1.1.0, pptx-svelte-viewer@2.0.0_
 
 ### Features

@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.1.0) - 2026-07-23
+
+### Features
+
+- **angular:** Widen the peer range to Angular 19-22 (by @ChristopherVR) ([825e5f1](https://github.com/ChristopherVR/pptx-viewer/commit/825e5f1a6df52c50a0dfaef2bb457b474f810bcf))
+
 ## [2.0.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.0.1) - 2026-07-23
 
 ## [2.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.0.0) - 2026-07-23
