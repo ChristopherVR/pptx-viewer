@@ -20,6 +20,7 @@ import {
 	resolveUnderlineDecorationStyle,
 } from './text-segment-helpers';
 import type { ElementFindHighlights } from './text-segment-helpers';
+import { buildTabContext } from './text-tab-layout';
 import { hasDistinctScriptFonts } from './unicode-script-detection';
 
 /**
@@ -260,6 +261,14 @@ export function renderSingleSegment(
 		scriptFonts,
 		baseFontFamily,
 		findHighlights,
+		buildTabContext(
+			element.textStyle?.tabStops,
+			element.textStyle?.defaultTabSize,
+			baseFontSize,
+			baseFontFamily,
+			Boolean(segmentStyle.bold),
+			Boolean(segmentStyle.italic),
+		),
 	);
 
 	let innerContent: React.ReactNode;

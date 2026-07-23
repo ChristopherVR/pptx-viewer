@@ -5,6 +5,8 @@ import React from 'react';
 
 import { convertOmmlToMathMl } from './omml-to-mathml';
 import type { OmmlNode } from './omml-to-mathml';
+import { renderTabbedLine } from './text-tab-layout';
+import type { TabRenderContext } from './text-tab-layout';
 import { segmentByScript, resolveFontForScript } from './unicode-script-detection';
 
 /* Highlight info for a single segment, used by Find & Replace */
@@ -81,22 +83,25 @@ export function renderSegmentContent(
 	scriptFonts: ScriptFonts,
 	baseFontFamily: string,
 	findHighlights: ElementFindHighlights | undefined,
+	/** When present, `\t` is laid out with real tab stops (align + leaders). */
+	tabContext?: TabRenderContext,
 ): React.ReactNode {
 	const segHl = findHighlights?.get(segmentIndex);
 	if (!segHl || segHl.length === 0) {
-		// Fast path: no highlights, render lines with script-aware fonts
-		return lines.map((line: string, lineIndex: number) => (
-			<React.Fragment key={`${elementId}-seg-${segmentIndex}-line-${lineIndex}`}>
-				{renderScriptAwareText(
-					line,
-					needsScriptFonts,
-					scriptFonts,
-					baseFontFamily,
-					`${elementId}-seg-${segmentIndex}-line-${lineIndex}`,
-				)}
-				{lineIndex < lines.length - 1 ? <br /> : null}
-			</React.Fragment>
-		));
+		// Fast path: no highlights, render lines with script-aware fonts.
+		return lines.map((line: string, lineIndex: number) => {
+			const lineKey = `${elementId}-seg-${segmentIndex}-line-${lineIndex}`;
+			const renderPiece = (text: string, key: string): React.ReactNode =>
+				renderScriptAwareText(text, needsScriptFonts, scriptFonts, baseFontFamily, key);
+			return (
+				<React.Fragment key={lineKey}>
+					{tabContext && line.includes('\t')
+						? renderTabbedLine(line, tabContext, lineKey, renderPiece)
+						: renderPiece(line, lineKey)}
+					{lineIndex < lines.length - 1 ? <br /> : null}
+				</React.Fragment>
+			);
+		});
 	}
 
 	// Split the entire segment text into highlighted/plain chunks
