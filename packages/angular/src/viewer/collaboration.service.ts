@@ -122,6 +122,14 @@ export class CollaborationService {
 	private lastConfig: CollaborationConfig | null = null;
 	private lastOptions: ConnectOptions = {};
 	private localPresence: LocalPresencePublisher | null = null;
+	/**
+	 * Reentrancy token for {@link connect}: bumped by every connect() and
+	 * disconnect(). A connect() whose token no longer matches after an await was
+	 * superseded, so it tears down whatever it just created and leaves the
+	 * service state to the newer call (a second provider join on the same room
+	 * would otherwise throw inside Yjs and kill the surviving session).
+	 */
+	private connectToken = 0;
 
 	private readonly refreshPresence = (): void => {
 		if (!this.awareness) {
@@ -144,6 +152,7 @@ export class CollaborationService {
 
 	async connect(config: CollaborationConfig, options: ConnectOptions = {}): Promise<void> {
 		this.disconnect();
+		const token = ++this.connectToken;
 		this.lastConfig = config;
 		this.lastOptions = options;
 		try {
@@ -180,6 +189,15 @@ export class CollaborationService {
 				transport === 'webrtc'
 					? await createWebrtcBundle(config)
 					: await createWebsocketBundle(config);
+			if (token !== this.connectToken) {
+				// Superseded by a newer connect() or a disconnect() while awaiting
+				// the transport: destroy the just-created bundle and bail without
+				// touching the (newer call's) service state.
+				bundle.provider.disconnect();
+				bundle.provider.destroy();
+				bundle.doc.destroy();
+				return;
+			}
 			this.ydoc = bundle.doc;
 			this.yFactories = bundle.factories;
 			this.provider = bundle.provider;
@@ -207,6 +225,10 @@ export class CollaborationService {
 			this.active.set(true);
 			this.refreshPresence();
 		} catch {
+			if (token !== this.connectToken) {
+				// A newer connect() owns the service state; do not tear it down.
+				return;
+			}
 			this.disconnect();
 			this.status.set('error');
 		}
@@ -330,6 +352,8 @@ export class CollaborationService {
 	}
 
 	disconnect(): void {
+		// Invalidate any in-flight connect() so it discards its bundle on resume.
+		this.connectToken += 1;
 		this.clearConnectTimer();
 		this.syncGate.reset();
 		this.pendingBroadcast = null;

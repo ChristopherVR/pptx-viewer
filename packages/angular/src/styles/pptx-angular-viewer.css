@@ -398,6 +398,13 @@ pptx-element-renderer {
 	background: rgba(0, 0, 0, 0.02);
 }
 
+/* Tap-to-dismiss backdrop behind the mobile inspector sheet. Only meaningful
+   on mobile, where the inspector overlays the canvas; hidden on desktop
+   (side panel). Shown inside the mobile media query below. */
+.pptx-ng-inspector-backdrop {
+	display: none;
+}
+
 /* Swipe-down grab handle for the inspector host — only meaningful on mobile,
    where the host docks as a bottom drawer. Hidden on desktop (side panel). */
 .pptx-ng-idrawer-grab {
@@ -746,9 +753,11 @@ pptx-element-renderer {
 		width: 4.5rem;
 	}
 
-	/* Stack body vertically so the canvas spans the full width. */
+	/* Stack body vertically so the canvas spans the full width. The body is
+	   also the containing block for the mobile inspector overlay + backdrop. */
 	.pptx-ng-body {
 		flex-direction: column;
+		position: relative;
 	}
 
 	/* Slides panel (editor mode): keep it from dominating the viewport. */
@@ -757,13 +766,35 @@ pptx-element-renderer {
 		max-height: 30vh;
 	}
 
-	/* Property/inspector aside: full width, bounded height, below the canvas. */
+	/* Property/inspector aside: a bottom sheet OVERLAYING the canvas (React
+	   parity: max-md:absolute inset-x-0 bottom-0 top-auto z-30) instead of an
+	   in-flow flex child squeezing it. Opaque background so the canvas never
+	   bleeds through. */
 	.pptx-ng-inspector-host {
-		flex: 0 0 auto;
+		position: absolute;
+		inset-inline: 0;
+		bottom: 0;
+		top: auto;
+		z-index: 30;
 		width: 100%;
-		max-height: 40vh;
+		max-height: 60vh;
 		border-left: none;
 		border-top: 1px solid var(--pptx-border, #374151);
+		background: var(--pptx-card, #111827);
+	}
+
+	/* Tap-to-dismiss backdrop behind the inspector sheet (React parity:
+	   MobileDismissSheet's fixed inset-0 z-20 bg-black/40, scoped to the
+	   viewer body here). */
+	.pptx-ng-inspector-backdrop {
+		display: block;
+		position: absolute;
+		inset: 0;
+		z-index: 29;
+		background: rgba(0, 0, 0, 0.4);
+		border: none;
+		padding: 0;
+		cursor: pointer;
 	}
 
 	/* AI assistant pane: dock it as a bottom sheet (full width, bounded height,

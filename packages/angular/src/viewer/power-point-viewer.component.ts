@@ -357,6 +357,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						(toggleAiPanel)="aiPanelOpen.update(v => !v)"
 						(undo)="editor.undo()"
 						(redo)="editor.redo()"
+						(share)="session.showShare.set(true)"
 						(save)="fileIO.saveAsPptx()"
 						(present)="presentationMode.present()"
 					/>
@@ -458,6 +459,16 @@ import { ZoomTargetService } from './zoom-target.service';
 						reclaims the canvas.
 					-->
 					@if (inspectorPanel.visibleInspectorKind(); as kind) {
+						<!--
+							Mobile-only tap-to-dismiss backdrop behind the inspector sheet
+							(hidden on desktop via CSS, mirroring React's MobileDismissSheet).
+						-->
+						<button
+							type="button"
+							class="pptx-ng-inspector-backdrop"
+							[attr.aria-label]="'pptx.mobileSheet.close' | translate"
+							(click)="inspectorPanel.dismissMobileInspector()"
+						></button>
 						<aside
 							data-pptx-inspector
 							class="pptx-ng-inspector-host"
@@ -1547,8 +1558,13 @@ export class PowerPointViewerComponent {
 		});
 
 		// Connect / disconnect real-time collaboration when the host config changes.
+		// Track ONLY the `collaboration` input: `syncHostConfig` synchronously
+		// reads other signals (canvas size, current slides for the baseline), and
+		// tracking those would re-run this effect mid-connect (e.g. when a guest's
+		// placeholder deck loads) and double-join the Yjs room.
 		effect(() => {
-			this.session.syncHostConfig(this.collaboration());
+			const config = this.collaboration();
+			untracked(() => this.session.syncHostConfig(config));
 		});
 
 		// Push local slide edits into the shared Y.Doc (reconcile-based; the

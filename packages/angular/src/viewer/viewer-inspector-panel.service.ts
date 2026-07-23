@@ -61,10 +61,7 @@ export class ViewerInspectorPanelService {
 	 * sheet), so the gesture is wired here rather than via a fixed-overlay
 	 * dismiss. Clearing the past-threshold drag also closes any open tool panel.
 	 */
-	readonly inspectorDrag = createSwipeDismissDrag(() => {
-		this.mobileInspectorHidden.set(true);
-		this.activePanel.set(null);
-	});
+	readonly inspectorDrag = createSwipeDismissDrag(() => this.dismissMobileInspector());
 
 	private host: InspectorPanelHost | null = null;
 
@@ -159,6 +156,15 @@ export class ViewerInspectorPanelService {
 				return '';
 		}
 	});
+
+	/**
+	 * Dismiss the mobile bottom-sheet inspector (backdrop tap or a past-threshold
+	 * swipe-down): hide the host until reopened and clear any explicit tool panel.
+	 */
+	dismissMobileInspector(): void {
+		this.mobileInspectorHidden.set(true);
+		this.activePanel.set(null);
+	}
 
 	/** Toggle a right-docked tool panel (clicking the active one closes it). */
 	togglePanel(panel: InspectorToolPanel): void {

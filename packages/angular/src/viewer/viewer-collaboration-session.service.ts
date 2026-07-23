@@ -66,6 +66,15 @@ export class ViewerCollaborationSessionService {
 
 	private host: CollaborationSessionHost | null = null;
 
+	/**
+	 * Last host `collaboration` config handled by {@link syncHostConfig}
+	 * (reference-equal dedup). A re-invocation with the same object (e.g. a
+	 * spurious effect re-run) must not reconnect: a second provider join on the
+	 * same room throws inside Yjs and tears down the live session. Cleared on
+	 * the explicit stop paths so stop + restart with the same object works.
+	 */
+	private lastSyncedConfig: CollaborationConfig | undefined;
+
 	/** Wire the host inputs/outputs (called once from the component constructor). */
 	bind(host: CollaborationSessionHost): void {
 		this.host = host;
@@ -150,6 +159,10 @@ export class ViewerCollaborationSessionService {
 	 * input changes (called from the component's effect).
 	 */
 	syncHostConfig(config: CollaborationConfig | undefined): void {
+		if (config === this.lastSyncedConfig) {
+			return;
+		}
+		this.lastSyncedConfig = config;
 		if (config) {
 			this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
 			this.connectWithBaseline(config);
@@ -177,6 +190,7 @@ export class ViewerCollaborationSessionService {
 	}
 
 	onShareStop(): void {
+		this.lastSyncedConfig = undefined;
 		this.collab.disconnect();
 		this.activeSession.set(null);
 		this.requireHost().emitStop();
@@ -198,6 +212,7 @@ export class ViewerCollaborationSessionService {
 	}
 
 	onBroadcastStop(): void {
+		this.lastSyncedConfig = undefined;
 		this.collab.disconnect();
 		this.activeSession.set(null);
 		this.requireHost().emitStop();

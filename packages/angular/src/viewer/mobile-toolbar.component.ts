@@ -27,10 +27,12 @@
  *   toggleMenu : user tapped the Menu (hamburger) button
  *   undo       : user tapped Undo
  *   redo       : user tapped Redo
+ *   share      : user tapped Share (opens the collaboration dialog)
  *   present    : user tapped Present
  */
 
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { LucideShare2 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import type { ToolbarActionId } from '../internal/shared';
@@ -40,7 +42,7 @@ import { toolbarVisibility } from './toolbar-visibility';
 	selector: 'pptx-mobile-toolbar',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TranslatePipe],
+	imports: [LucideShare2, TranslatePipe],
 	template: `
 		<div
 			class="pptx-ng-mtoolbar"
@@ -158,6 +160,23 @@ import { toolbarVisibility } from './toolbar-visibility';
 						/>
 						<path d="M20 3v4 M22 5h-4 M4 17v2 M5 18H3" />
 					</svg>
+				</button>
+			}
+
+			<!--
+				Share: start/join a real-time collaboration session. Gated on edit
+				mode and toolbar visibility, mirroring React's MobileToolbar; the
+				icon is the same Lucide Share2 the desktop ribbon uses.
+			-->
+			@if (canEdit() && !toolbar.isHidden('share')) {
+				<button
+					type="button"
+					class="pptx-ng-mtoolbar-btn"
+					[attr.aria-label]="'pptx.toolbar.share' | translate"
+					[title]="'pptx.toolbar.share' | translate"
+					(click)="share.emit()"
+				>
+					<svg lucideShare2 class="pptx-ng-mtoolbar-icon" aria-hidden="true"></svg>
 				</button>
 			}
 
@@ -310,6 +329,8 @@ export class MobileToolbarComponent {
 	readonly undo = output<void>();
 	/** User tapped Redo. */
 	readonly redo = output<void>();
+	/** User tapped Share (opens the collaboration share dialog). */
+	readonly share = output<void>();
 	/** User tapped Save (download as .pptx). */
 	readonly save = output<void>();
 	/** User tapped Present. */
