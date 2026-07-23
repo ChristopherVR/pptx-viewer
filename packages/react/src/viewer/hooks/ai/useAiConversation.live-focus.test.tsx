@@ -66,18 +66,42 @@ function toolInput(toolCallId: string, toolName: string, input: unknown): Stream
 	];
 }
 
+/**
+ * One prescripted stream per `sendMessages` call: the FIRST turn emits the
+ * tool-call chunks, every later turn is a plain empty text step. The client
+ * tool loop (`sendAutomaticallyWhen`) resubmits after it adds the tool
+ * outputs; without the per-call script the same tool calls would replay on
+ * every resubmit and the loop would never terminate (unbounded transcript
+ * growth OOM'd the vitest worker).
+ */
 function scriptedTransport(steps: StreamChunk[]): ChatTransport<PptxAiUIMessage> {
+	let call = 0;
 	return {
 		async sendMessages() {
+			const chunks: StreamChunk[] =
+				call === 0
+					? [
+							{ type: 'start' },
+							{ type: 'start-step' },
+							...steps,
+							{ type: 'finish-step' },
+							{ type: 'finish' },
+						]
+					: [
+							{ type: 'start' },
+							{ type: 'start-step' },
+							{ type: 'text-start', id: 't' },
+							{ type: 'text-delta', id: 't', delta: 'done' },
+							{ type: 'text-end', id: 't' },
+							{ type: 'finish-step' },
+							{ type: 'finish' },
+						];
+			call += 1;
 			return new ReadableStream({
 				start(controller) {
-					controller.enqueue({ type: 'start' });
-					controller.enqueue({ type: 'start-step' });
-					for (const chunk of steps) {
+					for (const chunk of chunks) {
 						controller.enqueue(chunk);
 					}
-					controller.enqueue({ type: 'finish-step' });
-					controller.enqueue({ type: 'finish' });
 					controller.close();
 				},
 			});
