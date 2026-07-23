@@ -25,11 +25,10 @@ const elements = [el('a', 10, 20, 100, 50), el('b', 200, 100, 80, 40)];
 function mountOverlay(
 	presences: RemotePresence[],
 	activeSlideIndex = 0,
-	zoom = 1,
 	els: PptxElement[] = elements,
 ) {
 	return mount(RemoteSelectionOverlay, {
-		props: { presences, elements: els, activeSlideIndex, zoom },
+		props: { presences, elements: els, activeSlideIndex },
 	});
 }
 
@@ -61,7 +60,7 @@ describe('remoteSelectionOverlay', () => {
 		expect(wrapper.findAll('.pptx-vue-remote-selection')).toHaveLength(1);
 	});
 
-	it('positions and sizes the box at raw slide geometry at zoom 1', () => {
+	it('positions and sizes the box at raw slide geometry', () => {
 		const wrapper = mountOverlay([presence({ clientId: 2, selectionIds: ['a'] })]);
 		const box = wrapper.get('.pptx-vue-remote-selection');
 		const style = box.attributes('style') ?? '';
@@ -70,13 +69,20 @@ describe('remoteSelectionOverlay', () => {
 		expect(style).toContain('height: 50px');
 	});
 
-	it('scales geometry with zoom', () => {
-		const wrapper = mountOverlay([presence({ clientId: 2, selectionIds: ['a'] })], 0, 2);
+	it('ignores the deprecated zoom prop (the scaled stage applies zoom once)', () => {
+		const wrapper = mount(RemoteSelectionOverlay, {
+			props: {
+				presences: [presence({ clientId: 2, selectionIds: ['a'] })],
+				elements,
+				activeSlideIndex: 0,
+				zoom: 2,
+			},
+		});
 		const box = wrapper.get('.pptx-vue-remote-selection');
 		const style = box.attributes('style') ?? '';
-		expect(style).toContain('translate(20px, 40px)');
-		expect(style).toContain('width: 200px');
-		expect(style).toContain('height: 100px');
+		expect(style).toContain('translate(10px, 20px)');
+		expect(style).toContain('width: 100px');
+		expect(style).toContain('height: 50px');
 	});
 
 	it('labels each box with the peer name and applies the peer color', () => {

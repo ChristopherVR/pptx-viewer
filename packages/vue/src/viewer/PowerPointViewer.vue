@@ -2255,17 +2255,15 @@ function handleCommandSearch(command: string): void {
 							@cancel="cancelInlineEdit"
 							@format="ribbonUpdateTextStyle"
 						/>
-						<CollaborationCursors
-							v-if="collabActive"
-							:cursors="collab.cursors.value"
-							:zoom="effectiveZoom"
-						/>
+						<!-- Both overlays live inside the scaled stage, which applies the
+						     zoom via its CSS transform; they render raw slide-space
+						     coordinates and must not be passed a zoom to multiply by. -->
+						<CollaborationCursors v-if="collabActive" :cursors="collab.cursors.value" />
 						<RemoteSelectionOverlay
 							v-if="collabActive"
 							:presences="collab.remotePresences.value"
 							:elements="activeSlide?.elements ?? []"
 							:active-slide-index="activeSlideIndex"
-							:zoom="effectiveZoom"
 						/>
 					</SlideCanvas>
 				</main>

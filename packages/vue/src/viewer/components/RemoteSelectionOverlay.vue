@@ -6,14 +6,16 @@
  *
  * Like {@link CollaborationCursors}, this component owns no Yjs/network logic.
  * The integrator supplies the reactive list of {@link RemotePresence} entries
- * (from the collaboration composable), the elements on the active slide, the
- * active slide index, and the current `zoom`. Only peers whose `activeSlide`
- * matches `activeSlideIndex` are drawn, and only for selected ids that resolve
- * to an element on the slide.
+ * (from the collaboration composable), the elements on the active slide, and
+ * the active slide index. Only peers whose `activeSlide` matches
+ * `activeSlideIndex` are drawn, and only for selected ids that resolve to an
+ * element on the slide.
  *
- * Element `x`/`y`/`width`/`height` are *unscaled* slide coordinates (px); this
- * component multiplies by `zoom` so it can be mounted inside the scaled
- * slide-stage host while receiving raw slide-space geometry.
+ * Element `x`/`y`/`width`/`height` are *unscaled* slide coordinates (px) and
+ * are used as-is: the overlay is mounted inside the scaled slide-stage host,
+ * so the stage's CSS `transform: scale()` applies the zoom exactly once.
+ * Multiplying by zoom here as well would double-apply the scale and shrink or
+ * misplace the boxes at any zoom other than 100%.
  *
  * The overlay sets `pointer-events: none` so it never intercepts canvas input.
  */
@@ -48,8 +50,11 @@ const props = defineProps<{
 	elements: PptxElement[];
 	/** The current slide index: only peers on this slide are drawn. */
 	activeSlideIndex: number;
-	/** Current canvas zoom factor; geometry scales by this. */
-	zoom: number;
+	/**
+	 * @deprecated Unused. The scaled slide-stage host already applies the zoom
+	 * via its CSS transform, so selection geometry is rendered as-is.
+	 */
+	zoom?: number;
 }>();
 
 /** Build a quick id → element lookup for the active slide. */
@@ -95,12 +100,12 @@ function labelFor(userName: string): string {
 		: userName;
 }
 
-/** Absolute position + size for a box, scaled into the host's pixel space. */
+/** Absolute position + size for a box, in raw slide-space pixels. */
 function boxStyle(box: RemoteSelectionBox): CSSProperties {
 	return {
-		transform: `translate(${box.x * props.zoom}px, ${box.y * props.zoom}px)`,
-		width: `${box.width * props.zoom}px`,
-		height: `${box.height * props.zoom}px`,
+		transform: `translate(${box.x}px, ${box.y}px)`,
+		width: `${box.width}px`,
+		height: `${box.height}px`,
 		borderColor: box.color,
 	};
 }

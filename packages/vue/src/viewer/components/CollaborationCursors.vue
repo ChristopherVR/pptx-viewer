@@ -5,13 +5,14 @@
  *
  * This component is purely visual: it owns no network/Yjs logic. The
  * integrator supplies a reactive list of {@link RemoteCursor} entries (via the
- * collaboration composable) and the current `zoom`. Each entry is drawn as an
- * absolutely-positioned pointer SVG plus a name-label chip in the user's
- * colour, placed at `(x * zoom, y * zoom)`.
+ * collaboration composable). Each entry is drawn as an absolutely-positioned
+ * pointer SVG plus a name-label chip in the user's colour, placed at `(x, y)`.
  *
- * `x`/`y` are *unscaled* slide coordinates (px); this component multiplies by
- * `zoom` so it can be mounted inside the scaled slide-stage host (like a
- * selection overlay) while still receiving raw slide-space coordinates.
+ * `x`/`y` are *unscaled* slide coordinates (px) and are used as-is: the
+ * overlay is mounted inside the scaled slide-stage host (like the local
+ * selection overlay), so the stage's CSS `transform: scale()` applies the zoom
+ * exactly once. Multiplying by zoom here as well would double-apply the scale
+ * and misplace cursors at any zoom other than 100%.
  *
  * The overlay sets `pointer-events: none` so it never intercepts canvas input.
  */
@@ -39,8 +40,11 @@ import type { CSSProperties } from 'vue';
 const props = defineProps<{
 	/** Remote collaborators to render, in unscaled slide coordinates. */
 	cursors: RemoteCursor[];
-	/** Current canvas zoom factor; cursor positions scale by this. */
-	zoom: number;
+	/**
+	 * @deprecated Unused. The scaled slide-stage host already applies the zoom
+	 * via its CSS transform, so cursor coordinates are rendered as-is.
+	 */
+	zoom?: number;
 }>();
 
 /** Clamp/format the label so very long names don't overflow the chip. */
@@ -51,10 +55,10 @@ function labelFor(userName: string): string {
 		: userName;
 }
 
-/** Absolute position for a cursor, scaled into the host's pixel space. */
+/** Absolute position for a cursor, in raw slide-space pixels. */
 function cursorStyle(cursor: RemoteCursor): CSSProperties {
 	return {
-		transform: `translate(${cursor.x * props.zoom}px, ${cursor.y * props.zoom}px)`,
+		transform: `translate(${cursor.x}px, ${cursor.y}px)`,
 	};
 }
 </script>
