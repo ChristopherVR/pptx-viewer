@@ -1,4 +1,4 @@
-import type { PptxElementAnimation, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxNativeAnimation, PptxSlide } from 'pptx-viewer-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createPresentationPlayback } from './presentation-playback';
@@ -15,21 +15,28 @@ function buildStage(doc: Document, ids: string[]): HTMLElement {
 	return stage;
 }
 
+function shapeElement(id: string): PptxElement {
+	return { type: 'shape', id, x: 0, y: 0, width: 100, height: 100 } as unknown as PptxElement;
+}
+
 function slideWith(
-	animations: PptxElementAnimation[],
+	elements: PptxElement[],
+	nativeAnimations?: PptxNativeAnimation[],
 	transition?: PptxSlide['transition'],
 ): PptxSlide {
-	return { id: 's', elements: [], animations, transition } as unknown as PptxSlide;
+	return { id: 's', elements, nativeAnimations, transition } as unknown as PptxSlide;
 }
 
-function entrance(
-	elementId: string,
-	trigger: PptxElementAnimation['trigger'],
-): PptxElementAnimation {
-	return { elementId, entrance: 'fadeIn', trigger, durationMs: 400 };
+function entrance(targetId: string, trigger: PptxNativeAnimation['trigger']): PptxNativeAnimation {
+	return {
+		targetId,
+		presetClass: 'entr',
+		trigger,
+		durationMs: 400,
+	} as unknown as PptxNativeAnimation;
 }
 
-describe('createPresentationPlayback', () => {
+describe('createPresentationPlayback (native-timing controller)', () => {
 	let doc: Document;
 	let stageWrap: HTMLElement;
 
@@ -44,6 +51,7 @@ describe('createPresentationPlayback', () => {
 		vi.useRealTimers();
 		stageWrap.remove();
 		doc.getElementById('pptx-vanilla-presentation-keyframes')?.remove();
+		doc.getElementById('pptx-vanilla-slide-keyframes')?.remove();
 	});
 
 	it('is inert when not presenting (no styles applied)', () => {
@@ -54,12 +62,12 @@ describe('createPresentationPlayback', () => {
 			doc,
 			stageWrap,
 			stage,
-			slide: slideWith([entrance('a', 'onClick')]),
+			slide: slideWith([shapeElement('a')], [entrance('a', 'onClick')]),
 			slideIndex: 0,
 			presenting: false,
 		});
 		const el = stage.querySelector<HTMLElement>('[data-element-id="a"]');
-		expect(el?.style.opacity).toBe('');
+		expect(el?.style.visibility).toBe('');
 		expect(playback.advance()).toBeFalsy();
 	});
 
@@ -71,17 +79,17 @@ describe('createPresentationPlayback', () => {
 			doc,
 			stageWrap,
 			stage,
-			slide: slideWith([entrance('a', 'onClick')]),
+			slide: slideWith([shapeElement('a')], [entrance('a', 'onClick')]),
 			slideIndex: 0,
 			presenting: true,
 			showWithAnimation: false,
 		});
 
-		expect(stage.querySelector<HTMLElement>('[data-element-id="a"]')?.style.opacity).toBe('');
+		expect(stage.querySelector<HTMLElement>('[data-element-id="a"]')?.style.visibility).toBe('');
 		expect(playback.advance()).toBeFalsy();
 	});
 
-	it('hides pending entrances at step 0 and reveals them on advance', () => {
+	it('hides pending entrances at seed and reveals them on advance', () => {
 		const playback = createPresentationPlayback();
 		const stage = buildStage(doc, ['a', 'b']);
 		stageWrap.appendChild(stage);
@@ -90,31 +98,34 @@ describe('createPresentationPlayback', () => {
 			stageWrap,
 			stage,
 			// Two separate click groups (both onClick).
-			slide: slideWith([entrance('a', 'onClick'), entrance('b', 'onClick')]),
+			slide: slideWith(
+				[shapeElement('a'), shapeElement('b')],
+				[entrance('a', 'onClick'), entrance('b', 'onClick')],
+			),
 			slideIndex: 0,
 			presenting: true,
 		});
 		const a = stage.querySelector<HTMLElement>('[data-element-id="a"]');
 		const b = stage.querySelector<HTMLElement>('[data-element-id="b"]');
 		// Both entrances pending -> hidden.
-		expect(a?.style.opacity).toBe('0');
-		expect(b?.style.opacity).toBe('0');
+		expect(a?.style.visibility).toBe('hidden');
+		expect(b?.style.visibility).toBe('hidden');
 
-		// First advance reveals group 1 (element a): running animation, no longer hidden.
+		// First advance reveals group 1 (element a): running animation, now visible.
 		expect(playback.advance()).toBeTruthy();
-		expect(a?.style.animationName).toBeTruthy();
-		expect(a?.style.opacity).toBe('');
-		expect(b?.style.opacity).toBe('0');
+		expect(a?.style.animation).toBeTruthy();
+		expect(a?.style.visibility).toBe('');
+		expect(b?.style.visibility).toBe('hidden');
 
 		// Second advance reveals group 2 (element b).
 		expect(playback.advance()).toBeTruthy();
-		expect(b?.style.animationName).toBeTruthy();
+		expect(b?.style.animation).toBeTruthy();
 
 		// Timeline exhausted -> advance reports false (caller should change slide).
 		expect(playback.advance()).toBeFalsy();
 	});
 
-	it('folds withPrevious/afterPrevious into the preceding click group', () => {
+	it('folds withPrevious into the preceding click group', () => {
 		const playback = createPresentationPlayback();
 		const stage = buildStage(doc, ['a', 'b']);
 		stageWrap.appendChild(stage);
@@ -122,7 +133,10 @@ describe('createPresentationPlayback', () => {
 			doc,
 			stageWrap,
 			stage,
-			slide: slideWith([entrance('a', 'onClick'), entrance('b', 'withPrevious')]),
+			slide: slideWith(
+				[shapeElement('a'), shapeElement('b')],
+				[entrance('a', 'onClick'), entrance('b', 'withPrevious')],
+			),
 			slideIndex: 0,
 			presenting: true,
 		});
@@ -130,12 +144,12 @@ describe('createPresentationPlayback', () => {
 		expect(playback.advance()).toBeTruthy();
 		const a = stage.querySelector<HTMLElement>('[data-element-id="a"]');
 		const b = stage.querySelector<HTMLElement>('[data-element-id="b"]');
-		expect(a?.style.animationName).toBeTruthy();
-		expect(b?.style.animationName).toBeTruthy();
+		expect(a?.style.animation).toBeTruthy();
+		expect(b?.style.animation).toBeTruthy();
 		expect(playback.advance()).toBeFalsy();
 	});
 
-	it('resets the step when the slide changes', () => {
+	it('resets the timeline when the slide changes', () => {
 		const playback = createPresentationPlayback();
 		const stage0 = buildStage(doc, ['a']);
 		stageWrap.appendChild(stage0);
@@ -143,14 +157,14 @@ describe('createPresentationPlayback', () => {
 			doc,
 			stageWrap,
 			stage: stage0,
-			slide: slideWith([entrance('a', 'onClick')]),
+			slide: slideWith([shapeElement('a')], [entrance('a', 'onClick')]),
 			slideIndex: 0,
 			presenting: true,
 		});
 		expect(playback.advance()).toBeTruthy();
 		expect(playback.isComplete()).toBeTruthy();
 
-		// New slide render -> step resets, its entrance hidden again.
+		// New slide render -> timeline resets, its entrance hidden again.
 		stageWrap.replaceChildren();
 		const stage1 = buildStage(doc, ['c']);
 		stageWrap.appendChild(stage1);
@@ -158,12 +172,12 @@ describe('createPresentationPlayback', () => {
 			doc,
 			stageWrap,
 			stage: stage1,
-			slide: slideWith([entrance('c', 'onClick')]),
+			slide: slideWith([shapeElement('c')], [entrance('c', 'onClick')]),
 			slideIndex: 1,
 			presenting: true,
 		});
 		const c = stage1.querySelector<HTMLElement>('[data-element-id="c"]');
-		expect(c?.style.opacity).toBe('0');
+		expect(c?.style.visibility).toBe('hidden');
 		expect(playback.isComplete()).toBeFalsy();
 	});
 
@@ -190,7 +204,7 @@ describe('createPresentationPlayback', () => {
 			doc,
 			stageWrap,
 			stage: stage1,
-			slide: slideWith([], { type: 'fade', durationMs: 300 }),
+			slide: slideWith([], undefined, { type: 'fade', durationMs: 300 }),
 			slideIndex: 1,
 			presenting: true,
 		});

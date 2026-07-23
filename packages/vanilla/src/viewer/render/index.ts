@@ -10,4 +10,5 @@ export { applyStyleMap, composeTransforms, createEl, createSvgEl, setSvgAttrs } 
 export { getShapeFillStrokeStyle, getTextBlockStyle } from './element-styles';
 export type { SlideStageOptions } from './slide-stage';
 export { renderSlideStage } from './slide-stage';
+export { reRenderPresentationElements } from './presentation-rerender';
 export * from './elements';

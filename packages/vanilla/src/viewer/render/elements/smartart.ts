@@ -8,6 +8,7 @@ import {
 	projectDrawingShapes,
 	resolveDrawingShapeNodeId,
 	resolvePalette,
+	revealedSmartArtNodeCount,
 	styleShadowFilter,
 } from 'pptx-viewer-shared';
 
@@ -83,15 +84,38 @@ export const renderSmartArtSvg: ElementRenderer = (element, zIndex, context) => 
 	const nodes = data?.nodes ?? [];
 	const drawingShapes = data?.drawingShapes ?? [];
 
+	// Native staged diagram build (`p:bldDgm`): during a running presentation the
+	// controller surfaces a `build` descriptor whose `progress` (0..1) reveals the
+	// leading nodes / drawing shapes. The view box is still computed from the FULL
+	// shape set so the diagram does not rescale as it builds (mirrors Vue).
+	const build = context.presentationStates?.get(element.id)?.build;
+	const diagramBuild = build?.kind === 'diagram' ? build : undefined;
+	const shownNodeCount = diagramBuild
+		? revealedSmartArtNodeCount(nodes, diagramBuild)
+		: nodes.length;
+	const isPartialBuild = diagramBuild !== undefined && shownNodeCount < nodes.length;
+
 	if (data && drawingShapes.length > 0) {
-		chrome.appendChild(buildDrawingShapesSvg(doc, element.id, data, buildSmartArtA11y(data).nodes));
+		const revealedShapeCount = isPartialBuild
+			? Math.ceil((shownNodeCount / Math.max(nodes.length, 1)) * drawingShapes.length)
+			: drawingShapes.length;
+		chrome.appendChild(
+			buildDrawingShapesSvg(
+				doc,
+				element.id,
+				data,
+				buildSmartArtA11y(data).nodes,
+				revealedShapeCount,
+			),
+		);
 		enableSmartArtEditing(chrome, element, context);
 		return wrapper;
 	}
 
 	if (data && nodes.length > 0) {
+		const revealedNodes = isPartialBuild ? nodes.slice(0, shownNodeCount) : nodes;
 		const layout = computeSmartArtLayout(
-			nodes,
+			revealedNodes,
 			{ width: element.width, height: element.height },
 			resolvePalette(data),
 			data.style ?? 'flat',
@@ -135,11 +159,14 @@ function buildDrawingShapesSvg(
 	elementId: string,
 	data: PptxSmartArtData,
 	a11yNodes: ReturnType<typeof buildSmartArtA11y>['nodes'],
+	revealedShapeCount: number,
 ): SVGSVGElement {
 	const shapes = data.drawingShapes ?? [];
 	const style: SmartArtStyle = data.style ?? 'flat';
+	// View box from the FULL shape set so a partial build does not rescale.
 	const viewBox = computeDrawingViewBox(shapes);
-	const rendered = projectDrawingShapes(elementId, shapes, viewBox, resolvePalette(data), style);
+	const projected = projectDrawingShapes(elementId, shapes, viewBox, resolvePalette(data), style);
+	const rendered = projected.slice(0, Math.max(0, revealedShapeCount));
 	const shadow = styleShadowFilter(style);
 
 	const svg = createSvgEl(doc, 'svg', {

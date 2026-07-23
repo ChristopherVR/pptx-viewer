@@ -1,12 +1,20 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import {
-	buildPresentationClickGroups,
-	pendingElementStyles,
-	revealedElementStyles,
-} from 'pptx-viewer-shared';
-import type { AnimationClickGroup } from 'pptx-viewer-shared';
+import { PresentationAnimationController } from 'pptx-viewer-shared';
+import type { ElementAnimationState } from 'pptx-viewer-shared';
 
-import { applyAnimationStyles, ensurePresentationKeyframes } from './animation-dom';
+import {
+	applyElementAnimationStyles,
+	ensurePresentationKeyframes,
+	injectSlideKeyframes,
+} from './animation-dom';
+import type { BuildRafHandle, PlaybackContext } from './animation-playback-helpers';
+import {
+	cancelBuildReveal,
+	playGroup,
+	scheduleAutoAdvanceChain,
+} from './animation-playback-helpers';
+import { playAnimationSound } from './animation-sound';
+import { attachTriggerListeners } from './presentation-triggers';
 import { playTransitionOverlay } from './transition-overlay';
 
 /** Everything the controller needs after a stage (re)render. */
@@ -24,42 +32,55 @@ export interface SyncStageParams {
 	presenting: boolean;
 	/** Presentation-level switch parsed from `p:showPr`. */
 	showWithAnimation?: boolean;
+	/** Archive-path to data-URL map, used to resolve action-sound sources. */
+	mediaDataUrls?: ReadonlyMap<string, string>;
+	/**
+	 * Re-render the given tracked elements in place against the current element
+	 * states, so staged chart / SmartArt builds and `p:animClr` fill / stroke
+	 * relinquish surface structurally. Supplied by the render controller.
+	 */
+	reRenderElements?: (ids: readonly string[]) => void;
 }
 
 /**
- * The presentation-mode playback state machine for the vanilla binding.
+ * The presentation-mode playback state machine for the vanilla binding, driven
+ * by the shared native-timing {@link PresentationAnimationController} (mirrors
+ * the React / Vue `useAnimationPlayback`, but drives the DOM imperatively).
  *
- * It owns the click-stepped animation cursor and the slide-transition overlay,
- * both driven by the shared framework-agnostic helpers. It is consulted from
- * two seams in the rebuild-per-change render flow:
- *
- *  - {@link PresentationPlayback.syncStage} runs after every stage render:
- *    on a slide entry it rebuilds the click groups, resets the step, hides
- *    pending entrances, and (when the slide changed mid-show) plays the
- *    incoming slide's transition over a snapshot of the outgoing stage.
- *  - {@link PresentationPlayback.advance} runs on each forward navigation
- *    key/tap while presenting: it reveals the next animation build in place
- *    (no rebuild) and reports whether a build remained, so the caller only
- *    advances the slide once the timeline is exhausted.
+ * The controller builds a timeline engine from the slide's `nativeAnimations`
+ * (expanding staged text builds) and can represent native staged chart /
+ * SmartArt builds (`p:bldChart` / `p:bldDgm`) and colour animations
+ * (`p:animClr`) that the older preset click-group model could not.
  */
 export interface PresentationPlayback {
 	/**
-	 * Reveal the next on-click animation build for the current slide. Returns
-	 * `true` if a build was revealed (stay on the slide); `false` when the
-	 * slide's builds are exhausted (the caller should advance to the next slide).
+	 * Reveal the next click-group. Returns `true` if a group was revealed (stay on
+	 * the slide); `false` when the timeline is exhausted or animations are disabled
+	 * (the caller should advance to the next slide).
 	 */
 	advance(): boolean;
-	/** True when every click group on the current slide has been revealed. */
+	/** True when every click-group on the current slide has been revealed. */
 	isComplete(): boolean;
 	/** Sync playback + transitions after a stage (re)render. */
 	syncStage(params: SyncStageParams): void;
-	/** Cancel any running transition and forget all per-slide state. */
+	/** Cancel any running transition/timers and forget all per-slide state. */
 	reset(): void;
+	/**
+	 * The stable per-element native-animation state map, mutated in place as the
+	 * timeline plays. Threaded into the render context so element renderers can
+	 * reveal staged builds and relinquish animated fill / stroke.
+	 */
+	readonly elementStates: ReadonlyMap<string, ElementAnimationState>;
 }
 
 export function createPresentationPlayback(): PresentationPlayback {
-	let groups: AnimationClickGroup[] = [];
-	let step = 0;
+	// Stable map instance, mutated in place so the render context's captured
+	// reference always reads current state during a targeted element re-render.
+	const elementStates = new Map<string, ElementAnimationState>();
+	const timers: number[] = [];
+	const buildHandle: BuildRafHandle = { current: null };
+
+	let controller: PresentationAnimationController | null = null;
 	let currentStage: HTMLElement | null = null;
 	// The last presented stage node, kept as the outgoing snapshot for the next
 	// slide's transition (detached by `replaceChildren`, re-attached on demand).
@@ -67,6 +88,56 @@ export function createPresentationPlayback(): PresentationPlayback {
 	let lastIndex = -1;
 	let wasPresenting = false;
 	let cancelTransition: (() => void) | null = null;
+	let mediaDataUrls: ReadonlyMap<string, string> = new Map();
+	let reRenderElements: ((ids: readonly string[]) => void) | null = null;
+
+	const interactiveIds = (): ReadonlySet<string> =>
+		controller?.interactiveTriggerShapeIds ?? new Set();
+	const hoverIds = (): ReadonlySet<string> => controller?.hoverTriggerShapeIds ?? new Set();
+
+	/** Overwrite the stable state map in place from a freshly computed snapshot. */
+	const commitStates = (next: Map<string, ElementAnimationState>): void => {
+		elementStates.clear();
+		for (const [id, state] of next) {
+			elementStates.set(id, state);
+		}
+		refreshDom();
+	};
+
+	/** Ids whose current state needs a structural re-render (build / animClr). */
+	const structuralIds = (): string[] => {
+		const ids: string[] = [];
+		for (const [id, state] of elementStates) {
+			if (state.build || state.animatesFill || state.animatesStroke) {
+				ids.push(id);
+			}
+		}
+		return ids;
+	};
+
+	/** Re-render structural elements, then patch cheap per-node CSS styles. */
+	const refreshDom = (): void => {
+		if (!currentStage) {
+			return;
+		}
+		const ids = structuralIds();
+		if (ids.length > 0) {
+			reRenderElements?.(ids);
+		}
+		applyElementAnimationStyles(currentStage, elementStates, interactiveIds(), hoverIds());
+	};
+
+	const ctx: PlaybackContext = {
+		setStates: (updater) => {
+			commitStates(updater(new Map(elementStates)));
+		},
+		timers,
+		buildHandle,
+		onPlayActionSound: (soundPath) => {
+			playAnimationSound(mediaDataUrls.get(soundPath) ?? soundPath);
+		},
+		frameRoot: () => currentStage,
+	};
 
 	const stopTransition = (): void => {
 		if (cancelTransition) {
@@ -75,61 +146,101 @@ export function createPresentationPlayback(): PresentationPlayback {
 		}
 	};
 
-	const applyCurrentStep = (stage: HTMLElement): void => {
-		applyAnimationStyles(
-			stage,
-			revealedElementStyles(groups, step),
-			pendingElementStyles(groups, step),
-		);
+	const clearTimers = (): void => {
+		for (const timer of timers) {
+			window.clearTimeout(timer);
+		}
+		timers.length = 0;
+		cancelBuildReveal(buildHandle);
+	};
+
+	const teardown = (): void => {
+		stopTransition();
+		clearTimers();
+		controller = null;
+		elementStates.clear();
+		currentStage = null;
+		previousStage = null;
+	};
+
+	const enterSlide = (slide: PptxSlide, doc: Document): void => {
+		controller = PresentationAnimationController.fromSlide(slide);
+		injectSlideKeyframes(doc, controller.keyframesCss);
+		commitStates(controller.computeStates());
+
+		// Auto-play the first group when the slide opens with a withPrevious /
+		// afterPrevious / afterDelay build (mirrors React / Vue entrance auto-play).
+		if (controller.hasMoreSteps()) {
+			const first = controller.peekNext();
+			if (first?.autoAdvance) {
+				const active = controller;
+				const timer = window.setTimeout(() => {
+					const group = active.advance();
+					if (group) {
+						playGroup(active, group, ctx);
+						scheduleAutoAdvanceChain(active, ctx);
+					}
+				}, first.autoAdvanceDelayMs ?? 0);
+				timers.push(timer);
+			}
+		}
 	};
 
 	return {
+		elementStates,
+
 		advance() {
-			if (step >= groups.length) {
+			if (!controller || !controller.hasMoreSteps()) {
 				return false;
 			}
-			step += 1;
-			if (currentStage) {
-				applyCurrentStep(currentStage);
+			const group = controller.advance();
+			if (!group) {
+				return false;
 			}
+			playGroup(controller, group, ctx);
+			scheduleAutoAdvanceChain(controller, ctx);
 			return true;
 		},
 
 		isComplete() {
-			return step >= groups.length;
+			return !controller || !controller.hasMoreSteps();
 		},
 
 		syncStage(params) {
-			// The old stage DOM is gone (rebuilt); cancel any overlay bound to it.
+			// The old stage DOM is gone (rebuilt); cancel any overlay + timers.
 			stopTransition();
+			clearTimers();
 
-			if (!params.presenting) {
-				groups = [];
-				step = 0;
-				currentStage = null;
-				previousStage = null;
+			const animationsEnabled = params.showWithAnimation !== false;
+			if (!params.presenting || !params.slide || !animationsEnabled) {
+				controller = null;
+				elementStates.clear();
+				injectSlideKeyframes(params.doc, '');
+				currentStage = params.presenting ? params.stage : null;
+				previousStage = params.presenting ? params.stage : null;
 				lastIndex = params.slideIndex;
-				wasPresenting = false;
+				wasPresenting = params.presenting;
 				return;
 			}
 
 			ensurePresentationKeyframes(params.doc);
+			mediaDataUrls = params.mediaDataUrls ?? new Map();
+			reRenderElements = params.reRenderElements ?? null;
+			currentStage = params.stage;
 
 			const entering = !wasPresenting;
 			const slideChanged = params.slideIndex !== lastIndex;
 
-			if (entering || slideChanged) {
-				groups = buildPresentationClickGroups(
-					params.slide?.animations ?? [],
-					params.showWithAnimation,
-				);
-				step = 0;
+			if (entering || slideChanged || !controller) {
+				enterSlide(params.slide, params.doc);
+			} else {
+				// Same slide re-rendered (e.g. resize): re-apply the current state.
+				refreshDom();
 			}
 
-			// Play the incoming slide's transition when the slide changed during a
-			// running show (never on the initial enter, and only with a snapshot of
-			// the outgoing stage to animate away).
-			const transition = params.slide?.transition;
+			// Play the incoming slide's transition when the slide changed mid-show
+			// (never on the initial enter; only with an outgoing snapshot to animate).
+			const transition = params.slide.transition;
 			if (
 				!entering &&
 				slideChanged &&
@@ -138,8 +249,6 @@ export function createPresentationPlayback(): PresentationPlayback {
 				transition.type &&
 				transition.type !== 'none'
 			) {
-				// Clone the incoming stage while it is still fully visible, before the
-				// step-0 pending styles hide its entrance elements underneath.
 				const incoming = params.stage.cloneNode(true) as HTMLElement;
 				cancelTransition = playTransitionOverlay({
 					doc: params.doc,
@@ -153,20 +262,20 @@ export function createPresentationPlayback(): PresentationPlayback {
 				});
 			}
 
-			applyCurrentStep(params.stage);
+			attachTriggerListeners(params.stage, {
+				getController: () => controller,
+				play: (activeController, group) => {
+					playGroup(activeController, group, ctx);
+				},
+			});
 
-			currentStage = params.stage;
 			previousStage = params.stage;
 			lastIndex = params.slideIndex;
 			wasPresenting = true;
 		},
 
 		reset() {
-			stopTransition();
-			groups = [];
-			step = 0;
-			currentStage = null;
-			previousStage = null;
+			teardown();
 			lastIndex = -1;
 			wasPresenting = false;
 		},

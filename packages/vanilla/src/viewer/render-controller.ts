@@ -4,8 +4,8 @@ import { DEFAULT_MASTER_PAGE_SIZE } from 'pptx-viewer-shared';
 import type { PresentationPlayback } from './animation';
 import { createPresentationPlayback } from './animation';
 import type { Translator } from './i18n';
-import type { ElementRendererRegistry } from './render';
-import { renderSlideStage } from './render';
+import type { ElementRenderContext, ElementRendererRegistry } from './render';
+import { renderSlideStage, reRenderPresentationElements } from './render';
 import { buildRenderFieldContext } from './render-field-context';
 import type { Store, ViewerState } from './state';
 import type { ViewerChrome } from './ui';
@@ -69,6 +69,14 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 	const { doc, store, registry } = deps;
 	const presentationPlayback = createPresentationPlayback();
 
+	// Render context + stage node of the last presentation render, so playback can
+	// re-render single elements (staged build, `p:animClr`) without a full rebuild.
+	let presentationContext: ElementRenderContext | null = null;
+	let presentationStageNode: HTMLElement | null = null;
+	const captureContext = (context: ElementRenderContext): void => {
+		presentationContext = context;
+	};
+
 	const renderStageFor = (
 		slide: PptxSlide,
 		scale: number,
@@ -102,7 +110,18 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			onSmartArtNodeFillChange: interactive ? deps.onSmartArtNodeFillChange : undefined,
 			interactive,
 			templateEditing: state.editTemplateMode || state.masterViewTarget !== null,
+			// Native-animation state + context capture only for the live presentation
+			// stage; the editor canvas and thumbnails render statically.
+			presentationStates: presenting ? presentationPlayback.elementStates : undefined,
+			captureContext: presenting ? captureContext : undefined,
 		});
+	};
+
+	/** Re-render tracked elements in place against the current playback states. */
+	const reRenderElements = (ids: readonly string[]): void => {
+		if (presentationContext && presentationStageNode) {
+			reRenderPresentationElements(presentationContext, presentationStageNode, ids);
+		}
 	};
 	const fitScaleFor = (canvasSize: { width: number; height: number }): number => {
 		const state = store.get();
@@ -221,6 +240,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		// Drive presentation-mode entrance state + slide transitions off the fresh
 		// stage. Guarded on `presenting` inside `syncStage`; a no-op otherwise.
 		if (stageNode) {
+			presentationStageNode = stageNode;
 			presentationPlayback.syncStage({
 				doc,
 				stageWrap: chrome.stageWrap,
@@ -229,8 +249,12 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 				slideIndex: state.currentSlide,
 				presenting: state.presenting,
 				showWithAnimation: state.presentationProperties.showWithAnimation,
+				mediaDataUrls: state.mediaDataUrls,
+				reRenderElements,
 			});
 		} else {
+			presentationStageNode = null;
+			presentationContext = null;
 			presentationPlayback.reset();
 		}
 	};

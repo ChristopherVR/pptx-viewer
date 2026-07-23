@@ -93,7 +93,14 @@ function merge3dStyle(base: CssStyleMap, computed: Computed3dStyle | undefined):
  * Returns an empty map when the element carries no shape styling. Mirrors the
  * Vue binding's `getShapeFillStrokeStyle` cascade.
  */
-export function getShapeFillStrokeStyle(el: PptxElement): CssStyleMap {
+export function getShapeFillStrokeStyle(
+	el: PptxElement,
+	// When an active `p:animClr` colour animation targets this shape's fill /
+	// stroke, drop the static paint so the wrapper's colour keyframes own it
+	// (mirrors Vue's `getShapeFillStrokeStyle`). Absent/false keeps static paint.
+	animatesFill?: boolean,
+	animatesStroke?: boolean,
+): CssStyleMap {
 	if (!hasShapeProperties(el)) {
 		return {};
 	}
@@ -101,27 +108,25 @@ export function getShapeFillStrokeStyle(el: PptxElement): CssStyleMap {
 	const style: CssStyleMap = {};
 
 	if (ss) {
-		// Fill: image, structured gradient, preset pattern, then solid.
-		const fill = getComputedFillStyle(el);
-		if (fill) {
-			if (fill.backgroundColor !== undefined) {
-				style['backgroundColor'] = fill.backgroundColor;
-			}
-			if (fill.backgroundImage !== undefined) {
-				style['backgroundImage'] = fill.backgroundImage;
-			}
-			if (fill.backgroundRepeat !== undefined) {
-				style['backgroundRepeat'] = fill.backgroundRepeat;
-			}
-			if (fill.backgroundSize !== undefined) {
-				style['backgroundSize'] = fill.backgroundSize;
+		// Fill: image, structured gradient, preset pattern, then solid. Copy every
+		// defined `background-*` key the shared builder emits.
+		const fill = animatesFill ? undefined : getComputedFillStyle(el);
+		for (const [key, value] of Object.entries(fill ?? {})) {
+			if (value !== undefined) {
+				style[key] = value;
 			}
 		}
 
 		const strokeWidth = Math.max(0, ss.strokeWidth ?? 0);
 		if (strokeWidth > 0) {
-			style['border'] =
-				`${px(strokeWidth)} ${getCssBorderDashStyle(ss.strokeDash)} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+			if (animatesStroke) {
+				// Keep width / dash; the colour is left to the animated keyframes.
+				style['borderWidth'] = px(strokeWidth);
+				style['borderStyle'] = getCssBorderDashStyle(ss.strokeDash) ?? 'solid';
+			} else {
+				style['border'] =
+					`${px(strokeWidth)} ${getCssBorderDashStyle(ss.strokeDash)} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+			}
 		}
 	}
 
@@ -201,11 +206,7 @@ export function getShapeFillStrokeStyle(el: PptxElement): CssStyleMap {
 	return style;
 }
 
-/**
- * Text block style for elements that carry text (flex column with body
- * insets, font, alignment, writing mode). Mirrors the Vue binding's
- * `getTextBlockStyle`.
- */
+/** Text block style (flex column, body insets, font, alignment, writing mode). */
 export function getTextBlockStyle(el: PptxElement): CssStyleMap {
 	if (!hasTextProperties(el)) {
 		return {};
