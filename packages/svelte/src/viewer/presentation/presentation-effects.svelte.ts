@@ -5,6 +5,7 @@ import { untrack } from 'svelte';
 import { applyAnimationStyles } from './apply-animation-styles';
 import { syncNativeAnimationKeyframes } from './keyframes';
 import type { PresentationController } from './presentation-controller.svelte';
+import { attachPresentationTriggerListeners } from './presentation-triggers';
 
 /**
  * `usePresentationEffects`: the `$effect`-based wiring that drives the Svelte
@@ -88,5 +89,22 @@ export function usePresentationEffects(deps: PresentationEffectsDeps): void {
 			return;
 		}
 		applyAnimationStyles(root, states, interactiveIds, hoverIds);
+	});
+
+	// (3) Route interactive (onShapeClick) + hover (onHover) trigger events on the
+	// live stage to their animation sequences. Non-trigger clicks still bubble to
+	// the holder's tap-to-advance. Re-attached after the stage re-renders on
+	// navigation; cleaned up on exit / slide change.
+	$effect(() => {
+		if (!deps.getPresenting()) {
+			return;
+		}
+		// Re-run after the stage re-renders its (freshly-keyed) nodes on navigation.
+		void deps.getActiveSlide();
+		const root = deps.getStageRoot();
+		if (!root) {
+			return;
+		}
+		return attachPresentationTriggerListeners(root, deps.controller);
 	});
 }
