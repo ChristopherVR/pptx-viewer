@@ -404,6 +404,12 @@ const CHROME_CSS = `
 .pptxv-notes-textarea:disabled,
 .pptxv-notes-textarea:read-only { cursor: default; opacity: 0.85; }
 .pptxv.pptxv-presenting .pptxv-notes { display: none; }
+/* On phones the collapsed strip is pure clutter: the mobile action sheet's
+   Notes button is the entry point, so hide the panel entirely until opened
+   (React parity). */
+@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {
+	.pptxv-notes[data-collapsed='true'] { display: none; }
+}
 
 /* ── Bottom status bar ──────────────────────────────────────────────── */
 .pptxv-statusbar {

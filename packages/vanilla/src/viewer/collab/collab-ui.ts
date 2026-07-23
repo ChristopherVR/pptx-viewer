@@ -13,11 +13,13 @@ import { createBroadcastDialog } from './ui/broadcast-dialog';
 import { createCollaborationCursors } from './ui/collaboration-cursors';
 import { createCollaborationStatus } from './ui/collaboration-status';
 import { createFollowModeBar } from './ui/follow-mode-bar';
+import { createRemoteSelectionOverlay } from './ui/remote-selection-overlay';
 import { createShareDialog } from './ui/share-dialog';
 
 /**
  * collab-ui.ts: owns the Share/Broadcast dialogs, the toolbar status pill +
- * trigger buttons, the remote-cursor overlay, and the follow-mode bar; wires
+ * trigger buttons, the remote-cursor + remote-selection overlays, and the
+ * follow-mode bar; wires
  * them all to the store and the session controllers' collaboration
  * functions. Vanilla port of the Vue `useCollaborationWiring` composable plus
  * its four presentational components, mounted imperatively. Constructed by
@@ -174,17 +176,26 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 	}
 
 	const cursors = createCollaborationCursors(doc);
+	const remoteSelections = createRemoteSelectionOverlay(doc);
 	const followBar = createFollowModeBar(doc, t, {
 		onFollow: (clientId) => deps.followUser(clientId),
 	});
 
 	function mountOverlay(): void {
-		const host = deps.getChrome().stageWrap;
-		if (cursors.el.parentElement !== host) {
-			host.appendChild(cursors.el);
+		const chromeNow = deps.getChrome();
+		const stageHost = chromeNow.stageWrap;
+		if (remoteSelections.el.parentElement !== stageHost) {
+			stageHost.appendChild(remoteSelections.el);
 		}
-		if (followBar.el.parentElement !== host) {
-			host.appendChild(followBar.el);
+		if (cursors.el.parentElement !== stageHost) {
+			stageHost.appendChild(cursors.el);
+		}
+		// The follow bar is a viewer-viewport pill (top-centre, under the
+		// toolbar), not a stage overlay: mount it on the position:relative
+		// `.pptxv` root so it never floats over the middle of the slide on
+		// small viewports (React parity: fixed inset-x-0 top-2).
+		if (followBar.el.parentElement !== chromeNow.root) {
+			chromeNow.root.appendChild(followBar.el);
 		}
 	}
 
@@ -195,6 +206,12 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 	function render(state: ViewerState): void {
 		mountOverlay();
 		cursors.update(state.cursors, deps.getScale());
+		remoteSelections.update(
+			state.remotePresences,
+			state.slides[state.currentSlide]?.elements ?? [],
+			state.currentSlide,
+			deps.getScale(),
+		);
 		followBar.update(state.remotePresences, state.followedClientId);
 		statusPill.update(deps.getStatus(), connectedCount(state));
 	}
@@ -204,7 +221,12 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 		if (
 			state.cursors !== previous.cursors ||
 			state.remotePresences !== previous.remotePresences ||
-			state.followedClientId !== previous.followedClientId
+			state.followedClientId !== previous.followedClientId ||
+			// Remote selection boxes track the active slide's element geometry
+			// and the stage zoom, not just presence churn.
+			state.currentSlide !== previous.currentSlide ||
+			state.slides !== previous.slides ||
+			state.zoom !== previous.zoom
 		) {
 			render(state);
 		}
@@ -226,6 +248,7 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 			mobileShareBtn?.remove();
 			statusPill.destroy();
 			cursors.destroy();
+			remoteSelections.destroy();
 			followBar.destroy();
 			shareDialog.destroy();
 			broadcastDialog.destroy();

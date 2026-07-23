@@ -14,6 +14,7 @@ function fakeChrome(): ViewerChrome {
 	ribbonEl.appendChild(primaryRow);
 	const collaborationHost = document.createElement('span');
 	return {
+		root: document.createElement('div'),
 		ribbon: { el: ribbonEl } as unknown as ViewerChrome['ribbon'],
 		mobileToolbar: { collaborationHost } as unknown as ViewerChrome['mobileToolbar'],
 		stageWrap: document.createElement('div'),
@@ -53,6 +54,17 @@ describe('createCollabUi', () => {
 		expect(primaryRow?.querySelectorAll(':scope > button')).toHaveLength(0);
 		const mobileHost = deps.getChrome().mobileToolbar?.collaborationHost;
 		expect(mobileHost?.querySelector('button')).toBeNull();
+	});
+
+	it('mounts the overlays in the stage wrap and the follow bar on the viewer root', () => {
+		const deps = makeDeps();
+		createCollabUi(deps);
+		const chrome = deps.getChrome();
+		expect(chrome.stageWrap.querySelector('.pptxv-collab-cursors')).not.toBeNull();
+		expect(chrome.stageWrap.querySelector('.pptxv-remote-selections')).not.toBeNull();
+		// The follow bar is a viewer-viewport pill, not a stage overlay.
+		expect(chrome.stageWrap.querySelector('.pptxv-follow-bar')).toBeNull();
+		expect(chrome.root.querySelector('.pptxv-follow-bar')).not.toBeNull();
 	});
 
 	it("'broadcast' in hiddenActions does not remove the Share quick-access button", () => {

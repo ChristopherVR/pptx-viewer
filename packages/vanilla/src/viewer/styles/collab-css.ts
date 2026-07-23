@@ -150,6 +150,43 @@ export const COLLAB_CSS = `
 	box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
 }
 
+/* ── Remote-selection overlay ─────────────────────────────────────────── */
+.pptxv-remote-selections {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	overflow: visible;
+	z-index: 19;
+}
+.pptxv-remote-selection {
+	position: absolute;
+	top: 0;
+	left: 0;
+	box-sizing: border-box;
+	border: 2px solid currentcolor;
+	border-radius: 2px;
+	pointer-events: none;
+	will-change: transform;
+	transition: transform 90ms linear;
+}
+.pptxv-remote-selection-label {
+	position: absolute;
+	top: -18px;
+	left: -2px;
+	max-width: 150px;
+	padding: 1px 5px;
+	border-radius: 3px;
+	color: #ffffff;
+	font-size: 9px;
+	font-weight: 500;
+	line-height: 1.3;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	pointer-events: none;
+	box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+}
+
 /* ── Toolbar collaboration-status pill ───────────────────────────────── */
 .pptxv-collab-status {
 	display: inline-flex;
@@ -181,11 +218,15 @@ export const COLLAB_CSS = `
 .pptxv-collab-status-retry[hidden] { display: none; }
 
 /* ── Follow-mode bar ─────────────────────────────────────────────────── */
+/* Mounted on the position:relative .pptxv root (not the stage wrap): a
+   top-centre pill under the toolbar, matching React's fixed top-2 z-[1100]
+   placement, so it never floats over the slide on small viewports. */
 .pptxv-follow-bar {
 	position: absolute;
 	left: 50%;
-	bottom: 12px;
-	z-index: 15;
+	top: 8px;
+	bottom: auto;
+	z-index: 1100;
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;

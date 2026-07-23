@@ -7,7 +7,8 @@ import { createEl } from '../../render';
  * follow-mode-bar.ts: lists active remote peers as clickable avatar-initial
  * chips; clicking follows (or un-follows) that peer's active slide. Vanilla
  * port of the Vue `FollowModeBar.vue`. Hidden entirely while no remote peers
- * are present. Docked near the bottom of the stage wrap by the caller's CSS.
+ * are present. Docked top-centre on the viewer root by the caller's CSS
+ * (React parity: the viewport-anchored pill under the toolbar).
  */
 
 export interface FollowModeBarHandlers {
