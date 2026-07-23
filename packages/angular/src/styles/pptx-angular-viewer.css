@@ -766,6 +766,24 @@ pptx-element-renderer {
 		border-top: 1px solid var(--pptx-border, #374151);
 	}
 
+	/* AI assistant pane: dock it as a bottom sheet (full width, bounded height,
+	   below the canvas) instead of the desktop right-rail side panel. Overrides
+	   the component's Tailwind `w-80 h-full border-l` so the canvas above stays
+	   visible and interactive (the panel is a flex sibling, not an overlay, so
+	   without this it keeps `height:100%` and squeezes the canvas to nothing).
+	   Matches React's mobile bottom sheet (max-h 60vh, rounded top, top border,
+	   no left border). Un-layered so it beats the Tailwind `utilities` layer. */
+	.pptx-ng-ai-panel {
+		flex: 0 0 auto;
+		width: 100%;
+		height: auto;
+		max-height: 60vh;
+		border-left: none;
+		border-top: 1px solid var(--pptx-border, #374151);
+		border-top-left-radius: 0.75rem;
+		border-top-right-radius: 0.75rem;
+	}
+
 	/* Reveal the swipe-down grab handle when the host is a mobile bottom drawer. */
 	.pptx-ng-idrawer-grab {
 		display: flex;
