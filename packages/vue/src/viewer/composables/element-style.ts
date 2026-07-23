@@ -67,6 +67,13 @@ export function getContainerStyle(el: PptxElement, zIndex: number): CSSPropertie
 export function getShapeFillStrokeStyle(
 	el: PptxElement,
 	parentGroupFill?: ShapeStyle,
+	// When an active `p:animClr` colour animation targets this shape's fill /
+	// stroke, drop the static paint so the wrapper's colour keyframes (applied as
+	// an `animation` on this same box) own `background-color` / `border-color`.
+	// Mirrors React's `getShapeVisualStyle`, which clears the container paint and
+	// lets the animated keyframes cascade. Absent/false keeps the static paint.
+	animatesFill?: boolean,
+	animatesStroke?: boolean,
 ): CSSProperties {
 	if (!hasShapeProperties(el)) {
 		return {};
@@ -79,7 +86,7 @@ export function getShapeFillStrokeStyle(
 		//   image → structured gradient (falls back to prebuilt `fillGradient`)
 		//   → preset pattern → solid (with `fillOpacity`). A `a:grpFill` child
 		//   (fillMode 'group') inherits `parentGroupFill`.
-		const fill = getComputedFillStyle(el, parentGroupFill);
+		const fill = animatesFill ? undefined : getComputedFillStyle(el, parentGroupFill);
 		if (fill) {
 			if (fill.backgroundColor !== undefined) {
 				style.backgroundColor = fill.backgroundColor;
@@ -98,7 +105,13 @@ export function getShapeFillStrokeStyle(
 		// Stroke.
 		const strokeWidth = Math.max(0, ss.strokeWidth ?? 0);
 		if (strokeWidth > 0) {
-			style.border = `${px(strokeWidth)} ${getCssBorderDashStyle(ss.strokeDash)} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+			if (animatesStroke) {
+				// Keep the width / dash; leave the colour to the animated keyframes.
+				style.borderWidth = px(strokeWidth);
+				style.borderStyle = getCssBorderDashStyle(ss.strokeDash);
+			} else {
+				style.border = `${px(strokeWidth)} ${getCssBorderDashStyle(ss.strokeDash)} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+			}
 		}
 	}
 

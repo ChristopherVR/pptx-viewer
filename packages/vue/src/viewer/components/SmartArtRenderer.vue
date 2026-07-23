@@ -8,7 +8,12 @@ import type {
 	SmartArtStyle,
 } from 'pptx-viewer-core';
 import { setSmartArtNodeStyle } from 'pptx-viewer-core';
-import { buildSmartArtA11y, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
+import {
+	buildSmartArtA11y,
+	revealedSmartArtNodeCount,
+	shouldCommitSmartArtNodeText,
+} from 'pptx-viewer-shared';
+import type { ElementAnimationState } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -61,6 +66,12 @@ const props = defineProps<{
 	 * break single-element test locators.
 	 */
 	interactive?: boolean;
+	/**
+	 * Native-animation playback state. A staged diagram build
+	 * (`build.kind === 'diagram'`) reveals the leading nodes / drawing shapes for
+	 * the current progress; absent or non-diagram state renders every node.
+	 */
+	animationState?: ElementAnimationState;
 }>();
 
 const { t } = useI18n();
@@ -201,6 +212,44 @@ const drawingShapes = computed<PptxSmartArtDrawingShape[]>(
 
 const hasDrawingShapes = computed(() => drawingShapes.value.length > 0);
 
+// ── Staged diagram build (p:bldDgm) reveal ──────────────────────────────────
+//
+// When an active native animation carries a staged diagram build, reveal only
+// the leading nodes / drawing shapes for the current progress; the view box is
+// still computed from the FULL shape set so the diagram does not rescale as it
+// builds. Mirrors React's `SmartArtRenderer` reveal slice.
+
+const diagramBuild = computed(() => {
+	const build = props.animationState?.build;
+	return build?.kind === 'diagram' ? build : undefined;
+});
+
+const shownNodeCount = computed(() =>
+	diagramBuild.value
+		? revealedSmartArtNodeCount(nodes.value, diagramBuild.value)
+		: nodes.value.length,
+);
+
+const isPartialBuild = computed(
+	() => diagramBuild.value !== undefined && shownNodeCount.value < nodes.value.length,
+);
+
+/** Leading node prefix revealed so far (full list when no partial build). */
+const revealedNodes = computed<PptxSmartArtNode[]>(() =>
+	isPartialBuild.value ? nodes.value.slice(0, shownNodeCount.value) : nodes.value,
+);
+
+/** Leading drawing-shape prefix revealed so far (proportional to nodes). */
+const revealedShapeList = computed<PptxSmartArtDrawingShape[]>(() => {
+	if (!isPartialBuild.value || drawingShapes.value.length === 0) {
+		return drawingShapes.value;
+	}
+	const count = Math.ceil(
+		(shownNodeCount.value / Math.max(nodes.value.length, 1)) * drawingShapes.value.length,
+	);
+	return drawingShapes.value.slice(0, count);
+});
+
 interface RenderedShape {
 	key: string;
 	/** Source SmartArt node id for inline editing, when this shape carries text. */
@@ -259,7 +308,7 @@ const drawingViewBox = computed(() => {
 });
 
 const renderedShapes = computed<RenderedShape[]>(() => {
-	const shapes = drawingShapes.value;
+	const shapes = revealedShapeList.value;
 	const { minX, minY } = drawingViewBox.value;
 	const sw = styleStroke(style.value);
 	const pal = palette.value;
@@ -317,7 +366,7 @@ const fallbackLayout = computed<ComputedLayout | undefined>(() => {
 	}
 	const data = smartArtData.value;
 	return computeSmartArtLayout(
-		nodes.value,
+		revealedNodes.value,
 		{ width: props.element.width, height: props.element.height },
 		palette.value,
 		style.value,

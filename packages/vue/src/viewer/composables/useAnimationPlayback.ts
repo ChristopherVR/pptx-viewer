@@ -1,164 +1,229 @@
 /**
- * `useAnimationPlayback`: reactive, click-stepped animation playback for
- * presentation mode.
+ * `useAnimationPlayback`: native-timing (`p:timing`) animation playback for Vue
+ * presentation mode, driven by the shared, framework-agnostic
+ * {@link PresentationAnimationController}.
  *
- * A slide carries an ordered list of {@link PptxElementAnimation}s. PowerPoint
- * groups them into "click groups": an animation triggered `onClick` /
- * `onShapeClick` starts a new group, while `withPrevious` / `afterPrevious`
- * animations join the group that precedes them (running together or
- * sequentially within that group). Advancing the presentation one step reveals
- * one more click group.
+ * This replaces the older preset (`PptxElementAnimation`) click-group model for
+ * the slide show: the controller builds a {@link TimelineEngine} from the
+ * slide's `nativeAnimations` (expanding staged text builds), which can represent
+ * native staged chart / SmartArt builds (`p:bldChart` / `p:bldDgm`) and colour
+ * animations (`p:animClr`) that the preset model could not. It mirrors the React
+ * binding's `presentation-mode/useAnimationPlayback`.
  *
- * This composable:
- *  - splits `animations` into click groups (reactive, recomputed when the
- *    slide's animations change);
- *  - tracks the current playback step (driven by `currentIndex` and/or the
- *    returned {@link UseAnimationPlaybackResult.advance});
- *  - exposes a reactive `Map<elementId, CSSProperties>` of the animation styles
- *    that should currently be applied (every element in a *revealed* group gets
- *    its resolved CSS, with the correct cumulative delay for sequential
- *    `afterPrevious` chains).
+ * The composable owns the reactive per-element state map, the keyframes CSS, and
+ * the interactive / hover trigger-shape id sets; the controller stays pure. The
+ * clock (timers, requestAnimationFrame) + DOM effects live in
+ * {@link module:composables/animation-playback-helpers}.
  *
- * It is framework-light: only Vue reactivity primitives are used and all the
- * preset → CSS mapping is delegated to {@link resolveAnimationCss}.
+ * NOTE: the editor / inspector animation PREVIEW still uses the older shared
+ * `buildClickGroups` model; those exports are re-exported below unchanged.
  *
  * @module composables/useAnimationPlayback
  */
 
-import type { PptxElementAnimation } from 'pptx-viewer-core';
-import {
-	buildPresentationClickGroups,
-	clampStep,
-	pendingElementStyles,
-	revealedElementStyles,
-} from 'pptx-viewer-shared';
-import type { AnimationClickGroup, CSSProperties } from 'pptx-viewer-shared';
-import { computed, ref, toValue } from 'vue';
-import type { ComputedRef, MaybeRefOrGetter, WritableComputedRef } from 'vue';
+import type { PptxSlide } from 'pptx-viewer-core';
+import { PresentationAnimationController } from 'pptx-viewer-shared';
+import type { ElementAnimationState } from 'pptx-viewer-shared';
+import { onScopeDispose, shallowRef, toValue, watch } from 'vue';
+import type { MaybeRefOrGetter, Ref } from 'vue';
 
-// Re-export the shared pure click-group model so existing importers
-// (`PowerPointViewer.vue` and others) keep their `AnimationClickGroup` /
-// `CSSProperties` / `buildClickGroups` imports unchanged.
+import type { BuildRafHandle, PlaybackContext } from './animation-playback-helpers';
+import {
+	cancelBuildReveal,
+	playGroup,
+	scheduleAutoAdvanceChain,
+} from './animation-playback-helpers';
+
+// Re-export the older preset click-group model so existing importers (the editor
+// animation preview + the unstable composable surface) keep working unchanged.
 export type { AnimationClickGroup, CSSProperties } from 'pptx-viewer-shared';
 export { buildClickGroups } from 'pptx-viewer-shared';
 
 export interface UseAnimationPlaybackOptions {
-	/** The current slide's animations, in document/timeline order. */
-	animations: MaybeRefOrGetter<PptxElementAnimation[] | undefined>;
+	/** The active slide to build the native-animation timeline for. */
+	slide: MaybeRefOrGetter<PptxSlide | undefined>;
 	/** Presentation-level switch parsed from `p:showPr`. */
 	showWithAnimation?: MaybeRefOrGetter<boolean | undefined>;
-	/**
-	 * The externally-controlled playback step (e.g. derived from a parent
-	 * `clickIndex`). When provided it seeds and keeps the internal step in sync;
-	 * the returned {@link UseAnimationPlaybackResult.advance} / `reset` also
-	 * mutate the internal step. Optional: playback also works standalone.
-	 */
-	currentIndex?: MaybeRefOrGetter<number | undefined>;
+	/** Host-provided action-sound player (resolves + plays embedded sounds). */
+	onPlayActionSound?: (soundPath: string) => void;
+	/** Root element to scope media-command (`p:cmd`) target lookups to. */
+	frameRoot?: () => HTMLElement | null;
 }
 
 export interface UseAnimationPlaybackResult {
+	/** Reactive per-element native-animation state, keyed by element id. */
+	presentationElementStates: Ref<Map<string, ElementAnimationState>>;
+	/** The `@keyframes` CSS to inject once per slide. */
+	presentationKeyframesCss: Ref<string>;
+	/** Shape ids that trigger an interactive (`onShapeClick`) sequence. */
+	interactiveTriggerShapeIds: Ref<ReadonlySet<string>>;
+	/** Shape ids that trigger a hover (`onHover`) sequence. */
+	hoverTriggerShapeIds: Ref<ReadonlySet<string>>;
+	/** True when the main timeline has no more click-groups to reveal. */
+	isComplete: Ref<boolean>;
 	/**
-	 * Reactive map of `elementId → CSS properties` to apply to each element for
-	 * the current step. Only elements in revealed click groups appear.
-	 */
-	elementStyles: ComputedRef<Map<string, CSSProperties>>;
-	/**
-	 * Reactive map of `elementId → CSS properties` for elements whose entrance
-	 * has not yet been revealed (they should be hidden). Lets the host pre-seed
-	 * pending entrances so they don't flash visible.
-	 */
-	pendingStyles: ComputedRef<Map<string, CSSProperties>>;
-	/** Number of click groups on this slide (i.e. how many `advance()` steps). */
-	groupCount: ComputedRef<number>;
-	/**
-	 * The current playback step: how many click groups have been revealed.
-	 * Reading it returns the effective step (clamped to the group count, falling
-	 * back to the external `currentIndex` until the host advances manually);
-	 * writing it records a manual override.
-	 */
-	step: WritableComputedRef<number>;
-	/** True when every click group has been revealed. */
-	isComplete: ComputedRef<boolean>;
-	/**
-	 * Reveal the next click group. Returns `true` if a group was revealed,
-	 * `false` if playback was already complete (so the caller can fall through
-	 * to slide navigation).
+	 * Reveal the next click-group. Returns `true` if a group was revealed, `false`
+	 * when playback is complete or animations are disabled (so the caller can fall
+	 * through to slide navigation).
 	 */
 	advance: () => boolean;
-	/** Reveal every click group at once (e.g. jump to the slide's final state). */
-	play: () => void;
-	/** Reset playback to before the first click group. */
+	/** Rebuild the controller for the current slide and replay from the start. */
 	reset: () => void;
+	/** Play an interactive shape's sequence; `true` when it triggered one. */
+	handleInteractiveShapeClick: (shapeId: string) => boolean;
+	/** Play a hover shape's sequence; `true` when it triggered one. */
+	handleHoverStart: (shapeId: string) => boolean;
+	/** Reset a hover shape's sequence so the next hover replays it. */
+	handleHoverEnd: (shapeId: string) => void;
+	/** Clear all pending timers + the in-flight staged-build RAF. */
+	clearTimers: () => void;
 }
 
 export function useAnimationPlayback(
 	options: UseAnimationPlaybackOptions,
 ): UseAnimationPlaybackResult {
-	const groups = computed<AnimationClickGroup[]>(() => {
-		const list = toValue(options.animations) ?? [];
-		const enabled =
-			options.showWithAnimation === undefined ? undefined : toValue(options.showWithAnimation);
-		return buildPresentationClickGroups(list, enabled);
-	});
+	const presentationElementStates = shallowRef<Map<string, ElementAnimationState>>(new Map());
+	const presentationKeyframesCss = shallowRef('');
+	const interactiveTriggerShapeIds = shallowRef<ReadonlySet<string>>(new Set());
+	const hoverTriggerShapeIds = shallowRef<ReadonlySet<string>>(new Set());
+	const isComplete = shallowRef(true);
 
-	const groupCount = computed(() => groups.value.length);
+	let controller: PresentationAnimationController | null = null;
+	const timers: number[] = [];
+	const buildHandle: BuildRafHandle = { current: null };
 
-	// Internal, unclamped step. `null` means "follow the external currentIndex";
-	// any number means the host has taken manual control via advance/play/reset.
-	const manualStep = ref<number | null>(null);
-
-	// The effective step, always clamped to the current group count and
-	// synchronously derived (no watchers) so reads are correct immediately even
-	// in non-component contexts. Writing it records a manual override.
-	const step = computed<number>({
-		get() {
-			const base =
-				manualStep.value ??
-				(options.currentIndex !== undefined ? (toValue(options.currentIndex) ?? 0) : 0);
-			return clampStep(base, groupCount.value);
+	const ctx: PlaybackContext = {
+		setStates: (updater) => {
+			presentationElementStates.value = updater(presentationElementStates.value);
 		},
-		set(value: number) {
-			manualStep.value = clampStep(value, groupCount.value);
-		},
-	});
+		timers,
+		buildHandle,
+		onPlayActionSound: options.onPlayActionSound,
+		frameRoot: options.frameRoot,
+	};
 
-	const isComplete = computed(() => step.value >= groupCount.value);
+	const animationsEnabled = (): boolean => toValue(options.showWithAnimation) !== false;
 
-	// Resolve the CSS for the revealed / pending click groups via the shared
-	// pure playback maths (afterPrevious delay chaining, last-write-wins per
-	// element, pending-entrance hide-until-revealed).
-	const elementStyles = computed<Map<string, CSSProperties>>(() =>
-		revealedElementStyles(groups.value, step.value),
-	);
+	function clearTimers(): void {
+		for (const timer of timers) {
+			window.clearTimeout(timer);
+		}
+		timers.length = 0;
+		cancelBuildReveal(buildHandle);
+	}
 
-	const pendingStyles = computed<Map<string, CSSProperties>>(() =>
-		pendingElementStyles(groups.value, step.value),
-	);
+	function syncComplete(): void {
+		isComplete.value = !controller || !controller.hasMoreSteps();
+	}
 
-	const advance = (): boolean => {
-		if (step.value >= groupCount.value) {
+	function resetForSlide(): void {
+		clearTimers();
+		const slide = toValue(options.slide);
+		if (!slide || !animationsEnabled()) {
+			controller = null;
+			presentationElementStates.value = new Map();
+			presentationKeyframesCss.value = '';
+			interactiveTriggerShapeIds.value = new Set();
+			hoverTriggerShapeIds.value = new Set();
+			isComplete.value = true;
+			return;
+		}
+
+		// The controller builds the timeline engine (expanding text-build
+		// animations) and derives keyframes CSS, trigger-shape ids, and the full
+		// tracked element id list.
+		controller = PresentationAnimationController.fromSlide(slide);
+		presentationKeyframesCss.value = controller.keyframesCss;
+		interactiveTriggerShapeIds.value = controller.interactiveTriggerShapeIds;
+		hoverTriggerShapeIds.value = controller.hoverTriggerShapeIds;
+		presentationElementStates.value = controller.computeStates();
+		syncComplete();
+
+		// Auto-play the first group when the slide opens with a withPrevious /
+		// afterPrevious / afterDelay build (mirrors React's entrance auto-play).
+		if (controller.hasMoreSteps()) {
+			const firstGroup = controller.peekNext();
+			if (firstGroup?.autoAdvance) {
+				const activeController = controller;
+				const timer = window.setTimeout(() => {
+					const group = activeController.advance();
+					if (group) {
+						playGroup(activeController, group, ctx);
+						scheduleAutoAdvanceChain(activeController, ctx);
+						syncComplete();
+					}
+				}, firstGroup.autoAdvanceDelayMs ?? 0);
+				timers.push(timer);
+			}
+		}
+	}
+
+	function advance(): boolean {
+		if (!animationsEnabled() || !controller || !controller.hasMoreSteps()) {
 			return false;
 		}
-		step.value += 1;
+		const group = controller.advance();
+		if (!group) {
+			return false;
+		}
+		playGroup(controller, group, ctx);
+		scheduleAutoAdvanceChain(controller, ctx);
+		syncComplete();
 		return true;
-	};
+	}
 
-	const play = (): void => {
-		step.value = groupCount.value;
-	};
+	function handleInteractiveShapeClick(shapeId: string): boolean {
+		if (!controller || !controller.hasInteractiveSequence(shapeId)) {
+			return false;
+		}
+		const group = controller.advanceInteractive(shapeId);
+		if (!group) {
+			return false;
+		}
+		playGroup(controller, group, ctx);
+		return true;
+	}
 
-	const reset = (): void => {
-		step.value = 0;
-	};
+	function handleHoverStart(shapeId: string): boolean {
+		if (!animationsEnabled() || !controller || !controller.hasHoverSequence(shapeId)) {
+			return false;
+		}
+		// Reset first so hovering again replays the sequence from the start.
+		controller.resetHover(shapeId);
+		const group = controller.advanceHover(shapeId);
+		if (!group) {
+			return false;
+		}
+		playGroup(controller, group, ctx);
+		return true;
+	}
+
+	function handleHoverEnd(shapeId: string): void {
+		if (controller?.hasHoverSequence(shapeId)) {
+			controller.resetHover(shapeId);
+		}
+	}
+
+	// Rebuild whenever the active slide (or the animation switch) changes.
+	watch(
+		() => [toValue(options.slide), toValue(options.showWithAnimation)] as const,
+		() => resetForSlide(),
+		{ immediate: true },
+	);
+
+	onScopeDispose(clearTimers);
 
 	return {
-		elementStyles,
-		pendingStyles,
-		groupCount,
-		step,
+		presentationElementStates,
+		presentationKeyframesCss,
+		interactiveTriggerShapeIds,
+		hoverTriggerShapeIds,
 		isComplete,
 		advance,
-		play,
-		reset,
+		reset: resetForSlide,
+		handleInteractiveShapeClick,
+		handleHoverStart,
+		handleHoverEnd,
+		clearTimers,
 	};
 }

@@ -17,6 +17,7 @@ import {
 	getTextBlockStyle,
 } from '../composables/element-style';
 import { injectFieldContext, resolveFieldContext } from '../composables/field-context';
+import { injectPresentationElementStates } from '../composables/presentation-element-states';
 import { useSmartArt3D } from '../composables/smart-art-3d';
 import { build3DExtrusionData } from '../composables/visual-3d';
 import ActionButtonGlyphOverlay from './ActionButtonGlyphOverlay.vue';
@@ -80,11 +81,25 @@ const smartArt3D = useSmartArt3D();
 /** OOXML field-substitution context (slide number, date/time, etc.), provided by the viewer root. */
 const fieldContextSource = injectFieldContext();
 
+/**
+ * Native-animation playback state for this element (present only during a running
+ * presentation). Drives the staged chart / SmartArt build reveal and the
+ * `p:animClr` fill / stroke relinquish, mirroring React's per-element
+ * `animationState`. Absent (undefined) in editor / read-only rendering.
+ */
+const presentationStates = injectPresentationElementStates();
+const animationState = computed(() => presentationStates.value.get(props.element.id));
+
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
 );
 const shapeStyle = computed<CSSProperties>(() =>
-	getShapeFillStrokeStyle(props.element, props.parentGroupFill),
+	getShapeFillStrokeStyle(
+		props.element,
+		props.parentGroupFill,
+		animationState.value?.animatesFill,
+		animationState.value?.animatesStroke,
+	),
 );
 /** This group's own fill, handed to `a:grpFill` children (undefined for non-groups). */
 const childParentGroupFill = computed<ShapeStyle | undefined>(() =>
@@ -237,6 +252,7 @@ const linkTooltipLabel = computed(
 		v-else-if="element.type === 'connector'"
 		:element="element"
 		:z-index="zIndex"
+		:animation-state="animationState"
 	/>
 
 	<!-- Delegated element renderers (same prop contract) -->
@@ -253,6 +269,7 @@ const linkTooltipLabel = computed(
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:interactive="interactive"
+		:animation-state="animationState"
 	/>
 	<SmartArt3DRenderer
 		v-else-if="element.type === 'smartArt' && smartArt3D"
@@ -267,6 +284,7 @@ const linkTooltipLabel = computed(
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:interactive="interactive"
+		:animation-state="animationState"
 	/>
 	<InkRenderer
 		v-else-if="element.type === 'ink'"

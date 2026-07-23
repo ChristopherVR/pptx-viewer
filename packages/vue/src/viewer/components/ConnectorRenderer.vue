@@ -2,6 +2,7 @@
 import type { ConnectorArrowType, PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import { getLineGlowFilterCss, getLineShadowParams, markerPath } from 'pptx-viewer-shared';
+import type { ElementAnimationState } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -40,6 +41,12 @@ import ConnectorTextOverlay from './ConnectorTextOverlay.vue';
 const props = defineProps<{
 	element: PptxElement;
 	zIndex: number;
+	/**
+	 * Native-animation playback state. When an active `p:animClr` colour animation
+	 * targets the stroke (`animatesStroke`), the SVG stroke is painted `inherit` so
+	 * the wrapper's animated `stroke` keyframes cascade into the line + arrowheads.
+	 */
+	animationState?: ElementAnimationState;
 }>();
 
 const ss = computed(() =>
@@ -47,7 +54,11 @@ const ss = computed(() =>
 );
 
 const strokeWidth = computed(() => Math.max(0, ss.value?.strokeWidth ?? 2));
-const strokeColor = computed(() => ss.value?.strokeColor ?? DEFAULT_STROKE_COLOR);
+const strokeColor = computed(() =>
+	props.animationState?.animatesStroke
+		? 'inherit'
+		: (ss.value?.strokeColor ?? DEFAULT_STROKE_COLOR),
+);
 const strokeOpacity = computed(() => ss.value?.strokeOpacity ?? 1);
 
 const dashArray = computed<string | undefined>(() => {
