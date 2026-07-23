@@ -17,6 +17,7 @@
  * Mirrors the React `PresentationTouchControls`
  * (`packages/react/src/viewer/components/PresentationTouchControls.tsx`).
  */
+import { ChevronLeft, ChevronRight, X } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -57,7 +58,7 @@ const counterLabel = computed(() =>
 			@click.stop="emit('end')"
 			@touchend.stop.prevent="emit('end')"
 		>
-			<span aria-hidden="true">&times;</span>
+			<X :size="22" aria-hidden="true" />
 		</button>
 
 		<!-- Previous (left edge) -->
@@ -69,7 +70,7 @@ const counterLabel = computed(() =>
 			@click.stop="emit('move', -1)"
 			@touchend.stop.prevent="emit('move', -1)"
 		>
-			<span aria-hidden="true">&#x2039;</span>
+			<ChevronLeft :size="26" aria-hidden="true" />
 		</button>
 
 		<!-- Next (right edge) -->
@@ -81,7 +82,7 @@ const counterLabel = computed(() =>
 			@click.stop="emit('move', 1)"
 			@touchend.stop.prevent="emit('move', 1)"
 		>
-			<span aria-hidden="true">&#x203A;</span>
+			<ChevronRight :size="26" aria-hidden="true" />
 		</button>
 
 		<!-- Slide counter (bottom-centre, safe-area aware) -->
@@ -123,14 +124,12 @@ const counterLabel = computed(() =>
 .pptx-vue-pt-close {
 	top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
 	right: calc(env(safe-area-inset-right, 0px) + 0.5rem);
-	font-size: 24px;
 }
 
 .pptx-vue-pt-prev,
 .pptx-vue-pt-next {
 	top: 50%;
 	transform: translateY(-50%);
-	font-size: 28px;
 }
 
 .pptx-vue-pt-prev {

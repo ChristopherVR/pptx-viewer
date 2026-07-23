@@ -1,4 +1,17 @@
 <script setup lang="ts">
+import {
+	ChevronDown,
+	ChevronLeft,
+	ChevronRight,
+	Eraser,
+	Highlighter,
+	MousePointer2,
+	PanelRight,
+	PenTool,
+	Timer,
+	Trash2,
+	X,
+} from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -165,7 +178,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			:aria-label="t('pptx.mobileBar.previousSlide')"
 			@click="emit('move', -1)"
 		>
-			‹
+			<ChevronLeft :size="18" aria-hidden="true" />
 		</button>
 
 		<span
@@ -183,7 +196,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			:aria-label="t('pptx.mobileBar.nextSlide')"
 			@click="emit('move', 1)"
 		>
-			›
+			<ChevronRight :size="18" aria-hidden="true" />
 		</button>
 
 		<div class="pptx-vue-ptb-divider mx-1 h-6 w-px bg-white/20" />
@@ -193,7 +206,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			class="pptx-vue-ptb-timer flex select-none items-center gap-1.5 px-1 font-mono text-xs tabular-nums text-white/60"
 			:title="t('pptx.mpresenter.elapsed')"
 		>
-			<span>⏱</span>
+			<Timer :size="14" aria-hidden="true" />
 			<span>{{ elapsedText }}</span>
 		</div>
 
@@ -207,7 +220,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			:aria-label="t('pptx.presentation.laserPointer')"
 			@click="handleToolClick('laser')"
 		>
-			◉
+			<MousePointer2 :size="18" aria-hidden="true" />
 		</button>
 
 		<!-- Pen + colour dropdown -->
@@ -220,7 +233,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 				@click="handleToolClick('pen')"
 				@contextmenu="onPenContextMenu"
 			>
-				✎
+				<PenTool :size="18" aria-hidden="true" />
 				<span
 					class="pptx-vue-ptb-swatch absolute bottom-0.5 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-full"
 					:style="{ backgroundColor: penColor }"
@@ -234,7 +247,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 				:aria-label="t('pptx.presentationToolbar.penColor')"
 				@click="togglePenColors"
 			>
-				▾
+				<ChevronDown :size="12" aria-hidden="true" />
 			</button>
 			<div
 				v-if="showPenColors"
@@ -265,7 +278,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 				@click="handleToolClick('highlighter')"
 				@contextmenu="onHighlighterContextMenu"
 			>
-				▤
+				<Highlighter :size="18" aria-hidden="true" />
 				<span
 					class="pptx-vue-ptb-swatch absolute bottom-0.5 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-full"
 					:style="{ backgroundColor: highlighterColor }"
@@ -279,7 +292,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 				:aria-label="t('pptx.presentationToolbar.highlighterColor')"
 				@click="toggleHighlighterColors"
 			>
-				▾
+				<ChevronDown :size="12" aria-hidden="true" />
 			</button>
 			<div
 				v-if="showHighlighterColors"
@@ -310,7 +323,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			:aria-label="t('pptx.presentation.eraser')"
 			@click="handleToolClick('eraser')"
 		>
-			⌫
+			<Eraser :size="18" aria-hidden="true" />
 		</button>
 
 		<!-- Clear all -->
@@ -327,7 +340,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			:aria-label="t('pptx.presentationToolbar.clearAnnotations')"
 			@click="hasAnnotations && emit('clear-annotations')"
 		>
-			🗑
+			<Trash2 :size="18" aria-hidden="true" />
 		</button>
 
 		<div class="pptx-vue-ptb-divider mx-1 h-6 w-px bg-white/20" />
@@ -346,7 +359,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			:aria-label="t('pptx.presentationToolbar.presenterView')"
 			@click="emit('toggle-presenter-view')"
 		>
-			▥
+			<PanelRight :size="18" aria-hidden="true" />
 		</button>
 
 		<!-- End presentation -->
@@ -357,7 +370,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			:aria-label="t('pptx.presenter.endPresentation')"
 			@click="emit('end-presentation')"
 		>
-			✕
+			<X :size="18" aria-hidden="true" />
 		</button>
 	</div>
 </template>
