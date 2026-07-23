@@ -44,6 +44,7 @@
 		box={editingBox}
 		{scale}
 		{spellCheck}
+		oninput={(text) => controller.previewInline(controller.editingId ?? '', text)}
 		oncommit={(text) => controller.commitInline(controller.editingId ?? '', text)}
 		onclose={() => controller.closeInline()}
 	/>

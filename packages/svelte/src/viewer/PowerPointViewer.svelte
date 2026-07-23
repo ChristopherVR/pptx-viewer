@@ -253,6 +253,9 @@
 		getSnapToGrid: () => parityUi.preferences.snapToGrid,
 		getSnapToShape: () => parityUi.snapToShape,
 		getGuides: () => parityUi.guides,
+		// `collab` is declared below; these accessors only run from user input.
+		getLivePatcher: () => collab.livePatcher,
+		getActiveSlide: () => editor.slides[viewer.current],
 	});
 	// The ribbon's Home tab Editing group / Ctrl+F Find & Replace panel.
 	const findReplace = new FindReplaceState({
