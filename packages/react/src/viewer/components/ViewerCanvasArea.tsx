@@ -34,6 +34,7 @@ import { safeOpenUrl, isPpactionUrl, parsePpactionUrl } from '../utils/hyperlink
 import type { TableStyleContext } from '../utils/table-parse';
 import type { FieldSubstitutionContext } from '../utils/text-field-substitution';
 import { CollaborationCursorOverlay, RemoteSelectionOverlay } from './collaboration';
+import { PresentationStage } from './presentation/PresentationStage';
 import type { PresentationContextMenuState } from './PresentationContextMenu';
 import { PresentationContextMenu } from './PresentationContextMenu';
 import { PresentationEndOverlay } from './PresentationEndOverlay';
@@ -332,7 +333,64 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 				/>
 			)}
 
-			{mode === 'master' && s.masterViewTab === 'notes' ? (
+			{mode === 'present' ? (
+				<PresentationStage
+					activeSlide={activeSlide}
+					templateElements={templateElements}
+					canvasSize={canvasSize}
+					mediaDataUrls={s.mediaDataUrls}
+					presentationElementStates={presentation.presentationElementStates}
+					presentationKeyframesCss={presentation.presentationKeyframesCss}
+					onActionClick={handleActionClick}
+					onHyperlinkClick={handleHyperlinkClick}
+					allSlides={slides}
+					onZoomClick={presentation.handleZoomClick}
+					sourceSlideIndex={activeSlideIndex}
+					fieldContext={fieldContext}
+					tableStyleContext={tableStyleContext}
+				>
+					{(stageScale) => (
+						<>
+							{/* Slide-transition overlay: animates the outgoing slide over
+							    the incoming one (already live on the stage below) while a
+							    transition plays, then tears itself down on completion.
+							    Parented to the scaled slide box so it matches the live
+							    slide instead of stretching across the whole display. */}
+							{presentation.transitionOverlay &&
+								slides[presentation.transitionOverlay.outgoingSlideIndex] && (
+									<PresentationTransitionOverlay
+										key={`${presentation.transitionOverlay.outgoingSlideIndex}-${presentation.transitionOverlay.incomingSlideIndex}`}
+										outgoingSlide={slides[presentation.transitionOverlay.outgoingSlideIndex]}
+										templateElements={templateElements}
+										canvasSize={canvasSize}
+										transition={presentation.transitionOverlay.transition}
+										durationMs={presentation.transitionOverlay.durationMs}
+										onComplete={presentation.handleTransitionOverlayComplete}
+									/>
+								)}
+
+							{/* Ink/laser overlay, sharing the slide box origin so strokes
+							    land under the cursor rather than offset by the letterbox. */}
+							{annotations.presentationTool !== 'none' && (
+								<PresentationAnnotationOverlay
+									canvasSize={canvasSize}
+									editorScale={stageScale}
+									presentationTool={annotations.presentationTool}
+									annotationStrokes={annotations.annotationStrokes}
+									currentStroke={annotations.currentStroke}
+									laserPosition={annotations.laserPosition}
+									onPointerDown={annotations.handlePointerDown}
+									onPointerMove={annotations.handlePointerMove}
+									onPointerUp={annotations.handlePointerUp}
+									onLaserMove={annotations.handleLaserMove}
+									onLaserLeave={annotations.handleLaserLeave}
+									onEraseAtPoint={annotations.eraseAtPoint}
+								/>
+							)}
+						</>
+					)}
+				</PresentationStage>
+			) : mode === 'master' && s.masterViewTab === 'notes' ? (
 				<NotesMasterCanvas
 					notesMaster={s.notesMaster}
 					canvasSize={canvasSize}
@@ -366,12 +424,6 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					gridSpacingPx={gridSpacingPx}
 					showRulers={s.showRulers}
 					guides={s.guides}
-					presentationElementStates={
-						mode === 'present' ? presentation.presentationElementStates : undefined
-					}
-					presentationKeyframesCss={
-						mode === 'present' ? presentation.presentationKeyframesCss : undefined
-					}
 					onClick={handleElementClick}
 					onDoubleClick={canvasHandlers.handleElementDoubleClick}
 					onMouseDown={handleElementMouseDown}
@@ -403,9 +455,6 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					onEraseInkElement={insertHandlers.handleEraseInkElement}
 					onActionClick={handleActionClick}
 					onHyperlinkClick={handleHyperlinkClick}
-					allSlides={mode === 'present' ? slides : undefined}
-					onZoomClick={mode === 'present' ? presentation.handleZoomClick : undefined}
-					sourceSlideIndex={mode === 'present' ? activeSlideIndex : undefined}
 					fieldContext={fieldContext}
 					tableStyleContext={tableStyleContext}
 					aiActive={aiCanvasActive}
@@ -458,23 +507,6 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 				/>
 			)}
 
-			{/* Slide-transition overlay: animates the outgoing slide over the
-			    incoming one (already live on the main stage) while a transition
-			    plays, then tears itself down on completion. */}
-			{mode === 'present' &&
-				presentation.transitionOverlay &&
-				slides[presentation.transitionOverlay.outgoingSlideIndex] && (
-					<PresentationTransitionOverlay
-						key={`${presentation.transitionOverlay.outgoingSlideIndex}-${presentation.transitionOverlay.incomingSlideIndex}`}
-						outgoingSlide={slides[presentation.transitionOverlay.outgoingSlideIndex]}
-						templateElements={templateElements}
-						canvasSize={canvasSize}
-						transition={presentation.transitionOverlay.transition}
-						durationMs={presentation.transitionOverlay.durationMs}
-						onComplete={presentation.handleTransitionOverlayComplete}
-					/>
-				)}
-
 			{/* Black end-of-show screen (Options > Advanced > "End with black slide") */}
 			{mode === 'present' && presentation.endOfShowVisible && (
 				<PresentationEndOverlay onExit={() => presentation.movePresentationSlide(1)} />
@@ -488,24 +520,6 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					onPrevious={() => presentation.movePresentationSlide(-1)}
 					onEndShow={onEndPresentation ?? (() => {})}
 					onClose={() => setPresentationMenu(null)}
-				/>
-			)}
-
-			{/* Presentation annotation overlay */}
-			{mode === 'present' && annotations.presentationTool !== 'none' && (
-				<PresentationAnnotationOverlay
-					canvasSize={canvasSize}
-					editorScale={zoom.editorScale}
-					presentationTool={annotations.presentationTool}
-					annotationStrokes={annotations.annotationStrokes}
-					currentStroke={annotations.currentStroke}
-					laserPosition={annotations.laserPosition}
-					onPointerDown={annotations.handlePointerDown}
-					onPointerMove={annotations.handlePointerMove}
-					onPointerUp={annotations.handlePointerUp}
-					onLaserMove={annotations.handleLaserMove}
-					onLaserLeave={annotations.handleLaserLeave}
-					onEraseAtPoint={annotations.eraseAtPoint}
 				/>
 			)}
 
