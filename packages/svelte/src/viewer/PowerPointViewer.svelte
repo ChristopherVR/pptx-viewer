@@ -1077,9 +1077,22 @@
 		box-shadow: -8px 0 24px -12px rgba(0, 0, 0, 0.5);
 	}
 
+	/*
+	 * Mobile (<768px): a bottom sheet, not a full-screen overlay. A full-height
+	 * panel (inset: 0) covered the whole canvas, so AI-created/selected elements
+	 * could not be tapped ("the whole clicking flow is dead"). Anchor the dock to
+	 * the bottom edge so the top of the canvas stays visible + interactive above
+	 * it; the panel itself caps its own height (max-height: 60vh) and rounds its
+	 * top corners. Matches the app's other mobile bottom sheets.
+	 */
 	@media (max-width: 767px) {
 		.pptx-svelte-ai-dock {
-			inset: 0;
+			top: auto;
+			right: 0;
+			bottom: 0;
+			left: 0;
+			height: auto;
+			box-shadow: 0 -8px 24px -12px rgba(0, 0, 0, 0.5);
 		}
 	}
 	.presenter-blackout{position:absolute;inset:0;z-index:75}.presenter-laser{position:absolute;z-index:76;width:20px;height:20px;transform:translate(-50%,-50%);border-radius:50%;background:#ef4444;box-shadow:0 0 20px 8px #ef444488;pointer-events:none}.presenter-caption{position:absolute;z-index:77;left:10%;right:10%;bottom:32px;padding:12px 24px;border-radius:8px;background:#000c;color:#fff;text-align:center;font-size:20px;pointer-events:none}
