@@ -14,6 +14,7 @@
  * Both expose `.awareness` and `.destroy()`; no `any` leaks out.
  */
 import type { CollaborationConfig, CollaborationTransport } from 'pptx-viewer-shared';
+import { clearLocalAwareness, createDepartureChannel } from 'pptx-viewer-shared';
 
 import type { AwarenessLike } from './collaboration-types';
 
@@ -61,6 +62,7 @@ export async function createCollabProvider(
 			signaling: config.signaling?.length ? config.signaling : undefined,
 			password: config.authToken || undefined,
 		});
+		const departure = createDepartureChannel(config.roomId, provider.awareness);
 		return {
 			awareness: provider.awareness as unknown as AwarenessLike,
 			onStatus: (cb) => provider.on('status', (event) => cb(Boolean(event.connected))),
@@ -72,7 +74,17 @@ export async function createCollabProvider(
 					}
 				}),
 			syncedNow: false,
-			destroy: () => provider.destroy(),
+			destroy: () => {
+				// Announce first: it is synchronous, so it still reaches same-browser
+				// peers when this runs from a document that is being destroyed. The
+				// provider's own awareness removal is broadcast a microtask later and
+				// would be dropped, leaving us a ghost collaborator until the 30s
+				// awareness timeout.
+				departure.announce();
+				departure.dispose();
+				clearLocalAwareness(provider.awareness);
+				provider.destroy();
+			},
 		};
 	}
 
@@ -80,6 +92,7 @@ export async function createCollabProvider(
 	const provider = new WebsocketProvider(config.serverUrl, config.roomId, doc, {
 		params: config.authToken ? { token: config.authToken } : undefined,
 	});
+	const departure = createDepartureChannel(config.roomId, provider.awareness);
 	return {
 		awareness: provider.awareness as unknown as AwarenessLike,
 		onStatus: (cb) =>
@@ -99,6 +112,9 @@ export async function createCollabProvider(
 			}),
 		syncedNow: provider.synced,
 		destroy: () => {
+			departure.announce();
+			departure.dispose();
+			clearLocalAwareness(provider.awareness);
 			provider.disconnect();
 			provider.destroy();
 		},
