@@ -20,7 +20,7 @@ Slides render with real **HTML/CSS** (not `<canvas>`), so text stays crisp at an
 npm install pptx-react-viewer
 ```
 
-Then add the React peer dependencies your app uses:
+Then add the React peer dependencies your app uses (`react` / `react-dom` may be ^18.2 or ^19; both majors run the full test suite in CI):
 
 ```bash
 npm install react react-dom framer-motion lucide-react react-icons jspdf jszip fast-xml-parser i18next react-i18next

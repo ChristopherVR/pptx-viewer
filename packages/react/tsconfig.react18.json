@@ -1,0 +1,35 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"jsx": "react-jsx",
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"noEmit": true,
+		"types": [],
+		/*
+		 * `react`/`react-dom` resolve to the React 18 type definitions owned by the
+		 * private packages/react-compat workspace, while `pptx-react-viewer`
+		 * resolves to the BUILT declarations. That combination is exactly what a
+		 * React 18 consumer installing from npm sees, and is the thing issue #105
+		 * asked to be confirmed: the .d.ts is generated against @types/react 19.
+		 *
+		 * Requires `bun run build` first (CI's react18 leg downloads the dist
+		 * artifact). A missing dist makes the `pptx-react-viewer` import in
+		 * compat/ unresolvable, so the check fails loudly rather than silently
+		 * passing on nothing.
+		 */
+		"paths": {
+			"react": ["../react-compat/node_modules/@types/react"],
+			"react/*": ["../react-compat/node_modules/@types/react/*"],
+			"react-dom": ["../react-compat/node_modules/@types/react-dom"],
+			"react-dom/*": ["../react-compat/node_modules/@types/react-dom/*"],
+			"pptx-react-viewer": ["./dist/index.d.ts"]
+		}
+	},
+	"include": ["compat/**/*.tsx"]
+}
