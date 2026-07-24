@@ -279,6 +279,10 @@ const CHROME_CSS = `
 	box-shadow: 0 2px 12px rgb(0 0 0 / 0.25);
 }
 .pptxv-stage { background: #fff; }
+/* In editor mode the slide surface must own all pointer/touch gestures so a
+   finger drag/resize/rotate isn't stolen by the browser for panning or
+   pinch-zoom. View-only mode keeps default touch behaviour so the deck scrolls. */
+.pptxv-editable .pptxv-stage-wrap { touch-action: none; }
 .pptxv-stage-wrap[data-draw-tool="pen"],
 .pptxv-stage-wrap[data-draw-tool="highlighter"] { cursor: crosshair; }
 .pptxv-stage-wrap[data-draw-tool="eraser"] { cursor: cell; }
@@ -308,6 +312,8 @@ const CHROME_CSS = `
 	border-radius: 2px;
 	background: #fff;
 	pointer-events: auto;
+	/* The handle must own its touch gesture (no scroll/zoom stealing). */
+	touch-action: none;
 	box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
 }
 .pptxv-rotate-stem {
@@ -330,7 +336,15 @@ const CHROME_CSS = `
 	background: #fff;
 	cursor: grab;
 	pointer-events: auto;
+	/* The knob must own its touch gesture (no scroll/zoom stealing). */
+	touch-action: none;
 	box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+}
+/* On coarse (touch) pointers a 10px handle is far too small to grab reliably;
+   grow the resize/rotate hit targets to a finger-friendly size. */
+@media (pointer: coarse) {
+	.pptxv-sel-handle { width: 22px; height: 22px; margin: -11px 0 0 -11px; }
+	.pptxv-rotate-knob { width: 24px; height: 24px; margin: -12px 0 0 -12px; }
 }
 .pptxv-snap-layer {
 	position: absolute;

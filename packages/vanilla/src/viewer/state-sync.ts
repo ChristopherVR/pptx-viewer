@@ -97,6 +97,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			callbacks.onDirtyChange?.(state.dirty);
 		}
 		if (state.editable !== previous.editable) {
+			chrome.root.classList.toggle('pptxv-editable', state.editable);
 			chrome.notes.update({ slide: state.slides[state.currentSlide], editable: state.editable });
 			chrome.mobileActionSheets?.setEditable(state.editable);
 		}

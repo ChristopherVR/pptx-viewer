@@ -106,6 +106,11 @@ export function buildViewerChrome(
 	root.setAttribute('role', 'region');
 	root.setAttribute('aria-label', t('pptx.titleBar.defaultFileName'));
 	root.setAttribute('aria-busy', 'false');
+	// In editable mode the slide stage owns all touch gestures (see the
+	// `.pptxv-editable .pptxv-stage-wrap { touch-action: none }` rule) so a finger
+	// drag/resize is a move, not a browser pan/zoom. Kept in sync at runtime by
+	// state-sync when `setEditable` toggles.
+	root.classList.toggle('pptxv-editable', options.editable);
 
 	let titleBar: TitleBar | null = null;
 	let ribbon: Ribbon | null = null;
