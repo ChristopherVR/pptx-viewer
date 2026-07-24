@@ -1,4 +1,5 @@
 import { XmlObject, TextSegment, TextStyle } from '../../types';
+import { xmlText } from '../../utils';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeTextParsing';
 import type { ShapeTextParsingContext, ParagraphContentResult } from './PptxHandlerRuntimeTypes';
 
@@ -103,8 +104,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 
-			const runText =
-				typeof r['a:t'] === 'string' ? r['a:t'] : r['a:t'] !== undefined ? String(r['a:t']) : '';
+			const runText = xmlText(r['a:t']) ?? '';
 			appendRun(runText, r['a:rPr'] as XmlObject | undefined);
 		};
 
@@ -112,12 +112,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (!field) {
 				return;
 			}
-			const fieldText =
-				typeof field['a:t'] === 'string'
-					? field['a:t']
-					: field['a:t'] !== undefined
-						? String(field['a:t'])
-						: '';
+			const fieldText = xmlText(field['a:t']) ?? '';
 			const fieldRunStyle = {
 				...mergedDefaultRunStyle,
 				...this.extractTextRunStyle(
@@ -364,7 +359,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const rtRunObj = rtRun as XmlObject;
 				const t = rtRunObj['a:t'];
 				if (t !== undefined) {
-					rtParts.push(typeof t === 'string' ? t : String(t));
+					rtParts.push(xmlText(t) ?? '');
 				}
 				// Parse style from the first ruby text run
 				if (!rubyStyle) {
@@ -398,7 +393,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const baseRunObj = baseRun as XmlObject;
 				const t = baseRunObj['a:t'];
 				if (t !== undefined) {
-					baseParts.push(typeof t === 'string' ? t : String(t));
+					baseParts.push(xmlText(t) ?? '');
 				}
 				// Use style from the first base run
 				if (baseParts.length === 1) {
