@@ -124,6 +124,8 @@
 		border-radius: 2px;
 		background: var(--pptx-background, #ffffff);
 		pointer-events: auto;
+		/* The handle must own its touch gesture (no scroll/zoom stealing). */
+		touch-action: none;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 	}
 
@@ -148,7 +150,25 @@
 		background: var(--pptx-background, #ffffff);
 		cursor: grab;
 		pointer-events: auto;
+		/* The knob must own its touch gesture (no scroll/zoom stealing). */
+		touch-action: none;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+	}
+
+	/* On coarse (touch) pointers a 10px handle is far too small to grab reliably;
+	   grow the resize/rotate hit targets to a finger-friendly size. */
+	@media (pointer: coarse) {
+		.pptx-svelte-sel-handle {
+			width: 22px;
+			height: 22px;
+			margin: -11px 0 0 -11px;
+		}
+
+		.pptx-svelte-rotate-knob {
+			width: 24px;
+			height: 24px;
+			margin: -12px 0 0 -12px;
+		}
 	}
 
 	.pptx-svelte-snap-layer {
