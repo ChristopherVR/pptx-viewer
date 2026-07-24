@@ -8,6 +8,34 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-07-24
+
+_Releases: pptx-react-viewer@2.2.0, pptx-vue-viewer@2.2.0, pptx-angular-viewer@2.2.0, pptx-vanilla-viewer@1.3.0, pptx-svelte-viewer@2.2.0_
+
+### Features
+
+- **shared:** Powerpoint-accurate slide-show keyboard map (by @ChristopherVR) ([fdf55d4](https://github.com/ChristopherVR/pptx-viewer/commit/fdf55d45779e090c36aa994cdc17fae8f01df79b))
+- **react:** Follow PowerPoint's slide-show shortcuts and blank screens (by @ChristopherVR) ([7f76ee2](https://github.com/ChristopherVR/pptx-viewer/commit/7f76ee23b8be446eb73fdcd5c598172db5ce3cac))
+- **vue:** Follow PowerPoint's slide-show shortcuts (by @ChristopherVR) ([4ff2da9](https://github.com/ChristopherVR/pptx-viewer/commit/4ff2da98c0e58cb4edbc2ef60cacc2ffc71ede20))
+- **angular:** Follow PowerPoint's slide-show shortcuts (by @ChristopherVR) ([fc363a8](https://github.com/ChristopherVR/pptx-viewer/commit/fc363a8406fb749caa81a6e4b3e23609b83cdfbe))
+- **vanilla:** Follow PowerPoint's slide-show shortcuts (by @ChristopherVR) ([629903c](https://github.com/ChristopherVR/pptx-viewer/commit/629903c8c1ecab33e5dde40ffef42a88e8bde94e))
+- **svelte:** Follow PowerPoint's slide-show shortcuts (by @ChristopherVR) ([7d349f3](https://github.com/ChristopherVR/pptx-viewer/commit/7d349f3d17170ef8603267e6d821585083d6da8a))
+- **react:** Give the slide-show menu PowerPoint's full command set (by @ChristopherVR) ([33c826d](https://github.com/ChristopherVR/pptx-viewer/commit/33c826d887c69e5103b0f0148e9ee1b1c17b16b0))
+- **locales:** Translate the new slide-show menu commands (by @ChristopherVR) ([21952d7](https://github.com/ChristopherVR/pptx-viewer/commit/21952d7b7e948724bebe91fd46466861b78dffbd))
+
+### Bug Fixes
+
+- **react:** Present the slide show on its own full-bleed stage (by @ChristopherVR) ([f1b23d0](https://github.com/ChristopherVR/pptx-viewer/commit/f1b23d0dde9e4c17eb424133a217ba8fd09e1c72))
+- **react:** Stop the presenter console collapsing the current slide (by @ChristopherVR) ([ca48bc5](https://github.com/ChristopherVR/pptx-viewer/commit/ca48bc526bfe17e32fe467f194f556a2d0b56f0f))
+
+### Documentation
+
+- Explain how the demos resolve packages (by @ChristopherVR) ([ef22968](https://github.com/ChristopherVR/pptx-viewer/commit/ef22968e8a214ce10b8e2495835dc6f699297186))
+
+### Testing
+
+- **e2e:** Cover slide-show sizing and PowerPoint navigation keys (by @ChristopherVR) ([ba6e73f](https://github.com/ChristopherVR/pptx-viewer/commit/ba6e73f3c22e4e2f27247fb10b91f5aa0feb4209))
+
 ## 2026-07-23
 
 _Releases: pptx-angular-viewer@2.1.1, pptx-vanilla-viewer@1.2.1_
