@@ -10,6 +10,16 @@ dated sections beneath it are generated from
 
 ## 2026-07-24
 
+_Releases: pptx-viewer-core@2.0.1, pptx-react-viewer@2.2.1, pptx-vue-viewer@2.2.2, pptx-angular-viewer@2.2.1, pptx-vanilla-viewer@1.3.1, pptx-svelte-viewer@2.2.1_
+
+### Bug Fixes
+
+- **core:** Preserve native bullets and boundary spaces ([#107](https://github.com/ChristopherVR/pptx-viewer/issues/107)) (by @Leopc1977) ([7ed0971](https://github.com/ChristopherVR/pptx-viewer/commit/7ed09718d2fc439b129ee5ed23c8f5c41fe399ba))
+- **vanilla:** Enable touch move/resize of elements on mobile (by @ChristopherVR) ([e51b768](https://github.com/ChristopherVR/pptx-viewer/commit/e51b76812659478c76b8f2d11e692d947985534e))
+- **svelte:** Enable touch resize of elements on mobile (by @ChristopherVR) ([6cab6d6](https://github.com/ChristopherVR/pptx-viewer/commit/6cab6d66e8f197d56270cff711c3d9501730c224))
+
+## 2026-07-24
+
 _Releases: pptx-vue-viewer@2.2.1_
 
 ### Bug Fixes
