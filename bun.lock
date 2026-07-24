@@ -515,7 +515,7 @@
     },
     "packages/vue": {
       "name": "pptx-vue-viewer",
-      "version": "2.2.0",
+      "version": "2.2.1",
       "dependencies": {
         "clsx": "^2.1.1",
         "dompurify": "^3.4.12",

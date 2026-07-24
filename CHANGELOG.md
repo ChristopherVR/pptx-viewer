@@ -10,6 +10,14 @@ dated sections beneath it are generated from
 
 ## 2026-07-24
 
+_Releases: pptx-vue-viewer@2.2.1_
+
+### Bug Fixes
+
+- **vue:** Rebuild the mobile bottom bar as React's five-tab nav (by @ChristopherVR) ([5c704ed](https://github.com/ChristopherVR/pptx-viewer/commit/5c704ed201bd58d9855da74c0cc6d3c1c0dc65f3))
+
+## 2026-07-24
+
 _Releases: pptx-react-viewer@2.2.0, pptx-vue-viewer@2.2.0, pptx-angular-viewer@2.2.0, pptx-vanilla-viewer@1.3.0, pptx-svelte-viewer@2.2.0_
 
 ### Features
