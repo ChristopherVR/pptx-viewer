@@ -57,6 +57,52 @@ demos/
 
 Dependency graph: `react → core → emf-converter`. Packages use `workspace:*` protocol. Bun workspaces defined at root.
 
+## How the Demos Resolve Packages (read before debugging one)
+
+The five demo apps are the runtime surface for binding work. Each demo's
+`vite.config.ts` aliases bare package specifiers, but **not uniformly**, and the
+difference decides whether your edit is live on reload or needs a build first.
+
+| Specifier                     | react      | vue        | angular      | vanilla    | svelte     |
+| ----------------------------- | ---------- | ---------- | ------------ | ---------- | ---------- |
+| the binding (`pptx-*-viewer`) | source     | source     | **`dist`**   | source     | source     |
+| `pptx-viewer-core`            | source     | source     | source       | source     | source     |
+| `pptx-viewer-shared`          | **`dist`** | source     | **vendored** | source     | source     |
+| `pptx-viewer-locales`         | source     | source     | **`dist`**   | source     | source     |
+| `pptx-viewer-mcp`             | **`dist`** | **`dist`** | **`dist`**   | **`dist`** | **`dist`** |
+
+Anything marked `dist` resolves through the workspace `exports` field to built
+output, so **source edits are invisible until you build that package**:
+
+- **Angular**: `pptx-angular-viewer` is built by ng-packagr, so the demo reads
+  `packages/angular/dist`. Editing `packages/angular/src` changes nothing on
+  screen until `bun run build` in `packages/angular`. This is the single most
+  common way to waste an hour concluding "my change doesn't work in Angular".
+  Angular also vendors shared source into `src/internal/shared-src` at build
+  time, so shared edits need the same rebuild.
+- **`pptx-viewer-mcp`** (`packages/tools`) is aliased by no demo. It is reachable
+  from the browser because `packages/shared/src/ai/tools/mcp-registry.ts` imports
+  it, so a **stale `packages/tools/dist` breaks all five demos at once** with
+  `Module "path" has been externalized for browser compatibility`. The giveaway
+  is a demo that renders only its version footer. Fix with `bun run build` in
+  `packages/tools`.
+- **`pptx-viewer-shared`**: after adding a NEW export, run `bun run build` in
+  `packages/shared` once, or the React and Angular demos will not see it.
+
+Other demo gotchas:
+
+- **Zombie vite servers** keep serving stale code after a refactor. Check with
+  `netstat -ano | grep -E ":(4173|4174|4175|4176|4177) .*LISTENING"`, and if
+  behaviour contradicts the source, kill the PID and relaunch rather than
+  debugging the code.
+- **Stale vite dep caches** cause bogus framework-internal crashes. A stale
+  `demos/demo-svelte/node_modules/.vite` threw a "Cannot read properties of
+  undefined" error from inside Svelte's own runtime and stopped decks rendering
+  entirely. Delete the demo's `node_modules/.vite` and restart before believing
+  a stack trace that points into a framework.
+- The demos serve `e2e/fixtures` as their public dir, and the landing page's
+  "or create a New Presentation" button gives an editable deck without a file.
+
 ## Architecture
 
 ### Core Package (`packages/core/src/`)
@@ -115,6 +161,14 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
   asserts the character (e.g. a `'—'` "no value" marker, a placeholder
   option label). The pre-commit tooling does not catch em-dashes, so keeping
   them out is on you.
+- **The pre-commit lint hook skips `.vue` files.** Its glob covers only the
+  js/ts extensions, so an oxlint warning inside a `.vue` SFC sails through the
+  hook and fails `bun run lint` later. Lint Vue changes explicitly before
+  committing.
+- **Adding an English i18n key requires de/es/fr too.** New entries in
+  `packages/shared/src/i18n/translations-en.ts` need matching entries under
+  `packages/locales/src/<locale>/`; `packages/locales/src/locales.test.ts`
+  enforces that every locale covers every canonical key.
 
 ## Branching & Git Workflow
 
