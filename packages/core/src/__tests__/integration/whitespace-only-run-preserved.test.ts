@@ -89,4 +89,44 @@ describe('whitespace-only run text is preserved on load', () => {
 		expect(el, 'text element should have been parsed').toBeDefined();
 		expect(textOf(el!)).toBe('so we immediately start');
 	});
+
+	it('marks boundary whitespace for preservation when saving a native bullet', async () => {
+		const {
+			handler: seedHandler,
+			data: seedData,
+			createSlide,
+		} = await PresentationBuilder.create();
+		seedData.slides.push(
+			createSlide('Blank').addText('test', { x: 40, y: 40, width: 240, height: 40 }).build(),
+		);
+		const source = await seedHandler.save(seedData.slides);
+
+		const handler = new PptxHandler();
+		const loaded = await handler.load(source.buffer as ArrayBuffer);
+		const element = loaded.slides[0]?.elements.find(
+			(candidate) => candidate.type === 'text' && candidate.text?.includes('test'),
+		);
+		expect(element?.type).toBe('text');
+		if (element?.type !== 'text' || !element.textSegments?.[0]) {
+			return;
+		}
+		element.textSegments[0].text = '   test ';
+		element.textSegments[0].bulletInfo = { char: '-' };
+
+		const saved = await handler.save(loaded.slides);
+		const zip = await JSZip.loadAsync(saved);
+		const slideXml = await zip.file('ppt/slides/slide1.xml')?.async('string');
+		expect(slideXml).toContain('<a:t xml:space="preserve">   test </a:t>');
+
+		const reloaded = await handler.load(saved.buffer as ArrayBuffer);
+		const reloadedElement = reloaded.slides[0]?.elements.find(
+			(candidate) => candidate.type === 'text' && candidate.text?.includes('test'),
+		);
+		expect(reloadedElement?.type).toBe('text');
+		if (reloadedElement?.type === 'text') {
+			expect(reloadedElement.textSegments?.find((segment) => !segment.bulletInfo)?.text).toBe(
+				'   test ',
+			);
+		}
+	});
 });

@@ -150,19 +150,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Whether a segment carries run-level content that the flat `el.text` string
 	 * cannot represent: an OOXML field (`a:fld`), an inline equation, or a ruby
-	 * (phonetic) annotation. Such segments must survive a save: collapsing them
-	 * to the plain-text path silently downgrades a field to static text (e.g. a
-	 * slide-number field becomes a frozen number) or drops the equation/ruby.
+	 * (phonetic) annotation, or paragraph bullet metadata. Such segments must
+	 * survive a save: collapsing them to the plain-text path silently downgrades
+	 * a field to static text (e.g. a slide-number field becomes a frozen number)
+	 * or drops the equation, ruby, or bullet.
 	 */
 	protected isStructuralTextSegment(segment: TextSegment): boolean {
-		return Boolean(segment.fieldType || segment.equationXml || segment.rubyText);
+		return Boolean(
+			segment.fieldType || segment.equationXml || segment.rubyText || segment.bulletInfo,
+		);
 	}
 
 	protected areTextSegmentsUniform(textSegments: TextSegment[] | undefined): boolean {
 		if (!textSegments || textSegments.length === 0) {
 			return true;
 		}
-		// Even a single segment can be a field/equation/ruby that the flat text
+		// Even a single segment can contain structure that the flat text
 		// string cannot round-trip, so it must not be treated as uniform.
 		if (textSegments.some((segment) => this.isStructuralTextSegment(segment))) {
 			return false;

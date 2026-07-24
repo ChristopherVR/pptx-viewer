@@ -9,6 +9,21 @@ import type { ParagraphSpacingConfig } from './PptxHandlerRuntimeSaveParagraphHe
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveRunProperties';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	private isRenderedBulletMarker(segment: TextSegment): boolean {
+		const bullet = segment.bulletInfo;
+		if (!bullet) {
+			return false;
+		}
+		const marker = bullet.char
+			? `${bullet.char} `
+			: bullet.imageRelId || bullet.imageDataUrl
+				? '\u{1F4CE} '
+				: bullet.autoNumType
+					? undefined
+					: '• ';
+		return marker ? segment.text === marker : bullet.paragraphIndex !== undefined;
+	}
+
 	protected createParagraphsFromTextContent(
 		text: string | undefined,
 		textStyle: TextStyle | undefined,
@@ -47,9 +62,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return assembleParagraphXml(runs, paragraphProps, endParaRunProperties);
 		};
 
+		const createTextNode = (value: string): string | XmlObject =>
+			/^[\t\n\r ]|[\t\n\r ]$/.test(value) ? { '@_xml:space': 'preserve', '#text': value } : value;
+
 		const createRun = (runText: string, style: TextStyle | undefined) => ({
 			'a:rPr': this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId),
-			'a:t': runText,
+			'a:t': createTextNode(runText),
 		});
 
 		const createFieldRun = (
@@ -75,7 +93,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (fieldParagraphPropertiesXml && typeof fieldParagraphPropertiesXml === 'object') {
 				fld['a:pPr'] = fieldParagraphPropertiesXml;
 			}
-			fld['a:t'] = runText;
+			fld['a:t'] = createTextNode(runText);
 			return fld;
 		};
 
@@ -99,7 +117,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 			const rtRun = {
 				'a:rPr': rtRunProps,
-				'a:t': segment.rubyText ?? '',
+				'a:t': createTextNode(segment.rubyText ?? ''),
 			};
 			// Base text run
 			const baseRunProps = this.createRunPropertiesFromTextStyle(
@@ -108,7 +126,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 			const baseRun = {
 				'a:rPr': baseRunProps,
-				'a:t': segment.text,
+				'a:t': createTextNode(segment.text),
 			};
 			return {
 				'a:rPr': this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId),
@@ -179,7 +197,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					capturedParagraphMeta = true;
 				}
 
-				// Soft line break (`a:br`) — emit a single br node inside the
+				// Parsed bullet markers are display-only segments. The native
+				// paragraph properties above already represent them in OOXML.
+				if (this.isRenderedBulletMarker(segment)) {
+					return;
+				}
+
+				// Soft line break (`a:br`): emit a single br node inside the
 				// current paragraph and never split into a new paragraph.
 				if (segment.isLineBreak) {
 					const brNode: XmlObject = {};
@@ -196,7 +220,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					return;
 				}
 
-				// Math equation segments — re-emit the original m:oMath /
+				// Math equation segments: re-emit the original m:oMath /
 				// m:oMathPara / mc:AlternateContent subtree captured at parse time.
 				if (segment.equationXml && typeof segment.equationXml === 'object') {
 					const eqNode = {
@@ -212,7 +236,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				lineParts.forEach((linePart, lineIndex) => {
 					if (segment.rubyText !== undefined) {
-						// Ruby segment — emit as a:ruby structure
+						// Ruby segment: emit as a:ruby structure
 						const rubySeg = { ...segment, text: linePart };
 						currentRuns.push(createRubyRun(rubySeg, segmentStyle));
 					} else if (segment.fieldType) {
