@@ -1413,8 +1413,8 @@ const {
 	mobileCommentsOpen,
 	mobileNotesOpen,
 	openMobileSheet,
+	activeSheet: mobileActiveSheet,
 	mobileQuickInsert,
-	present,
 } = useMobileChrome({ presenting, addText });
 
 // ── Document properties dialog ────────────────────────────────────────
@@ -2732,25 +2732,14 @@ function handleCommandSearch(command: string): void {
 			     accessible-role queries. -->
 			<MobileBottomBar
 				v-if="isMobile && !presenting"
-				:slide-index="activeSlideIndex"
-				:slide-count="slideCount"
-				:zoom-percent="zoomPercent"
-				:can-edit="props.canEdit"
+				:active-sheet="mobileActiveSheet"
 				:keyboard-inset="keyboardInset"
 				:comment-count="activeComments.length"
-				:hidden-actions="props.hiddenActions"
-				@prev="goPrev"
-				@next="goNext"
-				@zoom-in="zoomIn"
-				@zoom-out="zoomOut"
-				@present="present"
 				@slides="mobileSlidesOpen ? (mobileSlidesOpen = false) : openMobileSheet('slides')"
 				@insert="mobileQuickInsert"
 				@format="mobileInspectorOpen ? (mobileInspectorOpen = false) : openMobileSheet('format')"
 				@comments="mobileCommentsOpen ? (mobileCommentsOpen = false) : openMobileSheet('comments')"
-				@save="downloadAs('pptx')"
 				@notes="mobileNotesOpen ? (mobileNotesOpen = false) : openMobileSheet('notes')"
-				@menu="showSorter = true"
 			/>
 
 			<!-- Mobile slide-rail sheet (the slides panel is a left rail on

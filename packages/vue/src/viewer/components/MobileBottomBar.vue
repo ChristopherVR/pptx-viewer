@@ -1,77 +1,113 @@
 <script setup lang="ts">
 /**
- * MobileBottomBar - compact, touch-first bottom toolbar for the Vue
- * `pptx-vue-viewer` on small screens.
+ * MobileBottomBar - the Vue port of React's mobile bottom navigation
+ * (`packages/react/src/viewer/components/mobile/MobileBottomBar.tsx`).
  *
- * Mirrors the control set of the React mobile chrome
- * (`packages/react/src/viewer/components/mobile/`): slide navigation, a slide
- * counter, zoom in/out, a present action, the React bottom-bar edit targets
- * (Slides / Insert / Format / Comments / Notes, gated on `canEdit`), Save, and
- * an overflow button that surfaces everything that does not fit on a phone. The
- * companion MobileToolbar carries the menu / undo / redo / share controls.
- * Icons are `lucide-vue-next` components matching the `react-icons/lu` glyphs
- * React's mobile bar and StatusBar use, so the two chromes read as one design
- * language across bindings.
+ * Five labelled destination tabs - Slides / Insert / Format / Comments / Notes -
+ * each opening a bottom sheet (or, for Insert, quick-inserting a text box),
+ * matching the navigation pattern of Office Mobile and Google Slides. The active
+ * tab is tinted and carries a top pill indicator.
  *
- * Conventions vs. React:
- *  - function-prop callbacks → emits.
- *  - Tailwind utility classes → scoped CSS (`pptx-vue-` prefix), since the Vue
- *    package ships hand-written styles rather than a Tailwind build.
+ * Slide navigation is a horizontal swipe and zoom is a pinch (both handled on the
+ * canvas), so this bar carries no prev/next or zoom controls; Present, Save and
+ * the section menu live in the top `MobileToolbar`. That division mirrors React,
+ * whose mobile StatusBar is hidden and whose bottom bar is purely these five
+ * targets.
  *
- * Every tap target is at least 44×44px (WCAG 2.5.5 / Apple HIG) and the bar is
- * pinned with `position: fixed; bottom: 0`, respecting the iOS safe-area inset.
+ * Conventions vs. React: function-prop callbacks become emits. The Vue package
+ * has a Tailwind build (see `src/styles/pptx-vue-viewer.css`), so the utility
+ * classes are used directly, like React, rather than hand-written scoped CSS.
  */
-import {
-	ChevronLeft,
-	ChevronRight,
-	Layers,
-	MessageSquare,
-	Minus,
-	MoreHorizontal,
-	Plus,
-	Presentation,
-	Save,
-	Settings2,
-	StickyNote,
-} from 'lucide-vue-next';
-import type { ToolbarActionId } from 'pptx-viewer-shared';
+import { Layers, MessageSquare, Plus, Settings2, StickyNote } from 'lucide-vue-next';
+import type { FunctionalComponent } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { useToolbarVisibility } from '../composables/useToolbarVisibility';
+import type { MobileActiveSheet } from '../composables/useMobileChrome';
 
 const { t } = useI18n();
 
 const props = defineProps<{
-	/** Zero-based index of the active slide. */
-	slideIndex: number;
-	/** Total number of slides in the deck. */
-	slideCount: number;
-	/** Current zoom level, already expressed as a whole percentage. */
-	zoomPercent: number;
-	/** When true, surface the editor-only Format / Comments sheet triggers. */
-	canEdit?: boolean;
+	/** The currently-open sheet, so its tab renders active. */
+	activeSheet?: MobileActiveSheet;
+	/** Number of comments on the active slide (renders a badge, capped at 99+). */
+	commentCount?: number;
 	/**
 	 * CSS pixels the on-screen keyboard covers. When > 0 the fixed bar lifts by
 	 * this amount so it stays above the keyboard instead of under it.
 	 */
 	keyboardInset?: number;
-	/** Number of comments on the active slide (renders a badge, capped at 99+). */
-	commentCount?: number;
-	/** Toolbar buttons the host has asked to hide (gates prev/next and zoom below). */
-	hiddenActions?: ToolbarActionId[];
 }>();
 
-const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
+const emit = defineEmits<{
+	slides: [];
+	insert: [];
+	format: [];
+	comments: [];
+	notes: [];
+}>();
+
+type TabKey = 'slides' | 'insert' | 'format' | 'comments' | 'notes';
+
+interface Tab {
+	/** Sheet key; `insert` is a fire action and never renders active. */
+	key: TabKey;
+	labelKey: string;
+	icon: FunctionalComponent;
+	/** Overrides the visible label as the accessible name (React does this for Notes). */
+	ariaLabelKey?: string;
+	badge?: number;
+}
+
+const tabs = computed<Tab[]>(() => [
+	{ key: 'slides', labelKey: 'pptx.sections.slides', icon: Layers },
+	{ key: 'insert', labelKey: 'pptx.mobileBar.insert', icon: Plus },
+	{ key: 'format', labelKey: 'pptx.field.format', icon: Settings2 },
+	{
+		key: 'comments',
+		labelKey: 'pptx.toolbar.comments',
+		icon: MessageSquare,
+		badge: props.commentCount,
+	},
+	{
+		key: 'notes',
+		labelKey: 'pptx.notes.title',
+		icon: StickyNote,
+		ariaLabelKey: 'pptx.statusBar.toggleNotes',
+	},
+]);
+
+/**
+ * Fire the emit for a tapped tab. Vue's typed `emit` is an overload set that
+ * rejects a union argument, so dispatch each event name as a literal.
+ */
+function onTab(key: TabKey): void {
+	switch (key) {
+		case 'slides':
+			emit('slides');
+			break;
+		case 'insert':
+			emit('insert');
+			break;
+		case 'format':
+			emit('format');
+			break;
+		case 'comments':
+			emit('comments');
+			break;
+		case 'notes':
+			emit('notes');
+			break;
+	}
+}
 
 /** Comment-count badge text, capped at "99+" like the React mobile bar. */
-const commentBadge = computed(() => {
-	const count = props.commentCount ?? 0;
-	if (count <= 0) {
+function badgeText(count: number | undefined): string | null {
+	if (count === undefined || count <= 0) {
 		return null;
 	}
 	return count > 99 ? '99+' : String(count);
-});
+}
 
 /** Translate the fixed bar up above the on-screen keyboard, if one is open. */
 const barStyle = computed(() => {
@@ -85,205 +121,39 @@ const barStyle = computed(() => {
 		willChange: 'transform',
 	};
 });
-
-const emit = defineEmits<{
-	prev: [];
-	next: [];
-	'zoom-in': [];
-	'zoom-out': [];
-	present: [];
-	slides: [];
-	insert: [];
-	format: [];
-	comments: [];
-	save: [];
-	notes: [];
-	menu: [];
-}>();
-
-const atStart = computed(() => props.slideIndex <= 0);
-const atEnd = computed(() => props.slideIndex >= props.slideCount - 1);
-const counterLabel = computed(
-	() => `${props.slideCount === 0 ? 0 : props.slideIndex + 1} / ${props.slideCount}`,
-);
-
-/**
- * Shared mobile-button utility classes: each control gets an equal flex share,
- * a ≥44px touch target, and React-style ghost hover/active states over semantic
- * tokens.
- */
-const MOBILE_BTN =
-	'inline-flex items-center justify-center flex-1 min-w-0 min-h-[44px] p-0 border-0 rounded-lg bg-transparent text-foreground text-xl leading-none cursor-pointer transition-[background-color,transform] duration-150 hover:bg-accent active:scale-[0.94] disabled:opacity-35 disabled:cursor-not-allowed';
-const ICON = 'w-5 h-5';
-const MOBILE_LABEL =
-	'inline-flex items-center justify-center flex-1 min-w-0 min-h-[44px] px-0.5 text-xs tabular-nums text-muted-foreground select-none whitespace-nowrap';
 </script>
 
 <template>
 	<nav
-		class="pptx-vue-mobile-bar fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-between overflow-hidden p-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] border-t border-border bg-secondary/90 backdrop-blur-md"
+		class="pptx-vue-mobile-bar fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-around border-t border-border bg-secondary/80 backdrop-blur supports-[backdrop-filter]:bg-secondary/60 pb-[max(env(safe-area-inset-bottom),0px)]"
 		:style="barStyle"
 		:aria-label="t('pptx.mobileBar.ariaLabel')"
 	>
-		<template v-if="!isHidden('navigation')">
-			<button
-				type="button"
-				class="pptx-vue-mobile-btn"
-				:class="MOBILE_BTN"
-				:disabled="atStart"
-				:aria-label="t('pptx.mobileBar.previousSlide')"
-				@click="emit('prev')"
-			>
-				<ChevronLeft :class="ICON" aria-hidden="true" />
-			</button>
-
-			<span class="pptx-vue-mobile-counter" :class="MOBILE_LABEL" aria-live="polite">{{
-				counterLabel
-			}}</span>
-
-			<button
-				type="button"
-				class="pptx-vue-mobile-btn"
-				:class="MOBILE_BTN"
-				:disabled="atEnd"
-				:aria-label="t('pptx.mobileBar.nextSlide')"
-				@click="emit('next')"
-			>
-				<ChevronRight :class="ICON" aria-hidden="true" />
-			</button>
-
+		<button
+			v-for="tab in tabs"
+			:key="tab.key"
+			type="button"
+			class="pptx-vue-mobile-tab relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[56px] py-1.5 text-[10px] font-medium transition-colors active:scale-95"
+			:class="
+				activeSheet === tab.key ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+			"
+			:aria-pressed="activeSheet === tab.key"
+			:aria-label="tab.ariaLabelKey ? t(tab.ariaLabelKey) : undefined"
+			@click="onTab(tab.key)"
+		>
+			<component :is="tab.icon" class="w-5 h-5" aria-hidden="true" />
+			<span>{{ t(tab.labelKey) }}</span>
 			<span
-				class="pptx-vue-mobile-divider flex-[0_0_1px] w-px my-2 mx-px bg-border"
-				aria-hidden="true"
-			/>
-		</template>
-
-		<template v-if="!isHidden('zoom')">
-			<button
-				type="button"
-				class="pptx-vue-mobile-btn"
-				:class="MOBILE_BTN"
-				:aria-label="t('pptx.statusBar.zoomOut')"
-				@click="emit('zoom-out')"
-			>
-				<Minus :class="ICON" aria-hidden="true" />
-			</button>
-
-			<span
-				class="pptx-vue-mobile-zoom"
-				:class="MOBILE_LABEL"
-				:aria-label="t('pptx.mobileBar.zoomLevel')"
-				>{{ zoomPercent }}%</span
-			>
-
-			<button
-				type="button"
-				class="pptx-vue-mobile-btn"
-				:class="MOBILE_BTN"
-				:aria-label="t('pptx.statusBar.zoomIn')"
-				@click="emit('zoom-in')"
-			>
-				<Plus :class="ICON" aria-hidden="true" />
-			</button>
-
-			<span
-				class="pptx-vue-mobile-divider flex-[0_0_1px] w-px my-2 mx-px bg-border"
-				aria-hidden="true"
-			/>
-		</template>
-
-		<button
-			type="button"
-			class="pptx-vue-mobile-btn pptx-vue-mobile-present !text-primary"
-			:class="MOBILE_BTN"
-			:aria-label="t('pptx.mobileBar.present')"
-			@click="emit('present')"
-		>
-			<Presentation :class="ICON" aria-hidden="true" />
-		</button>
-
-		<button
-			type="button"
-			class="pptx-vue-mobile-btn"
-			:class="MOBILE_BTN"
-			:aria-label="t('pptx.sections.slides')"
-			:title="t('pptx.mobileBar.slidesPanel')"
-			@click="emit('slides')"
-		>
-			<Layers :class="ICON" aria-hidden="true" />
-		</button>
-
-		<button
-			v-if="props.canEdit"
-			type="button"
-			class="pptx-vue-mobile-btn"
-			:class="MOBILE_BTN"
-			:aria-label="t('pptx.mobileBar.insert')"
-			:title="t('pptx.mobileBar.insert')"
-			@click="emit('insert')"
-		>
-			<Plus :class="ICON" aria-hidden="true" />
-		</button>
-
-		<button
-			v-if="props.canEdit"
-			type="button"
-			class="pptx-vue-mobile-btn"
-			:class="MOBILE_BTN"
-			:aria-label="t('pptx.arrange.format')"
-			:title="t('pptx.mobileBar.formatTitle')"
-			@click="emit('format')"
-		>
-			<Settings2 :class="ICON" aria-hidden="true" />
-		</button>
-
-		<button
-			v-if="props.canEdit"
-			type="button"
-			class="pptx-vue-mobile-btn relative"
-			:class="MOBILE_BTN"
-			:aria-label="t('pptx.toolbar.comments')"
-			:title="t('pptx.toolbar.comments')"
-			@click="emit('comments')"
-		>
-			<MessageSquare :class="ICON" aria-hidden="true" />
-			<span
-				v-if="commentBadge"
+				v-if="badgeText(tab.badge)"
 				class="pptx-vue-mobile-badge absolute top-1 right-1/4 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary text-[9px] font-semibold text-white"
 				aria-hidden="true"
-				>{{ commentBadge }}</span
+				>{{ badgeText(tab.badge) }}</span
 			>
-		</button>
-
-		<button
-			type="button"
-			class="pptx-vue-mobile-btn"
-			:class="MOBILE_BTN"
-			:aria-label="t('pptx.comments.save')"
-			:title="t('pptx.mobileBar.saveTitle')"
-			@click="emit('save')"
-		>
-			<Save :class="ICON" aria-hidden="true" />
-		</button>
-
-		<button
-			type="button"
-			class="pptx-vue-mobile-btn"
-			:class="MOBILE_BTN"
-			:aria-label="t('pptx.statusBar.toggleNotes')"
-			@click="emit('notes')"
-		>
-			<StickyNote :class="ICON" aria-hidden="true" />
-		</button>
-
-		<button
-			type="button"
-			class="pptx-vue-mobile-btn"
-			:class="MOBILE_BTN"
-			:aria-label="t('pptx.mobileBar.moreActions')"
-			@click="emit('menu')"
-		>
-			<MoreHorizontal :class="ICON" aria-hidden="true" />
+			<span
+				v-if="activeSheet === tab.key"
+				class="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary"
+				aria-hidden="true"
+			/>
 		</button>
 	</nav>
 </template>

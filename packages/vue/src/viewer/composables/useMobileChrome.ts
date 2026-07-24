@@ -1,7 +1,10 @@
-import { ref } from 'vue';
-import type { Ref } from 'vue';
+import { computed, ref } from 'vue';
+import type { ComputedRef, Ref } from 'vue';
 
 export type MobileSheetKind = 'slides' | 'format' | 'comments' | 'notes';
+
+/** Which mobile bottom-bar tab is highlighted (null = none open). */
+export type MobileActiveSheet = MobileSheetKind | null;
 
 export interface UseMobileChromeInput {
 	presenting: Ref<boolean>;
@@ -18,6 +21,8 @@ export interface UseMobileChromeResult {
 	mobileNotesOpen: Ref<boolean>;
 	/** Open one mobile sheet at a time so they don't stack over each other. */
 	openMobileSheet: (which: MobileSheetKind) => void;
+	/** The currently-open sheet, for highlighting its bottom-bar tab. */
+	activeSheet: ComputedRef<MobileActiveSheet>;
 	mobileQuickInsert: () => void;
 	present: () => void;
 }
@@ -55,12 +60,32 @@ export function useMobileChrome(input: UseMobileChromeInput): UseMobileChromeRes
 		presenting.value = true;
 	}
 
+	// Mirrors React's `activeSheet` derivation in MobileChromeOverlay: exactly one
+	// sheet is open at a time (openMobileSheet enforces it), so the highlighted
+	// tab is whichever ref is currently true.
+	const activeSheet = computed<MobileActiveSheet>(() => {
+		if (mobileSlidesOpen.value) {
+			return 'slides';
+		}
+		if (mobileInspectorOpen.value) {
+			return 'format';
+		}
+		if (mobileCommentsOpen.value) {
+			return 'comments';
+		}
+		if (mobileNotesOpen.value) {
+			return 'notes';
+		}
+		return null;
+	});
+
 	return {
 		mobileSlidesOpen,
 		mobileInspectorOpen,
 		mobileCommentsOpen,
 		mobileNotesOpen,
 		openMobileSheet,
+		activeSheet,
 		mobileQuickInsert,
 		present,
 	};
