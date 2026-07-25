@@ -90,7 +90,7 @@
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-shared": "workspace:*",
 		"tailwindcss": "^4.3.3",
-		"tsdown": "^0.22.12",
+		"tsdown": "^0.22.14",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.10",
