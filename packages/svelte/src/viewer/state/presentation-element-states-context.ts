@@ -47,3 +47,16 @@ export function usePresentationElementState(elementId: string): ElementAnimation
 	);
 	return getStates ? getStates().get(elementId) : undefined;
 }
+
+/**
+ * Read the whole element-state map, for consumers that need sub-element ids
+ * rather than one element's own state - notably a staged text build, whose
+ * pieces are keyed `<elementId>::c0-3`. Returns `undefined` outside a running
+ * presentation so editor rendering skips the split entirely.
+ */
+export function usePresentationElementStates(): Map<string, ElementAnimationState> | undefined {
+	const getStates = getContext<PresentationElementStatesGetter | undefined>(
+		PresentationElementStatesKey,
+	);
+	return getStates ? getStates() : undefined;
+}

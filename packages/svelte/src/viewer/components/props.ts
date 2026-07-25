@@ -79,6 +79,13 @@ export interface TextBlockProps {
 	paragraphs: RenderParagraph[];
 	/** Inline `style` string for the text block wrapper. */
 	textStyle: string;
+	/** Owning element id, needed to key this element's text-build sub-animations. */
+	elementId?: string;
+	/**
+	 * Live per-sub-element animation states. Present only while a staged text
+	 * build (by paragraph / word / letter) is playing.
+	 */
+	subElementAnimStates?: ReadonlyMap<string, ElementAnimationState>;
 }
 
 export interface SlideStageProps {

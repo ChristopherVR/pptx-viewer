@@ -7,9 +7,32 @@
 	 */
 	import { styleToString } from '../style';
 	import type { TextBlockProps } from './props';
+	import { buildTextBuildSpec, textBuildSpanStyle } from 'pptx-viewer-shared';
 	import type { RenderParagraph } from 'pptx-viewer-shared';
 
-	const { paragraphs, textStyle }: TextBlockProps = $props();
+	const { paragraphs, textStyle, elementId, subElementAnimStates }: TextBlockProps = $props();
+
+	/** A run whose text is exactly a newline is a hard line break, not content. */
+	const NEWLINE_RUN = '\n';
+
+	/**
+	 * The split for each paragraph whose text is being revealed piece by piece,
+	 * or `undefined` to render its runs normally. PowerPoint's "Animate text: By
+	 * letter" needs the rendered text split to match the per-character
+	 * sub-animations, otherwise the whole box just fades as one.
+	 */
+	const specs = $derived(
+		paragraphs.map((para, paraIndex) =>
+			elementId
+				? buildTextBuildSpec(
+						elementId,
+						paraIndex,
+						para.runs.filter((run) => run.text !== NEWLINE_RUN),
+						subElementAnimStates,
+					)
+				: undefined,
+		),
+	);
 
 	/**
 	 * Per-paragraph inline style: hanging-indent margin-left + first-line
@@ -49,9 +72,19 @@
 					class="pptx-svelte-bullet"
 					style={styleToString(para.bulletStyle)}
 					aria-label={para.bulletPicture?.accessibleLabel}>{para.bulletMarker}&nbsp;</span
-				>{/if}{#each para.runs as run, ri (ri)}{#if run.text === '\n'}<br />{:else}<span
+				>{/if}{#if specs[pi]}{#if specs[pi]!.granularity === 'paragraph'}<span
+						data-anim-id={specs[pi]!.animId}
+						style={styleToString(textBuildSpanStyle(specs[pi]!))}
+					>{#each para.runs as run, ri (ri)}{#if run.text === '\n'}<br />{:else}<span
+								style={styleToString(run.style)}>{run.text}</span
+							>{/if}{/each}</span
+					>{:else}{#each specs[pi]!.spans ?? [] as span, si (si)}<span
+							data-anim-id={span.animId}
+							style={styleToString({ ...(span.style ?? {}), ...textBuildSpanStyle(span) })}
+						>{span.text}</span
+					>{/each}{/if}{:else}{#each para.runs as run, ri (ri)}{#if run.text === '\n'}<br />{:else}<span
 						style={styleToString(run.style)}>{run.text}</span
-					>{/if}{/each}
+					>{/if}{/each}{/if}
 		</p>
 	{/each}
 </div>

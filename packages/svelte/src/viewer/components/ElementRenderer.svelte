@@ -11,7 +11,10 @@
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, styleToString } from '../style';
 	import { useSmartArt3D } from '../state/smart-art-3d-context';
-	import { usePresentationElementState } from '../state/presentation-element-states-context';
+	import {
+		usePresentationElementState,
+		usePresentationElementStates,
+	} from '../state/presentation-element-states-context';
 	// Self-import: groups recurse into this same component (Svelte 5 pattern).
 	// eslint-disable-next-line import/no-self-import
 	import ElementRenderer from './ElementRenderer.svelte';
@@ -49,6 +52,8 @@
 	 * context so editor / read-only rendering (context absent) is unaffected.
 	 */
 	const animationState = $derived(usePresentationElementState(element.id));
+	/** Whole map, so a staged text build can find its `::c` / `::w` sub-states. */
+	const allAnimStates = $derived(usePresentationElementStates());
 
 	/** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
 	const smartArt3D = useSmartArt3D();
@@ -129,7 +134,12 @@
 		{#if warpedText}
 			<WordArtText {element} {mediaDataUrls} {zIndex} />
 		{:else if hasText}
-			<TextBlock {paragraphs} textStyle={styleToString(getTextBlockStyle(element))} />
+			<TextBlock
+				{paragraphs}
+				textStyle={styleToString(getTextBlockStyle(element))}
+				elementId={element.id}
+				subElementAnimStates={allAnimStates}
+			/>
 		{/if}
 	</div>
 {:else}
