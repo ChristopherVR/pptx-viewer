@@ -11,7 +11,7 @@
 	},
 	"dependencies": {
 		"@ai-sdk/openai-compatible": "^3.0.12",
-		"ai": "^7.0.31",
+		"ai": "^7.0.37",
 		"fast-xml-parser": "^5.10.1",
 		"jszip": "^3.10.1",
 		"pptx-vanilla-viewer": "workspace:*",
