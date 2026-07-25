@@ -21,6 +21,7 @@ export {
 	NOTES_FONT_SIZE_MIN,
 	NOTES_FONT_SIZE_STEP,
 	notesSegmentsToSpans,
+	presenterPaneAdvancesOnClick,
 } from 'pptx-viewer-shared';
 
 /**

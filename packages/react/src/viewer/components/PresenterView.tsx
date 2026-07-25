@@ -18,11 +18,12 @@ import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { SlideAdvanceTrigger } from '../hooks/presentation-mode/types';
 import type { CanvasSize } from '../types';
 import { PresenterSlideFrame } from './presentation/PresenterSlideFrame';
 import { PresentationAudienceEffects } from './PresentationAudienceEffects';
 import { PresentationSubtitleBar } from './PresentationSubtitleBar';
-import { formatElapsed } from './presenter-view-utils';
+import { formatElapsed, presenterPaneAdvancesOnClick } from './presenter-view-utils';
 import { PresenterConsoleToolbar } from './PresenterConsoleToolbar';
 import { PresenterNotesRail } from './PresenterNotesRail';
 import { PresenterSlideNavigator } from './PresenterSlideNavigator';
@@ -39,7 +40,12 @@ export interface PresenterViewProps {
 	canvasSize: CanvasSize;
 	templateElements: PptxElement[];
 	presentationStartTime: number | null;
-	onMovePresentationSlide: (direction: 1 | -1) => void;
+	/**
+	 * `trigger` mirrors the show stage: `'click'` steps through pending element
+	 * builds first and honours the slide's `advanceOnClick` transition flag,
+	 * `'explicit'` (the default) is unconditional navigation.
+	 */
+	onMovePresentationSlide: (direction: 1 | -1, trigger?: SlideAdvanceTrigger) => void;
 	onExit: () => void;
 	/** Open the audience display in a separate browser window. */
 	onOpenAudienceWindow?: () => boolean;
@@ -101,6 +107,17 @@ export function PresenterView({
 
 	const [showSlides, setShowSlides] = useState(false);
 	const ink = usePresenterInk(snapshot, onUpdateSnapshot);
+
+	// Click the current-slide pane to advance, the way PowerPoint's presenter
+	// console does - it is how presenters actually drive a show, and without it
+	// the console could only be advanced from the keyboard or the Next button.
+	const paneAdvancesOnClick = presenterPaneAdvancesOnClick(snapshot.pointer?.tool);
+	const handleSlidePaneClick = useCallback(() => {
+		if (!paneAdvancesOnClick) {
+			return;
+		}
+		onMovePresentationSlide(1, 'click');
+	}, [paneAdvancesOnClick, onMovePresentationSlide]);
 	const handleCaptionChange = useCallback(
 		(caption: string) => onUpdateSnapshot({ caption }),
 		[onUpdateSnapshot],
@@ -146,8 +163,15 @@ export function PresenterView({
 				onExit={onExit}
 			/>
 			<div className='flex flex-1 min-h-0'>
-				{/* Left panel -- current slide (70%) */}
-				<div className='flex-[7] flex flex-col items-center justify-center bg-black p-6 min-w-0 overflow-hidden'>
+				{/* Left panel -- current slide (70%). Clicking it advances the show. */}
+				<div
+					role='presentation'
+					data-pptx-presenter-slide
+					onClick={handleSlidePaneClick}
+					className={`flex-[7] flex flex-col items-center justify-center bg-black p-6 min-w-0 overflow-hidden ${
+						paneAdvancesOnClick ? 'cursor-pointer' : ''
+					}`}
+				>
 					<PresenterSlideFrame
 						canvasSize={canvasSize}
 						zoomScale={snapshot.zoom?.scale ?? 1}
