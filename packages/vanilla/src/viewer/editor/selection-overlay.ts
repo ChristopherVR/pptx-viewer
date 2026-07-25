@@ -138,6 +138,12 @@ export function createSelectionOverlay(
 			box.style.top = `${nextBox.y * scale}px`;
 			box.style.width = `${nextBox.width * scale}px`;
 			box.style.height = `${nextBox.height * scale}px`;
+			// Scale the outline width by the stage scale so the selection border
+			// tracks the zoom the same way React's does (its border/ring live
+			// inside the scaled stage). Without this the unscaled overlay draws a
+			// constant 1px screen border that looks far too thick when zoomed out
+			// on mobile, where React's has shrunk below 1px.
+			box.style.borderWidth = `${scale}px`;
 			box.style.transform = nextBox.rotation ? `rotate(${nextBox.rotation}deg)` : 'none';
 		},
 		setSnapLines(lines, scale) {
