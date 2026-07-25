@@ -50,6 +50,34 @@ export default defineConfig({
 	server: {
 		port: 4174,
 	},
+	build: {
+		// The other four demos use 2500. Angular needs a little more headroom:
+		// they alias the binding to source (so rolldown can split it by module),
+		// while this demo consumes ng-packagr's `dist`, whose eager fesm bundle
+		// is one ~2.8 MB module that no chunking strategy can divide.
+		chunkSizeWarningLimit: 3000,
+		rolldownOptions: {
+			output: {
+				advancedChunks: {
+					groups: [
+						// The PPTX engine and the viewer library version (and so
+						// invalidate) independently of each other and of Angular.
+						{ name: 'pptx-viewer-core', test: /[\\/]packages[\\/]core[\\/]/u },
+						// Only the eager fesm bundle. ng-packagr also emits lazy
+						// bundles here (`-index-*` pulls in three.js for 3D SmartArt,
+						// `-chat-history-idb-*` the AI panel store); grouping those
+						// would drag their dynamic-only dependencies into the initial
+						// download and make rolldown report the imports as ineffective.
+						{
+							name: 'pptx-angular-viewer',
+							test: /[\\/]packages[\\/]angular[\\/]dist[\\/]fesm2022[\\/]pptx-angular-viewer(\.mjs|-pptx-angular-viewer-)/u,
+						},
+						{ name: 'angular', test: /[\\/]node_modules[\\/].*@angular[\\/]/u },
+					],
+				},
+			},
+		},
+	},
 	optimizeDeps: {
 		include: ['@angular/common', '@angular/core', 'pptx-viewer-core'],
 	},
