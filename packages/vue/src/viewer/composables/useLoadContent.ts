@@ -1,3 +1,5 @@
+import { XMLParser } from 'fast-xml-parser';
+import JSZip from 'jszip';
 import type {
 	MediaPptxElement,
 	ParsedSignature,
@@ -34,15 +36,15 @@ import { buildSaveSlides, partitionTemplateElements } from './template-editing';
 
 /**
  * Parse digital signatures from a `.pptx` ZIP buffer (best-effort; returns an
- * empty array when there are none or parsing fails). `jszip`/`fast-xml-parser`
- * are loaded lazily so they stay out of the main chunk.
+ * empty array when there are none or parsing fails).
+ *
+ * `jszip`/`fast-xml-parser` are imported statically on purpose: `PptxHandler`
+ * (imported above) already pulls both into the same chunk, so a dynamic import
+ * here cannot move them anywhere. It only made bundlers emit
+ * INEFFECTIVE_DYNAMIC_IMPORT.
  */
 async function parseSignaturesFromBuffer(buffer: ArrayBuffer): Promise<ParsedSignature[]> {
 	try {
-		const [{ default: JSZip }, { XMLParser }] = await Promise.all([
-			import('jszip'),
-			import('fast-xml-parser'),
-		]);
 		const zip = await JSZip.loadAsync(buffer);
 		const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
 		const result: ParsedSignature[] = [];
