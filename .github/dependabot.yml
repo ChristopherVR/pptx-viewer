@@ -42,10 +42,19 @@ updates:
         patterns:
           - '@types/*'
     ignore:
-      # Major version bumps tend to be breaking for these — review manually.
+      # Major version bumps tend to be breaking for these - review manually.
       - dependency-name: 'react'
         update-types: ['version-update:semver-major']
       - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+      # TypeScript 7 is a deliberate partial migration, not a bump to automate.
+      # react/cli/tools/vanilla/core/shared/locales are on TS7; angular, vue,
+      # svelte and the demos are pinned to 6.0.3 because their toolchains cannot
+      # take it: @angular/compiler-cli declares `typescript: ">=6.0 <6.1"`, and
+      # vue-tsc / svelte-check crash on TS7 despite advertising `>=5.0.0`.
+      # Dependabot proposed exactly the blocked set in #112. Revisit by checking
+      # those three upstreams first, not by merging a bump.
+      - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
 
   # ── GitHub Actions used in workflows ──
