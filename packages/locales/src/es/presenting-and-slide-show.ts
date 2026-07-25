@@ -7,6 +7,7 @@ export const translations = {
 	'pptx.presentation.highlighter': 'Resaltador',
 	'pptx.presentation.eraser': 'Borrador',
 	'pptx.presentation.laserPointer': 'Puntero láser',
+	'pptx.presentation.endOfSlideShow': 'Fin de la presentación, haga clic para salir.',
 	'pptx.presentation.pointerTools': 'Opciones de puntero',
 	'pptx.customShows.title': 'Presentaciones personalizadas',
 	'pptx.customShows.closeDialog': 'Cerrar el cuadro de diálogo de presentaciones personalizadas',

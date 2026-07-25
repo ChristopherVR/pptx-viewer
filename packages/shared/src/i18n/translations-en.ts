@@ -422,6 +422,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.presentation.highlighter': 'Highlighter',
 	'pptx.presentation.eraser': 'Eraser',
 	'pptx.presentation.laserPointer': 'Laser Pointer',
+	'pptx.presentation.endOfSlideShow': 'End of slide show, click to exit.',
 	'pptx.presentation.pointerTools': 'Pointer Options',
 
 	// Selection pane

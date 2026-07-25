@@ -7,6 +7,7 @@ export const translations = {
 	'pptx.presentation.highlighter': 'Surligneur',
 	'pptx.presentation.eraser': 'Gomme',
 	'pptx.presentation.laserPointer': 'Pointeur laser',
+	'pptx.presentation.endOfSlideShow': 'Fin du diaporama, cliquez pour quitter.',
 	'pptx.presentation.pointerTools': 'Options du pointeur',
 	'pptx.customShows.title': 'Diaporamas personnalisés',
 	'pptx.customShows.closeDialog': 'Fermer la boîte de dialogue des diaporamas personnalisés',

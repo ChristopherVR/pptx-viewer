@@ -7,6 +7,7 @@ export const translations = {
 	'pptx.presentation.highlighter': 'Textmarker',
 	'pptx.presentation.eraser': 'Radierer',
 	'pptx.presentation.laserPointer': 'Laserpointer',
+	'pptx.presentation.endOfSlideShow': 'Ende der Bildschirmpräsentation, zum Beenden klicken.',
 	'pptx.presentation.pointerTools': 'Zeigeroptionen',
 	'pptx.customShows.title': 'Benutzerdefinierte Bildschirmpräsentationen',
 	'pptx.customShows.closeDialog': 'Schließen Sie das Dialogfeld „Benutzerdefinierte Shows“.',
