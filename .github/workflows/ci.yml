@@ -347,7 +347,7 @@ jobs:
       # other four bindings were not tested. Never fails the build; on fork PRs
       # the token is unavailable and Codecov falls back to tokenless upload.
       - name: Upload coverage
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         continue-on-error: true
         with:
           files: ${{ steps.leg.outputs.dir }}/coverage/coverage-final.json
