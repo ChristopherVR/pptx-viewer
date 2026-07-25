@@ -243,6 +243,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 						[canvasSize]="canvasSize()"
 						[transition]="t.transition"
 						[mediaDataUrls]="mediaDataUrls()"
+						[zoom]="zoom()"
 						(complete)="activeTransition.set(null)"
 					/>
 				}

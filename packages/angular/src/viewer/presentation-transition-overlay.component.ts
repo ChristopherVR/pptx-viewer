@@ -18,6 +18,7 @@ import {
 	SLIDE_TRANSITION_KEYFRAMES,
 	getSlideTransitionAnimations,
 	resolveTransitionDuration,
+	transitionSlideBoxSize,
 } from './transition-helpers';
 import type { SlideTransitionAnimations } from './transition-helpers';
 
@@ -64,6 +65,8 @@ function ensureTransitionKeyframes(): void {
  *   - `templateElements`: master/layout elements behind the outgoing slide
  *   - `mediaDataUrls`   : data-URL map for media assets
  *   - `durationMs`      : explicit override; otherwise derived from `transition`
+ *   - `zoom`            : the stage's live zoom, so the outgoing slide animates
+ *                         at the same size as the incoming one
  *
  * Outputs:
  *   - `complete`: emits void when the transition animation completes
@@ -106,7 +109,8 @@ function ensureTransitionKeyframes(): void {
 					[slide]="layerSlide()"
 					[canvasSize]="canvasSize()"
 					[mediaDataUrls]="mediaDataUrls()"
-					[zoom]="1"
+					[zoom]="zoom()"
+					[autoFit]="false"
 					[interactive]="false"
 				/>
 			</div>
@@ -125,6 +129,13 @@ export class PresentationTransitionOverlayComponent {
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	/** Explicit duration override (ms). When omitted, derived from `transition`. */
 	readonly durationMs = input<number | undefined>(undefined);
+	/**
+	 * The stage's live zoom (the same value the underlying `pptx-slide-canvas`
+	 * renders at). The outgoing layer MUST use it: left at 1 the leaving slide
+	 * animates out at its intrinsic size over a full-screen incoming slide,
+	 * which reads as the slide snapping small the instant a transition starts.
+	 */
+	readonly zoom = input<number>(1);
 
 	// ------------------------------------------------------------------
 	// Outputs
@@ -209,12 +220,17 @@ export class PresentationTransitionOverlayComponent {
 		return style;
 	});
 
-	/** Fixed-size slide box (the SlideCanvas auto-fits within it). */
+	/**
+	 * Slide box sized to the ZOOMED slide footprint, matching the stage's own
+	 * `pptx-slide-canvas`. The inner canvas renders at the same `zoom` with
+	 * `autoFit` off, so the outgoing slide is pixel-for-pixel the size of the
+	 * incoming one for the whole animation.
+	 */
 	protected readonly slideBoxStyle = computed<StyleMap>(() => {
-		const size = this.canvasSize();
+		const box = transitionSlideBoxSize(this.canvasSize(), this.zoom());
 		return {
-			width: `${Math.max(size.width, 1)}px`,
-			height: `${Math.max(size.height, 1)}px`,
+			width: `${box.width}px`,
+			height: `${box.height}px`,
 			'transform-origin': 'center',
 		};
 	});

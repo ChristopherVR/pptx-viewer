@@ -58,3 +58,30 @@ export function resolveTransitionDuration(durationMs: number | undefined): numbe
 			: DEFAULT_TRANSITION_DURATION_MS;
 	return Math.max(MIN_TRANSITION_DURATION_MS, raw);
 }
+
+// ---------------------------------------------------------------------------
+// Outgoing-layer geometry
+// ---------------------------------------------------------------------------
+
+/**
+ * Footprint (px) of the outgoing slide box inside the transition overlay.
+ *
+ * It has to be the ZOOMED slide size, because the overlay sits inside the same
+ * stage container as the live `pptx-slide-canvas` and that canvas is already
+ * rendering at the stage zoom. Sizing the box at the intrinsic canvas size (and
+ * leaving the inner canvas at `zoom=1`) makes the leaving slide animate out at
+ * 100% while the arriving slide is full-screen, which reads as the slide
+ * snapping small the moment a transition starts.
+ *
+ * A missing or non-positive zoom degrades to 1 rather than collapsing the box.
+ */
+export function transitionSlideBoxSize(
+	canvasSize: { width: number; height: number },
+	zoom: number,
+): { width: number; height: number } {
+	const safeZoom = Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
+	return {
+		width: Math.max(canvasSize.width * safeZoom, 1),
+		height: Math.max(canvasSize.height * safeZoom, 1),
+	};
+}

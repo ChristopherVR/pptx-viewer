@@ -12,6 +12,7 @@ import {
 	resolveDirection8,
 	resolveOrientation,
 	resolveTransitionDuration,
+	transitionSlideBoxSize,
 } from './transition-helpers';
 
 // ---------------------------------------------------------------------------
@@ -374,5 +375,46 @@ describe('sLIDE_TRANSITION_KEYFRAMES', () => {
 		expect(SLIDE_TRANSITION_KEYFRAMES).toContain('@keyframes pptx-tr-push-out-to-left');
 		expect(SLIDE_TRANSITION_KEYFRAMES).toContain('@keyframes pptx-tr-cover-from-rd');
 		expect(SLIDE_TRANSITION_KEYFRAMES).toContain('@keyframes pptx-tr-wheel-in');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// transitionSlideBoxSize
+// ---------------------------------------------------------------------------
+
+describe('transitionSlideBoxSize', () => {
+	// Regression (issue #106): the outgoing layer used to render at the
+	// intrinsic canvas size with the inner canvas pinned to zoom 1, so the
+	// leaving slide animated out at 100% over a full-screen incoming slide.
+	it('scales the box by the stage zoom so both slides match', () => {
+		expect(transitionSlideBoxSize({ width: 960, height: 540 }, 2)).toStrictEqual({
+			width: 1920,
+			height: 1080,
+		});
+	});
+
+	it('is a no-op at zoom 1', () => {
+		expect(transitionSlideBoxSize({ width: 960, height: 540 }, 1)).toStrictEqual({
+			width: 960,
+			height: 540,
+		});
+	});
+
+	it('degrades a non-positive or non-finite zoom to 1 rather than collapsing', () => {
+		expect(transitionSlideBoxSize({ width: 960, height: 540 }, 0)).toStrictEqual({
+			width: 960,
+			height: 540,
+		});
+		expect(transitionSlideBoxSize({ width: 960, height: 540 }, Number.NaN)).toStrictEqual({
+			width: 960,
+			height: 540,
+		});
+	});
+
+	it('never returns a zero-sized box', () => {
+		expect(transitionSlideBoxSize({ width: 0, height: 0 }, 1.5)).toStrictEqual({
+			width: 1,
+			height: 1,
+		});
 	});
 });
