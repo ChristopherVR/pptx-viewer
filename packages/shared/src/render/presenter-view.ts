@@ -8,6 +8,23 @@
 
 import type { TextSegment } from 'pptx-viewer-core';
 
+import type { PresentationPointerTool } from './presentation-session-types';
+
+/**
+ * Whether a click on the presenter console's current-slide pane should advance
+ * the show.
+ *
+ * PowerPoint's presenter console advances when you click the big slide, which
+ * is how presenters actually drive a deck - the Next button and the keyboard
+ * are the fallbacks, not the primary control. The exception is an active
+ * drawing tool: pen, highlighter and eraser own the pointer, so clicking then
+ * annotates instead of jumping the deck out from under the stroke. The laser
+ * only tracks the cursor and does not consume clicks, so it still advances.
+ */
+export function presenterPaneAdvancesOnClick(tool: PresentationPointerTool | undefined): boolean {
+	return tool === undefined || tool === 'none' || tool === 'laser';
+}
+
 /** Minimum font size (px) for speaker notes in presenter view. */
 export const NOTES_FONT_SIZE_MIN = 10;
 
