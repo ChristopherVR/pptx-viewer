@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveTopLevelElementId } from './element-hit';
+import { resolveEditTargetElementId, resolveTopLevelElementId } from './element-hit';
 
 /**
  * Build `<stage><group data-element-id=g1><child data-element-id=c1/></group>
@@ -47,5 +47,45 @@ describe('resolveTopLevelElementId', () => {
 		const { stage } = buildStage();
 		expect(resolveTopLevelElementId(stage, stage)).toBeNull();
 		expect(resolveTopLevelElementId(null, stage)).toBeNull();
+	});
+});
+
+describe('resolveEditTargetElementId', () => {
+	/** A resize handle inside the selection overlay, as the DOM actually nests it. */
+	function buildOverlayHandle(): HTMLElement {
+		const overlay = document.createElement('div');
+		overlay.setAttribute('data-pptx-selection-overlay', '');
+		const box = document.createElement('div');
+		const handle = document.createElement('button');
+		box.appendChild(handle);
+		overlay.appendChild(box);
+		document.body.appendChild(overlay);
+		return handle;
+	}
+
+	it('prefers a direct element hit over the selection fallback', () => {
+		const { stage, shape } = buildStage();
+		expect(resolveEditTargetElementId(shape, stage, 'other')).toBe('s1');
+	});
+
+	// Regression: on a coarse pointer the finger-sized resize handles cover a
+	// small shape's body, so the second tap of a double-tap lands on a handle
+	// and the plain hit-test finds nothing.
+	it('falls back to the selected element when the hit is selection chrome', () => {
+		const { stage } = buildStage();
+		const handle = buildOverlayHandle();
+		expect(resolveTopLevelElementId(handle, stage)).toBeNull();
+		expect(resolveEditTargetElementId(handle, stage, 's1')).toBe('s1');
+	});
+
+	it('returns null for selection chrome with nothing selected', () => {
+		const { stage } = buildStage();
+		expect(resolveEditTargetElementId(buildOverlayHandle(), stage, null)).toBeNull();
+	});
+
+	it('returns null for unrelated chrome outside the stage and overlay', () => {
+		const { stage, outside } = buildStage();
+		expect(resolveEditTargetElementId(outside, stage, 's1')).toBeNull();
+		expect(resolveEditTargetElementId(null, stage, 's1')).toBeNull();
 	});
 });

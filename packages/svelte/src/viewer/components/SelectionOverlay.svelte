@@ -56,7 +56,17 @@
 	);
 </script>
 
-<div class="pptx-svelte-editor-overlay" class:is-editing={editing}>
+<!--
+	`data-pptx-selection-overlay` marks the selection chrome for hit-testing:
+	on a coarse pointer the handles are finger-sized and can sit over a small
+	shape's body, so the editor has to recognise a double-tap that landed on
+	them (see `editor-controller`.`onStageDblClick`).
+-->
+<div
+	class="pptx-svelte-editor-overlay"
+	class:is-editing={editing}
+	data-pptx-selection-overlay
+>
 	{#if box && !editing}
 		<div class="pptx-svelte-sel-box" style={boxStyle}>
 			{#if selectionCount === 1}<div

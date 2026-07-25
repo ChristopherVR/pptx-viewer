@@ -107,7 +107,7 @@ export {
 } from './editor-mutations';
 export type { ZOrderDirection } from './editor-zorder';
 export { reorderElement } from './editor-zorder';
-export { resolveTopLevelElementId } from './element-hit';
+export { resolveEditTargetElementId, resolveTopLevelElementId } from './element-hit';
 export type { InlineTextSurface } from './inline-text';
 export {
 	canInlineEditElement,

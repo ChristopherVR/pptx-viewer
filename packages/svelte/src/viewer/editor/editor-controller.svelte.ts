@@ -16,7 +16,7 @@ import { createEditorKeydownHandler } from './editor-keyboard';
 import { createSelectionGestureController } from './editor-selection-gestures';
 import type { EditorMarqueeRect } from './editor-selection-gestures';
 import type { EditorState } from './editor-state.svelte';
-import { resolveTopLevelElementId } from './element-hit';
+import { resolveEditTargetElementId, resolveTopLevelElementId } from './element-hit';
 import { canInlineEditElement } from './inline-text';
 
 export type { EditorControllerDeps } from './editor-controller-deps';
@@ -221,7 +221,14 @@ export class EditorController {
 		if (!this.#editor.editable || this.#deps.getPresenting() || this.#editor.inkOps.isDrawing) {
 			return;
 		}
-		const id = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
+		// `resolveEditTargetElementId`, not the plain hit-test: on touch the
+		// finger-sized resize handles can cover a small shape's body, so the
+		// second tap of a double-tap lands on selection chrome.
+		const id = resolveEditTargetElementId(
+			event.target,
+			this.#deps.getStageRoot(),
+			this.#editor.selectedElementId,
+		);
 		if (id && this.#editor.isElementInteractive(id)) {
 			if (this.#editor.equationOps.open(id)) {
 				return;
