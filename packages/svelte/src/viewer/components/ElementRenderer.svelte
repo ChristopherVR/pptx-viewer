@@ -12,8 +12,8 @@
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, styleToString } from '../style';
 	import { useSmartArt3D } from '../state/smart-art-3d-context';
 	import {
+		getPresentationElementStatesGetter,
 		usePresentationElementState,
-		usePresentationElementStates,
 	} from '../state/presentation-element-states-context';
 	// Self-import: groups recurse into this same component (Svelte 5 pattern).
 	// eslint-disable-next-line import/no-self-import
@@ -52,8 +52,12 @@
 	 * context so editor / read-only rendering (context absent) is unaffected.
 	 */
 	const animationState = $derived(usePresentationElementState(element.id));
+	// Captured at init: `getContext` only resolves during component
+	// initialisation, so reading it inside the `$derived` below returned nothing
+	// and the text-build split never ran.
+	const getAllAnimStates = getPresentationElementStatesGetter();
 	/** Whole map, so a staged text build can find its `::c` / `::w` sub-states. */
-	const allAnimStates = $derived(usePresentationElementStates());
+	const allAnimStates = $derived(getAllAnimStates?.());
 
 	/** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
 	const smartArt3D = useSmartArt3D();

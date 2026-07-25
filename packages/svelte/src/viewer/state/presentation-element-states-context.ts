@@ -49,14 +49,15 @@ export function usePresentationElementState(elementId: string): ElementAnimation
 }
 
 /**
- * Read the whole element-state map, for consumers that need sub-element ids
- * rather than one element's own state - notably a staged text build, whose
- * pieces are keyed `<elementId>::c0-3`. Returns `undefined` outside a running
- * presentation so editor rendering skips the split entirely.
+ * The raw states GETTER, for consumers that need sub-element ids rather than one
+ * element's own state - notably a staged text build, whose pieces are keyed
+ * `<elementId>::c0-3`.
+ *
+ * `getContext` only resolves during component initialisation, so this must be
+ * called at init and the returned getter invoked inside a `$derived` to keep the
+ * read reactive. Returns `undefined` outside a running presentation, so editor
+ * rendering skips the split entirely.
  */
-export function usePresentationElementStates(): Map<string, ElementAnimationState> | undefined {
-	const getStates = getContext<PresentationElementStatesGetter | undefined>(
-		PresentationElementStatesKey,
-	);
-	return getStates ? getStates() : undefined;
+export function getPresentationElementStatesGetter(): PresentationElementStatesGetter | undefined {
+	return getContext<PresentationElementStatesGetter | undefined>(PresentationElementStatesKey);
 }
