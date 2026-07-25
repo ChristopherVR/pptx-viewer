@@ -230,11 +230,19 @@ export function getShapeVisualStyle(
 	}
 
 	const base: React.CSSProperties = {
+		// A gradient fill REPLACES the solid fill, it does not sit on top of it.
+		// The parser also records a representative `fillColor`/`fillOpacity` for a
+		// `a:gradFill` (used by thumbnails and the inspector), and painting that as
+		// a `backgroundColor` under the gradient washed the whole shape: wherever
+		// the gradient's own stops were transparent the solid still showed, so a
+		// fade-to-transparent overlay dimmed everything behind it and its edge read
+		// as a hard line. Mirrors the fill precedence in shared's
+		// `getComputedFillStyle` (image -> gradient -> pattern -> solid).
 		backgroundColor: imageFillUrl
 			? 'transparent'
 			: patternFill
 				? patternFill.backgroundColor
-				: hasFill
+				: hasFill && !fillGradient
 					? resolvedFillColor
 					: 'transparent',
 		backgroundImage: imageFillUrl
@@ -250,14 +258,26 @@ export function getShapeVisualStyle(
 				: 'no-repeat'
 			: patternFill
 				? 'repeat'
-				: undefined,
+				: hasFill && fillGradient
+					? 'no-repeat'
+					: undefined,
 		backgroundSize: imageFillUrl
 			? imageFillMode === 'tile'
 				? 'auto'
 				: '100% 100%'
 			: patternFill
 				? 'auto'
-				: undefined,
+				: hasFill && fillGradient
+					? '100% 100%'
+					: undefined,
+		// The container always carries a 1px border (transparent unless the shape
+		// has a stroke or is hovered) and `box-sizing: border-box`, so the default
+		// `background-origin: padding-box` sizes the paint 2px smaller than the
+		// shape. Combined with the default `background-repeat: repeat` that made a
+		// gradient tile wrap, painting a 1px sliver of its opposite end along the
+		// edge - a fade-to-transparent overlay grew a hard opaque line down its
+		// side. Paint from the border box so the fill matches the shape outline.
+		backgroundOrigin: 'border-box',
 		backgroundPosition: imageFillUrl ? 'center' : undefined,
 		boxShadow: combinedBoxShadow,
 		WebkitBoxReflect: reflectCss,
