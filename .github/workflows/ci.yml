@@ -317,14 +317,17 @@ jobs:
       - name: Resolve the command for this leg
         id: leg
         run: |
-          V="run --reporter=verbose --reporter=github-actions"
+          # --coverage belongs INSIDE each command, not appended to the line: the
+          # react18 leg chains `&& bun run typecheck:react18`, and appending sent
+          # the flag to tsc (`TS5023: Unknown compiler option '--coverage'`).
+          V="run --coverage --reporter=verbose --reporter=github-actions"
           case "${{ matrix.key }}" in
             core)        dir=packages/core;    cmd="bun vitest $V --exclude 'src/core/utils/ooxml-crypto.test.ts'" ;;
             core-crypto) dir=packages/core;    cmd="bun vitest $V src/core/utils/ooxml-crypto.test.ts" ;;
             shared)      dir=packages/shared;  cmd="bun vitest $V" ;;
             locales)     dir=packages/locales; cmd="bun vitest $V" ;;
             react)       dir=packages/react;   cmd="bun vitest $V" ;;
-            react18)     dir=packages/react;   cmd="bun vitest run --config vitest.react18.config.ts --reporter=verbose --reporter=github-actions && bun run typecheck:react18" ;;
+            react18)     dir=packages/react;   cmd="bun vitest run --coverage --config vitest.react18.config.ts --reporter=verbose --reporter=github-actions && bun run typecheck:react18" ;;
             vue)         dir=packages/vue;     cmd="bun vitest $V" ;;
             angular)     dir=packages/angular; cmd="bun run inline-shared && bun vitest $V" ;;
             vanilla)     dir=packages/vanilla; cmd="bun vitest $V" ;;
@@ -337,7 +340,7 @@ jobs:
           echo "cmd=$cmd" >> "$GITHUB_OUTPUT"
 
       - name: Test ${{ matrix.key }}
-        run: cd ${{ steps.leg.outputs.dir }} && ${{ steps.leg.outputs.cmd }} --coverage
+        run: cd ${{ steps.leg.outputs.dir }} && ${{ steps.leg.outputs.cmd }}
 
       # Per-package flags are what make coverage useful against the parity rule:
       # a UI change that moved only the `react` flag is a visible signal that the
