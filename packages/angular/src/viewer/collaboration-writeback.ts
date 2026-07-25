@@ -8,6 +8,7 @@
  * service stays within the repo's per-file size budget.
  */
 
+import { PptxHandler } from 'pptx-viewer-core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import { readSlidesFromYDoc } from '../internal/shared';
@@ -27,7 +28,6 @@ export async function serializeWriteBack(
 	sourceBytes: Uint8Array,
 	templateElements: TemplateElementsBySlideId,
 ): Promise<Uint8Array> {
-	const { PptxHandler } = await import('pptx-viewer-core');
 	const handler = new PptxHandler();
 	await handler.load(sourceBytes.buffer as ArrayBuffer);
 	const slides = buildSaveSlides(readSlidesFromYDoc(ydoc) as PptxSlide[], templateElements);
