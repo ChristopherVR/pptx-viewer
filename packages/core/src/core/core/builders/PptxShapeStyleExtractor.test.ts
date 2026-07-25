@@ -354,7 +354,10 @@ describe('pptxShapeStyleExtractor', () => {
 	// ── Hidden fill from extension list ──────────────────────────────────
 
 	describe('hidden fill from extension list', () => {
-		it('resolves p14:hiddenFill when main fill is a:noFill', () => {
+		// `a14:hiddenFill` records the fill to restore if the user switches the
+		// fill back on. PowerPoint reports `Shape.Fill.Visible = 0` for shapes
+		// carrying it, so painting it filled shapes that render bare.
+		it('leaves a shape unfilled despite a p14:hiddenFill', () => {
 			const spPr: XmlObject = {
 				'a:noFill': {},
 				'a:extLst': {
@@ -369,8 +372,19 @@ describe('pptxShapeStyleExtractor', () => {
 				},
 			};
 			const style = extractor.extractShapeStyle(spPr);
-			expect(style.fillMode).toBe('solid');
-			expect(style.fillColor).toBe('#FF0000');
+			expect(style.fillMode).toBe('none');
+			expect(style.fillColor).toBe('transparent');
+		});
+
+		// `<a:noFill/>` parses to the empty string, so presence - not truthiness -
+		// decides. Otherwise the shape falls through to `a:fillRef` and inherits
+		// the theme fill it explicitly opted out of.
+		it('detects a noFill that parsed as an empty string over a fillRef', () => {
+			const spPr: XmlObject = { 'a:noFill': '' } as unknown as XmlObject;
+			const styleNode: XmlObject = { 'a:fillRef': { '@_idx': '1' } };
+			const style = extractor.extractShapeStyle(spPr, styleNode);
+			expect(style.fillMode).toBe('none');
+			expect(style.fillColor).toBe('transparent');
 		});
 	});
 });

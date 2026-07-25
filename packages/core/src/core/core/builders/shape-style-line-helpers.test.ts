@@ -67,34 +67,44 @@ function makeContext(overrides: Partial<ShapeLineStyleContext> = {}): ShapeLineS
 }
 
 // A no-op resolveHiddenLine helper (returns undefined — no hidden line).
-const noHiddenLine = () => undefined;
 
 // ---------------------------------------------------------------------------
 // applyLineProperties — noFill
 // ---------------------------------------------------------------------------
 
 describe('applyLineProperties — noFill', () => {
-	it('returns true and sets strokeWidth=0, strokeColor=transparent when noFill and no hidden line', () => {
+	it('returns true and sets strokeWidth=0, strokeColor=transparent when noFill', () => {
 		const lineNode: XmlObject = { 'a:noFill': {} };
 		const style = makeStyle();
-		const result = applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		const result = applyLineProperties(lineNode, style, makeContext());
 		expect(result).toBeTruthy();
 		expect(style.strokeWidth).toBe(0);
 		expect(style.strokeColor).toBe('transparent');
 	});
 
-	it('applies hidden line width and color when resolveHiddenLine returns props', () => {
+	// `<a:noFill/>` is an EMPTY element, so fast-xml-parser yields the empty
+	// string rather than an object. A truthiness test therefore missed it and a
+	// width on the same `a:ln` became a real stroke.
+	it('detects a noFill that parsed as an empty string, width and all', () => {
+		const lineNode: XmlObject = { '@_w': '3175', 'a:noFill': '' } as unknown as XmlObject;
+		const style = makeStyle();
+		const result = applyLineProperties(lineNode, style, makeContext());
+		expect(result).toBeTruthy();
+		expect(style.strokeWidth).toBe(0);
+		expect(style.strokeColor).toBe('transparent');
+		expect(style.strokeFillMode).toBe('none');
+	});
+
+	// `a14:hiddenLine` records the outline to restore if the user switches the
+	// outline back on; PowerPoint reports `Shape.Line.Visible = 0` for these, so
+	// it must not be painted.
+	it('does not revive a hidden line stored in the extension list', () => {
 		const lineNode: XmlObject = { 'a:noFill': {} };
 		const style = makeStyle();
-		const hiddenLineProps: XmlObject = {
-			'@_w': '19050',
-			'a:solidFill': { 'a:srgbClr': { '@_val': 'FF0000' } },
-		};
-		const result = applyLineProperties(lineNode, {}, style, makeContext(), () => hiddenLineProps);
+		const result = applyLineProperties(lineNode, style, makeContext());
 		expect(result).toBeTruthy();
-		// 19050 / 9525 = 2
-		expect(style.strokeWidth).toBe(2);
-		expect(style.strokeColor).toBe('#FF0000');
+		expect(style.strokeWidth).toBe(0);
+		expect(style.strokeColor).toBe('transparent');
 	});
 });
 
@@ -106,7 +116,7 @@ describe('applyLineProperties — line width', () => {
 	it('extracts line width from @_w (12700 EMU = 1pt ≈ 1.33px)', () => {
 		const lineNode: XmlObject = { '@_w': '12700' };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		// 12700 / 9525 ≈ 1.333
 		expect(style.strokeWidth).toBeCloseTo(1.333, 2);
 	});
@@ -114,7 +124,7 @@ describe('applyLineProperties — line width', () => {
 	it('extracts larger line width (38100 => 4px)', () => {
 		const lineNode: XmlObject = { '@_w': '38100' };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		// 38100 / 9525 = 4
 		expect(style.strokeWidth).toBe(4);
 	});
@@ -130,7 +140,7 @@ describe('applyLineProperties — stroke color', () => {
 			'a:solidFill': { 'a:srgbClr': { '@_val': '0000FF' } },
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeColor).toBe('#0000FF');
 	});
 
@@ -143,7 +153,7 @@ describe('applyLineProperties — stroke color', () => {
 			extractGradientFillColor: () => '#AABBCC',
 			extractGradientOpacity: () => 0.8,
 		});
-		applyLineProperties(lineNode, {}, style, ctx, noHiddenLine);
+		applyLineProperties(lineNode, style, ctx);
 		expect(style.strokeColor).toBe('#AABBCC');
 		expect(style.strokeOpacity).toBe(0.8);
 	});
@@ -156,7 +166,7 @@ describe('applyLineProperties — stroke color', () => {
 			},
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeColor).toBe('#112233');
 	});
 });
@@ -171,7 +181,7 @@ describe('applyLineProperties — outline fill kind', () => {
 			'a:solidFill': { 'a:srgbClr': { '@_val': '0000FF' } },
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeFillMode).toBe('solid');
 		expect(style.strokeGradientXml).toBeUndefined();
 		expect(style.strokePatternXml).toBeUndefined();
@@ -190,7 +200,7 @@ describe('applyLineProperties — outline fill kind', () => {
 		const lineNode: XmlObject = { 'a:gradFill': gradFill };
 		const style = makeStyle();
 		const ctx = makeContext({ extractGradientFillColor: () => '#7F007F' });
-		applyLineProperties(lineNode, {}, style, ctx, noHiddenLine);
+		applyLineProperties(lineNode, style, ctx);
 		expect(style.strokeFillMode).toBe('gradient');
 		expect(style.strokeGradientXml).toBe(gradFill);
 		// Averaged colour still available for solid-only stroke renderers.
@@ -205,7 +215,7 @@ describe('applyLineProperties — outline fill kind', () => {
 		};
 		const lineNode: XmlObject = { 'a:pattFill': pattFill };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeFillMode).toBe('pattern');
 		expect(style.strokePatternXml).toBe(pattFill);
 	});
@@ -213,7 +223,7 @@ describe('applyLineProperties — outline fill kind', () => {
 	it('models a noFill outline (no hidden line) as strokeFillMode "none"', () => {
 		const lineNode: XmlObject = { 'a:noFill': {} };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeFillMode).toBe('none');
 	});
 });
@@ -228,7 +238,7 @@ describe('applyLineProperties — dash patterns', () => {
 			'a:prstDash': { '@_val': 'dash' },
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeDash).toBe('dash');
 	});
 
@@ -237,7 +247,7 @@ describe('applyLineProperties — dash patterns', () => {
 			'a:prstDash': { '@_val': 'dot' },
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeDash).toBe('dot');
 	});
 
@@ -246,7 +256,7 @@ describe('applyLineProperties — dash patterns', () => {
 			'a:prstDash': { '@_val': 'lgDash' },
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeDash).toBe('lgDash');
 	});
 
@@ -255,7 +265,7 @@ describe('applyLineProperties — dash patterns', () => {
 			'a:prstDash': { '@_val': 'sysDash' },
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeDash).toBe('sysDash');
 	});
 
@@ -264,7 +274,7 @@ describe('applyLineProperties — dash patterns', () => {
 			'a:prstDash': { '@_val': 'dashDot' },
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeDash).toBe('dashDot');
 	});
 
@@ -278,7 +288,7 @@ describe('applyLineProperties — dash patterns', () => {
 			},
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeDash).toBe('custom');
 		expect(style.customDashSegments).toStrictEqual([
 			{ dash: 400000, space: 200000 },
@@ -297,7 +307,7 @@ describe('applyLineProperties — arrow heads', () => {
 			'a:headEnd': { '@_type': 'triangle', '@_w': 'lg', '@_len': 'lg' },
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.connectorStartArrow).toBe('triangle');
 		expect(style.connectorStartArrowWidth).toBe('lg');
 		expect(style.connectorStartArrowLength).toBe('lg');
@@ -308,7 +318,7 @@ describe('applyLineProperties — arrow heads', () => {
 			'a:tailEnd': { '@_type': 'stealth', '@_w': 'sm', '@_len': 'sm' },
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.connectorEndArrow).toBe('stealth');
 		expect(style.connectorEndArrowWidth).toBe('sm');
 		expect(style.connectorEndArrowLength).toBe('sm');
@@ -320,7 +330,7 @@ describe('applyLineProperties — arrow heads', () => {
 			'a:tailEnd': { '@_type': 'oval', '@_w': 'lg', '@_len': 'sm' },
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.connectorStartArrow).toBe('diamond');
 		expect(style.connectorStartArrowWidth).toBe('med');
 		expect(style.connectorEndArrow).toBe('oval');
@@ -336,21 +346,21 @@ describe('applyLineProperties — join, cap, compound', () => {
 	it('applies round line join', () => {
 		const lineNode: XmlObject = { 'a:round': {} };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.lineJoin).toBe('round');
 	});
 
 	it('applies bevel line join', () => {
 		const lineNode: XmlObject = { 'a:bevel': {} };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.lineJoin).toBe('bevel');
 	});
 
 	it('applies miter line join', () => {
 		const lineNode: XmlObject = { 'a:miter': {} };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.lineJoin).toBe('miter');
 		expect(style.miterLimit).toBeUndefined();
 	});
@@ -358,7 +368,7 @@ describe('applyLineProperties — join, cap, compound', () => {
 	it('parses miter @_lim into miterLimit (E-H6)', () => {
 		const lineNode: XmlObject = { 'a:miter': { '@_lim': '500000' } };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.lineJoin).toBe('miter');
 		expect(style.miterLimit).toBe(500000);
 	});
@@ -366,42 +376,42 @@ describe('applyLineProperties — join, cap, compound', () => {
 	it("applies cap type 'rnd'", () => {
 		const lineNode: XmlObject = { '@_cap': 'rnd' };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.lineCap).toBe('rnd');
 	});
 
 	it("applies cap type 'sq'", () => {
 		const lineNode: XmlObject = { '@_cap': 'sq' };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.lineCap).toBe('sq');
 	});
 
 	it("applies cap type 'flat'", () => {
 		const lineNode: XmlObject = { '@_cap': 'flat' };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.lineCap).toBe('flat');
 	});
 
 	it("applies compound line type 'dbl'", () => {
 		const lineNode: XmlObject = { '@_cmpd': 'dbl' };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.compoundLine).toBe('dbl');
 	});
 
 	it("applies compound line type 'thickThin'", () => {
 		const lineNode: XmlObject = { '@_cmpd': 'thickThin' };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.compoundLine).toBe('thickThin');
 	});
 
 	it("applies compound line type 'tri'", () => {
 		const lineNode: XmlObject = { '@_cmpd': 'tri' };
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.compoundLine).toBe('tri');
 	});
 });
@@ -423,7 +433,7 @@ describe('applyLineProperties — line effects', () => {
 			},
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.lineShadowColor).toBe('#000000');
 		// 38100 / 9525 = 4
 		expect(style.lineShadowBlur).toBe(4);
@@ -449,7 +459,7 @@ describe('applyLineProperties — line effects', () => {
 			},
 		};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.lineGlowColor).toBe('#FFFF00');
 		// 57150 / 9525 = 6
 		expect(style.lineGlowRadius).toBe(6);
@@ -458,7 +468,7 @@ describe('applyLineProperties — line effects', () => {
 	it('does not set line effects when a:effectLst is absent', () => {
 		const lineNode: XmlObject = {};
 		const style = makeStyle();
-		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		applyLineProperties(lineNode, style, makeContext());
 		expect(style.lineShadowColor).toBeUndefined();
 		expect(style.lineGlowColor).toBeUndefined();
 	});

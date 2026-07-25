@@ -1,6 +1,6 @@
 import type { ConnectorArrowType, ShapeStyle, StrokeDashType, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
-import { drawingChild } from './drawing-fill-xml';
+import { drawingChild, hasDrawingChild } from './drawing-fill-xml';
 import { extractGradientTileRect } from './PptxGradientStyleCodec';
 import { applyScene3dStyle, applyShape3dStyle } from './shape-style-3d-helpers';
 import { applyLineProperties } from './shape-style-line-helpers';
@@ -54,7 +54,11 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 		const solidFill = drawingChild(shapeProps, 'solidFill');
 		const gradFill = drawingChild(shapeProps, 'gradFill');
 		const pattFill = drawingChild(shapeProps, 'pattFill');
-		const noFill = drawingChild(shapeProps, 'noFill');
+		// `a:noFill` is an empty marker element, so it has no object form for
+		// `drawingChild` to return - it must be detected by presence, or a shape
+		// that explicitly says "no fill" falls through to the `a:fillRef` branch
+		// and inherits the theme fill instead of staying unfilled.
+		const noFill = hasDrawingChild(shapeProps, 'noFill');
 		const blipFill = drawingChild(shapeProps, 'blipFill');
 
 		if (solidFill) {
@@ -120,35 +124,17 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 				style.fillPatternBgClrXml = bgClrNode;
 			}
 		} else if (noFill) {
-			// When main fill is a:noFill, check p14:hiddenFill in the extension
-			// list — PowerPoint stores the "real" fill there for shapes that
-			// appear unfilled in normal view but should show fill in some contexts.
-			const hiddenFillProps = this.extractHiddenFillFromExtLst(shapeProps);
-			if (hiddenFillProps) {
-				const hiddenSolid = hiddenFillProps['a:solidFill'] as XmlObject | undefined;
-				const hiddenGrad = hiddenFillProps['a:gradFill'] as XmlObject | undefined;
-				if (hiddenSolid) {
-					style.fillMode = 'solid';
-					style.fillColor = this.context.parseColor(hiddenSolid);
-					style.fillOpacity = this.context.extractColorOpacity(hiddenSolid);
-				} else if (hiddenGrad) {
-					style.fillMode = 'gradient';
-					style.fillColor = this.context.extractGradientFillColor(hiddenGrad);
-					style.fillOpacity = this.context.extractGradientOpacity(hiddenGrad);
-					style.fillGradient = this.context.extractGradientFillCss(hiddenGrad);
-					style.fillGradientStops = this.context.extractGradientStops(hiddenGrad);
-					style.fillGradientAngle = this.context.extractGradientAngle(hiddenGrad);
-					style.fillGradientType = this.context.extractGradientType(hiddenGrad);
-				} else {
-					style.fillMode = 'none';
-					style.fillColor = 'transparent';
-					style.fillOpacity = 0;
-				}
-			} else {
-				style.fillMode = 'none';
-				style.fillColor = 'transparent';
-				style.fillOpacity = 0;
-			}
+			// `a:noFill` means the shape is unfilled, full stop. `a14:hiddenFill`
+			// is only where PowerPoint REMEMBERS the fill to restore if the user
+			// turns the fill back on; it is not painted. (Verified against
+			// PowerPoint itself: for shapes carrying `a14:hiddenFill`, the object
+			// model reports `Shape.Fill.Visible = 0`.) Painting it filled shapes
+			// that render bare, and - because a filled shape is not classified as
+			// a text box - turned plain text placeholders into styled shapes. The
+			// extension survives a round-trip via the preserved `a:extLst`.
+			style.fillMode = 'none';
+			style.fillColor = 'transparent';
+			style.fillOpacity = 0;
 		} else if (blipFill) {
 			style.fillMode = 'image';
 			style.fillColor = 'transparent';
@@ -161,9 +147,7 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 
 		const lineNode = shapeProps['a:ln'] as XmlObject | undefined;
 		if (lineNode) {
-			const earlyReturn = applyLineProperties(lineNode, shapeProps, style, this.context, (props) =>
-				this.extractHiddenLineFromExtLst(props),
-			);
+			const earlyReturn = applyLineProperties(lineNode, style, this.context);
 			if (earlyReturn) {
 				return style;
 			}
@@ -223,55 +207,6 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 			const child = refNode[key];
 			if (child !== undefined) {
 				return { [key]: child } as XmlObject;
-			}
-		}
-		return undefined;
-	}
-
-	/**
-	 * Extract p14:hiddenFill from the shape properties extension list.
-	 * URI: {AF507438-7753-43E0-B8FC-AC1667EBCBE1}
-	 *
-	 * The p14:hiddenFill element wraps a standard fill child (a:solidFill,
-	 * a:gradFill, etc.) that should be applied when the main fill is absent.
-	 */
-	private extractHiddenFillFromExtLst(shapeProps: XmlObject): XmlObject | undefined {
-		const extLst = shapeProps['a:extLst'] as XmlObject | undefined;
-		if (!extLst) {
-			return undefined;
-		}
-
-		const exts = this.context.ensureArray(extLst['a:ext']);
-		for (const ext of exts) {
-			const extObj = ext as XmlObject;
-			const uri = String(extObj?.['@_uri'] || '');
-			if (uri === '{AF507438-7753-43E0-B8FC-AC1667EBCBE1}') {
-				// p14:hiddenFill wraps the fill child directly
-				return (extObj['a14:hiddenFill'] ?? extObj['p14:hiddenFill']) as XmlObject | undefined;
-			}
-		}
-		return undefined;
-	}
-
-	/**
-	 * Extract p14:hiddenLine from the shape properties extension list.
-	 * URI: {91240B29-F687-4F45-9708-019B960494DF}
-	 *
-	 * The p14:hiddenLine element wraps a standard a:ln-like structure
-	 * that should be applied when the main line is absent.
-	 */
-	private extractHiddenLineFromExtLst(shapeProps: XmlObject): XmlObject | undefined {
-		const extLst = shapeProps['a:extLst'] as XmlObject | undefined;
-		if (!extLst) {
-			return undefined;
-		}
-
-		const exts = this.context.ensureArray(extLst['a:ext']);
-		for (const ext of exts) {
-			const extObj = ext as XmlObject;
-			const uri = String(extObj?.['@_uri'] || '');
-			if (uri === '{91240B29-F687-4F45-9708-019B960494DF}') {
-				return (extObj['a14:hiddenLine'] ?? extObj['p14:hiddenLine']) as XmlObject | undefined;
 			}
 		}
 		return undefined;

@@ -25,6 +25,32 @@ export function drawingChild(
 	return undefined;
 }
 
+/**
+ * Whether `node` has a child with the requested local name, whatever its parsed
+ * shape.
+ *
+ * Use this, NOT {@link drawingChild}, for the empty marker elements OOXML uses
+ * as flags (`a:noFill`, `a:grpFill`, ...). fast-xml-parser turns `<a:noFill/>`
+ * into the empty STRING `""`, which is both falsy and not an object, so a
+ * truthiness test and `drawingChild` alike report the element as absent - and a
+ * shape that explicitly says "no fill" / "no outline" silently inherits the
+ * theme's fill or line instead.
+ */
+export function hasDrawingChild(node: XmlObject | undefined, requestedName: string): boolean {
+	if (!node) {
+		return false;
+	}
+	for (const key of Object.keys(node)) {
+		if (key.startsWith(ATTRIBUTE_PREFIX) || key === '#text') {
+			continue;
+		}
+		if (key.split(':').at(-1) === requestedName) {
+			return true;
+		}
+	}
+	return false;
+}
+
 /** Return all object children whose qualified name has the requested local name. */
 export function drawingChildren(node: XmlObject | undefined, requestedName: string): XmlObject[] {
 	if (!node) {

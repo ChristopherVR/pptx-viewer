@@ -1,6 +1,7 @@
 import type { ConnectorArrowType, ShapeStyle, StrokeDashType, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import { parseDrawingLineDash } from '../../utils/drawing-line-dash';
+import { hasDrawingChild } from './drawing-fill-xml';
 
 export interface ShapeLineStyleContext {
 	emuPerPx: number;
@@ -19,28 +20,26 @@ export interface ShapeLineStyleContext {
  */
 export function applyLineProperties(
 	lineNode: XmlObject,
-	shapeProps: XmlObject,
 	style: ShapeStyle,
 	context: ShapeLineStyleContext,
-	resolveHiddenLine: (props: XmlObject) => XmlObject | undefined,
 ): boolean {
-	if (lineNode['a:noFill']) {
-		const hiddenLineProps = resolveHiddenLine(shapeProps);
-		if (hiddenLineProps) {
-			if (hiddenLineProps['@_w']) {
-				style.strokeWidth = parseInt(String(hiddenLineProps['@_w']), 10) / context.emuPerPx;
-			}
-			const hiddenLineFill = hiddenLineProps['a:solidFill'] as XmlObject | undefined;
-			if (hiddenLineFill) {
-				style.strokeFillMode = 'solid';
-				style.strokeColor = context.parseColor(hiddenLineFill);
-				style.strokeOpacity = context.extractColorOpacity(hiddenLineFill);
-			}
-		} else {
-			style.strokeFillMode = 'none';
-			style.strokeWidth = 0;
-			style.strokeColor = 'transparent';
-		}
+	// `<a:noFill/>` parses to the empty STRING, so a truthiness test silently
+	// treated "no outline" as "no line element at all": the width on the very
+	// same `a:ln` then became a real stroke, painting a border PowerPoint does
+	// not draw (a hairline `<a:ln w="3175"><a:noFill/></a:ln>` divider showed up
+	// as a visible 1px line).
+	if (hasDrawingChild(lineNode, 'noFill')) {
+		// `a:noFill` means no outline, full stop. `a14:hiddenLine` is only where
+		// PowerPoint REMEMBERS the outline the shape would get if it were turned
+		// back on; it is not painted. (Verified against PowerPoint itself: for
+		// shapes carrying `a14:hiddenLine`, the object model reports
+		// `Shape.Line.Visible = 0`.) Reviving it drew outlines on shapes that
+		// render bare, and made unfilled/unstroked text placeholders look like
+		// styled shapes. The extension survives a round-trip via the preserved
+		// `a:extLst`, so nothing is lost by ignoring it here.
+		style.strokeFillMode = 'none';
+		style.strokeWidth = 0;
+		style.strokeColor = 'transparent';
 		return true;
 	}
 
