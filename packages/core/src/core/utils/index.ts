@@ -49,6 +49,8 @@ export {
 	getSvgStrokeDasharray,
 } from './stroke-utils';
 
+export { ooxmlGradientAngleToCssDegrees, cssDegreesToOoxmlGradientAngle } from './gradient-angle';
+
 export { parseDataUrlToBytes, fetchUrlToBytes } from './data-url-utils';
 export { buildInkMlContent, parseInkMlContent } from './inkml-content-part';
 

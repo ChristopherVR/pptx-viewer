@@ -1,5 +1,6 @@
 import { XmlObject, TextStyle } from '../../types';
 import type { PptxAction } from '../../types';
+import { ooxmlGradientAngleToCssDegrees } from '../../utils/gradient-angle';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeElementActions';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -152,7 +153,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						? parseInt(String((gradFill['a:lin'] as XmlObject)['@_ang'] || '0')) / 60000
 						: 0;
 					const gradType = gradFill['a:path'] ? 'radial' : 'linear';
-					result.textFillGradient = `linear-gradient(${angle}deg, ${cssStops.join(', ')})`;
+					// `a:lin/@ang` is clockwise from +x; CSS is clockwise from "to top".
+					result.textFillGradient = `linear-gradient(${ooxmlGradientAngleToCssDegrees(angle)}deg, ${cssStops.join(', ')})`;
 
 					// Store structured data for round-trip serialization
 					const structuredStops: NonNullable<TextStyle['textFillGradientStops']> = [];

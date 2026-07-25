@@ -42,6 +42,13 @@ export type FillInput =
 	| { type: 'solid'; color: string; opacity?: number }
 	| {
 			type: 'gradient';
+			/**
+			 * Gradient direction in the OOXML `a:lin/@ang` convention: degrees
+			 * clockwise from the positive x-axis, pointing from the first stop
+			 * towards the last (`0` = left to right, `90` = top to bottom). This is
+			 * what lands in `ShapeStyle.fillGradientAngle` and what is written back
+			 * to the file, NOT a CSS `linear-gradient()` angle.
+			 */
 			angle?: number;
 			gradientType?: 'linear' | 'radial';
 			stops: Array<{ color: string; position: number; opacity?: number }>;
@@ -234,6 +241,12 @@ export type BackgroundInput =
 	| { type: 'solid'; color: string }
 	| {
 			type: 'gradient';
+			/**
+			 * Slide backgrounds are stored as a ready-made CSS gradient string
+			 * (`PptxSlide.backgroundGradient`), so this is a CSS
+			 * `linear-gradient()` angle: degrees clockwise from "to top"
+			 * (`90` = left to right, `180` = top to bottom). Defaults to `180`.
+			 */
 			angle?: number;
 			stops: Array<{ color: string; position: number }>;
 	  }

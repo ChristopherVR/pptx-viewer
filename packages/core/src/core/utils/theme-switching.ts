@@ -28,6 +28,7 @@ import type {
 	PptxTableCellStyle,
 } from '../types';
 import { THEME_COLOR_SCHEME_KEYS } from '../types/theme';
+import { ooxmlGradientAngleToCssDegrees } from './gradient-angle';
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -151,7 +152,9 @@ function buildSimpleGradientCss(
 	if (type === 'radial') {
 		return `radial-gradient(circle, ${stopStrs})`;
 	}
-	return `linear-gradient(${angle}deg, ${stopStrs})`;
+	// `angle` carries the OOXML `a:lin/@ang` convention (clockwise from +x);
+	// CSS measures clockwise from "to top", a quarter turn away.
+	return `linear-gradient(${ooxmlGradientAngleToCssDegrees(angle)}deg, ${stopStrs})`;
 }
 
 // ---------------------------------------------------------------------------

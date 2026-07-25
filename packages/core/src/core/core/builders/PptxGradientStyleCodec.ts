@@ -1,4 +1,5 @@
 import type { ShapeStyle, XmlObject } from '../../types';
+import { ooxmlGradientAngleToCssDegrees } from '../../utils/gradient-angle';
 import { drawingChild, drawingChildren, mergeDrawingFillXml } from './drawing-fill-xml';
 
 /**
@@ -306,7 +307,9 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 
 			return `radial-gradient(circle at ${posX} ${posY}, ${stopStr})`;
 		}
-		return `linear-gradient(${angle.toFixed(2)}deg, ${stopTokens.join(', ')})`;
+		// `angle` is an OOXML `a:lin/@ang` value in degrees (clockwise from +x);
+		// CSS measures clockwise from "to top", a quarter turn away.
+		return `linear-gradient(${ooxmlGradientAngleToCssDegrees(angle).toFixed(2)}deg, ${stopTokens.join(', ')})`;
 	}
 
 	public extractGradientFillCss(gradFill: XmlObject): string | undefined {
