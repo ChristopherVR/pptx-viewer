@@ -20,6 +20,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
+import { ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 
 import {
 	addGradientStopPatch,
@@ -296,7 +297,9 @@ export class GradientPickerComponent {
 		if (s.type === 'radial') {
 			return `radial-gradient(circle, ${stopsCss})`;
 		}
-		return `linear-gradient(${s.angle}deg, ${stopsCss})`;
+		// `state.angle` is the authored OOXML angle, so the preview strip has to
+		// convert it the same way the canvas renderer does or it lies by 90deg.
+		return `linear-gradient(${ooxmlGradientAngleToCssDegrees(s.angle)}deg, ${stopsCss})`;
 	});
 
 	// ── Type ─────────────────────────────────────────────────────────────────

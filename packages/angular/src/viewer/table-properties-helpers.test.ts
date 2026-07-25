@@ -102,7 +102,8 @@ describe('buildGradientFillCss', () => {
 			'linear',
 			45,
 		);
-		expect(css).toBe('linear-gradient(45deg, #F00 0%, #00F 100%)');
+		// 45 is the OOXML angle; CSS sits a quarter turn away.
+		expect(css).toBe('linear-gradient(135deg, #F00 0%, #00F 100%)');
 	});
 
 	it('builds a radial gradient', () => {

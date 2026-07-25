@@ -10,6 +10,7 @@
  * No Angular imports, so they are unit-testable with plain vitest.
  */
 import type { PptxTableCellStyle, PptxTableData, PptxTableRow } from 'pptx-viewer-core';
+import { ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 
 import type { TableStylePreset } from '../internal/shared';
 
@@ -114,6 +115,10 @@ export function evenRowHeights(td: PptxTableData): PptxTableRow[] {
 /**
  * Build a CSS gradient string from structured cell-style gradient fields, so
  * the renderer (which reads `gradientFillCss`) shows an edited gradient live.
+ *
+ * `angle` is `PptxTableCellStyle.gradientFillAngle`, stored in the OOXML
+ * `a:lin/@ang` convention (clockwise from +x) so it round-trips to the file
+ * unchanged; CSS measures clockwise from "to top", a quarter turn away.
  */
 export function buildGradientFillCss(
 	stops: Array<{ color: string; position: number }>,
@@ -125,5 +130,5 @@ export function buildGradientFillCss(
 	if (type === 'radial') {
 		return `radial-gradient(circle, ${parts})`;
 	}
-	return `linear-gradient(${Math.round(angle)}deg, ${parts})`;
+	return `linear-gradient(${Math.round(ooxmlGradientAngleToCssDegrees(angle))}deg, ${parts})`;
 }

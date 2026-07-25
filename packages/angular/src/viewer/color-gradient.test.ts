@@ -90,18 +90,20 @@ describe('sanitizeGradientStops', () => {
 // ---------------------------------------------------------------------------
 
 describe('convertOoxmlAngleToCss', () => {
-	it('returns value normalised to 0-360 when already in degrees', () => {
-		expect(convertOoxmlAngleToCss(90)).toBe(90);
-		expect(convertOoxmlAngleToCss(0)).toBe(0);
-		expect(convertOoxmlAngleToCss(360)).toBe(0);
-		expect(convertOoxmlAngleToCss(-90)).toBe(270);
+	// `a:lin/@ang` is clockwise from +x, CSS is clockwise from "to top", so the
+	// conversion is a quarter turn plus a 0-360 normalisation.
+	it('rotates a quarter turn and normalises to 0-360', () => {
+		expect(convertOoxmlAngleToCss(90)).toBe(180);
+		expect(convertOoxmlAngleToCss(0)).toBe(90);
+		expect(convertOoxmlAngleToCss(360)).toBe(90);
+		expect(convertOoxmlAngleToCss(-90)).toBe(0);
 	});
 
 	it('converts from 60000ths of a degree when alreadyDegrees=false', () => {
-		// 5400000 / 60000 = 90 degrees
-		expect(convertOoxmlAngleToCss(5400000, false)).toBe(90);
-		// 0 → 0 degrees
-		expect(convertOoxmlAngleToCss(0, false)).toBe(0);
+		// 5400000 / 60000 = 90 OOXML degrees -> CSS 180deg
+		expect(convertOoxmlAngleToCss(5400000, false)).toBe(180);
+		// 0 OOXML degrees -> CSS 90deg
+		expect(convertOoxmlAngleToCss(0, false)).toBe(90);
 	});
 });
 
@@ -287,10 +289,10 @@ describe('buildCssGradientFromShapeStyle', () => {
 			],
 		});
 		const result = buildCssGradientFromShapeStyle(style);
-		expect(result).toBe('linear-gradient(45deg, #ff0000 0%, #0000ff 100%)');
+		expect(result).toBe('linear-gradient(135deg, #ff0000 0%, #0000ff 100%)');
 	});
 
-	it('defaults angle to 90 when angle is missing', () => {
+	it('defaults the OOXML angle to 90 (CSS 180deg) when angle is missing', () => {
 		const style = gradientStyle({
 			fillGradientType: 'linear',
 			fillGradientStops: [
@@ -299,7 +301,7 @@ describe('buildCssGradientFromShapeStyle', () => {
 			],
 		});
 		expect(buildCssGradientFromShapeStyle(style)).toBe(
-			'linear-gradient(90deg, #ff0000 0%, #0000ff 100%)',
+			'linear-gradient(180deg, #ff0000 0%, #0000ff 100%)',
 		);
 	});
 
@@ -390,6 +392,6 @@ describe('buildCssGradientFromShapeStyle', () => {
 		});
 		const result = buildCssGradientFromShapeStyle(style);
 		// After sorting, red (0%) should appear before blue (100%)
-		expect(result).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 100%)');
+		expect(result).toBe('linear-gradient(180deg, #ff0000 0%, #0000ff 100%)');
 	});
 });
