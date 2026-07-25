@@ -117,6 +117,35 @@ describe('convertToMarkdown', () => {
 		expect(result.result.markdown).toBeTruthy();
 	});
 
+	it('scopes outputDir through the host-supplied guard', async () => {
+		const seen: Array<[string, string | undefined]> = [];
+		await convertToMarkdown(ctx(), {
+			outputDir: 'out',
+			rootDir: '/srv/decks',
+			scopeOutputDir: (dir, root) => {
+				seen.push([dir, root]);
+				return `${root}/${dir}`;
+			},
+		});
+		expect(seen).toStrictEqual([['out', '/srv/decks']]);
+	});
+
+	it('propagates a rejection from the host-supplied guard', async () => {
+		await expect(
+			convertToMarkdown(ctx(), {
+				outputDir: '../escape',
+				scopeOutputDir: () => {
+					throw new Error('resolves outside the allowed root');
+				},
+			}),
+		).rejects.toThrow('resolves outside the allowed root');
+	});
+
+	it('leaves outputDir untouched when no guard is supplied (browser use)', async () => {
+		const result = await convertToMarkdown(ctx(), { outputDir: '../anywhere' });
+		expect(result.result.markdown).toBeTruthy();
+	});
+
 	it('does not mutate pptxData', async () => {
 		const c = ctx();
 		const slideCountBefore = c.pptxData.slides.length;

@@ -3,11 +3,6 @@ import type { PptxConverterOptions } from 'pptx-viewer-core';
 
 import type { ToolContext, ToolResult } from '../types.js';
 
-/** True when running under Node (has a real filesystem to scope paths against). */
-function isNodeRuntime(): boolean {
-	return typeof process !== 'undefined' && Boolean(process.versions?.node);
-}
-
 export interface ConvertToMarkdownParams {
 	outputDir?: string;
 	mediaFolderName?: string;
@@ -17,33 +12,25 @@ export interface ConvertToMarkdownParams {
 	semanticMode?: boolean;
 	sourceName?: string;
 	/**
-	 * Root directory under which `outputDir` must resolve. Defaults to
+	 * Root directory under which `outputDir` must resolve. Only meaningful when
+	 * {@link ConvertToMarkdownParams.scopeOutputDir} is supplied. Defaults to
 	 * `process.env.PPTX_TOOLS_ROOT` if set, else `process.cwd()`.
 	 */
 	rootDir?: string;
-}
-
-/**
- * Resolve `outputDir` under `rootDir` and reject any traversal escape. This is a
- * filesystem-security concern that only applies on the server (Node): the
- * `node:path` module is imported lazily so this tool stays browser-safe (the
- * in-viewer AI assistant calls it for the markdown string, with no filesystem,
- * so the output dir is just a prefix for image links).
- */
-async function scopeOutputDir(outputDir: string, rootDir?: string): Promise<string> {
-	if (!isNodeRuntime()) {
-		return outputDir;
-	}
-	const { isAbsolute, resolve, sep } = await import('node:path');
-	const root = resolve(rootDir ?? process.env['PPTX_TOOLS_ROOT'] ?? process.cwd());
-	const resolved = isAbsolute(outputDir) ? resolve(outputDir) : resolve(root, outputDir);
-	const rootWithSep = root.endsWith(sep) ? root : root + sep;
-	if (resolved !== root && !resolved.startsWith(rootWithSep)) {
-		throw new Error(
-			`convertToMarkdown: outputDir "${outputDir}" resolves outside the allowed root "${root}"`,
-		);
-	}
-	return resolved;
+	/**
+	 * Optional host-supplied guard that resolves `outputDir` under `rootDir` and
+	 * rejects traversal escapes.
+	 *
+	 * Confining an output directory is a filesystem concern that only exists on
+	 * the server, and it needs `node:path` to do correctly. This module is also
+	 * reached from the browser (the in-viewer AI assistant calls this tool for
+	 * the markdown string, with no filesystem, so `outputDir` is just a prefix
+	 * for image links), and a `node:path` import here (even a lazy one behind a
+	 * runtime check) puts a Node builtin into every bundler's module graph and
+	 * makes browser builds warn. So the MCP server injects
+	 * {@link resolveScopedDir} instead and browsers simply omit it.
+	 */
+	scopeOutputDir?: (outputDir: string, rootDir?: string) => string;
 }
 
 export interface ConvertToMarkdownResult {
@@ -66,7 +53,10 @@ export async function convertToMarkdown(
 		sourceName: params.sourceName ?? 'unknown',
 	};
 
-	const safeOutputDir = await scopeOutputDir(params.outputDir ?? '.', params.rootDir);
+	const outputDir = params.outputDir ?? '.';
+	const safeOutputDir = params.scopeOutputDir
+		? params.scopeOutputDir(outputDir, params.rootDir)
+		: outputDir;
 	const converter = new PptxMarkdownConverter(safeOutputDir, options);
 	const markdown = await converter.convert(ctx.pptxData);
 

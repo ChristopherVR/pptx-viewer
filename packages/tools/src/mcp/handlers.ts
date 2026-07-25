@@ -7,6 +7,30 @@ import type { ExecutionContext, ToolContext, ToolResult } from '../types.js';
 const ALLOWED_EXTENSIONS = new Set(['.pptx', '.ppt']);
 
 /**
+ * Resolve `dir` against `rootDir` and ensure the result stays within it.
+ *
+ * `rootDir` defaults to `process.env.PPTX_TOOLS_ROOT` if set, else
+ * `process.cwd()`. Throws on traversal escape or non-string input. Node-only:
+ * this lives here (rather than beside the tool it guards) so the tool modules
+ * stay free of `node:path` and remain bundleable for the browser.
+ */
+export function resolveScopedDir(dir: string, rootDir?: string): string {
+	if (typeof dir !== 'string' || dir.length === 0) {
+		throw new Error('MCP tool: path must be a non-empty string');
+	}
+
+	const root = resolve(rootDir ?? process.env['PPTX_TOOLS_ROOT'] ?? process.cwd());
+	const resolved = isAbsolute(dir) ? resolve(dir) : resolve(root, dir);
+
+	const rootWithSep = root.endsWith(sep) ? root : root + sep;
+	if (resolved !== root && !resolved.startsWith(rootWithSep)) {
+		throw new Error(`MCP tool: path "${dir}" resolves outside the allowed root "${root}"`);
+	}
+
+	return resolved;
+}
+
+/**
  * Resolve `filePath` against `rootDir` and ensure the result stays within it.
  *
  * - `rootDir` defaults to `process.env.PPTX_TOOLS_ROOT` if set, else `process.cwd()`.
@@ -18,13 +42,7 @@ export function resolveScopedFilePath(filePath: string, rootDir?: string): strin
 		throw new Error('MCP tool: filePath must be a non-empty string');
 	}
 
-	const root = resolve(rootDir ?? process.env['PPTX_TOOLS_ROOT'] ?? process.cwd());
-	const resolved = isAbsolute(filePath) ? resolve(filePath) : resolve(root, filePath);
-
-	const rootWithSep = root.endsWith(sep) ? root : root + sep;
-	if (resolved !== root && !resolved.startsWith(rootWithSep)) {
-		throw new Error(`MCP tool: filePath "${filePath}" resolves outside the allowed root "${root}"`);
-	}
+	const resolved = resolveScopedDir(filePath, rootDir);
 
 	const lower = resolved.toLowerCase();
 	let isAllowed = false;

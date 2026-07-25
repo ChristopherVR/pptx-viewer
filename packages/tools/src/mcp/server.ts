@@ -20,7 +20,7 @@ import * as tableTools from '../tools/table-tools.js';
 import * as templateTools from '../tools/template-tools.js';
 import * as themeTools from '../tools/theme-tools.js';
 import * as validationTools from '../tools/validation-tools.js';
-import { runMcpTool, resolveScopedFilePath } from './handlers.js';
+import { runMcpTool, resolveScopedDir, resolveScopedFilePath } from './handlers.js';
 
 export function createServer(): McpServer {
 	const server = new McpServer({
@@ -549,8 +549,10 @@ export function createServer(): McpServer {
 			inputSchema: schemas.ConvertToMarkdownSchema.shape,
 		},
 		async (params) => {
+			// `scopeOutputDir` is injected here rather than imported by the tool:
+			// it needs `node:path`, and the tool modules also run in the browser.
 			const result = await runMcpTool(params.filePath, (ctx) =>
-				conversionTools.convertToMarkdown(ctx, params),
+				conversionTools.convertToMarkdown(ctx, { ...params, scopeOutputDir: resolveScopedDir }),
 			);
 			return {
 				content: [
