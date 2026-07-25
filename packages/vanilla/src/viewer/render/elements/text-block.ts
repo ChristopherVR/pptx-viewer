@@ -1,6 +1,10 @@
-import type { CssStyleMap, RenderParagraph } from 'pptx-viewer-shared';
+import { buildTextBuildSpec, textBuildSpanStyle } from 'pptx-viewer-shared';
+import type { CssStyleMap, ElementAnimationState, RenderParagraph } from 'pptx-viewer-shared';
 
 import { applyStyleMap, createEl } from '../dom';
+
+/** A run whose text is exactly a newline is a hard line break, not content. */
+const NEWLINE_RUN = '\n';
 
 /**
  * Render an element's rich text (paragraphs of styled runs with bullet
@@ -12,6 +16,13 @@ export function renderTextBlock(
 	doc: Document,
 	paragraphs: RenderParagraph[],
 	textStyle: CssStyleMap,
+	/**
+	 * Owning element id + live sub-element animation states, supplied only while
+	 * presenting. A staged text build (PowerPoint's "Animate text: By letter")
+	 * needs the rendered text split to match its per-character sub-animations,
+	 * otherwise the whole box just fades as one.
+	 */
+	build?: { elementId: string; states: ReadonlyMap<string, ElementAnimationState> | undefined },
 ): HTMLElement {
 	const block = createEl(doc, 'div', 'pptxv-text', textStyle);
 
@@ -61,15 +72,52 @@ export function renderTextBlock(
 			p.appendChild(bullet);
 		}
 
+		const spec = build
+			? buildTextBuildSpec<CssStyleMap>(
+					build.elementId,
+					paragraphs.indexOf(para),
+					para.runs
+						.filter((run) => run.text !== NEWLINE_RUN)
+						.map((run) => ({ text: run.text, style: run.style })),
+					build.states,
+				)
+			: undefined;
+
+		if (spec && spec.granularity !== 'paragraph') {
+			for (const span of spec.spans ?? []) {
+				const node = createEl(doc, 'span');
+				applyStyleMap(node, { ...(span.style ?? {}), ...textBuildSpanStyle(span) });
+				if (span.animId) {
+					node.setAttribute('data-anim-id', span.animId);
+				}
+				node.textContent = span.text;
+				p.appendChild(node);
+			}
+			block.appendChild(p);
+			continue;
+		}
+
+		// A paragraph-level build wraps the runs; everything else renders plainly.
+		let runHost: HTMLElement = p;
+		if (spec) {
+			const wrapper = createEl(doc, 'span');
+			applyStyleMap(wrapper, textBuildSpanStyle(spec));
+			if (spec.animId) {
+				wrapper.setAttribute('data-anim-id', spec.animId);
+			}
+			p.appendChild(wrapper);
+			runHost = wrapper;
+		}
+
 		for (const run of para.runs) {
-			if (run.text === '\n') {
-				p.appendChild(doc.createElement('br'));
+			if (run.text === NEWLINE_RUN) {
+				runHost.appendChild(doc.createElement('br'));
 				continue;
 			}
 			const span = createEl(doc, 'span');
 			applyStyleMap(span, run.style);
 			span.textContent = run.text;
-			p.appendChild(span);
+			runHost.appendChild(span);
 		}
 
 		block.appendChild(p);

@@ -73,4 +73,18 @@ export function applyElementAnimationStyles(
 		el.style.cursor =
 			interactiveTriggerShapeIds.has(id) || hoverTriggerShapeIds.has(id) ? 'pointer' : '';
 	});
+
+	// Staged text builds render one span per paragraph / word / letter, keyed
+	// `data-anim-id` (`<elementId>::c0-3`) rather than `data-element-id`. They
+	// need the same per-frame patch or the pieces stay at whatever state they
+	// were first rendered with and the build never visibly runs.
+	root.querySelectorAll<HTMLElement>('[data-anim-id]').forEach((el) => {
+		const id = el.dataset.animId;
+		if (!id) {
+			return;
+		}
+		const state = states.get(id);
+		el.style.animation = state?.cssAnimation ?? '';
+		el.style.visibility = state?.visible === false ? 'hidden' : '';
+	});
 }

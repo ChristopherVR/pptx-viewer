@@ -63,7 +63,12 @@ export const renderTextShapeElement: ElementRenderer = (element, zIndex, context
 		const paragraphs = buildParagraphs(element, context.fieldContext);
 		const hasText = paragraphs.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined);
 		if (hasText) {
-			el.appendChild(renderTextBlock(context.document, paragraphs, getTextBlockStyle(element)));
+			el.appendChild(
+				renderTextBlock(context.document, paragraphs, getTextBlockStyle(element), {
+					elementId: element.id,
+					states: context.presentationStates,
+				}),
+			);
 		}
 	}
 
