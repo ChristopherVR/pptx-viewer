@@ -60,7 +60,7 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"@analogjs/vite-plugin-angular": "^2.6.3",
+		"@analogjs/vite-plugin-angular": "^2.6.4",
 		"@angular/common": "^22.0.7",
 		"@angular/compiler": "^22.0.7",
 		"@angular/compiler-cli": "^22.0.7",
