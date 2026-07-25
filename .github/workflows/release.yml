@@ -140,6 +140,14 @@ jobs:
       # changelog history.
       - name: Generate per-package changelogs
         if: steps.plan.outputs.any_changed == 'true'
+        # `[remote.github]` in cliff.toml makes git-cliff call the GitHub API to
+        # enrich author handles. Unauthenticated that is 60 requests/hour, and a
+        # run paginates commits well past that, so an hourly schedule reliably
+        # trips the limit: git-cliff does not degrade gracefully, it panics with
+        # `Could not get github metadata: HttpClientError(Status(403))` and takes
+        # the release down. Authenticate it (5000/hour) instead.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           for key in core react vue angular vanilla svelte tools cli; do
             release=$(node -p "require('./release-plan.json').packages.$key.release")
@@ -162,6 +170,9 @@ jobs:
       # above: culled tags must never rewrite shipped history.
       - name: Generate root changelog
         if: steps.plan.outputs.any_changed == 'true'
+        # Same GitHub API rate-limit exposure as the per-package step above.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           DATE=$(date -u +%Y-%m-%d)
           TAGS=$(node -p "Object.values(require('./release-plan.json').packages).filter(p => p.release).map(p => p.tag).join(', ')")
@@ -179,8 +190,14 @@ jobs:
       - name: Commit version bumps and changelogs
         if: steps.plan.outputs.any_changed == 'true'
         # The GITHUB_TOKEN push does not retrigger workflows, and `[skip ci]`
-        # guards against it regardless. NOTE: if `main` is protected against
-        # direct pushes, allow the actions bot or relax the rule.
+        # guards against it regardless.
+        #
+        # IMPORTANT: this pushes straight to `main`, so any branch ruleset
+        # covering the default branch must list the GitHub Actions app as a
+        # bypass actor (`actor_type: Integration`, `actor_id: 15368`). Adding a
+        # "require a pull request" rule without that bypass rejects this push and
+        # blocks every release; the error text below says so explicitly so the
+        # next person does not have to rediscover it from the raw git output.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -199,7 +216,32 @@ jobs:
             echo "No release changes to commit"
           else
             git commit -m "chore(release): bump versions and update changelogs [skip ci]"
-            git push origin HEAD:main
+            # An hourly schedule on a trunk that takes direct pushes will race a
+            # human eventually: `main` moves between checkout and here and the
+            # push is rejected as non-fast-forward. Rebase the release commit
+            # onto the new tip and retry. The tag step reads `git rev-parse HEAD`
+            # after this, so it follows the rebased commit automatically.
+            pushed=false
+            for attempt in 1 2 3; do
+              if git push origin HEAD:main; then
+                pushed=true
+                break
+              fi
+              echo "Push attempt $attempt was rejected; rebasing onto origin/main"
+              git fetch origin main
+              if ! git rebase origin/main; then
+                git rebase --abort || true
+                echo "::error::Release commit conflicts with origin/main; resolve by hand and re-run."
+                exit 1
+              fi
+            done
+            if [ "$pushed" != "true" ]; then
+              echo "::error::Could not push the release commit to main after 3 attempts."
+              echo "If the remote rejected it with 'Repository rule violations', add the GitHub"
+              echo "Actions app (actor_type: Integration, actor_id: 15368) to the bypass actors"
+              echo "of the ruleset covering main: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/rules"
+              exit 1
+            fi
           fi
 
       # Cut a per-package tag + GitHub release. The tag points at the (pushed)
@@ -213,6 +255,12 @@ jobs:
         if: steps.plan.outputs.any_changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # `release-notes.mjs` shells out to git-cliff, which reads GITHUB_TOKEN
+          # (not GH_TOKEN) for `[remote.github]`. Without it the API call is
+          # unauthenticated and rate-limited; the script swallows the failure and
+          # drops to its raw-commit fallback, so release bodies quietly lose their
+          # grouped sections instead of failing loudly.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REACT_BUILT: ${{ steps.build-react.outcome == 'success' }}
           VUE_BUILT: ${{ steps.build-vue.outcome == 'success' }}
           ANGULAR_BUILT: ${{ steps.build-angular.outcome == 'success' }}
