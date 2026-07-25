@@ -12,14 +12,18 @@ export type {
 	PptxAiWritePolicy,
 } from 'pptx-viewer-shared/ai';
 
-// Audience window helpers (opt-in, tree-shakeable)
+// Audience window helpers (opt-in, tree-shakeable).
+//
+// Sourced from the leaf modules rather than the `presentation-mode` barrel on
+// purpose: that barrel is imported by no other module, so when both this entry
+// and `internals.ts` pull it in, esbuild has to split it into its own chunk,
+// which then tree-shakes down to an empty file ("Generated an empty chunk").
 export {
-	isAudienceTab,
 	loadAudienceContent,
 	storeAudienceContent,
 	clearAudienceContent,
-	parseAudienceNonce,
-} from './hooks/presentation-mode';
+} from './hooks/presentation-mode/audience-content-store';
+export { isAudienceTab, parseAudienceNonce } from './hooks/presentation-mode/usePresenterWindow';
 
 // Theme switching (opt-in, tree-shakeable)
 export { useThemeSwitching } from './hooks/useThemeSwitching';
