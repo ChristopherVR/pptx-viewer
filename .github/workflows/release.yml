@@ -38,9 +38,35 @@ jobs:
       any_released: ${{ steps.tagged.outputs.any_released || 'false' }}
       released_keys: ${{ steps.tagged.outputs.released_keys || '' }}
     steps:
+      # This job pushes a version-bump commit straight to `main` (see the commit
+      # step below), so it needs credentials that can get past the branch
+      # ruleset covering the default branch.
+      #
+      # The default GITHUB_TOKEN CANNOT: GitHub deliberately refuses to let
+      # `github-actions[bot]` be granted ruleset bypass, since any collaborator
+      # could then add a workflow that pushes anywhere. There is no "GitHub
+      # Actions" entry in a ruleset's bypass list, and nothing in this file can
+      # change that.
+      #
+      # So push as an actor that IS eligible for bypass. RELEASE_TOKEN should be
+      # a fine-grained PAT with `Contents: Read and write` on this repo, owned by
+      # a repository admin (already a bypass actor). A GitHub App token minted
+      # with `actions/create-github-app-token` works too, and is the better
+      # long-term option because it never expires and can be added to the bypass
+      # list as an app rather than inheriting a human's admin rights.
+      #
+      # The fallback keeps the job runnable without the secret: everything up to
+      # the push still works, and the push fails with the explicit diagnostic in
+      # the commit step rather than an opaque GH013.
+      #
+      # NOTE: unlike GITHUB_TOKEN, a PAT/app push DOES trigger workflows. The
+      # release commit carries `[skip ci]`, which GitHub honours natively, so it
+      # still will not start a CI run.
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+          persist-credentials: true
 
       - uses: actions/setup-node@v7
         with:
@@ -189,15 +215,22 @@ jobs:
 
       - name: Commit version bumps and changelogs
         if: steps.plan.outputs.any_changed == 'true'
+        env:
+          # Presence check only -- never the value. Secrets cannot be read in an
+          # `if:`, so the failure branch below uses this to tell "no token
+          # configured" apart from "token configured but still rejected", which
+          # are different fixes.
+          HAVE_RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN != '' && '1' || '' }}
         # The GITHUB_TOKEN push does not retrigger workflows, and `[skip ci]`
         # guards against it regardless.
         #
-        # IMPORTANT: this pushes straight to `main`, so any branch ruleset
-        # covering the default branch must list the GitHub Actions app as a
-        # bypass actor (`actor_type: Integration`, `actor_id: 15368`). Adding a
-        # "require a pull request" rule without that bypass rejects this push and
-        # blocks every release; the error text below says so explicitly so the
-        # next person does not have to rediscover it from the raw git output.
+        # IMPORTANT: this pushes straight to `main`. If a branch ruleset covers
+        # the default branch, the push only succeeds when the checkout above ran
+        # with RELEASE_TOKEN (see its comment): the default GITHUB_TOKEN can
+        # never be granted bypass. Adding a "require a pull request" rule without
+        # that secret in place rejects this push and blocks every release, so the
+        # error text below spells out the fix rather than leaving the next reader
+        # to decode a raw GH013 from git.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -237,9 +270,17 @@ jobs:
             done
             if [ "$pushed" != "true" ]; then
               echo "::error::Could not push the release commit to main after 3 attempts."
-              echo "If the remote rejected it with 'Repository rule violations', add the GitHub"
-              echo "Actions app (actor_type: Integration, actor_id: 15368) to the bypass actors"
-              echo "of the ruleset covering main: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/rules"
+              if [ -z "$HAVE_RELEASE_TOKEN" ]; then
+                echo "The RELEASE_TOKEN secret is not set, so this pushed as github-actions[bot],"
+                echo "which can never be granted ruleset bypass. Create a fine-grained PAT with"
+                echo "'Contents: Read and write' on this repo, owned by a repository admin, and"
+                echo "save it as the RELEASE_TOKEN secret. Rules: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/rules"
+              else
+                echo "RELEASE_TOKEN is set but the push was still rejected. Check that its owner is"
+                echo "a bypass actor on the ruleset covering main, that the token grants"
+                echo "'Contents: Read and write' on this repo, and that it has not expired."
+                echo "Rules: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/rules"
+              fi
               exit 1
             fi
           fi
