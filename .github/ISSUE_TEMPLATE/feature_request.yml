@@ -1,0 +1,62 @@
+name: Feature request
+description: Suggest a capability the viewer or editor does not have yet
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: if PowerPoint does it and we do not, that is usually a
+        **bug** in fidelity rather than a feature request. Either is fine, we
+        will re-label if needed.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case, not just the proposed control.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like it to do?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where does this live?
+      options:
+        - UI (a control, dialog, panel, gesture, shortcut)
+        - File handling (parsing, saving, round-trip fidelity)
+        - API surface (props, methods, events)
+        - Tooling (CLI, MCP server)
+        - Not sure
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### A note on UI features
+
+        UI features ship to **all five bindings** (React, Vue, Angular, Svelte,
+        vanilla), with the framework-agnostic logic in the shared package. That
+        is a merge requirement here, so a UI request is roughly five times the
+        work of a single-framework one, and it may sit longer before someone
+        picks it up. See
+        [CONTRIBUTING.md](https://github.com/ChristopherVR/pptx-viewer/blob/main/CONTRIBUTING.md#the-parity-rule-read-this-before-writing-ui-code).
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Would you like to implement this?
+      options:
+        - label: I am willing to open a PR (we will help with the parity work)
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds you have tried

@@ -276,6 +276,17 @@
 			"rules": {
 				"vitest/require-hook": "off"
 			}
+		},
+		{
+			// Repo tooling under scripts/ is tested with node:test, not vitest, so
+			// that `bun run test:scripts` needs no vitest project to run. The vitest
+			// plugin flags the node:test import and its globals; both are correct
+			// here. Product code and package tests still use vitest as normal.
+			"files": ["scripts/**/*.test.mjs"],
+			"rules": {
+				"vitest/no-import-node-test": "off",
+				"vitest/prefer-importing-vitest-globals": "off"
+			}
 		}
 	]
 }

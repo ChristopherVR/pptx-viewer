@@ -1,5 +1,11 @@
 name: CI
 
+# Runs for pull requests from forks as well as from this repo. That is safe
+# because no job here uses a secret: under the `pull_request` trigger a fork
+# gets a read-only GITHUB_TOKEN and no access to repository secrets. Do not add
+# a secret-consuming step to this file; put anything that needs one in a
+# separate `pull_request_target` workflow that never checks out PR code (see
+# pr-hygiene.yml).
 on:
   push:
     branches: [main]
@@ -9,10 +15,15 @@ on:
 permissions:
   contents: read
 
+# Superseded runs on the same PR are cancelled rather than left to finish, which
+# matters most for the five-way e2e matrix.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # ── Foundation: core + shared + mcp + cli (must all succeed) ────────────────
   build:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     outputs:
       react-built: ${{ steps.build-react.outcome == 'success' }}
@@ -77,15 +88,23 @@ jobs:
         run: bun run --filter 'pptx-svelte-viewer' build
         continue-on-error: true
 
-      # Abort the job only when ALL framework builds failed at once.
-      - name: Require at least one framework built
+      # `continue-on-error` above is deliberate: it lets one run surface EVERY
+      # broken binding rather than stopping at the first. It is not tolerance
+      # for a broken binding. A failed build now fails that framework's `test`
+      # and `e2e` legs (see the guard step in each), so the run still goes red
+      # and `ci-success` still blocks the merge.
+      - name: Summarise framework build outcomes
+        if: always()
         run: |
-          if [ "${{ steps.build-react.outcome }}" = "failure" ] \
-          && [ "${{ steps.build-vue.outcome }}" = "failure" ] \
-          && [ "${{ steps.build-angular.outcome }}" = "failure" ]; then
-            echo "All three framework builds failed."
-            exit 1
-          fi
+          {
+            echo "| Binding | Build |"
+            echo "| --- | --- |"
+            echo "| React | ${{ steps.build-react.outcome }} |"
+            echo "| Vue | ${{ steps.build-vue.outcome }} |"
+            echo "| Angular | ${{ steps.build-angular.outcome }} |"
+            echo "| Vanilla | ${{ steps.build-vanilla.outcome }} |"
+            echo "| Svelte | ${{ steps.build-svelte.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Upload only the built dists (each job runs its own `bun install`, so
       # shipping node_modules around is pure waste). Partial dists are fine.
@@ -98,7 +117,6 @@ jobs:
           retention-days: 1
 
   lint:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -121,9 +139,13 @@ jobs:
       - name: Format check
         run: bun run fmt:check
 
+      # Repo tooling that guards the contribution rules: the e2e neutrality
+      # contract, the parity advisory, and the Conventional Commit validator.
+      - name: Test repo scripts
+        run: bun run test:scripts
+
   typecheck:
     needs: build
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -159,7 +181,6 @@ jobs:
   # entry no-ops (every step is guarded) instead of failing the run.
   test:
     needs: build
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     name: test-${{ matrix.key }}
     strategy:
@@ -214,19 +235,24 @@ jobs:
             cmd: bun vitest run --reporter=verbose --reporter=github-actions
             enabled: 'true'
     steps:
+      # A leg whose build failed used to skip every step and report GREEN, so a
+      # binding could break outright while CI stayed clean. Fail loudly instead:
+      # a check that runs nothing must never look like a check that passed.
+      - name: Require the ${{ matrix.key }} build to have succeeded
+        if: matrix.enabled != 'true'
+        run: |
+          echo "::error::The ${{ matrix.key }} build failed in the \`build\` job, so no tests could run here."
+          exit 1
+
       - uses: actions/checkout@v7
-        if: matrix.enabled == 'true'
 
       - uses: actions/setup-node@v7
-        if: matrix.enabled == 'true'
         with:
           node-version: 22
 
       - uses: oven-sh/setup-bun@v2
-        if: matrix.enabled == 'true'
 
       - name: Cache bun downloads
-        if: matrix.enabled == 'true'
         uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
@@ -234,19 +260,30 @@ jobs:
           restore-keys: bun-${{ runner.os }}-
 
       - name: Download build artifacts
-        if: matrix.enabled == 'true'
         uses: actions/download-artifact@v8
         with:
           name: build-output
           path: packages
 
       - name: Install dependencies
-        if: matrix.enabled == 'true'
         run: bun install
 
       - name: Test ${{ matrix.key }}
-        if: matrix.enabled == 'true'
-        run: cd ${{ matrix.dir }} && ${{ matrix.cmd }}
+        run: cd ${{ matrix.dir }} && ${{ matrix.cmd }} --coverage
+
+      # Per-package flags are what make coverage useful against the parity rule:
+      # a UI change that moved only the `react` flag is a visible signal that
+      # the other four bindings were not tested. Never fails the build; on fork
+      # PRs the token is unavailable and Codecov falls back to tokenless upload.
+      - name: Upload coverage
+        uses: codecov/codecov-action@v6
+        continue-on-error: true
+        with:
+          files: ${{ matrix.dir }}/coverage/coverage-final.json
+          flags: ${{ matrix.key }}
+          name: ${{ matrix.key }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
   # ── E2E: Playwright suite against each framework demo ───────────────────────
   # One matrix leg per framework, gated on that framework's own build like the
@@ -262,7 +299,6 @@ jobs:
   #
   e2e:
     needs: build
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     name: e2e-${{ matrix.key }}
     timeout-minutes: 15
@@ -286,19 +322,22 @@ jobs:
             project: svelte
             enabled: ${{ needs.build.outputs.svelte-built }}
     steps:
+      # See the equivalent guard in `test`: a skipped leg must not report green.
+      - name: Require the ${{ matrix.key }} build to have succeeded
+        if: matrix.enabled != 'true'
+        run: |
+          echo "::error::The ${{ matrix.key }} build failed in the \`build\` job, so no e2e could run here."
+          exit 1
+
       - uses: actions/checkout@v7
-        if: matrix.enabled == 'true'
 
       - uses: actions/setup-node@v7
-        if: matrix.enabled == 'true'
         with:
           node-version: 22
 
       - uses: oven-sh/setup-bun@v2
-        if: matrix.enabled == 'true'
 
       - name: Cache bun downloads
-        if: matrix.enabled == 'true'
         uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
@@ -319,28 +358,67 @@ jobs:
       # needs its dist too. All of this already sits in the `build` job's
       # artifact.
       - name: Download build artifacts
-        if: matrix.enabled == 'true'
         uses: actions/download-artifact@v8
         with:
           name: build-output
           path: packages
 
       - name: Install dependencies
-        if: matrix.enabled == 'true'
         run: bun install
 
       - name: Install Playwright browsers
-        if: matrix.enabled == 'true'
         run: bun run e2e:install
 
       - name: Run e2e (${{ matrix.project }})
-        if: matrix.enabled == 'true'
-        run: bun run e2e -- --project=${{ matrix.project }} --workers=2
+        run: bun run e2e -- --project=${{ matrix.project }} --workers=2 --reporter=list,html,github
+
+      # Failures used to be visible only by downloading an artifact, which meant
+      # nobody looked. Put the failing spec names in the run summary instead.
+      - name: Summarise e2e failures
+        if: failure()
+        run: |
+          {
+            echo "### e2e failures (${{ matrix.project }})"
+            echo ""
+            if [ -f test-results/.last-run.json ]; then
+              echo '```'
+              node -e "const r=require('./test-results/.last-run.json');(r.failedTests||[]).forEach(t=>console.log(t));" || true
+              echo '```'
+            fi
+            echo "Full HTML report: see the \`playwright-report-${{ matrix.key }}\` artifact on this run."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Playwright report
-        if: matrix.enabled == 'true' && failure()
+        if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ matrix.key }}
-          path: playwright-report/
+          path: |
+            playwright-report/
+            test-results/
           retention-days: 7
+
+  # ── Merge gate ──────────────────────────────────────────────────────────────
+  # The single check the `main` ruleset requires. Matrix legs change names as
+  # bindings come and go, and a required check that no longer exists blocks
+  # every PR silently; funnelling through one job keeps branch protection stable.
+  #
+  # `always()` plus the explicit result test is deliberate: without it a
+  # cancelled or skipped dependency would let this pass.
+  ci-success:
+    name: ci-success
+    if: always()
+    needs: [build, lint, typecheck, test, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check every required job succeeded
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "Upstream results: $results"
+          for result in $results; do
+            if [ "$result" != "success" ]; then
+              echo "::error::A required CI job did not succeed (got: $results)."
+              exit 1
+            fi
+          done
+          echo "All required CI jobs succeeded."

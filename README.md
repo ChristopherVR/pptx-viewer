@@ -189,6 +189,13 @@ bun run test
 bun run typecheck
 ```
 
+**Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.** It covers the rules that are
+load-bearing here, in particular the **parity rule**: this repo ships the same viewer through five
+bindings (React, Vue, Angular, Svelte, vanilla), so a new UI feature must land in all five, and a UI
+fix must be checked against the other four and fixed wherever the same defect exists. It also covers
+Conventional Commits (which drive published version bumps), the framework-neutral e2e contract, and
+the demo package-resolution table you will want before debugging a demo.
+
 This project follows a [Code of Conduct](CODE_OF_CONDUCT.md) - please read it before opening an
 issue or PR. Found a security vulnerability instead of a bug? See [SECURITY.md](SECURITY.md) for
 how to report it privately.

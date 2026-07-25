@@ -15,10 +15,12 @@ updates:
     versioning-strategy: increase
     labels:
       - 'dependencies'
+    # No `include: scope` here: the prefixes below already carry the scope, and
+    # setting both produced doubled subjects like
+    # `chore(deps-dev)(deps-dev): Update happy-dom requirement`.
     commit-message:
       prefix: 'chore(deps)'
       prefix-development: 'chore(deps-dev)'
-      include: 'scope'
     groups:
       # Batch low-risk minor/patch bumps into a single PR to cut noise.
       minor-and-patch:
@@ -58,9 +60,9 @@ updates:
     labels:
       - 'dependencies'
       - 'github-actions'
+    # As above: the prefix already carries the scope.
     commit-message:
       prefix: 'chore(ci)'
-      include: 'scope'
     groups:
       actions:
         applies-to: version-updates

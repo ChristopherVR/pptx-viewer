@@ -105,6 +105,28 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
   porting or adding a feature, put the logic in shared **first**, then have each
   binding import it, do not reimplement it per framework. Treat a pure helper
   sitting inside `packages/{vue,react,angular}` as an extraction candidate.
+- **UI changes must reach all five bindings.** This is a merge requirement, not
+  a nice-to-have: a user on Svelte is entitled to the feature set a user on
+  React gets, and divergence between bindings is the most expensive debt in this
+  repo.
+  - **A new UI feature** (ribbon control, dialog, inspector panel, context-menu
+    entry, keyboard shortcut, gesture, on-canvas affordance) is not done when it
+    works in React. Put the logic in `pptx-viewer-shared`, then implement the
+    view layer in **react, vue, angular, svelte, and vanilla**, with unit tests
+    per binding and a framework-neutral spec in `e2e/`.
+  - **A UI fix** must be checked against the other four bindings before it is
+    called finished. Most UI bugs here are structural (they came from a shared
+    module, or four bindings made the same porting mistake), so the same defect
+    usually exists elsewhere. Fix every affected binding in the same change and
+    add a regression test to each. If one is genuinely blocked, say so
+    explicitly and file a tracking issue: silently fixing one binding is what
+    causes the drift.
+  - "Genuinely framework-specific" means Angular change detection, Svelte 5
+    runes, React effect ordering, and the like. A wrong colour, a mis-clipped
+    shape, an off-by-one drag handle, or a dialog that does not open is almost
+    never framework-specific.
+  - See `CONTRIBUTING.md` (the parity rule + decision table) for the version
+    external contributors are held to.
 - **No em-dashes; use ASCII punctuation.** Never write the em-dash character
   (`—`, U+2014) anywhere: source, comments, JSDoc, docs/READMEs, commit
   messages, or UI copy. Use a colon, comma, semicolon, parentheses, or a

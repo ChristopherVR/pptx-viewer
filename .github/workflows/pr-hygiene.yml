@@ -1,0 +1,157 @@
+name: PR hygiene
+
+# Runs on `pull_request_target` so that labelling and the parity comment work on
+# PRs from forks, which get a read-only token under the plain `pull_request`
+# trigger.
+#
+# SECURITY: none of these jobs may ever check out, build, or execute the PR's
+# code. `actions/checkout` here resolves to the BASE branch (the default for
+# this trigger), so every script that runs is trusted repo code. The PR is only
+# ever read as DATA through the API (file paths, commit subjects, title). If you
+# add a job that needs the PR's contents, put it in ci.yml under
+# `pull_request` instead.
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# Rapid pushes to a PR supersede each other rather than stacking runs, which
+# keeps API usage down on busy branches.
+concurrency:
+  group: pr-hygiene-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Conventional Commits ────────────────────────────────────────────────────
+  # Commit types drive published package version bumps and changelog inclusion,
+  # so this is the one job here that fails the PR.
+  commits:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Collect the PR title and commit subjects
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const commits = await github.paginate(github.rest.pulls.listCommits, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              per_page: 100,
+            });
+
+            // Both are validated: a squash merge can take either the PR title
+            // or the commit messages (squash_merge_commit_title is
+            // COMMIT_OR_PR_TITLE on this repo), and a merge/rebase keeps the
+            // individual commits.
+            const subjects = [
+              context.payload.pull_request.title,
+              ...commits.map((c) => c.commit.message.split('\n')[0]),
+            ];
+
+            require('node:fs').writeFileSync('subjects.json', JSON.stringify(subjects));
+            core.info(`Validating ${subjects.length} subject(s).`);
+
+      - name: Validate
+        run: node scripts/check-conventional-commits.mjs subjects.json
+
+  # ── Path-based labels ───────────────────────────────────────────────────────
+  label:
+    name: Label
+    if: github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/labeler@v6
+        with:
+          configuration-path: .github/labeler.yml
+          sync-labels: true
+
+  # ── Cross-binding parity advisory ───────────────────────────────────────────
+  # Advisory only: it never fails the PR. It posts a single sticky comment that
+  # is updated in place on each push (and deleted once the notes clear) rather
+  # than commenting repeatedly.
+  parity:
+    name: Parity check (advisory)
+    if: github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Collect changed files
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              per_page: 100,
+            });
+            const paths = files.map((f) => f.filename);
+            require('node:fs').writeFileSync('changed-files.json', JSON.stringify(paths));
+            core.info(`${paths.length} changed file(s).`);
+
+      - name: Analyse
+        id: parity
+        run: node scripts/parity-check.mjs changed-files.json parity-report.md
+
+      - name: Post or update the sticky comment
+        uses: actions/github-script@v8
+        env:
+          HAS_FINDINGS: ${{ steps.parity.outputs.has_findings }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const MARKER = '<!-- pptx-viewer:parity-check -->';
+            const hasFindings = process.env.HAS_FINDINGS === 'true';
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              per_page: 100,
+            });
+            const existing = comments.find(
+              (c) => c.user.type === 'Bot' && c.body.includes(MARKER)
+            );
+
+            if (!hasFindings) {
+              // Nothing to say. Clear any note from an earlier push instead of
+              // leaving a stale warning on a PR that has since been fixed.
+              if (existing) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                });
+                core.info('Parity notes cleared; removed the previous comment.');
+              }
+              return;
+            }
+
+            const body = fs.readFileSync('parity-report.md', 'utf8');
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+              core.info('Updated the existing parity comment.');
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body,
+              });
+              core.info('Posted a new parity comment.');
+            }

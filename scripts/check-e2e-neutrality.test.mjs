@@ -1,4 +1,8 @@
-import { assert, test } from 'vitest';
+// node:test, not vitest: these are repo tooling tests that run without a vitest
+// project (`bun run test:scripts`). Importing from 'vitest' here meant the root
+// `test:e2e-contract` script could never run this file.
+import assert from 'node:assert';
+import { test } from 'node:test';
 
 import { isProductSpec, scanSource } from './check-e2e-neutrality.mjs';
 

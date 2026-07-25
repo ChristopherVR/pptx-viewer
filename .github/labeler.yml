@@ -1,0 +1,79 @@
+# Path -> label mapping for actions/labeler (see .github/workflows/pr-hygiene.yml).
+#
+# The binding labels exist to make the parity rule visible at a glance: a PR
+# labelled `react` alone, with no `shared` and no sibling binding, is either a
+# genuinely React-specific fix or a parity gap. Reviewers should be able to tell
+# which from the label set before opening the diff.
+
+core:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/core/**'
+
+shared:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/shared/**'
+
+react:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/react/**'
+          - 'packages/react-compat/**'
+          - 'demos/demo-react/**'
+
+vue:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/vue/**'
+          - 'demos/demo-vue/**'
+
+angular:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/angular/**'
+          - 'demos/demo-angular/**'
+
+svelte:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/svelte/**'
+          - 'demos/demo-svelte/**'
+
+vanilla:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/vanilla/**'
+          - 'demos/demo-vanilla/**'
+
+cli:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/cli/**'
+
+tools:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/tools/**'
+
+i18n:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/locales/**'
+          - 'packages/shared/src/i18n/**'
+
+e2e:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'e2e/**'
+          - 'playwright.config.ts'
+          - 'playwright.capture.config.ts'
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '**/*.md'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**'
+          - '.github/*.yml'
+          - 'scripts/**'

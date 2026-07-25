@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/ChristopherVR/pptx-viewer/security/advisories/new
+    about: Report privately via a security advisory. Please do not open a public issue.
+  - name: Question or usage help
+    url: https://github.com/ChristopherVR/pptx-viewer/issues?q=is%3Aissue+label%3Aquestion
+    about: Search existing questions first, then open an issue with the "question" label.

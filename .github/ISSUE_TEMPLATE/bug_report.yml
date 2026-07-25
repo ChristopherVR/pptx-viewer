@@ -1,0 +1,78 @@
+name: Bug report
+description: Something renders, edits, or saves incorrectly
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The single most useful thing you can give us is
+        **a .pptx that reproduces it** plus **which bindings you checked**.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Load the attached deck
+        2. Select the chart on slide 2
+        3. ...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: bindings-affected
+    attributes:
+      label: Which bindings did you see this in?
+      description: >-
+        Tick only what you actually tried. This project ships the same viewer
+        through five bindings, and a bug present in more than one usually comes
+        from shared code, which changes how we fix it. "I only tried one" is a
+        perfectly fine answer.
+      options:
+        - label: React (`pptx-react-viewer`)
+        - label: Vue (`pptx-vue-viewer`)
+        - label: Angular (`pptx-angular-viewer`)
+        - label: Svelte (`pptx-svelte-viewer`)
+        - label: Vanilla (`pptx-vanilla-viewer`)
+        - label: Core only (`pptx-viewer-core`, no UI involved)
+        - label: I did not check the others
+
+  - type: input
+    id: version
+    attributes:
+      label: Package version(s)
+      placeholder: 'pptx-react-viewer@1.42.0'
+    validations:
+      required: true
+
+  - type: textarea
+    id: deck
+    attributes:
+      label: Sample .pptx
+      description: >-
+        Drag the file in to attach it (zip it if GitHub rejects the extension).
+        If the deck is confidential, a screenshot plus the relevant slide XML
+        also works. Without a repro file, most rendering bugs cannot be fixed.
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        Browser: Chrome 141
+        OS: Windows 11
+        Framework version: React 19.2
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors
+      render: text

@@ -53,7 +53,8 @@
 		"e2e:install": "playwright install --with-deps chromium",
 		"e2e:ui": "playwright test --ui",
 		"docs:screenshots": "playwright test --config=playwright.capture.config.ts e2e/capture-user-guide-assets.spec.ts e2e/capture-user-guide-gifs.spec.ts",
-		"prepare": "husky"
+		"prepare": "husky",
+		"test:scripts": "node --test scripts/*.test.mjs"
 	},
 	"dependencies": {
 		"@ai-sdk/openai-compatible": "^3.0.14",
@@ -80,6 +81,7 @@
 		"@playwright/test": "^1.61.1",
 		"@types/three": "^0.185.1",
 		"@typescript/typescript6": "^6.0.2",
+		"@vitest/coverage-v8": "^4.1.10",
 		"ai": "^7.0.35",
 		"husky": "^9.1.7",
 		"jszip": "^3.10.1",
