@@ -19,7 +19,7 @@
  * (ST_PresetPatternVal).
  */
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
-import { hasShapeProperties } from 'pptx-viewer-core';
+import { hasShapeProperties, ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 
 import { DEFAULT_FILL_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
 
@@ -140,13 +140,20 @@ export function sanitizeGradientStops(
 }
 
 /**
- * Converts an OOXML gradient angle to a normalised CSS angle in degrees.
- * The Vue parser already pre-converts to plain degrees; when `alreadyDegrees`
- * is false the input is treated as 60000ths of a degree.
+ * Converts an OOXML gradient angle to the equivalent CSS `linear-gradient()`
+ * angle, normalised to [0, 360).
+ *
+ * `a:lin/@ang` is measured clockwise from the positive x-axis (`ang="0"` runs
+ * left to right) whereas CSS measures clockwise from "to top" (`0deg` runs
+ * bottom to top), so the two sit a quarter turn apart. Feeding an OOXML angle
+ * straight into a CSS gradient renders the fill rotated 90 degrees.
+ *
+ * The parser stores `ShapeStyle.fillGradientAngle` in plain OOXML degrees; when
+ * `alreadyDegrees` is false the input is treated as raw 60000ths of a degree.
  */
 export function convertOoxmlAngleToCss(ooxmlAngle: number, alreadyDegrees = true): number {
 	const deg = alreadyDegrees ? ooxmlAngle : ooxmlAngle / 60000;
-	return ((deg % 360) + 360) % 360;
+	return ooxmlGradientAngleToCssDegrees(deg);
 }
 
 /**
@@ -500,7 +507,11 @@ export function buildGradientCss(
 		typeof gradient.fillGradientAngle === 'number' && Number.isFinite(gradient.fillGradientAngle)
 			? gradient.fillGradientAngle
 			: 90;
-	const effectiveAngle = adjustLinearGradientAngle(normalizedAngle, gradient, context);
+	// `@scaled` / `@rotWithShape` are corrections in OOXML angle space, so they
+	// are applied first and the result converted to CSS degrees exactly once.
+	const effectiveAngle = convertOoxmlAngleToCss(
+		adjustLinearGradientAngle(normalizedAngle, gradient, context),
+	);
 
 	// Tile-flip: reflect the stops so a single tile contains one mirrored
 	// forward-backward cycle. The repeating/halved tiling is applied by the

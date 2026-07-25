@@ -37,9 +37,11 @@ describe('normalizeHexColor', () => {
 	it('passes through valid hex', () => {
 		expect(normalizeHexColor('#aabbcc', '#000000')).toBe('#aabbcc');
 	});
+
 	it('prefixes a missing hash', () => {
 		expect(normalizeHexColor('aabbcc', '#000000')).toBe('#aabbcc');
 	});
+
 	it('falls back for transparent / invalid / missing', () => {
 		expect(normalizeHexColor('transparent', '#123456')).toBe('#123456');
 		expect(normalizeHexColor('nope', '#123456')).toBe('#123456');
@@ -51,6 +53,7 @@ describe('colorWithOpacity', () => {
 	it('returns hex unchanged when opacity is undefined', () => {
 		expect(colorWithOpacity('#ff0000', undefined)).toBe('#ff0000');
 	});
+
 	it('produces rgba with clamped opacity', () => {
 		expect(colorWithOpacity('#ff0000', 0.5)).toBe('rgba(255, 0, 0, 0.5)');
 		expect(colorWithOpacity('#00ff00', 2)).toBe('rgba(0, 255, 0, 1)');
@@ -58,12 +61,23 @@ describe('colorWithOpacity', () => {
 });
 
 describe('convertOoxmlAngleToCss', () => {
-	it('normalizes degrees into 0-360', () => {
-		expect(convertOoxmlAngleToCss(370)).toBe(10);
-		expect(convertOoxmlAngleToCss(-10)).toBe(350);
+	// OOXML measures clockwise from +x, CSS clockwise from "to top": a quarter
+	// turn apart. `ang="0"` (left to right) is CSS `90deg`.
+
+	it('rotates the OOXML angle a quarter turn into CSS space', () => {
+		expect(convertOoxmlAngleToCss(0)).toBe(90);
+		expect(convertOoxmlAngleToCss(90)).toBe(180);
+		expect(convertOoxmlAngleToCss(180)).toBe(270);
+		expect(convertOoxmlAngleToCss(270)).toBe(0);
 	});
+
+	it('normalizes degrees into 0-360', () => {
+		expect(convertOoxmlAngleToCss(370)).toBe(100);
+		expect(convertOoxmlAngleToCss(-10)).toBe(80);
+	});
+
 	it('converts 60000ths when alreadyDegrees is false', () => {
-		expect(convertOoxmlAngleToCss(60000 * 90, false)).toBe(90);
+		expect(convertOoxmlAngleToCss(60000 * 90, false)).toBe(180);
 	});
 });
 
@@ -76,6 +90,7 @@ describe('sanitizeGradientStops', () => {
 		expect(sanitizeGradientStops(undefined)).toStrictEqual([]);
 		expect(sanitizeGradientStops([])).toStrictEqual([]);
 	});
+
 	it('filters invalid stops and sorts ascending', () => {
 		const stops = [
 			{ color: '#ff0000', position: 100 },
@@ -88,6 +103,7 @@ describe('sanitizeGradientStops', () => {
 		expect(result[0].position).toBe(0);
 		expect(result[1].position).toBe(100);
 	});
+
 	it('clamps positions and opacity', () => {
 		const stops = [
 			{ color: '#ff0000', position: -10, opacity: 1.5 },
@@ -105,9 +121,11 @@ describe('toCssGradientStop', () => {
 	it('renders integer percentages without decimals', () => {
 		expect(toCssGradientStop({ color: '#ff0000', position: 50 })).toBe('#ff0000 50%');
 	});
+
 	it('renders fractional percentages with one decimal', () => {
 		expect(toCssGradientStop({ color: '#ff0000', position: 33.33 })).toBe('#ff0000 33.3%');
 	});
+
 	it('applies opacity as rgba', () => {
 		expect(toCssGradientStop({ color: '#ff0000', position: 0, opacity: 0.5 })).toBe(
 			'rgba(255, 0, 0, 0.5) 0%',
@@ -141,10 +159,10 @@ describe('buildGradientCss', () => {
 				{ color: '#0000ff', position: 100 },
 			],
 		});
-		expect(css).toBe('linear-gradient(135deg, #ff0000 0%, #0000ff 100%)');
+		expect(css).toBe('linear-gradient(225deg, #ff0000 0%, #0000ff 100%)');
 	});
 
-	it('defaults the linear angle to 90deg', () => {
+	it('defaults the OOXML angle to 90 (CSS 180deg, top to bottom)', () => {
 		const css = buildGradientCss({
 			fillMode: 'gradient',
 			fillGradientStops: [
@@ -152,7 +170,7 @@ describe('buildGradientCss', () => {
 				{ color: '#0000ff', position: 100 },
 			],
 		});
-		expect(css).toContain('linear-gradient(90deg');
+		expect(css).toContain('linear-gradient(180deg');
 	});
 
 	it('builds a radial circle gradient by default', () => {
@@ -216,18 +234,21 @@ describe('getGradientTileFlipCss', () => {
 		expect(getGradientTileFlipCss('none')).toBeUndefined();
 		expect(getGradientTileFlipCss(undefined)).toBeUndefined();
 	});
+
 	it('returns horizontal repeat for "x"', () => {
 		expect(getGradientTileFlipCss('x')).toStrictEqual({
 			backgroundSize: '50% 100%',
 			backgroundRepeat: 'repeat-x',
 		});
 	});
+
 	it('returns vertical repeat for "y"', () => {
 		expect(getGradientTileFlipCss('y')).toStrictEqual({
 			backgroundSize: '100% 50%',
 			backgroundRepeat: 'repeat-y',
 		});
 	});
+
 	it('returns full repeat for "xy"', () => {
 		expect(getGradientTileFlipCss('xy')).toStrictEqual({
 			backgroundSize: '50% 50%',
@@ -240,6 +261,7 @@ describe('buildReflectedGradientStops', () => {
 	it('returns [] for empty input', () => {
 		expect(buildReflectedGradientStops([])).toStrictEqual([]);
 	});
+
 	it('produces forward (0-50) + mirrored (50-100) stops', () => {
 		const reflected = buildReflectedGradientStops([
 			{ color: '#ff0000', position: 0 },
@@ -251,6 +273,7 @@ describe('buildReflectedGradientStops', () => {
 		expect(reflected[2]).toMatchObject({ color: '#0000ff', position: 50 });
 		expect(reflected[3]).toMatchObject({ color: '#ff0000', position: 100 });
 	});
+
 	it('preserves opacity on reflected stops', () => {
 		const reflected = buildReflectedGradientStops([
 			{ color: '#ff0000', position: 0, opacity: 0.5 },
@@ -281,7 +304,7 @@ describe('buildGradientCss tile-flip', () => {
 			fillGradientFlip: 'none',
 			fillGradientStops: stops,
 		});
-		expect(base).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 100%)');
+		expect(base).toBe('linear-gradient(180deg, #ff0000 0%, #0000ff 100%)');
 		expect(explicitNone).toBe(base);
 	});
 
@@ -292,7 +315,7 @@ describe('buildGradientCss tile-flip', () => {
 			fillGradientFlip: 'x',
 			fillGradientStops: stops,
 		});
-		expect(css).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 50%, #0000ff 50%, #ff0000 100%)');
+		expect(css).toBe('linear-gradient(180deg, #ff0000 0%, #0000ff 50%, #0000ff 50%, #ff0000 100%)');
 	});
 
 	it('reflects the stops for flip "y"', () => {
@@ -302,7 +325,7 @@ describe('buildGradientCss tile-flip', () => {
 			fillGradientFlip: 'y',
 			fillGradientStops: stops,
 		});
-		expect(css).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 50%, #0000ff 50%, #ff0000 100%)');
+		expect(css).toBe('linear-gradient(180deg, #ff0000 0%, #0000ff 50%, #0000ff 50%, #ff0000 100%)');
 	});
 
 	it('reflects the stops for flip "xy"', () => {
@@ -312,7 +335,7 @@ describe('buildGradientCss tile-flip', () => {
 			fillGradientFlip: 'xy',
 			fillGradientStops: stops,
 		});
-		expect(css).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 50%, #0000ff 50%, #ff0000 100%)');
+		expect(css).toBe('linear-gradient(180deg, #ff0000 0%, #0000ff 50%, #0000ff 50%, #ff0000 100%)');
 	});
 
 	it('does not reflect radial gradients even when flip is set', () => {
@@ -337,6 +360,7 @@ describe('getPatternSvg', () => {
 		expect(svg).toContain('#000000');
 		expect(svg).toContain('#ffffff');
 	});
+
 	it('returns null for an unknown preset', () => {
 		expect(getPatternSvg('bogus', '#000000', '#ffffff')).toBeNull();
 	});
@@ -435,7 +459,7 @@ describe('getComputedFillStyle', () => {
 				],
 			}),
 		);
-		expect(result?.backgroundImage).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 100%)');
+		expect(result?.backgroundImage).toBe('linear-gradient(180deg, #ff0000 0%, #0000ff 100%)');
 		expect(result?.backgroundColor).toBeUndefined();
 	});
 
@@ -474,7 +498,7 @@ describe('getComputedFillStyle', () => {
 			}),
 		);
 		expect(result?.backgroundImage).toBe(
-			'linear-gradient(90deg, #ff0000 0%, #0000ff 50%, #0000ff 50%, #ff0000 100%)',
+			'linear-gradient(180deg, #ff0000 0%, #0000ff 50%, #0000ff 50%, #ff0000 100%)',
 		);
 		expect(result?.backgroundSize).toBe('50% 100%');
 		expect(result?.backgroundRepeat).toBe('repeat-x');
@@ -571,7 +595,7 @@ describe('buildGradientCss angle corrections', () => {
 				{ color: '#0000ff', position: 100 },
 			],
 		});
-		expect(css).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 100%)');
+		expect(css).toBe('linear-gradient(180deg, #ff0000 0%, #0000ff 100%)');
 	});
 
 	it('counter-rotates by the element rotation when rotWithShape is false', () => {
@@ -588,7 +612,7 @@ describe('buildGradientCss angle corrections', () => {
 			},
 			{ rotation: 45, width: 100, height: 100 },
 		);
-		expect(css).toBe('linear-gradient(45deg, #ff0000 0%, #0000ff 100%)');
+		expect(css).toBe('linear-gradient(135deg, #ff0000 0%, #0000ff 100%)');
 	});
 
 	it('does not counter-rotate when rotWithShape is the default (true)', () => {
@@ -604,7 +628,7 @@ describe('buildGradientCss angle corrections', () => {
 			},
 			{ rotation: 45, width: 100, height: 100 },
 		);
-		expect(css).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 100%)');
+		expect(css).toBe('linear-gradient(180deg, #ff0000 0%, #0000ff 100%)');
 	});
 
 	it('applies aspect-ratio scaling to the angle when scaled is not false', () => {
@@ -619,8 +643,9 @@ describe('buildGradientCss angle corrections', () => {
 			},
 			{ width: 200, height: 100 },
 		);
-		// atan2(100*sin45, 200*cos45) = atan(0.5) ~= 26.57deg -> 27deg
-		expect(css).toBe('linear-gradient(27deg, #ff0000 0%, #0000ff 100%)');
+		// atan2(100*sin45, 200*cos45) = atan(0.5) ~= 26.57 OOXML deg,
+		// +90 into CSS space and rounded -> 117deg
+		expect(css).toBe('linear-gradient(117deg, #ff0000 0%, #0000ff 100%)');
 	});
 
 	it('skips aspect scaling when scaled is explicitly false', () => {
@@ -636,7 +661,7 @@ describe('buildGradientCss angle corrections', () => {
 			},
 			{ width: 200, height: 100 },
 		);
-		expect(css).toBe('linear-gradient(45deg, #ff0000 0%, #0000ff 100%)');
+		expect(css).toBe('linear-gradient(135deg, #ff0000 0%, #0000ff 100%)');
 	});
 
 	it('skips aspect scaling for a square shape', () => {
@@ -651,7 +676,7 @@ describe('buildGradientCss angle corrections', () => {
 			},
 			{ width: 100, height: 100 },
 		);
-		expect(css).toBe('linear-gradient(45deg, #ff0000 0%, #0000ff 100%)');
+		expect(css).toBe('linear-gradient(135deg, #ff0000 0%, #0000ff 100%)');
 	});
 });
 
@@ -690,7 +715,7 @@ describe('getComputedFillStyle tileRect', () => {
 				],
 			}),
 		);
-		expect(result?.backgroundImage).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 100%)');
+		expect(result?.backgroundImage).toBe('linear-gradient(180deg, #ff0000 0%, #0000ff 100%)');
 		expect(result?.backgroundSize).toBe('50% 50%');
 		expect(result?.backgroundPosition).toBe('50% 50%');
 		expect(result?.backgroundRepeat).toBe('no-repeat');
@@ -716,7 +741,7 @@ describe('getComputedFillStyle grpFill inheritance', () => {
 				{ color: '#0000ff', position: 100 },
 			],
 		});
-		expect(result?.backgroundImage).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 100%)');
+		expect(result?.backgroundImage).toBe('linear-gradient(180deg, #ff0000 0%, #0000ff 100%)');
 	});
 
 	it('emits nothing for a group child with no parent fill supplied', () => {
