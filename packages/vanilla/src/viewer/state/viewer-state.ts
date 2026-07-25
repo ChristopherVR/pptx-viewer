@@ -101,6 +101,13 @@ export interface ViewerState {
 	error: string | null;
 	/** True while presentation (fullscreen) mode is active. */
 	presenting: boolean;
+	/**
+	 * True once the show has run past its last slide and the black "End of slide
+	 * show" screen is up. It MUST be surfaced: while it is up the next input
+	 * either goes nowhere (backward) or ends the show (forward), so a deck that
+	 * kept painting its last slide looked stuck and swallowed every advance.
+	 */
+	endOfShow: boolean;
 	/** True when editing interactions (select/move/resize/...) are enabled. */
 	editable: boolean;
 	/** Id of the selected element on the current slide, or null. */
@@ -188,6 +195,7 @@ export function createInitialViewerState(): ViewerState {
 		loading: false,
 		error: null,
 		presenting: false,
+		endOfShow: false,
 		editable: false,
 		selectedElementId: null,
 		selectedElementIds: [],

@@ -89,3 +89,20 @@ export function fitZoom(canvasW: number, canvasH: number, vw: number, vh: number
 	}
 	return Math.min(vw / canvasW, vh / canvasH);
 }
+
+/**
+ * Whether a visible (non-hidden) slide exists strictly AFTER `current`.
+ *
+ * `nextVisibleIndex` wraps modulo the deck length, which makes a show loop for
+ * ever. PowerPoint only loops when "Loop continuously until Esc" is set;
+ * otherwise running past the last slide ends the show. Callers use this to tell
+ * "there is a next slide" from "we just wrapped".
+ */
+export function hasVisibleSlideAfter(current: number, slides: readonly PptxSlide[]): boolean {
+	for (let index = current + 1; index < slides.length; index++) {
+		if (!slides[index].hidden) {
+			return true;
+		}
+	}
+	return false;
+}

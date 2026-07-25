@@ -10,7 +10,7 @@
 	const t = useTranslator();
 </script>
 
-<button type="button" class="pptx-svelte-presentation-end" onclick={onexit}>
+<button type="button" class="pptx-svelte-presentation-end" data-pptx-end-of-show onclick={onexit}>
 	{t('pptx.presentation.endOfSlideShow')}
 </button>
 

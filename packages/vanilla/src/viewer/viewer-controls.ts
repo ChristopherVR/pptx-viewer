@@ -27,9 +27,14 @@ export interface ViewerControls {
 export function createViewerControls(
 	store: Store<ViewerState>,
 	renderer: RenderController,
+	/** Ends the show; called when the end screen is dismissed forward. */
+	onEndShow?: () => void,
 ): ViewerControls {
 	const goToSlide = (index: number): void => {
-		store.set({ currentSlide: clampSlideIndex(index, store.get().slides.length) });
+		store.set({
+			currentSlide: clampSlideIndex(index, store.get().slides.length),
+			endOfShow: false,
+		});
 	};
 	const setZoom = (zoom: ZoomLevel): void => {
 		store.set({
@@ -41,12 +46,33 @@ export function createViewerControls(
 		// on-click animation build; only once the timeline is exhausted does the
 		// slide advance. Backward navigation just jumps slides (matches Vue).
 		next: () => {
-			if (store.get().presenting && renderer.presentationPlayback.advance()) {
+			const state = store.get();
+			// While the end screen is up a forward input ends the show (PowerPoint's
+			// "click to exit"); it never advances anything.
+			if (state.endOfShow) {
+				store.set({ endOfShow: false });
+				onEndShow?.();
 				return;
 			}
-			goToSlide(store.get().currentSlide + 1);
+			if (state.presenting && renderer.presentationPlayback.advance()) {
+				return;
+			}
+			if (state.presenting && state.currentSlide >= state.slides.length - 1) {
+				// Nothing further to advance to: raise the black end screen rather
+				// than sitting on the last slide ignoring every further advance.
+				store.set({ endOfShow: true });
+				return;
+			}
+			goToSlide(state.currentSlide + 1);
 		},
-		prev: () => goToSlide(store.get().currentSlide - 1),
+		prev: () => {
+			// A backward input while the end screen is up just dismisses it.
+			if (store.get().endOfShow) {
+				store.set({ endOfShow: false });
+				return;
+			}
+			goToSlide(store.get().currentSlide - 1);
+		},
 		goToSlide,
 		slideCount: () => store.get().slides.length,
 		currentSlide: () => store.get().currentSlide,

@@ -51,11 +51,22 @@ export interface PresentationControllerDeps {
 	onPlayActionSound?: (soundPath: string) => void;
 	/** The live presentation stage root, to scope media-command lookups to. */
 	getFrameRoot?(): HTMLElement | null;
+	/** End the show (host leaves presentation mode). */
+	exit?(): void;
+	/** `p:showPr` "end with black slide"; defaults to on, like PowerPoint. */
+	getEndWithBlackSlide?(): boolean | undefined;
 }
 
 export class PresentationController {
 	readonly playback: AnimationPlayback;
 	#transition = $state<TransitionState | null>(null);
+	/**
+	 * True once the show has run past its last slide and the black "End of slide
+	 * show" screen is up. It MUST be surfaced: while it is up the next input
+	 * either goes nowhere (backward) or ends the show (forward), so a deck that
+	 * kept painting its last slide looked stuck and then exited with no warning.
+	 */
+	#endOfShow = $state(false);
 	readonly #deps: PresentationControllerDeps;
 
 	constructor(deps: PresentationControllerDeps) {
@@ -73,6 +84,11 @@ export class PresentationController {
 	}
 
 	/** The active slide-transition overlay state, or `null` when none is playing. */
+	/** Whether the black "End of slide show" screen should be rendered. */
+	get endOfShowVisible(): boolean {
+		return this.#endOfShow;
+	}
+
 	get transition(): TransitionState | null {
 		return this.#transition;
 	}
@@ -123,13 +139,40 @@ export class PresentationController {
 	 * on-screen next button pass `fromClick = false` and are never gated.
 	 */
 	advance(fromClick = false): void {
+		// While the end screen is up, a forward input ends the show (PowerPoint's
+		// "click to exit"); it never advances anything.
+		if (this.#endOfShow) {
+			this.#endOfShow = false;
+			this.#deps.exit?.();
+			return;
+		}
 		if (this.playback.advance()) {
 			return;
 		}
 		if (fromClick && !isClickAdvanceAllowed(this.#currentSlide())) {
 			return;
 		}
-		this.#deps.navigate(this.#deps.getCurrentIndex() + 1);
+		const next = this.#deps.getCurrentIndex() + 1;
+		if (next >= this.#deps.getSlides().length) {
+			if (this.#deps.getEndWithBlackSlide?.() === false) {
+				// No black slide configured: end the show outright rather than
+				// sitting on the last slide ignoring every further advance.
+				this.#deps.exit?.();
+			} else {
+				this.#endOfShow = true;
+			}
+			return;
+		}
+		this.#deps.navigate(next);
+	}
+
+	/** Backward input while the end screen is up just dismisses it. */
+	retreat(): boolean {
+		if (!this.#endOfShow) {
+			return false;
+		}
+		this.#endOfShow = false;
+		return true;
 	}
 
 	/** Entering presentation: seed builds for the current slide, drop any overlay. */
@@ -137,6 +180,7 @@ export class PresentationController {
 		ensurePresentationKeyframes();
 		this.playback.reset();
 		this.#transition = null;
+		this.#endOfShow = false;
 	}
 
 	/** Leaving presentation: clear timers, reset builds, drop any overlay. */
@@ -144,6 +188,7 @@ export class PresentationController {
 		this.playback.clearTimers();
 		this.playback.reset();
 		this.#transition = null;
+		this.#endOfShow = false;
 	}
 
 	/**
@@ -151,6 +196,7 @@ export class PresentationController {
 	 * incoming slide carries a real transition, play it over the frame.
 	 */
 	onSlideChange(previousIndex: number, nextIndex: number): void {
+		this.#endOfShow = false;
 		this.playback.reset();
 		const slides = this.#deps.getSlides();
 		const incoming = slides[nextIndex];

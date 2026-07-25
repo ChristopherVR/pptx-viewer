@@ -22,6 +22,7 @@ import type { CanvasSize } from '../types';
 import KeepAnnotationsDialog from './KeepAnnotationsDialog.vue';
 import MobilePresenterView from './MobilePresenterView.vue';
 import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.vue';
+import PresentationEndScreen from './PresentationEndScreen.vue';
 import PresentationSubtitleBar from './PresentationSubtitleBar.vue';
 import PresentationToolbar from './PresentationToolbar.vue';
 import PresentationTouchControls from './PresentationTouchControls.vue';
@@ -257,6 +258,10 @@ function next(): void {
 	if (currentIndex.value >= props.slides.length - 1) {
 		if (showOptions.value.endWithBlackSlide) {
 			showEndScreen.value = true;
+		} else {
+			// No black slide configured: PowerPoint ends the show outright rather
+			// than sitting on the last slide ignoring every further advance.
+			close();
 		}
 		return;
 	}
@@ -703,6 +708,13 @@ onBeforeUnmount(() => {
 				@update-snapshot="presenterSession.updateSnapshot"
 				@exit="presenterMode = false"
 			/>
+
+			<!-- Black "End of slide show" screen: the show has run past its last
+			     slide. It MUST be visible - while it is up the next input either
+			     goes nowhere (backward) or ends the show (forward), so a deck that
+			     kept painting the last slide looked stuck and then exited with no
+			     warning. -->
+			<PresentationEndScreen v-if="showEndScreen" @exit="close" />
 
 			<!-- Live caption bar. -->
 			<PresentationSubtitleBar :visible="subtitlesOn" @click.stop />

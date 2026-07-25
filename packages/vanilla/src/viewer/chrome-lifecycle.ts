@@ -147,6 +147,52 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	 * only for clicks that land on the slide itself, so the console strip,
 	 * toolbars and dialogs keep owning their own clicks.
 	 */
+	/**
+	 * The black "End of slide show" screen. Kept as a single node toggled by the
+	 * store rather than re-rendered with the stage, so it survives the stage
+	 * rebuild that every navigation performs.
+	 */
+	const endScreen = doc.createElement('button');
+	endScreen.type = 'button';
+	endScreen.setAttribute('data-pptx-end-of-show', '');
+	endScreen.className = 'pptxv-presentation-end';
+	Object.assign(endScreen.style, {
+		position: 'absolute',
+		inset: '0',
+		zIndex: '90',
+		display: 'flex',
+		alignItems: 'flex-start',
+		border: '0',
+		padding: '0',
+		background: '#000',
+		textAlign: 'left',
+		cursor: 'default',
+	});
+	const endLabel = doc.createElement('span');
+	Object.assign(endLabel.style, {
+		padding: '12px 16px',
+		color: 'rgba(255,255,255,0.7)',
+		fontSize: '12px',
+	});
+	endLabel.textContent = t('pptx.presentation.endOfSlideShow');
+	endScreen.appendChild(endLabel);
+	// A click on the end screen ends the show, like PowerPoint's "click to exit".
+	endScreen.addEventListener('click', (event: MouseEvent) => {
+		event.stopPropagation();
+		deps.next();
+	});
+	const syncEndScreen = (): void => {
+		const state = store.get();
+		const shouldShow = state.presenting && state.endOfShow;
+		if (shouldShow && endScreen.parentElement !== chrome.root) {
+			chrome.root.appendChild(endScreen);
+		} else if (!shouldShow && endScreen.parentElement) {
+			endScreen.remove();
+		}
+	};
+	const detachEndScreen = store.subscribe(syncEndScreen);
+	syncEndScreen();
+
 	const onPresentationClick = (event: MouseEvent): void => {
 		const state = store.get();
 		if (!state.presenting || !(event.target instanceof Element)) {
@@ -172,6 +218,8 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	chrome.root.addEventListener('click', onPresentationClick);
 	const detachPresentationClick = (): void => {
 		chrome.root.removeEventListener('click', onPresentationClick);
+		detachEndScreen();
+		endScreen.remove();
 	};
 	const presentation = createPresentationController(chrome.root, (presenting) => {
 		store.set({ presenting });

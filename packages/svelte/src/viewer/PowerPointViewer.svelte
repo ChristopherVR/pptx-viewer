@@ -15,6 +15,7 @@
 		createBlankSlide,
 		DEFAULT_VIEWER_OPTIONS,
 		makeSlideId,
+		readBackstageRecentFile,
 		readStoredViewerPrefs,
 		resolveThemeCatalogEntry,
 		THEME_CATALOG,
@@ -533,6 +534,11 @@
 		getCurrentIndex: () => viewer.current,
 		navigate: (index) => viewer.goTo(index),
 		getShowWithAnimation: () => loader.presentationProperties.showWithAnimation,
+		// Past the last slide the controller raises the black end screen; a further
+		// forward input (or a click on it) ends the show, like PowerPoint.
+		exit: () => {
+			viewer.isFullscreen = false;
+		},
 		getFrameRoot: () => stageHolderEl?.querySelector('.pptx-svelte-stage') ?? null,
 	});
 	// Publish the per-element native-animation state map so the chart / SmartArt /
@@ -738,7 +744,11 @@
 	use:presentationSwipe={{
 		isEnabled: () => viewer.isFullscreen,
 		onNext: () => presentation.advance(true),
-		onPrevious: () => viewer.prev(),
+		onPrevious: () => {
+			if (!presentation.retreat()) {
+				viewer.prev();
+			}
+		},
 	}}
 	bind:this={rootEl}
 	class={`pptx-svelte-viewer ${className}`}
@@ -870,7 +880,6 @@
 				{onopenfile}
 				onopenrecent={(key) => {
 					void (async () => {
-						const { readBackstageRecentFile } = await import('pptx-viewer-shared');
 						const bytes = await readBackstageRecentFile(key);
 						if (bytes) await loader.load(bytes);
 					})();
@@ -984,10 +993,17 @@
 		<PresentationTouchControls
 			current={viewer.current}
 			total={viewer.slideCount}
-			onprev={() => viewer.prev()}
+			onprev={() => (presentation.retreat() ? undefined : viewer.prev())}
 			onnext={() => presentation.advance()}
 			onexit={onFullscreenToggle}
 		/>
+	{/if}
+	<!-- Black "End of slide show" screen: the show has run past its last slide.
+	     It MUST be visible - while it is up the next input either goes nowhere
+	     (backward) or ends the show (forward), so a deck that kept painting the
+	     last slide looked stuck and then exited with no warning. -->
+	{#if viewer.isFullscreen && presentation.endOfShowVisible}
+		<PresentationEndScreen onexit={() => presentation.advance()} />
 	{/if}
 	{#if presenterSession.snapshot.blackout !== 'none'}<div class="presenter-blackout" style={`background:${presenterSession.snapshot.blackout}`}></div>{/if}
 	{#if presenterSession.snapshot.pointer?.tool === 'laser'}<div class="presenter-laser" style={`left:${(presenterSession.snapshot.pointer?.x ?? .5)*100}%;top:${(presenterSession.snapshot.pointer?.y ?? .5)*100}%`}></div>{/if}

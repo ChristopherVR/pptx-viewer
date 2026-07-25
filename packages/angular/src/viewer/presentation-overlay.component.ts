@@ -47,6 +47,7 @@ import type { SlideKeyframesStyle } from './presentation-keyframes';
 import {
 	clampIndex,
 	fitZoom,
+	hasVisibleSlideAfter,
 	nextVisibleIndex,
 	prevVisibleIndex,
 	shouldBlockClickAdvance,
@@ -180,6 +181,23 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 			inset: 0;
 			z-index: 75;
 		}
+		.pptx-ng-presentation-end {
+			position: absolute;
+			inset: 0;
+			z-index: 90;
+			display: flex;
+			align-items: flex-start;
+			border: 0;
+			padding: 0;
+			background: #000;
+			text-align: left;
+			cursor: default;
+		}
+		.pptx-ng-presentation-end span {
+			padding: 0.75rem 1rem;
+			color: rgba(255, 255, 255, 0.7);
+			font-size: 12px;
+		}
 		.presenter-laser {
 			position: absolute;
 			z-index: 76;
@@ -217,6 +235,21 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 			<span class="pptx-ng-presentation-counter" [ngStyle]="counterStyle">
 				{{ counterLabel() }}
 			</span>
+
+			<!-- Black "End of slide show" screen: the show has run past its last
+			     slide. It MUST be visible - while it is up the next input either
+			     goes nowhere (backward) or ends the show (forward), so a deck that
+			     kept painting the last slide looked stuck and swallowed advances. -->
+			@if (endOfShow()) {
+				<button
+					type="button"
+					class="pptx-ng-presentation-end"
+					data-pptx-end-of-show
+					(click)="onEndScreenClick($event)"
+				>
+					<span>{{ 'pptx.presentation.endOfSlideShow' | translate }}</span>
+				</button>
+			}
 
 			<div
 				#stage
@@ -396,6 +429,13 @@ export class PresentationOverlayComponent implements OnInit {
 	protected readonly currentIndex = signal(0);
 	/** PowerPoint's Ctrl+M: hide ink markup without discarding the strokes. */
 	protected readonly inkMarkupVisible = signal(true);
+	/**
+	 * True once the show has run past its last slide and the black "End of slide
+	 * show" screen is up. It MUST be surfaced: while it is up the next input
+	 * either goes nowhere (backward) or ends the show (forward), so a deck that
+	 * kept painting its last slide looked stuck and swallowed every advance.
+	 */
+	protected readonly endOfShow = signal(false);
 	private readonly syncExternalIndex = effect(() => {
 		const count = this.slides().length;
 		if (count === 0) {
@@ -903,6 +943,13 @@ export class PresentationOverlayComponent implements OnInit {
 		this.navigate('next');
 	}
 
+	/** Click on the end screen: exit the show, like PowerPoint's "click to exit". */
+	protected onEndScreenClick(event: MouseEvent): void {
+		event.stopPropagation();
+		this.endOfShow.set(false);
+		this.emitClosed();
+	}
+
 	/** Toggle an annotation tool (clicking the active one disarms it). */
 	protected selectTool(tool: 'pen' | 'highlighter' | 'eraser' | 'laser'): void {
 		this.annotations.setTool(tool);
@@ -964,6 +1011,16 @@ export class PresentationOverlayComponent implements OnInit {
 			return;
 		}
 
+		// While the end screen is up a forward input ends the show (PowerPoint's
+		// "click to exit") and a backward input just dismisses it.
+		if (this.endOfShow()) {
+			this.endOfShow.set(false);
+			if (direction === 'next') {
+				this.emitClosed();
+			}
+			return;
+		}
+
 		// On forward navigation, first reveal the next click-group of element
 		// animations; only advance the slide once the slide's builds are exhausted.
 		if (direction === 'next' && this.playback.advance()) {
@@ -986,6 +1043,14 @@ export class PresentationOverlayComponent implements OnInit {
 			case 'last':
 				next = clampIndex(count - 1, count);
 				break;
+		}
+
+		if (direction === 'next' && !hasVisibleSlideAfter(current, slides)) {
+			// Nothing further to advance to. `nextVisibleIndex` would wrap back to
+			// the first slide and loop for ever; PowerPoint only loops when "Loop
+			// continuously until Esc" is set, so end the show instead.
+			this.endOfShow.set(true);
+			return;
 		}
 
 		if (next !== current) {

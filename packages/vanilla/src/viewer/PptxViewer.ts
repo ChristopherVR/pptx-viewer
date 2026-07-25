@@ -221,7 +221,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				this.annotations?.sync(this.presenterSnapshot);
 			},
 		});
-		this.controls = createViewerControls(this.store, this.renderer);
+		this.controls = createViewerControls(this.store, this.renderer, () => {
+			void this.exitPresentation();
+		});
 
 		ensureViewerStyles(this.doc);
 		const userFontCss = buildUserFontFaceStyles(options.fonts ?? []);
