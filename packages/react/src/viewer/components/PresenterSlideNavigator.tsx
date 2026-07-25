@@ -12,16 +12,13 @@ export function PresenterSlideNavigator(props: {
 	onClose: () => void;
 }) {
 	return (
-		<div className='absolute inset-0 z-[120] flex flex-col bg-slate-950/98 text-slate-100'>
-			<header className='flex items-center justify-between border-b border-white/10 px-6 py-4'>
+		<div className='absolute inset-0 z-[120] flex flex-col bg-card/98 text-foreground'>
+			<header className='flex items-center justify-between border-b border-border px-6 py-4'>
 				<div>
 					<p className='text-xs uppercase tracking-[0.22em] text-sky-300'>Slide navigator</p>
 					<h2 className='text-xl font-semibold'>See all slides</h2>
 				</div>
-				<button
-					className='rounded-md bg-white/10 px-4 py-2 hover:bg-white/20'
-					onClick={props.onClose}
-				>
+				<button className='rounded-md bg-muted px-4 py-2 hover:bg-accent' onClick={props.onClose}>
 					Close
 				</button>
 			</header>
@@ -37,7 +34,7 @@ export function PresenterSlideNavigator(props: {
 							templateElements={props.templateElements}
 							canvasSize={props.canvasSize}
 						/>
-						<span className='mt-2 block text-xs tabular-nums text-slate-400'>
+						<span className='mt-2 block text-xs tabular-nums text-muted-foreground'>
 							{index + 1}
 							{slide.hidden ? ' - hidden' : ''}
 						</span>

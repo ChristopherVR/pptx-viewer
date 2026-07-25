@@ -22,6 +22,7 @@ import type { SlideAdvanceTrigger } from '../hooks/presentation-mode/types';
 import type { CanvasSize } from '../types';
 import { PresenterSlideFrame } from './presentation/PresenterSlideFrame';
 import { PresentationAudienceEffects } from './PresentationAudienceEffects';
+import { PresentationEndOverlay } from './PresentationEndOverlay';
 import { PresentationSubtitleBar } from './PresentationSubtitleBar';
 import { formatElapsed, presenterPaneAdvancesOnClick } from './presenter-view-utils';
 import { PresenterConsoleToolbar } from './PresenterConsoleToolbar';
@@ -53,6 +54,14 @@ export interface PresenterViewProps {
 	onCloseAudienceWindow?: () => void;
 	/** Whether the audience window is currently open. */
 	isAudienceWindowOpen?: boolean;
+	/**
+	 * True once the show has run past its last slide and the black "End of slide
+	 * show" screen is up. The console MUST surface it: while it is up the next
+	 * input is swallowed (backward) or ends the show (forward), so a console that
+	 * kept painting the last slide looked stuck and then dumped the presenter
+	 * into the editor with no warning.
+	 */
+	endOfShowVisible?: boolean;
 	snapshot: PresentationSnapshot;
 	onNavigateToSlide: (index: number) => void;
 	onToggleTimer: () => void;
@@ -81,6 +90,7 @@ export function PresenterView({
 	onOpenAudienceWindow,
 	onCloseAudienceWindow,
 	isAudienceWindowOpen,
+	endOfShowVisible,
 	snapshot,
 	onNavigateToSlide,
 	onToggleTimer,
@@ -111,7 +121,10 @@ export function PresenterView({
 	// Click the current-slide pane to advance, the way PowerPoint's presenter
 	// console does - it is how presenters actually drive a show, and without it
 	// the console could only be advanced from the keyboard or the Next button.
-	const paneAdvancesOnClick = presenterPaneAdvancesOnClick(snapshot.pointer?.tool);
+	// The end-of-show screen owns the pane's click (it exits the show), so the
+	// advance handler stands down while it is up.
+	const paneAdvancesOnClick =
+		presenterPaneAdvancesOnClick(snapshot.pointer?.tool) && !endOfShowVisible;
 	const handleSlidePaneClick = useCallback(() => {
 		if (!paneAdvancesOnClick) {
 			return;
@@ -140,7 +153,7 @@ export function PresenterView({
 	const timerSegment = Math.floor(elapsed / TIMER_SEGMENT_MS);
 
 	return (
-		<div className='absolute inset-0 z-50 flex flex-col bg-slate-950 text-slate-100'>
+		<div className='absolute inset-0 z-50 flex flex-col bg-card text-foreground'>
 			<PresenterConsoleToolbar
 				snapshot={snapshot}
 				audienceOpen={Boolean(isAudienceWindowOpen)}
@@ -168,10 +181,16 @@ export function PresenterView({
 					role='presentation'
 					data-pptx-presenter-slide
 					onClick={handleSlidePaneClick}
-					className={`flex-[7] flex flex-col items-center justify-center bg-black p-6 min-w-0 overflow-hidden ${
+					className={`relative flex-[7] flex flex-col items-center justify-center bg-black p-6 min-w-0 overflow-hidden ${
 						paneAdvancesOnClick ? 'cursor-pointer' : ''
 					}`}
 				>
+					{/* The show has run past its last slide. The console has to say so:
+					    while this is up the next input either goes nowhere (backward) or
+					    ends the show (forward), and a console still painting the last
+					    slide made that look like the deck was stuck, then dumped the
+					    presenter into the editor with no warning. */}
+					{endOfShowVisible && <PresentationEndOverlay onExit={() => onMovePresentationSlide(1)} />}
 					<PresenterSlideFrame
 						canvasSize={canvasSize}
 						zoomScale={snapshot.zoom?.scale ?? 1}

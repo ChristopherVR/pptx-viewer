@@ -35,14 +35,14 @@ export interface PresenterConsoleToolbarProps {
 
 const toolClass = (active: boolean): string =>
 	`inline-flex h-9 min-w-9 items-center justify-center gap-2 rounded-md px-2 text-xs transition-colors ${
-		active ? 'bg-sky-500 text-slate-950' : 'bg-white/7 text-slate-200 hover:bg-white/14'
+		active ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-accent'
 	}`;
 
 export function PresenterConsoleToolbar(props: PresenterConsoleToolbarProps) {
 	const pointerTool = props.snapshot.pointer?.tool ?? 'none';
 	const zoom = props.snapshot.zoom?.scale ?? 1;
 	return (
-		<div className='flex flex-wrap items-center gap-1 border-b border-white/10 bg-slate-950 px-3 py-2'>
+		<div className='flex flex-wrap items-center gap-1 border-b border-border bg-card px-3 py-2'>
 			<button
 				className={toolClass(false)}
 				onClick={props.onToggleTimer}
@@ -53,7 +53,7 @@ export function PresenterConsoleToolbar(props: PresenterConsoleToolbarProps) {
 			<button className={toolClass(false)} onClick={props.onResetTimer} title='Reset timer'>
 				<LuRotateCcw />
 			</button>
-			<span className='mx-1 h-6 w-px bg-white/15' />
+			<span className='mx-1 h-6 w-px bg-border' />
 			<button className={toolClass(false)} onClick={props.onShowSlides} title='See all slides'>
 				<LuGrid2X2 /> Slides
 			</button>
@@ -66,7 +66,7 @@ export function PresenterConsoleToolbar(props: PresenterConsoleToolbarProps) {
 			<button className={toolClass(false)} onClick={props.onResetZoom} title='Reset zoom'>
 				<LuScan />
 			</button>
-			<span className='mx-1 h-6 w-px bg-white/15' />
+			<span className='mx-1 h-6 w-px bg-border' />
 			{(['laser', 'pen', 'highlighter', 'eraser'] as const).map((tool) => (
 				<button
 					key={tool}
@@ -85,7 +85,7 @@ export function PresenterConsoleToolbar(props: PresenterConsoleToolbarProps) {
 					)}
 				</button>
 			))}
-			<span className='mx-1 h-6 w-px bg-white/15' />
+			<span className='mx-1 h-6 w-px bg-border' />
 			<button
 				className={toolClass(props.snapshot.blackout === 'black')}
 				onClick={() => props.onBlackout(props.snapshot.blackout === 'black' ? 'none' : 'black')}
