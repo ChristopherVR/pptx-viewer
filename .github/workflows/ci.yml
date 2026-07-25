@@ -22,6 +22,73 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # ── Scope ───────────────────────────────────────────────────────────────────
+  # Decides which legs this run needs. Pushes to main always run everything;
+  # only pull requests are scoped, and scoping errs towards running more (see
+  # scripts/affected-packages.mjs).
+  #
+  # Playwright is the expensive part (a dev server plus a browser per
+  # framework), so it is additionally skipped for pull requests from forks.
+  # Maintainers get the full e2e sweep on the push to main, and can force it on
+  # a fork PR by applying the `full-ci` label.
+  scope:
+    name: Scope
+    runs-on: ubuntu-latest
+    outputs:
+      test-legs: ${{ steps.scope.outputs.test-legs }}
+      e2e-projects: ${{ steps.scope.outputs.e2e-projects }}
+      has-tests: ${{ steps.scope.outputs.has-tests }}
+      run-e2e: ${{ steps.gate.outputs.run-e2e }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Collect changed files
+        id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo '[]' > changed-files.json
+            echo "Push build: running the full matrix."
+          else
+            gh api --paginate \
+              "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+              --jq '[.[].filename]' | jq -s 'add // []' > changed-files.json
+            echo "$(jq 'length' changed-files.json) changed file(s)."
+          fi
+
+      - name: Resolve affected legs
+        id: scope
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            {
+              echo 'test-legs=["core","core-crypto","shared","locales","react","react18","vue","angular","vanilla","svelte","tools","cli"]'
+              echo 'e2e-projects=["react","vue","angular","vanilla","svelte"]'
+              echo 'has-tests=true'
+            } >> "$GITHUB_OUTPUT"
+          else
+            node scripts/affected-packages.mjs changed-files.json
+          fi
+
+      - name: Decide whether e2e runs
+        id: gate
+        run: |
+          fork="${{ github.event.pull_request.head.repo.fork }}"
+          forced="${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}"
+          has_e2e="${{ steps.scope.outputs.e2e-projects != '[]' }}"
+
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run-e2e=true" >> "$GITHUB_OUTPUT"
+          elif [ "$has_e2e" != "true" ]; then
+            echo "run-e2e=false" >> "$GITHUB_OUTPUT"
+            echo "No binding or demo touched; skipping Playwright."
+          elif [ "$fork" = "true" ] && [ "$forced" != "true" ]; then
+            echo "run-e2e=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Playwright is skipped for fork pull requests. It runs on the push to main, or add the \`full-ci\` label to force it here."
+          else
+            echo "run-e2e=true" >> "$GITHUB_OUTPUT"
+          fi
+
   # ── Foundation: core + shared + mcp + cli (must all succeed) ────────────────
   build:
     runs-on: ubuntu-latest
@@ -176,73 +243,44 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
-  # ── Tests: one matrix job per package ───────────────────────────────────────
-  # Framework entries are enabled only when their build succeeded; a disabled
-  # entry no-ops (every step is guarded) instead of failing the run.
+  # ── Tests: one matrix leg per package ───────────────────────────────────────
+  # The matrix is computed by the `scope` job, so a PR runs only the legs its
+  # changed paths can reach. `packages/shared` and `packages/locales` legs exist
+  # here because their suites (227 files, and the test that enforces locale key
+  # parity) previously had no CI leg at all and never ran.
   test:
-    needs: build
+    needs: [scope, build]
+    if: needs.scope.outputs.has-tests == 'true'
     runs-on: ubuntu-latest
     name: test-${{ matrix.key }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - key: core
-            dir: packages/core
-            cmd: bun vitest run --reporter=verbose --reporter=github-actions --exclude 'src/core/utils/ooxml-crypto.test.ts'
-            enabled: 'true'
-          - key: core-crypto
-            dir: packages/core
-            cmd: bun vitest run --reporter=verbose --reporter=github-actions src/core/utils/ooxml-crypto.test.ts
-            enabled: 'true'
-          - key: react
-            dir: packages/react
-            cmd: bun vitest run --reporter=verbose --reporter=github-actions
-            enabled: ${{ needs.build.outputs.react-built }}
-          # React 18 is the lower bound of the react/react-dom peer range
-          # (`^18.2.0 || ^19.0.0`, issue #105). This leg re-runs the IDENTICAL
-          # specs with react/react-dom aliased onto the React 18 pair owned by
-          # packages/react-compat, then type-checks a consumer of the built
-          # declarations against @types/react 18 - the .d.ts is generated with
-          # React 19 types, so that pairing needs its own proof.
-          - key: react18
-            dir: packages/react
-            cmd: bun vitest run --config vitest.react18.config.ts --reporter=verbose --reporter=github-actions && bun run typecheck:react18
-            enabled: ${{ needs.build.outputs.react-built }}
-          - key: vue
-            dir: packages/vue
-            cmd: bun vitest run --reporter=verbose --reporter=github-actions
-            enabled: ${{ needs.build.outputs.vue-built }}
-          - key: angular
-            dir: packages/angular
-            # inline-shared vendors the shared source the Angular lib compiles against
-            cmd: bun run inline-shared && bun vitest run --reporter=verbose --reporter=github-actions
-            enabled: ${{ needs.build.outputs.angular-built }}
-          - key: vanilla
-            dir: packages/vanilla
-            cmd: bun vitest run --reporter=verbose --reporter=github-actions
-            enabled: ${{ needs.build.outputs.vanilla-built }}
-          - key: svelte
-            dir: packages/svelte
-            cmd: bun vitest run --reporter=verbose --reporter=github-actions
-            enabled: ${{ needs.build.outputs.svelte-built }}
-          - key: tools
-            dir: packages/tools
-            cmd: bun vitest run --reporter=verbose --reporter=github-actions
-            enabled: 'true'
-          - key: cli
-            dir: packages/cli
-            cmd: bun vitest run --reporter=verbose --reporter=github-actions
-            enabled: 'true'
+        key: ${{ fromJSON(needs.scope.outputs.test-legs) }}
     steps:
-      # A leg whose build failed used to skip every step and report GREEN, so a
-      # binding could break outright while CI stayed clean. Fail loudly instead:
-      # a check that runs nothing must never look like a check that passed.
-      - name: Require the ${{ matrix.key }} build to have succeeded
-        if: matrix.enabled != 'true'
+      # A leg whose binding failed to build used to skip every step and report
+      # GREEN, so a binding could break outright while CI stayed clean. Fail
+      # loudly: a check that runs nothing must never look like one that passed.
+      - name: Require the build for this leg to have succeeded
+        env:
+          REACT_BUILT: ${{ needs.build.outputs.react-built }}
+          VUE_BUILT: ${{ needs.build.outputs.vue-built }}
+          ANGULAR_BUILT: ${{ needs.build.outputs.angular-built }}
+          VANILLA_BUILT: ${{ needs.build.outputs.vanilla-built }}
+          SVELTE_BUILT: ${{ needs.build.outputs.svelte-built }}
         run: |
-          echo "::error::The ${{ matrix.key }} build failed in the \`build\` job, so no tests could run here."
-          exit 1
+          case "${{ matrix.key }}" in
+            react|react18) built="$REACT_BUILT" ;;
+            vue)           built="$VUE_BUILT" ;;
+            angular)       built="$ANGULAR_BUILT" ;;
+            vanilla)       built="$VANILLA_BUILT" ;;
+            svelte)        built="$SVELTE_BUILT" ;;
+            *)             built=true ;;
+          esac
+          if [ "$built" != "true" ]; then
+            echo "::error::The build for ${{ matrix.key }} failed in the build job, so no tests could run here."
+            exit 1
+          fi
 
       - uses: actions/checkout@v7
 
@@ -268,18 +306,48 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      # Leg -> directory and command. `core` is split from `core-crypto` because
+      # the crypto suite is slow enough to deserve its own runner. `react18` is
+      # the lower bound of the react/react-dom peer range (`^18.2.0 || ^19.0.0`,
+      # issue #105): it re-runs the IDENTICAL specs with react/react-dom aliased
+      # onto the React 18 pair owned by packages/react-compat, then type-checks a
+      # consumer of the built declarations against @types/react 18, since the
+      # .d.ts is generated with React 19 types and that pairing needs its own
+      # proof. `angular` must vendor the shared source it compiles against first.
+      - name: Resolve the command for this leg
+        id: leg
+        run: |
+          V="run --reporter=verbose --reporter=github-actions"
+          case "${{ matrix.key }}" in
+            core)        dir=packages/core;    cmd="bun vitest $V --exclude 'src/core/utils/ooxml-crypto.test.ts'" ;;
+            core-crypto) dir=packages/core;    cmd="bun vitest $V src/core/utils/ooxml-crypto.test.ts" ;;
+            shared)      dir=packages/shared;  cmd="bun vitest $V" ;;
+            locales)     dir=packages/locales; cmd="bun vitest $V" ;;
+            react)       dir=packages/react;   cmd="bun vitest $V" ;;
+            react18)     dir=packages/react;   cmd="bun vitest run --config vitest.react18.config.ts --reporter=verbose --reporter=github-actions && bun run typecheck:react18" ;;
+            vue)         dir=packages/vue;     cmd="bun vitest $V" ;;
+            angular)     dir=packages/angular; cmd="bun run inline-shared && bun vitest $V" ;;
+            vanilla)     dir=packages/vanilla; cmd="bun vitest $V" ;;
+            svelte)      dir=packages/svelte;  cmd="bun vitest $V" ;;
+            tools)       dir=packages/tools;   cmd="bun vitest $V" ;;
+            cli)         dir=packages/cli;     cmd="bun vitest $V" ;;
+            *) echo "::error::Unknown test leg ${{ matrix.key }}"; exit 1 ;;
+          esac
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+          echo "cmd=$cmd" >> "$GITHUB_OUTPUT"
+
       - name: Test ${{ matrix.key }}
-        run: cd ${{ matrix.dir }} && ${{ matrix.cmd }} --coverage
+        run: cd ${{ steps.leg.outputs.dir }} && ${{ steps.leg.outputs.cmd }} --coverage
 
       # Per-package flags are what make coverage useful against the parity rule:
-      # a UI change that moved only the `react` flag is a visible signal that
-      # the other four bindings were not tested. Never fails the build; on fork
-      # PRs the token is unavailable and Codecov falls back to tokenless upload.
+      # a UI change that moved only the `react` flag is a visible signal that the
+      # other four bindings were not tested. Never fails the build; on fork PRs
+      # the token is unavailable and Codecov falls back to tokenless upload.
       - name: Upload coverage
         uses: codecov/codecov-action@v6
         continue-on-error: true
         with:
-          files: ${{ matrix.dir }}/coverage/coverage-final.json
+          files: ${{ steps.leg.outputs.dir }}/coverage/coverage-final.json
           flags: ${{ matrix.key }}
           name: ${{ matrix.key }}
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -297,37 +365,41 @@ jobs:
   # spurious timeouts/HMR contention with the default higher worker count
   # against one Vite dev server).
   #
+  # The matrix comes from `scope`, which also decides whether this job runs at
+  # all: Playwright is skipped for fork pull requests (add the `full-ci` label to
+  # force it) and for PRs that touch no binding or demo.
   e2e:
-    needs: build
+    needs: [scope, build]
+    if: needs.scope.outputs.run-e2e == 'true'
     runs-on: ubuntu-latest
     name: e2e-${{ matrix.key }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - key: react
-            project: react
-            enabled: ${{ needs.build.outputs.react-built }}
-          - key: vue
-            project: vue
-            enabled: ${{ needs.build.outputs.vue-built }}
-          - key: angular
-            project: angular
-            enabled: ${{ needs.build.outputs.angular-built }}
-          - key: vanilla
-            project: vanilla
-            enabled: ${{ needs.build.outputs.vanilla-built }}
-          - key: svelte
-            project: svelte
-            enabled: ${{ needs.build.outputs.svelte-built }}
+        key: ${{ fromJSON(needs.scope.outputs.e2e-projects) }}
     steps:
       # See the equivalent guard in `test`: a skipped leg must not report green.
       - name: Require the ${{ matrix.key }} build to have succeeded
-        if: matrix.enabled != 'true'
+        env:
+          REACT_BUILT: ${{ needs.build.outputs.react-built }}
+          VUE_BUILT: ${{ needs.build.outputs.vue-built }}
+          ANGULAR_BUILT: ${{ needs.build.outputs.angular-built }}
+          VANILLA_BUILT: ${{ needs.build.outputs.vanilla-built }}
+          SVELTE_BUILT: ${{ needs.build.outputs.svelte-built }}
         run: |
-          echo "::error::The ${{ matrix.key }} build failed in the \`build\` job, so no e2e could run here."
-          exit 1
+          case "${{ matrix.key }}" in
+            react)   built="$REACT_BUILT" ;;
+            vue)     built="$VUE_BUILT" ;;
+            angular) built="$ANGULAR_BUILT" ;;
+            vanilla) built="$VANILLA_BUILT" ;;
+            svelte)  built="$SVELTE_BUILT" ;;
+            *)       built=true ;;
+          esac
+          if [ "$built" != "true" ]; then
+            echo "::error::The ${{ matrix.key }} build failed in the build job, so no e2e could run here."
+            exit 1
+          fi
 
       - uses: actions/checkout@v7
 
@@ -369,8 +441,8 @@ jobs:
       - name: Install Playwright browsers
         run: bun run e2e:install
 
-      - name: Run e2e (${{ matrix.project }})
-        run: bun run e2e -- --project=${{ matrix.project }} --workers=2 --reporter=list,html,github
+      - name: Run e2e (${{ matrix.key }})
+        run: bun run e2e -- --project=${{ matrix.key }} --workers=2 --reporter=list,html,github
 
       # Failures used to be visible only by downloading an artifact, which meant
       # nobody looked. Put the failing spec names in the run summary instead.
@@ -378,7 +450,7 @@ jobs:
         if: failure()
         run: |
           {
-            echo "### e2e failures (${{ matrix.project }})"
+            echo "### e2e failures (${{ matrix.key }})"
             echo ""
             if [ -f test-results/.last-run.json ]; then
               echo '```'
@@ -408,17 +480,27 @@ jobs:
   ci-success:
     name: ci-success
     if: always()
-    needs: [build, lint, typecheck, test, e2e]
+    needs: [scope, build, lint, typecheck, test, e2e]
     runs-on: ubuntu-latest
     steps:
-      - name: Check every required job succeeded
+      # `skipped` is accepted because `scope` legitimately drops legs a PR
+      # cannot affect (a docs-only change runs no tests; a fork PR runs no
+      # Playwright). That is NOT the old failure mode: back then a leg was
+      # skipped *because its build had failed* and still reported green. Now a
+      # skip is a deliberate decision made up front, and a leg that starts and
+      # cannot run its tests fails instead. `cancelled` and `failure` are still
+      # hard failures here.
+      - name: Check every required job succeeded or was deliberately skipped
         run: |
           results="${{ join(needs.*.result, ' ') }}"
           echo "Upstream results: $results"
           for result in $results; do
-            if [ "$result" != "success" ]; then
-              echo "::error::A required CI job did not succeed (got: $results)."
-              exit 1
-            fi
+            case "$result" in
+              success|skipped) ;;
+              *)
+                echo "::error::A required CI job did not succeed (got: $results)."
+                exit 1
+                ;;
+            esac
           done
-          echo "All required CI jobs succeeded."
+          echo "All required CI jobs succeeded or were deliberately skipped."

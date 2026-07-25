@@ -180,6 +180,27 @@ bun run e2e -- --project=svelte    # a single framework
 bun run e2e:install                # one-time Playwright browser install
 ```
 
+### What CI runs on your PR
+
+CI is **scoped to the paths you changed** (`scripts/affected-packages.mjs`), so a
+PR touching only `packages/vue` runs the Vue legs rather than all seventeen. The
+scoping deliberately errs towards running more: a change to `core` or `shared`
+fans out to every binding, and any path it does not recognise runs everything.
+Pushes to `main` are never scoped.
+
+**Playwright does not run on pull requests from forks.** It needs a dev server
+and a browser per framework and is by far the slowest part of the pipeline, so
+it runs on the push to `main` after merge instead. A maintainer can force the
+full sweep on your PR by adding the `full-ci` label, and will do so for anything
+touching rendering, layout, or presentation behaviour.
+
+That means a green tick on a fork PR is not proof the e2e suite passes. Run the
+suite locally for UI work:
+
+```bash
+bun run e2e -- --project=vue
+```
+
 ### Unit tests
 
 Colocated with source, `.test.ts` suffix. Vitest.
