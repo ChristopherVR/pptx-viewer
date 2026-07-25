@@ -74,9 +74,21 @@ test('the accepted type list matches cliff.toml commit_parsers', () => {
 	}
 });
 
-test('the last 200 commits on this repo produce no hard errors', () => {
+test('the last 200 commits on this repo produce no hard errors', (t) => {
 	// A rule that would reject this project's own history is a rule that gets
 	// switched off. This test is the guard against tightening one too far.
+	//
+	// CI checks out at depth 1 (actions/checkout's default), so there is no
+	// history to inspect there; the assertion only means anything on a full clone.
+	const shallow =
+		execFileSync('git', ['rev-parse', '--is-shallow-repository'], { encoding: 'utf8' }).trim() ===
+		'true';
+
+	if (shallow) {
+		t.skip('shallow clone: no history available');
+		return;
+	}
+
 	const subjects = execFileSync('git', ['log', '-200', '--format=%s'], { encoding: 'utf8' })
 		.split('\n')
 		.filter(Boolean);
@@ -93,4 +105,13 @@ test("dependabot's doubled scope warns rather than failing", () => {
 	const subject = 'chore(deps-dev)(deps-dev): Update happy-dom requirement (#104)';
 	assert.deepEqual(errorsFor(subject), []);
 	assert.ok(warningsFor(subject).some((w) => w.includes('2 scopes')));
+});
+
+test("github's synthetic pull-request merge commit is exempt", () => {
+	// Every `pull_request` run checks out refs/pull/N/merge, whose subject takes
+	// this form. Not exempting it failed the check on every pull request.
+	const subject =
+		'Merge 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b into 0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a';
+	assert.ok(isExempt(subject));
+	assert.deepEqual(errorsFor(subject), []);
 });

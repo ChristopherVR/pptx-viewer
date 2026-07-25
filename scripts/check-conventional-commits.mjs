@@ -58,6 +58,9 @@ const SOFT_HEADER_LIMIT = 72;
 export function isExempt(subject) {
 	return (
 		/^Merge (?:branch|pull request|remote-tracking)\b/u.test(subject) ||
+		// The synthetic merge commit GitHub builds for refs/pull/N/merge, which is
+		// the HEAD every `pull_request` run checks out.
+		/^Merge [0-9a-f]{7,40} into [0-9a-f]{7,40}$/u.test(subject) ||
 		/^Revert "/u.test(subject) ||
 		/^merge:/u.test(subject)
 	);
