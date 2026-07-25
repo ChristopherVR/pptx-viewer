@@ -84,7 +84,7 @@
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-mcp": "workspace:*",
 		"three": "^0.185.1",
-		"tsdown": "^0.22.12",
+		"tsdown": "^0.22.14",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.10",
