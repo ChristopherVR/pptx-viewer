@@ -6,7 +6,7 @@
       "name": "pptx-viewer-monorepo",
       "dependencies": {
         "@ai-sdk/openai-compatible": "^3.0.14",
-        "@ai-sdk/react": "^4.0.38",
+        "@ai-sdk/react": "^4.0.40",
         "@ai-sdk/svelte": "^5.0.35",
         "@ai-sdk/vue": "^4.0.35",
         "@angular/common": "^22.0.8",
@@ -30,7 +30,7 @@
         "@types/three": "^0.185.1",
         "@typescript/typescript6": "^6.0.2",
         "@vitest/coverage-v8": "^4.1.10",
-        "ai": "^7.0.35",
+        "ai": "^7.0.37",
         "husky": "^9.1.7",
         "jszip": "^3.10.1",
         "lib0": "^0.2.117",
@@ -60,7 +60,7 @@
         "@angular/core": "^22.0.7",
         "@angular/platform-browser": "^22.0.7",
         "@ngx-translate/core": "^18.0.0",
-        "ai": "^7.0.31",
+        "ai": "^7.0.37",
         "fast-xml-parser": "^5.10.1",
         "html2canvas-pro": "^2.2.4",
         "jspdf": "^4.2.1",
@@ -72,7 +72,7 @@
         "zone.js": "^0.16.2",
       },
       "devDependencies": {
-        "@analogjs/vite-plugin-angular": "^2.6.3",
+        "@analogjs/vite-plugin-angular": "^2.6.4",
         "@angular/build": "^22.0.7",
         "@angular/compiler": "^22.0.7",
         "@angular/compiler-cli": "^22.0.7",
@@ -89,7 +89,7 @@
         "i18next": "^26.3.6",
         "jspdf": "^4.2.1",
         "jszip": "^3.10.1",
-        "lucide-react": "^1.25.0",
+        "lucide-react": "^1.26.0",
         "pptx-react-viewer": "workspace:*",
         "pptx-viewer-core": "workspace:*",
         "pptx-viewer-locales": "workspace:*",
@@ -100,13 +100,13 @@
       },
       "devDependencies": {
         "@ai-sdk/openai-compatible": "^3.0.12",
-        "@ai-sdk/react": "^4.0.34",
+        "@ai-sdk/react": "^4.0.40",
         "@tailwindcss/vite": "^4.3.3",
         "@types/node": "^26.1.1",
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.2.3",
         "@vitejs/plugin-react": "^6.0.3",
-        "ai": "^7.0.31",
+        "ai": "^7.0.37",
         "tailwindcss": "^4.3.3",
         "typescript": "^7.0.2",
         "vite": "^8.1.5",
@@ -116,7 +116,7 @@
       "name": "pptx-svelte-demo",
       "dependencies": {
         "@ai-sdk/openai-compatible": "^3.0.12",
-        "ai": "^7.0.31",
+        "ai": "^7.0.37",
         "fast-xml-parser": "^5.10.1",
         "jszip": "^3.10.1",
         "pptx-svelte-viewer": "workspace:*",
@@ -140,7 +140,7 @@
       "name": "pptx-vanilla-demo",
       "dependencies": {
         "@ai-sdk/openai-compatible": "^3.0.12",
-        "ai": "^7.0.31",
+        "ai": "^7.0.37",
         "fast-xml-parser": "^5.10.1",
         "jszip": "^3.10.1",
         "pptx-vanilla-viewer": "workspace:*",
@@ -163,7 +163,7 @@
       "dependencies": {
         "@ai-sdk/openai-compatible": "^3.0.12",
         "@ai-sdk/vue": "^4.0.31",
-        "ai": "^7.0.31",
+        "ai": "^7.0.37",
         "fast-xml-parser": "^5.10.1",
         "jspdf": "^4.2.1",
         "jszip": "^3.10.1",
@@ -187,7 +187,7 @@
       "name": "pptx-angular-viewer",
       "version": "2.3.0",
       "dependencies": {
-        "@lucide/angular": "^1.25.0",
+        "@lucide/angular": "^1.26.0",
         "dompurify": "^3.4.12",
         "fast-xml-parser": "^5.10.1",
         "html2canvas-pro": "^2.2.4",
@@ -199,7 +199,7 @@
         "zod": "^4.4.3",
       },
       "devDependencies": {
-        "@analogjs/vite-plugin-angular": "^2.6.3",
+        "@analogjs/vite-plugin-angular": "^2.6.4",
         "@angular/common": "^22.0.7",
         "@angular/compiler": "^22.0.7",
         "@angular/compiler-cli": "^22.0.7",
@@ -208,7 +208,7 @@
         "@tailwindcss/cli": "^4.3.3",
         "@types/three": "^0.185.1",
         "ai": ">=6 <8",
-        "happy-dom": "^20.11.0",
+        "happy-dom": "^20.11.1",
         "jsdom": "^29.1.1",
         "ng-packagr": "^22.0.1",
         "pptx-viewer-core": "workspace:*",
@@ -249,7 +249,7 @@
       },
       "devDependencies": {
         "@types/node": "^26.1.1",
-        "tsdown": "^0.22.12",
+        "tsdown": "^0.22.14",
         "tsup": "^8.5.1",
         "typescript": "^7.0.2",
         "vitest": "^4.1.10",
@@ -271,7 +271,7 @@
         "@types/node-forge": "^1.3.14",
         "@xmldom/xmldom": "^0.9.10",
         "node-forge": "^1.4.0",
-        "tsdown": "^0.22.12",
+        "tsdown": "^0.22.14",
         "tsup": "^8.5.1",
         "typescript": "^7.0.2",
         "vitest": "^4.1.10",
@@ -292,7 +292,7 @@
       "name": "pptx-viewer-locales",
       "version": "0.1.0",
       "devDependencies": {
-        "tsdown": "^0.22.12",
+        "tsdown": "^0.22.14",
         "tsup": "^8.5.1",
         "typescript": "^7.0.2",
         "vitest": "^4.1.10",
@@ -309,7 +309,7 @@
         "tailwind-merge": "^3.6.0",
       },
       "devDependencies": {
-        "@ai-sdk/react": "^4.0.34",
+        "@ai-sdk/react": "^4.0.40",
         "@tailwindcss/cli": "^4.3.3",
         "@types/dompurify": "^3.2.0",
         "@types/react": "^19.2.17",
@@ -317,7 +317,7 @@
         "pptx-viewer-core": "workspace:*",
         "pptx-viewer-shared": "workspace:*",
         "tailwindcss": "^4.3.3",
-        "tsdown": "^0.22.12",
+        "tsdown": "^0.22.14",
         "tsup": "^8.5.1",
         "typescript": "^7.0.2",
         "vitest": "^4.1.10",
@@ -332,7 +332,7 @@
         "yjs": "^13.6.31",
       },
       "peerDependencies": {
-        "@ai-sdk/react": "^4.0.34",
+        "@ai-sdk/react": "^4.0.40",
         "ai": ">=6 <8",
         "fast-xml-parser": "^5.10.1",
         "framer-motion": "^12.42.2",
@@ -354,11 +354,11 @@
       "name": "pptx-react-viewer-react18",
       "version": "0.0.0",
       "dependencies": {
-        "@ai-sdk/react": "^4.0.34",
+        "@ai-sdk/react": "^4.0.40",
         "ai": ">=6 <8",
         "framer-motion": "^12.42.2",
         "i18next": "^26.3.6",
-        "lucide-react": "^1.24.0",
+        "lucide-react": "^1.26.0",
         "react": "18.3.1",
         "react-dom": "18.3.1",
         "react-i18next": "^17.0.9",
@@ -380,12 +380,12 @@
         "@ai-sdk/openai-compatible": "^3.0.12",
         "@types/dompurify": "^3.2.0",
         "@types/three": "^0.185.1",
-        "ai": "^7.0.31",
+        "ai": "^7.0.37",
         "fake-indexeddb": "^6.2.2",
         "pptx-viewer-core": "workspace:*",
         "pptx-viewer-mcp": "workspace:*",
         "three": "^0.185.1",
-        "tsdown": "^0.22.12",
+        "tsdown": "^0.22.14",
         "tsup": "^8.5.1",
         "typescript": "^7.0.2",
         "vitest": "^4.1.10",
@@ -407,7 +407,7 @@
       "name": "pptx-svelte-viewer",
       "version": "2.3.0",
       "dependencies": {
-        "@lucide/svelte": "^1.25.0",
+        "@lucide/svelte": "^1.26.0",
         "fast-xml-parser": "^5.10.1",
         "html2canvas-pro": "^2.2.4",
         "jspdf": "^4.2.1",
@@ -419,7 +419,7 @@
         "@microsoft/api-extractor": "^7.58.11",
         "@sveltejs/vite-plugin-svelte": "^7.2.0",
         "ai": ">=6 <8",
-        "happy-dom": "^20.11.0",
+        "happy-dom": "^20.11.1",
         "pptx-viewer-core": "workspace:*",
         "pptx-viewer-shared": "workspace:*",
         "rollup": "^4.62.2",
@@ -464,7 +464,7 @@
         "zod": "^4.4.3",
       },
       "devDependencies": {
-        "tsdown": "^0.22.12",
+        "tsdown": "^0.22.14",
         "tsup": "^8.5.1",
         "typescript": "^7.0.2",
         "vitest": "^4.1.10",
@@ -486,15 +486,15 @@
         "html2canvas-pro": "^2.2.4",
         "jspdf": "^4.2.1",
         "jszip": "^3.10.1",
-        "lucide": "^1.25.0",
+        "lucide": "^1.26.0",
         "pptx-viewer-mcp": "workspace:*",
       },
       "devDependencies": {
         "@types/dompurify": "^3.2.0",
-        "happy-dom": "^20.11.0",
+        "happy-dom": "^20.11.1",
         "pptx-viewer-core": "workspace:*",
         "pptx-viewer-shared": "workspace:*",
-        "tsdown": "^0.22.12",
+        "tsdown": "^0.22.14",
         "tsup": "^8.5.1",
         "typescript": "^7.0.2",
         "vitest": "^4.1.10",
@@ -535,7 +535,7 @@
         "@vitejs/plugin-vue": "^6.0.8",
         "@vue/compiler-sfc": "^3.5.40",
         "@vue/test-utils": "^2.4.11",
-        "happy-dom": "^20.11.0",
+        "happy-dom": "^20.11.1",
         "jsdom": "^29.1.1",
         "pptx-viewer-core": "workspace:*",
         "pptx-viewer-shared": "workspace:*",
@@ -574,7 +574,7 @@
     },
   },
   "packages": {
-    "@ai-sdk/gateway": ["@ai-sdk/gateway@4.0.27", "", { "dependencies": { "@ai-sdk/provider": "4.0.3", "@ai-sdk/provider-utils": "5.0.12", "@vercel/oidc": "3.2.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-gqTMvV0N8/JirIZ3OzwjSZRYxzwZu/PeOFCKb8NB9fstWH39tI+L6CkeMNVou5/HCKEYAw6RCOHW59Vhquv8vA=="],
+    "@ai-sdk/gateway": ["@ai-sdk/gateway@4.0.28", "", { "dependencies": { "@ai-sdk/provider": "4.0.3", "@ai-sdk/provider-utils": "5.0.12", "@vercel/oidc": "3.2.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-ee9TsNO3mkgHDWmTmJ8Fvltr6PFh52zhrV2+FaKJY3F3iu7kWZi5tCRJCR1HVhhlpj6lHniUb28nLQdPHkA/1Q=="],
 
     "@ai-sdk/mcp": ["@ai-sdk/mcp@2.0.16", "", { "dependencies": { "@ai-sdk/provider": "4.0.3", "@ai-sdk/provider-utils": "5.0.12", "pkce-challenge": "^5.0.1" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-jC2r+StEuk8uIldfP4j8nBwOEBJ2TRwy/bz71SHMZ3NG6PSbvRPXGfyoHHR6JTm1O5GcIww0f6B8LznzkrseDA=="],
 
@@ -584,7 +584,7 @@
 
     "@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@5.0.12", "", { "dependencies": { "@ai-sdk/provider": "4.0.3", "@standard-schema/spec": "^1.1.0", "@workflow/serde": "4.1.0", "eventsource-parser": "^3.0.8" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-bbhlOgHeYwrIGheLkM6fhS8hVger8uFPmcOLg+kxc9EFh7y30XYorWhthlYAgpadO3SJhFZrIcEknN7qEqEVvA=="],
 
-    "@ai-sdk/react": ["@ai-sdk/react@4.0.38", "", { "dependencies": { "@ai-sdk/mcp": "2.0.16", "@ai-sdk/provider": "4.0.3", "@ai-sdk/provider-utils": "5.0.12", "ai": "7.0.35", "swr": "^2.4.1", "throttleit": "2.1.0" }, "peerDependencies": { "react": "^18 || ~19.0.1 || ~19.1.2 || ^19.2.1" } }, "sha512-i1lNjcEGaC5s6lKRuABuv90M75LgXdRBLpyhSElctd5p8av3+lQ/fkYl0E/lpscV/Qug3vaZlaoJw/nDG0fpvg=="],
+    "@ai-sdk/react": ["@ai-sdk/react@4.0.40", "", { "dependencies": { "@ai-sdk/mcp": "2.0.16", "@ai-sdk/provider": "4.0.3", "@ai-sdk/provider-utils": "5.0.12", "ai": "7.0.37", "swr": "^2.4.1", "throttleit": "2.1.0" }, "peerDependencies": { "react": "^18 || ~19.0.1 || ~19.1.2 || ^19.2.1" } }, "sha512-z3Ht1ERCEYmt7vo6IZYXlPPNEH/SYz8CAdRWuxA+MgA5p8AXFnor/U6WhZmsAmyzhQk1Oe138PtlW7ee4Ap4qg=="],
 
     "@ai-sdk/svelte": ["@ai-sdk/svelte@5.0.35", "", { "dependencies": { "@ai-sdk/provider-utils": "5.0.12", "ai": "7.0.35" }, "peerDependencies": { "svelte": "^5.31.0" } }, "sha512-GX4OTekebiBL7+zv/LZGIPEFxVry/fYr9c4P9HzcIryLCdUofOdAj+I+NC5WEYI+2onxEyF7QDxUjqq9nrWBsA=="],
 
@@ -592,7 +592,7 @@
 
     "@ampproject/remapping": ["@ampproject/remapping@2.3.0", "", { "dependencies": { "@jridgewell/gen-mapping": "^0.3.5", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw=="],
 
-    "@analogjs/vite-plugin-angular": ["@analogjs/vite-plugin-angular@2.6.3", "", { "dependencies": { "magic-string": "^0.30.21", "obug": "^2.1.1", "oxc-parser": "^0.121.0", "tinyglobby": "^0.2.14", "ts-morph": "^21.0.0" }, "peerDependencies": { "@angular-devkit/build-angular": "^17.0.0 || ^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0 || ^22.0.0", "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0 || ^22.0.0", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0" }, "optionalPeers": ["@angular-devkit/build-angular", "@angular/build", "vite"] }, "sha512-llAevDhrGRSYL3IlUBC6nhM4kIM9W81TXC0w0ygKz5VnnR0+uiOysyJhcOZ9M4yVgG9C6/TsjBnSA4Gjql1+iQ=="],
+    "@analogjs/vite-plugin-angular": ["@analogjs/vite-plugin-angular@2.6.4", "", { "dependencies": { "magic-string": "^0.30.21", "obug": "^2.1.1", "oxc-parser": "^0.121.0", "tinyglobby": "^0.2.14", "ts-morph": "^21.0.0" }, "peerDependencies": { "@angular-devkit/build-angular": "^17.0.0 || ^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0 || ^22.0.0", "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0 || ^22.0.0", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0" }, "optionalPeers": ["@angular-devkit/build-angular", "@angular/build", "vite"] }, "sha512-HK9XEhFMcF8WkSg2xKQIpC4S4nwkCRzodpXX6xo6AI7Wt6B2SpMyQBFtCHNRuQg0vi8XsJSYOPHiGouTqMJb5g=="],
 
     "@angular-devkit/architect": ["@angular-devkit/architect@0.2200.7", "", { "dependencies": { "@angular-devkit/core": "22.0.7", "rxjs": "7.8.2" }, "bin": { "architect": "bin/cli.js" } }, "sha512-t03YYe5amlcpsX5gpMGi96kpBNTMKY7/rJsRDNO3v98mSy7kzNXlgzy/jyfdFev7AJusuwVM5TKVsUAgQxCgCw=="],
 
@@ -788,9 +788,9 @@
 
     "@lmdb/lmdb-win32-x64": ["@lmdb/lmdb-win32-x64@3.5.4", "", { "os": "win32", "cpu": "x64" }, "sha512-JF1BmLCm9kGEVZgYmJq43zeQVdHVgAJnTi/NURWEsy6L1ZrrlSmdltS+D17QN4LODwf+1LMXAA9auIZVXtWwzw=="],
 
-    "@lucide/angular": ["@lucide/angular@1.25.0", "", { "dependencies": { "tslib": "^2.3.0" }, "peerDependencies": { "@angular/common": ">=17.0.0", "@angular/core": ">=17.0.0" } }, "sha512-Hu1eHlGIeyamhSCFEO5YmiUlWn/h4y9BOXMDndY0HRu05CNeCt5BENkfBoeE/bzggMGGbYG+SOBkQUG939tFXw=="],
+    "@lucide/angular": ["@lucide/angular@1.26.0", "", { "dependencies": { "tslib": "^2.3.0" }, "peerDependencies": { "@angular/common": ">=17.0.0", "@angular/core": ">=17.0.0" } }, "sha512-Wzd8HKJTbvm6CR3JIiMZBkNog/avgAqSQmf87Ae/6oYaDMK+5yt9oe+f74bEBr2ibESHYYHbu0sQkGH2Skd4wA=="],
 
-    "@lucide/svelte": ["@lucide/svelte@1.25.0", "", { "peerDependencies": { "svelte": "^5" } }, "sha512-v9m+dD68jxVnqkU3K59mG/RSRFlPGzmKCGSyMfnXcaGv9jODDQMyQkcp1CGvk3Y/cUj9v7f8rw1n//K0B53xGQ=="],
+    "@lucide/svelte": ["@lucide/svelte@1.26.0", "", { "peerDependencies": { "svelte": "^5" } }, "sha512-KUfLTlNRVrHZ460Um7jdrvh46hI/8Sw4+1k/Ttj4g6JI9bCrjD7HZVG4cqhh7LasjfDz5b+CuKrjd/k/3obYcA=="],
 
     "@mediapipe/tasks-vision": ["@mediapipe/tasks-vision@0.10.17", "", {}, "sha512-CZWV/q6TTe8ta61cZXjfnnHsfWIdFhms03M9T7Cnd5y2mdpylJM0rF1qRq+wsQVRMLz1OYPVEBU9ph2Bx8cxrg=="],
 
@@ -1374,7 +1374,7 @@
 
     "agent-base": ["agent-base@9.0.0", "", {}, "sha512-TQf59BsZnytt8GdJKLPfUZ54g/iaUL2OWDSFCCvMOhsHduDQxO8xC4PNeyIkVcA5KwL2phPSv0douC0fgWzmnA=="],
 
-    "ai": ["ai@7.0.35", "", { "dependencies": { "@ai-sdk/gateway": "4.0.27", "@ai-sdk/provider": "4.0.3", "@ai-sdk/provider-utils": "5.0.12" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-en8xnTNoVJVWk/Y7TsXuTkc463ehuQUqrofjPs/TAd4O3h14QKmq4rWWG3/Eb05r3f2MvvxfCuXNnvhTdzyoTg=="],
+    "ai": ["ai@7.0.37", "", { "dependencies": { "@ai-sdk/gateway": "4.0.28", "@ai-sdk/provider": "4.0.3", "@ai-sdk/provider-utils": "5.0.12" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-stF+SEQJgKY3Qfe3FwNzqUrehHviOp2l7LemoI8YMOa0Zk5PxKsRNgUk3cHXz0RAue9RRyCAis2fz6LSCP6EKw=="],
 
     "ajv": ["ajv@8.20.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA=="],
 
@@ -1886,9 +1886,9 @@
 
     "lru-cache": ["lru-cache@11.5.2", "", {}, "sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g=="],
 
-    "lucide": ["lucide@1.25.0", "", {}, "sha512-Pg/9Ga1xTbrnI6GY/7J9krIYmJIkAf3PkK6wPmsAeUtAQsBdGxs1+dfvLqjf9nPI5aFm9+VquT75JGpO3QXSpQ=="],
+    "lucide": ["lucide@1.26.0", "", {}, "sha512-koKiuPC/3VLiIGY+hXn9pSurD4b54LgvkNqb9FjF8A4l5ftgRwFgmpPHoOnMLPbNj8oiDjMfMsnU3FITuxZ6Mw=="],
 
-    "lucide-react": ["lucide-react@1.25.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-/mdJTRbiwcLOQ1NZZK1amZF9rIZyvO18D6r9TngE6TG1NmqHgFuT4eE7Xrkm9UsXMbBJD1NlfwHVltCDWHrOTw=="],
+    "lucide-react": ["lucide-react@1.26.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-raglYVR2+VkMfJL158krjVmE+rV5ST2lzA/KQm1FRSjMHT4MnWaegHxoVEpmc2So3nOEhp9oGejJwAPX8MoAjg=="],
 
     "lucide-vue-next": ["lucide-vue-next@1.0.0", "", { "peerDependencies": { "vue": ">=3.0.1" } }, "sha512-V6SPvx1IHTj/UY+FrIYWV5faISsPSb8BnWSFDxAtezWKvWc9ZZ40PDrdu1/Qb5vg4lHWr1hs1BAMGVGm6V1Xdg=="],
 
@@ -2318,7 +2318,7 @@
 
     "ts-morph": ["ts-morph@21.0.1", "", { "dependencies": { "@ts-morph/common": "~0.22.0", "code-block-writer": "^12.0.0" } }, "sha512-dbDtVdEAncKctzrVZ+Nr7kHpHkv+0JDJb2MjjpBaj8bFeCkePU9rHfMklmhuLFnpeq/EJZk2IhStY6NzqgjOkg=="],
 
-    "tsdown": ["tsdown@0.22.13", "", { "dependencies": { "ansis": "^4.3.1", "cac": "^7.0.0", "defu": "^6.1.7", "empathic": "^2.0.1", "hookable": "^6.1.1", "import-without-cache": "^0.4.0", "obug": "^2.1.4", "picomatch": "^4.0.5", "rolldown": "~1.2.0", "rolldown-plugin-dts": "^0.27.12", "tinyexec": "^1.2.4", "tinyglobby": "^0.2.17", "tree-kill": "^1.2.2", "unconfig-core": "^7.5.0", "verkit": "^0.1.2" }, "peerDependencies": { "@arethetypeswrong/core": "^0.18.1", "@tsdown/css": "0.22.13", "@tsdown/exe": "0.22.13", "@vitejs/devtools": "*", "publint": "^0.3.8", "tsx": "*", "typescript": "^5.0.0 || ^6.0.0 || ^7.0.0", "unplugin-unused": "^0.5.0", "unrun": "*" }, "optionalPeers": ["@arethetypeswrong/core", "@tsdown/css", "@tsdown/exe", "@vitejs/devtools", "publint", "tsx", "typescript", "unplugin-unused", "unrun"], "bin": { "tsdown": "./dist/run.mjs" } }, "sha512-XaYFhtiKRUvTpXv/YAehsHdbEb3LN/iMlzjSINbjlaATtXN2zVPKox2STKhcyFPlh++8Zg7suNN27E679IfAUA=="],
+    "tsdown": ["tsdown@0.22.14", "", { "dependencies": { "ansis": "^4.3.1", "cac": "^7.0.0", "defu": "^6.1.7", "empathic": "^2.0.1", "hookable": "^6.1.1", "import-without-cache": "^0.4.0", "obug": "^2.1.4", "picomatch": "^4.0.5", "rolldown": "~1.2.0", "rolldown-plugin-dts": "^0.27.13", "tinyexec": "^1.2.4", "tinyglobby": "^0.2.17", "tree-kill": "^1.2.2", "unconfig-core": "^7.5.0", "verkit": "^0.3.0" }, "peerDependencies": { "@arethetypeswrong/core": "^0.18.1", "@tsdown/css": "0.22.14", "@tsdown/exe": "0.22.14", "@vitejs/devtools": "*", "publint": "^0.3.8", "tsx": "*", "typescript": "^5.0.0 || ^6.0.0 || ^7.0.0", "unplugin-unused": "^0.5.0", "unrun": "*" }, "optionalPeers": ["@arethetypeswrong/core", "@tsdown/css", "@tsdown/exe", "@vitejs/devtools", "publint", "tsx", "typescript", "unplugin-unused", "unrun"], "bin": { "tsdown": "./dist/run.mjs" } }, "sha512-ule7Y+fsAN2iZbLDoo7C4KYljFJNJJ+fLshyn+9gozeTspVersWHxwdGB+Dm2hzA38s6muFnUTl0jK3vJm9ifQ=="],
 
     "tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
@@ -2360,7 +2360,7 @@
 
     "vary": ["vary@1.1.2", "", {}, "sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg=="],
 
-    "verkit": ["verkit@0.1.2", "", {}, "sha512-WqkT8n3hqizuCu71W3bUzf5fjBmkbXcudsehe/NbxA8PgqoKnSOY5K0Ba2ckg1qaRaSpSz7as/n9K1R9JXjQKg=="],
+    "verkit": ["verkit@0.3.0", "", {}, "sha512-Njrh4U8UODGajoZ44QS2C/BsoEM9DTI/aCqY5swsizb+/ap0FamvnCMcZAxrR5+aoC0ZqkawEfpC/N2SBc+xeA=="],
 
     "vite": ["vite@8.1.5", "", { "dependencies": { "lightningcss": "^1.32.0", "picomatch": "^4.0.5", "postcss": "^8.5.17", "rolldown": "~1.1.5", "tinyglobby": "^0.2.17" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "@vitejs/devtools": "^0.3.0", "esbuild": "^0.27.0 || ^0.28.0", "jiti": ">=1.21.0", "less": "^4.0.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "@vitejs/devtools", "esbuild", "jiti", "less", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-7ULLwsCdYx/nRyrpiEwvqb5TFHrMVZyBt+rg/OAXT7rgj/z+DtTDyKFeLAdDkubDVDKD8jOsndmy7m55XcfUsw=="],
 
@@ -2456,7 +2456,9 @@
 
     "zustand": ["zustand@5.0.14", "", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-/8tAspM5LMPr28b3fwLYrtdj77ECpfZviaP75CMTnwO8ISyaE4GDIG/9rDDYq/cH9D2Xw2A2RXglLInmVBQB/g=="],
 
-    "@analogjs/vite-plugin-angular/obug": ["obug@2.1.3", "", {}, "sha512-9miFgM2OFba7hB+pRgvtV84pYTBaoTHohvmIgiRt6dRIzbwEOIaNaP+dIlGs2fNFoB0SeISs0Jz5WFVRid6Xyg=="],
+    "@ai-sdk/svelte/ai": ["ai@7.0.35", "", { "dependencies": { "@ai-sdk/gateway": "4.0.27", "@ai-sdk/provider": "4.0.3", "@ai-sdk/provider-utils": "5.0.12" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-en8xnTNoVJVWk/Y7TsXuTkc463ehuQUqrofjPs/TAd4O3h14QKmq4rWWG3/Eb05r3f2MvvxfCuXNnvhTdzyoTg=="],
+
+    "@ai-sdk/vue/ai": ["ai@7.0.35", "", { "dependencies": { "@ai-sdk/gateway": "4.0.27", "@ai-sdk/provider": "4.0.3", "@ai-sdk/provider-utils": "5.0.12" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-en8xnTNoVJVWk/Y7TsXuTkc463ehuQUqrofjPs/TAd4O3h14QKmq4rWWG3/Eb05r3f2MvvxfCuXNnvhTdzyoTg=="],
 
     "@angular-devkit/core/picomatch": ["picomatch@4.0.4", "", {}, "sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A=="],
 
@@ -2663,6 +2665,10 @@
     "wrap-ansi-cjs/strip-ansi": ["strip-ansi@6.0.1", "", { "dependencies": { "ansi-regex": "^5.0.1" } }, "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A=="],
 
     "xml-crypto/@xmldom/xmldom": ["@xmldom/xmldom@0.8.13", "", {}, "sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw=="],
+
+    "@ai-sdk/svelte/ai/@ai-sdk/gateway": ["@ai-sdk/gateway@4.0.27", "", { "dependencies": { "@ai-sdk/provider": "4.0.3", "@ai-sdk/provider-utils": "5.0.12", "@vercel/oidc": "3.2.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-gqTMvV0N8/JirIZ3OzwjSZRYxzwZu/PeOFCKb8NB9fstWH39tI+L6CkeMNVou5/HCKEYAw6RCOHW59Vhquv8vA=="],
+
+    "@ai-sdk/vue/ai/@ai-sdk/gateway": ["@ai-sdk/gateway@4.0.27", "", { "dependencies": { "@ai-sdk/provider": "4.0.3", "@ai-sdk/provider-utils": "5.0.12", "@vercel/oidc": "3.2.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-gqTMvV0N8/JirIZ3OzwjSZRYxzwZu/PeOFCKb8NB9fstWH39tI+L6CkeMNVou5/HCKEYAw6RCOHW59Vhquv8vA=="],
 
     "@angular/build/esbuild/@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.28.1", "", { "os": "aix", "cpu": "ppc64" }, "sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ=="],
 
