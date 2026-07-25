@@ -121,23 +121,23 @@ let showSlides = $state(false);
 </div>
 
 <style>
-	.presenter { position:absolute; inset:0; z-index:100; display:flex; padding-top:52px; background:#111827; color:#f8fafc; }
-	.strip{position:absolute;inset:0 0 auto;min-height:52px;display:flex;align-items:center;gap:4px;padding:8px 12px;background:#020617;border-bottom:1px solid #ffffff1a}.strip span{flex:1}.strip .active{background:#38bdf8;color:#082f49}
+	.presenter { position:absolute; inset:0; z-index:100; display:flex; padding-top:52px; background:var(--pptx-card,#111827); color:var(--pptx-foreground,#f8fafc); }
+	.strip{position:absolute;inset:0 0 auto;min-height:52px;display:flex;align-items:center;gap:4px;padding:8px 12px;background:var(--pptx-card,#020617);border-bottom:1px solid var(--pptx-border,#ffffff1a)}.strip span{flex:1}.strip .active{background:var(--pptx-primary,#38bdf8);color:var(--pptx-primary-foreground,#082f49)}
 	.current-slide { flex:7; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:24px; background:#000; }
 	.current-slide.advances { cursor:pointer; }
 	.stage-frame,.next-frame { position:relative; overflow:hidden; }
-	aside { flex:3; min-width:300px; max-width:460px; display:flex; flex-direction:column; border-left:1px solid #334155; }
-	header,nav { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px; border-bottom:1px solid #334155; }
+	aside { flex:3; min-width:300px; max-width:460px; display:flex; flex-direction:column; border-left:1px solid var(--pptx-border,#334155); }
+	header,nav { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px; border-bottom:1px solid var(--pptx-border,#334155); }
 	header div { display:flex; flex-direction:column; }
-	small { color:#94a3b8; text-transform:uppercase; font-size:10px; letter-spacing:.08em; }
-	button { border:0; border-radius:4px; padding:7px 10px; background:#334155; color:inherit; cursor:pointer; }
+	small { color:var(--pptx-muted-foreground,#94a3b8); text-transform:uppercase; font-size:10px; letter-spacing:.08em; }
+	button { border:0; border-radius:4px; padding:7px 10px; background:var(--pptx-secondary,#334155); color:inherit; cursor:pointer; }
 	button:disabled { opacity:.4; cursor:default; }
 	.close { font-size:20px; padding:3px 9px; }
-	.next { padding:14px; border-bottom:1px solid #334155; }
+	.next { padding:14px; border-bottom:1px solid var(--pptx-border,#334155); }
 	.next-frame { margin-top:8px; }
 	.notes { min-height:0; flex:1; display:flex; flex-direction:column; padding:12px; }
 	.notes header { padding:0 0 8px; border:0; }
 	.notes header div { flex-direction:row; }
-	.notes-body { flex:1; overflow:auto; padding:12px; border:1px solid #334155; border-radius:6px; white-space:pre-wrap; line-height:1.5; }
-	.grid{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;background:#020617fa}.grid header{display:flex;justify-content:space-between}.grid main{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;padding:22px;overflow:auto}.grid main button{text-align:left}.grid main .active{outline:2px solid #38bdf8}.grid main .hidden{opacity:.45}
+	.notes-body { flex:1; overflow:auto; padding:12px; border:1px solid var(--pptx-border,#334155); border-radius:6px; white-space:pre-wrap; line-height:1.5; }
+	.grid{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;background:var(--pptx-card,#020617fa)}.grid header{display:flex;justify-content:space-between}.grid main{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;padding:22px;overflow:auto}.grid main button{text-align:left}.grid main .active{outline:2px solid var(--pptx-primary,#38bdf8)}.grid main .hidden{opacity:.45}
 </style>

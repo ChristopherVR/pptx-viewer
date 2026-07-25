@@ -33,8 +33,8 @@ export function mountPresenterConsole(options: VanillaPresenterConsoleOptions): 
 		flexWrap: 'wrap',
 		gap: '4px',
 		padding: '8px 12px',
-		background: '#020617',
-		color: '#e2e8f0',
+		background: 'var(--pptx-card, #020617)',
+		color: 'var(--pptx-foreground, #e2e8f0)',
 	});
 	const button = (label: string, action: () => void) => {
 		const el = doc.createElement('button');
@@ -44,7 +44,7 @@ export function mountPresenterConsole(options: VanillaPresenterConsoleOptions): 
 			border: '0',
 			borderRadius: '5px',
 			padding: '7px 10px',
-			background: '#ffffff12',
+			background: 'var(--pptx-secondary, #ffffff12)',
 			color: 'inherit',
 			cursor: 'pointer',
 		});
@@ -129,17 +129,20 @@ export function mountPresenterConsole(options: VanillaPresenterConsoleOptions): 
 			gap: '14px',
 			padding: '70px 24px 24px',
 			overflow: 'auto',
-			background: '#020617fa',
+			background: 'var(--pptx-card, #020617fa)',
 		});
 		options.getSlides().forEach((slide, index) => {
 			const item = doc.createElement('button');
 			item.textContent = `Slide ${index + 1}${slide.hidden ? ' - hidden' : ''}`;
 			Object.assign(item.style, {
 				minHeight: '100px',
-				border: index === options.getCurrent() ? '2px solid #38bdf8' : '1px solid #ffffff22',
+				border:
+					index === options.getCurrent()
+						? '2px solid var(--pptx-primary, #38bdf8)'
+						: '1px solid var(--pptx-border, #ffffff22)',
 				borderRadius: '6px',
-				background: '#ffffff12',
-				color: '#f8fafc',
+				background: 'var(--pptx-secondary, #ffffff12)',
+				color: 'var(--pptx-foreground, #f8fafc)',
 				opacity: slide.hidden ? '.45' : '1',
 				cursor: 'pointer',
 			});

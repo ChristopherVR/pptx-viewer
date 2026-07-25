@@ -770,6 +770,15 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			.then((bytes) => storePresentationDeck(sessionId, bytes))
 			.then(() => popup.location.replace(url))
 			.catch(() => this.closeAudienceWindow());
+
+		// The presenter's own screen must be IN the show, not an editor with a
+		// console strip laid over it: without this `presenting` stayed false, so
+		// the slide stayed editable and neither click-to-advance nor the
+		// presentation keymap reached it. This runs AFTER the popup is opened
+		// because opening a popup cancels an in-flight fullscreen request.
+		if (!this.store.get().presenting) {
+			void this.enterPresentation();
+		}
 	}
 
 	private getPresenterChannel(): BroadcastChannel | null {
