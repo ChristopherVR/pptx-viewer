@@ -5,7 +5,11 @@ import {
 	extractSmartArtBuilds,
 	extractGraphicBuilds,
 	isExclusiveNode,
+	readTimingAttr,
+	extractStartConditionDelayMs,
+	extractChildBehaviourDurationMs,
 } from './native-animation-extended-helpers';
+import { ensureArray } from './native-animation-helpers';
 
 describe('extractOleChartBuilds', () => {
 	it('returns empty array when bldLst is undefined', () => {
@@ -188,5 +192,74 @@ describe('isExclusiveNode', () => {
 
 	it('returns true when p:excl is an array', () => {
 		expect(isExclusiveNode({ 'p:excl': [{ 'p:cTn': {} }] })).toBeTruthy();
+	});
+});
+
+// ==========================================================================
+// Effect timing (issue #106)
+// ==========================================================================
+
+describe('readTimingAttr', () => {
+	it('parses a millisecond count', () => {
+		expect(readTimingAttr('400')).toBe(400);
+	});
+
+	it('treats absent and "indefinite" as no timing', () => {
+		expect(readTimingAttr(undefined)).toBeUndefined();
+		expect(readTimingAttr('')).toBeUndefined();
+		// "indefinite" means "wait for a click", not a duration.
+		expect(readTimingAttr('indefinite')).toBeUndefined();
+	});
+});
+
+describe('extractStartConditionDelayMs', () => {
+	// PowerPoint writes an effect's delay as a start CONDITION, not as `@delay`
+	// on the effect's own `p:cTn`; reading only the attribute dropped it.
+	it('reads the delay from p:stCondLst', () => {
+		const cTn = { 'p:stCondLst': { 'p:cond': { '@_delay': '1000' } } };
+		expect(extractStartConditionDelayMs(cTn)).toBe(1000);
+	});
+
+	it('ignores the indefinite (click) condition and takes the real delay', () => {
+		const cTn = {
+			'p:stCondLst': {
+				'p:cond': [{ '@_delay': 'indefinite' }, { '@_delay': '2000' }],
+			},
+		};
+		expect(extractStartConditionDelayMs(cTn)).toBe(2000);
+	});
+
+	it('returns undefined when there is no numeric delay', () => {
+		expect(extractStartConditionDelayMs({})).toBeUndefined();
+		expect(
+			extractStartConditionDelayMs({ 'p:stCondLst': { 'p:cond': { '@_delay': 'indefinite' } } }),
+		).toBeUndefined();
+	});
+});
+
+describe('extractChildBehaviourDurationMs', () => {
+	// The duration lives on the child behaviour's cTn, not the effect's.
+	it('reads the duration from a child animEffect behaviour', () => {
+		const cTn = {
+			'p:childTnLst': {
+				'p:animEffect': { 'p:cBhvr': { 'p:cTn': { '@_dur': '400' } } },
+			},
+		};
+		expect(extractChildBehaviourDurationMs(cTn, ensureArray)).toBe(400);
+	});
+
+	// `p:set` is PowerPoint's 1ms visibility flip and must not mask the real one.
+	it('ignores the 1ms visibility set and keeps the real duration', () => {
+		const cTn = {
+			'p:childTnLst': {
+				'p:set': { 'p:cBhvr': { 'p:cTn': { '@_dur': '1' } } },
+				'p:animEffect': { 'p:cBhvr': { 'p:cTn': { '@_dur': '400' } } },
+			},
+		};
+		expect(extractChildBehaviourDurationMs(cTn, ensureArray)).toBe(400);
+	});
+
+	it('returns undefined when no behaviour carries a duration', () => {
+		expect(extractChildBehaviourDurationMs({}, ensureArray)).toBeUndefined();
 	});
 });

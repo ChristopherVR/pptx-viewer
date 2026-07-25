@@ -305,3 +305,83 @@ export {
 	extractOleChartBuilds,
 	extractSmartArtBuilds,
 } from './animation-target-build-helpers';
+
+/**
+ * Parse a timing attribute that may legitimately be absent or `"indefinite"`.
+ * Returns `undefined` for anything that is not a finite millisecond count.
+ */
+export function readTimingAttr(raw: unknown): number | undefined {
+	if (raw === undefined || raw === null) {
+		return undefined;
+	}
+	const text = String(raw).trim();
+	if (text.length === 0 || text === 'indefinite') {
+		return undefined;
+	}
+	const parsed = Number.parseInt(text, 10);
+	return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+/**
+ * The effect's start delay, taken from `p:stCondLst/p:cond/@delay`.
+ *
+ * PowerPoint writes an effect's delay as a start CONDITION, not as `@delay` on
+ * the effect's `p:cTn`. The list also carries non-numeric conditions - notably
+ * `delay="indefinite"`, which means "wait for a click" rather than a duration -
+ * so those are skipped and the smallest real delay wins (the effect starts at
+ * the first condition that can fire).
+ */
+export function extractStartConditionDelayMs(cTn: XmlObject): number | undefined {
+	const stCondLst = cTn['p:stCondLst'] as XmlObject | undefined;
+	if (!stCondLst) {
+		return undefined;
+	}
+	let smallest: number | undefined;
+	for (const condition of ensureArray(stCondLst['p:cond'])) {
+		const delay = readTimingAttr((condition as XmlObject)['@_delay']);
+		if (delay !== undefined && delay > 0 && (smallest === undefined || delay < smallest)) {
+			smallest = delay;
+		}
+	}
+	return smallest;
+}
+
+/** Behaviour elements whose `p:cBhvr/p:cTn/@dur` gives an effect its duration. */
+const BEHAVIOUR_TAGS = [
+	'p:animEffect',
+	'p:anim',
+	'p:animClr',
+	'p:animMotion',
+	'p:animRot',
+	'p:animScale',
+	'p:set',
+] as const;
+
+/**
+ * The effect's duration, taken from its child behaviour's `p:cBhvr/p:cTn/@dur`.
+ *
+ * An effect `p:cTn` is a container: the real duration sits on the behaviour it
+ * wraps. `p:set` is skipped when a longer behaviour exists because PowerPoint
+ * emits it as a 1ms visibility flip that would otherwise mask the real timing.
+ */
+export function extractChildBehaviourDurationMs(
+	cTn: XmlObject,
+	toArray: (value: unknown) => XmlObject[],
+): number | undefined {
+	const childTnLst = cTn['p:childTnLst'] as XmlObject | undefined;
+	if (!childTnLst) {
+		return undefined;
+	}
+	let longest: number | undefined;
+	for (const tag of BEHAVIOUR_TAGS) {
+		for (const behaviour of toArray(childTnLst[tag])) {
+			const bhvr = behaviour['p:cBhvr'] as XmlObject | undefined;
+			const inner = bhvr?.['p:cTn'] as XmlObject | undefined;
+			const dur = readTimingAttr(inner?.['@_dur']);
+			if (dur !== undefined && dur > 1 && (longest === undefined || dur > longest)) {
+				longest = dur;
+			}
+		}
+	}
+	return longest;
+}

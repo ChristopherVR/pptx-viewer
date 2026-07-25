@@ -23,6 +23,9 @@ import {
 	extractOleChartBuilds,
 	extractSmartArtBuilds,
 	extractGraphicBuilds,
+	readTimingAttr,
+	extractStartConditionDelayMs,
+	extractChildBehaviourDurationMs,
 } from './native-animation-extended-helpers';
 import {
 	extractSoundAction,
@@ -183,8 +186,15 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				cTn['@_presetSubtype'] !== undefined
 					? Number.parseInt(String(cTn['@_presetSubtype']), 10)
 					: undefined;
-			const durationMs = cTn['@_dur'] ? Number.parseInt(String(cTn['@_dur']), 10) : undefined;
-			const delayMs = cTn['@_delay'] ? Number.parseInt(String(cTn['@_delay']), 10) : undefined;
+			// An effect's `p:cTn` rarely carries its own timing. PowerPoint puts the
+			// duration on the child BEHAVIOUR's `p:cTn` (`p:animEffect/p:cBhvr/p:cTn
+			// @dur`) and the delay in the start-condition list
+			// (`p:stCondLst/p:cond @delay`). Reading only the attributes on this node
+			// dropped both, so a "fade in after 1s over 0.4s" effect played
+			// immediately at the 500ms default and no longer matched PowerPoint.
+			const durationMs =
+				readTimingAttr(cTn['@_dur']) ?? extractChildBehaviourDurationMs(cTn, ensureArray);
+			const delayMs = readTimingAttr(cTn['@_delay']) ?? extractStartConditionDelayMs(cTn);
 			const accel = parseTimingPercentFraction(cTn['@_accel']);
 			const decel = parseTimingPercentFraction(cTn['@_decel']);
 
