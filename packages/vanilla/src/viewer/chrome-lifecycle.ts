@@ -30,6 +30,8 @@ export interface ChromeLifecycle {
 	presentation: PresentationController;
 	detachKeyboard: () => void;
 	detachTouchGestures: () => void;
+	/** Remove the presenting click-to-advance listener. */
+	detachPresentationClick: () => void;
 	resizeObserver: ResizeObserver | null;
 	appliedThemeVars: string[];
 }
@@ -136,6 +138,41 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		},
 		onPrevious: () => deps.prev(),
 	});
+
+	/**
+	 * Mouse click-to-advance while presenting. Touch already advances on tap
+	 * (above); a mouse click did nothing, so a show driven from the presenter
+	 * console could only be moved with the keyboard or the console's buttons.
+	 * Gated exactly like the tap path (`advanceOnClick` + pending builds) and
+	 * only for clicks that land on the slide itself, so the console strip,
+	 * toolbars and dialogs keep owning their own clicks.
+	 */
+	const onPresentationClick = (event: MouseEvent): void => {
+		const state = store.get();
+		if (!state.presenting || !(event.target instanceof Element)) {
+			return;
+		}
+		if (event.target.closest('button, a, input, select, textarea, [role="dialog"]')) {
+			return;
+		}
+		if (!event.target.closest('.pptxv-stage')) {
+			return;
+		}
+		if (
+			isSwipeAdvanceBlocked({
+				presenting: state.presenting,
+				animationBuildsComplete: renderer.presentationPlayback.isComplete(),
+				currentSlide: state.slides[state.currentSlide],
+			})
+		) {
+			return;
+		}
+		deps.next();
+	};
+	chrome.root.addEventListener('click', onPresentationClick);
+	const detachPresentationClick = (): void => {
+		chrome.root.removeEventListener('click', onPresentationClick);
+	};
 	const presentation = createPresentationController(chrome.root, (presenting) => {
 		store.set({ presenting });
 	});
@@ -155,6 +192,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		presentation,
 		detachKeyboard,
 		detachTouchGestures,
+		detachPresentationClick,
 		resizeObserver,
 		appliedThemeVars,
 	};
@@ -173,6 +211,7 @@ function buildTitleBarCommands(deps: MountChromeDeps): readonly CommandSearchCom
 export function unmountChrome(lifecycle: ChromeLifecycle, detachEditorChrome: () => void): void {
 	detachEditorChrome();
 	lifecycle.detachKeyboard();
+	lifecycle.detachPresentationClick();
 	lifecycle.detachTouchGestures();
 	lifecycle.resizeObserver?.disconnect();
 	lifecycle.presentation.dispose();

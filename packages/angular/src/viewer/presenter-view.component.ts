@@ -12,6 +12,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
+import { presenterPaneAdvancesOnClick } from '../internal/shared';
 import type { CanvasSize } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { PresenterControlsComponent } from './presenter-controls.component';
@@ -86,6 +87,10 @@ const CLOCK_TICK_MS = 1000;
 			display: flex;
 			flex: 1 1 auto;
 			min-height: 0;
+		}
+
+		.pptx-ng-presenter-current--advances {
+			cursor: pointer;
 		}
 
 		.pptx-ng-presenter-current {
@@ -312,7 +317,13 @@ const CLOCK_TICK_MS = 1000;
 			/>
 			<div class="pptx-ng-presenter-body">
 				<!-- Current slide (≈70%) -->
-				<div class="pptx-ng-presenter-current">
+				<div
+					class="pptx-ng-presenter-current"
+					[class.pptx-ng-presenter-current--advances]="paneAdvancesOnClick()"
+					role="presentation"
+					data-pptx-presenter-slide
+					(click)="onSlidePaneClick()"
+				>
 					<div class="pptx-ng-presenter-preview-stage">
 						<pptx-slide-canvas
 							[slide]="currentPreviewSlide()"
@@ -572,6 +583,23 @@ export class PresenterViewComponent {
 	protected readonly slideBadge = computed<string>(() =>
 		slideLabel(this.currentSlideIndex(), this.slides().length),
 	);
+
+	/**
+	 * Clicking the current-slide pane advances the show, the way PowerPoint's
+	 * presenter console does: it is how presenters actually drive a deck, with
+	 * the Next button and the keyboard as fallbacks. A drawing tool owns the
+	 * pointer instead, so clicking then annotates rather than jumping the deck
+	 * out from under the stroke.
+	 */
+	protected readonly paneAdvancesOnClick = computed<boolean>(() =>
+		presenterPaneAdvancesOnClick(this.presenterWindow.snapshot().pointer?.tool),
+	);
+
+	protected onSlidePaneClick(): void {
+		if (this.paneAdvancesOnClick()) {
+			this.movePresentationSlide.emit(1);
+		}
+	}
 
 	protected readonly counterLabel = computed<string>(() =>
 		slideCounter(this.currentSlideIndex(), this.slides().length),

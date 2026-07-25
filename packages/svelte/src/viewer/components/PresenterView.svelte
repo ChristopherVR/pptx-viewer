@@ -4,6 +4,7 @@
 		formatElapsed,
 		formatTime,
 		NOTES_FONT_SIZE_DEFAULT,
+		presenterPaneAdvancesOnClick,
 		stepPresenterZoom,
 	} from 'pptx-viewer-shared';
 	import type { CanvasSize, PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
@@ -38,6 +39,16 @@
 		onnavigate: (index: number) => void;
 	} = $props();
 
+// Clicking the current-slide pane advances the show, the way PowerPoint's
+// presenter console does. A drawing tool owns the pointer instead, so clicking
+// then annotates rather than jumping the deck out from under the stroke.
+const paneAdvances = $derived(presenterPaneAdvancesOnClick(snapshot.pointer?.tool));
+function onSlidePaneClick(): void {
+	if (paneAdvances) {
+		onmove(1);
+	}
+}
+
 let now = $state(Date.now());
 // eslint-disable-next-line prefer-const
 let notesSize = $state(NOTES_FONT_SIZE_DEFAULT);
@@ -66,7 +77,14 @@ let showSlides = $state(false);
 		<button class:active={snapshot.blackout === 'black'} onclick={() => onupdate({blackout:snapshot.blackout === 'black'?'none':'black'})}>B</button><button class:active={snapshot.blackout === 'white'} onclick={() => onupdate({blackout:snapshot.blackout === 'white'?'none':'white'})}>W</button>
 		<button class:active={snapshot.subtitlesVisible} onclick={() => onupdate({subtitlesVisible:!snapshot.subtitlesVisible})}>Captions</button><span></span><button onclick={onaudience}>{audienceOpen ? 'Disconnect' : 'Audience'}</button><button onclick={onexit}>End</button>
 	</div>
-	<section class="current-slide">
+	<!-- svelte-ignore a11y_click_events_have_key_events -- keyboard nav is owned by the host -->
+	<section
+		class="current-slide"
+		class:advances={paneAdvances}
+		role="presentation"
+		data-pptx-presenter-slide
+		onclick={onSlidePaneClick}
+	>
 		{#if slide}
 			<div class="stage-frame" style={`width:${canvasSize.width * mainScale}px;height:${canvasSize.height * mainScale}px;transform:scale(${snapshot.zoom?.scale ?? 1});transform-origin:${(snapshot.zoom?.originX ?? .5)*100}% ${(snapshot.zoom?.originY ?? .5)*100}%`}>
 				<SlideStage {slide} {canvasSize} {mediaDataUrls} scale={mainScale} />
@@ -106,6 +124,7 @@ let showSlides = $state(false);
 	.presenter { position:absolute; inset:0; z-index:100; display:flex; padding-top:52px; background:#111827; color:#f8fafc; }
 	.strip{position:absolute;inset:0 0 auto;min-height:52px;display:flex;align-items:center;gap:4px;padding:8px 12px;background:#020617;border-bottom:1px solid #ffffff1a}.strip span{flex:1}.strip .active{background:#38bdf8;color:#082f49}
 	.current-slide { flex:7; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:24px; background:#000; }
+	.current-slide.advances { cursor:pointer; }
 	.stage-frame,.next-frame { position:relative; overflow:hidden; }
 	aside { flex:3; min-width:300px; max-width:460px; display:flex; flex-direction:column; border-left:1px solid #334155; }
 	header,nav { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px; border-bottom:1px solid #334155; }

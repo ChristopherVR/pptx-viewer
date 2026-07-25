@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
-import { createInitialPresentationSnapshot, stepPresenterZoom } from 'pptx-viewer-shared';
+import {
+	createInitialPresentationSnapshot,
+	presenterPaneAdvancesOnClick,
+	stepPresenterZoom,
+} from 'pptx-viewer-shared';
 import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -56,6 +60,21 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const showSlides = ref(false);
+
+/**
+ * Clicking the current-slide pane advances the show, the way PowerPoint's
+ * presenter console does: it is how presenters actually drive a deck, with the
+ * Next button and the keyboard as fallbacks. A drawing tool owns the pointer
+ * instead, so clicking then annotates rather than jumping the deck.
+ */
+const paneAdvancesOnClick = computed(() =>
+	presenterPaneAdvancesOnClick(props.snapshot?.pointer?.tool),
+);
+function onSlidePaneClick(): void {
+	if (paneAdvancesOnClick.value) {
+		emit('move', 1);
+	}
+}
 function update(patch: Partial<PresentationSnapshot>): void {
 	emit('update-snapshot', patch);
 }
@@ -196,7 +215,11 @@ const previewMainFrameStyle = computed(() => ({
 		<div class="pptx-vue-presenter-body flex flex-1 min-h-0">
 			<!-- Left: current slide -->
 			<div
+				role="presentation"
+				data-pptx-presenter-slide
 				class="pptx-vue-presenter-main flex flex-[7] min-w-0 flex-col items-center justify-center overflow-hidden bg-black p-6"
+				:class="{ 'cursor-pointer': paneAdvancesOnClick }"
+				@click="onSlidePaneClick"
 			>
 				<div
 					class="pptx-vue-presenter-stage relative overflow-hidden"
