@@ -8,6 +8,29 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-07-25
+
+_Releases: pptx-viewer-core@2.0.2, pptx-react-viewer@2.3.0, pptx-vue-viewer@2.3.0, pptx-angular-viewer@2.3.0, pptx-vanilla-viewer@1.4.0, pptx-svelte-viewer@2.3.0_
+
+### Features
+
+- **shared:** Rule for advancing a show from the presenter slide pane (by @ChristopherVR) ([ee2d0f5](https://github.com/ChristopherVR/pptx-viewer/commit/ee2d0f584dd042eeee89c57ec3c33335208bde28))
+
+### Bug Fixes
+
+- **core:** Rotate OOXML gradient angles into CSS space (by @ChristopherVR) ([eebf128](https://github.com/ChristopherVR/pptx-viewer/commit/eebf128df224247eb06ea1731c9418fcc36189f9))
+- **shared:** Rotate OOXML gradient angles into CSS space (by @ChristopherVR) ([406d78b](https://github.com/ChristopherVR/pptx-viewer/commit/406d78b2471ec171fe5cbd8b2ef6abb3216c3c3b))
+- **shared:** Parse playFrom media commands in linear time (by @ChristopherVR) ([60820b1](https://github.com/ChristopherVR/pptx-viewer/commit/60820b10ebf641ec2adf6c6d1089fe9f2bc4e490))
+- **react:** Rotate table-cell gradient angles into CSS space (by @ChristopherVR) ([17868b9](https://github.com/ChristopherVR/pptx-viewer/commit/17868b92503a2e7bebde852bc4363b716bd9dcd2))
+- **react:** Stop the one-frame flash at the start of a transition (by @ChristopherVR) ([65b71cb](https://github.com/ChristopherVR/pptx-viewer/commit/65b71cb6218ec99785a3029df17b4cd564563242))
+- **angular:** Rotate gradient angles into CSS space (by @ChristopherVR) ([f756f70](https://github.com/ChristopherVR/pptx-viewer/commit/f756f70c254aebed71eaade41e3a2d07e82daf7c))
+- **angular:** Scale the outgoing slide during a transition (by @ChristopherVR) ([fe9a450](https://github.com/ChristopherVR/pptx-viewer/commit/fe9a4501be61de9078ff0b71724cc0c4ac923134))
+- **svelte:** Restore double-tap to edit under finger-sized handles (by @ChristopherVR) ([956281e](https://github.com/ChristopherVR/pptx-viewer/commit/956281ec4b6ae6a5174f08e776ebf6a7830a683a))
+- Svelte border width for selected element (by @ChristopherVR) ([b1dccd1](https://github.com/ChristopherVR/pptx-viewer/commit/b1dccd192edb7509ed8b59e76a3e638dbef0e3af))
+- **core:** Honour a:noFill and stop painting hidden fills/lines (by @ChristopherVR) ([ae13541](https://github.com/ChristopherVR/pptx-viewer/commit/ae1354188b1c5d2bd5843dc36a7c438ba1d83c00))
+- **react:** Stop gradient fills washing and streaking the shape (by @ChristopherVR) ([4e52512](https://github.com/ChristopherVR/pptx-viewer/commit/4e525128f11a77860f31f3d993a960dc5ef0c539))
+- **react:** Click the presenter slide to advance the show (by @ChristopherVR) ([64e6d86](https://github.com/ChristopherVR/pptx-viewer/commit/64e6d8649e659e4b165372bf244ce33899f54d83))
+
 ## 2026-07-24
 
 _Releases: pptx-viewer-core@2.0.1, pptx-react-viewer@2.2.1, pptx-vue-viewer@2.2.2, pptx-angular-viewer@2.2.1, pptx-vanilla-viewer@1.3.1, pptx-svelte-viewer@2.2.1_
