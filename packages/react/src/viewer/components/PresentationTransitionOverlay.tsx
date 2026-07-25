@@ -32,6 +32,16 @@ export interface PresentationTransitionOverlayProps {
 	transition: PptxSlideTransition;
 	/** Resolved transition duration in ms. */
 	durationMs: number;
+	/**
+	 * The live stage scale (slide box scale) supplied by `PresentationStage`.
+	 *
+	 * Passing it is what keeps the outgoing slide the same size as the incoming
+	 * one on the very first painted frame. Without it the overlay has to measure
+	 * itself after mount, and the first frame paints the outgoing slide at its
+	 * intrinsic (unscaled) size over a full-screen incoming slide - a one-frame
+	 * flash right after the transition starts.
+	 */
+	scale?: number;
 	/** Called when the transition animation completes. */
 	onComplete: () => void;
 }
@@ -92,6 +102,7 @@ export function PresentationTransitionOverlay({
 	canvasSize,
 	transition,
 	durationMs,
+	scale: stageScale,
 	onComplete,
 }: PresentationTransitionOverlayProps): React.ReactElement | null {
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -99,16 +110,25 @@ export function PresentationTransitionOverlay({
 		width: number;
 		height: number;
 	} | null>(null);
+	const resolvedStageScale =
+		typeof stageScale === 'number' && Number.isFinite(stageScale) && stageScale > 0
+			? stageScale
+			: null;
 
-	// Measure container to compute scale
+	// Fallback measurement for hosts that mount the overlay without a stage
+	// scale. Skipped entirely when the stage supplied one, since measuring only
+	// ever reproduces the value we were already handed - one frame later.
 	useEffect(() => {
+		if (resolvedStageScale !== null) {
+			return;
+		}
 		const el = containerRef.current;
 		if (!el) {
 			return;
 		}
 		const rect = el.getBoundingClientRect();
 		setContainerSize({ width: rect.width, height: rect.height });
-	}, []);
+	}, [resolvedStageScale]);
 
 	// Fire completion callback after duration
 	useEffect(() => {
@@ -131,15 +151,19 @@ export function PresentationTransitionOverlay({
 		[transition.type, transition.direction, transition.orient, transition.spokes, durationMs],
 	);
 
-	// Compute scale for the slide layer to fit inside the container
+	// Scale for the slide layer. Prefer the stage's own scale: it is already
+	// correct on the first render, so the outgoing slide never paints unscaled.
 	const scale = useMemo(() => {
+		if (resolvedStageScale !== null) {
+			return resolvedStageScale;
+		}
 		if (!containerSize) {
 			return 1;
 		}
 		const scaleX = containerSize.width / Math.max(canvasSize.width, 1);
 		const scaleY = containerSize.height / Math.max(canvasSize.height, 1);
 		return Math.min(scaleX, scaleY);
-	}, [containerSize, canvasSize]);
+	}, [resolvedStageScale, containerSize, canvasSize]);
 
 	const outgoingZIndex = animations.outgoingOnTop ? 40 : 20;
 

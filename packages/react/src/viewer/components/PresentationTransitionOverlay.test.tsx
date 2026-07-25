@@ -75,4 +75,41 @@ describe('presentationTransitionOverlay', () => {
 		);
 		expect(html).toContain('Outgoing Slide');
 	});
+
+	// Regression (issue #106): the overlay used to measure itself in a mount
+	// effect, so the FIRST painted frame scaled the outgoing slide by 1 while
+	// the incoming slide was already at stage scale. On a 1080p display that is
+	// a full-screen slide with a small unscaled one flashing over it for one
+	// frame. `renderToStaticMarkup` runs no effects, so it reproduces exactly
+	// that first frame.
+	it('scales the outgoing slide on the first painted frame using the stage scale', () => {
+		const html = renderToStaticMarkup(
+			<PresentationTransitionOverlay
+				outgoingSlide={makeSlide()}
+				templateElements={[]}
+				canvasSize={{ width: 960, height: 540 }}
+				transition={fade}
+				durationMs={600}
+				scale={1.75}
+				onComplete={vi.fn()}
+			/>,
+		);
+		// The sized slide box, not some nested element transform.
+		expect(html).toContain('width:960px;height:540px;transform:scale(1.75)');
+	});
+
+	it('ignores a non-positive stage scale and falls back to measuring', () => {
+		const html = renderToStaticMarkup(
+			<PresentationTransitionOverlay
+				outgoingSlide={makeSlide()}
+				templateElements={[]}
+				canvasSize={{ width: 960, height: 540 }}
+				transition={fade}
+				durationMs={600}
+				scale={0}
+				onComplete={vi.fn()}
+			/>,
+		);
+		expect(html).toContain('width:960px;height:540px;transform:scale(1)');
+	});
 });
