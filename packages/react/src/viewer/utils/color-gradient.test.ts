@@ -160,12 +160,12 @@ describe('buildCssGradientFromShapeStyle', () => {
 			],
 		};
 		const result = buildCssGradientFromShapeStyle(style);
-		expect(result).toContain('linear-gradient(45deg');
+		expect(result).toContain('linear-gradient(135deg');
 		expect(result).toContain('#FF0000 0%');
 		expect(result).toContain('#0000FF 100%');
 	});
 
-	it('should use default 90deg angle when not specified', () => {
+	it('should use the default OOXML 90 angle (CSS 180deg) when not specified', () => {
 		const style: ShapeStyle = {
 			fillMode: 'gradient',
 			fillGradientStops: [
@@ -174,7 +174,7 @@ describe('buildCssGradientFromShapeStyle', () => {
 			],
 		};
 		const result = buildCssGradientFromShapeStyle(style);
-		expect(result).toContain('linear-gradient(90deg');
+		expect(result).toContain('linear-gradient(180deg');
 	});
 
 	it('should build radial-gradient when type is radial', () => {
@@ -489,44 +489,46 @@ describe('oOXML_PATTERN_PRESETS', () => {
 });
 
 describe('convertOoxmlAngleToCss', () => {
-	it('should pass through 0 degrees unchanged', () => {
-		expect(convertOoxmlAngleToCss(0)).toBe(0);
+	// `a:lin/@ang` is clockwise from +x (0 = left to right); CSS is clockwise
+	// from "to top" (90deg = left to right). The two are a quarter turn apart.
+	it('should rotate 0 degrees (left to right) to CSS 90deg', () => {
+		expect(convertOoxmlAngleToCss(0)).toBe(90);
 	});
 
-	it('should pass through 90 degrees unchanged', () => {
-		expect(convertOoxmlAngleToCss(90)).toBe(90);
+	it('should rotate 90 degrees (top to bottom) to CSS 180deg', () => {
+		expect(convertOoxmlAngleToCss(90)).toBe(180);
 	});
 
-	it('should pass through 180 degrees unchanged', () => {
-		expect(convertOoxmlAngleToCss(180)).toBe(180);
+	it('should rotate 180 degrees (right to left) to CSS 270deg', () => {
+		expect(convertOoxmlAngleToCss(180)).toBe(270);
 	});
 
-	it('should pass through 270 degrees unchanged', () => {
-		expect(convertOoxmlAngleToCss(270)).toBe(270);
+	it('should rotate 270 degrees (bottom to top) to CSS 0deg', () => {
+		expect(convertOoxmlAngleToCss(270)).toBe(0);
 	});
 
 	it('should normalise negative angles to 0-360', () => {
-		expect(convertOoxmlAngleToCss(-90)).toBe(270);
-		expect(convertOoxmlAngleToCss(-180)).toBe(180);
+		expect(convertOoxmlAngleToCss(-90)).toBe(0);
+		expect(convertOoxmlAngleToCss(-180)).toBe(270);
 	});
 
 	it('should normalise angles above 360 degrees', () => {
-		expect(convertOoxmlAngleToCss(450)).toBe(90);
-		expect(convertOoxmlAngleToCss(720)).toBe(0);
+		expect(convertOoxmlAngleToCss(450)).toBe(180);
+		expect(convertOoxmlAngleToCss(720)).toBe(90);
 	});
 
 	it('should convert from 60000ths when alreadyDegrees is false', () => {
-		// 5400000 / 60000 = 90 degrees
-		expect(convertOoxmlAngleToCss(5400000, false)).toBe(90);
-		// 0 => 0 degrees
-		expect(convertOoxmlAngleToCss(0, false)).toBe(0);
-		// 10800000 / 60000 = 180 degrees
-		expect(convertOoxmlAngleToCss(10800000, false)).toBe(180);
+		// 5400000 / 60000 = 90 OOXML degrees -> CSS 180deg
+		expect(convertOoxmlAngleToCss(5400000, false)).toBe(180);
+		// 0 OOXML degrees -> CSS 90deg
+		expect(convertOoxmlAngleToCss(0, false)).toBe(90);
+		// 10800000 / 60000 = 180 OOXML degrees -> CSS 270deg
+		expect(convertOoxmlAngleToCss(10800000, false)).toBe(270);
 	});
 
 	it('should handle fractional degree conversion from 60000ths', () => {
-		// 2700000 / 60000 = 45 degrees
-		expect(convertOoxmlAngleToCss(2700000, false)).toBe(45);
+		// 2700000 / 60000 = 45 OOXML degrees -> CSS 135deg
+		expect(convertOoxmlAngleToCss(2700000, false)).toBe(135);
 	});
 });
 

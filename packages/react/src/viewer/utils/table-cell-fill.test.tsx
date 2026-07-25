@@ -36,11 +36,12 @@ describe('parseGradientFillCss', () => {
 					},
 				],
 			},
-			'a:lin': { '@_ang': '5400000' }, // 90 degrees
+			'a:lin': { '@_ang': '5400000' }, // OOXML 90 degrees = top to bottom
 		};
 		const result = parseGradientFillCss(gradFill);
 		expect(result).toBeDefined();
-		expect(result).toContain('linear-gradient(90deg');
+		// CSS measures a quarter turn from OOXML, so top-to-bottom is 180deg.
+		expect(result).toContain('linear-gradient(180deg');
 		expect(result).toContain('0.0%');
 		expect(result).toContain('100.0%');
 	});

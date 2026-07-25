@@ -1,4 +1,5 @@
 import type { XmlObject } from 'pptx-viewer-core';
+import { ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 import React from 'react';
 
 import { colorWithOpacity } from './color';
@@ -41,7 +42,8 @@ export function parseGradientFillCss(gradFill: XmlObject | undefined): string | 
 	const lin = gradFill['a:lin'] as XmlObject | undefined;
 	if (lin) {
 		const angRaw = Number.parseInt(String(lin['@_ang'] || '0'), 10);
-		const angleDeg = Math.round(angRaw / 60000);
+		// `@ang` is clockwise from +x; CSS gradients are clockwise from "to top".
+		const angleDeg = Math.round(ooxmlGradientAngleToCssDegrees(angRaw / 60000));
 		return `linear-gradient(${angleDeg}deg, ${stopStrings})`;
 	}
 
