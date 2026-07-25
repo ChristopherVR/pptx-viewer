@@ -336,7 +336,13 @@ const linkTooltipLabel = computed(
 		<!-- Action-button glyph (home/help/sound/arrows/...); self-hides for non-buttons. -->
 		<ActionButtonGlyphOverlay :element="element" />
 		<WordArtText v-if="isWarpedText" :element="element" :z-index="0" />
-		<SlideTextBlock v-else-if="hasText" :paragraphs="paragraphs" :text-style="textStyle" />
+		<SlideTextBlock
+			v-else-if="hasText"
+			:paragraphs="paragraphs"
+			:text-style="textStyle"
+			:element-id="element.id"
+			:sub-element-anim-states="presentationStates"
+		/>
 		<!-- On-canvas hyperlink / action tooltip (edit-mode hover). -->
 		<LinkTooltip
 			v-if="showLinkTooltip"

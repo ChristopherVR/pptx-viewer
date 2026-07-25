@@ -530,6 +530,7 @@ export * from './share-form';
 // formatting, and rich-text notes -> framework-agnostic `NotesSpan[]` render
 // spec. Each binding renders the spec into its own nodes.
 export * from './presenter-view';
+export * from './text-build-spans';
 export * from './presenter-console';
 export * from './presentation-print-settings';
 export * from './presentation-session';

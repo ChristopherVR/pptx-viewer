@@ -5,10 +5,45 @@
  * shared, framework-agnostic `buildParagraphs`; this component is pure
  * presentation. Extracted from `ElementRenderer` to keep it thin.
  */
-import type { RenderParagraph } from 'pptx-viewer-shared';
+import { buildTextBuildSpec, textBuildSpanStyle } from 'pptx-viewer-shared';
+import type { ElementAnimationState, RenderParagraph } from 'pptx-viewer-shared';
+import { computed } from 'vue';
 import type { CSSProperties } from 'vue';
 
-defineProps<{ paragraphs: RenderParagraph[]; textStyle: CSSProperties }>();
+/** A run whose text is exactly a newline is a hard line break, not content. */
+const NEWLINE_RUN = '\n';
+
+const props = defineProps<{
+	paragraphs: RenderParagraph[];
+	textStyle: CSSProperties;
+	/** Owning element id, needed to key this element's text-build sub-animations. */
+	elementId?: string;
+	/**
+	 * Live per-sub-element animation states. Present only while a staged text
+	 * build (by paragraph / word / letter) is playing; absent everywhere else,
+	 * which is why the fast path below returns `undefined` immediately.
+	 */
+	subElementAnimStates?: ReadonlyMap<string, ElementAnimationState>;
+}>();
+
+/**
+ * The split for a paragraph whose text is being revealed piece by piece, or
+ * `undefined` to render the runs normally. PowerPoint's "Animate text: By
+ * letter" needs the rendered text split to match the per-character
+ * sub-animations, otherwise the whole box just fades as one.
+ */
+const specs = computed(() =>
+	props.paragraphs.map((para, paraIndex) =>
+		props.elementId
+			? buildTextBuildSpec(
+					props.elementId,
+					paraIndex,
+					para.runs.filter((run) => run.text !== NEWLINE_RUN),
+					props.subElementAnimStates,
+				)
+			: undefined,
+	),
+);
 
 /**
  * Per-paragraph inline style: hanging-indent margins plus the paragraph's own
@@ -52,7 +87,29 @@ function paraStyle(para: RenderParagraph): CSSProperties {
 				:aria-label="para.bulletPicture?.accessibleLabel"
 				>{{ para.bulletMarker }}&nbsp;</span
 			>
-			<template v-for="(run, ri) in para.runs" :key="ri">
+			<!-- Staged text build (by paragraph / word / letter): render the split
+			     pieces so each one carries its own sub-animation. -->
+			<template v-if="specs[pi]">
+				<span
+					v-if="specs[pi]!.granularity === 'paragraph'"
+					:data-anim-id="specs[pi]!.animId"
+					:style="textBuildSpanStyle(specs[pi]!)"
+				>
+					<template v-for="(run, ri) in para.runs" :key="ri">
+						<br v-if="run.text === '\n'" />
+						<span v-else :style="run.style">{{ run.text }}</span>
+					</template>
+				</span>
+				<span
+					v-for="(span, si) in specs[pi]!.spans ?? []"
+					v-else
+					:key="si"
+					:data-anim-id="span.animId"
+					:style="{ ...(span.style ?? {}), ...textBuildSpanStyle(span) }"
+					>{{ span.text }}</span
+				>
+			</template>
+			<template v-for="(run, ri) in para.runs" v-else :key="ri">
 				<br v-if="run.text === '\n'" />
 				<span v-else :style="run.style">{{ run.text }}</span>
 			</template>
