@@ -5,7 +5,7 @@
 	"description": "React 18 peer set for pptx-react-viewer's compatibility run (issue #105). Never built or published: it exists so bun installs react-dom and every other React-consuming peer with their `react` peer resolved to react@18, which packages/react's vitest.react18.config.ts and tsconfig.react18.json alias onto.",
 	"license": "Apache-2.0",
 	"dependencies": {
-		"@ai-sdk/react": "^4.0.34",
+		"@ai-sdk/react": "^4.0.40",
 		"ai": ">=6 <8",
 		"framer-motion": "^12.42.2",
 		"i18next": "^26.3.6",
