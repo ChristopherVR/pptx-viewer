@@ -61,6 +61,48 @@ export function buildStepCommand(anim: PptxNativeAnimation): TimelineStepCommand
 	};
 }
 
+/** Command name introducing a seek-then-play verb, lower-cased. */
+const PLAY_FROM_NAME = 'playfrom';
+
+/**
+ * An unambiguous decimal-number pattern: each alternative has exactly one way
+ * to match any given string, so there is nothing for the engine to backtrack
+ * over. The original single-regex form (`\s*(-?\d*\.?\d+)?\s*` inside the
+ * parentheses) was ambiguous on both the digits and the surrounding
+ * whitespace, giving polynomial match time on hostile input such as
+ * `playFrom(000...0`.
+ */
+const DECIMAL_NUMBER = /^-?(?:\d+(?:\.\d+)?|\.\d+)$/u;
+
+/**
+ * Parse a `playFrom(<seconds>)` command by slicing rather than by matching a
+ * single ambiguous regex, so run time stays linear in the input length.
+ *
+ * Accepts the same shapes as before: optional whitespace around the name, the
+ * parentheses and the number, and an empty argument list meaning "from 0".
+ * Returns `undefined` when the string is not a `playFrom(...)` call at all, or
+ * when its argument is not a plain decimal number.
+ */
+function parsePlayFrom(raw: string): ParsedMediaCommand | undefined {
+	const lower = raw.toLowerCase();
+	if (!lower.startsWith(PLAY_FROM_NAME) || !lower.endsWith(')')) {
+		return undefined;
+	}
+	const afterName = raw.slice(PLAY_FROM_NAME.length).trimStart();
+	if (!afterName.startsWith('(')) {
+		return undefined;
+	}
+	const inner = afterName.slice(1, -1).trim();
+	if (inner.length === 0) {
+		return { verb: 'playFrom', seekSeconds: 0 };
+	}
+	if (!DECIMAL_NUMBER.test(inner)) {
+		return undefined;
+	}
+	const seconds = Number.parseFloat(inner);
+	return { verb: 'playFrom', seekSeconds: Number.isFinite(seconds) ? Math.max(0, seconds) : 0 };
+}
+
 /**
  * Parse an OOXML `p:cmd/@cmd` string into a browser-actionable media verb.
  *
@@ -81,10 +123,9 @@ export function parseMediaCommand(commandString: string): ParsedMediaCommand | u
 		return undefined;
 	}
 
-	const playFromMatch = raw.match(/^playfrom\s*\(\s*(-?\d*\.?\d+)?\s*\)$/i);
-	if (playFromMatch) {
-		const seconds = playFromMatch[1] !== undefined ? Number.parseFloat(playFromMatch[1]) : 0;
-		return { verb: 'playFrom', seekSeconds: Number.isFinite(seconds) ? Math.max(0, seconds) : 0 };
+	const playFrom = parsePlayFrom(raw);
+	if (playFrom) {
+		return playFrom;
 	}
 
 	const lower = raw.toLowerCase();

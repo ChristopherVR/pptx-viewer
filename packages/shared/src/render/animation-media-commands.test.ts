@@ -78,6 +78,30 @@ describe('parseMediaCommand', () => {
 		expect(parseMediaCommand('')).toBeUndefined();
 		expect(parseMediaCommand('   ')).toBeUndefined();
 	});
+
+	it('tolerates whitespace around the name, parens and argument', () => {
+		expect(parseMediaCommand('playFrom ( 2.5 )')).toStrictEqual({
+			verb: 'playFrom',
+			seekSeconds: 2.5,
+		});
+		expect(parseMediaCommand('playFrom(  )')).toStrictEqual({ verb: 'playFrom', seekSeconds: 0 });
+	});
+
+	it('rejects a playFrom argument that is not a plain decimal', () => {
+		expect(parseMediaCommand('playFrom(1.2.3)')).toBeUndefined();
+		expect(parseMediaCommand('playFrom(abc)')).toBeUndefined();
+		expect(parseMediaCommand('playFrom(1 2)')).toBeUndefined();
+		expect(parseMediaCommand('playFromX(1)')).toBeUndefined();
+	});
+
+	// The command string comes straight from the deck, so a malicious file must
+	// not be able to make this parse super-linear (CodeQL js/polynomial-redos).
+	it('parses a pathological playFrom argument in linear time', () => {
+		const hostile = `playFrom(${'0'.repeat(50_000)}`;
+		const started = performance.now();
+		expect(parseMediaCommand(hostile)).toBeUndefined();
+		expect(performance.now() - started).toBeLessThan(1_000);
+	});
 });
 
 // ---------------------------------------------------------------------------
