@@ -10,6 +10,70 @@ dated sections beneath it are generated from
 
 ## 2026-07-25
 
+_Releases: pptx-viewer-core@2.0.3, pptx-react-viewer@2.4.0, pptx-vue-viewer@2.4.0, pptx-angular-viewer@2.4.0, pptx-vanilla-viewer@1.5.0, pptx-svelte-viewer@2.4.0, pptx-viewer-mcp@2.0.1, @christophervr/pptx-viewer@1.5.8_
+
+### Features
+
+- **shared:** Framework-agnostic spec for staged text builds, used by Vue (by @ChristopherVR) ([cf2eabf](https://github.com/ChristopherVR/pptx-viewer/commit/cf2eabfbac6088b13883ba01cc07eb9aee8a27a3))
+- **svelte:** Render staged text builds from the shared spec (by @ChristopherVR) ([256e5a0](https://github.com/ChristopherVR/pptx-viewer/commit/256e5a0ddc6cf97b73b5925409e6ff3483adf6c9))
+- **angular:** Render staged text builds from the shared spec (by @ChristopherVR) ([d67aed4](https://github.com/ChristopherVR/pptx-viewer/commit/d67aed489fa722b5f9c58e050d406a2bdc23dc0e))
+- **vanilla:** Render staged text builds from the shared spec (by @ChristopherVR) ([5551864](https://github.com/ChristopherVR/pptx-viewer/commit/555186453e77565ef9d4592dc03355d56be205c6))
+
+### Bug Fixes
+
+- **core:** Read effect delay and duration from where PowerPoint writes them (by @ChristopherVR) ([44f6529](https://github.com/ChristopherVR/pptx-viewer/commit/44f6529d198bc1c81a57145d95512ee5e9e3aacd))
+- **shared:** Animate text by letter, and stop double-counting effect delay (by @ChristopherVR) ([06d0f0f](https://github.com/ChristopherVR/pptx-viewer/commit/06d0f0f9c6566bfff157ab677378cdfc44fcf87e))
+- **shared:** Add the missing end-of-slide-show string (by @ChristopherVR) ([6017f70](https://github.com/ChristopherVR/pptx-viewer/commit/6017f704dcae07429643579da98bc0ffbd6534e2))
+- **react:** Surface end-of-show in the presenter console, and theme it (by @ChristopherVR) ([7e238ef](https://github.com/ChristopherVR/pptx-viewer/commit/7e238ef329dea25e8160e7c53bfb6c07e7113c60))
+- **ci:** Stop the commit check failing on every pull request (by @ChristopherVR) ([9764fbf](https://github.com/ChristopherVR/pptx-viewer/commit/9764fbf4b5caf98400400b213618d73266220e33))
+- **ci:** Put --coverage inside each test leg's command (by @ChristopherVR) ([f91ded9](https://github.com/ChristopherVR/pptx-viewer/commit/f91ded94bf8dd251cd96c84c3d967d8990bd9a31))
+- Click the slide to advance a show in every binding (by @ChristopherVR) ([a565c7c](https://github.com/ChristopherVR/pptx-viewer/commit/a565c7cd315a1fb5e0703c099a47546e660da4c2))
+- Presenter console follows the theme, and vanilla enters the show (by @ChristopherVR) ([1de427b](https://github.com/ChristopherVR/pptx-viewer/commit/1de427b9a8e00c0fa7e19e538eda6fa87e84b32c))
+- **svelte:** Patch text-build spans and read the states context at init (by @ChristopherVR) ([8fdbd5f](https://github.com/ChristopherVR/pptx-viewer/commit/8fdbd5fcd4536dd9315b0058b286c4fd850cd584))
+- Show the end-of-slide-show screen in every binding (by @ChristopherVR) ([15bfd73](https://github.com/ChristopherVR/pptx-viewer/commit/15bfd7378dca971bd7dea3d9f6ecd3b995d5b6fb))
+- **react:** Clear the declaration and bundle build warnings (by @ChristopherVR) ([a594383](https://github.com/ChristopherVR/pptx-viewer/commit/a594383b795b2a028349801191a031b0fd7143a8))
+- **build:** Inline internal declarations on windows (by @ChristopherVR) ([51158a3](https://github.com/ChristopherVR/pptx-viewer/commit/51158a3a6ff8d91561632f7e0d43066f013e128a))
+- **svelte:** Clear the build warnings and repair windows dts bundling (by @ChristopherVR) ([40c170a](https://github.com/ChristopherVR/pptx-viewer/commit/40c170ae2050f827b71814aa1af1eedd869e32f7))
+- **tools:** Keep node:path out of the browser-reachable tool graph (by @ChristopherVR) ([6fb50e3](https://github.com/ChristopherVR/pptx-viewer/commit/6fb50e35f29b796417da23128e8e692edd914507))
+- **tools:** Resolve pptx-viewer-core to the workspace copy (by @ChristopherVR) ([1d4e3ff](https://github.com/ChristopherVR/pptx-viewer/commit/1d4e3ff00694d12606245de7726210d675d713f6))
+- **react:** Clear the declaration and bundle build warnings (by @ChristopherVR) ([35e7d31](https://github.com/ChristopherVR/pptx-viewer/commit/35e7d31debf9deab91019959520c81dcfa2746ff))
+
+### Refactor
+
+- **shared:** Import PptxHandler statically in collaboration write-back (by @ChristopherVR) ([6430a7a](https://github.com/ChristopherVR/pptx-viewer/commit/6430a7a9fddde61838c1a538fe2c6d1aa705ea60))
+- **react:** Import PptxHandler statically in collaboration write-back (by @ChristopherVR) ([6221c63](https://github.com/ChristopherVR/pptx-viewer/commit/6221c631a540520c99f8692dc45b2012e89c3ca6))
+- **vue:** Import jszip and fast-xml-parser statically (by @ChristopherVR) ([22b56fa](https://github.com/ChristopherVR/pptx-viewer/commit/22b56fab782f225590430435fb2ddf97e2e003f1))
+- **angular:** Import jszip, fast-xml-parser and PptxHandler statically (by @ChristopherVR) ([489280b](https://github.com/ChristopherVR/pptx-viewer/commit/489280bf6ad48d7b335253584855d03556e4b980))
+
+### Build & CI
+
+- Require green CI on PRs and check cross-binding parity (by @ChristopherVR) ([acedb7b](https://github.com/ChristopherVR/pptx-viewer/commit/acedb7bf8a97c7641ed3e70f7538202d1651d103))
+- Scope pull-request checks to the packages they can affect (by @ChristopherVR) ([f9480ad](https://github.com/ChristopherVR/pptx-viewer/commit/f9480ad500105b17b74392b923f762f0ecfd081a))
+- **demo-angular:** Split vendor chunks and raise the size warning limit (by @ChristopherVR) ([fcbfc71](https://github.com/ChristopherVR/pptx-viewer/commit/fcbfc713989611f4599f0f14ccdbff94fe1fa975))
+- **release:** Authenticate git-cliff and survive a raced push (by @ChristopherVR) ([9d9cfcf](https://github.com/ChristopherVR/pptx-viewer/commit/9d9cfcfea3a7b76c6d9042e7350e215b3ccb5d2d))
+- **release:** Push the release commit with a bypass-capable token (by @ChristopherVR) ([5af8c88](https://github.com/ChristopherVR/pptx-viewer/commit/5af8c88d75af043802e3aa5ef36b2b4102409114))
+- **release:** Revert the release-token push, trim the failure message (by @ChristopherVR) ([d450478](https://github.com/ChristopherVR/pptx-viewer/commit/d45047884c512b215027fe8c33b1f6badce5530b))
+
+### Dependencies
+
+- **deps:** Update @lucide/svelte requirement from ^1.25.0 to ^1.26.0 ([#113](https://github.com/ChristopherVR/pptx-viewer/issues/113)) (by @dependabot[bot]) ([66c656f](https://github.com/ChristopherVR/pptx-viewer/commit/66c656ff50ff7e9cfaf0139dc70ea0944aaf1528))
+- **deps:** Update @lucide/angular requirement from ^1.25.0 to ^1.26.0 ([#114](https://github.com/ChristopherVR/pptx-viewer/issues/114)) (by @dependabot[bot]) ([6ece65a](https://github.com/ChristopherVR/pptx-viewer/commit/6ece65a1d73c4deb975b08cf88085f7caf0322b8))
+- **deps:** Update lucide requirement from ^1.25.0 to ^1.26.0 ([#111](https://github.com/ChristopherVR/pptx-viewer/issues/111)) (by @dependabot[bot]) ([d145723](https://github.com/ChristopherVR/pptx-viewer/commit/d1457230d11ba90ca91e3af037345b89439a245a))
+- **deps:** Update lucide-react requirement from ^1.24.0 to ^1.26.0 ([#110](https://github.com/ChristopherVR/pptx-viewer/issues/110)) (by @dependabot[bot]) ([0698da2](https://github.com/ChristopherVR/pptx-viewer/commit/0698da2f810334a2f8ed4193b5dd8647f64b1741))
+- **deps:** Update @ai-sdk/react requirement from ^4.0.38 to ^4.0.40 ([#117](https://github.com/ChristopherVR/pptx-viewer/issues/117)) (by @dependabot[bot]) ([52e3da0](https://github.com/ChristopherVR/pptx-viewer/commit/52e3da0672dd27f8fed58357d07536ae3fc1793a))
+- **deps:** Update ai requirement from ^7.0.35 to ^7.0.37 ([#115](https://github.com/ChristopherVR/pptx-viewer/issues/115)) (by @dependabot[bot]) ([71d200d](https://github.com/ChristopherVR/pptx-viewer/commit/71d200d5aa0627c90fb2c8bfc0c50ee4b132a7d8))
+- **deps:** Refresh bun.lock for the merged dependency bumps (by @ChristopherVR) ([c925144](https://github.com/ChristopherVR/pptx-viewer/commit/c9251447cfa4a5303ecd9d8333b92d23a99a1d56))
+
+### Chores
+
+- **ci:** Stop dependabot proposing typescript majors (by @ChristopherVR) ([268ea34](https://github.com/ChristopherVR/pptx-viewer/commit/268ea34cb7d336ef7020dc73c8f3b7f2d9ad776a))
+- **ci:** Bump the actions group across 1 directory with 3 updates ([#108](https://github.com/ChristopherVR/pptx-viewer/issues/108)) (by @dependabot[bot]) ([01c8e79](https://github.com/ChristopherVR/pptx-viewer/commit/01c8e79f8f2abe1f724432541c8cd670674cdddd))
+- **deps-dev:** Update @analogjs/vite-plugin-angular requirement ([#118](https://github.com/ChristopherVR/pptx-viewer/issues/118)) (by @dependabot[bot]) ([cade4fd](https://github.com/ChristopherVR/pptx-viewer/commit/cade4fde76da26268c95bed2f166376670edf14d))
+- **deps-dev:** Update tsdown requirement ([#109](https://github.com/ChristopherVR/pptx-viewer/issues/109)) (by @dependabot[bot]) ([f83aa0a](https://github.com/ChristopherVR/pptx-viewer/commit/f83aa0a0012d9678cb1fcbef3bbf45b04f179755))
+- **deps-dev:** Update happy-dom requirement from ^20.11.0 to ^20.11.1 ([#116](https://github.com/ChristopherVR/pptx-viewer/issues/116)) (by @dependabot[bot]) ([0a2f499](https://github.com/ChristopherVR/pptx-viewer/commit/0a2f4990ae3caa60de537c9e0ea38ca8d796fd56))
+
+## 2026-07-25
+
 _Releases: pptx-viewer-core@2.0.2, pptx-react-viewer@2.3.0, pptx-vue-viewer@2.3.0, pptx-angular-viewer@2.3.0, pptx-vanilla-viewer@1.4.0, pptx-svelte-viewer@2.3.0_
 
 ### Features

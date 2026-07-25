@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.4.0) - 2026-07-25
+
+### Dependencies
+
+- **deps:** Update @lucide/angular requirement from ^1.25.0 to ^1.26.0 ([#114](https://github.com/ChristopherVR/pptx-viewer/issues/114)) (by @dependabot[bot]) ([6ece65a](https://github.com/ChristopherVR/pptx-viewer/commit/6ece65a1d73c4deb975b08cf88085f7caf0322b8))
+- **deps:** Update ai requirement from ^7.0.35 to ^7.0.37 ([#115](https://github.com/ChristopherVR/pptx-viewer/issues/115)) (by @dependabot[bot]) ([71d200d](https://github.com/ChristopherVR/pptx-viewer/commit/71d200d5aa0627c90fb2c8bfc0c50ee4b132a7d8))
+
+### Chores
+
+- **deps-dev:** Update @analogjs/vite-plugin-angular requirement ([#118](https://github.com/ChristopherVR/pptx-viewer/issues/118)) (by @dependabot[bot]) ([cade4fd](https://github.com/ChristopherVR/pptx-viewer/commit/cade4fde76da26268c95bed2f166376670edf14d))
+- **deps-dev:** Update tsdown requirement ([#109](https://github.com/ChristopherVR/pptx-viewer/issues/109)) (by @dependabot[bot]) ([f83aa0a](https://github.com/ChristopherVR/pptx-viewer/commit/f83aa0a0012d9678cb1fcbef3bbf45b04f179755))
+- **deps-dev:** Update happy-dom requirement from ^20.11.0 to ^20.11.1 ([#116](https://github.com/ChristopherVR/pptx-viewer/issues/116)) (by @dependabot[bot]) ([0a2f499](https://github.com/ChristopherVR/pptx-viewer/commit/0a2f4990ae3caa60de537c9e0ea38ca8d796fd56))
+
 ## [2.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.3.0) - 2026-07-25
 
 ## [2.2.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@2.2.1) - 2026-07-24

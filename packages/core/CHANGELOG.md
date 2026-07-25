@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.0.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@2.0.3) - 2026-07-25
+
+### Chores
+
+- **deps-dev:** Update tsdown requirement ([#109](https://github.com/ChristopherVR/pptx-viewer/issues/109)) (by @dependabot[bot]) ([f83aa0a](https://github.com/ChristopherVR/pptx-viewer/commit/f83aa0a0012d9678cb1fcbef3bbf45b04f179755))
+
 ## [2.0.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@2.0.2) - 2026-07-25
 
 ## [2.0.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@2.0.1) - 2026-07-24

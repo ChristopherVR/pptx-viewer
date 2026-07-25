@@ -4,6 +4,21 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.4.0) - 2026-07-25
+
+### Bug Fixes
+
+- **react:** Clear the declaration and bundle build warnings (by @ChristopherVR) ([35e7d31](https://github.com/ChristopherVR/pptx-viewer/commit/35e7d31debf9deab91019959520c81dcfa2746ff))
+
+### Dependencies
+
+- **deps:** Update @ai-sdk/react requirement from ^4.0.38 to ^4.0.40 ([#117](https://github.com/ChristopherVR/pptx-viewer/issues/117)) (by @dependabot[bot]) ([52e3da0](https://github.com/ChristopherVR/pptx-viewer/commit/52e3da0672dd27f8fed58357d07536ae3fc1793a))
+- **deps:** Update ai requirement from ^7.0.35 to ^7.0.37 ([#115](https://github.com/ChristopherVR/pptx-viewer/issues/115)) (by @dependabot[bot]) ([71d200d](https://github.com/ChristopherVR/pptx-viewer/commit/71d200d5aa0627c90fb2c8bfc0c50ee4b132a7d8))
+
+### Chores
+
+- **deps-dev:** Update tsdown requirement ([#109](https://github.com/ChristopherVR/pptx-viewer/issues/109)) (by @dependabot[bot]) ([f83aa0a](https://github.com/ChristopherVR/pptx-viewer/commit/f83aa0a0012d9678cb1fcbef3bbf45b04f179755))
+
 ## [2.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.3.0) - 2026-07-25
 
 ## [2.2.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@2.2.1) - 2026-07-24

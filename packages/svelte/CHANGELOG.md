@@ -4,6 +4,22 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [2.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.4.0) - 2026-07-25
+
+### Bug Fixes
+
+- **svelte:** Clear the build warnings and repair windows dts bundling (by @ChristopherVR) ([40c170a](https://github.com/ChristopherVR/pptx-viewer/commit/40c170ae2050f827b71814aa1af1eedd869e32f7))
+
+### Dependencies
+
+- **deps:** Update @lucide/svelte requirement from ^1.25.0 to ^1.26.0 ([#113](https://github.com/ChristopherVR/pptx-viewer/issues/113)) (by @dependabot[bot]) ([66c656f](https://github.com/ChristopherVR/pptx-viewer/commit/66c656ff50ff7e9cfaf0139dc70ea0944aaf1528))
+- **deps:** Update ai requirement from ^7.0.35 to ^7.0.37 ([#115](https://github.com/ChristopherVR/pptx-viewer/issues/115)) (by @dependabot[bot]) ([71d200d](https://github.com/ChristopherVR/pptx-viewer/commit/71d200d5aa0627c90fb2c8bfc0c50ee4b132a7d8))
+
+### Chores
+
+- **deps-dev:** Update tsdown requirement ([#109](https://github.com/ChristopherVR/pptx-viewer/issues/109)) (by @dependabot[bot]) ([f83aa0a](https://github.com/ChristopherVR/pptx-viewer/commit/f83aa0a0012d9678cb1fcbef3bbf45b04f179755))
+- **deps-dev:** Update happy-dom requirement from ^20.11.0 to ^20.11.1 ([#116](https://github.com/ChristopherVR/pptx-viewer/issues/116)) (by @dependabot[bot]) ([0a2f499](https://github.com/ChristopherVR/pptx-viewer/commit/0a2f4990ae3caa60de537c9e0ea38ca8d796fd56))
+
 ## [2.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.3.0) - 2026-07-25
 
 ## [2.2.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@2.2.1) - 2026-07-24

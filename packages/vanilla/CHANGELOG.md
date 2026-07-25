@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.5.0) - 2026-07-25
+
+### Dependencies
+
+- **deps:** Update lucide requirement from ^1.25.0 to ^1.26.0 ([#111](https://github.com/ChristopherVR/pptx-viewer/issues/111)) (by @dependabot[bot]) ([d145723](https://github.com/ChristopherVR/pptx-viewer/commit/d1457230d11ba90ca91e3af037345b89439a245a))
+- **deps:** Update ai requirement from ^7.0.35 to ^7.0.37 ([#115](https://github.com/ChristopherVR/pptx-viewer/issues/115)) (by @dependabot[bot]) ([71d200d](https://github.com/ChristopherVR/pptx-viewer/commit/71d200d5aa0627c90fb2c8bfc0c50ee4b132a7d8))
+
+### Chores
+
+- **deps-dev:** Update tsdown requirement ([#109](https://github.com/ChristopherVR/pptx-viewer/issues/109)) (by @dependabot[bot]) ([f83aa0a](https://github.com/ChristopherVR/pptx-viewer/commit/f83aa0a0012d9678cb1fcbef3bbf45b04f179755))
+- **deps-dev:** Update happy-dom requirement from ^20.11.0 to ^20.11.1 ([#116](https://github.com/ChristopherVR/pptx-viewer/issues/116)) (by @dependabot[bot]) ([0a2f499](https://github.com/ChristopherVR/pptx-viewer/commit/0a2f4990ae3caa60de537c9e0ea38ca8d796fd56))
+
 ## [1.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.4.0) - 2026-07-25
 
 ## [1.3.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@1.3.1) - 2026-07-24
