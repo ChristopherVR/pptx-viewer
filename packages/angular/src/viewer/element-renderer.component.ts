@@ -7,6 +7,8 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import {
 	buildRunEffectStyle,
 	buildTextBody3DSceneStyle,
+	buildTextBuildSpec,
+	textBuildSpanStyle,
 	resolveUnderlineDecorationStyle,
 	segmentStyleToCss,
 	substituteFieldText,
@@ -16,6 +18,7 @@ import type {
 	FieldSubstitutionContext,
 	FillOverlayCss,
 	PictureBulletMarker,
+	TextBuildSpec,
 } from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
 import { ChartElementViewComponent } from './chart-element-view.component';
@@ -375,6 +378,25 @@ interface Paragraph {
 											>{{ para.bulletMarker }}&nbsp;</span
 										>
 									}
+									@if (textBuildSpecs()[$index]; as spec) {
+										<!-- Staged text build: render the split pieces so each one
+										     carries its own sub-animation. -->
+										@if (spec.granularity === 'paragraph') {
+											<span
+												[attr.data-anim-id]="spec.animId"
+												[ngStyle]="buildSpanStyle(spec)"
+												>{{ paragraphText(para) }}</span
+											>
+										} @else {
+											@for (span of spec.spans ?? []; track $index) {
+												<span
+													[attr.data-anim-id]="span.animId"
+													[ngStyle]="buildSpanStyle(span)"
+													>{{ span.text }}</span
+												>
+											}
+										}
+									} @else {
 									@for (run of para.runs; track $index) {
 										@if (run.equationXml) {
 											<pptx-equation-renderer
@@ -400,6 +422,7 @@ interface Paragraph {
 										} @else {
 											<span [ngStyle]="run.style">{{ run.text }}</span>
 										}
+									}
 									}
 								</p>
 							}
@@ -602,6 +625,40 @@ export class ElementRendererComponent {
 	readonly animationState = computed<ElementAnimationState | undefined>(() =>
 		this.playback?.presentationElementStates().get(this.element().id),
 	);
+
+	/**
+	 * Per-paragraph split for a staged text build (by paragraph / word / letter),
+	 * or `undefined` entries to render the runs normally. PowerPoint's "Animate
+	 * text: By letter" needs the rendered text split to match the per-character
+	 * sub-animations, otherwise the whole box just fades as one.
+	 */
+	readonly textBuildSpecs = computed<Array<TextBuildSpec<StyleMap> | undefined>>(() => {
+		const states = this.playback?.presentationElementStates();
+		if (!states || states.size === 0) {
+			return [];
+		}
+		const id = this.element().id;
+		return this.paragraphs().map((para, paraIndex) =>
+			buildTextBuildSpec<StyleMap>(
+				id,
+				paraIndex,
+				para.runs
+					.filter((run) => run.text !== '\n')
+					.map((run) => ({ text: run.text, style: run.style as StyleMap })),
+				states,
+			),
+		);
+	});
+
+	/** Whole-paragraph text, for the paragraph-level build wrapper. */
+	protected paragraphText(para: Paragraph): string {
+		return para.runs.map((run) => run.text).join('');
+	}
+
+	/** Style for one build piece, merged over the run's own style. */
+	protected buildSpanStyle(span: { style?: StyleMap; hidden?: boolean; cssAnimation?: string }) {
+		return { ...(span.style ?? {}), ...textBuildSpanStyle(span) };
+	}
 
 	readonly containerStyle = computed<StyleMap>(() => ({
 		...getContainerStyle(this.element(), this.zIndex()),
