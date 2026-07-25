@@ -15,6 +15,7 @@
  * `WriteBackScheduler` (a different calling convention tied to its DI style),
  * not a duplicate of this one.
  */
+import { PptxHandler } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import type { CollaborationConfig } from '../types';
@@ -76,7 +77,6 @@ export function createWriteBackScheduler(deps: WriteBackDeps): WriteBackSchedule
 				return;
 			}
 			try {
-				const { PptxHandler } = await import('pptx-viewer-core');
 				const handler = new PptxHandler();
 				await handler.load(sourceBytes.buffer as ArrayBuffer);
 				const slides = readSlidesFromYDoc(ydoc);
