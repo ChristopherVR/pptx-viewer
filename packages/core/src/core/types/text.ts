@@ -12,6 +12,7 @@
 // ==========================================================================
 
 import type { UnderlineStyle, XmlObject } from './common';
+import type { EffectDagContainer } from './effect-dag';
 import type { Pptx3DScene, PptxTextWarpPreset, Text3DStyle } from './three-d';
 
 /**
@@ -421,6 +422,27 @@ export interface TextStyle {
 
 	/** Text blur effect radius in px (`a:blur`). */
 	textBlurRadius?: number;
+
+	// ── Effect DAG properties (from `a:rPr/a:effectDag`) ──
+	// ECMA-376 §21.1.2.3.6 lists `a:effectDag` as a valid child of
+	// `CT_TextCharacterProperties`. Round-tripping it requires storing both the
+	// raw XML (for unknown leaf effects) and the typed tree of structural
+	// container nodes.
+
+	/**
+	 * Raw `a:effectDag` XML node from `a:rPr`, preserved verbatim for
+	 * round-trip serialisation. Mirrors the shape-level
+	 * {@link import('./shape-style').ShapeStyle.effectDagXml} field.
+	 */
+	textEffectDagXml?: XmlObject;
+	/**
+	 * Typed effect graph parsed from `textEffectDagXml`. The four structural
+	 * container nodes (`a:cont`, `a:blend`, `a:xfrmEffect`, `a:relOff`) are
+	 * fully typed; any other leaf effect is captured as
+	 * {@link import('./effect-dag').EffectDagRawLeaf} so we never have to
+	 * recurse into the full effect taxonomy.
+	 */
+	textEffectDagTree?: EffectDagContainer;
 
 	/** Text alpha modulation fixed (0-100) from `a:alphaModFix`. */
 	textAlphaModFix?: number;

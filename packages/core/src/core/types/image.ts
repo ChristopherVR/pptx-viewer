@@ -10,7 +10,6 @@
 // ==========================================================================
 
 import type { XmlObject } from './common';
-import type { EffectDagContainer } from './effect-dag';
 
 export * from './effect-dag';
 
@@ -223,45 +222,11 @@ export interface PptxImageProperties {
 	cropShape?: PptxCropShape;
 }
 
-// ==========================================================================
-// Declaration merging — attach run-side effectDag fields to TextStyle
-// ==========================================================================
-// ECMA-376 §21.1.2.3.6 lists `a:effectDag` as a valid child of
-// `CT_TextCharacterProperties` (the `<a:rPr>` element). Round-tripping it
-// requires storing both the raw XML (for unknown leaf effects) and the
-// typed tree of structural container nodes. We attach these via TypeScript
-// declaration merging so the canonical TextStyle definition in `text.ts`
-// stays untouched while the new fields remain co-located with the
-// effectDag types they reference.
-
-declare module './text' {
-	interface TextStyle {
-		/**
-		 * Raw `a:effectDag` XML node from `a:rPr`, preserved verbatim for
-		 * round-trip serialisation. Mirrors the shape-level
-		 * {@link import('./shape-style').ShapeStyle.effectDagXml} field.
-		 */
-		textEffectDagXml?: import('./common').XmlObject;
-		/**
-		 * Typed effect graph parsed from `textEffectDagXml`. The four structural
-		 * container nodes (`a:cont`, `a:blend`, `a:xfrmEffect`, `a:relOff`) are
-		 * fully typed; any other leaf effect is captured as
-		 * {@link EffectDagRawLeaf} so we never have to recurse into the full
-		 * effect taxonomy.
-		 */
-		textEffectDagTree?: EffectDagContainer;
-	}
-}
-
-declare module './shape-style' {
-	interface ShapeStyle {
-		/**
-		 * Typed effect graph parsed from {@link ShapeStyle.effectDagXml}. The four
-		 * structural container nodes (`a:cont`, `a:blend`, `a:xfrmEffect`,
-		 * `a:relOff`) are fully typed; any other leaf effect (e.g. `a:outerShdw`,
-		 * `a:glow`, `a:alphaInv`) is captured as {@link EffectDagRawLeaf} so we
-		 * never have to recurse into the full effect taxonomy.
-		 */
-		effectDagTree?: EffectDagContainer;
-	}
-}
+// The run-side (`TextStyle.textEffectDagXml` / `textEffectDagTree`) and
+// shape-side (`ShapeStyle.effectDagTree`) effectDag fields used to be attached
+// here via `declare module './text'` / `declare module './shape-style'`
+// declaration merging. They are now declared inline on the canonical
+// interfaces: a relative-path module augmentation does not survive `.d.ts`
+// bundling (the emitted `declare module` points at a path that no longer
+// exists in the flattened output), which silently dropped the fields from
+// every published binding's types.

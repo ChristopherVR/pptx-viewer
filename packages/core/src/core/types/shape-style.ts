@@ -26,6 +26,7 @@ import type {
 	StrokeDashType,
 	XmlObject,
 } from './common';
+import type { EffectDagContainer } from './effect-dag';
 import type { Pptx3DScene, Pptx3DShape } from './three-d';
 
 export interface PptxCustomDashSegment {
@@ -308,6 +309,15 @@ export interface ShapeStyle {
 
 	/** Raw `a:effectDag` XML node preserved for round-trip serialisation. */
 	effectDagXml?: XmlObject;
+	/**
+	 * Typed effect graph parsed from {@link ShapeStyle.effectDagXml}. The four
+	 * structural container nodes (`a:cont`, `a:blend`, `a:xfrmEffect`,
+	 * `a:relOff`) are fully typed; any other leaf effect (e.g. `a:outerShdw`,
+	 * `a:glow`, `a:alphaInv`) is captured as
+	 * {@link import('./effect-dag').EffectDagRawLeaf} so we never have to
+	 * recurse into the full effect taxonomy.
+	 */
+	effectDagTree?: EffectDagContainer;
 	/** Grayscale flag from effectDag `a:grayscl`. */
 	dagGrayscale?: boolean;
 	/** Bi-level threshold (0-100) from effectDag `a:biLevel`. */
