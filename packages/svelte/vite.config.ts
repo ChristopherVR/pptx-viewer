@@ -67,6 +67,12 @@ export default defineConfig({
 		emptyOutDir: true,
 		minify: 'esbuild',
 		rollupOptions: {
+			// The plugin-timing breakdown is pure noise here: the slowest plugins
+			// are `unplugin-dts`, `vite-plugin-svelte` and `vite:css`, all of which
+			// are required to emit this package's declarations, compiled components
+			// and extracted stylesheet. There is nothing to act on, so keep the
+			// build log free of it.
+			checks: { pluginTimings: false },
 			external: [
 				'svelte',
 				/^svelte\//u,
