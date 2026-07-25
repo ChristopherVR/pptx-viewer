@@ -466,8 +466,10 @@ describe('buildTimeline - trigger delay', () => {
 			} as PptxNativeAnimation),
 		]);
 		const steps = result.clickGroups[0].steps;
-		// = 0 + 500 + 200 + 300 = 1000
-		expect(steps[1].delayMs).toBe(1000);
+		// `delayMs` and `triggerDelayMs` are two views of ONE OOXML quantity (the
+		// parser sets `triggerDelayMs` FROM `delayMs`), so the governing value
+		// wins rather than the sum: 0 + 500 + max(200, 300) = 800.
+		expect(steps[1].delayMs).toBe(800);
 	});
 
 	it('respects delay for withPrevious animations', () => {
@@ -486,9 +488,9 @@ describe('buildTimeline - trigger delay', () => {
 			} as PptxNativeAnimation),
 		]);
 		const steps = result.clickGroups[0].steps;
-		// withPrevious delay = prev.delayMs + animDelay + triggerDelay
-		// = 100 + 200 + 50 = 350
-		expect(steps[1].delayMs).toBe(350);
+		// withPrevious delay = prev.delayMs + max(delayMs, triggerDelayMs)
+		// = 100 + max(200, 50) = 300
+		expect(steps[1].delayMs).toBe(300);
 	});
 });
 

@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 
 import {
 	countTextSegments,
+	effectiveTextBuildType,
 	expandTextBuildAnimations,
 	TEXT_BUILD_ID_SEP,
 } from './animation-timeline-text-build';
@@ -267,5 +268,77 @@ describe('expandTextBuildAnimations', () => {
 		expect(result[2].targetId).toBe('shape1::c1-0');
 		expect(result[3].targetId).toBe('shape1::c1-1');
 		expect(result[4].targetId).toBe('shape1::c1-2');
+	});
+});
+
+// ==========================================================================
+// p:iterate -> text build (issue #106)
+// ==========================================================================
+
+describe('effectiveTextBuildType', () => {
+	// PowerPoint's "Animate text: By letter" writes `p:iterate`, not `p:bldP`,
+	// so a title authored to fade in letter by letter faded in as one block.
+	it('maps a letter iterate onto a by-character build', () => {
+		expect(effectiveTextBuildType({ iterate: { type: 'lt' } })).toBe('byChar');
+	});
+
+	it('maps a word iterate onto a by-word build', () => {
+		expect(effectiveTextBuildType({ iterate: { type: 'wd' } })).toBe('byWord');
+	});
+
+	it('leaves "as one object" and no-iterate animations unexpanded', () => {
+		expect(effectiveTextBuildType({ iterate: { type: 'el' } })).toBeUndefined();
+		expect(effectiveTextBuildType({})).toBeUndefined();
+		expect(effectiveTextBuildType({ buildType: 'allAtOnce' })).toBeUndefined();
+	});
+
+	it('prefers an explicit slide build over the iterate', () => {
+		expect(effectiveTextBuildType({ buildType: 'byParagraph', iterate: { type: 'lt' } })).toBe(
+			'byParagraph',
+		);
+	});
+});
+
+describe('expandTextBuildAnimations - iterate stagger', () => {
+	const anim = {
+		targetId: 'title',
+		presetClass: 'entr',
+		trigger: 'onClick',
+		delayMs: 1000,
+		durationMs: 400,
+		buildType: 'allAtOnce',
+		iterate: { type: 'lt', tmPct: 10000 },
+	} as unknown as PptxNativeAnimation;
+	const counts = { paragraphCount: 1, charCounts: [3], wordCounts: [1] };
+
+	it('splits into one sub-animation per character', () => {
+		const out = expandTextBuildAnimations([anim], new Map([['title', counts]]));
+		expect(out).toHaveLength(3);
+		expect(out.map((a) => a.targetId)).toStrictEqual(['title::c0-0', 'title::c0-1', 'title::c0-2']);
+	});
+
+	// Every letter runs the FULL effect duration and merely starts `tmPct` of it
+	// later than the one before: that overlap is what makes it read as a ripple.
+	it('keeps the full duration and staggers by the iterate interval', () => {
+		const out = expandTextBuildAnimations([anim], new Map([['title', counts]]));
+		expect(out.every((a) => a.durationMs === 400)).toBeTruthy();
+		// 10% of 400ms.
+		expect(out[1].delayMs).toBe(40);
+		expect(out[2].delayMs).toBe(40);
+		expect(out[1].trigger).toBe('withPrevious');
+	});
+
+	it('gives the first letter the authored start delay, and the rest none', () => {
+		const out = expandTextBuildAnimations([anim], new Map([['title', counts]]));
+		expect(out[0].delayMs).toBe(1000);
+		// Re-applying the parent delay per letter would restart the whole build.
+		expect(out[1].triggerDelayMs).toBeUndefined();
+		expect(out[1].startConditions).toBeUndefined();
+	});
+
+	it('honours an absolute tmAbs interval', () => {
+		const abs = { ...anim, iterate: { type: 'lt', tmAbs: 120 } } as PptxNativeAnimation;
+		const out = expandTextBuildAnimations([abs], new Map([['title', counts]]));
+		expect(out[1].delayMs).toBe(120);
 	});
 });

@@ -54,6 +54,54 @@ export function countTextSegments(
 export const TEXT_BUILD_ID_SEP = '::';
 
 /**
+ * The build granularity an animation actually wants, from either of the two
+ * places OOXML records it.
+ *
+ * `p:bldP/@build` (parsed to `buildType`) is the slide-level text build, but
+ * PowerPoint's "Effect Options > Animate text: By letter / By word" writes
+ * `p:iterate` on the effect's own `p:cTn` instead. Only the first was honoured,
+ * so a title authored to fade in letter by letter faded in as one block
+ * (issue #106). `p:iterate type="el"` means "as one object" and stays
+ * unexpanded.
+ */
+export function effectiveTextBuildType(
+	anim: Pick<PptxNativeAnimation, 'buildType' | 'iterate'>,
+): PptxTextBuildType | undefined {
+	if (anim.buildType && anim.buildType !== 'allAtOnce') {
+		return anim.buildType;
+	}
+	if (anim.iterate?.type === 'lt') {
+		return 'byChar';
+	}
+	if (anim.iterate?.type === 'wd') {
+		return 'byWord';
+	}
+	return undefined;
+}
+
+/**
+ * Stagger (ms) between consecutive sub-elements of an `p:iterate` build.
+ *
+ * `p:tmAbs` is already milliseconds; `p:tmPct` is a percentage of the effect's
+ * own duration in 1000ths of a percent (PowerPoint's default is `10000`, i.e.
+ * 10%). Returns `undefined` when the animation is not iterate-driven, so the
+ * caller keeps the slide-build defaults.
+ */
+function iterateStaggerMs(anim: PptxNativeAnimation, durationMs: number): number | undefined {
+	const iterate = anim.iterate;
+	if (!iterate || iterate.type === 'el') {
+		return undefined;
+	}
+	if (typeof iterate.tmAbs === 'number' && Number.isFinite(iterate.tmAbs) && iterate.tmAbs > 0) {
+		return iterate.tmAbs;
+	}
+	if (typeof iterate.tmPct === 'number' && Number.isFinite(iterate.tmPct) && iterate.tmPct > 0) {
+		return Math.max(1, Math.round((iterate.tmPct / 100000) * durationMs));
+	}
+	return undefined;
+}
+
+/**
  * Expand text-build animations into per-paragraph, per-word or per-character
  * sub-element animations.
  *
@@ -72,10 +120,10 @@ export function expandTextBuildAnimations(
 	const result: PptxNativeAnimation[] = [];
 
 	for (const anim of animations) {
-		const buildType = anim.buildType;
+		const buildType = effectiveTextBuildType(anim);
 		const targetId = anim.targetId ?? '';
 
-		if (!buildType || buildType === 'allAtOnce' || !targetId) {
+		if (!buildType || !targetId) {
 			result.push(anim);
 			continue;
 		}
@@ -116,6 +164,14 @@ function expandSingleBuildAnimation(
 		return;
 	}
 
+	// An `p:iterate` build overlaps: every letter/word runs the FULL effect
+	// duration and merely starts `stagger` later than the one before, which is
+	// what makes PowerPoint's "by letter" read as a ripple. `withPrevious` steps
+	// accumulate their delay from the previous step's START, so passing the bare
+	// interval as each step's delay yields `base + i * stagger`. The slide-build
+	// (`p:bldP`) path keeps its original end-to-end pacing.
+	const stagger = iterateStaggerMs(anim, baseDuration);
+
 	if (buildType === 'byWord') {
 		const wordCounts = counts.wordCounts ?? [];
 		let stepIndex = 0;
@@ -125,10 +181,20 @@ function expandSingleBuildAnimation(
 				output.push({
 					...anim,
 					targetId: `${targetId}${TEXT_BUILD_ID_SEP}w${pIdx}-${wIdx}`,
-					trigger: stepIndex === 0 ? anim.trigger : 'afterPrevious',
-					durationMs: Math.max(100, Math.round(baseDuration / 2)),
-					delayMs: stepIndex === 0 ? (anim.delayMs ?? 0) : 50,
+					trigger:
+						stepIndex === 0
+							? anim.trigger
+							: stagger !== undefined
+								? 'withPrevious'
+								: 'afterPrevious',
+					durationMs:
+						stagger !== undefined ? baseDuration : Math.max(100, Math.round(baseDuration / 2)),
+					delayMs: stepIndex === 0 ? (anim.delayMs ?? 0) : (stagger ?? 50),
+					// Only the first sub-step inherits the parent's start delay; the
+					// rest carry the bare stagger, so these must not re-apply it.
+					...(stepIndex === 0 ? {} : { triggerDelayMs: undefined, startConditions: undefined }),
 					buildType: undefined,
+					iterate: undefined,
 				});
 				stepIndex++;
 			}
@@ -145,10 +211,20 @@ function expandSingleBuildAnimation(
 				output.push({
 					...anim,
 					targetId: `${targetId}${TEXT_BUILD_ID_SEP}c${pIdx}-${cIdx}`,
-					trigger: stepIndex === 0 ? anim.trigger : 'afterPrevious',
-					durationMs: Math.max(50, Math.round(baseDuration / 4)),
-					delayMs: stepIndex === 0 ? (anim.delayMs ?? 0) : 20,
+					trigger:
+						stepIndex === 0
+							? anim.trigger
+							: stagger !== undefined
+								? 'withPrevious'
+								: 'afterPrevious',
+					durationMs:
+						stagger !== undefined ? baseDuration : Math.max(50, Math.round(baseDuration / 4)),
+					delayMs: stepIndex === 0 ? (anim.delayMs ?? 0) : (stagger ?? 20),
+					// Only the first sub-step inherits the parent's start delay; the
+					// rest carry the bare stagger, so these must not re-apply it.
+					...(stepIndex === 0 ? {} : { triggerDelayMs: undefined, startConditions: undefined }),
 					buildType: undefined,
+					iterate: undefined,
 				});
 				stepIndex++;
 			}

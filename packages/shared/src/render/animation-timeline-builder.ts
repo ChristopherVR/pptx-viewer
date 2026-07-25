@@ -222,14 +222,19 @@ export function buildTimeline(
 			const duration = isCommand
 				? 0
 				: (singleAnim.durationMs ?? defaultDuration(singleAnim.presetClass));
-			const animDelay = singleAnim.delayMs ?? 0;
-			// Use the governing condition delay when conditions were present;
-			// otherwise fall back to the simple triggerDelayMs (afterDelay) so
-			// existing single-condition slides are unchanged.
-			const triggerDelay =
+			// `delayMs`, `triggerDelayMs` and the start condition's delay are three
+			// views of ONE OOXML quantity: when does this effect start. Adding them
+			// double-counts (a 1s delay played at 2s), so take the governing value.
+			const animDelay = Math.max(
+				singleAnim.delayMs ?? 0,
+				// Use the governing condition delay when conditions were present;
+				// otherwise fall back to the simple triggerDelayMs (afterDelay) so
+				// existing single-condition slides are unchanged.
 				singleAnim.startConditions && singleAnim.startConditions.length > 0
 					? effective.delayMs
-					: (singleAnim.triggerDelayMs ?? 0);
+					: (singleAnim.triggerDelayMs ?? 0),
+			);
+			const triggerDelay = 0;
 			const presetClass = isCommand ? 'emph' : (singleAnim.presetClass ?? 'entr');
 			const fill = fillModeForClass(singleAnim.presetClass);
 
@@ -385,15 +390,11 @@ function countDynamicUids(interactiveAnims: Map<string, PptxNativeAnimation[]>):
  * delay between consecutive sub-elements.
  */
 function expandIterateAnimation(anim: PptxNativeAnimation): PptxNativeAnimation[] {
-	const iterate = anim.iterate;
-	if (!iterate || iterate.type === 'el') {
-		return [anim];
-	}
-
-	// We return the original animation unchanged for now —
-	// iterate expansion is handled at a higher level by the text-build system
-	// when buildType is set. When iterate is present without a matching
-	// buildType, we still return the original to avoid dropping the animation.
+	// Expansion happens upstream, in `expandTextBuildAnimations`: splitting text
+	// needs the target element's paragraph/word/character counts, which the
+	// timeline builder does not have (it only sees animations). By the time an
+	// animation reaches here it has already been split into per-letter or
+	// per-word sub-animations, so there is nothing left to do.
 	return [anim];
 }
 
@@ -436,8 +437,9 @@ function buildSequenceGroups(
 			const elementId = anim.targetId ?? '';
 			const seqTrigger: PptxAnimationTrigger = anim.trigger ?? 'onShapeClick';
 			const duration = anim.durationMs ?? defaultDuration(anim.presetClass);
-			const animDelay = anim.delayMs ?? 0;
-			const triggerDelay = anim.triggerDelayMs ?? 0;
+			// Same single-quantity rule as the main sequence: never sum the two.
+			const animDelay = Math.max(anim.delayMs ?? 0, anim.triggerDelayMs ?? 0);
+			const triggerDelay = 0;
 			const presetClass = anim.presetClass ?? 'entr';
 			const fill = fillModeForClass(anim.presetClass);
 			const iterCount = anim.repeatCount ?? 1;

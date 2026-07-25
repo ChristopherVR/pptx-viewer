@@ -41,6 +41,7 @@ import type { ElementStatesOptions } from './animation-timeline-engine';
 import { TimelineEngine } from './animation-timeline-engine';
 import {
 	countTextSegments,
+	effectiveTextBuildType,
 	expandTextBuildAnimations,
 	TEXT_BUILD_ID_SEP,
 } from './animation-timeline-text-build';
@@ -67,7 +68,7 @@ function buildSegmentCounts(
 ): Map<string, TextBuildSegmentCounts> {
 	const segmentCounts = new Map<string, TextBuildSegmentCounts>();
 	for (const anim of nativeAnims) {
-		if (anim.buildType && anim.buildType !== 'allAtOnce' && anim.targetId) {
+		if (effectiveTextBuildType(anim) && anim.targetId) {
 			const el = slide.elements.find((e) => e.id === anim.targetId);
 			if (el && hasTextProperties(el) && el.textSegments && el.textSegments.length > 0) {
 				segmentCounts.set(anim.targetId, countTextSegments(el.textSegments));
