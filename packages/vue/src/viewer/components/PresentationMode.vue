@@ -3,8 +3,10 @@ import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
 import {
 	ANIMATION_KEYFRAMES_CSS,
 	createPresentationKeyBuffer,
+	endAudienceDisplay,
 	isClickAdvanceAllowed,
 	mapPresentationKey,
+	mayLeaveSlideShow,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -301,6 +303,11 @@ function advanceFromClick(): void {
  * Advanced > "Prompt to keep ink annotations when exiting" is off.
  */
 function close(): void {
+	// An audience display mirrors the presenter's screen: Escape, the toolbar and
+	// the advance past the end screen must never reveal the editor to the room.
+	if (!mayLeaveSlideShow()) {
+		return;
+	}
 	if (annotations.hasAnyAnnotations.value && showOptions.value.promptKeepInkAnnotations) {
 		showKeepPrompt.value = true;
 		return;
@@ -341,7 +348,13 @@ const presenterSession = usePresenterSession({
 			emit('slide-change', index);
 		}
 	},
-	onAudienceExit: () => emit('close'),
+	// The presenter ended the session. Close this tab; when the browser refuses,
+	// leave the black end-of-slide-show screen up rather than the editor.
+	onAudienceExit: () => {
+		if (endAudienceDisplay(window)) {
+			showEndScreen.value = true;
+		}
+	},
 });
 /** Whether the live-caption (subtitle) bar is shown. */
 const subtitlesOn = ref(false);
