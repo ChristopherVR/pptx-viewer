@@ -1,5 +1,6 @@
 import type { PresentationPointerTool } from 'pptx-viewer-shared';
 import {
+	acceptsPresentationInput,
 	createPresentationKeyBuffer,
 	mapPresentationKey,
 	mayLeaveSlideShow,
@@ -49,6 +50,12 @@ const keyBuffer = createPresentationKeyBuffer();
  * true when the key was consumed.
  */
 function handleShowKey(event: KeyboardEvent, deps: ViewportHandlersDeps): boolean {
+	// An audience display mirrors the presenter's screen. If its own keyboard
+	// navigated, a stray key moved it off the presenter's slide and the next
+	// snapshot yanked it back, which reads as the display refusing to advance.
+	if (!acceptsPresentationInput()) {
+		return false;
+	}
 	const mapped = mapPresentationKey(event, keyBuffer);
 	if (mapped.action === 'none') {
 		return false;
@@ -62,7 +69,11 @@ function handleShowKey(event: KeyboardEvent, deps: ViewportHandlersDeps): boolea
 			deps.presentation.advance();
 			return true;
 		case 'previous':
-			deps.viewer.prev();
+			// `retreat()` owns the end screen and the replay of a slide entered
+			// backward; only when it declines does the show leave the slide.
+			if (!deps.presentation.retreat()) {
+				deps.viewer.prev();
+			}
 			return true;
 		case 'first':
 			deps.viewer.first();

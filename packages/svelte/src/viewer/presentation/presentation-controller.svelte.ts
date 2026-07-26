@@ -177,13 +177,22 @@ export class PresentationController {
 		this.#endOfShow = true;
 	}
 
-	/** Backward input while the end screen is up just dismisses it. */
+	/**
+	 * Backward input. Dismisses the end screen when it is up; on a slide entered
+	 * backward it replays that slide's builds from the start rather than leaving
+	 * it, so a presenter who overshot can watch the build again (PowerPoint).
+	 * Returns true when the press was consumed here.
+	 */
 	retreat(): boolean {
-		if (!this.#endOfShow) {
-			return false;
+		if (this.#endOfShow) {
+			this.#endOfShow = false;
+			return true;
 		}
-		this.#endOfShow = false;
-		return true;
+		if (this.playback.seededCompleted) {
+			this.playback.reset();
+			return true;
+		}
+		return false;
 	}
 
 	/** Entering presentation: seed builds for the current slide, drop any overlay. */
@@ -208,7 +217,9 @@ export class PresentationController {
 	 */
 	onSlideChange(previousIndex: number, nextIndex: number): void {
 		this.#endOfShow = false;
-		this.playback.reset();
+		// PowerPoint shows a slide you step BACK onto with its builds already
+		// played; only a forward step replays them.
+		this.playback.reset({ completed: nextIndex < previousIndex });
 		const slides = this.#deps.getSlides();
 		const incoming = slides[nextIndex];
 		const transition = incoming?.transition;
