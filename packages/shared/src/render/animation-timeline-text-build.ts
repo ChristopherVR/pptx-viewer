@@ -192,7 +192,16 @@ function expandSingleBuildAnimation(
 					delayMs: stepIndex === 0 ? (anim.delayMs ?? 0) : (stagger ?? 50),
 					// Only the first sub-step inherits the parent's start delay; the
 					// rest carry the bare stagger, so these must not re-apply it.
-					...(stepIndex === 0 ? {} : { triggerDelayMs: undefined, startConditions: undefined }),
+					// They are synthetic chain steps rather than OOXML `p:par`
+					// siblings, so they also drop the wrapper index: their delay is
+					// an interval off the step before, not an offset from the group.
+					...(stepIndex === 0
+						? {}
+						: {
+								triggerDelayMs: undefined,
+								startConditions: undefined,
+								parGroupIndex: undefined,
+							}),
 					buildType: undefined,
 					iterate: undefined,
 				});
@@ -222,7 +231,16 @@ function expandSingleBuildAnimation(
 					delayMs: stepIndex === 0 ? (anim.delayMs ?? 0) : (stagger ?? 20),
 					// Only the first sub-step inherits the parent's start delay; the
 					// rest carry the bare stagger, so these must not re-apply it.
-					...(stepIndex === 0 ? {} : { triggerDelayMs: undefined, startConditions: undefined }),
+					// They are synthetic chain steps rather than OOXML `p:par`
+					// siblings, so they also drop the wrapper index: their delay is
+					// an interval off the step before, not an offset from the group.
+					...(stepIndex === 0
+						? {}
+						: {
+								triggerDelayMs: undefined,
+								startConditions: undefined,
+								parGroupIndex: undefined,
+							}),
 					buildType: undefined,
 					iterate: undefined,
 				});

@@ -513,6 +513,68 @@ describe('buildTimeline', () => {
 		expect(result.clickGroups[0].steps[0].build).toBeUndefined();
 	});
 
+	// -------------------------------------------------------------------
+	// Click-step auto-start + effect-wrapper grouping (issue #106)
+	// -------------------------------------------------------------------
+	describe('auto-starting click steps', () => {
+		it('marks the first group auto-advance when the deck says it starts on entry', () => {
+			const result = buildTimeline([
+				makeAnim({ trigger: 'afterDelay', delayMs: 1000, groupAutoStart: true, parGroupIndex: 0 }),
+			]);
+			expect(result.clickGroups[0].autoAdvance).toBeTruthy();
+			expect(result.clickGroups[0].autoAdvanceDelayMs).toBe(0);
+		});
+
+		it('leaves the first group click-gated by default', () => {
+			const result = buildTimeline([makeAnim({ trigger: 'afterDelay', delayMs: 1000 })]);
+			expect(result.clickGroups[0].autoAdvance).toBeUndefined();
+		});
+
+		it('does not auto-start a group opened by an explicit click', () => {
+			const result = buildTimeline([
+				makeAnim({ targetId: 'a', groupAutoStart: true }),
+				makeAnim({ targetId: 'b', trigger: 'onClick', groupAutoStart: true }),
+			]);
+			expect(result.clickGroups).toHaveLength(2);
+			expect(result.clickGroups[1].autoAdvance).toBeUndefined();
+		});
+	});
+
+	describe('effect-wrapper (p:par) siblings', () => {
+		it('measures each sibling delay from the wrapper, not the effect before it', () => {
+			const result = buildTimeline([
+				makeAnim({ targetId: 'title', trigger: 'afterDelay', delayMs: 1000, parGroupIndex: 0 }),
+				makeAnim({ targetId: 'body', trigger: 'afterDelay', delayMs: 2000, parGroupIndex: 0 }),
+			]);
+			const [first, second] = result.clickGroups[0].steps;
+			expect(first.delayMs).toBe(1000);
+			expect(second.delayMs).toBe(2000);
+		});
+
+		it('chains a new wrapper off the previous step', () => {
+			const result = buildTimeline([
+				makeAnim({ targetId: 'title', delayMs: 0, durationMs: 500, parGroupIndex: 0 }),
+				makeAnim({
+					targetId: 'body',
+					trigger: 'afterPrevious',
+					delayMs: 250,
+					parGroupIndex: 1,
+				}),
+			]);
+			const [first, second] = result.clickGroups[0].steps;
+			expect(first.delayMs).toBe(0);
+			expect(second.delayMs).toBe(750);
+		});
+
+		it('keeps chaining animations that carry no wrapper index', () => {
+			const result = buildTimeline([
+				makeAnim({ targetId: 'title', delayMs: 0, durationMs: 500 }),
+				makeAnim({ targetId: 'body', trigger: 'withPrevious', delayMs: 200 }),
+			]);
+			expect(result.clickGroups[0].steps[1].delayMs).toBe(200);
+		});
+	});
+
 	it('attaches colour targets from an active fill colour animation', () => {
 		const result = buildTimeline([
 			makeAnim({

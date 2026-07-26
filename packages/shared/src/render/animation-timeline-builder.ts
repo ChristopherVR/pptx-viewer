@@ -168,6 +168,19 @@ export function buildTimeline(
 	let currentGroup: TimelineStep[] = [];
 	/** Whether the current group was started by an onClick trigger. */
 	let currentGroupIsClick = false;
+	/**
+	 * Whether the current group's OOXML click step begins on slide entry rather
+	 * than on a click (`groupAutoStart` from the parse layer).
+	 */
+	let currentGroupAutoStart = false;
+	/**
+	 * Effect-wrapper (`p:par`) index of the sub-group being filled, and the time
+	 * that wrapper starts relative to the click group. Siblings of one wrapper all
+	 * measure their delay from `subGroupStartMs`; a new wrapper chains off the
+	 * previous step instead.
+	 */
+	let subGroupIndex: number | undefined;
+	let subGroupStartMs = 0;
 
 	for (const anim of regularAnims) {
 		const expandedSteps = expandIterateAnimation(anim);
@@ -257,26 +270,40 @@ export function buildTimeline(
 				// Flush current group if non-empty
 				if (currentGroup.length > 0) {
 					const group = finalizeClickGroup(currentGroup);
-					if (!currentGroupIsClick && clickGroups.length > 0) {
+					if (currentGroupAutoStart || (!currentGroupIsClick && clickGroups.length > 0)) {
 						group.autoAdvance = true;
 					}
 					clickGroups.push(group);
 				}
 				currentGroup = [];
 				currentGroupIsClick = isOnClick || isFirstAnimation;
+				// A group the deck marks as auto-starting plays on slide entry. This
+				// is how PowerPoint renders a deck whose opening effects are "With
+				// Previous"; without it the first group was always click-gated and
+				// the slide showed nothing until the viewer clicked.
+				currentGroupAutoStart = !isOnClick && singleAnim.groupAutoStart === true;
+				subGroupIndex = singleAnim.parGroupIndex;
+				subGroupStartMs = 0;
 			}
 
 			// Compute delay relative to start of this click-group
+			const prevStep = currentGroup.length > 0 ? currentGroup[currentGroup.length - 1] : undefined;
 			let delayMs: number;
-			if (trigger === 'withPrevious' && currentGroup.length > 0) {
-				const prev = currentGroup[currentGroup.length - 1];
-				delayMs = prev.delayMs + animDelay + triggerDelay;
-			} else if (
-				(trigger === 'afterPrevious' || trigger === 'afterDelay') &&
-				currentGroup.length > 0
-			) {
-				const prev = currentGroup[currentGroup.length - 1];
-				delayMs = prev.delayMs + prev.durationMs + animDelay + triggerDelay;
+			if (singleAnim.parGroupIndex !== undefined && prevStep) {
+				if (singleAnim.parGroupIndex !== subGroupIndex) {
+					// New effect wrapper: it starts with (withPrevious) or after
+					// (afterPrevious / afterDelay) the step that came before it.
+					subGroupIndex = singleAnim.parGroupIndex;
+					subGroupStartMs =
+						trigger === 'withPrevious' ? prevStep.delayMs : prevStep.delayMs + prevStep.durationMs;
+				}
+				// Siblings of one wrapper are simultaneous in OOXML: each `@delay` is
+				// an offset from the wrapper, never a chain off the previous effect.
+				delayMs = subGroupStartMs + animDelay + triggerDelay;
+			} else if (trigger === 'withPrevious' && prevStep) {
+				delayMs = prevStep.delayMs + animDelay + triggerDelay;
+			} else if ((trigger === 'afterPrevious' || trigger === 'afterDelay') && prevStep) {
+				delayMs = prevStep.delayMs + prevStep.durationMs + animDelay + triggerDelay;
 			} else {
 				delayMs = animDelay + triggerDelay;
 			}
@@ -308,16 +335,16 @@ export function buildTimeline(
 	// Flush last group
 	if (currentGroup.length > 0) {
 		const group = finalizeClickGroup(currentGroup);
-		if (!currentGroupIsClick && clickGroups.length > 0) {
+		if (currentGroupAutoStart || (!currentGroupIsClick && clickGroups.length > 0)) {
 			group.autoAdvance = true;
 		}
 		clickGroups.push(group);
 	}
 
 	// Compute auto-advance delay for auto-advance groups
-	for (let i = 1; i < clickGroups.length; i++) {
-		if (clickGroups[i].autoAdvance) {
-			clickGroups[i].autoAdvanceDelayMs = 0;
+	for (const group of clickGroups) {
+		if (group.autoAdvance) {
+			group.autoAdvanceDelayMs = 0;
 		}
 	}
 
