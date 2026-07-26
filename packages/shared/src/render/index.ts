@@ -537,6 +537,9 @@ export * from './presentation-session';
 // Audience content store: IndexedDB presenter <-> audience deck handoff, plus
 // the audience-tab hash detection helpers. Shared by every binding.
 export * from './audience-content-store';
+// Audience display policy: an audience tab is a mirror of the presenter's
+// screen and must never fall back into the editor. Used by every exit path.
+export * from './audience-display';
 // EyeDropper colour sampler: native EyeDropper API plus an elementFromPoint /
 // canvas DOM-sampling fallback for browsers without it.
 export * from './eyedropper';
