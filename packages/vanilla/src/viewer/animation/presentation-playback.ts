@@ -207,12 +207,13 @@ export function createPresentationPlayback(): PresentationPlayback {
 		},
 
 		syncStage(params) {
-			// The old stage DOM is gone (rebuilt); cancel any overlay + timers.
+			// The old stage DOM is gone (rebuilt), so any in-flight transition
+			// overlay is orphaned.
 			stopTransition();
-			clearTimers();
 
 			const animationsEnabled = params.showWithAnimation !== false;
 			if (!params.presenting || !params.slide || !animationsEnabled) {
+				clearTimers();
 				controller = null;
 				elementStates.clear();
 				injectSlideKeyframes(params.doc, '');
@@ -232,9 +233,15 @@ export function createPresentationPlayback(): PresentationPlayback {
 			const slideChanged = params.slideIndex !== lastIndex;
 
 			if (entering || slideChanged || !controller) {
+				// A new slide owns a fresh timeline: drop the old slide's pending
+				// auto-advance / build timers before seeding it.
+				clearTimers();
 				enterSlide(params.slide, params.doc);
 			} else {
-				// Same slide re-rendered (e.g. resize): re-apply the current state.
+				// Same slide re-rendered (e.g. resize, chrome hiding). Its timeline is
+				// unchanged, so the pending timers MUST survive: clearing them here
+				// cancelled the slide's own auto-play before its delay elapsed, and a
+				// deck that opens with a "With Previous" build never animated at all.
 				refreshDom();
 			}
 

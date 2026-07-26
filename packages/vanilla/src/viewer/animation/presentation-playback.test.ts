@@ -218,6 +218,35 @@ describe('createPresentationPlayback (native-timing controller)', () => {
 		expect(stageWrap.querySelector('.pptxv-transition-overlay')).toBeNull();
 	});
 
+	it('keeps a pending auto-play alive when the same slide re-renders', () => {
+		// A deck whose first click step auto-starts (PowerPoint "With Previous")
+		// schedules its reveal on a timer. Re-rendering the stage mid-delay (resize,
+		// chrome hiding) must NOT cancel that timer, or the build never runs.
+		const playback = createPresentationPlayback();
+		const auto = {
+			...entrance('a', 'withPrevious'),
+			groupAutoStart: true,
+			delayMs: 1000,
+		} as unknown as PptxNativeAnimation;
+		const slide = slideWith([shapeElement('a')], [auto]);
+
+		const stage0 = buildStage(doc, ['a']);
+		stageWrap.appendChild(stage0);
+		playback.syncStage({ doc, stageWrap, stage: stage0, slide, slideIndex: 0, presenting: true });
+		expect(stage0.querySelector<HTMLElement>('[data-element-id="a"]')?.style.visibility).toBe(
+			'hidden',
+		);
+
+		// Same slide, rebuilt stage, still inside the 1s auto-start delay.
+		stageWrap.replaceChildren();
+		const stage1 = buildStage(doc, ['a']);
+		stageWrap.appendChild(stage1);
+		playback.syncStage({ doc, stageWrap, stage: stage1, slide, slideIndex: 0, presenting: true });
+
+		vi.advanceTimersByTime(50);
+		expect(stage1.querySelector<HTMLElement>('[data-element-id="a"]')?.style.visibility).toBe('');
+	});
+
 	it('does not play a transition for a none/absent transition', () => {
 		const playback = createPresentationPlayback();
 		const stage0 = buildStage(doc, ['a']);

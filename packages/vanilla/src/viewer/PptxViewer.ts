@@ -18,8 +18,10 @@ import {
 	clearPresentationDeck,
 	collectAccessibilityIssues,
 	createPresentationSessionId,
+	endAudienceDisplay,
 	isPresentationSessionMessage,
 	loadPresentationDeck,
+	mayLeaveSlideShow,
 	parsePresentationSessionId,
 	placeAudienceWindow,
 	PRESENTATION_CHANNEL_NAME,
@@ -841,7 +843,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 					this.goToSlide(message.slideIndex);
 				}
 				if (message.type === 'presenter-exit') {
-					void this.exitPresentation();
+					// Close this tab; when the browser refuses, raise the black
+					// end-of-slide-show screen. Leaving presentation mode would drop
+					// the room into the editor.
+					if (endAudienceDisplay(window)) {
+						this.store.set({ endOfShow: true });
+					}
 				}
 			} else if (
 				message.type === 'audience-ready' &&
@@ -979,6 +986,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	}
 
 	async exitPresentation(): Promise<void> {
+		// An audience display mirrors the presenter's screen: Escape, leaving
+		// fullscreen and the advance past the end screen must never hand the room
+		// the editing chrome.
+		if (!mayLeaveSlideShow()) {
+			return;
+		}
 		await this.lifecycle.presentation.exit();
 	}
 
