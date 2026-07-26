@@ -426,3 +426,45 @@ describe('timelineEngine', () => {
 		});
 	});
 });
+
+describe('completeAll', () => {
+	it('reveals every entrance and applies every exit with nothing animating', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([makeStep({ elementId: 'a', presetClass: 'entr' })]),
+					makeGroup([makeStep({ elementId: 'b', presetClass: 'entr' })]),
+					makeGroup([makeStep({ elementId: 'a', presetClass: 'exit' })]),
+				],
+				entranceElementIds: new Set(['a', 'b']),
+			}),
+		);
+
+		engine.completeAll();
+
+		// `b` entered and stayed; `a` entered then exited.
+		expect(engine.isElementVisible('b')).toBeTruthy();
+		expect(engine.isElementVisible('a')).toBeFalsy();
+		// Nothing is left animating: a slide entered backward is static.
+		expect(engine.getElementAnimation('a')).toBeUndefined();
+		expect(engine.getElementAnimation('b')).toBeUndefined();
+		// The timeline is spent, so a forward press leaves the slide.
+		expect(engine.hasMoreSteps()).toBeFalsy();
+	});
+
+	it('is undone by reset, so the slide can replay', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [makeGroup([makeStep({ elementId: 'a', presetClass: 'entr' })])],
+				entranceElementIds: new Set(['a']),
+			}),
+		);
+
+		engine.completeAll();
+		expect(engine.isElementVisible('a')).toBeTruthy();
+
+		engine.reset();
+		expect(engine.isElementVisible('a')).toBeFalsy();
+		expect(engine.hasMoreSteps()).toBeTruthy();
+	});
+});

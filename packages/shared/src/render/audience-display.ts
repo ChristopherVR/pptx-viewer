@@ -56,6 +56,23 @@ export function mayLeaveSlideShow(isAudienceDisplay: boolean = isAudienceDisplay
 }
 
 /**
+ * Whether this tab may drive the deck from its own input.
+ *
+ * An audience display mirrors the presenter's screen, so its keyboard, clicks,
+ * taps and swipes must not navigate. When they did, a stray key moved the
+ * audience off the presenter's slide and the next presenter snapshot yanked it
+ * straight back, which reads as the display refusing to turn the page.
+ *
+ * @param isAudienceDisplay - Pass the binding's audience-tab check; defaults to
+ *        {@link isAudienceDisplayTab} so callers with no state can omit it.
+ */
+export function acceptsPresentationInput(
+	isAudienceDisplay: boolean = isAudienceDisplayTab(),
+): boolean {
+	return !isAudienceDisplay;
+}
+
+/**
  * Act on the presenter's `presenter-exit` signal inside an audience tab.
  *
  * Attempts to close the tab. Returns `true` when the binding must raise its

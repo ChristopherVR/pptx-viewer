@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 
-import { endAudienceDisplay, isAudienceDisplayHash, mayLeaveSlideShow } from './audience-display';
+import {
+	acceptsPresentationInput,
+	endAudienceDisplay,
+	isAudienceDisplayHash,
+	mayLeaveSlideShow,
+} from './audience-display';
 
 describe('isAudienceDisplayHash', () => {
 	it('matches the bare audience hash and the nonce form', () => {
@@ -46,5 +51,17 @@ describe('endAudienceDisplay', () => {
 			closed: false,
 		} as unknown as Window;
 		expect(endAudienceDisplay(win)).toBeTruthy();
+	});
+});
+
+describe('acceptsPresentationInput', () => {
+	it('refuses for an audience display', () => {
+		// Its own keyboard/clicks must not navigate: it would drift off the
+		// presenter's slide and be yanked back by the next snapshot.
+		expect(acceptsPresentationInput(true)).toBeFalsy();
+	});
+
+	it('allows for an ordinary presenter tab', () => {
+		expect(acceptsPresentationInput(false)).toBeTruthy();
 	});
 });

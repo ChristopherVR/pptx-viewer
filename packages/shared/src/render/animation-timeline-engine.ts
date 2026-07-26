@@ -294,6 +294,35 @@ export class TimelineEngine {
 	}
 
 	/**
+	 * Jump to the END of the timeline: every click-group counted as played, every
+	 * entrance revealed and every exit applied, with no CSS animation attached so
+	 * nothing replays.
+	 *
+	 * This is what PowerPoint shows when you step BACKWARD onto a slide: it
+	 * appears with its builds already complete, and a further back press walks
+	 * them off again. Re-running the timeline from zero instead made a deck whose
+	 * opening build auto-starts restart its animation every time the presenter
+	 * stepped back onto it.
+	 */
+	public completeAll(): void {
+		this.reset();
+		for (const group of this.timeline.clickGroups) {
+			for (const step of group.steps) {
+				if (step.build || step.colorTargets) {
+					this.activeSteps.set(step.elementId, step);
+				}
+				if (step.presetClass === 'entr') {
+					this.revealedElements.add(step.elementId);
+				}
+				if (step.presetClass === 'exit') {
+					this.exitedElements.add(step.elementId);
+				}
+			}
+		}
+		this.currentGroupIndex = this.timeline.clickGroups.length - 1;
+	}
+
+	/**
 	 * Reset the engine to its initial state (no animations played).
 	 */
 	public reset(): void {

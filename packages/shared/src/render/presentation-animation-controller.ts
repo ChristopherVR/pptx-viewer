@@ -175,6 +175,15 @@ export class PresentationAnimationController {
 		this.engine.reset();
 	}
 
+	/**
+	 * Seed the slide as fully built: every group counted as played, nothing
+	 * animating. Bindings use it when the presenter steps BACKWARD onto a slide,
+	 * which PowerPoint shows with its builds already complete.
+	 */
+	public completeAll(): void {
+		this.engine.completeAll();
+	}
+
 	// -----------------------------------------------------------------------
 	// Interactive + hover sequences (delegated to the engine)
 	// -----------------------------------------------------------------------
