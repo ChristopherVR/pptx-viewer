@@ -6,20 +6,19 @@
  *
  * Renders remote collaborators' cursors above the slide stage. This component
  * is purely visual: it owns no network/Yjs logic. The host supplies a reactive
- * list of {@link RemoteCursor} entries (from `CollaborationService.cursors`)
- * plus the current `zoom`; each entry is drawn as an absolutely-positioned
- * pointer SVG plus a name-label chip in the user's colour, placed at
- * `(x * zoom, y * zoom)`.
+ * list of {@link RemoteCursor} entries (from `CollaborationService.cursors`);
+ * each entry is drawn as an absolutely-positioned pointer SVG plus a name-label
+ * chip in the user's colour, placed at `(x, y)`.
  *
- * `x`/`y` are *unscaled* slide coordinates (px); this component multiplies by
- * `zoom` so it can be mounted inside the scaled slide-stage host while still
- * receiving raw slide-space coordinates.
+ * `x`/`y` are *unscaled* slide coordinates (px) and are used as-is: the overlay
+ * is projected into the scaled slide stage, so the stage's CSS
+ * `transform: scale()` applies the on-screen scale exactly once. Multiplying by
+ * zoom here as well would double-apply the scale and misplace the cursors.
  *
  * The overlay sets `pointer-events: none` so it never intercepts canvas input.
  *
  * Inputs:
  *   - `cursors`: remote collaborators to render (unscaled slide coords)
- *   - `zoom`: current canvas zoom factor (default: 1)
  */
 
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
@@ -86,6 +85,7 @@ interface PositionedCursor {
 				<div
 					class="pptx-ng-collab-cursor"
 					[attr.data-client-id]="cursor.clientId"
+					[attr.data-pptx-remote-cursor]="cursor.clientId"
 					[style.transform]="cursor.transform"
 				>
 					<svg
@@ -113,17 +113,20 @@ interface PositionedCursor {
 export class CollaborationCursorsComponent {
 	/** Remote collaborators to render, in unscaled slide coordinates. */
 	readonly cursors = input<RemoteCursor[]>([]);
-	/** Current canvas zoom factor; cursor positions scale by this. */
+	/**
+	 * @deprecated Unused. The scaled slide stage this overlay is projected into
+	 * already applies the zoom via its CSS transform, so cursor coordinates are
+	 * rendered in raw slide space.
+	 */
 	readonly zoom = input<number>(1);
 
 	/** Precompute positions + labels so the template stays declarative. */
-	protected readonly positioned = computed<PositionedCursor[]>(() => {
-		const z = this.zoom();
-		return this.cursors().map((cursor) => ({
+	protected readonly positioned = computed<PositionedCursor[]>(() =>
+		this.cursors().map((cursor) => ({
 			clientId: cursor.clientId,
 			color: cursor.color,
 			label: formatCursorLabel(cursor.userName, MAX_LABEL_CHARS),
-			transform: `translate(${cursor.x * z}px, ${cursor.y * z}px)`,
-		}));
-	});
+			transform: `translate(${cursor.x}px, ${cursor.y}px)`,
+		})),
+	);
 }

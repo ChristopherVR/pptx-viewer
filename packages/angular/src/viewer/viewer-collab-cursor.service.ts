@@ -3,7 +3,7 @@
  * collaboration cursor broadcast and the derived remote-cursor overlay list.
  *
  * Extracted from {@link PowerPointViewerComponent}: the component binds the
- * few accessors it alone owns (the `<main>` element, zoom, canvas size, and
+ * few accessors it alone owns (the slide-stage element, canvas size, and
  * active-slide-index) via {@link bind}. `CollaborationService` is already
  * provided on the component, so it is injected directly rather than passed
  * through the host.
@@ -13,14 +13,19 @@
 
 import { computed, inject, Injectable } from '@angular/core';
 
-import { BROADCAST_THROTTLE_MS, clampCursorPosition, presenceToCursors } from '../internal/shared';
+import { BROADCAST_THROTTLE_MS, presenceToCursors } from '../internal/shared';
 import type { CanvasSize } from '../internal/shared';
+import { clientPointToSlide } from './collaboration-overlay-geometry';
 import { CollaborationService } from './collaboration.service';
 
 /** Live host accessors the cursor broadcast needs. */
 interface CollabCursorHost {
-	readonly mainElement: () => HTMLElement | undefined;
-	readonly zoom: () => number;
+	/**
+	 * The scaled slide stage (`.pptx-ng-canvas-stage`), NOT the `<main>` scroll
+	 * host: cursor coordinates are broadcast in slide space, so they have to be
+	 * measured against the slide's own origin.
+	 */
+	readonly stageElement: () => HTMLElement | undefined;
 	readonly canvasSize: () => CanvasSize;
 	readonly activeSlideIndex: () => number;
 }
@@ -57,8 +62,8 @@ export class ViewerCollabCursorService {
 	/**
 	 * Publish the local cursor while the pointer moves over the canvas. Throttled
 	 * to {@link BROADCAST_THROTTLE_MS}; coordinates are mapped from client space
-	 * into unscaled slide space (dividing by zoom, matching the cursor overlay)
-	 * and clamped to the canvas bounds.
+	 * into unscaled slide space by {@link clientPointToSlide}, measured against
+	 * the stage rect (see that helper for why `<main>` + the user zoom is wrong).
 	 */
 	onPointerMove(event: PointerEvent): void {
 		if (!this.collab.active()) {
@@ -70,15 +75,16 @@ export class ViewerCollabCursorService {
 		}
 		this.lastCursorBroadcast = now;
 		const host = this.requireHost();
-		const el = host.mainElement();
+		const el = host.stageElement();
 		if (!el) {
 			return;
 		}
-		const rect = el.getBoundingClientRect();
-		const zoom = host.zoom() || 1;
-		const size = host.canvasSize();
-		const x = clampCursorPosition((event.clientX - rect.left) / zoom, 0, size.width);
-		const y = clampCursorPosition((event.clientY - rect.top) / zoom, 0, size.height);
-		this.collab.setCursor(x, y, host.activeSlideIndex());
+		const point = clientPointToSlide(
+			el.getBoundingClientRect(),
+			host.canvasSize(),
+			event.clientX,
+			event.clientY,
+		);
+		this.collab.setCursor(point.x, point.y, host.activeSlideIndex());
 	}
 }

@@ -12,9 +12,11 @@
  * `activeSlideIndex` matches are drawn, and only for a selected id that resolves
  * to an element on the slide.
  *
- * Element geometry is in unscaled slide coordinates (px); this component
- * multiplies by `zoom` so it can mount inside the scaled slide stage. It sets
- * `pointer-events: none` so it never intercepts canvas input.
+ * Element geometry is in unscaled slide coordinates (px) and is rendered as-is:
+ * the overlay is projected into the scaled slide stage, so the stage's CSS
+ * `transform: scale()` applies the on-screen scale exactly once. Multiplying by
+ * zoom here as well would double-apply the scale and misplace the boxes. It
+ * sets `pointer-events: none` so it never intercepts canvas input.
  */
 
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
@@ -22,10 +24,12 @@ import type { PptxElement } from 'pptx-viewer-core';
 
 import { MAX_LABEL_CHARS, formatCursorLabel } from './collaboration-helpers';
 import type { RemotePresence } from './collaboration-helpers';
+import { resolveRemoteSelectionBoxes } from './collaboration-overlay-geometry';
 
-/** A single resolved remote selection box, scaled into host pixel space. */
-interface RemoteSelectionBox {
+/** A drawable box: the resolved geometry turned into a CSS transform. */
+interface PositionedSelectionBox {
 	key: string;
+	elementId: string;
 	label: string;
 	color: string;
 	transform: string;
@@ -81,6 +85,7 @@ interface RemoteSelectionBox {
 				<div
 					class="pptx-ng-remote-selection"
 					[attr.data-element-id]="box.key"
+					[attr.data-pptx-remote-selection]="box.elementId"
 					[style.transform]="box.transform"
 					[style.width.px]="box.width"
 					[style.height.px]="box.height"
@@ -101,39 +106,27 @@ export class RemoteSelectionOverlayComponent {
 	readonly elements = input<readonly PptxElement[]>([]);
 	/** The current slide index: only peers on this slide are drawn. */
 	readonly activeSlideIndex = input<number>(0);
-	/** Current canvas zoom factor; geometry scales by this. */
+	/**
+	 * @deprecated Unused. The scaled slide stage this overlay is projected into
+	 * already applies the zoom via its CSS transform, so selection geometry is
+	 * rendered in raw slide coordinates.
+	 */
 	readonly zoom = input<number>(1);
 
-	private readonly elementMap = computed(() => {
-		const map = new Map<string, PptxElement>();
-		for (const el of this.elements()) {
-			map.set(el.id, el);
-		}
-		return map;
-	});
-
-	protected readonly boxes = computed<RemoteSelectionBox[]>(() => {
-		const slide = this.activeSlideIndex();
-		const z = this.zoom();
-		const lookup = this.elementMap();
-		const result: RemoteSelectionBox[] = [];
-		for (const peer of this.presences()) {
-			if (peer.activeSlideIndex !== slide || !peer.selectedElementId) {
-				continue;
-			}
-			const el = lookup.get(peer.selectedElementId);
-			if (!el) {
-				continue;
-			}
-			result.push({
-				key: `${peer.clientId}-${peer.selectedElementId}`,
-				label: formatCursorLabel(peer.userName, MAX_LABEL_CHARS),
-				color: peer.userColor,
-				transform: `translate(${el.x * z}px, ${el.y * z}px)`,
-				width: el.width * z,
-				height: el.height * z,
-			});
-		}
-		return result;
-	});
+	protected readonly boxes = computed<PositionedSelectionBox[]>(() =>
+		resolveRemoteSelectionBoxes(
+			this.presences(),
+			this.elements(),
+			this.activeSlideIndex(),
+			(userName) => formatCursorLabel(userName, MAX_LABEL_CHARS),
+		).map((box) => ({
+			key: box.key,
+			elementId: box.elementId,
+			label: box.label,
+			color: box.color,
+			transform: `translate(${box.x}px, ${box.y}px)`,
+			width: box.width,
+			height: box.height,
+		})),
+	);
 }

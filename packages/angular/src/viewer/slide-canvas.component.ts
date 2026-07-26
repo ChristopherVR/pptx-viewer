@@ -434,6 +434,15 @@ function plainText(el: PptxElement): string {
 							/>
 						</svg>
 					}
+
+					<!--
+						Projected overlays (collaboration cursors + remote selections).
+						They live INSIDE the scaled stage so the stage's CSS
+						transform:scale() applies the on-screen scale exactly once and
+						they can be authored in raw, unscaled slide coordinates, exactly
+						like the React/Vue overlays.
+					-->
+					<ng-content />
 				</div>
 
 				<!--

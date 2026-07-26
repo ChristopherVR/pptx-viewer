@@ -432,16 +432,25 @@ import { ZoomTargetService } from './zoom-target.service';
 							(eraserHit)="canvasEditing.onEraserHit($event)"
 							(cellCommit)="canvasEditing.onTableCellCommit($event)"
 							(tableChange)="canvasEditing.onTableChange($event)"
-						/>
-						@if (collab.connected()) {
-							<pptx-collaboration-cursors [cursors]="collabCursor.cursors()" [zoom]="zoomSvc.zoom()" />
-							<pptx-remote-selection-overlay
-								[presences]="collab.presence()"
-								[elements]="activeSlide()?.elements ?? []"
-								[activeSlideIndex]="activeSlideIndex()"
-								[zoom]="zoomSvc.zoom()"
-							/>
-						}
+						>
+							<!--
+								Collaboration overlays are PROJECTED INTO the slide canvas so they
+								render inside the scaled stage: the stage transform applies the
+								on-screen scale (auto-fit folded with the user's zoom) exactly
+								once, and both overlays are authored in raw slide coordinates.
+								Rendering them as siblings of the canvas instead put them in
+								main-element space, which offset every cursor/selection box by
+								the stage origin and scaled it by the user zoom alone.
+							-->
+							@if (collab.connected()) {
+								<pptx-collaboration-cursors [cursors]="collabCursor.cursors()" />
+								<pptx-remote-selection-overlay
+									[presences]="collab.presence()"
+									[elements]="activeSlide()?.elements ?? []"
+									[activeSlideIndex]="activeSlideIndex()"
+								/>
+							}
+						</pptx-slide-canvas>
 						@if (collab.active() && collab.presence().length > 0) {
 							<div class="pptx-ng-collab-follow">
 								<pptx-follow-mode-bar
@@ -1778,10 +1787,9 @@ export class PowerPointViewerComponent {
 		});
 
 		// Hand the collab-cursor controller the accessors it alone needs from the
-		// component (the `<main>` host, zoom, canvas size, active-slide-index).
+		// component (the slide stage, canvas size, active-slide-index).
 		this.collabCursor.bind({
-			mainElement: () => this.mainEl()?.nativeElement,
-			zoom: () => this.zoomSvc.zoom(),
+			stageElement: () => this.stageElement(),
 			canvasSize: () => this.loader.canvasSize(),
 			activeSlideIndex: () => this.activeSlideIndex(),
 		});
