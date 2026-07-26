@@ -342,3 +342,50 @@ describe('expandTextBuildAnimations - iterate stagger', () => {
 		expect(out[1].delayMs).toBe(120);
 	});
 });
+
+describe('by-paragraph builds that also iterate', () => {
+	it('ripples inside each paragraph instead of revealing it as a block', () => {
+		// PowerPoint composes the two: `p:bldP/@build="p"` groups the text into
+		// steps, `p:iterate type="lt"` subdivides each step. Reading only the build
+		// type made a credit line authored to type in appear as one solid block.
+		const anim = {
+			targetId: 'credit',
+			presetClass: 'entr',
+			presetId: 10,
+			trigger: 'withPrevious',
+			durationMs: 400,
+			buildType: 'byParagraph',
+			iterate: { type: 'lt', tmPct: 10000 },
+		} as unknown as PptxNativeAnimation;
+
+		const expanded = expandTextBuildAnimations(
+			[anim],
+			new Map([['credit', { paragraphCount: 1, charCounts: [12], wordCounts: [2] }]]),
+		);
+
+		expect(expanded).toHaveLength(12);
+		expect(expanded.every((step) => step.targetId?.startsWith('credit::c0-'))).toBeTruthy();
+	});
+
+	it('starts each later paragraph on its own click', () => {
+		const anim = {
+			targetId: 'body',
+			presetClass: 'entr',
+			presetId: 10,
+			trigger: 'onClick',
+			durationMs: 400,
+			buildType: 'byParagraph',
+			iterate: { type: 'lt', tmPct: 10000 },
+		} as unknown as PptxNativeAnimation;
+
+		const expanded = expandTextBuildAnimations(
+			[anim],
+			new Map([['body', { paragraphCount: 2, charCounts: [3, 3], wordCounts: [1, 1] }]]),
+		);
+
+		expect(expanded).toHaveLength(6);
+		// Paragraph 1's first letter opens a new click step; its rest ripples.
+		expect(expanded[3].trigger).toBe('onClick');
+		expect(expanded[4].trigger).toBe('withPrevious');
+	});
+});

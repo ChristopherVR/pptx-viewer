@@ -141,6 +141,112 @@ export function expandTextBuildAnimations(
 }
 
 /**
+ * The within-paragraph granularity an effect's own `p:iterate` asks for, or
+ * `undefined` when it animates the text as one object (`type="el"`, or absent).
+ *
+ * This is INDEPENDENT of `p:bldP/@build`: the slide build says how the text is
+ * grouped into steps ("by paragraph"), while `p:iterate` says how each step is
+ * subdivided in time ("by letter"). PowerPoint composes the two; reading only
+ * the build type made a by-paragraph credit line authored to ripple in letter by
+ * letter appear as one solid block (issue #106).
+ */
+function iterateGranularity(
+	anim: Pick<PptxNativeAnimation, 'iterate'>,
+): 'byChar' | 'byWord' | undefined {
+	if (anim.iterate?.type === 'lt') {
+		return 'byChar';
+	}
+	if (anim.iterate?.type === 'wd') {
+		return 'byWord';
+	}
+	return undefined;
+}
+
+/** Per-piece sub-element id prefix and per-paragraph piece count for a split. */
+function pieceCounts(
+	kind: 'byChar' | 'byWord',
+	counts: TextBuildSegmentCounts,
+): { token: 'c' | 'w'; perParagraph: number[] } {
+	return kind === 'byChar'
+		? { token: 'c', perParagraph: counts.charCounts ?? [] }
+		: { token: 'w', perParagraph: counts.wordCounts ?? [] };
+}
+
+/**
+ * Emit one staggered sub-animation per letter / word.
+ *
+ * An `p:iterate` build overlaps: every piece runs the FULL effect duration and
+ * merely starts `stagger` later than the one before, which is what makes
+ * PowerPoint's "by letter" read as a ripple. `withPrevious` steps accumulate
+ * their delay from the previous step's START, so passing the bare interval as
+ * each step's delay yields `base + i * stagger`. The slide-build (`p:bldP`) path
+ * keeps its original end-to-end pacing.
+ *
+ * `newClickStepPerParagraph` reproduces a by-paragraph build: paragraph 0 starts
+ * with the parent effect, and every later paragraph waits for its own click,
+ * with its pieces rippling from there.
+ */
+function emitStaggeredPieces(
+	anim: PptxNativeAnimation,
+	kind: 'byChar' | 'byWord',
+	counts: TextBuildSegmentCounts,
+	output: PptxNativeAnimation[],
+	newClickStepPerParagraph: boolean,
+): void {
+	const targetId = anim.targetId ?? '';
+	const baseDuration = anim.durationMs ?? 500;
+	const stagger = iterateStaggerMs(anim, baseDuration);
+	const { token, perParagraph } = pieceCounts(kind, counts);
+	const fallbackDuration =
+		kind === 'byChar'
+			? Math.max(50, Math.round(baseDuration / 4))
+			: Math.max(100, Math.round(baseDuration / 2));
+	const fallbackStagger = kind === 'byChar' ? 20 : 50;
+
+	let stepIndex = 0;
+	for (let pIdx = 0; pIdx < counts.paragraphCount; pIdx++) {
+		const pieces = perParagraph[pIdx] ?? 0;
+		for (let i = 0; i < pieces; i++) {
+			const opensParagraph = i === 0;
+			const isFirstStep = stepIndex === 0;
+			const startsClickStep = newClickStepPerParagraph && opensParagraph && !isFirstStep;
+			output.push({
+				...anim,
+				targetId: `${targetId}${TEXT_BUILD_ID_SEP}${token}${pIdx}-${i}`,
+				trigger: isFirstStep
+					? anim.trigger
+					: startsClickStep
+						? 'onClick'
+						: stagger !== undefined
+							? 'withPrevious'
+							: 'afterPrevious',
+				durationMs: stagger !== undefined ? baseDuration : fallbackDuration,
+				delayMs: isFirstStep
+					? (anim.delayMs ?? 0)
+					: startsClickStep
+						? 0
+						: (stagger ?? fallbackStagger),
+				// Only the first sub-step inherits the parent's start delay; the
+				// rest carry the bare stagger, so these must not re-apply it.
+				// They are synthetic chain steps rather than OOXML `p:par`
+				// siblings, so they also drop the wrapper index: their delay is
+				// an interval off the step before, not an offset from the group.
+				...(isFirstStep
+					? {}
+					: {
+							triggerDelayMs: undefined,
+							startConditions: undefined,
+							parGroupIndex: undefined,
+						}),
+				buildType: undefined,
+				iterate: undefined,
+			});
+			stepIndex++;
+		}
+	}
+}
+
+/**
  * Expand a single text-build animation into sub-element animations.
  */
 function expandSingleBuildAnimation(
@@ -150,9 +256,15 @@ function expandSingleBuildAnimation(
 	output: PptxNativeAnimation[],
 ): void {
 	const targetId = anim.targetId ?? '';
-	const baseDuration = anim.durationMs ?? 500;
 
 	if (buildType === 'byParagraph') {
+		// A by-paragraph build whose effect also iterates by letter / word still
+		// ripples inside each paragraph; only the step boundaries are paragraphs.
+		const granularity = iterateGranularity(anim);
+		if (granularity) {
+			emitStaggeredPieces(anim, granularity, counts, output, true);
+			return;
+		}
 		for (let i = 0; i < counts.paragraphCount; i++) {
 			output.push({
 				...anim,
@@ -164,89 +276,8 @@ function expandSingleBuildAnimation(
 		return;
 	}
 
-	// An `p:iterate` build overlaps: every letter/word runs the FULL effect
-	// duration and merely starts `stagger` later than the one before, which is
-	// what makes PowerPoint's "by letter" read as a ripple. `withPrevious` steps
-	// accumulate their delay from the previous step's START, so passing the bare
-	// interval as each step's delay yields `base + i * stagger`. The slide-build
-	// (`p:bldP`) path keeps its original end-to-end pacing.
-	const stagger = iterateStaggerMs(anim, baseDuration);
-
-	if (buildType === 'byWord') {
-		const wordCounts = counts.wordCounts ?? [];
-		let stepIndex = 0;
-		for (let pIdx = 0; pIdx < counts.paragraphCount; pIdx++) {
-			const wc = wordCounts[pIdx] ?? 0;
-			for (let wIdx = 0; wIdx < wc; wIdx++) {
-				output.push({
-					...anim,
-					targetId: `${targetId}${TEXT_BUILD_ID_SEP}w${pIdx}-${wIdx}`,
-					trigger:
-						stepIndex === 0
-							? anim.trigger
-							: stagger !== undefined
-								? 'withPrevious'
-								: 'afterPrevious',
-					durationMs:
-						stagger !== undefined ? baseDuration : Math.max(100, Math.round(baseDuration / 2)),
-					delayMs: stepIndex === 0 ? (anim.delayMs ?? 0) : (stagger ?? 50),
-					// Only the first sub-step inherits the parent's start delay; the
-					// rest carry the bare stagger, so these must not re-apply it.
-					// They are synthetic chain steps rather than OOXML `p:par`
-					// siblings, so they also drop the wrapper index: their delay is
-					// an interval off the step before, not an offset from the group.
-					...(stepIndex === 0
-						? {}
-						: {
-								triggerDelayMs: undefined,
-								startConditions: undefined,
-								parGroupIndex: undefined,
-							}),
-					buildType: undefined,
-					iterate: undefined,
-				});
-				stepIndex++;
-			}
-		}
-		return;
-	}
-
-	if (buildType === 'byChar') {
-		const charCounts = counts.charCounts ?? [];
-		let stepIndex = 0;
-		for (let pIdx = 0; pIdx < counts.paragraphCount; pIdx++) {
-			const cc = charCounts[pIdx] ?? 0;
-			for (let cIdx = 0; cIdx < cc; cIdx++) {
-				output.push({
-					...anim,
-					targetId: `${targetId}${TEXT_BUILD_ID_SEP}c${pIdx}-${cIdx}`,
-					trigger:
-						stepIndex === 0
-							? anim.trigger
-							: stagger !== undefined
-								? 'withPrevious'
-								: 'afterPrevious',
-					durationMs:
-						stagger !== undefined ? baseDuration : Math.max(50, Math.round(baseDuration / 4)),
-					delayMs: stepIndex === 0 ? (anim.delayMs ?? 0) : (stagger ?? 20),
-					// Only the first sub-step inherits the parent's start delay; the
-					// rest carry the bare stagger, so these must not re-apply it.
-					// They are synthetic chain steps rather than OOXML `p:par`
-					// siblings, so they also drop the wrapper index: their delay is
-					// an interval off the step before, not an offset from the group.
-					...(stepIndex === 0
-						? {}
-						: {
-								triggerDelayMs: undefined,
-								startConditions: undefined,
-								parGroupIndex: undefined,
-							}),
-					buildType: undefined,
-					iterate: undefined,
-				});
-				stepIndex++;
-			}
-		}
+	if (buildType === 'byWord' || buildType === 'byChar') {
+		emitStaggeredPieces(anim, buildType, counts, output, false);
 		return;
 	}
 
