@@ -7,6 +7,7 @@
  *
  * @module PptxSlideLoaderService
  */
+import { applyBackgroundFillToShapes } from '../core/builders/background-fill-shapes';
 import type { PptxSlide, XmlObject } from '../types';
 import { parseSlideDrawingGuides } from '../utils/guide-utils';
 import { loadSlideSynchronization } from '../utils/slide-synchronization';
@@ -254,6 +255,15 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 			const rawTiming = (slideXmlObj['p:sld'] as XmlObject | undefined)?.['p:timing'] as
 				| XmlObject
 				| undefined;
+
+			// `<p:sp useBgFill="1">` paints the slide background, which is only
+			// resolvable now: it may be inherited from the layout or master.
+			applyBackgroundFillToShapes(elements, {
+				backgroundColor,
+				backgroundGradient: backgroundGradient || undefined,
+				backgroundImage,
+				backgroundPattern,
+			});
 
 			const drawingGuides = parseSlideDrawingGuides(slideXmlObj);
 

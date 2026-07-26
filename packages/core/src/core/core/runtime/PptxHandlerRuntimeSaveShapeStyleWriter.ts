@@ -17,7 +17,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const gradientFillXml = this.buildGradientFillXml(shapeStyle);
 
 		// Fill
-		if (requestedFillMode === 'none' || shapeStyle.fillColor === 'transparent') {
+		if (shapeStyle.useBackgroundFill) {
+			// `<p:sp useBgFill="1">` has no fill of its own: the fill fields hold
+			// the slide background the load pipeline resolved onto it. Writing them
+			// out would bake today's background into the shape and cut its link to
+			// the slide, so leave `spPr`'s fill alone and let the attribute stand.
+		} else if (requestedFillMode === 'none' || shapeStyle.fillColor === 'transparent') {
 			spPr['a:noFill'] = {};
 			delete spPr['a:solidFill'];
 			delete spPr['a:gradFill'];

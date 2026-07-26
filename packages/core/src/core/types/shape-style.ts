@@ -87,6 +87,18 @@ export interface ShapeStyle {
 	/** Original `gradFill` XML retained for unknown-child and extension round-tripping. */
 	fillGradientXml?: XmlObject;
 	fillMode?: 'solid' | 'gradient' | 'pattern' | 'none' | 'image' | 'theme' | 'group';
+	/**
+	 * `<p:sp useBgFill="1">`: the shape paints with the SLIDE BACKGROUND's fill
+	 * rather than its own or its theme style's.
+	 *
+	 * PowerPoint's designer emits full-bleed rectangles this way, and they also
+	 * carry an `a:fillRef` pointing at `accent1`. Ignoring the attribute painted
+	 * those panels in the accent colour, so a black-and-white title slide came out
+	 * black-and-blue. The load pipeline copies the resolved slide background onto
+	 * the fill fields; the flag stays for round-trip and for renderers that want
+	 * to re-resolve against a changed background.
+	 */
+	useBackgroundFill?: boolean;
 	fillPatternPreset?: string;
 	fillPatternBackgroundColor?: string;
 	/** Original `pattFill` XML retained for unknown-child round-tripping. */

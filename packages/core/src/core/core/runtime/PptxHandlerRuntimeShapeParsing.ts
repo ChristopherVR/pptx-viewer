@@ -225,6 +225,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			// Extract shape style + determine element type
 			const shapeStyle = this.extractShapeStyle(effectiveSpPr, styleNode);
+			// `<p:sp useBgFill="1">` paints the slide background instead of the
+			// shape's own fill. PowerPoint's designer full-bleed panels carry it
+			// ALONGSIDE an `a:fillRef` to accent1, so honouring only the style ref
+			// painted a white background panel in the accent colour. The resolved
+			// background is stamped on later, once the slide's own is known.
+			const useBgFill = String(shape?.['@_useBgFill'] ?? '')
+				.trim()
+				.toLowerCase();
+			if (useBgFill === '1' || useBgFill === 'true') {
+				shapeStyle.useBackgroundFill = true;
+			}
 			const hasText = text.trim().length > 0;
 			const isPlainRect = (!prstGeom || prstGeom === 'rect') && !custGeom;
 			const hasVisibleStyle =
