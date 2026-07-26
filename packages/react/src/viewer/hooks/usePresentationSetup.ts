@@ -9,6 +9,7 @@ import { useRef, useState } from 'react';
 import type { ViewerMode } from '../types-core';
 import { playAnimationSound, stopAnimationSound } from '../utils/animation-sound';
 import { stopAllPersistentAudio } from '../utils/media';
+import { mayLeaveSlideShow } from './presentation-mode/audience-content-store';
 import type { EditorHistoryResult } from './useEditorHistory';
 import { usePresentationAnnotations } from './usePresentationAnnotations';
 import type { UsePresentationAnnotationsResult } from './usePresentationAnnotations';
@@ -103,6 +104,12 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		containerRef,
 		content,
 		onSetMode: (nextMode: ViewerMode) => {
+			// An audience display mirrors the presenter's screen: Escape, the exit
+			// button and the advance past the end-of-show screen must never drop it
+			// into the editor in front of the room.
+			if (mode === 'present' && nextMode !== 'present' && !mayLeaveSlideShow()) {
+				return;
+			}
 			if (
 				mode === 'present' &&
 				nextMode !== 'present' &&

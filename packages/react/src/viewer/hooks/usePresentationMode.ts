@@ -188,6 +188,9 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		},
 		containerRef,
 		onSnapshot: presenterConsole.applyAudienceSnapshot,
+		// The presenter ended the session but this tab could not close itself:
+		// show the black end-of-slide-show screen rather than the editor.
+		onPresenterEnded: () => setEndOfShowVisible(true),
 	});
 
 	// -----------------------------------------------------------------------

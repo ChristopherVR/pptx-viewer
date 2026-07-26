@@ -8,7 +8,7 @@ import type { PresentationSnapshot } from 'pptx-viewer-shared';
 import { useEffect, useRef } from 'react';
 
 import type { ViewerMode } from '../../types-core';
-import { clearAudienceContent } from './audience-content-store';
+import { clearAudienceContent, endAudienceDisplay } from './audience-content-store';
 import {
 	PRESENTER_CHANNEL_NAME,
 	PRESENTER_MSG_ORIGIN,
@@ -22,6 +22,12 @@ export interface UseAudienceModeInput {
 	onSetActiveSlideIndex: (index: number) => void;
 	containerRef: React.RefObject<HTMLElement | null>;
 	onSnapshot?: (snapshot: PresentationSnapshot) => void;
+	/**
+	 * Raise the end-of-slide-show screen. Called when the presenter ends the
+	 * session and the browser refuses to close this tab: the audience must see
+	 * the black end screen, never the editor.
+	 */
+	onPresenterEnded?: () => void;
 }
 
 /**
@@ -31,7 +37,14 @@ export interface UseAudienceModeInput {
  * 3. Exits presentation mode when the presenter sends an exit signal
  */
 export function useAudienceMode(input: UseAudienceModeInput): void {
-	const { mode: _mode, onSetMode, onSetActiveSlideIndex, containerRef, onSnapshot } = input;
+	const {
+		mode: _mode,
+		onSetMode,
+		onSetActiveSlideIndex,
+		containerRef,
+		onSnapshot,
+		onPresenterEnded,
+	} = input;
 	const initialised = useRef(false);
 
 	// Auto-enter presentation mode when this is an audience tab
@@ -64,6 +77,12 @@ export function useAudienceMode(input: UseAudienceModeInput): void {
 		};
 	}, [containerRef, onSetMode]);
 
+	// The channel must be opened ONCE. Re-subscribing whenever a caller passes a
+	// fresh inline callback closed and reopened the BroadcastChannel on every
+	// render, and a presenter message that landed in that gap was dropped.
+	const handlersRef = useRef({ onSetActiveSlideIndex, onSnapshot, onPresenterEnded });
+	handlersRef.current = { onSetActiveSlideIndex, onSnapshot, onPresenterEnded };
+
 	// Listen for slide changes from the presenter tab
 	useEffect(() => {
 		if (!isAudienceTab()) {
@@ -92,23 +111,24 @@ export function useAudienceMode(input: UseAudienceModeInput): void {
 				return;
 			}
 
+			const handlers = handlersRef.current;
 			if (data.type === 'presenter-slide-change') {
-				onSetActiveSlideIndex(data.slideIndex);
+				handlers.onSetActiveSlideIndex(data.slideIndex);
 			}
 			if (data.type === 'presenter-state') {
-				onSetActiveSlideIndex(data.snapshot.slideIndex);
-				onSnapshot?.(data.snapshot);
+				handlers.onSetActiveSlideIndex(data.snapshot.slideIndex);
+				handlers.onSnapshot?.(data.snapshot);
 			}
 
 			if (data.type === 'presenter-exit') {
 				if (expectedSessionId) {
 					void clearAudienceContent(expectedSessionId);
 				}
-				onSetMode('edit');
-				try {
-					window.close();
-				} catch {
-					// Can't close: user will close manually
+				// Never fall back to edit mode: a tab the browser refuses to close
+				// would otherwise show the full editing chrome to the room. Raise the
+				// end-of-slide-show screen instead.
+				if (endAudienceDisplay(window)) {
+					handlers.onPresenterEnded?.();
 				}
 			}
 		};
@@ -128,5 +148,5 @@ export function useAudienceMode(input: UseAudienceModeInput): void {
 				// Ignore
 			}
 		};
-	}, [onSetMode, onSetActiveSlideIndex, onSnapshot]);
+	}, []);
 }
