@@ -8,6 +8,42 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-07-26
+
+_Releases: pptx-viewer-core@2.0.4, pptx-react-viewer@2.5.0, pptx-vue-viewer@2.5.0, pptx-angular-viewer@2.5.0, pptx-vanilla-viewer@1.6.0, pptx-svelte-viewer@2.5.0_
+
+### Features
+
+- **shared:** Lock the audience display out of edit mode (by @ChristopherVR) ([79dc876](https://github.com/ChristopherVR/pptx-viewer/commit/79dc8768ff599e662c4291861b340c2939001f84))
+- **shared:** Seed a slide as fully built, and keep audience input inert (by @ChristopherVR) ([6acdf5e](https://github.com/ChristopherVR/pptx-viewer/commit/6acdf5e02c6d727828433ba067942e72d6547922))
+
+### Bug Fixes
+
+- **core:** Keep the click step's own start conditions (by @ChristopherVR) ([755a4b2](https://github.com/ChristopherVR/pptx-viewer/commit/755a4b2e38dff73c9c460a5318c1fce913880328))
+- **shared:** Play a slide's opening build without a click (by @ChristopherVR) ([9d0ecec](https://github.com/ChristopherVR/pptx-viewer/commit/9d0ecec007d1f7ef48ecbd97429b55073352a487))
+- **react:** Keep run formatting through a staged text build (by @ChristopherVR) ([e62487f](https://github.com/ChristopherVR/pptx-viewer/commit/e62487fb24f4d67700dac6ee33a2c90a50241857))
+- **react:** Never show the editor in an audience display (by @ChristopherVR) ([28d8d04](https://github.com/ChristopherVR/pptx-viewer/commit/28d8d04c8ae6294b20733431ea34853600cd48e0))
+- **vue:** Never show the editor in an audience display (by @ChristopherVR) ([dc1e2ee](https://github.com/ChristopherVR/pptx-viewer/commit/dc1e2ee6a1505c8505d28d196488fe140951c4ff))
+- **angular:** Never show the editor in an audience display (by @ChristopherVR) ([b276613](https://github.com/ChristopherVR/pptx-viewer/commit/b276613b3bed09f1a1dc324c0aca1ead406fd247))
+- **svelte:** Never show the editor in an audience display (by @ChristopherVR) ([4b2c39b](https://github.com/ChristopherVR/pptx-viewer/commit/4b2c39b30e5382b20d9033c1b03524cd8ea712a7))
+- **vanilla:** Auto-play the opening build and lock the audience display (by @ChristopherVR) ([e8dcf41](https://github.com/ChristopherVR/pptx-viewer/commit/e8dcf4133243609653006dff6d51d41c6a899a75))
+- **core:** Paint useBgFill shapes with the slide background (by @ChristopherVR) ([f819817](https://github.com/ChristopherVR/pptx-viewer/commit/f81981744c637368d1ef0d87b1ba884e634c938a))
+- **shared:** Ripple a by-paragraph build that also iterates (by @ChristopherVR) ([73238d5](https://github.com/ChristopherVR/pptx-viewer/commit/73238d590217f8c61e86c9f065d19436dd6b699b))
+- **react:** Finish the show, hold back on a back step, ignore audience input (by @ChristopherVR) ([6a0f0ca](https://github.com/ChristopherVR/pptx-viewer/commit/6a0f0ca9de2444166d4e4c0a2143c32ccc7e3982))
+- **vue:** Hold back on a back step, ignore audience input (by @ChristopherVR) ([45c82cf](https://github.com/ChristopherVR/pptx-viewer/commit/45c82cf28df3413dd90d5bc3533bbd8ada95af6d))
+- **angular:** Hold back on a back step, ignore audience input (by @ChristopherVR) ([291524c](https://github.com/ChristopherVR/pptx-viewer/commit/291524c5f8876314db78eab4c0c9df33786e03c3))
+- **svelte:** Hold back on a back step, ignore audience input (by @ChristopherVR) ([4794bbe](https://github.com/ChristopherVR/pptx-viewer/commit/4794bbe26cc319f37b5cee64e26c38a4fb54bd71))
+- **vanilla:** Render staged text builds, hold back on a back step (by @ChristopherVR) ([cf2909b](https://github.com/ChristopherVR/pptx-viewer/commit/cf2909b927e0f3f7b6867c29b168303baf365aeb))
+
+### Documentation
+
+- Forbid Claude chat share links in the repo (by @ChristopherVR) ([db4bfa7](https://github.com/ChristopherVR/pptx-viewer/commit/db4bfa715da6ca5aeb53242e325b2faeb82182da))
+
+### Testing
+
+- **e2e:** Cover slide-show fidelity against a real PowerPoint deck (by @ChristopherVR) ([c1b74db](https://github.com/ChristopherVR/pptx-viewer/commit/c1b74dbfccb5ceb4f81267be39b9f68e3ab23998))
+- **e2e:** Fail the run on stale dist instead of testing old code (by @ChristopherVR) ([6233f8f](https://github.com/ChristopherVR/pptx-viewer/commit/6233f8f109183285c28766da0aebd2c1bab3d27c))
+
 ## 2026-07-25
 
 _Releases: pptx-viewer-core@2.0.3, pptx-react-viewer@2.4.0, pptx-vue-viewer@2.4.0, pptx-angular-viewer@2.4.0, pptx-vanilla-viewer@1.5.0, pptx-svelte-viewer@2.4.0, pptx-viewer-mcp@2.0.1, @christophervr/pptx-viewer@1.5.8_
