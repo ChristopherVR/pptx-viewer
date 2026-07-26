@@ -30,10 +30,11 @@ export function createViewerControls(
 	/** Ends the show; called when the end screen is dismissed forward. */
 	onEndShow?: () => void,
 ): ViewerControls {
-	const goToSlide = (index: number): void => {
+	const goToSlide = (index: number, enteringBackward = false): void => {
 		store.set({
 			currentSlide: clampSlideIndex(index, store.get().slides.length),
 			endOfShow: false,
+			enteringBackward,
 		});
 	};
 	const setZoom = (zoom: ZoomLevel): void => {
@@ -71,7 +72,14 @@ export function createViewerControls(
 				store.set({ endOfShow: false });
 				return;
 			}
-			goToSlide(store.get().currentSlide - 1);
+			// A slide entered backward shows its builds already complete. The next
+			// back press replays them from the start rather than leaving the slide,
+			// so a presenter who overshot can watch the build again (PowerPoint).
+			if (store.get().presenting && renderer.presentationPlayback.isSeededCompleted()) {
+				renderer.presentationPlayback.replayCurrentSlide(document);
+				return;
+			}
+			goToSlide(store.get().currentSlide - 1, store.get().presenting);
 		},
 		goToSlide,
 		slideCount: () => store.get().slides.length,

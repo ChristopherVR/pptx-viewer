@@ -1,5 +1,9 @@
 import type { PresentationPointerTool } from 'pptx-viewer-shared';
-import { createPresentationKeyBuffer, mapPresentationKey } from 'pptx-viewer-shared';
+import {
+	acceptsPresentationInput,
+	createPresentationKeyBuffer,
+	mapPresentationKey,
+} from 'pptx-viewer-shared';
 
 export interface KeyboardHandlers {
 	next(): void;
@@ -90,6 +94,12 @@ function handlePresentationKey(
 	handlers: KeyboardHandlers,
 	keyBuffer: ReturnType<typeof createPresentationKeyBuffer>,
 ): void {
+	// An audience display mirrors the presenter's screen. If its own keyboard
+	// navigated, a stray key moved it off the presenter's slide and the next
+	// snapshot yanked it back, which reads as the display refusing to advance.
+	if (!acceptsPresentationInput()) {
+		return;
+	}
 	const mapped = mapPresentationKey(event, keyBuffer);
 	if (mapped.action === 'none') {
 		return;

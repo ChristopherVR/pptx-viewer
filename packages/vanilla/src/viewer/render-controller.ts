@@ -251,6 +251,9 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 				showWithAnimation: state.presentationProperties.showWithAnimation,
 				mediaDataUrls: state.mediaDataUrls,
 				reRenderElements,
+				// PowerPoint shows a slide you step BACK onto with its builds already
+				// played; the store marks the pending entry as backward.
+				seedCompleted: state.enteringBackward === true,
 			});
 		} else {
 			presentationStageNode = null;

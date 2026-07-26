@@ -108,6 +108,11 @@ export interface ViewerState {
 	 * kept painting its last slide looked stuck and swallowed every advance.
 	 */
 	endOfShow: boolean;
+	/**
+	 * True for a single render pass when the show stepped BACKWARD onto the
+	 * current slide, so its builds are seeded already-complete (PowerPoint).
+	 */
+	enteringBackward?: boolean;
 	/** True when editing interactions (select/move/resize/...) are enabled. */
 	editable: boolean;
 	/** Id of the selected element on the current slide, or null. */
@@ -196,6 +201,7 @@ export function createInitialViewerState(): ViewerState {
 		error: null,
 		presenting: false,
 		endOfShow: false,
+		enteringBackward: false,
 		editable: false,
 		selectedElementId: null,
 		selectedElementIds: [],

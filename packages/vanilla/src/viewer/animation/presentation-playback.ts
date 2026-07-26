@@ -40,6 +40,12 @@ export interface SyncStageParams {
 	 * relinquish surface structurally. Supplied by the render controller.
 	 */
 	reRenderElements?: (ids: readonly string[]) => void;
+	/**
+	 * Seed the incoming slide as fully built rather than replaying it. Set when
+	 * stepping BACKWARD onto a slide, which PowerPoint shows with its builds
+	 * already complete.
+	 */
+	seedCompleted?: boolean;
 }
 
 /**
@@ -61,6 +67,13 @@ export interface PresentationPlayback {
 	advance(): boolean;
 	/** True when every click-group on the current slide has been revealed. */
 	isComplete(): boolean;
+	/**
+	 * True while the active slide shows its builds as already complete because
+	 * the presenter stepped BACKWARD onto it. The next back press replays it.
+	 */
+	isSeededCompleted(): boolean;
+	/** Replay the active slide's builds from the start. */
+	replayCurrentSlide(doc: Document): void;
 	/** Sync playback + transitions after a stage (re)render. */
 	syncStage(params: SyncStageParams): void;
 	/** Cancel any running transition/timers and forget all per-slide state. */
@@ -90,6 +103,10 @@ export function createPresentationPlayback(): PresentationPlayback {
 	let cancelTransition: (() => void) | null = null;
 	let mediaDataUrls: ReadonlyMap<string, string> = new Map();
 	let reRenderElements: ((ids: readonly string[]) => void) | null = null;
+	/** Whether the active slide was seeded as fully built (backward entry). */
+	let seededCompleted = false;
+	/** The slide the stage currently renders, kept so a back press can replay it. */
+	let lastSlide: PptxSlide | undefined;
 
 	const interactiveIds = (): ReadonlySet<string> =>
 		controller?.interactiveTriggerShapeIds ?? new Set();
@@ -106,13 +123,22 @@ export function createPresentationPlayback(): PresentationPlayback {
 
 	/** Ids whose current state needs a structural re-render (build / animClr). */
 	const structuralIds = (): string[] => {
-		const ids: string[] = [];
+		const ids = new Set<string>();
 		for (const [id, state] of elementStates) {
 			if (state.build || state.animatesFill || state.animatesStroke) {
-				ids.push(id);
+				ids.add(id);
+			}
+			// A staged text build renders one span per paragraph / word / letter,
+			// and those spans only exist once the element is rendered WITH its
+			// sub-states. The stage is built before the timeline is seeded, so the
+			// owning element has to be re-rendered or the build has no pieces to
+			// animate at all (a slide entered backward showed none).
+			const separator = id.indexOf('::');
+			if (separator > 0) {
+				ids.add(id.slice(0, separator));
 			}
 		}
-		return ids;
+		return Array.from(ids);
 	};
 
 	/** Re-render structural elements, then patch cheap per-node CSS styles. */
@@ -163,10 +189,21 @@ export function createPresentationPlayback(): PresentationPlayback {
 		previousStage = null;
 	};
 
-	const enterSlide = (slide: PptxSlide, doc: Document): void => {
+	const enterSlide = (slide: PptxSlide, doc: Document, completed = false): void => {
 		controller = PresentationAnimationController.fromSlide(slide);
 		injectSlideKeyframes(doc, controller.keyframesCss);
 		commitStates(controller.computeStates());
+		seededCompleted = false;
+
+		// Stepping backward onto a slide shows it with every build already
+		// complete, the way PowerPoint does: nothing plays, nothing is scheduled,
+		// and a further back press replays the slide from the start.
+		if (completed) {
+			seededCompleted = controller.hasMoreSteps();
+			controller.completeAll();
+			commitStates(controller.computeStates());
+			return;
+		}
 
 		// Auto-play the first group when the slide opens with a withPrevious /
 		// afterPrevious / afterDelay build (mirrors React / Vue entrance auto-play).
@@ -206,6 +243,17 @@ export function createPresentationPlayback(): PresentationPlayback {
 			return !controller || !controller.hasMoreSteps();
 		},
 
+		isSeededCompleted() {
+			return seededCompleted;
+		},
+
+		replayCurrentSlide(doc) {
+			if (lastSlide) {
+				clearTimers();
+				enterSlide(lastSlide, doc);
+			}
+		},
+
 		syncStage(params) {
 			// The old stage DOM is gone (rebuilt), so any in-flight transition
 			// overlay is orphaned.
@@ -232,11 +280,13 @@ export function createPresentationPlayback(): PresentationPlayback {
 			const entering = !wasPresenting;
 			const slideChanged = params.slideIndex !== lastIndex;
 
+			lastSlide = params.slide;
+
 			if (entering || slideChanged || !controller) {
 				// A new slide owns a fresh timeline: drop the old slide's pending
 				// auto-advance / build timers before seeding it.
 				clearTimers();
-				enterSlide(params.slide, params.doc);
+				enterSlide(params.slide, params.doc, params.seedCompleted === true);
 			} else {
 				// Same slide re-rendered (e.g. resize, chrome hiding). Its timeline is
 				// unchanged, so the pending timers MUST survive: clearing them here
