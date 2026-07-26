@@ -286,8 +286,9 @@ export class PresenterWindowService {
 			} else if (message.type === 'presenter-slide-change') {
 				onSlide(message.slideIndex);
 			} else if (message.type === 'presenter-exit') {
+				// The host decides what an ended session looks like (close the tab,
+				// else show the end screen). It must never land in the editor.
 				onExit();
-				window.close();
 			}
 		};
 		channel.addEventListener('message', onMessage);

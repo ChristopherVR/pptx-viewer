@@ -29,6 +29,7 @@ import type {
 import {
 	applyPreferenceToOptions,
 	createBackstagePresentation,
+	endAudienceDisplay,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
 	resolveThemeCatalogEntry,
@@ -652,6 +653,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					[startIndex]="customShowsCtl.presentationStartIndex()"
 					[showWithAnimation]="loader.presentationProperties().showWithAnimation"
 					[subtitlesVisible]="presentationMode.subtitlesVisible()"
+					[sessionEnded]="audienceSessionEnded()"
 					(subtitlesChange)="presentationMode.subtitlesVisible.set($event)"
 					(indexChange)="presentationMode.onPresentationIndexChange($event)"
 					(annotationsExit)="presentationMode.onPresentationAnnotationsExit($event)"
@@ -1118,6 +1120,12 @@ export class PowerPointViewerComponent {
 	);
 
 	protected readonly activeSlideIndex = signal(0);
+	/**
+	 * True in an audience display once the presenter ended the session and the
+	 * browser refused to close this tab: the overlay then shows the black
+	 * end-of-slide-show screen rather than falling back to the editor.
+	 */
+	protected readonly audienceSessionEnded = signal(false);
 	/** Slides to display: the editable deck when `canEdit`, else the loaded deck. */
 	protected readonly displaySlides = computed(() =>
 		this.canEdit() ? this.editor.slides() : this.loader.slides(),
@@ -1719,7 +1727,14 @@ export class PowerPointViewerComponent {
 		if (parseAudienceNonce()) {
 			const disconnectAudience = this.presenterWindow.connectAudience(
 				(index) => this.activeSlideIndex.set(index),
-				() => this.presentationMode.presenting.set(false),
+				// The presenter ended the session. Close this tab; when the browser
+				// refuses, raise the end-of-slide-show screen. Leaving presentation
+				// mode would drop the room into the editor.
+				() => {
+					if (endAudienceDisplay(window)) {
+						this.audienceSessionEnded.set(true);
+					}
+				},
 			);
 			this.presentationMode.presenting.set(true);
 			this.destroyRef.onDestroy(disconnectAudience);

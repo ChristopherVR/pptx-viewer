@@ -29,7 +29,11 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
-import { createPresentationKeyBuffer, mapPresentationKey } from '../internal/shared';
+import {
+	createPresentationKeyBuffer,
+	mapPresentationKey,
+	mayLeaveSlideShow,
+} from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
 import { PresentationAnnotationOverlayComponent } from './presentation-annotation-overlay.component';
 import { PresentationAnnotationsService } from './presentation-annotations.service';
@@ -407,6 +411,12 @@ export class PresentationOverlayComponent implements OnInit {
 	readonly startIndex = input<number>(0);
 	readonly showWithAnimation = input<boolean | undefined>(undefined);
 	readonly subtitlesVisible = input<boolean>(false);
+	/**
+	 * Set by an audience display when the presenter ends the session and the
+	 * browser refuses to close the tab. It raises the black end-of-slide-show
+	 * screen so the room never sees the editing chrome.
+	 */
+	readonly sessionEnded = input<boolean>(false);
 
 	// ------------------------------------------------------------------
 	// Outputs
@@ -436,6 +446,12 @@ export class PresentationOverlayComponent implements OnInit {
 	 * kept painting its last slide looked stuck and swallowed every advance.
 	 */
 	protected readonly endOfShow = signal(false);
+	/** Mirror the host's audience "session ended" flag onto the end screen. */
+	private readonly syncSessionEnded = effect(() => {
+		if (this.sessionEnded()) {
+			this.endOfShow.set(true);
+		}
+	});
 	private readonly syncExternalIndex = effect(() => {
 		const count = this.slides().length;
 		if (count === 0) {
@@ -1092,6 +1108,12 @@ export class PresentationOverlayComponent implements OnInit {
 	}
 
 	private emitClosed(): void {
+		// An audience display mirrors the presenter's screen: Escape, leaving
+		// fullscreen and the advance past the end screen must never hand the room
+		// the editing chrome.
+		if (!mayLeaveSlideShow()) {
+			return;
+		}
 		if (this.closing) {
 			return;
 		}
