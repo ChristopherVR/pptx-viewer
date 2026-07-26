@@ -30,6 +30,7 @@ import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
 import {
+	acceptsPresentationInput,
 	createPresentationKeyBuffer,
 	mapPresentationKey,
 	mayLeaveSlideShow,
@@ -446,6 +447,11 @@ export class PresentationOverlayComponent implements OnInit {
 	 * kept painting its last slide looked stuck and swallowed every advance.
 	 */
 	protected readonly endOfShow = signal(false);
+	/**
+	 * Set just before a BACKWARD slide change so the slide effect seeds the
+	 * incoming slide as fully built.
+	 */
+	private pendingCompletedEntry = false;
 	/** Mirror the host's audience "session ended" flag onto the end screen. */
 	private readonly syncSessionEnded = effect(() => {
 		if (this.sessionEnded()) {
@@ -532,7 +538,9 @@ export class PresentationOverlayComponent implements OnInit {
 		// pre-build state so entrance-animated elements start hidden) and publish its
 		// per-slide keyframes CSS.
 		effect(() => {
-			this.playback.setSlide(this.currentSlide(), this.showWithAnimation());
+			const completed = this.pendingCompletedEntry;
+			this.pendingCompletedEntry = false;
+			this.playback.setSlide(this.currentSlide(), this.showWithAnimation(), { completed });
 			this.slideKeyframes.set(this.playback.keyframesCss());
 		});
 
@@ -861,6 +869,12 @@ export class PresentationOverlayComponent implements OnInit {
 
 	@HostListener('document:keydown', ['$event'])
 	onKeyDown(event: KeyboardEvent): void {
+		// An audience display mirrors the presenter's screen. If its own keyboard
+		// navigated, a stray key moved it off the presenter's slide and the next
+		// snapshot yanked it back, which reads as the display refusing to advance.
+		if (!acceptsPresentationInput()) {
+			return;
+		}
 		const mapped = mapPresentationKey(event, this.keyBuffer);
 		if (mapped.action === 'none') {
 			return;
@@ -953,6 +967,11 @@ export class PresentationOverlayComponent implements OnInit {
 	 * next/prev buttons call navigate() directly and are never gated.
 	 */
 	private advanceFromClick(): void {
+		// An audience display never drives itself: a tap or swipe of its own would
+		// move it off the presenter's slide, and the next snapshot would drag it back.
+		if (!acceptsPresentationInput()) {
+			return;
+		}
 		if (shouldBlockClickAdvance(this.playback.isComplete(), this.currentSlide())) {
 			return;
 		}
@@ -1041,6 +1060,18 @@ export class PresentationOverlayComponent implements OnInit {
 		// animations; only advance the slide once the slide's builds are exhausted.
 		if (direction === 'next' && this.playback.advance()) {
 			return;
+		}
+
+		if (direction === 'prev') {
+			// A slide entered backward shows its builds already complete. The next
+			// back press replays them from the start rather than leaving the slide,
+			// so a presenter who overshot can watch the build again (PowerPoint).
+			if (this.playback.isSeededCompleted()) {
+				this.playback.setSlide(this.currentSlide(), this.showWithAnimation());
+				return;
+			}
+			// PowerPoint shows a slide you step BACK onto with its builds played.
+			this.pendingCompletedEntry = true;
 		}
 
 		const current = this.currentIndex();

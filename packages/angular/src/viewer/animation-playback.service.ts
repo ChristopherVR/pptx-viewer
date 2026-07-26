@@ -119,9 +119,14 @@ export class AnimationPlaybackService {
 	 * (entrance-animated elements start hidden). Auto-plays the first click-group
 	 * when the slide opens with a withPrevious / afterPrevious / afterDelay build.
 	 */
-	setSlide(slide: PptxSlide | undefined, showWithAnimation?: boolean): void {
+	setSlide(
+		slide: PptxSlide | undefined,
+		showWithAnimation?: boolean,
+		options?: { completed?: boolean },
+	): void {
 		this.showWithAnimation = showWithAnimation;
 		this.clearTimers();
+		this.seededCompleted = false;
 
 		if (!slide || !this.animationsEnabled()) {
 			this.controller = null;
@@ -144,6 +149,17 @@ export class AnimationPlaybackService {
 		this.presentationElementStates.set(controller.computeStates());
 		this.syncComplete();
 
+		// Stepping backward onto a slide shows it with every build already
+		// complete, the way PowerPoint does: nothing plays, nothing is scheduled,
+		// and a further back press replays the slide from the start.
+		if (options?.completed) {
+			this.seededCompleted = controller.hasMoreSteps();
+			controller.completeAll();
+			this.presentationElementStates.set(controller.computeStates());
+			this.syncComplete();
+			return;
+		}
+
 		// Auto-play the first group when the slide opens with a withPrevious /
 		// afterPrevious / afterDelay build (mirrors React's entrance auto-play).
 		if (controller.hasMoreSteps()) {
@@ -160,6 +176,18 @@ export class AnimationPlaybackService {
 				this.timers.push(timer);
 			}
 		}
+	}
+
+	/**
+	 * True while the active slide shows its builds as already complete because
+	 * the presenter stepped BACKWARD onto it. The next back press replays the
+	 * slide instead of leaving it (PowerPoint's behaviour).
+	 */
+	private seededCompleted = false;
+
+	/** Whether the active slide was seeded as fully built (backward entry). */
+	isSeededCompleted(): boolean {
+		return this.seededCompleted;
 	}
 
 	// ------------------------------------------------------------------
