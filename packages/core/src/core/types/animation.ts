@@ -219,6 +219,27 @@ export interface PptxNativeAnimation {
 	soundPath?: string;
 	/** Whether to stop any currently playing sound (`p:endSnd`). */
 	stopSound?: boolean;
+	/**
+	 * Whether the enclosing click-level group (a direct `p:par` child of the
+	 * `mainSeq`) begins automatically when the slide appears, rather than waiting
+	 * for a click.
+	 *
+	 * PowerPoint gates a click step with a lone `<p:cond delay="indefinite"/>`;
+	 * a group that also carries a time-node condition (`onBegin`/`onEnd` with a
+	 * `@tn`) or a finite delay starts on slide entry ("With/After Previous" as the
+	 * first effect on the slide). The flat animation list cannot express that on
+	 * its own, so the parse layer stamps it here.
+	 */
+	groupAutoStart?: boolean;
+	/**
+	 * Index of the enclosing effect-wrapper `p:par` inside the click-level group.
+	 *
+	 * Effects that share a wrapper are OOXML siblings: they all start when that
+	 * wrapper starts, and each `p:cond/@delay` is measured from the wrapper's
+	 * start, NOT chained off the effect before it. Playback uses this to place
+	 * simultaneous effects at their true offsets instead of accumulating delays.
+	 */
+	parGroupIndex?: number;
 	/** Structured start conditions parsed from `p:stCondLst`. */
 	startConditions?: AnimationCondition[];
 	/** Structured end conditions parsed from `p:endCondLst`. */

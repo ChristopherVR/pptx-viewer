@@ -14,6 +14,8 @@ import type {
 	PptxTextAnimationTarget,
 	XmlObject,
 } from '../types';
+import { childGroupContext, createGroupContext, isMainSequence } from './animation-group-context';
+import type { AnimationGroupContext } from './animation-group-context';
 import { extractAnimationTarget } from './animation-target-build-helpers';
 import {
 	extractColorAnimation,
@@ -87,7 +89,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				return undefined;
 			}
 
-			this.walkTimingTree(rootPar as XmlObject, animations, 'onClick');
+			this.walkTimingTree(rootPar as XmlObject, animations, 'onClick', createGroupContext());
 
 			// Parse interactive sequences (sibling p:seq nodes with trigger shape)
 			this.parseInteractiveSequences(rootPar as XmlObject, animations);
@@ -165,11 +167,15 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 	 * @param node - Current XML node in the timing tree.
 	 * @param animations - Mutable array to collect discovered animations.
 	 * @param currentTrigger - Inherited trigger type from parent context.
+	 * @param group - Click-group / effect-wrapper context inherited from the
+	 *        parent node. See `animation-group-context` for why the flat list
+	 *        needs it.
 	 */
 	private walkTimingTree(
 		node: XmlObject,
 		animations: PptxNativeAnimation[],
 		currentTrigger: PptxAnimationTrigger,
+		group: AnimationGroupContext = createGroupContext(),
 	): void {
 		if (!node) {
 			return;
@@ -306,25 +312,37 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					textTarget: textTarget ?? undefined,
 					cTnAttributes: roundTripAttrs,
 					afterEffect: afterEffectFlag,
+					groupAutoStart: group.groupAutoStart,
+					parGroupIndex: group.parGroupIndex,
 				});
 			}
 
-			// Recurse into child containers (parallel, sequence, exclusive)
+			// Recurse into child containers (parallel, sequence, exclusive).
+			// A direct `p:par` child of the mainSeq is a click step, so its own
+			// start conditions decide whether that step waits for a click.
 			const childTnList = cTn['p:childTnLst'] as XmlObject | undefined;
 			if (childTnList) {
+				const isClickLevel = isMainSequence(cTn);
 				const parallels = ensureArray(childTnList['p:par']);
 				const sequences = ensureArray(childTnList['p:seq']);
 				const exclusives = ensureArray(childTnList['p:excl']);
 				for (const parallel of parallels) {
-					this.walkTimingTree(parallel, animations, trigger);
+					this.walkTimingTree(
+						parallel,
+						animations,
+						trigger,
+						childGroupContext(group, parallel['p:cTn'] as XmlObject | undefined, {
+							isClickLevelGroup: isClickLevel,
+						}),
+					);
 				}
 				for (const sequence of sequences) {
-					this.walkTimingTree(sequence, animations, trigger);
+					this.walkTimingTree(sequence, animations, trigger, group);
 				}
 				// Exclusive containers: animations are mutually exclusive at runtime
 				for (const excl of exclusives) {
 					const exclAnims: PptxNativeAnimation[] = [];
-					this.walkTimingTree(excl, exclAnims, trigger);
+					this.walkTimingTree(excl, exclAnims, trigger, group);
 					for (const a of exclAnims) {
 						a.exclusive = true;
 						animations.push(a);
@@ -337,10 +355,17 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 		const directParallels = ensureArray(node['p:par']);
 		const directSequences = ensureArray(node['p:seq']);
 		for (const parallel of directParallels) {
-			this.walkTimingTree(parallel, animations, currentTrigger);
+			this.walkTimingTree(
+				parallel,
+				animations,
+				currentTrigger,
+				childGroupContext(group, parallel['p:cTn'] as XmlObject | undefined, {
+					isClickLevelGroup: false,
+				}),
+			);
 		}
 		for (const sequence of directSequences) {
-			this.walkTimingTree(sequence, animations, currentTrigger);
+			this.walkTimingTree(sequence, animations, currentTrigger, group);
 		}
 	}
 

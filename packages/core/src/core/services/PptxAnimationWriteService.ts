@@ -10,6 +10,26 @@ import {
 export type { IPptxAnimationWriteService } from './animation-write-mappings';
 
 /**
+ * Add the condition PowerPoint writes for a click step that begins with the
+ * slide instead of waiting for a click: the indefinite gate stays (a click may
+ * still start it early) and an `onBegin` tie to the main sequence makes it fire
+ * as soon as the show reaches this slide. See `animation-group-context` for the
+ * reading side.
+ */
+function markGroupAutoStart(groupNode: XmlObject | undefined, mainSeqId: number): void {
+	const cTn = groupNode?.['p:cTn'] as XmlObject | undefined;
+	if (!cTn) {
+		return;
+	}
+	cTn['p:stCondLst'] = {
+		'p:cond': [
+			{ '@_delay': 'indefinite' },
+			{ '@_evt': 'onBegin', '@_delay': '0', 'p:tn': { '@_val': String(mainSeqId) } },
+		],
+	};
+}
+
+/**
  * Service that serializes `PptxElementAnimation[]` into valid OOXML
  * `p:timing` XML structures for writing back to .pptx files.
  */
@@ -59,7 +79,8 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 		);
 
 		// Build the animation sequence nodes grouped by trigger
-		const animationNodes = this.buildAnimationSequence(regularAnimations);
+		const { nodes: animationNodes, firstGroupAutoStarts } =
+			this.buildAnimationSequence(regularAnimations);
 		if (animationNodes.length === 0 && interactiveAnimations.length === 0) {
 			return existingRawTiming;
 		}
@@ -67,6 +88,16 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 		// Build the root p:timing structure
 		const rootParId = this.allocateId();
 		const mainSeqId = this.allocateId();
+
+		// PowerPoint gates a click step with a lone `<p:cond delay="indefinite"/>`.
+		// A deck whose FIRST effect is "With/After Previous" starts on slide entry
+		// instead, which PowerPoint records by also tying the step to the main
+		// sequence beginning. Writing only the indefinite gate turned every such
+		// deck into a click-gated one on save, so the reloaded file showed a blank
+		// slide until the viewer clicked (issue #106).
+		if (firstGroupAutoStarts) {
+			markGroupAutoStart(animationNodes[0], mainSeqId);
+		}
 
 		// Build the main sequence container
 		const mainSequenceChildren: XmlObject[] = [];
@@ -144,9 +175,14 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 	 * click-group (p:par container), while afterPrevious/withPrevious
 	 * animations are nested within the current group.
 	 */
-	private buildAnimationSequence(animations: PptxElementAnimation[]): XmlObject[] {
+	private buildAnimationSequence(animations: PptxElementAnimation[]): {
+		nodes: XmlObject[];
+		firstGroupAutoStarts: boolean;
+	} {
 		const clickGroups: XmlObject[][] = [];
 		let currentGroup: XmlObject[] = [];
+		/** Trigger of the effect that opened the first click group. */
+		let firstTrigger: PptxElementAnimation['trigger'];
 
 		for (const anim of animations) {
 			const effectNodes = this.buildEffectNodesForAnimation(anim);
@@ -155,6 +191,7 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 			}
 
 			const trigger = anim.trigger ?? 'onClick';
+			firstTrigger ??= trigger;
 
 			if (trigger === 'onClick' || currentGroup.length === 0) {
 				if (currentGroup.length > 0) {
@@ -173,7 +210,7 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 		}
 
 		// Wrap each click group in a p:par container
-		return clickGroups.map((group) => {
+		const nodes = clickGroups.map((group) => {
 			const groupId = this.allocateId();
 			return {
 				'p:cTn': {
@@ -190,6 +227,11 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 				},
 			} as XmlObject;
 		});
+
+		return {
+			nodes,
+			firstGroupAutoStarts: firstTrigger !== undefined && firstTrigger !== 'onClick',
+		};
 	}
 
 	private buildEffectNodesForAnimation(anim: PptxElementAnimation): XmlObject[] {
