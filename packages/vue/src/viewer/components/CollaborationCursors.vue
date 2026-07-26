@@ -70,6 +70,7 @@ function cursorStyle(cursor: RemoteCursor): CSSProperties {
 			:key="cursor.clientId"
 			class="pptx-vue-collab-cursor"
 			:data-client-id="cursor.clientId"
+			:data-pptx-remote-cursor="cursor.clientId"
 			:style="cursorStyle(cursor)"
 		>
 			<svg

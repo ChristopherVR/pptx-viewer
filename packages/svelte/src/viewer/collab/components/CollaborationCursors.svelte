@@ -27,6 +27,7 @@
 		<div
 			class="pptx-svelte-collab-cursor"
 			data-client-id={cursor.clientId}
+			data-pptx-remote-cursor={cursor.clientId}
 			style={`transform: ${cursorTransform(cursor)}`}
 		>
 			<svg

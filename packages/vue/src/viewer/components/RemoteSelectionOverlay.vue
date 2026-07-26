@@ -27,6 +27,8 @@ import type { RemotePresence } from '../composables/useCollaboration';
 export interface RemoteSelectionBox {
 	/** Stable key (peer clientId + element id). */
 	key: string;
+	/** Id of the outlined element (framework-neutral e2e contract). */
+	elementId: string;
 	/** Peer display name shown in the label chip. */
 	userName: string;
 	/** Outline + chip colour. */
@@ -80,6 +82,7 @@ const boxes = computed<RemoteSelectionBox[]>(() => {
 			}
 			result.push({
 				key: `${peer.clientId}-${id}`,
+				elementId: id,
 				userName: peer.userName,
 				color: peer.color,
 				x: el.x,
@@ -118,6 +121,7 @@ function boxStyle(box: RemoteSelectionBox): CSSProperties {
 			:key="box.key"
 			class="pptx-vue-remote-selection"
 			:data-element-id="box.key"
+			:data-pptx-remote-selection="box.elementId"
 			:style="boxStyle(box)"
 		>
 			<span class="pptx-vue-remote-selection-label" :style="{ backgroundColor: box.color }">

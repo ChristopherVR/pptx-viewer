@@ -41,6 +41,9 @@ export function createCollaborationCursors(doc: Document): CollaborationCursors 
 	function buildNode(clientId: number | string): CursorNode {
 		const root = createEl(doc, 'div', 'pptxv-collab-cursor');
 		root.dataset.clientId = String(clientId);
+		// Framework-neutral e2e contract: every binding tags its remote cursor
+		// nodes, whose top-left corner is the pointer tip.
+		root.dataset.pptxRemoteCursor = String(clientId);
 		const svg = createSvgEl(doc, 'svg', {
 			width: 20,
 			height: 22,

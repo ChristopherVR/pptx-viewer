@@ -71,6 +71,9 @@ export function RemoteSelectionOverlay({
 				<div
 					key={`remote-sel-${sel.element.id}`}
 					data-testid={`remote-selection-${sel.element.id}`}
+					// Framework-neutral e2e contract: every binding tags its remote
+					// selection boxes with the id of the element they outline.
+					data-pptx-remote-selection={sel.element.id}
 					data-export-ignore='true'
 					className='absolute pointer-events-none'
 					style={{

@@ -11,6 +11,8 @@ import type { SanitizedPresence } from 'pptx-viewer-shared';
 export interface RemoteSelectionBox {
 	/** Stable key (peer clientId + element id). */
 	key: string;
+	/** Id of the outlined element (framework-neutral e2e contract). */
+	elementId: string;
 	/** Peer display name shown in the label chip. */
 	userName: string;
 	/** Outline + chip colour. */
@@ -48,6 +50,7 @@ export function resolveRemoteSelectionBoxes(
 		}
 		boxes.push({
 			key: `${peer.clientId}-${element.id}`,
+			elementId: element.id,
 			userName: peer.userName,
 			color: peer.userColor,
 			x: element.x,

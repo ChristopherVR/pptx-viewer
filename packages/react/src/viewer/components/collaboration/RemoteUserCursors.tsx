@@ -60,6 +60,9 @@ export function RemoteUserCursors({
 					key={user.clientId}
 					transform={`translate(${user.cursorX}, ${user.cursorY})`}
 					data-testid={`remote-cursor-${user.clientId}`}
+					// Framework-neutral e2e contract: every binding tags its remote
+					// cursor nodes, whose top-left corner is the pointer tip.
+					data-pptx-remote-cursor={user.clientId}
 				>
 					{/* Cursor arrow */}
 					<path

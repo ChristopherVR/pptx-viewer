@@ -82,6 +82,9 @@ export function createRemoteSelectionOverlay(doc: Document): RemoteSelectionOver
 					node = buildNode(key);
 					nodes.set(key, node);
 				}
+				// Framework-neutral e2e contract: every binding tags its remote
+				// selection boxes with the id of the element they outline.
+				node.root.dataset.pptxRemoteSelection = element.id;
 				node.root.style.transform = `translate(${element.x * scale}px, ${element.y * scale}px)`;
 				node.root.style.width = `${element.width * scale}px`;
 				node.root.style.height = `${element.height * scale}px`;

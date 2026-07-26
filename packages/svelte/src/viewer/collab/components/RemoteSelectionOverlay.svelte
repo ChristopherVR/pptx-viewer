@@ -34,7 +34,12 @@
 
 <div class="pptx-svelte-remote-selections" aria-hidden="true" data-export-ignore="true">
 	{#each boxes as box (box.key)}
-		<div class="pptx-svelte-remote-selection" data-selection-key={box.key} style={boxStyle(box)}>
+		<div
+			class="pptx-svelte-remote-selection"
+			data-selection-key={box.key}
+			data-pptx-remote-selection={box.elementId}
+			style={boxStyle(box)}
+		>
 			<span class="pptx-svelte-remote-selection-label" style={`background-color: ${box.color}`}>
 				{formatCursorLabel(box.userName)}
 			</span>
