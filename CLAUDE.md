@@ -259,6 +259,12 @@ real heredoc or `git commit -F <file>`; do **not** wrap the message in
 characters leak into the subject and break Conventional Commit parsing. End
 commit messages with the required `Co-Authored-By:` trailer.
 
+**Never include a Claude chat share link.** Do not add a `claude.ai/chat/...`
+(or any other Claude conversation) URL to a commit message, PR body, issue
+comment, changelog entry, code comment or doc. Those links are session-scoped
+and mean nothing to a reader of this repository. The `Co-Authored-By:` trailer
+is the only attribution that belongs in a commit.
+
 ## Tech Stack
 
 - **TypeScript 6.0** (strict mode), **Bun** (package manager/runtime), **tsup** (bundler → ESM + CJS)
