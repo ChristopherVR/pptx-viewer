@@ -3,6 +3,7 @@ import { createPresentationKeyBuffer, mapPresentationKey } from 'pptx-viewer-sha
 import { useEffect, useRef } from 'react';
 
 import type { ViewerMode } from '../../types';
+import { acceptsPresentationInput } from './audience-content-store';
 
 // ---------------------------------------------------------------------------
 // Sub-hook interface
@@ -68,7 +69,10 @@ export function usePresentationKeyboard(input: UsePresentationKeyboardInput): vo
 	const keyBufferRef = useRef(createPresentationKeyBuffer());
 
 	useEffect(() => {
-		if (mode !== 'present') {
+		// An audience display mirrors the presenter's screen. If its own keyboard
+		// navigated, a stray key moved it off the presenter's slide and the next
+		// snapshot yanked it back, which reads as the display refusing to advance.
+		if (mode !== 'present' || !acceptsPresentationInput()) {
 			keyBufferRef.current = createPresentationKeyBuffer();
 			return;
 		}

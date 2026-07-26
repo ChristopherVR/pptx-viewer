@@ -7,6 +7,7 @@
  * surface for React's presentation-mode hooks.
  */
 export {
+	acceptsPresentationInput,
 	clearAudienceContent,
 	endAudienceDisplay,
 	loadAudienceContent,

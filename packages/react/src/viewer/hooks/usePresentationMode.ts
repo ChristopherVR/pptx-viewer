@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 
+import { acceptsPresentationInput } from './presentation-mode/audience-content-store';
 import type {
 	PresentationTransitionOverlayState,
 	SlideAdvanceTrigger,
@@ -81,6 +82,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		handleHoverStart,
 		handleHoverEnd,
 		runPresentationEntranceAnimations,
+		isSeededCompleted,
 		presentationTimersRef,
 	} = useAnimationPlayback({ slides, onPlayActionSound, showWithAnimation });
 
@@ -104,6 +106,15 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		setPresentationStartTime,
 		setPresenterMode,
 	});
+
+	// Leaving the show for ANY reason also ends the presenter console. Without
+	// this the console stayed "open" after the show exited, so the audience
+	// window was never told to close and sat on the last slide indefinitely.
+	useEffect(() => {
+		if (mode !== 'present') {
+			setPresenterMode(false);
+		}
+	}, [mode]);
 
 	// Advancing past the last slide either shows the black end-of-show
 	// screen (PowerPoint's "End with black slide") or exits directly.
@@ -146,6 +157,12 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	// show and a backward advance returns to the last slide.
 	const movePresentationSlide = useCallback(
 		(direction: 1 | -1, trigger: SlideAdvanceTrigger = 'explicit') => {
+			// An audience display mirrors the presenter and never drives itself: a
+			// tap or swipe of its own would move it off the presenter's slide, and
+			// the next snapshot would drag it back.
+			if (!acceptsPresentationInput()) {
+				return;
+			}
 			if (endOfShowVisible) {
 				setEndOfShowVisible(false);
 				if (direction === 1) {
@@ -153,9 +170,23 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 				}
 				return;
 			}
+			// A slide entered backward shows its builds already complete. The next
+			// back press replays them from the start rather than leaving the slide,
+			// so a presenter who overshot can watch the build again (PowerPoint).
+			if (direction === -1 && isSeededCompleted()) {
+				runPresentationEntranceAnimations(presentationSlideIndex);
+				return;
+			}
 			moveNavigationSlide(direction, trigger);
 		},
-		[endOfShowVisible, moveNavigationSlide, onSetMode],
+		[
+			endOfShowVisible,
+			isSeededCompleted,
+			moveNavigationSlide,
+			onSetMode,
+			presentationSlideIndex,
+			runPresentationEntranceAnimations,
+		],
 	);
 
 	const { handleZoomClick, zoomReturnSlideIndex, returnToZoomSlide, clearZoomReturn } =

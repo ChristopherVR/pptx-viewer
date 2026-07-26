@@ -19,6 +19,19 @@ export interface UseAnimationPlaybackInput {
 	showWithAnimation?: boolean;
 }
 
+/** How a slide's animation timeline should be seeded when it becomes active. */
+export interface SeedSlideAnimationOptions {
+	/**
+	 * Seed the slide as fully built instead of playing it from the start.
+	 *
+	 * PowerPoint shows a slide you step BACKWARD onto with its builds already
+	 * complete; a further back press then walks them off. Replaying from zero
+	 * made a deck whose opening build auto-starts restart every time the
+	 * presenter stepped back onto it.
+	 */
+	completed?: boolean;
+}
+
 export interface UseAnimationPlaybackResult {
 	presentationAnimations: PresentationAnimationRuntime[];
 	presentationElementStates: Map<string, ElementAnimationState>;
@@ -30,7 +43,16 @@ export interface UseAnimationPlaybackResult {
 	handleInteractiveShapeClick: (shapeId: string) => boolean;
 	handleHoverStart: (shapeId: string) => boolean;
 	handleHoverEnd: (shapeId: string) => void;
-	runPresentationEntranceAnimations: (slideIndex: number) => void;
+	runPresentationEntranceAnimations: (
+		slideIndex: number,
+		options?: SeedSlideAnimationOptions,
+	) => void;
+	/**
+	 * True while the active slide is showing its builds as already complete
+	 * because the presenter stepped backward onto it. The next backward press
+	 * replays the slide instead of leaving it (PowerPoint's behaviour).
+	 */
+	isSeededCompleted: () => boolean;
 	/** Exposed so the orchestrator can schedule additional timers (e.g. auto-advance). */
 	presentationTimersRef: React.RefObject<number[]>;
 }
@@ -61,6 +83,8 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 	const controllerRef = useRef<PresentationAnimationController | null>(null);
 	/** In-flight requestAnimationFrame id for the active staged-build reveal. */
 	const buildRafRef = useRef<number | null>(null);
+	/** Whether the active slide was seeded as fully built (backward entry). */
+	const seededCompletedRef = useRef(false);
 
 	// -----------------------------------------------------------------------
 	// Staged chart / SmartArt build reveal (RAF-driven)
@@ -296,7 +320,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 	// -----------------------------------------------------------------------
 
 	const runPresentationEntranceAnimations = useCallback(
-		(slideIndex: number) => {
+		(slideIndex: number, options?: SeedSlideAnimationOptions) => {
 			clearPresentationTimers();
 
 			// When animations are disabled, skip timeline and entrance animations
@@ -313,6 +337,23 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			resetSlideTimeline(slideIndex);
 			const slide = slides[slideIndex];
 			if (!slide) {
+				setPresentationAnimations([]);
+				return;
+			}
+
+			// Stepping backward onto a slide shows it with every build already
+			// complete, the way PowerPoint does; nothing plays and nothing is
+			// scheduled, so a further back press can walk the builds off.
+			seededCompletedRef.current = false;
+			if (options?.completed) {
+				const seeded = controllerRef.current;
+				if (seeded) {
+					// Only a slide that actually has builds can be "already built": on
+					// a slide with none, a back press should just keep going back.
+					seededCompletedRef.current = seeded.hasMoreSteps();
+					seeded.completeAll();
+					setPresentationElementStates(seeded.computeStates());
+				}
 				setPresentationAnimations([]);
 				return;
 			}
@@ -395,6 +436,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 		handleHoverStart,
 		handleHoverEnd,
 		runPresentationEntranceAnimations,
+		isSeededCompleted: () => seededCompletedRef.current,
 		presentationTimersRef,
 	};
 }

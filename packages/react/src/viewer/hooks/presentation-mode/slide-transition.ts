@@ -2,6 +2,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import { resolveTransitionDurationMs } from 'pptx-viewer-shared';
 
 import type { PresentationTransitionOverlayState } from './types';
+import type { SeedSlideAnimationOptions } from './useAnimationPlayback';
 
 // ---------------------------------------------------------------------------
 // Shared slide transition logic
@@ -15,7 +16,10 @@ export interface SlideTransitionDeps {
 	clearPresentationTimers: () => void;
 	setPresentationSlideIndex: (index: number) => void;
 	onSetActiveSlideIndex: (index: number) => void;
-	runPresentationEntranceAnimations: (slideIndex: number) => void;
+	runPresentationEntranceAnimations: (
+		slideIndex: number,
+		options?: SeedSlideAnimationOptions,
+	) => void;
 	scheduleAutoAdvanceForSlide?: (slideIndex: number) => void;
 	presentationTimersRef: { current: number[] };
 	/** Mount the transition overlay (or clear it with `null`). */
@@ -26,6 +30,12 @@ export interface SlideTransitionDeps {
 	 * jumps are instant.
 	 */
 	playTransition: boolean;
+	/**
+	 * Seed the incoming slide as fully built rather than replaying it. Set when
+	 * stepping BACKWARD onto a slide, which PowerPoint shows with its builds
+	 * already complete.
+	 */
+	seedCompleted?: boolean;
 }
 
 /**
@@ -64,7 +74,9 @@ export function executeSlideTransition(nextSlideIndex: number, deps: SlideTransi
 			durationMs,
 		});
 		const timer = window.setTimeout(() => {
-			deps.runPresentationEntranceAnimations(nextSlideIndex);
+			deps.runPresentationEntranceAnimations(nextSlideIndex, {
+				completed: deps.seedCompleted,
+			});
 			deps.scheduleAutoAdvanceForSlide?.(nextSlideIndex);
 		}, durationMs);
 		deps.presentationTimersRef.current.push(timer);
@@ -73,6 +85,6 @@ export function executeSlideTransition(nextSlideIndex: number, deps: SlideTransi
 
 	// Instant transition (none / cut / backward / jump): reveal at once.
 	deps.setTransitionOverlay(null);
-	deps.runPresentationEntranceAnimations(nextSlideIndex);
+	deps.runPresentationEntranceAnimations(nextSlideIndex, { completed: deps.seedCompleted });
 	deps.scheduleAutoAdvanceForSlide?.(nextSlideIndex);
 }

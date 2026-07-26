@@ -88,10 +88,15 @@ export function PresenterNotesRail({
 				<span className='font-mono text-sm tabular-nums'>
 					{current + 1} / {slides.length}
 				</span>
+				{/*
+				 * Next stays live on the last slide. PowerPoint's console advances
+				 * from there to the end-of-show screen and then out of the show;
+				 * disabling it stranded the presenter on the final slide with no way
+				 * to finish, so the audience display never closed either.
+				 */}
 				<button
 					type='button'
 					onClick={() => onMove(1)}
-					disabled={current >= slides.length - 1}
 					className='inline-flex items-center gap-1 rounded bg-muted px-3 py-1.5 text-xs disabled:opacity-40'
 				>
 					{t('pptx.presenter.next')} <LuChevronRight />

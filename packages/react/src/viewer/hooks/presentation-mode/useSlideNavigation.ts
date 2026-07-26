@@ -220,6 +220,8 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				setTransitionOverlay,
 				// PowerPoint plays a slide's transition only when advancing into it.
 				playTransition: direction === 1,
+				// Stepping back onto a slide shows it with its builds already played.
+				seedCompleted: direction === -1,
 			});
 		},
 		[

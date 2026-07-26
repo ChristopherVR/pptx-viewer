@@ -127,7 +127,9 @@ describe('executeSlideTransition', () => {
 		expect(deps.runPresentationEntranceAnimations).not.toHaveBeenCalled();
 
 		vi.advanceTimersByTime(300);
-		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1);
+		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1, {
+			completed: undefined,
+		});
 		expect(deps.scheduleAutoAdvanceForSlide).toHaveBeenCalledWith(1);
 	});
 
@@ -142,7 +144,9 @@ describe('executeSlideTransition', () => {
 		executeSlideTransition(1, deps);
 		expect(deps.setTransitionOverlay).toHaveBeenCalledWith(null);
 		// Instant: entrance runs synchronously, no deferred timer.
-		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1);
+		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1, {
+			completed: undefined,
+		});
 		expect(deps.scheduleAutoAdvanceForSlide).toHaveBeenCalledWith(1);
 		expect(deps.presentationTimersRef.current).toHaveLength(0);
 	});
@@ -156,7 +160,9 @@ describe('executeSlideTransition', () => {
 		});
 		executeSlideTransition(1, deps);
 		expect(deps.setTransitionOverlay).toHaveBeenCalledWith(null);
-		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1);
+		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1, {
+			completed: undefined,
+		});
 	});
 
 	it('reveals the slide instantly when it has no transition at all', () => {
@@ -165,7 +171,9 @@ describe('executeSlideTransition', () => {
 		});
 		executeSlideTransition(1, deps);
 		expect(deps.setTransitionOverlay).toHaveBeenCalledWith(null);
-		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1);
+		expect(deps.runPresentationEntranceAnimations).toHaveBeenCalledWith(1, {
+			completed: undefined,
+		});
 		expect(deps.presentationTimersRef.current).toHaveLength(0);
 	});
 });
