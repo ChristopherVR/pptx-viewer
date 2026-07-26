@@ -66,7 +66,7 @@ difference decides whether your edit is live on reload or needs a build first.
 | Specifier                     | react      | vue        | angular      | vanilla    | svelte     |
 | ----------------------------- | ---------- | ---------- | ------------ | ---------- | ---------- |
 | the binding (`pptx-*-viewer`) | source     | source     | **`dist`**   | source     | source     |
-| `pptx-viewer-core`            | source     | source     | source       | source     | source     |
+| `pptx-viewer-core`            | source     | source     | **`dist`**   | source     | source     |
 | `pptx-viewer-shared`          | **`dist`** | source     | **vendored** | source     | source     |
 | `pptx-viewer-locales`         | source     | source     | **`dist`**   | source     | source     |
 | `pptx-viewer-mcp`             | **`dist`** | **`dist`** | **`dist`**   | **`dist`** | **`dist`** |
@@ -79,7 +79,17 @@ output, so **source edits are invisible until you build that package**:
   screen until `bun run build` in `packages/angular`. This is the single most
   common way to waste an hour concluding "my change doesn't work in Angular".
   Angular also vendors shared source into `src/internal/shared-src` at build
-  time, so shared edits need the same rebuild.
+  time, so shared edits need the same rebuild. **Its `pptx-viewer-core` is
+  `dist` too**: the demo never aliases core, unlike the other four, so a core
+  edit needs `bun run --filter pptx-viewer-core build` before this demo sees it
+  at all. Core is also in the demo's `optimizeDeps.include`, so vite pre-bundles
+  it into `demos/demo-angular/node_modules/.vite/deps/pptx-viewer-core.js`; that
+  copy normally re-optimises when core's dist changes, but it has been observed
+  serving a stale core anyway (a long-running server on Windows, where the
+  watcher does not always see writes through the workspace symlink). If Angular
+  alone disagrees with the other four demos, delete that demo's
+  `node_modules/.vite` and restart before suspecting your code.
+  `e2e/dist-freshness.ts` checks both axes before every e2e run.
 - **`pptx-viewer-mcp`** (`packages/tools`) is aliased by no demo. It is reachable
   from the browser because `packages/shared/src/ai/tools/mcp-registry.ts` imports
   it, so a **stale `packages/tools/dist` breaks all five demos at once** with
