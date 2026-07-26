@@ -246,6 +246,22 @@ export function renderTextSegments(
 			renderedSegments,
 			paraSegments,
 			subElementAnimStates,
+			// A staged build splits the paragraph but must not flatten it: each
+			// piece is re-rendered through the SAME segment renderer, so it keeps
+			// its run's font, size, colour and decoration while it animates.
+			({ segment, globalIndex }, text) =>
+				renderSingleSegment(
+					element,
+					{ ...segment, text },
+					globalIndex,
+					fallbackColor,
+					findHighlights,
+					undefined,
+					onHyperlinkClick,
+					fieldContext,
+					paraRtl,
+					requireCtrlClick,
+				),
 		);
 
 		if (!needsWrapper) {

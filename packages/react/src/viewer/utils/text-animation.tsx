@@ -1,4 +1,5 @@
 import type { TextStyle, BulletInfo } from 'pptx-viewer-core';
+import { buildTextBuildSpec, textBuildSpanStyle } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { TEXT_BUILD_ID_SEP } from './animation-timeline';
@@ -25,6 +26,13 @@ export interface ParagraphEntry {
 }
 
 /**
+ * Render one piece of a split paragraph: the caller re-renders `entry`'s
+ * segment with `text` substituted, so the piece keeps the run's font, size,
+ * colour, decoration and hyperlink.
+ */
+export type RenderTextBuildPiece = (entry: ParagraphEntry, text: string) => React.ReactNode;
+
+/**
  * Build inline style for a sub-element animation state (visibility + CSS animation).
  */
 export function buildAnimStyle(
@@ -49,6 +57,12 @@ export function buildAnimStyle(
  *
  * If no sub-element states exist for this element, returns the rendered
  * segments unchanged (zero overhead in the default case).
+ *
+ * Word / character builds delegate the split to `pptx-viewer-shared`'s
+ * `buildTextBuildSpec`, which carries each piece's ORIGINATING RUN through.
+ * React used to concatenate the paragraph into one plain string and emit bare
+ * spans, so a by-letter title lost its font, size, colour and weight for the
+ * whole show; the other four bindings already rendered through the shared spec.
  */
 export function wrapWithTextBuildAnimation(
 	elementId: string,
@@ -56,6 +70,7 @@ export function wrapWithTextBuildAnimation(
 	renderedSegments: React.ReactNode[],
 	paraSegments: ReadonlyArray<ParagraphEntry>,
 	subElementAnimStates: ReadonlyMap<string, ElementAnimationState> | undefined,
+	renderPiece?: RenderTextBuildPiece,
 ): React.ReactNode {
 	if (!subElementAnimStates || subElementAnimStates.size === 0) {
 		return renderedSegments;
@@ -73,82 +88,30 @@ export function wrapWithTextBuildAnimation(
 		);
 	}
 
-	// ── Word-level build ──
-	const firstWordKey = `${elementId}${TEXT_BUILD_ID_SEP}w${paraIndex}-0`;
-	if (subElementAnimStates.has(firstWordKey)) {
-		return wrapByWord(elementId, paraIndex, paraSegments, subElementAnimStates);
+	const spec = buildTextBuildSpec<ParagraphEntry>(
+		elementId,
+		paraIndex,
+		paraSegments.map((entry) => ({ text: entry.segment.text, style: entry })),
+		subElementAnimStates,
+	);
+	if (!spec?.spans) {
+		return renderedSegments;
 	}
 
-	// ── Character-level build ──
-	const firstCharKey = `${elementId}${TEXT_BUILD_ID_SEP}c${paraIndex}-0`;
-	if (subElementAnimStates.has(firstCharKey)) {
-		return wrapByChar(elementId, paraIndex, paraSegments, subElementAnimStates);
-	}
-
-	return renderedSegments;
-}
-
-/**
- * Split paragraph text into words and wrap each in an animated span.
- */
-function wrapByWord(
-	elementId: string,
-	paraIndex: number,
-	paraSegments: ReadonlyArray<ParagraphEntry>,
-	states: ReadonlyMap<string, ElementAnimationState>,
-): React.ReactNode {
-	// Concatenate paragraph text to split by word boundaries
-	const fullText = paraSegments.map((e) => e.segment.text).join('');
-	const words = fullText.split(/(\s+)/);
-	let wordIdx = 0;
-	const nodes: React.ReactNode[] = [];
-
-	for (let i = 0; i < words.length; i++) {
-		const w = words[i];
-		if (!w) {
-			continue;
+	return spec.spans.map((span, index) => {
+		const content = span.style && renderPiece ? renderPiece(span.style, span.text) : span.text;
+		if (!span.animId) {
+			// Whitespace between words: emitted verbatim, never animated.
+			return <React.Fragment key={`ws-${index}`}>{content}</React.Fragment>;
 		}
-		const isWhitespace = /^\s+$/.test(w);
-		if (isWhitespace) {
-			nodes.push(<React.Fragment key={`ws-${i}`}>{w}</React.Fragment>);
-			continue;
-		}
-		const key = `${elementId}${TEXT_BUILD_ID_SEP}w${paraIndex}-${wordIdx}`;
-		const state = states.get(key);
-		const style = buildAnimStyle(state);
-		nodes.push(
-			<span key={key} data-anim-id={key} style={{ display: 'inline', ...style }}>
-				{w}
-			</span>,
+		return (
+			<span
+				key={span.animId}
+				data-anim-id={span.animId}
+				style={textBuildSpanStyle(span) as React.CSSProperties}
+			>
+				{content}
+			</span>
 		);
-		wordIdx++;
-	}
-
-	return nodes;
-}
-
-/**
- * Split paragraph text into characters and wrap each in an animated span.
- */
-function wrapByChar(
-	elementId: string,
-	paraIndex: number,
-	paraSegments: ReadonlyArray<ParagraphEntry>,
-	states: ReadonlyMap<string, ElementAnimationState>,
-): React.ReactNode {
-	const fullText = paraSegments.map((e) => e.segment.text).join('');
-	const nodes: React.ReactNode[] = [];
-
-	for (let i = 0; i < fullText.length; i++) {
-		const key = `${elementId}${TEXT_BUILD_ID_SEP}c${paraIndex}-${i}`;
-		const state = states.get(key);
-		const style = buildAnimStyle(state);
-		nodes.push(
-			<span key={key} data-anim-id={key} style={{ display: 'inline', ...style }}>
-				{fullText[i]}
-			</span>,
-		);
-	}
-
-	return nodes;
+	});
 }
